@@ -88,6 +88,8 @@ const ICONS = {
   target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
   trend:'<path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/>',
   network:'<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5V12m0 0-5.2 5m5.2-5 5.2 5"/>',
+  /* the ⌘ mark of Explorer's "Try on the map" rows (P-40, as drawn, 21 Nov 2026): a suggestion that redraws the map */
+  cmd:'<path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"/>',
   share:'<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="m16 6-4-4-4 4"/><path d="M12 2v13"/>',
   filter:'<path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>',
   sort:'<path d="M7 4v16M3 8l4-4 4 4M17 20V4M21 16l-4 4-4-4"/>',
@@ -1588,7 +1590,7 @@ function jov5ContractRow(c, v, extra){
   return Object.assign({ mark: 'mkTick', tone: 'green', t: (c && (c.name || c.id)) || '', s: (c && c.counterparty) || '', v: v || '', run: () => jov5Open(c.id) }, extra || {});
 }
 /* the five parts, drawn (jamboOverviewHtml hands over its slot's run list, so presses resolve as every other) */
-var JOV5_TONES = { amber: 1, green: 1, dark: 1, red: 1, violet: 1 };
+var JOV5_TONES = { amber: 1, green: 1, dark: 1, red: 1, violet: 1, steel: 1 };
 /* THE FIVE PARTS' HEAD AND MARK, for a face that draws its own body (a contract's faces, round 3b): the same eyebrow,
    serif headline and sentence, the same round mark in its tone, so a contract's panel and a page's read alike */
 function jov5HeadHtml(o){
@@ -1944,7 +1946,9 @@ function jovPageKeyOf(el){
     const c = pdContract(); if (c && c.id) return 'c'; }
   const v = String(st.view || '');
   const face = (v === 'dashboard' && typeof window.hbFace === 'function') ? ':' + hbFace() : '';
-  return 'v:' + v + face;
+  /* Read down is its own page on the Board's face (P-41: it arrives with its panel, on the same rare beat) */
+  const rd = face && typeof window.hbRdnUp === 'function' && window.hbRdnUp() ? ':rd' : '';
+  return 'v:' + v + face + rd;
 }
 function jovMoves(el){
   if (el.matches('.pd2-card.is-five, .pd2-sg.is-five')) return true;
@@ -1953,7 +1957,8 @@ function jovMoves(el){
 }
 /* the numbers count up from nothing to what they say (a leading whole number only; "697M" counts 0…697, then M) */
 function jovCountUp(el){
-  el.querySelectorAll('.jov5-g b').forEach(b => {
+  /* the tiles' numbers, and the Board panel's ring ("4/12" counts 0…4, as drawn, P-39) */
+  el.querySelectorAll('.jov5-g b, .hbw2-ring > b').forEach(b => {
     const m = String(b.textContent || '').match(/^(\d{1,6})(\D.*)?$/); if (!m) return;
     const to = Number(m[1]), rest = m[2] || ''; if (!to) return;
     const t0 = performance.now(), dur = 700, delay = 160;
@@ -1966,7 +1971,13 @@ function jovPlay(el){
   el.querySelectorAll('.jov5-day, .jov5-cm, .pd2-sg-i, .pd2-spine.is-steps i').forEach((x, j) => x.style.setProperty('--jov-j', String(j)));
   el.classList.add('jov-arrive');
   jovCountUp(el);
-  setTimeout(() => { try { el.classList.remove('jov-arrive'); } catch (_){} }, 2200);
+  /* the Board's own figures, lines and bar join its panel's arrival (P-39), never on their own */
+  if (el.getAttribute('data-jov-slot') === 'hb' && typeof window.hbArrivePage === 'function') try { window.hbArrivePage(); } catch (_){}
+  /* READ DOWN ARRIVES WITH ITS PANEL (P-41, as drawn): when its panel plays, the sheet's sentences rise in one after
+     another, their graphics draw and the quarter bars grow — on the same rare beat, never on its own */
+  const sheet = el.getAttribute('data-jov-slot') === 'rdn' && document.getElementById('rd-page');
+  if (sheet){ sheet.querySelectorAll('.rd-row, .rd-q').forEach((x, i) => x.style.setProperty('--rd-i', String(i))); sheet.classList.add('rd-arrive'); }
+  setTimeout(() => { try { el.classList.remove('jov-arrive'); if (sheet) sheet.classList.remove('rd-arrive'); } catch (_){} }, 2200);
 }
 /* AN ARRIVAL IS A NEW PAGE, NOT A NEW ELEMENT: the panel a page keeps unchanged is not drawn again (NOTHING CHANGED,
    NOTHING WRITTEN), so the watcher asks which page the panel in sight belongs to; a page different from the last one

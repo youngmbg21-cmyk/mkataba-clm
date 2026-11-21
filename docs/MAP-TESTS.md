@@ -991,3 +991,7 @@ f1092, f1093 (2), f977 (1) (4), f982 3 re-pointed; browser: approve-on-row-verif
 
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE — Contracts L+S (P-31)
 f1070 (3), f989 3, f997 (1), f998 (3) re-pointed.
+
+## INSIGHTS — EXPLORER'S PANEL AS DRAWN (P-40, 21 Nov 2026)
+- test/chromium/explorer-chips-follow-the-view-verify.js 3e, 3f: the Grid's rows, a pairing first and no money
+  shading in the panel; shaded by money, "Shade the cells by how many" second.

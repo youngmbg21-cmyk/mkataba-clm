@@ -122,7 +122,8 @@ const CONTRACTS = [
        headline (.jov5-title), the count under it its sub line (.jov5-sub) */
     const two = await page.evaluate(() => { const o = document.querySelector('#ig-dock .hb-jb-hello .jov'); const t = s => ((o && o.querySelector(s)) || {}).textContent || '';
       return { tab: ((document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || ''), where: (t('.jov5-title') + ' ' + t('.jov5-sub')).replace(/\s+/g, ' ').trim(), chip: !!(o && o.querySelector('[data-igsug="what needs me"]')) }; });
-    const saysN = new RegExp(`(^|\\s)${one.n} (things? needs? you today|needs? you in all)\\.`);
+    /* RE-POINTED 21 Nov 2026 (P-39, as drawn): one sentence, "13 need you in all; the oldest has waited 2 days." */
+    const saysN = new RegExp(`(^|\\s)${one.n} (things? needs? you today|needs? you in all)[.;]`);
     ok('2a his Overview tab carries no number of its own (the number is in his welcome)', said && !two.tab && saysN.test(two.where), JSON.stringify(two));
     ok('2b the welcome says how many things need you', saysN.test(two.where), two.where);
     ok('2c "what needs me" stands under "Ask me"', two.chip, String(two.chip));

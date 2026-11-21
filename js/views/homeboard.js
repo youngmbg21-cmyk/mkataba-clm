@@ -94,10 +94,15 @@ function hbFigToggle(k){
 }
 function hbFigPickHtml(money){
   const s = hbS(); const cur = Array.isArray(s.figs) && s.figs.length ? s.figs : HB_FIGS_DEFAULT, full = cur.length >= HB_FIGS_MAX;
-  const rows = HB_FIGS.filter(f => !f.money || money).map(f => { const on = cur.includes(f.k), dead = !on && full;
-    return `<label class="hb-fp-row${dead ? ' is-dead' : ''}"${dead ? ` title="${_hbE(i18t('hb_figs_full'))}"` : ''}><input type="checkbox" data-hb-figkey="${f.k}"${on ? ' checked' : ''}${dead ? ' disabled' : ''}><span>${_hbE(i18t(f.word))}</span>${f.money ? `<em class="hb-fp-money">${_hbE(i18t('hb_figs_money'))}</em>` : ''}</label>`; }).join('');
+  /* AS DRAWN (P-39, 21 Nov 2026): the usual four first, the others after, the money figure LAST ("only with money
+     rights"); an unticked figure's name is grey; the head names the list, "N of 4" a soft badge beside it, the rule
+     under it */
+  const order = HB_FIGS_DEFAULT.map(k => HB_FIGS.find(f => f.k === k)).filter(Boolean)
+    .concat(HB_FIGS.filter(f => !HB_FIGS_DEFAULT.includes(f.k) && !f.money), HB_FIGS.filter(f => f.money && !HB_FIGS_DEFAULT.includes(f.k)));
+  const rows = order.filter(f => !f.money || money).map(f => { const on = cur.includes(f.k), dead = !on && full;
+    return `<label class="hb-fp-row${on ? '' : ' is-off'}${dead ? ' is-dead' : ''}"${dead ? ` title="${_hbE(i18t('hb_figs_full'))}"` : ''}><input type="checkbox" data-hb-figkey="${f.k}"${on ? ' checked' : ''}${dead ? ' disabled' : ''}><span>${_hbE(i18t(f.word))}</span>${f.money ? `<em class="hb-fp-money">${_hbE(i18t('hb_figs_money'))}</em>` : ''}</label>`; }).join('');
   const n = Math.min(cur.length, HB_FIGS_MAX);
-  return `<div class="hb-figpick" role="dialog" aria-label="${_hbE(i18t('hb_figs_pick'))}"><div class="hb-dp-head">${_hbE(i18t('hb_figs_count', { n, max: HB_FIGS_MAX }))}</div>${rows}`
+  return `<div class="hb-figpick" role="dialog" aria-label="${_hbE(i18t('hb_figs_pick'))}"><div class="hb-fp-head"><b>${_hbE(i18t('hb_figs_title'))}</b><span class="hb-fp-n">${_hbE(i18t('hb_figs_of', { n, max: HB_FIGS_MAX }))}</span></div><div class="hb-dp-head">${_hbE(i18t('hb_figs_rule'))}</div>${rows}`
     + `<div class="hb-fp-foot"><button type="button" class="ui-link" data-hb-figusual>${_hbE(i18t('hb_figs_usual'))}</button><button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-hb-figpick>${_hbE(i18t('act_done'))}</button></div></div>`;
 }
 const HB_FIG_KEYS = HB_FIGS.map(f => f.k);
@@ -563,7 +568,7 @@ function hbSparkHtml(k, fmt, book){
   return `<svg class="hb-spark" viewBox="0 0 ${w} ${ht}" preserveAspectRatio="none" role="img" aria-label="${_hbE(tip)}"><title>${_hbE(tip)}</title>`
     /* a plain line and a dot at its end (round 17 as drawn): the dot is a
        round cap on a point, so the stretched picture keeps it round */
-    + `<path d="${d}" class="hb-spark-l"/><path d="M${e[0].toFixed(1)} ${e[1].toFixed(1)}h0" class="hb-spark-e"/></svg>`;
+    + `<path d="${d}" class="hb-spark-l" pathLength="1"/><path d="M${e[0].toFixed(1)} ${e[1].toFixed(1)}h0" class="hb-spark-e"/></svg>`;
 }
 function hbMoved(d, base){
   const out = {};
@@ -1548,10 +1553,12 @@ function hbBookHtml(d, moved, since){
   /* THE STAGE BAR, THEN ABOVE TODAY: the then bar is history, drawn not pressed */
   const thens = d.stages.map(s => hbStageThen(d, s.k)), thenTot = thens.every(v => v != null) ? thens.reduce((a, v) => a + v, 0) : 0;
   const sw = s => s.word ? i18t(s.word) : s.k;
+  /* the key in sentence case, as drawn (P-39: "Drafting 0 (0) · In review 3 (3) · Executed 10 (10)"); the stage's own word elsewhere */
+  const skw = s => { const w = String(sw(s)); return w.charAt(0) + w.slice(1).toLowerCase(); };
   const thenBar = thenTot ? `<div class="hb-stagerow is-then"><span class="hb-sr-l">${_hbE(thenWord)}</span><div class="hb-stagebar-then" role="img" aria-label="${_hbE(d.stages.map((s, i) => sw(s) + ' ' + _hbN(thens[i])).join(', '))}">${d.stages.map((s, i) => thens[i] ? `<span style="flex-grow:${thens[i]};background:${_hbE(s.tone)}" title="${_hbE(sw(s) + ' · ' + thenWord + ': ' + i18tn('home_map_n_contracts', thens[i], { n: _hbN(thens[i]) }))}"></span>` : '').join('')}</div><span class="hb-sr-n">${_hbN(thenTot)}</span></div>` : '';
   /* AS DRAWN (P-39): "Where all N stand" with "May in brackets" beside it (the key's own note, said once) */
   const bar = tot ? `<div class="hb-where">${_hbE(i18tn('hb_where_all', tot, { n: _hbN(tot) }))}${thenTot ? ` <span class="hb-where-note">${_hbE(i18t('hb_tn_brackets', { m: hbThenWord(true) }))}</span>` : ''}</div><div class="hb-stagerows${thenTot ? ' is-two' : ''}">${thenBar}<div class="hb-stagerow"><span class="hb-sr-l">${_hbE(i18t('hb_tn_today'))}</span><div class="hb-stagebar">${d.stages.map(s => s.n ? `<button type="button" style="flex-grow:${s.n};background:${_hbE(s.tone)}" data-hb-dig="st:${_hbE(s.k)}" title="${_hbE(sw(s) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}" aria-label="${_hbE(sw(s) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}"></button>` : '').join('')}</div><span class="hb-sr-n">${_hbN(tot)}</span></div></div>
-    <div class="hb-stagekey">${d.stages.map((s, i) => `<button type="button" ${s.n ? `data-hb-dig="st:${_hbE(s.k)}"` : 'disabled'}><i style="background:${_hbE(s.tone)}"></i>${_hbE(sw(s))} <b>${_hbN(s.n)}</b>${thenTot ? ` <span class="hb-sk-then">(${_hbN(thens[i])})</span>` : ''}</button>`).join('')}${thenTot ? `<span class="hb-sk-note">${_hbE(i18t('hb_tn_brackets', { m: hbThenWord(true) }))}</span>` : ''}</div>` : '';
+    <div class="hb-stagekey">${d.stages.map((s, i) => `<button type="button" ${s.n ? `data-hb-dig="st:${_hbE(s.k)}"` : 'disabled'}><i style="background:${_hbE(s.tone)}"></i><span class="hb-sk-w">${_hbE(skw(s))} <b>${_hbN(s.n)}</b>${thenTot ? ` <span class="hb-sk-then">(${_hbN(thens[i])})</span>` : ''}</span></button>`).join('')}${thenTot ? `<span class="hb-sk-note">${_hbE(i18t('hb_tn_brackets', { m: hbThenWord(true) }))}</span>` : ''}</div>` : '';
   const count = hbCountLabel(d.lens);
   /* the same rule as the head's chip: the default is never read back */
   const sub = [i18t('hb_tn_sub', { then: thenWord }), count, d.lens === 'all' ? '' : i18t('hb_lens_' + d.lens), since ? i18t('hb_book_since', { when: hbDayWords(since) }) : '', i18t('hb_tn_doors')].filter(Boolean).join(' · ');
@@ -1676,7 +1683,8 @@ function hbBoardHelloHtml(){
   /* the ONE count rules: nothing on the desk is said as nothing, whatever a slower count of his work still holds */
   const say = !n ? i18t('hb_jb_counter_none') : work ? i18tn('hbw_ready', work, { n: work }) : i18tn('hbw_needs', n, { n });
   const old = (n && D && D.oldest != null) ? i18t('nd_oldest', { days: hbNyDays(D.oldest) }) : '';
-  const sub = n && work ? i18tn('hbw_all', n, { n }) + (old ? ' ' + old.charAt(0).toUpperCase() + old.slice(1) + '.' : '') : (n && old) ? old.charAt(0).toUpperCase() + old.slice(1) + '.' : '';
+  /* AS DRAWN (P-39): "13 need you in all; the oldest has waited 2 days." — one sentence */
+  const sub = n && work ? i18tn('hbw_all', n, { n }).replace(/\.\s*$/, '') + (old ? '; ' + old + '.' : '.') : (n && old) ? old.charAt(0).toUpperCase() + old.slice(1) + '.' : '';
   /* a number with nothing behind it is not a door (a dead button never wears a live one's clothes) */
   const cell = (k, num, word, tone) => num
     ? `<button type="button" class="hbw-n${tone ? ' is-' + tone : ''}" data-hbw="${k}"><b>${num}</b><span>${_hbE(word)}</span></button>`
@@ -1712,9 +1720,10 @@ function hbBoardHelloHtml(){
       + `<span class="hbw2-bw"><span class="hbw2-bar">${['late', 'you', 'jambo'].filter(k => cnt[k]).map(k => `<i class="is-${k}" style="flex:${cnt[k]}"></i>`).join('')}</span>`
       + `<span class="hbw2-leg">${['late', 'you', 'jambo'].filter(k => cnt[k]).map(k => `<button type="button" data-hbw="${k === 'jambo' ? 'jambo' : k === 'late' ? 'late' : 'all'}"><i class="is-${k}" aria-hidden="true"></i>${_hbE(i18tn('hbw2_leg_' + k, cnt[k], { n: cnt[k] }))}</button>`).join('')}</span></span></div>` : '';
     const parts = r => { try { return (typeof ndParts === 'function') ? ndParts(r) : {}; } catch (_){ return {}; } };
-    const quote = r => { try { return typeof cn2QuoteHtml === 'function' ? String(cn2QuoteHtml(r)).replace(/<[^>]*>/g, '').replace(/^ · /, '').trim() : ''; } catch (_){ return ''; } };
+    /* the paper's words as drawn: "§ 2 · “The lease ends on 11 October 2026”" (cn2QuoteOf, the one reading the rows use) */
+    const quote = r => { try { const Q = typeof window.cn2QuoteOf === 'function' ? cn2QuoteOf(r).filter(q => q.w) : []; return Q.length ? [Q[0].sec, '\u201c' + Q[0].w + '\u201d'].filter(Boolean).join(' \u00b7 ') : ''; } catch (_){ return ''; } };
     const prep = (B ? B.jambo : []).slice(0, 5).map(r => { const P = parts(r); const q = quote(r);
-      return { mark: '', markText: '', tone: 'violet', t: P.title || P.name || '', s: q || [P.name || P.deal, _ndPlain(P.ref)].filter(Boolean).join(' \u00b7 '), attr: `data-hbw-row="${_hbE(r.key)}"` }; }).filter(x => x.t);
+      return { mark: '', markText: '', tone: 'violet', t: P.title || P.name || '', s: q || [P.name || P.deal, _ndPlain(P.ref)].filter(Boolean).join(' \u00b7 '), quote: !!q, attr: `data-hbw-row="${_hbE(r.key)}"` }; }).filter(x => x.t);
     return `<div class="jl-words is-ov hb-jb-hello is-welcome is-five is-ls">${jamboOverviewHtml({ before: brain, title: say, sub,
       mid: ringBar, midLabel: tot ? i18t('hbw2_wait') : '',
       groups: prep.length ? [{ label: i18t('hbw2_prepared'), rows: prep }] : [],
@@ -1778,7 +1787,6 @@ function hbNeedsPress(kind, id){
    KEEPS THIS CARD (the owner's answer of 18 Oct 2026, after LAND ON IT): Home's
    "Jambo's work" row's Open lands on it, lit (hbOpenAgent → landOn). */
 function hbPrepHtml(A, since){
-  const I = hbInsightsToday();
   /* THE ONE DESK (Round A, the owner picked "The Legora Way", 22 Oct 2026;
      reverses round 17's "Needs you is Home's" for the WHOLE list): this card,
      under Your book, is all of Needs you — Jambo's prepared work and your
@@ -1786,8 +1794,12 @@ function hbPrepHtml(A, since){
      three of each. What was done while you were away, the agents' levels and
      the house's door stay at its foot. It never folds or closes: work owed is
      not hidden. */
-  if (typeof ndBoardHtml !== 'function') return hbInsCardHtml(I);
-  return ndBoardHtml(hbNdOpts(A, since)) + hbInsCardHtml(I);
+  /* TODAY'S INSIGHTS LEFT THE BOARD (P-39, owner 21 Nov 2026: "remove it from the Board — the Board ends after Needs
+     you, as drawn"; its pictures are Explorer's): the shelf is not drawn here any more. Its findings are still counted for
+     the brief's mail (hbMovedOf); hbInsCardHtml stays for the day it is asked for by name. */
+  void hbInsCardHtml;
+  if (typeof ndBoardHtml !== 'function') return '';
+  return ndBoardHtml(hbNdOpts(A, since));
 }
 /* the Board's parts of the card: a piece of Jambo's opened in place, chasing
    many at once (on his tab), and the foot — done while away, the levels, the house */
@@ -6166,7 +6178,9 @@ function hbGreetSince(iso){
 function hbGreetSayHtml(moved, since){
   const cap = w => String(w || '').replace(/^./, c => c.toUpperCase());
   const link = (words, attr, tone) => `<button type="button" class="hb-gr-a${tone ? ' is-' + tone : ''}" ${attr}>${_hbE(words)}</button>`;
-  const and = L => L.length > 1 ? L.slice(0, -1).join(', ') + _hbE(i18t('cn2_s_and')) + L[L.length - 1] : (L[0] || '');
+  /* "4 things are late, the oldest has waited 2 days, and I prepared 5 for you" (as drawn): a comma before the last
+     part when a part already holds one */
+  const and = L => L.length > 1 ? L.slice(0, -1).join(', ') + (L.slice(0, -1).some(t => /, /.test(t.replace(/<[^>]*>/g, ''))) ? ',' : '') + _hbE(i18t('cn2_s_and')) + L[L.length - 1] : (L[0] || '');
   const A = [];
   if (moved && since){
     const p = moved.past, v = moved.value;
@@ -6312,16 +6326,23 @@ function hbRdnSentences(R){
     q: R.lateQ || null, src: i18t('rd_src_oblig'), door: i18t('rd_door_oblig'), go: 'oblig' });
   return out;
 }
-/* each sentence's small graphic, drawn from its own count (never a guess) */
+/* each sentence's small graphic, drawn from its own count (never a guess). AS DRAWN (P-41, 21 Nov 2026): a 44 square
+   each — the ring of signed (green) against the rest (amber) on a grey track; the year as a line with a dot where each
+   agreement ends, the first red, "12 mo" over it; the two streams as two bars by their share of the book; an empty
+   dashed circle for none; a soft red circle with the late count. Colours are the status tokens, by class. */
 function hbRdnPic(k, R){
-  const C = 2 * Math.PI * 9;
-  if (k === 'paper'){ const n = R.L.length || 1, f = R.sig.length / n;
-    return `<svg viewBox="0 0 24 24" class="rd-pic"><circle cx="12" cy="12" r="9" class="rd-pic-b"/><circle cx="12" cy="12" r="9" class="rd-pic-g" style="stroke-dasharray:${C.toFixed(1)};stroke-dashoffset:${(C * (1 - f)).toFixed(1)}"/></svg>`; }
-  if (k === 'end'){ const n = Math.min(R.ending.length, 6); return `<span class="rd-pic rd-pic-dots"><em>${_hbE(i18t('rd_pic_12mo'))}</em>${Array.from({ length: n }, (_, i) => `<i class="${i === 0 ? 'is-first' : ''}"></i>`).join('') || '<i class="is-none"></i>'}</span>`; }
-  if (k === 'streams'){ const s = R.streams.slice().sort((x, y) => y.cs.length - x.cs.length).slice(0, 2), m = Math.max(1, ...s.map(x => x.cs.length));
-    return `<span class="rd-pic rd-pic-bars">${s.map((x, i) => `<i class="is-${i}" style="width:${Math.max(18, Math.round(100 * x.cs.length / m))}%"></i>`).join('')}</span>`; }
-  if (k === 'nego') return R.nego.length ? `<span class="rd-pic rd-pic-n">${R.nego.length}</span>` : `<span class="rd-pic rd-pic-n is-none">0</span>`;
-  return `<span class="rd-pic rd-pic-n${R.late ? ' is-late' : ' is-none'}">${R.late}</span>`;
+  const svg = (inner, cls) => `<svg viewBox="0 0 44 44" class="rd-pic${cls ? ' ' + cls : ''}">${inner}</svg>`;
+  const none = n => `<circle cx="22" cy="22" r="14" class="rd-pk-none"/><text x="22" y="26" text-anchor="middle" class="rd-pk-n0">${n}</text>`;
+  if (k === 'paper'){ const n = R.L.length, s = R.sig.length, L = 2 * Math.PI * 16, a = n ? L * s / n : 0, b = n ? Math.max(0, L * (n - s) / n - (s ? 1 : 0)) : 0;
+    return svg(`<circle cx="22" cy="22" r="16" class="rd-pk-track"/>${a ? `<circle cx="22" cy="22" r="16" class="rd-pk-arc is-signed" style="--rd-l:${a.toFixed(1)}" stroke-dasharray="${a.toFixed(1)} ${L.toFixed(1)}" transform="rotate(-90 22 22)"/>` : ''}${b ? `<circle cx="22" cy="22" r="16" class="rd-pk-arc is-rest" style="--rd-l:${b.toFixed(1)}" stroke-dasharray="${b.toFixed(1)} ${L.toFixed(1)}" transform="rotate(${(-90 + 360 * (n ? s / n : 0)).toFixed(1)} 22 22)"/>` : ''}`, 'is-ring'); }
+  if (k === 'end'){
+    const today = typeof todayISO === 'function' ? todayISO() : new Date().toISOString().slice(0, 10), t0 = new Date(today + 'T12:00:00');
+    const x = c => { const d = Math.round((new Date(R.exp(c) + 'T12:00:00') - t0) / 864e5); return (4 + 36 * Math.min(1, Math.max(0, d / 365))).toFixed(1); };
+    return svg(`<text x="4" y="18" class="rd-pk-12">${_hbE(i18t('rd_pic_12mo'))}</text><line x1="4" y1="30" x2="40" y2="30" class="rd-pk-line"/>${R.ending.map((c, i) => `<circle cx="${x(c)}" cy="30" r="3" class="rd-pk-dot${i === 0 ? ' is-first' : ''}"/>`).reverse().join('')}`, 'is-line'); }
+  if (k === 'streams'){ const s = R.streams.slice().sort((x, y) => y.cs.length - x.cs.length).slice(0, 2), n = Math.max(1, R.L.length);
+    return svg(s.map((x, i) => `<rect x="4" y="${i ? 25 : 14}" width="${Math.max(3, 36 * x.cs.length / n).toFixed(1)}" height="7" rx="3" class="rd-pk-bar is-${i}"/>`).join(''), 'is-bars'); }
+  if (k === 'nego') return svg(R.nego.length ? `<circle cx="22" cy="22" r="12" class="rd-pk-soft"/><text x="22" y="27" text-anchor="middle" class="rd-pk-n">${R.nego.length}</text>` : none(0));
+  return svg(R.late ? `<circle cx="22" cy="22" r="12" class="rd-pk-late"/><text x="22" y="27" text-anchor="middle" class="rd-pk-n is-late">${R.late}</text>` : none(0));
 }
 /* THE TERM'S OWN WORDS (P-41, as drawn: "“The Term ends on 20 December 2026 unless renewed” § 2 · Fuel Supply"): the
    paper's sentence that names the end date's year in its term or renewal clause, with that clause's §; none found, none
@@ -6343,13 +6364,15 @@ function hbRdnTermQuote(c){
 function R_exp(c){ try { return String((typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '').slice(0, 10); } catch (_){ return ''; } }
 function hbRdnVal(c){ let h = null; try { h = typeof fxCounted === 'function' ? fxCounted(c) : null; } catch (_){ h = null; } return h && !h.missing && !h.private ? (Number(h.v) || 0) : 0; }
 function hbRdnDay(iso){ try { return new Date(iso + 'T00:00:00').toLocaleDateString(langLocale(), { day: 'numeric', month: 'long', year: 'numeric' }); } catch (_){ return iso; } }
+/* the short day the panel's Look closer row says (as drawn: "20 Dec 2026") */
+function hbRdnDayShort(iso){ try { return new Date(iso + 'T00:00:00').toLocaleDateString(langLocale(), { day: 'numeric', month: 'short', year: 'numeric' }).replace(/\bSept\b/, 'Sep'); } catch (_){ return iso; } }
 function hbRdnHtml(){
   const R = hbRdnRead(), E = _hbE, S = hbRdnSentences(R);
   let when = ''; try { when = new Date().toLocaleDateString(langLocale(), { weekday: 'long', day: 'numeric', month: 'long' }); } catch (_){ when = ''; }
   const rows = S.map((x, i) => `<div class="rd-row" data-rd-row="${i}"><span class="rd-pic-w" aria-hidden="true">${hbRdnPic(x.k, R)}</span><div class="rd-tw"><p class="rd-t">${E(x.t)}</p>${x.q ? `<p class="rd-q-w"><q>${E(x.q.w)}</q>${[x.q.sec, x.q.name].filter(Boolean).length ? ` <span>${E([x.q.sec, x.q.name].filter(Boolean).join(' \u00b7 '))}</span>` : ''}</p>` : ''}</div><div class="rd-src"><b>${E(x.src)}</b><button type="button" class="rd-go" data-rd-go="${E(x.go)}">${E(x.door)} ›</button></div></div>`).join('');
   /* ENDING, BY QUARTER · AGREEMENTS (P-41; was "value on paper"): one bar per quarter by count, the nearest red */
   const max = Math.max(1, ...R.quarters.map(q => q.n));
-  const qName = q => { try { const a = new Date(Number(q.y), q.q * 3, 1), b = new Date(Number(q.y), q.q * 3 + 2, 1); return a.toLocaleDateString(langLocale(), { month: 'short' }) + '–' + b.toLocaleDateString(langLocale(), { month: 'short' }) + ' ' + q.y; } catch (_){ return q.k; } };
+  const qName = q => { try { const a = new Date(Number(q.y), q.q * 3, 1), b = new Date(Number(q.y), q.q * 3 + 2, 1); const m = d => d.toLocaleDateString(langLocale(), { month: 'short' }).replace(/^Sept$/, 'Sep'); return m(a) + '–' + m(b) + ' ' + q.y; } catch (_){ return q.k; } };
   const bars = R.quarters.map((q, i) => `<div class="rd-q"><span class="rd-q-k">${E(qName(q))}</span><span class="rd-q-bar"><i class="${i === 0 ? 'is-near' : 'is-signed'}" style="width:${Math.max(2, Math.round(100 * q.n / max))}%"></i></span><span class="rd-q-v">${E(String(q.n))}</span></div>`).join('');
   const needs = typeof counterNeedsCount === 'function' ? counterNeedsCount() : 0;
   const foot = [['needs', i18t('rd_f_needs', { n: needs })], ['contracts', i18t('rd_f_contracts', { n: R.L.length })], ['calendar', i18t('rd_f_calendar')], ['explorer', i18t('rd_f_explorer')], ['negotiations', i18t('rd_f_nego')], ['activity', i18t('rd_f_history')]]
@@ -6367,14 +6390,13 @@ function hbRdnPanelFive(R){
   /* THE LEGORA + STRIPE WAY (P-41): NO MONEY, no tiles. "The first decision" (a red "in N days", what, the act, black),
      then "Look closer", each row by a door the page already has. The same reading as the page; no AI. */
   const f = R.ending[0];
-  const day = f ? hbRdnDay(R.exp(f)) : '';
   const today = typeof todayISO === 'function' ? todayISO() : '';
   const days = f && today ? Math.round((new Date(R.exp(f) + 'T12:00:00') - new Date(today + 'T12:00:00')) / 864e5) : null;
   const rows = [];
-  if (f) rows.push({ mark: 'calendar', tone: 'green', t: i18t('rd_p_first_ends', { name: f.name || '' }), s: day, attr: 'data-rd-go="calendar"' });
+  if (f) rows.push({ mark: 'calendar', tone: 'green', t: i18t('rd_p_first_ends', { name: f.name || '' }), s: hbRdnDayShort(R.exp(f)), attr: 'data-rd-go="calendar"' });
   const byN = new Map(); R.L.forEach(c => { const p = String(c.counterparty || '').trim(); if (!p) return; const e = byN.get(p) || { p, cs: [] }; e.cs.push(c); byN.set(p, e); });
   const most = [...byN.values()].sort((x, y) => y.cs.length - x.cs.length)[0] || null;
-  if (most) rows.push({ mark: 'users', t: i18t('rd_p_most', { p: most.p }), s: i18t('rd_p_open_them'), attr: `data-rd-show="${_hbE(most.cs.map(c => c.id).join(','))}" data-rd-label="${_hbE(most.p)}"` });
+  if (most) rows.push({ mark: 'users', tone: 'steel', t: i18t('rd_p_most', { p: most.p }), s: i18t('rd_p_open_them'), attr: `data-rd-show="${_hbE(most.cs.map(c => c.id).join(','))}" data-rd-label="${_hbE(most.p)}"` });
   if (R.late) rows.push({ mark: 'alert', tone: 'red', t: i18tn('rd_late', R.late, { n: R.late }), s: i18t('jov5_rd_late_s'), attr: 'data-rd-go="oblig"' });
   else rows.push({ mark: 'file', t: i18tn('rd_p_nego', R.nego.length, { n: R.nego.length }), s: R.ours.length ? i18tn('jov5_rd_nego_s', R.ours.length, { n: R.ours.length }) : i18t('jov5_rd_nego_none'), attr: 'data-rd-go="negotiations"' });
   /* AS DRAWN (P-41): "The first decision", a red "in N days" badge beside "Renew X or not", the term's own words, the act */
@@ -6725,6 +6747,48 @@ function hbBoardSrc(lens){
   return { key: HB_BOARD_KEY, title: i18t('hb_bs_title'), head: 'The whole HaTi Home board, as it stands now.', data,
     reading: { lines: [], counts, keys: [] }, cs, sig: hbWhySigOf('board', cs) };
 }
+/* THE BOARD JOINS ITS PANEL'S ARRIVAL (P-39's motion, as drawn: "numbers count up; bars grow from the left; the six-month
+   lines draw themselves"): called by jovPlay when the Board's panel arrives — so it plays exactly as rarely
+   (jovArriveSweep: first open of a day, then at most every 5 hours; never on a redraw, tab, Back or refresh; never under
+   reduced motion). Transform, opacity and a line's own dash only; the numbers are put back as they were. */
+function hbArrivePage(){
+  const book = document.getElementById('hb-book'); if (!book) return;
+  const parts = [...book.querySelectorAll('.hb-spark, .hb-stagebar')];
+  parts.forEach(x => x.classList.add('jov-draw'));
+  setTimeout(() => parts.forEach(x => { try { x.classList.remove('jov-draw'); } catch (_){} }), 2200);
+  book.querySelectorAll('.hb-fig-n').forEach(b => {
+    /* never twice at once (a second start would read the '0' as the true number), and the true number ALWAYS comes
+       back — by a timer as well as the last frame, since frames stop while the board is moved or hidden */
+    if (b.dataset.hbCounting) return;
+    const m = String(b.textContent || '').match(/^(\d{1,6})(\D.*)?$/); if (!m) return;
+    const to = Number(m[1]), rest = m[2] || '', was = b.textContent; if (!to) return;
+    const t0 = performance.now(), dur = 700, delay = 160;
+    /* a redraw that writes a NEW number meanwhile (hbMorph keeps the span, changes its text) wins: the count stops and
+       leaves that number alone — only a number this count wrote itself is put back */
+    let done = false, last = '';
+    const put = v => { last = v; b.textContent = v; };
+    const finish = () => { if (done) return; done = true; delete b.dataset.hbCounting; if (b.textContent === last) b.textContent = was; };
+    const step = now => { if (done) return; if (!b.isConnected || b.textContent !== last) { finish(); return; } const k = Math.min(1, Math.max(0, (now - t0 - delay) / dur)); if (k >= 1) { finish(); return; } put(Math.round(to * (1 - Math.pow(1 - k, 3))) + rest); requestAnimationFrame(step); };
+    b.dataset.hbCounting = '1'; put('0' + rest); requestAnimationFrame(step);
+    setTimeout(finish, delay + dur + 120);
+  });
+}
+/* THE ONE TO START WITH (P-39, as drawn: "The one to start with: Fuel Supply’s renewal, “The Term ends on 20 December
+   2026 unless renewed” § 2."): the first late row that is the reader's own to decide (else the first late row) whose paper
+   words are on record (cn2QuoteOf); counted, never written by an AI; nothing said where no late row has words */
+function hbBriefStartHtml(){
+  let D = null; try { D = typeof ndRead === 'function' ? ndRead() : null; } catch (_){ D = null; }
+  if (!D || typeof window.cn2QuoteOf !== 'function') return '';
+  const late = D.you.concat(D.jambo).filter(r => r.late);
+  const pick = late.map(r => ({ r, q: (cn2QuoteOf(r) || []).find(q => q && q.w) })).filter(x => x.q);
+  const one = pick.find(x => x.r.g !== 'jambo') || pick[0]; if (!one) return '';
+  let P = {}; try { P = typeof ndParts === 'function' ? ndParts(one.r) : {}; } catch (_){ P = {}; }
+  const it = (one.r.y && one.r.y.x && one.r.y.x.it) || one.r.it || {};
+  const name = P.name || P.deal || '';
+  const what = (it.kind === 'renewal' || it.kind === 'notice') && name ? i18t('hb_bs_start_renewal', { name }) : [P.title, name].filter(Boolean).join(', ');
+  if (!what) return '';
+  return `${_hbE(i18t('hb_bs_start', { what }))} <q class="hb-why-q">${_hbE(one.q.w)}</q>${one.q.sec ? ' ' + _hbE(one.q.sec) : ''}.`;
+}
 /* THE BRIEF'S ×: the kept brief and any failure are let go, so nothing is written until Summarise is pressed again */
 function hbBriefShut(){
   const s = hbS(); if (s.why && s.why[HB_BOARD_KEY]){ delete s.why[HB_BOARD_KEY]; hbSave(); }
@@ -6732,6 +6796,8 @@ function hbBriefShut(){
 }
 function hbBoardSumHtml(since){
   const src = hbBoardSrc(); const key = HB_BOARD_KEY;
+  /* Jambo's own spark, filled green, on the button and the brief's head (as drawn, P-39) */
+  const spark = typeof icon === 'function' ? icon('mkSpark', 'hb-spark-ic', 0) : _hbStar;
   const kept = hbWhyKept(key, src.sig), busy = _hbWhyBusy.has(key), err = _hbWhyErr.get(key);
   const live = typeof copilotAvailable === 'function' && copilotAvailable();
   /* A BUTTON, NOT A LINK (Young, 7 Oct 2026: "summarise my board should be a
@@ -6739,17 +6805,19 @@ function hbBoardSumHtml(since){
   /* THE COST IN ITS HOVER, NOT ON ITS FACE (owner, 29 Oct 2026, off a screenshot of this head: "the jambo count
      next to summarise my board disappears"; reverses round 17's "1 Jambo call" segment): the button says what it
      costs when the pointer rests on it, and nothing is spent until it is pressed */
-  const btn = `<button type="button" class="hb-btn is-sm hb-bs-go" data-hb-why="${_hbE(key)}"${busy ? ' disabled' : ''}${live ? ` title="${_hbE([i18t('hb_bs_cost'), i18tn('hb_cx_cost', src.cs.length, { n: _hbN(src.cs.length) })].filter(Boolean).join(' · '))}"` : ` disabled title="${_hbE(i18t('hb_cx_nokey'))}"`}>${_hbStar}${_hbE(i18t(kept ? 'hb_bs_again' : 'hb_bs_btn'))}</button>`;
+  const btn = `<button type="button" class="hb-btn is-sm hb-bs-go" data-hb-why="${_hbE(key)}"${busy ? ' disabled' : ''}${live ? ` title="${_hbE([i18t('hb_bs_cost'), i18tn('hb_cx_cost', src.cs.length, { n: _hbN(src.cs.length) })].filter(Boolean).join(' · '))}"` : ` disabled title="${_hbE(i18t('hb_cx_nokey'))}"`}>${spark}${_hbE(i18t(kept ? 'hb_bs_again' : 'hb_bs_btn'))}</button>`;
   let box = '';
   /* the counted sentence leads the card, word for word, at the card's own size; Jambo's paragraph follows, marked */
   const lead = since ? `<p class="hb-why-b hb-why-since" id="hb-gr-say">${since}</p>` : '';
-  const who = since ? `<b class="hb-why-who">${_hbE(i18t('cn2_jambo'))}:</b> ` : '';
   /* THE × (owner, 11 Nov 2026): closes the brief; it comes back only when Summarise is pressed again (hbBriefShut) */
   const x = `<button type="button" class="hb-ib hb-x hb-why-x" data-hb-bs-x title="${_hbE(i18t('hb_bs_close'))}" aria-label="${_hbE(i18t('hb_bs_close'))}">${_hbX}</button>`;
-  if (busy) box = `<div class="hb-why" aria-live="polite"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span></div>${lead}<p class="hb-quiet">${_hbE(i18t('hb_bs_busy'))}</p></div>`;
-  else if (err) box = `<div class="hb-why is-err" aria-live="polite"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span><span class="hb-grow"></span>${x}</div>${lead}<p>${_hbE(err)}</p></div>`;
-  else if (kept) box = `<div class="hb-why"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span><span class="hb-grow"></span><span class="hb-read-src">${_hbE(i18t('hb_cx_when', { at: kept.at }))}</span>${x}</div>
-    ${lead}<div class="hb-why-b">${who}${hbSay(kept.text)}</div>
+  if (busy) box = `<div class="hb-why" aria-live="polite"><div class="hb-why-h">${spark}<span>${_hbE(i18t('hb_bs_title'))}</span></div>${lead}<p class="hb-quiet">${_hbE(i18t('hb_bs_busy'))}</p></div>`;
+  else if (err) box = `<div class="hb-why is-err" aria-live="polite"><div class="hb-why-h">${spark}<span>${_hbE(i18t('hb_bs_title'))}</span><span class="hb-grow"></span>${x}</div>${lead}<p>${_hbE(err)}</p></div>`;
+  /* AS DRAWN (P-39, owner 21 Nov 2026): ONE paragraph — the counted sentence, the one to start with quoted from the paper
+     (hbBriefStartHtml, counted, never written by an AI), then Jambo's words; no dashed line, no "Jambo:" label (the
+     card's head and its foot say whose it is and that every number in it is on HaTi's fact sheet) */
+  else if (kept) box = `<div class="hb-why is-one"><div class="hb-why-h">${spark}<span>${_hbE(i18t('hb_bs_title'))}</span><span class="hb-grow"></span><span class="hb-read-src">${_hbE(i18t('hb_cx_when', { at: kept.at }))}</span>${x}</div>
+    <div class="hb-why-b hb-why-one"${since ? ' id="hb-gr-say"' : ''}>${[since, hbBriefStartHtml(), hbSay(kept.text)].filter(Boolean).join(' ')}</div>
     <div class="hb-why-f"><span class="${kept.dropped ? 'hb-why-cut' : 'hb-why-ok'}">${_hbE(kept.dropped ? i18tn('hb_cx_dropped', kept.dropped, { n: kept.dropped }) : i18t('hb_cx_ok'))}</span></div></div>`;
   /* NOTHING IS WRITTEN UNTIL SUMMARISE IS PRESSED (owner, 11 Nov 2026: "There should be nothing written such as I
      prepared for you etc. you should only see them once you press"; reverses the card standing before the press) */
@@ -11661,7 +11729,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
 }
 
 Object.assign(window, { hbDraftBtnHtml, hbRdnPanelFive, hbRdnUp, hbRdnBook, hbRdnRead, hbRdnSentences, hbRdnHtml, hbRdnPanelHtml, hbRdnBtnHtml, hbRdnTermQuote });
-Object.assign(window, { hbThenDay, hbArrive, hbSheetLetGo, hbBoardInFront, hbLandOnCard, hbThenWord, HB_STAGE_FIG, hbStageThen, HB_FIG_TO_CONTRACTS, hbFigDoor, hbEmptyHtml, hbSetupLeft, hbSetupGo, hbNyAge, hbNeedsList, hbNeedsCount, hbNyWhat, hbNyDays, hbNyWhen, hbNyOldestSay, HB_VIEWS_ASK_RE, hbSavedViewsSay, hbHeadWord, hbValueSay, hbAnalyticAsk, hbResMend, hbRecipeMend, hbMendFacts, hbMendPic, hbMendWhich, hbMendTime, HB_MEND_FACTS, HB_ANALYTIC_RE, HB_ADVICE_RE, HB_CARD_EDIT_RE, hbEndingDecided, hbBoardHelloOn, hbBoardHelloHtml, hbCountedAt, hbBoardHeadHtml, hbPulseBtnHtml, hbExplorerBtnHtml, hbGreetOn, hbGreetSayHtml, hbGreetSince, hbNeedsOpen, hbNeedsPress, hbOpenCalendar, hbOpenContracts, hbOpenHome, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgPieceHtml, hbAgLookToggle, hbAgLookSet, hbNdOpts, hbNdLookHtml, hbAgentWorkPress, hbOpenAgent, hbAgLevelsHtml, hbLvAsk, hbLvAskState, hbAgLevelsWanted, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbDdOn, hbDdOnHtml, hbDdOnPress, hbDdBodyHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBriefShut, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbAskFound, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSet, hbAnswerSay, HB_FOUND_TITLE_MAX, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS, HB_AMOUNT_Q, hbLeadSay,
+Object.assign(window, { hbThenDay, hbArrive, hbSheetLetGo, hbBoardInFront, hbLandOnCard, hbThenWord, HB_STAGE_FIG, hbStageThen, HB_FIG_TO_CONTRACTS, hbFigDoor, hbEmptyHtml, hbSetupLeft, hbSetupGo, hbNyAge, hbNeedsList, hbNeedsCount, hbNyWhat, hbNyDays, hbNyWhen, hbNyOldestSay, HB_VIEWS_ASK_RE, hbSavedViewsSay, hbHeadWord, hbValueSay, hbAnalyticAsk, hbResMend, hbRecipeMend, hbMendFacts, hbMendPic, hbMendWhich, hbMendTime, HB_MEND_FACTS, HB_ANALYTIC_RE, HB_ADVICE_RE, HB_CARD_EDIT_RE, hbEndingDecided, hbBoardHelloOn, hbBoardHelloHtml, hbCountedAt, hbBoardHeadHtml, hbPulseBtnHtml, hbExplorerBtnHtml, hbGreetOn, hbGreetSayHtml, hbGreetSince, hbNeedsOpen, hbNeedsPress, hbOpenCalendar, hbOpenContracts, hbOpenHome, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgPieceHtml, hbAgLookToggle, hbAgLookSet, hbNdOpts, hbNdLookHtml, hbAgentWorkPress, hbOpenAgent, hbAgLevelsHtml, hbLvAsk, hbLvAskState, hbAgLevelsWanted, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbDdOn, hbDdOnHtml, hbDdOnPress, hbDdBodyHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBriefShut, hbBriefStartHtml, hbArrivePage, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbAskFound, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSet, hbAnswerSay, HB_FOUND_TITLE_MAX, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS, HB_AMOUNT_Q, hbLeadSay,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbOpenRef, HB_OPEN_REF_LEAD, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

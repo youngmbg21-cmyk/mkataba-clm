@@ -123,7 +123,9 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
           else if (/depends on|beror på/i.test(q)) ok = s.view === 1 && s.lenses.length > 0;
           else if (/single-sourced|enda part/i.test(q)) ok = s.view === 1;
           else if (/floors|våningarna/i.test(q)) ok = s.floorKey === (/payment|betalning/i.test(q) ? 'payterms' : /risk/i.test(q) ? 'risk' : /liability|ansvar/i.test(q) ? 'liability' : 'expiry');
-          else if (/cells|rutorna/i.test(q)) ok = s.shadeBy === 'value';
+          /* RE-POINTED 21 Nov 2026 (P-40, as drawn): the panel never offers the money shading; where the cells are shaded
+             by money it offers "Shade the cells by how many", which takes the money shading off */
+          else if (/cells|rutorna/i.test(q)) ok = /how many|antal/i.test(q) ? s.shadeBy !== 'value' : s.shadeBy === 'value';
           else if (/against|\bmot\b/i.test(q)) ok = s.view === 3 && !!s.colKey && !!s.floorKey && s.colKey !== s.floorKey;
           else if (/end by|löper ut/i.test(q)) ok = !!s.tlUntil;
           else if (/changed since|ändrats sedan/i.test(q)) ok = !!s.asOf;
@@ -163,6 +165,15 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     }
     await page.evaluate(() => { langSet('en'); renderIntel(); });
     await until(() => hbFace() === 'explorer' && !!document.querySelector('#ig-dock [data-ig-chips]'));
+
+    /* ================= 3e. THE GRID'S ROWS AS DRAWN (P-40, 21 Nov 2026) ================= */
+    await fresh(3);
+    const g0 = await chips();
+    check('3e Grid: a pairing first, and no money shading offered in the panel', g0.length >= 2 && /against/i.test(g0[0]) && !g0.some(q => /money/i.test(q)), JSON.stringify(g0));
+    await page.evaluate(() => { intel.shadeBy = 'value'; rebuildIntelGraph(); renderIntelDock(); });
+    const g1 = await chips();
+    check('3f Grid shaded by money: "Shade the cells by how many" is offered second, as drawn', g1[1] === 'Shade the cells by how many', JSON.stringify(g1));
+    await page.evaluate(() => { intel.shadeBy = null; rebuildIntelGraph(); renderIntelDock(); });
 
     /* ================= 4. THE OWNER'S THREE SCREENS ================= */
     for (const [w, hh] of [[1440, 780], [1536, 730], [1366, 950]]) {

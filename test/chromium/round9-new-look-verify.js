@@ -53,7 +53,9 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     const btn = await until(page, () => !!document.querySelector('#hb-bhead [data-hb-rdn]') && !document.querySelector('#hb-bhead [data-hb-dna]'), null, 20000);
     if (btn) await page.click('#hb-bhead [data-hb-rdn]');
     /* RE-POINTED 18 Nov 2026 (owner's pick by name, "Five Parts"; f1094): Jambo's panel beside Read down is the five parts
-       (.rd-five: "Your book, in five sentences."), no longer the "Read from the records" table */
+       (.rd-five: "Your book, in five sentences."), no longer the "Read from the records" table.
+       RE-POINTED 21 Nov 2026 (P-41, as drawn): the panel's title has no full stop ("Your book, in five sentences");
+       this check reads only that the title is there, so it stands as written */
     const up = await until(page, () => !!document.querySelector('#rd-page') && !!document.querySelector('#ig-dock .rd-five .jov5-title'), null, 15000);
     const S = up ? await page.evaluate(() => ({ eyebrow: document.querySelector('.rd-eyebrow').textContent, h: document.querySelector('.rd-h').textContent,
       rows: [...document.querySelectorAll('.rd-row')].map(r => ({ t: r.querySelector('.rd-t').textContent, src: r.querySelector('.rd-src b').textContent, go: (r.querySelector('[data-rd-go]') || {}).dataset ? r.querySelector('[data-rd-go]').dataset.rdGo : '' })),

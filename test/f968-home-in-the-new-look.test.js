@@ -26,7 +26,7 @@ function world(kinds){
   const ctx = { i18t: (k, v) => fill(WORDS[k] || k, v), i18tn: (k, n, v) => fill(WORDS[k + (n === 1 ? '_one' : '_other')] || k, { n, ...(v || {}) }),
     ndKindOfRow: r => kinds[r.key] };
   vm.createContext(ctx);
-  vm.runInContext([constLine(CN, '_cnE'), constLine(CN, '_cnT'), constLine(CN, '_cnTn'), constLine(CN, 'CN2_RANK'), fnBody(CN, 'cn2Rows'), fnBody(CN, 'cn2Say'), fnBody(CN, 'cn2QuoteHtml')].join('\n'), ctx);
+  vm.runInContext([constLine(CN, '_cnE'), constLine(CN, '_cnT'), constLine(CN, '_cnTn'), constLine(CN, 'CN2_RANK'), fnBody(CN, 'cn2Rows'), fnBody(CN, 'cn2Say'), fnBody(CN, 'cn2QuoteOf'), fnBody(CN, 'cn2QuoteHtml')].join('\n'), ctx);
   return ctx;
 }
 
@@ -47,10 +47,17 @@ test('f968 (3) the paper\'s words only where known', () => {
   const c = { changes: [{ authorSide: 'counterparty', status: 'pending', clauseLabel: '3. PAYMENT', newText: 'Payment is due within <b>sixty</b> (60) days of invoice.' },
     { authorSide: 'owner', status: 'pending', clauseLabel: '4. DELIVERY', newText: 'Ours.' }] };
   const html = w.cn2QuoteHtml({ y: { x: { c, it: { kind: 'quiet' } } } });
-  assert.match(html, /<b class="cn2-sec">§ 3 Payment<\/b> — <q class="cn2-src">Payment is due within sixty \(60\) days of invoice\.<\/q>/);
+  /* RE-POINTED 21 Nov 2026 (P-39, as drawn: "§ 2 · “…the paper's words…”", one line ending in "…" by the row's own CSS) */
+  assert.match(html, /<b class="cn2-sec">§ 3 Payment<\/b> · <q class="cn2-src">Payment is due within sixty \(60\) days of invoice\.<\/q>/);
   assert.ok(!/Ours/.test(html), 'only their pending changes');
   assert.equal(w.cn2QuoteHtml({ y: { x: { c, it: { kind: 'approval' } } } }), '', 'an approval quotes nothing');
   assert.equal(w.cn2QuoteHtml({ g: 'jambo' }), '');
+  /* a renewal quotes the paper's own term sentence (hbRdnTermQuote); a duty its own quote and clause; never money */
+  w.window = { hbRdnTermQuote: () => ({ w: 'The lease ends on 11 October 2026', sec: '§ 2' }) }; w.hbRdnTermQuote = w.window.hbRdnTermQuote;
+  w.getContract = id => ({ id, obligations: [{ id: 'o1', quote: 'pay the carrier’s invoices within 30 days of receipt', clause: '6' }] });
+  assert.equal(w.cn2QuoteHtml({ g: 'jambo', it: { kind: 'renewal', c: { id: 'MK-201' } } }), ' · <b class="cn2-sec">§ 2</b> · <q class="cn2-src">The lease ends on 11 October 2026</q>');
+  assert.equal(w.cn2QuoteHtml({ al: { kind: 'obligation', id: 'MK-460', obId: 'o1' } }), ' · <b class="cn2-sec">§ 6</b> · <q class="cn2-src">pay the carrier’s invoices within 30 days of receipt</q>');
+  assert.equal(w.cn2QuoteHtml({ y: { x: { c: { id: 'x', value: 900000 }, it: { kind: 'approval' } } } }), '', 'an approval\'s value is never looked for on the paper');
 });
 /* RE-POINTED (owner, 10 Nov 2026: "Home page should be removed / deleted"): the new Home's page went; its readings stay
    (the bell, the phone and the Board's greeting read them: (1)–(3) above) */
