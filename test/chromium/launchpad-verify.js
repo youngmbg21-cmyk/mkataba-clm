@@ -39,14 +39,15 @@ const isShut = () => !document.getElementById('cmd-palette');
     check(has, '0 the launchpad and its symbol exist');
     if (!has) throw new Error('no launchpad');
 
-    /* 1 the symbol opens it */
-    await P.click('#dk-nav');
+    /* 1 ⌘K opens it in the middle (RE-POINTED 21 Nov 2026, P-37: the nav button's own press opens it at the left — step 8) */
+    await P.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); });
+    await P.keyboard.press('Control+k');
     const opened = await until(P, () => !!document.querySelector('#cmd-palette .lp-p'), null, 4000);
     /* the sheet arrives with a short motion: measure where it STANDS, once its motion has ended (bounded) */
     await until(P, () => { const s = document.querySelector('#cmd-palette .lp-sheet'); return !!s && s.getAnimations().every(a => a.playState !== 'running'); }, null, 3000);
     const one = await P.evaluate(() => ({ focus: document.activeElement && document.activeElement.id, exp: document.getElementById('dk-nav').getAttribute('aria-expanded'),
       sheet: (() => { const r = document.querySelector('#cmd-palette .lp-sheet').getBoundingClientRect(); return { l: Math.round(r.left), r: Math.round(innerWidth - r.right), t: Math.round(r.top), b: Math.round(innerHeight - r.bottom), w: Math.round(r.width) }; })() }));
-    check(opened && one.focus === 'cp-input' && one.exp === 'true', '1a a press on the symbol opens the launchpad, the typing box has the hand', one);
+    check(opened && one.focus === 'cp-input' && one.exp === 'true', '1a ⌘K opens the launchpad, the typing box has the hand', one);
     /* RE-POINTED 19 Nov 2026 (owner: "nav panel pop up should appear at the center of the page"): up and down as well */
     check(opened && Math.abs(one.sheet.l - one.sheet.r) <= 2 && Math.abs(one.sheet.t - one.sheet.b) <= 2 && one.sheet.w > 900, '1b in the middle of the screen, across and up and down, as wide as drawn', one.sheet);
 
@@ -122,6 +123,31 @@ const isShut = () => !document.getElementById('cmd-palette');
     const bb = await P.locator('#dk-nav').boundingBox();
     await P.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2);
     check(await until(P, isShut, null, 3000), '6d a second press of the symbol closes it');
+
+    /* 8 THE NAV BUTTON'S PANEL SLIDES IN FROM THE LEFT (P-37, owner 21 Nov 2026) */
+    {
+      const bar = await P.evaluate(() => Math.round(document.getElementById('dk-nav').closest('header').getBoundingClientRect().bottom));
+      await P.click('#dk-nav');
+      await until(P, () => !!document.querySelector('#cmd-palette.is-left .lp-p'), null, 3000);
+      await until(P, () => { const s = document.querySelector('#cmd-palette .lp-sheet'); return !!s && s.getAnimations().every(a => a.playState !== 'running'); }, null, 3000);
+      const L = await P.evaluate(() => { const s = document.querySelector('#cmd-palette .lp-sheet').getBoundingClientRect(), pal = document.getElementById('cmd-palette');
+        const ap = pal.querySelector('[data-lp-go="approvals"] .lp-ct');
+        return { l: Math.round(s.left), t: Math.round(s.top), w: Math.round(s.width), b: Math.round(innerHeight - s.bottom), tiles: pal.querySelectorAll('.lp-w').length,
+          side: !document.getElementById('lp-side').offsetParent, owed: lpWaits().length, apOwed: !!ap && ap.classList.contains('is-owed') }; });
+      check(L.l === 0 && L.w === 400 && Math.abs(L.t - bar) <= 1 && L.b === 0, '8a the nav button opens a 400-wide panel at the left, under the bar to the window\'s foot', { L, bar });
+      check(L.tiles === 0 && L.side, '8b one list: no waiting column, no big numbers; each page carries its own count', L);
+      await P.click('#cmd-palette [data-lp-chip="need"]');
+      const need = await P.evaluate(() => [...document.querySelectorAll('#cmd-palette .lp-p')].length);
+      check(need === L.owed, '8c Waiting on you narrows the list to the pages that wait on you', { need, owed: L.owed });
+      const vw = await P.evaluate(() => innerWidth);
+      await P.mouse.click(vw - 300, 400);
+      check(await until(P, isShut, null, 3000), '8d a press outside slides it back');
+      await P.click('#dk-nav'); await until(P, () => !!document.querySelector('#cmd-palette.is-left .lp-p'), null, 3000);
+      const cal = P.locator('#cmd-palette .lp-p', { hasText: /Calendar|Kalender/ }).first();
+      if (await cal.count()) { await cal.click();
+        check(await until(P, () => guideHereKey() === 'calendar' && !document.getElementById('cmd-palette'), null, 8000), '8e a page pressed slides it back and goes there'); }
+      else check(false, '8e a page pressed goes there', 'no row');
+    }
 
     /* 7 three screens */
     for (const [ww, hh] of [[1440, 780], [1536, 730], [1366, 950]]){

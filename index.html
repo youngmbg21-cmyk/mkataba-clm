@@ -17018,6 +17018,21 @@
   #cmd-palette .lp-foot{grid-column:1 / -1;grid-row:4;display:flex;flex-wrap:wrap;gap:var(--s-2) var(--s-4);align-items:center;justify-content:space-between;padding:9px var(--s-8);border-top:1px solid var(--color-divider);font-size:var(--t-label);color:var(--color-neutral-400);background:var(--color-surface)}
   #cmd-palette .lp-keys{display:flex;gap:var(--s-3);align-items:center}
   #cmd-palette .lp-foot kbd{font:var(--w-label) var(--t-micro)/1 var(--font-body);background:var(--color-surface);border:1px solid var(--color-divider);border-radius:5px;padding:2px 5px;color:var(--color-quiet)}
+  /* THE NAV PANEL AT THE LEFT (P-37, owner 21 Nov 2026): the nav button's window stands 400 wide at the left, under the bar to the
+     window's foot, over the page; ONE column, the stages as heads, each page's own count; it slides (js/app.js, a transform) */
+  #cmd-palette.is-left .lp-sheet{animation:none;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto}
+  #cmd-palette.is-left .lp-top{padding:var(--s-6) var(--s-4) 6px}
+  #cmd-palette.is-left .lp-in,#cmd-palette.is-left .lp-ph{font-size:19px}
+  #cmd-palette.is-left .lp-ph{left:var(--s-4);right:var(--s-4);top:var(--s-6)}
+  #cmd-palette.is-left .lp-chips{padding:var(--s-1) 0 var(--s-3);border-bottom:1px solid var(--color-neutral-200);margin:0 var(--s-4)}
+  #cmd-palette.is-left .lp-list{padding:var(--s-3) var(--s-2) var(--s-3)}
+  #cmd-palette.is-left .lp-side{display:none}
+  #cmd-palette.is-left .lp-pages{display:block}
+  #cmd-palette.is-left .lp-st + .lp-st{margin-top:var(--s-3)}
+  #cmd-palette.is-left .lp-st h5{color:var(--color-quiet);font-size:var(--t-label)}
+  #cmd-palette.is-left .lp-p{padding-top:6px;padding-bottom:6px}
+  #cmd-palette.is-left .lp-wh{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #cmd-palette.is-left .lp-foot{padding:9px var(--s-4)}
   @media (max-width:900px){ #cmd-palette .lp-sheet{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto auto} #cmd-palette .lp-side{grid-column:1;grid-row:4;width:auto;max-height:40vh;padding-top:var(--s-4)} #cmd-palette .lp-foot{grid-row:5} #cmd-palette .lp-pages{grid-template-columns:repeat(2,minmax(0,1fr))} }
   .dk-pg-w{position:relative;display:inline-flex;min-width:0;flex:0 1 auto}
   .dk-pg-w[hidden]{display:none}
