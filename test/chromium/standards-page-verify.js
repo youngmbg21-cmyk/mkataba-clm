@@ -13,6 +13,9 @@
         Put in the standard and Try again; Put in fills the boxes, and nothing is saved
      4  Send for approval asks why; the change waits in History; the ladder is unchanged
      5  at the owner's three screens nothing spills sideways and the title's buttons stay on its line
+   RE-POINTED (P-35, owner's pick 20 Nov 2026: Playbook the Legora + Stripe way): no head facts, the chips Positions ·
+   Departures · History (1b); the ladder a marked timeline (.ld6-rung); departures wait in the panel, not on the
+   ladder (2a/2b); History a calm table (4a); the buttons on the badge's line over the title (5b).
    Run: node test/chromium/standards-page-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -69,24 +72,38 @@ const DRAFT = { ask: 'Each party’s liability is capped at the fees paid in the
         const list = document.querySelector('.ld-list'), main = document.querySelector('.ld-main'), panel = document.getElementById('ins-panel');
         if (!list || !main || !panel) return null;
         return { groups: [...list.querySelectorAll('.ld-g')].map(g => g.textContent.trim()), items: list.querySelectorAll('[data-ld-pick]').length,
-          title: (main.querySelector('.ld-title') || {}).textContent || '', rungs: main.querySelectorAll('.ld-rung').length,
+          /* RE-POINTED (P-35, owner's pick 20 Nov 2026: Playbook the Legora + Stripe way) */ /* the ladder is a timeline of marked rungs (.ld6-rungs .ld6-rung) */
+          title: (main.querySelector('.ld-title') || {}).textContent || '', rungs: main.querySelectorAll('.ld6-rungs .ld6-rung').length,
           acts: [...document.querySelectorAll('#page-head-acts button')].map(b => b.textContent.trim()),
+          chips: [...document.querySelectorAll('.ld6-bar .apn-tab.is-chip[data-ld-mode]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()), ask: !!document.querySelector('.ld6-top label.apn-ask #ld-q'),
           facts: (document.getElementById('page-head-facts') || {}).textContent || '', panel: panel.getBoundingClientRect().width > 300 };
       });
       check(`${tag} 1a the list by how firm, a standard as a ladder, Jambo's panel beside it`, !!P && P.groups.length >= 2 && P.items >= 5 && P.rungs >= 1 && P.panel, P);
-      check(`${tag} 1b the head: its facts, Departures · History · New position`, !!P && /positions/.test(P.facts) && P.acts.length === 3 && /Departures/.test(P.acts[0]) && /History/.test(P.acts[1]) && /New position/.test(P.acts[2]), P && { facts: P.facts, acts: P.acts });
+      /* RE-POINTED (P-35, owner's pick 20 Nov 2026: Playbook the Legora + Stripe way) */
+      /* no facts beside the title; New position the head's one button; under the title one ask box and the chips
+         Positions · Departures · History with their counts (Departures and History are tabs now) */
+      check(`${tag} 1b the head: New position alone, no facts; the ask box and chips Positions · Departures · History with counts`, !!P && !P.facts.trim() && P.acts.length === 1 && /New position/.test(P.acts[0])
+        && P.ask && P.chips.length === 3 && /^Positions \d+$/.test(P.chips[0]) && /^Departures \d+$/.test(P.chips[1]) && /^History \d+$/.test(P.chips[2]), P && { facts: P.facts, acts: P.acts, chips: P.chips });
       const chose = await page.evaluate(() => { const b = [...document.querySelectorAll('.ld-list [data-ld-pick]')].find(x => /Liability/.test(x.textContent)); if (!b) return false; b.click(); return true; })
         && await until(() => { const t = document.querySelector('.ld-main .ld-title'); return t && /Liability/.test(t.textContent) ? t.textContent : null; });
       check(`${tag} 1c a press in the list chooses that standard`, !!chose, chose);
 
       /* 2 DEPARTURES */
-      const D = await until(() => { const d = [...document.querySelectorAll('.ld-dep')]; return d.length ? d.map(x => ({ t: x.textContent.replace(/\s+/g, ' ').trim(),
-        acts: [...x.querySelectorAll('button')].map(b => b.textContent.trim()) })) : null; });
-      /* RE-POINTED 17 Nov 2026 (one door for departures): the card sends the decision to Approvals & signing */
-      check(`${tag} 2a each open departure on the ladder: Decide in Approvals, no Open the paper (18 Nov 2026), and no decision here`, !!D && D.length === 2
-        && D.every(x => /Decide in Approvals/.test(x.acts.join()) && !/Open the paper/.test(x.acts.join()) && !/Allow once|Refuse/.test(x.acts.join()))
-        && D.some(x => /Kilele/.test(x.t) && /Legal says yes/.test(x.t)), D);
-      const key = await page.evaluate(() => { const b = document.querySelector('.ld-dep [data-ld-goap]'); const k = b && b.getAttribute('data-ld-goap'); if (b) b.click(); return k; });
+      /* RE-POINTED (P-35, owner's pick 20 Nov 2026: Playbook the Legora + Stripe way) */
+      /* the open departures left the ladder: they wait in Jambo's panel ("Waits for your call"), each a row naming the other
+         side and its reference with the paper's words quoted and its To decide badge, the row a door to its Approvals row;
+         the panel's one black button is Decide in Approvals ›; nothing on the page or the panel decides here. who may give a
+         rung is on the ladder's rungs now (.ld-who) */
+      const D = await until(() => { const p = document.getElementById('ins-panel'), d = p ? [...p.querySelectorAll('[data-jov5-sec="waits"] .jov5-row')] : [];
+        return d.length ? { rows: d.map(x => ({ t: x.textContent.replace(/\s+/g, ' ').trim(), door: x.hasAttribute('data-ld-goap') })), onLadder: document.querySelectorAll('.ld-main .ld-dep').length,
+          go: ((p.querySelector('.jov5-act .jov5-go') || {}).textContent || '').trim(), decideHere: [...p.querySelectorAll('button'), ...document.querySelectorAll('.ld-main button')].some(b => /^(Allow once|Refuse)$/.test(b.textContent.trim())),
+          who: [...document.querySelectorAll('.ld-main .ld6-rung .ld-who')].map(x => x.textContent.replace(/\s+/g, ' ').trim()) } : null; });
+      check(`${tag} 2a each open departure waits in the panel: To decide, a door to Approvals, Decide in Approvals its black button, no decision here`, !!D && D.rows.length === 2 && !D.onLadder
+        && D.rows.every(x => /To decide/.test(x.t) && x.door) && /^Decide in Approvals/.test(D.go) && !D.decideHere
+        && D.rows.some(x => /Kilele/.test(x.t)), D);
+      /* RETIRED in part (P-35): "Legal says yes" on the departure's card — the drawn panel row names the contract, its words and
+         To decide; who may give each rung is said on the ladder's own rungs (.ld-who), read in D.who above for the record */
+      const key = await page.evaluate(() => { const b = document.querySelector('#ins-panel [data-jov5-sec="waits"] [data-ld-goap]'); const k = b && b.getAttribute('data-ld-goap'); if (b) b.click(); return k; });
       const landed = await until(k => { const tr = document.querySelector('#content tr.is-sel[data-ap-row]');
         return state.view === 'approvals' && tr && tr.getAttribute('data-ap-row') === k ? k : null; }, key);
       check(`${tag} 2b it lands on that departure's row in Approvals & signing, chosen`, !!key && landed === key, JSON.stringify({ key, landed }));
@@ -129,7 +146,7 @@ const DRAFT = { ask: 'Each party’s liability is capped at the fees paid in the
         && typeof pdTab === 'function' && pdTab() === 'copilot' ? pdContract().id : null, key);
       check(`${tag} 2g Open the Dossier › closes it and opens that contract on its Dossier (the Cover deleted, 20 Nov 2026)`, !!dos, dos);
       await page.evaluate(() => { setView('playbook'); });
-      await until(() => !!document.querySelector('.ld-main .ld-rung'));
+      await until(() => !!document.querySelector('.ld-main .ld6-rung')); /* RE-POINTED (P-35, owner's pick 20 Nov 2026: Playbook the Legora + Stripe way) */
       await page.keyboard.press('Escape').catch(() => {});
       await page.waitForTimeout(300);
 
@@ -155,7 +172,8 @@ const DRAFT = { ask: 'Each party’s liability is capped at the fees paid in the
       /* 5 FIT, on the edit page and the ladder */
       const fit = async () => page.evaluate(() => {
         const over = el => el ? Math.round(el.scrollWidth - el.clientWidth) : 0;
-        const top = document.querySelector('.ld-main .ld-top'); const t = top && top.querySelector('.ld-title'), a = top && top.querySelector('.ld-top-a');
+        /* RE-POINTED (P-35, owner's pick 20 Nov 2026: Playbook the Legora + Stripe way) */ /* the buttons (Write it for me · Edit the position) stand on the line over the title, beside the how-firm badge */
+        const top = document.querySelector('.ld-main .ld6-eb'); const t = top && top.querySelector('.apn-st'), a = top && top.querySelector('.ld-top-a');
         return { page: document.documentElement.scrollWidth - innerWidth, sheet: over(document.querySelector('.ld-sheet')), panel: over(document.getElementById('ins-panel')),
           oneLine: !t || !a || Math.abs(t.getBoundingClientRect().top - a.getBoundingClientRect().top) < 24 };
       });
@@ -169,10 +187,11 @@ const DRAFT = { ask: 'Each party’s liability is capped at the fees paid in the
         const dlg = await until(() => !!document.getElementById('ld-why'));
         if (dlg){ await page.fill('#ld-why', 'Name the carve-outs.'); await page.evaluate(() => document.getElementById('ld-send-go')?.click()); }
         const H = await until(() => { if (document.querySelector('.ld-edit')) return null; document.querySelector('[data-ld-mode="history"]')?.click();
-          const r = [...document.querySelectorAll('.ld-hrow')].map(x => x.textContent.replace(/\s+/g, ' ').trim()); return r.length ? r : null; });
-        check(`${tag} 4a Send for approval asks why; the change waits in History`, !!dlg && !!H && /Waiting/.test(H[0]) && /Name the carve-outs/.test(H[0]), H);
+          /* RE-POINTED (P-35, owner's pick 20 Nov 2026: Playbook the Legora + Stripe way) */ /* History is a calm table: a row (tr[data-ld-hrow]) carries the change, its why quoted and a soft state badge */
+          const r = [...document.querySelectorAll('.ld6-table tr[data-ld-hrow]')].map(x => x.textContent.replace(/\s+/g, ' ').trim()); return r.length ? r : null; });
+        check(`${tag} 4a Send for approval asks why; the change waits in History`, !!dlg && !!H && /Waits for another admin/.test(H[0]) && /Name the carve-outs/.test(H[0]), H);
         await page.evaluate(() => document.querySelector('[data-ld-mode="ladder"]')?.click());
-        const still = await until(() => { const w0 = document.querySelector('.ld-rung .ld-w'); return w0 ? w0.textContent : null; });
+        const still = await until(() => { const w0 = document.querySelector('.ld6-rung .ld-w'); return w0 ? w0.textContent : null; }); /* RE-POINTED (P-35, owner's pick 20 Nov 2026: Playbook the Legora + Stripe way) */
         check(`${tag} 4b the ladder still shows the words that stand`, !!still && !/fees paid in the twelve \(12\) months before the claim\.$/.test(still), still && still.slice(0, 60));
         /* while a change waits the standard is not edited again; the next screens edit it, so the change is withdrawn here */
         await page.evaluate(() => document.querySelector('.ld-main [data-ld-withdraw]')?.click());
@@ -182,7 +201,7 @@ const DRAFT = { ask: 'Each party’s liability is capped at the fees paid in the
       await page.evaluate(() => { const b = [...document.querySelectorAll('.ld-list [data-ld-pick]')].find(x => /Liability/.test(x.textContent)); if (b) b.click(); });
       await page.waitForTimeout(300);
       F = await fit();
-      check(`${tag} 5b the ladder: nothing sideways, the buttons on the title's line`, F.page <= 0 && F.sheet <= 1 && F.panel <= 1 && F.oneLine, F);
+      check(`${tag} 5b the ladder: nothing sideways, the buttons on the line over the title, beside how firm`, F.page <= 0 && F.sheet <= 1 && F.panel <= 1 && F.oneLine, F);
       await page.screenshot({ path: path.join(OUT, `${tag}-ladder.png`) });
       await page.context().close();
     }

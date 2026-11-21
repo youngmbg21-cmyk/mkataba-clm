@@ -64,7 +64,10 @@ test('f1073 (4) the four list panels speak the five parts, by the page\'s own pr
   assert.match(mn, /act: \{ label: i18t\(n\.reviewedAt \? 'mn_review_again' : 'mn_mark_reviewed'\), attr: `data-mn-act=/); assert.match(mn, /data-mn-act="delete"/);
   assert.match(fnBody(MG, 'migNlPanelPaint'), /body: five \? migNlPanelFiveHtml\(r, rows, need\) :/);
   const mg = fnBody(MG, 'migNlPanelFiveHtml');
-  assert.match(mg, /attr: `data-mign-go="\$\{E\(r\.key\)\}" data-mign-need=/); assert.match(mg, /x\.q && x\.q\.status === 'unsigned'/, 'parked: the queue\'s own word');
+  /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way): the upgraded panel's main act is the
+     file's own door (data-mign-go keyed by the row), a parked file answers with the queue's own presses */
+  assert.match(mg, /a:`data-mign-go="\$\{E\(key\)\}" data-mign-need="1"`/); assert.match(mg, /data-mig-unsigned="draft"/, 'parked: the queue\'s own presses');
+  assert.match(fnBody(MG, 'migNlKindOf'), /r\.q\.status === 'unsigned'/, 'parked: the queue\'s own word');
 });
 
 test('f1073 (5) every word in both books', () => {

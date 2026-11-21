@@ -50,8 +50,10 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       await page.evaluate(() => { if (state.view !== 'playbook') setView('playbook'); });
       const it = await until(page, t => { const b = [...document.querySelectorAll('.ld-list [data-ld-pick]')].find(x => x.textContent.includes(t)); if (!b) return null; b.click(); return true; }, topic);
       if (!it) return null;
-      return until(page, () => { const t = document.querySelector('.ld-main .ld-title'); const f = document.querySelector('.ld-main .ld-top .ld-firm');
-        return t && f ? { name: t.textContent.trim(), firm: f.textContent.trim(), rungs: document.querySelectorAll('.ld-rung').length, edit: !!document.querySelector('[data-ld-edit]') } : null; });
+      /* RE-POINTED (P-35, owner's pick 20 Nov 2026: Playbook the Legora + Stripe way): how firm is a soft badge over the name
+         (.ld6-eb .apn-st), the ladder a timeline of marked rungs (.ld6-rungs .ld6-rung) */
+      return until(page, () => { const t = document.querySelector('.ld-main .ld-title'); const f = document.querySelector('.ld-main .ld6-eb .apn-st');
+        return t && f ? { name: t.textContent.trim(), firm: f.textContent.trim(), rungs: document.querySelectorAll('.ld-main .ld6-rungs .ld6-rung').length, edit: !!document.querySelector('[data-ld-edit]') } : null; });
     };
     const openEdit = async page => {
       await page.evaluate(() => document.querySelector('[data-ld-edit]')?.click());

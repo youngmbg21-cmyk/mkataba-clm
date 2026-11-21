@@ -185,7 +185,9 @@ describe('f1092 (6) one door for a departure', () => {
     const L = strip(R('js/views/ladder.js'));
     assert.match(fnBody(L, 'ldStandards'), /decide: \(place\.firm \|\| 'nice'\) === 'nice' \? 0 : open\.length/);
     assert.match(fnBody(L, 'ldHeadFacts'), /ld_n_decide/);
-    assert.match(fnBody(L, 'ldPanelFive'), /n: r\.decide, l: i18t\('ld_p_decide'\)/);
+    /* RE-POINTED (P-35, owner's pick 20 Nov 2026: the Playbook the Legora + Stripe way): no zero tiles — the panel's one bar
+       counts what really waits for a call as its amber part, never a Nice to have */
+    assert.match(fnBody(L, 'ld6BarHtml'), /\['amber', r\.decide, i18t\('ld6_k_decide'\)\]/);
   });
   test('the landing: Mine, the words cleared, that row chosen and brought into view', () => {
     const a = fnBody(strip(R('js/views/approvalsview.js')), 'apnLandRow');

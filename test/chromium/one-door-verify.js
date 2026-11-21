@@ -86,7 +86,8 @@ const SAY = "Two-year supply agreement with Nandi Dairy, 45-day payment, 90 days
     const s1 = await until(SHEET, null, 8000);
     check('1a "new agreement" opens the one sheet beside Jambo, no card in the chat', !!s1 && s1.one && s1.beside && !s1.chatCard, JSON.stringify(s1 && { one: s1.one, beside: s1.beside, chatCard: s1.chatCard }));
     check('1b with no words yet: "Most used on our paper", three rows, nothing picked', !!s1 && s1.head === 'Most used on our paper' && s1.rows.length === 3 && s1.checked === 0 && !s1.picked, JSON.stringify(s1 && { head: s1.head, rows: s1.rows.length, checked: s1.checked }));
-    check('1c Jambo says what the sheet is for beside it', !!s1 && s1.jambo.some(x => /^New agreement Say what you need in one sentence\. I pick the paper that fits\./.test(x)), JSON.stringify(s1 && s1.jambo));
+    /* RE-POINTED (P-36, owner's pick 20 Nov 2026: New agreement the Legora + Stripe way) */ /* the sheet's one panel (naSheetFive) carries a badge before its headline, no eyebrow */
+    check('1c Jambo says what the sheet is for beside it', !!s1 && s1.jambo.some(x => /^Say what you need in one sentence\. I pick the paper that fits\./.test(x)), JSON.stringify(s1 && s1.jambo));
     await still(); await page.screenshot({ path: path.join(OUT, '01-word.png') });
     await cancel();
 
@@ -147,10 +148,11 @@ const SAY = "Two-year supply agreement with Nandi Dairy, 45-day payment, 90 days
     const s8 = await until(() => { const r = document.getElementById('na-root'); if (!r || r.getAttribute('data-paper') !== 'theirs') return null;
       const vis = el => !!(el && el.getClientRects().length);
       const said = [...document.querySelectorAll('#ig-dock .ca-dr-said')].pop();
-      return { drop: vis(document.getElementById('na-drop')), with: [...document.querySelectorAll('#na-read [data-na-rd="with"] span')].map(x => x.textContent.trim()),
+      /* RE-POINTED (P-36, owner's pick 20 Nov 2026: New agreement the Legora + Stripe way) */ /* your words quoted, lit, with "your words" beside them (.na-q1) */
+      return { drop: vis(document.getElementById('na-drop')), with: [...document.querySelectorAll('#na-read [data-na-rd="with"] > span')].map(x => x.textContent.replace(/\s+/g, ' ').trim()),
         said: said ? said.innerText.trim() : '', picked: r.classList.contains('is-picked') }; }, null, 8000);
     check('8a "… Nordkap sent us" opens the sheet on Their paper, nothing of ours picked', !!s8 && s8.drop && !s8.picked, JSON.stringify(s8));
-    check('8b the row says who sent it, quoting the words', !!s8 && /^Nordkap\b/.test(s8.with[1] || '') && /^“Nordkap”$/.test(s8.with[s8.with.length - 1] || ''), JSON.stringify(s8 && s8.with));
+    check('8b the row says who sent it, quoting the words', !!s8 && /^Nordkap\b/.test(s8.with[1] || '') && /^“Nordkap” your words$/.test(s8.with[s8.with.length - 1] || ''), JSON.stringify(s8 && s8.with));
     check('8c Jambo says it sounds like their paper', !!s8 && /^That sounds like their paper, so I opened the Their paper tab\./.test(s8.said), s8 && s8.said);
     await still(); await page.screenshot({ path: path.join(OUT, '08-theirs-from-words.png') });
     const n8 = await page.evaluate(() => state.contracts.length);

@@ -110,18 +110,27 @@ const MEASURE = () => {
       return { pane: R(pane), rows: rows.map(R), starts: rows.map(l => (l.querySelector('input') || {}).value),
         rowWords: rows.map(l => { const t = l.querySelector('b'), m = l.querySelector('b + span'); return [t ? t.textContent.trim() : '', m ? m.textContent.trim() : '']; }),
         primaries: [...pane.querySelectorAll('.ui-btn-primary')].filter(b => b.offsetParent).length, cont: !!pane.querySelector('#na-np-go'),
+        /* RE-POINTED (P-36, owner's pick 20 Nov 2026: New agreement the Legora + Stripe way) */ /* Continue stands in the head (#na-np-go-h), the pane's own steps aside */
+        head: (b => !!b && !!b.offsetParent)(document.getElementById('na-np-go-h')),
+        continues: [...document.querySelectorAll('.ui-btn-primary')].filter(b => b.offsetParent && b.textContent.trim() === 'Continue').length,
         vw: document.documentElement.clientWidth };
     });
     await page.screenshot({ path: path.join(OUT, '01-how-to-start.png') });
-    check('1d · the starts are one list, one row under another, each the same width',
+    /* RE-POINTED (P-36, owner's pick 20 Nov 2026: New agreement the Legora + Stripe way) */
+    /* the four starts are calm cards in a 2×2 grid (was: one list, one row under another): each the same width, two a
+       line, the second line under the first, every card inside the pane */
+    check('1d · the starts are four cards in a 2×2 grid, each the same width',
       !!k && k.starts.join(',') === 'scratch,template,contract,cp' && k.rows.length === 4
-        && k.rows.every(t => Math.abs(t.w - k.rows[0].w) <= 1 && t.x === k.rows[0].x) && k.rows.every((t, i) => !i || t.y > k.rows[i - 1].y)
+        && k.rows.every(t => Math.abs(t.w - k.rows[0].w) <= 1)
+        && Math.abs(k.rows[0].y - k.rows[1].y) <= 1 && Math.abs(k.rows[2].y - k.rows[3].y) <= 1 && k.rows[2].y > k.rows[0].y
+        && Math.abs(k.rows[0].x - k.rows[2].x) <= 1 && Math.abs(k.rows[1].x - k.rows[3].x) <= 1 && k.rows[1].x > k.rows[0].x
         && k.rows.every(t => t.x >= k.pane.x && t.r <= k.pane.r + 1 && t.r <= k.vw),
       k && { starts: k.starts, rows: k.rows, pane: k.pane });
     check('1g · each start says what it is: a name and a line under it',
       !!k && k.rowWords.length === 4 && k.rowWords.every(([t, m]) => t.length > 2 && m.length > 2), k && k.rowWords);
-    check('1f · Continue the one filled verb',
-      !!k && k.primaries === 1 && k.cont, k && { primaries: k.primaries });
+    /* RE-POINTED (P-36, owner's pick 20 Nov 2026: New agreement the Legora + Stripe way) */
+    check('1f · Continue the one filled verb, in the head (the pane\'s own Continue steps aside)',
+      !!k && k.primaries === 0 && k.cont && k.head && k.continues === 1, k && { primaries: k.primaries, head: k.head, continues: k.continues });
     await page.evaluate(() => { try { closeModal(); } catch (_) {} });
     await pause(300);
 

@@ -52,7 +52,8 @@ test('Requests: today green, a week or more amber', () => {
    row, and the colour is the stream's own mark (f1049) */
 test('Our paper: each row\'s uses said on the right, the stream\'s colour on its mark', () => {
   const f = fnBody(read('js/views/library.js'), 'tplnRowHtml');
-  assert.match(f, /<span class="tpln-u">\$\{_tplEsc\(i18tn\('tpln_uses', uses, \{ n: uses \}\)\)\}<\/span>/);
+  /* RE-POINTED (P-34, owner's pick 20 Nov 2026): the uses are the Drafted from it column — a small bar in the shelf's colour and the number */
+  assert.match(f, /<span class="tpln6-ub"><i style="--p:\$\{p\}%;--sd:var\(--st-\$\{tone\}-dot\)" aria-hidden="true"><\/i><b>\$\{uses\}<\/b><\/span>/);
   /* RE-POINTED 17 Nov 2026 (#762): the stream's colour is its tone's soft pair, readable (contrast-verify: white on the dot failed AA) */
   assert.match(f, /background:var\(--st-\$\{tone\}-bg\);color:var\(--st-\$\{tone\}-fg\)/);
 });

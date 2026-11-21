@@ -294,13 +294,17 @@ const BOX = sel => {
     await pause(400);
     /* RE-POINTED 18 Nov 2026 (main: Folder Cards replace Cover flow): a folder is a card (.tpln5-fc), its count of papers
        said on it ("N papers · …"); pressing the card opens the folder's list */
-    const target = await page.evaluate(() => { const r = [...document.querySelectorAll('[data-tpl-sec="book"] .tpln5-fc[data-tpln-shelf]')].find(x => (parseInt((x.querySelector('.tpln5-fcs') || {}).textContent, 10) || 0) > 0);
-      return r ? { fid: r.getAttribute('data-tpln-shelf'), name: (r.querySelector('.tpln5-fch b') || {}).textContent, n: parseInt((r.querySelector('.tpln5-fcs') || {}).textContent, 10) } : null; });
-    if (target) await page.click(`[data-tpl-sec="book"] .tpln5-fc[data-tpln-shelf="${target.fid}"] .tpln5-fch`);
+    /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way) */
+    /* a shelf is a calm card (.tpln6-fc[data-tpln-pickshelf]) saying "N papers · N drafted"; a press CHOOSES it (outlined),
+       a second press opens its list; on the shelf's list the shelves are chips, the chosen one set */
+    const target = await page.evaluate(() => { const r = [...document.querySelectorAll('[data-tpl-sec="book"] .tpln6-fc[data-tpln-pickshelf]')].find(x => (parseInt((x.querySelector('.tpln6-fcs') || {}).textContent, 10) || 0) > 0);
+      return r ? { fid: r.getAttribute('data-tpln-pickshelf'), name: (r.querySelector('.tpln6-fch b') || {}).textContent, n: parseInt((r.querySelector('.tpln6-fcs') || {}).textContent, 10) } : null; });
+    if (target) { await page.click(`[data-tpl-sec="book"] .tpln6-fc[data-tpln-pickshelf="${target.fid}"] .tpln6-fch`); await pause(400);
+      if (await page.evaluate(() => tplPlace().view === 'shelves')) await page.click(`[data-tpl-sec="book"] .tpln6-fc[data-tpln-pickshelf="${target.fid}"] .tpln6-fch`); }
     await pause(600);
     const landed = await page.evaluate(() => ({ view: tplPlace().view, ls: tplPlace().ls,
       head: ((document.querySelector('.tpln5-h1') || {}).textContent || '').trim(),
-      lit: [...document.querySelectorAll('[data-tpln-chip].is-on')].map(b => b.getAttribute('data-tpln-chip')),
+      lit: [...document.querySelectorAll('[data-tpln-shelfchip].is-on')].map(b => b.getAttribute('data-tpln-shelfchip')),
       box: ((document.querySelector('[data-tpln-q]') || {}).value) || '',
       rows: [...document.querySelectorAll('[data-tpl-sec="book"] .tpln-lrs [data-tpl-pf]')].filter(r => !r.hidden).map(r => r.getAttribute('data-tpln-stream')) }));
     check('4b · a folder lands on the list, showing that folder\u2019s own paper',
@@ -574,31 +578,39 @@ const BOX = sel => {
     const bk = !hasBook ? null : await page.evaluate(() => {
       const sec = document.querySelector('[data-tpl-sec="book"]');
       if (!sec) return null;
-      const shelves = [...sec.querySelectorAll('.tpln5.is-shelves [data-tpln-shelf]')];
-      return { h: Math.round(sec.scrollHeight), hidden: sec.hidden, n: sec.querySelectorAll('.tpln5-fcp[data-tpln-open]').length, shelves: shelves.length,
+      /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way) */ /* a shelf is a calm card (.tpln6-fc), its papers used most each a press (.tpln6-fp) */
+      const shelves = [...sec.querySelectorAll('.tpln5.is-shelves .tpln6-fc[data-tpln-pickshelf]')];
+      return { h: Math.round(sec.scrollHeight), hidden: sec.hidden, n: sec.querySelectorAll('.tpln6-fp[data-tpln-open]').length, shelves: shelves.length,
         rowH: shelves.length ? Math.round(shelves[0].getBoundingClientRect().height) : 0,
-        papered: shelves.length > 0 && shelves.every(r => r.querySelectorAll('.tpln5-fcp').length > 0) };
+        papered: shelves.length > 0 && shelves.every(r => r.querySelectorAll('.tpln6-fp').length > 0) };
     });
     check('9a · the book draws: a row per folder, each with its papers', !!bk && !bk.hidden && bk.h > 250 && bk.rowH > 30 && bk.shelves >= 2 && bk.papered,
       bk && { h: bk.h, hidden: bk.hidden, rowH: bk.rowH, shelves: bk.shelves, papered: bk.papered });
     await page.click('[data-tpl-sec="book"] [data-tpln-view="list"]');
     await pause(500);
-    const chips = await page.evaluate(() => [...document.querySelectorAll('[data-tpl-sec="book"] [data-tpln-chip]')].map(g => g.textContent.trim()));
+    /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way) */ /* the list's chips: Shelves · All with their counts, "+ Shelf" a small menu of every shelf (the stream chips went) */
+    const chips = await page.evaluate(() => ({ tabs: [...document.querySelectorAll('[data-tpl-sec="book"] .apn-bar .apn-tab.is-chip[data-tpln-view]')].map(g => g.textContent.trim()),
+      shelves: document.querySelectorAll('[data-tpl-sec="book"] .apn-rule-menu [data-tpln-shelfchip]').length }));
     await page.click('[data-tpln-back]');
     await pause(400);
-    check('9b · every template on the shelves; the list\u2019s streams as chips, All first',
-      !!bk && bk.n >= 12 && chips.length >= 2 && /^All\b/.test(chips[0] || ''), bk && { n: bk.n, chips });
+    check('9b · every template on the shelves; the list\u2019s chips Shelves · All, every shelf under + Shelf',
+      !!bk && bk.n >= 12 && chips.tabs.length === 2 && /^Shelves\b/.test(chips.tabs[0] || '') && /^All\b/.test(chips.tabs[1] || '') && chips.shelves >= 2, bk && { n: bk.n, chips });
     /* RE-POINTED 19 Oct 2026 (round 21 as drawn, lane D): the book's facts
        are ONE line beside the page's name — "N contracts drafted from them in
        12 months · N came back changed" — where the three figures stood */
-    const facts = await page.evaluate(() => ({ sub: (document.querySelector('[data-tpl-hd-sub]') || {}).textContent || '', gl: document.querySelectorAll('[data-tpl-head="book"] .tpl-gl').length }));
-    check('9e · the book\'s facts are one line beside the page\'s name; the three figures are gone',
-      /^\d+ contracts? drafted from them in 12 months · \d+ came back changed$/.test(facts.sub.trim()) && facts.gl === 0, facts);
+    /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way) */
+    /* no facts beside the title and no figure cards: the numbers are said ONCE, in Jambo's panel (its "Came back changed"
+       sentence); the three figures stay gone */
+    await page.waitForFunction(() => !!document.querySelector('#ins-panel [data-jov5-sec="changed"]'), null, { timeout: 6000 }).catch(() => {});
+    const facts = await page.evaluate(() => { const ch = document.querySelector('#ins-panel [data-jov5-sec="changed"]'); return ch ? { sub: !!document.querySelector('[data-tpl-hd-sub], .tpln5-hrow .tpl-hd-n'), gl: document.querySelectorAll('[data-tpl-head="book"] .tpl-gl, .tpln5-figs, .tpln5-fig').length,
+      said: ch.textContent.replace(/\s+/g, ' ').trim() } : null; });
+    check('9e · no facts line beside the page\'s name, no figures; the panel says what came back changed, once',
+      !!facts && !facts.sub && facts.gl === 0 && /drafts? (came|did not come) back changed|not made an agreement|came back changed/i.test(facts.said), facts);
 
     const cut = !hasBook ? null : await page.evaluate(async () => {
       const sec = document.querySelector('[data-tpl-sec="book"]');
       const list = document.querySelector('[data-tpl-sec="list"]');
-      const btn = sec.querySelectorAll('.tpln5-fcp[data-tpln-open]')[1];
+      const btn = sec.querySelectorAll('.tpln6-fp[data-tpln-open]')[1]; /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way) */
       if (!btn) return null;
       const want = btn.getAttribute('data-tpln-open');
       btn.click();
@@ -780,7 +792,10 @@ const BOX = sel => {
     Object.assign(words, onPaper);
     check('9a · the one door says what it does: the New agreement sheet\u2019s third tab, From scratch',
       words.newBtn === 'From scratch' && words.tabs[words.tabs.length - 1] === 'From scratch', words);
-    check('9b · and it is the ONE door — no New standard on Our paper, no Convert a document beside it', !words.newHere && !words.conv, words);
+    /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way): the picked head draws "New standard"
+       (black) beside Our playbook › on Our paper — the pick is the owner's yes to that door; it opens the same act as
+       From scratch (#tpl-new → openNewStandard), never a second way of its own. No Convert a document beside it. */
+    check('9b · Our paper\'s head carries New standard (the owner\'s pick, the same act as From scratch), no Convert a document beside it', words.newHere && !words.conv, words);
 
     await page.click('[data-na-newpaper]');
     await pause(500);

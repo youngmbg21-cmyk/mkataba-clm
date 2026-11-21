@@ -3839,6 +3839,10 @@ function pdWallHelloHtml(){
      Create (From scratch left this sheet for Our paper, 14 Nov 2026) */
   /* FROM NOTHING'S CONTENTS PAGE IS UP: the panel says what the proposal is made of (nsShelfPanelHtml, 14 Nov 2026) */
   if (typeof nsShelfPanelHtml === 'function'){ const sh = nsShelfPanelHtml(); if (sh) return `<div class="pd2-chosen cun-panel nsj-panel">${sh}</div>`; }
+  /* P-36, THE PANEL FOLLOWS THE SCREEN, THE SAME ON EVERY TAB (owner's pick 20 Nov 2026): Our paper, a paper chosen,
+     Their paper and From scratch all speak through the sheet's one builder (naSheetFive) — no cards, no plain panel */
+  if (typeof naSheetUp === 'function' && naSheetUp() && pd2On() && typeof naSheetFive === 'function' && typeof jamboOverviewHtml === 'function'){
+    const F = naSheetFive(); if (F) return `<div class="jl-words is-ov pd-sheet-hello na6-p">${jamboOverviewHtml(F, 'na6')}</div>`; }
   /* THEIR PAPER UP (owner picked "Five Parts" by name, 18 Nov 2026): the five parts (naTheirsFive) */
   if (typeof naSheetUp === 'function' && naSheetUp() && pd2On() && typeof naTheirsNow === 'function' && typeof jamboOverviewHtml === 'function'){
     const T = naTheirsNow(); if (T) return `<div class="jl-words is-ov pd-sheet-hello nat-five">${jamboOverviewHtml(naTheirsFive(T), 'nat')}</div>`; }

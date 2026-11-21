@@ -195,18 +195,22 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
        Shelves first (the filter line, the figures, a Cover flow row per folder), All opens the list (chips, rows quoting
        their first line), a row pressed twice opens the paper small beside its facts; the panel speaks for the step */
     await page.evaluate(() => setView('templates'));
-    const up = await until(page, () => !!document.querySelector('.tpln5 .tpln5-fcg .tpln5-fc'), null, 12000); /* RE-POINTED 18 Nov 2026: Folder Cards replace Cover flow */
-    const shelf = await page.evaluate(() => ({ ask: !!document.querySelector('.tpln5 [data-tpln-q]'), figs: !!document.querySelector('.tpln5 .tpln5-figs') }));
+    /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way) */
+    /* Shelves: one ask box (label.apn-ask) and chips Shelves · All (.apn-tab.is-chip), NO figure cards, a calm card per
+       shelf (.tpln6-fc); All: one calm table (.tpln6-table, rows tr.tpln-lr quoting § 1); a row pressed twice opens the paper */
+    const up = await until(page, () => !!document.querySelector('.tpln6.is-shelves .tpln6-fcg .tpln6-fc'), null, 12000);
+    const shelf = await page.evaluate(() => ({ ask: !!document.querySelector('.tpln5 label.apn-ask [data-tpln-q]'), figs: !document.querySelector('.tpln5 .tpln5-figs, .tpln5 .tpln5-fig'),
+      chips: document.querySelectorAll('.tpln5 .apn-bar .apn-tab.is-chip[data-tpln-view]').length === 2 }));
     const used = await until(page, () => /came back changed/i.test((document.querySelector('#ins-panel') || {}).innerText || ''), null, 8000);
     await shot('7-our-paper');
-    await page.evaluate(() => { const b = document.querySelector('.tpln5-fl [data-tpln-view="list"]'); if (b) b.click(); });
-    const listed = await until(page, () => !!document.querySelector('.tpln5.is-list .tpln-r[data-tpl-pf]'), null, 8000);
-    const lg = await page.evaluate(() => ({ chips: !!document.querySelector('.tpln5.is-list .tpln-chips'), quote: !!document.querySelector('.tpln5.is-list .tpln-r .tpln-q') }));
-    await page.evaluate(() => { const r = document.querySelector('.tpln5.is-list .tpln-r[data-tpl-pf]:not([hidden])'); if (r) r.click(); });
-    await until(page, () => !!document.querySelector('.tpln5.is-list .tpln-r.is-on'), null, 6000);
-    await page.evaluate(() => { const r = document.querySelector('.tpln5.is-list .tpln-r.is-on'); if (r) r.click(); });
+    await page.evaluate(() => { const b = document.querySelector('.tpln5 .apn-bar [data-tpln-view="list"]'); if (b) b.click(); });
+    const listed = await until(page, () => !!document.querySelector('.tpln5.is-list .tpln6-table tr.tpln-lr[data-tpl-pf]'), null, 8000);
+    const lg = await page.evaluate(() => ({ chips: !!document.querySelector('.tpln5.is-list .apn-bar .apn-tab.is-chip'), quote: !!document.querySelector('.tpln5.is-list tr.tpln-lr .tpln-q') }));
+    await page.evaluate(() => { const r = document.querySelector('.tpln5.is-list tr.tpln-lr[data-tpl-pf]:not([hidden])'); if (r) r.click(); });
+    await until(page, () => !!document.querySelector('.tpln5.is-list tr.tpln-lr.is-on'), null, 6000);
+    await page.evaluate(() => { const r = document.querySelector('.tpln5.is-list tr.tpln-lr.is-on'); if (r) r.click(); });
     const sheet = await until(page, () => !!document.querySelector('.tpln5.is-paper .tpln-sheet .tpl-pf-sheet, .tpln5.is-paper .tpln-sheet .tpl-pf-none'), null, 8000);
-    check('7 Our paper: Shelves (the filter, the figures, a card per folder), then the list (chips, each row quoting its first line), then the paper small; its use in the panel', up && shelf.ask && shelf.figs && used && listed && lg.chips && lg.quote && sheet, { shelf, lg, listed, sheet });
+    check('7 Our paper: Shelves (one ask box, chips, no figure cards, a card per shelf), then the list (chips, each row quoting its first line), then the paper small; its use in the panel', up && shelf.ask && shelf.figs && shelf.chips && used && listed && lg.chips && lg.quote && sheet, { shelf, lg, listed, sheet });
   } catch (e) { check('7 Our paper', false, String(e).slice(0, 200)); }
 
   /* 8 · My notes */
@@ -249,9 +253,14 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await shot('10-import');
     /* RE-POINTED (owner, 16 Nov 2026: the figures and "the level of confidence for each contract" are back; f1081): How sure
        stands after What Jambo read, and five figures over the list */
-    const figs = await page.evaluate(() => [...document.querySelectorAll('.mign-page .mign-figs .mign-fig')].map(x => x.innerText.replace(/\s+/g, ' ').trim()));
-    check('10 Import: What Jambo read · How sure · Looks · Stream · Value, five figures over the list, the ones that need you first', up && heads.join('|') === 'file|what jambo read|how sure|looks|stream|value'
-      && figs.length === 5 && /files? brought in/.test(figs[0]) && /to check/.test(figs[2]) && /Fill in|Name it/.test(first) && /(High|Medium|Low)/.test(first), { heads, figs, first: first.slice(0, 160) });
+    /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */
+    /* the five figures became ONE batch bar with its legend; the table File · Reading (a soft badge) · What Jambo read ·
+       How sure ("N of 5" with three bars) · Stream · Value; no buttons on the rows — the first row waits, said by its badge */
+    const figs = await page.evaluate(() => ({ tiles: document.querySelectorAll('.mign-page .mign-figs, .mign-page .mign-fig').length, bar: !!document.querySelector('.mign-page .mign-batch .mign-bbar'),
+      key: [...document.querySelectorAll('.mign-page .mign-batch .mign-bk')].map(x => x.innerText.replace(/\s+/g, ' ').trim()),
+      badge: ((document.querySelector('.mign-table tbody tr[data-row] .apn-st') || {}).textContent || '').trim(), rowBtn: !!document.querySelector('.mign-table tbody tr[data-row] button') }));
+    check('10 Import: File · Reading · What Jambo read · How sure · Stream · Value, one batch bar with its legend, the ones that need you first, no button on a row', up && heads.join('|') === 'file|reading|what jambo read|how sure|stream|value'
+      && !figs.tiles && figs.bar && figs.key.length >= 1 && /^(To check|A copy\?|No readable text|Is it signed\?|Could not be read)$/.test(figs.badge) && !figs.rowBtn && /\d+ of \d+/.test(first), { heads, figs, first: first.slice(0, 160) });
   } catch (e) { check('10 Import', false, String(e).slice(0, 200)); }
 
   /* 11 · DNA by contract — RE-POINTED 10 Nov 2026: the owner deleted the DNA page and its button.

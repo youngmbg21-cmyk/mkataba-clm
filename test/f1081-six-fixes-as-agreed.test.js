@@ -58,9 +58,12 @@ test('f1081 (4) Import: the check screen\'s bar shows, Esc goes back, the figure
   assert.ok(!/html\.lg-new \.mig-page:not\(:has\(table\)\) #mig-band\{display:none\}/.test(HTML));
   const M = read('js/views/migration.js');
   assert.match(M, /e\.key !== 'Escape' \|\| e\.defaultPrevented \|\| !_migCheck/); assert.match(M, /e\.preventDefault\(\); migCheckClose\(\);/);
-  assert.match(fnSrc(M, 'migNlPageHtml'), /\$\{migNlFigsHtml\(\)\}/, 'the figures stand over the list');
-  assert.match(fnSrc(M, 'migNlFigsHtml'), /return n \? `<button type="button" class="mign-fig[^`]*data-mign-fig="\$\{key\}"[^`]*` : `<span class="mign-fig is-zero">/, 'a figure of nothing is no door');
-  assert.match(fnSrc(M, 'migNlRowHtml'), /\$\{migSureCellHtml\(c\)\}/);
+  /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way): ONE BATCH BAR replaces the five figures;
+     its legend words keep the figures' presses (data-mign-fig), a kind of nothing is not drawn */
+  assert.match(fnSrc(M, 'migNlPageHtml'), /\$\{migNlBatchHtml\(rows\)\}/, 'the batch bar stands over the list');
+  assert.match(fnSrc(M, 'migNlBatchHtml'), /data-mign-fig="\$\{s\.fig\}"/, 'a legend word is the press its figure was');
+  assert.match(fnSrc(M, 'migNlBatchHtml'), /\.filter\(s => s\.n\)/, 'a kind of nothing is not drawn');
+  assert.match(fnSrc(M, 'migNlRowHtml'), /migSureCellHtml\(P\)/);
   const sure = new Function('migSideFacts', fnSrc(raw('js/views/migration.js'), 'migSureOf') + '; return migSureOf;');
   const of = facts => sure(() => facts)({});
   const F = (found, low) => [0, 1, 2, 3, 4].map(i => ({ missing: i >= found, unsure: i < low }));
