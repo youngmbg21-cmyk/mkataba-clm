@@ -65,11 +65,8 @@ describe('f1140 (1) an approval waits the same on every load', () => {
     const w = ctx();
     assert.equal(w.ndWaitedDays({ _raisedAt: day(40), asks: [{ state: 'open', at: day(3) }] }, { kind: 'approval' }), 3);
   });
-  test('1c the Approvals page reads the same: the ask, else the raised day — not lastAction\'s idle first', () => {
-    const AP = R('js/views/approvalsview.js');
-    const rows = strip(fnBody(AP, 'apApprovalRows'));
-    assert.match(rows, /repRaisedAt\(x\.c\)/);
-  });
+  /* (the Approvals page's idle column is its own fact — how long the contract has sat since its last action — and is not
+     this wait; it is left as it was, sap-lists-verify 2b0) */
 });
 
 describe('f1140 (2) one count of what waits', () => {

@@ -104,6 +104,12 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
   /* the admin's own contract, below the rule, that waits on Jonas's signature */
   await mk('MK-SG1', 'Stratos support', 300000, 'Under Review',
     { signerPlan: [{ id: 's-j', party: 'internal', name: 'Jonas Berg', memberId: jonas.id, order: 1 }] });
+  /* RE-POINTED 22 Nov 2026 (review of merged pages): A LATE APPROVAL, HONESTLY OLD. 5c's late ones used to come from the
+     default fixtures' display day `lastAction` ("10 Jul 2026"), which the wait no longer reads (ndWaitedDays, apApprovalRows:
+     the question's own time, else the day the record was raised). This one was raised 20 days ago and has waited on Jonas
+     ever since, with no question recorded — so it is late by the record itself. */
+  await mk('MK-AP0', 'Ostkust warehouse lease', 18000000, 'Under Review',
+    { audit: [{ at: new Date(Date.now() - 20 * 864e5).toISOString(), user: 'System', action: 'Created', detail: 'fixture' }] });
 
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];

@@ -1847,13 +1847,11 @@ function hbNdOpts(A, since){
   const at = since || null;
   const done = (H.done && H.done.length) ? `<div class="hb-done">${_hbE(i18t('hb_done_since', { when: hbDayWords(at) }))} ${H.done.map(x => `<button type="button" data-hb-dig="dn:${_hbE(x.k)}">${_hbE(i18tn('hb_done_' + x.k, x.n, { n: _hbN(x.n) }))}</button>`).join('<span aria-hidden="true">·</span>')}<span class="hb-grow"></span><span class="hb-quiet">${_hbE(i18t('hb_done_trail'))}</span></div>` : '';
   let its = []; try { its = (typeof ndPieces === 'function') ? ndPieces().map(p => p.it) : []; } catch (_){ its = []; }
-  /* THE AGENTS' LEVELS LINE LEFT THE BOARD (P-39 as drawn; review of the merged pages, 22 Nov 2026): "All seven agents:
-     Ask me first … Change · The agents" is not in the drawing — the levels are set and read on the agents' page and in
-     Settings › Jambo. In the new look the card ends at its rows (and "Show N more", a cap said); the old look keeps it. */
-  const nl = typeof newLookOn === 'function' && newLookOn();
-  const levels = nl ? '' : hbAgLevelsHtml();
-  const house = nl ? '' : `<button type="button" class="hb-edge-b" data-hb-agents-page>${_hbE(i18t('hb_the_agents'))}</button>`;
-  return { look: hbNdLookHtml, chase: hbChaseManyHtml(its), keep: !!done, foot: (done || levels || house) ? `<div class="nd-foot">${done}${(levels || house) ? `<div class="nd-foot-r">${levels || '<span class="hb-grow"></span>'}${house}</div>` : ''}</div>` : '' };
+  /* THE AGENTS' LEVELS LINE STAYS (review of the merged pages, 22 Nov 2026: P-39 does not draw it, but it is a working
+     control — an admin's Change, a member's Ask an admin — and working controls stay though undrawn) */
+  const levels = hbAgLevelsHtml();
+  const house = `<button type="button" class="hb-edge-b" data-hb-agents-page>${_hbE(i18t('hb_the_agents'))}</button>`;
+  return { look: hbNdLookHtml, chase: hbChaseManyHtml(its), keep: !!done, foot: `<div class="nd-foot">${done}<div class="nd-foot-r">${levels || '<span class="hb-grow"></span>'}${house}</div></div>` };
 }
 /* a piece opened under its row: its body (a chase's letter as it will leave,
    else the piece's own), then its acts — its one act, the rest, Put away last */

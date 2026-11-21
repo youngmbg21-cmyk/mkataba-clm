@@ -138,12 +138,8 @@ describe('f801 (3) the line', () => {
   test('3h it is drawn at the foot of the Board\'s Needs you card, beside the house\'s door, and not on Home', () => {
     /* RE-POINTED 22 Oct 2026 (Round A, the one desk): the agents' rows are rows of Needs you now; the line
        stands at the card's foot (hbNdOpts), where the card always stands — it never folds */
-    /* RE-POINTED 22 Nov 2026 (review of merged pages): P-39 as drawn has no levels line at the foot of Needs you; in the
-       new look the card ends at its rows — the levels are read and set on the agents' page and in Settings › Jambo.
-       The old look keeps the line where it stood. */
     const opts = fnBody(HB, 'hbNdOpts');
-    assert.match(opts, /const levels = nl \? '' : hbAgLevelsHtml\(\);/);
-    assert.match(opts, /const house = nl \? '' :/);
+    assert.match(opts, /const levels = hbAgLevelsHtml\(\);/);
     assert.match(opts, /<div class="nd-foot-r">\$\{levels \|\| '<span class="hb-grow"><\/span>'\}\$\{house\}<\/div>/);
     const CN = R('js/views/counter.js');
     assert.doesNotMatch(CN, /cnJwLevelsHtml|data-cn-lv-|cnLvAsk/, 'Home draws no line under its rows');

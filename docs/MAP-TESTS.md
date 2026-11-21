@@ -999,7 +999,8 @@ f1070 (3), f989 3, f997 (1), f998 (3) re-pointed.
 ## THE ONE DESK — NEEDS YOU, ONE READING — ONE COUNT, ONE WAIT (review of merged pages, 22 Nov 2026)
 - test/f1140-one-count-one-wait.test.js: ndWaitCounts (Jambo = every piece, late too) read by the Board's chips, the
   panel's ring and "I have N things ready", the bell's chips and its Jambo filter; hbHelloFitN + "N more" (never a cut
-  row); an approval's wait off its question's `at`, else the raised day, never `lastAction` (Board and Approvals); the
+  row); an approval's wait off its question's `at`, else the raised day, never `lastAction` (the Board; the Approvals page's idle column keeps its own fact); the
   company row (name, one line, oldest wait, `plain` clash words, no sum); Activity's short lines (actSayOf, a note Asked).
-- Re-pointed: f801 3h (no levels line in the new look), f869 2c (one line under the company row), f726 1c (clash `at`),
-  f1032 (3)(4) ("Asks you"); test/chromium/open-in-place-verify.js 2 (no "The agents" at the card's foot).
+- Re-pointed: f869 2c (one line under the company row), f726 1c (clash `at`), f1032 (3)(4) ("Asks you"),
+  counter-as-drawn-verify 11a (a piece with the paper's words is a two-line row). The levels line was restored (f801 3h and
+  open-in-place-verify 2 stand as on main).

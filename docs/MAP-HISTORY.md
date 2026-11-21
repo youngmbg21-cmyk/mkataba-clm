@@ -39697,6 +39697,7 @@ last piece was cut at 1536×730; Explorer and Read down showed no quote for a te
 Built: ndWaitCounts (one count); hbHelloFitN with "N more, on the Board"; ndWaitedDays and apApprovalRows off the
 question's `at`, else repRaisedAt; the company row's name/line/oldest wait and `plain` clash words; actSayOf; the
 note quote, the amber band, the one green; the notes face level with its switch; hbRdnTermQuote's term-sentence
-fallback. Removed (a band): the "All seven agents … Change · The agents" foot line (BUGLOG). Kept as ruled: "Show N more",
+fallback. The "All seven agents … Change · The agents" foot line was removed, then RESTORED the same day (a working control stays
+though undrawn). Kept as ruled: "Show N more",
 "‹ Back to Contracts", "Payment gap", two-line titles, Notes greyed without a contract, Done notes under Done only, nav
 counts grey unless waiting on you.
