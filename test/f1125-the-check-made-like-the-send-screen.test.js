@@ -32,7 +32,8 @@ test('f1125 (1) the entry stands first, the file to its right on one sheet', () 
   assert.doesNotMatch(f, /data-mig-ck-skip|data-mig-file=/, 'its two acts are not under the form any more');
 });
 test('f1125 (2) Skip for now and File it in the head; New batch a link in the bar', () => {
-  assert.match(fn('migPaintHead'), /a\.innerHTML = _migCheck \? migCheckActsHtml\(\) : ''/);
+  /* RE-POINTED 21 Nov 2026 (P-33, as drawn): before any file the head carries Choose files, black; otherwise nothing */
+  assert.match(fn('migPaintHead'), /a\.innerHTML = _migCheck \? migCheckActsHtml\(\) : first \? `<button type="button" class="ui-btn ui-btn-primary" data-mig-choose0>/);
   const a = fn('migCheckActsHtml');
   assert.match(a, /data-mig-ck-skip>\$\{esc\(i18t\('mig_ck_skip'\)\)\}/);
   assert.match(a, /class="ui-btn ui-btn-primary" data-mig-file="\$\{esc\(c\.id\)\}" data-mig-ck-file\$\{waits\.length \? ` disabled title=/);
