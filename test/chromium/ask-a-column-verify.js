@@ -43,6 +43,8 @@ async function signIn(page, base, email, pass_) {
   await page.fill('#li-email', email); await page.fill('#li-pass', pass_); await page.click('#li-go');
   await until(page, () => typeof window.setView === 'function' && window.state && Array.isArray(state.contracts) && state.contracts.length > 0, null, 15000);
 }
+/* the act the removed list button did: open the question form beside the list, or close it */
+const acToggle = page => page.evaluate(() => { if (AC.form) askColClose(); else askColOpen(); });
 async function toList(page) {
   await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
   return until(page, () => !!document.querySelector('#reg-tbody tr[data-row]'));
@@ -69,22 +71,26 @@ async function toList(page) {
        list's own card head is gone; "Ask a column" stands at the list head's
        chip row's end */
     /* the head is painted beside the rows, not before them: ask for the door, bounded, before reading it */
-    await until(page, () => !!document.querySelector('.lh-chips [data-ac-open]'));
-    const btn = await page.evaluate(() => { const b = document.querySelector('.lh-chips [data-ac-open]'); return b ? { txt: b.textContent.trim(), dis: b.disabled } : null; });
-    check('1a "Ask a column" stands in the list\'s own head', !!btn && /Ask a column/.test(btn.txt) && !btn.dis, JSON.stringify(btn));
-    await page.click('[data-ac-open]');
+    /* RE-POINTED 21 Nov 2026 (owner, 15 Nov 2026: "Remove discover button but leave the door or discover link"): the
+       new look draws no button on the list's head (askColBtnHtml draws nothing); the question form stays, opened by
+       Jambo's box ("ask a column", stage 7) — the stages below open and close it as the old button did (askColOpen /
+       askColClose), so they still pin the form, the column and the panel */
+    await page.waitForTimeout(800);
+    const btn = await page.evaluate(() => document.querySelectorAll('.lh-chips [data-ac-open], #content [data-ac-open]').length);
+    check('1a no "Ask a column" button on the list\'s head (removed, owner 15 Nov 2026)', btn === 0, String(btn));
+    await acToggle(page);
     const opened = await until(page, () => !!document.querySelector('#ig-dock #ac-form #ac-q'));
     const form = await page.evaluate(() => { const f = document.querySelector('#ac-form'); return f ? f.innerText : ''; });
     /* RE-POINTED 28 Oct 2026 (round 2 of the review): one box, the name said; the button says what it spends; the card a read leaves heads the column's card, with no bar */
     check('1b the question opens in Jambo\'s panel', opened && /Your question/.test(form) && /named from your question/.test(form), form.slice(0, 120));
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
     check('1c before the press it says which contracts it reads, no cost', /4 (contracts )?shown/.test(form) && /Read 4 contracts/.test(form) && /Cancel/.test(form) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(form), form.slice(0, 300));
-    await page.click('[data-ac-open]');
+    await acToggle(page);
     check('1d the same press closes it again', await until(page, () => !document.querySelector('#ac-form')));
     await page.screenshot({ path: path.join(OUT, '01-closed.png') });
 
     /* ============ 2. THE COLUMN ============ */
-    await page.click('[data-ac-open]'); await until(page, () => !!document.querySelector('#ac-q'));
+    await acToggle(page); await until(page, () => !!document.querySelector('#ac-q'));
     /* RE-POINTED 28 Oct 2026 (round 2 of the review): the form has one box; the name is said under it, with Change */
     await page.fill('#ac-q', Q); await page.click('[data-ac-name-edit]'); await page.fill('#ac-name', 'Notice to end');
     await page.screenshot({ path: path.join(OUT, '02-asking.png') });
@@ -158,7 +164,7 @@ async function toList(page) {
     /* RE-POINTED 21 Oct 2026 (Part 8): Owner is hidden at rest under Columns
        now, so the list comes back to the drawing's four, not to Owner */
     check('5b Remove column takes it off the list', await until(page, () => !document.querySelector('td.ac-cell') && [...document.querySelectorAll('.reg-table thead th')].some(th => th.textContent.trim() === 'Value')));
-    await page.click('[data-ac-open]'); await until(page, () => !!document.querySelector('[data-ac-chip]'));
+    await acToggle(page); await until(page, () => !!document.querySelector('[data-ac-chip]'));
     await page.click('[data-ac-chip]');
     /* RE-POINTED 28 Oct 2026 (THE THREAD): the form now says every shown
        contract is read and kept, and offers Bring the answers onto the list
@@ -243,7 +249,7 @@ async function toList(page) {
     if (await page.$('#ac-form')) await page.click('[data-ac-cancel]').catch(() => {});
     let release; const held = new Promise(r => { release = r; });
     await page.route('**/api/columns', async route => { await held; await route.continue(); });
-    await page.click('[data-ac-open]');
+    await acToggle(page);
     /* RE-POINTED 28 Oct 2026 (round 2 of the review): the form has one box; the name is said under it, with Change */
     await until(page, () => !!document.querySelector('#ac-q'));
     await page.click('#ac-q');
@@ -261,9 +267,11 @@ async function toList(page) {
     vp.on('pageerror', e => errors.push(String(e)));
     await signIn(vp, h.base, 'viewer@example.co.ke', 'their-own-pass-9');
     await toList(vp);
-    await until(vp, () => { const b = document.querySelector('[data-ac-open]'); return !!b && b.disabled; });
-    const vb = await vp.evaluate(() => { const b = document.querySelector('[data-ac-open]'); return b ? { dis: b.disabled, title: b.title } : null; });
-    check('8 a viewer sees the door greyed, with why', !!vb && vb.dis && /edit contracts/.test(vb.title), JSON.stringify(vb));
+    /* RE-POINTED 21 Nov 2026 (the button is removed; Round C, NO BUTTON YOU CANNOT USE): a viewer may not ask, and no
+       door to asking is drawn for them */
+    await vp.waitForTimeout(800);
+    const vb = await vp.evaluate(() => ({ may: askColMay(), doors: document.querySelectorAll('[data-ac-open]').length }));
+    check('8 a viewer may not ask a column, and no door to it is drawn', !vb.may && vb.doors === 0, JSON.stringify(vb));
   } finally {
     check('no page errors', !errors.length, errors.slice(0, 3).join(' | '));
     await browser.close(); await h.stop();
