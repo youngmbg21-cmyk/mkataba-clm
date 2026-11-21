@@ -1572,6 +1572,35 @@ function migNlSentence(text, at, room){
   if (e - s > max){ const sp = t.lastIndexOf(' ', s + max); if (sp > at.e){ e = sp; cut = true; } }
   return { s, e, cut, q: t.slice(s, e).replace(/\s+/g, ' ').trim() + (cut ? '…' : '') };
 }
+/* NO SUM IN A QUOTE OUTSIDE THE VALUE COLUMN (RE-POINTED 22 Nov 2026, batch 7 review; P-33 and CLAUDE.md "money only
+   in the Value column"): the same rule as Approvals' quotes (apnSumFree / apnQuoteShown on the approvals branch, not on
+   main yet — to be joined into one helper once both merge): a quote that carries a sum is cut to the words before it,
+   ending "…", when four words or more say something; else the next sentence of the same part that carries no sum (the
+   one before it where none follows); else nothing (the § alone is said). The file's own words are only cut, never
+   rewritten; the check's view of the file itself is left whole. */
+const MIG_SUM_RE = /(?:\b(?:KES|KSh|Ksh|USD|EUR|GBP|SEK|UGX|TZS|ZAR|kr)\b\.?\s?|[$€£]\s?)\d|\b\d{1,3}(?:[,\s]\d{3})+(?:\.\d+)?\b|\b\d[\d,.]*\s?(?:KES|KSh|USD|EUR|GBP|SEK|kronor|shillings?|dollars?|euros?)\b/i;
+const MIG_QUOTE_WORDS = 4;
+/* words that say something: a § or a number alone is not one */
+const migNlWordN = t => String(t || '').split(/\s+/).filter(w => /[A-Za-zÀ-ÿ]/.test(w)).length;
+function migNlSumCut(t){
+  t = String(t || ''); const m = MIG_SUM_RE.exec(t); if (!m) return t;
+  let cut = t.slice(0, m.index);
+  for (let i = 0; i < 3; i++) cut = cut.replace(/[\s,;:(–—-]+$/, '').replace(/\s+(?:of|at|is|are|be|being|for|to|a|an|the|by|from|up|was|will)$/i, '');
+  return migNlWordN(cut) >= MIG_QUOTE_WORDS ? cut.trim() + '…' : '';
+}
+/* the sentence S (migNlSentence) as it may be shown: { q, s, e } with e where the shown words end in the file, or null */
+function migNlNoSum(text, S){
+  if (!S || !S.q) return null;
+  if (!MIG_SUM_RE.test(S.q)) return { q:S.q, s:S.s, e:S.e, same:true };
+  const cut = migNlSumCut(S.q.replace(/…$/, ''));
+  if (cut){ const m = MIG_SUM_RE.exec(String(text).slice(S.s, S.e)); return { q:cut, s:S.s, e:m ? S.s + m.index : S.e }; }
+  const t = String(text || ''); const ls = t.lastIndexOf('\n', Math.max(0, S.s - 1)) + 1; let le = t.indexOf('\n', S.e); if (le < 0) le = t.length;
+  const part = t.slice(ls, le), sents = []; const re = /[^.!?;:]+[.!?;:]?/g; let m;
+  while ((m = re.exec(part))){ const w = m[0].replace(/\s+/g, ' ').trim(); if (w) sents.push({ w, s:ls + m.index, e:ls + m.index + m[0].length }); }
+  const ok = x => !MIG_SUM_RE.test(x.w) && migNlWordN(x.w) >= MIG_QUOTE_WORDS && /[.;:!?]$/.test(x.w);
+  const pick = sents.filter(x => x.s >= S.e).find(ok) || sents.filter(x => x.e <= S.s).reverse().find(ok);
+  return pick ? { q:pick.w.replace(/[\s;,:]+$/, ''), s:pick.s, e:pick.e } : { q:'', s:S.s, e:S.s };
+}
 /* a file parked because it looks unsigned: the line that calls it a draft (its title, where it is the first line) */
 function migNlDraftWords(text){
   const t = String(text || ''), m = MIG_DRAFT_RE.exec(t.slice(0, 400)); if (!m) return null;
@@ -1593,7 +1622,9 @@ function migNlWordsOf(r, P){
   const x = k === 'filed' ? (F.find(f => f.k === 'expiryDate' && f.at) || F.find(f => f.at && f.k !== 'contractType'))
     : (F.find(f => f.need && f.at) || F.find(f => f.at && f.k !== 'contractType'));
   if (!x) return null;
-  const S = migNlSentence(text, x.at); return S && S.q ? { q:S.q, sec:migNlSecAt(text, x.at.s), k:x.k } : null;
+  const S = migNlSentence(text, x.at); if (!S || !S.q) return null;
+  const N = migNlNoSum(text, S), sec = migNlSecAt(text, x.at.s);
+  return N && N.q ? { q:N.q, sec, k:x.k } : sec ? { q:'', sec, k:x.k } : null;
 }
 /* kept for the pages that read it: the first quote, as before */
 function migNlQuoteOf(P){
@@ -1671,7 +1702,8 @@ function migNlRowHtml(r){
   const q = migNlWordsOf(r, P);
   /* RE-POINTED 22 Nov 2026 (batch 7 review): the § sits INSIDE the quote's line, right after its closing mark, as drawn
      ("until 31 August 2027" § 4) — the words give way ("…" inside the marks), never the §; a title quote says no tag */
-  const ql = q ? `<div class="mign-ql"><i><span class="mign-qt">“${esc(String(q.q).replace(/…$/, ''))}</span><span class="mign-qe">”</span></i>${!q.title && q.sec ? `<span class="mign-qs">${esc(q.sec)}</span>` : ''}</div>` : '';
+  const ql = q && q.q ? `<div class="mign-ql"><i><span class="mign-qt">“${esc(String(q.q).replace(/…$/, ''))}${/…$/.test(q.q) ? '…' : ''}</span><span class="mign-qe">”</span></i>${!q.title && q.sec ? `<span class="mign-qs">${esc(q.sec)}</span>` : ''}</div>`
+    : q && q.sec ? `<div class="mign-ql"><span class="mign-qs">${esc(q.sec)}</span></div>` : '';
   const stream = P && !none && k !== 'dupe' && P.folder && window.FOLDERS && FOLDERS[P.folder] ? ((typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[P.folder]) || FOLDERS[P.folder].name) : '';
   const value = P && !none && k !== 'dupe' ? migNlValueOf(P) : '';
   const money = !(typeof canViewValues === 'function' && !canViewValues());
@@ -1756,7 +1788,17 @@ const MIGN_USE_FOR = { party:'counterparty', value:'value', renews:'expiryDate',
 /* the found words lit inside their sentence, as drawn ("It renews by itself for a further year at a time"): a whole
    sentence found (the end that renews) lights only the words that say it */
 function migNlLitSentenceHtml(text, at, k){
-  const t = String(text || ''), S = migNlSentence(t, at, 70); if (!S) return '';
+  const t = String(text || ''), S0 = migNlSentence(t, at, 70); if (!S0) return '';
+  /* no sum in the panel's quote (migNlNoSum): the words before it, or a sum-free sentence beside it, else none */
+  const N = migNlNoSum(t, S0); if (!N || !N.q) return '';
+  if (!N.same){ const w0 = x => esc(String(x).replace(/\s+/g, ' '));
+    const ls0 = Math.max(N.s, at.s), le0 = Math.min(N.e, at.e);
+    const body = N.q.replace(/…$/, ''), tail = /…$/.test(N.q) ? '…' : '';
+    if (le0 > ls0 && N.e <= S0.e && N.s === S0.s){ const a = t.slice(N.s, ls0).replace(/\s+/g, ' ').replace(/^\s+/, ''), b = t.slice(ls0, le0).replace(/\s+/g, ' ');
+      if ((a + b).trim() && body.startsWith((a + b).trim().slice(0, Math.min(body.length, (a + b).trim().length))) && (a + b).length <= body.length + 1)
+        return `“${w0(a)}<mark>${w0(b)}</mark>${w0(body.slice((a + b).length))}${tail}”`; }
+    return `“${w0(body)}${tail}”`; }
+  const S = S0;
   let ls = Math.max(S.s, at.s), le = Math.min(S.e, at.e);
   if (k === 'expiryDate' && le - ls > 40){ const m = MIG_RENEW_RE.exec(t.slice(ls, le)); if (m){ ls += m.index; le = ls + m[0].length; } }
   const w = x => esc(String(x).replace(/\s+/g, ' '));
@@ -1823,7 +1865,8 @@ function migNlFactsOf(r, P){
       const chip = of ? `<button type="button" class="mign5-use" data-mign-use="${esc(of.k)}" data-mign-key="${esc(r.key)}"${of.iso ? ` data-iso="${esc(of.iso)}"` : ''}${of.val ? ` data-val="${esc(of.val)}"` : ''}>${esc(i18t('mign5_use', { v: of.k === 'renews' ? migNlLow(i18t('mig_renews')) : of.k === 'date' ? migDay(of.iso) : of.val }))}</button>`
         : (r.c && may && x.val ? `<button type="button" class="mign5-use" data-mign-use="keep" data-mign-k="${esc(x.k)}" data-mign-key="${esc(r.key)}" data-val="${esc(x.val)}"${x.iso ? ` data-iso="${esc(x.iso)}"` : ''}>${esc(i18t('mign5_use', { v:x.val }))}</button>` : '');
       const quote = x.at ? migNlLitSentenceHtml(text, x.at, x.k) : '';
-      row.open = { quote, say:quote ? '' : i18t('mign5_none_said'), where:x.at ? (migNlSecAt(text, x.at.s) || (x.k === 'contractType' ? i18t('mign5_its_title') : '')) : '', chip };
+      const secOnly = !quote && x.at ? migNlSecAt(text, x.at.s) : '';
+      row.open = { quote, say:quote || secOnly ? '' : i18t('mign5_none_said'), where:x.at ? (migNlSecAt(text, x.at.s) || (x.k === 'contractType' ? i18t('mign5_its_title') : '')) : '', chip };
       if (x.missing || !x.val) row.val = i18t('mign5_not_found');
     });
   }
@@ -1836,7 +1879,7 @@ function migNlFactsHtml(r, P, F){
   return `<div class="mign5-fh"><b>${esc(i18t('mign5_filed_as'))}</b><span>${esc(i18t('mign5_sure', { n:F.n, of:F.of }))}</span></div>`
     + `<div class="mign5-facts">${F.rows.map(x => {
       const o = x.open;
-      const more = o ? `<div class="mign5-open">${o.quote ? `<p class="mign5-lit">${o.quote}${o.where ? ` <span class="mign5-w">${esc(o.where)}</span>` : ''}</p>` : o.say ? `<p class="mign5-say">${esc(o.say)}</p>` : ''}${o.chip ? `<div class="mign5-ow">${o.chip}</div>` : ''}</div>` : '';
+      const more = o ? `<div class="mign5-open">${o.quote ? `<p class="mign5-lit">${o.quote}${o.where ? ` <span class="mign5-w">${esc(o.where)}</span>` : ''}</p>` : o.say ? `<p class="mign5-say">${esc(o.say)}</p>` : o.where ? `<p class="mign5-lit"><span class="mign5-w">${esc(o.where)}</span></p>` : ''}${o.chip ? `<div class="mign5-ow">${o.chip}</div>` : ''}</div>` : '';
       return `<div class="mign5-f${o ? ' is-open' : ''}"><i class="mign5-d is-${x.tone}" aria-hidden="true"></i><span class="mign5-k">${esc(x.label)}</span><span class="mign5-v is-${x.tone}" title="${esc(x.val)}">${esc(x.val)}</span></div>${more}`; }).join('')}</div>`;
 }
 function migNlRingSvg(k, n){
