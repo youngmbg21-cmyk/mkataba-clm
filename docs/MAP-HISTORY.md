@@ -39683,3 +39683,32 @@ panel (`igViewSuggestions({ noMoney:true })`); "Shade the cells by how many" (`i
 cells are shaded by money. Kept against the drawing, asked of the owner: the head's fading line (f1107), the
 board · contracts links line over the box (Jambo's box rule), and "Shade the cells by how many" in the default Grid
 (the cells are already shaded by how many there, so the row would do nothing).
+
+## CUSTOMER FOLDERS — SHELVES, THE SAP WAY — P-25 REBUILT TO THE DRAWING (21 Nov 2026)
+The first build of P-25 (PR #861) was compared, part by part, with the owner's picked drawing ("The Legora + Stripe way",
+graphic "Ring", tabs All and Waiting on you) rendered at 1440 and with photos of the running app; every gap was built.
+- HEAD: + Add a party (grey pill) — a party is on this page through its agreements, so it opens the one door to a new
+  agreement (openNewAgreement, cunAddMay; not drawn for a reader who may not create). The ask box wears Jambo's mark and
+  a question for its example ("who do we owe the most to?"; on Waiting on you "what does <the late party> need from us?").
+  Its words narrow the rows only while they name a party or a city; Enter on a question asks Jambo in the panel (jlAsk).
+- ALL: heads in sentence case; under each name the paper's own "between … and …" words in the paper's type, one line
+  ending in "…" (cunPaperWords: contractPlainText, the nearest "between" before the party's name, verbatim, once a
+  version; none where the paper has none) — the city/org. no. line under the name is gone (the org. no. is said in the
+  panel). Streams a soft square badge (no dot) and "+N" in grey; the ring green (--accent-ink) on a visible grey track
+  (--color-neutral-300); On paper right-aligned, the currency in its head ("On paper (KES)"), the cells the figure alone;
+  Ends next right-aligned, the agreement under it on up to two lines; Waiting on you a soft square badge. Rows 11px top and
+  bottom; the chosen party's rows faintly green (--color-accent-50).
+- WAITING ON YOU: "Fill in the details of <agreement>", "Decide the renewal", "Say whose job N duties Jambo found are" with
+  the first duty's own words and "§ 3, and 3 more" (cunPromiseQuote, the review desk's obReviewWaiting); kinds Details
+  grey, Jambo's finds violet, Renewal amber, Late red; the agreement with its number; the act an underlined link
+  (Fill in · Decide · Open approval).
+- PANEL (jamboOverviewFiveHtml, which gained `avatarTone` and a row's `cls`): small initials in the stream's tone, the
+  name in the body type, streams under it; Agreements and Ends next as two figures ("Not signed yet" where nothing is
+  signed); the ring with "k of n signed · m in progress"; Open on Contracts with Edit beside it; plain sections parted by
+  hairlines — on All the party's own facts (Org. no. amber "Not on file"), on Waiting on you what waits with its act; a
+  dotted timeline (signed green, in progress amber with what still waits, late red, an end to come hollow); contacts with
+  + Add a contact under them. The "N need your attention" link (data-cun-attn) is REMOVED (the drawing has none; BUGLOG).
+- CHOICES MADE WITHOUT THE OWNER (asleep, "just choose"): the chips keep the shared chip look of every list page (the
+  drawing drew them outlined); the panel keeps its Overview head line, as Approvals did; the timeline is one reading on
+  both tabs (the drawing's two tabs worded it differently); a party's contacts, where it has some, stay one counted row
+  ("2 contacts at …") as before (the drawing shows only a party with none); the paper's words keep the paper's own capital.

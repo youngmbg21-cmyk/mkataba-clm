@@ -20050,23 +20050,108 @@
   html.lg-new .apn-sd.is-on.is-violet{box-shadow:0 0 0 2px var(--st-violet-dot)}
   html.lg-new .apn-sd.is-on.is-green{box-shadow:0 0 0 2px var(--st-green-dot)}
   @container (max-width:520px){ html.lg-new .ctf-ftable :is(th,td):nth-child(n+4){display:none} }
-  /* PARTIES, THE LEGORA + STRIPE WAY (P-25, "L+S and ring"): a small ring per party filled green by the share signed, the
-     count inside; On paper right-aligned; Waiting on you a soft badge; the Waiting tab a worklist with its act at the end */
+  /* PARTIES, THE LEGORA + STRIPE WAY (P-25, "L+S and ring"; rebuilt to the drawing 21 Nov 2026): the title and + Add a
+     party on one line; the ask box with Jambo's mark; a calm table, its heads in sentence case; under each name the words
+     that name the party on the paper, in the paper's type, one line ending in "…"; soft square badges (no dot); a small
+     ring per party filled green on a visible light-grey track, the count inside; On paper and Ends next right-aligned;
+     the chosen party's rows a faint green; the Waiting tab a worklist with the paper's words under Jambo's finds and its
+     act, underlined, at the row's end */
   html.lg-new .cun-ring{flex:none;display:block}
-  html.lg-new .cun-ring .rb{fill:none;stroke:var(--color-neutral-200);stroke-width:3.5}
-  html.lg-new .cun-ring .rf{fill:none;stroke:var(--st-green-dot);stroke-width:3.5;stroke-linecap:round}
+  html.lg-new .cun-ring .rb{fill:none;stroke:var(--color-neutral-300);stroke-width:3.5}
+  html.lg-new .cun-ring .rf{fill:none;stroke:var(--accent-ink);stroke-width:3.5;stroke-linecap:round}
   html.lg-new .cun-ring text{font-family:var(--font-sans);font-size:10px;font-weight:var(--w-label);fill:var(--color-text)}
-  html.lg-new .cun-ring.is-big text{font-size:14px}
+  html.lg-new .cun-ring.is-big text{font-size:13px}
   html.lg-new .cun-ags{display:inline-flex;align-items:center;gap:8px;min-width:0;max-width:100%;white-space:nowrap}
-  html.lg-new .cun-ags-s{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:var(--t-label);font-weight:400;color:var(--color-quiet)}
+  html.lg-new .cun-ags-s{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:var(--t-label);font-weight:400;color:var(--color-neutral-400)}
   html.lg-new .cun-table :is(td,th).cun-money{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-  html.lg-new .cun-table td.cun-ends .cun-sub,html.lg-new .cun-table .cun-who-t .cun-name,html.lg-new .cun-table.is-wait :is(.cun-what .cun-name,td.cun-ag span){display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  html.lg-new .cun-table.is-wait td.cun-ag{font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .cun-table .cun-who-t .cun-name,html.lg-new .cun-table.is-wait .cun-what .cun-name{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .cun-table.is-wait td.cun-ag{font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new .cun-table.is-wait td.cun-ag span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   html.lg-new .cun-table.is-wait td.cun-do{text-align:right;white-space:nowrap}
   html.lg-new .cun-table.is-wait tr.cun-wrow:not(.is-first) td:first-child{border-top-color:transparent}
   html.lg-new .cun-page[data-ins-page="customers"] .cun-table td{vertical-align:middle}
-  html.lg-new .cun-pring{display:flex;align-items:center;gap:12px;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .cun-pring{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--color-quiet)}
   html.lg-new .cun-amber{color:var(--st-amber-fg)}
+  html.lg-new .cun-page .cun-head{align-items:center}
+  html.lg-new .cun-page .cun-head .cun-add{gap:6px}
+  html.lg-new .cun-page .cun-ask .cun-spark{flex:none;width:14px;height:14px;color:var(--accent-ink);fill:currentColor;stroke:none}
+  html.lg-new .cun-page .cun-table th{white-space:normal;overflow-wrap:normal;vertical-align:bottom;text-transform:none;letter-spacing:0;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-400)}
+  html.lg-new .cun-page .cun-table :is(th,td).cun-ends{text-align:right}
+  html.lg-new .cun-page .cun-table td.cun-ends .cun-endof{margin-top:2px;font-size:var(--t-label);font-weight:400;color:var(--color-neutral-400);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+  html.lg-new .cun-page .cun-pq{margin-top:2px;font-family:var(--font-doc);font-size:13px;line-height:1.4;font-weight:400;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .cun-page .cun-who{align-items:center}
+  html.lg-new .cun-page .cun-plus{font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new .cun-page .cun-table tbody tr.is-sel td{background:var(--color-accent-50)}
+  html.lg-new .apn-card .cun-page .cun-table td,html.lg-new .cun-page .apn-card .cun-table td{padding-top:11px;padding-bottom:11px}
+  html.lg-new .cun-page .cun-table.is-wait .cun-wq{margin-top:2px;font-family:var(--font-doc);font-size:13px;line-height:1.4;color:var(--color-quiet);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  html.lg-new .cun-page .cun-table.is-wait .cun-wq span{font-family:var(--font-body);font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new .cun-page .cun-table.is-wait .cun-what .cun-name{font-weight:var(--w-label)}
+  html.lg-new :is(.cun-page,.cun5) .cun-go{min-height:0;font-size:13px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-color:color-mix(in srgb,var(--accent-ink) 40%,transparent)}
+  html.lg-new .cun-badge{display:inline-flex;align-items:center;max-width:100%;border-radius:6px;padding:1px 7px;font-size:var(--t-label);font-weight:var(--w-label);line-height:1.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  html.lg-new .cun-badge.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new .cun-badge.is-ruby{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new .cun-badge.is-green{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .cun-badge.is-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-new .cun-badge.is-violet{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  html.lg-new .cun-badge.is-pink{background:var(--st-pink-bg);color:var(--st-pink-fg)}
+  /* THE PARTY'S PANEL AS DRAWN: no cards — plain sections parted by a hairline, the initials small in the stream's soft
+     tone, the name in the body type, two figures, the ring, the black button with Edit beside it, a dotted timeline */
+  html.lg-new .cun5 .jov5{gap:0}
+  html.lg-new .cun5 .jov5-who{gap:12px}
+  html.lg-new .cun5 .jov5-ava{width:28px;height:28px;font-size:10.5px;font-weight:var(--w-strong)}
+  html.lg-new .cun5 .jov5-ava.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new .cun5 .jov5-ava.is-violet{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  html.lg-new .cun5 .jov5-ava.is-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-new .cun5 .jov5-ava.is-green{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .cun5 .jov5-ava.is-pink{background:var(--st-pink-bg);color:var(--st-pink-fg)}
+  html.lg-new .cun5 .jov5-ava.is-gray{background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  html.lg-new .cun5 .jov5-title{font-family:var(--font-body);font-size:17px;line-height:1.3;font-weight:var(--w-label);letter-spacing:0}
+  html.lg-new .cun5 .jov5-sub{margin:0;font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new .cun5 .jov5-sec{padding:16px 0;border-top:1px solid var(--color-divider)}
+  html.lg-new .cun5 .jov5-who + .jov5-sec{border-top:0;padding:12px 0 0}
+  html.lg-new .cun5 .jov5-sec > .jov5-label{margin:0 0 8px}
+  html.lg-new .cun5 .jov5-sec:has(.cun5-figs) > .jov5-label{display:none}
+  html.lg-new .cun5 .jov5-group,html.lg-new .cun5 .jov5-group.is-form{background:none;box-shadow:none;border-radius:0;overflow:visible}
+  html.lg-new .cun5 .jov5-act{background:none;padding:12px 0 16px;border-radius:0}
+  html.lg-new .cun5 .jov5-act .jov5-acts{flex-direction:row;align-items:center;gap:10px}
+  html.lg-new .cun5 .jov5-act .jov5-acts > .jov5-go{width:auto}
+  html.lg-new .cun5-figs{display:flex;gap:24px;margin:0 0 12px}
+  html.lg-new .cun5-figs small{display:block;font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new .cun5-figs b{display:block;font-size:26px;line-height:1.1;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap}
+  html.lg-new .cun5-figs b.is-day{font-size:20px;padding-top:4px}
+  html.lg-new .cun5 .jov5-group > .jov5-row{display:flex;align-items:center;gap:10px;min-height:0;padding:3px 0;background:none;border:0;font-size:13px}
+  html.lg-new .cun5 .jov5-group > .jov5-row::before,html.lg-new .cun5 .jov5-foot::before{display:none}
+  html.lg-new .cun5 .jov5-row.is-door:hover{background:none}
+  html.lg-new .cun5 .jov5-row .jov5-chev{display:none}
+  html.lg-new .cun5 .jov5-row .jov5-k{flex:none;width:110px;font-size:13px;font-weight:400;color:var(--color-neutral-400)}
+  html.lg-new .cun5 .jov5-row .jov5-rt{flex:1;min-width:0}
+  html.lg-new .cun5 .jov5-row .jov5-rt b{font-weight:400;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .cun5 .jov5-row .jov5-rt span{font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new .cun5 .jov5-row.is-door .jov5-rt b{color:var(--accent-ink)}
+  html.lg-new .cun5 .jov5-row.is-owed .jov5-rt b{color:var(--st-amber-fg)}
+  html.lg-new .cun5 .jov5-row.is-none .jov5-rt b{color:var(--color-quiet)}
+  html.lg-new .cun5 .jov5-row.cun5-kd .jov5-k{width:auto;border-radius:6px;padding:1px 7px;font-size:var(--t-label);font-weight:var(--w-label);line-height:1.6;white-space:nowrap;background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  html.lg-new .cun5 .jov5-row.cun5-kd.is-ruby .jov5-k{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new .cun5 .jov5-row.cun5-kd.is-amber .jov5-k{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new .cun5 .jov5-row.cun5-kd.is-violet .jov5-k{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  html.lg-new .cun5 .jov5-row.cun5-kd.is-steel .jov5-k{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-new .cun5 .jov5-row.cun5-kd .jov-lnk{flex:none;font-size:13px;font-weight:var(--w-label)}
+  html.lg-new .cun5 .jov5-row .jov5-faces{flex:none}
+  html.lg-new .cun5 .jov5-foot{padding:6px 0 0;border:0;background:none}
+  html.lg-new .cun5 .jov5-foot .jov5-flink{padding:0;font-size:13px}
+  html.lg-new .cun5-tl{list-style:none;margin:2px 0 0;padding:0;display:flex;flex-direction:column}
+  html.lg-new .cun5-tl li{position:relative;display:grid;grid-template-columns:16px minmax(0,1fr);gap:10px;padding-bottom:12px;font-size:13px}
+  html.lg-new .cun5-tl li::before{content:"";position:absolute;left:7px;top:14px;bottom:0;width:1px;background:var(--color-neutral-300)}
+  html.lg-new .cun5-tl li:last-child{padding-bottom:0}
+  html.lg-new .cun5-tl li:last-child::before{display:none}
+  html.lg-new .cun5-td{width:9px;height:9px;margin:4px 0 0 3px;border-radius:50%;border:2px solid var(--color-surface);box-shadow:0 0 0 1px var(--color-neutral-300);background:var(--color-surface)}
+  html.lg-new .cun5-td.is-green{background:var(--accent-ink)}
+  html.lg-new .cun5-td.is-amber{background:var(--st-amber-dot)}
+  html.lg-new .cun5-td.is-red{background:var(--st-ruby-dot)}
+  html.lg-new .cun5-td.is-gray{background:var(--st-gray-dot)}
+  html.lg-new .cun5-tt{border:0;background:none;padding:0;margin:0;font:inherit;text-align:left;color:var(--color-text);cursor:pointer;min-width:0;overflow-wrap:anywhere}
+  html.lg-new .cun5-tt.is-quiet{color:var(--color-neutral-400)}
+  html.lg-new .cun5-tt span{font-size:var(--t-label);color:var(--color-neutral-400)}
   /* PEOPLE, THE LEGORA + STRIPE WAY (P-26): initials green for our team, steel for the other side; the role a soft badge;
      Does for you one line; Agreements right-aligned; Waiting on them an amber badge only where something waits */
   html.lg-new .cun-av.is-green{background:var(--st-green-bg);color:var(--st-green-fg)}

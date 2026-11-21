@@ -284,6 +284,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## CUSTOMER FOLDERS — SHELVES, THE SAP WAY (js/views/customers.js)
 - f399, f412, f561, f564, f720, f738, f739, f796; customers, contracts-page 12, parties-sap-way, parties-nda-column, parties-and-people verify.
+- P-25 AS DRAWN (21 Nov 2026): test/f1133-parties-as-drawn.test.js (new; 5 of 5 red at the parent) — the paper's own "between … and …" words (cunWordsIn, run for real), On paper's currency in the head (cunPaperSay), the worklist's words, quotes and badges, the panel's facts / what waits split with no money and no attention link, + Add a party and the ask box. Browser: parties-and-people 2b, 3b, 3e, 4i, 9d and parties-sap-way 1, parties-and-contracts-as-drawn 2a RE-POINTED.
 
 ## ASK A COLUMN (js/views/askcolumn.js)
 - DISCOVER IS READY BEFORE IT IS OPENED (20 Nov 2026): test/f1127-discover-is-ready-before-it-is-opened.test.js (new; renumbered: main took f1125, f1126; 3 of 3 red at the parent) — the quiet fetch once a sitting (idle, not phone, not in front, from startApp), the list waits only for what it draws and asks for the answers at once, Loading… before the reads. Re-ran green with the area: 138 of 138.

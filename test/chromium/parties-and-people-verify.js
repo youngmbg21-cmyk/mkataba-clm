@@ -195,7 +195,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       /* RE-POINTED 17 Nov 2026 (#762): round 6's columns, in order */
       /* RE-POINTED 19 Nov 2026 (the Parties round): no NDA column; Deals says Agreements; the last column holds each row's one button */
       /* RE-POINTED 19 Nov 2026 (the SAP way, revised): Streams its own column; Standing and the buttons gone; Waiting on you last */
-      check('2b the columns as drawn, in order: Party · Streams · Agreements · On paper · Ends next · Waiting on you', JSON.stringify(L.cols) === JSON.stringify(['Party', 'Streams', 'Agreements', 'On paper', 'Ends next', 'Waiting on you']), JSON.stringify(L.cols));
+      /* RE-POINTED 21 Nov 2026 (P-25, as drawn): On paper carries the workspace's currency in its head ("On paper (KES)") */
+      check('2b the columns as drawn, in order: Party · Streams · Agreements · On paper (KES) · Ends next · Waiting on you', JSON.stringify(L.cols.map(c => c.replace(/^On paper \([A-Z]{3}\)$/, 'On paper'))) === JSON.stringify(['Party', 'Streams', 'Agreements', 'On paper', 'Ends next', 'Waiting on you'])
+        && L.cols.some(c => /^On paper \([A-Z]{3}\)$/.test(c)), JSON.stringify(L.cols));
       /* RE-POINTED 17 Nov 2026 (#762): a party's line is its name over its stream as a chip; its agreements are the Deals column */
       check('2c a party\'s row: its name, its stream in the Streams column, its deals counted (2)', L.name === 'Kenya Freight Ltd' && L.chips.length >= 1 && L.deals === '2', JSON.stringify({ n: L.name, c: L.chips, d: L.deals }));
       /* RETIRED 17 Nov 2026 (#762): 2d "ten at a time, 1–10 of N · Show N more; a party with nothing live is off Live"
@@ -224,12 +226,14 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await page.click('[data-cu-pr-save]');
       /* RE-POINTED 17 Nov 2026 (#762): no City column — the row's grey line says the city and the org. no., and
          the panel's own facts say both. RETIRED 17 Nov 2026 (#762): "with us since …" (round 6's panel has no such line). */
-      const S = await until(() => { const sub = document.querySelector('#cu-tbody [data-cu-cust="kenya freight ltd"] .cun-sub'); if (!sub || !/Kisumu/.test(sub.textContent) || !/PVT-AB12CD/.test(sub.textContent)) return null;
-        const p = document.getElementById('ins-panel');
-        const facts = p ? [...p.querySelectorAll('.jov5-row')].map(r => ((r.querySelector('.jov5-k') || {}).textContent || '').trim() + '=' + ((r.querySelector('.jov5-rt b') || {}).textContent || '').trim()) : [];
-        return { sub: sub.textContent.replace(/\s+/g, ' ').trim(), facts }; }, null, 10000);
-      check('3b the row and the panel say it: the row "Kisumu · … PVT-AB12CD", the panel City Kisumu and the organisation no.', !!S && /^Kisumu\b/.test(S.sub) && /PVT-AB12CD/.test(S.sub)
-        && S.facts.includes('City=Kisumu') && S.facts.some(f => /PVT-AB12CD/.test(f)), JSON.stringify(S));
+      /* RE-POINTED 21 Nov 2026 (P-25, as drawn): under the name the row says the words that name the party on the paper
+         (.cun-pq), not its city and org. no.; the panel's own facts say both */
+      const S = await until(() => { const p = document.getElementById('ins-panel');
+        const facts = p ? [...p.querySelectorAll('[data-jov5-sec="facts"] .jov5-row')].map(r => ((r.querySelector('.jov5-k') || {}).textContent || '').trim() + '=' + ((r.querySelector('.jov5-rt b') || {}).textContent || '').trim()) : [];
+        if (!facts.includes('City=Kisumu') || !facts.some(f => /PVT-AB12CD/.test(f))) return null;
+        const row = document.querySelector('#cu-tbody [data-cu-cust="kenya freight ltd"]');
+        return { facts, rowSays: row ? !/PVT-AB12CD/.test(row.textContent) : false }; }, null, 10000);
+      check('3b the panel says it: City Kisumu and the organisation no.; the row keeps the paper\'s words, not the record', !!S && S.rowSays, JSON.stringify(S));
       const srv = await W.admin.json('/api/party-records');
       check('3c the server keeps it, one home', srv && srv.records && srv.records['kenya freight ltd'] && srv.records['kenya freight ltd'].city === 'Kisumu' && srv.records['kenya freight ltd'].orgNo === 'PVT-AB12CD', JSON.stringify(srv));
       /* RE-POINTED 17 Nov 2026 (#762): the find box is the sheet's one box (#cun-q) */
@@ -240,8 +244,12 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await until(() => document.querySelectorAll('#cu-tbody [data-cu-cust]').length > 1);
       await page.reload({ waitUntil: 'networkidle' });
       await until(() => window.state && state.view === 'customers' && document.querySelector('#cu-tbody'), null, 15000);
-      const R = await until(() => { const sub = document.querySelector('#cu-tbody [data-cu-cust="kenya freight ltd"] .cun-sub'); return sub && /Kisumu/.test(sub.textContent) && /PVT-AB12CD/.test(sub.textContent) ? sub.textContent.replace(/\s+/g, ' ').trim() : null; });
-      check('3e a refresh keeps it (the bootstrap carries it), no longer "read from" a contract', !!R && /^Kisumu\b/.test(R) && !/read from/.test(R), R);
+      /* RE-POINTED 21 Nov 2026 (P-25, as drawn): the record is read back in the panel's own facts after the refresh */
+      await page.evaluate(() => cuSelectParty('kenya freight ltd'));
+      const R = await until(() => { const p = document.getElementById('ins-panel');
+        const facts = p ? [...p.querySelectorAll('[data-jov5-sec="facts"] .jov5-row')].map(r => ((r.querySelector('.jov5-k') || {}).textContent || '').trim() + '=' + ((r.querySelector('.jov5-rt b') || {}).textContent || '').trim()) : [];
+        return facts.includes('City=Kisumu') && facts.some(f => /PVT-AB12CD/.test(f)) ? facts.join(' · ') : null; });
+      check('3e a refresh keeps it (the bootstrap carries it), no longer "read from" a contract', !!R && !/read from/.test(R), R);
     });
 
     /* ---- 4 the panel as drawn ---- */
@@ -289,7 +297,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
          its hover names each thing; rows carry no button */
       const HE = await page.evaluate(() => { const r = document.querySelector('#cu-tbody [data-cu-cust="helio energy ltd"]'); if (!r) return null; const td = r.querySelector('td.cun-wait');
         return { wait: ((td || {}).textContent || '').replace(/\s+/g, ' ').trim(), title: td ? td.getAttribute('title') || '' : '', last: !!td && td === r.lastElementChild, btn: !!r.querySelector('button'),
-          badge: !!(td && td.querySelector('.apn-st.is-amber, .apn-st.is-ruby')) }; });
+          badge: !!(td && td.querySelector('.cun-badge.is-amber, .cun-badge.is-ruby')) /* RE-POINTED 21 Nov 2026 (P-25, as drawn): a soft square badge, no dot (.cun-badge) */ }; });
       /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way): the cell is a soft badge saying the count ("2 things"); "on 1 contract" left the cell (the hover still names each) */
       /* RE-POINTED 20 Nov 2026: the column counts EVERY thing waiting on the party (cunWaitSay over the row's needs, the
          same list its hover names, cuNeedTitle) — Helio's approval and its 2 details to fill on the same contract are
@@ -416,13 +424,17 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         return rs.length === 2 ? rs.map(r => r.getAttribute('data-row')).sort().join(',') : null; }, null, 8000);
       check('9b "All 2 agreements on Contracts" lands on Contracts with that party\'s two', O === 'MK-KF1,MK-KF2', String(O));
       await backToList();
-      /* RE-POINTED 19 Nov 2026 (the SAP way, revised): the panel's "1 needs your attention" opens Contracts with only it */
+      /* RE-POINTED 21 Nov 2026 (P-25, as drawn): the drawing has no "needs your attention" link — on Waiting on you the
+         panel lists WHAT WAITS ON YOU, each with its kind badge and its act (the worklist row's own door, data-cu-need),
+         where All shows the party's own facts */
+      await page.click('.cun-page [data-cun-tab="wait"]');
       await choose('helio energy ltd');
-      const at = await until(() => document.querySelector('#ins-panel [data-cun-attn="helio energy ltd"]') ? true : null);
-      if (at){ await page.click('#ins-panel [data-cun-attn="helio energy ltd"]');
-        const N = await until(() => { const rs = [...document.querySelectorAll('#ct-place #reg-tbody tr[data-row]')]; return rs.length ? rs.map(r => r.getAttribute('data-row')).sort().join(',') : null; }, null, 8000);
-        check('9d "needs your attention" lands on Contracts with only the contract waiting on you', N === 'MK-AP1', String(N)); }
-      else check('9d "needs your attention" lands on Contracts with only the contract waiting on you', false, 'no attention line');
+      const WT = await until(() => { const p = document.getElementById('ins-panel'); const sec = p && p.querySelector('[data-jov5-sec="waits"]'); if (!sec) return null;
+        return { rows: [...sec.querySelectorAll('.jov5-row')].map(r => ({ k: ((r.querySelector('.jov5-k') || {}).textContent || '').trim(), act: !!r.querySelector('[data-cu-need][data-cu-id="MK-AP1"]') })),
+          facts: !!p.querySelector('[data-jov5-sec="facts"]'), attn: !!p.querySelector('[data-cun-attn]') }; }, null, 8000);
+      check('9d on Waiting on you the panel lists what waits on Helio, each with its kind and its act on MK-AP1; no facts, no attention link', !!WT && WT.rows.length >= 1
+        && WT.rows.every(r => r.k && r.act) && !WT.facts && !WT.attn, JSON.stringify(WT));
+      await page.click('.cun-page [data-cun-tab="all"]');
       await page.evaluate(() => langSet('sv'));
       for (const v of ['customers', 'directory']){
         await page.evaluate(x => setView(x), v); await page.waitForTimeout(400);

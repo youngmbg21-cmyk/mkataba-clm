@@ -1590,7 +1590,7 @@ function jov5ContractRow(c, v, extra){
   return Object.assign({ mark: 'mkTick', tone: 'green', t: (c && (c.name || c.id)) || '', s: (c && c.counterparty) || '', v: v || '', run: () => jov5Open(c.id) }, extra || {});
 }
 /* the five parts, drawn (jamboOverviewHtml hands over its slot's run list, so presses resolve as every other) */
-var JOV5_TONES = { amber: 1, green: 1, dark: 1, red: 1, violet: 1, steel: 1 };
+var JOV5_TONES = { amber: 1, green: 1, dark: 1, red: 1, violet: 1, steel: 1, gray: 1, pink: 1 };
 /* THE FIVE PARTS' HEAD AND MARK, for a face that draws its own body (a contract's faces, round 3b): the same eyebrow,
    serif headline and sentence, the same round mark in its tone, so a contract's panel and a page's read alike */
 function jov5HeadHtml(o){
@@ -1613,7 +1613,8 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
   /* `avatar`: a person's initials in a dark circle beside the headline; `ring`: a share (0–100) drawn as a ring there */
   const pct = o.ring != null ? Math.max(0, Math.min(100, Number(o.ring) || 0)) : null;
   const ring = pct != null ? `<span class="jov5-ring" aria-hidden="true"><svg viewBox="0 0 80 80"><circle class="jov5-rb" cx="40" cy="40" r="34"/><circle class="jov5-rf" cx="40" cy="40" r="34" style="stroke-dashoffset:${(213.6 * (1 - pct / 100)).toFixed(1)}"/></svg><b>${pct}%</b></span>` : '';
-  const head = o.avatar ? `<div class="jov5-who"><span class="jov5-ava" aria-hidden="true">${E(o.avatar)}</span>${headIn}</div>` : ring ? `<div class="jov5-who">${ring}${headIn}</div>` : headIn;
+  /* `avatarTone`: the initials in a soft status tone instead of the dark circle (Parties, P-25 as drawn: the party's stream) */
+  const head = o.avatar ? `<div class="jov5-who"><span class="jov5-ava${o.avatarTone && JOV5_TONES[o.avatarTone] ? ' is-' + o.avatarTone : ''}" aria-hidden="true">${E(o.avatar)}</span>${headIn}</div>` : ring ? `<div class="jov5-who">${ring}${headIn}</div>` : headIn;
   const glance = (o.glance || []).filter(g => g && g.l != null).slice(0, 3);
   const glanceHtml = glance.length ? `<div class="jov5-glance">${glance.map(g => { const t = tag(g.run, g.attr);
     /* A TILE THAT HOLDS WORDS, NOT A NUMBER ("Every month"), takes the smaller size and may wrap — never past its card
@@ -1623,13 +1624,14 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
       + `<b>${E(g.n)}</b><span>${E(g.l)}</span></${t}>`; }).join('')}</div>` : '';
   const rowHtml = r => {
     const t = (r.btn || r.link) ? 'div' : tag(r.run, r.attr);
-    /* `faces`: up to four people's initials, overlapping, where a row is about people (Parties' contacts, 19 Nov 2026) */
+    /* `faces`: up to four people's initials, overlapping, where a row is about people (Parties' contacts, 19 Nov 2026);
+       `cls`: a page's own class on the row, for its own tone (Parties' kind badges and an owed fact, P-25 as drawn) */
     const mark = Array.isArray(r.faces) && r.faces.length ? `<span class="jov5-faces" aria-hidden="true">${r.faces.slice(0, 4).map(f => `<i>${E(f)}</i>`).join('')}</span>`
       : r.mark != null ? `<span class="jov5-mk${JOV5_TONES[r.tone] ? ' is-' + r.tone : ''}">${r.markText != null ? E(r.markText) : ic(r.mark)}</span>` : '';
     const act = r.btn ? `<button type="button" class="jov5-pill${r.btn.black ? ' is-black' : ''}"${door(r.btn.run, r.btn.attr)}>${E(r.btn.label)}</button>`
       : r.link ? lnk(r.link.attr ? -1 : reg(r.link.run), E(r.link.label), r.link.title, '', r.link.attr) : '';
     const chev = (t === 'button') ? `<span class="jov5-chev" aria-hidden="true">${ic('chevR')}</span>` : '';
-    return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-row${t === 'button' ? ' is-door' : ''}${mark ? '' : ' is-plain'}${r.wrap || r.quote ? ' is-wrap' : ''}${r.quote ? ' is-quote' : ''}"${t === 'button' ? door(r.run, r.attr) : ''}${r.title ? ` title="${E(r.title)}"` : ''}>`
+    return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-row${t === 'button' ? ' is-door' : ''}${mark ? '' : ' is-plain'}${r.wrap || r.quote ? ' is-wrap' : ''}${r.quote ? ' is-quote' : ''}${r.cls ? ' ' + E(r.cls) : ''}"${t === 'button' ? door(r.run, r.attr) : ''}${r.title ? ` title="${E(r.title)}"` : ''}>`
       + `${mark}${r.k ? `<span class="jov5-k">${E(r.k)}</span>` : ''}<span class="jov5-rt"><b>${E(r.t)}</b>${r.s ? `<span>${E(r.s)}</span>` : ''}${r.stg ? `<span class="jov5-stg"><span class="reg-stg"><i style="background:${E(r.stg.dot || 'currentColor')}"></i>${E(r.stg.label)}</span></span>` : ''}</span>`
       + `${r.swatch ? `<span class="jov5-sw is-${E(r.swatch)}" aria-hidden="true"></span>` : ''}${r.v != null && r.v !== '' ? `<span class="jov5-v${r.need ? ' is-need' : ''}">${E(r.v)}</span>` : ''}${act}${chev}</${t}>`;
   };

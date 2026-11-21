@@ -190,7 +190,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
 - **Notes:** measured 19 Nov 2026: about 220 places in 35 files where the app asks "new look or old?", about 2,860 new-look style rules laid on top of the old look's styling, and about 115 checks that mention the old look. Best practice: wait a quiet week or two after the switch (so a rollback stays easy), then remove it in small pieces. Part 1, the app's logic and its checks: about one long session plus a few rounds of GitHub's checks; suggested around the end of November 2026. Part 2, the styling: two to four days of work in all, done page by page, ideally when that page is being worked on anyway, with photos at the three screens before each merge. Overlaps P-5 (delete the old versions of HaTi completely); settle P-17's questions first.
 
 ### P-25 · Parties page, the Legora + Stripe way, with the ring, on both tabs
-- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #861, the overnight batch 6)
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #861, the overnight batch 6; rebuilt part by part to the drawing 21 Nov 2026, both tabs and the panel)
 - **What:** build the owner's pick for Parties: the Legora + Stripe way on All and on Waiting on you, with the Ring as the agreements graphic. Owner's words: "L+S and ring. Park it."
 - **Where it came from:** the page clean-up, day 3. The drawings, on photos of the page as it was that day: https://claude.ai/artifact/D4MwQEurNNotwb8Tdc8zYt (choose "The Legora + Stripe way" and the graphic "Ring").
 - **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
