@@ -194,7 +194,10 @@ const blocked = [];
         const up = await until(() => document.querySelector('#na-root') && document.querySelector('#ig-dock #igd-feed'));
         await settle(); await shot('new-agreement-over-calendar');
         const said = await ev(() => ({ cal: !!document.querySelector('#ig-dock .cal-cop'), words: ((document.querySelector('#ig-dock #igd-feed') || {}).innerText || '').replace(/\s+/g, ' ').trim() }));
-        check(`${at} · 5b — over the Calendar, the panel beside the New agreement sheet says the sheet's line`, up && !said.cal && /New agreement/.test(said.words), JSON.stringify(said).slice(0, 140));
+        /* RE-POINTED 21 Nov 2026 (P-36, New agreement the Legora + Stripe way): the sheet's panel speaks in its own five
+           parts — "N of 2 ready", then "Say what you need in one sentence. I pick the paper that fits." — no longer naming
+           the sheet */
+        check(`${at} · 5b — over the Calendar, the panel beside the New agreement sheet says the sheet's line`, up && !said.cal && /New agreement|I pick the paper that fits/.test(said.words), JSON.stringify(said).slice(0, 140));
         /* RE-POINTED 28 Oct 2026 ("Door above the box"): no Jambo tab — the panel is in his own conversation's key */
         const tabs = await ev(() => ({ key: typeof pdTalkKey === 'function' ? pdTalkKey() : null }));
         check(`${at} · 5b — …in his own conversation (not the Calendar's)`, /^dock:/.test(tabs.key || ''), JSON.stringify(tabs));

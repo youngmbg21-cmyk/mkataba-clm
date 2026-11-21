@@ -69,7 +69,7 @@ const BREAKDOWN = { head: 'Fix the cap first', sub: 'Their cover stops at three 
       await page.waitForLoadState('networkidle');
       /* Jambo's read of the clauses, kept as the route would answer it */
       await page.evaluate(B => { state.aiConfigured = true; const o = window.api;
-        window.api = async function (p, ...a){ if (p === 'ai/breakdown') return JSON.parse(JSON.stringify(B)); return o.call(this, p, ...a); }; }, BREAKDOWN);
+        window.api = async function (p, ...a){ if (p === 'ai/breakdown'){ window._bdCalls = (window._bdCalls || 0) + 1; return JSON.parse(JSON.stringify(B)); } return o.call(this, p, ...a); }; }, BREAKDOWN);
       return page;
     };
     const until = async (page, fn, arg, ms = 8000) => { let v; const t0 = Date.now();
@@ -109,13 +109,20 @@ const BREAKDOWN = { head: 'Fix the cap first', sub: 'Their cover stops at three 
 
     console.log('\n4 · a viewer');
     page = await signIn('rita@example.co.ke', 'their-own-pass-9');
-    d = await dive(page, 'MK-P1');
-    check('4a Start redlining is greyed for a viewer', !!d && d.dead, JSON.stringify(d));
-    check('4b … and says why', !!d && /read this contract but not change it/.test(d.why), d && d.why);
+    /* RE-POINTED 21 Nov 2026 (Round A, QUESTIONS YES, WORK NO, owner 20 Nov 2026: a Viewer's visit never starts a paid
+       read, stkAutoRun; Round C, NO BUTTON YOU CANNOT USE): the viewer's Clauses tab starts no read of the points, so no
+       Start redlining is drawn for them — greyed or live. The old 4c (a viewer's Ask Jambo from the deep dive) had no
+       dive left to press from */
+    await page.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-P1', 'doc'); });
+    /* the points an editor's read already kept are shown to the viewer (reading is open); their Start redlining is
+       greyed with its reason */
+    await until(page, () => !!document.querySelector('#pd-thread'), null, 15000);
+    await page.waitForTimeout(2500);
+    const v4 = await page.evaluate(() => ({ thread: !!document.querySelector('#pd-thread'), reads: window._bdCalls || 0,
+      btns: [...document.querySelectorAll('#pd-thread [data-stk-redline]')].map(b => ({ dead: b.disabled, why: b.getAttribute('title') || '' })) }));
+    check('4a a viewer\'s visit starts no paid read; any Start redlining shown to them is greyed', v4.thread && v4.reads === 0 && v4.btns.every(b => b.dead), JSON.stringify(v4));
+    check('4b … and says why', v4.btns.every(b => /read this contract but not change it/.test(b.why)), JSON.stringify(v4.btns));
     await shot(page, '4-viewer');
-    if (d) await page.evaluate(() => document.querySelector('#pd-thread [data-stk-ask]').click());
-    const c4 = await cursorIn(page, 'igd-input');
-    check('4c a viewer\'s Ask Jambo: the question in Home\'s box, the cursor in it', !!c4 && /^In clause 3:/.test(c4.q), JSON.stringify(c4));
     await page.context().close();
 
     console.log('\n5 · somebody else leads the negotiation');
