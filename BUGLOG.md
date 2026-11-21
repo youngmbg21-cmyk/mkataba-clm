@@ -22740,3 +22740,8 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - Settings: the act is drawn twice — every row carries its own button (Open · Change · Turn on) and the side panel a black "Change" for the chosen one.
 - Settings › the six areas: the panel's "Ask an admin" card runs under Jambo's links line.
 - Settings › an area: an on/off setting shows its state only as a small dot and a word, easy to miss.
+
+## Noticed, not fixed — the other side's page, clean-up photos (21 Nov 2026)
+- Their page › Where we are: with nothing open, "For you" still says "Tell them you are ready to sign" and points to "Write in Notes".
+- Their page › Redlines: the empty panel tells them to press a "✎ Edit" button on a clause, which is not on the paper.
+- Their page › Signing: step 1 "The wording is final" wears a green tick whenever nothing was proposed — the tick must follow what is true, not the absence of changes.
