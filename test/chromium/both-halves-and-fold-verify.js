@@ -91,48 +91,16 @@ const deliver = (answer, ids) => [{ type: 'tool_use', id: 'tu_w', name: 'deliver
     for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350); await page.screenshot({ path: path.join(OUT, `A-drawn-and-explained-${w}x${hh}.png`) }); }
     await page.setViewportSize({ width: 1440, height: 780 });
 
-    console.log('\nD · the Needs you card folds to its head');
-    await page.evaluate(() => { intel.history = []; hbS().path = []; hbSave(); hbPaintBoard(); });
-    const card = await until(() => { const c = document.getElementById('hm-agents'); return c && c.getClientRects().length ? true : null; });
-    check('D0 the card is on the Board, open', !!card && await page.evaluate(() => !document.getElementById('nd-main').hidden && document.querySelector('[data-nd-fold]').textContent.trim() === 'Hide'));
-    const measure = () => page.evaluate(() => {
-      const c = document.getElementById('hm-agents'), b = c.querySelector('[data-nd-fold]'), hd = c.querySelector('.hb-ch');
-      const r = c.getBoundingClientRect(), br = b.getBoundingClientRect(), hr = hd.getBoundingClientRect();
-      const mid = document.elementFromPoint(br.left + br.width / 2, br.top + br.height / 2);
-      return { h: Math.round(r.height), head: Math.round(hr.height), word: b.textContent.trim(), expanded: b.getAttribute('aria-expanded'), hidden: document.getElementById('nd-main').hidden,
-        count: (c.querySelector('.hb-cs') || {}).textContent || '', inside: br.right <= r.right - 8 && br.left >= r.left, oneLine: br.height <= 34, painted: !!mid && (mid === b || b.contains(mid)), folded: c.classList.contains('is-folded') };
-    });
-    const before = await measure();
-    await page.click('[data-nd-fold]');
-    const shut = await until(() => { const c = document.getElementById('hm-agents'); return c && c.classList.contains('is-folded') ? true : null; });
-    const D1 = await measure();
-    check('D1 Hide folds it to its head: the rows are gone, the head stays', !!shut && D1.hidden && D1.h <= D1.head + 2 && D1.h < before.h, JSON.stringify({ before: before.h, after: D1.h, head: D1.head }));
-    check('D2 the head still says how many things wait', /\d/.test(D1.count) && D1.count === before.count.split(' · ')[0] || /\d/.test(D1.count), D1.count);
-    check('D3 the button now says Show, is pressed-state honest, sits inside the card on one line and is the thing painted there', D1.word === 'Show' && D1.expanded === 'false' && D1.inside && D1.oneLine && D1.painted, JSON.stringify(D1));
-    for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350);
-      const m = await measure(); check(`D4 folded at ${w}×${hh}: inside the card, one line, painted`, m.folded && m.inside && m.oneLine && m.painted, JSON.stringify(m));
-      await page.evaluate(() => { const c = document.getElementById('hm-agents'); if (c) c.scrollIntoView({ block: 'center' }); });
-      await page.screenshot({ path: path.join(OUT, `D-folded-${w}x${hh}.png`) }); }
-    await page.setViewportSize({ width: 1440, height: 780 });
-    await signIn();
-    await page.evaluate(() => { setView('dashboard'); hbSetFace('board'); });
-    const kept = await until(() => { const c = document.getElementById('hm-agents'); return c ? { folded: c.classList.contains('is-folded') } : null; }, null, 10000);
-    check('D5 a refresh keeps it folded', !!kept && kept.folded, JSON.stringify(kept));
-    await page.click('[data-nd-fold]');
-    const open = await until(() => { const c = document.getElementById('hm-agents'); return c && !c.classList.contains('is-folded') && !document.getElementById('nd-main').hidden ? true : null; });
-    const D6 = await measure();
-    check('D6 Show opens it again, and the button says Hide', !!open && D6.word === 'Hide' && D6.expanded === 'true', JSON.stringify(D6));
-    for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350);
-      const m = await measure(); check(`D7 open at ${w}×${hh}: the button inside the card, one line, painted`, !m.folded && m.inside && m.oneLine && m.painted, JSON.stringify(m));
-      await page.evaluate(() => { const c = document.getElementById('hm-agents'); if (c) c.scrollIntoView({ block: 'start' }); });
-      await page.screenshot({ path: path.join(OUT, `D-open-${w}x${hh}.png`) }); }
-    await page.setViewportSize({ width: 1440, height: 780 });
-    await page.click('[data-nd-fold]');
-    await until(() => { const c = document.getElementById('hm-agents'); return c && c.classList.contains('is-folded') ? true : null; });
-    await page.evaluate(() => ndOpenBoard('you'));
-    const landed = await until(() => { const c = document.getElementById('hm-agents'); return c && !c.classList.contains('is-folded') && !document.getElementById('nd-main').hidden ? true : null; }, null, 10000);
-    check('D8 a door onto the card ("Show all") opens a folded card before it lands', !!landed);
-    check('D9 folding spent nothing', ai.calls.length === 2, `${ai.calls.length}×`);
+    /* RE-POINTED 21 Nov 2026 (P-39, the Board as drawn: Needs you has no Hide): the card is never folded on the Board —
+       no Hide button is drawn, and a fold kept from before is not honoured (else the rows would be lost with no Show) */
+    console.log('\nD · the Needs you card stands open, with no Hide (as drawn)');
+    await page.evaluate(() => { intel.history = []; hbS().path = []; hbS().ndFold = true; hbSave(); hbPaintBoard(); });
+    const D = await until(() => { const c = document.getElementById('hm-agents'); return c && c.getClientRects().length
+      ? { fold: c.querySelectorAll('[data-nd-fold]').length, folded: c.classList.contains('is-folded'), hidden: !!(document.getElementById('nd-main') || {}).hidden } : null; });
+    check('D1 no Hide on the Board\'s Needs you, as drawn', !!D && D.fold === 0, JSON.stringify(D));
+    check('D2 a fold kept from before does not hide the rows (there is no Show to bring them back)', !!D && !D.folded && !D.hidden, JSON.stringify(D));
+    await page.evaluate(() => { hbS().ndFold = false; hbSave(); });
+    check('D9 nothing spent', ai.calls.length === 2, `${ai.calls.length}×`);
 
     check('E no page errors', errors.length === 0, errors.join(' | ') || 'none');
   } catch (e) {

@@ -508,6 +508,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         await page.setViewportSize({ width: w, height: ht });
         await page.evaluate(() => setView('customers'));
         await until(() => document.querySelector('[data-cu-cust]'), null, 10000);
+        /* the panel was left on Jambo's talk by an earlier stage's question (seen: talk true, body hidden): back to the
+           panel's own words first, as ‹ Overview does, so the chosen party's panel is what is read */
+        await page.evaluate(() => { try { if (typeof jlToWords === 'function') jlToWords(); } catch (_){ } });
         /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the party's panel is THE FIVE PARTS (Agreements ·
            the party's own facts · More · Jambo); it draws no "waits on you" list (RETIRED half, old look only: the short
            door word with its landing on the hover). Kept: every row of the panel reads whole, at three screens, nothing sideways */
