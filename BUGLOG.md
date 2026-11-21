@@ -22751,3 +22751,4 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 
 ## 21 Nov 2026 — noticed, not fixed (overnight batches)
 - point-buttons-and-brief-verify 4a–4c (a Viewer's Start redlining greyed, Ask Jambo) fail on PR #856, which touches neither; main merged ~150 commits since its last nightly run (20 Nov 08:35), Viewer Round C among them ("no button you cannot use") — most likely red on main already. Not re-pointed here; the nightly run on main will say.
+- 21 Nov 2026 (overnight run, P-42 build): Discover's answer loading can stay on "…" for the whole sitting — if the first background fetch fails (during the early warm-up), that question is never asked for again. There before tonight's change. Noticed, not fixed.
