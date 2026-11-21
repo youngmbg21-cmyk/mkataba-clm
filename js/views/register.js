@@ -5463,7 +5463,8 @@ function ngnRead(x){
   let open, sub = '';
   if (b === 'you' && asks.length){ open = { n: asks.length, quotes: asks.slice(0, 3).map(ch => ({ q: ngnAskWords(ch), s: ngnSecOf(ch), nm: ngnClauseNameOf(ch) })) };
     sub = prep && prep >= asks.length ? i18t('ngn_sub_prep') : unsent ? i18tn('ngn_sub_decided', unsent, { n: unsent }) : i18t('ngn_sub_answer'); }
-  else if (b === 'you'){ open = { n: 0, say: i18tn('ngn_open_decided', unsent || 0, { n: unsent || 0 }) }; }
+  /* a zero is never said as work (P-29's check: "your 0 answers are ready to send") */
+  else if (b === 'you'){ open = { n: 0, say: unsent ? i18tn('ngn_open_decided', unsent, { n: unsent }) : i18t('ngn_open_nothing') }; }
   else if (b === 'them'){ open = { n: 0, say: i18t('ngn_open_none_theirs') }; const d = ngnDayName((c.negotiation && c.negotiation.turnAt) || c.lastAction); sub = d ? i18t('ngn_sub_shared', { day: d }) : ''; }
   else { const acc = all.filter(ch => ch && ch.status === 'accepted').length;
     open = { n: 0, say: (all.length === 1 && acc === 1 ? i18t('ngn_open_as_sent') : i18tn('ngn_open_settled', all.length, { n: all.length })) + (ap ? i18t('ngn_open_in_approval') : '') }; }

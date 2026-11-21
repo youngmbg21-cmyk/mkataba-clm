@@ -111,7 +111,8 @@ test('f977 (12, 13, 15) two lines a row, fold the quiet, name the clause', () =>
   const cal = read('js/views/calendar.js');
   assert.match(cal, /else if\(gap\)\{ gap\.z=z; gap\.n\+\+; \} else gap=\{ a, z, n:1 \};/);
   assert.match(cal, /i18tn\('cal_nl_quiet_wks',gap\.n,\{ n:gap\.n \}\)/);
-  assert.match(read('js/views/register.js'), /: `<span class="ngn-nm">\$\{E\(\[q\.s, q\.nm\]\.filter\(Boolean\)\.join\(' '\)\)\}<\/span>`/);
+  /* RE-POINTED (P-29): an ask with no words of its own names its clause, its § beside it */
+  assert.match(read('js/views/register.js'), /q\.q \? `<i>\\u201c\$\{E\(q\.q\)\}\\u201d<\/i>` : `<i>\$\{E\(q\.nm \|\| ''\)\}<\/i>`/);
 });
 
 /* Round 3, a contract: PAPER LINE HOLDS ALL, SAME CARD TWICE, SAID ONCE, BOX FITS THE WAY. */
