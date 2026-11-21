@@ -264,8 +264,9 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       negoPostComment(c, null, 'Does our insurance actually cover this?',
         { side: 'owner', author: currentUser().name, visibility: 'internal' });
       openNotesPanel(c.id, null, { force: true });
-      return new Promise(r => setTimeout(() => r({ ok: true, mate: who[0].name,
-        buttons: document.querySelectorAll('#context-panel [data-rl-np-give]').length }), 700));
+      /* RE-POINTED 21 Nov 2026 (P-38, Notes the Stripe way): a row per discussion; the note's acts stand in it once opened */
+      return new Promise(r => setTimeout(() => { const row = [...document.querySelectorAll('#context-panel .rl-np-crow')].find(b => /insurance/.test(b.textContent)); if (row) row.click();
+        setTimeout(() => r({ ok: true, mate: who[0].name, buttons: document.querySelectorAll('#context-panel [data-rl-np-give]').length }), 400); }, 500));
     });
     check('the Give to… button is drawn on a note in the drawer',
       giveSetup.ok && giveSetup.buttons >= 1, giveSetup.why || ('found ' + giveSetup.buttons));
@@ -341,9 +342,10 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     const seen0 = await page.evaluate(() => {
       const c = (state.contracts || []).find(x => String(x.id) === String(state.activeId));
       openNotesPanel(c.id, null, { force: true });
-      return new Promise(r => setTimeout(() => r({
+      /* RE-POINTED 21 Nov 2026 (P-38): the discussion opened first, where its notes and their ticks stand */
+      return new Promise(r => setTimeout(() => { const row = document.querySelector('#context-panel .rl-np-crow'); if (row) row.click(); setTimeout(() => r({
         ticks: document.querySelectorAll('#context-panel [data-rl-np-seen]').length,
-        said: document.querySelectorAll('#context-panel .rl-np-seenby').length }), 600));
+        said: document.querySelectorAll('#context-panel .rl-np-seenby').length }), 400); }, 500));
     });
     check('the Seen tick is drawn on the notes in the drawer',
       seen0.ticks >= 1, 'ticks: ' + seen0.ticks);
@@ -521,9 +523,10 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     await page.waitForTimeout(500);
     check('pressing the panel button over Chat closes the drawer: one door, the tabs swap faces',
       (await page.evaluate(() => !document.querySelector('#context-panel').classList.contains('open'))) === true);
-    check('pressed again it opens the panel on the Guide',
+    /* RE-POINTED 21 Nov 2026 (P-38): it opens on Alerts, the Guide being the nav panel's */
+    check('pressed again it opens the panel on Alerts',
       (await (async () => { await page.click('#hdr-notify'); await page.waitForTimeout(500);
-        return page.evaluate(() => document.querySelector('#context-panel').classList.contains('open') && panelFace() === 'guide'); })()) === true);
+        return page.evaluate(() => document.querySelector('#context-panel').classList.contains('open') && panelFace() === 'alerts'); })()) === true);
     await page.evaluate(() => closeContextPanel()); await page.waitForTimeout(300);
     /* Back to Chat for the rest of the section. */
     await page.evaluate(() => openNotesPanel(chatContractId(), null, { force: true }));
