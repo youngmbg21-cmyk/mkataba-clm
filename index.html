@@ -22525,6 +22525,29 @@
   html.lg-new .obs-res-w{font-size:11.5px;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .obs-th.is-done>span:nth-child(5),html.lg-new .obs-th.is-done>span:nth-child(6){text-align:right}
   html.lg-new .obs-due.is-was b{font-weight:400;color:var(--color-quiet)}
+  /* OBLIGATIONS, EVERY TAB AS DRAWN (P-13, 21 Nov 2026): Later's five columns (Duty · Whose · Repeats · Reminded · Due), a
+     duty with no date an amber badge; the Reminded words end in "…" in their column; the Later panel's year ahead as twelve
+     small bars with the months under them; their duty's controls under the timeline */
+  html.lg-new .obs-th.is-later,html.lg-new .obs-r.is-later{grid-template-columns:minmax(0,2.4fr) 90px 104px minmax(0,1fr) 110px}
+  html.lg-new .obs-th.is-later>span:nth-child(5){text-align:right}
+  html.lg-new .obs-r.is-later .obs-rep{font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .obs-b.is-st-nodate{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new .obs-r .obs-c .obt-rem:not(:has(.obs-av)){display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .obs-tl-list li.is-read > i{background:var(--accent-ink);border-color:var(--accent-ink)}
+  /* Done, as drawn: the Result column wide enough for "✓ On time  1 day early", a late result red, Was due grey and
+     Done on plain; the receipt's last part with no rule under it */
+  html.lg-new .obs-th.is-done,html.lg-new .obs-r.is-done{grid-template-columns:minmax(0,2.2fr) 90px 190px minmax(0,1fr) 84px 84px}
+  html.lg-new .obs-b.is-st-donelate{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new .obs-r.is-done .obs-c.obs-due.is-was b{font-weight:400;color:var(--color-quiet)}
+  html.lg-new .obs-r.is-done .obs-c.obs-due:not(.is-was) b{font-weight:400}
+  html.lg-new .obs-receipt > .obn-lg-it:last-child{border-bottom:0}
+  html.lg-new .obs-year{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+  html.lg-new .obs-year small{font-size:11.5px;color:var(--color-quiet)}
+  html.lg-new .obs-year-bars{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;align-items:end;height:40px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .obs-year-bars i{display:block;height:2px;border-radius:2px 2px 0 0;background:var(--color-neutral-300)}
+  html.lg-new .obs-year-bars i.is-on{height:100%;background:var(--st-green-dot);opacity:.55}
+  html.lg-new .obs-year-m{display:flex;justify-content:space-between}
+  html.lg-new .obs-tl-ctl{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:8px}
   html.lg-new .obs-receipt .obs-tick{display:grid;place-items:center;width:30px;height:30px;margin-bottom:8px;border-radius:50%;background:var(--st-green-bg);color:var(--st-green-fg);font-size:14px}
   html.lg-new .obs-rec-days{display:flex;gap:20px;margin-bottom:6px}
   html.lg-new .obs-rec-days span{display:flex;flex-direction:column;gap:2px}
