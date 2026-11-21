@@ -103,7 +103,7 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     if (box){ await box.click(); await p.keyboard.press('Control+End'); await p.keyboard.type(' Seven months is our limit.'); }
     await p.click('#ce-railfoot button.p').catch(() => {});
     const open = await until(p, () => { const d = document.getElementById('pt-notes'); return d && d.classList.contains('open') && !!d.querySelector('.rl-np-pin'); }, null, 10000);
-    const D = await p.evaluate(() => ({ tabs: [...document.querySelectorAll('#pt-notes .rl-np-tab')].map(t => t.textContent.replace(/\s+/g, ' ').trim()),
+    const D = await p.evaluate(() => ({ tabs: [...document.querySelectorAll('#pt-notes :is(.rl-np-tab, .rl-np-room)')].map(t => t.textContent.replace(/\s+/g, ' ').trim()),
       pinRooms: [...document.querySelectorAll('#pt-notes [data-rl-np-pin-room]')].map(b => b.textContent.trim()),
       codes: /\bCHG-\d+/.test((document.getElementById('pt-notes') || {}).innerText + ' ' + (document.getElementById('toast-root') || {}).innerText) }));
     check('3 · Counter opens our clause page with our trail and no Jambo; Save opens our Notes drawer with two rooms and the pin\'s switch; no change code',

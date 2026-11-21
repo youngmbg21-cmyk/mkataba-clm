@@ -167,7 +167,11 @@ const until = async (page, fn, arg, ms = 8000) => {
     await page.evaluate(() => setView('intake')); await page.waitForTimeout(800);
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Requests opens on its Open tab; a drafted
        request is under Drafted, pressed as a person does */
+    /* RE-POINTED 21 Nov 2026: the Drafted chip is drawn only once the list has come in and holds a drafted request (a
+       filter with nothing behind it is not listed) — waited for, bounded, never pressed blind */
+    await page.waitForSelector('[data-ikn-tab="drafted"]', { timeout: 8000 }).catch(() => {});
     { const dt = await page.$('[data-ikn-tab="drafted"]'); if (dt){ await dt.click(); await page.waitForTimeout(600); } }
+    await page.waitForFunction(() => [...document.querySelectorAll('#content [data-ikn-row]')].some(r => /site visit/i.test(r.textContent)), null, { timeout: 8000 }).catch(() => {});
     /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way): a drafted row's Status badge says
        "Drafted" and no longer names its holder in full; who holds it is the chosen row's panel timeline ("Peter took it") */
     /* the panel is drawn beside the list a moment after the tab press: asked for, bounded; "You took it" where the reader is Peter */
@@ -175,8 +179,12 @@ const until = async (page, fn, arg, ms = 8000) => {
     { const rws = await page.$$('#content [data-ikn-row]');
       let rw = null; for (const h of rws){ if (/site visit/i.test(await h.textContent())){ rw = h; break; } }
       rw = rw || rws[0]; if (rw){ await rw.click(); await page.waitForTimeout(800); } }
-    const withCell = await page.waitForFunction(() => /\b(Peter|You) took it\b|\bWith (Peter|you)\b/.test(((document.getElementById('content') || {}).textContent || '') + ' ' + ((document.getElementById('ins-panel') || {}).textContent || '')), null, { timeout: 6000 }).then(() => true, () => false);
-    ok('4b the Requests page says Peter holds it', withCell);
+    const withCell = await page.waitForFunction(() => /(Peter|You) took it|With (Peter|you)\b/.test(((document.getElementById('content') || {}).textContent || '') + ' ' + ((document.getElementById('ins-panel') || {}).textContent || '')), null, { timeout: 6000 }).then(() => true, () => false);
+    const seen4 = withCell ? '' : await page.evaluate(() => JSON.stringify({ view: state.view, tab: (document.querySelector('[data-ikn-tab].is-on') || {}).textContent,
+      tabs: [...document.querySelectorAll('[data-ikn-tab]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
+      rows: [...document.querySelectorAll('#content [data-ikn-row]')].map(r => (r.className.includes('is-sel') ? '*' : '') + r.textContent.replace(/\s+/g, ' ').trim().slice(0, 50)),
+      panel: ((document.getElementById('ins-panel') || {}).textContent || '').replace(/\s+/g, ' ').trim().slice(0, 900) }));
+    ok('4b the Requests page says Peter holds it', withCell, seen4);
     await page.screenshot({ path: path.join(OUT, '4-requests.png') });
     ok('5 [control] the whole journey raised no page error', errs.length === 0, errs.length ? errs : 'clean');
   } catch (e) {

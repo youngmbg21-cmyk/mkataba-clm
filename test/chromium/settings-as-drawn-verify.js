@@ -168,7 +168,10 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     }
     await shot(m, 'settings-as-drawn-you-1440x780');
     if (await m.locator('[data-st-mycopy]').count()) {
-      const [dl] = await Promise.all([m.waitForEvent('download', { timeout: 10000 }).catch(() => null), m.locator('[data-st-mycopy]').first().click()]);
+      /* RE-POINTED 21 Nov 2026 (P-43, Settings the Legora + Stripe way): the download is the row's own door — the first press
+         chooses the row, the second goes in through it (as Who you are above) */
+      const dlRow = await m.evaluate(() => { const d = document.querySelector('[data-st-mycopy]'), r = d && d.closest('[data-sdd-row]'); return r ? `[data-sdd-row="${r.getAttribute('data-sdd-row')}"]` : null; });
+      const [dl] = await Promise.all([m.waitForEvent('download', { timeout: 10000 }).catch(() => null), dlRow ? openRowM(dlRow) : m.locator('[data-st-mycopy]').first().click()]);
       check('5f Your data · Download hands over one file', !!dl && /^hati-my-copy-\d{4}-\d\d-\d\d\.json$/.test(dl.suggestedFilename()), dl && dl.suggestedFilename());
       const csv = String((await w.admin.raw('/api/trail/export?from=2026-01-01&to=2099-12-31&as=csv')).text || '');
       check('5g the trail records it', /Took a copy of what they can see/.test(csv) && /Name changed/.test(csv) && /Email changed/.test(csv));

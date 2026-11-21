@@ -21778,11 +21778,11 @@
   .rl-chat.is-stripe .rl-np-chip{height:auto;padding:2px 9px;border-radius:999px;border:1px dashed var(--color-neutral-300);background:var(--color-surface);color:var(--color-quiet);font-size:12px;line-height:1.4}
   .rl-chat.is-stripe .rl-np-chip:hover{background:var(--color-surface);color:var(--color-text)}
   .rl-chat.is-stripe .rl-np-chip.on{border-style:solid;border-color:var(--color-text);background:var(--color-text);color:var(--color-surface)}
-  .rl-chat.is-stripe .rl-np-rooms{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px var(--s-4) 0;font-size:12.5px}
-  .rl-chat.is-stripe .rl-np-list .rl-np-rooms{padding:0 0 8px}
+  .rl-chat.is-stripe .rl-np-tabs.rl-np-rooms{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0;padding:8px var(--s-4) 0;border:0;border-radius:0;background:none;font-size:12.5px}
+  .rl-chat.is-stripe .rl-np-list .rl-np-tabs.rl-np-rooms{padding:0 0 8px}
   .rl-chat.is-stripe .rl-np-rooms-k{color:var(--color-quiet)}
-  .rl-chat.is-stripe .rl-np-room{border:0;border-radius:999px;padding:3px 10px;background:var(--surface-2);color:var(--color-text);font:var(--w-label) 12px/1.35 var(--font-body);cursor:pointer;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
-  .rl-chat.is-stripe .rl-np-room.on{background:var(--color-text);color:var(--color-surface)}
+  .rl-chat.is-stripe .rl-np-tab.rl-np-room{flex:none;height:auto;display:inline-block;box-shadow:none;border:0;border-radius:999px;padding:3px 10px;background:var(--surface-2);color:var(--color-text);font:var(--w-label) 12px/1.35 var(--font-body);cursor:pointer;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+  .rl-chat.is-stripe .rl-np-tab.rl-np-room.on{background:var(--color-text);color:var(--color-surface)}
   .rl-chat.is-stripe .rl-np-foot.is-stripe{padding:10px var(--s-4) 4px}
   .rl-chat.is-stripe :is(.rl-np-foot.is-stripe .rl-np-box, .rl-np-rbox.is-stripe){display:flex;align-items:center;gap:8px;margin:0;padding:7px 10px;border:1px solid var(--color-neutral-300);border-radius:var(--radius);background:var(--color-surface)}
   .rl-chat.is-stripe .rl-np-plus{flex:none;color:var(--color-quiet)}
@@ -21865,6 +21865,7 @@
   html.lg-new .sdd-back{appearance:none;border:0;background:none;padding:0;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer}
   html.lg-new .stn-title.sdd-title{margin:0;display:flex;align-items:baseline;gap:12px}
   html.lg-new .sdd-head > .sdd-title:first-child{margin-top:4px} /* on the landing, the title at the height every list head puts its own (pages-read-alike 8) */
+  html.lg-new .sdd-page .sdd-head > .cun-head:first-child{margin-top:4px} /* the same, now the title stands in its head row (P-43) */
   html.lg-new .sdd-cnt{font-family:var(--font-body);font-size:14px;font-weight:var(--w-label);color:var(--color-text)}
   html.lg-new .sdd-sub{margin:4px 0 0;font-size:13px;color:var(--color-neutral-400)}
   html.lg-new .sdd-find{align-self:stretch}
