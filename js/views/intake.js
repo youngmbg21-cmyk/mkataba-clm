@@ -1929,7 +1929,7 @@ function iknRowHtml(r, may, keys){
    About on Advice) · Waiting, right-aligned; Steps steps aside first where the room is short, then the paper */
 const IKN_KEYS = ['stands', 'steps', 'by', 'paper', 'wait'];
 function iknCols(){
-  const W = { stands: 152, steps: 92, by: 100, paper: 184, wait: 60 }, R = { steps: 1, paper: 2 };
+  const W = { stands: 150, steps: 92, by: 110, paper: 180, wait: 58 }, R = { steps: 1, paper: 2 };
   const T = { name: 'ikn_c_req', stands: 'apn_col_status', steps: 'apn_col_steps', by: 'ikn_c_by',
     paper: _ikn === 'drafted' ? 'ikn_c_became' : _ikn === 'advice' ? 'ikn_c_about' : 'ikn_c_paper', wait: 'ngn_c_waiting' };
   const DEFS = [{ k: 'name' }, ...IKN_KEYS.map(k => ({ k, w: W[k], rank: R[k] }))];
@@ -2066,7 +2066,8 @@ function iknPanelLs(r, may){
     if (dWho) add(dMe ? i18t('ikn_tl_you_drafted') : i18t('ikn_tl_drafted', { who: dWho.split(/\s+/)[0] }), iknDay(r.decidedAt), 'asked');
     if (c) add(i18t('ikn_tl_became', { name: [c.name || '', ref(c)].filter(Boolean).join(' · ') }), iknDay(r.decidedAt), 'done');
   } else if (held){
-    add(mineHeld ? i18t('ikn_tl_you_took') : i18t('ikn_tl_took', { who: String(r.assignee.name || '').split(/\s+/)[0] }), '', 'held');
+    /* the day it was taken, where the server stamped one (takenAt, P-32 review); an older request says no day */
+    add(mineHeld ? i18t('ikn_tl_you_took') : i18t('ikn_tl_took', { who: String(r.assignee.name || '').split(/\s+/)[0] }), iknDay(r.takenAt), 'held');
     add(i18t('ikn_tl_draft_next'), nx, 'next');
   } else {
     const d = iknDays(r);
