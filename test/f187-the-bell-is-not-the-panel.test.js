@@ -36,7 +36,8 @@ describe('f187 (1) — two buttons, two jobs', () => {
        the one button opens the panel, pressed again closes; RE-POINTED 14 Nov 2026 (owner): it opens on the Guide, always */
     assert.ok(!/getElementById\('cmd-panel'\)\?\.addEventListener/.test(app), 'the clock button is gone from the bar');
     assert.match(app, /getElementById\('hdr-notify'\)\?\.addEventListener\('click',panelDoorPress\)/);
-    assert.match(app, /function panelDoorPress\(\)\{[\s\S]*?if\(state\.panelOpen\)\{ closeContextPanel\(\); return; \}[\s\S]*?if\(tabs\)\{ openPanel\('guide'\); return; \}/);
+    /* RE-POINTED 21 Nov 2026 (P-38, owner: "delete the guide since we have the nav panel"): it opens on Alerts */
+    assert.match(app, /function panelDoorPress\(\)\{[\s\S]*?if\(state\.panelOpen\)\{ closeContextPanel\(\); return; \}[\s\S]*?if\(tabs\)\{ openPanel\('alerts'\); return; \}/);
   });
 
   test('ONE PANEL, THREE CONTENTS — still not two panels', () => {
@@ -55,7 +56,8 @@ describe('f187 (1) — two buttons, two jobs', () => {
        tab order Guide · Alerts · Notes · Activity — still ONE list. */
     assert.match(app, /const PANEL_FACES = \['guide', 'alerts', 'notes', 'activity'\]/,
       'the faces are one list');
-    assert.match(app, /function panelFace\(\)\{ return PANEL_FACES\.includes/,
+    /* RE-POINTED 21 Nov 2026 (P-38): a stored 'guide' reads as Alerts, the Guide being the nav panel's now */
+    assert.match(app, /function panelFace\(\)\{ const f=state\.panelFace==='guide'\?'alerts':state\.panelFace; return PANEL_FACES\.includes\(f\)/,
       'and both readings ask it rather than repeating the strings');
     /* And it still says WHICH it is showing. REVERSED IN PLACE 31 Aug 2026 and
        STRONGER for it: the notes face answers for TWO scopes now — Chat is the

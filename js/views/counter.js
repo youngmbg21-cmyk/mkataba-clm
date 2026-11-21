@@ -960,24 +960,41 @@ function ndPanelHtml(D){
    is and where, and ONE Open that presses the row's own door; News under it, never counted (ndIsNews). */
 /* a decision's colour on the bell: `tint` 'no' (declined, refused) light red, 'yes' (approved, allowed) light green */
 function ndTintOf(a){ return a && a.tint === 'no' ? ' is-tint-no' : a && a.tint === 'yes' ? ' is-tint-yes' : ''; }
+/* ---- THE BELL, THE LEGORA + STRIPE WAY (P-38, owner 20 Nov 2026) ----
+   Chips All · Late · Your move · Jambo with their counts (a chip with nothing is not drawn); ONE small bar of what waits
+   (red late, amber your move, violet Jambo prepared) with its legend; the rows grouped Late, Your move, Jambo, each a dot,
+   what waits, the agreement and its number, when (red if late) and its OWN act as a small pill (the row's own door,
+   ndParts' button word — never the same "Open" on every row); where the paper's words are known, they are quoted
+   under it (cn2QuoteHtml). NO MONEY in the rows. News under it, never counted (ndIsNews). */
+let _ndbChip = 'all';
+const NDB_GROUPS = [['late', ['late']], ['you', ['you', 'week']], ['jambo', ['jambo']]];
+function ndbGroupOf(k){ return k === 'late' ? 'late' : k === 'jambo' ? 'jambo' : 'you'; }
 function ndBellNlHtml(D){
   const L = cn2Rows(D), news = D.news || [];
-  const row = x => { const r = x.r, P = ndParts(r);
+  const n = { late: 0, you: 0, jambo: 0 }; L.forEach(x => { n[ndbGroupOf(x.k)]++; });
+  if (_ndbChip !== 'all' && !n[_ndbChip]) _ndbChip = 'all';
+  const row = x => { const r = x.r, P = ndParts(r), g = ndbGroupOf(x.k);
     const title = P.title || P.name || '';
-    /* its own line first (what came back, who asked, the note: P.note) — the new bell had dropped it (#762) */
-    /* the company row says what it holds (the email warning among them) in its own line, as the old bell did (#762) */
-    const sub = (r.g === 'jambo' || r.company) ? _ndText(P.deal || P.line || '') : [P.note && !String(title).includes(P.note) ? P.note : '', P.name && P.name !== title ? P.name : (!P.name && P.deal && !String(title).includes(_ndText(P.deal)) ? _ndText(P.deal) : ''), P.ref && !String(title).includes(_ndText(P.ref)) ? _ndText(P.ref) : '', P.party && !String(title).includes(P.party) && !String(P.name).includes(P.party) ? P.party : '', P.money || '', P.when || ''].filter(Boolean).join(' \u00b7 ');
+    /* the agreement and its number (never money); a row about no one contract keeps its own line */
+    const sub = (r.g === 'jambo' || r.company) ? _ndText(P.deal || P.line || '')
+      : [P.note && !String(title).includes(P.note) ? P.note : '', P.name && P.name !== title ? P.name : (!P.name && P.deal && !String(title).includes(_ndText(P.deal)) ? _ndText(P.deal) : ''), P.ref && !String(title).includes(_ndText(P.ref)) ? _ndText(P.ref) : '', P.party && !String(title).includes(P.party) && !String(P.name).includes(P.party) ? P.party : ''].filter(Boolean).join(' \u00b7 ');
     /* A NO IS LIGHT RED, A YES LIGHT GREEN (owner, 17 Nov 2026), and the decider's note is quoted under it */
     const why = r.y && r.y.k === 'c' && r.y.x.it.kind === 'refused' && r.y.x.it.why ? '“' + String(r.y.x.it.why).slice(0, 140) + '”'
       : r.al && r.al.tint && r.al.sub ? String(r.al.sub) : '';
     const tint = ndTintOf(r.al || (r.y && r.y.k === 'c' && r.y.x.it.kind === 'refused' ? { tint: 'no' } : null));
-    /* every row names its agreement and its reference, as the old bell's rows did (#762: an answer stuck said neither) */
-    /* good news (they agreed, ready to sign) wears the green dot, as the old bell's row did (P.good; #762) */
-    return `<div class="ndb-r${tint || (P.good ? ' nd-good' : '')}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"><i class="ndb-dot is-${P.good ? 'good' : x.k}" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(title)}</b>${sub ? `<span>${_cnE(sub)}</span>` : ''}${why ? `<span class="ndb-note">${_cnE(why)}</span>` : ''}</div>`
-      + `<button type="button" class="ui-btn ui-btn-sm ndb-open" ${P.attrs}${P.tip ? ` title="${_cnE(P.tip)}"` : ''}>${_cnE(_cnT('act_open'))}</button></div>`; };
+    const quote = cn2QuoteHtml(r).replace(/^ · /, '');
+    return `<div class="ndb-r${tint || (P.good ? ' nd-good' : '')}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}" data-ndb-g="${g}"><i class="ndb-dot is-${P.good ? 'good' : g}" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(title)}</b>${sub ? `<span>${_cnE(sub)}</span>` : ''}${quote ? `<span class="ndb-q">${quote}</span>` : ''}${why ? `<span class="ndb-note">${_cnE(why)}</span>` : ''}</div>`
+      + `<div class="ndb-e">${P.when ? `<span class="ndb-when${P.late || g === 'late' ? ' is-late' : ''}">${_cnE(P.when)}</span>` : ''}<button type="button" class="ui-btn ui-btn-sm ndb-open" ${P.attrs}${P.tip ? ` title="${_cnE(P.tip)}"` : ''}>${_cnE(_cnT('nd_btn_' + P.btn))}</button></div></div>`; };
   const newsRow = (a, i) => `<button type="button" class="ndb-r is-news${ndTintOf(a)}" data-alert-i="${i}" data-alert-kind="${_cnE(a.kind || '')}"><i class="ndb-dot is-news" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(a.text || '')}</b>${(a.sub || a.name) ? `<span>${_cnE([a.name, a.sub].filter(Boolean).join(' \u00b7 '))}</span>` : ''}</div></button>`;
-  return `<div class="ndb">${L.length ? `<div class="ndb-h">${_cnE(_cnT('ndb_need', { n: ndThings(D.jambo) + ndThings(D.you) }))}</div>${L.map(row).join('')}` : `<p class="ndb-none">${_cnE(_cnT('ap_nothing_needs_you'))}</p>`}`
-    + (news.length ? `<div class="ndb-h">${_cnE(_cnT('ndb_news'))}</div>${news.map(newsRow).join('')}` : '') + `</div>`;
+  const all = L.length;
+  const chip = (k, m) => `<button type="button" class="ndb-chip" data-ndb-chip="${k}" aria-pressed="${_ndbChip === k}">${_cnE(_cnT('ndb_chip_' + k))} <span>${m}</span></button>`;
+  const head = all ? `<div class="ndb-chips" role="group" aria-label="${_cnE(_cnT('ap_scope_you'))}">${chip('all', all)}${['late', 'you', 'jambo'].filter(k => n[k]).map(k => chip(k, n[k])).join('')}</div>`
+    + `<div class="ndb-bar" aria-hidden="true">${['late', 'you', 'jambo'].filter(k => n[k]).map(k => `<i class="is-${k}" style="flex:${n[k]}"></i>`).join('')}</div>`
+    + `<div class="ndb-legend">${['late', 'you', 'jambo'].filter(k => n[k]).map(k => `<span><i class="is-${k}" aria-hidden="true"></i>${_cnE(_cnTn('ndb_leg_' + k, n[k], { n: n[k] }))}</span>`).join('')}</div>` : '';
+  const groups = NDB_GROUPS.filter(([g]) => _ndbChip === 'all' || _ndbChip === g).map(([g, ks]) => { const G = L.filter(x => ks.includes(x.k));
+    return G.length ? `<div class="ndb-h" data-ndb-head="${g}">${_cnE(_cnT('ndb_g_' + g))}</div>${G.map(row).join('')}` : ''; }).join('');
+  return `<div class="ndb">${all ? head + groups : `<p class="ndb-none">${_cnE(_cnT('ap_nothing_needs_you'))}</p>`}`
+    + (news.length && _ndbChip === 'all' ? `<div class="ndb-h">${_cnE(_cnT('ndb_news'))}</div>${news.map(newsRow).join('')}` : '') + `</div>`;
 }
 /* ---- THE BOARD: ALL OF IT, UNDER YOUR BOOK ----
    Tabs (All · Your move · Jambo prepared), the kinds there are (a kind with
@@ -1223,6 +1240,7 @@ if (typeof document !== 'undefined' && !window._cnWired){
       step();
       if (r && r.al && typeof r.al.go === 'function') r.al.go(); return; }
     if (t.closest('[data-nd-fold]')){ ndFoldApply(!ndFolded()); return; }
+    if ((el = t.closest('[data-ndb-chip]'))){ _ndbChip = el.getAttribute('data-ndb-chip') || 'all'; if (typeof renderContextPanel === 'function') renderContextPanel(); return; }
     if ((el = t.closest('[data-nd-tab]'))){ _nd = { ..._nd, tab: el.getAttribute('data-nd-tab'), more: 0 }; ndBoardRepaint(); return; }
     if ((el = t.closest('[data-nd-kind]'))){ _nd = { ..._nd, kind: el.getAttribute('data-nd-kind'), more: 0 }; ndBoardRepaint(); return; }
     if ((el = t.closest('[data-nd-more]'))){ _nd = { ..._nd, more: (_nd.more || 0) + 1 }; ndRowsRepaint(); return; }

@@ -167,14 +167,13 @@ async function reset(P, base){
 
     if (!ONLY.length){
       /* ---- 1 the doors in ---- */
+      /* RE-POINTED 21 Nov 2026 (P-38): the Guide's door opens the nav panel at the left; its Book stage ends Handbook, Settings */
       await P.evaluate(() => { setView('counter'); openPanel('guide'); });
-      await until(P, () => document.querySelector('[data-gd-go="handbook"]'));
-      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Guide is drawn by stage (.gdn), each page a
-         .gdn-go door; its foot is read */
-      const rows = await P.evaluate(() => [...document.querySelectorAll('#context-panel [data-gd-go]')].map(b => b.getAttribute('data-gd-go')));
-      check('1a the Guide draws the Handbook\'s row at the foot, above Settings', rows.slice(-2).join() === 'handbook,settings', rows.join());
-      await P.click('[data-gd-go="handbook"]'); await settle(P);
-      check('1b pressing it lands on the Handbook page, the panel let go, the bar naming it', await P.evaluate(() => state.view === 'handbook' && !!document.getElementById('hbk-page') && !document.getElementById('context-panel').classList.contains('open') && /handbook/i.test((document.getElementById('dk-page') || {}).textContent || '')));
+      await until(P, () => document.querySelector('#cmd-palette [data-lp-go="handbook"]'));
+      const rows = await P.evaluate(() => [...document.querySelectorAll('#cmd-palette .lp-p[data-lp-go]')].map(b => b.getAttribute('data-lp-go')));
+      check('1a the nav panel draws the Handbook\'s row at the foot, above Settings', rows.slice(-2).join() === 'handbook,settings', rows.join());
+      await P.click('#cmd-palette [data-lp-go="handbook"]'); await settle(P);
+      check('1b pressing it lands on the Handbook page, the panel let go, the bar naming it', await P.evaluate(() => state.view === 'handbook' && !!document.getElementById('hbk-page') && !document.getElementById('cmd-palette') && /handbook/i.test((document.getElementById('dk-page') || {}).textContent || '')));
       const reads = await P.evaluate(() => ['handbook', 'the handbook', 'instructions', 'handbok', '/handbook'].map(q => { let a = null; try { a = caUnderstand(q, { box: 'list' }) || caActOf(q); } catch (_){ a = null; } return [q, a && a.kind, a && a.place]; }));
       check('1c "handbook", "instructions" and "handbok" read as the place; "/" lists it', reads.every(r => r[1] === 'go' && r[2] === 'handbook'), JSON.stringify(reads));
       const slash = await P.evaluate(() => (window.caSlashRows ? caSlashRows('') : []).map(r => r.k));

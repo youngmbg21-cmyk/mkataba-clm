@@ -221,7 +221,7 @@ describe('f304 (3) — the press that opens the drawer closes it', () => {
     assert.match(APP, /closeContextPanel,notesPanelShowing,/, 'published');
     assert.match(VIEW, /if \(_rlNpOpenKey === key && typeof window\.notesPanelShowing === 'function'/,
       'the marker asks before it presses');
-    assert.match(VIEW, /function rlNotesPanelClosed\(\)\{ rlNotesUnpin\(null\); _rlNpReplyTo = null; _rlNpReplyUnder = null; _rlNpOpenKey = null; _rlNpShow = 'open'; \}/,
+    assert.match(VIEW, /function rlNotesPanelClosed\(\)\{ rlNotesUnpin\(null\); _rlNpReplyTo = null; _rlNpReplyUnder = null; _rlNpOpenKey = null; _rlNpShow = 'open'; _rlNpOpen = null; \}/,  /* and the opened discussion (P-38, 21 Nov 2026) */
       'and the key is dropped with the drawer (round four: the reply-under key too)');
     assert.match(PORTAL, /if\(open&&String\(_ptNotesKey\|\|''\)===String\(key\|\|''\)\)\{ portalNotesClose\(\); return false; \}/,
       'their aside closes on the press that opened it');

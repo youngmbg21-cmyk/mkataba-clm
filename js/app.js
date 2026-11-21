@@ -2067,7 +2067,11 @@ function commandPaletteResults(q){
     title:c.name, ref:(window.contractRef?contractRef(c):c.id), sub:`${c.counterparty?' · '+c.counterparty:''}${c.archived?' · '+i18t('ct_archived_tag'):''}`, ic:(window.cIcon?cIcon(c):'file'), status:c.status}));
   return out.slice(0,14);
 }
-function openCommandPalette(prefill){
+function openCommandPalette(prefill,o){
+  /* THE NAV PANEL SLIDES IN FROM THE LEFT (owner, P-37, 21 Nov 2026): ONLY the bar's nav button opens it at the left (o.left);
+     ⌘K and "/" keep the window in the middle. The same rows, the same doors — one window, two places to stand. */
+  const left=!!(o&&o.left);
+  const gone=document.getElementById('cmd-palette'); if(gone&&gone.dataset.leaving) gone.remove();
   const prev=document.getElementById('cmd-palette'); if(prev){ const pi=prev.querySelector('#cp-input'); if(pi){ if(typeof prefill==='string'&&prefill) pi.value=prefill; pi.focus(); pi.dispatchEvent(new Event('input')); } return; }
   /* WHO OPENED IT, so focus can go back there. Without this, Escape drops a
      keyboard reader at the top of the document and they have to Tab in again
@@ -2076,14 +2080,19 @@ function openCommandPalette(prefill){
   const opener = document.activeElement;
   const ov=document.createElement('div');
   ov.id='cmd-palette';
-  ov.className='lp';
+  ov.className='lp'+(left?' is-left':'');
   /* IN THE MIDDLE OF THE SCREEN, up and down as well as across (owner, 19 Nov 2026: "nav panel pop up should appear at the center of the page") */
   ov.style.cssText='position:fixed;inset:0;z-index:85;display:flex;align-items:center;justify-content:center;padding:var(--s-4)';
+  /* at the left: under the black bar to the window's foot, over the page; the bar stays pressable (its nav button closes it) */
+  if(left){ const bar=document.getElementById('dk-nav'), hd=bar&&bar.closest&&bar.closest('header'), top=hd?Math.max(0,Math.round(hd.getBoundingClientRect().bottom)):0;
+    ov.style.cssText=`position:fixed;left:0;right:0;bottom:0;top:${top}px;z-index:85;display:block`; }
+  _lpLeft=left;
   /* THE LAUNCHPAD (owner's pick, 19 Nov 2026): every opening starts on All */
   _lpChip='all';
   ov.innerHTML=`
-    <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 42%,transparent)"></div>
-    <div class="modal-in lp-sheet" style="position:relative;width:100%;max-width:1300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden;max-height:calc(100vh - 2 * var(--s-4))">
+    <div class="lp-veil" style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d ${left?18:42}%,transparent)"></div>
+    <div class="modal-in lp-sheet" style="${left?'position:absolute;left:0;top:0;bottom:0;width:min(400px,100vw);background:var(--color-surface);border-right:1px solid var(--color-divider);box-shadow:var(--shadow-lg);overflow:hidden'
+      :'position:relative;width:100%;max-width:1300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden;max-height:calc(100vh - 2 * var(--s-4))'}">
       <div class="lp-top">
         <input id="cp-input" class="lp-in" placeholder="${esc(i18t('lp_where'))}" autocomplete="off"
           role="combobox" aria-expanded="true" aria-controls="cp-list" aria-autocomplete="list"
@@ -2112,12 +2121,25 @@ function openCommandPalette(prefill){
      an always-last "Ask Copilot" row that HANDS the question to the existing
      Copilot door with it prefilled — never a second AI path from here. */
   let ftsRows=[], ftsFor='', ftsT=null;
+  const lpSheet=ov.querySelector('.lp-sheet');
+  /* the panel slides (a transform, never width/left); reduced motion = at once */
+  const lpStill=()=>{ try{ return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(_){ return false; } };
   const close=()=>{
+    if(ov.dataset.leaving) return;
     clearTimeout(ftsT);
     if(trapRelease){ try{ trapRelease(); }catch(_){} }
-    ov.remove(); document.removeEventListener('keydown',onKey,true); lpDoorSay(false);
+    document.removeEventListener('keydown',onKey,true); document.removeEventListener('pointerdown',onOut,true); lpDoorSay(false);
+    if(left&&!lpStill()&&lpSheet&&lpSheet.animate){
+      ov.dataset.leaving='1'; ov.style.pointerEvents='none';
+      const veil=ov.querySelector('.lp-veil'); if(veil&&veil.animate) veil.animate([{ opacity:1 },{ opacity:0 }],{ duration:180, easing:'ease-in', fill:'forwards' });
+      const a=lpSheet.animate([{ transform:'translateX(0)' },{ transform:'translateX(-100%)' }],{ duration:180, easing:'cubic-bezier(.4,0,1,1)', fill:'forwards' });
+      a.onfinish=()=>ov.remove(); setTimeout(()=>ov.remove(),400);
+    } else ov.remove();
     try{ if(opener&&opener.focus&&document.contains(opener)) opener.focus({preventScroll:true}); }catch(_){}
   };
+  /* a press anywhere outside the panel lets it go (the bar too); the nav button's own press toggles it, so it is left alone */
+  function onOut(e){ if(!left) return; const t=e.target; if(!t||!t.closest) return; if(lpSheet.contains(t)||t.closest('#dk-nav')) return; close(); }
+  if(left) document.addEventListener('pointerdown',onOut,true);
   const openItem=it=>{
     if(it.kind==='ask'){
       close();
@@ -2232,6 +2254,9 @@ function openCommandPalette(prefill){
   ov._lpClose=close;
   if(typeof prefill==='string' && prefill){ input.value=prefill; ftsPlan(); }
   paint(); input.focus();
+  if(left){ if(!lpStill()&&lpSheet&&lpSheet.animate){ lpSheet.animate([{ transform:'translateX(-100%)' },{ transform:'translateX(0)' }],{ duration:240, easing:'cubic-bezier(.22,.61,.36,1)' });
+      const veil=ov.querySelector('.lp-veil'); if(veil&&veil.animate) veil.animate([{ opacity:0 },{ opacity:1 }],{ duration:240, easing:'ease-out' }); }
+    return; }
   /* centred, it keeps the height it opened at: fewer rows as you type never move the box under your eyes */
   const sheet=ov.querySelector('.lp-sheet'); if(sheet){ const h=Math.round(sheet.getBoundingClientRect().height); if(h>0) sheet.style.minHeight=h+'px'; }
 }
@@ -2253,7 +2278,7 @@ function activityCategory(txt){
   if(/creat|draft|generat/.test(t)) return 'gray';
   return 'steel';
 }
-const CAT_DOT={gray:'var(--st-gray-dot)',amber:'var(--st-amber-dot)',green:'var(--st-green-dot)',ruby:'var(--st-ruby-dot)',steel:'var(--color-accent)'};
+/* (CAT_DOT went with the old Activity rows, P-38: the new rows colour by kind, actKindOf) */
 function activityRow(id,action,detail,at,ref){
   const txt=detail||action||'';
   /* `ref` is what a person reads (the contract number, where a working file
@@ -3797,7 +3822,8 @@ function panelDoorPress(){
   if(panelSuppressed()) return;
   if(state.panelOpen){ closeContextPanel(); return; }
   const tabs=(typeof deskShellOn==='function')?!!deskShellOn():true;
-  if(tabs){ openPanel('guide'); return; }
+  /* THE GUIDE TAB IS GONE (P-38, owner 20 Nov 2026: "delete the guide since we have the nav panel"): the button opens on Alerts */
+  if(tabs){ openPanel('alerts'); return; }
   let n=0; try{ n=alertCount(); }catch(_){ n=0; }
   openPanel(n>0?'alerts':panelFace());
 }
@@ -3808,6 +3834,9 @@ function openPanel(face){
      control that does nothing. Nothing answers true today: Insights used to,
      and no longer does, because the panel stopped being a column. */
   if(panelSuppressed()) return;
+  /* THE GUIDE LIVES IN THE NAV PANEL NOW (P-38): every door that asked for the Guide face (Jambo's "guide", "?", the
+     Handbook's door) opens the nav panel at the left — the same pages by stage, one door, no second list */
+  if(face==='guide'){ if(state.panelOpen) closeContextPanel(); if(!document.getElementById('cmd-palette')) openCommandPalette('',{ left:true }); return; }
   const same=state.panelOpen&&panelFace()===face;
   setPanelFace(face);
   state.panelOpen=!same;
@@ -3847,8 +3876,8 @@ const PANEL_FACES = ['guide', 'alerts', 'notes', 'activity'];
    answered there — a press on Send asks, never only fills a box. Built once. */
 function panelAskPaint(face){
   const f=document.getElementById('panel-ask'); if(!f) return;
-  const off=face==='notes';
-  f.hidden=off; if(off) return;
+  /* EVERY FACE, Notes too (P-38: "Jambo's box at the foot of EVERY face (today Notes has none)") */
+  f.hidden=false;
   if(!f.dataset.built){
     f.dataset.built='1';
     const ph=i18t('jl_ph_any');
@@ -3864,7 +3893,7 @@ function panelAskPaint(face){
     });
   }
 }
-function panelFace(){ return PANEL_FACES.includes(state.panelFace)?state.panelFace:'activity'; }
+function panelFace(){ const f=state.panelFace==='guide'?'alerts':state.panelFace; return PANEL_FACES.includes(f)?f:'activity'; }
 function setPanelFace(k){ state.panelFace=PANEL_FACES.includes(k)?k:'activity'; }
 /* THE ONE DOOR ONTO THE NOTES FACE. It needs a contract and a change where the
    other two need nothing, so it is a named door rather than a bare face swap —
@@ -3975,6 +4004,9 @@ function renderContextPanel(){
      !important — the lesson this product has paid for twice. */
   body.classList.toggle('pb-flow', notes);
   if(notes){
+    /* WITH A CONTRACT IN FRONT, NOTES SHOWS ITS NOTES (P-38: it said "Open a contract…" with one open) */
+    const nf0=state.notesFor||{}, inFront=(typeof chatContractId==='function')?chatContractId():null;
+    if(!nf0.contractId&&inFront) state.notesFor={ contractId:String(inFront), changeId:null };
     const nf=state.notesFor||{};
     const c=(state.contracts||[]).find(x=>x&&String(x.id)===String(nf.contractId));
     const opts={side:'owner',
@@ -4041,6 +4073,7 @@ function renderContextPanel(){
   } else {
     /* A ROW OF THE TRAIL OPENS THAT CONTRACT'S HISTORY ON THE BOARD (the
        one-page Home plan, stage 4, 14 Oct 2026); the phone's room as before */
+    body.querySelectorAll('[data-act-chip]').forEach(b=>b.addEventListener('click',()=>{ _actChip=b.getAttribute('data-act-chip')||'all'; renderContextPanel(); }));
     body.querySelectorAll('[data-sel-act]').forEach(el=>el.addEventListener('click',()=>{
       const id=el.getAttribute('data-sel-act');
       if(!(typeof window.hbOpenView==='function'&&hbOpenView(id,'hist'))) selectContract(id); }));
@@ -4183,6 +4216,8 @@ const LP_EMOJI={ contracts:'📄', requests:'💬', import:'📦', ourpaper:'�
   oblig:'📃', calendar:'📅', parties:'🏢', people:'👥', mynotes:'📌', board:'📊', explorer:'🧭', reads:'🔍', pulse:'📈', house:'✨', flowmap:'🛤️', handbook:'📖', settings:'⚙️' };
 function lpEmoHtml(k){ const e=LP_EMOJI[k]; return e?`<span class="lp-em" aria-hidden="true">${e}</span>`:''; }
 let _lpChip='all';
+/* true while the window stands at the left (the nav button's panel): one column, each page's own count, no waiting column */
+let _lpLeft=false;
 /* the Guide's pages, Board first and Settings last, the order FIXED (as the strip had it) */
 function lpRows(){
   const out=[{ k:'board', tone:'violet' }];
@@ -4216,6 +4251,10 @@ function lpWaits(){ const here=guideHereKey()||'board'; return lpRows().map(r=>r
 /* the launchpad's rows, in the order they are drawn and walked by the arrows */
 function lpItems(){
   const ch=LP_CHIPS.includes(_lpChip)?_lpChip:'all', items=[];
+  /* AT THE LEFT, "Waiting on you" narrows the ONE list to the pages with their own amber count (P-37) */
+  if(_lpLeft){ const ks=lpRows().map(r=>r.k), here=guideHereKey()||'board';
+    GUIDE_NL.filter(st=>ch==='all'||ch==='need'||st.k===ch).forEach(st=>ks.filter(k=>lpStageOf(k)===st&&(ch!=='need'||(k!==here&&lpOwed(k)))).forEach(k=>items.push({ kind:'page', id:k, st:st.k })));
+    return items; }
   if(ch==='all'||ch==='need') lpWaits().slice(0,LP_WAIT_MAX).forEach(k=>items.push({ kind:'page', id:k, wait:true }));
   if(ch!=='need'){ const ks=lpRows().map(r=>r.k);
     GUIDE_NL.filter(st=>ch==='all'||st.k===ch).forEach(st=>ks.filter(k=>lpStageOf(k)===st).forEach(k=>items.push({ kind:'page', id:k, st:st.k }))); }
@@ -4239,7 +4278,7 @@ function lpWaitRowsHtml(items,active){
       +(Q?`<q>${esc(Q.q)}</q>${Q.more?`<span class="lp-src">${esc(Q.more)}</span>`:''}<span class="lp-src">${esc(i18t('lp_from',{ page:i18t('gd_p_'+k) }))}</span>`:'')); }).join('')+`</div>`;
 }
 /* the tinted column stands beside the pages under All, and only while something waits */
-function lpSideOn(items){ return _lpChip==='all'&&(items||[]).some(x=>x.wait); }
+function lpSideOn(items){ return !_lpLeft&&_lpChip==='all'&&(items||[]).some(x=>x.wait); }
 /* how many more pages wait than the three drawn — a cap is said, never a silent trim */
 function lpMoreSay(){
   const ch=LP_CHIPS.includes(_lpChip)?_lpChip:'all', left=(ch==='all'||ch==='need')?lpWaits().length-LP_WAIT_MAX:0;
@@ -4253,7 +4292,7 @@ function lpBodyHtml(items,active,o){
   const W=items.filter(x=>x.wait), P=items.filter(x=>!x.wait);
   let h='';
   if(W.length&&!side) h+=`<h5 class="lp-h">${esc(i18t('lp_chip_need'))}</h5>`+lpWaitRowsHtml(items,active);
-  else if(!W.length&&_lpChip==='need') h+=`<p class="lp-none">${esc(i18t('lp_none'))}</p>`;
+  else if(!W.length&&_lpChip==='need'&&!P.length) h+=`<p class="lp-none">${esc(i18t('lp_none'))}</p>`;
   if(P.length){
     const groups=GUIDE_NL.map(st=>({ st, its:P.filter(x=>x.st===st.k) })).filter(g=>g.its.length);
     h+=`<div class="lp-pages" style="--lp-cols:${groups.length}">`+groups.map(g=>
@@ -4273,6 +4312,7 @@ function lpFootHtml(typed,side){
   const keys=`<span class="lp-keys"><span><kbd>↑</kbd> <kbd>↓</kbd> ${esc(i18t('lp_k_move'))}</span><span><kbd>Enter</kbd> ${esc(i18t('lp_k_go'))}</span><span><kbd>Esc</kbd> ${esc(i18t('lp_k_close'))}</span></span>`;
   /* beside the pages, the tinted column says it at its own foot (lpSideHtml) */
   if(typed||side) return keys;
+  if(_lpLeft) return keys+`<span>${esc(i18t('lp_out'))}</span>`;
   return keys+`<span>${esc(lpMoreSay())}</span>`;
 }
 function lpChipsHtml(){
@@ -4283,7 +4323,7 @@ function lpChipsHtml(){
 /* the bar's top-left symbol: a press opens the launchpad, a second press (on the dimmed screen) closes it */
 function lpIsOpen(){ return !!document.getElementById('cmd-palette'); }
 function lpDoorSay(on){ const b=document.getElementById('dk-nav'); if(!b) return; b.setAttribute('aria-expanded',on?'true':'false'); b.classList.toggle('is-on',!!on); }
-function lpToggle(){ const p=document.getElementById('cmd-palette'); if(p&&typeof p._lpClose==='function'){ p._lpClose(); return; } openCommandPalette(); }
+function lpToggle(){ const p=document.getElementById('cmd-palette'); if(p&&!p.dataset.leaving&&typeof p._lpClose==='function'){ p._lpClose(); return; } openCommandPalette('',{ left:true }); }
 function lpWire(){
   const b=document.getElementById('dk-nav'); if(!b||!b.dataset||typeof b.addEventListener!=='function'||b.dataset.lpWired) return; b.dataset.lpWired='1';
   b.addEventListener('click',lpToggle);
@@ -4329,7 +4369,7 @@ function panelTabsPaint(face){
   const head=host.previousElementSibling; if(head&&head.style) head.style.borderBottom=desk?'0':'';
   if(!desk){ host.innerHTML=''; return; }
   const cid=(typeof chatContractId==='function')?chatContractId():null;
-  const tabs=[['guide','gd_tab'],['alerts','sh_alerts'],['notes','ng_card_notes'],['activity','sh_activity']];
+  const tabs=[['alerts','sh_alerts'],['notes','ng_card_notes'],['activity','sh_activity']];
   host.innerHTML=tabs.map(([k,w])=>{ const dead=k==='notes'&&!cid&&face!=='notes';
     const nl=typeof window.newLookOn==='function'&&newLookOn();
     let cnt=''; if(nl&&k==='alerts'){ let n=0; try{ n=(typeof counterNeedsCount==='function')?Number(counterNeedsCount())||0:0; }catch(_){ n=0; } if(n) cnt=`<span class="pt-n">${n>99?'99+':n}</span>`; }
@@ -4339,27 +4379,46 @@ function panelTabsPaint(face){
     if(k==='notes'){ const id=(typeof chatContractId==='function')?chatContractId():null; if(id) openNotesPanel(id,null,{ force:true }); return; }
     setPanelFace(k); applyPanelLayout(); if(k==='activity') refreshActivityFeed(true); renderContextPanel(); }));
 }
+/* ---- ACTIVITY, THE LEGORA + STRIPE WAY (P-38, owner 20 Nov 2026) ----
+   "Live · whole workspace", chips by kind (All · Signed · Sent · Changed · Asked; a kind with nothing is not drawn), a
+   timeline grouped Today · Yesterday · Earlier: a dot coloured by kind (green signed or approved, blue sent or opened,
+   amber changed, violet asked, grey filed), who did what, the reference, the time and a soft kind badge; under an event
+   that said or changed something, its words quoted (only words the trail itself carries in quotes — never guessed). */
+let _actChip='all';
+const ACT_KINDS=['signed','sent','changed','asked'];
+function actKindOf(a){
+  const t=String(a&&a.txt||'').toLowerCase();
+  if(/\b(sign|signed|approv|executed|sealed|allowed)/.test(t)) return 'signed';
+  if(/\b(sent|send|shared|opened|viewed|link|mailed|reminded|chase)/.test(t)) return 'sent';
+  if(/\b(counter|chang|edit|redline|accept|reject|propos|amend|fill)/.test(t)) return 'changed';
+  if(/\b(ask|asked|request|review|mention|question)/.test(t)) return 'asked';
+  return 'filed';
+}
+/* the words an event said, where the trail carries them in quotes */
+function actQuoteOf(a){ const m=/[“"]([^”"]{3,})[”"]/.exec(String(a&&a.txt||'')); return m?m[1]:''; }
+function actDayOf(at){
+  const d=new Date(at||0); if(isNaN(d)) return 'earlier';
+  const t=new Date(); const k=x=>x.getFullYear()+'-'+x.getMonth()+'-'+x.getDate();
+  if(k(d)===k(t)) return 'today'; const y=new Date(t); y.setDate(t.getDate()-1); return k(d)===k(y)?'yesterday':'earlier';
+}
 function activityPanelHtml(){
   refreshActivityFeed();   // server mode: keep the whole-workspace feed current
-  const feed=buildActivityFeed();
-  return `
-      <div style="padding:10px var(--s-3);">
-        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-micro);color:var(--color-neutral-600);margin-bottom:var(--s-2);">
-          <span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot);"></span>${i18t('ap_scope_workspace')}
-        </div>
-        ${feed.length?feed.map(a=>`
-          <button data-sel-act="${esc(a.id)}" style="display:flex;gap:9px;width:100%;padding:7px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
-            <span style="width:8px;height:8px;border-radius:50%;background:${CAT_DOT[a.cat]};flex:none;margin-top:var(--s-1);"></span>
-            <span style="flex:1;min-width:0;">${/* THE TRAIL IS STORED TEXT AND IS PRINTED AS TEXT (26 Sep 2026, the
-                 overnight clean-up): a line's detail carries whatever a
-                 colleague typed — an obligation's wording, a clause name — and
-                 printed raw, an <img onerror> in it ran in the admin's session
-                 the moment the panel opened (measured). */''}
-              <span style="display:block;font-size:var(--t-meta);line-height:1.4;">${esc(a.txt)}</span>
-              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);margin-top:1px;">${window.refHtml?refHtml(a.ref||a.id):esc(a.ref||a.id)} · ${esc(a.when)}</span>
-            </span>
-          </button>`).join(''):`<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:var(--s-3) 2px;">${i18t('ap_no_activity')}</div>`}
-      </div>`;
+  const feed=buildActivityFeed().map(a=>Object.assign({},a,{ kind:actKindOf(a) }));
+  const n={}; feed.forEach(a=>{ n[a.kind]=(n[a.kind]||0)+1; });
+  if(_actChip!=='all'&&!n[_actChip]) _actChip='all';
+  const shown=feed.filter(a=>_actChip==='all'||a.kind===_actChip);
+  const chip=(k,word)=>`<button type="button" class="act-chip" data-act-chip="${k}" aria-pressed="${_actChip===k}">${esc(word)}</button>`;
+  const time=a=>{ const d=new Date(a.at||0); return actDayOf(a.at)==='today'&&!isNaN(d)?d.toLocaleTimeString(typeof langLocale==='function'?langLocale():undefined,{hour:'2-digit',minute:'2-digit'}):a.when; };
+  /* THE TRAIL IS STORED TEXT AND IS PRINTED AS TEXT (26 Sep 2026): a line's detail carries whatever a colleague typed */
+  const row=a=>{ const q=actQuoteOf(a), txt=q?String(a.txt).replace(/\s*[—-]?\s*[“"][^”"]*[”"]\s*/,' ').trim():a.txt;
+    return `<button type="button" class="act-r is-${a.kind}" data-sel-act="${esc(a.id)}"><i class="act-dot" aria-hidden="true"></i><span class="act-w"><b>${esc(txt)}</b><span class="act-ref">${window.refHtml?refHtml(a.ref||a.id):esc(a.ref||a.id)}</span>${q?`<q class="act-q">${esc(q)}</q>`:''}</span>`
+      +`<span class="act-e"><span class="act-t">${esc(time(a))}</span><span class="act-b">${esc(i18t('act_k_'+a.kind))}</span></span></button>`; };
+  const days=['today','yesterday','earlier'].map(d=>{ const G=shown.filter(a=>actDayOf(a.at)===d); return G.length?`<div class="act-h">${esc(i18t('act_d_'+d))}</div><div class="act-tl">${G.map(row).join('')}</div>`:''; }).join('');
+  return `<div class="act">
+      <div class="act-live"><span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot);"></span>${i18t('ap_scope_workspace')}</div>
+      ${feed.length?`<div class="act-chips" role="group" aria-label="${esc(i18t('sh_activity'))}">${chip('all',i18t('act_k_all'))}${ACT_KINDS.filter(k=>n[k]).map(k=>chip(k,i18t('act_k_'+k))).join('')}</div>${days}`
+        :`<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:var(--s-3) 2px;">${i18t('ap_no_activity')}</div>`}
+    </div>`;
 }
 /* "NOTHING NEEDS YOU RIGHT NOW" IS A REAL MESSAGE and a good one — an empty
    panel reads as a panel that failed to load.

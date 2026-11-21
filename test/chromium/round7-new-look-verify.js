@@ -114,7 +114,8 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     if (!home) check('3 the Board is in front', false);
     await page.evaluate(() => openPanel('alerts'));
     const up = await until(page, () => !!document.querySelector('#context-panel .ndb .ndb-r'), null, 8000);
-    const A = up ? await page.evaluate(() => ({ head: (document.querySelector('.ndb .ndb-h') || {}).textContent || '', bell: Number(counterNeedsCount()),
+    /* RE-POINTED 21 Nov 2026 (P-38, the Legora + Stripe way): the head is the All chip, counting the bell's own number */
+    const A = up ? await page.evaluate(() => ({ head: 'needs you · ' + (((document.querySelector('.ndb [data-ndb-chip="all"] span') || {}).textContent) || ''), bell: Number(counterNeedsCount()),
       rows: [...document.querySelectorAll('.ndb .ndb-r:not(.is-news)')].map(r => r.querySelectorAll('.ndb-open').length),
       tab: ((document.querySelector('[data-pt-face="alerts"] .pt-n') || {}).textContent || '').trim() })) : null;
     await shot('3-alerts');
@@ -122,20 +123,19 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
       && A.rows.length > 0 && A.rows.every(n => n === 1) && A.tab === String(A.bell), A);
   } catch (e) { check('3 The bell', false, String(e).slice(0, 200)); }
 
-  /* 4 · The Guide */
+  /* 4 · The Guide — RE-POINTED 21 Nov 2026 (P-38, owner: "delete the guide since we have the nav panel"): the Guide's door
+     opens the nav panel at the left, the Guide's pages by stage; the side panel has no Guide face */
   try {
     await page.evaluate(() => openPanel('guide'));
-    const up = await until(page, () => !!document.querySelector('#context-panel .gdn'), null, 8000);
-    const G = up ? await page.evaluate(() => ({ heads: [...document.querySelectorAll('.gdn-h')].map(h => h.textContent.trim().toLowerCase()),
-      keys: [...document.querySelectorAll('.gdn [data-gd-go]')].map(b => b.getAttribute('data-gd-go')),
-      want: GUIDE_STAGES.flatMap(s => s.rows).filter(k => k !== 'import' || typeof caMayAdd !== 'function' || caMayAdd()).concat(['flowmap', 'handbook', 'settings']),
-      contracts: (([...document.querySelectorAll('.gdn-r')].find(r => r.querySelector('[data-gd-go="contracts"]')) || {}).innerText || '').replace(/\s+/g, ' '),
-      book: state.contracts.filter(c => !c.archived).length })) : null;
+    const up = await until(page, () => !!document.querySelector('#cmd-palette.is-left .lp-p'), null, 8000);
+    const G = up ? await page.evaluate(() => ({ heads: [...document.querySelectorAll('#cmd-palette .lp-st h5')].map(h => h.textContent.trim().toLowerCase()),
+      keys: [...document.querySelectorAll('#cmd-palette [data-lp-go]')].map(b => b.getAttribute('data-lp-go')),
+      want: GUIDE_STAGES.flatMap(s => s.rows).filter(k => k !== 'import' || typeof caMayAdd !== 'function' || caMayAdd()).concat(['handbook', 'settings']),
+      tab: !!document.querySelector('[data-pt-face="guide"]') })) : null;
     await shot('4-guide');
-    check('4a the Guide: you are here, then the stages', !!G && G.heads.join('|') === 'you are here|arrive|negotiate · sign|live|the book', G && G.heads);
-    check('4b each row says its word; Contracts counts the book; no page the Guide had is lost', !!G && new RegExp('Say “contracts”.*' + G.book + '$').test(G.contracts)
-      && G.want.every(k => G.keys.includes(k)), G && { contracts: G.contracts, missing: G.want.filter(k => !G.keys.includes(k)) });
-    await page.evaluate(() => closeContextPanel());
+    check('4a the Guide\'s door opens the nav panel at the left, the stages as its heads', !!G && G.heads.length >= 4 && !G.tab, G && G.heads);
+    check('4b no page the Guide had is lost', !!G && G.want.every(k => G.keys.includes(k)), G && { missing: G.want.filter(k => !G.keys.includes(k)) });
+    await page.keyboard.press('Escape');
   } catch (e) { check('4 The Guide', false, String(e).slice(0, 200)); }
 
   /* 5 RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): "Your week ahead" opened from Home's list into
