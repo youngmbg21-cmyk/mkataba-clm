@@ -722,19 +722,21 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       const who = (window.reviewCandidates ? reviewCandidates(c) : []) || [];
       if (who.length < 2) return { ok: false, why: 'need two colleagues to tag' };
       const ch = (c.changes || [])[0];
-      negoPostComment(c, ch.id, '@' + who[0].name + ' can you look at this?',
+      const m1 = negoPostComment(c, ch.id, '@' + who[0].name + ' can you look at this?',
         { side: 'owner', author: currentUser().name, visibility: 'internal' });
+      /* the second in the same discussion (a reply), so one opened row shows both (P-38) */
       negoPostComment(c, ch.id, '@' + who[1].name + ' and you too please.',
-        { side: 'owner', author: currentUser().name, visibility: 'internal' });
+        { side: 'owner', author: currentUser().name, visibility: 'internal', replyTo: m1 && window.negoNoteKey ? negoNoteKey(m1) : undefined });
       openNotesPanel(c.id);
-      return new Promise(r => setTimeout(() => {
+      /* RE-POINTED 21 Nov 2026 (P-38, Notes the Stripe way): a row per discussion; the tagged words are read in it, opened */
+      return new Promise(r => setTimeout(() => { const row = [...document.querySelectorAll('#context-panel .rl-np-crow')].find(b => /look at this/.test(b.textContent)); if (row) row.click(); setTimeout(() => {
         const ats = [...document.querySelectorAll('#context-panel .rl-np-at')];
         r({ ok: true, n: ats.length,
           names: ats.map(a => a.textContent),
           weights: ats.map(a => getComputedStyle(a).fontWeight),
           colours: ats.map(a => getComputedStyle(a).color),
-          bodyInk: getComputedStyle(document.querySelector('#context-panel .rl-np-note p')).color });
-      }, 700));
+          bodyInk: (document.querySelector('#context-panel .rl-np-note p') ? getComputedStyle(document.querySelector('#context-panel .rl-np-note p')).color : '') });
+      }, 400); }, 500));
     });
     check('two colleagues were tagged in the drawer', tagged.ok && tagged.n >= 2,
       tagged.why || (tagged.n + ' tags: ' + JSON.stringify(tagged.names)));
