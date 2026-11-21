@@ -23568,7 +23568,8 @@
      wall's flat cards; and the panel with NO CARDS AND NO MONEY (.ctls), its head row and trail not drawn */
   html.lg-new #ct-place .ct-page .ct-head .ct-seg button[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface);font-weight:var(--w-label)}
   html.lg-new #ig-page #ct-place .ct-page .ct-head.lh{gap:10px 8px}
-  html.lg-new #ig-page #ct-place .ct-page .ct-head .lh-ask{flex:1 0 100%;order:1;height:36px;gap:8px}
+  html.lg-new #ig-page #ct-place .ct-page .ct-head .lh-ask{flex:1 0 100%;order:1;height:36px;gap:8px;padding-left:0;margin-left:0}
+  html.lg-new #ig-page #ct-place .ct-page .ct-head .reg-views:not(:has(.reg-vtab)){display:none}
   html.lg-new #ig-page #ct-place .ct-page .ct-head .lh-ask svg{color:var(--accent-ink)}
   html.lg-new #ig-page #ct-place .ct-page .ct-head .lh-ask input::placeholder{color:var(--color-neutral-400)}
   html.lg-new #ig-page #ct-place .ct-page .ct-head .reg-views{order:2;border-bottom:0;align-self:center;align-items:center;gap:8px}
@@ -23583,7 +23584,7 @@
   html.lg-new #ig-page #ct-place .ct-page .ct-head .lh-chip .lh-x{border:0;background:transparent;padding:0 2px;color:var(--color-quiet)}
   html.lg-new #ig-page #ct-place .ct-page .ct-head .ctls-all{order:2}
   html.lg-new #ig-page #ct-place .ct-page .ct-head .ctls-set{order:3}
-  html.lg-new #ct-place .ctf-page .apn-tab.is-chip{border:1px dashed var(--color-neutral-300);background:transparent;color:var(--color-quiet)}
+  html.lg-new #ct-place .ctf-page .apn-tab.is-chip{border:1px dashed var(--color-neutral-300);background:transparent;color:var(--color-quiet);font-size:13px;height:26px;padding:0 11px}
   html.lg-new #ct-place .ctf-page .apn-tab.is-chip.is-on{border-style:solid;background:transparent;color:var(--color-text)}
   html.lg-new #ct-place .ctf-page .ctf-ask svg{color:var(--accent-ink)}
   /* as drawn: the landing is the List's way in, so List stands chosen (ink) beside Wall */
@@ -23598,9 +23599,9 @@
   html.lg-new #ct-place .ctls-amb,html.lg-new .ctls .ctls-amb{color:var(--st-amber-fg)}
   html.lg-new #ct-place .reg-ends :is(.ctls-amb,.ctls-g) .reg-day{color:inherit}
   html.lg-new #ct-place .ctls-g,html.lg-new .ctls .ctls-g{color:var(--color-neutral-400)}
-  html.lg-new #ct-place .ctls-q{display:block;max-width:100%;margin-top:2px;font-family:var(--font-doc);font-size:13px;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  html.lg-new #ct-place .ctls-q i{font-style:normal}
-  html.lg-new #ct-place .ctls-q small{font-family:var(--font-body);font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new #ct-place .ctls-q{display:flex;align-items:baseline;gap:4px;max-width:100%;min-width:0;margin-top:2px;font-family:var(--font-doc);font-size:13px;color:var(--color-quiet);white-space:nowrap}
+  html.lg-new #ct-place .ctls-q i{font-style:normal;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new #ct-place .ctls-q small{flex:none;font-family:var(--font-body);font-size:var(--t-label);color:var(--color-neutral-400)}
   html.lg-new #ct-place .reg-nl-footrow{display:flex}
   html.lg-new #ct-place .reg-nl-footrow:has(> #reg-nl-showing:empty){display:none}
   /* the landing */
@@ -23609,7 +23610,11 @@
   html.lg-new #ct-place .ctf-fig.is-ruby>b{color:var(--st-ruby-fg)}
   html.lg-new #ct-place .ctf-ftable tr.is-sel,html.lg-new #ct-place .ctf-ftable tr.is-sel:hover{background:color-mix(in srgb,var(--accent-ink) 4%,var(--color-surface))}
   html.lg-new #ct-place .ctf-ftable .ctf-next.is-amb{color:var(--st-amber-fg)}
-  html.lg-new #ct-place .ctf-ftable .ctf-next{overflow:hidden;text-overflow:ellipsis}
+  html.lg-new #ct-place .ctf-ftable .ctf-next{overflow:hidden}
+  html.lg-new #ct-place .ctf-ftable .ctf-nx{display:flex;min-width:0;white-space:nowrap}
+  html.lg-new #ct-place .ctf-ftable .ctf-nx-n{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new #ct-place .ctf-ftable .ctf-nx-d{flex:none;padding-left:4px}
+  html.lg-new .ctls .ctls-more{align-self:flex-start;margin-top:4px}
   html.lg-new #ct-place .ctf-ftable .ctf-tbar{max-width:140px;height:7px}
   html.lg-new #ct-place .ctf-ftable th:nth-child(2){width:10%}
   html.lg-new #ct-place .ctf-ftable th:nth-child(3){width:14%}
@@ -23636,6 +23641,11 @@
   /* the Stripe wall: flat paper cards, a hairline, the chosen one in ink */
   html.lg-new #ct-place .ct-wall .igw-card.is-nl{border-color:var(--color-divider);border-radius:10px;box-shadow:none;overflow:hidden}
   html.lg-new #ct-place .ct-wall .igw-card.is-nl.is-chosen{border-color:var(--color-text);box-shadow:0 0 0 1px var(--color-text)}
+  /* the paper as drawn (P-31 review, 22 Nov 2026): its title in the regular weight, five thicker grey bars under it (the
+     first shorter, clear of the title), a hairline between the paper and its foot */
+  html.lg-new #ct-place .ct-wall .igw-card.is-nl .igw-sheet{border:0;border-bottom:1px solid var(--color-divider);border-radius:0;box-shadow:none}
+  html.lg-new #ct-place .ct-wall .igw-card.is-nl .igw-t{font-family:var(--font-title);font-weight:var(--w-label)}
+  html.lg-new #ct-place .ct-wall .igw-card.is-nl .igw-ln{height:60px;margin-top:8px;background:linear-gradient(var(--color-neutral-200),var(--color-neutral-200)) 0 0/40% 4px no-repeat,linear-gradient(var(--color-neutral-200),var(--color-neutral-200)) 0 13px/100% 4px no-repeat,linear-gradient(var(--color-neutral-200),var(--color-neutral-200)) 0 26px/100% 4px no-repeat,linear-gradient(var(--color-neutral-200),var(--color-neutral-200)) 0 39px/100% 4px no-repeat,linear-gradient(var(--color-neutral-200),var(--color-neutral-200)) 0 52px/100% 4px no-repeat}
   /* THE PANEL (.ctls): no cards, no money; sections parted by a hairline; the dock's head row and trail are not drawn */
   html.lg-new #ig-dock:has(.ctls) > :is(.igd-head,.pd-trail){display:none}
   html.lg-new #ig-dock:has(.ctls) .ca-back{display:none}
