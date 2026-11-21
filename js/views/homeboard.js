@@ -6802,22 +6802,9 @@ function hbArrivePage(){
   const parts = [...book.querySelectorAll('.hb-spark, .hb-stagebar')];
   parts.forEach(x => x.classList.add('jov-draw'));
   setTimeout(() => parts.forEach(x => { try { x.classList.remove('jov-draw'); } catch (_){} }), 2200);
-  book.querySelectorAll('.hb-fig-n').forEach(b => {
-    /* never twice at once (a second start would read the '0' as the true number), and the true number ALWAYS comes
-       back — by a timer as well as the last frame, since frames stop while the board is moved or hidden */
-    if (b.dataset.hbCounting) return;
-    const m = String(b.textContent || '').match(/^(\d{1,6})(\D.*)?$/); if (!m) return;
-    const to = Number(m[1]), rest = m[2] || '', was = b.textContent; if (!to) return;
-    const t0 = performance.now(), dur = 700, delay = 160;
-    /* a redraw that writes a NEW number meanwhile (hbMorph keeps the span, changes its text) wins: the count stops and
-       leaves that number alone — only a number this count wrote itself is put back */
-    let done = false, last = '';
-    const put = v => { last = v; b.textContent = v; };
-    const finish = () => { if (done) return; done = true; delete b.dataset.hbCounting; if (b.textContent === last) b.textContent = was; };
-    const step = now => { if (done) return; if (!b.isConnected || b.textContent !== last) { finish(); return; } const k = Math.min(1, Math.max(0, (now - t0 - delay) / dur)); if (k >= 1) { finish(); return; } put(Math.round(to * (1 - Math.pow(1 - k, 3))) + rest); requestAnimationFrame(step); };
-    b.dataset.hbCounting = '1'; put('0' + rest); requestAnimationFrame(step);
-    setTimeout(finish, delay + dur + 120);
-  });
+  /* the numbers count up OVER the true number, which the figure's own text keeps throughout (jovCountOver): a repaint
+     meanwhile (hbMorph) simply replaces the span and the count ends there */
+  if (typeof window.jovCountOver === 'function') book.querySelectorAll('.hb-fig-n').forEach(b => window.jovCountOver(b));
 }
 /* THE ONE TO START WITH (P-39, as drawn: "The one to start with: Fuel Supply’s renewal, “The Term ends on 20 December
    2026 unless renewed” § 2."): the first late row that is the reader's own to decide (else the first late row) whose paper
@@ -7546,7 +7533,10 @@ function hbMorph(host, html){
 function hbMorphSameShell(a, b){
   if (a.nodeType !== b.nodeType || a.nodeName !== b.nodeName) return false;
   if (a.nodeType !== 1) return true;
-  if (a.attributes.length !== b.attributes.length) return false;
+  /* a number counting up carries its count as a mark painted over it (data-jov-count, jovCountOver), never in its
+     words: the mark is not markup, so a redraw that writes the same number keeps the count going */
+  const extra = a.hasAttribute('data-jov-count') && !b.hasAttribute('data-jov-count') ? 1 : 0;
+  if (a.attributes.length - extra !== b.attributes.length) return false;
   for (const at of b.attributes) if (a.getAttribute(at.name) !== at.value) return false;
   return true;
 }
