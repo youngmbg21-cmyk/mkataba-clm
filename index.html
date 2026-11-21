@@ -22485,6 +22485,88 @@
   html.lg-new .obs-tl-list li.is-done i{background:var(--st-green-dot)}
   html.lg-new .obs-tl-list li.is-late i{background:var(--st-ruby-dot)}
   html.lg-new .obs-tl-list li.is-next i{background:var(--color-surface);border:1px solid var(--color-neutral-400)}
+  /* ===== OBLIGATIONS, REBUILT AS DRAWN (P-13, the Stripe way) =====
+     the tiles' figures in the body face; the bars teal with late red; no find box on the line of chips; square soft
+     badges; the reminded one's initials on steel; the chosen row a faint green; the panel without its head row, the
+     due day in the body face, the 30-day line dated at both ends, each section's name small and quiet */
+  html.lg-new .obs-tn b{font-family:var(--font-body);font-size:18px;line-height:1.1}
+  html.lg-new .obs-tile{padding:10px 12px;gap:4px}
+  html.lg-new .obs-tl{font-size:11.5px}
+  html.lg-new .obs-bars i{background:var(--accent-ink);opacity:.55}
+  html.lg-new .obs-line polyline{stroke:var(--accent-ink)}
+  html.lg-new .obt-page .obn-bar2r .apn-box{display:none}
+  html.lg-new .obs-chip{height:auto;padding:2px 9px;font-size:12px;line-height:1.4;color:var(--color-quiet)}
+  html.lg-new .obs-b{height:auto;padding:1px 7px;border-radius:6px;font-size:11.5px;line-height:1.6}
+  html.lg-new .obs-av{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-new .obs-due b{font-size:13px}
+  html.lg-new .obs-due span{font-size:12px}
+  html.lg-new .obs-r.is-sel,html.lg-new .obs-r[aria-selected="true"]{background:color-mix(in srgb,var(--accent-ink) 4%,var(--color-surface))}
+  html.lg-new .obs-r:hover:not(.is-sel):not([aria-selected="true"]){background:var(--surface-2)}
+  html.lg-new #ins-panel:has(.obs-one) .jl-head,html.lg-new #ins-panel:has(.obs-one) > .igd-head{display:none}
+  html.lg-new .obs-one .obn-lg-top b{font-family:var(--font-body);font-size:15px;line-height:1.35;font-weight:var(--w-label)}
+  html.lg-new .obs-one .obn-lg-top > span:last-child{font-size:12px;color:var(--color-quiet)}
+  html.lg-new .obs-big span{font-size:11.5px}
+  html.lg-new .obs-big b{font-family:var(--font-body);font-size:22px;font-weight:var(--w-label)}
+  html.lg-new .obs-30{height:34px;border-bottom:1px solid var(--color-neutral-300)}
+  html.lg-new .obs-30 i.obs-30-today{left:25%}
+  html.lg-new .obs-30 small.l{left:25%}
+  html.lg-new .obs-30 small.a,html.lg-new .obs-30 small.b{top:auto;bottom:-16px;transform:none;font-size:9.5px;color:var(--color-quiet)}
+  html.lg-new .obs-30 small.a{left:0}
+  html.lg-new .obs-30 small.b{left:auto;right:0}
+  html.lg-new .obs-30 i.obs-30-end{right:0;width:7px;height:7px;bottom:-4px;border-radius:50%;background:var(--color-neutral-300)}
+  html.lg-new .obs-one .obs-30{margin-bottom:24px}
+  html.lg-new .obs-one .obn-lg-l b{font-size:11.5px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new .obs-one .obn-lg-q{font-size:13.5px}
+  html.lg-new .obs-res{display:flex;align-items:center;gap:6px;min-width:0}
+  html.lg-new .obs-res-w{font-size:11.5px;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .obs-th.is-done>span:nth-child(5),html.lg-new .obs-th.is-done>span:nth-child(6){text-align:right}
+  html.lg-new .obs-due.is-was b{font-weight:400;color:var(--color-quiet)}
+  html.lg-new .obs-receipt .obs-tick{display:grid;place-items:center;width:30px;height:30px;margin-bottom:8px;border-radius:50%;background:var(--st-green-bg);color:var(--st-green-fg);font-size:14px}
+  html.lg-new .obs-rec-days{display:flex;gap:20px;margin-bottom:6px}
+  html.lg-new .obs-rec-days span{display:flex;flex-direction:column;gap:2px}
+  html.lg-new .obs-rec-days small{font-size:11.5px;color:var(--color-quiet)}
+  html.lg-new .obs-rec-days b{font-size:22px;line-height:1.1;font-weight:var(--w-label)}
+  html.lg-new .obs-rec-days .is-was b{color:var(--color-quiet)}
+  html.lg-new .obs-rec-ring{display:flex;align-items:center;gap:12px}
+  html.lg-new .obs-rec-ring p{margin:0;font-size:12px;color:var(--color-quiet)}
+  html.lg-new .obs-rring{position:relative;flex:none;display:grid;place-items:center;width:40px;height:40px}
+  html.lg-new .obs-rring svg{position:absolute;inset:0;transform:rotate(-90deg)}
+  html.lg-new .obs-rring circle{fill:none;stroke:var(--color-neutral-200);stroke-width:4}
+  html.lg-new .obs-rring circle.is-f{stroke:var(--st-green-dot)}
+  html.lg-new .obs-rring b{position:relative;font-size:11.5px;font-weight:var(--w-strong)}
+  html.lg-new .obs-receipt .obs-b{align-self:flex-start;width:max-content}
+  /* Proposals, as drawn: the same four tiles in their row; no find box or selects; the calm table */
+  html.lg-new .obn-page:not(.obt-page) .obs-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s-3);padding:var(--s-2) 0 var(--s-3)}
+  html.lg-new .obn-page:not(.obt-page) .obn-bar2r :is(.apn-box,.obn-sel){display:none}
+  html.lg-new .obn-table.is-proj th{font-size:12px;font-weight:var(--w-label);letter-spacing:0;text-transform:none;color:var(--color-quiet);background:none}
+  html.lg-new .obn-pr.is-stripe td{padding-top:10px;padding-bottom:10px;border-bottom:1px solid var(--color-divider);vertical-align:middle}
+  html.lg-new .obn-pr.is-stripe .obn-c1{box-shadow:none}
+  html.lg-new .obn-pr.is-stripe .obn-what{font-size:13.5px;font-weight:var(--w-label)}
+  html.lg-new .obn-pr.is-stripe .obn-pt{font-size:13px}
+  html.lg-new .obn-pr.is-stripe .obn-pgs{display:flex;align-items:center;gap:8px;white-space:nowrap}
+  html.lg-new .obn-pbar{display:block;flex:1;max-width:90px;height:4px;border-radius:2px;background:var(--color-neutral-200);overflow:hidden}
+  html.lg-new .obn-pbar i{display:block;height:100%;background:var(--st-violet-dot)}
+  html.lg-new .obn-pr.is-stripe .obn-pg2 small{font-size:11.5px;color:var(--color-quiet)}
+  html.lg-new .obn-pr.is-stripe :is(.obn-dn,.obn-fd){text-align:right;font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums}
+  html.lg-new .obn-pr.is-stripe .obn-fd{color:var(--color-quiet)}
+  html.lg-new .obn-pr.is-stripe.is-sel td{background:color-mix(in srgb,var(--accent-ink) 4%,var(--color-surface))}
+  html.lg-new .obn-table.is-proj th:nth-child(5),html.lg-new .obn-table.is-proj th:nth-child(6){text-align:right}
+  html.lg-new #ins-panel:has(.obn-lg.is-stripe) .jl-head{display:none}
+  html.lg-new .obn-lg.is-stripe .obn-lg-top.is-ring{display:flex;flex-direction:row;align-items:center;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .obn-lg.is-stripe .obn-lg-tw{display:flex;flex-direction:column;gap:2px;min-width:0}
+  html.lg-new .obn-lg.is-stripe .obn-lg-tw b{font-size:15px;font-weight:var(--w-label)}
+  html.lg-new .obn-lg.is-stripe .obn-lg-tw span{font-size:11.5px;color:var(--color-quiet)}
+  html.lg-new .obs-rring circle.is-f.is-violet{stroke:var(--st-violet-dot)}
+  html.lg-new .obn-lg.is-stripe .obn-lg-l{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+  html.lg-new .obn-lg.is-stripe .obn-lg-l b{font-size:13px;font-weight:var(--w-label)}
+  html.lg-new .obn-lg.is-stripe .obn-lg-l .obs-b{flex:none}
+  html.lg-new .obn-lg.is-stripe .obn-lg-q{font-size:13px}
+  html.lg-new .obn-lg.is-stripe .obn-lg-w{height:auto;padding:3px 10px;font-size:12px}
+  html.lg-new .obn-lg.is-stripe .obn-lg-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:12px;font-size:12px;color:var(--color-quiet)}
+  html.lg-new .obn-lg-addall{border:0;border-radius:999px;padding:6px 14px;background:var(--color-text);color:var(--color-surface);font:var(--w-label) 13px/1.3 var(--font-body);cursor:pointer}
+  html.lg-new .obn-lg-addall:disabled{background:var(--color-neutral-300);cursor:not-allowed}
+  html.lg-new .obs-receipt .obn-lg-link{align-self:flex-start}
+  html.lg-new .obs-receipt .obn-lg-it:last-child{display:flex;justify-content:flex-start}
   /* READ DOWN, THE LEGORA + STRIPE WAY (P-41): each sentence a calm row with its small graphic; the quarters by count, the nearest red */
   html.lg-new .rd-page.is-ls .rd-head{display:flex;align-items:center;gap:var(--s-3)}
   html.lg-new .rd-page.is-ls .rd-row{display:grid;grid-template-columns:40px minmax(0,1fr) minmax(0,220px);align-items:center;gap:var(--s-3)}

@@ -4940,7 +4940,9 @@ function obnCols(prop){
        column and find ways to make the page fit without hiding"): Found is gone (how long a list has waited is said
        in Jambo's panel), and the four that stay are as wide as their words — 850 with the name's 300, the room
        beside the panel on the owner's smallest screen (1366) being 900 */
-    ? [{ k: 'name', t: 'obn_col_ag' }, { k: 'side', t: 'obn_col_side', w: 140 }, { k: 'prog', t: 'obn_col_prog', w: 140 }, { k: 'status', t: 'obn_col_status', w: 100 }, { k: 'acts', w: 170 }]
+    /* AS DRAWN (P-13, the Stripe way, owner's pick 20 Nov 2026; reverses 19 Nov's "Found is gone"): Agreement · Other side ·
+       Progress · Status · Duties · Found — no act column (Add all decided is the panel's) */
+    ? [{ k: 'name', t: 'obn_col_ag' }, { k: 'side', t: 'obn_col_side', w: 130 }, { k: 'prog', t: 'obn_col_prog', w: 150 }, { k: 'status', t: 'obn_col_status', w: 96 }, { k: 'duties', t: 'obn_col_duties', w: 64 }, { k: 'found', t: 'obn_col_found', w: 96 }]
     : [{ k: 'name', t: 'ob_col_what' }, { k: 'who', t: 'obd_whose', w: 110, rank: 2 }, { k: 'when', t: 'obd_col_when', w: 170 }, { k: 'acts', w: 190 }];
   const seat = prop ? 'obligations-prop' : 'obligations-all';
   const FIT = typeof listCols === 'function' ? listCols(seat, DEFS, () => obnRepaint()) : { cols: DEFS };
@@ -5050,7 +5052,23 @@ function obnReadyOf(c, held, rv){
   rv = rv || obReviewOf(c);
   return (held || []).filter(o => !obReviewDecision(c, o, rv) && obnWhoseNow(c, o) !== 'unsure').length;
 }
+/* AS DRAWN (P-13): the name with its number under it; the other side; a thin violet bar and "0 of 4"; a soft badge
+   (To decide · Ready · Skipped); the duties' count and when Jambo found them, right-aligned */
+function obnProjRowStripe(x){
+  const c = x.c, E = _obEsc, sel = _obnPick === c.id, st = obnStatus(x);
+  const tone = st.tone === 'gray' && x.addable ? 'violet' : st.tone, word = st.tone === 'gray' && x.addable ? i18t('obn_st_decide') : st.word;
+  const f = x.tally.total ? Math.round(100 * x.decided / x.tally.total) : 0;
+  const found = x.days == null ? '\u2014' : x.days === 0 ? i18t('home_today') : i18tn('obn_found_ago', x.days, { n: x.days });
+  return `<tr class="obn-pr is-stripe${sel ? ' is-sel' : ''}" data-obn-ag="${E(c.id)}" data-obn-pick="${E(c.id)}"${sel ? ' aria-current="true"' : ''}>
+    <td class="obn-c1"><div class="obn-what">${E(c.name || c.id)}</div><div class="obn-sub">${window.refHtml ? refHtml(c) : E(c.id)}</div></td>
+    <td class="obn-pt">${E(c.counterparty || '\u2014')}</td>
+    <td class="obn-pg2"><span class="obn-pgs"><span class="obn-pbar"><i style="width:${f}%"></i></span><small>${E(i18t('obn_x_of_y', { n: x.decided, m: x.tally.total }))}</small></span></td>
+    <td class="obn-stt"><span class="obs-b is-st-${tone === 'violet' ? 'decide' : tone === 'green' ? 'ontime' : 'sched'}">${E(word)}</span></td>
+    <td class="obn-dn">${x.tally.total}</td>
+    <td class="obn-fd">${E(found)}</td></tr>`;
+}
 function obnProjRowHtml(x){
+  if(typeof window.newLookOn === 'function' && newLookOn()) return obnProjRowStripe(x);
   const c = x.c, st = obnStatus(x), tone = obnStreamTone(c);
   const may = (typeof canEdit !== 'function') || canEdit();
   const ref = window.refHtml ? refHtml(c) : _obEsc(c.id);
@@ -5105,7 +5123,35 @@ function obnQuoteHtml(q){
   if(!m) return _obEsc(t);
   return _obEsc(t.slice(0, m.index)) + '<mark>' + _obEsc(m[0]) + '</mark>' + _obEsc(t.slice(m.index + m[0].length));
 }
+/* PROPOSALS' PANEL, AS DRAWN (P-13, the Stripe way): a ring of how many are decided beside the agreement and where Jambo
+   found it; then every duty its own section — its words, its kind or day as a soft badge, the quote, Undecided · Us ·
+   Theirs · Both and Skip (the same presses as before: data-obn-whose · data-obn-skip · data-obn-unskip); at the foot
+   "N of M decided" and Add all decided (the list's own data-obn-addall; grey with its reason while nothing is ready) */
+function obnLgStripe(x){
+  const c = x.c, may = (typeof canEdit !== 'function') || canEdit(), E = _obEsc, rv = obReviewOf(c);
+  const all = x.found.map((o, i) => ({ o, i, d: obReviewDecision(c, o, rv) }));
+  const C = 2 * Math.PI * 15, f = x.tally.total ? x.decided / x.tally.total : 0;
+  const ref = window.contractRef ? contractRef(c) : c.id;
+  const item = y => {
+    const o = y.o, i = y.i, w = obnWhoseNow(c, o), when = obWhenChip(o);
+    const whose = k => `<button type="button" class="obn-lg-w${w === k ? ' is-on' : ''}" data-obn-whose="${k}" data-cid="${E(c.id)}" data-i="${i}" aria-pressed="${w === k}">${E(obWhoseBtn(k))}</button>`;
+    const said = y.d === 'added' ? `<span class="obn-lg-said is-ok">${E(i18t('obd_added'))}</span>`
+      : y.d === 'skipped' ? `<span class="obn-lg-said">${E(i18t('obd_skipped'))}</span><button type="button" class="obn-lg-link" data-obn-unskip data-cid="${E(c.id)}" data-i="${i}">${E(i18t('obd_undo'))}</button>`
+      : y.d === 'already' ? `<span class="obn-lg-said">${E(i18t('ob_already_on'))}</span>` : '';
+    const line = said || (may ? `${whose('unsure')}${whose('us')}${whose('them')}${whose('both')}<button type="button" class="obn-lg-link is-skip" data-obn-skip data-cid="${E(c.id)}" data-i="${i}">${E(i18t('obd_skip'))}</button>` : '');
+    return `<div class="obn-lg-it"><div class="obn-lg-l"><b>${E(o.desc || '')}</b>${when ? `<span class="obs-b">${E(when)}</span>` : ''}</div>`
+      + `${o.quote ? `<p class="obn-lg-q">\u201c${obnQuoteHtml(o.quote)}\u201d</p>` : ''}${line ? `<div class="obn-lg-ans">${line}</div>` : ''}</div>`;
+  };
+  const add = may ? (x.ready ? `<button type="button" class="obn-lg-addall" data-obn-addall="${E(c.id)}">${E(i18t('obn_add_decided'))}</button>`
+    : `<button type="button" class="obn-lg-addall" disabled title="${E(i18t('obn_add_none_why'))}">${E(i18t('obn_add_decided'))}</button>`) : '';
+  return `<div class="obn-lg jl-words is-stripe" data-obn-lg="${E(c.id)}">
+    <div class="obn-lg-top is-ring"><span class="obs-rring" aria-hidden="true"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15"/><circle cx="18" cy="18" r="15" class="is-f is-violet" style="stroke-dasharray:${C.toFixed(1)};stroke-dashoffset:${(C * (1 - f)).toFixed(1)}"/></svg><b>${x.decided}/${x.tally.total}</b></span>
+      <span class="obn-lg-tw"><b>${E(c.name || c.id)}</b><span>${E([c.counterparty || '', ref, x.days == null ? '' : i18t('obn5_found', { when: obnAgeWord(x) })].filter(Boolean).join(' \u00b7 '))}</span></span></div>
+    ${all.map(item).join('') || `<p class="obn-lg-none">${E(i18t('obn_lg_none'))}</p>`}
+    <div class="obn-lg-foot"><span>${E(i18t('obn_decided_of', { n: x.decided, m: x.tally.total }))}</span>${add}</div></div>`;
+}
 function obnLgHtml(x, rows){
+  if(typeof window.newLookOn === 'function' && newLookOn()) return obnLgStripe(x);
   const c = x.c, may = (typeof canEdit !== 'function') || canEdit(), E = _obEsc;
   const rv = obReviewOf(c);
   const all = x.found.map((o, i) => ({ o, i, d: obReviewDecision(c, o, rv) }));
@@ -5296,6 +5342,7 @@ function obnTimelineFive(book){
 function obnOnePanel(r){
   const c = r._c || (window.getContract ? getContract(r.cid) : null), E = _obEsc;
   if(r._dec) return null;
+  if(r.st === 'done') return obnDonePanel(r, c);
   const theirs = obligationIsTheirs(r), w = obnWhenWord(r);
   const ref = c && window.contractRef ? contractRef(c) : r.cid;
   const may = (typeof canEdit !== 'function') || canEdit();
@@ -5324,8 +5371,11 @@ function obnOnePanel(r){
      their §, then a timeline of what happened (only what the record holds: chased, done, the next one) */
   const st = obnStatusOf(r), due = String(obligationDue(r) || '').slice(0, 10), dd = obnDue(r);
   const big = due ? `<div class="obs-big"><span>${E(i18t(r.st === 'done' ? 'obs_was_due' : dd != null && dd < 0 ? 'obs_was_due' : 'obs_due'))}</span><b class="${st === 'late' ? 'is-late' : ''}">${E(obDay(due))}</b>${r.st === 'done' ? '' : `<em class="is-${w.tone}">${E(w.t)}</em>`}</div>`
-    + (r.st !== 'done' && dd != null ? (() => { const span = 30, x = Math.max(0, Math.min(100, 50 + (dd / span) * 50));
-      return `<div class="obs-30" aria-hidden="true"><i class="obs-30-today"></i><i class="obs-30-due is-${st}" style="left:${x.toFixed(1)}%"></i><small class="l">${E(i18t('obs_today'))}</small></div>`; })() : '') : '';
+    /* AS DRAWN (P-13): a line from ten days ago to thirty ahead, its two ends dated, Today marked over it, the due day a dot */
+    + (r.st !== 'done' && dd != null ? (() => { const x = Math.max(0, Math.min(100, (dd + 10) / 40 * 100));
+      const t0 = typeof todayISO === 'function' ? todayISO() : new Date().toISOString().slice(0, 10);
+      const at = n => { const d = new Date(t0 + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+      return `<div class="obs-30" aria-hidden="true"><i class="obs-30-today"></i><i class="obs-30-due is-${st}" style="left:${x.toFixed(1)}%"></i><i class="obs-30-end"></i><small class="l">${E(i18t('obs_today'))}</small><small class="a">${E(obDay(at(-10)))}</small><small class="b">${E(obDay(at(30)))}</small></div>`; })() : '') : '';
   const tl = [];
   if(r.chasedAt) tl.push({ t: i18t('obs_tl_chased', { d: obDay(r.chasedAt) }), k: 'sent' });
   if(r.st === 'done' && r.completedAt) tl.push({ t: r.completedBy ? i18t('obs_tl_done_by', { d: obDay(r.completedAt), who: r.completedBy }) : i18t('obs_tl_done', { d: obDay(r.completedAt) }), k: 'done' });
@@ -5338,7 +5388,7 @@ function obnOnePanel(r){
     <div class="obn-lg-top"><span class="obs-badges"><span class="obs-b is-${theirs ? 'theirs' : 'ours'}">${E(i18t(theirs ? 'obt_they_owe' : 'obt_we_owe'))}</span><span class="obs-b is-st-${st}"><i aria-hidden="true"></i>${E(i18t('obs_st_' + st))}</span></span><b>${E(r.desc || '')}</b>
       <span>${E([(c && c.counterparty) || '', ref].filter(Boolean).join(' · '))}</span></div>
     <div class="obn-lg-it">${big}<div class="obn-lg-ans">${acts}${paper}</div></div>
-    ${quote ? `<div class="obn-lg-it"><div class="obn-lg-l"><b>${E(i18t('obs_from_paper', { s: r.clause ? '§ ' + r.clause : '' }))}</b></div>${quote}${obRepeatsWord(r) ? `<p class="obn-lg-src">${E(obRepeatsWord(r))}</p>` : ''}</div>` : (meta ? `<div class="obn-lg-it"><p class="obn-lg-src">${E(meta)}</p></div>` : '')}
+    ${quote ? `<div class="obn-lg-it"><div class="obn-lg-l"><b>${E(i18t('obs_from_paper', { s: r.clause ? '\u00b7 § ' + r.clause : '' }))}</b></div>${quote}${obRepeatsWord(r) ? `<p class="obn-lg-src">${E(obRepeatsWord(r))}</p>` : ''}</div>` : (meta ? `<div class="obn-lg-it"><p class="obn-lg-src">${E(meta)}</p></div>` : '')}
     ${tlHtml}
     <div class="obn-lg-it"><div class="obn-lg-l"><b>${E(i18t('obt_who_rem'))}</b></div>${rem}</div></div>`;
 }
@@ -5348,13 +5398,54 @@ function obnOnePanel(r){
    chips narrow ONE calm table (soft badges for whose and status, the due day right-aligned, the row's own act); the head's
    late words go (the tiles say it). Nothing new is counted: obnTwoTabOf, obnIsLate, obnDue, obnRemWord, obnProjects. */
 let _obnF = { who: 'all', cid: 'all', st: 'all', rem: 'all' };
+/* DONE'S PANEL READS LIKE A RECEIPT (P-13, as drawn): a green tick, the duty, Done on beside Was due, the result, the
+   timeline of how it got done (only what the record holds), the ring of on time across every done duty, the paper */
+function obnDonePanel(r, c){
+  const E = _obEsc, ref = c && window.contractRef ? contractRef(c) : r.cid;
+  const due = String(obligationDue(r) || '').slice(0, 10), on = String(r.completedAt || '').slice(0, 10), st = obnStatusOf(r);
+  const tl = [];
+  if(r.chasedAt) tl.push({ t: i18t('obs_tl_chased', { d: obDay(r.chasedAt) }), k: 'sent' });
+  if(on) tl.push({ t: r.completedBy ? i18t('obs_tl_done_by', { d: obDay(on), who: r.completedBy }) : i18t('obs_tl_done', { d: obDay(on) }), k: 'done' });
+  let all = []; try { all = (Array.isArray(_obnBookLast) ? _obnBookLast : []).filter(x => x.st === 'done'); } catch(_){ all = []; }
+  const ok = all.filter(x => obnStatusOf(x) === 'ontime').length, th = all.filter(x => obligationIsTheirs(x)), thOk = th.filter(x => obnStatusOf(x) === 'ontime').length;
+  const C = 2 * Math.PI * 15, f = all.length ? ok / all.length : 0;
+  const ring = all.length ? `<div class="obn-lg-it obs-rec-ring"><span class="obs-rring" aria-hidden="true"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15"/><circle cx="18" cy="18" r="15" class="is-f" style="stroke-dasharray:${C.toFixed(1)};stroke-dashoffset:${(C * (1 - f)).toFixed(1)}"/></svg><b>${ok}/${all.length}</b></span><p>${E(i18t('obs_rec_ring', { a: thOk, b: th.length }))}</p></div>` : '';
+  const ew = obnEarlyWord(due, on);
+  return `<div class="obn-lg jl-words obt-one obs-one obs-receipt" data-obt-one="${E(r._key)}">
+    <div class="obn-lg-top"><span class="obs-tick" aria-hidden="true">✓</span><b>${E(r.desc || '')}</b><span>${E([(c && c.counterparty) || '', ref].filter(Boolean).join(' · '))}</span></div>
+    <div class="obn-lg-it"><div class="obs-rec-days"><span><small>${E(i18t('obs_col_done'))}</small><b>${E(on ? obDay(on) : '\u2014')}</b></span><span class="is-was"><small>${E(i18t('obs_was_due'))}</small><b>${E(due ? obDay(due) : '\u2014')}</b></span></div>
+      <span class="obs-b is-st-${st}">${E([i18t(st === 'ontime' ? 'obs_st_ontime' : 'obs_res_late'), ew].filter(Boolean).join(' · '))}</span></div>
+    ${tl.length ? `<div class="obn-lg-it"><div class="obn-lg-l"><b>${E(i18t('obs_timeline'))}</b></div><ol class="obs-tl-list">${tl.map(x => `<li class="is-${x.k}"><i></i>${E(x.t)}</li>`).join('')}</ol></div>` : ''}
+    ${ring}
+    <div class="obn-lg-it"><button type="button" class="obn-lg-link" data-obt-paper="${E(r.cid)}" data-key="${E(r._key)}">${E(i18t('obt_open_paper'))}</button></div></div>`;
+}
+/* PROPOSALS' CHIPS, AS DRAWN (P-13): + Agreement · + Other side · + Found; a press steps to the next choice, past the
+   last back to all (a choice with no agreement is not offered) */
+let _obnPF = { cid: 'all', cp: 'all', fd: 'all' };
+function obnFoundKey(x){ return x.days == null ? 'older' : x.days <= 7 ? 'week' : x.days <= 30 ? 'month' : 'older'; }
+function obnPropPass(x){ return (_obnPF.cid === 'all' || x.c.id === _obnPF.cid) && (_obnPF.cp === 'all' || String(x.c.counterparty || '') === _obnPF.cp) && (_obnPF.fd === 'all' || obnFoundKey(x) === _obnPF.fd); }
+function obnPropChoices(k, all){
+  if(k === 'cid') return ['all'].concat(all.map(x => x.c.id));
+  if(k === 'cp') return ['all'].concat([...new Set(all.map(x => String(x.c.counterparty || '')).filter(Boolean))]);
+  return ['all'].concat(['week', 'month', 'older'].filter(v => all.some(x => obnFoundKey(x) === v)));
+}
+function obnPropChipsHtml(all){
+  const word = (k, v) => v === 'all' ? '+ ' + i18t('obn_pchip_' + k) : k === 'cid' ? ((all.find(x => x.c.id === v) || {}).c || {}).name || v : k === 'cp' ? v : i18t('obn_found_' + v);
+  return `<div class="obs-chips" role="group">${['cid', 'cp', 'fd'].map(k => { const on = _obnPF[k] !== 'all';
+    return `<button type="button" class="obs-chip${on ? ' is-on' : ''}" data-obs-pchip="${k}" aria-pressed="${on}">${_obEsc(word(k, _obnPF[k]))}${on ? ' <span aria-hidden="true">×</span>' : ''}</button>`; }).join('')}</div>`;
+}
+if(typeof document !== 'undefined') document.addEventListener('click', e => { const b = e.target && e.target.closest && e.target.closest('[data-obs-pchip]'); if(!b) return;
+  const k = b.getAttribute('data-obs-pchip'), ch = obnPropChoices(k, obnProjects()); _obnPF[k] = ch[(ch.indexOf(_obnPF[k]) + 1) % ch.length] || 'all';
+  const h = document.getElementById('content'); if(h) obnRender(h); });
 function obnStatusOf(r){
   if(r.st === 'done'){ const due = String(obligationDue(r) || '').slice(0, 10), on = String(r.completedAt || '').slice(0, 10); return due && on && on > due ? 'donelate' : 'ontime'; }
   if(r._dec) return 'decide';
   if(obnIsLate(r)) return 'late';
   const d = obnDue(r); return d != null && d <= 14 ? 'soon' : 'sched';
 }
-function obnRemKey(r){ const c = r._c || (window.getContract ? getContract(r.cid) : null); return obnNobody(r, c) ? 'none' : 'some'; }
+/* DONE, AS DRAWN (P-13): the fourth chip is "Done on", by the month it was done */
+function obnDoneMonth(r){ return String(r.completedAt || '').slice(0, 7); }
+function obnRemKey(r){ if(r.st === 'done') return obnDoneMonth(r) || 'none'; const c = r._c || (window.getContract ? getContract(r.cid) : null); return obnNobody(r, c) ? 'none' : 'some'; }
 function obnPassF(r){
   const theirs = !r._dec && obligationIsTheirs(r);
   if(_obnF.who !== 'all' && (_obnF.who === 'theirs') !== theirs) return false;
@@ -5368,10 +5459,13 @@ function obnChipChoices(k, rows){
   if(k === 'who') return ['all', 'ours', 'theirs'].filter(v => v === 'all' || rows.some(r => (v === 'theirs') === (!r._dec && obligationIsTheirs(r))));
   if(k === 'cid') return ['all'].concat([...new Set(rows.map(r => r.cid))]);
   if(k === 'st') return ['all'].concat(['late', 'soon', 'sched', 'decide', 'ontime', 'donelate'].filter(v => rows.some(r => obnStatusOf(r) === v)));
+  if(_obnTab === 'done') return ['all'].concat([...new Set(rows.map(obnRemKey))].filter(v => v && v !== 'none').sort().reverse());
   return ['all'].concat(['none', 'some'].filter(v => rows.some(r => obnRemKey(r) === v)));
 }
 function obnChipWord(k, v){
-  if(v === 'all') return '+ ' + i18t('obs_chip_' + k);
+  /* on Done the chips read Result and Done on (as drawn) */
+  if(v === 'all') return '+ ' + i18t(_obnTab === 'done' && k === 'st' ? 'obs_chip_result' : _obnTab === 'done' && k === 'rem' ? 'obs_chip_doneon' : 'obs_chip_' + k);
+  if(k === 'rem' && _obnTab === 'done'){ try { return new Date(v + '-01T12:00:00').toLocaleDateString(langLocale(), { month: 'long', year: 'numeric' }); } catch(_){ return v; } }
   if(k === 'who') return i18t(v === 'theirs' ? 'obt_they_owe' : 'obt_we_owe');
   if(k === 'cid'){ const c = window.getContract ? getContract(v) : null; return (c && (window.contractRef ? contractRef(c) : c.id)) || v; }
   if(k === 'st') return i18t('obs_st_' + v);
@@ -5401,6 +5495,12 @@ function obnTilesHtml(book, projects, proposedN){
     + (projects.length ? tile('prop', proposedN, i18tn('obs_on_agreements', projects.length, { n: projects.length }), ring(allP - leftP, allP), 'is-violet') : '')
     + `</div>`;
 }
+/* how early or late it was done, in days ("1 day early", "2 days late", "on the day"); nothing known, nothing said */
+function obnEarlyWord(due, on){
+  if(!due || !on) return '';
+  const d = Math.round((new Date(on + 'T12:00:00') - new Date(due + 'T12:00:00')) / 864e5);
+  return d === 0 ? i18t('obs_on_the_day') : d < 0 ? i18tn('obs_days_early', -d, { n: -d }) : i18tn('obs_days_late', d, { n: d });
+}
 function obnTableRowHtml(r){
   const c = r._c || (window.getContract ? getContract(r.cid) : null), E = _obEsc;
   const theirs = !r._dec && obligationIsTheirs(r), w = obnWhenWord(r), st = obnStatusOf(r);
@@ -5418,6 +5518,15 @@ function obnTableRowHtml(r){
     : nobody ? `<span class="obs-rem obt-rem is-none">${E(i18t('obs_no_contact'))}</span>`
     : m ? `<span class="obs-rem obt-rem"><i class="obs-av">${E(ini)}</i>${E(String(m.name || '').split(/\s+/)[0])}</span>` : `<span class="obs-rem obt-rem">${E(obnRemWord(r, c))}</span>`;
   const due = String(obligationDue(r) || '').slice(0, 10);
+  /* DONE, AS DRAWN (P-13): Result (the badge and how early or late) · Done by · Was due · Done on */
+  if(r.st === 'done'){ const on = String(r.completedAt || '').slice(0, 10);
+    return `<div class="obs-r obt-li is-done" data-ins-row data-ob-key="${E(r._key)}" tabindex="-1">
+    <span class="obs-c obs-duty"><b>${E(r.desc || '')}</b><span>${E(sub)}</span></span>
+    <span class="obs-c"><span class="obs-b is-${theirs ? 'theirs' : 'ours'}">${E(i18t(theirs ? 'obt_they_owe' : 'obt_we_owe'))}</span></span>
+    <span class="obs-c obs-res"><span class="obs-b is-st-${st}">${st === 'ontime' ? '✓ ' : ''}${E(i18t(st === 'ontime' ? 'obs_st_ontime' : 'obs_res_late'))}</span>${obnEarlyWord(due, on) ? `<span class="obs-res-w">${E(obnEarlyWord(due, on))}</span>` : ''}</span>
+    <span class="obs-c"><span class="obs-rem obt-rem">${E(r.completedBy || '\u2014')}</span></span>
+    <span class="obs-c obs-due is-was"><b>${E(due ? obDay(due) : '\u2014')}</b></span>
+    <span class="obs-c obs-due"><b>${E(on ? obDay(on) : '\u2014')}</b></span></div>`; }
   return `<div class="obs-r obt-li" data-ins-row data-ob-key="${E(r._key)}" tabindex="-1">
     <span class="obs-c obs-duty"><b>${E(r.desc || '')}</b><span>${E(sub)}</span></span>
     <span class="obs-c"><span class="obs-b is-${theirs ? 'theirs' : 'ours'}">${E(i18t(theirs ? 'obt_they_owe' : 'obt_we_owe'))}</span></span>
@@ -5426,7 +5535,10 @@ function obnTableRowHtml(r){
     <span class="obs-c obs-due"><b>${E(due ? obDay(due) : i18t('ob_no_date'))}</b><span class="obt-w is-${w.tone}">${r.st === 'done' ? '' : E(w.t)}</span></span>
     <span class="obs-c obs-act">${act}</span></div>`;
 }
+/* the book the page last drew (Done's receipt counts its on-time ring over it) */
+let _obnBookLast = [];
 function obnTwoRender(host, book, projects, proposedN){
+  _obnBookLast = book;
   const q = _obnQ.trim().toLowerCase();
   const hit = r => !q || [r.desc, r.cname, r.counterparty, r.cid, r.quote, r.clause].some(v => String(v || '').toLowerCase().includes(q));
   if(!['open', 'later', 'done', 'prop'].includes(_obnTab)) _obnTab = 'open';
@@ -5452,7 +5564,8 @@ function obnTwoRender(host, book, projects, proposedN){
   /* ONE CALM TABLE (P-13): no sentence over it, no two columns */
   const say = `<p class="obt-say" hidden></p>`;
   void ours; void theirs;
-  const cols = `<div class="obs-th" aria-hidden="true"><span>${_obEsc(i18t('obs_col_duty'))}</span><span>${_obEsc(i18t('obs_col_whose'))}</span><span>${_obEsc(i18t('obs_col_status'))}</span><span>${_obEsc(i18t('obs_col_rem'))}</span><span>${_obEsc(i18t(_obnTab === 'done' ? 'obs_col_done' : 'obs_col_due'))}</span><span></span></div>`
+  const cols = (_obnTab === 'done' ? `<div class="obs-th is-done" aria-hidden="true"><span>${_obEsc(i18t('obs_col_duty'))}</span><span>${_obEsc(i18t('obs_col_whose'))}</span><span>${_obEsc(i18t('obs_col_result'))}</span><span>${_obEsc(i18t('obs_col_doneby'))}</span><span>${_obEsc(i18t('obs_col_wasdue'))}</span><span>${_obEsc(i18t('obs_col_done'))}</span></div>`
+    : `<div class="obs-th" aria-hidden="true"><span>${_obEsc(i18t('obs_col_duty'))}</span><span>${_obEsc(i18t('obs_col_whose'))}</span><span>${_obEsc(i18t('obs_col_status'))}</span><span>${_obEsc(i18t('obs_col_rem'))}</span><span>${_obEsc(i18t('obs_col_due'))}</span><span></span></div>`)
     + (rows.map(obnTableRowHtml).join('') || `<p class="obt-none">${_obEsc(i18t(q ? 'ob_none_match_short' : 'ob_none_here'))}</p>`);
   /* A PRESS THAT ONLY CHANGES WHICH LINES SHOW REDRAWS ONLY THE LINES: the frame, the box and the panel stand; the tabs'
      words and which is lit, the sentence and the columns are written in place. A tab that comes or goes draws whole. */
@@ -5526,6 +5639,7 @@ function obnRender(host, o){
   const pages = obnPageCount(rows.length, _obnPer);
   if(_obnPage > pages) _obnPage = pages;
   const shown = rows.slice((_obnPage - 1) * _obnPer, _obnPage * _obnPer);
+  if(typeof window.newLookOn === 'function' && newLookOn()){ const keep = projects.filter(obnPropPass); projects.length = 0; keep.forEach(x => projects.push(x)); }
   const projPages = obnPageCount(projects.length, _obnPer);
   if(_obnPropPage > projPages) _obnPropPage = projPages;
   const projShown = projects.slice((_obnPropPage - 1) * _obnPer, _obnPropPage * _obnPer);
@@ -5538,8 +5652,9 @@ function obnRender(host, o){
     <label class="apn-box"${_obnTab === 'prop' ? ' hidden' : ''}>${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="obn-q" type="search" autocomplete="off" placeholder="${_obEsc(i18t('lh_filter_ph'))}" value="${_obEsc(_obnQ)}"></label>
     ${_obnTab === 'prop' ? '' : `<select id="obn-who" class="obn-sel" aria-label="${_obEsc(i18t('obn_who_label'))}">${[['all', 'obn_who_all'], ['ours', 'obn_tab_ours'], ['theirs', 'obn_tab_theirs']].map(([k, w]) => `<option value="${k}"${_obnWho === k ? ' selected' : ''}>${_obEsc(i18t(w))}</option>`).join('')}</select>
     <select id="obn-state" class="obn-sel" aria-label="${_obEsc(i18t('obn_state_label'))}">${[['open', 'obn_s_due'], ['done', 'obn_tab_done']].map(([k, w]) => `<option value="${k}"${_obnState === k ? ' selected' : ''}>${_obEsc(i18t(w))}</option>`).join('')}</select>`}
+    ${_obnTab === 'prop' && typeof window.newLookOn === 'function' && newLookOn() ? obnPropChipsHtml(obnProjects()) : ''}
     <span class="apn-sp"></span>
-    <span class="obn-said">${_obEsc(_obnTab === 'prop' ? i18t('obn_said_prop', { n: proposedN, m: projects.length }) : i18t('obn_said_track', { n: open, l: lateN }))}</span></div>`;
+    <span class="obn-said">${_obEsc(_obnTab === 'prop' ? (typeof window.newLookOn === 'function' && newLookOn() ? i18t('obn_said_oldest') : i18t('obn_said_prop', { n: proposedN, m: projects.length })) : i18t('obn_said_track', { n: open, l: lateN }))}</span></div>`;
   const C = obnCols(_obnTab === 'prop');
   const body = _obnTab === 'prop'
     ? (projShown.map(obnProjRowHtml).join('') || `<tr><td colspan="${C.n}" class="obn-none">${_obEsc(i18t('obd_none_here'))}</td></tr>`)
@@ -5552,6 +5667,8 @@ function obnRender(host, o){
   /* ONE COUNT (the harmony review, owner's yes 9 Nov 2026): the title's facts lead with what is late */
   const late = lateN;
   _obwHeadFacts = `<span class="obw-hf">${late ? `<span class="obw-hf-late">${_obEsc(i18t('obn_head_late_lead', { n: late }))}</span> ` : ''}${_obEsc(i18t('obn_head_open', { n: open }))}${proposedN ? ` · ${_obEsc(i18t('obn_head_prop', { n: proposedN }))}` : ''}</span>`;
+  /* the head's words go on Proposals too (P-13 as drawn: the tiles say it) */
+  if(typeof window.newLookOn === 'function' && newLookOn()) _obwHeadFacts = '';
   _obwHeadActs = ((typeof canEdit !== 'function') || canEdit()) ? `<button type="button" class="ui-btn obw-add-btn" data-obw-add>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${_obEsc(i18t('ob_add_btn'))}</button>` : '';
   const title = `<div class="cun-head"><h2 class="ctf-h">${_obEsc(i18t('nav_obligations'))}</h2><span class="ctf-hf" id="page-head-facts"></span><span class="ctf-sp"></span><span id="page-head-acts" class="apn-acts"></span></div>`;
   const pager = _obnTab === 'prop'
