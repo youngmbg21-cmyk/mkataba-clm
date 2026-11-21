@@ -19913,12 +19913,12 @@
   html.lg-new .apn-tab.is-prop{color:var(--st-amber-fg)}
   /* APPROVALS, THE LEGORA + STRIPE WAY (P-30): the ask box under the title, chips with a dot and their counts, + Rule; one
      calm table — soft status badges, the approver's initials, a strip of three steps, the paper's words on one line */
-  html.lg-new :is(.apn-page,.ctf-page,.tpln6,.mign-start) .apn-ask{display:flex;align-items:center;gap:8px;margin:10px 0 12px;padding:0 0 8px;border-bottom:1px solid var(--color-divider);color:var(--color-quiet)}
-  html.lg-new :is(.apn-page,.ctf-page,.tpln6,.mign-start) .apn-ask input{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:var(--t-body);color:var(--color-text);outline:none}
+  html.lg-new :is(.apn-page,.ctf-page,.tpln6,.ld6-page,.mign-start) .apn-ask{display:flex;align-items:center;gap:8px;margin:10px 0 12px;padding:0 0 8px;border-bottom:1px solid var(--color-divider);color:var(--color-quiet)}
+  html.lg-new :is(.apn-page,.ctf-page,.tpln6,.ld6-page,.mign-start) .apn-ask input{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:var(--t-body);color:var(--color-text);outline:none}
   html.lg-new .apn-page .apn-bar{gap:6px;border-bottom:0;margin:0 0 10px;flex-wrap:wrap}
-  html.lg-new :is(.apn-page,.ctf-page,.tpln6) .apn-tab.is-chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border:1px solid var(--color-neutral-300);border-radius:999px;margin:0;font-size:var(--t-label)}
-  html.lg-new :is(.apn-page,.ctf-page,.tpln6) .apn-tab.is-chip.is-on{background:var(--surface-2);border-color:var(--color-neutral-400)}
-  html.lg-new :is(.apn-page,.ctf-page,.tpln6) .apn-tab.is-chip span{color:var(--color-quiet)}
+  html.lg-new :is(.apn-page,.ctf-page,.tpln6,.ld6-page) .apn-tab.is-chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border:1px solid var(--color-neutral-300);border-radius:999px;margin:0;font-size:var(--t-label)}
+  html.lg-new :is(.apn-page,.ctf-page,.tpln6,.ld6-page) .apn-tab.is-chip.is-on{background:var(--surface-2);border-color:var(--color-neutral-400)}
+  html.lg-new :is(.apn-page,.ctf-page,.tpln6,.ld6-page) .apn-tab.is-chip span{color:var(--color-quiet)}
   html.lg-new .apn-cd{width:7px;height:7px;border-radius:50%;background:var(--st-amber-dot)}
   html.lg-new .apn-cd.is-steel{background:var(--st-steel-dot)}
   html.lg-new .apn-cd.is-green{background:var(--st-green-dot)}
@@ -20239,6 +20239,67 @@
   html.lg-new .tpln6-bar span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .tpln6-bar b{font-weight:400;text-align:right;font-variant-numeric:tabular-nums}
   html.lg-new .tpln6-p .jov5-group.is-form{background:none;box-shadow:none;border-radius:0;overflow:visible}
+  /* THE PLAYBOOK, THE LEGORA + STRIPE WAY (P-35): the ask box and the tabs as chips over the sheet; a position's ladder as a
+     timeline of marked rungs with where it is held; Departures and History as calm tables; editing in open fields */
+  html.lg-new .ld6-col{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;min-height:0}
+  html.lg-new .ld6-col>.ld-sheet{flex:1 1 auto;min-height:0}
+  html.lg-new .ld6-top{flex:none;padding:6px 40px 0;background:var(--color-surface)}
+  html.lg-new .ld6-page .ld6-top .apn-ask{margin:4px 0 10px}
+  html.lg-new .ld6-page .ld6-bar{gap:6px;border-bottom:0;margin:0 0 12px;flex-wrap:wrap}
+  html.lg-new .ld6-cnt{flex:none;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:var(--t-micro);font-weight:var(--w-label);display:inline-flex;align-items:center;justify-content:center}
+  html.lg-new .ld6-eb{display:flex;align-items:center;gap:10px;min-width:0;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .ld6-eb .ld-top-a .ctf-pill{display:inline-flex;align-items:center;gap:6px}
+  html.lg-new .ld6-main .ld-title{margin:2px 0 0}
+  html.lg-new .ld6-cols{display:grid;grid-template-columns:minmax(0,1fr) 180px;gap:16px;padding-left:34px;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .ld6-rungs{position:relative}
+  html.lg-new .ld6-rungs::before{content:"";position:absolute;left:10px;top:20px;bottom:20px;width:2px;background:var(--color-divider)}
+  html.lg-new .ld6-rung{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 180px;gap:16px;padding:12px 0 12px 34px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .ld6-mk{position:absolute;left:0;top:12px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:var(--w-strong);color:var(--color-surface);background:var(--st-gray-dot);box-shadow:0 0 0 3px var(--color-surface)}
+  html.lg-new .ld6-mk.is-green{background:var(--st-green-dot)}
+  html.lg-new .ld6-mk.is-amber{background:var(--st-amber-dot)}
+  html.lg-new .ld6-mk.is-dark{background:var(--color-text)}
+  html.lg-new .ld6-held{margin:6px 0 0;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .ld6-held q{font-family:var(--font-doc);color:var(--color-text);quotes:'\201C' '\201D'}
+  html.lg-new .ld6-held.is-none{font-style:italic}
+  html.lg-new .ld6-gov b.is-amber{color:var(--st-amber-fg)}
+  html.lg-new .ld6-wide{padding:8px 40px}
+  html.lg-new .ld6-table th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet);padding:10px 12px 8px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .ld6-table td{padding:12px 12px 12px 0;border-bottom:1px solid var(--color-divider);vertical-align:middle;font-size:var(--t-body)}
+  html.lg-new .ld6-table tbody tr[tabindex]{cursor:pointer}
+  html.lg-new .ld6-table tbody tr[tabindex]:hover td,html.lg-new .ld6-table tbody tr.is-sel td{background:var(--surface-2)}
+  html.lg-new .ld6-table td:first-child,html.lg-new .ld6-table th:first-child{padding-left:8px}
+  html.lg-new .ld6-table :is(.cun-name,.cun-sub,.ld6-chg>span){display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .ld6-ql{display:flex;gap:4px;min-width:0;margin-top:3px;font-family:var(--font-doc);font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;overflow:hidden}
+  html.lg-new .ld6-ql i{font-style:normal;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .ld6-ql span{flex:none}
+  html.lg-new .ld6-ql.is-miss{font-family:var(--font-sans);color:var(--st-amber-fg)}
+  html.lg-new .ld6-table :is(td,th).ld6-when{white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
+  html.lg-new .ld6-table td.ld6-pos{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .ld6-pb{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+  html.lg-new .ld6-pbar{margin:2px 0 4px}
+  html.lg-new .ld6-p .jov5-tag{display:none}
+  html.lg-new .ld6-edit .ld-title{margin:2px 0 6px}
+  html.lg-new .ld6-edit{--fld-under:var(--fld-under-none)}
+  html.lg-new .ld6-fs{display:flex;flex-direction:column}
+  html.lg-new .ld6-f{position:relative;display:grid;grid-template-columns:150px minmax(0,1fr);gap:16px;align-items:start;padding:10px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .ld6-f.is-rung{padding-left:34px;grid-template-columns:116px minmax(0,1fr)}
+  html.lg-new .ld6-fwho .ctf-pill{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  html.lg-new .ld6-f.is-rung .ld6-mk{top:10px}
+  html.lg-new .ld6-fl{padding-top:5px;font-size:13px;color:var(--color-quiet)}
+  html.lg-new .ld6-f.is-need .ld6-fl{color:var(--st-amber-fg)}
+  html.lg-new .ld6-fc{display:flex;flex-direction:column;gap:6px;min-width:0}
+  html.lg-new .ld6-f.is-pop .ld6-fc{position:relative}
+  html.lg-new .ld6-edit .ld6-in{width:100%;height:30px;border:0;border-radius:0;padding:0;background:none;font:inherit;font-size:var(--t-body);color:var(--color-text);box-shadow:none}
+  html.lg-new .ld6-edit .ld6-in.need-empty{background:var(--st-amber-bg)}
+  html.lg-new .ld6-edit .ld6-ta{border:0;border-radius:0;padding:4px 0;min-height:40px;background:none;font-family:var(--font-doc)}
+  html.lg-new .ld6-edit .ld6-pills .ld-seg{height:28px;border-radius:999px;border:0;background:var(--color-neutral-100);font-size:var(--t-label)}
+  html.lg-new .ld6-edit .ld6-pills .ld-seg.is-on{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new .ld6-edit .ld6-pills .ld-seg.is-on .ld-dot{box-shadow:0 0 0 2px var(--color-surface)}
+  html.lg-new .ld6-edit .ld-firm-says{margin:0}
+  html.lg-new .ld6-fwho{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  html.lg-new .ld6-fwho .ld-who-fix{width:auto;padding:0;font-size:var(--t-label)}
+  html.lg-new .ld6-fwho .ld-who-sel{width:auto;height:28px;border:0;padding:0;background:none;font-size:var(--t-label)}
+  html.lg-new .ld6-add{margin:8px 0 0 34px}
   @container (max-width:760px){ html.lg-new .ctf-figs{grid-template-columns:repeat(2,minmax(0,1fr))} html.lg-new .ctf-two{grid-template-columns:minmax(0,1fr)} }
   html.lg-new .apn-tab{white-space:nowrap}
   html.lg-new .obn-table td{padding:14px 16px 14px 0;border-bottom:1px solid var(--color-divider);vertical-align:top}

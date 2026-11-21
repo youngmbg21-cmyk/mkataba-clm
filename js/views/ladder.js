@@ -30,7 +30,7 @@
    insPaintPanel, jamboOverviewHtml, openModal, closeModal, signCheckGate, signCheckAccept, signCheckOpenClause, ensureFull, getContract,
    logAudit, persist, renderAIFeed, ai, landOn, diffHtml, todayISO, jlTalkOpen, regDotDate, langLocale, copilotAvailable */
 
-const _ld = { pick: null, mode: 'ladder', edit: null, jbBusy: false, moreOpen: null, book: null };
+const _ld = { pick: null, mode: 'ladder', edit: null, jbBusy: false, moreOpen: null, book: null, q: '', depPick: null, hPick: null };
 const LD_FIRM_ORDER = ['must', 'push', 'nice', 'never'];
 const LD_DEPS_SHOWN = 3;
 const LD_REVIEW_SOON_DAYS = 30;
@@ -114,13 +114,11 @@ function ldHeadFacts(rows){
 }
 function ldPaintHead(){
   if (typeof document === 'undefined' || !state || state.view !== 'playbook') return;
-  const rows = ldStandards();
-  const f = document.getElementById('page-head-facts'); if (f) f.innerHTML = ldHeadFacts(rows);
+  /* P-35: no facts beside the title (the chips say the counts); New position, or while editing Cancel and Send for approval */
+  const f = document.getElementById('page-head-facts'); if (f) f.innerHTML = '';
   const a = document.getElementById('page-head-acts'); if (!a) return;
-  const deps = rows.reduce((n, r) => n + r.open.length, 0), waits = ldChanges().filter(c => c.state === 'waiting').length;
-  a.innerHTML = `<button type="button" class="ui-btn${_ld.mode === 'departures' ? ' is-on' : ''}" data-ld-mode="departures">${LD_E(i18t('ld_departures'))}${deps ? ` <span class="ld-n">${deps}</span>` : ''}</button>`
-    + `<button type="button" class="ui-btn${_ld.mode === 'history' ? ' is-on' : ''}" data-ld-mode="history">${LD_E(i18t('ld_history'))}${waits ? ` <span class="ld-n is-warn">${waits}</span>` : ''}</button>`
-    + (ldMayEdit() ? `<button type="button" class="ui-btn ui-btn-primary" data-ld-new>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5', 2) : ''} ${LD_E(i18t('ld_new'))}</button>` : '');
+  a.innerHTML = _ld.edit ? `<button type="button" class="ui-btn" data-ld-cancel>${LD_E(i18t('act_cancel'))}</button><button type="button" class="ui-btn ui-btn-primary" data-ld-send>${LD_E(i18t('ld_send'))}</button>`
+    : (ldMayEdit() ? `<button type="button" class="ui-btn ui-btn-primary" data-ld-new>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5', 2) : ''} ${LD_E(i18t('ld_new'))}</button>` : '');
 }
 
 /* ---- THE LIST BY HOW FIRM ---- */
@@ -137,11 +135,12 @@ function ldBookSet(book){
 function ldInBook(r){ return !_ld.book || r.place.books.includes(_ld.book) || r.place.books.includes('_default'); }
 function ldListHtml(rows, picked){
   const bookLine = _ld.book ? `<p class="ld-bookline">${LD_E(i18t('ld_book_for', { book: ldBookLabel(_ld.book) }))}<button type="button" class="ui-btn ui-btn-plain ui-btn-icon ui-btn-sm" data-ld-book-clear title="${LD_E(i18t('ld_book_clear'))}" aria-label="${LD_E(i18t('ld_book_clear'))}">${typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : ''}</button></p>` : '';
-  rows = rows.filter(ldInBook);
+  rows = rows.filter(ldInBook).filter(r => ld6Hit([r.name, r.topic].join(' ')));
   return `<nav class="ld-list" aria-label="${LD_E(i18t('ld_list_aria'))}">${bookLine}${LD_FIRM_ORDER.map(f => {
     const g = rows.filter(r => r.firm === f); if (!g.length) return '';
     return `<p class="ld-g">${LD_E(ldFirmWord(f))}</p>` + g.map(r => {
-      const note = r.decide ? `<small class="is-warn">${LD_E(i18tn('ld_n_waits', r.decide, { n: r.decide }))}</small>`
+      /* P-35: an amber count beside a position where a departure waits */
+      const note = r.decide ? `<b class="ld6-cnt" title="${LD_E(i18tn('ld_n_waits', r.decide, { n: r.decide }))}">${r.decide}</b>`
         : r.open.length ? `<small>${LD_E(i18tn('ld_n_off', r.open.length, { n: r.open.length }))}</small>`
         : r.wait ? `<small class="is-warn">${LD_E(i18t('ld_change_waits_short'))}</small>` : r.reviewSoon ? `<small class="is-warn">${LD_E(i18t('ld_review_short'))}</small>` : '';
       const on = picked && picked.id === r.id && _ld.mode === 'ladder';
@@ -183,50 +182,120 @@ function ldDepKeysMine(){
   return _ldDepMine;
 }
 function ldGateWord(){ const g = typeof signCheckGate === 'function' ? signCheckGate() : 'advise'; return i18t('ld_gate_' + (['off', 'advise', 'require'].includes(g) ? g : 'advise')); }
+/* ==== P-35, THE PLAYBOOK THE LEGORA + STRIPE WAY (owner's pick 20 Nov 2026: "L+S and park it") ====
+   The head: Playbook and New position (black); while editing, Cancel and Send for approval (black). Under it one ask box
+   (it narrows what the tab shows) and chips Positions · Departures (amber dot) · History WITH THEIR COUNTS — Departures
+   and History are TABS now (they were buttons; you could not see you were on them) and the panel follows the tab.
+   No figure cards, no zero tiles, no money. */
+const LD6_TONE = { must:'ruby', push:'amber', nice:'green', never:'gray' };
+function ld6Badge(text, tone){ return `<span class="apn-st is-${LD_E(tone)}"><i></i>${LD_E(text)}</span>`; }
+function ld6FirmBadge(f){ return ld6Badge(ldFirmWord(f), LD6_TONE[f] || 'gray'); }
+function ld6Hit(words){ const q = String(_ld.q || '').trim().toLowerCase(); return !q || String(words || '').toLowerCase().includes(q); }
+/* a verdict's words on the paper with their §, read where the paper can be found (pd2QuoteOf), never guessed */
+function ld6SecOf(c, quote){
+  if (!c || !quote || typeof window.pd2QuoteOf !== 'function') return '';
+  try { const q = window.pd2QuoteOf(c, [String(quote).slice(0, 60)]); return q && /§|\d/.test(String(q.sec || '')) ? String(q.sec) : ''; } catch (_){ return ''; }
+}
+function ld6Ref(c){ return typeof window.contractRef === 'function' ? window.contractRef(c) : c.id; }
+function ld6Party(c){ const p = (typeof window.contractParties === 'function' ? window.contractParties(c) : []).filter(x => x && x.side !== 'ours' && x.name).map(x => x.name); return p[0] || c.counterparty || c.name || c.id; }
+/* every departure, open and allowed once, across the positions (the Departures tab's one list) */
+function ld6DepRows(rows){
+  const out = [];
+  rows.forEach(r => ldVerdictsOf(r.cl).forEach(x => {
+    const off = x.v.status === 'deviation' || x.v.status === 'missing'; if (!off || x.v.refused) return;
+    const allowed = !!x.v.accepted, open = !allowed && !LD_SIGNED.includes(x.c.status);
+    if (!allowed && !open) return;
+    out.push({ key:'dep:' + x.c.id + ':' + x.i, r, x, allowed });
+  }));
+  return out.filter(d => ld6Hit([d.r.name, d.r.topic, d.x.c.name, ld6Party(d.x.c), d.x.v.quote].join(' ')));
+}
+function ld6Waited(x){ const at = (x.v.accepted && x.v.accepted.at) || (x.c.playbook && x.c.playbook.at) || ''; return at ? ldDay(at) : '—'; }
+function ld6StripHtml(rows){
+  const deps = rows.reduce((n, r) => n + r.open.length, 0), hist = ldChanges().length;
+  const chip = (m, w, n, dot) => `<button type="button" class="apn-tab is-chip${_ld.mode === m ? ' is-on' : ''}" data-ld-mode="${m}" aria-pressed="${_ld.mode === m}">${dot ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${LD_E(w)} <span>${n}</span></button>`;
+  return `<div class="ld6-top"><label class="apn-ask">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ld-q" type="search" autocomplete="off" placeholder="${LD_E(i18t('ld6_ask_ph'))}" value="${LD_E(_ld.q || '')}"></label>
+    <div class="apn-bar ld6-bar">${chip('ladder', i18t('ld6_positions'), rows.length)}${chip('departures', i18t('ld_departures'), deps, deps > 0)}${chip('history', i18t('ld_history'), hist)}</div></div>`;
+}
+/* A POSITION: a soft how-firm badge, "<topic> · v<N>", Write it for me and Edit the position (grey); the name; why it
+   matters; the ladder as a timeline of rungs (green ✓ what we ask for, amber numbered fallbacks, black × never accept),
+   each with who may give it; under what we ask for, WHERE IT IS HELD, quoted with § and the contract; owner · next
+   review · at signing on one quiet line (owner amber when none). Departures wait in the panel. */
+function ld6RungHtml(tone, mark, lab, words, who, sub, under){
+  return `<div class="ld6-rung"><i class="ld6-mk is-${LD_E(tone)}" aria-hidden="true">${mark}</i><div class="ld6-rw"><p class="ld-lab">${LD_E(lab)}</p><p class="ld-w${words ? '' : ' is-none'}">${LD_E(words || i18t('ld_rung_none'))}</p>${under || ''}</div>`
+    + `<div class="ld-who">${LD_E(who)}<small>${LD_E(sub || '')}</small></div></div>`;
+}
+function ld6HeldHtml(r){
+  if (!r.checked) return `<p class="ld6-held is-none">${LD_E(i18t('ld_none_checked'))}</p>`;
+  if (!r.holds) return `<p class="ld6-held is-none">${LD_E(i18t('ld6_held_none', { of:r.checked }))}</p>`;
+  const ex = ldVerdictsOf(r.cl).find(x => ['aligned', 'ok'].includes(x.v.status) && x.v.quote);
+  if (!ex) return `<p class="ld6-held">${LD_E(i18tn('ld6_held_n', r.holds, { n:r.holds }))}</p>`;
+  const q = String(ex.v.quote).replace(/\s+/g, ' ').trim(), sec = ld6SecOf(ex.c, q);
+  return `<p class="ld6-held">${LD_E(i18tn('ld6_held_eg', r.holds, { n:r.holds }))} <q>${LD_E(q.length > 110 ? q.slice(0, 107) + '…' : q)}</q>${sec ? ` <span>${LD_E(sec)}</span>` : ''} · ${LD_E(ex.c.name || ld6Ref(ex.c))}</p>`;
+}
 function ldLadderHtml(r){
   if (!r) return `<div class="ld-main"><p class="ld-empty">${LD_E(i18t('ld_none'))}</p></div>`;
   const L = r.ladder, g = r.gov;
   const books = r.place.books.length ? r.place.books.map(ldBookLabel).join(', ') : i18t('ld_books_none');
-  const holdN = r.checked ? `${LD_E(i18t('ld_holds_of', { n: r.holds, of: r.checked }))}<span class="ld-bar"><i style="width:${Math.round(100 * r.holds / r.checked)}%"></i></span>` : `<span class="ld-quiet">${LD_E(i18t('ld_none_checked'))}</span>`;
-  const rungs = ldRungHtml('green', i18t('ld_rung_ask'), L.ask, ldWho('anyone'), ldWhoSub('anyone'), holdN)
-    + L.fallbacks.map((f, k) => ldRungHtml('amber', i18t('ld_rung_fb', { n: k + 1 }), f.text, ldWho(f.who), ldWhoSub(f.who), '')).join('')
-    + (L.never || r.firm === 'never' ? ldRungHtml('dark', i18t('ld_rung_never'), L.never, ldWho('admin'), i18t('ld_who_sub_never'), '') : '');
-  const deps = (r.firm === 'nice' && r.open.length ? `<p class="ld-g ld-g-info">${LD_E(i18t('ld_dep_info'))}</p>` : '')
-    + r.open.slice(0, LD_DEPS_SHOWN).map(x => ldDepHtml(x, r.firm)).join('');
-  const more = r.open.length > LD_DEPS_SHOWN ? `<button type="button" class="ui-link" data-ld-mode="departures">${LD_E(i18tn('ld_dep_more', r.open.length - LD_DEPS_SHOWN, { n: r.open.length - LD_DEPS_SHOWN }))}</button>` : '';
+  const tick = typeof icon === 'function' ? icon('mkTick', 'w-3 h-3', 2.4) : '✓', cross = typeof icon === 'function' ? icon('x', 'w-3 h-3', 2.4) : '×';
+  const rungs = ld6RungHtml('green', tick, i18t('ld_rung_ask'), L.ask, ldWho('anyone'), ldWhoSub('anyone'), ld6HeldHtml(r))
+    + L.fallbacks.map((f, k) => ld6RungHtml('amber', String(k + 1), i18t('ld_rung_fb', { n: k + 1 }), f.text, ldWho(f.who), ldWhoSub(f.who), '')).join('')
+    + (L.never || r.firm === 'never' ? ld6RungHtml('dark', cross, i18t('ld_rung_never'), L.never, ldWho('admin'), i18t('ld_who_sub_never'), '') : '');
   const ch = r.wait;
   const change = ch ? `<div class="ld-soft" data-ld-change="${LD_E(ch.id)}"><span>${LD_E(i18t('ld_change_waits', { who: ch.by || '', day: ldDay(ch.at) }))}${ch.why ? ` <i>“${LD_E(ch.why)}”</i>` : ''}</span>`
     + (ldMayDecide(ch) ? `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ld-decide="${LD_E(ch.id)}">${LD_E(i18t('ld_decide'))}</button>`
       : String(ch.byId) === String((ldMe() || {}).id) ? `<span class="ld-quiet">${LD_E(i18t('ld_waits_other_admin'))}</span><button type="button" class="ui-btn ui-btn-sm" data-ld-withdraw="${LD_E(ch.id)}">${LD_E(i18t('ld_withdraw'))}</button>` : '') + '</div>' : '';
-  const ver = g.ver ? i18t('ld_ver', { v: g.ver, day: ldDay(g.approvedAt), who: g.approvedBy || '' }) : i18t('ld_ver_start');
-  return `<section class="ld-main" aria-label="${LD_E(r.name)}">
-    <div class="ld-top"><h2 class="ld-title">${LD_E(r.name)}</h2>${ldFirmHtml(r.firm)}
-      ${ldMayEdit() && !ch ? `<span class="ld-top-a"><button type="button" class="ui-btn" data-ld-write>${typeof icon === 'function' ? icon('sparkle', 'w-3.5 h-3.5') : ''} ${LD_E(i18t('ld_write'))}</button><button type="button" class="ui-btn ui-btn-primary" data-ld-edit>${LD_E(i18t('ld_edit'))}</button></span>` : ''}</div>
+  const eb = [r.topic, g.ver ? 'v' + g.ver : i18t('ld6_v_start')].filter(Boolean).join(' · ');
+  return `<section class="ld-main ld6-main" aria-label="${LD_E(r.name)}">
+    <div class="ld6-eb">${ld6FirmBadge(r.firm)}<span>${LD_E(eb)}</span>
+      ${ldMayEdit() && !ch ? `<span class="ld-top-a"><button type="button" class="ctf-pill" data-ld-write>${typeof icon === 'function' ? icon('sparkle', 'w-3.5 h-3.5') : ''} ${LD_E(i18t('ld_write'))}</button><button type="button" class="ctf-pill" data-ld-edit>${LD_E(i18t('ld_edit'))}</button></span>` : ''}</div>
+    <h2 class="ld-title">${LD_E(r.name)}</h2>
     <p class="ld-why">${L.why ? LD_E(i18t('ld_why', { why: L.why })) + ' ' : ''}${LD_E(i18t('ld_applies', { books }))}${r.place.mixed ? ' ' + LD_E(i18t('ld_mixed_said')) : ''}</p>
-    <div class="ld-cols" aria-hidden="true"><span>${LD_E(i18t('ld_col_rungs'))}</span><span>${LD_E(i18t('ld_col_who'))}</span><span>${LD_E(i18t('ld_col_count'))}</span></div>
-    <div class="ld-rungs">${rungs}</div>
-    ${deps ? `<div class="ld-deps">${deps}${more}</div>` : ''}
+    <div class="ld6-cols" aria-hidden="true"><span>${LD_E(i18t('ld_col_rungs'))}</span><span>${LD_E(i18t('ld_col_who'))}</span></div>
+    <div class="ld6-rungs">${rungs}</div>
     ${change}
-    <p class="ld-gov"><span>${LD_E(i18t('ld_owner'))} <b>${LD_E(g.owner || i18t('ld_owner_none'))}</b></span><span>${LD_E(ver)}</span><span>${LD_E(i18t('ld_next_review'))} <b>${LD_E(g.reviewNext ? ldDay(g.reviewNext) : i18t('ld_review_never'))}</b></span>${r.firm === 'must' ? `<span>${LD_E(ldGateWord())}</span>` : ''}</p>
+    <p class="ld-gov ld6-gov"><span>${LD_E(i18t('ld_owner'))} <b class="${g.owner ? '' : 'is-amber'}">${LD_E(g.owner || i18t('ld_owner_none'))}</b></span><span>${LD_E(i18t('ld_next_review'))} <b>${LD_E(g.reviewNext ? ldDay(g.reviewNext) : i18t('ld_review_never'))}</b></span>${r.firm === 'must' ? `<span>${LD_E(ldGateWord())}</span>` : ''}</p>
   </section>`;
 }
-
-/* ---- DEPARTURES: every one still open, across the standards ---- */
+/* DEPARTURES: one calm table — the contract (other side and reference, then "§ N · “…the paper's words…”" on one line) ·
+   position · how firm · a state badge (amber To decide, green Allowed once) · waiting. A press chooses; the panel follows. */
 function ldDeparturesHtml(rows){
-  const all = rows.flatMap(r => r.open.map(x => ({ r, x })));
-  return `<section class="ld-main ld-wide"><div class="ld-top"><h2 class="ld-title">${LD_E(i18t('ld_departures'))}</h2><button type="button" class="ui-link ld-back" data-ld-mode="ladder">${typeof icon === 'function' ? icon('chevL', 'w-3.5 h-3.5') : ''} ${LD_E(i18t('ld_back'))}</button></div>`
-    + (all.length ? all.map(({ r, x }) => `<p class="ld-g">${LD_E(r.topic)} · ${ldFirmHtml(r.firm)}</p>${ldDepHtml(x, r.firm)}`).join('') : `<p class="ld-empty">${LD_E(i18t('ld_dep_none'))}</p>`) + '</section>';
+  const all = ld6DepRows(rows);
+  if (!_ld.depPick || !all.some(d => d.key === _ld.depPick)) _ld.depPick = all[0] ? all[0].key : null;
+  const row = d => { const c = d.x.c, q = String(d.x.v.quote || '').replace(/\s+/g, ' ').trim(), sec = q ? ld6SecOf(c, q) : '';
+    const ql = d.x.v.status === 'missing' ? `<div class="ld6-ql is-miss">${LD_E(i18t('ld_dep_missing'))}</div>` : q ? `<div class="ld6-ql">${sec ? `<span>${LD_E(sec)} ·</span>` : ''}<i>“${LD_E(q)}”</i></div>` : '';
+    return `<tr data-ld-deprow="${LD_E(d.key)}" tabindex="0" class="${_ld.depPick === d.key ? 'is-sel' : ''}"><td><div class="cun-name">${LD_E(ld6Party(c))}</div><div class="cun-sub">${LD_E([c.name, ld6Ref(c)].filter(Boolean).join(' · '))}</div>${ql}</td>
+      <td class="ld6-pos">${LD_E(d.r.topic)}</td><td>${ld6FirmBadge(d.r.firm)}</td><td>${ld6Badge(i18t(d.allowed ? 'ld6_st_allowed' : 'ld6_st_decide'), d.allowed ? 'green' : 'amber')}</td><td class="ld6-when">${LD_E(ld6Waited(d.x))}</td></tr>`; };
+  return `<section class="ld-main ld-wide ld6-wide"><table class="apn-table ld6-table"><colgroup><col><col style="width:150px"><col style="width:130px"><col style="width:130px"><col style="width:110px"></colgroup>
+    <thead><tr><th>${LD_E(i18t('ld6_c_contract'))}</th><th>${LD_E(i18t('ld6_c_position'))}</th><th>${LD_E(i18t('ld6_c_firm'))}</th><th>${LD_E(i18t('ld6_c_state'))}</th><th class="ld6-when">${LD_E(i18t('ld6_c_since'))}</th></tr></thead>
+    <tbody>${all.map(row).join('') || `<tr><td colspan="5" class="apn-none">${LD_E(i18t('ld_dep_none'))}</td></tr>`}</tbody></table></section>`;
 }
-/* ---- HISTORY: every change, waiting first ---- */
-function ldHistoryHtml(){
+/* HISTORY: one calm table — position · the change · proposed by · a state badge (amber Waits for another admin, green
+   Approved) · when. A press chooses; the panel follows. */
+const LD6_HST = { waiting:['ld6_h_waits', 'amber'], approved:['ld6_h_approved', 'green'], refused:['ld6_h_refused', 'ruby'], withdrawn:['ld6_h_withdrawn', 'gray'] };
+function ld6HistRows(){
   const L = ldChanges().slice().sort((a, b) => (a.state === 'waiting' ? 0 : 1) - (b.state === 'waiting' ? 0 : 1) || String(b.decidedAt || b.at).localeCompare(String(a.decidedAt || a.at)));
-  const me = String((ldMe() || {}).id);
-  const row = ch => `<div class="ld-hrow"><span class="ld-hs is-${LD_E(ch.state)}">${LD_E(i18t('ld_state_' + ch.state))}</span><span class="ld-ht"><b>${LD_E((ch.draft && ch.draft.name) || '')}</b>`
-    + `<small>${LD_E(i18t('ld_h_by', { who: ch.by || '', day: ldDay(ch.at) }))}${ch.why ? ' · “' + LD_E(ch.why) + '”' : ''}${ch.decidedBy ? ' · ' + LD_E(i18t('ld_h_decided', { who: ch.decidedBy, day: ldDay(ch.decidedAt) })) : ''}</small></span>`
-    + (ldMayDecide(ch) ? `<button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ld-decide="${LD_E(ch.id)}">${LD_E(i18t('ld_decide'))}</button>`
-      : ch.state === 'waiting' && String(ch.byId) === me ? `<button type="button" class="ui-btn ui-btn-sm" data-ld-withdraw="${LD_E(ch.id)}">${LD_E(i18t('ld_withdraw'))}</button>` : '') + '</div>';
-  return `<section class="ld-main ld-wide"><div class="ld-top"><h2 class="ld-title">${LD_E(i18t('ld_history'))}</h2><button type="button" class="ui-link ld-back" data-ld-mode="ladder">${typeof icon === 'function' ? icon('chevL', 'w-3.5 h-3.5') : ''} ${LD_E(i18t('ld_back'))}</button></div>`
-    + (L.length ? L.map(row).join('') : `<p class="ld-empty">${LD_E(i18t('ld_history_none'))}</p>`) + '</section>';
+  return L.filter(ch => ld6Hit([(ch.draft && ch.draft.name) || '', ch.why, ch.by].join(' ')));
+}
+function ld6ChangeWords(ch){
+  const was = ch.clauseId ? (ldStandards().find(r => r.id === String(ch.clauseId)) || null) : null;
+  if (!was) return i18t('ld6_ch_new');
+  const d = ch.draft || {}, L = was.ladder;
+  const parts = [];
+  if (String(d.ask || '') !== String(L.ask || '')) parts.push(i18t('ld6_ch_ask'));
+  if (JSON.stringify((d.fallbacks || []).map(f => f.text)) !== JSON.stringify(L.fallbacks.map(f => f.text))) parts.push(i18t('ld6_ch_fb'));
+  if (String(d.never || '') !== String(L.never || '')) parts.push(i18t('ld6_ch_never'));
+  if (d.firm && d.firm !== was.firm) parts.push(i18t('ld6_ch_firm', { firm:ldFirmWord(d.firm) }));
+  return parts.join(' · ') || (ch.state === 'waiting' ? i18t('ld6_ch_else') : i18t('ld6_ch_done'));
+}
+function ldHistoryHtml(){
+  const L = ld6HistRows();
+  if (!_ld.hPick || !L.some(ch => ch.id === _ld.hPick)) _ld.hPick = L[0] ? L[0].id : null;
+  const row = ch => { const s = LD6_HST[ch.state] || LD6_HST.withdrawn;
+    return `<tr data-ld-hrow="${LD_E(ch.id)}" tabindex="0" class="${_ld.hPick === ch.id ? 'is-sel' : ''}"><td><div class="cun-name">${LD_E((ch.draft && ch.draft.name) || '')}</div></td>
+      <td class="ld6-chg"><span title="${LD_E(ld6ChangeWords(ch))}">${LD_E(ld6ChangeWords(ch))}</span>${ch.why ? `<div class="ld6-ql"><i>“${LD_E(ch.why)}”</i></div>` : ''}</td><td>${LD_E(ch.by || '')}</td><td>${ld6Badge(i18t(s[0]), s[1])}</td><td class="ld6-when">${LD_E(ldDay(ch.decidedAt || ch.at))}</td></tr>`; };
+  return `<section class="ld-main ld-wide ld6-wide"><table class="apn-table ld6-table"><colgroup><col style="width:24%"><col><col style="width:130px"><col style="width:190px"><col style="width:110px"></colgroup>
+    <thead><tr><th>${LD_E(i18t('ld6_c_position'))}</th><th>${LD_E(i18t('ld6_c_change'))}</th><th>${LD_E(i18t('ld6_c_by'))}</th><th>${LD_E(i18t('ld6_c_state'))}</th><th class="ld6-when">${LD_E(i18t('ld6_c_when'))}</th></tr></thead>
+    <tbody>${L.map(row).join('') || `<tr><td colspan="5" class="apn-none">${LD_E(i18t('ld_history_none'))}</td></tr>`}</tbody></table></section>`;
 }
 
 /* ---- EDITING: the ladder itself, in boxes ---- */
@@ -237,35 +306,6 @@ function ldDraftOf(r){
     books: r.place.books.length ? r.place.books.slice() : ['_default'], ownerId: g.ownerId, owner: g.owner, reviewMonths: g.reviewMonths };
 }
 function ldWhoOptions(sel){ return ['anyone', 'team', 'legal'].map(w => `<option value="${w}"${w === sel ? ' selected' : ''}>${LD_E(ldWho(w))}</option>`).join(''); }
-function ldEditHtml(){
-  const e = _ld.edit; const d = e.draft;
-  const people = (typeof getUsers === 'function' ? getUsers() : []).filter(u => u && u.role !== 'viewer');
-  const ownerOpts = `<option value="">${LD_E(i18t('ld_owner_none'))}</option>` + people.map(u => `<option value="${LD_E(u.id)}"${String(u.id) === String(d.ownerId) ? ' selected' : ''}>${LD_E(u.name || u.email || '')}</option>`).join('');
-  const books = stdBookKeys(playbook());
-  const booksSaid = d.books.length === books.length && books.length > 1 ? i18t('ld_books_every') : d.books.map(ldBookLabel).join(', ');
-  const box = (k, val, ph, rows) => `<textarea class="ld-box" data-ld-f="${k}" rows="${rows || 2}" placeholder="${LD_E(ph)}">${LD_E(val || '')}</textarea>`;
-  const rung = (tone, lab, inner, who) => `<div class="ld-erung"><i class="ld-mark is-${tone}" aria-hidden="true"></i><label class="ld-ebox"><span class="ld-lab">${LD_E(lab)}</span>${inner}</label>${who}</div>`;
-  const fbs = d.fallbacks.map((f, k) => rung('amber', i18t('ld_rung_fb', { n: k + 1 }), box('fb:' + k, f.text, i18t('ld_ph_fb' + (k ? '_n' : '')), 2),
-    `<select class="ld-who-sel" data-ld-f="who:${k}" aria-label="${LD_E(i18t('ld_col_who'))}">${ldWhoOptions(f.who)}</select><button type="button" class="ui-btn ui-btn-plain ui-btn-icon ld-x" data-ld-fb-x="${k}" title="${LD_E(i18t('ld_fb_remove'))}" aria-label="${LD_E(i18t('ld_fb_remove'))}">${typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : ''}</button>`)).join('');
-  return `<section class="ld-main ld-edit" aria-label="${LD_E(i18t(e.clauseId ? 'ld_edit_title' : 'ld_new_title'))}">
-    <div class="ld-ehead"><h2 class="ld-title">${LD_E(i18t(e.clauseId ? 'ld_edit_title' : 'ld_new_title'))}</h2><span class="ld-quiet">${LD_E(e.ver ? i18t('ld_edit_ver', { v: e.ver, n: e.ver + 1 }) : i18t('ld_edit_new'))}</span>
-      <span class="ld-top-a"><button type="button" class="ui-btn ui-btn-primary" data-ld-send>${LD_E(i18t('ld_send'))}</button><button type="button" class="ui-btn" data-ld-cancel>${LD_E(i18t('act_cancel'))}</button></span></div>
-    <div class="ld-erow"><label class="ld-fld is-grow"><span>${LD_E(i18t('ld_f_name'))}</span><input type="text" class="ld-in" data-ld-f="name" value="${LD_E(d.name)}" maxlength="120"></label>
-      <div class="ld-fld"><span>${LD_E(i18t('ld_f_firm'))}</span><div class="ld-segs" role="radiogroup" aria-label="${LD_E(i18t('ld_f_firm'))}">${LD_FIRM_ORDER.map(f => `<button type="button" role="radio" aria-checked="${f === d.firm}" class="ld-seg${f === d.firm ? ' is-on' : ''} is-${f}" data-ld-firm="${f}"><i class="ld-dot is-${f}" aria-hidden="true"></i>${LD_E(ldFirmWord(f))}</button>`).join('')}</div></div></div>
-    <p class="ld-firm-says">${LD_E(i18t('ld_firm_says_' + d.firm))}</p>
-    <div class="ld-erow"><div class="ld-fld is-grow"><span>${LD_E(i18t('ld_f_books'))}</span><button type="button" class="ld-in ld-pick" data-ld-books aria-haspopup="true"><span>${LD_E(booksSaid)}</span>${typeof icon === 'function' ? icon('chevD', 'w-3.5 h-3.5') : ''}</button></div>
-      <label class="ld-fld"><span>${LD_E(i18t('ld_f_owner'))}</span><select class="ld-in" data-ld-f="ownerId">${ownerOpts}</select></label>
-      <label class="ld-fld"><span>${LD_E(i18t('ld_f_review'))}</span><select class="ld-in" data-ld-f="reviewMonths">${STD_REVIEW_MONTHS.map(m => `<option value="${m}"${m === Number(d.reviewMonths) ? ' selected' : ''}>${LD_E(i18tn('ld_months', m, { n: m }))}</option>`).join('')}</select></label></div>
-    <div class="ld-ladhead"><b>${LD_E(i18t('ld_ladder'))}</b><small>${LD_E(i18t('ld_col_rungs'))}</small><button type="button" class="ui-btn ui-btn-sm" data-ld-write ${_ld.jbBusy ? 'disabled' : ''}>${typeof icon === 'function' ? icon('sparkle', 'w-3.5 h-3.5') : ''} ${LD_E(i18t('ld_write'))}</button><span class="ld-ladwho">${LD_E(i18t('ld_col_who'))}</span></div>
-    <div class="ld-erungs">
-      ${rung('green', i18t('ld_rung_ask'), box('ask', d.ask, i18t('ld_ph_ask'), 3), `<span class="ld-who-fix">${LD_E(ldWho('anyone'))}</span>`)}
-      ${fbs}
-      ${d.fallbacks.length >= STD_FALLBACKS_MAX ? '' : `<p class="ld-add"><button type="button" class="ui-link" data-ld-fb-add>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''} ${LD_E(i18t('ld_fb_add'))}</button></p>`}
-      ${rung('dark', i18t('ld_rung_never'), box('never', d.never, i18t('ld_ph_never'), 2), `<span class="ld-who-fix">${LD_E(ldWho('admin'))}</span>`)}
-    </div>
-    <label class="ld-fld"><span>${LD_E(i18t('ld_f_why'))}</span>${box('why', d.why, i18t('ld_ph_why'), 2)}</label>
-  </section>`;
-}
 /* the boxes read back into the draft (a redraw keeps your words) */
 function ldEditRead(){
   const e = _ld.edit; if (!e) return;
@@ -281,42 +321,144 @@ function ldEditRead(){
   if (!e.clauseId) e.draft.category = e.draft.name;
 }
 
+/* ---- EDITING A POSITION (P-35): OPEN FIELDS (f1110) — the label beside the words, one line under each row, no boxes:
+   Name · How firm (four pills, the chosen ink) · Applies to · Owner (amber when none) · Read again · What we ask for (with
+   Write it for me) · + Add a fallback · Never accept · Why it matters. A grey Draft badge; the position's own name in
+   the head (never "New position" over one being edited). Cancel and Send for approval stand in the page's head. ---- */
+function ldEditHtml(){
+  const e = _ld.edit; const d = e.draft;
+  const people = (typeof getUsers === 'function' ? getUsers() : []).filter(u => u && u.role !== 'viewer');
+  const ownerOpts = `<option value="">${LD_E(i18t('ld_owner_none'))}</option>` + people.map(u => `<option value="${LD_E(u.id)}"${String(u.id) === String(d.ownerId) ? ' selected' : ''}>${LD_E(u.name || u.email || '')}</option>`).join('');
+  const books = stdBookKeys(playbook());
+  const booksSaid = d.books.length === books.length && books.length > 1 ? i18t('ld_books_every') : d.books.map(ldBookLabel).join(', ');
+  const box = (k, val, ph, rows) => `<textarea class="ld-box ld6-ta" data-ld-f="${k}" rows="${rows || 2}" placeholder="${LD_E(ph)}">${LD_E(val || '')}</textarea>`;
+  const row = (lab, inner, cls, mark) => `<div class="ld6-f${cls ? ' ' + cls : ''}">${mark || ''}<span class="ld6-fl">${LD_E(lab)}</span><div class="ld6-fc">${inner}</div></div>`;
+  const mk = (tone, t) => `<i class="ld6-mk is-${tone}" aria-hidden="true">${t}</i>`;
+  const tick = typeof icon === 'function' ? icon('mkTick', 'w-3 h-3', 2.4) : '✓', cross = typeof icon === 'function' ? icon('x', 'w-3 h-3', 2.4) : '×';
+  const fbs = d.fallbacks.map((f, k) => row(i18t('ld_rung_fb', { n: k + 1 }), box('fb:' + k, f.text, i18t('ld_ph_fb' + (k ? '_n' : '')), 2)
+    + `<div class="ld6-fwho"><select class="ld-who-sel" data-ld-f="who:${k}" aria-label="${LD_E(i18t('ld_col_who'))}">${ldWhoOptions(f.who)}</select><button type="button" class="ui-btn ui-btn-plain ui-btn-icon ld-x" data-ld-fb-x="${k}" title="${LD_E(i18t('ld_fb_remove'))}" aria-label="${LD_E(i18t('ld_fb_remove'))}">${typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : ''}</button></div>`, 'is-rung', mk('amber', String(k + 1)))).join('');
+  const title = e.clauseId ? (d.name || i18t('ld_edit_title')) : (String(d.name || '').trim() || i18t('ld_new_title'));
+  return `<section class="ld-main ld-edit ld6-edit" aria-label="${LD_E(title)}">
+    <div class="ld6-eb">${ld6Badge(i18t('ld6_draft'), 'gray')}<span>${LD_E(e.ver ? i18t('ld_edit_ver', { v: e.ver, n: e.ver + 1 }) : i18t('ld_edit_new'))}</span></div>
+    <h2 class="ld-title">${LD_E(title)}</h2>
+    <div class="ld6-fs">
+      ${row(i18t('ld_f_name'), `<input type="text" class="ld6-in" data-ld-f="name" value="${LD_E(d.name)}" maxlength="120">`)}
+      ${row(i18t('ld_f_firm'), `<div class="ld-segs ld6-pills" role="radiogroup" aria-label="${LD_E(i18t('ld_f_firm'))}">${LD_FIRM_ORDER.map(f => `<button type="button" role="radio" aria-checked="${f === d.firm}" class="ld-seg${f === d.firm ? ' is-on' : ''} is-${f}" data-ld-firm="${f}"><i class="ld-dot is-${f}" aria-hidden="true"></i>${LD_E(ldFirmWord(f))}</button>`).join('')}</div><p class="ld-firm-says">${LD_E(i18t('ld_firm_says_' + d.firm))}</p>`)}
+      ${row(i18t('ld_f_books'), `<button type="button" class="ld6-in ld-pick" data-ld-books aria-haspopup="true"><span>${LD_E(booksSaid)}</span>${typeof icon === 'function' ? icon('chevD', 'w-3.5 h-3.5') : ''}</button>`, 'is-pop')}
+      ${row(i18t('ld_f_owner'), `<select class="ld6-in${d.ownerId ? '' : ' need-empty'}" data-ld-f="ownerId">${ownerOpts}</select>`, d.ownerId ? '' : 'is-need')}
+      ${row(i18t('ld_f_review'), `<select class="ld6-in" data-ld-f="reviewMonths">${STD_REVIEW_MONTHS.map(m => `<option value="${m}"${m === Number(d.reviewMonths) ? ' selected' : ''}>${LD_E(i18tn('ld_months', m, { n: m }))}</option>`).join('')}</select>`)}
+      ${row(i18t('ld_rung_ask'), box('ask', d.ask, i18t('ld_ph_ask'), 3) + `<div class="ld6-fwho"><span class="ld-who-fix">${LD_E(ldWho('anyone'))}</span><button type="button" class="ctf-pill" data-ld-write ${_ld.jbBusy ? 'disabled' : ''}>${typeof icon === 'function' ? icon('sparkle', 'w-3.5 h-3.5') : ''} ${LD_E(i18t('ld_write'))}</button></div>`, 'is-rung' + (String(d.ask || '').trim() ? '' : ' is-need'), mk('green', tick))}
+      ${fbs}
+      ${d.fallbacks.length >= STD_FALLBACKS_MAX ? '' : `<p class="ld-add ld6-add"><button type="button" class="ui-link" data-ld-fb-add>+ ${LD_E(i18t('ld_fb_add'))}</button></p>`}
+      ${row(i18t('ld_rung_never'), box('never', d.never, i18t('ld_ph_never'), 2) + `<div class="ld6-fwho"><span class="ld-who-fix">${LD_E(ldWho('admin'))}</span></div>`, 'is-rung', mk('dark', cross))}
+      ${row(i18t('ld_f_why'), box('why', d.why, i18t('ld_ph_why'), 2))}
+    </div>
+  </section>`;
+}
 /* ---- THE PAGE ---- */
 function renderStandardsPage(){
   const host = document.getElementById('content'); if (!host) return;
   const rows = ldStandards(), picked = ldPicked(rows);
   const main = _ld.edit ? ldEditHtml() : _ld.mode === 'departures' ? ldDeparturesHtml(rows) : _ld.mode === 'history' ? ldHistoryHtml() : ldLadderHtml(picked);
-  host.innerHTML = `<div class="view-enter ins-page ld-page" data-ins-page="playbook" data-ins="1">
-    <div class="ld-sheet">${_ld.edit ? '' : ldListHtml(rows, picked)}${main}</div>
+  /* the positions down the left only on the Positions tab; Departures and History are tables of their own */
+  const list = !_ld.edit && _ld.mode === 'ladder' ? ldListHtml(rows, picked) : '';
+  const at = typeof listCaretAt === 'function' ? listCaretAt('#ld-q') : null;
+  host.innerHTML = `<div class="view-enter ins-page ld-page ld6-page" data-ins-page="playbook" data-ins="1">
+    <div class="ld6-col">${_ld.edit ? '' : ld6StripHtml(rows)}<div class="ld-sheet">${list}${main}</div></div>
     <aside id="ins-panel" class="ins-panel" aria-label="${LD_E(i18t('ld_panel_aria'))}"></aside></div>`;
+  if (typeof listCaretPut === 'function') listCaretPut('#ld-q', at);
   ldPaintHead();
   ldPaintPanel(rows, picked);
   if (typeof window.popupControlsDress === 'function') try { window.popupControlsDress(host.querySelector('.ld-sheet')); } catch (_){}
 }
-/* JAMBO'S PANEL: the five parts for the chosen standard (no AI) */
+/* JAMBO'S PANEL FOLLOWS THE TAB (no cards, no zero tiles). A POSITION: its badge and name, "N contracts checked against
+   it"; the checked contracts as ONE BAR (green hold it · blue allowed once · amber to decide) with its legend; "Waits for
+   your call": each departure with its To decide badge and its words quoted with §, and Decide in Approvals (black);
+   "Looked after by" (owner, next review). */
+function ld6BarHtml(r){
+  const parts = [['green', r.holds, i18t('ld6_k_hold')], ['steel', r.allowed, i18t('ld6_k_allowed')], ['amber', r.decide, i18t('ld6_k_decide')]].filter(p => p[1] > 0);
+  if (!parts.length) return '';
+  return `<div class="ld6-pbar"><div class="mign-bbar">${parts.map(p => `<i class="is-${p[0]}" style="flex-grow:${p[1]}"></i>`).join('')}</div><div class="mign-bkey">${parts.map(p => `<span class="mign-bk"><i class="is-${p[0]}"></i>${LD_E(p[1] + ' ' + p[2])}</span>`).join('')}</div></div>`;
+}
 function ldPanelFive(r){
-  const n = r.open.length, first = r.open[0];
-  const sub = r.checked ? (n ? i18tn('ld_p_sub_open', n, { h: r.holds, of: r.checked, n }) : i18t('ld_p_sub', { h: r.holds, of: r.checked })) : i18t('ld_none_checked');
-  const groups = [{ label: i18t('ld_p_who'), rows: [
-    { mark: 'user', t: r.gov.owner || i18t('ld_owner_none'), s: i18t('ld_owner') },
-    { mark: 'clock', t: r.gov.ver ? i18t('ld_p_ver', { v: r.gov.ver, day: ldDay(r.gov.approvedAt) }) : i18t('ld_ver_start'), s: r.gov.reviewNext ? i18t('ld_p_next', { day: ldDay(r.gov.reviewNext) }) : i18t('ld_review_never'), tone: r.reviewSoon ? 'amber' : '' }] }];
-  const ch = r.wait;
-  const act = ch && ldMayDecide(ch) ? { say: i18t('ld_p_change', { who: ch.by || '' }), label: i18t('ld_decide'), run: () => ldDecideOpen(ch.id) }
-    : first && r.firm !== 'nice' && ldDepKeysMine().has('dep:' + first.c.id + ':' + first.i)
-      ? { say: i18t('ld_p_dep', { who: first.c.counterparty || first.c.name || first.c.id }), label: i18t('ld_p_go_ap'), run: () => ldGoApprovals('dep:' + first.c.id + ':' + first.i) }
-      /* a Nice to have: the card says it, with no button (as drawn) */
-      : first && r.firm === 'nice' ? { say: i18t('ld_p_dep', { who: first.c.counterparty || first.c.name || first.c.id }), q: i18t('ld_p_nice_info') }
-      : null;
-  return { eyebrow: [i18t('ld_page'), r.topic].join(' · '), title: r.name, sub,
-    glance: [{ n: r.holds, l: i18t('ld_p_held') }, { n: r.allowed, l: i18t('ld_p_allowed') }, { n: r.decide, l: i18t('ld_p_decide'), warn: r.decide > 0 }],
-    groups, act, src: i18t('ld_p_src') };
+  const sub = r.checked ? i18tn('ld6_p_checked', r.checked, { n: r.checked }) : i18t('ld_none_checked');
+  const groups = [];
+  const waits = r.open.map(x => { const q = String(x.v.quote || '').replace(/\s+/g, ' ').trim(), sec = q ? ld6SecOf(x.c, q) : '';
+    const key = 'dep:' + x.c.id + ':' + x.i, mine = r.firm !== 'nice' && ldDepKeysMine().has(key);
+    return { mark:'alert', tone:'amber', t:ld6Party(x.c) + ' · ' + ld6Ref(x.c), s:x.v.status === 'missing' ? i18t('ld_dep_missing') : [sec, q ? '“' + (q.length > 140 ? q.slice(0, 137) + '…' : q) + '”' : ''].filter(Boolean).join(' '), wrap:true,
+      v:r.firm === 'nice' ? '' : i18t('ld6_st_decide'), need:r.firm !== 'nice', attr:mine ? `data-ld-goap="${LD_E(key)}"` : '' }; });
+  if (waits.length) groups.push({ key:'waits', label:i18t(r.firm === 'nice' ? 'ld_dep_info' : 'ld6_p_waits'), rows:waits.slice(0, LD_DEPS_SHOWN),
+    foot:waits.length > LD_DEPS_SHOWN ? { label:i18tn('ld_dep_more', waits.length - LD_DEPS_SHOWN, { n:waits.length - LD_DEPS_SHOWN }), attr:'data-ld-mode="departures"' } : null });
+  groups.push({ key:'who', label:i18t('ld6_p_looked'), rows:[
+    { mark:'user', tone:r.gov.owner ? '' : 'amber', t:r.gov.owner || i18t('ld_owner_none'), s:i18t('ld_owner') },
+    { mark:'clock', tone:r.reviewSoon ? 'amber' : '', t:r.gov.reviewNext ? i18t('ld_p_next', { day: ldDay(r.gov.reviewNext) }) : i18t('ld_next_review') + ' ' + i18t('ld_review_never'), s:r.gov.ver ? i18t('ld_p_ver', { v: r.gov.ver, day: ldDay(r.gov.approvedAt) }) : i18t('ld_ver_start') }] });
+  const ch = r.wait, first = r.open.find(x => r.firm !== 'nice' && ldDepKeysMine().has('dep:' + x.c.id + ':' + x.i));
+  const act = ch && ldMayDecide(ch) ? { label: i18t('ld_decide'), run: () => ldDecideOpen(ch.id) }
+    : first ? { label: i18t('ld_go_ap'), run: () => ldGoApprovals('dep:' + first.c.id + ':' + first.i) } : null;
+  return { before:`<div class="ld6-pb">${ld6FirmBadge(r.firm)}</div>`, title: r.name, sub, mid:ld6BarHtml(r), groups, act, actFirst:false, src: i18t('ld_p_src') };
+}
+/* A DEPARTURE: state and firm badges, "<contract> · <position>", Decide in Approvals (black) and See it in the paper ›,
+   The paper says (quoted, §), Our ladder with the paper's words placed BELOW it in red ("… · below the ladder") */
+function ld6DepFive(d){
+  const c = d.x.c, r = d.r, q = String(d.x.v.quote || '').replace(/\s+/g, ' ').trim(), sec = q ? ld6SecOf(c, q) : '';
+  const mine = !d.allowed && r.firm !== 'nice' && ldDepKeysMine().has(d.key);
+  const L = r.ladder;
+  const lad = [{ mark:'mkTick', tone:'green', t:L.ask || i18t('ld_rung_none'), s:i18t('ld_rung_ask'), wrap:true }]
+    .concat(L.fallbacks.map((f, k) => ({ mark:'dot', markText:String(k + 1), tone:'amber', t:f.text || i18t('ld_rung_none'), s:i18t('ld_rung_fb', { n:k + 1 }), wrap:true })))
+    .concat(L.never ? [{ mark:'x', tone:'dark', t:L.never, s:i18t('ld_rung_never'), wrap:true }] : [])
+    .concat([{ mark:'alert', tone:'red', t:d.x.v.status === 'missing' ? i18t('ld_dep_missing') : (q ? '“' + (q.length > 120 ? q.slice(0, 117) + '…' : q) + '”' : i18t('ld_dep_off')), s:i18t('ld6_below'), wrap:true }]);
+  const groups = [];
+  if (q) groups.push({ key:'says', label:sec ? i18t('ld6_p_says_s', { s:sec }) : i18t('ld6_p_says'), rows:[{ quote:true, wrap:true, t:'“' + q + '”', s:c.name || '' }] });
+  groups.push({ key:'ladder', label:i18t('ld6_p_ladder'), rows:lad });
+  const peek = typeof window.apnPeekOpen === 'function' ? [{ label:i18t('apn_peek'), attr:`data-ld-peek="${LD_E(d.key)}"` }] : [];
+  return { before:`<div class="ld6-pb">${ld6Badge(i18t(d.allowed ? 'ld6_st_allowed' : 'ld6_st_decide'), d.allowed ? 'green' : 'amber')}${ld6FirmBadge(r.firm)}</div>`,
+    title:(c.name || ld6Party(c)) + ' · ' + r.topic, sub:[ld6Party(c), ld6Ref(c)].filter(Boolean).join(' · '), actFirst:true, groups,
+    act:mine ? { label:i18t('ld_go_ap'), attr:`data-ld-goap="${LD_E(d.key)}"`, links:peek } : (peek.length ? { label:peek[0].label, attr:peek[0].attr } : null), src:i18t('ld_p_src') };
+}
+/* A CHANGE: its badge, "<position> · vN → vN+1", Withdraw (for its author), was → now, a timeline */
+function ld6HistFive(ch){
+  const s = LD6_HST[ch.state] || LD6_HST.withdrawn, d = ch.draft || {};
+  const was = ch.clauseId ? (ldStandards().find(r => r.id === String(ch.clauseId)) || null) : null;
+  /* HaTi's starting wording counts as v1 (the server's own reading: its first approved change makes v2) */
+  const v = was ? (Number(was.gov.ver) || 1) : 0;
+  const ver = ch.state === 'approved' ? '' : (v ? 'v' + v + ' → v' + (v + 1) : i18t('ld6_v_new'));
+  const groups = [];
+  if (ch.state === 'waiting' && was) groups.push({ key:'was', label:i18t('ld6_p_was_now'), rows:[{ mark:'file', t:was.ladder.ask || i18t('ld_rung_none'), s:i18t('ld6_was'), wrap:true }, { mark:'pencil', tone:'amber', t:d.ask || i18t('ld_rung_none'), s:i18t('ld6_now'), wrap:true }] });
+  else groups.push({ key:'was', label:i18t('ld_rung_ask'), rows:[{ mark:'file', tone:ch.state === 'approved' ? 'green' : '', t:d.ask || i18t('ld_rung_none'), wrap:true }] });
+  const tl = [{ mark:'mkTick', tone:'green', t:i18t('ld6_tl_sent', { who:ch.by || '' }), s:ldDay(ch.at) + (ch.why ? ' · “' + ch.why + '”' : ''), wrap:true }];
+  if (ch.state === 'waiting') tl.push({ mark:'clock', tone:'amber', t:i18t('ld_waits_other_admin'), s:'' });
+  else if (ch.decidedBy) tl.push({ mark:ch.state === 'approved' ? 'mkTick' : 'x', tone:ch.state === 'approved' ? 'green' : 'red', t:i18t('ld_h_decided', { who:ch.decidedBy, day:ldDay(ch.decidedAt) }), s:i18t(s[0]) });
+  groups.push({ key:'tl', label:i18t('apn5_timeline'), rows:tl });
+  const me = String((ldMe() || {}).id);
+  const act = ldMayDecide(ch) ? { label:i18t('ld_decide'), attr:`data-ld-decide="${LD_E(ch.id)}"` }
+    : ch.state === 'waiting' && String(ch.byId) === me ? { label:i18t('ld_withdraw'), attr:`data-ld-withdraw="${LD_E(ch.id)}"` } : null;
+  return { before:`<div class="ld6-pb">${ld6Badge(i18t(s[0]), s[1])}</div>`, title:[d.name || '', ver].filter(Boolean).join(' · '), sub:ld6ChangeWords(ch), actFirst:true, groups, act, src:i18t('ld_p_src') };
+}
+/* EDITING: "Before you send it" — who decides (any admin but you), what is still to fill as amber dots, then a
+   three-step timeline: you send it → another admin decides → it becomes vN and contracts are checked against it */
+function ld6EditFive(){
+  const e = _ld.edit, d = e.draft;
+  const need = [];
+  if (!String(d.name || '').trim()) need.push(i18t('ld_f_name'));
+  if (!String(d.ask || '').trim()) need.push(i18t('ld_rung_ask'));
+  if (!d.ownerId) need.push(i18t('ld_f_owner'));
+  const next = e.ver ? e.ver + 1 : 1;
+  const groups = [{ key:'who', label:i18t('ld6_p_decides'), rows:[{ mark:'users', t:i18t('ld6_p_any_admin'), s:i18t('ld6_p_any_admin_s'), wrap:true }] }];
+  if (need.length) groups.push({ key:'need', label:i18t('ld6_p_still'), rows:need.map(w => ({ mark:'dot', markText:'', tone:'amber', t:w })) });
+  groups.push({ key:'tl', label:i18t('ld6_p_then'), rows:[{ mark:'dot', markText:'1', t:i18t('ld6_tl_1') }, { mark:'dot', markText:'2', t:i18t('ld6_tl_2') }, { mark:'dot', markText:'3', t:i18t('ld6_tl_3', { v:next }), wrap:true }] });
+  return { before:`<div class="ld6-pb">${ld6Badge(i18t('ld6_draft'), 'gray')}</div>`, title:i18t('ld6_p_before'), sub:need.length ? i18tn('ld6_p_need', need.length, { n:need.length }) : i18t('ld6_p_ready'), groups, src:i18t('ld_p_src') };
 }
 function ldPaintPanel(rows, picked){
   if (typeof insPaintPanel !== 'function') return;
   const base = { seat: 'ld', jlPh: i18t('jl_ph_any'), jlHome: i18t('ld_page'), jlSay: () => ({ lines: [ldPageSay(rows)] }) };
-  if (!picked || typeof jamboOverviewHtml !== 'function'){ insPaintPanel(Object.assign(base, { c: null, item: null })); return; }
-  insPaintPanel(Object.assign(base, { item: { id: 'ld:' + picked.id }, head: false, solo: true, jlWord: picked.name,
-    body: `<div class="jl-words is-ov">${jamboOverviewHtml(ldPanelFive(picked), 'ld')}</div>`, acts: [] }));
+  if (typeof jamboOverviewHtml !== 'function'){ insPaintPanel(Object.assign(base, { c: null, item: null })); return; }
+  let id = '', word = '', o = null;
+  if (_ld.edit){ id = 'ld:edit'; word = i18t('ld6_p_before'); o = ld6EditFive(); }
+  else if (_ld.mode === 'departures'){ const d = ld6DepRows(rows).find(x => x.key === _ld.depPick); if (d){ id = 'ld:' + d.key; word = d.r.topic; o = ld6DepFive(d); } }
+  else if (_ld.mode === 'history'){ const ch = ld6HistRows().find(x => x.id === _ld.hPick); if (ch){ id = 'ld:h:' + ch.id; word = (ch.draft && ch.draft.name) || ''; o = ld6HistFive(ch); } }
+  else if (picked){ id = 'ld:' + picked.id; word = picked.name; o = ldPanelFive(picked); }
+  if (!o){ insPaintPanel(Object.assign(base, { c: null, item: null })); return; }
+  insPaintPanel(Object.assign(base, { item: { id }, head: false, solo: true, jlWord: word, body: `<div class="jl-words is-ov ld6-p">${jamboOverviewHtml(o, 'ld')}</div>`, acts: [] }));
 }
 function ldPageSay(rows){
   const deps = rows.reduce((n, r) => n + r.open.length, 0);
@@ -543,6 +685,13 @@ if (typeof document !== 'undefined' && !document._ldWired){
       return;
     }
     if (!state || state.view !== 'playbook') return;
+    /* P-35: a row of Departures or History chooses it (the panel follows); See it in the paper › is Approvals' own window */
+    const dr = t.closest('[data-ld-deprow]');
+    if (dr){ _ld.depPick = dr.getAttribute('data-ld-deprow'); renderStandardsPage(); return; }
+    const hr = t.closest('[data-ld-hrow]');
+    if (hr && !t.closest('button')){ _ld.hPick = hr.getAttribute('data-ld-hrow'); renderStandardsPage(); return; }
+    const pk = t.closest('[data-ld-peek]');
+    if (pk){ ev.preventDefault(); if (typeof window.apnPeekOpen === 'function') window.apnPeekOpen(pk.getAttribute('data-ld-peek')); return; }
     const b = t.closest('[data-ld-book-clear],[data-ld-pick],[data-ld-mode],[data-ld-new],[data-ld-edit],[data-ld-write],[data-ld-cancel],[data-ld-send],[data-ld-firm],[data-ld-fb-add],[data-ld-fb-x],[data-ld-books],[data-ld-decide],[data-ld-withdraw],[data-ld-goap]');
     if (!b) return;
     if (b.hasAttribute('data-ld-book-clear')){ ldBookSet(null); return; }
@@ -568,5 +717,9 @@ if (typeof document !== 'undefined' && !document._ldInputWired){
   document._ldInputWired = true;
   const keep = ev => { const t = ev.target; if (t && t.closest && t.closest('.ld-edit') && t.hasAttribute && t.hasAttribute('data-ld-f')) ldEditRead(); };
   document.addEventListener('input', keep); document.addEventListener('change', keep);
+  /* the ask box narrows what the tab shows; the page is drawn again with the caret kept */
+  document.addEventListener('input', ev => { const t = ev.target; if (!t || t.id !== 'ld-q' || !state || state.view !== 'playbook') return; _ld.q = t.value; renderStandardsPage(); });
+  /* the edit panel's "still to fill" follows the words as they are typed */
+  document.addEventListener('input', ev => { const t = ev.target; if (!t || !t.closest || !t.closest('.ld-edit') || !_ld.edit) return; clearTimeout(document._ldPanT); document._ldPanT = setTimeout(() => { if (_ld.edit && state.view === 'playbook') ldPaintPanel(ldStandards(), null); }, 300); });
 }
-Object.assign(window, { ldGoApprovals, ldDepKeysMine, ldFirmWord, ldWho, ldBookLabel, ldPickSet, ldDepRun, ldAfterDecide, ldBookNow, ldBookSet, renderStandardsPage, ldPaintHead, ldStandards, ldPicked, ldChanges, ldMayDecide, ldStartEdit, ldSendOpen, ldDecideOpen, ldWithdraw, ldWrite, ldJbDraftHtml, ldJbPut, ldJbUndo, ldPanelFive });
+Object.assign(window, { ld6Badge, ld6FirmBadge, ld6DepRows, ld6HistRows, ld6DepFive, ld6HistFive, ld6EditFive, ld6StripHtml, ldGoApprovals, ldDepKeysMine, ldFirmWord, ldWho, ldBookLabel, ldPickSet, ldDepRun, ldAfterDecide, ldBookNow, ldBookSet, renderStandardsPage, ldPaintHead, ldStandards, ldPicked, ldChanges, ldMayDecide, ldStartEdit, ldSendOpen, ldDecideOpen, ldWithdraw, ldWrite, ldJbDraftHtml, ldJbPut, ldJbUndo, ldPanelFive });
