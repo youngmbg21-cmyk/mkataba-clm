@@ -379,7 +379,9 @@ const SEED = async () => {
       let leak = 0;
       for (const tr of sc.querySelectorAll('tbody tr')){
         const r = tr.getBoundingClientRect();
-        if (r.bottom > scR.top + 0.6 && r.top < thR.top - 0.6) leak++;
+        /* RE-POINTED (P-29): a row "shows above" the held header only by the part of it painted between the scroller's
+           top and the header's top; a row half under the header is hidden by it */
+        if (Math.min(r.bottom, thR.top) - Math.max(r.top, scR.top) > 0.6) leak++;
       }
       return { held: +(thR.top - scR.top).toFixed(2), leak, bands: sc.querySelectorAll('.ngl-band').length,
         prop: getComputedStyle(sc).getPropertyValue('--reg-head-h').trim(), scrolled: Math.round(sc.scrollTop) };
@@ -832,7 +834,9 @@ const SEED = async () => {
         ? (h.tab.line !== h.tab.accent || (h.tab.restLine != null && h.tab.restLine === h.tab.accent) || h.tab.w !== tw || h.tab.boxed > 0)
         : (h.tab.c !== h.tab.accent || h.tab.w !== tw || !(Number(h.tab.w) > Number(h.tab.restW)) || h.tab.boxed > 0));
       check('8 every head\'s live tab is the theme\'s ink at one weight, heavier than a resting one, and no tab number wears a box',
-        withTabs.length >= 3 && toff.length === 0,
+        /* RE-POINTED (P-25..P-32, owner's picks 20 Nov 2026): most heads' tabs became CHIPS (.is-chip), another control;
+           the heads that still carry underlined tabs keep the promise, however few they now are */
+        toff.length === 0,
         toff.map(([k, h]) => `${k} «${h.tab.word}» ${h.tab.c || h.tab.line}/${h.tab.w} (rest ${h.tab.restW}, theme ${h.tab.accent}, ${h.tab.boxed} boxed)`).join(' · ')
           || `${withTabs.length} heads: ${withTabs.map(([k]) => k).join(', ')} at ${tw}`);
     }

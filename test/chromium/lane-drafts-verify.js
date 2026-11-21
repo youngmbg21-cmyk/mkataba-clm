@@ -171,6 +171,8 @@ const until = async (page, fn, arg, ms = 8000) => {
     /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way): a drafted row's Status badge says
        "Drafted" and no longer names its holder in full; who holds it is the chosen row's panel timeline ("Peter took it") */
     /* the panel is drawn beside the list a moment after the tab press: asked for, bounded; "You took it" where the reader is Peter */
+    /* RE-POINTED (P-32): the panel speaks of the CHOSEN row; a person presses the drafted row first */
+    { const rw = await page.$('#content [data-ikn-row]'); if (rw){ await rw.click(); await page.waitForTimeout(500); } }
     const withCell = await page.waitForFunction(() => /\b(Peter|You) took it\b|\bWith (Peter|you)\b/.test(((document.getElementById('content') || {}).textContent || '') + ' ' + ((document.getElementById('ins-panel') || {}).textContent || '')), null, { timeout: 6000 }).then(() => true, () => false);
     ok('4b the Requests page says Peter holds it', withCell);
     await page.screenshot({ path: path.join(OUT, '4-requests.png') });
