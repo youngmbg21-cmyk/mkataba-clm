@@ -995,3 +995,11 @@ f1070 (3), f989 3, f997 (1), f998 (3) re-pointed.
 ## INSIGHTS — EXPLORER'S PANEL AS DRAWN (P-40, 21 Nov 2026)
 - test/chromium/explorer-chips-follow-the-view-verify.js 3e, 3f: the Grid's rows, a pairing first and no money
   shading in the panel; shaded by money, "Shade the cells by how many" second.
+
+## THE ONE DESK — NEEDS YOU, ONE READING — ONE COUNT, ONE WAIT (review of merged pages, 22 Nov 2026)
+- test/f1135-one-count-one-wait.test.js: ndWaitCounts (Jambo = every piece, late too) read by the Board's chips, the
+  panel's ring and "I have N things ready", the bell's chips and its Jambo filter; hbHelloFitN + "N more" (never a cut
+  row); an approval's wait off its question's `at`, else the raised day, never `lastAction` (Board and Approvals); the
+  company row (name, one line, oldest wait, `plain` clash words, no sum); Activity's short lines (actSayOf, a note Asked).
+- Re-pointed: f801 3h (no levels line in the new look), f869 2c (one line under the company row), f726 1c (clash `at`),
+  f1032 (3)(4) ("Asks you"); test/chromium/open-in-place-verify.js 2 (no "The agents" at the card's foot).

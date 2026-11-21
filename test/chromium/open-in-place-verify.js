@@ -75,10 +75,15 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
 
     /* 1 and 5 RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): they pressed a piece's row on Home and
        measured the landing on the Board's card; with Home gone the piece is a row ON that card (counter-as-drawn-verify 3, 11) */
+    /* RE-POINTED 22 Nov 2026 (review of merged pages): P-39 as drawn ends Needs you at its rows — no "The agents" link
+       at its foot in the new look; the house is reached by its own name (the jump window, "agents") */
     console.log('\n2 · the house is one link away');
-    if (await press('#hm-agents [data-hb-agents-page]', '2 the house link')) {
+    {
+      const noFoot = await page.evaluate(() => !document.querySelector('#hm-agents [data-hb-agents-page]'));
+      check('2 the card\'s foot carries no "The agents" line (as drawn)', noFoot);
+      await page.evaluate(() => setView('jambo'));
       const v = await until(() => state.view === 'jambo' ? 'jambo' : null, null, 5000);
-      check('2 the card\'s "The agents" opens Jambo\'s house', v === 'jambo', String(v));
+      check('2 Jambo\'s house still opens by its name', v === 'jambo', String(v));
     }
 
     console.log('\n3 · each person chooses');

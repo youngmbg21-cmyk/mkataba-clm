@@ -2279,11 +2279,13 @@ function activityCategory(txt){
   return 'steel';
 }
 /* (CAT_DOT went with the old Activity rows, P-38: the new rows colour by kind, actKindOf) */
-function activityRow(id,action,detail,at,ref){
+function activityRow(id,action,detail,at,ref,user,name){
   const txt=detail||action||'';
   /* `ref` is what a person reads (the contract number, where a working file
-     has taken one); `id` stays the key the row opens. */
-  return {id, ref:ref||id, txt:`${action?action+' — ':''}${txt}`.replace(/^ — /,''), at, when:relTime(at), cat:activityCategory((action||'')+' '+txt)};
+     has taken one); `id` stays the key the row opens. `action`, `detail`, `user` and `name` are the entry's own parts,
+     kept so the panel can say it in one short line (actSayOf); `txt` stays the record's whole sentence. */
+  return {id, ref:ref||id, txt:`${action?action+' — ':''}${txt}`.replace(/^ — /,''), at, when:relTime(at), cat:activityCategory((action||'')+' '+txt),
+    action:action||'', detail:detail||'', user:user||'', name:name||''};
 }
 function buildActivityFeed(limit=40){
   // Server mode: the light contract list carries no audit trail, so the
@@ -2292,7 +2294,7 @@ function buildActivityFeed(limit=40){
   if(API_MODE()&&state.activityFeed) return state.activityFeed.slice(0,limit);
   const feed=[];
   state.contracts.forEach(c=>{
-    (c.audit||[]).forEach(a=>feed.push(activityRow(c.id,a.action,a.detail,a.at,(window.contractRef?contractRef(c):c.id))));
+    (c.audit||[]).forEach(a=>feed.push(activityRow(c.id,a.action,a.detail,a.at,(window.contractRef?contractRef(c):c.id),a.user,c.name)));
   });
   feed.sort((a,b)=>Date.parse(b.at||0)-Date.parse(a.at||0));
   return feed.slice(0,limit);
@@ -2306,7 +2308,7 @@ function refreshActivityFeed(force){
   if(!force&&state.activityFeed&&(Date.now()-_activityAt)<15000) return;
   _activityBusy=true;
   api('activity?limit=40')
-    .then(r=>{ state.activityFeed=(r.events||[]).map(e=>activityRow(e.id,e.action,e.detail,e.at,e.contractNo)); })
+    .then(r=>{ state.activityFeed=(r.events||[]).map(e=>activityRow(e.id,e.action,e.detail,e.at,e.contractNo,e.user,e.name)); })
     .catch(()=>{})
     .finally(()=>{ _activityAt=Date.now(); _activityBusy=false; if(state.panelOpen&&state.view!=='intel') renderContextPanel(); });
 }
@@ -4398,8 +4400,57 @@ function actKindOf(a){
   if(/\b(ask|asked|request|review|mention|question)/.test(t)) return 'asked';
   return 'filed';
 }
+/* WHO DID WHAT, IN ONE SHORT LINE (P-38 as drawn: "Amina approved Cleaning Services"; review of the merged pages, 22 Nov
+   2026: the panel printed the trail's whole system sentence, cut with "…"). Read off the entry's own parts — its writer
+   (`user`, first name), its action, and the agreement's name — never guessed: an entry this table does not know says
+   its action word plainly. Its KIND follows the same reading, so a note or an ask is Asked (violet), never Sent. The
+   record keeps its own sentence (History, the export, the search read `txt`); this is only how the panel says it. */
+const ACT_SAYS=[
+  [/^negotiation$/i, /^(internal note|comment|note)\b/i, 'note', 'asked'],
+  [/^negotiation$/i, /\bproposed by\b|\brevised by\b|\bis written on\b/i, 'proposed', 'changed'],
+  [/^negotiation$/i, /\b(accepted|rejected|decided|refused|withdrawn|retracted)\b/i, 'decided', 'changed'],
+  [/^negotiation$/i, /\b(sent|round)\b/i, 'round', 'sent'],
+  [/^negotiation$/i, null, 'redlines', 'changed'],
+  [/^approved$/i, null, 'approved', 'signed', 'approved'],
+  [/^(signed|signature|signing|ready to sign|executed outside hati)$/i, null, 'signed', 'signed'],
+  [/^(approval requested|requested|approval resubmitted)$/i, null, 'asked_yes', 'asked'],
+  [/^changes requested$/i, null, 'asked_changes', 'asked'],
+  [/^(declined|approval rejected)$/i, null, 'declined', 'changed'],
+  [/^(shared|distributed|notice)$/i, /\b(opened|viewed)\b/i, 'opened', 'sent', 'opened'],
+  [/^(shared|distributed|notice)$/i, null, 'sent', 'sent'],
+  [/^(created|uploaded|migrated|imported|template)$/i, null, 'filed', 'filed'],
+  [/^(obligation|obligations)$/i, null, 'duty', 'changed'],
+  [/^playbook$/i, null, 'playbook', 'filed'],
+  [/^(read|scanned|scan|jambo extraction)$/i, null, 'read', 'filed'],
+  [/^(edited|key terms|parties|record|corrected|metadata confirmed|renumbered|document|status changed|renewal term|renewal decision|redline|wording accepted|risk marked|risk|re-filed)$/i, null, 'edited', 'changed'],
+];
+function actSayOf(a){
+  const act=String(a&&a.action||'').trim(), det=String(a&&a.detail||'');
+  const hit=act?ACT_SAYS.find(([ra,rd])=>ra.test(act)&&(!rd||rd.test(det))):null;
+  const raw=String(a&&a.user||'').trim(), sys=!raw||/^(system|hati)$/i.test(raw);
+  const who=sys?'HaTi':raw.split(/\s+/)[0];
+  let nm=String(a&&a.name||'').trim();
+  if(!nm&&a&&a.id&&typeof getContract==='function'){ try{ const c=getContract(a.id); nm=String((c&&c.name)||''); }catch(_){ nm=''; } }
+  const name=nm||String(a&&(a.ref||a.id)||'');
+  if(!hit) return { line:act?i18t('act_s_else',{ who, what:act.toLowerCase(), name }):String(a&&a.txt||''), kind:actKindOf(a), badge:'' };
+  const [, , k, kind, badge]=hit;
+  return { line:i18t(sys&&k==='filed'?'act_s_filed_sys':'act_s_'+k,{ who, name }), kind, badge:badge||'', say:k };
+}
 /* the words an event said, where the trail carries them in quotes */
-function actQuoteOf(a){ const m=/[“"]([^”"]{3,})[”"]/.exec(String(a&&a.txt||'')); return m?m[1]:''; }
+function actQuoteOf(a){
+  const m=/[“"]([^”"]{3,})[”"]/.exec(String(a&&a.txt||'')); if(m) return m[1];
+  /* A NOTE'S OWN WORDS (P-38 as drawn: the words quoted under the line): the trail names the note, the record holds it —
+     the writer's latest note on that agreement at or just before the entry's time (a repeat within the minute is one
+     entry, logAudit). Read from the contract on hand, never fetched; none found, none said. */
+  if(!(a&&a.say==='note'&&a.id&&typeof getContract==='function'&&typeof window.rlChatRows==='function')) return '';
+  try{
+    const c=getContract(a.id), at=Date.parse(a.at||''), who=String(a.user||'').trim().toLowerCase(); if(!c||!isFinite(at)) return '';
+    const hit=(rlChatRows(c,{},null)||[]).map(x=>x&&x.m).filter(n=>n&&n.text&&String(n.who||'').trim().toLowerCase()===who)
+      .filter(n=>{ const t=Date.parse(n.at||''); return isFinite(t)&&t<=at+1000&&at-t<120000; })
+      .sort((x,y)=>String(y.at).localeCompare(String(x.at)))[0];
+    return hit?String(hit.text).replace(/\s+/g,' ').trim():'';
+  }catch(_){ return ''; }
+}
 function actDayOf(at){
   const d=new Date(at||0); if(isNaN(d)) return 'earlier';
   const t=new Date(); const k=x=>x.getFullYear()+'-'+x.getMonth()+'-'+x.getDate();
@@ -4407,16 +4458,16 @@ function actDayOf(at){
 }
 function activityPanelHtml(){
   refreshActivityFeed();   // server mode: keep the whole-workspace feed current
-  const feed=buildActivityFeed().map(a=>Object.assign({},a,{ kind:actKindOf(a) }));
+  const feed=buildActivityFeed().map(a=>{ const S=actSayOf(a); return Object.assign({},a,{ kind:S.kind, line:S.line, badge:S.badge, say:S.say||'' }); });
   const n={}; feed.forEach(a=>{ n[a.kind]=(n[a.kind]||0)+1; });
   if(_actChip!=='all'&&!n[_actChip]) _actChip='all';
   const shown=feed.filter(a=>_actChip==='all'||a.kind===_actChip);
   const chip=(k,word)=>`<button type="button" class="act-chip" data-act-chip="${k}" aria-pressed="${_actChip===k}">${esc(word)}</button>`;
   const time=a=>{ const d=new Date(a.at||0); return actDayOf(a.at)==='today'&&!isNaN(d)?d.toLocaleTimeString(typeof langLocale==='function'?langLocale():undefined,{hour:'2-digit',minute:'2-digit'}):a.when; };
   /* THE TRAIL IS STORED TEXT AND IS PRINTED AS TEXT (26 Sep 2026): a line's detail carries whatever a colleague typed */
-  const row=a=>{ const q=actQuoteOf(a), txt=q?String(a.txt).replace(/\s*[—-]?\s*[“"][^”"]*[”"]\s*/,' ').trim():a.txt;
-    return `<button type="button" class="act-r is-${a.kind}" data-sel-act="${esc(a.id)}"><i class="act-dot" aria-hidden="true"></i><span class="act-w"><b>${esc(txt)}</b><span class="act-ref">${window.refHtml?refHtml(a.ref||a.id):esc(a.ref||a.id)}</span>${q?`<q class="act-q">${esc(q)}</q>`:''}</span>`
-      +`<span class="act-e"><span class="act-t">${esc(time(a))}</span><span class="act-b">${esc(i18t('act_k_'+a.kind))}</span></span></button>`; };
+  const row=a=>{ const q=actQuoteOf(a);
+    return `<button type="button" class="act-r is-${a.kind}" data-sel-act="${esc(a.id)}" title="${esc(a.txt)}"><i class="act-dot" aria-hidden="true"></i><span class="act-w"><b>${esc(a.line||a.txt)}</b><span class="act-ref">${window.refHtml?refHtml(a.ref||a.id):esc(a.ref||a.id)}</span>${q?`<q class="act-q">${esc(q)}</q>`:''}</span>`
+      +`<span class="act-e"><span class="act-t">${esc(time(a))}</span><span class="act-b">${esc(i18t('act_k_'+(a.badge||a.kind)))}</span></span></button>`; };
   const days=['today','yesterday','earlier'].map(d=>{ const G=shown.filter(a=>actDayOf(a.at)===d); return G.length?`<div class="act-h">${esc(i18t('act_d_'+d))}</div><div class="act-tl">${G.map(row).join('')}</div>`:''; }).join('');
   return `<div class="act">
       <div class="act-live"><span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot);"></span>${i18t('ap_scope_workspace')}</div>
@@ -5059,5 +5110,5 @@ if (typeof window !== 'undefined' && window.addEventListener){
 }
 
 Object.assign(window,{alStandardsAnswers,ALERT_STD_DAYS,GUIDE_NL,guidePanelNlHtml,LP_WAIT_MAX,LP_CHIPS,LP_EMOJI,lpRows,lpItems,lpQuoteOf,lpWaits,lpBodyHtml,lpSideHtml,lpSideOn,lpFootHtml,lpChipsHtml,lpIsOpen,lpToggle,lpWire,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,placeBackOn,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
-  buildAlerts,alertCount,updateAlertBadge,jamboBoxFocus,JB_BOX_SEL,JB_BOX_TRIES,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,alertsShowTab,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+  buildAlerts,alertCount,updateAlertBadge,jamboBoxFocus,JB_BOX_SEL,JB_BOX_TRIES,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,alertsShowTab,activityPanelHtml,actSayOf,ACT_SAYS,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

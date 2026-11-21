@@ -93,7 +93,9 @@ function apApprovalRows(){
     const owner=(typeof contractOwnerName==='function')?(contractOwnerName(x.c)||''):'';
     return {
       c:x.c, mine:!!x.mine, own:!!x.own, st:x.st,
-      idle:Number.isFinite(asked)?Math.max(0,Math.floor((Date.now()-asked)/86400000)):(x.idle||0),
+      /* the wait the Board's row says (ndWaitedDays): since the question was asked, else since the record was raised —
+         never the display day `lastAction`, which any act rewrites (review of the merged pages, 22 Nov 2026) */
+      idle:Number.isFinite(asked)?Math.max(0,Math.floor((Date.now()-asked)/86400000)):(()=>{ let t=null; try{ t=typeof window.repRaisedAt==='function'?repRaisedAt(x.c):null; }catch(_){ t=null; } return t!=null&&isFinite(t)?Math.max(0,Math.floor((Date.now()-t)/86400000)):(x.idle||0); })(),
       rule:req?(typeof saStepName==='function'?saStepName(sa.need):apRuleText(x.st)):apRuleText(x.st),
       ruleSub:req?i18t('sa_pg_rule_sub'):'',
       who:(ask&&ask.by&&ask.by.name)||(req?((req.askedBy&&req.askedBy.name)||''):owner),

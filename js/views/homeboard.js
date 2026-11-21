@@ -1677,8 +1677,11 @@ function hbBoardHelloHtml(){
   let views = 0; try { views = (typeof igViewsRead === 'function') ? igViewsRead().length : 0; } catch (_){ views = 0; }
   let n = 0; try { n = (typeof counterNeedsCount === 'function') ? counterNeedsCount() : hbNeedsCount(); } catch (_){ n = 0; }
   _hbNyDockN = n; _hbNyDockBook = (state.contracts || []).length;
-  let work = 0; try { work = hbAgentsData(null).ready || 0; } catch (_){ work = 0; }
   let D = null; try { D = (typeof ndRead === 'function') ? ndRead() : null; } catch (_){ D = null; }
+  /* ONE COUNT (ndWaitCounts, review of the merged pages 22 Nov 2026): "I have N things ready", the ring's legend and the
+     Board's "Jambo prepared N" chip are one reading — every piece he prepared, late or not */
+  let W = null; try { W = (D && typeof ndWaitCounts === 'function') ? ndWaitCounts(D) : null; } catch (_){ W = null; }
+  let work = 0; try { work = W ? W.jambo : (hbAgentsData(null).ready || 0); } catch (_){ work = 0; }
   const late = (D && D.late) || 0;
   /* the ONE count rules: nothing on the desk is said as nothing, whatever a slower count of his work still holds */
   const say = !n ? i18t('hb_jb_counter_none') : work ? i18tn('hbw_ready', work, { n: work }) : i18tn('hbw_needs', n, { n });
@@ -1712,9 +1715,9 @@ function hbBoardHelloHtml(){
        Jambo) with its counts; then "Jambo prepared, for your yes": each piece, the paper's words where it has them, a ›. */
     void live; void days;
     let B = null; try { B = (typeof ndOnBoard === 'function' && D) ? ndOnBoard(D) : null; } catch (_){ B = null; }
-    const all = B ? B.jambo.concat(B.you) : [];
-    const cnt = { late: all.filter(r => r.late).length, you: B ? B.you.filter(r => !r.late).length : 0, jambo: B ? B.jambo.filter(r => !r.late).length : 0 };
-    const tot = cnt.late + cnt.you + cnt.jambo;
+    /* the ring is the late of ALL that waits; the legend says each chip's own count (a late piece is late AND Jambo's) */
+    const cnt = W ? { late: W.late, you: W.you, jambo: W.jambo } : { late: 0, you: 0, jambo: 0 };
+    const tot = W ? W.all : 0;
     const R = 2 * Math.PI * 17, frac = tot ? cnt.late / tot : 0;
     const ringBar = tot ? `<div class="hbw2-wait"><span class="hbw2-ring" role="img" aria-label="${_hbE(i18t('hbw2_ring', { a: cnt.late, b: tot }))}"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="hbw2-rb" cx="20" cy="20" r="17"/><circle class="hbw2-rf" cx="20" cy="20" r="17" style="stroke-dasharray:${R.toFixed(1)};stroke-dashoffset:${(R * (1 - frac)).toFixed(1)}"/></svg><b>${cnt.late}/${tot}</b></span>`
       + `<span class="hbw2-bw"><span class="hbw2-bar">${['late', 'you', 'jambo'].filter(k => cnt[k]).map(k => `<i class="is-${k}" style="flex:${cnt[k]}"></i>`).join('')}</span>`
@@ -1722,8 +1725,13 @@ function hbBoardHelloHtml(){
     const parts = r => { try { return (typeof ndParts === 'function') ? ndParts(r) : {}; } catch (_){ return {}; } };
     /* the paper's words as drawn: "§ 2 · “The lease ends on 11 October 2026”" (cn2QuoteOf, the one reading the rows use) */
     const quote = r => { try { const Q = typeof window.cn2QuoteOf === 'function' ? cn2QuoteOf(r).filter(q => q.w) : []; return Q.length ? [Q[0].sec, '\u201c' + Q[0].w + '\u201d'].filter(Boolean).join(' \u00b7 ') : ''; } catch (_){ return ''; } };
-    const prep = (B ? B.jambo : []).slice(0, 5).map(r => { const P = parts(r); const q = quote(r);
-      return { mark: '', markText: '', tone: 'violet', t: P.title || P.name || '', s: q || [P.name || P.deal, _ndPlain(P.ref)].filter(Boolean).join(' \u00b7 '), quote: !!q, attr: `data-hbw-row="${_hbE(r.key)}"` }; }).filter(x => x.t);
+    /* THE LAST ROW IS NEVER CUT (review of the merged pages, 22 Nov 2026: at 1536×730 "Arrival check: Brut Africa Ltd"
+       stood half under the links line): as many pieces as fit whole above the panel's foot (hbHelloFitN), and where some
+       do not, a last row says how many more — a cap is said, never a silent trim — and opens them on the Board */
+    const allP = B ? B.jambo : [], fit = hbHelloFitN(allP.length), more = allP.length - fit;
+    const prep = allP.slice(0, fit).map(r => { const P = parts(r); const q = quote(r);
+      return { mark: '', markText: '', tone: 'violet', t: P.title || P.name || '', s: q || [P.name || P.deal, _ndPlain(P.ref)].filter(Boolean).join(' \u00b7 '), quote: !!q, attr: `data-hbw-row="${_hbE(r.key)}"` }; }).filter(x => x.t)
+      .concat(more > 0 ? [{ mark: '', markText: '', tone: '', t: i18tn('hbw2_more', more, { n: more }), s: '', attr: 'data-hbw="jambo" data-hbw-more' }] : []);
     return `<div class="jl-words is-ov hb-jb-hello is-welcome is-five is-ls">${jamboOverviewHtml({ before: brain, title: say, sub,
       mid: ringBar, midLabel: tot ? i18t('hbw2_wait') : '',
       groups: prep.length ? [{ label: i18t('hbw2_prepared'), rows: prep }] : [],
@@ -1732,6 +1740,37 @@ function hbBoardHelloHtml(){
   }
   const before = `${brain}<h3 class="hbw-say">${_hbE(say)}</h3>${sub ? `<p class="hbw-sub">${_hbE(sub)}</p>` : ''}${trio}${acts}`;
   return (typeof jamboOverviewHtml === 'function') ? `<div class="jl-words is-ov hb-jb-hello is-welcome">${jamboOverviewHtml({ before, asks }, 'hb')}</div>` : '';
+}
+/* HOW MANY OF JAMBO'S PIECES FIT WHOLE in the Board's panel above its foot (the links line and the ask box): measured on
+   the panel as last drawn (the list's top inside the scroller, a row's height), else the scroller's own height read from
+   the window; one row is kept for "N more" when they do not all fit. Never fewer than one piece. */
+let _hbHelloGeo = null;
+function hbHelloFitN(total){
+  const n = Math.max(0, total | 0); if (n <= 1 || typeof document === 'undefined') return n;
+  try {
+    const feed = document.getElementById('igd-feed');
+    const g = feed && feed.querySelector('.hb-jb-hello .jov5-group');
+    if (feed && g){
+      const fr = feed.getBoundingClientRect(), gr = g.getBoundingClientRect(), row = g.querySelector('.jov5-row');
+      if (gr.height > 0) _hbHelloGeo = { top: gr.top - fr.top + feed.scrollTop, row: (row && row.offsetHeight) || 42 };
+    }
+    const G = _hbHelloGeo || { top: 400, row: 42 };
+    const H = (feed && feed.clientHeight) || Math.max(0, (typeof innerHeight === 'number' ? innerHeight : 800) - 151);
+    const rows = Math.floor((H - G.top - 4) / G.row);
+    if (!(rows > 0)) return 1;
+    return rows >= n ? n : Math.max(1, rows - 1);
+  } catch (_){ return n; }
+}
+/* the window changes size: the Board's panel is drawn again only when what fits changed */
+if (typeof window !== 'undefined' && !window._hbHelloFitWired){
+  window._hbHelloFitWired = true;
+  let t = 0;
+  window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { try {
+    if (!hbBoardHelloOn() || typeof renderIntelDock !== 'function') return;
+    const shown = document.querySelectorAll('#igd-feed .hb-jb-hello [data-hbw-row]').length;
+    const D = typeof ndRead === 'function' ? ndRead() : null, all = D && typeof ndOnBoard === 'function' ? ndOnBoard(D).jambo.length : 0;
+    if (hbHelloFitN(all) !== shown) renderIntelDock();
+  } catch (_){} }, 200); });
 }
 /* the welcome's doors, each an existing one: the late and "show all" open the Board's Needs you on All (the late
    stand first there, ndBoardList), prepared opens it on Jambo's tab, ending soon the list behind the book's Ending
@@ -1808,9 +1847,13 @@ function hbNdOpts(A, since){
   const at = since || null;
   const done = (H.done && H.done.length) ? `<div class="hb-done">${_hbE(i18t('hb_done_since', { when: hbDayWords(at) }))} ${H.done.map(x => `<button type="button" data-hb-dig="dn:${_hbE(x.k)}">${_hbE(i18tn('hb_done_' + x.k, x.n, { n: _hbN(x.n) }))}</button>`).join('<span aria-hidden="true">·</span>')}<span class="hb-grow"></span><span class="hb-quiet">${_hbE(i18t('hb_done_trail'))}</span></div>` : '';
   let its = []; try { its = (typeof ndPieces === 'function') ? ndPieces().map(p => p.it) : []; } catch (_){ its = []; }
-  const levels = hbAgLevelsHtml();
-  const house = `<button type="button" class="hb-edge-b" data-hb-agents-page>${_hbE(i18t('hb_the_agents'))}</button>`;
-  return { look: hbNdLookHtml, chase: hbChaseManyHtml(its), keep: !!done, foot: `<div class="nd-foot">${done}<div class="nd-foot-r">${levels || '<span class="hb-grow"></span>'}${house}</div></div>` };
+  /* THE AGENTS' LEVELS LINE LEFT THE BOARD (P-39 as drawn; review of the merged pages, 22 Nov 2026): "All seven agents:
+     Ask me first … Change · The agents" is not in the drawing — the levels are set and read on the agents' page and in
+     Settings › Jambo. In the new look the card ends at its rows (and "Show N more", a cap said); the old look keeps it. */
+  const nl = typeof newLookOn === 'function' && newLookOn();
+  const levels = nl ? '' : hbAgLevelsHtml();
+  const house = nl ? '' : `<button type="button" class="hb-edge-b" data-hb-agents-page>${_hbE(i18t('hb_the_agents'))}</button>`;
+  return { look: hbNdLookHtml, chase: hbChaseManyHtml(its), keep: !!done, foot: (done || levels || house) ? `<div class="nd-foot">${done}${(levels || house) ? `<div class="nd-foot-r">${levels || '<span class="hb-grow"></span>'}${house}</div>` : ''}</div>` : '' };
 }
 /* a piece opened under its row: its body (a chase's letter as it will leave,
    else the piece's own), then its acts — its one act, the rest, Put away last */
@@ -6355,7 +6398,12 @@ function hbRdnTermQuote(c){
     for (const cl of cls){
       const title = String(cl.title || ''), text = String(cl.text || cl.html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
       if (!/\b(term|duration|renew\w*|expir\w*)\b/i.test(title + ' ' + text.slice(0, 200))) continue;
-      const sent = text.split(/(?<=[.;])\s+/).find(t => t.includes(yr) && /\b(term|end|expir|renew)/i.test(t));
+      const parts = text.split(/(?<=[.;])\s+/);
+      /* the sentence naming the end's year; where the paper states its term without a date ("The term is three (3)
+         years from the effective date…"), its own first sentence about the term — still the paper's words where the
+         term is read, never guessed (review of the merged pages, 22 Nov 2026: Explorer and Read down said no quote for a
+         term the paper plainly states) */
+      const sent = parts.find(t => t.includes(yr) && /\b(term|end|expir|renew)/i.test(t)) || parts.find(t => /\b(term|ends?|expir\w*|renew\w*)\b/i.test(t) && t.length > 20);
       if (sent){ const m = /^\s*(\d+(?:\.\d+)*)/.exec(String(cl.num || cl.number || title)); return { w: sent.replace(/[.;]$/, ''), sec: m ? '§ ' + m[1] : '', name: c.name || '' }; }
     }
   } catch (_){ return null; }

@@ -1144,6 +1144,9 @@ function stClashes(){
       /* "Open Lina Ek" opens her drawer with the limit that clashes lit
          (round 25 as drawn) — the person's whole name, as the row says it */
       return { key:x.key, dot:'red', who:p, appr:a, cap:x.cap, acap:x.acap,
+        /* NO MONEY OUTSIDE SETTINGS (P-38, review of the merged pages 22 Nov 2026): the Board's company row and the bell
+           say the clash without the sums (`plain`); Settings, the admin's own page, keeps them */
+        plain:i18t('st_clash_cap_plain',{who:stNameOf(p),appr:stNameOf(a)}),
         text:x.cap==null?i18t('st_clash_cap_any',{who:stNameOf(p),appr:stNameOf(a),acap:money(x.acap)})
           :i18t('st_clash_cap',{who:stNameOf(p),cap:money(x.cap),appr:stNameOf(a),acap:money(x.acap)}),
         btn:`data-st-panel="person:${PB_ATTR(p.id)}" data-st-focus="${x.cap==null?'#tm-cap-none':'#tm-cap'}"`, verb:i18t('st_clash_open',{name:stNameOf(p)}) }; }
@@ -1152,6 +1155,7 @@ function stClashes(){
     if(x.kind==='self') return { key:x.key, kind:'self', stream:x.stream||null, dot:'warn',
       text:x.stream?i18t('st_clash_self_stream',{who:stNameOf(x.who),stream:(FOLDERS[x.stream]||{}).name||x.stream})
         :i18t('st_clash_self_rule',{who:stNameOf(x.who),rule:condLabel((x.rule&&x.rule.cond)||{})}),
+      ...(x.stream?{}:{ plain:i18t('st_clash_self_rule_plain',{who:stNameOf(x.who)}) }),
       btn:'data-st-panel="approvals"', verb:i18t('st_clash_rule') };
     return { key:x.key, kind:x.kind, dot:'warn', text:i18t('st_clash_nobody',{stream:(FOLDERS[x.stream]||{}).name||x.stream}), btn:'data-st-panel="approvals"', verb:i18t('st_clash_rule') };
   });
@@ -1223,7 +1227,10 @@ function stNeedsAll(){
   const out=[];
   if(!stIsAdmin()) return out;
   /* a colleague's ask, answered here (Ask an admin, js below) */
-  if(typeof stAsksOpen==='function') stAsksOpen().forEach(a=>out.push({ key:'ask:'+a.id, dot:'warn',
+  /* `at`: the day each began, where the record keeps it (the ask's own day, the day a clash was first seen, the
+     quarter the access review fell due, the day an invitation went) — the Board's company row says the oldest wait
+     (review of the merged pages, 22 Nov 2026); a row with no day carries none */
+  if(typeof stAsksOpen==='function') stAsksOpen().forEach(a=>out.push({ key:'ask:'+a.id, dot:'warn', at:a.createdAt||null,
     text:i18t('st_need_ask',{who:a.byName||'',what:a.what}), sub:stDay(a.createdAt),
     btn:`data-st-panel="ask:${PB_ATTR(a.id)}"`, verb:i18t('st_need_answer') }));
   /* the clashes in who may do what (piece 7), the red one first */
@@ -1231,10 +1238,10 @@ function stNeedsAll(){
      "Control room", round 25, 17 Oct 2026) */
   /* …and since the day HaTi first saw it (owner's answer 12, 18 Oct 2026:
      "since 14 Oct"), kept on the server by stClashSeenSync */
-  stClashes().forEach(r=>{ const seen=stClashSeenDay(r.key);
-    out.push((r.sub||r.subHtml)?r:{ ...r, sub:seen?i18t('st_need_kind_clash_since',{ day:seen }):i18t('st_need_kind_clash') }); });
+  stClashes().forEach(r=>{ const seen=stClashSeenDay(r.key), at=String(((state&&state.clashSeen)||{})[r.key]||'')||null;
+    out.push((r.sub||r.subHtml)?{ ...r, at }:{ ...r, at, sub:seen?i18t('st_need_kind_clash_since',{ day:seen }):i18t('st_need_kind_clash') }); });
   /* the quarter's access review, until it is done (piece 8) */
-  const arRow=stArNeedRow(); if(arRow) out.push(arRow);
+  const arRow=stArNeedRow(); if(arRow){ const m=/^(\d{4})-Q(\d)$/.exec(String((stAr()||{}).quarter||'')); out.push(m?{ ...arRow, at:new Date(+m[1],(+m[2]-1)*3,1).toISOString() }:arRow); }
   /* (a change to a standard waiting for a yes is on Approvals & signing's second pile, owner 17 Nov 2026 — not here) */
   /* contracts past their keeping period, waiting for an admin's yes (piece 10) */
   stKpNeedRows().forEach(r=>out.push(r));
@@ -1254,7 +1261,7 @@ function stNeedsAll(){
     out.push({ key:'panel:'+k, dot:'warn', text:p.title(), subHtml:st.text?stShortState(st.text):'',
       btn:`data-st-panel="${k}"`, verb:(p.fixVerb&&p.fixVerb())||i18t('st_need_open') }); });
   const inv=stInvited();
-  if(inv.length===1) out.push({ key:'invite', dot:'quiet',
+  if(inv.length===1) out.push({ key:'invite', dot:'quiet', at:(inv[0].prefs&&inv[0].prefs.invitedAgainAt)||inv[0].createdAt||null,
     text:i18t('st_need_invite_single',{name:stNameOf(inv[0])}),
     sub:(inv[0].prefs&&inv[0].prefs.invitedAgainAt)?i18t('st_need_invite_again',{day:stDay(inv[0].prefs.invitedAgainAt)}):i18t('st_need_invite_sent',{day:stDay(inv[0].createdAt)}),
     btn:`data-st-resend="${PB_ATTR(inv[0].id)}"`, verb:i18t('st_resend') });

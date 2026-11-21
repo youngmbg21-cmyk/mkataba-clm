@@ -17685,6 +17685,9 @@ function rlNpCompactHtml(c, ch, th){
   const home = ch || ((th.root.anchor && window.negoNoteHomeFor) ? negoNoteHomeFor(c, th.root.anchor.clauseId) : null);
   return `<button type="button" class="rl-np-crow" data-rl-np-open="${_nea(key)}"${home ? ` data-rl-np-chg="${_nea(home.id)}" title="${_nea(home.id)}"` : ''}>
       <span class="rl-np-ch">${S.sec ? `<span class="rl-np-sec">${_ne(S.sec)}</span>` : ''}<b>${_ne(S.name || i18t('ng_np_on_contract'))}</b><span class="rl-np-st is-${st}">${_ne(i18t('ng_np_st_' + st))}</span></span>
+      ${''/* THE PAPER'S WORDS THE NOTE IS PINNED TO, quoted under its clause (P-38, the Legora + Stripe way, as drawn); a
+             note pinned to no words says none */}
+      ${th.root.anchor && th.root.anchor.quote ? `<q class="rl-np-cq">${_ne(String(th.root.anchor.quote).replace(/\s+/g, ' ').trim())}</q>` : ''}
       <span class="rl-np-cl">${rlNpAvatarHtml(last.who || '', true)}<span class="w">${_ne(words)}</span><span class="t">· ${_ne(negoWhen(last.at))}</span></span>
       ${earlier ? `<span class="rl-np-ce">${_ne(i18tn('ng_np_earlier', earlier, { n: earlier }))} · <u>${_ne(i18t('ng_np_show'))}</u></span>` : ''}
     </button>`;
@@ -17704,8 +17707,8 @@ function rlNpOpenHtml(c, ch, th, room, side, other, opts){
     ${opts.rooms || ''}
     <div class="rl-np-ch is-head">${S.sec ? `<span class="rl-np-sec">${_ne(S.sec)}</span>` : ''}<b>${_ne(S.name || i18t('ng_np_on_contract'))}</b><span class="rl-np-st is-${st}">${_ne(i18t('ng_np_st_' + st))} · ${_ne(i18tn('ng_np_msgs', msgs.length, { n: msgs.length }))}</span></div>
     ${opts.headRef || ''}
-    ${''/* the words the note was written on stay said, once, under the clause (the drawing shows none; a note pinned to
-           words would otherwise lose them — named to the owner) */}
+    ${''/* the words the note was written on, once, under the clause — lit amber, as the Legora + Stripe way draws them
+           (P-38), so everyone argues about the same words */}
     ${th.root.anchor && th.root.anchor.quote ? `<p class="rl-np-on-q"><q>${_ne(th.root.anchor.quote)}</q></p>` : ''}
     <div class="rl-np-people">${who.slice(0, 4).map(n => rlNpAvatarHtml(n, true)).join('')}<span>${_ne(i18tn('ng_np_people', who.length, { n: who.length }))} · ${_ne(i18t('ng_np_last', { when: negoWhen(last.at) }))}</span></div>
     <div class="rl-np-tl">${rlNpThreadHtml(c, ch, th, room, side, other, { ...opts, stripe: true })}</div>
