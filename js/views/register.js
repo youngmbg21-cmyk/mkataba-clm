@@ -5407,6 +5407,14 @@ function ngnPlace(){ return { tab: _ngn, sel: _ngnSel, q: _ngnQ }; }
 function ngnPlacePut(p){ if (!p) return; if (typeof p.tab === 'string') _ngn = p.tab; if (p.sel != null) _ngnSel = p.sel; if (typeof p.q === 'string') _ngnQ = p.q; }
 function ngnOn(){ return typeof window.newLookOn === 'function' && newLookOn() && typeof insFits === 'function' && insFits() && typeof insPaintPanel === 'function'; }
 function ngnBandOf(c){ let m = null; try { m = negWhoseMove(c); } catch (_){ m = null; } return !m ? 'settled' : m.k === 'you' ? 'you' : m.k === 'them' ? 'them' : 'settled'; }
+/* + Lead (P-29): the deals one colleague leads; a set chip with its × to let go */
+let _ngnLead = '';
+function ngnLeadChipHtml(all){
+  if (_ngnLead) return `<button type="button" class="apn-chip is-set" data-ngn-lead="">${esc(_ngnLead)} <span aria-hidden="true">\u00d7</span></button>`;
+  const L = [...new Set(all.map(r => r.lead && r.lead.name).filter(Boolean))];
+  if (L.length < 2) return '';
+  return `<span class="apn-rule-w"><button type="button" class="apn-chip is-add" data-ngn-lead-open aria-expanded="false">+ ${esc(i18t('ngn_c_lead'))}</button><span class="apn-rule-menu" hidden>${L.map(x => `<button type="button" data-ngn-lead="${esc(x)}">${esc(x)}</button>`).join('')}</span></span>`;
+}
 function ngnBook(){
   const rank = { you: 0, them: 1, settled: 2 };
   const all = (typeof negoLiveList === 'function' ? negoLiveList() : []).map(c => ({ c, b: ngnBandOf(c) }));
@@ -5414,7 +5422,8 @@ function ngnBook(){
   const hit = x => !q || [x.c.name, x.c.counterparty, (window.contractRef ? contractRef(x.c) : x.c.id)].some(s => String(s || '').toLowerCase().includes(q));
   const on = x => _ngn === 'live' ? true : _ngn === 'you' ? x.b === 'you' : _ngn === 'them' ? x.b === 'them' : x.b === 'settled';
   const n = k => all.filter(x => k === 'live' ? x.b !== 'settled' : x.b === k).length;
-  return { all, n, list: all.filter(x => hit(x) && on(x)).sort((a, b) => (rank[a.b] - rank[b.b])) };
+  const led = x => { if (!_ngnLead) return true; try { return regNegoLeadOf(x.c).name === _ngnLead; } catch (_){ return false; } };
+  return { all, n, list: all.filter(x => hit(x) && on(x) && led(x)).sort((a, b) => (rank[a.b] - rank[b.b])) };
 }
 /* the words their change puts on the paper, a few either side, never the whole clause */
 function ngnAskWords(ch){
@@ -5466,37 +5475,65 @@ function ngnRead(x){
   let lead = { name: '', short: '—' }; try { lead = regNegoLeadOf(c); } catch (_){ /* nobody named */ }
   return { c, b, round, move, open, sub, last: ngnWhen(lastAt), lastSub, lead, asks, prep, unsent, ap };
 }
+/* NEGOTIATIONS, THE LEGORA + STRIPE WAY (P-29, owner's pick 20 Nov 2026: "L+S and park it"): one calm table — the
+   Agreement (name; the other side and reference; the paper's words of the first open ask with §, on one line; our own
+   unsent change marked "yours, not sent", never as their ask) · Whose move (a soft badge) · Rounds (a strip, one mark per
+   round: green ours, blue theirs, the round in play ringed amber) · Open asks (theirs only) · Lead · Waiting · the act,
+   on the chosen row only. No money in a row, no amber "!" mark. */
+function ngnBadgeOf(b){ return b === 'you' ? { tone: 'amber', w: i18t('ngn_tab_you') } : b === 'them' ? { tone: 'steel', w: i18t('ngn_tab_them') } : { tone: 'green', w: i18t('ngn_tab_settled') }; }
+function ngnRoundsOf(c, b){
+  const R = (c.negotiation && Array.isArray(c.negotiation.rounds)) ? c.negotiation.rounds : [];
+  const side = rd => { const ch = Array.isArray(rd && rd.changes) ? rd.changes : []; const th = ch.filter(x => x && x.authorSide === 'counterparty').length; return th > ch.length - th ? 'theirs' : 'ours'; };
+  const done = R.map(rd => ({ n: rd.n, side: side(rd), at: rd.at || '' }));
+  if (b !== 'settled') done.push({ n: (c.negotiation && Number(c.negotiation.round)) || done.length + 1, side: b === 'you' ? 'theirs' : 'ours', now: true });
+  return done;
+}
+function ngnRoundsHtml(c, b, big){
+  const L = ngnRoundsOf(c, b).slice(-8);
+  return `<span class="ngn-rs${big ? ' is-big' : ''}" aria-label="${esc(i18tn('ngn_rounds_n', L.length, { n: L.length }))}">${L.map(x => `<i class="is-${x.side}${x.now ? ' is-now' : ''}" title="${esc(i18t(x.side === 'theirs' ? 'ngn_round_theirs' : 'ngn_round_ours', { n: x.n }))}"></i>`).join('')}</span>`;
+}
+/* the act on the chosen row: Answer (their asks wait) · Send (ours decided, unsent) · Remind (theirs to move) · Before you sign (settled) */
+function ngnActOf(r){
+  const c = r.c, E = esc;
+  const may = (typeof canEdit !== 'function' || canEdit()) && !(typeof window.deskMaySend === 'function' && !window.deskMaySend(c));
+  if (r.b === 'you' && r.unsent && may) return { label: i18tn('ngn_d_send', r.unsent, { n: r.unsent }), attr: `data-ngn-send="${E(c.id)}"` };
+  if (r.b === 'you') return { label: i18t('ngn_act_answer'), attr: `data-ngn-open="${E(c.id)}"` };
+  if (r.b === 'them' && may) return { label: i18t('ngn_act_remind'), attr: `data-ngn-chase="${E(c.id)}"` };
+  if (r.b === 'settled') return { label: i18t('ap_pg_open_signing'), attr: `data-ngn-sign="${E(c.id)}"` };
+  return null;
+}
 function ngnRowHtml(r, sel, keys){
   const c = r.c, E = esc, ref = window.contractRef ? contractRef(c) : c.id;
-  let money = ''; try { money = typeof fmtMoneyShortOf === 'function' && (!window.canViewValues || canViewValues()) ? fmtMoneyShortOf(c) : ''; } catch (_){ money = ''; }
-  const line = [E(c.counterparty || ''), `<b class="ngn-ref">${E(ref)}</b>`, money && money !== '—' ? E(money) : '', r.b === 'settled' ? E(i18t('ngn_settled_w')) : ''].filter(Boolean).join(' · ');
-  /* NAME THE CLAUSE (the harmony review, owner's yes 9 Nov 2026): an ask with no words of its own to quote says its
-     clause's number and name in the row's own font, never an empty pair of quote marks */
-  const open = r.open.n ? `${r.open.n} · ${r.open.quotes.map(q => q.q ? `<q class="ngn-q">${E(q.q)}</q>${q.s ? ` <span class="ngn-s">${E(q.s)}</span>` : ''}` : `<span class="ngn-nm">${E([q.s, q.nm].filter(Boolean).join(' '))}</span>`).join(' · ')}` : `0 · ${E(r.open.say)}`;
-  /* "You" on the reader's own deal, a colleague's short name on theirs; the whole name on its hover (#762: both branches
-     of this choice had become the short name) */
+  const line = [E(c.counterparty || ''), `<b class="ngn-ref">${E(ref)}</b>`].filter(Boolean).join(' · ');
+  const q = r.asks.length ? r.open.quotes[0] : null;
+  const quote = q ? `<div class="ngn-ql">${q.q ? `<i>“${E(q.q)}”</i>` : `<i>${E(q.nm || '')}</i>`}${q.s ? ` <span>${E(q.s)}</span>` : ''}</div>`
+    : r.unsent ? `<div class="ngn-ql is-ours"><i>${E(i18tn('ngn_yours_unsent', r.unsent, { n: r.unsent }))}</i></div>` : '';
+  const bd = ngnBadgeOf(r.b);
   const nm = r.lead.name ? (r.lead.mine ? i18t('ng_you') : ngnShortName(r.lead.name)) : '—';
+  const act = sel ? ngnActOf(r) : null;
   return `<tr data-ngn-row="${E(c.id)}" class="${r.b === 'you' ? 'is-yours' : ''}${r.b === 'settled' ? ' is-settled' : ''}${sel ? ' is-sel' : ''}" tabindex="-1">`
-    + `<td>${listSapCellHtml(r.b === 'you' ? 'you' : r.b === 'them' ? 'them' : 'done', `<div class="cun-name">${E(c.name || '')}</div><div class="cun-sub">${line}</div>`, r.move)}</td>`
-    + (keys || NGN_KEYS).map(k => k === 'round' ? `<td class="ngn-rd">${E(r.round)}</td>`
-      : k === 'move' ? `<td class="ngn-mv${r.b === 'you' ? ' is-you' : ''}">${E(r.move)}</td>`
-      : k === 'asks' ? `<td><div class="ngn-open">${open}</div>${r.sub ? `<div class="cun-sub">${E(r.sub)}</div>` : ''}</td>`
+    + `<td><div class="cun-name">${E(c.name || '')}</div><div class="cun-sub">${line}</div>${quote}</td>`
+    + (keys || NGN_KEYS).map(k => k === 'move' ? `<td><span class="apn-st is-${bd.tone}"><i></i>${E(bd.w)}</span></td>`
+      : k === 'round' ? `<td>${ngnRoundsHtml(c, r.b)}</td>`
+      : k === 'asks' ? `<td class="ngn-n">${r.asks.length || '<span class="apn-none-c">0</span>'}</td>`
       : k === 'lead' ? `<td>${r.lead.name ? `<span class="ngn-lead" title="${E(r.lead.name)}"><span class="ngn-av" aria-hidden="true">${E(ngnInitials(r.lead.name))}</span>${E(nm)}</span>` : '—'}</td>`
-      : k === 'last' ? `<td><div class="ngn-last">${E(r.last || '—')}</div>${r.lastSub ? `<div class="cun-sub">${E(r.lastSub)}</div>` : ''}</td>` : '<td></td>').join('') + '</tr>';
+      : k === 'last' ? `<td><div class="ngn-last">${E(r.last || '—')}</div></td>`
+      : k === 'act' ? `<td class="ngn-act">${act ? `<button type="button" class="ui-btn ui-btn-sm" ${act.attr}>${E(act.label)}</button>` : ''}</td>` : '<td></td>').join('') + '</tr>';
 }
 /* THE NEW LOOK'S COLUMNS UNDER THE ONE COLUMN RULE (listCols; #762, 17 Nov 2026): the old list's seat, so a reader's
    dragged widths carry over; the agreement, Whose move and What is open always stand, where the room is short Last
    steps aside first, then Round and Lead */
-const NGN_KEYS = ['round', 'move', 'asks', 'lead', 'last'];
+const NGN_KEYS = ['move', 'round', 'asks', 'lead', 'last', 'act'];
 function ngnCols(){
-  const W = { round: 72, move: 120, asks: 240, lead: 120, last: 110 }, R = { last: 2, round: 4, lead: 4 };
-  const T = { name: 'ngn_c_agreement', round: 'ngn_c_round', move: 'ngn_c_move', asks: 'ngn_c_asks', lead: 'ngn_c_lead', last: 'ngn_c_last' };
+  /* P-29: Whose move · Rounds · Open asks · Lead · Waiting · the act; where the room is short Rounds steps aside first, then Lead */
+  const W = { move: 112, round: 92, asks: 84, lead: 116, last: 92, act: 120 }, R = { round: 1, lead: 2 };
+  const T = { name: 'ngn_c_agreement', round: 'ngn_c_rounds', move: 'ngn_c_move', asks: 'ngn_c_open_asks', lead: 'ngn_c_lead', last: 'ngn_c_waiting', act: 'ngn_c_act' };
   const DEFS = [{ k: 'name' }, ...NGN_KEYS.map(k => ({ k, w: W[k], rank: R[k] }))];
   const FIT = typeof listCols === 'function' ? listCols(REG_NEGO_SEAT, DEFS, () => ngnRepaint()) : { cols: DEFS };
   const cols = FIT.cols;
   return { keys: cols.slice(1).map(c => c.k),
     colg: `<colgroup>${cols.map(c => typeof listColTag === 'function' ? listColTag(c, true) : `<col${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}>`).join('')}</colgroup>`,
-    th: `<thead><tr>${cols.map(c => `<th>${esc(i18t(T[c.k]))}${typeof listGripHtml === 'function' ? listGripHtml(REG_NEGO_SEAT, c.k) : ''}</th>`).join('')}</tr></thead>` };
+    th: `<thead><tr>${cols.map(c => `<th${c.k === 'asks' ? ' class="ngn-n"' : ''}>${c.k === 'act' ? '' : esc(i18t(T[c.k]))}${typeof listGripHtml === 'function' && c.k !== 'act' ? listGripHtml(REG_NEGO_SEAT, c.k) : ''}</th>`).join('')}</tr></thead>` };
 }
 /* the page in Jambo's words, counted from the list: whose answers wait, who holds our paper */
 function ngnPageSay(rows){
@@ -5545,23 +5582,22 @@ function ngnPanelFiveHtml(r, rows){
      nothing): its name the headline, its three numbers, its facts, its one black button. The page's own overview is
      one press back (the tab, "‹ Overview"), and there a row CHOOSES as a row of the list does (data-ngn-pick). */
   if (r){
+    /* THE CHOSEN DEAL'S PANEL, P-29 (owner's pick 20 Nov 2026): NO CARDS AND NO MONEY — the whose-move badge; the name,
+       the other side, the reference; Round, Open asks and the rounds strip; the act (black) and Open the redlines; their
+       asks in the paper's words with §; a timeline */
     const c = r.c, ref = window.contractRef ? contractRef(c) : c.id;
-    let money = ''; try { money = typeof fmtMoneyShortOf === 'function' && (!window.canViewValues || canViewValues()) ? fmtMoneyShortOf(c) : ''; } catch (_){ money = ''; }
-    const secs = [...new Set(r.asks.map(ngnSecOf).filter(Boolean))].join(' \u00b7 ');
-    const facts = [];
-    if (r.asks.length) facts.push({ t: i18t('ngn_p_asks'), s: [r.prep >= r.asks.length ? i18tn('ngn_p_asks_prep', r.asks.length, { n: r.asks.length }) : i18tn('ngn_p_asks_open', r.asks.length, { n: r.asks.length }), secs].filter(Boolean).join(' \u00b7 '), wrap: true });
-    else if (r.b === 'them') facts.push({ t: i18t('ngn_p_asks'), s: i18t('ngn_open_none_theirs'), wrap: true });
-    if (r.unsent) facts.push({ t: i18t('ngn_p_unsent'), s: i18tn('ngn_p_unsent_v', r.unsent, { n: r.unsent }), wrap: true });
-    else if (r.b === 'them') facts.push({ t: i18t('ngn_p_sent'), s: r.sub || '\u2014', wrap: true });
-    const contrib = (typeof deskContributors === 'function' ? deskContributors(c) : []).map(p => String(p.name || '').split(/\s+/)[0]).filter(Boolean);
-    if (r.lead.name) facts.push({ t: i18t('ngn_p_desk'), s: contrib.length ? i18tn('ngn_p_desk_v', contrib.length, { lead: String(r.lead.name).split(/\s+/)[0], who: contrib.join(', ') }) : i18t('ngn_p_desk_lead', { lead: String(r.lead.name).split(/\s+/)[0] }), wrap: true });
     const n = (c.negotiation && Number(c.negotiation.round)) || 1;
-    const say = String(r.sub || (r.open && r.open.say) || ''); const sub = say ? say.charAt(0).toUpperCase() + say.slice(1) + (/[.!?]$/.test(say) ? '' : '.') : '';
-    const chase = r.b === 'them' && may ? { label: i18t('ngn_d_chase', { p: c.counterparty || c.name }), attr: `data-ngn-chase="${E(c.id)}"` } : null;
-    const o = { eyebrow: [c.counterparty || '', ref, money && money !== '\u2014' ? money : ''].filter(Boolean).join(' \u00b7 '), title: c.name || '', sub,
-      glance: [{ n: r.unsent || 0, l: i18tn('ngn5c_g_unsent', r.unsent || 0, { n: r.unsent || 0 }), warn: r.unsent > 0 }, { n: r.asks.length, l: i18tn('ngn5c_g_asks', r.asks.length, { n: r.asks.length }), warn: r.asks.length > 0 }, { n, l: i18t('ngn5c_g_round') }],
-      groups: facts.length ? [{ label: '', rows: facts }] : [],
-      act: { label: i18t('ngn_d_open'), attr: `data-ngn-open="${E(c.id)}"`, link: r.unsent && may ? { label: i18tn('ngn_d_send', r.unsent, { n: r.unsent }), attr: `data-ngn-send="${E(c.id)}"` } : chase }, src: false };
+    const bd = ngnBadgeOf(r.b), tone = { amber: 'amber', steel: 'steel', green: 'green' }[bd.tone];
+    const asks = r.asks.slice(0, 4).map(ch => ({ quote: true, t: ngnAskWords(ch) ? '“' + ngnAskWords(ch) + '”' : (ngnClauseNameOf(ch) || '—'), s: [ngnSecOf(ch), ngnClauseNameOf(ch)].filter(Boolean).join(' · '), wrap: true, attr: `data-ngn-open="${E(c.id)}"` }));
+    if (!asks.length) asks.push({ mark: r.b === 'settled' ? 'mkTick' : 'file', tone: r.b === 'settled' ? 'green' : '', t: r.unsent ? i18tn('ngn_yours_unsent', r.unsent, { n: r.unsent }) : String(r.open && r.open.say || i18t('ngn_open_none_theirs')), wrap: true });
+    const tl = ngnRoundsOf(c, r.b).slice(-4).reverse().map(x => ({ mark: x.now ? 'clock' : 'mkTick', tone: x.now ? 'amber' : 'green',
+      t: i18t(x.side === 'theirs' ? 'ngn_tl_theirs' : 'ngn_tl_ours', { n: x.n, p: c.counterparty || '' }), s: x.now ? (r.last || '') : (x.at ? ngnWhen(x.at) : '') }));
+    const act = ngnActOf(r);
+    const open = { label: i18t('ngn_d_open'), attr: `data-ngn-open="${E(c.id)}"` };
+    const o = { eyebrow: [c.counterparty || '', ref].filter(Boolean).join(' · '), title: c.name || '', tag: { text: bd.w, tone },
+      mid: `<div class="ngn-pfacts"><span><small>${E(i18t('ngn5c_g_round'))}</small><b>${n}</b></span><span><small>${E(i18t('ngn_c_open_asks'))}</small><b>${r.asks.length}</b></span>${ngnRoundsHtml(c, r.b, true)}</div>`,
+      groups: [{ label: i18t(r.asks.length ? 'ngn_p_their_asks' : 'ngn_p_still_open'), rows: asks }, { label: i18t('apn5_timeline'), rows: tl }],
+      act: act && act.attr !== open.attr ? Object.assign({}, act, { link: open }) : open, actFirst: true, src: false };
     return `<div class="ngn-panel jl-words is-ov" data-ngn-for="${E(c.id)}">${jamboOverviewHtml(o, 'ngn')}</div>`;
   }
   const pick = x => ({ mark: 'alert', tone: x.b === 'you' ? 'amber' : '', t: x.c.name || '', s: [x.c.counterparty || '', x.unsent ? i18tn('ngn5_unsent', x.unsent, { n: x.unsent }) : (x.open && x.open.n ? i18tn('ngn5_asks', x.open.n, { n: x.open.n }) : '')].filter(Boolean).join(' \u00b7 '), v: x.move || '', attr: `data-ngn-pick="${E(x.c.id)}"` });
@@ -5578,14 +5614,13 @@ function ngnRender(host){
   if (_ngnSel && !rows.some(r => String(r.c.id) === String(_ngnSel))) _ngnSel = null;
   if (!_ngnSel && !_ngnNone){ const y = rows.find(r => r.b === 'you'); _ngnSel = (y || rows[0] || {}).c ? (y || rows[0]).c.id : null; }
   const live = B.n('live'), you = B.n('you');
-  const facts = [i18tn('ngn_hf_live', live, { n: live }), you ? i18tn('ngn_hf_you', you, { n: you }) : ''].filter(Boolean).join(' · ');
   const tabs = [['live', i18t('ngn_tab_live'), live], ['you', i18t('ngn_tab_you'), you], ['them', i18t('ngn_tab_them'), B.n('them')], ['settled', i18t('ngn_tab_settled'), B.n('settled')]];
   const C = ngnCols();
   host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page ngn-page" data-ins-page="negotiations" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
-      <div class="cun-head"><h2 class="ctf-h">${esc(i18t('ng_door_title'))}</h2><span class="ctf-hf">${esc(facts)}</span><span class="ctf-sp"></span></div>
-      <div class="apn-bar" data-lh-seat="negotiations-nl"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ngn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(_ngnQ)}"></label><span class="apn-sp"></span>
-        ${tabs.filter(t => t[2] || t[0] === 'live' || t[0] === _ngn).map(t => `<button type="button" class="apn-tab${_ngn === t[0] ? ' is-on' : ''}" data-ngn-tab="${t[0]}">${esc(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
+      <div class="cun-head"><h2 class="ctf-h">${esc(i18t('ng_door_title'))}</h2><span class="ctf-sp"></span>${(typeof canEdit !== 'function' || canEdit()) ? `<button type="button" class="ui-btn ui-btn-primary" data-ngn-start>${esc(i18t('ngn_start'))}</button>` : ''}</div>
+      <label class="apn-ask">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ngn-q" type="search" autocomplete="off" placeholder="${esc(i18t('ngn_ask_ph'))}" value="${esc(_ngnQ)}"></label>
+      <div class="apn-bar" data-lh-seat="negotiations-nl">${tabs.filter(t => t[2] || t[0] === 'live' || t[0] === _ngn).map(t => `<button type="button" class="apn-tab is-chip${_ngn === t[0] ? ' is-on' : ''}" data-ngn-tab="${t[0]}">${t[0] === 'you' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${esc(t[1])} <span>${t[2]}</span></button>`).join('')}${ngnLeadChipHtml(all)}</div>
       <div class="cu-scroll"><table class="apn-table cun-table ngn-table" data-list-seat="${esc(REG_NEGO_SEAT)}">${C.colg}
         ${C.th}
         <tbody>${rows.map(r => ngnRowHtml(r, String(r.c.id) === String(_ngnSel), C.keys)).join('')}</tbody></table>${rows.length ? '' : `<p class="apn-none">${esc(i18t('ng_door_none'))}</p>`}</div>
@@ -5613,6 +5648,10 @@ if (typeof document !== 'undefined' && !document._ngnWired){ document._ngnWired 
     const t = e.target && e.target.closest ? e.target : null; if (!t) return; let el;
     if (!t.closest('.ngn-page') && !t.closest('#ins-panel .ngn-panel')) return;
     /* the page's tabs, and the panel's three numbers (their own attribute, so nothing that counts the page's tabs counts them) */
+    if ((el = t.closest('[data-ngn-lead-open]'))){ e.preventDefault(); const m = el.parentNode.querySelector('.apn-rule-menu'); if (m){ const show = m.hidden; m.hidden = !show; el.setAttribute('aria-expanded', String(show)); } return; }
+    if ((el = t.closest('[data-ngn-lead]'))){ e.preventDefault(); _ngnLead = el.getAttribute('data-ngn-lead') || ''; ngnRepaint(); return; }
+    if ((el = t.closest('[data-ngn-start]'))){ e.preventDefault(); if (typeof openNewDoors === 'function') openNewDoors(); return; }
+    if ((el = t.closest('[data-ngn-sign]'))){ e.preventDefault(); const id = el.getAttribute('data-ngn-sign'); if (typeof pdOpenOnHome === 'function') pdOpenOnHome(id, 'sign'); else if (typeof openRedlineWorkbench === 'function') openRedlineWorkbench(id); return; }
     if ((el = t.closest('[data-ngn-tab], [data-ngn-gotab]'))){ e.preventDefault(); _ngn = el.getAttribute('data-ngn-tab') || el.getAttribute('data-ngn-gotab'); ngnRepaint(); return; }
     if ((el = t.closest('[data-ngn-open]'))){ e.preventDefault(); if (typeof openRedlineWorkbench === 'function') openRedlineWorkbench(el.getAttribute('data-ngn-open')); return; }
     if ((el = t.closest('[data-ngn-send]'))){ e.preventDefault(); const c = getContract(el.getAttribute('data-ngn-send')); if (c && typeof pdSendWaiting === 'function') pdSendWaiting(c); return; }
