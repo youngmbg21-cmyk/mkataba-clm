@@ -24247,7 +24247,7 @@
      RULE for every panel head: Jambo's dock, the list panel (Calendar's plan, the builder's), Settings' side panel
      and the side drawer (docked, popped). The border keeps its 1px, made clear, so nothing moves; the line is painted
      in that same pixel row (origin border-box). Its own block, last, so no head's own border rule wins. */
-  html:not(#_):not(#_) :is(.jl-head, #ig-dock > .igd-head, #ai-panel > header, .st-side-head){border-bottom-color:transparent;background-image:linear-gradient(90deg, transparent, var(--color-divider) 18%, var(--color-divider) 82%, transparent);background-repeat:no-repeat;background-origin:border-box;background-size:calc(100% - 32px) 1px;background-position:16px 100%}
+  
   /* NEW AGREEMENT AS DRAWN (P-36, the Legora + Stripe way, made whole 21 Nov 2026 against the drawing): ONE white page,
      40 in from the left; the serif title with "not created yet"; the three starts as underlined tabs on one line that
      runs the page's width; no boxes between the parts. Our paper: the green sentence box, "Most used on our paper" with
@@ -24385,6 +24385,8 @@
     html.lg-new:not(#_) #ig-dock .na6-p .na6-tl li{padding-bottom:8px}
     html.lg-new:not(#_) #ig-dock .na6-p .na6-tl li:last-child{padding-bottom:0}
   }
+  /* the panel-head line rule stays LAST in its sheet (f1107) */
+  html:not(#_):not(#_) :is(.jl-head, #ig-dock > .igd-head, #ai-panel > header, .st-side-head){border-bottom-color:transparent;background-image:linear-gradient(90deg, transparent, var(--color-divider) 18%, var(--color-divider) 82%, transparent);background-repeat:no-repeat;background-origin:border-box;background-size:calc(100% - 32px) 1px;background-position:16px 100%}
 </style>
 
 
