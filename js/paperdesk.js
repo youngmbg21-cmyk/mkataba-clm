@@ -3933,13 +3933,20 @@ function pdWallOverview(){
     if (D){ const tot = Math.max(1, book.length), pc = x => (Math.round(x / tot * 1000) / 10) + '%';
       mid = `<div class="ctf-stand"><i class="is-r" style="width:${pc(D.review.length)}"></i><i class="is-s" style="width:${pc(D.signed.length)}"></i></div>`
         + `<div class="ctf-key"><span><i class="is-r"></i>${_pdE(_pdT('ctf_k_review'))} ${D.review.length}</span><span><i class="is-s"></i>${_pdE(_pdT('ctf_k_signed'))} ${D.signed.length}</span></div>`
-        + (D.months.some(m => m.dots.length) ? `<div class="ctf-months is-mini">${D.months.map(m => `<div class="ctf-mo"><div class="ctf-mo-d">${m.dots.slice(0, 4).map(x => `<i class="is-${x.tone}" title="${_pdE(x.name)}"></i>`).join('')}</div><small>${_pdE(m.label.slice(0, 1))}</small></div>`).join('')}</div>` : '');
-      const need = book.filter(c => D.needIds.has(c.id)).slice(0, 3);
+        /* AS DRAWN (P-31): "When they end · next 12 months" its own section, the months by their short names */
+        + (D.months.some(m => m.dots.length) ? `</div><div class="jov5-sec"><p class="jov5-label">${_pdE(_pdT('ctf_when_end'))}</p><div class="ctf-months is-mini">${D.months.map(m => `<div class="ctf-mo"><div class="ctf-mo-d">${m.dots.slice(0, 4).map(x => `<i class="is-${x.tone}" title="${_pdE(x.name)}"></i>`).join('')}</div><small>${_pdE(m.label.slice(0, 3))}</small></div>`).join('')}</div>` : '');
+      /* AS DRAWN (P-31): what needs you, each its name and, at the right, what it needs; no "next to end" card */
+      groups.length = 0;
+      const need = book.filter(c => D.needIds.has(c.id)).slice(0, 4);
       if (need.length) groups.unshift({ label: _pdT('ctf_fig_need'), rows: need.map(c => { let w = ''; try { const it = (needsYouOf(c) || [])[0]; const x = it && typeof insNeedWords === 'function' ? insNeedWords(c, it) : null; w = x && x.title || ''; } catch (_){ w = ''; }
-        return { mark: 'file', tone: 'amber', t: c.name || ref(c), s: [c.counterparty || '', w].filter(Boolean).join(' \u00b7 '), run: show([c], c.name || ref(c)) }; }) }); }
+        return { t: c.name || ref(c), s: w, run: show([c], c.name || ref(c)) }; }) }); }
+    /* the line under the count, as drawn: how many are in review and the first to end */
+    const rv = book.length - signed.length, fe = live[0] || null;
+    const feDays = fe && today ? Math.round((new Date(end(fe) + 'T12:00:00') - new Date(today + 'T12:00:00')) / 864e5) : null;
+    const subNl = [rv ? _pdTn('jov5_ct_in_review', rv, { n: rv }) : '', fe && feDays != null ? _pdTn('jov5_ct_first_ends', feDays, { name: fe.name || ref(fe), n: feDays }) : ''].filter(Boolean).join('; ');
     return { title: book.length && signed.length === book.length ? _pdTn('jov5_ct_all_signed', book.length, { n: book.length }) : _pdTn('jov_ct_head_b', book.length, { n: book.length, k: signed.length }),
-      sub: _pdT(pdDropMay() ? 'jov_ct_head_s' : 'jov_ct_head_s_view'),
-      mid, midLabel: mid ? _pdT('ctf_where_all', { n: book.length }) : '',
+      sub: subNl ? subNl + '.' : _pdT(pdDropMay() ? 'jov_ct_head_s' : 'jov_ct_head_s_view'),
+      mid, midLabel: mid ? _pdT('ctf_where_they') : '',
       groups, src: _pdT('jl_src_list'), asks: [] };
   }
   /* no "Ask me" here (owner, 28 Oct 2026: "remove the Ask me details"): each fact keeps its own Show */

@@ -20840,6 +20840,11 @@
   html.lg-new #ig-page #ct-place .ct-page .ct-head.lh{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px 16px}
   html.lg-new #ct-place .ct-page .ct-head.lh > .ct-top{flex:1 0 100%;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--color-divider);margin-bottom:4px;padding-bottom:12px}
   html.lg-new #ct-place .ct-page .ct-head .ct-name{flex:1 1 auto;min-width:0}
+  /* AS DRAWN (P-31): the box its own line under the title, the views as chips on the line under it */
+  html.lg-new #ig-page #ct-place .ct-page .ct-head .lh-ask{flex:1 0 100%}
+  html.lg-new #ig-page #ct-place .ct-page .ct-head .reg-views{border:0;box-shadow:none;gap:8px}
+  html.lg-new #ig-page #ct-place .ct-page .ct-head .reg-views .reg-vtab::after{display:none}
+  html.lg-new #ig-page #ct-place .ct-page .ct-head .reg-views .reg-vtab.on{box-shadow:none;border-bottom-style:solid}
   /* LIST · WALL · NEW AGREEMENT, ONE GROUP (owner, 19 Nov 2026): one height, one line, centred on the name's block; the
      switch's own box no longer clips its pills (it was 28 tall over 32-tall buttons); where name and group do not fit
      side by side the group drops under the name, whole */
@@ -21309,7 +21314,7 @@
   /* ONE COLUMN, ONE LINE (fix round 1, item 8): the name takes the column's width and gives way with "…"; ⋯ at its end */
   html.lg-new #ct-place .ct-page .reg-table thead th.ac-th.is-nl .ac-th-w{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .rfp-panel{padding:4px 0 16px}
-  html.lg-new #ct-place .ct-page .reg-table thead th{background:var(--color-surface);text-transform:uppercase;font-size:11px;letter-spacing:.06em;font-weight:var(--w-label);vertical-align:bottom}
+  html.lg-new #ct-place .ct-page .reg-table thead th{background:var(--color-surface);text-transform:none;font-size:12px;letter-spacing:0;font-weight:var(--w-label);vertical-align:bottom}
   /* THE WALL AS DRAWN: papers on the page itself (no box around them), each a sheet with its mark at the corner and the party and value at its foot */
   html.lg-new #ct-place .ct-wall{border:0;box-shadow:none;background:transparent;padding:0}
   html.lg-new #ct-place .ct-wall .igw-foot{margin-left:0;margin-right:0} /* its foot stretched over the old look's 16px padding, now gone (#762, tidy SIDEWAYS) */
@@ -22565,6 +22570,104 @@
   html.lg-new .obn-lg.is-stripe .obn-lg-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:12px;font-size:12px;color:var(--color-quiet)}
   html.lg-new .obn-lg-addall{border:0;border-radius:999px;padding:6px 14px;background:var(--color-text);color:var(--color-surface);font:var(--w-label) 13px/1.3 var(--font-body);cursor:pointer}
   html.lg-new .obn-lg-addall:disabled{background:var(--color-neutral-300);cursor:not-allowed}
+  /* ===== CONTRACTS' FOLDERS LANDING, REBUILT AS DRAWN (P-31) =====
+     the figure cards' numbers in the body face (Need you amber, Ends within red); the section heads sentence case in
+     ink; the month dots small on a hairline; the folders table's heads quiet, Next to end amber when soon; the chosen
+     row a faint green; the panel without its head row or way back, the badge over the folder's name, Open the folder
+     (black) beside its link, plain sections */
+  html.lg-new .ctf-fig{padding:10px 14px}
+  html.lg-new .ctf-fig>b{font-family:var(--font-body);font-size:22px}
+  html.lg-new .ctf-fig.is-ruby>b{color:var(--st-ruby-fg)}
+  html.lg-new .ctf-ls .ctf-cap{font-size:13px;font-weight:var(--w-strong);letter-spacing:0;text-transform:none;color:var(--color-text)}
+  html.lg-new .ctf-ls .ctf-stand{height:8px}
+  html.lg-new .ctf-ls .ctf-months:not(.is-mini){border-bottom:1px solid var(--color-divider)}
+  html.lg-new .ctf-ls .ctf-mo-d i{width:6px;height:6px}
+  html.lg-new .ctf-ftable th{font-size:12px}
+  html.lg-new .ctf-ftable td.ctf-next{font-size:12.5px}
+  html.lg-new .ctf-ftable td.ctf-next.is-soon{color:var(--st-amber-fg)}
+  html.lg-new .ctf-ftable td.ctf-next{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+  html.lg-new #ct-place .ct-acts .ct-seg button[aria-pressed="true"],html.lg-new .ct-acts .ct-seg button[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new body:has(.ct-head) #ig-dock :is(.igd-head,.ca-back){display:none}
+  /* the list's head as drawn: the box its own line, the views as outlined chips (the chosen one solid), sentence-case heads */
+  html.lg-new #ct-place .ct-head.lh{display:flex;flex-direction:column;align-items:stretch}
+  html.lg-new #ct-place .ct-head .lh-ask{order:1}
+  html.lg-new #ct-place .ct-head .reg-views{order:2;display:flex;flex-wrap:wrap;gap:8px;padding:10px 0 0;border:0}
+  html.lg-new #ct-place .ct-head .lh-chips{order:3}
+  html.lg-new #ct-place .ct-head .reg-views .reg-vtab{height:auto;padding:3px 11px;border:1px dashed var(--color-neutral-300);border-radius:999px;background:var(--color-surface);color:var(--color-quiet);font-size:13px;font-weight:var(--w-label);box-shadow:none}
+  html.lg-new #ct-place .ct-head .reg-views .reg-vtab.on{border-style:solid;color:var(--color-text);background:var(--color-surface)}
+  html.lg-new #ct-place .ct-head .reg-views .reg-vtab .n{margin-left:4px;color:inherit}
+  html.lg-new #ct-place table thead th{font-size:12px;letter-spacing:0;text-transform:none;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new .ctf-ftable tr:is(.is-sel,[aria-current="true"]) td{background:color-mix(in srgb,var(--accent-ink) 4%,var(--color-surface))}
+  html.lg-new #ins-panel:has(.jov5[data-jov-slot="rfg"]) :is(.jl-head,.ca-back),html.lg-new #ig-dock:has(.jov5[data-jov-slot="rfg"]) :is(.igd-head,.ca-back){display:none}
+  html.lg-new .jov5[data-jov-slot="rfg"],html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"]{display:flex;flex-direction:column;padding-top:16px;gap:12px}
+  html.lg-new .jov5[data-jov-slot="rfg"] > .jov5-intro,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] > .jov5-intro{order:0;display:flex;flex-direction:column;gap:4px}
+  html.lg-new .jov5[data-jov-slot="rfg"] > .jov5-act,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] > .jov5-act{order:1}
+  html.lg-new .jov5[data-jov-slot="rfg"] > :not(.jov5-intro):not(.jov5-act),html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] > :not(.jov5-intro):not(.jov5-act){order:2}
+  html.lg-new .jov5[data-jov-slot="rfg"] .jov5-th,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] .jov5-th{display:flex;flex-direction:column-reverse;align-items:flex-start;gap:6px}
+  html.lg-new .jov5[data-jov-slot="rfg"] .jov5-title,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] .jov5-title{font-family:var(--font-body);font-size:15px;line-height:1.3;font-weight:var(--w-label)}
+  html.lg-new .jov5[data-jov-slot="rfg"] .jov5-tag,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] .jov5-tag{border-radius:6px;padding:1px 7px;font-size:12px;line-height:1.6}
+  html.lg-new .jov5[data-jov-slot="rfg"] .jov5-sub,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] .jov5-sub{font-size:12px;color:var(--color-quiet)}
+  html.lg-new .jov5[data-jov-slot="rfg"] .jov5-act,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] .jov5-act{flex-direction:row;align-items:center;gap:8px;padding:0 0 12px;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;background:none}
+  html.lg-new .jov5[data-jov-slot="rfg"] .jov5-act .jov5-acts,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] .jov5-act .jov5-acts{display:flex;flex-direction:row;align-items:center;gap:10px;justify-content:flex-start}
+  html.lg-new .jov5[data-jov-slot="rfg"] .jov5-act .jov5-acts .jov5-go,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] .jov5-act .jov5-acts .jov5-go{width:auto;flex:none;padding:6px 16px;border-radius:999px}
+  html.lg-new .jov5[data-jov-slot="rfg"] .jov5-act .jov5-acts .jov-lnk,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] .jov5-act .jov5-acts .jov-lnk{font-size:12.5px}
+  html.lg-new .jov5[data-jov-slot="rfg"] .jov5-sec,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] .jov5-sec{display:flex;flex-direction:column;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .jov5[data-jov-slot="rfg"] .jov5-sec:last-of-type,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] .jov5-sec:last-of-type{border-bottom:0}
+  html.lg-new .jov5[data-jov-slot="rfg"] .jov5-label,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] .jov5-label{margin:0;font-size:13px;font-weight:var(--w-strong);color:var(--color-text);letter-spacing:0;text-transform:none}
+  html.lg-new .jov5[data-jov-slot="rfg"] .jov5-group,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] .jov5-group{gap:0;border:0;background:none}
+  html.lg-new .jov5[data-jov-slot="rfg"] .jov5-row,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] .jov5-row{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border:0;background:none}
+  html.lg-new .jov5[data-jov-slot="rfg"] .jov5-row + .jov5-row::before,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] .jov5-row + .jov5-row::before{display:none}
+  html.lg-new .jov5[data-jov-slot="rfg"] .jov5-row .jov5-rt,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] .jov5-row .jov5-rt{display:flex;flex-direction:row;justify-content:space-between;align-items:baseline;gap:8px;width:100%}
+  html.lg-new .jov5[data-jov-slot="rfg"] .jov5-row .jov5-rt b,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] .jov5-row .jov5-rt b{font-size:12.5px;font-weight:400}
+  html.lg-new .jov5[data-jov-slot="rfg"] .jov5-row .jov5-rt > span,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] .jov5-row .jov5-rt > span{font-size:12px;color:var(--st-amber-fg);white-space:nowrap}
+  html.lg-new .jov5[data-jov-slot="rfg"] .jov5-row .jov5-chev,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] .jov5-row .jov5-chev{display:none}
+  html.lg-new .jov5[data-jov-slot="rfg"] .jov5-src,html.lg-new body:has(.ct-head) #ig-dock .jov5[data-jov-slot="pd"] .jov5-src{display:none}
+  /* ===== APPROVALS, REBUILT AS DRAWN (P-30, the Legora + Stripe way) =====
+     sentence-case heads; the chosen row a faint green; Asked a quiet day; the panel without its head row, the badge over
+     the name in the body face, the reference and rule under it, Approve (black) and Decline (grey) as pills, the steps
+     with their words, plain sections parted by hairlines, the timeline as dots */
+  html.lg-new .ap-page[data-ins-page="approvals"] .apn-card .apn-table th{font-size:12px;letter-spacing:0;text-transform:none}
+  html.lg-new .ap-page[data-ins-page="approvals"] #ap-scroll .apn-table tbody tr.is-sel td,html.lg-new .ap-page[data-ins-page="approvals"] .apn-table tbody tr.is-sel td,html.lg-new .ap-page[data-ins-page="approvals"] .apn-table tbody tr[aria-selected="true"] td{background:color-mix(in srgb,var(--accent-ink) 4%,var(--color-surface))}
+  html.lg-new .ap-page[data-ins-page="approvals"] .apn-table td.apn-wait{font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new .ap-page[data-ins-page="approvals"] .apn-table td{padding-top:10px;padding-bottom:10px}
+  html.lg-new .ap-page[data-ins-page="approvals"] .apn-ask svg{color:var(--accent-ink)}
+  html.lg-new #ins-panel:has(.jov5[data-jov-slot="apn"]) .jl-head{display:none}
+  html.lg-new .jov5[data-jov-slot="apn"]{padding-top:16px;gap:12px}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-intro{display:flex;flex-direction:column;gap:4px;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-intro .jov5-eb{order:3;margin:0;font-size:12px;color:var(--color-quiet);letter-spacing:0;text-transform:none}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-th{order:1;display:flex;flex-direction:column-reverse;align-items:flex-start;gap:6px}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-title{font-family:var(--font-body);font-size:15px;line-height:1.3;font-weight:var(--w-label)}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-tag{border-radius:6px;padding:1px 7px;font-size:12px;line-height:1.6}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-act{flex-direction:row;align-items:center;gap:8px;padding:0 0 12px;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;background:none}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-act .jov5-acts{display:flex;align-items:center;gap:8px;justify-content:flex-start}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-act .jov5-acts .jov5-go{width:auto;flex:none;padding:6px 16px;border-radius:999px}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-act .jov5-acts .jov-lnk{padding:6px 14px;border-radius:999px;background:var(--surface-2);color:var(--color-text);font-weight:var(--w-label);text-decoration:none}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-sec{display:flex;flex-direction:column;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-sec:last-of-type{border-bottom:0}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-label{margin:0;font-size:13px;font-weight:var(--w-strong);color:var(--color-text);letter-spacing:0;text-transform:none}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-group{gap:0;border:0;background:none}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-row{padding:3px 0;border:0;background:none}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-row + .jov5-row::before{display:none}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-row.is-quote .jov5-rt b{font-family:var(--font-doc);font-size:13.5px;font-weight:400;line-height:1.45}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-rt > span{font-size:12px;color:var(--color-quiet)}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-sec:last-of-type .jov5-row{display:grid;grid-template-columns:12px minmax(0,1fr);gap:8px;align-items:baseline}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-sec:last-of-type .jov5-mk{width:9px;height:9px;border-radius:50%;background:var(--color-neutral-300)}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-sec:last-of-type .jov5-mk svg{display:none}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-sec:last-of-type .jov5-mk.is-green{background:var(--st-green-dot)}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-sec:last-of-type .jov5-mk.is-red{background:var(--st-ruby-dot)}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-sec:last-of-type .jov5-mk.is-amber{background:var(--st-amber-dot)}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-sec:last-of-type .jov5-rt{display:block;font-size:12.5px}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-sec:last-of-type .jov5-rt b{font-weight:400}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-sec:last-of-type .jov5-rt > span::before{content:" \00b7 "}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-src{display:none}
+  html.lg-new .jov5[data-jov-slot="apn"]{display:flex;flex-direction:column}
+  html.lg-new .jov5[data-jov-slot="apn"] > .jov5-intro{order:0}
+  html.lg-new .jov5[data-jov-slot="apn"] > .jov5-act{order:1}
+  html.lg-new .jov5[data-jov-slot="apn"] > :not(.jov5-intro):not(.jov5-act){order:2}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-act .jov5-acts{flex-direction:row;flex-wrap:wrap}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-sec:last-of-type .jov5-rt :is(b,span){display:inline}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-sec:last-of-type .jov5-row{min-height:0;padding:2px 0}
+  html.lg-new .jov5[data-jov-slot="apn"] .jov5-sec:last-of-type .jov5-rt > span{margin-left:4px}
   html.lg-new .obs-receipt .obn-lg-link{align-self:flex-start}
   html.lg-new .obs-receipt .obn-lg-it:last-child{display:flex;justify-content:flex-start}
   /* READ DOWN, THE LEGORA + STRIPE WAY (P-41): each sentence a calm row with its small graphic; the quarters by count, the nearest red */

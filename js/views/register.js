@@ -1239,7 +1239,8 @@ function regArchiveBtnHtml(R){
    same line"): no facts line beside the name (the sentence over the list and Jambo's panel say it); List · Wall ·
    New agreement ONE group (`.ct-acts`), one height, one line, dropping under the name together where it does not fit */
 function regHomeHeadHtml(R){
-  const show=R.show==='list'?'list':'wall';
+  /* the Folders landing is a list (as drawn, P-31: List lit over the summary) */
+  const show=(R.show==='list'||(typeof _ctFolders!=='undefined'&&_ctFolders&&typeof window.newLookOn==='function'&&newLookOn()))?'list':'wall';
   const ic=k=>typeof icon==='function'?icon(k==='wall'?'grid':'list','w-4 h-4'):'';
   const nlF=typeof window.newLookOn==='function'&&newLookOn();
   const fName=nlF&&R.type&&R.type!=='all'&&FOLDERS[R.type]?FOLDERS[R.type].name:(nlF&&R.view==='archived'?i18t('ctf_ended'):'');
@@ -3988,7 +3989,8 @@ function regFolderRowsHtml(live, fids, ended, endIds, isAdmin){
   const figs=`<div class="ctf-figs">${card('all',all.length,i18t('ctf_fig_all'),i18tn('ctfv_in_folders',D.folders,{ n:D.folders }))}`
     +card('need',need.length,i18t('ctf_fig_need'),need.length?regFolderNeedWords(regFolderRead(need)):i18t('ctf_t_nothing'),need.length?'amber':'')
     +card('review',D.review.length,i18t('ctf_fig_review'),i18t('ctf_fig_review_s'))
-    +card('end',D.ends.length,i18t('ctfv_end',{ n:CTF_VIEW_DAYS }),notice||(nextEnd?i18t('ctf_fig_next',{ d:(typeof regDotDate==='function'?regDotDate(nextEnd):nextEnd) }):i18t('ctf_t_nothing')))+`</div>`;
+    /* AS DRAWN (P-31): "Ends within 90 days", the first to end named under it ("Fuel Supply · 20 Dec"), red */
+    +card('end',D.ends.length,i18t('ctfv_end',{ n:CTF_VIEW_DAYS }),notice||(nextEnd?(()=>{ const f=D.ends.slice().sort((a,b)=>regFolderEndOf(a).localeCompare(regFolderEndOf(b)))[0]; return [f&&f.name||'', typeof regDotDate==='function'?regDotDate(nextEnd):nextEnd].filter(Boolean).join(' \u00b7 '); })():i18t('ctf_t_nothing')),D.ends.length?'ruby':'')+`</div>`;
   /* where all N stand: in review · signed · ended, one bar and its legend */
   const tot=Math.max(1, all.length+ended.length), pc=x=>(Math.round(x/tot*1000)/10)+'%';
   const bar=`<div class="ctf-sec"><div class="ctf-cap">${esc(i18t('ctf_where_all',{ n:all.length+ended.length }))}</div>
@@ -3996,17 +3998,20 @@ function regFolderRowsHtml(live, fids, ended, endIds, isAdmin){
     <div class="ctf-key"><span><i class="is-r"></i>${esc(i18t('ctf_k_review'))} ${D.review.length}</span><span><i class="is-s"></i>${esc(i18t('ctf_k_signed'))} ${D.signed.length}</span>${ended.length?`<span><i class="is-e"></i>${esc(i18t('ctf_ended'))} ${ended.length}</span>`:''}</div></div>`;
   const ends=D.months.length?`<div class="ctf-sec"><div class="ctf-cap">${esc(i18t('ctf_when_end'))}</div><div class="ctf-months">${D.months.map(m=>
     `<div class="ctf-mo"><div class="ctf-mo-d">${m.dots.slice(0,6).map(x=>`<i class="is-${x.tone}" title="${esc(x.name)}"></i>`).join('')}${m.dots.length>6?`<small>+${m.dots.length-6}</small>`:''}</div><small>${esc(m.label)}</small></div>`).join('')}</div>
-    <div class="ctf-key"><span><i class="is-ruby"></i>${esc(i18t('ctf_k_soon'))}</span><span><i class="is-amber"></i>${esc(i18t('ctf_k_need'))}</span><span><i class="is-s"></i>${esc(i18t('ctf_k_signed'))}</span></div></div>`:'';
+    </div>`:'';
   const rows=fids.map(fid=>{ const cs=live.filter(c=>c.folder===fid&&!endIds.has(c.id)); if(!cs.length) return null; return { fid, name:FOLDERS[fid].name||fid, desc:FOLDERS[fid].desc||'', cs, r:regFolderRead(cs) }; })
     .filter(Boolean).sort((a, b) => b.r.needN - a.r.needN || b.r.n - a.r.n);
   const mix=(cs,r)=>{ const t=Math.max(1,r.n), e=x=>(Math.round(x/t*1000)/10)+'%'; return `<span class="ctf-tbar"><i class="is-r" style="width:${e(r.n-r.signed)}"></i><i class="is-s" style="width:${e(r.signed)}"></i></span>`; };
-  const nextOf=cs=>{ const L=cs.map(regFolderEndOf).filter(e=>e&&(!D.T||e>=D.T)).sort(); return L[0]?(typeof regDotDate==='function'?regDotDate(L[0]):L[0]):'—'; };
+  /* AS DRAWN (P-31): Next to end names the agreement and its day ("IT Support · 28 Feb 2027"), amber when within 90 days */
+  const nextC=cs=>cs.filter(c=>{ const e=regFolderEndOf(c); return e&&(!D.T||e>=D.T); }).sort((a,b)=>regFolderEndOf(a).localeCompare(regFolderEndOf(b)))[0]||null;
+  const nextOf=cs=>{ const c=nextC(cs); if(!c) return '—'; const e=regFolderEndOf(c); return [c.name||'', typeof regDotDate==='function'?regDotDate(e):e].filter(Boolean).join(' \u00b7 '); };
+  const nextSoon=cs=>{ const c=nextC(cs); if(!c||!D.T) return false; const d=(new Date(regFolderEndOf(c)+'T00:00:00')-new Date(D.T+'T00:00:00'))/864e5; return d<=CTF_VIEW_DAYS; };
   const trs=rows.map(x=>`<tr data-ctf-folder="${esc(x.fid)}" tabindex="0"><td><b class="ctf-name">${esc(x.name)}</b>${x.desc?`<span class="ctf-desc">${esc(x.desc)}</span>`:''}</td><td class="ctf-n">${x.r.n}</td>
-    <td>${x.r.needN?`<span class="reg-badge is-amber"><i></i>${x.r.needN} ${esc(i18tn('ctf_t_need',x.r.needN,{ n:x.r.needN }))}</span>`:'<span class="reg-dash">—</span>'}</td><td>${mix(x.cs,x.r)}</td><td class="ctf-next">${esc(nextOf(x.cs))}</td></tr>`).join('');
+    <td>${x.r.needN?`<span class="reg-badge is-amber"><i></i>${x.r.needN} ${esc(i18tn('ctf_t_need',x.r.needN,{ n:x.r.needN }))}</span>`:'<span class="reg-dash">—</span>'}</td><td>${mix(x.cs,x.r)}</td><td class="ctf-next${nextSoon(x.cs)?' is-soon':''}">${esc(nextOf(x.cs))}</td></tr>`).join('');
   const yrs=ended.map(c=>String(c.signedAt||c.expiry||'').slice(0,4)).filter(Boolean).sort();
   const endTr=ended.length?`<tr data-ctf-ended tabindex="0"><td><b class="ctf-name">${esc(i18t('ctf_ended'))}</b>${yrs.length?`<span class="ctf-desc">${esc(yrs[0]===yrs[yrs.length-1]?yrs[0]:i18t('ctf_years',{ a:yrs[0], b:yrs[yrs.length-1] }))}</span>`:''}</td><td class="ctf-n">${ended.length}</td><td><span class="reg-dash">—</span></td><td><span class="ctf-tbar"><i class="is-e" style="width:100%"></i></span></td><td class="ctf-next">—</td></tr>`:'';
   const newTr=isAdmin?`<tr data-ctf-new tabindex="0" class="is-new"><td><b class="ctf-name">+ ${esc(i18t('ctf_new'))}</b><span class="ctf-desc">${esc(i18t('ctf_new_s'))}</span></td><td></td><td></td><td></td><td></td></tr>`:'';
-  const table=`<div class="ctf-sec"><div class="ctf-cap">${esc(i18t('ctfv_folders'))}</div><table class="ctf-ftable"><thead><tr><th>${esc(i18t('ctf_col_folder'))}</th><th class="ctf-n">${esc(i18t('ctf_fig_all'))}</th><th>${esc(i18t('reg_col_needs'))}</th><th>${esc(i18t('reg_col_standing'))}</th><th>${esc(i18t('ctf_col_next'))}</th></tr></thead><tbody>${trs}${endTr}${newTr}</tbody></table></div>`;
+  const table=`<div class="ctf-sec"><div class="ctf-cap">${esc(i18t('ctfv_folders'))}</div><table class="ctf-ftable"><thead><tr><th>${esc(i18t('ctf_col_folder'))}</th><th class="ctf-n">${esc(i18t('ctf_fig_all'))}</th><th>${esc(i18t('reg_col_needs'))}</th><th>${esc(i18t('ctf_col_stand'))}</th><th>${esc(i18t('ctf_col_next'))}</th></tr></thead><tbody>${trs}${endTr}${newTr}</tbody></table></div>`;
   const n=rows.length+(endTr?1:0);
   return `<div class="ctf-ls">${figs}<div class="ctf-two">${bar}${ends}</div>${table}<div class="ctf-foot">${esc(i18tn('ctf_foot',n,{ n }))}</div></div>`;
 }
@@ -4156,15 +4161,18 @@ function regFoldersLsPanelHtml(rows, head){
   const tot=Math.max(1,L.length), pc=x=>(Math.round(x/tot*1000)/10)+'%';
   const bar=`<div class="ctf-stand"><i class="is-r" style="width:${pc(D.review.length)}"></i><i class="is-s" style="width:${pc(D.signed.length)}"></i></div>
     <div class="ctf-key"><span><i class="is-r"></i>${esc(i18t('ctf_k_review'))} ${D.review.length}</span><span><i class="is-s"></i>${esc(i18t('ctf_k_signed'))} ${D.signed.length}</span></div>`;
-  const dots=D.months.some(m=>m.dots.length)?`<div class="ctf-months is-mini">${D.months.map(m=>`<div class="ctf-mo"><div class="ctf-mo-d">${m.dots.slice(0,4).map(x=>`<i class="is-${x.tone}" title="${esc(x.name)}"></i>`).join('')}</div><small>${esc(m.label.slice(0,1))}</small></div>`).join('')}</div>`:'';
+  /* AS DRAWN (P-31): "When they end · next 12 months" its own section, the months by their short names */
+  const dots=D.months.some(m=>m.dots.length)?`</div><div class="jov5-sec"><p class="jov5-label">${esc(i18t('ctf_when_end'))}</p><div class="ctf-months is-mini">${D.months.map(m=>`<div class="ctf-mo"><div class="ctf-mo-d">${m.dots.slice(0,4).map(x=>`<i class="is-${x.tone}" title="${esc(x.name)}"></i>`).join('')}</div><small>${esc(m.label.slice(0,3))}</small></div>`).join('')}</div>`:'';
+  /* each that needs you: its name, and at the right what it needs, in amber ("Your approval", "3 details to fill") */
   const needRows=need.slice(0,4).map(c=>{ let w=''; try{ const it=(needsYouOf(c)||[])[0]; const x=it&&typeof insNeedWords==='function'?insNeedWords(c,it):null; w=x&&x.title||''; }catch(_){ w=''; }
-    return { mark:'file', tone:'amber', t:c.name||c.id, s:[c.counterparty||'', w].filter(Boolean).join(' \u00b7 '), attr:`data-rfp-only="${esc(String(c.id))}" data-rfp-label="${esc(c.name||'')}"` }; });
+    return { t:c.name||c.id, s:w, attr:`data-rfp-only="${esc(String(c.id))}" data-rfp-label="${esc(c.name||'')}"` }; });
+  const pr=pick?regFolderRead(pick.cs):null, pw=pr&&pr.needN&&typeof regFolderNeedWords==='function'?regFolderNeedWords(pr):'';
   const o={ title:pick?pick.name:`${L.length} ${i18tn('rfg_contracts', L.length)} ${i18tn('rfg_in_folders', rows.length, { n:rows.length })}.`,
-    sub:pick?(FOLDERS[pick.fid]&&FOLDERS[pick.fid].desc)||'':head,
+    sub:pick?[i18tn('rfg_n_contracts', L.length, { n:L.length }), pw].filter(Boolean).join(' \u00b7 ')+(pw?'.':''):head,
     tag:need.length?{ text:i18tn('rfg_need', need.length, { n:need.length }), tone:'amber' }:(L.length&&D.signed.length===L.length?{ text:i18t('rfg_all_signed'), tone:'green' }:null),
-    mid:bar+dots, midLabel:i18t('ctf_where_all',{ n:L.length }),
+    mid:bar+dots, midLabel:i18t('ctf_where_they'),
     groups:needRows.length?[{ label:i18t('ctf_fig_need'), rows:needRows }]:[],
-    act:pick?{ label:i18t('ctfp_open',{ name:pick.name }), attr:`data-ctf-folder="${esc(pick.fid)}" data-ctf-open`, links:need.length?[{ label:i18tn('ctf_show_need',need.length,{ n:need.length }), attr:`data-rfp-only="${esc(need.map(c=>String(c.id)).join(','))}" data-rfp-label="${esc(i18t('ctf_fig_need'))}"` }]:[] }:null,
+    act:pick?{ label:i18t('ctfp_open_folder'), attr:`data-ctf-folder="${esc(pick.fid)}" data-ctf-open`, links:need.length?[{ label:i18tn('ctf_show_need',need.length,{ n:need.length }), attr:`data-rfp-only="${esc(need.map(c=>String(c.id)).join(','))}" data-rfp-label="${esc(i18t('ctf_fig_need'))}"` }]:[] }:null,
     src:i18t('jl_src_list') };
   return jamboOverviewHtml(o,'rfg');
 }

@@ -1292,7 +1292,10 @@ function apnStepsHtml(r, big){
   const S=apnStepsOf(r), W=[i18t('apn_step_asked'), i18t('apn_step_approver'), i18t('apn_step_sign')];
   const dot=(k,i)=>{ const on=k.indexOf('on:')===0; return `<i class="apn-sd${k==='done'?' is-done':on?' is-on is-'+esc(k.slice(3)):''}" title="${esc(W[i])}"></i>`; };
   if(!big) return `<span class="apn-steps" aria-label="${esc(W.join(' → '))}">${S.map((k,i)=>dot(k,i)+(i<2?`<b class="apn-sl${k==='done'?' is-done':''}"></b>`:'')).join('')}</span>`;
-  return `<div class="apn-steps is-big">${S.map((k,i)=>`<div class="apn-sb">${dot(k,i)}<small>${esc(W[i])}</small></div>${i<2?`<b class="apn-sl${k==='done'?' is-done':''}"></b>`:''}`).join('')}</div>`;
+  /* the big steps name who (as drawn: "Amina asked · You decide · Signing") */
+  const me=(typeof currentUser==='function'&&currentUser())||{}, ap=apnApproverOf(r), f=n=>String(n||'').trim().split(/\s+/)[0];
+  const WB=[r.who?i18t('apn_step_x_asked',{ who:f(r.who) }):W[0], ap&&me.name&&String(ap).trim()===String(me.name).trim()?i18t('apn_step_you_decide'):ap?i18t('apn_step_x_decides',{ who:f(ap) }):W[1], W[2]];
+  return `<div class="apn-steps is-big">${S.map((k,i)=>`<div class="apn-sb">${dot(k,i)}<small>${esc(WB[i])}</small></div>${i<2?`<b class="apn-sl${k==='done'?' is-done':''}"></b>`:''}`).join('')}</div>`;
 }
 function apnDayOf(r){
   const iso=r.type==='receipt'?r.c.signedAt:(r.done&&(r.done.at||r.done.when))||'';
@@ -1308,7 +1311,9 @@ function apnRowHtml(r){
   const sub=[esc(c.counterparty||''), ref].filter(Boolean).join(' · ');
   const quote=q?`<div class="apn-ql"><i>“${esc(q.quote)}”</i>${q.sec?` <span>${esc(q.sec)}</span>`:''}</div>`:'';
   const rule=r.type==='approval'?esc(apWhyLines(r)[0]||'—'):r.type==='signature'?esc(i18t('apn_rule_sign')):'—';
-  const asked=_apnTab==='done'?(apnDayOf(r)||'—'):r.idle!=null?(apLate(r)?`<span class="late">${esc(apWaitingText(r.idle))}</span>`:esc(apWaitingText(r.idle))):'—';
+  /* AS DRAWN (P-30): Asked is the day it was asked ("8 Jul", "today"), quiet; how long it waited is the Status badge's */
+  const askedDay=r.idle!=null?(Number(r.idle)===0?i18t('home_today'):(()=>{ const d=new Date(); d.setDate(d.getDate()-Number(r.idle)); const iso=d.toISOString().slice(0,10); return typeof regDotDate==='function'?regDotDate(iso):iso; })()):'';
+  const asked=_apnTab==='done'?(apnDayOf(r)||'—'):askedDay?esc(askedDay):'—';
   return `<tr data-ap-row="${esc(c.id)}" data-ap-kind="${r.type}" class="${r.type==='receipt'?'is-done':''}" tabindex="-1">
     <td><div class="apn-name">${esc(c.name||'')}</div><div class="apn-sub">${sub}</div>${quote}</td>
     <td class="apn-stc">${apnBadgeHtml(st)}</td><td class="apn-apc">${apnApproverHtml(r)}</td><td class="apn-stp">${apnStepsHtml(r)}</td>
@@ -1611,7 +1616,8 @@ function apnRender(W, o){
   const dotOf={ mine:'amber', others:'steel', done:'green' };
   const ruleChip=_apnRule?`<button type="button" class="apn-chip is-set" data-apn-rule="">${esc(_apnRule)} <span aria-hidden="true">×</span></button>`
     :rules.length>1?`<span class="apn-rule-w"><button type="button" class="apn-chip is-add" data-apn-rule-open aria-expanded="false">+ ${esc(i18t('apn_col_rule'))}</button><span class="apn-rule-menu" hidden>${rules.map(x=>`<button type="button" data-apn-rule="${esc(x)}">${esc(x)}</button>`).join('')}</span></span>`:'';
-  const head=`<label class="apn-ask">${typeof icon==='function'?icon('search','w-3.5 h-3.5'):''}<input id="apn-q" type="search" autocomplete="off" placeholder="${esc(i18t('apn_ask_ph'))}" value="${esc(_apnQ)}"></label>
+  /* the ask line wears Jambo's spark, as drawn (P-30) */
+  const head=`<label class="apn-ask">${typeof icon==='function'?icon('mkSpark','w-3.5 h-3.5'):''}<input id="apn-q" type="search" autocomplete="off" placeholder="${esc(i18t('apn_ask_ph'))}" value="${esc(_apnQ)}"></label>
     <div class="apn-bar" data-lh-seat="approvals-nl">${tabs.map(t=>`<button type="button" class="apn-tab is-chip${_apnTab===t[0]?' is-on':''}" data-apn-tab="${t[0]}"><i class="apn-cd is-${dotOf[t[0]]}" aria-hidden="true"></i>${esc(t[1])} <span>${t[2]}</span></button>`).join('')}${ruleChip}</div>`;
   /* THE TABLE, P-30: seven columns, the same on every tab; "Asked" reads "Decided" on Done; Steps, then Approver, then Rule step aside
      first where the room is short (listCols' rank), the paper link last of all */
