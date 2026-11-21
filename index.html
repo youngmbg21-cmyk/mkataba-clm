@@ -23602,6 +23602,12 @@
   html.lg-new #ct-place .ctf-page .ctf-pill.is-lead{background:var(--color-text);color:var(--color-surface)}
   html.lg-new #ct-place .reg-table.is-home thead th{text-transform:none;letter-spacing:0;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-400)}
   html.lg-new #ct-place .ct-page .reg-table.is-home tbody td{vertical-align:middle}
+  /* THREE LINES AT THE ROW'S OWN RUNG (row-density: about 66px, as Parties'): the name, "kind · ref" and the paper's
+     words set tight, 9px above and below, so a row with its words and one without stand one height (≈71px) */
+  html.lg-new #ct-place .ct-page .reg-table.is-home tbody td{padding-top:9px;padding-bottom:9px}
+  html.lg-new #ct-place .ct-page .reg-table.is-home .reg-title{line-height:18px}
+  html.lg-new #ct-place .ct-page .reg-table.is-home .reg-sub{margin-top:1px;line-height:16px}
+  html.lg-new #ct-place .ct-page .reg-table.is-home .ctls-q{margin-top:1px;line-height:17px}
   html.lg-new #ct-place :is(.reg-table,.ctf-ftable,.ct-wall) .reg-badge,html.lg-new .ctls .reg-badge{height:auto;padding:1px 7px;border-radius:6px;font-size:var(--t-label);line-height:1.6;gap:5px}
   html.lg-new #ct-place :is(.reg-table,.ct-wall) .reg-badge.is-ended,html.lg-new .ctls .reg-badge.is-ended{background:var(--surface-2);color:var(--color-quiet)}
   html.lg-new #ct-place .reg-table .reg-need.is-them{color:var(--st-amber-fg)}
