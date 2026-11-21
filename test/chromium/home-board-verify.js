@@ -107,6 +107,10 @@ const CONTRACTS = [
     ok('1c the map is not built while the board covers it', L.up === false);
     /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */
     /* the usual four are live · ending · past · overdue, in that order (HB_FIGS_DEFAULT) */
+    /* the cards are drawn at once and their counts follow the book as it loads: asked for, bounded, then read */
+    await until(page, () => { const w = typeof hbBookData === 'function' ? hbBookData('all').figs : null; const n = [...document.querySelectorAll('.hb-fig .hb-fig-n')].map(e => e.textContent.trim());
+      return !!w && n.length === 4 && n[0] === String(w.live.n) && n[3] === String(w.overdue.n); });
+    Object.assign(L, await page.evaluate(() => ({ nums: [...document.querySelectorAll('.hb-fig .hb-fig-n')].map(e => e.textContent.trim()), want: typeof hbBookData === 'function' ? hbBookData('all').figs : null })));
     ok('1d live, ending, past and overdue print the book\'s own counts',
       !!L.want && L.nums.length === 4 && L.nums[0] === String(L.want.live.n) && L.nums[1] === String(L.want.ending.n)
         && L.nums[2] === String(L.want.past.n) && L.nums[3] === String(L.want.overdue.n), JSON.stringify(L.nums));
