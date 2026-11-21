@@ -151,14 +151,15 @@ test('f1049 (8) Our paper, the Legora way: one ask box, the streams on one line 
   const L = read('js/views/library.js');
   /* RE-POINTED 17 Nov 2026 (Our paper: Shelves, then the Legora way): the folder's list leads with the one filter line, then the chips */
   const H = body(L, 'tplnListHtml');
-  assert.match(H, /\$\{tplnFilterLineHtml\(rows, shelves\)\}[\s\S]*\$\{tplnChipsHtml\(rows\.map\(x => x\.c\)\)\}/, 'the filter and the chips lead the list');
+  /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way): the ask box and the chips (+ Shelf,
+     + Kind; on a shelf the shelves as chips) lead the list, from the one filter line; the "N more" stream chips went into + Shelf */
+  assert.match(H, /\$\{tplnFilterLineHtml\(rows, shelves\)\}/, 'the ask box and the chips lead the list');
+  assert.match(body(L, 'tplnFilterLineHtml'), /data-tpln-shelfchip/, 'the shelves are chips');
   assert.doesNotMatch(H, /data-tpln-new/, 'no New standard on Our paper: From scratch starts on the New agreement page');
   assert.match(L, /\$\{canManage&&!\(typeof newLookOn==='function'&&newLookOn\(\)\)\?`<button id="tpl-new"/, 'the head\'s New standard contract steps aside in the new look');
   const R = body(L, 'tplnRowHtml');
   assert.match(R, /<span class="tpln-q">§ 1 · “/, "the first line quoted");
-  assert.match(R, /<span class="tpln-u">/, 'the uses on the right');
-  assert.match(body(L, 'tplnChipsHtml'), /order\.slice\(0, TPLN_CHIPS_SHOWN\)/);
-  assert.match(CSS, /html\.lg-new \.tpln-chips\{display:flex;flex-wrap:nowrap;/, 'ONE line');
+  assert.match(R, /<span class="tpln6-ub">/, 'drafted from it: a small bar and the number');
   /* the need is read without AI: small words dropped, a word by its stem, ANY word on the paper */
   const src = L.slice(L.indexOf('const TPLN_STOP'), L.indexOf('\n', L.indexOf('const TPLN_STOP'))) + '\n' + body(L, 'tplnMatches');
   const match = new Function('_tplPf', src + '; return tplnMatches;');
