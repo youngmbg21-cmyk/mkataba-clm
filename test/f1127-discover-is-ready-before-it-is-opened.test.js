@@ -43,9 +43,11 @@ test('f1127 (2) the list waits only for what it draws; the answers are asked for
   assert.match(A, /forEach\(k => rdnAnswers\(k\)\)/, 'every read\'s questions, through the one gathering load');
 });
 
-test('f1127 (3) before the reads come back, the list says it is loading', () => {
+/* RE-POINTED (P-42, owner's pick 20 Nov 2026: Discover the Legora + Stripe way; the fault logged that day, the empty list
+   stuck on "Loading…"): it says loading only until the page's own load has come back once (_rd.at), never after */
+test('f1127 (3) before the reads come back, the list says it is loading — and not after', () => {
   const D = fnBody(RD, 'dsnListHtml');
-  assert.match(D, /const loading = !\(typeof AC !== 'undefined' && AC\.reads\);/);
+  assert.match(D, /const loading = !\(typeof AC !== 'undefined' && AC\.reads\) && !_rd\.at;/);
   assert.match(D, /busyHtml\(_rdT\('loading'\)\)/, 'something moves, in the book\'s own word');
   const EN = read('js/i18n.js');
   assert.equal((EN.match(/^\s+loading: '/gm) || []).length, 2, 'the word in both books');

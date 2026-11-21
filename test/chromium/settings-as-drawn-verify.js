@@ -126,7 +126,13 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): a member's rows are the You area's; Who you are (#sdd-who)
        opens its drawer, whose Name row (me:name) opens the name's form when the row's own door is the job title's */
     await mu(() => { if (!document.querySelector('.stn-page')) { setView('team'); return null; } if (!document.querySelector('.stn-page[data-sdd-area="you"]')) { sddGo('you'); return null; } return document.querySelector('#sdd-who') ? true : null; }, null, 15000);
-    const nameForm = async () => { await m.locator('#sdd-who [data-sdd-go]').first().click().catch(() => null);
+    /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+    /* no Change button on the row: the first press on Who you are chooses it, the second goes in through its own door */
+    const openRowM = async sel => { if (!(await m.locator(sel).count())) return false;
+      if ((await m.getAttribute(sel, 'aria-pressed').catch(() => null)) !== 'true') { await m.click(sel + ' .sdd-t').catch(() => null);
+        await mu(s => { const r = document.querySelector(s); return r && r.getAttribute('aria-pressed') === 'true' ? true : null; }, sel, 3000); }
+      await m.click(sel + ' .sdd-t').catch(() => null); return true; };
+    const nameForm = async () => { await openRowM('#sdd-who');
       const got = await mu(() => document.getElementById('st-me-name') ? 'form' : document.querySelector('#st-drawer.open [data-st-panel="me:name"]') ? 'door' : null, null, 4000);
       if (got === 'door') await m.locator('#st-drawer [data-st-panel="me:name"]').first().click().catch(() => null);
       return !!got; };
@@ -147,7 +153,8 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     /* RE-POINTED 16 Nov 2026 (#762): Your email is a row on the one list; its Change opens the email drawer */
     await m.evaluate(() => { if (typeof stDrawerClose === 'function') stDrawerClose(); });
     await mu(() => !document.querySelector('#st-drawer.open') ? true : null, null, 4000);
-    if (await pressM('#sdd-email [data-st-panel="me:email"]', '5d Email · Change')) {
+    /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+    if (await openRowM('#sdd-email') || (check('5d Email · Change (nothing to press: #sdd-email)', false), false)) {
       await mu(() => document.getElementById('st-me-email') ? true : null, null, 4000);
       await m.fill('#st-me-email', 'wanjiru@example.co.ke'); await m.fill('#st-me-email-pw', 'not-my-password');
       await pressM('#st-dsave', '5d Save');

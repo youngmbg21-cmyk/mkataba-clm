@@ -161,7 +161,9 @@ const LIVE = { ...H.fixtureContract('MK-R2', 'Raw Milk Collection', 'Nandi Dairy
       bar: !!(document.querySelector('.hist-quick') || {}).offsetParent,
       btn: !!document.getElementById('hist-filter-btn'),
       days: document.querySelectorAll('.hist-day-h').length,
-      words: [...document.querySelectorAll('.hist-ocw')].map(x => x.textContent.trim()) }));
+      /* RE-POINTED (P-44, owner's pick 20 Nov 2026: History the Legora + Stripe way): the outcome is a soft badge
+         (.hist6-ob, a dot and a word) in its own column */
+      words: [...document.querySelectorAll('.hist-c-oc .hist6-ob')].map(x => x.textContent.trim()) }));
     ok('6a a search box on the head', hi.q);
     /* RE-POINTED 16 Nov 2026 (#762): the quick links stand in the open, only those that give rows — on this record's trail
        none of the four (theirs · sent · decisions · Jambo) gives a row, so the bar stands with none drawn; the old filter

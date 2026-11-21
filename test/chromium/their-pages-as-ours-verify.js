@@ -8,8 +8,10 @@
      4 · their team's note travels on the link and is served only to their party's links: never to our seat nor the
          waiting count
      5 · Send back stands in the panel (what goes, a message, one button) and sends
-     6 · History is our History's table (Time · Who · Side · What happened · Outcome), no change codes; Where we are and
-         Signing are page views (nothing boxed)
+     6 · History is our History's table (Time · Who · What happened · Kind · Outcome — RE-POINTED, P-44, owner's pick
+         20 Nov 2026: History on both sides the Legora + Stripe way; their own acts say "You", chips All · Changes ·
+         Decisions, the two switches The wording · The notes, a foot line that our internal notes are never there), no
+         change codes; Where we are and Signing are page views (nothing boxed)
      7 · the emails: the invitation is the drawn letter without the sender's new look; the reminder is a letter; the
          code says it opens the link; the code screen and the status page wear the black bar
      8 · the phone: nothing moves sideways
@@ -143,13 +145,17 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   try {
     await p.click('#pt-hist'); await until(p, () => !!document.querySelector('.pol-hist-t'), null, 8000);
     const Hs = await p.evaluate(() => ({ cols: [...document.querySelectorAll('.pol-hist-t th')].map(t => t.textContent.trim()),
-      rows: document.querySelectorAll('.pol-hist-t tbody tr[data-pol-h]').length, codes: /#?CHG-\d+|owner side/i.test(document.getElementById('pt-hist-pane').innerText) }));
+      rows: document.querySelectorAll('.pol-hist-t tbody tr[data-pol-h]').length, codes: /#?CHG-\d+|owner side/i.test(document.getElementById('pt-hist-pane').innerText),
+      /* RE-POINTED (P-44): the chips (All first), the two switches, and the wall line under the table */
+      chips: [...document.querySelectorAll('.pol-hist [data-pol-h-k]')].map(b => b.getAttribute('data-pol-h-k')),
+      sw: [...document.querySelectorAll('.pol-hist [data-pol-h-sw]')].map(b => b.getAttribute('data-pol-h-sw')),
+      wall: !!document.querySelector('.pol-hist .pol-h-wall') }));
     await p.click('#pt-tab-where'); await p.waitForTimeout(600);
     const whereBox = await p.evaluate(() => { const c = document.querySelector('#pt-where-pane .ds-card'); const cs = c && getComputedStyle(c); return cs ? cs.borderTopWidth + ' ' + cs.boxShadow : 'none'; });
     await p.click('#pt-tab-signing'); await p.waitForTimeout(600);
     const signBox = await p.evaluate(() => { const c = document.querySelector('#pt-sign-pane .ps-side'); const cs = c && getComputedStyle(c); return cs ? cs.borderTopWidth + ' ' + cs.boxShadow : 'none'; });
     check('6 · History is our table, no change codes; Where we are and Signing are page views, nothing boxed',
-      Hs.cols.join('|') === 'Time|Who|Side|What happened|Outcome' && Hs.rows >= 2 && !Hs.codes && /^0px none$/.test(whereBox) && /^0px none$/.test(signBox), { Hs, whereBox, signBox });
+      Hs.cols.join('|') === 'Time|Who|What happened|Kind|Outcome' && Hs.chips[0] === 'all' && Hs.sw.join('|') === 'w|n' && Hs.wall && Hs.rows >= 2 && !Hs.codes && /^0px none$/.test(whereBox) && /^0px none$/.test(signBox), { Hs, whereBox, signBox });
   } catch (e) { check('6', false, String(e).slice(0, 200)); }
   await p.context().close();
 

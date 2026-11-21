@@ -60,7 +60,15 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     await toCompany();
 
     console.log('\n1 · Contract streams');
-    if (await press('#stn-main [data-sdd-row="streams"] [data-st-page="streams"]', '1 the door')) {
+    /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+    /* no Open button on the row: the first press on Contract streams chooses it, the second goes in through its own
+       door (kept on the row, unseen) */
+    const STREAMS = '#stn-main [data-sdd-row="streams"]';
+    const streamsDoor = async () => { if (!(await page.locator(STREAMS + ' [data-st-page="streams"]').count())) { check('1 the door (nothing to press: ' + STREAMS + ')', false); return false; }
+      if ((await page.getAttribute(STREAMS, 'aria-pressed').catch(() => null)) !== 'true') { await page.click(STREAMS + ' .sdd-t');
+        await until(q => { const r = document.querySelector(q); return r && r.getAttribute('aria-pressed') === 'true' ? true : null; }, STREAMS, 3000); }
+      await page.click(STREAMS + ' .sdd-t'); return true; };
+    if (await streamsDoor()) {
       const pg = await until(() => { const p = document.querySelector('[data-st-pg="streams"]'); if (!p) return null;
         return { filters: [...p.querySelectorAll('.st-sw-band .st-sw-f > span')].map(x => x.textContent.trim()),
           cols: [...p.querySelectorAll('.st-sw-tb thead th')].map(x => x.textContent.trim()),

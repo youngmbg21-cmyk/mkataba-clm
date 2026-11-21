@@ -109,9 +109,20 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     await until(page, () => /Jambo's lessons/i.test((document.querySelector('#ins-panel .jov5[data-jov-slot="stn"]') || {}).innerText || ''), null, 8000);
     const P = await page.evaluate(() => (document.querySelector('#ins-panel .jov5[data-jov-slot="stn"]') || {}).innerText || '');
     await shot('2-settings');
-    check('2c the panel: Needs an admin, Ask an admin, Jambo\'s lessons with the three phrases', /Needs an admin/i.test(P) && /Ask an admin/.test(P) && /money page/.test(P) && /who signs/.test(P) && /Teach me the door/.test(P) /* the lessons row is the door now */, P.slice(0, 400));
+    /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+    /* what needs an admin is "N things need you" with its rows under "Needs you"; ASK AN ADMIN is shown only to a person
+       who is not one — RETIRED for this admin (a fault the owner logged 21 Nov 2026: an admin's panel carried it), so
+       its absence is asserted instead */
+    check('2c the panel: what needs you, no Ask an admin for an admin, Jambo\'s lessons with the three phrases', /needs? you/i.test(P) && !/Ask an admin/.test(P) && /money page/.test(P) && /who signs/.test(P) && /Teach me the door/.test(P) /* the lessons row is the door now */, P.slice(0, 400));
     await page.evaluate(() => sddGo('rules'));
-    await page.click('#sdd-review [data-st-panel="review"]');
+    /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+    /* no Change button on the row: the first press on Review before sending chooses it, the second goes in through its
+       own door (kept on the row, unseen) */
+    if ((await page.getAttribute('#sdd-review', 'aria-pressed').catch(() => null)) !== 'true') {
+      await page.click('#sdd-review .sdd-t');
+      await until(page, () => { const r = document.getElementById('sdd-review'); return !!r && r.getAttribute('aria-pressed') === 'true'; }, null, 3000);
+    }
+    await page.click('#sdd-review .sdd-t');
     const dr = await until(page, () => { const d = document.getElementById('st-drawer'); return !!d && !d.hidden; }, null, 5000);
     check('2d a Change opens today\'s drawer', dr);
     const still = await page.evaluate(() => { const m = document.getElementById('stn-main'); return m ? m.scrollLeft : -1; });

@@ -19780,7 +19780,9 @@ function redlineChangeCardsHtml(c, opts = {}){
     }
     for (const v of list) if (!seen.has(v)) out.push(v);
     if (tail) out.push(tail);
-    if (ch.clauseId && typeof window.ladderRungs === 'function' && ladderRungs(c, String(ch.clauseId)).length)
+    /* NO LADDER ON THEIR PAGE (P-44, owner's pick 21 Nov 2026: their Redlines as in HaTi, "no Ladder and no Jambo advice
+       on their side") */
+    if (ch.clauseId && !rlOnTheirPage() && typeof window.ladderRungs === 'function' && ladderRungs(c, String(ch.clauseId)).length)
       out.push(rlLadderVerbHtml(ch));
     if (discard) out.push(discard);
     const kept = out.filter(Boolean).map(rlFaceMark);

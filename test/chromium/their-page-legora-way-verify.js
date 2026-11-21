@@ -6,7 +6,8 @@
      3  each change says where it sits: "§2 · “…the changed words…”";
      4  chips per pile + All, each counted as its pile; a press shows that pile alone, All brings all back;
      5  the box at the foot writes to us through the Notes drawer's own send (one door);
-     6  their rows keep Ladder (owner, 24 Oct 2026: "Keep it");
+     6  their rows offer no Ladder (RE-POINTED, P-44, owner's pick 20 Nov 2026: "no Ladder and no Jambo advice on their
+        side"; reverses 24 Oct 2026 "Keep it");
      7  the head names the round and who it is with; no progress pile on their page;
      8  at the owner's three screens: nothing sideways, the foot box inside its card.
    Red at the parent: 1–5, 7 (the tabs underlined, no cards, no §, no chips, no box, no round line).
@@ -114,8 +115,11 @@ const until = async (page, fn, arg, ms = 8000) => { const t0 = Date.now(); for (
         check(only && back, `4  ${tag} a chip shows its pile alone, All brings every pile back`, { only, back });
       }
 
-      const lad = await page.evaluate(() => [...document.querySelectorAll('#pt-nego [data-nego-card]')].filter(c => !!c.querySelector('[data-rl-ladder]')).length);
-      check(lad >= 1, `6  ${tag} their rows keep the Ladder`, lad);
+      /* RE-POINTED (P-44, owner's pick 20 Nov 2026): their Redlines cards no longer offer the Ladder; the cards must be
+         drawn for the absence to mean anything */
+      const lad = await page.evaluate(() => { const cs = [...document.querySelectorAll('#pt-nego [data-nego-card]')];
+        return { cards: cs.length, ladder: cs.filter(c => !!c.querySelector('[data-rl-ladder]')).length }; });
+      check(lad.cards >= 1 && lad.ladder === 0, `6  ${tag} their rows offer no Ladder`, lad);
       const head = await page.evaluate(() => ({ round: ((document.querySelector('#rl-side .rl-round-at') || {}).textContent || '').trim(),
         progress: !!document.querySelector('#pt-nego .rl-progress-pile, #pt-nego [data-rl-progress]') }));
       check(/^Round \d+ · from Highland Corporate$/.test(head.round), `7  ${tag} the head names the round and who it is with`, head.round);

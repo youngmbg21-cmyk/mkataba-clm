@@ -63,8 +63,13 @@ test('f1091 (5) Jambo\'s panel is the Dossier card on every Settings page', () =
   assert.match(fn('stnPanelHtml'), /return sddCardHtml\(admin\);/);
   assert.match(fn('stJbLandHtml'), /newLookOn\(\)&&typeof sddCardHtml==='function'\) return sddCardHtml\(admin,\{ area:sddPageArea\(\), pick:null \}\);/);
   const c = fn('sddCardHtml');
+  /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way): the one black button (Change) is a
+     chosen setting's only act — never again on its row; the landing's and an area's needs are rows, each its own door;
+     "Now" left the facts (the badges and the sentence say it), "If you change it" joined them */
   assert.equal((c.match(/actFirst:true/g) || []).length, 2, 'both faces put the one black button first');
-  assert.match(c, /k:i18t\('sdd_f_now'\)[\s\S]*k:i18t\('sdd_f_affects'\)[\s\S]*k:i18t\('sdd_f_who'\)[\s\S]*k:i18t\('sdd_f_history'\)/);
+  assert.match(c, /k:i18t\('sdd_f_affects'\)[\s\S]*k:i18t\('sdd_f_who'\)[\s\S]*k:i18t\('sdd_f_history'\)[\s\S]*label:i18t\('sdd5_if_h'\)/);
+  assert.match(c, /rows:needs\.map\(x=>\(\{ mark:'', markText:mkOf\(x\), t:x\.text, s:x\.sub, attr:x\.btn\|\|'' \}\)\)/, 'what needs you: rows, each its own door');
+  assert.doesNotMatch(fn('sddRowHtml'), /<button[^>]*data-sdd-go/, 'no button on a row');
 });
 test('f1091 (6) nothing here writes', () => {
   const B = block();
@@ -73,7 +78,8 @@ test('f1091 (6) nothing here writes', () => {
 test('f1091 (7) one grey band for the chosen row, room inside it, tokens only', () => {
   assert.match(CSS, /html\.lg-new \.sdd-row:hover,html\.lg-new \.sdd-row\.is-chosen\{background:var\(--surface-2\)\}/);
   assert.match(CSS, /html\.lg-new \.sdd-colh,html\.lg-new \.sdd-row\{[^}]*padding-left:12px;padding-right:12px\}/);
-  assert.match(CSS, /html\.lg-new \.sdd-row \.sdd-go\.is-black\{background:var\(--color-text\)/);
+  /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way): no row carries a button; a › says the row opens */
+  assert.match(CSS, /html\.lg-new \.sdd-page \.sdd-row:is\(:hover,\.is-chosen\) \.sdd-chev\{color:var\(--color-text\)\}/);
   const mine = CSS.split('\n').filter(l => /\.sdd-/.test(l)).join('\n');
   assert.doesNotMatch(mine, /#[0-9a-fA-F]{3,8}\b/, 'no hand-typed colour');
 });

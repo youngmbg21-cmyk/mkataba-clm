@@ -67,15 +67,21 @@ const CONTRACTS = [
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Housekeeping card is the old look's; the trail is a
        link at the one list's foot ("Trail") */
     /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): Trail & backup is a row in Set-up and records, its door the page */
-    const TRAIL = '#stn-main [data-sdd-row="trail"] [data-sdd-go]';
+    /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+    /* no Open button on the row: the row is the door — the first press chooses it, the second goes in through its own
+       door (kept on the row, unseen) */
+    const TRAIL = '#stn-main [data-sdd-row="trail"]';
     const door = await until(sel => {
       if (!document.querySelector('.stn-page')) { setView('team'); return null; }
       if (!document.querySelector('.stn-page[data-sdd-area="setup"]')) { sddGo('setup'); return null; }
       const d = document.querySelector(sel), k = document.querySelector('#sdd-trail .sdd-k');
-      return d && k && d.getBoundingClientRect().width > 0 ? k.textContent.replace(/\s+/g, ' ').trim() : null; }, TRAIL, 15000);
+      return d && k && d.querySelector('[data-sdd-go][data-st-page="data"]') && d.getBoundingClientRect().width > 0 ? k.textContent.replace(/\s+/g, ' ').trim() : null; }, TRAIL, 15000);
     check('1a Set-up and records carries a row, Trail & backup', /^Trail\b/i.test(door || ''), door);
     await shot(page, 'trail-company');
-    if (door) await press(TRAIL, '1b the door');
+    if (door && await press(TRAIL + ' .sdd-t', '1b the row')) {
+      await until(sel => { const r = document.querySelector(sel); return r && r.getAttribute('aria-pressed') === 'true' ? true : null; }, TRAIL, 3000);
+      if (await page.locator(TRAIL).count()) await press(TRAIL + ' .sdd-t', '1b the row, again');
+    }
     /* since round 26 ("The SAP way") Data & backup is a PAGE: The trail · Backup are its tabs */
     const tabs = await until(() => { const pg = document.querySelector('[data-st-pg="data"]');
       if (!pg) return null;

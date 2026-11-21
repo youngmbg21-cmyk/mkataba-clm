@@ -192,7 +192,15 @@ const EXTRA = [
     const rowThere = await page.evaluate(() => !!document.querySelector('[data-st-panel="paydays"]'));
     check('11a the targets have a row on Settings', rowThere, rowThere ? 'drawn' : 'missing');
     if (rowThere) {
-      await page.click('[data-st-panel="paydays"]');
+      /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+      /* no Change button on the row: the first press on Payment targets chooses it, the second goes in through its
+         own door (kept on the row, unseen) */
+      const PD_ROW = '#stn-main [data-sdd-row="paydays"]';
+      if ((await page.getAttribute(PD_ROW, 'aria-pressed').catch(() => null)) !== 'true') {
+        await page.click(PD_ROW + ' .sdd-t');
+        await page.waitForFunction(s => { const r = document.querySelector(s); return !!r && r.getAttribute('aria-pressed') === 'true'; }, PD_ROW, { timeout: 3000 }).catch(() => {});
+      }
+      await page.click(PD_ROW + ' .sdd-t');
       await page.waitForTimeout(700);
       const boxes = await page.evaluate(() => {
         const a = document.getElementById('st-pay-in'), b = document.getElementById('st-pay-out');
@@ -233,7 +241,9 @@ const EXTRA = [
         t: Object.assign({}, payTargets()),
         /* RE-POINTED 16 Nov 2026 (#762); 19 Nov 2026 (Settings, door to door, f1091): the Company area's Payment targets
            row says its state in its Now column (.sdd-v) */
-        row: ((document.querySelector('#stn-main [data-sdd-row="paydays"] .sdd-v') || {}).textContent) || '',
+        /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+        /* the Now column holds a switch's word, a soft badge or the plain word: read the column, not one class */
+        row: ((document.querySelector('#stn-main [data-sdd-row="paydays"] .sdd-now') || {}).textContent) || '',
         reading: ((window.SET_PANELS && SET_PANELS.paydays) ? (SET_PANELS.paydays.state() || {}).text : '') || '',
       }));
       check('11d the pair is stored and each side reads its own',
