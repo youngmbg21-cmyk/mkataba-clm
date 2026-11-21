@@ -213,7 +213,8 @@ function lhChipHtml(f){
   const pick = (all.find(o => String(o[0]) === String(f.cur)) || [])[1];
   const label = f.label == null ? String(f.k) : f.label;
   const x = _lhT('lh_remove', { what: label });
-  return `<span class="lh-chip" data-lh-chip="${_lhE(f.k)}"><label title="${_lhE(f.title || label)}">${_lhE(label)} <b>${_lhE(pick == null ? f.cur : pick)}</b><select class="reg-chip-sel" data-lh-f="${_lhE(f.k)}" aria-label="${_lhE(label)}">${
+  /* a page may word its chip apart from + Filter's group (f.chipLabel, Contracts' "Folder:") */
+  return `<span class="lh-chip" data-lh-chip="${_lhE(f.k)}"><label title="${_lhE(f.title || label)}">${_lhE(f.chipLabel || label)} <b>${_lhE(pick == null ? f.cur : pick)}</b><select class="reg-chip-sel" data-lh-f="${_lhE(f.k)}" aria-label="${_lhE(label)}">${
     opts.map(o => `<option value="${_lhE(o[0])}"${String(o[0]) === String(f.cur) ? ' selected' : ''}>${_lhE(_lhOptWords(o))}</option>`).join('')}</select></label><button type="button" class="lh-x" data-lh-x="${_lhE(f.k)}" title="${_lhE(x)}" aria-label="${_lhE(x)}">${_lhIc('x')}</button></span>`;
 }
 /* "+ Filter": the filters NOT applied, one group each, offering only the

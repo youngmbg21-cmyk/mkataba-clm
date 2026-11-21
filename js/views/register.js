@@ -1935,7 +1935,7 @@ function regCtFilterLists(R){
   return {
     stage:[i18t('reg_chip_stage'),i18t('reg_lifecycle_stage'),REG_STAGE_TABS.filter(k=>k!=='all').map(k=>[k,regStageWord(k)])],
     /* P-31: the set chip names the FOLDER the page is titled by ("Folder: Warehousing"), never a second name for it */
-    type:regNl()?[i18t('ctls_folder_chip'),i18t('reg_value_stream'),regTypes().filter(t=>t.k!=='all').map(t=>[t.k,regLsFolderShort(t.k)||t.label])]
+    type:regNl()?[i18t('ctf_col_folder'),i18t('reg_value_stream'),regTypes().filter(t=>t.k!=='all').map(t=>[t.k,regLsFolderShort(t.k)||t.label])]
       :[i18t('reg_chip_stream'),i18t('reg_value_stream'),regTypes().filter(t=>t.k!=='all').map(t=>[t.k,t.label])],
     category:[i18t('me_category'),i18t('me_category'),regCategories().map(k=>[k,regCatLabel(k)]).concat([['none',i18t('reg_uncategorised')]])],
     view:[i18t('reg_quick_filters'),i18t('reg_quick_filters'),REG_CT_QUICK.map(k=>[k,(REG_VIEWS.find(x=>x.k===k)||{}).label||k])],
@@ -1953,7 +1953,8 @@ function regCtFilters(){
       const [label,title,list]=L[k];
       const by=regCutCount(k, list.map(x=>x[0]));
       const cur=k==='view'?(regCtQuickOf(R)||'all'):(R[k]==null||R[k]==='')?'all':String(R[k]);
-      return { k, label, title, cur, def:'all',
+      /* the set chip says it as drawn ("Folder: Warehousing"); + Filter's group keeps the plain name */
+      return { k, label, chipLabel:k==='type'&&regNl()?i18t('ctls_folder_chip'):undefined, title, cur, def:'all',
         opts:list.map(([v,l])=>[v,l,by?(by.get(String(v))||0):null]) };
     });
   });
@@ -2319,7 +2320,7 @@ function regCtFootHtml(cs){
    column with the give, so the widths still sum to 100 */
 /* stream 13 (its chip's whole word), standards 17 (the Scorecard's one line) — owner's pick, 10 Nov 2026 */
 /* P-31 as drawn: Ends holds "20 Dec 2026 · in 30 days" and "ended 11 Oct 2026" whole */
-const REG_COL_W_NL={ standing:11, stream:12, standards:17, needs:13, expiry:18, value:10, owner:10 };
+const REG_COL_W_NL={ standing:11, stream:13, standards:17, needs:13, expiry:20, value:10, owner:10 };
 function regHomeColW(keys){
   const ask=keys.filter(k=>String(k).startsWith('ask:'));
   if(regNl()&&!regHomeNarrow()){
@@ -2755,6 +2756,9 @@ function regFiltered(o){
   const cmp=REG_CMP[sortKey]||(String(sortKey||'').startsWith('ask:')&&typeof window.askColCmp==='function'?askColCmp(sortKey.slice(4)):null)||REG_CMP.updated;
   const dir=(R.dir===1||R.dir===-1)?R.dir:(REG_SORT_DEFDIR[sortKey]||-1);
   cs.sort((a,b)=>{ const r=dir*cmp(a,b); return r!==0?r:((Date.parse(b.lastAction)||0)-(Date.parse(a.lastAction)||0)); });
+  /* WORK FIRST (P-31 as drawn, 22 Nov 2026): at the list's default order the Contracts place reads what needs you, then
+     in review, then signed, ended last — inside each, the nearest end first; a sort the reader chose stands */
+  if(regNl()&&regScope()!=='negotiations'&&sortKey==='updated'&&!(R.dir===1)) regLsWorkFirst(cs);
   /* GROUPED BY WHOSE MOVE IT IS, not by family. An amendment carries its own
      negotiation, so nesting one under its parent here would put two separate
      arguments on one row; and the group order is the whole design of this page.
@@ -4031,12 +4035,17 @@ function regFolderRowsHtml(live, fids, ended, endIds, isAdmin){
     .filter(Boolean).sort((a, b) => b.r.needN - a.r.needN || b.r.n - a.r.n);
   const mix=cs=>{ const t=Math.max(1,cs.length), r=cs.filter(c=>regLsStandOf(c)==='review').length, s=cs.length-r, e=x=>(Math.round(x/t*1000)/10)+'%';
     return `<span class="ctf-tbar"><i class="is-r" style="width:${e(r)}"></i><i class="is-s" style="width:${e(s)}"></i></span>`; };
-  const nextOf=cs=>{ const x=regLsNextEnd(cs); if(!x) return { t:'—', amb:false }; return { t:i18t('ctls_next_end',{ name:x.c.name||x.c.id, d:regDotDate(x.e) }), amb:x.n!=null&&x.n<=CTF_VIEW_DAYS }; };
+  /* the name gives way ("…"), the date never: two parts, the day held whole */
+  const nxHtml=(name,dayWords,joint)=>`<span class="ctf-nx"><span class="ctf-nx-n">${esc(name)}</span><span class="ctf-nx-d">${esc(joint)}${esc(dayWords)}</span></span>`;
+  const nextOf=cs=>{ const x=regLsNextEnd(cs); if(!x) return { t:'\u2014', h:'\u2014', amb:false };
+    return { t:i18t('ctls_next_end',{ name:x.c.name||x.c.id, d:regDotDate(x.e) }), h:nxHtml(x.c.name||x.c.id, regDotDate(x.e), ' \u00b7 '), amb:x.n!=null&&x.n<=CTF_VIEW_DAYS }; };
   const trs=rows.map(x=>{ const nx2=nextOf(x.cs); return `<tr data-ctf-folder="${esc(x.fid)}" tabindex="0"${x.fid===_ctfPick?' class="is-sel"':''}><td><b class="ctf-name">${esc(x.name)}</b>${x.desc?`<span class="ctf-desc">${esc(x.desc)}</span>`:''}</td><td class="ctf-n">${x.r.n}</td>
-    <td>${x.r.needN?`<span class="reg-badge is-amber ctls-b"><i></i>${x.r.needN} ${esc(i18tn('ctf_t_need',x.r.needN,{ n:x.r.needN }))}</span>`:'<span class="reg-dash">—</span>'}</td><td>${mix(x.cs)}</td><td class="ctf-next${nx2.amb?' is-amb':''}" title="${esc(nx2.t)}">${esc(nx2.t)}</td></tr>`; }).join('');
+    <td>${x.r.needN?`<span class="reg-badge is-amber ctls-b"><i></i>${x.r.needN} ${esc(i18tn('ctf_t_need',x.r.needN,{ n:x.r.needN }))}</span>`:'<span class="reg-dash">—</span>'}</td><td>${mix(x.cs)}</td><td class="ctf-next${nx2.amb?' is-amb':''}" title="${esc(nx2.t)}">${nx2.h}</td></tr>`; }).join('');
   const last=ended.map(c=>({ c, e:regLsEndOf(c) })).filter(x=>x.e).sort((a,b)=>b.e.localeCompare(a.e))[0];
-  const endNext=last?i18t('ctls_ended_next',{ name:last.c.name||last.c.id, d:regDotDate(last.e) }):'—';
-  const endTr=ended.length?`<tr data-ctf-ended tabindex="0"><td><b class="ctf-name">${esc(i18t('ctf_ended'))}</b><span class="ctf-desc">${esc(i18t('ctls_shelf_desc'))}</span></td><td class="ctf-n">${ended.length}</td><td><span class="reg-dash">—</span></td><td><span class="ctf-tbar"><i class="is-e" style="width:100%"></i></span></td><td class="ctf-next" title="${esc(endNext)}">${esc(endNext)}</td></tr>`:'';
+  const endNext=last?i18t('ctls_ended_next',{ name:last.c.name||last.c.id, d:regDotDate(last.e) }):'\u2014';
+  const endNextH=last?(()=>{ const w=i18t('ctls_ended_next',{ name:'\u0001', d:'\u0002' }), i=w.indexOf('\u0001'), j=w.indexOf('\u0002');
+    return i>=0&&j>i?`<span class="ctf-nx">${esc(w.slice(0,i))}<span class="ctf-nx-n">${esc(last.c.name||last.c.id)}</span><span class="ctf-nx-d">${esc(w.slice(i+1,j))}${esc(regDotDate(last.e))}${esc(w.slice(j+1))}</span></span>`:esc(endNext); })():'\u2014';
+  const endTr=ended.length?`<tr data-ctf-ended tabindex="0"><td><b class="ctf-name">${esc(i18t('ctf_ended'))}</b><span class="ctf-desc">${esc(i18t('ctls_shelf_desc'))}</span></td><td class="ctf-n">${ended.length}</td><td><span class="reg-dash">—</span></td><td><span class="ctf-tbar"><i class="is-e" style="width:100%"></i></span></td><td class="ctf-next" title="${esc(endNext)}">${endNextH}</td></tr>`:'';
   const newTr=isAdmin?`<tr data-ctf-new tabindex="0" class="is-new"><td><b class="ctf-name">+ ${esc(i18t('ctf_new'))}</b><span class="ctf-desc">${esc(i18t('ctf_new_s'))}</span></td><td></td><td></td><td></td><td></td></tr>`:'';
   const table=`<div class="ctf-sec"><h4 class="ctf-cap">${esc(i18t('ctfv_folders'))}</h4><table class="ctf-ftable"><thead><tr><th>${esc(i18t('ctf_col_folder'))}</th><th class="ctf-n">${esc(i18t('ctf_fig_all'))}</th><th>${esc(i18t('reg_col_needs'))}</th><th>${esc(i18t('ctls_h_where'))}</th><th>${esc(i18t('ctf_col_next'))}</th></tr></thead><tbody>${trs}${endTr}${newTr}</tbody></table></div>`;
   /* the drawing has no foot under the table; "+ New folder" stays for an admin (owner, 21 Nov 2026: keep the working control) */
@@ -4243,6 +4252,13 @@ function regLsNeedWord(c){
   return t||i18t('reg_need_some');
 }
 function regLsEndOf(c){ return regFolderEndOf(c); }
+const REG_LS_RANK={ review:1, signed:2, ended:3 };
+function regLsWorkFirst(cs){
+  const rank=new Map(cs.map(c=>{ let need=false; try{ need=!regLsEnded(c)&&(needsYouOf(c)||[]).length>0; }catch(_){ need=false; }
+    return [c, need?0:REG_LS_RANK[regLsStandOf(c)]]; }));
+  const end=new Map(cs.map(c=>[c, regLsEndOf(c)||'9999']));
+  return cs.sort((a,b)=>(rank.get(a)-rank.get(b))||(rank.get(a)===3?end.get(b).localeCompare(end.get(a)):end.get(a).localeCompare(end.get(b))));
+}
 function regLsAddDays(iso,n){ const d=new Date(iso+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); }
 function regLsDaysTo(iso){ const T=typeof todayISO==='function'?String(todayISO()||''):''; if(!T||!iso) return null; return Math.round((Date.parse(iso+'T00:00:00Z')-Date.parse(T+'T00:00:00Z'))/864e5); }
 /* the list's Ends: grey "ended \u2026" once ended, amber "date \u00b7 in N days" inside CTF_VIEW_DAYS, else the date */
@@ -4256,22 +4272,31 @@ function regLsEndsHtml(c){
 }
 /* the paper's own words for when it ends, with its \u00a7, on one line; nothing where the wording is not loaded (never guessed) */
 function regLsQuoteHtml(c){
-  const e=regLsEndOf(c); if(!e||!c||c._codeNamed) return '';
+  const e=regLsEndOf(c);   /* every row one height (as drawn, each row three lines): a row whose paper is not read keeps the line, empty */
+if(!e||!c||c._codeNamed) return '<span class="ctls-q is-none" aria-hidden="true">\u00a0</span>';
+  const none='<span class="ctls-q is-none" aria-hidden="true">\u00a0</span>';
   let q={ sec:'', quote:'' }; try{ q=regSayEndQuote(c,e)||q; }catch(_){ q={ sec:'', quote:'' }; }
-  if(!q.quote) return '';
-  return `<span class="ctls-q" title="${esc(q.quote)}"><i>\u201c${esc(q.quote)}\u201d</i>${q.sec?` <small>${esc(q.sec)}</small>`:''}</span>`;
+  if(!q.quote) return none;
+  /* the words give way ("…"), the § never does */
+  return `<span class="ctls-q" title="${esc(q.quote)}"><i>\u201c${esc(q.quote)}\u201d</i>${q.sec?`<small>${esc(q.sec)}</small>`:''}</span>`;
 }
 /* the kinds a set owes, counted by contract: approvals (the reader's), sets of details, the rest */
+/* the work a set owes, by contract, each kind NAMED (as drawn: "3 approvals · 3 details"): approvals, details, renewals
+   to decide, signatures, then any other kind in its own words */
+const REG_LS_KIND={ approval:'appr', details:'det', fill:'det', renewal:'renew', sign:'sign', signer:'sign' };
 function regLsOwes(cs){
-  const o={ appr:0, det:0, other:0 };
+  const o={ appr:0, det:0, renew:0, sign:0, other:0 };
   cs.forEach(c=>{ let L=[]; try{ L=typeof needsYouOf==='function'?(needsYouOf(c)||[]):[]; }catch(_){ L=[]; }
     if(!L.length) return; const k=L.map(x=>x.kind);
-    if(k.includes('approval')) o.appr++; else if(k.includes('details')) o.det++; else o.other++; });
+    const hit=['approval','details','fill','renewal','sign','signer'].find(x=>k.includes(x));
+    o[hit?REG_LS_KIND[hit]:'other']++; });
   return o;
 }
 function regLsOwesWords(o, short){
-  const parts=[o.appr?i18tn('ctls_n_appr',o.appr,{ n:o.appr }):'', o.det?i18tn(short?'ctls_n_det':'ctls_n_detset',o.det,{ n:o.det }):'', o.other?i18tn('ctls_n_other',o.other,{ n:o.other }):''].filter(Boolean);
-  return short?parts.join(' \u00b7 '):parts.join(i18t('ctls_and'));
+  const parts=[o.appr?i18tn('ctls_n_appr',o.appr,{ n:o.appr }):'', o.det?i18tn(short?'ctls_n_det':'ctls_n_detset',o.det,{ n:o.det }):'',
+    o.renew?i18tn(short?'ctls_n_renew_s':'ctls_n_renew',o.renew,{ n:o.renew }):'', o.sign?i18tn('ctls_n_sign',o.sign,{ n:o.sign }):'', o.other?i18tn('ctls_n_other',o.other,{ n:o.other }):''].filter(Boolean);
+  if(short) return parts.join(' \u00b7 ');
+  return parts.length>1?parts.slice(0,-1).join(', ')+i18t('ctls_and')+parts[parts.length-1]:(parts[0]||'');
 }
 /* where a set stands: one bar (amber in review, green signed, grey ended) and its legend, "3 in review \u00b7 9 signed \u00b7 1 ended" */
 function regLsBarHtml(cs, cls){
@@ -4291,9 +4316,12 @@ function regLsDotsHtml(cs){
 }
 /* what needs you: the contract's name, and why in amber; each row opens the contract */
 function regLsNeedRowsHtml(cs, max){
-  const L=cs.filter(c=>{ try{ return (needsYouOf(c)||[]).length>0; }catch(_){ return false; } });
+  const L=regLsWorkFirst(cs.filter(c=>{ try{ return (needsYouOf(c)||[]).length>0; }catch(_){ return false; } }));
   if(!L.length) return '';
-  return L.slice(0,max||4).map(c=>`<button type="button" class="ctls-nr" data-ctls-open="${esc(String(c.id))}"><span>${esc(c.name||c.id)}</span><b>${esc(regLsNeedWord(c))}</b></button>`).join('');
+  const M=max||4, more=L.length-M;
+  /* A CAP IS A FACT: fewer names than the chip counts says how many more, its press the Needs you list */
+  return L.slice(0,M).map(c=>`<button type="button" class="ctls-nr" data-ctls-open="${esc(String(c.id))}"><span>${esc(c.name||c.id)}</span><b>${esc(regLsNeedWord(c))}</b></button>`).join('')
+    +(more>0?`<button type="button" class="ctls-lnk ctls-more" data-rfp-only="${esc(L.map(c=>String(c.id)).join(','))}" data-rfp-label="${esc(i18t('ctf_fig_need'))}">${esc(i18tn('ctls_and_more',more,{ n:more }))}</button>`:'');
 }
 const regLsSec=(h,body,last)=>`<div class="ctls-sec${last?' is-last':''}">${h?`<h4>${esc(h)}</h4>`:''}${body}</div>`;
 /* THE PANEL IS DRAWN BY THE ONE OVERVIEW BUILDER (jamboOverviewHtml, its five parts): the badge before the head, the
@@ -4321,11 +4349,19 @@ function regLsNextEnd(cs){
 function regLsListUp(){
   if(!regNl()||!regPlaceUp()) return false;
   try{ if(regFoldersOn(regState())) return false; }catch(_){ return false; }
-  /* Ask a column's own card stands only while a question is being asked, read or chosen (regFolderPanelOn's rule): a
-     kept question's column on the list (the owner's own column) leaves this panel standing */
-  const A=window.AC;
-  if(A&&(A.form||A.busy||A.chosen||(A.colOpen&&typeof askColKeys==='function'&&askColKeys().includes('ask:'+A.colOpen)))) return false;
   return true;
+}
+/* WHICH PANEL STANDS BESIDE THE LIST (the rule the folder's panel kept before P-31, regFolderPanelOn): inside a folder
+   the drawn summary stands, a kept question's column on the list included, unless a question is being asked, read,
+   counted or chosen; on every other list Ask a column's own card (the open question, its answers, Draw it · Copy ·
+   Show N) leads wherever it has one, else the drawn summary */
+function regLsPanelPick(){
+  if(!regLsListUp()) return '';
+  const R=regState(), A=window.AC;
+  const busy=!!(A&&(A.form||A.busy||A.count||A.stopped||A.chosen||(A.colOpen&&typeof askColKeys==='function'&&askColKeys().includes('ask:'+A.colOpen))));
+  if(R.show!=='wall'&&R.type&&R.type!=='all'&&!R.only&&!busy) return regLsListPanelHtml();
+  const ac=typeof window.askColPanelHtml==='function'?askColPanelHtml():'';
+  return ac?'':regLsListPanelHtml();
 }
 function regLsListPanelHtml(){
   const R=regState();
@@ -5603,7 +5639,7 @@ Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regFol
   REG_CT_FIXED,REG_CT_COL_WORD,regCtShapeKeys,regCtColDefs,regCtHeadReg,regCtFootHtml,regHomeColW,regToolsWire,regToolsHtml,regWallRepaint,
   /* the Contracts place on Home (the overnight work order, step 7) */
   REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,regStageTone,regStageMarkHtml,regSapMarkHtml,regSapMarkOf,regStageLineHtml,regNegoMarkHtml,regNegoLineHtml,regNegoClauseChips, regNegoClauseNames,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,REG_HOME_SPREAD,REG_COL_KEYS_HOME_WIDE,REG_COL_W_HOME_WIDE,REG_HOME_WIDE_W,regHomeWide,regHomeWatch,regPlaceSet,regPlaceUp,regFoldersNow,regFoldersSet,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale,regFolderSummaryData,
-  regLsSigned,regLsEnded,regLsStandOf,REG_LS_TONE,regLsFrame,regLsSecs,regLsToneOfStatus,regLsBadgeHtml,regLsNeedWord,regLsEndOf,regLsEndsHtml,regLsQuoteHtml,regLsOwes,regLsOwesWords,regLsBarHtml,regLsDotsHtml,regLsNeedRowsHtml,regLsNextEnd,regLsListUp,regLsListPanelHtml,regLsWaitsOn,regLsDayMonth,regLsFolderShort,regCtLeadHtml,regSayEndQuote});
+  regLsSigned,regLsEnded,regLsStandOf,REG_LS_TONE,regLsFrame,regLsPanelPick,regLsWorkFirst,regLsSecs,regLsToneOfStatus,regLsBadgeHtml,regLsNeedWord,regLsEndOf,regLsEndsHtml,regLsQuoteHtml,regLsOwes,regLsOwesWords,regLsBarHtml,regLsDotsHtml,regLsNeedRowsHtml,regLsNextEnd,regLsListUp,regLsListPanelHtml,regLsWaitsOn,regLsDayMonth,regLsFolderShort,regCtLeadHtml,regSayEndQuote});
 
 /* ═══ NEGOTIATIONS, THE NEW LOOK (round 7, as drawn; behind the admin's "Try the new look") ═══
    One quiet list: whose move, the open asks quoted from the paper with their §, the lead, the last thing that

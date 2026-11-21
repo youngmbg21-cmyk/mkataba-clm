@@ -7056,7 +7056,7 @@ function pdJamboTopHtml(){
   /* P-31 AS DRAWN (21 Nov 2026): beside every list of the place — All, Needs you, a folder, Ended & archived, the Wall
      with nothing chosen — ONE panel of the rows on screen (regLsListPanelHtml); Ask a column's own panel stands while
      a question is open (askColPanelHtml). Reverses round 6's folder reading (regFolderPanelHtml) on the new look. */
-  if (!c && typeof regLsListUp === 'function' && regLsListUp() && typeof regLsListPanelHtml === 'function') return regLsListPanelHtml();
+  if (!c && typeof regLsPanelPick === 'function'){ const ls = regLsPanelPick(); if (ls) return ls; }
   /* a folder's list (round 6, as drawn): the folder's own reading, until a cell is chosen or a question asked */
   if (!c && typeof regFolderPanelOn === 'function' && regFolderPanelOn() && typeof regFolderPanelHtml === 'function') return regFolderPanelHtml();
   /* ASK A COLUMN (owner picked "In Jambo's panel", 20 Oct 2026): beside the
@@ -7446,7 +7446,8 @@ function pd2ChosenLsHtml(c){
     /* a signed contract with nothing owed stands at Live, ringed green: its ring is where it is, not work waiting */
     const calm = !D.stages.some(s => s.state === 'on');
     spine = `<div class="ctls-spine" role="list">${D.stages.map((s, i) => { const k = gone || i < at ? 'ok' : i === at ? (calm && on === 'live' ? 'now is-calm' : 'now') : '';
-      return `<div role="listitem"${k.startsWith('now') ? ' aria-current="step"' : ''}><i class="${k}"></i>${k.startsWith('now') ? `<b>${E(_pdT(DOSSIER_SP_WORD[s.k]))}</b>` : E(_pdT(DOSSIER_SP_WORD[s.k]))}</div>`; }).join('')}</div>`; }
+      const w = E(_pdT('ctls_sp_' + s.k));
+      return `<div role="listitem"${k.startsWith('now') ? ' aria-current="step"' : ''}><i class="${k}"></i>${k.startsWith('now') ? `<b>${w}</b>` : w}</div>`; }).join('')}</div>`; }
   let Q = { sec: '', quote: '' }; try { Q = (end && typeof regSayEndQuote === 'function') ? (regSayEndQuote(c, end) || Q) : Q; } catch (_){ Q = { sec: '', quote: '' }; }
   const readBody = Q.quote ? `<div class="ctls-quote">“${E(Q.quote)}”</div><div class="ctls-sub">${[Q.sec, endW ? _pdT('ctls_ends_s', { d: endW }) : ''].filter(Boolean).map(E).join(' · ')}</div>` : '';
   const read = readBody ? sec(_pdT('ctls_h_read'), readBody) : '';
@@ -7454,10 +7455,20 @@ function pd2ChosenLsHtml(c){
   const tl = [];
   const up = c.upload || {}, at0 = up.uploadedAt || c.createdAt || c._raisedAt || '';
   let wasRead = false; try { wasRead = !!(D && D.read && D.read.read); } catch (_){ wasRead = false; }
-  if (at0 || wasRead) tl.push({ t: _pdT(wasRead ? 'ctls_tl_up' : 'ctls_tl_in'), w: at0 ? dossierDay(at0) : '', tone: 'is-acc' });
-  if (c.signedAt) tl.push({ t: _pdT('ctls_tl_signed'), w: dossierDay(c.signedAt), tone: 'is-s' });
-  nd.slice(0, 3).forEach(r => { let w = ''; try { const x = (typeof insNeedWords === 'function') ? insNeedWords(c, r.it) : null; w = x && x.title ? String(x.title) : ''; } catch (_){ w = ''; }
-    if (w) tl.push({ t: w, w: _pdT('ctls_tl_now'), tone: 'is-r' }); });
+  /* EVERY LINE FROM THE RECORD, ITS DAY THE RECORD'S (P-31 review, 22 Nov 2026): who asked and on which day (the
+     Approvals page's own reading, apApprovalRows), when it came in and when it was signed; "now" only for what stands
+     open now (details still blank); nothing invented — a line with no day on record says none */
+  const day = iso => (iso && typeof regLsDayMonth === 'function') ? regLsDayMonth(String(iso).slice(0, 10)) : '';
+  if (at0 || wasRead) tl.push({ t: _pdT(wasRead ? 'ctls_tl_up' : 'ctls_tl_in'), w: day(at0), tone: 'is-acc' });
+  if (c.signedAt) tl.push({ t: _pdT('ctls_tl_signed'), w: day(c.signedAt), tone: 'is-s' });
+  nd.slice(0, 3).forEach(r => {
+    const k = r.it.kind;
+    if (k === 'approval'){ let ap = null; try { ap = (typeof apApprovalRows === 'function') ? (apApprovalRows() || []).find(x => x && x.c && String(x.c.id) === String(c.id)) : null; } catch (_){ ap = null; }
+      const who = ap && ap.who ? String(ap.who).split(/\s+/)[0] : '';
+      tl.push({ t: who ? _pdT('ctls_tl_asked', { who }) : _pdT('ctls_tl_asked_none'), w: ap && ap.askedAt ? day(ap.askedAt) : '', tone: 'is-r' }); return; }
+    if ((k === 'details' || k === 'fill') && r.it.n){ tl.push({ t: _pdTn('ctls_tl_blank', r.it.n, { n: r.it.n }), w: _pdT('ctls_tl_now'), tone: 'is-r' }); return; }
+    let w = ''; try { const x = (typeof insNeedWords === 'function') ? insNeedWords(c, r.it) : null; w = x && x.title ? String(x.title) : ''; } catch (_){ w = ''; }
+    if (w) tl.push({ t: w, w: '', tone: 'is-r' }); });
   const st = regLsStandOf(c);
   if (st === 'review') tl.push({ t: _pdT('ctls_tl_sign'), w: _pdT('ctls_tl_next'), tone: 'is-next' });
   else if (st === 'signed' && endW) tl.push({ t: _pdT('ctls_tl_end'), w: endW, tone: 'is-next' });

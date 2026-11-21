@@ -20,7 +20,10 @@ const fnSrc = (src, name) => { const i = src.search(new RegExp('function ' + nam
 test('f1135 (1) the row\'s quote line says nothing of a code-named deal\'s paper', () => {
   const sb = { esc: s => String(s), regLsEndOf: () => '2027-06-30', regSayEndQuote: () => ({ sec: '§ 2', quote: 'The real Falcon Holdings term ends on 30 June 2027.' }) };
   vm.createContext(sb); vm.runInContext(fnSrc(REG, 'regLsQuoteHtml'), sb);
-  assert.equal(sb.regLsQuoteHtml({ id: 'FAL-1', name: 'Project Falcon', _codeNamed: true }), '', 'no words, no §');
+  /* (22 Nov 2026) every row keeps its third line: for a code-named deal it is an empty, hidden line */
+  const coded = sb.regLsQuoteHtml({ id: 'FAL-1', name: 'Project Falcon', _codeNamed: true });
+  assert.match(coded, /^<span class="ctls-q is-none" aria-hidden="true">[^<]*<\/span>$/, 'an empty line');
+  assert.doesNotMatch(coded, /Falcon|§/, 'no words, no §');
   assert.match(sb.regLsQuoteHtml({ id: 'MK-1', name: 'Supply' }), /The real Falcon Holdings term/, 'a named contract keeps its line');
 });
 test('f1135 (2) the panels read no code-named row; the chosen paper\'s panel is never drawn for one', () => {
