@@ -22148,7 +22148,7 @@
   /* the arrivals of the Board, Explorer and Read down panels (P-39, P-40, P-41): kept outside the new-look blocks, whose rules all wait on html.lg-new */
   @keyframes hbw2Ring{from{stroke-dashoffset:106.8}}
   @keyframes hbw2Grow{from{transform:scaleX(0)}to{transform:none}}
-  @keyframes igoSweep{from{opacity:0;transform:rotate(-180deg)}to{opacity:1;transform:rotate(-90deg)}}
+  @keyframes igoSweep{from{stroke-dashoffset:var(--L)}to{stroke-dashoffset:0}}
   /* DISCOVER, THE LEGORA + STRIPE WAY (P-42, owner's pick 21 Nov 2026): the ask box under the title, All · Kept and the
      "+ filter" chips; one calm table with soft badges and an answered bar; the panel a ring and bars without cards;
      THE READING ROOM while it reads (the paper being read, a passing line, a hairline, the filed table); the results'
@@ -22404,16 +22404,19 @@
   html.lg-new .jov-arrive .hbw2-rf{animation:hbw2Ring .9s cubic-bezier(.22,.61,.36,1) .25s both}
   html.lg-new .jov-arrive .hbw2-bar{transform-origin:left center;animation:hbw2Grow .7s cubic-bezier(.22,.61,.36,1) .2s both}
   /* EXPLORER'S PANEL, THE LEGORA + STRIPE WAY (P-40): a ring of what the map drew by its groups, with its legend */
-  html.lg-new .igo-drawn{display:flex;align-items:center;gap:var(--s-3)}
-  html.lg-new .igo-ring{position:relative;flex:none;width:56px;height:56px;display:grid;place-items:center}
-  html.lg-new .igo-ring svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
-  html.lg-new .igo-ring circle{fill:none;stroke-width:5}
+  /* AS DRAWN (21 Nov 2026): 64 across, a grey track, an arc a group with a hair's gap, each drawn on in turn (igoSweep) */
+  html.lg-new .igo-drawn{display:flex;align-items:center;gap:14px}
+  html.lg-new .igo-ring{position:relative;flex:none;width:64px;height:64px;display:grid;place-items:center}
+  html.lg-new .igo-ring svg{position:absolute;inset:0;width:100%;height:100%}
+  html.lg-new .igo-ring circle{fill:none;stroke-width:4.5}
+  html.lg-new .igo-ring .igo-trk{stroke:var(--color-neutral-200)}
   html.lg-new .igo-ring b{position:relative;font-size:var(--t-body);font-weight:var(--w-strong);font-variant-numeric:tabular-nums}
-  html.lg-new .igo-leg{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;font-size:var(--t-label);color:var(--color-text)}
-  html.lg-new .igo-leg span{display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  html.lg-new .igo-leg i{flex:none;width:7px;height:7px;border-radius:50%}
-  html.lg-new .igo-leg small{color:var(--color-quiet);font-size:var(--t-label)}
-  html.lg-new .jov-arrive .igo-ring svg{animation:igoSweep .9s cubic-bezier(.22,.61,.36,1) .2s both}
+  html.lg-new .igo-leg{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;font-size:13px;line-height:18px;color:var(--color-text)}
+  html.lg-new .igo-leg span{display:flex;align-items:center;gap:4px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .igo-leg i{flex:none;width:8px;height:8px;border-radius:50%}
+  html.lg-new .igo-leg b{font-weight:var(--w-label)}
+  html.lg-new .igo-leg small{color:var(--color-neutral-400);font-size:12.5px}
+  html.lg-new .jov-arrive .igo-ring .igo-seg{animation:igoSweep .9s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(290ms + var(--igo-k, 0) * 70ms)}
   /* OBLIGATIONS, THE STRIPE WAY (P-13): four figure tiles with tiny charts, "+ filter" chips, ONE calm table with soft badges */
   html.lg-new .obt-page .obs-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s-3);padding:var(--s-2) 0 var(--s-3)}
   html.lg-new .obs-tile{display:flex;flex-direction:column;gap:6px;min-width:0;padding:var(--s-3) var(--s-4);border:1px solid var(--color-neutral-200);border-radius:var(--radius);background:var(--color-surface);font:inherit;text-align:left;color:var(--color-text);cursor:pointer}
@@ -22646,32 +22649,44 @@
      no way-back line over it; the title in the body face; each section parted by a hairline with its heading in ink;
      "What Jambo sees" one serif-quoted sentence; "Try on the map" one line a row; "None yet · Save this view" one line */
   html.lg-new #ig-dock:has(.jov5[data-jov-slot="ig"]) .ca-back{display:none}
-  html.lg-new .jov5[data-jov-slot="ig"]{padding-top:16px;gap:12px}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-intro{padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-title{font-family:var(--font-body);font-size:15px;line-height:1.3;font-weight:var(--w-label)}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-sub{font-size:12px;color:var(--color-quiet)}
+  /* MEASURED AGAINST THE DRAWING (21 Nov 2026, Brain, Grid and Timeline): Explorer's head 51 high, its tabs 13.5 in the
+     label weight, quiet till chosen, 4 apart from 14 in; the first section 14 under the head, 16 in; the title 17, its
+     line 12.5 grey 8 under it; headings 14 in the title weight; "Try on the map" rows 28 high and 8 apart, their mark a
+     soft green square with the ⌘ or the spark in the accent, a grey › at the right; "Save this view" in the label weight */
+  html.lg-new #ig-page[data-hb-side="explorer"] #ig-dock > .igd-head.igd-head:not([data-pd-head="paper"]){height:51px;min-height:51px;padding:1px 10px 0 14px}
+  html.lg-new #ig-page[data-hb-side="explorer"] #ig-dock > .igd-head.igd-head > .pd-tab{height:28px;padding:0 11px;font-size:13.5px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #ig-page[data-hb-side="explorer"] #ig-dock > .igd-head.igd-head > .pd-tab.on{color:var(--color-text);background:var(--surface-2)}
+  html.lg-new #ig-page[data-hb-side="explorer"] #ig-dock > .igd-head.igd-head > .pd-tab:first-child{margin-left:0}
+  html.lg-new #ig-page[data-hb-side="explorer"] #ig-dock > .igd-head.igd-head > .pd-tab + .pd-tab{margin-left:4px}
+  html.lg-new #ig-dock #igd-feed:has(> .jl-words > .jov5[data-jov-slot="ig"]){padding-top:14px}
+  html.lg-new #ig-dock .jl-words.is-ov:has(> .jov5[data-jov-slot="ig"]){padding:0}
+  html.lg-new .jov5[data-jov-slot="ig"]{padding-top:0;gap:12px}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-intro{display:flex;flex-direction:column;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-title{margin:0;font-family:var(--font-body);font-size:17px;line-height:22px;font-weight:var(--w-label)}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-sub{margin:0;font-size:12.5px;line-height:1.4;color:var(--color-neutral-400)}
   html.lg-new .jov5[data-jov-slot="ig"] .jov5-sec{display:flex;flex-direction:column;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
   html.lg-new .jov5[data-jov-slot="ig"] .jov5-sec:last-of-type{border-bottom:0}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-label{margin:0;font-size:13px;font-weight:var(--w-strong);color:var(--color-text);letter-spacing:0;text-transform:none}
-  html.lg-new .jov5[data-jov-slot="ig"] .igo-ring{width:52px;height:52px}
-  html.lg-new .jov5[data-jov-slot="ig"] .igo-leg{font-size:12.5px}
-  html.lg-new .jov5[data-jov-slot="ig"] .igo-leg b{font-weight:var(--w-label)}
-  html.lg-new .jov5[data-jov-slot="ig"] .igo-leg small{font-size:12px;color:var(--color-quiet)}
-  html.lg-new .jov5[data-jov-slot="ig"] .igo-sees{margin:0;font-size:12.5px;line-height:1.5;color:var(--color-text)}
-  html.lg-new .jov5[data-jov-slot="ig"] .igo-sees q{font-family:var(--font-doc);quotes:"\201C" "\201D"}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-group{gap:0;border:0;background:none}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-row{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 4px;border:0;border-radius:6px;background:none;font-size:12.5px}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-label{margin:0;font-size:14px;line-height:20px;font-weight:var(--w-title);color:var(--color-text);letter-spacing:0;text-transform:none}
+  html.lg-new .jov5[data-jov-slot="ig"] .igo-sees{margin:0;font-size:12.5px;line-height:1.4;color:var(--color-text)}
+  html.lg-new .jov5[data-jov-slot="ig"] .igo-sees q{font-family:var(--font-doc);color:var(--color-quiet);quotes:"\201C" "\201D"}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-group{display:flex;flex-direction:column;gap:8px;border:0;background:none}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-row{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:center;min-height:0;padding:3px 4px;border:0;border-radius:6px;background:none;font-size:13px;line-height:18px}
   html.lg-new .jov5[data-jov-slot="ig"] .jov5-row.is-door:hover{background:var(--surface-2)}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-row .jov5-mk{width:22px;height:22px;border-radius:6px}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-rt b{font-size:12.5px;font-weight:400}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-row.is-plain{display:flex;justify-content:flex-start;gap:4px;align-items:baseline;padding:0;font-size:12.5px;color:var(--color-quiet)}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-row:not(.is-door) .jov5-rt b{color:var(--color-quiet)}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-row .jov5-mk{width:22px;height:22px;min-width:22px;border-radius:6px;margin:0;padding:0;display:grid;place-items:center}
+  html.lg-new .jov5[data-jov-slot="ig"] [data-jov5-sec="try"] .jov5-row .jov5-mk{background:color-mix(in srgb, var(--accent-ink) 10%, var(--color-surface));color:var(--accent-ink)}
+  html.lg-new .jov5[data-jov-slot="ig"] [data-jov5-sec="try"] .jov5-row .jov5-mk svg{width:12px;height:12px}
+  html.lg-new .jov5[data-jov-slot="ig"] [data-jov5-sec="try"] .jov5-row .jov5-mk svg path[d^="M12 1.5"]{fill:currentColor;stroke:none}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-rt b{font-size:13px;line-height:18px;font-weight:400}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-row.is-plain{display:flex;justify-content:flex-start;gap:4px;align-items:baseline;padding:0;font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-row:not(.is-door) .jov5-rt b{font-size:12.5px;color:var(--color-neutral-400)}
   html.lg-new .jov5[data-jov-slot="ig"] .jov5-row.is-plain .jov5-rt{display:inline;flex:none}
   html.lg-new .jov5[data-jov-slot="ig"] .jov5-row.is-plain .jov5-rt b::after{content:" \00b7"}
   html.lg-new :is(.jov5[data-jov-slot="ig"],html.lg-new .jov5[data-jov-slot="rdn"],html.lg-new .jov5[data-jov-slot="hb"]) .jov5-row + .jov5-row::before{display:none}
+  html.lg-new #ig-page[data-hb-side="explorer"] #ig-dock > .igd-head.igd-head #igd-collapse{color:var(--color-neutral-400)}
   html.lg-new .jov5[data-jov-slot="ig"] .jov5-row:not(.is-door) .jov5-rt{display:inline}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-row.is-plain .jov-lnk{margin-left:0;font-size:12.5px}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-chev{transition:transform .15s ease}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-row.is-plain .jov-lnk{margin-left:0;font-size:12.5px;font-weight:var(--w-label);text-decoration:underline;text-underline-offset:3px}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-chev{display:grid;place-items:center;color:var(--color-neutral-400);transition:transform .15s ease}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-chev svg{width:12px;height:12px}
   html.lg-new .jov5[data-jov-slot="ig"] .jov5-row:hover .jov5-chev{transform:translateX(3px)}
   @media (prefers-reduced-motion: reduce){ html.lg-new .jov5[data-jov-slot="ig"] .jov5-chev{transition:none} }
   @container ndcard (max-width:640px){ html.lg-new .nd-cols > :nth-child(2),html.lg-new .nd-br > .nd-c-st{display:none} }
