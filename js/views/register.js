@@ -2001,6 +2001,9 @@ function regCtHeadReg(){
     noun:'contracts', boxId:'ct-q',
     /* P-31 AS DRAWN: the drawing's words in the box and its spark; the box still narrows the list by its words */
     ph:()=>regOnCt(()=>regNl()?i18t('ctls_ask_ph'):null), boxIcon:()=>regOnCt(()=>regNl()?'sparkle':null),
+    /* the box's words ask (owner, 21 Nov 2026): a QUESTION goes to Jambo through the one reader (lhAsk → intelAsk, answered
+       in the panel beside the list); plain words filter the list */
+    asks:true,
     total:()=>regOnCt(()=>{ try{ return regRestBase().length; }catch(_){ return null; } }),
     q:()=>String((state.reg&&state.reg.query)||''),
     /* the rows only — never the box, so the caret stays; the head recounts
@@ -4009,7 +4012,6 @@ function regFolderSummaryData(live, ended){
   return { T, live, ended, needIds, review, ends, folders, months, signed:live.filter(signedOf) };
 }
 function regFolderRowsHtml(live, fids, ended, endIds, isAdmin){
-  void isAdmin;
   const all=fids.flatMap(fid=>live.filter(c=>c.folder===fid&&!endIds.has(c.id)));
   const D=regFolderSummaryData(all, ended);
   const need=all.filter(c=>D.needIds.has(c.id));
@@ -4039,8 +4041,9 @@ function regFolderRowsHtml(live, fids, ended, endIds, isAdmin){
   const last=ended.map(c=>({ c, e:regLsEndOf(c) })).filter(x=>x.e).sort((a,b)=>b.e.localeCompare(a.e))[0];
   const endNext=last?i18t('ctls_ended_next',{ name:last.c.name||last.c.id, d:regDotDate(last.e) }):'—';
   const endTr=ended.length?`<tr data-ctf-ended tabindex="0"><td><b class="ctf-name">${esc(i18t('ctf_ended'))}</b><span class="ctf-desc">${esc(i18t('ctls_shelf_desc'))}</span></td><td class="ctf-n">${ended.length}</td><td><span class="reg-dash">—</span></td><td><span class="ctf-tbar"><i class="is-e" style="width:100%"></i></span></td><td class="ctf-next" title="${esc(endNext)}">${esc(endNext)}</td></tr>`:'';
-  const table=`<div class="ctf-sec"><h4 class="ctf-cap">${esc(i18t('ctfv_folders'))}</h4><table class="ctf-ftable"><thead><tr><th>${esc(i18t('ctf_col_folder'))}</th><th class="ctf-n">${esc(i18t('ctf_fig_all'))}</th><th>${esc(i18t('reg_col_needs'))}</th><th>${esc(i18t('ctls_h_where'))}</th><th>${esc(i18t('ctf_col_next'))}</th></tr></thead><tbody>${trs}${endTr}</tbody></table></div>`;
-  /* the drawing has no foot under the table and no "+ New folder" row: a folder is made where folders are kept (Settings) */
+  const newTr=isAdmin?`<tr data-ctf-new tabindex="0" class="is-new"><td><b class="ctf-name">+ ${esc(i18t('ctf_new'))}</b><span class="ctf-desc">${esc(i18t('ctf_new_s'))}</span></td><td></td><td></td><td></td><td></td></tr>`:'';
+  const table=`<div class="ctf-sec"><h4 class="ctf-cap">${esc(i18t('ctfv_folders'))}</h4><table class="ctf-ftable"><thead><tr><th>${esc(i18t('ctf_col_folder'))}</th><th class="ctf-n">${esc(i18t('ctf_fig_all'))}</th><th>${esc(i18t('reg_col_needs'))}</th><th>${esc(i18t('ctls_h_where'))}</th><th>${esc(i18t('ctf_col_next'))}</th></tr></thead><tbody>${trs}${endTr}${newTr}</tbody></table></div>`;
+  /* the drawing has no foot under the table; "+ New folder" stays for an admin (owner, 21 Nov 2026: keep the working control) */
   return `<div class="ctf-ls">${figs}<div class="ctf-two">${bar}${ends}</div>${table}</div>`;
 }
 /* "1 waits on Joseph": the in-review contracts whose next yes is a colleague's, named when it is one person */
@@ -4112,7 +4115,7 @@ function regFoldersHeadHtml(){
   const may = (typeof canEdit !== 'function') || canEdit();
   /* P-31: the facts beside the title go; the ask box under it; chips with their counts, Needs you with an amber dot */
   return `<div class="ctf-head"><h2 class="ctf-h">${esc(i18t('nav_contracts'))}</h2><span class="ctf-sp"></span>
-      <button type="button" class="ctf-pill" data-ctf-show="list">${esc(i18t('ct_list'))}</button><button type="button" class="ctf-pill" data-ctf-show="wall">${esc(i18t('ct_wall'))}</button>
+      <button type="button" class="ctf-pill" data-ctf-show="list" aria-pressed="true">${esc(i18t('ct_list'))}</button><button type="button" class="ctf-pill" data-ctf-show="wall" aria-pressed="false">${esc(i18t('ct_wall'))}</button>
       ${may ? `<button type="button" class="ui-btn ui-btn-primary ctf-new" data-ctf-draft>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${esc(i18t('ctf_new_agreement'))}</button>` : ''}</div>
     <label class="apn-ask ctf-ask">${typeof icon === 'function' ? icon('sparkle', 'w-3.5 h-3.5') : ''}<input id="ctf-q" type="search" autocomplete="off" placeholder="${esc(i18t('ctls_ask_ph'))}"></label>
     <div class="apn-bar ctf-bar"><button type="button" class="apn-tab is-chip is-on" data-ctf-tab="folders">${esc(i18t('ctf_tab_folders'))} <span>${regFolderCount()}</span></button><button type="button" class="apn-tab is-chip" data-ctf-tab="all">${esc(i18t('ctf_tab_all'))} <span>${r.n}</span></button>${r.needN ? `<button type="button" class="apn-tab is-chip" data-ctf-tab="needs"><i class="apn-cd is-amber" aria-hidden="true"></i>${esc(i18t('ctf_tab_needs'))} <span>${r.needN}</span></button>` : ''}</div>`;
@@ -4125,9 +4128,17 @@ if (typeof document !== 'undefined' && !document._ctfWired2){ document._ctfWired
     if (t.closest('[data-ctf-draft]')){ e.preventDefault(); if (typeof openNewAgreement === 'function') openNewAgreement(); return; }
     if (t.closest('[data-ctf-upload]')){ e.preventDefault(); if (typeof pdDropDoor === 'function') pdDropDoor(); return; }
   });
+  /* a question typed on the landing's box goes to the one reader (lhAsk → intelAsk, answered in the panel), as the lists' box */
+  document.addEventListener('keydown', e => {
+    const q = e.target && e.target.id === 'ctf-q' ? e.target : null; if (!q || e.key !== 'Enter' || e.isComposing) return;
+    const w = String(q.value || '').trim(); if (!w || typeof lhIsQuestion !== 'function' || !lhIsQuestion(w) || typeof lhAsk !== 'function') return;
+    e.preventDefault(); if (lhAsk(REG_CT_SEAT, w)) q.value = '';
+  });
   /* words typed in the box leave the folders for the list, the words carried (the register's own query) */
   document.addEventListener('input', e => {
     const q = e.target && e.target.id === 'ctf-q' ? e.target : null; if (!q) return;
+    /* a QUESTION stays in the box for Enter (the list head's own rule, spec.asks): it narrows nothing */
+    if (typeof lhIsQuestion === 'function' && lhIsQuestion(q.value)) return;
     state.reg = state.reg || {}; state.reg.query = q.value; _ctFolders = false; regRepaint();
     setTimeout(() => { const b = document.getElementById('ct-q'); if (b){ b.focus(); try { b.setSelectionRange(b.value.length, b.value.length); } catch (_){} } }, 0);
   });

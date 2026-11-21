@@ -85,7 +85,7 @@ const _lhBoxes = seat => (typeof document === 'undefined' || !document.querySele
    nothing is spent; questions go to Jambo's box at the panel's foot. No question stands in a box any more. */
 const LH_BOX_ASKS = false;
 function _lhAskingNow(seat, q){
-  if (!LH_BOX_ASKS) return null;
+  if (!LH_BOX_ASKS && !((_lhPage(seat) || {}).asks)) return null;
   if (q != null && String(q) !== '') return null;
   const boxes = _lhBoxes(seat);
   const b = boxes.find(x => x === document.activeElement) || boxes[0];
@@ -112,7 +112,7 @@ function lhBoxSet(seat, words){
     const pg = _lhPage(head.getAttribute('data-lh-seat'));
     if (!pg || typeof pg.q !== 'function') return;
     const q = qOf(pg);
-    head.querySelectorAll('input[data-lh-q]').forEach(inp => { if (LH_BOX_ASKS && !q && lhIsQuestion(inp.value)) return; put(inp, q); });
+    head.querySelectorAll('input[data-lh-q]').forEach(inp => { if ((LH_BOX_ASKS || pg.asks) && !q && lhIsQuestion(inp.value)) return; put(inp, q); });
   });
   return n;
 }
@@ -582,7 +582,9 @@ function _lhInput(e){
   const now = (typeof pg.q === 'function') ? String(pg.q() == null ? '' : pg.q()) : '';
   /* a question narrows nothing: the list stands whole while it is typed, and
      the box holds it (_lhAskingNow) */
-  if (LH_BOX_ASKS && lhIsQuestion(w)){ if (now && typeof pg.setQuery === 'function') pg.setQuery(''); }
+  /* A PAGE MAY LET ITS BOX ASK (spec.asks; Contracts, P-31, owner 21 Nov 2026): a question narrows nothing there and
+     Enter hands it to the one reader (lhAsk → intelAsk / jlAsk); plain words filter as everywhere */
+  if ((LH_BOX_ASKS || pg.asks) && lhIsQuestion(w)){ if (now && typeof pg.setQuery === 'function') pg.setQuery(''); }
   else if (typeof pg.setQuery === 'function') pg.setQuery(w);
   lhHeadSyncSoon(seat);
 }
@@ -592,8 +594,9 @@ function _lhKey(e){
   const head = inp.closest('[data-lh-seat]'); if (!head) return;
   const seat = head.getAttribute('data-lh-seat'), pg = _lhPage(seat); if (!pg) return;
   const w = String(inp.value || '').trim();
-  /* plain words stay a search: nothing is sent, nothing is spent — and since round 1 every word is plain */
-  if (!LH_BOX_ASKS || !lhIsQuestion(w)) return;
+  /* plain words stay a search: nothing is sent, nothing is spent — and since round 1 every word is plain, but on a
+     page whose box asks (spec.asks) */
+  if (!(LH_BOX_ASKS || pg.asks) || !lhIsQuestion(w)) return;
   e.preventDefault();
   if (!lhAsk(seat, w)) return;              /* said ('warn'); the words stay */
   inp.value = '';

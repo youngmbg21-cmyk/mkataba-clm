@@ -86,8 +86,8 @@ test('f998 (3) the folders landing: figure cards, then the folders as one table'
   const f = fnSrc(REG, 'regFolderRowsHtml');
   assert.doesNotMatch(f, /regFolderViewsHtml/, 'the views are gone');
   assert.match(f, /<div class="ctf-figs">/, 'four figure cards');
-  /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the table holds the folders and the Ended shelf, nothing under it */
-  assert.match(f, /<tbody>\$\{trs\}\$\{endTr\}<\/tbody>/, 'the Ended shelf keeps its door');
+  assert.match(f, /<tbody>\$\{trs\}\$\{endTr\}\$\{newTr\}<\/tbody>/, 'the Ended shelf and New folder keep their doors');
+  /* (P-31 as drawn, 21 Nov 2026) nothing under the table */
   assert.doesNotMatch(f, /ctf-foot/, 'no foot under the table');
   assert.doesNotMatch(f, /money\(|fmtMoney/, 'no money on the landing');
   assert.match(CSS, /html\.lg-new \.ctf-list\.is-two\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
