@@ -5533,7 +5533,7 @@ function obnChipsHtml(rows){
   /* P-13, as drawn: Later's chips are + Whose · + Agreement and the tab's own filter said as a set chip, "Due: after 30
      days ×" (its × goes back to Next 30 days) */
   const keys = _obnTab === 'later' ? ['who', 'cid'] : ['who', 'cid', 'st', 'rem'];
-  const set = _obnTab === 'later' ? `<button type="button" class="obs-chip is-on" data-obn-tab="open" aria-pressed="true" title="${_obEsc(i18t('obs_tab_open'))}">${_obEsc(i18t('obs_chip_after30'))} <span aria-hidden="true">×</span></button>` : '';
+  const set = _obnTab === 'later' ? `<button type="button" class="obs-chip is-on" data-obn-tabgo="open" aria-pressed="true" title="${_obEsc(i18t('obs_tab_open'))}">${_obEsc(i18t('obs_chip_after30'))} <span aria-hidden="true">×</span></button>` : '';
   return `<div class="obs-chips" role="group" aria-label="${_obEsc(i18t('obs_chips'))}">${keys.map(k => { const on = _obnF[k] !== 'all';
     return `<button type="button" class="obs-chip${on ? ' is-on' : ''}" data-obs-chip="${k}" aria-pressed="${on}">${_obEsc(obnChipWord(k, _obnF[k]))}${on ? ' <span aria-hidden="true">×</span>' : ''}</button>`; }).join('')}${set}</div>`;
 }
@@ -5836,6 +5836,9 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if(!t) return;
     const tab = t.closest('[data-obn-tab]');
+    /* Later's set chip "Due: after 30 days ×": its × goes back to Next 30 days (its own mark, so it is never counted a tab) */
+    const tgo = t.closest('[data-obn-tabgo]');
+    if(tgo){ e.preventDefault(); _obnTab = tgo.getAttribute('data-obn-tabgo'); _obnPage = 1; _obnTwoPick = null; _obnLetGo = false; const h = document.getElementById('content'); if(h && h.querySelector('.obn-page')) obnRender(h, { rows: true }); return; }
     if(tab){ e.preventDefault(); _obnTab = tab.getAttribute('data-obn-tab'); _obnPage = 1; _obnTwoPick = null; _obnLetGo = false; const h = document.getElementById('content'); if(h && h.querySelector('.obn-page')) obnRender(h, { rows: true }); return; }
     const pg = t.closest('[data-obn-page]');
     if(pg){ e.preventDefault(); const n = Number(pg.getAttribute('data-obn-page')) || 1;
