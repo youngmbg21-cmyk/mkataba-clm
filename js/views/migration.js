@@ -1359,6 +1359,13 @@ function migNlDropHtml(){
     ${API_MODE() ? '' : `<p class="mig-note">${esc(i18t('mig_static_mode'))}</p>`}
     ${migUnfinishedHtml()}
     ${M.manifestError ? `<div class="mig-warn is-ruby"><strong>${migEsc(M.manifestError.name)}</strong> was not loaded — ${migEsc(M.manifestError.reason)}.${M.manifest ? ` Still using <strong>${migEsc(M.manifestName)}</strong>.` : ''}</div>` : ''}
+    ${''/* A VALUE THE LIST COULD NOT READ IS SAID, by file and field, and left empty rather than guessed (an absence is
+           stated, never guessed) — the old page's warning, kept on P-33's drop page */}
+    ${(M.manifestProblems && M.manifestProblems.length) ? `<div class="mig-warn is-amber">
+      <div style="font-weight:var(--w-strong);margin-bottom:var(--s-1)">${M.manifestProblems.length} value${M.manifestProblems.length === 1 ? '' : 's'} in the manifest could not be read — those cells were left empty rather than guessed:</div>
+      <ul style="margin:0;padding-left:var(--s-4);line-height:1.6">${M.manifestProblems.slice(0, 12).map(p => `<li><strong>${migEsc(p.label)}</strong> · ${migEsc(p.field)}: ${migEsc(p.message)}</li>`).join('')}</ul>
+      ${M.manifestProblems.length > 12 ? `<div style="margin-top:var(--s-1)">…and ${M.manifestProblems.length - 12} more.</div>` : ''}
+    </div>` : ''}
   </section>`;
 }
 function migDropCardHtml(){

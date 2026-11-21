@@ -10711,7 +10711,8 @@ function sddCardHtml(admin, ctx){
   const needs=sddNeedList(admin, area, rows);
   const mkOf=x=>sddEmojiOf(x.row||'', x.area)||'•';
   const groups=[];
-  if(needs.length) groups.push({ label:i18t('sdd5_needs'), rows:needs.map(x=>({ mark:'', markText:mkOf(x), t:x.text, s:x.sub, attr:x.btn||'' })) });
+  /* each need keeps its tone (red where it is outright, amber otherwise) around its emoji mark */
+  if(needs.length) groups.push({ label:i18t('sdd5_needs'), rows:needs.map(x=>({ mark:'', markText:mkOf(x), tone:x.dot==='red'?'red':'amber', t:x.text, s:x.sub, attr:x.btn||'' })) });
   if(awM&&awM.deputyName&&(!area||area==='you')) groups.push({ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('st_jb_away',{ who:awM.deputyName }), wrap:true }] });
   /* ASK AN ADMIN is for a person who is not one (fault logged 21 Nov 2026: an admin's panel carried it under Jambo's links) */
   if(!admin) groups.push({ label:i18t('stn_p_ask'), rows:[{ mark:'msg', t:i18t('st_ask_go'), s:i18t('stn_p_ask_s'), attr:'data-st-ask-head=""', wrap:true }] });
