@@ -120,10 +120,18 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
     {
       const page = await open(); const { until, press } = kit(page);
       const card = await until(() => { if (!document.getElementById('set-page') || !document.querySelector('.stn-page[data-sdd-area="you"]')) { setView('team'); sddGo('you'); return null; }
-        /* RE-POINTED 16 Nov 2026 (#762): whom you answer for is a row of the one list, its Open it the row's door */ const b = document.querySelector('[data-st-you-card="away"] [data-st-away-open], #stn-main [data-st-away-open]') || document.querySelector('#stn-main [data-st-away-open]'); return b ? { id: b.getAttribute('data-st-away-open'), line: (b.closest('.st-aw-cover') || b.closest('.sdd-row')).textContent.replace(/\s+/g, ' ').trim() } : null; }, null, 15000);
+        /* RE-POINTED 16 Nov 2026 (#762): whom you answer for is a row of the one list, its Open it the row's door */ const b = document.querySelector('[data-st-you-card="away"] [data-st-away-open], #stn-main [data-st-away-open]') || document.querySelector('#stn-main [data-st-away-open]'); return b ? { id: b.getAttribute('data-st-away-open'), row: b.closest('.sdd-row') ? '#' + b.closest('.sdd-row').id : null, line: (b.closest('.st-aw-cover') || b.closest('.sdd-row')).textContent.replace(/\s+/g, ' ').trim() } : null; }, null, 15000);
       check('2a the away card says whom you answer for, what waits, and Open it', !!card && /^MK-[WB]\d$/.test(card.id) && /You answer for Unrestricted Legal/.test(card.line) && /\b\d+ waits? now\b/.test(card.line), JSON.stringify(card));
       await shot(page, 'main-24-away-open-it-1440x780');
-      if (card && await press('[data-st-you-card="away"] [data-st-away-open], #stn-main [data-st-away-open]', '2b Open it')) {
+      /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+      /* no Open it button on the row: the first press on the row chooses it, the second goes in through its own door
+         (kept on the row, unseen) */
+      const openIt = async () => { if (!card.row) return press('[data-st-you-card="away"] [data-st-away-open], #stn-main [data-st-away-open]', '2b Open it');
+        if ((await page.getAttribute(card.row, 'aria-pressed').catch(() => null)) !== 'true') {
+          if (!(await press(card.row + ' .sdd-t', '2b the row'))) return false;
+          await until(q => { const r = document.querySelector(q); return r && r.getAttribute('aria-pressed') === 'true' ? true : null; }, card.row, 3000); }
+        return press(card.row + ' .sdd-t', '2b Open it (the row, again)'); };
+      if (card && await openIt()) {
         const lit = await until(id => { const r = document.querySelector(`[data-ap-row="${id}"][data-ap-kind="approval"]`);
           return state.view === 'approvals' && r && r.classList.contains('is-landed') ? { lit: true, inView: (() => { const q = r.getBoundingClientRect(); return q.top >= 0 && q.bottom <= innerHeight; })(),
             decided: !!(getContract(id).approvalChain || []).some(s => s.status === 'approved') } : null; }, card.id, 10000);

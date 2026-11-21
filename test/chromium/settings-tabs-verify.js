@@ -52,6 +52,22 @@ const VISIBLE = (sel) => {
   return { ok: true, why: Math.round(b.width) + 'x' + Math.round(b.height) };
 };
 
+/* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+/* no Open / Change button on a Settings row: the first press on a row chooses it, the second goes in through the
+   row's own door (kept on the row, unseen); a row already chosen goes in on one press */
+const openRowOn = async (pg, sel) => {
+  if (!(await pg.locator(sel).count())) return false;
+  await pg.locator(sel).first().scrollIntoViewIfNeeded().catch(() => {});
+  if ((await pg.getAttribute(sel, 'aria-pressed').catch(() => null)) !== 'true') {
+    await pg.click(sel + ' .sdd-t');
+    await pg.waitForFunction(x => { const r = document.querySelector(x); return !!r && r.getAttribute('aria-pressed') === 'true'; }, sel, { timeout: 3000 }).catch(() => {});
+  }
+  await pg.click(sel + ' .sdd-t');
+  return true;
+};
+/* the row on the one list whose own (unseen) door opens panel k, as a selector, or null */
+const rowOfPanel = (pg, k) => pg.evaluate(x => { const d = [...document.querySelectorAll('.stn-page #stn-main [data-sdd-row] [data-sdd-go][data-st-panel]')].find(e => e.getAttribute('data-st-panel') === x);
+  const r = d && d.closest('[data-sdd-row]'); return r ? `.stn-page #stn-main [data-sdd-row="${r.getAttribute('data-sdd-row')}"]` : null; }, k);
 const signIn = async (page, base, email, pass) => {
   await page.goto(base + '/', { waitUntil: 'networkidle' });
   await page.waitForTimeout(600);
@@ -92,7 +108,11 @@ const signIn = async (page, base, email, pass) => {
          is pressed there; a panel with none is opened by its name — the navigation map's own call (js/navmap.js) */
       await page.evaluate(() => { if (!document.querySelector('.stn-page')) { try { settingsGoPage(''); } catch (_) {} setView('team'); } });
       await page.waitForTimeout(250);
+      /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+      /* a row whose door is unseen is pressed twice (choose, then go in) */
+      const rowSel = await rowOfPanel(page, k);
       if (await page.locator(`#stn-main [data-st-panel="${k}"]:visible`).count()) await page.locator(`#stn-main [data-st-panel="${k}"]:visible`).first().click();
+      else if (rowSel) await openRowOn(page, rowSel);
       else await page.evaluate(x => openSettingsAt('company', x), k);
       await page.waitForTimeout(500);
       const v = await page.evaluate(VISIBLE, '#st-drawer');
@@ -114,26 +134,33 @@ const signIn = async (page, base, email, pass) => {
     const isOpen = () => page.evaluate(() => document.getElementById('st-drawer').classList.contains('open'));
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): a panel's door is pressed where the one list draws it;
        a panel with no door there is opened by its name (the navigation map's own call, js/navmap.js) */
+    /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+    /* a row whose door is unseen is pressed twice (choose, then go in) */
     const door = async k => { const sel = `.stn-page #stn-main [data-st-panel="${k}"]:visible`; if (await page.locator(sel).count()) return page.locator(sel).first().click();
+      const rowSel = await rowOfPanel(page, k); if (rowSel) return openRowOn(page, rowSel);
       return page.evaluate(x => openSettingsAt('company', x), k); };
+    /* the company's details: its row on Company (no Change button; the row opens) */
+    const openCompany = async () => { await page.evaluate(() => { if (typeof sddGo === 'function' && !document.querySelector('.sdd-page[data-sdd-area="company"] #sdd-company')) sddGo('company'); });
+      await page.waitForFunction(() => !!document.querySelector('#stn-main #sdd-company'), null, { timeout: 4000 }).catch(() => {});
+      return openRowOn(page, '#stn-main #sdd-company'); };
     await page.evaluate(() => { settingsGoTab('platform'); });
-    await page.click('[data-st-panel="company"]'); await page.waitForTimeout(450);
+    await openCompany(); await page.waitForTimeout(450);
     check('the drawer is open before we try to close it', await isOpen());
     await page.click('.st-dx'); await page.waitForTimeout(400);
     check('the ✕ closes it', !(await isOpen()));
 
-    await page.click('[data-st-panel="company"]'); await page.waitForTimeout(450);
+    await openCompany(); await page.waitForTimeout(450); /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
     /* A real press on the scrim at a point that is NOT over the drawer. */
     await page.mouse.click(80, 400); await page.waitForTimeout(400);
     check('pressing the dimmed page closes it', !(await isOpen()));
 
-    await page.click('[data-st-panel="company"]'); await page.waitForTimeout(450);
+    await openCompany(); await page.waitForTimeout(450); /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
     await page.keyboard.press('Escape'); await page.waitForTimeout(400);
     check('Escape closes it', !(await isOpen()));
 
     /* ---- the drawer covers the page rather than squeezing it ---- */
     const before = await page.evaluate(() => Math.round(document.getElementById('set-page').getBoundingClientRect().width));
-    await page.click('[data-st-panel="company"]'); await page.waitForTimeout(500);
+    await openCompany(); await page.waitForTimeout(500); /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
     const during = await page.evaluate(() => Math.round(document.getElementById('set-page').getBoundingClientRect().width));
     await page.keyboard.press('Escape'); await page.waitForTimeout(400);
     check('opening it does not resize the page underneath', before === during, `${before}px → ${during}px`);
@@ -144,7 +171,7 @@ const signIn = async (page, base, email, pass) => {
        beside it, and a Save that writes. */
     await page.evaluate(() => { settingsGoTab('platform'); });
     await page.waitForTimeout(250);
-    await page.click('[data-st-panel="company"]'); await page.waitForTimeout(500);
+    await openCompany(); await page.waitForTimeout(500); /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
     const legalBoxes = [];
     for (const id of ['st-co-name', 'st-co-reg', 'st-co-addr']) {
       const v = await page.evaluate(VISIBLE, '#' + id);
@@ -386,8 +413,12 @@ const signIn = async (page, base, email, pass) => {
     }));
     check('the ladder is drawn on the signing limits row and the switch is OFF',
       ladder.ok && sw.on === false && sw.rows >= 3, `${sw.rows} rows · switch ${sw.on}`);
-    check('and it says out loud that the limits are recorded, not enforced',
-      /not enforced/i.test(sw.note), sw.note.replace(/\s+/g, ' ').trim().slice(-70));
+    /* RETIRED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way): the sentence "recorded, not enforced"
+       was dropped on purpose; the rule is a switch now with its state word beside it.
+       RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way): the switch says out loud it is Off */
+    const scState = await page.evaluate(() => ((document.getElementById('sc6-state') || {}).textContent || '').trim());
+    check('and the switch says out loud that the limits are off (recorded, not enforced)',
+      /^off$/i.test(scState), scState);
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     await door('signfolder'); await page.waitForTimeout(600);
     const sfSwitch = await page.evaluate(() => {
@@ -743,7 +774,8 @@ const signIn = async (page, base, email, pass) => {
          design is off the sheet and found by its name — the Menu names it */
       design: !document.querySelector('[data-st-you-card="design"]') && !!document.querySelector('#st-list [data-st-you="design"]'),
     }));
-    await p2.click('#sdd-who [data-sdd-go]'); await p2.waitForTimeout(500);
+    /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+    await openRowOn(p2, '.stn-page #sdd-who'); await p2.waitForTimeout(500);
     if (!(await p2.evaluate(() => !!document.getElementById('st-me-title')))) { await p2.locator('#st-drawer [data-st-panel="me:name"]').first().click().catch(() => null); await p2.waitForTimeout(500); }
     const whoV = await p2.evaluate(VISIBLE, '#st-me-title');
     check('a card\'s door opens their drawer with the control in it, as pixels', whoV.ok, whoV.why);

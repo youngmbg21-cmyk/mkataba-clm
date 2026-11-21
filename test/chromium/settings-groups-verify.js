@@ -94,7 +94,15 @@ const PAINTED = (sel) => {
     /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): Approval rules is a row in the Rules area */
     await page.evaluate(() => { if (typeof sddGo === 'function') sddGo('rules'); });
     await page.waitForFunction(() => !!document.querySelector('.stn-page #stn-main [data-st-panel="approvals"]'), null, { timeout: 5000 }).catch(() => {});
-    await page.click('.stn-page #stn-main [data-st-panel="approvals"]');
+    /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+    /* no Change button on the row: the first press on Approval rules chooses it, the second goes in through its own
+       door (kept on the row, unseen) */
+    const AP_ROW = '.stn-page #stn-main [data-sdd-row="approvals"]';
+    if ((await page.getAttribute(AP_ROW, 'aria-pressed').catch(() => null)) !== 'true') {
+      await page.click(AP_ROW + ' .sdd-t');
+      await page.waitForFunction(s => { const r = document.querySelector(s); return !!r && r.getAttribute('aria-pressed') === 'true'; }, AP_ROW, { timeout: 3000 }).catch(() => {});
+    }
+    await page.click(AP_ROW + ' .sdd-t');
     await page.waitForTimeout(600);
     await shot(page, 'settings-drawer');
     const crumb = await page.evaluate(PAINTED, '.st-dcrumb');

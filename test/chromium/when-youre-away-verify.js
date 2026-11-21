@@ -76,7 +76,14 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
     check('1a When you\'re away, in You: nobody yet, and its door', !!row && /When you’re away|When you're away/.test(row) && /Not set/.test(row) && door1, row);
 
     console.log('\n2 · the form');
-    if (await press('#sdd-away [data-st-panel="me:away"]', '2 Change')) {
+    /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+    /* nobody set yet, the row carries no Set button: its first press chooses it, the second goes in through its own
+       door (kept on the row, unseen) */
+    const pressRow = async (sel, what) => { if (!(await page.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; }
+      if ((await page.getAttribute(sel, 'aria-pressed').catch(() => null)) !== 'true') { await page.click(sel + ' .sdd-t');
+        await until(x => { const r = document.querySelector(x); return r && r.getAttribute('aria-pressed') === 'true' ? true : null; }, sel, 3000); }
+      await page.click(sel + ' .sdd-t'); return true; };
+    if (await pressRow('#sdd-away', '2 Change')) {
       const d = await until(() => { const dr = document.getElementById('st-drawer'); if (!dr || !dr.classList.contains('open')) return null;
         const who = document.getElementById('st-aw-who');
         return who ? { title: ((document.querySelector('#st-dhead .rvd-title') || {}).textContent || '').trim(), from: (document.getElementById('st-aw-from') || {}).value,

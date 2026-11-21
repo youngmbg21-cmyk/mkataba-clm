@@ -592,8 +592,9 @@ function stDrawerPaint(d){
     : place
     ? `<div class="st-dcrumb">
          <span class="st-dcrumb-g">${esc(i18t('st_grp_'+place.group))}</span>
-         <span class="st-dcrumb-sep" aria-hidden="true">›</span>
+         <span class="st-dcrumb-sep" aria-hidden="true">·</span>
          <span class="st-dcrumb-n">${esc(i18t('st_panel_pos',{n:place.n,total:place.total}))}</span>
+         ${''/* P-43 (owner's pick 21 Nov 2026): the steps of the group as small dashes, those reached in ink */}<span class="st-dsteps" aria-hidden="true">${Array.from({ length:place.total },(_,i)=>`<i${i<place.n?' class="is-on"':''}></i>`).join('')}</span>
        </div>` : '';
   document.getElementById('st-dhead').innerHTML=
     `${crumb}${head}<button class="st-dx" data-st-dclose title="${esc(i18t('st_close_drawer'))}" aria-label="${esc(i18t('st_close_drawer'))}">${icon('x')}</button>`;
@@ -618,7 +619,7 @@ function stDrawerPaint(d){
      because it sat beside the button is not a convenience. */
   const nextKey=(d.foot!=='save' && place && place.next && SET_PANELS[place.next]) ? place.next : '';
   const nextBtn=nextKey
-    ? `<button class="st-dnext" data-st-panel="${nextKey}">${esc(i18t('st_next',{name:SET_PANELS[nextKey].title()}))}</button>`
+    ? `<button class="st-dnext" data-st-panel="${nextKey}">${esc(i18t('st_next',{name:SET_PANELS[nextKey].title()}))} ›</button>`
     : '';
   document.getElementById('st-dfoot').innerHTML =
     `<div id="st-drawer-refusal" class="st-refusal" hidden></div>
@@ -1148,11 +1149,11 @@ function stClashes(){
         btn:`data-st-panel="person:${PB_ATTR(p.id)}" data-st-focus="${x.cap==null?'#tm-cap-none':'#tm-cap'}"`, verb:i18t('st_clash_open',{name:stNameOf(p)}) }; }
     if(x.kind==='each') return { key:x.key, dot:'warn', text:i18t('st_clash_each',{a:stNameOf(x.who),b:stNameOf(x.appr)}),
       btn:`data-st-panel="person:${PB_ATTR(x.who.id)}"`, verb:i18t('st_clash_open',{name:stNameOf(x.who)}) };
-    if(x.kind==='self') return { key:x.key, dot:'warn',
+    if(x.kind==='self') return { key:x.key, kind:'self', stream:x.stream||null, dot:'warn',
       text:x.stream?i18t('st_clash_self_stream',{who:stNameOf(x.who),stream:(FOLDERS[x.stream]||{}).name||x.stream})
         :i18t('st_clash_self_rule',{who:stNameOf(x.who),rule:condLabel((x.rule&&x.rule.cond)||{})}),
       btn:'data-st-panel="approvals"', verb:i18t('st_clash_rule') };
-    return { key:x.key, dot:'warn', text:i18t('st_clash_nobody',{stream:(FOLDERS[x.stream]||{}).name||x.stream}), btn:'data-st-panel="approvals"', verb:i18t('st_clash_rule') };
+    return { key:x.key, kind:x.kind, dot:'warn', text:i18t('st_clash_nobody',{stream:(FOLDERS[x.stream]||{}).name||x.stream}), btn:'data-st-panel="approvals"', verb:i18t('st_clash_rule') };
   });
 }
 /* ---- THE DAY A CLASH WAS FIRST SEEN (owner's answer 12, 18 Oct 2026) ----
@@ -6372,9 +6373,13 @@ const SET_PANELS={
       return { dot:rules.length?'ok':'warn',
         text:rules.length?rules.map(r=>esc(condLabel(r.cond))).join(' · '):i18t('set_no_approval_rules') }; },
     chip(){ const n=(typeof approvalRules==='function'?approvalRules():[]).length; return n?String(n):''; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_rules_sub')}</p>
+    /* P-43 (owner's pick 21 Nov 2026): THE RULE IN WORDS first, then the rules as a calm table, + Add a rule, a clash
+       said once in amber with its way forward, the order in small print (renderApprovalRules draws all four) */
+    body(){ return `<p class="st-inwords" id="ar6-words"></p>
       <div id="approval-rules"></div>
-      <button id="ar-add" style="margin-top:var(--s-2);${ST_BTN2};border-color:transparent;background:var(--surface-2);color:var(--color-text);border-radius:999px">${icon('plus','w-3.5 h-3.5')} ${i18t('set_add_rule_btn')}</button>
+      <button type="button" id="ar-add" class="ar6-add">${icon('plus','w-3.5 h-3.5')} ${esc(i18t('ar6_add'))}</button>
+      <div id="ar6-clash"></div>
+      <p class="st-note ar6-foot">${esc(i18t('ar6_foot'))}</p>
       ${''/* THE SIGNING LIMIT AND THE FOLDER RULE LEFT THIS DRAWER (4 Oct 2026,
              the process review) for rows of their own under "Before anyone
              signs" — see signcap and signfolder. THE OVERSEER SWITCH left it
@@ -6573,10 +6578,10 @@ const SET_PANELS={
       return n?{ s:i18tn('st_cf_capped',n,{ n }) }:null; },
     state(){ const on=(typeof signCapEnforced==='function')&&signCapEnforced();
       return { dot:on?'ok':'off', text:`${esc(i18t('sc_rule_on'))} — ${on?stOn():stOff()}` }; },
-    body(){ return `<label class="st-toggle" style="margin-bottom:var(--s-2)">
-        <input id="sc-rule-on" type="checkbox"${((typeof signCapEnforced==='function')&&signCapEnforced())?' checked':''}/>
-        <span><span class="st-role-name">${esc(i18t('sc_rule_on'))}</span></span></label>
-      <div style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text);margin:10px 0 6px">${esc(i18t('sc_ladder'))}</div>
+    /* P-43 (owner's pick 21 Nov 2026): the rule a SWITCH with its state beside it; who can sign what today under it */
+    body(){ const on=(typeof signCapEnforced==='function')&&signCapEnforced();
+      return `<div class="sc6-swrow"><label class="sc6-sw"><input id="sc-rule-on" type="checkbox" role="switch"${on?' checked':''}/><i aria-hidden="true"></i></label>
+        <span class="sc6-sw-t">${esc(i18t('sc_rule_on'))}</span><span id="sc6-state" class="apn-st is-${on?'green':'grey'}">${esc(i18t(on?'stn_pill_on':'stn_pill_off'))}</span></div>
       <div id="sc-ladder"></div>`; },
     wire(){
       stPaintLadder();
@@ -7852,14 +7857,22 @@ function stPaintLadder(){
   const rows=(typeof signCapLadder==='function')?signCapLadder():[];
   const un=(typeof signCapUnanswered==='function')?signCapUnanswered():[];
   const enforced=(typeof signCapEnforced==='function')&&signCapEnforced();
-  host.innerHTML=(rows.length?rows.map(r=>`<div class="st-frow">
-      <span class="st-fname" data-st-fixed="1">${esc(r.name)}</span>
-      <span class="st-fmeta">${esc(roleName(r.role))}</span>
-      <span class="st-fmeta" style="color:${(!r.answered&&r.mayEverSign&&r.role!=='admin')?'var(--st-amber-fg)':'var(--color-neutral-600)'}">${esc(r.text)}</span>
-      <span class="st-fmeta" style="opacity:.8">${esc((typeof signFolderText==='function')?signFolderText((getUsers()||[]).find(u=>u.id===r.id)||{}):'')}</span>
+  const stt=document.getElementById('sc6-state'); if(stt){ stt.className='apn-st is-'+(enforced?'green':'grey'); stt.textContent=i18t(enforced?'stn_pill_on':'stn_pill_off'); }
+  /* P-43: a calm table — initials, the name, the role a soft badge, the limit (amber where nobody has set one, with its
+     own door, the person's drawer on their limit), the folders; a bar of how many who may sign have no limit */
+  const owed=r=>!r.answered&&r.mayEverSign&&r.role!=='admin';
+  const signers=rows.filter(r=>r.mayEverSign||r.role==='admin');
+  const nOwed=rows.filter(owed).length;
+  const ini=n=>String(n||'').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w.charAt(0).toUpperCase()).join('');
+  host.innerHTML=`<div class="sc6-lh"><b>${esc(i18t('sc_ladder'))}</b>${nOwed?`<span class="sc6-amber">${esc(i18t('sc6_no_limit',{ n:nOwed, m:signers.length||rows.length }))}</span>`:''}</div>`
+    +(signers.length&&nOwed?`<div class="sc6-bar" aria-hidden="true"><i class="is-ok" style="flex:${Math.max(0,(signers.length||rows.length)-nOwed)}"></i><i class="is-owed" style="flex:${nOwed}"></i></div>`:'')
+    +(rows.length?rows.map(r=>`<div class="st-frow sc6-lrow">
+      <span class="sc6-who"><span class="ar6-ini${r.role==='admin'?' is-green':''}" aria-hidden="true">${esc(ini(r.name))}</span><span class="st-fname" data-st-fixed="1">${esc(r.name)}</span></span>
+      <span><span class="apn-st is-grey">${esc(roleName(r.role))}</span></span>
+      <span class="st-fmeta${owed(r)?' sc6-amber':''}">${esc(r.text)}${owed(r)&&r.id!=null?` · <button type="button" class="ui-link" data-st-panel="person:${PB_ATTR(r.id)}" data-st-focus="#tm-cap">${esc(i18t('sc6_set'))}</button>`:''}</span>
+      <span class="st-fmeta">${esc((typeof signFolderText==='function')?signFolderText((getUsers()||[]).find(u=>u.id===r.id)||{}):'')}</span>
     </div>`).join(''):`<p class="st-note">${esc(i18t('sc_ladder_none'))}</p>`)
-    +(un.length?`<p class="st-note" style="color:var(--st-amber-fg)">${esc(i18tn('sc_unanswered',un.length,{n:un.length}))}</p>`:'')
-    +(enforced?'':`<p class="st-note">${esc(i18t('sc_not_enforced'))}</p>`);
+    +(un.length&&!nOwed?`<p class="st-note sc6-amber">${esc(i18tn('sc_unanswered',un.length,{n:un.length}))}</p>`:'');
 }
 
 /* WHO IS NARROWED TODAY — the folder rule's own drawer. Read-only; each
@@ -9844,19 +9857,43 @@ function condLabel(cond){
     default: return cond.type;
   }
 }
+/* P-43, THE APPROVAL RULES THE LEGORA + STRIPE WAY (owner's pick 21 Nov 2026): the rules said in words first, in the
+   paper's type; then one calm row a rule — its order, the If as a soft chip, whose yes (initials where it is a person),
+   the asks open under it today as a badge (approvalState's chain, the one reading), and ⋯ holding Edit and Remove;
+   a clash in who asks and who answers said once, in amber, with Who holds what as its way forward. Remove writes on
+   the press, as it always did. */
+function arInitials(label){ return String(label||'').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w.charAt(0).toUpperCase()).join(''); }
+function arOpenAsks(rule){
+  let n=0; (state.contracts||[]).forEach(c=>{ if(!c||c.status==='Signed'||c.archived) return;
+    try{ const st=window.approvalState?approvalState(c):null; if(st&&st.required&&(st.chain||[]).some(x=>x.ruleId===rule.id&&x.status!=='approved')) n++; }catch(_){ /* not counted */ } });
+  return n;
+}
 function renderApprovalRules(){
   const host=document.getElementById('approval-rules'); if(!host) return;
   const rules=approvalRules().slice().sort((a,b)=>(a.order||99)-(b.order||99));
-  host.innerHTML=rules.length?rules.map((r,i)=>`
-    <div style="border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:10px var(--s-3);margin-bottom:var(--s-2)">
-      <div style="display:flex;align-items:center;gap:var(--s-2)">
-        <span style="width:22px;height:22px;display:inline-grid;place-items:center;border-radius:50%;background:var(--tile-steel-bg);font-size:var(--t-label);font-weight:var(--w-title);color:var(--tile-steel-fg);flex:none">${r.order||1}</span>
-        <span style="font-size:var(--t-meta);color:var(--color-text)"><b>${i18t('set_if')}</b> ${condLabel(r.cond)} <b>${i18t('set_then')}</b> ${approverLabelOf(r.approver)}</span>
-        ${isAdmin()?`<span style="margin-left:auto;display:flex;gap:10px;font-size:var(--t-label);font-weight:var(--w-strong)"><button data-ar-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--accent-ink-700)">${i18t('set_edit_lower')}</button><button data-ar-del="${i}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">${i18t('set_remove_lower')}</button></span>`:''}
-      </div>
-    </div>`).join(''):`<p style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('set_no_approval_rules')}</p>`;
+  const all=approvalRules();
+  const words=document.getElementById('ar6-words');
+  if(words) words.textContent=rules.length?rules.map(r=>i18t('ar6_words_rule',{ cond:condLabel(r.cond), who:approverLabelOf(r.approver) })).join(' '):i18t('set_no_approval_rules');
+  const admin=isAdmin();
+  host.innerHTML=rules.length?`<div class="ar6-row is-head"><span></span><span>${esc(i18t('ar6_h_if'))}</span><span>${esc(i18t('ar6_h_then'))}</span><span>${esc(i18t('ar6_h_open'))}</span><span></span></div>`+rules.map(r=>{
+    const i=all.indexOf(r), who=approverLabelOf(r.approver), n=arOpenAsks(r);
+    return `<div class="ar6-row"><span class="ar6-n">${r.order||1}</span><span class="ar6-if"><span class="ar6-cond" title="${esc(condLabel(r.cond))}">${esc(condLabel(r.cond))}</span></span>
+      <span class="ar6-who">${r.approver&&r.approver.kind==='member'?`<span class="ar6-ini" aria-hidden="true">${esc(arInitials(who))}</span>`:''}<span title="${esc(who)}">${esc(who)}</span></span>
+      <span>${n?`<span class="apn-st is-amber">${esc(i18tn('ar6_asks',n,{ n }))}</span>`:''}</span>
+      <span class="ar6-more">${admin?`<button type="button" class="ar6-dots" data-ar6-more aria-expanded="false" aria-label="${esc(i18t('ar6_more'))}" title="${esc(i18t('ar6_more'))}">${icon('more','w-4 h-4')}</button><span class="apn-rule-menu ar6-menu" hidden><button type="button" data-ar-edit="${i}">${esc(i18t('ar6_edit'))}</button><button type="button" data-ar-del="${i}">${esc(i18t('ar6_remove'))}</button></span>`:''}</span></div>`; }).join('')
+    :`<p class="st-note">${esc(i18t('set_no_approval_rules'))}</p>`;
+  if(!document._ar6Wired){ document._ar6Wired=true; document.addEventListener('click',e=>{ if(e.target&&e.target.closest&&e.target.closest('.ar6-more')) return;
+    document.querySelectorAll('#approval-rules .ar6-menu:not([hidden])').forEach(m=>{ m.hidden=true; }); }); }
+  host.querySelectorAll('[data-ar6-more]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); const m=b.parentNode.querySelector('.ar6-menu'); if(!m) return;
+    const show=m.hidden; host.querySelectorAll('.ar6-menu').forEach(x=>{ x.hidden=true; }); host.querySelectorAll('[data-ar6-more]').forEach(x=>x.setAttribute('aria-expanded','false'));
+    m.hidden=!show; b.setAttribute('aria-expanded',String(show)); }));
   host.querySelectorAll('[data-ar-edit]').forEach(b=>b.addEventListener('click',()=>openApprovalRuleEditor(Number(b.getAttribute('data-ar-edit')))));
   host.querySelectorAll('[data-ar-del]').forEach(b=>b.addEventListener('click',()=>{ const rules2=approvalRules().slice(); rules2.splice(Number(b.getAttribute('data-ar-del')),1); saveApprovalRules(rules2); renderApprovalRules(); toast(i18t('set_rule_removed'),'ok'); }));
+  /* the clash, said once: who both asks for and gives the yes on a rule, or a stream nobody may say yes in */
+  const ch=document.getElementById('ar6-clash');
+  if(ch){ let cl=null; try{ cl=(typeof stClashes==='function'?stClashes():[]).find(x=>(x.kind==='self'&&!x.stream)||x.kind==='nobody')||null; }catch(_){ cl=null; }
+    ch.innerHTML=cl?`<div class="ar6-clash"><i aria-hidden="true"></i><div>${esc(cl.text)}. <button type="button" class="ui-link" data-ar6-sheet>${esc(i18t('ar6_clash_go'))}</button></div></div>`:'';
+    ch.querySelector('[data-ar6-sheet]')?.addEventListener('click',()=>{ stDrawerClose(); if(typeof settingsGoPage==='function') settingsGoPage('sheet'); }); }
 }
 function openApprovalRuleEditor(idx){
   const rules=approvalRules().slice();
@@ -10087,16 +10124,20 @@ function renderReviewGatePanel(){
 /* THE GATE IS A SETTING AND WRITES ON CHANGE — gates have no Save (the
    rulebook's own line). Three answers, safest first, so the default is the one
    the eye lands on. A non-admin is shown the state and cannot move it. */
+/* P-43, THE CHECK BEFORE SIGNING THE LEGORA + STRIPE WAY (owner's pick 21 Nov 2026): the three answers as ONE
+   segmented control (the radios kept, written on change as before); the chosen one in words; what happens at signing
+   as a small timeline, read off the three answers' own sentences; the other two in a line each */
+const SC6_STEPS={ off:[['green','sc6_tl_see'],['grey','sc6_tl_off']], advise:[['green','sc6_tl_see'],['amber','sc6_tl_esc','sc6_tl_esc_s'],['grey','sc6_tl_else']], require:[['green','sc6_tl_see'],['amber','sc6_tl_req','sc6_tl_req_s']] };
 function renderSignCheckGatePanel(){
   const host=document.getElementById('sc-gate-panel'); if(!host) return;
   const admin=isAdmin();
   const now=(window.signCheckGate?signCheckGate():'off');
-  const row=k=>`<label style="display:flex;gap:9px;align-items:flex-start;font-size:var(--t-meta);line-height:1.5;margin-bottom:9px;cursor:${admin?'pointer':'not-allowed'}">
-    <input type="radio" name="sc-gate" value="${k}"${now===k?' checked':''}${admin?'':' disabled'} style="margin-top:2px"/>
-    <span><span style="font-weight:var(--w-strong);color:var(--color-text)">${i18t('sc_set_'+k)}</span>
-    <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${i18t('sc_set_'+k+'_d')}</span></span>
-  </label>`;
-  host.innerHTML=(window.SIGN_CHECK_GATES||['off','advise','require']).map(row).join('');
+  const G=(window.SIGN_CHECK_GATES||['off','advise','require']);
+  const seg=`<div class="sc6-seg" role="radiogroup" aria-label="${esc(i18t('sc_set_title'))}">${G.map(k=>`<label class="sc6-o${now===k?' is-on':''}${admin?'':' is-locked'}"><input type="radio" name="sc-gate" value="${k}"${now===k?' checked':''}${admin?'':' disabled'}/><span>${esc(i18t('sc_set_'+k))}</span></label>`).join('')}</div>`;
+  const steps=(SC6_STEPS[now]||SC6_STEPS.off);
+  const tl=`<div class="sc6-tl"><p class="sc6-h">${esc(i18t('sc6_tl_h',{ gate:i18t('sc_set_'+now) }))}</p><ol class="sc6-tline">${steps.map(([tone,k,sk])=>`<li class="is-${tone}"><i aria-hidden="true"></i><span>${esc(i18t(k))}${sk?`<small> · ${esc(i18t(sk))}</small>`:''}</span></li>`).join('')}<li class="is-sign"><i aria-hidden="true"></i><span>${esc(i18t('sdd5_signature'))}</span></li></ol></div>`;
+  const others=`<div class="sc6-others">${G.filter(k=>k!==now).map(k=>`<div><b>${esc(i18t('sc_set_'+k))}</b><span>${esc(i18t('sc_set_'+k+'_d'))}</span></div>`).join('')}</div>`;
+  host.innerHTML=seg+`<p class="st-inwords">${esc(i18t('sc_set_'+now+'_d'))}</p>`+tl+others;
   if(!admin) return;
   host.querySelectorAll('input[name="sc-gate"]').forEach(r=>r.addEventListener('change',()=>{
     if(!r.checked) return;
@@ -10517,14 +10558,27 @@ function sddNeedList(admin, area, rows){
   return out;
 }
 /* ---- the middle ---- */
+/* P-43, SETTINGS THE LEGORA + STRIPE WAY (owner's pick 21 Nov 2026): no button on any row — the row opens (a press
+   chooses, a second press goes in through the row's own door, kept here unseen); what a setting is set to is a SWITCH
+   with its word where the setting is on or off, an amber soft badge where it needs you, else its word; the six areas a
+   calm table (the mark with its dot, the name, what it holds on one line, a soft badge for now, the count) */
 function sddMarkHtml(r){ return sddMkHtml(sddEmojiOf(r.id, r.area), r.area, r.dot==='need'); }
 function sddVal(r){ return r.now?`<span class="sdd-v${r.dot?' is-'+r.dot:''}">${esc(r.now)}</span>`:''; }
+function sddStateHtml(r){
+  if(!r.now) return '';
+  /* a row that carries its own control (the language, the phone's switch) says its word only: the control is the switch */
+  if(r.ctl) return `<span class="sdd-v">${esc(r.now)}</span>`;
+  if(r.dot==='on'||r.dot==='off') return `<span class="sdd-onoff"><span class="sdd-sw${r.dot==='on'?' is-on':''}" aria-hidden="true"></span><span class="sdd-sw-t sdd-v">${esc(r.now)}</span></span>`;
+  if(r.dot==='need') return `<span class="apn-st is-amber" title="${esc(r.now)}"><i></i>${esc(r.now)}</span>`;
+  return sddVal(r);
+}
 function sddRowHtml(r, opts){
   const o=opts||{}, chosen=r.id===_sddPick;
-  const act=r.ctl?r.ctl:r.door?`<button type="button" class="sdd-go${chosen?' is-black':''}" data-sdd-go ${r.door}>${esc(r.verb||i18t('sdd_open'))}</button>`:'';
+  /* the row's own door, unseen: the second press on the row (or Enter) presses it; the panel's one button carries it too */
+  const door=r.door?`<span class="sdd-door" hidden data-sdd-go ${r.door}></span>`:'';
   return `<div class="sdd-row${chosen?' is-chosen':''}" id="sdd-${esc(r.id)}" data-sdd-row="${esc(r.id)}"${o.found?` data-sdd-found="${esc(r.area)}"`:''} role="button" tabindex="0" aria-pressed="${chosen?'true':'false'}">
     ${sddMarkHtml(r)}<div class="sdd-t">${o.found?`<div class="sdd-n">${esc(r.name)} <small>${esc(i18t('sdd_in',{ area:i18t('sdd_a_'+r.area) }))}</small></div>`:`<div class="sdd-k">${esc(r.name)}</div>`}<div class="sdd-s">${esc(r.say)}</div>${r.sub?`<div class="sdd-u">${esc(r.sub)}</div>`:''}</div>
-    <div class="sdd-now">${sddVal(r)}</div><div class="sdd-a">${act}</div></div>`;
+    <div class="sdd-now">${sddStateHtml(r)}</div><div class="sdd-a">${r.ctl||''}${r.ctl?'':`<span class="sdd-chev" aria-hidden="true">›</span>`}${door}</div></div>`;
 }
 function sddAreaState(a, rows){
   const mine=rows.filter(r=>r.area===a), need=sddNeedList(stIsAdmin(), a, rows).length;
@@ -10537,16 +10591,25 @@ function sddAreaState(a, rows){
   if(a==='mail') return { t:r('mail').now||'', dot:r('mail').dot||'' };
   return { t:r('golive').now||'', dot:'' };
 }
+/* THE CHIPS (All · Need you on the landing; All · On · Off, and Need you where something does, in an area): which rows
+   show, nothing else; a chip is the area's own (a chip chosen on one area is All on the next) */
+let _sddChip='all', _sddChipAt='';
+const sddChipNow=()=>_sddChipAt===(_sddArea||'')?_sddChip:'all';
+function sddChipSet(k){ _sddChip=k||'all'; _sddChipAt=_sddArea||''; sddRepaint(); }
+const sddHomeBadge=st=>st.t?`<span class="apn-st is-${st.dot==='need'?'amber':st.dot==='on'?'green':'grey'}" title="${esc(st.t)}">${st.dot==='need'?'<i></i>':''}${esc(st.t)}</span>`:'';
 function sddHomeHtml(admin){
-  const rows=sddRows(admin), areas=SDD_AREAS.filter(a=>rows.some(r=>r.area===a));
+  const rows=sddRows(admin);
   if(_sddQ.trim()) return sddFoundHtml(rows);
-  return `<div class="sdd-colh"><span>${esc(i18t('sdd_col_area'))}</span><span>${esc(i18t('sdd_col_now'))}</span></div>`
+  const chip=sddChipNow();
+  const areas=SDD_AREAS.filter(a=>rows.some(r=>r.area===a)).filter(a=>chip!=='need'||sddAreaState(a,rows).dot==='need');
+  return `<div class="sdd-colh is-home"><span>${esc(i18t('sdd_col_area'))}</span><span>${esc(i18t('sdd_col_now'))}</span><span>${esc(i18t('sdd_col_count'))}</span></div>`
     +areas.map(a=>{ const mine=rows.filter(r=>r.area===a), st=sddAreaState(a,rows), chosen=a===_sddHome;
       const mk=sddMkHtml(SDD_EMOJI.area[a], a, st.dot==='need');
+      const list=mine.map(r=>r.name).join(' · ');
       return `<div class="sdd-row is-area${chosen?' is-chosen':''}" id="sdd-area-${a}" data-sdd-home="${a}" role="button" tabindex="0" aria-pressed="${chosen?'true':'false'}">
-        ${mk}<div class="sdd-t"><div class="sdd-n">${esc(i18t('sdd_a_'+a))} <em>${mine.length}</em></div><div class="sdd-s is-list">${esc(mine.map(r=>r.name).join(' · '))}</div></div>
-        <div class="sdd-now"><span class="sdd-v${st.dot?' is-'+st.dot:''}">${esc(st.t)}</span></div><div class="sdd-a"><button type="button" class="sdd-go${chosen?' is-black':''}" data-sdd-door="${a}">${esc(i18t('sdd_open'))}</button></div></div>`; }).join('')
-    +`<p class="sdd-foot">${esc(i18t('sdd_foot'))}</p>`;
+        ${mk}<div class="sdd-t"><div class="sdd-n">${esc(i18t('sdd_a_'+a))}</div><div class="sdd-s is-list" title="${esc(list)}">${esc(list)}</div></div>
+        <div class="sdd-now">${sddHomeBadge(st)}</div><div class="sdd-a sdd-num">${mine.length}<span class="sdd-door" hidden data-sdd-door="${a}"></span></div></div>`; }).join('')
+    +`<p class="sdd-foot">${esc(i18t('sdd_foot_row'))}</p>`;
 }
 function sddFoundHtml(rows){
   const toks=String(_sddQ).toLowerCase().split(/\s+/).filter(Boolean);
@@ -10555,22 +10618,29 @@ function sddFoundHtml(rows){
   if(!hit.length) return `<p class="sdd-empty">${esc(i18t('sdd_found_none',{ q:_sddQ.trim() }))}</p>`;
   return `<div class="sdd-colh"><span>${esc(i18tn('sdd_found_n',hit.length,{ n:hit.length }))}</span><span>${esc(i18t('sdd_col_now'))}</span></div>`+hit.map(r=>sddRowHtml(r,{ found:true })).join('');
 }
+const sddChipFits=(r,chip)=>chip==='all'||(chip==='need'?r.dot==='need':r.dot===chip);
 function sddAreaHtml(admin, a){
-  const rows=sddRows(admin).filter(r=>r.area===a), groups=[];
+  const chip=sddChipNow();
+  const rows=sddRows(admin).filter(r=>r.area===a&&sddChipFits(r,chip)), groups=[];
   rows.forEach(r=>{ let g=groups.find(x=>x.k===r.g); if(!g) groups.push(g={ k:r.g, rows:[] }); g.rows.push(r); });
   if(_sddQ.trim()) return sddFoundHtml(sddRows(admin));
   return `<div class="sdd-colh"><span>${esc(i18t('sdd_col_setting'))}</span><span>${esc(i18t('sdd_col_now'))}</span></div>`
     +groups.map(g=>`<h3 class="sdd-gh a-${SDD_TONE[a]}">${esc(i18t('sdd_g_'+a+'_'+g.k))}</h3>`+g.rows.map(r=>sddRowHtml(r)).join('')).join('');
 }
 function sddHeadHtml(admin){
-  const rows=sddRows(admin), a=_sddArea;
+  const rows=sddRows(admin), a=_sddArea, chip=sddChipNow();
   const need=sddNeedList(admin, a||null, rows).length;
-  const n=a?rows.filter(r=>r.area===a).length:0;
-  const cnt=need?i18tn('sdd_need_n',need,{ n:need }):a?i18tn('sdd_n_settings',n,{ n }):'';
+  /* the chips: what the list holds, by what it is set to; Need you carries an amber dot and stands only where something needs you */
+  let chips;
+  if(a){ const mine=rows.filter(r=>r.area===a), n=k=>mine.filter(r=>sddChipFits(r,k)).length;
+    chips=[['all',i18t('ctf_tab_all'),mine.length],['on',i18t('stn_pill_on'),n('on')],['off',i18t('stn_pill_off'),n('off')],['need',i18t('sdd_chip_need'),need]].filter(c=>c[0]==='all'||c[2]||c[0]===chip); }
+  else { const areas=SDD_AREAS.filter(x=>rows.some(r=>r.area===x));
+    chips=[['all',i18t('ctf_tab_all'),areas.length],['need',i18t('sdd_chip_need'),areas.filter(x=>sddAreaState(x,rows).dot==='need').length]].filter(c=>c[0]==='all'||c[2]||c[0]===chip); }
   return `${a?`<button type="button" class="sdd-back" data-sdd-back>‹ ${esc(i18t('stn_title_short'))}</button>`:''}
-    <h2 class="ctf-h stn-title sdd-title">${esc(a?i18t('sdd_a_'+a):i18t('stn_title_short'))}${cnt?` <span class="sdd-cnt">${esc(cnt)}</span>`:''}</h2>
+    <div class="cun-head"><h2 class="ctf-h stn-title sdd-title">${esc(a?i18t('sdd_a_'+a):i18t('stn_title_short'))}</h2></div>
     ${a?`<p class="sdd-sub">${esc(i18t('sdd_sub_'+a))}</p>`:''}
-    <label class="sdd-find"><span class="sdd-find-ic" aria-hidden="true">${typeof icon==='function'?icon('search','w-4 h-4'):''}</span><input id="sdd-q" type="search" autocomplete="off" placeholder="${esc(i18t('sdd_find_ph'))}" aria-label="${esc(i18t('sdd_find_ph'))}" value="${esc(_sddQ)}"></label>`;
+    <label class="apn-ask sdd-find"><span class="sdd-find-ic" aria-hidden="true">${typeof icon==='function'?icon('search','w-3.5 h-3.5'):''}</span><input id="sdd-q" type="search" autocomplete="off" placeholder="${esc(i18t(a?'sdd_ask_ph_area':'sdd_ask_ph',{ area:a?i18t('sdd_a_'+a):'' }))}" aria-label="${esc(i18t('sdd_find_ph'))}" value="${esc(_sddQ)}"></label>
+    <div class="apn-bar sdd-chips">${chips.map(c=>`<button type="button" class="apn-tab is-chip${chip===c[0]?' is-on':''}" data-sdd-chip="${c[0]}">${c[0]==='need'?'<i class="apn-cd is-amber" aria-hidden="true"></i>':''}${esc(c[1])} <span>${c[2]}</span></button>`).join('')}</div>`;
 }
 function sddMainHtml(admin){ return _sddArea?sddAreaHtml(admin,_sddArea):sddHomeHtml(admin); }
 /* the list alone (a find, a choice): the head, the box and the panel stand; the box keeps its words and its caret */
@@ -10589,30 +10659,62 @@ function sddGo(area, pick){
 }
 function sddPickSet(id){ _sddPick=id||null; sddListPaint(); stnPanelPaint(); if(typeof placeSave==='function') placeSave(); }
 function sddHomeSet(a){ _sddHome=a||null; sddListPaint(); stnPanelPaint(); }
-/* ---- Jambo's panel: the Dossier card (the five parts' head + the one black button in its soft card, act first) ---- */
+/* ---- Jambo's panel, THE LEGORA + STRIPE WAY (P-43, owner's pick 21 Nov 2026): no cards, no tiles, no money ----
+   The landing: "N things need you", how many areas have something to do, a RING of going live with See what is left,
+   and what needs you as rows (the mark, what, where, ›) — each row its own door, so no button is drawn twice. An area:
+   a badge (Nothing needs you, or the count), the area, its line; Rules adds THE ROAD TO A SIGNATURE, the rules that
+   hold a signature in the order HaTi asks them (stRulesRows), on in green, off in grey, then the signature. A setting
+   chosen: badges (its state · its group), the name, the rule in one sentence, Change ONCE (here, never on the row),
+   what it does today as a ring where the record counts it (Approval rules: the asks open), who it affects, who may
+   change it, its history, and what changing it does. Nothing here writes; every press is an existing door's. */
+const sdd5Tags=list=>`<div class="sdd5-tags">${list.filter(Boolean).map(([t,tone,dot])=>`<span class="apn-st is-${tone}">${dot?'<i></i>':''}${esc(t)}</span>`).join('')}</div>`;
+function sdd5RingHtml(num, den, tone){
+  const R=24, L=2*Math.PI*R, off=den>0?L*(1-Math.max(0,Math.min(1,num/den))):L;
+  return `<svg class="sdd5-ring is-${tone}" viewBox="0 0 64 64" aria-hidden="true"><circle class="sdd5-rb" cx="32" cy="32" r="${R}"/><circle class="sdd5-rf" cx="32" cy="32" r="${R}" stroke-dasharray="${L.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 32 32)"/><text x="32" y="36" text-anchor="middle">${num}/${den}</text></svg>`;
+}
+/* the contracts that need a yes before signing, and how many of them still wait for it (approvalState, the one reading) */
+function stnApprovalsRing(){
+  let open=0, need=0; (state.contracts||[]).forEach(c=>{ if(!c||c.status==='Signed'||c.archived) return; try{ const s=window.approvalState?approvalState(c):null; if(s&&s.required){ need++; if(!s.ok) open++; } }catch(_){ /* not counted */ } });
+  return { open, need };
+}
+/* the road to a signature: the rules that hold a signature, in signBlockers' order (stRulesRows), then the signature */
+function sddRoadHtml(){
+  const rows=(typeof stRulesRows==='function'?stRulesRows():[]).filter(r=>r&&r.holds);
+  if(!rows.length) return '';
+  return `<ol class="sdd5-road">${rows.map(r=>`<li class="${r.on?'is-on':'is-off'}"><i aria-hidden="true"></i><span>${esc(r.name)}<small> · ${esc(r.state)}</small></span></li>`).join('')}<li class="is-sign"><i aria-hidden="true"></i><span>${esc(i18t('sdd5_signature'))}</span></li></ol><p class="sdd5-small">${esc(i18t('sdd5_road_s'))}</p>`;
+}
 function sddCardHtml(admin, ctx){
   if(typeof jamboOverviewHtml!=='function') return '';
   const c=ctx||{}, rows=sddRows(admin), area=c.area!==undefined?c.area:(_sddArea||_sddHome||null);
   const pick=c.pick!==undefined?c.pick:(_sddArea?_sddPick:null), r=pick?rows.find(x=>x.id===pick):null;
   const place=area?i18t('sdd_a_'+area):i18t('stn_title_short');
+  const awM=(state.away||{}).mine;
   if(r){
     const who=r.who==='you'?i18t('sdd_who_you'):i18t('sdd_who_admins');
-    const after=r.ctl?i18t('sdd_after_ctl'):r.page?i18t('sdd_after_page'):i18t('sdd_after_open');
+    const after=r.ctl?i18t('sdd_after_ctl'):r.page?i18t('sdd_after_page'):i18t('sdd5_if_change');
     const first=(r.needs||[])[0];
-    return `<div class="jl-words is-ov">${jamboOverviewHtml({ eyebrow:place+' · '+r.name, title:r.say, sub:r.sub, actFirst:true,
-      act:{ say:first?(sddTxt(first.text)+(first.sub?' · '+sddTxt(first.sub):'')):after, label:first&&first.verb?first.verb:(r.door?r.verb:''), attr:first&&first.btn?first.btn:(r.door||'') },
-      groups:[{ label:'', rows:[{ k:i18t('sdd_f_now'), t:r.now||'—' }, { k:i18t('sdd_f_affects'), t:i18t(r.who==='you'?'sdd_affects_you':'sdd_affects_all') }, { k:i18t('sdd_f_who'), t:who },
-        { k:i18t('sdd_f_history'), t:i18t('sdd_in_trail'), link:(admin&&typeof stTrailOn==='function'&&stTrailOn())?{ label:i18t('sdd_see_it'), attr:'data-st-panel="trail"' }:null }].map(x=>x.link?x:Object.assign(x,{ link:undefined })) }]
-        /* while you are away, Jambo says who answers for you on every You row's card too (when-youre-away 3c) */
-        .concat(r.area==='you'&&((state.away||{}).mine||{}).deputyName?[{ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('st_jb_away',{ who:state.away.mine.deputyName }), wrap:true }] }]:[]),
-      src:i18t('jov5_st_src') },'stn')}</div>`;
+    const stTag=r.dot==='on'?[i18t('stn_pill_on'),'green']:r.dot==='off'?[i18t('stn_pill_off'),'grey']:r.dot==='need'?[i18t('sdd_chip_need'),'amber',true]:null;
+    const gTag=r.g&&i18t('sdd_g_'+r.area+'_'+r.g)!=='sdd_g_'+r.area+'_'+r.g?[i18t('sdd_g_'+r.area+'_'+r.g),'grey']:null;
+    /* what it does today, where the record counts it (Approval rules: the asks open under it), drawn after Change */
+    const today=[];
+    if(r.id==='approvals'){ const q=stnApprovalsRing();
+      if(q.need) today.push({ label:i18t('sdd5_today'), html:`<div class="sdd5-today">${sdd5RingHtml(q.open,q.need,q.open?'amber':'green')}<p>${esc(i18t('sdd5_asks_open',{ n:q.open, m:q.need }))}</p></div>` }); }
+    const groups=today.concat([{ label:'', rows:[{ k:i18t('sdd_f_affects'), t:i18t(r.who==='you'?'sdd_affects_you':'sdd_affects_all') }, { k:i18t('sdd_f_who'), t:who },
+        { k:i18t('sdd_f_history'), t:i18t('sdd_in_trail'), link:(admin&&typeof stTrailOn==='function'&&stTrailOn())?{ label:i18t('sdd_see_it'), attr:'data-st-panel="trail"' }:null }].map(x=>x.link?x:Object.assign(x,{ link:undefined })) },
+      { label:i18t('sdd5_if_h'), rows:[{ t:after, wrap:true }] }])
+      /* while you are away, Jambo says who answers for you on every You row's card too (when-youre-away 3c) */
+      .concat(r.area==='you'&&awM&&awM.deputyName?[{ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('st_jb_away',{ who:awM.deputyName }), wrap:true }] }]:[]);
+    return `<div class="jl-words is-ov sdd5-p">${jamboOverviewHtml({ before:sdd5Tags([stTag,gTag]), title:r.name, sub:r.say, actFirst:true,
+      act:(first&&first.btn)||r.door?{ say:first?(sddTxt(first.text)+(first.sub?' · '+sddTxt(first.sub):'')):'', label:first&&first.verb?first.verb:r.verb, attr:first&&first.btn?first.btn:r.door }:null,
+      groups, src:i18t('jov5_st_src') },'stn')}</div>`;
   }
-  const needs=sddNeedList(admin, area, rows), n0=needs[0];
+  const needs=sddNeedList(admin, area, rows);
+  const mkOf=x=>sddEmojiOf(x.row||'', x.area)||'•';
   const groups=[];
-  if(needs.length>1) groups.push({ label:i18t('jov5_st_needs'), rows:needs.slice(1).map(x=>({ mark:'alert', tone:x.dot==='red'?'red':'amber', t:x.text, s:x.sub, attr:x.btn||'', wrap:true })) });
-  const awM=(state.away||{}).mine;
+  if(needs.length) groups.push({ label:i18t('sdd5_needs'), rows:needs.map(x=>({ mark:'', markText:mkOf(x), t:x.text, s:x.sub, attr:x.btn||'' })) });
   if(awM&&awM.deputyName&&(!area||area==='you')) groups.push({ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('st_jb_away',{ who:awM.deputyName }), wrap:true }] });
-  if(!area||area==='company'||!admin) groups.push({ label:i18t('stn_p_ask'), rows:[{ mark:'msg', t:i18t('st_ask_go'), s:i18t('stn_p_ask_s'), attr:'data-st-ask-head=""', wrap:true }] });
+  /* ASK AN ADMIN is for a person who is not one (fault logged 21 Nov 2026: an admin's panel carried it under Jambo's links) */
+  if(!admin) groups.push({ label:i18t('stn_p_ask'), rows:[{ mark:'msg', t:i18t('st_ask_go'), s:i18t('stn_p_ask_s'), attr:'data-st-ask-head=""', wrap:true }] });
   const les=(_stLessons&&_stLessons.rows)||[];
   if(admin&&_stLessons===null&&typeof stLessonsLoad==='function'&&!sddCardHtml._asked){ sddCardHtml._asked=true; Promise.resolve(stLessonsLoad()).then(()=>{ if(document.querySelector('.stn-page')) sddRepaint(); }).catch(()=>{}); }
   if(admin&&les.length&&(!area||area==='jambo')) groups.push({ label:i18t('stn_p_lessons'), rows:[{ mark:'sparkle', tone:'dark', t:i18tn('stn_p_lessons_s',les.length,{ n:les.length, list:les.slice(0,3).map(x=>'“'+String(x.text||'')+'”').join(', ') }), wrap:true, attr:'data-st-panel="lessons"' }] });
@@ -10622,12 +10724,23 @@ function sddCardHtml(admin, ctx){
   if(onData){ const df=stTrailDefault();
     groups.unshift({ label:'', rows:[{ mark:'download', t:i18t('st_jb_c_tr_pdf',{ period:stTrailPeriodWords(_stTr.from||df.from,_stTr.to||df.to,true) }), attr:'data-st-tr-pdf=""' },
       { mark:'sparkle', tone:'dark', t:i18t('st_jb_c_sealed'), attr:'data-st-jb-say="sealed"' }] }); }
-  const card=jamboOverviewHtml({ eyebrow:place+(needs.length?' · '+i18tn('sdd_to_do',needs.length,{ n:needs.length }):''),
-    title:onData?stJbDataWords(false):needs.length?i18tn('sdd_card_t',needs.length,{ n:needs.length }):i18t('sdd_card_clear'),
-    sub:needs.length?'':i18t('sdd_card_clear_s'), actFirst:true,
-    act:n0?{ say:n0.text+(n0.sub?' · '+n0.sub:''), label:n0.verb||i18t('st_need_open'), attr:n0.btn||'' }:null,
-    groups, src:i18t('jov5_st_src') },'stn');
-  return `<div class="jl-words is-ov">${onData?card.replace('<h3 class="jov5-title">','<h3 class="jov5-title" data-st-jb-hello>'):card}</div>`;
+  let o;
+  if(!area){
+    /* THE LANDING: what needs you, how many areas, the ring of going live */
+    const areasN=SDD_AREAS.filter(a=>rows.some(x=>x.area===a)), withN=areasN.filter(a=>needs.some(x=>x.area===a)).length;
+    let mid='';
+    if(admin&&SET_PANELS.golive&&typeof stGoLive==='function'){ let gl=[]; try{ gl=stGoLive()||[]; }catch(_){ gl=[]; }
+      const done=gl.filter(x=>x.ok).length;
+      if(gl.length) mid=`<div class="sdd5-today">${sdd5RingHtml(done,gl.length,done===gl.length?'green':'amber')}<div><b>${esc(sddTxt(SET_PANELS.golive.title()))}</b><span>${esc(i18t('sdd5_done_of',{ n:done, m:gl.length }))}</span>${done<gl.length?`<button type="button" class="jov-lnk" data-st-panel="golive">${esc(i18t('sdd5_see_left'))}</button>`:''}</div></div>`; }
+    o={ eyebrow:place, title:needs.length?i18tn('sdd_card_t',needs.length,{ n:needs.length }):i18t('sdd_card_clear'),
+      sub:needs.length?i18t('sdd5_areas_n',{ n:withN, m:areasN.length }):i18t('sdd_card_clear_s'), mid, groups };
+  } else {
+    o={ before:sdd5Tags([needs.length?[i18tn('sdd_need_n',needs.length,{ n:needs.length }),'amber',true]:['✓ '+i18t('sdd_card_clear'),'green']]),
+      title:onData?stJbDataWords(false):place, sub:i18t('sdd_card_clear_s'),
+      mid:area==='rules'&&!onData?sddRoadHtml():'', midLabel:area==='rules'&&!onData?i18t('sdd5_road'):'', groups };
+  }
+  const card=jamboOverviewHtml(Object.assign(o,{ actFirst:true, src:i18t('jov5_st_src') }),'stn');
+  return `<div class="jl-words is-ov sdd5-p">${onData?card.replace('<h3 class="jov5-title">','<h3 class="jov5-title" data-st-jb-hello>'):card}</div>`;
 }
 /* ---- presses: a row chooses, a second press opens through its own door; Open on an area goes in; the find box ---- */
 if(typeof document!=='undefined' && !document._sddWired){ document._sddWired=true;
@@ -10637,6 +10750,7 @@ if(typeof document!=='undefined' && !document._sddWired){ document._sddWired=tru
       if(_sddPick) setTimeout(()=>{ if(typeof landOn==='function') landOn(`#stn-main [data-sdd-row="${PB_ATTR(_sddPick)}"]`,{ block:'nearest', focus:false }); },60);
       return false; }
     if(el.closest('[data-sdd-back]')){ sddGo(null); return true; }
+    const ch=el.closest('[data-sdd-chip]'); if(ch){ sddChipSet(ch.getAttribute('data-sdd-chip')); return true; }
     const dr=el.closest('[data-sdd-door]'); if(dr){ sddGo(dr.getAttribute('data-sdd-door')); return true; }
     const pk=el.closest('[data-sdd-pick]'); if(pk){ const [a,id]=String(pk.getAttribute('data-sdd-pick')).split(':'); sddGo(a,id); return true; }
     const hm=el.closest('[data-sdd-home]');
