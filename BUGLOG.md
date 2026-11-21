@@ -22780,3 +22780,8 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - The approval wait no longer reads `lastAction` (a display day a sample carries from July and any act rewrites): the question's own `at`, else the day the record was raised. A rule step that fell due before its rule was saved still gets its question only from the reminders' sweep (30 s after boot, then every 12 h); until then the wait is counted from the raised day.
 - Noticed, not fixed: Redlines' Notes button counts messages ("Notes 3") where the bell's Notes tab counts threads ("Notes 2") for the same contract and room.
 - Noticed, not fixed: Home's "waiting longest" slices and the health report still count a contract's idle days off the display day `lastAction` (idleOf in js/views/home.js, js/views/healthreport.js).
+
+## 22 Nov 2026 — two timing faults fixed at the root (Activity face; the history door)
+- Activity face: it drew empty ("Live", no chips, no rows) while the feed was on its way; now the busy mark while loading, the list when it lands, and "could not be loaded · Try again" when the read is refused. A refused read is no longer re-asked by every redraw of the panel (it looped).
+- The history door (Jambo's "history of …", the Activity row, the Board): the wait for the new paper ended at once on a slow machine because the paper it was pressed FROM was still in front; now only a different contract, or one put in front after ours stood, ends it.
+- Noticed, not fixed: after a refresh, the History page coming back (homeboard.js resume, midBack/fillBack) asks ONCE after 300/400 ms and gives up if the paper has not yet stood — the same slow-machine fault, one place further on.

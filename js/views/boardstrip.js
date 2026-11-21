@@ -65,15 +65,21 @@ function hbStripBring(id, page){
   if (mid && typeof window[mid] === 'function' && onIt() && window[mid](c.id)) return true;
   /* the page in the middle comes once the paper stands; the paper is never shown on the way (pdMidArriving, f1099) */
   if (mid && typeof window.pdMidArriving === 'function') window.pdMidArriving(c.id);
+  /* THE PAPER WE CAME FROM IS NOT "ANOTHER CONTRACT" (22 Nov 2026, jambo-doors-verify 5 on a slow machine): the
+     paper in front when the door was pressed stays in front until the new one stands, and the first ask came while
+     it still did — so the wait ended at once and History never opened ("The history of MK-B1", the Dossier stayed).
+     Only a contract other than the one we left, or one put in front after ours stood, ends the wait. */
+  let left = ''; try { const p0 = (typeof pdContract === 'function') ? pdContract() : null; left = p0 ? String(p0.id) : ''; } catch (_){ left = ''; }
   if (roomHomeLand(c.id) === false){ if (typeof window.pdArriveEnd === 'function') window.pdArriveEnd(); return false; }
   /* the paper takes its own time to arrive from the Board, a list or Settings: the middle page opens once it stands,
      asked again every BS_MID_STEP_MS, bounded (BS_MID_TRIES); another contract's paper in front ends the wait */
   if (mid && typeof window[mid] === 'function'){
-    let n = 0;
+    let n = 0, stood = false;
     const tryOpen = () => {
       if (isUp()) return;
       const pc = (typeof pdContract === 'function') ? pdContract() : null;
-      if (pc && String(pc.id) !== String(c.id)) return;
+      if (pc && String(pc.id) === String(c.id)) stood = true;
+      else if (pc && (stood || String(pc.id) !== left)) return;
       if (onIt()){ try { if (window[mid](c.id)) return; } catch (_){} }
       if (++n < BS_MID_TRIES) setTimeout(tryOpen, BS_MID_STEP_MS);
     };

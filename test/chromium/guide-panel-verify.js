@@ -80,9 +80,13 @@ async function until(page, fn, arg, ms = 8000){
     } else check('3 Alerts drawn with rows to read', false, A);
     await page.screenshot({ path: path.join(OUT, 'alerts-1440x780.png') });
 
-    /* 4 Activity */
+    /* 4 Activity — RE-POINTED 22 Nov 2026 (wait for the loaded face): the face draws at once with the busy mark
+       while the server's feed is on its way (data-act-state="loading"); the check waits, bounded, for it to say
+       it is loaded (or that it failed) instead of reading the first face it sees */
     await page.click('#panel-tabs [data-pt-face="activity"]');
     const V = await until(page, () => { const b = document.querySelector('#panel-body .act'); if (!b) return null;
+      const st = b.getAttribute('data-act-state'); if (st === 'loading') return null;
+      if (st === 'failed') return { failed: true };
       const rows = [...b.querySelectorAll('.act-r')];
       return { live: !!b.querySelector('.act-live'), chips: b.querySelectorAll('[data-act-chip]').length, heads: b.querySelectorAll('.act-h').length, rows: rows.length, badges: rows.filter(r => r.querySelector('.act-b')).length,
         ask: !document.getElementById('panel-ask').hidden }; }, null, 6000);
