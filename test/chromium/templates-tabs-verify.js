@@ -605,7 +605,8 @@ const BOX = sel => {
     const facts = await page.evaluate(() => { const ch = document.querySelector('#ins-panel [data-jov5-sec="changed"]'); return ch ? { sub: !!document.querySelector('[data-tpl-hd-sub], .tpln5-hrow .tpl-hd-n'), gl: document.querySelectorAll('[data-tpl-head="book"] .tpl-gl, .tpln5-figs, .tpln5-fig').length,
       said: ch.textContent.replace(/\s+/g, ' ').trim() } : null; });
     check('9e · no facts line beside the page\'s name, no figures; the panel says what came back changed, once',
-      !!facts && !facts.sub && facts.gl === 0 && /drafts? (came|did not come) back changed|not made an agreement|came back changed/i.test(facts.said), facts);
+      /* RE-POINTED 21 Nov 2026 (P-34, as drawn): "None of the drafts came back with their words changed." */
+      !!facts && !facts.sub && facts.gl === 0 && /drafts? (came|did not come) back changed|not made an agreement|came back changed|came back with (?:their|its) words changed/i.test(facts.said), facts);
 
     const cut = !hasBook ? null : await page.evaluate(async () => {
       const sec = document.querySelector('[data-tpl-sec="book"]');
