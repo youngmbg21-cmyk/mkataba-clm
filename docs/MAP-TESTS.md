@@ -997,7 +997,7 @@ f1070 (3), f989 3, f997 (1), f998 (3) re-pointed.
   shading in the panel; shaded by money, "Shade the cells by how many" second.
 
 ## THE ONE DESK — NEEDS YOU, ONE READING — ONE COUNT, ONE WAIT (review of merged pages, 22 Nov 2026)
-- test/f1135-one-count-one-wait.test.js: ndWaitCounts (Jambo = every piece, late too) read by the Board's chips, the
+- test/f1140-one-count-one-wait.test.js: ndWaitCounts (Jambo = every piece, late too) read by the Board's chips, the
   panel's ring and "I have N things ready", the bell's chips and its Jambo filter; hbHelloFitN + "N more" (never a cut
   row); an approval's wait off its question's `at`, else the raised day, never `lastAction` (Board and Approvals); the
   company row (name, one line, oldest wait, `plain` clash words, no sum); Activity's short lines (actSayOf, a note Asked).

@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   f1135 — ONE COUNT, ONE WAIT (review of the merged pages against the owner's
+   f1140 — ONE COUNT, ONE WAIT (review of the merged pages against the owner's
    picked drawings, 22 Nov 2026: P-38 the side panel, P-39 the Board)
 
    The review found: the panel's ring said "3 Jambo" and the bell's chip
@@ -39,7 +39,7 @@ const BOOKS = (() => {
   return { en, sv };
 })();
 
-describe('f1135 (1) an approval waits the same on every load', () => {
+describe('f1140 (1) an approval waits the same on every load', () => {
   const ctx = () => {
     const c = { window: null, Date, Math, isFinite, Number, String };
     c.window = c;
@@ -72,7 +72,7 @@ describe('f1135 (1) an approval waits the same on every load', () => {
   });
 });
 
-describe('f1135 (2) one count of what waits', () => {
+describe('f1140 (2) one count of what waits', () => {
   test('2a ndWaitCounts: Jambo is every piece, Late the late of both, Your move yours not late', () => {
     const c = { window: null }; c.window = c; vm.createContext(c);
     vm.runInContext('const newLookOn = () => true;\nconst ndRowsN = L => (L || []).length;\n' + fnBody(CN, 'ndOnBoard') + fnBody(CN, 'ndWaitCounts'), c);
@@ -99,7 +99,7 @@ describe('f1135 (2) one count of what waits', () => {
   });
 });
 
-describe('f1135 (3) the company row keeps the table\'s shape, and no money in the panel', () => {
+describe('f1140 (3) the company row keeps the table\'s shape, and no money in the panel', () => {
   test('3a a name for the Agreement column, one line under what waits, its oldest wait', () => {
     const P = strip(fnBody(CN, 'ndParts'));
     assert.match(P, /P\.name = _cnT\('cn_company_where'\)/);
@@ -117,7 +117,7 @@ describe('f1135 (3) the company row keeps the table\'s shape, and no money in th
   });
 });
 
-describe('f1135 (4) Activity: who did what, in a short line', () => {
+describe('f1140 (4) Activity: who did what, in a short line', () => {
   const ctx = () => {
     const c = { window: null, String }; c.window = c; vm.createContext(c);
     const SAYS = APP.slice(APP.indexOf('const ACT_SAYS=['), APP.indexOf('];', APP.indexOf('const ACT_SAYS=[')) + 2);
