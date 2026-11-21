@@ -245,7 +245,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Check before building:** the faults logged on 20 Nov 2026 (a zero said as work: "your 0 answers are ready to send"; our own unsent change shown as their ask) are fixed in the same build, since the drawing's rows depend on telling ours from theirs; the timeline needs the day the other side opened the link (kept on the share).
 
 ### P-30 · Approvals page, the Legora + Stripe way, on all three tabs
-- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #859, the overnight batch 4)
 - **What:** build the owner's pick for Approvals: the Legora + Stripe way on Mine, Waiting on others and Done. Owner's words: "L+S and park it."
 - **Where it came from:** the page clean-up, day 7. The drawings: https://claude.ai/artifact/BEG3Qak57mRFLGHDMCTghs (choose "The Legora + Stripe way" on each tab). All three tabs were photographed from the running app that day.
 - **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
@@ -260,7 +260,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Check before building:** the faults logged on 20 Nov 2026 (Waiting on others' panel says "waits for your yes" and offers Approve/Decline; "1 for you" under Waiting on others and Done; "0 off our standard" read as good news before the playbook is checked) are fixed in the same build.
 
 ### P-31 · Contracts page, the Legora + Stripe way, on all six views
-- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #859, the overnight batch 4)
 - **What:** build the owner's pick for Contracts: the Legora + Stripe way on the Folders landing, All, Needs you, a folder's list, the Wall and Ended & archived. Owner's words: "L+S and park it."
 - **Where it came from:** the page clean-up, day 8. The drawings: https://claude.ai/artifact/TnPASqNyTm1bVGLFTvwzKS (choose "The Legora + Stripe way" on each view). Every view was photographed from the running app that day.
 - **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
