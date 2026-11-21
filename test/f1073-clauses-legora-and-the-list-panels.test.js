@@ -51,7 +51,8 @@ test('f1073 (4) the four list panels speak the five parts, by the page\'s own pr
   const ap = fnBody(AP, 'apnLeadFiveHtml');
   assert.match(ap, /data-apn-go="clause" data-id=/, 'what the paper says opens the clause'); assert.doesNotMatch(ap, /act:/, 'no button: Approve and Decline stay on the row');
   assert.match(fnBody(NG, 'ngnPanelHtml'), /newLookOn\(\)\) return ngnPanelFiveHtml\(r, rows\);/);
-  const ng = fnBody(NG, 'ngnPanelFiveHtml');
+  /* RE-POINTED (P-29, owner's pick 20 Nov 2026): the chosen deal's act (Answer · Send · Remind · Before you sign) is read by ngnActOf, the row's and the panel's one reading */
+  const ng = fnBody(NG, 'ngnPanelFiveHtml') + fnBody(NG, 'ngnActOf');
   for (const a of ['data-ngn-gotab="live"', 'data-ngn-open=', 'data-ngn-send=', 'data-ngn-chase=']) assert.ok(ng.includes(a), a);
   /* RE-POINTED (owner, 16 Nov 2026: "the side panel information should reflect the contract you have pressed"): the
      panel is the pressed round's own; the page's overview is one press back and its rows choose (data-ngn-pick) */

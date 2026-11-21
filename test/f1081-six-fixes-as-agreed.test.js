@@ -38,7 +38,8 @@ test('f1081 (2) Negotiations: white rows, one grey; the panel is the pressed rou
   const R = read('js/views/register.js'), p = fnSrc(R, 'ngnPanelFiveHtml');
   const chosen = p.slice(p.indexOf('if (r){'), p.indexOf('const pick = '));
   assert.match(chosen, /title: c\.name \|\| ''/, 'its name is the headline');
-  assert.match(chosen, /ngn5c_g_unsent[\s\S]*ngn5c_g_asks[\s\S]*ngn5c_g_round/, 'its three numbers');
+  /* RE-POINTED (P-29, owner's pick 20 Nov 2026: no cards): Round, Open asks and the rounds strip */
+  assert.match(chosen, /ngn5c_g_round[\s\S]*ngn_c_open_asks[\s\S]*ngnRoundsHtml\(c, r\.b, true\)/, 'round, open asks and the strip');
   assert.ok(!/ngnPageSay|ngn5_t_you/.test(chosen), 'nothing of the page\'s totals on a chosen round');
   assert.match(p, /attr: `data-ngn-pick="\$\{E\(x\.c\.id\)\}"`/, 'the overview\'s rows choose');
   assert.match(R, /if \(\(el = t\.closest\('\[data-ngn-pick\]'\)\)\)\{ e\.preventDefault\(\); _ngnSel = el\.getAttribute\('data-ngn-pick'\); _ngnNone = false; ngnRepaint\(\); return; \}/);

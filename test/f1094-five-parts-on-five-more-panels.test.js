@@ -75,13 +75,15 @@ test('f1094 (2b) a chosen request: its title, the ask quoted, Start the draft by
   const r = { id: 'RQ1', title: 'NDA for a new distributor', need: 'We are meeting a distributor next week and need an NDA first.',
     counterparty: 'Coastline Distributors', by: { name: 'Grace Wanjiru' }, createdAt: new W.Date().toISOString(), status: 'new' };
   const f = W.iknPanelFive(r, true);
-  assert.equal(f.title, 'NDA for a new distributor.');
-  assert.equal(f.glance.length, 3);
+  /* RE-POINTED (P-32, owner's pick 20 Nov 2026): the title as written, a status badge, no tiles; the acts live in the panel —
+     nobody holds it, so Pick it up leads and Start the draft is its link */
+  assert.equal(f.title, 'NDA for a new distributor');
+  assert.ok(!f.glance && f.tag && f.tag.text, 'a badge, no tiles');
   const d = draw(W, f, 'f1094rq');
   assert.ok(d.querySelector('.jov5-row.is-quote'), 'the ask in their words, quoted');
   assert.match(txt(d), /Coastline Distributors/, 'what was read from the ask');
-  assert.ok(d.querySelector('.jov5-go[data-ikn-draft="RQ1"]'), 'Start the draft is the row\'s own press');
-  assert.match(f.sub, /Nobody holds it yet/, 'who holds it, said');
+  assert.ok(d.querySelector('.jov5-go[data-ikn-pick="RQ1"]') && d.querySelector('[data-ikn-draft="RQ1"]'), 'Pick it up, then Start the draft');
+  assert.match(txt(d), /Waits for an editor/, 'who holds it, said: nobody yet');
   /* what main brought back on 17 Nov (owner's picks) stands in the five parts: the lane, each file by name with who added
      it (data-ikn-file), and Hand back beside Start the draft while the request is open (data-ikn-back) */
   const r2 = Object.assign({}, r, { status: 'open', lane: 'NDA', files: [{ id: 'f1', name: 'pilot-brief.pdf', size: 2048 }] });
@@ -163,7 +165,8 @@ test('f1094 (4) every word of the round is in both books', () => {
   const keys = new Set();
   for (const f of ['js/views/homeboard.js', 'js/views/intake.js', 'js/obligations.js', 'js/views/flowmap.js', 'js/paperdesk.js'])
     for (const m of read(f).matchAll(/['"](jov5_(?:rd|rq|obp|fmp|nat)_[a-z0-9_]+)['"]/g)) keys.add(m[1]);
-  assert.ok(keys.size >= 80, 'the round\'s words are found (' + keys.size + ')');
+  /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests' panel carries no tiles): the request's tile words left with them */
+  assert.ok(keys.size >= 70, 'the round\'s words are found (' + keys.size + ')');
   const has = (b, k) => b[k] != null || b[k + '_one'] != null;
   assert.deepEqual([...keys].filter(k => !has(S.en, k) || !has(S.sv, k)), []);
 });

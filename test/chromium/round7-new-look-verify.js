@@ -46,22 +46,35 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     const up = await until(page, () => document.querySelectorAll('.ngn-page [data-ngn-row]').length >= 4, null, 15000);
     const R = up ? await page.evaluate(() => ({
       heads: [...document.querySelectorAll('.ngn-table thead th')].map(t => t.innerText.trim().toLowerCase()),
-      rows: [...document.querySelectorAll('[data-ngn-row]')].map(r => ({ id: r.getAttribute('data-ngn-row'), cls: r.className, t: r.innerText.replace(/\s+/g, ' ') })),
+      /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): whose move is a soft badge
+         (.apn-st), Open asks a count of theirs (td.ngn-n), the first ask's words + § on one line in the agreement cell (.ngn-ql) */
+      rows: [...document.querySelectorAll('[data-ngn-row]')].map(r => ({ id: r.getAttribute('data-ngn-row'), cls: r.className, t: r.innerText.replace(/\s+/g, ' '),
+        badge: ((r.querySelector('.apn-st') || {}).textContent || '').trim(), n: ((r.querySelector('td.ngn-n') || {}).textContent || '').trim(),
+        ql: ((r.querySelector('.ngn-ql') || {}).textContent || '').replace(/\s+/g, ' ').trim() })),
       tabs: [...document.querySelectorAll('[data-ngn-tab]')].map(b => b.innerText.replace(/\s+/g, ' ').trim()),
       panel: (document.querySelector('#ins-panel .ngn-panel') || {}).innerText || '',
       tabN: ((document.querySelector('#ins-panel [data-jl-n]') || {}).textContent || '').trim() })) : null;
     await shot('1-negotiations');
     const first = R && R.rows[0];
-    check('1a Negotiations: six columns, the tabs with their counts', !!R && R.heads.join('|') === 'agreement|round|whose move|open asks|lead|last'
+    /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): Agreement · Whose move · Rounds ·
+       Open asks · Lead · Waiting · the act (its head empty) */
+    check('1a Negotiations: six named columns and the act, the tabs with their counts', !!R && R.heads.join('|') === 'agreement|whose move|rounds|open asks|lead|waiting|'
       && R.tabs.join('|') === 'Live 2|Your move 1|Their move 1|Settled 2', R && { heads: R.heads, tabs: R.tabs });
     check('1b your move lifted and chosen first, their words quoted with their §; settled faded below', !!first && first.id === 'MK-IT' && /is-yours/.test(first.cls) && /is-sel/.test(first.cls)
-      && /within 60 days/.test(first.t) && /§ 5/.test(first.t) && /§ 26/.test(first.t) && /Their 2/.test(first.t) && /Yours ·/.test(first.t)
-      && R.rows[1].id === 'MK-A2' && /Ours 1/.test(R.rows[1].t) && /Theirs ·/.test(R.rows[1].t)
-      && R.rows.slice(2).every(r => /is-settled/.test(r.cls)), R && R.rows.map(r => r.id + ' ' + r.t.slice(0, 80)));
+      /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): was every ask quoted in the row
+         with "Their 2" / "Yours ·" — the row quotes the FIRST ask with its § on one line, counts 2 open asks, and says
+         "Your move" in its badge; Nandi's row says "Their move" (the asks both §s are asked of the panel, 1c) */
+      && /“.+”/.test(first.ql) && /§ (5|26)\b/.test(first.ql) && first.n === '2' && first.badge === 'Your move'
+      && R.rows[1].id === 'MK-A2' && R.rows[1].badge === 'Their move'
+      && R.rows.slice(2).every(r => /is-settled/.test(r.cls)), R && R.rows.map(r => r.id + ' ' + r.badge + ' ' + r.n + ' ' + r.ql.slice(0, 60) + ' · ' + r.t.slice(0, 80)));
     /* RE-POINTED (owner, 16 Nov 2026: "the side panel information should reflect the contract you have pressed"): the
        panel is the chosen round alone — its name the headline, its asks, its desk, its one black button; another
        round's chase is no longer on it */
-    check('1c the panel is the chosen row: its name, their asks, the desk, Open the redlines, nothing of another round; its tab counts the live', !!R && /Their asks/.test(R.panel) && /Amina leads · Wanjiru contributes/.test(R.panel)
+    /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): the chosen deal's panel has no
+       desk line, no tiles and no money — its whose-move tag, Round and Open asks, their asks quoted with their § (§ 5 and
+       § 26, the payment ask's words), its act */
+    check('1c the panel is the chosen row: its name, whose move, Open asks, their asks with their §, Open the redlines, no money, nothing of another round; its tab counts the live', !!R && /Their asks/.test(R.panel)
+      && /your move/i.test(R.panel) && /open asks/i.test(R.panel) && /within 60 days/.test(R.panel) && /§ 5\b/.test(R.panel) && /§ 26\b/.test(R.panel) && !/\b(KES|SEK|EUR|USD)\s?[\d.]+/.test(R.panel)
       && /Open the redlines/.test(R.panel) && !/Nandi Dairy/.test(R.panel) && R.tabN === '2', R && { panel: R.panel.slice(0, 300), tabN: R.tabN });
     /* NOTHING SPILLS: at the iPad's width the list and its tabs end before Jambo's panel starts */
     await page.setViewportSize({ width: 1366, height: 950 });

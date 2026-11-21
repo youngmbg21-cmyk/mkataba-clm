@@ -20015,6 +20015,35 @@
   html.lg-new .reg-need small{color:var(--color-quiet)}
   html.lg-new .igw-card.is-stripe .igw2-st{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
   html.lg-new .igw-card.is-stripe .igw2-end{flex:none;font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap}
+  /* NEGOTIATIONS, THE LEGORA + STRIPE WAY (P-29): the first open ask's words on one line, a strip of rounds, the act on the chosen row */
+  html.lg-new :is(.ngn-page,.ikn-page) .apn-ask{margin:10px 0 12px}
+  html.lg-new :is(.ngn-page,.ikn-page) .apn-bar{gap:6px;border-bottom:0;margin:0 0 10px;flex-wrap:wrap}
+  html.lg-new :is(.ngn-page,.ikn-page) .apn-tab.is-chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border:1px solid var(--color-neutral-300);border-radius:999px;margin:0;font-size:var(--t-label)}
+  html.lg-new :is(.ngn-page,.ikn-page) .apn-tab.is-chip.is-on{background:var(--surface-2);border-color:var(--color-neutral-400)}
+  html.lg-new :is(.ngn-page,.ikn-page) .apn-tab.is-chip span{color:var(--color-quiet)}
+  html.lg-new .ngn-ql{display:flex;gap:4px;min-width:0;font-family:var(--font-doc);font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;overflow:hidden}
+  html.lg-new .ngn-ql i{font-style:normal;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .ngn-ql span{flex:none}
+  html.lg-new .ngn-ql.is-ours i{font-family:var(--font-sans);color:var(--st-amber-fg)}
+  html.lg-new .ngn-rs{display:inline-flex;align-items:center;gap:4px}
+  html.lg-new .ngn-rs i{display:block;width:9px;height:9px;border-radius:50%;background:var(--st-green-dot)}
+  html.lg-new .ngn-rs i.is-theirs{background:var(--st-steel-dot)}
+  html.lg-new .ngn-rs i.is-now{background:var(--color-surface);box-shadow:0 0 0 2px var(--st-amber-dot)}
+  html.lg-new .ngn-rs.is-big i{width:12px;height:12px}
+  html.lg-new .ngn-table .ngn-n{text-align:right;font-variant-numeric:tabular-nums}
+  html.lg-new .ngn-table .ngn-act{text-align:right}
+  html.lg-new .ngn-pfacts{display:flex;align-items:center;gap:20px}
+  html.lg-new .ngn-pfacts>span:not(.ngn-rs){display:flex;flex-direction:column;gap:2px}
+  html.lg-new .ngn-pfacts small{font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .ngn-pfacts b{font-family:var(--font-title);font-size:22px;font-weight:var(--w-label)}
+  /* REQUESTS, THE LEGORA + STRIPE WAY (P-32): the asker's own words on one line, the paper that fits */
+  html.lg-new .ikn-ql{display:flex;min-width:0;font-family:var(--font-doc);font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;overflow:hidden}
+  html.lg-new .ikn-ql i{font-style:normal;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .ikn-table .ikn-pp{font-size:var(--t-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .ikn-table .ikn-wait{white-space:nowrap}
+  html.lg-new .apn-st.is-violet{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  html.lg-new .apn-sd.is-on.is-violet{box-shadow:0 0 0 2px var(--st-violet-dot)}
+  html.lg-new .apn-sd.is-on.is-green{box-shadow:0 0 0 2px var(--st-green-dot)}
   @container (max-width:760px){ html.lg-new .ctf-figs{grid-template-columns:repeat(2,minmax(0,1fr))} html.lg-new .ctf-two{grid-template-columns:minmax(0,1fr)} }
   html.lg-new .apn-tab{white-space:nowrap}
   html.lg-new .obn-table td{padding:14px 16px 14px 0;border-bottom:1px solid var(--color-divider);vertical-align:top}

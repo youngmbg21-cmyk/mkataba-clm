@@ -53,7 +53,8 @@ test('2 · ONE mark: a filled circle, a white drawn glyph, the six meanings in t
 test('3 · every named list leads its rows with the mark, behind the switch; late is never ruby', () => {
   assert.match(fnBody(REG, 'regSapMarkHtml'), /listSapMarkHtml\(regSapMarkOf\(c\)/, 'Contracts');
   assert.match(fnBody(REG, 'regNegoMarkHtml'), /listSapOn\(\)\) return listSapMarkHtml\(/, 'Negotiations (the list language row)');
-  assert.match(fnBody(REG, 'ngnRowHtml'), /listSapCellHtml\(r\.b === 'you' \? 'you'/, 'Negotiations (the new look row)');
+  /* RETIRED (P-29, owner's pick 20 Nov 2026: "Gone: the amber '!' on every row"): Whose move is a soft badge */
+  assert.match(fnBody(REG, 'ngnRowHtml'), /<span class="apn-st is-\$\{bd\.tone\}">/, 'Negotiations (the new look row): a badge, no mark');
   assert.match(AP, /listSapOn\(\)\)\?listSapMarkHtml\(r\.done\?'done':r\.mine\?'you':'them'/, 'Approvals (the list language row)');
   /* RETIRED (P-30, owner's pick 20 Nov 2026: "Gone: the amber '!' on every row"): the new look's Approvals row leads with
      the agreement's name; its state is the Status column's soft badge (apnBadgeHtml) */

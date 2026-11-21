@@ -167,17 +167,27 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     await ngnChoose('MK-A2');
     const N1 = await until(() => { const p = document.getElementById('ins-panel'); return p && p.querySelector('.ngn-panel[data-ngn-for="MK-A2"] .jov5-title') ? true : null; });
     const N1p = await page.evaluate(PANEL);
+    /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): the chosen deal's panel has NO
+       tiles and NO money — a whose-move tag beside the name, the other side · reference over it, a facts block
+       (.ngn-pfacts: Round, Open asks, the rounds strip), groups by their label (Their asks · Timeline) */
     const N1r = await page.evaluate(() => { const p = document.getElementById('ins-panel'), f = p.querySelector('.ngn-panel[data-ngn-for="MK-A2"]') || p;
-      const facts = {}; f.querySelectorAll('.jov5-group .jov5-row').forEach(r => { const b = r.querySelector('.jov5-rt > b'), s = r.querySelector('.jov5-rt > span'); if (b) facts[b.textContent.trim()] = s ? s.textContent.replace(/\s+/g, ' ').trim() : ''; });
-      return { eb: ((f.querySelector('.jov5-eb') || {}).textContent || '').trim(), sub: ((f.querySelector('.jov5-sub') || {}).textContent || '').trim(), facts,
-        glance: [...f.querySelectorAll('.jov5-glance .jov5-g')].map(g => [...g.children].map(x => x.textContent.trim()).join(' ')) }; });
+      const groups = {}; f.querySelectorAll('.jov5-sec').forEach(sec => { const l = sec.querySelector('.jov5-label'); if (!l) return;
+        groups[l.textContent.trim()] = [...sec.querySelectorAll('.jov5-row')].map(r => ({ t: ((r.querySelector('.jov5-rt > b') || {}).textContent || '').trim(), s: ((r.querySelector('.jov5-rt > span') || {}).textContent || '').replace(/\s+/g, ' ').trim() })); });
+      const fx = {}; f.querySelectorAll('.ngn-pfacts > span').forEach(x => { const k = x.querySelector('small'), v = x.querySelector('b'); if (k && v) fx[k.textContent.trim()] = v.textContent.trim(); });
+      return { eb: ((f.querySelector('.jov5-eb') || {}).textContent || '').trim(), tag: ((f.querySelector('.jov5-tag') || {}).textContent || '').trim(), groups, fx,
+        strip: !!f.querySelector('.ngn-pfacts .ngn-rs'), glance: f.querySelectorAll('.jov5-glance').length,
+        money: /\b(KES|SEK|EUR|USD)\s?[\d.]+/.test(f.textContent) }; });
     check('2a no word beside his tab, no duplicate back button', !!N1 && !N1p.word && !N1p.back, JSON.stringify({ word: N1p.word, back: N1p.back }));
-    /* was: the pill "Our move · …" — the wait is said in Jambo's sentence under the round's name */
-    check('2b the panel says whose move it is: "Waiting on your answer."', /^Waiting on your answer/.test(N1r.sub), JSON.stringify(N1r.sub));
-    /* was: the rows Value · Lead · Their changes · Last sent — the value rides the line over the name, the lead is the Desk, their changes are Their asks */
-    check('2c the facts: the party · reference · value over the name; Their asks; the Desk with its lead', /Nandi Dairy · MK-A2 · KES /.test(N1r.eb) && 'Their asks' in N1r.facts && /leads/.test(N1r.facts.Desk || ''), JSON.stringify(N1r));
-    /* was: Needs you "Answer 2 redlines" — the round's own number of asks still open, in amber */
-    check('2d the asks waiting on you are counted: "2 asks still open"', N1r.glance.includes('2 asks still open') && /^2, waiting on your answers/.test(N1r.facts['Their asks'] || ''), JSON.stringify(N1r.glance));
+    /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): was Jambo's sentence under the name — whose move is the tag beside it */
+    check('2b the panel says whose move it is: the tag "Your move"', N1r.tag === 'Your move', JSON.stringify(N1r.tag));
+    /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): was party · reference · value and the Desk —
+       now the other side · reference over the name with NO money anywhere in the panel, the Round fact, and Their asks */
+    check('2c the facts: the party · reference over the name, no money; Round; Their asks', N1r.eb === 'Nandi Dairy · MK-A2' && !N1r.money && /^\d+$/.test(N1r.fx.round || '')
+      && Array.isArray(N1r.groups['Their asks']) && N1r.groups['Their asks'].length > 0, JSON.stringify(N1r));
+    /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): was the tile "2 asks still open" — no tiles;
+       the facts block counts Open asks and draws the rounds strip, and Their asks lists each one */
+    check('2d the asks waiting on you are counted: Open asks 2, two rows under Their asks, no tiles', N1r.glance === 0 && N1r.fx['Open asks'] === '2' && N1r.strip
+      && (N1r.groups['Their asks'] || []).length === 2, JSON.stringify({ fx: N1r.fx, glance: N1r.glance, asks: N1r.groups['Their asks'] }));
     /* RETIRED 16 Nov 2026 (#762): 2d's second half, "What Jambo read in the drawing's order" (brief · playbook · scan ·
        oblig) — old look only: the pressed round's five parts carry no reading list; the Dossier holds the reads */
     await shot('r14-negotiation-panel-1440x780.png');
@@ -185,15 +195,21 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       const N4 = await page.evaluate(() => { const p = document.getElementById('ins-panel');
         const row = document.querySelector('.ngn-table tr[data-ngn-row="MK-A2"]');
         const f = p.querySelector('.ngn-panel[data-ngn-for="MK-A2"]') || p;
-        const asks = [...f.querySelectorAll('.jov5-group .jov5-row')].find(r => /Their asks/.test(r.textContent));
-        return { open: row ? ((row.querySelector('.ngn-open') || {}).textContent || '').trim() : null,
-          sub: asks ? ((asks.querySelector('.jov5-rt > span') || {}).textContent || '').trim() : '',
+        /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): the row's Open asks is a count
+           (td.ngn-n) and the first ask's words + § ride the agreement cell (.ngn-ql); the panel's Their asks is a GROUP, each
+           row quoting the words over "§ N · clause name" */
+        const sec = [...f.querySelectorAll('.jov5-sec')].find(x => /^Their asks$/.test(((x.querySelector('.jov5-label') || {}).textContent || '').trim()));
+        return { n: row ? ((row.querySelector('td.ngn-n') || {}).textContent || '').trim() : null,
+          ql: row ? ((row.querySelector('.ngn-ql') || {}).textContent || '').replace(/\s+/g, ' ').trim() : null,
+          subs: sec ? [...sec.querySelectorAll('.jov5-row .jov5-rt > span')].map(x => x.textContent.replace(/\s+/g, ' ').trim()) : [],
           more: !!p.querySelector('[data-ins-more]'),
           go: [...f.querySelectorAll('.jov5-go')].map(b => ({ t: b.textContent.trim(), svg: !!b.querySelector('svg') })) }; });
-      /* was: "2 redlines to answer" in the row — the row's open-asks column leads with their number and quotes each ask */
-      check('2f "What is open": the row says 2 asks, each quoted with its §', /^2 · .*§ ?\d.*§ ?\d/.test(N4.open || ''), JSON.stringify(N4.open));
-      /* was: "Clause N Name · clause N Name" — the panel's Their asks names each clause by its § */
-      check('2g Their asks names the clauses: "§ N · § N"', /§ ?[\dIVXLC.]+ · § ?[\dIVXLC.]+/.test(N4.sub), JSON.stringify(N4.sub));
+      /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): was "2 · “…” § N · “…” § N" in one
+         cell — the Open asks column counts 2 and the agreement cell quotes the first ask with its § on one line */
+      check('2f "What is open": the row counts 2 asks and quotes the first with its §', N4.n === '2' && /“.+”.*§ ?\d/.test(N4.ql || ''), JSON.stringify({ n: N4.n, ql: N4.ql }));
+      /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): was one sub "§ N · § N" — each
+         row under Their asks names its clause by its § */
+      check('2g Their asks names the clauses: each row "§ N · …"', N4.subs.length === 2 && N4.subs.every(x => /^§ ?[\dIVXLC.]+/.test(x)), JSON.stringify(N4.subs));
       /* was: the doors Negotiation · Workspace — the round's one black button opens its redlines, no ⋯, no icon */
       check('2h one door: Open the redlines, no ⋯, no icon on it', !N4.more && N4.go.length === 1 && N4.go[0].t === 'Open the redlines' && !N4.go[0].svg, JSON.stringify(N4));
     });

@@ -74,7 +74,10 @@ const check = (name, pass, detail) => {
       const liveTab = document.querySelector('.ngn-page [data-ngn-tab="live"] span');
       return { tabs, ourTab: ((document.querySelector('.ngn-page [data-ngn-tab="you"]') || {}).textContent || '').replace(/\d+/g, '').trim(),
         bands: [...document.querySelectorAll('.ngn-table tbody tr:not([data-ngn-row])')].map(x => x.textContent.trim()), heads, rows,
-        all: liveTab ? liveTab.textContent.trim() : '', facts: ((document.querySelector('.ngn-page .ctf-hf') || {}).textContent || ''),
+        /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): no facts line beside the title
+           (.ngn-page .ctf-hf is gone) — the count is the Your move chip's own <span> */
+        all: liveTab ? liveTab.textContent.trim() : '', youN: ((document.querySelector('.ngn-page [data-ngn-tab="you"] span') || {}).textContent || '').trim(),
+        chips: [...document.querySelectorAll('.ngn-page [data-ngn-tab]')].every(x => x.classList.contains('apn-tab') && x.classList.contains('is-chip')),
         coded: !!document.querySelector('tr[data-ngn-row="MK-0412"]') || /Project Falcon/.test((document.querySelector('.ngn-table') || {}).textContent || '') };
     };
     const READ = () => {
@@ -96,14 +99,18 @@ const check = (name, pass, detail) => {
     const head = await page.evaluate(() => document.body.innerText);
     const facts = (head.match(/\d+ live[^\n]*/) || [''])[0];
     check('2 "Waiting on our side" is the Our move tab\'s own words, no group heading between the rows, and the facts line counts it so',
-      NGN ? (A.ourTab === 'Your move' && !A.bands.length && /\b2 your move\b/.test(A.facts))
-        : (A.ourTab === 'Waiting on our side' && !A.bands.length && /2 waiting on our side/.test(facts)), JSON.stringify({ ourTab: A.ourTab, bands: A.bands, facts: NGN ? A.facts : facts }));
+      /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): was "2 your move" in the facts
+         line — the tabs are chips and the Your move chip carries the count 2 */
+      NGN ? (A.ourTab === 'Your move' && !A.bands.length && A.chips && A.youN === '2')
+        : (A.ourTab === 'Waiting on our side' && !A.bands.length && /2 waiting on our side/.test(facts)), JSON.stringify({ ourTab: A.ourTab, bands: A.bands, facts: NGN ? { youN: A.youN, chips: A.chips } : facts }));
     /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE, owner: "keep" the Clauses in play): the reference, the round and the
        lead ride the grey line under the counterparty; Round and Lead are one press away under Columns */
     check('3a the columns: Counterparty and agreement · Clauses in play · What is open · Waiting · Value (Round and Lead under Columns)',
       /* RE-POINTED 28 Oct 2026 (ROOM TO SPREAD): where the list has the room, Ref, Round and Lead stand as
          columns together (the grey line's facts); else none of the three */
-      NGN ? JSON.stringify(A.heads) === JSON.stringify(['Agreement', 'Round', 'Whose move', 'Open asks', 'Lead', 'Last'])
+      /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): Agreement · Whose move · Rounds ·
+         Open asks · Lead · Waiting · the act (its head empty) */
+      NGN ? JSON.stringify(A.heads) === JSON.stringify(['Agreement', 'Whose move', 'Rounds', 'Open asks', 'Lead', 'Waiting', ''])
         : ['Counterparty and agreement', 'What is open', 'Waiting'].every(h => A.heads.includes(h)) && (A.heads.includes('Ref') === A.heads.includes('Lead')), JSON.stringify(A.heads));
     /* the new list always shows Lead; the old one put it under Columns */
     if (!NGN){

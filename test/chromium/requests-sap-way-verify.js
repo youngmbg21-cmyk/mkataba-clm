@@ -67,22 +67,24 @@ const check = (name, pass, detail) => {
        in amber while nobody holds it); the asker and the day in Asked by; the files are the panel's ("1 file attached").
        RETIRED 17 Nov 2026 (#762, owner's ruling 3): the old columns Kind · How it is handled · With · Promised by · Files,
        and the lane on the row (the drawn row carries none) */
+    /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way): the columns are Request · Status ·
+       Steps · Asked by · Paper that fits · Waiting (Steps, then the paper, step aside where the room is short); who holds a
+       request is the Status badge (span.apn-st: "With you", "With <first name>", "Needs an editor" is-amber); the day it
+       was asked is the Waiting cell (td.ikn-wait, "today") */
     const T = await page.evaluate(() => {
       const heads = [...document.querySelectorAll('.ikn-table thead th')].map(t => t.textContent.trim());
       const at = h => heads.indexOf(h);
       return { heads, rows: Object.fromEntries([...document.querySelectorAll('.ikn-table [data-ikn-row]')].map(r => { const td = [...r.children];
-        const wc = td[at('Where it stands')];
-        const amberOf = el => { if (!el) return false; const probe = document.createElement('span'); probe.style.color = 'var(--st-amber-fg)'; document.body.appendChild(probe);
-          const amber = getComputedStyle(probe).color; probe.remove(); return [el, ...el.querySelectorAll('*')].some(x => getComputedStyle(x).color === amber || /--st-amber/.test(x.getAttribute('style') || '')); };
-        return [r.getAttribute('data-ikn-row'), { with: wc ? wc.textContent.replace(/\s+/g, ' ').trim() : '', amber: amberOf(wc),
-          asked: td[at('Asked by')] ? ((td[at('Asked by')].querySelector('.cun-sub') || {}).textContent || '').trim() : '' }]; })) };
+        const wc = td[at('Status')], badge = wc && wc.querySelector('.apn-st');
+        return [r.getAttribute('data-ikn-row'), { with: wc ? wc.textContent.replace(/\s+/g, ' ').trim() : '', amber: !!(badge && badge.classList.contains('is-amber')),
+          asked: ((r.querySelector('td.ikn-wait') || {}).textContent || '').trim() }]; })) };
     });
-    const me = await page.evaluate(() => String((currentUser() || {}).name || '').split(/\s+/)[0]);
-    check('1 the columns: Request · Kind · How it is handled · With · Promised by · Files (Asked under Columns)',
-      JSON.stringify(T.heads.filter(Boolean)) === JSON.stringify(['Request', 'Stream', 'Where it stands', 'Asked by']), JSON.stringify(T.heads));
+    const ALL = ['Request', 'Status', 'Steps', 'Asked by', 'Paper that fits', 'Waiting'], hs = T.heads.filter(Boolean);
+    check('1 the columns: Request · Status · Steps · Asked by · Paper that fits · Waiting (Steps and the paper may step aside)',
+      ['Request', 'Status', 'Asked by', 'Waiting'].every(x => hs.includes(x)) && hs.every(x => ALL.includes(x)) && hs.every((x, i) => !i || ALL.indexOf(x) > ALL.indexOf(hs[i - 1])), JSON.stringify(T.heads));
     const a = T.rows['REQ-1042'] || {}, b = T.rows['REQ-1039'] || {}, c = T.rows['REQ-1037'] || {};
-    check('2a With: "You" with the lane that sent it; a colleague by name; "Nobody yet" in amber',
-      new RegExp('^With ' + me).test(a.with) && /^With Erik/.test(c.with) && /^Needs an editor/.test(b.with) && b.amber, JSON.stringify({ a, b, c, me }));
+    check('2a With: "With you" for the reader; a colleague by name; "Needs an editor" in amber',
+      /^With you/.test(a.with) && /^With Erik/.test(c.with) && /^Needs an editor/.test(b.with) && b.amber, JSON.stringify({ a, b, c }));
     if (!rowsIn) throw new Error('the three sample requests never stood on the list within 20 s (the page\'s own load came over them)');
     await page.click('.ikn-table [data-ikn-row="REQ-1042"]');
     const P = await until(() => { const p = document.getElementById('ins-panel'); return p && /Kettle/.test(p.textContent) ? p.innerText.replace(/\s+/g, ' ').trim() : null; });
@@ -105,9 +107,10 @@ const check = (name, pass, detail) => {
         const t = document.querySelector('.ikn-table'), p = document.getElementById('ins-panel');
         /* the Request column leads now (27 Oct 2026) */
         const req = ths[0] ? Math.round(ths[0].getBoundingClientRect().width) : 0;
-        /* every text cell whole, and the row's Start the draft inside its own cell */
-        const cellCut = [...document.querySelectorAll('.ikn-table td.cun-wait')].filter(e => e.scrollWidth > e.clientWidth + 1).length
-          + [...document.querySelectorAll('.ikn-table .ikn-go')].filter(e => e.getBoundingClientRect().right > e.closest('td').getBoundingClientRect().right + 1).length;
+        /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way): no button on a row — every
+           Waiting cell whole, and each Status badge inside its own cell */
+        const cellCut = [...document.querySelectorAll('.ikn-table td.ikn-wait')].filter(e => e.scrollWidth > e.clientWidth + 1).length
+          + [...document.querySelectorAll('.ikn-table .apn-st')].filter(e => e.getBoundingClientRect().right > e.closest('td').getBoundingClientRect().right + 1).length;
         return { cut, cellCut, req, list: !!t && t.getBoundingClientRect().top < innerHeight, panel: !!p && p.getBoundingClientRect().right <= innerWidth + 1, side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
       check(`4 ${w}×${ht}: the list and its panel in view, every head, reference and file count whole, the request room to read, nothing sideways`, !F.cut.length && !F.cellCut && F.req >= 150 && F.list && F.panel && F.side, JSON.stringify(F));
       if (OUT) await page.screenshot({ path: path.join(OUT, `requests-sap-way-${w}x${ht}.png`) });
