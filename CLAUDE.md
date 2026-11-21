@@ -219,6 +219,7 @@ PAPER'S OWN NUMBERS AND TITLES: mark = cite, any kind (`docThreadRowHtml`); sect
 BLANK IS FILLED, NOT ARGUED: `blank` → Fill it in (`stkFillGo` → `pdFillGo`; `stkBlanksOf`), Mark reviewed, no Deep dive; filled leaves `stkReview`.
 ## INSIGHTS (THE PAGE IS GONE, 29 Oct 2026: `setView('intel')` → Board, its map tab → Explorer; its counting stays)
 - COUNTING IS NOT DRAWING: `*Data` + renderer; `pfPanelData`; `.igx-fig` the tile; doors → `regShowOnly`.
+- EXPLORER'S PANEL, P-40 (only the panel changed): no tiles; WHAT IS DRAWN a ring of the drawn contracts by the model's hubs (`igOverviewFive`, `.igo-*`); no Guide tab (`pdHeadHtml` gd false); arrives with motion (`JOV_MOVE_SLOTS` 'ig').
 - EXPLORER: `GRAPH_GROUPINGS`, `intelGraphApply`, `INTEL_CAP` said; `igRecipeNow`/`igRecipeSet`; count only if drawn (`igCountsDrawn`); `igDateRead`; explains the DRAWN (`igTourSteps`); FINDINGS `map_findings` (in folderScopeFor); views per person (`igViewSave`, `igViews`; f1001); `igLensSet`; `igDayData`; `igWhatIfData`.
 - TYPED, AI READS, HaTi CHECKS: `render_graph` `steps` (`GRAPH_STEP_DOS` = `IG_STEP_DOS`); `igFreeReading` first, gap sent back ONCE (`igGapNote`); nothing undrawn said (`igMapSentenceHonest`). f995, f996, f999. New feature = Guide row (`igGuideRows`).
 ## OBLIGATIONS

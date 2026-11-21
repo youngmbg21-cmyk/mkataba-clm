@@ -7489,8 +7489,20 @@ function igOverviewFive(shown){
   const saved=v.length?v.slice(0,3).map(x=>({ mark:'star', t:x.name, run:()=>igSavedViewOpen(x.name) }))
     :[{ t:i18t('jov5_ig_sv_none'), s:i18t('jov5_ig_sv_s'), link:{ label:i18t('jov5_ig_sv_save'), run:()=>igSaveViewDoor() } }];
   const fd=(typeof igFindingsTabOn==='function'&&igFindingsTabOn())?igFindingsCount():null;
-  return { eyebrow:i18t('jov5_ig_eb'), title:i18t('jov_ig_head_b'), sub:i18t('jov_ig_head_s'),
-    glance:[{ n:(M&&M.shown)||shown||0, l:i18t('jov5_ig_drawn') },{ n:streams, l:i18t('jov5_ig_streams') },{ n:parties, l:i18t('jov5_ig_parties') }],
+  /* THE LEGORA + STRIPE WAY (P-40, owner 20 Nov 2026: "Only change the side panels and go for L+S"): no three mixed tiles;
+     WHAT IS DRAWN is a ring of the contracts the map drew, by its own groups (the model's hubs, never the whole book),
+     with its legend and one quiet line */
+  void streams;
+  const hubs=((M&&M.nodes)||[]).filter(n=>n.kind==='hub').map(n=>({ label:String(n.label||''), n:((M.nodes||[]).filter(x=>x.kind==='contract'&&x.group===n.label).length) })).filter(h=>h.n).sort((a,b)=>b.n-a.n);
+  const drawn=hubs.reduce((a,h)=>a+h.n,0)||(M&&M.shown)||shown||0;
+  const TONES=['var(--st-violet-dot)','var(--st-amber-dot)','var(--st-green-dot)','var(--st-steel-dot)','var(--st-gray-dot)'];
+  const top=hubs.slice(0,4), rest=hubs.slice(4).reduce((a,h)=>a+h.n,0);
+  const segs=top.map((h,i)=>({ l:h.label, n:h.n, c:TONES[i] })).concat(rest?[{ l:i18t('jov5_ig_rest'), n:rest, c:TONES[4] }]:[]);
+  const C=2*Math.PI*15; let off=0;
+  const ring=drawn?`<div class="igo-drawn"><span class="igo-ring" aria-hidden="true"><svg viewBox="0 0 36 36">${segs.map(g=>{ const len=C*g.n/drawn, el=`<circle cx="18" cy="18" r="15" style="stroke:${g.c};stroke-dasharray:${len.toFixed(2)} ${(C-len).toFixed(2)};stroke-dashoffset:${(-off).toFixed(2)}"/>`; off+=len; return el; }).join('')}</svg><b>${drawn}</b></span>`
+    +`<span class="igo-leg">${segs.map(g=>`<span><i style="background:${g.c}"></i>${igEsc(g.l)} · <b>${g.n}</b></span>`).join('')}<small>${igEsc(i18tn('jov5_ig_parties_n',parties,{ n:parties }))}</small></span></div>`:'';
+  return { title:i18t('jov5_ig_t2'), sub:i18t('jov5_ig_s2'),
+    mid:ring, midLabel:drawn?i18t('jov5_ig_what_drawn'):'',
     groups:[{ label:i18t('jov5_ig_try'), rows }, { label:i18t('int_saved_views'), rows:saved }].concat(fd&&fd.n?[{ label:i18t('jov_ig_fd'), rows:[{ mark:'star', tone:fd.tone==='amber'?'amber':'', t:i18tn('jov_ig_fd_v',fd.n,{ n:fd.n }), run:()=>igFindingsShow() }] }]:[]),
     src:i18t('jov_ig_src') };
 }

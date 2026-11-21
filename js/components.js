@@ -1910,7 +1910,7 @@ Object.assign(window, { jamboDraft, jamboDraftSel, jamboDraftSet, jamboDraftClea
    the page is marked, a still one only marks it — so a later tab change, redraw or Back never plays. A reload and a
    Back are quiet (`jovArriveQuiet`). The motion itself is transform and opacity only (HOW THINGS MOVE). The panels that
    move are the drawing's fourteen: by their slot (JOV_MOVE_SLOTS) and the contract's card and checklist. */
-var JOV_MOVE_SLOTS = new Set(['hb', 'cal', 'ig-day', 'jl:negotiations', 'jl:approvals', 'jl:obligations', 'jl:migration', 'cun', 'jhn', 'pdob', 'dl2']);
+var JOV_MOVE_SLOTS = new Set(['hb', 'ig', 'rdn', 'cal', 'ig-day', 'jl:negotiations', 'jl:approvals', 'jl:obligations', 'jl:migration', 'cun', 'jhn', 'pdob', 'dl2']);
 var JOV_ARRIVE_GAP_MS = 5 * 3600 * 1000;
 var JOV_ARRIVE_KEY = 'hati.v1.jovArrive';
 var JOV_ARRIVE_SEL = '.jov5, .pd2-card.is-five, .pd2-sg.is-five';
