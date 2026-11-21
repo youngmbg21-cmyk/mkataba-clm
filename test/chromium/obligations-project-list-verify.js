@@ -93,11 +93,12 @@ function world(){
   await until(page, () => !!document.querySelector('.obn-table.is-proj .obn-pr'));
   await page.waitForTimeout(300);
   const proj = await page.evaluate(() => ({ heads: [...document.querySelectorAll('.obn-table.is-proj thead th')].map(t => t.textContent.trim()).filter(Boolean),
-    rows: [...document.querySelectorAll('.obn-pr')].map(r => ({ name: (r.querySelector('.obn-what') || {}).textContent, ring: !!r.querySelector('.obn-ring'),
-      said: (r.querySelector('.obn-pgb small') || {}).textContent, age: (r.querySelector('.obn-age') || {}).textContent, st: (r.querySelector('.obn-stt .obn-ch') || {}).textContent })) }));
-  check('5 · one row per agreement, oldest wait first, each with its ring, its progress and its status',
-    /* RE-POINTED 19 Nov 2026: four heads — the owner had Found taken off ("delete the found column"); age is said in Jambo's panel */
-    proj.heads.length === 4 && !proj.heads.includes('Found') && proj.rows.length === 3 && /Milk/.test(proj.rows[0].name || '') && proj.rows.every(r => r.ring && /decided/i.test(r.said || '') && String(r.st || '').trim()),
+    rows: [...document.querySelectorAll('.obn-pr')].map(r => ({ name: (r.querySelector('.obn-what') || {}).textContent, bar: !!r.querySelector('.obn-pbar'),
+      said: (r.querySelector('.obn-pgs small') || {}).textContent, st: (r.querySelector('.obn-stt .obs-b') || {}).textContent })) }));
+  /* RE-POINTED 21 Nov 2026 (P-13, the owner's pick of 20 Nov, newer than the 19 Nov "delete the found column"): the drawn
+     table — Agreement · Other side · Progress (a bar and "N of M") · Status (a soft badge) · Duties · Found; no ring */
+  check('5 · one row per agreement, oldest wait first, each with its progress bar and its status',
+    proj.heads.join() === 'Agreement,Other side,Progress,Status,Duties,Found' && proj.rows.length === 3 && /Milk/.test(proj.rows[0].name || '') && proj.rows.every(r => r.bar && /\d+ of \d+/.test(r.said || '') && String(r.st || '').trim()),
     proj);
   await page.screenshot({ path: path.join(OUT, '2-proposals.png') });
 
@@ -118,14 +119,14 @@ function world(){
   /* 7 · an answer paints the row's ring in its side's colour, and Add takes only what was decided */
   const cid = await page.evaluate(() => { const b = document.querySelector('#ins-panel .obn-lg [data-obn-whose="them"]'); const id = b && b.getAttribute('data-cid'); if (b) b.click(); return id; });
   await page.waitForTimeout(300);
-  const ring = await page.evaluate(id => (((document.querySelector(`.obn-pr[data-obn-pick="${id}"] .obn-ring`) || {}).getAttribute || (() => ''))
-    .call(document.querySelector(`.obn-pr[data-obn-pick="${id}"] .obn-ring`), 'style') || ''), cid);
+  /* RE-POINTED 21 Nov 2026 (P-13, as drawn): no ring on the row — its progress counts the answer ("1 of N") */
+  const ring = await page.evaluate(id => ((document.querySelector(`.obn-pr[data-obn-pick="${id}"] .obn-pgs small`) || {}).textContent || '').trim(), cid);
   await page.evaluate(id => { const b = document.querySelector(`#ins-panel [data-obn-addall="${id}"]`); if (b) b.click(); }, cid);
   await page.waitForTimeout(900);
   const added = await page.evaluate(id => { const c = getContract(id); return { n: (c.obligations || []).length, parties: (c.obligations || []).map(o => o.party),
     left: obReviewWaiting(c).length, rows: document.querySelectorAll('.obn-pr').length }; }, cid);
-  check('7 · "Theirs" paints the ring steel; Add adds only what the reader decided; the undecided stay',
-    /--st-steel-dot/.test(ring) && !/--st-amber-dot/.test(ring) && added.n === 1 && added.parties.join() === 'theirs' && added.left === 2 && added.rows === 3, { ring, added });
+  check('7 · "Theirs" counts on the row\'s progress; Add adds only what the reader decided; the undecided stay',
+    /^1 of \d+/.test(ring) && added.n === 1 && added.parties.join() === 'theirs' && added.left === 2 && added.rows === 3, { ring, added });
 
   /* 8 · a Skip is kept as the desk keeps it, and can be undone */
   const sid = await page.evaluate(() => { const b = document.querySelector('#ins-panel .obn-lg [data-obn-skip]'); const id = b && b.getAttribute('data-cid'); if (b) b.click(); return id; });
@@ -194,9 +195,10 @@ function world(){
      colour (the duties no longer open under the row) */
   if (lg) await page.evaluate(() => { const b = document.querySelector('#ins-panel .obn-lg [data-obn-whose="them"]'); if (b) b.click(); });
   await page.waitForTimeout(300);
-  const same = lg ? await page.evaluate(id => { const r = document.querySelector(`.obn-pr[data-obn-pick="${id}"] .obn-ring`), pa = document.querySelector('#ins-panel .obn-lg .obn-lg-w.is-on');
-    return { ring: /--st-steel-dot/.test((r && r.getAttribute('style')) || ''), panel: pa && pa.getAttribute('data-obn-whose'), under: !!document.querySelector('.obn-table [data-obn-whose]') }; }, cid2) : null;
-  check('14 · answered in the panel, the list says the same: the row\'s ring turns steel for Theirs, nothing unfolds under it',
+  /* RE-POINTED 21 Nov 2026 (P-13, as drawn): the row has no ring — its progress counts the answer */
+  const same = lg ? await page.evaluate(id => { const r = document.querySelector(`.obn-pr[data-obn-pick="${id}"] .obn-pgs small`), pa = document.querySelector('#ins-panel .obn-lg .obn-lg-w.is-on');
+    return { ring: /^[1-9]\d* of \d+/.test(((r && r.textContent) || '').trim()), panel: pa && pa.getAttribute('data-obn-whose'), under: !!document.querySelector('.obn-table [data-obn-whose]') }; }, cid2) : null;
+  check('14 · answered in the panel, the list says the same: the row\'s progress counts it, nothing unfolds under it',
     !!same && same.ring && same.panel === 'them' && !same.under, same);
 
   /* 15 · "‹ Overview" lets the row go and the five parts come back */
@@ -214,7 +216,8 @@ function world(){
         acts: acts.length ? Math.max(...acts) : null, sideways: list ? list.scrollWidth > list.clientWidth + 1 : true,
         heads: t ? [...t.querySelectorAll('thead th')].map(x => x.textContent.trim()).filter(Boolean) : [] }; });
     check(`16 · ${w}×${hgt}: Proposals ends before Jambo's panel begins, its buttons in sight, nothing sideways, four heads`,
-      fit.table != null && fit.panel != null && fit.table <= fit.panel && fit.acts <= fit.panel && !fit.sideways && fit.heads.length === 4, fit);
+      /* RE-POINTED 21 Nov 2026 (P-13, as drawn): six heads; the row carries no buttons (Add all decided is the panel's) */
+      fit.table != null && fit.panel != null && fit.table <= fit.panel && (fit.acts == null || fit.acts <= fit.panel) && !fit.sideways && fit.heads.length === 6, fit);
     await page.screenshot({ path: path.join(OUT, `7-prop-${w}x${hgt}.png`) });
   }
   await page.setViewportSize({ width: 1440, height: 780 });

@@ -55,12 +55,14 @@ test('f1098 (1) nothing kept, the wording is not read; something kept, a count r
   assert.equal(c.obReview.hash, 'H3');
 });
 
-test('f1098 (2) Proposals has no Found column, and a duty row spans the columns that stay', () => {
+/* RE-POINTED 21 Nov 2026 (P-13 rebuilt as drawn, the owner's Stripe pick of 20 Nov reverses 19 Nov's "Found is gone"):
+   Agreement · Other side · Progress · Status · Duties · Found, and no act column (Add all decided is the panel's) */
+test('f1098 (2) Proposals as drawn: Other side · Progress · Status · Duties · Found, no act column', () => {
   const src = strip(read('js/obligations.js'));
   const i = src.indexOf('function obnCols('); assert.ok(i >= 0);
   const cols = src.slice(i, src.indexOf('const seat', i));
-  assert.doesNotMatch(cols, /'found'|obn_col_found/, 'Found is gone');
-  assert.match(cols, /k: 'side'.*k: 'prog'.*k: 'status'.*k: 'acts'/s);
+  assert.match(cols, /k: 'side'.*k: 'prog'.*k: 'status'.*k: 'duties'.*k: 'found'/s);
+  assert.doesNotMatch(cols.slice(0, cols.indexOf(": [{ k: 'name', t: 'ob_col_what'")), /k: 'acts'/, 'no act column on Proposals');
   /* RE-POINTED 19 Nov 2026 (f1102): the duty rows under an agreement are gone (owner: "redundant … Delete them") */
   assert.doesNotMatch(src.slice(src.indexOf('function obnProjRowHtml('), src.indexOf('let _obnPick')), /obn-age/, 'no age cell');
 });
