@@ -1,4 +1,4 @@
-/* f1133 — REMIND A RULE'S APPROVER BY HAND (owner, 21 Nov 2026, P-30's "Remind Joseph")
+/* f1136 — REMIND A RULE'S APPROVER BY HAND (owner, 21 Nov 2026, P-30's "Remind Joseph")
    ============================================================
    On Approvals › Waiting on others, an approval a company RULE asked for (not one named person's) carries
    "Remind <the approver>", as drawn. POST /api/contracts/:id/rule-remind:
@@ -9,13 +9,13 @@
      (3) THE RECORD the server writes: c.ruleReminds (who, whom, when) and a trail line; an ordinary save keeps it;
      (4) THE LIMIT: once a day per waiting step, said in plain words (429);
      (5) the panel and the words: the panel offers it only where the reader may remind, and shows the record.
-   Run: node --test test/f1133-remind-a-rule-approver.test.js */
+   Run: node --test test/f1136-remind-a-rule-approver.test.js */
 const { describe, test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs'), path = require('node:path');
 const { startHati, seedWorkspace, fixtureContract, FOLDER_B } = require('./helpers');
 
-describe('f1133 — the route', () => {
+describe('f1136 — the route', () => {
   let h, W, viewer;
   const outbox = async (to, re) => ((await W.admin.json('/api/outbox')).items || [])
     .filter(m => (!to || m.to_addr === to) && (!re || re.test(m.subject || '')));
@@ -79,7 +79,7 @@ describe('f1133 — the route', () => {
   });
 });
 
-describe('f1133 (5) the panel and the words', () => {
+describe('f1136 (5) the panel and the words', () => {
   const read = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
   const V = read('js/views/approvalsview.js');
   test('the panel offers Remind for a rule step only to who may remind, and draws the record', () => {
