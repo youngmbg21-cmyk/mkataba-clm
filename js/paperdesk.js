@@ -7053,6 +7053,12 @@ function pdJamboTopHtml(){
   const c = pdContract();
   /* the new look's Contracts on its folders (round 6, as drawn): the panel reads across the folders */
   if (!c && typeof regFoldersUp === 'function' && regFoldersUp() && typeof regFoldersPanelHtml === 'function') return regFoldersPanelHtml();
+  /* P-31 AS DRAWN (21 Nov 2026): beside every list of the place — All, Needs you, a folder, Ended & archived, the Wall
+     with nothing chosen — ONE panel of the rows on screen (regLsListPanelHtml); Ask a column's own panel stands while
+     a question is open (askColPanelHtml). Reverses round 6's folder reading (regFolderPanelHtml) on the new look. */
+  if (!c && typeof regLsListUp === 'function' && regLsListUp() && typeof regLsListPanelHtml === 'function'){
+    const ac0 = (typeof askColPanelHtml === 'function') ? askColPanelHtml() : '';
+    if (!ac0) return regLsListPanelHtml(); }
   /* a folder's list (round 6, as drawn): the folder's own reading, until a cell is chosen or a question asked */
   if (!c && typeof regFolderPanelOn === 'function' && regFolderPanelOn() && typeof regFolderPanelHtml === 'function') return regFolderPanelHtml();
   /* ASK A COLUMN (owner picked "In Jambo's panel", 20 Oct 2026): beside the
@@ -7417,9 +7423,53 @@ function pd2ChosenHtml(c){
     .concat(nd.map(r => `<div class="pd2-ch-door"><button type="button" class="rfp-a" data-pd-nd="${E(r.it.kind)}" data-pd-nd-id="${id}">${E(verb(r))}</button><span>${E(_pdT('pd2_ch_free'))}</span></div>`)).join('');
   return `<div id="pd-chosen" class="pd-chosen pd2-chosen" data-pd-chosen-for="${id}"><p class="pd2-ch-head">${E(head)}</p>${read}<div class="pd2-ch-cap">${E(_pdT('pd2_ch_doors'))}</div>${doors}${pd2TurnHtml(c)}</div>`;
 }
+/* A PAPER CHOSEN ON THE WALL, P-31 AS DRAWN: NO CARDS AND NO MONEY. Its standing badge (regLsBadgeHtml), its name, "the
+   other side · ref · ends …"; Open it (black), Decide and Fill in (grey) only where an approval or details wait on the
+   reader (the checklist's own doors, data-pd-nd); WHERE IT STANDS as the six stages (dossierOf: done green, the stage in
+   play ringed amber, the rest grey); READ OFF ITS PAPER — the paper's own words for when it ends and their § (the list's
+   one reading, regSayEndQuote), nothing where the wording is not loaded; a TIMELINE off the record (arrived and read,
+   each thing waiting now, then the next step). Read only. */
+function pd2ChosenLsHtml(c){
+  const E = _pdE, id = E(c.id), ref = (typeof contractRef === 'function') ? contractRef(c) : String(c.id);
+  const end = (typeof regLsEndOf === 'function') ? regLsEndOf(c) : String(c.expiry || '').slice(0, 10);
+  const endW = end ? ((typeof regDotDate === 'function') ? regDotDate(end) : end) : '';
+  const nd = pdNeedsRows(c, { details: true }).filter(r => !r.jw && !r.note && r.it);
+  const kinds = new Set(nd.map(r => r.it.kind));
+  const sec = (h, body, last) => `<div class="ctls-sec${last ? ' is-last' : ''}">${h ? `<h4>${E(h)}</h4>` : ''}${body}</div>`;
+  const line = [c.counterparty ? E(c.counterparty) : '', `<span class="ctls-ref">${E(ref)}</span>`, endW ? E(_pdT('ctls_ends_s', { d: endW })) : ''].filter(Boolean).join(' · ');
+  const acts = `<div class="ctls-acts"><button type="button" class="ui-btn ui-btn-primary ctls-go" data-pd-ch-open="${id}">${E(_pdT('ctls_open_it'))}</button>`
+    + (kinds.has('approval') ? `<button type="button" class="ui-btn ctls-g2" data-pd-nd="approval" data-pd-nd-id="${id}">${E(_pdT('ctls_decide'))}</button>` : '')
+    + (kinds.has('details') || kinds.has('fill') ? `<button type="button" class="ui-btn ctls-g2" data-pd-nd="${kinds.has('details') ? 'details' : 'fill'}" data-pd-nd-id="${id}">${E(_pdT('ctls_fill'))}</button>` : '') + '</div>';
+  const top = sec('', `<div>${regLsBadgeHtml(c)}</div><div class="ctls-head">${E(c.name || ref)}</div><div class="ctls-sub">${line}</div>${acts}`);
+  /* the six stages: the one in play is the first with work owed, else the contract's own stage */
+  let D = null; try { D = dossierOf(c); } catch (_){ D = null; }
+  let spine = '';
+  if (D){ const on = (D.stages.find(s => s.state === 'on') || {}).k || D.now, at = DOSSIER_STAGES.indexOf(on), gone = regLsStandOf(c) === 'ended';
+    /* a signed contract with nothing owed stands at Live, ringed green: its ring is where it is, not work waiting */
+    const calm = !D.stages.some(s => s.state === 'on');
+    spine = `<div class="ctls-spine" role="list">${D.stages.map((s, i) => { const k = gone || i < at ? 'ok' : i === at ? (calm && on === 'live' ? 'now is-calm' : 'now') : '';
+      return `<div role="listitem"${k.startsWith('now') ? ' aria-current="step"' : ''}><i class="${k}"></i>${k.startsWith('now') ? `<b>${E(_pdT(DOSSIER_SP_WORD[s.k]))}</b>` : E(_pdT(DOSSIER_SP_WORD[s.k]))}</div>`; }).join('')}</div>`; }
+  let Q = { sec: '', quote: '' }; try { Q = (end && typeof regSayEndQuote === 'function') ? (regSayEndQuote(c, end) || Q) : Q; } catch (_){ Q = { sec: '', quote: '' }; }
+  const read = Q.quote ? sec(_pdT('ctls_h_read'), `<div class="ctls-quote">“${E(Q.quote)}”</div><div class="ctls-sub">${[Q.sec, endW ? _pdT('ctls_ends_s', { d: endW }) : ''].filter(Boolean).map(E).join(' · ')}</div>`) : '';
+  /* the timeline: what the record says happened, what waits now, what comes next */
+  const tl = [];
+  const up = c.upload || {}, at0 = up.uploadedAt || c.createdAt || c._raisedAt || '';
+  let wasRead = false; try { wasRead = !!(D && D.read && D.read.read); } catch (_){ wasRead = false; }
+  if (at0 || wasRead) tl.push({ t: _pdT(wasRead ? 'ctls_tl_up' : 'ctls_tl_in'), w: at0 ? dossierDay(at0) : '', tone: 'is-acc' });
+  if (c.signedAt) tl.push({ t: _pdT('ctls_tl_signed'), w: dossierDay(c.signedAt), tone: 'is-s' });
+  nd.slice(0, 3).forEach(r => { let w = ''; try { const x = (typeof insNeedWords === 'function') ? insNeedWords(c, r.it) : null; w = x && x.title ? String(x.title) : ''; } catch (_){ w = ''; }
+    if (w) tl.push({ t: w, w: _pdT('ctls_tl_now'), tone: 'is-r' }); });
+  const st = regLsStandOf(c);
+  if (st === 'review') tl.push({ t: _pdT('ctls_tl_sign'), w: _pdT('ctls_tl_next'), tone: 'is-next' });
+  else if (st === 'signed' && endW) tl.push({ t: _pdT('ctls_tl_end'), w: endW, tone: 'is-next' });
+  const tlHtml = tl.length ? sec(_pdT('ctls_h_tl'), `<ul class="ctls-tl">${tl.map(x => `<li><i class="${x.tone}"></i><span${x.tone === 'is-next' ? ' class="ctls-g"' : ''}>${E(x.t)}${x.w ? ` <small>· ${E(x.w)}</small>` : ''}</span></li>`).join('')}</ul>`, true) : '';
+  return `<div id="pd-chosen" class="pd-chosen ctls ctls-chosen" data-pd-chosen-for="${id}">${top}${spine ? sec(_pdT('ctls_h_stands'), spine) : ''}${read}${tlHtml}</div>`;
+}
 function pdChosenHtml(c){
   if (!c) return '';
-  if (typeof pd2On === 'function' && pd2On() && !c._codeNamed) return pd2ChosenHtml(c);
+  /* P-31 AS DRAWN (21 Nov 2026): a paper chosen on the Contracts Wall — badge, name, Open it · Decide · Fill in, the six
+     stages, what was read off its paper, a timeline (pd2ChosenLsHtml); round 6's sentence-and-doors panel stands down */
+  if (typeof pd2On === 'function' && pd2On() && !c._codeNamed) return typeof window.regLsBadgeHtml === 'function' ? pd2ChosenLsHtml(c) : pd2ChosenHtml(c);
   const id = _pdE(c.id), ref = (typeof contractRef === 'function') ? contractRef(c) : String(c.id);
   const facts = pdChosenFacts(c);
   const lock = (typeof icon === 'function') ? icon('lock', 'w-3 h-3') : '';
