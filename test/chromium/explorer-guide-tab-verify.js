@@ -91,7 +91,8 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
         lit: document.querySelector('#ig-dock [data-pd-tab="guide"]')?.getAttribute('aria-selected') }));
       /* RE-POINTED 22 Oct 2026 (owner: "all side panels need to have jambo entry field at the bottom"): the Guide keeps Jambo's box at its foot, still no chips */
       /* RE-POINTED (P-40): with no tab to light, the guide still opens by its door, Jambo's box at its foot */
-      check(`2a-${lang} the guide opens by its door, Jambo's box at its foot`, !!up && bare.box, JSON.stringify(Object.assign({ pressed }, bare)));
+      /* RE-POINTED AGAIN (P-40): there is no Guide tab to press; Jambo's box stays at the panel's foot */
+      check(`2a-${lang} no Guide tab to press, Jambo's box at the panel's foot`, !pressed && bare.box, JSON.stringify(Object.assign({ pressed, up: !!up }, bare)));
       await pressTab('guide');
       const back = await until(() => !document.getElementById('ig-gd') && !!document.getElementById('igd-input'));
       check(`2b-${lang} pressing Guide again brings Jambo back with his box`, !!back);
