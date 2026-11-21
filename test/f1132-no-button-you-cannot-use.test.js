@@ -95,7 +95,8 @@ describe('f1132 (4) approving, deciding, and the rest', () => {
     const i = CA.indexOf('const CA_SEL_ACTIONS = () => ['), j = CA.indexOf('\n', CA.indexOf("const CA_SEL_WRITES = ['oblig', 'risk', 'note'];"));
     const ctx = run(CA.slice(i, j) + '\nthis.CA_SEL_ACTIONS = CA_SEL_ACTIONS;', { mayActOn: () => false, _caT: k => k });
     assert.deepEqual([...ctx.CA_SEL_ACTIONS().map(a => a.id)], ['ask', 'mine']);
-    assert.match(strip(fnBody(RG, 'ngnPanelFiveHtml')), /!\(r && r\.c && typeof window\.deskMaySend === 'function' && !window\.deskMaySend\(r\.c\)\)/);
+    /* RE-POINTED 21 Nov 2026 (P-29, as drawn): the chosen deal's one act (Send · Remind) is read by ngnActOf, the row's and the panel's */
+    assert.match(strip(fnBody(RG, 'ngnActOf')), /!\(typeof window\.deskMaySend === 'function' && !window\.deskMaySend\(c\)\)/);
   });
 });
 
