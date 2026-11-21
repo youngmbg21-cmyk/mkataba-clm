@@ -1588,7 +1588,7 @@ function jov5ContractRow(c, v, extra){
   return Object.assign({ mark: 'mkTick', tone: 'green', t: (c && (c.name || c.id)) || '', s: (c && c.counterparty) || '', v: v || '', run: () => jov5Open(c.id) }, extra || {});
 }
 /* the five parts, drawn (jamboOverviewHtml hands over its slot's run list, so presses resolve as every other) */
-var JOV5_TONES = { amber: 1, green: 1, dark: 1, red: 1, violet: 1 };
+var JOV5_TONES = { amber: 1, green: 1, dark: 1, red: 1, violet: 1, steel: 1 };
 /* THE FIVE PARTS' HEAD AND MARK, for a face that draws its own body (a contract's faces, round 3b): the same eyebrow,
    serif headline and sentence, the same round mark in its tone, so a contract's panel and a page's read alike */
 function jov5HeadHtml(o){
@@ -1944,7 +1944,9 @@ function jovPageKeyOf(el){
     const c = pdContract(); if (c && c.id) return 'c'; }
   const v = String(st.view || '');
   const face = (v === 'dashboard' && typeof window.hbFace === 'function') ? ':' + hbFace() : '';
-  return 'v:' + v + face;
+  /* Read down is its own page on the Board's face (P-41: it arrives with its panel, on the same rare beat) */
+  const rd = face && typeof window.hbRdnUp === 'function' && window.hbRdnUp() ? ':rd' : '';
+  return 'v:' + v + face + rd;
 }
 function jovMoves(el){
   if (el.matches('.pd2-card.is-five, .pd2-sg.is-five')) return true;
@@ -1966,7 +1968,11 @@ function jovPlay(el){
   el.querySelectorAll('.jov5-day, .jov5-cm, .pd2-sg-i, .pd2-spine.is-steps i').forEach((x, j) => x.style.setProperty('--jov-j', String(j)));
   el.classList.add('jov-arrive');
   jovCountUp(el);
-  setTimeout(() => { try { el.classList.remove('jov-arrive'); } catch (_){} }, 2200);
+  /* READ DOWN ARRIVES WITH ITS PANEL (P-41, as drawn): when its panel plays, the sheet's sentences rise in one after
+     another, their graphics draw and the quarter bars grow — on the same rare beat, never on its own */
+  const sheet = el.getAttribute('data-jov-slot') === 'rdn' && document.getElementById('rd-page');
+  if (sheet){ sheet.querySelectorAll('.rd-row, .rd-q').forEach((x, i) => x.style.setProperty('--rd-i', String(i))); sheet.classList.add('rd-arrive'); }
+  setTimeout(() => { try { el.classList.remove('jov-arrive'); if (sheet) sheet.classList.remove('rd-arrive'); } catch (_){} }, 2200);
 }
 /* AN ARRIVAL IS A NEW PAGE, NOT A NEW ELEMENT: the panel a page keeps unchanged is not drawn again (NOTHING CHANGED,
    NOTHING WRITTEN), so the watcher asks which page the panel in sight belongs to; a page different from the last one
