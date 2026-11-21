@@ -94,13 +94,16 @@ const DRAFT = { ask: 'Each party’s liability is capped at the fees paid in the
          side and its reference with the paper's words quoted and its To decide badge, the row a door to its Approvals row;
          the panel's one black button is Decide in Approvals ›; nothing on the page or the panel decides here. who may give a
          rung is on the ladder's rungs now (.ld-who) */
-      const D = await until(() => { const p = document.getElementById('ins-panel'), d = p ? [...p.querySelectorAll('[data-jov5-sec="waits"] .jov5-row')] : [];
+      /* RE-POINTED 21 Nov 2026 (P-35, as drawn): the panel has no cards — each waiting departure is a line (.ld6-wt: the
+         contract and its reference, its To decide badge; the paper's words quoted under it), the line a door to its
+         Approvals row; Decide in Approvals is the section's own black button (.ld6-acts .ld6-btn) */
+      const D = await until(() => { const p = document.getElementById('ins-panel'), d = p ? [...p.querySelectorAll('[data-jov5-sec="waits"] .ld6-wt')] : [];
         return d.length ? { rows: d.map(x => ({ t: x.textContent.replace(/\s+/g, ' ').trim(), door: x.hasAttribute('data-ld-goap') })), onLadder: document.querySelectorAll('.ld-main .ld-dep').length,
-          go: ((p.querySelector('.jov5-act .jov5-go') || {}).textContent || '').trim(), decideHere: [...p.querySelectorAll('button'), ...document.querySelectorAll('.ld-main button')].some(b => /^(Allow once|Refuse)$/.test(b.textContent.trim())),
+          go: ((p.querySelector('[data-jov5-sec="waits"] .ld6-acts .ld6-btn') || {}).textContent || '').trim(), decideHere: [...p.querySelectorAll('button'), ...document.querySelectorAll('.ld-main button')].some(b => /^(Allow once|Refuse)$/.test(b.textContent.trim())),
           who: [...document.querySelectorAll('.ld-main .ld6-rung .ld-who')].map(x => x.textContent.replace(/\s+/g, ' ').trim()) } : null; });
       check(`${tag} 2a each open departure waits in the panel: To decide, a door to Approvals, Decide in Approvals its black button, no decision here`, !!D && D.rows.length === 2 && !D.onLadder
         && D.rows.every(x => /To decide/.test(x.t) && x.door) && /^Decide in Approvals/.test(D.go) && !D.decideHere
-        && D.rows.some(x => /Kilele/.test(x.t)), D);
+        && D.rows.some(x => /Courier Services/.test(x.t)), D);
       /* RETIRED in part (P-35): "Legal says yes" on the departure's card — the drawn panel row names the contract, its words and
          To decide; who may give each rung is said on the ladder's own rungs (.ld-who), read in D.who above for the record */
       const key = await page.evaluate(() => { const b = document.querySelector('#ins-panel [data-jov5-sec="waits"] [data-ld-goap]'); const k = b && b.getAttribute('data-ld-goap'); if (b) b.click(); return k; });
@@ -192,7 +195,8 @@ const DRAFT = { ask: 'Each party’s liability is capped at the fees paid in the
         const H = await until(() => { if (document.querySelector('.ld-edit')) return null; document.querySelector('[data-ld-mode="history"]')?.click();
           /* RE-POINTED (P-35, owner's pick 20 Nov 2026: Playbook the Legora + Stripe way) */ /* History is a calm table: a row (tr[data-ld-hrow]) carries the change, its why quoted and a soft state badge */
           const r = [...document.querySelectorAll('.ld6-table tr[data-ld-hrow]')].map(x => x.textContent.replace(/\s+/g, ' ').trim()); return r.length ? r : null; });
-        check(`${tag} 4a Send for approval asks why; the change waits in History`, !!dlg && !!H && /Waits for another admin/.test(H[0]) && /Name the carve-outs/.test(H[0]), H);
+        /* RE-POINTED 21 Nov 2026 (P-35, as drawn): the change reads on one line, "v1 → v2: <its reason>", the reason in lower case */
+        check(`${tag} 4a Send for approval asks why; the change waits in History`, !!dlg && !!H && /Waits for another admin/.test(H[0]) && /v\d+ → v\d+: name the carve-outs/i.test(H[0]), H);
         await page.evaluate(() => document.querySelector('[data-ld-mode="ladder"]')?.click());
         const still = await until(() => { const w0 = document.querySelector('.ld6-rung .ld-w'); return w0 ? w0.textContent : null; }); /* RE-POINTED (P-35, owner's pick 20 Nov 2026: Playbook the Legora + Stripe way) */
         check(`${tag} 4b the ladder still shows the words that stand`, !!still && !/fees paid in the twelve \(12\) months before the claim\.$/.test(still), still && still.slice(0, 60));
