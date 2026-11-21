@@ -21355,6 +21355,83 @@
   html.lg-new .mnn-table tbody tr{cursor:pointer}
   html.lg-new .mnn-note{background:var(--surface-2);border-radius:var(--radius);padding:14px 16px;margin:0 0 20px;font-size:13.5px;font-weight:var(--w-label);line-height:1.5}
   html.lg-new .mnn-note p{margin:0}
+  /* MY NOTES, THE LEGORA + STRIPE WAY, REBUILT AS DRAWN (P-27, 21 Nov 2026; the drawing's own sizes): the ask box with
+     Jambo's green spark; chips dashed, the chosen one solid in the ink, the count in the same ink; the table's heads in
+     sentence case, quiet; the chosen row a faint green, the row under the pointer a faint grey, its act a small underlined
+     link shown only there; soft square-cornered badges (a dot on Overdue and Due today, a tick on Reviewed); the words
+     under the day in their tone (late red, today amber) */
+  html.lg-new .mnn-page .apn-ask.mnn-ask{margin:8px 0 0;padding:8px 0;gap:8px}
+  html.lg-new .mnn-page .mnn-ask .mnn-spark{flex:none;width:13px;height:13px;fill:var(--accent-ink);color:var(--accent-ink)}
+  html.lg-new .mnn-page .mnn-ask input::placeholder{color:var(--color-neutral-400)}
+  html.lg-new #mn-page .apn-bar{margin:18px 0 0;gap:8px}
+  html.lg-new .mnn-page .apn-bar .apn-tab.is-chip{height:26px;padding:0 11px;border:1px dashed var(--color-neutral-300);background:none;font-size:13px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new .mnn-page .apn-bar .apn-tab.is-chip span{color:inherit}
+  html.lg-new .mnn-page .apn-bar .apn-tab.is-chip.is-on{border-style:solid;border-color:var(--color-neutral-300);background:none;color:var(--color-text)}
+  html.lg-new .mnn-page .apn-bar .apn-chip.is-add{font-size:13px;font-weight:var(--w-label);padding:0 11px}
+  html.lg-new .mnn-page .apn-card .mnn-table{margin-top:10px}
+  html.lg-new .mnn-page .apn-card .mnn-table th{padding:8px 10px;font-size:12px;letter-spacing:0;text-transform:none;font-weight:var(--w-label);color:var(--color-neutral-400)}
+  html.lg-new .mnn-page .apn-card .mnn-table td{padding:11px 10px;border-bottom-color:var(--color-neutral-100)}
+  html.lg-new .mnn-page .mnn-table .cun-name{font-weight:var(--w-label)}
+  html.lg-new .mnn-page .mnn-table .mnn-ct{font-weight:400}
+  html.lg-new .mnn-page .mnn-table .mnn-words{margin-top:2px;font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new .mnn-page .mnn-table .mnn-ql{margin-top:2px;font-size:13px;line-height:1.4}
+  html.lg-new .mnn-page .mnn-table .mnn-ql span{font-family:var(--font-body);font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new .mnn-page .mnn-table td.mnn-ctc .cun-sub{font-family:var(--font-ref);font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new .mnn-page .mnn-table td.mnn-dd .cun-sub{font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new .mnn-page .mnn-table td.mnn-dd .cun-sub.is-late{color:var(--st-ruby-fg)}
+  html.lg-new .mnn-page .mnn-table td.mnn-dd .cun-sub.is-today{color:var(--st-amber-fg)}
+  html.lg-new .mnn-page .mnn-table tbody tr.is-sel td{background:color-mix(in srgb,var(--accent-ink) 4%,var(--color-surface))}
+  @media (hover:hover){ html.lg-new .mnn-page .mnn-table tbody tr:not(.is-sel):hover td{background:color-mix(in srgb,var(--surface-2) 45%,var(--color-surface))} }
+  html.lg-new .mnn-page .mnn-table .mnn-rowact{font-size:12.5px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;visibility:hidden}
+  html.lg-new .mnn-page .mnn-table tbody tr.is-sel .mnn-rowact,html.lg-new .mnn-page .mnn-table tbody tr:focus-within .mnn-rowact{visibility:visible}
+  @media (hover:hover){ html.lg-new .mnn-page .mnn-table tbody tr:hover .mnn-rowact{visibility:visible} }
+  html.lg-new :is(.mnn-page,.mnn5) .apn-st.mnn-bd{height:auto;gap:5px;padding:1px 7px;border-radius:6px;font-size:12px;line-height:1.6;font-weight:var(--w-label)}
+  html.lg-new :is(.mnn-page,.mnn5) .apn-st.mnn-bd i{width:8px;height:8px;opacity:1}
+  html.lg-new :is(.mnn-page,.mnn5) .apn-st.mnn-bd.is-late i{background:var(--st-ruby-dot)}
+  html.lg-new :is(.mnn-page,.mnn5) .apn-st.mnn-bd.is-today i{background:var(--st-amber-dot)}
+  html.lg-new :is(.mnn-page,.mnn5) .apn-st.mnn-bd:is(.is-later,.is-none){background:var(--surface-2);color:var(--color-quiet)}
+  html.lg-new :is(.mnn-page,.mnn5) .apn-st.mnn-bd .mnn-tick{flex:none;width:10px;height:10px}
+  /* THE NOTE'S PANEL, AS DRAWN: no cards — the head (badge, "Only you", a plain headline, the contract a quiet door), the
+     note's words in full, the two days (the due one large in its tone), the black button with one link beside it; then
+     "From the paper" and the Timeline each under a hairline; the passage in the paper's type; the timeline's dots on a line */
+  html.lg-new #ins-panel .mnn5 .jov5{gap:0}
+  html.lg-new #ins-panel .mnn5 .mnn5-top{gap:8px;margin:0 0 10px}
+  html.lg-new #ins-panel .mnn5 .mnn5-top .mnn-only{font-size:12px;color:var(--color-neutral-400)}
+  html.lg-new #ins-panel .mnn5 .jov5-title{font-family:var(--font-body);font-size:17px;line-height:1.3;font-weight:var(--w-label);letter-spacing:0}
+  html.lg-new #ins-panel .mnn5 .jov5-sub{margin:4px 0 0;font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new #ins-panel .mnn5 .mnn5-ct{padding:0;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
+  html.lg-new #ins-panel .mnn5 .mnn5-ct:hover{color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
+  html.lg-new #ins-panel .mnn5 .mnn5-words{margin:10px 0 0;font-size:12.5px;line-height:1.5}
+  html.lg-new #ins-panel .mnn5 .jov5-sec:has(> .mnn5-figs),html.lg-new #ins-panel .mnn5 .mnn5-figs{margin:0}
+  html.lg-new #ins-panel .mnn5 .mnn5-figs{display:flex;align-items:flex-start;gap:24px;margin-top:12px}
+  html.lg-new #ins-panel .mnn5 .mnn5-figs > span{display:flex;flex-direction:column;gap:2px;min-width:0}
+  html.lg-new #ins-panel .mnn5 .mnn5-figs small{font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new #ins-panel .mnn5 .mnn5-figs b{font-family:var(--font-body);font-size:26px;line-height:1.1;font-weight:var(--w-label);color:var(--color-neutral-400);white-space:nowrap}
+  html.lg-new #ins-panel .mnn5 .mnn5-figs b.is-late{color:var(--st-ruby-fg)}
+  html.lg-new #ins-panel .mnn5 .mnn5-figs b.is-today{color:var(--st-amber-fg)}
+  html.lg-new #ins-panel .mnn5 .mnn5-figs b.is-done{color:var(--st-green-fg)}
+  html.lg-new #ins-panel .mnn5 .mnn5-figs .is-w b{font-size:20px;padding-top:4px;color:var(--color-text)}
+  html.lg-new #ins-panel .mnn5 .jov5-act{margin-top:12px;padding:0 0 16px;border-radius:0;background:none;border-bottom:1px solid var(--color-divider)}
+  html.lg-new #ins-panel .mnn5 .jov5-act .jov5-acts{flex-direction:row;align-items:center;gap:10px}
+  html.lg-new #ins-panel .mnn5 .jov5-act .jov5-acts > .jov5-go{width:auto;height:auto;padding:7px 16px;font-size:14px;font-weight:var(--w-label)}
+  html.lg-new #ins-panel .mnn5 .jov5-act .jov5-acts > :not(.jov5-go){font-size:12.5px;font-weight:var(--w-label);text-decoration:underline;text-underline-offset:3px}
+  html.lg-new #ins-panel .mnn5 .jov5-sec[data-jov5-sec]{padding:16px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new #ins-panel .mnn5 .jov5-sec[data-jov5-sec]:last-of-type{border-bottom:0}
+  html.lg-new #ins-panel .mnn5 .jov5-sec[data-jov5-sec] .jov5-label{margin:0 0 8px;font-size:12px;color:var(--color-neutral-400)}
+  html.lg-new #ins-panel .mnn5 .jov5-group.is-form{border-radius:0;background:none;box-shadow:none;overflow:visible}
+  html.lg-new #ins-panel .mnn5 .mnn5-q{margin:0 0 6px;font-family:var(--font-doc);font-size:14px;line-height:1.45;color:var(--color-text);overflow-wrap:anywhere}
+  html.lg-new #ins-panel .mnn5 .mnn5-lnk{font-size:12.5px;font-weight:var(--w-label);text-decoration:underline;text-underline-offset:3px}
+  html.lg-new #ins-panel .mnn5 .mnn5-tl{margin:2px 0 0;padding:0;list-style:none;display:flex;flex-direction:column}
+  html.lg-new #ins-panel .mnn5 .mnn5-tl li{position:relative;display:grid;grid-template-columns:16px minmax(0,1fr);gap:10px;padding-bottom:12px;font-size:13px;line-height:1.35}
+  html.lg-new #ins-panel .mnn5 .mnn5-tl li:last-child{padding-bottom:0}
+  html.lg-new #ins-panel .mnn5 .mnn5-tl li::before{content:"";position:absolute;left:7px;top:14px;bottom:0;width:1px;background:var(--color-neutral-300)}
+  html.lg-new #ins-panel .mnn5 .mnn5-tl li:last-child::before{display:none}
+  html.lg-new #ins-panel .mnn5 .mnn5-tl li > i{width:9px;height:9px;margin:4px 0 0 3px;border:2px solid var(--color-surface);border-radius:50%;box-shadow:0 0 0 1px var(--color-neutral-300);background:var(--color-surface)}
+  html.lg-new #ins-panel .mnn5 .mnn5-tl li.is-acc > i{background:var(--accent-ink)}
+  html.lg-new #ins-panel .mnn5 .mnn5-tl li.is-amber > i{background:var(--st-amber-dot)}
+  html.lg-new #ins-panel .mnn5 .mnn5-tl li.is-green > i{background:var(--st-green-dot)}
+  html.lg-new #ins-panel .mnn5 .mnn5-tl small{font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new #ins-panel .mnn5 .mnn5-tl .is-quiet{color:var(--color-neutral-400)}
   /* REQUESTS, AS DRAWN */
   html.lg-new .ikn-page .ap-card.apn-card{padding-left:40px;padding-right:40px}
   html.lg-new .ikn-q{margin:3px 0 0 8px;font-family:var(--font-doc);font-style:italic;font-size:12.5px}

@@ -215,7 +215,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Check before building:** where the signature-page words come from (the signature block of a signed paper; a person with none shows none, never an invented line); the timeline needs each person's recorded acts (link opened, round sent, signed, asked to approve).
 
 ### P-27 · My notes page, the Legora + Stripe way, on all three tabs
-- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #861, the overnight batch 6)
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #861, the overnight batch 6; rebuilt as drawn on all three tabs 21 Nov 2026, the gaps closed)
 - **What:** build the owner's pick for My notes: the Legora + Stripe way on All, Due and Reviewed. Owner's words: "L+S and park it."
 - **Where it came from:** the page clean-up, day 5. The drawings, on photos of the page as it was that day: https://claude.ai/artifact/A49R2yfsqxSvXJzhhk79qk (choose "The Legora + Stripe way" on each tab).
 - **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
