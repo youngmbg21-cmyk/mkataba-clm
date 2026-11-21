@@ -196,7 +196,7 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
       JSON.stringify(rows.map(p => [p.key, p.title, p.who, p.look, p.h])).slice(0, 900));
     const ans = rows.find(p => p.key === 'answer:MK-0382');
     check('11b their answer reads as drawn on the Board: "Nordvik Logistik\'s answer" · the agreement and its reference, no who column (24 Oct 2026), what Jambo found on the hover',
-      !!ans && ans.title === 'Nordvik Logistik’s answer' && /^MK-0382·Master services agreement · Nordvik Logistik$/.test(ans.deal) && ans.who === '' && /^Answers to their 2 redlines, read against our playbook: /.test(ans.hover), JSON.stringify(ans));
+      !!ans && ans.title === 'Nordvik Logistik’s answer' && /^Master services agreement\s*·\s*MK-0382$/.test(ans.deal) /* RE-POINTED 21 Nov 2026 (P-39, as drawn: the agreement's name · its reference) */ && ans.who === '' && /^Answers to their 2 redlines, read against our playbook: /.test(ans.hover), JSON.stringify(ans));
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): THE ONE COUNT is the rows the Board draws
        (counterNeedsCount; News never counted, f999) — the card's head is held to that one count */
     const heads = await page.evaluate(() => ({ board: (document.querySelector('#hm-agents .hb-cs') || {}).textContent || '', n: counterNeedsCount() }));
