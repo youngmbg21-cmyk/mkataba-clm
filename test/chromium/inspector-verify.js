@@ -288,26 +288,40 @@ const ok = (name, good, detail) => {
        quoted with its §) · Lead · Last; whose move are the tabs Live · Your move · Their move ([data-ngn-tab]); the chosen
        round's panel is THE PRESSED ROUND ALONE (ngnPanelFiveHtml). Each claim asked of its new place. */
     await page.evaluate(() => openNegotiations({ list: true })); await page.waitForTimeout(1200);
-    const ng = await page.evaluate(() => ({
+    /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): the columns are Agreement ·
+       Whose move (a soft badge) · Rounds (a strip) · Open asks (theirs, a count) · Lead · Waiting · the act (no head);
+       the first open ask's words and § ride the agreement cell (.ngn-ql); NO money in a row nor in the panel; the tabs
+       are chips (count in their span); the chosen deal's panel has NO tiles: its name, a whose-move tag, the facts block
+       (.ngn-pfacts: Round, Open asks, the strip) and its act (.jov5-go). */
+    const MONEY = /\b(KES|SEK|EUR|USD)\s?[\d.]+/;
+    const ng = await page.evaluate(MONEY_SRC => { const MONEY = new RegExp(MONEY_SRC); return {
       ins: document.querySelector('[data-ins-page]')?.getAttribute('data-ins'),
       heads: [...document.querySelectorAll('.ngn-table thead th')].map(t => t.textContent.trim()),
-      moves: [...document.querySelectorAll('.ngn-table tr[data-ngn-row] .ngn-mv')].map(x => x.textContent.trim()),
-      open: [...document.querySelectorAll('.ngn-table tr[data-ngn-row] .ngn-open')].map(x => x.textContent.replace(/\s+/g, ' ').trim()),
-      value: [...document.querySelectorAll('.ngn-table tr[data-ngn-row] .cun-sub')].some(x => /\b(KES|SEK|EUR|USD)\s?[\d.]+/.test(x.textContent)),
+      moves: [...document.querySelectorAll('.ngn-table tr[data-ngn-row] .apn-st')].map(x => x.textContent.trim()),
+      asks: [...document.querySelectorAll('.ngn-table tr[data-ngn-row]')].map(r => ({ yours: r.classList.contains('is-yours'),
+        n: ((r.querySelector('td.ngn-n') || {}).textContent || '').trim(), ql: ((r.querySelector('.ngn-ql') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+        wait: ((r.querySelector('.ngn-last') || {}).textContent || '').trim() })),
+      money: [...document.querySelectorAll('.ngn-table tr[data-ngn-row]')].some(x => MONEY.test(x.textContent)),
       tabs: [...document.querySelectorAll('[data-ngn-tab]')].map(x => x.getAttribute('data-ngn-tab') + ':' + ((x.querySelector('span') || {}).textContent || '')),
+      chips: [...document.querySelectorAll('[data-ngn-tab]')].every(x => x.classList.contains('apn-tab') && x.classList.contains('is-chip')),
       views: !!document.querySelector('[data-reg-view]'),
       panel: (() => { const p = document.querySelector('#ins-panel .ngn-panel'); if (!p) return null;
-        return { title: !!p.querySelector('.jov5-title'), glance: [...p.querySelectorAll('.jov5-glance .jov5-g')].map(g => [...g.children].map(x => x.textContent.trim()).join(' ')), go: ((p.querySelector('.jov5-go') || {}).textContent || '').trim() }; })(),
-    }));
-    ok('2a Negotiations draws the list and the panel, with the clauses in play, what is open, the wait and the value', ng.ins === '1'
-      && ng.heads.join('|') === 'Agreement|Round|Whose move|Open asks|Lead|Last' && ng.value, ng.heads.join(' | '));
-    ok('2b the asks say what is open of whom, and the wait says how long', ng.moves.some(m => /^Yours · (\d+ days?|today)$/.test(m)) && ng.moves.some(m => /^Theirs · (\d+ days?|today)$/.test(m))
-      && ng.open.some(o => /^[1-9]\d* · .*§/.test(o)), `${ng.moves.join(' | ')} · ${ng.open.join(' | ')}`);
-    ok('2c only the tabs that have rows are drawn, whose move is a tab row, and no Contracts views', !ng.views
+        return { title: !!p.querySelector('.jov5-title'), tag: ((p.querySelector('.jov5-tag') || {}).textContent || '').trim(),
+          glance: p.querySelectorAll('.jov5-glance').length, facts: ((p.querySelector('.ngn-pfacts') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+          strip: !!p.querySelector('.ngn-pfacts .ngn-rs'), money: MONEY.test(p.textContent),
+          go: ((p.querySelector('.jov5-go') || {}).textContent || '').trim(), link: [...p.querySelectorAll('.jov5-acts [data-ngn-open]')].map(x => x.textContent.trim()) }; })(),
+    }; }, MONEY.source);
+    ok('2a Negotiations draws the list and the panel: Agreement · Whose move · Rounds · Open asks · Lead · Waiting · the act, and no money in a row', ng.ins === '1'
+      && ng.heads.filter(Boolean).join('|') === 'Agreement|Whose move|Rounds|Open asks|Lead|Waiting' && ng.heads[ng.heads.length - 1] === '' && !ng.money, ng.heads.join(' | ') + ` · money ${ng.money}`);
+    ok('2b whose move is a badge, a row of yours counts their open asks and quotes the first with its §, and the wait is said',
+      ng.moves.includes('Your move') && ng.moves.includes('Their move') && ng.moves.every(m => /^(Your move|Their move|Settled)$/.test(m))
+      && ng.asks.some(a => a.yours && /^[1-9]\d*$/.test(a.n) && /§/.test(a.ql)) && ng.asks.some(a => a.wait && a.wait !== '—'), `${ng.moves.join(' | ')} · ${JSON.stringify(ng.asks)}`);
+    ok('2c only the tabs that have rows are drawn, as chips carrying their counts, and no Contracts views', !ng.views && ng.chips
       && ng.tabs.some(t => /^you:[1-9]/.test(t)) && ng.tabs.some(t => /^them:[1-9]/.test(t)) && ng.tabs.every(t => !/:0$/.test(t) || /^live:/.test(t)), ng.tabs.join(' | '));
-    /* was: the panel's four facts (value, lead, their changes, last sent) — the pressed round's five parts: its name, three numbers, one button */
-    ok('2d the panel leads with the chosen round: its name, its three numbers (unsent · asks · round), Open the redlines', !!ng.panel && ng.panel.title && ng.panel.glance.length === 3
-      && /unsent/.test(ng.panel.glance[0]) && /asks? still open/.test(ng.panel.glance[1]) && /round$/.test(ng.panel.glance[2]) && ng.panel.go === 'Open the redlines', JSON.stringify(ng.panel));
+    /* was: the panel's three numbers (unsent · asks · round) — the chosen deal's panel carries no tiles and no money */
+    ok('2d the panel leads with the chosen deal: its name, whose move, Round and Open asks with the rounds strip, its act, no tiles and no money', !!ng.panel && ng.panel.title
+      && /^(Your move|Their move|Settled)$/.test(ng.panel.tag) && ng.panel.glance === 0 && /round/i.test(ng.panel.facts) && /Open asks/.test(ng.panel.facts) && ng.panel.strip && !ng.panel.money
+      && (ng.panel.go === 'Open the redlines' || (/^(Send|Remind)/.test(ng.panel.go) && ng.panel.link.includes('Open the redlines'))), JSON.stringify(ng.panel));
     /* 2e RETIRED 15 Oct 2026 (the overnight work order, step 7). */
     await page.screenshot({ path: path.join(OUT, '2-negotiations-1440.png') });
 

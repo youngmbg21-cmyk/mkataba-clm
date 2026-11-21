@@ -180,7 +180,7 @@ const HANDBOOK_CHAPTERS = [
     shots: [
       { go: [{ place: 'contracts' }, { waitFor: '#ctf-q' }], boxes: [{ sel: '[data-ctf-show="list"]', step: 3 }, { sel: '#ctf-q', step: 4 }], cap: { en: 'List or Wall in the head (3); the box narrows the list (4).', sv: 'Lista eller Vägg i huvudet (3); rutan smalnar av listan (4).' } },
       { go: [{ place: 'contracts' }, { waitFor: '[data-ctf-view]' }], boxes: [{ sel: '[data-ctf-view="end"]', step: 1 }, { sel: '[data-ctf-tab="needs"]', step: 4 }], cap: { en: 'A view across every folder opens exactly the contracts it counts (1); the tabs only offer choices that give rows (4).', sv: 'En vy över alla mappar öppnar precis de avtal den räknar (1); flikarna erbjuder bara val som ger rader (4).' } },
-      { go: [{ place: 'contracts' }, { waitFor: '#ig-dock .rfg-legend' }], boxes: [{ sel: '#ig-dock .jov5-glance', step: 9 }, { sel: '#ig-dock .rfg-legend', step: 9 }], cap: { en: 'Beside the folders, the panel shows them at a glance: the counts, and where the money is, each folder a link (9).', sv: 'Bredvid mapparna visar panelen dem i korthet: siffrorna, och var pengarna finns, varje mapp en länk (9).' } }] },
+      { go: [{ place: 'contracts' }, { waitFor: '#ig-dock .ctf-stand' }], boxes: [{ sel: '#ig-dock .ctf-stand', step: 9 }, { sel: '#ig-dock .ctf-months', step: 9 }], cap: { en: 'Beside the folders, the panel shows where they stand and when they end, with no money (9).', sv: 'Bredvid mapparna visar panelen var de står och när de slutar, utan pengar (9).' } }] },
 
   /* THE FLOW MAP (owner, 31 Oct 2026): every page on the contract's life and how each reaches the next */
   { k: '0.7', part: 'around', round: 1,
