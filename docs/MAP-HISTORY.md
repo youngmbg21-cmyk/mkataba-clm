@@ -39749,3 +39749,18 @@ owner asked for an exact match ("Stop asking me questions. Just choose what you 
   6b/6c (.cun-badge), parties-and-people 8d/8e/8f (the drawn Their party section; Named on read from the row; "Negotiated
   <agreement>"), four-decisions Q3 (the sample book's one person has no timeline, so her signature is put on three of her
   agreements in the page's memory before measuring).
+## HOW THINGS MOVE — THE BOARD NEVER SAYS A NUMBER IT DOES NOT HOLD (21 Nov 2026)
+home-board-verify 1d failed now and then on GitHub: the four figures read 0,0,0,0 (once 29,0,0,0) while hbBookData said
+10,1,1,1. A frame-by-frame probe (every animation frame after sign-in, CPU slowed 1–6×) found three causes, none a missed
+repaint — the Board always settled on the true book:
+(1) state is born holding sampleContracts() (thirty demo contracts). Browser-only mode keeps them; on a server they stayed in
+    memory through sign-in, so a Board painted before the real book loaded counted 29 live contracts that do not exist (the
+    check's own "signed in" wait, state.contracts.length > 0, was satisfied by them). Now boot's server branch empties the book.
+(2) loadBootstrap emptied state.contracts and filled it page by page; a paint between pages counted an empty book (0,0,0,0).
+    Now the pages are gathered aside and put in place in one step.
+(3) the count-up (hbArrivePage, jovCountUp; P-39's "numbers count up") wrote '0', '3', '7'… into the figure's own words for
+    most of a second after the day's first arrival, so the page SAID 0 to anything reading it. Now one helper, jovCountOver,
+    paints the count OVER the number (data-jov-count, its ::after) and the words stay true; hbMorphSameShell ignores the mark,
+    so a redraw writing the same number keeps the count going and a new number stops it.
+Measured at the parent: 5 of 6 runs at 4× and 3 of 3 at 1× had frames where the figures' words differed from the book;
+after: 0 of 18 (six each at 1×, 4× and 6×). Looks the same: the count still climbs from 0, from the number's start edge.
