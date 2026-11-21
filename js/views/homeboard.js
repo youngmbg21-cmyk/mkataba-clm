@@ -77,7 +77,9 @@ const HB_FIGS = [
 ];
 /* FIVE FIGURES, EACH PERSON'S OWN (s.figs): the default five, a press on the
    head's sliders swaps one for another; never more than five */
-const HB_FIGS_MAX = 5, HB_FIGS_DEFAULT = ['live', 'value', 'ending', 'past', 'overdue'];
+/* NEVER MORE THAN FOUR (owner, 20 Nov 2026, P-39: "Keep the filter that adds the different types of KPIs for your book. But
+   never more than 4 cards"); Value under contract is no longer in the usual four (MONEY IS NEVER A BIG PART OF A PAGE) */
+const HB_FIGS_MAX = 4, HB_FIGS_DEFAULT = ['live', 'ending', 'past', 'overdue'];
 let _hbFigPick = false;
 function hbFigsChosen(money){
   const s = hbS(); const keys = Array.isArray(s.figs) && s.figs.length ? s.figs : HB_FIGS_DEFAULT;
@@ -93,8 +95,10 @@ function hbFigToggle(k){
 function hbFigPickHtml(money){
   const s = hbS(); const cur = Array.isArray(s.figs) && s.figs.length ? s.figs : HB_FIGS_DEFAULT, full = cur.length >= HB_FIGS_MAX;
   const rows = HB_FIGS.filter(f => !f.money || money).map(f => { const on = cur.includes(f.k), dead = !on && full;
-    return `<label class="hb-fp-row${dead ? ' is-dead' : ''}"${dead ? ` title="${_hbE(i18t('hb_figs_full'))}"` : ''}><input type="checkbox" data-hb-figkey="${f.k}"${on ? ' checked' : ''}${dead ? ' disabled' : ''}><span>${_hbE(i18t(f.word))}</span></label>`; }).join('');
-  return `<div class="hb-figpick" role="dialog" aria-label="${_hbE(i18t('hb_figs_pick'))}"><div class="hb-dp-head">${_hbE(i18t('hb_figs_head', { n: HB_FIGS_MAX }))}</div>${rows}</div>`;
+    return `<label class="hb-fp-row${dead ? ' is-dead' : ''}"${dead ? ` title="${_hbE(i18t('hb_figs_full'))}"` : ''}><input type="checkbox" data-hb-figkey="${f.k}"${on ? ' checked' : ''}${dead ? ' disabled' : ''}><span>${_hbE(i18t(f.word))}</span>${f.money ? `<em class="hb-fp-money">${_hbE(i18t('hb_figs_money'))}</em>` : ''}</label>`; }).join('');
+  const n = Math.min(cur.length, HB_FIGS_MAX);
+  return `<div class="hb-figpick" role="dialog" aria-label="${_hbE(i18t('hb_figs_pick'))}"><div class="hb-dp-head">${_hbE(i18t('hb_figs_count', { n, max: HB_FIGS_MAX }))}</div>${rows}`
+    + `<div class="hb-fp-foot"><button type="button" class="ui-link" data-hb-figusual>${_hbE(i18t('hb_figs_usual'))}</button><button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-hb-figpick>${_hbE(i18t('act_done'))}</button></div></div>`;
 }
 const HB_FIG_KEYS = HB_FIGS.map(f => f.k);
 /* The panels a question can put on the board. Each is a reading the named
@@ -1537,7 +1541,7 @@ function hbBookHtml(d, moved, since){
   const thens = d.stages.map(s => hbStageThen(d, s.k)), thenTot = thens.every(v => v != null) ? thens.reduce((a, v) => a + v, 0) : 0;
   const sw = s => s.word ? i18t(s.word) : s.k;
   const thenBar = thenTot ? `<div class="hb-stagerow is-then"><span class="hb-sr-l">${_hbE(thenWord)}</span><div class="hb-stagebar-then" role="img" aria-label="${_hbE(d.stages.map((s, i) => sw(s) + ' ' + _hbN(thens[i])).join(', '))}">${d.stages.map((s, i) => thens[i] ? `<span style="flex-grow:${thens[i]};background:${_hbE(s.tone)}" title="${_hbE(sw(s) + ' · ' + thenWord + ': ' + i18tn('home_map_n_contracts', thens[i], { n: _hbN(thens[i]) }))}"></span>` : '').join('')}</div><span class="hb-sr-n">${_hbN(thenTot)}</span></div>` : '';
-  const bar = tot ? `<div class="hb-stagerows${thenTot ? ' is-two' : ''}">${thenBar}<div class="hb-stagerow"><span class="hb-sr-l">${_hbE(i18t('hb_tn_today'))}</span><div class="hb-stagebar">${d.stages.map(s => s.n ? `<button type="button" style="flex-grow:${s.n};background:${_hbE(s.tone)}" data-hb-dig="st:${_hbE(s.k)}" title="${_hbE(sw(s) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}" aria-label="${_hbE(sw(s) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}"></button>` : '').join('')}</div><span class="hb-sr-n">${_hbN(tot)}</span></div></div>
+  const bar = tot ? `<div class="hb-where">${_hbE(i18tn('hb_where_all', tot, { n: _hbN(tot) }))}</div><div class="hb-stagerows${thenTot ? ' is-two' : ''}">${thenBar}<div class="hb-stagerow"><span class="hb-sr-l">${_hbE(i18t('hb_tn_today'))}</span><div class="hb-stagebar">${d.stages.map(s => s.n ? `<button type="button" style="flex-grow:${s.n};background:${_hbE(s.tone)}" data-hb-dig="st:${_hbE(s.k)}" title="${_hbE(sw(s) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}" aria-label="${_hbE(sw(s) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}"></button>` : '').join('')}</div><span class="hb-sr-n">${_hbN(tot)}</span></div></div>
     <div class="hb-stagekey">${d.stages.map((s, i) => `<button type="button" ${s.n ? `data-hb-dig="st:${_hbE(s.k)}"` : 'disabled'}><i style="background:${_hbE(s.tone)}"></i>${_hbE(sw(s))} <b>${_hbN(s.n)}</b>${thenTot ? ` <span class="hb-sk-then">(${_hbN(thens[i])})</span>` : ''}</button>`).join('')}${thenTot ? `<span class="hb-sk-note">${_hbE(i18t('hb_tn_brackets', { m: hbThenWord(true) }))}</span>` : ''}</div>` : '';
   const count = hbCountLabel(d.lens);
   /* the same rule as the head's chip: the default is never read back */
@@ -1548,7 +1552,7 @@ function hbBookHtml(d, moved, since){
      and, while Jambo's work card is closed, the way back to it */
   return `<section class="hb-card hb-book" id="hb-book"><header class="hb-ch"><span class="hb-ct">${_hbE(i18t('hb_book'))}</span><span class="hb-cs">${_hbE(sub)}</span>
     <span class="hb-grow"></span><span class="hb-figpick-w"><button type="button" class="hb-ib hb-figs-set" data-hb-figpick aria-haspopup="dialog" aria-expanded="${_hbFigPick}" title="${_hbE(i18t('hb_figs_pick'))}" aria-label="${_hbE(i18t('hb_figs_pick'))}"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor"><use href="#i-sliders"/></svg></button>${_hbFigPick ? hbFigPickHtml(d.money) : ''}</span></header>
-    <div class="hb-cb"><div class="hb-figs hb-tn is-n${chosen.length}" style="--hb-figs-n:${chosen.length}">${head}${tiles}</div>${bar}${unsided}</div></section>`;
+    <div class="hb-cb"><div class="hb-figs hb-tn is-cards is-n${chosen.length}" style="--hb-figs-n:${chosen.length}">${head}${tiles}</div>${bar}${unsided}</div></section>`;
 }
 
 /* ============================================================
@@ -1642,6 +1646,7 @@ function hbBoardHelloOn(){
   return typeof state !== 'undefined' && !!state && state.view === 'dashboard' && hbBoardInFront()
     && !!(typeof currentUser === 'function' && currentUser());
 }
+const _ndPlain = h => String(h == null ? '' : h).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 function hbBoardHelloHtml(){
   /* not over a contract brought up as a page: the desk shows that contract, not the book */
   if (!hbBoardHelloOn()) return '';
@@ -1685,14 +1690,26 @@ function hbBoardHelloHtml(){
     const ends = (state.contracts || []).filter(c => c && !c.archived && c.status !== 'Declined').map(c => (typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '')
       .map(d => String(d).slice(0, 10)).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= today).sort();
     const days = ends[0] ? Math.round((new Date(ends[0] + 'T12:00:00') - new Date(today + 'T12:00:00')) / 864e5) : null;
-    let rows = []; try { const B = (typeof ndOnBoard === 'function' && D) ? ndOnBoard(D) : null; rows = B ? B.jambo.concat(B.you).slice(0, 3) : []; } catch (_){ rows = []; }
+    /* THE LEGORA + STRIPE WAY (P-39, owner 20 Nov 2026): the panel NEVER REPEATS THE PAGE — no three mixed tiles, not the
+       page's Needs you again. "What waits on you" is a RING (late of all) beside ONE bar (red late · amber your move · violet
+       Jambo) with its counts; then "Jambo prepared, for your yes": each piece, the paper's words where it has them, a ›. */
+    void live; void days;
+    let B = null; try { B = (typeof ndOnBoard === 'function' && D) ? ndOnBoard(D) : null; } catch (_){ B = null; }
+    const all = B ? B.jambo.concat(B.you) : [];
+    const cnt = { late: all.filter(r => r.late).length, you: B ? B.you.filter(r => !r.late).length : 0, jambo: B ? B.jambo.filter(r => !r.late).length : 0 };
+    const tot = cnt.late + cnt.you + cnt.jambo;
+    const R = 2 * Math.PI * 17, frac = tot ? cnt.late / tot : 0;
+    const ringBar = tot ? `<div class="hbw2-wait"><span class="hbw2-ring" role="img" aria-label="${_hbE(i18t('hbw2_ring', { a: cnt.late, b: tot }))}"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="hbw2-rb" cx="20" cy="20" r="17"/><circle class="hbw2-rf" cx="20" cy="20" r="17" style="stroke-dasharray:${R.toFixed(1)};stroke-dashoffset:${(R * (1 - frac)).toFixed(1)}"/></svg><b>${cnt.late}/${tot}</b></span>`
+      + `<span class="hbw2-bw"><span class="hbw2-bar">${['late', 'you', 'jambo'].filter(k => cnt[k]).map(k => `<i class="is-${k}" style="flex:${cnt[k]}"></i>`).join('')}</span>`
+      + `<span class="hbw2-leg">${['late', 'you', 'jambo'].filter(k => cnt[k]).map(k => `<button type="button" data-hbw="${k === 'jambo' ? 'jambo' : k === 'late' ? 'late' : 'all'}"><i class="is-${k}" aria-hidden="true"></i>${_hbE(i18tn('hbw2_leg_' + k, cnt[k], { n: cnt[k] }))}</button>`).join('')}</span></span></div>` : '';
     const parts = r => { try { return (typeof ndParts === 'function') ? ndParts(r) : {}; } catch (_){ return {}; } };
-    const needRows = rows.map(r => { const P = parts(r); return { mark: r.late ? 'clock' : 'alert', tone: r.late ? 'amber' : (r.g === 'jambo' ? 'dark' : 'amber'), t: P.title || P.name || '', s: [P.deal, P.when].filter(Boolean).join(' \u00b7 '), attr: `data-hbw-row="${_hbE(r.key)}"` }; }).filter(x => x.t);
-    return `<div class="jl-words is-ov hb-jb-hello is-welcome is-five">${jamboOverviewHtml({ before: brain, title: say, sub,
-      glance: [{ n, l: i18t('jov5_on_you'), warn: n > 0, attr: n ? 'data-hbw="all"' : '' }, { n: live, l: i18t('jov5_hb_live'), attr: live ? 'data-hbw="live"' : '' },
-        { n: days == null ? '\u2014' : days, l: i18t('jov5_hb_days'), attr: days != null ? 'data-hbw="next"' : '' }],
-      groups: needRows.length ? [{ label: i18t('jov5_hb_needs'), rows: needRows }] : [],
-      act: n ? { label: i18t(late ? 'hbw_start_late' : 'hbw_show_needs'), attr: `data-hbw="${late ? 'late' : 'all'}"` } : null,
+    const quote = r => { try { return typeof cn2QuoteHtml === 'function' ? String(cn2QuoteHtml(r)).replace(/<[^>]*>/g, '').replace(/^ · /, '').trim() : ''; } catch (_){ return ''; } };
+    const prep = (B ? B.jambo : []).slice(0, 5).map(r => { const P = parts(r); const q = quote(r);
+      return { mark: '', markText: '', tone: 'violet', t: P.title || P.name || '', s: q || [P.name || P.deal, _ndPlain(P.ref)].filter(Boolean).join(' \u00b7 '), attr: `data-hbw-row="${_hbE(r.key)}"` }; }).filter(x => x.t);
+    return `<div class="jl-words is-ov hb-jb-hello is-welcome is-five is-ls">${jamboOverviewHtml({ before: brain, title: say, sub,
+      mid: ringBar, midLabel: tot ? i18t('hbw2_wait') : '',
+      groups: prep.length ? [{ label: i18t('hbw2_prepared'), rows: prep }] : [],
+      act: null,
       asks, src: i18t('jov5_hb_src') }, 'hb')}</div>`;
   }
   const before = `${brain}<h3 class="hbw-say">${_hbE(say)}</h3>${sub ? `<p class="hbw-sub">${_hbE(sub)}</p>` : ''}${trio}${acts}`;
@@ -6258,66 +6275,79 @@ function hbRdnRead(){
   const quarters = [...qs.values()].sort((a, b) => a.k.localeCompare(b.k)).slice(0, 6);
   return { L, see, money, total, sig, sigV, ending, autoEnd, streams, top, share, nego, ours, late, week, pay, quarters, exp };
 }
+/* READ DOWN, THE LEGORA + STRIPE WAY (P-41, owner 20 Nov 2026: "L+S and merge it"): the five sentences are COUNTED, NEVER
+   MONEY (MONEY IS NEVER A BIG PART OF A PAGE); each a calm row with a small graphic of its own count, where it was read and
+   its link. The party named is the one holding the most agreements. */
 function hbRdnSentences(R){
-  const m = R.money, out = [];
-  out.push({ t: R.total ? i18tn('rd_s_paper', R.L.length, { v: m(R.total), n: R.L.length, s: m(R.sigV) || i18t('rd_none_v') }) : i18tn('rd_s_paper_nv', R.L.length, { n: R.L.length, s: R.sig.length }),
-    src: i18t('rd_src_list'), door: i18t('rd_door_list'), go: 'contracts' });
+  const out = [];
+  out.push({ k: 'paper', t: i18tn('rd_s_paper_nv', R.L.length, { n: R.L.length, s: R.sig.length }), src: i18t('rd_src_list'), door: i18t('rd_door_list'), go: 'contracts' });
   const f = R.ending[0];
-  out.push({ t: f ? i18tn('rd_s_end', R.ending.length, { n: R.ending.length, name: f.name || '', d: hbRdnDay(R.exp(f)), v: m(hbRdnVal(f)) ? i18t('rd_worth', { v: m(hbRdnVal(f)) }) : '', a: R.autoEnd.length }) : i18t('rd_s_end_none'),
+  out.push({ k: 'end', t: f ? i18tn('rd_s_end', R.ending.length, { n: R.ending.length, name: f.name || '', d: hbRdnDay(R.exp(f)), v: '', a: R.autoEnd.length }) : i18t('rd_s_end_none'),
     src: i18t('rd_src_term'), door: i18t('rd_door_cal'), go: 'calendar' });
-  const s = R.streams;
-  out.push({ t: (s.length ? s.slice(0, 2).map(x => m(x.v) ? i18tn('rd_s_stream', x.cs.length, { s: x.n, v: m(x.v), n: x.cs.length }) : i18tn('rd_s_stream_nv', x.cs.length, { s: x.n, n: x.cs.length })).join('; ') + '. ' : '')
-      + (R.top && R.share >= 50 ? i18t('rd_s_party_most', { p: R.top.p, pc: R.share }) : R.top ? i18t('rd_s_party', { p: R.top.p, pc: R.share }) : ''),
-    src: i18t('rd_src_streams'), door: R.top ? i18t('rd_door_shelf', { p: R.top.p }) : i18t('rd_door_explorer'), go: 'explorer' });
-  out.push({ t: R.nego.length ? i18tn('rd_s_nego', R.nego.length, { n: R.nego.length, k: R.ours.length }) : i18t('rd_s_nego_none'),
-    src: i18t('rd_src_nego'), door: i18t('rd_door_nego'), go: 'negotiations' });
-  out.push({ t: i18t('rd_s_duty', { late: i18tn('rd_late', R.late, { n: R.late }), week: i18tn('rd_week', R.week, { n: R.week }) }) + ' ' + (R.pay ? i18tn('rd_pay', R.pay, { n: R.pay }) : i18t('rd_pay_none')),
+  const s = R.streams.slice().sort((x, y) => y.cs.length - x.cs.length);
+  const byN = new Map(); R.L.forEach(c => { const p = String(c.counterparty || '').trim(); if (p) byN.set(p, (byN.get(p) || 0) + 1); });
+  const most = [...byN.entries()].sort((x, y) => y[1] - x[1])[0] || null;
+  out.push({ k: 'streams', t: (s.length ? s.slice(0, 2).map(x => i18tn('rd_s_stream_nv', x.cs.length, { s: x.n, n: x.cs.length })).join('; ') + '. ' : '') + (most ? i18t('rd_s_party_n', { p: most[0] }) : ''),
+    src: i18t('rd_src_streams'), door: most ? i18t('rd_door_shelf', { p: most[0] }) : i18t('rd_door_explorer'), go: 'explorer' });
+  out.push({ k: 'nego', t: R.nego.length ? i18tn('rd_s_nego', R.nego.length, { n: R.nego.length, k: R.ours.length }) : i18t('rd_s_nego_none'), src: i18t('rd_src_nego'), door: i18t('rd_door_nego'), go: 'negotiations' });
+  out.push({ k: 'duty', t: i18t('rd_s_duty', { late: i18tn('rd_late', R.late, { n: R.late }), week: i18tn('rd_week', R.week, { n: R.week }) }) + ' ' + (R.pay ? i18tn('rd_pay', R.pay, { n: R.pay }) : i18t('rd_pay_none')),
     src: i18t('rd_src_oblig'), door: i18t('rd_door_oblig'), go: 'oblig' });
   return out;
+}
+/* each sentence's small graphic, drawn from its own count (never a guess) */
+function hbRdnPic(k, R){
+  const C = 2 * Math.PI * 9;
+  if (k === 'paper'){ const n = R.L.length || 1, f = R.sig.length / n;
+    return `<svg viewBox="0 0 24 24" class="rd-pic"><circle cx="12" cy="12" r="9" class="rd-pic-b"/><circle cx="12" cy="12" r="9" class="rd-pic-g" style="stroke-dasharray:${C.toFixed(1)};stroke-dashoffset:${(C * (1 - f)).toFixed(1)}"/></svg>`; }
+  if (k === 'end'){ const n = Math.min(R.ending.length, 6); return `<span class="rd-pic rd-pic-dots">${Array.from({ length: n }, (_, i) => `<i class="${i === 0 ? 'is-first' : ''}"></i>`).join('') || '<i class="is-none"></i>'}</span>`; }
+  if (k === 'streams'){ const s = R.streams.slice().sort((x, y) => y.cs.length - x.cs.length).slice(0, 2), m = Math.max(1, ...s.map(x => x.cs.length));
+    return `<span class="rd-pic rd-pic-bars">${s.map((x, i) => `<i class="is-${i}" style="width:${Math.max(18, Math.round(100 * x.cs.length / m))}%"></i>`).join('')}</span>`; }
+  if (k === 'nego') return R.nego.length ? `<span class="rd-pic rd-pic-n">${R.nego.length}</span>` : `<span class="rd-pic rd-pic-n is-none">0</span>`;
+  return `<span class="rd-pic rd-pic-n${R.late ? ' is-late' : ' is-none'}">${R.late}</span>`;
 }
 function hbRdnVal(c){ let h = null; try { h = typeof fxCounted === 'function' ? fxCounted(c) : null; } catch (_){ h = null; } return h && !h.missing && !h.private ? (Number(h.v) || 0) : 0; }
 function hbRdnDay(iso){ try { return new Date(iso + 'T00:00:00').toLocaleDateString(langLocale(), { day: 'numeric', month: 'long', year: 'numeric' }); } catch (_){ return iso; } }
 function hbRdnHtml(){
   const R = hbRdnRead(), E = _hbE, S = hbRdnSentences(R);
   let when = ''; try { when = new Date().toLocaleDateString(langLocale(), { weekday: 'long', day: 'numeric', month: 'long' }); } catch (_){ when = ''; }
-  const rows = S.map((x, i) => `<div class="rd-row" data-rd-row="${i}"><p class="rd-t">${E(x.t)}</p><div class="rd-src"><b>${E(x.src)}</b><button type="button" class="rd-go" data-rd-go="${E(x.go)}">${E(x.door)}</button></div></div>`).join('');
-  const max = Math.max(1, ...R.quarters.map(q => q.v || q.n));
+  const rows = S.map((x, i) => `<div class="rd-row" data-rd-row="${i}"><span class="rd-pic-w" aria-hidden="true">${hbRdnPic(x.k, R)}</span><p class="rd-t">${E(x.t)}</p><div class="rd-src"><b>${E(x.src)}</b><button type="button" class="rd-go" data-rd-go="${E(x.go)}">${E(x.door)}</button></div></div>`).join('');
+  /* ENDING, BY QUARTER · AGREEMENTS (P-41; was "value on paper"): one bar per quarter by count, the nearest red */
+  const max = Math.max(1, ...R.quarters.map(q => q.n));
   const qName = q => { try { const a = new Date(Number(q.y), q.q * 3, 1), b = new Date(Number(q.y), q.q * 3 + 2, 1); return a.toLocaleDateString(langLocale(), { month: 'short' }) + '–' + b.toLocaleDateString(langLocale(), { month: 'short' }) + ' ' + q.y; } catch (_){ return q.k; } };
-  const bars = R.quarters.map(q => `<div class="rd-q"><span class="rd-q-k">${E(qName(q))}</span><span class="rd-q-bar"><i class="${q.signed ? 'is-signed' : ''}" style="width:${Math.max(2, Math.round(100 * (q.v || q.n) / max))}%"></i></span><span class="rd-q-v">${E([R.money(q.v), String(q.n)].filter(Boolean).join(' · '))}</span></div>`).join('');
+  const bars = R.quarters.map((q, i) => `<div class="rd-q"><span class="rd-q-k">${E(qName(q))}</span><span class="rd-q-bar"><i class="${i === 0 ? 'is-near' : 'is-signed'}" style="width:${Math.max(2, Math.round(100 * q.n / max))}%"></i></span><span class="rd-q-v">${E(String(q.n))}</span></div>`).join('');
   const needs = typeof counterNeedsCount === 'function' ? counterNeedsCount() : 0;
   const foot = [['needs', i18t('rd_f_needs', { n: needs })], ['contracts', i18t('rd_f_contracts', { n: R.L.length })], ['calendar', i18t('rd_f_calendar')], ['explorer', i18t('rd_f_explorer')], ['negotiations', i18t('rd_f_nego')], ['activity', i18t('rd_f_history')]]
     .map(([k, w]) => `<button type="button" class="rd-go" data-rd-go="${E(k)}">${E(w)}</button>`).join('');
-  return `<div class="rd-page apn-card" id="rd-page"><div class="rd-head"><button type="button" class="ctf-back" data-rd-back>‹ ${E(i18t('hb_face_board'))}</button><span class="rd-eyebrow">${E(i18t('rd_eyebrow', { when }))}</span></div>
+  return `<div class="rd-page apn-card is-ls" id="rd-page"><div class="rd-head"><button type="button" class="ctf-back" data-rd-back>‹ ${E(i18t('hb_face_board'))}</button><span class="rd-eyebrow">${E(i18t('rd_eyebrow', { when }))}</span><span class="hb-grow"></span><button type="button" class="rd-print" data-rd-print>${E(i18t('rd_print'))}</button></div>
     <h1 class="rd-h">${E(i18t('rd_title'))}</h1><div class="rd-rows">${rows}</div>
-    ${bars ? `<div class="rd-cap">${E(i18t(R.see ? 'rd_q_cap' : 'rd_q_cap_n'))}</div><div class="rd-qs">${bars}</div>` : ''}
-    <div class="rd-foot"><span class="rd-foot-l">${foot}</span><button type="button" class="rd-print" data-rd-print>${E(i18t('rd_print'))}</button></div></div>`;
+    ${bars ? `<div class="rd-cap">${E(i18t('rd_q_cap_n'))}</div><div class="rd-qs">${bars}</div>` : ''}
+    <div class="rd-foot"><span class="rd-foot-l">${foot}</span></div></div>`;
 }
 /* THE FIVE PARTS ON READ DOWN (owner picked "Five Parts" by name, 18 Nov 2026): the book in three numbers (on paper,
    ending within a year, your move), the three things worth a closer look as rows, each by a door the page already
    has (data-rd-show / data-rd-go, the renewal's own needsYouGo), and the first renewal decision as the one black
    button. The same reading as the page (hbRdnRead); no AI. The new look only. */
 function hbRdnPanelFive(R){
-  const m = R.money, f = R.ending[0], code = typeof fxHomeCode === 'function' ? fxHomeCode() : '';
+  /* THE LEGORA + STRIPE WAY (P-41): NO MONEY, no tiles. "The first decision" (a red "in N days", what, the act, black),
+     then "Look closer", each row by a door the page already has. The same reading as the page; no AI. */
+  const f = R.ending[0];
   const day = f ? hbRdnDay(R.exp(f)) : '';
-  const paper = m(R.total);
-  const glance = [paper ? { n: code ? paper.replace(code, '').trim() : paper, l: i18t('jov5_rd_g_paper', { cur: code }).trim(), attr: 'data-rd-go="contracts"' }
-      : { n: R.L.length, l: i18t('jov5_rd_g_agreements'), attr: 'data-rd-go="contracts"' },
-    { n: R.ending.length, l: i18t('jov5_rd_g_ending'), attr: 'data-rd-go="calendar"' },
-    { n: R.ours.length, l: i18t('jov5_rd_g_move'), warn: R.ours.length > 0, attr: 'data-rd-go="negotiations"' }];
+  const today = typeof todayISO === 'function' ? todayISO() : '';
+  const days = f && today ? Math.round((new Date(R.exp(f) + 'T12:00:00') - new Date(today + 'T12:00:00')) / 864e5) : null;
   const rows = [];
-  if (f) rows.push({ mark: 'calendar', tone: 'amber', t: i18t('jov5_rd_first', { name: f.name || '' }), s: [day, m(hbRdnVal(f)), i18t('jov5_rd_renew_q')].filter(Boolean).join(' · '),
-    run: () => { _hbRdn = false; if (typeof needsYouGo === 'function') needsYouGo('renewal', f.id); } });
-  if (R.top) rows.push({ mark: 'users', t: i18t('rd_p_conc_v', { p: R.top.p, pc: R.share }), s: i18t('jov5_rd_party_s'),
-    attr: `data-rd-show="${_hbE(R.top.cs.map(c => c.id).join(','))}" data-rd-label="${_hbE(R.top.p)}"` });
-  rows.push({ mark: 'file', t: i18tn('rd_p_nego', R.nego.length, { n: R.nego.length }),
-    s: R.ours.length ? i18tn('jov5_rd_nego_s', R.ours.length, { n: R.ours.length }) : i18t('jov5_rd_nego_none'), attr: 'data-rd-go="negotiations"' });
-  if (R.late) rows.push({ mark: 'alert', tone: 'amber', t: i18tn('rd_late', R.late, { n: R.late }), s: i18t('jov5_rd_late_s'), attr: 'data-rd-go="oblig"' });
-  const act = f ? { say: i18t('jov5_rd_act', { name: f.name || '', day }), label: i18t('jov5_rd_act_b', { name: f.name || '' }),
+  if (f) rows.push({ mark: 'calendar', tone: 'green', t: i18t('rd_p_first_ends', { name: f.name || '' }), s: day, attr: 'data-rd-go="calendar"' });
+  const byN = new Map(); R.L.forEach(c => { const p = String(c.counterparty || '').trim(); if (!p) return; const e = byN.get(p) || { p, cs: [] }; e.cs.push(c); byN.set(p, e); });
+  const most = [...byN.values()].sort((x, y) => y.cs.length - x.cs.length)[0] || null;
+  if (most) rows.push({ mark: 'users', t: i18t('rd_p_most', { p: most.p }), s: i18t('rd_p_open_them'), attr: `data-rd-show="${_hbE(most.cs.map(c => c.id).join(','))}" data-rd-label="${_hbE(most.p)}"` });
+  if (R.late) rows.push({ mark: 'alert', tone: 'red', t: i18tn('rd_late', R.late, { n: R.late }), s: i18t('jov5_rd_late_s'), attr: 'data-rd-go="oblig"' });
+  else rows.push({ mark: 'file', t: i18tn('rd_p_nego', R.nego.length, { n: R.nego.length }), s: R.ours.length ? i18tn('jov5_rd_nego_s', R.ours.length, { n: R.ours.length }) : i18t('jov5_rd_nego_none'), attr: 'data-rd-go="negotiations"' });
+  const act = f ? { say: days != null ? i18tn('rd_p_decide_in', days, { n: days, name: f.name || '' }) : i18t('rd_p_decide_say', { name: f.name || '' }), label: i18t('jov5_rd_act_b', { name: f.name || '' }),
       run: () => { _hbRdn = false; if (typeof needsYouGo === 'function') needsYouGo('renewal', f.id); } }
     : { say: i18t('jov5_rd_act_none'), label: i18t('jov5_rd_act_cal'), attr: 'data-rd-go="calendar"' };
   let time = ''; try { time = new Date().toLocaleTimeString(langLocale(), { hour: '2-digit', minute: '2-digit' }); } catch (_){ time = ''; }
-  return { eyebrow: i18t('jov5_rd_eb'), title: i18t('jov5_rd_t'), sub: i18t('jov5_rd_s'), glance,
-    groups: [{ label: i18t('jov5_rd_closer'), rows }], act, src: i18t('jov5_rd_src', { time }) };
+  return { eyebrow: i18t('jov5_rd_eb'), title: i18t('jov5_rd_t'), sub: i18t('rd_p_sub_now', { time }),
+    act, actFirst: true,
+    groups: [{ label: i18t('jov5_rd_closer'), rows }] };
 }
 /* the read down's panel: what was read, the next questions (the cost said), Jambo's line on the book */
 function hbRdnPanelHtml(){
@@ -10999,6 +11029,7 @@ function hbOnClick(e){
   if ((el = on('[data-hb-ai]'))){ hbAskInPanel(el.getAttribute('data-hb-ai'), el.getAttribute('data-hb-ai-id')); return; }
   if ((el = on('[data-hb-ser]'))){ hbSerToggle(el.getAttribute('data-hb-ser-key'), el.getAttribute('data-hb-ser')); hbPaintBoard(); return; }
   if (on('[data-hb-figpick]')){ _hbFigPick = !_hbFigPick; hbPaintBoard(); return; }
+  if (on('[data-hb-figusual]')){ const s = hbS(); s.figs = HB_FIGS_DEFAULT.slice(); hbSave(); hbPaintBoard(); return; }
   if ((el = on('[data-hb-figkey]'))){ if (!el.disabled){ hbFigToggle(el.getAttribute('data-hb-figkey')); hbPaintBoard(); } return; }
   /* THE AGENTS HAVE ONE PLACE (12 Oct 2026): the card's "The agents" opens
      Jambo's agents behind Insights — his house, his jobs and his points —

@@ -341,7 +341,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — the panel not changing when a paper is chosen; an empty value shown as "0"; From scratch's different plain panel; the sentence box left on Their paper (it may stay only if it reads their file's words).
 
 ### P-37 · The nav panel slides in from the left
-- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #856, the overnight batch 1)
 - **What:** the top-left nav button (`#dk-nav`, `lpWire` → `lpToggle`) opens the nav as a panel that slides in from the left over the page, and slides back after a press. Owner's words: "a nav panel coming from the left of the screen with the same style in the current nav panel but from the left it slides over the screen then goes back after the press"; then "park it".
 - **Where it came from:** drawn on today's photo of the Board: https://claude.ai/artifact/4Fcey7Vekvbd7YTkBkJyYk (press the nav button, or "Play"). The owner's answers (20 Nov 2026): draw it first; "Waiting on you" becomes each page's own count; only the nav button opens it.
 - **Notes:** what the drawing holds:
@@ -353,7 +353,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Before building:** the six questions (THE ONE DOOR: improve `#dk-nav`'s own door; nothing else opens it); the Handbook chapter for the nav, `FLOW_MAP`, and the phone (the phone keeps its own screens) checked in the same change.
 
 ### P-38 · The alerts panel: Alerts and Activity the Legora + Stripe way, Notes the Stripe way (one screen with Redlines' notes); the Guide tab goes
-- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #856, the overnight batch 1)
 - **What:** build the owner's pick for the panel the bell opens: THE LEGORA + STRIPE WAY on Alerts and Activity, THE STRIPE WAY on Notes (and a discussion opened); the Guide tab is deleted. Owner's words: "delete the guide since we have the nav panel but keep the side of the panel"; "this should also be the same screen design for when you entering your notes before filing a redline. They should be one and the same… i am choosing the stripe way. Park and merge." — then corrected: "What i mean to chose is L+S for both alerts and activity and stripe way for notes".
 - **Where it came from:** the page clean-up. The drawings: https://claude.ai/artifact/T8iYJNDW2KLKtwKx1gup8S (choose "The Legora + Stripe way" on Alerts and Activity, "The Stripe way" on Notes and on "Notes · a discussion opened"). Photographed from the running app; Activity and Notes are drawn with sample events and notes (marked "sample").
 - **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):

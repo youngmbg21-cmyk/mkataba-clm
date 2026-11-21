@@ -183,7 +183,8 @@ test('f977 fix 7 · the Board counts rows in the new look, the number Home says'
   const cn = read('js/views/counter.js');
   assert.match(cn, /const ndRowsN = L => \(typeof newLookOn === 'function' && newLookOn\(\)\) \? \(L \|\| \[\]\)\.length : ndThings\(L\);/);
   assert.match(cn, /function ndOnBoard\(D\)\{[^\n]*n: ndRowsN\(D\.jambo\) \+ ndRowsN\(you\)/);
-  assert.match(cn, /\$\{tab\('you', ndRowsN\(B\.you\)\)\}\$\{tab\('jambo', ndRowsN\(B\.jambo\)\)\}/);
+  /* RE-POINTED (P-39, owner's pick 20 Nov 2026: chips All · Late · Your move · Jambo): Late has its own chip, so Your move counts its rows that are not late */
+  assert.match(cn, /\$\{tab\('late', lateN\)\}\$\{tab\('you', ndRowsN\(B\.you\.filter\(r => !r\.late\)\)\)\}\$\{tab\('jambo', ndRowsN\(B\.jambo\)\)\}/);
 });
 test('f977 fix 8 · one column per question, its name and ⋯; the foot says only the count', () => {
   const ac = read('js/views/askcolumn.js');

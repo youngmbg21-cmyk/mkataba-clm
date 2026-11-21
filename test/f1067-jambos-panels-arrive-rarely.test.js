@@ -58,11 +58,13 @@ test('f1067 (2) the first paint plays and marks; a redraw later does not', () =>
   assert.ok(!b.classList.contains('jov-arrive'), 'a redraw five minutes later is still');
 });
 
-test('f1067 (3) a still panel painted first marks its page; a tab change later does not play', () => {
+test('f1067 (3) a panel painted first marks its page; a tab change later does not play', () => {
   const W = world(); let now = new Date(2026, 10, 16, 9, 0).getTime(); W.Date.now = () => now;
   W.state.view = 'dashboard'; W.hbFace = () => 'explorer';
-  const still = panel(W, 'ig', 'ig-dock'); W.jovArriveSweep([still]);
-  assert.ok(!still.classList.contains('jov-arrive'), 'Explorer\'s overview does not move');
+  /* RE-POINTED (P-40, owner's pick 20 Nov 2026: Explorer's panel "arrives with motion", its ring sweeping): the
+     overview now plays on its first visit of the day, and still marks the page so a tab pressed after stays still */
+  const first = panel(W, 'ig', 'ig-dock'); W.jovArriveSweep([first]);
+  assert.ok(first.classList.contains('jov-arrive'), 'Explorer\'s overview arrives, once');
   now += 60000; const day = panel(W, 'ig-day', 'ig-dock'); W.jovArriveSweep([day]);
   assert.ok(!day.classList.contains('jov-arrive'), 'its Your day tab, pressed after, does not move either');
 });

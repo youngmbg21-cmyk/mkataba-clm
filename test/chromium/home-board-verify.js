@@ -2,7 +2,7 @@
  * 3 Oct 2026; f447 pins the readings and the server's walls).
  *
  * WHAT THIS DRIVES, where the user looks:
- *   1. Home lands on the board, light, five figures that are the book's own,
+ *   1. Home lands on the board, light, four figure cards that are the book's own, (RE-POINTED P-39, 20 Nov 2026)
  *      and the map is NOT built while the board covers it;
  *   2. a figure is a door with a trail, and the trail's first crumb goes back;
  *   3. asking changes the lens and puts panels on the board, and side by side
@@ -91,8 +91,9 @@ const CONTRACTS = [
 
     /* ===== 1. THE LANDING ===== */
     /* RE-POINTED 11 Oct 2026 (owner: "only 5 cards", each person may swap them) */
-    const landed = await until(page, () => document.querySelectorAll('#hb-board .hb-fig').length === 5);
-    ok('1a Home lands on the board with five figures', landed);
+    /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */
+    const landed = await until(page, () => document.querySelectorAll('#hb-board .hb-fig').length === 4);
+    ok('1a Home lands on the board with four figure cards', landed);
     const L = await page.evaluate(() => ({ face: typeof hbS === 'function' && hbS().face,
       dark: !!document.querySelector('#ig-page.hb-dark'), light: !!document.querySelector('#ig-page.hb-light'),
       order: [...document.querySelectorAll('[data-hb-screen]')].map(b => b.getAttribute('data-hb-screen')).join(','), up: typeof igMapUp === 'function' ? igMapUp() : null,
@@ -104,9 +105,11 @@ const CONTRACTS = [
        the Board is always the light screen, Explorer alone the dark one. */
     ok('1b the board side, on the light screen, with no Light | Dark switch', L.face === 'board' && L.light && !L.dark && L.order === '', JSON.stringify([L.face, L.light, L.order]));
     ok('1c the map is not built while the board covers it', L.up === false);
+    /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */
+    /* the usual four are live · ending · past · overdue, in that order (HB_FIGS_DEFAULT) */
     ok('1d live, ending, past and overdue print the book\'s own counts',
-      !!L.want && L.nums[0] === String(L.want.live.n) && L.nums[2] === String(L.want.ending.n)
-        && L.nums[3] === String(L.want.past.n) && L.nums[4] === String(L.want.overdue.n), JSON.stringify(L.nums));
+      !!L.want && L.nums.length === 4 && L.nums[0] === String(L.want.live.n) && L.nums[1] === String(L.want.ending.n)
+        && L.nums[2] === String(L.want.past.n) && L.nums[3] === String(L.want.overdue.n), JSON.stringify(L.nums));
     await page.screenshot({ path: path.join(OUT, '1-landing.png') });
 
     /* ===== 2. A FIGURE IS A DOOR WITH A TRAIL ===== */

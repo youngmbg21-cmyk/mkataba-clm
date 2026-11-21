@@ -48,19 +48,21 @@ test('f1094 (1) the builder quotes a row in the paper\'s serif', () => {
   assert.match(read('index.html'), /\.jov5-row\.is-quote \.jov5-rt b\{font-family:var\(--font-doc\)/, 'in the paper\'s own serif token');
 });
 
-test('f1094 (2a) Read down: the book in three numbers, three things to look at, the first renewal the black button', () => {
+/* RE-POINTED 21 Nov 2026 (P-41, owner: "L+S and merge it"; MONEY IS NEVER A BIG PART OF A PAGE): no tiles, no money;
+   the first decision is the black button, then Look closer — the first to end, the party with the most agreements, the
+   late duties (or the negotiations when nothing is late) */
+test('f1094 (2a) Read down: the first decision the black button, then three things to look at, no money', () => {
   const W = world();
-  const R = { L: [{ id: 'a' }, { id: 'b' }], money: v => v ? 'KES 1.08B' : '', total: 1, sig: [], ending: [{ id: 'WS', name: 'Warehousing Services' }],
+  const R = { L: [{ id: 'a', counterparty: 'Safaricom' }, { id: 'b', counterparty: 'Safaricom' }], money: v => v ? 'KES 1.08B' : '', total: 1, sig: [], ending: [{ id: 'WS', name: 'Warehousing Services' }],
     exp: () => '2026-12-31', top: { p: 'Safaricom', cs: [{ id: 'S1' }] }, share: 22, nego: [{}, {}], ours: [{}], late: 1 };
   const f = W.hbRdnPanelFive(R);
-  assert.equal(f.glance.length, 3, 'three numbers');
-  assert.equal(f.glance[2].n, 1, 'your move counted from the reading');
+  assert.ok(!f.glance || !f.glance.length, 'no tiles');
   const d = draw(W, f, 'f1094rd');
   assert.ok(d.querySelector('.jov5-title'), 'a serif headline');
-  assert.equal(d.querySelectorAll('.jov5-row').length, 4, 'first to end, the largest party, negotiations, late duties');
-  assert.ok(d.querySelector('[data-rd-show="S1"]'), 'the party opens its agreements by the page\'s own press');
-  assert.ok(d.querySelector('[data-rd-go="negotiations"]'), 'negotiations by the page\'s own press');
+  assert.equal(d.querySelectorAll('.jov5-row').length, 3, 'first to end, the party with the most, late duties');
+  assert.ok(d.querySelector('[data-rd-show="a,b"]'), 'the party opens its agreements by the page\'s own press');
   assert.ok(d.querySelector('[data-rd-go="oblig"]'), 'the late duties by the page\'s own press');
+  assert.doesNotMatch(d.textContent, /KES/, 'no money in the panel');
   assert.match(txt(d.querySelector('.jov5-go')), /Warehousing Services/, 'the first renewal is the black button');
   const none = W.hbRdnPanelFive(Object.assign({}, R, { ending: [], late: 0 }));
   assert.ok(none.act && none.act.attr === 'data-rd-go="calendar"', 'nothing ending: the calendar, never an empty panel');

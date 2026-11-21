@@ -1588,7 +1588,7 @@ function jov5ContractRow(c, v, extra){
   return Object.assign({ mark: 'mkTick', tone: 'green', t: (c && (c.name || c.id)) || '', s: (c && c.counterparty) || '', v: v || '', run: () => jov5Open(c.id) }, extra || {});
 }
 /* the five parts, drawn (jamboOverviewHtml hands over its slot's run list, so presses resolve as every other) */
-var JOV5_TONES = { amber: 1, green: 1, dark: 1, red: 1 };
+var JOV5_TONES = { amber: 1, green: 1, dark: 1, red: 1, violet: 1 };
 /* THE FIVE PARTS' HEAD AND MARK, for a face that draws its own body (a contract's faces, round 3b): the same eyebrow,
    serif headline and sentence, the same round mark in its tone, so a contract's panel and a page's read alike */
 function jov5HeadHtml(o){
@@ -1910,7 +1910,7 @@ Object.assign(window, { jamboDraft, jamboDraftSel, jamboDraftSet, jamboDraftClea
    the page is marked, a still one only marks it — so a later tab change, redraw or Back never plays. A reload and a
    Back are quiet (`jovArriveQuiet`). The motion itself is transform and opacity only (HOW THINGS MOVE). The panels that
    move are the drawing's fourteen: by their slot (JOV_MOVE_SLOTS) and the contract's card and checklist. */
-var JOV_MOVE_SLOTS = new Set(['hb', 'cal', 'ig-day', 'jl:negotiations', 'jl:approvals', 'jl:obligations', 'jl:migration', 'cun', 'jhn', 'pdob', 'dl2']);
+var JOV_MOVE_SLOTS = new Set(['hb', 'ig', 'rdn', 'cal', 'ig-day', 'jl:negotiations', 'jl:approvals', 'jl:obligations', 'jl:migration', 'cun', 'jhn', 'pdob', 'dl2']);
 var JOV_ARRIVE_GAP_MS = 5 * 3600 * 1000;
 var JOV_ARRIVE_KEY = 'hati.v1.jovArrive';
 var JOV_ARRIVE_SEL = '.jov5, .pd2-card.is-five, .pd2-sg.is-five';

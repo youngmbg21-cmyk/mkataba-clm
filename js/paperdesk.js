@@ -3631,7 +3631,8 @@ function pdHeadHtml(brain){
      the tab is the map's own (igFindingsShows), so the paper's tabs never meet it */
   const fd = !face && !pdOnPaper() && typeof igFindingsTabOn === 'function' && igFindingsTabOn();
   /* THE GUIDE (owner picked "On this view", 19 Oct 2026): beside Findings, what the view in front can do */
-  const gd = !face && !pdOnPaper() && typeof igGuideTabOn === 'function' && igGuideTabOn();
+  /* THE GUIDE TAB GOES (P-40 with P-38's rule: the nav panel finds pages; Try on the map carries the view's offers) */
+  const gd = false;
   /* YOUR DAY (owner picked "The SAP Way", 9 Nov 2026): the first tab on Explorer's map, before the Overview */
   const dy = !face && !pdOnPaper() && typeof igDayTabOn === 'function' && igDayTabOn();
   const dayOn = dy && typeof igDayShows === 'function' && igDayShows();

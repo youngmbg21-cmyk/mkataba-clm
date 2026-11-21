@@ -1009,7 +1009,10 @@ function ndKindsOf(L){
 /* the Board's own share of the reading: a brand-new workspace's "Finish setting up" row stays Home's — the empty
    Board stands its own setup door (hbSetupDoorHtml), never a second one */
 function ndOnBoard(D){ const you = D.you.filter(r => !r.setup); return { jambo: D.jambo, you, n: ndRowsN(D.jambo) + ndRowsN(you) }; }
-function ndInTab(D){ const B = ndOnBoard(D); return _nd.tab === 'jambo' ? B.jambo : _nd.tab === 'you' ? B.you : B.jambo.concat(B.you); }
+/* LATE IS A CHIP OF ITS OWN (P-39, the Legora + Stripe way): the late of both groups; Your move is yours not late */
+function ndInTab(D){ const B = ndOnBoard(D); return _nd.tab === 'jambo' ? B.jambo : _nd.tab === 'late' ? B.jambo.concat(B.you).filter(r => r.late) : _nd.tab === 'you' ? B.you.filter(r => !r.late) : B.jambo.concat(B.you); }
+/* the row's status, as its soft badge says it: Late, Your move, Jambo prepared */
+function ndStatusOf(r){ return r.late ? 'late' : r.g === 'jambo' ? 'jambo' : 'you'; }
 function ndBoardList(D){
   let L = ndInTab(D);
   if (_nd.kind !== 'any') L = L.filter(r => r.kind === _nd.kind);
@@ -1027,9 +1030,12 @@ function ndBoardRowHtml(r, opts){
     ? `<button type="button" class="ui-btn ui-btn-sm nd-btn${look ? ' is-on' : ''}" data-hb-ag-look="${_cnE(r.it.key)}" aria-expanded="${!!look}">${_cnE(_cnT('nd_btn_look'))}</button>`
     : _ndBtnHtml(P);
   return `<div class="nd-br${look ? ' is-look' : ''}${P.good ? ' nd-good' : ''}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"${piece ? ` data-hb-ag-item="${_cnE(r.it.key)}" data-nd-agent="${_cnE(r.agent)}"` : ''}>`
-    + `<span class="nd-c nd-c-what"${piece && P.line ? ` title="${_cnE(P.line)}"` : ''}>${typeof listSapOn === 'function' && listSapOn() ? ndSapMarkHtml(r, P) : ''}<b>${_cnE(P.title)}</b>${_ndTagHtml(P)}${P.priv}</span>`
+    /* THE LEGORA + STRIPE WAY (P-39): what waits, and under it the paper's words where they are known (cn2QuoteHtml); a
+       soft status badge; the agreement and its number, NEVER MONEY */
+    + `<span class="nd-c nd-c-what"${piece && P.line ? ` title="${_cnE(P.line)}"` : ''}>${typeof listSapOn === 'function' && listSapOn() ? ndSapMarkHtml(r, P) : ''}<span class="nd-what-w"><b>${_cnE(P.title)}</b>${(() => { const q = (typeof cn2QuoteHtml === 'function' ? cn2QuoteHtml(r) : '').replace(/^ · /, ''); return q ? `<span class="nd-q">${q}</span>` : ''; })()}</span>${_ndTagHtml(P)}${P.priv}</span>`
+    + `<span class="nd-c nd-c-st"><span class="nd-st is-${ndStatusOf(r)}">${_cnE(_cnT('ndb_g_' + ndStatusOf(r)))}</span></span>`
     /* the number first and never cut; the name gives way with "…" (owner, 23 Oct 2026) */
-    + `<span class="nd-c nd-c-deal" title="${_cnE([_ndText(P.ref), P.deal].filter(Boolean).join(' · '))}">${P.ref}${P.ref && P.deal ? '<i class="nd-dot" aria-hidden="true">·</i>' : ''}${P.deal ? `<span class="nd-deal-t">${_cnE(P.deal)}</span>` : ''}</span>`
+    + (() => { const deal = P.name ? [P.name, P.party].filter(Boolean).join(' · ') : P.deal; return `<span class="nd-c nd-c-deal" title="${_cnE([_ndText(P.ref), deal].filter(Boolean).join(' · '))}">${P.ref}${P.ref && deal ? '<i class="nd-dot" aria-hidden="true">·</i>' : ''}${deal ? `<span class="nd-deal-t">${_cnE(deal)}</span>` : ''}</span>`; })()
     /* no "Who or what asked" column (owner, 24 Oct 2026): empty on most rows; the search still reads it */
     + `<span class="nd-c nd-c-when${P.late ? ' cn-late' : ''}">${_cnE(P.when)}</span><span class="nd-c nd-c-next">${btn}</span>${look}</div>`;
 }
@@ -1056,16 +1062,18 @@ function ndBoardHtml(opts){
   if (_nd.kind !== 'any' && !kinds.some(x => x.k === _nd.kind)) _nd.kind = 'any';
   const sum = [_cnTn('nd_things', B.n, { n: B.n }), ndSumWords(D)].filter(Boolean).join(' · ');
   /* ("Home shows the top N · this is all of it" went with Home, 10 Nov 2026: the card is the whole list, said once) */
-  const tab = (k, n) => `<button type="button" class="nd-tab${_nd.tab === k ? ' on' : ''}" data-nd-tab="${k}" aria-pressed="${_nd.tab === k}">${_cnE(_cnT('nd_tab_' + k))} <span class="nd-tab-n">${n}</span></button>`;
+  /* chips with their counts, a soft dot of their colour (P-39); a chip with nothing in it is not drawn (but All) */
+  const tab = (k, n) => (k !== 'all' && !n && _nd.tab !== k) ? '' : `<button type="button" class="nd-tab is-chip${_nd.tab === k ? ' on' : ''}" data-nd-tab="${k}" aria-pressed="${_nd.tab === k}">${k !== 'all' ? `<i class="nd-st-dot is-${k}" aria-hidden="true"></i>` : ''}${_cnE(_cnT(k === 'late' ? 'ndb_chip_late' : 'nd_tab_' + k))} <span class="nd-tab-n">${n}</span></button>`;
+  const lateN = ndRowsN(B.jambo.concat(B.you).filter(r => r.late));
   const chip = (k, n) => `<button type="button" class="nd-chip${_nd.kind === k ? ' on' : ''}" data-nd-kind="${k}" aria-pressed="${_nd.kind === k}">${_cnE(_cnT('nd_k_' + k))}${n != null ? ' ' + n : ''}</button>`;
   const jamboOn = _nd.tab === 'jambo' || _nd.kind === 'jambo';
   const folded = ndFolded();
   return `<section class="hb-card nd-card${folded ? ' is-folded' : ''}" id="hm-agents"><header class="hb-ch"><span class="hb-ct">${_cnE(_cnT('hb_ny_title'))}</span><span class="hb-cs">${_cnE(sum)}</span><span class="hb-grow"></span>${ndFoldBtnHtml(folded)}</header>`
-    + `<div class="nd-main" id="nd-main"${folded ? ' hidden' : ''}><div class="nd-bar"><div class="nd-tabs">${tab('all', B.n)}${tab('you', ndRowsN(B.you))}${tab('jambo', ndRowsN(B.jambo))}</div>`
+    + `<div class="nd-main" id="nd-main"${folded ? ' hidden' : ''}><div class="nd-bar"><div class="nd-tabs">${tab('all', B.n)}${tab('late', lateN)}${tab('you', ndRowsN(B.you.filter(r => !r.late)))}${tab('jambo', ndRowsN(B.jambo))}</div>`
     + `<input type="search" id="nd-q" class="nd-find" autocomplete="off" placeholder="${_cnE(_cnT('nd_find_ph'))}" aria-label="${_cnE(_cnT('nd_find_label'))}" value="${_cnE(_nd.q)}"></div>`
     + (kinds.length > 1 ? `<div class="nd-chips">${chip('any', null)}${kinds.map(x => chip(x.k, x.n)).join('')}</div>` : '')
     + (jamboOn && o.chase ? o.chase : '')
-    + `<div class="nd-cols"><span>${_cnE(_cnT('nd_col_what'))}</span><span>${_cnE(_cnT('nd_col_deal'))}</span><span>${_cnE(_cnT('nd_col_when'))}</span><span>${_cnE(_cnT('nd_col_next'))}</span></div>`
+    + `<div class="nd-cols"><span>${_cnE(_cnT('nd_col_what'))}</span><span>${_cnE(_cnT('nd_col_status'))}</span><span>${_cnE(_cnT('nd_col_deal'))}</span><span>${_cnE(_cnT('nd_col_when'))}</span><span>${_cnE(_cnT('nd_col_next'))}</span></div>`
     + `<div class="nd-rows" id="nd-rows">${ndBoardRowsHtml(D, o)}</div>${o.foot || ''}</div></section>`;
 }
 /* ---- THE CARD FOLDS TO ITS HEAD (owner, 25 Oct 2026: "add the ability for the needs you card to be able to be
@@ -1094,7 +1102,7 @@ function ndBoardRepaint(){ if (typeof hbPaintBoard === 'function') try { hbPaint
 function ndShow(tab, key){
   /* a door onto the card lands on its rows: a folded card is opened first */
   if (ndFolded()) ndFoldSet(false);
-  _nd = { tab: ['all', 'you', 'jambo'].includes(tab) ? tab : 'all', kind: 'any', q: '', more: 0 };
+  _nd = { tab: ['all', 'late', 'you', 'jambo'].includes(tab) ? tab : 'all', kind: 'any', q: '', more: 0 };
   if (key){ const L = ndBoardList(ndRead()); const i = L.findIndex(r => r.key === key || (r.it && r.it.key === key)); if (i >= ND_PAGE) _nd.more = Math.floor(i / ND_PAGE); }
 }
 function ndOpenBoard(tab, key){
@@ -1106,7 +1114,7 @@ function ndOpenBoard(tab, key){
 function ndPlace(){ return { tab: _nd.tab, kind: _nd.kind, q: _nd.q }; }
 function ndPlacePut(p){
   if (!p || typeof p !== 'object') return;
-  _nd = { tab: ['all', 'you', 'jambo'].includes(p.tab) ? p.tab : 'all', kind: ND_KINDS.includes(p.kind) ? p.kind : 'any', q: String(p.q || '').slice(0, 120), more: 0 };
+  _nd = { tab: ['all', 'late', 'you', 'jambo'].includes(p.tab) ? p.tab : 'all', kind: ND_KINDS.includes(p.kind) ? p.kind : 'any', q: String(p.q || '').slice(0, 120), more: 0 };
 }
 /* the bundled details: the very contracts the row counted, on the Contracts list */
 function ndBundleGo(){
