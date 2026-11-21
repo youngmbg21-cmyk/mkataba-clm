@@ -615,7 +615,8 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     const together = await page.evaluate(() => {
       const rows = [...document.querySelectorAll('.rl-chat-row')];
       return { total: rows.length,
-        withRef: rows.filter(r => r.querySelector('.rl-chat-on')).length };
+        /* RE-POINTED 21 Nov 2026 (P-38, Notes the Stripe way): a row about a redline carries its change (data-rl-np-chg) */
+        withRef: rows.filter(r => r.querySelector('.rl-chat-on, [data-rl-np-chg]')).length };
     });
     check('and it sits in ONE list with the redline notes',
       together.total >= 3 && together.withRef >= 2
