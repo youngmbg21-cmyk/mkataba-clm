@@ -22771,3 +22771,10 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - 21 Nov 2026: the "Ask a column" browser check (test/chromium/ask-a-column-verify.js) RETIRED at the owner's word: it pressed the Contracts list's "Ask a column" button the owner removed 15 Nov (Discover replaced it), and passed only when it caught the page before sign-in finished.
 - Noticed, not fixed: the old Reads page's "Ask again" / "Ask a new question" / "Read the next" (readsAgain, readsAskNew, readsNext) still call askColOpen, whose form paints into a panel the new-look Contracts page does not draw — a press there shows nothing.
 - 21 Nov 2026 (batch 2 redo, P-39): the Board's Needs you lost its Hide (as drawn) — a fold kept from before would have left the rows hidden with no Show; the new look now never honours that fold. Removing the Hide is a change to a working control (CLAUDE.md "it cuts both ways"): said to the owner.
+
+## 21 Nov 2026 — Requests rebuilt as drawn (P-32, the Legora + Stripe way)
+- Removed: the "N requests" line under the Requests table (the drawing has no foot; the chips carry the count).
+- Removed: the chosen request's panel head row (Overview tab and fold arrow) while a request is chosen, as Obligations' panel does; the panel opens on the request's badge as drawn.
+- Removed: the five-part panel's small print "Read from the ask, without AI." and the lane sentence under the headline (the lane is now a "Came by" row read from the ask).
+- Changed: "Put it down" is no longer its own button when you hold a request; "Hand on" (as drawn) offers a colleague who edits, or "Nobody: put it back on Open".
+- Noticed, not fixed: Advice requests carry no short title of their own, so the Requests row shows the first sentence of the question as its title.
