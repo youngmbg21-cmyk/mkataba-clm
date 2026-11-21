@@ -22735,3 +22735,8 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 ## Noticed, not fixed — Discover clean-up photos (20 Nov 2026)
 - Discover › All reads: with no reads yet, the list stays on "Loading…" (13+ seconds in the photo script) instead of saying there are none.
 - Discover › New read: the panel's last line ("Does this contract renew automatically?") runs under Jambo's links line.
+
+## Noticed, not fixed — Settings clean-up photos (21 Nov 2026)
+- Settings: the act is drawn twice — every row carries its own button (Open · Change · Turn on) and the side panel a black "Change" for the chosen one.
+- Settings › the six areas: the panel's "Ask an admin" card runs under Jambo's links line.
+- Settings › an area: an on/off setting shows its state only as a small dot and a word, easy to miss.
