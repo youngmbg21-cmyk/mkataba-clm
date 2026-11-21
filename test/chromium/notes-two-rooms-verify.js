@@ -729,7 +729,7 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
         { side: 'owner', author: currentUser().name, visibility: 'internal', replyTo: m1 && window.negoNoteKey ? negoNoteKey(m1) : undefined });
       openNotesPanel(c.id);
       /* RE-POINTED 21 Nov 2026 (P-38, Notes the Stripe way): a row per discussion; the tagged words are read in it, opened */
-      return new Promise(r => setTimeout(() => { const row = [...document.querySelectorAll('#context-panel .rl-np-crow')].find(b => /look at this/.test(b.textContent)); if (row) row.click(); setTimeout(() => {
+      return new Promise(r => setTimeout(() => { const row = [...document.querySelectorAll('#context-panel .rl-np-crow')].find(b => /look at this|you too please/.test(b.textContent)); if (row) row.click(); setTimeout(() => {
         const ats = [...document.querySelectorAll('#context-panel .rl-np-at')];
         r({ ok: true, n: ats.length,
           names: ats.map(a => a.textContent),
