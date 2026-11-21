@@ -369,7 +369,11 @@ const SEED = async () => {
       sc.style.height = want + 'px'; sc.style.flex = 'none';
       await new Promise(r => requestAnimationFrame(r));
       const scR = sc.getBoundingClientRect();
-      sc.scrollTop = Math.min(300, sc.scrollHeight - sc.clientHeight);
+      /* RE-POINTED (P-29, owner's pick 20 Nov 2026): the rows are taller (the first open ask's words under the name), so the
+         list is scrolled to a row's own edge — a row half under the held header is hidden by it, not "showing above it" */
+      { const rs = [...sc.querySelectorAll('tbody tr')], thH = th.getBoundingClientRect().height, top0 = rs[0] ? rs[0].offsetTop : 0;
+        const edge = rs.map(r => r.offsetTop - top0).find(y => y > 0 && y <= sc.scrollHeight - sc.clientHeight);
+        sc.scrollTop = edge != null ? edge : Math.min(300, sc.scrollHeight - sc.clientHeight); void thH; }
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
       const thR = th.getBoundingClientRect();
       let leak = 0;
