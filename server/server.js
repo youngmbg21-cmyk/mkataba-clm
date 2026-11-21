@@ -24390,12 +24390,13 @@ function runReminders() {
         };
         if (od === 7 && fireTo(`${c.id}:ob:${okey}:soon`, [who.email], oMail('soon'), `obligation soon: ${c.name}`)){ queued++; obRemindLog(c.id, okey, 'soon', who.name, 'ours'); }
         if (od === 0 && fireTo(`${c.id}:ob:${okey}:today`, [who.email], oMail('today'), `obligation today: ${c.name}`)) {
-          queued++; obRemindLog(c.id, okey, 'today', who.name, 'ours');
+          queued++;
           /* a duty of yours due today is urgent on the phone (round 4), riding the mail's own dedupe */
           pushUrgent(pushUserByEmail(who.email), 'due', full.id ? full : c, link);
           // W2-3: rides the mail's OWN dedupe, so an outside system is told
           // exactly as often as the person is — once
           webhookQueue('obligation.due', () => ({ contractId: c.id, obligationId: String(okey).slice(0, 64), due }));
+          obRemindLog(c.id, okey, 'today', who.name, 'ours');
         }
         if (od === -1 && fireTo(`${c.id}:ob:${okey}:overdue`, [who.email], oMail('over'), `obligation overdue: ${c.name}`)){ queued++; obRemindLog(c.id, okey, 'overdue', who.name, 'ours'); }
         if (od === -4 && fireTo(`${c.id}:ob:${okey}:escalate`, admins, oMail('esc'), `obligation escalated: ${c.name}`)) queued++;
