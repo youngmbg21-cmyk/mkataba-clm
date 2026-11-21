@@ -3061,7 +3061,7 @@ function buildAlerts(){
         : i18tn('al_ob_due',o.days,{n:o.days,desc});
       push('obligation',c,text,
         ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'oblig'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'oblig'); }catch(_){} } },
-        { obId:o.id||null, late:o.days<0 });
+        { obId:o.id||null, late:o.days<0, days:o.days });
     });
   }
   /* ---- A REQUIRED DOCUMENT HAS LAPSED (S8) ----

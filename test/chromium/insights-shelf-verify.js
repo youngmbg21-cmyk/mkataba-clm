@@ -86,6 +86,16 @@ const check = (name, pass, detail) => {
       /* the reader owns three of each month's four */
       const me = currentUser(); state.contracts.forEach(c => { const m = /^MK-P\d+-(\d)$/.exec(c.id); if (m) c.owner = Number(m[1]) < 3 ? { id: me.id, name: me.name } : { id: 'u_other', name: 'Someone Else' }; });
       const s = hbS(); s.face = 'board'; s.prep = 'open'; s.ins = null; s.insOff = {}; s.insKept = {}; s.panels = []; s.path = []; hbSave(); setView('dashboard'); });
+    /* RE-POINTED 21 Nov 2026 (P-39, owner: remove Today's insights from the Board): the Board ends after Needs you, as drawn — no
+       "Today's insights" head, no shelf, no Hide for it; its findings are still counted for the brief's mail (hbMovedOf).
+       The old walk below runs only with HATI_SHELF_OLD=1. */
+    const drawn = await until(() => document.querySelector('#hb-board #hm-agents') ? true : null, null, 15000);
+    const gone = await page.evaluate(() => ({ head: !!document.querySelector('#hb-board .hb-ins-head'), shelf: !!document.querySelector('#hb-board .hb-shelf-cards'),
+      fold: !!document.querySelector('#hb-board [data-hb-ins-fold]'), counted: typeof hbMovedOf === 'function' }));
+    check('0a the Board draws Needs you', !!drawn);
+    check('0b no Today\'s insights on the Board: no head, no shelf, no Hide for it', !gone.head && !gone.shelf && !gone.fold, JSON.stringify(gone));
+    check('0c its findings are still counted for the brief (hbMovedOf)', gone.counted);
+    if (!process.env.HATI_SHELF_OLD){ check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none'); return; }
     const has = await until(() => typeof hbInsightsToday === 'function' && !!document.querySelector('#hb-board .hb-shelf-cards')
       && hbS().ins && hbS().ins.n === hbInsBookSig() && document.querySelectorAll('#hb-board .hb-shelf-cards .hb-ins:not(.is-plain)').length === hbS().ins.list.length);
     if (!has){ check('1a the shelf is drawn in its own card, Today\'s insights', false, 'no .hb-shelf'); throw new Error('no shelf'); }

@@ -50,7 +50,7 @@ const spotsOf = page => page.evaluate(() => {
      pictures below the fold — a card's button is the first one whose middle is ON the screen */
   const onScreen = sel => [...document.querySelectorAll(sel)].find(e => { if (!e.getClientRects().length) return false;
     const r = e.getBoundingClientRect(); return r.width > 4 && r.top + r.height / 2 > 0 && r.top + r.height / 2 < innerHeight; });
-  const dock = vis('#igd-input') || onScreen('#hb-board .nd-card button, #hb-board .hb-ins button, #hb-board [data-hb-ins]') || vis('#hb-board button[data-hb-act]');
+  const dock = vis('#igd-input') || onScreen('#hb-board .nd-card button') /* RE-POINTED 21 Nov 2026 (P-39, owner: remove Today's insights from the Board) */ || vis('#hb-board button[data-hb-act]');
   const cv = document.getElementById('ig-cv');
   return { fig: mid(fig), head: mid(head), dock: mid(dock), map: mid(cv) };
 });
