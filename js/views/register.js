@@ -5528,7 +5528,7 @@ const NGN_KEYS = ['move', 'round', 'asks', 'lead', 'last', 'act'];
 function ngnCols(){
   /* P-29: Whose move · Rounds · Open asks · Lead · Waiting · the act; where the room is short Rounds steps aside first, then Lead */
   const W = { move: 112, round: 92, asks: 84, lead: 116, last: 92, act: 120 }, R = { round: 1, lead: 2 };
-  const T = { name: 'ngn_c_agreement', round: 'ngn_c_rounds', move: 'ngn_c_move', asks: 'ngn_c_open_asks', lead: 'ngn_c_lead', last: 'ngn_c_waiting', act: 'ngn_c_act' };
+  const T = { name: 'ngn_c_agreement', round: 'ngn_c_rounds', move: 'ngn_c_move', asks: 'ngn_c_open_asks', lead: 'ngn_c_lead', last: 'ngn_c_waiting' };
   const DEFS = [{ k: 'name' }, ...NGN_KEYS.map(k => ({ k, w: W[k], rank: R[k] }))];
   const FIT = typeof listCols === 'function' ? listCols(REG_NEGO_SEAT, DEFS, () => ngnRepaint()) : { cols: DEFS };
   const cols = FIT.cols;
