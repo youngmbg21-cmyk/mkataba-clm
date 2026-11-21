@@ -20107,19 +20107,21 @@
   html.lg-new .cun5 .jov5-ava.is-gray{background:var(--st-gray-bg);color:var(--st-gray-fg)}
   html.lg-new .cun5 .jov5-title{font-family:var(--font-body);font-size:17px;line-height:1.3;font-weight:var(--w-label);letter-spacing:0}
   html.lg-new .cun5 .jov5-sub{margin:0;font-size:12.5px;color:var(--color-neutral-400)}
-  html.lg-new .cun5 .jov5-sec{padding:16px 0;border-top:1px solid var(--color-divider)}
-  html.lg-new .cun5 .jov5-who + .jov5-sec{border-top:0;padding:12px 0 0}
-  html.lg-new .cun5 .jov5-sec > .jov5-label{margin:0 0 8px}
+  /* THE PANEL'S RHYTHM, TIGHTENED (P-25 review, 22 Nov 2026): at 1536×730 the Contacts and + Add a contact stand in view
+     without a scroll, on both tabs — 10 above and below each section's line, 6 under its label, the rows 2 apart */
+  html.lg-new .cun5 .jov5-sec{padding:10px 0;border-top:1px solid var(--color-divider)}
+  html.lg-new .cun5 .jov5-who + .jov5-sec{border-top:0;padding:8px 0 0}
+  html.lg-new .cun5 .jov5-sec > .jov5-label{margin:0 0 6px}
   html.lg-new .cun5 .jov5-sec:has(.cun5-figs) > .jov5-label{display:none}
   html.lg-new .cun5 .jov5-group,html.lg-new .cun5 .jov5-group.is-form{background:none;box-shadow:none;border-radius:0;overflow:visible}
-  html.lg-new .cun5 .jov5-act{background:none;padding:12px 0 16px;border-radius:0}
+  html.lg-new .cun5 .jov5-act{background:none;padding:10px 0;border-radius:0}
   html.lg-new .cun5 .jov5-act .jov5-acts{flex-direction:row;align-items:center;gap:10px}
   html.lg-new .cun5 .jov5-act .jov5-acts > .jov5-go{width:auto}
-  html.lg-new .cun5-figs{display:flex;gap:24px;margin:0 0 12px}
+  html.lg-new .cun5-figs{display:flex;gap:24px;margin:0 0 8px}
   html.lg-new .cun5-figs small{display:block;font-size:12.5px;color:var(--color-neutral-400)}
   html.lg-new .cun5-figs b{display:block;font-size:26px;line-height:1.1;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap}
   html.lg-new .cun5-figs b.is-day{font-size:20px;padding-top:4px}
-  html.lg-new .cun5 .jov5-group > .jov5-row{display:flex;align-items:center;gap:10px;min-height:0;padding:3px 0;background:none;border:0;font-size:13px}
+  html.lg-new .cun5 .jov5-group > .jov5-row{display:flex;align-items:center;gap:10px;min-height:0;padding:2px 0;background:none;border:0;font-size:13px}
   html.lg-new .cun5 .jov5-group > .jov5-row::before,html.lg-new .cun5 .jov5-foot::before{display:none}
   html.lg-new .cun5 .jov5-row.is-door:hover{background:none}
   html.lg-new .cun5 .jov5-row .jov5-chev{display:none}
@@ -20137,10 +20139,10 @@
   html.lg-new .cun5 .jov5-row.cun5-kd.is-steel .jov5-k{background:var(--st-steel-bg);color:var(--st-steel-fg)}
   html.lg-new .cun5 .jov5-row.cun5-kd .jov-lnk{flex:none;font-size:13px;font-weight:var(--w-label)}
   html.lg-new .cun5 .jov5-row .jov5-faces{flex:none}
-  html.lg-new .cun5 .jov5-foot{padding:6px 0 0;border:0;background:none}
+  html.lg-new .cun5 .jov5-foot{padding:4px 0 0;border:0;background:none}
   html.lg-new .cun5 .jov5-foot .jov5-flink{padding:0;font-size:13px}
   html.lg-new .cun5-tl{list-style:none;margin:2px 0 0;padding:0;display:flex;flex-direction:column}
-  html.lg-new .cun5-tl li{position:relative;display:grid;grid-template-columns:16px minmax(0,1fr);gap:10px;padding-bottom:12px;font-size:13px}
+  html.lg-new .cun5-tl li{position:relative;display:grid;grid-template-columns:16px minmax(0,1fr);gap:10px;padding-bottom:9px;font-size:13px}
   html.lg-new .cun5-tl li::before{content:"";position:absolute;left:7px;top:14px;bottom:0;width:1px;background:var(--color-neutral-300)}
   html.lg-new .cun5-tl li:last-child{padding-bottom:0}
   html.lg-new .cun5-tl li:last-child::before{display:none}
@@ -21449,10 +21451,12 @@
   html.lg-new .mnn-page .mnn-ask .mnn-spark{flex:none;width:13px;height:13px;fill:var(--accent-ink);color:var(--accent-ink)}
   html.lg-new .mnn-page .mnn-ask input::placeholder{color:var(--color-neutral-400)}
   html.lg-new #mn-page .apn-bar{margin:18px 0 0;gap:8px}
-  html.lg-new .mnn-page .apn-bar .apn-tab.is-chip{height:26px;padding:0 11px;border:1px dashed var(--color-neutral-300);background:none;font-size:13px;font-weight:var(--w-label);color:var(--color-quiet)}
-  html.lg-new .mnn-page .apn-bar .apn-tab.is-chip span{color:inherit}
-  html.lg-new .mnn-page .apn-bar .apn-tab.is-chip.is-on{border-style:solid;border-color:var(--color-neutral-300);background:none;color:var(--color-text)}
-  html.lg-new .mnn-page .apn-bar .apn-chip.is-add{font-size:13px;font-weight:var(--w-label);padding:0 11px}
+  /* THE REBUILT PAGES' CHIPS, ONE RULE (P-25/P-26 review, 22 Nov 2026): My notes, Parties and People wear the same
+     chips — not chosen a dashed outline, chosen a solid one, never a fill; the count in the chip's own ink */
+  html.lg-new :is(.mnn-page,.cun-page,.dirn-page) .apn-bar .apn-tab.is-chip{height:26px;padding:0 11px;border:1px dashed var(--color-neutral-300);background:none;font-size:13px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new :is(.mnn-page,.cun-page,.dirn-page) .apn-bar .apn-tab.is-chip span{color:inherit}
+  html.lg-new :is(.mnn-page,.cun-page,.dirn-page) .apn-bar .apn-tab.is-chip.is-on{border-style:solid;border-color:var(--color-neutral-300);background:none;color:var(--color-text)}
+  html.lg-new :is(.mnn-page,.cun-page,.dirn-page) .apn-bar .apn-chip.is-add{font-size:13px;font-weight:var(--w-label);padding:0 11px}
   html.lg-new .mnn-page .apn-card .mnn-table{margin-top:10px}
   html.lg-new .mnn-page .apn-card .mnn-table th{padding:8px 10px;font-size:12px;letter-spacing:0;text-transform:none;font-weight:var(--w-label);color:var(--color-neutral-400)}
   html.lg-new .mnn-page .apn-card .mnn-table td{padding:11px 10px;border-bottom-color:var(--color-neutral-100)}
@@ -22993,7 +22997,7 @@
   html.lg-new .dirn-w{display:flex;flex-direction:column;gap:4px;min-width:0}
   html.lg-new .dirn-w + .dirn-w{margin-top:12px}
   html.lg-new .dirn-w-top{display:flex;align-items:center;gap:8px;min-width:0}
-  html.lg-new .dirn-w-top .apn-st{flex:none}
+  html.lg-new .dirn-w-top .cun-badge{flex:none}
   html.lg-new .dirn-w-t{flex:1;min-width:0;padding:0;border:0;background:none;font:inherit;font-size:13px;line-height:1.4;text-align:left;color:var(--color-text);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;cursor:pointer}
   html.lg-new .dirn-w-s{font-size:12.5px;color:var(--color-neutral-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .dirn-lnk{flex:none;padding:0;border:0;background:none;font:inherit;font-size:12.5px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}

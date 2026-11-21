@@ -40,13 +40,17 @@ test('f1139 (1) the paper\'s own words name the party, verbatim; none where the 
 });
 
 test('f1139 (2) On paper: the currency in the head, the figure alone in the cell, the column gone without money rights', () => {
-  const sb = { fmtMoneyShort: n => 'KES ' + (n / 1e6).toFixed(2) + 'M', jxCurrency: () => 'KES' }; vm.createContext(sb);
-  vm.runInContext(fnBody(CU, 'cunPaperSay') + '\nthis.f = cunPaperSay;', sb);
+  /* RE-POINTED 22 Nov 2026 (P-25 review): one form down the column — the house shortener keeps both decimals ({ even: true }) */
+  const sb = { jxCurrency: () => 'KES' }; vm.createContext(sb);
+  vm.runInContext(read('js/jurisdiction.js').match(/const fmtMoneyShortIn = [\s\S]*?return `\$\{c\} ` \+ n; \};/)[0] + '\n' + fnBody(CU, 'cunPaperSay') + '\nthis.f = cunPaperSay; this.g = fmtMoneyShortIn;', sb);
   assert.equal(sb.f(10500000), '10.50M');
+  assert.equal(sb.f(12000000), '12.00M', '"12.00M" beside "10.50M", as drawn');
+  assert.equal(sb.g(12000000, 'KES'), 'KES 12M', 'a sentence or a tile keeps the short form');
   const cols = strip(fnBody(CU, 'cunCols'));
   assert.match(cols, /k === 'paper' && cur \? i18t\('cun_c_paper_in', \{ cur \}\)/);
   assert.match(read('js/i18n.js'), /cun_c_paper_in: "On paper \(\{cur\}\)"/);
-  assert.match(CU, /function cunKeys\(\)\{ return CUN_KEYS\.filter\(k => k !== 'paper' \|\| !\(typeof canViewValues === 'function' && !canViewValues\(\)\)\); \}/);
+  /* RE-POINTED 22 Nov 2026 (P-25 review): cunKeys also leaves out Waiting on you where nothing waits anywhere (noWork) */
+  assert.match(CU, /function cunKeys\(noWork\)\{ return CUN_KEYS\.filter\(k => \(k !== 'paper' \|\| !\(typeof canViewValues === 'function' && !canViewValues\(\)\)\) && \(k !== 'waiting' \|\| !noWork\)\); \}/);
 });
 
 test('f1139 (3) the worklist as drawn: the paper\'s words under Jambo\'s finds, the words of each kind, its soft badge', () => {
@@ -75,7 +79,9 @@ test('f1139 (4) the panel as drawn: no cards, no money; facts on All, what waits
   assert.match(p, /class="cun5-figs"/); assert.match(p, /cun_p_not_signed/);
   assert.match(p, /foot: mayAdd \? \{ label: i18t\('cun_p_add_ct'\), attr: `data-cun-add-ct=/);
   assert.match(p, /avatarTone: tone/);
-  assert.match(read('js/components.js'), /o\.avatarTone && JOV5_TONES\[o\.avatarTone\] \? ' is-' \+ o\.avatarTone : ''/);
+  /* RE-POINTED 22 Nov 2026 (P-25 review): since People joined the batch the panel reads one tone for both pages
+     (avatarTone, Parties; avaTone, People) */
+  assert.match(read('js/components.js'), /const _avaT = o\.avatarTone && JOV5_TONES\[o\.avatarTone\] \? o\.avatarTone : /);
   assert.match(CSS, /html\.lg-new \.cun5 \.jov5-group,html\.lg-new \.cun5 \.jov5-group\.is-form\{background:none;box-shadow:none/, 'no cards');
   const tl = strip(fnBody(CU, 'cunTimelineRows'));
   assert.match(tl, /tone: 'green'/); assert.match(tl, /tone: 'amber'/); assert.match(tl, /tone: 'red'/); assert.match(tl, /tone: 'hollow'/);
@@ -89,4 +95,30 @@ test('f1139 (5) the head: + Add a party is the one door to a new agreement; the 
   assert.match(ask, /jlAsk\(t, \{ typed: true \}\)/);
   assert.match(CU, /icon\('mkSpark', 'cun-spark', 0\)/);
   assert.match(read('js/i18n.js'), /cun_ask_ph: "Ask about a party: “who do we owe the most to\?”"/);
+});
+
+/* (6) THE REVIEW'S DIFFERENCES (P-25/P-26 review, 22 Nov 2026), each red at the parent: the chips of My notes, Parties
+   and People are ONE rule (dashed, the chosen solid, never a fill); a grey "—" where nothing waits; no foot line; no
+   "Waiting on you" column for a reader for whom nothing waits anywhere; the Waiting on you timeline started · late ·
+   the next step; People's badges the house's soft badge */
+test('f1139 (6) the review\'s differences: one chip rule, the dash, no foot, the timeline, the badges', () => {
+  assert.match(CSS, /html\.lg-new :is\(\.mnn-page,\.cun-page,\.dirn-page\) \.apn-bar \.apn-tab\.is-chip\{[^}]*border:1px dashed var\(--color-neutral-300\);background:none/);
+  assert.match(CSS, /html\.lg-new :is\(\.mnn-page,\.cun-page,\.dirn-page\) \.apn-bar \.apn-tab\.is-chip\.is-on\{border-style:solid;[^}]*background:none/);
+  assert.doesNotMatch(CSS, /html\.lg-new \.mnn-page \.apn-bar \.apn-tab\.is-chip\{/, 'one rule, not a copy per page');
+  const row = strip(fnBody(CU, 'cunRowHtml'));
+  assert.match(row, /\$\{ws\.late \? ` · \$\{esc\(i18t\('cun_late'\)\)\}` : ''\}<\/span>` : '<span class="apn-none-c">—<\/span>'\}<\/td>`/);
+  assert.doesNotMatch(strip(fnBody(CU, 'cunRender')), /apn-foot|cun_foot/, 'no foot line');
+  assert.match(strip(fnBody(CU, 'cunNoWork')), /return !\(list \|\| \[\]\)\.some\(v => \(v\.needs \|\| \[\]\)\.some\(x => x && x\.it\)\);/);
+  assert.match(CU, /\(k !== 'waiting' \|\| !noWork\)/);
+  const tl = strip(fnBody(CU, 'cunTimelineRows'));
+  assert.match(tl, /\} else if \(wait\)\{[\s\S]*c\.createdAt[\s\S]*tone: 'green', t: i18t\('cun_tl_started'/);
+  assert.match(tl, /tone: 'hollow', t: w\.it\.kind === 'details' \? i18t\('cun_tl_next_details'\)/);
+  assert.match(tl, /past\.slice\(-3\)\.concat\(now\.slice\(0, 3\), late\.slice\(0, 3\), next\.slice\(0, 2\), ahead\.slice\(0, 2\)\)/);
+  const I = read('js/i18n.js');
+  assert.match(I, /cun_tl_started: "\{name\} started"/); assert.match(I, /cun_tl_started: "\{name\} påbörjat"/);
+  assert.match(I, /cun_tl_next_details: "Details still to fill in"/); assert.match(I, /cun_tl_next_details: "Uppgifter kvar att fylla i"/);
+  const D = read('js/views/directory.js');
+  assert.doesNotMatch(D, /class="reg-badge|class="apn-st/, 'People wears the house soft badge');
+  assert.match(fnBody(D, 'dirnRowHtml'), /<span class="cun-badge is-\$\{tone\}"/);
+  assert.match(CSS, /html\.lg-new \.cun-badge\{[^}]*border-radius:6px[^}]*font-size:var\(--t-label\)/);
 });

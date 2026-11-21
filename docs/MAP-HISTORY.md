@@ -39714,3 +39714,29 @@ graphic "Ring", tabs All and Waiting on you) rendered at 1440 and with photos of
   ("2 contacts at …") as before (the drawing shows only a party with none); the paper's words keep the paper's own capital.
 ## MY NOTES AND MY OWN EVENTS (js/mine.js, js/views/mynotes.js)
 P-27 REBUILT AS DRAWN (21 Nov 2026, overnight; the owner was angry that the first build, PR #861, "took shortcuts and claimed complete"). Every tab (All, Due, Reviewed) photographed before and after and set beside the drawing ("The Legora + Stripe way"). Gaps closed: the ask box (Jambo's green ✦, "Write a note, or ask: “what did I note about <a party your notes sit on>?”"); a question now narrows by its own words (`mnnIsAsk`, `mnnAskTerms` in `mnHit`), anything else + Enter opens New note filled (`myNotesNew({body})`) — read in the browser only, no note leaves its owner; chips dashed, the chosen one solid; sentence-case column heads; § found on the paper shown as "§ 5"; badges square-cornered, dot only on Overdue/Due today, tick on Reviewed; "2 days overdue" red, "today" amber; the act on the row you are on (chosen or hovered, `.mnn-rowact`; a hovered row's act chooses its row first); the "7 notes" foot gone. Panel: plain 17px headline, contract line a quiet door (`data-mn-act="open"`), the day large in its tone, black button with ONE link (Snooze a week; on a reviewed note Delete note), no cards, hairlines between "From the paper · §" and Timeline; timeline dots (`mnnTimelineHtml`): Written · Your bell rings today / rang / rings · Rings each day until reviewed; reviewed: Written · Your bell rang (only where the review day came before the review — no other bell day is kept, the review day IS the day it rings) · You marked it reviewed. Removed (BUGLOG): "This note" rows (approval, ends), the panel's small print, Delete beside Mark reviewed. Kept, not drawn: the panel's "Overview" head line (as every page's). Re-pointed: my-notes-verify 5b/5c, requests-and-notes-as-drawn 6a/6b, round6-new-look 8.
+
+## CUSTOMER FOLDERS — SHELVES, THE SAP WAY — P-25 AND P-26, THE REVIEW'S DIFFERENCES (22 Nov 2026)
+The independent review (review 6) compared Parties and People with the picked drawings and listed small differences; the
+owner asked for an exact match ("Stop asking me questions. Just choose what you recommend"). Built:
+- CHIPS: My notes, Parties and People now share ONE rule (index.html, `:is(.mnn-page,.cun-page,.dirn-page) .apn-bar
+  .apn-tab.is-chip`): dashed when not chosen, the chosen one solid, never a fill, the count in the chip's ink. Negotiations
+  and Requests carry their own copies on their own branches; folding them in waits for those merges.
+- Parties: a grey "—" in Waiting on you where nothing waits; On paper in one form down the column ("12.00M" beside
+  "10.50M": the house shortener's `{ even: true }`, fmtMoneyShortIn; a sentence or a tile keeps "12M"; nothing stored
+  changes); the foot line "11 parties · 13 agreements" removed (BUGLOG); Ends next 160 wide (the drawing's: an agreement's
+  name on two lines); no Waiting on you column for a reader with nothing waiting anywhere (cunNoWork) — measured: the
+  no-money reader of the seeded world (a Legal reader with no work) sees Party · Streams · Agreements · Ends next.
+- Rows: unchanged in height (measured 63px, the drawing's 51px at its 0.82 scale = 62px); 8 parties fit at 1440×780
+  once the foot line went.
+- Panel rhythm: sections 10 above and below their line, 6 under the label, rows 2 apart, the timeline 9, the ring 44
+  (the drawing's ~45). Measured at 1536×730: + Add a contact ends at 602 (All) and 625 (Waiting on you, two-line
+  contact) under the panel's 627 — in view without a scroll. The drawing itself has no Overview head (every rebuilt
+  page keeps it), so the drawing's own rhythm alone would not have fitted.
+- Waiting on you timeline (cunTimelineRows, that tab only): "<agreement> started" green, ordered by its record's
+  createdAt, its standing beside it; what is late in red; then an empty circle for the first thing still waiting that is
+  not late ("Details still to fill in"). The All tab keeps the amber "in progress".
+- People: role, Away / Not away, Waiting on them and the panel's kinds wear the house soft badge (.cun-badge: 6px
+  corners, 12px), as Parties does.
+- Kept on purpose: "Does for you" at the row's one size (13px; one size per row), People's Edit contact (a working door),
+  the Waiting chip counting items (counts match rows), the Approval kind (from the data).
+- Not added: Remind for a rule approval on People — the Approvals branch has the route (P-30); a BUGLOG line waits for it.

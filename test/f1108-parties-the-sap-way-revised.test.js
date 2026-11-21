@@ -79,10 +79,12 @@ test('f1108 (5) hidden money is not drawn at all: no On paper column, never a co
   const run = may => {
     const sb = { canViewValues: () => may };
     vm.createContext(sb);
-    vm.runInContext(CU.match(/const CUN_KEYS = [^\n]*\n/)[0] + fnBody(CU, 'cunKeys') + '\nthis.k = cunKeys();', sb);
+    vm.runInContext(CU.match(/const CUN_KEYS = [^\n]*\n/)[0] + fnBody(CU, 'cunKeys') + '\nthis.k = cunKeys(); this.n = cunKeys(true);', sb);
     return JSON.parse(JSON.stringify(sb.k));
   };
   assert.deepEqual(run(true), ['streams', 'agreements', 'paper', 'ends', 'waiting']);
   assert.deepEqual(run(false), ['streams', 'agreements', 'ends', 'waiting'], 'no On paper column for a reader without money rights');
-  assert.match(strip(fnBody(CU, 'cunCols')), /\.\.\.cunKeys\(\)\.map/, 'the header is drawn from the same keys');
+  /* RE-POINTED 22 Nov 2026 (P-25 review): cunCols(noWork) passes on whether anything waits anywhere (cunNoWork), so a
+     reader with nothing waiting gets no Waiting on you column either, with no gap */
+  assert.match(strip(fnBody(CU, 'cunCols')), /\.\.\.cunKeys\(noWork\)\.map/, 'the header is drawn from the same keys');
 });

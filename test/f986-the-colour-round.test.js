@@ -31,7 +31,8 @@ test('People: the side in colour, what waits in amber', () => {
   assert.doesNotMatch(S, /dirnLoadBarHtml|_dirnMost/);
   assert.match(fnBody(S, 'dirnRowHtml'), /const tone = ours \? 'green' : 'steel';/);
   assert.match(fnBody(S, 'dirnRowHtml'), /class="cun-av is-\$\{tone\}"/);
-  assert.match(fnBody(S, 'dirnRowHtml'), /w\.length \? `<span class="apn-st is-amber">/);
+  /* RE-POINTED 22 Nov 2026 (P-26 review): the house's soft badge, the one Parties wears (.cun-badge) */
+  assert.match(fnBody(S, 'dirnRowHtml'), /w\.length \? `<span class="cun-badge is-amber">/);
   assert.doesNotMatch(CSS, /html\.lg-new \.dirn-load\{/);
   assert.match(CSS, /html\.lg-new \.cun-av\.is-green\{/);
 });

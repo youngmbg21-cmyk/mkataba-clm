@@ -1009,7 +1009,7 @@ function dirnWaitLineHtml(p, x){
     const t = a ? Date.parse(a.at || '') : NaN;
     if (Number.isFinite(t)){ const n = Math.max(0, Math.floor((Date.now() - t) / 864e5)); since = i18t('dirn_w_asked', { when: n ? i18tn('jl_days_ago', n, { n }) : i18t('home_today') }); } } catch (_){ since = ''; }
   const sub = [c.name || c.id, c.counterparty || '', since].filter(Boolean).join(' · ');
-  return `<div class="dirn-w"><div class="dirn-w-top"><span class="apn-st is-${DIRN_W_TONE[x.kind] || 'amber'}">${E(i18t(DIR_WAIT_KIND[x.kind] || 'ap_wl_kind_appr'))}</span>`
+  return `<div class="dirn-w"><div class="dirn-w-top"><span class="cun-badge is-${DIRN_W_TONE[x.kind] || 'amber'}">${E(i18t(DIR_WAIT_KIND[x.kind] || 'ap_wl_kind_appr'))}</span>`
     + `<button type="button" class="dirn-w-t" data-dir-wait="${E(x.kind)}" data-dir-wait-id="${E(c.id)}" title="${E(i18t(DIR_WAIT_OPEN[x.kind] || 'jl_open_approval'))}">${E(i18t(DIRN_W_DO[x.kind] || 'dirn_w_approval', { name: c.name || c.id }))}</button>`
     + `${remind ? `<button type="button" class="dirn-lnk" ${remind}>${E(i18t('dirn_p_remind'))}</button>` : ''}</div><div class="dirn-w-s">${E(sub)}</div></div>`;
 }
@@ -1043,7 +1043,7 @@ function dirnPanelFive(p, sub, w, away){
   }
   const role = dirnRoleOf(p);
   const aw = away && typeof away === 'object' ? away : null;
-  const subHtml = `<span class="dirn-badges">${role ? `<span class="reg-badge is-${ours ? 'green' : 'steel'}">${E(role)}</span>` : ''}${ours && aw ? `<span class="reg-badge${aw.away ? ' is-amber' : ' is-grey'}" title="${E(aw.line)}">${E(aw.away ? i18t('dirn_p_away') : i18t('dirn_p_not_away'))}</span>` : ''}</span>`;
+  const subHtml = `<span class="dirn-badges">${role ? `<span class="cun-badge is-${ours ? 'green' : 'steel'}">${E(role)}</span>` : ''}${ours && aw ? `<span class="cun-badge${aw.away ? ' is-amber' : ' is-gray'}" title="${E(aw.line)}">${E(aw.away ? i18t('dirn_p_away') : i18t('dirn_p_not_away'))}</span>` : ''}</span>`;
   const mid = `<div class="ngn-pfacts dirn-pfacts"><span><small>${E(i18t('dirn_c_ags'))}</small><b>${n}</b></span><span${w.length ? ' class="is-amber"' : ''}><small>${E(i18t('dirn_c_wait'))}</small><b>${w.length}</b></span></div>`;
   const mail = p.email ? { label: i18t('dirn_p_email'), attr:`data-dirn-mail="${E(p.key)}"` } : null;
   const call = ph ? { label: i18t('dirn_p_call'), title: String(ph), attr: `data-dirn-call="${E(String(ph))}"` } : null;
@@ -1095,11 +1095,11 @@ function dirnRowHtml(p, keys){
   const tone = ours ? 'green' : 'steel';
   /* the columns drawn (listCols): a column that stepped aside draws no cell */
   const cell = {
-    role: () => `<td>${role ? `<span class="reg-badge is-${tone}" title="${_dE(role)}">${_dE(role)}</span>` : ''}</td>`,
+    role: () => `<td>${role ? `<span class="cun-badge is-${tone}" title="${_dE(role)}">${_dE(role)}</span>` : ''}</td>`,
     does: () => { const sq = dirnSignQuoteOf(p);
       return `<td class="dirn-does"><span title="${_dE(does)}">${does ? _dE(does) : '<span class="apn-none-c">—</span>'}</span>${sq ? `<span class="dirn-sq" title="${_dE(sq.text)}">“${_dE(sq.text)}”</span>` : ''}</td>`; },
     ags: () => `<td class="dirn-n">${p.contracts.length || '<span class="apn-none-c">—</span>'}</td>`,
-    wait: () => `<td class="cun-wait">${w.length ? `<span class="apn-st is-amber">${_dE(i18tn('dirn_things', w.length, { n: w.length }))}</span>` : ''}</td>`,
+    wait: () => `<td class="cun-wait">${w.length ? `<span class="cun-badge is-amber">${_dE(i18tn('dirn_things', w.length, { n: w.length }))}</span>` : ''}</td>`,
   };
   return `<tr data-dir-row="${_dE(p.key)}" tabindex="-1"><td><div class="dirn-who"><span class="cun-av is-${tone}" aria-hidden="true">${_dE(dirnInitials(p))}</span><div class="dirn-who-t"><div class="cun-name">${_dE(p.name || p.email || '')}</div>${sub ? `<div class="cun-sub">${_dE(sub)}</div>` : ''}</div></div></td>
     ${(keys || DIRN_KEYS).map(k => cell[k] ? cell[k]() : '<td></td>').join('')}</tr>`;

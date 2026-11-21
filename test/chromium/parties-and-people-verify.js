@@ -190,8 +190,10 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
          RETIRED 17 Nov 2026 (#762): "sorted by name" on the Party column and Columns in the chip row — round 6's
          table is fixed and has neither (old look only). */
       const n = Number((/(\d+)/.exec(L.lit) || [])[1]);
-      check('2a the list\'s count is the lit tab\'s (List N), the head\'s and the foot\'s N, every row drawn',
-        /^all \d+$/.test(L.lit) && n === L.rows && L.head === '' /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way): no count beside the title */ && L.foot.startsWith(n + ' parties'), JSON.stringify({ lit: L.lit, rows: L.rows, head: L.head, foot: L.foot }));
+      /* RE-POINTED 22 Nov 2026 (P-25 review): the foot line ("11 parties · 13 agreements") is gone, as drawn — the All
+         chip's number is the one count, and it still equals the rows drawn */
+      check('2a the list\'s count is the lit All chip\'s, every row drawn; no count beside the title, no foot line',
+        /^all \d+$/.test(L.lit) && n === L.rows && L.head === '' /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way): no count beside the title */ && L.foot === '', JSON.stringify({ lit: L.lit, rows: L.rows, head: L.head, foot: L.foot }));
       /* RE-POINTED 17 Nov 2026 (#762): round 6's columns, in order */
       /* RE-POINTED 19 Nov 2026 (the Parties round): no NDA column; Deals says Agreements; the last column holds each row's one button */
       /* RE-POINTED 19 Nov 2026 (the SAP way, revised): Streams its own column; Standing and the buttons gone; Waiting on you last */
@@ -342,8 +344,10 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('6a2 the sides are the tabs: All · Yours · Outside, opening on All', !!D && JSON.stringify(D.tabs.slice(0, 3).map(t => t.w)) === JSON.stringify(['All', 'Yours', 'Outside']) && (D.tabs.find(t => t.on) || {}).k === 'all', JSON.stringify(D && D.tabs));
       const tn = k => ((D && D.tabs.find(t => t.k === k)) || {}).n;
       /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): the title alone (the count line beside it went: the chips say each number) */
-      check('6b the page is People: "People" alone, the chips counting All · Yours · Outside; no A to Z',
-        !!D && D.title === 'People' && D.sub === '' && tn('all') === tn('yours') + tn('outside') && D.rows === tn('all') && D.foot === `${tn('all')} people` && !D.az, JSON.stringify(D && { t: D.title, s: D.sub, rows: D.rows, foot: D.foot, az: D.az }));
+      /* RE-POINTED 22 Nov 2026 (P-25 review): People has no foot line under the table (P-26, as drawn) — the All chip's
+         number equals the rows */
+      check('6b the page is People: "People" alone, the chips counting All · Yours · Outside; no A to Z, no foot line',
+        !!D && D.title === 'People' && D.sub === '' && tn('all') === tn('yours') + tn('outside') && D.rows === tn('all') && D.foot === '' && !D.az, JSON.stringify(D && { t: D.title, s: D.sub, rows: D.rows, foot: D.foot, az: D.az }));
       /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): Name · Role (a soft badge) · Does for you · Agreements · Waiting on them; no Phone (Reach) column */
       check('6c the table as drawn: Name · Role · Does for you · Agreements · Waiting on them, no Phone; ours first — you first, wearing "you", your role in its column',
         !!D && JSON.stringify(D.cols) === JSON.stringify(['Name', 'Role', 'Does for you', 'Agreements', 'Waiting on them']) && !!D.first && /Amina Otieno/.test(D.first.name) && D.first.role === 'Admin' && /\byou\b/.test(D.first.sub),
@@ -353,7 +357,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await page.click('#dir-tbody [data-dir-row="' + (await page.evaluate(() => (dirBook().find(p => p.name === 'Jonas Berg') || {}).key)) + '"]');
       const J = await until(() => { const p = document.getElementById('ins-panel'); const t = p && p.querySelector('.jov5-title'); if (!t || !/Jonas Berg/.test(t.textContent)) return null;
         /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): no tiles — Away is a badge under the name, its title the away line with the stand-in */
-        return [...p.querySelectorAll('.jov5-sub .reg-badge')].map(g => (g.textContent.trim() + ' ' + (g.getAttribute('title') || '')).replace(/\s+/g, ' ').trim()); });
+        /* RE-POINTED 22 Nov 2026 (P-26 review): the house's soft badge (.cun-badge), as Parties wears it */
+        return [...p.querySelectorAll('.jov5-sub .cun-badge')].map(g => (g.textContent.trim() + ' ' + (g.getAttribute('title') || '')).replace(/\s+/g, ' ').trim()); });
       check('6d an away colleague\'s panel says "Away until …" and who stands in', !!J && J.some(x => /^Away Away until .+ stand-in: Amina Otieno/.test(x)), JSON.stringify(J));
       /* RETIRED 17 Nov 2026 (#762): 6e "twelve at a time, 1–12 of N · Show N more" — round 6's People is one page (old look only) */
       await shot('19-people-1440x780.png');

@@ -90,8 +90,9 @@ const PAGE = () => {
     n: cards.length,
     names: cards.map(c => txt(c, '.cun-name')),
     /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): the Role cell is the second cell, a
-       soft badge (.reg-badge); td.cun-wait is now only the Waiting on them cell */
-    roles: cards.map(c => { const td = c.children[1]; const b = td && td.querySelector('.reg-badge'); return b ? b.textContent.replace(/\s+/g, ' ').trim() : ''; }),
+       soft badge (.reg-badge); td.cun-wait is now only the Waiting on them cell.
+       RE-POINTED 22 Nov 2026 (P-26 review): the badge is the house's soft badge, the one Parties wears (.cun-badge, 6px corners, 12px) */
+    roles: cards.map(c => { const td = c.children[1]; const b = td && td.querySelector('.cun-badge'); return b ? b.textContent.replace(/\s+/g, ' ').trim() : ''; }),
     subs: cards.map(c => txt(c, '.cun-sub')),
     rowLinks: cards.reduce((n, c) => n + c.querySelectorAll('a').length, 0),
     words: (document.getElementById('dir-page') || {}).textContent || '',
