@@ -128,14 +128,17 @@ function lhBoxHtml(seat, o){
   const total = (typeof pg.total === 'function') ? pg.total() : null;
   const noun = pg.noun || seat;
   /* a filter says so, and only so (round 1): "Filter this list"; the old "Search, or ask across N …" words stay inert */
-  const ph = (LH_BOX_ASKS && typeof total === 'number' && isFinite(total)) ? _lhTn('lh_ph_' + noun, total, { n: _lhN(total) }) : _lhT('lh_filter_ph');
+  /* a page may give its box its own words (spec.ph, P-31's "Ask about your contracts: …") and mark (spec.boxIcon) */
+  const own = (typeof pg.ph === 'function') ? pg.ph() : null;
+  const ph = own ? String(own) : (LH_BOX_ASKS && typeof total === 'number' && isFinite(total)) ? _lhTn('lh_ph_' + noun, total, { n: _lhN(total) }) : _lhT('lh_filter_ph');
+  const ic = ((typeof pg.boxIcon === 'function') ? pg.boxIcon() : null) || 'search';
   const qNow = (typeof pg.q === 'function') ? pg.q() : '';
   const asking = _lhAskingNow(seat, qNow);
   const q = asking != null ? asking : qNow;
   const extra = Object.entries(Object.assign({}, pg.boxAttrs || {}, opt.attrs || {}))
     .filter(([k, v]) => /^[a-z][\w-]*$/i.test(k) && v != null && v !== false)
     .map(([k, v]) => v === true ? ` ${k}` : ` ${k}="${_lhE(v)}"`).join('');
-  return `<label class="lh-ask" title="${_lhE(_lhT(LH_BOX_ASKS ? 'lh_box_title' : 'lh_filter_title'))}">${_lhIc('search')}<input type="search" id="${_lhE(id)}" data-lh-q autocomplete="off" spellcheck="false" placeholder="${_lhE(ph)}" value="${_lhE(q == null ? '' : q)}" aria-label="${_lhE(_lhT(LH_BOX_ASKS ? 'lh_box_label' : 'lh_filter_ph'))}"${extra}></label>`;
+  return `<label class="lh-ask${ic !== 'search' ? ' is-' + _lhE(ic) : ''}" title="${_lhE(_lhT(LH_BOX_ASKS ? 'lh_box_title' : 'lh_filter_title'))}">${_lhIc(ic)}<input type="search" id="${_lhE(id)}" data-lh-q autocomplete="off" spellcheck="false" placeholder="${_lhE(ph)}" value="${_lhE(q == null ? '' : q)}" aria-label="${_lhE(_lhT(LH_BOX_ASKS ? 'lh_box_label' : 'lh_filter_ph'))}"${extra}></label>`;
 }
 
 /* ---- A PAGE'S OWN PARTS STAND ----

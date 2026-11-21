@@ -591,7 +591,11 @@ function jamboWaysHere(){
   const face = JB_WAY_FACES.has(k);
   return { k, doors: row.d.filter(d => d !== k && (face || !JB_WAY_FACES.has(d))) };
 }
-function jamboWayWord(k){ const w = _jbT('ca_w_' + k); return (w && w !== 'ca_w_' + k) ? w : k; }
+function jamboWayWord(k){
+  /* P-31 AS DRAWN (21 Nov 2026): beside the Contracts place, a paper chosen on the Wall included, the links line says them
+     in full, as the list's own line does ("upload a document · draft a new agreement · discover") */
+  try { if (window.CA_CHIP_WALL_WORD && window.CA_CHIP_WALL_WORD[k] && typeof window.regPlaceUp === 'function' && window.regPlaceUp()) return _jbT(window.CA_CHIP_WALL_WORD[k]); } catch (_){ /* the short word stands */ }
+  const w = _jbT('ca_w_' + k); return (w && w !== 'ca_w_' + k) ? w : k; }
 function jamboWaysHtml(here, cls){
   /* the new look's (owner, 31 Oct 2026: built behind the switch until each page is approved) */
   if (typeof window.newLookOn === 'function' && !window.newLookOn()) return '';

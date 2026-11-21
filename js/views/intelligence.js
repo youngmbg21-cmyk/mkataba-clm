@@ -11827,7 +11827,7 @@ function igWallCardHtml(c,need){
     const endW=end?(typeof regDotDate==='function'?regDotDate(end):end):'';
     return `<button type="button" role="listitem" class="igw-card is-nl is-stripe${opening?' is-opening':''}${c._codeNamed?' is-coded':''}${chosen?' is-chosen':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${chosen?' aria-current="true"':''}${opening?' aria-busy="true"':''}>
     ${igWallSheetHtml(c,opening)}${priv?`<span class="igw-lock igw2-lock" title="${igEsc(i18t('igw_private_title',{ s:fname }))}">${typeof icon==='function'?icon('lock','w-3 h-3'):''}${igEsc(fname)}</span>`:''}
-    <span class="igw2-foot is-even"><span class="igw2-who">${igEsc(c._codeNamed?i18t('igw_kept_list'):(c.counterparty||''))}</span><span class="igw2-st"><span class="reg-badge is-${igEsc(tone)}"><i></i>${igEsc(word)}</span>${endW?`<small class="igw2-end">${igEsc(endW)}</small>`:''}</span></span></button>`;
+    <span class="igw2-foot is-even"><span class="igw2-who">${igEsc(c._codeNamed?i18t('igw_kept_list'):(c.counterparty||''))}</span><span class="igw2-st">${typeof window.regLsBadgeHtml==='function'?regLsBadgeHtml(c):`<span class="reg-badge is-${igEsc(tone)}"><i></i>${igEsc(word)}</span>`}${endW?`<small class="igw2-end">${igEsc(endW)}</small>`:''}</span></span></button>`;
   }
   return `<button type="button" role="listitem" class="igw-card${opening?' is-opening':''}${c._codeNamed?' is-coded':''}${chosen?' is-chosen':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${chosen?' aria-current="true"':''}${opening?' aria-busy="true"':''}>
     ${igWallSheetHtml(c,opening)}
@@ -11982,14 +11982,11 @@ function igWallBodyHtml(rows,o){
 /* THE WALL'S TWO LINES, AS DRAWN (the new look, round 6): under the papers what the press does (and which one is
    chosen), and at the page's foot how many, and that a file dropped on the wall is read (the one drop door) */
 function igWallNlFootHtml(list, shown){
-  if(typeof newLookOn!=='function'||!newLookOn()) return '';
-  const ch=igWallChosenId(), c=ch?shown.find(x=>String(x.id)===ch):null;
-  const left=c?i18t('ctf_wall_chosen',{ name:c.name||'' }):'';
-  /* EVEN CARDS (the harmony review, owner's yes 9 Nov 2026): the how-to sentence goes, and one footer stands under the
-     cards — the paging foot when there is more to show, else the count */
-  void left;
-  if(list.length>shown.length) return '';
-  return `<div class="igw2-pfoot"><span>${igEsc(i18tn('ctf_wall_n',list.length,{ n:list.length }))}</span>${typeof window.pdDropDoor==='function'?`<span>${igEsc(i18t('ctf_wall_drop'))}</span>`:''}</div>`;
+  /* P-31 AS DRAWN (21 Nov 2026; reverses the harmony review's count-and-drop foot): nothing under the papers — the chips
+     say how many ("All 5"), the drop door is Jambo's links line ("upload a document"), a file dropped on the wall is
+     still read (the one drop door, pdDropTake), and a wall cut at a page keeps its own "Show N more" (lhFootHtml) */
+  void list; void shown;
+  return '';
 }
 /* THE PLACE'S FRAME on Home's paper with nothing chosen; the register draws
    the place into it (renderRegister, home) and lights the rail's Contracts */

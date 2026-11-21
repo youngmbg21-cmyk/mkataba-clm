@@ -152,8 +152,9 @@ const check = (name, ok, detail) => {
         })(),
       };
     });
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn): three words only — In review carries its dot, "✓ Signed" its tick, Ended none */
     check('2a the stage is a soft badge, and no mark leads the row',
-      !stage.err && stage.dot && stage.marks === 0 && !!stage.ground && !/rgba\(0, 0, 0, 0\)|transparent/.test(stage.ground),
+      !stage.err && (stage.dot || /Signed|Ended/.test(stage.word)) && stage.marks === 0 && !!stage.ground && !/rgba\(0, 0, 0, 0\)|transparent/.test(stage.ground),
       `${stage.err || ''} marks ${stage.marks} ground ${stage.ground} dot ${stage.dot}`);
     check('2b the word carries the meaning ink, so colour is not the only carrier',
       !!stage.word && stage.ink !== 'rgb(0, 0, 0)', `"${stage.word}" ${stage.ink}`);
@@ -184,7 +185,8 @@ const check = (name, ok, detail) => {
        KEPT the filter, so the claims now say exactly that. */
     /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the stream is a column again on the Contracts place, a soft chip */
     check('3a the stream is a column again, a soft chip in every row that has one',
-      cols.heads.some(x => /^stream$|^värdeflöde$/i.test(x)) && (await page.evaluate(() => document.querySelectorAll('tr[data-row] .ls-chip').length > 0)), cols.heads.join(' · '));
+      /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the column is called Folder */
+      cols.heads.some(x => /^stream$|^värdeflöde$|^folder$|^mapp$/i.test(x)) && (await page.evaluate(() => document.querySelectorAll('tr[data-row] .ls-chip').length > 0)), cols.heads.join(' · '));
     check('3b and no row draws its stream tick', !cols.tick);
     /* RETIRED 16 Nov 2026 (#762): 3c "the Stream filter is still offered under + Filter" — the new look's Contracts head draws no + Filter (lead's ruling) */
     check('3d the LINK column is gone from this table',
