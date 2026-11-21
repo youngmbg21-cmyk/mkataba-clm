@@ -21532,6 +21532,27 @@
   .jov-arrive .hbw2-bar{transform-origin:left center;animation:hbw2Grow .7s cubic-bezier(.22,.61,.36,1) .2s both}
   @keyframes hbw2Ring{from{stroke-dashoffset:106.8}}
   @keyframes hbw2Grow{from{transform:scaleX(0)}to{transform:none}}
+  /* READ DOWN, THE LEGORA + STRIPE WAY (P-41): each sentence a calm row with its small graphic; the quarters by count, the nearest red */
+  .rd-page.is-ls .rd-head{display:flex;align-items:center;gap:var(--s-3)}
+  .rd-page.is-ls .rd-row{display:grid;grid-template-columns:40px minmax(0,1fr) minmax(0,220px);align-items:center;gap:var(--s-3)}
+  .rd-pic-w{display:flex;align-items:center;justify-content:center}
+  .rd-pic{display:inline-flex;width:28px;height:28px}
+  svg.rd-pic{transform:rotate(-90deg)}
+  .rd-pic-b{fill:none;stroke:var(--st-amber-dot);stroke-width:4}
+  .rd-pic-g{fill:none;stroke:var(--st-green-dot);stroke-width:4}
+  .rd-pic-dots{align-items:center;gap:2px;width:auto}
+  .rd-pic-dots i{width:5px;height:5px;border-radius:50%;background:var(--st-green-dot)}
+  .rd-pic-dots i.is-first{background:var(--st-ruby-dot)}
+  .rd-pic-dots i.is-none{background:var(--color-neutral-300)}
+  .rd-pic-bars{flex-direction:column;justify-content:center;gap:4px}
+  .rd-pic-bars i{display:block;height:5px;border-radius:999px;background:var(--st-violet-dot)}
+  .rd-pic-bars i.is-1{background:var(--st-amber-dot)}
+  .rd-pic-n{align-items:center;justify-content:center;border-radius:50%;font-size:var(--t-label);font-weight:var(--w-strong);background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  .rd-pic-n.is-none{background:none;border:1px dashed var(--color-neutral-300);color:var(--color-quiet)}
+  .rd-pic-n.is-late{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  .rd-page.is-ls .rd-q-bar i.is-near{background:var(--st-ruby-dot)}
+  .rd-page.is-ls .rd-q-bar i{transform-origin:left center;animation:hbw2Grow .7s cubic-bezier(.22,.61,.36,1) both}
+  @media (prefers-reduced-motion: reduce){ .rd-page.is-ls .rd-q-bar i{animation:none} }
   @container ndcard (max-width:640px){ .nd-cols > :nth-child(2),.nd-br > .nd-c-st{display:none} }
   html.lg-new .nd-cols{min-height:32px}
   html.lg-new .nd-c-what b{font-size:13px;font-weight:400}

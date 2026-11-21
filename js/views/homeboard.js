@@ -6275,66 +6275,79 @@ function hbRdnRead(){
   const quarters = [...qs.values()].sort((a, b) => a.k.localeCompare(b.k)).slice(0, 6);
   return { L, see, money, total, sig, sigV, ending, autoEnd, streams, top, share, nego, ours, late, week, pay, quarters, exp };
 }
+/* READ DOWN, THE LEGORA + STRIPE WAY (P-41, owner 20 Nov 2026: "L+S and merge it"): the five sentences are COUNTED, NEVER
+   MONEY (MONEY IS NEVER A BIG PART OF A PAGE); each a calm row with a small graphic of its own count, where it was read and
+   its link. The party named is the one holding the most agreements. */
 function hbRdnSentences(R){
-  const m = R.money, out = [];
-  out.push({ t: R.total ? i18tn('rd_s_paper', R.L.length, { v: m(R.total), n: R.L.length, s: m(R.sigV) || i18t('rd_none_v') }) : i18tn('rd_s_paper_nv', R.L.length, { n: R.L.length, s: R.sig.length }),
-    src: i18t('rd_src_list'), door: i18t('rd_door_list'), go: 'contracts' });
+  const out = [];
+  out.push({ k: 'paper', t: i18tn('rd_s_paper_nv', R.L.length, { n: R.L.length, s: R.sig.length }), src: i18t('rd_src_list'), door: i18t('rd_door_list'), go: 'contracts' });
   const f = R.ending[0];
-  out.push({ t: f ? i18tn('rd_s_end', R.ending.length, { n: R.ending.length, name: f.name || '', d: hbRdnDay(R.exp(f)), v: m(hbRdnVal(f)) ? i18t('rd_worth', { v: m(hbRdnVal(f)) }) : '', a: R.autoEnd.length }) : i18t('rd_s_end_none'),
+  out.push({ k: 'end', t: f ? i18tn('rd_s_end', R.ending.length, { n: R.ending.length, name: f.name || '', d: hbRdnDay(R.exp(f)), v: '', a: R.autoEnd.length }) : i18t('rd_s_end_none'),
     src: i18t('rd_src_term'), door: i18t('rd_door_cal'), go: 'calendar' });
-  const s = R.streams;
-  out.push({ t: (s.length ? s.slice(0, 2).map(x => m(x.v) ? i18tn('rd_s_stream', x.cs.length, { s: x.n, v: m(x.v), n: x.cs.length }) : i18tn('rd_s_stream_nv', x.cs.length, { s: x.n, n: x.cs.length })).join('; ') + '. ' : '')
-      + (R.top && R.share >= 50 ? i18t('rd_s_party_most', { p: R.top.p, pc: R.share }) : R.top ? i18t('rd_s_party', { p: R.top.p, pc: R.share }) : ''),
-    src: i18t('rd_src_streams'), door: R.top ? i18t('rd_door_shelf', { p: R.top.p }) : i18t('rd_door_explorer'), go: 'explorer' });
-  out.push({ t: R.nego.length ? i18tn('rd_s_nego', R.nego.length, { n: R.nego.length, k: R.ours.length }) : i18t('rd_s_nego_none'),
-    src: i18t('rd_src_nego'), door: i18t('rd_door_nego'), go: 'negotiations' });
-  out.push({ t: i18t('rd_s_duty', { late: i18tn('rd_late', R.late, { n: R.late }), week: i18tn('rd_week', R.week, { n: R.week }) }) + ' ' + (R.pay ? i18tn('rd_pay', R.pay, { n: R.pay }) : i18t('rd_pay_none')),
+  const s = R.streams.slice().sort((x, y) => y.cs.length - x.cs.length);
+  const byN = new Map(); R.L.forEach(c => { const p = String(c.counterparty || '').trim(); if (p) byN.set(p, (byN.get(p) || 0) + 1); });
+  const most = [...byN.entries()].sort((x, y) => y[1] - x[1])[0] || null;
+  out.push({ k: 'streams', t: (s.length ? s.slice(0, 2).map(x => i18tn('rd_s_stream_nv', x.cs.length, { s: x.n, n: x.cs.length })).join('; ') + '. ' : '') + (most ? i18t('rd_s_party_n', { p: most[0] }) : ''),
+    src: i18t('rd_src_streams'), door: most ? i18t('rd_door_shelf', { p: most[0] }) : i18t('rd_door_explorer'), go: 'explorer' });
+  out.push({ k: 'nego', t: R.nego.length ? i18tn('rd_s_nego', R.nego.length, { n: R.nego.length, k: R.ours.length }) : i18t('rd_s_nego_none'), src: i18t('rd_src_nego'), door: i18t('rd_door_nego'), go: 'negotiations' });
+  out.push({ k: 'duty', t: i18t('rd_s_duty', { late: i18tn('rd_late', R.late, { n: R.late }), week: i18tn('rd_week', R.week, { n: R.week }) }) + ' ' + (R.pay ? i18tn('rd_pay', R.pay, { n: R.pay }) : i18t('rd_pay_none')),
     src: i18t('rd_src_oblig'), door: i18t('rd_door_oblig'), go: 'oblig' });
   return out;
+}
+/* each sentence's small graphic, drawn from its own count (never a guess) */
+function hbRdnPic(k, R){
+  const C = 2 * Math.PI * 9;
+  if (k === 'paper'){ const n = R.L.length || 1, f = R.sig.length / n;
+    return `<svg viewBox="0 0 24 24" class="rd-pic"><circle cx="12" cy="12" r="9" class="rd-pic-b"/><circle cx="12" cy="12" r="9" class="rd-pic-g" style="stroke-dasharray:${C.toFixed(1)};stroke-dashoffset:${(C * (1 - f)).toFixed(1)}"/></svg>`; }
+  if (k === 'end'){ const n = Math.min(R.ending.length, 6); return `<span class="rd-pic rd-pic-dots">${Array.from({ length: n }, (_, i) => `<i class="${i === 0 ? 'is-first' : ''}"></i>`).join('') || '<i class="is-none"></i>'}</span>`; }
+  if (k === 'streams'){ const s = R.streams.slice().sort((x, y) => y.cs.length - x.cs.length).slice(0, 2), m = Math.max(1, ...s.map(x => x.cs.length));
+    return `<span class="rd-pic rd-pic-bars">${s.map((x, i) => `<i class="is-${i}" style="width:${Math.max(18, Math.round(100 * x.cs.length / m))}%"></i>`).join('')}</span>`; }
+  if (k === 'nego') return R.nego.length ? `<span class="rd-pic rd-pic-n">${R.nego.length}</span>` : `<span class="rd-pic rd-pic-n is-none">0</span>`;
+  return `<span class="rd-pic rd-pic-n${R.late ? ' is-late' : ' is-none'}">${R.late}</span>`;
 }
 function hbRdnVal(c){ let h = null; try { h = typeof fxCounted === 'function' ? fxCounted(c) : null; } catch (_){ h = null; } return h && !h.missing && !h.private ? (Number(h.v) || 0) : 0; }
 function hbRdnDay(iso){ try { return new Date(iso + 'T00:00:00').toLocaleDateString(langLocale(), { day: 'numeric', month: 'long', year: 'numeric' }); } catch (_){ return iso; } }
 function hbRdnHtml(){
   const R = hbRdnRead(), E = _hbE, S = hbRdnSentences(R);
   let when = ''; try { when = new Date().toLocaleDateString(langLocale(), { weekday: 'long', day: 'numeric', month: 'long' }); } catch (_){ when = ''; }
-  const rows = S.map((x, i) => `<div class="rd-row" data-rd-row="${i}"><p class="rd-t">${E(x.t)}</p><div class="rd-src"><b>${E(x.src)}</b><button type="button" class="rd-go" data-rd-go="${E(x.go)}">${E(x.door)}</button></div></div>`).join('');
-  const max = Math.max(1, ...R.quarters.map(q => q.v || q.n));
+  const rows = S.map((x, i) => `<div class="rd-row" data-rd-row="${i}"><span class="rd-pic-w" aria-hidden="true">${hbRdnPic(x.k, R)}</span><p class="rd-t">${E(x.t)}</p><div class="rd-src"><b>${E(x.src)}</b><button type="button" class="rd-go" data-rd-go="${E(x.go)}">${E(x.door)}</button></div></div>`).join('');
+  /* ENDING, BY QUARTER · AGREEMENTS (P-41; was "value on paper"): one bar per quarter by count, the nearest red */
+  const max = Math.max(1, ...R.quarters.map(q => q.n));
   const qName = q => { try { const a = new Date(Number(q.y), q.q * 3, 1), b = new Date(Number(q.y), q.q * 3 + 2, 1); return a.toLocaleDateString(langLocale(), { month: 'short' }) + '–' + b.toLocaleDateString(langLocale(), { month: 'short' }) + ' ' + q.y; } catch (_){ return q.k; } };
-  const bars = R.quarters.map(q => `<div class="rd-q"><span class="rd-q-k">${E(qName(q))}</span><span class="rd-q-bar"><i class="${q.signed ? 'is-signed' : ''}" style="width:${Math.max(2, Math.round(100 * (q.v || q.n) / max))}%"></i></span><span class="rd-q-v">${E([R.money(q.v), String(q.n)].filter(Boolean).join(' · '))}</span></div>`).join('');
+  const bars = R.quarters.map((q, i) => `<div class="rd-q"><span class="rd-q-k">${E(qName(q))}</span><span class="rd-q-bar"><i class="${i === 0 ? 'is-near' : 'is-signed'}" style="width:${Math.max(2, Math.round(100 * q.n / max))}%"></i></span><span class="rd-q-v">${E(String(q.n))}</span></div>`).join('');
   const needs = typeof counterNeedsCount === 'function' ? counterNeedsCount() : 0;
   const foot = [['needs', i18t('rd_f_needs', { n: needs })], ['contracts', i18t('rd_f_contracts', { n: R.L.length })], ['calendar', i18t('rd_f_calendar')], ['explorer', i18t('rd_f_explorer')], ['negotiations', i18t('rd_f_nego')], ['activity', i18t('rd_f_history')]]
     .map(([k, w]) => `<button type="button" class="rd-go" data-rd-go="${E(k)}">${E(w)}</button>`).join('');
-  return `<div class="rd-page apn-card" id="rd-page"><div class="rd-head"><button type="button" class="ctf-back" data-rd-back>‹ ${E(i18t('hb_face_board'))}</button><span class="rd-eyebrow">${E(i18t('rd_eyebrow', { when }))}</span></div>
+  return `<div class="rd-page apn-card is-ls" id="rd-page"><div class="rd-head"><button type="button" class="ctf-back" data-rd-back>‹ ${E(i18t('hb_face_board'))}</button><span class="rd-eyebrow">${E(i18t('rd_eyebrow', { when }))}</span><span class="hb-grow"></span><button type="button" class="rd-print" data-rd-print>${E(i18t('rd_print'))}</button></div>
     <h1 class="rd-h">${E(i18t('rd_title'))}</h1><div class="rd-rows">${rows}</div>
-    ${bars ? `<div class="rd-cap">${E(i18t(R.see ? 'rd_q_cap' : 'rd_q_cap_n'))}</div><div class="rd-qs">${bars}</div>` : ''}
-    <div class="rd-foot"><span class="rd-foot-l">${foot}</span><button type="button" class="rd-print" data-rd-print>${E(i18t('rd_print'))}</button></div></div>`;
+    ${bars ? `<div class="rd-cap">${E(i18t('rd_q_cap_n'))}</div><div class="rd-qs">${bars}</div>` : ''}
+    <div class="rd-foot"><span class="rd-foot-l">${foot}</span></div></div>`;
 }
 /* THE FIVE PARTS ON READ DOWN (owner picked "Five Parts" by name, 18 Nov 2026): the book in three numbers (on paper,
    ending within a year, your move), the three things worth a closer look as rows, each by a door the page already
    has (data-rd-show / data-rd-go, the renewal's own needsYouGo), and the first renewal decision as the one black
    button. The same reading as the page (hbRdnRead); no AI. The new look only. */
 function hbRdnPanelFive(R){
-  const m = R.money, f = R.ending[0], code = typeof fxHomeCode === 'function' ? fxHomeCode() : '';
+  /* THE LEGORA + STRIPE WAY (P-41): NO MONEY, no tiles. "The first decision" (a red "in N days", what, the act, black),
+     then "Look closer", each row by a door the page already has. The same reading as the page; no AI. */
+  const f = R.ending[0];
   const day = f ? hbRdnDay(R.exp(f)) : '';
-  const paper = m(R.total);
-  const glance = [paper ? { n: code ? paper.replace(code, '').trim() : paper, l: i18t('jov5_rd_g_paper', { cur: code }).trim(), attr: 'data-rd-go="contracts"' }
-      : { n: R.L.length, l: i18t('jov5_rd_g_agreements'), attr: 'data-rd-go="contracts"' },
-    { n: R.ending.length, l: i18t('jov5_rd_g_ending'), attr: 'data-rd-go="calendar"' },
-    { n: R.ours.length, l: i18t('jov5_rd_g_move'), warn: R.ours.length > 0, attr: 'data-rd-go="negotiations"' }];
+  const today = typeof todayISO === 'function' ? todayISO() : '';
+  const days = f && today ? Math.round((new Date(R.exp(f) + 'T12:00:00') - new Date(today + 'T12:00:00')) / 864e5) : null;
   const rows = [];
-  if (f) rows.push({ mark: 'calendar', tone: 'amber', t: i18t('jov5_rd_first', { name: f.name || '' }), s: [day, m(hbRdnVal(f)), i18t('jov5_rd_renew_q')].filter(Boolean).join(' · '),
-    run: () => { _hbRdn = false; if (typeof needsYouGo === 'function') needsYouGo('renewal', f.id); } });
-  if (R.top) rows.push({ mark: 'users', t: i18t('rd_p_conc_v', { p: R.top.p, pc: R.share }), s: i18t('jov5_rd_party_s'),
-    attr: `data-rd-show="${_hbE(R.top.cs.map(c => c.id).join(','))}" data-rd-label="${_hbE(R.top.p)}"` });
-  rows.push({ mark: 'file', t: i18tn('rd_p_nego', R.nego.length, { n: R.nego.length }),
-    s: R.ours.length ? i18tn('jov5_rd_nego_s', R.ours.length, { n: R.ours.length }) : i18t('jov5_rd_nego_none'), attr: 'data-rd-go="negotiations"' });
-  if (R.late) rows.push({ mark: 'alert', tone: 'amber', t: i18tn('rd_late', R.late, { n: R.late }), s: i18t('jov5_rd_late_s'), attr: 'data-rd-go="oblig"' });
-  const act = f ? { say: i18t('jov5_rd_act', { name: f.name || '', day }), label: i18t('jov5_rd_act_b', { name: f.name || '' }),
+  if (f) rows.push({ mark: 'calendar', tone: 'green', t: i18t('rd_p_first_ends', { name: f.name || '' }), s: day, attr: 'data-rd-go="calendar"' });
+  const byN = new Map(); R.L.forEach(c => { const p = String(c.counterparty || '').trim(); if (!p) return; const e = byN.get(p) || { p, cs: [] }; e.cs.push(c); byN.set(p, e); });
+  const most = [...byN.values()].sort((x, y) => y.cs.length - x.cs.length)[0] || null;
+  if (most) rows.push({ mark: 'users', t: i18t('rd_p_most', { p: most.p }), s: i18t('rd_p_open_them'), attr: `data-rd-show="${_hbE(most.cs.map(c => c.id).join(','))}" data-rd-label="${_hbE(most.p)}"` });
+  if (R.late) rows.push({ mark: 'alert', tone: 'red', t: i18tn('rd_late', R.late, { n: R.late }), s: i18t('jov5_rd_late_s'), attr: 'data-rd-go="oblig"' });
+  else rows.push({ mark: 'file', t: i18tn('rd_p_nego', R.nego.length, { n: R.nego.length }), s: R.ours.length ? i18tn('jov5_rd_nego_s', R.ours.length, { n: R.ours.length }) : i18t('jov5_rd_nego_none'), attr: 'data-rd-go="negotiations"' });
+  const act = f ? { say: days != null ? i18tn('rd_p_decide_in', days, { n: days, name: f.name || '' }) : i18t('rd_p_decide_say', { name: f.name || '' }), label: i18t('jov5_rd_act_b', { name: f.name || '' }),
       run: () => { _hbRdn = false; if (typeof needsYouGo === 'function') needsYouGo('renewal', f.id); } }
     : { say: i18t('jov5_rd_act_none'), label: i18t('jov5_rd_act_cal'), attr: 'data-rd-go="calendar"' };
   let time = ''; try { time = new Date().toLocaleTimeString(langLocale(), { hour: '2-digit', minute: '2-digit' }); } catch (_){ time = ''; }
-  return { eyebrow: i18t('jov5_rd_eb'), title: i18t('jov5_rd_t'), sub: i18t('jov5_rd_s'), glance,
-    groups: [{ label: i18t('jov5_rd_closer'), rows }], act, src: i18t('jov5_rd_src', { time }) };
+  return { eyebrow: i18t('jov5_rd_eb'), title: i18t('jov5_rd_t'), sub: i18t('rd_p_sub_now', { time }),
+    act, actFirst: true,
+    groups: [{ label: i18t('jov5_rd_closer'), rows }] };
 }
 /* the read down's panel: what was read, the next questions (the cost said), Jambo's line on the book */
 function hbRdnPanelHtml(){
