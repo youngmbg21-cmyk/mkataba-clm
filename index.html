@@ -19692,6 +19692,11 @@
   /* JAMBO'S PANELS ARRIVE RARELY (owner's rule, 15 Nov 2026; js/components.js jovArriveSweep decides WHEN): the parts rise
      in turn, the round marks pop in one by one, a line draws, the ring fills, the tick draws, the stage line draws to the
      stage in hand and that stage pulses once. Transform and opacity only; nothing beside the paper changes size. */
+  /* A COUNT-UP IS DRAWN OVER THE NUMBER (jovCountOver, js/components.js): the number's own text stays true and is
+     hidden while the counting figure, read from data-jov-count, is painted in its place in the same ink, from its start
+     edge as the count always grew */
+  html.lg-new [data-jov-count]{position:relative;-webkit-text-fill-color:transparent}
+  html.lg-new [data-jov-count]::after{content:attr(data-jov-count);position:absolute;inset:0;text-align:start;-webkit-text-fill-color:currentColor;white-space:nowrap;pointer-events:none}
   html.lg-new .jov-arrive > *{animation:jovRise .42s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--jov-i, 0) * 70ms)}
   html.lg-new .jov-arrive :is(.jov5-day, .jov5-cm, .pd2-sg-i){animation:jovPop .34s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(220ms + var(--jov-j, 0) * 60ms)}
   html.lg-new .jov-arrive .jov5-line .jov5-ln{transform-origin:left center;animation:jovDraw .8s cubic-bezier(.2,.7,.2,1) .25s both}

@@ -347,7 +347,10 @@ const FILES = {
       const was = await page.evaluate(() => migCheckId());
       await page.evaluate(() => { try { placeSave(); } catch (_) {} });
       await page.reload({ waitUntil: 'networkidle' });
-      await until(() => window.state && state.contracts && state.contracts.length > 5, null, 20000);
+      /* RE-POINTED 22 Nov 2026 (the book arrives whole; no demo book): "> 5" was only ever met by the thirty demo
+         contracts held in memory while the page loaded — this world seeds FOUR (FIXTURES). The book now starts empty on
+         a server and arrives in one step, so four in hand is the real book loaded. */
+      await until(() => window.state && state.contracts && state.contracts.length >= 4, null, 20000);
       const again = await until(() => (state.view === 'migration' && document.getElementById('mig-ck-facts')) ? migCheckId() : null, null, 12000);
       check('7a after a refresh the check view is up on the same file', !!was && again === was, JSON.stringify({ was, again }));
       if (await press('[data-mig-ck-close]', '7b ‹ All files')) {
