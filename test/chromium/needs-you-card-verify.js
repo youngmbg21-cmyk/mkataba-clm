@@ -85,7 +85,8 @@ const CONTRACTS = [
     await page.click('#li-go');
     await until(page, () => window.state && state.contracts && state.contracts.length > 0, null, 15000);
     await page.evaluate(() => { hbS().face = 'board'; hbSave(); setView('dashboard'); });
-    const landed = await until(page, () => document.querySelectorAll('#hb-board .hb-fig').length === 5);
+    /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */
+    const landed = await until(page, () => document.querySelectorAll('#hb-board .hb-fig').length === 4);
     ok('0 Home lands on the Board', landed);
     ok('0b the Board draws no Needs you card', await page.evaluate(() => !document.querySelector('#hb-board #hb-needs, #hb-board .hb-ny')));
 

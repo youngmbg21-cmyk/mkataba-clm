@@ -80,7 +80,9 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
       /* ================= 1. THE TAB, AFTER FINDINGS ================= */
       const tabs = await page.evaluate(() => [...document.querySelectorAll('#ig-dock [data-pd-tab]')].map(b => b.getAttribute('data-pd-tab')));
       /* RE-POINTED 9 Nov 2026 (owner picked "The SAP Way"): Your day stands first, before Jambo's Overview */
-      check(`1-${lang} the tabs read Your day · Jambo · Findings · Guide (Guide last)`, tabs[0] === 'day' && tabs[1] === 'copilot' && tabs[tabs.length - 1] === 'guide' && (!tabs.includes('findings') || tabs.indexOf('findings') === tabs.length - 2), JSON.stringify(tabs));
+      /* RE-POINTED (P-40, owner's pick 20 Nov 2026: Explorer's panel has no Guide tab; its pages live in the nav panel): the
+         tabs read Your day · Jambo (· Findings), and no Guide tab — the guide below is reached by its own door */
+      check(`1-${lang} the tabs read Your day · Jambo · Findings, no Guide tab`, tabs[0] === 'day' && tabs[1] === 'copilot' && !tabs.includes('guide'), JSON.stringify(tabs));
 
       /* ================= 2. PRESSED, AND PRESSED AGAIN ================= */
       const pressed = await pressTab('guide');
@@ -88,7 +90,8 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
       const bare = await page.evaluate(() => ({ box: !!document.getElementById('igd-input'), chips: !!document.querySelector('#ig-dock [data-ig-chips]'),
         lit: document.querySelector('#ig-dock [data-pd-tab="guide"]')?.getAttribute('aria-selected') }));
       /* RE-POINTED 22 Oct 2026 (owner: "all side panels need to have jambo entry field at the bottom"): the Guide keeps Jambo's box at its foot, still no chips */
-      check(`2a-${lang} pressing Guide shows the guide, lit, Jambo's box at its foot and no chips`, pressed && !!up && bare.box && !bare.chips && bare.lit === 'true', JSON.stringify(bare));
+      /* RE-POINTED (P-40): with no tab to light, the guide still opens by its door, Jambo's box at its foot */
+      check(`2a-${lang} the guide opens by its door, Jambo's box at its foot`, pressed && !!up && bare.box, JSON.stringify(bare));
       await pressTab('guide');
       const back = await until(() => !document.getElementById('ig-gd') && !!document.getElementById('igd-input'));
       check(`2b-${lang} pressing Guide again brings Jambo back with his box`, !!back);

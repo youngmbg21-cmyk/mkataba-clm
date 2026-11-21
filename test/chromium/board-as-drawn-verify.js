@@ -99,6 +99,9 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await until(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-A2'), null, 20000);
     await page.keyboard.press('Escape').catch(() => {});
+    /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */
+    /* this check reads the value figure (4b, 12), so the reader picks it, as the figure picker lets them */
+    await page.evaluate(() => { const s = hbS(); s.figs = ['live', 'value', 'ending', 'overdue']; hbSave(); if (typeof hbPaintBoard === 'function') hbPaintBoard(); });
     const toBoard = async () => { await page.evaluate(() => { if (state.view === 'dashboard') hbSetFace('board'); else { hbS().face = 'board'; hbSave(); setView('dashboard'); } });
       return until(() => hbFace() === 'board' && !!document.querySelector('#hb-book .hb-tn .hb-fig') && !!document.querySelector('#ig-dock #igd-feed'), null, 12000); };
     await toBoard();
@@ -307,6 +310,9 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
 
     console.log('\n12 · where a figure\'s door lands');
     for (const k of ['live', 'ending', 'past', 'value']) {
+      /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */
+      /* only four cards stand at once: 'past' is shown in overdue's place for its own turn */
+      await page.evaluate(k => { const s = hbS(); s.figs = ['live', 'value', 'ending', k === 'past' ? 'past' : 'overdue']; hbSave(); if (state.view === 'dashboard' && typeof hbPaintBoard === 'function') hbPaintBoard(); }, k);
       await toBoard();
       const want = await page.evaluate(k => { const F = hbBookData(hbS().lens || 'all').figs[k]; const b = document.querySelector(`#hb-book .hb-fig-main[data-hb-dig="f:${k}"]`);
         return { ids: F.ids.slice().sort(), off: !b || b.disabled }; }, k);
@@ -320,6 +326,8 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
       await shot(page, `17-board-figure-${k}-1440x780`);
       await page.evaluate(() => { regState().only = null; });
     }
+    /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */
+    await page.evaluate(() => { const s = hbS(); s.figs = ['live', 'value', 'ending', 'overdue']; hbSave(); if (state.view === 'dashboard' && typeof hbPaintBoard === 'function') hbPaintBoard(); });
     await toBoard();
     const late = await page.evaluate(() => { const b = document.querySelector('#hb-book .hb-fig-main[data-hb-dig="f:overdue"]'); return b && !b.disabled ? hbBookData('all').figs.overdue.n : 0; });
     if (late) {

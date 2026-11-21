@@ -76,7 +76,10 @@ const check = (name, pass, detail) => {
       window._asked = [];
       window.copilotAvailable = () => true;
       window.copilotAsk = async (msgs) => { window._asked.push(msgs[0].content); return { answer: 'A late burst.' }; };
-      const s = hbS(); s.face = 'board'; s.prep = 'closed'; s.panels = []; s.why = {}; s.digBig = false; s.path = [k]; s.screen = 'dark';
+      const s = hbS(); s.face = 'board'; s.prep = 'closed';
+      /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */
+      /* check 5 opens the value's own card from its figure, so the reader picks it, as the figure picker lets them */
+      s.figs = ['live', 'value', 'ending', 'overdue']; s.panels = []; s.why = {}; s.digBig = false; s.path = [k]; s.screen = 'dark';
       s.recipe = s.recipe || {}; s.recipe[k] = { which: 'all', pic: 'cols', split: { by: 'date', unit: 'm', date: 'signed' }, measure: 'count', trend: true };
       hbSave(); setView('dashboard'); }, KEY);
     const up = await until(() => !!document.querySelector('#hb-focus .hb-dig'));

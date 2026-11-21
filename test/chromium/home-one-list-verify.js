@@ -104,7 +104,8 @@ const CONTRACTS = [
     await until(page, () => window.state && state.contracts && state.contracts.length > 0, null, 15000);
     await page.evaluate(() => setView('dashboard'));
     /* RE-POINTED 11 Oct 2026 (owner: "only 5 cards") */
-    const landed = await until(page, () => document.querySelectorAll('#hb-board .hb-fig').length === 5);
+    /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */
+    const landed = await until(page, () => document.querySelectorAll('#hb-board .hb-fig').length === 4);
     ok('0 Home lands on the board', landed);
 
     /* ===== 1. THE CARD IS COPILOT'S, AND NOTHING IS WAITING ON IT ===== */
@@ -144,7 +145,10 @@ const CONTRACTS = [
     ok('2b it never closes: no x on it, and so no way back to draw', !J.x && !J.back, JSON.stringify(J));
     const tabs = await page.evaluate(() => [...document.querySelectorAll('#hm-agents .nd-tab')].map(t => t.textContent.replace(/\s+/g, ' ').trim()));
     const sum = await page.evaluate(() => { const D = ndRead(); return { n: D.n, you: D.you.reduce((s, r) => s + r.n, 0), jambo: D.jambo.length }; });
-    ok('2c its tabs count the one list: All = Your move + Jambo prepared', tabs.join('|') === `All ${sum.n}|Your move ${sum.you}|Jambo prepared ${sum.jambo}`, JSON.stringify({ tabs, sum }));
+    /* RE-POINTED (P-39, owner's pick 20 Nov 2026: chips All · Late · Your move · Jambo): Late is a chip of its own, a part
+       of what is yours; All is still Your move and Jambo prepared together */
+    const tn = k => { const t = tabs.find(x => x.startsWith(k + ' ')); return t ? Number(t.slice(k.length + 1)) : null; };
+    ok('2c its tabs count the one list: All = what is yours + Jambo prepared; Late is part of yours', tabs[0] === `All ${sum.n}` && sum.n === sum.you + sum.jambo && tn('Jambo prepared') === sum.jambo && (tn('Late') == null || tn('Late') <= sum.you), JSON.stringify({ tabs, sum }));
     ok('2d and it stays on the Board', await until(page, () => !!document.getElementById('hm-agents')));
 
     /* ===== 3. THE X IS IN THE CARD'S RIGHT CORNER =====
