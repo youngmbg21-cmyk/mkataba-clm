@@ -1654,7 +1654,8 @@ function migNlLitHtml(text, at){
 }
 const MIGN_USE_FOR = { party:'counterparty', value:'value', renews:'expiryDate', date:'expiryDate' };
 function migNlFactsHtml(r, P){
-  let F = []; try { F = migFormOf(P).filter(x => x.k !== 'folder'); } catch (_){ F = []; }
+  /* NO MONEY IN THE PANEL (P-33: the Value column is "the one place money shows"): the value is checked on the check screen */
+  let F = []; try { F = migFormOf(P).filter(x => x.k !== 'folder' && x.k !== 'value'); } catch (_){ F = []; }
   if (!F.length) return '';
   const text = (P.upload && P.upload.extractedText) || '';
   const open = F.find(x => x.unsure && x.at) || F.find(x => x.need && x.at) || null;
