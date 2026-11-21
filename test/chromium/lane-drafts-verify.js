@@ -180,7 +180,11 @@ const until = async (page, fn, arg, ms = 8000) => {
       let rw = null; for (const h of rws){ if (/site visit/i.test(await h.textContent())){ rw = h; break; } }
       rw = rw || rws[0]; if (rw){ await rw.click(); await page.waitForTimeout(800); } }
     const withCell = await page.waitForFunction(() => /\b(Peter|You) took it\b|\bWith (Peter|you)\b/.test(((document.getElementById('content') || {}).textContent || '') + ' ' + ((document.getElementById('ins-panel') || {}).textContent || '')), null, { timeout: 6000 }).then(() => true, () => false);
-    ok('4b the Requests page says Peter holds it', withCell);
+    const seen4 = withCell ? '' : await page.evaluate(() => JSON.stringify({ view: state.view, tab: (document.querySelector('[data-ikn-tab].is-on') || {}).textContent,
+      tabs: [...document.querySelectorAll('[data-ikn-tab]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
+      rows: [...document.querySelectorAll('#content [data-ikn-row]')].map(r => (r.className.includes('is-sel') ? '*' : '') + r.textContent.replace(/\s+/g, ' ').trim().slice(0, 50)),
+      panel: ((document.getElementById('ins-panel') || {}).textContent || '').replace(/\s+/g, ' ').trim().slice(0, 400) }));
+    ok('4b the Requests page says Peter holds it', withCell, seen4);
     await page.screenshot({ path: path.join(OUT, '4-requests.png') });
     ok('5 [control] the whole journey raised no page error', errs.length === 0, errs.length ? errs : 'clean');
   } catch (e) {
