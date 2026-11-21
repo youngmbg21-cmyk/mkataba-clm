@@ -254,7 +254,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
        head (.cun-head) with the tabs Mine · Waiting on others · Done ([data-apn-tab]) and a foot (.apn-foot); whose turn
        is the row's mark and its hover (listSapCellHtml, apTurnText); the chosen approval's panel is THE FIVE PARTS
        (apnLeadFiveHtml, owner 16 Nov 2026): no button — Approve and Decline stay on the row. Each claim asked of its new place. */
-    const apMark = id => page.evaluate(k => { const r = document.querySelector(`[data-ap-row="${k}"]`); const m = r && r.querySelector('td:first-child [title]'); return m ? m.getAttribute('title') : null; }, id);
+    /* RE-POINTED (P-30, owner's pick 20 Nov 2026): the row's mark is gone; whose turn is the Approver cell's hover */
+    const apMark = id => page.evaluate(k => { const r = document.querySelector(`[data-ap-row="${k}"]`); const m = r && r.querySelector('td.apn-apc [title]'); return m ? m.getAttribute('title') : null; }, id);
     const apTab = async k => { const b = await page.$(`[data-apn-tab="${k}"]`); if (b) { await b.click(); await page.waitForTimeout(300); } return !!b; };
     await part('5 Approvals', async () => {
       await until(() => document.querySelector('[data-ap-row="MK-AP1"]') && document.querySelector('#ins-panel.is-jambo'), null, 10000);
@@ -265,7 +266,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         A0.rows > 0 && Number(A0.pill.trim()) === A0.rows && new RegExp('^' + A0.rows + ' for you').test(A0.foot) && !A0.band, JSON.stringify(A0));
       const ap1 = await apMark('MK-AP1');
       await apTab('others');
-      const sg1 = await until(() => { const r = document.querySelector('[data-ap-row="MK-SG1"]'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : null; }, null, 4000);
+      const sg1 = await until(() => { const r = document.querySelector('[data-ap-row="MK-SG1"] td.apn-apc [title]'); return r ? r.getAttribute('title') : null; }, null, 4000);
       check('5b Whose turn: "You for Jonas" on the row\'s mark; a colleague\'s signature "Jonas signs · back …"', ap1 === 'You for Jonas' && /Jonas signs · back /.test(sg1 || ''), JSON.stringify({ ap1, sg1 }));
       const ap2 = await apMark('MK-AP2');
       check('5h a colleague\'s approval: whose turn "Sara"', !!ap2 && /^Sara\b/.test(ap2), JSON.stringify(ap2));
@@ -279,21 +280,19 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await page.click('[data-ap-row="MK-AP1"]');
       const A1 = await until(() => { const p = document.getElementById('ins-panel'); if (!p || !/Helio/.test(p.textContent) || !p.querySelector('.jov5-title')) return null;
         const row = document.querySelector('[data-ap-row="MK-AP1"]');
-        return { word: (p.querySelector('[data-jl-word]') || {}).textContent || '', go: p.querySelectorAll('.jov5-go, [data-ins-act]').length,
-          approve: row ? ((row.querySelector('[data-ap-approve]') || {}).textContent || '').trim() : null, decline: row ? ((row.querySelector('[data-ap-refuse]') || {}).textContent || '').trim() : null,
-          sub: ((p.querySelector('.jov5-sub') || {}).textContent || '').trim(),
-          rows: [...p.querySelectorAll('.jov5-group .jov5-row')].map(r => r.textContent.replace(/\s+/g, ' ').trim()),
+        const a = p.querySelector('[data-apn-act="approve"]'), d = p.querySelector('[data-apn-act="refuse"]');
+        return { word: (p.querySelector('[data-jl-word]') || {}).textContent || '', old: p.querySelectorAll('[data-ins-act]').length,
+          onRow: row ? !!row.querySelector('[data-ap-approve], [data-ap-refuse]') : null,
+          approve: a ? a.textContent.trim() : null, decline: d ? d.textContent.trim() : null,
+          eb: ((p.querySelector('.jov5-eb') || {}).textContent || '').trim(),
           labels: [...p.querySelectorAll('.jov5-label')].map(l => l.textContent.trim()), text: p.innerText.replace(/\s+/g, ' ') }; });
-      /* was: Approve for Jonas · Refuse… · Open Before you sign in the panel — the panel draws no button; Approve and Decline stand on the row */
-      check('5d an approval: no word beside the tabs, no button in the panel; Approve · Decline on its row', !!A1 && !A1.word && A1.go === 0 && A1.approve === 'Approve' && A1.decline === 'Decline', JSON.stringify(A1 && { word: A1.word, go: A1.go, approve: A1.approve, decline: A1.decline }));
-      /* was: the rows Why it waits · Asked by · Value — who asks and under which rule is Jambo's sentence; the value a row of what the paper says */
-      check('5e who asks, under which rule, and the value', !!A1 && /asks under the rule “Over 10 M”/.test(A1.sub) && A1.rows.some(r => /^Value KES 20,000,000/.test(r)), JSON.stringify(A1 && { sub: A1.sub, rows: A1.rows }));
-      /* RETIRED 16 Nov 2026 (#762): 5e's "Since last look · Nothing changed in the wording" row — old look only: the five
-         parts say nothing when nothing moved; when something moved it must still be said (5i, kept) */
-      /* RETIRED 17 Nov 2026 (#762, round 6 default): 5f "the panel says whom the answer is for" — the stand-in is told on the
-         row's own mark ("You for Jonas"; 5b keeps it), not again in the panel, and that stays as it is */
-      /* was: no Negotiation · Workspace doors, the head straight into Why it waits */
-      check('5g the Approval\'s panel: no Negotiation · Workspace — the headline goes straight into what the paper says', !!A1 && !A1.text.match(/\bWorkspace\b/) && A1.labels[0] === 'What the paper says', JSON.stringify(A1 && A1.labels));
+      /* RE-POINTED (P-30, owner's pick 20 Nov 2026: "the row keeps ONLY See it in the paper ›"): Approve (black, "for
+         Jonas" where the reader stands in) and Decline are the panel's; the row carries no decision */
+      check('5d an approval: no word beside the tabs; Approve for Jonas · Decline in the panel, none on its row', !!A1 && !A1.word && A1.old === 0 && A1.onRow === false && A1.approve === 'Approve for Jonas' && A1.decline === 'Decline', JSON.stringify(A1 && { word: A1.word, old: A1.old, onRow: A1.onRow, approve: A1.approve, decline: A1.decline }));
+      /* RE-POINTED (P-30): the rule rides the panel's top line with the other side and the reference; NO MONEY in the panel */
+      check('5e the rule is named, and no money in the panel', !!A1 && /Over 10 M/.test(A1.eb) && !/KES\s?[\d,]/.test(A1.text), JSON.stringify(A1 && { eb: A1.eb }));
+      /* RE-POINTED (P-30): the steps, what you are approving, the timeline; no Negotiation · Workspace */
+      check('5g the Approval\'s panel: steps, what you are approving, a timeline — no Workspace', !!A1 && !A1.text.match(/\bWorkspace\b/) && A1.labels.includes('What you are approving') && A1.labels.includes('Timeline'), JSON.stringify(A1 && A1.labels));
       await shot('r15-approval-panel-1440x780.png');
     });
 

@@ -67,7 +67,7 @@ test('f1070 (3) the Contracts list keeps no "Ask me", and Discover above its row
   const pd = read('js/paperdesk.js');
   const ov = region(pd, 'function pdWallOverview(){', 'function pdDropInner(){');
   assert.match(ov, /groups, src: _pdT\('jl_src_list'\), asks: \[\] \};/, 'no Ask me in the new look either');
-  assert.match(region(pd, 'function pdWallHtml(disc){', 'function pdDropInput('), /if \(o\.title\) return `<div class="pd-wall">\$\{ov\(Object\.assign\(\{\}, o, \{ mid: disc \|\| '' \}\)/);
+  assert.match(region(pd, 'function pdWallHtml(disc){', 'function pdDropInput('), /if \(o\.title\) return `<div class="pd-wall">\$\{ov\(Object\.assign\(\{\}, o, \{ mid: \(o\.mid \|\| ''\) \+ \(disc \|\| ''\) \}\)/);   /* RE-POINTED (P-31): the list's own bar and dots, then Discover */
 });
 
 test('f1070 (4) the side panel\'s Guide keeps its own rows, in soft groups', () => {

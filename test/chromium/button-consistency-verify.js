@@ -281,7 +281,8 @@ const HELPERS = `(() => {
           document.body.appendChild(e); const h = e.getBoundingClientRect().height; e.remove(); return h; })();
         /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): beside the panel the new look's list carries each
            row's own act (Approve · Open signing), the same rung — asked of them as of "Open the gate" */
-        const rows = [...document.querySelectorAll('.ap-go, .apn-table [data-ap-approve], .apn-table [data-ap-open]')].filter(b.vis).map(x => ({ x, max: 26 }));
+        /* RE-POINTED (P-30, owner's pick 20 Nov 2026): the decision moved to the panel — its black Approve keeps the rung too */
+        const rows = [...document.querySelectorAll('.ap-go, .apn-table [data-ap-approve], .apn-table [data-ap-open], #ins-panel [data-apn-act]')].filter(b.vis).map(x => ({ x, max: x.closest('#ins-panel') ? rung + 1 : 26 }));
         const lead = [...document.querySelectorAll('#ins-panel [data-ins-act="gate"]')].filter(b.vis).map(x => ({ x, max: rung + 1 }));
         const go = rows.concat(lead);
         return { n: go.length, where: lead.length ? 'panel' : 'rows',
