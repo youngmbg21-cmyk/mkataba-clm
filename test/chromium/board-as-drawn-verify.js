@@ -186,8 +186,9 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
       !!jb && jb.brain && !!jb.head && !jb.hello, jb && (jb.head + ' | brain ' + jb.brain));
     check('5c his questions under "Ask me" — "which N end in 90 days?" only while any do, "what needs me" while anything does',
       !!jb && JSON.stringify(jb.chips) === JSON.stringify([jb.ending ? `which ${jb.ending} end in 90 days?` : null, 'value by stream', 'my saved views', jb.n ? 'what needs me' : null].filter(Boolean)), jb && JSON.stringify(jb.chips));
+    /* RE-POINTED 21 Nov 2026 (P-39, as drawn): the sentence goes on "; the oldest has waited N days." (owner: count every row) */
     check('5d Needs you counts Home\'s own number',
-      !!jb && (jb.n ? new RegExp(`(^|\\s)${jb.n} (things? needs? you today|needs? you in all)\\.`).test(jb.needs) : jb.needs === 'Nothing needs you right now.'), jb && (jb.needs + ' / ' + jb.n));
+      !!jb && (jb.n ? new RegExp(`(^|\\s)${jb.n} (things? needs? you today|needs? you in all)[.;]`).test(jb.needs) : jb.needs === 'Nothing needs you right now.'), jb && (jb.needs + ' / ' + jb.n));
     check('5e no row of chips above his box; the Overview tab carries no badge', !!jb && !jb.bottom && jb.badge === '' && jb.tabs === 1, jb && JSON.stringify({ bottom: jb.bottom, badge: jb.badge, n: jb.n }));
     await shot(page, '17-board-as-drawn-1440x780');
 
