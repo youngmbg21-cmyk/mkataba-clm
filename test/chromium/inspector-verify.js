@@ -319,11 +319,12 @@ const ok = (name, good, detail) => {
     const ap = await page.evaluate(() => ({
       ins: document.querySelector('[data-ins-page="approvals"]')?.getAttribute('data-ins'),
       rows: [...document.querySelectorAll('.apn-table tbody tr[data-ap-row]')].map(r => r.getAttribute('data-ap-row')),
-      rowActs: [...document.querySelectorAll('.apn-table tbody tr[data-ap-row][data-ap-kind="approval"]')].every(r => !!r.querySelector('[data-ap-approve]') === !!r.querySelector('[data-ap-refuse]')),
-      panelBtns: document.querySelectorAll('#ins-panel .jov5-go, #ins-panel [data-ins-act]').length,
+      /* RE-POINTED (P-30, owner's pick 20 Nov 2026): no row carries Approve or Decline; the chosen approval's panel does (its acts, [data-apn-act]) */
+      rowActs: [...document.querySelectorAll('.apn-table tbody tr[data-ap-row][data-ap-kind="approval"]')].every(r => !r.querySelector('[data-ap-approve], [data-ap-refuse]')),
+      panelBtns: document.querySelectorAll('#ins-panel [data-ins-act]').length,
       pid: document.getElementById('ins-panel')?.getAttribute('data-ins-id'),
     }));
-    ok('3a Approvals draws the list and the panel; Approve and Decline stand on the row, the panel draws no button', ap.ins === '1' && ap.rowActs && ap.panelBtns === 0 && !!ap.pid, JSON.stringify({ ins: ap.ins, rowActs: ap.rowActs, panelBtns: ap.panelBtns, pid: ap.pid }));
+    ok('3a Approvals draws the list and the panel; no row carries a decision, the panel draws no old act button', ap.ins === '1' && ap.rowActs && ap.panelBtns === 0 && !!ap.pid, JSON.stringify({ ins: ap.ins, rowActs: ap.rowActs, panelBtns: ap.panelBtns, pid: ap.pid }));
     await page.screenshot({ path: path.join(OUT, '3-approvals-1440.png') });
     if (ap.rows.length > 1 && ap.pid) {
       const other = ap.rows.find(id => id !== ap.pid);

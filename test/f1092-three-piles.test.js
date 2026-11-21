@@ -28,7 +28,8 @@ describe('f1092 (1) three piles, in the order they matter', () => {
     const r = fnBody(V, 'apnRender');
     const a = r.indexOf("gTitle('apn_group_dep'"), b = r.indexOf("gTitle('apn_group_std'"), c = r.indexOf("gTitle('apn_group_yes'");
     assert.ok(a > 0 && b > a && c > b, 'the three titles in that order');
-    assert.match(r, /\$\{pileHtml\}\$\{rowsA\.join\(''\)\}/, 'the piles lead, the contracts follow');
+    /* RE-POINTED (P-30, owner's pick 20 Nov 2026): the rows pass through the one column cut before they are joined */
+    assert.match(r, /\$\{pileHtml\}\$\{rowsA\.map\(cut\)\.join\(''\)\}/, 'the piles lead, the contracts follow');
     assert.match(r, /_apnTab==='mine'\?P\.dep/, 'under Mine only');
     assert.match(r, /\['mine',i18t\('apn_tab_mine'\),W\.all\.yours\.filter\(r=>!r\.done\)\.length\+nPiles\]/, 'the Mine count is every row in it');
   });

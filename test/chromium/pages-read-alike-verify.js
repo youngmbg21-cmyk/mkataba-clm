@@ -663,7 +663,8 @@ const SEED = async () => {
       /* RE-POINTED 17 Nov 2026 (#762): the new look's heads carry their tabs on the bar under the ONE HEAD (.apn-bar
          .apn-tab, underlined; Obligations' pills are another control, not tabs); the live tab is told by its underline in
          the theme's ink, a resting one has none, both one weight, and no number wears a box */
-      const nlTabs = [...document.querySelectorAll('#content .apn-bar .apn-tab')].filter(vis);
+      /* RE-POINTED (P-30, owner's pick 20 Nov 2026): Approvals' tabs are now CHIPS (.is-chip, filled when chosen), another control — not measured as underlined tabs */
+      const nlTabs = [...document.querySelectorAll('#content .apn-bar .apn-tab:not(.is-chip)')].filter(vis);
       if (nlTabs.length){
         const on = nlTabs.find(t => t.classList.contains('is-on')), off = nlTabs.find(t => t !== on);
         const probe = document.createElement('span'); probe.style.color = 'var(--accent-ink)'; document.body.appendChild(probe);

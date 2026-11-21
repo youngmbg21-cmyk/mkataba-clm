@@ -985,3 +985,6 @@ SIX FIXES, AS AGREED (16 Nov 2026: ask box · Negotiations · recent pages · Im
 - guide-panel-verify (rewritten 21 Nov 2026): the side panel Alerts · Notes · Activity (P-38). Unit: f1032 (1)–(5), f187.
 - f1097 (9), launchpad-verify 8: the nav button's panel at the left (400 wide, under the bar, one list, own counts, Waiting narrows, outside closes); ⌘K stays centred (P-37).
 - f1130: the jump window's heading is drawn once — the field rule that greys every hint leaves `.lp-in` out.
+
+## ONE SEARCH OVER HaTi — Approvals L+S (P-30)
+f1092, f1093 (2), f977 (1) (4), f982 3 re-pointed; browser: approve-on-row-verify (rewritten: Approve in the panel), approve-from-the-list-verify, one-worklist-verify, jambos-list-panel-verify 5, inspector-verify 3a, button-consistency, pages-read-alike (chips not measured as tabs).

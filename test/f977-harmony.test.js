@@ -25,7 +25,8 @@ const block = () => { const i = HTML.indexOf('/* ==== THE NEW LOOK: HARMONY'); a
 test('f977 (1) one head', () => {
   const app = read('js/app.js');
   assert.match(app, /\(\(view==='approvals'\|\|view==='obligations'\)&&typeof window\.newLookOn==='function'&&newLookOn\(\)&&typeof insFits==='function'&&insFits\(\)\)/, 'the page head steps aside for both');
-  assert.match(strip(fnBody(read('js/views/approvalsview.js'), 'apnRender')), /<div class="cun-head"><h2 class="ctf-h">\$\{esc\(i18t\('nav_approvals'\)\)\}<\/h2><span class="ctf-hf" id="page-head-facts">/);
+  /* RE-POINTED (P-30, owner's pick 20 Nov 2026): the facts beside the title go ("2 to decide": the chips say it) */
+  assert.match(strip(fnBody(read('js/views/approvalsview.js'), 'apnRender')), /<div class="cun-head"><h2 class="ctf-h">\$\{esc\(i18t\('nav_approvals'\)\)\}<\/h2><span class="ctf-sp"><\/span><span id="page-head-acts"/);
   assert.match(strip(fnBody(read('js/obligations.js'), 'obnRender')), /<div class="cun-head"><h2 class="ctf-h">\$\{_obEsc\(i18t\('nav_obligations'\)\)\}<\/h2>/);
   for (const f of ['js/app.js', 'js/views/library.js']) assert.match(read(f), /font-size:var\(--ph-title-size,20px\);font-weight:var\(--ph-title-w,var\(--w-title-serif\)\)/, f + ': the old look keeps 20');
   assert.match(block(), /html\.lg-new\{--ph-title-size:26px;--ph-title-w:400\}/);
@@ -49,10 +50,10 @@ test('f977 (3) one voice', () => {
 
 test('f977 (4) say it once', () => {
   const ap = strip(fnBody(read('js/views/approvalsview.js'), 'apnRender'));
-  /* RE-POINTED 17 Nov 2026 (the three piles): a pile row has no rests of its own, so the contract rows decide */
-  assert.match(ap, /const same=\(pDep\.length\+pStd\.length>0&&!rs\.length\)\|\|\(rs\.length>1&&rs\.every\(x=>x===rs\[0\]\)\);/);
-  /* RE-POINTED 17 Nov 2026 (#762): the head now carries its column's grip (listCols, the one column rule); the column still steps out when it says the same */
-  assert.match(ap, /\$\{same\|\|restsOut\?'':`<th>\$\{esc\(i18t\('apn_col_rests'\)\)\}\$\{grip\('rests'\)\}<\/th>`\}/);
+  /* RETIRED (P-30, owner's pick 20 Nov 2026): "What it rests on" is gone — the paper's words sit under the agreement's
+     name on its own row, and a column that steps aside does so by the one column rule (listCols) */
+  assert.doesNotMatch(ap, /apn_col_rests/);
+  assert.match(ap, /const cut=h=>Object\.keys\(CELL\)\.filter\(k=>!on\.has\(k\)\)/);
   assert.match(strip(fnBody(read('js/views/directory.js'), 'dirnRender')), /const reachAny = list\.some/);
   assert.match(strip(fnBody(read('js/views/customers.js'), 'cunRowHtml')), /const org = rec\.orgNo \? i18t\('cun_org', \{ n: rec\.orgNo \}\) : '';/);
 });
