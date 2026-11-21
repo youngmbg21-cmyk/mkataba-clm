@@ -394,12 +394,15 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         await page.evaluate(() => setView('approvals'));
         await until(() => document.querySelector('[data-ap-row="MK-AP1"]'), null, 8000); await page.waitForTimeout(300);
         /* RE-POINTED 21 Oct 2026 (Part 8): the foot is the list head's own */
-        /* RE-POINTED 21 Nov 2026 (P-30, as drawn): no line under the list; the last row stands where the foot stood */
+        /* RE-POINTED 21 Nov 2026 (P-30, as drawn): no line under the list — the last row is read in the foot's place, so
+           "the foot right under the rows" is asked as "no foot line at all" (noFoot) instead of footUnder; the rest of
+           ONE SHEET (no ground, the card to the panel's foot, the rules door in the head) is asked as before */
         const A = await page.evaluate(CARD, { card: '#content .apn-card', rows: '.apn-table tbody tr', foot: '.apn-card .apn-table tbody tr:last-child' });
+        if (A) A.noFoot = await page.evaluate(() => !document.querySelector('#content .apn-card .apn-foot'));
         /* RE-POINTED 29 Oct 2026 (owner: ONE SHEET): no grey ground between the head and the card; the card reaches
            the foot of Jambo's panel; the foot still right under the rows, inside the card */
-        check(`10c Approvals ${w}×${ht}: one sheet — head and card meet with no ground, the card reaches the foot of Jambo's panel, the foot right under the rows; Approval rules inside the head`,
-          !!A && A.footUnder >= 0 && A.footUnder <= 2 && A.cardEnd >= 0 && A.sheetGap != null && Math.abs(A.sheetGap) <= 1 && A.panelFoot != null && Math.abs(A.panelFoot) <= 2 && A.rulesIn >= 0, JSON.stringify(A)); /* RE-POINTED 16 Nov 2026 (#762): the rules door sits IN the head's own row (.cun-head), so "inside" is >= 0 */
+        check(`10c Approvals ${w}×${ht}: one sheet — head and card meet with no ground, the card reaches the foot of Jambo's panel, no line under the rows (as drawn); Approval rules inside the head`,
+          !!A && A.noFoot && A.cardEnd >= 0 && A.sheetGap != null && Math.abs(A.sheetGap) <= 1 && A.panelFoot != null && Math.abs(A.panelFoot) <= 2 && A.rulesIn >= 0, JSON.stringify(A)); /* RE-POINTED 16 Nov 2026 (#762): the rules door sits IN the head's own row (.cun-head), so "inside" is >= 0 */
         const C = await page.evaluate(() => [...document.querySelectorAll('.apn-table .apn-name')].filter(e => e.scrollWidth > e.clientWidth + 1 || /…$/.test(e.textContent)).map(e => e.textContent));
         check(`10d Approvals ${w}×${ht}: every party's name reads whole`, !C.length, JSON.stringify(C));
         await shot(`r15-approvals-frame-${w}x${ht}.png`);
