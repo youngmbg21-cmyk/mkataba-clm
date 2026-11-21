@@ -34,7 +34,10 @@ test('f1063 (2) Cancel read: beside Stop and Read the N left; ONE question with 
   const H = fnBody(RD, 'dsnReadingHtml');
   assert.match(H, /const cancel = `<button type="button" class="rfp-pill" id="dsn-cancel">/);
   assert.match(H, /id="dsc-stop"[^`]*\$\{cancel\}`/, 'while it reads');
-  assert.match(H, /id="dsc-carry"[^`]*\$\{cancel\}<button type="button" class="ui-btn ui-btn-primary" data-dsn-results>/, 'when it stopped');
+  /* RE-POINTED (P-42, owner's pick 20 Nov 2026: Discover the Legora + Stripe way): stopped, Cancel read stands in the head
+     beside Open the results, and Read the N left is the black button of the bar that says what is left */
+  assert.match(H, /leftN \? `\$\{cancel\}<button type="button" class="rfp-pill" data-dsn-results>/, 'when it stopped');
+  assert.match(H, /class="dsn-stopbar"[^`]*id="dsc-carry"/, 'Read the N left, said with what is left');
   const O = fnBody(RD, 'dsnCancelOpen');
   assert.ok(O.indexOf('data-dsn-cx="keep"') < O.indexOf('data-dsn-cx="drop"') && O.indexOf('data-dsn-cx="drop"') < O.indexOf('data-dsn-cx="stay"'), 'act first, the way back last');
   assert.match(O, /data-dlg-cancel data-dsn-cx="stay"/);

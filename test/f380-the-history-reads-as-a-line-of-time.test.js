@@ -181,7 +181,8 @@ describe('F380 — the history reads as a line of time', () => {
     assert.ok(r, 'the refusal is on the page');
     /* The TONE is the claim, whichever property carries it — since the SAP
        way (21 Oct 2026), the outcome's dot and word. */
-    assert.match(r.querySelector('.hist-ocw').className, /\bis-r\b/);
+    /* RE-POINTED (P-44, owner's pick 21 Nov 2026: History the Legora + Stripe way): the outcome is a soft badge */
+    assert.match(r.querySelector('.hist6-ob').className, /\bis-r\b/);
   });
 
   /* ═══════ 4. ONE LINE JOINS THEM ═══════ */

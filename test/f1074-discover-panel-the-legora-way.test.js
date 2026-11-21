@@ -40,20 +40,25 @@ function panel(stub){
 }
 const row = (id, party, answer, tone, quote) => ({ id, c: { id, name: id, counterparty: party }, a: [{ found: true, answer, tone, quote, clause: '9 · Liability' }] });
 
-test('f1074 (1) the read chosen: its question, one counted sentence, the bar, each answer with its words', () => {
+/* RE-POINTED (P-42, owner's pick 20 Nov 2026: Discover the Legora + Stripe way): the read chosen keeps its question, its
+   one counted sentence (with the page's own Read-the-rest press) and Open the results; the colour bar and the answer
+   list become a RING of found against chosen beside the answers as bars (each still opening the results on its own
+   answers), badges on top, and THE ONE TO LOOK AT quoted with its party and clause. */
+test('f1074 (1) the read chosen: badges, its question, one counted sentence, a ring and bars, the one to look at', () => {
   const rows = [row('a', 'Equity Bank', 'Not capped', 'ruby', 'Nothing limits the liability.'), row('b', 'Siginon', '12 months', 'green', 'shall not exceed the fees'), row('c', 'Kenafric', '12 months', 'green', 'shall not exceed the fees')];
   const G = [{ k: 'g:not capped', l: 'Not capped', n: 1, c: 'ruby', ids: ['a'] }, { k: 'g:12 months', l: '12 months', n: 2, c: 'green', ids: ['b', 'c'] }];
-  const P = panel({ dsnRunRows: () => rows, dsnGroups: () => G, AC: { asks: { k1: { rule: 'one year of fees' } } } });
+  const P = panel({ dsnRunRows: () => rows, dsnGroups: () => G, dsnRunWhere: () => 'Procurement', AC: { asks: { k1: { rule: 'one year of fees' } } } });
   const h = P.dslReadHtml({ id: 'r1', askIds: ['k1'], n: 3, of: 5, name: 'Liability cap', q: 'Is our liability capped, and at what?', by: 'Amina' });
-  assert.match(h, /^<div class="dsl">/, 'nothing boxed: the Legora panel');
+  assert.match(h, /^<div class="dsl dsl6"><div class="dsl-tags"><span class="apn-st is-amber">/, 'no cards: badges first');
   assert.match(h, /<h3 class="dsl-title">Is our liability capped, and at what\?<\/h3>/, 'the question is the headline');
-  assert.match(h, /<b>1 needs a look\.<\/b> 2 of the 3 read are within your rule\. 2 are not read yet: <button type="button" class="dsl-a" data-dsn-more="r1">read them<\/button>/, 'one counted sentence, with the page\'s own Read-the-rest press');
-  assert.match(h, /<u class="is-ruby" style="flex:1"><\/u><u class="is-green" style="flex:2"><\/u><u class="is-unread" style="flex:2"><\/u>/, 'the bar: the answers\' colours, then what is not read');
-  assert.match(h, /data-dsn-gopen="r1" data-dsn-gtab="g:not capped">[\s\S]*?<b>Not capped<\/b><span>1 ›<\/span>[\s\S]*?<p class="dsl-quote">“Nothing limits the liability\.”<\/p><small>Equity Bank · § 9<\/small>/, 'each answer with its words, its party and clause');
+  assert.match(h, /<b class="is-ruby">1 needs a look\.<\/b> 2 of the 3 read are within your rule\. 2 are not read yet: <button type="button" class="dsl-a" data-dsn-more="r1">read them<\/button>/, 'one counted sentence, with the page\'s own Read-the-rest press');
+  assert.match(h, /<svg class="dsn-ring is-amber"[\s\S]*?>3\/5<\/text>/, 'a ring of found against chosen');
+  assert.match(h, /data-dsn-gopen="r1" data-dsn-gtab="g:not capped"[^>]*><span class="dsl-bl">Not capped<\/span><u aria-hidden="true"><i class="is-ruby" style="width:50%"><\/i><\/u><b>1<\/b>/, 'each answer a bar, opening the results on it');
+  assert.match(h, /dsl_lookone[\s\S]*?<b>a<\/b><span>Equity Bank · § 9 ›<\/span><\/span><p class="dsl-quote">“Nothing limits the liability\.”<\/p>/, 'the one to look at, quoted with its party and clause');
   assert.match(h, /<button type="button" class="dsl-go" data-dsn-open="r1">Open the results<\/button>/, 'the long black button');
   const none = P.dslReadHtml({ id: 'r2', askIds: ['k2'], n: 3, of: 3, name: 'X', q: 'Q?' });
-  assert.match(none, /<b>1 needs a look\.<\/b> 2 of the 3 read are fine\./, 'no rule: fine, not "within your rule"'); assert.doesNotMatch(none, /not read yet/, 'nothing left, nothing said');
-  const loading = panel({ dsnRunRows: () => null, dsnGroups: () => [] }).dslReadHtml({ id: 'r3', askIds: ['k'], n: 1, of: 1, name: 'X', q: 'Q?' });
+  assert.match(none, /<b class="is-ruby">1 needs a look\.<\/b> 2 of the 3 read are fine\./, 'no rule: fine, not "within your rule"'); assert.doesNotMatch(none, /not read yet/, 'nothing left, nothing said');
+  const loading = panel({ dsnRunRows: () => null, dsnGroups: () => [], dsnRunWhere: () => '' }).dslReadHtml({ id: 'r3', askIds: ['k'], n: 1, of: 1, name: 'X', q: 'Q?' });
   assert.match(loading, /dsc_loading/, 'answers still loading: said, never guessed');
 });
 

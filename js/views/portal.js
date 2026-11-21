@@ -4217,16 +4217,22 @@ function portalPaintHistoryPane(){
   portalHistoryScreen(pane, _ptCtx.c);
   if(portalOutOn()){ const list=pane.querySelector('#ht-list'); if(list) list.insertAdjacentHTML('beforebegin', portalOutHistoryHtml(_ptCtx.c, _ptCtx.p)); }
 }
-/* ---- THEIR HISTORY AS OUR HISTORY'S TABLE (owner, 8 Nov 2026: "the same table as yours") ----
-   Time · Who · Side · What happened · Outcome under day rows with their counts, newest first, read off the one
-   reading the old list reads (negoTimeline) — names and parties in words, never our change codes or "owner side".
-   A search box narrows the rows as typed; Verify integrity and Export history stay, the old list and its system
-   dropdowns step aside (CSS, the outside look only). */
+/* ---- THEIR HISTORY, THE LEGORA + STRIPE WAY (P-44, owner's pick 21 Nov 2026: "Legora and stripe. For the history on both
+   sides") ----
+   The same History as ours: newest first, one calm table — Time · Who · What happened · Kind · Outcome — under day rows
+   with their counts, the kind and the outcome soft badges, their own acts saying "You"; a search and chips (All ·
+   Changes · Decisions) with results only; two switches in the head: The wording (each change's struck and new words
+   under its row; off, one line of them) and The notes (each change's discussion under its row — ONLY their room's
+   notes, the messages the server scoped to this link (srvMsgScope); our internal notes never travel). A reply or
+   "Write one" opens their own notes drawer (portalOpenNotes), the one door they write in. Read off negoTimeline (names
+   and parties in words, never our change codes); no review, no names we keep inside, nothing written. */
+let _polHistW = false, _polHistN = false, _polHistK = 'all';
 function portalOutHistoryHtml(c, p){
   const ev = (typeof window.negoTimeline === 'function' ? negoTimeline(c) : []).slice().reverse();
   const org = (p && p.org) || i18t('pt_the_sender');
   const mine = portalMyPartyName(p) || i18t('pol_you');
-  const sideOf = e => e.side === 'owner' ? org : e.side === 'counterparty' ? mine : '—';
+  const you = i18t('pol_h_you');
+  const whoOf = e => e.side === 'counterparty' ? you : (e.actor || org);
   const clause = e => String(e.clauseLabel || '').trim();
   const sum = e => { const x = e.ch && String(e.ch.summary || '').trim(); return x && !/^#?CHG-/i.test(x) ? x : ''; };
   const what = e => {
@@ -4237,26 +4243,51 @@ function portalOutHistoryHtml(c, p){
     if (e.kind === 'round-closed') return i18t('pol_h_round_closed', { n: e.round });
     return String(e.text || '').replace(/#?CHG-\d+/g, '').replace(/\s{2,}/g, ' ').trim();
   };
-  /* A PARKED ASK HAS AN OUTCOME TOO (owner, 12 Nov 2026, the review of their white page: "Fix 5"): an ask of
-     theirs we answered with a counter said nothing in this column. It says "countered" — but only where the counter
-     itself is on their copy; one held back for our own review never travels (shareHeldBackIds), so there the ask
-     reads as their card does, still waiting, and nothing tells them a review exists. */
+  /* A PARKED ASK HAS AN OUTCOME TOO (owner, 12 Nov 2026, "Fix 5"): "countered" only where the counter itself is on their
+     copy; one held back for our own review never travels (shareHeldBackIds), so there the ask reads as still waiting,
+     and nothing tells them a review exists. */
   const onCopy = id => !!id && (c.changes || []).some(x => x && String(x.id) === String(id));
   const oc = e => (e.kind === 'proposed' && e.ch && e.ch.status === 'countered')
     ? (onCopy(e.ch.counteredBy) ? ['amb', i18t('pol_h_o_countered')] : ['amb', i18t('pol_h_waiting')])
     : e.outcome === 'pending' ? ['amb', i18t('pol_h_waiting')] : e.outcome === 'accepted' ? ['grn', i18t('pol_h_o_accepted')]
     : e.outcome === 'rejected' ? ['red', i18t('pol_h_o_rejected')] : e.outcome === 'withdrawn' ? ['gry', i18t('pol_h_o_withdrawn')] : ['', ''];
+  const kind = e => e.kind === 'proposed' ? ['amb', i18t('hist6_k_change')] : e.kind === 'decided' ? [e.outcome === 'rejected' ? 'red' : 'grn', i18t('hist6_k_decision')]
+    : e.kind === 'withdrawn' ? ['gry', i18t('hist6_k_withdrawn')] : e.kind === 'round-closed' ? ['stl', i18t('hist6_k_sent')] : ['gry', i18t('hist6_k_event')];
+  const K = { all: () => true, change: e => e.kind === 'proposed', decision: e => e.kind === 'decided' };
+  if (!K[_polHistK] || !ev.some(K[_polHistK])) _polHistK = 'all';
+  const shown = ev.filter(K[_polHistK]);
   const day = at => { try { const d = new Date(at); return isNaN(d) ? '' : d.toLocaleDateString(window.langLocale ? langLocale() : undefined, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (_){ return ''; } };
   const hm = at => { try { const d = new Date(at); return isNaN(d) ? '' : d.toLocaleTimeString(window.langLocale ? langLocale() : undefined, { hour: '2-digit', minute: '2-digit' }); } catch (_){ return ''; } };
+  const words = ch => (ch && typeof window.histWordingHtml === 'function') ? histWordingHtml(ch) : '';
+  /* their room's notes on one change: the messages this link was given (the server's wall), on the change's own topic */
+  const msgs = Array.isArray(PORTAL_OPTS.messages) ? PORTAL_OPTS.messages : [];
+  const ini = n => String(n || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(x => x.charAt(0).toUpperCase()).join('');
+  const notesOf = ch => msgs.filter(m => m && String(m.topic || '') === 'change:' + String(ch.id)).sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')));
+  const notesHtml = e => { const L = notesOf(e.ch), cl = clause(e) || i18t('ds_a_clause');
+    const body = L.length ? L.map(m => `<div class="hist6-msg"><span class="hist6-ini${m.side === 'counterparty' ? ' is-us' : ''}" aria-hidden="true">${esc(ini(m.author))}</span><div><b>${esc(m.side === 'counterparty' ? you : (m.author || org))}</b> <small>${esc(hm(m.at))}</small><p>${esc(String(m.body || ''))}</p></div></div>`).join('')
+      + `<button type="button" class="hist6-reply" data-pol-h-note>${esc(i18t('hist6_reply', { clause: cl }))}</button>`
+      : `<p class="hist6-none">${esc(i18t('hist6_no_notes'))} · <button type="button" class="hist6-a" data-pol-h-note>${esc(i18t('hist6_writeone'))}</button></p>`;
+    return `<div class="hist6-nt">${body}</div>`; };
   const groups = [];
-  for (const e of ev){ const k = day(e.at); const g = groups[groups.length - 1]; if (g && g.k === k) g.rows.push(e); else groups.push({ k, rows: [e] }); }
+  for (const e of shown){ const k = day(e.at); const g = groups[groups.length - 1]; if (g && g.k === k) g.rows.push(e); else groups.push({ k, rows: [e] }); }
   const body = groups.map(g => `<tr class="pol-h-day"><td colspan="5">${esc(g.k || '—')}<span>${esc(i18tn('pol_h_n_events', g.rows.length, { n: g.rows.length }))}</span></td></tr>`
-    + g.rows.map(e => { const [t, w] = oc(e); const words = what(e);
-      return `<tr data-pol-h="${esc((words + ' ' + (e.actor || '') + ' ' + sideOf(e)).toLowerCase())}"><td>${esc(hm(e.at))}</td><td>${esc(e.actor || '—')}</td><td>${esc(sideOf(e))}</td><td>${esc(words)}</td><td>${w ? `<span class="pol-oc is-${t}">${esc(w)}</span>` : ''}</td></tr>`; }).join('')).join('');
-  return `<div class="pol-hist"><div class="pol-hist-hd"><b>${esc(i18t('po_tab_history'))}</b><span>${esc(i18tn('pol_h_sub', ev.length, { n: ev.length }))}</span></div>
-    <label class="pol-hist-q"><span class="sr-only">${esc(i18t('pol_h_search'))}</span><input type="search" id="pol-hist-q" placeholder="${esc(i18t('pol_h_search'))}" autocomplete="off"></label>
-    <table class="pol-hist-t"><thead><tr><th>${esc(i18t('pol_h_c_time'))}</th><th>${esc(i18t('pol_h_c_who'))}</th><th>${esc(i18t('pol_h_c_side'))}</th><th>${esc(i18t('pol_h_c_what'))}</th><th>${esc(i18t('pol_h_c_outcome'))}</th></tr></thead>
-    <tbody>${body || `<tr><td colspan="5" class="pol-small">${esc(i18t('pol_h_none'))}</td></tr>`}</tbody></table></div>`;
+    + g.rows.map(e => { const [t, w] = oc(e), [kt, kw] = kind(e); const said = what(e), hasCh = !!e.ch && (e.kind === 'proposed' || e.kind === 'decided');
+      const peek = hasCh && !_polHistW && words(e.ch) ? `<div class="hist6-peek">${words(e.ch)}</div>` : '';
+      const subW = hasCh && _polHistW && words(e.ch) ? `<div class="pol-h-wd">${words(e.ch)}</div>` : '';
+      const subN = hasCh && _polHistN ? notesHtml(e) : '';
+      const key = esc((said + ' ' + whoOf(e)).toLowerCase());
+      return `<tr data-pol-h="${key}"${subW || subN ? ' class="has-sub"' : ''}><td>${esc(hm(e.at))}</td><td>${esc(whoOf(e))}</td><td>${esc(said)}${peek}</td><td><span class="pol-kb is-${kt}">${esc(kw)}</span></td><td>${w ? `<span class="pol-ob is-${t}"><i aria-hidden="true"></i>${esc(w)}</span>` : ''}</td></tr>`
+        + (subW || subN ? `<tr class="pol-h-sub" data-pol-h="${key}"><td></td><td colspan="4">${subW}${subN}</td></tr>` : ''); }).join('')).join('');
+  const n = k => ev.filter(K[k]).length;
+  const chips = ['all', 'change', 'decision'].filter(k => k === 'all' || n(k)).map(k => `<button type="button" class="pol-chip${_polHistK === k ? ' is-on' : ''}" data-pol-h-k="${k}" aria-pressed="${_polHistK === k}">${esc(i18t(k === 'all' ? 'ctf_tab_all' : k === 'change' ? 'pol_h_k_changes' : 'pol_h_k_decisions'))} <span>${n(k)}</span></button>`).join('');
+  const sw = (id, on, w) => `<button type="button" class="hist6-tg${on ? ' is-on' : ''}" data-pol-h-sw="${id}" aria-pressed="${on}"><i aria-hidden="true">${on ? '✓' : ''}</i>${esc(i18t(w))}</button>`;
+  void mine;
+  return `<div class="pol-hist pol6"><div class="pol-hist-hd"><b>${esc(i18t('po_tab_history'))}</b><span>${esc(i18tn('pol_h_sub', ev.length, { n: ev.length }))}</span></div>
+    <div class="pol-hist-bar"><label class="pol-hist-q"><span class="sr-only">${esc(i18t('pol_h_search'))}</span><input type="search" id="pol-hist-q" placeholder="${esc(i18t('pol_h_search'))}" autocomplete="off"></label>${chips}<span class="pol-sp"></span>
+      <span class="hist6-sw" role="group" aria-label="${esc(i18t('hist6_show'))}">${sw('w', _polHistW, 'hist6_wording')}${sw('n', _polHistN, 'hist6_notes')}</span></div>
+    <table class="pol-hist-t"><thead><tr><th>${esc(i18t('pol_h_c_time'))}</th><th>${esc(i18t('pol_h_c_who'))}</th><th>${esc(i18t('pol_h_c_what'))}</th><th>${esc(i18t('hist6_c_kind'))}</th><th>${esc(i18t('pol_h_c_outcome'))}</th></tr></thead>
+    <tbody>${body || `<tr><td colspan="5" class="pol-small">${esc(i18t('pol_h_none'))}</td></tr>`}</tbody></table>
+    <p class="pol-small pol-h-wall">${esc(i18t('pol_h_wall', { org }))}</p></div>`;
 }
 if(typeof document!=='undefined' && !document._polHistWired){
   document._polHistWired=true;
@@ -4264,6 +4295,14 @@ if(typeof document!=='undefined' && !document._polHistWired){
     const q=ev.target; if(!q || q.id!=='pol-hist-q') return;
     const v=String(q.value||'').trim().toLowerCase();
     document.querySelectorAll('.pol-hist-t tbody tr[data-pol-h]').forEach(tr=>{ tr.hidden=!!v && !tr.getAttribute('data-pol-h').includes(v); });
+  });
+  /* the two switches and the chips draw the history again; a note's reply opens their own notes drawer */
+  document.addEventListener('click', ev => {
+    const t=ev.target && ev.target.closest ? ev.target : null; if(!t || !t.closest('.pol-hist')) return;
+    let el;
+    if((el=t.closest('[data-pol-h-sw]'))){ ev.preventDefault(); if(el.getAttribute('data-pol-h-sw')==='w') _polHistW=!_polHistW; else _polHistN=!_polHistN; portalPaintHistoryPane(); return; }
+    if((el=t.closest('[data-pol-h-k]'))){ ev.preventDefault(); _polHistK=el.getAttribute('data-pol-h-k')||'all'; portalPaintHistoryPane(); return; }
+    if(t.closest('[data-pol-h-note]')){ ev.preventDefault(); portalOpenNotes({}); return; }
   });
 }
 /* ---- A REASON AFTER EVERY SAVE, ON THEIR SIDE TOO (Young asked 29 Sep

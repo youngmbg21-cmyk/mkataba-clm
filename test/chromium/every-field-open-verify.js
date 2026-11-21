@@ -51,12 +51,15 @@ const PLACES = [
     () => { const w = document.querySelector('[data-pw-for="ik-e-side"]'); return !!w && !w.closest('[hidden]'); }],
   ['new event', () => calEventDialog(), () => !!document.querySelector('#cal-ev-title')],
   ['add approval rule', () => { setView('team'); openApprovalRuleEditor(); }, () => !!document.querySelector('#ar-cond')],
-  ['discover filters', () => setView('reads'), () => !!document.querySelector('#rd-page select')],
+  /* RE-POINTED (P-42, owner's pick 20 Nov 2026: Discover the Legora + Stripe way): Discover's four filters are "+ filter"
+     chips now, not dropdowns; the place is measured once its chips are drawn (no select may stand there), and its ask box
+     (.dsn-lask, like the list head's .lh-ask) is a box that HOLDS a field */
+  ['discover filters', () => setView('reads'), () => !!document.querySelector('#rd-page [data-dsn-fopen], #rd-page [data-dsn-fset]') && !document.querySelector('#rd-page select')],
   ['your account', () => openMyAccount(), () => !!document.querySelector('#acct-title')],
   ['company and market', () => openSettingsAt('company', 'company'), () => !!document.querySelector('#st-co-name')],
 ];
 /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way): Our paper's find box is the ask box (.tpln6-ask; .tpln5-box is gone) */
-const BOXES = '.jb-card, #cmd-palette, .sh-col-in, .cmd-search, .hist-q, .reg-chip, .reg-f-v, .jl-box, .ik-search, .lh-ask, .na-askbox, .na-ask, .rl-np-box, .rl-card-reply, .sdd-find, .tpln5-box, .tpln6-ask, .nd-bar, .lin-wrap, .pd2-fm-mid';
+const BOXES = '.jb-card, #cmd-palette, .sh-col-in, .cmd-search, .hist-q, .reg-chip, .reg-f-v, .jl-box, .ik-search, .lh-ask, .na-askbox, .na-ask, .rl-np-box, .rl-card-reply, .sdd-find, .tpln5-box, .tpln6-ask, .nd-bar, .lin-wrap, .pd2-fm-mid, .dsn-lask';
 
 (async () => {
   const h = await startHati(); await seedWorkspace(h);

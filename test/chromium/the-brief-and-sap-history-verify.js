@@ -13,7 +13,8 @@
      3 BESIDE THE LISTS (Negotiations, a row chosen): 384 wide, head and foot
        56; the facts carry their "Facts" label; Needs you is rows, not a card;
        no rule between the sections
-     4 HISTORY: one table — Time · Who · Side · What happened · Outcome — every
+     4 HISTORY: one table — Time · Who · What happened · Kind · Outcome (RE-POINTED, P-44, owner's pick 20 Nov 2026:
+       History the Legora + Stripe way; the Side column went, the side said by who) — every
        entry the trail reads is a row; no lanes, no bubbles, no pills; the side
        and the outcome are each a straight column; the day a row with its
        count; the filters stand in the open (no Filter button), Clear at the
@@ -230,16 +231,19 @@ const BOXES = sel => {
         const day = t.querySelector('.hist-day-h'), title = host.querySelector('.hist-title, .hist-head h6');
         return { cls: t.className, rows: rows.length, all: roomHistoryEvents(getContract('MK-B2'), {}).length, heads,
           bubbles: t.querySelectorAll('.hist-bub, .hist-pill, .hist-lh, .hist-inside').length,
-          sideX: left('.hist-c-side'), ocX: left('.hist-c-oc'),
-          sides: rows.map(r => (r.querySelector('.hist-c-side') || {}).textContent || '').map(x => x.trim()),
+          /* RE-POINTED (P-44): no Side column — the Kind column (a soft badge) stands straight; whose row it is is the row's
+             own lane (data-hist-lane, histLaneOf) */
+          sideCol: t.querySelectorAll('.hist-c-side').length, kindX: left('.hist-c-kind'), ocX: left('.hist-c-oc'),
+          kinds: rows.map(r => r.querySelector('.hist-c-kind .hist6-kb')).filter(Boolean).length,
+          sides: rows.map(r => r.getAttribute('data-hist-lane') || ''),
           day: day ? day.textContent.replace(/\s+/g, ' ').trim() : null,
           filterBtn: !!host.querySelector('#hist-filter-btn'), filters: [...host.querySelectorAll('[data-ht-filter], .hist-quick [data-ht-quick]')].filter(s => s.getBoundingClientRect().width > 0).length, quickBar: !!host.querySelector('.hist-quick'),
           clear: !!host.querySelector('#ht-clear'), face: title ? getComputedStyle(title).fontFamily : null };
       });
-      check('4a History is one table: Time · Who · Side · What happened · Outcome', /is-table/.test(T.cls) && T.heads.join('|') === 'Time|Who|Side|What happened|Outcome', JSON.stringify(T.heads));
+      check('4a History is one table: Time · Who · What happened · Kind · Outcome (no Side column)', /is-table/.test(T.cls) && T.heads.join('|') === 'Time|Who|What happened|Kind|Outcome' && T.sideCol === 0, JSON.stringify(T.heads));
       check('4b every entry the trail reads is a row of it', T.rows === T.all && T.rows >= 3, `${T.rows} of ${T.all}`);
       check('4c no lanes, no bubbles, no pills', T.bubbles === 0 && !/is-lanes/.test(T.cls), T.bubbles);
-      check('4d the side and the outcome each stand in one straight column; the side is said in words', T.sideX.length === T.rows && new Set(T.sideX).size === 1 && T.ocX.length === T.rows && new Set(T.ocX).size === 1 && T.sides.includes('Ours') && T.sides.includes('Theirs'), JSON.stringify({ s: T.sideX, o: T.ocX, w: T.sides }));
+      check('4d the kind and the outcome each stand in one straight column, the kind a badge on every row; every row still knows its side', T.kindX.length === T.rows && new Set(T.kindX).size === 1 && T.kinds === T.rows && T.ocX.length === T.rows && new Set(T.ocX).size === 1 && T.sides.includes('ours') && T.sides.includes('theirs'), JSON.stringify({ k: T.kindX, o: T.ocX, w: T.sides }));
       check('4e the day is a row with its count', !!T.day && /\d+ events?/.test(T.day), T.day);
       /* RE-POINTED 16 Nov 2026 (#762): the filters in the open are the history's quick links (histQuickHtml, owner 31 Oct
          "Quick links as drawn"), only those that give rows — this trail gives none, so the band stands with Clear */
