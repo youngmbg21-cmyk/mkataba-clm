@@ -3174,7 +3174,9 @@ function trapFocus(panel, opts={}){
        never show (NO RING AFTER A PRESS, f881). Tabbing still rings every stop. */
     const lgp=!!panel.querySelector('.lgp');
     if(lgp && panel.contains(document.activeElement) && document.activeElement!==panel) return;
-    const f=focusables(); fieldFocus(f[0]||panel, lgp ? {preventScroll:true, focusVisible:false} : {preventScroll:true});
+    /* the bell's side panel too: its ✕ arrives with no ring (P-38) */
+    const quiet=lgp||panel.id==='context-panel';
+    const f=focusables(); fieldFocus(f[0]||panel, quiet ? {preventScroll:true, focusVisible:false} : {preventScroll:true});
   },0);
   let done=false;
   return function release(){

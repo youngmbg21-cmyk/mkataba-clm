@@ -16863,7 +16863,7 @@ function rlNotesUnpin(out){
 const rlNotesPinned = () => _rlNpPin;
 /* The shell tells us the drawer went: whatever was pinned is dropped and its
    waiter told nothing happened. */
-function rlNotesPanelClosed(){ rlNotesUnpin(null); _rlNpReplyTo = null; _rlNpReplyUnder = null; _rlNpOpenKey = null; _rlNpShow = 'open'; }
+function rlNotesPanelClosed(){ rlNotesUnpin(null); _rlNpReplyTo = null; _rlNpReplyUnder = null; _rlNpOpenKey = null; _rlNpShow = 'open'; _rlNpOpen = null; }
 /* The pin, where it belongs to the panel being drawn: the contract's own
    drawer shows any pin on that contract; a change's panel shows only a pin on
    that change. */
@@ -17639,6 +17639,47 @@ function rlChatRows(c, opts = {}, room = null){
    change it is about", which is a description of the rows, and the rows say it
    themselves. `ng_chat_lead` is STALE — flag any mention; the key is left
    inert in both dictionaries. */
+/* ---- NOTES, THE STRIPE WAY (P-38, owner 20 Nov 2026: one and the same screen in the bell and in Redlines) ----
+   The list: the write box at the TOP, then each thread a row — a § badge, the clause, a soft state badge (amber "Asks
+   you", green Done, grey Open), the last message with its writer's initials and when, and "N earlier · show". A press
+   opens the discussion IN THE SAME PANEL ("‹ All notes"): the clause, "Open · N messages", who is in it, every message
+   down its thread line, the reply box, Done, and "Go to § N on the paper". Nothing new is written: the same threads
+   (rlChatThreads), the same acts (rlNpThreadHtml, rlNpWireActs). */
+let _rlNpOpen = null;
+function rlNpSecOf(label){
+  const t = String(label || '').trim(), m = /^\s*(\d+(?:\.\d+)*)[.)]?\s*(.*)$/.exec(t);
+  return m ? { sec: '§ ' + m[1], name: m[2] || t } : { sec: '', name: t };
+}
+function rlNpLabelOf(c, ch, th){
+  if (ch && ch.clauseLabel) return _neClause(ch.clauseLabel);
+  return th.root.anchor ? (rlNpClauseLabel(c, th.root.anchor.clauseId) || '') : '';
+}
+function rlNpStateOf(th){
+  if (th.done) return 'done';
+  return (!PORTAL_MODE && typeof window.negoNoteForMe === 'function' && negoNoteForMe(th.root)) ? 'ask' : 'open';
+}
+function rlNpCompactHtml(c, ch, th){
+  const key = negoNoteKey(th.root), S = rlNpSecOf(rlNpLabelOf(c, ch, th));
+  const last = th.replies.length ? th.replies[th.replies.length - 1] : th.root;
+  const st = rlNpStateOf(th), earlier = th.replies.length;
+  const words = String(last.text || '').replace(/\s+/g, ' ').trim();
+  return `<button type="button" class="rl-np-crow" data-rl-np-open="${_nea(key)}">
+      <span class="rl-np-ch">${S.sec ? `<span class="rl-np-sec">${_ne(S.sec)}</span>` : ''}<b>${_ne(S.name || i18t('ng_np_on_contract'))}</b><span class="rl-np-st is-${st}">${_ne(i18t('ng_np_st_' + st))}</span></span>
+      <span class="rl-np-cl">${rlNpAvatarHtml(last.who || '', true)}<span class="w">${_ne(words)}</span><span class="t">· ${_ne(negoWhen(last.at))}</span></span>
+      ${earlier ? `<span class="rl-np-ce">${_ne(i18tn('ng_np_earlier', earlier, { n: earlier }))} · <u>${_ne(i18t('ng_np_show'))}</u></span>` : ''}
+    </button>`;
+}
+function rlNpOpenHtml(c, ch, th, room, side, other, opts){
+  const S = rlNpSecOf(rlNpLabelOf(c, ch, th)), st = rlNpStateOf(th);
+  const msgs = [th.root].concat(th.replies), who = [...new Set(msgs.map(m => String(m.who || '').trim()).filter(Boolean))];
+  const last = msgs[msgs.length - 1];
+  const cid = th.root.anchor && th.root.anchor.clauseId;
+  return `<div class="rl-np-open-h"><button type="button" class="ui-link" data-rl-np-back>‹ ${_ne(i18t('ng_np_all_notes'))}</button></div>
+    <div class="rl-np-ch is-head">${S.sec ? `<span class="rl-np-sec">${_ne(S.sec)}</span>` : ''}<b>${_ne(S.name || i18t('ng_np_on_contract'))}</b><span class="rl-np-st is-${st}">${_ne(i18t('ng_np_st_' + st))} · ${_ne(i18tn('ng_np_msgs', msgs.length, { n: msgs.length }))}</span></div>
+    <div class="rl-np-people">${who.slice(0, 4).map(n => rlNpAvatarHtml(n, true)).join('')}<span>${_ne(i18tn('ng_np_people', who.length, { n: who.length }))} · ${_ne(i18t('ng_np_last', { when: negoWhen(last.at) }))}</span></div>
+    <div class="rl-np-tl">${rlNpThreadHtml(c, ch, th, room, side, other, opts)}</div>
+    ${cid ? `<div class="rl-np-go"><button type="button" class="ui-link" data-rl-np-goclause="${_nea(cid)}">${_ne(i18t('ng_np_go_paper', { sec: S.sec || S.name }))}</button></div>` : ''}`;
+}
 function rlChatPanelHtml(c, opts = {}){
   if (!c) return `<div class="rl-chat-none">${i18t('ng_chat_none')}</div>`;
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
@@ -17711,9 +17752,11 @@ function rlChatPanelHtml(c, opts = {}){
     return '';
   };
   /* The reference rides INSIDE its note, under the name (the Thread). */
-  const rowOf = ({ ch, th }, day) => `<div class="rl-chat-row">${
-    rlNpThreadHtml(c, ch, th, room, side, other, { ...opts, day, refHtml: refOf(ch, th) })}</div>`;
-  const rows2 = rlNpRowsHtml(threads, show, rowOf);
+  const rowOf = ({ ch, th }) => `<div class="rl-chat-row">${rlNpCompactHtml(c, ch, th)}</div>`;
+  if (_rlNpFocusKey){ const hit = threads.find(({ th }) => negoNoteKey(th.root) === _rlNpFocusKey || th.replies.some(r => negoNoteKey(r) === _rlNpFocusKey)); if (hit) _rlNpOpen = negoNoteKey(hit.th.root); }
+  const opened = _rlNpOpen ? threads.find(({ th }) => negoNoteKey(th.root) === _rlNpOpen) : null;
+  if (!opened) _rlNpOpen = null;
+  const rows2 = opened ? rlNpOpenHtml(c, opened.ch, opened.th, room, side, other, { ...opts, refHtml: refOf(opened.ch, opened.th) }) : rlNpRowsHtml(threads, show, rowOf);
   const body = threads.length ? rows2 : (rows.length
     ? rows.map(({ ch, m }) => `<div class="rl-chat-row">
         ${''/* A NOTE THAT BELONGS TO NO REDLINE CARRIES NO REFERENCE LINE
@@ -17742,7 +17785,8 @@ function rlChatPanelHtml(c, opts = {}){
         <b>${ext ? i18t('ng_chat_none_ext', { who: _ne(other) }) : i18t('ng_chat_none_int')}</b>
         ${all.length ? '' : `<span>${i18t('ng_chat_empty')}</span>`}
       </div>`);
-  return `<div class="rl-np rl-chat" data-rl-chat="${_nea(c.id)}">
+  return `<div class="rl-np rl-chat is-stripe" data-rl-chat="${_nea(c.id)}">
+    <div class="rl-np-stripe-top">${rlNpScopeHtml(nShow, show)}</div>
     <div class="rl-np-which is-static">
       <span class="t">
         <span class="id">${window.refHtml ? refHtml(c) : _ne(c.id)}${c.name ? ` <em>· ${_ne(c.name)}</em>` : ''}</span>
@@ -17754,11 +17798,10 @@ function rlChatPanelHtml(c, opts = {}){
            it would be that fact twice. Their seat has no tabs, so the line is
            the one thing naming who reads it. */}
     ${tabbed ? '' : rlNpSeatTabHtml(other, rows.length, ext)}
-    <div class="rl-np-list">
-      ${rlNpScopeHtml(nShow, show)}
+    ${opened ? '' : foot}
+    <div class="rl-np-list${opened ? ' is-open' : ''}">
       ${body}
     </div>
-    ${foot}
   </div>`;
 }
 function rlChatPanelPaint(host, c, opts = {}){
@@ -17789,6 +17832,11 @@ function rlChatPanelPaint(host, c, opts = {}){
     rlChatPanelPaint(host, c, opts);
   }));
   rlNpWireActs(host, c, null, opts, () => rlChatPanelPaint(host, c, opts));
+  /* a row opens its discussion here; ‹ All notes comes back; the clause line lands on the paper (the note's own door) */
+  host.querySelectorAll('[data-rl-np-open]').forEach(b => b.addEventListener('click', () => { _rlNpOpen = b.getAttribute('data-rl-np-open'); rlChatPanelPaint(host, c, opts); }));
+  host.querySelectorAll('[data-rl-np-back]').forEach(b => b.addEventListener('click', () => { _rlNpOpen = null; rlChatPanelPaint(host, c, opts); }));
+  host.querySelectorAll('[data-rl-np-goclause]').forEach(b => b.addEventListener('click', () => { const id = b.getAttribute('data-rl-np-goclause');
+    if (typeof window.igPaperGoClause === 'function' && window.igPaperGoClause(id)) return; if (typeof window.rlJumpToClause === 'function') window.rlJumpToClause(id); }));
   rlNpShowFocused(host);
   rlNpFocusFreshPin(host);
   /* ---- READING CHAT IS READING IT, AND THE MARK GOES ---- (2 Sep 2026)

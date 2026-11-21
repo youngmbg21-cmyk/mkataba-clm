@@ -349,15 +349,20 @@ describe('f303 (4) — the pin, the reply as its own act, Done, and the clock', 
     p.w.win.negoPostComment(p.c, null, 'On liability.', { side: 'owner',
       anchor: { clauseId: p.cl7.clauseId, quote: 'indirect loss' } });
     p.w.win.rlChatPanelPaint(p.host, p.c, { side: 'owner', author: ME.name });
+    /* RE-POINTED 21 Nov 2026 (P-38, Notes the Stripe way): the list is a calm row per thread, its clause named once
+       (§ badge and name); opened, the thread leads with the pending change's reference, or the note's own anchor line */
     const rows = [...p.host.querySelectorAll('.rl-chat-row')];
     assert.equal(rows.length, 2);
-    assert.match(rows[0].querySelector('.rl-chat-on').textContent, new RegExp(p.ch.id),
-      'the words sit in the pending change, so the row leads with its reference');
-    /* RE-POINTED 13 Nov 2026 (the Thread): with no change to name, the clause is
-       said ONCE, by the note's own anchor line (it used to be said twice). */
-    assert.equal(rows[1].querySelector('.rl-chat-on'), null, 'no second line saying the clause');
-    assert.match(rows[1].querySelector('.rl-np-anchor .w').textContent, /Clause 7|Liability/);
-    assert.ok(rows[1].querySelector('.rl-np-anchor q'), 'and the words are quoted on the note');
+    assert.match(rows[1].querySelector('.rl-np-ch b').textContent, /Clause 7|Liability/, 'the clause said once on the row');
+    rows[0].querySelector('.rl-np-crow').click(); await tick();
+    assert.match(p.host.querySelector('.rl-chat-on').textContent, new RegExp(p.ch.id),
+      'the words sit in the pending change, so the opened thread leads with its reference');
+    p.host.querySelector('[data-rl-np-back]').click(); await tick();
+    [...p.host.querySelectorAll('.rl-np-crow')][1].click(); await tick();
+    assert.equal(p.host.querySelector('.rl-chat-on'), null, 'no second line saying the clause');
+    assert.match(p.host.querySelector('.rl-np-anchor .w').textContent, /Clause 7|Liability/);
+    assert.ok(p.host.querySelector('.rl-np-anchor q'), 'and the words are quoted on the note');
+    p.w.win.rlNotesPanelClosed();
   });
 
   test('their seat: Chat draws one room and no tabs', async () => {

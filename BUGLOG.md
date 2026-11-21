@@ -22745,3 +22745,6 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - Their page › Where we are: with nothing open, "For you" still says "Tell them you are ready to sign" and points to "Write in Notes".
 - Their page › Redlines: the empty panel tells them to press a "✎ Edit" button on a clause, which is not on the paper.
 - Their page › Signing: step 1 "The wording is final" wears a green tick whenever nothing was proposed — the tick must follow what is true, not the absence of changes.
+
+## 21 Nov 2026 — P-38 built: the side panel's Guide face removed (owner's ask)
+- REMOVED at the owner's word ("delete the guide since we have the nav panel"): the side panel's Guide tab and face, and with it the Guide rows' "Say “…”" lines naming the one word that opens each page. The words still open pages when typed; the nav panel at the left lists every page. Not a band; said to the owner.

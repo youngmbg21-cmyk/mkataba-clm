@@ -982,5 +982,6 @@ SIX FIXES, AS AGREED (16 Nov 2026: ask box · Negotiations · recent pages · Im
 - test/f1132-no-button-you-cannot-use.test.js (new, red at the parent 5a154f2: 9 of 9) — Round C: `dossierOwed` empty and `pd2ActsFor` drops note buttons for a Viewer (three painters ask it); facts' Change/Check not drawn; brief keeps its link, not "I have read this", `briefReadSave` records nothing and says why; Send screen, Amend, clause editor, risk Edit refuse with `viewer_reads_only`; `userCanApprove`, `saMayDecide`, `calChipAct` decide, `jhnMayHtml`, `signCheckCardHtml` shut; highlight menu Ask + My notes only; `ngnPanelFiveHtml` follows `deskMaySend`; phone `M_ROW_WRITES`, Renumber notice, `mDetHtml` reason.
 
 ## THE SHELL — RAIL, BAR, PANELS (jump window heading)
+- guide-panel-verify (rewritten 21 Nov 2026): the side panel Alerts · Notes · Activity (P-38). Unit: f1032 (1)–(5), f187.
 - f1097 (9), launchpad-verify 8: the nav button's panel at the left (400 wide, under the bar, one list, own counts, Waiting narrows, outside closes); ⌘K stays centred (P-37).
 - f1130: the jump window's heading is drawn once — the field rule that greys every hint leaves `.lp-in` out.

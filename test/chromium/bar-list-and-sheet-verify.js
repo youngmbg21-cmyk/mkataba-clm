@@ -71,7 +71,8 @@ async function until(page, fn, arg, ms = 8000){
 
     /* ---- 2 moving away puts the sheet away ---- */
     const away = [
-      ['the Guide\'s Settings row', async () => { await P.evaluate(() => openPanel('guide')); await until(P, () => !!document.querySelector('[data-gd-go="settings"]')); await P.click('[data-gd-go="settings"]'); }],
+      /* RE-POINTED 21 Nov 2026 (P-38): the Guide's rows live in the nav panel at the left */
+      ['the Guide\'s Settings row', async () => { await P.evaluate(() => openPanel('guide')); await until(P, () => !!document.querySelector('#cmd-palette [data-lp-go="settings"]')); await P.click('#cmd-palette [data-lp-go="settings"]'); }],
       ['a page name typed in Jambo\'s box', async () => { const b = await P.$('#igd-input'); await b.fill('settings'); await b.press('Enter'); }],
       ['a page change by code', () => P.evaluate(() => setView('team'))],
     ];

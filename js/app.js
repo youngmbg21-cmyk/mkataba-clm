@@ -2278,7 +2278,7 @@ function activityCategory(txt){
   if(/creat|draft|generat/.test(t)) return 'gray';
   return 'steel';
 }
-const CAT_DOT={gray:'var(--st-gray-dot)',amber:'var(--st-amber-dot)',green:'var(--st-green-dot)',ruby:'var(--st-ruby-dot)',steel:'var(--color-accent)'};
+/* (CAT_DOT went with the old Activity rows, P-38: the new rows colour by kind, actKindOf) */
 function activityRow(id,action,detail,at,ref){
   const txt=detail||action||'';
   /* `ref` is what a person reads (the contract number, where a working file
@@ -3822,7 +3822,8 @@ function panelDoorPress(){
   if(panelSuppressed()) return;
   if(state.panelOpen){ closeContextPanel(); return; }
   const tabs=(typeof deskShellOn==='function')?!!deskShellOn():true;
-  if(tabs){ openPanel('guide'); return; }
+  /* THE GUIDE TAB IS GONE (P-38, owner 20 Nov 2026: "delete the guide since we have the nav panel"): the button opens on Alerts */
+  if(tabs){ openPanel('alerts'); return; }
   let n=0; try{ n=alertCount(); }catch(_){ n=0; }
   openPanel(n>0?'alerts':panelFace());
 }
@@ -3833,6 +3834,9 @@ function openPanel(face){
      control that does nothing. Nothing answers true today: Insights used to,
      and no longer does, because the panel stopped being a column. */
   if(panelSuppressed()) return;
+  /* THE GUIDE LIVES IN THE NAV PANEL NOW (P-38): every door that asked for the Guide face (Jambo's "guide", "?", the
+     Handbook's door) opens the nav panel at the left — the same pages by stage, one door, no second list */
+  if(face==='guide'){ if(state.panelOpen) closeContextPanel(); if(!document.getElementById('cmd-palette')) openCommandPalette('',{ left:true }); return; }
   const same=state.panelOpen&&panelFace()===face;
   setPanelFace(face);
   state.panelOpen=!same;
@@ -3872,8 +3876,8 @@ const PANEL_FACES = ['guide', 'alerts', 'notes', 'activity'];
    answered there — a press on Send asks, never only fills a box. Built once. */
 function panelAskPaint(face){
   const f=document.getElementById('panel-ask'); if(!f) return;
-  const off=face==='notes';
-  f.hidden=off; if(off) return;
+  /* EVERY FACE, Notes too (P-38: "Jambo's box at the foot of EVERY face (today Notes has none)") */
+  f.hidden=false;
   if(!f.dataset.built){
     f.dataset.built='1';
     const ph=i18t('jl_ph_any');
@@ -3889,7 +3893,7 @@ function panelAskPaint(face){
     });
   }
 }
-function panelFace(){ return PANEL_FACES.includes(state.panelFace)?state.panelFace:'activity'; }
+function panelFace(){ const f=state.panelFace==='guide'?'alerts':state.panelFace; return PANEL_FACES.includes(f)?f:'activity'; }
 function setPanelFace(k){ state.panelFace=PANEL_FACES.includes(k)?k:'activity'; }
 /* THE ONE DOOR ONTO THE NOTES FACE. It needs a contract and a change where the
    other two need nothing, so it is a named door rather than a bare face swap —
@@ -4000,6 +4004,9 @@ function renderContextPanel(){
      !important — the lesson this product has paid for twice. */
   body.classList.toggle('pb-flow', notes);
   if(notes){
+    /* WITH A CONTRACT IN FRONT, NOTES SHOWS ITS NOTES (P-38: it said "Open a contract…" with one open) */
+    const nf0=state.notesFor||{}, inFront=(typeof chatContractId==='function')?chatContractId():null;
+    if(!nf0.contractId&&inFront) state.notesFor={ contractId:String(inFront), changeId:null };
     const nf=state.notesFor||{};
     const c=(state.contracts||[]).find(x=>x&&String(x.id)===String(nf.contractId));
     const opts={side:'owner',
@@ -4066,6 +4073,7 @@ function renderContextPanel(){
   } else {
     /* A ROW OF THE TRAIL OPENS THAT CONTRACT'S HISTORY ON THE BOARD (the
        one-page Home plan, stage 4, 14 Oct 2026); the phone's room as before */
+    body.querySelectorAll('[data-act-chip]').forEach(b=>b.addEventListener('click',()=>{ _actChip=b.getAttribute('data-act-chip')||'all'; renderContextPanel(); }));
     body.querySelectorAll('[data-sel-act]').forEach(el=>el.addEventListener('click',()=>{
       const id=el.getAttribute('data-sel-act');
       if(!(typeof window.hbOpenView==='function'&&hbOpenView(id,'hist'))) selectContract(id); }));
@@ -4361,7 +4369,7 @@ function panelTabsPaint(face){
   const head=host.previousElementSibling; if(head&&head.style) head.style.borderBottom=desk?'0':'';
   if(!desk){ host.innerHTML=''; return; }
   const cid=(typeof chatContractId==='function')?chatContractId():null;
-  const tabs=[['guide','gd_tab'],['alerts','sh_alerts'],['notes','ng_card_notes'],['activity','sh_activity']];
+  const tabs=[['alerts','sh_alerts'],['notes','ng_card_notes'],['activity','sh_activity']];
   host.innerHTML=tabs.map(([k,w])=>{ const dead=k==='notes'&&!cid&&face!=='notes';
     const nl=typeof window.newLookOn==='function'&&newLookOn();
     let cnt=''; if(nl&&k==='alerts'){ let n=0; try{ n=(typeof counterNeedsCount==='function')?Number(counterNeedsCount())||0:0; }catch(_){ n=0; } if(n) cnt=`<span class="pt-n">${n>99?'99+':n}</span>`; }
@@ -4371,27 +4379,46 @@ function panelTabsPaint(face){
     if(k==='notes'){ const id=(typeof chatContractId==='function')?chatContractId():null; if(id) openNotesPanel(id,null,{ force:true }); return; }
     setPanelFace(k); applyPanelLayout(); if(k==='activity') refreshActivityFeed(true); renderContextPanel(); }));
 }
+/* ---- ACTIVITY, THE LEGORA + STRIPE WAY (P-38, owner 20 Nov 2026) ----
+   "Live · whole workspace", chips by kind (All · Signed · Sent · Changed · Asked; a kind with nothing is not drawn), a
+   timeline grouped Today · Yesterday · Earlier: a dot coloured by kind (green signed or approved, blue sent or opened,
+   amber changed, violet asked, grey filed), who did what, the reference, the time and a soft kind badge; under an event
+   that said or changed something, its words quoted (only words the trail itself carries in quotes — never guessed). */
+let _actChip='all';
+const ACT_KINDS=['signed','sent','changed','asked'];
+function actKindOf(a){
+  const t=String(a&&a.txt||'').toLowerCase();
+  if(/\b(sign|signed|approv|executed|sealed|allowed)/.test(t)) return 'signed';
+  if(/\b(sent|send|shared|opened|viewed|link|mailed|reminded|chase)/.test(t)) return 'sent';
+  if(/\b(counter|chang|edit|redline|accept|reject|propos|amend|fill)/.test(t)) return 'changed';
+  if(/\b(ask|asked|request|review|mention|question)/.test(t)) return 'asked';
+  return 'filed';
+}
+/* the words an event said, where the trail carries them in quotes */
+function actQuoteOf(a){ const m=/[“"]([^”"]{3,})[”"]/.exec(String(a&&a.txt||'')); return m?m[1]:''; }
+function actDayOf(at){
+  const d=new Date(at||0); if(isNaN(d)) return 'earlier';
+  const t=new Date(); const k=x=>x.getFullYear()+'-'+x.getMonth()+'-'+x.getDate();
+  if(k(d)===k(t)) return 'today'; const y=new Date(t); y.setDate(t.getDate()-1); return k(d)===k(y)?'yesterday':'earlier';
+}
 function activityPanelHtml(){
   refreshActivityFeed();   // server mode: keep the whole-workspace feed current
-  const feed=buildActivityFeed();
-  return `
-      <div style="padding:10px var(--s-3);">
-        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-micro);color:var(--color-neutral-600);margin-bottom:var(--s-2);">
-          <span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot);"></span>${i18t('ap_scope_workspace')}
-        </div>
-        ${feed.length?feed.map(a=>`
-          <button data-sel-act="${esc(a.id)}" style="display:flex;gap:9px;width:100%;padding:7px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
-            <span style="width:8px;height:8px;border-radius:50%;background:${CAT_DOT[a.cat]};flex:none;margin-top:var(--s-1);"></span>
-            <span style="flex:1;min-width:0;">${/* THE TRAIL IS STORED TEXT AND IS PRINTED AS TEXT (26 Sep 2026, the
-                 overnight clean-up): a line's detail carries whatever a
-                 colleague typed — an obligation's wording, a clause name — and
-                 printed raw, an <img onerror> in it ran in the admin's session
-                 the moment the panel opened (measured). */''}
-              <span style="display:block;font-size:var(--t-meta);line-height:1.4;">${esc(a.txt)}</span>
-              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);margin-top:1px;">${window.refHtml?refHtml(a.ref||a.id):esc(a.ref||a.id)} · ${esc(a.when)}</span>
-            </span>
-          </button>`).join(''):`<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:var(--s-3) 2px;">${i18t('ap_no_activity')}</div>`}
-      </div>`;
+  const feed=buildActivityFeed().map(a=>Object.assign({},a,{ kind:actKindOf(a) }));
+  const n={}; feed.forEach(a=>{ n[a.kind]=(n[a.kind]||0)+1; });
+  if(_actChip!=='all'&&!n[_actChip]) _actChip='all';
+  const shown=feed.filter(a=>_actChip==='all'||a.kind===_actChip);
+  const chip=(k,word)=>`<button type="button" class="act-chip" data-act-chip="${k}" aria-pressed="${_actChip===k}">${esc(word)}</button>`;
+  const time=a=>{ const d=new Date(a.at||0); return actDayOf(a.at)==='today'&&!isNaN(d)?d.toLocaleTimeString(typeof langLocale==='function'?langLocale():undefined,{hour:'2-digit',minute:'2-digit'}):a.when; };
+  /* THE TRAIL IS STORED TEXT AND IS PRINTED AS TEXT (26 Sep 2026): a line's detail carries whatever a colleague typed */
+  const row=a=>{ const q=actQuoteOf(a), txt=q?String(a.txt).replace(/\s*[—-]?\s*[“"][^”"]*[”"]\s*/,' ').trim():a.txt;
+    return `<button type="button" class="act-r is-${a.kind}" data-sel-act="${esc(a.id)}"><i class="act-dot" aria-hidden="true"></i><span class="act-w"><b>${esc(txt)}</b><span class="act-ref">${window.refHtml?refHtml(a.ref||a.id):esc(a.ref||a.id)}</span>${q?`<q class="act-q">${esc(q)}</q>`:''}</span>`
+      +`<span class="act-e"><span class="act-t">${esc(time(a))}</span><span class="act-b">${esc(i18t('act_k_'+a.kind))}</span></span></button>`; };
+  const days=['today','yesterday','earlier'].map(d=>{ const G=shown.filter(a=>actDayOf(a.at)===d); return G.length?`<div class="act-h">${esc(i18t('act_d_'+d))}</div><div class="act-tl">${G.map(row).join('')}</div>`:''; }).join('');
+  return `<div class="act">
+      <div class="act-live"><span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot);"></span>${i18t('ap_scope_workspace')}</div>
+      ${feed.length?`<div class="act-chips" role="group" aria-label="${esc(i18t('sh_activity'))}">${chip('all',i18t('act_k_all'))}${ACT_KINDS.filter(k=>n[k]).map(k=>chip(k,i18t('act_k_'+k))).join('')}</div>${days}`
+        :`<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:var(--s-3) 2px;">${i18t('ap_no_activity')}</div>`}
+    </div>`;
 }
 /* "NOTHING NEEDS YOU RIGHT NOW" IS A REAL MESSAGE and a good one — an empty
    panel reads as a panel that failed to load.
