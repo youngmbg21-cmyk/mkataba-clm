@@ -93,10 +93,11 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const row = up ? await page.evaluate(() => { const r = document.querySelector('.obt-cols .obt-li'); if (!r) return null;
       const w = r.querySelector('.obt-w');
       return { tone: w ? w.className : '', when: w ? w.textContent.trim() : '', rem: (r.querySelector('.obt-rem') || {}).textContent || '',
-        act: (r.querySelector('.obt-act') || {}).innerText || '', cols: document.querySelectorAll('.obt-col').length }; }) : null;
+        act: (r.querySelector('.obt-act') || {}).innerText || '', cols: document.querySelectorAll('.obt-col').length, table: !!document.querySelector('.obt-cols.obs-table .obs-th'), whose: !!r.querySelector('.obs-b.is-ours, .obs-b.is-theirs') }; }) : null;
     await shot('3-obligations');
-    check('3 Obligations: the tabs over the filter line; We owe and They owe; a line carries its day, who is reminded and one act',
-      up && box && pills.includes('open') && pills.includes('later') && pills.includes('done') && !!row && row.cols === 2 && /obt-w is-(late|soon|ok)/.test(row.tone)
+    /* RE-POINTED (P-13, owner's pick 20 Nov 2026: the Stripe way): one calm table, whose a soft badge on each row */
+    check('3 Obligations: the tiles over the filter line; one table, whose on each row; a line carries its day, who is reminded and one act',
+      up && box && pills.includes('open') && pills.includes('later') && pills.includes('done') && !!row && row.cols === 0 && row.table && row.whose && /obt-w is-(late|soon|ok)/.test(row.tone)
       && !!String(row.rem || '').trim() && /mark done|chase|decide/i.test(row.act), { pills, box, row });
   } catch (e) { check('3 Obligations', false, String(e).slice(0, 200)); }
 
