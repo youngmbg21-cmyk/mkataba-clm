@@ -86,13 +86,11 @@ const openRow = async (pg, sel) => {
     await page.screenshot({ path: path.join(OUT, 'landing-1440x780.png') });
 
     /* 1 · an area: chosen, then in, then back */
+    /* RE-POINTED 22 Nov 2026 (P-43 review): one press on an area goes in, as drawn; the panel names it */
     await page.click('#sdd-area-rules');
-    /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
-    /* the panel names a chosen area in its title now (badges above it, no eyebrow) */
-    const ch = await page.evaluate(() => ({ pressed: document.getElementById('sdd-area-rules').getAttribute('aria-pressed'), eb: ((document.querySelector('#ins-panel .jov5-title') || {}).textContent || '').trim() }));
-    check('1a one press chooses an area; the panel names it', ch.pressed === 'true' && /^Rules/.test(ch.eb), ch);
-    await page.click('#sdd-area-rules');
-    check('1b a second press goes in', await waitFor(page, () => !!document.querySelector('.sdd-page[data-sdd-area="rules"] #sdd-review'), null, 5000));
+    check('1a one press goes in', await waitFor(page, () => !!document.querySelector('.sdd-page[data-sdd-area="rules"] #sdd-review'), null, 5000));
+    const ch = await page.evaluate(() => ({ eb: ((document.querySelector('#ins-panel .jov5-title') || {}).textContent || '').trim() }));
+    check('1b the panel names the area', /^Rules/.test(ch.eb), ch);
     await page.click('[data-sdd-back]');
     check('1c ‹ Settings comes back to the six areas', await waitFor(page, () => document.querySelectorAll('#stn-main [data-sdd-home]').length === 6, null, 5000));
 

@@ -18,6 +18,10 @@ const API_MODE=()=>!!REMOTE;
    presence withdraws a reader's asks for a clause on pagehide, and only a
    keepalive request outlives the page that sent it. Off for everybody else. */
 async function api(path, method='GET', body, opts){
+  /* A SETTINGS SHEET HOLDS ITS EDITS UNTIL SAVE (P-43): a held setting's write waits in the open sheet and leaves on
+     its Save (js/views/settings.js, stHoldApi); everything else goes now, as it always did */
+  if(method!=='GET' && !(opts&&opts.unheld) && typeof window!=='undefined' && typeof window.stHoldApi==='function'){
+    const held=window.stHoldApi(path, method, body); if(held) return held; }
   const res=await fetch('api/'+path,{ method,
     headers:body?{'Content-Type':'application/json'}:undefined,
     body:body?JSON.stringify(body):undefined, credentials:'same-origin',

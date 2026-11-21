@@ -49,10 +49,13 @@ test('f1091 (3) one list of what needs you, read by the landing, an area and the
   assert.match(fn('sddCardHtml'), /const needs=sddNeedList\(admin, area, rows\)/);
   assert.match(fn('stSyncAttention'), /sddRepaint\(\); return;/, 'colleagues\' asks landing late redraw the areas');
 });
-test('f1091 (4) a press chooses, a second opens its own door; the way back and a refresh land where you were', () => {
+/* RE-POINTED 22 Nov 2026 (P-43 review): on the six areas ONE press goes in, as drawn (the keyboard's focus shows the area
+   beside you first); inside an area a press still chooses a setting and a second opens its own door */
+test('f1091 (4) a press chooses, a second opens its own door; an area opens on one press; the way back and a refresh land where you were', () => {
   const B = block();
   assert.match(B, /if\(_sddPick===id\)\{ const b=row\.querySelector\('\[data-sdd-go\]'\); if\(b\)\{ b\.click\(\); return true; \} \}/);
-  assert.match(B, /if\(_sddHome===a\) sddGo\(a\); else sddHomeSet\(a\);/);
+  assert.match(B, /if\(hm&&[^\n]*\)\{ sddGo\(hm\.getAttribute\('data-sdd-home'\)\); return true; \}/);
+  assert.doesNotMatch(B, /sdd_foot_row/, 'no hint line under the areas');
   assert.match(fn('stPageHeadHtml'), /data-sdd-to="\$\{ar\}"/);
   assert.match(B, /_sddArea=to\.getAttribute\('data-sdd-to'\); _sddPick=to\.getAttribute\('data-sdd-to-row'\)/);
   assert.match(fn('settingsPlace'), /sdd:_sddArea\|\|null, pick:_sddPick\|\|null/);
@@ -68,15 +71,20 @@ test('f1091 (5) Jambo\'s panel is the Dossier card on every Settings page', () =
      "Now" left the facts (the badges and the sentence say it), "If you change it" joined them */
   assert.equal((c.match(/actFirst:true/g) || []).length, 2, 'both faces put the one black button first');
   assert.match(c, /k:i18t\('sdd_f_affects'\)[\s\S]*k:i18t\('sdd_f_who'\)[\s\S]*k:i18t\('sdd_f_history'\)[\s\S]*label:i18t\('sdd5_if_h'\)/);
-  assert.match(c, /rows:needs\.map\(x=>\(\{ mark:'', markText:mkOf\(x\),(?: tone:[^,]+,)? t:x\.text, s:x\.sub, attr:x\.btn\|\|'' \}\)\)/, 'what needs you: rows, each its own door');
+  /* RE-POINTED 22 Nov 2026 (P-43 review): each row says the problem first and the place second (sdd5NeedSay), and the
+     landing's going-live row is not said again under its ring */
+  assert.match(c, /rows:rowsOf\.map\(x=>\{ const w=sdd5NeedSay\(x, rows\); return \{ mark:'', markText:mkOf\(x\), tone:[^,]+, t:w\.t, s:w\.s, attr:x\.btn\|\|'' \}; \}\)/, 'what needs you: rows, each its own door');
+  assert.match(c, /x\.key==='panel:golive'/, 'the ring is not said twice');
   assert.doesNotMatch(fn('sddRowHtml'), /<button[^>]*data-sdd-go/, 'no button on a row');
 });
 test('f1091 (6) nothing here writes', () => {
   const B = block();
   assert.doesNotMatch(B, /\bapi\(|fetch\(|saveSettings\(|persist\(/);
 });
-test('f1091 (7) one grey band for the chosen row, room inside it, tokens only', () => {
+/* RE-POINTED 22 Nov 2026 (P-43 review): the chosen row is faintly green, as drawn; hover stays the grey band */
+test('f1091 (7) one band for the chosen row (faint green), room inside it, tokens only', () => {
   assert.match(CSS, /html\.lg-new \.sdd-row:hover,html\.lg-new \.sdd-row\.is-chosen\{background:var\(--surface-2\)\}/);
+  assert.match(CSS, /html\.lg-new \.sdd-page \.sdd-row\.is-chosen\{background:var\(--color-accent-50\)\}/, 'the chosen row faint green');
   assert.match(CSS, /html\.lg-new \.sdd-colh,html\.lg-new \.sdd-row\{[^}]*padding-left:12px;padding-right:12px\}/);
   /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way): no row carries a button; a › says the row opens */
   assert.match(CSS, /html\.lg-new \.sdd-page \.sdd-row:is\(:hover,\.is-chosen\) \.sdd-chev\{color:var\(--color-text\)\}/);

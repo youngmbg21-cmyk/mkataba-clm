@@ -1278,6 +1278,13 @@ function viewLayersClosed(view){
       return false;
     }
   }
+  /* A SETTINGS SHEET HOLDING EDITS (P-43, 22 Nov 2026): its Save writes them; leaving the page asks first, in the
+     house's leave words, and an answered "leave" throws them away (stHoldLeaveThen, js/views/settings.js) */
+  if(!_leavingCe && typeof window!=='undefined' && typeof window.stHoldDirty==='function' && window.stHoldDirty() && typeof window.stHoldLeaveThen==='function'){
+    window.stHoldLeaveThen(()=>{ if(typeof window.stDrawerClose==='function') window.stDrawerClose();
+      _leavingCe = true; try{ setView(view); } finally { _leavingCe = false; } });
+    return false;
+  }
   /* THE DESIGN STEP (js/views/designstep.js) paints over the page too, and its
      choices are lost on the way out — so it is asked the same way. */
   if(typeof window!=='undefined' && window.designStepOpen && designStepOpen()){

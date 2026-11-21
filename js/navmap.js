@@ -614,6 +614,9 @@ function navGo(a){
   /* a Settings drawer left open would stand over the place this moves to: shut by its own close
      (the same as a press outside it), unless the move is to another Settings spot */
   if (!['you', 'company', 'person', 'stream'].includes(n.k) && typeof document !== 'undefined' && document.querySelector('#st-drawer.open') && typeof stDrawerClose === 'function'){
+    /* a sheet holding edits asks first (P-43): the move goes on once it is answered */
+    if (typeof window !== 'undefined' && typeof window.stHoldDirty === 'function' && window.stHoldDirty() && typeof window.stHoldLeaveThen === 'function'){
+      window.stHoldLeaveThen(() => navGo(a)); return true; }
     try { stDrawerClose(); } catch (_){}
   }
   if (n.k === 'party'){

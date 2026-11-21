@@ -131,8 +131,9 @@ const signIn = async (page, base, email, pass) => {
     await page.selectOption('#pref-opens-on', 'fill').catch(async () => {
       await page.evaluate(() => { const s = document.getElementById('pref-opens-on'); s.value = 'fill'; s.dispatchEvent(new Event('change', { bubbles: true })); }); });
     const prefs = await until(() => { const p = currentUser().prefs || {}; return p.opensOn === 'fill' ? JSON.stringify(p) : null; });
-    check('4. the two flags change in your account, saved as they change', !!prefs, prefs);
-    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+    check('4. the two flags change in your account', !!prefs, prefs);
+    /* RE-POINTED 22 Nov 2026 (P-43 review): the account sheet holds them until its Save, which writes them and closes it */
+    await page.click('#st-dsave').catch(() => null); await page.waitForTimeout(300);
     /* RETIRED 16 Nov 2026 (#762): 4b "none beside Settings" — the old side feed's chips; 4d below keeps the promise on Home */
     await page.evaluate(() => { const c = state.contracts.find(x => x.status === 'Draft') || state.contracts[0]; regOpenContract(c.id); });
     /* RETIRED 17 Nov 2026 (#762, round 6 default): 4c "a contract opened from the list lands on Fill in (Still owed's grid)" — a contract opened
