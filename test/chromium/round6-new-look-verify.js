@@ -133,7 +133,9 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const say = await txt(page, '.cun-page .cun-say');
     await shot('4a-parties');
     await page.evaluate(() => { const r = [...document.querySelectorAll('#cu-tbody [data-cu-cust]')].find(x => /Naivas/.test(x.innerText)); if (r) r.click(); });
-    const panel = await until(page, () => !!document.querySelector('#ins-panel [data-jov5-sec="ags"] [data-cun-cts]'), null, 10000);
+    /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way): the agreements' group is gone — all
+       of them on Contracts is the panel's black button (.jov5-go[data-cun-cts], "Open on Contracts") */
+    const panel = await until(page, () => !!document.querySelector('#ins-panel .jov5-go[data-cun-cts]'), null, 10000);
     const said = await txt(page, '#ins-panel');
     await shot('4b-party');
     check('4 Parties: the list first, no sentence over it (owner, 20 Nov 2026: "delete the highlighted parts"); a row\'s panel with its facts, contacts and agreements, all of them on Contracts',
@@ -187,12 +189,14 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
   try {
     await page.evaluate(() => setView('mynotes'));
     const up = await until(page, () => !!document.querySelector('.mnn-table tbody tr[data-mn-row]'), null, 12000);
-    const due = await txt(page, '.mnn-table .mnn-due');
+    /* RE-POINTED (P-27, owner's pick 20 Nov 2026: My notes the Legora + Stripe way): the amber word is now the Status
+       column's soft badge (.apn-st.is-amber, "Due today") */
+    const due = await txt(page, '.mnn-table tbody .apn-st.is-amber');
     /* RE-POINTED (owner, 16 Nov 2026: the chosen row's panel in the five parts; f1073): the note's panel is drawn by the
        one builder (data-jov-slot="mnn"), "This note" over its rows, Mark reviewed its button */
     const panel = await until(page, () => { const p = document.querySelector('#ins-panel [data-jov-slot="mnn"]'); return !!p && /This note/i.test(p.innerText) && /Mark reviewed|Review again/i.test(p.innerText); }, null, 8000);
     await shot('8-my-notes');
-    check('8 My notes: the ledger with Today in amber, the note\'s panel', up && /Today/.test(due) && panel, due);
+    check('8 My notes: the ledger with Today in amber, the note\'s panel', up && /Due today/.test(due) && panel, due); /* RE-POINTED (P-27, owner's pick 20 Nov 2026: My notes the Legora + Stripe way): the badge says "Due today" */
   } catch (e) { check('8 My notes', false, String(e).slice(0, 200)); }
 
   /* 9 · Requests */

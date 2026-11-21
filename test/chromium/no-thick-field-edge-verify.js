@@ -36,6 +36,7 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
     /* press every visible entry field and read its edge and its holder's; return the ones that show more than the light grey */
     const heavy = () => page.evaluate(() => {
       const GREY = (() => { const d = document.createElement('i'); d.style.color = 'var(--color-neutral-300)'; document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; })();
+      const DIV = (() => { const d = document.createElement('i'); d.style.color = 'var(--color-divider)'; document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; })();
       const sel = 'input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=button]):not([type=submit]):not([type=hidden]):not([type=file]),textarea,select';
       const bad = [];
       const edge = e => { const c = getComputedStyle(e); const sides = ['Top', 'Right', 'Bottom', 'Left'].map(s => [parseFloat(c['border' + s + 'Width']) || 0, c['border' + s + 'Color']]);
@@ -50,6 +51,10 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
         const jambo = !!e.closest('.jb-card');
         const me = edge(e), hold = holder && !jambo ? edge(holder) : null;
         /* the rest-state edge of a field with no border is 0 wide and draws nothing: only what is visible is judged */
+        /* RE-POINTED (P-25/P-26, owner's pick 20 Nov 2026: Parties and People the Legora + Stripe way): their box is now the
+           ask box under the title (label.apn-ask), an OPEN field — its one 1px divider line under the row (--color-divider,
+           the f1110 open-field way) is the row's line, not an edge round the field; any other edge is still judged */
+        if (hold && holder.matches('.apn-ask')) hold.sides = hold.sides.map(([w, col], i) => (i === 2 && w <= 1.01 && col === DIV) ? [0, col] : [w, col]);
         if (wrong(me) || (hold && wrong(hold))) bad.push((e.id ? '#' + e.id : e.tagName.toLowerCase()) + ' ' + JSON.stringify({ me, hold }).slice(0, 220));
         e.blur();
       }

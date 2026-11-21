@@ -337,18 +337,26 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       const P = await until(() => { const p = document.getElementById('ins-panel'); if (!p || !/Jonas Berg/.test(p.textContent) || !p.querySelector('.jov5-title')) return null;
         const groups = {}; p.querySelectorAll('.jov5-sec').forEach(sc => { const l = sc.querySelector('.jov5-label'); if (l) groups[l.textContent.trim()] = [...sc.querySelectorAll('.jov5-row')].map(r => r.innerText.replace(/\s+/g, ' ').trim()); });
         return { word: (p.querySelector('[data-jl-word]') || {}).textContent || '', groups, text: p.innerText.replace(/\s+/g, ' '),
-          glance: [...p.querySelectorAll('.jov5-glance .jov5-g')].map(g => [...g.children].map(x => x.textContent.trim()).join(' ')),
-          show: (() => { const b = p.querySelector('.jov5-row[data-dirn-contracts]'); return b ? !b.disabled : null; })(), mail: !!p.querySelector('[data-dirn-mail]'),
+          /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): no tiles — the panel's two plain
+             numbers (.dirn-pfacts: Agreements · Waiting on them, each "<label> <n>") and the Away badge under the name (its
+             title the away line); Show their contracts is the black button (.jov5-go), Email them the link beside it */
+          glance: [...p.querySelectorAll('.dirn-pfacts > span')].map(g => [...g.children].map(x => x.textContent.trim()).join(' ')),
+          tiles: p.querySelectorAll('.jov5-glance').length,
+          away: (() => { const b = [...p.querySelectorAll('.jov5-sub .reg-badge')].find(x => /^(Away|Not away)$/.test(x.textContent.trim())); return b ? [b.textContent.trim(), b.getAttribute('title') || ''] : null; })(),
+          show: (() => { const b = p.querySelector('.jov5-go[data-dirn-contracts]'); return b ? !b.disabled : null; })(), mail: !!p.querySelector('[data-dirn-mail]'),
           more: !!p.querySelector('[data-ins-more]') }; });
       check('6a a person: Show their contracts · Email them, no word beside the tabs', picked && !!P && !P.word && P.show === true && P.mail, JSON.stringify(P && { word: P.word, groups: P.groups['Reach them'] }));
       /* was: the rows Email · In HaTi · Streams · Named on · Away — the five parts say the agreements, the waits and the away as three numbers */
-      check('6b the numbers: agreements · waiting on them · away', !!P && P.glance.length === 3 && /^\d+ agreements?$/.test(P.glance[0]) && /waiting on them$/.test(P.glance[1]) && /^Away Away until /.test(P.glance[2]), JSON.stringify(P && P.glance));
-      check('6c "Waiting on them": his approval with its own door; away until a day, with the stand-in', !!P && (P.groups['Waiting on them'] || []).some(r => /^Helio power purchase Approval/.test(r)) && /Away until \S+ · stand-in: /.test(P.text), P && P.text.slice(0, 400));
+      /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): no tiles; two plain numbers and an Away badge */
+      check('6b the numbers: Agreements · Waiting on them, no tiles; Away a badge under the name', !!P && P.tiles === 0 && P.glance.length === 2 && /^Agreements \d+$/.test(P.glance[0]) && /^Waiting on them \d+$/.test(P.glance[1]) && !!P.away && P.away[0] === 'Away' && /^Away until /.test(P.away[1]), JSON.stringify(P && { glance: P.glance, away: P.away, tiles: P.tiles }));
+      /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): the away line with its stand-in is the Away badge's title */
+      check('6c "Waiting on them": his approval with its own door; away until a day, with the stand-in', !!P && (P.groups['Waiting on them'] || []).some(r => /^Helio power purchase Approval/.test(r)) && !!P.away && /Away until \S+ · stand-in: /.test(P.away[1]), P && JSON.stringify({ away: P.away, text: P.text.slice(0, 300) }));
       await shot('r19-person-panel-1440x780.png');
       const sg1 = await page.evaluate(() => { const j = dirBook().find(x => /Jonas Berg/.test(x.name || '')); return j ? j.roleOn('MK-SG1').join('+') : null; });
       /* was: "N contracts · N live", the list's "approver" and the asked line — Named on lists the agreements, Waiting on them says what each waits for */
       check('6d Jonas is named on what he approves and signs: Named on, what waits (Approval · Signature), a live Show their contracts, no ⋯',
-        !!P && Number((P.glance[0] || '').split(' ')[0]) >= 2 && (P.groups['Named on, most recent'] || []).some(r => /Helio power purchase/.test(r))
+        /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): the number is "Agreements N" */
+        !!P && Number((P.glance[0] || '').split(' ').pop()) >= 2 && (P.groups['Named on, most recent'] || []).some(r => /Helio power purchase/.test(r))
         && (P.groups['Waiting on them'] || []).some(r => /Signature$/.test(r)) && /sign/.test(sg1 || '') && P.show === true && !P.more, JSON.stringify(P && { glance: P.glance, groups: P.groups, sg1 }));
     });
 
@@ -477,7 +485,10 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
          what waits on them as their own number instead) */
       const named = async key => { await page.evaluate(k => dirSelect(k), key);
         return until(k => { const p = document.getElementById('ins-panel'); if (!p || !p.querySelector('.jov5-title')) return null;
-          const g = p.querySelector('.jov5-glance .jov5-g'); return g ? [...g.children].map(x => x.textContent.trim()).join(' ') : null; }, key); };
+          /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): no tiles — the first plain
+             number (.dirn-pfacts "Agreements N"), read back as "N agreement(s)" so the claim below keeps its words */
+          const g = p.querySelector('.dirn-pfacts > span'); const b = g && g.querySelector('b'); if (!b) return null;
+          const n = Number(b.textContent.trim()); return n + (n === 1 ? ' agreement' : ' agreements'); }, key); };
       const pick = await page.evaluate(() => { const B = dirBook();
         const o = B.filter(x => x.side === 'ours' && x.contracts && x.contracts.length).sort((a, b) => a.contracts.length - b.contracts.length)[0];
         const t = B.find(x => x.side === 'theirs' && x.contracts && x.contracts.length === 1);

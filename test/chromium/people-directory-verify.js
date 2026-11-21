@@ -74,7 +74,8 @@ const signIn = async (page, base, email, pass) => {
 /* What the table is showing, read off the rendered DOM. */
 /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): People is drawn as round 6 drew it (dirnRender): ONE
    table (#dir-tbody tr[data-dir-row]) — the name (.cun-name), what differs under it (.cun-sub: a title, their party,
-   "you"), then Role · Does for you · Waiting · Reach (td.cun-wait); tabs All · Yours · Outside · Waiting
+   "you"), then Role · Does for you · Waiting · Reach (td.cun-wait); RE-POINTED (P-26, owner's pick 20 Nov 2026: People
+   the Legora + Stripe way): Role · Does for you · Agreements · Waiting on them, no Reach (Phone) column; tabs All · Yours · Outside · Waiting
    ([data-dirn-tab], the lit one .is-on); the chosen person's panel is Jambo's five parts (.jov5: the name as the
    headline .jov5-title; Email them [data-dirn-mail] and Show their contracts [data-dirn-contracts] as rows). No
    address rides a row: Email is the panel's door (PILL TO ACT, the harmony review). */
@@ -88,7 +89,9 @@ const PAGE = () => {
   return {
     n: cards.length,
     names: cards.map(c => txt(c, '.cun-name')),
-    roles: cards.map(c => { const td = c.querySelectorAll('td.cun-wait')[0]; return td ? td.textContent.replace(/\s+/g, ' ').trim() : ''; }),
+    /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): the Role cell is the second cell, a
+       soft badge (.reg-badge); td.cun-wait is now only the Waiting on them cell */
+    roles: cards.map(c => { const td = c.children[1]; const b = td && td.querySelector('.reg-badge'); return b ? b.textContent.replace(/\s+/g, ' ').trim() : ''; }),
     subs: cards.map(c => txt(c, '.cun-sub')),
     rowLinks: cards.reduce((n, c) => n + c.querySelectorAll('a').length, 0),
     words: (document.getElementById('dir-page') || {}).textContent || '',

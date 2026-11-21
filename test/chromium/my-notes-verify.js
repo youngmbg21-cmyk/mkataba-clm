@@ -71,7 +71,9 @@ const check = (name, pass, detail) => {
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the ledger is .mnn-table and the chosen note is
        Jambo's Five panel in #ins-panel (mnnPanelFiveHtml), which says "Only you see it." */
     const saved = await until(() => { const r = document.querySelector('.mn-t tbody tr, .mnn-table tbody tr'); const side = document.querySelector('#ins-panel.is-jambo') || document.getElementById('mn-side') || document.getElementById('ins-panel');
-      return r && /liability cap/.test(r.textContent) && r.classList.contains('is-sel') && side && /Mark reviewed/.test(side.textContent) ? { row: r.textContent.replace(/\s+/g, ' ').trim(), priv: /only you (can )?see/i.test(side.textContent) } : null; });
+      /* RE-POINTED (P-27, owner's pick 20 Nov 2026: My notes the Legora + Stripe way): the note's panel says "Only you" by its
+         status badge, with a lock (.mnn-only), where it said "Only you see it." */
+      return r && /liability cap/.test(r.textContent) && r.classList.contains('is-sel') && side && /Mark reviewed/.test(side.textContent) ? { row: r.textContent.replace(/\s+/g, ' ').trim(), priv: /\bonly you\b/i.test(((side.querySelector('.mnn-only') || side).textContent) || '') } : null; });
     const onServer = await W.admin.json('/api/me/items?kind=note');
     const stored = onServer.items.find(n => /liability cap/.test(n.body));
     check('4. Next week says the day; Save puts the note at the top, selected and private', !!says && !!saved && saved.priv, JSON.stringify({ says, saved }));

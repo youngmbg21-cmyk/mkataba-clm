@@ -68,7 +68,7 @@ const PAGES = [
     box: '#obn-q', home: 'open', word: 'pallets', wholeSel: '.obs-th > span', pageSel: '.obn-page', facts: '.obn-page .obs-tiles' },
   /* the overnight run, job 6 (10 Nov 2026): People. Every tab draws the one table (they only pick which people) */
   { k: 'people', view: 'directory', rowSel: '#dir-tbody [data-dir-row]', tabSel: '[data-dirn-tab]', tabKey: 'data-dirn-tab',
-    box: '#dirn-q', home: 'all', word: 'amina', wholeSel: '#dir-page .apn-table.cun-table thead th', pageSel: '#dir-page', facts: '#dir-page .ctf-hf' },
+    box: '#dirn-q', home: 'all', word: 'amina', wholeSel: '#dir-page .apn-table.cun-table thead th', pageSel: '#dir-page', facts: '#dir-page .apn-bar' },   /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): no facts beside the title — the chips count */
   /* job 7: Reads. Its three tabs draw the one table; All's pack lines are rows inside the same body */
   /* job 8: Requests. Its four tabs draw the one table; a tab at 0 steps out */
   { k: 'requests', view: 'intake', rowSel: '.ikn-page .ikn-table tbody tr', tabSel: '[data-ikn-tab]', tabKey: 'data-ikn-tab',
@@ -78,12 +78,12 @@ const PAGES = [
     box: '#mign-q', home: 'all', word: 'supply', wholeSel: '.mign-page .mign-table thead th', pageSel: '.mign-page', facts: '.mign-page .cun-head .ctf-hf' },
   /* job 10: My notes. Its tabs draw the one table; the foot comes and goes with the rows */
   { k: 'mynotes', view: 'mynotes', rowSel: '#mn-page .mnn-table tbody tr', tabSel: '[data-mnn-tab]', tabKey: 'data-mnn-tab',
-    box: '#mnn-q', home: 'all', word: 'call', wholeSel: '#mn-page .mnn-table thead th', pageSel: '#mn-page.mnn-page', facts: '#mn-page .cun-head .ctf-hf' },
+    box: '#mnn-q', home: 'all', word: 'call', wholeSel: '#mn-page .mnn-table thead th', pageSel: '#mn-page.mnn-page', facts: '#mn-page .apn-bar' },   /* RE-POINTED (P-27, owner's pick 20 Nov 2026: My notes the Legora + Stripe way): no facts beside the title — the chips count */
   /* job 11: Parties. RE-POINTED 19 Nov 2026 (the Parties round): Folders is gone, so both tabs draw the one table
      and step 4 (the tab that drew cards) has nothing to press here */
   { k: 'parties', view: 'customers', rowSel: '[data-cu-screen="list"] #cu-tbody tr', tabSel: '[data-cun-tab]', tabKey: 'data-cun-tab',
     box: '#cun-q', home: 'all', word: 'kabras', wholeSel: '[data-cu-screen="list"] .apn-table.cun-table thead th', pageSel: '.cun-page[data-cu-screen="list"]',
-    facts: '[data-cu-screen="list"] .cun-head .ctf-hf' },
+    facts: '[data-cu-screen="list"] .apn-bar' },   /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way): no facts beside the title — the chips count */
   /* Reads became the Discover page (owner, 12 Nov 2026): it has an ask box, not a filter box, so this file's typed-word
      steps have nothing to type into there; its tab press still swaps only the rows (rdnRender, listRowsSwapHtml) */
 ];

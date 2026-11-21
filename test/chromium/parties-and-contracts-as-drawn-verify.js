@@ -8,8 +8,8 @@
      2 THE PANEL: the party's own facts (Edit beside them), Contacts with + Add, Agreements · N
      3 + ADD: the party-wide pop-up takes a name, job title, email and phone and saves the person on the party's
        live agreements (the server keeps title and phone on each)
-     4 THE CONTACTS ROW opens People narrowed to the party: a chip with ×, Add contact, a Phone column, the person
-       with their job title
+     4 THE CONTACTS ROW opens People narrowed to the party: a chip with ×, Add contact, the person with their job title
+       (RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): no Phone column; her party under her name)
      5 CONTRACTS' LIST: "‹ Folders" small over a 26px title, the counts beside it, a sentence over the list
        ("You hold N contracts, M of them signed …"), rows about 66px tall
    At the parent none of this is drawn (Folders and the NDA column stand, no sentence, no pop-up), so every part fails.
@@ -78,12 +78,20 @@ const check = (name, pass, detail) => {
     });
 
     await part('2 the panel', async () => {
-      const P = await until(() => { const p = document.getElementById('ins-panel'); if (!p || !p.querySelector('[data-jov5-sec="ags"]')) return null;
-        return { secs: [...p.querySelectorAll('.jov5-sec .jov5-label')].map(x => x.textContent.trim()), edit: !!p.querySelector('.jov5-more[data-cu-pr-edit]'),
-          add: !!p.querySelector('.jov5-more[data-cun-add-ct]'), all: ((p.querySelector('[data-cun-cts] .jov5-rt b') || {}).textContent || '').trim(), web: !!p.querySelector('[data-cun-web], [data-cun-open]') }; });
-      /* RE-POINTED 19 Nov 2026 (the SAP way, revised): under the facts and contacts, Agreements as links (all of them; those needing you) */
-      check('2a the facts (Edit beside), Contacts (+ Add), then Agreements: "All 2 agreements" opening Contracts; no web search, no Open party',
-        !!P && P.secs[0] === "The party's own facts" && P.secs.indexOf('Contacts') === 1 && P.secs[2] === 'Agreements' && P.edit && P.add && P.all === 'All 2 agreements' && !P.web, JSON.stringify(P));
+      /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way): no tiles, no money. Agreements is the
+         ring with "k of n signed" (.cun-pring), then ONE black button Open on Contracts (.jov5-go[data-cun-cts]) with Edit
+         the link beside it ([data-cu-pr-edit]); then the party's own facts, its timeline, Contacts with + Add a contact */
+      const P = await until(() => { const p = document.getElementById('ins-panel'); if (!p || !p.querySelector('.jov5-go[data-cun-cts]')) return null;
+        return { secs: [...p.querySelectorAll('.jov5-sec .jov5-label')].map(x => x.textContent.trim()), edit: !!p.querySelector('.jov5-act [data-cu-pr-edit]'),
+          add: !!p.querySelector('.jov5-more[data-cun-add-ct]'), all: ((p.querySelector('.jov5-go[data-cun-cts]') || {}).textContent || '').trim(),
+          ring: ((p.querySelector('.cun-pring > span') || {}).textContent || '').replace(/\s+/g, ' ').trim(), svg: !!p.querySelector('.cun-pring svg.cun-ring'),
+          tiles: p.querySelectorAll('.jov5-glance, .jov5-g').length,
+          money: [...p.querySelectorAll('.jov5-sec, .jov5-act, .jov5-intro')].filter(r => /\b(KES|SEK|USD|EUR)\b|\d+(\.\d+)?\s?[MK]\b/.test(r.textContent)).map(r => r.textContent.trim().slice(0, 60)),
+          web: !!p.querySelector('[data-cun-web], [data-cun-open]') }; });
+      check('2a the ring "k of 2 signed", Open on Contracts (Edit beside), the facts, Contacts (+ Add); no tiles, no money, no web search, no Open party',
+        !!P && P.secs[0] === 'Agreements' && P.svg && /^\d of 2 signed/.test(P.ring) && P.all === 'Open on Contracts' && P.edit
+        && P.secs.includes("The party's own facts") && P.secs.indexOf('Contacts') > P.secs.indexOf("The party's own facts") && P.add
+        && P.tiles === 0 && P.money.length === 0 && !P.web, JSON.stringify(P));
       await shot('pc-2-panel-1440x780.png');
     });
 
@@ -117,12 +125,17 @@ const check = (name, pass, detail) => {
     await part('4 People, narrowed', async () => {
       await until(() => !!document.querySelector('#ins-panel [data-cun-ppl]'), null, 8000);
       await page.click('#ins-panel [data-cun-ppl]');
-      const D = await until(() => { if (state.view !== 'directory') return null; const chip = document.querySelector('.dirn-pty'); if (!chip) return null;
+      /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): the party is a chosen chip in the
+         chips row (.apn-chip.is-set[data-dirn-party-clear], its × inside); the Phone column is gone (the phone is the
+         person's panel's "Phone them") */
+      const D = await until(() => { if (state.view !== 'directory') return null; const chip = document.querySelector('.dirn-page .apn-bar .apn-chip.is-set[data-dirn-party-clear]'); if (!chip) return null;
         const rows = [...document.querySelectorAll('#dir-tbody [data-dir-row]')].map(r => r.textContent.replace(/\s+/g, ' ').trim());
         return { chip: chip.textContent.replace(/\s+/g, ' ').trim(), x: !!chip.querySelector('[data-dirn-party-clear]') || !!document.querySelector('[data-dirn-party-clear]'),
           add: !!document.querySelector('[data-dirn-add]'), cols: [...document.querySelectorAll('.dirn-page thead th')].map(t => t.textContent.trim()), rows }; }, null, 10000);
-      check('4a People narrowed to the party: a chip with ×, Add contact, a Phone column, Ruth with her job title',
-        !!D && /Orbit/.test(D.chip) && D.x && D.add && D.cols.includes('Phone') && D.rows.some(r => /Ruth Kamau/.test(r) && /Head of procurement/.test(r)), JSON.stringify(D));
+      /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): an outside person's row says their
+         party under the name (dirnRowHtml's sub line), no longer the job title — Ruth's row names Orbit */
+      check('4a People narrowed to the party: a chip with ×, Add contact, no Phone column, Ruth with her party under her name',
+        !!D && /Orbit/.test(D.chip) && /×/.test(D.chip) && D.x && D.add && !D.cols.includes('Phone') && D.rows.some(r => /Ruth Kamau/.test(r) && /Orbit/.test(r)), JSON.stringify(D));
       await shot('pc-4-people-1440x780.png');
     });
 
