@@ -20261,6 +20261,30 @@
   html.lg-new .mign5-ow{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
   html.lg-new .mign5-use{max-width:100%;height:22px;padding:0 10px;border:1px solid var(--color-neutral-300);border-radius:999px;background:var(--color-surface);font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
   html.lg-new .mign5-use:hover{border-color:var(--color-neutral-400)}
+  /* RE-POINTED 22 Nov 2026 (batch 7 review, P-33): a grey File it says why under the acts; the copy's two quiet links on
+     one line (Keep both · Link it to the one we have) */
+  html.lg-new .mign5-wait{margin:0;font-size:var(--t-label);line-height:1.4;color:var(--st-amber-fg)}
+  html.lg-new .mign5-ql{display:flex;flex-wrap:wrap;gap:4px 16px}
+  /* the § inside the quote's line, right after its closing mark ("until 31 August 2027" § 4): the words give way, inside
+     the marks, never the § */
+  html.lg-new .mign-table .mign-ql i{display:flex;min-width:0;overflow:hidden}
+  html.lg-new .mign-table .mign-ql .mign-qt{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:inherit;color:inherit}
+  html.lg-new .mign-table .mign-ql .mign-qe{flex:none;font:inherit;color:inherit}
+  html.lg-new .mign-table .mign-ql .mign-qs{flex:none;margin-left:2px;font-family:var(--font-body);font-size:var(--t-label);color:var(--color-neutral-400);align-self:center}
+  /* the rows at the drawn height */
+  html.lg-new .mign-page .apn-card .mign-table td{padding-top:9px;padding-bottom:9px}
+  /* what Jambo read: the dates never cut — a run that will not break; where two lines will not hold it all, kind and party
+     take the first line ending in "…" and the dates the second (migNlReadFit) */
+  html.lg-new .mign-table .mign-read .mign-rd{white-space:nowrap}
+  html.lg-new .mign-table .mign-read.is-split{display:block;-webkit-line-clamp:none}
+  html.lg-new .mign-table .mign-read.is-split .mign-rk{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .mign-table .mign-read.is-split .mign-rs{display:none}
+  html.lg-new .mign-table .mign-read.is-split .mign-rd{display:block}
+  /* BEFORE ANY FILE, THE HEAD AT THE SAME HEIGHT AS ON EVERY OTHER TAB: the title and the ask line where the loaded page
+     puts them */
+  html.lg-new .mig-page:has(> .mign-start) .mig-own-head{padding-top:20px}
+  html.lg-new .mig-page:has(> .mign-start) .mig-own-head .ctf-h{line-height:1.4}
+  html.lg-new .mig-page>.mign-start.mign-start{padding-top:9px}
   html.lg-new .mign5-batch{display:flex;align-items:center;gap:14px;min-width:0}
   html.lg-new .mign5-ring{flex:none;display:block}
   html.lg-new .mign5-ring .rb{fill:none;stroke:var(--color-neutral-200);stroke-width:6}
@@ -20315,6 +20339,8 @@
   html.lg-new .tpln6-badge{display:inline-flex;align-items:center;gap:6px;height:22px;max-width:100%;padding:0 9px;border-radius:999px;font-size:var(--t-micro);font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .tpln6-badge i{flex:none;width:6px;height:6px;border-radius:50%}
   html.lg-new .tpln6-badge.is-kind{background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  /* the badge's words end in "…" inside the badge, never clipped mid-word past it (RE-POINTED 22 Nov 2026) */
+  html.lg-new .tpln6-badge .tpln6-bw{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   html.lg-new .tpln6-fcg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
   html.lg-new .tpln6-fc{display:flex;flex-direction:column;gap:8px;min-width:0;padding:16px;border:1px solid var(--color-neutral-200);border-radius:var(--radius);background:var(--color-surface);cursor:pointer}
   html.lg-new .tpln6-fc:hover{border-color:var(--color-neutral-300)}
@@ -20498,6 +20524,17 @@
   html.lg-new .ld6-btn{height:auto;padding:7px 16px;border:0;border-radius:999px;background:var(--accent-solid);color:var(--color-surface);font:inherit;font-size:14px;font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
   html.lg-new .ld6-btn.is-grey{padding:7px 14px;background:var(--surface-2);color:var(--color-text)}
   html.lg-new .ld6-lnk{font-size:12.5px}
+  /* RE-POINTED 22 Nov 2026 (batch 7 review, P-35): See it in the paper › and + Add a fallback underlined like every house
+     link; the names in the tables at the house row's size and weight; Our ladder's rungs one line each, opened on a press */
+  html.lg-new .ld6-p .ld6-lnk,html.lg-new .ld6-page .ld6-add{text-decoration:underline;text-underline-offset:3px}
+  html.lg-new .ld6-table .cun-name.cun-name,html.lg-new .ld6-table td.ld6-pos{font-size:var(--t-card);color:var(--color-text)}
+  html.lg-new .ld6-table .cun-name.cun-name{font-weight:var(--w-label)}
+  html.lg-new .ld6-dots .ld6-lr{display:flex;align-items:baseline;gap:4px;min-width:0;width:100%;padding:0;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
+  html.lg-new .ld6-dots .ld6-lr .ld6-lw{flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .ld6-dots .ld6-lr .ld6-ll{flex:none}
+  html.lg-new .ld6-dots .ld6-lr.is-open{display:block}
+  html.lg-new .ld6-dots .ld6-lr.is-open .ld6-lw{white-space:normal;overflow:visible}
+  html.lg-new .ld6-dots .ld6-lr.is-open .ld6-ll{margin-left:4px}
   html.lg-new .ld6-wt{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;font-size:13px}
   html.lg-new .ld6-wt[data-ld-goap]{cursor:pointer}
   html.lg-new .ld6-wt-t{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -23499,6 +23536,12 @@
   html.lg-new .tpln6-p .tpln6-pos{display:grid;grid-template-columns:12px minmax(0,1fr) auto;align-items:center;gap:8px;font-size:var(--t-body)}
   html.lg-new .tpln6-p .tpln6-pos i{width:8px;height:8px;border-radius:50%;background:var(--st-green-dot)}
   html.lg-new .tpln6-p .tpln6-pos.is-amber i{background:var(--st-amber-dot)}
+  /* the paper's first paragraph starts where the clauses under it start (RE-POINTED 22 Nov 2026, batch 7 review): the
+     preview's own side padding round its opening lines is taken off on Our paper's sheet, its margin already being nil */
+  html.lg-new .tpln-sheet .tpl-pf-sheet p.px-2{padding-left:0;padding-right:0}
+  /* a position that does not apply to this kind of paper: a grey dot, "n/a" (RE-POINTED 22 Nov 2026, batch 7 review) */
+  html.lg-new .tpln6-p .tpln6-pos.is-na i{background:var(--color-neutral-300)}
+  html.lg-new .tpln6-p .tpln6-pos.is-na span{color:var(--color-quiet)}
   html.lg-new .tpln6-p .tpln6-pos span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   html.lg-new .tpln6-p .tpln6-pos small{font-size:var(--t-label);color:var(--color-neutral-400);white-space:nowrap}
   html.lg-new .tpln6-p .tpln6-dr{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;width:100%;padding:0;border:0;background:none;font:inherit;font-size:var(--t-body);text-align:left;color:var(--color-text);cursor:pointer}
@@ -24333,6 +24376,15 @@
   html.lg-new:not(#_) #ig-dock .na6-p .na6-tl li.is-now{color:var(--color-text)}
   html.lg-new:not(#_) #ig-dock .na6-p .na6-tl li.is-now > i{background:var(--st-amber-dot)}
   html.lg-new:not(#_) #ig-dock .na6-p .na6-tl small{font-size:12.5px;color:var(--color-neutral-400)}
+  /* ON A SHORT SCREEN (the owner's 1536 x 730) THE PANEL'S LAST LINE STAYS AT LEAST 16PX CLEAR OF THE LINKS LINE
+     (RE-POINTED 22 Nov 2026, batch 7 review): the gaps between its parts close a little, the words keep their size */
+  @media (max-height: 760px){
+    html.lg-new:not(#_) #ig-dock .na6-p .jov5{gap:10px}
+    html.lg-new:not(#_) #ig-dock .na6-p :is(.jov5-intro,.jov5-sec){padding-bottom:10px}
+    html.lg-new:not(#_) #ig-dock .na6-p .jov5-sec:last-child{padding-bottom:0}
+    html.lg-new:not(#_) #ig-dock .na6-p .na6-tl li{padding-bottom:8px}
+    html.lg-new:not(#_) #ig-dock .na6-p .na6-tl li:last-child{padding-bottom:0}
+  }
 </style>
 
 

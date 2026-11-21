@@ -212,7 +212,11 @@ function ld6DepRows(rows){
     if (!allowed && !open) return;
     out.push({ key:'dep:' + x.c.id + ':' + x.i, r, x, allowed });
   }));
-  return out.filter(d => ld6Hit([d.r.name, d.r.topic, d.x.c.name, ld6Party(d.x.c), d.x.v.quote].join(' ')));
+  /* OLDEST FIRST, as drawn (RE-POINTED 22 Nov 2026, batch 7 review): the departure that has waited longest leads; one
+     with no day said goes last */
+  const at = d => String(ld6DepAt(d.x) || '').slice(0, 10) || '9999';
+  return out.filter(d => ld6Hit([d.r.name, d.r.topic, d.x.c.name, ld6Party(d.x.c), d.x.v.quote].join(' ')))
+    .map((d, i) => ({ d, i })).sort((a, b) => at(a.d).localeCompare(at(b.d)) || a.i - b.i).map(o => o.d);
 }
 function ld6Waited(x){ const at = (x.v.accepted && x.v.accepted.at) || (x.c.playbook && x.c.playbook.at) || ''; return at ? ldDay(at) : '—'; }
 function ld6StripHtml(rows){
@@ -278,7 +282,7 @@ function ldLadderHtml(r){
     ${L.why ? `<p class="ld-why">${LD_E(L.why)}</p>` : ''}
     <div class="ld6-rungs">${rungs}</div>
     ${change}
-    <p class="ld-gov ld6-gov"><span>${LD_E(i18t('ld_owner'))} <b class="${g.owner ? '' : 'is-amber'}">${LD_E(g.owner || i18t('ld6_owner_none'))}</b></span><span>${LD_E(i18t('ld_next_review'))} <b>${LD_E(g.reviewNext ? ldDay(g.reviewNext) : i18t('ld_review_never'))}</b></span>${r.firm === 'must' ? `<span>${LD_E(i18t('ld6_at_signing'))} <b>${LD_E(i18t('ld6_gate_' + (['off', 'advise', 'require'].includes(gate) ? gate : 'advise')))}</b></span>` : ''}</p>
+    <p class="ld-gov ld6-gov"><span>${LD_E(i18t('ld_next_review'))} <b>${LD_E(g.reviewNext ? ldDay(g.reviewNext) : i18t('ld_review_never'))}</b></span>${r.firm === 'must' ? `<span>${LD_E(i18t('ld6_at_signing'))} <b>${LD_E(i18t('ld6_gate_' + (['off', 'advise', 'require'].includes(gate) ? gate : 'advise')))}</b></span>` : ''}</p>
   </section>`;
 }
 /* DEPARTURES: one calm table — the contract (its name, then the other side and reference, then "§ N · “…the paper's
@@ -479,7 +483,9 @@ function ld6DepFive(d){
   const c = d.x.c, r = d.r, q = String(d.x.v.quote || '').replace(/\s+/g, ' ').trim(), sec = q ? ld6SecOf(c, q) : '';
   const mine = !d.allowed && r.firm !== 'nice' && ldDepKeysMine().has(d.key);
   const L = r.ladder;
-  const line = (w, lab) => `<span class="ld6-lw">${LD_E(ld6Q(w, 90))}</span> <span class="ld6-ll">· ${LD_E(lab)}</span>`;
+  /* OUR LADDER IN SHORT LINES, as drawn (RE-POINTED 22 Nov 2026, batch 7 review): each rung on ONE line, its words ending
+     in "…" before its label, which always shows; a press on a rung opens its whole wording (and closes it again) */
+  const line = (w, lab) => `<button type="button" class="ld6-lr" data-ld-rung aria-expanded="false" title="${LD_E(String(w || ''))}"><span class="ld6-lw">${LD_E(String(w || '').replace(/\s+/g, ' ').trim())}</span><span class="ld6-ll">· ${LD_E(lab)}</span></button>`;
   const lad = [{ tone:'green', html:line(L.ask || i18t('ld_rung_none'), i18t('ld6_l_ask')) }]
     .concat(L.fallbacks.map((f, k) => ({ tone:'amber', html:line(f.text || i18t('ld_rung_none'), i18t('ld6_l_fb', { n:k + 1 })) })))
     .concat(L.never ? [{ tone:'dark', html:line(L.never, i18t('ld6_l_never')) }] : [])
@@ -801,6 +807,9 @@ if (typeof document !== 'undefined' && !document._ldWired){
     if (dr){ _ld.depPick = dr.getAttribute('data-ld-deprow'); renderStandardsPage(); return; }
     const hr = t.closest('[data-ld-hrow]');
     if (hr && !t.closest('button')){ _ld.hPick = hr.getAttribute('data-ld-hrow'); renderStandardsPage(); return; }
+    /* a rung of Our ladder opens to its whole wording, and closes on a second press (nothing redrawn) */
+    const rg = t.closest('[data-ld-rung]');
+    if (rg){ ev.preventDefault(); const on = !rg.classList.contains('is-open'); rg.classList.toggle('is-open', on); rg.setAttribute('aria-expanded', String(on)); return; }
     const pk = t.closest('[data-ld-peek]');
     if (pk){ ev.preventDefault(); if (typeof window.apnPeekOpen === 'function') window.apnPeekOpen(pk.getAttribute('data-ld-peek')); return; }
     const b = t.closest('[data-ld-book-clear],[data-ld-pick],[data-ld-mode],[data-ld-new],[data-ld-edit],[data-ld-write],[data-ld-cancel],[data-ld-send],[data-ld-firm],[data-ld-fb-add],[data-ld-fb-x],[data-ld-books],[data-ld-decide],[data-ld-withdraw],[data-ld-goap]');
