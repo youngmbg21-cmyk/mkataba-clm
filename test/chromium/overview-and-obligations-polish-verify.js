@@ -124,7 +124,8 @@ const SIGNED = { ...H.fixtureContract('MK-P1', 'Warehousing Services', 'Apex Log
     ok('3b no "we owe" line — the title says the drawing\'s counts only',
       /* RE-POINTED 16 Nov 2026 (#762; ONE COUNT, the harmony review): the title's facts lead with what is late — "1 late · 3 open" */
       /* RE-POINTED 19 Nov 2026 (We owe · They owe, the owner's pick): the facts say what of each side is late — "1 of ours late" */
-      /^1 of ours late$/.test(ob.facts) && !/we owe/i.test(ob.facts), ob.facts);
+      /* RE-POINTED (P-13, owner's pick 20 Nov 2026: Obligations the Stripe way): no facts beside the title — the tiles count */
+      !ob.facts && !/we owe/i.test(ob.facts), ob.facts);
 
     console.log('\n4 · All is first');
     /* RETIRED 16 Nov 2026 (#762): 4a "All first" on the Obligations page — the new look's page has no view tabs to order

@@ -61,10 +61,11 @@ const MARK = ([pg, bx]) => {
 
 const PAGES = [
   { k: 'approvals', view: 'approvals', rowSel: '.apn-table [data-ap-row]', tabSel: '[data-apn-tab]', tabKey: 'data-apn-tab',
-    box: '#apn-q', home: 'mine', word: 'carton', wholeSel: '.apn-table thead th', pageSel: '.apn-page' },
+    box: '#apn-q', home: 'mine', word: 'carton', wholeSel: '.apn-table thead th', pageSel: '.apn-page', facts: '.apn-page .apn-bar' },   /* RE-POINTED (P-30): no facts beside the title — the chips count */
   /* RE-POINTED 19 Nov 2026 (We owe · They owe, the owner's pick): the lines stand in two columns; their heads are the marks */
+  /* RE-POINTED AGAIN (P-13, owner's pick 20 Nov 2026): one calm table under figure tiles — its column heads, and the tiles' counts in place of the head's facts */
   { k: 'obligations', view: 'obligations', rowSel: '#obn-list [data-ins-row]', tabSel: '[data-obn-tab]', tabKey: 'data-obn-tab',
-    box: '#obn-q', home: 'open', word: 'pallets', wholeSel: '.obt-colh', pageSel: '.obn-page' },
+    box: '#obn-q', home: 'open', word: 'pallets', wholeSel: '.obs-th > span', pageSel: '.obn-page', facts: '.obn-page .obs-tiles' },
   /* the overnight run, job 6 (10 Nov 2026): People. Every tab draws the one table (they only pick which people) */
   { k: 'people', view: 'directory', rowSel: '#dir-tbody [data-dir-row]', tabSel: '[data-dirn-tab]', tabKey: 'data-dirn-tab',
     box: '#dirn-q', home: 'all', word: 'amina', wholeSel: '#dir-page .apn-table.cun-table thead th', pageSel: '#dir-page', facts: '#dir-page .ctf-hf' },
