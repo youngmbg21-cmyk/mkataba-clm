@@ -5391,7 +5391,7 @@ function obnBigHtml(r, st, w, label){
     + (r.st !== 'done' && dd != null ? (() => { const x = Math.max(0, Math.min(100, (dd + 10) / 40 * 100));
       const t0 = typeof todayISO === 'function' ? todayISO() : new Date().toISOString().slice(0, 10);
       const at = n => { const d = new Date(t0 + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
-      return `<div class="obs-30" aria-hidden="true"><i class="obs-30-today"></i><i class="obs-30-due is-${st}" style="left:${x.toFixed(1)}%"></i><i class="obs-30-end"></i><small class="l">${E(i18t('obs_today'))}</small><small class="a">${E(obDay(at(-10)))}</small><small class="b">${E(obDay(at(30)))}</small></div>`; })() : '') : '';
+      return `<div class="obs-30" aria-hidden="true"><i class="obs-30-late"></i><i class="obs-30-today"></i><i class="obs-30-due is-${st}" style="--x:${x.toFixed(1)}%"></i><i class="obs-30-end"></i><small class="l">${E(i18t('obs_today'))}</small><small class="a">${E(obDay(at(-10)))}</small><small class="b">${E(obDay(at(30)))}</small></div>`; })() : '') : '';
 }
 /* A RENEWAL DECISION CHOSEN, THE SAME PANEL AS EVERY ROW (P-13 review, 22 Nov 2026; replaces the boxed five parts here):
    the badges, the decision, the other side and the agreement's number, the day to decide by with its 30-day line, Decide
