@@ -22297,14 +22297,14 @@
      Summarise's spark and Draft's +; the day is not said. */
   html.lg-new #ig-page[data-hb-side="board"] #hb-bhead.is-greet{padding:22px 24px 16px}
   html.lg-new #ig-page[data-hb-side="board"] #hb-bhead.is-greet .hb-bh-top{display:flex;align-items:flex-end;gap:16px}
-  html.lg-new #ig-page[data-hb-side="board"] #hb-bhead.is-greet .hb-bh-t{flex:1;min-width:0;font-size:28px}
+  html.lg-new #ig-page[data-hb-side="board"] #hb-bhead.is-greet .hb-bh-t{flex:1;min-width:0;font-size:26px}
   html.lg-new #ig-page[data-hb-side="board"] #hb-bhead.is-greet .hb-bh-live{flex:none;display:inline-flex;align-items:center;gap:6px;padding-bottom:4px;font-size:12.5px;color:var(--color-quiet);white-space:nowrap}
   html.lg-new #ig-page[data-hb-side="board"] #hb-bhead.is-greet .hb-bh-r{margin-top:10px;gap:6px}
   html.lg-new #ig-page[data-hb-side="board"] #hb-bhead.is-greet .hb-btn.is-sm{height:auto;padding:4px 11px;font-size:12.5px;line-height:1.4}
   html.lg-new #ig-page[data-hb-side="board"] #hb-bhead.is-greet :is(.hb-explorer-go,.hb-discover-go) svg{display:none}
   /* Your book: four small figure cards — the name, the figure, the change against May (red when worse), the six-month line */
   html.lg-new #ig-page[data-hb-side="board"] .hb-book .hb-figs.hb-tn.hb-tn.is-cards{gap:12px;padding:10px var(--s-4) 0}
-  html.lg-new #ig-page[data-hb-side="board"] .hb-book .hb-figs.hb-tn.hb-tn.is-cards > .hb-fig{gap:4px;padding:12px 14px;border:1px solid var(--color-divider);border-radius:12px}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-book .hb-figs.hb-tn.hb-tn.is-cards > .hb-fig{gap:4px;padding:16px;border:1px solid var(--color-divider);border-radius:12px}
   html.lg-new #ig-page[data-hb-side="board"] .hb-book .hb-tn.is-cards .hb-fig-l{font-size:12.5px;font-weight:400;color:var(--color-quiet)}
   html.lg-new #ig-page[data-hb-side="board"] .hb-book .hb-tn.is-cards .hb-fig-left{display:none}
   html.lg-new #ig-page[data-hb-side="board"] .hb-book .hb-tn.is-cards .hb-fig .hb-fig-n{font-family:var(--font-body);font-size:24px;line-height:1.1;font-weight:var(--w-label);color:var(--color-text);padding:0}
@@ -22331,6 +22331,9 @@
   /* Needs you: no Hide and no find box on the card; outlined chips (the one chosen solid, the rest dashed); a calm table
      with sentence-case heads on white; no mark before what waits; soft square badges; each row's act a small grey pill */
   html.lg-new #ig-page[data-hb-side="board"] #hm-agents .nd-fold,html.lg-new #ig-page[data-hb-side="board"] #hm-agents .nd-find,html.lg-new #ig-page[data-hb-side="board"] #hm-agents .nd-br .ls-mk{display:none}
+  /* Needs you draws no Hide (as drawn); its head keeps the insights head's height (the owner's "same head", 26 Oct
+     2026) by the small control's height on its spacer */
+  html.lg-new #ig-page[data-hb-side="board"] #hm-agents > .hb-ch > .hb-grow{min-height:var(--ctl-h-sm)}
   html.lg-new #ig-page[data-hb-side="board"] #hm-agents .nd-bar{padding-top:12px}
   html.lg-new #ig-page[data-hb-side="board"] #hm-agents .nd-tabs{gap:8px}
   html.lg-new #ig-page[data-hb-side="board"] #hm-agents .nd-tab.is-chip{height:auto;padding:3px 11px;gap:6px;border:1px dashed var(--color-neutral-300);background:var(--color-surface);color:var(--color-quiet);font-size:13px;font-weight:var(--w-label)}
@@ -22350,7 +22353,7 @@
   html.lg-new #ig-page[data-hb-side="board"] #hm-agents .nd-c-deal .nd-dot{flex:none;margin:0 3px;font-style:normal;color:inherit}
   html.lg-new #ig-page[data-hb-side="board"] #hm-agents .nd-c-when{font-size:12.5px;color:var(--color-quiet)}
   html.lg-new #ig-page[data-hb-side="board"] #hm-agents .nd-c-when.cn-late{color:var(--st-ruby-fg)}
-  html.lg-new #ig-page[data-hb-side="board"] #hm-agents .nd-c-next .nd-btn{height:auto;min-height:0;padding:3px 10px;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);font-size:12px;font-weight:var(--w-label);box-shadow:none}
+  html.lg-new #ig-page[data-hb-side="board"] #hm-agents .nd-c-next .nd-btn{height:var(--ctl-h-sm);min-height:0;padding:0 10px;border:0;border-color:transparent;border-radius:999px;background:var(--surface-2);color:var(--color-text);font-size:12px;font-weight:var(--w-label);box-shadow:none}
   /* The side panel, no cards: no head row on the Board (the map is its top), the map 150 tall, the sentence in the body
      face, each section parted by a hairline with its own heading in ink; Jambo's pieces as quiet rows, a › that nudges */
   html.lg-new #ig-dock:has(> .igd-body .jov5[data-jov-slot="hb"]) > .igd-head,html.lg-new #ig-dock:has(.jov5[data-jov-slot="hb"]) > .igd-head{display:none}

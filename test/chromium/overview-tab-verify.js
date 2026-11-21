@@ -124,7 +124,9 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
       const ov = (key === 'explorer' && /Your day/.test(read.tabWords[0] || '') ? read.tabWords[1] : read.tabWords[0]) || '', jb = read.tabWords[1] || '';
       /* RETIRED 17 Nov 2026 (#762, round 6 default): 1 approvals "Overview first" — Approvals' chosen-row panel opens on
          "Before you decide" (apnLeadFiveHtml), no Overview tab; the "no Jambo tab" half is still asked below */
-      if (key === 'approvals') check(`1 ${key}: no Jambo tab`, !read.tabWords.some(w => /Jambo/.test(w)), JSON.stringify({ tabs: read.tabWords, lit: read.lit }));
+      /* RE-POINTED 21 Nov 2026 (P-39, the Board's panel as drawn): no head row at all — no Overview tab, no Jambo tab */
+      if (key === 'board') check(`1 ${key}: no tab row, no Jambo tab (as drawn)`, !read.tabWords.length, JSON.stringify({ tabs: read.tabWords }));
+      else if (key === 'approvals') check(`1 ${key}: no Jambo tab`, !read.tabWords.some(w => /Jambo/.test(w)), JSON.stringify({ tabs: read.tabWords, lit: read.lit }));
       else check(`1 ${key}: Overview first, no Jambo tab, landing on Overview`, /Overview/.test(ov) && !read.tabWords.some(w => /Jambo/.test(w)) && /Overview/.test(read.lit), JSON.stringify({ tabs: read.tabWords, lit: read.lit, jb }));
       check(`2 ${key}: no greeting on the Overview`, !read.helloIn, String(read.helloIn));
       check(`3 ${key}: drawn by the one Overview builder`, read.jov >= 1, String(read.jov));
@@ -152,7 +154,9 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
       const RETIRED = { 'settings-you': ['Open the Menu', 'brief me once a week', 'switch to Svenska', 'turn off my suggestions', 'Ask'],
         'settings-company': ['Open the Menu', 'review the quarterly access review', 'what should I turn on next?', 'who can open Procurement & Raw Materials?', 'Ask'],
         customers: ['all parties'], contracts: ['Due diligence · 5 questions', 'Ask a new question', 'calendar'], approvals: ['approval rules'],
-        obligations: ['find time for what is due · 1 call'], negotiations: ['our move', 'start a negotiation'] };
+        obligations: ['find time for what is due · 1 call'], negotiations: ['our move', 'start a negotiation'],
+        /* RETIRED 21 Nov 2026 (P-39, the Board's panel as drawn: no suggestion chips under Jambo's pieces) */
+        board: ['which 2 end in 90 days?', 'value by stream', 'what needs me'] };
       /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): "Add a file" is the box's + (data-jb-file) in the
          panel's foot, outside the body read above — still offered, so asked there */
       const viaFoot = w => w === 'Add a file' && read.plus;

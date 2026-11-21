@@ -63,7 +63,9 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     /* RE-POINTED 26 Oct 2026 (owner: "any page where there is a link to press on the first page needs a second
        tab for jambo"; reverses the Board's one window of the same day): his greeting and its chips are the
        Board's first page, under Overview; his conversation under the Jambo tab beside it; still no page word */
-    check('A1 the Board: Overview (his cards and chips), no Jambo tab; no word, no trail on the landing', !!A1 && A1.tabs.some(t => /Overview|Översikt/.test(t)) && noJb(A1) && A1.word.length === 0 && A1.trail === 0, JSON.stringify(A1));
+    /* RE-POINTED 21 Nov 2026 (P-39, the Board's panel as drawn): no head row — his cards are the panel itself, so no
+       Overview tab is drawn (nor a Jambo tab) */
+    check('A1 the Board: his cards with no tab row (as drawn), no Jambo tab; no word, no trail on the landing', !!A1 && A1.tabs.length === 0 && noJb(A1) && A1.word.length === 0 && A1.trail === 0, JSON.stringify(A1));
     ai.reset(); ai.script(deliver('Two things want you this week.'));
     await page.fill('#igd-input', 'explain this board to me in two lines'); await page.click('#igd-go');   /* typed: the brain's */
     /* RE-POINTED 26 Oct 2026: the answer stands under his tab; his greeting waits under Overview, one press back */

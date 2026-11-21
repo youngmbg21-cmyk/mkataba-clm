@@ -1079,8 +1079,11 @@ function ndBoardHtml(opts){
   const lateN = ndRowsN(B.jambo.concat(B.you).filter(r => r.late));
   const chip = (k, n) => `<button type="button" class="nd-chip${_nd.kind === k ? ' on' : ''}" data-nd-kind="${k}" aria-pressed="${_nd.kind === k}">${_cnE(_cnT('nd_k_' + k))}${n != null ? ' ' + n : ''}</button>`;
   const jamboOn = _nd.tab === 'jambo' || _nd.kind === 'jambo';
-  const folded = ndFolded();
-  return `<section class="hb-card nd-card${folded ? ' is-folded' : ''}" id="hm-agents"><header class="hb-ch"><span class="hb-ct">${_cnE(_cnT('hb_ny_title'))}</span><span class="hb-cs">${_cnE(sum)}</span><span class="hb-grow"></span>${ndFoldBtnHtml(folded)}</header>`
+  /* P-39, AS DRAWN: the Board's Needs you has no Hide (nor a find box) — so it is never left folded with no way to open
+     it again: a fold kept from before is not honoured where the button is not drawn */
+  const noFold = typeof window.newLookOn === 'function' && newLookOn();
+  const folded = !noFold && ndFolded();
+  return `<section class="hb-card nd-card${folded ? ' is-folded' : ''}" id="hm-agents"><header class="hb-ch"><span class="hb-ct">${_cnE(_cnT('hb_ny_title'))}</span><span class="hb-cs">${_cnE(sum)}</span><span class="hb-grow"></span>${noFold ? '' : ndFoldBtnHtml(folded)}</header>`
     + `<div class="nd-main" id="nd-main"${folded ? ' hidden' : ''}><div class="nd-bar"><div class="nd-tabs">${tab('all', B.n)}${tab('late', lateN)}${tab('you', ndRowsN(B.you.filter(r => !r.late)))}${tab('jambo', ndRowsN(B.jambo))}</div>`
     + `<input type="search" id="nd-q" class="nd-find" autocomplete="off" placeholder="${_cnE(_cnT('nd_find_ph'))}" aria-label="${_cnE(_cnT('nd_find_label'))}" value="${_cnE(_nd.q)}"></div>`
     + (kinds.length > 1 ? `<div class="nd-chips">${chip('any', null)}${kinds.map(x => chip(x.k, x.n)).join('')}</div>` : '')

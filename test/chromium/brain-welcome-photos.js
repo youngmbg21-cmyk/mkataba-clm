@@ -35,7 +35,7 @@ const until = async (page, fn, arg, ms = 10000) => { try { await page.waitForFun
         const dock = document.querySelector('#ig-dock'), w = document.querySelector('#ig-dock .hb-jb-hello'), card = document.querySelector('#ig-dock .hbw-brain');
         if (!dock || !w || !card) return null;
         const cr = card.getBoundingClientRect(), wr = w.getBoundingClientRect();
-        const out = [...w.querySelectorAll('.hbw-n, .hbw-acts > *, .jov-lnk, .hbw-ctl')].filter(e => { const r = e.getBoundingClientRect(); return r.right > wr.right + 1 || r.left < wr.left - 1; }).length;
+        const out = [...w.querySelectorAll('.hbw-n, .hbw-acts > *, .jov-lnk, .hbw-ctl')].filter(e => { if (!e.getClientRects().length) return false; /* a control not drawn (P-39: the map's Still/Spin is not drawn) is not out */ const r = e.getBoundingClientRect(); return r.right > wr.right + 1 || r.left < wr.left - 1; }).length;
         return { side: dock.scrollWidth - dock.clientWidth, page: document.documentElement.scrollWidth - window.innerWidth, cardW: Math.round(cr.width), cardH: Math.round(cr.height), out,
           say: (w.querySelector('.hbw-say') || {}).textContent || '' };
       });
