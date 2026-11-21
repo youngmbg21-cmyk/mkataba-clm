@@ -445,6 +445,13 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Where we are · Signing:** Legora + Stripe, as drawn; no Jambo box on their page.
   - **Check before building:** the faults logged on 21 Nov 2026 on their page are fixed in the same build — "For you: ready to sign" with nothing open; the empty Redlines panel naming a missing "Edit" button; the Signing green tick too early.
 
+### P-45 · Discover's Export: choose the kind of file, or send the results to colleagues
+- **Added:** 21 Nov 2026 · **Status:** Waiting
+- **What:** the owner's words: "Export discover results should have options to export to which type of document but also send the results to internal colleagues." On a Discover read's results, Export should offer (1) a choice of file type to download, and (2) sending the results to colleagues inside the company.
+- **Today (checked in the code, 21 Nov 2026):** Export only COPIES the results table to the clipboard (as a table that pastes into a spreadsheet, with plain text as the fallback) and says "copied". It makes no file and sends nothing.
+- **Where it came from:** the owner, 21 Nov 2026.
+- **Notes:** to settle before building: which file types (for example Excel, Word, PDF, CSV), and whether copying stays as one of the choices. Sending to colleagues: inside the company only, never the other side; walls hold (each colleague sees only the contracts their streams allow, private streams and code names stay hidden, money only for those with money rights); a send should leave a record and reach the colleague where they look (the bell), not only an email (flow rules 3, 6, 8). Built the Legora way as a pop-up (`lgpOpen`). The Handbook's Discover chapter (its picture marks Export) changes with it.
+
 ## Done
 
 ### P-20 · Remove "Workspace" from the navigation panel
