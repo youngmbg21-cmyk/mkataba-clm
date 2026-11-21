@@ -1,5 +1,5 @@
 'use strict';
-/* f1133 — PARTIES AS DRAWN (P-25, the owner's pick 20 Nov 2026: "L+S and ring"; rebuilt to the drawing 21 Nov 2026)
+/* f1139 — PARTIES AS DRAWN (P-25, the owner's pick 20 Nov 2026: "L+S and ring"; rebuilt to the drawing 21 Nov 2026)
    1 · Under each party's name, the words that name it on the paper ("between … and …"), verbatim from the paper's own
        wording, the nearest such words; a paper that never names the party so gives none — never an invented line.
    2 · On paper says its currency in the head ("On paper (KES)") and the cells the figure alone; the column is not drawn
@@ -25,7 +25,7 @@ const fnBody = (src, name) => { const i = src.search(new RegExp('(?:async )?func
 const CU = read('js/views/customers.js');
 const CSS = read('index.html');
 
-test('f1133 (1) the paper\'s own words name the party, verbatim; none where the paper has none', () => {
+test('f1139 (1) the paper\'s own words name the party, verbatim; none where the paper has none', () => {
   const sb = {}; vm.createContext(sb);
   vm.runInContext(fnBody(CU, 'cunWordsIn') + '\nthis.f = cunWordsIn;', sb);
   const text = 'SUPPLY AGREEMENT Between Highland Corporate Ltd and Saw Sawa LLC This agreement is made between Highland Corporate Ltd (the "Buyer") and Saw Sawa LLC (the "Supplier").';
@@ -39,7 +39,7 @@ test('f1133 (1) the paper\'s own words name the party, verbatim; none where the 
   assert.match(CSS, /html\.lg-new \.cun-page \.cun-pq\{[^}]*font-family:var\(--font-doc\)[^}]*text-overflow:ellipsis/);
 });
 
-test('f1133 (2) On paper: the currency in the head, the figure alone in the cell, the column gone without money rights', () => {
+test('f1139 (2) On paper: the currency in the head, the figure alone in the cell, the column gone without money rights', () => {
   const sb = { fmtMoneyShort: n => 'KES ' + (n / 1e6).toFixed(2) + 'M', jxCurrency: () => 'KES' }; vm.createContext(sb);
   vm.runInContext(fnBody(CU, 'cunPaperSay') + '\nthis.f = cunPaperSay;', sb);
   assert.equal(sb.f(10500000), '10.50M');
@@ -49,7 +49,7 @@ test('f1133 (2) On paper: the currency in the head, the figure alone in the cell
   assert.match(CU, /function cunKeys\(\)\{ return CUN_KEYS\.filter\(k => k !== 'paper' \|\| !\(typeof canViewValues === 'function' && !canViewValues\(\)\)\); \}/);
 });
 
-test('f1133 (3) the worklist as drawn: the paper\'s words under Jambo\'s finds, the words of each kind, its soft badge', () => {
+test('f1139 (3) the worklist as drawn: the paper\'s words under Jambo\'s finds, the words of each kind, its soft badge', () => {
   const sb = { obReviewWaiting: () => [{ quote: 'unless earlier terminated by either Party giving thirty (30) days’ notice', clause: '3' }, { quote: 'x', clause: '4' }, { clause: '5' }, {}],
     i18t: (k, v) => k + (v ? JSON.stringify(v) : ''), i18tn: (k, n, v) => k + ':' + n + JSON.stringify(v) };
   vm.createContext(sb);
@@ -67,7 +67,7 @@ test('f1133 (3) the worklist as drawn: the paper\'s words under Jambo\'s finds, 
   assert.match(read('js/i18n.js'), /cun_k_jambo: "Jambo’s finds"/);
 });
 
-test('f1133 (4) the panel as drawn: no cards, no money; facts on All, what waits on Waiting on you; timeline; contacts', () => {
+test('f1139 (4) the panel as drawn: no cards, no money; facts on All, what waits on Waiting on you; timeline; contacts', () => {
   const p = strip(fnBody(CU, 'cunPanelFiveHtml'));
   assert.match(p, /if \(wait\)\{[\s\S]*key: 'waits'[\s\S]*\} else \{[\s\S]*key: 'facts'/, 'what waits on one tab, the facts on the other');
   assert.match(p, /link: \{ label: cunGoWord\(x\), attr: `data-cu-need=/);
@@ -81,7 +81,7 @@ test('f1133 (4) the panel as drawn: no cards, no money; facts on All, what waits
   assert.match(tl, /tone: 'green'/); assert.match(tl, /tone: 'amber'/); assert.match(tl, /tone: 'red'/); assert.match(tl, /tone: 'hollow'/);
 });
 
-test('f1133 (5) the head: + Add a party is the one door to a new agreement; the ask box asks Jambo', () => {
+test('f1139 (5) the head: + Add a party is the one door to a new agreement; the ask box asks Jambo', () => {
   assert.match(CU, /data-cun-add\]'\); if \(add\)\{ e\.preventDefault\(\); if \(cunAddMay\(\)\) openNewAgreement\(\{ door: true \}\);/);
   assert.match(strip(fnBody(CU, 'cunAddMay')), /canEdit/);
   const ask = strip(fnBody(CU, 'cunAskGo'));
