@@ -63,7 +63,8 @@ test('f1081 (4) Import: the check screen\'s bar shows, Esc goes back, the figure
   assert.match(fnSrc(M, 'migNlPageHtml'), /\$\{migNlBatchHtml\(rows\)\}/, 'the batch bar stands over the list');
   assert.match(fnSrc(M, 'migNlBatchHtml'), /data-mign-fig="\$\{s\.fig\}"/, 'a legend word is the press its figure was');
   assert.match(fnSrc(M, 'migNlBatchHtml'), /\.filter\(s => s\.n\)/, 'a kind of nothing is not drawn');
-  assert.match(fnSrc(M, 'migNlRowHtml'), /migSureCellHtml\(P\)/);
+  /* RE-POINTED 21 Nov 2026 (P-33, as drawn): a parked file says no sureness; a file with no words says "0 of 5" */
+  assert.match(fnSrc(M, 'migNlRowHtml'), /migSureCellHtml\(P, none\)/);
   const sure = new Function('migSideFacts', fnSrc(raw('js/views/migration.js'), 'migSureOf') + '; return migSureOf;');
   const of = facts => sure(() => facts)({});
   const F = (found, low) => [0, 1, 2, 3, 4].map(i => ({ missing: i >= found, unsure: i < low }));
