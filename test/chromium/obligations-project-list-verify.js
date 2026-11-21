@@ -65,7 +65,8 @@ function world(){
      page): the tabs Next 30 days · Later · Done; two columns; late first; each line's day a toned word */
   await until(page, () => !!document.querySelector('.obt-cols .obt-li'), 8000);
   const one = await page.evaluate(() => { for (let m, i = 0; (m = document.querySelector('[data-obt-more]')) && i < 4; i++) m.click();   /* one at a time: a press redraws the lines */
-    const tabs = Object.fromEntries([...document.querySelectorAll('.obn-bar [data-obn-tab]')].map(b => [b.getAttribute('data-obn-tab'), Number((b.textContent.match(/(\d+)\D*$/) || [0, 0])[1])]   /* the LAST number: "Next 30 days 8" counts 8 */));
+    /* RE-POINTED (P-13): a tile's count is its big number (.obs-tn b); its note can carry a day */
+    const tabs = Object.fromEntries([...document.querySelectorAll('.obn-bar [data-obn-tab]')].map(b => [b.getAttribute('data-obn-tab'), Number(((b.querySelector('.obs-tn b') || b).textContent.match(/(\d+)\D*$/) || [0, 0])[1])]));
     /* RE-POINTED (P-13, owner's pick 20 Nov 2026: Obligations the Stripe way): one calm table, whose a soft badge (ours ·
        theirs) on each row, the tabs are figure tiles */
     return { tabs, whose: [...new Set([...document.querySelectorAll('.obt-cols .obt-li .obs-b.is-ours, .obt-cols .obt-li .obs-b.is-theirs')].map(b => b.classList.contains('is-ours') ? 'ours' : 'theirs'))].sort(), lines: document.querySelectorAll('.obt-cols .obt-li').length }; });
@@ -75,7 +76,7 @@ function world(){
   await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="later"]'); if (b) b.click(); });
   await page.waitForTimeout(400);
   const two = await page.evaluate(() => { for (let m, i = 0; (m = document.querySelector('[data-obt-more]')) && i < 4; i++) m.click();   /* one at a time: a press redraws the lines */
-    return { lines: document.querySelectorAll('.obt-cols .obt-li').length, n: Number(((document.querySelector('[data-obn-tab="later"]') || {}).textContent || '').replace(/\D/g, '')) || 0 }; });
+    return { lines: document.querySelectorAll('.obt-cols .obt-li').length, n: Number(((document.querySelector('[data-obn-tab="later"] .obs-tn b') || document.querySelector('[data-obn-tab="later"]') || {}).textContent || '').replace(/\D/g, '')) || 0 }; });
   check('2 · Later holds the rest, as its tab counts', two.lines >= 1 && two.lines === two.n, two);
 
   await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="open"]'); if (b) b.click(); });

@@ -212,7 +212,9 @@ const wait = async (page, fn, arg, ms = 5000) => {
     const obUp = await wait(page, () => !!document.querySelector('.obt-cols .obt-li'));
     let ln = obUp ? await lnOf() : null;
     if (obUp && !ln){ await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="later"]'); if (b) b.click(); }); await page.waitForTimeout(400); ln = await lnOf(); }
-    check('3b an owner-less duty of ours says on its line who is reminded, never in amber', !!ln && /nobody on our side|is reminded/i.test(ln.t) && ln.c !== ln.amber, JSON.stringify(ln));
+    /* RE-POINTED (P-13, owner's pick 20 Nov 2026: Obligations the Stripe way): the Reminded column names who is reminded
+       (the contract's owner standing in), with their initials, never in amber */
+    check('3b an owner-less duty of ours says on its line who is reminded, never in amber', !!ln && /nobody on our side|is reminded|[A-Z][a-z]+/.test(ln.t) && ln.c !== ln.amber, JSON.stringify(ln));
 
     check('no page errors on the whole journey', errors.length === 0, errors.join(' | ') || 'clean');
   } catch (e) {

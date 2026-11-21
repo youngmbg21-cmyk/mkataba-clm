@@ -113,8 +113,10 @@ const SIGNED = { ...H.fixtureContract('MK-P1', 'Warehousing Services', 'Apex Log
        head's lower half is Approvals' band now — the list head (box, tabs,
        + Filter), [data-lh-seat="approvals"] — and its two counts stay on the
        title's line; Obligations keeps its band */
-    ok('3a the Obligations head is Approvals\' head: one title row, the same place and height (to the pixel), each saying its counts on it',
-      ap.bottom !== null && ob.bottom !== null && Math.abs(ap.h - ob.h) < 1 && ap.top === ob.top && ap.title === 'Approvals & signing' && ob.title === 'Obligations' && /to decide|to sign|waiting on others|Nothing/i.test(ap.facts) && !!ob.facts,
+    /* RE-POINTED (P-13 and P-30, the owner's picks 20 Nov 2026): the facts beside the title went on both pages (the tiles
+       and chips count); the one title row, its place and height stand */
+    ok('3a the Obligations head is Approvals\' head: one title row, the same place and height (to the pixel)',
+      ap.bottom !== null && ob.bottom !== null && Math.abs(ap.h - ob.h) < 1 && ap.top === ob.top && ap.title === 'Approvals & signing' && ob.title === 'Obligations',
       `approvals ${ap.h} at ${ap.top} "${ap.facts}" · obligations ${ob.h} at ${ob.top} "${ob.facts}"`);
     /* RE-POINTED 19 Oct 2026 (round 16 as drawn: "Obligations 11 outstanding ·
        1 overdue" — the owner's yes reversed 9 Oct's no-facts-line ruling): the
