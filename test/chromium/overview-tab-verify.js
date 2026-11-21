@@ -147,8 +147,10 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
          2026): the old panels' suggestion chips are not drawn on the new panels — Contracts' "Due diligence · 5 questions",
          "Ask a new question" and "calendar", Approvals' "approval rules", Obligations' "find time for what is due",
          Negotiations' "our move" and "start a negotiation", Settings' suggestion chips. Their acts keep their own doors. */
-      const RETIRED = { 'settings-you': ['Open the Menu', 'brief me once a week', 'switch to Svenska', 'turn off my suggestions'],
-        'settings-company': ['Open the Menu', 'review the quarterly access review', 'what should I turn on next?', 'who can open Procurement & Raw Materials?'],
+      /* RETIRED 21 Nov 2026 (P-43, Settings the Legora + Stripe way): "Ask" (Ask an admin) is for a person who is not one —
+         an admin's panel no longer carries it (the fault logged that day); this check signs in as an admin */
+      const RETIRED = { 'settings-you': ['Open the Menu', 'brief me once a week', 'switch to Svenska', 'turn off my suggestions', 'Ask'],
+        'settings-company': ['Open the Menu', 'review the quarterly access review', 'what should I turn on next?', 'who can open Procurement & Raw Materials?', 'Ask'],
         customers: ['all parties'], contracts: ['Due diligence · 5 questions', 'Ask a new question', 'calendar'], approvals: ['approval rules'],
         obligations: ['find time for what is due · 1 call'], negotiations: ['our move', 'start a negotiation'] };
       /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): "Add a file" is the box's + (data-jb-file) in the
