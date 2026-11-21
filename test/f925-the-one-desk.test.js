@@ -131,12 +131,15 @@ describe('f925 (3) the Board', () => {
     const html = w.ndBoardHtml({});
     assert.match(html, /^<section class="hb-card nd-card" id="hm-agents">/);
     assert.match(html, /data-nd-tab="all" aria-pressed="true">All <span class="nd-tab-n">15<\/span>/);
-    assert.match(html, /data-nd-tab="you" aria-pressed="false">Your move <span class="nd-tab-n">14<\/span>/);
-    assert.match(html, /data-nd-tab="jambo" aria-pressed="false">Jambo prepared <span class="nd-tab-n">1<\/span>/);
+    /* RE-POINTED 21 Nov 2026 (P-39, the Legora + Stripe way): chips with a dot of their colour, and Late a chip of its own */
+    assert.match(html, /data-nd-tab="late" aria-pressed="false"><i class="nd-st-dot is-late" aria-hidden="true"><\/i>Late <span class="nd-tab-n">1<\/span>/);
+    assert.match(html, /data-nd-tab="you" aria-pressed="false"><i class="nd-st-dot is-you" aria-hidden="true"><\/i>Your move <span class="nd-tab-n">14<\/span>/);
+    assert.match(html, /data-nd-tab="jambo" aria-pressed="false"><i class="nd-st-dot is-jambo" aria-hidden="true"><\/i>Jambo prepared <span class="nd-tab-n">1<\/span>/);
     const chips = [...html.matchAll(/data-nd-kind="(\w+)"/g)].map(m => m[1]).join(',');
     assert.equal(chips, 'any,sign,review,jambo', 'only the kinds there are');
     assert.match(html, /<input type="search" id="nd-q"/);
-    assert.equal((html.match(/<div class="nd-cols">(.*?)<\/div>/) || [])[1].match(/<span>/g).length, 4);
+    /* RE-POINTED 21 Nov 2026 (P-39): a Status column of soft badges joins — five */
+    assert.equal((html.match(/<div class="nd-cols">(.*?)<\/div>/) || [])[1].match(/<span>/g).length, 5);
     assert.equal((html.match(/class="nd-br/g) || []).length, 12, 'twelve at a time');
     assert.match(html, /data-nd-more>Show 3 more<\/button>/);
     assert.match(html, /hb_ny_title|Needs you/);

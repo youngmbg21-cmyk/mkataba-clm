@@ -38,7 +38,8 @@ test('f1070 (1) the builder draws a tag, a ring and a page\'s own middle', () =>
 test('f1070 (2) each panel says the five parts in the new look, by the page\'s own presses', () => {
   const hb = region(read('js/views/homeboard.js'), 'function hbBoardHelloHtml(){', 'function hbWelcomeGo(k){');
   assert.match(hb, /newLookOn\(\) && typeof jamboOverviewHtml === 'function'\)\{/);
-  assert.match(hb, /attr: n \? 'data-hbw="all"'/); assert.match(hb, /'data-hbw="live"'/); assert.match(hb, /'data-hbw="next"'/);
+  /* RE-POINTED 21 Nov 2026 (P-39, owner: the panel NEVER REPEATS THE PAGE — no three mixed tiles): a ring and ONE bar of what waits, its legend the doors (data-hbw), then Jambo's prepared pieces */
+  assert.match(hb, /mid: ringBar/); assert.match(hb, /data-hbw="\$\{k === 'jambo' \? 'jambo'/); assert.doesNotMatch(hb, /glance:/);
   const go = region(read('js/views/homeboard.js'), 'function hbWelcomeGo(k){', '}\n');
   assert.match(read('js/views/homeboard.js'), /if \(k === 'live'\) return \(typeof hbFigDoor === 'function'\) \? hbFigDoor\('f:live'\)/);
   assert.match(read('js/views/homeboard.js'), /if \(k === 'next'\) return \(typeof caGo === 'function'\) \? caGo\(\{ kind: 'go', place: 'calendar' \}\)/);
@@ -81,7 +82,8 @@ test('f1070 (5) every word of the round is in both books', () => {
   const keys = new Set();
   for (const f of ['js/views/homeboard.js', 'js/views/register.js', 'js/paperdesk.js', 'js/views/intelligence.js', 'js/views/customers.js', 'js/views/settings.js', 'js/views/handbook.js'])
     for (const m of read(f).matchAll(/['"](jov5_(?:hb|ct|day|gd|pt|st|hbk)_[a-z0-9_]+)['"]/g)) keys.add(m[1]);
-  assert.ok(keys.size >= 20, 'the round\'s words are found');
+  /* RE-POINTED 21 Nov 2026 (P-39): the Board's tiles left, and with them three of the round's words */
+  assert.ok(keys.size >= 17, 'the round\'s words are found');
   const has = (b, k) => b[k] != null || b[k + '_one'] != null;
   assert.deepEqual([...keys].filter(k => !has(S.en, k) || !has(S.sv, k)), []);
 });

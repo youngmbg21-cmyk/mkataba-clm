@@ -12697,6 +12697,25 @@
   .hb-jb-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
   /* TODAY'S FIGURES IN INK (round 17 as drawn): only the Change column carries colour */
   .hb-board .hb-book .hb-tn .hb-fig .hb-fig-n{color:var(--hb-ink)}
+  /* YOUR BOOK AS FIGURE CARDS (P-39, owner 20 Nov 2026: "keep the format as is today which is cards"; never more than four):
+     each card its name, the figure, the change and its six-month line; then "Where all N stand" as ONE bar */
+  .hb-board .hb-book .hb-figs.hb-tn.hb-tn.is-cards{display:grid;grid-template-columns:repeat(var(--hb-figs-n,4),minmax(0,1fr));gap:var(--s-3);padding:var(--s-1) var(--s-4) 0}
+  .hb-board .hb-book .hb-figs.hb-tn.hb-tn.is-cards>.hb-tn-h{display:none}
+  .hb-board .hb-book .hb-figs.hb-tn.hb-tn.is-cards>.hb-fig{grid-column:auto;display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:var(--s-3) var(--s-4) var(--s-3);border:1px solid var(--color-neutral-200);border-radius:var(--radius);background:var(--color-surface);min-width:0}
+  .hb-board .hb-book .hb-figs.hb-tn.hb-tn.is-cards>.hb-fig:last-child{border-bottom:1px solid var(--color-neutral-200)}
+  .hb-board .hb-book .hb-tn.is-cards .hb-fig-main{display:flex;flex-direction:column;align-items:flex-start;gap:4px;width:100%;padding:0;text-align:left}
+  .hb-board .hb-book .hb-tn.is-cards .hb-fig-lw{padding:0}
+  .hb-board .hb-book .hb-tn.is-cards .hb-fig-then{display:none}
+  .hb-board .hb-book .hb-tn.is-cards .hb-fig .hb-fig-n{padding:0;font-size:26px;line-height:1.1;font-family:var(--font-title);font-weight:var(--w-label);font-variant-numeric:tabular-nums}
+  .hb-board .hb-book .hb-tn.is-cards .hb-fig-chg{padding:0;font-size:var(--t-label)}
+  .hb-board .hb-book .hb-tn.is-cards .hb-spark{width:100%;height:28px;margin-top:6px}
+  .hb-board .hb-book .hb-where{padding:var(--s-4) var(--s-4) var(--s-1);font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-text)}
+  .hb-board .hb-book .hb-tn.is-cards ~ .hb-where ~ .hb-stagerows .hb-stagerow.is-then{display:none}
+  .hb-figpick .hb-fp-money{margin-left:auto;font-style:normal;font-size:var(--t-micro);color:var(--color-quiet)}
+  .hb-figpick .hb-fp-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);padding:var(--s-2) var(--s-3) var(--s-1);border-top:1px solid var(--color-neutral-200);margin-top:var(--s-1)}
+  .hb-figpick{animation:hbFpIn .16s ease-out}
+  @keyframes hbFpIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion: reduce){ .hb-figpick{animation:none} }
   /* TODAY'S INSIGHTS AS DRAWN: the head its own slim card. ITS HEAD IS THE NEEDS YOU HEAD (owner, 26 Oct 2026:
      the sentence starts at the same left, one line never wrapped, Show on the same line at the same edge, the
      card the same height): the Board's own .hb-ch padding and 40px floor, the line short enough never to wrap
@@ -21473,6 +21492,47 @@
      agreement column wider than the ask (2 to 1.25), rows 40px, the column heads 32px */
   @container ndcard (min-width:641px){ html.lg-new :is(.nd-cols,.nd-br){grid-template-columns:minmax(0,1.25fr) minmax(0,2fr) 96px 76px;gap:12px} }
   html.lg-new .nd-br{min-height:40px;padding-top:6px;padding-bottom:6px}
+  /* NEEDS YOU, THE LEGORA + STRIPE WAY (P-39): chips with a dot of their colour, a status column of soft badges, the paper's words under what waits */
+  @container ndcard (min-width:641px){ html.lg-new .nd-card :is(.nd-cols,.nd-br){grid-template-columns:minmax(0,1.6fr) 118px minmax(0,1.3fr) 96px 76px;gap:12px} }
+  html.lg-new .nd-card .nd-tab.is-chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;border:1px solid var(--color-neutral-300);background:var(--color-surface)}
+  html.lg-new .nd-card .nd-tab.is-chip.on{background:var(--color-text);border-color:var(--color-text);color:var(--color-surface)}
+  html.lg-new .nd-card .nd-tab.is-chip.on .nd-tab-n{color:inherit}
+  .nd-st-dot{width:7px;height:7px;border-radius:50%;background:var(--st-amber-dot)}
+  .nd-st-dot.is-late{background:var(--st-ruby-dot)}
+  .nd-st-dot.is-jambo{background:var(--st-violet-dot)}
+  .nd-st{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:var(--t-micro);font-weight:var(--w-label);white-space:nowrap;background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .nd-st.is-late{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  .nd-st.is-jambo{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  .nd-what-w{display:flex;flex-direction:column;min-width:0;gap:1px}
+  .nd-what-w b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nd-q{font-family:var(--font-doc);font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nd-q b,.nd-q q{font-weight:inherit}
+  /* THE BOARD'S PANEL, THE LEGORA + STRIPE WAY (P-39): a ring of the late beside ONE bar of what waits; Jambo's pieces with a violet dot */
+  .hbw2-wait{display:flex;align-items:center;gap:var(--s-3)}
+  .hbw2-ring{position:relative;flex:none;width:52px;height:52px;display:grid;place-items:center}
+  .hbw2-ring svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+  .hbw2-rb{fill:none;stroke:var(--color-neutral-200);stroke-width:4}
+  .hbw2-rf{fill:none;stroke:var(--st-ruby-dot);stroke-width:4;stroke-linecap:round}
+  .hbw2-ring b{position:relative;font-size:var(--t-label);font-weight:var(--w-strong);font-variant-numeric:tabular-nums}
+  .hbw2-bw{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+  .hbw2-bar{display:flex;gap:2px;height:6px;border-radius:999px;overflow:hidden}
+  .hbw2-bar i,.hbw2-leg i{display:block;background:var(--st-amber-dot)}
+  .hbw2-bar i.is-late,.hbw2-leg i.is-late{background:var(--st-ruby-dot)}
+  .hbw2-bar i.is-jambo,.hbw2-leg i.is-jambo{background:var(--st-violet-dot)}
+  .hbw2-leg{display:flex;flex-wrap:wrap;gap:2px 12px}
+  .hbw2-leg button{display:inline-flex;align-items:center;gap:6px;border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);color:var(--color-quiet);cursor:pointer;white-space:nowrap}
+  .hbw2-leg button:hover{color:var(--color-text)}
+  .hbw2-leg i{width:7px;height:7px;border-radius:50%}
+  .jov5-mk.is-violet{width:8px;height:8px;min-width:8px;border-radius:50%;background:var(--st-violet-dot);padding:0;margin-top:6px}
+  .jov5-row.is-door:hover .jov5-chev{transform:translateX(2px)}
+  .jov5-chev{transition:transform .15s ease}
+  @media (prefers-reduced-motion: reduce){ .jov5-chev{transition:none} }
+  /* the Board panel's arrival (P-39), played only by jovPlay (rarely; never under reduced motion): the ring sweeps, the bar grows from the left */
+  .jov-arrive .hbw2-rf{animation:hbw2Ring .9s cubic-bezier(.22,.61,.36,1) .25s both}
+  .jov-arrive .hbw2-bar{transform-origin:left center;animation:hbw2Grow .7s cubic-bezier(.22,.61,.36,1) .2s both}
+  @keyframes hbw2Ring{from{stroke-dashoffset:106.8}}
+  @keyframes hbw2Grow{from{transform:scaleX(0)}to{transform:none}}
+  @container ndcard (max-width:640px){ .nd-cols > :nth-child(2),.nd-br > .nd-c-st{display:none} }
   html.lg-new .nd-cols{min-height:32px}
   html.lg-new .nd-c-what b{font-size:13px;font-weight:400}
   /* THE FOLDERS, THE LEGORA WAY (regFolderRowsHtml): one quiet list, nothing boxed */
