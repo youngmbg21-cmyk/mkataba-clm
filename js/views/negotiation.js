@@ -16511,7 +16511,9 @@ function rlNpRoomsHtml(c, room, counts, opts = {}, side = 'owner'){
      one filled in ink. The same rooms and the same press (data-rl-np-room). */
   if (opts.stripe) return `<div class="rl-np-rooms" role="tablist"><span class="rl-np-rooms-k">${_ne(i18t('ng_np_room_label'))}</span>${rooms.map(r =>
       `<button type="button" role="tab" class="rl-np-room${r.key === room ? ' on' : ''}" data-rl-np-room="${_nea(r.key)}" aria-selected="${r.key === room}" title="${_nea(r.external
-        ? i18t('ng_np_room_t_ext', { who: r.name || '' }) : i18t('ng_np_room_t_int'))}">${_ne(r.external ? (r.name || i18t('ng_np_tab_ext')) : i18t('ng_np_tab_int'))}</button>`).join('')}</div>`;
+        ? i18t('ng_np_room_t_ext', { who: r.name || '' }) : i18t('ng_np_room_t_int'))}">${_ne(r.external ? (r.name || i18t('ng_np_tab_ext'))
+        /* on their own pages their team's room keeps its name ("… · your team"); on ours it is "Internal", as drawn */
+        : (PORTAL_MODE && r.name) ? i18t('ng_np_room_us', { org: r.name }) : i18t('ng_np_tab_int'))}</button>`).join('')}</div>`;
   const by = (counts && counts.byRoom) || {};
   return `<div class="rl-np-tabs" role="tablist">
       ${rooms.map(r => {
