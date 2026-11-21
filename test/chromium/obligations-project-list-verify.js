@@ -66,8 +66,10 @@ function world(){
   await until(page, () => !!document.querySelector('.obt-cols .obt-li'), 8000);
   const one = await page.evaluate(() => { for (let m, i = 0; (m = document.querySelector('[data-obt-more]')) && i < 4; i++) m.click();   /* one at a time: a press redraws the lines */
     const tabs = Object.fromEntries([...document.querySelectorAll('.obn-bar [data-obn-tab]')].map(b => [b.getAttribute('data-obn-tab'), Number((b.textContent.match(/(\d+)\D*$/) || [0, 0])[1])]   /* the LAST number: "Next 30 days 8" counts 8 */));
-    return { tabs, cols: [...document.querySelectorAll('.obt-colh b')].map(b => b.textContent.trim()), lines: document.querySelectorAll('.obt-cols .obt-li').length }; });
-  check('1 · We owe and They owe, under the tabs Next 30 days · Later · Done; the tab counts its lines', one.cols.join('|') === 'We owe|They owe' && 'open' in one.tabs && 'later' in one.tabs && 'done' in one.tabs && one.lines === one.tabs.open, one);
+    /* RE-POINTED (P-13, owner's pick 20 Nov 2026: Obligations the Stripe way): one calm table, whose a soft badge (ours ·
+       theirs) on each row, the tabs are figure tiles */
+    return { tabs, whose: [...new Set([...document.querySelectorAll('.obt-cols .obt-li .obs-b.is-ours, .obt-cols .obt-li .obs-b.is-theirs')].map(b => b.classList.contains('is-ours') ? 'ours' : 'theirs'))].sort(), lines: document.querySelectorAll('.obt-cols .obt-li').length }; });
+  check('1 · ours and theirs in one table, under the tiles Next 30 days · Later · Done; the tile counts its lines', one.whose.join('|') === 'ours|theirs' && 'open' in one.tabs && 'later' in one.tabs && 'done' in one.tabs && one.lines === one.tabs.open, one);
   await page.screenshot({ path: path.join(OUT, '1-tracked.png') });
 
   await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="later"]'); if (b) b.click(); });
@@ -78,11 +80,12 @@ function world(){
 
   await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="open"]'); if (b) b.click(); });
   await page.waitForTimeout(400);
-  const tone = await page.evaluate(() => { const ls = [...document.querySelectorAll('.obt-col[data-obt-side="ours"] .obt-li')];
+  const tone = await page.evaluate(() => { const ls = [...document.querySelectorAll('.obt-cols .obt-li')].filter(x => x.querySelector('.obs-b.is-ours'));
     return { first: ls[0] ? (ls[0].querySelector('.obt-w') || {}).className : '', late: document.querySelectorAll('.obt-cols .obt-w.is-late').length,
-      head: ((document.getElementById('page-head-facts') || {}).textContent || '').trim() }; });
+      head: ((document.querySelector('.obs-tile[data-obn-tab="open"] .obs-tl em') || {}).textContent || '').trim() }; });
   check('3 · the late one leads its column in red, and every line says its day', /is-late/.test(tone.first) && tone.late === 1, tone);
-  check('4 · the head says what of ours is late', /1 of ours late/.test(tone.head), tone);
+  /* RE-POINTED (P-13): the facts beside the title went; the Next 30 days tile says how many are late */
+  check('4 · the Next 30 days tile says what is late', /^1 late$/.test(tone.head), tone);
 
   /* 5 · proposals by agreement: a row each, oldest first, with its progress and status */
   await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="prop"]'); if (b) b.click(); });

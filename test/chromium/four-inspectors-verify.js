@@ -164,9 +164,10 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     ok('1c a held-back step is tracked, and never listed as Late', tracked && lateRows.length >= 1 && !lateRows.some(t => /Pay on delivery to site/.test(t)), { tracked, late: lateRows.length });
     const door = await page.evaluate(() => (typeof obligationsDoorCount === 'function') ? obligationsDoorCount() : -1);
     ok('1g the late lines are what the sidebar door counts', door >= 1 && lateRows.length === door, { door, late: lateRows.length });
-    /* the head says how many of ours and of theirs are late: together the late lines */
-    const hm = [...ob.head.matchAll(/(\d+) of (?:ours|theirs) late/g)].reduce((a, m) => a + Number(m[1]), 0);
-    ok('1d the head says how many of ours and of theirs are late, together the late lines', hm === lateRows.length, { head: ob.head, late: lateRows.length });
+    /* RE-POINTED (P-13, owner's pick 20 Nov 2026): the facts beside the title went; the Next 30 days tile says how many are late */
+    const tileLate = await page.evaluate(() => ((document.querySelector('.obs-tile[data-obn-tab="open"] .obs-tl em') || {}).textContent || '').trim());
+    const hm = Number((/^(\d+) late$/.exec(tileLate) || [0, 0])[1]);
+    ok('1d the Next 30 days tile says how many are late, the late lines', hm === lateRows.length, { tile: tileLate, late: lateRows.length });
     const rows = await page.$$(ROWS);
     if (rows.length > 2) {
       await rows[2].click(); await page.waitForTimeout(300);
