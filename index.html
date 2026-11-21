@@ -22570,6 +22570,74 @@
   html.lg-new .obn-lg.is-stripe .obn-lg-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:12px;font-size:12px;color:var(--color-quiet)}
   html.lg-new .obn-lg-addall{border:0;border-radius:999px;padding:6px 14px;background:var(--color-text);color:var(--color-surface);font:var(--w-label) 13px/1.3 var(--font-body);cursor:pointer}
   html.lg-new .obn-lg-addall:disabled{background:var(--color-neutral-300);cursor:not-allowed}
+  /* ===== NEGOTIATIONS AND REQUESTS, REBUILT AS DRAWN (P-29, P-32) =====
+     the panels as Approvals' (badge over the name, the act and its second act as pills, plain sections, dotted timeline);
+     Round / Open asks as small labels over body-face figures, the open asks amber; Requests' "Read from the ask" rows with
+     their kind at the right; the pages: chips outlined (the chosen one solid), sentence-case heads, the rounds as small
+     capsules, Waiting right-aligned, Answer a green link, Start a negotiation a grey pill, the chosen row a faint green */
+  html.lg-new #ins-panel:has(.jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"])) .jl-head{display:none}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]){padding-top:16px;gap:12px}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-intro{display:flex;flex-direction:column;gap:4px;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-intro .jov5-eb{order:3;margin:0;font-size:12px;color:var(--color-quiet);letter-spacing:0;text-transform:none}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-th{order:1;display:flex;flex-direction:column-reverse;align-items:flex-start;gap:6px}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-title{font-family:var(--font-body);font-size:15px;line-height:1.3;font-weight:var(--w-label)}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-tag{border-radius:6px;padding:1px 7px;font-size:12px;line-height:1.6}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-act{flex-direction:row;align-items:center;gap:8px;padding:0 0 12px;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;background:none}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-act .jov5-acts{display:flex;align-items:center;gap:8px;justify-content:flex-start}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-act .jov5-acts .jov5-go{width:auto;flex:none;padding:6px 16px;border-radius:999px}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-act .jov5-acts .jov-lnk{padding:6px 14px;border-radius:999px;background:var(--surface-2);color:var(--color-text);font-weight:var(--w-label);text-decoration:none}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-sec{display:flex;flex-direction:column;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-sec:last-of-type{border-bottom:0}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-label{margin:0;font-size:13px;font-weight:var(--w-strong);color:var(--color-text);letter-spacing:0;text-transform:none}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-group{gap:0;border:0;background:none}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-row{padding:3px 0;border:0;background:none}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-row + .jov5-row::before{display:none}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-row.is-quote .jov5-rt b{font-family:var(--font-doc);font-size:13.5px;font-weight:400;line-height:1.45}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-rt > span{font-size:12px;color:var(--color-quiet)}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-sec:last-of-type .jov5-row{display:grid;grid-template-columns:12px minmax(0,1fr);gap:8px;align-items:baseline}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-sec:last-of-type .jov5-mk{width:9px;height:9px;border-radius:50%;background:var(--color-neutral-300)}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-sec:last-of-type .jov5-mk svg{display:none}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-sec:last-of-type .jov5-mk.is-green{background:var(--st-green-dot)}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-sec:last-of-type .jov5-mk.is-red{background:var(--st-ruby-dot)}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-sec:last-of-type .jov5-mk.is-amber{background:var(--st-amber-dot)}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-sec:last-of-type .jov5-rt{display:block;font-size:12.5px}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-sec:last-of-type .jov5-rt b{font-weight:400}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-sec:last-of-type .jov5-rt > span::before{content:" \00b7 "}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-src{display:none}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]){display:flex;flex-direction:column}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) > .jov5-intro{order:0}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) > .jov5-act{order:1}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) > :not(.jov5-intro):not(.jov5-act){order:2}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-act .jov5-acts{flex-direction:row;flex-wrap:wrap}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-sec:last-of-type .jov5-rt :is(b,span){display:inline}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-sec:last-of-type .jov5-row{min-height:0;padding:2px 0}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-sec:last-of-type .jov5-rt > span{margin-left:4px}
+
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .ngn-pfacts{gap:24px}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .ngn-pfacts small{font-size:11.5px;color:var(--color-quiet)}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .ngn-pfacts b{font-family:var(--font-body);font-size:22px;font-weight:var(--w-label)}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .ngn-pfacts > span:nth-child(2) b{color:var(--st-amber-fg)}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-act .jov5-acts .jov-lnk + .jov-lnk{background:none;padding:6px 4px;text-decoration:underline;color:var(--accent-ink)}
+  html.lg-new .jov5[data-jov-slot="ikn"] .jov5-sec:not(:last-of-type) .jov5-row:not(.is-quote) .jov5-rt{display:flex;flex-direction:row;justify-content:space-between;align-items:baseline;gap:8px;width:100%}
+  html.lg-new .jov5[data-jov-slot="ikn"] .jov5-sec:not(:last-of-type) .jov5-row .jov5-mk{background:none;width:18px;height:18px}
+  html.lg-new .jov5[data-jov-slot="ikn"] .jov5-sec:not(:last-of-type) .jov5-row .jov5-rt b{font-size:12.5px;font-weight:400}
+  html.lg-new .jov5:is([data-jov-slot="ngn"],[data-jov-slot="ikn"]) .jov5-row .jov5-chev{display:none}
+  html.lg-new :is(.ngn-page,.ikn-page) .apn-tab.is-chip{height:auto;padding:3px 11px;border-style:dashed;background:var(--color-surface);color:var(--color-quiet);font-size:13px}
+  html.lg-new :is(.ngn-page,.ikn-page) .apn-tab.is-chip.is-on{border-style:solid;border-color:var(--color-neutral-300);background:var(--color-surface);color:var(--color-text)}
+  html.lg-new :is(.ngn-page,.ikn-page) .apn-card .apn-table th{font-size:12px;letter-spacing:0;text-transform:none}
+  html.lg-new :is(.ngn-page,.ikn-page) .apn-table tbody tr:is(.is-sel,[aria-current="true"]) td{background:color-mix(in srgb,var(--accent-ink) 4%,var(--color-surface))}
+  html.lg-new :is(.ngn-page,.ikn-page) .apn-ask svg{color:var(--accent-ink)}
+  html.lg-new .ngn-rs i{width:16px;height:8px;border-radius:4px}
+  html.lg-new .ngn-rs i.is-now{box-shadow:inset 0 0 0 2px var(--st-amber-dot);background:var(--st-steel-bg)}
+  html.lg-new .ngn-rs.is-big i{width:18px;height:9px}
+  html.lg-new .jov5[data-jov-slot="ngn"] > .jov5-sec:has(.ngn-pfacts){order:1;border-bottom:0;padding-bottom:0}
+  html.lg-new .jov5[data-jov-slot="ngn"] > .jov5-act{order:2}
+  html.lg-new .jov5[data-jov-slot="ngn"] > :not(.jov5-intro):not(.jov5-act):not(.jov5-sec:has(.ngn-pfacts)){order:3}
+  html.lg-new .jov5[data-jov-slot="ngn"] .ngn-pfacts small::first-letter{text-transform:uppercase}
+  html.lg-new .ngn-page .ngn-start{background:var(--surface-2);color:var(--color-text);border-color:transparent}
+  html.lg-new .ikn-page .apn-table :is(th,td):last-child{text-align:right}
+  html.lg-new .ngn-act-l{border:0;background:none;padding:0;font:var(--w-label) 12.5px/1.4 var(--font-body);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  html.lg-new .ngn-page .apn-table td:is(.ngn-wait,.ngn-wt,[data-k="last"]){text-align:right}
   /* ===== CONTRACTS' FOLDERS LANDING, REBUILT AS DRAWN (P-31) =====
      the figure cards' numbers in the body face (Need you amber, Ends within red); the section heads sentence case in
      ink; the month dots small on a hairline; the folders table's heads quiet, Next to end amber when soon; the chosen

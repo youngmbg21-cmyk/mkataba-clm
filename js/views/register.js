@@ -5527,8 +5527,9 @@ function ngnRowHtml(r, sel, keys){
       : k === 'round' ? `<td>${ngnRoundsHtml(c, r.b)}</td>`
       : k === 'asks' ? `<td class="ngn-n">${r.asks.length || '<span class="apn-none-c">0</span>'}</td>`
       : k === 'lead' ? `<td>${r.lead.name ? `<span class="ngn-lead" title="${E(r.lead.name)}"><span class="ngn-av" aria-hidden="true">${E(ngnInitials(r.lead.name))}</span>${E(nm)}</span>` : '—'}</td>`
-      : k === 'last' ? `<td><div class="ngn-last">${E(r.last || '—')}</div></td>`
-      : k === 'act' ? `<td class="ngn-act">${act ? `<button type="button" class="ui-btn ui-btn-sm" ${act.attr}>${E(act.label)}</button>` : ''}</td>` : '<td></td>').join('') + '</tr>';
+      : k === 'last' ? `<td class="ngn-wt"><div class="ngn-last">${E(r.last || '—')}</div></td>`
+      /* AS DRAWN (P-29): the row's act a green link ("Answer") */
+      : k === 'act' ? `<td class="ngn-act">${act ? `<button type="button" class="ngn-act-l" ${act.attr}>${E(act.label)}</button>` : ''}</td>` : '<td></td>').join('') + '</tr>';
 }
 /* THE NEW LOOK'S COLUMNS UNDER THE ONE COLUMN RULE (listCols; #762, 17 Nov 2026): the old list's seat, so a reader's
    dragged widths carry over; the agreement, Whose move and What is open always stand, where the room is short Last
@@ -5628,7 +5629,7 @@ function ngnRender(host){
   const C = ngnCols();
   host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page ngn-page" data-ins-page="negotiations" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
-      <div class="cun-head"><h2 class="ctf-h">${esc(i18t('ng_door_title'))}</h2><span class="ctf-sp"></span>${(typeof canEdit !== 'function' || canEdit()) ? `<button type="button" class="ui-btn ui-btn-primary" data-ngn-start>${esc(i18t('ngn_start'))}</button>` : ''}</div>
+      <div class="cun-head"><h2 class="ctf-h">${esc(i18t('ng_door_title'))}</h2><span class="ctf-sp"></span>${(typeof canEdit !== 'function' || canEdit()) ? `<button type="button" class="ui-btn ngn-start" data-ngn-start>${esc(i18t('ngn_start'))}</button>` : ''}</div>
       <label class="apn-ask">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ngn-q" type="search" autocomplete="off" placeholder="${esc(i18t('ngn_ask_ph'))}" value="${esc(_ngnQ)}"></label>
       <div class="apn-bar" data-lh-seat="negotiations-nl">${tabs.filter(t => t[2] || t[0] === 'live' || t[0] === _ngn).map(t => `<button type="button" class="apn-tab is-chip${_ngn === t[0] ? ' is-on' : ''}" data-ngn-tab="${t[0]}">${t[0] === 'you' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${esc(t[1])} <span>${t[2]}</span></button>`).join('')}${ngnLeadChipHtml(all)}</div>
       <div class="cu-scroll"><table class="apn-table cun-table ngn-table" data-list-seat="${esc(REG_NEGO_SEAT)}">${C.colg}
