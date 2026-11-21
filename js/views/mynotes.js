@@ -390,23 +390,55 @@ function renderMyNotesDraw(o){
    word (Review, Review again, Open); the foot "Never on a contract, a share or the history". The panel: the note in
    one sentence, THE NOTE in its own grey, BESIDE IT, READ FOR YOU (its contract's approval and end), Jambo's line
    and the DOORS — every press the page's own (data-mn-act, the contract's own door). */
+/* P-27, MY NOTES THE LEGORA + STRIPE WAY (owner's pick 20 Nov 2026): one calm table — the Note (its title, THE NOTE'S
+   OWN WORDS on one line under it, and a passage note's paper words with their § on one more line) · Contract (name,
+   reference under) · Status (a soft badge: red Overdue, amber Due today, grey Later, grey No day, green Reviewed) ·
+   Due / Reviewed (the day right-aligned, "2 days overdue · today · in 6 days" under) · the act, ONLY on the chosen row
+   (Mark reviewed · Open · Review again — the panel's own presses, data-mn-act). "Written <day>" and "review again <past
+   day>" leave the rows; the panel keeps both days. */
+const MNN_ST = { late:['mnn_st_overdue', 'ruby'], today:['mnn_st_today', 'amber'], later:['mnn_st_later', 'gray'], none:['mnn_st_none', 'gray'], done:['mnn_st_done', 'green'] };
+function mnnStatusOf(n){ const k = myNoteState(n).k, m = MNN_ST[k] || MNN_ST.later; return { k, w:i18t(m[0]), tone:m[1] }; }
+const _mnDays = (a, b) => Math.round((Date.parse(b + 'T00:00:00') - Date.parse(a + 'T00:00:00')) / 864e5);
+/* the day the Due column says, and the words under it */
 function mnnWhen(n){
-  const st = myNoteState(n);
-  if (st.k === 'done') return i18t('mnn_reviewed', { d: _mnShort(String(n.reviewedAt).slice(0, 10)), again: n.reviewBy ? _mnShort(n.reviewBy) : '' });
-  return i18t('mnn_written', { d: _mnShort(String(n.createdAt || '').slice(0, 10)) });
+  const st = myNoteState(n).k, t = _mnToday();
+  if (st === 'done') return { d:_mnShort(String(n.reviewedAt).slice(0, 10)), s:'' };
+  if (!n.reviewBy) return { d:'—', s:i18t('mnn_rel_none') };
+  const k = _mnDays(t, n.reviewBy);
+  return { d:_mnShort(n.reviewBy), s:k < 0 ? i18tn('mnn_rel_over', -k, { n:-k }) : k === 0 ? i18t('mnn_rel_today') : i18tn('mnn_rel_in', k, { n:k }), late:k < 0 };
+}
+/* a passage note's § — read off the paper where it can be found (pd2QuoteOf), never guessed; kept per note and words */
+const _mnnSec = new Map();
+function mnnSecOf(n){
+  if (!n || !n.quote) return '';
+  const key = String(n.id) + '|' + n.quote;
+  if (_mnnSec.has(key)) return _mnnSec.get(key);
+  let sec = ''; try { const c = _mnContract(n.contractId); const q = c && typeof window.pd2QuoteOf === 'function' ? window.pd2QuoteOf(c, [String(n.quote).slice(0, 60)]) : null; sec = q && /§|\d/.test(String(q.sec || '')) ? String(q.sec) : ''; } catch (_){ sec = ''; }
+  _mnnSec.set(key, sec);
+  return sec;
+}
+/* the chosen row's one act: what the panel's black button would do, or Open where the note is not due */
+function mnnActOf(n){
+  const st = myNoteState(n).k;
+  if (st === 'done') return { w:i18t('mn_review_again'), act:'unreview' };
+  if (st === 'today' || st === 'late' || !n.contractId) return { w:i18t('mn_mark_reviewed'), act:'reviewed' };
+  return { w:i18t('mnn_open'), act:'open' };
 }
 function mnnRowHtml(n){
-  const st = myNoteState(n), c = _mnContract(n.contractId);
-  const due = st.k === 'today' || st.k === 'late' ? `<span class="mnn-due">${_mnE(st.k === 'late' ? st.word : i18t('mnn_today'))}</span>` : n.reviewBy ? _mnE(_mnShort(n.reviewBy)) : '—';
-  const word = st.k === 'done' ? 'mn_review_again' : st.k === 'today' || st.k === 'late' ? 'mnn_review' : 'mnn_open';
+  const st = mnnStatusOf(n), c = _mnContract(n.contractId), wh = mnnWhen(n);
   const on = String(n.id) === String(_mn.sel);
-  return `<tr data-mn-row="${_mnE(n.id)}" data-ins-row="${_mnE(n.id)}" tabindex="0" class="${on ? 'is-sel' : ''}"><td><div class="cun-name">${_mnE(n.title || n.body || '')}</div><div class="cun-sub">${_mnE(mnnWhen(n))}</div></td>
-    <td class="cun-wait"><b class="mnn-ct">${c ? _mnE(c.name || '') + ' · ' + (typeof refHtml === 'function' ? refHtml(c) : _mnE(_mnRef(c))) : '—'}</b></td><td class="cun-wait">${due}</td>
-    <td class="cun-go"><span class="rfp-a">${_mnE(i18t(word))}</span></td></tr>`;
+  const title = String(n.title || '').trim(), body = String(n.body || '').replace(/\s+/g, ' ').trim();
+  const sec = mnnSecOf(n), A = on ? mnnActOf(n) : null;
+  return `<tr data-mn-row="${_mnE(n.id)}" data-ins-row="${_mnE(n.id)}" tabindex="0" class="${on ? 'is-sel' : ''}"><td><div class="cun-name">${_mnE(title || body)}</div>${title && body ? `<div class="mnn-words" title="${_mnE(body)}">${_mnE(body)}</div>` : ''}${n.quote ? `<div class="mnn-ql"><i>“${_mnE(n.quote)}”</i>${sec ? ` <span>${_mnE(sec)}</span>` : ''}</div>` : ''}</td>
+    <td class="mnn-ctc">${c ? `<div class="mnn-ct" title="${_mnE(c.name || '')}">${_mnE(c.name || '')}</div><div class="cun-sub">${typeof refHtml === 'function' ? refHtml(c) : _mnE(_mnRef(c))}</div>` : '<span class="apn-none-c">—</span>'}</td>
+    <td><span class="apn-st is-${st.tone}"><i></i>${_mnE(st.w)}</span></td>
+    <td class="mnn-dd">${_mnE(wh.d)}${wh.s ? `<div class="cun-sub${wh.late ? ' is-late' : ''}">${_mnE(wh.s)}</div>` : ''}</td>
+    <td class="mnn-act">${A ? `<button type="button" class="ui-link" data-mn-act="${A.act}">${_mnE(A.w)}</button>` : ''}</td></tr>`;
 }
-/* MY NOTES' TABS ALL DRAW THE ONE TABLE (read 10 Nov 2026: All · Due · Done only pick which notes), so a tab press and
-   a typed letter redraw only the rows (listRowsSwapHtml). Its foot is drawn only while the list has rows, so a foot
-   that comes or goes — like a tab at 0 — draws the whole page, with the caret put back. */
+/* MY NOTES' TABS ALL DRAW THE ONE TABLE (All · Due · Reviewed only pick which notes), so a tab press and a typed letter
+   redraw only the rows (listRowsSwapHtml). P-27: the title with a lock and "Only you see these" beside it (the facts line
+   goes: the chips say it), New note; the box under it (it narrows the list, as before); chips All · Due (an amber dot) ·
+   Reviewed · + Contract, a small menu of the contracts your notes sit on (chosen, a chip with its ×). */
 let _mnnPanelSel;
 function mnnRender(host, list, n, o){
   const all = typeof mineList === 'function' ? mineList('note') : [];
@@ -414,21 +446,25 @@ function mnnRender(host, list, n, o){
   const done = all.filter(x => myNoteState(x).k === 'done').length;
   const tabs = [['all', i18t('mn_tab_all'), all.length], ['today', i18t('mnn_tab_due'), due], ['done', i18t('mn_tab_done'), done]];
   const tab = mnTabNow();
-  const facts = [i18t('mnn_private'), i18tn('mnn_n', all.length, { n: all.length }), due ? i18t('mnn_n_due', { n: due }) : ''].filter(Boolean).join(' · ');
+  const cts = [...new Set(all.map(x => x.contractId).filter(Boolean))].map(id => _mnContract(id)).filter(Boolean).sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+  const ctOn = _mn.ct && _mn.ct !== '-' ? _mnContract(_mn.ct) : null;
+  const ctChip = ctOn ? `<button type="button" class="apn-chip is-set" data-mnn-ct="">${_mnE(ctOn.name || _mnRef(ctOn))} <span aria-hidden="true">×</span></button>`
+    : cts.length > 1 ? `<span class="apn-rule-w"><button type="button" class="apn-chip is-add" data-mnn-ct-open aria-expanded="false">+ ${_mnE(i18t('mn_row_contract'))}</button><span class="apn-rule-menu" hidden>${cts.map(c => `<button type="button" data-mnn-ct="${_mnE(c.id)}">${_mnE(c.name || _mnRef(c))}</button>`).join('')}</span></span>` : '';
+  const chips = tabs.filter(t => t[2] || t[0] === 'all' || t[0] === tab).map(t => `<button type="button" class="apn-tab is-chip${tab === t[0] ? ' is-on' : ''}" data-mnn-tab="${t[0]}">${t[0] === 'today' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${_mnE(t[1])} <span>${t[2]}</span></button>`).join('') + ctChip;
   const PAGE = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page mnn-page${all.length ? '' : ' is-empty'}" id="mn-page" data-ins-page="mynotes" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
-      <div class="cun-head"><h2 class="ctf-h">${_mnE(i18t('nav_mynotes'))}</h2><span class="ctf-hf">${_mnE(facts)}</span><span class="ctf-sp"></span>
+      <div class="cun-head"><h2 class="ctf-h">${_mnE(i18t('nav_mynotes'))}</h2><span class="mnn-only">${_mnLock()}${_mnE(i18t('mnn_only_you'))}</span><span class="ctf-sp"></span>
         <button type="button" class="ui-btn ui-btn-primary ctf-new" id="mn-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${_mnE(i18t('mnn_new'))}</button></div>
-      <div class="apn-bar" data-lh-seat="mynotes-nl"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="mnn-q" type="search" autocomplete="off" placeholder="${_mnE(i18t('lh_filter_ph'))}" value="${_mnE(_mn.q || '')}"></label><span class="apn-sp"></span>
-        ${tabs.filter(t => t[2] || t[0] === 'all' || t[0] === tab).map(t => `<button type="button" class="apn-tab${tab === t[0] ? ' is-on' : ''}" data-mnn-tab="${t[0]}">${_mnE(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
-      <div class="cu-scroll"><table class="apn-table cun-table mnn-table"><colgroup><col style="width:42%"><col style="width:30%"><col style="width:12%"><col></colgroup>
-        <thead><tr><th>${_mnE(i18t('mn_col_note'))}</th><th>${_mnE(i18t('mn_row_contract'))}</th><th>${_mnE(i18t('mnn_c_due'))}</th><th></th></tr></thead>
-        <tbody>${list.map(mnnRowHtml).join('') || `<tr><td colspan="4" class="apn-none">${_mnE(all.length ? i18t('mn_none_here') : i18t('mn_empty'))}</td></tr>`}</tbody></table></div>
+      <label class="apn-ask">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="mnn-q" type="search" autocomplete="off" placeholder="${_mnE(i18t('mnn_ask_ph'))}" value="${_mnE(_mn.q || '')}"></label>
+      <div class="apn-bar" data-lh-seat="mynotes-nl">${chips}</div>
+      <div class="cu-scroll"><table class="apn-table cun-table mnn-table"><colgroup><col><col style="width:24%"><col style="width:120px"><col style="width:120px"><col style="width:132px"></colgroup>
+        <thead><tr><th>${_mnE(i18t('mn_col_note'))}</th><th>${_mnE(i18t('mn_row_contract'))}</th><th>${_mnE(i18t('apn_col_status'))}</th><th class="mnn-dd">${_mnE(i18t(tab === 'done' ? 'mnn_c_reviewed' : 'mnn_c_due'))}</th><th></th></tr></thead>
+        <tbody>${list.map(mnnRowHtml).join('') || `<tr><td colspan="5" class="apn-none">${_mnE(all.length ? i18t('mn_none_here') : i18t('mn_empty'))}</td></tr>`}</tbody></table></div>
       ${list.length ? `<div class="apn-foot">${_mnE(i18tn('mnn_n', list.length, { n: list.length }))}</div>` : ''}
     </section><aside id="ins-panel" class="ins-panel" aria-label="${_mnE(i18t('mn_panel_label'))}"></aside></div></div>`;
   const sel = n ? String(n.id) : '';
   if (o && o.rows && typeof listRowsSwapHtml === 'function'
-    && listRowsSwapHtml({ page: '#mn-page.mnn-page', html: PAGE, table: '.mnn-table', tabSel: '[data-mnn-tab]', tabKey: 'data-mnn-tab', footSel: '#mn-page .apn-foot', also: '#mn-page .cun-head .ctf-hf' })){
+    && listRowsSwapHtml({ page: '#mn-page.mnn-page', html: PAGE, table: '.mnn-table', tabSel: '[data-mnn-tab]', tabKey: 'data-mnn-tab', footSel: '#mn-page .apn-foot' })){
     /* the panel stays as it stands while the rows move, unless the note it reads has gone */
     if (sel === _mnnPanelSel) return;
   } else {
@@ -446,26 +482,43 @@ function mnnRender(host, list, n, o){
   if (typeof setActiveNav === 'function') setActiveNav('mynotes');
   if (typeof insWatchWidth === 'function') insWatchWidth();
 }
+/* P-27, THE NOTE'S PANEL THE LEGORA + STRIPE WAY: NO TILES. Its status badge and "Only you" over the title; the contract
+   under it; the note's words in full; Due (or Reviewed) and Written as two days; Mark reviewed / Review again (black)
+   with Snooze a week and Delete note beside it; "From the paper · §" with the passage, a press opening it on the paper
+   (data-mn-act="passage"); what it sits beside (its contract, an open approval, when it ends); a timeline from the days
+   the note keeps (written, rings, reviewed). The page's own presses (data-mn-act, data-mnn-ap); no AI. */
 function mnnPanelFiveHtml(n){
-  const E = _mnE, st = myNoteState(n), c = _mnContract(n.contractId), rows = [];
+  const E = _mnE, st = myNoteState(n), S = mnnStatusOf(n), c = _mnContract(n.contractId), rows = [];
   const what = String(n.title || n.body || '').trim();
-  if (st.k !== 'none') rows.push({ mark: 'calendar', tone: st.k === 'today' || st.k === 'late' ? 'amber' : st.k === 'done' ? 'green' : '', t: st.word, s: st.k === 'done' ? '' : i18t('mnn5_rings') });
   if (c){
     let mine = false; try { mine = !!(typeof approvalDecidableNow === 'function' && approvalDecidableNow(c)); } catch (_){ mine = false; }
-    rows.push({ mark: 'file', t: c.name || _mnRef(c), s: [c.counterparty || '', _mnRef(c)].filter(Boolean).join(' \u00b7 '), attr: mine ? `data-mnn-ap="${E(c.id)}"` : 'data-mn-act="open"' });
+    rows.push({ mark: 'file', t: c.name || _mnRef(c), s: [c.counterparty || '', _mnRef(c)].filter(Boolean).join(' · '), attr: mine ? `data-mnn-ap="${E(c.id)}"` : 'data-mn-act="open"' });
     let ap = null; try { ap = (typeof window.approvalState === 'function') ? window.approvalState(c) : null; } catch (_){ ap = null; }
     if (ap && ap.required && !ap.ok) rows.push({ mark: 'shield', tone: 'amber', t: i18t('mnn_p_approval'), s: i18t('mnn_p_asked') });
-    if (c.expiry){ const nd = Number((c.metadata || {}).noticePeriodDays) || 0; rows.push({ mark: 'clock', t: i18t('mnn_p_ends'), s: [_mnShort(String(c.expiry).slice(0, 10)), nd ? i18t('mnn_p_notice', { n: nd }) : ''].filter(Boolean).join(' \u00b7 ') }); }
+    if (c.expiry){ const nd = Number((c.metadata || {}).noticePeriodDays) || 0; rows.push({ mark: 'clock', t: i18t('mnn_p_ends'), s: [_mnShort(String(c.expiry).slice(0, 10)), nd ? i18t('mnn_p_notice', { n: nd }) : ''].filter(Boolean).join(' · ') }); }
   }
   const written = n.createdAt ? _mnShort(String(n.createdAt).slice(0, 10)) : '';
-  const o = { eyebrow: [i18t('nav_mynotes'), st.k === 'today' ? i18t('mn_pill_today') : st.k === 'late' ? i18t('mnn5_late') : ''].filter(Boolean).join(' \u00b7 '),
-    title: what.length > 120 ? what.slice(0, 117) + '\u2026' : what,
-    sub: [written ? i18t('mnn5_written', { d: written }) : '', c ? '' : i18t('mnn5_no_contract'), i18t('mnn5_only_you')].filter(Boolean).join(' '),
-    mid: n.quote ? `<q class="mnn5-q">${E(n.quote)}</q>` : '',
-    groups: [{ label: i18t('mnn5_this'), rows }],
-    act: { label: i18t(n.reviewedAt ? 'mn_review_again' : 'mn_mark_reviewed'), attr: `data-mn-act="${n.reviewedAt ? 'unreview' : 'reviewed'}"`, link: { label: i18t('mn_delete_note'), attr: 'data-mn-act="delete"' },
+  const groups = [];
+  if (n.quote){ const sec = mnnSecOf(n);
+    groups.push({ key: 'paper', label: sec ? i18t('mnn5_from_paper_s', { s: sec }) : i18t('mnn5_from_paper'), rows: [Object.assign({ quote: true, wrap: true, t: '“' + String(n.quote) + '”', s: c ? i18t('mnn5_open_paper') : '' }, c ? { attr: 'data-mn-act="passage"' } : {})] }); }
+  if (rows.length) groups.push({ key: 'beside', label: i18t('mnn5_this'), rows });
+  /* the timeline: only the days the note keeps */
+  const tl = [];
+  if (written) tl.push({ mark: 'mkTick', tone: 'green', t: i18t('mnn5_tl_written'), s: written });
+  if (st.k === 'done') tl.push({ mark: 'mkTick', tone: 'green', t: i18t('mnn5_tl_reviewed'), s: _mnShort(String(n.reviewedAt).slice(0, 10)) });
+  else if (n.reviewBy){ tl.push({ mark: 'clock', tone: st.k === 'late' ? 'red' : st.k === 'today' ? 'amber' : '', t: i18t(st.k === 'late' ? 'mnn5_tl_rang' : 'mnn5_tl_rings'), s: _mnShort(n.reviewBy) });
+    tl.push({ mark: 'calendar', t: i18t('mnn5_tl_until'), s: '' }); }
+  if (tl.length) groups.push({ key: 'timeline', label: i18t('apn5_timeline'), rows: tl });
+  const day = st.k === 'done' ? _mnShort(String(n.reviewedAt).slice(0, 10)) : n.reviewBy ? _mnShort(n.reviewBy) : i18t('mnn_st_none');
+  const words = String(n.body || '').trim();
+  const mid = `${words && words !== what ? `<p class="mnn5-words">${E(words)}</p>` : ''}<div class="ngn-pfacts mnn5-figs"><span><small>${E(i18t(st.k === 'done' ? 'mnn_c_reviewed' : 'mnn_c_due'))}</small><b class="${st.k === 'late' ? 'is-ruby' : st.k === 'today' ? 'is-amber' : ''}">${E(day)}</b></span>${written ? `<span><small>${E(i18t('mnn5_written_k'))}</small><b>${E(written)}</b></span>` : ''}</div>`;
+  const o = { before: `<div class="mnn5-top"><span class="apn-st is-${S.tone}"><i></i>${E(S.w)}</span><span class="mnn-only">${_mnLock()}${E(i18t('mnn5_only_short'))}</span></div>`,
+    title: what.length > 120 ? what.slice(0, 117) + '…' : what,
+    sub: c ? [c.name || '', _mnRef(c)].filter(Boolean).join(' · ') : i18t('mnn5_no_contract'),
+    mid, groups, actFirst: true,
+    act: { label: i18t(n.reviewedAt ? 'mn_review_again' : 'mn_mark_reviewed'), attr: `data-mn-act="${n.reviewedAt ? 'unreview' : 'reviewed'}"`,
       /* SNOOZE A WEEK (owner's pick on the drawings, 17 Nov 2026: "4 Bring it back"): the note out of the way for seven days */
-      links: n.reviewedAt ? [] : [{ label: i18t('mn_snooze'), attr: 'data-mn-act="snooze"' }] },
+      links: (n.reviewedAt ? [] : [{ label: i18t('mn_snooze'), attr: 'data-mn-act="snooze"' }]).concat([{ label: i18t('mn_delete_note'), attr: 'data-mn-act="delete"' }]) },
     src: i18t('mnn5_src') };
   return `<div class="jl-words is-ov mnn5">${jamboOverviewHtml(o, 'mnn')}</div>`;
 }
@@ -499,6 +552,12 @@ if (typeof document !== 'undefined' && !document._mnnWired){ document._mnnWired 
     const ap = e.target && e.target.closest ? e.target.closest('[data-mnn-ap]') : null;
     if (ap){ e.preventDefault(); e.stopPropagation(); const id = ap.getAttribute('data-mnn-ap');
       if (typeof apShowRow === 'function') apShowRow(id); if (typeof insSelect === 'function') insSelect('approvals', id); if (typeof setView === 'function') setView('approvals'); return; }
+    /* + Contract: a press opens its small menu, a choice narrows the notes to that contract, × lets go */
+    const co = e.target && e.target.closest ? e.target.closest('.mnn-page [data-mnn-ct-open]') : null;
+    if (co){ e.preventDefault(); const m = co.parentNode.querySelector('.apn-rule-menu'); if (m){ const show = m.hidden; m.hidden = !show; co.setAttribute('aria-expanded', String(show)); } return; }
+    const cv = e.target && e.target.closest ? e.target.closest('.mnn-page [data-mnn-ct]') : null;
+    if (cv){ e.preventDefault(); _mn.ct = cv.getAttribute('data-mnn-ct') || ''; renderMyNotes(); if (typeof placeSave === 'function') try { placeSave(); } catch (_){} return; }
+    { const open = document.querySelector('.mnn-page .apn-rule-menu:not([hidden])'); if (open && !(e.target.closest && e.target.closest('.apn-rule-w'))) open.hidden = true; }
     const t = e.target && e.target.closest ? e.target.closest('[data-mnn-tab]') : null; if (!t) return;
     e.preventDefault(); _mn.filter = t.getAttribute('data-mnn-tab'); renderMyNotes({ rows: true });
   });
@@ -604,6 +663,16 @@ async function myNoteAct(act){
       if (!ok) return;
       await mineDelete(n.id); _mn.sel = null; if (typeof toast === 'function') toast(i18t('mn_deleted'), 'ok'); }
     else if (act === 'open'){ if (n.contractId && typeof openWorkspace === 'function') openWorkspace(n.contractId); return; }
+    /* THE PASSAGE ON THE PAPER (P-27): the contract opens as "Open" opens it, then the note's clause is gone to on the
+       paper by the walk's own door (igPaperGoClause, else rlJumpToClause) — asked a few times, bounded, never pressed */
+    else if (act === 'passage'){
+      if (!n.contractId || typeof openWorkspace !== 'function') return;
+      openWorkspace(n.contractId);
+      const cid = String(n.clauseId || ''); if (!cid) return;
+      let k = 0; const go = () => { let hit = null;
+        try { hit = typeof window.igPaperGoClause === 'function' ? window.igPaperGoClause(cid) : null; } catch (_){ hit = null; }
+        if (!hit && ++k < 12) setTimeout(go, 250); };
+      setTimeout(go, 250); return; }
     renderMyNotes();
   }catch(e){ if (typeof toast === 'function') toast(String((e && (e.error || e.message)) || i18t('mn_not_saved')), 'err'); }
 }
@@ -745,4 +814,4 @@ function myNotesCss(){ return `
   .mn-when button:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px}
 `; }
 
-Object.assign(window, { mnPlace, mnPlacePut, renderMyNotes, myNotesNew, myNotesOpen, myNoteState, myNotesShown, paintMyNotesCount, mnSheetOn, mnSheetOpts, mnSheetPaint });
+Object.assign(window, { mnnStatusOf, mnnWhen, mnnSecOf, mnnActOf, mnnRowHtml, mnPlace, mnPlacePut, renderMyNotes, myNotesNew, myNotesOpen, myNoteState, myNotesShown, paintMyNotesCount, mnSheetOn, mnSheetOpts, mnSheetPaint });

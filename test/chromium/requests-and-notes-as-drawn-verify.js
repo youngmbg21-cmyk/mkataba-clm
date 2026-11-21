@@ -249,24 +249,41 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
       if (!p || rows.length !== 5 || !p.querySelector('.mnn5')) return null;
       const pr = p.getBoundingClientRect();
       const ths = [...document.querySelectorAll('.mnn-table thead th')].map(t => t.textContent.trim());
-      const due = rows.map(r => { const td = r.children[ths.indexOf('Due')]; return td ? td.textContent.trim() : ''; });
+      /* RE-POINTED (P-27, owner's pick 20 Nov 2026: My notes the Legora + Stripe way): the title alone with "Only you see
+         these" beside it (.mnn-only; the facts line went: the chips say it); the ask box under the title (label.apn-ask);
+         tabs are chips; a Status column of soft badges (Due today amber · Later · No day · Reviewed green); the Due column
+         the day right-aligned with its words under ("today", "in N days", "no day"); the act ONLY on the chosen row */
+      const di = ths.indexOf('Due');
+      const due = rows.map(r => { const td = r.children[di]; if (!td) return ['', ''];
+        const sub = td.querySelector('.cun-sub'); return [[...td.childNodes].filter(x => x.nodeType === 3).map(x => x.textContent).join('').trim(), sub ? sub.textContent.trim() : '']; });
+      const status = rows.map(r => { const b = r.querySelector('.apn-st'); return b ? [b.textContent.trim(), ((b.className.match(/\bis-(\w+)/) || [])[1]) || ''] : null; });
+      const acts = rows.map(r => [...r.querySelectorAll('[data-mn-act]')].map(b => b.textContent.trim()));
       const verbs = [...p.querySelectorAll('[data-mn-act]')];
-      return { word: (p.querySelector('[data-jl-word]') || {}).textContent, title: (document.querySelector('#mn-page .ctf-h') || {}).textContent, facts: (document.querySelector('#mn-page .ctf-hf') || {}).textContent,
+      return { word: (p.querySelector('[data-jl-word]') || {}).textContent, title: (document.querySelector('#mn-page .ctf-h') || {}).textContent, facts: (document.querySelector('#mn-page .ctf-hf') || {}).textContent || null,
+        only: ((document.querySelector('#mn-page .cun-head .mnn-only') || {}).textContent || '').trim(),
         tabs: [...document.querySelectorAll('[data-mnn-tab]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
-        box: !!document.querySelector('#mn-page .apn-bar #mnn-q'), due, todayAmber: !!(rows[0] && rows[0].querySelector('.mnn-due')),
+        box: !!document.querySelector('#mn-page label.apn-ask #mnn-q'), due, status, acts, sel: rows.findIndex(r => r.classList.contains('is-sel')),
         last: rows[4] ? rows[4].textContent.replace(/\s+/g, ' ').trim() : '',
         verbs: verbs.map(b => [b.getAttribute('data-mn-act'), b.textContent.replace(/\s+/g, ' ').trim()]),
         whole: verbs.every(b => b.scrollWidth <= b.clientWidth + 1 && b.getBoundingClientRect().right <= pr.right + 1),
         text: p.innerText.replace(/\s+/g, ' ') };
     }, null, 10000);
-    check('6a My notes: the head, the box and the tabs, the due column as drawn', !!N && N.title === 'My notes' && N.facts === 'Private · 5 notes · 1 due'
+    /* RE-POINTED (P-27, owner's pick 20 Nov 2026: My notes the Legora + Stripe way): no facts beside the title ("Only you
+       see these" stands there); the box under the title; the chips; Due today an amber badge; the day with its words; the
+       reviewed note a green Reviewed badge; the act on the chosen row only */
+    check('6a My notes: the head, the box and the tabs, the due column as drawn', !!N && N.title === 'My notes' && N.facts === null && N.only === 'Only you see these'
       && JSON.stringify(N.tabs) === '["All 5","Due 1","Reviewed 1"]' && N.box
-      && N.due[0] === 'Today' && N.todayAmber && /^\d+ \S+$/.test(N.due[1]) && N.due[3] === '—' && /reviewed \d+ \S+/.test(N.last) && /Review again$/.test(N.last),
-      N && JSON.stringify({ facts: N.facts, tabs: N.tabs, due: N.due, last: N.last }));
+      && !!N.status[0] && N.status[0][0] === 'Due today' && N.status[0][1] === 'amber' && /^\d+ \S+$/.test(N.due[0][0]) && N.due[0][1] === 'today'
+      && /^\d+ \S+$/.test(N.due[1][0]) && /^in \d+ days?$/.test(N.due[1][1]) && N.due[3][0] === '—' && N.due[3][1] === 'no day'
+      && !!N.status[4] && N.status[4][0] === 'Reviewed' && N.status[4][1] === 'green' && /^\d+ \S+$/.test(N.due[4][0])
+      && N.sel >= 0 && N.acts.every((a, i) => i === N.sel ? a.length === 1 : a.length === 0),
+      N && JSON.stringify({ facts: N.facts, only: N.only, tabs: N.tabs, status: N.status, due: N.due, acts: N.acts, sel: N.sel, last: N.last }));
     /* RE-POINTED 17 Nov 2026 (#762): the note's verbs are the five parts' — the review row ("Review today · It rings
        your bell…"), the contract's row (its door), ONE black Mark reviewed, Delete note a quiet link; each whole */
-    check('6b the note in Jambo\'s panel (no word beside the tabs): Review today ringing the bell, Open its contract, Mark reviewed, Delete note, each whole', !!N && !N.word
-      && /Review today It rings your bell until you mark it reviewed/.test(N.text)
+    /* RE-POINTED (P-27, owner's pick 20 Nov 2026: My notes the Legora + Stripe way): no tiles and no review row — the
+       note's Due today is its badge over the title, and the bell is the timeline's "Your bell rings … Rings each day until reviewed" */
+    check('6b the note in Jambo\'s panel (no word beside the tabs): Due today, the bell ringing until reviewed, Open its contract, Mark reviewed, Delete note, each whole', !!N && !N.word
+      && /Due today/.test(N.text) && /Your bell rings .*Rings each day until reviewed/.test(N.text)
       && N.verbs.some(v => v[0] === 'open' && /MK-A2/.test(v[1])) && N.verbs.some(v => v[0] === 'reviewed' && v[1] === 'Mark reviewed') && N.verbs.some(v => v[0] === 'delete' && v[1] === 'Delete note') && N.whole,
       N && JSON.stringify({ verbs: N.verbs, text: N.text.slice(0, 200) }));
     /* KEPT AS IT WAS PROMISED (question for the owner): Snooze a week, which the old panel carried */
@@ -317,9 +334,11 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
             oneRow = !!(head && bar && ab && ask.querySelector('#ikn-q') && tabs.length) && head.getBoundingClientRect().bottom <= ab.top + 1 && ab.bottom <= bar.getBoundingClientRect().top + 1
               && tabs.every(t => Math.abs(t.getBoundingClientRect().top - tabs[0].getBoundingClientRect().top) <= 2) && bar.scrollWidth <= bar.clientWidth + 1;
           } else {
-            const q = bar && bar.querySelector('input[type="search"]'), qb = q && q.getBoundingClientRect();
-            oneRow = !!(head && bar && qb && tabs.length) && head.getBoundingClientRect().bottom <= bar.getBoundingClientRect().top + 1
-              && tabs.every(t => { const r = t.getBoundingClientRect(); return r.top < qb.bottom && r.bottom > qb.top; }) && bar.scrollWidth <= bar.clientWidth + 1;
+            /* RE-POINTED (P-27, owner's pick 20 Nov 2026: My notes the Legora + Stripe way): as Requests — the head, the ask
+               box under the title (label.apn-ask), then the chips on one row, nothing sideways */
+            const ask = pg && pg.querySelector('label.apn-ask'), ab = ask && ask.getBoundingClientRect();
+            oneRow = !!(head && bar && ab && ask.querySelector('#mnn-q') && tabs.length) && head.getBoundingClientRect().bottom <= ab.top + 1 && ab.bottom <= bar.getBoundingClientRect().top + 1
+              && tabs.every(t => Math.abs(t.getBoundingClientRect().top - tabs[0].getBoundingClientRect().top) <= 2) && bar.scrollWidth <= bar.clientWidth + 1;
           }
           const labelsCut = tabs.concat(head ? [...head.children] : []).filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent.trim());
           const heads = [...document.querySelectorAll(s + ' thead th')].filter(t => t.scrollWidth > t.clientWidth + 1).map(t => t.textContent.trim());

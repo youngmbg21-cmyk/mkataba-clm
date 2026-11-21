@@ -21,11 +21,17 @@ test('Parties: kind chips, initials in the stream\'s tone, what waits in amber',
   assert.match(f, /cun-wait\$\{ws \? ' is-owed' : ''\}/);
   assert.match(CSS, /html\.lg-new td\.cun-wait\.is-owed\{color:var\(--st-amber-fg\)\}/);
 });
-test('People: a workload bar to scale', () => {
+/* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): the pink workload bar is gone ("no pink
+   bar"); the colour is the side — initials and the role's soft badge green for our team, steel for the other side — and
+   an amber badge only where something waits on them */
+test('People: the side in colour, what waits in amber', () => {
   const S = read('js/views/directory.js');
-  assert.match(fnBody(S, 'dirnRowHtml'), /dirnLoadBarHtml\(ids\.length\)/);
-  assert.match(S, /_dirnMost = Math\.max\(0, \.\.\.ours\.concat\(theirs\)/);
-  assert.match(CSS, /html\.lg-new \.dirn-load\{/);
+  assert.doesNotMatch(S, /dirnLoadBarHtml|_dirnMost/);
+  assert.match(fnBody(S, 'dirnRowHtml'), /const tone = ours \? 'green' : 'steel';/);
+  assert.match(fnBody(S, 'dirnRowHtml'), /class="cun-av is-\$\{tone\}"/);
+  assert.match(fnBody(S, 'dirnRowHtml'), /w\.length \? `<span class="apn-st is-amber">/);
+  assert.doesNotMatch(CSS, /html\.lg-new \.dirn-load\{/);
+  assert.match(CSS, /html\.lg-new \.cun-av\.is-green\{/);
 });
 test('Reads: answers as tinted chips, a progress bar', () => {
   const S = read('js/views/reads.js');

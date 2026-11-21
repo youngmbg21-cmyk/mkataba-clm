@@ -853,29 +853,58 @@ let _dirn = 'all';
    it; agreements · waiting on them · away as tiles; the agreements they are named on, newest first; what waits on
    them; Email them and Show their contracts as rows (the page's own data-dirn-mail / data-dirn-contracts presses).
    Read from the record, no AI. The new look only. */
+/* P-26, A PERSON'S PANEL THE LEGORA + STRIPE WAY (owner's pick 20 Nov 2026): NO TILES. Large initials and the name, the
+   role as a soft badge (green ours, steel theirs) and, for one of ours, Away / Not away beside it; Agreements and
+   Waiting on them as two plain numbers; Show their contracts (black, data-dirn-contracts) with Email them beside it
+   (data-dirn-mail); what waits on them, each with its kind and — where the approval has its own Remind door
+   (signApprovalRemind, Approvals' data-apn-act="remind") — Remind; a timeline of the signatures the record holds for
+   them; the agreements they are named on; their party for the other side (data-dir-party). Read from the record, no AI. */
+function dirnRoleOf(p){
+  const ours = p.side === 'ours', roles = [...(p.roles || [])];
+  const hati = p.hati ? String(p.hati).charAt(0).toUpperCase() + String(p.hati).slice(1) : '';
+  return ours ? [p.title || hati, roles.includes('approver') ? i18t('dirn_approver') : ''].filter(Boolean).join(', ')
+    : (roles.includes('negotiate') ? i18t('dirn_their_lead') : roles.includes('cpsign') ? i18t('dirn_their_signer') : i18t('dirn_their_side'));
+}
+function dirnInitials(p){ return String(p.name || p.email || '?').split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(x => x.charAt(0).toUpperCase()).join(''); }
+/* the signatures the record holds for this person (by email, else by name), newest last */
+function dirnSignedOf(p){
+  const out = [], em = String(p.email || '').toLowerCase(), nm = String(p.name || '').trim().toLowerCase();
+  (p.contracts || []).forEach(id => { const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return;
+    (Array.isArray(c.signatures) ? c.signatures : []).forEach(sg => { if (!sg || !sg.at) return;
+      const hit = (em && String(sg.email || '').toLowerCase() === em) || (!em && nm && String(sg.name || '').trim().toLowerCase() === nm);
+      if (hit) out.push({ c, at: String(sg.at).slice(0, 10) }); }); });
+  return out.filter(x => /^\d{4}-\d{2}-\d{2}$/.test(x.at)).sort((x, y) => x.at.localeCompare(y.at));
+}
 function dirnPanelFive(p, sub, w, away){
   const ids = [...(p.on ? p.on.keys() : [])];
   const cs = ids.map(id => (typeof getContract === 'function') ? getContract(id) : null).filter(Boolean)
     .sort((a, b) => String(b.lastAction || '').localeCompare(String(a.lastAction || '')));
-  const initials = String(p.name || p.email || '?').split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(x => x.charAt(0).toUpperCase()).join('');
-  const n = p.contracts.length;
+  const ours = p.side === 'ours', n = p.contracts.length;
   const groups = [];
+  if (w.length) groups.push({ label:i18t('dirn_p_waiting'), rows:w.slice(0, 4).map(x => {
+    let req = null;
+    if (x.kind === 'approval' && typeof window.signApprovalRows === 'function'){ try { const r = window.signApprovalRows(x.c).find(y => y && y.status === 'pending' && y.req); req = r ? r.req : null; } catch (_){ req = null; } }
+    const row = { mark:'clock', tone:'amber', t:x.c.name || x.c.id, s:i18t(DIR_WAIT_KIND[x.kind] || 'ap_wl_kind_appr'), attr:`data-dir-wait="${_dE(x.kind)}" data-dir-wait-id="${_dE(x.c.id)}"` };
+    return req ? Object.assign(row, { link:{ label:i18t('dirn_p_remind'), attr:`data-apn-act="remind" data-id="${_dE(x.c.id)}" data-req="${_dE(req.id)}"` } }) : row; }) });
+  const signed = dirnSignedOf(p);
+  if (signed.length) groups.push({ label:i18t('apn5_timeline'), rows:signed.slice(-4).map(x => ({ mark:'mkTick', tone:'green', t:i18t('dirn_tl_signed', { name:x.c.name || x.c.id }), s:(typeof regDotDate === 'function') ? regDotDate(x.at) : x.at, run:() => window.jov5Open(x.c.id) })) });
   if (cs.length) groups.push({ label:i18t('jov5_dir_named'), rows:cs.slice(0, 3).map(c => ({ mark:'file', t:c.name || c.id, s:c.counterparty || '', v:String(c.status || ''), run:() => window.jov5Open(c.id) })) });
-  if (w.length) groups.push({ label:i18t('dirn_p_waiting'), rows:w.slice(0, 3).map(x => ({ mark:'clock', tone:'amber', t:x.c.name || x.c.id, s:i18t(DIR_WAIT_KIND[x.kind] || 'ap_wl_kind_appr'), run:() => window.jov5Open(x.c.id) })) });
   const reach = [];
   let ph = null; try { ph = dirPhoneOf(p); } catch (_){ ph = null; }
   if (ph) reach.push({ mark:'phone', t:i18t('dirn_p_call'), s:String(ph), attr:`data-dirn-call="${_dE(String(ph))}"` });
-  if (p.email) reach.push({ mark:'msg', t:i18t('dirn_p_email'), s:i18t('dirn_p_mail_cost'), attr:`data-dirn-mail="${_dE(p.key)}"` });
-  if (n) reach.push({ mark:'users', t:i18t('jov5_dir_show'), v:String(n), attr:`data-dirn-contracts="${_dE(p.key)}"` });
-  /* an outside person's party is a door onto that party (MAP: Party → cuSelectParty; #762 — the new panel said it as words) */
+  /* an outside person's party is a door onto that party (MAP: Party → cuSelectParty) */
   if (p.partyKey && p.partyName && typeof cuCustomerOf === 'function' && cuCustomerOf(p.partyKey)) reach.push({ mark:'users', t:p.partyName, s:i18t('cun_open'), attr:`data-dir-party="${_dE(p.partyKey)}"` });
   /* EDIT CONTACT (owner, 19 Nov 2026): an outside person is changed in the party's one contacts pop-up, their row open */
   const mayEdit = p.side === 'theirs' && p.partyKey && typeof partyContactsMay === 'function' && partyContactsMay() && typeof cuCustomerOf === 'function' && cuCustomerOf(p.partyKey);
-  if (reach.length) groups.push({ label:i18t('jov5_dir_reach'), rows:reach, more: mayEdit ? { label:i18t('dirn_p_edit'), attr:`data-dirn-edit="${_dE(p.key)}" data-dirn-edit-party="${_dE(p.partyKey)}"` } : null });
-  return { avatar:initials, title:p.name || p.email || '', sub,
-    glance:[{ n, l:i18tn('jov5_dir_agreements', n, { n }), attr:n ? `data-dirn-contracts="${_dE(p.key)}"` : '' }, { n:w.length, l:i18t('jov5_ng_them'), warn:w.length > 0 },
-      { n:away && away !== i18t('dirn_p_not_away') ? i18t('jov5_dir_away') : i18t('jov5_dir_in'), l:away ? (away === i18t('dirn_p_not_away') ? i18t('jov5_dir_not_away') : away) : i18t('jov5_dir_side') }],
-    groups, src:i18t('jov5_dir_src') };
+  if (reach.length || mayEdit) groups.push({ label:ours ? i18t('jov5_dir_reach') : i18t('dirn_p_party'), rows:reach, more: mayEdit ? { label:i18t('dirn_p_edit'), attr:`data-dirn-edit="${_dE(p.key)}" data-dirn-edit-party="${_dE(p.partyKey)}"` } : null });
+  const role = dirnRoleOf(p);
+  const isAway = !!(away && away !== i18t('dirn_p_not_away'));
+  const subHtml = `<span class="dirn-badges">${role ? `<span class="reg-badge is-${ours ? 'green' : 'steel'}">${_dE(role)}</span>` : ''}${ours && away ? `<span class="reg-badge${isAway ? ' is-amber' : ''}" title="${_dE(away)}">${_dE(isAway ? i18t('dirn_p_away') : i18t('dirn_p_not_away'))}</span>` : ''}</span>`;
+  const mid = `<div class="ngn-pfacts dirn-pfacts"><span><small>${_dE(i18t('dirn_c_ags'))}</small><b>${n}</b></span><span><small>${_dE(i18t('dirn_c_wait'))}</small><b>${w.length}</b></span></div>`;
+  const mail = p.email ? { label:i18t('dirn_p_email'), attr:`data-dirn-mail="${_dE(p.key)}"` } : null;
+  const act = n ? { label:i18t('jov5_dir_show'), attr:`data-dirn-contracts="${_dE(p.key)}"`, links:mail ? [mail] : [] } : mail ? { label:mail.label, attr:mail.attr } : null;
+  void sub;
+  return { avatar:dirnInitials(p), title:p.name || p.email || '', subHtml, mid, act, actFirst:true, groups, src:i18t('jov5_dir_src') };
 }
 function dirnPanelHtml(p){
   const E = _dE, ours = p.side === 'ours';
@@ -910,58 +939,56 @@ if (typeof document !== 'undefined' && !document._dirnPanelWired){ document._dir
   document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('[data-dirn-contracts]') : null; if (!b) return; e.preventDefault();
     const p = dirBook().find(x => x.key === b.getAttribute('data-dirn-contracts')); if (p) dirShowContracts(p); });
 }
-/* WORKLOAD BARS (owner's pick by name, 9 Nov 2026; the colour round): "Does for you" carries a thin bar to scale, the
-   most-named person in the list the full width, so who carries the work shows at a glance. The list sets the scale. */
-let _dirnMost = 0;
-const DIRN_BAR_W = 90;
-function dirnLoadBarHtml(n){ return n && _dirnMost ? `<span class="dirn-load" aria-hidden="true" style="width:${Math.max(4, Math.round(n / _dirnMost * DIRN_BAR_W))}px"></span>` : ''; }
+/* P-26, PEOPLE THE LEGORA + STRIPE WAY (owner's pick 20 Nov 2026): one calm table — Name (initials, green for our team,
+   steel for the other side; the name; "you" or their party under) · Role (a soft badge) · Does for you (one line, "…")
+   · Agreements (right-aligned) · Waiting on them (an amber badge only where something waits, else empty). The workload
+   bar and the Phone column are gone (the phone is the panel's Phone them). */
 function dirnRowHtml(p, keys){
   const ours = p.side === 'ours';
-  const hati = p.hati ? String(p.hati).charAt(0).toUpperCase() + String(p.hati).slice(1) : '';
   const roles = [...(p.roles || [])];
-  const role = ours ? [p.title || hati, roles.includes('approver') ? i18t('dirn_approver') : ''].filter(Boolean).join(', ')
-    : (roles.includes('negotiate') ? i18t('dirn_their_lead') : roles.includes('cpsign') ? i18t('dirn_their_signer') : i18t('dirn_their_side'));
-  /* SAY IT ONCE (the harmony review): one of ours is ours by the list's own grouping and their role has its own column,
-     so the sub line carries only what differs: a title, or that it is you */
-  const sub = [p.title && ours ? '' : p.title, ours ? '' : (p.partyName || ''), p.you ? i18t('dirn_you') : ''].filter(Boolean).join(' · ');
+  const role = dirnRoleOf(p);
+  const sub = p.you ? i18t('dirn_you') : ours ? (p.title || '') : (p.partyName || '');
   const ids = [...(p.on ? p.on.keys() : [])];
   let does = '';
-  if (ours) does = ids.length ? i18tn('dirn_named', ids.length, { n: ids.length }) : '—';
-  else { const id = ids[0], c = id && typeof getContract === 'function' ? getContract(id) : null; does = (c && dirDoesFor(roles, c, c.name || '')) || (ids.length ? i18tn('dirn_named', ids.length, { n: ids.length }) : '—'); }
+  if (ours) does = ids.length ? i18tn('dirn_named', ids.length, { n: ids.length }) : '';
+  else { const id = ids[0], c = id && typeof getContract === 'function' ? getContract(id) : null; does = (c && dirDoesFor(roles, c, c.name || '')) || (ids.length ? i18tn('dirn_named', ids.length, { n: ids.length }) : ''); }
+  does = does ? does.charAt(0).toLocaleUpperCase() + does.slice(1) : '';
   let w = []; try { w = dirWaitingOn(p) || []; } catch (_){ w = []; }
-  const wait = w.length ? i18tn('dirn_things', w.length, { n: w.length }) : i18t('dirn_nothing');
-  let ph = null; try { ph = dirPhoneOf(p); } catch (_){ ph = null; }
-  /* PILL TO ACT, LINK TO GO (the harmony review): Email is the panel's door, not every row's; the row keeps a phone */
-  const reach = ph ? _dE(String(ph.phone || ph)) : '—';
-  /* the columns drawn (listCols, #762): a column that stepped aside draws no cell */
-  const cell = { role: () => _dE(role || '—'), does: () => _dE(does ? does.charAt(0).toLocaleUpperCase() + does.slice(1) : '') + dirnLoadBarHtml(ids.length), wait: () => _dE(wait), reach: () => reach };
-  return `<tr data-dir-row="${_dE(p.key)}" tabindex="-1"><td><div class="dirn-who">${typeof regAvatarHtml === 'function' ? regAvatarHtml(p.name || p.email || '?') : ''}<div><div class="cun-name">${_dE(p.name || p.email || '')}</div>${sub ? `<div class="cun-sub">${_dE(sub)}</div>` : ''}</div></div></td>
-    ${(keys || DIRN_KEYS).map(k => `<td class="cun-wait">${cell[k] ? cell[k]() : ''}</td>`).join('')}</tr>`;
+  const tone = ours ? 'green' : 'steel';
+  /* the columns drawn (listCols): a column that stepped aside draws no cell */
+  const cell = {
+    role: () => `<td>${role ? `<span class="reg-badge is-${tone}" title="${_dE(role)}">${_dE(role)}</span>` : ''}</td>`,
+    does: () => `<td class="dirn-does"><span title="${_dE(does)}">${does ? _dE(does) : '<span class="apn-none-c">—</span>'}</span></td>`,
+    ags: () => `<td class="dirn-n">${p.contracts.length}</td>`,
+    wait: () => `<td class="cun-wait">${w.length ? `<span class="apn-st is-amber"><i></i>${_dE(i18tn('dirn_things', w.length, { n: w.length }))}</span>` : ''}</td>`,
+  };
+  return `<tr data-dir-row="${_dE(p.key)}" tabindex="-1"><td><div class="dirn-who"><span class="cun-av is-${tone}" aria-hidden="true">${_dE(dirnInitials(p))}</span><div class="dirn-who-t"><div class="cun-name">${_dE(p.name || p.email || '')}</div>${sub ? `<div class="cun-sub">${_dE(sub)}</div>` : ''}</div></div></td>
+    ${(keys || DIRN_KEYS).map(k => cell[k] ? cell[k]() : '<td></td>').join('')}</tr>`;
 }
-/* THE NEW LOOK'S COLUMNS UNDER THE ONE COLUMN RULE (listCols; #762, 17 Nov 2026): the old list's seat, so a reader's
-   dragged widths carry over; Name and Does for you always stand, where the room is short Reach steps aside first,
-   then Waiting, then Role; Reach is not drawn while no row has a phone */
-const DIRN_KEYS = ['role', 'does', 'wait', 'reach'];
-function dirnCols(reachAny){
-  const W = { role: 140, does: 200, wait: 150, reach: 150 }, R = { reach: 1, wait: 2, role: 3 };
-  const T = { name: 'dirn_c_name', role: 'dirn_c_role', does: 'dirn_c_does', wait: 'dirn_c_wait', reach: 'dirn_c_reach' };
-  const DEFS = [{ k: 'name' }, ...DIRN_KEYS.filter(k => reachAny || k !== 'reach').map(k => ({ k, w: W[k], rank: R[k] }))];
+/* THE COLUMNS UNDER THE ONE COLUMN RULE (listCols): the old list's seat, so a reader's dragged widths carry over; Name
+   and Does for you always stand, where the room is short Agreements steps aside first, then Role */
+const DIRN_KEYS = ['role', 'does', 'ags', 'wait'];
+function dirnCols(){
+  const W = { role: 140, does: 220, ags: 104, wait: 140 }, R = { ags: 1, role: 2 };
+  const T = { name: 'dirn_c_name', role: 'dirn_c_role', does: 'dirn_c_does', ags: 'dirn_c_ags', wait: 'dirn_c_wait' };
+  const DEFS = [{ k: 'name' }, ...DIRN_KEYS.map(k => ({ k, w: W[k], rank: R[k] }))];
   const FIT = typeof listCols === 'function' ? listCols(DIR_SEAT, DEFS, () => dirRepaint()) : { cols: DEFS };
   const cols = FIT.cols;
   return { keys: cols.slice(1).map(c => c.k), n: cols.length,
     colg: `<colgroup>${cols.map(c => typeof listColTag === 'function' ? listColTag(c, true) : `<col${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}>`).join('')}</colgroup>`,
-    th: `<thead><tr>${cols.map(c => `<th>${_dE(i18t(T[c.k]))}${typeof listGripHtml === 'function' ? listGripHtml(DIR_SEAT, c.k) : ''}</th>`).join('')}</tr></thead>` };
+    th: `<thead><tr>${cols.map(c => `<th${c.k === 'ags' ? ' class="dirn-n"' : ''}>${_dE(i18t(T[c.k]))}${typeof listGripHtml === 'function' ? listGripHtml(DIR_SEAT, c.k) : ''}</th>`).join('')}</tr></thead>` };
 }
-/* PEOPLE'S TABS ALL DRAW THE ONE TABLE (read 10 Nov 2026: All · Yours · Outside · Waiting only pick WHICH people,
-   `pick` below), so a tab press and a typed letter redraw only the rows (listRowsSwapHtml); a tab that comes or
-   goes draws the whole page, with the caret put back. */
+/* PEOPLE'S TABS ALL DRAW THE ONE TABLE (All · Yours · Outside · Waiting on them only pick WHICH people), so a tab press
+   and a typed letter redraw only the rows (listRowsSwapHtml); a tab that comes or goes draws the whole page, with the
+   caret put back. P-26: the title alone (its count line goes: the chips say it), the ask box under it, the chips with a
+   dot on Waiting on them, + Party a small menu of the parties with people (chosen, it is a chip with its ×). */
 function dirnRender(host, INS, book, o){
   const q = String(_dir.q || '').trim().toLowerCase();
   const all = book.filter(p => p && (p.side === 'ours' || p.side === 'theirs'));
   const waitOf = p => { try { return (dirWaitingOn(p) || []).length; } catch (_){ return 0; } };
   const yours = all.filter(p => p.side === 'ours'), outside = all.filter(p => p.side === 'theirs'), waiting = all.filter(p => waitOf(p) > 0);
   /* PEOPLE AT ONE PARTY (owner, 19 Nov 2026: the Parties panel's contacts land here): only their people, the party a
-     chip with its × as on Contracts; the tabs step aside, + Add contact opens the party's one contacts pop-up */
+     chip with its ×; the tabs step aside, + Add a contact opens the party's one contacts pop-up */
   const pty = _dir.party && _dir.party !== 'all' ? _dir.party : '';
   const ptyName = pty ? ((typeof cuCustomerOf === 'function' && cuCustomerOf(pty)) || {}).name || (outside.find(p => p.partyKey === pty) || {}).partyName || '' : '';
   const atParty = pty ? outside.filter(p => p.partyKey === pty) : null;
@@ -970,25 +997,25 @@ function dirnRender(host, INS, book, o){
   const ours = list.filter(p => p.side === 'ours').sort((a, b) => (b.you ? 1 : 0) - (a.you ? 1 : 0) || String(a.name).localeCompare(String(b.name)));
   const theirs = list.filter(p => p.side === 'theirs').sort((a, b) => String(a.name).localeCompare(String(b.name)));
   const tabs = atParty ? [['all', i18t('ctf_tab_all'), atParty.length]] : [['all', i18t('ctf_tab_all'), all.length], ['yours', i18t('dirn_tab_yours'), yours.length], ['outside', i18t('dirn_tab_outside'), outside.length], ['wait', i18t('dirn_tab_wait'), waiting.length]].filter(t => t[2] || t[0] === 'all' || t[0] === _dirn);
-  /* SAY IT ONCE (the harmony review): a Reach column with no phone on any row steps out */
-  const reachAny = list.some(p => { try { return !!dirPhoneOf(p); } catch (_){ return false; } });
-  const C = dirnCols(reachAny);
-  _dirnMost = Math.max(0, ...ours.concat(theirs).map(p => (p.on ? p.on.size : 0)));
-  const body = ours.map(p => dirnRowHtml(p, C.keys)).join('') + (theirs.length && ours.length ? `<tr class="apn-group"><td colspan="${C.n}">${_dE(i18t('dirn_outside'))}</td></tr>` : '') + theirs.map(p => dirnRowHtml(p, C.keys)).join('');
+  const C = dirnCols();
+  const body = ours.map(p => dirnRowHtml(p, C.keys)).join('') + (theirs.length && ours.length ? `<tr class="apn-group"><td colspan="${C.n}">${_dE(i18t('dirn_outside'))}<span class="apn-pile-n"> · ${theirs.length}</span></td></tr>` : '') + theirs.map(p => dirnRowHtml(p, C.keys)).join('');
+  const parties = [...new Map(outside.filter(p => p.partyKey && p.partyName).map(p => [p.partyKey, p.partyName])).entries()].sort((x, y) => String(x[1]).localeCompare(String(y[1])));
+  const ptyChip = atParty ? `<button type="button" class="apn-chip is-set" data-dirn-party-clear title="${_dE(i18t('dirn_party_clear'))}">${_dE(ptyName)} <span aria-hidden="true">×</span></button>`
+    : parties.length ? `<span class="apn-rule-w"><button type="button" class="apn-chip is-add" data-dirn-party-open aria-expanded="false">+ ${_dE(i18t('dirn_chip_party'))}</button><span class="apn-rule-menu" hidden>${parties.map(([k, nm]) => `<button type="button" data-dirn-party="${_dE(k)}">${_dE(nm)}</button>`).join('')}</span></span>` : '';
+  const chips = tabs.map(t => `<button type="button" class="apn-tab is-chip${(atParty ? 'all' : _dirn) === t[0] ? ' is-on' : ''}" data-dirn-tab="${t[0]}">${t[0] === 'wait' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${_dE(t[1])} <span>${t[2]}</span></button>`).join('') + ptyChip;
   const PAGE = `<style>${(typeof window !== 'undefined' && window.CU_WHO_CSS) || ''}${DIR_CSS}</style>
   <div id="dir-page" class="view-enter sap-page ap-page is-ins apn-page dir-page dirn-page" data-ins-page="directory" data-ins="${INS ? '1' : '0'}">
     <div class="ap-body is-ins dir-body"><section class="ap-card apn-card">
-      <div class="cun-head"><h2 class="ctf-h">${_dE(i18t('nav_directory'))}</h2><span class="ctf-hf">${_dE(atParty ? i18t('dirn_head_at', { n: atParty.length, party: ptyName }) : i18t('dirn_head', { n: all.length, y: yours.length, o: outside.length }))}</span>${atParty && typeof partyContactsMay === 'function' && partyContactsMay() ? `<span class="ctf-sp"></span><button type="button" class="ui-btn ui-btn-primary ctf-new" data-dirn-add="${_dE(pty)}">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${_dE(i18t('dirn_add_contact'))}</button>` : ''}</div>
-      <div class="apn-bar" data-lh-seat="directory-nl"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="dirn-q" type="search" autocomplete="off" placeholder="${_dE(i18t('lh_filter_ph'))}" value="${_dE(_dir.q || '')}"></label><span class="apn-sp"></span>
-        ${atParty ? `<span class="dirn-pty">${_dE(ptyName)}<button type="button" data-dirn-party-clear aria-label="${_dE(i18t('dirn_party_clear'))}" title="${_dE(i18t('dirn_party_clear'))}">${typeof icon === 'function' ? icon('x', 'w-3 h-3') : ''}</button></span>` : ''}
-        ${tabs.map(t => `<button type="button" class="apn-tab${(atParty ? 'all' : _dirn) === t[0] ? ' is-on' : ''}" data-dirn-tab="${t[0]}">${_dE(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
-      <div class="cu-scroll" id="dir-scroll"><table class="apn-table cun-table" data-list-seat="${_dE(DIR_SEAT)}">${C.colg}
+      <div class="cun-head"><h2 class="ctf-h">${_dE(i18t('nav_directory'))}</h2>${atParty && typeof partyContactsMay === 'function' && partyContactsMay() ? `<span class="ctf-sp"></span><button type="button" class="ui-btn ui-btn-primary ctf-new" data-dirn-add="${_dE(pty)}">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${_dE(i18t('dirn_add_contact'))}</button>` : ''}</div>
+      <label class="apn-ask">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="dirn-q" type="search" autocomplete="off" placeholder="${_dE(i18t('dirn_ask_ph'))}" value="${_dE(_dir.q || '')}"></label>
+      <div class="apn-bar" data-lh-seat="directory-nl">${chips}</div>
+      <div class="cu-scroll" id="dir-scroll"><table class="apn-table cun-table dirn-table" data-list-seat="${_dE(DIR_SEAT)}">${C.colg}
         ${C.th}
         <tbody id="dir-tbody">${body || `<tr><td colspan="${C.n}" class="apn-none">${_dE(i18t('ap_wl_none_match'))}</td></tr>`}</tbody></table></div>
       <div class="apn-foot">${_dE(i18tn('dirn_foot', (atParty || all).length, { n: (atParty || all).length }))}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${_dE(i18t('dir_panel_label'))}"></aside></div></div>`;
   if (o && o.rows && typeof listRowsSwapHtml === 'function'
-    && listRowsSwapHtml({ page: '#dir-page', html: PAGE, table: '.apn-table.cun-table', tabSel: '[data-dirn-tab]', tabKey: 'data-dirn-tab', footSel: '.apn-foot', also: '.cun-head .ctf-hf' })){
+    && listRowsSwapHtml({ page: '#dir-page', html: PAGE, table: '.apn-table.cun-table', tabSel: '[data-dirn-tab]', tabKey: 'data-dirn-tab', footSel: '.apn-foot' })){
     dirWireList(host, INS, book, { rows: true });
     return;
   }
@@ -1004,6 +1031,10 @@ if (typeof document !== 'undefined' && !document._dirnWired){ document._dirnWire
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     const tab = t.closest('[data-dirn-tab]'); if (tab){ e.preventDefault(); _dirn = tab.getAttribute('data-dirn-tab'); renderDirectory({ rows: true }); return; }
     if (t.closest('[data-dirn-party-clear]')){ e.preventDefault(); _dir.party = 'all'; renderDirectory(); _dCall('placeSave'); return; }
+    /* + Party: a press opens its small menu, a choice shows only that party's people (the Parties panel's own landing) */
+    const po = t.closest('.dirn-page [data-dirn-party-open]'); if (po){ e.preventDefault(); const m = po.parentNode.querySelector('.apn-rule-menu'); if (m){ const show = m.hidden; m.hidden = !show; po.setAttribute('aria-expanded', String(show)); } return; }
+    const pp = t.closest('.dirn-page [data-dirn-party]'); if (pp){ e.preventDefault(); _dir.party = pp.getAttribute('data-dirn-party') || 'all'; renderDirectory(); _dCall('placeSave'); return; }
+    { const open = document.querySelector('.dirn-page .apn-rule-menu:not([hidden])'); if (open && !t.closest('.apn-rule-w')) open.hidden = true; }
     const ad = t.closest('[data-dirn-add]'); if (ad){ e.preventDefault(); if (typeof partyContactsOpen === 'function') partyContactsOpen(ad.getAttribute('data-dirn-add'), { add: true }); return; }
     const ed = t.closest('[data-dirn-edit]'); if (ed){ e.preventDefault(); if (typeof partyContactsOpen === 'function') partyContactsOpen(ed.getAttribute('data-dirn-edit-party'), { edit: ed.getAttribute('data-dirn-edit') }); return; }
     const call = t.closest('[data-dirn-call]'); if (call){ e.preventDefault(); try { window.location.href = 'tel:' + String(call.getAttribute('data-dirn-call')).replace(/[^\d+]/g, ''); } catch (_){} return; }
@@ -1149,6 +1180,6 @@ const DIR_CSS = `
   .dir-more{padding-top:8px;font-size:var(--t-meta);color:var(--color-neutral-600);}
 `;
 
-Object.assign(window, { dirnPanelFive, renderDirectory, dirRepaint, dirPeople, dirBook, dirRows, dirMatches, dirTabCount, dirPeopleOfParty, dirRoleWords,
+Object.assign(window, { dirnPanelFive, dirnRowHtml, dirnRoleOf, dirnInitials, dirnSignedOf, renderDirectory, dirRepaint, dirPeople, dirBook, dirRows, dirMatches, dirTabCount, dirPeopleOfParty, dirRoleWords,
   dirRowHtml, dirColDefs, dirCellHtml, dirAwayPillHtml, DIR_PAGE, dirOpenPerson, dirPlace, dirPlacePut, dirOpenParty, dirShowContracts, dirOpenContract, dirPaintPanel, dirSelect, DIR_TABS,
   dirWaitingOn, dirPhoneOf, dirDoesFor, DIR_DOES, DIR_WAIT_MAX, DIR_WAIT_KIND, DIR_WAIT_OPEN, dirWaitGo, dirSay, dirNamedRoles, DIR_ROLE_NOUN, dirRoleNoun });

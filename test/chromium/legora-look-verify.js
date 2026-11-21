@@ -253,7 +253,9 @@ const check = (name, pass, detail) => {
        count is its lit tab's number (the card's own head and its pill went) */
     /* RE-POINTED 16 Nov 2026 (#762): the new look's Parties head is ONE HEAD (.cun-head): its title and the count beside it
        as a plain fact (.ctf-hf, "3 counterparties"); it draws no tabs */
-    const LIT_N = '.cun-head .ctf-hf';
+    /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way): the facts beside the title are gone (the
+       chips say it); the count is the All chip's number (.apn-tab.is-chip > span) — still a plain number, no bubble */
+    const LIT_N = '.cun-page .apn-tab.is-chip[data-cun-tab="all"] > span';
     await page.evaluate(() => setView('customers'));
     await until(s => !!document.querySelector(s) && !!document.querySelector('#ins-panel'), LIT_N, 10000);
     const ap = await page.evaluate(s => { const n = document.querySelector(s), ns = n && getComputedStyle(n);
