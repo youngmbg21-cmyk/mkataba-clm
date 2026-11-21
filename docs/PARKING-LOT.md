@@ -287,7 +287,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — "With Amina" said to Amina (should be "with you"); a drafted request still says "no NDA · to do" and "Nobody holds it"; the Advice panel's run-together sentence and its "0 files" tile.
 
 ### P-33 · Import page, the Legora + Stripe way, with the upgraded side panel
-- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #862, the overnight batch 7)
 - **What:** build the owner's pick for Import: the Legora + Stripe way on the page before any file, Need you, Read and All, with the side panel as upgraded on the owner's ask ("L&S side panel needs an upgrade"). Owner's words: "L+S and park it."
 - **Where it came from:** the page clean-up, day 10. The drawings: https://claude.ai/artifact/KeE9twrwU5ncNYAyWCS96A (choose "The Legora + Stripe way" on each view). Every view was photographed from the running app that day with a sample batch of 12 files. The one-at-a-time check ("Check all") is NOT part of this: it was redesigned the same day (the check, made like the Send screen) and stays as built.
 - **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
@@ -300,7 +300,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — the side panel drawn without its styling when a row is chosen; the same words twice in a row; a file name broken mid-word; the drop area drawn twice.
 
 ### P-34 · Our paper page, the Legora + Stripe way, on all four views
-- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #862, the overnight batch 7)
 - **What:** build the owner's pick for Our paper: the Legora + Stripe way on the Shelves, All, a shelf's list (a paper chosen) and the paper open. Owner's words: "L+S and park it."
 - **Where it came from:** the page clean-up, day 11. The drawings: https://claude.ai/artifact/5gbu5FhR2Nr5YDqnGga849 (choose "The Legora + Stripe way" on each view). The page was photographed from the running app that day. Corporate & Compliance is given two more papers in the drawings (marked "sample") to show a shelf of more than three.
 - **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
@@ -313,7 +313,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — the three numbers said three times; names cut short where they fit; the panel's last button ("Open the paper", "Make our own version…") running under Jambo's links line; the facts said twice on the paper view.
 
 ### P-35 · Playbook page, the Legora + Stripe way, on all four views
-- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #862, the overnight batch 7)
 - **What:** build the owner's pick for the Playbook: the Legora + Stripe way on a position's ladder, Departures, History and editing a position. Owner's words: "L+S and park it."
 - **Where it came from:** the page clean-up, day 12. The drawings: https://claude.ai/artifact/QWrNVtentNYSBotrFAHdAt (choose "The Legora + Stripe way" on each view). The page was photographed from the running app that day; Departures and History were empty in the sample workspace, so they and the ladder's counts are drawn with sample rows (marked "sample").
 - **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
@@ -327,7 +327,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — boxed entry fields; "New position" over an existing one; the panel stale on Departures and History; zero tiles and the repeated owner line.
 
 ### P-36 · New agreement, the Legora + Stripe way, on all four views
-- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #862, the overnight batch 7)
 - **What:** build the owner's pick for New agreement: the Legora + Stripe way on Our paper, a paper chosen, Their paper and From scratch. Owner's words: "L+S and park it."
 - **Where it came from:** the page clean-up, day 13. The drawings: https://claude.ai/artifact/2J2y3nRPB8GJk9EL1t4KS9 (choose "The Legora + Stripe way" on each view). Photographed from the running app that day; in the "a paper chosen" drawings a sample sentence was typed ("Two-year supply agreement with Nandi Dairy, 45-day payment").
 - **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
@@ -409,7 +409,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Check before building:** the fault logged on 20 Nov 2026 (money as a big part of the sheet) is fixed by this build.
 
 ### P-42 · Discover: every feature kept, the Legora + Stripe design; reading is "The Reading Room"
-- **Added:** 21 Nov 2026 · **Status:** Waiting
+- **Added:** 21 Nov 2026 · **Status:** Done (21 Nov 2026, the overnight batches 8 and 9)
 - **What:** build the owner's pick for Discover: EVERY CURRENT FEATURE AND ALL ITS CONTENT KEPT, ONLY THE DESIGN CHANGES (owner: "I want all the current features and content present on discover but the design should be changed"), the Legora + Stripe way; while it reads, THE READING ROOM (owner, 21 Nov 2026: "a serious animation for a law firm … I do not like the cards"; "Let's go with L+S with the reading room. And merge it").
 - **Where it came from:** the page clean-up. The drawings: https://claude.ai/artifact/KNKYopPW9yDP6gj2fE5p7s (eight screens; on "5 · Reading (live)" choose the Look "The Reading Room", and 13 · 40 · 100 contracts). Earlier sketch: https://claude.ai/artifact/5yxsBEXawxGDioGpC1Hnph. Photographed from the running app; a read in progress and results are drawn with sample answers (marked "sample").
 - **Notes:** what the drawings hold, every part built (the picked design is the agreement):
@@ -422,7 +422,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — the empty list stuck on "Loading…"; the New read panel's last line under Jambo's links.
 
 ### P-43 · Settings, the Legora + Stripe way, no animation; the sheets from the right too
-- **Added:** 21 Nov 2026 · **Status:** Waiting
+- **Added:** 21 Nov 2026 · **Status:** Done (21 Nov 2026, the overnight batches 8 and 9)
 - **What:** build the owner's pick for Settings: the Legora + Stripe way on the six areas, an area, a setting chosen, AND the sheets that open from the right on a setting's Change (owner: "the side panels that will appear from the right when you press on rules and a setting chosen … also need to be L+S"). NO ANIMATION in Settings (owner, 21 Nov 2026: "No need for animation in settings"). Every setting and what it says is kept; only the design changes. Owner's words: "L+S and merge it."
 - **Where it came from:** the page clean-up. The drawings: https://claude.ai/artifact/QBnvnqFssr85NfKjLJmY81 (choose "The Legora + Stripe way"; "Change: …" shows three sheets). Photographed from the running app.
 - **Notes:** what the drawings hold, to be built in full (the picked design is the agreement):
@@ -434,7 +434,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Check before building:** the faults logged on 21 Nov 2026 are fixed in the same build — the act drawn twice (row and panel); "Ask an admin" under Jambo's links; on/off state easy to miss.
 
 ### P-44 · History on both sides, and the other side's page, the Legora + Stripe way
-- **Added:** 21 Nov 2026 · **Status:** Waiting
+- **Added:** 21 Nov 2026 · **Status:** Done (21 Nov 2026, the overnight batches 8 and 9)
 - **What:** build the owner's picks. (1) A contract's HISTORY, the Legora + Stripe way, THE SAME on our side and on the other side's page, with TWO switches: "The wording" (today's Show the wording) and "The notes" (new). (2) THE OTHER SIDE'S PAGE, the Legora + Stripe way: their Redlines look the same as ours in HaTi, a new History tab, and a bell with Alerts and Notes. Owner's words: "Legora and stripe. For the history on both sides and Legora and stripe for the other sides page" … "Merge it."
 - **Where it came from:** the page clean-up. The drawings: History https://claude.ai/artifact/FHpXAdDT4mKx6XRCkFHPhb ; the other side's page https://claude.ai/artifact/CcLc3PkhtM4bDYfzWXM8EW (choose "The Legora + Stripe way"). Photographed from the running app.
 - **Notes:** what the drawings hold, to be built in full (the picked design is the agreement):
