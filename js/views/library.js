@@ -3078,8 +3078,10 @@ function tplnTone(fid){ return typeof listStreamTone === 'function' && fid ? lis
 function tplnKindOf(c){ return c && c.kind ? c.kind : ''; }
 function tplnKindName(k){ return tplOvBucketLabel({ key:k, sec:'library' }); }
 function tplnShort(fid){ const n = tplnFolderName(fid); return (typeof tplShortStream === 'function' && fid ? tplShortStream(n) : '') || n; }
-function tplnShelfBadge(fid, name){ const t = tplnTone(fid); return `<span class="tpln6-badge" style="background:var(--st-${t}-bg);color:var(--st-${t}-fg)" title="${_tplEsc(tplnFolderName(fid))}">${_tplEsc(name || tplnShort(fid))}</span>`; }
-function tplnKindBadge(k){ return `<span class="tpln6-badge is-kind">${_tplEsc(tplnKindName(k))}</span>`; }
+/* A BADGE NEVER CLIPS MID-WORD (RE-POINTED 22 Nov 2026, batch 7 review): its words in their own run, ending in "…" when
+   its column is narrower than the word, the whole word in its title */
+function tplnShelfBadge(fid, name){ const t = tplnTone(fid); return `<span class="tpln6-badge" style="background:var(--st-${t}-bg);color:var(--st-${t}-fg)" title="${_tplEsc(tplnFolderName(fid))}"><span class="tpln6-bw">${_tplEsc(name || tplnShort(fid))}</span></span>`; }
+function tplnKindBadge(k){ const w = tplnKindName(k); return `<span class="tpln6-badge is-kind" title="${_tplEsc(w)}"><span class="tpln6-bw">${_tplEsc(w)}</span></span>`; }
 function tplnFilterLineHtml(rows, shelves){
   const v = tplnView(), allOn = v === 'list' && !_tplPf.ls;
   const chip = (attr, on, w, n, cls) => `<button type="button" class="apn-tab is-chip${on ? ' is-on' : ''}${cls || ''}" ${attr} aria-pressed="${on ? 'true' : 'false'}">${_tplEsc(w)}${n != null ? ` <span>${n}</span>` : ''}</button>`;
@@ -3136,7 +3138,7 @@ function tplnListHtml(rows){
   }).join('');
   const ready = _tplPf.lf ? `<button type="button" class="apn-chip is-set" data-tpln-ready-off>${_tplEsc(i18t('tpln5_f_ready'))} ×</button>` : '';
   return `<div class="tpln5 tpln6 is-list">${tplnFilterLineHtml(rows, shelves)}${ready ? `<div class="apn-bar tpln6-bar">${ready}</div>` : ''}
-    <table class="apn-table tpln6-table tpln-lrs"><colgroup><col><col style="width:118px"><col style="width:122px"><col style="width:130px"><col style="width:52px"></colgroup>
+    <table class="apn-table tpln6-table tpln-lrs"><colgroup><col><col style="width:118px"><col style="width:160px"><col style="width:130px"><col style="width:52px"></colgroup>
       <thead><tr><th>${_tplEsc(i18t('tpln6_c_paper'))}</th><th>${_tplEsc(i18t('tpln6_shelf'))}</th><th>${_tplEsc(i18t('tpln6_kind'))}</th><th>${_tplEsc(i18t('tpln6_c_drafted'))}</th><th class="tpln6-n">${_tplEsc(i18t('tpln6_signed'))}</th></tr></thead>
       <tbody>${groups}<tr class="tpln-none"${groups ? ' hidden' : ''}><td colspan="5" class="apn-none">${_tplEsc(i18t('lib_nothing_matches'))}</td></tr></tbody></table></div>`;
 }
@@ -3236,7 +3238,7 @@ function tplnBookFive(rows, sh){
     title:sh ? sh.name : i18t('nav_tpl_std'),
     sub:sh ? i18tn('tpln5_papers', sh.rows.length, { n:sh.rows.length }) + ' · ' + i18tn('tpln6_ags_from_them', sh.uses, { n:sh.uses }) : i18tn('tpln5_p_title', f.n, { n:f.n, f:shelves.length }),
     actFirst:true,
-    act:sh ? { label:i18t('tpln6_open_shelf'), attr:`data-tpln-shelf="${_tplEsc(sh.fid)}"`, links:top && tplCanDraftFrom(top.c) ? [{ label:i18t('tpln6_draft_from', { name:top.c.name }), attr:`data-tpln-draft="${_tplEsc(tplPfKey(top.c))}"` }] : [] }
+    act:sh ? { label:i18t('tpln6_open_shelf'), attr:`data-tpln-shelf="${_tplEsc(sh.fid)}"`, links:top && tplCanDraftFrom(top.c) ? [{ label:i18t('tpln6_draft_this'), attr:`data-tpln-draft="${_tplEsc(tplPfKey(top.c))}" title="${_tplEsc(i18t('tpln6_draft_from', { name:top.c.name }))}"` }] : [] }
       : (top && top.last.cs.length && tplCanDraftFrom(top.c) ? { label:i18t('tpln6_draft_from', { name:top.c.name }), attr:`data-tpln-draft="${_tplEsc(tplPfKey(top.c))}"` } : null),
     groups:[{ key:'used', html:tplnSecHtml(i18t('tpln6_used_most'), tplnUsedMostHtml(rows)) },
       { key:'changed', html:tplnSecHtml(i18t('tpln5_f_changed'), changed ? `<button type="button" class="tpln6-say is-door" data-tpln-ids="changed">${_tplEsc(say)}</button>` : `<p class="tpln6-say">${_tplEsc(say)}</p>`) }] };
@@ -3305,6 +3307,21 @@ function tplnQuote(c){
     const t = document.createElement('div'); t.innerHTML = html;
     const p = [...t.querySelectorAll('p, li')].map(e => String(e.textContent || '').replace(/\s+/g, ' ').trim()).find(x => x.length > 24);
     q = p ? p.slice(0, 140) : '';
+  }
+  /* a paper the company brought in carries its own words (customTemplates): its first real line is quoted, as HaTi's own
+     are; with no words nothing is said (RE-POINTED 22 Nov 2026, batch 7 review) */
+  if (!q && c.kind === 'cp'){
+    let body = ''; try { const t = (typeof customTemplates === 'function' ? customTemplates() : []).find(x => String(x.id) === String(c.id)); body = t ? String(t.body || '') : ''; } catch (_){ body = ''; }
+    if (body){
+      let lines;
+      if (/<[a-z][\s\S]*>/i.test(body) && typeof document !== 'undefined'){ const t = document.createElement('div'); t.innerHTML = body; lines = [...t.querySelectorAll('p, li, div')].map(e => String(e.textContent || '')); }
+      else lines = body.split(/\n\s*\n|\n/);
+      /* the first real line: a title in capitals is the paper's name, not its opening words */
+      const p = lines.map(x => x.replace(/\s+/g, ' ').trim()).find(x => x.length > 24 && x !== x.toUpperCase());
+      q = p ? p.slice(0, 140) : '';
+    }
+    _tplPf.quotes[k] = { q, stamp };
+    return q;
   }
   if (!q && c.kind !== 'company'){ const d = String((c.sub || c.description || '')).trim(); q = d.slice(0, 140); }
   if (html || c.kind !== 'company') _tplPf.quotes[k] = { q, stamp };
@@ -3437,12 +3454,24 @@ function tplPfMarkPlace(sheet, sec){
 }
 /* the same reading as tplPfMarksPaint, of any sheet, painting nothing — the
    template's own page asks it for Jambo's lines (25 Oct 2026) */
+/* A POSITION THAT DOES NOT APPLY TO THIS KIND OF PAPER IS "n/a", NEVER "not found" (RE-POINTED 22 Nov 2026, batch 7
+   review; the playbook check's own 'na', pbStandardsFor): a paper no money passes under (isMonetary, the template's own
+   valueType) has no occasion for payment terms — not on the paper is then not a miss, and it is not counted against
+   "N of N met". Nothing else is guessed: every other position not found stays "not found". */
+function tplnCovNa(cov, card){
+  if (!cov || !cov.rows || !card || card.kind !== 'builtin' || typeof isMonetary !== 'function' || isMonetary({ template:card.id })) return cov;
+  const payCat = ((window.CLAUSE_KINDS || []).find(k => k.key === 'payment') || {}).category || '';
+  const isPay = x => x.rkey === 'paymentDays' || (payCat && x.category === payCat) || /\bpayment|\bbetalning/i.test(String(x.category || ''));
+  const rows = cov.rows.map(x => x.state === 'open' && isPay(x) ? Object.assign({}, x, { state:'na' }) : x);
+  const real = rows.filter(x => x.state !== 'na');
+  return Object.assign({}, cov, { rows, total:real.length, covered:real.filter(x => x.state !== 'open').length, met:real.filter(x => x.state === 'hit').length, na:rows.length - real.length });
+}
 function tplPfReadOf(card, sheet){
   if (!card) return null;
   if (!sheet || typeof tbCoverageOf !== 'function') return { key:tplPfKey(card), cov:null, st:tplPfStats(card), secs:[], marks:[], loose:[] };
   const secs = tplPfSheetSections(sheet);
   const list = secs.map((x, i) => ({ head:x.head, text:x.text, s:i }));
-  const cov = tbCoverageOf(list, tplPfBookKey(card));
+  const cov = tplnCovNa(tbCoverageOf(list, tplPfBookKey(card)), card);
   const st = tplPfStats(card);
   const r = tbMarksOf(list, cov, st.byCat);
   return { key:tplPfKey(card), cov, st, secs:secs.map(x => ({ no:x.no, head:x.head })), marks:r.marks, loose:r.loose };
@@ -3453,7 +3482,7 @@ function tplPfMarksPaint(card){
   sheet.querySelectorAll('.tpl-mks').forEach(el => el.remove());
   const secs = tplPfSheetSections(sheet);
   const list = secs.map((x, i) => ({ head:x.head, text:x.text, s:i }));
-  const cov = tbCoverageOf(list, tplPfBookKey(card));
+  const cov = tplnCovNa(tbCoverageOf(list, tplPfBookKey(card)), card);
   const st = tplPfStats(card);
   const r = tbMarksOf(list, cov, st.byCat);
   secs.forEach((x, i) => {
@@ -3567,13 +3596,14 @@ function tplnPanelFive(card, st, cs, signed, blanks, opts){
         .sort((a, b) => (a.at < 0 ? 1e6 : a.at) - (b.at < 0 ? 1e6 : b.at));
       const html = rows.map(x => { const sec = x.at >= 0 && R.secs ? R.secs[x.at] : null;
         const mk = x.at >= 0 && R.marks && R.marks[x.at] ? (R.marks[x.at] || []).find(m => m && m.category === x.category && m.kind === 'met') : null;
-        const where = sec ? (sec.no ? '§ ' + sec.no : sec.head) : i18t('tpln6_not_on_paper');
-        return `<div class="tpln6-pos${x.state === 'hit' ? '' : ' is-amber'}"><i aria-hidden="true"></i><span>${_tplEsc((mk && mk.label) || x.category)}</span><small>${_tplEsc(where)}</small></div>`; }).join('');
+        const where = sec ? (sec.no ? '§ ' + sec.no : sec.head) : x.state === 'na' ? i18t('tpln6_pos_na') : i18t('tpln6_not_on_paper');
+        return `<div class="tpln6-pos${x.state === 'hit' ? '' : x.state === 'na' ? ' is-na' : ' is-amber'}"${x.state === 'na' ? ` title="${_tplEsc(i18t('pb_na_line'))}"` : ''}><i aria-hidden="true"></i><span>${_tplEsc((mk && mk.label) || x.category)}</span><small>${_tplEsc(where)}</small></div>`; }).join('');
       groups.push({ key:'holds', html:tplnSecHtml(i18t('tpln6_pos_on'), `<div class="tpln6-poss">${html}</div>`, i18t('tpln6_pos_met', { met:cov.met, n:cov.total })) });
     }
     const latest = cs.slice().sort((a, b) => String(b.updatedAt || b.createdAt || '').localeCompare(String(a.updatedAt || a.createdAt || ''))).slice(0, 3);
     if (latest.length){
-      const badge = c => { const done = c.status === 'Signed' || c.status === 'Executed', w = typeof statusLabel === 'function' ? statusLabel(c.status) : c.status;
+      /* a signed agreement's badge says "Signed", as drawn, however the record names its state (RE-POINTED 22 Nov 2026) */
+      const badge = c => { const done = c.status === 'Signed' || c.status === 'Executed', w = done ? i18t('tpln6_badge_signed') : typeof statusLabel === 'function' ? statusLabel(c.status) : c.status;
         return done ? `<span class="tpln6-badge is-green">✓ ${_tplEsc(w)}</span>` : `<span class="tpln6-badge is-amber"><i aria-hidden="true"></i>${_tplEsc(w)}</span>`; };
       const html = latest.map(c => `<button type="button" class="tpln6-dr" data-tpln-ct="${_tplEsc(c.id)}"><span><b>${_tplEsc(c.name || c.counterparty || c.id)}</b>${c.counterparty ? ` <small>· ${_tplEsc(c.counterparty)}</small>` : ''}</span>${badge(c)}</button>`).join('')
         + (cs.length > latest.length ? `<button type="button" class="tpln6-all" data-tpln-made="${key}">${_tplEsc(i18tn('tpln6_all_n', cs.length, { n:cs.length }))} ›</button>` : '');

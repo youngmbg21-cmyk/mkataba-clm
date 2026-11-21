@@ -394,12 +394,12 @@ function tbCoverageOf(list, key) {
       || (r.key === 'paymentDays' && k.key === 'payment')
       || (r.key === 'liabilityMonths' && k.key === 'liability'));
     const hit = t ? find(t.category) : null;
-    if (!hit) { rows.push({ category: r.label, note: r.note || '', escalate: !!r.escalate, state: 'open', where: null, at: -1 }); return; }
+    if (!hit) { rows.push({ category: r.label, rkey: r.key, note: r.note || '', escalate: !!r.escalate, state: 'open', where: null, at: -1 }); return; }
     const m = (typeof window.pbRangeRead === 'function') ? pbRangeRead(r.key, hit.text) : null;
-    if (!m) { rows.push({ category: r.label, note: r.note || '', escalate: !!r.escalate, state: 'hit', where: hit.s, at: hit.at }); return; }
+    if (!m) { rows.push({ category: r.label, rkey: r.key, note: r.note || '', escalate: !!r.escalate, state: 'hit', where: hit.s, at: hit.at }); return; }
     const n = Number(m[1]);
     const ok = r.op === '<=' ? n <= r.value : n >= r.value;
-    rows.push({ category: r.label, note: r.note || '', escalate: !!r.escalate,
+    rows.push({ category: r.label, rkey: r.key, note: r.note || '', escalate: !!r.escalate,
                 state: ok ? 'hit' : 'dev', where: hit.s, at: hit.at, figure: n, want: r.value, op: r.op,
                 unit: r.key === 'paymentDays' ? 'days' : r.key === 'liabilityMonths' ? 'months' : '' });
   });

@@ -24,7 +24,17 @@ const TEMPLATE_PRIMARY = {
 function templateVars(tid){
   const t=TEMPLATES[tid]; if(!t) return [];
   return templateFields(t).map(f=>({ ...f,
-    def: f.key==='effDate' && !f.def ? new Date().toISOString().slice(0,10) : (f.def||'') }));
+    def: f.key==='effDate' && !f.def ? new Date().toISOString().slice(0,10)
+      : (f.key==='side' && f.maps==='category' && !f.def) ? wzPaperPaysWho(tid) : (f.def||'') }));
+}
+/* WHO PAYS WHOM, WHERE THE PAPER SAYS IT (RE-POINTED 22 Nov 2026, batch 7 review; the owner's pick: "the paper's own
+   answer as the chosen pill"): HaTi's own paper names who pays in its own payment duty (TEMPLATE_OBLIGATIONS: ours to
+   pay the supplier's invoices = we pay them; theirs = they pay us). A paper that names no payer chooses nothing — HaTi
+   still never guesses who pays. */
+function wzPaperPaysWho(tid){
+  const T=(typeof window!=='undefined'&&window.TEMPLATE_OBLIGATIONS)||null;
+  const pay=((T&&T[tid])||[]).find(o=>o&&o.key==='pay');
+  return !pay?'':pay.party==='ours'?'customer':pay.party==='theirs'?'supplier':'';
 }
 
 /* ---- role gating (E6-T4): which templates each role may self-serve ---- */
@@ -1497,7 +1507,6 @@ function openNewAgreement(o){
     (host||document).querySelectorAll('.na-kt-r').forEach(el=>{
       const src=el.querySelector(':scope > .na-src'); if(!src) return;
       const box=el.querySelector('input[id],select[id],textarea[id]');
-      const pw=el.classList.contains('pw-field');
       const k=box?naCarryKey(box.id):'', v=box?String(box.value||'').trim():'', drawn=box?String(box.getAttribute('data-na-drawn')||'').trim():'';
       /* needed to Create (the label's star) is owed and counted; owed later (data-need, the details) is said, not counted */
       const need=!!el.querySelector('span[style*="ruby"]'), later=!!(box&&box.hasAttribute('data-need'));
@@ -1506,7 +1515,8 @@ function openNewAgreement(o){
       if(f&&v&&v===String(f.val).trim()) html=naQuoteHtml(f.quote);
       else if(v&&v!==drawn) html=`<span class="na-src-m">${esc(i18t(box&&box.tagName==='SELECT'?'na_src_picked':'na_src_typed'))}</span>`;
       /* P-36, AS DRAWN: the paper's own is a grey badge; not said yet an amber badge with its dot */
-      else if(v||pw) html=`<span class="na-src-m na6-sb">${esc(i18t('na_src_paper'))}</span>`;
+      /* who pays whom is "the paper's own" only where the paper answered it (wzPaperPaysWho); unanswered it is not */
+      else if(v) html=`<span class="na-src-m na6-sb">${esc(i18t('na_src_paper'))}</span>`;
       else if(need||later){ html=`<span class="na-src-need"><i aria-hidden="true"></i>${esc(i18t('na_src_not_said'))}</span>`; owed=true; }
       else html=`<span class="na-src-m">${esc(i18t('na_src_later'))}</span>`;
       if(src.innerHTML!==html) src.innerHTML=html;
@@ -1871,16 +1881,17 @@ function naSheetFive(){
     title=st?(k==='cp'?st:i18t('na6_t_start',{ what:st.charAt(0).toLowerCase()+st.slice(1) })):i18t('na6_t_scratch');
     sub=k==='scratch'?i18t('na6_s_start_scratch'):((N.desc&&N.desc())||i18t('na6_s_scratch')); }
   const done=need.filter(x=>x.done).length, all=need.length, ready=done===all&&all>0;
-  const badge=`<span class="na6-badge is-${ready?'green':'amber'}">${E(ready?'\u2713 '+(N?i18t('na6_ready_go'):i18t('na6_ready')):i18t('na6_n_ready',{ n:done, m:all }))}</span>`;
+  /* THE SAME WORDS AND THE SAME TIMELINE ON EVERY TAB, From scratch too, as drawn (RE-POINTED 22 Nov 2026, batch 7 review):
+     "Ready to create", "Needed before Create", "After Create" with its three stops */
+  const badge=`<span class="na6-badge is-${ready?'green':'amber'}">${E(ready?'\u2713 '+i18t('na6_ready'):i18t('na6_n_ready',{ n:done, m:all }))}</span>`;
   const bar=`<div class="na6-seg" aria-hidden="true">${need.map(x=>`<i class="${x.done?'is-done':'is-need'}"></i>`).join('')}</div>`;
   const rows=need.map(x=>`<div class="na6-nr${x.done?' is-done':''}"><i aria-hidden="true"></i><span>${E(x.t)}</span><b title="${E(x.v||'')}">${E(x.done?x.v:(x.want||i18t('na6_still')))}</b></div>`).join('');
-  const groups=[{ key:'need', label:i18t(N?'na6_need_h_go':'na6_need_h'), html:`${bar}<div class="na6-need">${rows}</div>` }];
+  const groups=[{ key:'need', label:i18t('na6_need_h'), html:`${bar}<div class="na6-need">${rows}</div>` }];
   if(sentence) groups.push({ key:'words', label:i18t('na6_words_h'), html:`<p class="na6-said">\u201c${sentence}\u201d</p>${readN?`<p class="na6-readn">${E(i18tn('na6_read_n',readN,{ n:readN }))}</p>`:''}` });
   /* AFTER CREATE AS A TIMELINE (as drawn): the first stop lit amber, a thin line down to the next; the first stop's own
      words beside it in grey */
-  const tl=N?[[i18t('na6_tl_go'),i18t('na6_tl_go_s')],[i18t('na6_tl_build'),''],[i18t('na6_tl_publish'),'']]
-    :[[i18t('na6_tl_create'),i18t('na6_tl_create_s')],[i18t('na6_tl_lands'),''],[i18t('na6_tl_reads'),i18t('na6_tl_reads_s')]];
-  groups.push({ key:'after', label:i18t(N?'na6_after_go':'nao_p_after_h'), html:`<ol class="na6-tl">${tl.map(([t,s],i)=>`<li${i===0?' class="is-now"':''}><i aria-hidden="true"></i><span>${E(t)}${s?` <small>\u00b7 ${E(s)}</small>`:''}</span></li>`).join('')}</ol>` });
+  const tl=[[i18t('na6_tl_create'),i18t('na6_tl_create_s')],[i18t('na6_tl_lands'),''],[i18t('na6_tl_reads'),i18t('na6_tl_reads_s')]];
+  groups.push({ key:'after', label:i18t('nao_p_after_h'), html:`<ol class="na6-tl">${tl.map(([t,s],i)=>`<li${i===0?' class="is-now"':''}><i aria-hidden="true"></i><span>${E(t)}${s?` <small>\u00b7 ${E(s)}</small>`:''}</span></li>`).join('')}</ol>` });
   /* nothing at the foot but Jambo's own box (as drawn: no button, no small print) */
   return { before:`<div class="na6-pb">${badge}</div>`, title, sub, groups };
 }
