@@ -548,8 +548,10 @@ const check = (name, ok, detail) => {
        should be shaded so it is easier to know there is a filter"): the chip in force is no longer
        white with the --chip-edge hairline; it is FILLED with the grey pill ground (--surface-2) and
        its edge is the same grey, so it reads as shaded beside the resting "+ Filter". */
-    check('12f and the chip is shaded: filled with the grey pill ground, its edge the same grey (not the white box\'s hairline)',
-      !!act && act.bg === pillBg && act.bc === pillBg && act.bc !== chipEdge,
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn; the owner's word: "white with a solid outline" on Contracts only — f1109's
+       shading stands on every other list): the chip in force is white with a solid line, not the grey pill ground */
+    check('12f and the chip in force is white with a solid line (Contracts, as drawn)',
+      !!act && act.bg === 'rgb(255, 255, 255)' && act.bc !== 'rgba(0, 0, 0, 0)' && act.bc !== act.bg,
       act && `bg ${act.bg} · edge ${act.bc} · pill ${pillBg} · old hairline ${chipEdge} (--rule-strong ${ruleStrong})`);
     const night = await page.evaluate(() => ({ dark: document.documentElement.classList.contains('dark'),
       fns: ['setTheme', 'setDark', 'toggleTheme', 'toggleDark'].filter(n => typeof window[n] === 'function') }));
@@ -568,7 +570,8 @@ const check = (name, ok, detail) => {
       const add = document.querySelector('[data-lh-seat="contracts"] select[data-lh-add]');
       const groups = add ? [...add.querySelectorAll('optgroup')].map(g => g.label) : [];
       /* three chosen: Stage, Stream and Category's first choices */
-      for (const k of ['Stage', 'Stream', 'Category']){
+      /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the stream filter is called Folder on Contracts */
+      for (const k of ['Stage', 'Folder', 'Category']){
         const sel = document.querySelector('[data-lh-seat="contracts"] select[data-lh-add]');
         const o = sel && sel.querySelector(`optgroup[label="${k}"] option`); if (!o) continue;
         sel.value = o.value; sel.dispatchEvent(new Event('change', { bubbles: true }));
@@ -584,7 +587,7 @@ const check = (name, ok, detail) => {
       return { groups, chips };
     });
     check('13a every filter is offered under + Filter, the stages among them, and no stage tab row',
-      ['Stage', 'Stream', 'Category'].every(k => six.groups.includes(k)) && (await page.evaluate(() => !document.querySelector('[data-reg-home] [data-reg-stage]'))),
+      ['Stage', 'Folder', 'Category'].every(k => six.groups.includes(k)) && (await page.evaluate(() => !document.querySelector('[data-reg-home] [data-reg-stage]'))),
       six.groups.join(' · '));
     check('13a2 and the search box is not among them any more',
       !(await page.evaluate(() => !!document.getElementById('reg-search'))), 'not drawn');

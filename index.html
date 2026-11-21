@@ -23483,8 +23483,6 @@
      one calm table (sentence-case heads, soft 6px badges, the paper's words under the agreement, Value in the row's type);
      the landing's summary (sans figures, sentence-case section heads, the bar and the month dots on a line); the Stripe
      wall's flat cards; and the panel with NO CARDS AND NO MONEY (.ctls), its head row and trail not drawn */
-  html.lg-new #ct-place .ct-page .ct-name.is-stack .ct-h{font-size:30px;line-height:1.15}
-  html.lg-new #ct-place .ctf-page .ctf-h{font-size:30px;line-height:1.15}
   html.lg-new #ct-place .ct-page .ct-head .ct-seg button[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface);font-weight:var(--w-label)}
   html.lg-new #ig-page #ct-place .ct-page .ct-head.lh{gap:10px 8px}
   html.lg-new #ig-page #ct-place .ct-page .ct-head .lh-ask{flex:1 0 100%;order:1;height:36px;gap:8px}
@@ -23498,7 +23496,7 @@
   html.lg-new #ig-page #ct-place .ct-page .ct-head .reg-vtab[data-reg-view="needs"]::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--st-amber-dot)}
   html.lg-new #ig-page #ct-place .ct-page .ct-head .lh-chip{order:3;padding-right:6px}
   html.lg-new #ig-page #ct-place .ct-page .ct-head .lh-chip label{display:inline-flex;align-items:center;gap:4px;padding:0;font:inherit;color:inherit}
-  html.lg-new #ig-page #ct-place .ct-page .ct-head .lh-chip b{font-weight:var(--w-label)}
+  html.lg-new #ig-page #ct-place .ct-page .ct-head .lh-chip b{font-weight:var(--w-strong)}
   html.lg-new #ig-page #ct-place .ct-page .ct-head .lh-chip .lh-x{border:0;background:transparent;padding:0 2px;color:var(--color-quiet)}
   html.lg-new #ig-page #ct-place .ct-page .ct-head .ctls-all{order:2}
   html.lg-new #ig-page #ct-place .ct-page .ct-head .ctls-set{order:3}
@@ -23506,7 +23504,7 @@
   html.lg-new #ct-place .ctf-page .apn-tab.is-chip.is-on{border-style:solid;background:transparent;color:var(--color-text)}
   html.lg-new #ct-place .ctf-page .ctf-ask svg{color:var(--accent-ink)}
   /* as drawn: the landing is the List's way in, so List stands chosen (ink) beside Wall */
-  html.lg-new #ct-place .ctf-page .ctf-pill[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new #ct-place .ctf-page .ctf-pill.is-lead{background:var(--color-text);color:var(--color-surface)}
   html.lg-new #ct-place .reg-table.is-home thead th{text-transform:none;letter-spacing:0;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-400)}
   html.lg-new #ct-place .ct-page .reg-table.is-home tbody td{vertical-align:middle}
   html.lg-new #ct-place :is(.reg-table,.ctf-ftable,.ct-wall) .reg-badge,html.lg-new .ctls .reg-badge{height:auto;padding:1px 7px;border-radius:6px;font-size:var(--t-label);line-height:1.6;gap:5px}
@@ -23514,8 +23512,8 @@
   html.lg-new #ct-place .reg-table .reg-need.is-them{color:var(--st-amber-fg)}
   html.lg-new #ct-place .reg-table .reg-val{font-family:var(--font-body);font-variant-numeric:tabular-nums;font-size:var(--t-body)}
   html.lg-new #ct-place .reg-table .reg-val.is-none{color:var(--color-neutral-400)}
-  html.lg-new #ct-place .reg-table .reg-ends{font-size:var(--t-label)}
   html.lg-new #ct-place .ctls-amb,html.lg-new .ctls .ctls-amb{color:var(--st-amber-fg)}
+  html.lg-new #ct-place .reg-ends :is(.ctls-amb,.ctls-g) .reg-day{color:inherit}
   html.lg-new #ct-place .ctls-g,html.lg-new .ctls .ctls-g{color:var(--color-neutral-400)}
   html.lg-new #ct-place .ctls-q{display:block;max-width:100%;margin-top:2px;font-family:var(--font-doc);font-size:13px;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new #ct-place .ctls-q i{font-style:normal}
@@ -23559,6 +23557,13 @@
   html.lg-new #ig-dock:has(.ctls) > :is(.igd-head,.pd-trail){display:none}
   html.lg-new #ig-dock:has(.ctls) .ca-back{display:none}
   html.lg-new .ctls{display:flex;flex-direction:column;gap:14px;padding:18px 0 8px;font-size:13px;color:var(--color-text)}
+  html.lg-new .jov5[data-jov-slot="ctls"]{gap:14px;min-height:0}
+  html.lg-new .jov5[data-jov-slot="ctls"] > .ctls-bd{margin-bottom:-6px}
+  html.lg-new .jov5[data-jov-slot="ctls"] .jov5-intro{gap:6px;padding-bottom:14px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .jov5[data-jov-slot="ctls"] .jov5-title{font-family:var(--font-body);font-size:17px;line-height:1.3;font-weight:var(--w-label);letter-spacing:0}
+  html.lg-new .jov5[data-jov-slot="ctls"] .jov5-sub{margin:0;font-size:12.5px;line-height:1.45;color:var(--color-neutral-400)}
+  html.lg-new .jov5[data-jov-slot="ctls"] .jov5-sub .ctls-acts{display:flex;margin-top:10px;color:var(--color-text)}
+  html.lg-new .jov5[data-jov-slot="ctls"] > .jov5-sec{gap:14px}
   html.lg-new .ctls .ctls-sec{display:flex;flex-direction:column;gap:8px;padding-bottom:14px;border-bottom:1px solid var(--color-divider)}
   html.lg-new .ctls .ctls-sec.is-last{border-bottom:0;padding-bottom:0}
   html.lg-new .ctls h4{margin:0;font-size:13.5px;font-weight:var(--w-strong);color:var(--color-text)}

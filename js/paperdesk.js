@@ -7056,9 +7056,7 @@ function pdJamboTopHtml(){
   /* P-31 AS DRAWN (21 Nov 2026): beside every list of the place — All, Needs you, a folder, Ended & archived, the Wall
      with nothing chosen — ONE panel of the rows on screen (regLsListPanelHtml); Ask a column's own panel stands while
      a question is open (askColPanelHtml). Reverses round 6's folder reading (regFolderPanelHtml) on the new look. */
-  if (!c && typeof regLsListUp === 'function' && regLsListUp() && typeof regLsListPanelHtml === 'function'){
-    const ac0 = (typeof askColPanelHtml === 'function') ? askColPanelHtml() : '';
-    if (!ac0) return regLsListPanelHtml(); }
+  if (!c && typeof regLsListUp === 'function' && regLsListUp() && typeof regLsListPanelHtml === 'function') return regLsListPanelHtml();
   /* a folder's list (round 6, as drawn): the folder's own reading, until a cell is chosen or a question asked */
   if (!c && typeof regFolderPanelOn === 'function' && regFolderPanelOn() && typeof regFolderPanelHtml === 'function') return regFolderPanelHtml();
   /* ASK A COLUMN (owner picked "In Jambo's panel", 20 Oct 2026): beside the
@@ -7450,7 +7448,8 @@ function pd2ChosenLsHtml(c){
     spine = `<div class="ctls-spine" role="list">${D.stages.map((s, i) => { const k = gone || i < at ? 'ok' : i === at ? (calm && on === 'live' ? 'now is-calm' : 'now') : '';
       return `<div role="listitem"${k.startsWith('now') ? ' aria-current="step"' : ''}><i class="${k}"></i>${k.startsWith('now') ? `<b>${E(_pdT(DOSSIER_SP_WORD[s.k]))}</b>` : E(_pdT(DOSSIER_SP_WORD[s.k]))}</div>`; }).join('')}</div>`; }
   let Q = { sec: '', quote: '' }; try { Q = (end && typeof regSayEndQuote === 'function') ? (regSayEndQuote(c, end) || Q) : Q; } catch (_){ Q = { sec: '', quote: '' }; }
-  const read = Q.quote ? sec(_pdT('ctls_h_read'), `<div class="ctls-quote">“${E(Q.quote)}”</div><div class="ctls-sub">${[Q.sec, endW ? _pdT('ctls_ends_s', { d: endW }) : ''].filter(Boolean).map(E).join(' · ')}</div>`) : '';
+  const readBody = Q.quote ? `<div class="ctls-quote">“${E(Q.quote)}”</div><div class="ctls-sub">${[Q.sec, endW ? _pdT('ctls_ends_s', { d: endW }) : ''].filter(Boolean).map(E).join(' · ')}</div>` : '';
+  const read = readBody ? sec(_pdT('ctls_h_read'), readBody) : '';
   /* the timeline: what the record says happened, what waits now, what comes next */
   const tl = [];
   const up = c.upload || {}, at0 = up.uploadedAt || c.createdAt || c._raisedAt || '';
@@ -7462,7 +7461,11 @@ function pd2ChosenLsHtml(c){
   const st = regLsStandOf(c);
   if (st === 'review') tl.push({ t: _pdT('ctls_tl_sign'), w: _pdT('ctls_tl_next'), tone: 'is-next' });
   else if (st === 'signed' && endW) tl.push({ t: _pdT('ctls_tl_end'), w: endW, tone: 'is-next' });
-  const tlHtml = tl.length ? sec(_pdT('ctls_h_tl'), `<ul class="ctls-tl">${tl.map(x => `<li><i class="${x.tone}"></i><span${x.tone === 'is-next' ? ' class="ctls-g"' : ''}>${E(x.t)}${x.w ? ` <small>· ${E(x.w)}</small>` : ''}</span></li>`).join('')}</ul>`, true) : '';
+  const tlBody = tl.length ? `<ul class="ctls-tl">${tl.map(x => `<li><i class="${x.tone}"></i><span${x.tone === 'is-next' ? ' class="ctls-g"' : ''}>${E(x.t)}${x.w ? ` <small>· ${E(x.w)}</small>` : ''}</span></li>`).join('')}</ul>` : '';
+  const tlHtml = tlBody ? sec(_pdT('ctls_h_tl'), tlBody, true) : '';
+  /* drawn by the one Overview builder (regLsFrame → jamboOverviewHtml), as every panel beside the place */
+  if (typeof regLsFrame === 'function') return regLsFrame('pd-chosen ctls-chosen', `id="pd-chosen" data-pd-chosen-for="${id}"`, { badge: regLsBadgeHtml(c), head: c.name || ref, subHtml: line,
+    acts: acts.replace(/^<div class="ctls-acts">/, '').replace(/<\/div>$/, ''), secs: [[_pdT('ctls_h_stands'), spine], [_pdT('ctls_h_read'), readBody], [_pdT('ctls_h_tl'), tlBody]] });
   return `<div id="pd-chosen" class="pd-chosen ctls ctls-chosen" data-pd-chosen-for="${id}">${top}${spine ? sec(_pdT('ctls_h_stands'), spine) : ''}${read}${tlHtml}</div>`;
 }
 function pdChosenHtml(c){
