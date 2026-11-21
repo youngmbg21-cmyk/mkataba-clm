@@ -22771,3 +22771,9 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - 21 Nov 2026: the "Ask a column" browser check (test/chromium/ask-a-column-verify.js) RETIRED at the owner's word: it pressed the Contracts list's "Ask a column" button the owner removed 15 Nov (Discover replaced it), and passed only when it caught the page before sign-in finished.
 - Noticed, not fixed: the old Reads page's "Ask again" / "Ask a new question" / "Read the next" (readsAgain, readsAskNew, readsNext) still call askColOpen, whose form paints into a panel the new-look Contracts page does not draw — a press there shows nothing.
 - 21 Nov 2026 (batch 2 redo, P-39): the Board's Needs you lost its Hide (as drawn) — a fold kept from before would have left the rows hidden with no Show; the new look now never honours that fold. Removing the Hide is a change to a working control (CLAUDE.md "it cuts both ways"): said to the owner.
+
+## 21 Nov 2026 — Approvals made to the drawing (P-30, the Legora + Stripe way)
+- Approvals lost its line under the list ("N for you"): the drawing has none and the Mine chip already counts it. Removing it is a change ("it cuts both ways"): said to the owner.
+- Approvals' chosen-row panel lost its "Dossier" second tab and its "ask <name>" link (the drawing's links are open the paper · history · approval rules). Said to the owner.
+- Noticed, not fixed: a RULE step waiting on a colleague has no way to remind them by hand (only a named person's approval has Remind, via sign-approval-notify); the drawing's "Remind Joseph" shows only for a named person's approval. Asked of the owner.
+- Noticed, not fixed: js/views/approvalsview.js apnLeadHtml reads `q=apnQuote(c)` and never uses it (lint warning, before this change).

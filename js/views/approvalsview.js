@@ -94,6 +94,7 @@ function apApprovalRows(){
     return {
       c:x.c, mine:!!x.mine, own:!!x.own, st:x.st,
       idle:Number.isFinite(asked)?Math.max(0,Math.floor((Date.now()-asked)/86400000)):(x.idle||0),
+      askedAt:Number.isFinite(asked)?new Date(asked).toISOString():'',
       rule:req?(typeof saStepName==='function'?saStepName(sa.need):apRuleText(x.st)):apRuleText(x.st),
       ruleSub:req?i18t('sa_pg_rule_sub'):'',
       who:(ask&&ask.by&&ask.by.name)||(req?((req.askedBy&&req.askedBy.name)||''):owner),
@@ -820,8 +821,10 @@ function apInsPaint(rows){
       order:nl?['lead']:['lead','reads'],
       /* BEFORE YOU DECIDE, AS DRAWN (round 5): no head of facts (the lead names it), its tab and the Dossier's beside it,
          the row's own three links above the box (open the clause · history · ask the asker), the box about this contract */
-      noHead:nl, noNeeds:nl, jlTabWord:nl?i18t('apn_p_tab'):'', jlTab2:nl?{ label:i18t('pd_tab_dossier'), run:()=>roomHomeLand(r.c.id) }:null,
-      jlLinks:nl?apnLinksHtml(r):'', jlPh:nl?i18t('int_ask_contract',{ ref:(typeof contractRef==='function'?contractRef(r.c):r.c.id) }):i18t('jl_ph_list'),
+      /* AS DRAWN (P-30): no second tab (the links' "open the paper" is the way onto the paper), the drawn links
+         (open the paper · history · approval rules) and the box's own words */
+      noHead:nl, noNeeds:nl, jlTabWord:nl?i18t('apn_p_tab'):'', jlTab2:null,
+      jlLinks:nl?apnLinksHtml(r):'', jlPh:i18t('jl_ph_list'),
       empty:i18t('ap_wl_none'),
       jlWord:i18t(tab==='signatures'?'jl_w_signature':'jl_w_approval'),
       jlHome:i18t('nav_approvals'),
@@ -842,46 +845,98 @@ function apInsPaint(rows){
 function apnRemindReq(c){
   try{ const rows=typeof signApprovalRows==='function'?signApprovalRows(c):[]; const x=rows.find(y=>y&&y.status==='pending'&&y.req); return x?x.req:null; }catch(_){ return null; }
 }
+/* a day said short, as drawn ("8 Jul"; the year only when it is not this one; "today" for today) */
+function apnShortDay(iso){
+  const t=Date.parse(String(iso||'')); if(!isFinite(t)) return '';
+  const d=new Date(t), now=new Date();
+  if(d.toDateString()===now.toDateString()) return i18t('home_today');
+  const loc=(typeof langLocale==='function')?langLocale():'en-GB';
+  try{ return d.toLocaleDateString(loc, Object.assign({ day:'numeric', month:'short' }, d.getFullYear()!==now.getFullYear()?{ year:'numeric' }:{})); }catch(_){ return String(iso).slice(0,10); }
+}
+/* when it was asked: the ask's own day, else the days it has waited counted back */
+function apnAskedDay(r){
+  if(r&&r.askedAt) return apnShortDay(r.askedAt);
+  if(r&&r.idle!=null) return apnShortDay(new Date(Date.now()-Number(r.idle)*864e5).toISOString());
+  return '';
+}
+/* when it was decided: "just now" inside the hour, else the day */
+function apnDecidedDay(r){
+  const iso=r.type==='receipt'?r.c.signedAt:(r.done&&(r.done.at||r.done.when))||'';
+  const t=Date.parse(String(iso||'')); if(!isFinite(t)) return '';
+  return Date.now()-t<36e5?i18t('apn_just_now'):apnShortDay(iso);
+}
+/* the reason the reader gave with their yes, read off the one ask record (c.asks: the latest yes) */
+function apnYesWhy(c){
+  const L=(c&&Array.isArray(c.asks)?c.asks:[]).filter(a=>a&&a.state==='yes'&&a.answeredAt).sort((a,b)=>String(b.answeredAt).localeCompare(String(a.answeredAt)));
+  return L.length&&L[0].why?String(L[0].why):'';
+}
+/* where the approval rests: the departure the quote is from; else how many depart; else every position met; else unchecked
+   ("0 off our standard" is never good news before the paper is checked — P-30's check) */
+function apnRestsOf(c, q){
+  const deps=apnDepartures(c), verd=(c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:[];
+  if(q&&q.why) return q.why;
+  if(deps.length) return i18tn('apn5_deps',deps.length,{ n:deps.length });
+  if(verd.length) return i18t('apn5_all_met');
+  return i18t('apn5_unchecked');
+}
+/* the panel's three steps, larger, with their words under them: "Amina asked · You decide · Signing" */
+function apnStepsBigHtml(r){
+  const who=apnApproverOf(r), me=(typeof currentUser==='function'&&currentUser())||{};
+  const you=!!(me.name&&String(who).trim()===String(me.name).trim());
+  const first=String(who||'').split(/\s+/)[0], asker=String(r.who||'').split(/\s+/)[0];
+  const mid=r.done?(you||!first?i18t('apn_step_you_approved'):i18t('apn_tl_approved',{ who:first }))
+    :(you?i18t('apn_step_you_decide'):first?i18t('apn_step_decides',{ who:first }):i18t('apn_step_approver'));
+  const W=[asker?i18t('apn_tl_asked_by',{ who:asker }):i18t('apn_step_asked'), mid, i18t('apn_step_sign')];
+  return apnStepsHtml(r, true, W);
+}
+/* THE CHOSEN APPROVAL'S PANEL, AS DRAWN (P-30, the Legora + Stripe way; rebuilt 21 Nov 2026 to the drawing): no cards,
+   no money — the status badge; the name; the other side · reference · rule “…”; the acts on one line (Approve black +
+   Decline on Mine; Remind <name> on Waiting on others; Undo + Before you sign on Done); Steps drawn larger with their
+   words; what you are approving (what you approved, on Done) in the paper's words, its § and where it rests; a timeline
+   with a dot a step. Sections split by one hairline; Jambo's box and its links stay at the foot. Nothing is spent. */
 function apnLeadFiveHtml(r, rule){
   const c=r.c, id=esc(c.id), st=apnStatusOf(r);
-  const tone={ amber:'amber', ruby:'red', steel:'steel', green:'green' }[st.tone]||'amber';
-  const deps=apnDepartures(c), verd=(c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:[];
-  const clause={ attr:`data-apn-go="clause" data-id="${id}"` };
-  const q=apnQuote(c);
-  const what=[];
-  if(q) what.push(Object.assign({ quote:true, t:'“'+q.quote+'”', s:[q.sec, q.why].filter(Boolean).join(' · '), wrap:true }, clause));
-  deps.filter(v=>!q||String(v.quote||'')!==String(q.quote||'')).slice(0,2).forEach(v=>{ let sec=''; try{ const qq=v.quote&&typeof pd2QuoteOf==='function'?pd2QuoteOf(c,[String(v.quote)]):null; sec=qq?qq.sec:''; }catch(_){ sec=''; }
-    what.push(Object.assign({ mark:'file', tone:'amber', t:String(v.category||i18t('apn_p_std')), s:[sec, String(v.position||'')].filter(Boolean).join(' · '), wrap:true }, clause)); });
-  /* "0 off our standard" is never good news before the paper is checked (P-30's check): unchecked is said as unchecked */
-  if(!verd.length) what.push({ mark:'shield', t:i18t('apn5_unchecked'), s:i18t('apn5_unchecked_s'), wrap:true });
-  else if(!deps.length) what.push({ mark:'mkTick', tone:'green', t:i18t('apn5_all_met'), s:c.playbook&&c.playbook.at?i18t('apn_p_checked',{ d:(typeof regDotDate==='function'?regDotDate(String(c.playbook.at).slice(0,10)):String(c.playbook.at).slice(0,10)) }):'' });
-  let since=''; try{ since=typeof apSinceLook==='function'?apSinceLook(r):''; }catch(_){ since=''; }
-  if(since==='value'||since==='wording'||since==='terms') what.unshift(Object.assign({ mark:'file', tone:'amber', t:i18t(AP_SINCE_WORDS[since]), s:i18t('jl_ap_since'), wrap:true }, clause));
-  /* the timeline: who asked and when, where it waits and for how long, signing next */
-  const asked=r.idle!=null?(Number(r.idle)===0?i18t('home_today'):i18tn('jl_days_ago',Number(r.idle),{ n:Number(r.idle) })):'';
-  const who=apnApproverOf(r), first=String(who||'').split(/\s+/)[0];
-  const tl=[];
-  if(r.who||asked) tl.push({ mark:'mkTick', tone:'green', t:r.who?i18t('apn_tl_asked_by',{ who:r.who }):i18t('apn_tl_asked'), s:asked });
-  if(r.done) tl.push({ mark:'mkTick', tone:'green', t:i18t('apn_tl_approved',{ who:first||i18t('ap_wl_you') }), s:apnDayOf(r) });
-  else tl.push({ mark:'clock', tone:apLate(r)?'red':'amber', t:first?i18t('apn_tl_waits_on',{ who:apnApproverHtmlWord(r) }):i18t('apn_st_waits'), s:r.idle!=null?apWaitingText(r.idle):'' });
-  tl.push({ mark:'file', t:i18t('apn_tl_sign_next'), s:i18t('apn_tl_sign_next_s') });
+  const ref=typeof contractRef==='function'?contractRef(c):c.id;
+  const q=apnQuoteShown(c);
+  const rests=apnRestsOf(c, q);
   /* the acts by tab: only who may decide is offered Approve (P-30's check: Waiting on others offered it) */
-  let act=null;
+  let acts='';
+  const btn=(cls,label,attr,title)=>`<button type="button" class="ui-btn apn5-b${cls}"${title?` title="${esc(title)}"`:''} ${attr}>${esc(label)}</button>`;
   if(r.done){
-    act={ label:i18t('ap_pg_open_signing'), attr:`data-apn-act="gate" data-id="${id}"`, links:apMayUndo(r)?[{ label:i18t('ap_pg_undo'), title:i18t('ap_pg_undo_title'), attr:`data-apn-act="undo" data-id="${id}"` }]:[] };
+    acts=(apMayUndo(r)?btn('',i18t('ap_pg_undo'),`data-apn-act="undo" data-id="${id}"`,i18t('ap_pg_undo_title')):'')
+      +btn(' is-k',i18t('pd_face_w_signing'),`data-apn-act="gate" data-id="${id}"`,i18t('ap_pg_open_signing'));
   } else if(apMayDecide(r)){
     const fw=apForWho(r), f1=fw?String(fw.name).split(/\s+/)[0]:'';
-    act={ label:fw?i18t('jl_ap_approve_for',{ who:f1 }):i18t('ap_pg_approve'), attr:`data-apn-act="approve" data-id="${id}"`, links:[{ label:i18t('apn_decline'), title:i18t('ap_pg_refuse_title'), attr:`data-apn-act="refuse" data-id="${id}"` }] };
+    acts=btn(' is-k',fw?i18t('jl_ap_approve_for',{ who:f1 }):i18t('ap_pg_approve'),`data-apn-act="approve" data-id="${id}"`)
+      +btn('',i18t('apn_decline'),`data-apn-act="refuse" data-id="${id}"`,i18t('ap_pg_refuse_title'));
   } else {
     const req=apnRemindReq(c);
-    if(req) act={ label:i18t('apn_remind',{ who:String(req.approverName||'').split(/\s+/)[0]||i18t('sa_admins') }), attr:`data-apn-act="remind" data-id="${id}" data-req="${esc(req.id)}"` };
+    if(req) acts=btn('',i18t('apn_remind',{ who:String(req.approverName||'').split(/\s+/)[0]||i18t('sa_admins') }),`data-apn-act="remind" data-id="${id}" data-req="${esc(req.id)}"`);
   }
-  const o={ eyebrow:[c.counterparty||'', (typeof contractRef==='function'?contractRef(c):c.id), rule||''].filter(Boolean).join(' · '),
-    title:c.name||'', tag:{ text:st.w, tone },
-    mid:apnStepsHtml(r, true), midLabel:i18t('apn_col_steps'),
-    groups:[{ label:i18t(r.done?'apn5_what_done':'apn5_what'), rows:what }, { label:i18t('apn5_timeline'), rows:tl }],
-    act, actFirst:true, src:i18t('apn5_src') };
-  return `<div class="jl-words is-ov">${jamboOverviewHtml(o,'apn')}</div>`;
+  /* the timeline: who asked and when, where it waits and for how long (or the yes and its reason), signing next */
+  const who=apnApproverOf(r), me=(typeof currentUser==='function'&&currentUser())||{};
+  const you=!!(me.name&&String(who).trim()===String(me.name).trim());
+  const tl=[];
+  tl.push({ tone:'accent', t:r.who?i18t('apn_tl_asked_for',{ who:String(r.who).split(/\s+/)[0] }):i18t('apn_tl_asked_for_none'), s:apnAskedDay(r) });
+  /* SINCE IT WAS ASKED: a value, wording or terms that moved after the question was put is a step of its own (amber),
+     read from the question's own stamp (apSinceLook) — never lost from the panel */
+  if(!r.done){ let since=''; try{ since=typeof apSinceLook==='function'?apSinceLook(r):''; }catch(_){ since=''; }
+    if(since==='value'||since==='wording'||since==='terms') tl.push({ tone:'amber', t:i18t(AP_SINCE_WORDS[since]), s:'' }); }
+  if(r.done){ const why=apnYesWhy(c);
+    tl.push({ tone:'green', t:(you||!who?(why?i18t('apn_tl_you_approved_q',{ q:why }):i18t('apn_step_you_approved')):(why?i18t('apn_tl_who_approved_q',{ who, q:why }):i18t('apn_tl_approved',{ who }))), s:apnDecidedDay(r) });
+    tl.push({ tone:'', t:i18t('apn_step_sign'), s:i18t('apn_tl_next') });
+  } else {
+    tl.push({ tone:apLate(r)?'ruby':st.tone, t:you||!who?i18t('apn_tl_waits_you'):i18t('apn_st_with',{ who }), s:r.idle!=null?apWaitingText(r.idle):'' });
+    tl.push({ tone:'', t:i18t('apn_step_sign'), s:i18t('apn_tl_after_yes') });
+  }
+  const sec=(h,b)=>`<section class="apn5-sec">${h?`<h4 class="apn5-h">${esc(h)}</h4>`:''}${b}</section>`;
+  const sub=[esc(c.counterparty||''), `<span class="apn5-ref">${esc(ref)}</span>`, rule?esc(i18t('apn_rule_q',{ rule })):''].filter(Boolean).join(' · ');
+  return `<div class="jl-words apn5" data-apn-panel="${id}">
+    ${sec('',`<div class="apn5-tag">${apnBadgeHtml(st)}</div><div class="apn5-t">${esc(c.name||'')}</div><div class="apn5-s">${sub}</div>${acts?`<div class="apn5-acts">${acts}</div>`:''}`)}
+    ${sec(i18t('apn_col_steps'), apnStepsBigHtml(r))}
+    ${sec(i18t(r.done?'apn5_what_done':'apn5_what'), `${q&&q.quote?`<button type="button" class="apn5-q" data-apn-go="clause" data-id="${id}">“${esc(q.quote)}”</button>`:''}<div class="apn5-qs">${esc([q&&q.sec, rests].filter(Boolean).join(' · '))}</div>`)}
+    ${sec(i18t('apn5_timeline'), `<ul class="apn5-tl">${tl.map(x=>`<li class="${x.tone?'is-'+esc(x.tone):'is-next'}"><i aria-hidden="true"></i><span>${esc(x.t)}${x.s?` <small>· ${esc(x.s)}</small>`:''}</span></li>`).join('')}</ul>`)}
+  </div>`;
 }
 /* the approver's word in a sentence: "you" where it is the reader */
 function apnApproverHtmlWord(r){
@@ -925,16 +980,16 @@ function apnLeadHtml(r, acts){
     <div class="apn-pj"><span class="apn-pdot" aria-hidden="true"></span><div><div class="apn-pcap">Jambo</div><p>${esc(i18t('apn_p_jambo',{ cp }))}</p></div></div>
     <div class="apn-pcap">${esc(i18t('apn_p_after_h'))}</div><p class="apn-pafter">${esc(i18t(r.who?'apn_p_after_who':'apn_p_after',{ who:String(r.who||'').split(/\s+/)[0] }))}</p></div>`;
 }
-/* the chosen approval's three links (as drawn): each an existing door — the paper at the quoted words, its history, a colleague's note */
+/* the chosen approval's three links, as drawn (P-30): each an existing door — the paper at the quoted words, its
+   history, the approval rules (an admin's Settings; anyone else hears them from Jambo, as the head's button does) */
 function apnLinksHtml(r){
-  const id=esc(r.c.id), first=String(r.who||'').split(/\s+/)[0];
-  const me=(typeof currentUser==='function'&&currentUser())||{};
-  const ask=first&&!(r.whoId&&String(r.whoId)===String(me.id))&&!(r.who&&r.who===me.name);
-  return `<button type="button" class="jb-way" data-apn-go="clause" data-id="${id}">${esc(i18t('apn_l_clause'))}</button>`
+  const id=esc(r.c.id);
+  return `<button type="button" class="jb-way" data-apn-go="clause" data-id="${id}">${esc(i18t('apn_l_paper'))}</button>`
     +`<button type="button" class="jb-way" data-apn-go="hist" data-id="${id}">${esc(i18t('apn_l_hist'))}</button>`
-    +(ask?`<button type="button" class="jb-way" data-apn-go="ask" data-id="${id}">${esc(i18t('apn_l_ask',{ who:first }))}</button>`:'');
+    +`<button type="button" class="jb-way" data-apn-go="rules" data-id="${id}">${esc(i18t('apn_l_rules'))}</button>`;
 }
 function apnGo(go, id){
+  if(go==='rules'){ if(typeof isAdmin==='function'&&isAdmin()&&typeof openSettingsAt==='function') openSettingsAt('platform','approvals'); else if(typeof apRulesSay==='function') apRulesSay(); return; }
   const c=typeof getContract==='function'?getContract(id):null; if(!c) return;
   if(go==='hist'){ if(typeof hbStripBring==='function') hbStripBring(id,'hist'); return; }
   if(go==='ask'){ const r=(apWorkRows().rows||[]).find(x=>x.c.id===id); const first=String((r&&r.who)||'').split(/\s+/)[0];
@@ -1236,6 +1291,20 @@ function apnQuote(c){
   const fig=Number(c&&c.value)||0; if(!fig) return null;
   try{ return pd2QuoteOf(c, [fig.toLocaleString('en-US'), String(fig)]); }catch(_){ return null; }
 }
+/* THE WORDS SHOWN, NEVER A SUM (P-30: no money anywhere on the page; the drawing quotes "The Client shall pay the
+   Contractor the fees set out in Schedule 1" with no figure): the paper's own words up to the first amount, ending in
+   "…"; words too few to say anything before the amount are not quoted (the § and where it rests still are). The
+   paper's words are never rewritten — only cut, as any quote is. The clause still opens at the whole sentence (apnGo). */
+const APN_SUM_RE=/(?:\b(?:KES|KSh|Ksh|USD|EUR|GBP|SEK|UGX|TZS|ZAR|kr)\b\.?\s?|[$€£]\s?)\d|\b\d{1,3}(?:[,\s]\d{3})+(?:\.\d+)?\b|\b\d[\d,.]*\s?(?:KES|KSh|USD|EUR|GBP|SEK|kronor|shillings?|dollars?|euros?)\b/i;
+const APN_QUOTE_MIN=24;
+function apnQuoteShown(c){
+  const q=apnQuote(c); if(!q) return null;
+  const t=String(q.quote||''); const m=APN_SUM_RE.exec(t);
+  if(!m) return q;
+  let cut=t.slice(0,m.index); for(let i=0;i<3;i++) cut=cut.replace(/[\s,;:(–—-]+$/,'').replace(/\s+(?:of|at|is|be|being|for|to|a|an|the|by|from|up)$/i,'');
+  if(cut.replace(/^…/,'').trim().length<APN_QUOTE_MIN) return Object.assign({},q,{ quote:'' });
+  return Object.assign({},q,{ quote:cut+'…' });
+}
 function apnPeekLinkHtml(key){
   return `<div class="apn-peek-l"><button type="button" class="ui-link apn-peek" data-apn-peek="${esc(key)}" title="${esc(i18t('apn_peek_t'))}">${esc(i18t('apn_peek'))}</button></div>`;
 }
@@ -1260,7 +1329,8 @@ function apnStatusOf(r){
   const w=apWaitsShort(r);
   return { tone:'steel', w:w?i18t('apn_st_with',{ who:w }):i18t('apn_st_waits') };
 }
-function apnBadgeHtml(st){ return `<span class="apn-st is-${esc(st.tone)}"><i></i>${esc(st.w)}</span>`; }
+/* the soft badge: a dot of its colour, and a tick where it is done (as drawn: "✓ Approved") */
+function apnBadgeHtml(st){ return `<span class="apn-st is-${esc(st.tone)}">${st.tone==='green'&&typeof icon==='function'?icon('mkTick','apn-st-ic',2.4):'<i></i>'}${esc(st.w)}</span>`; }
 /* who approves (or signs): the reader is "You" */
 function apnApproverOf(r){
   const me=(typeof currentUser==='function'&&currentUser())||{};
@@ -1277,19 +1347,20 @@ function apnApproverHtml(r){
   /* whose turn, in the list's own words ("You for Jonas", "Jonas signs · back …"), on the cell's hover */
   let turn=''; try{ turn=r.type==='approval'||r.type==='signature'?apTurnText(r):''; }catch(_){ turn=''; }
   const fw=r.type==='approval'&&r.mine&&!r.done?apForWho(r):null;
-  return `<span class="apn-who"${turn?` title="${esc(turn)}"`:''}>${apAvHtml(nm)}<span>${esc(fw?turn:say)}</span></span>`;
+  return `<span class="apn-who${say!==nm?' is-you':''}"${turn?` title="${esc(turn)}"`:''}>${apAvHtml(nm)}<span>${esc(fw?turn:say)}</span></span>`;
 }
 /* the three steps — asked, the approver, signing: done green, the one in play ringed in its status colour, grey to come */
 function apnStepsOf(r){
-  const st=apnStatusOf(r);
+  /* AS DRAWN: the step in play is ringed in its TAB's colour — amber yours, blue a colleague's — late or not (red is the badge's) */
+  const st0=apnStatusOf(r), st=st0.tone==='ruby'?{ tone:(r.mine||r._mine)?'amber':'steel' }:st0;
   if(r.type==='receipt') return ['done','done','done'];
   if(r.type==='signature') return ['done','done','on:'+st.tone];
   if(r.done) return ['done','done','next'];
   if(r.notAsked) return ['on:'+st.tone,'next','next'];
   return ['done','on:'+st.tone,'next'];
 }
-function apnStepsHtml(r, big){
-  const S=apnStepsOf(r), W=[i18t('apn_step_asked'), i18t('apn_step_approver'), i18t('apn_step_sign')];
+function apnStepsHtml(r, big, words){
+  const S=apnStepsOf(r), W=Array.isArray(words)&&words.length===3?words:[i18t('apn_step_asked'), i18t('apn_step_approver'), i18t('apn_step_sign')];
   const dot=(k,i)=>{ const on=k.indexOf('on:')===0; return `<i class="apn-sd${k==='done'?' is-done':on?' is-on is-'+esc(k.slice(3)):''}" title="${esc(W[i])}"></i>`; };
   if(!big) return `<span class="apn-steps" aria-label="${esc(W.join(' → '))}">${S.map((k,i)=>dot(k,i)+(i<2?`<b class="apn-sl${k==='done'?' is-done':''}"></b>`:'')).join('')}</span>`;
   return `<div class="apn-steps is-big">${S.map((k,i)=>`<div class="apn-sb">${dot(k,i)}<small>${esc(W[i])}</small></div>${i<2?`<b class="apn-sl${k==='done'?' is-done':''}"></b>`:''}`).join('')}</div>`;
@@ -1304,11 +1375,12 @@ function apnRowHtml(r){
   const c=r.c;
   const ref=window.refHtml?refHtml(c):esc(c.id);
   const st=apnStatusOf(r);
-  const q=r.type==='approval'?apnQuote(c):null;
+  const q=r.type==='approval'?apnQuoteShown(c):null;
   const sub=[esc(c.counterparty||''), ref].filter(Boolean).join(' · ');
-  const quote=q?`<div class="apn-ql"><i>“${esc(q.quote)}”</i>${q.sec?` <span>${esc(q.sec)}</span>`:''}</div>`:'';
+  const quote=q&&q.quote?`<div class="apn-ql"><i>“${esc(q.quote)}”</i>${q.sec?` <span>${esc(q.sec)}</span>`:''}</div>`:'';
   const rule=r.type==='approval'?esc(apWhyLines(r)[0]||'—'):r.type==='signature'?esc(i18t('apn_rule_sign')):'—';
-  const asked=_apnTab==='done'?(apnDayOf(r)||'—'):r.idle!=null?(apLate(r)?`<span class="late">${esc(apWaitingText(r.idle))}</span>`:esc(apWaitingText(r.idle))):'—';
+  /* AS DRAWN: the day it was asked ("8 Jul", "today"), the day decided on Done ("just now"); red is the badge's alone */
+  const asked=esc((_apnTab==='done'?apnDecidedDay(r):r.type==='approval'?apnAskedDay(r):r.idle!=null?apWaitingText(r.idle):'')||'—');
   return `<tr data-ap-row="${esc(c.id)}" data-ap-kind="${r.type}" class="${r.type==='receipt'?'is-done':''}" tabindex="-1">
     <td><div class="apn-name">${esc(c.name||'')}</div><div class="apn-sub">${sub}</div>${quote}</td>
     <td class="apn-stc">${apnBadgeHtml(st)}</td><td class="apn-apc">${apnApproverHtml(r)}</td><td class="apn-stp">${apnStepsHtml(r)}</td>
@@ -1379,7 +1451,7 @@ function apnPileRowHtml(r){
   const me=(typeof currentUser==='function'&&currentUser())||{};
   return `<tr data-ap-row="${esc(r.key)}" data-ap-kind="${r.type}" tabindex="-1">
     <td><div class="apn-name">${esc(name)}</div><div class="apn-sub">${sub}</div></td>
-    <td class="apn-stc">${apnBadgeHtml({ tone:'amber', w:i18t('apn_st_decide') })}</td><td class="apn-apc"><span class="apn-who">${apAvHtml(me.name||'')}<span>${esc(i18t('ap_wl_you'))}</span></span></td>
+    <td class="apn-stc">${apnBadgeHtml({ tone:'amber', w:i18t('apn_st_decide') })}</td><td class="apn-apc"><span class="apn-who is-you">${apAvHtml(me.name||'')}<span>${esc(i18t('ap_wl_you'))}</span></span></td>
     <td class="apn-stp"><span class="apn-none-c">\u2014</span></td><td class="apn-rule">${rule}</td><td class="apn-wait">${waited}</td><td class="apn-acts">${acts}</td></tr>`;
 }
 /* LAND ON A PILE ROW (the one door, 17 Nov 2026): the Standards page's "Decide in Approvals ›" and Jambo's "Open in
@@ -1608,15 +1680,21 @@ function apnRender(W, o){
     .filter(t=>t[2]||t[0]===_apnTab||t[0]==='mine');
   void nDecide; void nSign;
   const rules=[...new Set(all.filter(r=>r.type==='approval').map(r=>apWhyLines(r)[0]).filter(Boolean))];
-  const dotOf={ mine:'amber', others:'steel', done:'green' };
+  /* AS DRAWN: an amber dot on Mine alone (it is the tab that waits on you); "+ Rule" whenever a rule has rows */
+  const dotOf={ mine:'amber' };
   const ruleChip=_apnRule?`<button type="button" class="apn-chip is-set" data-apn-rule="">${esc(_apnRule)} <span aria-hidden="true">×</span></button>`
-    :rules.length>1?`<span class="apn-rule-w"><button type="button" class="apn-chip is-add" data-apn-rule-open aria-expanded="false">+ ${esc(i18t('apn_col_rule'))}</button><span class="apn-rule-menu" hidden>${rules.map(x=>`<button type="button" data-apn-rule="${esc(x)}">${esc(x)}</button>`).join('')}</span></span>`:'';
-  const head=`<label class="apn-ask">${typeof icon==='function'?icon('search','w-3.5 h-3.5'):''}<input id="apn-q" type="search" autocomplete="off" placeholder="${esc(i18t('apn_ask_ph'))}" value="${esc(_apnQ)}"></label>
-    <div class="apn-bar" data-lh-seat="approvals-nl">${tabs.map(t=>`<button type="button" class="apn-tab is-chip${_apnTab===t[0]?' is-on':''}" data-apn-tab="${t[0]}"><i class="apn-cd is-${dotOf[t[0]]}" aria-hidden="true"></i>${esc(t[1])} <span>${t[2]}</span></button>`).join('')}${ruleChip}</div>`;
+    :rules.length?`<span class="apn-rule-w"><button type="button" class="apn-chip is-add" data-apn-rule-open aria-expanded="false">+ ${esc(i18t('apn_col_rule'))}</button><span class="apn-rule-menu" hidden>${rules.map(x=>`<button type="button" data-apn-rule="${esc(x)}">${esc(x)}</button>`).join('')}</span></span>`:'';
+  /* THE ASK BOX, AS DRAWN: Jambo's spark and a question about the first that waits on you ("why does Cleaning Services
+     need my yes?"); the words narrow the rows as they are typed, and Enter on words no row holds asks Jambo beside it */
+  const firstMine=W.all.yours.find(r=>r.type==='approval'&&!r.done);
+  const askPh=firstMine&&firstMine.c&&firstMine.c.name?i18t('apn_ask_ph_q',{ name:firstMine.c.name }):i18t('apn_ask_ph');
+  const head=`<label class="apn-ask is-spark">${typeof icon==='function'?icon('sparkle','w-3.5 h-3.5'):''}<input id="apn-q" type="search" autocomplete="off" placeholder="${esc(askPh)}" aria-label="${esc(askPh)}" value="${esc(_apnQ)}"></label>
+    <div class="apn-bar" data-lh-seat="approvals-nl">${tabs.map(t=>`<button type="button" class="apn-tab is-chip${_apnTab===t[0]?' is-on':''}" data-apn-tab="${t[0]}">${dotOf[t[0]]?`<i class="apn-cd is-${dotOf[t[0]]}" aria-hidden="true"></i>`:''}${esc(t[1])} <span>${t[2]}</span></button>`).join('')}${ruleChip}</div>`;
   /* THE TABLE, P-30: seven columns, the same on every tab; "Asked" reads "Decided" on Done; Steps, then Approver, then Rule step aside
      first where the room is short (listCols' rank), the paper link last of all */
   const rowsA=ap.map(apnRowHtml), rowsS=sg.map(apnRowHtml);
-  const NDEFS=[{k:'name'},{k:'status',w:128},{k:'appr',w:120,rank:2},{k:'steps',w:76,rank:1},{k:'rule',w:126,rank:3},{k:'wait',w:84},{k:'acts',w:132}];
+  /* the widths as drawn: room for a colleague's whole name ("Joseph Mwangi"), Rule and Asked short and quiet */
+  const NDEFS=[{k:'name'},{k:'status',w:128},{k:'appr',w:144,rank:2},{k:'steps',w:80,rank:1},{k:'rule',w:104,rank:3},{k:'wait',w:72},{k:'acts',w:128}];
   const NFIT=typeof listCols==='function'?listCols('approvals',NDEFS,()=>apPaintList()):{ cols:NDEFS };
   const on=new Set(NFIT.cols.map(c=>c.k));
   const nw=k=>(NFIT.cols.find(c=>c.k===k)||NDEFS.find(c=>c.k===k));
@@ -1638,9 +1716,9 @@ function apnRender(W, o){
   const shown=pDep.concat(pStd, ap, sg);
   const colg=`<colgroup>${shownDefs.map(d=>{ const c=nw(d.k); return typeof listColTag==='function'?listColTag(Object.assign({ name:d.k==='name' },c),true):`<col${c.w?` style="width:${c.w}px"`:''}>`; }).join('')}</colgroup>`;
   const table=`<table class="ap-table ap-ins apn-table is-ls" data-list-seat="approvals">${colg}${th}${body}</table>`;
-  const nYours=W.all.yours.filter(r=>!r.done).length+nPiles;
-  /* the foot counts what is yours only under Mine (P-30's check: "1 for you" under Waiting on others and Done was a fault) */
-  const foot=_apnTab==='mine'?`<div class="apn-foot">${esc(i18tn('apn_for_you',nYours,{ n:nYours }))}</div>`:`<div class="apn-foot"></div>`;
+  /* NO LINE UNDER THE LIST (as drawn, P-30): the chips carry the counts; "1 for you" under Waiting on others and Done
+     was a fault, and under Mine it said the chip's number twice */
+  const foot='';
   /* ONE HEAD, P-30: the serif title and Approval rules on one line (the "2 to decide" facts go: the chips say it); the
      ask box under it; the chips with their counts and a dot of their colour, + Rule */
   const title=`<div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_approvals'))}</h2><span class="ctf-sp"></span><span id="page-head-acts" class="apn-acts"></span></div>`;
@@ -1669,7 +1747,6 @@ function apnRender(W, o){
     tbl.innerHTML=tblSrc; tbl._apnSrc=tblSrc;
     pills.forEach((b,i)=>{ b.classList.toggle('is-on',tabs[i][0]===_apnTab);
       const n=b.querySelector('span'); if(n) n.textContent=String(tabs[i][2]); });
-    const ft=document.querySelector('#ap-scroll .apn-foot'); if(ft) ft.outerHTML=foot;
   } else {
     document.getElementById('content').innerHTML=`
   <div class="view-enter sap-page ap-page is-ins apn-page cun-page" data-ins-page="approvals" data-ins="1">
@@ -1686,6 +1763,11 @@ function apnRender(W, o){
   const box=document.getElementById('apn-q');
   /* THE BOX IS NOT REDRAWN UNDER THE READER'S CARET, so nothing has to be put back after a letter */
   if(box) box.addEventListener('input',()=>{ _apnQ=box.value; apnRender(W,{ rows:true }); });
+  /* Enter on words no row holds is a question: Jambo answers it beside the list (the panel's own ask, jlAsk), the box emptied */
+  if(box) box.addEventListener('keydown',e=>{ if(e.key!=='Enter') return; const t=String(box.value||'').trim(); if(!t) return;
+    if(document.querySelector('#ap-scroll .apn-table tbody tr[data-ap-row]')) return;
+    e.preventDefault(); if(typeof jlAsk!=='function') return;
+    _apnQ=''; box.value=''; apnRender(W,{ rows:true }); jlAsk(t,{ typed:true }); });
 }
 if(typeof document!=='undefined'&&document.addEventListener&&!document._apnWired){
   document._apnWired=true;

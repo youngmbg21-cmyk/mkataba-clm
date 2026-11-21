@@ -226,13 +226,14 @@ let H;
     const apc = await P.page.evaluate(() => { const w = document.querySelector('[data-ap-row="MK-A2"] td.apn-apc .apn-who');
       return w ? { text: w.textContent.replace(/\s+/g, ' ').trim(), title: w.getAttribute('title') || '' } : null; });
     await P.page.click('[data-ap-row="MK-A2"] td').catch(() => {});
-    await P.page.waitForFunction(() => /asked/i.test((document.querySelector('#ins-panel [data-jov-slot="apn"]') || {}).innerText || ''), null, { timeout: 6000 }).catch(() => {});
+    /* RE-POINTED 21 Nov 2026 (P-30, as drawn): the drawn panel (.apn5); its Timeline names the asker by first name ("Unrestricted asked for approval") */
+    await P.page.waitForFunction(() => /asked/i.test((document.querySelector('#ins-panel .apn5') || {}).innerText || ''), null, { timeout: 6000 }).catch(() => {});
     const apPanel = await P.page.evaluate(() => { const p = document.querySelector('#ins-panel'); return p ? p.innerText.replace(/\s+/g, ' ').trim() : ''; });
     check('4a  it is on the approver\'s Approvals page, named for the person, asked by the lead',
       /* RE-POINTED 18 Oct 2026 (round 15 as drawn, "Jonas's yes before signing /
          Erik's contracts need it"): the line under the step names whose contracts need it */
       /* RE-POINTED 16 Nov 2026 (#762): the new look's row (apnRowHtml) says "asked by …" and the rule's line, "<name>'s contracts" */
-      !!list && !!apc && /You$/.test(apc.text) && /Unrestricted Legal asked/.test(apPanel)
+      !!list && !!apc && /You$/.test(apc.text) && /Unrestricted (Legal )?asked/.test(apPanel)
         && (/Unrestricted Legal['’]s contracts/.test(list) || /Unrestricted Legal['’]s contracts/.test(apPanel)),
       JSON.stringify({ list, apc, panel: apPanel.slice(0, 300) }));
     await shot(P.page, 'sa-05-list');

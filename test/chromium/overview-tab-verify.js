@@ -107,7 +107,7 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
         const press = [...root.querySelectorAll('button, a[href], [role="button"]')].filter(e => vis(e) && inBody(e))
           .map(e => (e.getAttribute('aria-label') && !e.textContent.trim() ? e.getAttribute('aria-label') : e.textContent).replace(/\s+/g, ' ').trim()).filter(Boolean);
         const helloIn = [...root.querySelectorAll('[data-jb-hello]')].filter(vis).length;
-        const jov = [...root.querySelectorAll('.jov')].filter(vis).length;
+        const jov = [...root.querySelectorAll('.jov')].filter(vis).length, apn5 = [...root.querySelectorAll('.apn5')].filter(vis).length;
         /* RE-POINTED 28 Oct 2026 (owner: "keep them as is but keep them below the discover features. Also remove the
            Ask me details"; the drop card is a pop-up): Discover first, the list's facts under it, no drop card, no Ask me */
         const disc = root.querySelector('.ac-disc, [data-ac-disc], .ac-discover'), facts = root.querySelector('.pd-wall-facts');
@@ -116,7 +116,7 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
         const menuFirst = (() => { const d = root.querySelector('[data-st-jb-menu-door]'); if (!d || !vis(d)) return null; const first = press[0] || ''; return d.textContent.includes(first); })();
         /* the box's + (Add a file, the one upload door) stands in the panel's foot in the new look */
         const plus = [...root.querySelectorAll('[data-jb-file]')].some(vis);
-        return { tabWords, lit: lit ? lit.textContent.replace(/\d+/g, '').replace(/[^\p{L} ]/gu, '').trim() : '', press, helloIn, jov, order, menuFirst, plus };
+        return { tabWords, lit: lit ? lit.textContent.replace(/\d+/g, '').replace(/[^\p{L} ]/gu, '').trim() : '', press, helloIn, jov, apn5, order, menuFirst, plus };
       }, host);
       if (!read){ check(`${key}: the panel is drawn`, false, host); continue; }
       if (WRITE){ inv[key] = read.press; console.log(`INVENTORY ${key}: ${read.press.length} — ${JSON.stringify(read.press)}`); continue; }
@@ -129,7 +129,8 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
       else if (key === 'approvals') check(`1 ${key}: no Jambo tab`, !read.tabWords.some(w => /Jambo/.test(w)), JSON.stringify({ tabs: read.tabWords, lit: read.lit }));
       else check(`1 ${key}: Overview first, no Jambo tab, landing on Overview`, /Overview/.test(ov) && !read.tabWords.some(w => /Jambo/.test(w)) && /Overview/.test(read.lit), JSON.stringify({ tabs: read.tabWords, lit: read.lit, jb }));
       check(`2 ${key}: no greeting on the Overview`, !read.helloIn, String(read.helloIn));
-      check(`3 ${key}: drawn by the one Overview builder`, read.jov >= 1, String(read.jov));
+      /* RE-POINTED 21 Nov 2026 (P-30, as drawn): a chosen approval's panel is the drawn panel (.apn5), not the Overview builder */
+      check(`3 ${key}: drawn by the one Overview builder`, read.jov >= 1 || (key === 'approvals' && read.apn5 >= 1), String(read.jov));
       /* nothing lost: each pressable of the old panel is still pressable here, by its words (case, cost and spacing aside) */
       const norm = s => String(s || '').toLowerCase().replace(/·.*$/, '').replace(/[^\p{L}\p{N}]+/gu, '');
       const now = read.press.map(norm).join('|');

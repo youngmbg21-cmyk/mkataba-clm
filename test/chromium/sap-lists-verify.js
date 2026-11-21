@@ -115,7 +115,8 @@ const wait = async (page, fn, arg, ms = 5000) => {
       const drawn = document.querySelectorAll('.apn-table tbody tr[data-ap-row]').length;
       const wrong = rows.filter(r => {
         const tr = document.querySelector(`[data-ap-row="${r.c.id}"]`);
-        const red = !!(tr && tr.querySelector('.late'));
+        /* RE-POINTED 21 Nov 2026 (P-30, as drawn): red is the badge's alone (Late · N days); Asked says the day it was asked */
+        const red = !!(tr && tr.querySelector('.apn-st.is-ruby'));
         return red !== (r.idle >= 7);
       }).map(r => r.c.id + ':' + r.idle);
       /* RE-POINTED 18 Oct 2026 (round 15 as drawn): the count is a pill beside the title ("· 4 ·"), no brackets */
