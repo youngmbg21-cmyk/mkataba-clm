@@ -77,7 +77,15 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
 
 (async () => {
   const h = await H.startHati({ HATI_AGENTS_AUTO: 'off' });
-  const W = await H.seedWorkspace(h, { approvalRules: [] });
+  /* RE-POINTED 22 Nov 2026 (review of merged pages): A LATE APPROVAL, LATE BY ITS OWN RECORD. 5c's late ones used to come
+     from the default fixtures' display day `lastAction` ("10 Jul 2026"), which a wait no longer reads. MK-AP0 is seeded
+     with its rule step's question already on the stored ask record, asked 20 days ago: every reading (the Board's wait,
+     the Approvals page) counts from that `at`, and the server's reminder sweep finds an open question and opens no new
+     one — so the answer is the same whenever step 5 runs. */
+  const ap0 = Object.assign(H.fixtureContract('MK-AP0', 'Ostkust warehouse lease', 'Ostkust AB', H.FOLDER_A, 18000000, 'Under Review'), {
+    asks: [{ id: 'ar:r1:1', kind: 'rule', of: ['r1'], by: null, to: null, at: new Date(Date.now() - 20 * 864e5).toISOString(), due: null,
+      state: 'open', answeredAt: null, answeredBy: null, why: null, note: null, stamp: null }] });
+  const W = await H.seedWorkspace(h, { contracts: H.FIXTURES.concat([ap0]), approvalRules: [] });
   const jonas = W.users.unrestricted;
   await W.admin.json('/api/users/' + jonas.id, { method: 'PATCH', body: { name: 'Jonas Berg' } }).catch(() => {});
   const admin = (await W.admin.json('/api/bootstrap')).me;
@@ -104,12 +112,6 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
   /* the admin's own contract, below the rule, that waits on Jonas's signature */
   await mk('MK-SG1', 'Stratos support', 300000, 'Under Review',
     { signerPlan: [{ id: 's-j', party: 'internal', name: 'Jonas Berg', memberId: jonas.id, order: 1 }] });
-  /* RE-POINTED 22 Nov 2026 (review of merged pages): A LATE APPROVAL, HONESTLY OLD. 5c's late ones used to come from the
-     default fixtures' display day `lastAction` ("10 Jul 2026"), which the wait no longer reads (ndWaitedDays, apApprovalRows:
-     the question's own time, else the day the record was raised). This one was raised 20 days ago and has waited on Jonas
-     ever since, with no question recorded — so it is late by the record itself. */
-  await mk('MK-AP0', 'Ostkust warehouse lease', 18000000, 'Under Review',
-    { audit: [{ at: new Date(Date.now() - 20 * 864e5).toISOString(), user: 'System', action: 'Created', detail: 'fixture' }] });
 
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];
