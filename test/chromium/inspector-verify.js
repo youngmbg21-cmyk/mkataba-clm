@@ -120,7 +120,9 @@ const ok = (name, good, detail) => {
     /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep contracts … as designed"): Stream and Our standards stand where Stage stood */
     /* RE-POINTED 16 Nov 2026 (#762): the new look's List (THE NEW LOOK IS THE ONLY LOOK: "a status = dot + word") adds
        Standing after the agreement, and draws no ⋯ column — a row's one press opens it (1f) */
-    ok('1b the List is the drawing\'s columns, in plain words: Agreement · Standing · Stream · Our playbook · Ends · Value', shape.heads.join('|') === 'Agreement|Standing|Stream|Our playbook|Ends|Value', shape.heads.join(' | '));
+    /* RE-POINTED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way): Our playbook steps out of the
+       List; Needs you stands before Ends */
+    ok('1b the List is the drawing\'s columns, in plain words: Agreement · Standing · Stream · Needs you · Ends · Value', shape.heads.join('|') === 'Agreement|Standing|Stream|Needs you|Ends|Value', shape.heads.join(' | '));
     await page.screenshot({ path: path.join(OUT, '1-contracts-1440.png') });
 
     const rows = await page.$$('#reg-tbody tr[data-row]');

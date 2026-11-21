@@ -105,5 +105,6 @@ test('f998 (4) one quiet tone a tile, from the tokens; the panel beside it stays
 test('f998 (5) both books, and the Handbook says it', () => {
   for (const k of ['ctfv_cap', 'ctfv_folders', 'ctfv_ap', 'ctfv_sg', 'ctfv_end', 'ctfv_big', 'ctfv_in_folders_one', 'ctfv_in_folders_other', 'ctfv_notice_one', 'ctfv_notice_other', 'ctfv_notice_none', 'ctfv_together'])
     assert.equal(I18N.split('\n    ' + k + ': ').length - 1, 2, k + ' in both books');
-  assert.match(read('js/handbook.js'), /Contracts opens on its folders, the step before the list\./);
+  /* RE-POINTED (P-31, owner's pick 20 Nov 2026): the Handbook now says the summary */
+  assert.match(read('js/handbook.js'), /Contracts opens on a summary of all your contracts/);
 });

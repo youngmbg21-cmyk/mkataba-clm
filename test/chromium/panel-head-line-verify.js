@@ -60,7 +60,9 @@ async function rowInk(P, clip){
         check(mid >= 10 && nearDivider <= 2 && nearEdge <= 2, `1 ${w}×${hh} ${pg}: the panel line is painted in its middle and touches neither the divider nor the edge`, { mid, nearDivider, nearEdge });
         check(early != null && early < mid, `2 ${w}×${hh} ${pg}: the line fades in at its start`, { firstSeen, early, mid });
         if (pg === 'approvals'){
-          const bar = await P.evaluate(() => { const e = document.querySelector('.apn-bar'); if (!e) return null; const b = e.getBoundingClientRect(), s = getComputedStyle(e); return { x: b.left, y: b.bottom - 1, w: b.width, solid: s.borderBottomStyle === 'solid' && !/, 0\)$/.test(s.borderBottomColor) }; });
+          /* RE-POINTED (P-30, owner's pick 20 Nov 2026: Approvals the Legora + Stripe way): the filter box is the ask box
+             (label.apn-ask) under the title, and the page's line is drawn under IT; the chips' bar under it draws none */
+          const bar = await P.evaluate(() => { const e = document.querySelector('.apn-page label.apn-ask'); if (!e) return null; const b = e.getBoundingClientRect(), s = getComputedStyle(e); return { x: b.left, y: b.bottom - 1, w: b.width, solid: s.borderBottomStyle === 'solid' && !/, 0\)$/.test(s.borderBottomColor) }; });
           if (!bar) check(false, `3 ${w}×${hh}: the list head is drawn`);
           else {
             /* RE-POINTED 20 Nov 2026: the bar's bottom can sit on a fractional y (1440×780 lands whole, 1536×730 and

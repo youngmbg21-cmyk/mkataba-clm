@@ -229,7 +229,9 @@ const answerNaming = ids => [{ type: 'tool_use', id: 'tu_wl', name: 'deliver_ans
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): with the narrowing gone the Contracts place stands
        at its rest, the Folders, which draw every live contract by folder; there the list's own reading is counted */
     const table = document.querySelectorAll('#reg-tbody [data-row]').length;
-    const folders = !!document.querySelector('#ct-place .ctf-list [data-ctf-folder]') && !window.state.reg?.only;
+    /* RE-POINTED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way): the Folders landing is the summary
+       .ctf-ls, its folders a table whose rows carry data-ctf-folder (.ctf-list is gone) */
+    const folders = !!document.querySelector('#ct-place :is(.ctf-ls, .ctf-list) [data-ctf-folder]') && !window.state.reg?.only;
     return { rows: table || (folders && typeof regFiltered === 'function' ? regFiltered().length : 0),
       chip: !!document.getElementById('reg-only-chip') };
   });

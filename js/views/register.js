@@ -2221,9 +2221,10 @@ function regFolderGlanceHtml(book, r, folder){
     const rest=[E.later?i18tn('rfg_end_later', E.later, { n:E.later }):'', E.past?i18tn('rfg_end_past', E.past, { n:E.past }):'', E.none?i18tn('rfg_end_nodate', E.none, { n:E.none }):''].filter(Boolean).join(' · ');
     ends=cap(i18t('rfg_ends'))+strip+`<p class="rfg-say">${say}</p>`+(rest?`<p class="rfg-q">${esc(rest)}</p>`:'');
   } else ends=cap(i18t('rfg_ends'))+`<p class="rfg-say">${esc(i18t('rfg_end_none'))}</p>`;
-  /* WHERE THE MONEY IS (only for a reader who may see values) */
+  /* WHERE THE MONEY IS (only for a reader who may see values) — never in the new look's panel (P-31, owner's pick 20 Nov
+     2026: NO MONEY IN A SIDE PANEL; the list's Value column is where money shows) */
   let money='';
-  if(r.val!=null){ const M=regGlanceMoney(book);
+  if(r.val!=null&&!(typeof newLookOn==='function'&&newLookOn())){ const M=regGlanceMoney(book);
     if(M.length){ const top=M[0].v, shown=M.slice(0,RFG_BARS), names=shown.map(x=>nameOf(x.c)), twice=nm=>names.filter(y=>y===nm).length>1;
       money=cap(i18t('ctfp_money')+' · '+fmtMoneyShort(r.val))+`<div class="rfg-bars">${shown.map(x=>{ const nm=twice(nameOf(x.c))?String(nameOf(x.c)).split(/\s+/)[0]+' · '+refOf(x.c):nameOf(x.c);
         return `<button type="button" class="rfg-bar" data-rfp-open="${esc(x.c.id)}" title="${esc(nameOf(x.c)+' · '+refOf(x.c))}"><span class="rfg-bar-n">${esc(nm)}</span><span class="rfg-bar-b" aria-hidden="true"><i style="width:${Math.max(2, Math.round(x.v/top*100))}%"></i></span><b>${esc(fmtMoneyShort(x.v))}</b></button>`; }).join('')}</div>`

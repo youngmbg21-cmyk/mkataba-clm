@@ -19915,7 +19915,7 @@
      calm table — soft status badges, the approver's initials, a strip of three steps, the paper's words on one line */
   html.lg-new :is(.apn-page,.ctf-page) .apn-ask{display:flex;align-items:center;gap:8px;margin:10px 0 12px;padding:0 0 8px;border-bottom:1px solid var(--color-divider);color:var(--color-quiet)}
   html.lg-new :is(.apn-page,.ctf-page) .apn-ask input{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:var(--t-body);color:var(--color-text);outline:none}
-  html.lg-new .apn-page .apn-bar{gap:6px;border-bottom:0;margin:0 0 10px;flex-wrap:wrap}
+  html.lg-new .apn-page .apn-bar:has(.is-chip){gap:6px;border-bottom:0;margin:0 0 10px;flex-wrap:wrap}
   html.lg-new :is(.apn-page,.ctf-page) .apn-tab.is-chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border:1px solid var(--color-neutral-300);border-radius:999px;margin:0;font-size:var(--t-label)}
   html.lg-new :is(.apn-page,.ctf-page) .apn-tab.is-chip.is-on{background:var(--surface-2);border-color:var(--color-neutral-400)}
   html.lg-new :is(.apn-page,.ctf-page) .apn-tab.is-chip span{color:var(--color-quiet)}
@@ -19991,10 +19991,10 @@
   html.lg-new .ctf-ftable{width:100%;border-collapse:collapse;table-layout:fixed}
   html.lg-new .ctf-ftable th{padding:8px 8px 6px;text-align:left;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-quiet);border-bottom:1px solid var(--color-neutral-200)}
   html.lg-new .ctf-ftable th:first-child{width:auto}
-  html.lg-new .ctf-ftable th:nth-child(2){width:88px}
-  html.lg-new .ctf-ftable th:nth-child(3){width:132px}
-  html.lg-new .ctf-ftable th:nth-child(4){width:120px}
-  html.lg-new .ctf-ftable th:nth-child(5){width:110px}
+  html.lg-new .ctf-ftable th:nth-child(2){width:12%}
+  html.lg-new .ctf-ftable th:nth-child(3){width:20%}
+  html.lg-new .ctf-ftable th:nth-child(4){width:16%}
+  html.lg-new .ctf-ftable th:nth-child(5){width:16%}
   html.lg-new .ctf-ftable td{padding:10px 8px;border-bottom:1px solid var(--color-neutral-200);vertical-align:middle;font-size:var(--t-body)}
   html.lg-new .ctf-ftable tr[tabindex]{cursor:pointer}
   html.lg-new .ctf-ftable tr[tabindex]:hover,html.lg-new .ctf-ftable tr.is-sel{background:var(--surface-2)}

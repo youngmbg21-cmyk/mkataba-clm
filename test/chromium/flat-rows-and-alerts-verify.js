@@ -402,8 +402,11 @@ const SEED_UNSENT = async () => {
             const cs = getComputedStyle(el);
             const r = el.getBoundingClientRect();
             if (!r.width || !r.height) continue;
+            /* RE-POINTED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way): a part INSIDE the Standing
+               badge or the Needs you words (the "+2" small under .reg-need) is read as part of that mark */
+            const inMark = el.closest && el.closest('.reg-badge, .reg-need') && !/reg-badge|reg-need/.test(String(el.className || '')) ? ' in-reg-mark' : '';
             cells.push({ txt: txt.slice(0, 22), size: cs.fontSize,
-              weight: cs.fontWeight, color: cs.color, cls: el.className || '' });
+              weight: cs.fontWeight, color: cs.color, cls: (el.className || '') + inMark });
           }
         }
         const th = [...document.querySelectorAll('#reg-tbody, .reg-table thead th, .ngn-table thead th')]
@@ -454,7 +457,10 @@ const SEED_UNSENT = async () => {
       /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the row's new marks are marks too — a kind's soft chip
          (ls-chip), the grey line under a reading (ls-word-m, reg-wait-s, the stage's word in the grey line
          reg-stg-w) and the small print "Not checked yet" (ls-quiet) — so they stand outside the one size */
-      const KIND = /reg-kind|reg-sub|reg-typecell|reg-own|reg-av|ls-chip|ls-word-m|ls-quiet|reg-stg-w|reg-wait-s|cun-sub|ngn-av/;
+      /* RE-POINTED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way): the Standing column is a SOFT BADGE
+         (.reg-badge, at the micro rung) and Needs you its amber words at the label rung (.reg-need, its "+2" small inside) —
+         designed sizes, marks like the chip and the grey line */
+      const KIND = /reg-kind|reg-sub|reg-typecell|reg-own|reg-av|ls-chip|ls-word-m|ls-quiet|reg-stg-w|reg-wait-s|cun-sub|ngn-av|reg-badge|reg-need|in-reg-mark/;
       /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): on
          the Contracts place the reference rides under the party ("kind ·
          ref", refHtml's .hati-ref) instead of a Ref column — still the row's

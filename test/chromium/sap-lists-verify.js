@@ -140,7 +140,10 @@ const wait = async (page, fn, arg, ms = 5000) => {
         line: ((p.querySelector('[data-ins-need-line]') || {}).textContent || ''), decide: p.querySelectorAll('[data-ins-need="approval"]').length,
         /* RE-POINTED 18 Oct 2026 (round 15 as drawn, owner's "build all the gaps"): an Approval's panel draws no doors */
         sub: !p.querySelector('.ins-doors') && !p.querySelector('[data-ins-act^="door-"]') && !p.querySelector('.ins-sub [data-ins-act]'),
-        approve: !p.querySelector('[data-ins-act="approve"]') && !!(tr && tr.querySelector('[data-ap-approve]')) };
+        /* RE-POINTED (P-30, owner's pick 20 Nov 2026: Approvals the Legora + Stripe way): the row carries NO buttons; Approve
+           (and Decline) are the chosen row's PANEL's (data-apn-act), one Approve, never a second Decide door */
+        approve: p.querySelectorAll('[data-apn-act="approve"]').length === 1 && !p.querySelector('[data-ins-act="approve"]')
+          && !!tr && !tr.querySelector('[data-ap-approve], [data-apn-act]') };
     }) : null;
     /* RE-POINTED 12 Oct 2026 (owner): the sub line's Open contract became the Document door in the doors row */
     /* RE-POINTED 15 Oct 2026 (owner): the Document door went; the doors row is Negotiation · Workspace */
@@ -156,27 +159,31 @@ const wait = async (page, fn, arg, ms = 5000) => {
       /* RE-POINTED 17 Nov 2026 (#762): Approve is the chosen ROW's button; the decided row moves to the table's Done tab
          (the new look's tabs are Mine · Waiting on others · Done), where it stands marked done; chosen there, its panel says
          it was approved and carries Undo — the same promise: the decision is seen where it was made, and undoable */
-      await page.click(`.apn-table tr[data-ap-row="${sel}"] [data-ap-approve]`);
+      /* RE-POINTED (P-30, 20 Nov 2026): Approve is pressed in the chosen row's panel */
+      await page.click(`#ins-panel [data-apn-act="approve"][data-id="${sel}"]`);
       { const ok = await page.waitForSelector('#prompt-overlay #pd-ok', { timeout: 4000 }).catch(() => null); if (ok) await ok.click(); } /* a yes offers an optional note (17 Nov 2026) */
       const moved = await wait(page, () => !!document.querySelector('[data-apn-tab="done"]'), null, 8000);
       await page.evaluate(() => { const b = document.querySelector('[data-apn-tab="done"]'); if (b) b.click(); });
       const inDone = moved && await wait(page, id => { const b = document.querySelector('[data-apn-tab="done"]');
         return !!(b && b.classList.contains('is-on') && document.querySelector(`.apn-table tr[data-ap-row="${id}"]`)); }, sel, 6000);
       if (inDone) await page.click(`.apn-table tr[data-ap-row="${sel}"] .apn-name`);
-      const done = inDone && await wait(page, () => !!document.querySelector('#ins-panel [data-ins-act="undo"]'), null, 8000);
+      /* RE-POINTED (P-30, 20 Nov 2026): the Done row is marked by its soft GREEN badge (no row mark any more), and its
+         panel says it was approved ("What you approved", its tag) and carries Undo (data-apn-act="undo") */
+      const done = inDone && await wait(page, () => !!document.querySelector('#ins-panel [data-apn-act="undo"]'), null, 8000);
       const after = await page.evaluate(id => ({
         row: !!document.querySelector(`.apn-table tr[data-ap-row="${id}"]`),
-        mark: (document.querySelector(`.apn-table tr[data-ap-row="${id}"] [data-ls-mk]`) || { getAttribute: () => null }).getAttribute('data-ls-mk'),
-        line: !!document.querySelector('#ins-panel [data-ap-done-line]') }), sel);
+        mark: !!document.querySelector(`.apn-table tr[data-ap-row="${id}"] .apn-st.is-green`) ? 'done' : null,
+        line: /What you approved/i.test((document.getElementById('ins-panel') || {}).innerText || '') }), sel);
       check('2e Approve keeps the row (on Done, marked done), with Undo in its panel',
         done && after.row && after.mark === 'done' && after.line, JSON.stringify(after));
       if (done) {
-        await page.click('#ins-panel [data-ins-act="undo"]');
+        await page.click('#ins-panel [data-apn-act="undo"]');
         /* RE-POINTED 17 Nov 2026 (#762): back to waiting = the row is under Mine again with its own Approve */
         await page.evaluate(() => { const b = document.querySelector('[data-apn-tab="mine"]'); if (b) b.click(); });
         const back = await wait(page, id => {
           const tr = document.querySelector(`.apn-table tr[data-ap-row="${id}"]`);
-          return !!(tr && tr.querySelector('[data-ap-approve]'));
+          /* RE-POINTED (P-30, 20 Nov 2026): no Approve on the row — waiting again is the row under Mine with a badge that is not the green of done */
+          return !!(tr && tr.querySelector('.apn-st:not(.is-green)'));
         }, sel, 8000);
         const st = await page.evaluate(id => {
           const c = getContract(id);
@@ -193,7 +200,7 @@ const wait = async (page, fn, arg, ms = 5000) => {
         }, sel);
         check('2g the stored record is waiting again too', /pending/.test(stored) && !/approved/.test(stored), stored);
       }
-    } else check('2e Approve is offered on a row this reader may decide', false, 'no Approve in the panel');
+    } else check('2e Approve is offered for a row this reader may decide', false, 'no Approve in the panel');
 
     /* ---- 3. OBLIGATIONS ---- */
     await page.evaluate(() => setView('obligations'));

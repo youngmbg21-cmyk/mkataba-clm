@@ -7401,7 +7401,8 @@ function pd2ChosenHtml(c){
   const owes = nd.map(words).filter(Boolean).map(t => t.charAt(0).toLowerCase() + t.slice(1));
   const head = _pdT(owes.length ? 'pd2_ch_head' : 'pd2_ch_head_quiet', { name: c.name || '', stage: stage.charAt(0).toUpperCase() + stage.slice(1).toLowerCase(), owes: owes.join(', ') });
   const rows = [];
-  if (R.money) rows.push([_pdT('pd2_f_value'), R.money, pd2SectionOf(c, 'value', cls)]);
+  /* no money in the chosen paper's panel (P-31, owner's pick 20 Nov 2026: the list's Value column is where money shows) */
+  if (R.money && !(typeof newLookOn === 'function' && newLookOn())) rows.push([_pdT('pd2_f_value'), R.money, pd2SectionOf(c, 'value', cls)]);
   if (R.expiry){ const renews = typeof contractRenewsItself === 'function' && contractRenewsItself(c);
     rows.push([_pdT('pd2_f_ends'), R.expiry + (renews ? ', ' + E(_pdT('pd2_renews')) : ''), pd2SectionOf(c, 'expiry', cls)]); }
   let L = []; try { L = (typeof riskOpenOf === 'function') ? riskOpenOf(c) : []; } catch (_){ L = []; }

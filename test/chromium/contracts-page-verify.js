@@ -121,47 +121,48 @@ const check = (name, ok, detail) => {
     /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep contracts … as designed"): on the Contracts place the
        stage is its word in its own tone in the grey line under the agreement, and the row's MARK in the same
        tone leads it — the mark is the dot's job now, its colour the meta's brighter shade */
+    /* RE-POINTED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way): the stage is a SOFT BADGE in its own
+       Standing column (td.reg-standing .reg-badge: its tone's pale ground, its tone's ink, a small dot of the ink) and NO
+       mark leads the row any more (regSapMarkHtml is no longer drawn) */
     const stage = await page.evaluate(() => {
-      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the stage word stands in its own Standing column
-         (td.reg-standing, in its tone's ink) and THE SAP WAY MARK leads the row (.reg-id .ls-mk, listSapMarkHtml) */
       const s = document.querySelector('tr[data-row] td.reg-standing');
       if (!s) return { err: 'no td.reg-standing' };
-      const cs = getComputedStyle(s);
-      const mark = s.closest('tr').querySelector('.reg-id .ls-mk');
-      const dcs = mark ? getComputedStyle(mark) : null;
+      const bdg = s.querySelector('.reg-badge');
+      if (!bdg) return { err: 'no .reg-badge in the Standing cell' };
+      const cs = getComputedStyle(bdg);
+      const tr = s.closest('tr');
       return {
-        word: s.textContent.trim(),
+        word: bdg.textContent.trim(),
         ink: cs.color,
-        dotW: dcs ? dcs.width : null,
-        dotBg: dcs ? dcs.color : null,
-        svg: !!(mark && mark.querySelector('svg')),
+        ground: cs.backgroundColor,
+        dot: !!bdg.querySelector('i'),
+        marks: tr.querySelectorAll('.ls-mk').length,
         /* the chip must be GONE from the row, not merely restyled */
         chips: document.querySelectorAll('tr[data-row] .badge').length,
         /* same tone family: the dominant channel of both is the same one */
         hueMatch: (() => {
           const rgb = c => (c.match(/\d+/g) || []).map(Number);
-          const a = rgb(cs.color), b = rgb(dcs ? dcs.backgroundColor : '');
+          const a = rgb(cs.color), b = rgb(cs.backgroundColor);
           if (a.length < 3 || b.length < 3) return false;
-          const domi = v => v.indexOf(Math.max(...v));
+          /* a grey stage (Draft): both shades are greys, which is one tone */
+          const grey = v => Math.max(...v.slice(0, 3)) - Math.min(...v.slice(0, 3)) < 14;
+          if (grey(a) && grey(b)) return true;
+          const domi = v => v.indexOf(Math.max(...v.slice(0, 3)));
           return domi(a) === domi(b);
         })(),
       };
     });
-    check('2a the stage is a word, and a mark leads the row',
-      /* RE-POINTED 16 Nov 2026 (#762): THE SAP WAY MARK is 20px (listSapMarkHtml) */
-      !stage.err && stage.svg && stage.dotW === '20px',
-      `${stage.err || ''} ${stage.dotW} ${stage.svg}`);
+    check('2a the stage is a soft badge, and no mark leads the row',
+      !stage.err && stage.dot && stage.marks === 0 && !!stage.ground && !/rgba\(0, 0, 0, 0\)|transparent/.test(stage.ground),
+      `${stage.err || ''} marks ${stage.marks} ground ${stage.ground} dot ${stage.dot}`);
     check('2b the word carries the meaning ink, so colour is not the only carrier',
       !!stage.word && stage.ink !== 'rgb(0, 0, 0)', `"${stage.word}" ${stage.ink}`);
-    /* THE DOT AND THE WORD ARE TWO SHADES OF ONE TONE, DELIBERATELY — the
-       meta's brighter `dot` against its darker `fg`, which is what every chip
-       in this product already does and what keeps a 14px word readable while
-       an 8px circle still catches the eye. What matters is that BOTH come from
-       the one meta, so they can never name different tones: asserted by their
-       hues agreeing while their lightness differs. */
-    check('2c the mark and the word are two shades of ONE tone',
-      stage.dotBg !== stage.ink && stage.hueMatch,
-      `${stage.dotBg} vs ${stage.ink}`);
+    /* THE BADGE'S GROUND AND ITS WORD ARE TWO SHADES OF ONE TONE, DELIBERATELY (RE-POINTED P-31: the badge's pale ground
+       against its ink, where the mark's brighter colour stood): both from the one tone, so they can never name different
+       tones — their hues agree while their lightness differs. */
+    check('2c the badge\'s ground and its word are two shades of ONE tone',
+      stage.ground !== stage.ink && stage.hueMatch,
+      `${stage.ground} vs ${stage.ink}`);
     check('2d no filled chip is left in a row', stage.chips === 0, `${stage.chips} chips`);
 
     /* ============ 3. THE COLUMNS ARE THE DESIGN'S ============ */

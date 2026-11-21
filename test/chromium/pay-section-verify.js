@@ -118,10 +118,14 @@ const untilServer = async (page, ok, ms = 8000) => {
        pushing the buttons to the right"): a folder's list head no longer carries the "N · KES … on paper" facts
        line, so the money on paper is read where the place still says it — the Folders head the list's
        "‹ Folders" goes back to (regFoldersHeadHtml off regFolderRead, which leaves pay out) */
+    /* RE-POINTED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way; MONEY IS NEVER A BIG PART OF A
+       PAGE): the Folders head carries no facts and the landing no money card, so no head on the place says a sum any
+       more. What 2d guarded — that the place's ONE reading of a set's money leaves pay out — is asked of that reading
+       itself (regFolderRead, over the same live book the head summed), which still counts each folder's money */
     await P.evaluate(() => { const b = document.querySelector('[data-ctf-back]'); if (b) b.click(); });
-    await until(P, () => !!document.querySelector('.ctf-hf'), null, 8000);
-    const placeHead = await P.evaluate(() => { const f = document.querySelector('.ctf-hf'); return f ? f.innerText.match(/KES [\d.,]+[KMB]? on paper/) : null; });
-    check(!!placeHead && /247M/.test(placeHead[0]), '2d the place\'s head adds the deals alone', placeHead && placeHead[0]);
+    const placeSum = await P.evaluate(() => { if (typeof regFolderRead !== 'function') return null;
+      const r = regFolderRead((state.contracts || []).filter(c => c && !c._codeNamed && !c.archived)); return r ? r.val : null; });
+    check(placeSum === 48000000 + 36000000 + 85000000 + 78000000, '2d the place\'s reading of the money adds the deals alone', String(placeSum));
     await P.evaluate(() => { regPlaceSet({ show: 'wall' }); });
 
     /* ============ 3. EDIT PAY ============ */

@@ -44,12 +44,17 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
       await until(page, () => typeof currentUser === 'function' && !!currentUser() && typeof setView === 'function' && state.contracts.length >= 60, null, 40000);
       await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); regPlaceSet({ show: 'list' }); setView('register'); });
       await until(page, () => [...document.querySelectorAll('[data-ctf-folder]')].some(b => /Procurement/.test(b.innerText)), null, 15000);
-      await page.evaluate(() => { const b = [...document.querySelectorAll('[data-ctf-folder]')].find(x => /Procurement/.test(x.innerText)); if (b) b.click(); });
+      /* RE-POINTED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way): a folder's row on the landing's table
+         CHOOSES on the first press (.is-sel, the panel sums it up) and opens on the second */
+      await page.evaluate(() => { const b = [...document.querySelectorAll('.ctf-ftable tr[data-ctf-folder]')].find(x => /Procurement/.test(x.innerText)); if (b) b.click(); });
+      if (await until(page, () => !!document.querySelector('.ctf-ftable tr.is-sel[data-ctf-folder]'), null, 4000))
+        await page.evaluate(() => { const b = document.querySelector('.ctf-ftable tr.is-sel[data-ctf-folder]'); if (b) b.click(); });
       await until(page, () => !!document.querySelector('#reg-tbody tr[data-row]') && !!document.querySelector('.rfp-panel.is-drawn'), null, 15000);
       await page.evaluate(() => document.fonts && document.fonts.ready);
 
       /* 1 · the top and the folder's panel */
       const T = await page.evaluate(() => { const top = document.querySelector('#ct-place .ct-top');
+        if (!top) return { err: 'no #ct-place .ct-top: the folder\'s list was not drawn' };
         const parts = [...top.querySelectorAll('.ctf-back, .ctf-crumb, .ct-h, .ct-facts')].filter(e => e.getBoundingClientRect().width);
         const cy = parts.map(e => { const r = e.getBoundingClientRect(); return r.top + r.height / 2; }), mids = Math.max(...cy) - Math.min(...cy) <= 4 ? 1 : 2;
         const ac = document.querySelector('#ct-place .ac-btn'), p = document.querySelector('.rfp-panel.is-drawn');
@@ -60,8 +65,8 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
       /* RE-POINTED (owner, 15 Nov 2026): no Discover button in the list's head; the "discover" link above Jambo's box stays */
       /* RE-POINTED 19 Nov 2026 (the Contracts list as drawn, owner's "the new design for contracts lists page"): the top
          STACKS — "‹ Folders" small over the title, the title serif at 26px with the counts beside it; no "/" crumb */
-      check(`${nm} 1 the top: "‹ Folders" over the title, only the title above 15px, no "/" crumb; no Discover button; the panel At a Glance (owner, 15 Nov 2026)`,
-        T.mids === 2 && T.big.length === 1 && /\bct-h\b/.test(T.big[0]) && !T.crumb && !T.pill && /^\s*60\s*contracts[\s\S]*WHEN THEY END[\s\S]*WHERE THE MONEY IS/i.test(T.panel) && !/Discover/.test(T.panel) && !/Ask a column|All your reads/.test(T.panel) && !COST.test(T.panel), T);
+      check(`${nm} 1 the top: "‹ Folders" over the title, only the title above 15px, no "/" crumb; no Discover button; the panel At a Glance (owner, 15 Nov 2026), no money in it (P-31)`,
+        T.mids === 2 && T.big.length === 1 && /\bct-h\b/.test(T.big[0]) && !T.crumb && !T.pill && /^\s*60\s*contracts[\s\S]*WHEN THEY END/i.test(T.panel) && !/WHERE THE MONEY IS/i.test(T.panel) /* RE-POINTED, INVERTED (P-31, owner's pick 20 Nov 2026: MONEY IS NEVER A BIG PART OF A PAGE — no money in a side panel) */ && !/Discover/.test(T.panel) && !/Ask a column|All your reads/.test(T.panel) && !COST.test(T.panel), T);
       await shot('1-rest');
 
       /* 2 · the form */

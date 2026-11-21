@@ -148,7 +148,9 @@ const iso = n => { const t = new Date(); t.setDate(t.getDate() + n); return t.to
       out.room = cs.scrollWidth - cs.clientWidth;
       (regPlaceSet({ show: 'list' }), setView('register')); await new Promise(r => setTimeout(r, 1200));
       /* RE-POINTED 16 Nov 2026 (#762): the Contracts place's list scrolls in .ctf-list (no #reg-scroll in the new look) */
-      const rs = document.getElementById('reg-scroll') || document.querySelector('#ct-place .ctf-list');
+      /* RE-POINTED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way): the folders landing is the summary
+         .ctf-ls (four figure cards, the bars, the folders' table), which scrolls inside #ct-place; .ctf-list is gone */
+      const rs = document.getElementById('reg-scroll') || document.querySelector('#ct-place .ctf-ls') || document.querySelector('#ct-place .ctf-list');
       out.reg = rs && rs.querySelector('[data-id], tr, button') ? rs.scrollWidth - rs.clientWidth : -1; return out; });
     check('15 at 820px the room does not pan sideways', pan.room <= 1, pan.room + 'px over');
     check('15 at 820px the Contracts table fits its page', pan.reg >= 0 && pan.reg <= 1, pan.reg + 'px over');

@@ -54,19 +54,30 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
   /* 1 · Contracts on its folders */
   try {
     await page.evaluate(() => caGo({ kind: 'go', place: 'contracts' }));
-    const up = await until(page, () => document.querySelectorAll('[data-ctf-folder]').length >= 2, null, 15000);
-    const cards = up ? await page.evaluate(() => [...document.querySelectorAll('[data-ctf-folder]')].map(b => b.innerText.replace(/\s+/g, ' ').trim())) : [];
-    const ended = up ? await page.evaluate(() => !!document.querySelector('[data-ctf-ended]')) : false;
+    /* RE-POINTED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way): the folders landing is a summary
+       (.ctf-ls) — four figure cards (button.ctf-fig, each its number), where all of them stand (one bar), when they end
+       (twelve months of dots), then the folders as a calm table whose rows carry the folder's name, its count and an
+       amber "N need you" badge; Ended & archived keeps its own row-door. The views cards (data-ctf-view) are gone. */
+    const up = await until(page, () => document.querySelectorAll('.ctf-ls .ctf-ftable tr[data-ctf-folder]').length >= 2, null, 15000);
+    const cards = up ? await page.evaluate(() => [...document.querySelectorAll('.ctf-ls .ctf-ftable tr[data-ctf-folder]')].map(b => b.innerText.replace(/\s+/g, ' ').trim())) : [];
+    const ended = up ? await page.evaluate(() => !!document.querySelector('.ctf-ls [data-ctf-ended]')) : false;
     await shot('1-folders');
-    const views = up ? await page.evaluate(() => [...document.querySelectorAll('[data-ctf-view]')].map(b => b.innerText.replace(/\s+/g, ' ').trim())) : [];
-    check('1 Contracts opens on its folders: the views, then the folders with their facts, Ended & archived its own door',
-      up && cards.some(t => /Procurement/.test(t) && /\d+ · /.test(t) && /need you/.test(t)) && ended && views.length >= 1 && views.every(t => /^\d+ /.test(t)),
-      JSON.stringify({ views, cards: cards.slice(0, 3) }));
+    const views = up ? await page.evaluate(() => [...document.querySelectorAll('.ctf-ls button.ctf-fig[data-ctf-fig]')].map(b => b.innerText.replace(/\s+/g, ' ').trim())) : [];
+    const parts = up ? await page.evaluate(() => ({ stand: !!document.querySelector('.ctf-ls .ctf-stand'), months: document.querySelectorAll('.ctf-ls .ctf-months .ctf-mo').length,
+      oldViews: document.querySelectorAll('[data-ctf-view], .ctf-list').length })) : {};
+    check('1 Contracts opens on its folders: four figure cards, where they stand, when they end, then the folders as a table with their facts, Ended & archived its own door',
+      up && cards.some(t => /Procurement/.test(t) && /\d+ needs? you/.test(t)) && ended && views.length === 4 && views.every(t => /\d/.test(t))
+      && parts.stand && parts.months === 12 && parts.oldViews === 0,
+      JSON.stringify({ views, parts, cards: cards.slice(0, 3) }));
   } catch (e) { check('1 Contracts opens on its folders', false, String(e).slice(0, 200)); }
 
   /* 2 · a folder's list */
   try {
-    const proc = await page.evaluate(() => { const b = [...document.querySelectorAll('[data-ctf-folder]')].find(x => /Procurement/.test(x.innerText)); if (b) b.click(); return !!b; });
+    /* RE-POINTED (P-31, 20 Nov 2026): a folder's row CHOOSES on the first press (.is-sel, the panel sums the folder) and
+       opens on the second */
+    const proc = await page.evaluate(() => { const b = [...document.querySelectorAll('.ctf-ftable tr[data-ctf-folder]')].find(x => /Procurement/.test(x.innerText)); if (b) b.click(); return !!b; });
+    if (proc && await until(page, () => !!document.querySelector('.ctf-ftable tr.is-sel[data-ctf-folder]'), null, 4000))
+      await page.evaluate(() => { const b = document.querySelector('.ctf-ftable tr.is-sel[data-ctf-folder]'); if (b) b.click(); });
     await until(page, () => !!document.querySelector('#reg-tbody tr[data-row]'), null, 10000);
     await page.evaluate('(' + R6_BRING.toString() + ')()');
     /* RE-POINTED (owner, 9 Nov 2026: "the column should only reflect the name of the column … The count should maybe go to
@@ -77,7 +88,10 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const sub = await txt(page, '#ct-place th.ac-th.is-nl .reg-th-sub');
     const tabs = await page.evaluate(() => [...document.querySelectorAll('#ct-place .reg-views .reg-vtab')].filter(b => b.offsetParent).map(b => b.innerText.replace(/\s+/g, ' ').trim()));
     /* RE-POINTED (owner's pick, 10 Nov 2026: the Scorecard): what is missing is named on the standards bar's hover, the cell one line */
-    const miss = await page.evaluate(() => [...document.querySelectorAll('#ct-place .ls-score')].map(x => x.getAttribute('title') || '').join(' | '));
+    /* RETIRED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way): Our playbook steps out of the List
+       (Agreement · Standing · Stream · Needs you · Ends · Value), so no row carries the scorecard and its "missing: …"
+       hover; what is missing against our standards is read on the contract's own Clauses tab */
+    const miss = '';
     /* RE-POINTED (owner, 8 Nov 2026: "the side panel is completely cluttered with no structure"; the Reads & Contracts drawing):
        the folder's panel is This folder.
        RE-POINTED AGAIN (owner, 14 Nov 2026: "the feature for these search being added to the panel should be deleted"):
@@ -91,18 +105,24 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
       return { months: document.querySelectorAll('.rfp-panel.rfg .rfg-strip .rfg-mo').length, mo: mo ? (mo.getAttribute('data-rfp-only') || '').split(',').filter(Boolean).length : 0,
         bars: document.querySelectorAll('.rfp-panel.rfg .rfg-bar[data-rfp-open]').length,
         only: ((document.querySelector('.rfp-panel.rfg .rfp-row [data-rfp-only]') || { getAttribute: () => '' }).getAttribute('data-rfp-only') || '').split(',').filter(Boolean).length,
-        unchecked: [...document.querySelectorAll('#reg-tbody tr[data-row]')].filter(r => /Not checked yet/i.test(r.innerText)).length,
+        /* RE-POINTED (P-31, 20 Nov 2026): the list no longer carries the standards column ("Not checked yet" on the row),
+           so the folder's unchecked contracts are counted off the record, the way the panel's own reading counts them */
+        unchecked: (() => { const R = regState(); return state.contracts.filter(c => c && !c.archived && c.status !== 'Declined' && !c.parentId && c.folder === R.type && !c._codeNamed
+          && !(typeof stdRowReading === 'function' && stdRowReading(c))).length; })(),
+        money: !!p && /Where the money is/i.test(p.innerText),
         spill: b ? [...p.querySelectorAll('*')].filter(e => { const r = e.getBoundingClientRect(); return r.width && (r.right > b.right + 1 || r.left < b.left - 1); }).length : -1 }; });
     let narrowed = false;
     if (says.mo){ await page.click('.rfp-panel.rfg button.rfg-mo.has');
       narrowed = await until(page, n => document.querySelectorAll('#reg-tbody tr[data-row]').length === n, says.mo, 6000);
       await page.evaluate(() => regShowOnly(null)); await until(page, () => !regState().only, null, 6000); }
-    check('2b the folder at a glance (f1056): twelve months, a month a door to its contracts, the money as bars, who is not checked with its list; nothing spills',
-      panel && says.months === 12 && says.mo > 0 && narrowed && says.bars > 0 && says.only > 0 && says.only === says.unchecked && says.spill === 0
-      && /When they end[\s\S]*Where the money is[\s\S]*Not done yet/i.test(kept), { says, narrowed });
+    /* RE-POINTED, INVERTED (P-31, owner's pick 20 Nov 2026; MONEY IS NEVER A BIG PART OF A PAGE: no money in a side
+       panel): the folder's panel draws NO money — no bars, no "Where the money is" */
+    check('2b the folder at a glance (f1056): twelve months, a month a door to its contracts, NO money in the panel, who is not checked with its list; nothing spills',
+      panel && says.months === 12 && says.mo > 0 && narrowed && says.bars === 0 && !says.money && says.only > 0 && says.only === says.unchecked && says.spill === 0
+      && /When they end[\s\S]*Not done yet/i.test(kept) && !/Where the money is/i.test(kept), { says, narrowed });
     await shot('2-folder-list');
     check('2 a folder\'s list: Standing, the kept question (its name alone), what is missing; All · Needs you · Signed; the folder\'s panel as drawn',
-      proc && up && heads.includes('standing') && !sub.trim() && !/Columns you asked|read · (not )?on this list|Add to list/i.test(kept) && tabs.some(t => /^Signed/.test(t)) && /missing: insurance/i.test(miss)
+      proc && up && heads.includes('standing') && heads.includes('needs you') && !heads.includes('our playbook') && !sub.trim() && !/Columns you asked|read · (not )?on this list|Add to list/i.test(kept) && tabs.some(t => /^Signed/.test(t)) && !miss
       && panel && /When they end/i.test(kept) && !/Remove from list/.test(kept) && !/\bcalls?\b|\bfree\b/i.test(kept), { heads, sub, tabs, miss, panel, kept: kept.slice(0, 600) });
   } catch (e) { check('2 a folder\'s list', false, String(e).slice(0, 200)); }
 
@@ -112,14 +132,18 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await until(page, () => !!document.querySelector('[data-ctf-show="wall"]'), null, 8000);
     await page.evaluate(() => document.querySelector('[data-ctf-show="wall"]').click());
     const up = await until(page, () => document.querySelectorAll('.igw-card.is-nl').length > 3, null, 12000);
-    const both = up ? await page.evaluate(() => [...document.querySelectorAll('.igw-card.is-nl .igw-p')].some(x => / and /.test(x.textContent))) : false;
+    /* RE-POINTED (P-31, owner's pick 20 Nov 2026: the Stripe wall): the paper carries its title alone (no parties line on
+       it); the other side is said UNDER each paper (.igw2-who), beside a soft standing badge */
+    const both = up ? await page.evaluate(() => { const K = [...document.querySelectorAll('.igw-card.is-nl:not(.is-coded)')];
+      return K.length > 0 && K.every(k => !k.querySelector('.igw-sheet .igw-p') && !!k.querySelector('.igw2-foot .reg-badge'))
+        && K.some(k => ((k.querySelector('.igw2-who') || {}).textContent || '').trim().length > 0); }) : false;
     if (up) await page.evaluate(() => { const k = [...document.querySelectorAll('.igw-card.is-nl')].find(x => /Raw Milk/.test(x.textContent)); if (k) k.click(); });
     const chosen = up && await until(page, () => !!document.querySelector('.pd2-chosen .pd2-ch-tbl'), null, 10000);
     const said = await txt(page, '.pd2-chosen');
     const hint = await txt(page, '.igw2-hint');
     await shot('3-wall');
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
-    check('3 the Wall: both parties on each paper; a press chooses, the panel reads it off its paper with its doors, no cost said, no how-to line under the papers',
+    check('3 the Wall: the other side under each paper, a soft badge beside it; a press chooses, the panel reads it off its paper with its doors, no cost said, no how-to line under the papers',
       up && both && chosen && /Raw Milk Collection, chosen/.test(said) && /Read off its paper/i.test(said) && /Open it/i.test(said) && !/\bfree\b|\bcalls?\b|costs? nothing/i.test(said) && !hint /* RE-POINTED (the harmony review, EVEN CARDS, owner's yes 9 Nov 2026): the how-to line under the papers is gone; the panel says what is chosen */, { said: said.slice(0, 160), hint });
   } catch (e) { check('3 the Wall', false, String(e).slice(0, 200)); }
 

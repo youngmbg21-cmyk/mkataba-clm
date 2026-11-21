@@ -164,10 +164,17 @@ const check = (name, pass, detail) => {
       const s = st && getComputedStyle(st), ts = t && getComputedStyle(t);
       /* the new look's stage is the cell's own words: its "no pill" is no wash on the cell nor on anything inside it */
       const stPill = !!st && [...st.querySelectorAll('*')].some(e => !/rgba\(0, 0, 0, 0\)|transparent/.test(getComputedStyle(e).backgroundColor));
-      return { stBg: s && s.backgroundColor, stPad: stPill ? 'pill' : '0px', mark: !!(mk && mk.querySelector('svg')), avBg, avEdge,
+      /* RE-POINTED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way): the stage is a SOFT BADGE (.reg-badge:
+         its tone's pale ground, its tone's ink, a small dot), the cell itself unwashed, and NO mark leads the row */
+      const bd = st && st.querySelector('.reg-badge'), bs = bd && getComputedStyle(bd);
+      const marks = document.querySelectorAll('#reg-tbody tr[data-row] .ls-mk').length;
+      return { stBg: s && s.backgroundColor, stPad: stPill ? 'pill' : '0px', mark: !!(mk && mk.querySelector('svg')), marks,
+        badge: !!bd, badgeBg: bs && bs.backgroundColor, badgeInk: bs && bs.color, badgeDot: !!(bd && bd.querySelector('i')), avBg, avEdge,
         title: ts && ts.fontFamily, titleW: ts && ts.fontWeight };
     });
-    check('6a a stage is its word in its tone, in the grey line: no wash behind it, no pill padding; a mark leads the row', list.mark && /rgba\(0, 0, 0, 0\)|transparent/.test(list.stBg) && list.stPad === '0px', JSON.stringify(list));
+    check('6a a stage is a soft badge in its tone (a pale ground, its ink, a dot), the cell itself unwashed; no mark leads the row',
+      list.badge && list.badgeDot && !/rgba\(0, 0, 0, 0\)|transparent/.test(list.badgeBg || '') && list.badgeBg !== list.badgeInk
+      && /rgba\(0, 0, 0, 0\)|transparent/.test(list.stBg) && !list.mark && list.marks === 0, JSON.stringify(list));
     check('6b a party\'s initials wear their tone\'s wash, no outline', !/rgba\(0, 0, 0, 0\)|transparent/.test(list.avBg) && /rgba\(0, 0, 0, 0\)|transparent/.test(list.avEdge), JSON.stringify(list));
     /* RE-POINTED 16 Nov 2026 (#762): the new look's page titles are Geist (f377), the furniture's face; the serif is the paper's */
     /* RE-POINTED 19 Nov 2026 (the Contracts list as drawn, owner's "the new design for contracts lists page", the same
