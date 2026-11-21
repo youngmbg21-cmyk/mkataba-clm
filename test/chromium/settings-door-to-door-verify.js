@@ -2,8 +2,9 @@
    card", 17 Nov 2026). Replaces settings-menu-verify (the twelve-row list it drove is gone).
    =====================================================================
    Driven in a real browser, the sample book, the new look on, at the owner's three screens:
-     0  the landing: "Settings", the find box, the six areas in order, one row each; the count by the title is the
-        areas' counts added up, and the same number heads Jambo's card
+     0  the landing: "Settings", the find box, the chips, the six areas in order, one row each; the areas' counts
+        added up head Jambo's card (RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way):
+        the count by the title is gone)
      1  an area: one press chooses it (the panel names it), a second goes in; "‹ Settings" comes back
      2  every area: every row has a name, a sentence and its own door or switch; nothing spills, nothing slides sideways
      3  Jambo: the daily budget says its figure; chosen, the card says it; a second press opens today's engine drawer
@@ -25,6 +26,17 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++; console.log(`${ok ? 
 const waitFor = async (page, fn, arg, ms = 8000) => { try { await page.waitForFunction(fn, arg, { timeout: ms }); return true; } catch (_) { return false; } };
 const AREAS = ['you', 'company', 'rules', 'jambo', 'mail', 'setup'];
 const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
+/* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+/* no Open button on any row: the first press on a row chooses it, the second goes in through the row's own door
+   (kept on the row, unseen); a row already chosen goes in on one press */
+const openRow = async (pg, sel) => {
+  await pg.locator(sel).scrollIntoViewIfNeeded().catch(() => {});
+  if ((await pg.getAttribute(sel, 'aria-pressed').catch(() => null)) !== 'true') {
+    await pg.click(sel + ' .sdd-t');
+    await waitFor(pg, s => { const r = document.querySelector(s); return !!r && r.getAttribute('aria-pressed') === 'true'; }, sel, 3000);
+  }
+  await pg.click(sel + ' .sdd-t');
+};
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -57,20 +69,27 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     await waitFor(page, () => window.state && !!state.aiCfg, null, 6000); await page.waitForTimeout(400);
 
     /* 0 · the landing */
+    /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+    /* the count by the title is gone (the title stands alone); each area's soft badge says its "N need you", Jambo's
+       card heads with their sum, and the Need you chip counts the areas that carry one */
     const L = await page.evaluate(() => {
       const areas = [...document.querySelectorAll('#stn-main [data-sdd-home]')].map(r => r.getAttribute('data-sdd-home'));
-      const per = [...document.querySelectorAll('#stn-main [data-sdd-home] .sdd-v')].map(v => { const m = /^(\d+) need/.exec(v.textContent.trim()); return m ? +m[1] : 0; });
-      const cnt = (document.querySelector('.sdd-cnt') || {}).textContent || '', n = +(/(\d+)/.exec(cnt) || [0, 0])[1];
+      const per = [...document.querySelectorAll('#stn-main [data-sdd-home] .sdd-now')].map(v => { const m = /^(\d+) need/.exec(v.textContent.trim()); return m ? +m[1] : 0; });
       const card = ((document.querySelector('#ins-panel .jov5-title') || {}).textContent || '').trim();
-      return { title: (document.querySelector('.sdd-title') || {}).childNodes[0].textContent.trim(), find: !!document.getElementById('sdd-q'), areas, per, n, card };
+      const cm = /^(\d+) things? needs? you/.exec(card), n = cm ? +cm[1] : 0;
+      const chipEl = document.querySelector('.sdd-chips [data-sdd-chip="need"] span'), chip = chipEl ? +chipEl.textContent.trim() : 0;
+      return { title: ((document.querySelector('.sdd-title') || {}).textContent || '').trim(), find: !!document.getElementById('sdd-q'), areas, per, n, card, chip,
+        all: !!document.querySelector('.sdd-chips [data-sdd-chip="all"]') };
     });
-    check('0a the title, the find box, the six areas in order', L.title === 'Settings' && L.find && JSON.stringify(L.areas) === JSON.stringify(AREAS), L);
-    check('0b the count by the title is the areas\' counts added up, and heads Jambo\'s card', L.n === L.per.reduce((a, b) => a + b, 0) && (L.n ? new RegExp('^' + L.n + ' things? needs? you').test(L.card) : /Nothing here needs you/.test(L.card)), L);
+    check('0a the title, the find box, the chips, the six areas in order', L.title === 'Settings' && L.find && L.all && JSON.stringify(L.areas) === JSON.stringify(AREAS), L);
+    check('0b the areas\' counts added up head Jambo\'s card; the Need you chip counts the areas that need you', L.n === L.per.reduce((a, b) => a + b, 0) && L.chip === L.per.filter(Boolean).length && (L.n ? true : /Nothing here needs you/.test(L.card)), L);
     await page.screenshot({ path: path.join(OUT, 'landing-1440x780.png') });
 
     /* 1 · an area: chosen, then in, then back */
     await page.click('#sdd-area-rules');
-    const ch = await page.evaluate(() => ({ pressed: document.getElementById('sdd-area-rules').getAttribute('aria-pressed'), eb: ((document.querySelector('#ins-panel .jov5-eb') || {}).textContent || '') }));
+    /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+    /* the panel names a chosen area in its title now (badges above it, no eyebrow) */
+    const ch = await page.evaluate(() => ({ pressed: document.getElementById('sdd-area-rules').getAttribute('aria-pressed'), eb: ((document.querySelector('#ins-panel .jov5-title') || {}).textContent || '').trim() }));
     check('1a one press chooses an area; the panel names it', ch.pressed === 'true' && /^Rules/.test(ch.eb), ch);
     await page.click('#sdd-area-rules');
     check('1b a second press goes in', await waitFor(page, () => !!document.querySelector('.sdd-page[data-sdd-area="rules"] #sdd-review'), null, 5000));
@@ -117,8 +136,8 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     /* 5 · People & roles */
     await page.evaluate(() => { if (typeof stDrawerClose === 'function') stDrawerClose(); sddGo('company'); });
     await waitFor(page, () => !document.querySelector('#st-drawer.open') && !!document.querySelector('#sdd-people [data-sdd-go]'), null, 5000);
-    await page.locator('#sdd-people [data-sdd-go]').scrollIntoViewIfNeeded().catch(() => {});
-    await page.click('#sdd-people [data-sdd-go]');
+    /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+    await openRow(page, '#sdd-people');
     const P = await waitFor(page, () => !!document.querySelector('.sdd-ptabs') && !!document.querySelector('.sdd-pgback'), null, 5000);
     const PT = P ? await page.evaluate(() => ({ back: document.querySelector('.sdd-pgback').textContent.trim(), tabs: [...document.querySelectorAll('.sdd-ptab')].map(b => b.textContent.trim()), panel: !!document.querySelector('#st-side .jov5'), menu: !!document.querySelector('#st-side [data-st-jb-menu-door]') })) : null;
     check('5a People & roles opens with its tabs and "‹ Company"', !!PT && PT.back === '‹ Company' && PT.tabs[0] === 'People' && PT.tabs.includes('Who holds what'), PT);
@@ -128,7 +147,9 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
 
     /* 6 · Trail & backup */
     await page.evaluate(() => sddGo('setup'));
-    await page.click('#sdd-trail [data-sdd-go]');
+    /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+    await waitFor(page, () => !!document.querySelector('#sdd-trail'), null, 4000);
+    await openRow(page, '#sdd-trail');
     check('6 Trail & backup opens its page with "‹ Set-up and records"', await waitFor(page, () => /Set-up and records/.test((document.querySelector('.sdd-pgback') || {}).textContent || '') && !!document.querySelector('[data-st-bk-tab]'), null, 5000));
 
     /* 8 · a refresh lands where you were */

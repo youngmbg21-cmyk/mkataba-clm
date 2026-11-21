@@ -86,7 +86,16 @@ const signIn = async (page, base, email, pass) => {
        the Company board's cards are the old look's */
     /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): People & roles is a row in the Company area */
     await page.evaluate(() => sddGo('company'));
-    await page.click('#stn-main [data-sdd-row="people"] [data-st-page="team"]');
+    /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+    /* no Open button on the row: the first press on People & roles chooses it, the second goes in through its own door
+       (kept on the row, unseen) */
+    const PEOPLE = '#stn-main [data-sdd-row="people"]';
+    await until(q => !!document.querySelector(q), PEOPLE, 5000);
+    if ((await page.getAttribute(PEOPLE, 'aria-pressed').catch(() => null)) !== 'true') {
+      await page.click(PEOPLE + ' .sdd-t');
+      await until(q => { const r = document.querySelector(q); return r && r.getAttribute('aria-pressed') === 'true' ? true : null; }, PEOPLE, 3000);
+    }
+    await page.click(PEOPLE + ' .sdd-t');
     const team = await until(() => document.querySelectorAll('[data-st-pg="team"] tr.st-person').length || null);
     check('2c. Team is a page inside the board', team >= 4, team + ' people');
     await page.reload({ waitUntil: 'networkidle' });

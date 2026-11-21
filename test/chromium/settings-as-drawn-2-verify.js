@@ -93,7 +93,10 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     const said = await until(() => { const t = document.querySelector('#ins-panel .jov5-title'); if (!t) return null;
       /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): the count is the ONE list of what needs you (sddNeedList);
          its first stands in the black-button card, the rest are rows under "Needs an admin" */
-      const n = sddNeedList(true, null, sddRows(true)).length, drawn = (document.querySelector('#ins-panel .jov5-act .jov5-go') ? 1 : 0) + [...document.querySelectorAll('#ins-panel .jov5-sec')].filter(sec => /Needs an admin/i.test((sec.querySelector('.jov5-label') || {}).textContent || '')).reduce((k, sec) => k + sec.querySelectorAll('.jov5-row').length, 0);
+      /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+      /* no black-button card on the landing: every need is a row under "Needs you" (the button stands nowhere twice);
+         the black button is still counted should one be drawn */
+      const n = sddNeedList(true, null, sddRows(true)).length, drawn = (document.querySelector('#ins-panel .jov5-act .jov5-go') ? 1 : 0) + [...document.querySelectorAll('#ins-panel .jov5-sec')].filter(sec => /Needs (you|an admin)/i.test((sec.querySelector('.jov5-label') || {}).textContent || '')).reduce((k, sec) => k + sec.querySelectorAll('.jov5-row').length, 0);
       const more = /\d+ more/.exec(document.getElementById('ins-panel').textContent || '');
       return { n, title: t.textContent.trim(), drawn, more: more ? more[0] : '' }; });
     check('1a his headline is the list\'s count', !!said && said.n > 0 && new RegExp('^' + said.n + '\\b').test(said.title), said && `${said.title} / ${said.n}`);
