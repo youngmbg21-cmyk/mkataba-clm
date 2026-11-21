@@ -270,7 +270,13 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       document.querySelectorAll('tr[data-row]').forEach(tr => {
         const c = state.contracts.find(x => x.id === tr.getAttribute('data-row'));
         const w = tr.querySelector('td.reg-standing');
-        if (c && w && !out[c.status]){ const ink = getComputedStyle(w).color; const t = TONES.find(x => res('color', '--st-' + x + '-fg') === ink);
+        /* RE-POINTED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way): the Standing cell is a SOFT BADGE
+           (.reg-badge.is-<tone>, its tone's pale ground and ink); the tone it names is read off the badge and compared on
+           the tone's DOT, the shade the Board's bar and square paint */
+        const bdg = w && w.querySelector('.reg-badge');
+        const bt = bdg && (/(?:^|\s)is-([a-z]+)/.exec(bdg.className) || [])[1];
+        if (c && bdg && bt && TONES.includes(bt) && !out[c.status]) out[c.status] = res('color', '--st-' + bt + '-dot');
+        if (c && w && !bdg && !out[c.status]){ const ink = getComputedStyle(w).color; const t = TONES.find(x => res('color', '--st-' + x + '-fg') === ink);
           out[c.status] = t ? res('color', '--st-' + t + '-dot') : 'ink ' + ink; }
         const dot = !w && (tr.querySelector('.reg-id .ls-mark') || tr.querySelector('.reg-stg i'));
         if (c && dot && !out[c.status]) out[c.status] = dot.matches('.ls-mark') ? getComputedStyle(dot).color : getComputedStyle(dot).backgroundColor;

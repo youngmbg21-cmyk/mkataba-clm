@@ -62,7 +62,9 @@ describe('f1093 (2) "See it in the paper ›" on departure rows only', () => {
   const V = strip(R('js/views/approvalsview.js'));
   test('EVERY CONTRACT ROW carries it too, a signature and a receipt included (18 Nov 2026, second round)', () => {
     const row = fnBody(V, 'apnRowHtml');
-    assert.match(row, /acts\+=apnPeekLinkHtml\('c:'\+c\.id\);\s*return `<tr data-ap-row/);
+    /* RE-POINTED (P-30, owner's pick 20 Nov 2026: "the row keeps ONLY See it in the paper ›"): the link is the row's last cell */
+    assert.match(row, /<td class="apn-acts">\$\{apnPeekLinkHtml\('c:'\+c\.id\)\}<\/td><\/tr>`/);
+    assert.doesNotMatch(row, /data-ap-approve|data-ap-refuse|data-ap-open=/, 'no decision on the row');
     const of = fnBody(V, 'apnPeekRowOf');
     assert.match(of, /k\.startsWith\('c:'\)/);
     assert.match(of, /apnQuote\(c\)/);

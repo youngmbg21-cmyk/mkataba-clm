@@ -3921,10 +3921,21 @@ function pdWallOverview(){
     const groups = [];
     if (onFirst.length) groups.push({ label: _pdT('jov5_ct_next'), rows: [{ mark: 'calendar', t: _pdTn('jov5_cal_end', onFirst.length, { n: onFirst.length }), s: names.slice(0, 3).join(', ') + (names.length > 3 ? ' ' + _pdTn('jov_more', names.length - 3, { n: names.length - 3 }) : ''), v: day, run: show(onFirst, _pdT('jov5_ct_next')) }] });
     if (owes.length) groups.push({ label: _pdT('rfg_todo'), rows: [{ mark: 'pencil', tone: 'amber', t: _pdT('jov_ct_owes'), v: String(owes.length), run: show(owes, _pdT('jov_ct_owes')) }] });
+    /* CONTRACTS, THE LEGORA + STRIPE WAY (P-31, owner's pick 20 Nov 2026): the list's panel carries NO CARDS AND NO
+       MONEY — a sentence, where they stand (one bar), when they end (dots by month), what needs you (name and why) */
+    void sumTxt;
+    const D = (typeof window.regFolderSummaryData === 'function') ? window.regFolderSummaryData(book, []) : null;
+    let mid = '';
+    if (D){ const tot = Math.max(1, book.length), pc = x => (Math.round(x / tot * 1000) / 10) + '%';
+      mid = `<div class="ctf-stand"><i class="is-r" style="width:${pc(D.review.length)}"></i><i class="is-s" style="width:${pc(D.signed.length)}"></i></div>`
+        + `<div class="ctf-key"><span><i class="is-r"></i>${_pdE(_pdT('ctf_k_review'))} ${D.review.length}</span><span><i class="is-s"></i>${_pdE(_pdT('ctf_k_signed'))} ${D.signed.length}</span></div>`
+        + (D.months.some(m => m.dots.length) ? `<div class="ctf-months is-mini">${D.months.map(m => `<div class="ctf-mo"><div class="ctf-mo-d">${m.dots.slice(0, 4).map(x => `<i class="is-${x.tone}" title="${_pdE(x.name)}"></i>`).join('')}</div><small>${_pdE(m.label.slice(0, 1))}</small></div>`).join('')}</div>` : '');
+      const need = book.filter(c => D.needIds.has(c.id)).slice(0, 3);
+      if (need.length) groups.unshift({ label: _pdT('ctf_fig_need'), rows: need.map(c => { let w = ''; try { const it = (needsYouOf(c) || [])[0]; const x = it && typeof insNeedWords === 'function' ? insNeedWords(c, it) : null; w = x && x.title || ''; } catch (_){ w = ''; }
+        return { mark: 'file', tone: 'amber', t: c.name || ref(c), s: [c.counterparty || '', w].filter(Boolean).join(' \u00b7 '), run: show([c], c.name || ref(c)) }; }) }); }
     return { title: book.length && signed.length === book.length ? _pdTn('jov5_ct_all_signed', book.length, { n: book.length }) : _pdTn('jov_ct_head_b', book.length, { n: book.length, k: signed.length }),
       sub: _pdT(pdDropMay() ? 'jov_ct_head_s' : 'jov_ct_head_s_view'),
-      glance: [sumTxt ? { n: sumTxt, l: _pdT('jov5_ct_paper', { cur: (typeof fxHomeCode === 'function' ? fxHomeCode() : '') || '' }).trim() } : { n: book.length, l: _pdT('jov5_dir_agreements') },
-        { n: signed.length, l: _pdT('jov5_signed'), run: signed.length ? show(signed, _pdT('jov5_signed_list')) : null }, { n: book.length - signed.length, l: _pdT('jov5_ct_works') }],
+      mid, midLabel: mid ? _pdT('ctf_where_all', { n: book.length }) : '',
       groups, src: _pdT('jl_src_list'), asks: [] };
   }
   /* no "Ask me" here (owner, 28 Oct 2026: "remove the Ask me details"): each fact keeps its own Show */
@@ -4027,7 +4038,7 @@ function pdWallHtml(disc){
   const o = pdWallOverview();
   const ov = (x, cls, slot) => `<div class="jl-words is-ov ${cls}">${jamboOverviewHtml(x, slot)}</div>`;
   /* THE FIVE PARTS (15 Nov 2026): one panel, Discover in its middle — under the tiles, above the rows (the facts stay below Discover) */
-  if (o.title) return `<div class="pd-wall">${ov(Object.assign({}, o, { mid: disc || '' }), 'pd-hello', 'pd')}</div>`;
+  if (o.title) return `<div class="pd-wall">${ov(Object.assign({}, o, { mid: (o.mid || '') + (disc || '') }), 'pd-hello', 'pd')}</div>`;
   return `<div class="pd-wall">${ov({ head: o.head }, 'pd-hello', 'pd')}${disc || ''}${ov({ facts: o.facts, src: o.src }, 'pd-wall-facts', 'pdf')}</div>`;
 }
 /* THE FILE PICKER: one input, kept outside the panel (the panel is redrawn
@@ -7390,7 +7401,8 @@ function pd2ChosenHtml(c){
   const owes = nd.map(words).filter(Boolean).map(t => t.charAt(0).toLowerCase() + t.slice(1));
   const head = _pdT(owes.length ? 'pd2_ch_head' : 'pd2_ch_head_quiet', { name: c.name || '', stage: stage.charAt(0).toUpperCase() + stage.slice(1).toLowerCase(), owes: owes.join(', ') });
   const rows = [];
-  if (R.money) rows.push([_pdT('pd2_f_value'), R.money, pd2SectionOf(c, 'value', cls)]);
+  /* no money in the chosen paper's panel (P-31, owner's pick 20 Nov 2026: the list's Value column is where money shows) */
+  if (R.money && !(typeof newLookOn === 'function' && newLookOn())) rows.push([_pdT('pd2_f_value'), R.money, pd2SectionOf(c, 'value', cls)]);
   if (R.expiry){ const renews = typeof contractRenewsItself === 'function' && contractRenewsItself(c);
     rows.push([_pdT('pd2_f_ends'), R.expiry + (renews ? ', ' + E(_pdT('pd2_renews')) : ''), pd2SectionOf(c, 'expiry', cls)]); }
   let L = []; try { L = (typeof riskOpenOf === 'function') ? riskOpenOf(c) : []; } catch (_){ L = []; }

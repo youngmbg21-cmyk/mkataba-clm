@@ -47,18 +47,27 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await page.evaluate(() => caGo({ kind: 'go', place: 'approvals' }));
     const up = await until(page, () => !!document.querySelector('.apn-table [data-ap-row]'), null, 15000);
     const heads = up ? await page.evaluate(() => [...document.querySelectorAll('.apn-table thead th')].map(x => x.innerText.trim().toLowerCase()).filter(Boolean)) : [];
-    const row = up ? await page.evaluate(() => { const r = document.querySelector('.apn-table [data-ap-kind="approval"]'); return r ? { approve: !!r.querySelector('[data-ap-approve]'), decline: !!r.querySelector('[data-ap-refuse]'), quote: !!r.querySelector('.apn-q') } : null; }) : null;
-    const signing = up ? await page.evaluate(() => !!document.querySelector('.apn-table [data-ap-kind="signature"] [data-ap-open]')) : false;
+    /* RE-POINTED (P-30, owner's pick 20 Nov 2026: Approvals the Legora + Stripe way): the row carries NO buttons — a soft
+       status badge, the approver, the steps; Approve and Decline are the chosen row's panel's (data-apn-act); the quote
+       line is .apn-ql; a signing row is a row of the same table (its Open went with the row buttons) */
+    const row = up ? await page.evaluate(() => { const r = document.querySelector('.apn-table [data-ap-kind="approval"]'); return r ? { noButtons: !r.querySelector('[data-ap-approve], [data-ap-refuse], [data-apn-act], .ui-btn'), badge: !!r.querySelector('.apn-st'), quote: !!r.querySelector('.apn-ql') } : null; }) : null;
+    const signing = up ? await page.evaluate(() => !!document.querySelector('.apn-table [data-ap-kind="signature"] .apn-st')) : false;
     if (up) await page.click('.apn-table [data-ap-kind="approval"] td');
     /* RE-POINTED (owner, 16 Nov 2026: the chosen row's panel in the five parts; f1073): Before you decide is drawn by the
        one builder (data-jov-slot="apn"), its own links still above the box */
-    const panel = up && await until(page, () => !!document.querySelector('#ins-panel [data-jov-slot="apn"]') && /What the paper says/i.test(document.getElementById('ins-panel').innerText), null, 8000);
+    /* RE-POINTED (P-30, 20 Nov 2026): the panel's groups are "What you are approving" and "Timeline", and it carries the
+       row's Approve and Decline */
+    const panel = up && await until(page, () => !!document.querySelector('#ins-panel [data-jov-slot="apn"]') && /What you are approving/i.test(document.getElementById('ins-panel').innerText)
+      && !!document.querySelector('#ins-panel [data-apn-act="approve"]') && !!document.querySelector('#ins-panel [data-apn-act="refuse"]'), null, 8000);
     const tab = await txt(page, '#ins-panel [data-jl-home]');
     const links = await page.evaluate(() => [...document.querySelectorAll('#ins-panel .jb-ways.is-own [data-apn-go]')].map(b => b.getAttribute('data-apn-go')));
     const junk = /\[object Object\]/.test(await txt(page, '#ins-panel'));
     await shot('1-approvals');
-    check('1 Approvals: one worklist, Approve and Decline on the row, signing under it; Before you decide with its own links', up && heads.join('|') === 'agreement|what it rests on|rule|waited'
-      && !!row && row.approve && row.decline && row.quote && signing && panel && /before you decide/i.test(tab) && links.includes('clause') && links.includes('hist') && !junk,
+    /* RE-POINTED (P-30, 20 Nov 2026): Agreement · Status · Approver · Steps · Rule · Asked (Approver, Steps and Rule may
+       step aside where the room is short — listCols' rank) */
+    check('1 Approvals: one worklist, no buttons on the row (Approve and Decline in the chosen row\'s panel), signing under it; Before you decide with its own links', up && heads[0] === 'agreement' && heads[1] === 'status' && heads[heads.length - 1] === 'asked'
+      && heads.every(h => ['agreement', 'status', 'approver', 'steps', 'rule', 'asked'].includes(h))
+      && !!row && row.noButtons && row.badge && row.quote && signing && panel && /before you decide/i.test(tab) && links.includes('clause') && links.includes('hist') && !junk,
       { heads, row, signing, panel, tab, links, junk });
   } catch (e) { check('1 Approvals', false, String(e).slice(0, 200)); }
 

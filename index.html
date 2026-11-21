@@ -19911,6 +19911,112 @@
   html.lg-new #app-shell .cal-hz-key{margin-left:auto;font-size:12px;color:var(--color-text)}
   /* OBLIGATIONS, AS DRAWN (round 5): the duty, the words it rests on in the paper's type with its §, the day, one link */
   html.lg-new .apn-tab.is-prop{color:var(--st-amber-fg)}
+  /* APPROVALS, THE LEGORA + STRIPE WAY (P-30): the ask box under the title, chips with a dot and their counts, + Rule; one
+     calm table — soft status badges, the approver's initials, a strip of three steps, the paper's words on one line */
+  html.lg-new :is(.apn-page,.ctf-page) .apn-ask{display:flex;align-items:center;gap:8px;margin:10px 0 12px;padding:0 0 8px;border-bottom:1px solid var(--color-divider);color:var(--color-quiet)}
+  html.lg-new :is(.apn-page,.ctf-page) .apn-ask input{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:var(--t-body);color:var(--color-text);outline:none}
+  html.lg-new .apn-page .apn-bar:has(.is-chip){gap:6px;border-bottom:0;margin:0 0 10px;flex-wrap:wrap}
+  html.lg-new :is(.apn-page,.ctf-page) .apn-tab.is-chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border:1px solid var(--color-neutral-300);border-radius:999px;margin:0;font-size:var(--t-label)}
+  html.lg-new :is(.apn-page,.ctf-page) .apn-tab.is-chip.is-on{background:var(--surface-2);border-color:var(--color-neutral-400)}
+  html.lg-new :is(.apn-page,.ctf-page) .apn-tab.is-chip span{color:var(--color-quiet)}
+  html.lg-new .apn-cd{width:7px;height:7px;border-radius:50%;background:var(--st-amber-dot)}
+  html.lg-new .apn-cd.is-steel{background:var(--st-steel-dot)}
+  html.lg-new .apn-cd.is-green{background:var(--st-green-dot)}
+  html.lg-new .apn-chip{height:26px;padding:0 10px;border-radius:999px;border:1px dashed var(--color-neutral-300);background:none;font:inherit;font-size:var(--t-label);color:var(--color-quiet);cursor:pointer}
+  html.lg-new .apn-chip.is-set{border-style:solid;background:var(--surface-2);color:var(--color-text)}
+  html.lg-new .apn-rule-w{position:relative}
+  html.lg-new .apn-rule-menu{position:absolute;top:30px;left:0;z-index:5;display:flex;flex-direction:column;min-width:200px;padding:6px;border:1px solid var(--color-neutral-200);border-radius:var(--radius);background:var(--color-surface);box-shadow:0 8px 24px rgba(0,0,0,.08)}
+  html.lg-new .apn-rule-menu[hidden]{display:none}
+  html.lg-new .apn-rule-menu button{border:0;background:none;text-align:left;padding:6px 8px;border-radius:6px;font:inherit;font-size:var(--t-label);cursor:pointer}
+  html.lg-new .apn-rule-menu button:hover{background:var(--surface-2)}
+  html.lg-new .apn-table.is-ls td{vertical-align:middle}
+  html.lg-new .apn-table.is-ls .apn-ql{display:flex;gap:4px;min-width:0;font-family:var(--font-doc);font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;overflow:hidden}
+  html.lg-new .apn-table.is-ls .apn-ql i{font-style:normal;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .apn-table.is-ls .apn-ql span{flex:none}
+  html.lg-new .apn-st{display:inline-flex;align-items:center;gap:6px;height:22px;max-width:100%;padding:0 9px;border-radius:999px;font-size:var(--t-micro);font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new .apn-st i{flex:none;width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.8}
+  html.lg-new .apn-st.is-ruby{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new .apn-st.is-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-new .apn-st.is-green{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .apn-who{display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:100%;font-size:var(--t-label);white-space:nowrap}
+  html.lg-new .apn-who>span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .apn-none-c{color:var(--color-neutral-400)}
+  html.lg-new .apn-steps{display:inline-flex;align-items:center}
+  html.lg-new .apn-sd{flex:none;display:block;width:9px;height:9px;border-radius:50%;background:var(--color-neutral-200)}
+  html.lg-new .apn-sd.is-done{background:var(--st-green-dot)}
+  html.lg-new .apn-sd.is-on{background:var(--color-surface);box-shadow:0 0 0 2px var(--st-amber-dot)}
+  html.lg-new .apn-sd.is-on.is-ruby{box-shadow:0 0 0 2px var(--st-ruby-dot)}
+  html.lg-new .apn-sd.is-on.is-steel{box-shadow:0 0 0 2px var(--st-steel-dot)}
+  html.lg-new .apn-sl{display:block;width:14px;height:2px;margin:0 2px;background:var(--color-neutral-200)}
+  html.lg-new .apn-sl.is-done{background:var(--st-green-dot)}
+  html.lg-new .apn-steps.is-big{display:flex;align-items:flex-start;width:100%}
+  html.lg-new .apn-steps.is-big .apn-sb{flex:none;display:flex;flex-direction:column;align-items:center;gap:6px}
+  html.lg-new .apn-steps.is-big .apn-sd{width:12px;height:12px}
+  html.lg-new .apn-steps.is-big small{font-size:var(--t-micro);color:var(--color-quiet)}
+  html.lg-new .apn-steps.is-big .apn-sl{flex:1;width:auto;margin:5px 6px 0}
+  html.lg-new .jov5-tag.is-red{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new .jov5-tag.is-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  /* CONTRACTS, THE LEGORA + STRIPE WAY (P-31): the folders landing a summary — four figure cards, where they stand, when
+     they end by month, the folders as a calm table; soft badges for standing; the ask box under the title; chips */
+  html.lg-new .ctf-page .ctf-ask{margin:10px 0 12px}
+  html.lg-new .ctf-page .ctf-bar{gap:6px;border-bottom:0;margin:0 0 14px}
+  html.lg-new .ctf-ls{display:flex;flex-direction:column;gap:22px;container-type:inline-size}
+  html.lg-new .ctf-figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  html.lg-new .ctf-fig{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;padding:14px 16px;border:1px solid var(--color-neutral-200);border-radius:var(--radius);background:var(--color-surface);font:inherit;text-align:left;cursor:pointer}
+  html.lg-new .ctf-fig:hover:not([disabled]){border-color:var(--color-neutral-300)}
+  html.lg-new .ctf-fig[disabled]{cursor:default}
+  html.lg-new .ctf-fig>span{font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .ctf-fig>b{font-family:var(--font-title);font-size:26px;line-height:1.1;font-weight:var(--w-label);font-variant-numeric:tabular-nums}
+  html.lg-new .ctf-fig.is-amber>b{color:var(--st-amber-fg)}
+  html.lg-new .ctf-fig>small{max-width:100%;font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .ctf-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:24px}
+  html.lg-new .ctf-sec .ctf-cap{margin:0 0 8px}
+  html.lg-new .ctf-stand{display:flex;gap:2px;height:8px;border-radius:999px;overflow:hidden;background:var(--color-neutral-100)}
+  html.lg-new .ctf-stand i,html.lg-new .ctf-tbar i{display:block;height:100%}
+  html.lg-new :is(.ctf-stand,.ctf-tbar,.ctf-key) .is-r{background:var(--st-amber-dot)}
+  html.lg-new :is(.ctf-stand,.ctf-tbar,.ctf-key,.ctf-mo-d) .is-s,html.lg-new .ctf-mo-d .is-green{background:var(--st-green-dot)}
+  html.lg-new :is(.ctf-stand,.ctf-tbar,.ctf-key) .is-e,html.lg-new .ctf-mo-d .is-gray{background:var(--color-neutral-300)}
+  html.lg-new :is(.ctf-key,.ctf-mo-d) .is-ruby{background:var(--st-ruby-dot)}
+  html.lg-new :is(.ctf-key,.ctf-mo-d) .is-amber{background:var(--st-amber-dot)}
+  html.lg-new .ctf-sec .ctf-key{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .ctf-sec .ctf-key i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px}
+  html.lg-new .ctf-months{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;align-items:end}
+  html.lg-new .ctf-mo{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+  html.lg-new .ctf-mo-d{display:flex;flex-direction:column-reverse;align-items:center;gap:3px;min-height:40px;justify-content:flex-start}
+  html.lg-new .ctf-mo-d i{display:block;width:8px;height:8px;border-radius:50%}
+  html.lg-new .ctf-mo-d small{font-size:var(--t-micro);color:var(--color-quiet)}
+  html.lg-new .ctf-mo>small{font-size:var(--t-micro);color:var(--color-quiet);white-space:nowrap}
+  html.lg-new .ctf-months.is-mini{margin-top:12px}
+  html.lg-new .ctf-months.is-mini .ctf-mo-d{min-height:22px}
+  html.lg-new .ctf-ftable{width:100%;border-collapse:collapse;table-layout:fixed}
+  html.lg-new .ctf-ftable th{padding:8px 8px 6px;text-align:left;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-quiet);border-bottom:1px solid var(--color-neutral-200)}
+  html.lg-new .ctf-ftable th:first-child{width:auto}
+  html.lg-new .ctf-ftable th:nth-child(2){width:12%}
+  html.lg-new .ctf-ftable th:nth-child(3){width:20%}
+  html.lg-new .ctf-ftable th:nth-child(4){width:16%}
+  html.lg-new .ctf-ftable th:nth-child(5){width:16%}
+  html.lg-new .ctf-ftable td{padding:10px 8px;border-bottom:1px solid var(--color-neutral-200);vertical-align:middle;font-size:var(--t-body)}
+  html.lg-new .ctf-ftable tr[tabindex]{cursor:pointer}
+  html.lg-new .ctf-ftable tr[tabindex]:hover,html.lg-new .ctf-ftable tr.is-sel{background:var(--surface-2)}
+  html.lg-new .ctf-ftable .ctf-name{display:block;font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .ctf-ftable .ctf-desc{display:block;font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .ctf-ftable .ctf-n{text-align:right;font-variant-numeric:tabular-nums}
+  html.lg-new .ctf-ftable .ctf-next{font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap}
+  html.lg-new .ctf-tbar{display:flex;gap:2px;width:100%;max-width:100px;height:6px;border-radius:999px;overflow:hidden;background:var(--color-neutral-100)}
+  html.lg-new .reg-badge{display:inline-flex;align-items:center;gap:6px;height:22px;max-width:100%;padding:0 9px;border-radius:999px;font-size:var(--t-micro);font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--color-neutral-100);color:var(--color-neutral-700)}
+  html.lg-new .reg-badge i{flex:none;width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.8}
+  html.lg-new .reg-badge.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new .reg-badge.is-green{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .reg-badge.is-ruby{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new .reg-badge.is-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-new .reg-badge.is-violet{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  html.lg-new .reg-need{display:block;font-size:var(--t-label);color:var(--st-amber-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .reg-need.is-them{color:var(--color-neutral-400)}
+  html.lg-new .reg-need small{color:var(--color-quiet)}
+  html.lg-new .igw-card.is-stripe .igw2-st{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+  html.lg-new .igw-card.is-stripe .igw2-end{flex:none;font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap}
+  @container (max-width:520px){ html.lg-new .ctf-ftable :is(th,td):nth-child(n+4){display:none} }
+  @container (max-width:760px){ html.lg-new .ctf-figs{grid-template-columns:repeat(2,minmax(0,1fr))} html.lg-new .ctf-two{grid-template-columns:minmax(0,1fr)} }
   html.lg-new .apn-tab{white-space:nowrap}
   html.lg-new .obn-table td{padding:14px 16px 14px 0;border-bottom:1px solid var(--color-divider);vertical-align:top}
   html.lg-new .obn-table tr.obn-g td{padding:18px 16px 10px 0;font-size:14px;border-bottom:1px solid var(--color-divider)}
@@ -22033,7 +22139,8 @@
      folders page had no part that scrolls inside it, so every folder past the window's foot was cut off and out of
      reach. Its list (and the tiles) take the room left under the head and scroll there, as the wall and the list do;
      the count line stays at the foot. THE LESSON: a frame that clips needs a scroller inside it (white-sheet-verify, CUT). */
-  html.lg-new #ct-place .ctf-page > :is(.ctf-list, .ctf-grid){flex:1 1 0%;min-height:0;overflow-y:auto}
+  html.lg-new #ct-place .ctf-page > :is(.ctf-list, .ctf-grid, .ctf-ls){flex:1 1 0%;min-height:0;overflow-y:auto}
+  html.lg-new #ct-place .ctf-page > .ctf-ls > *{flex:none}
   html.lg-new #ct-place .ctf-page > .ctf-list > *{flex:none}
   html.lg-new #ct-place .ctf-page > .ctf-grid{align-content:start}
   /* VIEWS FIRST (owner's pick by name, 10 Nov 2026; regFolderRowsHtml, regFolderViewsHtml): up to four view tiles in one

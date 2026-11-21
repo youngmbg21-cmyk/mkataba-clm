@@ -176,7 +176,9 @@ const MEASURE = `(() => {
        (.tpln5-fig: the number over its word, a column, the word held to one line with "…" — the same tile as .jov5-g) */
     /* …and, RE-POINTED (P-13, owner's pick 20 Nov 2026: Obligations the Stripe way), its figure tiles (.obs-tile: the word and
        its note over the number and its tiny chart, a column, like .jov5-g) */
-    if (el.matches('.obs-tile, .ui-link-say, .hb-say, .hb-mi, [data-dlg-cancel], .hb-fig-main, .hb-fig, .hb-cfig, .pd-tab, .hb-payk-i, .igx-fig, .na-pick, .hb-card, .tpl-pf-i, .ds-ln-st, .pd-dossier button.pd-ck-hd, .ctf-card, .ctf-row, .jov5-g, .jov5-row, .ctf-view, .tpln5-fig')) continue;
+    /* …and, RE-POINTED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way), the folders landing's four
+       figure cards (button.ctf-fig: the word over the number over its grey note, a column, the note held to one line with "…") */
+    if (el.matches('.obs-tile, .ctf-fig, .ui-link-say, .hb-say, .hb-mi, [data-dlg-cancel], .hb-fig-main, .hb-fig, .hb-cfig, .pd-tab, .hb-payk-i, .igx-fig, .na-pick, .hb-card, .tpl-pf-i, .ds-ln-st, .pd-dossier button.pd-ck-hd, .ctf-card, .ctf-row, .jov5-g, .jov5-row, .ctf-view, .tpln5-fig')) continue;
     const w = words(el); if (!w || w.length > 48) continue;
     if (el.querySelector('br, p, div, ul, table')) continue;
     /* THE LINES THE WORDS TOOK, not the box's height: a tag with a fixed height folds its words inside it and the box never grows */

@@ -219,11 +219,22 @@ let H;
       const tr = document.querySelector('[data-ap-row="MK-A2"]');
       return tr ? tr.textContent.replace(/\s+/g, ' ').trim() : '';
     });
+    /* RE-POINTED (P-30, owner's pick 20 Nov 2026: Approvals the Legora + Stripe way): the row is Agreement · Status ·
+       Approver · Steps · Rule · Asked — the approver's cell names the person whose yes it is (for the reader: "You", its
+       hover the turn), the Rule cell "<name>'s contracts"; WHO ASKED moved to the chosen row's panel, its Timeline
+       ("<name> asked") — so the row is pressed and the panel read (the eyebrow carries the rule too) */
+    const apc = await P.page.evaluate(() => { const w = document.querySelector('[data-ap-row="MK-A2"] td.apn-apc .apn-who');
+      return w ? { text: w.textContent.replace(/\s+/g, ' ').trim(), title: w.getAttribute('title') || '' } : null; });
+    await P.page.click('[data-ap-row="MK-A2"] td').catch(() => {});
+    await P.page.waitForFunction(() => /asked/i.test((document.querySelector('#ins-panel [data-jov-slot="apn"]') || {}).innerText || ''), null, { timeout: 6000 }).catch(() => {});
+    const apPanel = await P.page.evaluate(() => { const p = document.querySelector('#ins-panel'); return p ? p.innerText.replace(/\s+/g, ' ').trim() : ''; });
     check('4a  it is on the approver\'s Approvals page, named for the person, asked by the lead',
       /* RE-POINTED 18 Oct 2026 (round 15 as drawn, "Jonas's yes before signing /
          Erik's contracts need it"): the line under the step names whose contracts need it */
       /* RE-POINTED 16 Nov 2026 (#762): the new look's row (apnRowHtml) says "asked by …" and the rule's line, "<name>'s contracts" */
-      /asked by Unrestricted Legal/.test(list) && /Unrestricted Legal['’]s contracts/.test(list), list);
+      !!list && !!apc && /You$/.test(apc.text) && /Unrestricted Legal asked/.test(apPanel)
+        && (/Unrestricted Legal['’]s contracts/.test(list) || /Unrestricted Legal['’]s contracts/.test(apPanel)),
+      JSON.stringify({ list, apc, panel: apPanel.slice(0, 300) }));
     await shot(P.page, 'sa-05-list');
     await openSign(P.page);
     /* RE-POINTED 18 Oct 2026 (the gaps, round 10 "The road", f752): the approval

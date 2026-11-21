@@ -67,7 +67,10 @@ const check = (name, pass, detail) => {
         coded: b.querySelector('.igw-sheet').classList.contains('is-coded'), bg: getComputedStyle(b.querySelector('.igw-sheet')).backgroundImage,
         /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; THE WALL AS DRAWN, round 6): under the sheet one
            foot (.igw2-foot) — the party, the stage in words and the value; the number is no longer printed */
-        m: ((b.querySelector('.igw2-st > span') || {}).textContent || '').trim(), ref: ((b.querySelector('.igw2-st b') || {}).textContent || '').trim(),
+        /* RE-POINTED (P-31, owner's pick 20 Nov 2026: the Stripe wall): the foot is the other side, a soft standing BADGE
+           (.igw2-st .reg-badge) and the end date (.igw2-end); NO MONEY — ref reads any value still printed there */
+        m: ((b.querySelector('.igw2-st .reg-badge') || {}).textContent || '').trim(), ref: ((b.querySelector('.igw2-st b') || {}).textContent || '').trim(),
+        end: ((b.querySelector('.igw2-st .igw2-end') || {}).textContent || '').trim(), foot: ((b.querySelector('.igw2-foot') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
         nm: ((b.querySelector('.igw2-who') || {}).textContent || '').trim(), lock: ((b.querySelector('.igw-lock') || {}).textContent || '').trim(),
         under: !!b.querySelector('.igw2-foot') && b.querySelector('.igw2-foot').getBoundingClientRect().top >= s.bottom - 1 }; };
 
@@ -76,7 +79,12 @@ const check = (name, pass, detail) => {
     check('1a a small paper, the top of its first page (wider than tall), its title on it and nothing stamped over it',
       /* RE-POINTED 16 Nov 2026 (#762): the new look's EVEN TILES draw a larger paper; its shape stands */ !!D && D.w >= 110 && D.w <= 300 && D.w / D.h > 1.4 && D.w / D.h < 1.7 && /Supply agreement 2/.test(D.t) && !D.stamp, JSON.stringify(D));
     const val = await page.evaluate(() => fmtMoneyShortOf(getContract('MK-W2')));
-    check('1b under it: the stage in words, the value, the party', !!D && D.under && /Draft/.test(D.m) && D.ref === val && D.nm === 'Party 2 AB', JSON.stringify({ m: D && D.m, ref: D && D.ref, nm: D && D.nm, val }));
+    /* RE-POINTED (P-31, owner's pick 20 Nov 2026: the Stripe wall; MONEY IS NEVER A BIG PART OF A PAGE): under the paper the
+       party, the stage as a soft badge and the end date — and NO value */
+    const endW = await page.evaluate(() => { const c = getContract('MK-W2'); let e = ''; try { e = String((typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '').slice(0, 10); } catch (_) { e = String(c.expiry || '').slice(0, 10); }
+      return e ? (typeof regDotDate === 'function' ? regDotDate(e) : e) : ''; });
+    check('1b under it: the party, the stage as a soft badge, the end date; no value', !!D && D.under && /Draft/.test(D.m) && !D.ref && (!val || val === '\u2014' || !D.foot.includes(val)) && D.end === endW && D.nm === 'Party 2 AB',
+      JSON.stringify({ m: D && D.m, ref: D && D.ref, end: D && D.end, endW, nm: D && D.nm, foot: D && D.foot, val }));
 
     /* 2 private and kept to its list */
     const P = await page.evaluate(CARD, 'MK-W1');
@@ -94,8 +102,11 @@ const check = (name, pass, detail) => {
       await page.waitForFunction(n => document.querySelectorAll('#ig-wall .igw-card').length > n, n0, { timeout: 4000 }).catch(() => {});
     }
     const C = await page.evaluate(CARD, 'MK-0412');
-    check('2b a deal kept to its list: a hatched paper with its code name, its stream for a value, "Kept to its list"',
-      !!C && C.coded && /repeating-linear-gradient/.test(C.bg) && /Project Falcon/.test(C.t) && C.ref === folder && C.nm === 'Kept to its list' && !C.lock, JSON.stringify(C));
+    /* RE-POINTED (P-31, owner's pick 20 Nov 2026: the Stripe wall): the foot carries no value, so the stream that stood in
+       for a code-named deal's value is gone with it (RETIRED: no money and no stand-in under any paper); the hatched paper,
+       its code name, "Kept to its list" and no private lock stand */
+    check('2b a deal kept to its list: a hatched paper with its code name, "Kept to its list", no value under it',
+      !!C && C.coded && /repeating-linear-gradient/.test(C.bg) && /Project Falcon/.test(C.t) && !C.ref && C.nm === 'Kept to its list' && !C.lock, JSON.stringify(C));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'wall-of-papers-1440x780.png') });
 
     /* 3 the archive's own door */

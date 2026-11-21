@@ -80,12 +80,14 @@ test('f998 (2) the press hands the same ids to the one door; the way back lets t
   assert.match(REG, /t\.closest\('\[data-ctf-back\]'\)\)\{ e\.preventDefault\(\); const R = regState\(\); _ctFolders = true; R\.type = 'all'; R\.only = null;/, '‹ Folders lets the set go');
 });
 
-test('f998 (3) the folders under the views: two compact columns, no bar, no key', () => {
+/* RE-POINTED (P-31, owner's pick 20 Nov 2026: "a high-level summary of all the contracts"): the views are gone; four
+   figure cards, where they stand, when they end, then the folders as a calm table with the Ended shelf and New folder */
+test('f998 (3) the folders landing: figure cards, then the folders as one table', () => {
   const f = fnSrc(REG, 'regFolderRowsHtml');
-  assert.match(f, /return `\$\{regFolderViewsHtml\(rows\.flatMap\(x => x\.cs\)\)\}<div class="ctf-cap">/, 'the views read the very contracts the rows count');
-  assert.match(f, /<div class="ctf-list is-two">\$\{body\}\$\{endRow\}\$\{newRow\}<\/div>/, 'the Ended shelf and New folder keep their doors');
-  assert.doesNotMatch(f, /regTileBar|regTileKeyHtml|listSapMarkHtml/, 'no bar, no key, no mark: as drawn');
-  assert.match(f, /\[String\(r\.n\), r\.val \? esc\(money\(r\.val\)\) : '', need\]/, 'count · money · what needs you');
+  assert.doesNotMatch(f, /regFolderViewsHtml/, 'the views are gone');
+  assert.match(f, /<div class="ctf-figs">/, 'four figure cards');
+  assert.match(f, /<tbody>\$\{trs\}\$\{endTr\}\$\{newTr\}<\/tbody>/, 'the Ended shelf and New folder keep their doors');
+  assert.doesNotMatch(f, /money\(|fmtMoney/, 'no money on the landing');
   assert.match(CSS, /html\.lg-new \.ctf-list\.is-two\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(CSS, /html\.lg-new \.ctf-row\.is-compact\{display:flex;/, 'a button row is flex, never grid');
 });
@@ -103,5 +105,6 @@ test('f998 (4) one quiet tone a tile, from the tokens; the panel beside it stays
 test('f998 (5) both books, and the Handbook says it', () => {
   for (const k of ['ctfv_cap', 'ctfv_folders', 'ctfv_ap', 'ctfv_sg', 'ctfv_end', 'ctfv_big', 'ctfv_in_folders_one', 'ctfv_in_folders_other', 'ctfv_notice_one', 'ctfv_notice_other', 'ctfv_notice_none', 'ctfv_together'])
     assert.equal(I18N.split('\n    ' + k + ': ').length - 1, 2, k + ' in both books');
-  assert.match(read('js/handbook.js'), /Contracts opens on its folders, the step before the list\./);
+  /* RE-POINTED (P-31, owner's pick 20 Nov 2026): the Handbook now says the summary */
+  assert.match(read('js/handbook.js'), /Contracts opens on a summary of all your contracts/);
 });

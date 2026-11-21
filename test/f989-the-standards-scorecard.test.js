@@ -49,7 +49,8 @@ test('3 · the Contracts cell is one line, "No money" grey, Stream has the room 
   const REG = read('js/views/register.js').replace(/\/\*[\s\S]*?\*\//g, '');
   assert.match(REG, /CELL\.standards=`<td style="overflow:hidden">\$\{window\.stdRowWordsHtml\?stdRowWordsHtml\(c\):''\}<\/td>`;/, 'no "missing:" line under the bar');
   assert.match(REG, /i18t\(\(typeof newLookOn==='function'&&newLookOn\(\)\)\?'reg_no_money':'reg_non_monetary_word'\)/);
-  assert.match(REG, /const REG_COL_W_NL=\{ standing:12, stream:13, standards:17, expiry:12, value:11, owner:10 \};/);
+  /* RE-POINTED (P-31, owner's pick 20 Nov 2026): Needs you joins the new look's columns */
+  assert.match(REG, /const REG_COL_W_NL=\{ standing:12, stream:13, standards:17, needs:14, expiry:12, value:11, owner:10 \};/);
   const I = read('js/i18n.js');
   assert.match(I, /reg_no_money: 'No money',/); assert.match(I, /reg_no_money: 'Inga pengar',/);
   const CSS = read('index.html').replace(/\/\*[\s\S]*?\*\//g, '');

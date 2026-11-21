@@ -162,6 +162,13 @@ function book(){
     await page.waitForSelector(`[data-ctf-folder="${FOLDER_A}"]`, { timeout: 8000 }).catch(() => {});
     await page.click(`[data-ctf-folder="${FOLDER_A}"]`).catch(() => {});
     await page.waitForTimeout(600);
+    /* RE-POINTED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way): a folder's row on the landing's
+       table CHOOSES on the first press (its panel sums it up) and opens on the second — pressed again while still chosen */
+    if (await page.locator(`.ctf-ftable tr.is-sel[data-ctf-folder="${FOLDER_A}"]`).count()) {
+      await page.click(`.ctf-ftable tr[data-ctf-folder="${FOLDER_A}"]`).catch(() => {});
+      await page.waitForTimeout(600);
+    }
+    await page.waitForSelector('[data-lh-seat="contracts"] input[data-lh-q]', { timeout: 5000 }).catch(() => {});
     await page.fill('[data-lh-seat="contracts"] input[data-lh-q]', 'Raw');
     await page.waitForTimeout(700);
     const b0 = await onContracts();

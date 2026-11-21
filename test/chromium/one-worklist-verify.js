@@ -64,16 +64,18 @@ const RULES = [
        (that line says the kind — the Kind column's place), each row's kind on the row (data-ap-kind) and whose turn on its
        mark (the mark's title, apTurnText); the head's facts count what is yours in "to decide · to sign"; Approve and
        Decline stand on the row (the panel has no button: apnLeadFiveHtml). WHAT IS PINNED IS UNCHANGED: one list, the
-       kinds said, yours first, whose turn said, the counts the same as the tab, a decision one press away. */
+       kinds said, yours first, whose turn said, the counts the same as the tab, a decision one press away.
+       RE-POINTED AGAIN (P-30, owner's pick 20 Nov 2026): the row's mark is gone — whose turn is the Approver cell's hover;
+       the facts beside the title are gone (the chips count); Approve and Decline are the chosen row's panel's. */
     const READ = () => {
       const rows = [], groups = [];
       document.querySelectorAll('.apn-table tbody tr').forEach(tr => {
         if (tr.classList.contains('apn-group')) { groups.push({ k: tr.textContent.trim(), at: rows.length }); return; }
         if (!tr.hasAttribute('data-ap-row')) return;
-        const mk = tr.querySelector('.ls-mk');
+        const mk = tr.querySelector('td.apn-apc [title]');
         rows.push({ id: tr.getAttribute('data-ap-row'), kind: tr.getAttribute('data-ap-kind'), turn: mk ? mk.getAttribute('title') : null,
           approve: !!tr.querySelector('[data-ap-approve]'), refuse: !!tr.querySelector('[data-ap-refuse]'), sign: !!tr.querySelector('[data-ap-open]') }); });
-      return { tabs: [...document.querySelectorAll('[data-apn-tab]')].map(b => ({ k: b.getAttribute('data-apn-tab'), label: (b.firstChild || {}).textContent.trim(),
+      return { tabs: [...document.querySelectorAll('[data-apn-tab]')].map(b => ({ k: b.getAttribute('data-apn-tab'), label: [...b.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim(),
         n: Number(((b.querySelector('span') || {}).textContent || '0').replace(/\D/g, '')) || 0, on: b.classList.contains('is-on') })),
         heads: [...document.querySelectorAll('.apn-table thead th')].map(t => t.textContent.trim()),
         rows, groups, facts: (document.querySelector('[data-ap-facts]') || {}).textContent || '', rules: !!document.querySelector('[data-ap-rules]') };
@@ -95,16 +97,16 @@ const RULES = [
       && ['MK-WL-1', 'MK-WL-3'].every(id => mineIds.includes(id)) && JSON.stringify(othersIds) === JSON.stringify(['MK-WL-2']),
       JSON.stringify({ tabs: A.tabs, mineIds, othersIds }));
     const O = await page.evaluate(() => { const b = document.querySelector('[data-apn-tab="others"]'); if (b) b.click(); return null; })
-      .then(() => until(() => { const tr = document.querySelector('.apn-table tbody tr[data-ap-row="MK-WL-2"]'); if (!tr) return null; const mk = tr.querySelector('.ls-mk');
+      .then(() => until(() => { const tr = document.querySelector('.apn-table tbody tr[data-ap-row="MK-WL-2"]'); if (!tr) return null; const mk = tr.querySelector('td.apn-apc [title]');
         return { kind: tr.getAttribute('data-ap-kind'), turn: mk ? mk.getAttribute('title') : null, approve: !!tr.querySelector('[data-ap-approve]') }; }, null, 4000));
     await tabRows('mine');
     check('3a the kind and whose turn are said: Approval · You, Signature · You sign, Approval · its approver (not you, no Approve)',
       row('MK-WL-1').kind === 'approval' && row('MK-WL-1').turn === 'You' && row('MK-WL-3').kind === 'signature' && row('MK-WL-3').turn === 'You sign'
       && !!O && O.kind === 'approval' && !!O.turn && !/^You/.test(O.turn) && !O.approve, JSON.stringify({ rows: A.rows, others: O }));
     const mineN = (A.tabs.find(t => t.k === 'mine') || {}).n;
-    const fm = /^(\d+) to decide · (\d+) to sign$/.exec(A.facts.trim());
-    check('3b the head counts what is yours (to decide · to sign) as the Mine tab does; Approval rules is everyone\'s door',
-      !!fm && Number(fm[1]) + Number(fm[2]) === mineN && A.rules, JSON.stringify({ facts: A.facts, tabs: A.tabs, rules: A.rules }));
+    const mineRows = mineIds.length;
+    check('3b the Mine chip counts what is yours (no facts beside the title: the chips say it); Approval rules is everyone\'s door',
+      !A.facts && mineN === mineRows && A.rules, JSON.stringify({ facts: A.facts, tabs: A.tabs, rules: A.rules, mineRows }));
     await page.click('[data-ap-rules]');
     const RS = await until(() => { const f = document.getElementById('jl-feed') || document.getElementById('ai-feed'); const t = f ? f.textContent.replace(/\s+/g, ' ') : '';
       return /ask for a yes before anyone signs/.test(t) ? { said: true, door: !!(f.querySelector('[data-ai-rule-door="ask_admin"][data-ai-rule="approvals"]')), view: state.view } : null; }, null, 6000);
@@ -117,8 +119,8 @@ const RULES = [
     /* RE-POINTED 16 Nov 2026 (#762): the chosen approval's panel is Jambo's Five panel with no button (apnLeadFiveHtml);
        Approve and Decline stand on the chosen row itself, one press away */
     const P1 = await until(() => { const p = document.getElementById('ins-panel'); const tr = document.querySelector('.apn-table tr[data-ap-row="MK-WL-1"]');
-      return p && /Helio/.test(p.textContent) && tr && tr.querySelector('[data-ap-approve]') ? { approve: true, refuse: !!tr.querySelector('[data-ap-refuse]') } : null; });
-    check('4b an approval carries Approve and Decline (on its row, beside its panel)', !!P1 && P1.refuse, JSON.stringify(P1));
+      return p && /Helio/.test(p.textContent) && p.querySelector('[data-apn-act="approve"]') ? { approve: true, refuse: !!p.querySelector('[data-apn-act="refuse"]'), onRow: !!(tr && tr.querySelector('[data-ap-approve], [data-ap-refuse]')) } : null; });
+    check('4b an approval carries Approve and Decline (in its panel, none on the row)', !!P1 && P1.refuse && !P1.onRow, JSON.stringify(P1));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'one-worklist-1440x780.png') });
 
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {

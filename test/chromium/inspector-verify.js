@@ -120,7 +120,9 @@ const ok = (name, good, detail) => {
     /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep contracts … as designed"): Stream and Our standards stand where Stage stood */
     /* RE-POINTED 16 Nov 2026 (#762): the new look's List (THE NEW LOOK IS THE ONLY LOOK: "a status = dot + word") adds
        Standing after the agreement, and draws no ⋯ column — a row's one press opens it (1f) */
-    ok('1b the List is the drawing\'s columns, in plain words: Agreement · Standing · Stream · Our playbook · Ends · Value', shape.heads.join('|') === 'Agreement|Standing|Stream|Our playbook|Ends|Value', shape.heads.join(' | '));
+    /* RE-POINTED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way): Our playbook steps out of the
+       List; Needs you stands before Ends */
+    ok('1b the List is the drawing\'s columns, in plain words: Agreement · Standing · Stream · Needs you · Ends · Value', shape.heads.join('|') === 'Agreement|Standing|Stream|Needs you|Ends|Value', shape.heads.join(' | '));
     await page.screenshot({ path: path.join(OUT, '1-contracts-1440.png') });
 
     const rows = await page.$$('#reg-tbody tr[data-row]');
@@ -319,11 +321,12 @@ const ok = (name, good, detail) => {
     const ap = await page.evaluate(() => ({
       ins: document.querySelector('[data-ins-page="approvals"]')?.getAttribute('data-ins'),
       rows: [...document.querySelectorAll('.apn-table tbody tr[data-ap-row]')].map(r => r.getAttribute('data-ap-row')),
-      rowActs: [...document.querySelectorAll('.apn-table tbody tr[data-ap-row][data-ap-kind="approval"]')].every(r => !!r.querySelector('[data-ap-approve]') === !!r.querySelector('[data-ap-refuse]')),
-      panelBtns: document.querySelectorAll('#ins-panel .jov5-go, #ins-panel [data-ins-act]').length,
+      /* RE-POINTED (P-30, owner's pick 20 Nov 2026): no row carries Approve or Decline; the chosen approval's panel does (its acts, [data-apn-act]) */
+      rowActs: [...document.querySelectorAll('.apn-table tbody tr[data-ap-row][data-ap-kind="approval"]')].every(r => !r.querySelector('[data-ap-approve], [data-ap-refuse]')),
+      panelBtns: document.querySelectorAll('#ins-panel [data-ins-act]').length,
       pid: document.getElementById('ins-panel')?.getAttribute('data-ins-id'),
     }));
-    ok('3a Approvals draws the list and the panel; Approve and Decline stand on the row, the panel draws no button', ap.ins === '1' && ap.rowActs && ap.panelBtns === 0 && !!ap.pid, JSON.stringify({ ins: ap.ins, rowActs: ap.rowActs, panelBtns: ap.panelBtns, pid: ap.pid }));
+    ok('3a Approvals draws the list and the panel; no row carries a decision, the panel draws no old act button', ap.ins === '1' && ap.rowActs && ap.panelBtns === 0 && !!ap.pid, JSON.stringify({ ins: ap.ins, rowActs: ap.rowActs, panelBtns: ap.panelBtns, pid: ap.pid }));
     await page.screenshot({ path: path.join(OUT, '3-approvals-1440.png') });
     if (ap.rows.length > 1 && ap.pid) {
       const other = ap.rows.find(id => id !== ap.pid);

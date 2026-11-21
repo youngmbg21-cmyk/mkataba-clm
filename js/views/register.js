@@ -828,7 +828,8 @@ function regColKeysSeatAll(){
     if(ask.length) shown=shown.filter(k=>k!=='owner'&&k!=='stream');
     /* inside one folder the stream is the same on every row: it steps out (the new look's folder list, as drawn) */
     { const R0=regState(); if(typeof window.newLookOn==='function'&&newLookOn()&&R0.type&&R0.type!=='all') shown=shown.filter(k=>k!=='stream'); }
-    if(!narrow&&regNl()) return ['counterparty','standing'].concat(ask, shown);
+    /* P-31: the other side · Standing · Folder · Needs you · Ends · Value (Our standards steps out of this list's rest) */
+    if(!narrow&&regNl()){ shown=shown.filter(k=>k!=='standards'); const at=shown.indexOf('expiry'); shown.splice(at<0?shown.length:at,0,'needs'); return ['counterparty','standing'].concat(ask, shown); }
     return ['counterparty'].concat(!narrow&&regHomeWide()?REG_HOME_SPREAD:[], shown, ask, ['acts']);
   }
   if(!ins && regNarrowTable()) return neg ? REG_COL_KEYS_NEGO_NARROW : REG_COL_KEYS_NARROW;
@@ -1966,7 +1967,7 @@ function regCtToolsHtml(R){
    shows it (the drawing draws Agreement · Stage · Ends · Value). The
    agreement leads and the row's ⋯ ends every row, whatever is chosen. */
 const REG_CT_FIXED=['counterparty','acts'];
-const REG_CT_COL_WORD={ stage:'reg_col_stage', stream:'reg_col_stream', standards:'reg_col_standards', expiry:'reg_col_ends', value:'reg_col_value', owner:'reg_col_owner_word' };
+const REG_CT_COL_WORD={ stage:'reg_col_stage', stream:'reg_col_stream', standards:'reg_col_standards', needs:'reg_col_needs', expiry:'reg_col_ends', value:'reg_col_value', owner:'reg_col_owner_word' };
 function regCtShapeKeys(){ return regMoneyCols(regOnCt(()=>regHomeNarrow()?REG_COL_KEYS_HOME_NARROW:REG_COL_KEYS_HOME)); }
 function regCtColDefs(){
   return regCtShapeKeys().filter(k=>!REG_CT_FIXED.includes(k)).map(k=>({ k, label:i18t(REG_CT_COL_WORD[k]||k) }));
@@ -2220,9 +2221,10 @@ function regFolderGlanceHtml(book, r, folder){
     const rest=[E.later?i18tn('rfg_end_later', E.later, { n:E.later }):'', E.past?i18tn('rfg_end_past', E.past, { n:E.past }):'', E.none?i18tn('rfg_end_nodate', E.none, { n:E.none }):''].filter(Boolean).join(' · ');
     ends=cap(i18t('rfg_ends'))+strip+`<p class="rfg-say">${say}</p>`+(rest?`<p class="rfg-q">${esc(rest)}</p>`:'');
   } else ends=cap(i18t('rfg_ends'))+`<p class="rfg-say">${esc(i18t('rfg_end_none'))}</p>`;
-  /* WHERE THE MONEY IS (only for a reader who may see values) */
+  /* WHERE THE MONEY IS (only for a reader who may see values) — never in the new look's panel (P-31, owner's pick 20 Nov
+     2026: NO MONEY IN A SIDE PANEL; the list's Value column is where money shows) */
   let money='';
-  if(r.val!=null){ const M=regGlanceMoney(book);
+  if(r.val!=null&&!(typeof newLookOn==='function'&&newLookOn())){ const M=regGlanceMoney(book);
     if(M.length){ const top=M[0].v, shown=M.slice(0,RFG_BARS), names=shown.map(x=>nameOf(x.c)), twice=nm=>names.filter(y=>y===nm).length>1;
       money=cap(i18t('ctfp_money')+' · '+fmtMoneyShort(r.val))+`<div class="rfg-bars">${shown.map(x=>{ const nm=twice(nameOf(x.c))?String(nameOf(x.c)).split(/\s+/)[0]+' · '+refOf(x.c):nameOf(x.c);
         return `<button type="button" class="rfg-bar" data-rfp-open="${esc(x.c.id)}" title="${esc(nameOf(x.c)+' · '+refOf(x.c))}"><span class="rfg-bar-n">${esc(nm)}</span><span class="rfg-bar-b" aria-hidden="true"><i style="width:${Math.max(2, Math.round(x.v/top*100))}%"></i></span><b>${esc(fmtMoneyShort(x.v))}</b></button>`; }).join('')}</div>`
@@ -2293,7 +2295,7 @@ function regCtFootHtml(cs){
    — and a column the reader hid pays its share to the agreement, the
    column with the give, so the widths still sum to 100 */
 /* stream 13 (its chip's whole word), standards 17 (the Scorecard's one line) — owner's pick, 10 Nov 2026 */
-const REG_COL_W_NL={ standing:12, stream:13, standards:17, expiry:12, value:11, owner:10 };
+const REG_COL_W_NL={ standing:12, stream:13, standards:17, needs:14, expiry:12, value:11, owner:10 };
 function regHomeColW(keys){
   const ask=keys.filter(k=>String(k).startsWith('ask:'));
   if(regNl()&&!regHomeNarrow()){
@@ -3144,7 +3146,7 @@ function regRowsHtml(cs){
     const spreadOn=placeRows&&regHomeWide();
     CELL.party=`<td class="reg-party" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(coded?i18t('igw_kept_list'):(pyAll||cpName))}">${coded?esc(i18t('igw_kept_list')):esc(cpName)}</td>`;
     CELL.counterparty=`<td class="reg-cell-title" style="${c._famChild?'padding-left:30px':''}" title="${placeRows?`${esc(pyAll||cpName)} · ${regTitleOf(c)}`:`${esc(pyAll||cpName)} · ${regTitleOf(c)}`} · ${esc(kindRound)}">
-        <span class="reg-id">${placeRows?(regNl()?regSapMarkHtml(c):regStageMarkHtml(c)):(neg&&(insOn||regNl()))?regNegoMarkHtml(c):regAvatarHtml(cpName)}<span class="reg-id-txt">
+        <span class="reg-id">${placeRows?(regNl()?'':regStageMarkHtml(c)):(neg&&(insOn||regNl()))?regNegoMarkHtml(c):regAvatarHtml(cpName)}<span class="reg-id-txt">
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
         <span class="reg-title" style="min-width:0;${sampleTag?'flex:0 1 auto':'flex:1'};display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"${coded?' data-reg-coded':''}>${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc((()=>{ const pc=c.parentId&&getContract(c.parentId); return pc&&window.contractRef?contractRef(pc):c.parentId; })())}">↳ </span>`:''}${coded?regTitleOf(c):placeRows?esc(spreadOn||!cpName?regShortTitle(c):cpName):(neg&&insOn)?`${esc(cpName)}<span class="reg-t-dot"> · </span>${esc(regShortTitle(c))}`:esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>${sampleTag}
         </span>${placeRows&&spreadOn?'':`<span class="reg-sub">${placeRows?`${coded?esc(i18t('igw_kept_list'))+' · ':cpName?esc(regShortTitle(c))+' · ':''}${refLine}${regStageLineHtml(c)}${stageMove}${lives}`:(neg&&insOn)?(regNegoSpread()?'':regNegoLineHtml(c,refLine)):`${regTitleOf(c)}`}</span>`}
@@ -3187,7 +3189,11 @@ function regRowsHtml(cs){
     CELL.standards=`<td style="overflow:hidden">${window.stdRowWordsHtml?stdRowWordsHtml(c):''}</td>`;
     /* the SHORT word in the cell (a column has no room for a sentence), the whole sentence on its hover — the same
        reading the old grey line used (regStageShortOf; #762) */
-    if(regNl()){ const st=regStageTone(c), sh=regStageShortOf(st.m); CELL.standing=`<td class="reg-standing" style="white-space:nowrap;color:var(--st-${st.tone}-fg)"${st.m&&sh&&sh.label!==st.m.label?` title="${esc(st.m.label)}"`:''}>${esc((sh&&sh.label)||'')}</td>`; }
+    /* CONTRACTS, THE LEGORA + STRIPE WAY (P-31, owner's pick 20 Nov 2026): Standing a SOFT BADGE in its stage's colour
+       (amber in review, green signed, grey ended), and a Needs you column — what waits on the reader in amber words, "—"
+       when nothing (needsYouOf, the one reading every list asks) */
+    if(regNl()){ const st=regStageTone(c), sh=regStageShortOf(st.m); CELL.standing=`<td class="reg-standing"${st.m&&sh&&sh.label!==st.m.label?` title="${esc(st.m.label)}"`:''}><span class="reg-badge is-${esc(st.tone)}"><i></i>${esc((sh&&sh.label)||'')}</span></td>`;
+      CELL.needs=`<td class="reg-needs">${regNeedsCellHtml(c)}</td>`; }
     /* ON THE CONTRACTS PLACE the words go UNDER the day (the checkers of step
        7: in Home's narrower column "· in 25 days" was cut on every screen) —
        the row is two lines already, so it costs no height; the hover says
@@ -3256,6 +3262,22 @@ const regAvatarHtml = name => `<span class="reg-av av-${regAvatarTone(name)}" ar
    ticked circle once signed, a dashed one for a draft, a triangle for what ended or was declined, a
    half circle for everything in between — and the stage's word in its own tone in the grey line,
    then when the contract last moved (the trail's last day, carried by the light list). */
+/* NEEDS YOU, IN WORDS (P-31): the first thing that waits on the reader on this contract, amber ("Your approval",
+   "3 details to fill"); a colleague's approval names them; "—" when nothing. A reading only. */
+function regNeedsCellHtml(c){
+  let L=[]; try{ L=typeof needsYouOf==='function'?(needsYouOf(c)||[]):[]; }catch(_){ L=[]; }
+  if(!L.length){
+    /* a colleague's yes this contract waits on, never on a signed one: a named member by first name, a role whole */
+    let w=''; try{ const done=typeof negoExecuted==='function'?negoExecuted(c):c.status==='Signed'; const st=!done&&typeof approvalState==='function'?approvalState(c):null; const nx=st&&st.next;
+      if(nx&&nx.status==='pending'&&st.approverLabel){ const mem=!!(nx.approver&&nx.approver.kind==='member'); w=mem?i18t('reg_need_whose',{ who:String(st.approverLabel).split(/\s+/)[0] }):i18t('reg_need_with',{ who:st.approverLabel }); } }catch(_){ w=''; }
+    return w?`<span class="reg-need is-them">${esc(w)}</span>`:'<span class="reg-dash">\u2014</span>';
+  }
+  const it=L[0];
+  let t=''; try{ const w=typeof insNeedWords==='function'?insNeedWords(c,it):null; t=w&&w.title||''; }catch(_){ t=''; }
+  if(it.kind==='approval') t=i18t('reg_need_yours');
+  else if(it.kind==='details'&&it.n) t=i18tn('reg_need_details',it.n,{ n:it.n });
+  return `<span class="reg-need" title="${esc(t)}">${esc(t||i18t('reg_need_some'))}${L.length>1?` <small>+${L.length-1}</small>`:''}</span>`;
+}
 function regStageTone(c){
   let m=null; try{ m=contractStatusMeta(c); }catch(_){ m=null; }
   const t=m&&/--st-([a-z]+)-/.exec(String(m.dot||''));
@@ -3930,26 +3952,70 @@ function regFolderLive(){
   const gone = c => c.archived || c.status === 'Declined' || (c.status === 'Signed' && c.expiry && T && String(c.expiry).slice(0, 10) < T);
   return live.filter(c => !gone(c) && FOLDERS && FOLDERS[c.folder] && (typeof canAccessFolder !== 'function' || canAccessFolder(c.folder)));
 }
-function regFolderRowsHtml(live, fids, ended, endIds, isAdmin){
-  const money = v => v == null ? '' : (typeof fmtMoneyShort === 'function' ? fmtMoneyShort(v) : String(v));
-  const row = (attr, name, line, cls) => `<button type="button" class="ctf-row is-compact${cls || ''}" ${attr} title="${esc(name)}"><b class="ctf-name">${esc(name)}</b><span class="ctf-rl">${line}</span></button>`;
-  const dot = ' · ';
-  const rows = fids.map(fid => {
-    const cs = live.filter(c => c.folder === fid && !endIds.has(c.id)); if (!cs.length) return null;
-    return { fid, name: FOLDERS[fid].name || fid, cs, r: regFolderRead(cs) };
-  }).filter(Boolean).sort((a, b) => b.r.needN - a.r.needN || b.r.n - a.r.n);
-  const body = rows.map(x => { const r = x.r;
-    const need = r.needN ? `<span class="ctf-rn"><b>${r.needN}</b> ${esc(i18tn('ctf_t_need', r.needN, { n: r.needN }))}</span>` : esc(i18t('ctf_t_nothing'));
-    return row(`data-ctf-folder="${esc(x.fid)}"`, x.name, [String(r.n), r.val ? esc(money(r.val)) : '', need].filter(Boolean).join(dot));
-  }).join('');
-  const yrs = ended.map(c => String(c.signedAt || c.expiry || '').slice(0, 4)).filter(Boolean).sort();
-  const endR = regFolderRead(ended);
-  const endRow = ended.length ? row('data-ctf-ended', i18t('ctf_ended'),
-    [String(ended.length), endR.val ? esc(money(endR.val)) : '', yrs.length ? esc(yrs[0] === yrs[yrs.length - 1] ? yrs[0] : i18t('ctf_years', { a: yrs[0], b: yrs[yrs.length - 1] })) : ''].filter(Boolean).join(dot)) : '';
-  const newRow = isAdmin ? row('data-ctf-new', '+ ' + i18t('ctf_new'), esc(i18t('ctf_new_s')), ' is-new') : '';
-  const n = rows.length + (endRow ? 1 : 0);
-  return `${regFolderViewsHtml(rows.flatMap(x => x.cs))}<div class="ctf-cap">${esc(i18t('ctfv_folders'))}</div><div class="ctf-list is-two">${body}${endRow}${newRow}</div><div class="ctf-foot">${esc(i18tn('ctf_foot', n, { n }))}</div>`;
+/* THE FOLDERS LANDING, THE LEGORA + STRIPE WAY (P-31, owner's pick 20 Nov 2026: "a high-level summary of all the
+   contracts"): four figure cards (Contracts · Need you · In review · Ends within 90 days; NO money card) — a page whose
+   job is "how are we doing?"; "Where all N stand" as one bar; "When they end · next 12 months" as dots per month; then
+   "Folders" as a calm table: the name with the folder's own description (set in Settings, FOLDERS[id].desc), its
+   contracts, an amber "N need you" badge, a thin where-they-stand bar, the next to end. The "Views across every folder"
+   cards are gone. Every number is a door to the list behind it, through the doors a set already has (regShowOnly). */
+const CTF_END_SOON = 30;
+function regFolderEndOf(c){ try{ return String((typeof effectiveExpiry==='function'?effectiveExpiry(c):c.expiry)||'').slice(0,10); }catch(_){ return String(c.expiry||'').slice(0,10); } }
+function regFolderSummaryData(live, ended){
+  const T=typeof todayISO==='function'?String(todayISO()||''):'';
+  const add=(iso,n)=>{ const d=new Date(iso+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); };
+  const lim=T?add(T,CTF_VIEW_DAYS):'', soon=T?add(T,CTF_END_SOON):'';
+  const needIds=new Set(live.filter(c=>{ try{ return (typeof needsYouOf==='function'?needsYouOf(c):[]).length>0; }catch(_){ return false; } }).map(c=>c.id));
+  const signedOf=c=>{ try{ return typeof negoExecuted==='function'?!!negoExecuted(c):c.status==='Signed'; }catch(_){ return c.status==='Signed'; } };
+  const review=live.filter(c=>!signedOf(c));
+  const ends=T?live.filter(c=>{ const e=regFolderEndOf(c); return !!e&&e>=T&&e<=lim; }):[];
+  const folders=new Set(live.map(c=>c.folder)).size;
+  /* twelve months from this one: a dot per contract that ends in it */
+  const months=[];
+  if(T){ const d0=new Date(T.slice(0,7)+'-01T00:00:00Z');
+    for(let i=0;i<12;i++){ const d=new Date(d0); d.setUTCMonth(d0.getUTCMonth()+i); const k=d.toISOString().slice(0,7);
+      const L=live.filter(c=>regFolderEndOf(c).slice(0,7)===k&&regFolderEndOf(c)>=T);
+      months.push({ k, label:d.toLocaleDateString(typeof langLocale==='function'?langLocale():'en-GB',{ month:'short', timeZone:'UTC' }),
+        dots:L.map(c=>({ id:c.id, name:c.name||c.id, tone:regFolderEndOf(c)<=soon?'ruby':needIds.has(c.id)?'amber':signedOf(c)?'green':'gray' })) }); } }
+  return { T, live, ended, needIds, review, ends, folders, months, signed:live.filter(signedOf) };
 }
+function regFolderRowsHtml(live, fids, ended, endIds, isAdmin){
+  const all=fids.flatMap(fid=>live.filter(c=>c.folder===fid&&!endIds.has(c.id)));
+  const D=regFolderSummaryData(all, ended);
+  const need=all.filter(c=>D.needIds.has(c.id));
+  const card=(k,n,label,sub,tone)=>`<button type="button" class="ctf-fig${tone?' is-'+tone:''}" data-ctf-fig="${k}"${n?'':' disabled'}><span>${esc(label)}</span><b>${n}</b><small>${esc(sub)}</small></button>`;
+  let notice=''; try{ const k=D.ends.filter(c=>{ const r=typeof ovMapRenewal==='function'?ovMapRenewal(c):null; return !!(r&&r.by&&String(r.by).slice(0,7)===D.T.slice(0,7)); }).length; notice=k?i18tn('ctfv_notice',k,{ n:k }):''; }catch(_){ notice=''; }
+  const nextEnd=D.ends.map(regFolderEndOf).sort()[0];
+  const figs=`<div class="ctf-figs">${card('all',all.length,i18t('ctf_fig_all'),i18tn('ctfv_in_folders',D.folders,{ n:D.folders }))}`
+    +card('need',need.length,i18t('ctf_fig_need'),need.length?regFolderNeedWords(regFolderRead(need)):i18t('ctf_t_nothing'),need.length?'amber':'')
+    +card('review',D.review.length,i18t('ctf_fig_review'),i18t('ctf_fig_review_s'))
+    +card('end',D.ends.length,i18t('ctfv_end',{ n:CTF_VIEW_DAYS }),notice||(nextEnd?i18t('ctf_fig_next',{ d:(typeof regDotDate==='function'?regDotDate(nextEnd):nextEnd) }):i18t('ctf_t_nothing')))+`</div>`;
+  /* where all N stand: in review · signed · ended, one bar and its legend */
+  const tot=Math.max(1, all.length+ended.length), pc=x=>(Math.round(x/tot*1000)/10)+'%';
+  const bar=`<div class="ctf-sec"><div class="ctf-cap">${esc(i18t('ctf_where_all',{ n:all.length+ended.length }))}</div>
+    <div class="ctf-stand"><i class="is-r" style="width:${pc(D.review.length)}"></i><i class="is-s" style="width:${pc(D.signed.length)}"></i><i class="is-e" style="width:${pc(ended.length)}"></i></div>
+    <div class="ctf-key"><span><i class="is-r"></i>${esc(i18t('ctf_k_review'))} ${D.review.length}</span><span><i class="is-s"></i>${esc(i18t('ctf_k_signed'))} ${D.signed.length}</span>${ended.length?`<span><i class="is-e"></i>${esc(i18t('ctf_ended'))} ${ended.length}</span>`:''}</div></div>`;
+  const ends=D.months.length?`<div class="ctf-sec"><div class="ctf-cap">${esc(i18t('ctf_when_end'))}</div><div class="ctf-months">${D.months.map(m=>
+    `<div class="ctf-mo"><div class="ctf-mo-d">${m.dots.slice(0,6).map(x=>`<i class="is-${x.tone}" title="${esc(x.name)}"></i>`).join('')}${m.dots.length>6?`<small>+${m.dots.length-6}</small>`:''}</div><small>${esc(m.label)}</small></div>`).join('')}</div>
+    <div class="ctf-key"><span><i class="is-ruby"></i>${esc(i18t('ctf_k_soon'))}</span><span><i class="is-amber"></i>${esc(i18t('ctf_k_need'))}</span><span><i class="is-s"></i>${esc(i18t('ctf_k_signed'))}</span></div></div>`:'';
+  const rows=fids.map(fid=>{ const cs=live.filter(c=>c.folder===fid&&!endIds.has(c.id)); if(!cs.length) return null; return { fid, name:FOLDERS[fid].name||fid, desc:FOLDERS[fid].desc||'', cs, r:regFolderRead(cs) }; })
+    .filter(Boolean).sort((a, b) => b.r.needN - a.r.needN || b.r.n - a.r.n);
+  const mix=(cs,r)=>{ const t=Math.max(1,r.n), e=x=>(Math.round(x/t*1000)/10)+'%'; return `<span class="ctf-tbar"><i class="is-r" style="width:${e(r.n-r.signed)}"></i><i class="is-s" style="width:${e(r.signed)}"></i></span>`; };
+  const nextOf=cs=>{ const L=cs.map(regFolderEndOf).filter(e=>e&&(!D.T||e>=D.T)).sort(); return L[0]?(typeof regDotDate==='function'?regDotDate(L[0]):L[0]):'—'; };
+  const trs=rows.map(x=>`<tr data-ctf-folder="${esc(x.fid)}" tabindex="0"><td><b class="ctf-name">${esc(x.name)}</b>${x.desc?`<span class="ctf-desc">${esc(x.desc)}</span>`:''}</td><td class="ctf-n">${x.r.n}</td>
+    <td>${x.r.needN?`<span class="reg-badge is-amber"><i></i>${x.r.needN} ${esc(i18tn('ctf_t_need',x.r.needN,{ n:x.r.needN }))}</span>`:'<span class="reg-dash">—</span>'}</td><td>${mix(x.cs,x.r)}</td><td class="ctf-next">${esc(nextOf(x.cs))}</td></tr>`).join('');
+  const yrs=ended.map(c=>String(c.signedAt||c.expiry||'').slice(0,4)).filter(Boolean).sort();
+  const endTr=ended.length?`<tr data-ctf-ended tabindex="0"><td><b class="ctf-name">${esc(i18t('ctf_ended'))}</b>${yrs.length?`<span class="ctf-desc">${esc(yrs[0]===yrs[yrs.length-1]?yrs[0]:i18t('ctf_years',{ a:yrs[0], b:yrs[yrs.length-1] }))}</span>`:''}</td><td class="ctf-n">${ended.length}</td><td><span class="reg-dash">—</span></td><td><span class="ctf-tbar"><i class="is-e" style="width:100%"></i></span></td><td class="ctf-next">—</td></tr>`:'';
+  const newTr=isAdmin?`<tr data-ctf-new tabindex="0" class="is-new"><td><b class="ctf-name">+ ${esc(i18t('ctf_new'))}</b><span class="ctf-desc">${esc(i18t('ctf_new_s'))}</span></td><td></td><td></td><td></td><td></td></tr>`:'';
+  const table=`<div class="ctf-sec"><div class="ctf-cap">${esc(i18t('ctfv_folders'))}</div><table class="ctf-ftable"><thead><tr><th>${esc(i18t('ctf_col_folder'))}</th><th class="ctf-n">${esc(i18t('ctf_fig_all'))}</th><th>${esc(i18t('reg_col_needs'))}</th><th>${esc(i18t('reg_col_standing'))}</th><th>${esc(i18t('ctf_col_next'))}</th></tr></thead><tbody>${trs}${endTr}${newTr}</tbody></table></div>`;
+  const n=rows.length+(endTr?1:0);
+  return `<div class="ctf-ls">${figs}<div class="ctf-two">${bar}${ends}</div>${table}<div class="ctf-foot">${esc(i18tn('ctf_foot',n,{ n }))}</div></div>`;
+}
+if(typeof document!=='undefined'&&!document._ctfFigWired){ document._ctfFigWired=true;
+  document.addEventListener('click',e=>{ const f=e.target&&e.target.closest?e.target.closest('[data-ctf-fig]'):null; if(!f||f.disabled) return; e.preventDefault();
+    const k=f.getAttribute('data-ctf-fig'), R=regState(), live=regFolderLive();
+    if(k==='all'||k==='need'){ _ctFolders=false; R.type='all'; R.view=k==='need'?'needs':null; R.only=null; regRepaint(); ctfDockAgain(); return; }
+    const D=regFolderSummaryData(live,[]); const L=k==='review'?D.review:D.ends;
+    if(L.length){ _ctFolders=false; regShowOnly(L.map(c=>c.id), f.querySelector('span').textContent); ctfDockAgain(); } }); }
 /* EVEN TILES' parts, one builder for Contracts' folders and Parties' folders */
 function regTileBig(n){
   return n ? `<span class="ctf-big">${n}<small>${esc(i18tn('ctf_t_need', n, { n }))}</small></span>`
@@ -3968,7 +4034,10 @@ if (typeof document !== 'undefined' && !document._ctfWired){ document._ctfWired 
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     const f = t.closest('[data-ctf-folder]');
-    if (f){ e.preventDefault(); const R = regState(); R.type = f.getAttribute('data-ctf-folder'); _ctFolders = false; regRepaint(); ctfDockAgain(); return; }
+    /* P-31: a folder's row on the landing's table CHOOSES (its panel sums it up); a second press, or Open the folder, opens */
+    if (f && f.matches('.ctf-ftable tr') && _ctfPick !== f.getAttribute('data-ctf-folder')){ e.preventDefault(); _ctfPick = f.getAttribute('data-ctf-folder');
+      document.querySelectorAll('.ctf-ftable tr.is-sel').forEach(x => x.classList.remove('is-sel')); f.classList.add('is-sel'); ctfDockAgain(); return; }
+    if (f){ e.preventDefault(); _ctfPick = ''; const R = regState(); R.type = f.getAttribute('data-ctf-folder'); _ctFolders = false; regRepaint(); ctfDockAgain(); return; }
     if (t.closest('[data-ctf-ended]')){ e.preventDefault(); const R = regState(); R.view = 'archived'; _ctFolders = false; regRepaint(); ctfDockAgain(); return; }
     const vw = t.closest('[data-ctf-view]');
     if (vw){ e.preventDefault(); const v = regFolderViewsData(regFolderLive()).find(x => x.k === vw.getAttribute('data-ctf-view'));
@@ -3994,14 +4063,13 @@ function regFolderCount(){
 function regFoldersHeadHtml(){
   const live = (state.contracts || []).filter(c => c && !c._codeNamed && !c.archived);
   const r = regFolderRead(live);
-  const facts = [String(r.n), r.val ? i18t('ctf_on_paper', { v: typeof fmtMoneyShort === 'function' ? fmtMoneyShort(r.val) : String(r.val) }) : '', r.signed ? i18t('ctf_n_signed', { n: r.signed }) : ''].filter(Boolean).join(' · ');
   const may = (typeof canEdit !== 'function') || canEdit();
-  return `<div class="ctf-head"><h2 class="ctf-h">${esc(i18t('nav_contracts'))}</h2><span class="ctf-hf">${esc(facts)}</span><span class="ctf-sp"></span>
+  /* P-31: the facts beside the title go; the ask box under it; chips with their counts, Needs you with an amber dot */
+  return `<div class="ctf-head"><h2 class="ctf-h">${esc(i18t('nav_contracts'))}</h2><span class="ctf-sp"></span>
       <button type="button" class="ctf-pill" data-ctf-show="list">${esc(i18t('ct_list'))}</button><button type="button" class="ctf-pill" data-ctf-show="wall">${esc(i18t('ct_wall'))}</button>
       ${may ? `<button type="button" class="ui-btn ui-btn-primary ctf-new" data-ctf-draft>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${esc(i18t('ctf_new_agreement'))}</button>` : ''}</div>
-    <div class="apn-bar ctf-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ctf-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}"></label><span class="apn-sp"></span>
-      <button type="button" class="apn-tab is-on" data-ctf-tab="folders">${esc(i18t('ctf_tab_folders'))} <span>${regFolderCount()}</span></button><button type="button" class="apn-tab" data-ctf-tab="all">${esc(i18t('ctf_tab_all'))} <span>${r.n}</span></button>${r.needN ? `<button type="button" class="apn-tab" data-ctf-tab="needs">${esc(i18t('ctf_tab_needs'))} <span>${r.needN}</span></button>` : ''}
-</div>`;
+    <label class="apn-ask ctf-ask">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ctf-q" type="search" autocomplete="off" placeholder="${esc(i18t('ctf_ask_ph'))}"></label>
+    <div class="apn-bar ctf-bar"><button type="button" class="apn-tab is-chip is-on" data-ctf-tab="folders">${esc(i18t('ctf_tab_folders'))} <span>${regFolderCount()}</span></button><button type="button" class="apn-tab is-chip" data-ctf-tab="all">${esc(i18t('ctf_tab_all'))} <span>${r.n}</span></button>${r.needN ? `<button type="button" class="apn-tab is-chip" data-ctf-tab="needs"><i class="apn-cd is-amber" aria-hidden="true"></i>${esc(i18t('ctf_tab_needs'))} <span>${r.needN}</span></button>` : ''}</div>`;
 }
 if (typeof document !== 'undefined' && !document._ctfWired2){ document._ctfWired2 = true;
   document.addEventListener('click', e => {
@@ -4058,6 +4126,7 @@ function regFoldersGlanceHtml(rows, head, gaps, live){
      headline with its tag, three tiles (money on paper, signed, waiting on you), "Where the money is" kept as drawn
      (its own bar and legend, each a folder's door), "Not done yet" as rows by the page's own presses (data-rfp-only,
      data-rfp-rate). Read off the folders, no AI. The new look only. */
+  if(typeof newLookOn==='function'&&newLookOn()&&typeof jamboOverviewHtml==='function') return regFoldersLsPanelHtml(rows, head);
   if(typeof newLookOn==='function'&&newLookOn()&&typeof jamboOverviewHtml==='function'){
     const R=seeMoney&&sum>0?rows.filter(x=>x.r.val>0).sort((a,b)=>b.r.val-a.r.val):[];
     const bar=R.length?`<div class="rfg-split" aria-hidden="true">${R.map((x,i)=>`<i class="is-${Math.min(i+1,5)}" style="width:${(x.r.val/sum*100).toFixed(2)}%"></i>`).join('')}</div>`
@@ -4074,6 +4143,30 @@ function regFoldersGlanceHtml(rows, head, gaps, live){
       mid:bar, midLabel:bar?i18t('ctfp_money'):'', groups:todoRows.length?[{ label:i18t('rfg_todo'), rows:todoRows }]:[], src:i18t('jl_src_list') },'rfg');
   }
   return top+money+(todo?cap(i18t('rfg_todo'))+todo:'');
+}
+/* THE LANDING'S PANEL, P-31 (owner's pick 20 Nov 2026): NO CARDS AND NO MONEY. Nothing chosen: a sentence, where they
+   stand (the bar), when they end (the dots), what needs you (name and why). A folder chosen on the table: it is summed
+   up the same way, with Open the folder (black) and "Show the N that need you". Read off the folders; no AI. */
+let _ctfPick='';
+function regFoldersLsPanelHtml(rows, head){
+  const pick=rows.find(x=>x.fid===_ctfPick)||null;
+  const L=pick?pick.cs:rows.flatMap(x=>x.cs);
+  const D=regFolderSummaryData(L,[]);
+  const need=L.filter(c=>D.needIds.has(c.id));
+  const tot=Math.max(1,L.length), pc=x=>(Math.round(x/tot*1000)/10)+'%';
+  const bar=`<div class="ctf-stand"><i class="is-r" style="width:${pc(D.review.length)}"></i><i class="is-s" style="width:${pc(D.signed.length)}"></i></div>
+    <div class="ctf-key"><span><i class="is-r"></i>${esc(i18t('ctf_k_review'))} ${D.review.length}</span><span><i class="is-s"></i>${esc(i18t('ctf_k_signed'))} ${D.signed.length}</span></div>`;
+  const dots=D.months.some(m=>m.dots.length)?`<div class="ctf-months is-mini">${D.months.map(m=>`<div class="ctf-mo"><div class="ctf-mo-d">${m.dots.slice(0,4).map(x=>`<i class="is-${x.tone}" title="${esc(x.name)}"></i>`).join('')}</div><small>${esc(m.label.slice(0,1))}</small></div>`).join('')}</div>`:'';
+  const needRows=need.slice(0,4).map(c=>{ let w=''; try{ const it=(needsYouOf(c)||[])[0]; const x=it&&typeof insNeedWords==='function'?insNeedWords(c,it):null; w=x&&x.title||''; }catch(_){ w=''; }
+    return { mark:'file', tone:'amber', t:c.name||c.id, s:[c.counterparty||'', w].filter(Boolean).join(' \u00b7 '), attr:`data-rfp-only="${esc(String(c.id))}" data-rfp-label="${esc(c.name||'')}"` }; });
+  const o={ title:pick?pick.name:`${L.length} ${i18tn('rfg_contracts', L.length)} ${i18tn('rfg_in_folders', rows.length, { n:rows.length })}.`,
+    sub:pick?(FOLDERS[pick.fid]&&FOLDERS[pick.fid].desc)||'':head,
+    tag:need.length?{ text:i18tn('rfg_need', need.length, { n:need.length }), tone:'amber' }:(L.length&&D.signed.length===L.length?{ text:i18t('rfg_all_signed'), tone:'green' }:null),
+    mid:bar+dots, midLabel:i18t('ctf_where_all',{ n:L.length }),
+    groups:needRows.length?[{ label:i18t('ctf_fig_need'), rows:needRows }]:[],
+    act:pick?{ label:i18t('ctfp_open',{ name:pick.name }), attr:`data-ctf-folder="${esc(pick.fid)}" data-ctf-open`, links:need.length?[{ label:i18tn('ctf_show_need',need.length,{ n:need.length }), attr:`data-rfp-only="${esc(need.map(c=>String(c.id)).join(','))}" data-rfp-label="${esc(i18t('ctf_fig_need'))}"` }]:[] }:null,
+    src:i18t('jl_src_list') };
+  return jamboOverviewHtml(o,'rfg');
 }
 function regFoldersPanelHtml(){
   const live = (state.contracts || []).filter(c => c && !c._codeNamed && !c.archived);
@@ -5000,6 +5093,7 @@ function renderRegister(opts){
                   if(k==='expiry') return sortableTh('expiry',i18t('reg_col_ends'),'',k);
                   if(k==='stage') return sortableTh('stage',i18t('reg_col_stage'),'',k);
                   if(k==='standing') return sortableTh('stage',i18t('reg_col_standing'),'',k);
+                  if(k==='needs'){ const i=_colN; return `<th style="${colAt('',k)}">${esc(i18t('reg_col_needs'))}${gripFor(i)}</th>`; }
                   if(k==='stream') return sortableTh('stream',i18t('reg_col_stream'),'',k);
                   /* the head is the name alone (owner, 8 Nov 2026: the column's sentence is the foot's, "Our standards is HaTi's own check") */
                   if(k==='standards') return sortableTh('standards',i18t('reg_col_standards'),'',k);
@@ -5300,7 +5394,7 @@ Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regFol
   REG_CT_SEAT,REG_CT_VIEWS,REG_CT_QUICK,regCtQuickOf,REG_CT_FILTERS,regOnCt,regNeedsIds,regRowsCount,regCutCount,regCtViews,regCtFilterLists,regCtFilters,regCtRepaint,regCtToolsHtml,
   REG_CT_FIXED,REG_CT_COL_WORD,regCtShapeKeys,regCtColDefs,regCtHeadReg,regCtFootHtml,regHomeColW,regToolsWire,regToolsHtml,regWallRepaint,
   /* the Contracts place on Home (the overnight work order, step 7) */
-  REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,regStageTone,regStageMarkHtml,regSapMarkHtml,regSapMarkOf,regStageLineHtml,regNegoMarkHtml,regNegoLineHtml,regNegoClauseChips, regNegoClauseNames,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,REG_HOME_SPREAD,REG_COL_KEYS_HOME_WIDE,REG_COL_W_HOME_WIDE,REG_HOME_WIDE_W,regHomeWide,regHomeWatch,regPlaceSet,regPlaceUp,regFoldersNow,regFoldersSet,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});
+  REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,regStageTone,regStageMarkHtml,regSapMarkHtml,regSapMarkOf,regStageLineHtml,regNegoMarkHtml,regNegoLineHtml,regNegoClauseChips, regNegoClauseNames,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,REG_HOME_SPREAD,REG_COL_KEYS_HOME_WIDE,REG_COL_W_HOME_WIDE,REG_HOME_WIDE_W,regHomeWide,regHomeWatch,regPlaceSet,regPlaceUp,regFoldersNow,regFoldersSet,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale,regFolderSummaryData});
 
 /* ═══ NEGOTIATIONS, THE NEW LOOK (round 7, as drawn; behind the admin's "Try the new look") ═══
    One quiet list: whose move, the open asks quoted from the paper with their §, the lead, the last thing that
