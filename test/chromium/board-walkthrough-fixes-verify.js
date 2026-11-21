@@ -60,9 +60,11 @@ const BOOK = FIXTURES.concat(Array.from({ length: 20 }, (_, i) => {
     await waitFor(page, n => window.state && state.contracts && state.contracts.length >= n, 20000, BOOK.length);
     /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */
     /* check 4 reads the value tile, so the reader picks it, as the figure picker lets them */
-    await page.evaluate(() => { const s = hbS(); s.figs = ['live', 'value', 'ending', 'overdue']; hbSave(); if (typeof hbPaintBoard === 'function') hbPaintBoard(); });
     await page.evaluate(() => { setView('dashboard'); hbSetFace('board'); });
     await waitFor(page, () => !!document.querySelector('#hb-board [data-hb-dig="f:live"]'), 10000);
+    /* chosen once the Board has landed: a choice made before the sign-in's own read of the Board is read over */
+    await page.evaluate(() => { const s = hbS(); s.figs = ['live', 'value', 'ending', 'overdue']; hbSave(); if (typeof hbPaintBoard === 'function') hbPaintBoard(); });
+    await waitFor(page, () => !!document.querySelector('#hb-board [data-hb-fig="value"]'), 6000);
 
     /* 1 the side list */
     /* RE-POINTED 18 Oct 2026 (round 17 as drawn): Your book's figures open

@@ -91,6 +91,8 @@ const CONTRACTS = [
     ok('0b the Board draws no Needs you card', await page.evaluate(() => !document.querySelector('#hb-board #hb-needs, #hb-board .hb-ny')));
 
     /* ===== 1. THE COUNTER LISTS IT, COUNTING THE CHECKLIST'S OWN ===== */
+    /* the book's own reading, asked once it has come (the four cards land sooner than the five did, P-39) */
+    await until(page, () => (state.contracts || []).filter(c => c && !c.archived).reduce((a, c) => a + ((typeof needsYouOf === 'function') ? needsYouOf(c).length : 0), 0) >= 4, null, 10000);
     const book = await page.evaluate(() => (state.contracts || []).filter(c => c && !c.archived).reduce((a, c) => a + ((typeof needsYouOf === 'function') ? needsYouOf(c).length : 0), 0));
     await page.evaluate(() => setView('counter'));
     const drawn = await until(page, () => !!document.querySelector('#hm-agents [data-cn-need]'));
