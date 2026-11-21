@@ -179,7 +179,9 @@ const until = async (page, fn, arg, ms = 8000) => {
     { const rws = await page.$$('#content [data-ikn-row]');
       let rw = null; for (const h of rws){ if (/site visit/i.test(await h.textContent())){ rw = h; break; } }
       rw = rw || rws[0]; if (rw){ await rw.click(); await page.waitForTimeout(800); } }
-    const withCell = await page.waitForFunction(() => /(Peter|You) took it|With (Peter|you)\b/.test(((document.getElementById('content') || {}).textContent || '') + ' ' + ((document.getElementById('ins-panel') || {}).textContent || '')), null, { timeout: 6000 }).then(() => true, () => false);
+    /* RE-POINTED 21 Nov 2026 (P-32, as drawn): a drafted request's timeline says whose draft it is — "Peter started the
+       draft" ("You started the draft" where the reader is Peter) */
+    const withCell = await page.waitForFunction(() => /(Peter|You) took it|(Peter|You) started the draft|With (Peter|you)\b/.test(((document.getElementById('content') || {}).textContent || '') + ' ' + ((document.getElementById('ins-panel') || {}).textContent || '')), null, { timeout: 6000 }).then(() => true, () => false);
     const seen4 = withCell ? '' : await page.evaluate(() => JSON.stringify({ view: state.view, tab: (document.querySelector('[data-ikn-tab].is-on') || {}).textContent,
       tabs: [...document.querySelectorAll('[data-ikn-tab]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
       rows: [...document.querySelectorAll('#content [data-ikn-row]')].map(r => (r.className.includes('is-sel') ? '*' : '') + r.textContent.replace(/\s+/g, ' ').trim().slice(0, 50)),

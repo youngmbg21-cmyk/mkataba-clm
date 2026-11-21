@@ -22775,3 +22775,10 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - 21 Nov 2026 (P-39): Noticed, not fixed: the Board's "Company needs you · N" row has no Waited day (the company jobs carry no date on record); the drawing has no such row.
 - 21 Nov 2026 (P-39, owner's answer): "Today's insights" REMOVED from the Board (it ends after Needs you, as drawn); its findings are still counted for the brief's mail. Needs you's "the oldest has waited" now counts every row's wait (approvals, details), so the head, the rows and the panel agree.
 - 21 Nov 2026 (P-29 redo, Negotiations as drawn): the count line under the Negotiations list ("5 negotiations · 4 live") is REMOVED — the drawing has none and the chips carry the counts. Removing a line is a change (CLAUDE.md "it cuts both ways"): said to the owner. Also: Live no longer lists settled deals (its chip counted 4 while the list showed 5), and Remind on the row and in the panel is now the Dossier's one Remind (their last link sent again) rather than the send screen.
+
+## 21 Nov 2026 — Requests rebuilt as drawn (P-32, the Legora + Stripe way)
+- Removed: the "N requests" line under the Requests table (the drawing has no foot; the chips carry the count).
+- Removed: the chosen request's panel head row (Overview tab and fold arrow) while a request is chosen, as Obligations' panel does; the panel opens on the request's badge as drawn.
+- Removed: the five-part panel's small print "Read from the ask, without AI." and the lane sentence under the headline (the lane is now a "Came by" row read from the ask).
+- Changed: "Put it down" is no longer its own button when you hold a request; "Hand on" (as drawn) offers a colleague who edits, or "Nobody: put it back on Open".
+- Noticed, not fixed: Advice requests carry no short title of their own, so the Requests row shows the first sentence of the question as its title.
