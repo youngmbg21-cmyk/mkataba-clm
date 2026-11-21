@@ -22138,7 +22138,8 @@
      folders page had no part that scrolls inside it, so every folder past the window's foot was cut off and out of
      reach. Its list (and the tiles) take the room left under the head and scroll there, as the wall and the list do;
      the count line stays at the foot. THE LESSON: a frame that clips needs a scroller inside it (white-sheet-verify, CUT). */
-  html.lg-new #ct-place .ctf-page > :is(.ctf-list, .ctf-grid){flex:1 1 0%;min-height:0;overflow-y:auto}
+  html.lg-new #ct-place .ctf-page > :is(.ctf-list, .ctf-grid, .ctf-ls){flex:1 1 0%;min-height:0;overflow-y:auto}
+  html.lg-new #ct-place .ctf-page > .ctf-ls > *{flex:none}
   html.lg-new #ct-place .ctf-page > .ctf-list > *{flex:none}
   html.lg-new #ct-place .ctf-page > .ctf-grid{align-content:start}
   /* VIEWS FIRST (owner's pick by name, 10 Nov 2026; regFolderRowsHtml, regFolderViewsHtml): up to four view tiles in one
