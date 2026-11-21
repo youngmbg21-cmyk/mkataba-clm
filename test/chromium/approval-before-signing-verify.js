@@ -232,7 +232,7 @@ let H;
       /* RE-POINTED 18 Oct 2026 (round 15 as drawn, "Jonas's yes before signing /
          Erik's contracts need it"): the line under the step names whose contracts need it */
       /* RE-POINTED 16 Nov 2026 (#762): the new look's row (apnRowHtml) says "asked by …" and the rule's line, "<name>'s contracts" */
-      !!list && !!apc && /^You\b/.test(apc.text) && /Unrestricted Legal asked/.test(apPanel)
+      !!list && !!apc && /You$/.test(apc.text) && /Unrestricted Legal asked/.test(apPanel)
         && (/Unrestricted Legal['’]s contracts/.test(list) || /Unrestricted Legal['’]s contracts/.test(apPanel)),
       JSON.stringify({ list, apc, panel: apPanel.slice(0, 300) }));
     await shot(P.page, 'sa-05-list');

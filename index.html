@@ -19960,8 +19960,8 @@
      they end by month, the folders as a calm table; soft badges for standing; the ask box under the title; chips */
   html.lg-new .ctf-page .ctf-ask{margin:10px 0 12px}
   html.lg-new .ctf-page .ctf-bar{gap:6px;border-bottom:0;margin:0 0 14px}
-  html.lg-new .ctf-ls{display:flex;flex-direction:column;gap:22px}
-  html.lg-new .ctf-figs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+  html.lg-new .ctf-ls{display:flex;flex-direction:column;gap:22px;container-type:inline-size}
+  html.lg-new .ctf-figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
   html.lg-new .ctf-fig{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;padding:14px 16px;border:1px solid var(--color-neutral-200);border-radius:var(--radius);background:var(--color-surface);font:inherit;text-align:left;cursor:pointer}
   html.lg-new .ctf-fig:hover:not([disabled]){border-color:var(--color-neutral-300)}
   html.lg-new .ctf-fig[disabled]{cursor:default}
@@ -19969,7 +19969,7 @@
   html.lg-new .ctf-fig>b{font-family:var(--font-title);font-size:26px;line-height:1.1;font-weight:var(--w-label);font-variant-numeric:tabular-nums}
   html.lg-new .ctf-fig.is-amber>b{color:var(--st-amber-fg)}
   html.lg-new .ctf-fig>small{max-width:100%;font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  html.lg-new .ctf-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:24px}
+  html.lg-new .ctf-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:24px}
   html.lg-new .ctf-sec .ctf-cap{margin:0 0 8px}
   html.lg-new .ctf-stand{display:flex;gap:2px;height:8px;border-radius:999px;overflow:hidden;background:var(--color-neutral-100)}
   html.lg-new .ctf-stand i,html.lg-new .ctf-tbar i{display:block;height:100%}
@@ -20015,6 +20015,7 @@
   html.lg-new .reg-need small{color:var(--color-quiet)}
   html.lg-new .igw-card.is-stripe .igw2-st{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
   html.lg-new .igw-card.is-stripe .igw2-end{flex:none;font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap}
+  @container (max-width:520px){ html.lg-new .ctf-ftable :is(th,td):nth-child(n+4){display:none} }
   @container (max-width:760px){ html.lg-new .ctf-figs{grid-template-columns:repeat(2,minmax(0,1fr))} html.lg-new .ctf-two{grid-template-columns:minmax(0,1fr)} }
   html.lg-new .apn-tab{white-space:nowrap}
   html.lg-new .obn-table td{padding:14px 16px 14px 0;border-bottom:1px solid var(--color-divider);vertical-align:top}
