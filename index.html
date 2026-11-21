@@ -20300,6 +20300,37 @@
   html.lg-new .ld6-fwho .ld-who-fix{width:auto;padding:0;font-size:var(--t-label)}
   html.lg-new .ld6-fwho .ld-who-sel{width:auto;height:28px;border:0;padding:0;background:none;font-size:var(--t-label)}
   html.lg-new .ld6-add{margin:8px 0 0 34px}
+  /* NEW AGREEMENT, THE LEGORA + STRIPE WAY (P-36): calm cards with a soft shelf badge, the paper's opening words and a used
+     bar; your words quoted and lit; Their paper without the sentence box; From scratch's four starts as calm cards in a
+     2×2 grid; the panel's "Needed before Create" as a bar of segments and a dot list */
+  html.lg-new #na-root.na-one .na6-cb{display:inline-flex;align-self:flex-start;align-items:center;height:20px;max-width:100%;padding:0 8px;margin:0 0 6px;border-radius:999px;font-size:var(--t-micro);font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new #na-root.na-one .na-closest .na-lr-t{display:flex;flex-direction:column;gap:3px;min-width:0;width:100%}
+  html.lg-new #na-root.na-one .na6-opens{display:block;font-family:var(--font-doc);font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+  html.lg-new #na-root.na-one .na6-used{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new #na-root.na-one .na6-used i{display:block;flex:none;width:56px;height:4px;border-radius:999px;background:linear-gradient(90deg,var(--sd) var(--p),var(--color-neutral-100) var(--p))}
+  html.lg-new #na-root.na-one .na6-yw{font-family:var(--font-sans);font-style:normal;font-size:var(--t-micro);color:var(--color-quiet)}
+  html.lg-new #na-root.na-one:is([data-paper="theirs"],[data-paper="kept"]) :is(.na-askbox,.na-ask-r){display:none}
+  html.lg-new #na-root.na-one:is([data-paper="theirs"],[data-paper="kept"]) #wz-pick{display:none}
+  html.lg-new #na-root .na6-np{max-width:none}
+  html.lg-new #na-root .na6-np-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  html.lg-new #na-root .na6-np-card{position:relative;display:flex;gap:12px;align-items:flex-start;padding:16px;border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);cursor:pointer}
+  html.lg-new #na-root .na6-np-card:has(input:checked){background:var(--color-surface);border-color:var(--color-text);box-shadow:inset 0 0 0 1px var(--color-text)}
+  html.lg-new #na-root .na6-np-card input{position:absolute;opacity:0;pointer-events:none}
+  html.lg-new #na-root .na6-np-mk{flex:none;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:var(--w-strong)}
+  html.lg-new .na6-pb{display:flex;gap:6px;margin:0 0 8px}
+  html.lg-new .na6-p .jov5-group.is-form{background:none;box-shadow:none;border-radius:0;overflow:visible}
+  html.lg-new .na6-seg{display:flex;gap:3px;margin:0 0 8px}
+  html.lg-new .na6-seg i{flex:1;height:6px;border-radius:999px;background:var(--st-amber-dot)}
+  html.lg-new .na6-seg i.is-done{background:var(--st-green-dot)}
+  html.lg-new .na6-need{display:flex;flex-direction:column}
+  html.lg-new .na6-nr{display:flex;align-items:center;gap:8px;min-width:0;padding:6px 0;border-bottom:1px solid var(--color-divider);font-size:var(--t-label)}
+  html.lg-new .na6-nr>i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--st-amber-dot)}
+  html.lg-new .na6-nr.is-done>i{background:var(--st-green-dot)}
+  html.lg-new .na6-nr span{flex:none;color:var(--color-quiet)}
+  html.lg-new .na6-nr b{flex:1;min-width:0;text-align:right;font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .na6-nr:not(.is-done) b{font-weight:400;color:var(--st-amber-fg)}
+  html.lg-new .na6-said{margin:0;font-family:var(--font-doc);font-size:var(--t-body);line-height:1.55}
+  html.lg-new .na6-said mark{background:var(--st-amber-bg);color:var(--st-amber-fg);padding:0 2px;border-radius:2px}
   @container (max-width:760px){ html.lg-new .ctf-figs{grid-template-columns:repeat(2,minmax(0,1fr))} html.lg-new .ctf-two{grid-template-columns:minmax(0,1fr)} }
   html.lg-new .apn-tab{white-space:nowrap}
   html.lg-new .obn-table td{padding:14px 16px 14px 0;border-bottom:1px solid var(--color-divider);vertical-align:top}
