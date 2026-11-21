@@ -120,17 +120,27 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
       const card = pg && pg.querySelector('.apn-card'), foot = pg && pg.querySelector('.apn-foot');
       const rows = [...document.querySelectorAll('.ikn-table [data-ikn-row]')];
       const hb = box(head), bb = box(bar), qb = box(q);
-      return { stacked: !!(hb && bb && qb && tabs.length) && hb.bottom <= bb.top + 1 && bar.contains(q)
-          && tabs.every(t => { const r = box(t); return r.top < qb.bottom && r.bottom > qb.top && r.left >= qb.right; }),
+      /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way) */
+      /* the ask box (label.apn-ask holding #ikn-q) stands under the title, the tabs are chips on ONE row under it */
+      const ask = q && q.closest('label.apn-ask'), ab = box(ask);
+      return { stacked: !!(hb && bb && ab && tabs.length) && hb.bottom <= ab.top + 1 && ab.bottom <= bb.top + 1
+          && tabs.every(t => t.classList.contains('is-chip') && Math.abs(box(t).top - box(tabs[0]).top) <= 2),
+        chips: tabs.map(t => [t.getAttribute('data-ikn-tab'), ((t.querySelector('span') || {}).textContent || '').trim()]),
+        needsEditor: [...document.querySelectorAll('.ikn-table [data-ikn-row] .apn-st.is-amber')].filter(b => /^Needs an editor/.test(b.textContent.trim())).length,
         gone: [...document.querySelectorAll('.ik-tabbar, .ik-fb, .ins-cardhead, [data-lh-seat="intake"]')].length,
         title: head ? (head.querySelector('.ctf-h') || {}).textContent : null,
-        head: head ? (head.querySelector('.ctf-hf') || {}).textContent : null,
+        head: head ? (head.querySelector('.ctf-hf') || {}).textContent || null : null,
         foot: foot ? foot.textContent.trim() : '',
         footIn: !!(foot && card && rows.length && card.contains(foot) && box(foot).top >= box(rows[rows.length - 1]).bottom - 1 && box(foot).bottom <= box(card).bottom + 1),
         panelFoot: (() => { const p = document.getElementById('ins-panel'); return p && card && p.getClientRects().length ? Math.round(box(p).bottom - box(card).bottom) : null; })() };
     });
-    check('1a the page head, then ONE bar: the box with the tabs beside it on its row; no old band, no list head', B.stacked && B.gone === 0, JSON.stringify({ stacked: B.stacked, gone: B.gone }));
-    check('1b the head: "Requests · 4 open · 2 need an editor"', B.title === 'Requests' && B.head === '4 open · 2 need an editor', JSON.stringify({ title: B.title, head: B.head }));
+    /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way) */
+    check('1a the page head, then the ask box under the title, then the tabs as chips on one row; no old band, no list head', B.stacked && B.gone === 0, JSON.stringify({ stacked: B.stacked, gone: B.gone }));
+    /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way) */
+    /* no facts beside the title: the Open chip counts 4, and the two nobody holds wear "Needs an editor" in amber */
+    const openChip = (B.chips || []).find(x => x[0] === 'open');
+    check('1b the head: "Requests" alone; the Open chip says 4; 2 rows "Needs an editor"', B.title === 'Requests' && !B.head && !!openChip && openChip[1] === '4' && B.needsEditor === 2,
+      JSON.stringify({ title: B.title, head: B.head, chips: B.chips, needsEditor: B.needsEditor }));
     /* RETIRED 17 Nov 2026 (#762, owner's ruling, round 3): 1c "oldest waiting first" — the oldest-first order stays gone */
     /* RE-POINTED 29 Oct 2026 (owner: ONE SHEET — the list card reaches the foot of Jambo's panel; REVERSES "the card ends after its rows")
        RE-POINTED 17 Nov 2026 (#762): the head is inside the card now, so the card meets no separate head; the foot says "4 requests" */
@@ -153,23 +163,30 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
          labelled under its value ("Party", "NDA · to do", "Files · … added by …"), Start the draft the black button
          with Hand back beside it (.jov5-acts). Every word main brought back on 17 Nov stands. */
       const doors = [...p.querySelectorAll('.jov5-acts button')];
+      /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way) */
+      /* the black button leads (.jov5-go); the facts read from the ask are the "read" group's rows (the timeline is its own group) */
+      const go = p.querySelector('.jov5-acts .jov5-go');
       const row = document.querySelector(`.ikn-table [data-ikn-row="${id}"]`), cells = row ? [...row.children] : [];
       const ths = [...document.querySelectorAll('.ikn-table thead th')].map(t => t.textContent.trim());
       return { word: (p.querySelector('[data-jl-word]') || {}).textContent, head: (p.querySelector('.jov5-title') || {}).textContent,
-        stands: cells[ths.indexOf('Where it stands')] ? cells[ths.indexOf('Where it stands')].textContent.replace(/\s+/g, ' ').trim() : '',
+        stands: cells[ths.indexOf('Status')] ? cells[ths.indexOf('Status')].textContent.replace(/\s+/g, ' ').trim() : '',
+        go: go ? go.textContent.trim() : null,
         text: p.innerText.replace(/\s+/g, ' '),
         doors: doors.map(b => b.textContent.trim()), inside: doors.every(b => b.getBoundingClientRect().right <= pr.right + 1 && b.scrollWidth <= b.clientWidth + 1),
         quote: (p.querySelector('.jov5-row.is-quote .jov5-rt b') || {}).textContent,
-        rows: Object.fromEntries([...p.querySelectorAll('.jov5-row')].filter(r => r.querySelector('.jov5-rt > span') && !r.classList.contains('is-quote'))
+        rows: Object.fromEntries([...p.querySelectorAll('[data-jov5-sec="read"] .jov5-row')].filter(r => r.querySelector('.jov5-rt > span') && !r.classList.contains('is-quote'))
           .map(r => [String(r.querySelector('.jov5-rt > span').textContent).split(' \u00b7 ')[0], (r.querySelector('.jov5-rt b') || {}).textContent])) };
     }, r1.id);
-    const meFirst = String(me.name || '').split(/\s+/)[0];
-    check('2a no word in his head; the panel names the request; the row says who holds it ("With <first name>")', !!P && !P.word
-      && /^Mutual NDA with Naivas Supermarkets/.test(P.head || '') && P.stands.startsWith('With ' + meFirst), P && JSON.stringify({ head: P.head, stands: P.stands }));
+    /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way) */
+    /* the row's Status badge says who holds it — "With you" for the reader */
+    check('2a no word in his head; the panel names the request; the row says who holds it ("With you")', !!P && !P.word
+      && /^Mutual NDA with Naivas Supermarkets/.test(P.head || '') && P.stands.startsWith('With you'), P && JSON.stringify({ head: P.head, stands: P.stands, me: me.name }));
     /* KEPT AS IT WAS PROMISED (question for the owner, R2-Q4): the lane that sent the request to the reader */
     check('2a+ the panel says the lane that sent it ("by the NDA lane")', !!P && /NDA lane/.test(P.text), P && P.text.slice(0, 240));
     /* KEPT: Hand back (the decline with its reason) is an act the old panel carried and the new one does not draw — a question for the owner */
-    check('2b Start the draft and Hand back, each whole, inside the panel', !!P && JSON.stringify(P.doors) === '["Start the draft","Hand back"]' && P.inside, P && JSON.stringify(P.doors));
+    /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way) */
+    /* held by the reader: Start the draft the black button, Put it down and Hand back as links beside it */
+    check('2b Start the draft (black), Put it down and Hand back, each whole, inside the panel', !!P && P.go === 'Start the draft' && JSON.stringify(P.doors) === '["Start the draft","Put it down","Hand back"]' && P.inside, P && JSON.stringify({ go: P.go, doors: P.doors }));
     /* RE-POINTED 17 Nov 2026 (the owner's picks on the drawings, "2 Bring it back"): the NDA line stands under the party,
        and each file is its own row by name, who added it beside it */
     check('2c her words whole; Party · NDA · Stream · Paper · Files read from the ask, the one file by name', !!P && /^Naivas want/.test(P.quote || '') && /standard one\?$/.test(P.quote || '')
@@ -291,10 +308,19 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
         const F = await page.evaluate(s => {
           const pg = document.querySelector(s).closest('.apn-page');
           const head = pg && pg.querySelector('.cun-head'), bar = pg && pg.querySelector('.apn-bar');
-          const q = bar && bar.querySelector('input[type="search"]'), tabs = bar ? [...bar.querySelectorAll('.apn-tab')] : [];
-          const qb = q && q.getBoundingClientRect();
-          const oneRow = !!(head && bar && qb && tabs.length) && head.getBoundingClientRect().bottom <= bar.getBoundingClientRect().top + 1
-            && tabs.every(t => { const r = t.getBoundingClientRect(); return r.top < qb.bottom && r.bottom > qb.top; }) && bar.scrollWidth <= bar.clientWidth + 1;
+          const tabs = bar ? [...bar.querySelectorAll('.apn-tab')] : [];
+          let oneRow;
+          if (s === '.ikn-table'){
+            /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way) */
+            /* Requests: the head, the ask box under the title (label.apn-ask), then the chips on one row, nothing sideways */
+            const ask = pg && pg.querySelector('label.apn-ask'), ab = ask && ask.getBoundingClientRect();
+            oneRow = !!(head && bar && ab && ask.querySelector('#ikn-q') && tabs.length) && head.getBoundingClientRect().bottom <= ab.top + 1 && ab.bottom <= bar.getBoundingClientRect().top + 1
+              && tabs.every(t => Math.abs(t.getBoundingClientRect().top - tabs[0].getBoundingClientRect().top) <= 2) && bar.scrollWidth <= bar.clientWidth + 1;
+          } else {
+            const q = bar && bar.querySelector('input[type="search"]'), qb = q && q.getBoundingClientRect();
+            oneRow = !!(head && bar && qb && tabs.length) && head.getBoundingClientRect().bottom <= bar.getBoundingClientRect().top + 1
+              && tabs.every(t => { const r = t.getBoundingClientRect(); return r.top < qb.bottom && r.bottom > qb.top; }) && bar.scrollWidth <= bar.clientWidth + 1;
+          }
           const labelsCut = tabs.concat(head ? [...head.children] : []).filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent.trim());
           const heads = [...document.querySelectorAll(s + ' thead th')].filter(t => t.scrollWidth > t.clientWidth + 1).map(t => t.textContent.trim());
           const p = document.querySelector('#ins-panel.is-jambo'); const pr = p && p.getBoundingClientRect();

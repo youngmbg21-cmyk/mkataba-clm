@@ -72,7 +72,7 @@ const PAGES = [
   /* job 7: Reads. Its three tabs draw the one table; All's pack lines are rows inside the same body */
   /* job 8: Requests. Its four tabs draw the one table; a tab at 0 steps out */
   { k: 'requests', view: 'intake', rowSel: '.ikn-page .ikn-table tbody tr', tabSel: '[data-ikn-tab]', tabKey: 'data-ikn-tab',
-    box: '#ikn-q', home: 'open', word: 'supply', wholeSel: '.ikn-page .ikn-table thead th', pageSel: '.ikn-page', facts: '.ikn-page .cun-head .ctf-hf' },
+    box: '#ikn-q', home: 'open', word: 'supply', wholeSel: '.ikn-page .ikn-table thead th', pageSel: '.ikn-page', facts: '.ikn-page .apn-bar' },   /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way): no facts beside the title — the chips count */
   /* job 9: Import. Its three tabs draw the one table */
   { k: 'import', view: 'migration', rowSel: '.mign-page .mign-table tbody tr', tabSel: '[data-mign-tab]', tabKey: 'data-mign-tab',
     box: '#mign-q', home: 'all', word: 'supply', wholeSel: '.mign-page .mign-table thead th', pageSel: '.mign-page', facts: '.mign-page .cun-head .ctf-hf' },

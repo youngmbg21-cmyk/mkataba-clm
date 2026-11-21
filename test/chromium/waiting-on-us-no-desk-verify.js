@@ -141,8 +141,10 @@ async function login(browser, email, pass, errors) {
       const box = document.querySelector('#ins-panel .jl-need') || document.querySelector('#ins-panel [data-ngn-for="MK-A2"]');
       return { drawn: !!box, text: box ? box.textContent.replace(/\s+/g, ' ').trim() : '' };
     });
+    /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): the chosen deal's panel no longer
+       carries Jambo's sentence ("Waiting on your answer.") — whose move is its tag, "Your move", and its act opens the redlines */
     check('2d and the side panel\'s checklist on its list page asks for an answer',
-      panel.drawn && (/Answer Nandi Dairy/.test(panel.text) || /waiting on your answer/i.test(panel.text)), panel.text.slice(0, 140) || 'no checklist');
+      panel.drawn && (/Answer Nandi Dairy/.test(panel.text) || (/Your move/i.test(panel.text) && /Open the redlines/.test(panel.text))), panel.text.slice(0, 140) || 'no checklist');
     await O.ctx.close();
 
     /* ================= 3 · CONTROL: A COLLEAGUE IT DOES NOT BELONG TO ================= */

@@ -38,7 +38,8 @@ test('Reads: answers as tinted chips, a progress bar', () => {
 test('Requests: today green, a week or more amber', () => {
   const S = read('js/views/intake.js');
   assert.match(fnBody(S, 'iknAgeTone'), /days <= 1 \? ' is-fresh' : days >= IKN_OLD_DAYS \? ' is-old' : ''/);
-  assert.match(fnBody(S, 'iknRowHtml'), /cun-wait ikn-age\$\{iknAgeTone\(r\)\}/);
+  /* RE-POINTED (P-32): the Waiting column is red past a week (the badge says "No one yet · N days") */
+  assert.match(fnBody(S, 'iknRowHtml'), /late \? `<span class="late">/);
   assert.match(CSS, /html\.lg-new td\.cun-wait\.ikn-age\.is-old\{color:var\(--st-amber-fg\)\}/);
 });
 /* REVERSED 14 Nov 2026 (owner's pick, Our paper the Legora way): the uses are said in small type on the right of each
