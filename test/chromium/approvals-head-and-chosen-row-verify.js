@@ -55,7 +55,9 @@ const NAMES = [['E-commerce Distribution Agreement', 'Copia Global'], ['Digital 
       /* RE-POINTED (owner, 16 Nov 2026: Negotiations' grey "is what this should look like … as if a patch was applied";
          f1073): the chosen row is one grey band inside its own edges — no bar, no patch into the sheet's margin; the mark
          where the others are */
-      check(`${at} 3 the chosen row is one grey band inside the row, no bar or patch, the mark where the others are`, !!row && !row.has && row.same && row.rowFill === 'rgb(240, 240, 243)', row);
+      /* RE-POINTED 21 Nov 2026 (P-30, as drawn; owner's answer that day): on Approvals the chosen row is LIGHT GREEN
+         (--color-accent-50), still one band inside the row with no bar or patch */
+      check(`${at} 3 the chosen row is one light-green band inside the row, no bar or patch, the mark where the others are`, !!row && !row.has && row.same && row.rowFill === 'rgb(238, 243, 240)', row);
       /* 1, 2 · scrolled */
       const moved = await page.evaluate(() => { const s = document.getElementById('ap-scroll'); s.scrollTop = 170; return s.scrollTop; });
       await until(page, () => document.getElementById('ap-scroll').scrollTop > 100, null, 4000);

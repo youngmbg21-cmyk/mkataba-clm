@@ -22777,3 +22777,4 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - Approvals' chosen-row panel lost its "Dossier" second tab and its "ask <name>" link (the drawing's links are open the paper · history · approval rules). Said to the owner.
 - Noticed, not fixed: a RULE step waiting on a colleague has no way to remind them by hand (only a named person's approval has Remind, via sign-approval-notify); the drawing's "Remind Joseph" shows only for a named person's approval. Asked of the owner.
 - Noticed, not fixed: js/views/approvalsview.js apnLeadHtml reads `q=apnQuote(c)` and never uses it (lint warning, before this change).
+- 21 Nov 2026 (owner's answers): the rule approver's hand reminder is now built (POST /api/contracts/:id/rule-remind, f1133), and Approvals' chosen row is light green as drawn (reverses the 16 Nov grey there only).

@@ -845,6 +845,27 @@ function apInsPaint(rows){
 function apnRemindReq(c){
   try{ const rows=typeof signApprovalRows==='function'?signApprovalRows(c):[]; const x=rows.find(y=>y&&y.status==='pending'&&y.req); return x?x.req:null; }catch(_){ return null; }
 }
+/* THE RULE STEP THAT WAITS, when a company rule (not one named person) asked for the yes: its rule id where the reader may
+   remind its approver (may act, is not an approver of it) — or, with `any`, whoever reads */
+function apnRuleStepOf(r, any){
+  try{
+    const nx=r&&r.st&&r.st.next; if(!nx||nx.sa||!nx.ruleId||r.done||r.mine) return '';
+    if(any) return String(nx.ruleId);
+    const me=(typeof currentUser==='function'&&currentUser())||null;
+    if(!me||(typeof mayActOn==='function'&&!mayActOn(r.c, me))) return '';
+    if(typeof userCanApprove==='function'&&userCanApprove(nx.approver, me)) return '';
+    return String(nx.ruleId);
+  }catch(_){ return ''; }
+}
+/* the press: the room's own writer sends it (ruleStepRemind, js/approvals.js — the page itself writes nothing); the
+   panel is drawn again with the server's record */
+async function apnRuleRemind(id, b){
+  const c=typeof getContract==='function'?getContract(id):null; if(!c||typeof ruleStepRemind!=='function') return;
+  const r=(apWorkRows().rows||[]).find(x=>x.c&&x.c.id===id), who=String((r&&apnApproverOf(r))||'').split(/\s+/)[0]||i18t('sa_admins');
+  if(b) b.disabled=true;
+  try{ await ruleStepRemind(c, who); } finally{ if(b) b.disabled=false; }
+  if(state.view==='approvals'){ const host=document.getElementById('ins-panel'); if(host) host._ins=null; renderApprovalsPage(); }
+}
 /* a day said short, as drawn ("8 Jul"; the year only when it is not this one; "today" for today) */
 function apnShortDay(iso){
   const t=Date.parse(String(iso||'')); if(!isFinite(t)) return '';
@@ -910,8 +931,12 @@ function apnLeadFiveHtml(r, rule){
     acts=btn(' is-k',fw?i18t('jl_ap_approve_for',{ who:f1 }):i18t('ap_pg_approve'),`data-apn-act="approve" data-id="${id}"`)
       +btn('',i18t('apn_decline'),`data-apn-act="refuse" data-id="${id}"`,i18t('ap_pg_refuse_title'));
   } else {
-    const req=apnRemindReq(c);
+    const req=apnRemindReq(c), rs=req?null:apnRuleStepOf(r);
     if(req) acts=btn('',i18t('apn_remind',{ who:String(req.approverName||'').split(/\s+/)[0]||i18t('sa_admins') }),`data-apn-act="remind" data-id="${id}" data-req="${esc(req.id)}"`);
+    /* A RULE'S APPROVER IS REMINDED TOO (owner, 21 Nov 2026): one email, once a day, sent and recorded by the server
+       (POST /api/contracts/:id/rule-remind); offered to whoever may act and is not the approver */
+    else if(rs){ const f=String(apnApproverOf(r)||'').split(/\s+/)[0]||i18t('sa_admins');
+      acts=btn('',i18t('apn_remind',{ who:f }),`data-apn-act="ruleremind" data-id="${id}"`,i18t('apn_remind_t',{ who:f })); }
   }
   /* the timeline: who asked and when, where it waits and for how long (or the yes and its reason), signing next */
   const who=apnApproverOf(r), me=(typeof currentUser==='function'&&currentUser())||{};
@@ -927,6 +952,9 @@ function apnLeadFiveHtml(r, rule){
     tl.push({ tone:'', t:i18t('apn_step_sign'), s:i18t('apn_tl_next') });
   } else {
     tl.push({ tone:apLate(r)?'ruby':st.tone, t:you||!who?i18t('apn_tl_waits_you'):i18t('apn_st_with',{ who }), s:r.idle!=null?apWaitingText(r.idle):'' });
+    /* the server's record of a hand reminder on the step that waits now: "Reminded Joseph · 21 Nov" */
+    const rid=apnRuleStepOf(r,true), rm=rid?(Array.isArray(c.ruleReminds)?c.ruleReminds:[]).filter(x=>x&&String(x.ruleId)===rid).pop():null;
+    if(rm) tl.push({ tone:'steel', t:i18t('apn_tl_reminded',{ who:(Array.isArray(rm.to)&&rm.to.length?rm.to.map(n=>String(n).split(/\s+/)[0]).join(', '):String(rm.step||'')) }), s:apnShortDay(rm.at) });
     tl.push({ tone:'', t:i18t('apn_step_sign'), s:i18t('apn_tl_after_yes') });
   }
   const sec=(h,b)=>`<section class="apn5-sec">${h?`<h4 class="apn5-h">${esc(h)}</h4>`:''}${b}</section>`;
@@ -950,6 +978,7 @@ if(typeof document!=='undefined'&&document.addEventListener&&!document._apnActWi
     if(k==='refuse') return apDecide(id,'refused');
     if(k==='undo') return apUndo(id);
     if(k==='gate') return apOpenSigning(id);
+    if(k==='ruleremind') return apnRuleRemind(id, b);
     if(k==='remind'){ const c=typeof getContract==='function'?getContract(id):null; if(!c||typeof signApprovalRemind!=='function') return;
       b.disabled=true; try{ await signApprovalRemind(c, b.getAttribute('data-req')); } finally { b.disabled=false; } }
   }); }
@@ -1818,4 +1847,4 @@ Object.assign(window,{apnLandRow,apnPeekOpen,apnPeekRowOf,apnPeekPages,apnPeekLi
   apOtherSignRows,apSignIdle,apRulesSay,apApproverMe,apSignAway,apSignRuleHtml,AP_SORTS,AP_SORT_WORDS,AP_SINCE_WORDS,apSortRows,apWhyLines,apForWho,apDayAfter,apTurnHtml,apSinceLook,apAskedByText,apWhySentence,apLeadJlHtml,apForPillHtml,apSay,apPaintHead,apSaWaiting,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning,
   apInsSeat,apLeadHtml,apInsActs,apInsPaint,apnLeadHtml,apnRender,apnRowHtml,apnDoneRows,apMayDecide,apDecide,apWhatHtml,apWhatParts,apWhatBrief,
   AP_LATE_DAYS,apLate,apRowsShown,apUndo,apMayUndo,apApprovedPillHtml,apDoneLineHtml,
-  AP_VIEWS,AP_F_DEF,apListAtRest,apBook,apStreamName,apRowWords,apListNow,apTabs,apFilters,apSortHtml,apHeadRegister,apPlace,apPlacePut,apShowRow,apPaintList,apListWire});
+  apnRuleStepOf,apnRuleRemind,AP_VIEWS,AP_F_DEF,apListAtRest,apBook,apStreamName,apRowWords,apListNow,apTabs,apFilters,apSortHtml,apHeadRegister,apPlace,apPlacePut,apShowRow,apPaintList,apListWire});
