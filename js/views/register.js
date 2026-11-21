@@ -2001,7 +2001,7 @@ function regCtHeadReg(){
   return lhRegister(REG_CT_SEAT, {
     noun:'contracts', boxId:'ct-q',
     /* P-31 AS DRAWN: the drawing's words in the box and its spark; the box still narrows the list by its words */
-    ph:()=>regOnCt(()=>regNl()?i18t('ctls_ask_ph'):null), boxIcon:()=>regOnCt(()=>regNl()?'sparkle':null),
+    ph:()=>regOnCt(()=>regNl()?i18t('ctls_ask_ph'):null), boxIcon:()=>regOnCt(()=>regNl()?'mkSpark':null),
     /* the box's words ask (owner, 21 Nov 2026): a QUESTION goes to Jambo through the one reader (lhAsk → intelAsk, answered
        in the panel beside the list); plain words filter the list */
     asks:true,
@@ -4122,7 +4122,7 @@ function regFoldersHeadHtml(){
   return `<div class="ctf-head"><h2 class="ctf-h">${esc(i18t('nav_contracts'))}</h2><span class="ctf-sp"></span>
       <button type="button" class="ctf-pill is-lead" data-ctf-show="list">${esc(i18t('ct_list'))}</button><button type="button" class="ctf-pill" data-ctf-show="wall">${esc(i18t('ct_wall'))}</button>
       ${may ? `<button type="button" class="ui-btn ui-btn-primary ctf-new" data-ctf-draft>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${esc(i18t('ctf_new_agreement'))}</button>` : ''}</div>
-    <label class="apn-ask ctf-ask">${typeof icon === 'function' ? icon('sparkle', 'w-3.5 h-3.5') : ''}<input id="ctf-q" type="search" autocomplete="off" placeholder="${esc(i18t('ctls_ask_ph'))}"></label>
+    <label class="apn-ask ctf-ask is-spark">${typeof icon === 'function' ? icon('mkSpark', 'w-3.5 h-3.5') : ''}<input id="ctf-q" type="search" autocomplete="off" placeholder="${esc(i18t('ctls_ask_ph'))}"></label>
     <div class="apn-bar ctf-bar"><button type="button" class="apn-tab is-chip is-on" data-ctf-tab="folders">${esc(i18t('ctf_tab_folders'))} <span>${regFolderCount()}</span></button><button type="button" class="apn-tab is-chip" data-ctf-tab="all">${esc(i18t('ctf_tab_all'))} <span>${r.n}</span></button>${r.needN ? `<button type="button" class="apn-tab is-chip" data-ctf-tab="needs"><i class="apn-cd is-amber" aria-hidden="true"></i>${esc(i18t('ctf_tab_needs'))} <span>${r.needN}</span></button>` : ''}</div>`;
 }
 if (typeof document !== 'undefined' && !document._ctfWired2){ document._ctfWired2 = true;
