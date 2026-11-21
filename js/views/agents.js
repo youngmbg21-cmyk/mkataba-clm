@@ -1558,6 +1558,9 @@ function agUseReply(key){
       if (box){ box.value = r.text; box.dispatchEvent(new Event('input', { bubbles: true })); try { box.focus(); } catch (_){} return; }
       const reply = host.querySelector(`[data-rl-np-reply="${css(nkey)}"]`);
       if (reply && !reply._agPressed){ reply._agPressed = true; reply.click(); }
+      /* the notes are a row per discussion now (P-38): the note's row opens it, where its Reply stands */
+      const row = !reply ? host.querySelector(`[data-rl-np-open="${css(nkey)}"]`) : null;
+      if (row && !row._agPressed){ row._agPressed = true; row.click(); }
     }
     if (Date.now() - t0 < AG_REPLY_WAIT_MS) setTimeout(tick, 120);
     else if (typeof toast === 'function') toast(_agT('ag_qt_use_lost'), 'warn');

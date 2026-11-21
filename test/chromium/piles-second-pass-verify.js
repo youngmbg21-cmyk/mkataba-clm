@@ -173,20 +173,25 @@ async function login(b, base, email, pass, errs){
     const nv = await waitFor(page, () => { const v = document.querySelector('#pd-redface .rl-fn'); if (!v || !v.querySelector('.rl-np-tab')) return null;
       return { tabs: [...v.querySelectorAll('.rl-np-tab')].map(t => ({ t: t.innerText.replace(/\s+/g, ' ').trim(), room: t.getAttribute('data-rl-np-room'), only: /Only your colleagues/.test(t.title || ''), on: t.classList.contains('on') })),
         back: ((document.querySelector('#ig-dock > .pd-trail') || {}).textContent || ''),
-        lines: [...v.querySelectorAll('.rl-np-note')].map(l => ((l.querySelector('.rl-np-top b') || {}).textContent || '') + ' · ' + ((l.querySelector('.rl-chat-on em') || {}).textContent || '') + ' · ' + (((l.querySelector('.rl-np-top span') || {}).textContent || '') ? 'when' : '')),
-        say: [...v.querySelectorAll('.rl-np-note .rl-np-b > p')].map(x => x.textContent.trim()), ph: (v.querySelector('.rl-np-in') || {}).placeholder, at: !!v.querySelector('[data-rl-np-at]'),
+        /* RE-POINTED 21 Nov 2026 (P-38, Notes the Stripe way): one calm row per discussion — the clause, its last words and when */
+        lines: [...v.querySelectorAll('.rl-np-crow')].map(l => ((l.querySelector('.rl-np-ch b') || {}).textContent || '') + ' · ' + (((l.querySelector('.rl-np-cl .t') || {}).textContent || '') ? 'when' : '')),
+        say: [...v.querySelectorAll('.rl-np-crow .rl-np-cl .w')].map(x => x.textContent.trim()), ph: (v.querySelector('.rl-np-in') || {}).placeholder, at: !!v.querySelector('[data-rl-np-at]'),
         post: (v.querySelector('.rl-np-send') || {}).textContent, piles: !!(document.querySelector('#pd-redface #rl-changes') || {}).hidden,
         drawer: !!(state.panelOpen && panelFace() === 'notes'), pressed: document.querySelector('#pd-redface [data-rl-notes-all]').getAttribute('aria-pressed') }; }, 6000);
     check('2a Notes opens the notes in the column (no drawer), the button pressed', !!nv && nv.piles && !nv.drawer && nv.pressed === 'true', JSON.stringify(nv && { piles: nv.piles, drawer: nv.drawer, pressed: nv.pressed }));
     check('2b the rooms as tabs: our team\'s room with its 2 (only colleagues see it, on), the party\'s tab, "‹ Redlines"', !!nv && nv.tabs.length === 2 && nv.tabs[0].room === 'internal' && / 2$/.test(nv.tabs[0].t) && nv.tabs[0].only && nv.tabs[0].on
       && /^Nordvik Logistik AB 0$/.test(nv.tabs[1].t) && /Redlines[\s\S]*Notes/.test(nv.back || ''), JSON.stringify(nv && [nv.tabs, nv.back]));
-    check('2c each note "Name · clause 7 · when" with its words under it', !!nv && nv.lines.length === 2 && nv.lines.every(l => /^Maria Lindgren · 7\. Liability cap · when$/.test(l))
+    check('2c each discussion a row: its clause, its words, when', !!nv && nv.lines.length === 2 && nv.lines.every(l => /Liability cap · when$/.test(l))
       && nv.say.join('|') === 'Their cap doubles our exposure.|Ask Sara before we move.', JSON.stringify(nv && [nv.lines, nv.say]));
     check('2d ONE box with @ to name someone, and "Add note"', !!nv && /note/i.test(nv.ph || '') && nv.at && /^Add note$/.test((nv.post || '').trim()), JSON.stringify(nv && [nv.ph, nv.at, nv.post]));
     await shot(page, '9-notes-1440x780');
-    await page.click('#pd-redface .rl-fn .rl-chat-on[data-rl-notes]'); /* RE-POINTED 16 Nov 2026 (#762): the note's clause link */
+    /* RE-POINTED 21 Nov 2026 (P-38): a row opens its discussion; its "Go to § on the paper" is the clause's link */
+    await page.click('#pd-redface .rl-fn .rl-np-crow');
+    await waitFor(page, () => !!document.querySelector('#pd-redface .rl-fn [data-rl-np-goclause]'), 4000);
+    await page.click('#pd-redface .rl-fn [data-rl-np-goclause]');
     /* RE-POINTED 19 Oct 2026 (LAND ON IT, main's rule): the link lands on the clause through the one lander */
     check('2e the clause is a link to it on the paper', !!(await waitFor(page, () => !!document.querySelector('#ig-paper .is-landed[data-clause]'), 4000)));
+    if (await page.$('#pd-redface .rl-fn [data-rl-np-back]')) await page.click('#pd-redface .rl-fn [data-rl-np-back]');
     if (!(await page.$('#pd-redface .rl-fn .rl-np-in'))){ await page.click('#pd-redface [data-rl-notes-all]'); await waitFor(page, () => !!document.querySelector('#pd-redface .rl-fn .rl-np-in'), 5000); }
     await page.fill('#pd-redface .rl-fn .rl-np-in', 'Finance can live with 45 days. Not 60.');
     await page.click('#pd-redface .rl-fn .rl-np-send'); /* RE-POINTED 16 Nov 2026 (#762): the bar's box and its Add note */
@@ -195,7 +200,7 @@ async function login(b, base, email, pass, errs){
          change's own (negoNoteHome) once the clause's link has scoped the notes to it */
       const own = (c.thread || []).concat(...(c.changes || []).map(x => x.thread || [])).filter(m => /Finance can live with 45 days/.test(m.text || ''));
       return v && own.length === 1 && own[0].visibility !== 'shared' && / 3$/.test(v.querySelector('.rl-np-tab[data-rl-np-room="internal"]').innerText.replace(/\s+/g, ' ').trim())
-        && [...v.querySelectorAll('.rl-np-note .rl-np-b > p')].some(s => /Finance can live with 45 days/.test(s.textContent)) ? true : null; }, 8000);
+        && [...v.querySelectorAll('.rl-np-crow .rl-np-cl .w, .rl-np-note .rl-np-b > p')].some(s => /Finance can live with 45 days/.test(s.textContent)) ? true : null; }, 8000);
     check('2f Post files one internal note through the drawer\'s own send, and it shows', !!posted);
     await page.click('#ig-dock > .pd-trail [data-pd-back="red-notes"]');
     check('2g ‹ Redlines brings the piles back', !!(await waitFor(page, () => !document.querySelector('#pd-redface .rl-fn') && !!document.querySelector('#pd-redface [data-rl-pile="awaiting"]'), 5000)));

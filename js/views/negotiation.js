@@ -17663,7 +17663,8 @@ function rlNpCompactHtml(c, ch, th){
   const last = th.replies.length ? th.replies[th.replies.length - 1] : th.root;
   const st = rlNpStateOf(th), earlier = th.replies.length;
   const words = String(last.text || '').replace(/\s+/g, ' ').trim();
-  return `<button type="button" class="rl-np-crow" data-rl-np-open="${_nea(key)}">
+  const home = ch || ((th.root.anchor && window.negoNoteHomeFor) ? negoNoteHomeFor(c, th.root.anchor.clauseId) : null);
+  return `<button type="button" class="rl-np-crow" data-rl-np-open="${_nea(key)}"${home ? ` data-rl-np-chg="${_nea(home.id)}" title="${_nea(home.id)}"` : ''}>
       <span class="rl-np-ch">${S.sec ? `<span class="rl-np-sec">${_ne(S.sec)}</span>` : ''}<b>${_ne(S.name || i18t('ng_np_on_contract'))}</b><span class="rl-np-st is-${st}">${_ne(i18t('ng_np_st_' + st))}</span></span>
       <span class="rl-np-cl">${rlNpAvatarHtml(last.who || '', true)}<span class="w">${_ne(words)}</span><span class="t">· ${_ne(negoWhen(last.at))}</span></span>
       ${earlier ? `<span class="rl-np-ce">${_ne(i18tn('ng_np_earlier', earlier, { n: earlier }))} · <u>${_ne(i18t('ng_np_show'))}</u></span>` : ''}
@@ -17673,7 +17674,7 @@ function rlNpOpenHtml(c, ch, th, room, side, other, opts){
   const S = rlNpSecOf(rlNpLabelOf(c, ch, th)), st = rlNpStateOf(th);
   const msgs = [th.root].concat(th.replies), who = [...new Set(msgs.map(m => String(m.who || '').trim()).filter(Boolean))];
   const last = msgs[msgs.length - 1];
-  const cid = th.root.anchor && th.root.anchor.clauseId;
+  const cid = (th.root.anchor && th.root.anchor.clauseId) || (ch && ch.clauseId) || '';
   return `<div class="rl-np-open-h"><button type="button" class="ui-link" data-rl-np-back>‹ ${_ne(i18t('ng_np_all_notes'))}</button></div>
     <div class="rl-np-ch is-head">${S.sec ? `<span class="rl-np-sec">${_ne(S.sec)}</span>` : ''}<b>${_ne(S.name || i18t('ng_np_on_contract'))}</b><span class="rl-np-st is-${st}">${_ne(i18t('ng_np_st_' + st))} · ${_ne(i18tn('ng_np_msgs', msgs.length, { n: msgs.length }))}</span></div>
     <div class="rl-np-people">${who.slice(0, 4).map(n => rlNpAvatarHtml(n, true)).join('')}<span>${_ne(i18tn('ng_np_people', who.length, { n: who.length }))} · ${_ne(i18t('ng_np_last', { when: negoWhen(last.at) }))}</span></div>
@@ -17753,6 +17754,8 @@ function rlChatPanelHtml(c, opts = {}){
   };
   /* The reference rides INSIDE its note, under the name (the Thread). */
   const rowOf = ({ ch, th }) => `<div class="rl-chat-row">${rlNpCompactHtml(c, ch, th)}</div>`;
+  /* a reply asked for (Use this reply, a note's Reply) opens that discussion, where its reply box stands */
+  if (_rlNpReplyTo){ const hit = threads.find(({ th }) => negoNoteKey(th.root) === _rlNpReplyTo); if (hit) _rlNpOpen = _rlNpReplyTo; }
   if (_rlNpFocusKey){ const hit = threads.find(({ th }) => negoNoteKey(th.root) === _rlNpFocusKey || th.replies.some(r => negoNoteKey(r) === _rlNpFocusKey)); if (hit) _rlNpOpen = negoNoteKey(hit.th.root); }
   const opened = _rlNpOpen ? threads.find(({ th }) => negoNoteKey(th.root) === _rlNpOpen) : null;
   if (!opened) _rlNpOpen = null;
