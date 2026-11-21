@@ -1953,7 +1953,8 @@ function jovMoves(el){
 }
 /* the numbers count up from nothing to what they say (a leading whole number only; "697M" counts 0…697, then M) */
 function jovCountUp(el){
-  el.querySelectorAll('.jov5-g b').forEach(b => {
+  /* the tiles' numbers, and the Board panel's ring ("4/12" counts 0…4, as drawn, P-39) */
+  el.querySelectorAll('.jov5-g b, .hbw2-ring > b').forEach(b => {
     const m = String(b.textContent || '').match(/^(\d{1,6})(\D.*)?$/); if (!m) return;
     const to = Number(m[1]), rest = m[2] || ''; if (!to) return;
     const t0 = performance.now(), dur = 700, delay = 160;
@@ -1966,6 +1967,8 @@ function jovPlay(el){
   el.querySelectorAll('.jov5-day, .jov5-cm, .pd2-sg-i, .pd2-spine.is-steps i').forEach((x, j) => x.style.setProperty('--jov-j', String(j)));
   el.classList.add('jov-arrive');
   jovCountUp(el);
+  /* the Board's own figures, lines and bar join its panel's arrival (P-39), never on their own */
+  if (el.getAttribute('data-jov-slot') === 'hb' && typeof window.hbArrivePage === 'function') try { window.hbArrivePage(); } catch (_){}
   setTimeout(() => { try { el.classList.remove('jov-arrive'); } catch (_){} }, 2200);
 }
 /* AN ARRIVAL IS A NEW PAGE, NOT A NEW ELEMENT: the panel a page keeps unchanged is not drawn again (NOTHING CHANGED,

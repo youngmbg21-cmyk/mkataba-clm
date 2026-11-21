@@ -22148,6 +22148,7 @@
   /* the arrivals of the Board, Explorer and Read down panels (P-39, P-40, P-41): kept outside the new-look blocks, whose rules all wait on html.lg-new */
   @keyframes hbw2Ring{from{stroke-dashoffset:106.8}}
   @keyframes hbw2Grow{from{transform:scaleX(0)}to{transform:none}}
+  @keyframes hbSparkDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
   @keyframes igoSweep{from{opacity:0;transform:rotate(-180deg)}to{opacity:1;transform:rotate(-90deg)}}
   /* DISCOVER, THE LEGORA + STRIPE WAY (P-42, owner's pick 21 Nov 2026): the ask box under the title, All · Kept and the
      "+ filter" chips; one calm table with soft badges and an answered bar; the panel a ring and bars without cards;
@@ -22380,6 +22381,52 @@
   @media (prefers-reduced-motion: reduce){ html.lg-new .jov5[data-jov-slot="hb"] .jov5-chev{transition:none} }
   html.lg-new .nd-q{font-family:var(--font-doc);font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .nd-q b,html.lg-new .nd-q q{font-weight:inherit}
+  /* ===== THE BOARD, SECOND PASS AGAINST THE DRAWING (P-39, 21 Nov 2026: "exactly what we agreed … no short cuts") =====
+     The cards' heads carry no hairline under them (the drawing's white cards are one piece); Summarise is a grey pill like
+     its neighbours, ink words, Jambo's spark green; "Where all N stand" sits 14 under the cards, the bar 6 under it and the
+     key 6 under the bar (a stage at nought stays dimmed: a dead button is never dressed as a live one); each row's act
+     keeps the ONE width of 22 Oct 2026 ("make all of the buttons the same size"), and says "Approve" whole. */
+  html.lg-new #ig-page[data-hb-side="board"] :is(#hb-book,#hm-agents) > .hb-ch,html.lg-new #ig-page[data-hb-side="board"] #hm-agents .nd-bar{border-bottom:0}
+  html.lg-new #ig-page[data-hb-side="board"] #hb-bhead.is-greet .hb-bs-go{border:0;background:var(--surface-2);color:var(--color-text);font-weight:var(--w-label)}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-spark-ic{flex:none;width:13px;height:13px;color:var(--accent-ink);fill:currentColor;stroke:none}
+  html.lg-new #ig-page[data-hb-side="board"] #hb-book > .hb-cb{gap:0}
+  html.lg-new #ig-page[data-hb-side="board"] #hb-book .hb-tn.is-cards ~ .hb-where{margin-top:2px;padding-bottom:6px}
+  html.lg-new #ig-page[data-hb-side="board"] #hb-book .hb-tn.is-cards ~ .hb-stagekey{padding-top:6px;padding-bottom:0}
+  html.lg-new #ig-page[data-hb-side="board"] #hb-book > .hb-cb{padding-bottom:16px}
+  html.lg-new #ig-page[data-hb-side="board"] #hb-book .hb-stagekey .hb-sk-w{white-space:nowrap}
+  /* the paper's words under a row: "§ 2 · “…”", the § in the body face, the words in the paper's, one line ending in "…" */
+  html.lg-new #ig-page[data-hb-side="board"] #hm-agents .nd-q .cn2-sec{font-family:var(--font-body);font-weight:400;color:var(--color-quiet)}
+  html.lg-new #ig-page[data-hb-side="board"] #hm-agents .nd-bar{padding-top:2px}
+  html.lg-new #ig-page[data-hb-side="board"] #hb-book .hb-figs.hb-tn.hb-tn.is-cards{padding-top:2px}
+  html.lg-new .jov5[data-jov-slot="hb"] .jov5-row.is-quote .jov5-rt b{font-family:inherit}
+  html.lg-new .jov5[data-jov-slot="hb"] .jov5-row.is-quote .jov5-rt > span{display:block;font-family:var(--font-doc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* the panel's last section has no line under it (the hidden chips' section after it does not count) */
+  html.lg-new .jov5[data-jov-slot="hb"] .jov5-sec:has(+ .jov5-sec .jov5-chips),html.lg-new .jov5[data-jov-slot="hb"] .jov5-sec:has(+ .jov5-src){border-bottom:0}
+  /* THE BRIEF, ONE PARAGRAPH (as drawn): no dashed line, no "Jambo:"; when it was asked in the quiet ink; its numbers not
+     bolded; the paper's words in the paper's face */
+  html.lg-new #ig-page[data-hb-side="board"] .hb-why.is-one .hb-why-h{margin-bottom:6px}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-why.is-one .hb-read-src{font-weight:400;color:var(--color-quiet)}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-why.is-one .hb-why-one{font-size:14px;line-height:1.5}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-why.is-one .hb-why-one .hb-num{font-weight:inherit;color:inherit}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-why.is-one .hb-why-q{font-family:var(--font-doc);color:var(--color-quiet)}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-why.is-one .hb-why-f{margin-top:6px}
+  /* YOUR BOOK'S FIGURES, AS DRAWN: the list's name with "N of 4" as a soft badge, the rule under it, an ink tick in a small
+     square, an unticked figure's name grey, "Back to the usual four" a green link and Done the one black button */
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick{box-sizing:border-box;width:328px;padding:12px 14px;gap:0;border:1px solid var(--color-neutral-300);border-radius:12px;background:var(--color-surface);box-shadow:0 12px 32px rgba(0,0,0,.14);color:var(--color-text);font-size:13px}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-head b{flex:1;min-width:0;font-weight:var(--w-label)}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-n{flex:none;padding:1px 7px;border-radius:6px;background:var(--surface-2);font-size:10.5px;line-height:1.6;font-weight:var(--w-label);color:var(--color-quiet);white-space:nowrap}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-dp-head{margin-bottom:6px;font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-row{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:8px;align-items:center;padding:5px 2px;font-size:13px}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-row.is-off{color:var(--color-quiet)}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-row input{appearance:none;-webkit-appearance:none;margin:0;width:15px;height:15px;border-radius:4px;border:1.5px solid var(--color-neutral-300);background:var(--color-surface);display:grid;place-items:center;cursor:pointer}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-row input:checked{background:var(--color-text);border-color:var(--color-text)}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-row input:checked::after{content:"";width:7px;height:4px;margin-top:-2px;border-left:1.5px solid var(--color-surface);border-bottom:1.5px solid var(--color-surface);transform:rotate(-45deg)}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-row input:disabled{cursor:not-allowed}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-money{margin:0;font-size:12.5px;font-style:normal;color:var(--color-quiet)}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-foot{justify-content:flex-end;gap:8px;margin-top:8px;padding:0;border-top:0}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-foot .ui-link{font-size:12.5px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-foot .ui-btn{height:auto;min-height:0;padding:4px 12px;font-size:12.5px}
   /* THE BOARD'S PANEL, THE LEGORA + STRIPE WAY (P-39): a ring of the late beside ONE bar of what waits; Jambo's pieces with a violet dot */
   html.lg-new .hbw2-wait{display:flex;align-items:center;gap:var(--s-3)}
   html.lg-new .hbw2-ring{position:relative;flex:none;width:52px;height:52px;display:grid;place-items:center}
@@ -22403,6 +22450,10 @@
   /* the Board panel's arrival (P-39), played only by jovPlay (rarely; never under reduced motion): the ring sweeps, the bar grows from the left */
   html.lg-new .jov-arrive .hbw2-rf{animation:hbw2Ring .9s cubic-bezier(.22,.61,.36,1) .25s both}
   html.lg-new .jov-arrive .hbw2-bar{transform-origin:left center;animation:hbw2Grow .7s cubic-bezier(.22,.61,.36,1) .2s both}
+  /* the Board's page joins its panel's arrival (hbArrivePage): the six-month lines draw themselves, the stage bar grows from the left */
+  html.lg-new #hb-book .hb-spark.jov-draw .hb-spark-l{stroke-dasharray:1;animation:hbSparkDraw .9s cubic-bezier(.22,.61,.36,1) .25s both}
+  html.lg-new #hb-book .hb-stagebar.jov-draw{transform-origin:left center;animation:hbw2Grow .7s cubic-bezier(.22,.61,.36,1) .2s both}
+  @media (prefers-reduced-motion: reduce){ html.lg-new #hb-book :is(.hb-spark.jov-draw .hb-spark-l,.hb-stagebar.jov-draw){animation:none} }
   /* EXPLORER'S PANEL, THE LEGORA + STRIPE WAY (P-40): a ring of what the map drew by its groups, with its legend */
   html.lg-new .igo-drawn{display:flex;align-items:center;gap:var(--s-3)}
   html.lg-new .igo-ring{position:relative;flex:none;width:56px;height:56px;display:grid;place-items:center}
