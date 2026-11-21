@@ -37,12 +37,14 @@ test('f1081 (2) Negotiations: white rows, one grey; the panel is the pressed rou
   /* RE-POINTED 21 Nov 2026 (P-29, as drawn): the chosen row is tinted green, as drawn */
   assert.match(HTML, /html\.lg-new \.ngn-page \.ngn-table tr\.is-sel td\{background:var\(--color-accent-50\)\}/, 'the chosen row is shaded, whoever\'s move it is');
   const R = read('js/views/register.js'), p = fnSrc(R, 'ngnPanelFiveHtml');
-  const chosen = p.slice(p.indexOf('if (r){'), p.indexOf('const pick = '));
+  /* RE-POINTED 22 Nov 2026 (P-29 review): the overview is drawn unboxed after the chosen deal's part; the chosen part ends where it begins */
+  const chosen = p.slice(p.indexOf('if (r){'), p.indexOf('const work = x =>'));
   /* RE-POINTED 21 Nov 2026 (P-29, as drawn): no cards — the badge, the name as the headline, Round · Open asks · Rounds */
   assert.match(chosen, /<div class="ngn5-t">\$\{E\(c\.name \|\| ''\)\}<\/div>/, 'its name is the headline');
   assert.match(chosen, /ngn5_fig_round[\s\S]*ngn_c_open_asks[\s\S]*ngn_c_rounds'\)\)\}<\/small>\$\{ngnRoundsHtml\(c, r\.b\)\}/, 'round, open asks and the strip');
   assert.ok(!/ngnPageSay|ngn5_t_you/.test(chosen), 'nothing of the page\'s totals on a chosen round');
-  assert.match(p, /attr: `data-ngn-pick="\$\{E\(x\.c\.id\)\}"`/, 'the overview\'s rows choose');
+  /* RE-POINTED 22 Nov 2026 (P-29 review): the overview's rows are plain buttons that choose their deal */
+  assert.match(p, /<button type="button" class="ngn5-row" data-ngn-pick="\$\{E\(x\.c\.id\)\}">/, 'the overview\'s rows choose');
   assert.match(R, /if \(\(el = t\.closest\('\[data-ngn-pick\]'\)\)\)\{ e\.preventDefault\(\); _ngnSel = el\.getAttribute\('data-ngn-pick'\); _ngnNone = false; ngnRepaint\(\); return; \}/);
   assert.match(R, /ph\._jlBack = \(\) => \{[^\n]*_ngnSel = null; _ngnNone = true; ngnRepaint\(\);/, 'the tab is the way back to the overview');
 });

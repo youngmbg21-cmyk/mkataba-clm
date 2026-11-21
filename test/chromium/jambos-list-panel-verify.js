@@ -225,17 +225,20 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     await part('2e ‹ Overview', async () => {
       /* RE-POINTED 16 Nov 2026 (#762): the tab "‹ Overview" is the way back from the chosen round (_jlBack) */
       await page.click('#ins-panel [data-jl-home]');
-      const N2 = await until(() => { const p = document.getElementById('ins-panel'); return p && p.querySelector('.ngn-panel[data-ngn-for=""] .jov5-title') && !document.querySelector('.ngn-table tr.is-sel') ? true : null; });
+      /* RE-POINTED 22 Nov 2026 (P-29 review): the overview is drawn unboxed as the chosen deal's panel is — its headline
+         .ngn5-t, its sentence .ngn5-say, the tabs a line of links, plain rows that choose; no tiles, no marks */
+      const N2 = await until(() => { const p = document.getElementById('ins-panel'); return p && p.querySelector('.ngn-panel[data-ngn-for=""] .ngn5-t') && !document.querySelector('.ngn-table tr.is-sel') ? true : null; });
       check('2e ‹ Overview lets the row go: the page\'s overview back, no row lit', !!N2);
       const N3 = await page.evaluate(() => { const p = document.getElementById('ins-panel'), f = p && p.querySelector('.ngn-panel[data-ngn-for=""]'); if (!f) return null;
-        return { title: ((f.querySelector('.jov5-title') || {}).textContent || '').trim(), sub: ((f.querySelector('.jov5-sub') || {}).textContent || '').trim(),
+        return { title: ((f.querySelector('.ngn5-t') || {}).textContent || '').trim(), sub: ((f.querySelector('.ngn5-say') || {}).textContent || '').trim(),
+          tiles: f.querySelectorAll('.jov5-glance, .jov5-mark').length,
           you: !!f.querySelector('[data-ngn-gotab="you"]'), picks: [...f.querySelectorAll('[data-ngn-pick]')].map(b => b.getAttribute('data-ngn-pick')),
           back: !!(p.querySelector('[data-jl-back]') && !p.querySelector('[data-jl-back]').hidden), live: document.querySelectorAll('.ngn-table tr[data-ngn-row]:not(.is-settled)').length }; });
       /* RE-POINTED 16 Nov 2026 (#762): the overview's five parts — its headline counted from the page, Jambo's sentence of
          whose answers wait, "your move" a door to that tab and each round a row that chooses it; no ‹ Jambo.
          RETIRED half: the "start a negotiation" chip (old look only: the five parts draw no such offer) */
       check('1b nothing chosen: the page in his words from its own counts, its doors, no ‹ Jambo',
-        !!N3 && /^\d+ rounds? waits? on you\.$/.test(N3.title) && /wait on your answers/.test(N3.sub) && N3.you && N3.picks.includes('MK-A2') && !N3.back,
+        !!N3 && /^\d+ rounds? waits? on you\.$/.test(N3.title) && /wait on your answers/.test(N3.sub) && N3.you && N3.picks.includes('MK-A2') && !N3.back && N3.tiles === 0,
         JSON.stringify(N3));
       await shot('r14-negotiations-words-1440x780.png');
     });

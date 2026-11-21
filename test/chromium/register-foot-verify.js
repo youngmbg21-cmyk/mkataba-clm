@@ -217,13 +217,15 @@ const KEYS = `(() => {
     const onList = await page.evaluate(() => !!document.querySelector('.apn-table tr[data-ngn-row]'));
     ok('3a the Negotiations list is really on screen', onList);
     ok('3b the Negotiations page draws no value-streams key', onList && k3 === 0, `${k3} key(s) painted`);
-    ok('3c and its paging note is gone too', !!n && n.text.indexOf(words.noPaging) < 0,
-      n ? n.text : 'no foot');
-    ok('3d its foot holds the count alone (no pager on a page that never pages)',
-      /* RE-POINTED 16 Nov 2026 (#762): the .apn-foot's one painted child is the count's span */
-      !!n && n.kids.join(',') === 'span' && !(await page.evaluate(() => !!document.querySelector('.apn-foot.rdn-foot button'))), n ? n.kids.join(',') : 'no foot');
-    ok('3e CONTROL the count is still there', !!n && n.showOn && n.showing.length > 0,
-      n ? n.showing : 'no foot');
+    /* RE-POINTED 22 Nov 2026 (P-29 review): the drawn Negotiations page has NO foot under its list (the count line went
+       as drawn; BUGLOG 21 Nov 2026) — the chips carry the counts. So: no foot, no paging note, no pager, and the count
+       still said, on the Live chip. The foot checks above stand for every list that still has one. */
+    const ngChip = await page.evaluate(() => ({ foot: !!document.querySelector('.ngn-page .apn-foot'), pager: !!document.querySelector('.ngn-page #reg-pager, .ngn-page .apn-foot button'),
+      text: (document.querySelector('.ngn-page') || {}).textContent || '', live: ((document.querySelector('.ngn-page [data-ngn-tab="live"] span') || {}).textContent || '').trim() }));
+    ok('3c and its paging note is gone too', !ngChip.foot && ngChip.text.indexOf(words.noPaging) < 0, JSON.stringify({ foot: ngChip.foot }));
+    ok('3d no foot and no pager under the list (a page that never pages; as drawn)', !ngChip.foot && !ngChip.pager, JSON.stringify(ngChip.foot));
+    ok('3e CONTROL the count is still there — on the Live chip', /^[1-9]\d*$/.test(ngChip.live), ngChip.live || 'no count');
+    void n;
 
     /* ════════ 4. MY QUEUE — NOT NAMED, SO UNTOUCHED ════════ */
     await page.evaluate(() => setView('pipeline'));

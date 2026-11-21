@@ -22281,12 +22281,12 @@
   html.lg-new .ngn-page .ngn-table th{text-transform:none;letter-spacing:0;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-400);padding:8px 10px 8px 0}
   html.lg-new .ngn-page .ngn-table td{vertical-align:middle;padding:12px 10px 12px 0}
   html.lg-new .ngn-page .ngn-table :is(th,td).ngn-n{text-align:right}
-  html.lg-new .ngn-page .ngn-table td.ngn-n{font-size:var(--t-card);font-variant-numeric:tabular-nums;color:var(--color-text)}
-  html.lg-new .ngn-page .ngn-table td.ngn-wait{font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new .ngn-page .ngn-table td.ngn-n{font-size:var(--t-body);font-variant-numeric:tabular-nums;color:var(--color-text)}
+  html.lg-new .ngn-page .ngn-table td.ngn-wait{font-size:var(--t-body);color:var(--color-neutral-400)}
   html.lg-new .ngn-page .ngn-table .ngn-none{color:var(--color-neutral-400)}
   html.lg-new .ngn-page .ngn-table tr.is-sel td{background:var(--color-accent-50)}
   html.lg-new .ngn-page .ngn-table tr.is-settled td,html.lg-new .ngn-page .ngn-table tr.is-settled .cun-name{color:var(--color-text)}
-  html.lg-new .ngn-page .ngn-table tr[data-ngn-row] .cun-name{font-size:var(--t-card);font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new .ngn-page .ngn-table tr[data-ngn-row] .cun-name{font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-text)}
   html.lg-new .ngn-page .ngn-table tr[data-ngn-row] .cun-sub{font-size:var(--t-label);color:var(--color-neutral-400)}
   html.lg-new .ngn-page .ngn-table tr[data-ngn-row] .ngn-ref{font-family:var(--font-ref);font-weight:400;color:var(--color-neutral-400)}
   html.lg-new .ngn-page .ngn-ql{margin-top:2px;gap:6px;font-size:var(--t-body);line-height:1.4;color:var(--color-quiet)}
@@ -22302,9 +22302,11 @@
   html.lg-new :is(.ngn-page,.ngn5) .ngn-rs i.is-ours{background:var(--accent-ink)}
   html.lg-new :is(.ngn-page,.ngn5) .ngn-rs i.is-theirs{background:var(--st-steel-dot)}
   html.lg-new :is(.ngn-page,.ngn5) .ngn-rs i.is-now{box-shadow:none;outline:2px solid var(--st-amber-dot);outline-offset:1px}
-  html.lg-new .ngn-page .ngn-lead{gap:6px;font-weight:400;font-size:var(--t-label);color:var(--color-text)}
+  html.lg-new .ngn-page .ngn-lead{gap:6px;font-weight:400;font-size:var(--t-body);color:var(--color-text)}
+  /* a clear gap between the right-aligned Open asks and the Lead's initials, at every screen (P-29 review) */
+  html.lg-new .ngn-page .ngn-table :is(th,td).ngn-leadc{padding-left:24px}
   html.lg-new .ngn-page .ngn-av{background:var(--st-steel-bg);color:var(--st-steel-fg);font-size:var(--t-micro)}
-  html.lg-new .ngn-page .ngn-lead.is-you .ngn-av{background:var(--st-green-bg);color:var(--accent-ink)}
+  html.lg-new .ngn-page .ngn-lead.is-you .ngn-av{background:color-mix(in srgb,var(--accent-ink) 11%,var(--color-surface));color:var(--accent-ink)}
   html.lg-new :is(.ngn-page,.ngn5) .ngn-go{padding:0;border:0;background:none;font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;white-space:nowrap;cursor:pointer}
   /* THE CHOSEN DEAL'S PANEL, AS DRAWN: no cards — three parts split by one hairline: the badge, the name, the other side
      and reference, Round · Open asks · Rounds, the act and Open the redlines on one line; the words with their §; a
@@ -22332,15 +22334,27 @@
   html.lg-new .ngn5-tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
   html.lg-new .ngn5-tl li{position:relative;display:grid;grid-template-columns:16px 1fr;gap:10px;padding-bottom:12px;font-size:var(--t-body);line-height:1.45;color:var(--color-text)}
   html.lg-new .ngn5-tl li:last-child{padding-bottom:0}
-  html.lg-new .ngn5-tl li::before{content:"";position:absolute;left:7px;top:14px;bottom:0;width:1px;background:var(--color-neutral-300)}
+  html.lg-new .ngn5-tl li::before{content:"";position:absolute;left:6px;top:17px;bottom:0;width:1px;background:var(--color-neutral-300)}
   html.lg-new .ngn5-tl li:last-child::before{display:none}
-  html.lg-new .ngn5-tl i{display:block;width:9px;height:9px;margin:4px 0 0 3px;border-radius:50%;border:2px solid var(--color-surface);box-shadow:0 0 0 1px var(--color-neutral-300);background:var(--color-surface)}
+  html.lg-new .ngn5-tl i{display:block;box-sizing:content-box;width:9px;height:9px;margin:2px 0 0 0;border-radius:50%;border:2px solid var(--color-surface);box-shadow:0 0 0 1px var(--color-neutral-300);background:var(--color-surface)}
   html.lg-new .ngn5-tl li.is-accent i{background:var(--accent-ink)}
   html.lg-new .ngn5-tl li.is-green i{background:var(--st-green-dot)}
   html.lg-new .ngn5-tl li.is-amber i{background:var(--st-amber-dot)}
   html.lg-new .ngn5-tl li.is-steel i{background:var(--st-steel-dot)}
   html.lg-new .ngn5-tl li.is-next{color:var(--color-neutral-400)}
   html.lg-new .ngn5-tl small{font-size:var(--t-label);color:var(--color-neutral-400)}
+  /* THE PAGE'S OVERVIEW, UNBOXED (P-29 review): the headline, one sentence, the tabs as links, plain rows that choose */
+  html.lg-new .ngn5-t.is-head{font-family:var(--font-title);font-size:var(--t-page);font-weight:var(--w-title-serif);line-height:1.25}
+  html.lg-new .ngn5-say{margin:0;font-size:var(--t-body);line-height:1.5;color:var(--color-quiet)}
+  html.lg-new .ngn5.is-ov .ngn5-acts{gap:16px}
+  html.lg-new .ngn5-rows{display:flex;flex-direction:column}
+  html.lg-new .ngn5-row{display:flex;align-items:center;gap:12px;width:100%;padding:10px 0;border:0;border-bottom:1px solid var(--color-divider);background:none;font:inherit;text-align:left;cursor:pointer}
+  html.lg-new .ngn5-row:last-child{border-bottom:0}
+  html.lg-new .ngn5-row:hover .ngn5-rt b{text-decoration:underline;text-underline-offset:3px}
+  html.lg-new .ngn5-rt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  html.lg-new .ngn5-rt b{font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .ngn5-rt span{font-size:var(--t-label);color:var(--color-neutral-400);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .ngn5-rv{flex:none;font-size:var(--t-label);color:var(--color-neutral-400);white-space:nowrap}
   html.lg-new tr[data-ap-row] :is(.apn-sub,.apn-sub .hati-ref,.apn-rule,.apn-wait),html.lg-new #ap-scroll .apn-foot{color:var(--color-neutral-400)}
   html.lg-new tr[data-ap-row] .apn-wait .late{color:var(--st-ruby-fg)}
   html.lg-new #obn-body :is(.obn-sub,.obn-sub .hati-ref,.obn-when small,.obn-g td>span,.obn-g-r){color:var(--color-neutral-400)}

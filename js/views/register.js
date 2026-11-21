@@ -5407,7 +5407,12 @@ let _ngn = 'live', _ngnSel = null, _ngnQ = '', _ngnNone = false;
 function ngnPlace(){ return { tab: _ngn, sel: _ngnSel, q: _ngnQ }; }
 function ngnPlacePut(p){ if (!p) return; if (typeof p.tab === 'string') _ngn = p.tab; if (p.sel != null) _ngnSel = p.sel; if (typeof p.q === 'string') _ngnQ = p.q; }
 function ngnOn(){ return typeof window.newLookOn === 'function' && newLookOn() && typeof insFits === 'function' && insFits() && typeof insPaintPanel === 'function'; }
-function ngnBandOf(c){ let m = null; try { m = negWhoseMove(c); } catch (_){ m = null; } return !m ? 'settled' : m.k === 'you' ? 'you' : m.k === 'them' ? 'them' : 'settled'; }
+/* A DEAL OPENED AND NOTHING FILED YET (a working file opened to be redlined here; P-29 review, 22 Nov 2026) is listed
+   from the day it is opened: nothing is on the table, so the first round is ours to write — Your move, never Settled */
+function ngnNothingFiled(c){ const N = (c && c.negotiation) || {}; return !(Array.isArray(c && c.changes) && c.changes.length) && !(Array.isArray(N.rounds) && N.rounds.length); }
+function ngnBandOf(c){ let m = null; try { m = negWhoseMove(c); } catch (_){ m = null; }
+  if (m && m.k === 'clear' && ngnNothingFiled(c)) return 'you';
+  return !m ? 'settled' : m.k === 'you' ? 'you' : m.k === 'them' ? 'them' : 'settled'; }
 /* + Lead (P-29): the deals one colleague leads; a set chip with its × to let go */
 let _ngnLead = '';
 function ngnLeadChipHtml(all){
@@ -5487,7 +5492,7 @@ function ngnRead(x){
   const openN = b === 'you' ? asks.length : b === 'them' ? out.length : 0;
   /* the row's one line of the paper: their first ask, else what is open with them, else ours not sent (marked so) */
   const first = b === 'you' && asks.length ? { ch: asks[0] } : b === 'them' && out.length ? { ch: out[0] } : b === 'you' && mine.length ? { ch: mine[0], ours: true } : null;
-  return { c, b, round, move, open, sub, wait: b === 'settled' ? '—' : (cols.waiting || '—'), lead, asks, prep, unsent, mine, decided, out, openN, first, ap };
+  return { c, b, round, move, open, sub, wait: b === 'settled' ? '\u2014' : ngnWaitOf(c), lead, asks, prep, unsent, mine, decided, out, openN, first, ap };
 }
 /* THE PAPER'S WORDS OF ONE CHANGE (P-29, as drawn): the whole sentence its new wording changes (the old one where it only
    takes words away), as the paper says it — the row ends it in "…" where it runs long; nothing is invented */
@@ -5500,6 +5505,16 @@ function ngnPaperWords(ch){
   let at = 0, pick = sents[0];
   for (const s of sents){ if (a < at + s.length){ pick = s; break; } at += s.length; }
   return pick.trim().replace(/[.;:,]+$/, '');
+}
+/* WAITING, FROM THE LATEST ACT OF EITHER SIDE (P-29 review, 22 Nov 2026): the hand-over, a change put on the table
+   (ours not sent included) or a change decided — whichever came last; said as the list says a wait */
+function ngnWaitOf(c){
+  const N = c.negotiation || {}, every = Array.isArray(c.changes) ? c.changes : [];
+  const at = [N.turnAt, ...every.map(ch => ch && ch.createdAt), ...every.map(ch => ch && ch.resolvedAt)].map(s => Date.parse(s || '')).filter(Number.isFinite);
+  const t = at.length ? Math.max(...at) : Date.parse(c.lastAction || '');
+  if (!Number.isFinite(t)) return '\u2014';
+  const d = Math.max(0, Math.floor((Date.now() - t) / 864e5));
+  return d === 0 ? i18t('home_today') : i18tn('ap_pg_days', d, { n: d });
 }
 /* what the change is, in a few words: its own short summary, else the clause's name */
 function ngnWhatOf(ch){ const s = String((ch && ch.summary) || '').trim(); return s && s.length <= 40 ? s : ngnClauseNameOf(ch); }
@@ -5546,6 +5561,8 @@ function ngnActOf(r){
   const c = r.c, E = esc;
   const may = (typeof canEdit !== 'function' || canEdit()) && !(typeof window.deskMaySend === 'function' && !window.deskMaySend(c));
   if (r.b === 'you' && r.unsent && !r.asks.length && may) return { label: i18t('ngn_act_send'), attr: `data-ngn-send="${E(c.id)}"` };
+  /* nothing of theirs to answer and nothing of ours waiting: the act is to open the redlines and write */
+  if (r.b === 'you' && !r.asks.length && !r.unsent) return { label: i18t('ngn_d_open'), attr: `data-ngn-open="${E(c.id)}"` };
   if (r.b === 'you') return { label: i18t('ngn_act_answer'), attr: `data-ngn-open="${E(c.id)}"` };
   if (r.b === 'them' && may) return { label: i18t('ngn_act_remind'), attr: `data-ngn-chase="${E(c.id)}"` };
   if (r.b === 'settled') return { label: i18t('ngn_act_sign'), attr: `data-ngn-sign="${E(c.id)}"` };
@@ -5568,7 +5585,7 @@ function ngnRowHtml(r, sel, keys){
     + (keys || NGN_KEYS).map(k => k === 'move' ? `<td>${ngnBadgeHtml(r.b)}</td>`
       : k === 'round' ? `<td>${ngnRoundsHtml(c, r.b)}</td>`
       : k === 'asks' ? `<td class="ngn-n">${r.openN || '<span class="ngn-none">—</span>'}</td>`
-      : k === 'lead' ? `<td>${r.lead.name ? `<span class="ngn-lead${r.lead.mine ? ' is-you' : ''}" title="${E(r.lead.name)}"><span class="ngn-av" aria-hidden="true">${E(ngnInitials(r.lead.name))}</span>${E(nm)}</span>` : '—'}</td>`
+      : k === 'lead' ? `<td class="ngn-leadc">${r.lead.name ? `<span class="ngn-lead${r.lead.mine ? ' is-you' : ''}" title="${E(r.lead.name)}"><span class="ngn-av" aria-hidden="true">${E(ngnInitials(r.lead.name))}</span>${E(nm)}</span>` : '—'}</td>`
       : k === 'last' ? `<td class="ngn-n ngn-wait">${E(r.wait || '—')}</td>`
       : k === 'act' ? `<td class="ngn-act">${act ? `<button type="button" class="ngn-go" ${act.attr}>${E(act.label)}</button>` : ''}</td>` : '<td></td>').join('') + '</tr>';
 }
@@ -5584,13 +5601,16 @@ function ngnCols(){
   const cols = FIT.cols;
   return { keys: cols.slice(1).map(c => c.k),
     colg: `<colgroup>${cols.map(c => typeof listColTag === 'function' ? listColTag(c, true) : `<col${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}>`).join('')}</colgroup>`,
-    th: `<thead><tr>${cols.map(c => `<th${c.k === 'asks' || c.k === 'last' ? ' class="ngn-n"' : ''}>${c.k === 'act' ? '' : esc(i18t(T[c.k]))}${typeof listGripHtml === 'function' && c.k !== 'act' ? listGripHtml(REG_NEGO_SEAT, c.k) : ''}</th>`).join('')}</tr></thead>` };
+    th: `<thead><tr>${cols.map(c => `<th${c.k === 'asks' || c.k === 'last' ? ' class="ngn-n"' : c.k === 'lead' ? ' class="ngn-leadc"' : ''}>${c.k === 'act' ? '' : esc(i18t(T[c.k]))}${typeof listGripHtml === 'function' && c.k !== 'act' ? listGripHtml(REG_NEGO_SEAT, c.k) : ''}</th>`).join('')}</tr></thead>` };
 }
 /* the page in Jambo's words, counted from the list: whose answers wait, who holds our paper */
 function ngnPageSay(rows){
   const parts = [];
   rows.filter(r => r.b === 'you').slice(0, 2).forEach(r => { const p = r.c.counterparty || r.c.name;
-    parts.push(r.asks.length ? (r.prep >= r.asks.length ? i18tn('ngn_say_prep', r.asks.length, { p, n: r.asks.length }) : i18tn('ngn_say_wait', r.asks.length, { p, n: r.asks.length })) : i18t('ngn_say_decided', { p })); });
+    /* OURS IS NEVER CALLED AN ANSWER (P-29 review, 22 Nov 2026): our own change not sent is said as ours, read as the
+       table reads it (r.mine, r.decided: ngnRead) */
+    parts.push(r.asks.length ? (r.prep >= r.asks.length ? i18tn('ngn_say_prep', r.asks.length, { p, n: r.asks.length }) : i18tn('ngn_say_wait', r.asks.length, { p, n: r.asks.length }))
+      : r.decided ? i18t('ngn_say_decided', { p }) : r.mine.length ? i18t('ngn_say_mine', { p }) : i18t('ngn_say_decided', { p })); });
   rows.filter(r => r.b === 'them').slice(0, 2).forEach(r => { parts.push(i18t('ngn_say_theirs', { p: r.c.counterparty || r.c.name, day: ngnDayName((r.c.negotiation && r.c.negotiation.turnAt) || r.c.lastAction) })); });
   if (!parts.length) return i18t('ngn_say_none');
   const s = parts.join('; '); return s.charAt(0).toUpperCase() + s.slice(1) + '.';
@@ -5644,7 +5664,11 @@ function ngnTimelineOf(r){
     L.push({ tone: 'next', t: i18t('ngn_tl_their_answer'), s: i18t('ngn_tl_waiting') });
   } else if (r.b === 'you'){
     if (r.asks.length) L.push({ tone: 'amber', t: i18t('ngn_tl_wait_you'), s: r.wait && r.wait !== '—' ? r.wait : '' });
-    L.push({ tone: 'next', t: i18t(r.asks.length || r.decided ? 'ngn_tl_your_answer' : 'ngn_tl_your_changes'), s: i18t('ngn_tl_not_sent') });
+    /* our own change not sent (nothing of theirs waits): the day we drafted it, then that it has not gone (P-29 review) */
+    if (!r.asks.length && !r.decided && r.mine.length){ const d = r.mine.map(ch => String((ch && ch.createdAt) || '')).filter(Boolean).sort().pop() || '';
+      L.push({ tone: 'accent', t: i18t('ngn_tl_drafted'), s: ngnDay(d) }); }
+    if (ngnNothingFiled(c)) L.push({ tone: 'next', t: i18t('ngn_tl_first'), s: i18t('ngn_tl_not_written') });
+    else L.push({ tone: 'next', t: i18t(r.asks.length || r.decided ? 'ngn_tl_your_answer' : 'ngn_tl_your_changes'), s: i18t('ngn_tl_not_sent') });
   } else {
     const arch = Array.isArray(N.rounds) ? N.rounds : [];
     const every = [].concat(...arch.map(rd => Array.isArray(rd && rd.changes) ? rd.changes : []), Array.isArray(c.changes) ? c.changes : []);
@@ -5691,13 +5715,18 @@ function ngnPanelFiveHtml(r, rows){
     const time = `<section class="ngn5-sec"><h4 class="ngn5-h">${E(i18t('apn5_timeline'))}</h4><ul class="ngn5-tl">${tl.map(x => `<li class="is-${x.tone}"><i aria-hidden="true"></i><span>${E(x.t)}${x.s ? ` <small>· ${E(x.s)}</small>` : ''}</span></li>`).join('')}</ul></section>`;
     return `<div class="ngn-panel jl-words is-ov" data-ngn-for="${E(c.id)}"><div class="ngn5">${head}${words}${time}</div></div>`;
   }
-  const pick = x => ({ mark: 'alert', tone: x.b === 'you' ? 'amber' : '', t: x.c.name || '', s: [x.c.counterparty || '', x.unsent ? i18tn('ngn5_unsent', x.unsent, { n: x.unsent }) : (x.open && x.open.n ? i18tn('ngn5_asks', x.open.n, { n: x.open.n }) : '')].filter(Boolean).join(' \u00b7 '), v: x.move || '', attr: `data-ngn-pick="${E(x.c.id)}"` });
+  /* THE PAGE'S OVERVIEW, DRAWN AS THE CHOSEN DEAL'S PANEL IS (P-29 review, 22 Nov 2026): no number tiles and no "!"
+     marks — the headline, the page in one sentence, the tabs as a line of links with their counts, then plain rows naming
+     the work of each deal (their asks open · our changes not sent · our answers not sent), each choosing its deal */
+  const work = x => x.asks.length ? i18tn('ngn5_asks', x.asks.length, { n: x.asks.length }) : x.decided ? i18tn('ngn5_unsent', x.decided, { n: x.decided })
+    : x.mine.length ? i18tn('ngn5_mine', x.mine.length, { n: x.mine.length }) : x.b === 'them' ? i18tn('ngn5_out', x.out.length, { n: x.out.length }) : '';
+  const row = x => `<button type="button" class="ngn5-row" data-ngn-pick="${E(x.c.id)}"><span class="ngn5-rt"><b>${E(x.c.name || '')}</b><span>${E([x.c.counterparty || '', work(x)].filter(Boolean).join(' \u00b7 '))}</span></span><span class="ngn5-rv">${E(x.wait && x.wait !== '\u2014' ? x.wait : '')}</span></button>`;
   const title = you.length ? i18tn('ngn5_t_you', you.length, { n: you.length }) : them.length ? i18tn('ngn5_t_them', them.length, { n: them.length }) : i18t('ngn_say_none');
-  const first = you.length ? you : them;
-  const o = { eyebrow: i18t('ng_door_title'), title, sub: ngnPageSay(rows),
-    glance: [{ n: live.length, l: i18t('ngn5_g_live'), attr: 'data-ngn-gotab="live"' }, { n: you.length, l: i18t('ngn5_g_you'), warn: you.length > 0, attr: you.length ? 'data-ngn-gotab="you"' : '' }, { n: them.length, l: i18t('ngn5_g_them'), attr: them.length ? 'data-ngn-gotab="them"' : '' }],
-    groups: first.length ? [{ label: i18t(you.length ? 'ngn5_g_yours' : 'ngn5_g_them'), rows: first.slice(0, 4).map(pick) }] : [], src: false };
-  return `<div class="ngn-panel jl-words is-ov" data-ngn-for="">${jamboOverviewHtml(o, 'ngn')}</div>`;
+  const links = [['live', i18t('ngn_tab_live'), live.length], ['you', i18t('ngn_tab_you'), you.length], ['them', i18t('ngn_tab_them'), them.length]].filter(t => t[2] || t[0] === 'live')
+    .map(t => `<button type="button" class="ngn-go" data-ngn-gotab="${t[0]}">${E(t[1])} ${t[2]}</button>`).join('');
+  const part = (h, L) => L.length ? `<section class="ngn5-sec"><h4 class="ngn5-h">${E(h)}</h4><div class="ngn5-rows">${L.slice(0, 4).map(row).join('')}</div></section>` : '';
+  return `<div class="ngn-panel jl-words is-ov" data-ngn-for=""><div class="ngn5 is-ov"><section class="ngn5-sec"><div class="ngn5-s">${E(i18t('ng_door_title'))}</div><div class="ngn5-t is-head">${E(title)}</div>`
+    + `<p class="ngn5-say">${E(ngnPageSay(rows))}</p><div class="ngn5-acts">${links}</div></section>${part(i18t('ngn_tab_you'), you)}${part(i18t('ngn_tab_them'), them)}</div></div>`;
 }
 function ngnRender(host){
   const B = ngnBook(), rows = B.list.map(ngnRead), all = B.all.map(ngnRead);
@@ -5767,5 +5796,5 @@ if (typeof document !== 'undefined' && !document._ngnWired){ document._ngnWired 
   document.addEventListener('input', e => { if (!e.target || e.target.id !== 'ngn-q') return;
     _ngnQ = e.target.value; ngnRepaint(); const q = document.getElementById('ngn-q'); if (q){ q.focus(); const k = q.value.length; try { q.setSelectionRange(k, k); } catch (_){} } });
 }
-Object.assign(window,{ngnPanelFiveHtml,ngnOn,ngnRender,ngnRead,ngnBook,ngnAskWords,ngnRepaint});
+Object.assign(window,{ngnPanelFiveHtml,ngnOn,ngnRender,ngnRead,ngnBook,ngnAskWords,ngnRepaint,ngnBandOf});
 Object.assign(window,{regFolderSays,RFP_SOON_DAYS,regGlanceEnds,regGlanceMoney,regFolderGlanceHtml,regFoldersGlanceHtml,RFG_MONTHS,RFG_DOTS,RFG_BARS});

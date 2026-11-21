@@ -431,8 +431,10 @@ const ok = (name, good, detail) => {
         if (b && b !== 'transparent' && !(a.length === 4 && Number(a[3]) === 0)) return b; } return 'rgb(255, 255, 255)'; };
       /* RE-POINTED 16 Nov 2026 (#762): the chosen round's panel is the five parts — its headline (.jov5-title) and a
          fact's small line (.jov5-rt > span) are the words read */
-      const cpE = p.querySelector('.jov5-title'), dtE = p.querySelector('.jov5-group .jov5-rt > span');
-      if (!cpE || !dtE) return { missing: [!cpE && '.jov5-title', !dtE && '.jov5-rt > span'].filter(Boolean) };
+      /* RE-POINTED 22 Nov 2026 (P-29 review): the chosen deal's panel is drawn without cards (.ngn5) — its name (.ngn5-t)
+         and its grey small line, the other side and reference (.ngn5-s), are the words read; AA is asked of them the same way */
+      const cpE = p.querySelector('.ngn5-t, .jov5-title'), dtE = p.querySelector('.ngn5-s, .jov5-group .jov5-rt > span');
+      if (!cpE || !dtE) return { missing: [!cpE && '.ngn5-t', !dtE && '.ngn5-s'].filter(Boolean) };
       const cpBg = ground(cpE), dtBg = ground(dtE);
       return { cpBg, dtBg, cp: ratio(getComputedStyle(cpE).color, cpBg), dt: ratio(getComputedStyle(dtE).color, dtBg) };
     });
