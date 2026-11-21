@@ -162,14 +162,19 @@ async function readHead(page, hostSel, sel){
          outside parties; Departures lists every open one across the standards */
       await page.evaluate(() => setView('playbook')); await page.waitForTimeout(1200);
       await page.evaluate(() => document.querySelector('[data-ld-mode="departures"]')?.click()); await page.waitForTimeout(600);
-      s1 = await page.evaluate(id => { const card = document.querySelector(`.ld-dep[data-ld-dep="${CSS.escape(id)}"]`); if (!card) return null;
-        const ns = [...card.querySelectorAll('.ld-dep-p')]; const r = card.getBoundingClientRect();
-        return { box: true, names: ns.map(n => n.textContent.trim()), tops: ns.map(n => Math.round(n.getBoundingClientRect().top)), text: card.textContent,
-          inside: ns.every(n => { const q = n.getBoundingClientRect(); return q.left >= r.left - 1 && q.right <= r.right + 1; }) }; }, staged.C);
+      /* RE-POINTED (P-35, owner's pick 20 Nov 2026: Playbook the Legora + Stripe way): Departures is a tab with ONE calm table;
+         a departure is a row (tr[data-ld-deprow="dep:<id>:<i>"]) whose first cell names the other side (.cun-name), the
+         contract and its reference under it (.cun-sub) */
+      s1 = await page.evaluate(id => { const card = [...document.querySelectorAll('.ld6-table tr[data-ld-deprow]')].find(tr => tr.getAttribute('data-ld-deprow').startsWith('dep:' + id + ':')); if (!card) return null;
+        const n = card.querySelector('.cun-name'), td = card.querySelector('td'), r = td.getBoundingClientRect(), q = n ? n.getBoundingClientRect() : r;
+        return { box: true, names: n ? [n.textContent.trim()] : [], text: card.textContent, inside: q.left >= r.left - 1 && q.right <= r.right + 1 }; }, staged.C);
     }
-    ok('4a Our standards: the departure names both outside parties, one line each', !!s1 && s1.box
-      && s1.names.join(' | ') === expectNames(staged.cpC) && s1.tops.length === 2 && s1.tops[1] > s1.tops[0] && s1.inside,
-      s1 ? { names: s1.names, tops: s1.tops, text: s1.text } : 'no departing contract, or no card');
+    /* RETIRED in part (P-35): "names BOTH outside parties, one line each" — the drawn Departures row names the other side once
+       (its first outside party, ld6Party), and no part of the new page lists every party; what stands: the row names the
+       first outside party, inside its cell */
+    ok('4a Our standards: the departure\'s row names the other side (its first outside party), inside its cell', !!s1 && s1.box
+      && s1.names.length === 1 && s1.names[0] === String(expectNames(staged.cpC)).split(' | ')[0] && s1.inside,
+      s1 ? { names: s1.names, text: s1.text } : 'no departing contract, or no row');
     ok('4b [wall] and not our own side', !!s1 && s1.box && !/Highland Corporate/.test(s1.text), s1 && s1.text);
     await page.screenshot({ path: path.join(OUT, '4-standards-departures-three-parties.png') });
 

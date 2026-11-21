@@ -75,7 +75,7 @@ const PAGES = [
     box: '#ikn-q', home: 'open', word: 'supply', wholeSel: '.ikn-page .ikn-table thead th', pageSel: '.ikn-page', facts: '.ikn-page .apn-bar' },   /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way): no facts beside the title — the chips count */
   /* job 9: Import. Its three tabs draw the one table */
   { k: 'import', view: 'migration', rowSel: '.mign-page .mign-table tbody tr', tabSel: '[data-mign-tab]', tabKey: 'data-mign-tab',
-    box: '#mign-q', home: 'all', word: 'supply', wholeSel: '.mign-page .mign-table thead th', pageSel: '.mign-page', facts: '.mign-page .cun-head .ctf-hf' },
+    box: '#mign-q', home: 'all', word: 'supply', wholeSel: '.mign-page .mign-table thead th', pageSel: '.mign-page', facts: '.mign-page .apn-bar' },   /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way): no facts beside the title — the chips count */
   /* job 10: My notes. Its tabs draw the one table; the foot comes and goes with the rows */
   { k: 'mynotes', view: 'mynotes', rowSel: '#mn-page .mnn-table tbody tr', tabSel: '[data-mnn-tab]', tabKey: 'data-mnn-tab',
     box: '#mnn-q', home: 'all', word: 'call', wholeSel: '#mn-page .mnn-table thead th', pageSel: '#mn-page.mnn-page', facts: '#mn-page .cun-head .ctf-hf' },

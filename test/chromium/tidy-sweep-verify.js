@@ -173,7 +173,9 @@ const MEASURE = `(() => {
        a row's name over its grey line (.jov5-row: .jov5-rt a column; a long name two lines, then "…"), and Contracts'
        view tiles (.ctf-view: the number · the view's name · its grey line, each held to one line with "…") */
     /* …and, RE-POINTED 17 Nov 2026 (#762, Our paper: shelves, then the Legora way), Our paper's four figures on Shelves
-       (.tpln5-fig: the number over its word, a column, the word held to one line with "…" — the same tile as .jov5-g) */
+       (.tpln5-fig: the number over its word, a column, the word held to one line with "…" — the same tile as .jov5-g)
+       RETIRED in part (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way): Our paper draws no figure tiles
+       now (.tpln5-fig matches nothing); the name is kept in the list below only as an inert entry */
     if (el.matches('.ui-link-say, .hb-say, .hb-mi, [data-dlg-cancel], .hb-fig-main, .hb-fig, .hb-cfig, .pd-tab, .hb-payk-i, .igx-fig, .na-pick, .hb-card, .tpl-pf-i, .ds-ln-st, .pd-dossier button.pd-ck-hd, .ctf-card, .ctf-row, .jov5-g, .jov5-row, .ctf-view, .tpln5-fig')) continue;
     const w = words(el); if (!w || w.length > 48) continue;
     if (el.querySelector('br, p, div, ul, table')) continue;
@@ -402,7 +404,7 @@ const PLACES = [
   { k: 'template', name: "Our paper · a template's page", go: `(async () => { const t = window._tidyTpl || (window._tidyTpl = await api('templates', 'POST', { name: 'Warehousing Logistics Agreement — Nordvane Consumer Brands AB', description: 'Warehousing and logistics services, our standard', category: 'procurement' })); openTemplateLibDetail(t.template.id); })()`, wait: `document.querySelector('#tpl-dt .tpl-dt-line')` },
   { k: 'builder', name: 'Our paper · the builder', go: `(async () => { const t = window._tidyTpl || (window._tidyTpl = await api('templates', 'POST', { name: 'Warehousing Logistics Agreement — Nordvane Consumer Brands AB', category: 'procurement' })); const d = await api('templates/' + t.template.id); openTemplateBuilder(t.template.id, d.versions[0].id); })()`, wait: `document.querySelector('#tb-page #tb-rail, #tb-page .tb-strip')` },
   /* the Ladder (17 Nov 2026): Standards is its own page */
-  { k: 'standards', name: 'Standards', go: `setView('playbook')`, wait: `document.querySelector('.ld-page .ld-rung')` },
+  { k: 'standards', name: 'Standards', go: `setView('playbook')`, wait: `document.querySelector('.ld-page .ld6-rung, .ld-page .ld-rung')` },   /* RE-POINTED (P-35, owner's pick 20 Nov 2026: Playbook the Legora + Stripe way): the ladder's rungs are .ld6-rung */
   { k: 'people', name: 'People', go: `setView('directory')`, wait: `document.querySelector('.dir-td-wrap, .dir-table, .sap-page')` },
   { k: 'customers', name: 'Customers', go: `setView('customers')`, wait: `document.querySelector('.cu-page, .cu-table, .sap-page')` },
   { k: 'mynotes', name: 'My notes', go: `setView('mynotes')`, wait: `document.querySelector('.mn-page, #mn-root, .sap-page')` },

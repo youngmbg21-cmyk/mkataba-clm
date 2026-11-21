@@ -31,6 +31,10 @@
    "1–9 of 12 · Show 3 more"; 4b the list card's head is gone — its words are
    the All tab's hover; 11a the tab row stands where the figures did; 13 Show
    more is the foot's [data-lh-more]. Each claim kept.
+   RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way): the title alone, the batch said by
+   its chips (2a); the five figure tiles are ONE batch bar with its legend, a legend word the tile's press (3); the
+   calm table File · Reading · What Jambo read · How sure · Stream · Value with no buttons on the rows (4); the panel's
+   head is the file (paper, badge, name, "N of 5 details sure"), the unsure fact opened in the file's words (5, 8, 13e).
    Run: node test/chromium/import-as-drawn-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -147,25 +151,35 @@ const FILES = {
     const rowSel = k => `.mign-table tr[data-row="${k}"] td:first-child`;
     await until(sel => document.querySelector(sel), ROWS, 8000);
     console.log('\n2 · the head');
-    const head = await until(() => { const f = document.querySelector('.mign-page .cun-head .ctf-hf'); const t = f && f.textContent; return t && /files/.test(t) ? t : null; }, null, 6000);
-    /* RETIRED in part (#762): "Old contracts brought in · started <day> by you" — the drawn head (round 6) says the
-       batch by its counts; the count promise stands */
-    check('2a the head says what the batch is: the files, how many were read whole, how many need you', !!head && /^12 files · 7 read whole · 5 need you$/.test(head), head);
+    /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */
+    /* the title alone (no facts line beside it); what the batch is — how many need you, how many were read whole, every
+       file — is said ONCE, by the chips under the ask box (Need you · Read · All with their counts) */
+    const head = await until(() => { const h = document.querySelector('.mign-page .cun-head .ctf-h'); if (!h) return null;
+      const chips = [...document.querySelectorAll('.mign-page .apn-bar [data-mign-tab]')].map(b => b.textContent.replace(/\s+/g, ' ').trim());
+      return chips.length ? { title: h.textContent.trim(), facts: !!document.querySelector('.mign-page .cun-head .ctf-hf'), chips } : null; }, null, 6000);
+    check('2a the title alone; the chips say what the batch is: need you · read whole · every file', !!head && head.title === 'Import' && !head.facts
+      && JSON.stringify(head.chips) === JSON.stringify(['Need you 5', 'Read 7', 'All 12']), JSON.stringify(head));
     const headBtn = await page.evaluate(() => [...document.querySelectorAll('#content button, #content [role="button"]')].filter(b => /^Choose files/.test(b.textContent.trim())).length);
     const chooser = await Promise.race([page.waitForEvent('filechooser', { timeout: 4000 }).then(() => true).catch(() => false),
       page.click('#mign-choose').then(() => new Promise(r => setTimeout(() => r(null), 4500))).catch(() => false)]);
     check('2b Choose files opens the chooser; ONE Choose files door on the page', chooser === true && headBtn === 1, JSON.stringify({ chooser, headBtn }));
 
-    console.log('\n3 · the figures, and no cap');
-    const FIG = k => `.mign-page [data-mign-fig="${k}"]`;
-    const figs = await page.evaluate(() => [...document.querySelectorAll('.mign-figs .mign-fig')].map(e => e.innerText.replace(/\s+/g, ' ').trim()));
-    check('3a the five readings as the figures: files · filed · to check · duplicate? · no readable text', JSON.stringify(figs) === JSON.stringify(['12 files brought in', '7 filed', '3 to check', '1 duplicate?', '1 no readable text']), JSON.stringify(figs));
+    console.log('\n3 · the batch bar, and no cap');
+    /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */
+    /* the five coloured figure tiles became ONE thin batch bar (.mign-batch .mign-bbar) with its legend under it
+       (.mign-bkey .mign-bk); a legend word is the press its tile was ([data-mign-fig]); a reading with none is not drawn */
+    const FIG = k => `.mign-page .mign-batch [data-mign-fig="${k}"]`;
+    const figs = await page.evaluate(() => ({ bar: document.querySelectorAll('.mign-page .mign-batch .mign-bbar > i').length,
+      key: [...document.querySelectorAll('.mign-page .mign-batch .mign-bk')].map(e => e.innerText.replace(/\s+/g, ' ').trim()),
+      tiles: document.querySelectorAll('.mign-figs, .mign-fig').length }));
+    check('3a the readings as one batch bar with its legend: filed · to check · a copy? · no readable text (no tiles)', figs.bar === 4 && figs.tiles === 0
+      && JSON.stringify(figs.key) === JSON.stringify(['7 filed', '3 to check', '1 a copy?', '1 no readable text']), JSON.stringify(figs));
     const foot = await page.evaluate(sel => ({ n: document.querySelectorAll(sel).length, foot: ((document.querySelector('.mign-page .apn-foot span') || {}).textContent || '').trim() }), ROWS);
     check('3b no cap: all twelve files in the one table, the foot "12 files"', foot.n === 12 && foot.foot === '12 files', JSON.stringify(foot));
-    if (await press(FIG('k:check'), '3c the "to check" figure')) {
-      const R = await until(() => { const b = document.querySelector('.mign-page [data-mign-fig="k:check"]'); if (!b || b.getAttribute('aria-pressed') !== 'true') return null;
+    if (await press(FIG('k:check'), '3c the "to check" legend word')) {
+      const R = await until(() => { const b = document.querySelector('.mign-page .mign-batch [data-mign-fig="k:check"]'); if (!b || b.getAttribute('aria-pressed') !== 'true') return null;
         return [...document.querySelectorAll('.mign-table tbody tr[data-row]')].map(r => migRowByKey(r.getAttribute('data-row')).st.k); }, null, 4000);
-      check('3c a figure narrows the list to what it counts', !!R && R.length === 3 && R.every(k => k === 'check'), JSON.stringify(R));
+      check('3c a legend word narrows the list to what it counts', !!R && R.length === 3 && R.every(k => k === 'check'), JSON.stringify(R));
       await page.click(FIG('k:check'));
       const back = await until(sel => document.querySelectorAll(sel).length === 12 ? true : null, ROWS, 4000);
       await page.click('.mign-page [data-mign-tab="need"]');
@@ -174,7 +188,7 @@ const FILES = {
       const stays = await page.evaluate(sel => { const b = document.querySelector('.mign-page [data-mign-tab="need"]'); return !!b && b.classList.contains('is-on') && document.querySelectorAll(sel).length === 5; }, ROWS);
       await page.click('.mign-page [data-mign-tab="all"]');
       const all = await until(sel => document.querySelectorAll(sel).length === 12 ? true : null, ROWS, 4000);
-      check('3d the figure pressed again lets go (the whole list back); a tab pressed again stays; All brings the whole list back', !!back && stays && !!all, JSON.stringify({ back: !!back, stays, all: !!all }));
+      check('3d the legend word pressed again lets go (the whole list back); a tab pressed again stays; All brings the whole list back', !!back && stays && !!all, JSON.stringify({ back: !!back, stays, all: !!all }));
     }
     /* RETIRED 16 Nov 2026 (#762): 3e "Show 3 more shows all twelve" — old look only: the new look draws every file, no cap (3b) */
 
@@ -182,11 +196,20 @@ const FILES = {
     const T = await page.evaluate(() => ({ heads: [...document.querySelectorAll('.mign-table thead th')].map(th => th.textContent.trim()),
       order: [...document.querySelectorAll('.mign-table tbody tr[data-row]')].map(r => migRowByKey(r.getAttribute('data-row')).st.k),
       grp: ((document.querySelector('.mign-table tr.rdn-grp') || {}).textContent || '').trim(),
-      filedRef: [...document.querySelectorAll('.mign-table tbody tr[data-row]')].filter(r => migRowByKey(r.getAttribute('data-row')).st.k === 'filed').every(r => r.querySelector('[data-mign-go][data-mign-need="0"]')) }));
-    check('4a the drawn columns', JSON.stringify(T.heads) === JSON.stringify(['File', 'What Jambo read', 'How sure', 'Looks', 'Stream', 'Value', '']), JSON.stringify(T.heads));
+      rowButtons: document.querySelectorAll('.mign-table tbody tr[data-row] button, .mign-table tbody tr[data-row] [data-mign-go]').length }));
+    /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */
+    /* the calm table: File · Reading (a soft badge) · What Jambo read · How sure · Stream · Value right-aligned; the Looks
+       column and the row's own button went (no buttons on the rows) */
+    check('4a the drawn columns', JSON.stringify(T.heads) === JSON.stringify(['File', 'Reading', 'What Jambo read', 'How sure', 'Stream', 'Value']), JSON.stringify(T.heads));
     check('4b the ones that need you first, then "Read whole · 7"', T.grp === 'Read whole · 7'
       && T.order.join() === 'check,check,check,dupe,none,filed,filed,filed,filed,filed,filed,filed', T.order.join() + ' | ' + T.grp);
-    check('4c a filed row\'s own Open opens its contract', T.filedRef);
+    /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */
+    /* no buttons on the rows: a press chooses, and a filed file's Open is the chosen file's panel's black button */
+    let filedOpen = null;
+    { const fk = await page.evaluate(() => (migRows().find(r => r.st.k === 'filed') || {}).key);
+      if (fk && await press(rowSel(fk), '4c a filed row')) filedOpen = await until(k => { const s = document.getElementById('ins-panel'); const tr = document.querySelector(`.mign-table tr[data-row="${k}"]`);
+        return s && tr && tr.classList.contains('is-picked') ? !!s.querySelector('.jov5-go[data-mign-go][data-mign-need="0"]') || null : null; }, fk, 4000); }
+    check('4c no buttons on the rows; a filed file\'s Open is its panel\'s black button', T.rowButtons === 0 && !!filedOpen, JSON.stringify({ rowButtons: T.rowButtons, filedOpen }));
     await shot(page, 'import-drawn-list-1440x780');
 
     console.log('\n8 · a duplicate');
@@ -194,8 +217,12 @@ const FILES = {
     /* RE-POINTED (#762): the duplicate's row in the one table, Jambo's panel #ins-panel (the promise kept: he asks
        whether it is a copy, with the choices, and Skip leaves it out, said on its row) */
     if (dkey && await press(rowSel(dkey), '8 the duplicate row')) {
-      const D = await until(() => { const s = document.getElementById('ins-panel'); return s && s.querySelector('[data-dup-skip]') ? ((s.querySelector('.mig-cf-t, .jov5-title') || {}).textContent || '').trim() : null; }, null, 4000);
-      check('8a Jambo asks "Is this a copy?" with the duplicate choices', !!D && /^Is this a copy\?/.test(D), String(D));
+      /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */
+      /* the panel's head is the file (its badge "A copy?" and its name); its acts on one line: Skip it, it is a copy (black),
+         Open the one we have (grey), Keep both a quiet link under them */
+      const D = await until(() => { const s = document.getElementById('ins-panel'); return s && s.querySelector('[data-dup-skip]') ? { badge: ((s.querySelector('.mign5-top .apn-st') || {}).textContent || '').trim(),
+        skip: ((s.querySelector('.jov5-go[data-dup-skip]') || {}).textContent || '').trim(), both: !!s.querySelector('.mign5-quiet[data-dup-import]') } : null; }, null, 4000);
+      check('8a Jambo asks "A copy?" with the duplicate choices', !!D && D.badge === 'A copy?' && D.skip === 'Skip it, it is a copy' && D.both, JSON.stringify(D));
       if (D) await page.click('#ins-panel [data-dup-skip]');
       const left = await until(k => { const tr = document.querySelector(`.mign-table tr[data-row="${k}"]`); return tr && /left out|skipped/i.test(tr.textContent) ? true : null; }, dkey, 6000);
       check('8b Skip leaves it out, said on its row', !!left);
@@ -207,16 +234,26 @@ const FILES = {
     if (lease && await press(rowSel(lease), '5 the lease\'s row')) {
       const P = await until(id => { const s = document.getElementById('ins-panel'); const tr = document.querySelector(`.mign-table tr[data-row="${id}"]`);
         if (!s || !tr || !tr.classList.contains('is-picked') || !s.querySelector('.jov5-title') || !/Warehouse/.test(s.textContent)) return null;
-        const end = [...s.querySelectorAll('.jov5-group .jov5-row')].find(r => /end date/i.test(r.textContent));
+        /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */
+        /* the panel's head: a small paper beside the file's badge, its name and "N of 5 details sure"; each fact a dot, the
+           one Jambo was not sure of OPENED in place — the file's own words lit, its §, and a "Use: …" chip */
+        const open = s.querySelector('.mign5-f.is-open'), ow = s.querySelector('.mign5-open');
         return { word: (s.querySelector('[data-jl-word]') || {}).textContent, back: !(s.querySelector('[data-jl-back]') || { hidden: true }).hidden,
-          title: (s.querySelector('.jov5-title') || {}).textContent, say: (s.querySelector('.jov5-sub') || {}).textContent,
-          ends: end && { amber: !!end.querySelector('.jov5-mk.is-amber'), t: end.textContent.replace(/\s+/g, ' ').trim(), door: end.hasAttribute('data-mign-go') },
+          pic: !!s.querySelector('.mign5-top .mign5-pap'), badge: ((s.querySelector('.mign5-top .apn-st') || {}).textContent || '').trim(),
+          title: (s.querySelector('.jov5-title') || {}).textContent, say: (s.querySelector('.mign5-top .jov5-sub') || {}).textContent,
+          ends: open && { k: ((open.querySelector('.mign5-k') || {}).textContent || '').trim(), v: ((open.querySelector('.mign5-v') || {}).textContent || '').trim(),
+            lit: ow ? ((ow.querySelector('.mign5-lit mark') || {}).textContent || '') + ' | ' + ((ow.querySelector('.mign5-lit') || {}).textContent || '') : '',
+            where: ow ? ((ow.querySelector('.mign5-ow > span') || {}).textContent || '').trim() : '', use: !!(ow && ow.querySelector('[data-mign-use]')) },
           go: ((s.querySelector('.jov5-go') || {}).textContent || '').trim() }; }, lease, 6000);
       check('5a Jambo\'s panel holds the file: no word beside the tabs, no duplicate back button', !!P && !P.word && !P.back, JSON.stringify(P && { word: P.word, back: P.back }));
-      check('5b "Check what I was unsure of." and that it files once the missing fact is filled in', !!P && P.title === 'Check what I was unsure of.' && /^It files once the missing fact is filled in\./.test(P.say || ''), JSON.stringify(P && [P.title, P.say]));
+      /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */
+      check('5b the head is the file: a small paper, its badge "To check", its name and how many details Jambo is sure of', !!P && P.pic && P.badge === 'To check'
+        && P.title === 'Warehouse_lease_Mombasa_2019.txt' && /^\d of \d details sure$/.test(P.say || ''), JSON.stringify(P && [P.pic, P.badge, P.title, P.say]));
       /* RETIRED 16 Nov 2026 (#762): 5c "the facts as drawn: Title · Party · Starts · Ends · Value · Stream" in the panel —
          old look only: the five-part panel says what was read as rows; the six facts are the check view's (6a) */
-      check('5d the end Jambo could not read in amber, a door to the file', !!P && !!P.ends && P.ends.amber && /No end date read/.test(P.ends.t) && P.ends.door, JSON.stringify(P && P.ends));
+      /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */
+      check('5d the end Jambo could not read is opened in the file\'s own words, its §, with a Use chip', !!P && !!P.ends && P.ends.k === 'Ends' && /Not found/.test(P.ends.v)
+        && /renews by itself/.test(P.ends.lit) && /§ 3/.test(P.ends.where) && P.ends.use, JSON.stringify(P && P.ends));
       check('5e2 the panel\'s one black button is the file\'s own door: Fill in', !!P && P.go === 'Fill in', JSON.stringify(P && P.go));
       await shot(page, 'import-drawn-chosen-1440x780');
       /* RETIRED 16 Nov 2026 (#762): 5f "‹ Jambo lets the file go, and Jambo says the batch" — old look only: the new
@@ -353,9 +390,15 @@ const FILES = {
     const filedK = await page.evaluate(() => (migRows().find(r => r.st.k === 'filed') || {}).key);
     if (filedK && await press(rowSel(filedK), '13e a filed file')){
       const FL = await until(key => { const s = document.getElementById('ins-panel'); const tr = document.querySelector(`.mign-table tr[data-row="${key}"]`);
-        return s && tr && tr.classList.contains('is-picked') && s.querySelector('.jov5-group') ? [...s.querySelectorAll('.jov5-group .jov5-row .jov5-rt > b')].map(b => b.textContent.trim()) : null; }, filedK, 4000);
-      /* RE-POINTED (#762): a filed file's panel says the same kinds of fact as one to check — how it was read, its term, its signature, its parties */
-      check('13e a filed file says the same four kinds of fact: read · term · signature · parties', !!FL && FL.length === 4 && FL[0] === 'Read whole' && FL[2] === 'Signed' && / · /.test(FL[3]), JSON.stringify(FL));
+        return s && tr && tr.classList.contains('is-picked') && s.querySelector('.mign5-facts') ? { k: [...s.querySelectorAll('.mign5-facts .mign5-f .mign5-k')].map(b => b.textContent.trim()),
+          dots: s.querySelectorAll('.mign5-facts .mign5-f > .mign5-d').length, badge: ((s.querySelector('.mign5-top .apn-st') || {}).textContent || '').trim() } : null; }, filedK, 4000);
+      /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */
+      /* a filed file's panel says the same facts as one to check — what it was filed as, each with its dot (the old four
+         rows read · term · signature · parties gave way to the five facts of the check, the badge saying Filed) */
+      /* the money fact is not pinned here: MONEY IS NEVER A BIG PART OF A PAGE (no money in a side panel) — whether the panel
+         may say Value is the owner's question, not this check's */
+      check('13e a filed file says the same facts as one to check: Title · Party · Starts · Ends, each with a dot', !!FL && FL.badge === 'Filed'
+        && FL.k.slice(0, 4).join() === 'Title,Party,Starts,Ends' && FL.dots === FL.k.length, JSON.stringify(FL));
     }
 
     console.log('\n9 · Review spreadsheet');
@@ -387,12 +430,15 @@ const FILES = {
       await until(() => !!document.querySelector('.mign-table'), null, 6000);
       await page.waitForTimeout(250);
       /* RE-POINTED (#762): the panel #ins-panel beside the one table's card, the figures in view */
-      const L = await page.evaluate(() => { const s = document.getElementById('ins-panel').getBoundingClientRect(), k = document.querySelector('.mign-page .mign-figs').getBoundingClientRect(), t = document.querySelector('.mign-page .apn-card').getBoundingClientRect();
+      /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */ /* the batch bar stands where the figures did */
+      const L = await page.evaluate(() => { const s = document.getElementById('ins-panel').getBoundingClientRect(), k = document.querySelector('.mign-page .mign-batch').getBoundingClientRect(), t = document.querySelector('.mign-page .apn-card').getBoundingClientRect();
         return { side: s.left >= t.right - 1 && s.right <= innerWidth && s.bottom <= innerHeight + 1, figs: k.top >= 0 && k.bottom < innerHeight, sx: document.scrollingElement.scrollWidth > innerWidth,
           sxc: (sc => sc ? sc.scrollWidth > sc.clientWidth + 1 : false)(document.getElementById('content-scroll')) }; });
-      check(`11a ${w}×${hh}: the panel beside the list and in the window, the figures in view, nothing sideways`, L.side && L.figs && !L.sx && !L.sxc, JSON.stringify(L));
-      const cut = await page.evaluate(() => [...document.querySelectorAll('.mign-table .cun-wait, .mign-table .cun-name, .mign-table .cun-sub, .mign-table .mign-read')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent));
-      check(`14e ${w}×${hh}: nothing in a row is cut — the value with its period, the stream, the file's line, the reason`, !cut.length, JSON.stringify(cut));
+      check(`11a ${w}×${hh}: the panel beside the list and in the window, the batch bar in view, nothing sideways`, L.side && L.figs && !L.sx && !L.sxc, JSON.stringify(L));
+      /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */
+      /* the file's name ends in "…" by design (title carries it whole); the value, the badge and the sureness are never cut */
+      const cut = await page.evaluate(() => [...document.querySelectorAll('.mign-table .mign-val, .mign-table .apn-st, .mign-table .mign-sure')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent));
+      check(`14e ${w}×${hh}: nothing in a row is cut — the value with its period, the reading's badge, how sure`, !cut.length, JSON.stringify(cut));
       await shot(page, `import-drawn-list-${w}x${hh}`);
       if (await page.evaluate(() => migCheckOpen())) {
         await until(() => !!document.getElementById('mig-ck-facts'), null, 4000); await page.waitForTimeout(250);

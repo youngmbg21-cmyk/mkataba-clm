@@ -195,7 +195,11 @@ const MANIFEST = [
     const toReview = await page.evaluate(() => { const r = migRows().find(x => x.c && x.st.k === 'check' && x.c.migration.needsReview); return r ? r.key : ''; });
     check('6 · stage: at least one imported contract is waiting for a person to confirm it', !!toReview);
     if (toReview) {
-      await page.click(`.mign-table tr[data-row="${toReview}"] [data-mign-go]`, { timeout: 6000 }).catch(() => {});
+      /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */
+      /* no buttons on the rows: a press on the row CHOOSES it, and its Fill in is the chosen file's panel's black button */
+      await page.click(`.mign-table tr[data-row="${toReview}"] td:first-child`, { timeout: 6000 }).catch(() => {});
+      await page.waitForSelector(`#ins-panel [data-mign-go="${toReview}"][data-mign-need="1"]`, { timeout: 6000 }).catch(() => {});
+      await page.click(`#ins-panel [data-mign-go="${toReview}"][data-mign-need="1"]`, { timeout: 6000 }).catch(() => {});
       await page.waitForSelector('#content [data-mig-review-full]', { timeout: 6000 }).catch(() => {});
       await page.click('#content [data-mig-review-full]', { timeout: 6000 }).catch(() => {});
       const opened = await page.waitForSelector('#mr-save', { timeout: 8000 }).then(() => true).catch(() => false);
@@ -207,7 +211,8 @@ const MANIFEST = [
         try { if (typeof migCheckId === 'function' && migCheckId()) migCheckClose(); } catch (_) {}
         await new Promise(z => setTimeout(z, 400));
         const tr = [...document.querySelectorAll('.mign-table tr[data-row]')].find(r => r.getAttribute('data-row') === id);
-        return { needs: !!(c.migration && c.migration.needsReview), filed: !!(tr && tr.classList.contains('is-done') && /\bOpen\b/.test(tr.innerText)) };
+        /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */ /* the row says Filed in its Reading badge (the row's own Open went to the panel) */
+        return { needs: !!(c.migration && c.migration.needsReview), filed: !!(tr && tr.classList.contains('is-done') && /^Filed$/.test(((tr.querySelector('.apn-st') || {}).textContent || '').trim())) };
       }, toReview);
       check('6b Confirm & save clears it — on the server, and its row says Filed', !after.needs && after.filed, JSON.stringify(after));
     }
