@@ -23790,7 +23790,7 @@ const STRINGS = {
     ld6_k_decide: "to decide",
     ld6_p_checked_one: "{n} contract checked against it",
     ld6_p_checked_other: "{n} contracts checked against it",
-    ld6_p_waits: "Waits for your call",
+    ld6_p_waits: "Waits for your decision",
     ld6_p_looked: "Looked after by",
     ld6_below: "The paper's words · below the ladder",
     ld6_p_says: "The paper says",
