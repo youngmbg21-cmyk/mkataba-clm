@@ -518,7 +518,7 @@ describe('f745 (7) the Board greets you and says the latest', () => {
     const since = w.hbGreetSayHtml(latest.moved, latest.since);
     assert.equal(w.hbBoardSumHtml(since).box, '', 'before Summarise is pressed nothing is written');
     const html = w.hbBoardHeadHtml('08:02', '', w.hbBoardSumHtml(), '', '', latest);
-    assert.match(html, /^<section class="hb-card hb-bhead is-greet" id="hb-bhead"><h2 class="hb-bh-t">Good morning, Maria\.<\/h2><div class="hb-note hb-bh-r">/);
+    assert.match(html, /^<section class="hb-card hb-bhead is-greet" id="hb-bhead"><div class="hb-bh-top"><h2 class="hb-bh-t">Good morning, Maria\.<\/h2><span class="hb-bh-live">[\s\S]*?<\/span><\/div><div class="hb-note hb-bh-r">/);
     assert.ok(!/hb-gr-say|hb-gr-a|class="hb-why/.test(html), 'nothing under the buttons before the press');
     const box = '<div class="hb-why"><div class="hb-why-h">x</div><p class="hb-why-b hb-why-since" id="hb-gr-say">' + since + '</p></div>';
     const inside = w.hbBoardHeadHtml('08:02', '', { btn: '', box }, '', '', latest);
@@ -533,7 +533,11 @@ describe('f745 (7) the Board greets you and says the latest', () => {
     const say = since;
     assert.match(say, /Since [^:<]+: <button type="button" class="hb-gr-a" data-hb-dig="mv:past">5 more contracts passed their end date<\/button> and <button type="button" class="hb-gr-a" data-hb-dig="mv:value">[^<]+ came under contract<\/button>\./);
     assert.match(say, /<button type="button" class="hb-gr-a is-late" data-hb-gr="all">2 things are late<\/button>, the oldest has waited 36 days and <button type="button" class="hb-gr-a" data-hb-gr="jambo">I prepared 3 for you<\/button>\.$/);
-    assert.match(html, /<div class="hb-note hb-bh-r">[\s\S]*data-hb-explorer[\s\S]*<span class="hb-grow"><\/span><span class="hb-bh-day">[^<]+<\/span><span class="hb-live"><i><\/i>Live<\/span><span class="hb-bh-at">· counted 08:02<\/span>/, 'the pills, then the day, Live and when it was counted; .hb-note stays');
+    /* RE-POINTED 21 Nov 2026 (P-39 rebuilt as drawn): the greeting's own line carries Live and when it was counted at its
+       right; the pills under it; the day is not said */
+    assert.match(html, /<div class="hb-bh-top"><h2 class="hb-bh-t">[^<]+<\/h2><span class="hb-bh-live"><span class="hb-live"><i><\/i>Live<\/span><span class="hb-bh-at">· counted 08:02<\/span>/, 'the greeting, then Live and when it was counted, on one line');
+    assert.match(html, /<div class="hb-note hb-bh-r">[\s\S]*data-hb-explorer/, 'the pills under it; .hb-note stays');
+    assert.ok(!/hb-bh-day/.test(html), 'the day is not said');
     assert.ok(!/hb-bh-s"/.test(html), 'no "your book against six months ago" in the greeting');
   });
   test('7a2 the × lets the brief go: nothing is written until Summarise is pressed again', () => {

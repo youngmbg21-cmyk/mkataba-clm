@@ -7480,14 +7480,20 @@ function igViewSuggestions(){
 function igOverviewFive(shown){
   let M=null; try{ M=buildGraphModel(); }catch(_){ M=null; }
   const cs=(typeof state!=='undefined'&&state&&Array.isArray(state.contracts))?state.contracts.filter(c=>c&&!c.archived):[];
-  const parties=new Set(cs.map(c=>String(c.counterparty||'').trim().toLowerCase()).filter(Boolean)).size;
+  /* the parties and the overdue promises OF WHAT THE MAP DREW (P-40), never the whole book */
+  const drawnIds=new Set(((M&&M.nodes)||[]).filter(n=>n.kind==='contract').map(n=>String(n.id||(n.c&&n.c.id)||'')));
+  const drawnCs=drawnIds.size?cs.filter(c=>drawnIds.has(String(c.id))):cs;
+  const parties=new Set(drawnCs.map(c=>String(c.counterparty||'').trim().toLowerCase()).filter(Boolean)).size;
+  const today0=typeof todayISO==='function'?todayISO():'';
+  let late=0; drawnCs.forEach(c=>(Array.isArray(c.obligations)?c.obligations:[]).forEach(o=>{ if(!o||o.status==='done') return; const due=String((typeof obligationDue==='function'?obligationDue(o):o.due)||'').slice(0,10); if(due&&today0&&due<today0) late++; }));
   const streams=new Set(cs.map(c=>c.folder).filter(Boolean)).size;
   const tour=i18t('int_tour_ask');
   const sugs=igViewSuggestions().slice(0,3);
-  const rows=sugs.map(s=>({ mark:s===tour?'sparkle':'network', tone:s===tour?'dark':'green', t:s, s:s===tour?i18t('jov5_ig_tour_s'):i18t('jov5_ig_try_s'), run:()=>intelAsk(s) }));
+  /* AS DRAWN (P-40, owner 21 Nov 2026): each suggestion one line with its mark and a › that nudges; no line under it */
+  const rows=sugs.map(s=>({ mark:s===tour?'sparkle':'network', tone:s===tour?'dark':'green', t:s, run:()=>intelAsk(s) }));
   let v=[]; try{ v=igViewsRead().slice().reverse(); }catch(_){ v=[]; }
   const saved=v.length?v.slice(0,3).map(x=>({ mark:'star', t:x.name, run:()=>igSavedViewOpen(x.name) }))
-    :[{ t:i18t('jov5_ig_sv_none'), s:i18t('jov5_ig_sv_s'), link:{ label:i18t('jov5_ig_sv_save'), run:()=>igSaveViewDoor() } }];
+    :[{ t:i18t('jov5_ig_sv_none_short'), link:{ label:i18t('jov5_ig_sv_save'), run:()=>igSaveViewDoor() } }];
   const fd=(typeof igFindingsTabOn==='function'&&igFindingsTabOn())?igFindingsCount():null;
   /* THE LEGORA + STRIPE WAY (P-40, owner 20 Nov 2026: "Only change the side panels and go for L+S"): no three mixed tiles;
      WHAT IS DRAWN is a ring of the contracts the map drew, by its own groups (the model's hubs, never the whole book),
@@ -7500,11 +7506,19 @@ function igOverviewFive(shown){
   const segs=top.map((h,i)=>({ l:h.label, n:h.n, c:TONES[i] })).concat(rest?[{ l:i18t('jov5_ig_rest'), n:rest, c:TONES[4] }]:[]);
   const C=2*Math.PI*15; let off=0;
   const ring=drawn?`<div class="igo-drawn"><span class="igo-ring" aria-hidden="true"><svg viewBox="0 0 36 36">${segs.map(g=>{ const len=C*g.n/drawn, el=`<circle cx="18" cy="18" r="15" style="stroke:${g.c};stroke-dasharray:${len.toFixed(2)} ${(C-len).toFixed(2)};stroke-dashoffset:${(-off).toFixed(2)}"/>`; off+=len; return el; }).join('')}</svg><b>${drawn}</b></span>`
-    +`<span class="igo-leg">${segs.map(g=>`<span><i style="background:${g.c}"></i>${igEsc(g.l)} · <b>${g.n}</b></span>`).join('')}<small>${igEsc(i18tn('jov5_ig_parties_n',parties,{ n:parties }))}</small></span></div>`:'';
+    +`<span class="igo-leg">${segs.map(g=>`<span><i style="background:${g.c}"></i>${igEsc(g.l)} · <b>${g.n}</b></span>`).join('')}<small>${igEsc([i18tn('jov5_ig_parties_n',parties,{ n:parties })].concat(late?[i18tn('jov5_ig_overdue_n',late,{ n:late })]:[]).join(' \u00b7 '))}</small></span></div>`:'';
+  /* WHAT JAMBO SEES (P-40, the Legora reading, as drawn): one sentence on the drawn contract that ends first, with the
+     paper's own words where its term is read (hbRdnTermQuote); only what the map DREW, nothing guessed */
+  const sees=(()=>{ const today=typeof todayISO==='function'?todayISO():''; const ex=c=>{ try{ return String((typeof effectiveExpiry==='function'?effectiveExpiry(c):c.expiry)||'').slice(0,10); }catch(_){ return ''; } };
+    const f=drawnCs.filter(c=>{ const e=ex(c); return e&&e>=today; }).sort((a,b)=>ex(a).localeCompare(ex(b)))[0]; if(!f) return '';
+    const q=typeof window.hbRdnTermQuote==='function'?window.hbRdnTermQuote(f):null;
+    let d=''; try{ d=new Date(ex(f)+'T00:00:00').toLocaleDateString(langLocale(),{ day:'numeric', month:'long', year:'numeric' }); }catch(_){ d=ex(f); }
+    return q?`<p class="igo-sees">${igEsc(i18t('jov5_ig_sees_q',{ name:f.name||'' }))} <q>${igEsc(q.w)}</q>${q.sec?' '+igEsc(q.sec):''}.</p>`
+      :`<p class="igo-sees">${igEsc(i18t('jov5_ig_sees',{ name:f.name||'', d }))}</p>`; })();
   return { title:i18t('jov5_ig_t2'), sub:i18t('jov5_ig_s2'),
-    mid:ring, midLabel:drawn?i18t('jov5_ig_what_drawn'):'',
+    mid:ring+(sees?`</div><div class="jov5-sec igo-sees-sec"><p class="jov5-label">${igEsc(i18t('jov5_ig_sees_h'))}</p>${sees}`:''), midLabel:drawn?i18t('jov5_ig_what_drawn'):'',
     groups:[{ label:i18t('jov5_ig_try'), rows }, { label:i18t('int_saved_views'), rows:saved }].concat(fd&&fd.n?[{ label:i18t('jov_ig_fd'), rows:[{ mark:'star', tone:fd.tone==='amber'?'amber':'', t:i18tn('jov_ig_fd_v',fd.n,{ n:fd.n }), run:()=>igFindingsShow() }] }]:[]),
-    src:i18t('jov_ig_src') };
+    src:'' };
 }
 function igOverviewHtml(){
   let shown=0; try{ shown=buildGraphModel().shown||0; }catch(_){ shown=0; }

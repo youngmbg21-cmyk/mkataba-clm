@@ -1045,7 +1045,9 @@ function ndBoardRowHtml(r, opts){
     + `<span class="nd-c nd-c-what"${piece && P.line ? ` title="${_cnE(P.line)}"` : ''}>${typeof listSapOn === 'function' && listSapOn() ? ndSapMarkHtml(r, P) : ''}<span class="nd-what-w"><b>${_cnE(P.title)}</b>${(() => { const q = (typeof cn2QuoteHtml === 'function' ? cn2QuoteHtml(r) : '').replace(/^ · /, ''); return q ? `<span class="nd-q">${q}</span>` : ''; })()}</span>${_ndTagHtml(P)}${P.priv}</span>`
     + `<span class="nd-c nd-c-st"><span class="nd-st is-${ndStatusOf(r)}">${_cnE(_cnT('ndb_g_' + ndStatusOf(r)))}</span></span>`
     /* the number first and never cut; the name gives way with "…" (owner, 23 Oct 2026) */
-    + (() => { const deal = P.name ? [P.name, P.party].filter(Boolean).join(' · ') : P.deal; return `<span class="nd-c nd-c-deal" title="${_cnE([_ndText(P.ref), deal].filter(Boolean).join(' · '))}">${P.ref}${P.ref && deal ? '<i class="nd-dot" aria-hidden="true">·</i>' : ''}${deal ? `<span class="nd-deal-t">${_cnE(deal)}</span>` : ''}</span>`; })()
+    /* AS DRAWN (P-39, owner 21 Nov 2026): the agreement's name, then its number — "Office Lease 2023 · MK-201"; the
+       name gives way with "…", the number is never cut (reverses 23 Oct's number-first) */
+    + (() => { const deal = P.name || P.deal, ref = P.ref || ''; return `<span class="nd-c nd-c-deal" title="${_cnE([deal, _ndText(ref)].filter(Boolean).join(' · '))}">${deal ? `<span class="nd-deal-t">${_cnE(deal)}</span>` : ''}${ref && deal ? '<i class="nd-dot" aria-hidden="true">·</i>' : ''}${ref}</span>`; })()
     /* no "Who or what asked" column (owner, 24 Oct 2026): empty on most rows; the search still reads it */
     + `<span class="nd-c nd-c-when${P.late ? ' cn-late' : ''}">${_cnE(P.when)}</span><span class="nd-c nd-c-next">${btn}</span>${look}</div>`;
 }
@@ -1073,7 +1075,7 @@ function ndBoardHtml(opts){
   const sum = [_cnTn('nd_things', B.n, { n: B.n }), ndSumWords(D)].filter(Boolean).join(' · ');
   /* ("Home shows the top N · this is all of it" went with Home, 10 Nov 2026: the card is the whole list, said once) */
   /* chips with their counts, a soft dot of their colour (P-39); a chip with nothing in it is not drawn (but All) */
-  const tab = (k, n) => (k !== 'all' && !n && _nd.tab !== k) ? '' : `<button type="button" class="nd-tab is-chip${_nd.tab === k ? ' on' : ''}" data-nd-tab="${k}" aria-pressed="${_nd.tab === k}">${k !== 'all' ? `<i class="nd-st-dot is-${k}" aria-hidden="true"></i>` : ''}${_cnE(_cnT(k === 'late' ? 'ndb_chip_late' : 'nd_tab_' + k))} <span class="nd-tab-n">${n}</span></button>`;
+  const tab = (k, n) => (k !== 'all' && !n && _nd.tab !== k) ? '' : `<button type="button" class="nd-tab is-chip${_nd.tab === k ? ' on' : ''}" data-nd-tab="${k}" aria-pressed="${_nd.tab === k}">${k === 'late' ? `<i class="nd-st-dot is-${k}" aria-hidden="true"></i>` : ''}${_cnE(_cnT(k === 'late' ? 'ndb_chip_late' : 'nd_tab_' + k))} <span class="nd-tab-n">${n}</span></button>`;
   const lateN = ndRowsN(B.jambo.concat(B.you).filter(r => r.late));
   const chip = (k, n) => `<button type="button" class="nd-chip${_nd.kind === k ? ' on' : ''}" data-nd-kind="${k}" aria-pressed="${_nd.kind === k}">${_cnE(_cnT('nd_k_' + k))}${n != null ? ' ' + n : ''}</button>`;
   const jamboOn = _nd.tab === 'jambo' || _nd.kind === 'jambo';
@@ -1083,7 +1085,7 @@ function ndBoardHtml(opts){
     + `<input type="search" id="nd-q" class="nd-find" autocomplete="off" placeholder="${_cnE(_cnT('nd_find_ph'))}" aria-label="${_cnE(_cnT('nd_find_label'))}" value="${_cnE(_nd.q)}"></div>`
     + (kinds.length > 1 ? `<div class="nd-chips">${chip('any', null)}${kinds.map(x => chip(x.k, x.n)).join('')}</div>` : '')
     + (jamboOn && o.chase ? o.chase : '')
-    + `<div class="nd-cols"><span>${_cnE(_cnT('nd_col_what'))}</span><span>${_cnE(_cnT('nd_col_status'))}</span><span>${_cnE(_cnT('nd_col_deal'))}</span><span>${_cnE(_cnT('nd_col_when'))}</span><span>${_cnE(_cnT('nd_col_next'))}</span></div>`
+    + `<div class="nd-cols"><span>${_cnE(_cnT('nd_col_what'))}</span><span>${_cnE(_cnT('nd_col_status'))}</span><span>${_cnE(_cnT('nd_col_deal'))}</span><span>${_cnE(_cnT('nd_col_when'))}</span><span aria-label="${_cnE(_cnT('nd_col_next'))}"></span></div>`
     + `<div class="nd-rows" id="nd-rows">${ndBoardRowsHtml(D, o)}</div>${o.foot || ''}</div></section>`;
 }
 /* ---- THE CARD FOLDS TO ITS HEAD (owner, 25 Oct 2026: "add the ability for the needs you card to be able to be

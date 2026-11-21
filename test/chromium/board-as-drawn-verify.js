@@ -116,7 +116,8 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
         greet: typeof cn2Greet === 'function' ? cn2Greet() : null, day: (el.querySelector('.hb-bh-day') || {}).textContent || '' }; }, null, 8000);
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Board's head is the greeting (cn2Greet) with the
        day, CLAUDE.md "YOU LAND ON THE BOARD: head cn2Greet · pills · Live" — "Board" and its sub line were the old head */
-    check('1a the head greets the reader, says the day, and that it is live and when it was counted', !!hd && !!hd.greet && hd.title === hd.greet && !!hd.day.trim() && hd.live && /^· counted \d{1,2}[:.]\d{2}/.test(hd.at) && hd.first, JSON.stringify(hd));
+    /* RE-POINTED 21 Nov 2026 (P-39 rebuilt as drawn): the day is not said; Live and when it was counted are */
+    check('1a the head greets the reader, and says that it is live and when it was counted', !!hd && !!hd.greet && hd.title === hd.greet && !hd.day.trim() && hd.live && /^· counted \d{1,2}[:.]\d{2}/.test(hd.at) && hd.first, JSON.stringify(hd));
     /* RE-POINTED 29 Oct 2026 (owner: "the jambo count next to summarise my board disappears"): the cost is said in its hover, never on its face */
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
     check('1b Summarise my board stands in the head, no cost on its face or its hover', !!hd && hd.cost === '' && (!hd.keyed || /Summarise my board/.test(hd.btn || '')), JSON.stringify(hd && { keyed: hd.keyed, cost: hd.cost, btn: hd.btn }));

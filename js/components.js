@@ -1640,7 +1640,9 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
   const steps = o.steps && (o.steps.items || []).length ? `<div class="jov5-sec">${o.steps.label ? `<p class="jov5-label">${E(o.steps.label)}</p>` : ''}<ol class="jov5-steps">`
     + o.steps.items.map(s => `<li><b>${E(s.b)}</b>${s.s ? ' ' + E(s.s) : ''}</li>`).join('') + '</ol></div>' : '';
   const a = o.act;
-  const act = a && (a.say || a.label) ? `<div class="jov5-act">${a.say ? `<p class="jov5-say">${E(a.say)}</p>` : ''}${a.q ? `<p class="jov5-q">${E(a.q)}</p>` : ''}`
+  /* `head` names the act's section ("The first decision"); `sayHtml` is a say already escaped by its page (a badge
+     beside the words, Read down, P-41) */
+  const act = a && (a.say || a.sayHtml || a.label) ? `<div class="jov5-act">${a.head ? `<p class="jov5-label">${E(a.head)}</p>` : ''}${a.sayHtml ? `<p class="jov5-say">${a.sayHtml}</p>` : a.say ? `<p class="jov5-say">${E(a.say)}</p>` : ''}${a.q ? `<p class="jov5-q">${E(a.q)}</p>` : ''}`
     + `<div class="jov5-acts">${a.label ? `<button type="button" class="jov5-go"${door(a.run, a.attr)}>${E(a.label)}</button>` : ''}`
     + `${a.link ? lnk(a.link.attr ? -1 : reg(a.link.run), E(a.link.label), a.link.title, '', a.link.attr) : ''}`
     /* more quiet links after the first, in order (My notes' Snooze a week, owner's pick 17 Nov 2026) */
