@@ -1,5 +1,5 @@
 'use strict';
-/* f1133 — A SETTINGS SHEET HOLDS ITS EDITS UNTIL SAVE (P-43, the owner's pick 21 Nov 2026: "the foot: … Cancel and
+/* f1143 — A SETTINGS SHEET HOLDS ITS EDITS UNTIL SAVE (P-43, the owner's pick 21 Nov 2026: "the foot: … Cancel and
    SAVE (today only 'Done')"; built 22 Nov 2026).
 
    Every sheet from the right that wrote on each press now holds what the reader changes: the screen moves at once, the
@@ -34,7 +34,7 @@ function stage(opts){
 const puts = g => g.log.api.filter(a => a.route === 'settings' && a.method === 'PUT');
 const pick = (g, v) => { const r = g.q(`#sc-gate-panel input[name="sc-gate"][value="${v}"]`); r.checked = true; r.dispatchEvent(new g.win.Event('change', { bubbles: true })); };
 
-test('f1133 (1) a press in a sheet moves the screen and writes nothing', () => {
+test('f1143 (1) a press in a sheet moves the screen and writes nothing', () => {
   const g = stage();
   g.sb.stDrawerOpen('signcheck');
   pick(g, 'require');
@@ -44,7 +44,7 @@ test('f1133 (1) a press in a sheet moves the screen and writes nothing', () => {
   assert.equal(g.sb.stHoldDirty(), true, 'the sheet holds it');
 });
 
-test('f1133 (2) Cancel writes nothing and puts the setting back', () => {
+test('f1143 (2) Cancel writes nothing and puts the setting back', () => {
   const g = stage({ state: { settings: { signCheckGate: 'advise' } } });
   g.sb.stDrawerOpen('signcheck');
   pick(g, 'require'); pick(g, 'off');
@@ -55,7 +55,7 @@ test('f1133 (2) Cancel writes nothing and puts the setting back', () => {
   assert.ok(g.$('st-drawer').hidden, 'the sheet is closed');
 });
 
-test('f1133 (3) Save writes once, with the last word, and closes', async () => {
+test('f1143 (3) Save writes once, with the last word, and closes', async () => {
   const g = stage();
   g.sb.stDrawerOpen('signcheck');
   pick(g, 'require'); pick(g, 'advise'); pick(g, 'require');
@@ -69,7 +69,7 @@ test('f1133 (3) Save writes once, with the last word, and closes', async () => {
   assert.equal(g.log.toasts.filter(t => t.kind === 'ok').length, 1, 'no "saved" said while it only held');
 });
 
-test('f1133 (4) ✕ asks while anything is held; kept editing, nothing is written', async () => {
+test('f1143 (4) ✕ asks while anything is held; kept editing, nothing is written', async () => {
   const g = stage({ confirm: false });
   g.sb.stDrawerOpen('signcheck');
   g.click(g.q('#st-dhead [data-st-dclose]')); await g.flush();
@@ -83,7 +83,7 @@ test('f1133 (4) ✕ asks while anything is held; kept editing, nothing is writte
   assert.equal(puts(g).length, 0);
 });
 
-test('f1133 (5) another sheet while this one holds asks first; a yes throws the edits away', async () => {
+test('f1143 (5) another sheet while this one holds asks first; a yes throws the edits away', async () => {
   const g = stage({ state: { settings: { signCheckGate: 'advise' } } });
   g.sb.stDrawerOpen('signcheck'); pick(g, 'off');
   g.sb.stDrawerOpen('review'); await g.flush(); await g.flush();
@@ -92,7 +92,7 @@ test('f1133 (5) another sheet while this one holds asks first; a yes throws the 
   assert.equal(puts(g).length, 0, 'never written');
 });
 
-test('f1133 (6) a person\'s flags wait too, merged into one write; an act of its own goes now', async () => {
+test('f1143 (6) a person\'s flags wait too, merged into one write; an act of its own goes now', async () => {
   const g = stage();
   g.sb.stDrawerOpen('signcheck');
   await g.sb.api('me/prefs', 'PUT', { a: 1 }); await g.sb.api('me/prefs', 'PUT', { b: 2 });
@@ -105,7 +105,7 @@ test('f1133 (6) a person\'s flags wait too, merged into one write; an act of its
   assert.equal(JSON.stringify(p[0].body), JSON.stringify({ a: 1, b: 2 }), 'both flags, in one body');
 });
 
-test('f1133 (7) the hooks stand where every write passes, and the foot is Save first, Cancel last', () => {
+test('f1143 (7) the hooks stand where every write passes, and the foot is Save first, Cancel last', () => {
   const save = fnBody(CORE, 'saveSettings');
   assert.match(save, /window\.stHoldTake\('settings'\)\) return true;/, 'core.js: the settings write asks the sheet first');
   assert.match(API.slice(API.indexOf('async function api('), API.indexOf('const res=await fetch(')), /window\.stHoldApi\(path, method, body\)/, 'api.js: a write asks the sheet first');
