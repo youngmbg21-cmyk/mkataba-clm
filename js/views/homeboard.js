@@ -6757,11 +6757,20 @@ function hbArrivePage(){
   parts.forEach(x => x.classList.add('jov-draw'));
   setTimeout(() => parts.forEach(x => { try { x.classList.remove('jov-draw'); } catch (_){} }), 2200);
   book.querySelectorAll('.hb-fig-n').forEach(b => {
+    /* never twice at once (a second start would read the '0' as the true number), and the true number ALWAYS comes
+       back — by a timer as well as the last frame, since frames stop while the board is moved or hidden */
+    if (b.dataset.hbCounting) return;
     const m = String(b.textContent || '').match(/^(\d{1,6})(\D.*)?$/); if (!m) return;
     const to = Number(m[1]), rest = m[2] || '', was = b.textContent; if (!to) return;
     const t0 = performance.now(), dur = 700, delay = 160;
-    const step = now => { if (!b.isConnected) return; const k = Math.min(1, Math.max(0, (now - t0 - delay) / dur)); b.textContent = k >= 1 ? was : Math.round(to * (1 - Math.pow(1 - k, 3))) + rest; if (k < 1) requestAnimationFrame(step); };
-    b.textContent = '0' + rest; requestAnimationFrame(step);
+    /* a redraw that writes a NEW number meanwhile (hbMorph keeps the span, changes its text) wins: the count stops and
+       leaves that number alone — only a number this count wrote itself is put back */
+    let done = false, last = '';
+    const put = v => { last = v; b.textContent = v; };
+    const finish = () => { if (done) return; done = true; delete b.dataset.hbCounting; if (b.textContent === last) b.textContent = was; };
+    const step = now => { if (done) return; if (!b.isConnected || b.textContent !== last) { finish(); return; } const k = Math.min(1, Math.max(0, (now - t0 - delay) / dur)); if (k >= 1) { finish(); return; } put(Math.round(to * (1 - Math.pow(1 - k, 3))) + rest); requestAnimationFrame(step); };
+    b.dataset.hbCounting = '1'; put('0' + rest); requestAnimationFrame(step);
+    setTimeout(finish, delay + dur + 120);
   });
 }
 /* THE ONE TO START WITH (P-39, as drawn: "The one to start with: Fuel Supply’s renewal, “The Term ends on 20 December
