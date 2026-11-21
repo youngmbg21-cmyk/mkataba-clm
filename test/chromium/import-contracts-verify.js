@@ -117,7 +117,8 @@ const MANIFEST = [
     await page.waitForFunction(() => /manifest\.csv/.test(document.getElementById('content').innerText), null, { timeout: 8000 }).catch(() => {});
     const p2 = await page.evaluate(() => document.getElementById('content').innerText.replace(/\s+/g, ' '));
     await page.screenshot({ path: path.join(OUT, '2-manifest.png') });
-    check('2a the page names the list it loaded and how many rows it has', /manifest\.csv loaded — 3 rows/.test(p2), (p2.match(/[^.]*manifest\.csv[^.]*/) || [''])[0].slice(0, 120));
+    /* RE-POINTED 21 Nov 2026 (P-33, Import the Legora + Stripe way): the list's chip names it and its rows ("· 0 of 3 matched") */
+    check('2a the page names the list it loaded and how many rows it has', /manifest\.csv loaded — 3 rows|manifest\.csv · \d+ of 3 matched/.test(p2), (p2.match(/[^.]*manifest\.csv[^.]*/) || [''])[0].slice(0, 120));
     check('2b a value it could not read is listed by file and field, and left empty rather than guessed',
       /1 value in the manifest could not be read — those cells were left empty rather than guessed/.test(p2)
         && /office_lease\.txt · expiry date: "2024-15-01" is not a real date/.test(p2), (p2.match(/value[s]? in the manifest[^]{0,200}/) || [''])[0]);
