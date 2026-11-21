@@ -21,7 +21,9 @@ test('f1058 (1) a pack shows its tiles: each contract in exactly one of four, an
 
 test('f1058 (2) tiles are coloured; plain facts take quiet colours; the chip wears its tile\'s', () => {
   assert.match(RD, /const DSN_FACT_TONES = \['violet', 'pink', 'steel'\]/);
-  assert.match(fnBody(RD, 'dsnResultsHtml'), /class="rdsc-tile is-\$\{g\.c \|\| 'gray'\}/);
+  /* RE-POINTED (P-42, owner's pick 20 Nov 2026: Discover the Legora + Stripe way): the tiles are chips now, each with its
+     tile's colour as a dot */
+  assert.match(fnBody(RD, 'dsnResultsHtml'), /data-dsn-tab="\$\{_rdE\(g\.k\)\}"[^`]*<i class="dsl-dot is-\$\{_rdE\(g\.c \|\| 'gray'\)\}"/);
   assert.match(fnBody(RD, 'dsnChipTone'), /G\.toneOf\.get\(k\)/);
   assert.match(fnBody(RD, 'dsnResultsHtml'), /_dsnChip\(dsnChipTone\(a, S\.G\)/);
   for (const t of ['violet', 'pink']) assert.match(CSS, new RegExp('\\.rdsc-tile\\.is-' + t + '\\{background:color-mix\\(in srgb,var\\(--st-' + t + '-bg\\)'));
@@ -38,7 +40,9 @@ test('f1058 (3) the contract number is its own column, in the results and while 
 
 test('f1058 (4) every header sorts; the same press again reverses; a new read starts unsorted', () => {
   const R = fnBody(RD, 'dsnResultsHtml');
-  assert.match(R, /W\.map\(x => x\.k === 'act' \? '<th><\/th>' : dsnSortTh\(x\.k, x\.th\)\)/);
+  /* RE-POINTED (P-42): each question's header also carries its Keep (a column on Contracts) after the sort button */
+  assert.match(R, /const th = x => x\.k === 'act' \? '<th><\/th>' : x\.ask \? dsnSortTh\(x\.k, x\.th\)\.replace\(\/<\\\/th>\$\/, `\$\{dsnKeepHtml\(x\.ask\)\}<\/th>`\) : dsnSortTh\(x\.k, x\.th\);/);
+  assert.match(R, /W\.map\(th\)/);
   assert.match(R, /k: 'q' \+ i/); assert.match(R, /k: 'ans'/); assert.match(R, /k: 'says'/);
   assert.match(RD, /_dsn\.sort = \(_dsn\.sort && _dsn\.sort\.k === k\) \? \{ k, dir: -_dsn\.sort\.dir \} : \{ k, dir: 1 \}/);
   assert.match(fnBody(RD, 'dsnResultsShown'), /localeCompare\(String\(dsnSortVal\(b, k\)\), undefined, \{ numeric: true/);
