@@ -39670,3 +39670,6 @@ NOT BUILT AS DRAWN, to ask: the lists' head is the shared list head of ten lists
 
 ## ASK A COLUMN (js/views/askcolumn.js)
 - 21 Nov 2026: test/chromium/ask-a-column-verify.js RETIRED (owner's pick "Retire it"): its door, the list head's "Ask a column", was removed 15 Nov ("Remove discover button but leave the door or discover link"); in the new look the form it opened paints nowhere, so the check passed only by catching the page before sign-in. Discover's own checks stand.
+
+## CUSTOMER FOLDERS — SHELVES, THE SAP WAY (js/views/customers.js)
+- 21 Nov 2026, P-25 rebuilt as drawn: the drawing's "+ Add a party" is NOT built — the owner's pick "Leave it out": a party appears when an agreement names it (Parties is a reading, nothing filed); no empty parties on the list.
