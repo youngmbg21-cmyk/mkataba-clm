@@ -167,7 +167,11 @@ const until = async (page, fn, arg, ms = 8000) => {
     await page.evaluate(() => setView('intake')); await page.waitForTimeout(800);
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Requests opens on its Open tab; a drafted
        request is under Drafted, pressed as a person does */
+    /* RE-POINTED 21 Nov 2026: the Drafted chip is drawn only once the list has come in and holds a drafted request (a
+       filter with nothing behind it is not listed) — waited for, bounded, never pressed blind */
+    await page.waitForSelector('[data-ikn-tab="drafted"]', { timeout: 8000 }).catch(() => {});
     { const dt = await page.$('[data-ikn-tab="drafted"]'); if (dt){ await dt.click(); await page.waitForTimeout(600); } }
+    await page.waitForFunction(() => [...document.querySelectorAll('#content [data-ikn-row]')].some(r => /site visit/i.test(r.textContent)), null, { timeout: 8000 }).catch(() => {});
     /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way): a drafted row's Status badge says
        "Drafted" and no longer names its holder in full; who holds it is the chosen row's panel timeline ("Peter took it") */
     /* the panel is drawn beside the list a moment after the tab press: asked for, bounded; "You took it" where the reader is Peter */
