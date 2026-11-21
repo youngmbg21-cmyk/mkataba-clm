@@ -1325,14 +1325,26 @@ function apnQuote(c){
    "…"; words too few to say anything before the amount are not quoted (the § and where it rests still are). The
    paper's words are never rewritten — only cut, as any quote is. The clause still opens at the whole sentence (apnGo). */
 const APN_SUM_RE=/(?:\b(?:KES|KSh|Ksh|USD|EUR|GBP|SEK|UGX|TZS|ZAR|kr)\b\.?\s?|[$€£]\s?)\d|\b\d{1,3}(?:[,\s]\d{3})+(?:\.\d+)?\b|\b\d[\d,.]*\s?(?:KES|KSh|USD|EUR|GBP|SEK|kronor|shillings?|dollars?|euros?)\b/i;
-const APN_QUOTE_MIN=24;
+const APN_QUOTE_WORDS=4;
+/* the words before the first sum, ending "…", when four words or more say something; else '' */
+function apnSumFree(t){
+  t=String(t||''); const m=APN_SUM_RE.exec(t); if(!m) return t;
+  let cut=t.slice(0,m.index); for(let i=0;i<3;i++) cut=cut.replace(/[\s,;:(–—-]+$/,'').replace(/\s+(?:of|at|is|are|be|being|for|to|a|an|the|by|from|up|was|will)$/i,'');
+  return cut.replace(/^…/,'').trim().split(/\s+/).filter(Boolean).length>=APN_QUOTE_WORDS?cut+'…':'';
+}
 function apnQuoteShown(c){
   const q=apnQuote(c); if(!q) return null;
-  const t=String(q.quote||''); const m=APN_SUM_RE.exec(t);
-  if(!m) return q;
-  let cut=t.slice(0,m.index); for(let i=0;i<3;i++) cut=cut.replace(/[\s,;:(–—-]+$/,'').replace(/\s+(?:of|at|is|be|being|for|to|a|an|the|by|from|up)$/i,'');
-  if(cut.replace(/^…/,'').trim().length<APN_QUOTE_MIN) return Object.assign({},q,{ quote:'' });
-  return Object.assign({},q,{ quote:cut+'…' });
+  const t=String(q.quote||''); if(!APN_SUM_RE.test(t)) return q;
+  /* 1 · the clause's next sentence that carries no sum (the one before it where none follows) */
+  let S=[]; try{ S=typeof pd2Sentences==='function'?pd2Sentences(c):[]; }catch(_){ S=[]; }
+  const inSec=S.filter(x=>x&&x.sec===q.sec), key=t.replace(/^…|…$/g,'').trim().slice(0,30).toLowerCase();
+  /* a real sentence of the clause: four words or more, ending as a sentence does (a signature line "For Highland Corporate Ltd" is not one) */
+  const ok=x=>!!x&&!APN_SUM_RE.test(x.t)&&x.t.split(/\s+/).length>=APN_QUOTE_WORDS&&/[.;:!?]$/.test(x.t.trim());
+  const i=key?inSec.findIndex(x=>x.t.toLowerCase().indexOf(key)>=0):-1;
+  const pick=i>=0?(inSec.slice(i+1).find(ok)||inSec.slice(0,i).reverse().find(ok)):null;
+  if(pick) return Object.assign({},q,{ quote:pick.t.replace(/[\s;,:]+$/,'') });
+  /* 2 · the words before the sum; 3 · the § alone */
+  return Object.assign({},q,{ quote:apnSumFree(t) });
 }
 function apnPeekLinkHtml(key){
   return `<div class="apn-peek-l"><button type="button" class="ui-link apn-peek" data-apn-peek="${esc(key)}" title="${esc(i18t('apn_peek_t'))}">${esc(i18t('apn_peek'))}</button></div>`;
@@ -1392,7 +1404,9 @@ function apnStepsHtml(r, big, words){
   const S=apnStepsOf(r), W=Array.isArray(words)&&words.length===3?words:[i18t('apn_step_asked'), i18t('apn_step_approver'), i18t('apn_step_sign')];
   const dot=(k,i)=>{ const on=k.indexOf('on:')===0; return `<i class="apn-sd${k==='done'?' is-done':on?' is-on is-'+esc(k.slice(3)):''}" title="${esc(W[i])}"></i>`; };
   if(!big) return `<span class="apn-steps" aria-label="${esc(W.join(' → '))}">${S.map((k,i)=>dot(k,i)+(i<2?`<b class="apn-sl${k==='done'?' is-done':''}"></b>`:'')).join('')}</span>`;
-  return `<div class="apn-steps is-big">${S.map((k,i)=>`<div class="apn-sb">${dot(k,i)}<small>${esc(W[i])}</small></div>${i<2?`<b class="apn-sl${k==='done'?' is-done':''}"></b>`:''}`).join('')}</div>`;
+  /* AS DRAWN: the dots and the line on one row (the line runs into each dot), the words in a row under them —
+     the first under the left dot, the middle centred, the last under the right dot */
+  return `<div class="apn-steps is-big"><div class="apn-sbl">${S.map((k,i)=>dot(k,i)+(i<2?`<b class="apn-sl${k==='done'?' is-done':''}"></b>`:'')).join('')}</div><div class="apn-sbw">${W.map(w=>`<small>${esc(w)}</small>`).join('')}</div></div>`;
 }
 function apnDayOf(r){
   const iso=r.type==='receipt'?r.c.signedAt:(r.done&&(r.done.at||r.done.when))||'';
@@ -1451,37 +1465,48 @@ function apnPileWords(r){
 }
 function apnStdOf(ch){ return ch&&ch.clauseId&&typeof ldStandards==='function'?ldStandards().find(x=>x.id===String(ch.clauseId))||null:null; }
 function apnPileRowHtml(r){
-  let name, sub, rule, acts, mark;
+  /* THE TABLE'S LOOK (the P-30 review, 22 Nov 2026): a pile row wears the drawn row — the name, the other side and the
+     reference, the paper's words with their § on one line; a drawn badge (amber Waits for you, red Late · N days); You;
+     no steps (a playbook decision is not signed); the rule on one line; the day it came; the paper link alone. Allow
+     once · Refuse (and a change's Approve · Refuse) are the chosen row's panel's, as Approve and Decline are */
+  let name, sub, quote='', rule, acts='', at='';
   if(r.type==='departure'){
-    const c=r.c, ref=window.refHtml?refHtml(c):esc(c.id), q=String(r.v.quote||'').trim();
+    const c=r.c, ref=window.refHtml?refHtml(c):esc(c.id);
     const theirs=(typeof window.contractParties==='function'?window.contractParties(c):[]).filter(p=>p&&p.side!=='ours'&&p.name).map(p=>p.name);
-    const says=r.v.status==='missing'?i18t('apn_dep_missing'):q?i18t('apn_dep_says',{ q:q.length>120?q.slice(0,117)+'…':q }):'';
-    name=c.name||''; sub=[esc((theirs.length?theirs:[c.counterparty||'']).filter(Boolean).join(' · ')), ref, esc(says)].filter(Boolean).join(' · ');
-    rule=esc(r.s.name+' · '+(typeof ldFirmWord==='function'?ldFirmWord(r.s.firm):r.s.firm));
-    const may=typeof window.signCheckMayAccept!=='function'||window.signCheckMayAccept(c, r.v);
-    acts=(may?`<button type="button" class="ui-btn ui-btn-sm apn-ok" data-apn-allow="${esc(r.key)}">${esc(i18t('apn_allow_once'))}</button><button type="button" class="ui-btn ui-btn-sm apn-no" data-apn-refuse-dep="${esc(r.key)}">${esc(i18t('ld_refuse'))}</button>`:'')
-      /* SEE IT IN THE PAPER (owner, 18 Nov 2026): under the two buttons, departures only — a look, never a decision */
-      +apnPeekLinkHtml(r.key);
-    mark='you';
+    name=c.name||''; sub=[esc((theirs.length?theirs:[c.counterparty||'']).filter(Boolean).join(' · ')), ref].filter(Boolean).join(' · ');
+    const w=apnDepWords(r);
+    quote=w.quote?`<div class="apn-ql"><i>“${esc(w.quote)}”</i>${w.sec?` <span>${esc(w.sec)}</span>`:''}</div>`
+      :r.v.status==='missing'?`<div class="apn-ql"><i>${esc(i18t('apn_dep_missing_l'))}</i></div>`:'';
+    rule=r.s.name+' · '+(typeof ldFirmWord==='function'?ldFirmWord(r.s.firm):r.s.firm);
+    /* SEE IT IN THE PAPER (owner, 18 Nov 2026): departures only — a look, never a decision */
+    acts=apnPeekLinkHtml(r.key);
+    at=(r.v.escalation&&r.v.escalation.at)||(c.playbook&&c.playbook.at)||'';
   } else {
     const d=r.ch.draft||{}, st=apnStdOf(r.ch), was=st?st.ladder.ask:'';
     const cut=t=>{ t=String(t||''); return t.length>60?t.slice(0,57)+'…':t; };
-    name=d.name||''; sub=[esc(r.ch.by||''), was&&was!==d.ask?esc(cut(was)+' → '+cut(d.ask)):esc(cut(d.ask))].filter(Boolean).join(' · ');
+    name=d.name||''; sub=esc(r.ch.by||'');
+    quote=`<div class="apn-ql"><i>“${esc(was&&was!==d.ask?cut(was)+' → '+cut(d.ask):cut(d.ask))}”</i></div>`;
     const v=st?(st.gov.ver||1):0;
-    rule=esc([(typeof ldFirmWord==='function'?ldFirmWord(d.firm):d.firm), v?i18t('apn_std_ver',{ a:v, b:v+1 }):i18t('apn_std_new')].join(' · '));
-    acts=`<button type="button" class="ui-btn ui-btn-sm apn-ok" data-apn-std="${esc(r.ch.id)}">${esc(i18t('ap_pg_approve'))}</button><button type="button" class="ui-btn ui-btn-sm apn-no" data-apn-std="${esc(r.ch.id)}">${esc(i18t('ld_refuse'))}</button>`;
-    /* a change to a position is not on any one contract's paper: its row says where it is read, no paper link */
-    mark='edit';
+    rule=[(typeof ldFirmWord==='function'?ldFirmWord(d.firm):d.firm), v?i18t('apn_std_ver',{ a:v, b:v+1 }):i18t('apn_std_new')].join(' · ');
+    /* a change to a position is not on any one contract's paper: no paper link */
+    at=r.ch.at||'';
   }
-  const waited=r.idle!=null?esc(apWaitingText(r.idle)):'—';
-  /* THE TABLE'S LOOK (P-30): a pile row wears the same columns — a soft badge, "You" as the one who decides, no steps
-     (a standard is not signed); its Allow once · Refuse stay on the row until the owner says otherwise */
-  void mark;
   const me=(typeof currentUser==='function'&&currentUser())||{};
   return `<tr data-ap-row="${esc(r.key)}" data-ap-kind="${r.type}" tabindex="-1">
-    <td><div class="apn-name">${esc(name)}</div><div class="apn-sub">${sub}</div></td>
-    <td class="apn-stc">${apnBadgeHtml({ tone:'amber', w:i18t('apn_st_decide') })}</td><td class="apn-apc"><span class="apn-who is-you">${apAvHtml(me.name||'')}<span>${esc(i18t('ap_wl_you'))}</span></span></td>
-    <td class="apn-stp"><span class="apn-none-c">\u2014</span></td><td class="apn-rule">${rule}</td><td class="apn-wait">${waited}</td><td class="apn-acts">${acts}</td></tr>`;
+    <td><div class="apn-name">${esc(name)}</div><div class="apn-sub">${sub}</div>${quote}</td>
+    <td class="apn-stc">${apnBadgeHtml(apnPileStatusOf(r))}</td><td class="apn-apc"><span class="apn-who is-you">${apAvHtml(me.name||'')}<span>${esc(i18t('ap_wl_you'))}</span></span></td>
+    <td class="apn-stp"><span class="apn-none-c">—</span></td><td class="apn-rule" title="${esc(rule)}">${esc(rule)}</td><td class="apn-wait">${esc(apnShortDay(at)||'—')}</td><td class="apn-acts">${acts}</td></tr>`;
+}
+/* a pile row's badge: one of the drawn ones — amber "Waits for you", red "Late · N days" past AP_LATE_DAYS */
+function apnPileStatusOf(r){
+  const n=Number(r&&r.idle)||0;
+  return n>=AP_LATE_DAYS?{ tone:'ruby', w:i18tn('apn_st_late',n,{ n }) }:{ tone:'amber', w:i18t('apn_st_you') };
+}
+/* a departure's own words on the paper, with their § (never a sum: the same rule as every quote on this page) */
+function apnDepWords(r){
+  const c=r.c, q=String((r.v&&r.v.quote)||'').trim(); if(!q) return { quote:'', sec:'' };
+  let sec=''; try{ const qq=typeof pd2QuoteOf==='function'?pd2QuoteOf(c,[q]):null; sec=qq?qq.sec:''; }catch(_){ sec=''; }
+  return { quote:apnSumFree(q), sec };
 }
 /* LAND ON A PILE ROW (the one door, 17 Nov 2026): the Standards page's "Decide in Approvals ›" and Jambo's "Open in
    Approvals" arrive here — Mine, the words cleared, that row chosen with its panel, brought into view (landOn); a row
@@ -1622,7 +1647,7 @@ if(typeof document!=='undefined'&&document.addEventListener&&!document._apnPileW
   document._apnPileWired=true;
   document.addEventListener('click',e=>{
     const t=e.target&&e.target.closest?e.target:null; if(!t) return;
-    const b=t.closest('.apn-table [data-apn-allow], .apn-table [data-apn-refuse-dep], .apn-table [data-apn-std], .apn-table [data-apn-peek]'); if(!b) return;
+    const b=t.closest('.apn-table [data-apn-peek], #ins-panel [data-apn-allow], #ins-panel [data-apn-refuse-dep], #ins-panel [data-apn-std]'); if(!b) return;
     e.preventDefault(); e.stopPropagation();
     if(b.hasAttribute('data-apn-peek')) apnPeekOpen(b.getAttribute('data-apn-peek'));
     else if(b.hasAttribute('data-apn-allow')) apnPileAct('allow', b.getAttribute('data-apn-allow'));
@@ -1632,21 +1657,34 @@ if(typeof document!=='undefined'&&document.addEventListener&&!document._apnPileW
 }
 /* THE PANEL OF A PILE ROW, the five parts, every word read off the record (no call) */
 const _apnNum=t=>{ const m=/(\d[\d,.]*)\s*(?:\(\d+\)\s*)?([A-Za-z’'%]+)?/.exec(String(t||'')); return m?{ n:m[1], u:(m[2]||'').replace(/[’']s$/,'') }:null; };
+/* A DEPARTURE'S PANEL, IN THE NEW LOOK (the P-30 review, 22 Nov 2026): the drawn panel's parts, no boxed cards — the
+   badge, the name, the other side · reference · the position; Allow once (black) and Refuse; what the paper says, with
+   its §; the ladder as a quiet list (what we ask for, each fallback and who may give it, what we never accept); a
+   timeline. Every word read off the record; the decision is the Standards page's own door (apnPileAct → ldDepRun). */
 function apnDepPanelHtml(r){
-  const c=r.c, L=r.s.ladder, q=String(r.v.quote||'').trim();
-  const fbs=L.fallbacks||[], low=fbs.length?fbs[fbs.length-1].text:'';
-  const a=_apnNum(q), b=_apnNum(L.ask), z=_apnNum(low);
-  const glance=a&&b&&z?[{ n:a.n, l:i18t('apn_t_paper',{ u:a.u }), warn:true }, { n:b.n, l:i18t('apn_t_ask',{ u:b.u }) }, { n:z.n, l:i18t('apn_t_low') }]:null;
-  const rungs=[{ mark:'mkTick', tone:'green', t:L.ask||i18t('ld_rung_none'), s:i18t('apn_r_ask'), wrap:true }]
-    .concat(fbs.map((f,k)=>({ mark:'mkDash', tone:'amber', t:f.text, s:i18t('ld_rung_fb',{ n:k+1 })+' · '+(typeof ldWho==='function'?ldWho(f.who):''), wrap:true })))
-    .concat(L.never||r.s.firm==='never'?[{ mark:'mkCross', t:L.never||i18t('ld_rung_none'), s:i18t('apn_r_never'), wrap:true }]:[]);
-  const o={ eyebrow:[i18t('apn_p_tab'), c.counterparty||'', (typeof contractRef==='function'?contractRef(c):c.id)].filter(Boolean).join(' · '),
-    title:i18t('apn_dep_t',{ name:c.name||'', std:r.s.name }),
-    sub:r.v.status==='missing'?i18t('apn_dep_sub_missing',{ ask:L.ask||'' }):i18t('apn_dep_sub',{ q:q.length>200?q.slice(0,197)+'…':q, ask:L.ask||'' }),
-    glance, groups:[{ label:i18t('apn_ladder'), rows:rungs },
-      { label:i18t('apn5_after'), rows:[{ t:i18t('apn_allow_once'), s:i18t('apn_allow_s'), wrap:true }, { t:i18t('ld_refuse'), s:i18t('apn_refuse_dep_s'), wrap:true }] }],
-    src:i18t('apn_dep_src') };
-  return `<div class="jl-words is-ov">${jamboOverviewHtml(o,'apn')}</div>`;
+  const c=r.c, L=r.s.ladder, fbs=L.fallbacks||[], id=esc(r.key);
+  const ref=typeof contractRef==='function'?contractRef(c):c.id, st=apnPileStatusOf(r);
+  const firm=typeof ldFirmWord==='function'?ldFirmWord(r.s.firm):r.s.firm;
+  const may=typeof window.signCheckMayAccept!=='function'||window.signCheckMayAccept(c, r.v);
+  const acts=may?`<button type="button" class="ui-btn apn5-b is-k" data-apn-allow="${id}" title="${esc(i18t('apn_allow_s'))}">${esc(i18t('apn_allow_once'))}</button><button type="button" class="ui-btn apn5-b" data-apn-refuse-dep="${id}" title="${esc(i18t('apn_refuse_dep_s'))}">${esc(i18t('ld_refuse'))}</button>`:'';
+  const w=apnDepWords(r);
+  const says=w.quote?`<button type="button" class="apn5-q" data-apn-pile-open="${id}">“${esc(w.quote)}”</button>`:`<div class="apn5-q is-none">${esc(i18t('apn_dep_missing_l'))}</div>`;
+  const rung=(tone,t,s)=>`<li class="${tone?'is-'+tone:'is-next'}"><i aria-hidden="true"></i><span>${esc(t)}${s?` <small>· ${esc(s)}</small>`:''}</span></li>`;
+  const ladder=[rung('green', L.ask||i18t('ld_rung_none'), i18t('apn_r_ask'))]
+    .concat(fbs.map((f,k)=>rung('amber', f.text, i18t('ld_rung_fb',{ n:k+1 })+(typeof ldWho==='function'&&f.who?' · '+ldWho(f.who):''))))
+    .concat(L.never||r.s.firm==='never'?[rung('ruby', L.never||i18t('ld_rung_none'), i18t('apn_r_never'))]:[]).join('');
+  const at=(r.v.escalation&&r.v.escalation.at)||(c.playbook&&c.playbook.at)||'';
+  const tl=[rung('accent', i18t('apn_tl_found'), apnShortDay(at)),
+    rung(st.tone, i18t('apn_tl_waits_call'), r.idle!=null?apWaitingText(r.idle):''),
+    rung('', i18t('apn_step_sign'), i18t('apn_tl_after_call'))].join('');
+  const sec=(h,b)=>`<section class="apn5-sec">${h?`<h4 class="apn5-h">${esc(h)}</h4>`:''}${b}</section>`;
+  const sub=[esc(c.counterparty||''), `<span class="apn5-ref">${esc(ref)}</span>`, esc(r.s.name+' · '+firm)].filter(Boolean).join(' · ');
+  return `<div class="jl-words apn5" data-apn-panel="${id}">
+    ${sec('',`<div class="apn5-tag">${apnBadgeHtml(st)}</div><div class="apn5-t">${esc(i18t('apn_dep_t',{ name:c.name||'', std:r.s.name }))}</div><div class="apn5-s">${sub}</div>${acts?`<div class="apn5-acts">${acts}</div>`:''}`)}
+    ${sec(i18t('apn_p_says'), `${says}<div class="apn5-qs">${esc([w.sec, r.v.position||''].filter(Boolean).join(' · '))}</div>`)}
+    ${sec(i18t('apn_ladder'), `<ul class="apn5-tl is-ladder">${ladder}</ul>`)}
+    ${sec(i18t('apn5_timeline'), `<ul class="apn5-tl">${tl}</ul>`)}
+  </div>`;
 }
 function apnStdPanelHtml(r){
   const ch=r.ch, d=ch.draft||{}, st=apnStdOf(ch), v=st?(st.gov.ver||1):0;
@@ -1659,6 +1697,8 @@ function apnStdPanelHtml(r){
     title:i18t('apn_std_t',{ who:ch.by||'', name:d.name||'' }), sub:ch.why?'“'+ch.why+'”':'',
     glance:[{ n:v?'v'+v:'—', l:i18t('apn_t_now') }, { n:'v'+(v+1), l:i18t('apn_t_next') }, { n:(d.fallbacks||[]).length, l:i18t('apn_t_fb') }],
     groups:[{ label:i18t('apn_std_what'), rows }, { label:i18t('apn5_after'), rows:[{ t:i18t('ap_pg_approve'), s:i18t('apn_std_yes_s'), wrap:true }, { t:i18t('ld_refuse'), s:i18t('apn_std_no_s'), wrap:true }] }],
+    /* the decision left the row (the P-30 review, 22 Nov 2026): the panel's one black button is the Standards page's own door */
+    act:{ label:i18t('ap_pg_approve'), attr:`data-apn-std="${esc(ch.id)}"`, links:[{ label:i18t('ld_refuse'), title:i18t('apn_std_no_s'), attr:`data-apn-std="${esc(ch.id)}"` }] },
     src:i18t('apn_std_src') };
   return `<div class="jl-words is-ov">${jamboOverviewHtml(o,'apn')}</div>`;
 }
@@ -1717,13 +1757,15 @@ function apnRender(W, o){
      need my yes?"); the words narrow the rows as they are typed, and Enter on words no row holds asks Jambo beside it */
   const firstMine=W.all.yours.find(r=>r.type==='approval'&&!r.done);
   const askPh=firstMine&&firstMine.c&&firstMine.c.name?i18t('apn_ask_ph_q',{ name:firstMine.c.name }):i18t('apn_ask_ph');
-  const head=`<label class="apn-ask is-spark">${typeof icon==='function'?icon('sparkle','w-3.5 h-3.5'):''}<input id="apn-q" type="search" autocomplete="off" placeholder="${esc(askPh)}" aria-label="${esc(askPh)}" value="${esc(_apnQ)}"></label>
+  const head=`<label class="apn-ask is-spark">${typeof icon==='function'?icon('mkSpark','w-3.5 h-3.5'):''}<input id="apn-q" type="search" autocomplete="off" placeholder="${esc(askPh)}" aria-label="${esc(askPh)}" value="${esc(_apnQ)}"></label>
     <div class="apn-bar" data-lh-seat="approvals-nl">${tabs.map(t=>`<button type="button" class="apn-tab is-chip${_apnTab===t[0]?' is-on':''}" data-apn-tab="${t[0]}">${dotOf[t[0]]?`<i class="apn-cd is-${dotOf[t[0]]}" aria-hidden="true"></i>`:''}${esc(t[1])} <span>${t[2]}</span></button>`).join('')}${ruleChip}</div>`;
   /* THE TABLE, P-30: seven columns, the same on every tab; "Asked" reads "Decided" on Done; Steps, then Approver, then Rule step aside
      first where the room is short (listCols' rank), the paper link last of all */
   const rowsA=ap.map(apnRowHtml), rowsS=sg.map(apnRowHtml);
   /* the widths as drawn: room for a colleague's whole name ("Joseph Mwangi"), Rule and Asked short and quiet */
-  const NDEFS=[{k:'name'},{k:'status',w:128},{k:'appr',w:144,rank:2},{k:'steps',w:80,rank:1},{k:'rule',w:104,rank:3},{k:'wait',w:72},{k:'acts',w:128}];
+  /* RE-MEASURED 22 Nov 2026 (the P-30 review: Steps went missing at 1366): every drawn column fits the owner's three screens —
+     the badge, a whole colleague's name, the strip, the rule on one line, the day, the paper link */
+  const NDEFS=[{k:'name'},{k:'status',w:116},{k:'appr',w:136,rank:2},{k:'steps',w:76,rank:1},{k:'rule',w:84,rank:3},{k:'wait',w:56},{k:'acts',w:118}];
   const NFIT=typeof listCols==='function'?listCols('approvals',NDEFS,()=>apPaintList()):{ cols:NDEFS };
   const on=new Set(NFIT.cols.map(c=>c.k));
   const nw=k=>(NFIT.cols.find(c=>c.k===k)||NDEFS.find(c=>c.k===k));
@@ -1735,11 +1777,10 @@ function apnRender(W, o){
   const shownDefs=NDEFS.filter(d=>!CELL[d.k]||on.has(d.k));
   const th=`<thead><tr>${shownDefs.map(d=>d.k==='acts'?'<th></th>':`<th>${esc(i18t(HW[d.k]))}${grip(d.k)}</th>`).join('')}</tr></thead>`;
   const group=sg.length&&ap.length&&_apnTab!=='done'?`<tr class="apn-group"><td colspan="${cols}">${esc(i18t('apn_group_sign'))}</td></tr>`:'';
-  const gTitle=(k,n)=>`<tr class="apn-group apn-pile"><td colspan="${cols}">${esc(i18t(k))}<span class="apn-pile-n"> · ${n}</span></td></tr>`;
+  /* ONE TABLE, AS DRAWN (the P-30 review, 22 Nov 2026: the pile headings went): still in the order they matter —
+     departures, then changes to our playbook, then the contracts waiting for a yes */
   const piled=pDep.length||pStd.length;
-  const pileHtml=(pDep.length?gTitle('apn_group_dep',pDep.length)+pDep.map(apnPileRowHtml).map(cut).join(''):'')
-    +(pStd.length?gTitle('apn_group_std',pStd.length)+pStd.map(apnPileRowHtml).map(cut).join(''):'')
-    +(piled&&ap.length?gTitle('apn_group_yes',ap.length):'');
+  const pileHtml=pDep.map(apnPileRowHtml).map(cut).join('')+pStd.map(apnPileRowHtml).map(cut).join('');
   const bodyInner=(all.length||piled)?`${pileHtml}${rowsA.map(cut).join('')}${group}${rowsS.map(cut).join('')}`:`<tr><td colspan="${cols}" class="apn-none">${esc(i18t(q?'ap_wl_none_match':'apn_none_'+_apnTab))}</td></tr>`;
   const body=`<tbody>${bodyInner}</tbody>`;
   const shown=pDep.concat(pStd, ap, sg);
@@ -1847,4 +1888,4 @@ Object.assign(window,{apnLandRow,apnPeekOpen,apnPeekRowOf,apnPeekPages,apnPeekLi
   apOtherSignRows,apSignIdle,apRulesSay,apApproverMe,apSignAway,apSignRuleHtml,AP_SORTS,AP_SORT_WORDS,AP_SINCE_WORDS,apSortRows,apWhyLines,apForWho,apDayAfter,apTurnHtml,apSinceLook,apAskedByText,apWhySentence,apLeadJlHtml,apForPillHtml,apSay,apPaintHead,apSaWaiting,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning,
   apInsSeat,apLeadHtml,apInsActs,apInsPaint,apnLeadHtml,apnRender,apnRowHtml,apnDoneRows,apMayDecide,apDecide,apWhatHtml,apWhatParts,apWhatBrief,
   AP_LATE_DAYS,apLate,apRowsShown,apUndo,apMayUndo,apApprovedPillHtml,apDoneLineHtml,
-  apnRuleStepOf,apnRuleRemind,AP_VIEWS,AP_F_DEF,apListAtRest,apBook,apStreamName,apRowWords,apListNow,apTabs,apFilters,apSortHtml,apHeadRegister,apPlace,apPlacePut,apShowRow,apPaintList,apListWire});
+  apnRuleStepOf,apnRuleRemind,apnPileStatusOf,apnDepWords,apnSumFree,AP_VIEWS,AP_F_DEF,apListAtRest,apBook,apStreamName,apRowWords,apListNow,apTabs,apFilters,apSortHtml,apHeadRegister,apPlace,apPlacePut,apShowRow,apPaintList,apListWire});
