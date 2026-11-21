@@ -229,7 +229,12 @@ const PAGE = () => {
        the All tab's own number */
     const edge = await page.evaluate(() => ({ az: !!document.querySelector('#dir-page .dir-az'), foot: ((document.querySelector('#dir-page .apn-foot') || {}).textContent || '').trim(),
       all: Number((document.querySelector('#dir-page [data-dirn-tab="all"] span') || {}).textContent || NaN) }));
-    check('no A to Z edge; the foot says how many are shown', !edge.az && new RegExp('^' + edge.all + ' (people|person)$').test(edge.foot), JSON.stringify(edge));
+    /* RE-POINTED 21 Nov 2026 (P-26, as drawn): the drawing has no foot line under the table — the chips say how many
+       (All N); the rule kept is that the All chip's number is the rows the page holds (no cap, nothing trimmed) */
+    const rowsAll = await page.evaluate(() => { const b = document.querySelector('#dir-page [data-dirn-tab="all"]'); if (b) b.click(); return new Promise(r => setTimeout(() => r(document.querySelectorAll('#dir-page #dir-tbody tr[data-dir-row]').length), 500)); });
+    check('no A to Z edge, no foot line; the All chip counts every row', !edge.az && !edge.foot && edge.all === rowsAll, JSON.stringify(Object.assign({ rowsAll }, edge)));
+    await page.evaluate(() => { const b = document.querySelector('#dir-page [data-dirn-tab="outside"]'); if (b) b.click(); });
+    await page.waitForTimeout(500);
     await page.reload({ waitUntil: 'networkidle' });
     await page.waitForTimeout(2200);
     const kept = await page.evaluate(() => ({ view: state.view, tab: (document.querySelector('#dir-page [data-dirn-tab].is-on') || { getAttribute: () => null }).getAttribute('data-dirn-tab') }));

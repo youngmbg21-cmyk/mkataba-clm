@@ -203,7 +203,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Jambo's box is a must** (owner, 20 Nov 2026, after this was parked): the side panel ends, on both tabs, with Jambo's ask box at its foot and the line of links above it, as today; the panel's own content stops above it.
 
 ### P-26 · People page, the Legora + Stripe way, on all four tabs
-- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #861, the overnight batch 6)
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #861, the overnight batch 6); rebuilt as drawn the same day, every gap closed (the Add a person pill, the ask box that also asks Jambo, the signature-page words, the panel without cards: Away only where known, what waits with Remind where HaTi can remind, where the paper names them, the timeline, their party)
 - **What:** build the owner's pick for People: the Legora + Stripe way on All, Yours, Outside and Waiting on them. Owner's words: "L+S and park it."
 - **Where it came from:** the page clean-up, day 4. The drawings, on photos of the page as it was that day: https://claude.ai/artifact/C9a6Tc93nKEN2SiqeDrWZi (choose "The Legora + Stripe way" on each tab).
 - **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):

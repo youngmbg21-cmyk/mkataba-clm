@@ -1613,7 +1613,8 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
   /* `avatar`: a person's initials in a dark circle beside the headline; `ring`: a share (0–100) drawn as a ring there */
   const pct = o.ring != null ? Math.max(0, Math.min(100, Number(o.ring) || 0)) : null;
   const ring = pct != null ? `<span class="jov5-ring" aria-hidden="true"><svg viewBox="0 0 80 80"><circle class="jov5-rb" cx="40" cy="40" r="34"/><circle class="jov5-rf" cx="40" cy="40" r="34" style="stroke-dashoffset:${(213.6 * (1 - pct / 100)).toFixed(1)}"/></svg><b>${pct}%</b></span>` : '';
-  const head = o.avatar ? `<div class="jov5-who"><span class="jov5-ava" aria-hidden="true">${E(o.avatar)}</span>${headIn}</div>` : ring ? `<div class="jov5-who">${ring}${headIn}</div>` : headIn;
+  /* `avaTone`: the initials' circle in a soft status tone (People: green our team, steel the other side, P-26) */
+  const head = o.avatar ? `<div class="jov5-who"><span class="jov5-ava${o.avaTone ? ' is-' + E(o.avaTone) : ''}" aria-hidden="true">${E(o.avatar)}</span>${headIn}</div>` : ring ? `<div class="jov5-who">${ring}${headIn}</div>` : headIn;
   const glance = (o.glance || []).filter(g => g && g.l != null).slice(0, 3);
   const glanceHtml = glance.length ? `<div class="jov5-glance">${glance.map(g => { const t = tag(g.run, g.attr);
     /* A TILE THAT HOLDS WORDS, NOT A NUMBER ("Every month"), takes the smaller size and may wrap — never past its card
