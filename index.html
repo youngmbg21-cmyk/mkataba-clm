@@ -22149,6 +22149,7 @@
   @keyframes hbw2Ring{from{stroke-dashoffset:106.8}}
   @keyframes hbw2Grow{from{transform:scaleX(0)}to{transform:none}}
   @keyframes hbSparkDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+  @keyframes rdSweep{from{stroke-dashoffset:var(--rd-l, 0)}to{stroke-dashoffset:0}}
   @keyframes igoSweep{from{opacity:0;transform:rotate(-180deg)}to{opacity:1;transform:rotate(-90deg)}}
   /* DISCOVER, THE LEGORA + STRIPE WAY (P-42, owner's pick 21 Nov 2026): the ask box under the title, All · Kept and the
      "+ filter" chips; one calm table with soft badges and an answered bar; the panel a ring and bars without cards;
@@ -22626,71 +22627,87 @@
   html.lg-new .rd-page.is-ls .rd-head{display:flex;align-items:center;gap:var(--s-3)}
   html.lg-new .rd-page.is-ls .rd-row{display:grid;grid-template-columns:40px minmax(0,1fr) minmax(0,220px);align-items:center;gap:var(--s-3)}
   html.lg-new .rd-pic-w{display:flex;align-items:center;justify-content:center}
-  html.lg-new .rd-pic{display:inline-flex;width:28px;height:28px}
-  html.lg-new svg.rd-pic{transform:rotate(-90deg)}
-  html.lg-new .rd-pic-b{fill:none;stroke:var(--st-amber-dot);stroke-width:4}
-  html.lg-new .rd-pic-g{fill:none;stroke:var(--st-green-dot);stroke-width:4}
-  html.lg-new .rd-pic-dots{align-items:center;gap:2px;width:auto}
-  html.lg-new .rd-pic-dots i{width:5px;height:5px;border-radius:50%;background:var(--st-green-dot)}
-  html.lg-new .rd-pic-dots i.is-first{background:var(--st-ruby-dot)}
-  html.lg-new .rd-pic-dots i.is-none{background:var(--color-neutral-300)}
-  html.lg-new .rd-pic-bars{flex-direction:column;justify-content:center;gap:4px}
-  html.lg-new .rd-pic-bars i{display:block;height:5px;border-radius:999px;background:var(--st-violet-dot)}
-  html.lg-new .rd-pic-bars i.is-1{background:var(--st-amber-dot)}
-  html.lg-new .rd-pic-n{align-items:center;justify-content:center;border-radius:50%;font-size:var(--t-label);font-weight:var(--w-strong);background:var(--st-gray-bg);color:var(--st-gray-fg)}
-  html.lg-new .rd-pic-n.is-none{background:none;border:1px dashed var(--color-neutral-300);color:var(--color-quiet)}
-  html.lg-new .rd-pic-n.is-late{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new .rd-pic{display:block;width:44px;height:44px;overflow:visible}
+  html.lg-new .rd-pk-track{fill:none;stroke:var(--color-neutral-200);stroke-width:6}
+  html.lg-new .rd-pk-arc{fill:none;stroke-width:6}
+  html.lg-new .rd-pk-arc.is-signed{stroke:var(--st-green-dot)}
+  html.lg-new .rd-pk-arc.is-rest{stroke:var(--st-amber-dot)}
+  html.lg-new .rd-pk-12{font-family:var(--font-body);font-size:9px;fill:var(--color-neutral-400)}
+  html.lg-new .rd-pk-line{stroke:var(--color-neutral-300);stroke-width:2}
+  html.lg-new .rd-pk-dot{fill:var(--accent-ink)}
+  html.lg-new .rd-pk-dot.is-first{fill:var(--st-ruby-dot)}
+  html.lg-new .rd-pk-bar.is-0{fill:var(--st-violet-dot)}
+  html.lg-new .rd-pk-bar.is-1{fill:var(--st-amber-dot)}
+  html.lg-new .rd-pk-none{fill:none;stroke:var(--color-neutral-300);stroke-width:2;stroke-dasharray:3 3}
+  html.lg-new .rd-pk-n0{font-family:var(--font-body);font-size:11px;fill:var(--color-neutral-400)}
+  html.lg-new .rd-pk-soft{fill:var(--st-gray-bg)}
+  html.lg-new .rd-pk-late{fill:var(--st-ruby-bg)}
+  html.lg-new .rd-pk-n{font-family:var(--font-body);font-size:13px;font-weight:var(--w-strong);fill:var(--color-text)}
+  html.lg-new .rd-pk-n.is-late{fill:var(--st-ruby-dot)}
   html.lg-new .rd-page.is-ls .rd-q-bar i.is-near{background:var(--st-ruby-dot)}
-  html.lg-new .rd-page.is-ls .rd-q-bar i{transform-origin:left center;animation:hbw2Grow .7s cubic-bezier(.22,.61,.36,1) both}
-  @media (prefers-reduced-motion: reduce){ html.lg-new .rd-page.is-ls .rd-q-bar i{animation:none} }
   /* ===== READ DOWN, REBUILT AS DRAWN (P-41; owner 21 Nov 2026: "exactly what we agreed") =====
      one white sheet edge to edge; the sentence's own words quoted under it (serif, with § and the contract); the source
      line quiet over its green link with its ›; the quarters on a grey track, the count at the end; the foot under them */
   html.lg-new #ig-page[data-hb-side="board"] #hb-board:has(> #rd-page){padding:0;gap:0;background:var(--color-surface)}
   html.lg-new .rd-page.is-ls{min-height:100%;padding:30px 41px 16px}
   html.lg-new .rd-page.is-ls .rd-print{color:var(--accent-ink);font-weight:var(--w-label);text-decoration:underline;text-underline-offset:3px}
-  html.lg-new .rd-page.is-ls .rd-row{grid-template-columns:36px minmax(0,1fr) 172px;padding:14px 0}
+  html.lg-new .rd-page.is-ls .rd-head{gap:14px}
+  html.lg-new .rd-page.is-ls .rd-head .ctf-back{margin:0;font-size:13px;font-weight:var(--w-label)}
+  html.lg-new .rd-page.is-ls .rd-eyebrow{font-size:11.5px;color:var(--color-neutral-400)}
+  html.lg-new .rd-page.is-ls .rd-h{margin:8px 0 6px;font-size:28px;line-height:1.2}
+  html.lg-new .rd-page.is-ls .rd-row{grid-template-columns:44px minmax(0,1fr) 210px;gap:16px;padding:12px 0}
   html.lg-new .rd-page.is-ls .rd-tw{min-width:0}
-  html.lg-new .rd-page.is-ls .rd-t{margin:0;font-size:14px;line-height:1.5}
-  html.lg-new .rd-page.is-ls .rd-q-w{margin:4px 0 0;font-size:12.5px;line-height:1.4;color:var(--color-quiet)}
-  html.lg-new .rd-page.is-ls .rd-q-w q{font-family:var(--font-doc);quotes:"\201C" "\201D"}
-  html.lg-new .rd-page.is-ls .rd-src{gap:2px}
-  html.lg-new .rd-page.is-ls .rd-src b{font-size:12px;font-weight:400;color:var(--color-quiet)}
-  html.lg-new .rd-page.is-ls .rd-src .rd-go{align-self:flex-start;font-size:12px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
-  html.lg-new .rd-page.is-ls .rd-pic-dots{flex-wrap:nowrap;width:36px;gap:2px;position:relative;padding-top:12px}
-  html.lg-new .rd-page.is-ls .rd-pic-dots i{width:4px;height:4px;flex:none}
-  html.lg-new .rd-page.is-ls .rd-pic-dots em{position:absolute;left:0;top:0;font-style:normal;font-size:9px;line-height:1;color:var(--color-quiet);white-space:nowrap}
-  html.lg-new .rd-page.is-ls .rd-cap{padding:14px 0 6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
-  html.lg-new .rd-page.is-ls .rd-q{grid-template-columns:100px minmax(0,1fr) 32px;gap:12px;padding:5px 0;border-top:0}
-  html.lg-new .rd-page.is-ls .rd-q-k{font-size:12.5px;font-weight:400}
-  html.lg-new .rd-page.is-ls .rd-q-bar{height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}
-  html.lg-new .rd-page.is-ls .rd-q-bar i{border-radius:4px}
-  html.lg-new .rd-page.is-ls .rd-q-v{font-size:12.5px;font-weight:400;text-align:left}
-  html.lg-new .rd-page.is-ls .rd-foot{margin-top:18px;padding-top:12px}
-  html.lg-new .rd-page.is-ls .rd-foot .rd-go{font-size:12.5px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
+  html.lg-new .rd-page.is-ls .rd-t{margin:0;font-size:15px;line-height:1.5;font-weight:400}
+  html.lg-new .rd-page.is-ls .rd-q-w{margin:3px 0 0;font-family:var(--font-doc);font-size:13px;line-height:1.45;color:var(--color-quiet)}
+  html.lg-new .rd-page.is-ls .rd-q-w q{quotes:"\201C" "\201D"}
+  html.lg-new .rd-page.is-ls .rd-src{gap:1px}
+  html.lg-new .rd-page.is-ls .rd-src b{font-size:12px;font-weight:400;color:var(--color-neutral-400)}
+  html.lg-new .rd-page.is-ls .rd-src .rd-go{align-self:flex-start;font-size:12.5px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
+  html.lg-new .rd-page.is-ls .rd-cap{margin:12px 0 6px;padding:0;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-neutral-400)}
+  html.lg-new .rd-page.is-ls .rd-q{grid-template-columns:110px minmax(0,1fr) 40px;gap:12px;padding:4px 0;border-top:0}
+  html.lg-new .rd-page.is-ls .rd-q-k{font-size:13px;font-weight:400}
+  html.lg-new .rd-page.is-ls .rd-q-bar{height:10px;border-radius:5px;background:var(--color-neutral-200);overflow:hidden}
+  html.lg-new .rd-page.is-ls .rd-q-bar i{border-radius:5px;transform-origin:left center}
+  html.lg-new .rd-page.is-ls .rd-q-v{font-size:13px;font-weight:400;text-align:left}
+  html.lg-new .rd-page.is-ls .rd-foot{margin-top:14px;padding-top:12px}
+  html.lg-new .rd-page.is-ls .rd-foot .rd-go{font-size:13px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
+  /* the arrival, on the panel's rare beat only (jovPlay adds .rd-arrive): rows rise one after another, the ring
+     sweeps, the stream bars and the quarter bars grow; transform and opacity, the ring's stroke; still when less
+     motion is asked */
+  html.lg-new .rd-page.rd-arrive :is(.rd-row,.rd-q){animation:jovRise .42s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--rd-i, 0) * 80ms)}
+  html.lg-new .rd-page.rd-arrive .rd-q-bar i,html.lg-new .rd-page.rd-arrive .rd-pk-bar{transform-box:fill-box;transform-origin:left center;animation:hbw2Grow .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--rd-i, 0) * 80ms + 120ms)}
+  html.lg-new .rd-page.rd-arrive .rd-pk-arc{animation:rdSweep .9s cubic-bezier(.2,.8,.2,1) both;animation-delay:150ms}
+  @media (prefers-reduced-motion: reduce){ html.lg-new .rd-page.rd-arrive :is(.rd-row,.rd-q,.rd-q-bar i,.rd-pk-bar,.rd-pk-arc){animation:none} }
   /* the panel: no head row; "Board · read down", the title in the body face; "The first decision" a section with its
      red "in N days" badge, the term's words, and the black button its own width; "Look closer" plain rows */
   html.lg-new #ig-dock:has(.jov5[data-jov-slot="rdn"]) > .igd-head{display:none}
-  html.lg-new .jov5[data-jov-slot="rdn"]{padding-top:16px;gap:12px}
+  html.lg-new .jov5[data-jov-slot="rdn"]{padding-top:0;gap:12px}
+  html.lg-new #ig-dock .jl-words.rd-five{padding-top:0}
   html.lg-new .jov5[data-jov-slot="rdn"] .jov5-intro{padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-eb{font-size:12px;color:var(--color-quiet);letter-spacing:0;text-transform:none}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-title{font-family:var(--font-body);font-size:17px;line-height:1.3;font-weight:var(--w-label)}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-sub{font-size:12px;color:var(--color-quiet)}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-act{display:flex;flex-direction:column;gap:8px;padding:0 0 12px;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;background:none}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-label{margin:0;font-size:13px;font-weight:var(--w-strong);color:var(--color-text);letter-spacing:0;text-transform:none}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-say{display:flex;align-items:center;gap:8px;margin:0;font-size:13px}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-eb{margin:0;font-size:12.5px;font-weight:400;color:var(--color-neutral-400);letter-spacing:0;text-transform:none}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-intro{display:flex;flex-direction:column;gap:8px}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-title{margin:0;font-family:var(--font-body);font-size:17px;line-height:1.3;font-weight:var(--w-label)}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-sub{margin:0;font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-act{display:flex;flex-direction:column;gap:8px;padding:0 0 7px;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;background:none}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-label{margin:0;font-size:14px;font-weight:var(--w-strong);color:var(--color-text);letter-spacing:0;text-transform:none}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-say{display:flex;align-items:center;gap:8px;margin:0;font-size:14px;font-weight:var(--w-label)}
   html.lg-new .jov5[data-jov-slot="rdn"] .rd-p-in{display:inline-flex;align-items:center;gap:5px;padding:1px 7px;border-radius:6px;background:var(--st-ruby-bg);color:var(--st-ruby-fg);font-size:12px;font-weight:var(--w-label);line-height:1.6;white-space:nowrap}
   html.lg-new .jov5[data-jov-slot="rdn"] .rd-p-in::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--st-ruby-dot)}
   html.lg-new .jov5[data-jov-slot="rdn"] .jov5-q{margin:0;font-family:var(--font-doc);font-size:13px;line-height:1.45;color:var(--color-text)}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-acts{justify-content:flex-start}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-act .jov5-acts{display:flex;justify-content:flex-start}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-act .jov5-acts .jov5-go{width:auto;min-width:0;flex:none;padding:6px 14px;border-radius:999px}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-group{gap:0;border:0;background:none}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-row.is-door{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 4px;border:0;border-radius:6px;background:none;font-size:13px}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-act .jov5-acts{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;margin-top:-6px}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-act .jov5-acts > .jov5-go{width:auto;min-width:0;flex:none;height:auto;padding:7px 16px;border-radius:999px;font-size:14px;font-weight:var(--w-label);line-height:1.3}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-sec{display:flex;flex-direction:column;gap:8px}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-group{display:flex;flex-direction:column;gap:8px;border:0;background:none}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-row.is-door{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:8px;align-items:center;padding:4px;border:0;border-radius:6px;background:none;font-size:13px}
   html.lg-new .jov5[data-jov-slot="rdn"] .jov5-row.is-door:hover{background:var(--surface-2)}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-rt b{font-size:13px;font-weight:400}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-rt > span{font-size:12px;color:var(--color-quiet)}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-chev{transition:transform .15s ease}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-mk{width:24px;height:24px;border-radius:7px;display:grid;place-items:center}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-mk .jov5-ic{width:13px;height:13px;stroke-width:2}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-mk.is-green{background:var(--st-green-bg);color:var(--accent-ink)}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-mk.is-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-mk.is-red{background:var(--st-ruby-bg);color:var(--st-ruby-dot)}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-rt b{font-size:13px;font-weight:400;line-height:1.4}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-rt > span{font-size:12.5px;line-height:1.4;color:var(--color-neutral-400)}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-chev{color:var(--color-neutral-400);transition:transform .15s ease}
   html.lg-new .jov5[data-jov-slot="rdn"] .jov5-row:hover .jov5-chev{transform:translateX(3px)}
   @media (prefers-reduced-motion: reduce){ html.lg-new .jov5[data-jov-slot="rdn"] .jov5-chev{transition:none} }
   /* ===== EXPLORER'S SIDE PANEL, REBUILT AS DRAWN (P-40) =====

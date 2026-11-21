@@ -6326,16 +6326,23 @@ function hbRdnSentences(R){
     q: R.lateQ || null, src: i18t('rd_src_oblig'), door: i18t('rd_door_oblig'), go: 'oblig' });
   return out;
 }
-/* each sentence's small graphic, drawn from its own count (never a guess) */
+/* each sentence's small graphic, drawn from its own count (never a guess). AS DRAWN (P-41, 21 Nov 2026): a 44 square
+   each — the ring of signed (green) against the rest (amber) on a grey track; the year as a line with a dot where each
+   agreement ends, the first red, "12 mo" over it; the two streams as two bars by their share of the book; an empty
+   dashed circle for none; a soft red circle with the late count. Colours are the status tokens, by class. */
 function hbRdnPic(k, R){
-  const C = 2 * Math.PI * 9;
-  if (k === 'paper'){ const n = R.L.length || 1, f = R.sig.length / n;
-    return `<svg viewBox="0 0 24 24" class="rd-pic"><circle cx="12" cy="12" r="9" class="rd-pic-b"/><circle cx="12" cy="12" r="9" class="rd-pic-g" style="stroke-dasharray:${C.toFixed(1)};stroke-dashoffset:${(C * (1 - f)).toFixed(1)}"/></svg>`; }
-  if (k === 'end'){ const n = Math.min(R.ending.length, 6); return `<span class="rd-pic rd-pic-dots"><em>${_hbE(i18t('rd_pic_12mo'))}</em>${Array.from({ length: n }, (_, i) => `<i class="${i === 0 ? 'is-first' : ''}"></i>`).join('') || '<i class="is-none"></i>'}</span>`; }
-  if (k === 'streams'){ const s = R.streams.slice().sort((x, y) => y.cs.length - x.cs.length).slice(0, 2), m = Math.max(1, ...s.map(x => x.cs.length));
-    return `<span class="rd-pic rd-pic-bars">${s.map((x, i) => `<i class="is-${i}" style="width:${Math.max(18, Math.round(100 * x.cs.length / m))}%"></i>`).join('')}</span>`; }
-  if (k === 'nego') return R.nego.length ? `<span class="rd-pic rd-pic-n">${R.nego.length}</span>` : `<span class="rd-pic rd-pic-n is-none">0</span>`;
-  return `<span class="rd-pic rd-pic-n${R.late ? ' is-late' : ' is-none'}">${R.late}</span>`;
+  const svg = (inner, cls) => `<svg viewBox="0 0 44 44" class="rd-pic${cls ? ' ' + cls : ''}">${inner}</svg>`;
+  const none = n => `<circle cx="22" cy="22" r="14" class="rd-pk-none"/><text x="22" y="26" text-anchor="middle" class="rd-pk-n0">${n}</text>`;
+  if (k === 'paper'){ const n = R.L.length, s = R.sig.length, L = 2 * Math.PI * 16, a = n ? L * s / n : 0, b = n ? Math.max(0, L * (n - s) / n - (s ? 1 : 0)) : 0;
+    return svg(`<circle cx="22" cy="22" r="16" class="rd-pk-track"/>${a ? `<circle cx="22" cy="22" r="16" class="rd-pk-arc is-signed" style="--rd-l:${a.toFixed(1)}" stroke-dasharray="${a.toFixed(1)} ${L.toFixed(1)}" transform="rotate(-90 22 22)"/>` : ''}${b ? `<circle cx="22" cy="22" r="16" class="rd-pk-arc is-rest" style="--rd-l:${b.toFixed(1)}" stroke-dasharray="${b.toFixed(1)} ${L.toFixed(1)}" transform="rotate(${(-90 + 360 * (n ? s / n : 0)).toFixed(1)} 22 22)"/>` : ''}`, 'is-ring'); }
+  if (k === 'end'){
+    const today = typeof todayISO === 'function' ? todayISO() : new Date().toISOString().slice(0, 10), t0 = new Date(today + 'T12:00:00');
+    const x = c => { const d = Math.round((new Date(R.exp(c) + 'T12:00:00') - t0) / 864e5); return (4 + 36 * Math.min(1, Math.max(0, d / 365))).toFixed(1); };
+    return svg(`<text x="4" y="18" class="rd-pk-12">${_hbE(i18t('rd_pic_12mo'))}</text><line x1="4" y1="30" x2="40" y2="30" class="rd-pk-line"/>${R.ending.map((c, i) => `<circle cx="${x(c)}" cy="30" r="3" class="rd-pk-dot${i === 0 ? ' is-first' : ''}"/>`).reverse().join('')}`, 'is-line'); }
+  if (k === 'streams'){ const s = R.streams.slice().sort((x, y) => y.cs.length - x.cs.length).slice(0, 2), n = Math.max(1, R.L.length);
+    return svg(s.map((x, i) => `<rect x="4" y="${i ? 25 : 14}" width="${Math.max(3, 36 * x.cs.length / n).toFixed(1)}" height="7" rx="3" class="rd-pk-bar is-${i}"/>`).join(''), 'is-bars'); }
+  if (k === 'nego') return svg(R.nego.length ? `<circle cx="22" cy="22" r="12" class="rd-pk-soft"/><text x="22" y="27" text-anchor="middle" class="rd-pk-n">${R.nego.length}</text>` : none(0));
+  return svg(R.late ? `<circle cx="22" cy="22" r="12" class="rd-pk-late"/><text x="22" y="27" text-anchor="middle" class="rd-pk-n is-late">${R.late}</text>` : none(0));
 }
 /* THE TERM'S OWN WORDS (P-41, as drawn: "“The Term ends on 20 December 2026 unless renewed” § 2 · Fuel Supply"): the
    paper's sentence that names the end date's year in its term or renewal clause, with that clause's §; none found, none
@@ -6357,13 +6364,15 @@ function hbRdnTermQuote(c){
 function R_exp(c){ try { return String((typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '').slice(0, 10); } catch (_){ return ''; } }
 function hbRdnVal(c){ let h = null; try { h = typeof fxCounted === 'function' ? fxCounted(c) : null; } catch (_){ h = null; } return h && !h.missing && !h.private ? (Number(h.v) || 0) : 0; }
 function hbRdnDay(iso){ try { return new Date(iso + 'T00:00:00').toLocaleDateString(langLocale(), { day: 'numeric', month: 'long', year: 'numeric' }); } catch (_){ return iso; } }
+/* the short day the panel's Look closer row says (as drawn: "20 Dec 2026") */
+function hbRdnDayShort(iso){ try { return new Date(iso + 'T00:00:00').toLocaleDateString(langLocale(), { day: 'numeric', month: 'short', year: 'numeric' }).replace(/\bSept\b/, 'Sep'); } catch (_){ return iso; } }
 function hbRdnHtml(){
   const R = hbRdnRead(), E = _hbE, S = hbRdnSentences(R);
   let when = ''; try { when = new Date().toLocaleDateString(langLocale(), { weekday: 'long', day: 'numeric', month: 'long' }); } catch (_){ when = ''; }
   const rows = S.map((x, i) => `<div class="rd-row" data-rd-row="${i}"><span class="rd-pic-w" aria-hidden="true">${hbRdnPic(x.k, R)}</span><div class="rd-tw"><p class="rd-t">${E(x.t)}</p>${x.q ? `<p class="rd-q-w"><q>${E(x.q.w)}</q>${[x.q.sec, x.q.name].filter(Boolean).length ? ` <span>${E([x.q.sec, x.q.name].filter(Boolean).join(' \u00b7 '))}</span>` : ''}</p>` : ''}</div><div class="rd-src"><b>${E(x.src)}</b><button type="button" class="rd-go" data-rd-go="${E(x.go)}">${E(x.door)} ›</button></div></div>`).join('');
   /* ENDING, BY QUARTER · AGREEMENTS (P-41; was "value on paper"): one bar per quarter by count, the nearest red */
   const max = Math.max(1, ...R.quarters.map(q => q.n));
-  const qName = q => { try { const a = new Date(Number(q.y), q.q * 3, 1), b = new Date(Number(q.y), q.q * 3 + 2, 1); return a.toLocaleDateString(langLocale(), { month: 'short' }) + '–' + b.toLocaleDateString(langLocale(), { month: 'short' }) + ' ' + q.y; } catch (_){ return q.k; } };
+  const qName = q => { try { const a = new Date(Number(q.y), q.q * 3, 1), b = new Date(Number(q.y), q.q * 3 + 2, 1); const m = d => d.toLocaleDateString(langLocale(), { month: 'short' }).replace(/^Sept$/, 'Sep'); return m(a) + '–' + m(b) + ' ' + q.y; } catch (_){ return q.k; } };
   const bars = R.quarters.map((q, i) => `<div class="rd-q"><span class="rd-q-k">${E(qName(q))}</span><span class="rd-q-bar"><i class="${i === 0 ? 'is-near' : 'is-signed'}" style="width:${Math.max(2, Math.round(100 * q.n / max))}%"></i></span><span class="rd-q-v">${E(String(q.n))}</span></div>`).join('');
   const needs = typeof counterNeedsCount === 'function' ? counterNeedsCount() : 0;
   const foot = [['needs', i18t('rd_f_needs', { n: needs })], ['contracts', i18t('rd_f_contracts', { n: R.L.length })], ['calendar', i18t('rd_f_calendar')], ['explorer', i18t('rd_f_explorer')], ['negotiations', i18t('rd_f_nego')], ['activity', i18t('rd_f_history')]]
@@ -6381,14 +6390,13 @@ function hbRdnPanelFive(R){
   /* THE LEGORA + STRIPE WAY (P-41): NO MONEY, no tiles. "The first decision" (a red "in N days", what, the act, black),
      then "Look closer", each row by a door the page already has. The same reading as the page; no AI. */
   const f = R.ending[0];
-  const day = f ? hbRdnDay(R.exp(f)) : '';
   const today = typeof todayISO === 'function' ? todayISO() : '';
   const days = f && today ? Math.round((new Date(R.exp(f) + 'T12:00:00') - new Date(today + 'T12:00:00')) / 864e5) : null;
   const rows = [];
-  if (f) rows.push({ mark: 'calendar', tone: 'green', t: i18t('rd_p_first_ends', { name: f.name || '' }), s: day, attr: 'data-rd-go="calendar"' });
+  if (f) rows.push({ mark: 'calendar', tone: 'green', t: i18t('rd_p_first_ends', { name: f.name || '' }), s: hbRdnDayShort(R.exp(f)), attr: 'data-rd-go="calendar"' });
   const byN = new Map(); R.L.forEach(c => { const p = String(c.counterparty || '').trim(); if (!p) return; const e = byN.get(p) || { p, cs: [] }; e.cs.push(c); byN.set(p, e); });
   const most = [...byN.values()].sort((x, y) => y.cs.length - x.cs.length)[0] || null;
-  if (most) rows.push({ mark: 'users', t: i18t('rd_p_most', { p: most.p }), s: i18t('rd_p_open_them'), attr: `data-rd-show="${_hbE(most.cs.map(c => c.id).join(','))}" data-rd-label="${_hbE(most.p)}"` });
+  if (most) rows.push({ mark: 'users', tone: 'steel', t: i18t('rd_p_most', { p: most.p }), s: i18t('rd_p_open_them'), attr: `data-rd-show="${_hbE(most.cs.map(c => c.id).join(','))}" data-rd-label="${_hbE(most.p)}"` });
   if (R.late) rows.push({ mark: 'alert', tone: 'red', t: i18tn('rd_late', R.late, { n: R.late }), s: i18t('jov5_rd_late_s'), attr: 'data-rd-go="oblig"' });
   else rows.push({ mark: 'file', t: i18tn('rd_p_nego', R.nego.length, { n: R.nego.length }), s: R.ours.length ? i18tn('jov5_rd_nego_s', R.ours.length, { n: R.ours.length }) : i18t('jov5_rd_nego_none'), attr: 'data-rd-go="negotiations"' });
   /* AS DRAWN (P-41): "The first decision", a red "in N days" badge beside "Renew X or not", the term's own words, the act */
