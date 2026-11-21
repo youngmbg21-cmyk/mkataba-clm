@@ -39694,3 +39694,18 @@ The reviewer's list (review8/differences.md) against the owner's picked drawing 
 - A setting chosen: faint green row (`--color-accent-50`); the condition bold in its sentence; the ring with "asks open" under its number and whose yes is waited on; "In the trail · See it" together, no lines; "If you change it" for approval rules adds "it applies from the next contract asked."; the button says Change for an off setting too.
 - The sheets: the rule in words as drawn (`arWordsHtml`: "A contract of KES 10M or more needs **X**'s yes; below that, **Y**'s."), the column "Open", the clash quiet (pale box, dark words, amber dot); the foot line keeps the TRUE order rule ("a lower number gives its yes first" — every rule that matches asks, so the drawn "the first that matches asks for its yes" would be false) and adds "The change is written in the trail with your name."; the check's quote "With **Advise**, …", the other two in a line each; signing limits: an admin "never limited", nobody's limit "none on file · set", the folders wrap; the ✕ bare, no circle, no fade.
 
+## HOW THINGS MOVE — THE BOARD NEVER SAYS A NUMBER IT DOES NOT HOLD (21 Nov 2026)
+home-board-verify 1d failed now and then on GitHub: the four figures read 0,0,0,0 (once 29,0,0,0) while hbBookData said
+10,1,1,1. A frame-by-frame probe (every animation frame after sign-in, CPU slowed 1–6×) found three causes, none a missed
+repaint — the Board always settled on the true book:
+(1) state is born holding sampleContracts() (thirty demo contracts). Browser-only mode keeps them; on a server they stayed in
+    memory through sign-in, so a Board painted before the real book loaded counted 29 live contracts that do not exist (the
+    check's own "signed in" wait, state.contracts.length > 0, was satisfied by them). Now boot's server branch empties the book.
+(2) loadBootstrap emptied state.contracts and filled it page by page; a paint between pages counted an empty book (0,0,0,0).
+    Now the pages are gathered aside and put in place in one step.
+(3) the count-up (hbArrivePage, jovCountUp; P-39's "numbers count up") wrote '0', '3', '7'… into the figure's own words for
+    most of a second after the day's first arrival, so the page SAID 0 to anything reading it. Now one helper, jovCountOver,
+    paints the count OVER the number (data-jov-count, its ::after) and the words stay true; hbMorphSameShell ignores the mark,
+    so a redraw writing the same number keeps the count going and a new number stops it.
+Measured at the parent: 5 of 6 runs at 4× and 3 of 3 at 1× had frames where the figures' words differed from the book;
+after: 0 of 18 (six each at 1×, 4× and 6×). Looks the same: the count still climbs from 0, from the number's start edge.

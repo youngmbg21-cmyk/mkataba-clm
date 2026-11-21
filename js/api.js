@@ -131,14 +131,18 @@ async function loadBootstrap(){
   state.emailConfigured=b.emailConfigured!==false;
   // Load contract SUMMARIES (heavy fields stripped) in pages — full bodies load
   // on open. Capped so a very large portfolio can't blow up the initial load.
-  state.contracts=[]; let offset=0; const limit=200; let total=Infinity;
-  while(offset<total && state.contracts.length<5000){
+  /* THE BOOK ARRIVES WHOLE (21 Nov 2026): the pages are gathered aside and put in place in one step. Emptied first and
+     filled page by page, anything painted between two pages (a beat, a press) counted an empty or half book — the
+     Board's figures read 0 while the real book was on its way. */
+  const book=[]; let offset=0; const limit=200; let total=Infinity;
+  while(offset<total && book.length<5000){
     const pg=await api('contracts?limit='+limit+'&offset='+offset);
     total=pg.total;
-    pg.rows.forEach(r=>{ const c=migrateContract(r); c._light=true; c._loaded=false; c._v=r._v; state.contracts.push(c); });
+    pg.rows.forEach(r=>{ const c=migrateContract(r); c._light=true; c._loaded=false; c._v=r._v; book.push(c); });
     if(!pg.rows.length) break;
     offset+=pg.rows.length;
   }
+  state.contracts=book;
   state.truncated = total>state.contracts.length;
   // screen position is per-device, not shared with teammates
   const ui=lsGet(LS.ui)||{};

@@ -77,7 +77,10 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     await page.fill('#li-email', 'admin@example.co.ke');
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
-    await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 5, null, { timeout: 15000 });
+    /* RE-POINTED 22 Nov 2026 (the book arrives whole; no demo book): "> 5" was only ever met by the thirty demo
+       contracts held in memory through sign-in — this world seeds FOUR (FIXTURES). On a server the book now starts empty
+       and arrives in one step, so four contracts in hand is the real book loaded. */
+    await page.waitForFunction(() => window.state && state.contracts && state.contracts.length >= 4, null, { timeout: 15000 });
     /* signing in lands on Home's counter first; Explorer is opened once that has settled */
     await until(() => (state.view === 'dashboard' && !document.body.classList.contains('pre-auth') && !!document.getElementById('hb-bhead')));
     await page.waitForTimeout(1500);
