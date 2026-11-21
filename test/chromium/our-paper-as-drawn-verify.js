@@ -306,12 +306,18 @@ async function SEED(){
       const only = state.reg && state.reg.only; return only && Array.isArray(only.ids) ? only.ids.slice().sort().join(',') : null; }, null, 8000);
     check('6a Jambo\'s "came back changed" bar opens the Contracts list narrowed to the two contracts it counts', !!F1 && F1.split(',').length === 2, F1);
     await page.evaluate(() => { if (state.reg) state.reg.only = null; setView('templates'); tplPageSetTab('book'); });
+    /* RE-POINTED 21 Nov 2026: the book comes back on the list step (5f no longer opens the paper); the marks are the
+       paper's, so the paper is opened as a person does — the chosen row pressed again */
+    await until(() => !!document.querySelector('[data-tpl-sec="book"] .tpln-lrs [data-tpl-pf], [data-tpl-sec="book"] .tpln5.is-paper'));
+    await openPaper(MSA);
     await until(() => !!document.querySelector('.tpl-mk.is-changed'));
     await press('.tpl-mk.is-changed');
     const F2 = await until(() => { if (state.view !== 'register' && state.view !== 'dashboard' && state.view !== 'counter') return null;
       const only = state.reg && state.reg.only; return only && Array.isArray(only.ids) ? only.ids.slice().sort().join(',') : null; }, null, 8000);
     check('6b the mark opens the Contracts list narrowed to the two contracts it counts', !!F2 && F2.split(',').length === 2, F2);
     await page.evaluate(() => { setView('templates'); tplPageSetTab('book'); });
+    await until(() => !!document.querySelector('[data-tpl-sec="book"] .tpln-lrs [data-tpl-pf], [data-tpl-sec="book"] .tpln5.is-paper'));
+    if (!(await page.evaluate(() => !!document.querySelector('[data-tpl-pf-act]')))) await openPaper(MSA);
     await until(() => !!document.querySelector('[data-tpl-pf-act]'));
     await page.evaluate(() => { const b = [...document.querySelectorAll('[data-tpl-pf-act]')].find(x => x.textContent.trim() === 'Draft from it'); if (b) b.click(); });
     const F3 = await until(() => { const on = document.querySelector('.na-pick.on'); return on ? on.textContent.replace(/\s+/g, ' ').trim() : null; });

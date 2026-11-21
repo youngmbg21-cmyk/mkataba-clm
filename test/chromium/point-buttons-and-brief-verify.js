@@ -114,11 +114,11 @@ const BREAKDOWN = { head: 'Fix the cap first', sub: 'Their cover stops at three 
        Start redlining is drawn for them — greyed or live. The old 4c (a viewer's Ask Jambo from the deep dive) had no
        dive left to press from */
     await page.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-P1', 'doc'); });
-    const v4 = await until(page, () => document.querySelector('#pd-thread') ? { reads: window._bdCalls || 0, redline: document.querySelectorAll('#pd-thread [data-stk-redline]').length } : null, null, 15000);
-    await page.waitForTimeout(1500);
-    const v4b = await page.evaluate(() => ({ reads: window._bdCalls || 0, redline: document.querySelectorAll('#pd-thread [data-stk-redline]').length }));
-    check('4a a viewer\'s visit starts no paid read of the points', !!v4 && v4b.reads === 0, JSON.stringify(v4b));
-    check('4b … and no Start redlining is drawn for them', !!v4 && v4b.redline === 0, JSON.stringify(v4b));
+    /* the points an editor's read already kept are shown to the viewer (reading is open); their Start redlining is
+       greyed with its reason */
+    const v4 = await until(page, () => { const b = document.querySelector('#pd-thread [data-stk-redline]'); return b ? { reads: window._bdCalls || 0, dead: b.disabled, why: b.getAttribute('title') || '' } : null; }, null, 15000);
+    check('4a a viewer\'s visit starts no paid read; the kept points\' Start redlining is greyed for them', !!v4 && v4.reads === 0 && v4.dead, JSON.stringify(v4));
+    check('4b … and says why', !!v4 && /read this contract but not change it/.test(v4.why), v4 && v4.why);
     await shot(page, '4-viewer');
     await page.context().close();
 
