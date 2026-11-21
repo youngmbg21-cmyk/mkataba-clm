@@ -118,17 +118,20 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
 
       /* 6 · Reads — RE-POINTED (owner, 15 Nov 2026: THE NEW DISCOVER, f1055): the list of reads — one top line with New
          read, When · Question · Where · Read · Found · By, nothing out of its cell; the chosen read's summary in the panel
-         with Open the results and Delete question; no cost */
+         with Open the results and Delete question; no cost
+         RE-POINTED (P-42, owner's pick 20 Nov 2026: Discover the Legora + Stripe way): the title stands alone with New read
+         (its facts line is gone), the ask box under it (#dsn-ask, it only fills New read), and the table is Question · Status ·
+         Answered · To look at · Where · By · When */
       await page.evaluate(() => setView('reads'));
       await until(page, () => !!document.querySelector('#rd-page.dsn-page tbody tr[data-dsn-run]') && !!document.querySelector('#ins-panel [data-dsn-open]'), null, 15000);
       const R = await page.evaluate(() => { const hd = document.querySelector('.rdn-head');
-        const mids = [...hd.querySelectorAll('.ctf-h, .ctf-hf, #dsn-new')].map(e => { const r = e.getBoundingClientRect(); return r.top + r.height / 2; });
+        const mids = [...hd.querySelectorAll('.ctf-h, #dsn-new')].map(e => { const r = e.getBoundingClientRect(); return r.top + r.height / 2; });
         const out = [...document.querySelectorAll('.dsn-table td, .dsn-table th')].filter(td => { const r = td.getBoundingClientRect(); return [...td.querySelectorAll('*')].some(e => { const x = e.getBoundingClientRect(); return x.width && (x.right > r.right + 1 || x.left < r.left - 1); }); }).length;
-        return { head: hd.innerText.replace(/\s+/g, ' ').trim(), oneLine: Math.max(...mids) - Math.min(...mids) <= 6,
+        return { head: hd.innerText.replace(/\s+/g, ' ').trim(), ask: !!document.querySelector('#rd-page #dsn-ask'), facts: !!hd.querySelector('.ctf-hf'), oneLine: Math.max(...mids) - Math.min(...mids) <= 6,
           cols: [...document.querySelectorAll('.dsn-table thead th')].map(t => t.textContent.trim()), out, panel: document.getElementById('ins-panel').innerText, page: document.getElementById('rd-page').innerText }; });
-      check(`${nm} 6 Discover's list of reads: one top line with New read, the six columns, nothing out of its cell; the panel's Open the results and Delete question`,
-        /^Discover Every read your team has run/.test(R.head) && R.oneLine && R.cols.join('|') === 'When|Question|Where|Read|Found|By' && R.out === 0
-        && /Open the results/.test(R.panel) && /Delete question/.test(R.panel) && !COST.test(R.panel + R.page), { head: R.head, oneLine: R.oneLine, cols: R.cols, out: R.out, panel: R.panel.slice(0, 300) });
+      check(`${nm} 6 Discover's list of reads: the title alone on one top line with New read, the ask box under it, the seven columns, nothing out of its cell; the panel's Open the results and Delete question`,
+        /^Discover\s*New read$/.test(R.head) && !R.facts && R.ask && R.oneLine && R.cols.join('|') === 'Question|Status|Answered|To look at|Where|By|When' && R.out === 0
+        && /Open the results/.test(R.panel) && /Delete question/.test(R.panel) && !COST.test(R.panel + R.page), { head: R.head, ask: R.ask, facts: R.facts, oneLine: R.oneLine, cols: R.cols, out: R.out, panel: R.panel.slice(0, 300) });
       await shot('7-reads');
       check(`${nm} 7 no page errors`, !errs.length, errs);
       await page.close();

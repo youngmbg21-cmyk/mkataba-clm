@@ -99,7 +99,8 @@ const PROBE = `(() => {
       sep: !!r.querySelector('.hist-top .hist-sep'),
       bubBg: (() => { const b = r.querySelector('.hist-bub'); return b ? getComputedStyle(b).backgroundColor : null; })(),
       whenTip: (r.querySelector('.hist-when') || { getAttribute: () => '' }).getAttribute('title') || '',
-      pill: (() => { const p = r.querySelector('.hist-pill, .hist-ocw'); return p ? { cls: p.className, bg: getComputedStyle(p).backgroundColor } : null; })(),
+      /* RE-POINTED (P-44, owner's pick 20 Nov 2026: History the Legora + Stripe way): the outcome is a soft badge, .hist6-ob */
+      pill: (() => { const p = r.querySelector('.hist-pill, .hist-ocw, .hist6-ob'); return p ? { cls: p.className, bg: getComputedStyle(p).backgroundColor } : null; })(),
       rowBg: getComputedStyle(r).backgroundColor,
       day: day ? day.textContent.trim() : null,
       time: time ? time.textContent.trim() : null,
@@ -350,14 +351,17 @@ const PROBE = `(() => {
        (owner, 31 Oct 2026, "Quick links as drawn"; histQuickHtml): theirs · sent · decisions · Jambo, a link that would
        give nothing not drawn — read in place of the four boxes, same promise: in the open, in the drawn order */
     const f5 = await page.evaluate(sel => [...document.querySelectorAll(sel + ' .hist-quick [data-ht-quick]')].filter(s => s.getBoundingClientRect().width > 0).map(s => s.getAttribute('data-ht-quick')), HP);
-    const QORDER = ['theirs', 'sent', 'decisions', 'jambo'];
+    /* RE-POINTED (P-44, owner's pick 20 Nov 2026: History the Legora + Stripe way): the quick links are chips with their
+       counts, All first (data-ht-quick="") */
+    const QORDER = ['', 'theirs', 'sent', 'decisions', 'jambo'];
     const fbtn = await page.evaluate(sel => !!document.querySelector(sel + ' #hist-filter-btn'), HP);
     ok('7a the filters stand in the open, no Filter button, and no side switch (the side is a column)', f5.length >= 2 && !fbtn && side.length === 0, f5.length + ' quick links showing · button ' + fbtn + ' · ' + side.join(' · '));
-    ok('7a2 in the drawing\'s order (theirs, sent, decisions, Jambo)', f5.every((k, i) => QORDER.includes(k) && (i === 0 || QORDER.indexOf(k) > QORDER.indexOf(f5[i - 1]))), f5.join(' · '));
+    ok('7a2 in the drawing\'s order (All, theirs, sent, decisions, Jambo)', f5[0] === '' && f5.every((k, i) => QORDER.includes(k) && (i === 0 || QORDER.indexOf(k) > QORDER.indexOf(f5[i - 1]))), f5.join(' · '));
     await page.click('#hist-detail');
     await page.waitForTimeout(500);
     const wording = await page.evaluate(sel => document.querySelectorAll(sel + ' .hist-redline').length, HP);
-    ok('7b CONTROL "Show the wording" still prints a proposal\'s redline', wording > 0, wording + ' redlines');
+    /* RE-POINTED (P-44): the button is the switch "The wording" (same id, #hist-detail) */
+    ok('7b CONTROL "The wording" still prints a proposal\'s redline', wording > 0, wording + ' redlines');
     const w2 = await page.evaluate(PROBE);
     ok('7c and with the wording open every entry is still on the page', (w2.rows || []).length === rows.length,
       `${(w2.rows || []).length} of ${rows.length}`);

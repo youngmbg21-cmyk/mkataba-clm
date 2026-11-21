@@ -210,8 +210,10 @@ const symbol = page => page.evaluate(() => {
   if (await page.evaluate(() => { const p = document.getElementById('pol-pop'); return !!p && !p.hidden; })) { await page.click('#pol-more'); await pause(200); }
   check('1a Edit is at the top of their page', land.edit && land.word === 'Edit', JSON.stringify({ edit: land.edit, word: land.word }));
   check('1b their paper draws no pencil', land.pencils === 0, land.pencils);
-  check('1c their rows keep every button — Accept, Reject, Counter, Edit, Ladder',
-    ['Accept', 'Reject', 'Counter', 'Edit', 'Ladder'].every(v => land.verbs.includes(v)), [...new Set(land.verbs)].join(','));
+  /* RE-POINTED (P-44, owner's pick 20 Nov 2026: the other side's page the Legora + Stripe way, "no Ladder and no Jambo
+     advice on their side"): their rows keep Accept, Reject, Counter, Edit — and no longer offer the Ladder */
+  check('1c their rows keep every button — Accept, Reject, Counter, Edit — and offer no Ladder',
+    ['Accept', 'Reject', 'Counter', 'Edit'].every(v => land.verbs.includes(v)) && !land.verbs.includes('Ladder'), [...new Set(land.verbs)].join(','));
 
   /* ---- 2 · Edit opens the editing page beside the column ---- */
   if (!(await press(page, '#pt-edit'))) check('2 the Edit button can be pressed', false, 'missing');

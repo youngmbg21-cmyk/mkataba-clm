@@ -154,13 +154,15 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
   try {
     await page.evaluate(() => caGo({ kind: 'go', place: 'reads' }));
     /* RE-POINTED (owner, 15 Nov 2026: THE NEW DISCOVER, f1055): the list of reads; a pack is a chip on New read */
+    /* RE-POINTED (P-42, owner's pick 20 Nov 2026: Discover the Legora + Stripe way): the columns are Question · Status ·
+       Answered · To look at · Where · By · When */
     const up = await until(page, () => !!document.querySelector('#rd-page.dsn-page tbody tr[data-dsn-run]'), null, 12000);
     const heads = await page.evaluate(() => [...document.querySelectorAll('.dsn-table thead th')].map(x => x.innerText.trim().toLowerCase()).filter(Boolean));
     const more = await until(page, () => !!document.querySelector('#ins-panel [data-dsn-open]'), null, 8000);
     await page.evaluate(() => { const b = document.getElementById('dsn-new'); if (b) b.click(); });
     const packs = await until(page, () => !!document.querySelector('#rd-page.dsn-page [data-dsc-pack]'), null, 8000);
     await shot('6-reads');
-    check('6 Reads: every read in one table, its summary in the panel, a pack a chip on New read', up && heads.join('|') === 'when|question|where|read|found|by' && more && packs, heads);
+    check('6 Reads: every read in one table, its summary in the panel, a pack a chip on New read', up && heads.join('|') === 'question|status|answered|to look at|where|by|when' && more && packs, heads);
   } catch (e) { check('6 Reads', false, String(e).slice(0, 200)); }
 
   /* 7 · Our paper */
