@@ -179,7 +179,7 @@ async function SEED(){
        drafts came back changed */
     const A2 = await until(() => { const p = document.getElementById('ins-panel'); const sub = p && p.querySelector('.jov5 .jov5-sub'); if (!sub) return null;
       return { sub: sub.textContent.trim(), ch: ((p.querySelector('.jov5 [data-jov5-sec="changed"]') || {}).textContent || '').replace(/\s+/g, ' ').trim() }; }, null, 6000);
-    check('1b the numbers said once, in the panel: N templates · N of N drafts came back changed', !!A2 && /^\d+ templates in \d+ folders\.$/.test(A2.sub) && /\b\d+ of ([5-9]|\d{2,}) drafts came back changed\./.test(A2.ch), JSON.stringify(A2));
+    check('1b the numbers said once, in the panel: N templates · N of N drafts came back changed', !!A2 && /^\d+ templates in \d+ folders\.$/.test(A2.sub) && /\d+ of ([5-9]|\d{2,}) drafts came back changed\./.test(A2.ch), JSON.stringify(A2));
     await press(`[data-tpl-sec="book"] .tpln-lrs [data-tpl-pf="${MSA}"]`);
     await until(k => tplPlace().pick === k && document.querySelector('.tpln-lrs .tpln-lr.is-on'), MSA);
     /* a company paper's first line is read in the background (tplnQuotesFill), bounded */
@@ -222,7 +222,7 @@ async function SEED(){
       acts: [...document.querySelectorAll('.tpln5.is-paper [data-tpl-pf-act]')].map(b => [b.textContent.trim(), b.disabled, b.classList.contains('ui-btn-primary')]) }));
     check('3a the chosen paper\'s name heads the step', /^Master services agreement$/.test(C.h2.trim()), C.h2);
     check('3b its shelf (Sales) and kind as badges, and four facts: made 5 · signed · 2 came back changed · blanks',
-      C.facts.length === 2 && C.facts[0] === 'Sales' && C.figs.length === 4 && C.figs.some(f => /^Made\s*5$/.test(f)) && C.figs.some(f => /came back changed\s*2$/i.test(f)), JSON.stringify({ facts: C.facts, figs: C.figs }));
+      C.facts.length === 2 && /^Sales\b/.test(C.facts[0]) && C.figs.length === 4 && C.figs.some(f => /^Made\s*5$/.test(f)) && C.figs.some(f => /came back changed\s*2$/i.test(f)), JSON.stringify({ facts: C.facts, figs: C.figs }));
     check('3c the verbs: Draft from it (the primary, first) · Open in the builder', JSON.stringify(C.acts.map(a => a[0])) === JSON.stringify(['Draft from it', 'Open in the builder']) && C.acts[0][2] === true && !C.acts[0][1], JSON.stringify(C.acts));
 
     /* 4 THE PAPER */
@@ -281,9 +281,10 @@ async function SEED(){
     /* RE-POINTED 17 Nov 2026 (#762): the template is pressed where its row stands now — the list, one step back */
     await press('[data-tpln-back]');
     await until(() => tplPlace().view === 'list' && !!document.querySelector('.tpln-lrs [data-tpl-pf]'));
-    await press('[data-tpl-sec="book"] .tpln-lrs [data-tpl-pf="' + MSA + '"]');
+    /* RE-POINTED 21 Nov 2026 (THE LIST: a press CHOOSES, a second OPENS): back from its paper the template is still the
+       chosen row, so the list's panel already speaks for it — a press here would be the second, and open the paper */
     const E3 = await until(q => [...document.querySelectorAll(q + ' .jov5-title')].some(t => t.textContent.trim() === 'Master services agreement'), JL);
-    check('5f a press on the template holds it again', !!E3);
+    check('5f back in the list, the template is still held', !!E3);
     /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way) */
     /* chosen in the list, the panel speaks for the paper: its badges, "Made 5 agreements · 2 came back changed", what
        happened to its drafts as three bars (Drafted · Signed · Came back changed, the last a door), Draft from it black

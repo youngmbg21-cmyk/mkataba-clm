@@ -172,8 +172,9 @@ const FILES = {
     const figs = await page.evaluate(() => ({ bar: document.querySelectorAll('.mign-page .mign-batch .mign-bbar > i').length,
       key: [...document.querySelectorAll('.mign-page .mign-batch .mign-bk')].map(e => e.innerText.replace(/\s+/g, ' ').trim()),
       tiles: document.querySelectorAll('.mign-figs, .mign-fig').length }));
-    check('3a the readings as one batch bar with its legend: filed · to check · a copy? · no readable text (no tiles)', figs.bar === 4 && figs.tiles === 0
-      && JSON.stringify(figs.key) === JSON.stringify(['7 filed', '3 to check', '1 a copy?', '1 no readable text']), JSON.stringify(figs));
+    /* RE-POINTED 21 Nov 2026 (P-33, as drawn): a file parked because it looks unsigned is its own violet part, "is it signed?" */
+    check('3a the readings as one batch bar with its legend: filed · to check · is it signed? · a copy? · no readable text (no tiles)', figs.bar === 5 && figs.tiles === 0
+      && JSON.stringify(figs.key) === JSON.stringify(['7 filed', '2 to check', '1 is it signed?', '1 a copy?', '1 no readable text']), JSON.stringify(figs));
     const foot = await page.evaluate(sel => ({ n: document.querySelectorAll(sel).length, foot: ((document.querySelector('.mign-page .apn-foot span') || {}).textContent || '').trim() }), ROWS);
     check('3b no cap: all twelve files in the one table, the foot "12 files"', foot.n === 12 && foot.foot === '12 files', JSON.stringify(foot));
     if (await press(FIG('k:check'), '3c the "to check" legend word')) {
@@ -370,7 +371,8 @@ const FILES = {
     await page.evaluate(() => { if (migCheckId()) migCheckClose(); setView('migration'); });
     await until(sel => document.querySelector(sel), '.mign-table tbody tr[data-row]', 6000);
     const L13 = await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('.mign-table tbody tr[data-row]')].filter(r => { const x = migRowByKey(r.getAttribute('data-row')); return x && x.c; });
+      /* RE-POINTED 21 Nov 2026 (P-33): a file with no readable text was never read, so it says no sureness ("—") */
+      const rows = [...document.querySelectorAll('.mign-table tbody tr[data-row]')].filter(r => { const x = migRowByKey(r.getAttribute('data-row')); return x && x.c && migNlKindOf(x) !== 'none'; });
       const sure = rows.map(r => !!r.querySelector('.mign-sure'));
       const lr = migContracts().find(c => /Warehouse/.test((c.upload || {}).fileName || ''));
       const tr = lr && document.querySelector(`.mign-table tr[data-row="${lr.id}"]`);
