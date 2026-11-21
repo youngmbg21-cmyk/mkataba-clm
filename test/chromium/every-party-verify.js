@@ -166,8 +166,10 @@ async function readHead(page, hostSel, sel){
          a departure is a row (tr[data-ld-deprow="dep:<id>:<i>"]) whose first cell names the other side (.cun-name), the
          contract and its reference under it (.cun-sub) */
       s1 = await page.evaluate(id => { const card = [...document.querySelectorAll('.ld6-table tr[data-ld-deprow]')].find(tr => tr.getAttribute('data-ld-deprow').startsWith('dep:' + id + ':')); if (!card) return null;
-        const n = card.querySelector('.cun-name'), td = card.querySelector('td'), r = td.getBoundingClientRect(), q = n ? n.getBoundingClientRect() : r;
-        return { box: true, names: n ? [n.textContent.trim()] : [], text: card.textContent, inside: q.left >= r.left - 1 && q.right <= r.right + 1 }; }, staged.C);
+        /* RE-POINTED 21 Nov 2026 (P-35, as drawn): the row's first line is the contract's name; the other side and the
+           reference are the line under it (.cun-sub, "<other side> · <ref>") */
+        const n = card.querySelector('.cun-sub'), td = card.querySelector('td'), r = td.getBoundingClientRect(), q = n ? n.getBoundingClientRect() : r;
+        return { box: true, names: n ? [n.textContent.split(' · ')[0].trim()] : [], text: card.textContent, inside: q.left >= r.left - 1 && q.right <= r.right + 1 }; }, staged.C);
     }
     /* RETIRED in part (P-35): "names BOTH outside parties, one line each" — the drawn Departures row names the other side once
        (its first outside party, ld6Party), and no part of the new page lists every party; what stands: the row names the
