@@ -988,3 +988,6 @@ SIX FIXES, AS AGREED (16 Nov 2026: ask box · Negotiations · recent pages · Im
 
 ## ONE SEARCH OVER HaTi — Approvals L+S (P-30)
 f1092, f1093 (2), f977 (1) (4), f982 3 re-pointed; browser: approve-on-row-verify (rewritten: Approve in the panel), approve-from-the-list-verify, one-worklist-verify, jambos-list-panel-verify 5, inspector-verify 3a, button-consistency, pages-read-alike (chips not measured as tabs).
+
+## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE — Contracts L+S (P-31)
+f1070 (3), f989 3, f997 (1), f998 (3) re-pointed.

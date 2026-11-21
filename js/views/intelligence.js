@@ -11765,8 +11765,10 @@ function igWallStageWord(k){
 function igWallSheetHtml(c,opening){
   if(c&&c._codeNamed) return `<span class="igw-sheet is-coded" aria-hidden="true"><span class="igw-cn">${typeof icon==='function'?icon('tag','w-3.5 h-3.5'):''}<span class="igw-t">${igEsc(c.name||'')}</span><span class="igw-p">${igEsc(i18t('igw_code_name'))}</span></span>${opening?igOpeningHtml():''}</span>`;
   /* the new look (round 6, as drawn): the sheet names both parties, "Highland Corporate Ltd and Nandi Dairy" */
-  let us=''; if(typeof newLookOn==='function'&&newLookOn()){ try{ us=typeof contractParty==='function'?String(contractParty(c)||''):''; }catch(_){ us=''; } }
-  const between=us&&c.counterparty?i18t('igw2_between',{ a:us, b:c.counterparty }):(c.counterparty||'');
+  /* THE STRIPE WALL (P-31, owner's pick 20 Nov 2026): the paper carries its title and blank lines, no other words — the
+     parties are said under it */
+  if(typeof newLookOn==='function'&&newLookOn()) return `<span class="igw-sheet" aria-hidden="true"><span class="igw-t">${igEsc(c.name||'')}</span><span class="igw-ln"></span>${opening?igOpeningHtml():''}</span>`;
+  const between=c.counterparty||'';
   return `<span class="igw-sheet" aria-hidden="true"><span class="igw-t">${igEsc(c.name||'')}</span><span class="igw-p">${igEsc(between)}</span><span class="igw-ln"></span>${opening?igOpeningHtml():''}</span>`;
 }
 /* the number's companion under the paper: its value, read as the List reads
@@ -11802,11 +11804,16 @@ function igWallCardHtml(c,need){
   /* THE WALL AS DRAWN (the new look, round 6): each paper a sheet, its stage's mark at its corner, the party and the
      value at its foot; nothing under it (the stage is the mark, what needs you is said in the panel). A private stream's
      paper says so in its top corner, the lock with the stream's name, as the old card did (#762) */
+  /* THE STRIPE WALL (P-31, owner's pick 20 Nov 2026; replaces round 6's mark at the corner and value at the foot): a calm
+     paper, under it the other side, a soft standing badge and the end date; NO MONEY; the chosen card outlined in ink */
   if(window.newLookOn&&newLookOn()){
-    const mark=typeof window.regSapMarkHtml==='function'?regSapMarkHtml(c):(typeof window.regStageMarkHtml==='function'?regStageMarkHtml(c):'');
-    return `<button type="button" role="listitem" class="igw-card is-nl${opening?' is-opening':''}${c._codeNamed?' is-coded':''}${chosen?' is-chosen':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${chosen?' aria-current="true"':''}${opening?' aria-busy="true"':''}>
-    ${igWallSheetHtml(c,opening)}<span class="igw2-mark">${mark}</span>${priv?`<span class="igw-lock igw2-lock" title="${igEsc(i18t('igw_private_title',{ s:fname }))}">${typeof icon==='function'?icon('lock','w-3 h-3'):''}${igEsc(fname)}</span>`:''}
-    <span class="igw2-foot is-even"><span class="igw2-who">${igEsc(c._codeNamed?i18t('igw_kept_list'):(c.counterparty||''))}</span><span class="igw2-st"><span><i style="background:${dot}"></i>${igEsc(word)}</span>${val?`<b>${igEsc(val)}</b>`:''}</span></span></button>`;
+    void val;
+    const tone=st==='expired'?'ruby':(typeof window.regStageTone==='function'?regStageTone(c).tone:'gray');
+    let end=''; try{ end=String((typeof effectiveExpiry==='function'?effectiveExpiry(c):c.expiry)||'').slice(0,10); }catch(_){ end=String(c.expiry||'').slice(0,10); }
+    const endW=end?(typeof regDotDate==='function'?regDotDate(end):end):'';
+    return `<button type="button" role="listitem" class="igw-card is-nl is-stripe${opening?' is-opening':''}${c._codeNamed?' is-coded':''}${chosen?' is-chosen':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${chosen?' aria-current="true"':''}${opening?' aria-busy="true"':''}>
+    ${igWallSheetHtml(c,opening)}${priv?`<span class="igw-lock igw2-lock" title="${igEsc(i18t('igw_private_title',{ s:fname }))}">${typeof icon==='function'?icon('lock','w-3 h-3'):''}${igEsc(fname)}</span>`:''}
+    <span class="igw2-foot is-even"><span class="igw2-who">${igEsc(c._codeNamed?i18t('igw_kept_list'):(c.counterparty||''))}</span><span class="igw2-st"><span class="reg-badge is-${igEsc(tone)}"><i></i>${igEsc(word)}</span>${endW?`<small class="igw2-end">${igEsc(endW)}</small>`:''}</span></span></button>`;
   }
   return `<button type="button" role="listitem" class="igw-card${opening?' is-opening':''}${c._codeNamed?' is-coded':''}${chosen?' is-chosen':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${chosen?' aria-current="true"':''}${opening?' aria-busy="true"':''}>
     ${igWallSheetHtml(c,opening)}

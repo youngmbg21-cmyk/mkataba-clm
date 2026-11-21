@@ -12,11 +12,15 @@ const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const read = f => strip(fs.readFileSync(path.join(__dirname, '..', f), 'utf8'));
 const fnBody = (src, name) => { const i = src.indexOf('function ' + name + '('); assert.ok(i >= 0, name); return src.slice(i, src.indexOf('\n}', i)); };
 
-test('f997 (1) the wall\'s new-look paper wears the list\'s own mark', () => {
+/* RE-POINTED (P-31, owner's pick 20 Nov 2026: THE STRIPE WALL): the new-look paper wears no mark — its standing is the
+   list's own soft badge (regStageTone's tone), with the end date, and no money */
+test('f997 (1) the wall\'s new-look paper wears the list\'s standing badge, no mark, no money', () => {
   const nl = fnBody(read('js/views/intelligence.js'), 'igWallCardHtml');
   const at = nl.indexOf('newLookOn()'); assert.ok(at > 0, 'the new-look branch');
-  const mark = /const mark=([^;]+);/.exec(nl.slice(at)); assert.ok(mark, 'its mark');
-  assert.match(mark[1], /^typeof window\.regSapMarkHtml==='function'\?regSapMarkHtml\(c\):/, 'the shared mark first');
+  const br = nl.slice(at, nl.indexOf('\n  }\n', at));
+  assert.match(br, /regStageTone\(c\)\.tone/, 'the list\'s own tone');
+  assert.match(br, /<span class="reg-badge is-\$\{igEsc\(tone\)\}">/);
+  assert.doesNotMatch(br, /regSapMarkHtml|igEsc\(val\)/, 'no mark, no money');
 });
 
 /* RETIRED 19 Nov 2026 (the Parties round, owner's "build all the designs in parties"): (2) "a party's own agreements wear
