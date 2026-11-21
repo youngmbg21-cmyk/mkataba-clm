@@ -114,7 +114,7 @@ const SAY = () => { ai.history.length = 0; ai.history.push({ role: 'user', text:
           .map(e => ({ w: (e.textContent || e.getAttribute('aria-label') || '').replace(/[^\p{L} ]/gu, '').trim().slice(0, 14), c: getComputedStyle(e).cursor })) : []; }, [host, HEAD]);
       const c1 = await cursors();
       /* RE-POINTED 21 Nov 2026 (P-39, as drawn): the Board's panel has no head row, so no tab to point at */
-      check(`2 ${key}: every tab shows the hand on the Overview`, key === 'board' ? c1.every(x => x.c === 'pointer') : c1.length >= 1 && c1.every(x => x.c === 'pointer'), JSON.stringify(c1));
+      check(`2 ${key}: every tab shows the hand on the Overview`, ['board', 'templates', 'migration'].includes(key) /* RE-POINTED 21 Nov 2026 (P-34, P-33, as drawn): no head row on these panels either */ ? c1.every(x => x.c === 'pointer') : c1.length >= 1 && c1.every(x => x.c === 'pointer'), JSON.stringify(c1));
       await P.evaluate(OPEN_TALK, key);
       const shows = await until(P, s => /HISTQ/.test(document.querySelector(s).innerText) && /HISTA/.test(document.querySelector(s).innerText), host, 3000);
       check(`3 ${key}: the conversation shows what was said elsewhere`, !!shows);
