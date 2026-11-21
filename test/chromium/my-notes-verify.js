@@ -92,11 +92,13 @@ const check = (name, pass, detail) => {
     /* RE-POINTED 16 Nov 2026 (#762): the new look's ledger rows and its panel (#ins-panel) */
     await page.evaluate(() => { const r = [...document.querySelectorAll('.mn-t tbody tr, .mnn-table tbody tr')].find(x => /Chase the signed copy/.test(x.textContent)); r.click(); });
     await until(() => /Chase the signed copy/.test((document.getElementById('mn-side') || document.getElementById('ins-panel') || {}).textContent || ''));
-    await page.click('[data-mn-act="reviewed"]');
+    /* RE-POINTED 21 Nov 2026 (P-27, as drawn): every row carries its act, shown only on the row you are on, so the press
+       is the panel's own black button */
+    await page.click('#ins-panel [data-mn-act="reviewed"], #mn-side [data-mn-act="reviewed"]');
     const cleared = await until(() => { const c = (document.querySelector('[data-count="mynotes"]') || {}).textContent || '';
       return c === '' && !buildAlerts().some(a => a.kind === 'note-due') && document.querySelector('[data-mn-act="unreview"]') ? true : null; });
     check('5b. Mark reviewed clears the bell and the count, and offers Undo', !!cleared);
-    await page.click('[data-mn-act="unreview"]');
+    await page.click('#ins-panel [data-mn-act="unreview"], #mn-side [data-mn-act="unreview"]');   /* RE-POINTED 21 Nov 2026 (P-27, as drawn): the panel's button */
     const reopened = await until(() => document.querySelector('[data-mn-act="reviewed"]') ? true : null);
     check('5c. Undo puts it back to review', !!reopened);
 
