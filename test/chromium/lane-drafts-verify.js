@@ -179,7 +179,7 @@ const until = async (page, fn, arg, ms = 8000) => {
     { const rws = await page.$$('#content [data-ikn-row]');
       let rw = null; for (const h of rws){ if (/site visit/i.test(await h.textContent())){ rw = h; break; } }
       rw = rw || rws[0]; if (rw){ await rw.click(); await page.waitForTimeout(800); } }
-    const withCell = await page.waitForFunction(() => /\b(Peter|You) took it\b|\bWith (Peter|you)\b/.test(((document.getElementById('content') || {}).textContent || '') + ' ' + ((document.getElementById('ins-panel') || {}).textContent || '')), null, { timeout: 6000 }).then(() => true, () => false);
+    const withCell = await page.waitForFunction(() => /(Peter|You) took it\b|\bWith (Peter|you)\b/.test(((document.getElementById('content') || {}).textContent || '') + ' ' + ((document.getElementById('ins-panel') || {}).textContent || '')), null, { timeout: 6000 }).then(() => true, () => false);
     const seen4 = withCell ? '' : await page.evaluate(() => JSON.stringify({ view: state.view, tab: (document.querySelector('[data-ikn-tab].is-on') || {}).textContent,
       tabs: [...document.querySelectorAll('[data-ikn-tab]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
       rows: [...document.querySelectorAll('#content [data-ikn-row]')].map(r => (r.className.includes('is-sel') ? '*' : '') + r.textContent.replace(/\s+/g, ' ').trim().slice(0, 50)),
