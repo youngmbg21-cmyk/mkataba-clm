@@ -19999,6 +19999,9 @@
   html.lg-new .apn5-ref{font-family:var(--font-ref)}
   html.lg-new .apn5-acts{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
   html.lg-new .apn5-acts .apn5-b.is-k{background:var(--bar-black);border-color:var(--bar-black);color:var(--color-surface)}
+  /* NO RING AFTER PRESS: a mouse or touch press on the panel's buttons (Approve, Decline, Remind, Undo, Before you sign)
+     draws no focus ring; the keyboard's (:focus-visible) keeps the house ring */
+  html.lg-new .apn5-acts .apn5-b:focus:not(:focus-visible){outline:none;box-shadow:none}
   html.lg-new .apn5-h{margin:0;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)}
   html.lg-new .apn5 .apn-steps.is-big .apn-sb:first-child{align-items:flex-start}
   html.lg-new .apn5 .apn-steps.is-big .apn-sb:last-child{align-items:flex-end}
