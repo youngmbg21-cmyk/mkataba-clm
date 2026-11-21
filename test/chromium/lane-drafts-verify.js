@@ -168,7 +168,9 @@ const until = async (page, fn, arg, ms = 8000) => {
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Requests opens on its Open tab; a drafted
        request is under Drafted, pressed as a person does */
     { const dt = await page.$('[data-ikn-tab="drafted"]'); if (dt){ await dt.click(); await page.waitForTimeout(600); } }
-    const withCell = await page.evaluate(() => ((document.getElementById('content') || {}).textContent || '').includes('Peter Editor'));
+    /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way): a drafted row's Status badge says
+       "Drafted" and no longer names its holder in full; who holds it is the chosen row's panel timeline ("Peter took it") */
+    const withCell = await page.evaluate(() => /\bPeter took it\b|\bWith Peter\b/.test(((document.getElementById('content') || {}).textContent || '')));
     ok('4b the Requests page says Peter holds it', withCell);
     await page.screenshot({ path: path.join(OUT, '4-requests.png') });
     ok('5 [control] the whole journey raised no page error', errs.length === 0, errs.length ? errs : 'clean');

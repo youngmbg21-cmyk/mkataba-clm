@@ -16,7 +16,8 @@
      6 · Reads: kept questions and packs in one table, Read N more on the row
      7 · Our paper: Shelves with a card per folder, then the list, then the paper small
      8 · My notes: the ledger (Note · Contract · Due) and the note's panel
-     9 · Requests: Request · Where it stands · Asked by · Lane, Start the draft on the row
+     9 · Requests: Request · Status · Steps · Asked by · Paper that fits · Waiting, no button on a row; Start the draft
+       in the chosen row's panel (RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way))
     10 · Import: What Jambo read · Looks · Stream · Value, the ones that need you first
     11 · DNA by contract: one strand each, its worst mark, the Board's DNA door
     13 · New agreement: the papers as cards; two tabs, no From scratch (re-pointed 14 Nov 2026)
@@ -199,10 +200,16 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await page.evaluate(() => setView('intake'));
     const up = await until(page, () => !!document.querySelector('.ikn-table tbody tr[data-ikn-row]'), null, 12000);
     const heads = await page.evaluate(() => [...document.querySelectorAll('.ikn-table thead th')].map(x => x.innerText.trim().toLowerCase()).filter(Boolean));
-    const go = await page.evaluate(() => !!document.querySelector('.ikn-table [data-ikn-draft]'));
+    /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way): no button on a row; Start the draft
+       lives in the chosen row's panel — an undrafted row is chosen, then #ins-panel [data-ikn-draft] stands */
+    const rowBtn = await page.evaluate(() => !!document.querySelector('.ikn-table tbody [data-ikn-draft], .ikn-table tbody [data-ikn-open], .ikn-table tbody .ikn-go, .ikn-table tbody button'));
+    const open = await page.$('.ikn-table tbody tr[data-ikn-row]:not(.is-done)');
+    if (open) await open.click();
+    const go = !!open && !!(await until(page, () => !!document.querySelector('#ins-panel [data-ikn-draft]'), null, 6000));
     await shot('9-requests');
-    /* THE SAP WAY WITH COLOUR (owner's pick, 14 Nov 2026): the stream is its own chip column; the lane's person went into Where it stands */
-    check('9 Requests: Request · Stream · Where it stands · Asked by, Start the draft on the row', up && heads.join('|') === 'request|stream|where it stands|asked by' && go, heads);
+    const ALL = ['request', 'status', 'steps', 'asked by', 'paper that fits', 'waiting'];
+    const colsOk = ['request', 'status', 'asked by', 'waiting'].every(x => heads.includes(x)) && heads.every(x => ALL.includes(x)) && heads.every((x, i) => !i || ALL.indexOf(x) > ALL.indexOf(heads[i - 1]));
+    check('9 Requests: Request · Status · Steps · Asked by · Paper that fits · Waiting, no button on a row, Start the draft in the chosen row\'s panel', up && colsOk && !rowBtn && go, JSON.stringify({ heads, rowBtn, go }));
   } catch (e) { check('9 Requests', false, String(e).slice(0, 200)); }
 
   /* 10 · Import */
