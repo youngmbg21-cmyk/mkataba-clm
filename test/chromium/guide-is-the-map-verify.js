@@ -44,14 +44,16 @@ const until = async (P, fn, arg, ms = 8000) => { try { await P.waitForFunction(f
     check(await until(P, () => typeof guideHereKey === 'function' && guideHereKey() === 'negotiations', null, 8000), '2b the word typed opens that page', { w: 'negotiations' });
     for (const [ww, hh] of [[1536, 730], [1366, 950]]){
       await P.setViewportSize({ width: ww, height: hh });
-      await P.evaluate(() => { if (!document.getElementById('cmd-palette')) openPanel('guide'); });
-      await until(P, () => !!document.querySelector('#cmd-palette.is-left .lp-p') && !document.getAnimations().some(a => a.playState === 'running'), null, 4000);
+      await until(P, () => { const p = document.getElementById('cmd-palette'); return !p || !p.dataset.leaving; }, null, 3000);
+      await P.evaluate(() => { const p = document.getElementById('cmd-palette'); if (!p || p.dataset.leaving) openPanel('guide'); });
+      await until(P, () => { const p = document.querySelector('#cmd-palette.is-left'); return !!p && !p.dataset.leaving && !!p.querySelector('.lp-p') && !document.getAnimations().some(a => a.playState === 'running'); }, null, 4000);
       const fit = await P.evaluate(() => { const sh = document.querySelector('#cmd-palette .lp-sheet').getBoundingClientRect();
         const out = [...document.querySelectorAll('#cmd-palette .lp-p')].filter(e => { const r = e.getBoundingClientRect(); return r.right > sh.right + 1; }).length;
         return { out, side: document.documentElement.scrollWidth > innerWidth }; });
       check(fit.out === 0 && !fit.side, `3 ${ww}×${hh}: every page row inside the nav panel, nothing sideways`, fit);
       await P.screenshot({ path: path.join(OUT, `${ww}x${hh}.png`) });
       await P.keyboard.press('Escape');
+      await until(P, () => !document.getElementById('cmd-palette'), null, 3000);
     }
     check(errors.length === 0, 'no page errors', errors.join(' | '));
   } finally { await browser.close(); await h.stop(); }

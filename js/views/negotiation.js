@@ -17753,6 +17753,8 @@ function rlChatPanelHtml(c, opts = {}){
   };
   /* The reference rides INSIDE its note, under the name (the Thread). */
   const rowOf = ({ ch, th }) => `<div class="rl-chat-row">${rlNpCompactHtml(c, ch, th)}</div>`;
+  /* a reply asked for (Use this reply, a note's Reply) opens that discussion, where its reply box stands */
+  if (_rlNpReplyTo){ const hit = threads.find(({ th }) => negoNoteKey(th.root) === _rlNpReplyTo); if (hit) _rlNpOpen = _rlNpReplyTo; }
   if (_rlNpFocusKey){ const hit = threads.find(({ th }) => negoNoteKey(th.root) === _rlNpFocusKey || th.replies.some(r => negoNoteKey(r) === _rlNpFocusKey)); if (hit) _rlNpOpen = negoNoteKey(hit.th.root); }
   const opened = _rlNpOpen ? threads.find(({ th }) => negoNoteKey(th.root) === _rlNpOpen) : null;
   if (!opened) _rlNpOpen = null;
