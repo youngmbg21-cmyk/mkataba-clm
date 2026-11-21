@@ -27,7 +27,8 @@ test('f1082 (2) New agreement: a calm card — its stream\'s colour on a soft ba
   const W = read('js/wizard.js');
   assert.equal(W.split('folder:t.folder, cat:t.category').length - 1, 3, 'every row carries its stream');
   assert.match(W, /const tint='';/, 'no fill of its own');
-  assert.match(W, /<span class="na6-cb" style="background:var\(--st-\$\{naTn\}-bg\);color:var\(--st-\$\{naTn\}-fg\)">/, 'the stream\'s soft badge');
+  /* RE-POINTED 21 Nov 2026 (P-36, as drawn): the badge says the stream's short name ("Procurement"), the whole on its hover */
+  assert.match(W, /<span class="na6-cb" style="background:var\(--st-\$\{naTn\}-bg\);color:var\(--st-\$\{naTn\}-fg\)"\$\{r\.stream\?` title="\$\{esc\(r\.stream\)\}"`:''\}>\$\{esc\(naShelfShort\(r\)\)\}<\/span>/, 'the stream\'s soft badge');
   assert.match(W, /<span class="na6-used"><i style="--p:[^"]*;--sd:var\(--st-\$\{naTn\}-dot\)"/, 'the used-bar in the stream\'s colour');
   assert.ok(HTML.includes('html.lg-new #na-root.na-one .na-closest .na-pick.na-close.on{border:2px solid var(--color-text)'), 'the chosen one keeps its outline');
 });
