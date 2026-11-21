@@ -547,7 +547,8 @@ const CONTRACTS = [
     const f15 = await page.evaluate(() => { const s = hbS(); s.figs = ['live', 'value', 'wewait', 'wepay', 'paygap']; hbSave(); hbPaintBoard();
       const t = [...document.querySelectorAll('#hb-book .hb-fig .hb-fig-main')].map(b => ({ l: b.querySelector('.hb-fig-l').textContent, n: b.querySelector('.hb-fig-n').textContent, door: b.getAttribute('data-hb-dig') }));
       const P = payTermsData(); return { t, cu: P.customer.avgDays, su: P.supplier.avgDays }; });
-    const tw = f15.t.find(x => x.l === 'We wait'), tp = f15.t.find(x => x.l === 'We pay');
+    /* RE-POINTED 21 Nov 2026 (P-39, as drawn: the cards now read "Days we wait to be paid" · "Days we take to pay"): found by their door, not their words */
+    const tw = f15.t.find(x => x.door === 'f:wewait'), tp = f15.t.find(x => x.door === 'f:wepay');
     ok('15e We wait and We pay are figures a person may pick, read from the payment terms reading', !!tw && !!tp
       && (f15.cu == null ? tw.n === '—' : tw.n === f15.cu + (f15.cu === 1 ? ' day' : ' days')) && (f15.su == null ? tp.n === '—' : tp.n === f15.su + (f15.su === 1 ? ' day' : ' days')), JSON.stringify(f15));
     /* EVERY FIGURE HAS ITS LINE (owner, 11 Oct 2026) */

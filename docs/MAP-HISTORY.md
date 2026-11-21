@@ -39670,3 +39670,16 @@ NOT BUILT AS DRAWN, to ask: the lists' head is the shared list head of ten lists
 
 ## ASK A COLUMN (js/views/askcolumn.js)
 - 21 Nov 2026: test/chromium/ask-a-column-verify.js RETIRED (owner's pick "Retire it"): its door, the list head's "Ask a column", was removed 15 Nov ("Remove discover button but leave the door or discover link"); in the new look the form it opened paints nowhere, so the check passed only by catching the page before sign-in. Discover's own checks stand.
+
+## INSIGHTS — EXPLORER'S PANEL MEASURED AGAINST ITS DRAWING (P-40, 21 Nov 2026)
+The earlier P-40 build was compared on one view only. This round rendered the drawing ("The Legora + Stripe way") at
+1440×780 in all three drawn layouts (Brain, Grid, Timeline) and measured every part of the panel against the running
+app: head 51 high with tabs 13.5 in the label weight; the first section 14 under the head and 16 in; title 17, its line
+12.5 grey; headings 14 in the title weight; the ring 64 across with a grey track and a hair's gap, each arc drawn on in
+turn (igoSweep now sweeps stroke-dashoffset per arc, `--L`, as the Board's ring does); legend 13; the quote in the
+serif, quiet; "Try on the map" rows 28 high, 8 apart, a soft green square with a drawn ⌘ (`cmd` icon) or the spark;
+grey ›; "Save this view" in the label weight. The Grid's rows: a pairing first; the money shading never offered in the
+panel (`igViewSuggestions({ noMoney:true })`); "Shade the cells by how many" (`int_sug_cells_count`) offered where the
+cells are shaded by money. Kept against the drawing, asked of the owner: the head's fading line (f1107), the
+board · contracts links line over the box (Jambo's box rule), and "Shade the cells by how many" in the default Grid
+(the cells are already shaded by how many there, so the row would do nothing).

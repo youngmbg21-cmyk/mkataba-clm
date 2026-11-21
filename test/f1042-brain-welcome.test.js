@@ -50,7 +50,8 @@ describe('f1042 (1) the welcome as drawn', () => {
     const at = s => html.indexOf(s);
     assert.ok(at('class="hbw-brain"') > 0 && at('class="hbw-brain"') < at('class="hbw-say"') && at('class="hbw-say"') < at('class="hbw-trio"') && at('class="hbw-trio"') < at('class="hbw-acts"'), 'in the order drawn');
     assert.ok(html.includes('<h3 class="hbw-say">I have 2 things ready for you.</h3>'));
-    assert.ok(html.includes('<p class="hbw-sub">5 need you in all. The oldest has waited 9 days.</p>'), html.match(/hbw-sub">[^<]*/));
+    /* RE-POINTED 21 Nov 2026 (P-39, as drawn): one sentence, "13 need you in all; the oldest has waited 2 days." */
+    assert.ok(html.includes('<p class="hbw-sub">5 need you in all; the oldest has waited 9 days.</p>'), html.match(/hbw-sub">[^<]*/));
     assert.equal((html.match(/ui-btn-primary/g) || []).length, 1, 'ONE black button');
     assert.match(html, /<button type="button" class="ui-btn ui-btn-primary" data-hbw="late">Start with the late ones<\/button><button type="button" class="jov-lnk" data-hbw="all">Show all 5<\/button>/);
     assert.match(html, /class="jov"/, 'still the one builder\'s frame');

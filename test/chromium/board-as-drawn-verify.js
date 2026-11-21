@@ -146,10 +146,11 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
     console.log('\n3 · Needs you, whole, under Your book (Round A)');
     const gone = await page.evaluate(() => { const book = document.getElementById('hb-book'), work = document.getElementById('hm-agents'), ins = document.querySelector('#hb-board .hb-ins-head');
       return { old: !!document.querySelector('#hb-board #hb-needs, #hb-board .hb-ny'), work: !!work, nd: !!(work && work.classList.contains('nd-card')),
-        order: !!(book && work && ins && (book.compareDocumentPosition(work) & Node.DOCUMENT_POSITION_FOLLOWING) && (work.compareDocumentPosition(ins) & Node.DOCUMENT_POSITION_FOLLOWING)),
+        /* RE-POINTED 21 Nov 2026 (P-39, owner: remove Today's insights from the Board): Needs you under Your book, and nothing named Today's insights after it */
+        order: !!(book && work && !ins && (book.compareDocumentPosition(work) & Node.DOCUMENT_POSITION_FOLLOWING)),
         rows: work ? [...work.querySelectorAll('[data-nd-agent]')].map(r => r.getAttribute('data-nd-agent')) : [] }; });
     check('3a the old Needs you card is not drawn', !gone.old, JSON.stringify(gone));
-    check('3b Needs you stands on the Board, under Your book, above Today\'s insights, Jambo\'s pieces among its rows', gone.work && gone.nd && gone.order && gone.rows.includes('late'), JSON.stringify(gone));
+    check('3b Needs you stands on the Board, under Your book, the last card (no Today\'s insights), Jambo\'s pieces among its rows', gone.work && gone.nd && gone.order && gone.rows.includes('late'), JSON.stringify(gone));
     await page.evaluate(() => { const b = document.getElementById('hb-board'); if (b) b.scrollTop = 0; hbOpenAgent(); });
     const lit = await until(() => { const w = document.getElementById('hm-agents'); if (!w || !w.classList.contains('is-landed')) return null;
       const r = w.getBoundingClientRect(); return { top: Math.round(r.top), inView: r.top >= 0 && r.top < innerHeight }; }, null, 8000);
@@ -185,8 +186,9 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
       !!jb && jb.brain && !!jb.head && !jb.hello, jb && (jb.head + ' | brain ' + jb.brain));
     check('5c his questions under "Ask me" — "which N end in 90 days?" only while any do, "what needs me" while anything does',
       !!jb && JSON.stringify(jb.chips) === JSON.stringify([jb.ending ? `which ${jb.ending} end in 90 days?` : null, 'value by stream', 'my saved views', jb.n ? 'what needs me' : null].filter(Boolean)), jb && JSON.stringify(jb.chips));
+    /* RE-POINTED 21 Nov 2026 (P-39, as drawn): the sentence goes on "; the oldest has waited N days." (owner: count every row) */
     check('5d Needs you counts Home\'s own number',
-      !!jb && (jb.n ? new RegExp(`(^|\\s)${jb.n} (things? needs? you today|needs? you in all)\\.`).test(jb.needs) : jb.needs === 'Nothing needs you right now.'), jb && (jb.needs + ' / ' + jb.n));
+      !!jb && (jb.n ? new RegExp(`(^|\\s)${jb.n} (things? needs? you today|needs? you in all)[.;]`).test(jb.needs) : jb.needs === 'Nothing needs you right now.'), jb && (jb.needs + ' / ' + jb.n));
     check('5e no row of chips above his box; the Overview tab carries no badge', !!jb && !jb.bottom && jb.badge === '' && jb.tabs === 1, jb && JSON.stringify({ bottom: jb.bottom, badge: jb.badge, n: jb.n }));
     await shot(page, '17-board-as-drawn-1440x780');
 
@@ -231,6 +233,13 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
     /* ================= PASS 2 ================= */
     await page.setViewportSize({ width: 1440, height: 780 });
     await toBoard();
+    /* RE-POINTED 21 Nov 2026 (P-39, owner: remove Today's insights from the Board): the Board ends after Needs you, as drawn; the
+       shelf's old walk (8, 9) runs only with HATI_SHELF_OLD=1 */
+    console.log('\n8 · no Today\'s insights on the Board');
+    const noShelf = await page.evaluate(() => ({ head: !!document.querySelector('#hb-board .hb-ins-head'), shelf: !!document.querySelector('#hb-board .hb-shelf-cards'),
+      last: (() => { const cards = [...document.querySelectorAll('#hb-board > .hb-card, #hb-board > section')]; return cards.length ? cards[cards.length - 1].id : ''; })() }));
+    check('8 the Board ends after Needs you: no Today\'s insights head, no shelf', !noShelf.head && !noShelf.shelf, JSON.stringify(noShelf));
+    if (process.env.HATI_SHELF_OLD){
     const shelf = await until(() => { const sh = document.querySelector('#hb-board .hb-shelf-cards'); const hd = document.querySelector('#hb-board .hb-ins-head');
       return sh && hd && hbS().ins && hbS().ins.list.length ? true : null; }, null, 12000);
     console.log('\n8 · Today\'s insights as drawn');
@@ -291,6 +300,7 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
       !!cp && cp.bars.length === 5 && cp.bars.every(b => b.name && /^\d[\d.,]*[KMB]?$/.test(b.val)) && cp.bars[0].lit && cp.bars[0].op === '1' && cp.bars.slice(1).every(b => !b.lit && Number(b.op) < 0.5) && !cp.rest && !cp.blocks
       && /^No party holds more than \d+% of the value: .+ holds the most\.$/.test(cp.say) && cp.inCard, JSON.stringify(cp));
     await shot(page, '17-board-insights-1440x780');
+    }
 
     console.log('\n10 · Your book as drawn');
     const book = await page.evaluate(() => { const b = document.getElementById('hb-book');
@@ -343,6 +353,8 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
       await shot(page, '17-board-figure-overdue-1440x780');
     } else check('12 the stage carries a late obligation of ours, so the overdue door can be pressed', false, 'no overdue figure');
 
+    /* RE-POINTED 21 Nov 2026 (P-39, owner: remove Today's insights from the Board): no insights head to measure; runs only with HATI_SHELF_OLD=1 */
+    if (process.env.HATI_SHELF_OLD){
     console.log('\n8c · the insights head at the owner\'s three screens');
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht });
@@ -373,6 +385,7 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
         /* RE-POINTED 21 Nov 2026 (P-39, as drawn): Needs you draws no Hide, so the Show/Hide is matched only where both heads carry one */
         !same.missing && Math.abs(same.h[0] - same.h[1]) <= 1 && same.left[0] === same.left[1] && (same.btnRight[1] == null || same.btnRight[0] === same.btnRight[1]) && same.btnOnLine && same.oneLine, JSON.stringify(same));
       await shot(page, `17-board-insights-head-${w}x${ht}`);
+    }
     }
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }
   finally {

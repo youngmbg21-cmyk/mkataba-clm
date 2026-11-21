@@ -7439,8 +7439,8 @@ function igSugInRows(){
     &&!intel.dayTab&&!intel.fdTab&&!intel.gdTab&&!(typeof window.pdTalkShows==='function'&&pdTalkShows())); } catch(_){ return false; }
 }
 function igSugOnMap(){ return !(state.view==='dashboard'&&typeof window.hbFace==='function')||hbFace()==='explorer'; }
-function igViewSuggestions(){
-  const vw=igbCam().view, out=[], G=IG||{};
+function igViewSuggestions(opts){
+  const vw=igbCam().view, out=[], G=IG||{}, noMoney=!!(opts&&opts.noMoney);
   const money=(typeof canViewValues!=='function')||canViewValues();
   const acts=q=>{ try{ const r=igRecipeParse(q); return (r&&r.acts)||[]; }catch(_){ return []; } };
   const offer=(q,reads)=>{ if(out.length<2&&q&&reads(q)) out.push(q); };
@@ -7460,9 +7460,14 @@ function igViewSuggestions(){
   } else if(vw===2){
     IG_SUG_FLOORS.filter(k=>k!==G.floorKey).forEach(k=>offer(i18t('int_sug_floors',{ x:word(k) }),q=>acts(q).some(a=>a.role==='floors'&&a.fact===k)));
   } else if(vw===3){
-    if(money&&intel.shadeBy!=='value') offer(i18t('int_sug_cells'),q=>acts(q).some(a=>a.shadeBy==='value'));
-    IG_SUG_GRID.filter(([a,b])=>!(a===G.colKey&&b===G.floorKey)).forEach(([a,b])=>offer(cap(i18t('int_sug_grid',{ a:word(a), b:word(b) })),q=>{ const A=acts(q);
-      return A.some(x=>x.role==='columns'&&x.fact===a)&&A.some(x=>x.role==='floors'&&x.fact===b); }));
+    /* AS DRAWN (P-40, 21 Nov 2026): a grid pairing first, then the cells' shading — back to "how many" where the cells
+       are shaded by money; the money shading itself is never offered in the side panel (noMoney) */
+    const pairs=IG_SUG_GRID.filter(([a,b])=>!(a===G.colKey&&b===G.floorKey)), pair=([a,b])=>offer(cap(i18t('int_sug_grid',{ a:word(a), b:word(b) })),q=>{ const A=acts(q);
+      return A.some(x=>x.role==='columns'&&x.fact===a)&&A.some(x=>x.role==='floors'&&x.fact===b); });
+    if(pairs[0]) pair(pairs[0]);
+    if(intel.shadeBy==='value') offer(i18t('int_sug_cells_count'),q=>acts(q).some(a=>a.shadeBy==='count'));
+    else if(money&&!noMoney) offer(i18t('int_sug_cells'),q=>acts(q).some(a=>a.shadeBy==='value'));
+    pairs.slice(1).forEach(pair);
   } else if(vw===4){
     offer(i18t('int_sug_until'),q=>{ const r=igUntilRead(q); return !!(r&&r[0]&&r[0].until&&r[0].until!=='none'&&r[0].until!==intel.tlUntil); });
     offer(i18t('int_sug_asof'),q=>{ const r=igAsOfRead(q); return !!(r&&r[0]&&r[0].asOf&&r[0].asOf!=='none'&&r[0].asOf!==intel.asOf); });
@@ -7488,9 +7493,12 @@ function igOverviewFive(shown){
   let late=0; drawnCs.forEach(c=>(Array.isArray(c.obligations)?c.obligations:[]).forEach(o=>{ if(!o||o.status==='done') return; const due=String((typeof obligationDue==='function'?obligationDue(o):o.due)||'').slice(0,10); if(due&&today0&&due<today0) late++; }));
   const streams=new Set(cs.map(c=>c.folder).filter(Boolean)).size;
   const tour=i18t('int_tour_ask');
-  const sugs=igViewSuggestions().slice(0,3);
+  /* NO MONEY IN THE PANEL (P-40 as drawn: the Grid's rows are "Value streams against liability cap" · "Shade the cells
+     by how many"): the money shading stays a chip and a typed ask, never a row here */
+  const sugs=igViewSuggestions({ noMoney:true }).slice(0,3);
   /* AS DRAWN (P-40, owner 21 Nov 2026): each suggestion one line with its mark and a › that nudges; no line under it */
-  const rows=sugs.map(s=>({ mark:s===tour?'sparkle':'network', tone:s===tour?'dark':'green', t:s, run:()=>intelAsk(s) }));
+  /* AS DRAWN (P-40, 21 Nov 2026): the suggestions wear the ⌘ mark, "Explain this view" the spark, both soft green */
+  const rows=sugs.map(s=>({ mark:s===tour?'mkSpark':'cmd', tone:'green', t:s, run:()=>intelAsk(s) }));
   let v=[]; try{ v=igViewsRead().slice().reverse(); }catch(_){ v=[]; }
   const saved=v.length?v.slice(0,3).map(x=>({ mark:'star', t:x.name, run:()=>igSavedViewOpen(x.name) }))
     :[{ t:i18t('jov5_ig_sv_none_short'), link:{ label:i18t('jov5_ig_sv_save'), run:()=>igSaveViewDoor() } }];
@@ -7504,8 +7512,10 @@ function igOverviewFive(shown){
   const TONES=['var(--st-violet-dot)','var(--st-amber-dot)','var(--st-green-dot)','var(--st-steel-dot)','var(--st-gray-dot)'];
   const top=hubs.slice(0,4), rest=hubs.slice(4).reduce((a,h)=>a+h.n,0);
   const segs=top.map((h,i)=>({ l:h.label, n:h.n, c:TONES[i] })).concat(rest?[{ l:i18t('jov5_ig_rest'), n:rest, c:TONES[4] }]:[]);
-  const C=2*Math.PI*15; let off=0;
-  const ring=drawn?`<div class="igo-drawn"><span class="igo-ring" aria-hidden="true"><svg viewBox="0 0 36 36">${segs.map(g=>{ const len=C*g.n/drawn, el=`<circle cx="18" cy="18" r="15" style="stroke:${g.c};stroke-dasharray:${len.toFixed(2)} ${(C-len).toFixed(2)};stroke-dashoffset:${(-off).toFixed(2)}"/>`; off+=len; return el; }).join('')}</svg><b>${drawn}</b></span>`
+  /* THE RING AS DRAWN (P-40): 64 across, a grey track, each group its own arc with a hair's gap, drawn on in turn
+     (--L its length; the arrival sweeps it from nothing, igoSweep); the count in its middle */
+  const C=2*Math.PI*13.5, gap=segs.length>1?C*0.01:0; let off=0;
+  const ring=drawn?`<div class="igo-drawn"><span class="igo-ring" aria-hidden="true"><svg viewBox="0 0 36 36"><circle class="igo-trk" cx="18" cy="18" r="13.5"/>${segs.map((g,k)=>{ const len=Math.max(0,C*g.n/drawn-gap), el=`<circle class="igo-seg" cx="18" cy="18" r="13.5" transform="rotate(${(-90+off/C*360).toFixed(2)} 18 18)" style="stroke:${g.c};stroke-dasharray:${len.toFixed(2)} ${C.toFixed(2)};--L:${len.toFixed(2)};--igo-k:${k}"/>`; off+=C*g.n/drawn; return el; }).join('')}</svg><b>${drawn}</b></span>`
     +`<span class="igo-leg">${segs.map(g=>`<span><i style="background:${g.c}"></i>${igEsc(g.l)} · <b>${g.n}</b></span>`).join('')}<small>${igEsc([i18tn('jov5_ig_parties_n',parties,{ n:parties })].concat(late?[i18tn('jov5_ig_overdue_n',late,{ n:late })]:[]).join(' \u00b7 '))}</small></span></div>`:'';
   /* WHAT JAMBO SEES (P-40, the Legora reading, as drawn): one sentence on the drawn contract that ends first, with the
      paper's own words where its term is read (hbRdnTermQuote); only what the map DREW, nothing guessed */
@@ -7517,7 +7527,7 @@ function igOverviewFive(shown){
       :`<p class="igo-sees">${igEsc(i18t('jov5_ig_sees',{ name:f.name||'', d }))}</p>`; })();
   return { title:i18t('jov5_ig_t2'), sub:i18t('jov5_ig_s2'),
     mid:ring+(sees?`</div><div class="jov5-sec igo-sees-sec"><p class="jov5-label">${igEsc(i18t('jov5_ig_sees_h'))}</p>${sees}`:''), midLabel:drawn?i18t('jov5_ig_what_drawn'):'',
-    groups:[{ label:i18t('jov5_ig_try'), rows }, { label:i18t('int_saved_views'), rows:saved }].concat(fd&&fd.n?[{ label:i18t('jov_ig_fd'), rows:[{ mark:'star', tone:fd.tone==='amber'?'amber':'', t:i18tn('jov_ig_fd_v',fd.n,{ n:fd.n }), run:()=>igFindingsShow() }] }]:[]),
+    groups:[{ key:'try', label:i18t('jov5_ig_try'), rows }, { label:i18t('int_saved_views'), rows:saved }].concat(fd&&fd.n?[{ label:i18t('jov_ig_fd'), rows:[{ mark:'star', tone:fd.tone==='amber'?'amber':'', t:i18tn('jov_ig_fd_v',fd.n,{ n:fd.n }), run:()=>igFindingsShow() }] }]:[]),
     src:'' };
 }
 function igOverviewHtml(){

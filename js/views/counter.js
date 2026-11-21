@@ -683,8 +683,28 @@ function ndAlCovered(a, rows, P, admin){
 const _ndHash = t => { let h = 0; const x = String(t || ''); for (let i = 0; i < x.length; i++) h = (h * 31 + x.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
 const ndAlKey = a => 'al:' + a.kind + ':' + (a.id || '') + ':' + _ndHash(a.text);
 const _ndAge = iso => { const t = Date.parse(String(iso || '')); return isFinite(t) ? Math.max(0, Math.floor((Date.now() - t) / 864e5)) : null; };
+/* EVERY ROW'S WAIT, ONE READING (owner, 21 Nov 2026: "count every row's wait … so the head and the rows always agree"):
+   what a row has no wait on record for is read the way its Waited cell says it — an approval since it was asked (the
+   ask record), else since the contract last moved (the Approvals page's idle); details owed since the contract was
+   raised (repRaisedAt). The row's cell, the bundle, Needs you's "the oldest has waited", the panel's sentence and the
+   brief all read this one age. */
+function ndWaitedDays(c, it){
+  if (!c || !it) return null;
+  const since = t => { const n = typeof t === 'number' ? t : Date.parse(String(t || '')); return isFinite(n) ? Math.max(0, Math.floor((Date.now() - n) / 864e5)) : null; };
+  if (it.kind === 'approval'){
+    let d = null;
+    try { const st = typeof approvalState === 'function' ? approvalState(c) : null, nx = st && st.next;
+      const a = nx && !nx.sa && typeof askOpenFor === 'function' ? askOpenFor(c, 'rule', nx.ruleId) : null; d = since(a && a.at); } catch (_){ d = null; }
+    return d != null ? d : since(c.lastAction);
+  }
+  if (it.kind === 'details'){
+    let t = null; try { t = typeof window.repRaisedAt === 'function' ? repRaisedAt(c) : null; } catch (_){ t = null; }
+    return t == null ? null : since(t);
+  }
+  return null;
+}
 function ndAgeOf(y){
-  if (y.k === 'c') return y.x && y.x.age != null ? y.x.age : null;
+  if (y.k === 'c') return y.x && y.x.age != null ? y.x.age : (y.x && typeof ndWaitedDays === 'function' ? ndWaitedDays(y.x.c, y.x.it) : null);
   if (y.k === 'req') return _ndAge(y.r && y.r.createdAt);
   return null;
 }
@@ -727,7 +747,8 @@ function ndRead(){
   const seen = new Set();
   AL.work.forEach(a => { if (ndAlCovered(a, rows, P, !!(S || R0.length))) return;
     const key = ndAlKey(a); if (seen.has(key)) return; seen.add(key);
-    you.push({ g: 'you', key, kind: ND_AL_KIND[a.kind] || 'ask', al: a, n: 1, late: a.late ? 1 : 0, age: null }); });
+    const lateBy = a.kind === 'obligation' && Number(a.days) < 0 ? -Number(a.days) : null;
+    you.push({ g: 'you', key, kind: ND_AL_KIND[a.kind] || 'ask', al: a, n: 1, late: a.late ? 1 : 0, age: lateBy }); });
   const mailOff = AL.work.find(a => a.kind === 'email-off') || null;
   const R = mailOff ? R0.filter(x => !(x && x.key === 'panel:mail')) : R0;
   if (S) you.push({ g: 'you', key: 'setup', kind: 'ask', setup: S, n: 1, late: 0, age: null });
@@ -735,6 +756,7 @@ function ndRead(){
   const tone = it => it.tone === 'ruby' ? 2 : it.tone === 'amber' ? 1 : 0;
   const jambo = P.map(({ it, agent, cov }, i) => {
     const a = [ndPieceAge(it)].concat(ages(cov)).filter(x => x != null);
+    if (!a.length && !ND_NOT_WAITED.includes(it.kind)){ const t = Date.parse(String(it.at || it.since || '')); if (isFinite(t)) a.push(Math.max(0, Math.floor((Date.now() - t) / 864e5))); }
     return { g: 'jambo', key: 'p:' + it.key, kind: 'jambo', it, agent, n: 1, late: (it.tone === 'ruby' || cov.some(y => y.urgent)) ? 1 : 0, age: a.length ? Math.max(...a) : null, i };
   }).sort((a, b) => (b.late - a.late) || (tone(b.it) - tone(a.it)) || (a.i - b.i));
   const all = jambo.concat(you);
@@ -792,6 +814,10 @@ function ndParts(r){
     P.when = (it.kind === 'chase' || it.kind === 'chase-firm') ? String(parts.urg || '').split(' · ')[0]
       : (it.kind === 'renewal' || it.kind === 'notice') && isFinite(d) ? (d <= 0 ? String(parts.urg || '').split(' · ')[0] : _cnTn('ins_need_in', d, { n: d }))
       : r.age != null ? days(r.age) : String(parts.urg || '').split(' · ')[0];
+    /* NO EMPTY WAITED CELL (P-39, as drawn): a renewal whose day is behind it says "date passed"; a piece read on
+       arrival says how long since it was read (its own `at`) */
+    if ((it.kind === 'renewal' || it.kind === 'notice') && isFinite(d) && d < 0) P.when = _cnT('nd_when_passed');
+    if (!P.when){ const t = Date.parse(String(it.at || it.since || '')); if (isFinite(t)) P.when = days(Math.max(0, Math.floor((Date.now() - t) / 864e5))); }
     P.read = _cnT('nd_read_' + r.agent);
     P.ref = _ndCall('agPieceRefHtml', it, '');
     P.line = _ndCall('agPieceLine', it, '');
@@ -822,6 +848,9 @@ function ndParts(r){
     if (a.hint) P.tip = String(a.hint);
     P.ref = (c && typeof refHtml === 'function') ? refHtml(c) : '';
     if (c){ P.name = _ndName(c); P.party = String(c.counterparty || '').trim(); P.note = String(a.sub || ''); }
+    /* a duty's own day (the bell's reading, openObligations' `days`): "3 days late", never an empty Waited cell */
+    if (a.kind === 'obligation' && a.days != null && isFinite(Number(a.days))){ const n = Number(a.days);
+      P.when = n < 0 ? _cnTn('hb_days_late', -n, { n: -n }) : n === 0 ? _cnT('ins_days_today') : _cnTn('ins_need_in', n, { n }); P.late = n < 0; }
     P.btn = ND_AL_BTN[a.kind] || 'open';
     P.attrs = `data-nd-al="${_cnE(r.key)}"`;
     return P;
@@ -869,6 +898,9 @@ function ndParts(r){
   if (x.age != null) P.when = days(x.age);
   else if (it.kind === 'renewal' && it.d != null) P.when = it.d <= 0 ? _cnT('ins_days_today') : _cnTn('ins_need_in', it.d, { n: it.d });
   else { const due = String(it.due || '').slice(0, 10); P.when = /^\d{4}-\d{2}-\d{2}$/.test(due) ? _cnT('cn_due', { day: cnDayWords(due) }) : ''; }
+  /* NO EMPTY WAITED CELL (P-39, as drawn; the fault logged 20 Nov 2026): the row's own age (ndWaitedDays, read in
+     ndRead), the same number Needs you's head counts. A row with no such record stays empty. */
+  if (!P.when && r.age != null) P.when = days(r.age);
   P.btn = ND_BTN[it.kind] || 'open';
   /* the button says what happens (Round 2, 24 Oct 2026): an approval asked of you is "Approve…" */
   if (it.kind === 'approval') P.btn = 'approve';
@@ -1038,7 +1070,9 @@ function ndBoardRowHtml(r, opts){
   const look = piece && opts && typeof opts.look === 'function' ? opts.look(r.it) : '';
   const btn = piece
     ? `<button type="button" class="ui-btn ui-btn-sm nd-btn${look ? ' is-on' : ''}" data-hb-ag-look="${_cnE(r.it.key)}" aria-expanded="${!!look}">${_cnE(_cnT('nd_btn_look'))}</button>`
-    : _ndBtnHtml(P);
+    /* the row's act as drawn (P-39: Look · Decide · Open · Approve · Fill in): the word without its "…" (the phone's own
+       reading, mNlRowOf), so a small pill never cuts it */
+    : _ndBtnHtml(P).replace(/\u2026<\/button>$/, '</button>');
   return `<div class="nd-br${look ? ' is-look' : ''}${P.good ? ' nd-good' : ''}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"${piece ? ` data-hb-ag-item="${_cnE(r.it.key)}" data-nd-agent="${_cnE(r.agent)}"` : ''}>`
     /* THE LEGORA + STRIPE WAY (P-39): what waits, and under it the paper's words where they are known (cn2QuoteHtml); a
        soft status badge; the agreement and its number, NEVER MONEY */
@@ -1165,20 +1199,49 @@ function cn2Say(L){
 }
 /* THE PAPER'S WORDS, ONLY WHERE THEY ARE KNOWN (owner's answer 3): their changes quote the words they propose; owed
    details name the section their blanks stand in; every other row says only what waits */
-function cn2QuoteHtml(r){
-  const y = r && r.y, x = y && y.x, c = x && x.c, it = x && x.it; if (!c || !it) return '';
+/* THE PAPER'S WORDS UNDER A ROW, AS DRAWN (P-38, P-39: "§ 2 · “The lease ends on 11 October 2026”", one line ending
+   in "…"): read off the record only, never guessed — their waiting change's new words; a renewal's own term sentence
+   (hbRdnTermQuote: the sentence on the paper that carries the end date's year); a duty's own quote and clause (the
+   bell's overdue duty, a chase); a departure from our standards the approval is about. NEVER MONEY: an approval's
+   value is not looked for on the paper. Each { sec, w }; a row with no words on record gets none. */
+function cn2QuoteOf(r){
+  const secOf = v => { const m = String(v == null ? '' : v).trim().match(/^§?\s*(\d+(?:\.\d+)*)/); return m ? '§ ' + m[1] : ''; };
+  const clean = t => String(t || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().replace(/^[“"]|[”"]$/g, '');
+  const term = c => { try { const q = typeof window.hbRdnTermQuote === 'function' ? hbRdnTermQuote(c) : null; return q && q.w ? [{ sec: q.sec || '', w: clean(q.w) }] : []; } catch (_){ return []; } };
+  const duty = (c, id) => { const o = (Array.isArray(c && c.obligations) ? c.obligations : []).find(x => x && id != null && String(x.id) === String(id));
+    return o && o.quote ? [{ sec: secOf(o.clause), w: clean(o.quote) }] : []; };
+  if (r && r.g === 'jambo'){
+    const it = r.it || {}, c = it.c || (it.cid && typeof getContract === 'function' ? getContract(it.cid) : null); if (!c) return [];
+    if (it.kind === 'renewal' || it.kind === 'notice') return term(c);
+    if (it.ob && it.ob.quote) return [{ sec: secOf(it.ob.clause), w: clean(it.ob.quote) }];
+    return [];
+  }
+  if (r && r.al){
+    const a = r.al, c = a.id && typeof getContract === 'function' ? getContract(a.id) : null; if (!c) return [];
+    if (a.kind === 'obligation') return duty(c, a.obId);
+    if (a.kind === 'renewal' && !a.ends) return term(c);
+    return [];
+  }
+  const y = r && r.y, x = y && y.x, c = x && x.c, it = x && x.it; if (!c || !it) return [];
   if (it.kind === 'quiet'){
-    const chs = (Array.isArray(c.changes) ? c.changes : []).filter(ch => ch && ch.authorSide === 'counterparty' && ch.status === 'pending' && ch.newText).slice(0, 2);
-    return chs.map(ch => { const lab = String(ch.clauseLabel || ''), m = lab.match(/^\s*(\d+(?:\.\d+)*)[.)]?\s*(.*)$/);
-      const sec = m ? '§ ' + m[1] + (m[2] ? ' ' + m[2].charAt(0) + m[2].slice(1).toLowerCase() : '') : lab;
-      const w = String(ch.newText).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(); const short = w.length > 70 ? w.slice(0, 69).replace(/\s+\S*$/, '') + '…' : w;
-      return ` · <b class="cn2-sec">${_cnE(sec)}</b> — <q class="cn2-src">${_cnE(short)}</q>`; }).join('');
+    return (Array.isArray(c.changes) ? c.changes : []).filter(ch => ch && ch.authorSide === 'counterparty' && ch.status === 'pending' && ch.newText).slice(0, 2)
+      .map(ch => { const lab = String(ch.clauseLabel || ''), m = lab.match(/^\s*(\d+(?:\.\d+)*)[.)]?\s*(.*)$/);
+        return { sec: m ? '§ ' + m[1] + (m[2] ? ' ' + m[2].charAt(0) + m[2].slice(1).toLowerCase() : '') : lab, w: clean(ch.newText) }; });
+  }
+  if (it.kind === 'renewal') return term(c);
+  if (it.kind === 'approval'){
+    const v = ((c.playbook && Array.isArray(c.playbook.verdicts)) ? c.playbook.verdicts : []).find(d => d && d.status === 'deviation' && d.quote && !(d.accepted && d.accepted.at));
+    return v ? [{ sec: secOf(v.clause || v.section || v.clauseLabel), w: clean(v.quote) }] : [];
   }
   if (it.kind === 'details' && typeof contractBlanks === 'function'){
     let B = []; try { B = contractBlanks(c).filter(b => b && !b.value && b.section); } catch (_){ B = []; }
-    return [...new Set(B.map(b => b.section))].slice(0, 2).map(t => ` · <b class="cn2-sec">${_cnE(t)}</b>`).join('');
+    return [...new Set(B.map(b => b.section))].slice(0, 2).map(t => ({ sec: t, w: '' }));
   }
-  return '';
+  return [];
+}
+function cn2QuoteHtml(r){
+  let Q = []; try { Q = cn2QuoteOf(r); } catch (_){ Q = []; }
+  return Q.map(q => ` · ${q.sec ? `<b class="cn2-sec">${_cnE(q.sec)}</b>` : ''}${q.sec && q.w ? ' · ' : ''}${q.w ? `<q class="cn2-src">${_cnE(q.w)}</q>` : ''}`).join('');
 }
 
 /* COMPANY NEEDS YOU LANDS ON THE EXACT JOB (owner, 16 Nov 2026): one job opens that job; several open Settings
@@ -1304,5 +1367,5 @@ if (typeof document !== 'undefined' && !window._cnWired){
 
 Object.assign(window, { dkLeavePageThen, deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnReqWhat, CN_REQ_WHAT_RE, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter, dkHomeHere, DK_HOME_KEY,
-  ndRowGo, cnCompanyGo, ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndAvHtml, ndSapKeyOf, ndSapMarkHtml, ndKindOfRow, ndKindHtml, CN2_RANK, cn2Rows, cn2Say, cn2Greet, cn2Name, cn2QuoteHtml, ndPanelHtml, ndBellNlHtml, ndTintOf, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
+  ndRowGo, cnCompanyGo, ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndAvHtml, ndSapKeyOf, ndSapMarkHtml, ndKindOfRow, ndKindHtml, CN2_RANK, cn2Rows, cn2Say, cn2Greet, cn2Name, cn2QuoteOf, cn2QuoteHtml, ndWaitedDays, ndPanelHtml, ndBellNlHtml, ndTintOf, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
   CN_ROWS, counterNeedsCount });
