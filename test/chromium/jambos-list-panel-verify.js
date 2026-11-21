@@ -344,7 +344,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
              title the away line); Show their contracts is the black button (.jov5-go), Email them the link beside it */
           glance: [...p.querySelectorAll('.dirn-pfacts > span')].map(g => [...g.children].map(x => x.textContent.trim()).join(' ')),
           tiles: p.querySelectorAll('.jov5-glance').length,
-          away: (() => { const b = [...p.querySelectorAll('.jov5-sub .reg-badge')].find(x => /^(Away|Not away)$/.test(x.textContent.trim())); return b ? [b.textContent.trim(), b.getAttribute('title') || ''] : null; })(),
+          /* RE-POINTED 22 Nov 2026 (P-26 review): the badge is the house's soft badge, as Parties wears it (.cun-badge); its title still the away line with the stand-in */
+          away: (() => { const b = [...p.querySelectorAll('.jov5-sub .cun-badge')].find(x => /^(Away|Not away)$/.test(x.textContent.trim())); return b ? [b.textContent.trim(), b.getAttribute('title') || ''] : null; })(),
           show: (() => { const b = p.querySelector('.jov5-go[data-dirn-contracts]'); return b ? !b.disabled : null; })(), mail: !!p.querySelector('[data-dirn-mail]'),
           more: !!p.querySelector('[data-ins-more]') }; });
       check('6a a person: Show their contracts · Email them, no word beside the tabs', picked && !!P && !P.word && P.show === true && P.mail, JSON.stringify(P && { word: P.word, groups: P.groups['Reach them'] }));

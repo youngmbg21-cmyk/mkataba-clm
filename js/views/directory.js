@@ -792,12 +792,16 @@ function dirPhoneOf(p){
   return hit ? _dStr(hit.recipientPhone) : null;
 }
 /* the links on their contracts, asked once each; the panel is drawn again
-   when an answer lands and they are still the one chosen */
+   when an answer lands and they are still the one chosen. ASKED ONCE A SITTING, ANSWERED OR NOT (P-26 review, 22 Nov
+   2026): a contract whose links are refused (a reader the wall keeps out) stays unknown, and the redraw on its answer
+   used to ask again — a fetch, a redraw, a fetch, without end, so the page's network never went quiet */
+const _dirPhoneAsked = new Set();
 function dirPhoneAsk(p){
   if (!p || typeof ensureSharesCached !== 'function' || typeof sharesKnown !== 'function') return;
   const want = (p.contracts || []).slice(0, DIR_NAMED_MAX).map(id => (typeof getContract === 'function') ? getContract(id) : null)
-    .filter(c => c && !sharesKnown(c));
+    .filter(c => c && !sharesKnown(c) && !_dirPhoneAsked.has(c.id));
   if (!want.length) return;
+  want.forEach(c => _dirPhoneAsked.add(c.id));
   Promise.all(want.map(c => ensureSharesCached(c))).then(() => {
     const sel = (typeof insSelected === 'function') ? insSelected(DIR_SEAT) : null;
     /* the new look's panel reads the links for more than the phone (the day they opened our link, Remind on their move) */
@@ -1089,7 +1093,9 @@ if (typeof document !== 'undefined' && !document._dirnPanelWired){ document._dir
 function dirnRowHtml(p, keys){
   const ours = p.side === 'ours';
   const role = dirnRoleOf(p);
-  const sub = p.you ? i18t('dirn_you') : ours ? (p.title || '') : (p.partyName || '');
+  /* under the name: "you" on your own row — with the job title an admin set, where there is one (P-26 review) — a
+     colleague's job title, the other side's party */
+  const sub = p.you ? [i18t('dirn_you'), p.title || ''].filter(Boolean).join(' \u00b7 ') : ours ? (p.title || '') : (p.partyName || '');
   const does = dirnDoesOf(p);
   let w = []; try { w = dirWaitingOn(p) || []; } catch (_){ w = []; }
   const tone = ours ? 'green' : 'steel';

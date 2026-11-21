@@ -39740,3 +39740,12 @@ owner asked for an exact match ("Stop asking me questions. Just choose what you 
 - Kept on purpose: "Does for you" at the row's one size (13px; one size per row), People's Edit contact (a working door),
   the Waiting chip counting items (counts match rows), the Approval kind (from the data).
 - Not added: Remind for a rule approval on People — the Approvals branch has the route (P-30); a BUGLOG line waits for it.
+- PR #875's red browser checks (22 Nov 2026): the tidy sweep found "On paper (KES)" squeezed on two lines in a 54px box —
+  On paper is now 108 wide and its head one line (nowrap), Ends next 140 so both fit beside the name's 300 on the iPad.
+  People: a person's panel asked for their contracts' links again on every redraw when the server refused them — a
+  fetch loop that kept the page's network busy without end (people-directory's reload never idle; parties-and-contracts
+  hung 600s); now asked once a sitting (dirPhoneAsk, _dirPhoneAsked; measured: the reload idle in 1.4s). Your own row
+  says "you · <job title>" where an admin set one. Checks re-pointed only by selector or drawn wording: jambos-list-panel
+  6b/6c (.cun-badge), parties-and-people 8d/8e/8f (the drawn Their party section; Named on read from the row; "Negotiated
+  <agreement>"), four-decisions Q3 (the sample book's one person has no timeline, so her signature is put on three of her
+  agreements in the page's memory before measuring).

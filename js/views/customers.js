@@ -1768,8 +1768,10 @@ const CUN_KEYS = ['streams', 'agreements', 'paper', 'ends', 'waiting'];
 function cunNoWork(list){ return !(list || []).some(v => (v.needs || []).some(x => x && x.it)); }
 function cunKeys(noWork){ return CUN_KEYS.filter(k => (k !== 'paper' || !(typeof canViewValues === 'function' && !canViewValues())) && (k !== 'waiting' || !noWork)); }
 function cunCols(noWork){
-  /* the drawing's widths (P-25 review): Ends next wide enough for an agreement's name on two lines */
-  const W = { streams: 120, agreements: 104, paper: 88, ends: 160, waiting: 112 }, R = { ends: 2, streams: 3, paper: 4, agreements: 5 };
+  /* the drawing's widths (P-25 review): On paper's head "On paper (KES)" on ONE line (nothing squeezed, the tidy
+     sweep), Ends next wide enough for an agreement's name on two lines; together they fit beside the name's 300 on
+     the iPad's 1366 */
+  const W = { streams: 120, agreements: 104, paper: 108, ends: 140, waiting: 112 }, R = { ends: 2, streams: 3, paper: 4, agreements: 5 };
   const DEFS = [{ k: 'name' }, ...cunKeys(noWork).map(k => ({ k, w: W[k], rank: R[k] }))];
   const FIT = typeof listCols === 'function' ? listCols('customers', DEFS, cuRepaint) : { cols: DEFS };
   const cur = (typeof jxCurrency === 'function') ? jxCurrency() : '';

@@ -395,20 +395,29 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       const T = await until(() => { const p = document.getElementById('ins-panel'); const t = p && p.querySelector('.jov5-title'); if (!t || !/Henry/.test(t.textContent)) return null; return true; }, null, 8000).then(v => v ? readPanel() : null);
       /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): someone on their side — Show their contracts is the black button, Email them the link beside it,
          their party the one row under "Their party" (a phone, where known, is Phone them there too) */
-      const party = secOf(T, /^Their party$/), named = secOf(T, /^Named on/);
+      /* RE-POINTED 22 Nov 2026 (P-26 review): the drawn "Their party" section is no row list — the party's name a line
+         (.dirn-pty-n) and Open party its door ([data-dir-party]) — so it is read as drawn; "Named on" is no section any
+         more: the contract and the party they are named on stand on their row (its line under the name, and Does for you) */
+      const party = await page.evaluate(() => { const p = document.getElementById('ins-panel');
+        const sec = p && [...p.querySelectorAll('.jov5-sec')].find(s => /^Their party$/.test(((s.querySelector('.jov5-label') || {}).textContent || '').trim()));
+        const d = sec && sec.querySelector('[data-dir-party]');
+        return { rows: sec ? [{ t: ((sec.querySelector('.dirn-pty-n') || {}).textContent || '').trim(), door: d ? 'data-dir-party' : '' }] : [] }; });
+      const named = await page.evaluate(() => { const p = dirBook().find(x => /henry/i.test(x.email || '')); const r = p && document.querySelector('#dir-tbody [data-dir-row="' + p.key + '"]');
+        return { rows: r ? [{ t: ((r.querySelector('td.dirn-does') || {}).textContent || '').replace(/\s+/g, ' ').trim(), s: ((r.querySelector('.cun-sub') || {}).textContent || '').trim() }] : [] }; });
       const reach = { rows: party.rows.filter(r => /data-dir-party/.test(r.door)) };
       const ACT = await page.evaluate(() => { const p = document.getElementById('ins-panel');
         return { go: !!(p && p.querySelector('.jov5-act .jov5-go[data-dirn-contracts]')), mail: !!(p && p.querySelector('.jov5-act .jov-lnk[data-dirn-mail]')) }; });
       check('8d someone on their side: Email them · Show their contracts · their party', ACT.go && ACT.mail && reach.rows.length === 1
         && reach.rows[0].t === 'Kenya Freight Ltd', JSON.stringify({ ACT, party: party.rows }));
       /* RE-POINTED 17 Nov 2026 (#762): the contracts they are named on, with their party */
-      check('8e "Named on": the contract they are named on, with their party', named.rows.length === 1 && named.rows[0].t === 'Transport agreement' && named.rows[0].s === 'Kenya Freight Ltd', JSON.stringify(named.rows));
+      check('8e "Named on": the contract they are named on, with their party', named.rows.length === 1 && /Transport agreement$/.test(named.rows[0].t) && named.rows[0].s === 'Kenya Freight Ltd', JSON.stringify(named.rows));
       /* RE-POINTED 17 Nov 2026 (#762): what they do for their party is the line under their name */
       /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): under their name stands their role as a soft badge ("Their lead"); what they do for their party is
          their row's Does for you ("Negotiated for Transport agreement") */
       const does = await page.evaluate(() => { const p = dirBook().find(x => /henry/i.test(x.email || '')); const r = p && document.querySelector('#dir-tbody [data-dir-row="' + p.key + '"] td.dirn-does');
         return r ? r.textContent.replace(/\s+/g, ' ').trim() : null; });
-      check('8f the line under their name says their role, "Their lead", and their row says what they do: "Negotiated for Transport agreement"', !!T && T.sub.trim() === 'Their lead' && /^Negotiated for Transport agreement$/.test(does || '') && !T.secs.some(s => /^Also at/.test(s.label)), JSON.stringify({ sub: T && T.sub, does }));
+      /* RE-POINTED 22 Nov 2026 (P-26 review): the drawn wording is "Negotiated <agreement>" (as drawn: "Negotiated Warehouse Services") */
+      check('8f the line under their name says their role, "Their lead", and their row says what they do: "Negotiated Transport agreement"', !!T && T.sub.trim() === 'Their lead' && /^Negotiated Transport agreement$/.test(does || '') && !T.secs.some(s => /^Also at/.test(s.label)), JSON.stringify({ sub: T && T.sub, does }));
       if (reach.rows[0] && /data-dir-party/.test(reach.rows[0].door)){
         await page.click('#ins-panel [data-dir-party]');
         const L = await until(() => state.view === 'customers' && document.querySelector('#cu-tbody [data-cu-cust="kenya freight ltd"].is-landed, #cu-tbody [data-cu-cust="kenya freight ltd"].is-landed-held') ? 'lit' : null, null, 8000);

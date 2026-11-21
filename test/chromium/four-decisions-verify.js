@@ -163,6 +163,18 @@ const blocked = [];
         await page.click(`#dir-tbody [data-dir-row]:nth-child(${i}) .cun-name`).catch(() => {});
         list = await until(() => window.__q3names().length > 0, undefined, 1500);
       }
+      /* RE-POINTED 22 Nov 2026 (P-26 review): the sample book's one person (the admin) has nothing in her timeline — no
+         signature, ask or proposal names her — so no panel names an agreement and the rule had nothing to measure. Where
+         the walk finds none, her signature is put on three of her agreements (the long "Regulatory" one first) in this
+         page's memory only, and her panel's timeline then names them; the rule measured is unchanged */
+      if (!list){
+        await ev(() => { const me = currentUser(); const p = (dirBook() || []).find(x => x.side === 'ours' && String(x.email || '').toLowerCase() === String(me.email || '').toLowerCase()); if (!p) return;
+          const cs = (p.contracts || []).map(id => getContract(id)).filter(Boolean).sort((a, b) => (/Regulatory/.test(b.name) ? 1 : 0) - (/Regulatory/.test(a.name) ? 1 : 0)).slice(0, 3);
+          cs.forEach((c, i) => { c.signatures = (Array.isArray(c.signatures) ? c.signatures : []).concat([{ name: me.name, email: me.email, at: new Date(Date.now() - (i + 1) * 864e5).toISOString() }]); });
+          renderDirectory(); });
+        await page.click('#dir-tbody [data-dir-row]:first-child .cun-name').catch(() => {});
+        list = await until(() => window.__q3names().length > 0, undefined, 3000);
+      }
       await settle(); await shot('q3-people');
       if (!list) check(`${at} · Q3 — People: a person's contracts are listed`, false);
       else {
