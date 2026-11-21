@@ -1333,7 +1333,36 @@ function migCostLine(){
   if (aw.open) return head + ' ' + i18t('mig_cost_calls', { from:aw.said }) + ' ' + i18t('mig_cost_before');
   return head + ' ' + i18t('mig_cost_short');
 }
+/* P-33, BEFORE ANY FILE, THE LEGORA + STRIPE WAY: a calm drop area (the upload mark, "Drop old contracts here, or a whole
+   folder", the limits, Choose files), the three choices as set chips under it (Import as · File under · + a spreadsheet of
+   what is in them), the ask box. The drop area is drawn ONCE (the panel no longer draws a second). The chips keep the old
+   boxes' ids (#mig-status, #mig-folder) and their choice lands where the boxes put it (M.defaults). */
+function migNlDropHtml(){
+  const M = migState();
+  const asW = { Signed:i18t('mig_as_signed'), 'Under Review':i18t('mig_as_review'), Draft:i18t('mig_as_draft') };
+  const autoW = i18t(API_MODE() && state.aiConfigured ? 'mig_auto_jambo' : 'fo_auto_route');
+  const fs = (typeof visibleFolders === 'function' ? visibleFolders() : []).map(f => [f.id, f.name]);
+  const fW = M.defaults.folder && M.defaults.folder !== 'auto' && FOLDERS[M.defaults.folder] ? FOLDERS[M.defaults.folder].name : autoW;
+  const menu = (id, k, now, items) => `<span class="apn-rule-w"><button type="button" class="apn-chip is-set" id="${id}" data-mig-chip-open aria-expanded="false"><small>${esc(k)}</small> ${esc(now)}</button><span class="apn-rule-menu" hidden>${items.map(([v, w]) => `<button type="button" data-mig-chip="${id}" data-v="${esc(v)}">${esc(w)}</button>`).join('')}</span></span>`;
+  const list = M.manifest
+    ? `<button type="button" class="apn-chip is-set" id="mig-manifest-btn" title="${esc(i18t('mig_list_csv'))}">${esc(M.manifestName || '')} · ${esc(i18t('mig_list_matched', { n:M.manifest.filter(r => r.matchedId).length, of:M.manifest.length }))}</button>`
+    : `<button type="button" class="apn-chip is-add" id="mig-manifest-btn" title="${esc(i18t('mig_list_csv'))}">+ ${esc(i18t('mign_list_chip'))}</button>`;
+  return `<section class="mign-start">
+    <div id="mig-drop" class="mign-drop" role="button" tabindex="0" aria-label="${esc(i18t('mig_drop_h'))}">
+      <span class="mign-drop-i" aria-hidden="true">${icon('upload', 'w-5 h-5')}</span>
+      <b>${esc(i18t('mig_drop_h'))}</b><span id="mig-cost" class="mign-drop-s">${esc(migCostLine())}</span>
+      <span class="ui-btn ui-btn-primary mign-drop-b" aria-hidden="true">${esc(i18t('mig_choose_files'))}</span>
+    </div>
+    <div class="apn-bar mign-opts">${menu('mig-status', i18t('mig_import_as'), asW[M.defaults.status] || asW.Signed, Object.entries(asW))}${menu('mig-folder', i18t('mig_file_under'), fW, [['auto', autoW]].concat(fs))}${list}
+      <button type="button" id="mig-manifest-tpl" hidden></button><input id="mig-manifest-file" type="file" accept=".csv" hidden></div>
+    <label class="apn-ask mign-ask">${icon('search', 'w-3.5 h-3.5')}<input id="mign-ask0" type="search" autocomplete="off" placeholder="${esc(i18t('mign_ask_ph0'))}"></label>
+    ${API_MODE() ? '' : `<p class="mig-note">${esc(i18t('mig_static_mode'))}</p>`}
+    ${migUnfinishedHtml()}
+    ${M.manifestError ? `<div class="mig-warn is-ruby"><strong>${migEsc(M.manifestError.name)}</strong> was not loaded — ${migEsc(M.manifestError.reason)}.${M.manifest ? ` Still using <strong>${migEsc(M.manifestName)}</strong>.` : ''}</div>` : ''}
+  </section>`;
+}
 function migDropCardHtml(){
+  if (typeof newLookOn === 'function' && newLookOn()) return migNlDropHtml();
   const M = migState();
   /* "Let Jambo suggest", as drawn, where Jambo reads them; HaTi's own rules route by the type they read */
   const folderOpts = folderOptionsHtml(M.defaults.folder || 'auto', true)
@@ -1489,80 +1518,112 @@ function migSureOf(c){
   const n = F.filter(x => !x.missing && !x.unsure).length, of = F.length;
   return { n, of, level: n >= of ? 'high' : (n * 2 >= of ? 'med' : 'low') };
 }
-function migSureCellHtml(c){
-  const s = migSureOf(c); if (!s) return '\u2014';
-  return `<span class="mign-sure is-${s.level}"><span class="mign-bar" aria-hidden="true"><i></i><i></i><i></i></span>${esc(i18t('mign_sure_' + s.level))}</span><div class="cun-sub">${esc(i18t('mign_sure_n', { n: s.n, of: s.of }))}</div>`;
+/* P-33, IMPORT THE LEGORA + STRIPE WAY (owner's pick 20 Nov 2026: "L+S and park it"). One calm table: the File (its name
+   ending in "…", never broken mid-word; under it why it waits in its colour, or its new reference once filed; then the
+   words Jambo read it from, with their §, on one line ending in "…") · Reading (a soft badge: violet Is it signed?, amber
+   To check, blue A copy?, red No readable text, green Filed) · What Jambo read (kind · party · dates) · How sure (three
+   small bars and "N of 5") · Stream · Value right-aligned (the one place money shows). NO BUTTONS ON THE ROWS: Fill in,
+   Name it and Open live in the panel, once. The same words are never said twice in a row. */
+const MIGN_ST = { unsigned:['mign_st_unsigned', 'violet'], check:['mign_st_check', 'amber'], dupe:['mign_st_dupe', 'steel'], none:['mign_st_none', 'ruby'],
+  failed:['mign_st_failed', 'ruby'], filed:['mign_st_filed', 'green'], skipped:['mign_st_skipped', 'gray'], reading:['mign_st_reading', 'steel'] };
+/* a file parked because it looks unsigned reads "Is it signed?", never "To check" */
+function migNlKindOf(r){ return r && !r.c && r.q && r.q.status === 'unsigned' ? 'unsigned' : (r && r.st ? r.st.k : 'reading'); }
+function migNlStatusOf(r){ const k = migNlKindOf(r), m = MIGN_ST[k] || MIGN_ST.reading; return { k, w:i18t(m[0]), tone:m[1] }; }
+function migNlBadgeHtml(r){ const s = migNlStatusOf(r); return `<span class="apn-st is-${s.tone}"><i></i>${esc(s.w)}</span>`; }
+/* the paper a row reads: its contract, or a parked file's reading (nothing saved) */
+function migNlPaperOf(r){ if (!r) return null; if (r.c) return r.c; try { return migParked(r) ? migPendingAsContract(r) : null; } catch (_){ return null; } }
+/* the words Jambo read it from: the one he was not sure of first, else the first fact found, with its § (never guessed) */
+function migNlQuoteOf(P){
+  if (!P) return null;
+  let F = []; try { F = migFormOf(P); } catch (_){ F = []; }
+  const x = F.find(f => f.need && f.quote) || F.find(f => f.quote && f.k !== 'contractType') || F.find(f => f.quote);
+  return x ? { q:x.quote, sec:x.where || '' } : null;
 }
-/* THE PAGE'S FIGURES, EACH A PRESS THAT SHOWS ITS FILES (migKpis: the counts the page has always kept); a figure of
-   nothing is no door */
-const MIGN_FIGS = [['all', 'files'], ['k:filed', 'filed'], ['k:check', 'check'], ['k:dupe', 'dupe'], ['k:none', 'none']];
-/* SOFT TINT (owner's pick, 16 Nov 2026): a figure wears the colour of what it means; a figure of nothing stays grey */
-const MIGN_FIG_TONE = { files: 'steel', filed: 'green', check: 'amber', dupe: 'amber', none: 'ruby' };
-function migNlFigsHtml(){
-  const k = migKpis();
-  return `<div class="mign-figs">${MIGN_FIGS.map(([key, f]) => { const n = Number(k[f]) || 0;
-    const word = f === 'files' ? i18tn('mign_fig_files', n, { n }) : i18t('mign_fig_' + f);
-    const on = _mign === key && key !== 'all';
-    const inner = `<b>${n}</b><span>${esc(word)}</span>`;
-    return n ? `<button type="button" class="mign-fig is-t-${MIGN_FIG_TONE[f]}${f === 'check' ? ' is-warn' : ''}${on ? ' is-on' : ''}" data-mign-fig="${key}" aria-pressed="${on ? 'true' : 'false'}">${inner}</button>` : `<span class="mign-fig is-zero">${inner}</span>`; }).join('')}</div>`;
+/* kind · party · dates, as read */
+function migNlReadOf(P){
+  let F = []; try { F = migSideFacts(P); } catch (_){ F = []; }
+  const f = Object.fromEntries(F.map(x => [x.k, x]));
+  const term = [f.effectiveDate && f.effectiveDate.text, f.expiryDate && f.expiryDate.text].filter(Boolean).join(' – ');
+  return [f.contractType && f.contractType.text, P.counterparty || '', term].filter(Boolean).join(' · ');
+}
+function migSureCellHtml(c){
+  const s = migSureOf(c); if (!s) return '<span class="apn-none-c">—</span>';
+  return `<span class="mign-sure is-${s.level}" title="${esc(i18t('mign_sure_' + s.level))}"><span class="mign-bar" aria-hidden="true"><i></i><i></i><i></i></span>${esc(i18t('mign_sure_of', { n: s.n, of: s.of }))}</span>`;
+}
+/* ONE BATCH BAR replaces the five coloured tiles: the whole batch in one thin bar (green filed, amber to check, violet
+   is it signed?, blue a copy?, red no readable text), its legend under it; a legend word is the press its tile was */
+const MIGN_BATCH = [['filed', 'green', 'k:filed'], ['check', 'amber', 'k:check'], ['unsigned', 'violet', ''], ['dupe', 'steel', 'k:dupe'], ['none', 'ruby', 'k:none']];
+function migNlBatchHtml(rows){
+  const n = k => rows.filter(r => { const x = migNlKindOf(r); return k === 'none' ? (x === 'none' || x === 'failed') : x === k; }).length;
+  const segs = MIGN_BATCH.map(([k, tone, fig]) => ({ k, tone, fig, n:n(k) })).filter(s => s.n);
+  if (!segs.length) return '';
+  return `<div class="mign-batch"><div class="mign-bbar" aria-hidden="true">${segs.map(s => `<i class="is-${s.tone}" style="flex-grow:${s.n}"></i>`).join('')}</div>`
+    + `<div class="mign-bkey">${segs.map(s => { const on = s.fig && _mign === s.fig;
+      const inner = `<i class="is-${s.tone}"></i>${esc(i18t('mign_bk_' + s.k, { n:s.n }))}`;
+      return s.fig ? `<button type="button" class="mign-bk${on ? ' is-on' : ''}" data-mign-fig="${s.fig}" aria-pressed="${on ? 'true' : 'false'}">${inner}</button>` : `<span class="mign-bk">${inner}</span>`; }).join('')}</div></div>`;
 }
 function migNlRowHtml(r){
-  const c = r.c, q = r.q, st = r.st;
-  const pages = c && c.migration && c.migration.ocrTotalPages ? c.migration.ocrTotalPages : (c && c.upload && c.upload.pages) || (q && q.pages) || 0;
-  const scan = c && c.migration && typeof isOcrText === 'function' && isOcrText(c.migration.textSource);
-  const sub = [pages ? i18tn('mign_pages', pages, { n: pages }) : '', scan ? i18t('mign_scan') : ''].filter(Boolean).join(' \u00b7 ');
-  let read = '', looks = '\u2014', stream = '\u2014', value = '\u2014';
-  if (c){
-    const f = Object.fromEntries(migSideFacts(c).map(x => [x.k, x]));
-    const ours = String(window.FIRST_PARTY || '').split(/\s+/)[0];
-    const term = [f.effectiveDate && f.effectiveDate.text, f.expiryDate && f.expiryDate.text].filter(Boolean).join(' \u2013 ');
-    read = [f.contractType && f.contractType.text, c.counterparty ? i18t('mign_between', { a: ours, b: c.counterparty }) : '', term].filter(Boolean).join(' \u00b7 ');
-    looks = st.k === 'none' ? '\u2014' : c.status === 'Signed' ? i18t('mign_signed') : i18t('mign_unsigned');
-    stream = c.folder && window.FOLDERS && FOLDERS[c.folder] ? ((typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[c.folder]) || FOLDERS[c.folder].name) : '';
-    /* the amount with the period the file writes ("KES 480K a year"), the old list's own reading (#762) */
-    value = f.value && f.value.text ? ((r.c && Number(r.c.value) > 0 && typeof migAmountWithPeriod === 'function') ? migAmountWithPeriod(r.c) : f.value.text) : '\u2014';
-  } else read = st.why || '';
-  if (!read) read = i18t('mign_nothing');
+  const c = r.c, st = r.st, P = migNlPaperOf(r), S = migNlStatusOf(r);
+  const read = P && st.k !== 'none' ? migNlReadOf(P) : '';
+  const why = String(st.why || '').trim();
+  /* under the name: the new reference once filed, else why it waits in its colour — never the same words as the next cell */
+  const under = S.k === 'filed' && c ? `<div class="mign-ref">${typeof refHtml === 'function' ? refHtml(c) : esc(c.id)}</div>`
+    : why && why !== read ? `<div class="mign-why is-${S.tone}" title="${esc(why)}">${esc(why)}</div>` : '';
+  const q = P && st.k !== 'none' ? migNlQuoteOf(P) : null;
+  const ql = q ? `<div class="mign-ql"><i>“${esc(q.q)}”</i>${q.sec ? ` <span>${esc(q.sec)}</span>` : ''}</div>` : '';
+  const stream = P && P.folder && window.FOLDERS && FOLDERS[P.folder] ? ((typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[P.folder]) || FOLDERS[P.folder].name) : '';
+  let value = '';
+  if (P && st.k !== 'none'){ const f = Object.fromEntries(migSideFacts(P).map(x => [x.k, x]));
+    /* the amount with the period the file writes ("KES 480K/yr"), the old list's own reading (#762) */
+    value = f.value && f.value.text ? ((Number(P.value) > 0 && typeof migAmountWithPeriod === 'function') ? migAmountWithPeriod(P) : f.value.text) : ''; }
+  const money = !(typeof canViewValues === 'function' && !canViewValues());
   const need = MIG_NEEDS.includes(st.k);
-  const word = st.k === 'none' ? 'mign_name_it' : need ? 'mign_fill' : 'mign_open';
-  const act = c ? `<button type="button" class="${need ? 'rfp-pill' : 'rfp-a'}" data-mign-go="${esc(r.key)}" data-mign-need="${need ? 1 : 0}">${esc(i18t(word))}</button>` : '';
-  const choose = !stream && c && need ? `<button type="button" class="rfp-a" data-mign-go="${esc(r.key)}" data-mign-need="1">${esc(i18t('mign_choose'))}</button>` : esc(stream || '\u2014');
-  return `<tr data-row="${esc(r.key)}" class="${_migPick === r.key ? 'is-picked' : ''}${need ? '' : ' is-done'}" tabindex="-1"><td><div class="cun-name">${esc(r.file || '')}</div>${sub ? `<div class="cun-sub">${esc(sub)}</div>` : ''}</td>
-    <td class="cun-wait"><b class="mign-read">${esc(read)}</b>${need && st.why ? `<div class="cun-sub">${esc(st.why)}</div>` : ''}</td>
-    <td class="cun-wait">${migSureCellHtml(c)}</td>
-    <td class="cun-wait${looks === i18t('mign_unsigned') ? ' mign-amb' : ''}">${esc(looks)}</td><td class="cun-wait">${choose}</td><td class="cun-wait">${esc(value)}</td><td class="cun-go">${act}</td></tr>`;
+  return `<tr data-row="${esc(r.key)}" class="${_migPick === r.key ? 'is-picked is-sel' : ''}${need ? '' : ' is-done'}" tabindex="-1"><td><div class="cun-name mign-name" title="${esc(r.file || '')}">${esc(r.file || '')}</div>${under}${ql}</td>
+    <td>${migNlBadgeHtml(r)}</td>
+    <td class="mign-readc">${read ? `<span class="mign-read" title="${esc(read)}">${esc(read)}</span>` : `<span class="apn-none-c">${esc(st.k === 'none' ? i18t('mign_nothing') : '—')}</span>`}</td>
+    <td>${P && st.k !== 'none' ? migSureCellHtml(P) : '<span class="apn-none-c">—</span>'}</td>
+    <td class="mign-stc">${stream ? `<span title="${esc(stream)}">${esc(stream)}</span>` : '<span class="apn-none-c">—</span>'}</td>
+    ${money ? `<td class="mign-val">${value ? esc(value) : '<span class="apn-none-c">—</span>'}</td>` : ''}</tr>`;
 }
+let _mignStream = '';
 function migNlListHtml(rows){
-  const need = rows.filter(r => MIG_NEEDS.includes(r.st.k)), rest = rows.filter(r => !MIG_NEEDS.includes(r.st.k));
   const q = String(_migQ || '').trim().toLowerCase();
-  const hit = r => !q || [r.file, r.c && r.c.counterparty, r.c && r.c.name].some(x => String(x || '').toLowerCase().includes(q));
-  /* a figure pressed shows its own files, whole */
+  const hit = r => (!q || [r.file, r.c && r.c.counterparty, r.c && r.c.name].some(x => String(x || '').toLowerCase().includes(q)))
+    && (!_mignStream || (migNlPaperOf(r) || {}).folder === _mignStream);
+  const need = rows.filter(r => MIG_NEEDS.includes(r.st.k)), rest = rows.filter(r => !MIG_NEEDS.includes(r.st.k));
+  /* a legend word pressed shows its own files, whole */
   const kind = String(_mign).indexOf('k:') === 0 ? String(_mign).slice(2) : '';
   /* the check view's Decide lands on the files that want a decision, and only those (MIG_DECIDE; #762) */
   const decide = _mign === 'decide';
   const A = decide ? rows.filter(r => MIG_DECIDE.includes(r.st.k) && hit(r)) : kind ? rows.filter(r => r.st.k === kind && hit(r)) : _mign === 'read' ? [] : need.filter(hit), B = (kind || decide) ? [] : _mign === 'need' ? [] : rest.filter(hit);
+  const money = !(typeof canViewValues === 'function' && !canViewValues()), cols = money ? 6 : 5;
   return `
-    <table class="apn-table cun-table mign-table"><colgroup><col style="width:21%" data-floor="160"><col style="width:27%" data-floor="200"><col style="width:13%" data-floor="120"><col style="width:10%" data-floor="80"><col style="width:11%" data-floor="96"><col style="width:9%" data-floor="84"><col data-floor="84"></colgroup>
-    <thead><tr><th>${esc(i18t('mign_c_file'))}</th><th>${esc(i18t('mign_c_read'))}</th><th>${esc(i18t('mign_c_sure'))}</th><th>${esc(i18t('mign_c_looks'))}</th><th>${esc(i18t('mig_col_stream'))}</th><th>${esc(i18t('reg_col_value'))}</th><th></th></tr></thead>
-    <tbody>${A.map(migNlRowHtml).join('')}${B.length && A.length ? `<tr class="rdn-grp"><td colspan="7">${esc(i18t('mign_read_whole', { n: rest.length }))}</td></tr>` : ''}${B.map(migNlRowHtml).join('')}</tbody></table>
+    <table class="apn-table cun-table mign-table"><colgroup><col><col style="width:136px"><col style="width:24%"><col style="width:96px"><col style="width:112px">${money ? '<col style="width:116px">' : ''}</colgroup>
+    <thead><tr><th>${esc(i18t('mign_c_file'))}</th><th>${esc(i18t('mign_c_reading'))}</th><th>${esc(i18t('mign_c_read'))}</th><th>${esc(i18t('mign_c_sure'))}</th><th>${esc(i18t('mig_col_stream'))}</th>${money ? `<th class="mign-val">${esc(i18t('reg_col_value'))}</th>` : ''}</tr></thead>
+    <tbody>${A.map(migNlRowHtml).join('')}${B.length && A.length ? `<tr class="rdn-grp"><td colspan="${cols}">${esc(i18t('mign_read_whole', { n: B.length }))}</td></tr>` : ''}${B.map(migNlRowHtml).join('')}${A.length || B.length ? '' : `<tr><td colspan="${cols}" class="apn-none">${esc(i18t('mig_none_match'))}</td></tr>`}</tbody></table>
     <div class="apn-foot rdn-foot"><span>${esc(i18tn('mign_foot', rows.length, { n: rows.length }))}</span><span>${esc(i18t('mign_foot_r'))}</span></div>`;
 }
-/* THE PAGE, AS DRAWN: "Import · N files · N read whole · N need you", Check all and Choose files; the box and the tabs
-   Need you · Read · All on one line; the table; the chosen file's panel (what was read, Jambo's line, its doors) */
+/* THE PAGE, AS DRAWN (P-33): the title alone (the facts line goes: the bar and the chips say it), Review spreadsheet and
+   Check all · N (grey), Choose files (black); one ask box; chips Need you (amber dot) · Read · All with counts, + Stream;
+   the batch bar; the table; the chosen file's panel */
 function migNlPageHtml(rows){
   const need = rows.filter(r => MIG_NEEDS.includes(r.st.k)).length, read = rows.length - need;
-  const facts = [i18tn('mign_foot', rows.length, { n: rows.length }), i18t('mign_h_read', { n: read }), need ? i18t('mign_h_need', { n: need }) : ''].filter(Boolean).join(' \u00b7 ');
-  const tab = (k, w, n) => `<button type="button" class="apn-tab${_mign === k ? ' is-on' : ''}" data-mign-tab="${k}">${esc(w)} <span>${n}</span></button>`;
+  const chip = (k, w, n, dot) => `<button type="button" class="apn-tab is-chip${_mign === k ? ' is-on' : ''}" data-mign-tab="${k}">${dot ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${esc(w)} <span>${n}</span></button>`;
   const may = typeof canEdit !== 'function' || canEdit();
+  const streams = [...new Set(rows.map(r => (migNlPaperOf(r) || {}).folder).filter(f => f && window.FOLDERS && FOLDERS[f]))];
+  const sName = f => (typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[f]) || FOLDERS[f].name;
+  if (_mignStream && !streams.includes(_mignStream)) _mignStream = '';
+  const sChip = _mignStream ? `<button type="button" class="apn-chip is-set" data-mign-stream="">${esc(sName(_mignStream))} <span aria-hidden="true">×</span></button>`
+    : streams.length > 1 ? `<span class="apn-rule-w"><button type="button" class="apn-chip is-add" data-mign-stream-open aria-expanded="false">+ ${esc(i18t('mig_col_stream'))}</button><span class="apn-rule-menu" hidden>${streams.map(f => `<button type="button" data-mign-stream="${esc(f)}">${esc(sName(f))}</button>`).join('')}</span></span>` : '';
   return `<div class="view-enter sap-page ap-page is-ins apn-page cun-page mign-page" data-ins-page="migration" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
-      <div class="cun-head"><h2 class="ctf-h">${esc(i18t('mign_title'))}</h2><span class="ctf-hf">${esc(facts)}</span><span class="ctf-sp"></span>
+      <div class="cun-head"><h2 class="ctf-h">${esc(i18t('mign_title'))}</h2><span class="ctf-sp"></span>
         <button type="button" class="ctf-pill" id="mig-sheet" aria-haspopup="menu" aria-expanded="false">${esc(i18t('mig_sheet'))}</button>${may ? '<input id="mig-sheet-file" type="file" accept=".csv" hidden>' : ''}
         ${may && need ? `<button type="button" class="ctf-pill" id="mig-check-all">${esc(i18t('mign_check_all', { n: need }))}</button>` : ''}
         ${may ? `<button type="button" class="ui-btn ui-btn-primary ctf-new" id="mign-choose">${esc(i18t('mign_choose_files'))}</button><input type="file" id="mign-files" multiple hidden>` : ''}</div>
-      <div class="apn-bar" data-lh-seat="migration-nl"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="mign-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(_migQ || '')}"></label><span class="apn-sp"></span>
-        ${tab('need', i18t('mign_tab_need'), need)}${tab('read', i18t('mign_tab_read'), read)}${tab('all', i18t('ctf_tab_all'), rows.length)}</div>
-      ${migNlFigsHtml()}
+      <label class="apn-ask">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="mign-q" type="search" autocomplete="off" placeholder="${esc(i18t('mign_ask_ph'))}" value="${esc(_migQ || '')}"></label>
+      <div class="apn-bar" data-lh-seat="migration-nl">${chip('need', i18t('mign_tab_need'), need, true)}${chip('read', i18t('mign_tab_read'), read)}${chip('all', i18t('ctf_tab_all'), rows.length)}${sChip}</div>
+      ${migNlBatchHtml(rows)}
       <div class="cu-scroll">${migNlListHtml(rows)}${migNlListBoxHtml()}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('mig_side_label'))}"></aside></div></div>`;
 }
@@ -1573,33 +1634,109 @@ function migNlListBoxHtml(){
   const n = M.manifest.filter(r => r.matchedId).length;
   return `<div class="mign-recon"><div class="mig-list-box"><span class="mig-list-name" title="${esc(M.manifestName || '')}">${esc(M.manifestName || '')}</span> \u00b7 <span class="mig-list-n">${esc(i18t('mig_list_matched', { n, of: M.manifest.length }))}</span></div>${typeof migReconHtml === 'function' ? migReconHtml() : ''}</div>`;
 }
+/* P-33, THE UPGRADED SIDE PANEL (owner, 20 Nov 2026: "L&S side panel needs an upgrade"), NO CARDS, NO TILES: a small
+   picture of the paper beside the file's badge, name and "N of 5 details sure"; the acts on one line (main black, second
+   grey) with "Leave it out" / "Keep both" as a quiet link under them; "What it will be filed as · N of 5 sure" — each
+   fact with a dot (green sure, amber not sure, grey not found), the one Jambo was not sure of OPENED IN PLACE: the
+   file's own words with the found words lit, its § (or "its title"), and a "Use: …" chip that fills it in; then a RING
+   of the batch beside "This batch · N need you" and the next two files waiting with their reading in colour. Every
+   press the page's own (data-mign-go, data-mig-unsigned, data-dup-*, data-mign-checkall); a file not yet a contract
+   (a copy, one parked, one not read) is drawn the same way, never in the old unstyled form. */
+function migNlPaperPicHtml(tone){ return `<span class="mign5-pap is-${esc(tone)}" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>`; }
+/* the words round the found ones, the found ones lit — the file's own words, never translated */
+function migNlLitHtml(text, at){
+  const t = String(text || ''); if (!at || !t) return '';
+  let s = Math.max(0, at.s - 90), e = Math.min(t.length, at.e + 90);
+  if (s > 0){ const sp = t.indexOf(' ', s); if (sp > -1 && sp < at.s) s = sp + 1; }
+  if (e < t.length){ const sp = t.lastIndexOf(' ', e); if (sp > at.e) e = sp; }
+  const w = x => esc(String(x).replace(/\s+/g, ' '));
+  return `${s > 0 ? '…' : ''}${w(t.slice(s, at.s))}<mark>${w(t.slice(at.s, at.e))}</mark>${w(t.slice(at.e, e))}${e < t.length ? '…' : ''}`;
+}
+const MIGN_USE_FOR = { party:'counterparty', value:'value', renews:'expiryDate', date:'expiryDate' };
+function migNlFactsHtml(r, P){
+  let F = []; try { F = migFormOf(P).filter(x => x.k !== 'folder'); } catch (_){ F = []; }
+  if (!F.length) return '';
+  const text = (P.upload && P.upload.extractedText) || '';
+  const open = F.find(x => x.unsure && x.at) || F.find(x => x.need && x.at) || null;
+  let offers = []; try { offers = r.c && canEdit() ? (migWhyHtml(P).offers || []) : []; } catch (_){ offers = []; }
+  return `<div class="mign5-facts">${F.map(x => {
+    const tone = x.missing || !x.val ? 'gray' : x.unsure ? 'amber' : 'green';
+    const val = x.val || i18t('mig_side_not_found');
+    let more = '';
+    if (x === open){
+      const where = x.where || (x.k === 'contractType' ? i18t('mign5_its_title') : '');
+      const of = offers.find(o => MIGN_USE_FOR[o.k] === x.k);
+      const use = of ? `<button type="button" class="apn-chip is-set mign5-use" data-mign-use="${esc(of.k)}" data-mign-key="${esc(r.key)}"${of.iso ? ` data-iso="${esc(of.iso)}"` : ''}${of.val ? ` data-val="${esc(of.val)}"` : ''}>${esc(i18t('mign5_use', { v: of.k === 'renews' ? i18t('mig_renews') : of.k === 'date' ? migDay(of.iso) : of.val }))}</button>`
+        : (r.c && canEdit() && x.val ? `<button type="button" class="apn-chip is-set mign5-use" data-mign-use="keep" data-mign-k="${esc(x.k)}" data-mign-key="${esc(r.key)}" data-val="${esc(x.val)}"${x.iso ? ` data-iso="${esc(x.iso)}"` : ''}>${esc(i18t('mign5_use', { v:x.val }))}</button>` : '');
+      more = `<div class="mign5-open"><p class="mign5-lit">${migNlLitHtml(text, x.at)}</p><div class="mign5-ow">${where ? `<span>${esc(where)}</span>` : ''}${use}</div></div>`;
+    }
+    return `<div class="mign5-f${x === open ? ' is-open' : ''}"><i class="mign5-d is-${tone}" aria-hidden="true"></i><span class="mign5-k">${esc(x.label)}</span><b class="mign5-v${tone === 'gray' ? ' is-none' : ''}" title="${esc(val)}">${esc(val)}</b>${tone === 'amber' ? `<small>${esc(i18t('mign5_unsure'))}</small>` : ''}</div>${more}`; }).join('')}</div>`;
+}
+function migNlRingSvg(k, n){
+  const S = 44, rr = S / 2 - 4, c = 2 * Math.PI * rr, f = n ? Math.min(1, k / n) : 0;
+  return `<svg class="cun-ring is-big mign5-ring" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}" aria-hidden="true"><circle class="rb" cx="${S / 2}" cy="${S / 2}" r="${rr}"/>`
+    + (f > 0 ? `<circle class="rf" cx="${S / 2}" cy="${S / 2}" r="${rr}" stroke-dasharray="${(c * f).toFixed(2)} ${c.toFixed(2)}" transform="rotate(-90 ${S / 2} ${S / 2})"/>` : '')
+    + `<text x="50%" y="50%" text-anchor="middle" dominant-baseline="central">${k}/${n}</text></svg>`;
+}
+function migNlBatchSideHtml(r, rows, need){
+  const filed = rows.filter(x => x.st && x.st.k === 'filed').length;
+  const next = need.filter(x => x.key !== r.key).slice(0, 2);
+  return `<div class="mign5-batch"><div class="mign5-bh">${migNlRingSvg(filed, rows.length)}<div><b>${esc(i18t('mign5_batch'))}</b><span>${esc(need.length ? i18tn('mign5_batch_need', need.length, { n:need.length }) : i18t('mign5_batch_clear'))}</span></div></div>`
+    + (next.length ? `<p class="jov5-label">${esc(i18t('mign5_next'))}</p>${next.map(x => { const S = migNlStatusOf(x);
+      return `<button type="button" class="mign5-nx" data-mign-pick="${esc(x.key)}"><span class="mign5-nf" title="${esc(x.file || '')}">${esc(x.file || '')}</span><span class="mign5-nw is-${S.tone}">${esc(S.w)}</span></button>`; }).join('')}` : '')
+    + '</div>';
+}
 function migNlPanelFiveHtml(r, rows, need){
-  const E = esc, f = Object.fromEntries(migSideFacts(r.c).map(x => [x.k, x]));
-  const mg = r.c.migration || {}, pages = mg.ocrTotalPages || (r.c.upload && r.c.upload.pages) || 0, scan = typeof isOcrText === 'function' && isOcrText(mg.textSource);
-  const term = [f.effectiveDate && f.effectiveDate.text, f.expiryDate && f.expiryDate.text].filter(Boolean).join(' \u2013 ');
-  const isNeed = MIG_NEEDS.includes(r.st.k), none = r.st.k === 'none', signed = r.c.status === 'Signed';
-  const parked = rows.filter(x => x.q && x.q.status === 'unsigned').length;
-  /* the panel's "N filed" is the files filed — the page's own figure (migKpis().filed), never "not waiting on you" (#762) */
-  const filed = rows.filter(x => x && x.st && x.st.k === 'filed').length;
-  const lines = [{ mark: none ? 'alert' : 'mkTick', tone: none ? 'amber' : 'green', t: none ? i18t('mign_p_nothing') : (scan ? i18t('mign_scan') : i18t('mign_p_whole')), s: pages ? i18tn('mign_pages', pages, { n: pages }) : '' }];
-  if (!none){
-    /* THE END NOT READ IS SAID IN AMBER even where a start was read (#762: a start alone read as the whole term) */
-    const hasEnd = !!(f.expiryDate && f.expiryDate.text), start = f.effectiveDate && f.effectiveDate.text;
-    lines.push({ mark: 'calendar', tone: hasEnd ? '' : 'amber', t: hasEnd ? term : i18t('mign_p_no_end'), s: hasEnd ? i18t('mign_p_term') : [start, i18t('mign5_end_add')].filter(Boolean).join(' \u00b7 '), attr: hasEnd ? '' : `data-mign-go="${E(r.key)}" data-mign-need="1"` });
-    lines.push({ mark: signed ? 'mkTick' : 'alert', tone: signed ? 'green' : 'amber', t: signed ? i18t('mign_signed') : i18t('mign_p_none_found'), s: signed ? i18t('mign5_filed_not_parked') : '' });
-    if (r.c.counterparty) lines.push({ mark: 'users', t: `${String(window.FIRST_PARTY || '').split(/\s+/)[0]} \u00b7 ${r.c.counterparty}`, s: i18t('mign_p_parties') });
+  const E = esc, P = migNlPaperOf(r), S = migNlStatusOf(r), key = r.key, may = canEdit();
+  const sure = P && r.st.k !== 'none' ? migSureOf(P) : null;
+  /* the acts by what the file is: main black, the second grey, a quiet link under them */
+  let main = null, second = null, quiet = null;
+  if (S.k === 'unsigned' && migParked(r) && may){
+    main = { l:i18t('mig_unsigned_draft'), a:`data-mig-unsigned="draft" data-i="${r.i}"` };
+    second = { l:i18t('mig_unsigned_signed_b'), a:`data-mig-unsigned="signed" data-i="${r.i}"` };
+    quiet = { l:i18t('mig_unsigned_leave'), a:`data-mig-unsigned="skip" data-i="${r.i}"` };
+  } else if (S.k === 'dupe' && migParked(r) && may){
+    const d = (r.q.dupes || [])[0];
+    main = { l:i18t('mign5_skip_copy'), a:`data-dup-skip="${r.i}"` };
+    second = d ? { l:i18t('mign5_open_ours'), a:`data-mign-open="${E(d.id)}"` } : null;
+    quiet = { l:i18t('mign5_keep_both'), a:`data-dup-import="${r.i}"` };
+  } else if (r.c && MIG_NEEDS.includes(r.st.k) && may){
+    main = { l:i18t(r.st.k === 'none' ? 'mign_name_it' : 'mign_fill'), a:`data-mign-go="${E(key)}" data-mign-need="1"` };
+    second = { l:i18t('mign_open'), a:`data-mign-open="${E(r.c.id)}"` };
+  } else if (r.c){
+    main = { l:i18t('mign5_open'), a:`data-mign-go="${E(key)}" data-mign-need="0"` };
+    second = may && need.length ? { l:i18t('mign_check_all', { n:need.length }), a:'data-mign-checkall' } : null;
   }
-  const cap = t => { t = String(t || ''); return t.charAt(0).toUpperCase() + t.slice(1); };
-  lines.forEach(l => { l.t = cap(l.t); l.s = cap(l.s); });
-  const title = none ? i18t('mign5_t_none') : isNeed ? i18t('mign5_t_check') : signed ? i18t('mign5_t_filed') : i18t('mign5_t_nosig');
-  const sub = none ? i18t('mign_p_j_none') : isNeed ? i18t('mign_p_j_check') : i18t('mign_p_j_filed');
-  const o = { eyebrow: [i18t('mign_title'), r.file || ''].filter(Boolean).join(' \u00b7 '), title, sub,
-    glance: [{ n: filed, l: i18tn('mign5_g_filed', rows.length, { n: rows.length }) }, { n: need.length, l: i18t('mign5_g_need'), warn: need.length > 0, attr: need.length > 1 ? 'data-mign-checkall' : '' }, { n: parked, l: i18t('mign5_g_parked') }],
-    groups: [{ label: i18t('mign5_read'), rows: lines }],
-    act: { label: i18t(isNeed ? (none ? 'mign_name_it' : 'mign_fill') : 'mign5_open'), attr: `data-mign-go="${E(r.key)}" data-mign-need="${isNeed ? 1 : 0}"`,
-      link: isNeed && need.length > 1 ? { label: i18t('mign_check_all', { n: need.length }), attr: 'data-mign-checkall' } : null },
-    src: i18t('mign5_src') };
-  return `<div class="jl-words is-ov">${jamboOverviewHtml(o, 'mign')}</div>`;
+  const acts = main ? `<div class="mign5-acts"><div class="mign5-ar"><button type="button" class="jov5-go" ${main.a}>${E(main.l)}</button>${second ? `<button type="button" class="ui-btn mign5-2nd" ${second.a}>${E(second.l)}</button>` : ''}</div>${quiet ? `<button type="button" class="mign5-quiet" ${quiet.a}>${E(quiet.l)}</button>` : ''}</div>` : '';
+  const sub = sure ? i18t('mign_sure_n', { n:sure.n, of:sure.of }) : '';
+  const say = String(r.st.why || '').trim();
+  const top = `<div class="mign5-top">${migNlPaperPicHtml(S.tone)}<div class="mign5-tt"><span class="apn-st is-${S.tone}"><i></i>${E(S.w)}</span><h3 class="jov5-title" title="${E(r.file || '')}">${E(r.file || '')}</h3>${sub ? `<p class="jov5-sub">${E(sub)}</p>` : ''}</div></div>`;
+  const groups = [];
+  if (P && r.st.k !== 'none'){
+    const html = migNlFactsHtml(r, P);
+    if (html) groups.push({ key:'facts', label:sure ? i18t('mign5_filed_as_n', { n:sure.n, of:sure.of }) : i18t('mign5_filed_as'), html });
+  } else if (say) groups.push({ key:'why', rows:[{ mark:'alert', tone:S.tone === 'ruby' ? 'red' : 'amber', t:say, wrap:true }] });
+  /* a likely copy can still be joined to the one we have, its old link row kept whole (#762) */
+  if (S.k === 'dupe' && migParked(r) && may && typeof migDupeRowHtml === 'function'){
+    const h = migDupeRowHtml(r.q, r.i); const m = /<div class="mig-cf-acts mig-dup-link">[\s\S]*<\/div>\s*$/.exec(h);
+    if (m) groups.push({ key:'link', label:i18t('mign5_or_link'), html:`<div class="mig-cf mign5-link">${m[0]}</div>` });
+  }
+  groups.push({ key:'batch', html:migNlBatchSideHtml(r, rows, need) });
+  const o = { before:top + acts, title:r.file || i18t('mign_title'), groups, src:i18t('mign5_src') };
+  return `<div class="jl-words is-ov mign5">${jamboOverviewHtml(o, 'mign')}</div>`;
+}
+/* "Use: …" in the panel FILLS IT IN: the file's check opens (the one walk, migCheckOpen) and the box takes the words, as
+   the check's own Use does (data-mig-use); nothing is filed until File it is pressed */
+function migNlUse(el){
+  const key = el.getAttribute('data-mign-key'), use = el.getAttribute('data-mign-use'); if (!key) return;
+  migCheckOpen(key);
+  const k = use === 'keep' ? el.getAttribute('data-mign-k') : (MIGN_USE_FOR[use] || 'expiryDate');
+  const v = use === 'renews' ? i18t('mig_renews') : use === 'date' ? migDay(el.getAttribute('data-iso')) : (el.getAttribute('data-val') || '');
+  let n = 0; const put = () => { const form = document.querySelector('#mig-ck-facts[data-mig-form]'); const box = form && form.querySelector(`[data-mig-f="${k}"]`);
+    if (!box){ if (++n < 10) setTimeout(put, 60); return; }
+    box.value = v; if (typeof migFormGatePaint === 'function') migFormGatePaint(form);
+    if (typeof landOn === 'function') landOn(() => box, { block:'nearest' }); };
+  put();
 }
 function migNlPanelPaint(rows){
   if (typeof insPaintPanel !== 'function') return;
@@ -1632,7 +1769,9 @@ function migNlPanelPaint(rows){
      what happened to the chosen file as the headline, three numbers (filed · need you · parked), what Jambo read as rows
      (an end date not read in amber), the file's own door the one black button — the page's own presses (data-mign-go,
      data-mign-checkall); the counts are the list's, no call */
-  const five = r && r.c && typeof jamboOverviewHtml === 'function' && typeof newLookOn === 'function' && newLookOn();
+  /* P-33: every file's panel is the upgraded one — a copy, one parked, one not read too (the faults of 20 Nov 2026: the
+     panel drawn without its styling when such a row was chosen) */
+  const five = r && typeof jamboOverviewHtml === 'function' && typeof newLookOn === 'function' && newLookOn();
   insPaintPanel({ seat: 'migration', item: { id: (r && r.key) || '__import' }, head: false, jlWord: i18t('mig_side_word'), jlPh: i18t('jl_ph_any'),
     /* A FILE NOT YET A CONTRACT (a likely copy, one that could not be read, one still reading, one left out) says what
        happened and keeps its own choices — "Is this a copy?" with Skip · Import anyway · Link (#762: the new panel had
@@ -1648,7 +1787,7 @@ function migNlRender(rows, o){
   if (!_migPick || !migRowByKey(_migPick)){ const first = rows.find(x => MIG_NEEDS.includes(x.st.k)) || rows[0]; _migPick = first ? first.key : null; }
   const PAGE = migNlPageHtml(rows);
   if (o && o.rows && typeof listRowsSwapHtml === 'function'
-    && listRowsSwapHtml({ page: '.mign-page', html: PAGE, table: '.mign-table', tabSel: '[data-mign-tab]', tabKey: 'data-mign-tab', footSel: '.mign-page .apn-foot', also: ['.mign-page .cun-head .ctf-hf', '.mign-page .mign-figs'] })){
+    && listRowsSwapHtml({ page: '.mign-page', html: PAGE, table: '.mign-table', tabSel: '[data-mign-tab]', tabKey: 'data-mign-tab', footSel: '.mign-page .apn-foot', also: ['.mign-page .mign-batch', '.mign-page .apn-bar'] })){
     /* the panel stays as it stands while the rows move, unless the file it reads has gone */
     if (_migPick !== _mignPanelPick){ _mignPanelPick = _migPick; migNlPanelPaint(rows); }
     return;
@@ -1667,12 +1806,23 @@ let _mign = 'all';
 /* the drawn page's row press is handled below; the older list keeps migPickSet */
 if (typeof document !== 'undefined' && !document._mignWired){ document._mignWired = true;
   /* the box is not redrawn under the caret: every letter moves the rows and leaves the box alone */
+  /* the ask box before any file asks Jambo (the panel's own reader, jlAsk), as every page's box does once Enter is pressed */
+  document.addEventListener('keydown', e => { if (!e.target || e.target.id !== 'mign-ask0' || e.key !== 'Enter') return; e.preventDefault();
+    const v = String(e.target.value || '').trim(); if (v && typeof jlAsk === 'function'){ jlAsk(v, { typed:true }); e.target.value = ''; } });
   document.addEventListener('input', e => { if (!e.target || e.target.id !== 'mign-q') return; _migQ = e.target.value; renderMigration({ rows: true }); });
   document.addEventListener('change', e => { const sf = e.target; if (!sf || sf.id !== 'mig-sheet-file' || !sf.closest('.mign-page')) return; if (sf.files && sf.files[0]) migImportSheet(sf.files[0]); sf.value = ''; });
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('.mig-page, .mign-page')) return; let el;
     if ((el = t.closest('.mign-page #mig-check-all, [data-mign-checkall]'))){ e.preventDefault(); migCheckOpen(); return; }
     if ((el = t.closest('[data-mign-tab]'))){ e.preventDefault(); _mign = el.getAttribute('data-mign-tab'); renderMigration({ rows: true }); return; }
+    /* + Stream: a press opens its small menu, a choice narrows the files to that stream, × lets go */
+    if ((el = t.closest('.mign-page [data-mign-stream-open]'))){ e.preventDefault(); const m = el.parentNode.querySelector('.apn-rule-menu'); if (m){ const show = m.hidden; m.hidden = !show; el.setAttribute('aria-expanded', String(show)); } return; }
+    if ((el = t.closest('.mign-page [data-mign-stream]'))){ e.preventDefault(); _mignStream = el.getAttribute('data-mign-stream') || ''; renderMigration(); return; }
+    { const open = document.querySelector('.mign-page .apn-rule-menu:not([hidden])'); if (open && !t.closest('.apn-rule-w')) open.hidden = true; }
+    /* the panel's own presses: Open (the contract, or the one a copy matches), the next file waiting, Use: … */
+    if ((el = t.closest('[data-mign-open]'))){ e.preventDefault(); e.stopPropagation(); const id = el.getAttribute('data-mign-open'); if (id && typeof regOpenContract === 'function') regOpenContract(id); return; }
+    if ((el = t.closest('[data-mign-pick]'))){ e.preventDefault(); _migPick = el.getAttribute('data-mign-pick'); renderMigration(); return; }
+    if ((el = t.closest('[data-mign-use]'))){ e.preventDefault(); e.stopPropagation(); migNlUse(el); return; }
     /* a figure shows its files; pressed again it lets go (press it again and it closes) */
     if ((el = t.closest('[data-mign-fig]'))){ e.preventDefault(); const k = el.getAttribute('data-mign-fig'); _mign = (_mign === k && k !== 'all') ? 'all' : k; renderMigration({ rows: true }); return; }
     if ((el = t.closest('#mign-choose'))){ e.preventDefault(); const fi = document.getElementById('mign-files'); if (fi) fi.click(); return; }
@@ -2188,10 +2338,11 @@ function migSideSayFive(k){
   const may = canEdit();
   const choose = () => { document.getElementById('mig-files')?.click(); };
   if (!k.files){
-    const drop = may ? `<div class="jov5-drop" role="button" tabindex="0" data-mig-paneldrop aria-label="${esc(i18t('jov5_mig_drop'))}"><span class="jov5-up">${icon('upload', 'jov5-ic', 1.8)}</span>`
-      + `<b>${esc(i18t('jov5_mig_drop'))}</b><span>${esc(i18t('mig_drop_sub', { max:MIG_MAX_FILES }))}</span></div>` : '';
-    return { before:drop, title:i18t('jov5_mig_none_t'), sub:i18t('jov5_mig_none_s'),
-      steps:{ label:i18t('jov5_mig_how'), items:[{ b:i18t('jov5_mig_s1b'), s:i18t('jov5_mig_s1') }, { b:i18t('jov5_mig_s2b'), s:i18t('jov5_mig_s2') }, { b:i18t('jov5_mig_s3b'), s:i18t('jov5_mig_s3') }] },
+    /* P-33: the drop area is drawn ONCE, in the page (the panel's second one goes; its door, data-mig-paneldrop, stays
+       known to the page's press for any older panel); How it goes is a three-step timeline */
+    const how = [['jov5_mig_s1b', 'jov5_mig_s1'], ['jov5_mig_s2b', 'jov5_mig_s2'], ['jov5_mig_s3b', 'jov5_mig_s3']].map(([b, x], i) => ({ mark:'dot', markText:String(i + 1), t:i18t(b), s:i18t(x), wrap:true }));
+    return { title:i18t('jov5_mig_none_t'), sub:i18t('jov5_mig_none_s'), actFirst:true,
+      groups:[{ key:'how', label:i18t('jov5_mig_how'), rows:how }],
       act:may ? { label:i18t('jov5_mig_choose'), run:choose, link:{ label:i18t('jov5_mig_sheet'), run:() => { document.getElementById('mig-manifest-tpl')?.click(); } } } : null, src:false };
   }
   const show = (w) => () => { migShowSet(w, true); migLandFirst(); };
@@ -2983,8 +3134,9 @@ function renderMigration(o){
     // Both entry points hand the whole selection to migProcessFiles, which owns
     // the empty-file rule — a folder is walked first (migDropTake).
     drop.addEventListener('drop',e=>{ if(e.dataTransfer) migDropTake(e.dataTransfer); });
-    document.getElementById('mig-status')?.addEventListener('change',e=>{ M.defaults.status=e.target.value; });
-    bindFolderSelect(document.getElementById('mig-folder'), v=>{ M.defaults.folder=v; });
+    const stSel=document.getElementById('mig-status'), foSel=document.getElementById('mig-folder');
+    if(stSel&&stSel.tagName==='SELECT') stSel.addEventListener('change',e=>{ M.defaults.status=e.target.value; });
+    if(foSel&&foSel.tagName==='SELECT') bindFolderSelect(foSel, v=>{ M.defaults.folder=v; });
     const mf=document.getElementById('mig-manifest-file');
     document.getElementById('mig-manifest-btn')?.addEventListener('click',()=>mf.click());
     mf?.addEventListener('change',()=>{ if(mf.files[0]) migLoadManifest(mf.files[0]); });
@@ -3031,7 +3183,7 @@ function migReconHtml(){
    so every press below reads the live element at press time ---- */
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !(typeof window !== 'undefined' && window._migWired)){
   if (typeof window !== 'undefined') window._migWired = true;
-  const inPage = t => t.closest('.mig-page') || t.closest('#page-head') || t.closest('[data-mig-paneldrop]') || (t.closest('#ins-panel') && t.closest('[data-dup-skip],[data-dup-import],[data-dup-link]'));
+  const inPage = t => t.closest('.mig-page') || t.closest('#page-head') || t.closest('[data-mig-paneldrop]') || (t.closest('#ins-panel') && t.closest('[data-dup-skip],[data-dup-import],[data-dup-link],[data-mig-unsigned]'));
   /* a file dropped on the panel's drop area goes the page strip's way (migDropTake) */
   document.addEventListener('dragover', e => { const d = e.target && e.target.closest && e.target.closest('[data-mig-paneldrop]'); if (d){ e.preventDefault(); d.classList.add('is-over'); } });
   document.addEventListener('dragleave', e => { const d = e.target && e.target.closest && e.target.closest('[data-mig-paneldrop]'); if (d) d.classList.remove('is-over'); });
@@ -3051,7 +3203,14 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
       migResolveDuplicate(i, 'link', box.querySelector(`[data-dup-parent="${i}"]`)?.value, box.querySelector(`[data-dup-rel="${i}"]`)?.value);
       return;
     }
-    if (!t.closest('.mig-page')) return;
+    /* a file that looks unsigned answers from the drawn page's panel too (P-33) */
+    if (!t.closest('.mig-page') && !(t.closest('#ins-panel') && t.closest('[data-mig-unsigned]'))) return;
+    /* P-33: Import as · File under, as set chips — a press opens the small menu, a choice is the batch's (M.defaults) */
+    if ((el = t.closest('[data-mig-chip-open]'))){ const m = el.parentNode.querySelector('.apn-rule-menu'); if (m){ const show = m.hidden; document.querySelectorAll('.mign-start .apn-rule-menu').forEach(x => { x.hidden = true; }); m.hidden = !show; el.setAttribute('aria-expanded', String(show)); } return; }
+    if ((el = t.closest('[data-mig-chip]'))){ const M = migState(), v = el.getAttribute('data-v');
+      if (el.getAttribute('data-mig-chip') === 'mig-status') M.defaults.status = v; else M.defaults.folder = v;
+      renderMigration(); return; }
+    { const open = document.querySelector('.mign-start .apn-rule-menu:not([hidden])'); if (open && !t.closest('.apn-rule-w')) open.hidden = true; }
     if ((el = t.closest('[data-open]'))){ e.stopPropagation(); openWorkspace(el.getAttribute('data-open')); return; }
     if ((el = t.closest('#mig-drop'))){ document.getElementById('mig-files')?.click(); return; }
     /* the tabs and Show N more are the list head's presses (js/views/listhead.js:
@@ -3158,7 +3317,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   });
 }
 
-Object.assign(window,{migMarksOf,migPeriodEnd,migRowC,migTabsHtml,migLooksUnsigned,migSignedAt,migIsoIn,migSignedLineHtml,migPartyGuess,migAmountGuess,migNoticeDays,migNoticeWords,migNoticeDay,migPeriodAt,migAmountWithPeriod,migPendingAsContract,migUnsignedHtml,migStreamName,migParked,MIG_DECIDE,
+Object.assign(window,{migNlKindOf,migNlStatusOf,migNlBadgeHtml,migNlPaperOf,migNlQuoteOf,migNlReadOf,migNlBatchHtml,migNlFactsHtml,migNlLitHtml,migNlUse,migNlDropHtml,migMarksOf,migPeriodEnd,migRowC,migTabsHtml,migLooksUnsigned,migSignedAt,migIsoIn,migSignedLineHtml,migPartyGuess,migAmountGuess,migNoticeDays,migNoticeWords,migNoticeDay,migPeriodAt,migAmountWithPeriod,migPendingAsContract,migUnsignedHtml,migStreamName,migParked,MIG_DECIDE,
   MIG_SEAT,MIG_TABS,migHit,migFound,migTabViews,migHeadActsHtml,migLhRegister,migBandFrameHtml,
   migPickSet,migSideHtml:migSideRowHtml,migSideRowHtml,migSideFacts,migSidePaint,migSideSay,migShowPass,migShowSet,MIG_SHOWS,MIG_ROWS_SHOWN,migShown,migRows,migRowByKey,migStateOf,migQueueState,migCheckWhy,migDupeWhy,migKpis,migHeadFacts,migPaintHead,migBandHtml,migCostLine,migCallsOf,migAllowanceWords,migDropCardHtml,migListHtml,migFolderFor,
   migFormOf,migFormHtml,migFormRead,migFormWaits,migWaitWords,migFileIt,migDateRead,migFind,migDateAt,migAmountAt,migRenewAt,migClauseAt,migFoundAt,migFormMarks,
