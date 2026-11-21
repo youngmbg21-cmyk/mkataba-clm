@@ -211,7 +211,8 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
   check('12a their Notes opens at our drawer\'s width (460, or 92% of a narrow window)', np && n12.w === Math.min(460, Math.floor(n12.vw * 0.92)), JSON.stringify(n12));
   check('12b and leaves the contract lit, as ours does — no scrim', np && !n12.scrim, JSON.stringify(n12));
   check('12c their one room is named as our tabs are, with no strip across the panel', np && !n12.strip && ((!!n12.seat && / \d+$/.test(n12.seat) /* RE-POINTED 13 Nov 2026 (the Thread): the count rides the name without brackets */ && n12.seatTag === 'SPAN')
-    || (n12.rooms >= 2 && / \d+$/.test(n12.lit))), JSON.stringify(n12));
+    /* RE-POINTED 21 Nov 2026 (P-38 rebuilt as drawn): the rooms are pills named without a count */
+    || (n12.rooms >= 2 && !!n12.lit)), JSON.stringify(n12));
   check('12d an empty room says what is empty, never "on this change" for the whole contract', np && !/on this change/i.test(n12.empty), n12.empty);
   await page.screenshot({ path: path.join(OUT, '06-their-notes.png') });
   await press(page, '#pt-notes-close');

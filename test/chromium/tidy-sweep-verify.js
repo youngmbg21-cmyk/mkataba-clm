@@ -287,7 +287,8 @@ const MEASURE = `(() => {
       if (!n.textContent.trim()) continue; const pe = n.parentElement; if (!pe || hidden(pe)) continue;
       let off = false; for (let q = pe; q && q !== el; q = q.parentElement) { const qc = getComputedStyle(q); if (qc.position === 'absolute' || qc.position === 'fixed' || /(auto|scroll)/.test(qc.overflowY)) { off = true; break; } } if (off) continue;
       /* words inside a control: the control's own edge is what stands near the card's */
-      const ctl0 = pe.closest('button, a, .pill, [class*="-pill"], [class*="-chip"], [class*="-tag"]');
+      /* RE-POINTED 21 Nov 2026 (P-33): a label dressed as a button (.ui-btn on a span, Import's "Choose files") paints its own box */
+      const ctl0 = pe.closest('button, a, .ui-btn, .pill, [class*="-pill"], [class*="-chip"], [class*="-tag"]');
       /* only a control that paints its own box; a word-link's edge is its words */
       const ctl = ctl0 && el.contains(ctl0) && ctl0 !== el && paintOf(ctl0) ? ctl0 : null;
       /* words cut with "…" paint only inside their box: their range runs on past it */

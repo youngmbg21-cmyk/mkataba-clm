@@ -16,7 +16,7 @@
    (4) A person's tick: who and when, taken back by the same press, and gone
        when the answer is read again.
    AT THE PARENT (b8671fc) every claim here fails: no /api/ai/column exists.
-   The browser half: test/chromium/ask-a-column-verify.js.
+   The browser half (test/chromium/ask-a-column-verify.js) was RETIRED 21 Nov 2026 at the owner's word: its list door was removed 15 Nov; Discover has its own checks.
    ═══════════════════════════════════════════════════════════════════════════ */
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');

@@ -68,7 +68,7 @@ test('f1091 (5) Jambo\'s panel is the Dossier card on every Settings page', () =
      "Now" left the facts (the badges and the sentence say it), "If you change it" joined them */
   assert.equal((c.match(/actFirst:true/g) || []).length, 2, 'both faces put the one black button first');
   assert.match(c, /k:i18t\('sdd_f_affects'\)[\s\S]*k:i18t\('sdd_f_who'\)[\s\S]*k:i18t\('sdd_f_history'\)[\s\S]*label:i18t\('sdd5_if_h'\)/);
-  assert.match(c, /rows:needs\.map\(x=>\(\{ mark:'', markText:mkOf\(x\), t:x\.text, s:x\.sub, attr:x\.btn\|\|'' \}\)\)/, 'what needs you: rows, each its own door');
+  assert.match(c, /rows:needs\.map\(x=>\(\{ mark:'', markText:mkOf\(x\),(?: tone:[^,]+,)? t:x\.text, s:x\.sub, attr:x\.btn\|\|'' \}\)\)/, 'what needs you: rows, each its own door');
   assert.doesNotMatch(fn('sddRowHtml'), /<button[^>]*data-sdd-go/, 'no button on a row');
 });
 test('f1091 (6) nothing here writes', () => {
