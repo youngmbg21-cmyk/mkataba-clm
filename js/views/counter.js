@@ -969,6 +969,16 @@ function ndTintOf(a){ return a && a.tint === 'no' ? ' is-tint-no' : a && a.tint 
 let _ndbChip = 'all';
 const NDB_GROUPS = [['late', ['late']], ['you', ['you', 'week']], ['jambo', ['jambo']]];
 function ndbGroupOf(k){ return k === 'late' ? 'late' : k === 'jambo' ? 'jambo' : 'you'; }
+/* the act's word ON THE BELL, as drawn (P-38): a row's door is named for what it does there — Open what is late or
+   yours to look at, Decide an approval (never "Approve…", which promises the yes before the reading); Jambo's pieces
+   keep Look. The press is the row's own door either way (P.attrs). */
+/* the agreement's number on the bell's line (as drawn: "Office Lease 2023 · MK-201"), from the row's own contract */
+function ndbRefOf(r, P){
+  const t = _ndText(P.ref || ''); if (t) return t;
+  const c = (r.it && (r.it.c || (r.it.cid && typeof getContract === "function" ? getContract(r.it.cid) : null))) || (r.al && r.al.id && typeof getContract === 'function' ? getContract(r.al.id) : null);
+  return c ? String(c.contractNo || c.id || '') : '';
+}
+function ndbBtnOf(btn, g){ return btn === 'approve' ? 'decide' : (btn === 'look' && g !== 'jambo') ? 'open' : btn; }
 function ndBellNlHtml(D){
   const L = cn2Rows(D), news = D.news || [];
   const n = { late: 0, you: 0, jambo: 0 }; L.forEach(x => { n[ndbGroupOf(x.k)]++; });
@@ -977,14 +987,14 @@ function ndBellNlHtml(D){
     const title = P.title || P.name || '';
     /* the agreement and its number (never money); a row about no one contract keeps its own line */
     const sub = (r.g === 'jambo' || r.company) ? _ndText(P.deal || P.line || '')
-      : [P.note && !String(title).includes(P.note) ? P.note : '', P.name && P.name !== title ? P.name : (!P.name && P.deal && !String(title).includes(_ndText(P.deal)) ? _ndText(P.deal) : ''), P.ref && !String(title).includes(_ndText(P.ref)) ? _ndText(P.ref) : '', P.party && !String(title).includes(P.party) && !String(P.name).includes(P.party) ? P.party : ''].filter(Boolean).join(' \u00b7 ');
+      : [P.note && !String(title).includes(P.note) ? P.note : '', P.name && P.name !== title ? P.name : (!P.name && P.deal && !String(title).includes(_ndText(P.deal)) ? _ndText(P.deal) : ''), ndbRefOf(r, P) && !String(title).includes(ndbRefOf(r, P)) ? ndbRefOf(r, P) : '', P.party && !String(title).includes(P.party) && !String(P.name).includes(P.party) ? P.party : ''].filter(Boolean).join(' \u00b7 ');
     /* A NO IS LIGHT RED, A YES LIGHT GREEN (owner, 17 Nov 2026), and the decider's note is quoted under it */
     const why = r.y && r.y.k === 'c' && r.y.x.it.kind === 'refused' && r.y.x.it.why ? '“' + String(r.y.x.it.why).slice(0, 140) + '”'
       : r.al && r.al.tint && r.al.sub ? String(r.al.sub) : '';
     const tint = ndTintOf(r.al || (r.y && r.y.k === 'c' && r.y.x.it.kind === 'refused' ? { tint: 'no' } : null));
     const quote = cn2QuoteHtml(r).replace(/^ · /, '');
     return `<div class="ndb-r${tint || (P.good ? ' nd-good' : '')}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}" data-ndb-g="${g}"><i class="ndb-dot is-${P.good ? 'good' : g}" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(title)}</b>${sub ? `<span>${_cnE(sub)}</span>` : ''}${quote ? `<span class="ndb-q">${quote}</span>` : ''}${why ? `<span class="ndb-note">${_cnE(why)}</span>` : ''}</div>`
-      + `<div class="ndb-e">${P.when ? `<span class="ndb-when${P.late || g === 'late' ? ' is-late' : ''}">${_cnE(P.when)}</span>` : ''}<button type="button" class="ui-btn ui-btn-sm ndb-open" ${P.attrs}${P.tip ? ` title="${_cnE(P.tip)}"` : ''}>${_cnE(_cnT('nd_btn_' + P.btn))}</button></div></div>`; };
+      + `<div class="ndb-e">${P.when ? `<span class="ndb-when${P.late || g === 'late' ? ' is-late' : ''}">${_cnE(P.when)}</span>` : ''}<button type="button" class="ui-btn ui-btn-sm ndb-open" ${P.attrs}${P.tip ? ` title="${_cnE(P.tip)}"` : ''}>${_cnE(_cnT('nd_btn_' + ndbBtnOf(P.btn, g)))}</button></div></div>`; };
   const newsRow = (a, i) => `<button type="button" class="ndb-r is-news${ndTintOf(a)}" data-alert-i="${i}" data-alert-kind="${_cnE(a.kind || '')}"><i class="ndb-dot is-news" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(a.text || '')}</b>${(a.sub || a.name) ? `<span>${_cnE([a.name, a.sub].filter(Boolean).join(' \u00b7 '))}</span>` : ''}</div></button>`;
   const all = L.length;
   const chip = (k, m) => `<button type="button" class="ndb-chip" data-ndb-chip="${k}" aria-pressed="${_ndbChip === k}">${_cnE(_cnT('ndb_chip_' + k))} <span>${m}</span></button>`;

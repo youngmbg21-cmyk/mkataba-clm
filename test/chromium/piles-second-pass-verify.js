@@ -170,8 +170,9 @@ async function login(b, base, email, pass, errs){
        bar's notes"): the Notes face holds the bar's own drawer (rl-fn-same → rlChatPanelPaint) — its rooms are its tabs
        (.rl-np-tab: our team's room, said only colleagues see it, then the party's), each note a face, the name, the time
        and the clause it is on as a link, its words under it; ONE box with @ and "Add note" */
-    const nv = await waitFor(page, () => { const v = document.querySelector('#pd-redface .rl-fn'); if (!v || !v.querySelector('.rl-np-tab')) return null;
-      return { tabs: [...v.querySelectorAll('.rl-np-tab')].map(t => ({ t: t.innerText.replace(/\s+/g, ' ').trim(), room: t.getAttribute('data-rl-np-room'), only: /Only your colleagues/.test(t.title || ''), on: t.classList.contains('on') })),
+    /* RE-POINTED 21 Nov 2026 (P-38 rebuilt as drawn): the rooms are "Room" and a pill each, named without a count */
+    const nv = await waitFor(page, () => { const v = document.querySelector('#pd-redface .rl-fn'); if (!v || !v.querySelector('.rl-np-room')) return null;
+      return { tabs: [...v.querySelectorAll('.rl-np-room')].map(t => ({ t: t.innerText.replace(/\s+/g, ' ').trim(), room: t.getAttribute('data-rl-np-room'), only: /Only your colleagues/.test(t.title || ''), on: t.classList.contains('on') })),
         back: ((document.querySelector('#ig-dock > .pd-trail') || {}).textContent || ''),
         /* RE-POINTED 21 Nov 2026 (P-38, Notes the Stripe way): one calm row per discussion — the clause, its last words and when */
         lines: [...v.querySelectorAll('.rl-np-crow')].map(l => ((l.querySelector('.rl-np-ch b') || {}).textContent || '') + ' · ' + (((l.querySelector('.rl-np-cl .t') || {}).textContent || '') ? 'when' : '')),
@@ -179,8 +180,8 @@ async function login(b, base, email, pass, errs){
         post: (v.querySelector('.rl-np-send') || {}).textContent, piles: !!(document.querySelector('#pd-redface #rl-changes') || {}).hidden,
         drawer: !!(state.panelOpen && panelFace() === 'notes'), pressed: document.querySelector('#pd-redface [data-rl-notes-all]').getAttribute('aria-pressed') }; }, 6000);
     check('2a Notes opens the notes in the column (no drawer), the button pressed', !!nv && nv.piles && !nv.drawer && nv.pressed === 'true', JSON.stringify(nv && { piles: nv.piles, drawer: nv.drawer, pressed: nv.pressed }));
-    check('2b the rooms as tabs: our team\'s room with its 2 (only colleagues see it, on), the party\'s tab, "‹ Redlines"', !!nv && nv.tabs.length === 2 && nv.tabs[0].room === 'internal' && / 2$/.test(nv.tabs[0].t) && nv.tabs[0].only && nv.tabs[0].on
-      && /^Nordvik Logistik AB 0$/.test(nv.tabs[1].t) && /Redlines[\s\S]*Notes/.test(nv.back || ''), JSON.stringify(nv && [nv.tabs, nv.back]));
+    check('2b the rooms as tabs: our team\'s room with its 2 (only colleagues see it, on), the party\'s tab, "‹ Redlines"', !!nv && nv.tabs.length === 2 && nv.tabs[0].room === 'internal' && /^Internal$/.test(nv.tabs[0].t) && nv.tabs[0].only && nv.tabs[0].on
+      && /^Nordvik Logistik AB$/.test(nv.tabs[1].t) && /Redlines[\s\S]*Notes/.test(nv.back || ''), JSON.stringify(nv && [nv.tabs, nv.back]));
     check('2c each discussion a row: its clause, its words, when', !!nv && nv.lines.length === 2 && nv.lines.every(l => /Liability cap · when$/.test(l))
       && nv.say.join('|') === 'Their cap doubles our exposure.|Ask Sara before we move.', JSON.stringify(nv && [nv.lines, nv.say]));
     check('2d ONE box with @ to name someone, and "Add note"', !!nv && /note/i.test(nv.ph || '') && nv.at && /^Add note$/.test((nv.post || '').trim()), JSON.stringify(nv && [nv.ph, nv.at, nv.post]));
@@ -199,7 +200,7 @@ async function login(b, base, email, pass, errs){
       /* RE-POINTED 16 Nov 2026 (#762): the bar's box files the note where it is written — the contract's thread, or the
          change's own (negoNoteHome) once the clause's link has scoped the notes to it */
       const own = (c.thread || []).concat(...(c.changes || []).map(x => x.thread || [])).filter(m => /Finance can live with 45 days/.test(m.text || ''));
-      return v && own.length === 1 && own[0].visibility !== 'shared' && / 3$/.test(v.querySelector('.rl-np-tab[data-rl-np-room="internal"]').innerText.replace(/\s+/g, ' ').trim())
+      return v && own.length === 1 && own[0].visibility !== 'shared' && !!v.querySelector('.rl-np-room.on[data-rl-np-room="internal"]')
         && [...v.querySelectorAll('.rl-np-crow .rl-np-cl .w, .rl-np-note .rl-np-b > p')].some(s => /Finance can live with 45 days/.test(s.textContent)) ? true : null; }, 8000);
     check('2f Post files one internal note through the drawer\'s own send, and it shows', !!posted);
     await page.click('#ig-dock > .pd-trail [data-pd-back="red-notes"]');

@@ -582,7 +582,7 @@ describe('f264 (8) — Chat is the whole contract’s conversation', () => {
     /* RE-POINTED 21 Nov 2026 (P-38, Notes the Stripe way): each row is ONE calm line that opens its discussion here
        (data-rl-np-open); the change's own door rides inside the opened thread, as the reference did before */
     assert.match(h, /data-rl-np-open="/, 'and each row is a door onto its own discussion');
-    assert.match(String(p.w.win.rlChatPanelHtml), /rlNpOpenHtml\([^)]*refHtml: refOf\(opened\.ch, opened\.th\)/, 'the opened thread still carries the change\'s door');
+    assert.match(String(p.w.win.rlChatPanelHtml), /rlNpOpenHtml\([^)]*headRef: refOf\(opened\.ch, opened\.th\)/, 'the opened thread still carries the change\'s door (its head, P-38 as drawn)');
   });
 
   test('THE REFERENCE IS THE REFERENCE, and nothing round it', () => {

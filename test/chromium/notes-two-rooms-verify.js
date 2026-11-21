@@ -139,7 +139,7 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
         onScreen: !!(r && r.width > 0 && r.right <= innerWidth + 1 && r.left < innerWidth),
         title: (document.getElementById('panel-title') || {}).textContent,
         rooms: [...document.querySelectorAll('[data-rl-np-room]')].map(t => t.textContent.replace(/\s+/g, ' ').trim()),
-        live: (document.querySelector('.rl-np-tab.on') || {}).textContent,
+        live: (document.querySelector(':is(.rl-np-tab, .rl-np-room).on') || {}).textContent,
         box: !!document.querySelector('.rl-np-in'),
         dlgGone: !document.getElementById('rl-note-overlay'),
       };
@@ -186,7 +186,7 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       /* READ OFF THE RECORD, never typed: the fixture takes whichever contract
          the seeded workspace offers, so its counterparty is not ours to know. */
       cp: ((state.contracts || []).find(x => String(x.id) === String(state.activeId)) || {}).counterparty || '',
-      live: (document.querySelector('.rl-np-tab.on') || {}).textContent,
+      live: (document.querySelector(':is(.rl-np-tab, .rl-np-room).on') || {}).textContent,
     }));
     check('the internal room holds the internal note', /fallback is thirty/.test(roomA));
     check('and NOT the shared one', !/rebate stands/.test(roomA));
@@ -488,10 +488,11 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
           .replace(/\s+/g, ' ').trim()),
         text: (document.querySelector('.rl-chat') || {}).textContent
           ? document.querySelector('.rl-chat').textContent.replace(/\s+/g, ' ') : '',
-        panel: !!document.querySelector('#context-panel .rl-np.rl-chat .rl-np-which'),
+        /* RE-POINTED 21 Nov 2026 (P-38 rebuilt as drawn): no band naming the contract over the panel's notes */
+        panel: !!document.querySelector('#context-panel .rl-np.rl-chat'),
         tabs: document.querySelectorAll('#context-panel [data-rl-np-room]').length,
         who: !!document.querySelector('#context-panel .rl-chat .rl-np-who'),
-        scope: !!document.querySelector('#context-panel .rl-chat .rl-np-scope'),
+        scope: !!document.querySelector('#context-panel .rl-chat :is(.rl-np-scope, .rl-np-rooms)'),
         box: !!document.querySelector('#context-panel .rl-np-in') };
     });
     check('THE PRESS OPENS CHAT — not a dead press', chat.open === true);
@@ -568,7 +569,7 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     await page.waitForTimeout(300);
     const ext = await page.evaluate(() => ({
       text: (document.querySelector('.rl-chat') || {}).textContent || '',
-      live: (document.querySelector('.rl-np-tab.on') || {}).textContent }));
+      live: (document.querySelector(':is(.rl-np-tab, .rl-np-room).on') || {}).textContent }));
     check('the external room holds the note that crossed, and not the internal ones',
       /rebate stands/.test(ext.text) && !/fallback is thirty/.test(ext.text),
       (ext.live || '').trim());

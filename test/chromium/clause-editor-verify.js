@@ -3113,7 +3113,7 @@ const dismissNote = async pg => {
       await new Promise(r => setTimeout(r, 150));
       const box = panel.querySelector('.rl-np-in');
       const foot = panel.querySelector('.rl-np-foot');
-      return { tab: (panel.querySelector('.rl-np-tab.on') || {}).textContent,
+      return { tab: (panel.querySelector(':is(.rl-np-tab, .rl-np-room).on') || {}).textContent,
         tinted: !!(foot && foot.classList.contains('out')),
         ph: box ? box.getAttribute('placeholder') : '' };
     });
