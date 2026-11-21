@@ -57,7 +57,8 @@ test('f1073 (4) the four list panels speak the five parts, by the page\'s own pr
   /* RE-POINTED (owner, 16 Nov 2026: "the side panel information should reflect the contract you have pressed"): the
      panel is the pressed round's own; the page's overview is one press back and its rows choose (data-ngn-pick) */
   assert.match(ng, /<div class="ngn-panel jl-words is-ov" data-ngn-for="\$\{E\(c\.id\)\}">/, 'inside .ngn-panel, where the page listens');
-  assert.match(ng, /title: c\.name \|\| ''/, 'the pressed round\'s name is the headline');
+  /* RE-POINTED 21 Nov 2026 (P-29, as drawn): the chosen deal's panel is drawn without cards; its name is the headline */
+  assert.match(ng, /<div class="ngn5-t">\$\{E\(c\.name \|\| ''\)\}<\/div>/, 'the pressed round\'s name is the headline');
   assert.ok(ng.includes('data-ngn-pick='), 'a row of the overview chooses, as a row of the list does');
   assert.match(fnBody(MN, 'mnnPanelHtml'), /newLookOn\(\)\) return mnnPanelFiveHtml\(n\);/);
   const mn = fnBody(MN, 'mnnPanelFiveHtml');

@@ -43,7 +43,9 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   /* 1 · Negotiations */
   try {
     await page.evaluate(() => caGo({ kind: 'go', place: 'negotiations' }));
-    const up = await until(page, () => document.querySelectorAll('.ngn-page [data-ngn-row]').length >= 4, null, 15000);
+    /* RE-POINTED 21 Nov 2026 (P-29, as drawn): Live is what is still argued — the two settled deals are on Settled alone, so Live's chip (2) is
+       the list behind it */
+    const up = await until(page, () => document.querySelectorAll('.ngn-page [data-ngn-row]').length >= 2, null, 15000);
     const R = up ? await page.evaluate(() => ({
       heads: [...document.querySelectorAll('.ngn-table thead th')].map(t => t.innerText.trim().toLowerCase()),
       /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): whose move is a soft badge
@@ -66,7 +68,8 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
          "Your move" in its badge; Nandi's row says "Their move" (the asks both §s are asked of the panel, 1c) */
       && /“.+”/.test(first.ql) && /§ (5|26)\b/.test(first.ql) && first.n === '2' && first.badge === 'Your move'
       && R.rows[1].id === 'MK-A2' && R.rows[1].badge === 'Their move'
-      && R.rows.slice(2).every(r => /is-settled/.test(r.cls)), R && R.rows.map(r => r.id + ' ' + r.badge + ' ' + r.n + ' ' + r.ql.slice(0, 60) + ' · ' + r.t.slice(0, 80)));
+      /* RE-POINTED 21 Nov 2026 (P-29, as drawn): no settled row on Live (they are on Settled, 1f) */
+      && R.rows.length === 2 && !R.rows.some(r => /is-settled/.test(r.cls)), R && R.rows.map(r => r.id + ' ' + r.badge + ' ' + r.n + ' ' + r.ql.slice(0, 60) + ' · ' + r.t.slice(0, 80)));
     /* RE-POINTED (owner, 16 Nov 2026: "the side panel information should reflect the contract you have pressed"): the
        panel is the chosen round alone — its name the headline, its asks, its desk, its one black button; another
        round's chase is no longer on it */
@@ -86,6 +89,10 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     await page.click('[data-ngn-tab="them"]');
     const them = await until(page, () => { const r = [...document.querySelectorAll('[data-ngn-row]')]; return r.length === 1 && r[0].getAttribute('data-ngn-row') === 'MK-A2'; }, null, 5000);
     check('1d Their move: Nandi alone', them);
+    /* RE-POINTED 21 Nov 2026 (P-29, as drawn): the two settled deals on Settled, each with its green Settled badge */
+    await page.click('[data-ngn-tab="settled"]');
+    const settled = await until(page, () => { const r = [...document.querySelectorAll('[data-ngn-row]')]; return r.length === 2 && r.every(x => /is-settled/.test(x.className) && /Settled/.test((x.querySelector('.apn-st.is-green') || {}).textContent || '')); }, null, 5000);
+    check('1f Settled: the two settled deals, a green Settled badge each', settled);
     await page.click('[data-ngn-tab="live"]');
   } catch (e) { check('1 Negotiations', false, String(e).slice(0, 200)); }
 
