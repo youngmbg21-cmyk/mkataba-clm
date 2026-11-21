@@ -433,6 +433,18 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Rules it must keep:** no motion; nothing past the panel's edge; Jambo's box at the foot of every panel; money nowhere but where a setting is about money.
   - **Check before building:** the faults logged on 21 Nov 2026 are fixed in the same build — the act drawn twice (row and panel); "Ask an admin" under Jambo's links; on/off state easy to miss.
 
+### P-44 · History on both sides, and the other side's page, the Legora + Stripe way
+- **Added:** 21 Nov 2026 · **Status:** Waiting
+- **What:** build the owner's picks. (1) A contract's HISTORY, the Legora + Stripe way, THE SAME on our side and on the other side's page, with TWO switches: "The wording" (today's Show the wording) and "The notes" (new). (2) THE OTHER SIDE'S PAGE, the Legora + Stripe way: their Redlines look the same as ours in HaTi, a new History tab, and a bell with Alerts and Notes. Owner's words: "Legora and stripe. For the history on both sides and Legora and stripe for the other sides page" … "Merge it."
+- **Where it came from:** the page clean-up. The drawings: History https://claude.ai/artifact/FHpXAdDT4mKx6XRCkFHPhb ; the other side's page https://claude.ai/artifact/CcLc3PkhtM4bDYfzWXM8EW (choose "The Legora + Stripe way"). Photographed from the running app.
+- **Notes:** what the drawings hold, to be built in full (the picked design is the agreement):
+  - **History (both sides):** newest first, one calm table (when · who · what happened · on which clause), a search and filters with results only, soft badges by kind. Two switches in the head: "The wording" opens each change's struck and new words UNDER ITS ROW (as today); "The notes" opens each change's discussion under its row as a thread with a reply box, or "No notes on this change · Write one". Both may be on together. Our side's panel: "N things happened", a small bar by kind, the exports; Jambo's box at its foot.
+  - **On the other side's page:** their own acts say "You"; OUR INTERNAL NOTES NEVER SHOW (only their room's notes; the server is the wall, `srvMsgScope`); no review, no names we keep inside (`dealStands` rules).
+  - **Their Redlines AS IN HaTi:** the paper with marks, numbered dots and margin notes; the panel with Changes · Notes and our grey cards (clause · who · struck/new · Accept · Reject · Counter · More); Clean · Redline at the top; Save for later · Send back at the foot. No Ladder and no Jambo advice on their side.
+  - **The bell in their bar:** opens a right panel with Alerts · Notes (what waits on them; their notes and replies).
+  - **Where we are · Signing:** Legora + Stripe, as drawn; no Jambo box on their page.
+  - **Check before building:** the faults logged on 21 Nov 2026 on their page are fixed in the same build — "For you: ready to sign" with nothing open; the empty Redlines panel naming a missing "Edit" button; the Signing green tick too early.
+
 ## Done
 
 ### P-20 · Remove "Workspace" from the navigation panel
