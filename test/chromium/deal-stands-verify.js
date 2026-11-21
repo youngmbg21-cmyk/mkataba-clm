@@ -127,6 +127,12 @@ const DEAL = {
       tabs.keys.indexOf('stands') === tabs.keys.indexOf('terms') + 1 && !tabs.keys.includes('ov2'), tabs.keys.join(','));
 
     /* ===== 2-5. THE SHEET ===== */
+    /* RE-POINTED 21 Nov 2026 (the book now loads whole and starts empty on a server, f1137): this check used to open
+       MK-D1 while the demo book was still in hand, so the opening found no contract and spent nothing; it now opens the
+       real one, and a contract never checked against the Playbook is checked ON ITS FIRST OPEN (pbCheckOnOpen, the
+       owner's "B", 19 Nov 2026 — lifts "spends only on a press"). That is the opening's, not this page's: 6a counts
+       what DRAWING Where we are calls, from the press on its tab; the opening may call the Playbook check and nothing else. */
+    const atOpen = ai.splice(0);
     await page.click('#ws-tabs [data-ws-tab="stands"]').catch(() => {});
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): our tab draws the page AS DRAWN
        (standsDrawnHtml, [data-ds2]) — the title and its line naming both parties, six stages, Still open as a table
@@ -190,6 +196,8 @@ const DEAL = {
 
     /* 6. IT SPENDS NOTHING */
     ok('6a drawing it called no generative route', ai.length === 0, ai.join(', ') || 'none');
+    ok('6b and opening the contract called only the Playbook check its first open may make',
+      atOpen.every(u => /\/api\/ai\/playbook\b/.test(u)), atOpen.join(', ') || 'none');
 
     /* 7. READING STARTS NOTHING */
     const clean = await page.evaluate(() => {
