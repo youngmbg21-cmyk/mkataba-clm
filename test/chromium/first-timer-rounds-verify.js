@@ -156,7 +156,8 @@ const DOC = ['WAREHOUSING AND TRANSPORT AGREEMENT', '', '1. SERVICES', 'The Prov
     check(!!(before && before.label === 'Who pays whom?' && before.words.join(' · ') === 'We pay them · They pay us · No money' && before.v === '' && before.say === ''),
       '3a "Who pays whom?" as three presses, none chosen, nothing said', before);
     /* RE-POINTED 24 Oct 2026: the row now ends with where its answer came from — the words quoted */
-    check(!!(before && /^The other company \* .*As on their invoices or letterhead( “Kilifi Haulage”)?$/.test(before.cp)), '3b the other company is named in plain words, with where the name is found', before && before.cp);
+    /* RE-POINTED (P-36, owner's pick 20 Nov 2026: New agreement the Legora + Stripe way): your words quoted and lit carry "your words" beside them */
+    check(!!(before && /^The other company \* .*As on their invoices or letterhead( “Kilifi Haulage”( your words)?)?$/.test(before.cp)), '3b the other company is named in plain words, with where the name is found', before && before.cp);
     await press(P, '[data-pw-for="wz-side"] [data-pw-v="customer"]');
     const after = await drive(P, () => ({ v: document.getElementById('wz-side').value, say: document.querySelector('[data-pw-for="wz-side"] [data-pw-say]').textContent }), null, null);
     check(!!(after && after.v === 'customer' && /^So we are the customer\./.test(after.say)), '3c "We pay them" stores customer and says so', after);

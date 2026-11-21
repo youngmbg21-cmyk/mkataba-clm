@@ -96,14 +96,17 @@ const check = (name, pass, detail) => {
        screen. */
     const tall = await page.evaluate(() => ({
       /* RE-POINTED 18 Nov 2026 (main: Folder Cards): each card says how many papers its folder holds (three shown, "+ N more"); every template is counted on the landing */
-      cards: [...document.querySelectorAll('.tpln5.is-shelves .tpln5-fc[data-tpln-shelf] .tpln5-fcs')].reduce((n, e) => n + (parseInt(e.textContent, 10) || 0), 0),
+      /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way): the shelves are calm cards (.tpln6-fc,
+         a press chooses: data-tpln-pickshelf), each saying "N papers · N drafted" (.tpln6-fcs) */
+      cards: [...document.querySelectorAll('.tpln5.is-shelves .tpln6-fc[data-tpln-pickshelf] .tpln6-fcs')].reduce((n, e) => n + (parseInt(e.textContent, 10) || 0), 0),
       seeAll: !!document.getElementById('tpl-ov-all'),
       bottom: Math.round((document.querySelector('[data-tpl-sec="book"]') || { getBoundingClientRect: () => ({ bottom: 0 }) }).getBoundingClientRect().bottom) }));
     await page.setViewportSize({ width: 2000, height: 700 });
     await page.evaluate(() => renderTemplatesPage());
     await page.waitForTimeout(1600);
     const short = await page.evaluate(() =>
-      [...document.querySelectorAll('.tpln5.is-shelves .tpln5-fc[data-tpln-shelf] .tpln5-fcs')].reduce((n, e) => n + (parseInt(e.textContent, 10) || 0), 0));
+      /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way) */
+      [...document.querySelectorAll('.tpln5.is-shelves .tpln6-fc[data-tpln-pickshelf] .tpln6-fcs')].reduce((n, e) => n + (parseInt(e.textContent, 10) || 0), 0));
     check('the templates book shows every template, whatever the window',
       tall.cards > 0 && tall.cards === short, `${tall.cards} at 1030, ${short} at 700`);
     check('and nothing is held back behind a "see all"', !tall.seeAll, tall.seeAll);

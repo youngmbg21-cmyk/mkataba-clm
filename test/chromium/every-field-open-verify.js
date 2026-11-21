@@ -55,7 +55,8 @@ const PLACES = [
   ['your account', () => openMyAccount(), () => !!document.querySelector('#acct-title')],
   ['company and market', () => openSettingsAt('company', 'company'), () => !!document.querySelector('#st-co-name')],
 ];
-const BOXES = '.jb-card, #cmd-palette, .sh-col-in, .cmd-search, .hist-q, .reg-chip, .reg-f-v, .jl-box, .ik-search, .lh-ask, .na-askbox, .na-ask, .rl-np-box, .rl-card-reply, .sdd-find, .tpln5-box, .nd-bar, .lin-wrap, .pd2-fm-mid';
+/* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way): Our paper's find box is the ask box (.tpln6-ask; .tpln5-box is gone) */
+const BOXES = '.jb-card, #cmd-palette, .sh-col-in, .cmd-search, .hist-q, .reg-chip, .reg-f-v, .jl-box, .ik-search, .lh-ask, .na-askbox, .na-ask, .rl-np-box, .rl-card-reply, .sdd-find, .tpln5-box, .tpln6-ask, .nd-bar, .lin-wrap, .pd2-fm-mid';
 
 (async () => {
   const h = await startHati(); await seedWorkspace(h);

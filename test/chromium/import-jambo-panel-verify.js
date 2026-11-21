@@ -20,6 +20,9 @@
    (.mig-ff) and the drawn doors File it · Open the file; the marks in words
    are a filed file's; Review is "All the details…"; ‹ Jambo lets it go; the
    panel stands at the window's right edge from under the bar.
+   RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way): the panel has no tiles — the batch
+   is a ring with "This batch · N need you"; its head is the chosen file (badge, name); facts with dots; no buttons
+   on the rows (4b retired: Open is the panel's).
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/import-jambo-panel-verify.js */
 const fs = require('node:fs');
@@ -80,9 +83,17 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
        own door (Fill in → the check view; Open the contract). The row's own word opens it (no double-click). */
     const SIDE = '#ins-panel';
     console.log('\n1 · Jambo says the batch');
-    const batch = await until(sel => { const s = document.querySelector(sel); if (!s || !s.querySelector('.jov5-glance')) return null;
-      return [...s.querySelectorAll('.jov5-glance .jov5-g')].map(g => g.textContent.replace(/\s+/g, ' ').trim()); }, SIDE, 6000);
-    check('1a beside the list, Jambo says the batch in its numbers: 1 of 3 filed · 2 need you', !!batch && batch[0] === '1of 3 filed' && batch[1] === '2need you', JSON.stringify(batch));
+    /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */
+    /* the panel has no tiles: the batch is a RING (filed of all) beside "This batch · N need you" (.mign5-batch) */
+    const batch = await until(sel => { const s = document.querySelector(sel); if (!s || !s.querySelector('.mign5-batch')) return null;
+      return { tiles: s.querySelectorAll('.jov5-glance').length, ring: ((s.querySelector('.mign5-batch .mign5-ring text') || {}).textContent || '').trim(),
+        say: ((s.querySelector('.mign5-batch .mign5-bh') || {}).textContent || '').replace(/\s+/g, ' ').trim() }; }, SIDE, 6000);
+    check('1a beside the list, Jambo says the batch: a ring 1/3 filed, "This batch · 2 need you", no tiles', !!batch && batch.tiles === 0 && batch.ring === '1/3' && /This batch\s*2 need you/.test(batch.say), JSON.stringify(batch));
+    /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */
+    /* "Check all · N" is the chosen FILED file's second act (a file that needs you carries Fill in · Open) */
+    { const fk = await page.evaluate(() => (migContracts().find(c => !c.migration.needsReview) || {}).id);
+      if (fk) { await page.locator(`.mign-table tbody tr[data-row="${fk}"] td:nth-child(1)`).click().catch(() => {});
+        await until(([id, sel]) => { const tr = document.querySelector(`.mign-table tr[data-row="${id}"]`); return tr && tr.classList.contains('is-picked') && document.querySelector(sel + ' [data-mign-checkall]') ? true : null; }, [fk, SIDE], 4000); } }
     if (await page.locator(SIDE + ' [data-mign-checkall]').count()) {
       await page.locator(SIDE + ' [data-mign-checkall]').first().click();
       const ck = await until(() => document.getElementById('mig-ck-facts') ? migCheckIds().length : null, null, 4000);
@@ -98,19 +109,24 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
       const f = await until(([id, sel]) => { const s = document.querySelector(sel); const tr = document.querySelector(`.mign-table tr[data-row="${id}"]`);
         if (!s || !tr || !tr.classList.contains('is-picked') || !s.querySelector('.jov5-title')) return null;
         const c = getContract(id);
-        return { lit: document.querySelectorAll('.mign-table tr.is-picked').length, eb: (s.querySelector('.jov5-eb') || {}).textContent || '', file: c && c.migration ? (c.migration.file || c.upload && c.upload.name || '') : '',
-          name: (s.querySelector('.jov5-title') || {}).textContent || '', facts: s.querySelectorAll('.jov5-group .jov5-row').length,
-          need: s.querySelectorAll('.jov5-group .jov5-row .jov5-mk.is-amber').length,
+        /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */
+        /* the panel's head is the file: its badge and its name; what it will be filed as, each fact with a dot — green
+           sure, amber not sure, grey not found ("Not found: needs you") */
+        return { lit: document.querySelectorAll('.mign-table tr.is-picked').length, badge: ((s.querySelector('.mign5-top .apn-st') || {}).textContent || '').trim(), file: c && c.migration ? (c.migration.file || c.upload && c.upload.fileName || c.upload && c.upload.name || '') : '',
+          name: (s.querySelector('.jov5-title') || {}).textContent || '', facts: s.querySelectorAll('.mign5-facts .mign5-f').length,
+          need: [...s.querySelectorAll('.mign5-facts .mign5-f')].filter(x => x.querySelector('.mign5-d.is-amber, .mign5-d.is-gray')).length,
           go: ((s.querySelector('.jov5-go') || {}).textContent || '').trim(), view: state.view }; }, [pick, SIDE], 4000);
       check('2a the row is lit (one row) and the page stays on Import', !!f && f.lit === 1 && f.view === 'migration', JSON.stringify(f && { lit: f.lit, view: f.view }));
-      check('2b the panel says that file: "Check what I was unsure of." and what was read, as rows', !!f && f.name === 'Check what I was unsure of.' && f.facts >= 3 && /^Import · \S/.test(f.eb), JSON.stringify(f && { name: f.name, facts: f.facts, eb: f.eb }));
-      check('2c a fact not found is amber', !!f && f.need >= 1, String(f && f.need));
+      check('2b the panel says that file: its badge "To check", its name, and what it will be filed as, as facts', !!f && f.badge === 'To check' && !!f.name && (!f.file || f.name === f.file) && f.facts >= 3, JSON.stringify(f && { badge: f.badge, name: f.name, file: f.file, facts: f.facts }));
+      check('2c a fact not found (or not sure) wears its own dot, never green', !!f && f.need >= 1, String(f && f.need));
       check('2e the file\'s own door: Fill in', !!f && f.go === 'Fill in', JSON.stringify(f && f.go));
       const filed = await page.evaluate(() => (migContracts().find(c => !c.migration.needsReview) || {}).id);
       await page.locator(`.mign-table tbody tr[data-row="${filed}"] td:nth-child(1)`).click();
+      /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */
       const marks = await until(([id, sel]) => { const tr = document.querySelector(`.mign-table tr[data-row="${id}"]`); if (!tr || !tr.classList.contains('is-picked')) return null;
-        const li = [...document.querySelectorAll(sel + ' .jov5-group .jov5-row')].map(x => x.textContent.replace(/\s+/g, ' ').trim()); return li.length >= 3 ? { li, title: (document.querySelector(sel + ' .jov5-title') || {}).textContent } : null; }, [filed, SIDE], 4000);
-      check('2d a filed file: what was read said in words, and that it was filed', !!marks && /^Filed/.test(marks.title || '') && marks.li.some(m => /Read whole/i.test(m)), JSON.stringify(marks));
+        const li = [...document.querySelectorAll(sel + ' .mign5-facts .mign5-f')].map(x => x.textContent.replace(/\s+/g, ' ').trim());
+        return li.length >= 3 ? { li, badge: ((document.querySelector(sel + ' .mign5-top .apn-st') || {}).textContent || '').trim(), go: ((document.querySelector(sel + ' .jov5-go') || {}).textContent || '').trim() } : null; }, [filed, SIDE], 4000);
+      check('2d a filed file: its badge says Filed, what was read said as facts, its door Open the contract', !!marks && marks.badge === 'Filed' && marks.li.some(m => /^Party/.test(m)) && marks.go === 'Open the contract', JSON.stringify(marks));
       await page.locator(`.mign-table tbody tr[data-row="${pick}"] td:nth-child(1)`).click();
       await until(id => { const tr = document.querySelector(`.mign-table tr[data-row="${id}"]`); return tr && tr.classList.contains('is-picked') ? true : null; }, pick, 3000);
       await shot(page, 'import-jambo-file-1440x780');
@@ -134,13 +150,11 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
         check('4a the panel\'s Open the contract opens the contract', !!opened, String(opened));
       }
       await toImport();
-      /* RE-POINTED (#762): the row's own word — Open on a filed file — opens it; a row press only chooses */
-      await until(sel => document.querySelector(sel), `.mign-table tbody tr[data-row="${filedId}"] [data-mign-go]`, 4000);
-      if (await press(`.mign-table tbody tr[data-row="${filedId}"] [data-mign-go]`, '4b the row\'s Open')) {
-        const opened2 = await until(id => document.querySelector(`#modal-root .cv-page[data-cv="${id}"]`) ? 'cover' : state.view !== 'migration' ? state.view : null, filedId, 6000);
-        check('4b the row\'s own Open opens it', !!opened2, String(opened2));
-      }
-      await toImport();
+      /* RETIRED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way): 4b "the row's own Open opens it" — the
+         drawn table has NO buttons on the rows; a row press only chooses, and the chosen file's Open is the panel's black
+         button (4a). What stands: a row carries no button at all. */
+      const rowBtns = await page.evaluate(() => document.querySelectorAll('.mign-table tbody tr[data-row] button, .mign-table tbody tr[data-row] [data-mign-go]').length);
+      check('4b no buttons on the rows (Open lives in the panel)', rowBtns === 0, String(rowBtns));
     } else check('2 a file to choose', false, 'none to check');
 
     console.log('\n5 · the owner\'s three screens');

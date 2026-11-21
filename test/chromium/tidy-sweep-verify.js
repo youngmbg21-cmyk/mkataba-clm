@@ -406,7 +406,7 @@ const PLACES = [
   { k: 'template', name: "Our paper · a template's page", go: `(async () => { const t = window._tidyTpl || (window._tidyTpl = await api('templates', 'POST', { name: 'Warehousing Logistics Agreement — Nordvane Consumer Brands AB', description: 'Warehousing and logistics services, our standard', category: 'procurement' })); openTemplateLibDetail(t.template.id); })()`, wait: `document.querySelector('#tpl-dt .tpl-dt-line')` },
   { k: 'builder', name: 'Our paper · the builder', go: `(async () => { const t = window._tidyTpl || (window._tidyTpl = await api('templates', 'POST', { name: 'Warehousing Logistics Agreement — Nordvane Consumer Brands AB', category: 'procurement' })); const d = await api('templates/' + t.template.id); openTemplateBuilder(t.template.id, d.versions[0].id); })()`, wait: `document.querySelector('#tb-page #tb-rail, #tb-page .tb-strip')` },
   /* the Ladder (17 Nov 2026): Standards is its own page */
-  { k: 'standards', name: 'Standards', go: `setView('playbook')`, wait: `document.querySelector('.ld-page .ld-rung')` },
+  { k: 'standards', name: 'Standards', go: `setView('playbook')`, wait: `document.querySelector('.ld-page .ld6-rung, .ld-page .ld-rung')` },   /* RE-POINTED (P-35, owner's pick 20 Nov 2026: Playbook the Legora + Stripe way): the ladder's rungs are .ld6-rung */
   { k: 'people', name: 'People', go: `setView('directory')`, wait: `document.querySelector('.dir-td-wrap, .dir-table, .sap-page')` },
   { k: 'customers', name: 'Customers', go: `setView('customers')`, wait: `document.querySelector('.cu-page, .cu-table, .sap-page')` },
   { k: 'mynotes', name: 'My notes', go: `setView('mynotes')`, wait: `document.querySelector('.mn-page, #mn-root, .sap-page')` },

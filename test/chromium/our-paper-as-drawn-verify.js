@@ -40,6 +40,10 @@
        hand; › folds the panel to the edge and its strip opens it
     10 the owner's three screens: nothing sideways, the panel and the page
        side by side, the builder's head on one line
+   RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way): 1 the head is the name alone with
+   Our playbook › and New standard, one ask box and the chips; the numbers said once, in the panel under All; 2 one
+   calm table (shelf and kind badges, drafted, signed), "+ Shelf" in place of the stream chips; 3 the paper's column:
+   badges and a 2×2 of facts; 5 panels without tiles (the paper's: latest drafted; the list's: three bars, 5g).
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/our-paper-as-drawn-verify.js */
 const fs = require('node:fs');
@@ -149,12 +153,18 @@ async function SEED(){
        carries its count */
     /* RE-POINTED 17 Nov 2026 (#762): the head's name is .tpln5-h1 with its count beside it (.tpl-hd-n); the switch is
        the filter line's Shelves · All, each with its count */
-    const A = await page.evaluate(() => ({ h1: ((document.querySelector('.tpln5-h1') || {}).textContent || '') + ' ' + ((document.querySelector('.tpln5-hrow .tpl-hd-n') || {}).textContent || ''), sub: (document.querySelector('[data-tpl-hd-sub]') || {}).textContent || '',
-      tabs: [...document.querySelectorAll('[data-tpl-sec="book"] .tpln5-tab')].map(b => b.textContent.trim()) }));
-    check('1a the head says the page\'s name with its count', /^Our paper\s*\d+ templates$/.test(A.h1.trim()), A.h1);
-    check('1b one facts line: contracts drafted in 12 months · came back changed', /^\d+ contracts? drafted from them in 12 months · \d+ came back changed$/.test(A.sub.trim()) && /^5 |^[5-9]|^\d{2}/.test(A.sub.trim()), A.sub);
+    /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way) */
+    /* the head: Our paper alone (no count, no facts line beside it), Our playbook › and New standard (black) on its right;
+       under it ONE ask box and chips Shelves · All with their counts. The three numbers are said ONCE, in the panel under
+       All (1b, read below once All is open) */
+    const A = await page.evaluate(() => ({ h1: (document.querySelector('.tpln5-h1') || {}).textContent || '', count: !!document.querySelector('.tpln5-hrow .tpl-hd-n, [data-tpl-hd-sub]'),
+      std: ((document.querySelector('.tpln5-hrow .tpln5-std') || {}).textContent || '').trim(), neu: (b => b ? [b.textContent.trim(), b.classList.contains('ui-btn-primary')] : null)(document.querySelector('.tpln5-hrow [data-tpln-new]')),
+      ask: !!document.querySelector('[data-tpl-sec="book"] label.apn-ask [data-tpln-q]'),
+      tabs: [...document.querySelectorAll('[data-tpl-sec="book"] .apn-bar .apn-tab.is-chip[data-tpln-view]')].map(b => b.textContent.trim()) }));
+    check('1a the head says the page\'s name alone, Our playbook › and New standard (black) beside it', A.h1.trim() === 'Our paper' && !A.count && A.std === 'Our playbook ›'
+      && !!A.neu && A.neu[0] === 'New standard' && A.neu[1], JSON.stringify(A));
     /* RE-POINTED 17 Nov 2026 (the Ladder): Our standards left Our paper; two parts remain, the book and Templates */
-    check('1c a count on each of the two switches (Shelves · All)', A.tabs.length === 2 && A.tabs.every(t => /\d+$/.test(t)), JSON.stringify(A.tabs));
+    check('1c one ask box, and a count on each of the two chips (Shelves · All)', A.ask && A.tabs.length === 2 && A.tabs.every(t => /\d+$/.test(t)), JSON.stringify(A.tabs));
 
     /* 2 THE INDEX */
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; OUR PAPER, THE LEGORA WAY, owner's pick 14 Nov 2026):
@@ -164,21 +174,39 @@ async function SEED(){
     /* RE-POINTED 17 Nov 2026 (#762): the one list is the All step; a press there chooses (lit) */
     await press('[data-tpl-sec="book"] [data-tpln-view="list"]');
     await until(() => tplPlace().view === 'list' && !!document.querySelector('.tpln-lrs [data-tpl-pf]'));
+    /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way) */
+    /* the three numbers said once: under All, Jambo's panel speaks for the whole book — N templates, and how many of the
+       drafts came back changed */
+    const A2 = await until(() => { const p = document.getElementById('ins-panel'); const sub = p && p.querySelector('.jov5 .jov5-sub'); if (!sub) return null;
+      return { sub: sub.textContent.trim(), ch: ((p.querySelector('.jov5 [data-jov5-sec="changed"]') || {}).textContent || '').replace(/\s+/g, ' ').trim() }; }, null, 6000);
+    check('1b the numbers said once, in the panel: N templates · N of N drafts came back changed', !!A2 && /^\d+ templates in \d+ folders\.$/.test(A2.sub) && /\b\d+ of ([5-9]|\d{2,}) drafts came back changed\./.test(A2.ch), JSON.stringify(A2));
     await press(`[data-tpl-sec="book"] .tpln-lrs [data-tpl-pf="${MSA}"]`);
     await until(k => tplPlace().pick === k && document.querySelector('.tpln-lrs .tpln-lr.is-on'), MSA);
     /* a company paper's first line is read in the background (tplnQuotesFill), bounded */
     await until(k => !!document.querySelector(`.tpln-lrs [data-tpl-pf="${k}"] .tpln-q`), MSA, 6000);
-    const B = await page.evaluate(() => ({ rows: [...document.querySelectorAll('.tpln-lrs [data-tpl-pf]')].map(b => [b.textContent.replace(/\s+/g, ' ').trim(), b.classList.contains('is-on') && b.getAttribute('aria-pressed') === 'true', !b.hidden]) }));
+    /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way) */
+    /* ONE CALM TABLE (.tpln6-table): a row (tr.tpln-lr) is a lettered mark, the name with "§ 1 · " and its opening words,
+       Shelf and Kind as soft badges, Drafted from it (a bar and the number), Signed; the chosen row aria-selected */
+    const B = await page.evaluate(() => ({ rows: [...document.querySelectorAll('.tpln-lrs tr.tpln-lr[data-tpl-pf]')].map(b => [b.textContent.replace(/\s+/g, ' ').trim(), b.classList.contains('is-on') && b.getAttribute('aria-selected') === 'true', !b.hidden,
+      [...b.children].map(td => td.textContent.replace(/\s+/g, ' ').trim())]), table: !!document.querySelector('.tpln5.is-list table.tpln6-table') }));
     const lit = B.rows.filter(r => r[1]);
-    check('2a every template one row in one list, the chosen one lit, the rest one line each', B.rows.length >= 14 && lit.length === 1 && /^M Master services agreement/.test(lit[0][0]) && B.rows.every(r => r[2]), JSON.stringify(B.rows.map(r => r[0].slice(0, 40) + (r[1] ? ' *' : ''))));
-    check('2b a row says its name, its stream, its first line quoted and its uses',
-      B.rows.some(r => /Master services agreement\s*Sales\s*§ 1 · “This agreement is made between Highland Corporate Ltd.*” 5 uses$/.test(r[0])) && B.rows.some(r => /Reseller agreement\s*Sales.* 0 uses$/.test(r[0])), JSON.stringify(B.rows.map(r => r[0])));
+    check('2a every template one row in one calm table, the chosen one lit, the rest one line each', B.table && B.rows.length >= 14 && lit.length === 1 && /^M Master services agreement/.test(lit[0][0]) && B.rows.every(r => r[2]), JSON.stringify(B.rows.map(r => r[0].slice(0, 40) + (r[1] ? ' *' : ''))));
+    const msaRow = B.rows.find(r => /^M Master services agreement/.test(r[0])), resRow = B.rows.find(r => /Reseller agreement/.test(r[0]));
+    check('2b a row says its name with its first line quoted (§ 1), its shelf and kind, drafted from it and signed',
+      !!msaRow && msaRow[3].length === 5 && /Master services agreement\s*§ 1 · “This agreement is made between Highland Corporate Ltd.*”$/.test(msaRow[3][0]) && msaRow[3][1] === 'Sales' && !!msaRow[3][2] && msaRow[3][3] === '5' && /^\d+$/.test(msaRow[3][4])
+      && !!resRow && resRow[3][1] === 'Sales' && resRow[3][3] === '0', JSON.stringify([msaRow && msaRow[3], resRow && resRow[3]]));
     const shown = () => page.evaluate(() => [...document.querySelectorAll('.tpln-lrs [data-tpl-pf]')].filter(b => !b.hidden).length);
-    const salesChip = await page.evaluate(() => { const b = [...document.querySelectorAll('[data-tpln-chip]')].find(x => /^Sales\b/.test(x.textContent.trim())); if (!b) return null; b.click(); return b.textContent.trim(); });
-    const B2 = salesChip ? await until(n => { const k = [...document.querySelectorAll('.tpln-lrs [data-tpl-pf]')].filter(b => !b.hidden); return k.length && k.length < n && k.every(b => /Sales/.test(b.textContent)) ? k.length : null; }, B.rows.length) : 0;
-    await press('[data-tpln-chip=""]');
+    /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way) */
+    /* the streams' chips went: "+ Shelf" opens a small menu of the shelves, a shelf chosen opens its own list (the shelves
+       then as chips, the chosen one set); Shelves and All bring every row back */
+    const salesChip = await page.evaluate(() => { const b = [...document.querySelectorAll('[data-tpl-sec="book"] [data-tpln-shelfchip]')].find(x => /^Sales\b/.test(x.textContent.trim())); if (!b) return null; b.click(); return b.textContent.trim(); });
+    const B2 = salesChip ? await until(n => { const k = [...document.querySelectorAll('.tpln-lrs [data-tpl-pf]')].filter(b => !b.hidden); const set = document.querySelector('[data-tpl-sec="book"] .apn-tab.is-chip.is-shelf.is-on');
+      return k.length && k.length < n && set && /^Sales\b/.test(set.textContent.trim()) && k.every(b => /Sales/.test(b.textContent)) ? k.length : null; }, B.rows.length) : 0;
+    await press('[data-tpl-sec="book"] [data-tpln-view="shelves"]');
+    await until(() => tplPlace().view === 'shelves');
+    await press('[data-tpl-sec="book"] [data-tpln-view="list"]');
     const B3 = await until(n => [...document.querySelectorAll('.tpln-lrs [data-tpl-pf]')].filter(b => !b.hidden).length === n ? n : null, B.rows.length);
-    check('2c a stream\'s chip narrows the list, All brings every row back', !!salesChip && B2 >= 2 && B3 === B.rows.length, `${salesChip} ${B2} → ${B3 || await shown()}`);
+    check('2c "+ Shelf" opens a shelf\'s list (its chip set), All brings every row back', !!salesChip && B2 >= 2 && B3 === B.rows.length, `${salesChip} ${B2} → ${B3 || await shown()}`);
 
     const ready = await openPaper(MSA) && await until(q => document.querySelector('[data-tpl-sec="book"] .tpln5.is-paper .tpl-pf-sheet .tpl-mks') && !!document.querySelector(q), JL, 12000);
     check('0b the book paints its paper, its marks and Jambo\'s panel', !!ready);
@@ -188,12 +216,13 @@ async function SEED(){
        the paper its facts line (kind · folder · N uses; .tpln5-meta), its figures (made · signed · came back changed;
        .tpln5-facts) and its own verbs, the black one first (tplnPaperHtml, as drawn). The 16 Nov "used 5 times, last
        with <party>" line is not drawn on this step (MAP-HISTORY: "the paper step says 'N uses'") */
-    const C = await page.evaluate(() => ({ h2: (document.querySelector('.tpln5-h1') || {}).textContent || '', facts: (document.querySelector('.tpln5.is-paper .tpln5-meta') || {}).textContent || '',
-      figs: [...document.querySelectorAll('.tpln5.is-paper .tpln5-facts > div')].map(d => d.textContent.replace(/\s+/g, ' ').trim()),
+    /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way) */ /* the column the Stripe way: shelf and kind as soft badges (.tpln6-badges), four facts as a 2×2 with thin bars (.tpln6-facts .tpln6-fa) */
+    const C = await page.evaluate(() => ({ h2: (document.querySelector('.tpln5-h1') || {}).textContent || '', facts: [...document.querySelectorAll('.tpln5.is-paper .tpln6-badges .tpln6-badge')].map(b => b.textContent.trim()),
+      figs: [...document.querySelectorAll('.tpln5.is-paper .tpln6-facts > .tpln6-fa')].map(d => d.textContent.replace(/\s+/g, ' ').trim()),
       acts: [...document.querySelectorAll('.tpln5.is-paper [data-tpl-pf-act]')].map(b => [b.textContent.trim(), b.disabled, b.classList.contains('ui-btn-primary')]) }));
     check('3a the chosen paper\'s name heads the step', /^Master services agreement$/.test(C.h2.trim()), C.h2);
-    check('3b "<kind> · Sales · 5 uses", and its figures: made 5 · 2 came back changed',
-      /^[^·]+ · Sales[^·]* · 5 uses$/.test(C.facts.trim()) && C.figs.some(f => /5$/.test(f) && /made/i.test(f)) && C.figs.some(f => /came back changed\s*2$/i.test(f)), JSON.stringify({ facts: C.facts, figs: C.figs }));
+    check('3b its shelf (Sales) and kind as badges, and four facts: made 5 · signed · 2 came back changed · blanks',
+      C.facts.length === 2 && C.facts[0] === 'Sales' && C.figs.length === 4 && C.figs.some(f => /^Made\s*5$/.test(f)) && C.figs.some(f => /came back changed\s*2$/i.test(f)), JSON.stringify({ facts: C.facts, figs: C.figs }));
     check('3c the verbs: Draft from it (the primary, first) · Open in the builder', JSON.stringify(C.acts.map(a => a[0])) === JSON.stringify(['Draft from it', 'Open in the builder']) && C.acts[0][2] === true && !C.acts[0][1], JSON.stringify(C.acts));
 
     /* 4 THE PAPER */
@@ -213,6 +242,8 @@ async function SEED(){
         /* RE-POINTED 16 Nov 2026 (#762): his words are the Five panel's parts — title, sub, tiles, groups, the act */
         title: (p.querySelector('.jov5 .jov5-title') || {}).textContent || '', sub: (p.querySelector('.jov5 .jov5-sub') || {}).textContent || '',
         tiles: [...p.querySelectorAll('.jov5 .jov5-g')].map(g => [g.textContent.replace(/\s+/g, ' ').trim(), g.tagName === 'BUTTON']),
+        /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way) */ labels: [...p.querySelectorAll('.jov5 .jov5-sec .jov5-label')].map(l => l.textContent.trim()), foot: ((p.querySelector('.jov5 [data-jov5-sec="latest"] .jov5-flink') || {}).textContent || '').trim(),
+        latest: p.querySelectorAll('.jov5 [data-jov5-sec="latest"] .jov5-row').length,
         groups: [...p.querySelectorAll('.jov5 .jov5-sec')].map(g => g.textContent.replace(/\s+/g, ' ').trim()),
         say: (p.querySelector('.jov5 .jov5-act .jov5-say') || {}).textContent || '', go: (p.querySelector('.jov5 .jov5-act .jov5-go') || {}).textContent || '',
         link: (p.querySelector('.jov5 .jov5-act .jov5-acts > :not(.jov5-go)') || {}).textContent || '', ph: (p.querySelector('#jl-q') || {}).placeholder || '', hints: p.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length,
@@ -231,12 +262,16 @@ async function SEED(){
        record are the panel's title, sub and tiles (made 5 · signed · 2 came back changed, the last a door) and the
        group of what came back changed by clause kind (Liability cap 2 times, Payment terms 1 time). "It meets N of Our
        standards" is no longer said on this panel (the Standards shelf counts them) — RETIRED that clause only */
-    check('5b his words, from the record: made 5, 2 came back changed — Liability cap twice, Payment terms once',
-      E.title.trim() === 'Master services agreement' && /^Made 5 agreements; 2 came back changed\.$/.test(E.sub.trim())
-      && E.tiles.length === 3 && /^5\s*made$/.test(E.tiles[0][0]) && /^2\s*came back changed$/.test(E.tiles[2][0]) && E.tiles[2][1]
-      && E.groups.some(g => /Liability cap\s*2 times/i.test(g) && /Payment terms\s*1 time\b/i.test(g)), JSON.stringify({ t: E.title, s: E.sub, tiles: E.tiles, g: E.groups }));
-    check('5c the next step: Draft from it (his one black button), Open in the builder beside it', /^Start a new agreement from this paper/.test(E.say.trim())
-      && E.go.trim() === 'Draft from it' && E.link.trim() === 'Open in the builder', JSON.stringify({ say: E.say, go: E.go, link: E.link }));
+    /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way) */
+    /* on the paper's own step the panel carries what the page's column does not: no tiles, no "Made N" (said in the
+       column), the latest agreements drafted from it with "All 5 ›" (and, where our playbook is read on it, what this
+       paper holds). RETIRED: the group "came back changed by clause kind" (Liability cap twice, Payment terms once) — no
+       panel draws it now; the paper's own marks say it under each clause (4b) */
+    check('5b his words, from the record: the paper\'s name, no tiles, the latest drafted from it and All 5 ›',
+      E.title.trim() === 'Master services agreement' && !E.sub.trim() && E.tiles.length === 0 && E.labels.includes('Latest drafted from it') && E.latest === 3 && /^All 5 ›$/.test(E.foot),
+      JSON.stringify({ t: E.title, s: E.sub, tiles: E.tiles, labels: E.labels, latest: E.latest, foot: E.foot }));
+    /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way) */ /* the verbs stand once, in the page's column beside the paper (3c): the panel draws no second Draft from it */
+    check('5c the next step is the column\'s: the panel on the paper draws no second Draft from it', !E.go.trim(), JSON.stringify({ say: E.say, go: E.go, link: E.link }));
     /* RE-POINTED 21 Oct 2026 (Chambers, owner's pick 20 Oct 2026): no hint line under any Jambo box */
     /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): Jambo's panel FLOATS, a white card 8px in from the window's edge, its top and its foot (the owner's drawing) */
     check('5d the ask box at the panel\'s foot, no hint line under it; the panel 8px in from the window\'s edge', E.ph === 'Ask Jambo, or type / for a place' && E.hints === 0 && E.right, JSON.stringify({ ph: E.ph, hints: E.hints, right: E.right }));
@@ -249,15 +284,26 @@ async function SEED(){
     await press('[data-tpl-sec="book"] .tpln-lrs [data-tpl-pf="' + MSA + '"]');
     const E3 = await until(q => [...document.querySelectorAll(q + ' .jov5-title')].some(t => t.textContent.trim() === 'Master services agreement'), JL);
     check('5f a press on the template holds it again', !!E3);
+    /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way) */
+    /* chosen in the list, the panel speaks for the paper: its badges, "Made 5 agreements · 2 came back changed", what
+       happened to its drafts as three bars (Drafted · Signed · Came back changed, the last a door), Draft from it black
+       with Open the paper beside it; no tiles */
+    const E4 = await until(q => { const p = document.querySelector(q); if (!p) return null; const t = p.querySelector('.jov5-title'); if (!t || t.textContent.trim() !== 'Master services agreement') return null;
+      return { sub: ((p.querySelector('.jov5-sub') || {}).textContent || '').trim(), tiles: p.querySelectorAll('.jov5-g, .jov5-glance').length,
+        bars: [...p.querySelectorAll('.tpln6-bars.is-flow .tpln6-bar')].map(b => [b.textContent.replace(/\s+/g, ' ').trim(), b.hasAttribute('data-tpln-changed')]),
+        go: ((p.querySelector('.jov5-act .jov5-go') || {}).textContent || '').trim(), link: ((p.querySelector('.jov5-act .jov5-acts > :not(.jov5-go)') || {}).textContent || '').trim() }; }, JL);
+    check('5g in the list, the panel: Made 5 · 2 came back changed, three bars (the last a door), Draft from it with Open the paper', !!E4 && /^Made 5 agreements · 2 came back changed$/.test(E4.sub) && !E4.tiles
+      && E4.bars.length === 3 && /^Drafted\s*5$/.test(E4.bars[0][0]) && /^Came back changed\s*2$/.test(E4.bars[2][0]) && E4.bars[2][1] && E4.go === 'Draft from it' && E4.link === 'Open the paper', JSON.stringify(E4));
 
     /* 6 DOORS LAND */
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the old panel's chip "where it came back changed"
        (which lit the mark on the paper) is gone; its door is Jambo's "came back changed" tile, which opens the Contracts
        list narrowed to the contracts it counts (the same door as the mark, 6b) */
-    await page.evaluate(q => { const b = [...document.querySelectorAll(q + ' button.jov5-g')].find(x => /came back changed/.test(x.textContent)); if (b) b.click(); }, JL);
+    /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way) */ /* the "came back changed" tile is the panel's bar of that name, a door ([data-tpln-changed]) */
+    await page.evaluate(q => { const b = [...document.querySelectorAll(q + ' button.tpln6-bar[data-tpln-changed]')].find(x => /came back changed/i.test(x.textContent)); if (b) b.click(); }, JL);
     const F1 = await until(() => { if (state.view !== 'register' && state.view !== 'dashboard' && state.view !== 'counter') return null;
       const only = state.reg && state.reg.only; return only && Array.isArray(only.ids) ? only.ids.slice().sort().join(',') : null; }, null, 8000);
-    check('6a Jambo\'s "came back changed" tile opens the Contracts list narrowed to the two contracts it counts', !!F1 && F1.split(',').length === 2, F1);
+    check('6a Jambo\'s "came back changed" bar opens the Contracts list narrowed to the two contracts it counts', !!F1 && F1.split(',').length === 2, F1);
     await page.evaluate(() => { if (state.reg) state.reg.only = null; setView('templates'); tplPageSetTab('book'); });
     await until(() => !!document.querySelector('.tpl-mk.is-changed'));
     await press('.tpl-mk.is-changed');

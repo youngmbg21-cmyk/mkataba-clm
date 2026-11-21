@@ -67,7 +67,9 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
        press that shows its own files ([data-mign-fig], migNlFigsHtml), the table .mign-table, and Choose files
        the head's black button (#mign-choose) — the drop strip stands only on the empty page. The promises stand:
        a figure is a door whose number is the rows it shows; a tab is a tab (pressed again it stays), All brings
-       the whole list back with the foot counting it; Choose files still opens the chooser; the three screens. */
+       the whole list back with the foot counting it; Choose files still opens the chooser; the three screens.
+       RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way): the five figures are ONE batch bar
+       (.mign-batch) whose legend words carry the figures' presses ([data-mign-fig]); the tabs are chips. */
     const ROWS = '.mign-table tbody tr[data-row]';
     const rows = sel => [...document.querySelectorAll(sel)].map(r => r.getAttribute('data-row'));
     await until(sel => document.querySelector(sel), ROWS, 8000);
@@ -82,9 +84,10 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
     const door = await page.$(FIG);
     if (door) await page.click(FIG);
     const R1 = await until(([sel, rs]) => { const b = document.querySelector(sel); if (!b || b.getAttribute('aria-pressed') !== 'true') return null;
-      return { ids: [...document.querySelectorAll(rs)].map(r => r.getAttribute('data-row')), n: Number((b.querySelector('b') || {}).textContent) }; }, [FIG, ROWS]);
+      /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */ /* the figure tiles became the batch bar's legend: the word says "N to check", its number leads it */
+      return { ids: [...document.querySelectorAll(rs)].map(r => r.getAttribute('data-row')), n: parseInt(b.textContent.trim(), 10), legend: !!b.closest('.mign-batch .mign-bkey') }; }, [FIG, ROWS]);
     const want = await page.evaluate(() => migContracts().filter(c => c.migration.needsReview).map(c => c.id).sort());
-    check('1 To check narrows the list to the ones it counts, and the figure\'s number is the rows it shows', !!R1 && JSON.stringify(R1.ids.slice().sort()) === JSON.stringify(want) && R1.n === want.length,
+    check('1 To check (the batch bar\'s legend word) narrows the list to the ones it counts, and its number is the rows it shows', !!R1 && R1.legend && JSON.stringify(R1.ids.slice().sort()) === JSON.stringify(want) && R1.n === want.length,
       JSON.stringify({ R0, R1, want }));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'import-sap-way-1440x780.png') });
 

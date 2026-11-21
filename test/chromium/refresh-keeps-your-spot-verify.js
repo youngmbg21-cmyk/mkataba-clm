@@ -179,8 +179,9 @@ const check = (name, pass, detail) => {
     /* RE-POINTED 17 Nov 2026 (#762): Our paper has no second tab in the new look (Shelves, then the Legora way: the
        table's doors open the list step). The promise kept is the same: a refresh lands on the step the reader was on —
        here a paper opened from a folder's carousel, its folder and its paper both kept (tplPlace / tplPlacePut). */
-    await until(() => document.querySelector('.tpln5-fcp[data-tpln-open]'));
-    const tw = await page.evaluate(() => { const b = document.querySelector('.tpln5-fcp[data-tpln-open]'); if (!b) return null; b.click(); const p = tplPlace(); return p.view === 'paper' ? { view: p.view, pick: p.pick, ls: p.ls } : null; });
+    /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way): a shelf card's paper is .tpln6-fp */
+    await until(() => document.querySelector('.tpln6-fc .tpln6-fp[data-tpln-open]'));
+    const tw = await page.evaluate(() => { const b = document.querySelector('.tpln6-fc .tpln6-fp[data-tpln-open]'); if (!b) return null; b.click(); const p = tplPlace(); return p.view === 'paper' ? { view: p.view, pick: p.pick, ls: p.ls } : null; });
     await until(() => document.querySelector('.tpln5.is-paper'));
     await reload();
     const tp = await until(() => state.view === 'templates' && window.tplPlace && document.querySelector('.tpln5.is-paper') ? (p => ({ view: p.view, pick: p.pick, ls: p.ls }))(tplPlace()) : null);

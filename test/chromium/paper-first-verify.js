@@ -53,7 +53,9 @@ const check = (name, pass, detail) => {
     await until(() => document.querySelector('[data-tpl-sec="book"] .tpln5.is-shelves'), null, 12000);
     await page.evaluate(() => { const b = document.querySelector('[data-tpl-sec="book"] [data-tpln-view="list"]'); if (b) b.click(); });
     const L = await until(() => { const sec = document.querySelector('[data-tpl-sec="book"]'); if (!sec || !sec.querySelector('.tpln5.is-list .tpln-lrs')) return null;
-      return { rows: sec.querySelectorAll('.tpln-lrs [data-tpl-pf]').length, groups: [...sec.querySelectorAll('[data-tpln-chip]')].map(g => g.textContent.trim()) }; }, null, 8000);
+      /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way): the stream chips went; the shelves are
+         under "+ Shelf" ([data-tpln-shelfchip], each opening its shelf's list) */
+      return { rows: sec.querySelectorAll('.tpln-lrs [data-tpl-pf]').length, groups: [...sec.querySelectorAll('[data-tpln-shelfchip]')].map(g => g.textContent.trim()) }; }, null, 8000);
     /* press a row twice: the first chooses, the second opens its paper */
     const open2 = async (re) => {
       const k = await page.evaluate(src => { const b = [...document.querySelectorAll('[data-tpl-sec="book"] .tpln-lrs [data-tpl-pf]')].find(x => !x.hidden && new RegExp(src, 'i').test(x.textContent)); return b ? b.getAttribute('data-tpl-pf') : null; }, re);
@@ -68,7 +70,7 @@ const check = (name, pass, detail) => {
           clauses: sh.querySelectorAll('h2, h3, h4, [data-clause-id], .hati-cl').length } : null; }, { t: k, name });
     };
     const A = await open2('.');
-    check('1 an index of every template with its streams as chips; a chosen one opens its own paper, its name the head',
+    check('1 an index of every template with its shelves under + Shelf; a chosen one opens its own paper, its name the head',
       !!L && L.rows >= 12 && L.groups.length >= 2 && !!A && A.title === A.name && A.words > 500, JSON.stringify({ L, A: A && { name: A.name, title: A.title, words: A.words, clauses: A.clauses } }));
 
     await page.click('[data-tpln-back]');
