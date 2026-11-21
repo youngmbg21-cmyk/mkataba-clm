@@ -18031,6 +18031,8 @@ async function rlNotesSend(host, c, ch, opts, room, extra = {}){
     anchor: (pin && pin.quote) ? { clauseId: pin.clauseId, quote: pin.quote } : undefined,
     replyTo: reply ? extra.replyTo : undefined });
   if (!msg) return false;
+  /* THE NOTE JUST WRITTEN OPENS ITS DISCUSSION (P-38, Notes the Stripe way): the list is a row per thread, so the writer lands on what they wrote, its words and its anchor, lit */
+  try { _rlNpFocusKey = negoNoteKey(msg); } catch (_){}
   /* ---- ADD NOTE SPENDS THE PIN (Young, 11 Sep 2026, evening: "when you
      click add note, these cards should disappear") ----
      ONE PRESS, and the pin is gone: the note it was holding now carries the
