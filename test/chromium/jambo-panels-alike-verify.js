@@ -98,7 +98,8 @@ const SAY = () => { ai.history.length = 0; ai.history.push({ role: 'user', text:
       await P.waitForTimeout(300);
       /* 1 THE OVERVIEW'S ROOM: where its words actually stand, against the panel's own box */
       const room = await P.evaluate(s => {
-        const root = document.querySelector(s); const jov = [...root.querySelectorAll('.jov')].find(e => e.getBoundingClientRect().height > 0);
+        /* RE-POINTED 21 Nov 2026 (P-31, as drawn): beside Contracts the Overview is the drawn panel (.ctls), the same 16px rule */
+        const root = document.querySelector(s); const jov = [...root.querySelectorAll('.jov, .ctls')].find(e => e.getBoundingClientRect().height > 0);
         if (!jov) return null;
         const c = root.getBoundingClientRect(), cs = getComputedStyle(root);
         const l0 = c.left + parseFloat(cs.borderLeftWidth), r0 = c.right - parseFloat(cs.borderRightWidth);
@@ -114,7 +115,8 @@ const SAY = () => { ai.history.length = 0; ai.history.push({ role: 'user', text:
           .map(e => ({ w: (e.textContent || e.getAttribute('aria-label') || '').replace(/[^\p{L} ]/gu, '').trim().slice(0, 14), c: getComputedStyle(e).cursor })) : []; }, [host, HEAD]);
       const c1 = await cursors();
       /* RE-POINTED 21 Nov 2026 (P-39, as drawn): the Board's panel has no head row, so no tab to point at */
-      check(`2 ${key}: every tab shows the hand on the Overview`, key === 'board' ? c1.every(x => x.c === 'pointer') : c1.length >= 1 && c1.every(x => x.c === 'pointer'), JSON.stringify(c1));
+      /* RE-POINTED 21 Nov 2026 (P-31, as drawn): nor does the Contracts place's panel */
+      check(`2 ${key}: every tab shows the hand on the Overview`, (key === 'board' || key === 'contracts') ? c1.every(x => x.c === 'pointer') : c1.length >= 1 && c1.every(x => x.c === 'pointer'), JSON.stringify(c1));
       await P.evaluate(OPEN_TALK, key);
       const shows = await until(P, s => /HISTQ/.test(document.querySelector(s).innerText) && /HISTA/.test(document.querySelector(s).innerText), host, 3000);
       check(`3 ${key}: the conversation shows what was said elsewhere`, !!shows);

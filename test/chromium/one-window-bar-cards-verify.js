@@ -91,8 +91,13 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
        view therefore it warrants a second panel for jambo"). Its panel carries
        the wall and Discover — the page's own work, not his words — so it wears
        the Dossier's pattern: the page's tab and his, one press apart. */
-    check('A4 the Contracts place: the page\'s own tab alone, so Discover is never inside the talk',
-      !!A4 && A4.tabs.length === 1 && A4.tabs.some(t => /Overview|Översikt/.test(t)) && A4.word.length === 0, JSON.stringify(A4));
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the Contracts place's panel has no head row — the page's own summary (.ctls)
+       IS the panel, so no tab is drawn; the rule stands: the page's work (its summary, Discover's door) is never inside
+       the talk — no Discover section in the panel, no conversation drawn on the landing, no word, no trail */
+    A4.page = await page.evaluate(() => { const d = document.getElementById('ig-dock');
+      return { ctls: !!d.querySelector('.ctls'), disc: !!d.querySelector('[data-ac-discover], .ac-disc, .pd-disc'), talk: !!d.querySelector('[data-jb-turns] .ai-msg, .igd-talk [data-jb-turns]') }; });
+    check('A4 the Contracts place: the page\'s own summary as drawn, no tab row, so Discover is never inside the talk',
+      !!A4 && A4.tabs.length === 0 && noJb(A4) && A4.word.length === 0 && A4.trail === 0 && A4.page.ctls && !A4.page.disc && !A4.page.talk, JSON.stringify(A4));
 
     await page.evaluate(() => setView('intake'));
     await until(() => !!document.querySelector('#ins-panel .jl-body [data-jl-words] .jov'));

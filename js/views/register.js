@@ -3296,12 +3296,8 @@ const regAvatarHtml = name => `<span class="reg-av av-${regAvatarTone(name)}" ar
    "3 details to fill"); a colleague's approval names them; "—" when nothing. A reading only. */
 function regNeedsCellHtml(c){
   let L=[]; try{ L=typeof needsYouOf==='function'?(needsYouOf(c)||[]):[]; }catch(_){ L=[]; }
-  if(!L.length){
-    /* a colleague's yes this contract waits on, never on a signed one: a named member by first name, a role whole */
-    let w=''; try{ const done=typeof negoExecuted==='function'?negoExecuted(c):c.status==='Signed'; const st=!done&&typeof approvalState==='function'?approvalState(c):null; const nx=st&&st.next;
-      if(nx&&nx.status==='pending'&&st.approverLabel){ const mem=!!(nx.approver&&nx.approver.kind==='member'); w=mem?i18t('reg_need_whose',{ who:String(st.approverLabel).split(/\s+/)[0] }):i18t('reg_need_with',{ who:st.approverLabel }); } }catch(_){ w=''; }
-    return w?`<span class="reg-need is-them">${esc(w)}</span>`:'<span class="reg-dash">\u2014</span>';
-  }
+  /* nothing waits on the reader: a colleague's yes, or their readiness to sign, in the one reading's words (regLsNeedWord) */
+  if(!L.length){ const w=regLsNeedWord(c); return w?`<span class="reg-need is-them">${esc(w)}</span>`:'<span class="reg-dash">\u2014</span>'; }
   /* P-31 AS DRAWN: the first reason's words alone ("Your approval", "3 details to fill"); every reason on the hover */
   const t=regLsNeedWord(c);
   let all=''; try{ all=L.map(x=>{ const w=typeof insNeedWords==='function'?insNeedWords(c,x):null; return w&&w.title||''; }).filter(Boolean).join(' \u00b7 '); }catch(_){ all=t; }
@@ -4115,7 +4111,7 @@ function regFoldersHeadHtml(){
   const may = (typeof canEdit !== 'function') || canEdit();
   /* P-31: the facts beside the title go; the ask box under it; chips with their counts, Needs you with an amber dot */
   return `<div class="ctf-head"><h2 class="ctf-h">${esc(i18t('nav_contracts'))}</h2><span class="ctf-sp"></span>
-      <button type="button" class="ctf-pill" data-ctf-show="list" aria-pressed="true">${esc(i18t('ct_list'))}</button><button type="button" class="ctf-pill" data-ctf-show="wall" aria-pressed="false">${esc(i18t('ct_wall'))}</button>
+      <button type="button" class="ctf-pill is-lead" data-ctf-show="list">${esc(i18t('ct_list'))}</button><button type="button" class="ctf-pill" data-ctf-show="wall">${esc(i18t('ct_wall'))}</button>
       ${may ? `<button type="button" class="ui-btn ui-btn-primary ctf-new" data-ctf-draft>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${esc(i18t('ctf_new_agreement'))}</button>` : ''}</div>
     <label class="apn-ask ctf-ask">${typeof icon === 'function' ? icon('sparkle', 'w-3.5 h-3.5') : ''}<input id="ctf-q" type="search" autocomplete="off" placeholder="${esc(i18t('ctls_ask_ph'))}"></label>
     <div class="apn-bar ctf-bar"><button type="button" class="apn-tab is-chip is-on" data-ctf-tab="folders">${esc(i18t('ctf_tab_folders'))} <span>${regFolderCount()}</span></button><button type="button" class="apn-tab is-chip" data-ctf-tab="all">${esc(i18t('ctf_tab_all'))} <span>${r.n}</span></button>${r.needN ? `<button type="button" class="apn-tab is-chip" data-ctf-tab="needs"><i class="apn-cd is-amber" aria-hidden="true"></i>${esc(i18t('ctf_tab_needs'))} <span>${r.needN}</span></button>` : ''}</div>`;
@@ -4218,15 +4214,22 @@ function regLsEnded(c){
   return !!(c.archived||c.status==='Declined'||(c.status==='Signed'&&c.expiry&&T&&String(c.expiry).slice(0,10)<T));
 }
 function regLsStandOf(c){ return regLsEnded(c)?'ended':regLsSigned(c)?'signed':'review'; }
+/* THE ONE COLOUR A STAGE WEARS (ONE FACT, ONE HOME): the three words' tones — In review amber, Signed green, Ended grey —
+   asked by the list's badge and by the Board's Your book bar and squares (hmStageTone) alike */
+const REG_LS_TONE={ review:'amber', signed:'green', ended:'gray' };
+function regLsToneOfStatus(st){ return REG_LS_TONE[st==='Signed'?'signed':st==='Declined'?'ended':'review']; }
 function regLsBadgeHtml(c){
   const k=regLsStandOf(c);
-  if(k==='review') return `<span class="reg-badge is-amber ctls-b"><i></i>${esc(i18t('ctls_review'))}</span>`;
-  if(k==='signed') return `<span class="reg-badge is-green ctls-b">\u2713 ${esc(i18t('ctls_signed'))}</span>`;
+  if(k==='review') return `<span class="reg-badge is-${REG_LS_TONE.review} ctls-b"><i></i>${esc(i18t('ctls_review'))}</span>`;
+  if(k==='signed') return `<span class="reg-badge is-${REG_LS_TONE.signed} ctls-b">\u2713 ${esc(i18t('ctls_signed'))}</span>`;
   return `<span class="reg-badge is-ended ctls-b">${esc(i18t('ctls_ended'))}</span>`;
 }
 /* what the contract asks of the reader, in the column's words: "Your approval", "Joseph's approval", "3 details to fill";
    '' when nothing (the cell says "\u2014") */
 function regLsNeedWord(c){
+  /* THEY ARE READY TO SIGN: the stage's own SHORT form ("Ready to sign"), the badge keeping its three words and the
+     whole sentence on the Standing cell's hover */
+  try{ if(!regLsSigned(c)&&typeof cpReadyToSign==='function'&&cpReadyToSign(c)){ const sh=regStageShortOf(regStageTone(c).m); if(sh&&sh.label) return sh.label; } }catch(_){ /* the needs say it */ }
   let L=[]; try{ L=typeof needsYouOf==='function'?(needsYouOf(c)||[]):[]; }catch(_){ L=[]; }
   if(!L.length){
     let w=''; try{ const st=!regLsSigned(c)&&typeof approvalState==='function'?approvalState(c):null; const nx=st&&st.next;
@@ -4245,10 +4248,11 @@ function regLsDaysTo(iso){ const T=typeof todayISO==='function'?String(todayISO(
 /* the list's Ends: grey "ended \u2026" once ended, amber "date \u00b7 in N days" inside CTF_VIEW_DAYS, else the date */
 function regLsEndsHtml(c){
   const e=regLsEndOf(c); if(!e) return '<span class="reg-dash">\u2014</span>';
-  const d=regDotDate(e), n=regLsDaysTo(e);
-  if(regLsEnded(c)||(n!=null&&n<0)) return `<span class="ctls-g">${esc(i18t('ctls_ended_on',{ d }))}</span>`;
-  if(n!=null&&n<=CTF_VIEW_DAYS) return `<span class="ctls-amb">${esc(d)} \u00b7 ${esc(i18tn('ctls_in_days',n,{ n }))}</span>`;
-  return esc(d);
+  /* the day itself is the row's DATE, in the figure face at the label rung (.reg-day, regDotDate's own dress) */
+  const d=regDotDate(e), n=regLsDaysTo(e), day=`<span class="reg-day">${esc(d)}</span>`;
+  if(regLsEnded(c)||(n!=null&&n<0)) return `<span class="ctls-g">${esc(i18t('ctls_ended_on',{ d:'\u0000' })).replace('\u0000',day)}</span>`;
+  if(n!=null&&n<=CTF_VIEW_DAYS) return `<span class="ctls-amb">${day} \u00b7 ${esc(i18tn('ctls_in_days',n,{ n }))}</span>`;
+  return day;
 }
 /* the paper's own words for when it ends, with its \u00a7, on one line; nothing where the wording is not loaded (never guessed) */
 function regLsQuoteHtml(c){
@@ -4292,6 +4296,18 @@ function regLsNeedRowsHtml(cs, max){
   return L.slice(0,max||4).map(c=>`<button type="button" class="ctls-nr" data-ctls-open="${esc(String(c.id))}"><span>${esc(c.name||c.id)}</span><b>${esc(regLsNeedWord(c))}</b></button>`).join('');
 }
 const regLsSec=(h,body,last)=>`<div class="ctls-sec${last?' is-last':''}">${h?`<h4>${esc(h)}</h4>`:''}${body}</div>`;
+/* THE PANEL IS DRAWN BY THE ONE OVERVIEW BUILDER (jamboOverviewHtml, its five parts): the badge before the head, the
+   headline, the sentence and the acts under it, then the sections (where they stand, when they end, what needs you) as
+   its middle — no tiles, no cards, no money; the drawing's look is the slot's own (data-jov-slot="ctls"). The wrapper is
+   the panel's Overview (.is-ov), one block */
+function regLsFrame(cls, attrs, o){
+  const subHtml=`${o.subHtml||(o.sub?esc(o.sub):'')}${o.acts?`<span class="ctls-acts">${o.acts}</span>`:''}`;
+  const mid=regLsSecs(o.secs||[]);
+  const inner=typeof window.jamboOverviewHtml==='function'
+    ? jamboOverviewHtml({ before:o.badge?`<div class="ctls-bd">${o.badge}</div>`:'', title:o.head, subHtml, mid }, 'ctls')
+    : `${o.badge?`<div class="ctls-bd">${o.badge}</div>`:''}<div class="ctls-head">${esc(o.head)}</div><div class="ctls-sub">${subHtml}</div>${mid}`;
+  return `<div class="ctls is-ov ${cls}"${attrs?' '+attrs:''}>${inner}</div>`;
+}
 /* the panel's sections, a hairline between them and none under the last */
 const regLsSecs=list=>{ const L=list.filter(x=>x&&x[1]); return L.map((x,i)=>regLsSec(x[0],x[1],i===L.length-1)).join(''); };
 /* the nearest end inside CTF_VIEW_DAYS among the live ones: { c, e, n } */
@@ -4305,6 +4321,10 @@ function regLsNextEnd(cs){
 function regLsListUp(){
   if(!regNl()||!regPlaceUp()) return false;
   try{ if(regFoldersOn(regState())) return false; }catch(_){ return false; }
+  /* Ask a column's own card stands only while a question is being asked, read or chosen (regFolderPanelOn's rule): a
+     kept question's column on the list (the owner's own column) leaves this panel standing */
+  const A=window.AC;
+  if(A&&(A.form||A.busy||A.chosen||(A.colOpen&&typeof askColKeys==='function'&&askColKeys().includes('ask:'+A.colOpen)))) return false;
   return true;
 }
 function regLsListPanelHtml(){
@@ -4325,9 +4345,8 @@ function regLsListPanelHtml(){
     const nx=regLsNextEnd(cs);
     const bits=[review?i18tn('ctls_sub_review',review,{ n:review }):'', nx&&nx.n!=null&&nx.n<=CTF_VIEW_DAYS?i18t('ctls_sub_ends',{ name:nx.c.name||nx.c.id, when:i18tn('ctls_in_days',nx.n,{ n:nx.n }) }):''].filter(Boolean);
     sub=bits.length?bits.join('; ')+'.':''; }
-  const top=`<div class="ctls-head">${esc(head)}</div>${sub?`<div class="ctls-sub">${esc(sub)}</div>`:''}`;
   const dots=!ended&&n?regLsDotsHtml(cs):'';
-  return `<div class="ctls ctls-list" data-ctls="list">${regLsSecs([['',top],[i18t('ctls_h_where'),n?regLsBarHtml(cs):''],[i18t('ctf_when_end'),dots],[i18t('ctls_h_needs'),regLsNeedRowsHtml(cs)]])}</div>`;
+  return regLsFrame('ctls-list','data-ctls="list"',{ head, sub, secs:[[i18t('ctls_h_where'),n?regLsBarHtml(cs):''],[i18t('ctf_when_end'),dots],[i18t('ctls_h_needs'),regLsNeedRowsHtml(cs)]] });
 }
 /* THE LANDING'S PANEL, P-31 AS DRAWN: NO CARDS AND NO MONEY. A folder chosen on the table: its badge, its name, a
    sentence, Open the folder (black) and "Show the N that need you", where they stand, when they end, what needs you.
@@ -4339,16 +4358,12 @@ function regFoldersLsPanelHtml(rows, head){
   const owes=regLsOwesWords(regLsOwes(L));
   const badge=need.length?`<span class="reg-badge is-amber ctls-b"><i></i>${esc(i18tn('rfg_need', need.length, { n:need.length }))}</span>`
     :(L.length&&L.every(c=>regLsStandOf(c)==='signed')?`<span class="reg-badge is-green ctls-b">\u2713 ${esc(i18t('rfg_all_signed'))}</span>`:'');
-  let top;
-  if(pick){
-    const sub=[i18tn('ctf_n_contracts', L.length, { n:L.length }), owes].filter(Boolean).join(' \u00b7 ')+'.';
-    top=(`${badge?`<div>${badge}</div>`:''}<div class="ctls-head">${esc(pick.name)}</div><div class="ctls-sub">${esc(sub)}</div>
-      <div class="ctls-acts"><button type="button" class="ui-btn ui-btn-primary ctls-go" data-ctf-folder="${esc(pick.fid)}" data-ctf-open>${esc(i18t('ctls_open_folder'))}</button>${need.length?`<button type="button" class="ctls-lnk" data-rfp-only="${esc(need.map(c=>String(c.id)).join(','))}" data-rfp-label="${esc(i18t('ctf_fig_need'))}">${esc(i18tn('ctf_show_need',need.length,{ n:need.length }))}</button>`:''}</div>`);
-  } else {
-    top=`${badge?`<div>${badge}</div>`:''}<div class="ctls-head">${esc(`${L.length} ${i18tn('rfg_contracts', L.length)} ${i18tn('rfg_in_folders', rows.length, { n:rows.length })}.`)}</div>${head?`<div class="ctls-sub">${esc(head)}</div>`:''}`;
-  }
   const dots=L.length?regLsDotsHtml(L):'';
-  return `<div class="ctls ctls-folders" data-ctls="folders"${pick?` data-ctls-pick="${esc(pick.fid)}"`:''}>${regLsSecs([['',top],[i18t('ctls_h_where'),L.length?regLsBarHtml(L):''],[i18t('ctf_when_end'),dots],[i18t('ctls_h_needs'),regLsNeedRowsHtml(L)]])}</div>`;
+  const secs=[[i18t('ctls_h_where'),L.length?regLsBarHtml(L):''],[i18t('ctf_when_end'),dots],[i18t('ctls_h_needs'),regLsNeedRowsHtml(L)]];
+  const attrs=`data-ctls="folders"${pick?` data-ctls-pick="${esc(pick.fid)}"`:''}`;
+  if(pick) return regLsFrame('ctls-folders', attrs, { badge, head:pick.name, sub:[i18tn('ctf_n_contracts', L.length, { n:L.length }), owes].filter(Boolean).join(' \u00b7 ')+'.',
+    acts:`<button type="button" class="ui-btn ui-btn-primary ctls-go" data-ctf-folder="${esc(pick.fid)}" data-ctf-open>${esc(i18t('ctls_open_folder'))}</button>${need.length?`<button type="button" class="ctls-lnk" data-rfp-only="${esc(need.map(c=>String(c.id)).join(','))}" data-rfp-label="${esc(i18t('ctf_fig_need'))}">${esc(i18tn('ctf_show_need',need.length,{ n:need.length }))}</button>`:''}`, secs });
+  return regLsFrame('ctls-folders', attrs, { badge, head:`${L.length} ${i18tn('rfg_contracts', L.length)} ${i18tn('rfg_in_folders', rows.length, { n:rows.length })}.`, sub:head||'', secs });
 }
 if(typeof document!=='undefined'&&!document._ctlsWired){ document._ctlsWired=true;
   document.addEventListener('click',e=>{
@@ -5588,7 +5603,7 @@ Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regFol
   REG_CT_FIXED,REG_CT_COL_WORD,regCtShapeKeys,regCtColDefs,regCtHeadReg,regCtFootHtml,regHomeColW,regToolsWire,regToolsHtml,regWallRepaint,
   /* the Contracts place on Home (the overnight work order, step 7) */
   REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,regStageTone,regStageMarkHtml,regSapMarkHtml,regSapMarkOf,regStageLineHtml,regNegoMarkHtml,regNegoLineHtml,regNegoClauseChips, regNegoClauseNames,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,REG_HOME_SPREAD,REG_COL_KEYS_HOME_WIDE,REG_COL_W_HOME_WIDE,REG_HOME_WIDE_W,regHomeWide,regHomeWatch,regPlaceSet,regPlaceUp,regFoldersNow,regFoldersSet,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale,regFolderSummaryData,
-  regLsSigned,regLsEnded,regLsStandOf,regLsBadgeHtml,regLsNeedWord,regLsEndOf,regLsEndsHtml,regLsQuoteHtml,regLsOwes,regLsOwesWords,regLsBarHtml,regLsDotsHtml,regLsNeedRowsHtml,regLsNextEnd,regLsListUp,regLsListPanelHtml,regLsWaitsOn,regLsDayMonth,regLsFolderShort,regCtLeadHtml,regSayEndQuote});
+  regLsSigned,regLsEnded,regLsStandOf,REG_LS_TONE,regLsFrame,regLsSecs,regLsToneOfStatus,regLsBadgeHtml,regLsNeedWord,regLsEndOf,regLsEndsHtml,regLsQuoteHtml,regLsOwes,regLsOwesWords,regLsBarHtml,regLsDotsHtml,regLsNeedRowsHtml,regLsNextEnd,regLsListUp,regLsListPanelHtml,regLsWaitsOn,regLsDayMonth,regLsFolderShort,regCtLeadHtml,regSayEndQuote});
 
 /* ═══ NEGOTIATIONS, THE NEW LOOK (round 7, as drawn; behind the admin's "Try the new look") ═══
    One quiet list: whose move, the open asks quoted from the paper with their §, the lead, the last thing that

@@ -126,6 +126,8 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
          "Before you decide" (apnLeadFiveHtml), no Overview tab; the "no Jambo tab" half is still asked below */
       /* RE-POINTED 21 Nov 2026 (P-39, the Board's panel as drawn): no head row at all — no Overview tab, no Jambo tab */
       if (key === 'board') check(`1 ${key}: no tab row, no Jambo tab (as drawn)`, !read.tabWords.length, JSON.stringify({ tabs: read.tabWords }));
+      /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the Contracts place's panel has no tab row either; its summary is the Overview */
+      else if (key === 'contracts') check(`1 ${key}: no tab row, no Jambo tab (as drawn)`, !read.tabWords.length, JSON.stringify({ tabs: read.tabWords }));
       else if (key === 'approvals') check(`1 ${key}: no Jambo tab`, !read.tabWords.some(w => /Jambo/.test(w)), JSON.stringify({ tabs: read.tabWords, lit: read.lit }));
       else check(`1 ${key}: Overview first, no Jambo tab, landing on Overview`, /Overview/.test(ov) && !read.tabWords.some(w => /Jambo/.test(w)) && /Overview/.test(read.lit), JSON.stringify({ tabs: read.tabWords, lit: read.lit, jb }));
       check(`2 ${key}: no greeting on the Overview`, !read.helloIn, String(read.helloIn));

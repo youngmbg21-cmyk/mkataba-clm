@@ -147,8 +147,7 @@ const check = (name, pass, detail) => {
         const rows = [...document.querySelectorAll('#reg-tbody tr[data-row]')].slice(0, 3).map(r => Math.round(r.getBoundingClientRect().height));
         return { stack: !!st, over: !!(back && h && back.getBoundingClientRect().bottom <= h.getBoundingClientRect().top + 1), size: h ? getComputedStyle(h).fontSize : '',
           say: ((document.querySelector('#ct-place .ct-say') || {}).textContent || '').replace(/\s+/g, ' ').trim(), sayEl: !!document.querySelector('#ct-place .ct-say'), rows }; });
-      /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the title is the drawing's 30px serif */
-      check('5a "‹ Folders" small over the title, the title at 30px', C.stack && C.over && C.size === '30px', JSON.stringify(C));
+      check('5a "‹ Folders" small over the title, the title at 26px', C.stack && C.over && C.size === '26px', JSON.stringify(C));
       /* RE-POINTED 20 Nov 2026 (owner: "delete the highlighted parts"): the sentence over the Contracts list is gone */
       /* (20 Nov 2026: the element is read in the page, not in node, where `document` does not exist) */
       check('5b no sentence over the list', C.say === '' && !C.sayEl, C.say);

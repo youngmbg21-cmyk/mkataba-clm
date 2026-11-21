@@ -104,15 +104,15 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     /* RE-POINTED 21 Nov 2026 (P-31, as drawn; reverses At a Glance on the new look): the folder's panel is the list's own —
        a sentence of the rows on screen, where they stand (one bar), when they end (twelve months of dots), what needs you
        by name (each name its contract's door); NO money, no cards; nothing spills */
-    const panel = await until(page, () => !!document.querySelector('#ig-dock .ctls-list .ctls-head'), null, 12000);
+    const panel = await until(page, () => !!document.querySelector('#ig-dock .ctls-list .jov5-title'), null, 12000);
     const kept = await txt(page, '#ig-dock .ctls-list');
     const says = await page.evaluate(() => { const p = document.querySelector('#ig-dock .ctls-list'), b = p ? p.getBoundingClientRect() : null;
       const R = regState(), rows = regFiltered({ flat: true });
       return { months: document.querySelectorAll('#ig-dock .ctls-list .ctls-endm span').length, bar: !!document.querySelector('#ig-dock .ctls-list .ctls-bar'),
         needs: document.querySelectorAll('#ig-dock .ctls-list [data-ctls-open]').length,
         owed: Math.min(4, rows.filter(c => { try { return needsYouOf(c).length > 0; } catch (_){ return false; } }).length),
-        head: ((p && p.querySelector('.ctls-head')) || {}).textContent || '', n: rows.length, folder: R.type,
-        cards: p ? p.querySelectorAll('.jov5-tile, .jov5-row, .rfp-row').length : -1,
+        head: ((p && p.querySelector('.jov5-title')) || {}).textContent || '', n: rows.length, folder: R.type,
+        cards: p ? p.querySelectorAll('.jov5-tile, .jov5-row, .jov5-g, .rfp-row').length : -1,
         money: !!p && /KES|SEK|USD|EUR|on paper|Where the money is/i.test(p.innerText),
         spill: b ? [...p.querySelectorAll('*')].filter(e => { const r = e.getBoundingClientRect(); return r.width && (r.right > b.right + 1 || r.left < b.left - 1); }).length : -1 }; });
     check('2b the folder\'s panel as drawn: a sentence of its own rows, where they stand, twelve months, what needs you by name, NO money, no cards; nothing spills',
