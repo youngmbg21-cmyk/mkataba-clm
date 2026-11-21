@@ -1,5 +1,5 @@
 'use strict';
-/* f1133 — THE BOARD NEVER SAYS A NUMBER IT DOES NOT HOLD (21 Nov 2026; the Board check's step 1d failed now and then on
+/* f1137 — THE BOARD NEVER SAYS A NUMBER IT DOES NOT HOLD (21 Nov 2026; the Board check's step 1d failed now and then on
    GitHub with the four figures reading 0,0,0,0 — once 29,0,0,0 — while the book said 10,1,1,1).
    Three causes, each measured in a browser at the parent (frames where the figures' words differed from the book):
    (1) on a server, the thirty demo contracts state is born with stayed in memory until the real book loaded, so a
@@ -22,7 +22,7 @@ const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const noComments = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 const sliceFn = (src, head) => { const i = src.indexOf(head); assert.ok(i >= 0, head + ' exists'); const j = src.indexOf('\n}\n', i); return src.slice(i, j + 3); };
 
-test('f1133 (1) on a server the book starts empty: the demo book is never counted', () => {
+test('f1137 (1) on a server the book starts empty: the demo book is never counted', () => {
   const app = noComments(read('js/app.js'));
   const i = app.indexOf("if(st && st.mode==='api'){"); assert.ok(i > 0, 'the server branch of boot');
   const block = app.slice(i, app.indexOf('hydrate();', i));
@@ -31,7 +31,7 @@ test('f1133 (1) on a server the book starts empty: the demo book is never counte
   assert.ok(empty < block.indexOf("renderAuth('login')") && empty < block.indexOf('loadBootstrap()'), 'before sign-in, before the book loads');
 });
 
-test('f1133 (2) the book arrives whole: never empty, never half, while its pages load', async () => {
+test('f1137 (2) the book arrives whole: never empty, never half, while its pages load', async () => {
   const OLD = [{ id: 'old' }];
   const seen = [];
   const ctx = vm.createContext({
@@ -60,7 +60,7 @@ function world(){
 }
 const runFrames = (W, at) => { const fs2 = W.frames.splice(0); fs2.forEach(f => f(at)); };
 
-test('f1133 (3) a count-up is painted over the number: its words stay true throughout', () => {
+test('f1137 (3) a count-up is painted over the number: its words stay true throughout', () => {
   const W = world(); assert.equal(typeof W.jovCountOver, 'function', 'one count-up for every number that counts');
   const b = W.document.createElement('span'); b.textContent = '10'; W.document.body.appendChild(b);
   const t0 = W.performance.now();
@@ -86,7 +86,7 @@ test('f1133 (3) a count-up is painted over the number: its words stay true throu
   assert.match(sheet, /\[data-jov-count\]::after\{content:attr\(data-jov-count\)/, 'and the count painted in their place');
 });
 
-test('f1133 (4) a redraw writing the same number keeps the count; a new number stops it', () => {
+test('f1137 (4) a redraw writing the same number keeps the count; a new number stops it', () => {
   const hb = read('js/views/homeboard.js');
   const morph = sliceFn(hb, 'function hbMorph(host, html){') + sliceFn(hb, 'function hbMorphSameShell(a, b){') + sliceFn(hb, 'function hbMorphKids(cur, next){');
   const W = world();

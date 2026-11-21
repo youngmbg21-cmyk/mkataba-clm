@@ -419,7 +419,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## HOW THINGS MOVE (22 Oct 2026; owner picked "Glide over" and "Crossfade")
 - page-jumps-verify (A–I, three screens; D red at the parent: 14 frames).
-- THE BOARD NEVER SAYS A NUMBER IT DOES NOT HOLD (21 Nov 2026): f1133 (1)–(4), all red at the parent; home-board-verify 1d.
+- THE BOARD NEVER SAYS A NUMBER IT DOES NOT HOLD (21 Nov 2026): f1137 (1)–(4), all red at the parent; home-board-verify 1d.
 - NOTHING CHANGED, NOTHING WRITTEN · THE LINE'S ONE WRITER · THREE THEN COUNT (13 Nov 2026): f1024 (3)–(6); tab-change-no-flash-verify 3b, 10a–10d. test/chromium/_audit/flash-measure.js (a measuring instrument; `.github/workflows/flash-measure.yml`): films every page move.
 - A FACE CHANGE IS DRAWN AT ONCE (12 Nov 2026): f1024 (parts (1) and (2), red at the parent); tab-change-no-flash-verify (0–9; every frame after a tab press, another paper, a panel opening wider; 1, 2, 3, 6 and 7 red at the parent); page-jumps-verify H re-pointed (no copy, nothing fading, the underline glides); f676 10f re-pointed.
 
