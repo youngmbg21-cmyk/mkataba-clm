@@ -430,11 +430,15 @@ const check = (name, ok, detail) => {
         await page.waitForTimeout(900);
       }
       pages.push(await page.evaluate(`(() => { const r = ${READ}; if (r) { r.rows = document.querySelectorAll('#reg-tbody tr[data-row]').length;
-        r.last = ((document.querySelector('#reg-tbody tr[data-row]:last-child td') || {}).textContent || '').trim(); } return r; })()`));
+        r.last = ((document.querySelector('#reg-tbody tr[data-row]:last-child td') || {}).textContent || '').trim();
+        r.long = [...document.querySelectorAll('#reg-tbody tr[data-row]')].filter(x => /Naivas Supermarkets Kenya Limited/.test(x.textContent)).length; } return r; })()`));
     }
+    /* RE-POINTED 22 Nov 2026 (P-31 review, work-first order): the list's default order puts what needs you first, so the
+       long-named rows are no longer the last drawn; the claim is unchanged — the list really grows four times and, by the
+       end, long-named rows are drawn among them (more than at first), so a column that moved for them could not hide */
     check('10a the fixture really grows the list, the long names drawn by the end, so the claim can fail',
-      new Set(pages.map(p => p.rows)).size === 4 && /Naivas Supermarkets Kenya Limited/.test(pages[3].last) && !/Naivas/.test(pages[0].last),
-      pages.map(p => p.rows + ':' + p.last.slice(0, 24)).join(' · '));
+      new Set(pages.map(p => p.rows)).size === 4 && pages[3].long > 0 && pages[3].long > pages[0].long,
+      pages.map(p => p.rows + ':' + p.long + ' long · ' + p.last.slice(0, 24)).join(' · '));
     check('10b every column is the same width however many rows are drawn',
       pages.every(p => String(p.w) === String(pages[0].w)),
       pages.map(p => p.w.join(',')).join('  |  '));
