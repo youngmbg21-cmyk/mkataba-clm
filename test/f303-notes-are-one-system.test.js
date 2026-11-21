@@ -360,8 +360,10 @@ describe('f303 (4) — the pin, the reply as its own act, Done, and the clock', 
     p.host.querySelector('[data-rl-np-back]').click(); await tick();
     [...p.host.querySelectorAll('.rl-np-crow')][1].click(); await tick();
     assert.equal(p.host.querySelector('.rl-chat-on'), null, 'no second line saying the clause');
-    assert.match(p.host.querySelector('.rl-np-anchor .w').textContent, /Clause 7|Liability/);
-    assert.ok(p.host.querySelector('.rl-np-anchor q'), 'and the words are quoted on the note');
+    /* RE-POINTED 21 Nov 2026 (P-38 rebuilt as drawn, the Stripe way): the opened discussion names its clause once in its
+       head (§ badge and name); its messages carry no anchor block of their own */
+    assert.match(p.host.querySelector('.rl-np-ch.is-head b').textContent, /Clause 7|Liability/);
+    assert.equal(p.host.querySelector('.rl-np-tl .rl-np-anchor'), null, 'no anchor block on the messages, as drawn');
     p.w.win.rlNotesPanelClosed();
   });
 

@@ -5249,6 +5249,7 @@ const STRINGS = {
     gds_label: "Pages",
     /* THE LAUNCHPAD — BENTO, THE LEGORA WAY (owner's pick, 19 Nov 2026) */
     lp_where: "Where to? Type a page, a contract or a question",
+    lp_where_left: "Where to? Type a page\u2026",
     lp_chip_all: "All",
     lp_chip_need: "Waiting on you",
     lp_chip_need_us: "Waiting on us",
@@ -6856,6 +6857,10 @@ const STRINGS = {
     ng_np_deleted: 'Note removed.',
     ng_np_done: 'Done',
     ng_np_reopen: 'Reopen',
+    ng_np_room_label: 'Room',
+    ng_np_mark_done: 'Mark done',
+    ng_np_write_stripe_ph: 'Write a note on a clause \u00b7 @ asks a colleague',
+    ng_np_reply_stripe_ph: 'Reply to this note \u00b7 @ asks a colleague',
     ng_np_done_by: 'Done · {who}',
     /* ---- A NOTE GIVEN TO A COLLEAGUE (Young asked 3 Oct 2026) ----
        The chip says who has it and, where one was set, the day — nothing
@@ -31719,6 +31724,7 @@ const STRINGS = {
     gds_label: "Sidor",
     /* STARTPLATTAN — BENTO, PÅ LEGORAS SÄTT (ägarens val, 19 nov 2026) */
     lp_where: "Vart? Skriv en sida, ett avtal eller en fråga",
+    lp_where_left: "Vart? Skriv en sida\u2026",
     lp_chip_all: "Alla",
     lp_chip_need: "Väntar på dig",
     lp_chip_need_us: "Väntar på oss",
@@ -33135,6 +33141,10 @@ const STRINGS = {
     ng_np_deleted: 'Anteckningen togs bort.',
     ng_np_done: 'Klar',
     ng_np_reopen: 'Öppna igen',
+    ng_np_room_label: 'Rum',
+    ng_np_mark_done: 'Markera klar',
+    ng_np_write_stripe_ph: 'Skriv en anteckning om en klausul \u00b7 @ frågar en kollega',
+    ng_np_reply_stripe_ph: 'Svara på anteckningen \u00b7 @ frågar en kollega',
     ng_np_done_by: 'Klar · {who}',
     ng_np_seen: 'Sedd',
     ng_np_seen_by: 'Sedd — {who}',

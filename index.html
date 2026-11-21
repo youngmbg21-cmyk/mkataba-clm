@@ -17040,18 +17040,23 @@
   /* THE NAV PANEL AT THE LEFT (P-37, owner 21 Nov 2026): the nav button's window stands 400 wide at the left, under the bar to the
      window's foot, over the page; ONE column, the stages as heads, each page's own count; it slides (js/app.js, a transform) */
   #cmd-palette.is-left .lp-sheet{animation:none;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto}
-  #cmd-palette.is-left .lp-top{padding:var(--s-6) var(--s-4) 6px}
+  /* AS DRAWN (P-37): the question and the chips one head with its hairline under it; the chips small, on one line */
+  #cmd-palette.is-left .lp-top{padding:18px 20px 0}
   #cmd-palette.is-left .lp-in,#cmd-palette.is-left .lp-ph{font-size:19px}
-  #cmd-palette.is-left .lp-ph{left:var(--s-4);right:var(--s-4);top:var(--s-6)}
-  #cmd-palette.is-left .lp-chips{padding:var(--s-1) 0 var(--s-3);border-bottom:1px solid var(--color-neutral-200);margin:0 var(--s-4)}
-  #cmd-palette.is-left .lp-list{padding:var(--s-3) var(--s-2) var(--s-3)}
+  #cmd-palette.is-left .lp-ph{left:20px;right:20px;top:18px}
+  #cmd-palette.is-left .lp-chips{gap:4px;padding:10px 20px 10px;margin:0;border-bottom:1px solid var(--color-divider)}
+  #cmd-palette.is-left .lp-chip{height:auto;padding:3px 10px;font-size:12.5px;line-height:1.4;color:var(--color-quiet)}
+  #cmd-palette.is-left .lp-chip[aria-pressed="true"]{color:var(--color-surface)}
+  #cmd-palette.is-left .lp-list{padding:6px 12px 40px;-webkit-mask-image:linear-gradient(var(--color-text) calc(100% - 40px),transparent);mask-image:linear-gradient(var(--color-text) calc(100% - 40px),transparent)}
   #cmd-palette.is-left .lp-side{display:none}
   #cmd-palette.is-left .lp-pages{display:block}
-  #cmd-palette.is-left .lp-st + .lp-st{margin-top:var(--s-3)}
-  #cmd-palette.is-left .lp-st h5{color:var(--color-quiet);font-size:var(--t-label)}
-  #cmd-palette.is-left .lp-p{padding-top:6px;padding-bottom:6px}
-  #cmd-palette.is-left .lp-wh{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #cmd-palette.is-left .lp-foot{padding:9px var(--s-4)}
+  #cmd-palette.is-left .lp-st + .lp-st{margin-top:0}
+  #cmd-palette.is-left .lp-st h5{display:flex;align-items:center;gap:8px;margin:12px 8px 4px;padding:0;border:0;color:var(--color-quiet);font-size:12px;font-weight:var(--w-label)}
+  #cmd-palette.is-left .lp-st h5::after{content:"";flex:1;height:1px;background:var(--color-divider)}
+  #cmd-palette.is-left .lp-p{padding-top:6px;padding-bottom:6px;border-radius:8px}
+  #cmd-palette.is-left .lp-wh{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #cmd-palette.is-left .lp-ct{font-size:12.5px}
+  #cmd-palette.is-left .lp-foot{justify-content:flex-start;padding:9px 20px;font-size:12px}
   @media (max-width:900px){ #cmd-palette .lp-sheet{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto auto} #cmd-palette .lp-side{grid-column:1;grid-row:4;width:auto;max-height:40vh;padding-top:var(--s-4)} #cmd-palette .lp-foot{grid-row:5} #cmd-palette .lp-pages{grid-template-columns:repeat(2,minmax(0,1fr))} }
   .dk-pg-w{position:relative;display:inline-flex;min-width:0;flex:0 1 auto}
   .dk-pg-w[hidden]{display:none}
@@ -21662,23 +21667,27 @@
   html.lg-new #panel-title{display:none}
   html.lg-new #context-panel > header{position:absolute;top:0;right:0;z-index:2;padding:12px 12px 0 0;background:none}
   html.lg-new #panel-tabs{padding:12px 48px 12px 16px;min-height:56px;align-items:center}
-  html.lg-new #context-panel .pt-tab{font-size:13.5px;font-weight:var(--w-label);color:var(--color-text)}
-  html.lg-new #context-panel .pt-n{margin-left:6px;display:inline-block;min-width:20px;padding:0 6px;border-radius:999px;background:var(--st-green-bg);color:var(--accent-ink);font-size:11.5px;font-weight:var(--w-strong);text-align:center}
+  /* P-38 AS DRAWN: the tab in front a grey pill in ink, the others quiet; a count is the green number beside the word */
+  html.lg-new #context-panel .pt-tab{font-size:13.5px;font-weight:var(--w-label);color:var(--color-quiet);padding:5px 11px}
+  html.lg-new #context-panel .pt-tab.on{color:var(--color-text)}
+  html.lg-new #context-panel .pt-n{margin-left:4px;display:inline;padding:0;background:none;color:var(--accent-ink);font-size:12px;font-weight:var(--w-label)}
   html.lg-new .ndb{padding:12px 16px 16px}
-  html.lg-new .ndb-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);padding:10px 0 8px;border-bottom:1px solid var(--color-divider)}
-  html.lg-new .ndb-h ~ .ndb-h{margin-top:16px}
-  html.lg-new .ndb-r{display:flex;align-items:flex-start;gap:12px;width:100%;padding:10px 0;border:0;border-bottom:1px solid var(--color-divider);background:none;font:inherit;text-align:left;color:var(--color-text)}
+  /* P-38 AS DRAWN: a group's name with its hairline running on beside it; the rows have no lines between them */
+  html.lg-new .ndb-h{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:var(--w-label);color:var(--color-quiet);padding:14px 0 6px}
+  html.lg-new .ndb-h::after{content:"";flex:1;height:1px;background:var(--color-divider)}
+  html.lg-new .ndb-r{display:flex;align-items:flex-start;gap:8px;width:100%;padding:5px 0;border:0;background:none;font:inherit;text-align:left;color:var(--color-text)}
   html.lg-new button.ndb-r{cursor:pointer}
-  html.lg-new .ndb-dot{width:6px;height:6px;border-radius:50%;flex:none;margin:7px 3px 0;background:var(--st-amber-dot)}
+  html.lg-new .ndb-dot{width:8px;height:8px;border-radius:50%;flex:none;margin:6px 4px 0 0;background:var(--st-amber-dot)}
   html.lg-new .ndb-dot.is-late{background:var(--st-ruby-dot)}
-  html.lg-new .ndb-dot.is-jambo{width:12px;height:12px;margin:4px 0 0;background:var(--st-violet-dot)}
+  html.lg-new .ndb-dot.is-jambo{background:var(--st-violet-dot)}
   html.lg-new .ndb-dot.is-week{background:var(--st-green-dot)}
   html.lg-new .ndb-dot.is-good{background:var(--st-green-dot)}
   html.lg-new .ndb-dot.is-news{background:var(--color-divider)}
   html.lg-new .ndb-w{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
   html.lg-new .ndb-w b{font-size:13.5px;font-weight:var(--w-label);line-height:1.35}
-  html.lg-new .ndb-w span{font-size:12px;font-weight:var(--w-label);line-height:1.35}
+  html.lg-new .ndb-w span{font-size:12px;font-weight:400;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .ndb-open{flex:none;border-radius:999px;align-self:center}
+  html.lg-new .ndb-e .ndb-open{height:auto;min-height:0;padding:3px 10px;border:0;background:var(--surface-2);color:var(--color-text);font:var(--w-label) 12px/1.35 var(--font-body);box-shadow:none}
   html.lg-new .ndb-none{margin:16px 0;font-size:13.5px}
   /* A DECISION'S COLOUR (owner, 17 Nov 2026): a no light red, a yes light green, the note quoted under it */
   html.lg-new .ndb-r.is-tint-no,html.lg-new .ndb-r.is-tint-yes{padding:10px 10px 10px 12px;margin:6px 0;border:0;border-left:3px solid var(--st-ruby-dot);border-radius:var(--radius);background:var(--st-ruby-bg)}
@@ -21687,49 +21696,52 @@
   html.lg-new .ndb-r.is-tint-yes .ndb-dot{background:var(--st-green-dot)}
   html.lg-new .ndb-w .ndb-note{font-style:italic}
   /* THE BELL, THE LEGORA + STRIPE WAY (P-38): chips with counts, ONE bar of what waits and its legend, groups, the row's own act */
-  html.lg-new .ndb-chips{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0 12px}
-  html.lg-new .ndb-chip{height:26px;padding:0 10px;border-radius:999px;border:1px solid var(--color-neutral-300);background:var(--color-surface);color:var(--color-text);font:var(--w-label) var(--t-label)/1 var(--font-body);cursor:pointer;white-space:nowrap}
-  html.lg-new .ndb-chip span{color:var(--color-neutral-400);font-variant-numeric:tabular-nums}
-  html.lg-new .ndb-chip[aria-pressed="true"]{background:var(--color-text);border-color:var(--color-text);color:var(--color-surface)}
+  html.lg-new .ndb-chips{display:flex;flex-wrap:wrap;gap:4px;padding:0 0 10px}
+  html.lg-new .ndb-chip{height:auto;padding:2px 9px;border-radius:999px;border:1px dashed var(--color-neutral-300);background:var(--color-surface);color:var(--color-quiet);font:var(--w-label) 12px/1.4 var(--font-body);cursor:pointer;white-space:nowrap}
+  html.lg-new .ndb-chip span{color:inherit;font-variant-numeric:tabular-nums}
+  html.lg-new .ndb-chip[aria-pressed="true"]{border-style:solid;background:var(--color-text);border-color:var(--color-text);color:var(--color-surface)}
   html.lg-new .ndb-chip[aria-pressed="true"] span{color:inherit}
-  html.lg-new .ndb-bar{display:flex;gap:2px;height:6px;border-radius:999px;overflow:hidden}
+  html.lg-new .ndb-bar{display:flex;gap:2px;height:8px;border-radius:4px;overflow:hidden}
   html.lg-new .ndb-bar i,html.lg-new .ndb-legend i{display:block;background:var(--st-amber-dot)}
   html.lg-new .ndb-bar i.is-late,html.lg-new .ndb-legend i.is-late{background:var(--st-ruby-dot)}
   html.lg-new .ndb-bar i.is-jambo,html.lg-new .ndb-legend i.is-jambo{background:var(--st-violet-dot)}
-  html.lg-new .ndb-legend{display:flex;flex-wrap:wrap;gap:4px 14px;padding:8px 0 4px;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .ndb-legend{display:flex;flex-wrap:wrap;gap:4px 12px;padding:5px 0 0;font-size:12px;color:var(--color-quiet)}
   html.lg-new .ndb-legend span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-  html.lg-new .ndb-legend i{width:7px;height:7px;border-radius:50%}
-  html.lg-new .ndb-h[data-ndb-head]{text-transform:none;letter-spacing:0;font-size:var(--t-label);color:var(--color-quiet);border-bottom-color:var(--color-neutral-200)}
+  html.lg-new .ndb-legend i{width:8px;height:8px;border-radius:50%}
+  html.lg-new .ndb-h[data-ndb-head]{color:var(--color-quiet)}
   html.lg-new .ndb-dot.is-you{background:var(--st-amber-dot)}
-  html.lg-new .ndb-e{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px;max-width:42%}
-  html.lg-new .ndb-when{font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  html.lg-new .ndb-e{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px;max-width:42%}
+  html.lg-new .ndb-when{font-size:11.5px;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
   html.lg-new .ndb-when.is-late{color:var(--st-ruby-fg)}
   html.lg-new .ndb-e .ndb-open{align-self:flex-end}
-  html.lg-new .ndb-w .ndb-q{font-family:var(--font-doc);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .ndb-w .ndb-q{font-family:var(--font-doc);font-size:12.5px;line-height:1.4;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .ndb-w .ndb-q b,html.lg-new .ndb-w .ndb-q q{font-weight:inherit;font-family:inherit}
   /* ACTIVITY, THE LEGORA + STRIPE WAY (P-38): chips by kind, a timeline by day, a dot by kind, a soft kind badge, the words quoted */
   .act{padding:12px 16px 16px}
   .act-live{display:flex;align-items:center;gap:6px;font-size:var(--t-label);color:var(--color-quiet);padding-bottom:8px}
-  .act-chips{display:flex;flex-wrap:wrap;gap:6px;padding:2px 0 4px}
-  .act-chip{height:26px;padding:0 10px;border-radius:999px;border:1px solid var(--color-neutral-300);background:var(--color-surface);color:var(--color-text);font:var(--w-label) var(--t-label)/1 var(--font-body);cursor:pointer;white-space:nowrap}
-  .act-chip[aria-pressed="true"]{background:var(--color-text);border-color:var(--color-text);color:var(--color-surface)}
-  .act-h{padding:14px 0 6px;font-size:var(--t-label);color:var(--color-quiet);border-bottom:1px solid var(--color-neutral-200)}
+  .act-chips{display:flex;flex-wrap:wrap;gap:4px;padding:2px 0 4px}
+  .act-chip{height:auto;padding:2px 9px;border-radius:999px;border:1px dashed var(--color-neutral-300);background:var(--color-surface);color:var(--color-quiet);font:var(--w-label) 12px/1.4 var(--font-body);cursor:pointer;white-space:nowrap}
+  .act-chip[aria-pressed="true"]{border-style:solid;background:var(--color-text);border-color:var(--color-text);color:var(--color-surface)}
+  /* P-38 AS DRAWN: the day's name with its hairline beside it */
+  .act-h{display:flex;align-items:center;gap:8px;padding:14px 0 8px;font-size:12px;font-weight:var(--w-label);color:var(--color-quiet)}
+  .act-h::after{content:"";flex:1;height:1px;background:var(--color-divider)}
   .act-tl{position:relative}
-  .act-tl::before{content:"";position:absolute;left:4px;top:14px;bottom:14px;width:1px;background:var(--color-neutral-200)}
-  .act-r{position:relative;display:flex;align-items:flex-start;gap:12px;width:100%;padding:9px 0;border:0;background:none;font:inherit;text-align:left;color:var(--color-text);cursor:pointer}
+  .act-tl::before{content:"";position:absolute;left:5px;top:14px;bottom:14px;width:1px;background:var(--color-neutral-300)}
+  .act-r{position:relative;display:flex;align-items:flex-start;gap:10px;width:100%;padding:0 0 12px;border:0;background:none;font:inherit;text-align:left;color:var(--color-text);cursor:pointer}
   .act-r:hover .act-w b{text-decoration:underline;text-underline-offset:2px}
-  .act-dot{flex:none;width:9px;height:9px;border-radius:50%;margin-top:4px;background:var(--st-gray-dot);box-shadow:0 0 0 2px var(--color-surface)}
+  .act-dot{flex:none;width:9px;height:9px;border-radius:50%;margin:4px 1px 0;background:var(--st-gray-dot);border:2px solid var(--color-surface);box-shadow:0 0 0 1px var(--color-neutral-300);box-sizing:content-box}
   .act-r.is-signed .act-dot{background:var(--st-green-dot)}
   .act-r.is-sent .act-dot{background:var(--st-steel-dot)}
   .act-r.is-changed .act-dot{background:var(--st-amber-dot)}
   .act-r.is-asked .act-dot{background:var(--st-violet-dot)}
   .act-w{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-  .act-w b{font-size:13.5px;font-weight:var(--w-label);line-height:1.35;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .act-ref{font-size:var(--t-label);color:var(--color-quiet)}
-  .act-q{font-family:var(--font-doc);font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .act-e{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
-  .act-t{font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;font-variant-numeric:tabular-nums}
-  .act-b{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:var(--t-micro);font-weight:var(--w-label);white-space:nowrap;background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  .act-w b{font-size:13px;font-weight:400;line-height:1.4;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .act-ref{font-size:12.5px;color:var(--color-quiet)}
+  .act-ref :is(.hati-ref,.ref){font-size:inherit;color:inherit}
+  .act-q{font-family:var(--font-doc);font-size:12.5px;line-height:1.4;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .act-e{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+  .act-t{font-size:11.5px;color:var(--color-quiet);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .act-b{display:inline-flex;align-items:center;padding:1px 7px;border-radius:6px;font-size:10.5px;line-height:1.6;font-weight:var(--w-label);white-space:nowrap;background:var(--st-gray-bg);color:var(--st-gray-fg)}
   .act-r.is-signed .act-b{background:var(--st-green-bg);color:var(--st-green-fg)}
   .act-r.is-sent .act-b{background:var(--st-steel-bg);color:var(--st-steel-fg)}
   .act-r.is-changed .act-b{background:var(--st-amber-bg);color:var(--st-amber-fg)}
@@ -21760,6 +21772,47 @@
   .rl-np-people span:last-child{margin-left:6px}
   .rl-np-tl{border-left:1px solid var(--color-neutral-300);margin-left:10px;padding-left:12px}
   .rl-np-go{padding:10px 0 0}
+  /* P-38 AS DRAWN (the Stripe way): dashed chips; "Room" and its pills; a one-line write box with its +; the opened
+     discussion's thread line, initials, first name and clock; one standing reply box; Mark done as a pill */
+  .rl-chat.is-stripe .rl-np-scope.is-stripe{display:flex;flex-wrap:wrap;gap:4px}
+  .rl-chat.is-stripe .rl-np-chip{height:auto;padding:2px 9px;border-radius:999px;border:1px dashed var(--color-neutral-300);background:var(--color-surface);color:var(--color-quiet);font-size:12px;line-height:1.4}
+  .rl-chat.is-stripe .rl-np-chip:hover{background:var(--color-surface);color:var(--color-text)}
+  .rl-chat.is-stripe .rl-np-chip.on{border-style:solid;border-color:var(--color-text);background:var(--color-text);color:var(--color-surface)}
+  .rl-chat.is-stripe .rl-np-rooms{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px var(--s-4) 0;font-size:12.5px}
+  .rl-chat.is-stripe .rl-np-list .rl-np-rooms{padding:0 0 8px}
+  .rl-chat.is-stripe .rl-np-rooms-k{color:var(--color-quiet)}
+  .rl-chat.is-stripe .rl-np-room{border:0;border-radius:999px;padding:3px 10px;background:var(--surface-2);color:var(--color-text);font:var(--w-label) 12px/1.35 var(--font-body);cursor:pointer;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+  .rl-chat.is-stripe .rl-np-room.on{background:var(--color-text);color:var(--color-surface)}
+  .rl-chat.is-stripe .rl-np-foot.is-stripe{padding:10px var(--s-4) 4px}
+  .rl-chat.is-stripe :is(.rl-np-foot.is-stripe .rl-np-box, .rl-np-rbox.is-stripe){display:flex;align-items:center;gap:8px;margin:0;padding:7px 10px;border:1px solid var(--color-neutral-300);border-radius:var(--radius);background:var(--color-surface)}
+  .rl-chat.is-stripe .rl-np-plus{flex:none;color:var(--color-quiet)}
+  .rl-chat.is-stripe :is(.rl-np-foot.is-stripe .rl-np-in, .rl-np-rbox.is-stripe .rl-np-rin){flex:1;min-width:0;min-height:0;height:auto;padding:0;border:0;background:none;resize:none;font-size:12.5px;line-height:1.4;box-shadow:none}
+  .rl-chat.is-stripe :is(.rl-np-foot.is-stripe .rl-np-act, .rl-np-rbox.is-stripe .rl-np-act){flex:none;display:flex;align-items:center;gap:6px}
+  .rl-chat.is-stripe .rl-np-tl ~ .rl-np-rbox.is-stripe{margin:4px 0 0 25px}
+  .rl-chat.is-stripe .rl-np-foot.is-stripe .rl-np-box:has(.rl-np-in:placeholder-shown) :is(.rl-np-send, .rl-np-atb),
+  .rl-chat.is-stripe .rl-np-rbox.is-stripe:has(.rl-np-rin:placeholder-shown) .rl-np-act,
+  .rl-chat.is-stripe .rl-np-rbox.is-stripe [data-rl-np-reply-cancel]{display:none}
+  .rl-chat.is-stripe .rl-np-crow{gap:5px;padding:0 0 9px;margin-top:9px}
+  .rl-chat.is-stripe :is(.rl-np-sec, .rl-np-st){height:auto;padding:1px 7px;border-radius:6px;font-size:10.5px;line-height:1.6}
+  .rl-chat.is-stripe .rl-np-ch b{font-size:13px}
+  .rl-chat.is-stripe .rl-np-open-h{display:flex;align-items:center;gap:8px;padding:12px 0 8px}
+  .rl-chat.is-stripe .rl-np-open-h .rl-np-scope{margin-left:auto}
+  .rl-chat.is-stripe .rl-np-open-h .ui-link{font-size:12.5px}
+  .rl-chat.is-stripe .rl-np-ch.is-head b{font-size:13.5px}
+  .rl-chat.is-stripe .rl-np-tl{margin-left:9px;padding-left:14px;border-left:2px solid var(--color-neutral-300)}
+  .rl-chat.is-stripe .rl-np-tl .rl-np-thread{display:flex;flex-direction:column}
+  .rl-chat.is-stripe .rl-np-tl .rl-np-note{margin:0;padding:6px 0;gap:8px;background:none}
+  .rl-chat.is-stripe .rl-np-tl .rl-np-note.is-reply{margin-left:18px;padding:6px 0}
+  .rl-chat.is-stripe .rl-np-tl .rl-np-note.is-reply::before{display:none}
+  .rl-chat.is-stripe .rl-np-tl .rl-np-av{width:20px;height:20px;font-size:8.5px}
+  .rl-chat.is-stripe .rl-np-tl .rl-np-top{align-items:baseline;gap:4px}
+  .rl-chat.is-stripe .rl-np-tl .rl-np-top b{font-size:13px;font-weight:var(--w-label)}
+  .rl-chat.is-stripe .rl-np-tl .rl-np-top span{font-size:11.5px;color:var(--color-quiet)}
+  .rl-chat.is-stripe .rl-np-tl .rl-np-note p{font-size:13px;line-height:1.45;margin:1px 0 0}
+  .rl-chat.is-stripe .rl-np-tl .rl-np-note>.rl-np-acts{right:0}
+  .rl-chat.is-stripe .rl-np-go{display:flex;align-items:center;gap:10px;margin-left:25px;padding:10px 0 0}
+  .rl-chat.is-stripe .rl-np-go .ui-link{font-size:12.5px}
+  .rl-chat.is-stripe .rl-np-markdone{border:0;border-radius:999px;padding:3px 10px;background:var(--surface-2);color:var(--color-text);font:var(--w-label) 12px/1.35 var(--font-body);cursor:pointer;white-space:nowrap}
   html.lg-new .gdn{padding:16px}
   html.lg-new .gdn-say-top{margin:0 0 8px;font-size:14px;font-weight:var(--w-label);line-height:1.45}
   html.lg-new .gdn-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);padding:14px 0 4px}

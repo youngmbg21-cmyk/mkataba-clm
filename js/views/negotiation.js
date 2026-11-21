@@ -16507,6 +16507,11 @@ const NOTE_ROOMS = ['internal', 'external'];
 function rlNpRoomsHtml(c, room, counts, opts = {}, side = 'owner'){
   const rooms = negoNoteRoomList(c, opts, side);
   if (rooms.length < 2) return '';
+  /* THE STRIPE WAY (P-38, as drawn): "Room", then a pill a room — Internal, then each outside party by name; the chosen
+     one filled in ink. The same rooms and the same press (data-rl-np-room). */
+  if (opts.stripe) return `<div class="rl-np-rooms" role="tablist"><span class="rl-np-rooms-k">${_ne(i18t('ng_np_room_label'))}</span>${rooms.map(r =>
+      `<button type="button" role="tab" class="rl-np-room${r.key === room ? ' on' : ''}" data-rl-np-room="${_nea(r.key)}" aria-selected="${r.key === room}" title="${_nea(r.external
+        ? i18t('ng_np_room_t_ext', { who: r.name || '' }) : i18t('ng_np_room_t_int'))}">${_ne(r.external ? (r.name || i18t('ng_np_tab_ext')) : i18t('ng_np_tab_int'))}</button>`).join('')}</div>`;
   const by = (counts && counts.byRoom) || {};
   return `<div class="rl-np-tabs" role="tablist">
       ${rooms.map(r => {
@@ -17044,6 +17049,8 @@ function rlNpTagMenuHtml(c, room, opts = {}){
    for which notes are listed, and one box at the foot. The same builders, the
    same attributes, the same one writer: only the drawing moved. */
 const _rlNpSvg = d => `<svg class="rl-np-ai" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+/* the drawn + at the head of the Stripe way's write and reply boxes */
+const RL_NP_ICON_PLUS = '<svg class="rl-np-plus" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
 const RL_NP_ICON = {
   reply: _rlNpSvg('<path d="M6.5 4 3 7.5 6.5 11M3 7.5h6a4 4 0 0 1 4 4v.5"/>'),
   done: _rlNpSvg('<path d="m3 8.5 3.2 3L13 4.5"/>'),
@@ -17112,7 +17119,16 @@ function rlNpShowNow(items, n){
 /* The line over the list: the chips (a pile with nothing in it is not listed;
    with nothing but open notes there is nothing to choose and no chip is drawn)
    and the order the list is in, which is a fact and not a control. */
-function rlNpScopeHtml(n, show){
+function rlNpScopeHtml(n, show, stripe){
+  /* THE STRIPE WAY (P-38, as drawn): Open with its count, Asks you and Done where they hold notes, and no order line
+     under them; with nothing but open notes there is nothing to choose and no chip is drawn (a choice with no results
+     is not listed) */
+  if (stripe){
+    if (!(n.mine || n.done || show !== 'open')) return '';
+    const sc = (k, label) => (k === 'open' || n[k] || k === show) ? `<button type="button" class="rl-np-chip${k === show ? ' on' : ''}"
+      data-rl-np-show="${k}" aria-pressed="${k === show ? 'true' : 'false'}">${label} <em>${n[k] || 0}</em></button>` : '';
+    return `<div class="rl-np-scope is-stripe">${sc('open', i18t('ng_np_show_open')) + sc('mine', i18t('ng_np_show_mine')) + sc('done', i18t('ng_np_show_done'))}</div>`;
+  }
   const chip = (k, label) => (n[k] || k === show) ? `<button type="button" class="rl-np-chip${k === show ? ' on' : ''}"
       data-rl-np-show="${k}" aria-pressed="${k === show ? 'true' : 'false'}">${label} <em>${n[k]}</em></button>` : '';
   const chips = (n.mine || n.done || show !== 'open')
@@ -17138,8 +17154,8 @@ function rlNpRowsHtml(items, show, one){
 function rlNpBoxHtml(o){
   const add = i18t('ng_card_note_add');
   return `<div class="rl-np-foot${o.ext ? ' out' : ''}">
-        <div class="rl-np-box">
-        <textarea class="chat-field rl-np-in" rows="2" id="nego-ti-${o.key}"
+        <div class="rl-np-box">${o.stripe ? RL_NP_ICON_PLUS : ''}
+        <textarea class="chat-field rl-np-in" rows="${o.stripe ? 1 : 2}" id="nego-ti-${o.key}"
           placeholder="${_nea(o.ph)}"
           aria-label="${_nea(o.aria)}">${_ne(o.draft || '')}</textarea>
         ${o.tags || ''}
@@ -17261,16 +17277,17 @@ function rlNpNoteHtml(m, room, side, org, ctx = null){
      alone is drawn and the full stamp is the hover's; anywhere else — a reply
      on a later day, the card body — the full stamp is drawn as it always was. */
   const whenFull = negoWhenFull(m.at);
-  const when = (ctx && ctx.day && rlNpDayKey(m.at) === ctx.day) ? negoWhen(m.at) : whenFull;
+  const stripe = !!(ctx && ctx.stripe);
+  const when = (stripe || (ctx && ctx.day && rlNpDayKey(m.at) === ctx.day)) ? negoWhen(m.at) : whenFull;
   return `<div class="rl-np-note${theirs ? ' is-them' : ''}${(ctx && !root) ? ' is-reply' : ''}${fresh ? ' is-new' : ''}" data-rl-np-key="${_nea(key)}">
     ${rlNpAvatarHtml(m.who || '', !!(ctx && !root))}
     <div class="rl-np-b">
-    <div class="rl-np-top"><b>${_ne(m.who || 'Someone')}</b>${
+    <div class="rl-np-top"><b>${_ne(stripe ? (String(m.who || 'Someone').trim().split(/\s+/)[0]) : (m.who || 'Someone'))}</b>${
       fresh ? `<i class="rl-np-dot" title="${_nea(i18t('ng_np_new'))}" aria-label="${_nea(i18t('ng_np_new'))}"></i>` : ''
     }<span title="${_nea(whenFull)}">${_ne(when)}</span></div>
     ${theirs && org ? `<span class="rl-np-org">${_ne(org)}</span>` : ''}
-    ${(root && ctx && ctx.refHtml) || ''}
-    ${anchor}
+    ${stripe ? '' : ((root && ctx && ctx.refHtml) || '')}
+    ${stripe ? '' : anchor}
     <p${long ? ' class="rl-np-clamp"' : ''}>${rlNpMarkMentions(_ne(t), m)}</p>
     ${long ? `<button type="button" class="rl-np-more" data-rl-note-more
       data-more="${_nea(i18t('ng_note_more'))}" data-less="${_nea(i18t('ng_note_less'))}">${i18t('ng_note_more')}</button>` : ''}
@@ -17283,9 +17300,9 @@ function rlNpNoteHtml(m, room, side, org, ctx = null){
    answers. It never writes a new note — rlNotesSend is told the key. */
 function rlNpReplyBoxHtml(root, ctx){
   const key = negoNoteKey(root);
-  const ph = i18t('ng_np_reply_ph', { who: root.who || '' });
-  return `<div class="rl-np-rbox${ctx.ext ? ' out' : ''}">
-    <textarea class="chat-field rl-np-rin" rows="2" data-rl-np-rin="${_nea(key)}"
+  const ph = ctx.stripe ? i18t('ng_np_reply_stripe_ph') : i18t('ng_np_reply_ph', { who: root.who || '' });
+  return `<div class="rl-np-rbox${ctx.ext ? ' out' : ''}${ctx.stripe ? ' is-stripe' : ''}">${ctx.stripe ? RL_NP_ICON_PLUS : ''}
+    <textarea class="chat-field rl-np-rin" rows="${ctx.stripe ? 1 : 2}" data-rl-np-rin="${_nea(key)}"
       placeholder="${_nea(ph)}" aria-label="${_nea(ph)}"></textarea>
     <div class="rl-np-act">
       <button data-dlg-cancel type="button" class="rl-np-act-b g" data-rl-np-reply-cancel="${_nea(key)}">${i18t('act_cancel')}</button>
@@ -17299,7 +17316,7 @@ function rlNpReplyBoxHtml(root, ctx){
 function rlNpThreadHtml(c, ch, th, room, side, other, opts = {}){
   const mayWrite = notesMayWrite(c, opts);
   const key = negoNoteKey(th.root);
-  const ctx = { c, ch, acts: true, mayWrite, ext: negoRoomIsExternal(room), day: opts.day || '', refHtml: opts.refHtml || '' };
+  const ctx = { c, ch, acts: true, mayWrite, ext: negoRoomIsExternal(room), day: opts.day || '', refHtml: opts.refHtml || '', stripe: !!opts.stripe };
   const under = k => _rlNpReplyTo === key && (_rlNpReplyUnder || key) === k;
   return `<div class="rl-np-thread${th.done ? ' is-done' : ''}" data-rl-np-home="${_nea(ch ? ch.id : '')}" data-rl-np-root="${_nea(key)}">
     ${rlNpNoteHtml(th.root, room, side, other, { ...ctx, root: true, rootKey: key, replyRoot: th.root, replyCount: th.replies.length, replyOpen: under(key) })}
@@ -17675,11 +17692,20 @@ function rlNpOpenHtml(c, ch, th, room, side, other, opts){
   const msgs = [th.root].concat(th.replies), who = [...new Set(msgs.map(m => String(m.who || '').trim()).filter(Boolean))];
   const last = msgs[msgs.length - 1];
   const cid = (th.root.anchor && th.root.anchor.clauseId) || (ch && ch.clauseId) || '';
-  return `<div class="rl-np-open-h"><button type="button" class="ui-link" data-rl-np-back>‹ ${_ne(i18t('ng_np_all_notes'))}</button></div>
+  const key = negoNoteKey(th.root), mayWrite = notesMayWrite(c, opts);
+  /* AS DRAWN (P-38): under the thread ONE standing reply box (to the note; the room's @ picker), then Mark done (Reopen
+     once done) as a pill and the paper link beside it. A reply asked under one message keeps its own box there. */
+  const replyOpen = _rlNpReplyTo === key;
+  const rbox = (mayWrite && !replyOpen) ? rlNpReplyBoxHtml(th.root, { ext: negoRoomIsExternal(room), stripe: true }) : '';
+  const done = mayWrite ? `<button type="button" class="rl-np-markdone" data-rl-np-done="${_nea(key)}" data-on="${th.done ? '0' : '1'}">${_ne(i18t(th.done ? 'ng_np_reopen' : 'ng_np_mark_done'))}</button>` : '';
+  return `<div class="rl-np-open-h"><button type="button" class="ui-link" data-rl-np-back>‹ ${_ne(i18t('ng_np_all_notes'))}</button>${opts.scope || ''}</div>
+    ${opts.rooms || ''}
     <div class="rl-np-ch is-head">${S.sec ? `<span class="rl-np-sec">${_ne(S.sec)}</span>` : ''}<b>${_ne(S.name || i18t('ng_np_on_contract'))}</b><span class="rl-np-st is-${st}">${_ne(i18t('ng_np_st_' + st))} · ${_ne(i18tn('ng_np_msgs', msgs.length, { n: msgs.length }))}</span></div>
+    ${opts.headRef || ''}
     <div class="rl-np-people">${who.slice(0, 4).map(n => rlNpAvatarHtml(n, true)).join('')}<span>${_ne(i18tn('ng_np_people', who.length, { n: who.length }))} · ${_ne(i18t('ng_np_last', { when: negoWhen(last.at) }))}</span></div>
-    <div class="rl-np-tl">${rlNpThreadHtml(c, ch, th, room, side, other, opts)}</div>
-    ${cid ? `<div class="rl-np-go"><button type="button" class="ui-link" data-rl-np-goclause="${_nea(cid)}">${_ne(i18t('ng_np_go_paper', { sec: S.sec || S.name }))}</button></div>` : ''}`;
+    <div class="rl-np-tl">${rlNpThreadHtml(c, ch, th, room, side, other, { ...opts, stripe: true })}</div>
+    ${rbox}
+    ${(done || cid) ? `<div class="rl-np-go">${done}${cid ? `<button type="button" class="ui-link" data-rl-np-goclause="${_nea(cid)}">${_ne(i18t('ng_np_go_paper', { sec: S.sec || S.name }))}</button>` : ''}</div>` : ''}`;
 }
 function rlChatPanelHtml(c, opts = {}){
   if (!c) return `<div class="rl-chat-none">${i18t('ng_chat_none')}</div>`;
@@ -17732,7 +17758,7 @@ function rlChatPanelHtml(c, opts = {}){
   const pin = rlNpPinFor(c, null);
   const foot = mayWrite
     ? `${rlNpPinHtml(c, null, opts, side)}${rlNpBoxHtml({ ext, room, key: 'contract',
-        ph: ext ? i18t('ng_np_ph_ext', { who: other }) : i18t('ng_chat_ph'),
+        ph: ext ? i18t('ng_np_ph_ext', { who: other }) : i18t('ng_np_write_stripe_ph'), stripe: true,
         aria: i18t('ng_chat_write_aria'), draft: pin ? (pin.drafts[room] || '') : '',
         tags: rlNpTagMenuHtml(c, room, opts), send: 'data-rl-chat-send="1"' })}`
     : `<div class="rl-np-no">${RL_NP_LOCK}<span>${i18t('ng_np_viewer')}</span></div>`;
@@ -17759,7 +17785,8 @@ function rlChatPanelHtml(c, opts = {}){
   if (_rlNpFocusKey){ const hit = threads.find(({ th }) => negoNoteKey(th.root) === _rlNpFocusKey || th.replies.some(r => negoNoteKey(r) === _rlNpFocusKey)); if (hit) _rlNpOpen = negoNoteKey(hit.th.root); }
   const opened = _rlNpOpen ? threads.find(({ th }) => negoNoteKey(th.root) === _rlNpOpen) : null;
   if (!opened) _rlNpOpen = null;
-  const rows2 = opened ? rlNpOpenHtml(c, opened.ch, opened.th, room, side, other, { ...opts, refHtml: refOf(opened.ch, opened.th) }) : rlNpRowsHtml(threads, show, rowOf);
+  const scopeS = rlNpScopeHtml(nShow, show, true), roomsS = tabbed ? rlNpRoomsHtml(c, room, { byRoom: byRoom }, { ...opts, stripe: true }, side) : '';
+  const rows2 = opened ? rlNpOpenHtml(c, opened.ch, opened.th, room, side, other, { ...opts, scope: scopeS, rooms: roomsS, headRef: refOf(opened.ch, opened.th) }) : rlNpRowsHtml(threads, show, rowOf);
   const body = threads.length ? rows2 : (rows.length
     ? rows.map(({ ch, m }) => `<div class="rl-chat-row">
         ${''/* A NOTE THAT BELONGS TO NO REDLINE CARRIES NO REFERENCE LINE
@@ -17788,20 +17815,16 @@ function rlChatPanelHtml(c, opts = {}){
         <b>${ext ? i18t('ng_chat_none_ext', { who: _ne(other) }) : i18t('ng_chat_none_int')}</b>
         ${all.length ? '' : `<span>${i18t('ng_chat_empty')}</span>`}
       </div>`);
+  /* AS DRAWN (P-38, the Stripe way): the chips, the rooms as a labelled line of pills, the write box at the top; no
+     band naming the contract (the paper beside the panel is the contract). A discussion opened carries the chips and
+     rooms in its own head. */
   return `<div class="rl-np rl-chat is-stripe" data-rl-chat="${_nea(c.id)}">
-    <div class="rl-np-stripe-top">${rlNpScopeHtml(nShow, show)}</div>
-    <div class="rl-np-which is-static">
-      <span class="t">
-        <span class="id">${window.refHtml ? refHtml(c) : _ne(c.id)}${c.name ? ` <em>· ${_ne(c.name)}</em>` : ''}</span>
-        <span class="s">${i18tn('ng_chat_n', all.length, { n: all.length })}</span>
-      </span>
-    </div>
-    ${tabbed ? rlNpRoomsHtml(c, room, { byRoom: byRoom }, opts, side) : ''}
+    ${opened ? '' : `<div class="rl-np-stripe-top">${scopeS}</div>${roomsS}`}
     ${''/* TABBED ON OUR SEAT: the tab row names the room and the line under
            it would be that fact twice. Their seat has no tabs, so the line is
            the one thing naming who reads it. */}
     ${tabbed ? '' : rlNpSeatTabHtml(other, rows.length, ext)}
-    ${opened ? '' : foot}
+    ${opened ? '' : foot.replace('class="rl-np-foot', 'class="rl-np-foot is-stripe')}
     <div class="rl-np-list${opened ? ' is-open' : ''}">
       ${body}
     </div>

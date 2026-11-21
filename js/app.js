@@ -2090,7 +2090,7 @@ function openCommandPalette(prefill,o){
   /* THE LAUNCHPAD (owner's pick, 19 Nov 2026): every opening starts on All */
   _lpChip='all';
   ov.innerHTML=`
-    <div class="lp-veil" style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d ${left?18:42}%,transparent)"></div>
+    <div class="lp-veil" style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d ${left?28:42}%,transparent)"></div>
     <div class="modal-in lp-sheet" style="${left?'position:absolute;left:0;top:0;bottom:0;width:min(400px,100vw);background:var(--color-surface);border-right:1px solid var(--color-divider);box-shadow:var(--shadow-lg);overflow:hidden'
       :'position:relative;width:100%;max-width:1300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden;max-height:calc(100vh - 2 * var(--s-4))'}">
       <div class="lp-top">
@@ -4306,13 +4306,14 @@ function lpBodyHtml(items,active,o){
   return h;
 }
 /* the ask line in two tones, as drawn: the question in ink, how to answer it in grey (the box's own words, lp_where) */
-function lpWhereHtml(){ const t=String(i18t('lp_where')), m=/^(.+?[?.!])\s+(.+)$/.exec(t); return m?`<b>${esc(m[1])}</b> ${esc(m[2])}`:esc(t); }
+function lpWhereHtml(){ const t=String(i18t(_lpLeft?'lp_where_left':'lp_where')), m=/^(.+?[?.!])\s+(.+)$/.exec(t); return m?`<b>${esc(m[1])}</b> ${esc(m[2])}`:esc(t); }
 /* the foot: the keys, then what the panel holds — a cap is said, never a silent trim */
 function lpFootHtml(typed,side){
   const keys=`<span class="lp-keys"><span><kbd>↑</kbd> <kbd>↓</kbd> ${esc(i18t('lp_k_move'))}</span><span><kbd>Enter</kbd> ${esc(i18t('lp_k_go'))}</span><span><kbd>Esc</kbd> ${esc(i18t('lp_k_close'))}</span></span>`;
   /* beside the pages, the tinted column says it at its own foot (lpSideHtml) */
   if(typed||side) return keys;
-  if(_lpLeft) return keys+`<span>${esc(i18t('lp_out'))}</span>`;
+  /* the panel at the left says its keys and nothing more (P-37, as drawn); lp_out stays inert in both books */
+  if(_lpLeft) return keys;
   return keys+`<span>${esc(lpMoreSay())}</span>`;
 }
 function lpChipsHtml(){
@@ -4373,6 +4374,9 @@ function panelTabsPaint(face){
   host.innerHTML=tabs.map(([k,w])=>{ const dead=k==='notes'&&!cid&&face!=='notes';
     const nl=typeof window.newLookOn==='function'&&newLookOn();
     let cnt=''; if(nl&&k==='alerts'){ let n=0; try{ n=(typeof counterNeedsCount==='function')?Number(counterNeedsCount())||0:0; }catch(_){ n=0; } if(n) cnt=`<span class="pt-n">${n>99?'99+':n}</span>`; }
+    /* AS DRAWN (P-38): with a contract in front, Notes carries the number of its notes in the room shown (the same
+       threads the face lists, rlChatThreads); none, no number */
+    if(nl&&k==='notes'&&cid&&typeof window.rlChatThreads==='function'){ let n=0; try{ const c=getContract(cid); const room=typeof window.rlNpRoomNow==='function'?rlNpRoomNow(c,{},'owner'):null; n=c?(rlChatThreads(c,{},room)||[]).length:0; }catch(_){ n=0; } if(n) cnt=`<span class="pt-n">${n>99?'99+':n}</span>`; }
     return `<button type="button" role="tab" class="pt-tab${k===face?' on':''}" data-pt-face="${k}" aria-selected="${k===face}"${dead?` disabled aria-disabled="true" title="${esc(i18t('ng_chat_none'))}"`:''}>${esc(i18t(w))}${cnt}${k==='guide'&&!nl&&!guideSeen()&&face!=='guide'?`<span class="pt-new">${esc(i18t('gd_new'))}</span>`:''}</button>`; }).join('');
   host.querySelectorAll('[data-pt-face]').forEach(b=>b.addEventListener('click',()=>{
     const k=b.getAttribute('data-pt-face'); if(k===panelFace()||b.disabled) return;

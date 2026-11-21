@@ -226,7 +226,8 @@ test('f1097 (9) the nav button panel slides in from the left: one list, each pag
   const need = plain(A.lpItems().map(x => x.id));
   assert.deepEqual([...need].sort(), ['approvals', 'house', 'oblig', 'settings'], 'Waiting on you narrows the list to the pages with a count, the page you are on left out');
   assert.equal(draw(w).querySelectorAll('.lp-st h5').length > 0, true, 'still under their stages\' heads');
-  A.chip('all'); assert.match(A.lpFootHtml(false, false), /lp_out/, 'the foot says a press outside closes it');
+  /* RE-POINTED 21 Nov 2026 (P-37 rebuilt as drawn): the panel's foot is its keys and nothing more */
+  A.chip('all'); assert.doesNotMatch(A.lpFootHtml(false, false), /lp_out/, 'the foot says its keys only, as drawn');
   A.left(false);
   const app = strip(fnSrc('openCommandPalette'));
   assert.match(app, /position:fixed;left:0;right:0;bottom:0;top:\$\{top\}px/, 'under the black bar to the window\'s foot');
