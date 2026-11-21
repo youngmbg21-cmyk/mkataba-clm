@@ -21545,6 +21545,81 @@
   html.lg-new .igo-leg i{flex:none;width:7px;height:7px;border-radius:50%}
   html.lg-new .igo-leg small{color:var(--color-quiet);font-size:var(--t-label)}
   html.lg-new .jov-arrive .igo-ring svg{animation:igoSweep .9s cubic-bezier(.22,.61,.36,1) .2s both}
+  /* OBLIGATIONS, THE STRIPE WAY (P-13): four figure tiles with tiny charts, "+ filter" chips, ONE calm table with soft badges */
+  html.lg-new .obt-page .obs-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s-3);padding:var(--s-2) 0 var(--s-3)}
+  html.lg-new .obs-tile{display:flex;flex-direction:column;gap:6px;min-width:0;padding:var(--s-3) var(--s-4);border:1px solid var(--color-neutral-200);border-radius:var(--radius);background:var(--color-surface);font:inherit;text-align:left;color:var(--color-text);cursor:pointer}
+  html.lg-new .obs-tile:hover{border-color:var(--color-neutral-300)}
+  html.lg-new .obs-tile.is-on{border-color:var(--accent-ink);box-shadow:inset 0 0 0 1px var(--accent-ink)}
+  html.lg-new .obs-tl{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s-2);font-size:var(--t-label);color:var(--color-quiet);min-width:0}
+  html.lg-new .obs-tile.is-on .obs-tl>span{color:var(--accent-ink)}
+  html.lg-new .obs-tl em{font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--color-quiet)}
+  html.lg-new .obs-tl em.is-late{color:var(--st-ruby-fg)}
+  html.lg-new .obs-tl em.is-violet{color:var(--st-violet-fg)}
+  html.lg-new .obs-tn{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--s-2)}
+  html.lg-new .obs-tn b{font-family:var(--font-title);font-size:24px;line-height:1;font-weight:var(--w-label);font-variant-numeric:tabular-nums}
+  html.lg-new .obs-bars{display:flex;align-items:flex-end;gap:3px;height:22px}
+  html.lg-new .obs-bars i{display:block;width:9px;border-radius:2px;background:var(--st-green-dot);opacity:.75}
+  html.lg-new .obs-bars i.is-late{background:var(--st-ruby-dot);opacity:1}
+  html.lg-new .obs-line{width:60px;height:20px}
+  html.lg-new .obs-line polyline{fill:none;stroke:var(--st-green-dot);stroke-width:1.5}
+  html.lg-new .obs-ring{width:24px;height:24px;transform:rotate(-90deg)}
+  html.lg-new .obs-ring circle{fill:none;stroke:var(--color-neutral-200);stroke-width:3}
+  html.lg-new .obs-ring circle.is-f{stroke:var(--st-violet-dot)}
+  html.lg-new .obs-chips{display:flex;flex-wrap:wrap;gap:6px}
+  html.lg-new .obs-chip{height:26px;padding:0 10px;border-radius:999px;border:1px dashed var(--color-neutral-300);background:var(--color-surface);color:var(--color-text);font:var(--w-label) var(--t-label)/1 var(--font-body);cursor:pointer;white-space:nowrap}
+  html.lg-new .obs-chip.is-on{border-style:solid;background:var(--surface-2)}
+  html.lg-new .obt-page .obt-cols.obs-table{display:block;grid-template-columns:none;column-gap:0}
+  html.lg-new .obt-page .obn-bar2r{flex-wrap:wrap;row-gap:var(--s-2)}
+  html.lg-new .obs-th,html.lg-new .obs-r{display:grid;grid-template-columns:minmax(0,2.4fr) 90px 104px minmax(0,1fr) 96px 84px;gap:var(--s-3);align-items:center}
+  html.lg-new .obs-th{padding:8px 8px 6px;border-bottom:1px solid var(--color-neutral-200);font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .obs-th>span:nth-child(5){text-align:right}
+  html.lg-new .obs-r{padding:9px 8px;border-bottom:1px solid var(--color-neutral-200);cursor:pointer}
+  html.lg-new .obs-r:hover,html.lg-new .obs-r.is-sel,html.lg-new .obs-r[aria-selected="true"]{background:var(--surface-2)}
+  html.lg-new .obs-c{min-width:0}
+  html.lg-new .obs-duty{display:flex;flex-direction:column;gap:2px}
+  html.lg-new .obs-duty b{font-size:13.5px;font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .obs-duty span{font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .obs-b{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:999px;font-size:var(--t-micro);font-weight:var(--w-label);white-space:nowrap;background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  html.lg-new .obs-b i{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.8}
+  html.lg-new .obs-b.is-ours{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new .obs-b.is-theirs{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-new .obs-b.is-st-late{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new .obs-b.is-st-soon{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new .obs-b.is-st-decide{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  html.lg-new .obs-b.is-st-ontime{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .obs-b.is-st-donelate{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new .obs-rem{display:inline-flex;align-items:center;gap:6px;font-size:var(--t-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  html.lg-new .obt-page .obs-rem.obt-rem.is-none{color:var(--st-amber-fg)}
+  html.lg-new .obs-av{flex:none;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--color-neutral-100);font-style:normal;font-size:9px;font-weight:var(--w-strong);color:var(--color-quiet)}
+  html.lg-new .obs-due{display:flex;flex-direction:column;align-items:flex-end;gap:1px;text-align:right}
+  html.lg-new .obs-due b{font-size:13.5px;font-weight:var(--w-label);white-space:nowrap;font-variant-numeric:tabular-nums}
+  html.lg-new .obs-due span{font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap}
+  html.lg-new .obs-due span.is-late{color:var(--st-ruby-fg)}
+  html.lg-new .obt-page .obs-r.obt-li{margin:0;border-radius:0;box-shadow:none}
+  html.lg-new .obs-act{text-align:right}
+  html.lg-new .obs-r .obt-act{opacity:0}
+  html.lg-new .obs-r:hover .obt-act,html.lg-new .obs-r:focus-within .obt-act,html.lg-new .obs-r.is-sel .obt-act{opacity:1}
+  @media (hover:none){ html.lg-new .obs-r .obt-act{opacity:1} }
+  html.lg-new .obs-one .obs-badges{display:flex;gap:6px;margin-bottom:6px}
+  html.lg-new .obs-big{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px var(--s-2);margin-bottom:var(--s-2)}
+  html.lg-new .obs-big span{flex:0 0 100%;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .obs-big b{font-family:var(--font-title);font-size:26px;line-height:1.1;font-weight:var(--w-label)}
+  html.lg-new .obs-big b.is-late{color:var(--st-ruby-fg)}
+  html.lg-new .obs-big em{margin-left:auto;font-style:normal;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .obs-big em.is-late{color:var(--st-ruby-fg)}
+  html.lg-new .obs-30{position:relative;height:22px;margin:0 0 var(--s-3);border-bottom:2px solid var(--color-neutral-200)}
+  html.lg-new .obs-30 i{position:absolute;bottom:-5px}
+  html.lg-new .obs-30 i.obs-30-today{left:50%;width:2px;height:14px;bottom:-2px;background:var(--color-text)}
+  html.lg-new .obs-30-due{width:9px;height:9px;margin-left:-4px;border-radius:50%;background:var(--st-amber-dot)}
+  html.lg-new .obs-30-due.is-late{background:var(--st-ruby-dot)}
+  html.lg-new .obs-30 small{position:absolute;top:-4px;left:50%;transform:translateX(-50%);font-size:var(--t-micro);color:var(--color-quiet)}
+  html.lg-new .obs-tl-list{list-style:none;margin:0;padding:0 0 0 2px;display:flex;flex-direction:column;gap:8px;border-left:1px solid var(--color-neutral-300)}
+  html.lg-new .obs-tl-list li{position:relative;padding-left:14px;font-size:var(--t-label);color:var(--color-text)}
+  html.lg-new .obs-tl-list li i{position:absolute;left:-5px;top:4px;width:9px;height:9px;border-radius:50%;background:var(--st-gray-dot)}
+  html.lg-new .obs-tl-list li.is-sent i{background:var(--st-steel-dot)}
+  html.lg-new .obs-tl-list li.is-done i{background:var(--st-green-dot)}
+  html.lg-new .obs-tl-list li.is-late i{background:var(--st-ruby-dot)}
+  html.lg-new .obs-tl-list li.is-next i{background:var(--color-surface);border:1px solid var(--color-neutral-400)}
   /* READ DOWN, THE LEGORA + STRIPE WAY (P-41): each sentence a calm row with its small graphic; the quarters by count, the nearest red */
   html.lg-new .rd-page.is-ls .rd-head{display:flex;align-items:center;gap:var(--s-3)}
   html.lg-new .rd-page.is-ls .rd-row{display:grid;grid-template-columns:40px minmax(0,1fr) minmax(0,220px);align-items:center;gap:var(--s-3)}

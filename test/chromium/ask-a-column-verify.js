@@ -68,6 +68,8 @@ async function toList(page) {
     /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way"): the
        list's own card head is gone; "Ask a column" stands at the list head's
        chip row's end */
+    /* the head is painted beside the rows, not before them: ask for the door, bounded, before reading it */
+    await until(page, () => !!document.querySelector('.lh-chips [data-ac-open]'));
     const btn = await page.evaluate(() => { const b = document.querySelector('.lh-chips [data-ac-open]'); return b ? { txt: b.textContent.trim(), dis: b.disabled } : null; });
     check('1a "Ask a column" stands in the list\'s own head', !!btn && /Ask a column/.test(btn.txt) && !btn.dis, JSON.stringify(btn));
     await page.click('[data-ac-open]');

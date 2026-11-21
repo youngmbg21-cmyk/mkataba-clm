@@ -65,10 +65,11 @@ test('f1099 (4) a line pressed: the obligation the Legora way — its words, its
   if (typeof W.partyContactsOpen !== 'function') W.partyContactsOpen = () => {};   /* js/participants.js's door, not in this world */
   const d = W.document.createElement('div'); d.innerHTML = W.obnOnePanel(ours) + W.obnOnePanel(theirs);
   const [p1, p2] = d.querySelectorAll('.obt-one');
-  assert.match(p1.querySelector('.obt-side').textContent, /We owe/);
+  /* RE-POINTED 21 Nov 2026 (P-13, the Stripe way): whose is a soft badge, the status beside it */
+  assert.match(p1.querySelector('.obs-b.is-ours').textContent, /We owe/);
   assert.match(p1.querySelector('.obn-lg-q').innerHTML, /<mark>thirty \(30\) days<\/mark>/);
   assert.ok(p1.querySelector('[data-obn-go="done"]') && p1.querySelector('[data-obt-paper]'));
-  assert.match(p2.querySelector('.obt-side').textContent, /They owe/);
+  assert.match(p2.querySelector('.obs-b.is-theirs').textContent, /They owe/);
   assert.ok(p2.querySelector('[data-obn-go="chase"]'), 'Chase now');
   assert.ok(p2.querySelector('[data-obt-contact="Juno Logistics"]'), 'no address: Add their contact, its own door');
 });

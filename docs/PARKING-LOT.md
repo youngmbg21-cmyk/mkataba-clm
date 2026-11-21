@@ -366,7 +366,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — money in the alert rows; the ✕ ring; the same "Open" on every row; Notes saying "Open a contract…" with one open; Notes without Jambo's box.
 
 ### P-39 · The Board, the Legora + Stripe way, with the side panel's arrival motion
-- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #857, the overnight batch 2)
 - **What:** build the owner's pick for the Board: the Legora + Stripe way on the top, Needs you, the brief, and Your book's figure picker; the first page with motion, mostly in the side panel (owner: "this is where i would like to see a bit of animation especially in the side panels but you choose whats best"). Owner's words: "L+S and merge it."
 - **Where it came from:** the page clean-up, day 14. The drawings: https://claude.ai/artifact/4NZKFbQc8nR7fVUcAukTxA (choose "The Legora + Stripe way"; "▶ Replay the arrival" plays the motion). Photographed from the running app that day.
 - **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
@@ -380,7 +380,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — "13 waiting on you" said three times; "Value under contract" as a big figure; money and empty Waited cells in Needs you.
 
 ### P-40 · Explorer: only the side panel changes, the Legora + Stripe way
-- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #857, the overnight batch 2)
 - **What:** build the owner's pick for Explorer: ONLY THE SIDE PANEL changes, the Legora + Stripe way; the map, its layouts, lenses, controls and legend STAY AS THEY ARE TODAY. Owner's words: "Only change the side panels and go for L+S".
 - **Where it came from:** the page clean-up. The drawings: https://claude.ai/artifact/CEBDW8hdDNR78UDqdszZYG (choose "The Legora + Stripe way"; "▶ Replay the arrival" plays the motion). Photographed from the running app in Brain, Grid and Timeline. The drawing also redraws the controls (two white segmented controls, a Group by chip, a folded legend, an ask box on the map) — NOT picked: those stay as today.
 - **Notes:** what the side panel holds (Overview face), to be built in full:
@@ -395,7 +395,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Logged, not part of this pick:** the map's overlapping and smeared labels, the legend covering the drawing, money in the Grid's cell headings, the 13-button bar (BUGLOG, 20 Nov 2026) — each needs its own yes.
 
 ### P-41 · Read down, the Legora + Stripe way, with no money as a big part of the sheet
-- **Added:** 20 Nov 2026 · **Status:** Waiting
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #857, the overnight batch 2)
 - **What:** build the owner's pick for the Board's "Read down" sheet (`ovSheetPaint` / THE OVERVIEW — READ DOWN): the Legora + Stripe way. Owner's words: "L+S and merge it."
 - **Where it came from:** the page clean-up. The drawing: https://claude.ai/artifact/K4sJi4PUcrYgYbBTo6VAdC (choose "The Legora + Stripe way"; "▶ Replay the arrival" plays the motion). Photographed from the running app.
 - **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
