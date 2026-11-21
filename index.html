@@ -20099,95 +20099,136 @@
      waits in its colour, the words Jambo read it from on one line; the reading a soft badge; the value right-aligned; the
      upgraded panel — a small paper, the acts on one line, each fact with a dot, the unsure one opened in place, a ring */
   html.lg-new .mign-page .apn-card .mign-table td{vertical-align:middle}
-  html.lg-new .mign-table :is(.mign-name,.mign-why,.mign-ref,.mign-read,.mign-stc>span){display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;word-break:normal;overflow-wrap:normal}
+  /* RE-BUILT 21 Nov 2026 (P-33, as drawn): the head's sentence-case column names, small and grey; a chosen row in a
+     faint green; the reading a soft square-ish badge; the chips Stripe's "+ filter" chips (the chosen one solid, the rest
+     dashed); the ask box's spark in the link ink */
+  html.lg-new .mign-page .apn-card .mign-table th{font-size:var(--t-label);letter-spacing:0;text-transform:none;font-weight:var(--w-label);color:var(--color-neutral-400)}
+  html.lg-new .mign-page .apn-card .mign-table tbody tr.is-sel td{background:color-mix(in srgb,var(--st-green-bg) 32%,var(--color-surface))}
+  html.lg-new .mign-page .mign-table .apn-st{height:20px;padding:0 7px;border-radius:6px;font-size:var(--t-label)}
+  html.lg-new .mign-page :is(.mign-table,.mign5-tt) .apn-st.is-green i{display:none}
+  html.lg-new .mign-page :is(.mign-table,.mign5-tt) .apn-st.is-green::before{content:"\2713";font-size:var(--t-micro);line-height:1}
+  html.lg-new .mign-page .apn-bar .apn-tab.is-chip{border-style:dashed;background:var(--color-surface);color:var(--color-quiet);font-weight:var(--w-label)}
+  html.lg-new .mign-page .apn-bar .apn-tab.is-chip.is-on{border-style:solid;border-color:var(--color-neutral-300);background:var(--color-surface);color:var(--color-text)}
+  html.lg-new .mign-page .apn-bar .apn-tab.is-chip span{color:inherit}
+  html.lg-new :is(.mign-page,.mign-start) .mign-ask .mign-spark{flex:none;width:14px;height:14px;fill:var(--accent-ink)}
+  html.lg-new .mign-table :is(.mign-name,.mign-why,.mign-ref,.mign-stc>span){display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;word-break:normal;overflow-wrap:normal}
+  html.lg-new .mign-table .mign-name{max-width:260px}
   html.lg-new .mign-table .mign-why{margin-top:3px;font-size:var(--t-label);color:var(--st-amber-fg)}
   html.lg-new .mign-table .mign-why:is(.is-ruby){color:var(--st-ruby-fg)}
   html.lg-new .mign-table .mign-why:is(.is-violet){color:var(--st-violet-fg)}
   html.lg-new .mign-table .mign-why:is(.is-steel){color:var(--st-steel-fg)}
   html.lg-new .mign-table .mign-why:is(.is-gray,.is-green){color:var(--color-quiet)}
   html.lg-new .mign-table .mign-ref{margin-top:3px;font-size:var(--t-label);color:var(--color-quiet)}
-  html.lg-new .mign-table .mign-ql{display:flex;gap:4px;min-width:0;margin-top:3px;font-family:var(--font-doc);font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;overflow:hidden}
+  html.lg-new .mign-table .mign-ql{display:flex;gap:4px;min-width:0;max-width:300px;margin-top:3px;font-family:var(--font-doc);font-size:var(--t-body);color:var(--color-quiet);white-space:nowrap;overflow:hidden}
   html.lg-new .mign-table .mign-ql i{font-style:normal;min-width:0;overflow:hidden;text-overflow:ellipsis}
-  html.lg-new .mign-table .mign-ql span{flex:none}
-  html.lg-new .mign-table .mign-read{font-weight:400;font-size:var(--t-label)}
+  html.lg-new .mign-table .mign-ql span{flex:none;font-family:var(--font-body);font-size:var(--t-label);color:var(--color-neutral-400)}
+  /* what Jambo read: two lines at most, as drawn ("Non-disclosure agreement · Acme Ltd · from 1 Feb 2024 · renews by itself") */
+  html.lg-new .mign-table .mign-read{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-weight:400;font-size:var(--t-label);line-height:1.45}
   html.lg-new .mign-table td.mign-stc{font-size:var(--t-label)}
-  html.lg-new .mign-table :is(td,th).mign-val{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  html.lg-new .mign-table :is(td,th).mign-val{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:var(--t-label)}
+  html.lg-new .mign-table .mign-sure{gap:6px;font-size:var(--t-label);color:var(--color-neutral-400)}
   html.lg-new .mign-table tr.is-done td .apn-st.is-green{opacity:1}
   html.lg-new .mign-batch{margin:2px 0 14px}
-  html.lg-new .mign-bbar{display:flex;gap:2px;height:8px;border-radius:999px;overflow:hidden;background:var(--color-neutral-100)}
+  html.lg-new .mign-bbar{display:flex;gap:2px;height:12px;border-radius:5px;overflow:hidden;background:var(--color-neutral-100)}
   html.lg-new .mign-bbar i{display:block;height:100%;flex:1 1 0}
   html.lg-new :is(.mign-bbar,.mign-bkey) .is-green{background:var(--st-green-dot)}
   html.lg-new :is(.mign-bbar,.mign-bkey) .is-amber{background:var(--st-amber-dot)}
   html.lg-new :is(.mign-bbar,.mign-bkey) .is-violet{background:var(--st-violet-dot)}
   html.lg-new :is(.mign-bbar,.mign-bkey) .is-steel{background:var(--st-steel-dot)}
   html.lg-new :is(.mign-bbar,.mign-bkey) .is-ruby{background:var(--st-ruby-dot)}
-  html.lg-new .mign-bkey{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px}
+  html.lg-new .mign-bkey{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:8px}
   html.lg-new .mign-bk{display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:none;font:inherit;font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap}
   html.lg-new button.mign-bk{cursor:pointer}
   html.lg-new button.mign-bk:hover,html.lg-new .mign-bk.is-on{color:var(--color-text)}
   html.lg-new .mign-bk.is-on{text-decoration:underline;text-underline-offset:3px}
-  html.lg-new .mign-bk i{display:inline-block;width:7px;height:7px;border-radius:50%}
+  html.lg-new .mign-bk i{display:inline-block;width:8px;height:8px;border-radius:50%}
+  /* THE UPGRADED SIDE PANEL, AS DRAWN: three parts, each closed by a hairline — the file and its acts; what it will be
+     filed as; the batch. No cards, no tiles; the name in the body type, not the serif */
   html.lg-new .mign5 .jov5-intro{display:none}
-  html.lg-new .mign5 .jov5-group.is-form{background:none;box-shadow:none;border-radius:0;overflow:visible}
-  html.lg-new .mign5-top{display:flex;align-items:flex-start;gap:12px;margin:0 0 14px;min-width:0}
-  html.lg-new .mign5-tt{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0;flex:1}
-  html.lg-new .mign5-tt .jov5-title{margin:0;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  html.lg-new .mign5-tt .jov5-sub{margin:0}
-  html.lg-new .mign5-pap{flex:none;display:flex;flex-direction:column;gap:4px;width:44px;height:56px;padding:9px 8px;box-sizing:border-box;border:1px solid var(--color-neutral-200);border-radius:3px;background:var(--color-surface);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  html.lg-new .mign5 .jov5{gap:12px}
+  html.lg-new .mign5 .jov5-group.is-form{background:none;box-shadow:none;border-radius:0;overflow:visible;padding:0}
+  html.lg-new .mign5 :is(.mign5-head,.jov5-sec[data-jov5-sec="facts"],.jov5-sec[data-jov5-sec="link"]){padding:0 0 12px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .mign5-top{display:flex;align-items:flex-start;gap:12px;margin:0 0 12px;min-width:0}
+  html.lg-new .mign5-tt{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;flex:1}
+  html.lg-new .mign5-tt .apn-st{height:20px;padding:0 7px;border-radius:6px;font-size:var(--t-label)}
+  html.lg-new .mign5-tt .jov5-title{margin:0;max-width:100%;font-family:var(--font-body);font-size:15px;line-height:1.3;font-weight:var(--w-label);letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .mign5-tt .jov5-sub{margin:0;font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new .mign5-pap{flex:none;display:flex;flex-direction:column;gap:3px;width:44px;height:56px;padding:7px 6px;box-sizing:border-box;border:1px solid var(--color-neutral-300);border-radius:4px;background:var(--color-surface);box-shadow:0 1px 3px rgba(0,0,0,.06)}
   html.lg-new .mign5-pap i{display:block;height:3px;border-radius:2px;background:var(--color-neutral-200)}
-  html.lg-new .mign5-pap i:first-child{width:70%;background:var(--color-neutral-300)}
-  html.lg-new .mign5-pap i:nth-child(3){width:85%}
-  html.lg-new .mign5-pap i:last-child{width:55%}
-  html.lg-new .mign5-pap.is-amber{border-top:3px solid var(--st-amber-dot)}
-  html.lg-new .mign5-pap.is-violet{border-top:3px solid var(--st-violet-dot)}
-  html.lg-new .mign5-pap.is-steel{border-top:3px solid var(--st-steel-dot)}
-  html.lg-new .mign5-pap.is-ruby{border-top:3px solid var(--st-ruby-dot)}
-  html.lg-new .mign5-pap.is-green{border-top:3px solid var(--st-green-dot)}
-  html.lg-new .mign5-acts{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin:0 0 18px}
-  html.lg-new .mign5-ar{display:flex;gap:8px;width:100%;min-width:0}
-  html.lg-new .mign5-ar>button{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  html.lg-new .mign5-ar .mign5-2nd{height:var(--ctl-h);border-radius:999px;justify-content:center}
-  html.lg-new .mign5-quiet{padding:0;border:0;background:none;font:inherit;font-size:var(--t-label);color:var(--color-quiet);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
-  html.lg-new .mign5-quiet:hover{color:var(--color-text)}
+  html.lg-new .mign5-pap i:first-child{width:60%;margin:0 auto 2px;background:var(--color-neutral-300)}
+  html.lg-new .mign5-acts{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:0}
+  html.lg-new .mign5-ar{display:flex;flex-wrap:wrap;gap:6px 8px;min-width:0}
+  html.lg-new .mign5-ar>button{flex:none;max-width:100%;height:var(--ctl-h-lg);padding:0 14px;border-radius:999px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--t-body)}
+  html.lg-new .mign5-ar .mign5-2nd{border:0;background:var(--surface-2);color:var(--color-text);font-weight:var(--w-label);justify-content:center}
+  html.lg-new .mign5-ar .mign5-2nd:disabled{color:var(--color-neutral-400);cursor:not-allowed}
+  html.lg-new .mign5-quiet{padding:0;border:0;background:none;font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  html.lg-new .mign5-quiet:hover{color:var(--accent-ink-700)}
+  html.lg-new .mign5-fh{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 0 8px;font-size:var(--t-body)}
+  html.lg-new .mign5-fh b{font-weight:var(--w-strong)}
+  html.lg-new .mign5-fh span{flex:none;font-size:var(--t-label);color:var(--color-neutral-400)}
   html.lg-new .mign5-facts{display:flex;flex-direction:column}
-  html.lg-new .mign5-f{display:flex;align-items:center;gap:8px;min-width:0;padding:7px 0;border-bottom:1px solid var(--color-divider);font-size:var(--t-label)}
-  html.lg-new .mign5-d{flex:none;width:7px;height:7px;border-radius:50%}
+  html.lg-new .mign5-f{display:grid;grid-template-columns:10px 64px minmax(0,1fr);align-items:baseline;gap:8px;min-width:0;padding:3px 0;font-size:var(--t-body)}
+  html.lg-new .mign5-d{width:7px;height:7px;border-radius:50%;align-self:center}
   html.lg-new .mign5-d.is-green{background:var(--st-green-dot)}
   html.lg-new .mign5-d.is-amber{background:var(--st-amber-dot)}
   html.lg-new .mign5-d.is-gray{background:var(--color-neutral-300)}
-  html.lg-new .mign5-k{flex:none;width:72px;color:var(--color-quiet)}
-  html.lg-new .mign5-v{flex:1;min-width:0;font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  html.lg-new .mign5-v.is-none{font-weight:400;color:var(--color-quiet)}
-  html.lg-new .mign5-f small{flex:none;font-size:var(--t-micro);color:var(--st-amber-fg)}
-  html.lg-new .mign5-open{padding:8px 0 12px 15px;border-bottom:1px solid var(--color-divider)}
-  html.lg-new .mign5-lit{margin:0 0 8px;font-family:var(--font-doc);font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-700);overflow-wrap:anywhere}
-  html.lg-new .mign5-lit mark{background:var(--st-amber-bg);color:var(--st-amber-fg);padding:0 2px;border-radius:2px}
-  html.lg-new .mign5-ow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:var(--t-label);color:var(--color-quiet)}
-  html.lg-new .mign5-use{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
-  html.lg-new .mign5-batch{display:flex;flex-direction:column;gap:6px}
-  html.lg-new .mign5-bh{display:flex;align-items:center;gap:12px;margin:0 0 6px}
-  html.lg-new .mign5-bh>div{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:var(--t-label)}
-  html.lg-new .mign5-bh>div span{color:var(--color-quiet)}
-  html.lg-new .mign5-ring text{font-size:10px}
-  html.lg-new .mign5-nx{display:flex;align-items:center;gap:10px;min-width:0;width:100%;padding:6px 0;border:0;border-bottom:1px solid var(--color-divider);background:none;font:inherit;font-size:var(--t-label);text-align:left;cursor:pointer}
+  html.lg-new .mign5-k{color:var(--color-neutral-400)}
+  html.lg-new .mign5-v{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .mign5-v.is-amber{color:var(--st-amber-fg)}
+  html.lg-new .mign5-v.is-gray{color:var(--color-neutral-400)}
+  html.lg-new .mign5-open{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:2px 0 4px 82px;padding:8px 10px;border-left:2px solid var(--st-amber-dot);background:color-mix(in srgb,var(--st-amber-bg) 35%,var(--color-surface))}
+  html.lg-new .mign5-lit,html.lg-new .mign5-say{margin:0;font-family:var(--font-doc);font-size:var(--t-body);line-height:1.45;color:var(--color-quiet);overflow-wrap:anywhere}
+  html.lg-new .mign5-say{font-family:var(--font-body)}
+  html.lg-new .mign5-lit mark{background:var(--st-amber-bg);color:inherit;padding:0 1px;border-radius:2px}
+  html.lg-new .mign5-lit .mign5-w{font-family:var(--font-body);font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new .mign5-ow{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+  html.lg-new .mign5-use{max-width:100%;height:22px;padding:0 10px;border:1px solid var(--color-neutral-300);border-radius:999px;background:var(--color-surface);font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+  html.lg-new .mign5-use:hover{border-color:var(--color-neutral-400)}
+  html.lg-new .mign5-batch{display:flex;align-items:center;gap:14px;min-width:0}
+  html.lg-new .mign5-ring{flex:none;display:block}
+  html.lg-new .mign5-ring .rb{fill:none;stroke:var(--color-neutral-200);stroke-width:6}
+  html.lg-new .mign5-ring .rf{fill:none;stroke:var(--st-green-dot);stroke-width:6;stroke-linecap:round}
+  html.lg-new .mign5-ring text{font-family:var(--font-body);font-size:12px;font-weight:var(--w-strong);fill:var(--color-text)}
+  html.lg-new .mign5-bt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  html.lg-new .mign5-bt b{font-size:var(--t-body);font-weight:var(--w-label)}
+  html.lg-new .mign5-nx{display:flex;align-items:baseline;gap:8px;min-width:0;width:100%;padding:2px 0;border:0;background:none;font:inherit;font-size:var(--t-label);text-align:left;color:var(--color-text);cursor:pointer}
   html.lg-new .mign5-nf{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  html.lg-new .mign5-nw{flex:none;font-size:var(--t-micro);font-weight:var(--w-label)}
+  html.lg-new .mign5-nw{flex:none;font-size:var(--t-label)}
   html.lg-new .mign5-nw.is-amber{color:var(--st-amber-fg)}
   html.lg-new .mign5-nw.is-violet{color:var(--st-violet-fg)}
   html.lg-new .mign5-nw.is-steel{color:var(--st-steel-fg)}
   html.lg-new .mign5-nw.is-ruby{color:var(--st-ruby-fg)}
   html.lg-new .mign5-link .mig-cf-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
   html.lg-new .mign5-link select{max-width:100%;font:inherit;font-size:var(--t-label)}
-  html.lg-new .mig-page>.mign-start{display:flex;flex-direction:column;gap:14px;padding:22px 40px 0}
-  html.lg-new .mig-page .mign-start #mig-drop.mign-drop{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;box-sizing:border-box;padding:40px 16px;border:1px dashed var(--color-neutral-300);border-radius:var(--radius);background:var(--color-surface);text-align:center;cursor:pointer}
+  /* BEFORE ANY FILE, AS DRAWN: the ask box, a calm dashed drop area (a square-cornered upload mark, the limits, a grey
+     Choose files), the choices as set chips */
+  html.lg-new .mig-page>.mign-start{display:flex;flex-direction:column;gap:16px;padding:22px 40px 0}
+  html.lg-new .mig-page .mign-start #mig-drop.mign-drop{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;box-sizing:border-box;padding:32px 24px;border:1.5px dashed var(--color-neutral-300);border-radius:12px;background:var(--color-surface);text-align:center;cursor:pointer}
   html.lg-new .mig-page .mign-start #mig-drop.mign-drop:is(:hover,.dragover){border-color:var(--accent-ink);background:var(--surface-2)}
-  html.lg-new .mign-drop b{font-size:var(--t-body);font-weight:var(--w-label)}
-  html.lg-new .mign-drop-s{max-width:520px;font-size:var(--t-label);color:var(--color-quiet);line-height:1.5}
-  html.lg-new .mign-drop-i{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--surface-2);color:var(--accent-ink)}
-  html.lg-new .mign-drop-b{margin-top:6px}
-  html.lg-new .mign-start .mign-opts{display:flex;flex-wrap:wrap;gap:6px;border:0;margin:0}
-  html.lg-new .mign-start .apn-chip small{font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .mign-drop b{font-size:15px;font-weight:var(--w-label)}
+  html.lg-new .mign-drop-s{max-width:520px;font-size:var(--t-label);color:var(--color-neutral-400);line-height:1.5}
+  html.lg-new .mign-drop-i{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:var(--radius);border:1px solid var(--color-neutral-300);background:var(--color-surface);color:var(--accent-ink)}
+  html.lg-new .mign-drop-b{margin-top:6px;border:0;background:var(--surface-2)}
+  html.lg-new .mign-start .mign-opts{display:flex;flex-wrap:wrap;gap:8px;border:0;margin:0}
+  html.lg-new .mign-start .mign-opts .apn-chip{color:var(--color-text);font-weight:var(--w-label)}
+  html.lg-new .mign-start .mign-opts .apn-chip.is-set{border-style:solid;border-color:var(--color-neutral-300);background:var(--color-surface)}
+  html.lg-new .mig-page:has(> .mign-start) .mig-own-head .cun-head{border-bottom:0}
   html.lg-new .mign-start .mign-ask{margin:0}
+  /* the empty panel, as drawn: the sentence in the body type, Choose files with its link on one line (no card), then How
+     it goes as a timeline — a dot per step joined by a line, the first lit amber */
+  html.lg-new [data-jov-slot="jl:migration"] .jov5-title{font-family:var(--font-body);font-size:17px;line-height:1.3;font-weight:var(--w-label);letter-spacing:0}
+  html.lg-new [data-jov-slot="jl:migration"] .jov5-sub{font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new [data-jov-slot="jl:migration"] .jov5-act{padding:0 0 14px;border-radius:0;background:none;border-bottom:1px solid var(--color-divider)}
+  html.lg-new [data-jov-slot="jl:migration"] .jov5-act .jov5-acts{flex-direction:row;align-items:center;gap:10px}
+  html.lg-new [data-jov-slot="jl:migration"] .jov5-act .jov5-acts>.jov5-go{width:auto;height:var(--ctl-h-lg);padding:0 14px}
+  html.lg-new [data-jov-slot="jl:migration"] .jov5-act .jov5-acts>.jov-lnk{font-size:var(--t-label)}
+  html.lg-new [data-jov-slot="jl:migration"] .jov5-label{font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);margin:0 0 8px}
+  html.lg-new [data-jov-slot="jl:migration"] .jov5-steps{gap:0}
+  html.lg-new [data-jov-slot="jl:migration"] .jov5-steps li{padding:0 0 12px 26px;font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new [data-jov-slot="jl:migration"] .jov5-steps li::before{content:"";left:3px;top:4px;width:9px;height:9px;border-radius:50%;background:var(--color-surface);box-shadow:0 0 0 1px var(--color-neutral-300)}
+  html.lg-new [data-jov-slot="jl:migration"] .jov5-steps li:first-child::before{background:var(--st-amber-dot)}
+  html.lg-new [data-jov-slot="jl:migration"] .jov5-steps li:not(:last-child)::after{content:"";position:absolute;left:7px;top:15px;bottom:0;width:1px;background:var(--color-neutral-300)}
+  html.lg-new [data-jov-slot="jl:migration"] .jov5-steps b{font-size:var(--t-body);font-weight:var(--w-label)}
   /* OUR PAPER, THE LEGORA + STRIPE WAY (P-34): the ask box and chips under the title; shelves as calm cards in their own
      colour, the chosen one outlined in ink; one calm table; the paper's column with badges, a 2×2 of facts with thin bars,
      the blanks as amber chips; panels without tiles — bars, badges, chips */
@@ -21966,13 +22007,12 @@
   html.lg-new .mign-fig.is-t-amber{background:var(--st-amber-bg)} html.lg-new .mign-fig.is-t-amber b{color:var(--st-amber-fg)}
   html.lg-new .mign-fig.is-t-ruby{background:var(--st-ruby-bg)} html.lg-new .mign-fig.is-t-ruby b{color:var(--st-ruby-fg)}
   html.lg-new button.mign-fig span{color:var(--color-neutral-600)}
-  html.lg-new .mign-sure{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;color:var(--color-text)}
+  html.lg-new .mign-sure{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
   html.lg-new .mign-bar{display:inline-flex;gap:2px}
-  html.lg-new .mign-bar i{width:12px;height:5px;border-radius:2px;background:var(--rule-strong)}
+  html.lg-new .mign-bar i{width:12px;height:5px;border-radius:3px;background:var(--rule-strong)}
   html.lg-new .mign-sure.is-high .mign-bar i{background:var(--st-green-dot)}
   html.lg-new .mign-sure.is-med .mign-bar i:nth-child(-n+2){background:var(--st-amber-dot)}
   html.lg-new .mign-sure.is-low .mign-bar i:first-child{background:var(--st-ruby-dot)}
-  html.lg-new .mign-read{font-weight:var(--w-label)}
   html.lg-new .mign-amb{color:var(--st-amber-fg);font-weight:var(--w-label)}
   html.lg-new .mign-table tr.is-picked td{background:var(--surface-2)}
   html.lg-new .mign-table tr.is-done td{color:var(--color-quiet)}
