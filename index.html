@@ -23596,6 +23596,34 @@
   /* REDLINES' NOTES ARE THE BAR'S NOTES (owner, 16 Nov 2026): the face paints the bar's own builder (rlFaceNotesWire);
      the contract's name line is left out here, the page already names it */
   html.lg-new #ig-dock .rl-fn-same .rl-chat > .rl-np-which{display:none}
+  /* ===== PEOPLE, REBUILT AS DRAWN (P-26) =====
+     the panel reads down: the face and name with its badges, the two numbers (both in ink), then Show their contracts
+     (black) with Email them a green link, then where the paper names them, the timeline as dots, their party; the head
+     carries "+ Add a person" a grey pill; a signer's row quotes the signature page under Does for you, in the paper's type */
+  html.lg-new .jov5[data-jov-slot="dirn"] > .jov5-who:not(.jov5-act):not(.jov5-intro){order:0;border-bottom:0;padding-bottom:0}
+  html.lg-new .jov5[data-jov-slot="dirn"] > .jov5-sec:has(.dirn-pfacts){order:1;border-bottom:0;padding-bottom:0}
+  html.lg-new .jov5[data-jov-slot="dirn"] > .jov5-act{order:2}
+  html.lg-new .jov5[data-jov-slot="dirn"] > :not(.jov5-who):not(.jov5-act):not(.jov5-sec:has(.dirn-pfacts)){order:3}
+  html.lg-new .jov5[data-jov-slot="dirn"] .dirn-pfacts > span:nth-child(2) b{color:var(--color-text)}
+  html.lg-new .jov5[data-jov-slot="dirn"] .jov5-ava{width:36px;height:36px;font-size:12px;background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .jov5[data-jov-slot="dirn"] .jov5-act .jov5-acts .jov-lnk{background:none;padding:6px 4px;text-decoration:underline;text-underline-offset:3px;color:var(--accent-ink)}
+  html.lg-new .jov5[data-jov-slot="dirn"] .jov5-foot .jov5-flink{color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
+  html.lg-new .dirn-page .dirn-addp{border-color:transparent;background:var(--surface-2);color:var(--color-text);border-radius:999px}
+  html.lg-new .dirn-page .apn-card .dirn-table td{padding-top:8px;padding-bottom:8px}
+  /* ===== MY NOTES, REBUILT AS DRAWN (P-27) =====
+     the panel reads down: its status badge and "Only you", the title, the contract, the note's words, Due and Written
+     (Written in ink), Mark reviewed (black) with Snooze a week a green link, then From the paper and the timeline; the
+     row's act a small green link, underlined */
+  html.lg-new .jov5[data-jov-slot="mnn"] > .mnn5-top:not(.jov5-act):not(.jov5-intro){order:0}
+  html.lg-new .jov5[data-jov-slot="mnn"] > .jov5-intro:not(.jov5-act):not(.mnn5-top){order:1;border-bottom:0;padding-bottom:0}
+  html.lg-new .jov5[data-jov-slot="mnn"] > .jov5-sec:has(.mnn5-figs){order:2;border-bottom:0;padding-bottom:0}
+  html.lg-new .jov5[data-jov-slot="mnn"] > .jov5-act{order:3}
+  html.lg-new .jov5[data-jov-slot="mnn"] > :not(.mnn5-top):not(.jov5-intro):not(.jov5-act):not(.jov5-sec:has(.mnn5-figs)){order:4}
+  html.lg-new .jov5[data-jov-slot="mnn"] .mnn5-figs > span:nth-child(2) b{color:var(--color-text)}
+  html.lg-new .jov5[data-jov-slot="mnn"] .jov5-act .jov5-acts .jov-lnk{background:none;padding:6px 4px;text-decoration:underline;text-underline-offset:3px;color:var(--accent-ink)}
+  html.lg-new .mnn-page .mnn-act .ui-link{font-size:12.5px;text-decoration:underline;text-underline-offset:3px}
+  html.lg-new .mnn-page .apn-card .mnn-table td{padding-top:8px;padding-bottom:8px}
+  html.lg-new .dirn-table td.dirn-does .dirn-sq{display:block;font-family:var(--font-doc);font-size:13px;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
 <style>
   /* ==== STANDARDS — THE LADDER (owner's pick, 17 Nov 2026; js/views/ladder.js) ====

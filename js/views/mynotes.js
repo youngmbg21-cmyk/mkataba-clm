@@ -431,7 +431,7 @@ function mnnRowHtml(n){
   const sec = mnnSecOf(n), A = on ? mnnActOf(n) : null;
   return `<tr data-mn-row="${_mnE(n.id)}" data-ins-row="${_mnE(n.id)}" tabindex="0" class="${on ? 'is-sel' : ''}"><td><div class="cun-name">${_mnE(title || body)}</div>${title && body ? `<div class="mnn-words" title="${_mnE(body)}">${_mnE(body)}</div>` : ''}${n.quote ? `<div class="mnn-ql"><i>“${_mnE(n.quote)}”</i>${sec ? ` <span>${_mnE(sec)}</span>` : ''}</div>` : ''}</td>
     <td class="mnn-ctc">${c ? `<div class="mnn-ct" title="${_mnE(c.name || '')}">${_mnE(c.name || '')}</div><div class="cun-sub">${typeof refHtml === 'function' ? refHtml(c) : _mnE(_mnRef(c))}</div>` : '<span class="apn-none-c">—</span>'}</td>
-    <td><span class="apn-st is-${st.tone}"><i></i>${_mnE(st.w)}</span></td>
+    <td><span class="apn-st is-${st.tone}">${st.k === 'done' ? '\u2713 ' : '<i></i>'}${_mnE(st.w)}</span></td>
     <td class="mnn-dd">${_mnE(wh.d)}${wh.s ? `<div class="cun-sub${wh.late ? ' is-late' : ''}">${_mnE(wh.s)}</div>` : ''}</td>
     <td class="mnn-act">${A ? `<button type="button" class="ui-link" data-mn-act="${A.act}">${_mnE(A.w)}</button>` : ''}</td></tr>`;
 }
@@ -455,7 +455,7 @@ function mnnRender(host, list, n, o){
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${_mnE(i18t('nav_mynotes'))}</h2><span class="mnn-only">${_mnLock()}${_mnE(i18t('mnn_only_you'))}</span><span class="ctf-sp"></span>
         <button type="button" class="ui-btn ui-btn-primary ctf-new" id="mn-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${_mnE(i18t('mnn_new'))}</button></div>
-      <label class="apn-ask">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="mnn-q" type="search" autocomplete="off" placeholder="${_mnE(i18t('mnn_ask_ph'))}" value="${_mnE(_mn.q || '')}"></label>
+      <label class="apn-ask">${typeof icon === 'function' ? icon('mkSpark', 'w-3.5 h-3.5') : ''}<input id="mnn-q" type="search" autocomplete="off" placeholder="${_mnE(i18t('mnn_ask_ph'))}" value="${_mnE(_mn.q || '')}"></label>
       <div class="apn-bar" data-lh-seat="mynotes-nl">${chips}</div>
       <div class="cu-scroll"><table class="apn-table cun-table mnn-table"><colgroup><col><col style="width:24%"><col style="width:120px"><col style="width:120px"><col style="width:132px"></colgroup>
         <thead><tr><th>${_mnE(i18t('mn_col_note'))}</th><th>${_mnE(i18t('mn_row_contract'))}</th><th>${_mnE(i18t('apn_col_status'))}</th><th class="mnn-dd">${_mnE(i18t(tab === 'done' ? 'mnn_c_reviewed' : 'mnn_c_due'))}</th><th></th></tr></thead>
@@ -501,7 +501,8 @@ function mnnPanelFiveHtml(n){
   const groups = [];
   if (n.quote){ const sec = mnnSecOf(n);
     groups.push({ key: 'paper', label: sec ? i18t('mnn5_from_paper_s', { s: sec }) : i18t('mnn5_from_paper'), rows: [Object.assign({ quote: true, wrap: true, t: '“' + String(n.quote) + '”', s: c ? i18t('mnn5_open_paper') : '' }, c ? { attr: 'data-mn-act="passage"' } : {})] }); }
-  if (rows.length) groups.push({ key: 'beside', label: i18t('mnn5_this'), rows });
+  /* P-27, as drawn: the panel says the contract under the title; "what it sits beside" is not drawn */
+  void rows;
   /* the timeline: only the days the note keeps */
   const tl = [];
   if (written) tl.push({ mark: 'mkTick', tone: 'green', t: i18t('mnn5_tl_written'), s: written });
@@ -512,13 +513,14 @@ function mnnPanelFiveHtml(n){
   const day = st.k === 'done' ? _mnShort(String(n.reviewedAt).slice(0, 10)) : n.reviewBy ? _mnShort(n.reviewBy) : i18t('mnn_st_none');
   const words = String(n.body || '').trim();
   const mid = `${words && words !== what ? `<p class="mnn5-words">${E(words)}</p>` : ''}<div class="ngn-pfacts mnn5-figs"><span><small>${E(i18t(st.k === 'done' ? 'mnn_c_reviewed' : 'mnn_c_due'))}</small><b class="${st.k === 'late' ? 'is-ruby' : st.k === 'today' ? 'is-amber' : ''}">${E(day)}</b></span>${written ? `<span><small>${E(i18t('mnn5_written_k'))}</small><b>${E(written)}</b></span>` : ''}</div>`;
-  const o = { before: `<div class="mnn5-top"><span class="apn-st is-${S.tone}"><i></i>${E(S.w)}</span><span class="mnn-only">${_mnLock()}${E(i18t('mnn5_only_short'))}</span></div>`,
+  const o = { before: `<div class="mnn5-top"><span class="apn-st is-${S.tone}">${st.k === 'done' ? '\u2713 ' : '<i></i>'}${E(S.w)}</span><span class="mnn-only">${_mnLock()}${E(i18t('mnn5_only_short'))}</span></div>`,
     title: what.length > 120 ? what.slice(0, 117) + '…' : what,
     sub: c ? [c.name || '', _mnRef(c)].filter(Boolean).join(' · ') : i18t('mnn5_no_contract'),
     mid, groups, actFirst: true,
     act: { label: i18t(n.reviewedAt ? 'mn_review_again' : 'mn_mark_reviewed'), attr: `data-mn-act="${n.reviewedAt ? 'unreview' : 'reviewed'}"`,
       /* SNOOZE A WEEK (owner's pick on the drawings, 17 Nov 2026: "4 Bring it back"): the note out of the way for seven days */
-      links: (n.reviewedAt ? [] : [{ label: i18t('mn_snooze'), attr: 'data-mn-act="snooze"' }]).concat([{ label: i18t('mn_delete_note'), attr: 'data-mn-act="delete"' }]) },
+      /* P-27, as drawn: Snooze a week beside Mark reviewed; Delete note beside Review again */
+      links: n.reviewedAt ? [{ label: i18t('mn_delete_note'), attr: 'data-mn-act="delete"' }] : [{ label: i18t('mn_snooze'), attr: 'data-mn-act="snooze"' }] },
     src: i18t('mnn5_src') };
   return `<div class="jl-words is-ov mnn5">${jamboOverviewHtml(o, 'mnn')}</div>`;
 }
