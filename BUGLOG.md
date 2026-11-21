@@ -22748,3 +22748,6 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 
 ## 21 Nov 2026 — P-38 built: the side panel's Guide face removed (owner's ask)
 - REMOVED at the owner's word ("delete the guide since we have the nav panel"): the side panel's Guide tab and face, and with it the Guide rows' "Say “…”" lines naming the one word that opens each page. The words still open pages when typed; the nav panel at the left lists every page. Not a band; said to the owner.
+
+## 21 Nov 2026 — noticed, not fixed (overnight batches)
+- point-buttons-and-brief-verify 4a–4c (a Viewer's Start redlining greyed, Ask Jambo) fail on PR #856, which touches neither; main merged ~150 commits since its last nightly run (20 Nov 08:35), Viewer Round C among them ("no button you cannot use") — most likely red on main already. Not re-pointed here; the nightly run on main will say.
