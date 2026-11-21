@@ -528,11 +528,14 @@ describe('f745 (7) the Board greets you and says the latest', () => {
     assert.match(code(HB), /if \(\(el = on\('\[data-hb-bs-x\]'\)\)\)\{ hbBriefShut\(\); return; \}/, 'pressing it shuts the brief');
     /* RE-POINTED 14 Nov 2026 (owner: the same space above the FIRST card, whichever it is): the greeting paints no band over the gap at all */
     assert.ok(!/#hb-bhead\.is-greet[^{}]*::after\{/.test(read('index.html')), 'under the greeting, the Board\'s own gap, as between its cards: no white band over it');
-    assert.match(code(HB), /else if \(kept\) box = [^\n]*\n\s*\$\{lead\}<div class="hb-why-b">\$\{who\}/, 'the kept summary carries the counted sentence first, Jambo marked');
+    /* RE-POINTED 21 Nov 2026 (P-39, as drawn): the brief is ONE paragraph — the counted sentence, the one to start with
+       (counted, quoted from the paper), then Jambo's words; no dashed line, no "Jambo:" label */
+    assert.match(code(HB), /else if \(kept\) box = [^\n]*\n\s*<div class="hb-why-b hb-why-one"[^\n]*\[since, hbBriefStartHtml\(\), hbSay\(kept\.text\)\]/, 'the kept summary is one paragraph: the counted sentence first, the one to start with, then Jambo');
+    assert.ok(!/hb-why-who/.test(code(HB).slice(code(HB).indexOf('function hbBoardSumHtml'), code(HB).indexOf('function hbBoardSumHtml') + 4000)), 'no "Jambo:" label in the brief');
     assert.ok(!/is-since/.test(code(HB)), 'no card before the press');
     const say = since;
     assert.match(say, /Since [^:<]+: <button type="button" class="hb-gr-a" data-hb-dig="mv:past">5 more contracts passed their end date<\/button> and <button type="button" class="hb-gr-a" data-hb-dig="mv:value">[^<]+ came under contract<\/button>\./);
-    assert.match(say, /<button type="button" class="hb-gr-a is-late" data-hb-gr="all">2 things are late<\/button>, the oldest has waited 36 days and <button type="button" class="hb-gr-a" data-hb-gr="jambo">I prepared 3 for you<\/button>\.$/);
+    assert.match(say, /<button type="button" class="hb-gr-a is-late" data-hb-gr="all">2 things are late<\/button>, the oldest has waited 36 days, and <button type="button" class="hb-gr-a" data-hb-gr="jambo">I prepared 3 for you<\/button>\.$/);
     /* RE-POINTED 21 Nov 2026 (P-39 rebuilt as drawn): the greeting's own line carries Live and when it was counted at its
        right; the pills under it; the day is not said */
     assert.match(html, /<div class="hb-bh-top"><h2 class="hb-bh-t">[^<]+<\/h2><span class="hb-bh-live"><span class="hb-live"><i><\/i>Live<\/span><span class="hb-bh-at">· counted 08:02<\/span>/, 'the greeting, then Live and when it was counted, on one line');

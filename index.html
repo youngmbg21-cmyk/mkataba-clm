@@ -22148,7 +22148,9 @@
   /* the arrivals of the Board, Explorer and Read down panels (P-39, P-40, P-41): kept outside the new-look blocks, whose rules all wait on html.lg-new */
   @keyframes hbw2Ring{from{stroke-dashoffset:106.8}}
   @keyframes hbw2Grow{from{transform:scaleX(0)}to{transform:none}}
-  @keyframes igoSweep{from{opacity:0;transform:rotate(-180deg)}to{opacity:1;transform:rotate(-90deg)}}
+  @keyframes hbSparkDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+  @keyframes rdSweep{from{stroke-dashoffset:var(--rd-l, 0)}to{stroke-dashoffset:0}}
+  @keyframes igoSweep{from{stroke-dashoffset:var(--L)}to{stroke-dashoffset:0}}
   /* DISCOVER, THE LEGORA + STRIPE WAY (P-42, owner's pick 21 Nov 2026): the ask box under the title, All · Kept and the
      "+ filter" chips; one calm table with soft badges and an answered bar; the panel a ring and bars without cards;
      THE READING ROOM while it reads (the paper being read, a passing line, a hairline, the filed table); the results'
@@ -22380,6 +22382,52 @@
   @media (prefers-reduced-motion: reduce){ html.lg-new .jov5[data-jov-slot="hb"] .jov5-chev{transition:none} }
   html.lg-new .nd-q{font-family:var(--font-doc);font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .nd-q b,html.lg-new .nd-q q{font-weight:inherit}
+  /* ===== THE BOARD, SECOND PASS AGAINST THE DRAWING (P-39, 21 Nov 2026: "exactly what we agreed … no short cuts") =====
+     The cards' heads carry no hairline under them (the drawing's white cards are one piece); Summarise is a grey pill like
+     its neighbours, ink words, Jambo's spark green; "Where all N stand" sits 14 under the cards, the bar 6 under it and the
+     key 6 under the bar (a stage at nought stays dimmed: a dead button is never dressed as a live one); each row's act
+     keeps the ONE width of 22 Oct 2026 ("make all of the buttons the same size"), and says "Approve" whole. */
+  html.lg-new #ig-page[data-hb-side="board"] :is(#hb-book,#hm-agents) > .hb-ch,html.lg-new #ig-page[data-hb-side="board"] #hm-agents .nd-bar{border-bottom:0}
+  html.lg-new #ig-page[data-hb-side="board"] #hb-bhead.is-greet .hb-bs-go{border:0;background:var(--surface-2);color:var(--color-text);font-weight:var(--w-label)}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-spark-ic{flex:none;width:13px;height:13px;color:var(--accent-ink);fill:currentColor;stroke:none}
+  html.lg-new #ig-page[data-hb-side="board"] #hb-book > .hb-cb{gap:0}
+  html.lg-new #ig-page[data-hb-side="board"] #hb-book .hb-tn.is-cards ~ .hb-where{margin-top:2px;padding-bottom:6px}
+  html.lg-new #ig-page[data-hb-side="board"] #hb-book .hb-tn.is-cards ~ .hb-stagekey{padding-top:6px;padding-bottom:0}
+  html.lg-new #ig-page[data-hb-side="board"] #hb-book > .hb-cb{padding-bottom:16px}
+  html.lg-new #ig-page[data-hb-side="board"] #hb-book .hb-stagekey .hb-sk-w{white-space:nowrap}
+  /* the paper's words under a row: "§ 2 · “…”", the § in the body face, the words in the paper's, one line ending in "…" */
+  html.lg-new #ig-page[data-hb-side="board"] #hm-agents .nd-q .cn2-sec{font-family:var(--font-body);font-weight:400;color:var(--color-quiet)}
+  html.lg-new #ig-page[data-hb-side="board"] #hm-agents .nd-bar{padding-top:2px}
+  html.lg-new #ig-page[data-hb-side="board"] #hb-book .hb-figs.hb-tn.hb-tn.is-cards{padding-top:2px}
+  html.lg-new .jov5[data-jov-slot="hb"] .jov5-row.is-quote .jov5-rt b{font-family:inherit}
+  html.lg-new .jov5[data-jov-slot="hb"] .jov5-row.is-quote .jov5-rt > span{display:block;font-family:var(--font-doc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* the panel's last section has no line under it (the hidden chips' section after it does not count) */
+  html.lg-new .jov5[data-jov-slot="hb"] .jov5-sec:has(+ .jov5-sec .jov5-chips),html.lg-new .jov5[data-jov-slot="hb"] .jov5-sec:has(+ .jov5-src){border-bottom:0}
+  /* THE BRIEF, ONE PARAGRAPH (as drawn): no dashed line, no "Jambo:"; when it was asked in the quiet ink; its numbers not
+     bolded; the paper's words in the paper's face */
+  html.lg-new #ig-page[data-hb-side="board"] .hb-why.is-one .hb-why-h{margin-bottom:6px}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-why.is-one .hb-read-src{font-weight:400;color:var(--color-quiet)}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-why.is-one .hb-why-one{font-size:14px;line-height:1.5}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-why.is-one .hb-why-one .hb-num{font-weight:inherit;color:inherit}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-why.is-one .hb-why-q{font-family:var(--font-doc);color:var(--color-quiet)}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-why.is-one .hb-why-f{margin-top:6px}
+  /* YOUR BOOK'S FIGURES, AS DRAWN: the list's name with "N of 4" as a soft badge, the rule under it, an ink tick in a small
+     square, an unticked figure's name grey, "Back to the usual four" a green link and Done the one black button */
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick{box-sizing:border-box;width:328px;padding:12px 14px;gap:0;border:1px solid var(--color-neutral-300);border-radius:12px;background:var(--color-surface);box-shadow:0 12px 32px rgba(0,0,0,.14);color:var(--color-text);font-size:13px}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-head b{flex:1;min-width:0;font-weight:var(--w-label)}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-n{flex:none;padding:1px 7px;border-radius:6px;background:var(--surface-2);font-size:10.5px;line-height:1.6;font-weight:var(--w-label);color:var(--color-quiet);white-space:nowrap}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-dp-head{margin-bottom:6px;font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-row{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:8px;align-items:center;padding:5px 2px;font-size:13px}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-row.is-off{color:var(--color-quiet)}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-row input{appearance:none;-webkit-appearance:none;margin:0;width:15px;height:15px;border-radius:4px;border:1.5px solid var(--color-neutral-300);background:var(--color-surface);display:grid;place-items:center;cursor:pointer}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-row input:checked{background:var(--color-text);border-color:var(--color-text)}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-row input:checked::after{content:"";width:7px;height:4px;margin-top:-2px;border-left:1.5px solid var(--color-surface);border-bottom:1.5px solid var(--color-surface);transform:rotate(-45deg)}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-row input:disabled{cursor:not-allowed}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-money{margin:0;font-size:12.5px;font-style:normal;color:var(--color-quiet)}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-foot{justify-content:flex-end;gap:8px;margin-top:8px;padding:0;border-top:0}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-foot .ui-link{font-size:12.5px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
+  html.lg-new #ig-page[data-hb-side="board"] .hb-figpick .hb-fp-foot .ui-btn{height:auto;min-height:0;padding:4px 12px;font-size:12.5px}
   /* THE BOARD'S PANEL, THE LEGORA + STRIPE WAY (P-39): a ring of the late beside ONE bar of what waits; Jambo's pieces with a violet dot */
   html.lg-new .hbw2-wait{display:flex;align-items:center;gap:var(--s-3)}
   html.lg-new .hbw2-ring{position:relative;flex:none;width:52px;height:52px;display:grid;place-items:center}
@@ -22403,17 +22451,24 @@
   /* the Board panel's arrival (P-39), played only by jovPlay (rarely; never under reduced motion): the ring sweeps, the bar grows from the left */
   html.lg-new .jov-arrive .hbw2-rf{animation:hbw2Ring .9s cubic-bezier(.22,.61,.36,1) .25s both}
   html.lg-new .jov-arrive .hbw2-bar{transform-origin:left center;animation:hbw2Grow .7s cubic-bezier(.22,.61,.36,1) .2s both}
+  /* the Board's page joins its panel's arrival (hbArrivePage): the six-month lines draw themselves, the stage bar grows from the left */
+  html.lg-new #hb-book .hb-spark.jov-draw .hb-spark-l{stroke-dasharray:1;animation:hbSparkDraw .9s cubic-bezier(.22,.61,.36,1) .25s both}
+  html.lg-new #hb-book .hb-stagebar.jov-draw{transform-origin:left center;animation:hbw2Grow .7s cubic-bezier(.22,.61,.36,1) .2s both}
+  @media (prefers-reduced-motion: reduce){ html.lg-new #hb-book :is(.hb-spark.jov-draw .hb-spark-l,.hb-stagebar.jov-draw){animation:none} }
   /* EXPLORER'S PANEL, THE LEGORA + STRIPE WAY (P-40): a ring of what the map drew by its groups, with its legend */
-  html.lg-new .igo-drawn{display:flex;align-items:center;gap:var(--s-3)}
-  html.lg-new .igo-ring{position:relative;flex:none;width:56px;height:56px;display:grid;place-items:center}
-  html.lg-new .igo-ring svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
-  html.lg-new .igo-ring circle{fill:none;stroke-width:5}
+  /* AS DRAWN (21 Nov 2026): 64 across, a grey track, an arc a group with a hair's gap, each drawn on in turn (igoSweep) */
+  html.lg-new .igo-drawn{display:flex;align-items:center;gap:14px}
+  html.lg-new .igo-ring{position:relative;flex:none;width:64px;height:64px;display:grid;place-items:center}
+  html.lg-new .igo-ring svg{position:absolute;inset:0;width:100%;height:100%}
+  html.lg-new .igo-ring circle{fill:none;stroke-width:4.5}
+  html.lg-new .igo-ring .igo-trk{stroke:var(--color-neutral-200)}
   html.lg-new .igo-ring b{position:relative;font-size:var(--t-body);font-weight:var(--w-strong);font-variant-numeric:tabular-nums}
-  html.lg-new .igo-leg{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;font-size:var(--t-label);color:var(--color-text)}
-  html.lg-new .igo-leg span{display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  html.lg-new .igo-leg i{flex:none;width:7px;height:7px;border-radius:50%}
-  html.lg-new .igo-leg small{color:var(--color-quiet);font-size:var(--t-label)}
-  html.lg-new .jov-arrive .igo-ring svg{animation:igoSweep .9s cubic-bezier(.22,.61,.36,1) .2s both}
+  html.lg-new .igo-leg{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;font-size:13px;line-height:18px;color:var(--color-text)}
+  html.lg-new .igo-leg span{display:flex;align-items:center;gap:4px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .igo-leg i{flex:none;width:8px;height:8px;border-radius:50%}
+  html.lg-new .igo-leg b{font-weight:var(--w-label)}
+  html.lg-new .igo-leg small{color:var(--color-neutral-400);font-size:12.5px}
+  html.lg-new .jov-arrive .igo-ring .igo-seg{animation:igoSweep .9s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(290ms + var(--igo-k, 0) * 70ms)}
   /* OBLIGATIONS, THE STRIPE WAY (P-13): four figure tiles with tiny charts, "+ filter" chips, ONE calm table with soft badges */
   html.lg-new .obt-page .obs-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s-3);padding:var(--s-2) 0 var(--s-3)}
   html.lg-new .obs-tile{display:flex;flex-direction:column;gap:6px;min-width:0;padding:var(--s-3) var(--s-4);border:1px solid var(--color-neutral-200);border-radius:var(--radius);background:var(--color-surface);font:inherit;text-align:left;color:var(--color-text);cursor:pointer}
@@ -22598,103 +22653,131 @@
   html.lg-new .rd-page.is-ls .rd-head{display:flex;align-items:center;gap:var(--s-3)}
   html.lg-new .rd-page.is-ls .rd-row{display:grid;grid-template-columns:40px minmax(0,1fr) minmax(0,220px);align-items:center;gap:var(--s-3)}
   html.lg-new .rd-pic-w{display:flex;align-items:center;justify-content:center}
-  html.lg-new .rd-pic{display:inline-flex;width:28px;height:28px}
-  html.lg-new svg.rd-pic{transform:rotate(-90deg)}
-  html.lg-new .rd-pic-b{fill:none;stroke:var(--st-amber-dot);stroke-width:4}
-  html.lg-new .rd-pic-g{fill:none;stroke:var(--st-green-dot);stroke-width:4}
-  html.lg-new .rd-pic-dots{align-items:center;gap:2px;width:auto}
-  html.lg-new .rd-pic-dots i{width:5px;height:5px;border-radius:50%;background:var(--st-green-dot)}
-  html.lg-new .rd-pic-dots i.is-first{background:var(--st-ruby-dot)}
-  html.lg-new .rd-pic-dots i.is-none{background:var(--color-neutral-300)}
-  html.lg-new .rd-pic-bars{flex-direction:column;justify-content:center;gap:4px}
-  html.lg-new .rd-pic-bars i{display:block;height:5px;border-radius:999px;background:var(--st-violet-dot)}
-  html.lg-new .rd-pic-bars i.is-1{background:var(--st-amber-dot)}
-  html.lg-new .rd-pic-n{align-items:center;justify-content:center;border-radius:50%;font-size:var(--t-label);font-weight:var(--w-strong);background:var(--st-gray-bg);color:var(--st-gray-fg)}
-  html.lg-new .rd-pic-n.is-none{background:none;border:1px dashed var(--color-neutral-300);color:var(--color-quiet)}
-  html.lg-new .rd-pic-n.is-late{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new .rd-pic{display:block;width:44px;height:44px;overflow:visible}
+  html.lg-new .rd-pk-track{fill:none;stroke:var(--color-neutral-200);stroke-width:6}
+  html.lg-new .rd-pk-arc{fill:none;stroke-width:6}
+  html.lg-new .rd-pk-arc.is-signed{stroke:var(--st-green-dot)}
+  html.lg-new .rd-pk-arc.is-rest{stroke:var(--st-amber-dot)}
+  html.lg-new .rd-pk-12{font-family:var(--font-body);font-size:9px;fill:var(--color-neutral-400)}
+  html.lg-new .rd-pk-line{stroke:var(--color-neutral-300);stroke-width:2}
+  html.lg-new .rd-pk-dot{fill:var(--accent-ink)}
+  html.lg-new .rd-pk-dot.is-first{fill:var(--st-ruby-dot)}
+  html.lg-new .rd-pk-bar.is-0{fill:var(--st-violet-dot)}
+  html.lg-new .rd-pk-bar.is-1{fill:var(--st-amber-dot)}
+  html.lg-new .rd-pk-none{fill:none;stroke:var(--color-neutral-300);stroke-width:2;stroke-dasharray:3 3}
+  html.lg-new .rd-pk-n0{font-family:var(--font-body);font-size:11px;fill:var(--color-neutral-400)}
+  html.lg-new .rd-pk-soft{fill:var(--st-gray-bg)}
+  html.lg-new .rd-pk-late{fill:var(--st-ruby-bg)}
+  html.lg-new .rd-pk-n{font-family:var(--font-body);font-size:13px;font-weight:var(--w-strong);fill:var(--color-text)}
+  html.lg-new .rd-pk-n.is-late{fill:var(--st-ruby-dot)}
   html.lg-new .rd-page.is-ls .rd-q-bar i.is-near{background:var(--st-ruby-dot)}
-  html.lg-new .rd-page.is-ls .rd-q-bar i{transform-origin:left center;animation:hbw2Grow .7s cubic-bezier(.22,.61,.36,1) both}
-  @media (prefers-reduced-motion: reduce){ html.lg-new .rd-page.is-ls .rd-q-bar i{animation:none} }
   /* ===== READ DOWN, REBUILT AS DRAWN (P-41; owner 21 Nov 2026: "exactly what we agreed") =====
      one white sheet edge to edge; the sentence's own words quoted under it (serif, with § and the contract); the source
      line quiet over its green link with its ›; the quarters on a grey track, the count at the end; the foot under them */
   html.lg-new #ig-page[data-hb-side="board"] #hb-board:has(> #rd-page){padding:0;gap:0;background:var(--color-surface)}
   html.lg-new .rd-page.is-ls{min-height:100%;padding:30px 41px 16px}
   html.lg-new .rd-page.is-ls .rd-print{color:var(--accent-ink);font-weight:var(--w-label);text-decoration:underline;text-underline-offset:3px}
-  html.lg-new .rd-page.is-ls .rd-row{grid-template-columns:36px minmax(0,1fr) 172px;padding:14px 0}
+  html.lg-new .rd-page.is-ls .rd-head{gap:14px}
+  html.lg-new .rd-page.is-ls .rd-head .ctf-back{margin:0;font-size:13px;font-weight:var(--w-label)}
+  html.lg-new .rd-page.is-ls .rd-eyebrow{font-size:11.5px;color:var(--color-neutral-400)}
+  html.lg-new .rd-page.is-ls .rd-h{margin:8px 0 6px;font-size:28px;line-height:1.2}
+  html.lg-new .rd-page.is-ls .rd-row{grid-template-columns:44px minmax(0,1fr) 210px;gap:16px;padding:12px 0}
   html.lg-new .rd-page.is-ls .rd-tw{min-width:0}
-  html.lg-new .rd-page.is-ls .rd-t{margin:0;font-size:14px;line-height:1.5}
-  html.lg-new .rd-page.is-ls .rd-q-w{margin:4px 0 0;font-size:12.5px;line-height:1.4;color:var(--color-quiet)}
-  html.lg-new .rd-page.is-ls .rd-q-w q{font-family:var(--font-doc);quotes:"\201C" "\201D"}
-  html.lg-new .rd-page.is-ls .rd-src{gap:2px}
-  html.lg-new .rd-page.is-ls .rd-src b{font-size:12px;font-weight:400;color:var(--color-quiet)}
-  html.lg-new .rd-page.is-ls .rd-src .rd-go{align-self:flex-start;font-size:12px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
-  html.lg-new .rd-page.is-ls .rd-pic-dots{flex-wrap:nowrap;width:36px;gap:2px;position:relative;padding-top:12px}
-  html.lg-new .rd-page.is-ls .rd-pic-dots i{width:4px;height:4px;flex:none}
-  html.lg-new .rd-page.is-ls .rd-pic-dots em{position:absolute;left:0;top:0;font-style:normal;font-size:9px;line-height:1;color:var(--color-quiet);white-space:nowrap}
-  html.lg-new .rd-page.is-ls .rd-cap{padding:14px 0 6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
-  html.lg-new .rd-page.is-ls .rd-q{grid-template-columns:100px minmax(0,1fr) 32px;gap:12px;padding:5px 0;border-top:0}
-  html.lg-new .rd-page.is-ls .rd-q-k{font-size:12.5px;font-weight:400}
-  html.lg-new .rd-page.is-ls .rd-q-bar{height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}
-  html.lg-new .rd-page.is-ls .rd-q-bar i{border-radius:4px}
-  html.lg-new .rd-page.is-ls .rd-q-v{font-size:12.5px;font-weight:400;text-align:left}
-  html.lg-new .rd-page.is-ls .rd-foot{margin-top:18px;padding-top:12px}
-  html.lg-new .rd-page.is-ls .rd-foot .rd-go{font-size:12.5px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
+  html.lg-new .rd-page.is-ls .rd-t{margin:0;font-size:15px;line-height:1.5;font-weight:400}
+  html.lg-new .rd-page.is-ls .rd-q-w{margin:3px 0 0;font-family:var(--font-doc);font-size:13px;line-height:1.45;color:var(--color-quiet)}
+  html.lg-new .rd-page.is-ls .rd-q-w q{quotes:"\201C" "\201D"}
+  html.lg-new .rd-page.is-ls .rd-src{gap:1px}
+  html.lg-new .rd-page.is-ls .rd-src b{font-size:12px;font-weight:400;color:var(--color-neutral-400)}
+  html.lg-new .rd-page.is-ls .rd-src .rd-go{align-self:flex-start;font-size:12.5px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
+  html.lg-new .rd-page.is-ls .rd-cap{margin:12px 0 6px;padding:0;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-neutral-400)}
+  html.lg-new .rd-page.is-ls .rd-q{grid-template-columns:110px minmax(0,1fr) 40px;gap:12px;padding:4px 0;border-top:0}
+  html.lg-new .rd-page.is-ls .rd-q-k{font-size:13px;font-weight:400}
+  html.lg-new .rd-page.is-ls .rd-q-bar{height:10px;border-radius:5px;background:var(--color-neutral-200);overflow:hidden}
+  html.lg-new .rd-page.is-ls .rd-q-bar i{border-radius:5px;transform-origin:left center}
+  html.lg-new .rd-page.is-ls .rd-q-v{font-size:13px;font-weight:400;text-align:left}
+  html.lg-new .rd-page.is-ls .rd-foot{margin-top:14px;padding-top:12px}
+  html.lg-new .rd-page.is-ls .rd-foot .rd-go{font-size:13px;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
+  /* the arrival, on the panel's rare beat only (jovPlay adds .rd-arrive): rows rise one after another, the ring
+     sweeps, the stream bars and the quarter bars grow; transform and opacity, the ring's stroke; still when less
+     motion is asked */
+  html.lg-new .rd-page.rd-arrive :is(.rd-row,.rd-q){animation:jovRise .42s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--rd-i, 0) * 80ms)}
+  html.lg-new .rd-page.rd-arrive .rd-q-bar i,html.lg-new .rd-page.rd-arrive .rd-pk-bar{transform-box:fill-box;transform-origin:left center;animation:hbw2Grow .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--rd-i, 0) * 80ms + 120ms)}
+  html.lg-new .rd-page.rd-arrive .rd-pk-arc{animation:rdSweep .9s cubic-bezier(.2,.8,.2,1) both;animation-delay:150ms}
+  @media (prefers-reduced-motion: reduce){ html.lg-new .rd-page.rd-arrive :is(.rd-row,.rd-q,.rd-q-bar i,.rd-pk-bar,.rd-pk-arc){animation:none} }
   /* the panel: no head row; "Board · read down", the title in the body face; "The first decision" a section with its
      red "in N days" badge, the term's words, and the black button its own width; "Look closer" plain rows */
   html.lg-new #ig-dock:has(.jov5[data-jov-slot="rdn"]) > .igd-head{display:none}
-  html.lg-new .jov5[data-jov-slot="rdn"]{padding-top:16px;gap:12px}
+  html.lg-new .jov5[data-jov-slot="rdn"]{padding-top:0;gap:12px}
+  html.lg-new #ig-dock .jl-words.rd-five{padding-top:0}
   html.lg-new .jov5[data-jov-slot="rdn"] .jov5-intro{padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-eb{font-size:12px;color:var(--color-quiet);letter-spacing:0;text-transform:none}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-title{font-family:var(--font-body);font-size:17px;line-height:1.3;font-weight:var(--w-label)}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-sub{font-size:12px;color:var(--color-quiet)}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-act{display:flex;flex-direction:column;gap:8px;padding:0 0 12px;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;background:none}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-label{margin:0;font-size:13px;font-weight:var(--w-strong);color:var(--color-text);letter-spacing:0;text-transform:none}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-say{display:flex;align-items:center;gap:8px;margin:0;font-size:13px}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-eb{margin:0;font-size:12.5px;font-weight:400;color:var(--color-neutral-400);letter-spacing:0;text-transform:none}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-intro{display:flex;flex-direction:column;gap:8px}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-title{margin:0;font-family:var(--font-body);font-size:17px;line-height:1.3;font-weight:var(--w-label)}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-sub{margin:0;font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-act{display:flex;flex-direction:column;gap:8px;padding:0 0 7px;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;background:none}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-label{margin:0;font-size:14px;font-weight:var(--w-strong);color:var(--color-text);letter-spacing:0;text-transform:none}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-say{display:flex;align-items:center;gap:8px;margin:0;font-size:14px;font-weight:var(--w-label)}
   html.lg-new .jov5[data-jov-slot="rdn"] .rd-p-in{display:inline-flex;align-items:center;gap:5px;padding:1px 7px;border-radius:6px;background:var(--st-ruby-bg);color:var(--st-ruby-fg);font-size:12px;font-weight:var(--w-label);line-height:1.6;white-space:nowrap}
   html.lg-new .jov5[data-jov-slot="rdn"] .rd-p-in::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--st-ruby-dot)}
   html.lg-new .jov5[data-jov-slot="rdn"] .jov5-q{margin:0;font-family:var(--font-doc);font-size:13px;line-height:1.45;color:var(--color-text)}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-acts{justify-content:flex-start}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-act .jov5-acts{display:flex;justify-content:flex-start}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-act .jov5-acts .jov5-go{width:auto;min-width:0;flex:none;padding:6px 14px;border-radius:999px}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-group{gap:0;border:0;background:none}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-row.is-door{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 4px;border:0;border-radius:6px;background:none;font-size:13px}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-act .jov5-acts{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;margin-top:-6px}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-act .jov5-acts > .jov5-go{width:auto;min-width:0;flex:none;height:auto;padding:7px 16px;border-radius:999px;font-size:14px;font-weight:var(--w-label);line-height:1.3}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-sec{display:flex;flex-direction:column;gap:8px}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-group{display:flex;flex-direction:column;gap:8px;border:0;background:none}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-row.is-door{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:8px;align-items:center;padding:4px;border:0;border-radius:6px;background:none;font-size:13px}
   html.lg-new .jov5[data-jov-slot="rdn"] .jov5-row.is-door:hover{background:var(--surface-2)}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-rt b{font-size:13px;font-weight:400}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-rt > span{font-size:12px;color:var(--color-quiet)}
-  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-chev{transition:transform .15s ease}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-mk{width:24px;height:24px;border-radius:7px;display:grid;place-items:center}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-mk .jov5-ic{width:13px;height:13px;stroke-width:2}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-mk.is-green{background:var(--st-green-bg);color:var(--accent-ink)}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-mk.is-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-mk.is-red{background:var(--st-ruby-bg);color:var(--st-ruby-dot)}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-rt b{font-size:13px;font-weight:400;line-height:1.4}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-rt > span{font-size:12.5px;line-height:1.4;color:var(--color-neutral-400)}
+  html.lg-new .jov5[data-jov-slot="rdn"] .jov5-chev{color:var(--color-neutral-400);transition:transform .15s ease}
   html.lg-new .jov5[data-jov-slot="rdn"] .jov5-row:hover .jov5-chev{transform:translateX(3px)}
   @media (prefers-reduced-motion: reduce){ html.lg-new .jov5[data-jov-slot="rdn"] .jov5-chev{transition:none} }
   /* ===== EXPLORER'S SIDE PANEL, REBUILT AS DRAWN (P-40) =====
      no way-back line over it; the title in the body face; each section parted by a hairline with its heading in ink;
      "What Jambo sees" one serif-quoted sentence; "Try on the map" one line a row; "None yet · Save this view" one line */
   html.lg-new #ig-dock:has(.jov5[data-jov-slot="ig"]) .ca-back{display:none}
-  html.lg-new .jov5[data-jov-slot="ig"]{padding-top:16px;gap:12px}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-intro{padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-title{font-family:var(--font-body);font-size:15px;line-height:1.3;font-weight:var(--w-label)}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-sub{font-size:12px;color:var(--color-quiet)}
+  /* MEASURED AGAINST THE DRAWING (21 Nov 2026, Brain, Grid and Timeline): Explorer's head 51 high, its tabs 13.5 in the
+     label weight, quiet till chosen, 4 apart from 14 in; the first section 14 under the head, 16 in; the title 17, its
+     line 12.5 grey 8 under it; headings 14 in the title weight; "Try on the map" rows 28 high and 8 apart, their mark a
+     soft green square with the ⌘ or the spark in the accent, a grey › at the right; "Save this view" in the label weight */
+  html.lg-new #ig-page[data-hb-side="explorer"] #ig-dock > .igd-head.igd-head:not([data-pd-head="paper"]){height:51px;min-height:51px;padding:1px 10px 0 14px}
+  html.lg-new #ig-page[data-hb-side="explorer"] #ig-dock > .igd-head.igd-head > .pd-tab{height:28px;padding:0 11px;font-size:13.5px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #ig-page[data-hb-side="explorer"] #ig-dock > .igd-head.igd-head > .pd-tab.on{color:var(--color-text);background:var(--surface-2)}
+  html.lg-new #ig-page[data-hb-side="explorer"] #ig-dock > .igd-head.igd-head > .pd-tab:first-child{margin-left:0}
+  html.lg-new #ig-page[data-hb-side="explorer"] #ig-dock > .igd-head.igd-head > .pd-tab + .pd-tab{margin-left:4px}
+  html.lg-new #ig-dock #igd-feed:has(> .jl-words > .jov5[data-jov-slot="ig"]){padding-top:14px}
+  html.lg-new #ig-dock .jl-words.is-ov:has(> .jov5[data-jov-slot="ig"]){padding:0}
+  html.lg-new .jov5[data-jov-slot="ig"]{padding-top:0;gap:12px}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-intro{display:flex;flex-direction:column;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-title{margin:0;font-family:var(--font-body);font-size:17px;line-height:22px;font-weight:var(--w-label)}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-sub{margin:0;font-size:12.5px;line-height:1.4;color:var(--color-neutral-400)}
   html.lg-new .jov5[data-jov-slot="ig"] .jov5-sec{display:flex;flex-direction:column;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
   html.lg-new .jov5[data-jov-slot="ig"] .jov5-sec:last-of-type{border-bottom:0}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-label{margin:0;font-size:13px;font-weight:var(--w-strong);color:var(--color-text);letter-spacing:0;text-transform:none}
-  html.lg-new .jov5[data-jov-slot="ig"] .igo-ring{width:52px;height:52px}
-  html.lg-new .jov5[data-jov-slot="ig"] .igo-leg{font-size:12.5px}
-  html.lg-new .jov5[data-jov-slot="ig"] .igo-leg b{font-weight:var(--w-label)}
-  html.lg-new .jov5[data-jov-slot="ig"] .igo-leg small{font-size:12px;color:var(--color-quiet)}
-  html.lg-new .jov5[data-jov-slot="ig"] .igo-sees{margin:0;font-size:12.5px;line-height:1.5;color:var(--color-text)}
-  html.lg-new .jov5[data-jov-slot="ig"] .igo-sees q{font-family:var(--font-doc);quotes:"\201C" "\201D"}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-group{gap:0;border:0;background:none}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-row{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 4px;border:0;border-radius:6px;background:none;font-size:12.5px}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-label{margin:0;font-size:14px;line-height:20px;font-weight:var(--w-title);color:var(--color-text);letter-spacing:0;text-transform:none}
+  html.lg-new .jov5[data-jov-slot="ig"] .igo-sees{margin:0;font-size:12.5px;line-height:1.4;color:var(--color-text)}
+  html.lg-new .jov5[data-jov-slot="ig"] .igo-sees q{font-family:var(--font-doc);color:var(--color-quiet);quotes:"\201C" "\201D"}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-group{display:flex;flex-direction:column;gap:8px;border:0;background:none}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-row{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:center;min-height:0;padding:3px 4px;border:0;border-radius:6px;background:none;font-size:13px;line-height:18px}
   html.lg-new .jov5[data-jov-slot="ig"] .jov5-row.is-door:hover{background:var(--surface-2)}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-row .jov5-mk{width:22px;height:22px;border-radius:6px}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-rt b{font-size:12.5px;font-weight:400}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-row.is-plain{display:flex;justify-content:flex-start;gap:4px;align-items:baseline;padding:0;font-size:12.5px;color:var(--color-quiet)}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-row:not(.is-door) .jov5-rt b{color:var(--color-quiet)}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-row .jov5-mk{width:22px;height:22px;min-width:22px;border-radius:6px;margin:0;padding:0;display:grid;place-items:center}
+  html.lg-new .jov5[data-jov-slot="ig"] [data-jov5-sec="try"] .jov5-row .jov5-mk{background:color-mix(in srgb, var(--accent-ink) 10%, var(--color-surface));color:var(--accent-ink)}
+  html.lg-new .jov5[data-jov-slot="ig"] [data-jov5-sec="try"] .jov5-row .jov5-mk svg{width:12px;height:12px}
+  html.lg-new .jov5[data-jov-slot="ig"] [data-jov5-sec="try"] .jov5-row .jov5-mk svg path[d^="M12 1.5"]{fill:currentColor;stroke:none}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-rt b{font-size:13px;line-height:18px;font-weight:400}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-row.is-plain{display:flex;justify-content:flex-start;gap:4px;align-items:baseline;padding:0;font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-row:not(.is-door) .jov5-rt b{font-size:12.5px;color:var(--color-neutral-400)}
   html.lg-new .jov5[data-jov-slot="ig"] .jov5-row.is-plain .jov5-rt{display:inline;flex:none}
   html.lg-new .jov5[data-jov-slot="ig"] .jov5-row.is-plain .jov5-rt b::after{content:" \00b7"}
   html.lg-new :is(.jov5[data-jov-slot="ig"],html.lg-new .jov5[data-jov-slot="rdn"],html.lg-new .jov5[data-jov-slot="hb"]) .jov5-row + .jov5-row::before{display:none}
+  html.lg-new #ig-page[data-hb-side="explorer"] #ig-dock > .igd-head.igd-head #igd-collapse{color:var(--color-neutral-400)}
   html.lg-new .jov5[data-jov-slot="ig"] .jov5-row:not(.is-door) .jov5-rt{display:inline}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-row.is-plain .jov-lnk{margin-left:0;font-size:12.5px}
-  html.lg-new .jov5[data-jov-slot="ig"] .jov5-chev{transition:transform .15s ease}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-row.is-plain .jov-lnk{margin-left:0;font-size:12.5px;font-weight:var(--w-label);text-decoration:underline;text-underline-offset:3px}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-chev{display:grid;place-items:center;color:var(--color-neutral-400);transition:transform .15s ease}
+  html.lg-new .jov5[data-jov-slot="ig"] .jov5-chev svg{width:12px;height:12px}
   html.lg-new .jov5[data-jov-slot="ig"] .jov5-row:hover .jov5-chev{transform:translateX(3px)}
   @media (prefers-reduced-motion: reduce){ html.lg-new .jov5[data-jov-slot="ig"] .jov5-chev{transition:none} }
   @container ndcard (max-width:640px){ html.lg-new .nd-cols > :nth-child(2),html.lg-new .nd-br > .nd-c-st{display:none} }
