@@ -352,13 +352,16 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
           return !!cs && cs.borderBottomStyle !== 'none' && parseFloat(cs.borderBottomWidth) > 0; }),
         margins: cards.map(c => { const t = c.querySelector('.hb-ch > *'); return t ? Math.round(t.getBoundingClientRect().x - c.getBoundingClientRect().x) : null; }),
         book: (typeof i18t === 'function') ? i18t('hb_book') : null,
+        ins: !!document.querySelector('#hb-board .hb-ins-head'),
       };
     });
     check('4a every card heading really drew, and Your book leads (under the Board\'s own head card)',
       homeLine.bhead && homeLine.heads.length >= 1 && homeLine.heads.every(h => h && h.h > 0) && homeLine.heads[0].txt === homeLine.book,
       homeLine.heads.map(h => h && h.txt));
-    check('4b each heading sits in a card head that rules itself off',
-      homeLine.rules.length > 0 && homeLine.rules.every(Boolean), { rules: homeLine.rules });
+    /* RE-POINTED 21 Nov 2026 (P-39, as drawn): the Board's white cards are one piece — no hairline under a card's head;
+       and (owner: remove Today's insights from the Board) the Board ends after Needs you */
+    check('4b no card head on the Board rules itself off (as drawn), and no Today\'s insights head',
+      homeLine.rules.length > 0 && homeLine.rules.every(r => !r) && !homeLine.ins, { rules: homeLine.rules });
     check('4c AND ITS SUB AND ACTS ARE ON THAT LINE TOO, not below it',
       homeLine.acts.every((row, i) => row.length > 0 && row.every(a => near(homeLine.heads[i].y, a.y, 4))),
       homeLine.acts.map((row, i) => row.map(a => +(a.y - homeLine.heads[i].y).toFixed(1))));

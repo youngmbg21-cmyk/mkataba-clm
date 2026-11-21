@@ -1787,7 +1787,6 @@ function hbNeedsPress(kind, id){
    KEEPS THIS CARD (the owner's answer of 18 Oct 2026, after LAND ON IT): Home's
    "Jambo's work" row's Open lands on it, lit (hbOpenAgent → landOn). */
 function hbPrepHtml(A, since){
-  const I = hbInsightsToday();
   /* THE ONE DESK (Round A, the owner picked "The Legora Way", 22 Oct 2026;
      reverses round 17's "Needs you is Home's" for the WHOLE list): this card,
      under Your book, is all of Needs you — Jambo's prepared work and your
@@ -1795,8 +1794,12 @@ function hbPrepHtml(A, since){
      three of each. What was done while you were away, the agents' levels and
      the house's door stay at its foot. It never folds or closes: work owed is
      not hidden. */
-  if (typeof ndBoardHtml !== 'function') return hbInsCardHtml(I);
-  return ndBoardHtml(hbNdOpts(A, since)) + hbInsCardHtml(I);
+  /* TODAY'S INSIGHTS LEFT THE BOARD (P-39, owner 21 Nov 2026: "remove it from the Board — the Board ends after Needs
+     you, as drawn"; its pictures are Explorer's): the shelf is not drawn here any more. Its findings are still counted for
+     the brief's mail (hbMovedOf); hbInsCardHtml stays for the day it is asked for by name. */
+  void hbInsCardHtml;
+  if (typeof ndBoardHtml !== 'function') return '';
+  return ndBoardHtml(hbNdOpts(A, since));
 }
 /* the Board's parts of the card: a piece of Jambo's opened in place, chasing
    many at once (on his tab), and the foot — done while away, the levels, the house */
