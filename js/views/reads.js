@@ -1098,7 +1098,7 @@ function dsnPlan(ids){
   return { size, unread, pick: Math.min(size, unread) };
 }
 function dsnNewHtml(){
-  const A = _dscAC(), may = _dscMay(), F = dsnFolders(), ch = dsnChosen(), p = dsnPlan(ch.ids);
+  const may = _dscMay(), F = dsnFolders(), ch = dsnChosen(), p = dsnPlan(ch.ids);
   const packOn = !!_dsc.pack;
   const val = packOn ? _rdT('rdn_pack', { name: _dsc.pack.name, n: (_dsc.pack.questions || []).length }) : (_dsc.q || '');
   const label = !ch.ids.length ? _rdT('dsn_choose') : !p.unread ? _rdT('dsc_ask_all_read', { n: ch.ids.length }) : p.unread <= p.size ? _rdTn('dsn_read_n', p.unread) : _rdT('dsn_read_first', { k: p.pick });

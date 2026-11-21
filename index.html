@@ -20453,6 +20453,79 @@
   html.lg-new #st-drawer .sc6-lrow{display:grid;grid-template-columns:minmax(0,1.3fr) 80px minmax(0,1.2fr) minmax(0,1fr);gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--color-divider);font-size:13px}
   html.lg-new .sc6-who{display:flex;align-items:center;gap:8px;min-width:0}
   html.lg-new .sc6-lrow :is(.st-fname,.st-fmeta){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* HISTORY, THE LEGORA + STRIPE WAY (P-44, owner's pick 21 Nov 2026): Time · Who · What happened · Kind · Outcome, the
+     kind and the outcome soft badges; two switches in the head (The wording · The notes); the quick links as chips with
+     their counts; with the wording off a change shows one line of its words; the notes a thread under their change */
+  html.lg-new .hist-trail.is-table.is-ls > .hist-th, html.lg-new .hist-trail.is-table.is-ls > .hist-tr{grid-template-columns:64px minmax(0,190px) minmax(0,1fr) 104px 128px}
+  html.lg-new .hist-trail.is-ls .hist-c-kind{min-width:0;line-height:24px}
+  html.lg-new :is(.hist6-kb,.hist6-ob){display:inline-flex;align-items:center;gap:6px;height:22px;max-width:100%;padding:0 9px;border-radius:999px;font-size:var(--t-micro);font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;background:var(--surface-2);color:var(--color-quiet)}
+  html.lg-new .hist6-ob i{flex:none;width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.8}
+  html.lg-new :is(.hist6-kb,.hist6-ob).is-amber, html.lg-new .hist6-ob.is-a{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new :is(.hist6-kb,.hist6-ob).is-green, html.lg-new .hist6-ob.is-g{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new :is(.hist6-kb,.hist6-ob).is-ruby, html.lg-new .hist6-ob.is-r{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new :is(.hist6-kb,.hist6-ob).is-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-new .hist6-peek{max-width:100%;font-family:var(--font-doc);font-size:12.5px;line-height:1.5;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .hist6-sw{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface-2)}
+  html.lg-new .hist6-tg{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 12px;border:0;border-radius:999px;background:none;font:inherit;font-size:12.5px;font-weight:var(--w-label);color:var(--color-quiet);cursor:pointer;white-space:nowrap}
+  html.lg-new .hist6-tg i{display:inline-grid;place-items:center;width:12px;height:12px;border:1.5px solid currentColor;border-radius:3px;font-style:normal;font-size:8px}
+  html.lg-new .hist6-tg.is-on{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new .hist6-chips{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  html.lg-new .hist6-chips .hist6-chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border:1px solid var(--color-neutral-300);border-radius:999px;background:none;font:inherit;font-size:var(--t-label);color:var(--color-text);cursor:pointer;text-decoration:none}
+  html.lg-new .hist6-chips .hist6-chip span{color:var(--color-quiet)}
+  html.lg-new .hist6-chips .hist6-chip.is-on{background:var(--surface-2);border-color:var(--color-neutral-400)}
+  html.lg-new .hist6-notes{padding:0 0 12px 80px;border-bottom:1px solid var(--rule-faint)}
+  html.lg-new .hist6-nt{display:flex;flex-direction:column;gap:8px;margin-left:10px;padding-left:12px;border-left:2px solid var(--color-neutral-300)}
+  html.lg-new .hist6-msg{display:flex;gap:8px;font-size:13px;line-height:1.45;min-width:0}
+  html.lg-new .hist6-msg.is-reply{margin-left:24px}
+  html.lg-new .hist6-msg b{font-weight:var(--w-label)}
+  html.lg-new .hist6-msg small{color:var(--color-neutral-400)}
+  html.lg-new .hist6-msg p{margin:2px 0 0;overflow-wrap:anywhere}
+  html.lg-new .hist6-ini{flex:none;display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;font-size:8.5px;font-weight:var(--w-strong);background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-new .hist6-ini.is-us{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .hist6-reply{align-self:stretch;padding:6px 10px;border:1px solid var(--color-neutral-300);border-radius:10px;background:none;font:inherit;font-size:12.5px;color:var(--color-neutral-400);text-align:left;cursor:text}
+  html.lg-new .hist6-none{margin:0;font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new .hist6-a{border:0;background:none;padding:0;font:inherit;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  /* THEIR HISTORY, THE LEGORA + STRIPE WAY (P-44): the same table as ours — the kind and the outcome soft badges, the
+     switches, chips, one line of words under a change, the wording and their notes under its row */
+  html.lg-out .pol6 .pol-hist-hd{align-items:center}
+  html.lg-out .pol6 .pol-sp{flex:1}
+  html.lg-out .pol6 .pol-hist-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  html.lg-out .pol6 .pol-hist-bar .pol-hist-q{margin-right:6px}
+  html.lg-out .pol-chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border:1px solid var(--color-neutral-300);border-radius:999px;background:none;font:inherit;font-size:var(--t-label);color:var(--color-text);cursor:pointer}
+  html.lg-out .pol-chip span{color:var(--color-quiet)}
+  html.lg-out .pol-chip.is-on{background:var(--surface-2);border-color:var(--color-neutral-400)}
+  html.lg-out .pol6 .pol-hist-t{table-layout:fixed}
+  html.lg-out .pol6 .pol-hist-t th:nth-child(1){width:64px}
+  html.lg-out .pol6 .pol-hist-t th:nth-child(2){width:180px}
+  html.lg-out .pol-h-wd del{background:var(--rl2-del-bg);color:var(--rl2-del-ink);text-decoration:line-through}
+  html.lg-out .pol-h-wd ins{background:var(--rl2-ins-bg);color:var(--rl2-ins-ink);text-decoration:underline;text-underline-offset:2px}
+  html.lg-out .pol6 .hist6-peek del{color:var(--rl2-del-ink)}
+  html.lg-out .pol6 .hist6-peek ins{color:var(--rl2-ins-ink);text-decoration:none}
+  html.lg-out .pol6 .pol-hist-t th:nth-child(4){width:110px}
+  html.lg-out .pol6 .pol-hist-t th:nth-child(5){width:140px}
+  html.lg-out .pol6 .pol-hist-t tr.has-sub td{border-bottom:0}
+  html.lg-out .pol6 .pol-h-sub td{padding-top:0}
+  html.lg-out :is(.pol-kb,.pol-ob){display:inline-flex;align-items:center;gap:6px;height:22px;max-width:100%;padding:0 9px;border-radius:999px;font-size:var(--t-micro);font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--surface-2);color:var(--color-quiet)}
+  html.lg-out .pol-ob i{flex:none;width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.8}
+  html.lg-out :is(.pol-kb,.pol-ob).is-amb{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-out :is(.pol-kb,.pol-ob).is-grn{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-out :is(.pol-kb,.pol-ob).is-red{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-out .pol-kb.is-stl{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-out .pol6 .hist6-peek{max-width:100%;margin-top:2px;font-family:var(--font-doc);font-size:12.5px;line-height:1.5;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-out .pol-h-wd{margin:0 0 8px;padding:8px 12px;border-radius:8px;background:var(--surface-2);font-family:var(--font-doc);font-size:13.5px;line-height:1.6}
+  html.lg-out .pol6 .hist6-sw{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface-2)}
+  html.lg-out .pol6 .hist6-tg{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 12px;border:0;border-radius:999px;background:none;font:inherit;font-size:12.5px;font-weight:var(--w-label);color:var(--color-quiet);cursor:pointer;white-space:nowrap}
+  html.lg-out .pol6 .hist6-tg i{display:inline-grid;place-items:center;width:12px;height:12px;border:1.5px solid currentColor;border-radius:3px;font-style:normal;font-size:8px}
+  html.lg-out .pol6 .hist6-tg.is-on{background:var(--color-text);color:var(--color-surface)}
+  html.lg-out .pol6 .hist6-nt{display:flex;flex-direction:column;gap:8px;margin-left:10px;padding-left:12px;border-left:2px solid var(--color-neutral-300)}
+  html.lg-out .pol6 .hist6-msg{display:flex;gap:8px;font-size:13px;line-height:1.45}
+  html.lg-out .pol6 .hist6-msg small{color:var(--color-neutral-400)}
+  html.lg-out .pol6 .hist6-msg p{margin:2px 0 0;overflow-wrap:anywhere}
+  html.lg-out .pol6 .hist6-ini{flex:none;display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;font-size:8.5px;font-weight:var(--w-strong);background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-out .pol6 .hist6-ini.is-us{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-out .pol6 .hist6-reply{align-self:stretch;padding:6px 10px;border:1px solid var(--color-neutral-300);border-radius:10px;background:none;font:inherit;font-size:12.5px;color:var(--color-neutral-400);text-align:left;cursor:text}
+  html.lg-out .pol6 .hist6-none{margin:0;font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-out .pol6 .hist6-a{border:0;background:none;padding:0;font:inherit;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
   @container (max-width:760px){ html.lg-new .ctf-figs{grid-template-columns:repeat(2,minmax(0,1fr))} html.lg-new .ctf-two{grid-template-columns:minmax(0,1fr)} }
   html.lg-new .apn-tab{white-space:nowrap}
   html.lg-new .obn-table td{padding:14px 16px 14px 0;border-bottom:1px solid var(--color-divider);vertical-align:top}

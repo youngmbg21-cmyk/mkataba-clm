@@ -8641,6 +8641,37 @@ const histTone=e=>{ const m=HIST_KIND[e&&e._k]||HIST_KIND.system;
 let _histDetail=false;
 /* whether History shows the wording under its rows (its panel says so, as drawn) */
 function histWordingShown(){ return !!_histDetail; }
+/* THE NOTES UNDER THEIR CHANGE (P-44, owner's pick 21 Nov 2026: "The notes", beside "The wording"): per sitting,
+   remembered like the wording; both may be on together */
+let _histNotes=false;
+function histNotesShown(){ return !!_histNotes; }
+/* the kind of an entry, as a soft badge: a change, a decision, a sending, a signature, an open — the trail's own
+   reading (e._k), never a new fact */
+function histKindOf(e){
+  const k=e&&e._k;
+  if(k==='proposed') return { w:i18t('hist6_k_change'), t:'amber' };
+  if(k==='decided') return { w:i18t('hist6_k_decision'), t:e.outcome==='rejected'?'ruby':'green' };
+  if(k==='withdrawn') return { w:i18t('hist6_k_withdrawn'), t:'gray' };
+  if(k==='round-closed'||k==='link'||k==='copies'||k==='handover') return { w:i18t('hist6_k_sent'), t:'steel' };
+  if(k==='signature'||k==='sealed') return { w:i18t('hist6_k_signed'), t:'green' };
+  if(k==='opened'||k==='access') return { w:i18t('hist6_k_inside'), t:'gray' };
+  return { w:i18t('hist6_k_event'), t:'gray' };
+}
+/* a change's discussion, under its row: its notes as a thread (replies stepped in under the note they answer), read RAW
+   (ch.thread, never initialised); the reply box is the notes drawer's own door on that change (openNotesPanel — ONE
+   way to write a note); none: "No notes on this change · Write one" through the same door */
+function histNotesHtml(c,ch){
+  const list=Array.isArray(ch&&ch.thread)?ch.thread.filter(m=>m&&String(m.text||m.body||'').trim()):[];
+  const T=list.length&&typeof window.negoNoteThreads==='function'?negoNoteThreads(list):list.map(m=>({ root:m, replies:[] }));
+  const ini=n=>String(n||'?').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x.charAt(0).toUpperCase()).join('');
+  const msg=(m,sub)=>{ const theirs=m.side==='counterparty';
+    return `<div class="hist6-msg${sub?' is-reply':''}"><span class="hist6-ini${theirs?'':' is-us'}" aria-hidden="true">${esc(ini(m.who||m.author))}</span><div><b>${esc(m.who||m.author||'')}</b> <small>${esc(histWhen(m.at).time||histWhen(m.at).day||'')}</small><p>${esc(String(m.text||m.body||''))}</p></div></div>`; };
+  const door=`data-hist-note="${esc(ch.id)}"`;
+  const body=T.length?T.map(t=>msg(t.root,false)+(t.replies||[]).map(r=>msg(r,true)).join('')).join('')
+    +`<button type="button" class="hist6-reply" ${door}>${esc(i18t('hist6_reply',{ clause:String(ch.clauseLabel||'').trim()||i18t('ds_a_clause') }))}</button>`
+    :`<p class="hist6-none">${esc(i18t('hist6_no_notes'))} · <button type="button" class="hist6-a" ${door}>${esc(i18t('hist6_writeone'))}</button></p>`;
+  return `<div class="hist-wfull hist6-notes" role="row"><div class="hist6-nt" role="cell">${body}</div></div>`;
+}
 /* THE HISTORY TAB, AS DRAWN (SAP batch 3): a search over the trail and the
    five filters folded behind one Filter button — per sitting, in memory. A
    filter in force keeps the fold open, so nothing narrows the list unseen. */
@@ -9294,14 +9325,24 @@ function roomHistoryHtml(c,f={},opts={}){
       :theirName?`<span class="hist-who is-party">${typeof window.regAvatarHtml==='function'?regAvatarHtml(theirName):''}<span title="${esc(theirName)}">${esc(theirName)}</span></span>`:whoH;
     const said=histSaysOf(e), named=said!==String(e.text||'');
     const whatT=inside&&e.actor?esc(said.charAt(0).toLocaleLowerCase()+said.slice(1)):esc(said);
+    /* P-44, HISTORY THE LEGORA + STRIPE WAY (owner's pick 21 Nov 2026): Time · Who · What happened · Kind · Outcome — the
+       side said by who (their party's name, ours by person; histLaneOf still on the row), the kind a soft badge
+       (histKindOf), the outcome a soft badge; with The wording off, a change still shows ONE line of its words under
+       it; The notes opens the change's discussion under its row (histNotesHtml) */
+    const K=histKindOf(e);
+    const kindB=K?`<span class="hist6-kb is-${K.t}">${esc(K.w)}</span>`:'';
+    const ocB=oc&&(lane!=='mid'||e._oc)?`<span class="hist6-ob is-${oc.t}"><i aria-hidden="true"></i>${esc(oc.w)}</span>`:'';
+    const peek=!_histDetail&&(e._k==='proposed'||e._k==='decided')&&e.ch?`<div class="hist6-peek">${histWordingHtml(e.ch)}</div>`:'';
+    const notes=_histNotes&&e.ch&&(e._k==='proposed'||e._k==='decided')?histNotesHtml(c,e.ch):'';
+    void sideW; void ocW;
     return `<div class="hist-ev hist-tr is-${lane}${inside?' is-inside':''}${e._k==='opened'?' is-open':''}" data-hist-at="${esc(e.at||'')}" data-hist-lane="${lane}" role="row">
-      <span class="hist-c hist-c-time" role="cell">${when}</span><span class="hist-c hist-c-who" role="cell">${whoCell}</span><span class="hist-c hist-c-side" role="cell">${sideW}</span>
-      <div class="hist-c hist-c-what hist-body" role="cell"><div class="hist-text">${whatT}${named?'':cl}</div>${why}${reply}</div>
-      <span class="hist-c hist-c-oc hist-oc" role="cell">${ocW}</span></div>${bodyNl||body}`;
+      <span class="hist-c hist-c-time" role="cell">${when}</span><span class="hist-c hist-c-who" role="cell">${whoCell}</span>
+      <div class="hist-c hist-c-what hist-body" role="cell"><div class="hist-text">${whatT}${named?'':cl}</div>${peek}${why}${reply}</div>
+      <span class="hist-c hist-c-kind" role="cell">${kindB}</span><span class="hist-c hist-c-oc hist-oc" role="cell">${ocB}</span></div>${bodyNl||body}${notes}`;
   };
   const ours=_histOurPeople();
   /* the table's column head (the SAP way): the words above the columns */
-  const colHead=`<div class="hist-th" role="row"><span role="columnheader">${esc(i18t('ct_hist_col_time'))}</span><span role="columnheader">${esc(i18t('ct_hist_col_who'))}</span><span role="columnheader">${esc(i18t('ct_hist_col_side'))}</span><span role="columnheader">${esc(i18t('ct_hist_col_what'))}</span><span role="columnheader">${esc(i18t('ct_hf_outcome'))}</span></div>`;
+  const colHead=`<div class="hist-th" role="row"><span role="columnheader">${esc(i18t('ct_hist_col_time'))}</span><span role="columnheader">${esc(i18t('ct_hist_col_who'))}</span><span role="columnheader">${esc(i18t('ct_hist_col_what'))}</span><span role="columnheader">${esc(i18t('hist6_c_kind'))}</span><span role="columnheader">${esc(i18t('ct_hf_outcome'))}</span></div>`;
   /* THE DAY IS A HEADING OVER ITS ENTRIES, with its count (as drawn). */
   const dayKey=e=>String(e.at||'').slice(0,10);
   /* THE DAY'S PILL, AS DRAWN (round 12): the day a person would say it —
@@ -9367,8 +9408,9 @@ function roomHistoryHtml(c,f={},opts={}){
       <span class="hist-cap">${esc(i18t('ct_hist_reading'))} · ${on?esc(i18t('ct_hist_n_of',{n:evs.length,all}))
         :esc(i18tn('ct_hist_events',all,{n:all}))}${openN?` · <span class="hist-open-n">${esc(i18tn('ct_hist_open_n',openN,{n:openN}))}</span>`:''}${opensN?` · ${esc(i18tn('ct_hist_opens_n',opensN,{n:opensN}))}`:''}${cutN?` · ${esc(i18tn('ct_hist_opens_cut',cutN,{n:cutN}))}`:''}</span>
       <span class="hist-tools-sp"></span>
-      <button id="hist-detail" class="ui-btn" aria-pressed="${_histDetail?'true':'false'}"
-        title="${esc(_histDetail?i18t('ct_hist_back_short'):i18t('ct_hist_print_wording'))}">${_histDetail?i18t('ct_hist_hide_wording'):i18t('ct_hist_show_wording')}</button>
+      <span class="hist6-sw" role="group" aria-label="${esc(i18t('hist6_show'))}"><button id="hist-detail" type="button" class="hist6-tg${_histDetail?' is-on':''}" aria-pressed="${_histDetail?'true':'false'}"
+        title="${esc(_histDetail?i18t('ct_hist_back_short'):i18t('ct_hist_print_wording'))}"><i aria-hidden="true">${_histDetail?'✓':''}</i>${esc(i18t('hist6_wording'))}</button><button id="hist-notes" type="button" class="hist6-tg${_histNotes?' is-on':''}" aria-pressed="${_histNotes?'true':'false'}"
+        title="${esc(i18t('hist6_notes_tip'))}"><i aria-hidden="true">${_histNotes?'✓':''}</i>${esc(i18t('hist6_notes'))}</button></span>
       <div style="position:relative">
         <button id="hist-more" class="ui-btn ui-btn-icon hist-more-btn" aria-haspopup="true" aria-expanded="false"
           aria-label="${esc(i18t('ct_more'))}" title="${esc(i18t('ct_hist_more_title'))}">
@@ -9393,7 +9435,7 @@ function roomHistoryHtml(c,f={},opts={}){
            and ends at the last's, and a filter that leaves one entry draws no
            line at all. The empty sentence stays outside it — there is nothing
            to join. */}
-    ${evs.length?`<div class="hist-trail is-table" role="table" aria-label="${esc(i18t('tab_history'))}">${colHead}${grouped()}</div>`
+    ${evs.length?`<div class="hist-trail is-table is-ls" role="table" aria-label="${esc(i18t('tab_history'))}">${colHead}${grouped()}</div>`
       :`<p class="hist-empty">${on?esc(i18t('ct_hist_none_match')):esc(i18t('ct_hist_none_yet'))}</p>`}`;
 }
 /* the filters behind Filter (the values are the record's own keys; only the
@@ -9440,7 +9482,9 @@ function histQuickHtml(c,f){
   const all=roomHistoryEvents(c,{});
   const on=HIST_QUICK.filter(k=>all.some(e=>histQuickHit(e,k)));
   const any=!!(f&&f.quick)||!!String(_histQ||'').trim();
-  return `<div class="hist-filters hist-quick">${on.length?`<span class="hist-qk-l">${esc(i18t('ct_hq_filters'))}</span>${on.map((k,i)=>`${i?'<i aria-hidden="true"> · </i>':''}<button type="button" class="hist-qk" data-ht-quick="${k}" aria-pressed="${f&&f.quick===k?'true':'false'}">${esc(i18t('ct_hq_'+k))}</button>`).join('')}`:''}
+  /* P-44: the quick links are chips with their counts, All first (the Legora + Stripe way) */
+  const n=k=>all.filter(e=>histQuickHit(e,k)).length;
+  return `<div class="hist-filters hist-quick hist6-chips"><button type="button" class="hist-qk hist6-chip${f&&f.quick?'':' is-on'}" data-ht-quick="" aria-pressed="${f&&f.quick?'false':'true'}">${esc(i18t('ctf_tab_all'))} <span>${all.length}</span></button>${on.map(k=>`<button type="button" class="hist-qk hist6-chip${f&&f.quick===k?' is-on':''}" data-ht-quick="${k}" aria-pressed="${f&&f.quick===k?'true':'false'}">${esc((w=>w.charAt(0).toLocaleUpperCase()+w.slice(1))(i18t('ct_hq_'+k)))} <span>${n(k)}</span></button>`).join('')}
     <span class="hist-f-sp"></span>
     <button id="ht-clear" type="button" class="hist-clear"${any?'':` disabled title="${esc(i18t('ct_hist_clear_none'))}"`}>${i18t('ct_clear2')}</button></div>`;
 }
@@ -9511,6 +9555,8 @@ function roomPaintHistory(c,f={},at){
   const qi=host.querySelector('#hist-q');
   if(qi) qi.addEventListener('input',()=>{ _histQ=qi.value; const caret=qi.selectionStart; roomPaintHistory(c,read(),at);
     const again=host.querySelector('#hist-q'); if(again){ again.focus(); try{ again.setSelectionRange(caret,caret); }catch(_){} } });
+  host.querySelector('#hist-notes')?.addEventListener('click',()=>{ _histNotes=!_histNotes; roomPaintHistory(c,read(),at); });
+  host.querySelectorAll('[data-hist-note]').forEach(b=>b.addEventListener('click',()=>{ if(typeof window.openNotesPanel==='function') openNotesPanel(c.id,b.getAttribute('data-hist-note')); }));
   host.querySelector('#hist-detail')?.addEventListener('click',()=>{
     _histDetail=!_histDetail; roomPaintHistory(c,read(),at);
     /* the new look's panel says whether the wording shows (as drawn): its glance is drawn again */

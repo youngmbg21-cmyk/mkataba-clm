@@ -56,9 +56,11 @@ describe('f714 (2) the lanes, the head and the door', () => {
      reverses the lanes. The row still knows its lane (histLaneOf, data-hist-lane)
      — it is said as the Side column's word — and keeps its parts. */
   test('2a ONE TABLE under one head (the SAP way, 21 Oct 2026); each row still carries its lane and its parts', () => {
-    assert.match(H, /<div class="hist-trail is-table" role="table"[^`]*>\$\{colHead\}\$\{grouped\(\)\}<\/div>/);
+    /* RE-POINTED (P-44, owner's pick 21 Nov 2026: History the Legora + Stripe way): the one table wears is-ls */
+    assert.match(H, /<div class="hist-trail is-table is-ls" role="table"[^`]*>\$\{colHead\}\$\{grouped\(\)\}<\/div>/);
     assert.ok(!H.includes('lanesHead'), 'no lanes\' heads');
-    for (const k of ['ct_hist_side_ours', 'ct_hist_side_theirs', 'ct_hist_col_side']) assert.ok(H.includes(`i18t('${k}'`), k);
+    /* RE-POINTED (P-44): no Side column — the side is said by who; its words stay with the row's reading, and Kind has its column */
+    for (const k of ['ct_hist_side_ours', 'ct_hist_side_theirs', 'hist6_c_kind']) assert.ok(H.includes(`i18t('${k}'`), k);
     assert.match(H, /const lane=histLaneOf\(e, ours\);/);
     assert.match(H, /data-hist-lane="\$\{lane\}"/);
     for (const part of ['class="hist-when"', 'class="hist-who"', 'hist-c-oc', '${mark}']) assert.ok(H.includes(part), part);
