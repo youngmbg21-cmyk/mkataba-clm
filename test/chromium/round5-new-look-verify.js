@@ -115,8 +115,8 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="prop"]'); if (b) b.click(); });
     const up = await until(page, () => !!document.querySelector('.obn-table.is-proj .obn-pr'), null, 10000);
     const heads = up ? await page.evaluate(() => [...document.querySelectorAll('.obn-table.is-proj thead th')].map(t => t.textContent.trim()).filter(Boolean)) : [];
-    const pr = up ? await page.evaluate(() => { const r = document.querySelector('.obn-pr'); return r ? { ring: !!r.querySelector('.obn-ring'), bar: !!r.querySelector('.obn-bar2') /* RE-POINTED 19 Nov 2026 (f1102, rings and bars say whose): nothing starts decided, so the bar is drawn with no part in it yet */,
-      said: (r.querySelector('.obn-pgb small') || {}).textContent, status: (r.querySelector('.obn-stt .obn-ch') || {}).textContent,
+    const pr = up ? await page.evaluate(() => { const r = document.querySelector('.obn-pr'); return r ? { ring: true /* RE-POINTED 21 Nov 2026 (P-13, as drawn): no ring on the row, a progress bar */, bar: !!r.querySelector('.obn-pbar, .obn-bar2') /* RE-POINTED 19 Nov 2026 (f1102, rings and bars say whose): nothing starts decided, so the bar is drawn with no part in it yet */,
+      said: (r.querySelector('.obn-pgs small, .obn-pgb small') || {}).textContent, status: (r.querySelector('.obn-stt .obs-b, .obn-stt .obn-ch') || {}).textContent,
       open: (r.querySelector('[data-obn-open]') || {}).innerText, add: (r.querySelector('[data-obn-addall]') || {}).innerText } : null; }) : null;
     /* RE-POINTED 19 Nov 2026 (f1102): the duties no longer open under the row; a press chooses it and they stand in the panel */
     await page.evaluate(() => { const r = document.querySelector('.obn-pr[data-obn-pick] td.obn-c1'); if (r) r.click(); });
@@ -128,7 +128,8 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await shot('4-proposals');
     check('4 Proposals: one row per agreement with its progress and status, the duties answered under it, three answers and Add all; the panel turns to that agreement the Legora way',
       /* RE-POINTED 19 Nov 2026: four heads — the owner had Found taken off ("delete the found column") */
-      up && heads.length === 4 && !heads.includes('Found') && !!pr && pr.ring && pr.bar && /decided/i.test(pr.said || '') && !!String(pr.status || '').trim() && !pr.open
+      /* RE-POINTED 21 Nov 2026 (P-13, the owner's pick of 20 Nov): the drawn six heads, Found back; "N of M" on the bar */
+      up && heads.join() === 'Agreement,Other side,Progress,Status,Duties,Found' && !!pr && pr.ring && pr.bar && /\d+ of \d+/.test(pr.said || '') && !!String(pr.status || '').trim() && !pr.open
       && !pr.add && !!duty && duty.whose === 4 && duty.on   /* RE-POINTED 19 Nov 2026 (f1102): Undecided lit first, nothing decided, nothing to add */ && duty.skip && side, { heads, pr, duty, side });
   } catch (e) { check('4 Proposals', false, String(e).slice(0, 200)); }
 
