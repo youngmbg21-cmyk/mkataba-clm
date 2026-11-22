@@ -155,16 +155,16 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   } catch (e) { check('3 The bell', false, String(e).slice(0, 200)); }
 
   /* 4 · The Guide — RE-POINTED 21 Nov 2026 (P-38, owner: "delete the guide since we have the nav panel"): the Guide's door
-     opens the nav panel at the left, the Guide's pages by stage; the side panel has no Guide face */
+     opens the nav panel, the Guide's pages by stage; the side panel has no Guide face. RE-POINTED 22 Nov 2026: the owner had P-37's panel at the left reverted; it is the window in the middle again. */
   try {
     await page.evaluate(() => openPanel('guide'));
-    const up = await until(page, () => !!document.querySelector('#cmd-palette.is-left .lp-p'), null, 8000);
+    const up = await until(page, () => !!document.querySelector('#cmd-palette .lp-p'), null, 8000);
     const G = up ? await page.evaluate(() => ({ heads: [...document.querySelectorAll('#cmd-palette .lp-st h5')].map(h => h.textContent.trim().toLowerCase()),
       keys: [...document.querySelectorAll('#cmd-palette [data-lp-go]')].map(b => b.getAttribute('data-lp-go')),
       want: GUIDE_STAGES.flatMap(s => s.rows).filter(k => k !== 'import' || typeof caMayAdd !== 'function' || caMayAdd()).concat(['handbook', 'settings']),
       tab: !!document.querySelector('[data-pt-face="guide"]') })) : null;
     await shot('4-guide');
-    check('4a the Guide\'s door opens the nav panel at the left, the stages as its heads', !!G && G.heads.length >= 4 && !G.tab, G && G.heads);
+    check('4a the Guide\'s door opens the nav panel, the stages as its heads', !!G && G.heads.length >= 4 && !G.tab, G && G.heads);
     check('4b no page the Guide had is lost', !!G && G.want.every(k => G.keys.includes(k)), G && { missing: G.want.filter(k => !G.keys.includes(k)) });
     await page.keyboard.press('Escape');
   } catch (e) { check('4 The Guide', false, String(e).slice(0, 200)); }

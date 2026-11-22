@@ -59,10 +59,10 @@ function world(opts = {}){
     var caMayAdd = () => true;
     var openCommandPalette = (q, o) => { window.__opened++; window.__left = !!(o && o.left); const d = document.createElement('div'); d.id = 'cmd-palette'; d._lpClose = () => d.remove(); document.body.appendChild(d); };
     ${['GUIDE_NL', 'LP_WAIT_MAX', 'LP_CHIPS', 'LP_EMOJI', 'lpPlain'].map(constSrc).join('\n')}
-    var _lpChip = 'all'; var _lpLeft = false;
+    var _lpChip = 'all';
     ${['guideRowShown', 'lpRows', 'lpStageOf', 'lpOwed', 'lpSize', 'lpQuoteOf', 'lpWaits', 'lpItems', 'lpWaitWord', 'lpActWord',
        'lpEmoHtml', 'lpOpt', 'lpWaitRowsHtml', 'lpSideOn', 'lpMoreSay', 'lpSideHtml', 'lpBodyHtml', 'lpWhereHtml', 'lpFootHtml', 'lpChipsHtml', 'lpIsOpen', 'lpDoorSay', 'lpToggle', 'lpWire'].map(fnSrc).join('\n')}
-    window.__api = { LP_EMOJI, lpRows, lpItems, lpQuoteOf, lpBodyHtml, lpSideHtml, lpSideOn, lpWhereHtml, lpFootHtml, lpChipsHtml, lpWire, GUIDE_NL, LP_WAIT_MAX, chip: c => { _lpChip = c; }, left: on => { _lpLeft = !!on; } };
+    window.__api = { LP_EMOJI, lpRows, lpItems, lpQuoteOf, lpBodyHtml, lpSideHtml, lpSideOn, lpWhereHtml, lpFootHtml, lpChipsHtml, lpWire, GUIDE_NL, LP_WAIT_MAX, chip: c => { _lpChip = c; } };
   `);
   return w;
 }
@@ -124,7 +124,8 @@ test('f1097 (4) the bar\'s top-left symbol opens the jump window; a second press
   const w = world(); const A = w.__api; A.lpWire(); A.lpWire();
   const b = w.document.getElementById('dk-nav');
   b.click(); assert.equal(w.__opened, 1, 'a press opens it, wired once');
-  assert.equal(w.__left, true, 'the nav button opens it at the left (P-37)');
+  /* RE-POINTED 22 Nov 2026: the owner had P-37's panel at the left reverted — the nav button opens the window in the middle */
+  assert.equal(w.__left, false, 'the nav button opens the window in the middle, not at the left');
   assert.ok(w.document.getElementById('cmd-palette'));
   b.click(); assert.equal(w.document.getElementById('cmd-palette'), null, 'a second press closes it'); assert.equal(w.__opened, 1);
 });
@@ -212,30 +213,19 @@ test('f1097 (8) the emoji book holds every emoji the launchpad draws (owner, 21 
   for (const [k, e] of Object.entries(E)) assert.ok(all.has(e), k + ' ' + e + ' is in the emoji book');
 });
 
-test('f1097 (9) the nav button panel slides in from the left: one list, each page has its own count, Waiting on you narrows it (P-37)', () => {
-  const w = world({ here: 'contracts', owed: { approvals: 2, settings: 3, house: 2, oblig: 1 } }); const A = w.__api;
-  A.left(true);
-  const items = A.lpItems();
-  assert.equal(items.filter(x => x.wait).length, 0, 'no waiting rows at the left: each page carries its own count');
-  assert.equal(A.lpSideOn(items), false, 'no tinted column at the left');
-  const host = draw(w);
-  assert.equal(host.querySelectorAll('.lp-w').length, 0);
-  const ap = host.querySelector('[data-lp-go="approvals"] .lp-ct');
-  assert.ok(ap && ap.classList.contains('is-owed') && ap.textContent === '2', 'a page that waits on you shows its own amber count');
-  A.chip('need');
-  const need = plain(A.lpItems().map(x => x.id));
-  assert.deepEqual([...need].sort(), ['approvals', 'house', 'oblig', 'settings'], 'Waiting on you narrows the list to the pages with a count, the page you are on left out');
-  assert.equal(draw(w).querySelectorAll('.lp-st h5').length > 0, true, 'still under their stages\' heads');
-  /* RE-POINTED 21 Nov 2026 (P-37 rebuilt as drawn): the panel's foot is its keys and nothing more */
-  A.chip('all'); assert.doesNotMatch(A.lpFootHtml(false, false), /lp_out/, 'the foot says its keys only, as drawn');
-  A.left(false);
-  const app = strip(fnSrc('openCommandPalette'));
-  assert.match(app, /position:fixed;left:0;right:0;bottom:0;top:\$\{top\}px/, 'under the black bar to the window\'s foot');
-  assert.match(app, /width:min\(400px,100vw\)/, '400 wide, from the left edge');
-  assert.match(app, /translateX\(-100%\)/, 'it slides (a transform), and back');
-  assert.match(app, /prefers-reduced-motion: reduce/, 'reduced motion: at once');
-  assert.match(strip(fnSrc('lpToggle')), /openCommandPalette\('',\{ left:true \}\)/, 'only the nav button opens it at the left');
-  assert.match(strip(APP), /\(e\.key==='k'\|\|e\.key==='K'\)\)\{ e\.preventDefault\(\); openCommandPalette\(\); return; \}/, '⌘K keeps the window in the middle');
-  assert.equal(I18N.split('    lp_out:').length, 3, 'both books');
-  assert.match(HBK, /slides in from the left/); assert.match(HBK, /glider in från vänster/);
+test('f1097 (9) the nav panel is back in the middle of the page: P-37\'s panel at the left is reverted (owner, 22 Nov 2026)', () => {
+  /* REPLACES "the nav button panel slides in from the left" (P-37, 21 Nov 2026): the owner asked for it back as "a rectangle pop up
+     in the middle of the page as it was prior to the latest change" */
+  const app = strip(APP);
+  assert.doesNotMatch(app, /\{ ?left:true ?\}/, 'no door opens the window at the left');
+  assert.doesNotMatch(app, /_lpLeft|is-left/, 'the left mode is gone, not merely unused');
+  assert.match(strip(fnSrc('lpToggle')), /openCommandPalette\(\);/, 'the nav button opens the one window');
+  const open = strip(fnSrc('openCommandPalette'));
+  assert.match(open, /position:fixed;inset:0;z-index:85;display:flex;align-items:center;justify-content:center/, 'in the middle, up and down as well as across');
+  assert.match(open, /max-width:1300px/, 'a rectangle, as wide as it was');
+  assert.doesNotMatch(open, /translateX\(-100%\)|width:min\(400px/, 'no 400-wide panel sliding from the left');
+  assert.match(app, /if\(face==='guide'\)\{[^}]*openCommandPalette\(''\);/, 'the Guide\'s doors open it in the middle too');
+  assert.doesNotMatch(HTML, /#cmd-palette\.is-left/, 'its left-only styles are gone');
+  assert.match(HBK, /Every page in the middle of the screen/); assert.match(HBK, /Varje sida mitt på skärmen/);
+  assert.doesNotMatch(HBK, /slides in from the left/);
 });

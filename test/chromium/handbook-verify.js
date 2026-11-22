@@ -173,7 +173,7 @@ async function reset(P, base){
 
     if (!ONLY.length){
       /* ---- 1 the doors in ---- */
-      /* RE-POINTED 21 Nov 2026 (P-38): the Guide's door opens the nav panel at the left; its Book stage ends Handbook, Settings */
+      /* RE-POINTED 21 Nov 2026 (P-38): the Guide's door opens the nav panel (in the middle again since 22 Nov 2026); its Book stage ends Handbook, Settings */
       await P.evaluate(() => { setView('counter'); openPanel('guide'); });
       await until(P, () => document.querySelector('#cmd-palette [data-lp-go="handbook"]'));
       const rows = await P.evaluate(() => [...document.querySelectorAll('#cmd-palette .lp-p[data-lp-go]')].map(b => b.getAttribute('data-lp-go')));

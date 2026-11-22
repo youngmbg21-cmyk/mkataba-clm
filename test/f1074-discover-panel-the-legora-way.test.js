@@ -34,7 +34,7 @@ function panel(stub){
   const T = (k, v) => String(words[k] || k).replace(/\{(\w+)\}/g, (m, x) => (v && v[x] != null) ? v[x] : m);
   const env = Object.assign({ _rdE: E, _rdT: T, _rdTn: (k, n, v) => T(k + (n === 1 ? '_one' : '_other'), Object.assign({ n }, v || {})), rdWhen: () => '15 Nov',
     _rdName: c => c.name, _dscMay: () => true, dsnRunOf: r => r.of, dsnRunName: r => r.name, dsnRunQuestion: r => r.q, askColClauseNo: a => (String(a.clause || '').match(/^\d+/) || [''])[0],
-    dsnYesMarked: a => E(a.quote), dsnRunLeft: r => Math.max(0, (r.of || 0) - (r.n || 0)), _rdTone: a => a.tone, AC: { asks: {} }, _dsc: {}, _dsn: {}, _rd: { rows: [] }, rdnAnswers: () => null, _dsnFolderName: f => f, getContract: () => null,
+    dsnYesMarked: a => E(a.quote), dsnRunLeft: r => Math.max(0, (r.of || 0) - (r.n || 0)), _rdTone: a => a.tone, AC: { asks: {} }, _dsc: {}, _dsn: {}, _rd: { rows: [] }, rdnAnswers: () => null, rdnFailed: () => false, _dsnFolderName: f => f, getContract: () => null,
     dsnRun: id => ({ id }), _rdKey: q => String(q || '').trim().toLowerCase() }, stub || {});
   const names = Object.keys(env);
   return new Function(...names, RD.slice(a, b) + '; return { dslReadHtml, dslEmptyHtml, dslNewHtml };')(...names.map(k => env[k]));
@@ -62,6 +62,11 @@ test('f1074 (1) the read chosen: badges, its question, one counted sentence, a r
   assert.match(none, /<b class="is-ruby">1 needs a look\.<\/b> 2 of the 3 read are fine\./, 'no rule: fine, not "within your rule"'); assert.doesNotMatch(none, /not read yet/, 'nothing left, nothing said');
   const loading = panel({ dsnRunRows: () => null, dsnGroups: () => [], dsnRunWhere: () => '' }).dslReadHtml({ id: 'r3', askIds: ['k'], n: 1, of: 1, name: 'X', q: 'Q?' });
   assert.match(loading, /dsc_loading/, 'answers still loading: said, never guessed');
+  /* 22 Nov 2026 (owner: "the side panel says fetching the answers but nothing is happening"): once the asking has given up,
+     the panel says so and offers Try again — never "Fetching…" for ever */
+  const failed = panel({ dsnRunRows: () => null, dsnGroups: () => [], dsnRunWhere: () => '', rdnFailed: () => true }).dslReadHtml({ id: 'r3', askIds: ['k', 'k2'], n: 1, of: 1, name: 'X', q: 'Q?' });
+  assert.doesNotMatch(failed, /dsc_loading/, 'no "Fetching" once it has given up');
+  assert.match(failed, /dsc_load_failed <button type="button" class="dsl-a" data-dsn-refetch="k,k2">act_load_retry<\/button>/, 'said, with Try again for the read\'s questions');
   /* stopped (as drawn): "Stopped · N left", the ring of what was read, and "read them" is the stop's own carry */
   const st = P.dslReadHtml({ id: 'r1', askIds: ['k1'], n: 3, of: 5, name: 'Liability cap', q: 'Q?' }, { stopped: true, left: 2 });
   assert.match(st, /dsn_stopped_left_other/); assert.match(st, />3\/5<\/text>/); assert.match(st, /data-dsn-carry>read them/);

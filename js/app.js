@@ -2074,11 +2074,9 @@ function commandPaletteResults(q){
     title:c.name, ref:(window.contractRef?contractRef(c):c.id), sub:`${c.counterparty?' · '+c.counterparty:''}${c.archived?' · '+i18t('ct_archived_tag'):''}`, ic:(window.cIcon?cIcon(c):'file'), status:c.status}));
   return out.slice(0,14);
 }
-function openCommandPalette(prefill,o){
-  /* THE NAV PANEL SLIDES IN FROM THE LEFT (owner, P-37, 21 Nov 2026): ONLY the bar's nav button opens it at the left (o.left);
-     ⌘K and "/" keep the window in the middle. The same rows, the same doors — one window, two places to stand. */
-  const left=!!(o&&o.left);
-  const gone=document.getElementById('cmd-palette'); if(gone&&gone.dataset.leaving) gone.remove();
+function openCommandPalette(prefill){
+  /* BACK IN THE MIDDLE (owner, 22 Nov 2026: "revert back the change for the nav panel and bring it back as a rectangle
+     pop up in the middle of the page"): P-37's panel at the left is gone; every door opens this one window, centred */
   const prev=document.getElementById('cmd-palette'); if(prev){ const pi=prev.querySelector('#cp-input'); if(pi){ if(typeof prefill==='string'&&prefill) pi.value=prefill; pi.focus(); pi.dispatchEvent(new Event('input')); } return; }
   /* WHO OPENED IT, so focus can go back there. Without this, Escape drops a
      keyboard reader at the top of the document and they have to Tab in again
@@ -2087,19 +2085,14 @@ function openCommandPalette(prefill,o){
   const opener = document.activeElement;
   const ov=document.createElement('div');
   ov.id='cmd-palette';
-  ov.className='lp'+(left?' is-left':'');
+  ov.className='lp';
   /* IN THE MIDDLE OF THE SCREEN, up and down as well as across (owner, 19 Nov 2026: "nav panel pop up should appear at the center of the page") */
   ov.style.cssText='position:fixed;inset:0;z-index:85;display:flex;align-items:center;justify-content:center;padding:var(--s-4)';
-  /* at the left: under the black bar to the window's foot, over the page; the bar stays pressable (its nav button closes it) */
-  if(left){ const bar=document.getElementById('dk-nav'), hd=bar&&bar.closest&&bar.closest('header'), top=hd?Math.max(0,Math.round(hd.getBoundingClientRect().bottom)):0;
-    ov.style.cssText=`position:fixed;left:0;right:0;bottom:0;top:${top}px;z-index:85;display:block`; }
-  _lpLeft=left;
   /* THE LAUNCHPAD (owner's pick, 19 Nov 2026): every opening starts on All */
   _lpChip='all';
   ov.innerHTML=`
-    <div class="lp-veil" style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d ${left?28:42}%,transparent)"></div>
-    <div class="modal-in lp-sheet" style="${left?'position:absolute;left:0;top:0;bottom:0;width:min(400px,100vw);background:var(--color-surface);border-right:1px solid var(--color-divider);box-shadow:var(--shadow-lg);overflow:hidden'
-      :'position:relative;width:100%;max-width:1300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden;max-height:calc(100vh - 2 * var(--s-4))'}">
+    <div class="lp-veil" style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 42%,transparent)"></div>
+    <div class="modal-in lp-sheet" style="position:relative;width:100%;max-width:1300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden;max-height:calc(100vh - 2 * var(--s-4))">
       <div class="lp-top">
         <input id="cp-input" class="lp-in" placeholder="${esc(i18t('lp_where'))}" autocomplete="off"
           role="combobox" aria-expanded="true" aria-controls="cp-list" aria-autocomplete="list"
@@ -2128,25 +2121,12 @@ function openCommandPalette(prefill,o){
      an always-last "Ask Copilot" row that HANDS the question to the existing
      Copilot door with it prefilled — never a second AI path from here. */
   let ftsRows=[], ftsFor='', ftsT=null;
-  const lpSheet=ov.querySelector('.lp-sheet');
-  /* the panel slides (a transform, never width/left); reduced motion = at once */
-  const lpStill=()=>{ try{ return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(_){ return false; } };
   const close=()=>{
-    if(ov.dataset.leaving) return;
     clearTimeout(ftsT);
     if(trapRelease){ try{ trapRelease(); }catch(_){} }
-    document.removeEventListener('keydown',onKey,true); document.removeEventListener('pointerdown',onOut,true); lpDoorSay(false);
-    if(left&&!lpStill()&&lpSheet&&lpSheet.animate){
-      ov.dataset.leaving='1'; ov.style.pointerEvents='none';
-      const veil=ov.querySelector('.lp-veil'); if(veil&&veil.animate) veil.animate([{ opacity:1 },{ opacity:0 }],{ duration:180, easing:'ease-in', fill:'forwards' });
-      const a=lpSheet.animate([{ transform:'translateX(0)' },{ transform:'translateX(-100%)' }],{ duration:180, easing:'cubic-bezier(.4,0,1,1)', fill:'forwards' });
-      a.onfinish=()=>ov.remove(); setTimeout(()=>ov.remove(),400);
-    } else ov.remove();
+    ov.remove(); document.removeEventListener('keydown',onKey,true); lpDoorSay(false);
     try{ if(opener&&opener.focus&&document.contains(opener)) opener.focus({preventScroll:true}); }catch(_){}
   };
-  /* a press anywhere outside the panel lets it go (the bar too); the nav button's own press toggles it, so it is left alone */
-  function onOut(e){ if(!left) return; const t=e.target; if(!t||!t.closest) return; if(lpSheet.contains(t)||t.closest('#dk-nav')) return; close(); }
-  if(left) document.addEventListener('pointerdown',onOut,true);
   const openItem=it=>{
     if(it.kind==='ask'){
       close();
@@ -2261,9 +2241,6 @@ function openCommandPalette(prefill,o){
   ov._lpClose=close;
   if(typeof prefill==='string' && prefill){ input.value=prefill; ftsPlan(); }
   paint(); input.focus();
-  if(left){ if(!lpStill()&&lpSheet&&lpSheet.animate){ lpSheet.animate([{ transform:'translateX(-100%)' },{ transform:'translateX(0)' }],{ duration:240, easing:'cubic-bezier(.22,.61,.36,1)' });
-      const veil=ov.querySelector('.lp-veil'); if(veil&&veil.animate) veil.animate([{ opacity:0 },{ opacity:1 }],{ duration:240, easing:'ease-out' }); }
-    return; }
   /* centred, it keeps the height it opened at: fewer rows as you type never move the box under your eyes */
   const sheet=ov.querySelector('.lp-sheet'); if(sheet){ const h=Math.round(sheet.getBoundingClientRect().height); if(h>0) sheet.style.minHeight=h+'px'; }
 }
@@ -3856,8 +3833,8 @@ function openPanel(face){
      and no longer does, because the panel stopped being a column. */
   if(panelSuppressed()) return;
   /* THE GUIDE LIVES IN THE NAV PANEL NOW (P-38): every door that asked for the Guide face (Jambo's "guide", "?", the
-     Handbook's door) opens the nav panel at the left — the same pages by stage, one door, no second list */
-  if(face==='guide'){ if(state.panelOpen) closeContextPanel(); if(!document.getElementById('cmd-palette')) openCommandPalette('',{ left:true }); return; }
+     Handbook's door) opens the nav pop-up in the middle (owner, 22 Nov 2026) — the same pages by stage, one door, no second list */
+  if(face==='guide'){ if(state.panelOpen) closeContextPanel(); if(!document.getElementById('cmd-palette')) openCommandPalette(''); return; }
   const same=state.panelOpen&&panelFace()===face;
   setPanelFace(face);
   state.panelOpen=!same;
@@ -4238,8 +4215,6 @@ const LP_EMOJI={ contracts:'📄', requests:'💬', import:'📦', ourpaper:'�
   oblig:'📃', calendar:'📅', parties:'🏢', people:'👥', mynotes:'📌', board:'📊', explorer:'🧭', reads:'🔍', pulse:'📈', house:'✨', flowmap:'🛤️', handbook:'📖', settings:'⚙️' };
 function lpEmoHtml(k){ const e=LP_EMOJI[k]; return e?`<span class="lp-em" aria-hidden="true">${e}</span>`:''; }
 let _lpChip='all';
-/* true while the window stands at the left (the nav button's panel): one column, each page's own count, no waiting column */
-let _lpLeft=false;
 /* the Guide's pages, Board first and Settings last, the order FIXED (as the strip had it) */
 function lpRows(){
   const out=[{ k:'board', tone:'violet' }];
@@ -4273,10 +4248,6 @@ function lpWaits(){ const here=guideHereKey()||'board'; return lpRows().map(r=>r
 /* the launchpad's rows, in the order they are drawn and walked by the arrows */
 function lpItems(){
   const ch=LP_CHIPS.includes(_lpChip)?_lpChip:'all', items=[];
-  /* AT THE LEFT, "Waiting on you" narrows the ONE list to the pages with their own amber count (P-37) */
-  if(_lpLeft){ const ks=lpRows().map(r=>r.k), here=guideHereKey()||'board';
-    GUIDE_NL.filter(st=>ch==='all'||ch==='need'||st.k===ch).forEach(st=>ks.filter(k=>lpStageOf(k)===st&&(ch!=='need'||(k!==here&&lpOwed(k)))).forEach(k=>items.push({ kind:'page', id:k, st:st.k })));
-    return items; }
   if(ch==='all'||ch==='need') lpWaits().slice(0,LP_WAIT_MAX).forEach(k=>items.push({ kind:'page', id:k, wait:true }));
   if(ch!=='need'){ const ks=lpRows().map(r=>r.k);
     GUIDE_NL.filter(st=>ch==='all'||st.k===ch).forEach(st=>ks.filter(k=>lpStageOf(k)===st).forEach(k=>items.push({ kind:'page', id:k, st:st.k }))); }
@@ -4300,7 +4271,7 @@ function lpWaitRowsHtml(items,active){
       +(Q?`<q>${esc(Q.q)}</q>${Q.more?`<span class="lp-src">${esc(Q.more)}</span>`:''}<span class="lp-src">${esc(i18t('lp_from',{ page:i18t('gd_p_'+k) }))}</span>`:'')); }).join('')+`</div>`;
 }
 /* the tinted column stands beside the pages under All, and only while something waits */
-function lpSideOn(items){ return !_lpLeft&&_lpChip==='all'&&(items||[]).some(x=>x.wait); }
+function lpSideOn(items){ return _lpChip==='all'&&(items||[]).some(x=>x.wait); }
 /* how many more pages wait than the three drawn — a cap is said, never a silent trim */
 function lpMoreSay(){
   const ch=LP_CHIPS.includes(_lpChip)?_lpChip:'all', left=(ch==='all'||ch==='need')?lpWaits().length-LP_WAIT_MAX:0;
@@ -4314,7 +4285,7 @@ function lpBodyHtml(items,active,o){
   const W=items.filter(x=>x.wait), P=items.filter(x=>!x.wait);
   let h='';
   if(W.length&&!side) h+=`<h5 class="lp-h">${esc(i18t('lp_chip_need'))}</h5>`+lpWaitRowsHtml(items,active);
-  else if(!W.length&&_lpChip==='need'&&!P.length) h+=`<p class="lp-none">${esc(i18t('lp_none'))}</p>`;
+  else if(!W.length&&_lpChip==='need') h+=`<p class="lp-none">${esc(i18t('lp_none'))}</p>`;
   if(P.length){
     const groups=GUIDE_NL.map(st=>({ st, its:P.filter(x=>x.st===st.k) })).filter(g=>g.its.length);
     h+=`<div class="lp-pages" style="--lp-cols:${groups.length}">`+groups.map(g=>
@@ -4328,14 +4299,12 @@ function lpBodyHtml(items,active,o){
   return h;
 }
 /* the ask line in two tones, as drawn: the question in ink, how to answer it in grey (the box's own words, lp_where) */
-function lpWhereHtml(){ const t=String(i18t(_lpLeft?'lp_where_left':'lp_where')), m=/^(.+?[?.!])\s+(.+)$/.exec(t); return m?`<b>${esc(m[1])}</b> ${esc(m[2])}`:esc(t); }
+function lpWhereHtml(){ const t=String(i18t('lp_where')), m=/^(.+?[?.!])\s+(.+)$/.exec(t); return m?`<b>${esc(m[1])}</b> ${esc(m[2])}`:esc(t); }
 /* the foot: the keys, then what the panel holds — a cap is said, never a silent trim */
 function lpFootHtml(typed,side){
   const keys=`<span class="lp-keys"><span><kbd>↑</kbd> <kbd>↓</kbd> ${esc(i18t('lp_k_move'))}</span><span><kbd>Enter</kbd> ${esc(i18t('lp_k_go'))}</span><span><kbd>Esc</kbd> ${esc(i18t('lp_k_close'))}</span></span>`;
   /* beside the pages, the tinted column says it at its own foot (lpSideHtml) */
   if(typed||side) return keys;
-  /* the panel at the left says its keys and nothing more (P-37, as drawn); lp_out stays inert in both books */
-  if(_lpLeft) return keys;
   return keys+`<span>${esc(lpMoreSay())}</span>`;
 }
 function lpChipsHtml(){
@@ -4346,7 +4315,7 @@ function lpChipsHtml(){
 /* the bar's top-left symbol: a press opens the launchpad, a second press (on the dimmed screen) closes it */
 function lpIsOpen(){ return !!document.getElementById('cmd-palette'); }
 function lpDoorSay(on){ const b=document.getElementById('dk-nav'); if(!b) return; b.setAttribute('aria-expanded',on?'true':'false'); b.classList.toggle('is-on',!!on); }
-function lpToggle(){ const p=document.getElementById('cmd-palette'); if(p&&!p.dataset.leaving&&typeof p._lpClose==='function'){ p._lpClose(); return; } openCommandPalette('',{ left:true }); }
+function lpToggle(){ const p=document.getElementById('cmd-palette'); if(p&&typeof p._lpClose==='function'){ p._lpClose(); return; } openCommandPalette(); }
 function lpWire(){
   const b=document.getElementById('dk-nav'); if(!b||!b.dataset||typeof b.addEventListener!=='function'||b.dataset.lpWired) return; b.dataset.lpWired='1';
   b.addEventListener('click',lpToggle);

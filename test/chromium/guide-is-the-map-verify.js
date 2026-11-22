@@ -31,9 +31,9 @@ const until = async (P, fn, arg, ms = 8000) => { try { await P.waitForFunction(f
     await P.fill('#igd-input', '?'); await P.press('#igd-input', 'Enter');
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Guide is drawn by stage (.gdn, GUIDE_NL); a row
        (.gdn-r) holds its page doors (.gdn-go[data-gd-go]) and says their words ("Say “…”", .gdn-say) */
-    /* RE-POINTED 21 Nov 2026 (P-38, owner: "delete the guide since we have the nav panel"): "?" opens the nav panel at
-       the left — the Guide's pages by stage; the Guide face and its "Say “…”" lines went with it */
-    const open = await until(P, () => !!document.querySelector('#cmd-palette.is-left .lp-p'), null, 8000);
+    /* RE-POINTED 21 Nov 2026 (P-38, owner: "delete the guide since we have the nav panel"): "?" opens the nav panel —
+       the Guide's pages by stage (RE-POINTED 22 Nov 2026: the owner had P-37's panel at the left reverted; it is the window in the middle again.); the Guide face and its "Say “…”" lines went with it */
+    const open = await until(P, () => !!document.querySelector('#cmd-palette .lp-p'), null, 8000);
     check(open && brain === 0, '1 "?" opens the nav panel with every page, free', { open, calls: brain });
     await P.screenshot({ path: path.join(OUT, '1440x780.png') });
     await P.keyboard.press('Escape');
@@ -46,7 +46,7 @@ const until = async (P, fn, arg, ms = 8000) => { try { await P.waitForFunction(f
       await P.setViewportSize({ width: ww, height: hh });
       await until(P, () => { const p = document.getElementById('cmd-palette'); return !p || !p.dataset.leaving; }, null, 3000);
       await P.evaluate(() => { const p = document.getElementById('cmd-palette'); if (!p || p.dataset.leaving) openPanel('guide'); });
-      await until(P, () => { const p = document.querySelector('#cmd-palette.is-left'); return !!p && !p.dataset.leaving && !!p.querySelector('.lp-p') && !document.getAnimations().some(a => a.playState === 'running'); }, null, 4000);
+      await until(P, () => { const p = document.querySelector('#cmd-palette'); return !!p && !p.dataset.leaving && !!p.querySelector('.lp-p') && !document.getAnimations().some(a => a.playState === 'running'); }, null, 4000);
       const fit = await P.evaluate(() => { const sh = document.querySelector('#cmd-palette .lp-sheet').getBoundingClientRect();
         const out = [...document.querySelectorAll('#cmd-palette .lp-p')].filter(e => { const r = e.getBoundingClientRect(); return r.right > sh.right + 1; }).length;
         return { out, side: document.documentElement.scrollWidth > innerWidth }; });

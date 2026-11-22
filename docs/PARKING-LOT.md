@@ -341,7 +341,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — the panel not changing when a paper is chosen; an empty value shown as "0"; From scratch's different plain panel; the sentence box left on Their paper (it may stay only if it reads their file's words).
 
 ### P-37 · The nav panel slides in from the left
-- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #856, the overnight batch 1)
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #856, the overnight batch 1) · **Reverted 22 Nov 2026** at the owner's word: "revert back the change for the nav panel and bring it back as a rectangle pop up in the middle of the page as it was prior to the latest change" — the nav button and the Guide's doors open the window in the middle again
 - **What:** the top-left nav button (`#dk-nav`, `lpWire` → `lpToggle`) opens the nav as a panel that slides in from the left over the page, and slides back after a press. Owner's words: "a nav panel coming from the left of the screen with the same style in the current nav panel but from the left it slides over the screen then goes back after the press"; then "park it".
 - **Where it came from:** drawn on today's photo of the Board: https://claude.ai/artifact/4Fcey7Vekvbd7YTkBkJyYk (press the nav button, or "Play"). The owner's answers (20 Nov 2026): draw it first; "Waiting on you" becomes each page's own count; only the nav button opens it.
 - **Notes:** what the drawing holds:
