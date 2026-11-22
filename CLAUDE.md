@@ -446,7 +446,7 @@ SEAL ON THE SERVER (`srvSealNow`, `srvSendExecutedCopies`); late seals `runSealC
 ## PERFORMANCE — THE BOOK IS WALKED ONCE
 TEXT ANSWERS COMPRESSED (`ZIP_NEVER`; f996). Once a turn: `doorCounts(nc)`, `familyChildren` (`familyIndexDirty()`), `navCounts`, `richReadMemo`, `_regNarrowPaint`.
 ROWS-ONLY PRESS REDRAWS ROWS: `listRowsSwapHtml` (FALSE = whole). rows-only-on-a-press-verify.
-EXPLORER'S PANEL READS THE DRAWN MAP'S MODEL (`igDrawnModel`; never a rebuild per reader; f1161). THE EXPLORER RETURN IS LAID OUT ONCE: the head line measured on the next frame (`igNoteMeasureSoon`), a kept map's first frame waits (`igLoopStart(myRAF, soon)`); f1163. NO PAGE-WIDE `:has` OVER PAPER (`igDockMarks`). ONE PRESS, ONE PAPER (`_igPaperPaints`, `pd2SheetPre`; f1007). Decision redraws its clause (`igPaperRefresh` → `igPaperPatch`, `igRedBodyHtml`; doubt = whole; f1010).
+EXPLORER'S PANEL READS THE DRAWN MAP'S MODEL (`igDrawnModel`; never a rebuild per reader; f1161). THE EXPLORER RETURN IS LAID OUT ONCE: the head line measured on the next frame (`igNoteMeasureSoon`), a kept map's first frame waits (`igLoopStart(myRAF, soon)`); f1170. NO PAGE-WIDE `:has` OVER PAPER (`igDockMarks`). ONE PRESS, ONE PAPER (`_igPaperPaints`, `pd2SheetPre`; f1007). Decision redraws its clause (`igPaperRefresh` → `igPaperPatch`, `igRedBodyHtml`; doubt = whole; f1010).
 NOTHING CHANGED, NOTHING WRITTEN: panel only if differs (`igDockSame`, `igDockStamp`), top parts KEPT (`igDockWrite`; f1060); doubt = WHOLE; paper line writer `igStripPut` (f1024); same data no write (`scLandedRepaint`; f1040).
 MEASURES, not tests (test/chromium/_audit, GitHub): speed-measure, flash-measure, rebuild-measure.
 ## THE OVERNIGHT CLEAN-UP RULES, THE OVERNIGHT RUN, THE OWNER'S OPEN ITEMS
