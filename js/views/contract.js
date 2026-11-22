@@ -9487,7 +9487,9 @@ function roomHistoryHtml(c,f={},opts={}){
       <span class="hist6-sw" role="group" aria-label="${esc(i18t('hist6_show'))}"><button id="hist-detail" type="button" class="hist6-tg${_histDetail?' is-on':''}" aria-pressed="${_histDetail?'true':'false'}"
         title="${esc(_histDetail?i18t('ct_hist_back_short'):i18t('ct_hist_print_wording'))}"><i aria-hidden="true">${_histDetail?'✓':''}</i>${esc(i18t('hist6_wording'))}</button><button id="hist-notes" type="button" class="hist6-tg${_histNotes?' is-on':''}" aria-pressed="${_histNotes?'true':'false'}"
         title="${esc(i18t('hist6_notes_tip'))}"><i aria-hidden="true">${_histNotes?'✓':''}</i>${esc(i18t('hist6_notes'))}</button></span>
-      ${nlH?'':`<div style="position:relative">
+      ${''/* THE ⋯ MORE STAYS (P-44 review follow-up, 22 Nov 2026): the drawing does not show it, but it holds working
+           verbs the head has no other door to (Verify integrity, Download, Print, the whole trail) — a working control
+           kept, though not drawn */}<div style="position:relative">
         <button id="hist-more" class="ui-btn ui-btn-icon hist-more-btn" aria-haspopup="true" aria-expanded="false"
           aria-label="${esc(i18t('ct_more'))}" title="${esc(i18t('ct_hist_more_title'))}">
           ${icon('more')}</button>
@@ -9499,7 +9501,7 @@ function roomHistoryHtml(c,f={},opts={}){
           ${histTrailDoorOn()?`<div class="hist-mg">${esc(i18t('ct_hist_trail_group'))}</div>
           <button type="button" id="ht-trail"><b>${esc(i18t('ct_hist_trail_door'))}</b><small>${esc(i18t('ct_hist_trail_note'))}</small></button>`:''}
         </div>
-      </div>`}
+      </div>
       <div class="hist-tools">
       <label class="hist-q"><span class="sr-only">${esc(i18t('ct_hist_search'))}</span>${icon('search','w-3.5 h-3.5')}<input id="hist-q" type="search" value="${esc(_histQ)}" placeholder="${esc(i18t('ct_hist_search'))}" autocomplete="off"></label>
       ${roomHistoryFiltersHtml(c,f)}

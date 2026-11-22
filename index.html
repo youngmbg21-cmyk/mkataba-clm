@@ -21525,6 +21525,7 @@
   html.lg-out .pol-pop > *,html.lg-out .pol-pop .pw-foot,html.lg-out .pol-pop .pol-pop-tools,html.lg-out .pol-pop .pw-id-read{display:flex;flex-direction:column;align-items:stretch;gap:8px;margin:0}
   html.lg-out .pol-pop .pw-foot:empty{display:none}
   html.lg-out .pol-pop .ui-btn{justify-content:flex-start;width:100%}
+  html.lg-out .pol-pop > .ui-btn{flex-direction:row;align-items:center;gap:6px}
   html.lg-out .pw-notes:has(> *){padding:8px 24px}
   html.lg-out #pw-page[data-pt-tab="redlines"] .pw-mount{display:grid;grid-template-columns:minmax(0,1fr) var(--pol-side-w,384px);grid-template-rows:minmax(0,1fr) auto}
   html.lg-out .pw-mount > .pol-side,html.lg-out .pw-mount > .pol-foot{display:none}
@@ -21634,7 +21635,7 @@
   html.lg-out .pol-nt-n{flex:none;display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border:1px solid var(--color-text);border-radius:50%;font-size:11px}
   html.lg-out .pol-nt-t{font-weight:var(--w-label)}
   html.lg-out .pol-nt-q{margin-top:2px;font-size:11.5px;color:var(--color-quiet)}
-  html.lg-out .pol-nt-a{margin-top:4px;font-weight:var(--w-label)}
+  html.lg-out .pol-nt-a{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;margin-top:4px;font-weight:var(--w-label)}
   html.lg-out .pol-nt-a .ui-link{text-decoration:underline}
   html.lg-out .pol-nt-dec{color:var(--accent-ink)}
   html.lg-out .pol-side-in{display:flex;flex-direction:column;height:100%;min-height:0}
@@ -21663,6 +21664,10 @@
      own button */
   html.lg-out .pol-bar .pt-bell.pt-bell{display:inline-grid;place-items:center;flex:none;width:32px;height:32px;min-width:0;padding:0;margin:0;border:0;border-radius:8px;background:transparent;box-shadow:none;color:var(--color-surface);cursor:pointer}
   html.lg-out .pol-bar .pt-bell.pt-bell[hidden]{display:none}
+  /* the phone keeps what it had: no bell in its head (the page's own rule, portalAlertsStyle), at equal reach here */
+  @media (max-width:767px){ html.lg-out .pol-bar .pt-bell.pt-bell{display:none} }
+  html.lg-out .pol-w-pnotes{display:none;margin:0 0 14px;font-size:13px;color:var(--color-quiet)}
+  @media (max-width:767px){ html.lg-out .pol-w-pnotes{display:block} }
   html.lg-out .pol-bar .pt-bell.pt-bell[aria-expanded="true"]{background:color-mix(in srgb,var(--color-surface) 18%,transparent)}
   html.lg-out .pol-bar .pt-bell svg{width:16px;height:16px}
   html.lg-out .pol-bar .pt-bell .pt-bell-dot{top:1px;right:0;min-width:15px;height:15px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:var(--st-ruby-dot);color:var(--color-surface);font-family:var(--font-ui);font-size:10px;line-height:15px}
@@ -21697,6 +21702,12 @@
      table; the signing steps with their badges */
   html.lg-out #pw-page:is([data-pt-tab="where"],[data-pt-tab="signing"]) .pw-mount > .pol-side{position:absolute;top:0;right:0;bottom:0;width:var(--pol-page-side-w,384px);z-index:7;display:flex;flex-direction:column;min-height:0;border-left:1px solid var(--color-divider);background:var(--color-surface)}
   html.lg-out #pw-page:is([data-pt-tab="where"],[data-pt-tab="signing"]) .pw-mount > :is(#pt-where-pane,#pt-sign-pane){right:var(--pol-page-side-w,384px)}
+  /* the phone has no room beside the page: the side panel (drawn for the desktop) stands down there, the page takes the
+     whole width, as it did before the panel was drawn (P-44 review follow-up, 22 Nov 2026) */
+  @media (max-width:767px){
+    html.lg-out #pw-page:is([data-pt-tab="where"],[data-pt-tab="signing"]) .pw-mount > .pol-side{display:none}
+    html.lg-out #pw-page:is([data-pt-tab="where"],[data-pt-tab="signing"]) .pw-mount > :is(#pt-where-pane,#pt-sign-pane){right:0}
+  }
   html.lg-out .pol-side-page .pol-side-body{padding:20px 16px}
   html.lg-out .pol-ps-eb{margin:0;font-size:var(--t-label);color:var(--color-quiet)}
   html.lg-out .pol-ps-t{margin:6px 0 4px;font-family:var(--font-ui);font-size:17px;line-height:1.35;font-weight:var(--w-label);color:var(--color-text)}
@@ -21800,7 +21811,11 @@
   html.lg-out #pt-nego.pol-clean .rl-paper ins{background:none;color:inherit;text-decoration:none}
   html.lg-out #pt-nego.pol-clean :is(.pol-dot,.pol-note){display:none}
   html.lg-out .pol-tab-n{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;margin-left:6px;padding:0 5px;box-sizing:border-box;border-radius:999px;background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:11px;font-weight:var(--w-label)}
-  html.lg-out #pw-page #pt-nego .rl-zoom > .rl-paper{max-width:calc(100% - 272px)}
+  /* THE PAPER GIVES WAY ONLY FOR ITS NOTES (P-44 review follow-up, 22 Nov 2026): Home's paper (720, pd2SheetLay) where the
+     column has room for it and its notes beside it; where it has not, it narrows by the notes' margin (32 left, 24 gutter,
+     120 the narrowest note, 16 right) so no note runs under the panel. No notes drawn (none to answer, or Clean), no
+     giving way: the paper is Home's 720 */
+  html.lg-out #pw-page #pt-nego.has-pol-notes:not(.pol-clean) .rl-zoom > .rl-paper{max-width:min(720px,calc(100% - 192px))}
   html.lg-out .pol-top{align-items:center}
   html.lg-out #pw-page #pt-nego .rl-card .rl-card-whyq{display:none}
   html.lg-out #pw-page #pt-nego .rl-card.pol-more-open .rl-card-whyq{display:block}

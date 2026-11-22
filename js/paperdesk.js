@@ -485,7 +485,12 @@ function pdOpenOnHome(id, tab, o){
      (pdFillOpen lands again after this returns) */
   if (typeof pdTab === 'function' && pdTab() === 'form') pdSetTab('copilot');
   _pdOgLand = null;
+  const asked = tab;
   if (tab === 'open') tab = pdOpenTabOf(c);
+  /* A DOOR THAT OPENS THE CONTRACT OR ITS DOSSIER LANDS THERE (P-44 review follow-up, 22 Nov 2026): History standing in
+     the middle carries its own panel (pd2HistFaceHtml, as drawn), so a door asking for the contract or the Dossier puts
+     History away by its own way back first — else the Dossier's card never shows */
+  if ((asked === 'open' || tab === 'copilot') && typeof pd2HistUp === 'function' && pd2HistUp(c.id)) { try { pdMidClose(); } catch (_){} }
   /* THE DEAL AND HISTORY DOORS LAND ON THE BOARD (the one-page Home plan,
      stage 4, 14 Oct 2026): the Board's own view for this contract — the
      Negotiate page's deal board and the room's trail, drawn a second time.
