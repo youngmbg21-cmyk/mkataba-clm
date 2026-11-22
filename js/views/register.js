@@ -1968,14 +1968,14 @@ function regCtRepaint(){
 }
 /* THE CHIP ROW'S RIGHT END (the drawing's, and the list card head's tools):
    Sort and Display as the two small icons they were, "Do this to these N"
-   while the list is narrowed (cohortButtonHtml decides), then "✦ Ask a
-   column" (it draws only on the List, askColOn). The Wall keeps its Sort in
+   while the list is narrowed (cohortButtonHtml decides). The list head's
+   "+ Ask a column" (askColBtnHtml) is deleted (owner, 22 Nov 2026). The Wall keeps its Sort in
    its own count line, so only "Do this to these N" stands here on it. */
 function regCtToolsHtml(R){
   let cohort=''; try{ cohort=(typeof cohortButtonHtml==='function')?cohortButtonHtml():''; }catch(_){ cohort=''; }
   const slot=`<span id="reg-cohort-slot" class="ct-cohort">${cohort}</span>`;
   if(R.show!=='list') return slot;
-  return `${regToolsHtml(R,false)}${slot}${typeof window.askColBtnHtml==='function'?askColBtnHtml():''}`;
+  return `${regToolsHtml(R,false)}${slot}`;
 }
 /* COLUMNS (the drawing's right end, the List only): the columns after the
    agreement, in the shape this paint draws; Owner hidden until the reader
@@ -5226,12 +5226,11 @@ function renderRegister(opts){
       ${''/* NOT ON NEGOTIATIONS (Part 8): the list head above says the count
              (the All tab) and carries Sort and Display at its chip row's end */}
       ${''/* NOR ON THE CONTRACTS PLACE (Part 8): its All tab and its foot say
-             the count, and Sort, Display and Ask a column stand at the list
+             the count, and Sort and Display stand at the list
              head's chip row's end */}
       ${(neg||HOME)?'':`<div class="reg-cardhead reg-filterbar">
         <h2 id="reg-tt" class="reg-tt">${regListTitle(cs)}</h2>
         <span style="flex:1;min-width:8px"></span>
-        ${typeof window.askColBtnHtml==='function'?askColBtnHtml():''}
         ${regSortIconHtml(sortOpts)}
         ${regDisplayHtml(neg)}
       </div>`}
