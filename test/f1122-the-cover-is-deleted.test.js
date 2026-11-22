@@ -4,7 +4,8 @@
    (1) No Cover is built or opened anywhere: its builder, its page, its styles and its words are gone, in both books.
    (2) Every door that opened the contract on purpose (a list row, the Board, a typed number, Jambo's rows) lands on its
        paper with the face this reader opens contracts on — the Dossier unless they chose another (roomHomeLand open).
-   (3) Our "Where we are" door, which opened the Cover, opens the Dossier.
+   (3) Our "Where we are" door, which opened the Cover, opened the Dossier (20 Nov); since 22 Nov 2026 it opens our own
+       Where the deal stands in the middle (the owner's "Build l+s").
    (4) Kept from the Cover's own checks (f1099 (4), f1096 (3)), which still hold for every page in the middle: a page
        opened from another page goes back there in ONE press, the paper never shown; a page arrives whole.
    At the parent (1)–(3) fail. */
@@ -36,10 +37,14 @@ test('f1122 (2) a contract opened on purpose lands on its paper with the Dossier
   assert.match(strip(read('js/copilotacts.js')), /roomHomeLand\(R\.c\.id, R\.question \? undefined : \{ open: true \}\)/, 'a typed number alone opens it on purpose');
 });
 
-test('f1122 (3) "Where we are" opens the Dossier', () => {
-  assert.match(PD, /function pd2StandsOpen\(id\)\{ return pdOpenOnHome\(id, 'copilot'\); \}/);
-  assert.match(PD, /function pd2StandsUp\(\)\{ return false; \}/);
-  assert.match(fn(strip(read('js/views/boardstrip.js')), 'hbStripBring'), /if \(page === 'where'\) return roomHomeLand\(c\.id, \{ open: true \}\) !== false;/);
+/* (3) REVERSED BY THE OWNER, 22 Nov 2026 ("For owner side, where is their version of where the deal stands?" … "Build
+   l+s"): our "Where we are" door opens OUR Where the deal stands again — a page in the middle, as History is (f1163) —
+   not the Cover, which stays deleted ((1), (2) above). */
+test('f1122 (3) "Where we are" opens our Where the deal stands in the middle (reversed 22 Nov 2026), never the Cover', () => {
+  assert.match(fn(PD, 'pd2StandsOpen'), /pdMidOn\('where:' \+ String\(c\.id\)\)/);
+  assert.match(PD, /function pd2StandsUp\(id\)\{ return pdMidUp\('where:' \+ String\(id\)\); \}/);
+  assert.match(fn(strip(read('js/views/boardstrip.js')), 'hbStripBring'), /page === 'where' \? 'pd2StandsOpen'/);
+  assert.doesNotMatch(fn(PD, 'pd2StandsOpen'), /pd2Cover|cover/i);
 });
 
 test('f1122 (4) a page in the middle opened from another page goes back there in one press; a page arrives whole', () => {
