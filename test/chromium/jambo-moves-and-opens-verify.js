@@ -96,14 +96,14 @@ const BODY = TEXT.split('\n\n').map(p => /^\d+\./.test(p) ? `<h2>${p}</h2>` : `<
     await page.evaluate(() => { state.panelOpen = false; if (typeof applyPanelLayout === 'function') applyPanelLayout(); setView('counter'); });
     const typed = await ask('#igd-input', 'show me the guide');
     check('3a Home\'s box takes the words', typed);
-    /* RE-POINTED 21 Nov 2026 (P-38, owner: "delete the guide since we have the nav panel"): the Guide is the nav panel at the left */
-    const navOpen = () => until(() => !!document.querySelector('#cmd-palette.is-left .lp-p') ? 'nav' : null, null, 5000);
+    /* RE-POINTED 21 Nov 2026 (P-38, owner: "delete the guide since we have the nav panel"): the Guide is the nav panel. RE-POINTED 22 Nov 2026: the owner had P-37's panel at the left reverted; it is the window in the middle again. */
+    const navOpen = () => until(() => !!document.querySelector('#cmd-palette .lp-p') ? 'nav' : null, null, 5000);
     const f1 = await navOpen();
     check('3b the nav panel opens with the Guide\'s pages', f1 === 'nav', f1);
     await shot(page, '3-guide');
     await ask('#igd-input', 'show me the guide');
     await page.waitForTimeout(400);
-    check('3c asked again it stays open', await page.evaluate(() => !!document.querySelector('#cmd-palette.is-left')));
+    check('3c asked again it stays open', await page.evaluate(() => !!document.querySelector('#cmd-palette')));
     await page.keyboard.press('Escape'); await until(() => !document.getElementById('cmd-palette') ? 1 : null, null, 3000);
     await ask('#igd-input', 'activity');
     check('3d "activity" turns it to Activity', (await until(() => state.panelOpen && panelFace() === 'activity' ? 'activity' : null)) === 'activity');

@@ -508,23 +508,50 @@ const _rdnLoading = new Set();
    asks rdnAnswers for each read's questions in turn; those asked while it is drawn are gathered and fetched together
    (askColLoadMany), and the page is drawn again once, not once per question */
 let _rdnQueue = null;
+/* A FETCH THAT CAME BACK EMPTY IS ASKED AGAIN, THEN SAID (owner, 22 Nov 2026: "the side panel says fetching the answers but
+   nothing is happening"): a question was marked asked for good, so a failed load, a load sent before the contracts were
+   known (no ids), or answers thrown away later (a rule changed: askColRuleSet) left "Fetching the answers…" for ever. Now
+   a finished load lets the question go; one still without answers is asked again, a little later, RDN_TRIES times in all,
+   and then the panel says it could not fetch them, with Try again (rdnRetry) — never a wait that does not end. */
+const RDN_TRIES = 3, RDN_WAIT_MS = 1500;
+const _rdnTries = new Map(), _rdnFailed = new Set();
+function rdnFailed(askIds){ return (askIds || []).some(k => _rdnFailed.has(String(k))); }
+function rdnRetry(askIds){
+  (askIds || []).forEach(k => { _rdnFailed.delete(String(k)); _rdnTries.delete(String(k)); });
+  rdnRedrawIfHere();
+}
 function rdnAnswers(askId){
   const A = (typeof AC !== 'undefined') ? AC : null; if (!A) return null;
+  askId = String(askId);
   const got = A.ans && A.ans[askId];
-  if (!got && !_rdnLoading.has(askId) && typeof window.askColLoadMany === 'function'){
+  if (got){ _rdnTries.delete(askId); _rdnFailed.delete(askId); return got; }
+  if (!_rdnLoading.has(askId) && !_rdnFailed.has(askId) && typeof window.askColLoadMany === 'function'){
     _rdnLoading.add(askId);
     if (!_rdnQueue){
       _rdnQueue = [];
       Promise.resolve().then(() => {
         const ks = _rdnQueue; _rdnQueue = null;
         const ids = (state.contracts || []).filter(c => c && !c.archived && !c._codeNamed).map(c => String(c.id));
-        return Promise.resolve(window.askColLoadMany(ks, ids)).catch(() => {}).then(() => { if (state.view === 'reads') renderReads(); });
+        return Promise.resolve(ids.length ? window.askColLoadMany(ks, ids) : false).catch(() => false).then(() => {
+          let again = 0;
+          ks.forEach(k => {
+            _rdnLoading.delete(k);
+            if (A.ans && A.ans[k]) { _rdnTries.delete(k); return; }
+            const n = (_rdnTries.get(k) || 0) + 1; _rdnTries.set(k, n);
+            if (n >= RDN_TRIES) _rdnFailed.add(k); else again = Math.max(again, n);
+          });
+          if (state.view !== 'reads') return;
+          renderReads();
+          /* asked again a little later (the contracts may still be on their way); the redraw asks for what is missing */
+          if (again) setTimeout(rdnRedrawIfHere, RDN_WAIT_MS * again);
+        });
       });
     }
     _rdnQueue.push(String(askId));
   }
-  return got || null;
+  return null;
 }
+function rdnRedrawIfHere(){ if (state.view === 'reads') renderReads(); }
 /* READS, AS DRAWN (owner, 8 Nov 2026, the Reads & Contracts drawing, step 7): "Reads · N questions · N answers kept"
    and + Ask a question on one line; the box and All · On a list · Not finished; one table — Question (its name, its
    words under), Read "k of n", Answers (the top three and Not found), On the list of, Asked (by · when); the panel reads
@@ -935,6 +962,11 @@ const dsnPage = (inner, cls) => `<div class="view-enter sap-page ap-page is-ins 
    (data-dsn-gopen) and an example question filling the box (data-dsl-eg; it reads nothing). The reading's faces, the
    results' paper, a pack being built and "how to ask it" stay as built. */
 const DSL_DOCS_SHOWN = 3, DSL_ASKED_SHOWN = 3, DSL_EGS = ['dsn_fix_g1', 'dsn_fix_g2', 'dsn_fix_g3'];
+/* "Fetching the answers…" while they are on their way; once the asking has given up, says so with Try again */
+function rdnWaitHtml(askIds, cls){
+  if (!rdnFailed(askIds)) return `<p class="${cls}" data-dsn-loading>${_rdE(_rdT('dsc_loading'))}</p>`;
+  return `<p class="${cls}" data-dsn-failed>${_rdE(_rdT('dsc_load_failed'))} <button type="button" class="dsl-a" data-dsn-refetch="${_rdE((askIds || []).join(','))}">${_rdE(_rdT('act_load_retry'))}</button></p>`;
+}
 const _dslDot = c => `<i class="dsl-dot is-${_rdE(c || 'gray')}" aria-hidden="true"></i>`;
 const _dslQuote = a => {
   const q = String((a && a.quote) || '').trim(); if (!q) return '';
@@ -967,7 +999,7 @@ function dslReadHtml(r, o){
   /* stopped, "read them" reads what the stop left (askColCarryOn, as Read the N left on the page); else the rest of the read */
   const more = left && may ? (stopped ? `<button type="button" class="dsl-a" data-dsn-carry>${_rdE(_rdT('dsl_read_them'))}</button>` : `<button type="button" class="dsl-a" data-dsn-more="${_rdE(r.id)}">${_rdE(_rdT('dsl_read_them'))}</button>`) : '';
   const opens = !!(r.id && dsnRun(r.id));
-  if (!rows) return `<div class="dsl dsl6">${head}<p class="dsl-say">${_rdE(_rdT('dsc_loading'))}</p></div>`;
+  if (!rows) return `<div class="dsl dsl6">${head}${rdnWaitHtml(r.askIds, 'dsl-say')}</div>`;
   const G = dsnGroups(rows), tone = x => x.a.map((a, i) => a ? _rdTone(a, r.askIds[i]) : 'none');
   const need = rows.filter(x => tone(x).some(t => t === 'ruby' || t === 'amber')).length;
   const found = rows.filter(x => x.a.some(a => a && a.found && !a.noWording)).length, fine = Math.max(0, found - need), rule = !r.packId && ask && ask.rule;
@@ -1568,7 +1600,7 @@ function dsnResultsHtml(r){
       ${may ? `<button type="button" class="rfp-pill" data-dsn-again="${_rdE(r.id)}">${_rdE(_rdT('dsn_ask_another'))}</button>` : ''}<button type="button" class="rfp-pill" data-dsn-copy>${_rdE(_rdT('dsn_export'))}</button>${left && may ? `<button type="button" class="ui-btn ui-btn-primary" data-dsn-more="${_rdE(r.id)}">${_rdE(_rdT('dsn_read_left', { n: left }))}</button>` : ''}</span></div>
     ${dsnSteps(3)}<p class="dsn-sub">${_rdE([dsnRunWhere(r), S ? dsnSubjectWords(S.rows.map(x => x.c)) : '', _rdT('dsn_n_read', { n: r.n }), String(r.by || '').split(/\s+/)[0], dsnDay(r.last || r.at)].filter(Boolean).join(' · '))}</p>
     <div class="apn-bar dsn-bar">${chips}<span class="apn-sp"></span><label class="dsn-search">${typeof icon === 'function' ? icon('search', 'w-4 h-4') : ''}<input type="search" id="dsn-q" autocomplete="off" spellcheck="false" placeholder="${_rdE(_rdTn('dsn_search', r.askIds.length))}" aria-label="${_rdE(_rdTn('dsn_search', r.askIds.length))}" value="${_rdE(_dsn.q)}"></label></div>`;
-  if (!S) return head + `<p class="dsc-quiet dsc-pad">${_rdE(_rdT('dsc_loading'))}</p>`;
+  if (!S) return head + rdnWaitHtml(r.askIds, 'dsc-quiet dsc-pad');
   if (S.list.length && !S.list.some(x => x.id === _dsn.cid)) _dsn.cid = S.list[0].id;
   const names = r.askIds.map(k => ((typeof AC !== 'undefined' && AC.asks && AC.asks[k]) || {}).name || '');
   const RS = dsnSubject(S.list.map(x => x.c));
@@ -1897,6 +1929,7 @@ if (typeof document !== 'undefined' && !document._dsnWired){ document._dsnWired 
     if (t.closest('[data-dsn-results]')){ stop(e); dsnGo(_dsn.run ? 'results' : 'list', { cid: null, tab: 'all', q: '' }); return; }
     if ((el = t.closest('[data-dsn-open]'))){ stop(e); dsnGo('results', { run: el.getAttribute('data-dsn-open'), cid: null, tab: 'all', q: '' }); return; }
     if ((el = t.closest('[data-dsn-more]'))){ stop(e); dsnAsk(el.getAttribute('data-dsn-more')); return; }
+    if ((el = t.closest('[data-dsn-refetch]'))){ stop(e); rdnRetry(String(el.getAttribute('data-dsn-refetch') || '').split(',').filter(Boolean)); return; }
     if ((el = t.closest('[data-dsn-run]'))){ stop(e); const id = el.getAttribute('data-dsn-run');
       /* A PRESS CHOOSES, A SECOND OPENS (the list inspector's rule): the read chosen for you on arrival is not yet yours,
          so the first press on it shows its summary, never its results */
