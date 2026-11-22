@@ -24887,6 +24887,10 @@
        reverses "no motion in Settings" for the watermark only): the stop that named #set-page is gone. Still only for a
        reader who asked for less motion (below). */
   }
+  /* STILL ON EXPLORER (owner's pick, 22 Nov 2026: "Still on Explorer"): the weave stays on Explorer's panel but holds
+     still there, so coming back to the map is as quick as before (home-speed-verify 2: 379 ms against a 357 bar while it
+     moved, under it while still). Every other panel keeps the glide. */
+  html.lg-new body #ig-page[data-hb-side="explorer"] #ig-dock::before,html.lg-new body #ig-page[data-hb-side="explorer"] #ig-dock::after{animation:none}
   @media (prefers-reduced-motion: reduce){ html.lg-new body :is(#ig-dock:not(:has(> .igd-door)):not(:has(> .igd-head[data-pd-head="paper"])), .ins-panel.is-jambo:not(.is-folded), .st-cr .st-side:not(.is-folded))::before,html.lg-new body :is(#ig-dock:not(:has(> .igd-door)):not(:has(> .igd-head[data-pd-head="paper"])), .ins-panel.is-jambo:not(.is-folded), .st-cr .st-side:not(.is-folded))::after{animation:none} }
   /* WHAT SITS ON THE WATERMARK keeps its own shade, with a thin outline one step darker (owner, 22 Nov 2026, as
      drawn): the panel's chosen tab and the tags at the top of a panel */
