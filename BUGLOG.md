@@ -22900,3 +22900,4 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 ### 22 Nov 2026 — Settings' panel said Jambo's lessons twice (f1152)
 - Fixed: on Settings › Jambo, the "Needs you" row and a "Jambo's lessons" group under it opened the same thing; the group is now drawn only when no needs-you row already opens the lessons. Checked: no other door is drawn twice on any Settings panel.
 - Fixed (22 Nov 2026, the owner's word): f148's "no Swedish value is a forgotten copy of the English" is green again — `rd_th_status` ("Status") and `rd_brief_jambo` ("Jambo") are the same in both books on purpose, now listed in SAME_IN_BOTH.
+- Noticed, not fixed (22 Nov 2026, amendments L+S review): the 17 Nov "numbers disappear" fault reaches the CREATED draft too — after Create, Amendment No. 1 (MK-201 on the fixtures) reads "contract value is KES , based on…" and "fall due within days of receipt"; still so on main 22 Nov 2026.
