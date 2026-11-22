@@ -90,7 +90,8 @@ describe('f805 (2) every Jambo ask box draws none — and the box itself stands'
     /* Import's panel wears the shared frame itself (jlFrame builds the box
        with jlAskHtml once), and his conversation is said under the chosen file */
     assert.match(fnOf(MIG, 'migSidePaint'), /jlFrame\(host, \{ jlPh:i18t\('jl_ph_any'\) \}\)/);
-    assert.match(fnOf(INS, 'jlFrame'), /jlAskHtml\(\{ placeholder: opt\.jlPh \}\)/);
+    /* RE-POINTED 22 Nov 2026 (the top box filters, Jambo's box asks, #888): the box's words are the page's question (jlPagePh) */
+    assert.match(fnOf(INS, 'jlFrame'), /jlAskHtml\(\{ placeholder: jlPagePh\(opt\) \}\)/);
     assert.match(fnOf(INS, 'jlTalkHtml'), /<div id="jl-feed" class="jl-feed" aria-live="polite"><\/div>/, 'and his conversation is said in it');
     assert.doesNotMatch(fnOf(MIG, 'migSidePaint'), /id="jl-feed"/, 'not drawn twice');
   });

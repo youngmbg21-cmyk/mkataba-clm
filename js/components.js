@@ -402,7 +402,8 @@ function wmFollow(p, sc){
     if (gone || !p._wmY){ clearInterval(p._wmWatch); p._wmWatch = null; }
   }, 400);
 }
-if (typeof document !== 'undefined'){
+/* listened for only where a page can listen (a bare stand-in document, as the composer tests use, has no listener) */
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function'){
   document.addEventListener('scroll', e => {
     const t = e.target; if (!t || t.nodeType !== 1 || typeof t.closest !== 'function') return;
     const p = t.closest(WM_PANELS); if (!p || p === t) return;
