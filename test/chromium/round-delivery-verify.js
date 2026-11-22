@@ -323,8 +323,11 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const btns = pg => pg.evaluate(() => ({ hist: !!document.getElementById('pt-hist'),
       cmp: !!document.getElementById('pt-compare') }));
     const bare = await btns(cp2), busy = await btns(cp);
-    check('8a with nothing negotiated, neither reading button is drawn',
-      bare.hist === false && bare.cmp === false, JSON.stringify(bare));
+    /* RE-POINTED 22 Nov 2026 (the P-44 review of the owner's picked drawing of the other side's page, which names "No
+       History tab on the photographed link" — a first share, nothing negotiated — as a fault): History is always a tab
+       there now, and it is not empty (the link's own Shared and Opened rows); Compare wording still follows the contract */
+    check('8a with nothing negotiated, Compare wording is not drawn (History, as drawn, is always a tab)',
+      bare.hist === true && bare.cmp === false, JSON.stringify(bare));
     check('8a and on a contract with a change, both are',
       busy.hist === true && busy.cmp === true,
       JSON.stringify(busy) + ' — so they follow the contract, not a regression');

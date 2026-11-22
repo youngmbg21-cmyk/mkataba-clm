@@ -39701,6 +39701,23 @@ fallback. The "All seven agents … Change · The agents" foot line was removed,
 though undrawn). Kept as ruled: "Show N more",
 "‹ Back to Contracts", "Payment gap", two-line titles, Notes greyed without a contract, Done notes under Done only, nav
 counts grey unless waiting on you.
+## THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM / THE COUNTERPARTY'S PAGE (P-44 review, 22 Nov 2026)
+An independent review of P-44 against the owner's picked drawings (History "mix"; the other side's page "mix") found the
+History side panel unbuilt, money (KES 22,000,000) in the Dossier panel, the kind chips and note rows missing, and on
+their page a bell hidden inside More (0×0), no side panels on Where we are or Signing, notes behind the panel at 1366,
+no Clean · Redline switch, a figures row the drawing does not have, and the logged fault "For you: tell them you are ready
+to sign" on a first share with nothing open and no History tab (P-44 had not fixed it). Built as drawn on 22 Nov 2026:
+our History's panel (`pd2HistFaceHtml`: N things happened since, By kind bar, Export — The trail as PDF = the verified
+print report, Word with tracked changes = the paper's Word door), the Value fact out of the new look's Dossier panel,
+notes as trail rows (`histNoteEvents`), chips with counts from ONE reading (`histRowsOf`), no × and ⋯ on History
+(Verify rides inside the PDF report; the full trail stays Settings'), a page arrives with no ring (trapFocus quiet for
+`data-dlg-page`). Their page: the bell on the bar opening Alerts · Notes (`portalPanelTabsHtml`), each alert row with its
+own button, Where we are as drawn (amber band whose button is the bell's own row; stops with days; Still open · Settled
+over one table) and Signing as drawn with side panels, Clean · Redline, Changes · Notes in the Redlines panel, the
+paper giving way so margin notes never run under the panel, History with Shared / Opened / note rows (server now sends
+the link's own `sentAt` and `firstOpenedAt`), Verify integrity and Export history moved to More. KEPT: their notes still
+land on their own team's room (the 3 Oct 2026 "the quiet room is where you land" ruling), though the drawing shows the
+other side's room chosen; the "Why we asked" line folds under the card's More ▾ rather than disappearing.
 ## HOW THINGS MOVE — THE BOARD NEVER SAYS A NUMBER IT DOES NOT HOLD (21 Nov 2026)
 home-board-verify 1d failed now and then on GitHub: the four figures read 0,0,0,0 (once 29,0,0,0) while hbBookData said
 10,1,1,1. A frame-by-frame probe (every animation frame after sign-in, CPU slowed 1–6×) found three causes, none a missed
@@ -39716,3 +39733,18 @@ repaint — the Board always settled on the true book:
     so a redraw writing the same number keeps the count going and a new number stops it.
 Measured at the parent: 5 of 6 runs at 4× and 3 of 3 at 1× had frames where the figures' words differed from the book;
 after: 0 of 18 (six each at 1×, 4× and 6×). Looks the same: the count still climbs from 0, from the number's start edge.
+
+## THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM / THE COUNTERPARTY'S PAGE (P-44 review follow-up, 22 Nov 2026)
+GitHub's browser checks on PR 879 went red in 24 files; every one was green on main and red on the branch, measured here
+on both. Built back (working controls kept, though not drawn, as the owner prefers): History's ⋯ More (Verify integrity,
+Download, Print, the whole trail — the head's only door to them); their Notes door in More; a note beside their paper keeps
+Accept · Counter · Reject (each presses the card's own verb). Faults the review made, fixed at the root: their paper lost
+Home's 720 ceiling (1151 wide at 1920) — it now gives way only while notes stand beside it (`has-pol-notes`, 192 = the
+notes' margin), as Home's does (pd2SheetLay); on a phone the new side panel covered Where we are (it stands down under
+768px) and the bell showed in the phone's head (hidden again); the Dossier door left History's panel up (pdOpenOnHome puts
+History away first); a refused point on their Where we are wore the agreed green (ruby now); the bell panel, drawn with no
+backdrop, did not shut on a press outside. Re-pointed to the drawing: History's chips All · Changes · Notes · + Side (no
+quick links, no Clear), no ×; their tab "Redlines 2", the bell on the black bar, the panel's tabs (no title, no backdrop),
+Changes · Notes, no pile chips, the foot's Send back as the one Send, Where we are and Signing as drawn, the note's words
+"Highland asks 45 days", History always a tab (the drawing names its absence on a first share a fault), the sign row only
+on a negotiated paper. By the owner's 20 Nov ruling (no money in a side panel): no Value fact in the Dossier panel.

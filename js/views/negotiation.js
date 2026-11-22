@@ -16511,11 +16511,15 @@ function rlNpRoomsHtml(c, room, counts, opts = {}, side = 'owner'){
   if (rooms.length < 2) return '';
   /* THE STRIPE WAY (P-38, as drawn): "Room", then a pill a room — Internal, then each outside party by name; the chosen
      one filled in ink. The same rooms and the same press (data-rl-np-room). */
-  if (opts.stripe) return `<div class="rl-np-tabs rl-np-rooms" role="tablist"><span class="rl-np-rooms-k">${_ne(i18t('ng_np_room_label'))}</span>${rooms.map(r =>
+  /* THEIR PAGE, AS DRAWN (P-44 review, 22 Nov 2026): "With", the other side first, then "Your team" — the same rooms and
+     the same press; their team's room is still where they land (rlNpRoomNow), the quiet one */
+  const theirSeat = side !== 'owner' && PORTAL_MODE;
+  const shown = theirSeat ? rooms.filter(r => r.external).concat(rooms.filter(r => !r.external)) : rooms;
+  if (opts.stripe) return `<div class="rl-np-tabs rl-np-rooms" role="tablist"><span class="rl-np-rooms-k">${_ne(i18t(theirSeat ? 'ng_np_room_with' : 'ng_np_room_label'))}</span>${shown.map(r =>
       `<button type="button" role="tab" class="rl-np-tab rl-np-room${r.key === room ? ' on' : ''}" data-rl-np-room="${_nea(r.key)}" aria-selected="${r.key === room}" title="${_nea(r.external
         ? i18t('ng_np_room_t_ext', { who: r.name || '' }) : i18t('ng_np_room_t_int'))}">${_ne(r.external ? (r.name || i18t('ng_np_tab_ext'))
-        /* on their own pages their team's room keeps its name ("… · your team"); on ours it is "Internal", as drawn */
-        : (PORTAL_MODE && r.name) ? i18t('ng_np_room_us', { org: r.name }) : i18t('ng_np_tab_int'))}</button>`).join('')}</div>`;
+        /* on their own pages their team's room is "Your team" (P-44 review, as drawn); on ours it is "Internal" */
+        : theirSeat ? i18t('ng_np_room_your_team') : (PORTAL_MODE && r.name) ? i18t('ng_np_room_us', { org: r.name }) : i18t('ng_np_tab_int'))}</button>`).join('')}</div>`;
   const by = (counts && counts.byRoom) || {};
   return `<div class="rl-np-tabs" role="tablist">
       ${rooms.map(r => {
@@ -17822,7 +17826,7 @@ function rlChatPanelHtml(c, opts = {}){
        the contract-wide one; and "nothing has been written on this contract"
        was printed even while the other room held notes */
     : (all.length ? null : rlNotesEmptyFive(c, ext, other)) != null ? `<div class="rl-np-empty is-five">${rlNotesEmptyFive(c, ext, other)}</div>` : `<div class="rl-np-empty">
-        <b>${ext ? i18t('ng_chat_none_ext', { who: _ne(other) }) : i18t('ng_chat_none_int')}</b>
+        <b>${ext ? i18t('ng_chat_none_ext', { who: _ne(other) }) : i18t(side === 'counterparty' ? 'ng_chat_none_team' : 'ng_chat_none_int')}</b>
         ${all.length ? '' : `<span>${i18t('ng_chat_empty')}</span>`}
       </div>`);
   /* AS DRAWN (P-38, the Stripe way): the chips, the rooms as a labelled line of pills, the write box at the top; no
@@ -22118,7 +22122,11 @@ function rlRowByHtml(ch, short){
   /* "You · today" on our own row (round 9 as drawn); anyone else's name in
      the card's short form, "Anna H." (owner, 13 Aug 2026: a name on a change
      card is first name plus initial; the whole name stays on the hover) */
-  const words = [who ? (rlRowIsMine(ch) ? i18t('ng_row_you') : (typeof short === 'function' ? short(who) : who)) : '', when].filter(Boolean).join(' · ');
+  /* THEIR PAGE'S NEW LOOK NAMES THE PARTY (P-44 review, 22 Nov 2026, as drawn: "Highland · today"): our change on their
+     cards says our party, theirs says You; the person stays on the hover */
+  const out = rlOnTheirPage() && typeof window.portalOutOn === 'function' && window.portalOutOn() && typeof window.portalOutShort === 'function';
+  const party = out ? (ch && ch.authorSide === 'counterparty' ? i18t('pol_h_you') : portalOutShort((window.PORTAL_OPTS && PORTAL_OPTS.payload && PORTAL_OPTS.payload.org) || '')) : '';
+  const words = [party || (who ? (rlRowIsMine(ch) ? i18t('ng_row_you') : (typeof short === 'function' ? short(who) : who)) : ''), when].filter(Boolean).join(' · ');
   return words ? `<span class="rl-card-by" title="${_nea([who, ch.id].filter(Boolean).join(' · '))}">${_ne(words)}</span>` : '';
 }
 /* ---- A COUNTER THAT UNDOES ONLY PART OF THEIR ASK SAYS WHAT IT KEEPS (owner,
