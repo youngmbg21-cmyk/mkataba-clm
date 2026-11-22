@@ -114,8 +114,9 @@ describe('f440 (4) — their page follows the signing', () => {
   });
   test('the bell\'s row is a door onto the Signing tab', async () => {
     const v = theirPage(ORDER(false));
+    /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn): a row carries its own button */
     const row = v.$('#pt-alerts-body [data-pt-kind="closed"]');
-    assert.ok(row && row.tagName === 'BUTTON', 'a door, not a fact');
+    assert.ok(row && row.querySelector('button[data-pt-alert]'), 'a door, not a fact');
     assert.match(row.textContent, /signing has started/i);
   });
   test('the Signing tab draws the order and when each of their links went out', async () => {
@@ -139,10 +140,11 @@ describe('f440 (4) — their page follows the signing', () => {
   test('Where we are: the wording is agreed and signing is under way', () => {
     const v = theirPage(ORDER(false));
     /* the shared sheet's journey (4 Oct 2026), told by their link that signing is under way */
-    const steps = [...v.d.querySelectorAll('#pt-where-pane .ds-j li')];
+    /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn): the page's four stops and its own line */
+    const steps = [...v.d.querySelectorAll('#pt-where-pane .pol-stops li')];
     assert.ok(steps[2].classList.contains('is-done'), 'wording agreed');
     assert.match(steps[3].textContent, /Under way/);
-    assert.ok(v.$('#pt-where-pane .ds-mine button[data-pt-where-row]'), 'and the door onto the Signing tab is on their own line');
+    assert.ok(v.$('#pt-where-pane .pol-w-line button[data-pt-where-row]'), 'and the door onto the Signing tab is on their own line');
   });
 });
 

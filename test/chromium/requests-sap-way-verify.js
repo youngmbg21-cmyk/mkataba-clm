@@ -92,11 +92,15 @@ const check = (name, pass, detail) => {
        each file as its own row — Files · its name (a door to it) · its size and who added it — instead of "1 file attached" */
     /* RE-POINTED 18 Nov 2026 (owner's pick by name, "Five Parts"; f1094): a file is a row of the five parts — its name,
        then under it "Files · its size · added by …" */
-    const fileSaid = /\bpilot-brief\.pdf Files · [^·]+· added by Sara Nyström\b/.test(P || '');
+    /* RE-POINTED 21 Nov 2026 (P-32, as drawn): Read from the ask is label rows — "File" then its name (a door to it), its
+       size and who added it on the name's own title */
+    const fileBy = await page.evaluate(() => ((document.querySelector('#ins-panel [data-ikn-file]') || {}).title || ''));
+    const fileSaid = /\bFile pilot-brief\.pdf\b/.test(P || '') && /added by Sara Nyström\b/.test(fileBy);
     check('2b Files counts the clip, none a dash; Asked says the day (the panel names the file and who added it)', a.asked === 'today' && fileSaid,
       JSON.stringify({ asked: a.asked, panel: (P || '').replace(/^.*?(Files)/, '$1').slice(0, 200) }));
     /* RE-POINTED 17 Nov 2026 (#762): the panel is Jambo's chosen-row panel; the lane that sent it is looked for in it */
-    check('3 the panel\'s With says who and which lane sent it', !!P && /NDA lane/.test(P), String(P).slice(0, 300));
+    /* RE-POINTED 21 Nov 2026 (P-32, as drawn): the lane is a row read from the ask, "Came by NDA" */
+    check('3 the panel says which lane sent it', !!P && /Came by NDA\b/.test(P), String(P).slice(0, 300));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'requests-sap-way-1440x780.png') });
 
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {

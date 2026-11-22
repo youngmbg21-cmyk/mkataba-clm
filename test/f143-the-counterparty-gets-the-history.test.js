@@ -83,10 +83,11 @@ describe('f143 — they can reach the history at all', () => {
     assert.match(v.html(), /Payment terms extended/);
   });
 
-  test('a contract with nothing proposed offers no empty history', () => {
+  /* RE-POINTED 22 Nov 2026 (P-44 review; the logged fault "no History tab" on a first share): their History is never
+     empty on the new look — the day the link was sent and first opened are its rows — so the tab stands */
+  test('a contract with nothing proposed still has a History (their link\'s own facts)', () => {
     const v = theirPage({ changes: [] });
-    assert.equal(v.d.getElementById('pt-hist'), null,
-      'a button that opens an empty screen is worse than no button');
+    assert.ok(v.d.getElementById('pt-hist'), 'the tab is there');
   });
 });
 

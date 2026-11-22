@@ -128,8 +128,9 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(3000);
     await page.keyboard.press('Escape').catch(() => {});
 
-    /* RE-POINTED 16 Nov 2026 (#762): a panel's title is its h2, or the five parts' headline (.jov5-title) */
-    const panelTitle = sel => page.evaluate(s => { const h2 = document.querySelector(s + ' h2, ' + s + ' .jov5-title, ' + s + ' .obn-lg-top b'); return h2 ? h2.textContent.trim() : null; }, sel);
+    /* RE-POINTED 16 Nov 2026 (#762): a panel's title is its h2, or the five parts' headline (.jov5-title)
+       RE-POINTED 21 Nov 2026 (P-32, as drawn): or the chosen request's title in its Legora + Stripe panel (.ikn-lg-t) */
+    const panelTitle = sel => page.evaluate(s => { const h2 = document.querySelector(s + ' h2, ' + s + ' .jov5-title, ' + s + ' .obn-lg-top b, ' + s + ' .ikn-lg-t'); return h2 ? h2.textContent.trim() : null; }, sel);
 
     /* ================= 1 · THE OBLIGATIONS PAGE ================= */
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Obligations page is the PROJECT LIST (obnRender,

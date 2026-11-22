@@ -191,21 +191,24 @@ const BOXES = sel => {
     await until(() => !!document.querySelector('#content .ins-panel.is-jambo .jl-head') && !!document.querySelector('#content tr[data-ngn-row]'), null, 12000);
     /* a row is chosen on arrival (a second press on a chosen row OPENS it), so a row is pressed only if none is chosen */
     const picked = await page.evaluate(() => { const r = document.querySelector('#content tr[data-ngn-row].is-sel') || document.querySelector('#content tr[data-ngn-row]'); if (r && !r.classList.contains('is-sel')) r.click(); return r ? r.getAttribute('data-ngn-row') : null; });
-    const facts = await until(id => !!id && !!document.querySelector(`#content .ins-panel.is-jambo .ngn-panel[data-ngn-for="${id}"] .jov5-group`), picked, 8000);
+    /* RE-POINTED 21 Nov 2026 (P-29, as drawn): the chosen deal's panel is drawn without cards — its parts are .ngn5-sec */
+    const facts = await until(id => !!id && !!document.querySelector(`#content .ins-panel.is-jambo .ngn-panel[data-ngn-for="${id}"] .ngn5-sec`), picked, 8000);
     if (!facts) check('3 Jambo\'s panel beside Negotiations shows a chosen row', false, await page.evaluate(id => JSON.stringify({ picked: id, rows: document.querySelectorAll('#content tr[data-ngn-row]').length,
-      panel: [...document.querySelectorAll('#content .ins-panel .ngn-panel')].map(x => x.getAttribute('data-ngn-for') + ':' + x.querySelectorAll('.jov5-group').length) }), picked));
+      panel: [...document.querySelectorAll('#content .ins-panel .ngn-panel')].map(x => x.getAttribute('data-ngn-for') + ':' + x.querySelectorAll('.ngn5-sec').length) }), picked));
     else {
       await page.waitForTimeout(400);
       const L = await page.evaluate(() => {
         const p = document.querySelector('#content .ins-panel.is-jambo'), pr = p.getBoundingClientRect();
         const head = p.querySelector('.jl-head'), foot = p.querySelector('.jl-foot'), box = p.querySelector('#jl-q');
         const secs = [...p.querySelectorAll('.jov5-sec, .jov5-group, .jov5-row, .jov5-glance')].map(x => getComputedStyle(x).borderBottomWidth);
+        /* RE-POINTED 21 Nov 2026 (P-29, as drawn): the chosen deal's parts are split by one hairline, and none is a card */
+        const nsecs = [...p.querySelectorAll('.ngn5-sec')].map(x => { const cs = getComputedStyle(x); return { b: cs.borderBottomWidth, bg: cs.backgroundColor, sh: cs.boxShadow, bt: cs.borderTopWidth }; });
         const need = p.querySelector('.jl-need');
         const fcs = getComputedStyle(foot), root = getComputedStyle(document.documentElement);
         return { w: Math.round(pr.width), headH: Math.round(head.getBoundingClientRect().height), footH: Math.round(foot.getBoundingClientRect().height),
           boxH: box ? Math.round(box.getBoundingClientRect().height) : null, boxTok: parseFloat(root.getPropertyValue('--jb-box-h')),
           footPad: [fcs.paddingTop, fcs.paddingBottom, fcs.borderTopWidth, fcs.borderBottomWidth].map(parseFloat), dockFootH: null,
-          secs, needEdge: need ? getComputedStyle(need).borderTopWidth : null };
+          secs, nsecs, needEdge: need ? getComputedStyle(need).borderTopWidth : null };
       });
       /* the same head and foot as the Dossier's (1b, 1c): the head 56, the foot the box in its wells */
       const LP = L.footPad; /* the box's row is the token's height (#jl-q is the text inside it) */
@@ -213,7 +216,9 @@ const BOXES = sel => {
         && L.footH - (LP[0] + LP[1] + LP[2] + LP[3]) === L.boxTok && LP[0] === 12, JSON.stringify(L));
       /* RETIRED 16 Nov 2026 (#762): 3b 'the facts carry their label, "Facts"' — the new look's pressed-round panel draws its facts
          as Jambo's five parts' rows under the round's name and three numbers, with no "Facts" label (owner, 16 Nov 2026, f1081) */
-      check('3c no rule between the sections; Needs you is rows, not a card', L.secs.length > 0 && L.secs.every(b => b === '0px') && (L.needEdge == null || L.needEdge === '0px'), JSON.stringify(L));
+      /* RE-POINTED 21 Nov 2026 (P-29, as drawn): the drawn panel has no cards; its three parts are split by one hairline each (the last none) */
+      check('3c no cards: the parts split by one hairline; Needs you is rows, not a card', L.nsecs.length > 1 && L.nsecs.slice(0, -1).every(s => s.b === '1px') && L.nsecs[L.nsecs.length - 1].b === '0px'
+        && L.nsecs.every(s => s.bt === '0px' && s.sh === 'none' && /rgba\(0, 0, 0, 0\)|transparent/.test(s.bg)) && L.secs.every(b => b === '0px') && (L.needEdge == null || L.needEdge === '0px'), JSON.stringify(L));
       if (OUT) await page.screenshot({ path: path.join(OUT, 'brief-negotiations-1440x780.png') });
     }
 
@@ -237,8 +242,8 @@ const BOXES = sel => {
           kinds: rows.map(r => r.querySelector('.hist-c-kind .hist6-kb')).filter(Boolean).length,
           sides: rows.map(r => r.getAttribute('data-hist-lane') || ''),
           day: day ? day.textContent.replace(/\s+/g, ' ').trim() : null,
-          filterBtn: !!host.querySelector('#hist-filter-btn'), filters: [...host.querySelectorAll('[data-ht-filter], .hist-quick [data-ht-quick]')].filter(s => s.getBoundingClientRect().width > 0).length, quickBar: !!host.querySelector('.hist-quick'),
-          clear: !!host.querySelector('#ht-clear'), face: title ? getComputedStyle(title).fontFamily : null };
+          filterBtn: !!host.querySelector('#hist-filter-btn'), filters: [...host.querySelectorAll('[data-ht-filter], .hist6-kinds [data-ht-kind]')].filter(s => s.getBoundingClientRect().width > 0).length, quickBar: !!host.querySelector('.hist6-kinds'),
+          allChip: !!host.querySelector('.hist6-kinds [data-ht-kind=""][aria-pressed="true"]'), face: title ? getComputedStyle(title).fontFamily : null };
       });
       check('4a History is one table: Time · Who · What happened · Kind · Outcome (no Side column)', /is-table/.test(T.cls) && T.heads.join('|') === 'Time|Who|What happened|Kind|Outcome' && T.sideCol === 0, JSON.stringify(T.heads));
       check('4b every entry the trail reads is a row of it', T.rows === T.all && T.rows >= 3, `${T.rows} of ${T.all}`);
@@ -247,7 +252,9 @@ const BOXES = sel => {
       check('4e the day is a row with its count', !!T.day && /\d+ events?/.test(T.day), T.day);
       /* RE-POINTED 16 Nov 2026 (#762): the filters in the open are the history's quick links (histQuickHtml, owner 31 Oct
          "Quick links as drawn"), only those that give rows — this trail gives none, so the band stands with Clear */
-      check('4f the filters stand in the open: no Filter button, the quick links\' band shown, Clear at the band\'s end; the title is the serif', !T.filterBtn && T.quickBar && T.clear && /Source Serif 4/.test(T.face || ''), JSON.stringify(T));
+      /* RE-POINTED 22 Nov 2026 (the P-44 review, the owner's picked drawing "History, the Legora + Stripe way"): the chips in the
+         open are All · Changes · Notes with their counts and "+ Side" (histKindChipsHtml); no quick links, no Clear link */
+      check('4f the filters stand in the open: no Filter button, the chips shown, All pressed at rest; the title is the serif', !T.filterBtn && T.quickBar && T.allChip && T.filters >= 1 && /Source Serif 4/.test(T.face || ''), JSON.stringify(T));
       if (OUT) await page.screenshot({ path: path.join(OUT, 'sap-history-1440x780.png') });
 
       /* ================= 5. THE OWNER'S THREE SCREENS ================= */

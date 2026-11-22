@@ -323,17 +323,27 @@ const VERBS = [
       batchSends: document.querySelectorAll('.rl-unsent-go').length,
       /* the card's own Send is a PROXY onto that one postbox — two doors, one
          transport, and both have to be pressable */
-      cardSend: !!document.querySelector('[data-rl-send]') };
+      cardSend: !!document.querySelector('[data-rl-send]'),
+      /* RE-POINTED 22 Nov 2026 (the P-44 review, the owner's picked drawing "the other side's page, the Legora + Stripe
+         way"): their page's one Send is the foot bar's "Send back · 1 of 2 decided" (#pol-send); the panel's head row
+         that carried Send all is not drawn there */
+      foot: (() => { const f = document.getElementById('pol-send'); if (!f) return null; const r = f.getBoundingClientRect();
+        const seen = e => !!e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
+        return { on: r.width > 0 && r.height > 0 && !f.disabled, label: f.textContent.replace(/\s+/g, ' ').trim(), w: Math.round(r.width),
+          bottom: Math.round(r.bottom), vh: innerHeight, others: [...document.querySelectorAll('.rl-unsent-go, #pt-nego-send')].filter(seen).length }; })() };
   });
   await page.screenshot({ path: path.join(OUT, '02-after-decision.png') });
 
+  const FT = afterDecision.foot;
   check('a decision draws the Send, and it is visible pixels',
-    afterDecision.pressed && !afterDecision.why && afterDecision.w > 0,
-    afterDecision.pressed ? (afterDecision.why || `${afterDecision.w}px — "${afterDecision.label}"`)
+    FT ? afterDecision.pressed && FT.on && FT.w > 0 && /Send back · 1/.test(FT.label)
+      : afterDecision.pressed && !afterDecision.why && afterDecision.w > 0,
+    FT ? JSON.stringify(FT) : afterDecision.pressed ? (afterDecision.why || `${afterDecision.w}px — "${afterDecision.label}"`)
       : 'nothing to decide in the fixture');
-  check('the Send is ON TOP OF THE REDLINE CARDS, in their own column',
-    !!(afterDecision.over && afterDecision.over.above && afterDecision.over.sameColumn),
-    afterDecision.over ? `band bottom ${afterDecision.over.b} · first card top ${afterDecision.over.k}`
+  check(FT ? 'the Send is the foot bar\'s, the one Send on screen (as drawn)' : 'the Send is ON TOP OF THE REDLINE CARDS, in their own column',
+    FT ? FT.on && FT.others === 0 && FT.bottom <= FT.vh
+      : !!(afterDecision.over && afterDecision.over.above && afterDecision.over.sameColumn),
+    FT ? JSON.stringify(FT) : afterDecision.over ? `band bottom ${afterDecision.over.b} · first card top ${afterDecision.over.k}`
       + ` · same column ${afterDecision.over.sameColumn}` : 'no band or no card to measure against');
   check('and it is a PROXY onto the one postbox, never a second transport',
     afterDecision.proxy === 'nego-send-decisions', afterDecision.proxy);

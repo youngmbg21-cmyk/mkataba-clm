@@ -303,16 +303,19 @@ const ok = (name, good, detail) => {
       moves: [...document.querySelectorAll('.ngn-table tr[data-ngn-row] .apn-st')].map(x => x.textContent.trim()),
       asks: [...document.querySelectorAll('.ngn-table tr[data-ngn-row]')].map(r => ({ yours: r.classList.contains('is-yours'),
         n: ((r.querySelector('td.ngn-n') || {}).textContent || '').trim(), ql: ((r.querySelector('.ngn-ql') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
-        wait: ((r.querySelector('.ngn-last') || {}).textContent || '').trim() })),
+        /* RE-POINTED 21 Nov 2026 (P-29, as drawn): the wait is its own right-aligned cell (td.ngn-wait) */
+        wait: ((r.querySelector('.ngn-wait') || {}).textContent || '').trim() })),
       money: [...document.querySelectorAll('.ngn-table tr[data-ngn-row]')].some(x => MONEY.test(x.textContent)),
       tabs: [...document.querySelectorAll('[data-ngn-tab]')].map(x => x.getAttribute('data-ngn-tab') + ':' + ((x.querySelector('span') || {}).textContent || '')),
       chips: [...document.querySelectorAll('[data-ngn-tab]')].every(x => x.classList.contains('apn-tab') && x.classList.contains('is-chip')),
       views: !!document.querySelector('[data-reg-view]'),
+      /* RE-POINTED 21 Nov 2026 (P-29, as drawn): the chosen deal's panel is drawn without cards (.ngn5): its badge (.ngn5-tag), name (.ngn5-t),
+         Round · Open asks · Rounds (.ngn5-figs), the act in black (.ngn5-k) and Open the redlines beside it (.ngn5-acts) */
       panel: (() => { const p = document.querySelector('#ins-panel .ngn-panel'); if (!p) return null;
-        return { title: !!p.querySelector('.jov5-title'), tag: ((p.querySelector('.jov5-tag') || {}).textContent || '').trim(),
-          glance: p.querySelectorAll('.jov5-glance').length, facts: ((p.querySelector('.ngn-pfacts') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
-          strip: !!p.querySelector('.ngn-pfacts .ngn-rs'), money: MONEY.test(p.textContent),
-          go: ((p.querySelector('.jov5-go') || {}).textContent || '').trim(), link: [...p.querySelectorAll('.jov5-acts [data-ngn-open]')].map(x => x.textContent.trim()) }; })(),
+        return { title: !!p.querySelector('.ngn5-t'), tag: ((p.querySelector('.ngn5-tag') || {}).textContent || '').trim(),
+          glance: p.querySelectorAll('.jov5-glance').length, facts: ((p.querySelector('.ngn5-figs') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+          strip: !!p.querySelector('.ngn5-figs .ngn-rs'), money: MONEY.test(p.textContent),
+          go: ((p.querySelector('.ngn5-k') || {}).textContent || '').trim(), link: [...p.querySelectorAll('.ngn5-acts [data-ngn-open]')].map(x => x.textContent.trim()) }; })(),
     }; }, MONEY.source);
     ok('2a Negotiations draws the list and the panel: Agreement · Whose move · Rounds · Open asks · Lead · Waiting · the act, and no money in a row', ng.ins === '1'
       && ng.heads.filter(Boolean).join('|') === 'Agreement|Whose move|Rounds|Open asks|Lead|Waiting' && ng.heads[ng.heads.length - 1] === '' && !ng.money, ng.heads.join(' | ') + ` · money ${ng.money}`);
@@ -324,7 +327,7 @@ const ok = (name, good, detail) => {
     /* was: the panel's three numbers (unsent · asks · round) — the chosen deal's panel carries no tiles and no money */
     ok('2d the panel leads with the chosen deal: its name, whose move, Round and Open asks with the rounds strip, its act, no tiles and no money', !!ng.panel && ng.panel.title
       && /^(Your move|Their move|Settled)$/.test(ng.panel.tag) && ng.panel.glance === 0 && /round/i.test(ng.panel.facts) && /Open asks/.test(ng.panel.facts) && ng.panel.strip && !ng.panel.money
-      && (ng.panel.go === 'Open the redlines' || (/^(Send|Remind)/.test(ng.panel.go) && ng.panel.link.includes('Open the redlines'))), JSON.stringify(ng.panel));
+      && (ng.panel.go === 'Open the redlines' || (/^(Answer|Send|Remind|Before you sign)$/.test(ng.panel.go) && ng.panel.link.includes('Open the redlines'))), JSON.stringify(ng.panel));
     /* 2e RETIRED 15 Oct 2026 (the overnight work order, step 7). */
     await page.screenshot({ path: path.join(OUT, '2-negotiations-1440.png') });
 
@@ -429,8 +432,10 @@ const ok = (name, good, detail) => {
         if (b && b !== 'transparent' && !(a.length === 4 && Number(a[3]) === 0)) return b; } return 'rgb(255, 255, 255)'; };
       /* RE-POINTED 16 Nov 2026 (#762): the chosen round's panel is the five parts — its headline (.jov5-title) and a
          fact's small line (.jov5-rt > span) are the words read */
-      const cpE = p.querySelector('.jov5-title'), dtE = p.querySelector('.jov5-group .jov5-rt > span');
-      if (!cpE || !dtE) return { missing: [!cpE && '.jov5-title', !dtE && '.jov5-rt > span'].filter(Boolean) };
+      /* RE-POINTED 22 Nov 2026 (P-29 review): the chosen deal's panel is drawn without cards (.ngn5) — its name (.ngn5-t)
+         and its grey small line, the other side and reference (.ngn5-s), are the words read; AA is asked of them the same way */
+      const cpE = p.querySelector('.ngn5-t, .jov5-title'), dtE = p.querySelector('.ngn5-s, .jov5-group .jov5-rt > span');
+      if (!cpE || !dtE) return { missing: [!cpE && '.ngn5-t', !dtE && '.ngn5-s'].filter(Boolean) };
       const cpBg = ground(cpE), dtBg = ground(dtE);
       return { cpBg, dtBg, cp: ratio(getComputedStyle(cpE).color, cpBg), dt: ratio(getComputedStyle(dtE).color, dtBg) };
     });
