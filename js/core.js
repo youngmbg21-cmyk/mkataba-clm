@@ -3180,7 +3180,9 @@ function trapFocus(panel, opts={}){
     const lgp=!!panel.querySelector('.lgp');
     if(lgp && panel.contains(document.activeElement) && document.activeElement!==panel) return;
     /* the bell's side panel too: its ✕ arrives with no ring (P-38) */
-    const quiet=lgp||panel.id==='context-panel';
+    /* and a PAGE (openModal's page mode, data-dlg-page): its "‹ Back to …" arrives with no ring either (P-44 review,
+       22 Nov 2026: History's "Back to the paper" landed ringed) — a page is arrived at, never tabbed to */
+    const quiet=lgp||panel.id==='context-panel'||panel.hasAttribute('data-dlg-page')||panel.classList.contains('pt-alerts');
     const f=focusables(); fieldFocus(f[0]||panel, quiet ? {preventScroll:true, focusVisible:false} : {preventScroll:true});
   },0);
   let done=false;

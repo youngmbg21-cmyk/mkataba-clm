@@ -88,7 +88,7 @@ test('f1098 (4) a row pressed: the Legora way, answered in the row, Us · Theirs
   assert.ok(its.every(i => i.querySelector('.obn-lg-q')), 'each duty in its own quoted words');
   assert.match(d.querySelector('.obn-lg-q mark') && d.innerHTML, /<mark>forty-eight \(48\) hours<\/mark>/, 'the time limit marked');
   const words = [...d.querySelectorAll('[data-obn-whose]')].map(b => b.textContent);
-  assert.deepEqual([...new Set(words)], ['Undecided', 'Us', 'Theirs', 'Both sides']);   /* RE-POINTED 19 Nov 2026 (f1102): Undecided first */
+  assert.deepEqual([...new Set(words)], ['Undecided', 'Us', 'Theirs', 'Both' /* RE-POINTED 21 Nov 2026 (P-13, as drawn: "Both") */]);   /* RE-POINTED 19 Nov 2026 (f1102): Undecided first */
   assert.ok(![...d.querySelectorAll('button')].some(b => b.textContent.includes(c.counterparty)), 'no button carries the other side\'s name');
   assert.ok(d.querySelector('[data-obn-skip]') && d.querySelector('[data-obn-ask="MK-T1"]'));
   assert.equal(d.querySelector('[data-obn-addall]'), null, 'nothing decided yet, nothing to add (f1102)');

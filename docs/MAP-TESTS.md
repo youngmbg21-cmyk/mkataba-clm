@@ -997,3 +997,14 @@ f1070 (3), f989 3, f997 (1), f998 (3) re-pointed.
 ## INSIGHTS — EXPLORER'S PANEL AS DRAWN (P-40, 21 Nov 2026)
 - test/chromium/explorer-chips-follow-the-view-verify.js 3e, 3f: the Grid's rows, a pairing first and no money
   shading in the panel; shaded by money, "Shade the cells by how many" second.
+
+## THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM / THE COUNTERPARTY'S PAGE (P-44 review, 22 Nov 2026)
+f439, f143, f37, f49, f440 re-pointed to the drawn page (the band, the stops, the chips, the panels, the bell on the bar);
+f743 (3d) pins the one-line What happened with its hover. Run: f439 f143 f37 f49 f440 f743 f191 f148.
+
+## THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM / THE COUNTERPARTY'S PAGE (P-44 review follow-up, 22 Nov 2026)
+Re-pointed to the drawing (dated comments): history-head, history-timeline 7a, the-brief-and-sap-history 4f, room-tabs-as-drawn
+6b, negotiate-new-look 5, round8-their-page 2a/2c/3/4, counterparty-bell 1/3/4/6, their-pages-as-ours 1/3/6, where-we-are
+1f/2a/4f/9c/10/12a, their-page-parties-and-notes 1, their-page-legora-way 4, portal-header-verbs (the foot's Send),
+counterparty-reading-and-more 1c, paper-grows (counterparty gives way only for its notes), round-delivery 8a, go-aheads 2,
+sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).

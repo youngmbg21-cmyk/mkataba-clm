@@ -207,7 +207,9 @@ const PAPER = `(() => {
           return { t: (b.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 18),
             bg: c.backgroundColor, bd: c.borderTopColor, bw: c.borderTopWidth }; });
       const res = v => { const p = document.createElement('span'); p.style.color = v; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; };
-      return { verbs: read('.pw-id-verb'), deal: read('#pt-nego-foot button'), edge: res('var(--btn-edge)'),
+      /* RE-POINTED 22 Nov 2026 (the P-44 review, the owner's picked drawing of the other side's page): the bell stands on
+         the black bar beside their name, drawn white on black with a red count — not one of the reading buttons any more */
+      return { verbs: read('.pw-id-verb:not(.pol-bar .pw-id-verb)'), deal: read('#pt-nego-foot button'), edge: res('var(--btn-edge)'),
         fill: (() => { const p = document.createElement('span'); p.style.backgroundColor = 'var(--surface-2)'; document.body.appendChild(p); const c = getComputedStyle(p).backgroundColor; p.remove(); return c; })() };
     });
     /* RE-POINTED 21 Sep 2026 (the redesign): every .ui-btn is the white face

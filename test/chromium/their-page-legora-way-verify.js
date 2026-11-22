@@ -95,25 +95,18 @@ const until = async (page, fn, arg, ms = 8000) => { const t0 = Date.now(); for (
       const ex = await page.evaluate(() => [...document.querySelectorAll('#pt-nego .rl-card-ex')].map(e => e.innerText.trim()));
       check(ex.length >= 2 && ex.every(t => /^§\d+(\.\d+)* · “.+”$/.test(t)), `3  ${tag} each change says where it sits: § and the words in quotes`, ex);
 
+      /* RE-POINTED 22 Nov 2026 (the P-44 review, the owner's picked drawing "the other side's page, the Legora + Stripe way":
+         the Redlines panel reads Changes · Notes, the round's line, then each pile under its own head with its count —
+         "Waiting on you 2" — and no chips over them; every pile is shown) */
       const chips = await page.evaluate(() => {
-        const piles = [...document.querySelectorAll('#pt-nego .rl-pile')].map(p => ({ b: p.getAttribute('data-rl-pile'), n: p.querySelectorAll('[data-nego-card]').length, hidden: p.hidden }));
-        const cs = [...document.querySelectorAll('#pt-nego [data-rl-pile-chip]')].map(b => ({ k: b.getAttribute('data-rl-pile-chip'), n: Number((b.querySelector('b') || {}).textContent), on: b.getAttribute('aria-pressed') }));
+        const vis = e => !!e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
+        const piles = [...document.querySelectorAll('#pt-nego .rl-pile')].map(p => ({ b: p.getAttribute('data-rl-pile'), n: p.querySelectorAll('[data-nego-card]').length, hidden: p.hidden,
+          head: (h => h ? h.textContent.replace(/\s+/g, ' ').trim() : '')(document.querySelector(`#pt-nego [data-rl-band="${p.getAttribute('data-rl-pile')}"]`)) }));
+        const cs = [...document.querySelectorAll('#pt-nego [data-rl-pile-chip]')].filter(vis).length;
         return { piles, cs };
       });
-      const total = chips.piles.reduce((a, p) => a + p.n, 0);
-      const matches = chips.piles.every(p => chips.cs.some(c => c.k === p.b && c.n === p.n));
-      const all = chips.cs.find(c => c.k === 'all');
-      check(chips.cs.length === chips.piles.length + 1 && matches && all && all.n === total && all.on === 'true',
-        `4  ${tag} one chip per pile, counted as its pile, then All (pressed)`, chips);
-      if (w === 1440 && chips.piles.length && chips.cs.length){   /* a page without chips reports above, it does not stall here */
-        const first = chips.piles[0].b;
-        await page.click(`#pt-nego [data-rl-pile-chip="${first}"]`);
-        const only = await page.evaluate(k => [...document.querySelectorAll('#pt-nego .rl-pile')].every(p => p.hidden === (p.getAttribute('data-rl-pile') !== k))
-          && document.querySelector(`#pt-nego [data-rl-pile-chip="${k}"]`).getAttribute('aria-pressed') === 'true', first);
-        await page.click('#pt-nego [data-rl-pile-chip="all"]');
-        const back = await page.evaluate(() => [...document.querySelectorAll('#pt-nego .rl-pile')].every(p => !p.hidden));
-        check(only && back, `4  ${tag} a chip shows its pile alone, All brings every pile back`, { only, back });
-      }
+      check(chips.piles.length >= 1 && chips.cs === 0 && chips.piles.every(p => !p.hidden && new RegExp('(^|\\D)' + p.n + '$').test(p.head)),
+        `4  ${tag} no chips, as drawn: every pile shown under its own head, counted as its pile`, chips);
 
       /* RE-POINTED (P-44, owner's pick 20 Nov 2026): their Redlines cards no longer offer the Ladder; the cards must be
          drawn for the absence to mean anything */
