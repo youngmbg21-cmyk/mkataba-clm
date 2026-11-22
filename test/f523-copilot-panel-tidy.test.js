@@ -108,7 +108,7 @@ describe('f523 (3) the order', () => {
     assert.ok(q.length <= 4);
     const std = q.filter(x => x[1]).map(x => x[0]);
     assert.ok(std.length >= 1, 'at least one standard question: ' + q.map(x => x[0]).join(' | '));
-    assert.deepEqual(std, ['Use our standard', 'Use our fallback', "Use Jambo's draft"].filter(x => std.includes(x)), 'in their order');
+    assert.deepEqual(std, ['Use our position', 'Use our fallback', "Use Jambo's draft"].filter(x => std.includes(x)), 'in their order');
     assert.ok(q.findIndex(x => !x[1]) >= std.length, 'the standard ones come first');
     if (q.length === 4 && std.length < 4) assert.equal(q[std.length][0], 'What is the risk in this clause?');
   });
@@ -135,7 +135,7 @@ describe('f523 (4) a standard question is not a question to Copilot', () => {
     const card = [...p.doc.querySelectorAll('#ce-lane .ce-card')].pop();
     assert.ok(card, 'a Suggested wording card');
     assert.match(card.querySelector('.n').textContent, /Suggested wording/);
-    assert.match(card.querySelector('.chip').textContent, /Our standard/i);
+    assert.match(card.querySelector('.chip').textContent, /Our position/i);
     assert.match((card.querySelector('.r') || {}).textContent || '', /\S/, 'with its reason');
     assert.ok(/class="ce-you"/.test(p.doc.querySelector('#ce-lane').innerHTML), 'and the press reads as the reader\'s turn');
     card.querySelector('[data-ce-apply]').click();

@@ -97,8 +97,11 @@ const ID = 'MK-DBJ1';
     /* RE-POINTED 24 Oct 2026: the one door opens on the three most used */
     await waitFor(page, () => !!document.querySelector('#na-closest .na-pick'), 6000);
     await page.click('#na-closest .na-pick');
-    await waitFor(page, () => !!document.querySelector('#na-root input[placeholder="Full registered name"]'), 6000);
-    await page.fill('#na-root input[placeholder="Full registered name"]', 'Brookside Dairy Ltd');
+    /* RE-POINTED 22 Nov 2026 (P-36, New agreement as drawn): an empty box reads "not said yet" (or "—"); the paper's own
+       example ("Full registered name") moved to the box's hover (its title), so the box is found there */
+    const CP = '#na-root input:is([placeholder="Full registered name"], [title="Full registered name"])';
+    await waitFor(page, s => !!document.querySelector(s), 6000, CP);
+    await page.fill(CP, 'Brookside Dairy Ltd');
     await page.evaluate(() => { const s = document.querySelector('#na-root select[data-na-stream], #na-root select'); const o = s && [...s.options].find(x => x.value);
       if (o){ s.value = o.value; s.dispatchEvent(new Event('change', { bubbles: true })); } });
     const n0 = await page.evaluate(() => state.contracts.length);
@@ -111,6 +114,10 @@ const ID = 'MK-DBJ1';
     console.log('\n4 · Jambo\'s own two rows');
     const ask = async q => {
       await goPlace('contracts');
+      /* WAIT FOR THE MOVE, NOT ONLY FOR A BOX (20 Nov 2026): Settings has Jambo's box too, so the old wait could pass
+         while Settings still stood with the last answer's row lit, and the next answer was read off that stale light
+         (4b and 4c both read the 4a row, sdd-work). The page has left Settings before the next question is asked. */
+      await waitFor(page, () => state.view !== 'team' && !document.querySelector('.is-landed') ? true : null, 6000);
       await waitFor(page, () => !!document.querySelector('#ig-dock textarea'), 6000);
       /* RE-PINNED 27 Oct 2026 (owner: "roll out the jambo capabilities from the board's jambo to all the jambos"): typed on
          Jambo's tab the words go to the AI; these are the free readers, so they type under Overview */
@@ -119,12 +126,17 @@ const ID = 'MK-DBJ1';
       return waitFor(page, () => { const l = document.querySelector('.is-landed'); return state.view === 'team' && l ? l.id : null; }, 6000);
     };
     const r1 = await ask('take me to my settings for jambo');
-    check('4a "take me to my settings for jambo" lands on How you like to work', r1 === 'st-you-work', String(r1));
+    /* RE-POINTED 16 Nov 2026 (#762): the new Settings list draws Jambo's own settings as one row, "Jambo's agents" (#stn-agents) */
+    check('4a "take me to my settings for jambo" lands on Jambo\'s own settings row', r1 === 'st-you-work' || r1 === 'sdd-work' || r1 === 'sdd-agents-mine', String(r1));
     await page.screenshot({ path: path.join(OUT, 'jambo-settings-1440x780.png') });
     const r2 = await ask('take me to jambo points');
-    check('4b "take me to jambo points" lands on Jambo\'s points', r2 === 'st-you-points', String(r2));
+    /* RE-POINTED 17 Nov 2026 (#762): the new Settings list keeps Jambo's points with his agents (#stn-agents, whose door is
+       the house where Change points stands) */
+    check('4b "take me to jambo points" lands on Jambo\'s points', r2 === 'st-you-points' || r2 === 'sdd-points', String(r2));
     const r3 = await ask('take me to the language settings');
-    check('4c without his name, "the language settings" stays Language', r3 === 'st-you-lang', String(r3));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762); 19 Nov 2026 (Settings, door to door, f1091): the
+       rows are the You area's — How you like to work #sdd-work, Jambo's points #sdd-points, Language #sdd-lang */
+    check('4c without his name, "the language settings" stays Language', r3 === 'st-you-lang' || r3 === 'sdd-lang', String(r3));
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {
     check('the run finished', false, e && e.stack);

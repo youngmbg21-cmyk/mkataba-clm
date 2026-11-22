@@ -58,24 +58,28 @@ async function bench(){
 const daysAgo = n => { const d = new Date(); d.setDate(d.getDate() - n); d.setHours(12, 0, 0, 0); return d.toISOString(); };
 
 describe('f1032 — the Notes drawer is a Thread', () => {
-  test('(1)(2) a face, the clock beside the name, and a line per day', async () => {
+  /* RE-POINTED 21 Nov 2026 (P-38, owner: "i am choosing the stripe way" for Notes, one and the same screen in the bell
+     and in Redlines): the list is ONE CALM ROW PER THREAD (rlNpCompactHtml) — the clause, a state badge, the last
+     message with its writer's face and clock, "N earlier · show"; a press opens the discussion in the same panel, where
+     the Thread's faces, clocks and verbs stand as before. The day lines left the list (each row carries its clock). */
+  const open = async (h, re) => { const b = [...h.querySelectorAll('.rl-np-crow')].find(x => !re || re.test(x.textContent)); b.click(); await tick(); return h; };
+  test('(1)(2) a row per thread, a face and the clock on its last message; opened, the Thread as before', async () => {
     const p = await bench();
     p.post('Older.', MATE.name); p.post('Newer.');
     p.c.thread[0].at = daysAgo(1); p.c.thread[1].at = daysAgo(0);
     const h = p.paint();
+    const rows = [...h.querySelectorAll('.rl-np-crow')];
+    assert.equal(rows.length, 2);
+    assert.equal(rows[0].querySelector('.rl-np-av').textContent, 'WK', 'initials on the face');
+    assert.match(INDEX, /\.rl-chat\.is-stripe \.rl-np-day\{display:none\}/, 'no day lines in the calm list: each row carries its clock');
+    assert.match(rows[1].querySelector('.rl-np-cl .t').textContent, /·/, 'the clock beside the last message');
+    await open(h, /Newer/);
     const notes = [...h.querySelectorAll('.rl-np-note')];
-    assert.equal(notes.length, 2);
-    assert.equal(notes[0].querySelector('.rl-np-av').textContent, 'WK', 'initials on the face');
-    const days = [...h.querySelectorAll('.rl-np-day')].map(d => d.textContent.trim());
-    assert.deepEqual(days, ['Yesterday', 'Today'], 'one line per day, in the list\'s order');
-    const when = notes[1].querySelector('.rl-np-top span');
-    assert.doesNotMatch(when.textContent, /20\d\d/, 'the clock alone beside the name');
-    assert.match(when.getAttribute('title'), /20\d\d/, 'and the full stamp on the hover');
-    /* two notes on one day share one line */
-    p.c.thread[0].at = daysAgo(0);
-    assert.equal(p.paint().querySelectorAll('.rl-np-day').length, 1);
+    assert.equal(notes.length, 1, 'opened: that thread alone');
+    assert.ok(h.querySelector('[data-rl-np-back]'), 'and the way back to all notes');
     /* a caller that names no day still draws the full stamp */
     assert.match(p.w.win.rlNpNoteHtml(p.c.thread[1], 'internal', 'owner', ''), /<span title="[^"]*">[^<]*20\d\d/);
+    p.w.win.rlNotesPanelClosed();
   });
 
   test('(3)(4) the chips: no chip with only open notes; Yours and Done listed when they hold something; no fold', async () => {
@@ -83,22 +87,25 @@ describe('f1032 — the Notes drawer is a Thread', () => {
     p.post('One.'); p.post('Two.', MATE.name); p.post('Three.');
     let h = p.paint();
     assert.equal(h.querySelectorAll('.rl-np-chip').length, 0, 'nothing to choose, no chip');
-    assert.ok(h.querySelector('.rl-np-scope .rl-np-sort'), 'the order is still said');
     p.c.thread[1].given = { id: ME.id, name: ME.name, due: null };
     p.c.thread[2].done = { at: daysAgo(0), by: ME.name };
     h = p.paint();
     const chips = () => [...h.querySelectorAll('.rl-np-chip')].map(b => b.textContent.replace(/\s+/g, ' ').trim());
-    assert.deepEqual(chips(), ['Open 2', 'Yours 1', 'Done 1']);
-    assert.equal(h.querySelectorAll('.rl-np-thread').length, 2, 'Open lists the open threads');
+    /* RE-POINTED 22 Nov 2026 (review of merged pages): the chip is named as P-38 draws it, "Asks you" */
+    assert.deepEqual(chips(), ['Open 2', 'Asks you 1', 'Done 1']);
+    assert.equal(h.querySelectorAll('.rl-np-crow').length, 2, 'Open lists the open threads');
     assert.equal(h.querySelector('[data-rl-np-donefold]'), null, 'the fold is gone from the drawer');
-    assert.match(h.querySelector('.rl-np-given.is-you').textContent, /Given to you/);
+    assert.ok(h.querySelector('.rl-np-st.is-ask'), 'the one given to you says "Asks you" in amber');
     h.querySelector('[data-rl-np-show="done"]').click(); await tick();
-    assert.equal(h.querySelectorAll('.rl-np-thread').length, 1);
-    assert.ok(h.querySelector('.rl-np-thread.is-done'), 'Done lists the done thread');
+    assert.equal(h.querySelectorAll('.rl-np-crow').length, 1);
+    assert.ok(h.querySelector('.rl-np-st.is-done'), 'Done lists the done thread');
     assert.equal(h.querySelector('[data-rl-np-show="done"]').getAttribute('aria-pressed'), 'true');
     h.querySelector('[data-rl-np-show="mine"]').click(); await tick();
-    assert.equal(h.querySelectorAll('.rl-np-thread').length, 1);
-    assert.match(h.querySelector('.rl-np-thread').textContent, /Two\./);
+    assert.equal(h.querySelectorAll('.rl-np-crow').length, 1);
+    assert.match(h.querySelector('.rl-np-crow').textContent, /Two\./);
+    await open(h, /Two\./);
+    assert.match(h.querySelector('.rl-np-given.is-you').textContent, /Given to you/, 'opened, who it is given to is said');
+    h.querySelector('[data-rl-np-back]').click(); await tick();
     /* a pile that empties falls back to Open */
     delete p.c.thread[1].given;
     h = p.paint();
@@ -110,7 +117,7 @@ describe('f1032 — the Notes drawer is a Thread', () => {
   test('(5) the verbs are drawn, keep their word and their attribute, and still act', async () => {
     const p = await bench();
     p.post('Root.');
-    const h = p.paint();
+    const h = await open(p.paint());
     const bar = h.querySelector('.rl-np-note > .rl-np-acts');
     assert.ok(bar, 'the verbs sit on the note');
     for (const a of ['data-rl-np-reply', 'data-rl-np-done', 'data-rl-np-seen', 'data-rl-np-give', 'data-rl-np-delete']){

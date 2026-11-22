@@ -162,11 +162,14 @@ describe('f743 (3) the page as drawn', () => {
   });
   /* RE-POINTED 21 Oct 2026 (the SAP way): a row of the one table — Time · Who · Side · What happened · Outcome */
   test('3d a row: the time, the person, the side, what happened, the outcome; the kind and round on the time\'s hover; the fingerprint only with the wording', () => {
-    assert.match(H, /<span class="hist-c hist-c-time" role="cell">\$\{when\}<\/span><span class="hist-c hist-c-who" role="cell">\$\{whoCell\}<\/span><span class="hist-c hist-c-side" role="cell">\$\{sideW\}<\/span>/);
-    assert.match(H, /<span class="hist-c hist-c-oc hist-oc" role="cell">\$\{ocW\}<\/span>/);
+    /* RE-POINTED (P-44, owner's pick 21 Nov 2026: History the Legora + Stripe way): Time · Who · What happened · Kind ·
+       Outcome — the side is said by who (histLaneOf still on the row), the kind and the outcome are soft badges */
+    assert.match(H, /<span class="hist-c hist-c-time" role="cell">\$\{when\}<\/span><span class="hist-c hist-c-who" role="cell">\$\{whoCell\}<\/span>/);
+    assert.match(H, /<span class="hist-c hist-c-kind" role="cell">\$\{kindB\}<\/span><span class="hist-c hist-c-oc hist-oc" role="cell">\$\{ocB\}<\/span>/);
     assert.match(H, /const whenTip=\[m\.mark,\(e\.round!=null&&e\.round!==''\)\?i18t\('ct_round_n',\{n:e\.round\}\):'',fpTip\]/);
     assert.ok(!/hist-meta">\$\{also\}/.test(H) && !/rchip/.test(H), 'no fingerprint line, no round chip');
-    assert.match(H, /<div class="hist-text">\$\{whatT\}\$\{named\?'':cl\}<\/div>/);
+    /* RE-POINTED 22 Nov 2026 (P-44 review): the line wears its whole words on its hover (one line, nothing wraps) */
+    assert.match(H, /<div class="hist-text" title="\$\{esc\(said\)\}">\$\{whatT\}\$\{named\?'':cl\}<\/div>/);
   });
 });
 

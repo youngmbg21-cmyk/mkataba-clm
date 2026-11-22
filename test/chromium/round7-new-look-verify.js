@@ -11,8 +11,7 @@
      4 · The Guide: you are here, then the pages by stage, each with the word that opens it; Contracts counts the
          book; every page the Guide had is still on it
      5 · Your week ahead opened under its row: Jambo's panel says what each press does
-   And the switch off:
-     6 · Negotiations, Settings and the Guide are drawn as before
+   (6, the switch off, RETIRED 16 Nov 2026, #762: the new look is the only look)
    At the parent (before this round) 1–5 fail: none of it is drawn.
    Run: node test/chromium/round7-new-look-verify.js   (pictures: ROUND7_SHOTS=<dir>) */
 const fs = require('node:fs');
@@ -44,25 +43,41 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   /* 1 · Negotiations */
   try {
     await page.evaluate(() => caGo({ kind: 'go', place: 'negotiations' }));
-    const up = await until(page, () => document.querySelectorAll('.ngn-page [data-ngn-row]').length >= 4, null, 15000);
+    /* RE-POINTED 21 Nov 2026 (P-29, as drawn): Live is what is still argued — the two settled deals are on Settled alone, so Live's chip (2) is
+       the list behind it */
+    const up = await until(page, () => document.querySelectorAll('.ngn-page [data-ngn-row]').length >= 2, null, 15000);
     const R = up ? await page.evaluate(() => ({
       heads: [...document.querySelectorAll('.ngn-table thead th')].map(t => t.innerText.trim().toLowerCase()),
-      rows: [...document.querySelectorAll('[data-ngn-row]')].map(r => ({ id: r.getAttribute('data-ngn-row'), cls: r.className, t: r.innerText.replace(/\s+/g, ' ') })),
+      /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): whose move is a soft badge
+         (.apn-st), Open asks a count of theirs (td.ngn-n), the first ask's words + § on one line in the agreement cell (.ngn-ql) */
+      rows: [...document.querySelectorAll('[data-ngn-row]')].map(r => ({ id: r.getAttribute('data-ngn-row'), cls: r.className, t: r.innerText.replace(/\s+/g, ' '),
+        badge: ((r.querySelector('.apn-st') || {}).textContent || '').trim(), n: ((r.querySelector('td.ngn-n') || {}).textContent || '').trim(),
+        ql: ((r.querySelector('.ngn-ql') || {}).textContent || '').replace(/\s+/g, ' ').trim() })),
       tabs: [...document.querySelectorAll('[data-ngn-tab]')].map(b => b.innerText.replace(/\s+/g, ' ').trim()),
       panel: (document.querySelector('#ins-panel .ngn-panel') || {}).innerText || '',
       tabN: ((document.querySelector('#ins-panel [data-jl-n]') || {}).textContent || '').trim() })) : null;
     await shot('1-negotiations');
     const first = R && R.rows[0];
-    check('1a Negotiations: six columns, the tabs with their counts', !!R && R.heads.join('|') === 'agreement|round|whose move|open asks|lead|last'
+    /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): Agreement · Whose move · Rounds ·
+       Open asks · Lead · Waiting · the act (its head empty) */
+    check('1a Negotiations: six named columns and the act, the tabs with their counts', !!R && R.heads.join('|') === 'agreement|whose move|rounds|open asks|lead|waiting|'
       && R.tabs.join('|') === 'Live 2|Your move 1|Their move 1|Settled 2', R && { heads: R.heads, tabs: R.tabs });
     check('1b your move lifted and chosen first, their words quoted with their §; settled faded below', !!first && first.id === 'MK-IT' && /is-yours/.test(first.cls) && /is-sel/.test(first.cls)
-      && /within 60 days/.test(first.t) && /§ 5/.test(first.t) && /§ 26/.test(first.t) && /Their 2/.test(first.t) && /Yours ·/.test(first.t)
-      && R.rows[1].id === 'MK-A2' && /Ours 1/.test(R.rows[1].t) && /Theirs ·/.test(R.rows[1].t)
-      && R.rows.slice(2).every(r => /is-settled/.test(r.cls)), R && R.rows.map(r => r.id + ' ' + r.t.slice(0, 80)));
+      /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): was every ask quoted in the row
+         with "Their 2" / "Yours ·" — the row quotes the FIRST ask with its § on one line, counts 2 open asks, and says
+         "Your move" in its badge; Nandi's row says "Their move" (the asks both §s are asked of the panel, 1c) */
+      && /“.+”/.test(first.ql) && /§ (5|26)\b/.test(first.ql) && first.n === '2' && first.badge === 'Your move'
+      && R.rows[1].id === 'MK-A2' && R.rows[1].badge === 'Their move'
+      /* RE-POINTED 21 Nov 2026 (P-29, as drawn): no settled row on Live (they are on Settled, 1f) */
+      && R.rows.length === 2 && !R.rows.some(r => /is-settled/.test(r.cls)), R && R.rows.map(r => r.id + ' ' + r.badge + ' ' + r.n + ' ' + r.ql.slice(0, 60) + ' · ' + r.t.slice(0, 80)));
     /* RE-POINTED (owner, 16 Nov 2026: "the side panel information should reflect the contract you have pressed"): the
        panel is the chosen round alone — its name the headline, its asks, its desk, its one black button; another
        round's chase is no longer on it */
-    check('1c the panel is the chosen row: its name, their asks, the desk, Open the redlines, nothing of another round; its tab counts the live', !!R && /Their asks/.test(R.panel) && /Amina leads · Wanjiru contributes/.test(R.panel)
+    /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): the chosen deal's panel has no
+       desk line, no tiles and no money — its whose-move tag, Round and Open asks, their asks quoted with their § (§ 5 and
+       § 26, the payment ask's words), its act */
+    check('1c the panel is the chosen row: its name, whose move, Open asks, their asks with their §, Open the redlines, no money, nothing of another round; its tab counts the live', !!R && /Their asks/.test(R.panel)
+      && /your move/i.test(R.panel) && /open asks/i.test(R.panel) && /within 60 days/.test(R.panel) && /§ 5\b/.test(R.panel) && /§ 26\b/.test(R.panel) && !/\b(KES|SEK|EUR|USD)\s?[\d.]+/.test(R.panel)
       && /Open the redlines/.test(R.panel) && !/Nandi Dairy/.test(R.panel) && R.tabN === '2', R && { panel: R.panel.slice(0, 300), tabN: R.tabN });
     /* NOTHING SPILLS: at the iPad's width the list and its tabs end before Jambo's panel starts */
     await page.setViewportSize({ width: 1366, height: 950 });
@@ -74,29 +89,47 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     await page.click('[data-ngn-tab="them"]');
     const them = await until(page, () => { const r = [...document.querySelectorAll('[data-ngn-row]')]; return r.length === 1 && r[0].getAttribute('data-ngn-row') === 'MK-A2'; }, null, 5000);
     check('1d Their move: Nandi alone', them);
+    /* RE-POINTED 21 Nov 2026 (P-29, as drawn): the two settled deals on Settled, each with its green Settled badge */
+    await page.click('[data-ngn-tab="settled"]');
+    const settled = await until(page, () => { const r = [...document.querySelectorAll('[data-ngn-row]')]; return r.length === 2 && r.every(x => /is-settled/.test(x.className) && /Settled/.test((x.querySelector('.apn-st.is-green') || {}).textContent || '')); }, null, 5000);
+    check('1f Settled: the two settled deals, a green Settled badge each', settled);
     await page.click('[data-ngn-tab="live"]');
   } catch (e) { check('1 Negotiations', false, String(e).slice(0, 200)); }
 
   /* 2 · Settings & rules */
   try {
+    /* RE-POINTED (P-11, 17 Nov 2026: "build it with the Dossier card"): Settings opens on six areas; Review before
+       sending is a row in Rules, its sentence saying what it is set to and what it gates */
     await page.evaluate(() => setView('team'));
-    const up = await until(page, () => !!document.querySelector('.stn-page #stn-review'), null, 15000);
-    const S = up ? await page.evaluate(() => ({
-      title: (document.querySelector('.stn-title') || {}).textContent || '',
-      rows: [...document.querySelectorAll('[data-stn-row]')].map(r => r.getAttribute('data-stn-row')),
-      menu: [...document.querySelectorAll('#stn-main .stn-chip, #stn-pages .stn-pg')].map(b => (b.childNodes[0].textContent || '').trim()),
-      review: (document.getElementById('stn-review') || {}).innerText || '',
+    const up0 = await until(page, () => document.querySelectorAll('#stn-main [data-sdd-home]').length === 6, null, 15000);
+    const L = up0 ? await page.evaluate(() => ({ title: (document.querySelector('.stn-title') || {}).textContent || '',
+      areas: [...document.querySelectorAll('[data-sdd-home]')].map(r => r.getAttribute('data-sdd-home')),
       head: !!document.querySelector('#page-head .ph-card:not([hidden])') })) : null;
-    check('2a Settings & rules, the Legora way (13 Nov 2026): the rows by area, the area chips, the pages at the foot, no second head', !!S && /Settings & rules/.test(S.title)
-      && ['name', 'lang', 'approvals', 'review', 'signcap', 'linkcode', 'rates', 'mail'].every(k => S.rows.includes(k))
-      && ['All', 'You', 'Security', 'Rules', 'Money', 'Messages', 'People & roles', 'Trail'].every(w => S.menu.includes(w)) && !S.head, S);
-    check('2b a setting says its state and what it gates', !!S && /Off/.test(S.review) && /gates sending, never signing/.test(S.review), S && S.review);
+    check('2a Settings, door to door: the six areas, the find box, no second head', !!L && /^Settings/.test(L.title)
+      && JSON.stringify(L.areas) === JSON.stringify(['you', 'company', 'rules', 'jambo', 'mail', 'setup']) && !!(await page.$('#sdd-q')) && !L.head, L);
+    await page.evaluate(() => sddGo('rules'));
+    const up = await until(page, () => !!document.querySelector('.stn-page #sdd-review'), null, 8000);
+    const S = up ? await page.evaluate(() => ({ review: (document.getElementById('sdd-review') || {}).innerText || '' })) : null;
+    check('2b a setting says its state and what it gates', !!S && /Off/.test(S.review) && /holds sending only/.test(S.review), S && S.review);
+    await page.evaluate(() => sddGo(null));
 /* RE-POINTED 15 Nov 2026 (owner: Jambo's panels "Build as drawn", the five parts): the panel is the five-part builder's now */ 
     await until(page, () => /Jambo's lessons/i.test((document.querySelector('#ins-panel .jov5[data-jov-slot="stn"]') || {}).innerText || ''), null, 8000);
     const P = await page.evaluate(() => (document.querySelector('#ins-panel .jov5[data-jov-slot="stn"]') || {}).innerText || '');
     await shot('2-settings');
-    check('2c the panel: Needs an admin, Ask an admin, Jambo\'s lessons with the three phrases', /Needs an admin/i.test(P) && /Ask an admin/.test(P) && /money page/.test(P) && /who signs/.test(P) && /Teach me the door/.test(P) /* the lessons row is the door now */, P.slice(0, 400));
-    await page.click('#stn-review [data-st-panel="review"]');
+    /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+    /* what needs an admin is "N things need you" with its rows under "Needs you"; ASK AN ADMIN is shown only to a person
+       who is not one — RETIRED for this admin (a fault the owner logged 21 Nov 2026: an admin's panel carried it), so
+       its absence is asserted instead */
+    check('2c the panel: what needs you, no Ask an admin for an admin, Jambo\'s lessons with the three phrases', /needs? you/i.test(P) && !/Ask an admin/.test(P) && /money page/.test(P) && /who signs/.test(P) && /Teach me the door/.test(P) /* the lessons row is the door now */, P.slice(0, 400));
+    await page.evaluate(() => sddGo('rules'));
+    /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+    /* no Change button on the row: the first press on Review before sending chooses it, the second goes in through its
+       own door (kept on the row, unseen) */
+    if ((await page.getAttribute('#sdd-review', 'aria-pressed').catch(() => null)) !== 'true') {
+      await page.click('#sdd-review .sdd-t');
+      await until(page, () => { const r = document.getElementById('sdd-review'); return !!r && r.getAttribute('aria-pressed') === 'true'; }, null, 3000);
+    }
+    await page.click('#sdd-review .sdd-t');
     const dr = await until(page, () => { const d = document.getElementById('st-drawer'); return !!d && !d.hidden; }, null, 5000);
     check('2d a Change opens today\'s drawer', dr);
     const still = await page.evaluate(() => { const m = document.getElementById('stn-main'); return m ? m.scrollLeft : -1; });
@@ -112,7 +145,8 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     if (!home) check('3 the Board is in front', false);
     await page.evaluate(() => openPanel('alerts'));
     const up = await until(page, () => !!document.querySelector('#context-panel .ndb .ndb-r'), null, 8000);
-    const A = up ? await page.evaluate(() => ({ head: (document.querySelector('.ndb .ndb-h') || {}).textContent || '', bell: Number(counterNeedsCount()),
+    /* RE-POINTED 21 Nov 2026 (P-38, the Legora + Stripe way): the head is the All chip, counting the bell's own number */
+    const A = up ? await page.evaluate(() => ({ head: 'needs you · ' + (((document.querySelector('.ndb [data-ndb-chip="all"] span') || {}).textContent) || ''), bell: Number(counterNeedsCount()),
       rows: [...document.querySelectorAll('.ndb .ndb-r:not(.is-news)')].map(r => r.querySelectorAll('.ndb-open').length),
       tab: ((document.querySelector('[data-pt-face="alerts"] .pt-n') || {}).textContent || '').trim() })) : null;
     await shot('3-alerts');
@@ -120,39 +154,25 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
       && A.rows.length > 0 && A.rows.every(n => n === 1) && A.tab === String(A.bell), A);
   } catch (e) { check('3 The bell', false, String(e).slice(0, 200)); }
 
-  /* 4 · The Guide */
+  /* 4 · The Guide — RE-POINTED 21 Nov 2026 (P-38, owner: "delete the guide since we have the nav panel"): the Guide's door
+     opens the nav panel, the Guide's pages by stage; the side panel has no Guide face. RE-POINTED 22 Nov 2026: the owner had P-37's panel at the left reverted; it is the window in the middle again. */
   try {
     await page.evaluate(() => openPanel('guide'));
-    const up = await until(page, () => !!document.querySelector('#context-panel .gdn'), null, 8000);
-    const G = up ? await page.evaluate(() => ({ heads: [...document.querySelectorAll('.gdn-h')].map(h => h.textContent.trim().toLowerCase()),
-      keys: [...document.querySelectorAll('.gdn [data-gd-go]')].map(b => b.getAttribute('data-gd-go')),
-      want: GUIDE_STAGES.flatMap(s => s.rows).filter(k => k !== 'import' || typeof caMayAdd !== 'function' || caMayAdd()).concat(['flowmap', 'handbook', 'settings']),
-      contracts: (([...document.querySelectorAll('.gdn-r')].find(r => r.querySelector('[data-gd-go="contracts"]')) || {}).innerText || '').replace(/\s+/g, ' '),
-      book: state.contracts.filter(c => !c.archived).length })) : null;
+    const up = await until(page, () => !!document.querySelector('#cmd-palette .lp-p'), null, 8000);
+    const G = up ? await page.evaluate(() => ({ heads: [...document.querySelectorAll('#cmd-palette .lp-st h5')].map(h => h.textContent.trim().toLowerCase()),
+      keys: [...document.querySelectorAll('#cmd-palette [data-lp-go]')].map(b => b.getAttribute('data-lp-go')),
+      want: GUIDE_STAGES.flatMap(s => s.rows).filter(k => k !== 'import' || typeof caMayAdd !== 'function' || caMayAdd()).concat(['handbook', 'settings']),
+      tab: !!document.querySelector('[data-pt-face="guide"]') })) : null;
     await shot('4-guide');
-    check('4a the Guide: you are here, then the stages', !!G && G.heads.join('|') === 'you are here|arrive|negotiate · sign|live|the book', G && G.heads);
-    check('4b each row says its word; Contracts counts the book; no page the Guide had is lost', !!G && new RegExp('Say “contracts”.*' + G.book + '$').test(G.contracts)
-      && G.want.every(k => G.keys.includes(k)), G && { contracts: G.contracts, missing: G.want.filter(k => !G.keys.includes(k)) });
-    await page.evaluate(() => closeContextPanel());
+    check('4a the Guide\'s door opens the nav panel, the stages as its heads', !!G && G.heads.length >= 4 && !G.tab, G && G.heads);
+    check('4b no page the Guide had is lost', !!G && G.want.every(k => G.keys.includes(k)), G && { missing: G.want.filter(k => !G.keys.includes(k)) });
+    await page.keyboard.press('Escape');
   } catch (e) { check('4 The Guide', false, String(e).slice(0, 200)); }
 
   /* 5 RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): "Your week ahead" opened from Home's list into
      Home's panel; with Home gone it is a piece on the Board's card, opened in its row (counter-as-drawn-verify 11d) */
 
-  /* 6 · the switch off */
-  try {
-    await page.evaluate(async () => { await stPrefSet('newLook', false); newLookApply(); caGo({ kind: 'go', place: 'negotiations' }); });
-    await until(page, () => state.view === 'redline', null, 8000);
-    await page.waitForFunction(() => !document.querySelector('.ngn-page') && !!document.querySelector('#content [data-reg-nego], #content .ngl-wrap, #content .reg-table, #content table'), null, { timeout: 8000 }).catch(() => {});
-    const n = await page.evaluate(() => !document.querySelector('.ngn-page'));
-    await page.evaluate(() => setView('team'));
-    await until(page, () => !!document.getElementById('set-page'), null, 8000);
-    const s = await page.evaluate(() => !document.querySelector('.stn-page'));
-    await page.evaluate(() => openPanel('guide'));
-    await until(page, () => !!document.querySelector('#context-panel .gd, #context-panel .gdn'), null, 8000);
-    const g = await page.evaluate(() => !!document.querySelector('#context-panel .gd') && !document.querySelector('#context-panel .gdn'));
-    check('6 the switch off: Negotiations, Settings and the Guide as before', n && s && g, { n, s, g });
-  } catch (e) { check('6 the switch off', false, String(e).slice(0, 200)); }
+  /* RETIRED 16 Nov 2026 (#762): 6 "the switch off: as before" — there is no switch; the new look is the only look */
 
   await browser.close(); await h.stop();
   console.log(fails ? `\n${fails} FAILED` : '\nall passed');

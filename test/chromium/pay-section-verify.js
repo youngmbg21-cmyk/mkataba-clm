@@ -107,11 +107,25 @@ const untilServer = async (page, ok, ms = 8000) => {
     const dealPay = await P.evaluate(() => { try { if (typeof closeModal === 'function') closeModal(); } catch (_){} return payEditOpen('MK-A2'); });
     check(dealPay === false && !(await P.$('.pd2-pay[data-bs-cid="MK-A2"]')), '2b a deal has no pay: Edit pay does not open for it', String(dealPay));
     await P.evaluate(() => { setView('register'); regPlaceSet({ show: 'list' }); regRepaint(); });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its Folders; every contract's row
+       is its All tab */
+    await until(P, () => !!document.querySelector('[data-ctf-tab="all"]'), null, 8000);
+    await P.evaluate(() => { const b = document.querySelector('[data-ctf-tab="all"]:not(.is-on)'); if (b) b.click(); });
     const listed = await until(P, () => [...document.querySelectorAll('tr')].some(r => /MK-E1/.test(r.innerText)), null, 10000);
     const row = await P.evaluate(() => { const r = [...document.querySelectorAll('tr')].find(x => /MK-E1/.test(x.innerText)); return r ? r.innerText : ''; });
     check(listed && !/420/.test(row) && /—/.test(row), '2c the Contracts list\'s value cell is a dash', row.replace(/\s+/g, ' ').slice(0, 160));
-    const placeHead = await P.evaluate(() => (document.querySelector('[data-reg-home]') || document.body).innerText.match(/KES [\d.,]+[KMB]? on paper/));
-    check(!!placeHead && /247M/.test(placeHead[0]), '2d the place\'s head adds the deals alone', placeHead && placeHead[0]);
+    /* RE-POINTED 20 Nov 2026 (the owner, 19 Nov 2026: "delete the words beside the header name because they are
+       pushing the buttons to the right"): a folder's list head no longer carries the "N · KES … on paper" facts
+       line, so the money on paper is read where the place still says it — the Folders head the list's
+       "‹ Folders" goes back to (regFoldersHeadHtml off regFolderRead, which leaves pay out) */
+    /* RE-POINTED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way; MONEY IS NEVER A BIG PART OF A
+       PAGE): the Folders head carries no facts and the landing no money card, so no head on the place says a sum any
+       more. What 2d guarded — that the place's ONE reading of a set's money leaves pay out — is asked of that reading
+       itself (regFolderRead, over the same live book the head summed), which still counts each folder's money */
+    await P.evaluate(() => { const b = document.querySelector('[data-ctf-back]'); if (b) b.click(); });
+    const placeSum = await P.evaluate(() => { if (typeof regFolderRead !== 'function') return null;
+      const r = regFolderRead((state.contracts || []).filter(c => c && !c._codeNamed && !c.archived)); return r ? r.val : null; });
+    check(placeSum === 48000000 + 36000000 + 85000000 + 78000000, '2d the place\'s reading of the money adds the deals alone', String(placeSum));
     await P.evaluate(() => { regPlaceSet({ show: 'wall' }); });
 
     /* ============ 3. EDIT PAY ============ */

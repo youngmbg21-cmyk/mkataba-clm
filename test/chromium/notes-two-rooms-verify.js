@@ -139,7 +139,7 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
         onScreen: !!(r && r.width > 0 && r.right <= innerWidth + 1 && r.left < innerWidth),
         title: (document.getElementById('panel-title') || {}).textContent,
         rooms: [...document.querySelectorAll('[data-rl-np-room]')].map(t => t.textContent.replace(/\s+/g, ' ').trim()),
-        live: (document.querySelector('.rl-np-tab.on') || {}).textContent,
+        live: (document.querySelector(':is(.rl-np-tab, .rl-np-room).on') || {}).textContent,
         box: !!document.querySelector('.rl-np-in'),
         dlgGone: !document.getElementById('rl-note-overlay'),
       };
@@ -186,7 +186,7 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       /* READ OFF THE RECORD, never typed: the fixture takes whichever contract
          the seeded workspace offers, so its counterparty is not ours to know. */
       cp: ((state.contracts || []).find(x => String(x.id) === String(state.activeId)) || {}).counterparty || '',
-      live: (document.querySelector('.rl-np-tab.on') || {}).textContent,
+      live: (document.querySelector(':is(.rl-np-tab, .rl-np-room).on') || {}).textContent,
     }));
     check('the internal room holds the internal note', /fallback is thirty/.test(roomA));
     check('and NOT the shared one', !/rebate stands/.test(roomA));
@@ -264,8 +264,9 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       negoPostComment(c, null, 'Does our insurance actually cover this?',
         { side: 'owner', author: currentUser().name, visibility: 'internal' });
       openNotesPanel(c.id, null, { force: true });
-      return new Promise(r => setTimeout(() => r({ ok: true, mate: who[0].name,
-        buttons: document.querySelectorAll('#context-panel [data-rl-np-give]').length }), 700));
+      /* RE-POINTED 21 Nov 2026 (P-38, Notes the Stripe way): a row per discussion; the note's acts stand in it once opened */
+      return new Promise(r => setTimeout(() => { const row = [...document.querySelectorAll('#context-panel .rl-np-crow')].find(b => /insurance/.test(b.textContent)); if (row) row.click();
+        setTimeout(() => r({ ok: true, mate: who[0].name, buttons: document.querySelectorAll('#context-panel [data-rl-np-give]').length }), 400); }, 500));
     });
     check('the Give to… button is drawn on a note in the drawer',
       giveSetup.ok && giveSetup.buttons >= 1, giveSetup.why || ('found ' + giveSetup.buttons));
@@ -341,9 +342,10 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     const seen0 = await page.evaluate(() => {
       const c = (state.contracts || []).find(x => String(x.id) === String(state.activeId));
       openNotesPanel(c.id, null, { force: true });
-      return new Promise(r => setTimeout(() => r({
+      /* RE-POINTED 21 Nov 2026 (P-38): the discussion opened first, where its notes and their ticks stand */
+      return new Promise(r => setTimeout(() => { const row = document.querySelector('#context-panel .rl-np-crow'); if (row) row.click(); setTimeout(() => r({
         ticks: document.querySelectorAll('#context-panel [data-rl-np-seen]').length,
-        said: document.querySelectorAll('#context-panel .rl-np-seenby').length }), 600));
+        said: document.querySelectorAll('#context-panel .rl-np-seenby').length }), 400); }, 500));
     });
     check('the Seen tick is drawn on the notes in the drawer',
       seen0.ticks >= 1, 'ticks: ' + seen0.ticks);
@@ -486,10 +488,11 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
           .replace(/\s+/g, ' ').trim()),
         text: (document.querySelector('.rl-chat') || {}).textContent
           ? document.querySelector('.rl-chat').textContent.replace(/\s+/g, ' ') : '',
-        panel: !!document.querySelector('#context-panel .rl-np.rl-chat .rl-np-which'),
+        /* RE-POINTED 21 Nov 2026 (P-38 rebuilt as drawn): no band naming the contract over the panel's notes */
+        panel: !!document.querySelector('#context-panel .rl-np.rl-chat'),
         tabs: document.querySelectorAll('#context-panel [data-rl-np-room]').length,
         who: !!document.querySelector('#context-panel .rl-chat .rl-np-who'),
-        scope: !!document.querySelector('#context-panel .rl-chat .rl-np-scope'),
+        scope: !!document.querySelector('#context-panel .rl-chat :is(.rl-np-scope, .rl-np-rooms)'),
         box: !!document.querySelector('#context-panel .rl-np-in') };
     });
     check('THE PRESS OPENS CHAT — not a dead press', chat.open === true);
@@ -521,9 +524,10 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     await page.waitForTimeout(500);
     check('pressing the panel button over Chat closes the drawer: one door, the tabs swap faces',
       (await page.evaluate(() => !document.querySelector('#context-panel').classList.contains('open'))) === true);
-    check('pressed again it opens the panel on the Guide',
+    /* RE-POINTED 21 Nov 2026 (P-38): it opens on Alerts, the Guide being the nav panel's */
+    check('pressed again it opens the panel on Alerts',
       (await (async () => { await page.click('#hdr-notify'); await page.waitForTimeout(500);
-        return page.evaluate(() => document.querySelector('#context-panel').classList.contains('open') && panelFace() === 'guide'); })()) === true);
+        return page.evaluate(() => document.querySelector('#context-panel').classList.contains('open') && panelFace() === 'alerts'); })()) === true);
     await page.evaluate(() => closeContextPanel()); await page.waitForTimeout(300);
     /* Back to Chat for the rest of the section. */
     await page.evaluate(() => openNotesPanel(chatContractId(), null, { force: true }));
@@ -565,7 +569,7 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     await page.waitForTimeout(300);
     const ext = await page.evaluate(() => ({
       text: (document.querySelector('.rl-chat') || {}).textContent || '',
-      live: (document.querySelector('.rl-np-tab.on') || {}).textContent }));
+      live: (document.querySelector(':is(.rl-np-tab, .rl-np-room).on') || {}).textContent }));
     check('the external room holds the note that crossed, and not the internal ones',
       /rebate stands/.test(ext.text) && !/fallback is thirty/.test(ext.text),
       (ext.live || '').trim());
@@ -612,7 +616,8 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     const together = await page.evaluate(() => {
       const rows = [...document.querySelectorAll('.rl-chat-row')];
       return { total: rows.length,
-        withRef: rows.filter(r => r.querySelector('.rl-chat-on')).length };
+        /* RE-POINTED 21 Nov 2026 (P-38, Notes the Stripe way): a row about a redline carries its change (data-rl-np-chg) */
+        withRef: rows.filter(r => r.querySelector('.rl-chat-on, [data-rl-np-chg]')).length };
     });
     check('and it sits in ONE list with the redline notes',
       together.total >= 3 && together.withRef >= 2
@@ -718,19 +723,21 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       const who = (window.reviewCandidates ? reviewCandidates(c) : []) || [];
       if (who.length < 2) return { ok: false, why: 'need two colleagues to tag' };
       const ch = (c.changes || [])[0];
-      negoPostComment(c, ch.id, '@' + who[0].name + ' can you look at this?',
+      const m1 = negoPostComment(c, ch.id, '@' + who[0].name + ' can you look at this?',
         { side: 'owner', author: currentUser().name, visibility: 'internal' });
+      /* the second in the same discussion (a reply), so one opened row shows both (P-38) */
       negoPostComment(c, ch.id, '@' + who[1].name + ' and you too please.',
-        { side: 'owner', author: currentUser().name, visibility: 'internal' });
+        { side: 'owner', author: currentUser().name, visibility: 'internal', replyTo: m1 && window.negoNoteKey ? negoNoteKey(m1) : undefined });
       openNotesPanel(c.id);
-      return new Promise(r => setTimeout(() => {
+      /* RE-POINTED 21 Nov 2026 (P-38, Notes the Stripe way): a row per discussion; the tagged words are read in it, opened */
+      return new Promise(r => setTimeout(() => { const row = [...document.querySelectorAll('#context-panel .rl-np-crow')].find(b => /look at this|you too please/.test(b.textContent)); if (row) row.click(); setTimeout(() => {
         const ats = [...document.querySelectorAll('#context-panel .rl-np-at')];
         r({ ok: true, n: ats.length,
           names: ats.map(a => a.textContent),
           weights: ats.map(a => getComputedStyle(a).fontWeight),
           colours: ats.map(a => getComputedStyle(a).color),
-          bodyInk: getComputedStyle(document.querySelector('#context-panel .rl-np-note p')).color });
-      }, 700));
+          bodyInk: (document.querySelector('#context-panel .rl-np-note p') ? getComputedStyle(document.querySelector('#context-panel .rl-np-note p')).color : '') });
+      }, 400); }, 500));
     });
     check('two colleagues were tagged in the drawer', tagged.ok && tagged.n >= 2,
       tagged.why || (tagged.n + ' tags: ' + JSON.stringify(tagged.names)));

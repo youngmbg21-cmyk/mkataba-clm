@@ -910,6 +910,56 @@ function toastPlace(root){
     root.style.left=Math.round(right/2)+'px';
   }catch(e){ /* a stage with no layout keeps the sheet's centre */ }
 }
+/* ---- AN ALERT BELONGS TO THE PAGE IT WAS RAISED ON (owner, 22 Nov 2026) ----
+   An alert knew nothing of where it was raised: it stayed over the next page,
+   a spinner turned for a fixed time whatever the work did, and one limit
+   was said twice. Four small rules, all here so every caller has them:
+   - WHERE: each alert is stamped with the page (and the contract on it); once
+     the reader stands somewhere else it goes. One raised just before the move
+     (TOAST_RIDE_MS) is the move's own confirmation and rides along. An alert
+     with a button or its own dwell was raised to outlive the page and stays.
+   - A WAIT: a busy alert stays until the next alert (its result or its
+     refusal) takes its place, TOAST_BUSY_MS at the longest.
+   - ONE LIMIT, SAID ONCE: after api()'s own limit sentence (opts.limit), a
+     caller's red "unavailable" inside TOAST_LIMIT_MS is the same news again.
+   - A HEADS-UP WITH NOTHING TO PRESS reads as fast as a refusal. */
+const TOAST_RIDE_MS=1200, TOAST_SWEEP_MS=400, TOAST_BUSY_MS=30000, TOAST_LIMIT_MS=1500;
+let _toastSweep=null, _toastLimitAt=0;
+function toastWhere(){
+  try{
+    const st=(typeof state!=='undefined'&&state)||null; if(!st) return '';
+    let k=String(st.view||'');
+    if(k==='dashboard'){
+      try{ if(typeof window.hbS==='function') k+='|'+((window.hbS()||{}).face||''); }catch(_){}
+      try{ const p=typeof window.pdContract==='function'?window.pdContract():null; if(p&&p.id) k+='|'+p.id; }catch(_){}
+    } else if(st.activeId&&(k==='workspace'||k==='doc'||k==='redline')) k+='|'+st.activeId;
+    return k;
+  }catch(e){ return ''; }
+}
+function toastSweepStart(root){
+  if(_toastSweep||typeof setInterval!=='function') return;
+  _toastSweep=setInterval(()=>{
+    try{
+      const kids=[...root.children];
+      if(!kids.length){ clearInterval(_toastSweep); _toastSweep=null; return; }
+      const here=toastWhere(), now=Date.now();
+      kids.forEach(el=>{
+        if(el._tKeep||el._tWhere===undefined||el._tWhere===here) return;
+        if(now-el._tAt>TOAST_RIDE_MS) el.remove(); else el._tWhere=here;
+      });
+    }catch(e){ /* a sweep that cannot read the page leaves the alerts to their own clocks */ }
+  },TOAST_SWEEP_MS);
+}
+/* WHICH CONTRACT, WHEN IT IS NOT THE ONE IN FRONT: news or a failure about a
+   contract the reader is not looking at leads with its number. */
+function toastAbout(c,msg){
+  try{
+    if(!c||!c.id) return msg;
+    if((typeof contractOnScreen==='function'&&contractOnScreen(c))||(typeof contractOnHome==='function'&&contractOnHome(c))) return msg;
+    const ref=(typeof window!=='undefined'&&typeof window.contractRef==='function')?window.contractRef(c):c.id;
+    return ref&&String(msg).indexOf(String(ref))<0 ? ref+': '+msg : msg;
+  }catch(e){ return msg; }
+}
 function toast(msg,kind,opts){
   const root=document.getElementById('toast-root');
   if(!root) return;
@@ -931,6 +981,11 @@ function toast(msg,kind,opts){
      error keeps every one of them exactly as loud as it is today. */
   const k = TOAST_KINDS[kind] ? kind : 'err';
   const spec = TOAST_KINDS[k];
+  /* one limit, said once (see above) */
+  try{
+    if(opts&&opts.limit) _toastLimitAt=Date.now();
+    else if(k==='err' && Date.now()-_toastLimitAt<TOAST_LIMIT_MS && root.querySelector('[data-toast-limit]')) return;
+  }catch(e){}
   const el=document.createElement('div');
   el.className='toast-in';
   /* ---- EVERY DOM CALL BEYOND THE OLD FOUR IS GUARDED ----
@@ -999,14 +1054,24 @@ function toast(msg,kind,opts){
       if(old.dataset.toastMsg===String(msg) && old.dataset.toastKind===k) old.remove();
     });
   }catch(e){ /* stand-in elements in test stages have no dataset — see above */ }
+  /* the wait this alert answers stops turning */
+  try{ root.querySelectorAll('[data-toast-busy]').forEach(old => old.remove()); }catch(e){}
+  const ownDwell = !!(opts && Number(opts.dwell) > 0), busyAuto = !!(opts && opts.busy && !ownDwell);
+  try{ if(busyAuto) el.dataset.toastBusy='1'; if(opts&&opts.limit) el.dataset.toastLimit='1'; }catch(e){}
+  el._tAt=Date.now(); el._tWhere=toastWhere(); el._tKeep=!!(act||ownDwell);
   toastPlace(root);
   root.appendChild(el);
+  toastSweepStart(root);
   /* EVERY TOAST GOES BY ITSELF. `dwell` is read from the table, which has no
      zero in it; an opts.dwell of 0 falls through to the table's value rather
      than pinning the message to the screen, because "stays until dismissed" is
      the state the owner asked to be rid of. */
-  const dwell = (opts && Number(opts.dwell) > 0 ? Number(opts.dwell) : spec.dwell) || 5000;
+  const dwell = (ownDwell ? Number(opts.dwell)
+    : busyAuto ? TOAST_BUSY_MS
+    : (k==='warn' && !act) ? Math.min(spec.dwell, TOAST_KINDS.err.dwell)
+    : spec.dwell) || 5000;
   setTimeout(go,dwell);
+  return go;
 }
 /* SHA-256, with an honest failure mode.
 
@@ -1040,7 +1105,7 @@ async function sha256(str){
 }
 const generatePseudo = seed => { let h=0; for(const ch of seed) h=(h*33+ch.charCodeAt(0))>>>0; return h.toString(16).padStart(60,'0').slice(0,60); };
 
-Object.assign(window,{NAV_EARN_AT,navShowEverything,navSetShowEverything,navEarned,navSeen,navMarkSeen,STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,UPLOAD_MAX_API,uploadMax,uploadMaxLabel,uploadTooBigMsg,EXTRACT_MAX_CHARS,approvalLabel,cIcon,cKind,cParty,cPrimary,cSecondary,contractRisk,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,sha256IsReal,shareChip,shareDot,shareDotStyle,shareLinkCell,shareLegendHtml,SHARE_LEGEND,state,statusChip,statusLabel,streamLabel,toast,uid});
+Object.assign(window,{toastAbout,toastWhere,NAV_EARN_AT,navShowEverything,navSetShowEverything,navEarned,navSeen,navMarkSeen,STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,UPLOAD_MAX_API,uploadMax,uploadMaxLabel,uploadTooBigMsg,EXTRACT_MAX_CHARS,approvalLabel,cIcon,cKind,cParty,cPrimary,cSecondary,contractRisk,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,sha256IsReal,shareChip,shareDot,shareDotStyle,shareLinkCell,shareLegendHtml,SHARE_LEGEND,state,statusChip,statusLabel,streamLabel,toast,uid});
 /* ============================================================
    PLATFORM CORE — persistence · auth · audit · sharing · export
    MVP runs fully client-side (localStorage) so it deploys as a
@@ -1626,7 +1691,7 @@ async function saveContract(c){
           confirmLabel:'Keep mine & save', cancelLabel:'Load theirs', danger:true });
         if(keepMine){ if(fresh) c._v=fresh._v; await saveContract(c); return; }
         if(fresh){ Object.assign(c,fresh); c._v=fresh._v; c._loaded=true; c._light=false; if(typeof renderWorkspace==='function') renderWorkspace(); }
-        toast(i18t('co_loaded_server_version'),'err');
+        toast(i18t('co_loaded_server_version'),'warn');
       } else {
         toast((window.contractRef?contractRef(c):c.id)+' changed on the server — your edit is kept but not yet saved. Open it and save again to keep your version.','err');
       }
@@ -1648,8 +1713,8 @@ async function saveContract(c){
           else if(state.view==='redline' && window.redlineHeldId && String(redlineHeldId())===String(c.id) && window.renderRedline) renderRedline();
         }catch(_){}
       }
-      toast(i18t('co_save_refused',{why:e.message}),'err');
-    } else toast(i18t('co_save_failed')+e.message,'err');
+      toast(toastAbout(c,i18t('co_save_refused',{why:e.message})),'err');
+    } else toast(toastAbout(c,i18t('co_save_failed')+e.message),'err');
   }
 }
 /* ---- A DECISION WAITS FOR THE SERVER'S YES (B3, 8 Oct 2026) ----
@@ -1677,6 +1742,10 @@ async function decisionFreshen(c){
   return true;
 }
 async function saveSettings(){
+  /* A SETTINGS SHEET HOLDS ITS EDITS UNTIL SAVE (P-43, 22 Nov 2026): while a sheet from the right is open, a write
+     waits in the sheet (js/views/settings.js, stHoldTake) and leaves once, on its Save; Cancel throws it away. The
+     server is still the wall: the one write that leaves is this same PUT. */
+  if(typeof window!=='undefined' && typeof window.stHoldTake==='function' && window.stHoldTake('settings')) return true;
   if(API_MODE()){
     /* H-3: folderAccess is an access-control map and is written ONLY through its
        own atomic endpoint. Never include it in a whole-blob save — that is what
@@ -1695,9 +1764,10 @@ async function saveSettings(){
          answers with the lanes as it stored them, so the lanes panel names the
          right default without a reload. Nothing else in the answer is taken. */
       if(r && Array.isArray(r.intakeLanes) && state.settings) state.settings.intakeLanes=r.intakeLanes;
-    }catch(e){ toast(i18t('co_settings_save_failed')+e.message,'err'); }
+    }catch(e){ toast(i18t('co_settings_save_failed')+e.message,'err'); return false; }
   }
   else persist();
+  return true;
 }
 /* The company default document design (DESIGN-contract-designer.md §2),
    cached on window for the synchronous render paths. Server mode reads the
@@ -1973,6 +2043,13 @@ const getSession = () => REMOTE ? (REMOTE.me?{userId:REMOTE.me.id}:null) : lsGet
 const userById = id => getUsers().find(u=>u.id===id);
 const currentUser = () => REMOTE ? REMOTE.me : (getSession() ? userById(getSession().userId) : null);
 const canEdit = () => { const u=currentUser(); return !!u && u.role!=='viewer'; };
+/* THE ONE QUESTION (owner, 20 Nov 2026, the ground rules: "one 'can this person act?' check everywhere"; Viewer stays
+   ACCOUNT-WIDE, the owner's pick): may this person act on this contract — decide, answer, send, sign, fill in, chase,
+   have Jambo prepare? A Viewer never; anyone else yes (a negotiation's own seats narrow further: negoMayAnswer). Every
+   count, "you", button, alert and Jambo door asks THIS, never role==='viewer' by hand. The server's twin is srvMayAct.
+   Nobody signed in, and the other side's own page, keep the old reading. */
+const mayActOn = (c, u) => { if(typeof window!=='undefined'&&window.PORTAL_MODE) return true;
+  const me=u||currentUser(); return !me || me.role!=='viewer'; };
 const isAdmin = () => currentUser()?.role==='admin';
 /* ---- HOW THIS PERSON LIKES TO WORK (owner, 16 Oct 2026: the Control Room
    built in full — "Jambo's suggestions" and "A contract opens on") ----
@@ -1984,7 +2061,12 @@ const jamboChipsOn = () => !((currentUser()||{}).prefs && currentUser().prefs.ja
 /* THE NEW LOOK (owner, 31 Oct 2026): the Legora way is built page by page behind one switch, an admin's own preview
    until each page is approved. One reading (an admin who turned it on), one writer of the page's mark (html.lg-new);
    every rule of the new look is scoped under that mark, so with it off the platform is exactly as it was. */
-const newLookOn = () => { const u = (typeof currentUser === 'function') ? currentUser() : null; return !!(u && u.role === 'admin' && u.prefs && u.prefs.newLook === true); };
+/* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): on for everyone who signs
+   in, every role, today's people and anyone who joins later, with no switch.
+   The sign-in page and the other side's pages wear it too (outsideLookOn).
+   The old look's code stays until its removal is asked for by name;
+   prefs.newLook is no longer read. */
+const newLookOn = () => { const u = (typeof currentUser === 'function') ? currentUser() : null; return !!u; };
 const newLookApply = () => { try { document.documentElement.classList.toggle('lg-new', newLookOn()); } catch (_) {} };
 const contractOpensOn = () => { const v = String(((currentUser()||{}).prefs||{}).opensOn || ''); return OPENS_ON.includes(v) ? v : 'jambo'; };
 /* ---- WHO MAY MAKE NEW PAPER (Young ruled 18 Sep 2026) ----
@@ -2028,6 +2110,11 @@ const mayReFile = (u) => { const p=(u===undefined)?currentUser():u;
    admin always holds it, so a workspace can never lock itself out of releasing
    a contract it froze; a viewer never does. The wall is the server's own
    `mayHoldRow` — this reading only decides whether a door is drawn. */
+/* WHO DECIDES ON OUR STANDARDS (owner, 17 Nov 2026: "admins plus named people"): an admin, or somebody an admin ticked
+   in Settings › People — a departure allowed once or refused, a change to a standard approved or refused. HaTi's
+   "legal" role is the Editor everyone has, so the role alone is never the answer. The wall is the server's scIsAdminId. */
+const mayDecideStandards = (u) => { const p=(u===undefined)?currentUser():u;
+  return !!p && p.role!=='viewer' && (p.role==='admin' || p.decideStandards===true); };
 const mayHoldContract = (u) => { const p=(u===undefined)?currentUser():u;
   return !!p && p.role!=='viewer' && (p.role==='admin' || p.holdContracts===true); };
 /* ---- TWO NAMES FOR A ROLE, AND THEY ARE NOT INTERCHANGEABLE ----
@@ -2292,7 +2379,7 @@ function renderAuth(mode){
   const input=(id,label,type='text',ph='')=>`
     <label style="display:block;margin-bottom:14px;">
       <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:5px;font-family:var(--font-heading);letter-spacing:.02em;">${label}</span>
-      <input id="${id}" type="${type}" placeholder="${ph}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font-family:var(--font-body);color:var(--color-text);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>`;
+      <input id="${id}" type="${type}" placeholder="${ph}" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font-family:var(--font-body);color:var(--color-text);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>`;
   /* 20 Sep 2026: the heading face — --font-mono is JetBrains Mono now and is
      for DATA (ids, dates, counts, money), never a title or a caption. */
   const H1='font-family:var(--font-title);font-weight:var(--w-title-serif);font-size:22px;letter-spacing:-0.005em;color:var(--color-text);margin:0;';
@@ -2319,7 +2406,7 @@ function renderAuth(mode){
            afterwards and re-read everything it had just been shown. */''}
       <label style="display:block;margin-bottom:14px;">
         <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:5px;font-family:var(--font-heading);letter-spacing:.02em;">${i18t('co_where_you_operate')}</span>
-        <select id="su-market" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font-family:var(--font-body);color:var(--color-text);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+        <select id="su-market" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font-family:var(--font-body);color:var(--color-text);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
           ${jxList().map(p=>`<option value="${p.id}"${p.id===jxId()?' selected':''}>${p.name}</option>`).join('')}
         </select>
         <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:var(--s-1);line-height:1.45">${i18t('co_market_sets')}</span></label>
@@ -2461,7 +2548,8 @@ let _loginBusy=false;
 let _liTicket=null;
 /* THE NEW LOOK FOR PEOPLE OUTSIDE THE COMPANY (round 8): the company's own setting, said by the server to pages that
    open before anyone signs in (GET /api/status) and to the other side's links (GET /api/shares/:token) */
-function outsideLookOn(){ return !!window._outsideLook; }
+/* on for everyone, no switch (owner, 16 Nov 2026): the sign-in page and every page the other side opens */
+function outsideLookOn(){ return true; }
 function outsideLookApply(){ try{ document.documentElement.classList.toggle('lg-out', outsideLookOn()); }catch(_){ /* no page yet */ } }
 async function doLogin(){
   if(_loginBusy) return;
@@ -2614,6 +2702,8 @@ function startApp(){
     if(window.stAsksLoad){ _asksAt=Date.now(); try{ stAsksLoad(); }catch(_){} }
     /* findings on the map sent to this reader, and replies to their questions (Explorer stage 4) */
     if(window.igFindingsLoad) try{ igFindingsLoad(); }catch(_){}
+    /* Discover's reads and answers, fetched quietly once the app is idle, so the page is ready when opened (owner, 20 Nov 2026) */
+    if(window.dsnWarm) try{ dsnWarm(); }catch(_){}
     schedulePolling();
     /* Coming back to the tab is when a person expects to be up to date. */
     if(!window._pollFocusBound){
@@ -3096,7 +3186,7 @@ function emptyStateHtml(o){
    template literal reads `${FLD}` in forty places, and a rename there is forty
    chances to typo something no test would catch. One line each, reading the
    one truth. */
-const HATI_FLD='width:100%;height:var(--field-h);border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);padding:var(--field-pad-y) var(--field-pad-x);font-size:var(--field-size);font-family:var(--font-body);color:var(--color-text);line-height:var(--field-lh);';
+const HATI_FLD='width:100%;height:var(--field-h);border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:var(--field-pad-y) var(--field-pad-x);font-size:var(--field-size);font-family:var(--font-body);color:var(--color-text);line-height:var(--field-lh);';
 const HATI_LBL='display:block;font-size:var(--field-label-size);font-weight:var(--field-label-weight);color:var(--color-neutral-600);margin-bottom:var(--field-label-gap);font-family:var(--font-body);letter-spacing:var(--ls-base);';
 
 /* ============================================================
@@ -3133,7 +3223,9 @@ function trapFocus(panel, opts={}){
   /* VISIBLE ONES ONLY. A panel routinely carries controls behind a fold or in
      a section it has not drawn yet; cycling into one of those puts focus
      somewhere the reader cannot see, which is worse than no trap at all. */
-  const focusables = () => [...panel.querySelectorAll(FOCUSABLE)].filter(e=>e.getClientRects().length);
+  /* A CONTROL MARKED tabindex="-1" IS NEVER A STOP (19 Nov 2026): the one edit pop-up's close cross is pressed by
+     the pointer only (Esc and Cancel close it from the keyboard), so landing there lit a ring on arrival */
+  const focusables = () => [...panel.querySelectorAll(FOCUSABLE)].filter(e=>e.getClientRects().length && e.getAttribute('tabindex')!=='-1');
   const onKey = e => {
     if(e.key!=='Tab') return;
     const f=focusables(); if(!f.length) return;
@@ -3147,7 +3239,16 @@ function trapFocus(panel, opts={}){
      to a position it is about to leave. */
   if(opts.focus!==false) setTimeout(()=>{
     if(!panel.isConnected) return;
-    const f=focusables(); fieldFocus(f[0]||panel,{preventScroll:true});
+    /* THE ONE EDIT POP-UP ARRIVES WITH NO RING (20 Nov 2026, the photos of the Legora sweep): a sheet that already put
+       the cursor in its own first line keeps it; otherwise its first control is focused without the ring a press would
+       never show (NO RING AFTER A PRESS, f881). Tabbing still rings every stop. */
+    const lgp=!!panel.querySelector('.lgp');
+    if(lgp && panel.contains(document.activeElement) && document.activeElement!==panel) return;
+    /* the bell's side panel too: its ✕ arrives with no ring (P-38) */
+    /* and a PAGE (openModal's page mode, data-dlg-page): its "‹ Back to …" arrives with no ring either (P-44 review,
+       22 Nov 2026: History's "Back to the paper" landed ringed) — a page is arrived at, never tabbed to */
+    const quiet=lgp||panel.id==='context-panel'||panel.hasAttribute('data-dlg-page')||panel.classList.contains('pt-alerts');
+    const f=focusables(); fieldFocus(f[0]||panel, quiet ? {preventScroll:true, focusVisible:false} : {preventScroll:true});
   },0);
   let done=false;
   return function release(){
@@ -3955,7 +4056,7 @@ function openModal(html, opts={}){
            frame changes — every dialog still builds its own head, body and
            foot, and DLG_W is still the width ladder. */}
     <div id="modal-scrim" style="position:absolute;inset:0;background:color-mix(in srgb,var(--color-text) 35%,transparent);"></div>
-    <div class="modal-in scroll-thin"${kept?' data-dlg-kept':''} role="dialog" aria-modal="true"${opts.label?` aria-label="${String(opts.label).replace(/"/g,'&quot;')}"`:''} tabindex="-1" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);">${html}</div>
+    <div class="modal-in scroll-thin"${kept?' data-dlg-kept':''}${opts.ownFrame?' data-dlg-own-frame':''} role="dialog" aria-modal="true"${opts.label?` aria-label="${String(opts.label).replace(/"/g,'&quot;')}"`:''} tabindex="-1" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);">${html}</div>
   </div>`;
   /* ---- THE TWO QUIET WAYS OUT ASK THE SAME QUESTION THE ✕ DOES ----
      Both of these called closeModal() straight, so a modal that had put its own
@@ -4437,9 +4538,9 @@ function promptDialog(opts={}){
                  reference with no spaces in it wraps instead of scrolling the
                  field sideways. */
               `<textarea id="pd-input" rows="3" wrap="soft" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
-                 style="box-sizing:border-box;width:100%;max-width:100%;min-height:64px;resize:vertical;border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);padding:8px 10px;font:inherit;font-size:var(--t-body);line-height:1.5;outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${esc(opts.value)}</textarea>`
+                 style="box-sizing:border-box;width:100%;max-width:100%;min-height:64px;resize:vertical;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:8px 10px;font:inherit;font-size:var(--t-body);line-height:1.5;outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${esc(opts.value)}</textarea>`
             : `<input id="pd-input" type="${opts.date?'date':'text'}"${opts.date&&opts.min?` min="${esc(opts.min)}"`:''} value="${esc(opts.value).replace(/"/g,'&quot;')}" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
-                 style="box-sizing:border-box;width:100%;border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:32px;padding:0 10px;font-size:var(--field-size)"/>`}
+                 style="box-sizing:border-box;width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;outline:none;height:32px;padding:0 10px;font-size:var(--field-size)"/>`}
           ${opts.help?`<p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:10px 0 0;line-height:1.45">${esc(opts.help)}</p>`:''}
         </div>
         <div class="dlg-f" style="display:flex;justify-content:flex-end;gap:var(--s-2)">
@@ -5794,7 +5895,9 @@ function shareLetterToPaint(ch){
   const L=document.getElementById('sh-letter'); if(!L) return;
   const tw=document.getElementById('sh-lt-tosay'), who=L.querySelector('.sh-lt-who'), say=document.getElementById('sh-lt-towho');
   const n=String(fval('sh-name')||'').trim(), em=String(fval('sh-email')||'').trim();
-  const folded=L.getAttribute('data-sh-to')==='folded' && ch!=='whatsapp' && !!em && /@/.test(em);
+  /* THE STEPS THE LEGORA WAY (owner's pick, 19 Nov 2026): the person stands in the lines themselves (Person · Email), so
+     the four steps never fold them away — the folded chip stands down there (index.html), and folding hid the person whole */
+  const folded=!L.classList.contains('is-steps') && L.getAttribute('data-sh-to')==='folded' && ch!=='whatsapp' && !!em && /@/.test(em);
   if(tw) tw.classList.toggle('hidden', !folded);
   if(who) who.classList.toggle('hidden', folded);
   if(say){ const v=[n, em].filter(Boolean).join(' · '); if(say.textContent!==v) say.textContent=v; }
@@ -5910,6 +6013,8 @@ if(typeof document!=='undefined' && !document._shColWired){
    "A colleague instead" stays its own choice. Every control, id and listener is the one this screen always had: the
    steps only wrap the rows (the head line is added, the row's own controls are the step's body). New look only. */
 function shareStepsOn(){ return typeof newLookOn==='function' && !!newLookOn(); }
+const SH_LGX_K={ to:'sh_st_to', what:'sh_st_what', can:'sh_lgx_k_can', by:'sh_lgx_k_by' };
+const SH_LGX_HEAD={ to:'sh_lgx_h_to', what:'sh_st_what', can:'sh_st_can', by:'sh_st_by' };
 const SH_STEPS=[['to','.sh-lt-to','sh_st_to'],['what','#sh-lt-what-row','sh_st_what'],['can','#sh-lt-can-row','sh_st_can'],['by','#sh-lt-by-row','sh_st_by']];
 let _shStepOpen=null;
 function shareStepsArrange(host){
@@ -5923,10 +6028,26 @@ function shareStepsArrange(host){
   const subj=host.querySelector('#sh-lt-subject');
   if(subj && subj.style.padding!=='4px 0px'){ subj.style.padding='4px 0'; subj.style.border='0'; subj.style.background='none'; subj.style.borderRadius='0'; }
   const to=host.querySelector('.sh-lt-to'); if(to && to.parentElement!==col) col.insertBefore(to, col.firstChild);
+  /* THE STEPS THE LEGORA WAY, IN THE PAGE (owner's pick, 19 Nov 2026: "change it to look like the design here but not as pop
+     ups but embedded in the page"): the open step's name as a serif head, the four steps one line under it (the open one
+     bold, each a press), each field a label beside its words with no box, "Then" over the steps still to come, and each of
+     those a label beside what is chosen, with Change. Every control and id stays the screen's own. */
+  if(!col.querySelector(':scope > .sh-lgx-h')) col.insertAdjacentHTML('afterbegin', `<div class="sh-lgx-h"><p class="sh-lgx-t" id="sh-lgx-t"></p><p class="sh-lgx-s" id="sh-lgx-s">${SH_STEPS.map(([k,,lbl])=>`<button type="button" data-sh-st-go="${k}" data-sh-lgx-crumb="${k}">${esc(i18t(lbl))}</button>`).join('<span aria-hidden="true"> · </span>')}</p></div>`);
+  if(to && !col.querySelector('.sh-lgx-g')) to.insertAdjacentHTML('afterend', `<p class="sh-lgx-g">${esc(i18t('sh_lgx_then'))}</p>`);
+  const who=host.querySelector('.sh-lt-who');
+  if(who && !who.dataset.lgx){ who.dataset.lgx='1';
+    const nameL=host.querySelector('#sh-name')?.closest('label'), mailL=host.querySelector('#sh-email-wrap');
+    if(nameL && !host.querySelector('#sh-title')) nameL.insertAdjacentHTML('afterend', `<label id="sh-title-wrap"><span>${esc(i18t('sh_lgx_title'))}</span><input id="sh-title" type="text" autocomplete="off" maxlength="80" placeholder="${esc(i18t('sh_lgx_title_ph'))}"/></label>`);
+    nameL?.querySelector('span')?.replaceChildren(document.createTextNode(i18t('sh_lgx_person')));
+    mailL?.querySelector('span')?.replaceChildren(document.createTextNode(i18t('sh_lgx_email')));
+    /* the boxes are drawn with their own frame in their style attribute, which no sheet can undo: taken off here, so
+       each is a line of words (as the subject's is) */
+    who.querySelectorAll('label, label > span, input').forEach(el=>el.removeAttribute('style'));
+  }
   SH_STEPS.forEach(([k,sel,lbl],i)=>{
     const row=host.querySelector(sel); if(!row || row.querySelector(':scope > .sh-st-h')) return;
     row.classList.add('sh-st'); row.setAttribute('data-sh-st', k);
-    row.insertAdjacentHTML('afterbegin', `<div class="sh-st-h"><span class="sh-st-mk" aria-hidden="true">${i+1}</span><span class="sh-st-t"><b>${esc(i18t(lbl))}</b><span class="sh-st-v"></span><span class="sh-st-q"></span></span><button type="button" class="sh-st-go" data-sh-st-go="${k}">${esc(i18t('sh_st_change'))}</button></div>`);
+    row.insertAdjacentHTML('afterbegin', `<div class="sh-st-h"><span class="sh-st-mk" aria-hidden="true">${i+1}</span><span class="sh-st-t"><b>${esc(i18t(SH_LGX_K[k]||lbl))}</b><span class="sh-st-v"></span><span class="sh-st-q"></span></span><button type="button" class="sh-st-go" data-sh-st-go="${k}">${esc(i18t('sh_st_change'))}</button></div>`);
   });
   /* step 1's own parts: the people it goes to, + Add someone, Someone new… */
   const fields=host.querySelector('#share-fields');
@@ -5990,6 +6111,10 @@ function shareStepsWords(){
     if(q && q.textContent!==say[k][1]) q.textContent=say[k][1];
     if(g){ const w=i18t(open?'sh_st_done':'sh_st_change'); if(g.textContent!==w) g.textContent=w; }
   });
+  /* the head names the open step; the line under it lights it */
+  const ht=document.getElementById('sh-lgx-t'), hv=i18t(_shStepOpen ? (SH_LGX_HEAD[_shStepOpen]||'sh_st_head') : 'sh_st_head');
+  if(ht && ht.textContent!==hv) ht.textContent=hv;
+  host.querySelectorAll('[data-sh-lgx-crumb]').forEach(b=>{ const on=b.getAttribute('data-sh-lgx-crumb')===_shStepOpen; b.classList.toggle('is-on', on); b.setAttribute('aria-current', on?'step':'false'); });
   /* step 1's list of people, each with × */
   const list=document.getElementById('sh-st-ppl');
   if(list){ const html=ppl.map(p=>`<div class="sh-st-p"><i class="sh-st-av">${esc(_shInitials(p.name))}</i><span>${esc(p.name)}<em>${esc(p.email)}</em></span><button type="button" class="sh-st-x" data-sh-st-x="${esc(p.k)}" aria-label="${esc(i18t('sh_st_remove',{ name:p.name }))}" title="${esc(i18t('sh_st_remove',{ name:p.name }))}">${typeof icon==='function'?icon('x','w-3 h-3'):''}</button></div>`).join('');
@@ -6665,7 +6790,7 @@ function shareSignerPickHtml(c, sel){
   return `<div id="share-signers-box" data-need-signers="${need?'1':'0'}" style="margin:0 0 14px;${box};border-radius:var(--radius);padding:11px var(--s-3)">
     <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-2)">
       ${need?`<span style="flex:none;display:inline-flex;color:var(--st-amber-fg)">${icon('alert','w-3.5 h-3.5')}</span>`:''}
-      <span style="flex:1;font-size:var(--t-micro);font-weight:var(--w-title);color:${need?'var(--st-amber-fg)':'var(--color-neutral-600)'}">${i18t('co_who_signs')}</span>
+      <span class="sh-signers-h" style="flex:1;font-size:13px;font-weight:var(--w-strong);color:var(--color-text)">${i18t('co_who_signs')}</span>
       ${plan.length?`<span style="flex:none;font-size:var(--t-label);color:var(--color-neutral-600)">${plan.filter(s=>s.signed).length} of ${plan.length} signed</span>`:''}
     </div>
     <div id="share-signer-rows">${html}</div>
@@ -7698,8 +7823,10 @@ function shareRememberRecipient(c, info){
   const hasMain = book ? !!contactEmail(c, o.partyId) : !!String(c.counterpartyEmail || '').trim();
   const main = o.purpose !== 'sign' && !hasMain;
   if (book){
-    if (main) contactSet(c, { main: true, email, partyId: o.partyId, ...(name ? { name } : {}) });
-    else contactSet(c, { role: contactRoleOfPurpose(o.purpose), email, partyId: o.partyId, ...(name ? { name } : {}) });
+    /* THE JOB TITLE TYPED ON THE SEND SCREEN (owner's pick, 19 Nov 2026) is kept with the person, in the one address book */
+    const title = String(o.title || '').trim();
+    if (main) contactSet(c, { main: true, email, partyId: o.partyId, ...(name ? { name } : {}), ...(title ? { title } : {}) });
+    else contactSet(c, { role: contactRoleOfPurpose(o.purpose), email, partyId: o.partyId, ...(name ? { name } : {}), ...(title ? { title } : {}) });
     return main;
   }
   if (!main) return false;
@@ -8529,6 +8656,8 @@ function shareFillModal(html){
 let _shNoteTyped=false;
 if(typeof document!=='undefined') document.addEventListener('input',e=>{ if(e.isTrusted&&e.target&&e.target.id==='sh-summary') _shNoteTyped=true; });
 async function openShareModal(c, opts={}){
+  /* the Send screen opens for who may act; a Viewer is told why at the door, never at the end of a form (Round C) */
+  if(typeof mayActOn==='function' && !mayActOn(c)){ toast(i18t('viewer_reads_only'),'warn'); return; }
   _shStepOpen=null;   /* Four steps: each opening decides afresh which step stands open */
   shareNotSentSet(null);
   _shNoteTyped=false;
@@ -8778,7 +8907,7 @@ async function openShareModal(c, opts={}){
              what else could not be delivered on this workspace, which is the
              mail panel's job, not this dialog's. */}
       ${''/* (Round 3) one plain line, not an amber strip: email is not set up, so this goes as a link */}
-      ${emailOff()?`<p id="sh-noemail" class="sh-noemail">${i18t('co_email_off_line')}</p>`:''}
+      ${emailOff()?`<p id="sh-noemail" class="sh-noemail" data-k="${attr(i18t('sh_kv_email'))}">${i18t('co_email_off_line')}</p>`:''}
       ${server?'':`<div style="margin:0 0 var(--s-3);border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:10px var(--s-3);">
         <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-ruby-fg);margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} ${i18t('co_demo_sharing')}</div>
         <p style="margin:0;font-size:var(--t-meta);line-height:1.6;color:var(--st-ruby-fg);">${i18t('co_without_server')} <strong>${i18t('co_inside_link')}</strong>. That link <strong>${i18t('co_never_expires')}</strong> — anyone who is forwarded it, now or in a year, can read this contract, and you will have no record that they did. Do not send a real contract this way. Run the HaTi server for tracked links that expire, can be withdrawn, and report back when they are opened.</p>
@@ -9331,7 +9460,7 @@ async function openShareModal(c, opts={}){
   const copyBox=(link,note)=>`
     <div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:var(--radius);padding:var(--s-3);">
       ${note?`<div style="font-size:var(--t-meta);color:var(--accent-ink);font-weight:var(--w-strong);margin-bottom:6px;display:flex;align-items:center;gap:6px">${icon('check2','w-3.5 h-3.5')} ${note}</div>`:''}
-      <textarea id="share-link" readonly rows="3" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:9px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${link}</textarea>
+      <textarea id="share-link" readonly rows="3" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:9px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${link}</textarea>
       <button id="share-copy" class="ui-btn" style="margin-top:6px">${icon('copy','w-3 h-3')} ${i18t('co_copy_link')}</button>
     </div>`;
   const wireCopy=()=>document.getElementById('share-copy')?.addEventListener('click',async()=>{
@@ -9723,7 +9852,7 @@ async function openShareModal(c, opts={}){
       /* The address this dialog collected, kept — see shareRememberRecipient
          for why every later Send was re-asking for it. Kept on a queued send
          too: the address is right even when the mail could not go. */
-      shareRememberRecipient(c, { purpose:payloadObj.purpose, email, name,
+      shareRememberRecipient(c, { purpose:payloadObj.purpose, email, name, title:fval('sh-title'),
         partyId:((typeof sharePartyPick==='function'&&sharePartyPick(c))||{}).id||undefined });
       // H-7: record the EXACT destination address on the audit trail, not just a
       // display label — so "who was this sent to" is provable later, especially
@@ -9821,7 +9950,7 @@ async function openShareModal(c, opts={}){
         window.open(waShareLink(phone, shareMessageText(c,link,msg,null)),'_blank');
         resultBox(copyBox(link,'WhatsApp opened with the message prefilled. If it didn’t, copy the link below.')); wireCopy();
       } else { resultBox(copyBox(link)); wireCopy(); }
-      shareRememberRecipient(c, { purpose:payloadObj.purpose, email, name,
+      shareRememberRecipient(c, { purpose:payloadObj.purpose, email, name, title:fval('sh-title'),
         partyId:((typeof sharePartyPick==='function'&&sharePartyPick(c))||{}).id||undefined });
       logAudit(c,'Shared',`Review link ${ch==='link'?'generated':'sent via '+ch} for ${rcptLabel}`);
       if(typeof opts.onSent==='function')
@@ -9933,19 +10062,13 @@ function reshareNotSentModal(c, out, who){
     : out.emailConfigured===false
       ? 'This workspace has no email provider set up, so HaTi could not send it.'
       : `The mail provider refused it${out.emailError?`: ${esc(out.emailError)}`:'.'}`;
-  openModal(`
-    <div style="padding:22px var(--s-6)">
-      <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)"><span style="color:var(--st-amber-dot);display:inline-flex">${icon('alert')}</span>
-        <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0">${i18t('co_link_updated_not_sent')}</h2></div>
-      <p style="font-size:var(--t-body);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55">
-        ${esc(who)} is now looking at the current wording <b>${i18t('co_if_they_open')}</b> — but they have not been told.
-        ${reason} Send them this link yourself:</p>
-      <textarea id="rs-link" readonly rows="3" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:9px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all">${esc(out.link||'')}</textarea>
-      <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:var(--s-3)">
-        <button id="rs-copy" class="ui-btn">${icon('copy','w-3 h-3')} ${i18t('co_copy_link')}</button>
-        <button id="rs-close" class="ui-btn ui-btn-primary">${i18t('act_close')}</button>
-      </div>
-    </div>`);
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1115): the headline, what happened said under it, the link on one line
+     (read-only, to copy), Copy link the one black button, Close last (lgpOpen, js/components.js) */
+  lgpOpen({ id:'rs-form', title:i18t('co_link_updated_not_sent'),
+    subHtml:`${esc(who)} is now looking at the current wording <b>${i18t('co_if_they_open')}</b> — but they have not been told. ${reason} Send them this link yourself:`,
+    html:`<label class="lgp-row is-tall"><span class="lgp-k">${esc(i18t('co_link'))}</span><span class="lgp-v"><textarea id="rs-link" class="lgp-in is-area" readonly rows="3" style="font-family:var(--font-mono);font-size:var(--t-label);word-break:break-all">${esc(out.link||'')}</textarea></span></label>`,
+    primary:{ label:i18t('co_copy_link'), attr:'id="rs-copy"' },
+    cancelLabel:i18t('act_close'), cancelAttr:'id="rs-close"', focus:false });
   document.getElementById('rs-close').addEventListener('click',closeModal);
   document.getElementById('rs-copy').addEventListener('click',async()=>{
     const ta=document.getElementById('rs-link'); ta.select();
@@ -10264,38 +10387,23 @@ function openImportModal(c){
      sat below Cancel and Import. They are two tabs now (SAP's segmented
      button), the foot is the last thing in the dialog, and Import shows on
      the code's tab only — a Word file is read the moment it is chosen. */
-  const tabBtn=(k,t,on)=>`<button type="button" data-imp-tab="${k}" role="tab" aria-selected="${on}" class="imp-tab${on?' on':''}">${t}</button>`;
-  openModal(`
-    <div style="padding:16px 18px;">
-      ${''/* AS DRAWN (SAP pop-ups, 10 Oct 2026): the record under the title, the
-             two ways in as one switch, then the one box each way needs with
-             its label — the code, or HaTi's own file button. */}
-      <h2>${i18t('imp_title')}</h2>
-      ${c?`<p>${esc(((typeof contractRef==='function')?contractRef(c):c.id)+' \u00b7 '+(c.counterparty||c.name||''))}</p>`:''}
-      <div class="sap-body">
-      <div class="imp-tabs" role="tablist">${tabBtn('code',i18t('imp_tab_code'),true)}${tabBtn('word',i18t('imp_tab_word'),false)}</div>
-      <div data-imp-pane="code" class="sap-f">
-        <label for="imp-code">${i18t('imp_tab_code')}</label>
-        <textarea id="imp-code" rows="3" placeholder="${i18t('imp_code_ph')}" style="width:100%;min-height:64px;border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);padding:8px 10px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);resize:vertical;"></textarea>
-      </div>
-      <div data-imp-pane="word" class="sap-f" hidden>
-        <span class="sap-lbl">${i18t('imp_tab_word')}</span>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <button type="button" class="ui-btn" id="imp-docx-go">${icon('upload','w-4 h-4')}${i18t('imp_word_pick')}</button>
-          <span class="sap-help">${i18t('imp_word_hint')}</span>
-          <input id="imp-docx" type="file" accept=".docx" hidden/>
-        </div>
-        <div id="imp-docx-note" style="font-size:var(--t-label);color:var(--color-neutral-600);"></div>
-      </div>
-      </div>
-      <div style="margin-top:14px;display:flex;align-items:center;gap:var(--s-2);justify-content:flex-end;">
-        <button id="imp-go" class="ui-btn ui-btn-primary">${i18t('co_import')}</button>
-        <button data-dlg-cancel id="imp-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      </div>
-    </div>`);
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1115): the record under the headline, the two ways in as two chips, then
+     the one line each way needs — the code typed in place, or HaTi's own file button; Import the one black button
+     (the code's way only), Cancel last (lgpOpen, js/components.js) */
+  const tabBtn=(k,t,on)=>`<button type="button" data-imp-tab="${k}" role="tab" aria-selected="${on}" class="lgp-chip${on?' is-on':''}">${esc(t)}</button>`;
+  lgpOpen({ id:'imp-form', title:i18t('imp_title'),
+    sub:c?(((typeof contractRef==='function')?contractRef(c):c.id)+' · '+(c.counterparty||c.name||'')):'',
+    html:`<div class="lgp-chips" role="tablist">${tabBtn('code',i18t('imp_tab_code'),true)}${tabBtn('word',i18t('imp_tab_word'),false)}</div>`
+      +`<div data-imp-pane="code">${lgpRowHtml({ k:i18t('imp_tab_code'), id:'imp-code', type:'area', ph:i18t('imp_code_ph') })}</div>`
+      +`<div data-imp-pane="word" hidden><div class="lgp-row"><span class="lgp-k">${esc(i18t('imp_tab_word'))}</span><span class="lgp-v">`
+      +`<button type="button" class="ui-btn" id="imp-docx-go">${icon('upload','w-4 h-4')}${esc(i18t('imp_word_pick'))}</button>`
+      +`<input id="imp-docx" type="file" accept=".docx" hidden/></span></div>`
+      +`<p class="lgp-small">${esc(i18t('imp_word_hint'))}</p><p class="lgp-small" id="imp-docx-note"></p></div>`,
+    primary:{ label:i18t('co_import'), attr:'id="imp-go"' },
+    cancelAttr:'data-dlg-cancel id="imp-cancel"' });
   document.querySelectorAll('[data-imp-tab]').forEach(b=>b.addEventListener('click',()=>{
     const k=b.getAttribute('data-imp-tab');
-    document.querySelectorAll('[data-imp-tab]').forEach(x=>{ const on=x===b; x.classList.toggle('on',on); x.setAttribute('aria-selected',String(on)); });
+    document.querySelectorAll('[data-imp-tab]').forEach(x=>{ const on=x===b; x.classList.toggle('is-on',on); x.setAttribute('aria-selected',String(on)); });
     document.querySelectorAll('[data-imp-pane]').forEach(p=>{ p.hidden=p.getAttribute('data-imp-pane')!==k; });
     const go=document.getElementById('imp-go'); if(go) go.hidden=k!=='code';
   }));
@@ -10428,7 +10536,7 @@ async function applyResponse(c, r, opts={}){
     return false;
   }
   if(docChanged)
-    toast(i18t('co_doc_changed_after'),'err');
+    toast(toastAbout(c,i18t('co_doc_changed_after')),'warn');
   const who=r.name+(r.title?', '+r.title:'');
   /* Values the counterparty filled into a template form. Only known open
      fields land (never fixed wording, never invented keys), each re-checked
@@ -10535,7 +10643,7 @@ async function applyResponse(c, r, opts={}){
     logAudit(c,oursFirst?'Countersigned':'Signature',`${who}${forCo?` for ${forCo}`:''} signed via share link${r.verify?' — checked by email code':''} (${r.method||'share-link'}${sig.form?', '+sig.form+' signature':''})${boundRow?` — step ${boundRow.order} of the signing route, on their own bound link`:''}${signerProvenance(r.ip,r.ua)}${unverified?' — NOT independently verified: this workspace cannot send verification codes':''}${routeNote}`);
     /* NEWS, SAID WHERE THE READER LOOKS (4 Oct 2026): a bare toast prints
        nothing, so every arrival that moves whose move it is names a kind. */
-    toast(i18t('co_arr_signed',{ who:r.name }),'ok');
+    toast(toastAbout(c,i18t('co_arr_signed',{ who:r.name })),'ok');
     // Last signature on a route ⇒ freeze, seal and distribute automatically.
     const routeDone = window.allSigned && allSigned(c);
     /* THE SAME MOMENT, REACHED WITHOUT A ROUTE. A contract with no signing
@@ -10586,7 +10694,7 @@ async function applyResponse(c, r, opts={}){
     c.comments.push({ author:r.name, role:'Counterparty — Wording accepted', side:'external',
       text:r.comment||'Accepted the current wording. Not yet signed.', at:r.at, ts:fmtDT(r.at) });
     logAudit(c,'Wording accepted',`${who} accepted the current wording without signing`);
-    toast(i18t('co_arr_accepted',{ who:r.name }),'ok');
+    toast(toastAbout(c,i18t('co_arr_accepted',{ who:r.name })),'ok');
   } else if(r.action==='decisions'){
     /* Answers to individual fingerprinted changes we proposed. Applied through
        negoResolve, so the wording is rebuilt from the accepted set by the same
@@ -10658,7 +10766,7 @@ async function applyResponse(c, r, opts={}){
       filed.length?i18tn('co_arr_filed',filed.length,{ n:filed.length }):'',
       withdrew.length?i18tn('co_arr_withdrew',withdrew.length,{ n:withdrew.length }):'']
       .filter(Boolean).join('; ');
-    toast(saidHere?i18t('co_arr_answered_said',{ who:r.name, said:saidHere }):i18t('co_arr_answered',{ who:r.name }),'ok');
+    toast(toastAbout(c,saidHere?i18t('co_arr_answered_said',{ who:r.name, said:saidHere }):i18t('co_arr_answered',{ who:r.name })),'ok');
   } else if(r.action==='ready'){
     /* ONE PRESS, ONE CALL. "Ready to sign" carries whatever decisions were
        still held on their page AND the readiness signal, in a single response.
@@ -10749,7 +10857,7 @@ async function applyResponse(c, r, opts={}){
     negoTurnBack(c, who);
     logAudit(c,'Ready to sign',`${who} signalled ready to sign via the negotiation link`
       +`${parts.length?` — ${parts.join('; ')}`:''}. Nothing is signed: issue a signing link to take it forward.`);
-    toast(i18t('co_arr_ready',{ who:r.name }),'ok');
+    toast(toastAbout(c,i18t('co_arr_ready',{ who:r.name })),'ok');
   } else if(r.action==='changes'){
     c.comments.push({ author:r.name, role:'Counterparty — Changes requested', side:'external', text:r.comment, at:r.at, ts:fmtDT(r.at) });
     c.rounds=c.rounds||[];
@@ -10792,12 +10900,12 @@ async function applyResponse(c, r, opts={}){
           baseText:base, roundN:c.rounds.length, notes, via:'the counterparty’s link' });
       }catch(e){ /* the round is filed either way — the fingerprints are the bonus, not the record */ }
     }
-    toast(i18t('co_arr_changes',{ who:r.name }),'ok');
+    toast(toastAbout(c,i18t('co_arr_changes',{ who:r.name })),'ok');
   } else if(r.action==='decline'){
     c.status='Declined';
     c.comments.push({ author:r.name, role:'Counterparty — Declined', side:'external', text:r.comment, at:r.at, ts:fmtDT(r.at) });
     logAudit(c,'Declined',`${who} declined via share link${r.comment?` — “${String(r.comment).slice(0,600)}”`:''}`);
-    toast(`${r.name} declined the agreement`,'err');
+    toast(toastAbout(c,i18t('co_arr_declined',{ who:r.name||i18t('co_resp_cp') })),'warn');
   } else { if(!opts.background) toast(i18t('co_unknown_response'),'err'); return false; }
   c.lastAction=todayStr(); persist(c);
   /* WRITTEN BEFORE ANYTHING REPAINTS, and this is not a nicety.
@@ -11139,7 +11247,7 @@ async function responseFiledOnServer(c, item){
      && !(c.execution&&c.execution.at)){
     try{ await sealPrepStamp(c); persist(c); await flushSaves(); }catch(_){}
   }
-  toast(i18t(c.status==='Signed'?'co_arr_signed_sealed':'co_arr_signed',{ who:r.name||c.counterparty||'' }),'ok');
+  toast(toastAbout(c,i18t(c.status==='Signed'?'co_arr_signed_sealed':'co_arr_signed',{ who:r.name||c.counterparty||'' })),'ok');
   try{
     if(window.contractOnScreen && (contractOnScreen(c)||contractOnHome(c)) && typeof renderWorkspace==='function') renderWorkspace();
     else if(state.view==='redline' && window.redlineHeldId && String(redlineHeldId())===String(c.id) && window.renderRedline) renderRedline();
@@ -11418,7 +11526,7 @@ function endOrPauseOpen(c, opts = {}){
               <span class="end-tag">${e(i18t('end_tag_' + a.k))}</span></label>`).join('')}
           </div>
           <div class="sap-f"><label for="end-note" id="end-note-l"></label>
-            <textarea id="end-note" rows="3" maxlength="${HOLD_WHY_MAX}" wrap="soft" style="box-sizing:border-box;width:100%;max-width:100%;min-height:64px;resize:vertical;border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);padding:8px 10px;font:inherit;font-size:var(--t-body);line-height:1.5;outline:none;white-space:pre-wrap;overflow-wrap:anywhere"></textarea></div>
+            <textarea id="end-note" rows="3" maxlength="${HOLD_WHY_MAX}" wrap="soft" style="box-sizing:border-box;width:100%;max-width:100%;min-height:64px;resize:vertical;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:8px 10px;font:inherit;font-size:var(--t-body);line-height:1.5;outline:none;white-space:pre-wrap;overflow-wrap:anywhere"></textarea></div>
         </div></div>
         <div class="dlg-f" style="display:flex;justify-content:flex-end;gap:var(--s-2)">
           <button id="end-go" class="ui-btn ui-btn-primary"></button>
@@ -11474,7 +11582,7 @@ function endOrPauseOpen(c, opts = {}){
 }
 Object.assign(window,{END_ANSWERS,endOrPauseAnswers,endOrPauseOffered,endOrPauseOpen});
 
-Object.assign(window,{shareNotSentSet,shareNotSentHtml,outsideLookOn,outsideLookApply,respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,shareSendAgainRun,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareHeldBackIds,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,closeModalGuarded,closeModalFirst,modalOnCloseRun,modalScreenKey,modalKeptOf,modalKeptPut,shareBesideJambo,shareLetterPage,shareLetterPagePlace,shareLetterPageOff,shareLetterAsPaint,shareLetterAsWire,shareLetterToPaint,shareLetterChecksPlace,shareSentWords,shareLetterNoteFit,shareScreenSays,shareNoteFill,shareNoteMax,shareNoteCount,shareSubjectTyped,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuFor,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,contractSavePending,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,sealCatchUpPage,sealCatchUpDue,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,contractOverviewShown,contractOnHome,userById,OPENS_ON,jamboChipsOn,newLookOn,newLookApply,contractOpensOn,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});
+Object.assign(window,{shareNotSentSet,shareNotSentHtml,outsideLookOn,outsideLookApply,respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,shareSendAgainRun,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareHeldBackIds,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayActOn,mayMakeNewPaper,mayReFile,mayHoldContract,mayDecideStandards,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,closeModalGuarded,closeModalFirst,modalOnCloseRun,modalScreenKey,modalKeptOf,modalKeptPut,shareBesideJambo,shareLetterPage,shareLetterPagePlace,shareLetterPageOff,shareLetterAsPaint,shareLetterAsWire,shareLetterToPaint,shareLetterChecksPlace,shareSentWords,shareLetterNoteFit,shareScreenSays,shareNoteFill,shareNoteMax,shareNoteCount,shareSubjectTyped,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuFor,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,contractSavePending,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,sealCatchUpPage,sealCatchUpDue,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,contractOverviewShown,contractOnHome,userById,OPENS_ON,jamboChipsOn,newLookOn,newLookApply,contractOpensOn,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});
 
 /* ============================================================
    THE SEND SCREEN'S FORM, CARRIED WHOLE (owner, 13 Nov 2026, the flash survey)

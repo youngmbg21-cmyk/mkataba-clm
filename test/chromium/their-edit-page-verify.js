@@ -187,20 +187,33 @@ const symbol = page => page.evaluate(() => {
 
   /* ---- 1 · their landing ---- */
   await page.evaluate(() => window.SHOW_COUNTERPARTY());
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the real link's page marks itself with the outside
+     look (html.lg-out) when the share's answer arrives (portalFetchShare → outsideLookApply); this harness draws the
+     page without that fetch, so the mark is set here as the page sets it */
+  await page.evaluate(() => { if (typeof window.outsideLookApply === 'function') window.outsideLookApply(); });
   await until(page, () => !!document.querySelector('#rl-changes-col .rl-card'));
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): their page draws the outside look, where Edit sits
+     with every other head verb under More at the top (#pol-more opens #pol-pop); it is read with More open */
+  if (await page.$('#pol-more')) { await page.click('#pol-more'); await pause(250); }
   const land = await page.evaluate(() => {
     const e = document.querySelector('#pt-edit');
     const r = e && e.getBoundingClientRect();
-    return { edit: !!e && r.width > 0 && r.top < 80, word: e ? e.textContent.trim() : '',
+    /* (the outside look: Edit is a row of More's pop-up, which drops from the head at the page's top; painted there) */
+    const pop = document.getElementById('pol-pop'), more = document.getElementById('pol-more');
+    const hit = r ? document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) : null;
+    return { edit: !!e && r.width > 0 && (r.top < 80 || (!!pop && pop.contains(e) && !!more && more.getBoundingClientRect().top < 80 && !!hit && (hit === e || e.contains(hit)))), word: e ? e.textContent.trim() : '',
       pencils: document.querySelectorAll('#pt-nego #rl-doc .rl-cp-pill, #pt-nego #rl-doc [data-rl-cp-editor]').length,
       rows: document.querySelectorAll('#rl-changes-col .rl-card').length,
       verbs: [...document.querySelectorAll('#rl-changes-col .rl-card button')].map(b => b.textContent.trim()).filter(Boolean) };
   });
   await page.screenshot({ path: path.join(OUT, '01-landing.png') });
+  if (await page.evaluate(() => { const p = document.getElementById('pol-pop'); return !!p && !p.hidden; })) { await page.click('#pol-more'); await pause(200); }
   check('1a Edit is at the top of their page', land.edit && land.word === 'Edit', JSON.stringify({ edit: land.edit, word: land.word }));
   check('1b their paper draws no pencil', land.pencils === 0, land.pencils);
-  check('1c their rows keep every button — Accept, Reject, Counter, Edit, Ladder',
-    ['Accept', 'Reject', 'Counter', 'Edit', 'Ladder'].every(v => land.verbs.includes(v)), [...new Set(land.verbs)].join(','));
+  /* RE-POINTED (P-44, owner's pick 20 Nov 2026: the other side's page the Legora + Stripe way, "no Ladder and no Jambo
+     advice on their side"): their rows keep Accept, Reject, Counter, Edit — and no longer offer the Ladder */
+  check('1c their rows keep every button — Accept, Reject, Counter, Edit — and offer no Ladder',
+    ['Accept', 'Reject', 'Counter', 'Edit'].every(v => land.verbs.includes(v)) && !land.verbs.includes('Ladder'), [...new Set(land.verbs)].join(','));
 
   /* ---- 2 · Edit opens the editing page beside the column ---- */
   if (!(await press(page, '#pt-edit'))) check('2 the Edit button can be pressed', false, 'missing');

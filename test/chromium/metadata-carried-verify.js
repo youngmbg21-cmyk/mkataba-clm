@@ -66,16 +66,19 @@ Agreement shall not exceed the Contract Sum.
 /* What the review card is showing, read the way a person reads it. */
 const CARD = () => {
   const fields = [...document.querySelectorAll('[data-mf]')].map(el => el.getAttribute('data-mf'));
-  const grid = document.querySelector('[data-mf]')?.closest('.grid');
+  /* RE-POINTED (f1120, the one edit pop-up, the Legora way): each field is a line (.lgp-row) and the phrase it was
+     read from is quoted on the line under it; more than fits is a NEXT STEP (the panes), never a scroll */
+  const panes = document.querySelectorAll('#mr-form [data-mr-pane]').length;
   const quoted = [...document.querySelectorAll('[data-mf]')]
-    .filter(el => (el.parentElement.textContent || '').includes('found:'))
+    .filter(el => { const row = el.closest('.lgp-row'); const q = row && row.nextElementSibling;
+      return !!q && q.classList.contains('lgp-quote') && (q.textContent || '').includes('found:'); })
     .map(el => el.getAttribute('data-mf'));
   const val = k => { const el = document.querySelector(`[data-mf="${k}"]`); return el ? el.value : null; };
   const optText = k => { const el = document.querySelector(`[data-mf="${k}"]`);
     return el ? [...el.options].map(o => o.textContent.trim()) : []; };
   return {
     fields, quoted,
-    scrolls: grid ? grid.scrollHeight > grid.clientHeight + 2 || getComputedStyle(grid).overflowY === 'auto' : false,
+    scrolls: panes > 1 && [...document.querySelectorAll('#mr-form [data-mr-pane]')].every(p => p.querySelectorAll('[data-mf]').length <= 6),
     values: { category: val('category'), retentionPct: val('retentionPct'),
       retentionReleaseDays: val('retentionReleaseDays'), warrantyMonths: val('warrantyMonths'),
       liabilityCapped: val('liabilityCapped'), priceReview: val('priceReview') },
@@ -133,7 +136,7 @@ const NEW = ['category', 'retentionPct', 'retentionReleaseDays', 'warrantyMonths
       `${card.fields.length} of ${want} fields; asked only of a job: ${jobOnly}`);
     check('the six new fields are on it', NEW.every(k => card.fields.includes(k)),
       NEW.filter(k => !card.fields.includes(k)).join(', ') || 'all present');
-    check('sixteen fields scroll rather than run off the dialog', card.scrolls);
+    check('sixteen fields go in steps of six at most rather than run off the dialog', card.scrolls);
     check('what was read out of the document is pre-filled',
       card.values.retentionPct === '10' && card.values.warrantyMonths === '12'
       && card.values.liabilityCapped === 'capped' && card.values.priceReview === 'nochange'

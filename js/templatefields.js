@@ -526,8 +526,8 @@ function openContractEssentials(opts){
      answer step and the saved-template fill — so the declaration is stated
      ONCE here and read through `window` by the other two, with the literal as
      the fallback for a stage that has not loaded this file. */
-  const ST = 'width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);'
-    + 'background:var(--need-bg,var(--color-surface));border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none;color:inherit';
+  const ST = 'width:100%;height:var(--field-h,28px);border:var(--fld-edge);border-bottom:var(--fld-under);'
+    + 'background:var(--fld-bg);border-radius:var(--fld-r);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none;color:inherit';
   const input = f => {
     /* A value stream is the product's own list, with its "+ New value stream"
        sentinel — see the wizard for the pair. */
@@ -624,26 +624,61 @@ function openContractEssentials(opts){
     }
     return { create, skip, count: fs.length };
   }
-  openModal(`<div style="padding:20px 22px">
-    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0 0 3px">${esc(o.title||'New contract')}</h3>
-    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${
-      esc(o.blurb||'')} ${esc(i18t('tf_skip_later'))}</p>
-    <div id="ce-cols" style="display:grid;grid-template-columns:${
-      _pv?'minmax(0,1fr) minmax(0,1fr)':'minmax(0,1fr)'};gap:var(--s-4);align-items:start">
-    ${gridHtml}
-    ${_pv?fillPreviewPaneHtml(0):''}
+  /* ---- ITS OWN DIALOG IS THE ONE EDIT POP-UP, THE LEGORA WAY (f1120) ----
+     Each question a line, the label beside the words, no boxes; more than about seven lines is a NEXT STEP, never
+     a scroll, so the eight questions are two steps — who the agreement is between, then its term, money and
+     stream — both in the one form, so Create reads every box wherever the reader stands. Create, Skip and Cancel
+     are the three acts they always were; the paper still sits beside the questions where it fits (18 Sep 2026).
+     A host (the New agreement sheet) is handed the grid above, unchanged. */
+  const CE_STEP_ONE = ['party','counterparty','cpemail','side'];
+  const panes = [fs.filter(f => CE_STEP_ONE.includes(f.key)), fs.filter(f => !CE_STEP_ONE.includes(f.key))].filter(p => p.length);
+  const stepNames = [i18t('tf_step_parties'), i18t('tf_step_terms')];
+  const stepsAt = n => panes.length > 1 ? stepNames.map((s,i) => i===n ? `<b>${esc(s)}</b>` : esc(s)).join(' · ') : '';
+  const lgpLine = f => {
+    const na = (typeof needAttrs==='function') ? needAttrs(f, f.type==='select' ? (f.def||((f.opts||[])[0]!=null?fieldOpt(f.opts[0]).v:'')) : f.def) : '';
+    /* needAttrs may carry its own class; it joins the line's, never a second class attribute */
+    const needCls = /class="need-empty"/.test(na) ? ' need-empty' : '', nAttr = na.replace(/ class="need-empty"/, '');
+    let ctl;
+    if (f.type==='stream') ctl = `<select id="ce-${f.key}" class="lgp-in">${
+      (typeof folderOptionsHtml==='function') ? folderOptionsHtml(f.def||null, false, { reach:true }) : ''}</select>`;
+    else if (f.type==='select') ctl = `<select id="ce-${f.key}" class="lgp-in${needCls}"${nAttr}>${(f.opts||[]).map(fieldOpt).map(o=>
+      `<option value="${esc(o.v).replace(/"/g,'&quot;')}"${String(f.def||'')===o.v?' selected':''}>${esc(o.l)}</option>`).join('')}</select>`;
+    else { const it = f.type==='date' ? 'date' : (f.type==='num' ? 'number' : (f.type==='email' ? 'email' : 'text'));
+      ctl = `<input id="ce-${f.key}" type="${it}" class="lgp-in${needCls}"${nAttr} autocomplete="off" value="${esc(f.def||'').replace(/"/g,'&quot;')}" placeholder="${esc(f.ph||'')}">`; }
+    return `<label class="lgp-row"><span class="lgp-k">${esc(f.label)}</span><span class="lgp-v">${ctl}</span></label>`;
+  };
+  const formHtml = `<form class="lgp" id="ce-form" novalidate>
+    <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${esc(o.title||'New contract')}</h3>
+      ${panes.length > 1 ? `<p class="lgp-sub lgp-steps" id="ce-steps">${stepsAt(0)}</p>` : ''}
+      <p class="lgp-sub">${esc(o.blurb||'')} ${esc(i18t('tf_skip_later'))}</p></div>
+      <button type="button" class="lgp-x" data-lgp-close tabindex="-1" aria-label="${esc(i18t('lgp_close'))}">${typeof icon==='function'?icon('x','w-4 h-4'):''}</button></div>
+    <div class="lgp-bd">
+      ${panes.map((p,i) => `<div data-ce-pane="${i}"${i?' hidden':''}>${p.map(lgpLine).join('')}</div>`).join('')}
+      <p class="lgp-err" id="ce-err" role="alert"></p>
     </div>
-    ${errHtml}
-    <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-2)">
-      <button data-dlg-cancel id="ce-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      <span style="flex:1"></span>
-      <button id="ce-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('wz_skip_for_now')}</button>
-      <button id="ce-create" class="ui-btn ui-btn-primary">${esc(o.createLabel||'Create draft')}</button>
-    </div></div>`, { maxWidth:_pv?'1040px':'620px' });
+    <div class="lgp-ft">
+      <button type="button" class="ui-btn lgp-back" data-ce-back hidden>‹ ${esc(i18t('lgp_back'))}</button>
+      <span class="lgp-sp"></span>
+      <button type="submit" id="ce-create" class="ui-btn ui-btn-primary lgp-go">${esc(o.createLabel||'Create draft')}</button>
+      ${panes.length > 1 ? `<button type="button" class="ui-btn" data-ce-next>${esc(i18t('of_next'))}</button>` : ''}
+      <button type="button" id="ce-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('wz_skip_for_now')}</button>
+      <button type="button" data-dlg-cancel id="ce-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+    </div></form>`;
+  openModal(_pv ? `<div id="ce-cols" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-4);align-items:start">
+    ${formHtml}<div style="padding:22px 24px 18px 0;min-width:0">${fillPreviewPaneHtml(0)}</div></div>` : formHtml,
+    { maxWidth:_pv?'1040px':(window.LGP_W||'480px'), ownFrame:true, label:o.title||'New contract' });
 
   if(_pv) ceWirePreview(fs, o);
 
   wire();
+  let at = 0;
+  const goStep = n => { at = Math.max(0, Math.min(panes.length-1, n));
+    document.querySelectorAll('#ce-form [data-ce-pane]').forEach(el => el.toggleAttribute('hidden', Number(el.getAttribute('data-ce-pane'))!==at));
+    document.querySelector('#ce-form [data-ce-back]')?.toggleAttribute('hidden', at===0);
+    document.querySelector('#ce-form [data-ce-next]')?.toggleAttribute('hidden', at===panes.length-1);
+    const st = document.getElementById('ce-steps'); if(st) st.innerHTML = stepsAt(at); };
+  document.querySelector('#ce-form [data-ce-next]')?.addEventListener('click', () => goStep(at+1));
+  document.querySelector('#ce-form [data-ce-back]')?.addEventListener('click', () => goStep(at-1));
   document.getElementById('ce-cancel').addEventListener('click', closeModal);
   document.getElementById('ce-skip').addEventListener('click', skip);
   document.getElementById('ce-create').addEventListener('click', create);

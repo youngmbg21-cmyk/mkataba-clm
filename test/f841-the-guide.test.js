@@ -57,7 +57,8 @@ describe('f841 (2) the journey', () => {
     assert.ok(m, 'GUIDE_STAGES');
     const st = Function('return ' + m[1])();
     assert.deepEqual(st.map(s => s.k), ['ask', 'draft', 'agree', 'sign', 'keep', 'see']);
-    assert.deepEqual(st.map(s => s.rows), [['requests', 'import'], ['ourpaper', 'draft'], ['document', 'negotiations', 'parties', 'people'], ['approvals'], ['contracts', 'reads', 'oblig', 'calendar', 'mynotes'], ['pulse', 'explorer', 'house']]); /* RE-POINTED 28 Oct 2026 (THE THREAD): Reads joins Keep it alive (rule 9c); RE-POINTED 29 Oct 2026 (THE PULSE BOARD): the Pulse board joins See it whole, beside the Board (rule 9c) */
+    /* RE-POINTED 20 Nov 2026 (owner: "leave contracts and delete workspace from both the guide and nav panel") */
+    assert.deepEqual(st.map(s => s.rows), [['requests', 'import'], ['ourpaper', 'standards', 'draft'], ['negotiations', 'parties', 'people'], ['approvals'], ['contracts', 'reads', 'oblig', 'calendar', 'mynotes'], ['pulse', 'explorer', 'house']]); /* RE-POINTED 28 Oct 2026 (THE THREAD): Reads joins Keep it alive (rule 9c); RE-POINTED 29 Oct 2026 (THE PULSE BOARD): the Pulse board joins See it whole, beside the Board (rule 9c) */
   });
   test('2b the Board first, Settings at the foot', () => {
     const f = code(fnOf(APP, 'guidePanelHtml'));
@@ -85,7 +86,9 @@ describe('f841 (3) counts and where you are', () => {
     const f = code(fnOf(APP, 'guideHereKey'));
     assert.match(f, /approvals:'approvals'/);
     assert.match(f, /calendar:'calendar'/);
-    assert.match(f, /return c\?'document':'contracts'/);
+    /* RE-POINTED 20 Nov 2026: Workspace is off the Guide; a contract's paper stands on Contracts */
+    assert.match(f, /if\(f==='paper'\) return 'contracts';/);
+    assert.ok(!/'document'/.test(f), 'no Workspace row to be on');
   });
 });
 

@@ -1569,7 +1569,7 @@ function reviewWhen(at){
    var(--field-*), so a change to the field's height or padding moves this
    dialog and every form beside it in the same edit. The string being written
    twice costs nothing the tokens do not already prevent. */
-const RV_FLD = 'width:100%;height:var(--field-h);border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);padding:var(--field-pad-y) var(--field-pad-x);font-size:var(--field-size);font-family:var(--font-body);color:var(--color-text);line-height:var(--field-lh);';
+const RV_FLD = 'width:100%;height:var(--field-h);border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:var(--field-pad-y) var(--field-pad-x);font-size:var(--field-size);font-family:var(--font-body);color:var(--color-text);line-height:var(--field-lh);';
 const RV_LBL = 'display:block;font-size:var(--field-label-size);font-weight:var(--field-label-weight);color:var(--color-neutral-600);margin-bottom:var(--field-label-gap);font-family:var(--font-body);letter-spacing:var(--ls-base);';
 
 /* ---- AND THE DIALOGS LOOK LIKE THE PRODUCT'S DIALOGS ----
@@ -1649,71 +1649,81 @@ function reviewAskModalHtml(c, opts = {}){
      matters is that unticking is possible at all: you are uneasy about the
      indemnity, not about all five redlines, and a review that dragged the other
      four along stops the rest of the round for no reason. */
-  const row = ch => `<label class="sap-li">
+  const row = ch => `<label class="lgp-tick">
     <input type="checkbox" class="rv-pickch" data-rv-ch="${_rvE(ch.id)}"${on(ch) ? ' checked' : ''}
-      aria-label="${_rvE(i18t('rv_include_aria', { id: ch.id }))}" style="flex:none;accent-color:var(--accent-fill)"/>
-    <span style="flex:1;min-width:0;font-size:var(--t-body)">${_rvE(_rvClauseName(ch.clauseLabel || ch.clauseId || ''))}${ch.summary ? ' \u00b7 ' + _rvE(ch.summary) : ''}</span>
-    <span class="sap-m" style="font-family:var(--font-mono)">#${_rvE(ch.id)}</span></label>`;
-  return `
-  ${reviewDialogHeadHtml('', i18t('rv_modal_title'), i18t('rv_modal_sub2', { ref: (typeof window!=='undefined'&&window.contractRef)?window.contractRef(c):c.id, cp: c.counterparty || i18t('rv_the_other_side') }))}
-  <div class="rvd-body sap-body">
+      aria-label="${_rvE(i18t('rv_include_aria', { id: ch.id }))}"/>
+    <span class="lgp-tl">${_rvE(_rvClauseName(ch.clauseLabel || ch.clauseId || ''))}${ch.summary ? ' · ' + _rvE(ch.summary) : ''}</span>
+    <span class="lgp-stg" style="font-family:var(--font-mono)">#${_rvE(ch.id)}</span></label>`;
+  const picked = scope.all.filter(on).length;
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1117): built by hand on the one sheet's own parts (lgp-hd · lgp-bd · lgp-ft)
+     because this file is loaded on stages without js/components.js. Each line a label beside its words, no boxes; the
+     changes it covers are ONE line on the first screen, and pressing Choose turns the window to the tick list (the
+     route's next screen, ‹ Back) — never a scroll. Every id, rule and act is the one this dialog always had; its buttons
+     are type="button", so Enter in a box sends nothing. */
+  return `<form class="lgp rv-ask" id="rv-ask-form" novalidate>
+  <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${_rvE(i18t('rv_modal_title'))}</h3>
+    <p class="lgp-sub">${_rvE(i18t('rv_modal_sub2', { ref: (typeof window!=='undefined'&&window.contractRef)?window.contractRef(c):c.id, cp: c.counterparty || i18t('rv_the_other_side') }))}</p></div>
+    <button type="button" class="lgp-x" id="rv-x" tabindex="-1" aria-label="${_rvE(i18t('lgp_close'))}">${(typeof window!=='undefined'&&window.icon)?window.icon('x','w-4 h-4'):'&times;'}</button></div>
+  <div class="lgp-bd">
+  <div id="rv-main">
 
     ${people.length ? `
-    <div class="sap-f">
-      <label for="rv-who">${_rvE(i18t('rv_who'))} <span class="sap-req">*</span></label>
-      <div style="position:relative">
+    <div class="lgp-row">
+      <label for="rv-who" class="lgp-k">${_rvE(i18t('rv_who'))} <span class="sap-req">*</span></label>
+      <span class="lgp-v" style="position:relative">
         ${''/* PREFILLED FROM THE ASKER'S OWN STANDING REVIEWER, where an admin
                has named one. It is a convenience and not a binding: the box is
                ordinary text and resolves whatever is typed over it, so naming
                a reviewer makes the common case one press shorter without ever
                making the uncommon one impossible. */}
-        <input id="rv-who" type="text" role="combobox" autocomplete="off" spellcheck="false"
+        <input id="rv-who" type="text" class="lgp-in" role="combobox" autocomplete="off" spellcheck="false"
           aria-expanded="false" aria-controls="rv-who-list" aria-autocomplete="list"
           value="${_rvE((()=>{ const st=reviewStandingReviewerFor(_rvMe());
             return st ? (st.email ? st.name + ' <' + st.email + '>' : st.name) : ''; })())}"
-          placeholder="${_rvE(i18t('rv_who_ph'))}"
-          style="${RV_FLD}padding-right:30px"/>
+          placeholder="${_rvE(i18t('rv_who_ph'))}"/>
         <button type="button" id="rv-who-caret" tabindex="-1" aria-label="${_rvE(i18t('rv_who_show_all'))}"
-          style="position:absolute;right:1px;top:1px;bottom:1px;width:28px;border:0;background:transparent;
+          style="flex:none;width:28px;height:28px;border:0;background:transparent;
           cursor:pointer;color:var(--color-neutral-600);line-height:1;display:grid;place-items:center">${(typeof window!=='undefined'&&window.icon)?window.icon('chevD','w-3.5 h-3.5'):'&#9662;'}</button>
         <ul id="rv-who-list" role="listbox" hidden
           style="list-style:none;margin:2px 0 0;padding:0;position:absolute;left:0;right:0;top:100%;z-index:5;
           max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);
           border-radius:var(--radius);box-shadow:var(--shadow-lg)"></ul>
-      </div>
-      ${''/* The search hint is not printed at rest (the pop-up diet, 13 Sep
-             2026): the box's own placeholder says it. The line stays as the
-             slot the picker speaks into once somebody types. */}
-      <div id="rv-who-say" style="font-size:var(--t-meta);line-height:1.5;margin-top:5px;color:var(--color-neutral-600)"></div>
-      <input type="hidden" id="rv-who-id" value=""/>
-    </div>` : `<div style="font-size:var(--t-meta);color:var(--st-amber-fg);background:var(--st-amber-bg);
-      border:1px solid var(--st-amber-line);border-radius:var(--radius);padding:9px 11px;margin-bottom:var(--s-3);line-height:1.5">${_rvE(i18t('rv_no_colleagues'))}</div>`}
-
-    <div class="sap-f"><label for="rv-note">${_rvE(i18t('rv_note_label'))}</label>
-    <textarea id="rv-note" rows="3" style="${RV_FLD}height:auto;min-height:64px;resize:vertical"
-      placeholder="${_rvE(i18t('rv_note_ph'))}"></textarea></div>
-
-    <div class="sap-f"><label for="rv-due">${_rvE(i18t('rv_due_label'))}</label>
-      <div class="sap-row" style="align-items:center">
-        <input id="rv-due" type="date" value="${_rvE(due)}" style="${RV_FLD}"/>
-        ${(window.API_MODE && window.API_MODE()) ? `<label style="display:flex;gap:var(--s-2);align-items:center;font-size:var(--t-body);color:var(--color-text);cursor:pointer">
-          <input id="rv-email" type="checkbox" checked style="accent-color:var(--accent-fill)"/>
-          <span>${_rvE(i18t('rv_email_short'))}</span></label>` : '<span></span>'}
-      </div></div>
-
-    <div class="sap-f">
-      <div style="display:flex;align-items:center;gap:var(--s-2)">
-        <span class="sap-lbl" style="flex:1">${_rvE(i18tn('rv_in_this', scope.all.length, { n: scope.all.length }))}</span>
-        ${scope.all.length > 1 ? `<button type="button" id="rv-pick-all" class="ui-link">${_rvE(i18t('rv_pick_none'))}</button>` : ''}
-      </div>
-      ${scope.all.length ? `<div class="sap-list">${scope.ours.concat(scope.theirs).map(row).join('')}</div>`
-        : `<div class="sap-help">${_rvE(i18t('rv_nothing_to_review'))}</div>`}
+      </span>
     </div>
+    ${''/* The search hint is not printed at rest (the pop-up diet, 13 Sep
+           2026): the box's own placeholder says it. The line stays as the
+           slot the picker speaks into once somebody types. */}
+    <div id="rv-who-say" style="font-size:var(--t-meta);line-height:1.5;margin-top:5px;color:var(--color-neutral-600)"></div>
+    <input type="hidden" id="rv-who-id" value=""/>` : `<p class="lgp-small" style="color:var(--st-amber-fg)">${_rvE(i18t('rv_no_colleagues'))}</p>`}
+
+    <label class="lgp-row is-tall"><span class="lgp-k">${_rvE(i18t('rv_note_label'))}</span><span class="lgp-v">
+    <textarea id="rv-note" rows="3" class="lgp-in is-area"
+      placeholder="${_rvE(i18t('rv_note_ph'))}"></textarea></span></label>
+
+    <label class="lgp-row"><span class="lgp-k">${_rvE(i18t('rv_due_label'))}</span><span class="lgp-v">
+      <input id="rv-due" type="date" class="lgp-in" value="${_rvE(due)}"/></span></label>
+    ${(window.API_MODE && window.API_MODE()) ? `<label class="lgp-tick">
+      <input id="rv-email" type="checkbox" checked/>
+      <span class="lgp-tl">${_rvE(i18t('rv_email_short'))}</span></label>` : ''}
+
+    ${scope.all.length ? `<div class="lgp-row"><span class="lgp-k">${_rvE(i18t('rv_changes_k'))}</span><span class="lgp-v">
+      <span id="rv-pick-say" style="flex:1;min-width:0">${_rvE(i18t('rv_pick_of', { n: picked, all: scope.all.length }))}</span>
+      <button type="button" class="lgp-use" id="rv-pick-open">${_rvE(i18t('rv_pick_open'))}</button></span></div>`
+      : `<p class="lgp-small">${_rvE(i18t('rv_nothing_to_review'))}</p>`}
   </div>
-  <div class="rvd-foot">
-    <button data-dlg-cancel id="rv-cancel-modal" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
-    <button id="rv-send" class="ui-btn ui-btn-primary"${(!people.length || !scope.all.length) ? ' disabled' : ''}>${_rvE(i18t('rv_send_btn'))}</button>
-  </div>`;
+  ${scope.all.length ? `<div id="rv-pick-screen" hidden>
+    <div class="lgp-lfoot">
+      <span>${_rvE(i18tn('rv_in_this', scope.all.length, { n: scope.all.length }))}</span>
+      ${scope.all.length > 1 ? `<button type="button" id="rv-pick-all" class="ui-link">${_rvE(i18t('rv_pick_none'))}</button>` : ''}
+    </div>
+    <div class="lgp-list">${scope.ours.concat(scope.theirs).map(row).join('')}</div>
+  </div>` : ''}
+  </div>
+  <div class="lgp-ft">
+    <button type="button" class="ui-btn lgp-back" id="rv-pick-back" hidden>‹ ${_rvE(i18t('lgp_back'))}</button><span class="lgp-sp"></span>
+    <button type="button" id="rv-send" class="ui-btn ui-btn-primary lgp-go"${(!people.length || !scope.all.length) ? ' disabled' : ''}>${_rvE(i18t('rv_send_btn'))}</button>
+    <button type="button" data-dlg-cancel id="rv-cancel-modal" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
+  </div></form>`;
 }
 
 /* ---- WIRING THE PICKER ----
@@ -1831,7 +1841,7 @@ function reviewWirePicker(c, cfg = {}){
 
 function openReviewAskModal(c, opts = {}){
   if (!window.openModal) return;
-  window.openModal(reviewAskModalHtml(c, opts), { maxWidth: '34rem' });
+  window.openModal(reviewAskModalHtml(c, opts), { maxWidth: window.LGP_W || '480px', ownFrame: true, label: i18t('rv_modal_title') });
   const done = () => { if (typeof opts.after === 'function') opts.after(); };
   const picker = reviewWirePicker(c);
   /* The chosen ids, and the button that says how many. Recounted on every tick
@@ -1849,7 +1859,18 @@ function openReviewAskModal(c, opts = {}){
       sendBtn.disabled = !n || !all;
     }
     if (allBtn) allBtn.textContent = n === all ? i18t('rv_pick_none') : i18t('rv_pick_all');
+    const say = document.getElementById('rv-pick-say');
+    if (say) say.textContent = i18t('rv_pick_of', { n, all });
   };
+  /* the tick list is the window's next screen: Choose turns to it, ‹ Back returns; Send works from either */
+  const pickScreen = on => {
+    document.getElementById('rv-main')?.toggleAttribute('hidden', on);
+    document.getElementById('rv-pick-screen')?.toggleAttribute('hidden', !on);
+    document.getElementById('rv-pick-back')?.toggleAttribute('hidden', !on);
+  };
+  document.getElementById('rv-pick-open')?.addEventListener('click', () => pickScreen(true));
+  document.getElementById('rv-pick-back')?.addEventListener('click', () => pickScreen(false));
+  document.getElementById('rv-x')?.addEventListener('click', () => window.closeModal());
   boxes().forEach(b => b.addEventListener('change', recount));
   allBtn?.addEventListener('click', () => {
     const on = chosen().length !== boxes().length;
@@ -1867,6 +1888,7 @@ function openReviewAskModal(c, opts = {}){
          things you got wrong. */
       const r = reviewResolvePerson(box ? box.value : '', c);
       _rvSay(r.why || i18t('rv_pick_someone'), 'err');
+      pickScreen(false);
       if (box) box.focus();
       return;
     }
@@ -2045,23 +2067,28 @@ function openReviewReturnModal(c, opts = {}){
   const held = ourIn.filter(reviewHeld).length;
   const advised = inRv.filter(x => reviewSideOf(x) === 'theirs' && reviewOn(x)).length;
   const unmarked = ourIn.filter(x => !reviewOn(x)).length;
-  window.openModal(`
-    ${reviewDialogHeadHtml('&#128229;', i18t('rv_return_title'), i18t('rv_return_sub'))}
-    <div class="rvd-body">
-      <div style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:11px 13px;background:var(--color-bg);margin-bottom:var(--s-3);font-size:var(--t-meta);line-height:1.7">
-        <div><b>${cleared}</b> ${_rvE(i18t('rv_tally_cleared'))}</div>
-        <div><b>${held}</b> ${_rvE(i18t('rv_tally_held'))}</div>
-        <div><b>${advised}</b> ${_rvE(i18t('rv_tally_advised'))}</div>
-        ${unmarked ? `<div style="color:var(--st-ruby-fg);margin-top:5px"><b>${unmarked}</b> ${_rvE(i18t('rv_tally_unmarked'))}</div>` : ''}
-      </div>
-      <label style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${_rvE(i18t('rv_return_note_label'))}</label>
-      <textarea id="rv-rnote" rows="3" style="${RV_FLD}height:auto;resize:vertical" placeholder="${_rvE(i18t('rv_return_note_ph'))}"></textarea>
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1117): the tally is lines on the one sheet (the count beside its words), the
+     note a line under it, one black button, Cancel last. Same ids, same refusal (the button stays grey while a change
+     has no verdict), same act. */
+  const tal = (n, words, ruby) => `<div class="lgp-row"${ruby ? ' style="color:var(--st-ruby-fg)"' : ''}><span class="lgp-k"${ruby ? ' style="color:var(--st-ruby-fg)"' : ''}><b>${n}</b></span><span class="lgp-v">${_rvE(words)}</span></div>`;
+  window.openModal(`<form class="lgp rv-return" id="rv-return-form" novalidate>
+    <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${_rvE(i18t('rv_return_title'))}</h3>
+      <p class="lgp-sub">${_rvE(i18t('rv_return_sub'))}</p></div>
+      <button type="button" class="lgp-x" id="rv-rx" tabindex="-1" aria-label="${_rvE(i18t('lgp_close'))}">${(typeof window!=='undefined'&&window.icon)?window.icon('x','w-4 h-4'):'&times;'}</button></div>
+    <div class="lgp-bd">
+      ${tal(cleared, i18t('rv_tally_cleared'))}
+      ${tal(held, i18t('rv_tally_held'))}
+      ${tal(advised, i18t('rv_tally_advised'))}
+      ${unmarked ? tal(unmarked, i18t('rv_tally_unmarked'), true) : ''}
+      <label class="lgp-row is-tall"><span class="lgp-k">${_rvE(i18t('rv_return_note_label'))}</span><span class="lgp-v">
+      <textarea id="rv-rnote" rows="3" class="lgp-in is-area" placeholder="${_rvE(i18t('rv_return_note_ph'))}"></textarea></span></label>
     </div>
-    <div class="rvd-foot">
-      <button data-dlg-cancel id="rv-rcancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
-      <button id="rv-rok" class="ui-btn ui-btn-primary"${unmarked ? ' disabled' : ''}>${_rvE(i18t('rv_return_btn'))}</button>
-    </div>`, { maxWidth: '30rem' });
+    <div class="lgp-ft"><span class="lgp-sp"></span>
+      <button type="button" id="rv-rok" class="ui-btn ui-btn-primary lgp-go"${unmarked ? ' disabled' : ''}>${_rvE(i18t('rv_return_btn'))}</button>
+      <button type="button" data-dlg-cancel id="rv-rcancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
+    </div></form>`, { maxWidth: window.LGP_W || '480px', ownFrame: true, label: i18t('rv_return_title') });
   document.getElementById('rv-rcancel')?.addEventListener('click', () => window.closeModal());
+  document.getElementById('rv-rx')?.addEventListener('click', () => window.closeModal());
   document.getElementById('rv-rok')?.addEventListener('click', () => {
     const note = (document.getElementById('rv-rnote') || {}).value || '';
     const done = reviewReturn(c, { note, reviewId: rv.id });
@@ -2077,16 +2104,21 @@ function openReviewNoteModal(c, changeId, opts = {}){
   if (!window.openModal) return;
   const ch = (window.negoChangeById ? window.negoChangeById(c, changeId) : null);
   const cur = ch && reviewOn(ch);
-  window.openModal(`
-    ${reviewDialogHeadHtml('&#9998;', i18t('rv_note_title_modal', { id: changeId }), i18t('rv_note_sub'))}
-    <div class="rvd-body">
-      <textarea id="rv-cnote" rows="4" style="${RV_FLD}height:auto;resize:vertical">${_rvE((cur && cur.note) || '')}</textarea>
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1117): one line, the note, on the one sheet; same ids, same act. */
+  window.openModal(`<form class="lgp rv-cnote" id="rv-cnote-form" novalidate>
+    <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${_rvE(i18t('rv_note_title_modal', { id: changeId }))}</h3>
+      <p class="lgp-sub">${_rvE(i18t('rv_note_sub'))}</p></div>
+      <button type="button" class="lgp-x" id="rv-cx" tabindex="-1" aria-label="${_rvE(i18t('lgp_close'))}">${(typeof window!=='undefined'&&window.icon)?window.icon('x','w-4 h-4'):'&times;'}</button></div>
+    <div class="lgp-bd">
+      <label class="lgp-row is-tall"><span class="lgp-k">${_rvE(i18t('rv_note_btn'))}</span><span class="lgp-v">
+      <textarea id="rv-cnote" rows="4" class="lgp-in is-area">${_rvE((cur && cur.note) || '')}</textarea></span></label>
     </div>
-    <div class="rvd-foot">
-      <button data-dlg-cancel id="rv-ccancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
-      <button id="rv-cok" class="ui-btn ui-btn-primary">${_rvE(i18t('act_save'))}</button>
-    </div>`, { maxWidth: '28rem' });
+    <div class="lgp-ft"><span class="lgp-sp"></span>
+      <button type="button" id="rv-cok" class="ui-btn ui-btn-primary lgp-go">${_rvE(i18t('act_save'))}</button>
+      <button type="button" data-dlg-cancel id="rv-ccancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
+    </div></form>`, { maxWidth: window.LGP_W || '480px', ownFrame: true, label: i18t('rv_note_title_modal', { id: changeId }) });
   document.getElementById('rv-ccancel')?.addEventListener('click', () => window.closeModal());
+  document.getElementById('rv-cx')?.addEventListener('click', () => window.closeModal());
   document.getElementById('rv-cok')?.addEventListener('click', () => {
     const note = (document.getElementById('rv-cnote') || {}).value || '';
     /* A note without a verdict is still a note. Where the reviewer has already

@@ -9,7 +9,7 @@
      the box at the panel's foot, in view, at the owner's three screens
    2 words asked from Clauses turn the panel to the conversation; its back
      returns to Clauses as it was left
-   3 the slide-out panel: Guide, Alerts and Activity draw the box at their
+   3 the slide-out panel: Alerts and Activity (and Notes, P-38) draw the box at their
      foot; Notes keeps its own note box and draws no second one
    4 words asked from the slide-out panel put it away and are asked in the ✦'s
      window (the one conversation)
@@ -58,7 +58,11 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
         /* RE-POINTED 23 Oct 2026 (Spine): Obligations is no tab — its panel opens from the Dossier's line under Sign */
         if (t === 'oblig'){ await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-pd-tab="copilot"]'); if (b) b.click(); });
           await page.waitForSelector('#ig-dock .ds-ob-line', { timeout: 4000 }).catch(() => {}); }
-        await page.evaluate(tab => { const b = document.querySelector(tab === 'oblig' ? '#ig-dock .ds-ob-line' : `#ig-dock [data-pd-tab="${tab}"]`); if (b) b.click(); }, t);
+        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's Dossier card draws no
+           .ds-ob-line; its Obligations door is a row carrying data-pd-glance-tab="oblig" where the stage offers one,
+           else the panel's one opener pdObOpen (what every Obligations door presses). This check is about the box. */
+        await page.evaluate(tab => { const b = document.querySelector(tab === 'oblig' ? '#ig-dock .ds-ob-line, #ig-dock [data-pd-glance-tab="oblig"]' : `#ig-dock [data-pd-tab="${tab}"]`);
+          if (b) b.click(); else if (tab === 'oblig' && window.pdObOpen) pdObOpen(); }, t);
         const on = await page.waitForFunction(tab => { if (tab === 'oblig') return window.pdTab && pdTab() === 'oblig' && !!document.querySelector('#ig-dock .pd-trail');
           const b = document.querySelector('#ig-dock .pd-tab.on');
           return !!b && b.getAttribute('data-pd-tab') === tab; }, t, { timeout: 4000 }).then(() => true, () => false);
@@ -118,14 +122,17 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
           atFoot: !!(r && pr && pr.bottom - r.bottom < 40) };
       });
     };
-    for (const [f, name] of [['guide', 'Guide'], ['alerts', 'Alerts'], ['activity', 'Activity']]) {
+    /* RE-POINTED 21 Nov 2026 (P-38): the panel's faces are Alerts · Notes · Activity; the Guide is the nav panel's */
+    for (const [f, name] of [['alerts', 'Alerts'], ['activity', 'Activity']]) {
       const r = await face(f);
       ok(`3 the slide-out panel's ${name} draws Jambo's box at its foot`, r.box && r.card && r.inView && r.atFoot, JSON.stringify(r));
       if (OUT) await page.screenshot({ path: `${OUT}/drawer-${f}.png` });
     }
     const notes = await page.evaluate(() => { state.notesFor = { contractId: (state.contracts[0] || {}).id }; openPanel('notes');
       const f = document.getElementById('panel-ask'); return { hidden: !f || f.hidden }; });
-    ok('3b Notes keeps its own box and draws no second one', notes.hidden, JSON.stringify(notes));
+    /* RE-POINTED 21 Nov 2026 (P-38, owner: "Jambo's box at the foot of EVERY face (today Notes has none)"): the note's own
+       box stands at the top of the list, Jambo's at the panel's foot */
+    ok('3b Notes draws Jambo\'s box at its foot too, beside its own note box', !notes.hidden, JSON.stringify(notes));
 
     /* 4 — asked from Alerts: the panel goes, the ✦'s window asks */
     await face('alerts');

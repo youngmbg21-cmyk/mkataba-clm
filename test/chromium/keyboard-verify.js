@@ -81,21 +81,27 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   console.log('\n3 · the palette announces itself');
   /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): ⌘K puts the hand in Jambo's box; the jump list is
      "/" pressed outside a box, off Home */
+  /* RE-POINTED 19 Nov 2026 (the launchpad, owner: "1, yes"): ⌘K opens the jump window in the middle, as "/" does */
   await page.keyboard.press(MOD + '+k');
   await page.waitForTimeout(400);
-  ok('⌘K puts the hand in Jambo\'s box', await page.evaluate(() => { const a = document.activeElement; return !!(a && a.closest && a.closest('.jb-card')); }));
+  ok('⌘K opens the launchpad, the hand in its box', await page.evaluate(() => !!document.getElementById('cmd-palette') && document.activeElement && document.activeElement.id === 'cp-input'));
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
   await page.evaluate(() => { setView('obligations'); });
   await page.waitForTimeout(700);
   await page.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); });
   await page.keyboard.press('/');
   await page.waitForTimeout(500);
   ok('it opened', await page.evaluate(() => !!document.getElementById('cmd-palette')));
+  /* RE-POINTED 20 Nov 2026 (PR #816, the launchpad the Stripe way, owner: "Build the nav panel as drawn"): what waits on
+     you stands in its own column (#lp-side, a second listbox) beside the page list (#cp-list), and the first row can be
+     one of those. The arrows walk both as one list, so "exactly one selected" is counted over the whole window. */
   const sem = await page.evaluate(() => {
     const i = document.getElementById('cp-input'), l = document.getElementById('cp-list');
     return { role: i.getAttribute('role'), controls: i.getAttribute('aria-controls'),
              listRole: l.getAttribute('role'),
              opts: document.querySelectorAll('#cp-list [role="option"]').length,
-             sel: document.querySelectorAll('#cp-list [aria-selected="true"]').length,
+             sel: document.querySelectorAll('#cmd-palette [role="option"][aria-selected="true"]').length,
              active: i.getAttribute('aria-activedescendant') };
   });
   ok('the input is a combobox pointing at the list', sem.role === 'combobox' && sem.controls === 'cp-list');
@@ -110,7 +116,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   const moved = await page.evaluate(() => document.getElementById('cp-input').getAttribute('aria-activedescendant'));
   ok('ArrowDown moves it', moved === 'cp-opt-1', moved);
   ok('and still exactly one is selected',
-     (await page.evaluate(() => document.querySelectorAll('#cp-list [aria-selected="true"]').length)) === 1);
+     (await page.evaluate(() => document.querySelectorAll('#cmd-palette [role="option"][aria-selected="true"]').length)) === 1);
   await page.keyboard.press('ArrowUp');
   await page.waitForTimeout(250);
   ok('ArrowUp moves it back',
@@ -154,7 +160,9 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   console.log('\n7 · arrows walk the contract list');
   /* MEASURED before this shipped: zero ArrowDown handling in register.js, and
      on Negotiations the row press was the SOLE route in. */
-  await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders;
+     regFoldersShut() is the List pill's own step, so the rows are the list a person walks. */
+  await page.evaluate(() => (regPlaceSet({ show: 'list' }), regFoldersShut(), setView('register')));
   await page.waitForTimeout(900);
   const rowInfo = () => page.evaluate(() => {
     const rows = [...document.querySelectorAll('#reg-tbody [data-row]')];

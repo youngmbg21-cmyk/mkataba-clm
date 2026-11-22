@@ -51,6 +51,10 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     /* ════════ 2. THE CONTRACTS PAGE ════════
        Done first because it needs nothing staged. */
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its folders; List draws the table */
+    await page.waitForTimeout(600);
+    await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); });
+    await page.waitForTimeout(800);
     await page.waitForTimeout(1400);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
 
@@ -63,60 +67,20 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     const tabs = await page.evaluate(() => regCtViews().map(v => v.k + ':' + v.label));
     ok('2a the 60-day tab is gone', !tabs.some(t => /60/.test(t)), tabs.join(' | '));
     ok('2a2 the 30-day tab is gone', !tabs.some(t => /\b30\b/.test(t)));
-    ok('2a3 and 90 is still there', tabs.some(t => /^expiring90:.*90/.test(t)));
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the new-look Contracts head draws only
+       All · Needs you · Signed as tabs (regCtViews, regNl); the 90-day view is the Folders' "Ending in 90 days" view
+       (regFolderViewsData k 'end', CTF_VIEW_DAYS) — still 90, and no 60 or 30 anywhere beside it. */
+    /* the seeded book has nothing ending this quarter, so four papers ending in 20, 55, 89 and 120 days are READ (nothing
+       stored): the view takes the first three and only them */
+    const v90 = await page.evaluate(() => { const T = todayISO(), at = n => { const d = new Date(T + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+      const cs = [20, 55, 89, 120].map(n => ({ id: 'V90-' + n, name: 'Ends in ' + n, folder: 'f', status: 'Signed', expiry: at(n) }));
+      const V = regFolderViewsData(cs), e = V.find(v => v.k === 'end');
+      return { views: V.map(v => v.k + ':' + v.label).join(' | '), label: e ? e.label : '', ids: e ? e.list.map(c => c.id).join(',') : '' }; });
+    ok('2a3 and 90 is still there', /\b90\b/.test(v90.label) && v90.ids === 'V90-20,V90-55,V90-89' && !/\b(60|30)\b/.test(v90.views), JSON.stringify(v90));
 
-    const dens = await page.$$eval('button[data-reg-density]',
-      els => els.map(e => e.textContent.trim()));
-    ok('2b Condensed is gone', dens.length === 2 && !/ondensed|ompakt/.test(dens.join()),
-      dens.join(' | '));
-
-    /* ---- AND IT NARROWS. A control that opens and does nothing is the
-       same report in a second costume. ---- */
-    const before = await page.$$eval('tr[data-row]', r => r.length);
-    /* RE-POINTED 21 Oct 2026 (Part 8): a stream is picked under "+ Filter"
-       and stands as a chip — the claim (a filter narrows and says so) is one. */
-    const SEAT = '[data-lh-seat="contracts"]';
-    const pick = await page.evaluate(S => { const add = document.querySelector(S + ' select[data-lh-add]');
-      const o = add && [...add.querySelectorAll('option')].find(x => { try { return JSON.parse(x.value)[0] === 'type'; } catch (_) { return false; } });
-      return o ? { v: o.value, t: regTypes().find(t => t.k === JSON.parse(o.value)[1]).label } : null; }, SEAT);
-    if (pick) await page.selectOption(SEAT + ' select[data-lh-add]', pick.v);
-    await page.waitForFunction(S => !!document.querySelector(S + ' [data-lh-chip="type"]'), SEAT, { timeout: 5000 }).catch(() => {});
-    const after = await page.evaluate(S => { const c = document.querySelector(S + ' [data-lh-chip="type"]'); return {
-      rows: document.querySelectorAll('tr[data-row]').length,
-      face: c ? c.textContent.replace(/\s+/g, ' ').trim() : '',
-      lit: !!c }; }, SEAT);
-    ok('2c3 picking a stream narrows the table', after.rows > 0 && after.rows < before,
-      `${before} → ${after.rows}`);
-    ok('2c4 and the chip says what is in force', after.lit && !!pick && (after.face || '').includes(pick.t),
-      after.face);
-
-    /* ---- THE HIT TEST. This is the whole of the filter report. ----
-       RE-POINTED 21 Oct 2026 (Part 8): the controls with a list on the chip
-       row — "+ Filter", the Stream chip just picked, Sort — each measured
-       across its own face (a chip's x is a second control beside it) */
-    const chips = await page.evaluate(S => [...document.querySelectorAll(`${S} .lh-chips .lh-add, ${S} .lh-chips .lh-chip > label, ${S} .lh-chips .reg-chip`)]
-      .filter(c => c.querySelector('select'))
-      .map(c => {
-        const s = c.querySelector('select'), r = c.getBoundingClientRect();
-        /* Four points across the chip's own face — the word, not just its
-           right wall. Every one of them must land on the control. */
-        const xs = [.2, .4, .6, .8].map(f => document.elementFromPoint(
-          r.left + r.width * f, r.top + r.height / 2));
-        return { id: s.id || s.getAttribute('data-lh-f') || (s.hasAttribute('data-lh-add') ? '+filter' : '?'), opts: s.options.length,
-          onSelect: xs.every(e => e && e.tagName === 'SELECT'),
-          hits: xs.map(e => e ? e.tagName : 'null').join(','),
-          sel: Math.round(s.getBoundingClientRect().width),
-          chip: Math.round(r.width) };
-      }), SEAT);
-    ok('2c every filter chip opens from anywhere on its face',
-      chips.length >= 3 && chips.every(c => c.onSelect),
-      chips.map(c => `${c.id}:${c.hits}`).join(' · '));
-    ok('2c2 and the control really is the size of the chip',
-      chips.every(c => c.sel >= c.chip - 4),
-      chips.map(c => `${c.id} ${c.sel}/${c.chip}`).join(' · '));
-    await page.screenshot({ path: path.join(OUT, '02-chip-picked.png') });
-    await page.click(SEAT + ' [data-lh-x="type"]').catch(() => {});
-    await page.waitForTimeout(600);
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling): 2b "Condensed is gone" (row height), 2c3/2c4 "picking a stream under
+       + Filter narrows and the chip says so", 2c/2c2 "every filter chip (+ Filter, Sort) opens from anywhere on its face" —
+       the Contracts list's + Filter, Sort and row height stay gone in the new look. */
 
     /* ════════ 1. HOME'S PREPARED BY COPILOT ROW ════════
        STAGED, because the seeded book has nothing prepared: a contract really
@@ -204,6 +168,7 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
         const cs = getComputedStyle(d);
         return { text: d.textContent.trim(), kind: d.className.replace('cal-hz-dec ', ''),
           ink: cs.color, align: cs.textAlign, weight: cs.fontWeight,
+          pill: d.querySelector('b') ? getComputedStyle(d.querySelector('b')).color : cs.color,
           atRight: Math.round(rr.right - dr.right) <= 2 };
       });
       return { head: head ? head.textContent.trim() : null,
@@ -225,9 +190,13 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     ok('3f the open one carries the strong weight and the others do not',
       open && done && Number(open.weight) > Number(done.weight),
       open && done ? `${open.weight} vs ${done.weight}` : 'not both drawn');
-    ok('3g and the three inks really differ',
-      open && done && none && new Set([open.ink, done.ink, none.ink]).size === 3,
-      open && done && none ? [open.ink, done.ink, none.ink].join(' · ') : '');
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the Horizon the SAP way (owner's pick, 10 Nov 2026)
+       says a decision as a PILL inside the cell (<b>): decided green, open amber, and an undecided row wears the tone of its
+       time left — so "nothing to say" may share the open amber on a short row, but never the decided green. The inks
+       are the pills', the cell's own text colour is the one ink. */
+    ok('3g and the inks really differ — decided is never the open nor the nothing-to-say ink',
+      open && done && none && open.pill !== done.pill && none.pill !== done.pill,
+      open && done && none ? [open.pill, done.pill, none.pill].join(' · ') : '');
     /* A DATE, NOT A RAW ISO STRING — a screen that prints 2026-09-21 is a
        screen that reached for a formatter that is not on the stage. */
     ok('3h the decided day is printed the way this page prints days',
@@ -279,6 +248,10 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
 
     /* ════════ 5. A BIT OF COLOUR ON THE FRAME ════════ */
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its folders; List draws the table */
+    await page.waitForTimeout(600);
+    await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); });
+    await page.waitForTimeout(800);
     await page.waitForTimeout(900);
     /* RE-POINTED 15 Oct 2026 (the overnight build, steps 3 and 7): Home's head and the Contracts place carry no "+ Draft new agreement" (Jambo's panel has it); the two-door menu is the pages' own door, opened here as they open it (openNewDoors). */
     await page.evaluate(() => { if (typeof openNewDoors === 'function') openNewDoors(); });
@@ -300,18 +273,27 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
        stand: the frame is a ruled title bar over an untouched surface, and a
        dangerous question says so in the danger tone, never the accent — now
        as its warning sign and its red confirm button. */
+    /* RE-POINTED 20 Nov 2026 (#814, f1120 — the owner's pick of 19 Nov 2026, THE ONE EDIT POP-UP, THE
+       LEGORA WAY): Add a received contract is now the one quiet Legora sheet (form.lgp), whose head
+       (.lgp-hd) is a serif title with NO rule under it — nothing boxed, on purpose. A dialog still in
+       the SAP frame keeps its ruled .dlg-h bar and is held to the rule as before; on the Legora sheet
+       the claims that stand are the ones this step protects: no colour line at the frame's top, the
+       head is the frame's own at its top edge, and the surface is untouched. */
     const pop = await page.evaluate(() => {
       const m = document.querySelector('#modal-root [role="dialog"]');
       if (!m) return null;
-      const cs = getComputedStyle(m), bar = m.querySelector('.dlg-h'), bs = bar ? getComputedStyle(bar) : null;
+      const cs = getComputedStyle(m), bar = m.querySelector('.dlg-h, form.lgp > .lgp-hd'), bs = bar ? getComputedStyle(bar) : null;
       return { img: cs.backgroundImage, surface: cs.backgroundColor, radius: cs.borderRadius,
-        bar: !!bar, rule: bs ? bs.borderBottomStyle + ' ' + bs.borderBottomWidth : '' };
+        bar: !!bar, legora: !!(bar && bar.matches('.lgp-hd')),
+        rule: bs ? bs.borderBottomStyle + ' ' + bs.borderBottomWidth : '',
+        barImg: bs ? bs.backgroundImage : '' };
     });
-    ok('5 the dialog frame is a ruled title bar, with no colour line at its top',
-      !!pop && pop.bar && /^solid [1-9]/.test(pop.rule) && !/linear-gradient/.test(pop.img),
-      pop && JSON.stringify({ bar: pop.bar, rule: pop.rule, img: pop.img.slice(0, 40) }));
-    ok('5b the title bar is the frame\u2019s own: it sits at the dialog\u2019s top edge',
-      await page.evaluate(() => { const m = document.querySelector('#modal-root [role="dialog"]'), b = m && m.querySelector('.dlg-h');
+    ok('5 the dialog frame has its own head (a ruled title bar, or the Legora sheet\u2019s quiet head), with no colour line at its top',
+      !!pop && pop.bar && (pop.legora || /^solid [1-9]/.test(pop.rule)) && !/linear-gradient/.test(pop.img)
+        && !/linear-gradient/.test(pop.barImg),
+      pop && JSON.stringify({ bar: pop.bar, legora: pop.legora, rule: pop.rule, img: pop.img.slice(0, 40) }));
+    ok('5b the head is the frame\u2019s own: it sits at the dialog\u2019s top edge',
+      await page.evaluate(() => { const m = document.querySelector('#modal-root [role="dialog"]'), b = m && m.querySelector('.dlg-h, form.lgp > .lgp-hd');
         return !!b && Math.abs(b.getBoundingClientRect().top - m.getBoundingClientRect().top) <= 2; }));
     ok('5c the surface underneath is untouched',
       !!pop && pop.surface !== 'rgba(0, 0, 0, 0)', pop && pop.surface);

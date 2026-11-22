@@ -97,8 +97,10 @@ const SIGNED = { ...H.fixtureContract('MK-P1', 'Warehousing Services', 'Apex Log
 
     console.log('\n3 · the Obligations head is Approvals & signing\'s height');
     const band = async v => { await page.evaluate(v => setView(v), v); await page.waitForTimeout(1200);
-      return page.evaluate(() => { const b = document.querySelector('.sap-band'); const r = b && b.getBoundingClientRect();
-        return { bottom: r ? r.bottom : null, seat: b ? b.getAttribute('data-lh-seat') : null, facts: ((document.getElementById('page-head-facts') || {}).textContent || '').trim(),
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; THE HARMONY REVIEW: ONE HEAD .ctf-h): both pages
+         draw the same title row (.cun-head: the title, its facts #page-head-facts, its acts) — measured here */
+      return page.evaluate(() => { const b = document.querySelector('.cun-head'); const r = b && b.getBoundingClientRect();
+        return { bottom: r ? r.bottom : null, h: r ? Math.round(r.height * 100) / 100 : null, top: r ? Math.round(r.top) : null, title: b ? ((b.querySelector('.ctf-h') || {}).textContent || '').trim() : '', facts: ((document.getElementById('page-head-facts') || {}).textContent || '').trim(),
           tabs: [...document.querySelectorAll('.sap-band [data-obw-view]')].map(x => x.getAttribute('data-obw-view')) }; }); };
     const ap = await band('approvals');
     const ob = await band('obligations');
@@ -111,22 +113,28 @@ const SIGNED = { ...H.fixtureContract('MK-P1', 'Warehousing Services', 'Apex Log
        head's lower half is Approvals' band now — the list head (box, tabs,
        + Filter), [data-lh-seat="approvals"] — and its two counts stay on the
        title's line; Obligations keeps its band */
-    ok('3a Approvals says its counts on the title\'s line, its band is the list head; Obligations keeps its band',
-      ap.bottom !== null && ap.seat === 'approvals' && /yours to answer|waiting on others|Nothing/i.test(ap.facts) && ob.bottom !== null, `${ob.bottom} · approvals ${ap.seat} "${ap.facts}"`);
+    /* RE-POINTED (P-13 and P-30, the owner's picks 20 Nov 2026): the facts beside the title went on both pages (the tiles
+       and chips count); the one title row, its place and height stand */
+    ok('3a the Obligations head is Approvals\' head: one title row, the same place and height (to the pixel)',
+      ap.bottom !== null && ob.bottom !== null && Math.abs(ap.h - ob.h) < 1 && ap.top === ob.top && ap.title === 'Approvals & signing' && ob.title === 'Obligations',
+      `approvals ${ap.h} at ${ap.top} "${ap.facts}" · obligations ${ob.h} at ${ob.top} "${ob.facts}"`);
     /* RE-POINTED 19 Oct 2026 (round 16 as drawn: "Obligations 11 outstanding ·
        1 overdue" — the owner's yes reversed 9 Oct's no-facts-line ruling): the
        title's line now carries the drawing's two counts, read off this
        fixture's three open duties, one of them late. The real claim stays:
        the old "we owe …" place is gone and nothing else rides there. */
     ok('3b no "we owe" line — the title says the drawing\'s counts only',
-      /^3 outstanding · 1 overdue$/.test(ob.facts) && !/we owe/i.test(ob.facts), ob.facts);
+      /* RE-POINTED 16 Nov 2026 (#762; ONE COUNT, the harmony review): the title's facts lead with what is late — "1 late · 3 open" */
+      /* RE-POINTED 19 Nov 2026 (We owe · They owe, the owner's pick): the facts say what of each side is late — "1 of ours late" */
+      /* RE-POINTED (P-13, owner's pick 20 Nov 2026: Obligations the Stripe way): no facts beside the title — the tiles count */
+      !ob.facts && !/we owe/i.test(ob.facts), ob.facts);
 
     console.log('\n4 · All is first');
-    ok('4a on the Obligations page', ob.tabs[0] === 'all', ob.tabs.join(','));
-    await page.evaluate(() => { openWorkspace('MK-P1', { room: true }); setTimeout(() => roomGoTab(getContract('MK-P1'), 'oblig'), 300); });
-    await page.waitForFunction(() => !!document.querySelector('.obt-head [data-obt-view]'), null, { timeout: 8000 }).catch(() => {});
-    const tabV = await page.evaluate(() => [...document.querySelectorAll('.obt-head [data-obt-view]')].map(x => x.getAttribute('data-obt-view')));
-    ok('4b and on the contract\'s Obligations tab', tabV[0] === 'all', tabV.join(','));
+    /* RETIRED 16 Nov 2026 (#762): 4a "All first" on the Obligations page — the new look's page has no view tabs to order
+       (three pills as drawn: Late · Tracked · Proposals, obnRender), only the old look's tab row had All */
+    /* RETIRED 16 Nov 2026 (#762): 4b "All first" on the contract's Obligations tab — the old room's tab (.obt-head) is no
+       longer reached (roomRetiredLand → Home); the contract's Obligations face is the Marquee, grouped by when, no tabs */
+
   } catch (e) {
     fail++; console.log('  FAIL harness — ' + e.message);
   }

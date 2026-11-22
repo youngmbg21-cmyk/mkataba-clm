@@ -95,19 +95,19 @@ describe('f678 (1) the Workspace door opens Home, never the room', () => {
     const doors = INS.slice(INS.indexOf('function insDoorActs'), INS.indexOf('function insActsHtml'));
     const ws = doors.slice(doors.indexOf("k: 'door-ws'"), doors.indexOf('const all ='));
     /* RE-POINTED 16 Nov 2026: the Workspace door opens the contract on purpose, so it asks for its Cover (f1085) */
-    assert.ok(ws.indexOf('roomHomeLand(c.id, { cover: true })') > 0 && ws.indexOf('roomHomeLand(c.id, { cover: true })') < ws.indexOf('openWorkspace(c.id)'), 'the list panel\'s Workspace door');
-    assert.match(fnBody(REG, 'regRunRowAct'), /if\(act==='open'\)\{ if\(!\(window\.roomHomeLand&&roomHomeLand\(id,\{ cover:true \}\)\)\) openWorkspace\(id\); \}/, 'the Contracts row\'s ⋯ Workspace');
+    assert.ok(ws.indexOf('roomHomeLand(c.id, { open: true })') > 0 && ws.indexOf('roomHomeLand(c.id, { open: true })') < ws.indexOf('openWorkspace(c.id)'), 'the list panel\'s Workspace door');
+    assert.match(fnBody(REG, 'regRunRowAct'), /if\(act==='open'\)\{ if\(!\(window\.roomHomeLand&&roomHomeLand\(id,\{ open:true \}\)\)\) openWorkspace\(id\); \}/, 'the Contracts row\'s ⋯ Workspace');
     const igCode = strip(IG);
     const wsHandlers = igCode.match(/\[data-ig-ws\][^\n]*/g) || [];
     assert.ok(wsHandlers.length >= 2, 'Explorer\'s card and the strip');
     for (const h of wsHandlers.filter(x => /openWorkspace/.test(x)))
-      assert.match(h, /if\(!\(window\.roomHomeLand&&roomHomeLand\(id,\{ cover:true \}\)\)\) openWorkspace\(id\)/, h.slice(0, 120));
+      assert.match(h, /if\(!\(window\.roomHomeLand&&roomHomeLand\(id,\{ open:true \}\)\)\) openWorkspace\(id\)/, h.slice(0, 120));
     assert.match(R('js/views/contract.js'), /roomArrivesOnHome,roomHomeLand,ROOM_ARRIVE_MS/, 'published');
     const HB = strip(R('js/views/homeboard.js'));
-    assert.match(HB, /if \(\(el = on\('\[data-hb-room\]'\)\)\)\{ const id = el\.getAttribute\('data-hb-room'\);\s*if \(!\(window\.roomHomeLand && roomHomeLand\(id, \{ cover: true \}\)\) && typeof openWorkspace === 'function'\) openWorkspace\(id\); return; \}/, 'the Board\'s contract card');
+    assert.match(HB, /if \(\(el = on\('\[data-hb-room\]'\)\)\)\{ const id = el\.getAttribute\('data-hb-room'\);\s*if \(!\(window\.roomHomeLand && roomHomeLand\(id, \{ open: true \}\)\) && typeof openWorkspace === 'function'\) openWorkspace\(id\); return; \}/, 'the Board\'s contract card');
     const NG = strip(R('js/views/negotiation.js'));
     const ng = NG.slice(NG.indexOf("host.querySelectorAll('[data-rl-open-ws]')"), NG.indexOf("host.querySelectorAll('[data-rl-open-doc]')"));
-    assert.ok(ng.indexOf('roomHomeLand(c.id, { cover: true })') > 0 && ng.indexOf('roomHomeLand(c.id, { cover: true })') < ng.indexOf('openWorkspace(c.id)'), 'the Negotiate page\'s Open workspace');
+    assert.ok(ng.indexOf('roomHomeLand(c.id, { open: true })') > 0 && ng.indexOf('roomHomeLand(c.id, { open: true })') < ng.indexOf('openWorkspace(c.id)'), 'the Negotiate page\'s Open workspace');
   });
   /* the plain landing, run on its own: a face left open is put away */
   test('1f pdOpenOnHome(\'plain\') puts away a face left open on that contract; \'copilot\' keeps it', () => {
@@ -271,7 +271,8 @@ describe('f678 (3) Open party opens Home\'s Contracts place, narrowed to the par
        the place the chip leads the list head's chip row (its lead), in the
        place's one head over the Wall or the List; its × is bound once per
        element with the page's other tools (regToolsWire) */
-    assert.match(REGS, /lead:\(\)=>regOnCt\(R=>regOnlyChipHtml\(R\)\)/, 'it leads the list head\'s chip row');
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the shelf's own chips ("All 1 · Ended ×", regCtLeadHtml) stand before it */
+    assert.match(REGS, /lead:\(\)=>regOnCt\(R=>regCtLeadHtml\(R\)\+regOnlyChipHtml\(R\)\)/, 'it leads the list head\'s chip row');
     assert.match(REGS, /\$\{HOME\?regHomeHeadHtml\(R\):/, 'and the place\'s one head draws it, over the Wall or the List');
     assert.match(REG, /once\(document\.getElementById\('reg-only-clear'\),'click',\(\)=>\{ const R=regState\(\); R\.only=null; R\.page=1; regRepaint\(\); \}\)/);
     const i18n = R('js/i18n.js');
@@ -330,9 +331,14 @@ describe('f678 (5) the census is the measure, and CI runs it', () => {
     /* RE-POINTED 15 Oct 2026: steps 7 and 8 took their rows off — nothing waits now */
     const pend = (src.match(/pending: \d/g) || []).length;
     assert.equal(pend, 0, 'no door waits on a later step');
-    for (const name of ['Workspace door', 'Obligations row, double-click', 'Parties panel, Open party', 'approval row present'])
+    /* RE-POINTED 19 Nov 2026 (the Parties round): Open party is gone; the panel's door is All agreements on Contracts */
+    for (const name of ['Workspace door', 'Obligations row, double-click', 'Parties panel, All agreements on Contracts', 'approval row present'])
       assert.ok(src.includes(name), name);
-    const block = src.slice(src.indexOf("await door(A, 'Parties panel, Open party"), src.indexOf("await door(A, 'Parties panel, Open on Explorer"));
+    /* RE-POINTED 16 Nov 2026 (#762): the Explorer door after it was retired with the old panel — the block is this door's own
+       call, to the next door */
+    const at = src.indexOf("await door(A, 'Parties panel, All agreements on Contracts");
+    const next = src.indexOf('await door(', at + 10);
+    const block = src.slice(at, next > at ? next : undefined);
     assert.doesNotMatch(block, /pending:/);
   });
 });

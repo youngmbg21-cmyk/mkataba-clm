@@ -951,6 +951,12 @@ function clauseEditorCss(){
   .ce-rail .ce-card .pv{font-family:inherit; font-size:var(--t-meta); line-height:1.6}
   .ce-rail .ce-card .pv ins.rl-us{background:var(--st-green-bg); color:var(--accent-ink);
     font-weight:inherit; text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:2px; text-decoration-color:currentColor}
+  /* the new look's paper draws our added words in --st-green-fg: the card says the same (#762) */
+  /* the new look's card stands in #ce-lane (#762: it kept the old teal and bold): the rail's rules again, there */
+  #ce-lane .ce-card .pv{font-family:inherit; font-size:var(--t-meta); line-height:1.6}
+  #ce-lane .ce-card .pv ins.rl-us{background:var(--st-green-bg); color:var(--accent-ink); font-weight:inherit; text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:2px; text-decoration-color:currentColor}
+  #ce-lane .ce-card .pv del.rl-us{background:transparent; color:var(--rl-del-ink); font-weight:inherit; text-decoration:line-through; text-decoration-thickness:1.5px; text-decoration-color:currentColor}
+  html.lg-new #ce-lane .ce-card .pv ins.rl-us{color:var(--st-green-fg)}
   .ce-rail .ce-card .pv del.rl-us{background:transparent; color:var(--rl-del-ink);
     font-weight:inherit; text-decoration:line-through; text-decoration-thickness:1.5px; text-decoration-color:currentColor}
   .ce-card .av{display:flex; gap:var(--s-2); margin-top:9px; flex-wrap:wrap; align-items:center}
@@ -1783,6 +1789,8 @@ function ceTypingRefusal(){
    no reason is what makes a reader blame themselves. */
 function clauseEditorRefusal(c, opts = {}){
   if (!c) return _cet('ce_no_contract');
+  /* a Viewer edits no clause (Round C): the editor never opens for them, whichever door they came by */
+  if (typeof window.mayActOn === 'function' && !window.mayActOn(c)) return i18t('viewer_reads_only');
   /* ---- THE COUNTERPARTY IS LET IN (Young picked Mirror, 28 Sep 2026) ----
      It refused them outright, because this page was built around Copilot and
      their page has none. It opens for them now with the Copilot half not

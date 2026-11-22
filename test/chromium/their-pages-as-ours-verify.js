@@ -8,8 +8,10 @@
      4 · their team's note travels on the link and is served only to their party's links: never to our seat nor the
          waiting count
      5 · Send back stands in the panel (what goes, a message, one button) and sends
-     6 · History is our History's table (Time · Who · Side · What happened · Outcome), no change codes; Where we are and
-         Signing are page views (nothing boxed)
+     6 · History is our History's table (Time · Who · What happened · Kind · Outcome — RE-POINTED, P-44, owner's pick
+         20 Nov 2026: History on both sides the Legora + Stripe way; their own acts say "You", chips All · Changes ·
+         Decisions, the two switches The wording · The notes, a foot line that our internal notes are never there), no
+         change codes; Where we are and Signing are page views (nothing boxed)
      7 · the emails: the invitation is the drawn letter without the sender's new look; the reminder is a letter; the
          code says it opens the link; the code screen and the status page wear the black bar
      8 · the phone: nothing moves sideways
@@ -74,8 +76,10 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
         road: document.querySelectorAll('.pol-road li').length }; });
     /* RE-POINTED 12 Nov 2026 (owner, reviewing their white page: "Fix 1 and 2"): the panel's head is Redlines · Notes —
        Where we are is the page's own top tab, not a second door here — and Redlines carries no number of its own */
-    check('1 · Redlines: our cards in the right-hand panel under Redlines · Notes (no second Where we are, no third count); a road of four stops',
-      S.cards >= 2 && S.shown && S.tabs.length === 2 && S.tabs[0] === 'Redlines' && S.road === 4, S);
+    /* RE-POINTED 22 Nov 2026 (the P-44 review, the owner's picked drawing "the other side's page, the Legora + Stripe way":
+       the panel's head is Changes · Notes, each with its count; still no second Where we are) */
+    check('1 · Redlines: our cards in the right-hand panel under Changes · Notes (no second Where we are); a road of four stops',
+      S.cards >= 2 && S.shown && S.tabs.length === 2 && /^Changes \d+$/.test(S.tabs[0]) && /^Notes\b/.test(S.tabs[1]) && S.road === 4, S);
   } catch (e) { check('1', false, String(e).slice(0, 200)); }
 
   /* 2 */
@@ -101,11 +105,13 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     if (box){ await box.click(); await p.keyboard.press('Control+End'); await p.keyboard.type(' Seven months is our limit.'); }
     await p.click('#ce-railfoot button.p').catch(() => {});
     const open = await until(p, () => { const d = document.getElementById('pt-notes'); return d && d.classList.contains('open') && !!d.querySelector('.rl-np-pin'); }, null, 10000);
-    const D = await p.evaluate(() => ({ tabs: [...document.querySelectorAll('#pt-notes .rl-np-tab')].map(t => t.textContent.replace(/\s+/g, ' ').trim()),
+    const D = await p.evaluate(() => ({ tabs: [...document.querySelectorAll('#pt-notes :is(.rl-np-tab, .rl-np-room)')].map(t => t.textContent.replace(/\s+/g, ' ').trim()),
       pinRooms: [...document.querySelectorAll('#pt-notes [data-rl-np-pin-room]')].map(b => b.textContent.trim()),
       codes: /\bCHG-\d+/.test((document.getElementById('pt-notes') || {}).innerText + ' ' + (document.getElementById('toast-root') || {}).innerText) }));
     check('3 · Counter opens our clause page with our trail and no Jambo; Save opens our Notes drawer with two rooms and the pin\'s switch; no change code',
-      up && /Redlines/.test(trail) && !/Jambo/.test(trail) && open && D.tabs.length === 2 && /your team/.test(D.tabs[0]) && D.pinRooms.length === 2 && !D.codes, { trail, D });
+      /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn: the rooms read "With Highland · Your team", the other side's first;
+         the drawer still lands on their own team's room, the 3 Oct ruling — 4 below writes there) */
+      up && /Redlines/.test(trail) && !/Jambo/.test(trail) && open && D.tabs.length === 2 && D.tabs.some(t => /your team/i.test(t)) && D.pinRooms.length === 2 && !D.codes, { trail, D });
     /* 4 · their team's note */
     const ta = await p.$('#pt-notes .rl-np-in');
     if (ta){ await ta.fill('Sofia, I have countered at seven.'); await p.click('#pt-notes .rl-np-send, #pt-notes [data-rl-chat-send]'); await p.waitForTimeout(1500); }
@@ -143,13 +149,18 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   try {
     await p.click('#pt-hist'); await until(p, () => !!document.querySelector('.pol-hist-t'), null, 8000);
     const Hs = await p.evaluate(() => ({ cols: [...document.querySelectorAll('.pol-hist-t th')].map(t => t.textContent.trim()),
-      rows: document.querySelectorAll('.pol-hist-t tbody tr[data-pol-h]').length, codes: /#?CHG-\d+|owner side/i.test(document.getElementById('pt-hist-pane').innerText) }));
+      rows: document.querySelectorAll('.pol-hist-t tbody tr[data-pol-h]').length, codes: /#?CHG-\d+|owner side/i.test(document.getElementById('pt-hist-pane').innerText),
+      /* RE-POINTED (P-44): the chips (All first), the two switches, and the wall line under the table */
+      chips: [...document.querySelectorAll('.pol-hist [data-pol-h-k]')].map(b => b.getAttribute('data-pol-h-k')),
+      sw: [...document.querySelectorAll('.pol-hist [data-pol-h-sw]')].map(b => b.getAttribute('data-pol-h-sw')),
+      wall: !!document.querySelector('.pol-hist .pol-h-wall') }));
     await p.click('#pt-tab-where'); await p.waitForTimeout(600);
-    const whereBox = await p.evaluate(() => { const c = document.querySelector('#pt-where-pane .ds-card'); const cs = c && getComputedStyle(c); return cs ? cs.borderTopWidth + ' ' + cs.boxShadow : 'none'; });
+    /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn): the page views are .pol-where and .pol-sign, drawn flat */
+    const whereBox = await p.evaluate(() => { const c = document.querySelector('#pt-where-pane :is(.ds-card, .pol-where)'); const cs = c && getComputedStyle(c); return cs ? cs.borderTopWidth + ' ' + cs.boxShadow : 'none'; });
     await p.click('#pt-tab-signing'); await p.waitForTimeout(600);
-    const signBox = await p.evaluate(() => { const c = document.querySelector('#pt-sign-pane .ps-side'); const cs = c && getComputedStyle(c); return cs ? cs.borderTopWidth + ' ' + cs.boxShadow : 'none'; });
+    const signBox = await p.evaluate(() => { const c = document.querySelector('#pt-sign-pane :is(.ps-side, .pol-sign)'); const cs = c && getComputedStyle(c); return cs ? cs.borderTopWidth + ' ' + cs.boxShadow : 'none'; });
     check('6 · History is our table, no change codes; Where we are and Signing are page views, nothing boxed',
-      Hs.cols.join('|') === 'Time|Who|Side|What happened|Outcome' && Hs.rows >= 2 && !Hs.codes && /^0px none$/.test(whereBox) && /^0px none$/.test(signBox), { Hs, whereBox, signBox });
+      Hs.cols.join('|') === 'Time|Who|What happened|Kind|Outcome' && Hs.chips[0] === 'all' && Hs.sw.join('|') === 'w|n' && Hs.wall && Hs.rows >= 2 && !Hs.codes && /^0px none$/.test(whereBox) && /^0px none$/.test(signBox), { Hs, whereBox, signBox });
   } catch (e) { check('6', false, String(e).slice(0, 200)); }
   await p.context().close();
 

@@ -86,21 +86,33 @@ const check = (name, pass, detail) => {
        of templates and the chosen one's paper — every template whatever the
        window, the two halves are the index and the paper, and the book still
        reaches down a tall screen. */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Our paper is
+       drawn the Legora way (tplnHtml) — the index is the row list beside the
+       paper (.tpln-side .tpln-lrs, a row a template, none hidden with no filter)
+       and the two halves are the paper (.tpln-sheet) and the side (.tpln-side). */
+    /* RE-POINTED 17 Nov 2026 (#762): Our paper opens on its SHELVES (Shelves, then the Legora way, owner's pick by
+       prototype): a row per folder with its papers as a carousel (.tpln5-cfp, one a template). Every template is still on
+       the landing whatever the window, and the book's own scroller ([data-tpl-sec="book"]) still reaches down a tall
+       screen. */
     const tall = await page.evaluate(() => ({
-      cards: document.querySelectorAll('.tpl-pf-idx [data-tpl-pf]').length,
-      bands: document.querySelectorAll('.tpl-pf > .tpl-pf-idx, .tpl-pf > .tpl-pf-paper').length,
+      /* RE-POINTED 18 Nov 2026 (main: Folder Cards): each card says how many papers its folder holds (three shown, "+ N more"); every template is counted on the landing */
+      /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way): the shelves are calm cards (.tpln6-fc,
+         a press chooses: data-tpln-pickshelf), each saying "N papers · N drafted" (.tpln6-fcs) */
+      cards: [...document.querySelectorAll('.tpln5.is-shelves .tpln6-fc[data-tpln-pickshelf] .tpln6-fcs')].reduce((n, e) => n + (parseInt(e.textContent, 10) || 0), 0),
       seeAll: !!document.getElementById('tpl-ov-all'),
-      bottom: Math.round((document.querySelector('.tpl-pf') || { getBoundingClientRect: () => ({ bottom: 0 }) }).getBoundingClientRect().bottom) }));
+      bottom: Math.round((document.querySelector('[data-tpl-sec="book"]') || { getBoundingClientRect: () => ({ bottom: 0 }) }).getBoundingClientRect().bottom) }));
     await page.setViewportSize({ width: 2000, height: 700 });
     await page.evaluate(() => renderTemplatesPage());
     await page.waitForTimeout(1600);
     const short = await page.evaluate(() =>
-      document.querySelectorAll('.tpl-pf-idx [data-tpl-pf]').length);
+      /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way) */
+      [...document.querySelectorAll('.tpln5.is-shelves .tpln6-fc[data-tpln-pickshelf] .tpln6-fcs')].reduce((n, e) => n + (parseInt(e.textContent, 10) || 0), 0));
     check('the templates book shows every template, whatever the window',
       tall.cards > 0 && tall.cards === short, `${tall.cards} at 1030, ${short} at 700`);
     check('and nothing is held back behind a "see all"', !tall.seeAll, tall.seeAll);
-    check('the book is in its two halves — the index and the paper',
-      tall.bands === 2, `${tall.bands} halves`);
+    /* RETIRED 17 Nov 2026 (#762, Our paper: shelves, then the Legora way): "the book is in its two halves — the index
+       and the paper". The owner's pick took the paper out from beside the index: the paper is now a step of its own
+       (paper-first-verify 4 pins it side by side with its facts and doors). */
     check('the book reaches down the tall screen rather than stopping short',
       tall.bottom > 700, tall.bottom + 'px of 1030');
     await page.setViewportSize({ width: 2000, height: 1030 });

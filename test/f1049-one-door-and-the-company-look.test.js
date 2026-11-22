@@ -36,9 +36,9 @@ test('f1049 (2) New agreement: From scratch is the third tab, only with the righ
   assert.match(body(W, 'naNewPaperDoorHtml'), /if\(!naNewPaperOk\(\)\) return '';/);
   assert.match(W, /\$\{naNewPaperDoorHtml\(\)\}<\/div>/, 'the third tab beside Our paper and Their paper');
   assert.match(body(W, 'naNewPaperPaneHtml'), /window\.NS_STARTS\.map/, 'the same four starts the new-standard question offers');
-  assert.match(body(W, 'naNewPaperGo'), /openNewStandard\(\{ start:k\|\|'scratch', back, host \}\)/);
+  assert.match(body(W, 'naNewPaperGo'), /openNewStandard\(\{ start:k\|\|'scratch', back, host(?:, pick:\(x&&x\.pick\)\|\|null)? \}\)/); /* RE-POINTED 17 Nov 2026 (f1091 (8)): a door may name the paper */
   assert.match(body(W, 'naNewPaperGo'), /openNewAgreement\(\{ newPaper:true \}\)/, 'Back comes to this tab');
-  assert.match(W, /if\(o&&o\.newPaper\) naNewPaperShow\(root,true\);/);
+  assert.match(W, /if\(o&&o\.newPaper\)(?:\{ )?naNewPaperShow\(root,true\);/);
   const NS = read('js/views/newstandard.js');
   assert.match(NS, /_nsFrom = typeof opts\.back === 'function' \? opts\.back : null;/);
   assert.match(NS, /const nsBack = \(\) => \{[^}]*if \(typeof _nsFrom === 'function'\) return _nsFrom\(\);/);
@@ -149,15 +149,18 @@ test('f1049 (7) the send screen, Four steps', () => {
 
 test('f1049 (8) Our paper, the Legora way: one ask box, the streams on one line with More, a quoted first line, uses on the right; no New standard here', () => {
   const L = read('js/views/library.js');
-  const H = body(L, 'tplnHtml');
-  assert.match(H, /\$\{tplnAskHtml\(\)\}\$\{tplnChipsHtml\(rows\.map\(x => x\.c\)\)\}/, 'the box and the chips lead the list');
+  /* RE-POINTED 17 Nov 2026 (Our paper: Shelves, then the Legora way): the folder's list leads with the one filter line, then the chips */
+  const H = body(L, 'tplnListHtml');
+  /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way): the ask box and the chips (+ Shelf,
+     + Kind; on a shelf the shelves as chips) lead the list, from the one filter line; the "N more" stream chips went into + Shelf */
+  assert.match(H, /\$\{tplnFilterLineHtml\(rows, shelves\)\}/, 'the ask box and the chips lead the list');
+  assert.match(body(L, 'tplnFilterLineHtml'), /data-tpln-shelfchip/, 'the shelves are chips');
   assert.doesNotMatch(H, /data-tpln-new/, 'no New standard on Our paper: From scratch starts on the New agreement page');
   assert.match(L, /\$\{canManage&&!\(typeof newLookOn==='function'&&newLookOn\(\)\)\?`<button id="tpl-new"/, 'the head\'s New standard contract steps aside in the new look');
   const R = body(L, 'tplnRowHtml');
-  assert.match(R, /<span class="tpln-q">§ 1 · “/, "the first line quoted");
-  assert.match(R, /<span class="tpln-u">/, 'the uses on the right');
-  assert.match(body(L, 'tplnChipsHtml'), /order\.slice\(0, TPLN_CHIPS_SHOWN\)/);
-  assert.match(CSS, /html\.lg-new \.tpln-chips\{display:flex;flex-wrap:nowrap;/, 'ONE line');
+  /* RE-POINTED 21 Nov 2026 (P-34, as drawn): "§ 1 ·" in the body's small grey type, then the paper's words */
+  assert.match(R, /<span class="tpln-q"><small>§ 1 ·<\/small> “/, "the first line quoted");
+  assert.match(R, /<span class="tpln6-ub">/, 'drafted from it: a small bar and the number');
   /* the need is read without AI: small words dropped, a word by its stem, ANY word on the paper */
   const src = L.slice(L.indexOf('const TPLN_STOP'), L.indexOf('\n', L.indexOf('const TPLN_STOP'))) + '\n' + body(L, 'tplnMatches');
   const match = new Function('_tplPf', src + '; return tplnMatches;');

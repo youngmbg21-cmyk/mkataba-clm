@@ -96,9 +96,15 @@ const OPEN = ['', 'show me ', 'give me ', 'can you draw ', 'I want to see '];
     await until(page, n0 => !intel.busy && intel.history.length > n0, n0, 15000);
     /* A PICTURE THAT MUST LAND IS WAITED FOR, BOUNDED (9 Nov 2026: on GitHub's headless shell the first question's
        card landed after the answer was said, and was read before it did) */
-    if (opts && opts.moves) await until(page, p0 => JSON.stringify(hbS().path || []) + '|' + (hbS().panels || []).length !== p0, p0, 12000); /* 4s → 12s, 11 Nov 2026: a busy runner drew the card later still */
+    /* DETAIL ON A MISS (20 Nov 2026, PR #834's run 44762961589: the FIRST phrase's card was not seen within the bounded wait while its "can you draw" twin found it drawn): the miss now says whether the wait ran out and how long it took */
+    const tw = Date.now(); let landed = null;
+    if (opts && opts.moves) landed = await until(page, p0 => JSON.stringify(hbS().path || []) + '|' + (hbS().panels || []).length !== p0, p0, 20000); /* 4s → 12s, 11 Nov 2026: a busy runner drew the card later still; 12s → 20s, 17 Nov 2026 (#762, the new look the only look): on GitHub the FIRST phrase's card landed after 12s once (its "can you draw" twin, asked next, found it drawn) — still bounded, still a state */
+    const waitedMs = Date.now() - tw;
+    /* A LANDING ON ITS WAY IS WAITED FOR, BOUNDED (22 Nov 2026, PR 877's run: "show me MK-BP2" was read 150 ms after the
+       answer while its paper still waited for the whole record; navLanding() now says so, navReadFirst) */
+    await until(page, () => !(typeof navLanding === 'function' && navLanding()), null, 15000);
     await page.waitForTimeout(150);
-    return page.evaluate(([p0, n0]) => {
+    const got = await page.evaluate(([p0, n0]) => {
       const s = hbS(); const path = s.path || []; const key = path.slice(-1)[0];
       const panelsNow = (s.panels || []).length, panels0 = Number(String(p0).split('|')[1]);
       let P = null; try { const D = key ? hbDigData(key, s.lens) : null; if (D && D.kind === 'list') P = hbPlan(D); } catch (_){ P = null; }
@@ -107,6 +113,8 @@ const OPEN = ['', 'show me ', 'give me ', 'can you draw ', 'I want to see '];
       const paper = (window.intel && intel.paper && intel.paper.id) || null;
       return { moved: JSON.stringify(path) !== String(p0).split('|')[0] || panelsNow > panels0, added: panelsNow > panels0, key, paper, face: s.face, pic: P && P.pic, measure: P && P.measure, split: P && P.split && P.split.by, said };
     }, [p0, n0]);
+    if (opts && opts.moves) got.wait = (landed ? 'landed' : 'RAN OUT') + ' after ' + waitedMs + 'ms';
+    return got;
   };
   try {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
@@ -136,7 +144,7 @@ const OPEN = ['', 'show me ', 'give me ', 'can you draw ', 'I want to see '];
       const b = await ask('can you draw ' + p);
       const ok = a.moved && pics.includes(a.pic) && (!measure || a.measure === measure)
         && b.pic === a.pic && b.measure === a.measure && b.split === a.split;
-      if (!ok) bad.push(p + ' → ' + JSON.stringify([a.pic, a.measure, a.split, b.pic, b.measure, b.split, a.moved]));
+      if (!ok) bad.push(p + ' → ' + JSON.stringify([a.pic, a.measure, a.split, b.pic, b.measure, b.split, a.moved]) + ' (bare ask: wait ' + a.wait + '; said: ' + String(a.said || '').slice(0, 120) + ')');
     }
     check(!bad.length, `A0 every phrase lands its card, alike with "can you draw" (${TABLE.length - bad.length}/${TABLE.length})`, bad.slice(0, 4).join(' ;; '));
     const bubble = await ask('bubble chart of value against time left');

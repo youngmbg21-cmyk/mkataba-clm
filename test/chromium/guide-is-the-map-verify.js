@@ -29,31 +29,31 @@ const until = async (P, fn, arg, ms = 8000) => { try { await P.waitForFunction(f
     await until(P, () => !!document.getElementById('igd-input'), null, 20000);
     await P.evaluate(() => { state.aiConfigured = true; });
     await P.fill('#igd-input', '?'); await P.press('#igd-input', 'Enter');
-    const open = await until(P, () => typeof panelFace === 'function' && panelFace() === 'guide' && !!document.querySelector('.gd-row'), null, 8000);
-    check(open && brain === 0, '1 "?" opens the Guide, free', { open, calls: brain });
-    const rows = await P.evaluate(() => [...document.querySelectorAll('.gd-row')].map(r => ({ k: r.getAttribute('data-gd-go'), w: ((r.querySelector('.gd-word') || {}).textContent || '').trim() })));
-    const said = rows.filter(r => r.w);
-    const bad = await P.evaluate(R => R.filter(r => { const m = /“(.+)”/.exec(r.w); const a = m && jamboPageWordOf(m[1]); return !(a && a.place === r.k); }).map(r => r.k + ':' + r.w), said);
-    check(said.length >= rows.length - 1 && bad.length === 0, '2a every row with a one-word door says it, and the word reads back to that row', { n: rows.length, said: said.length, bad, none: rows.filter(r => !r.w).map(r => r.k) });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Guide is drawn by stage (.gdn, GUIDE_NL); a row
+       (.gdn-r) holds its page doors (.gdn-go[data-gd-go]) and says their words ("Say “…”", .gdn-say) */
+    /* RE-POINTED 21 Nov 2026 (P-38, owner: "delete the guide since we have the nav panel"): "?" opens the nav panel —
+       the Guide's pages by stage (RE-POINTED 22 Nov 2026: the owner had P-37's panel at the left reverted; it is the window in the middle again.); the Guide face and its "Say “…”" lines went with it */
+    const open = await until(P, () => !!document.querySelector('#cmd-palette .lp-p'), null, 8000);
+    check(open && brain === 0, '1 "?" opens the nav panel with every page, free', { open, calls: brain });
     await P.screenshot({ path: path.join(OUT, '1440x780.png') });
+    await P.keyboard.press('Escape');
     /* the word typed: "negotiations" opens Negotiations */
-    const neg = rows.find(r => r.k === 'negotiations');
-    if (neg){
-      await P.evaluate(() => { if (typeof closeContextPanel === 'function') closeContextPanel(); setView('counter'); });
-      await until(P, () => !!document.getElementById('igd-input'), null, 8000);
-      const w = /“(.+)”/.exec(neg.w)[1];
-      await P.fill('#igd-input', w); await P.press('#igd-input', 'Enter');
-      check(await until(P, () => typeof guideHereKey === 'function' && guideHereKey() === 'negotiations', null, 8000), '2b the word typed opens that page', { w });
-    }
+    await P.evaluate(() => { if (typeof closeContextPanel === 'function') closeContextPanel(); setView('counter'); });
+    await until(P, () => !!document.getElementById('igd-input'), null, 8000);
+    await P.fill('#igd-input', 'negotiations'); await P.press('#igd-input', 'Enter');
+    check(await until(P, () => typeof guideHereKey === 'function' && guideHereKey() === 'negotiations', null, 8000), '2b the word typed opens that page', { w: 'negotiations' });
     for (const [ww, hh] of [[1536, 730], [1366, 950]]){
       await P.setViewportSize({ width: ww, height: hh });
-      await P.evaluate(() => { if (typeof openPanel === 'function') openPanel('guide'); });
-      await until(P, () => !!document.querySelector('.gd-row .gd-word'), null, 6000);
-      const fit = await P.evaluate(() => { const pn = document.getElementById('context-panel'); const R = pn && pn.getBoundingClientRect();
-        const out = [...document.querySelectorAll('.gd-word')].filter(e => { const r = e.getBoundingClientRect(); return r.right > R.right + 1 || r.height > 22; }).length;
+      await until(P, () => { const p = document.getElementById('cmd-palette'); return !p || !p.dataset.leaving; }, null, 3000);
+      await P.evaluate(() => { const p = document.getElementById('cmd-palette'); if (!p || p.dataset.leaving) openPanel('guide'); });
+      await until(P, () => { const p = document.querySelector('#cmd-palette'); return !!p && !p.dataset.leaving && !!p.querySelector('.lp-p') && !document.getAnimations().some(a => a.playState === 'running'); }, null, 4000);
+      const fit = await P.evaluate(() => { const sh = document.querySelector('#cmd-palette .lp-sheet').getBoundingClientRect();
+        const out = [...document.querySelectorAll('#cmd-palette .lp-p')].filter(e => { const r = e.getBoundingClientRect(); return r.right > sh.right + 1; }).length;
         return { out, side: document.documentElement.scrollWidth > innerWidth }; });
-      check(fit.out === 0 && !fit.side, `3 ${ww}×${hh}: every word line inside the panel, on one line, nothing sideways`, fit);
+      check(fit.out === 0 && !fit.side, `3 ${ww}×${hh}: every page row inside the nav panel, nothing sideways`, fit);
       await P.screenshot({ path: path.join(OUT, `${ww}x${hh}.png`) });
+      await P.keyboard.press('Escape');
+      await until(P, () => !document.getElementById('cmd-palette'), null, 3000);
     }
     check(errors.length === 0, 'no page errors', errors.join(' | '));
   } finally { await browser.close(); await h.stop(); }

@@ -3,7 +3,7 @@
      1 · Obligations (new look): a double press on a duty's row lands on its contract's paper, Jambo's panel on the
          Obligations face with that row open, his box at the foot
      2 · Coming back to Obligations shows the whole list again (no narrowed scope left behind)
-     3 · The old look: the narrowed page, as before
+     (3 · the old look's narrowed page: RETIRED 16 Nov 2026, #762 — there is no old look any more)
    At the parent 1 fails (the narrowed page, no Jambo panel).
    Run: node test/chromium/obligation-opens-on-the-paper-verify.js */
 const fs = require('node:fs');
@@ -26,7 +26,8 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
   await until(page, () => typeof caGo === 'function' && typeof currentUser === 'function' && !!currentUser() && !!getContract('MK-A1'), null, 40000);
   await page.evaluate(W.R7_IN_PAGE);
-  const rowSel = '#content tbody tr[data-ob-key]';
+  /* RE-POINTED 19 Nov 2026 (owner's pick "We owe · They owe", f1099): the duties are lines in two columns, not table rows */
+  const rowSel = '#content .obt-cols [data-ob-key]';
   const go = async look => { await page.evaluate(async on => { try { closeModal(); } catch (_){} await stPrefSet('newLook', on); newLookApply(); caGo({ kind: 'go', place: 'oblig', cid: null }); }, look);
     return until(page, s => state.view === 'obligations' && !!document.querySelector(s), rowSel, 15000); };
 
@@ -42,15 +43,19 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
 
   /* 2 */
   const back = await go(true);
-  const s2 = await page.evaluate(s => ({ rows: document.querySelectorAll(s).length, narrowed: !!document.querySelector('[data-obw-only-clear]'), contracts: new Set([...document.querySelectorAll(s)].map(r => (r.getAttribute('data-ob-key') || '').split('::')[0])).size }), rowSel);
+  /* RE-POINTED 19 Nov 2026 (We owe · They owe, f1099): the page lands on Next 30 days, which may hold one contract's duties
+     only; the whole list is Next 30 days and Later together, so both tabs are read */
+  const keysOf = s => [...document.querySelectorAll(s)].map(r => r.getAttribute('data-ob-key') || '');
+  const k1 = await page.evaluate(keysOf, rowSel);
+  await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="later"]'); if (b) b.click(); });
+  await page.waitForTimeout(400);
+  const k2 = await page.evaluate(keysOf, rowSel);
+  const s2 = await page.evaluate(n => ({ narrowed: !!document.querySelector('[data-obw-only-clear]') }), 0);
+  Object.assign(s2, { rows: k1.length + k2.length, contracts: new Set(k1.concat(k2).map(k => k.split('::')[0])).size });
   check('2 · back on Obligations the whole list stands, no narrowed scope', back && !s2.narrowed && s2.contracts >= 2, s2);
 
-  /* 3 */
-  const old = await go(false);
-  await page.evaluate(s => { const r = [...document.querySelectorAll(s)].find(x => /Return the pallets/.test(x.textContent)); if (r) r.setAttribute('data-pp', '1'); }, rowSel);
-  await page.dblclick('[data-pp="1"]').catch(() => {});
-  const s3 = await until(page, () => state.view === 'obligations' && !!document.querySelector('[data-obw-only-clear]'), null, 10000);
-  check('3 · the old look: the narrowed page, as before', old && s3);
+  /* RETIRED 16 Nov 2026 (#762): check 3 "the old look: the narrowed page, as before" — the old look is no longer reached
+     (newLookOn is true for everyone, no switch), so there is no old-look page to keep as it was */
 
   await browser.close(); await h.stop();
   console.log(fails ? `\n${fails} FAILED` : '\nALL PASS');

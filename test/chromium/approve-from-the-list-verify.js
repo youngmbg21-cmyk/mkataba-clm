@@ -72,16 +72,19 @@ const RULES = [{ id: 'r-fin', name: 'Finance director', order: 1,
     const listed = await until(page, () => !!document.querySelector('[data-ap-row="MK-AFL-1"]'));
     check('1a. the step waiting on this reader is listed', listed);
     if (listed) {
+      /* RE-POINTED (P-30, owner's pick 20 Nov 2026: "the row keeps ONLY See it in the paper ›"): Approve and Decline
+         stand in the chosen row's side panel ([data-apn-act]); the panel's rows stay the doors to the paper (data-apn-go) */
       await page.click('[data-ap-row="MK-AFL-1"]');
-      const verbs = await until(page, () => !!document.querySelector('#ins-panel [data-ins-act="approve"]'));
-      check('1b. the panel carries Approve and Refuse, painted',
-        verbs && await page.evaluate(PAINTED, '#ins-panel [data-ins-act="approve"]')
-          && await page.evaluate(PAINTED, '#ins-panel [data-ins-act="refuse"]'));
-      check('1c. and opening the Signing tab is still there',
-        await page.evaluate(() => !!document.querySelector('#ins-panel [data-ins-act="gate"]')));
+      const ACT = (id, k) => `#ins-panel [data-apn-act="${k}"][data-id="${id}"]`;
+      const verbs = await until(page, () => !!document.querySelector('#ins-panel [data-apn-act="approve"][data-id="MK-AFL-1"]'));
+      check('1b. the chosen row\'s panel carries Approve and Decline, painted',
+        verbs && await page.evaluate(PAINTED, ACT('MK-AFL-1', 'approve'))
+          && await page.evaluate(PAINTED, ACT('MK-AFL-1', 'refuse')));
+      check('1c. and a way to the contract is still there (the panel\'s door to its paper)',
+        await until(page, () => !!document.querySelector('#ins-panel [data-apn-go][data-id="MK-AFL-1"]')));
 
       /* Refuse, saying nothing: nothing is refused */
-      await page.click('#ins-panel [data-ins-act="refuse"]');
+      await page.click(ACT('MK-AFL-1', 'refuse'));
       const asked = await until(page, () => !!document.getElementById('pd-input'));
       check('1d. Refuse asks the reason', asked);
       if (asked) { await page.click('#pd-ok'); }
@@ -92,8 +95,8 @@ const RULES = [{ id: 'r-fin', name: 'Finance director', order: 1,
 
       /* Refuse, with a reason */
       await page.click('[data-ap-row="MK-AFL-1"]');
-      await until(page, () => !!document.querySelector('#ins-panel [data-ins-act="refuse"]'));
-      await page.click('#ins-panel [data-ins-act="refuse"]');
+      await until(page, () => !!document.querySelector('#ins-panel [data-apn-act="refuse"][data-id="MK-AFL-1"]'));
+      await page.click(ACT('MK-AFL-1', 'refuse'));
       await until(page, () => !!document.getElementById('pd-input'));
       await page.fill('#pd-input', 'The cap is below our floor.');
       await page.click('#pd-ok');
@@ -106,8 +109,9 @@ const RULES = [{ id: 'r-fin', name: 'Finance director', order: 1,
 
       /* Approve */
       await page.click('[data-ap-row="MK-AFL-2"]');
-      await until(page, () => !!document.querySelector('#ins-panel [data-ins-act="approve"]'));
-      await page.click('#ins-panel [data-ins-act="approve"]');
+      await until(page, () => !!document.querySelector('#ins-panel [data-apn-act="approve"][data-id="MK-AFL-2"]'));
+      await page.click(ACT('MK-AFL-2', 'approve'));
+      { const ok = await page.waitForSelector('#prompt-overlay #pd-ok', { timeout: 4000 }).catch(() => null); if (ok) await ok.click(); } /* a yes offers an optional note (17 Nov 2026) */
       await until(page, () => !document.querySelector('[data-ap-row="MK-AFL-2"]'));
       for (let i = 0; i < 30; i++) { s = await stored('MK-AFL-2'); if ((s.approvalChain || []).length) break; await page.waitForTimeout(150); }
       check('1h. Approve stores the approval in the approver\'s name',

@@ -58,7 +58,8 @@ describe('f439 — the tabs', () => {
     const v = theirPage();
     assert.equal(v.$('#pw-page').dataset.ptTab, 'where');
     assert.equal(v.$('#pt-where-pane').hidden, false);
-    assert.ok(v.$('#pt-where-pane .ds-sheet .ds-j'), 'the shared sheet is drawn, journey and all');
+    /* RE-POINTED 22 Nov 2026 (P-44 review): their Where we are is the drawn page — the stops, the chips, one table */
+    assert.ok(v.$('#pt-where-pane .pol-where .pol-stops'), 'the page is drawn, its four stops and all');
     assert.ok(v.$('#pt-nego'), 'the workbench is still mounted underneath');
     assert.equal(v.$('#pt-nego').inert, true, 'and takes no presses while covered');
   });
@@ -69,9 +70,11 @@ describe('f439 — the tabs', () => {
     assert.equal(v.d.querySelectorAll('#history-timeline').length, 1, 'exactly one copy of it');
     assert.equal(v.$('#pw-page').dataset.ptTab, 'history');
   });
-  test('nothing proposed, no History tab (the old button\'s rule)', () => {
+  /* RE-POINTED 22 Nov 2026 (P-44 review; the logged fault "no History tab" on a first share): on the new look their
+     History always holds their own link's facts (sent, first opened) and their notes, so the tab is always there */
+  test('nothing proposed, the History tab still stands (their link\'s own facts are its rows)', () => {
     const v = theirPage({ changes: [] });
-    assert.equal(v.$('#pt-hist'), null);
+    assert.ok(v.$('#pt-hist'));
   });
 });
 
@@ -90,8 +93,12 @@ describe('f439 — Notes and Focus are not hidden', () => {
      Notes and Focus are buttons on the page, not rows in a menu. */
   test('Notes and Focus are buttons on the page, and the copies are in More', () => {
     const v = theirPage();
-    assert.ok(v.$('.pw-id #pt-notes-door'), 'Notes beside the bell');
-    assert.ok(v.$('.pw-id-row2 #pt-focus'), 'Focus beside the text size');
+    /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn): the bell is on their black bar and opens ONE panel with
+       Alerts · Notes; Notes is its second tab */
+    assert.ok(v.$('.pol-bar #pt-bell'), 'the bell on the bar');
+    assert.ok(v.$('#pt-alerts [data-pt-ptab="notes"]'), 'Notes, the bell panel\'s second tab');
+    /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): Focus sits with the reading tools in More's pop-up */
+    assert.ok(v.$('#pol-pop .pol-pop-tools #pt-focus'), 'Focus with the reading tools, behind More');
     assert.ok(v.$('#pt-more'), 'More is back, because there is something in it again');
     assert.ok(v.$('#pt-menu #pt-pdf') || v.$('#pt-more-menu #pt-pdf'), 'the clean copy');
     assert.equal(v.$('#pt-where-pane [data-pt-copy="pdf"]'), null,
@@ -130,14 +137,16 @@ describe('f439 — Where we are borrows, never re-counts', () => {
      door IS that row of the bell, so the two cannot disagree. */
   test('their own line is the bell\'s first row of work, and its door is that row', () => {
     const v = theirPage();
-    const mine = v.$('#pt-where-pane .ds-sheet .ds-mine');
-    assert.ok(mine, 'the reader\'s own line is in the sheet\'s head');
-    const bell = [...v.d.querySelectorAll('#pt-alerts-body .pt-alert')].map(r => r.getAttribute('data-pt-kind'));
+    /* RE-POINTED 22 Nov 2026 (P-44 review): the reader's own line is the drawn amber band; its button is still the
+       bell's own row */
+    const mine = v.$('#pt-where-pane .pol-w-band');
+    assert.ok(mine, 'the reader\'s own line is the band at the head of the page');
+    const bell = [...v.d.querySelectorAll('#pt-alerts-body [data-pt-kind]')].map(r => r.getAttribute('data-pt-kind'));
     assert.ok(bell.includes('answer'), 'there is work waiting on this fixture');
     const door = mine.querySelector('[data-pt-where-row]');
     assert.ok(door, 'the line carries its door');
     const row = v.$(`#pt-alerts-body [data-pt-alert="${door.getAttribute('data-pt-where-row')}"]`);
-    assert.equal(row && row.getAttribute('data-pt-kind'), 'answer', 'the same row the bell lists');
+    assert.equal(row && row.closest('[data-pt-kind]').getAttribute('data-pt-kind'), 'answer', 'the same row the bell lists');
     assert.match(mine.textContent, /For you:/);
     assert.ok(!v.$('#pt-where-pane .pw-wrow, #pt-where-pane .pw-card, #pt-where-pane .pw-shrule'), 'the old cards and the rule are gone');
   });
@@ -151,13 +160,22 @@ describe('f439 — Where we are borrows, never re-counts', () => {
 
 describe('f439 — a reason after every save, on their seat', () => {
   test('their save routes to portalAskReason; ours is untouched', async () => {
+    /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): their seat is asked as ours is (8 Nov 2026, "mimic what is
+       in the owner side") — their Notes drawer opens with the change pinned; the old "Why this change?" pop-up
+       (portalAskReason, below) is the old look's */
     const v = theirPage();
-    let asked = 0;
-    const real = v.win.portalAskReason;
+    let asked = 0, pinned = null, opened = null;
+    const real = v.win.portalAskReason, realPin = v.win.rlNotesPin, realOpen = v.win.portalOpenNotes;
     v.win.portalAskReason = () => { asked++; return Promise.resolve(null); };
-    await v.win.rlNoteAskAfterFile({ id: 'MK-500' }, { id: 'CHG-9' }, { side: 'counterparty' });
-    assert.equal(asked, 1, 'their seat is asked');
-    v.win.portalAskReason = real;
+    v.win.rlNotesPin = o => { pinned = o; };
+    v.win.portalOpenNotes = o => { opened = o; };
+    const out = v.win.rlNoteAskAfterFile({ id: 'MK-500' }, { id: 'CHG-9', clauseId: 'c1' }, { side: 'counterparty' });
+    assert.ok(pinned && pinned.changeId === 'CHG-9' && pinned.filed === true, 'the change is pinned in their notes');
+    assert.ok(opened && opened.pin === true, 'their Notes drawer opens on it');
+    assert.equal(asked, 0, 'the old pop-up is not asked');
+    pinned.resolve(null);
+    assert.equal(await out, null, 'it ends when the note is written or skipped');
+    v.win.portalAskReason = real; v.win.rlNotesPin = realPin; v.win.portalOpenNotes = realOpen;
   });
   const HELD = ch => ({ 'hati.negoHeld.t': JSON.stringify({ v: 1, at: Date.now(), decisions: {}, withdrawn: {},
     proposed: { [ch.id]: { ...ch } } }) });
@@ -197,15 +215,18 @@ describe('f439 — the Signing tab on a negotiation link', () => {
     await press(v, '#pt-tab-signing');
     const pane = v.$('#pt-sign-pane');
     assert.equal(pane.hidden, false);
-    assert.equal(pane.querySelectorAll('.ps-stage').length, 4);
+    /* RE-POINTED 22 Nov 2026 (P-44 review): the drawn steps, each with its badge */
+    assert.equal(pane.querySelectorAll('.pol-sg > li').length, 4);
     assert.doesNotMatch(pane.textContent, /Your turn/, 'nothing can be signed on this link');
     assert.match(pane.textContent, /Nothing can be signed on this link/);
   });
-  test('its "Review what changed" opens the History tab', async () => {
+  /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn): the step in hand's door is the panel's one black button, Open the
+     redlines (the page's own "Review what changed" link went with the drawing; History stays its own tab) */
+  test('the panel\'s Open the redlines opens the Redlines tab', async () => {
     const v = theirPage();
     await press(v, '#pt-tab-signing');
-    await press(v, '#pt-sign-pane #pt-nego-open');
-    assert.equal(v.$('#pw-page').dataset.ptTab, 'history');
+    await press(v, '#pol-side [data-pol-go="redlines"]');
+    assert.equal(v.$('#pw-page').dataset.ptTab, 'redlines');
   });
 });
 

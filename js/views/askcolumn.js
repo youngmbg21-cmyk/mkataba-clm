@@ -246,6 +246,34 @@ async function askColLoad(askId, ids){
     return false;
   }
 }
+/* MANY QUESTIONS, ONE LOOK (owner, 20 Nov 2026: "fix Discover"): Discover wanted every read's answers and sent one
+   request per question, each carrying the drawn wording of every contract (askColTexts: a paper drawn and read in this
+   browser, per contract, per question). Now one request asks for them all with NO wording; the server says which
+   contracts it cannot check without their drawing (`need`), and only those are drawn, once, and sent in a second
+   request. A question nobody keeps any more leaves quietly, as askColLoad's 404 does. */
+async function askColLoadMany(askIds, ids){
+  const ks = [...new Set((askIds || []).map(String))].filter(k => k && !AC.ans[k]);
+  if (!ks.length || !ids.length) return false;
+  const take = r => {
+    (r && r.missing || []).forEach(k => askColDrop(k));
+    Object.entries((r && r.byAsk) || {}).forEach(([k, v]) => {
+      if (v && v.ask) AC.asks[k] = v.ask;
+      Object.assign(AC.ans[k] || (AC.ans[k] = {}), (v && v.answers) || {});
+      const seen = AC.asked[k] || (AC.asked[k] = new Set()); ids.forEach(id => seen.add(id));
+    });
+  };
+  try {
+    const r = await api('columns/answers', 'POST', { askIds: ks, ids });
+    const need = ((r && r.need) || []).map(String);
+    /* a second look that fails leaves those few unshown, never the rest of what came back */
+    if (need.length) try {
+      const r2 = await api('columns/answers', 'POST', { askIds: ks, ids: need, texts: askColTexts(need) });
+      Object.entries((r2 && r2.byAsk) || {}).forEach(([k, v]) => { const into = (r && r.byAsk && r.byAsk[k]); if (into && v) Object.assign(into.answers || (into.answers = {}), v.answers || {}); });
+    } catch (_){ /* said by the cells still empty */ }
+    take(r);
+    return true;
+  } catch (_){ return false; }
+}
 async function askColTeam(){
   try { const r = await api('columns'); AC.team = (r && r.asks) || []; AC.packs = (r && r.packs) || []; (AC.team || []).forEach(a => { AC.asks[a.id] = AC.asks[a.id] || a; }); }
   catch (_){ AC.team = AC.team || []; }
@@ -1082,6 +1110,8 @@ function askColFormDrawnHtml(f){
 /* A COLUMN'S CARD AS DRAWN (owner, 8 Nov 2026, the drawing's step 4): ‹ Overview; the question, how far it is read and
    when; ANSWERS — the coloured bar, then each answer with its count and Show (the list narrows to those contracts);
    THIS COLUMN — what is not read yet with Read the rest, and Remove column (the answers are kept either way). */
+/* a COUNTING question says its count under the question, "5 of 16 mention a rebate · Show those 5" (askColCountLineHtml),
+   as the older cards did (#762) */
 function askColDoneDrawnHtml(askId){
   const a = AC.asks[askId] || {}, p = askColPlan({ askId }), s = askColStats(askId), rows = askColGroupRows(askId), may = askColMay();
   const cap = t => `<div class="rfp-cap">${_acE(t)}</div>`;
@@ -1091,7 +1121,7 @@ function askColDoneDrawnHtml(askId){
   const nx = p.unread && may ? row(_acE(_acT('ac_nl_unread')), `<button type="button" class="rfp-a" data-ac-next="${_acE(askId)}" data-ac-n="${Math.min(p.unread, AC_SIZES[AC_SIZES.length - 1])}">${_acE(_acT('ac_nl_read_rest'))}</button>`, _acT('ac_nl_unread_n', { n: p.unread })) : '';
   const rm = row(_acE(_acT('ac_nl_on_list')), `<button type="button" class="rfp-a" data-ac-remove="${_acE(askId)}">${_acE(_acT('ac_nl_remove'))}</button>`, _acT('ac_nl_kept'));
   return `<div class="rfp-panel is-drawn ac-nl-done" data-ac-col="${_acE(askId)}"><button type="button" class="rfp-a ac-nl-back" data-ac-colback>${_acE(_acT('ac_nl_back'))}</button>
-    <p class="ac-nl-q">${_acE(a.question || a.name || '')}</p><p class="ac-nl-hint">${_acE(sub)}</p>
+    <p class="ac-nl-q">${_acE(a.question || a.name || '')}</p><p class="ac-nl-hint">${_acE(sub)}</p>${askColCountLineHtml(askId)}
     ${rows.length ? cap(_acT('ac_nl_answers')) + askColGroupBarHtml(askId, rows, p.shown, 'ac-nl-bar') + ans : ''}
     ${cap(_acT('ac_nl_this_col'))}${nx}${rm}</div>`;
 }
@@ -1385,7 +1415,60 @@ function askColDrawHtml(askId){
 }
 /* COPY THE TABLE: the list's rows with this column, each answer with its clause and sentence, as a table a mail or a sheet takes */
 function askColCopy(askId){ return askColCopyMany([askId]); }
-async function askColCopyMany(askIds, only){
+/* DOWNLOAD AS EXCEL (owner, 22 Nov 2026: "add a download as Excel button"): the same table as Copy, written as a real
+   .xlsx (Office Open XML in a plain zip, stored, no compression) so Excel, Numbers and Google Sheets open it with no
+   warning. No library: four XML parts, a header row in bold, every cell plain text. Nothing is sent anywhere. */
+const _XL_CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++){ let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function xlCrc(b){ let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = _XL_CRC[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function xlZip(files){
+  const enc = new TextEncoder(), parts = [], dir = []; let off = 0;
+  const u16 = n => [n & 0xFF, (n >>> 8) & 0xFF], u32 = n => [n & 0xFF, (n >>> 8) & 0xFF, (n >>> 16) & 0xFF, (n >>> 24) & 0xFF];
+  for (const [name, text] of files){
+    const nb = enc.encode(name), db = enc.encode(text), crc = xlCrc(db);
+    const head = new Uint8Array([...u32(0x04034B50), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(crc), ...u32(db.length), ...u32(db.length), ...u16(nb.length), ...u16(0)]);
+    parts.push(head, nb, db);
+    dir.push(new Uint8Array([...u32(0x02014B50), ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(crc), ...u32(db.length), ...u32(db.length), ...u16(nb.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(off)]), nb);
+    off += head.length + nb.length + db.length;
+  }
+  const dirLen = dir.reduce((n, b) => n + b.length, 0);
+  const end = new Uint8Array([...u32(0x06054B50), ...u16(0), ...u16(0), ...u16(files.length), ...u16(files.length), ...u32(dirLen), ...u32(off), ...u16(0)]);
+  return new Blob([...parts, ...dir, end], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+function xlCol(i){ let s = ''; i++; while (i){ const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; }
+function xlEsc(x){ return String(x == null ? '' : x).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function xlBook(head, rows, sheetName){
+  const all = [head].concat(rows);
+  const cell = (v, r, c) => `<c r="${xlCol(c)}${r + 1}" t="inlineStr"${r === 0 ? ' s="1"' : ''}><is><t xml:space="preserve">${xlEsc(v)}</t></is></c>`;
+  const widths = head.map((_, c) => Math.min(60, Math.max(10, ...all.map(r => String(r[c] == null ? '' : r[c]).length + 2))));
+  const sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+    + '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'
+    + `<cols>${widths.map((w, c) => `<col min="${c + 1}" max="${c + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>`
+    + `<sheetData>${all.map((r, ri) => `<row r="${ri + 1}">${r.map((v, ci) => cell(v, ri, ci)).join('')}</row>`).join('')}</sheetData></worksheet>`;
+  const name = xlEsc(String(sheetName || 'Discover').replace(/[\\/?*[\]:]/g, ' ').slice(0, 31) || 'Discover');
+  return xlZip([
+    ['[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
+    ['_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
+    ['xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${name}" sheetId="1" r:id="rId1"/></sheets></workbook>`],
+    ['xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'],
+    ['xl/styles.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'],
+    ['xl/worksheets/sheet1.xml', sheet],
+  ]);
+}
+function askColXlsx(askIds, only, title){
+  const { head, rows } = askColTableOf(askIds, only);
+  if (!rows.length){ if (typeof toast === 'function') toast(_acT('ac_xlsx_none'), 'warn'); return false; }
+  const day = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
+  const base = String(title || 'Discover').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Discover';
+  try {
+    const blob = xlBook(head, rows, base), url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = `${base} ${day}.xlsx`; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    if (typeof toast === 'function') toast(_acT('ac_xlsx_done', { n: rows.length }), 'ok');
+    return true;
+  } catch (_){ if (typeof toast === 'function') toast(_acT('ac_xlsx_failed'), 'warn'); return false; }
+}
+/* ONE TABLE, TWO WAYS OUT: the rows Copy puts on the clipboard and Download writes into an Excel file are one reading */
+function askColTableOf(askIds, only){
   const word = a => !a ? '' : a.noWording ? _acT('ac_no_wording') : a.found ? a.answer : _acT('ac_not_found');
   const rule = a => !a ? '' : a.verdict === 'in' ? _acT('ac_lg_good') : a.verdict === 'out' ? _acT('ac_lg_bad') : '';
   /* `only`: the rows another page shows (the read table on Reads), else the Contracts list as filtered */
@@ -1397,6 +1480,10 @@ async function askColCopyMany(askIds, only){
   });
   const head = ['Ref', 'Party'].concat(...askIds.map(k => { const n = (AC.asks[k] || {}).name || '';
     return [n, '', n + ' · ' + _acT('ac_f_clause'), n + ' · ' + _acT('ac_f_source'), n + ' · ' + _acT('ac_f_rule')]; }));
+  return { head, rows };
+}
+async function askColCopyMany(askIds, only){
+  const { head, rows } = askColTableOf(askIds, only);
   const tsv = [head].concat(rows).map(r => r.map(x => String(x).replace(/[\t\n]+/g, ' ')).join('\t')).join('\n');
   const html = '<table>' + [head].concat(rows).map((r, i) => '<tr>' + r.map(x => `<${i ? 'td' : 'th'}>${_acE(x)}</${i ? 'td' : 'th'}>`).join('') + '</tr>').join('') + '</table>';
   try {
@@ -2059,7 +2146,7 @@ function _acRegRepaint(){
 /* the Discover page is drawn again as answers land (it draws nothing unless it is the page in front) */
 function _acDiscoverLive(now){ if (typeof state !== 'undefined' && state.view === 'reads' && typeof window.discoverLive === 'function'){ try { discoverLive(now); } catch (_){} } }
 
-Object.assign(window, { askColAskHere, askColShown, askColTeam, askColDrop, askColLoad, askColCopyMany, askColGo, askColCheck, askColMay, askColNameOf, askColCountOpen, askColCountOf, askColRecordsOf, askColDeskRestHtml, AC, AC_MAX, AC_COLS_MAX, AC_BATCH, AC_SIZES, AC_DESK_TURN_MS, acSize, acSizeSet, askColPlan, askColNextWords, askColDoneSay, askColDeskAt, askColDeskPast, askColDeskStop, askColUnread, askColSentenceHtml, askColWhereText, askColWhen, askColNext, askColReads, askColLastRead, askColTableFor, askColPackAskIds, askColStop, askColCarryOn, askColKeep, askColDelete, askColIsPortfolio, askColReword, askColSay, askColSayClear, askColPackPicked, askColTableOpen, askColRunNow,
+Object.assign(window, { askColAskHere, askColShown, askColTeam, askColDrop, askColLoad, askColLoadMany, askColCopyMany, askColTableOf, askColXlsx, xlBook, xlZip, xlCrc, askColGo, askColCheck, askColMay, askColNameOf, askColCountOpen, askColCountOf, askColRecordsOf, askColDeskRestHtml, AC, AC_MAX, AC_COLS_MAX, AC_BATCH, AC_SIZES, AC_DESK_TURN_MS, acSize, acSizeSet, askColPlan, askColNextWords, askColDoneSay, askColDeskAt, askColDeskPast, askColDeskStop, askColUnread, askColSentenceHtml, askColWhereText, askColWhen, askColNext, askColReads, askColLastRead, askColTableFor, askColPackAskIds, askColStop, askColCarryOn, askColKeep, askColDelete, askColIsPortfolio, askColReword, askColSay, askColSayClear, askColPackPicked, askColTableOpen, askColRunNow,
   askColOn, askColKeys, askColWidths, askColThHtml, askColTdHtml, askColCmp, askColClauseNo,
   askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows, askColToneOf, askColLegendHtml, askColTakes, askColAtRisk, askColDiscoverHtml, askColDiscoverLeads, askColBring, askColSummary,
-  askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet, askColLandOn, askColWatchOf, askColOddHtml, askColClose });
+  askColFactsArrive, askColFactsPanelWire, askColFactsState, askColFactsKtHtml, askColFactSet, askColLandOn, askColWatchOf, askColOddHtml, askColClose, askColTexts });

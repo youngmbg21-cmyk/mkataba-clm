@@ -49,7 +49,10 @@ test('3 · the Contracts cell is one line, "No money" grey, Stream has the room 
   const REG = read('js/views/register.js').replace(/\/\*[\s\S]*?\*\//g, '');
   assert.match(REG, /CELL\.standards=`<td style="overflow:hidden">\$\{window\.stdRowWordsHtml\?stdRowWordsHtml\(c\):''\}<\/td>`;/, 'no "missing:" line under the bar');
   assert.match(REG, /i18t\(\(typeof newLookOn==='function'&&newLookOn\(\)\)\?'reg_no_money':'reg_non_monetary_word'\)/);
-  assert.match(REG, /const REG_COL_W_NL=\{ standing:12, stream:13, standards:17, expiry:12, value:11, owner:10 \};/);
+  /* RE-POINTED (P-31, owner's pick 20 Nov 2026): Needs you joins the new look's columns */
+  /* RE-POINTED 21 Nov 2026 (P-31, as drawn): Ends holds "20 Dec 2026 · in 30 days" and "ended 11 Oct 2026" whole */
+  /* RE-POINTED 22 Nov 2026 (P-31 review): at 1366 the Folder badge and "in 40 days" stand whole */
+  assert.match(REG, /const REG_COL_W_NL=\{ standing:11, stream:13, standards:17, needs:13, expiry:20, value:10, owner:10 \};/);
   const I = read('js/i18n.js');
   assert.match(I, /reg_no_money: 'No money',/); assert.match(I, /reg_no_money: 'Inga pengar',/);
   const CSS = read('index.html').replace(/\/\*[\s\S]*?\*\//g, '');

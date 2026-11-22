@@ -44,13 +44,17 @@ function world({ need = 5, ready = 2, late = 1, oldest = 9, brain = true } = {})
 }
 
 describe('f1042 (1) the welcome as drawn', () => {
-  test('1a the brain first, then his line, the count, the three numbers, one black button', () => {
+  /* RE-POINTED 22 Nov 2026 (owner: "delete this explorer feature from the board side panel"): no brain card on the
+     Board's panel, even where the Explorer's code is loaded; his line opens it */
+  test('1a no brain card; his line first, the count, the three numbers, one black button', () => {
     const { w } = world();
     const html = w.hbBoardHelloHtml();
     const at = s => html.indexOf(s);
-    assert.ok(at('class="hbw-brain"') > 0 && at('class="hbw-brain"') < at('class="hbw-say"') && at('class="hbw-say"') < at('class="hbw-trio"') && at('class="hbw-trio"') < at('class="hbw-acts"'), 'in the order drawn');
+    assert.ok(!/hbw-brain|data-hb-brain/.test(html), 'no Explorer map on the Board\'s panel');
+    assert.ok(at('class="hbw-say"') > 0 && at('class="hbw-say"') < at('class="hbw-trio"') && at('class="hbw-trio"') < at('class="hbw-acts"'), 'in the order drawn');
     assert.ok(html.includes('<h3 class="hbw-say">I have 2 things ready for you.</h3>'));
-    assert.ok(html.includes('<p class="hbw-sub">5 need you in all. The oldest has waited 9 days.</p>'), html.match(/hbw-sub">[^<]*/));
+    /* RE-POINTED 21 Nov 2026 (P-39, as drawn): one sentence, "13 need you in all; the oldest has waited 2 days." */
+    assert.ok(html.includes('<p class="hbw-sub">5 need you in all; the oldest has waited 9 days.</p>'), html.match(/hbw-sub">[^<]*/));
     assert.equal((html.match(/ui-btn-primary/g) || []).length, 1, 'ONE black button');
     assert.match(html, /<button type="button" class="ui-btn ui-btn-primary" data-hbw="late">Start with the late ones<\/button><button type="button" class="jov-lnk" data-hbw="all">Show all 5<\/button>/);
     assert.match(html, /class="jov"/, 'still the one builder\'s frame');

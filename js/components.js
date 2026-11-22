@@ -41,6 +41,7 @@ const ICONS = {
      is the sprite fault in this map's own costume. */
   chat:'<path d="M4 5h16v11h-9l-4.5 4v-4H4z"/>',
   msg:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  phone:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>',
   send:'<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
   lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
   shield:'<path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1 1 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
@@ -87,6 +88,8 @@ const ICONS = {
   target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
   trend:'<path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/>',
   network:'<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5V12m0 0-5.2 5m5.2-5 5.2 5"/>',
+  /* the ⌘ mark of Explorer's "Try on the map" rows (P-40, as drawn, 21 Nov 2026): a suggestion that redraws the map */
+  cmd:'<path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"/>',
   share:'<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="m16 6-4-4-4 4"/><path d="M12 2v13"/>',
   filter:'<path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>',
   sort:'<path d="M7 4v16M3 8l4-4 4 4M17 20V4M21 16l-4 4-4-4"/>',
@@ -365,6 +368,48 @@ if (typeof document !== 'undefined' && document.addEventListener && !window._nee
   document.addEventListener('change', on, true);
 }
 Object.assign(window,{NEED_BG,needAttrs,needMark});
+/* ---- INITIALS, LETTERS ONLY (P-25 review, 22 Nov 2026: "Bowmans (Coulson Harney LLP)" drew "B(") ----
+   The first letter (or digit: "Buyer 01" is "B0") of each of the first two words that have one — a bracket, a dash,
+   an ampersand or a quote is never an initial. A name with no space (an address, "amina.otieno@x") splits at its dots and @ instead, so it still gives
+   two. None at all → the fallback. Parties (rows, worklist, panel) and People (rows, panel, avatars) read it. */
+function nameInitials(name, fallback){
+  const s = String(name == null ? '' : name).trim();
+  const parts = s.split(/\s/.test(s) ? /\s+/ : /[\s@._-]+/);
+  const out = parts.map(w => (w.match(/[\p{L}\p{N}]/u) || [])[0]).filter(Boolean).slice(0, 2).join('');
+  return out ? out.toLocaleUpperCase() : (fallback == null ? '·' : fallback);
+}
+Object.assign(window,{nameInitials});
+
+/* ---- THE WATERMARK SCROLLS WITH THE READING (owner, 22 Nov 2026: "when you scroll on jambo, the waves should scroll
+   up as well and not remain frozen at the same location") ----
+   The side panel's watermark is drawn by the panel itself (index.html, THE WATERMARK ON EVERY SIDE PANEL), which does
+   not scroll: its feed, its talk or its list scrolls inside it. So whatever scrolls inside a watermarked panel lends the
+   panel its distance (--wm-y), and the weave and its wash rise by it, up to WM_LIFT_MAX, where they have left the top.
+   ONE listener, delegated on document at load (a scroll does not bubble: caught on the way down). A scroller drawn
+   again at its top (the panel repainted, a new turn) brings the weave back down: checked while it is lifted. */
+const WM_PANELS = '#ig-dock, .ins-panel.is-jambo, .st-cr .st-side';
+const WM_LIFT_MAX = 200;
+function wmLiftSet(p, y){
+  y = Math.max(0, Math.min(WM_LIFT_MAX, Math.round(y || 0)));
+  if (p._wmY === y) return;
+  p._wmY = y; p.style.setProperty('--wm-y', y + 'px');
+}
+function wmFollow(p, sc){
+  p._wmSc = sc; wmLiftSet(p, sc.scrollTop);
+  if (p._wmY && !p._wmWatch) p._wmWatch = setInterval(() => {
+    const s = p._wmSc, gone = !p.isConnected;
+    wmLiftSet(p, !gone && s && s.isConnected ? s.scrollTop : 0);
+    if (gone || !p._wmY){ clearInterval(p._wmWatch); p._wmWatch = null; }
+  }, 400);
+}
+if (typeof document !== 'undefined'){
+  document.addEventListener('scroll', e => {
+    const t = e.target; if (!t || t.nodeType !== 1 || typeof t.closest !== 'function') return;
+    const p = t.closest(WM_PANELS); if (!p || p === t) return;
+    wmFollow(p, t);
+  }, { capture: true, passive: true });
+}
+Object.assign(window, { WM_PANELS, WM_LIFT_MAX, wmLiftSet, wmFollow });
 /* ============================================================
    SHARED: contract row (compact list item, used everywhere)
    ============================================================ */
@@ -379,7 +424,7 @@ function contractRow(c, {showFolder=false}={}){
     ${(()=>{ const o=openFindings(c); if(!o.length) return '';
       const sm=SEV_META[worstSevOf(o)];
       return `<span class="hidden md:inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${sm.chip}" title="Open scan findings">${icon('readpaper','w-2.5 h-2.5')}${o.length}</span>`; })()}
-    <span class="hidden sm:block text-xs font-mono whitespace-nowrap" style="color:${isMonetary(c)?'var(--color-text)':'var(--color-neutral-500)'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'—')}</span>
+    ${(typeof canViewValues==='function'&&!canViewValues())?'':/* hidden money is not drawn at all (f259) */`<span class="hidden sm:block text-xs font-mono whitespace-nowrap" style="color:${isMonetary(c)?'var(--color-text)':'var(--color-neutral-500)'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'—')}</span>`}
     <span class="shrink-0">${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span>
     <span class="transition shrink-0" style="color:var(--color-neutral-400)">${icon('chevR')}</span>
   </button>`;
@@ -590,7 +635,11 @@ function jamboWaysHere(){
   const face = JB_WAY_FACES.has(k);
   return { k, doors: row.d.filter(d => d !== k && (face || !JB_WAY_FACES.has(d))) };
 }
-function jamboWayWord(k){ const w = _jbT('ca_w_' + k); return (w && w !== 'ca_w_' + k) ? w : k; }
+function jamboWayWord(k){
+  /* P-31 AS DRAWN (21 Nov 2026): beside the Contracts place, a paper chosen on the Wall included, the links line says them
+     in full, as the list's own line does ("upload a document · draft a new agreement · discover") */
+  try { if (window.CA_CHIP_WALL_WORD && window.CA_CHIP_WALL_WORD[k] && typeof window.regPlaceUp === 'function' && window.regPlaceUp()) return _jbT(window.CA_CHIP_WALL_WORD[k]); } catch (_){ /* the short word stands */ }
+  const w = _jbT('ca_w_' + k); return (w && w !== 'ca_w_' + k) ? w : k; }
 function jamboWaysHtml(here, cls){
   /* the new look's (owner, 31 Oct 2026: built behind the switch until each page is approved) */
   if (typeof window.newLookOn === 'function' && !window.newLookOn()) return '';
@@ -791,7 +840,10 @@ function splitWire(rez, h){
     settle(); };
   rez.addEventListener('pointerdown', e => { e.preventDefault(); rez.dataset.drag = '1';
     /* the strip's LEFT edge is the seam (it lies on the panel's side) */
-    const hb = rez.getBoundingClientRect(); grabDx = hb.left - e.clientX;
+    /* measured from the SEAM itself (the edge less the width in force), never the strip's drawn box: a strip shifted by
+       a transform (#ig-resizer's -7px) made the panel jump by the shift at the first move (#762) */
+    let seam = null; try { seam = h.edge() - splitWidth(h); } catch (_){ seam = null; }
+    const hb = rez.getBoundingClientRect(); grabDx = (Number.isFinite(seam) ? seam : hb.left) - e.clientX;
     /* a width transition would make the handle trail the pointer */
     if (typeof h.dragging === 'function') h.dragging(true);
     document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
@@ -976,6 +1028,12 @@ function listColsLearn(seat, raw){
     const cs = getComputedStyle(host);
     const real = host.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
     if (!(real > 0)) return;
+    /* DRAWN WIDER THAN ITS ROOM (#762: measured before the panel beside it had taken its place, the columns were shared
+       out over room it never had): it draws once more on the room its own host really has, once per window width */
+    { const v0 = _listFit.get(seat), iw0 = typeof innerWidth === 'number' ? innerWidth : 0;
+      if (v0 && t.getBoundingClientRect().width > real + 2 && v0.overIw !== iw0 && typeof v0.repaint === 'function'){
+        v0.overIw = iw0; v0.settled = Math.max(0, Math.round(real - (_listOff.get(seat) || 0))); v0.settledPanel = true; v0.iw = iw0;
+        try { v0.repaint(); } catch (_){} return; } }
     /* drawn before its page was in sight (no room measured): measured now, drawn once more */
     if (!(raw > 0)){
       if (!(listSpreadMeasure().room > 0) || _listZeroOnce.has(seat)) return;
@@ -999,13 +1057,16 @@ function listColsLearn(seat, raw){
   });
 }
 let _listFitObs = null;
+let _listFitObsOn = null;
 function listColsWatch(){
-  if (_listFitObs || typeof ResizeObserver !== 'function' || typeof document === 'undefined') return;
+  if (typeof ResizeObserver !== 'function' || typeof document === 'undefined') return;
   const cs = document.getElementById('content-scroll'); if (!cs) return;
+  /* the page's scroller can be built again: the watch follows the one on screen, or a panel taking its room is never seen (#762) */
+  if (_listFitObs){ if (_listFitObsOn !== cs){ _listFitObs.disconnect(); _listFitObs.observe(cs); _listFitObsOn = cs; } return; }
   let queued = false;
   _listFitObs = new ResizeObserver(() => { if (queued) return; queued = true;
     (typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (f => setTimeout(f, 16)))(() => { queued = false; listColsCheck(); }); });
-  _listFitObs.observe(cs);
+  _listFitObs.observe(cs); _listFitObsOn = cs;
 }
 /* a list still on screen whose columns would change draws again (a window resized, the panel dragged);
    the same breath's net as the spread's: asked again after it, never dropped */
@@ -1032,7 +1093,9 @@ function listColsCheck(){
 }
 /* the drawing: a <col> per column (its key, its width; data-floor on the name, data-spread on one that
    steps aside), and the grip at a head's right edge */
-const listColTag = c => `<col data-k="${esc(String(c.k || ''))}"${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}${c.name ? ` data-floor="${SPREAD_NAME_MIN}"` : (c.spread || Number.isFinite(c.rank)) ? ' data-spread' : ''}>`;
+/* `floor` (the new look's lists, #762): a column that always stands counts its own width in the list's floor, never
+   the share of the spare room it was given, or the floor would grow with the room and the panel slide over the list */
+const listColTag = (c, floor) => `<col data-k="${esc(String(c.k || ''))}"${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}${c.name ? ` data-floor="${SPREAD_NAME_MIN}"` : (c.spread || Number.isFinite(c.rank)) ? ' data-spread' : (floor && Number(c.w0) > 0) ? ` data-floor="${Math.round(Number(c.mine ? c.w : c.w0))}"` : ''}>`;
 const listGripHtml = (seat, k) => `<span class="lc-grip" data-lc-grip="${esc(String(seat))}" data-lc-k="${esc(String(k || ''))}" role="separator" aria-orientation="vertical" title="${esc(typeof i18t === 'function' ? i18t('list_col_grip') : 'Drag to widen; double-press to reset')}"></span>`;
 /* THE GRIP: one listener on the document, bound at load; the column under the press is read at press time */
 const LIST_GRIP_CSS = '.lc-grip{position:absolute;top:0;right:0;width:9px;height:100%;cursor:col-resize;z-index:2;touch-action:none}'
@@ -1407,7 +1470,22 @@ function jamboTurnHtml(m, i, H, host){
   /* THE SAP WAY: the toolbar under an answer carries the source line inside its More menu (igSapHtml); a builder
      that has already said it is not given a second line here. */
   const read = (born !== 'ai' && m.read && m.read.text && !/data-ai-read/.test(inner)) ? `<div class="ai-read jb-read is-${born}" data-ai-read>${String(m.read.text).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))}</div>` : '';
-  return `<div class="jb-turn" data-jb-turn="${i}" data-jb-born="${born}" data-jb-host="${host}">${inner}${read}</div>`;
+  /* A MESSAGE ARRIVES ONCE (owner, 20 Nov 2026: "when i type on it, the conversation history disappears then comes
+     back"): the hosts draw the conversation again on every turn, and every message replayed its arrival fade, so the
+     whole history blinked out and back. A message already drawn once is marked (data-jb-seen) and does not fade
+     again; only the newest one arrives. The mark rides the message object itself (one conversation, every host). */
+  const seen = jamboTurnSeen(m);
+  /* STAY ON THE ANSWER (owner, 20 Nov 2026): a place the answer named is a link under it, gone to on a press (jbGoPress) */
+  const go = (m && m.goTo) ? `<div class="ig-go-said jb-go-said"><button type="button" class="ui-link" data-jb-go="${String(m.goTo).replace(/[^\w-]/g, '')}">${(typeof window.i18t === 'function' ? window.i18t('jb_go_there') : 'Take me there ›').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))}</button></div>` : '';
+  return `<div class="jb-turn" data-jb-turn="${i}" data-jb-born="${born}" data-jb-host="${host}"${seen ? ' data-jb-seen' : ''}>${inner}${go}${read}</div>`;
+}
+/* true when this message has been drawn before; the first ask marks it */
+function jamboTurnSeen(m){
+  if (!m || typeof m !== 'object') return false;
+  const S = jamboTurnSeen._s || (jamboTurnSeen._s = (typeof WeakSet === 'function') ? new WeakSet() : null);
+  if (!S) return false;
+  if (S.has(m)) return true;
+  S.add(m); return false;
 }
 var JB_TURN_HOSTS = { ai: ['#ai-feed', '#jl-feed'], ig: ['#ig-dock [data-jb-turns]'], st: ['#st-jb-feed [data-st-jb-talk]'] };
 /* ONE PLACE AT A TIME: the host painting now keeps the turns; every other
@@ -1552,13 +1630,13 @@ function jov5Money(c){
   } catch (_){}
   return '';
 }
-function jov5Open(id){ if (typeof window.roomHomeLand === 'function') window.roomHomeLand(id, { cover: true }); else if (typeof window.regOpenContract === 'function') window.regOpenContract(id); }
+function jov5Open(id){ if (typeof window.roomHomeLand === 'function') window.roomHomeLand(id, { open: true }); else if (typeof window.regOpenContract === 'function') window.regOpenContract(id); }
 function jov5ShowList(ids, name){ if (typeof window.regShowOnly === 'function') window.regShowOnly(ids, name); }
 function jov5ContractRow(c, v, extra){
   return Object.assign({ mark: 'mkTick', tone: 'green', t: (c && (c.name || c.id)) || '', s: (c && c.counterparty) || '', v: v || '', run: () => jov5Open(c.id) }, extra || {});
 }
 /* the five parts, drawn (jamboOverviewHtml hands over its slot's run list, so presses resolve as every other) */
-var JOV5_TONES = { amber: 1, green: 1, dark: 1 };
+var JOV5_TONES = { amber: 1, green: 1, dark: 1, red: 1, violet: 1, steel: 1, gray: 1, pink: 1 };
 /* THE FIVE PARTS' HEAD AND MARK, for a face that draws its own body (a contract's faces, round 3b): the same eyebrow,
    serif headline and sentence, the same round mark in its tone, so a contract's panel and a page's read alike */
 function jov5HeadHtml(o){
@@ -1581,29 +1659,45 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
   /* `avatar`: a person's initials in a dark circle beside the headline; `ring`: a share (0–100) drawn as a ring there */
   const pct = o.ring != null ? Math.max(0, Math.min(100, Number(o.ring) || 0)) : null;
   const ring = pct != null ? `<span class="jov5-ring" aria-hidden="true"><svg viewBox="0 0 80 80"><circle class="jov5-rb" cx="40" cy="40" r="34"/><circle class="jov5-rf" cx="40" cy="40" r="34" style="stroke-dashoffset:${(213.6 * (1 - pct / 100)).toFixed(1)}"/></svg><b>${pct}%</b></span>` : '';
-  const head = o.avatar ? `<div class="jov5-who"><span class="jov5-ava" aria-hidden="true">${E(o.avatar)}</span>${headIn}</div>` : ring ? `<div class="jov5-who">${ring}${headIn}</div>` : headIn;
+  /* `avatarTone` / `avaTone`: the initials in a soft status tone instead of the dark circle (Parties P-25: the party's stream; People P-26: green our team, steel the other side) */
+  const _avaT = o.avatarTone && JOV5_TONES[o.avatarTone] ? o.avatarTone : (o.avaTone ? String(o.avaTone) : '');
+  const head = o.avatar ? `<div class="jov5-who"><span class="jov5-ava${_avaT ? ' is-' + E(_avaT) : ''}" aria-hidden="true">${E(o.avatar)}</span>${headIn}</div>` : ring ? `<div class="jov5-who">${ring}${headIn}</div>` : headIn;
   const glance = (o.glance || []).filter(g => g && g.l != null).slice(0, 3);
   const glanceHtml = glance.length ? `<div class="jov5-glance">${glance.map(g => { const t = tag(g.run, g.attr);
-    return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-g${t === 'button' ? ' is-door' : ''}${g.warn ? ' is-warn' : ''}"${door(g.run, g.attr)}${g.title ? ` title="${E(g.title)}"` : ''}>`
+    /* A TILE THAT HOLDS WORDS, NOT A NUMBER ("Every month"), takes the smaller size and may wrap — never past its card
+       (owner, 19 Nov 2026: the duty panel's "Every month" ran out of its tile and the panel) */
+    const word = /[^\d\s.,%:\u2014\u2013-]/.test(String(g.n == null ? '' : g.n)) && String(g.n).length > 7;
+    return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-g${t === 'button' ? ' is-door' : ''}${g.warn ? ' is-warn' : ''}${word ? ' is-word' : ''}"${door(g.run, g.attr)}${g.title ? ` title="${E(g.title)}"` : ''}>`
       + `<b>${E(g.n)}</b><span>${E(g.l)}</span></${t}>`; }).join('')}</div>` : '';
   const rowHtml = r => {
     const t = (r.btn || r.link) ? 'div' : tag(r.run, r.attr);
-    const mark = r.mark != null ? `<span class="jov5-mk${JOV5_TONES[r.tone] ? ' is-' + r.tone : ''}">${r.markText != null ? E(r.markText) : ic(r.mark)}</span>` : '';
+    /* `faces`: up to four people's initials, overlapping, where a row is about people (Parties' contacts, 19 Nov 2026);
+       `cls`: a page's own class on the row, for its own tone (Parties' kind badges and an owed fact, P-25 as drawn) */
+    const mark = Array.isArray(r.faces) && r.faces.length ? `<span class="jov5-faces" aria-hidden="true">${r.faces.slice(0, 4).map(f => `<i>${E(f)}</i>`).join('')}</span>`
+      : r.mark != null ? `<span class="jov5-mk${JOV5_TONES[r.tone] ? ' is-' + r.tone : ''}">${r.markText != null ? E(r.markText) : ic(r.mark)}</span>` : '';
     const act = r.btn ? `<button type="button" class="jov5-pill${r.btn.black ? ' is-black' : ''}"${door(r.btn.run, r.btn.attr)}>${E(r.btn.label)}</button>`
       : r.link ? lnk(r.link.attr ? -1 : reg(r.link.run), E(r.link.label), r.link.title, '', r.link.attr) : '';
     const chev = (t === 'button') ? `<span class="jov5-chev" aria-hidden="true">${ic('chevR')}</span>` : '';
-    return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-row${t === 'button' ? ' is-door' : ''}${mark ? '' : ' is-plain'}${r.wrap ? ' is-wrap' : ''}"${t === 'button' ? door(r.run, r.attr) : ''}${r.title ? ` title="${E(r.title)}"` : ''}>`
-      + `${mark}${r.k ? `<span class="jov5-k">${E(r.k)}</span>` : ''}<span class="jov5-rt"><b>${E(r.t)}</b>${r.s ? `<span>${E(r.s)}</span>` : ''}</span>`
+    return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-row${t === 'button' ? ' is-door' : ''}${mark ? '' : ' is-plain'}${r.wrap || r.quote ? ' is-wrap' : ''}${r.quote ? ' is-quote' : ''}${r.cls ? ' ' + E(r.cls) : ''}"${t === 'button' ? door(r.run, r.attr) : ''}${r.title ? ` title="${E(r.title)}"` : ''}>`
+      + `${mark}${r.k ? `<span class="jov5-k">${E(r.k)}</span>` : ''}<span class="jov5-rt"><b>${E(r.t)}</b>${r.s ? `<span>${E(r.s)}</span>` : ''}${r.stg ? `<span class="jov5-stg"><span class="reg-stg"><i style="background:${E(r.stg.dot || 'currentColor')}"></i>${E(r.stg.label)}</span></span>` : ''}</span>`
       + `${r.swatch ? `<span class="jov5-sw is-${E(r.swatch)}" aria-hidden="true"></span>` : ''}${r.v != null && r.v !== '' ? `<span class="jov5-v${r.need ? ' is-need' : ''}">${E(r.v)}</span>` : ''}${act}${chev}</${t}>`;
   };
-  const groups = (o.groups || []).filter(g => g && (g.rows || []).length).map(g =>
-    `<div class="jov5-sec">${g.label ? `<p class="jov5-label">${E(g.label)}</p>` : ''}<div class="jov5-group">${g.rows.map(rowHtml).join('')}</div></div>`).join('');
+  /* a group may carry a quiet link beside its label (`more`: Parties' Edit, + Add), a green link at its foot (`foot`:
+     All 4 agreements on Contracts) and its own body where it is a form (`html`: the party's facts typed in place) */
+  const gLink = (l, cls) => l && l.label ? `<button type="button" class="${cls}"${door(l.run, l.attr)}>${E(l.label)}</button>` : '';
+  const groups = (o.groups || []).filter(g => g && ((g.rows || []).length || g.html)).map(g =>
+    `<div class="jov5-sec"${g.key ? ` data-jov5-sec="${E(g.key)}"` : ''}>${g.label ? (g.more ? `<div class="jov5-lh"><p class="jov5-label">${E(g.label)}</p>${gLink(g.more, 'jov5-more')}</div>` : `<p class="jov5-label">${E(g.label)}</p>`) : ''}`
+    + `<div class="jov5-group${g.html ? ' is-form' : ''}">${g.html || (g.rows || []).map(rowHtml).join('')}${g.foot ? `<div class="jov5-foot">${gLink(g.foot, 'jov5-flink')}</div>` : ''}</div></div>`).join('');
   const steps = o.steps && (o.steps.items || []).length ? `<div class="jov5-sec">${o.steps.label ? `<p class="jov5-label">${E(o.steps.label)}</p>` : ''}<ol class="jov5-steps">`
     + o.steps.items.map(s => `<li><b>${E(s.b)}</b>${s.s ? ' ' + E(s.s) : ''}</li>`).join('') + '</ol></div>' : '';
   const a = o.act;
-  const act = a && (a.say || a.label) ? `<div class="jov5-act">${a.say ? `<p class="jov5-say">${E(a.say)}</p>` : ''}${a.q ? `<p class="jov5-q">${E(a.q)}</p>` : ''}`
+  /* `head` names the act's section ("The first decision"); `sayHtml` is a say already escaped by its page (a badge
+     beside the words, Read down, P-41) */
+  const act = a && (a.say || a.sayHtml || a.label) ? `<div class="jov5-act">${a.head ? `<p class="jov5-label">${E(a.head)}</p>` : ''}${a.sayHtml ? `<p class="jov5-say">${a.sayHtml}</p>` : a.say ? `<p class="jov5-say">${E(a.say)}</p>` : ''}${a.q ? `<p class="jov5-q">${E(a.q)}</p>` : ''}`
     + `<div class="jov5-acts">${a.label ? `<button type="button" class="jov5-go"${door(a.run, a.attr)}>${E(a.label)}</button>` : ''}`
-    + `${a.link ? lnk(a.link.attr ? -1 : reg(a.link.run), E(a.link.label), a.link.title, '', a.link.attr) : ''}</div></div>` : '';
+    + `${a.link ? lnk(a.link.attr ? -1 : reg(a.link.run), E(a.link.label), a.link.title, '', a.link.attr) : ''}`
+    /* more quiet links after the first, in order (My notes' Snooze a week, owner's pick 17 Nov 2026) */
+    + `${(a.links || []).map(l => lnk(l.attr ? -1 : reg(l.run), E(l.label), l.title, '', l.attr)).join('')}</div></div>` : '';
   const askHtml = asks.length ? `<div class="jov5-sec"><p class="jov5-label">${E(_jovT('jov_ask_me'))}</p><div class="jov5-chips">${asks.map(x =>
     x.attr ? `<button type="button" class="jov5-chip" ${x.attr}>${E(x.verb)}${x.rest ? ' ' + E(x.rest) : ''}</button>`
       : `<button type="button" class="jov5-chip" data-jov="${E(slot)}:${reg(x.run)}"${x.title ? ` title="${E(x.title)}"` : ''}>${E(x.verb)}${x.rest ? ' ' + E(x.rest) : ''}</button>`).join('')}</div></div>` : '';
@@ -1675,7 +1769,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     if (typeof fn === 'function'){ e.preventDefault(); try { fn(); } catch (err){ if (typeof toast === 'function') toast((err && err.message) || String(err), 'err'); } }
   });
 }
-Object.assign(window,{jamboOverviewFiveHtml,JOV5_TONES,jov5Signed,jov5Money,jov5Open,jov5ShowList,jov5ContractRow,jamboThinkingHtml,jamboDoorHtml,jamboFwdHtml,jamboTalkFwdHost,JT_FWD,jamboTalkLabelHtml,jamboDoorSync,jamboBinHtml,jamboBinSync,jamboBinPress,jamboOverviewHtml,jamboOverviewOf,jamboAskOf,jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
+Object.assign(window,{jamboOverviewFiveHtml,JOV5_TONES,jov5Signed,jov5Money,jov5Open,jov5ShowList,jov5ContractRow,jamboThinkingHtml,jamboDoorHtml,jamboFwdHtml,jamboTalkFwdHost,JT_FWD,jamboTalkLabelHtml,jamboDoorSync,jamboBinHtml,jamboBinSync,jamboBinPress,jamboOverviewHtml,jamboOverviewOf,jamboAskOf,jamboHelloHtml,jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,jamboTurnSeen,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
 
 /* ---- JAMBO'S SAY-CARD: HIS WORDS, IMPOSSIBLE TO MISS ----
    (The owner picked "Jambo's card", 26 Oct 2026, of the approver's "In plain
@@ -1869,7 +1963,7 @@ Object.assign(window, { jamboDraft, jamboDraftSel, jamboDraftSet, jamboDraftClea
    the page is marked, a still one only marks it — so a later tab change, redraw or Back never plays. A reload and a
    Back are quiet (`jovArriveQuiet`). The motion itself is transform and opacity only (HOW THINGS MOVE). The panels that
    move are the drawing's fourteen: by their slot (JOV_MOVE_SLOTS) and the contract's card and checklist. */
-var JOV_MOVE_SLOTS = new Set(['hb', 'cal', 'ig-day', 'jl:negotiations', 'jl:approvals', 'jl:obligations', 'jl:migration', 'cun', 'jhn', 'pdob', 'dl2']);
+var JOV_MOVE_SLOTS = new Set(['hb', 'ig', 'rdn', 'cal', 'ig-day', 'jl:negotiations', 'jl:approvals', 'jl:obligations', 'jl:migration', 'cun', 'jhn', 'pdob', 'dl2']);
 var JOV_ARRIVE_GAP_MS = 5 * 3600 * 1000;
 var JOV_ARRIVE_KEY = 'hati.v1.jovArrive';
 var JOV_ARRIVE_SEL = '.jov5, .pd2-card.is-five, .pd2-sg.is-five';
@@ -1901,29 +1995,53 @@ function jovPageKeyOf(el){
     const c = pdContract(); if (c && c.id) return 'c'; }
   const v = String(st.view || '');
   const face = (v === 'dashboard' && typeof window.hbFace === 'function') ? ':' + hbFace() : '';
-  return 'v:' + v + face;
+  /* Read down is its own page on the Board's face (P-41: it arrives with its panel, on the same rare beat) */
+  const rd = face && typeof window.hbRdnUp === 'function' && window.hbRdnUp() ? ':rd' : '';
+  return 'v:' + v + face + rd;
 }
 function jovMoves(el){
   if (el.matches('.pd2-card.is-five, .pd2-sg.is-five')) return true;
   const slot = String(el.getAttribute('data-jov-slot') || '');
   return JOV_MOVE_SLOTS.has(slot);
 }
-/* the numbers count up from nothing to what they say (a leading whole number only; "697M" counts 0…697, then M) */
+/* A COUNT-UP IS DRAWN OVER THE NUMBER, NEVER WRITTEN INTO IT (21 Nov 2026). The count used to write '0', '3', '7'…
+   into the number's own text and put the true one back at the end, so for most of a second after an arrival the page
+   SAID 0 — to a screen reader, to a copy, to anything reading the page (the Board's check read its four figures as
+   0,0,0,0 while the book said 10,1,1,1) — and a repaint landing mid-count had to guess which text was whose. Now the
+   number's text stays the true number throughout; the counting figure is painted over it (data-jov-count, its
+   ::after, index.html) and taken away at the end, by the last frame or by a timer, since frames stop while hidden.
+   A leading whole number only; "697M" counts 0…697, then M; never twice at once on one number. */
+function jovCountOver(b){
+  if (!b || b.hasAttribute('data-jov-count')) return;
+  const m = String(b.textContent || '').match(/^(\d{1,6})(\D.*)?$/); if (!m) return;
+  const to = Number(m[1]), rest = m[2] || ''; if (!to) return;
+  const t0 = performance.now(), dur = 700, delay = 160, was = b.textContent;
+  let done = false;
+  const finish = () => { if (done) return; done = true; b.removeAttribute('data-jov-count'); };
+  /* a redraw that writes a NEW number meanwhile wins: the count stops and the new number shows at once */
+  const step = now => { if (done) return; if (!b.isConnected || b.textContent !== was) { finish(); return; }
+    const k = Math.min(1, Math.max(0, (now - t0 - delay) / dur)); if (k >= 1) { finish(); return; }
+    b.setAttribute('data-jov-count', Math.round(to * (1 - Math.pow(1 - k, 3))) + rest); requestAnimationFrame(step); };
+  b.setAttribute('data-jov-count', '0' + rest); requestAnimationFrame(step);
+  setTimeout(finish, delay + dur + 120);
+}
+/* the numbers count up from nothing to what they say */
 function jovCountUp(el){
-  el.querySelectorAll('.jov5-g b').forEach(b => {
-    const m = String(b.textContent || '').match(/^(\d{1,6})(\D.*)?$/); if (!m) return;
-    const to = Number(m[1]), rest = m[2] || ''; if (!to) return;
-    const t0 = performance.now(), dur = 700, delay = 160;
-    const step = now => { const k = Math.min(1, Math.max(0, (now - t0 - delay) / dur)); b.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))) + rest; if (k < 1) requestAnimationFrame(step); };
-    b.textContent = '0' + rest; requestAnimationFrame(step);
-  });
+  /* the tiles' numbers, and the Board panel's ring ("4/12" counts 0…4, as drawn, P-39) */
+  el.querySelectorAll('.jov5-g b, .hbw2-ring > b').forEach(jovCountOver);
 }
 function jovPlay(el){
   [...el.children].forEach((ch, i) => ch.style.setProperty('--jov-i', String(i)));
   el.querySelectorAll('.jov5-day, .jov5-cm, .pd2-sg-i, .pd2-spine.is-steps i').forEach((x, j) => x.style.setProperty('--jov-j', String(j)));
   el.classList.add('jov-arrive');
   jovCountUp(el);
-  setTimeout(() => { try { el.classList.remove('jov-arrive'); } catch (_){} }, 2200);
+  /* the Board's own figures, lines and bar join its panel's arrival (P-39), never on their own */
+  if (el.getAttribute('data-jov-slot') === 'hb' && typeof window.hbArrivePage === 'function') try { window.hbArrivePage(); } catch (_){}
+  /* READ DOWN ARRIVES WITH ITS PANEL (P-41, as drawn): when its panel plays, the sheet's sentences rise in one after
+     another, their graphics draw and the quarter bars grow — on the same rare beat, never on its own */
+  const sheet = el.getAttribute('data-jov-slot') === 'rdn' && document.getElementById('rd-page');
+  if (sheet){ sheet.querySelectorAll('.rd-row, .rd-q').forEach((x, i) => x.style.setProperty('--rd-i', String(i))); sheet.classList.add('rd-arrive'); }
+  setTimeout(() => { try { el.classList.remove('jov-arrive'); if (sheet) sheet.classList.remove('rd-arrive'); } catch (_){} }, 2200);
 }
 /* AN ARRIVAL IS A NEW PAGE, NOT A NEW ELEMENT: the panel a page keeps unchanged is not drawn again (NOTHING CHANGED,
    NOTHING WRITTEN), so the watcher asks which page the panel in sight belongs to; a page different from the last one
@@ -1971,4 +2089,118 @@ if (typeof document !== 'undefined' && typeof MutationObserver !== 'undefined' &
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 }
 
-Object.assign(window, { jovArriveQuiet, jovArriveDue, jovArriveMark, jovPageKeyOf, jovArriveSweep, JOV_MOVE_SLOTS, jov5HeadHtml, jov5MarkHtml });
+Object.assign(window, { jovCountOver, jovArriveQuiet, jovArriveDue, jovArriveMark, jovPageKeyOf, jovArriveSweep, JOV_MOVE_SLOTS, jov5HeadHtml, jov5MarkHtml });
+
+/* ======================================================================================================================
+   THE ONE EDIT POP-UP, THE LEGORA WAY (owner's pick by name, 19 Nov 2026: "use legora way"; drawn on today's pages)
+   Every edit started in a side panel opens THIS sheet: 480 wide in the middle, never taller than the window allows, a
+   serif headline, each line a label beside its words typed in place — NO boxes and NO edge that grows when pressed (the
+   closing field rule, f1086) — what HaTi read quoted under its line with Use it, a list of more than LGP_PAGE rows paged
+   (‹ 1–6 of 21 ›), more than fits a NEXT STEP (never a scroll), ONE black button then Cancel, Back on the left.
+   A line Jambo filled from a person's words says so ("from your words"); nothing is saved before the black button.
+   lgpHtml(o) builds it; lgpOpen(o) opens it in the one dialog (openModal, its own frame, no drawn head bar).
+     o = { id, title, sub, subHtml, steps:{at, names[]}, jambo (a line: Jambo filled this in),
+           rows:[{ k, id, value, ph, type:'text'|'email'|'tel'|'date'|'area'|'select', opts:[{v,t}], from, max,
+                   quote:{ cite, words, use:{ label, attr } } }],
+           html (extra body: a list, a hint), note (small words in the foot),
+           primary:{ label, attr }, alt:{ label, attr } (a second, grey act), back:{ label, attr }, left:{ label, attr, danger }, cancelAttr }
+   ====================================================================================================================== */
+var LGP_W = '480px';
+var LGP_PAGE = 6;
+function _lgpT(k, v){ return (typeof i18t === 'function') ? i18t(k, v) : k; }
+function lgpRowHtml(r){
+  const E = esc, id = r.id ? ` id="${E(r.id)}" name="${E(r.id)}"` : '', ph = r.ph ? ` placeholder="${E(r.ph)}"` : '';
+  const max = r.max ? ` maxlength="${Number(r.max)}"` : '';
+  let ctl;
+  if (r.type === 'select') ctl = `<select class="lgp-in"${id}>${(r.opts || []).map(o => `<option value="${E(o.v)}"${String(o.v) === String(r.value == null ? '' : r.value) ? ' selected' : ''}>${E(o.t)}</option>`).join('')}</select>`;
+  else if (r.type === 'area') ctl = `<textarea class="lgp-in is-area" rows="3"${id}${ph}${max}>${E(r.value || '')}</textarea>`;
+  else if (r.type === 'html') ctl = `<span class="lgp-in is-read">${r.valueHtml || ''}</span>`;
+  else ctl = `<input class="lgp-in" type="${E(r.type || 'text')}" autocomplete="off"${id}${ph}${max} value="${E(r.value == null ? '' : r.value)}">`;
+  const from = r.from ? `<span class="lgp-from">${E(_lgpT('lgp_from_words'))}</span>` : '';
+  const q = r.quote && r.quote.words ? `<p class="lgp-quote">${E(r.quote.cite || '')}${r.quote.cite ? ': ' : ''}<q>${E(r.quote.words)}</q>${
+    r.quote.use ? ` <button type="button" class="lgp-use" ${r.quote.use.attr || ''}>${E(r.quote.use.label)}</button>` : ''}</p>` : '';
+  return `<label class="lgp-row${r.type === 'area' ? ' is-tall' : ''}${r.from ? ' is-from' : ''}"><span class="lgp-k">${E(r.k)}</span><span class="lgp-v">${ctl}${from}</span></label>${q}`;
+}
+/* a paged tick list: items [{id, on, off, label, stage, dot}], chips [{label, attr, on}]; attrs name the presses */
+function lgpListHtml(o){
+  const E = esc, items = o.items || [], per = o.per || LGP_PAGE, n = items.length;
+  const pages = Math.max(1, Math.ceil(n / per)), at = Math.min(Math.max(1, o.page || 1), pages);
+  const shown = items.slice((at - 1) * per, at * per);
+  const chips = (o.chips || []).length ? `<div class="lgp-chips">${o.chips.map(c => `<button type="button" class="lgp-chip${c.on ? ' is-on' : ''}" ${c.attr || ''}>${E(c.label)}</button>`).join('')}</div>` : '';
+  const rows = shown.map(x => `<label class="lgp-tick${x.off ? ' is-off' : ''}"><input type="checkbox" ${o.tickAttr || 'data-lgp-tick'}="${E(x.id)}"${x.on ? ' checked' : ''}${x.disabled ? ' disabled' : ''}><span class="lgp-tl">${E(x.label)}</span>${
+    x.stage ? `<span class="lgp-stg"><i style="background:${E(x.dot || 'var(--color-neutral-400)')}"></i>${E(x.stage)}</span>` : ''}</label>`).join('');
+  const foot = (o.said || pages > 1) ? `<div class="lgp-lfoot"><span>${E(o.said || '')}</span>${pages > 1 ? `<span class="lgp-pager"><button type="button" class="lgp-pg" ${o.pageAttr || 'data-lgp-page'}="${at - 1}"${at <= 1 ? ' disabled' : ''} aria-label="${E(_lgpT('lgp_prev'))}">‹</button>${E(_lgpT('lgp_of', { a: (at - 1) * per + 1, b: Math.min(at * per, n), n }))}<button type="button" class="lgp-pg" ${o.pageAttr || 'data-lgp-page'}="${at + 1}"${at >= pages ? ' disabled' : ''} aria-label="${E(_lgpT('lgp_next'))}">›</button></span>` : ''}</div>` : '';
+  return `${chips}<div class="lgp-list">${rows || `<p class="lgp-none">${E(o.none || '')}</p>`}</div>${foot}`;
+}
+function lgpHtml(o){
+  const E = esc;
+  const steps = o.steps && (o.steps.names || []).length ? o.steps.names.map((s, i) => i + 1 === o.steps.at ? `<b>${E(s)}</b>` : E(s)).join(' · ') : '';
+  const sub = o.subHtml || (o.sub ? E(o.sub) : '');
+  const jb = o.jambo ? `<span class="lgp-jb"><i class="lgp-spark" aria-hidden="true"></i>${E(o.jambo)}</span>` : '';
+  const head = `<div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${E(o.title || '')}</h3>${steps ? `<p class="lgp-sub lgp-steps">${steps}</p>` : ''}${sub ? `<p class="lgp-sub">${sub}</p>` : ''}${jb ? `<p class="lgp-sub">${jb}</p>` : ''}</div>`
+    + `<button type="button" class="lgp-x" data-lgp-close tabindex="-1" aria-label="${E(_lgpT('lgp_close'))}">${typeof icon === 'function' ? icon('x', 'w-4 h-4') : ''}</button></div>`;
+  const body = `<div class="lgp-bd">${(o.rows || []).map(lgpRowHtml).join('')}${o.html || ''}${o.err ? `<p class="lgp-err" role="alert">${E(o.err)}</p>` : ''}</div>`;
+  const left = o.back ? `<button type="button" class="ui-btn lgp-back" ${o.back.attr || ''}>‹ ${E(o.back.label || _lgpT('lgp_back'))}</button>`
+    : o.left ? `<button type="button" class="lgp-left${o.left.danger ? ' is-danger' : ''}" ${o.left.attr || ''}>${E(o.left.label)}</button>` : '';
+  const note = o.note ? `<span class="lgp-note">${E(o.note)}</span>` : '';
+  const prim = o.primary ? `<button type="submit" class="ui-btn ui-btn-primary lgp-go" ${o.primary.attr || ''}>${E(o.primary.label)}</button>` : '';
+  const alt = o.alt ? `<button type="button" class="ui-btn" ${o.alt.attr || ''}>${E(o.alt.label)}</button>` : '';
+  const cancel = o.noCancel ? '' : `<button type="button" class="ui-btn" ${o.cancelAttr || 'data-lgp-close'}>${E(o.cancelLabel || _lgpT('lgp_cancel'))}</button>`;
+  return `<form class="lgp" ${o.id ? `id="${E(o.id)}"` : ''} ${o.attr || ''} novalidate>${head}${body}<div class="lgp-ft">${left}${note}<span class="lgp-sp"></span>${prim}${alt}${cancel}</div></form>`;
+}
+function lgpOpen(o){
+  if (typeof openModal !== 'function') return null;
+  openModal(o.stepped ? lgpStepsHtml(o) : lgpHtml(o), { maxWidth: LGP_W, ownFrame: true, label: o.title || '', onClose: o.onClose, onBeforeClose: o.onBeforeClose });
+  const root = document.getElementById('modal-root');
+  /* the cursor lands on the first line, after the dialog's own focus trap has run, with no ring (NO RING AFTER A PRESS) */
+  const land = () => { const f = root && root.querySelector(o.focus || '.lgp .lgp-in:not([disabled])'); if (!f || o.focus === false) return;
+    try { (typeof fieldFocus === 'function') ? fieldFocus(f, { focusVisible: false }) : f.focus({ preventScroll: true, focusVisible: false }); } catch (_){} };
+  land(); if (typeof requestAnimationFrame === 'function') requestAnimationFrame(land);
+  return root && root.querySelector('.lgp');
+}
+/* redraw the open sheet's body in place (a step, a page of the list) without the dialog arriving again */
+function lgpRepaint(o){
+  const root = document.getElementById('modal-root'), cur = root && root.querySelector('[role="dialog"] .lgp');
+  if (!cur) return lgpOpen(o);
+  const box = document.createElement('div'); box.innerHTML = lgpHtml(o);
+  const next = box.firstElementChild; cur.replaceWith(next);
+  return next;
+}
+/* A SHEET IN STEPS (openObligationForm's way, made one builder for the pop-ups moved later, 19 Nov 2026): every step's
+   part is in o.html as <div data-lgp-step="n">, ALL inside the one form so the black act reads every field wherever the
+   reader stands. The foot: ‹ Back (hidden on the first), o.leftHtml, then Next › (o.nextAttr) until the last step, where
+   the black act (o.primary, type=button) takes its place, then Cancel. lgpOpen({ stepped:true, … }) opens it;
+   lgpStepGo(form, n, names) shows step n. */
+function lgpStepsHtml(o){
+  const E = esc;
+  const foot = `<div class="lgp-ft"><button type="button" class="ui-btn lgp-back" data-lgp-back ${o.backAttr || ''} hidden>‹ ${E(_lgpT('lgp_back'))}</button>${o.leftHtml || ''}<span class="lgp-sp"></span>`
+    + `<button type="button" class="ui-btn ui-btn-primary lgp-go" data-lgp-next ${o.nextAttr || ''}>${E(o.nextLabel || _lgpT('of_next'))}</button>`
+    + (o.primary ? `<button type="button" class="ui-btn ui-btn-primary lgp-go" data-lgp-act ${o.primary.attr || ''} hidden>${E(o.primary.label)}</button>` : '')
+    + (o.noCancel ? '' : `<button type="button" class="ui-btn" ${o.cancelAttr || 'data-lgp-close'}>${E(o.cancelLabel || _lgpT('lgp_cancel'))}</button>`) + '</div></form>';
+  return lgpHtml(Object.assign({}, o, { primary: null, back: null, left: null, note: '', attr: `data-lgp-steps ${o.attr || ''}` })).replace(/<div class="lgp-ft">[\s\S]*$/, () => foot);
+}
+function lgpStepGo(form, n, names){
+  if (!form) return 0;
+  const parts = Array.from(form.querySelectorAll('[data-lgp-step]')), last = parts.reduce((m, p) => Math.max(m, Number(p.getAttribute('data-lgp-step')) || 1), 1);
+  n = Math.min(Math.max(1, Number(n) || 1), last);
+  parts.forEach(p => { p.hidden = Number(p.getAttribute('data-lgp-step')) !== n; });
+  const q = s => form.querySelector('.lgp-ft ' + s);
+  if (q('[data-lgp-back]')) q('[data-lgp-back]').hidden = n <= 1;
+  if (q('[data-lgp-next]')) q('[data-lgp-next]').hidden = n >= last;
+  if (q('[data-lgp-act]')) q('[data-lgp-act]').hidden = n < last;
+  const st = form.querySelector('.lgp-steps');
+  if (st && names) st.innerHTML = names.map((s, i) => i + 1 === n ? `<b>${esc(s)}</b>` : esc(s)).join(' · ');
+  form.setAttribute('data-lgp-at', String(n));
+  return n;
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._lgpWired){ document._lgpWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target.closest('.lgp [data-lgp-close]') : null;
+    if (!t) return; e.preventDefault(); if (typeof closeModalGuarded === 'function') closeModalGuarded(); else if (typeof closeModal === 'function') closeModal();
+  });
+  /* a sheet's form never leaves the page: its own handlers act on the press (submit) or on its button (click) */
+  document.addEventListener('submit', e => { if (e.target && e.target.classList && e.target.classList.contains('lgp')){ e.preventDefault();
+    /* a sheet in steps: Enter presses what the foot shows (Next ›, or the black act on the last step) */
+    if (e.target.hasAttribute('data-lgp-steps')){ const go = e.target.querySelector('.lgp-ft .lgp-go:not([hidden])'); if (go) go.click(); } } }, true);
+}
+Object.assign(window, { LGP_W, LGP_PAGE, lgpHtml, lgpRowHtml, lgpListHtml, lgpOpen, lgpRepaint, lgpStepsHtml, lgpStepGo });

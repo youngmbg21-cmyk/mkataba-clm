@@ -80,53 +80,31 @@ const IDS = () => window.regFiltered().map(c => c.id).sort();
        and the "No category yet" pile; the catalogue behind it (regCtFilters)
        still names every category the metadata records. */
     const SEAT = '[data-lh-seat="contracts"]';
-    const bar = await page.evaluate(S => {
-      const add = document.querySelector(S + ' select[data-lh-add]');
-      if (!add) return null;
-      const groups = [...add.querySelectorAll('optgroup')];
-      const g = groups.find(x => { const o = x.querySelector('option'); try { return o && JSON.parse(o.value)[0] === 'category'; } catch (_) { return false; } });
-      if (!g) return null;
-      const opts = [...g.querySelectorAll('option')];
-      const cat = (window.regCtFilters().find(f => f.k === 'category') || { opts: [] }).opts.map(o => o[0]);
-      return { opts: opts.map(o => JSON.parse(o.value)[1]), labels: opts.map(o => o.textContent.trim()), label: g.label, cat,
-        order: groups.map(x => { try { return JSON.parse(x.querySelector('option').value)[0]; } catch (_) { return x.label; } }),
-        renewalChip: !!document.querySelector(S + ' [data-lh-chip="renewal"]') };
-    }, SEAT);
-    check('the register offers a category filter', !!bar, bar ? bar.opts.join(', ') : 'no Category group under + Filter');
-    check('it lists every category the book holds, and none it does not',
-      bar && JSON.stringify(bar.opts.filter(k => k !== 'none').sort()) === JSON.stringify(['customer', 'supplier'])
-      && ['customer', 'supplier', 'employment', 'lease', 'licence', 'partner', 'funding', 'other'].every(k => bar.cat.includes(k)),
-      bar ? `${bar.opts.join(', ')} · catalogue ${bar.cat.join(', ')}` : '');
-    check('and a way back to the ones with no category yet',
-      bar && bar.opts.includes('none') && bar.labels.some(l => /No category yet/i.test(l)));
-    /* REVERSED IN PLACE 24 Aug 2026 (WO-2, owner-asked: "delete the notes and
-       the filter i have highlighted so we can have more spacing"). This pinned
-       the category filter's POSITION relative to the Renewal one, and Renewal
-       is gone — so the claim would have had to become "it comes before nothing",
-       which is not a claim. WHAT IS PINNED INSTEAD is what the position was
-       really about: this control is one of the register's own filters, on the
-       one bar with the rest of them, and NOT off on its own — plus the label
-       WO-4 gave it, since a filter whose only name is a tooltip is the fault
-       that whole item was about. */
-    check('it is on the register\'s own filter bar, with the others',
-      bar && bar.order.includes('category') && bar.order.length >= 3,
-      bar ? bar.order.join(' → ') : '');
-    check('and the Renewal filter it used to sit beside is not drawn at rest (WO-2)',
-      bar && !bar.renewalChip, bar ? bar.order.join(' → ') : '');
-    check('and it says what it filters, rather than hiding it in a tooltip',
-      bar && /\S/.test(bar.label || ''), bar ? bar.label : '');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its Folders; its List is pressed */
+    await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b) b.click(); });
+    await page.waitForTimeout(900);
+    /* RETIRED 16 Nov 2026 (#762): the six checks on "+ Filter"'s Category group (offered; every category the book holds
+       and none it does not; "No category yet" listed; on the one filter bar; Renewal not drawn beside it; its label) —
+       the new look's Contracts head draws no "+ Filter" (hidden by design: the folders and the views narrow the list),
+       so there is no group to read. The catalogue behind it is still pinned below through the one predicate. */
+    const cat = await page.evaluate(() => (window.regCtFilters().find(f => f.k === 'category') || { opts: [] }).opts.map(o => o[0]));
+    check('the catalogue still names every category the metadata records (regCtFilters)',
+      ['customer', 'supplier', 'employment', 'lease', 'licence', 'partner', 'funding', 'other'].every(k => cat.includes(k)), cat.join(', '));
 
     /* ---- it actually filters ---- */
+    /* RE-POINTED 16 Nov 2026 (#762): a category arrives from elsewhere (a door, Jambo's answer) through the one state;
+       the list narrows and the applied filter's chip stands in the head with its x */
     const all = await page.evaluate(COUNT);
-    await page.selectOption(SEAT + ' select[data-lh-add]', JSON.stringify(['category', 'supplier']));
+    await page.evaluate(() => { const R = window.regState(); R.category = 'supplier'; window.regRepaint(); });
     await page.waitForFunction(S => !!document.querySelector(S + ' [data-lh-chip="category"]'), SEAT, { timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(300);
     const suppliers = await page.evaluate(IDS);
-    check('choosing a category narrows the register',
-      suppliers.length === 2 && suppliers.join(',') === 'MK-A1,MK-A2',
-      `${suppliers.length} of ${all}: ${suppliers.join(', ')}`);
+    const chip = await page.evaluate(S => { const c = document.querySelector(S + ' [data-lh-chip="category"]'); return c && c.getBoundingClientRect().width > 0 ? c.textContent.replace(/\s+/g, ' ').trim() : null; }, SEAT);
+    check('choosing a category narrows the register, and its chip says so in the head',
+      suppliers.length === 2 && suppliers.join(',') === 'MK-A1,MK-A2' && !!chip && /Supplier/i.test(chip),
+      `${suppliers.length} of ${all}: ${suppliers.join(', ')} · chip ${chip}`);
 
-    await page.selectOption(SEAT + ' select[data-lh-f="category"]', 'none');
+    await page.evaluate(() => { const R = window.regState(); R.category = 'none'; window.regRepaint(); });
     await page.waitForFunction(() => window.regState().category === 'none', null, { timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(300);
     const uncat = await page.evaluate(IDS);

@@ -57,15 +57,32 @@ const check = (name, pass, detail) => {
       c.obligations = [{ id: 'ob_x', desc: 'Give 90 days notice of non-renewal', due: '', status: 'open', party: 'ours' }];
       c.triage = Object.assign({}, c.triage || {}, { at: new Date().toISOString(), steps: Object.assign({}, (c.triage || {}).steps || {}, { oblig: { ok: true, found: F } }) });
       await persist(c);
-      openWorkspace(c.id, { room: true });
+      pdOpenOnHome(c.id, 'copilot');
       return c.id;
     }, FOUND);
-    await until(id => state.activeId === id, cid);
-    await page.evaluate(id => roomGoTab(getContract(id), 'oblig'), cid);
-    const door = await until(() => { const b = document.getElementById('obt-find'); return b && /Review/.test(b.textContent) ? b.textContent.trim() : null; });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the room's Obligations tab (#obt-find) is gone;
+       a contract's obligations are the Dossier's own Obligations panel (pdObOpen), whose foot carries the one door
+       into the wording's duties (runFindObligations → the held proposals' review desk, no new read) */
+    const DOOR = () => { const t = i18t('pd_ob_find_mq'); const b = [...document.querySelectorAll('#ig-dock .pd-ob-foot .pd-go')].find(x => x.textContent.trim() === t || /Review/.test(x.textContent)); if (b) b.setAttribute('data-rd-door', '1'); return b ? b.textContent.trim() : null; };
+    await until(id => window.pdContract && pdContract() && pdContract().id === id, cid);
+    await page.evaluate(() => pdObOpen());
+    const door = await until(DOOR);
     check('1. the door says "Review N proposed", N the desk\'s own', door && /Review 4 proposed/.test(door), door);
-    await page.click('#obt-find');
+    if (!door) throw new Error('no door into the held duties on the Dossier\'s Obligations panel');
+    /* RE-POINTED 19 Nov 2026 (owner picked "B": a contract never checked against the Playbook is checked on its
+       first open, pbCheckOnOpen): that check repaints the Dossier when it lands, drawing the door afresh without the
+       test's own tag — so wait for it to settle, and tag the door again should a repaint still come between */
+    await until(id => { const c = getContract(id); const s = (typeof pbOpenCheckState === 'function') ? pbOpenCheckState(c) : null; return !(s && s.run); }, cid, 15000);
+    let pressed = false;
+    for (let k = 0; k < 4 && !pressed; k++){
+      if (!(await until(DOOR))) break;
+      pressed = await page.click('[data-rd-door]', { timeout: 4000 }).then(() => true, () => false);
+    }
+    if (!pressed) throw new Error('the door into the held duties could not be pressed');
+    /* RE-POINTED 17 Nov 2026 (#762): the page is measured once its arrival has finished (a pop-up's arrival slides it a few
+       pixels; read mid-slide its foot sat 5px below the window) */
     const desk = await until(() => { const d = document.getElementById('obd'); if (!d) return null;
+      const dl = d.closest('[role="dialog"]') || d; if (typeof dl.getAnimations === 'function' && dl.getAnimations().some(a => a.playState === 'running')) return null;
       const r = d.closest('[role="dialog"]') ? d.closest('[role="dialog"]').getBoundingClientRect() : d.getBoundingClientRect();
       /* RE-POINTED 10 Oct 2026 (owner picked "Table", the SAP way): a kind
          is a band row of the table, an item already on the contract a row
@@ -73,10 +90,12 @@ const check = (name, pass, detail) => {
       return { groups: [...d.querySelectorAll('.obd-band:not([data-obd-band="already"]) .obd-band-w')].map(x => x.textContent.trim()),
         ticked: [...d.querySelectorAll('[data-ob-pick]')].filter(b => b.checked).length,
         already: d.querySelectorAll('.obd-row.is-already').length, alreadyBoxes: d.querySelectorAll('.obd-row.is-already [data-ob-pick]').length,
-        w: Math.round(d.getBoundingClientRect().width), bottom: Math.round(r.bottom), vh: innerHeight, foot: d.querySelector('#obd-count').textContent }; });
+        w: Math.round(d.getBoundingClientRect().width), bottom: Math.round(r.bottom), vh: innerHeight, vw: innerWidth, dlg: !!d.closest('[role="dialog"]'), foot: d.querySelector('#obd-count').textContent }; });
     check('2a. the desk opens with its three groups', desk && desk.groups.join('|') === 'Dated or repeating|Only when something happens|Standing promises', desk && desk.groups.join('|'));
     check('2b. nothing arrives ticked', desk && desk.ticked === 0);
-    check('2c. 920 wide and inside the screen', desk && desk.w <= 920 && desk.w >= 860 && desk.bottom <= desk.vh, desk && `${desk.w} wide, bottom ${desk.bottom}`);
+    /* RE-POINTED 16 Nov 2026 (#762): in the new look big work is a PAGE (openModal {page} → dlgPageAdopt), so the desk
+       takes the page's width, no longer a 920 dialog; it must still be wide enough for its table and inside the screen */
+    check('2c. a page at least 860 wide, inside the screen', desk && desk.w >= 860 && desk.w <= desk.vw && desk.bottom <= desk.vh, desk && `${desk.w} wide of ${desk.vw}, bottom ${desk.bottom} of ${desk.vh}`);
     check('5. the one already on the contract is not offered again', desk && desk.already === 0);
     check('2d. the foot counts what is left', desk && /4 to decide · 0 added · 0 skipped/.test(desk.foot), desk && desk.foot);
     await page.screenshot({ path: path.join(OUT, '1-desk.png') });
@@ -102,10 +121,10 @@ const check = (name, pass, detail) => {
     await page.reload({ waitUntil: 'networkidle' });
     await page.waitForFunction(id => window.state && state.contracts && state.contracts.some(c => c.id === id) && typeof currentUser === 'function' && currentUser(), cid, { timeout: 20000 });
     await page.waitForTimeout(1500);
-    await page.evaluate(async id => { const c = getContract(id); if (typeof ensureFull === 'function') await ensureFull(c); openWorkspace(id, { room: true }); }, cid);
-    await until(id => state.activeId === id, cid);
-    await page.evaluate(id => roomGoTab(getContract(id), 'oblig'), cid);
-    const door2 = await until(() => { const b = document.getElementById('obt-find'); return b ? b.textContent.trim() : null; });
+    await page.evaluate(async id => { const c = getContract(id); if (typeof ensureFull === 'function') await ensureFull(c); pdOpenOnHome(id, 'copilot'); }, cid);
+    await until(id => window.pdContract && pdContract() && pdContract().id === id, cid);
+    await page.evaluate(() => pdObOpen());
+    const door2 = await until(DOOR);
     const dbg = await page.evaluate(id => { const c = getContract(id); return JSON.stringify({ r: c.obReview, h: triageWordingHash(c), light: !!c._light }); }, cid);
     check('4c. after a reload the skip is kept: one left', door2 && /Review 1 proposed/.test(door2), door2 + ' ' + dbg);
     await page.screenshot({ path: path.join(OUT, '3-tab-after.png') });

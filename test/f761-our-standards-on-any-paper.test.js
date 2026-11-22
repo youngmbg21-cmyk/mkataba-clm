@@ -75,7 +75,7 @@ describe('f761 (3) one builder for the marks', () => {
     const html = win.tbMarksHtml([{ kind: 'met', category: 'Payment terms', label: 'Payment within 30 days' }, { kind: 'dev', category: 'Payment terms', label: 'Payment terms', figure: 60, want: 45, op: '<=', unit: 'days' }, { kind: 'changed', category: 'Liability cap', n: 3, ids: ['a', 'b', 'c'] }]);
     assert.match(html, /^<div class="tpl-mks" data-not-wording contenteditable="false">/);
     /* RE-POINTED 21 Oct 2026 (Chambers): every mark is a dot and its words (an <i>), no tick, no wash */
-    assert.match(html, /<span class="tpl-mk" title="Meets Our standards: Payment terms"><i><\/i>Payment within 30 days<\/span>/);
+    assert.match(html, /<span class="tpl-mk" title="Meets Our playbook: Payment terms"><i><\/i>Payment within 30 days<\/span>/);
     assert.match(html, /<span class="tpl-mk is-dev"[^>]*><i><\/i>Payment terms: 60 days · ours ≤ 45<\/span>/);
     assert.match(html, /<button type="button" class="tpl-mk is-changed" data-tpl-mk-changed="a,b,c" data-tpl-mk-cat="Liability cap"[^>]*><i><\/i>Came back changed 3 times<\/button>/);
     assert.equal(win.tbMarksHtml([]), '', 'no marks, no row');
@@ -101,7 +101,7 @@ describe('f761 (4) Jambo\'s words beside the book', () => {
       secs: [{ no: '1', head: 'Services' }, { no: '7', head: 'Liability' }, { no: '11', head: 'Payment' }], marks: [] };
     const lines = win.tplPfSaid(card, read);
     assert.equal(lines[0], '<b>Master services agreement v4</b>, from the record.'); /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
-    assert.equal(lines[1], 'Used 14 times in 12 months. 5 came back changed: clause 7 Liability 3 times, clause 11 Payment twice. It meets all 6 of Our standards.');
+    assert.equal(lines[1], 'Used 14 times in 12 months. 5 came back changed: clause 7 Liability 3 times, clause 11 Payment twice. It meets all 6 of the positions in Our playbook.');
   });
   test('4b a template nobody drafted from, and one that meets only some, are said as they are', () => {
     const win = lib();
@@ -110,7 +110,7 @@ describe('f761 (4) Jambo\'s words beside the book', () => {
     /* RE-POINTED (check #1, 19 Oct 2026): where the paper's set differs from
        the Our standards tab's count, the sentence says what it is read
        against — here every contract's baseline */
-    assert.equal(lines[1], 'Nothing has been drafted from it in 12 months. It meets 3 of the 4 standards every contract is read against; still to meet: Data protection.');
+    assert.equal(lines[1], 'Nothing has been drafted from it in 12 months. It meets 3 of the 4 positions every contract is read against; still to meet: Data protection.');
   });
   test('4c Next steps are the template\'s own verbs; "where it came back changed" lands on the mark (LAND ON IT)', () => {
     const c = fnBody(LIB, 'tplPfChips');

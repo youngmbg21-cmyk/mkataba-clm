@@ -60,7 +60,26 @@ const check = (name, pass, detail) => {
         negotiation: { round: 2, turn: 'counterparty' }, changes: [{ id: 'X', status: 'pending', authorSide: 'counterparty' }] });
     }, colleague);
     await page.evaluate(() => openNegotiations({ list: true }));
-    await until(() => document.querySelectorAll('#reg-tbody tr[data-row]').length >= 2, null, 10000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Negotiations page is the new list (ngnRender):
+       tabs Live · Your move · Their move · Settled (a tab with no rows is left out), a facts line ("2 live · 2 your move"),
+       one table Agreement · Round · Whose move · Open asks · Lead · Last, a row a tr[data-ngn-row]. Each promise is read
+       there; the old table's reading stays as the fallback. */
+    await until(() => document.querySelectorAll('tr[data-ngn-row], #reg-tbody tr[data-row]').length >= 2, null, 10000);
+    const NGN = await page.evaluate(() => !!document.querySelector('.ngn-page'));
+    const READ_NGN = () => {
+      const tabs = [...document.querySelectorAll('.ngn-page [data-ngn-tab]')].map(x => x.textContent.replace(/\d+/g, '').trim());
+      const heads = [...document.querySelectorAll('.ngn-table thead th')].map(t => t.textContent.trim());
+      const rows = {}; document.querySelectorAll('tr[data-ngn-row]').forEach(r => { const lead = r.querySelector('.ngn-lead');
+        rows[r.getAttribute('data-ngn-row')] = { lead: lead ? lead.textContent.replace(/^[A-Z]{1,2}(?=[A-Z][a-z])/, '').trim() : null, hover: lead ? lead.getAttribute('title') : null }; });
+      const liveTab = document.querySelector('.ngn-page [data-ngn-tab="live"] span');
+      return { tabs, ourTab: ((document.querySelector('.ngn-page [data-ngn-tab="you"]') || {}).textContent || '').replace(/\d+/g, '').trim(),
+        bands: [...document.querySelectorAll('.ngn-table tbody tr:not([data-ngn-row])')].map(x => x.textContent.trim()), heads, rows,
+        /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): no facts line beside the title
+           (.ngn-page .ctf-hf is gone) — the count is the Your move chip's own <span> */
+        all: liveTab ? liveTab.textContent.trim() : '', youN: ((document.querySelector('.ngn-page [data-ngn-tab="you"] span') || {}).textContent || '').trim(),
+        chips: [...document.querySelectorAll('.ngn-page [data-ngn-tab]')].every(x => x.classList.contains('apn-tab') && x.classList.contains('is-chip')),
+        coded: !!document.querySelector('tr[data-ngn-row="MK-0412"]') || /Project Falcon/.test((document.querySelector('.ngn-table') || {}).textContent || '') };
+    };
     const READ = () => {
       const tabs = [...document.querySelectorAll('.reg-views [data-reg-band]')].map(x => x.textContent.replace(/\d+/g, '').trim());
       const ourTab = (document.querySelector('.reg-views [data-reg-band="you"]') || {}).title || '';
@@ -72,39 +91,50 @@ const check = (name, pass, detail) => {
       return { tabs, ourTab, bands, heads, rows, all, facts: (document.getElementById('reg-head-facts') || document.querySelector('.ngl-facts') || document.querySelector('.reg-facts') || {}).textContent || '',
         coded: !!document.querySelector('#reg-tbody tr[data-row="MK-0412"]') || [...document.querySelectorAll('#reg-tbody')].some(t => /Project Falcon/.test(t.textContent)) };
     };
-    const A = await page.evaluate(READ);
+    const A = await page.evaluate(NGN ? READ_NGN : READ);
     const me = await page.evaluate(() => currentUser().name);
     /* both live deals wait on our side here, so Their move holds nothing and
        is not offered (Part 8: a tab with no rows is left out) */
-    check('1 the tabs from our side: All · Our move; nothing empty offered', JSON.stringify(A.tabs) === JSON.stringify(['All', 'Our move']), JSON.stringify(A.tabs));
+    check('1 the tabs from our side: All · Our move; nothing empty offered', JSON.stringify(A.tabs) === JSON.stringify(NGN ? ['Live', 'Your move'] : ['All', 'Our move']), JSON.stringify(A.tabs));
     const head = await page.evaluate(() => document.body.innerText);
     const facts = (head.match(/\d+ live[^\n]*/) || [''])[0];
     check('2 "Waiting on our side" is the Our move tab\'s own words, no group heading between the rows, and the facts line counts it so',
-      A.ourTab === 'Waiting on our side' && !A.bands.length && /2 waiting on our side/.test(facts), JSON.stringify({ ourTab: A.ourTab, bands: A.bands, facts }));
+      /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): was "2 your move" in the facts
+         line — the tabs are chips and the Your move chip carries the count 2 */
+      NGN ? (A.ourTab === 'Your move' && !A.bands.length && A.chips && A.youN === '2')
+        : (A.ourTab === 'Waiting on our side' && !A.bands.length && /2 waiting on our side/.test(facts)), JSON.stringify({ ourTab: A.ourTab, bands: A.bands, facts: NGN ? { youN: A.youN, chips: A.chips } : facts }));
     /* RE-POINTED 28 Oct 2026 (THE LIST LANGUAGE, owner: "keep" the Clauses in play): the reference, the round and the
        lead ride the grey line under the counterparty; Round and Lead are one press away under Columns */
     check('3a the columns: Counterparty and agreement · Clauses in play · What is open · Waiting · Value (Round and Lead under Columns)',
       /* RE-POINTED 28 Oct 2026 (ROOM TO SPREAD): where the list has the room, Ref, Round and Lead stand as
          columns together (the grey line's facts); else none of the three */
-      ['Counterparty and agreement', 'What is open', 'Waiting'].every(h => A.heads.includes(h)) && (A.heads.includes('Ref') === A.heads.includes('Lead')), JSON.stringify(A.heads));
-    const seat = await page.evaluate(() => (document.querySelector('[data-lc-btn]') || {}).getAttribute ? document.querySelector('[data-lc-btn]').getAttribute('data-lc-btn') : '');
-    await page.click(`[data-lc-btn="${seat}"]`);
-    await until(() => document.querySelector('[data-lc-pop] [data-lc-k="lead"]:not([disabled])'), null, 8000);
-    await page.click('[data-lc-pop] [data-lc-k="lead"]');
-    await until(() => document.querySelector('#reg-tbody .reg-lead'), null, 8000);
-    await page.click(`[data-lc-btn="${seat}"]`);
-    const B = await page.evaluate(READ);
+      /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): Agreement · Whose move · Rounds ·
+         Open asks · Lead · Waiting · the act (its head empty) */
+      NGN ? JSON.stringify(A.heads) === JSON.stringify(['Agreement', 'Whose move', 'Rounds', 'Open asks', 'Lead', 'Waiting', ''])
+        : ['Counterparty and agreement', 'What is open', 'Waiting'].every(h => A.heads.includes(h)) && (A.heads.includes('Ref') === A.heads.includes('Lead')), JSON.stringify(A.heads));
+    /* the new list always shows Lead; the old one put it under Columns */
+    if (!NGN){
+      const seat = await page.evaluate(() => (document.querySelector('[data-lc-btn]') || {}).getAttribute ? document.querySelector('[data-lc-btn]').getAttribute('data-lc-btn') : '');
+      await page.click(`[data-lc-btn="${seat}"]`);
+      await until(() => document.querySelector('[data-lc-pop] [data-lc-k="lead"]:not([disabled])'), null, 8000);
+      await page.click('[data-lc-pop] [data-lc-k="lead"]');
+      await until(() => document.querySelector('#reg-tbody .reg-lead'), null, 8000);
+      await page.click(`[data-lc-btn="${seat}"]`);
+    }
+    const B = await page.evaluate(NGN ? READ_NGN : READ);
     const mine = B.rows['MK-A2'] || {}, theirs = B.rows['MK-B2'] || {};
     check('3b Lead: "You" on the reader\'s own deal; a colleague\'s first name on theirs, the whole name on its hover',
-      mine.lead === 'You' && mine.hover === me && theirs.lead === colleague.name.split(' ')[0] && theirs.hover === colleague.name, JSON.stringify({ mine, theirs }));
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's Negotiations list writes a colleague as first name and initial
+         ("Unrestricted L.", ngnShortName) — still never the whole name in the cell, the whole name on its hover */
+      mine.lead === 'You' && mine.hover === me && (theirs.lead === colleague.name.split(' ')[0] || (NGN && theirs.lead === colleague.name.split(' ')[0] + ' ' + colleague.name.split(' ')[1][0] + '.')) && theirs.hover === colleague.name, JSON.stringify({ mine, theirs }));
     check('4 a deal kept to its list is not on the list, nor in its count', !A.coded && A.all === '2', JSON.stringify({ coded: A.coded, all: A.all }));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'whose-move-1440x780.png') });
 
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(400);
-      const F = await page.evaluate(() => { const ths = [...document.querySelectorAll('.reg-table thead th')];
+      const F = await page.evaluate(() => { const ths = [...document.querySelectorAll('.ngn-table thead th, .reg-table thead th')];
         const cut = ths.filter(t => { const s = t.querySelector('span, button') || t; return s.scrollWidth > s.clientWidth + 1 || t.scrollWidth > t.clientWidth + 1; }).map(t => t.textContent.trim());
-        const panel = document.getElementById('ins-panel'), tb = document.querySelector('.reg-table');
+        const panel = document.getElementById('ins-panel'), tb = document.querySelector('.ngn-table, .reg-table');
         const r = x => x && x.getBoundingClientRect();
         return { cut, list: !!tb && r(tb).top < innerHeight && r(tb).left >= 0, panel: !!panel && r(panel).top < innerHeight && r(panel).right <= innerWidth + 1,
           side: document.documentElement.scrollWidth <= innerWidth + 1 }; });

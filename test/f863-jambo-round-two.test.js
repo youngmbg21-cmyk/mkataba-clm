@@ -165,7 +165,7 @@ describe('f863 (4) — the turns, in his words', () => {
     assert.match(t0, /You: Deliver the first shipment .* They: Pay the first invoice .* It ends/);
     assert.match(t0, /already on your HaTi calendar/);
     assert.deepEqual(plain(T[0].choices.map(c => c.fr)), ['ics', 'cal']);
-    assert.match(said(T[1].text), /Next time I'd start Payment terms at 60 days: you've settled there 4 of your last 4 rounds\. Your standard still says 30 days\./);
+    assert.match(said(T[1].text), /Next time I'd start Payment terms at 60 days: you've settled there 4 of your last 4 rounds\. Your position still says 30 days\./);
     assert.deepEqual(plain(T[1].choices.map(c => c.fr)), ['learn', 'later']);
     const filled = T.flatMap(t => t.choices || []).filter(c => c.lead);
     assert.equal(filled.length, 1, 'one filled button in the panel');

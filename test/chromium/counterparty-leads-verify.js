@@ -49,6 +49,10 @@ const check = (name, ok, detail) => {
 
     /* ============ 1 · CONTRACTS: THE COUNTERPARTY LEADS ============ */
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the head's
+       List pill is the way to the list */
+    await page.waitForSelector('[data-ctf-show="list"]', { timeout: 10000 }).then(() => page.click('[data-ctf-show="list"]')).catch(() => {});
+    await page.waitForSelector('#reg-tbody [data-row]', { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(1200);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
     const READ = () => {
@@ -75,16 +79,18 @@ const check = (name, ok, detail) => {
        read from their tokens, so the claims stay RELATIONS whatever the ramp. */
     const INKS = await page.evaluate(() => { const read = (v => { const i = document.createElement('i'); i.style.color = 'var(' + v + ')'; document.body.appendChild(i);
       const c = getComputedStyle(i).color; i.remove(); return c; });
-      return { text: read('--color-text'), strong: read('--color-neutral-300') }; });
+      return { text: read('--color-text'), strong: read('--color-neutral-300'), detail: read('--color-neutral-400') }; });
     check('1a the Contracts table draws no CONTRACT TITLE column',
       !C.err && !C.ths.some(x => /contract title/i.test(x.t)), C.err || C.ths.map(x => x.t).join(' | '));
     check('1b the counterparty leads the identity cell, in the page ink at the heavier weight',
       !!C.title && +C.title.w >= 500 && C.title.col === INKS.text,
       C.title && `"${C.title.txt}" ${C.title.w} ${C.title.size} ${C.title.col}`);
     /* RE-POINTED 27 Oct 2026 (THE LEGORA WAY, the owner's pick: every word 12px and up is the ink; only the small print keeps the grey) */
-    check('1c the contract name sits UNDER it, a size down and lighter in weight (the ink, 12px and up)',
+    check('1c the contract name sits UNDER it, a size down, lighter in weight, in the detail grey',
       !!C.sub && C.stacked && parseFloat(C.sub.size) < parseFloat(C.title.size)
-        && C.sub.col === C.title.col && +C.sub.w < +C.title.w,
+        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): NAME AND FIGURE INK, THE DETAIL LINE GREY
+           (--color-neutral-400; f982, f984, f990) — the line under the name is the detail grey */
+        && C.sub.col === INKS.detail && C.sub.col !== C.title.col && +C.sub.w < +C.title.w,
       C.sub && `"${C.sub.txt}" ${C.sub.w} ${C.sub.size} ${C.sub.col} · stacked ${C.stacked}`);
     /* WELL SPACED: the counterparty is the widest column on the table, because
        it carries two facts where the two columns it replaced carried one each. */
@@ -235,7 +241,9 @@ const check = (name, ok, detail) => {
             .sort((a, b) => a.top - b.top)[0];
           return next ? Math.round(next.top - db) : null; })(),
         rows: document.querySelectorAll('.na-pick').length,
-        tabsClear: (() => { const t = document.querySelector('.na-tabs'), r = document.querySelector('.na-pick');
+        /* RE-POINTED 16 Nov 2026 (#762): the new look's sheet draws "the three closest" above the tabs, so the rows UNDER the
+           tabs are the first row that follows them in the page */
+        tabsClear: (() => { const t = document.querySelector('.na-tabs'), r = t ? [...document.querySelectorAll('.na-pick')].find(x => t.compareDocumentPosition(x) & Node.DOCUMENT_POSITION_FOLLOWING) : document.querySelector('.na-pick');
           if (!r) return null; if (!t) return true; return t.getBoundingClientRect().bottom <= r.getBoundingClientRect().top + 0.5; })(),
         tintBg: (() => { const d = document.createElement('div');
           d.style.background = 'var(--color-accent-50)'; document.body.appendChild(d);
@@ -257,16 +265,19 @@ const check = (name, ok, detail) => {
        the PAGE'S OWN GROUND, resolved live — the thing that was missing. */
     /* RE-POINTED 29 Oct 2026 (owner: ONE SHEET — New agreement's title bar, the ask, the papers and Filed in
        are one white sheet): the sheet (.na-body) is white, and it stands on the page's own ground */
+    /* RE-POINTED 22 Nov 2026 (P-36, New agreement as drawn, the Legora + Stripe way: no cards): the paper's part of the
+       sheet (.na-card) is no longer a card — it paints nothing of its own and lies open on the white sheet. The claim
+       stands: one white sheet on the page's own ground, and the card is not a second, different colour inside it */
     check('3a the sheet is white against the page’s own ground',
-      !!P.bodyBg && P.bodyBg === P.cardBg && P.behindBg === P.pageBg && P.bodyBg !== P.pageBg,
+      !!P.bodyBg && (P.cardBg === P.bodyBg || P.cardBg === 'rgba(0, 0, 0, 0)') && P.behindBg === P.pageBg && P.bodyBg !== P.pageBg,
       `sheet ${P.bodyBg} · behind it ${P.behindBg} · page ${P.pageBg} · card ${P.cardBg}`);
     /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK, stage 2, the owner's drawn New agreement): a card has no
        outline; it stands off the grey by its lift (--shadow-sm) — still something that stays visible on it */
     /* RE-POINTED 29 Oct 2026 (ONE SHEET): the SHEET stands off the ground by its lift; a card inside it has no
        outline, only the one hairline where it meets the part above (the divider) */
-    check('3b and the sheet stands off the ground by its lift; the card inside has no outline, only the hairline above it',
-      !!P.bodyLift && P.bodyLift !== 'none' && (P.cardSides || []).every(w => w === 0) && (P.cardTop === null || P.cardTop === P.divider),
-      `sheet lift ${P.bodyLift} · card sides ${JSON.stringify(P.cardSides)} · card top ${P.cardTop} (divider ${P.divider})`);
+    /* RETIRED 16 Nov 2026 (#762): 3b and 3c2 — the lifted sheet and the accent-tinted chosen row were the old sheet's; the new
+       look's one sheet lies flat edge to edge (`html.lg-new #modal-root #na-root.na-one > .na-body{box-shadow:none}`) and its
+       rows wear their stream's tone, the chosen one a 2px ink edge (index.html "na-close.on") */
     /* RE-POINTED 12 Oct 2026 (the Search list): the line of business moved
        to Settings → Company; the control in the rail now is its own search. */
     check('3c the rail\'s search is the size of the controls beside it',
@@ -276,9 +287,6 @@ const check = (name, ok, detail) => {
        paints nothing and the chosen one is filled in the accent. */
     /* RE-POINTED 12 Oct 2026 (the Search list): the chosen row is a TINT, not
        a fill — one filled button per area, and that is Create draft. */
-    check('3c2 an unchosen row paints nothing, and the chosen one is tinted, not filled',
-      P.rows > 0 && P.pickPlain && P.pickBg === 'rgba(0, 0, 0, 0)' && P.onBg === P.tintBg && P.onBg !== P.railBg,
-      `${P.rows} rows · plain ${P.pickPlain} · resting ${P.pickBg} · lit ${P.onBg} · tint ${P.tintBg}`);
     /* THE OWNER'S OWN REPORT, MEASURED: the heading row under a shelf stands
        clear of it by MORE than the things inside that shelf stand from each
        other, which is what "so close to overlapping" was about. RE-POINTED IN
@@ -342,23 +350,11 @@ const check = (name, ok, detail) => {
         bg: cs.backgroundColor, col: cs.color, title: b.getAttribute('title'),
         mark: !!sym, markW: Math.round(b.querySelector('svg').getBoundingClientRect().width) };
     });
-    check('4a the brief carries a button of its own on Before you sign', B.drawn, JSON.stringify(B));
-    /* REVERSED IN PLACE 21 Sep 2026, on Young's word: "write brief should be the
-       LAST button clicked ... not the first button in the signing page but last
-       and mandatory". The old claim (first on the card, before every stage) is
-       kept here because its reasoning is what makes this safe: the brief is a
-       press that SPENDS, so it must be somewhere a reader arrives at on purpose.
-       First, it was the thing you met before you had read anything; last, it is
-       the thing you meet once everything else is settled — and it HOLDS. */
-    check('4b it is the LAST button on the card, after every stage',
-      B.drawn && !B.beforeRun && !B.beforeStages, `y ${B.y} · before run ${B.beforeRun} · before stages ${B.beforeStages}`);
-    check('4c it presses the act the Overview card owns, never a second one',
-      B.drawn && /^(run|open)$/.test(B.act || ''), B.act);
-    check('4d it is the secondary button, never the filled one',
-      B.drawn && B.bg === 'rgba(0, 0, 0, 0)', `${B.bg} on ${B.col}`);
-    check('4e its mark is a sprite symbol that really paints',
-      B.drawn && B.mark && B.markW > 0, `${B.mark ? 'found' : 'MISSING'} · ${B.markW}px`);
-    check('4f and it says what the press costs', B.drawn && !!B.title && B.title.length > 20, B.title);
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling 2): 4a–4f measured the brief button #sc-brief in the old
+       Before you sign column (#sign-check, the sign check's own buttons under the five parts) — that column stays
+       gone in the new look (0px wide), so these read a hidden element; the new look's brief door is the five-part
+       card's "Read it first" */
+    void B;
 
     /* ============ 5 · THE COPILOT RAIL NAMES ITS CLAUSE ============ */
     await page.evaluate(i => openRedlineWorkbench(state.contracts.find(x => x.id === i)), id);

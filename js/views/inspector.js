@@ -387,7 +387,7 @@ function insDoorActs(c, opt){
        paper while anything is owed, else the paper on Jambo's tab — the one
        landing every Workspace door shares (roomHomeLand). The phone, where
        Home has no paper, keeps the room. */
-    run: () => { if (typeof roomHomeLand === 'function' && roomHomeLand(c.id, { cover: true })) return;
+    run: () => { if (typeof roomHomeLand === 'function' && roomHomeLand(c.id, { open: true })) return;
       openWorkspace(c.id); try { const live = getContract(c.id) || c;
       let left = 0; try { left = (typeof detailsOf === 'function') ? detailsOf(live).left : 0; } catch (_){ left = 0; }
       if (typeof roomGoTab === 'function') roomGoTab(live, left ? 'details' : 'terms'); } catch (_){} } };
@@ -1290,12 +1290,26 @@ function jlAskHtml(o){
     <form class="jl-ask" data-jl-ask autocomplete="off" title="${esc(cost)}">
       <div class="ca-pop jl-pop" data-jl-pop hidden></div>
       ${''/* the door back, and the bin, right above the box while the conversation shows (Door above the box) */}${typeof jamboDoorHtml === 'function' ? jamboDoorHtml({ on: false, back: 'list', to: i18t('pd_tab_overview'), bin: typeof jamboBinHtml === 'function' ? jamboBinHtml(false) : '' }) : ''}${typeof jamboFwdHtml === 'function' ? jamboFwdHtml({ on: false, host: 'list' }) : ''}
-      ${_jlJbCard({ field: `<textarea id="jl-q" rows="1" maxlength="400" spellcheck="false" data-jb-enter placeholder="${esc(ph)}" aria-label="${esc(ph)}"></textarea>`, send: _jlJbSend('data-jl-send', i18t('int_ask'), { submit: true, cls: 'jl-send', title: cost }) })}
+      ${_jlJbCard({ field: `<textarea id="jl-q" rows="1" maxlength="400" spellcheck="false" data-jb-enter data-ca-slash placeholder="${esc(ph)}" aria-label="${esc(ph)}"></textarea>`, send: _jlJbSend('data-jl-send', i18t('int_ask'), { submit: true, cls: 'jl-send', title: cost }) })}
     </form>
   </div>`;
 }
 /* The frame is built ONCE per panel element, so the words in the box and its
    caret survive every row press; only the body and the head's word move. */
+/* THE TOP BOX FILTERS, JAMBO'S BOX ASKS (owner, 22 Nov 2026: "make them honest labels but jambo should have the ability to
+   answer those questions"): each list page's top box says "Filter this list" and only narrows it; the page's example
+   question moves here, to Jambo's box at the panel's foot. A page that hands in its own words (opt.jlPh other than the
+   two plain ones) keeps them. Negotiations is named by its seat (its list stands on the shared Negotiate view). */
+const JL_PAGE_ASKS = { approvals: 'jl_ph_pg_approvals', standards: 'jl_ph_pg_standards', ourpaper: 'jl_ph_pg_ourpaper', settings: 'jl_ph_pg_settings',
+  import: 'jl_ph_pg_import', mynotes: 'jl_ph_pg_mynotes', contracts: 'jl_ph_pg_contracts', negotiations: 'jl_ph_pg_negotiations',
+  requests: 'jl_ph_pg_requests', people: 'jl_ph_pg_people', parties: 'jl_ph_pg_parties' };
+function jlPagePh(opt){
+  const o = opt || {}, plain = [i18t('jl_ph_any'), i18t('jl_ph_list')];
+  if (o.jlPh && !plain.includes(o.jlPh)) return o.jlPh;
+  let k = null;
+  try { k = o.seat === 'negotiations' ? 'negotiations' : (typeof window.guideHereKey === 'function' ? window.guideHereKey() : null); } catch (_){ k = null; }
+  return (k && Object.prototype.hasOwnProperty.call(JL_PAGE_ASKS, k)) ? i18t(JL_PAGE_ASKS[k]) : (o.jlPh || i18t('jl_ph_any'));
+}
 function jlFrame(host, opt){
   host.classList.add('is-jambo');
   host.classList.toggle('is-folded', jlFolded());
@@ -1307,14 +1321,14 @@ function jlFrame(host, opt){
     /* JAMBO AS A TAB YOU FLIP TO (owner, 19 Oct 2026): the body is the
        landing (data-jt-land); the conversation is its own view beside it,
        the trail over it — the box at the foot asks for both */
-    host.innerHTML = `${jlDoorHtml()}${grip}${jlHeadHtml()}<div class="jl-body" id="jl-body" data-jl-body data-jt-land></div>${jlTalkHtml()}${jlAskHtml({ placeholder: opt.jlPh })}`;
+    host.innerHTML = `${jlDoorHtml()}${grip}${jlHeadHtml()}<div class="jl-body" id="jl-body" data-jl-body data-jt-land></div>${jlTalkHtml()}${jlAskHtml({ placeholder: jlPagePh(opt) })}`;
     body = host.querySelector(':scope > .jl-body');
   }
   jlTalkPaint(host);
   const inp = host.querySelector('#jl-q');
   /* a half-typed question outlives a repaint of the page (the flash survey, 13 Nov 2026): the box's own draft */
   if (inp && typeof boxDraftJoin === 'function') boxDraftJoin(inp, 'list');
-  const ph = opt.jlPh || i18t('jl_ph_any');
+  const ph = jlPagePh(opt);
   if (inp && inp.getAttribute('placeholder') !== ph){ inp.setAttribute('placeholder', ph); inp.setAttribute('aria-label', ph); }
   jlLayout();
   return body;
@@ -1533,7 +1547,8 @@ function jlTalkOpen(){
    what was said on any page (renderAIFeed: one copy on the page at a time) */
 function jlTalkPress(){
   if (!jlTalkOpen()) return;
-  if (typeof renderAIFeed === 'function' && _jlAiLen()) try { renderAIFeed(); } catch (_){}
+  /* drawn even when the conversation is EMPTY: a Clear elsewhere must not leave its old turns here (#762) */
+  if (typeof renderAIFeed === 'function') try { renderAIFeed(); } catch (_){}
   jlTalkPaint();
 }
 /* asked by the feed's painter (renderAIFeed): new words open the view; the
@@ -1726,6 +1741,9 @@ function jlAsk(text, opts){
   /* ONE PANEL, TWO FACES (owner, 28 Oct 2026, "Door above the box"): no Jambo tab to be on — a page's one name
      moves you free (jamboPageGo), every other word TYPED is the brain's, on the landing too */
   if (opts && opts.typed && typeof jamboPageGo === 'function' && jamboPageGo(t)) return 'go';
+  /* "ADD GRACE WAMBUI, … AS THE CONTACT" opens the one contact sheet filled in from the words, before the brain is
+     asked (cuContactAsk, owner 19 Nov 2026); nothing is saved until the person presses Add */
+  if (typeof cuContactAsk === 'function'){ let pc = false; try { pc = cuContactAsk(t); } catch (_){ pc = false; } if (pc) return pc === true ? 'go' : 'said'; }
   if (opts && opts.typed && typeof caAiFirst === 'function' && caAiFirst() && typeof aiAskWords === 'function'){
     if (_jlBusy()) return jlBusySay(t);
     jlTalkOpen(); aiAskWords(t, { controls: true }); return 'model';
@@ -1740,6 +1758,34 @@ function jlAsk(text, opts){
       a.cid = held.id; a.missing = false;
       if (!cards.includes(a.place) && typeof caGo === 'function' && caGo(a)) return 'go';
       if (typeof jmRunAct === 'function' && jmRunAct(a, t)) return 'card';
+    }
+  }
+  /* ON SETTINGS, A SETTING ASKED FOR IS THE ONE FINDER'S (stFind, through stJbAnswer — the cards the old box drew, each
+     its own door): the new look's Settings box is this one, and it had stopped asking the finder (16 Nov 2026, #762) */
+  if (document.querySelector('.stn-page') && typeof stJbAnswer === 'function' && typeof stJbCardHtml === 'function'
+      && typeof stFind === 'function' && typeof aiPush === 'function' && typeof renderAIFeed === 'function'){
+    /* the finder's answer, and the readings before it (one of your own settings readied, a person, a stream): the free
+       reader the old box asked, whether or not the finder alone matched */
+    /* a place or a door named by its words (navRead: "events out" opens its page) is the reader below's, as the old box
+       asked the readers before the finder */
+    let nav = null; try { nav = (typeof navRead === 'function') ? navRead(t, { box: 'list' }) : null; } catch (_){ nav = null; }
+    /* a setting found by its words stays the finder's (stfind, your own); a page or a company panel named goes there */
+    /* …and a PLACE named ("my week" → the Calendar) goes there too (#762: a place answer was thrown away here) */
+    if (nav && !(nav.kind === 'go' && ((nav.nav && !['stfind', 'you'].includes(nav.nav.k)) || (!nav.nav && nav.place)))) nav = null;
+    /* WORK ASKED FOR IS NOT A SETTING (#762: "upload a contract", "new contract" got Settings cards): Jambo's map of the
+       everyday tasks (jmRead) answers first where it names somewhere other than Settings */
+    let work = false; try { const jm = (typeof jmRead === 'function') ? jmRead(String(t).trim()) : null; work = !!(jm && jm.place !== 'settings'); } catch (_){ work = false; }
+    let A = null; try { A = (nav || work) ? null : stJbAnswer(t); } catch (_){ A = null; }
+    const cards = A && Array.isArray(A.cards) ? A.cards.filter(c => c && c.k !== 'why').map(c => { try { return stJbCardHtml(c, {}); } catch (_){ return ''; } }).filter(Boolean) : [];
+    if (cards.length){
+      if (_jlBusy()) return jlBusySay(t);
+      jlTalkOpen();
+      let page = ''; try { page = (typeof deskPageName === 'function' && deskPageName()) || ''; } catch (_){ page = ''; }
+      aiPush('user', { text: esc(t), raw: t });
+      aiPush('assistant', { text: `<div>${esc(A.say || '')}</div>`, cards: `<div class="st-jb-cards">${cards.join('')}</div>`,
+        read: { cid: null, page, text: i18t('jl_read_book_free') }, free: true });
+      renderAIFeed();
+      return 'said';
     }
   }
   /* answer where you stand: contracts asked to see with no place named, and a
@@ -1885,7 +1931,7 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined' && !window.
   window.addEventListener('resize', () => { try { jlLayout(); } catch (_){} });
 }
 
-Object.assign(window, { INS_MIN_W, INS_ASKS_MAX, INS_LATEST, INS_READ_TONE,
+Object.assign(window, { jlPagePh, JL_PAGE_ASKS, INS_MIN_W, INS_ASKS_MAX, INS_LATEST, INS_READ_TONE,
   insForce, insFits, insSelected, insSelect, insPick, insFacts, insMove, insMoveCellHtml,
   insTable, insReads, insLatest, insSecHtml, insFactsHtml, insTableHtml, insReadsHtml, insLatestHtml,
   insHeadHtml, insParties, insPartiesHtml, insNeedsHtml, insNeedsLineHtml, insNeedWords, INS_NEED_VERB, INS_NEED_GO, insPanelHtml, insPanelEmptyHtml, insPaintPanel, insCloseMenu, insMarkRow, insListWire,

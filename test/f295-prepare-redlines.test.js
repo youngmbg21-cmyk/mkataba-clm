@@ -204,7 +204,7 @@ describe('f295 — the review is the existing one, the filing is the existing on
     /* AND HOW MUCH WAS CHECKED, on every press since fix 3 (23 Sep 2026) — the
        owner's approved line: "5 drafts filed under Your drafts — nothing sent ·
        6 of 6 standards checked". This stage's page holds five. */
-    assert.match(w.toasts[0].text, /^2 drafts filed under Your drafts — nothing sent · 1 could not be placed · 5 of 5 standards checked$/);
+    assert.match(w.toasts[0].text, /^2 drafts filed under Your drafts — nothing sent · 1 could not be placed · 5 of 5 positions checked$/);
     const line = c.audit.find(a => /Redlines prepared/.test(a.detail));
     assert.ok(line && /2 drafts filed unsent, 0 already here, 1 not placed/.test(line.detail), 'one English audit line naming the counts');
   });
@@ -217,7 +217,7 @@ describe('f295 — the review is the existing one, the filing is the existing on
     assert.equal(out.filed, 0); assert.equal(out.here, 2, 'both refused by the walls, counted as already here'); assert.equal(out.unplaced, 1);
     assert.equal(JSON.stringify(c.changes.map(x => [x.id, x.status, x.hash])), before, 'the record did not move');
     assert.equal(w.toasts[1].kind, 'warn');
-    assert.match(w.toasts[1].text, /^No drafts were filed — 2 already here · 1 could not be placed · 5 of 5 standards checked$/);
+    assert.match(w.toasts[1].text, /^No drafts were filed — 2 already here · 1 could not be placed · 5 of 5 positions checked$/);
   });
   test('every proposal is recorded for the acceptance metrics as a playbook proposal, at the press', async () => {
     const w = world(); const c = contract(); w.win.state.contracts.push(c);

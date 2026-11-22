@@ -2,7 +2,7 @@
  * 3 Oct 2026; f447 pins the readings and the server's walls).
  *
  * WHAT THIS DRIVES, where the user looks:
- *   1. Home lands on the board, light, five figures that are the book's own,
+ *   1. Home lands on the board, light, four figure cards that are the book's own, (RE-POINTED P-39, 20 Nov 2026)
  *      and the map is NOT built while the board covers it;
  *   2. a figure is a door with a trail, and the trail's first crumb goes back;
  *   3. asking changes the lens and puts panels on the board, and side by side
@@ -91,8 +91,9 @@ const CONTRACTS = [
 
     /* ===== 1. THE LANDING ===== */
     /* RE-POINTED 11 Oct 2026 (owner: "only 5 cards", each person may swap them) */
-    const landed = await until(page, () => document.querySelectorAll('#hb-board .hb-fig').length === 5);
-    ok('1a Home lands on the board with five figures', landed);
+    /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */
+    const landed = await until(page, () => document.querySelectorAll('#hb-board .hb-fig').length === 4);
+    ok('1a Home lands on the board with four figure cards', landed);
     const L = await page.evaluate(() => ({ face: typeof hbS === 'function' && hbS().face,
       dark: !!document.querySelector('#ig-page.hb-dark'), light: !!document.querySelector('#ig-page.hb-light'),
       order: [...document.querySelectorAll('[data-hb-screen]')].map(b => b.getAttribute('data-hb-screen')).join(','), up: typeof igMapUp === 'function' ? igMapUp() : null,
@@ -104,9 +105,15 @@ const CONTRACTS = [
        the Board is always the light screen, Explorer alone the dark one. */
     ok('1b the board side, on the light screen, with no Light | Dark switch', L.face === 'board' && L.light && !L.dark && L.order === '', JSON.stringify([L.face, L.light, L.order]));
     ok('1c the map is not built while the board covers it', L.up === false);
+    /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */
+    /* the usual four are live · ending · past · overdue, in that order (HB_FIGS_DEFAULT) */
+    /* the cards are drawn at once and their counts follow the book as it loads: asked for, bounded, then read */
+    await until(page, () => { const w = typeof hbBookData === 'function' ? hbBookData('all').figs : null; const n = [...document.querySelectorAll('.hb-fig .hb-fig-n')].map(e => e.textContent.trim());
+      return !!w && n.length === 4 && n[0] === String(w.live.n) && n[3] === String(w.overdue.n); });
+    Object.assign(L, await page.evaluate(() => ({ nums: [...document.querySelectorAll('.hb-fig .hb-fig-n')].map(e => e.textContent.trim()), want: typeof hbBookData === 'function' ? hbBookData('all').figs : null })));
     ok('1d live, ending, past and overdue print the book\'s own counts',
-      !!L.want && L.nums[0] === String(L.want.live.n) && L.nums[2] === String(L.want.ending.n)
-        && L.nums[3] === String(L.want.past.n) && L.nums[4] === String(L.want.overdue.n), JSON.stringify(L.nums));
+      !!L.want && L.nums.length === 4 && L.nums[0] === String(L.want.live.n) && L.nums[1] === String(L.want.ending.n)
+        && L.nums[2] === String(L.want.past.n) && L.nums[3] === String(L.want.overdue.n), JSON.stringify(L.nums));
     await page.screenshot({ path: path.join(OUT, '1-landing.png') });
 
     /* ===== 2. A FIGURE IS A DOOR WITH A TRAIL ===== */
@@ -418,7 +425,8 @@ const CONTRACTS = [
     await ask(page, 'Show me all Juno contracts');
     const counted = await page.evaluate(() => { const d = hbBookData('all'); return { live: d.figs.live.n, set: hbDigData(hbCountKey(), 'all').ids.length, tile: (document.querySelector('#hb-book .hb-fig .hb-fig-n') || {}).textContent, sub: (document.querySelector('#hb-book .hb-cs') || {}).textContent, chip: (document.querySelector('.hb-counting .is-count') || {}).textContent }; });
     ok('14a the six figures recount for the question\'s set, the tile says so, and the chip names it', counted.live < whole && counted.live <= counted.set && String(counted.tile).replace(/\D/g, '') === String(counted.live) && /Juno/.test(counted.sub) && /Juno/.test(counted.chip), JSON.stringify({ whole, ...counted }));
-    ok('14a2 the live line above the book names the set too', await page.evaluate(() => /Juno/i.test((document.querySelector('#hb-board .hb-note') || {}).textContent || '')));
+    /* RE-POINTED 21 Nov 2026 (P-39, as drawn): the live line stands at the greeting's right (.hb-bh-live), no longer in .hb-note */
+    ok('14a2 the live line above the book names the set too', await page.evaluate(() => /Juno/i.test((document.querySelector('#hb-board .hb-bh-live, #hb-board .hb-note') || {}).textContent || '') || /Juno/i.test((document.querySelector('#hb-board #hb-bhead') || {}).textContent || '')));
     await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'explorer');
     ok('14b flipped to Explorer, the map is narrowed to the same set', await until(page, () => { const L = intel.lenses.find(l => l.id === 'hbcount'); return !!L && L.on && L.action === 'filter' && L.ids.length === hbDigData(hbCountKey(), 'all').ids.length; }));
     await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'board');
@@ -539,7 +547,8 @@ const CONTRACTS = [
     const f15 = await page.evaluate(() => { const s = hbS(); s.figs = ['live', 'value', 'wewait', 'wepay', 'paygap']; hbSave(); hbPaintBoard();
       const t = [...document.querySelectorAll('#hb-book .hb-fig .hb-fig-main')].map(b => ({ l: b.querySelector('.hb-fig-l').textContent, n: b.querySelector('.hb-fig-n').textContent, door: b.getAttribute('data-hb-dig') }));
       const P = payTermsData(); return { t, cu: P.customer.avgDays, su: P.supplier.avgDays }; });
-    const tw = f15.t.find(x => x.l === 'We wait'), tp = f15.t.find(x => x.l === 'We pay');
+    /* RE-POINTED 21 Nov 2026 (P-39, as drawn: the cards now read "Days we wait to be paid" · "Days we take to pay"): found by their door, not their words */
+    const tw = f15.t.find(x => x.door === 'f:wewait'), tp = f15.t.find(x => x.door === 'f:wepay');
     ok('15e We wait and We pay are figures a person may pick, read from the payment terms reading', !!tw && !!tp
       && (f15.cu == null ? tw.n === '—' : tw.n === f15.cu + (f15.cu === 1 ? ' day' : ' days')) && (f15.su == null ? tp.n === '—' : tp.n === f15.su + (f15.su === 1 ? ' day' : ' days')), JSON.stringify(f15));
     /* EVERY FIGURE HAS ITS LINE (owner, 11 Oct 2026) */

@@ -43,13 +43,18 @@ test('f1055 (2) the four screens: the list of reads, New read, while it reads, t
   for (const f of ['dsnListHtml', 'dsnNewHtml', 'dsnReadingHtml', 'dsnResultsHtml']) assert.match(r, new RegExp(f + '\\('), f + ' is drawn');
   assert.match(fnBody(RD, 'rdnRender'), /dsnRender\(host, o\)/, 'the Discover page is the four screens');
   const L = fnBody(RD, 'dsnListHtml');
-  for (const k of ['dsn_c_when', 'rdn_c_q', 'dsn_c_where', 'rd_col_read', 'dsn_c_found', 'dsn_c_by']) assert.ok(L.includes("'" + k + "'"), 'the list says ' + k);
-  for (const k of ["'folder'", "'ask'", "'by'", "'when'"]) assert.ok(L.includes("dsnSel(" + k), 'the list filters by ' + k);
+  /* RE-POINTED (P-42, owner's pick 20 Nov 2026: Discover the Legora + Stripe way): Question · Status · Answered · To look
+     at · Where · By · When; the four filters are "+ filter" chips (dsnFChip) */
+  for (const k of ['dsn_c_when', 'rdn_c_q', 'dsn_c_where', 'dsn_f_status', 'dsn_c_answered', 'dsn_t_look', 'dsn_c_by']) assert.ok(L.includes("'" + k + "'"), 'the list says ' + k);
+  for (const k of ["'folder'", "'ask'", "'by'", "'when'"]) assert.ok(L.includes("dsnFChip(" + k), 'the list filters by ' + k);
   assert.match(L, /id="dsn-new"/, 'New read is the black button');
   const N = fnBody(RD, 'dsnNewHtml');
   const page = N.slice(N.lastIndexOf('return `'));
   assert.ok(page.indexOf('id="dsc-q"') < page.indexOf('${filters}') && page.indexOf('${filters}') < page.indexOf("${line('all'"), 'the question on top, then the filters, then the folders to tick');
-  for (const k of ["'nfolder'", "'status'", "'party'"]) assert.ok(N.includes('dsnSel(' + k), 'New read filters by ' + k);
+  /* RE-POINTED 22 Nov 2026 (P-42 review, as drawn): the folder chip says what is chosen ("Folder: All") and opens a menu of
+     All and each folder (dsnFolderChip, its choices still data-dsn-fset="nfolder"); Status and Party stay "+ filter" chips */
+  assert.ok(N.includes('dsnFolderChip(F)') && /data-dsn-fset="nfolder"/.test(fnBody(RD, 'dsnFolderChip')), 'New read filters by folder');
+  for (const k of ["'status'", "'party'"]) assert.ok(N.includes('dsnFChip(' + k), 'New read filters by ' + k);
   assert.match(fnBody(RD, 'dsnReadingHtml'), /data-dsn-results/, 'at the end, Open the results');
   const R = fnBody(RD, 'dsnResultsHtml');
   assert.match(R, /type="search" id="dsn-q"/, 'a full-width search');

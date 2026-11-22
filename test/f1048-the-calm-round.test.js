@@ -53,11 +53,13 @@ test('f1048 (4) From scratch on Our paper: what happens next, and a long sentenc
   assert.equal(fn('x'.repeat(80)), '', 'nothing read, nothing named');
 });
 test('f1048 (5) Requests: SAP mark, stream chip, coloured word, the chosen row\'s button filled', () => {
+  /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way): no mark, no stream column, NO BUTTONS
+     ON THE ROWS; the state is a soft badge */
   const R = body(read('js/views/intake.js'), 'iknRowHtml');
-  assert.match(R, /listSapCellHtml\(S\.mk, name\)/);
-  assert.match(R, /listChipHtml\(typeof listStreamTone === 'function' \? listStreamTone\(r\.folder\)/);
-  assert.match(R, /listWordHtml\(S\.tone, word/);
-  assert.match(R, /class="ui-btn \$\{sel \? 'ui-btn-primary ' : ''\}ui-btn-sm ikn-go"/);
+  assert.doesNotMatch(R, /listSapCellHtml|listChipHtml|ikn-go|<button/);
+  /* RE-POINTED 21 Nov 2026 (P-32, as drawn): the soft badge is one builder (iknBadgeHtml), the row calls it */
+  assert.match(R, /iknBadgeHtml\(r\)/);
+  assert.match(body(read('js/views/intake.js'), 'iknBadgeHtml'), /<span class="apn-st ikn-st is-\$\{bd\.tone\}">/);
 });
 test('f1048 (6) the Builder: full bar, 720 paper, no outline in hand, options wrap, the clause named', () => {
   assert.match(CSS, /html\.lg-new #tb-page \.tb-strip\{box-shadow:none;border-radius:0;/);

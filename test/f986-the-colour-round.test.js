@@ -15,16 +15,26 @@ const fnBody = (src, name) => { const i = src.indexOf('function ' + name + '(');
 
 test('Parties: kind chips, initials in the stream\'s tone, what waits in amber', () => {
   const f = fnBody(read('js/views/customers.js'), 'cunRowHtml');
-  assert.match(f, /listChipHtml\(toneOf\(f\), shortOf\(f\)\)/);
+  /* RE-POINTED 19 Nov 2026 (the SAP way, revised): the streams have their own column, the first one a chip in its tone */
+  /* RE-POINTED 21 Nov 2026 (P-25, as drawn): the first stream a soft square badge in its own tone (no dot) */
+  assert.match(f, /class="cun-badge is-\$\{esc\(toneOf\(v\.streams\[0\]\)\)\}"/);
   assert.match(f, /class="cun-av is-\$\{avTone\}"/);
-  assert.match(f, /cun-wait\$\{words \? ' is-owed' : ''\}/);
+  assert.match(f, /cun-wait\$\{ws \? ' is-owed' : ''\}/);
   assert.match(CSS, /html\.lg-new td\.cun-wait\.is-owed\{color:var\(--st-amber-fg\)\}/);
+  assert.match(CSS, /html\.lg-new \.cun-badge\.is-amber\{background:var\(--st-amber-bg\);color:var\(--st-amber-fg\)\}/);
 });
-test('People: a workload bar to scale', () => {
+/* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): the pink workload bar is gone ("no pink
+   bar"); the colour is the side — initials and the role's soft badge green for our team, steel for the other side — and
+   an amber badge only where something waits on them */
+test('People: the side in colour, what waits in amber', () => {
   const S = read('js/views/directory.js');
-  assert.match(fnBody(S, 'dirnRowHtml'), /dirnLoadBarHtml\(ids\.length\)/);
-  assert.match(S, /_dirnMost = Math\.max\(0, \.\.\.ours\.concat\(theirs\)/);
-  assert.match(CSS, /html\.lg-new \.dirn-load\{/);
+  assert.doesNotMatch(S, /dirnLoadBarHtml|_dirnMost/);
+  assert.match(fnBody(S, 'dirnRowHtml'), /const tone = ours \? 'green' : 'steel';/);
+  assert.match(fnBody(S, 'dirnRowHtml'), /class="cun-av is-\$\{tone\}"/);
+  /* RE-POINTED 22 Nov 2026 (P-26 review): the house's soft badge, the one Parties wears (.cun-badge) */
+  assert.match(fnBody(S, 'dirnRowHtml'), /w\.length \? `<span class="cun-badge is-amber">/);
+  assert.doesNotMatch(CSS, /html\.lg-new \.dirn-load\{/);
+  assert.match(CSS, /html\.lg-new \.cun-av\.is-green\{/);
 });
 test('Reads: answers as tinted chips, a progress bar', () => {
   const S = read('js/views/reads.js');
@@ -37,15 +47,18 @@ test('Reads: answers as tinted chips, a progress bar', () => {
 test('Requests: today green, a week or more amber', () => {
   const S = read('js/views/intake.js');
   assert.match(fnBody(S, 'iknAgeTone'), /days <= 1 \? ' is-fresh' : days >= IKN_OLD_DAYS \? ' is-old' : ''/);
-  assert.match(fnBody(S, 'iknRowHtml'), /cun-wait ikn-age\$\{iknAgeTone\(r\)\}/);
+  /* RE-POINTED (P-32): the Waiting column is red past a week (the badge says "No one yet · N days") */
+  assert.match(fnBody(S, 'iknRowHtml'), /late \? `<span class="late">/);
   assert.match(CSS, /html\.lg-new td\.cun-wait\.ikn-age\.is-old\{color:var\(--st-amber-fg\)\}/);
 });
 /* REVERSED 14 Nov 2026 (owner's pick, Our paper the Legora way): the uses are said in small type on the right of each
    row, and the colour is the stream's own mark (f1049) */
 test('Our paper: each row\'s uses said on the right, the stream\'s colour on its mark', () => {
   const f = fnBody(read('js/views/library.js'), 'tplnRowHtml');
-  assert.match(f, /<span class="tpln-u">\$\{_tplEsc\(i18tn\('tpln_uses', uses, \{ n: uses \}\)\)\}<\/span>/);
-  assert.match(f, /background:var\(--st-\$\{tone\}-dot\)/);
+  /* RE-POINTED (P-34, owner's pick 20 Nov 2026): the uses are the Drafted from it column — a small bar in the shelf's colour and the number */
+  assert.match(f, /<span class="tpln6-ub"><i style="--p:\$\{p\}%;--sd:var\(--st-\$\{tone\}-dot\)" aria-hidden="true"><\/i><b>\$\{uses\}<\/b><\/span>/);
+  /* RE-POINTED 17 Nov 2026 (#762): the stream's colour is its tone's soft pair, readable (contrast-verify: white on the dot failed AA) */
+  assert.match(f, /background:var\(--st-\$\{tone\}-bg\);color:var\(--st-\$\{tone\}-fg\)/);
 });
 test('Calendar: kind labels read off the record, both books', () => {
   const S = read('js/views/calendar.js');
@@ -55,8 +68,9 @@ test('Calendar: kind labels read off the record, both books', () => {
 });
 test('Settings: on / off pills off the panel\'s own reading', () => {
   const S = read('js/views/settings.js');
-  assert.match(S, /function stnStateText\(k\)\{ const st=stStateOf\(k\); return st&&st\.text\?stnPill\(esc\(stShortState\(st\.text\)\), st\.dot\):''; \}/);
-  assert.match(fnBody(S, 'stnPushSaid'), /ps==='blocked'\?'need'/);
-  /* the Legora way (owner's pick, 13 Nov 2026): the state is a dot and a word, still in its tone */
-  assert.match(CSS, /html\.lg-new \.stn-dot\.is-on\{color:var\(--st-green-fg\)\}/);
+  /* RE-POINTED (P-11, 17 Nov 2026: the six areas): what a setting is set to is read off the panel's own state
+     (sddState: ok → on, warn → need, off → off), a blocked phone still amber, drawn as a dot and a word in its tone */
+  assert.match(fnBody(S, 'sddState'), /dot:st\.dot==='ok'\|\|st\.dot==='on'\?'on':st\.dot==='warn'\?'need':st\.dot==='off'\?'off':''/);
+  assert.match(fnBody(S, 'sddYouRows'), /ps==='blocked'\?'need'/);
+  assert.match(CSS, /html\.lg-new \.sdd-v\.is-on\{color:var\(--st-green-fg\)\}/);
 });

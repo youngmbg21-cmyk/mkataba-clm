@@ -10,8 +10,7 @@
          at the top, Jambo's panel with chapters as doors; a chapter pressed shows that chapter
      4 · The first day: Jambo's first words in his card, the setup in the drawing's order, "Or drop a file anywhere
          on this page", no doors above his box
-   And the switch off:
-     5 · The house and the Handbook are drawn as before
+   (5, the switch off, RETIRED 16 Nov 2026, #762: the new look is the only look)
    At the parent (before this half) 1–4 fail: none of it is drawn.
    Run: node test/chromium/round7b-new-look-verify.js */
 const fs = require('node:fs');
@@ -82,16 +81,7 @@ const signIn = async (page, base) => {
       check('3b a chapter pressed shows that chapter', moved, B.second); }
   } catch (e) { check('3 the Handbook', false, String(e).slice(0, 200)); }
 
-  /* 5 · the switch off (here, before the empty workspace) */
-  try {
-    await page.evaluate(async () => { await stPrefSet('newLook', false); newLookApply(); setView('jambo'); });
-    await until(page, () => !!document.querySelector('.jh-page'), null, 15000);
-    const house = await page.evaluate(() => !document.querySelector('.jhn-page') && !!document.querySelector('.jh-band'));
-    await page.evaluate(() => caGo({ kind: 'go', place: 'handbook' }));
-    await until(page, () => !!document.getElementById('hbk-page'), null, 15000);
-    const book = await page.evaluate(() => !document.querySelector('.hbkn-page') && !!document.querySelector('.hbk-toc'));
-    check('5 the switch off: the house and the Handbook as before', house && book, { house, book });
-  } catch (e) { check('5 the switch off', false, String(e).slice(0, 200)); }
+  /* RETIRED 16 Nov 2026 (#762): 5 "the switch off: as before" — there is no switch; the new look is the only look */
   await page.close(); await h.stop();
 
   /* 4 RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): Home's first-day sheet went with Home; an empty

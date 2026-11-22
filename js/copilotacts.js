@@ -1235,6 +1235,9 @@ function caReadDoor(q){
   /* "where does the deal stand?" IS its door; any other question of where is not a press */
   if (hit[0] !== 'open' && (CA_WHERE_RE.test(q) || /^\s*where\b/i.test(q))) return null;
   const c = caFindContract(q); if (!c) return null;
+  /* a Viewer is offered no door that acts; "what is still open" is a reading. Jambo answers in words instead, and his
+     instructions tell him to say a Viewer reads only (whoAsksSays) */
+  if (hit[0] !== 'open' && typeof window.mayActOn === 'function' && !window.mayActOn(c)) return null;
   return { kind: 'door', door: hit[0], cid: c.id, state: 'ready' };
 }
 /* the Signing tab's own approval card (#sa-card): asked and reminded there */
@@ -1434,7 +1437,11 @@ function caChipLead(c){
    next useful word takes its place. Typed, the word still meets the door's
    own reason. */
 const CA_CHIPS_MORE = ['oblig', 'share'];
+/* THE CHIPS THAT ACT (Round A, owner 20 Nov 2026: Jambo offers a Viewer no work): reading chips (history, duties,
+   notes, the ladder, their view) stay */
+const CA_ACT_CHIPS = ['redline', 'answer', 'sign', 'amend', 'edit', 'fill', 'share', 'signer'];
 function caChipShut(c, k){
+  if (CA_ACT_CHIPS.includes(k) && typeof window.mayActOn === 'function' && !window.mayActOn(c)) return true;
   if (k === 'redline' || k === 'answer') return typeof negoMayStart === 'function' && !negoMayStart(c).ok;
   /* NO BUTTON THAT TAKES YOU NOWHERE (owner, 15 Oct 2026): nothing is left to
      sign on an executed or expired agreement; an amendment asks its own one
@@ -1605,7 +1612,9 @@ const CA_SEL_ACTIONS = () => [
   { id: 'note', label: _caT('ca_sel_note') },
   /* MY NOTES (Young, 10 Oct 2026): the words into the person's private ledger */
   { id: 'mine', label: _caT('mn_add_to') },
-];
+/* a Viewer may ask Jambo and keep a private note; the three that change the contract are not offered (Round C) */
+].filter(a => !CA_SEL_WRITES.includes(a.id) || !(typeof window.mayActOn === 'function' && !window.mayActOn(null)));
+const CA_SEL_WRITES = ['oblig', 'risk', 'note'];
 function caSelKill(){ document.querySelectorAll('.nego-selmenu').forEach(n => n.remove()); }
 function caSelClauseId(node){
   const el = node && (node.nodeType === 1 ? node : node.parentElement);
@@ -1798,7 +1807,9 @@ const CA_PLACES = [
   { k: 'requests', w: ['requests', 'request', 'my requests', 'förfrågningar', 'förfrågan', 'mina förfrågningar'] },
   { k: 'parties', w: ['parties', 'party', 'counterparties', 'customers', 'suppliers', 'parter', 'motparter', 'kunder', 'leverantörer'] },
   { k: 'people', w: ['people', 'directory', 'colleagues', 'contacts', 'personer', 'katalog', 'katalogen', 'kollegor', 'kontakter'] },
-  { k: 'ourpaper', w: ['our paper', 'templates', 'template', 'standards', 'our standards', 'playbook', 'vårt papper', 'mallar', 'mall', 'standarder', 'våra standarder'] },
+  { k: 'ourpaper', w: ['our paper', 'templates', 'template', 'vårt papper', 'mallar', 'mall'] },
+  /* STANDARDS, A PAGE OF ITS OWN (the Ladder, 17 Nov 2026): its words left Our paper with it */
+  { k: 'standards', w: ['standards', 'our standards', 'standard', 'playbook', 'our playbook', 'positions', 'the ladder', 'standarder', 'våra standarder', 'spelbok', 'vår spelbok', 'stegen'] },
   { k: 'import', w: ['import', 'imports', 'import contracts', 'importera', 'importera avtal'] },
   { k: 'mynotes', w: ['my notes', 'notes', 'mina anteckningar', 'anteckningar'] },
   /* READS (The thread, 28 Oct 2026): every read of the wording, and the next batch */
@@ -1864,19 +1875,19 @@ function caOnBoard(){ try { return typeof state !== 'undefined' && !!state && st
 /* the words that mean Our paper's standards tab, not its templates */
 const CA_STD_WORD = /(?<!\p{L})(?:standards?|playbook|standarder(?:na)?)(?!\p{L})/iu;
 function caOpenStandards(book){
+  /* THE LADDER (17 Nov 2026): Standards is one page; a contract type named in the words narrows its list to the
+     standards that apply to that type (ldBookSet); none named shows them all */
   setView('playbook');
-  if (!book) return;
-  /* the inspector's list selects the book; a narrow page turns to the books tab */
-  if (typeof sdGoBook === 'function' && (typeof document === 'undefined' || document.querySelector('.sd-ins'))) sdGoBook(book);
-  else if (typeof pbTabGo === 'function') pbTabGo('playbook');
+  if (typeof window.ldBookSet === 'function') window.ldBookSet(book || null);
 }
 /* ONE READING FOR EVERY PLACE READER (caReadPlace, caReadGoPlace,
    caReadPlaceAnd): Our paper asked as standards is the standards tab, on the
    book the words name (jmStdBook) */
 function caPlaceStd(a, q){
-  if (a && a.kind === 'go' && a.place === 'ourpaper' && CA_STD_WORD.test(String(q || '')) && typeof jmStdGo === 'function'){
+  if (a && a.kind === 'go' && (a.place === 'ourpaper' || a.place === 'standards') && CA_STD_WORD.test(String(q || '')) && typeof jmStdGo === 'function'){
     for (const k of ['narrow', 'narrowOff', 'all']) delete a[k];
     Object.assign(a, jmStdGo(typeof jmStdBook === 'function' ? jmStdBook(q) : null));
+    a.place = 'standards';
   }
   return a;
 }
@@ -1896,7 +1907,7 @@ function caReadPlace(q){
    "history"). It moves through the one door (caGo), no AI. Anything else — another single word, a sentence, "take me
    to settings" — is the brain's. */
 const JB_PAGE_PLACES = ['board', 'document', 'calendar', 'explorer', 'contracts', 'oblig', 'work', 'negotiations', 'approvals',
-  'requests', 'parties', 'people', 'ourpaper', 'import', 'mynotes', 'reads', 'pulse', 'handbook', 'flowmap', 'house', 'settings', 'brain', 'guide', 'alerts', 'activity',
+  'requests', 'parties', 'people', 'ourpaper', 'standards', 'import', 'mynotes', 'reads', 'pulse', 'handbook', 'flowmap', 'house', 'settings', 'brain', 'guide', 'alerts', 'activity',
   /* THE ONE ACT WORD (owner, 28 Oct 2026: "You simply type upload … and it shows up as a pop up card"): "upload"
      typed in any box opens the drop card's pop-up free, like a page's name (caGo → pdDropDoor) */
   'upload'];
@@ -1966,10 +1977,9 @@ function jamboRefGo(q){
   /* where the words were typed, for round 4's "Not this, go back" when the question then moves on from here */
   if (R.question) jamboRefGo._from = { q: R.question, p: caPlaceNow(), at: Date.now() };
   let landed = false;
-  /* THE COVER IS THE DOOR (owner, 16 Nov 2026: "when you type a contract number the cover is the door to the contract"):
-     the number alone opens the contract on purpose, so its Cover stands first; a number inside a question goes to the
-     paper, where the question is asked beside it */
-  try { landed = !!(typeof roomHomeLand === 'function' && roomHomeLand(R.c.id, R.question ? undefined : { cover: true })); } catch (_){ landed = false; }
+  /* THE NUMBER ALONE OPENS THE CONTRACT ON PURPOSE (owner, 20 Nov 2026: the Cover is deleted, "open the Dossier
+     instead"): its paper with the Dossier; a number inside a question goes to the paper, asked beside it */
+  try { landed = !!(typeof roomHomeLand === 'function' && roomHomeLand(R.c.id, R.question ? undefined : { open: true })); } catch (_){ landed = false; }
   if (!landed){ try { if (typeof openWorkspace === 'function'){ openWorkspace(R.c.id); landed = true; } } catch (_){ landed = false; } }
   if (!landed) return false;
   if (R.question) jamboRefAskThere(R.c.id, R.question);
@@ -2002,7 +2012,7 @@ function caUseBump(k){
    these rows first, and on the Board its chart moves after them. Ties keep
    this order, which is the plan's order of a working day. */
 const CA_SLASH = ['redline', 'needs', 'sign', 'board', 'document', 'share', 'oblig', 'history', 'fill', 'calendar', 'explorer', 'draft', 'upload',
-  'work', 'negotiations', 'approvals', 'requests', 'parties', 'people', 'ourpaper', 'mynotes', 'reads', 'pulse', 'import', 'house', 'settings', 'brain', 'flowmap', 'guide', 'handbook', 'alerts', 'activity'];
+  'work', 'negotiations', 'approvals', 'requests', 'parties', 'people', 'ourpaper', 'standards', 'mynotes', 'reads', 'pulse', 'import', 'house', 'settings', 'brain', 'flowmap', 'guide', 'handbook', 'alerts', 'activity'];
 const CA_SLASH_MAX = 8;
 function caSlashWord(k){ return String(_caT('ca_w_' + k)).trim().replace(/\s+/g, '-'); }
 function caSlashRows(w, opts = {}){
@@ -2177,6 +2187,8 @@ const CA_GO = {
   people: () => setView('directory'),
   /* our standards (a.std) open the standards tab, on the book named (owner, 22 Oct 2026) */
   ourpaper: (c, a) => { if (!(a && a.std)){ setView('templates'); return; } caOpenStandards(a.book); },
+  /* Standards, its own page (the Ladder, 17 Nov 2026) */
+  standards: (c, a) => caOpenStandards(a && a.book),
   import: () => !caMayAdd() ? false : setView('migration'),
   mynotes: () => setView('mynotes'),
   /* Reads, on a question where one was named (The thread, 28 Oct 2026) */
@@ -2220,6 +2232,14 @@ function caGo(a){
   if (!a || a.kind !== 'go') return false;
   if (a.place === 'back'){ const ok = caTrailBack(); caGoRepaint(); return ok; }
   if (a.place === 'help') return true;
+  /* A CONTRACT'S DOOR OPENS ON ITS WHOLE RECORD (navReadFirst, js/navmap.js): a contract not read whole yet this sitting
+     is read first, a landing said to be on its way meanwhile, then this same go runs — so a typed door from the Board
+     lands, never stands still on a slow read (BUGLOG 22 Nov 2026) */
+  if (!a.narrow && !a.reg && !a.st && !a.missing && !a.narrowOff && !caIsCardWord(a.place) && typeof window !== 'undefined' && typeof window.navReadFirst === 'function'){
+    const cid = a.cid || (a.nav && a.nav.cid);
+    const c0 = cid && typeof getContract === 'function' ? getContract(cid) : null;
+    if (c0 && window.navReadFirst(c0, () => caGo(a))) return true;
+  }
   caUseBump(a.place);
   /* "paper" asked while a page stands in the middle: the paper comes back (the middle, 21 Oct 2026) */
   if (a.place === 'document' && typeof pdMidClose === 'function') pdMidClose();
@@ -2490,7 +2510,7 @@ const CA_AND_JOIN = /^(?:,\s*)?(?:and(?:\s+then|\s+only)?|then|with|where|showin
 /* a place named after "in", "on", "at" at the end ("drafts on the map") */
 const CA_AND_TAIL = /\s(?:in|on|at|inside|within|i|på)\s+/giu;
 /* the places that hold contracts and may be named with a narrowing, and the other words for them */
-const CA_AND_PLACES = ['explorer', 'contracts', 'list', 'wall', 'board', 'negotiations', 'oblig', 'parties', 'approvals', 'requests', 'import', 'calendar', 'people', 'mynotes', 'ourpaper', 'counter', 'work', 'needs', 'house', 'settings', 'brain'];
+const CA_AND_PLACES = ['explorer', 'contracts', 'list', 'wall', 'board', 'negotiations', 'oblig', 'parties', 'approvals', 'requests', 'import', 'calendar', 'people', 'mynotes', 'ourpaper', 'standards', 'counter', 'work', 'needs', 'house', 'settings', 'brain'];
 const CA_AND_WORDS = [['map', 'explorer'], ['the map', 'explorer'], ['contract map', 'explorer'], ['kartan', 'explorer'], ['karta', 'explorer'], ['avtalskartan', 'explorer'],
   ['contracts page', 'contracts'], ['contracts list', 'contracts'], ['contract list', 'contracts'], ['the contracts', 'contracts'], ['workspace', 'contracts'], ['the workspace', 'contracts'], ['arbetsytan', 'contracts'], ['avtalen', 'contracts'],
   ['dashboard', 'board'], ['the board', 'board'], ['obligations page', 'oblig'], ['negotiations page', 'negotiations']];
@@ -2573,7 +2593,7 @@ function caReadPlaceAnd(q){
     if (place && lead && rest.startsWith(lead[0].trim())) rest = rest.slice(lead[0].trim().length).trim();
   }
   if (!place || !rest) return null;
-  if (place === 'ourpaper' && typeof caPlaceStd === 'function' && CA_STD_WORD.test(s)) return caPlaceStd({ kind: 'go', place, state: 'ready' }, q);
+  if ((place === 'ourpaper' || place === 'standards') && typeof caPlaceStd === 'function' && CA_STD_WORD.test(s)) return caPlaceStd({ kind: 'go', place, state: 'ready' }, q);
   const N = caNarrowOf(rest, place); if (!N) return null;
   /* every contract asked for at a place is that place at rest */
   if (N.all) return { kind: 'go', place, state: 'ready', all: true };
@@ -3042,6 +3062,9 @@ function caAskAnywhere(text, opts = {}){
      itself: no question or card is handed to another Jambo; a place or a
      contract still opens, and a booking still goes to the Calendar (above) */
   const win = !!opts.win;
+  /* "ADD GRACE WAMBUI, HEAD OF BUYING, … AS THE CONTACT FOR NAIVAS" (owner, 19 Nov 2026): the one contact sheet opens
+     filled in from the words (cuContactAsk, js/views/customers.js); nothing is saved until the person presses Add */
+  if (typeof cuContactAsk === 'function'){ let pc = false; try { pc = cuContactAsk(t, opts.say); } catch (_){ pc = false; } if (pc) return pc; }
   /* the Calendar's own box keeps its booking and planning words (opts.cal) */
   if (opts.cal){ let b = false; try { b = typeof igBookAsk === 'function' && !!igBookAsk(t); } catch (_){ b = false; } if (b) return false; }
   /* THE ONE READER (owner, 19 Oct 2026: "do what the user asks in plain

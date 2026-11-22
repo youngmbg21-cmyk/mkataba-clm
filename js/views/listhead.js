@@ -85,7 +85,7 @@ const _lhBoxes = seat => (typeof document === 'undefined' || !document.querySele
    nothing is spent; questions go to Jambo's box at the panel's foot. No question stands in a box any more. */
 const LH_BOX_ASKS = false;
 function _lhAskingNow(seat, q){
-  if (!LH_BOX_ASKS) return null;
+  if (!LH_BOX_ASKS && !((_lhPage(seat) || {}).asks)) return null;
   if (q != null && String(q) !== '') return null;
   const boxes = _lhBoxes(seat);
   const b = boxes.find(x => x === document.activeElement) || boxes[0];
@@ -112,7 +112,7 @@ function lhBoxSet(seat, words){
     const pg = _lhPage(head.getAttribute('data-lh-seat'));
     if (!pg || typeof pg.q !== 'function') return;
     const q = qOf(pg);
-    head.querySelectorAll('input[data-lh-q]').forEach(inp => { if (LH_BOX_ASKS && !q && lhIsQuestion(inp.value)) return; put(inp, q); });
+    head.querySelectorAll('input[data-lh-q]').forEach(inp => { if ((LH_BOX_ASKS || pg.asks) && !q && lhIsQuestion(inp.value)) return; put(inp, q); });
   });
   return n;
 }
@@ -128,14 +128,17 @@ function lhBoxHtml(seat, o){
   const total = (typeof pg.total === 'function') ? pg.total() : null;
   const noun = pg.noun || seat;
   /* a filter says so, and only so (round 1): "Filter this list"; the old "Search, or ask across N …" words stay inert */
-  const ph = (LH_BOX_ASKS && typeof total === 'number' && isFinite(total)) ? _lhTn('lh_ph_' + noun, total, { n: _lhN(total) }) : _lhT('lh_filter_ph');
+  /* a page may give its box its own words (spec.ph, P-31's "Ask about your contracts: …") and mark (spec.boxIcon) */
+  const own = (typeof pg.ph === 'function') ? pg.ph() : null;
+  const ph = own ? String(own) : (LH_BOX_ASKS && typeof total === 'number' && isFinite(total)) ? _lhTn('lh_ph_' + noun, total, { n: _lhN(total) }) : _lhT('lh_filter_ph');
+  const ic = ((typeof pg.boxIcon === 'function') ? pg.boxIcon() : null) || 'search';
   const qNow = (typeof pg.q === 'function') ? pg.q() : '';
   const asking = _lhAskingNow(seat, qNow);
   const q = asking != null ? asking : qNow;
   const extra = Object.entries(Object.assign({}, pg.boxAttrs || {}, opt.attrs || {}))
     .filter(([k, v]) => /^[a-z][\w-]*$/i.test(k) && v != null && v !== false)
     .map(([k, v]) => v === true ? ` ${k}` : ` ${k}="${_lhE(v)}"`).join('');
-  return `<label class="lh-ask" title="${_lhE(_lhT(LH_BOX_ASKS ? 'lh_box_title' : 'lh_filter_title'))}">${_lhIc('search')}<input type="search" id="${_lhE(id)}" data-lh-q autocomplete="off" spellcheck="false" placeholder="${_lhE(ph)}" value="${_lhE(q == null ? '' : q)}" aria-label="${_lhE(_lhT(LH_BOX_ASKS ? 'lh_box_label' : 'lh_filter_ph'))}"${extra}></label>`;
+  return `<label class="lh-ask${ic !== 'search' ? ' is-' + _lhE(ic) : ''}" title="${_lhE(_lhT(LH_BOX_ASKS ? 'lh_box_title' : 'lh_filter_title'))}">${_lhIc(ic)}<input type="search" id="${_lhE(id)}" data-lh-q autocomplete="off" spellcheck="false" placeholder="${_lhE(ph)}" value="${_lhE(q == null ? '' : q)}" aria-label="${_lhE(_lhT(LH_BOX_ASKS ? 'lh_box_label' : 'lh_filter_ph'))}"${extra}></label>`;
 }
 
 /* ---- A PAGE'S OWN PARTS STAND ----
@@ -210,7 +213,8 @@ function lhChipHtml(f){
   const pick = (all.find(o => String(o[0]) === String(f.cur)) || [])[1];
   const label = f.label == null ? String(f.k) : f.label;
   const x = _lhT('lh_remove', { what: label });
-  return `<span class="lh-chip" data-lh-chip="${_lhE(f.k)}"><label title="${_lhE(f.title || label)}">${_lhE(label)} <b>${_lhE(pick == null ? f.cur : pick)}</b><select class="reg-chip-sel" data-lh-f="${_lhE(f.k)}" aria-label="${_lhE(label)}">${
+  /* a page may word its chip apart from + Filter's group (f.chipLabel, Contracts' "Folder:") */
+  return `<span class="lh-chip" data-lh-chip="${_lhE(f.k)}"><label title="${_lhE(f.title || label)}">${_lhE(f.chipLabel || label)} <b>${_lhE(pick == null ? f.cur : pick)}</b><select class="reg-chip-sel" data-lh-f="${_lhE(f.k)}" aria-label="${_lhE(label)}">${
     opts.map(o => `<option value="${_lhE(o[0])}"${String(o[0]) === String(f.cur) ? ' selected' : ''}>${_lhE(_lhOptWords(o))}</option>`).join('')}</select></label><button type="button" class="lh-x" data-lh-x="${_lhE(f.k)}" title="${_lhE(x)}" aria-label="${_lhE(x)}">${_lhIc('x')}</button></span>`;
 }
 /* "+ Filter": the filters NOT applied, one group each, offering only the
@@ -296,6 +300,8 @@ function lhHeadSync(seat){
   if (_lhSoon[seat] != null){ if (typeof clearTimeout === 'function') clearTimeout(_lhSoon[seat]); delete _lhSoon[seat]; }
   if (typeof document === 'undefined' || !document.querySelectorAll) return 0;
   const pg = _lhPage(seat);
+  /* a bar the page draws itself (LH_DRAWN_HEADS) is never redrawn here */
+  if (pg && pg.drawn) return 0;
   let n = 0;
   document.querySelectorAll(`[data-lh-seat="${_lhSel(seat)}"]`).forEach(head => {
     const kids = Array.from(head.children), row = (list, cls) => list.find(el => el.classList.contains(cls)) || null;
@@ -577,7 +583,9 @@ function _lhInput(e){
   const now = (typeof pg.q === 'function') ? String(pg.q() == null ? '' : pg.q()) : '';
   /* a question narrows nothing: the list stands whole while it is typed, and
      the box holds it (_lhAskingNow) */
-  if (LH_BOX_ASKS && lhIsQuestion(w)){ if (now && typeof pg.setQuery === 'function') pg.setQuery(''); }
+  /* A PAGE MAY LET ITS BOX ASK (spec.asks; Contracts, P-31, owner 21 Nov 2026): a question narrows nothing there and
+     Enter hands it to the one reader (lhAsk → intelAsk / jlAsk); plain words filter as everywhere */
+  if ((LH_BOX_ASKS || pg.asks) && lhIsQuestion(w)){ if (now && typeof pg.setQuery === 'function') pg.setQuery(''); }
   else if (typeof pg.setQuery === 'function') pg.setQuery(w);
   lhHeadSyncSoon(seat);
 }
@@ -587,8 +595,9 @@ function _lhKey(e){
   const head = inp.closest('[data-lh-seat]'); if (!head) return;
   const seat = head.getAttribute('data-lh-seat'), pg = _lhPage(seat); if (!pg) return;
   const w = String(inp.value || '').trim();
-  /* plain words stay a search: nothing is sent, nothing is spent — and since round 1 every word is plain */
-  if (!LH_BOX_ASKS || !lhIsQuestion(w)) return;
+  /* plain words stay a search: nothing is sent, nothing is spent — and since round 1 every word is plain, but on a
+     page whose box asks (spec.asks) */
+  if (!(LH_BOX_ASKS || pg.asks) || !lhIsQuestion(w)) return;
   e.preventDefault();
   if (!lhAsk(seat, w)) return;              /* said ('warn'); the words stay */
   inp.value = '';
@@ -669,6 +678,48 @@ function lhControlsNow(){
   });
   return seats.length ? { seats } : null;
 }
+/* THE NEW LOOK'S OWN TAB ROWS ARE HIS TOO (17 Nov 2026): a new-look list page draws its own bar (the apn-bar: its
+   box and its pills, never this file's head), so it registers a seat of its own here and carries
+   data-lh-seat="<seat>" on that bar; lhControlsNow then offers him exactly what the bar shows. Everything is READ OFF
+   THE BAR AS DRAWN (its pills in order, their words and counts, the lit one) and every press goes through the page's
+   own door: a tab is the pill's own click, the words are the box's own input event — so his press and a person's are
+   one press. `drawn: true` keeps lhHeadSync off the bar (it is the page's, never redrawn here). Rows:
+   [seat, noun (the old seat's), the pills' attribute, the box's id]. */
+const LH_DRAWN_HEADS = [
+  ['obligations-nl', 'obligations', 'data-obn-tab', 'obn-q'],
+  ['approvals-nl', 'approvals', 'data-apn-tab', 'apn-q'],
+  ['intake-nl', 'requests', 'data-ikn-tab', 'ikn-q'],
+  ['customers-nl', 'parties', 'data-cun-tab', 'cun-q'],
+  ['directory-nl', 'people', 'data-dirn-tab', 'dirn-q'],
+  ['negotiations-nl', 'negotiations', 'data-ngn-tab', 'ngn-q'],
+  ['migration-nl', 'files', 'data-mign-tab', 'mign-q'],
+  ['mynotes-nl', 'notes', 'data-mnn-tab', 'mnn-q'],
+];
+function lhDrawnHead(seat, noun, attr, boxId){
+  const bar = () => (typeof document !== 'undefined' && document.querySelector) ? document.querySelector(`[data-lh-seat="${_lhSel(seat)}"]`) : null;
+  const pills = () => { const b = bar(); return b ? Array.from(b.querySelectorAll(`[${attr}]`)) : []; };
+  const box = () => (typeof document !== 'undefined' && document.getElementById) ? document.getElementById(boxId) : null;
+  const shown = el => { try { return !!el && el.getClientRects().length > 0; } catch (_){ return false; } };
+  return lhRegister(seat, {
+    noun, drawn: true,
+    tabs: () => pills().map(b => {
+      const sp = b.querySelector('span'), n = sp ? Number(String(sp.textContent).replace(/[^\d]/g, '')) : null;
+      const label = String(b.textContent || '').replace(sp ? sp.textContent : '', '').replace(/\s+/g, ' ').trim();
+      return { k: b.getAttribute(attr), label: label || b.getAttribute(attr), n: sp && String(sp.textContent).trim() !== '' ? n : null };
+    }),
+    tabNow: () => { const on = pills().find(b => b.classList.contains('is-on')); return on ? on.getAttribute(attr) : null; },
+    tab: k => { const b = pills().find(x => x.getAttribute(attr) === String(k)); if (b) b.click(); },
+    q: () => { const i = box(); return i ? String(i.value || '') : ''; },
+    setQuery: w => {
+      const i = box(); if (!i || !shown(i)) return;
+      const v = String(w == null ? '' : w); if (i.value === v) return;
+      i.value = v;
+      const dv = i.ownerDocument && i.ownerDocument.defaultView, E = (dv && dv.Event) || (typeof Event === 'function' ? Event : null);
+      if (E) i.dispatchEvent(new E('input', { bubbles: true }));
+    },
+  });
+}
+LH_DRAWN_HEADS.forEach(r => lhDrawnHead(r[0], r[1], r[2], r[3]));
 function lhControlsRun(actions){
   const lines = [];
   (Array.isArray(actions) ? actions : []).forEach(a => {
@@ -724,6 +775,6 @@ function lhControlsRun(actions){
      lcSeat    Columns' seat when it is not the page's own
      more()    Show N more
      ask(text) the page's own Jambo door (answers false when it could not take it) */
-Object.assign(window, { LH_CTRL_MAX, lhControlsNow, lhControlsRun, LH_PAGES, lhRegister, lhIsQuestion, LH_ASK_WORDS, LH_ASK_PAIRS, lhBoxHtml, lhSavedHtml, lhTabsHtml, lhChipHtml, lhAddHtml, lhChipsHtml,
+Object.assign(window, { LH_CTRL_MAX, LH_DRAWN_HEADS, lhDrawnHead, lhControlsNow, lhControlsRun, LH_PAGES, lhRegister, lhIsQuestion, LH_ASK_WORDS, LH_ASK_PAIRS, lhBoxHtml, lhSavedHtml, lhTabsHtml, lhChipHtml, lhAddHtml, lhChipsHtml,
   lhRowsHtml, lhHtml, lhHeadSync, lhHeadSyncSoon, LH_SYNC_QUIET_MS, lhBoxSet, lhFootHtml, lhFootPut, lhMore, lhAsk, lhBoxFocus,
   LC_PAGES, LC_CSS, lcKey, lcState, lcSave, lcShown, lcBtnHtml, lcPopHtml, lcPlace, lcRepaint, lcScrollWire });

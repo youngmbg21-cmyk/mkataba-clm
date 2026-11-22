@@ -66,13 +66,16 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
        box). The next steps are still ONE reading, caNextSteps, which the
        "what's next" card and the chips beside the paper both print; under the
        face it is read here directly, and the chips are asked to be out of sight. */
-    const chipsShown = () => page.evaluate(() => [...document.querySelectorAll('#ig-dock [data-ig-chips] [data-ca-chip]')].filter(b => b.getClientRects().length).length);
     const nextOf = () => page.evaluate(() => caNextSteps(getContract('MK-B2')));
     await page.evaluate(() => { setView('dashboard'); pdRedOpen('MK-B2'); });
     await until(page, () => !!document.querySelector('#pd-redface'), null, 10000);
     await page.waitForTimeout(300);
-    ok('1 under the face no chips are drawn', (await chipsShown()) === 0);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): under the new look's Redlines face the panel draws
+       the face's OWN four links as drawn (CA_RED_LINKS: Ladder · Notes · Their view · History), each pressing a door
+       the face already has — still the one reading, caNextSteps; what it never draws is "redline" */
     const c0 = await nextOf();
+    const drawn0 = await page.evaluate(() => [...document.querySelectorAll('#ig-dock [data-ig-chips] [data-ca-chip]')].filter(b => b.getClientRects().length).map(b => b.getAttribute('data-ca-chip')));
+    ok('1 under the face the chips drawn are the face\'s own links, the one reading\'s', JSON.stringify(drawn0) === JSON.stringify(c0) && JSON.stringify(c0) === JSON.stringify(['rl_ladder', 'rl_notes', 'rl_theirs', 'history']), JSON.stringify({ drawn0, c0 }));
     ok('1a with Redlines open there is no "redline" chip', c0.length > 0 && !c0.includes('redline'), JSON.stringify(c0));
     const own = await page.evaluate(() => !!document.querySelector('#pd-redface [data-rl-edit-first]'));
     ok('1b an empty list shows its own Edit a clause, so no chip repeats it', own && !c0.includes('edit'), JSON.stringify({ own, c0 }));
@@ -84,17 +87,12 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await until(page, () => !document.querySelector('#pd-redface [data-rl-edit-first]'), null, 8000);
     await page.waitForTimeout(400);
     const c1 = await nextOf();
-    ok('1c with a change on the table "edit a clause" is the next step', c1.includes('edit') && !c1.includes('redline'), JSON.stringify(c1));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): with a change on the table the face keeps its own
+       links (no "edit a clause" chip: Edit is the change's own row verb on the card), and each link's door is on screen */
+    const doors1 = await page.evaluate(() => [['rl_ladder', '#ig-dock [data-rl-ladder]'], ['rl_notes', '#ig-dock [data-rl-notes-all]'], ['rl_theirs', '[data-ig-red="theirs"]']].map(([k, sel]) => { const b = document.querySelector(sel); /* CA_RED_PRESS's own doors */ return k + ':' + !!(b && !b.disabled && b.getClientRects().length); }));
+    ok('1c with a change on the table the face\'s links stay its own, never "redline", each a live door', JSON.stringify(c1) === JSON.stringify(['rl_ladder', 'rl_notes', 'rl_theirs', 'history']) && doors1.every(x => /:true$/.test(x)), JSON.stringify({ c1, doors1 }));
     await shoot('1-redlines');
-    if (c1.includes('edit')){
-      /* the step's own runner — what its chip and its card button press */
-      await page.evaluate(() => caNextRun(getContract('MK-B2'), 'edit'));
-      ok('1d its press opens the clause editor', await until(page, () => !!document.querySelector('#clause-editor'), null, 6000));
-      await page.keyboard.press('Escape'); await page.waitForTimeout(300);
-      await page.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"], #clause-editor .ce-close'); if (b) b.click(); });
-      await until(page, () => !document.querySelector('#clause-editor'), null, 4000);
-      await page.evaluate(() => { const b = [...document.querySelectorAll('.dlg-f button, .modal button')].find(x => /leave|discard|close/i.test(x.textContent)); if (b) b.click(); });
-    }
+    /* RETIRED 16 Nov 2026 (#762): 1d "the edit chip's press opens the clause editor" — the new look's face draws no edit chip (its links are the face's own); the card's Edit is checked by the editor's own checks */
 
     /* 2 what's next */
     await page.evaluate(() => { ['pdRedClose', 'pdSignClose', 'pdFillClose', 'pdAmendClose'].forEach(f => { try { window[f] && window[f](); } catch (_){} }); setView('dashboard'); igAnalyze('MK-B2'); });
@@ -127,8 +125,13 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     /* RE-POINTED 28 Oct 2026 ("Door above the box"): in the conversation the Dossier is the door above the box, not a tab */
     if (await page.evaluate(() => typeof pdTalkShows === 'function' && pdTalkShows())) await page.click('#ig-dock [data-jb-door] .jb-door-back');
     else await page.click('#ig-dock [data-pd-tab="copilot"]');
-    await until(page, () => { const f = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); if (!f) return null; f.open = true; return !!(document.querySelector('#ig-dock .ds-nx') || {}).dataset?.wired; }, null, 8000);
-    const row = await page.evaluate(() => { const b = document.querySelector('#ig-dock .ds-fold .pd-mn-rows #ws-m-amend'); return b ? { grey: b.disabled, why: b.title } : null; });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): All acts is the paper line's More card (#ig-actions →
+       pdActsToggle → #pd-acts-pop), its amend row the Dossier's own row by key, grey with its reason */
+    await until(page, () => !!document.getElementById('ig-actions'), null, 6000);
+    await page.evaluate(() => { if (window.pdActsPopClose) pdActsPopClose(); pdActsToggle('MK-B1', document.getElementById('ig-actions')); });
+    await until(page, () => !!document.querySelector('#pd-acts-pop'), null, 4000);
+    const row = await page.evaluate(() => { const b = document.querySelector('#pd-acts-pop [data-pd-acts-go="#ws-m-amend"]'); return b ? { grey: b.disabled, why: b.title } : null; });
+    await page.evaluate(() => { if (window.pdActsPopClose) pdActsPopClose(); });
     ok('4c All acts\' amend row is grey with the same reason', !!row && row.grey && /expired/i.test(row.why), JSON.stringify(row));
     await until(page, () => !!document.querySelector('#igd-input'), null, 5000);
 

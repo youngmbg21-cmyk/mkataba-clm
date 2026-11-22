@@ -44,7 +44,11 @@ const LONG = [FIRST].concat(Array.from({ length: 30 }, (_, i) => `Point ${i + 1}
     value: 4800000, valueType: 'estimated', redlineText: BODY, format: 'rich',
     /* somebody else leads this negotiation: the admin only reads it */
     desk: { leadId: 'u_someone_else', leadName: 'Young Mbagaya', members: [{ id: 'u_someone_else', name: 'Young Mbagaya', role: 'lead' }] },
-    upload: { name: 'Supply.docx', extractedText: TEXT } } } });
+    upload: { name: 'Supply.docx', extractedText: TEXT },
+    /* RE-POINTED 19 Nov 2026 (owner picked "B": a contract never checked is checked against the Playbook the first time
+       it is opened — pbCheckOnOpen, f1106). Put straight on the server, this fixture arrives as already checked (a kept
+       check), so opening it does not spend the ONE scripted answer that section 2's question is about. */
+    playbook: { key: 'default', label: 'Our playbook', source: 'ai', verdicts: [] } } } });
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];
   try {

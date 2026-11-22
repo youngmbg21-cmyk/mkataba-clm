@@ -616,7 +616,7 @@ function openCompareModal(c){
   }
 
   const opts=items.map((it,i)=>`<option value="${i}">${it.label}</option>`).join('');
-  const selStyle='font:inherit;font-size:var(--t-body);border:1px solid var(--color-divider);background:var(--color-surface);padding:6px var(--s-2);border-radius:var(--radius);color:inherit;min-width:0;flex:1';
+  const selStyle='font:inherit;font-size:var(--t-body);border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);padding:6px var(--s-2);border-radius:var(--fld-r);color:inherit;min-width:0;flex:1';
   /* ---- THE CUMULATIVE REDLINE ----
      Round-by-round history answers "what changed this round"; the question a
      GC asks before signing is "what did we concede IN TOTAL" — current
@@ -862,7 +862,7 @@ function reviewProposedRound(c, n){
         <button data-dec="reject" data-for="${b.id}" class="ui-btn ui-btn-sm">${i18t('ve_reject')}</button>
         <span data-state="${b.id}" style="margin-left:auto;font-size:var(--t-label);font-weight:var(--w-strong)"></span>
       </div>
-      <input data-reply="${b.id}" type="text" placeholder="${i18t('ve_your_reply_optional')}" style="width:100%;margin-top:7px;border:1px solid var(--color-divider);border-radius:var(--radius);font:inherit;background:var(--color-bg);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>
+      <input data-reply="${b.id}" type="text" placeholder="${i18t('ve_your_reply_optional')}" style="width:100%;margin-top:7px;border:var(--fld-edge);border-bottom:var(--fld-under);border-radius:var(--fld-r);font:inherit;background:var(--fld-bg);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>
     </div>`;};
   openModal(`
     <div style="height:100%;display:flex;flex-direction:column;min-height:0">
@@ -893,7 +893,7 @@ function reviewProposedRound(c, n){
             <div style="font-size:var(--t-body);line-height:1.6;color:var(--color-neutral-800)">${e(r.comment)}</div></div>`:''}
           <label style="display:block;margin-top:14px">
             <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-bottom:5px">${i18t('ve_your_reply_to',{who:e(r.by||i18t('ve_them'))})}</span>
-            <textarea id="pr-reply" rows="2" placeholder="${e(i18t('ve_ph_reply'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:9px 11px;font:inherit;font-size:var(--t-body);outline:none"></textarea>
+            <textarea id="pr-reply" rows="2" placeholder="${e(i18t('ve_ph_reply'))}" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:9px 11px;font:inherit;font-size:var(--t-body);outline:none"></textarea>
           </label>
         </div>
       </div>
@@ -1111,7 +1111,7 @@ function fileCounterpartyEdit(c, text, opts={}){
   const txt=String(text==null?'':text);
   if(!txt.trim()){ toast(i18t('ve_wording_not_empty'),'err'); return null; }
   const base=docPlainText(c);
-  if(normText(txt)===normText(base)){ toast(i18t('ve_wording_identical')); return null; }
+  if(normText(txt)===normText(base)){ toast(i18t('ve_wording_identical'), 'warn'); return null; }
   const u=currentUser();
   const who=String(opts.by||c.counterparty||'The counterparty').trim();
   c.rounds=c.rounds||[];

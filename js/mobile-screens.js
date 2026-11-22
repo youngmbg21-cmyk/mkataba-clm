@@ -573,7 +573,8 @@ function mApprovalsHtml(){
       <div style="border-top:1px solid var(--color-divider);padding:14px">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3) 14px">
           <div><div class="m-note">${i18t('m_counterparty')}</div><div style="font-size:16px;font-weight:var(--w-body);margin-top:1px">${mEsc((typeof cParty==='function'?cParty(c):c.counterparty)||'—')}</div></div>
-          ${(typeof fxIsPay==='function'&&fxIsPay(c))
+          ${(typeof canViewValues==='function'&&!canViewValues()) ? ''/* hidden money is not drawn at all (f259) */
+            : (typeof fxIsPay==='function'&&fxIsPay(c))
             ? `<div><div class="m-note">${i18t('ov_f_pay')}</div><div style="font-size:16px;font-weight:var(--w-strong);margin-top:1px">${mEsc(((typeof canViewValues!=='function'||canViewValues())&&typeof payBaseLine==='function'&&payBaseLine(c))||'—')}</div></div>`
             : `<div><div class="m-note">${i18t('m_value')}</div><div style="font-size:16px;font-weight:var(--w-strong);margin-top:1px">${mEsc(mMoney(c))}</div></div>`}
           ${''/* In the reader's language (26 Sep 2026, the overnight clean-up):
@@ -710,6 +711,8 @@ function mWireScreen(root){
   root.querySelectorAll('[data-m-open]').forEach(b=>b.addEventListener('click',()=>{
     const id = b.getAttribute('data-m-open');
     state.activeId = id; state.selId = id;
+    /* never checked against the Playbook: its first open is the press (pbCheckOnOpen, the computer's too) */
+    if(window.pbCheckOnOpen) try{ window.pbCheckOnOpen(id); }catch(_){}
     /* An approval is decided on the phone's own Approvals card, opened on
        that contract — the place an approval email lands too. */
     if(b.getAttribute('data-m-need')==='approval' && mApprovalItems().some(x=>x.c && x.c.id===id)){

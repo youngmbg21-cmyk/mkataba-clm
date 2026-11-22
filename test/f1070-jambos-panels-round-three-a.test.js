@@ -38,7 +38,8 @@ test('f1070 (1) the builder draws a tag, a ring and a page\'s own middle', () =>
 test('f1070 (2) each panel says the five parts in the new look, by the page\'s own presses', () => {
   const hb = region(read('js/views/homeboard.js'), 'function hbBoardHelloHtml(){', 'function hbWelcomeGo(k){');
   assert.match(hb, /newLookOn\(\) && typeof jamboOverviewHtml === 'function'\)\{/);
-  assert.match(hb, /attr: n \? 'data-hbw="all"'/); assert.match(hb, /'data-hbw="live"'/); assert.match(hb, /'data-hbw="next"'/);
+  /* RE-POINTED 21 Nov 2026 (P-39, owner: the panel NEVER REPEATS THE PAGE — no three mixed tiles): a ring and ONE bar of what waits, its legend the doors (data-hbw), then Jambo's prepared pieces */
+  assert.match(hb, /mid: ringBar/); assert.match(hb, /data-hbw="\$\{k === 'jambo' \? 'jambo'/); assert.doesNotMatch(hb, /glance:/);
   const go = region(read('js/views/homeboard.js'), 'function hbWelcomeGo(k){', '}\n');
   assert.match(read('js/views/homeboard.js'), /if \(k === 'live'\) return \(typeof hbFigDoor === 'function'\) \? hbFigDoor\('f:live'\)/);
   assert.match(read('js/views/homeboard.js'), /if \(k === 'next'\) return \(typeof caGo === 'function'\) \? caGo\(\{ kind: 'go', place: 'calendar' \}\)/);
@@ -49,10 +50,19 @@ test('f1070 (2) each panel says the five parts in the new look, by the page\'s o
   assert.match(day, /attr:may\(t\)\?`data-ig-day="\$\{t\.k\}"`/); assert.match(day, /attr:`data-ig-day-pin aria-pressed=/); assert.match(day, /after:igSavedViewsHtml\(\)/);
   const gd = region(read('js/views/intelligence.js'), 'function igGuideHtml(){', 'function igGuideRepaint(');
   assert.match(gd, /attr:`data-ig-gd="\$\{igEsc\(r\.q\)\}"/);
-  const cu = region(read('js/views/customers.js'), 'function cunPanelHtml(r){', "if (typeof document !== 'undefined' && !document._cunPanelWired)");
-  assert.match(cu, /data-cun-open=/); assert.match(cu, /data-cun-web=/); assert.match(cu, /data-cu-pr-edit=/); assert.match(cu, /ring: pct \|\| null/);
-  const st = region(read('js/views/settings.js'), 'function stnPanelHtml(admin){', 'function stnPanelPaint(');
-  assert.match(st, /attr:r\.btn\|\|''/); assert.match(st, /attr:'data-st-ask-head=""'/);
+  /* RE-POINTED 19 Nov 2026 (owner's yes on the Parties drawings): the party's panel is its own facts, its contacts, three
+     agreements and all of them on Contracts — no ring, no Open party, no web search. RETIRED: data-cun-open, data-cun-web,
+     ring: pct || null in cunPanelHtml */
+  const cu = region(read('js/views/customers.js'), 'function cunPanelFiveHtml(r){', "if (typeof document !== 'undefined' && !document._cunPanel5Wired)");
+  assert.match(cu, /data-cu-pr-edit=/); assert.match(cu, /data-cun-ppl=/); assert.match(cu, /data-cun-cts=/); assert.match(cu, /data-cun-add-ct=/);
+  /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way, "L+S and ring"): the panel draws a ring
+     again — the share of the party's agreements signed (cunRingSvg), never money; Open party and the web search stay gone */
+  /* RE-POINTED 21 Nov 2026 (P-25, as drawn): the ring counts the party's agreements not put away (total) */
+  assert.match(cu, /cunRingSvg\(n\.signed, total, 44\)/); /* RE-POINTED 22 Nov 2026 (P-25 review): 44, the drawing's ring, so the panel's Contacts stand in view at 1536×730 */
+  assert.doesNotMatch(cu, /data-cun-web|data-cun-open/);
+  /* RE-POINTED (P-11, 17 Nov 2026): Settings' panel is the Dossier card (sddCardHtml); its need rows keep their own press */
+  const st = region(read('js/views/settings.js'), 'function sddCardHtml(admin, ctx){', '/* ---- presses:');
+  assert.match(st, /attr:x\.btn\|\|''/); assert.match(st, /attr:'data-st-ask-head=""'/);
   const hk = region(read('js/views/handbook.js'), 'function hbknPanelHtml(){', 'function hbknRender(');
   assert.match(hk, /attr: `data-hbkn-ch="\$\{E\(c\.k\)\}"`/);
 });
@@ -61,7 +71,7 @@ test('f1070 (3) the Contracts list keeps no "Ask me", and Discover above its row
   const pd = read('js/paperdesk.js');
   const ov = region(pd, 'function pdWallOverview(){', 'function pdDropInner(){');
   assert.match(ov, /groups, src: _pdT\('jl_src_list'\), asks: \[\] \};/, 'no Ask me in the new look either');
-  assert.match(region(pd, 'function pdWallHtml(disc){', 'function pdDropInput('), /if \(o\.title\) return `<div class="pd-wall">\$\{ov\(Object\.assign\(\{\}, o, \{ mid: disc \|\| '' \}\)/);
+  assert.match(region(pd, 'function pdWallHtml(disc){', 'function pdDropInput('), /if \(o\.title\) return `<div class="pd-wall">\$\{ov\(Object\.assign\(\{\}, o, \{ mid: \(o\.mid \|\| ''\) \+ \(disc \|\| ''\) \}\)/);   /* RE-POINTED (P-31): the list's own bar and dots, then Discover */
 });
 
 test('f1070 (4) the side panel\'s Guide keeps its own rows, in soft groups', () => {
@@ -76,7 +86,10 @@ test('f1070 (5) every word of the round is in both books', () => {
   const keys = new Set();
   for (const f of ['js/views/homeboard.js', 'js/views/register.js', 'js/paperdesk.js', 'js/views/intelligence.js', 'js/views/customers.js', 'js/views/settings.js', 'js/views/handbook.js'])
     for (const m of read(f).matchAll(/['"](jov5_(?:hb|ct|day|gd|pt|st|hbk)_[a-z0-9_]+)['"]/g)) keys.add(m[1]);
-  assert.ok(keys.size >= 20, 'the round\'s words are found');
+  /* RE-POINTED 21 Nov 2026 (P-39): the Board's tiles left, and with them three of the round's words */
+  /* RE-POINTED 22 Nov 2026 (P-43 review): Settings' "Read from the settings" left its panel, as drawn */
+  /* RE-POINTED 22 Nov 2026 (Your day, L+S): the tiles' Clear and duties-timeline words left with the tiles, as drawn */
+  assert.ok(keys.size >= 14, 'the round\'s words are found');
   const has = (b, k) => b[k] != null || b[k + '_one'] != null;
   assert.deepEqual([...keys].filter(k => !has(S.en, k) || !has(S.sv, k)), []);
 });

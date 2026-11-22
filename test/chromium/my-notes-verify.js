@@ -62,14 +62,18 @@ const check = (name, pass, detail) => {
     check('3. the contract box finds a contract by part of its reference', !!hit, hit);
     await page.click('[data-mn-ct="MK-A1"]');
     await page.click('[data-mn-when="week"]');
-    const says = await until(() => { const p = [...document.querySelectorAll('.mn-form .mn-hint')].map(x => x.textContent).find(t => /Alerts and on your calendar/.test(t)); return p || null; });
+    const says = await until(() => { const p = [...document.querySelectorAll('.mn-form .mn-hint, #mns-say')].map(x => x.textContent).find(t => /Alerts and on your calendar/.test(t)); return p || null; });
     await page.screenshot({ path: path.join(OUT, '1-form.png') });
     await page.click('#mn-save');
     /* RE-POINTED 19 Oct 2026 (round 20 as drawn, scene "My notes"): where the
        width holds it the note opens in Jambo's panel beside the list
        (#ins-panel, its verbs in the panel's head); narrower, the card's side */
-    const saved = await until(() => { const r = document.querySelector('.mn-t tbody tr'); const side = document.querySelector('#ins-panel.is-jambo') || document.getElementById('mn-side');
-      return r && /liability cap/.test(r.textContent) && r.classList.contains('is-sel') && side && /Mark reviewed/.test(side.textContent) ? { row: r.textContent.replace(/\s+/g, ' ').trim(), priv: /only you can see/.test(side.textContent) } : null; });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the ledger is .mnn-table and the chosen note is
+       Jambo's Five panel in #ins-panel (mnnPanelFiveHtml), which says "Only you see it." */
+    const saved = await until(() => { const r = document.querySelector('.mn-t tbody tr, .mnn-table tbody tr'); const side = document.querySelector('#ins-panel.is-jambo') || document.getElementById('mn-side') || document.getElementById('ins-panel');
+      /* RE-POINTED (P-27, owner's pick 20 Nov 2026: My notes the Legora + Stripe way): the note's panel says "Only you" by its
+         status badge, with a lock (.mnn-only), where it said "Only you see it." */
+      return r && /liability cap/.test(r.textContent) && r.classList.contains('is-sel') && side && /Mark reviewed/.test(side.textContent) ? { row: r.textContent.replace(/\s+/g, ' ').trim(), priv: /\bonly you\b/i.test(((side.querySelector('.mnn-only') || side).textContent) || '') } : null; });
     const onServer = await W.admin.json('/api/me/items?kind=note');
     const stored = onServer.items.find(n => /liability cap/.test(n.body));
     check('4. Next week says the day; Save puts the note at the top, selected and private', !!says && !!saved && saved.priv, JSON.stringify({ says, saved }));
@@ -85,13 +89,16 @@ const check = (name, pass, detail) => {
       const bell = (typeof buildAlerts === 'function' ? buildAlerts() : []).filter(a => a.kind === 'note-due').map(a => a.text);
       return c === '1' && bell.length === 1 ? { c, bell } : null; });
     check('5. a note due today is in the bell and counts 1 on the door', !!due, JSON.stringify(due));
-    await page.evaluate(() => { const r = [...document.querySelectorAll('.mn-t tbody tr')].find(x => /Chase the signed copy/.test(x.textContent)); r.click(); });
-    await until(() => /Chase the signed copy/.test((document.getElementById('mn-side') || {}).textContent || ''));
-    await page.click('[data-mn-act="reviewed"]');
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's ledger rows and its panel (#ins-panel) */
+    await page.evaluate(() => { const r = [...document.querySelectorAll('.mn-t tbody tr, .mnn-table tbody tr')].find(x => /Chase the signed copy/.test(x.textContent)); r.click(); });
+    await until(() => /Chase the signed copy/.test((document.getElementById('mn-side') || document.getElementById('ins-panel') || {}).textContent || ''));
+    /* RE-POINTED 21 Nov 2026 (P-27, as drawn): every row carries its act, shown only on the row you are on, so the press
+       is the panel's own black button */
+    await page.click('#ins-panel [data-mn-act="reviewed"], #mn-side [data-mn-act="reviewed"]');
     const cleared = await until(() => { const c = (document.querySelector('[data-count="mynotes"]') || {}).textContent || '';
       return c === '' && !buildAlerts().some(a => a.kind === 'note-due') && document.querySelector('[data-mn-act="unreview"]') ? true : null; });
     check('5b. Mark reviewed clears the bell and the count, and offers Undo', !!cleared);
-    await page.click('[data-mn-act="unreview"]');
+    await page.click('#ins-panel [data-mn-act="unreview"], #mn-side [data-mn-act="unreview"]');   /* RE-POINTED 21 Nov 2026 (P-27, as drawn): the panel's button */
     const reopened = await until(() => document.querySelector('[data-mn-act="reviewed"]') ? true : null);
     check('5c. Undo puts it back to review', !!reopened);
 
@@ -99,7 +106,10 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => openWorkspace('MK-A2', { room: true }));
     await until(() => !!document.getElementById('ws-mynote'));
     await page.evaluate(() => document.getElementById('ws-mynote').click());
-    const fromRoom = await until(() => state.view === 'mynotes' && document.querySelector('.mn-chosen') ? document.querySelector('.mn-chosen').textContent.replace(/\s+/g, ' ').trim() : null);
+    /* RE-POINTED 19 Nov 2026 (owner, "Build 1": a new note is the one edit pop-up beside Jambo's panel; f1101): the
+       contract stands in the sheet's About line (#mn-sheet .lgp-in.is-read); narrower, the page's own form (.mn-chosen) */
+    const fromRoom = await until(() => { const el = document.querySelector('#mn-sheet .lgp-in.is-read') || document.querySelector('.mn-chosen');
+      return state.view === 'mynotes' && el ? el.textContent.replace(/\s+/g, ' ').trim() : null; });
     check('6. a contract\'s ⋯ menu opens the form with the contract filled in', !!fromRoom && /MK-A2/.test(fromRoom), fromRoom);
     check('7. no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {

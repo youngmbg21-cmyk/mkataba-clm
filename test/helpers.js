@@ -574,7 +574,8 @@ const ckConfirm = async (page, key) => {
   if (await page.isVisible(own).catch(() => false)) return page.click(own);
   /* a long list folds into groups: the open group's own "Save" / "Save · next" */
   /* RE-POINTED 28 Oct 2026 (Fill in the contract): the form's ONE Save, under its table */
-  for (const sel of ['#ig-dock .pd-fm [data-pd-fm-save]', '#pd-og [data-pd-og-saveall]', '#pd-og tbody.is-open [data-pd-og-g-save]'])
+  /* the form also stands in THE MIDDLE (pdFormMidUp, #762) */
+  for (const sel of ['#ig-dock .pd-fm [data-pd-fm-save]', '[data-pd-mid^="form:"] [data-pd-fm-save]', '#pd-og [data-pd-og-saveall]', '#pd-og tbody.is-open [data-pd-og-g-save]'])
     if (await page.isVisible(sel).catch(() => false)) return page.click(sel);
   return page.click('#pd-og [data-pd-og-saveall]');
 };

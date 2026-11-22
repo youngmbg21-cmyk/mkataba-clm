@@ -130,7 +130,8 @@ describe('f874 (5) Obligations, Import, the one tab, History, the bar', () => {
     assert.match(fnRegion(OB, 'obYourWeekSay'), /if\(!any\) return \{ lines: \[ \{ html: _obEsc\(i18t\('ob_yw_none'\)\), src: '' \} \], src: '', chips: \[\], after: '' \};/);
   });
   test('5b Import: one Choose files door, one short cost line', () => {
-    assert.match(fnRegion(MIG, 'migPaintHead'), /canEdit\(\) && _migCheck \?/);
+    /* RE-POINTED 20 Nov 2026 (the check made like the Send screen, owner: "build it as drawn"): the one Choose files door outside the strip is the check's "New batch" link, in its bar */
+    assert.match(fnRegion(MIG, 'migCheckBarHtml'), /canEdit\(\) \? `<button type="button" class="mig-link mig-ck-new" id="mig-choose">/);
     assert.equal(BOOKS.en.mig_cost_short, 'Jambo reads each file; you see what it found before anything is filed.');
   });
   test('5c a tab row that could only hold "All" is not drawn, unless words narrow the list', () => {

@@ -77,7 +77,9 @@ const HB_FIGS = [
 ];
 /* FIVE FIGURES, EACH PERSON'S OWN (s.figs): the default five, a press on the
    head's sliders swaps one for another; never more than five */
-const HB_FIGS_MAX = 5, HB_FIGS_DEFAULT = ['live', 'value', 'ending', 'past', 'overdue'];
+/* NEVER MORE THAN FOUR (owner, 20 Nov 2026, P-39: "Keep the filter that adds the different types of KPIs for your book. But
+   never more than 4 cards"); Value under contract is no longer in the usual four (MONEY IS NEVER A BIG PART OF A PAGE) */
+const HB_FIGS_MAX = 4, HB_FIGS_DEFAULT = ['live', 'ending', 'past', 'overdue'];
 let _hbFigPick = false;
 function hbFigsChosen(money){
   const s = hbS(); const keys = Array.isArray(s.figs) && s.figs.length ? s.figs : HB_FIGS_DEFAULT;
@@ -92,9 +94,16 @@ function hbFigToggle(k){
 }
 function hbFigPickHtml(money){
   const s = hbS(); const cur = Array.isArray(s.figs) && s.figs.length ? s.figs : HB_FIGS_DEFAULT, full = cur.length >= HB_FIGS_MAX;
-  const rows = HB_FIGS.filter(f => !f.money || money).map(f => { const on = cur.includes(f.k), dead = !on && full;
-    return `<label class="hb-fp-row${dead ? ' is-dead' : ''}"${dead ? ` title="${_hbE(i18t('hb_figs_full'))}"` : ''}><input type="checkbox" data-hb-figkey="${f.k}"${on ? ' checked' : ''}${dead ? ' disabled' : ''}><span>${_hbE(i18t(f.word))}</span></label>`; }).join('');
-  return `<div class="hb-figpick" role="dialog" aria-label="${_hbE(i18t('hb_figs_pick'))}"><div class="hb-dp-head">${_hbE(i18t('hb_figs_head', { n: HB_FIGS_MAX }))}</div>${rows}</div>`;
+  /* AS DRAWN (P-39, 21 Nov 2026): the usual four first, the others after, the money figure LAST ("only with money
+     rights"); an unticked figure's name is grey; the head names the list, "N of 4" a soft badge beside it, the rule
+     under it */
+  const order = HB_FIGS_DEFAULT.map(k => HB_FIGS.find(f => f.k === k)).filter(Boolean)
+    .concat(HB_FIGS.filter(f => !HB_FIGS_DEFAULT.includes(f.k) && !f.money), HB_FIGS.filter(f => f.money && !HB_FIGS_DEFAULT.includes(f.k)));
+  const rows = order.filter(f => !f.money || money).map(f => { const on = cur.includes(f.k), dead = !on && full;
+    return `<label class="hb-fp-row${on ? '' : ' is-off'}${dead ? ' is-dead' : ''}"${dead ? ` title="${_hbE(i18t('hb_figs_full'))}"` : ''}><input type="checkbox" data-hb-figkey="${f.k}"${on ? ' checked' : ''}${dead ? ' disabled' : ''}><span>${_hbE(i18t(f.word))}</span>${f.money ? `<em class="hb-fp-money">${_hbE(i18t('hb_figs_money'))}</em>` : ''}</label>`; }).join('');
+  const n = Math.min(cur.length, HB_FIGS_MAX);
+  return `<div class="hb-figpick" role="dialog" aria-label="${_hbE(i18t('hb_figs_pick'))}"><div class="hb-fp-head"><b>${_hbE(i18t('hb_figs_title'))}</b><span class="hb-fp-n">${_hbE(i18t('hb_figs_of', { n, max: HB_FIGS_MAX }))}</span></div><div class="hb-dp-head">${_hbE(i18t('hb_figs_rule'))}</div>${rows}`
+    + `<div class="hb-fp-foot"><button type="button" class="ui-link" data-hb-figusual>${_hbE(i18t('hb_figs_usual'))}</button><button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-hb-figpick>${_hbE(i18t('act_done'))}</button></div></div>`;
 }
 const HB_FIG_KEYS = HB_FIGS.map(f => f.k);
 /* The panels a question can put on the board. Each is a reading the named
@@ -539,6 +548,14 @@ function hbVsHtml(k, d, tone, bare, tail){
   const cls = !dlt ? '' : tail ? ' is-warn' : good ? ' is-good' : (tone === 'bad' ? ' is-bad' : ' is-warn');
   return `<span class="hb-vs"><b class="hb-vs-n${cls}">${_hbE((dlt ? amt : i18t('hb_vs_same')) + (dlt && tail ? ' ' + tail : ''))}</b>${bare ? '' : ' · ' + _hbE(i18t('hb_vs_6m'))}</span>`;
 }
+/* THE FIGURE CARD'S CHANGE LINE, AS DRAWN (P-39): after the change, what it is measured against ("same as 20 May",
+   "+1 since 20 May"), or where the figure splits, the split ("+2 · 1 ours, 1 theirs"); the cards only (.is-cards) */
+function hbCardSinceHtml(k, d, split, thenWord){
+  const h = hbFigSeries(k, d); if (h.length < 2) return '';
+  const same = h[h.length - 1].v === h[0].v;
+  if (split && !same) return `<span class="hb-vs-since"> \u00b7 ${_hbE(String(split).replace(/ \u00b7 /g, ', '))}</span>`;
+  return `<span class="hb-vs-since"> ${_hbE(i18t(same ? 'hb_card_as' : 'hb_card_since', { when: thenWord }))}</span>`;
+}
 function hbSparkHtml(k, fmt, book){
   const h = book ? hbFigSeries(k, book) : hbHistOf(k);
   if (h.length < HB_HIST_MIN) return '';
@@ -551,7 +568,7 @@ function hbSparkHtml(k, fmt, book){
   return `<svg class="hb-spark" viewBox="0 0 ${w} ${ht}" preserveAspectRatio="none" role="img" aria-label="${_hbE(tip)}"><title>${_hbE(tip)}</title>`
     /* a plain line and a dot at its end (round 17 as drawn): the dot is a
        round cap on a point, so the stretched picture keeps it round */
-    + `<path d="${d}" class="hb-spark-l"/><path d="M${e[0].toFixed(1)} ${e[1].toFixed(1)}h0" class="hb-spark-e"/></svg>`;
+    + `<path d="${d}" class="hb-spark-l" pathLength="1"/><path d="M${e[0].toFixed(1)} ${e[1].toFixed(1)}h0" class="hb-spark-e"/></svg>`;
 }
 function hbMoved(d, base){
   const out = {};
@@ -1403,7 +1420,8 @@ function hbFigDoor(key){
      narrowing of the Contracts list — lit, pressing nothing (focus:false: the
      narrowing's × is never the readied button) */
   if (k === 'overdue'){ if (typeof obwGoFiltered !== 'function') return false; obwGoFiltered({ state: 'overdue' });
-    if (typeof landOn === 'function') landOn('[data-obw-view="overdue"]', { block: 'nearest', focus: false }); return true; }
+    /* the new look's page names its Late pill (obnRender, #762); the old page its Overdue view */
+    if (typeof landOn === 'function') landOn((typeof newLookOn === 'function' && newLookOn()) ? '[data-obn-tab="open"]' : '[data-obw-view="overdue"]', { block: 'nearest', focus: false }); return true; }
   if (!HB_FIG_TO_CONTRACTS.includes(k) || typeof regShowOnly !== 'function') return false;
   let F = null; try { F = hbBookData(hbS().lens || 'all').figs[k]; } catch (_){ F = null; }
   const ids = (F && Array.isArray(F.ids)) ? F.ids : []; if (!ids.length) return false;
@@ -1528,16 +1546,19 @@ function hbBookHtml(d, moved, since){
     return `<div class="hb-fig${tone}" data-hb-fig="${f.k}">
       <button type="button" class="hb-fig-main" ${zero ? 'disabled' : `data-hb-dig="f:${f.k}"`} title="${_hbE(i18t(f.k === 'paygap' && F.gap != null ? (F.gap < 0 ? 'hb_f_paygap_good' : F.gap > 0 ? 'hb_f_paygap_bad' : 'hb_f_paygap_tip') : f.tip) + left)}">
         <span class="hb-fig-lw"><span class="hb-fig-l">${_hbE(i18t(f.word))}</span>${leftSay ? `<span class="hb-fig-left is-split">${_hbE(leftSay)}</span>` : ''}</span><span class="hb-fig-then" title="${_hbE(thenWord)}">${_hbE(was)}</span><span class="hb-fig-n">${_hbE(num)}</span></button>
-      <span class="hb-fig-chg">${hbVsHtml(f.k, d, f.k === 'paygap' ? (F.tone === 'good' ? '' : 'warn') : f.tone, true, tail)}${hbDeltaHtml(f.k, moved && moved[f.k], since)}</span>${hbSparkHtml(f.k, fmtOf(f), d)}</div>`;
+      <span class="hb-fig-chg">${hbVsHtml(f.k, d, f.k === 'paygap' ? (F.tone === 'good' ? '' : 'warn') : f.tone, true, tail)}${hbCardSinceHtml(f.k, d, leftSay, thenWord)}${hbDeltaHtml(f.k, moved && moved[f.k], since)}</span>${hbSparkHtml(f.k, fmtOf(f), d)}</div>`;
   }).join('');
   const head = `<div class="hb-tn-h" aria-hidden="true"><span>${_hbE(i18t('hb_tn_figure'))}</span><span>${_hbE(thenWord)}</span><span>${_hbE(i18t('hb_tn_today'))}</span><span>${_hbE(i18t('hb_tn_change'))}</span><span>${_hbE(i18t('hb_tn_six'))}</span></div>`;
   const tot = d.stages.reduce((a, s) => a + s.n, 0);
   /* THE STAGE BAR, THEN ABOVE TODAY: the then bar is history, drawn not pressed */
   const thens = d.stages.map(s => hbStageThen(d, s.k)), thenTot = thens.every(v => v != null) ? thens.reduce((a, v) => a + v, 0) : 0;
   const sw = s => s.word ? i18t(s.word) : s.k;
+  /* the key in sentence case, as drawn (P-39: "Drafting 0 (0) · In review 3 (3) · Executed 10 (10)"); the stage's own word elsewhere */
+  const skw = s => { const w = String(sw(s)); return w.charAt(0) + w.slice(1).toLowerCase(); };
   const thenBar = thenTot ? `<div class="hb-stagerow is-then"><span class="hb-sr-l">${_hbE(thenWord)}</span><div class="hb-stagebar-then" role="img" aria-label="${_hbE(d.stages.map((s, i) => sw(s) + ' ' + _hbN(thens[i])).join(', '))}">${d.stages.map((s, i) => thens[i] ? `<span style="flex-grow:${thens[i]};background:${_hbE(s.tone)}" title="${_hbE(sw(s) + ' · ' + thenWord + ': ' + i18tn('home_map_n_contracts', thens[i], { n: _hbN(thens[i]) }))}"></span>` : '').join('')}</div><span class="hb-sr-n">${_hbN(thenTot)}</span></div>` : '';
-  const bar = tot ? `<div class="hb-stagerows${thenTot ? ' is-two' : ''}">${thenBar}<div class="hb-stagerow"><span class="hb-sr-l">${_hbE(i18t('hb_tn_today'))}</span><div class="hb-stagebar">${d.stages.map(s => s.n ? `<button type="button" style="flex-grow:${s.n};background:${_hbE(s.tone)}" data-hb-dig="st:${_hbE(s.k)}" title="${_hbE(sw(s) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}" aria-label="${_hbE(sw(s) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}"></button>` : '').join('')}</div><span class="hb-sr-n">${_hbN(tot)}</span></div></div>
-    <div class="hb-stagekey">${d.stages.map((s, i) => `<button type="button" ${s.n ? `data-hb-dig="st:${_hbE(s.k)}"` : 'disabled'}><i style="background:${_hbE(s.tone)}"></i>${_hbE(sw(s))} <b>${_hbN(s.n)}</b>${thenTot ? ` <span class="hb-sk-then">(${_hbN(thens[i])})</span>` : ''}</button>`).join('')}${thenTot ? `<span class="hb-sk-note">${_hbE(i18t('hb_tn_brackets', { m: hbThenWord(true) }))}</span>` : ''}</div>` : '';
+  /* AS DRAWN (P-39): "Where all N stand" with "May in brackets" beside it (the key's own note, said once) */
+  const bar = tot ? `<div class="hb-where">${_hbE(i18tn('hb_where_all', tot, { n: _hbN(tot) }))}${thenTot ? ` <span class="hb-where-note">${_hbE(i18t('hb_tn_brackets', { m: hbThenWord(true) }))}</span>` : ''}</div><div class="hb-stagerows${thenTot ? ' is-two' : ''}">${thenBar}<div class="hb-stagerow"><span class="hb-sr-l">${_hbE(i18t('hb_tn_today'))}</span><div class="hb-stagebar">${d.stages.map(s => s.n ? `<button type="button" style="flex-grow:${s.n};background:${_hbE(s.tone)}" data-hb-dig="st:${_hbE(s.k)}" title="${_hbE(sw(s) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}" aria-label="${_hbE(sw(s) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}"></button>` : '').join('')}</div><span class="hb-sr-n">${_hbN(tot)}</span></div></div>
+    <div class="hb-stagekey">${d.stages.map((s, i) => `<button type="button" ${s.n ? `data-hb-dig="st:${_hbE(s.k)}"` : 'disabled'}><i style="background:${_hbE(s.tone)}"></i><span class="hb-sk-w">${_hbE(skw(s))} <b>${_hbN(s.n)}</b>${thenTot ? ` <span class="hb-sk-then">(${_hbN(thens[i])})</span>` : ''}</span></button>`).join('')}${thenTot ? `<span class="hb-sk-note">${_hbE(i18t('hb_tn_brackets', { m: hbThenWord(true) }))}</span>` : ''}</div>` : '';
   const count = hbCountLabel(d.lens);
   /* the same rule as the head's chip: the default is never read back */
   const sub = [i18t('hb_tn_sub', { then: thenWord }), count, d.lens === 'all' ? '' : i18t('hb_lens_' + d.lens), since ? i18t('hb_book_since', { when: hbDayWords(since) }) : '', i18t('hb_tn_doors')].filter(Boolean).join(' · ');
@@ -1547,7 +1568,7 @@ function hbBookHtml(d, moved, since){
      and, while Jambo's work card is closed, the way back to it */
   return `<section class="hb-card hb-book" id="hb-book"><header class="hb-ch"><span class="hb-ct">${_hbE(i18t('hb_book'))}</span><span class="hb-cs">${_hbE(sub)}</span>
     <span class="hb-grow"></span><span class="hb-figpick-w"><button type="button" class="hb-ib hb-figs-set" data-hb-figpick aria-haspopup="dialog" aria-expanded="${_hbFigPick}" title="${_hbE(i18t('hb_figs_pick'))}" aria-label="${_hbE(i18t('hb_figs_pick'))}"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor"><use href="#i-sliders"/></svg></button>${_hbFigPick ? hbFigPickHtml(d.money) : ''}</span></header>
-    <div class="hb-cb"><div class="hb-figs hb-tn is-n${chosen.length}" style="--hb-figs-n:${chosen.length}">${head}${tiles}</div>${bar}${unsided}</div></section>`;
+    <div class="hb-cb"><div class="hb-figs hb-tn is-cards is-n${chosen.length}" style="--hb-figs-n:${chosen.length}">${head}${tiles}</div>${bar}${unsided}</div></section>`;
 }
 
 /* ============================================================
@@ -1641,6 +1662,7 @@ function hbBoardHelloOn(){
   return typeof state !== 'undefined' && !!state && state.view === 'dashboard' && hbBoardInFront()
     && !!(typeof currentUser === 'function' && currentUser());
 }
+const _ndPlain = h => String(h == null ? '' : h).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 function hbBoardHelloHtml(){
   /* not over a contract brought up as a page: the desk shows that contract, not the book */
   if (!hbBoardHelloOn()) return '';
@@ -1655,13 +1677,17 @@ function hbBoardHelloHtml(){
   let views = 0; try { views = (typeof igViewsRead === 'function') ? igViewsRead().length : 0; } catch (_){ views = 0; }
   let n = 0; try { n = (typeof counterNeedsCount === 'function') ? counterNeedsCount() : hbNeedsCount(); } catch (_){ n = 0; }
   _hbNyDockN = n; _hbNyDockBook = (state.contracts || []).length;
-  let work = 0; try { work = hbAgentsData(null).ready || 0; } catch (_){ work = 0; }
   let D = null; try { D = (typeof ndRead === 'function') ? ndRead() : null; } catch (_){ D = null; }
+  /* ONE COUNT (ndWaitCounts, review of the merged pages 22 Nov 2026): "I have N things ready", the ring's legend and the
+     Board's "Jambo prepared N" chip are one reading — every piece he prepared, late or not */
+  let W = null; try { W = (D && typeof ndWaitCounts === 'function') ? ndWaitCounts(D) : null; } catch (_){ W = null; }
+  let work = 0; try { work = W ? W.jambo : (hbAgentsData(null).ready || 0); } catch (_){ work = 0; }
   const late = (D && D.late) || 0;
   /* the ONE count rules: nothing on the desk is said as nothing, whatever a slower count of his work still holds */
   const say = !n ? i18t('hb_jb_counter_none') : work ? i18tn('hbw_ready', work, { n: work }) : i18tn('hbw_needs', n, { n });
   const old = (n && D && D.oldest != null) ? i18t('nd_oldest', { days: hbNyDays(D.oldest) }) : '';
-  const sub = n && work ? i18tn('hbw_all', n, { n }) + (old ? ' ' + old.charAt(0).toUpperCase() + old.slice(1) + '.' : '') : (n && old) ? old.charAt(0).toUpperCase() + old.slice(1) + '.' : '';
+  /* AS DRAWN (P-39): "13 need you in all; the oldest has waited 2 days." — one sentence */
+  const sub = n && work ? i18tn('hbw_all', n, { n }).replace(/\.\s*$/, '') + (old ? '; ' + old + '.' : '.') : (n && old) ? old.charAt(0).toUpperCase() + old.slice(1) + '.' : '';
   /* a number with nothing behind it is not a door (a dead button never wears a live one's clothes) */
   const cell = (k, num, word, tone) => num
     ? `<button type="button" class="hbw-n${tone ? ' is-' + tone : ''}" data-hbw="${k}"><b>${num}</b><span>${_hbE(word)}</span></button>`
@@ -1673,7 +1699,9 @@ function hbBoardHelloHtml(){
   const asks = [ending ? chip(i18tn('hb_jb_ending', ending, { n: ending })) : null, chip(i18t('hb_jb_by_stream')), views ? chip(i18t('hb_jb_views')) : null,
     n ? chip(i18t('hb_jb_needs_chip')) : null,
     (typeof calHandOff === 'function') ? { label: i18t('ob_yw_chip_week'), title: i18t('cal_plan_p_week'), run: () => calHandOff('week') } : null].filter(Boolean);
-  const brain = (typeof igMiniBrainHtml === 'function') ? igMiniBrainHtml() : '';
+  /* NO EXPLORER MAP ON THE BOARD'S PANEL (owner, 22 Nov 2026: "delete this explorer feature from the board side
+     panel"; reverses the 13 Nov BRAIN WELCOME): the panel opens on Jambo's line; the map lives on Explorer */
+  const brain = '';
   /* THE FIVE PARTS (owner, 15 Nov 2026, round 3; "Build the panels in three rounds as recommended"): the brain, then the
      headline, three tiles that each open their list (needs you → the Board's Needs you; live contracts → the book's
      Live figure; days to the next end → the Calendar), the first things that need you as rows, ONE black button. The
@@ -1684,18 +1712,67 @@ function hbBoardHelloHtml(){
     const ends = (state.contracts || []).filter(c => c && !c.archived && c.status !== 'Declined').map(c => (typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '')
       .map(d => String(d).slice(0, 10)).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= today).sort();
     const days = ends[0] ? Math.round((new Date(ends[0] + 'T12:00:00') - new Date(today + 'T12:00:00')) / 864e5) : null;
-    let rows = []; try { const B = (typeof ndOnBoard === 'function' && D) ? ndOnBoard(D) : null; rows = B ? B.jambo.concat(B.you).slice(0, 3) : []; } catch (_){ rows = []; }
+    /* THE LEGORA + STRIPE WAY (P-39, owner 20 Nov 2026): the panel NEVER REPEATS THE PAGE — no three mixed tiles, not the
+       page's Needs you again. "What waits on you" is a RING (late of all) beside ONE bar (red late · amber your move · violet
+       Jambo) with its counts; then "Jambo prepared, for your yes": each piece, the paper's words where it has them, a ›. */
+    void live; void days;
+    let B = null; try { B = (typeof ndOnBoard === 'function' && D) ? ndOnBoard(D) : null; } catch (_){ B = null; }
+    /* the ring is the late of ALL that waits; the legend says each chip's own count (a late piece is late AND Jambo's) */
+    const cnt = W ? { late: W.late, you: W.you, jambo: W.jambo } : { late: 0, you: 0, jambo: 0 };
+    const tot = W ? W.all : 0;
+    const R = 2 * Math.PI * 17, frac = tot ? cnt.late / tot : 0;
+    const ringBar = tot ? `<div class="hbw2-wait"><span class="hbw2-ring" role="img" aria-label="${_hbE(i18t('hbw2_ring', { a: cnt.late, b: tot }))}"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="hbw2-rb" cx="20" cy="20" r="17"/><circle class="hbw2-rf" cx="20" cy="20" r="17" style="stroke-dasharray:${R.toFixed(1)};stroke-dashoffset:${(R * (1 - frac)).toFixed(1)}"/></svg><b>${cnt.late}/${tot}</b></span>`
+      + `<span class="hbw2-bw"><span class="hbw2-bar">${['late', 'you', 'jambo'].filter(k => cnt[k]).map(k => `<i class="is-${k}" style="flex:${cnt[k]}"></i>`).join('')}</span>`
+      + `<span class="hbw2-leg">${['late', 'you', 'jambo'].filter(k => cnt[k]).map(k => `<button type="button" data-hbw="${k === 'jambo' ? 'jambo' : k === 'late' ? 'late' : 'all'}"><i class="is-${k}" aria-hidden="true"></i>${_hbE(i18tn('hbw2_leg_' + k, cnt[k], { n: cnt[k] }))}</button>`).join('')}</span></span></div>` : '';
     const parts = r => { try { return (typeof ndParts === 'function') ? ndParts(r) : {}; } catch (_){ return {}; } };
-    const needRows = rows.map(r => { const P = parts(r); return { mark: r.late ? 'clock' : 'alert', tone: r.late ? 'amber' : (r.g === 'jambo' ? 'dark' : 'amber'), t: P.title || P.name || '', s: [P.deal, P.when].filter(Boolean).join(' \u00b7 '), attr: `data-hbw-row="${_hbE(r.key)}"` }; }).filter(x => x.t);
-    return `<div class="jl-words is-ov hb-jb-hello is-welcome is-five">${jamboOverviewHtml({ before: brain, title: say, sub,
-      glance: [{ n, l: i18t('jov5_on_you'), warn: n > 0, attr: n ? 'data-hbw="all"' : '' }, { n: live, l: i18t('jov5_hb_live'), attr: live ? 'data-hbw="live"' : '' },
-        { n: days == null ? '\u2014' : days, l: i18t('jov5_hb_days'), attr: days != null ? 'data-hbw="next"' : '' }],
-      groups: needRows.length ? [{ label: i18t('jov5_hb_needs'), rows: needRows }] : [],
-      act: n ? { label: i18t(late ? 'hbw_start_late' : 'hbw_show_needs'), attr: `data-hbw="${late ? 'late' : 'all'}"` } : null,
+    /* the paper's words as drawn: "§ 2 · “The lease ends on 11 October 2026”" (cn2QuoteOf, the one reading the rows use) */
+    const quote = r => { try { const Q = typeof window.cn2QuoteOf === 'function' ? cn2QuoteOf(r).filter(q => q.w) : []; return Q.length ? [Q[0].sec, '\u201c' + Q[0].w + '\u201d'].filter(Boolean).join(' \u00b7 ') : ''; } catch (_){ return ''; } };
+    /* THE LAST ROW IS NEVER CUT (review of the merged pages, 22 Nov 2026: at 1536×730 "Arrival check: Brut Africa Ltd"
+       stood half under the links line): as many pieces as fit whole above the panel's foot (hbHelloFitN), and where some
+       do not, a last row says how many more — a cap is said, never a silent trim — and opens them on the Board */
+    const allP = B ? B.jambo : [], fit = hbHelloFitN(allP.length), more = allP.length - fit;
+    const prep = allP.slice(0, fit).map(r => { const P = parts(r); const q = quote(r);
+      return { mark: '', markText: '', tone: 'violet', t: P.title || P.name || '', s: q || [P.name || P.deal, _ndPlain(P.ref)].filter(Boolean).join(' \u00b7 '), quote: !!q, attr: `data-hbw-row="${_hbE(r.key)}"` }; }).filter(x => x.t)
+      .concat(more > 0 ? [{ mark: '', markText: '', tone: '', t: i18tn('hbw2_more', more, { n: more }), s: '', attr: 'data-hbw="jambo" data-hbw-more' }] : []);
+    return `<div class="jl-words is-ov hb-jb-hello is-welcome is-five is-ls">${jamboOverviewHtml({ before: brain, title: say, sub,
+      mid: ringBar, midLabel: tot ? i18t('hbw2_wait') : '',
+      groups: prep.length ? [{ label: i18t('hbw2_prepared'), rows: prep }] : [],
+      act: null,
       asks, src: i18t('jov5_hb_src') }, 'hb')}</div>`;
   }
   const before = `${brain}<h3 class="hbw-say">${_hbE(say)}</h3>${sub ? `<p class="hbw-sub">${_hbE(sub)}</p>` : ''}${trio}${acts}`;
   return (typeof jamboOverviewHtml === 'function') ? `<div class="jl-words is-ov hb-jb-hello is-welcome">${jamboOverviewHtml({ before, asks }, 'hb')}</div>` : '';
+}
+/* HOW MANY OF JAMBO'S PIECES FIT WHOLE in the Board's panel above its foot (the links line and the ask box): measured on
+   the panel as last drawn (the list's top inside the scroller, a row's height), else the scroller's own height read from
+   the window; one row is kept for "N more" when they do not all fit. Never fewer than one piece. */
+let _hbHelloGeo = null;
+function hbHelloFitN(total){
+  const n = Math.max(0, total | 0); if (n <= 1 || typeof document === 'undefined') return n;
+  try {
+    const feed = document.getElementById('igd-feed');
+    const g = feed && feed.querySelector('.hb-jb-hello .jov5-group');
+    if (feed && g){
+      const fr = feed.getBoundingClientRect(), gr = g.getBoundingClientRect(), row = g.querySelector('.jov5-row');
+      if (gr.height > 0) _hbHelloGeo = { top: gr.top - fr.top + feed.scrollTop, row: (row && row.offsetHeight) || 42 };
+    }
+    const G = _hbHelloGeo || { top: 400, row: 42 };
+    const H = (feed && feed.clientHeight) || Math.max(0, (typeof innerHeight === 'number' ? innerHeight : 800) - 151);
+    const rows = Math.floor((H - G.top - 4) / G.row);
+    if (!(rows > 0)) return 1;
+    return rows >= n ? n : Math.max(1, rows - 1);
+  } catch (_){ return n; }
+}
+/* the window changes size: the Board's panel is drawn again only when what fits changed */
+if (typeof window !== 'undefined' && !window._hbHelloFitWired){
+  window._hbHelloFitWired = true;
+  let t = 0;
+  window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { try {
+    if (!hbBoardHelloOn() || typeof renderIntelDock !== 'function') return;
+    const shown = document.querySelectorAll('#igd-feed .hb-jb-hello [data-hbw-row]').length;
+    const D = typeof ndRead === 'function' ? ndRead() : null, all = D && typeof ndOnBoard === 'function' ? ndOnBoard(D).jambo.length : 0;
+    if (hbHelloFitN(all) !== shown) renderIntelDock();
+  } catch (_){} }, 200); });
 }
 /* the welcome's doors, each an existing one: the late and "show all" open the Board's Needs you on All (the late
    stand first there, ndBoardList), prepared opens it on Jambo's tab, ending soon the list behind the book's Ending
@@ -1751,7 +1828,6 @@ function hbNeedsPress(kind, id){
    KEEPS THIS CARD (the owner's answer of 18 Oct 2026, after LAND ON IT): Home's
    "Jambo's work" row's Open lands on it, lit (hbOpenAgent → landOn). */
 function hbPrepHtml(A, since){
-  const I = hbInsightsToday();
   /* THE ONE DESK (Round A, the owner picked "The Legora Way", 22 Oct 2026;
      reverses round 17's "Needs you is Home's" for the WHOLE list): this card,
      under Your book, is all of Needs you — Jambo's prepared work and your
@@ -1759,8 +1835,12 @@ function hbPrepHtml(A, since){
      three of each. What was done while you were away, the agents' levels and
      the house's door stay at its foot. It never folds or closes: work owed is
      not hidden. */
-  if (typeof ndBoardHtml !== 'function') return hbInsCardHtml(I);
-  return ndBoardHtml(hbNdOpts(A, since)) + hbInsCardHtml(I);
+  /* TODAY'S INSIGHTS LEFT THE BOARD (P-39, owner 21 Nov 2026: "remove it from the Board — the Board ends after Needs
+     you, as drawn"; its pictures are Explorer's): the shelf is not drawn here any more. Its findings are still counted for
+     the brief's mail (hbMovedOf); hbInsCardHtml stays for the day it is asked for by name. */
+  void hbInsCardHtml;
+  if (typeof ndBoardHtml !== 'function') return '';
+  return ndBoardHtml(hbNdOpts(A, since));
 }
 /* the Board's parts of the card: a piece of Jambo's opened in place, chasing
    many at once (on his tab), and the foot — done while away, the levels, the house */
@@ -1769,6 +1849,8 @@ function hbNdOpts(A, since){
   const at = since || null;
   const done = (H.done && H.done.length) ? `<div class="hb-done">${_hbE(i18t('hb_done_since', { when: hbDayWords(at) }))} ${H.done.map(x => `<button type="button" data-hb-dig="dn:${_hbE(x.k)}">${_hbE(i18tn('hb_done_' + x.k, x.n, { n: _hbN(x.n) }))}</button>`).join('<span aria-hidden="true">·</span>')}<span class="hb-grow"></span><span class="hb-quiet">${_hbE(i18t('hb_done_trail'))}</span></div>` : '';
   let its = []; try { its = (typeof ndPieces === 'function') ? ndPieces().map(p => p.it) : []; } catch (_){ its = []; }
+  /* THE AGENTS' LEVELS LINE STAYS (review of the merged pages, 22 Nov 2026: P-39 does not draw it, but it is a working
+     control — an admin's Change, a member's Ask an admin — and working controls stay though undrawn) */
   const levels = hbAgLevelsHtml();
   const house = `<button type="button" class="hb-edge-b" data-hb-agents-page>${_hbE(i18t('hb_the_agents'))}</button>`;
   return { look: hbNdLookHtml, chase: hbChaseManyHtml(its), keep: !!done, foot: `<div class="nd-foot">${done}<div class="nd-foot-r">${levels || '<span class="hb-grow"></span>'}${house}</div></div>` };
@@ -5911,7 +5993,7 @@ function hbSheetGo(id){
   /* the list is put away first: Home's paper is drawn on the same page, and a
      list left lying over it would cover the Dossier it just opened */
   if (_hbSheet) hbSheetClose();
-  if (window.roomHomeLand && roomHomeLand(id, { cover: true })) return true;
+  if (window.roomHomeLand && roomHomeLand(id, { open: true })) return true;
   if (typeof openWorkspace === 'function'){ openWorkspace(id); return true; }
   return false;
 }
@@ -6136,10 +6218,23 @@ function hbGreetSince(iso){
    past their end date, value come under contract), then the one desk's own count (ndRead: late, the oldest, what
    Jambo prepared). A fact at nought is not said; a link presses the figure's own door (mv:<figure>) or opens Needs
    you on its tab (ndOpenBoard). */
+/* the contracts a set of Needs-you rows stand for (ndRead's rows: a piece, a row, a bundle, an alert), each once, only
+   contracts this reader holds */
+function hbRowsCids(L){
+  const out = new Set(), add = id => { if (id && typeof getContract === 'function' && getContract(id)) out.add(String(id)); };
+  (L || []).forEach(r => { if (!r) return;
+    if (r.it) add(r.it.cid || (r.it.c && r.it.c.id));
+    if (r.y && r.y.x && r.y.x.c) add(r.y.x.c.id);
+    if (r.al) add(r.al.id);
+    if (Array.isArray(r.bundle)) r.bundle.forEach(d => { if (d && d.x && d.x.c) add(d.x.c.id); }); });
+  return [...out];
+}
 function hbGreetSayHtml(moved, since){
   const cap = w => String(w || '').replace(/^./, c => c.toUpperCase());
   const link = (words, attr, tone) => `<button type="button" class="hb-gr-a${tone ? ' is-' + tone : ''}" ${attr}>${_hbE(words)}</button>`;
-  const and = L => L.length > 1 ? L.slice(0, -1).join(', ') + _hbE(i18t('cn2_s_and')) + L[L.length - 1] : (L[0] || '');
+  /* "4 things are late, the oldest has waited 2 days, and I prepared 5 for you" (as drawn): a comma before the last
+     part when a part already holds one */
+  const and = L => L.length > 1 ? L.slice(0, -1).join(', ') + (L.slice(0, -1).some(t => /, /.test(t.replace(/<[^>]*>/g, ''))) ? ',' : '') + _hbE(i18t('cn2_s_and')) + L[L.length - 1] : (L[0] || '');
   const A = [];
   if (moved && since){
     const p = moved.past, v = moved.value;
@@ -6149,10 +6244,15 @@ function hbGreetSayHtml(moved, since){
   }
   let D = null; try { D = (typeof window.ndRead === 'function') ? ndRead() : null; } catch (_){ D = null; }
   const late = D ? Number(D.late) || 0 : 0, jam = D && Array.isArray(D.jambo) ? D.jambo.length : 0;
+  /* THE HIGHLIGHTS ARE DOORS TO THEIR CONTRACTS (owner, 22 Nov 2026: "make those 2 highlights be doors to those
+     contracts"): "N things are late" and "I prepared N for you" open Contracts on just the contracts they count
+     (data-rd-show → regShowOnly, the door Read down's rows already use); a count no contract stands behind keeps the
+     old door, the Board's list */
+  const door = (L, label, fall) => { const ids = hbRowsCids(L); return ids.length ? `data-rd-show="${_hbE(ids.join(','))}" data-rd-label="${_hbE(label)}"` : fall; };
   const N = [];
-  if (late) N.push(link(cap(i18tn('cn2_s_late', late, { n: late })), 'data-hb-gr="all"', 'late')
+  if (late) N.push(link(cap(i18tn('cn2_s_late', late, { n: late })), door(D.jambo.concat(D.you).filter(r => r.late), cap(i18tn('cn2_s_late', late, { n: late })), 'data-hb-gr="all"'), 'late')
     + (D.oldest ? ', ' + _hbE(i18t('nd_oldest', { days: hbNyDays(D.oldest) })) : ''));
-  if (jam) N.push(link(N.length ? i18tn('cn2_s_jambo', jam, { n: jam }) : cap(i18tn('cn2_s_jambo', jam, { n: jam })), 'data-hb-gr="jambo"'));
+  if (jam) N.push(link(N.length ? i18tn('cn2_s_jambo', jam, { n: jam }) : cap(i18tn('cn2_s_jambo', jam, { n: jam })), door(D.jambo, cap(i18tn('cn2_s_jambo', jam, { n: jam })), 'data-hb-gr="jambo"')));
   const s1 = A.length ? _hbE(i18t('hb_gr_since', { day: hbGreetSince(since) })) + ' ' + and(A) + '.' : '';
   /* neither late nor prepared, yet things wait: the sentence says how many (the card's own count), never "nothing" */
   let you = 0; try { you = D && typeof window.ndOnBoard === 'function' ? ndOnBoard(D).n : 0; } catch (_){ you = 0; }
@@ -6168,8 +6268,11 @@ function hbBoardHeadHtml(time, cut, bs, pack, deskBits, latest){
     void latest;   /* its counted sentence moved into the brief card (hbBoardSumHtml), 10 Nov 2026 */
     let hello = ''; try { hello = (typeof window.cn2Greet === 'function') ? cn2Greet() : ''; } catch (_){ hello = ''; }
     let day = ''; try { day = new Date().toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, c => c.toUpperCase()); } catch (_){ day = ''; }
-    return `<section class="hb-card hb-bhead is-greet" id="hb-bhead"><h2 class="hb-bh-t">${_hbE(hello || i18t('hb_face_board'))}</h2>`
-      + `<div class="hb-note hb-bh-r">${acts}<span class="hb-grow"></span><span class="hb-bh-day">${_hbE(day)}</span>${live}</div>`
+    /* AS DRAWN (P-39, owner 21 Nov 2026): the greeting with "● Live · counted <time>" at the right of its own line, the
+       pills under it; the day is not said (the bar's clock and the counted time say when) */
+    void day;
+    return `<section class="hb-card hb-bhead is-greet" id="hb-bhead"><div class="hb-bh-top"><h2 class="hb-bh-t">${_hbE(hello || i18t('hb_face_board'))}</h2><span class="hb-bh-live">${live}</span></div>`
+      + `<div class="hb-note hb-bh-r">${acts}</div>`
       /* ITS OWN CARD AGAIN (owner, 11 Nov 2026: "move the summary back to having its own card … with an exit (x)
          button on the top right"; reverses Card Inside): the brief stands under the greeting (hbBoardHtml) */
       + `</section>`;
@@ -6216,7 +6319,7 @@ function hbPulseBtnHtml(){
    is signed; what ends within a year, the first and how many renew by themselves; how the streams and the parties
    carry the book; the negotiations open and whose move; the duties late and due. Each says where it was read and
    opens that page. Under them what ends, quarter by quarter, by value on paper. EVERY FIGURE IS AN EXISTING READING:
-   fxCounted (a private stream and a missing rate add nothing), effectiveExpiry, c.autoRenew, FOLDERS, negoIsLive and
+   fxCounted (a private stream and a missing rate add nothing), effectiveExpiry, contractRenewsItself, FOLDERS, negoIsLive and
    dealStands' move, obState / obligationDue / obligationIsTheirs; values only where canViewValues allows. */
 let _hbRdn = false;
 function hbRdnUp(){ return !!_hbRdn && typeof window.newLookOn === 'function' && newLookOn() && hbS().face === 'board'; }
@@ -6234,7 +6337,8 @@ function hbRdnRead(){
   const exp = c => { let e = ''; try { e = String((typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '').slice(0, 10); } catch (_){ e = ''; } return e; };
   const total = L.reduce((s, c) => s + val(c), 0), sig = L.filter(signed), sigV = sig.reduce((s, c) => s + val(c), 0);
   const ending = L.filter(c => { const e = exp(c); return e && e >= today && e <= inYear; }).sort((a, b) => exp(a).localeCompare(exp(b)));
-  const autoEnd = ending.filter(c => !!c.autoRenew);
+  /* renewing by itself, by the ONE reading (contractRenewsItself); c.autoRenew was a field nothing writes — it always said 0 */
+  const autoEnd = ending.filter(c => typeof contractRenewsItself === 'function' && contractRenewsItself(c));
   /* streams by value, then the party holding the most of the signed value */
   const byStream = new Map(); L.forEach(c => { const n = (window.FOLDERS && FOLDERS[c.folder] && FOLDERS[c.folder].name) || ''; if (!n) return; const e = byStream.get(n) || { n, v: 0, cs: [] }; e.v += val(c); e.cs.push(c); byStream.set(n, e); });
   const streams = [...byStream.values()].sort((a, b) => b.v - a.v || b.cs.length - a.cs.length);
@@ -6244,54 +6348,180 @@ function hbRdnRead(){
   const nego = L.filter(c => { try { return typeof negoIsLive === 'function' && negoIsLive(c); } catch (_){ return false; } });
   const ours = nego.filter(c => { let D = null; try { D = typeof dealStands === 'function' ? dealStands(c) : null; } catch (_){ D = null; }
     const us = D && (D.parties || []).find(p => p.ours); return !!(D && D.move && us && D.move.party === us.name); });
-  let late = 0, week = 0, pay = 0; const wkEnd = (() => { const d = new Date(today + 'T00:00:00'); d.setDate(d.getDate() + 7); return d.toISOString().slice(0, 10); })();
+  let late = 0, week = 0, pay = 0, lateQ = null; const wkEnd = (() => { const d = new Date(today + 'T00:00:00'); d.setDate(d.getDate() + 7); return d.toISOString().slice(0, 10); })();
   L.forEach(c => (Array.isArray(c.obligations) ? c.obligations : []).forEach(o => { if (!o || o.status === 'done') return;
     const theirs = typeof obligationIsTheirs === 'function' && obligationIsTheirs(o); if (theirs) return;
     const due = String((typeof obligationDue === 'function' ? obligationDue(o) : o.due) || '').slice(0, 10); if (!due) return;
-    if (due < today) late++; else if (due <= wkEnd) week++;
+    if (due < today){ late++; if (!lateQ && o.quote) lateQ = { w: String(o.quote), sec: o.clause ? '§ ' + String(o.clause) : '', name: c.name || '' }; } else if (due <= wkEnd) week++;
     if (due >= today && due.slice(0, 7) === today.slice(0, 7) && /pay|invoice|fee|betal|faktur/i.test(String(o.text || o.title || o.note || ''))) pay++; }));
   /* what ends, by quarter: value on paper, the count, dark where it is signed */
   const qs = new Map(); L.forEach(c => { const e = exp(c); if (!e || e < today) return; const y = e.slice(0, 4), q = Math.floor((Number(e.slice(5, 7)) - 1) / 3);
     const k = y + '-' + q; const r = qs.get(k) || { k, y, q, v: 0, n: 0, signed: false }; r.v += val(c); r.n++; r.signed = r.signed || signed(c); qs.set(k, r); });
   const quarters = [...qs.values()].sort((a, b) => a.k.localeCompare(b.k)).slice(0, 6);
-  return { L, see, money, total, sig, sigV, ending, autoEnd, streams, top, share, nego, ours, late, week, pay, quarters, exp };
+  return { L, see, money, total, sig, sigV, ending, autoEnd, streams, top, share, nego, ours, late, week, pay, lateQ, quarters, exp };
 }
+/* READ DOWN, THE LEGORA + STRIPE WAY (P-41, owner 20 Nov 2026: "L+S and merge it"): the five sentences are COUNTED, NEVER
+   MONEY (MONEY IS NEVER A BIG PART OF A PAGE); each a calm row with a small graphic of its own count, where it was read and
+   its link. The party named is the one holding the most agreements. */
 function hbRdnSentences(R){
-  const m = R.money, out = [];
-  out.push({ t: R.total ? i18tn('rd_s_paper', R.L.length, { v: m(R.total), n: R.L.length, s: m(R.sigV) || i18t('rd_none_v') }) : i18tn('rd_s_paper_nv', R.L.length, { n: R.L.length, s: R.sig.length }),
-    src: i18t('rd_src_list'), door: i18t('rd_door_list'), go: 'contracts' });
+  const out = [];
+  /* AS DRAWN (P-41, owner 21 Nov 2026): "13 agreements are on paper: 10 signed, 3 in review or in negotiation." */
+  out.push({ k: 'paper', t: i18tn('rd_s_paper_drawn', R.L.length, { n: R.L.length, s: R.sig.length, r: R.L.length - R.sig.length }), src: i18t('rd_src_list'), door: i18t('rd_door_list'), go: 'contracts' });
   const f = R.ending[0];
-  out.push({ t: f ? i18tn('rd_s_end', R.ending.length, { n: R.ending.length, name: f.name || '', d: hbRdnDay(R.exp(f)), v: m(hbRdnVal(f)) ? i18t('rd_worth', { v: m(hbRdnVal(f)) }) : '', a: R.autoEnd.length }) : i18t('rd_s_end_none'),
-    src: i18t('rd_src_term'), door: i18t('rd_door_cal'), go: 'calendar' });
-  const s = R.streams;
-  out.push({ t: (s.length ? s.slice(0, 2).map(x => m(x.v) ? i18tn('rd_s_stream', x.cs.length, { s: x.n, v: m(x.v), n: x.cs.length }) : i18tn('rd_s_stream_nv', x.cs.length, { s: x.n, n: x.cs.length })).join('; ') + '. ' : '')
-      + (R.top && R.share >= 50 ? i18t('rd_s_party_most', { p: R.top.p, pc: R.share }) : R.top ? i18t('rd_s_party', { p: R.top.p, pc: R.share }) : ''),
-    src: i18t('rd_src_streams'), door: R.top ? i18t('rd_door_shelf', { p: R.top.p }) : i18t('rd_door_explorer'), go: 'explorer' });
-  out.push({ t: R.nego.length ? i18tn('rd_s_nego', R.nego.length, { n: R.nego.length, k: R.ours.length }) : i18t('rd_s_nego_none'),
-    src: i18t('rd_src_nego'), door: i18t('rd_door_nego'), go: 'negotiations' });
-  out.push({ t: i18t('rd_s_duty', { late: i18tn('rd_late', R.late, { n: R.late }), week: i18tn('rd_week', R.week, { n: R.week }) }) + ' ' + (R.pay ? i18tn('rd_pay', R.pay, { n: R.pay }) : i18t('rd_pay_none')),
-    src: i18t('rd_src_oblig'), door: i18t('rd_door_oblig'), go: 'oblig' });
+  /* the first to end, and the paper's own words where its term is read (hbRdnTermQuote; nothing guessed) */
+  out.push({ k: 'end', t: f ? (R.autoEnd.length ? i18tn('rd_s_end_drawn', R.ending.length, { n: R.ending.length, name: f.name || '', d: hbRdnDay(R.exp(f)), a: R.autoEnd.length })
+      : i18tn('rd_s_end_drawn_none', R.ending.length, { n: R.ending.length, name: f.name || '', d: hbRdnDay(R.exp(f)) })) : i18t('rd_s_end_none'),
+    q: f ? hbRdnTermQuote(f) : null, src: i18t('rd_src_term'), door: i18t('rd_door_cal'), go: 'calendar' });
+  const s = R.streams.slice().sort((x, y) => y.cs.length - x.cs.length);
+  const byN = new Map(); R.L.forEach(c => { const p = String(c.counterparty || '').trim(); if (p) byN.set(p, (byN.get(p) || 0) + 1); });
+  const most = [...byN.entries()].sort((x, y) => y[1] - x[1])[0] || null;
+  /* "Procurement & Raw Materials holds 8 agreements and Warehousing & Distribution 5." (as drawn) */
+  const st2 = s.slice(0, 2), stT = st2.length ? i18tn('rd_s_stream_nv', st2[0].cs.length, { s: st2[0].n, n: st2[0].cs.length }) + (st2[1] ? i18t('rd_s_stream_and', { s: st2[1].n, n: st2[1].cs.length }) : '') + '. ' : '';
+  out.push({ k: 'streams', t: stT + (most ? i18t('rd_s_party_n', { p: most[0] }) : ''),
+    src: i18t('rd_src_streams'), door: most ? i18t('rd_door_shelf', { p: most[0] }) : i18t('rd_door_explorer'), go: 'explorer' });
+  out.push({ k: 'nego', t: R.nego.length ? i18tn('rd_s_nego', R.nego.length, { n: R.nego.length, k: R.ours.length }) : i18t('rd_s_nego_none'), src: i18t('rd_src_nego'), door: i18t('rd_door_nego'), go: 'negotiations' });
+  /* "1 duty is late and none is due this week." and, under it, the late duty's own words with its § (as drawn) */
+  out.push({ k: 'duty', t: i18t('rd_s_duty', { late: i18tn('rd_late', R.late, { n: R.late }), week: R.week ? i18tn('rd_week', R.week, { n: R.week }) : i18t('rd_week_none') }),
+    q: R.lateQ || null, src: i18t('rd_src_oblig'), door: i18t('rd_door_oblig'), go: 'oblig' });
   return out;
 }
+/* each sentence's small graphic, drawn from its own count (never a guess). AS DRAWN (P-41, 21 Nov 2026): a 44 square
+   each — the ring of signed (green) against the rest (amber) on a grey track; the year as a line with a dot where each
+   agreement ends, the first red, "12 mo" over it; the two streams as two bars by their share of the book; an empty
+   dashed circle for none; a soft red circle with the late count. Colours are the status tokens, by class. */
+function hbRdnPic(k, R){
+  const svg = (inner, cls) => `<svg viewBox="0 0 44 44" class="rd-pic${cls ? ' ' + cls : ''}">${inner}</svg>`;
+  const none = n => `<circle cx="22" cy="22" r="14" class="rd-pk-none"/><text x="22" y="26" text-anchor="middle" class="rd-pk-n0">${n}</text>`;
+  if (k === 'paper'){ const n = R.L.length, s = R.sig.length, L = 2 * Math.PI * 16, a = n ? L * s / n : 0, b = n ? Math.max(0, L * (n - s) / n - (s ? 1 : 0)) : 0;
+    return svg(`<circle cx="22" cy="22" r="16" class="rd-pk-track"/>${a ? `<circle cx="22" cy="22" r="16" class="rd-pk-arc is-signed" style="--rd-l:${a.toFixed(1)}" stroke-dasharray="${a.toFixed(1)} ${L.toFixed(1)}" transform="rotate(-90 22 22)"/>` : ''}${b ? `<circle cx="22" cy="22" r="16" class="rd-pk-arc is-rest" style="--rd-l:${b.toFixed(1)}" stroke-dasharray="${b.toFixed(1)} ${L.toFixed(1)}" transform="rotate(${(-90 + 360 * (n ? s / n : 0)).toFixed(1)} 22 22)"/>` : ''}`, 'is-ring'); }
+  if (k === 'end'){
+    const today = typeof todayISO === 'function' ? todayISO() : new Date().toISOString().slice(0, 10), t0 = new Date(today + 'T12:00:00');
+    const x = c => { const d = Math.round((new Date(R.exp(c) + 'T12:00:00') - t0) / 864e5); return (4 + 36 * Math.min(1, Math.max(0, d / 365))).toFixed(1); };
+    return svg(`<text x="4" y="18" class="rd-pk-12">${_hbE(i18t('rd_pic_12mo'))}</text><line x1="4" y1="30" x2="40" y2="30" class="rd-pk-line"/>${R.ending.map((c, i) => `<circle cx="${x(c)}" cy="30" r="3" class="rd-pk-dot${i === 0 ? ' is-first' : ''}"/>`).reverse().join('')}`, 'is-line'); }
+  if (k === 'streams'){ const s = R.streams.slice().sort((x, y) => y.cs.length - x.cs.length).slice(0, 2), n = Math.max(1, R.L.length);
+    return svg(s.map((x, i) => `<rect x="4" y="${i ? 25 : 14}" width="${Math.max(3, 36 * x.cs.length / n).toFixed(1)}" height="7" rx="3" class="rd-pk-bar is-${i}"/>`).join(''), 'is-bars'); }
+  if (k === 'nego') return svg(R.nego.length ? `<circle cx="22" cy="22" r="12" class="rd-pk-soft"/><text x="22" y="27" text-anchor="middle" class="rd-pk-n">${R.nego.length}</text>` : none(0));
+  return svg(R.late ? `<circle cx="22" cy="22" r="12" class="rd-pk-late"/><text x="22" y="27" text-anchor="middle" class="rd-pk-n is-late">${R.late}</text>` : none(0));
+}
+/* THE TERM'S OWN WORDS (P-41, as drawn: "“The Term ends on 20 December 2026 unless renewed” § 2 · Fuel Supply"): the
+   paper's sentence that names the end date's year in its term or renewal clause, with that clause's §; none found, none
+   said — never guessed. Reads the paper, writes nothing. */
+function hbRdnTermQuote(c){
+  try {
+    const e = String(R_exp(c) || ''), yr = e.slice(0, 4); if (!yr) return null;
+    const html = typeof docBody === 'function' ? docBody(c) : (c.bodyHtml || '');
+    const cls = typeof clauseSegment === 'function' ? clauseSegment(String(html || '')) : [];
+    for (const cl of cls){
+      const title = String(cl.title || ''), text = String(cl.text || cl.html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      if (!/\b(term|duration|renew\w*|expir\w*)\b/i.test(title + ' ' + text.slice(0, 200))) continue;
+      const parts = text.split(/(?<=[.;])\s+/);
+      /* the sentence naming the end's year; where the paper states its term without a date ("The term is three (3)
+         years from the effective date…"), its own first sentence about the term — still the paper's words where the
+         term is read, never guessed (review of the merged pages, 22 Nov 2026: Explorer and Read down said no quote for a
+         term the paper plainly states) */
+      const sent = parts.find(t => t.includes(yr) && /\b(term|end|expir|renew)/i.test(t)) || parts.find(t => /\b(term|ends?|expir\w*|renew\w*)\b/i.test(t) && t.length > 20);
+      if (sent){ const m = /^\s*(\d+(?:\.\d+)*)/.exec(String(cl.num || cl.number || title)); return { w: sent.replace(/[.;]$/, ''), sec: m ? '§ ' + m[1] : '', name: c.name || '' }; }
+    }
+  } catch (_){ return null; }
+  return null;
+}
+function R_exp(c){ try { return String((typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '').slice(0, 10); } catch (_){ return ''; } }
 function hbRdnVal(c){ let h = null; try { h = typeof fxCounted === 'function' ? fxCounted(c) : null; } catch (_){ h = null; } return h && !h.missing && !h.private ? (Number(h.v) || 0) : 0; }
 function hbRdnDay(iso){ try { return new Date(iso + 'T00:00:00').toLocaleDateString(langLocale(), { day: 'numeric', month: 'long', year: 'numeric' }); } catch (_){ return iso; } }
+/* the short day the panel's Look closer row says (as drawn: "20 Dec 2026") */
+function hbRdnDayShort(iso){ try { return new Date(iso + 'T00:00:00').toLocaleDateString(langLocale(), { day: 'numeric', month: 'short', year: 'numeric' }).replace(/\bSept\b/, 'Sep'); } catch (_){ return iso; } }
+/* READ DOWN, THE STRIPE WAY, WITH JAMBO'S BRIEF (owner picked "the stripe way but in the jambo brief, add the highlights",
+   22 Nov 2026; folds "Summarise my board" into this page, the button and its card leave the Board): four figure cards,
+   each a door the page already has; Jambo's brief card (the counted sentence with its coloured words, the one to start
+   with quoted from the paper, then his paragraph — written only when Summarise is pressed, as before); the five readings
+   as one calm table with a soft status badge each; the quarters; the foot. No money. The same reading (hbRdnRead). */
+function hbRdnStatusOf(k, R){
+  const b = (tone, w) => `<span class="rd-st is-${tone}">${_hbE(w)}</span>`;
+  if (k === 'paper'){ const r = R.L.length - R.sig.length; return r ? b('amber', i18t('rd_st_review', { n: r })) : R.L.length ? b('green', i18t('rd_st_signed')) : b('gray', i18t('rd_st_none')); }
+  if (k === 'end') return R.ending.length ? b('ruby', i18t('rd_st_ends_first')) : b('gray', i18t('rd_st_none'));
+  if (k === 'streams') return R.streams.length ? b('violet', i18t('rd_st_streams', { n: R.streams.length })) : b('gray', i18t('rd_st_none'));
+  if (k === 'nego') return R.nego.length ? b('amber', i18t('rd_st_open', { n: R.nego.length })) : b('gray', i18t('rd_st_none'));
+  return R.late ? b('ruby', i18t('rd_st_late', { n: R.late })) : R.week ? b('amber', i18t('rd_st_week', { n: R.week })) : b('gray', i18t('rd_st_none'));
+}
+function hbRdnBriefHtml(){
+  const E = _hbE, key = HB_BOARD_KEY, src = hbBoardSrc();
+  const kept = hbWhyKept(key, src.sig), busy = _hbWhyBusy.has(key), err = _hbWhyErr.get(key);
+  const live = typeof copilotAvailable === 'function' && copilotAvailable();
+  const spark = typeof icon === 'function' ? icon('mkSpark', 'hb-spark-ic', 0) : _hbStar;
+  /* the counted sentence with its coloured, pressable words (hbGreetSayHtml), and the one to start with (hbBriefStartHtml) —
+     shown only once Summarise is pressed (owner, 11 Nov 2026: "nothing written … you should only see them once you press") */
+  let since = ''; try { since = hbGreetSayHtml(null, null); } catch (_){ since = ''; }
+  const x = `<button type="button" class="hb-ib hb-x rd-brief-x" data-hb-bs-x title="${E(i18t('hb_bs_close'))}" aria-label="${E(i18t('hb_bs_close'))}">${_hbX}</button>`;
+  const btn = `<button type="button" class="ui-btn ui-btn-sm rd-brief-go" data-hb-why="${E(key)}"${busy ? ' disabled' : ''}${live ? ` title="${E(i18tn('hb_cx_cost', src.cs.length, { n: _hbN(src.cs.length) }))}"` : ` disabled title="${E(i18t('hb_cx_nokey'))}"`}>${E(i18t(kept ? 'hb_bs_again' : 'hb_bs_btn'))}</button>`;
+  const head = (right) => `<div class="rd-brief-h"><span class="rd-brief-i" aria-hidden="true">${spark}</span><b>${E(i18t('rd_brief_t'))}</b>${kept ? `<span class="rd-brief-at">${E('· ' + i18t('hb_cx_when', { at: kept.at }))}</span>` : ''}<span class="hb-grow"></span>${right}</div>`;
+  let body;
+  if (busy) body = `${head('')}<p class="rd-brief-b hb-quiet">${E(i18t('hb_bs_busy'))}</p>`;
+  else if (err) body = `${head(x)}<p class="rd-brief-b">${E(err)}</p>`;
+  else if (kept) body = `${head(btn + x)}<div class="rd-brief-b" id="hb-gr-say">${[since, hbBriefStartHtml(), `<span class="rd-brief-jb">${spark}${E(i18t('rd_brief_jambo'))}</span> ${hbSay(kept.text)}`].filter(Boolean).join(' ')}</div>
+      <p class="rd-brief-f ${kept.dropped ? 'is-cut' : ''}">${E(kept.dropped ? i18tn('hb_cx_dropped', kept.dropped, { n: kept.dropped }) : i18t('hb_cx_ok'))}</p>`;
+  else body = `${head(btn)}<p class="rd-brief-b hb-quiet">${E(i18t('rd_brief_say'))}</p>`;
+  return `<section class="rd-brief${kept ? ' is-kept' : ''}" aria-live="polite">${body}</section>`;
+}
 function hbRdnHtml(){
   const R = hbRdnRead(), E = _hbE, S = hbRdnSentences(R);
   let when = ''; try { when = new Date().toLocaleDateString(langLocale(), { weekday: 'long', day: 'numeric', month: 'long' }); } catch (_){ when = ''; }
-  const rows = S.map((x, i) => `<div class="rd-row" data-rd-row="${i}"><p class="rd-t">${E(x.t)}</p><div class="rd-src"><b>${E(x.src)}</b><button type="button" class="rd-go" data-rd-go="${E(x.go)}">${E(x.door)}</button></div></div>`).join('');
-  const max = Math.max(1, ...R.quarters.map(q => q.v || q.n));
-  const qName = q => { try { const a = new Date(Number(q.y), q.q * 3, 1), b = new Date(Number(q.y), q.q * 3 + 2, 1); return a.toLocaleDateString(langLocale(), { month: 'short' }) + '–' + b.toLocaleDateString(langLocale(), { month: 'short' }) + ' ' + q.y; } catch (_){ return q.k; } };
-  const bars = R.quarters.map(q => `<div class="rd-q"><span class="rd-q-k">${E(qName(q))}</span><span class="rd-q-bar"><i class="${q.signed ? 'is-signed' : ''}" style="width:${Math.max(2, Math.round(100 * (q.v || q.n) / max))}%"></i></span><span class="rd-q-v">${E([R.money(q.v), String(q.n)].filter(Boolean).join(' · '))}</span></div>`).join('');
   const needs = typeof counterNeedsCount === 'function' ? counterNeedsCount() : 0;
+  let D = null; try { D = typeof ndRead === 'function' ? ndRead() : null; } catch (_){ D = null; }
+  /* the oldest's wait, said the one way the Board says it (hbNyDays: "52 days", "today") */
+  const oldest = needs && D && D.oldest != null && typeof hbNyDays === 'function' ? hbNyDays(D.oldest) : null;
+  const f = R.ending[0];
+  let firstEnd = ''; try { firstEnd = f ? new Date(R.exp(f) + 'T00:00:00').toLocaleDateString(langLocale(), { month: 'short', year: 'numeric' }).replace(/\bSept\b/, 'Sep') : ''; } catch (_){ firstEnd = ''; }
+  const badge = (tone, w) => w ? ` <span class="rd-st is-${tone}">${E(w)}</span>` : '';
+  const fig = (go, label, n, b) => `<button type="button" class="rd-fig" data-rd-go="${E(go)}"><span class="rd-fig-k">${E(label)}</span><span class="rd-fig-v"><b>${E(String(n))}</b>${b}</span></button>`;
+  const figs = `<div class="rd-figs">${fig('needs', i18t('rd_fig_wait'), needs, oldest != null ? badge('amber', oldest) : '')}`
+    + fig('contracts', i18t('rd_fig_signed'), R.sig.length, R.L.length && R.sig.length === R.L.length ? badge('green', i18t('rd_b_all')) : badge('gray', R.L.length ? i18t('rd_b_of', { n: R.L.length }) : ''))
+    + fig('calendar', i18t('rd_fig_end'), R.ending.length, badge('ruby', firstEnd))
+    + fig('negotiations', i18t('rd_fig_nego'), R.nego.length, R.ours.length ? badge('amber', i18t('rd_b_your', { n: R.ours.length })) : '') + `</div>`;
+  const rows = S.map((x, i) => `<tr data-rd-row="${i}"><td class="rd-td-t">${E(x.t)}</td><td>${hbRdnStatusOf(x.k, R)}</td><td class="rd-td-src">${E(x.src)}</td><td class="rd-td-go"><button type="button" class="rd-go" data-rd-go="${E(x.go)}">${E(x.door)}</button></td></tr>`).join('');
+  const table = `<table class="rd-tbl"><thead><tr><th>${E(i18t('rd_th_reading'))}</th><th>${E(i18t('rd_th_status'))}</th><th>${E(i18t('rd_th_source'))}</th><th class="rd-td-go">${E(i18t('rd_th_open'))}</th></tr></thead><tbody>${rows}</tbody></table>`;
+  /* ENDING, BY QUARTER · AGREEMENTS (P-41; was "value on paper"): one bar per quarter by count, the nearest red */
+  const max = Math.max(1, ...R.quarters.map(q => q.n));
+  const qName = q => { try { const a = new Date(Number(q.y), q.q * 3, 1), b = new Date(Number(q.y), q.q * 3 + 2, 1); const m = d => d.toLocaleDateString(langLocale(), { month: 'short' }).replace(/^Sept$/, 'Sep'); return m(a) + '–' + m(b) + ' ' + q.y; } catch (_){ return q.k; } };
+  const bars = R.quarters.map((q, i) => `<div class="rd-q"><span class="rd-q-k">${E(qName(q))}</span><span class="rd-q-bar"><i class="${i === 0 ? 'is-near' : 'is-signed'}" style="width:${Math.max(2, Math.round(100 * q.n / max))}%"></i></span><span class="rd-q-v">${E(String(q.n))}</span></div>`).join('');
   const foot = [['needs', i18t('rd_f_needs', { n: needs })], ['contracts', i18t('rd_f_contracts', { n: R.L.length })], ['calendar', i18t('rd_f_calendar')], ['explorer', i18t('rd_f_explorer')], ['negotiations', i18t('rd_f_nego')], ['activity', i18t('rd_f_history')]]
     .map(([k, w]) => `<button type="button" class="rd-go" data-rd-go="${E(k)}">${E(w)}</button>`).join('');
-  return `<div class="rd-page apn-card" id="rd-page"><div class="rd-head"><button type="button" class="ctf-back" data-rd-back>‹ ${E(i18t('hb_face_board'))}</button><span class="rd-eyebrow">${E(i18t('rd_eyebrow', { when }))}</span></div>
-    <h1 class="rd-h">${E(i18t('rd_title'))}</h1><div class="rd-rows">${rows}</div>
-    ${bars ? `<div class="rd-cap">${E(i18t(R.see ? 'rd_q_cap' : 'rd_q_cap_n'))}</div><div class="rd-qs">${bars}</div>` : ''}
-    <div class="rd-foot"><span class="rd-foot-l">${foot}</span><button type="button" class="rd-print" data-rd-print>${E(i18t('rd_print'))}</button></div></div>`;
+  return `<div class="rd-page apn-card is-ls is-stripe" id="rd-page"><div class="rd-head"><button type="button" class="ctf-back" data-rd-back>‹ ${E(i18t('hb_face_board'))}</button><span class="rd-eyebrow">${E(i18t('rd_eyebrow', { when }))}</span><span class="hb-grow"></span><button type="button" class="rd-print" data-rd-print>${E(i18t('rd_print'))}</button></div>
+    <h1 class="rd-h">${E(i18t('rd_title'))}</h1>${figs}${hbRdnBriefHtml()}${table}
+    ${bars ? `<div class="rd-cap">${E(i18t('rd_q_cap_n'))}</div><div class="rd-qs">${bars}</div>` : ''}
+    <div class="rd-foot"><span class="rd-foot-l">${foot}</span></div></div>`;
+}
+/* THE FIVE PARTS ON READ DOWN (owner picked "Five Parts" by name, 18 Nov 2026): the book in three numbers (on paper,
+   ending within a year, your move), the three things worth a closer look as rows, each by a door the page already
+   has (data-rd-show / data-rd-go, the renewal's own needsYouGo), and the first renewal decision as the one black
+   button. The same reading as the page (hbRdnRead); no AI. The new look only. */
+function hbRdnPanelFive(R){
+  /* THE LEGORA + STRIPE WAY (P-41): NO MONEY, no tiles. "The first decision" (a red "in N days", what, the act, black),
+     then "Look closer", each row by a door the page already has. The same reading as the page; no AI. */
+  const f = R.ending[0];
+  const today = typeof todayISO === 'function' ? todayISO() : '';
+  const days = f && today ? Math.round((new Date(R.exp(f) + 'T12:00:00') - new Date(today + 'T12:00:00')) / 864e5) : null;
+  const rows = [];
+  if (f) rows.push({ mark: 'calendar', tone: 'green', t: i18t('rd_p_first_ends', { name: f.name || '' }), s: hbRdnDayShort(R.exp(f)), attr: 'data-rd-go="calendar"' });
+  const byN = new Map(); R.L.forEach(c => { const p = String(c.counterparty || '').trim(); if (!p) return; const e = byN.get(p) || { p, cs: [] }; e.cs.push(c); byN.set(p, e); });
+  const most = [...byN.values()].sort((x, y) => y.cs.length - x.cs.length)[0] || null;
+  if (most) rows.push({ mark: 'users', tone: 'steel', t: i18t('rd_p_most', { p: most.p }), s: i18t('rd_p_open_them'), attr: `data-rd-show="${_hbE(most.cs.map(c => c.id).join(','))}" data-rd-label="${_hbE(most.p)}"` });
+  if (R.late) rows.push({ mark: 'alert', tone: 'red', t: i18tn('rd_late', R.late, { n: R.late }), s: i18t('jov5_rd_late_s'), attr: 'data-rd-go="oblig"' });
+  else rows.push({ mark: 'file', t: i18tn('rd_p_nego', R.nego.length, { n: R.nego.length }), s: R.ours.length ? i18tn('jov5_rd_nego_s', R.ours.length, { n: R.ours.length }) : i18t('jov5_rd_nego_none'), attr: 'data-rd-go="negotiations"' });
+  /* AS DRAWN (P-41): "The first decision", a red "in N days" badge beside "Renew X or not", the term's own words, the act */
+  const tq = f ? hbRdnTermQuote(f) : null;
+  const act = f ? { head: i18t('rd_p_first_head'), sayHtml: `${days != null ? `<span class="rd-p-in">${_hbE(i18tn('rd_p_in_days', days, { n: days }))}</span> ` : ''}${_hbE(i18t('rd_p_renew_or_not', { name: f.name || '' }))}`,
+      q: tq ? '“' + tq.w + '”' + (tq.sec ? ' ' + tq.sec : '') : '', label: i18t('jov5_rd_act_b', { name: f.name || '' }),
+      run: () => { _hbRdn = false; if (typeof needsYouGo === 'function') needsYouGo('renewal', f.id); } }
+    : { say: i18t('jov5_rd_act_none'), label: i18t('jov5_rd_act_cal'), attr: 'data-rd-go="calendar"' };
+  let time = ''; try { time = new Date().toLocaleTimeString(langLocale(), { hour: '2-digit', minute: '2-digit' }); } catch (_){ time = ''; }
+  return { eyebrow: i18t('jov5_rd_eb'), title: i18t('jov5_rd_t'), sub: i18t('rd_p_sub_now', { time }),
+    act, actFirst: true,
+    groups: [{ label: i18t('jov5_rd_closer'), rows }] };
 }
 /* the read down's panel: what was read, the next questions (the cost said), Jambo's line on the book */
 function hbRdnPanelHtml(){
+  if (typeof newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function')
+    return `<div class="jl-words is-ov rd-five">${jamboOverviewHtml(hbRdnPanelFive(hbRdnRead()), 'rdn')}</div>`;
   const R = hbRdnRead(), E = _hbE, m = R.money;
   const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src || '')}</i></div>`;
   const f = R.ending[0];
@@ -6358,7 +6588,10 @@ function hbBoardHtml(){
      are late … I prepared 53 for you." left the greeting and opens "Your board, in brief", at the card's own size;
      counted with no Jambo call, every fact a door, as before (hbGreetSayHtml) */
   let since = ''; if (hbGreetOn()) try { since = hbGreetSayHtml(moved, base && base.at); } catch (_){ since = ''; }
-  const bs = hbBoardSumHtml(since);
+  /* SUMMARISE MY BOARD LIVES ON READ DOWN (owner, 22 Nov 2026: "why do we need to have both summarise my board and read
+     down … just have it all combined into read down"): no button and no brief card on the Board; Read down carries the
+     brief (hbRdnBriefHtml), its press the same (data-hb-why, HB_BOARD_KEY) */
+  void since; const bs = { btn: '', box: '' };
   /* THE BOARD: its head, Your book, then ALL of Needs you (Round A, the
      owner's yes of 22 Oct 2026: Home keeps the top three of each group and
      "Show all" lands here; it took the place of Jambo's work card), Today's
@@ -6540,7 +6773,7 @@ function hbPackData(name, lens){
     P.bars = stds.slice(0, 8).map((t, i) => ({ g: t.s, label: t.s, n: t.cs.length, v: money ? t.v : t.cs.length, say: _hbN(t.cs.length) + (money ? ' · ' + _hbM(t.v) : ''), dig: list('s' + i, t.s, t.cs) }));
     P.cards = [{ id: 'c1', title: i18t('hb_pk_c_std'), chart: { pic: 'ring', split: { by: 'standards' }, measure: 'count' }, ids: live.map(c => c.id) }];
     P.facts = [`Checked against our standards: ${checked} of ${live.length}; never checked: ${unchecked.length}.`,
-      'Standards broken (standard: contracts, value):', ...stds.map(t => `- ${t.s}: ${t.cs.length}, ${fv(t.v)}`),
+      'Playbook positions broken (position: contracts, value):', ...stds.map(t => `- ${t.s}: ${t.cs.length}, ${fv(t.v)}`),
       'Contracts off standard, largest first (ref: value; standards broken):', ...off.slice(0, HB_PACK_ROWS).map(c => `- ${hbRef(c)}${c.counterparty ? ' (' + c.counterparty + ')' : ''}: ${fv(hbValueOfOne(c))}; ${hbStdBreaches(c).join(', ')}`)];
     P.next = [i18t('hb_pk_n_s1'), i18t('hb_pk_n_s2'), i18t('hb_pk_n_s3')];
     P.steps = [i18t('hb_pk_s_s1'), i18t('hb_pk_s_s2'), i18t('hb_pk_s_s3')];
@@ -6625,6 +6858,35 @@ function hbBoardSrc(lens){
   return { key: HB_BOARD_KEY, title: i18t('hb_bs_title'), head: 'The whole HaTi Home board, as it stands now.', data,
     reading: { lines: [], counts, keys: [] }, cs, sig: hbWhySigOf('board', cs) };
 }
+/* THE BOARD JOINS ITS PANEL'S ARRIVAL (P-39's motion, as drawn: "numbers count up; bars grow from the left; the six-month
+   lines draw themselves"): called by jovPlay when the Board's panel arrives — so it plays exactly as rarely
+   (jovArriveSweep: first open of a day, then at most every 5 hours; never on a redraw, tab, Back or refresh; never under
+   reduced motion). Transform, opacity and a line's own dash only; the numbers are put back as they were. */
+function hbArrivePage(){
+  const book = document.getElementById('hb-book'); if (!book) return;
+  const parts = [...book.querySelectorAll('.hb-spark, .hb-stagebar')];
+  parts.forEach(x => x.classList.add('jov-draw'));
+  setTimeout(() => parts.forEach(x => { try { x.classList.remove('jov-draw'); } catch (_){} }), 2200);
+  /* the numbers count up OVER the true number, which the figure's own text keeps throughout (jovCountOver): a repaint
+     meanwhile (hbMorph) simply replaces the span and the count ends there */
+  if (typeof window.jovCountOver === 'function') book.querySelectorAll('.hb-fig-n').forEach(b => window.jovCountOver(b));
+}
+/* THE ONE TO START WITH (P-39, as drawn: "The one to start with: Fuel Supply’s renewal, “The Term ends on 20 December
+   2026 unless renewed” § 2."): the first late row that is the reader's own to decide (else the first late row) whose paper
+   words are on record (cn2QuoteOf); counted, never written by an AI; nothing said where no late row has words */
+function hbBriefStartHtml(){
+  let D = null; try { D = typeof ndRead === 'function' ? ndRead() : null; } catch (_){ D = null; }
+  if (!D || typeof window.cn2QuoteOf !== 'function') return '';
+  const late = D.you.concat(D.jambo).filter(r => r.late);
+  const pick = late.map(r => ({ r, q: (cn2QuoteOf(r) || []).find(q => q && q.w) })).filter(x => x.q);
+  const one = pick.find(x => x.r.g !== 'jambo') || pick[0]; if (!one) return '';
+  let P = {}; try { P = typeof ndParts === 'function' ? ndParts(one.r) : {}; } catch (_){ P = {}; }
+  const it = (one.r.y && one.r.y.x && one.r.y.x.it) || one.r.it || {};
+  const name = P.name || P.deal || '';
+  const what = (it.kind === 'renewal' || it.kind === 'notice') && name ? i18t('hb_bs_start_renewal', { name }) : [P.title, name].filter(Boolean).join(', ');
+  if (!what) return '';
+  return `${_hbE(i18t('hb_bs_start', { what }))} <q class="hb-why-q">${_hbE(one.q.w)}</q>${one.q.sec ? ' ' + _hbE(one.q.sec) : ''}.`;
+}
 /* THE BRIEF'S ×: the kept brief and any failure are let go, so nothing is written until Summarise is pressed again */
 function hbBriefShut(){
   const s = hbS(); if (s.why && s.why[HB_BOARD_KEY]){ delete s.why[HB_BOARD_KEY]; hbSave(); }
@@ -6632,6 +6894,8 @@ function hbBriefShut(){
 }
 function hbBoardSumHtml(since){
   const src = hbBoardSrc(); const key = HB_BOARD_KEY;
+  /* Jambo's own spark, filled green, on the button and the brief's head (as drawn, P-39) */
+  const spark = typeof icon === 'function' ? icon('mkSpark', 'hb-spark-ic', 0) : _hbStar;
   const kept = hbWhyKept(key, src.sig), busy = _hbWhyBusy.has(key), err = _hbWhyErr.get(key);
   const live = typeof copilotAvailable === 'function' && copilotAvailable();
   /* A BUTTON, NOT A LINK (Young, 7 Oct 2026: "summarise my board should be a
@@ -6639,17 +6903,19 @@ function hbBoardSumHtml(since){
   /* THE COST IN ITS HOVER, NOT ON ITS FACE (owner, 29 Oct 2026, off a screenshot of this head: "the jambo count
      next to summarise my board disappears"; reverses round 17's "1 Jambo call" segment): the button says what it
      costs when the pointer rests on it, and nothing is spent until it is pressed */
-  const btn = `<button type="button" class="hb-btn is-sm hb-bs-go" data-hb-why="${_hbE(key)}"${busy ? ' disabled' : ''}${live ? ` title="${_hbE([i18t('hb_bs_cost'), i18tn('hb_cx_cost', src.cs.length, { n: _hbN(src.cs.length) })].filter(Boolean).join(' · '))}"` : ` disabled title="${_hbE(i18t('hb_cx_nokey'))}"`}>${_hbStar}${_hbE(i18t(kept ? 'hb_bs_again' : 'hb_bs_btn'))}</button>`;
+  const btn = `<button type="button" class="hb-btn is-sm hb-bs-go" data-hb-why="${_hbE(key)}"${busy ? ' disabled' : ''}${live ? ` title="${_hbE([i18t('hb_bs_cost'), i18tn('hb_cx_cost', src.cs.length, { n: _hbN(src.cs.length) })].filter(Boolean).join(' · '))}"` : ` disabled title="${_hbE(i18t('hb_cx_nokey'))}"`}>${spark}${_hbE(i18t(kept ? 'hb_bs_again' : 'hb_bs_btn'))}</button>`;
   let box = '';
   /* the counted sentence leads the card, word for word, at the card's own size; Jambo's paragraph follows, marked */
   const lead = since ? `<p class="hb-why-b hb-why-since" id="hb-gr-say">${since}</p>` : '';
-  const who = since ? `<b class="hb-why-who">${_hbE(i18t('cn2_jambo'))}:</b> ` : '';
   /* THE × (owner, 11 Nov 2026): closes the brief; it comes back only when Summarise is pressed again (hbBriefShut) */
   const x = `<button type="button" class="hb-ib hb-x hb-why-x" data-hb-bs-x title="${_hbE(i18t('hb_bs_close'))}" aria-label="${_hbE(i18t('hb_bs_close'))}">${_hbX}</button>`;
-  if (busy) box = `<div class="hb-why" aria-live="polite"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span></div>${lead}<p class="hb-quiet">${_hbE(i18t('hb_bs_busy'))}</p></div>`;
-  else if (err) box = `<div class="hb-why is-err" aria-live="polite"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span><span class="hb-grow"></span>${x}</div>${lead}<p>${_hbE(err)}</p></div>`;
-  else if (kept) box = `<div class="hb-why"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span><span class="hb-grow"></span><span class="hb-read-src">${_hbE(i18t('hb_cx_when', { at: kept.at }))}</span>${x}</div>
-    ${lead}<div class="hb-why-b">${who}${hbSay(kept.text)}</div>
+  if (busy) box = `<div class="hb-why" aria-live="polite"><div class="hb-why-h">${spark}<span>${_hbE(i18t('hb_bs_title'))}</span></div>${lead}<p class="hb-quiet">${_hbE(i18t('hb_bs_busy'))}</p></div>`;
+  else if (err) box = `<div class="hb-why is-err" aria-live="polite"><div class="hb-why-h">${spark}<span>${_hbE(i18t('hb_bs_title'))}</span><span class="hb-grow"></span>${x}</div>${lead}<p>${_hbE(err)}</p></div>`;
+  /* AS DRAWN (P-39, owner 21 Nov 2026): ONE paragraph — the counted sentence, the one to start with quoted from the paper
+     (hbBriefStartHtml, counted, never written by an AI), then Jambo's words; no dashed line, no "Jambo:" label (the
+     card's head and its foot say whose it is and that every number in it is on HaTi's fact sheet) */
+  else if (kept) box = `<div class="hb-why is-one"><div class="hb-why-h">${spark}<span>${_hbE(i18t('hb_bs_title'))}</span><span class="hb-grow"></span><span class="hb-read-src">${_hbE(i18t('hb_cx_when', { at: kept.at }))}</span>${x}</div>
+    <div class="hb-why-b hb-why-one"${since ? ' id="hb-gr-say"' : ''}>${[since, hbBriefStartHtml(), hbSay(kept.text)].filter(Boolean).join(' ')}</div>
     <div class="hb-why-f"><span class="${kept.dropped ? 'hb-why-cut' : 'hb-why-ok'}">${_hbE(kept.dropped ? i18tn('hb_cx_dropped', kept.dropped, { n: kept.dropped }) : i18t('hb_cx_ok'))}</span></div></div>`;
   /* NOTHING IS WRITTEN UNTIL SUMMARISE IS PRESSED (owner, 11 Nov 2026: "There should be nothing written such as I
      prepared for you etc. you should only see them once you press"; reverses the card standing before the press) */
@@ -7332,7 +7598,10 @@ function hbMorph(host, html){
 function hbMorphSameShell(a, b){
   if (a.nodeType !== b.nodeType || a.nodeName !== b.nodeName) return false;
   if (a.nodeType !== 1) return true;
-  if (a.attributes.length !== b.attributes.length) return false;
+  /* a number counting up carries its count as a mark painted over it (data-jov-count, jovCountOver), never in its
+     words: the mark is not markup, so a redraw that writes the same number keeps the count going */
+  const extra = a.hasAttribute('data-jov-count') && !b.hasAttribute('data-jov-count') ? 1 : 0;
+  if (a.attributes.length - extra !== b.attributes.length) return false;
   for (const at of b.attributes) if (a.getAttribute(at.name) !== at.value) return false;
   return true;
 }
@@ -10143,7 +10412,9 @@ function hbAsk(q){
   }
   if (r.act === 'openc'){
     const c = hbContract(r.id); const K = hbCardData(c);
-    setTimeout(() => { if (typeof regOpenContract === 'function') regOpenContract(c.id); }, 0);
+    /* a contract not read whole yet is read first, its landing said meanwhile (navReadFirst, js/navmap.js) */
+    const open = () => { if (typeof regOpenContract === 'function') regOpenContract(c.id); };
+    if (!(typeof window.navReadFirst === 'function' && window.navReadFirst(c, open))) setTimeout(open, 0);
     return say(`${_hbE(i18t('hb_opening'))} <b>${_hbRefH(K.ref)} · ${_hbE(K.name)}</b>`, { noPaint: true });
   }
   if (r.act === 'analyze'){
@@ -10273,7 +10544,10 @@ function hbSuggestions0(s){
   if (s.panels.length) out.push(s.lens === 'all' ? i18t('hb_sug_suppliers') : i18t('hb_sug_all'));
   return out.slice(0, 3);
 }
-function hbPlaceholder(){ return hbS().face === 'board' ? i18t('hb_ask_ph') : null; }
+/* the Contracts list on Home (the 'paper' face with no contract in front, igAskPlaceholder) asks with its own example: the
+   list's top box only filters, questions are Jambo's, here (owner, 22 Nov 2026: "make them honest labels but jambo should
+   have the ability to answer those questions") */
+function hbPlaceholder(){ const f = hbS().face; return f === 'board' ? i18t('hb_ask_ph') : f === 'paper' ? i18t('jl_ph_pg_contracts') : null; }
 
 /* An answer from Copilot or the map that came back as a LIST: shown on the
    board as a dig-in, so a question asked on the board never lands only on
@@ -10707,6 +10981,8 @@ function hbPlace(){
        back on are these faces now) */
     const face = typeof window.pdFaceNow === 'function' ? pdFaceNow() : ''; if (face) p.paper.face = face;
     /* and History standing in the middle (the strip that kept it is gone, 9 Nov 2026): a refresh lands back on it */
+    /* and Fill in the contract, on the paper or as the form in the middle: a refresh lands back in it (#762) */
+    if (!face && ((typeof window.pd2FillOn === 'function' && pd2FillOn(c.id)) || (typeof window.pdFormMidUp === 'function' && pdFormMidUp() && document.querySelector(`[data-pd-mid="form:${CSS.escape(String(c.id))}"]`)))) p.paper.fill = true;
     if (typeof window.pd2HistUp === 'function' && pd2HistUp(c.id)) p.paper.mid = 'hist';
     else if (typeof window.pd2StandsUp === 'function' && pd2StandsUp(c.id)) p.paper.mid = 'where'; } } catch (_){} }
   /* the Board keeps Needs you's tab, kind and find words (Round A) */
@@ -10718,6 +10994,8 @@ function hbPlace(){
   /* and with a paper open, the place's Wall | List under it (20 Oct 2026: the
      place lands on the List, so a reader's Wall is kept across a refresh) */
   if (s.face === 'paper' && p.paper && window.state && state.reg && state.reg.show) p.show = state.reg.show;
+  /* and whether the place stood on its Folders (#762) */
+  if (s.face === 'paper' && typeof window.regFoldersNow === 'function') p.folders = regFoldersNow();
   return p;
 }
 const HB_RESUME_HAND = ['pointerdown', 'keydown', 'wheel', 'touchstart'], HB_RESUME_HAND_MS = 20000;
@@ -10733,6 +11011,7 @@ function hbPlacePut(p){
   if (p.nd && typeof window.ndPlacePut === 'function'){ try { ndPlacePut(p.nd); } catch (_){} }
   if (p.wall && typeof window.igWallPlacePut === 'function'){ try { igWallPlacePut(p.wall); } catch (_){} }
   if (!p.wall && (p.show === 'wall' || p.show === 'list') && typeof window.regPlaceSet === 'function'){ try { regPlaceSet({ show: p.show }); } catch (_){} }
+  if (typeof p.folders === 'boolean' && typeof window.regFoldersSet === 'function') regFoldersSet(p.folders);
   /* a contract's view saved before 15 Oct 2026 (p.cv) is dropped: the views are gone */
   /* the contract goes back on the Document face once the list holds it,
      through the one door (igWalk), bounded; a contract chosen meanwhile wins */
@@ -10767,8 +11046,12 @@ function hbPlacePut(p){
         /* the face through its own door (pdOpenOnHome), which puts the
            contract on the paper the same way */
         /* the middle page comes back only while this contract is still the one in front: a reader who opened another in
-           the meantime is never pulled back to this one (since the Cover, f1085, every contract opened on purpose keeps 'where') */
-        const midBack = () => { if ((want.mid === 'hist' || want.mid === 'where') && typeof window.hbStripBring === 'function') setTimeout(() => { try {
+           the meantime is never pulled back to this one */
+        /* filling in comes back through its one door, once the paper stands (#762) */
+        const fillBack = () => { if (want.fill && typeof window.pdFillGo === 'function') setTimeout(() => { try {
+          const pc = (typeof window.pdContract === 'function') ? pdContract() : null;
+          if (!pc || String(pc.id) !== String(want.id)) return; pdFillGo(want.id); } catch (_){} }, 400); };
+        const midBack = () => { fillBack(); if ((want.mid === 'hist' || want.mid === 'where') && typeof window.hbStripBring === 'function') setTimeout(() => { try {
           const pc = (typeof window.pdContract === 'function') ? pdContract() : null;
           /* …and only while its paper is still what stands: a reader who left for a page with no paper (Contracts) is never pulled back */
           if (!pc || String(pc.id) !== String(want.id) || (typeof window.pdOnPaper === 'function' && !pdOnPaper())) return;
@@ -10931,7 +11214,7 @@ function hbOnClick(e){
   /* "Workspace" opens Home, never the room (the overnight work order, step 2;
      roomHomeLand, the one landing every Workspace door shares) */
   if ((el = on('[data-hb-room]'))){ const id = el.getAttribute('data-hb-room');
-    if (!(window.roomHomeLand && roomHomeLand(id, { cover: true })) && typeof openWorkspace === 'function') openWorkspace(id); return; }
+    if (!(window.roomHomeLand && roomHomeLand(id, { open: true })) && typeof openWorkspace === 'function') openWorkspace(id); return; }
   if ((el = on('[data-hb-bs-x]'))){ hbBriefShut(); return; }
   if ((el = on('[data-hb-why]'))){ hbWhyAsk(el.getAttribute('data-hb-why')); return; }
   /* the Pulse board, the head's last button (29 Oct 2026) */
@@ -10959,6 +11242,7 @@ function hbOnClick(e){
   if ((el = on('[data-hb-ai]'))){ hbAskInPanel(el.getAttribute('data-hb-ai'), el.getAttribute('data-hb-ai-id')); return; }
   if ((el = on('[data-hb-ser]'))){ hbSerToggle(el.getAttribute('data-hb-ser-key'), el.getAttribute('data-hb-ser')); hbPaintBoard(); return; }
   if (on('[data-hb-figpick]')){ _hbFigPick = !_hbFigPick; hbPaintBoard(); return; }
+  if (on('[data-hb-figusual]')){ const s = hbS(); s.figs = HB_FIGS_DEFAULT.slice(); hbSave(); hbPaintBoard(); return; }
   if ((el = on('[data-hb-figkey]'))){ if (!el.disabled){ hbFigToggle(el.getAttribute('data-hb-figkey')); hbPaintBoard(); } return; }
   /* THE AGENTS HAVE ONE PLACE (12 Oct 2026): the card's "The agents" opens
      Jambo's agents behind Insights — his house, his jobs and his points —
@@ -11550,8 +11834,8 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { hbDraftBtnHtml, hbRdnUp, hbRdnBook, hbRdnRead, hbRdnSentences, hbRdnHtml, hbRdnPanelHtml, hbRdnBtnHtml });
-Object.assign(window, { hbThenDay, hbArrive, hbSheetLetGo, hbBoardInFront, hbLandOnCard, hbThenWord, HB_STAGE_FIG, hbStageThen, HB_FIG_TO_CONTRACTS, hbFigDoor, hbEmptyHtml, hbSetupLeft, hbSetupGo, hbNyAge, hbNeedsList, hbNeedsCount, hbNyWhat, hbNyDays, hbNyWhen, hbNyOldestSay, HB_VIEWS_ASK_RE, hbSavedViewsSay, hbHeadWord, hbValueSay, hbAnalyticAsk, hbResMend, hbRecipeMend, hbMendFacts, hbMendPic, hbMendWhich, hbMendTime, HB_MEND_FACTS, HB_ANALYTIC_RE, HB_ADVICE_RE, HB_CARD_EDIT_RE, hbEndingDecided, hbBoardHelloOn, hbBoardHelloHtml, hbCountedAt, hbBoardHeadHtml, hbPulseBtnHtml, hbExplorerBtnHtml, hbGreetOn, hbGreetSayHtml, hbGreetSince, hbNeedsOpen, hbNeedsPress, hbOpenCalendar, hbOpenContracts, hbOpenHome, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgPieceHtml, hbAgLookToggle, hbAgLookSet, hbNdOpts, hbNdLookHtml, hbAgentWorkPress, hbOpenAgent, hbAgLevelsHtml, hbLvAsk, hbLvAskState, hbAgLevelsWanted, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbDdOn, hbDdOnHtml, hbDdOnPress, hbDdBodyHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBriefShut, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbAskFound, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSet, hbAnswerSay, HB_FOUND_TITLE_MAX, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS, HB_AMOUNT_Q, hbLeadSay,
+Object.assign(window, { hbDraftBtnHtml, hbRdnPanelFive, hbRdnUp, hbRdnBook, hbRdnRead, hbRdnSentences, hbRdnHtml, hbRdnPanelHtml, hbRdnBtnHtml, hbRdnTermQuote });
+Object.assign(window, { hbThenDay, hbArrive, hbSheetLetGo, hbBoardInFront, hbLandOnCard, hbThenWord, HB_STAGE_FIG, hbStageThen, HB_FIG_TO_CONTRACTS, hbFigDoor, hbEmptyHtml, hbSetupLeft, hbSetupGo, hbNyAge, hbNeedsList, hbNeedsCount, hbNyWhat, hbNyDays, hbNyWhen, hbNyOldestSay, HB_VIEWS_ASK_RE, hbSavedViewsSay, hbHeadWord, hbValueSay, hbAnalyticAsk, hbResMend, hbRecipeMend, hbMendFacts, hbMendPic, hbMendWhich, hbMendTime, HB_MEND_FACTS, HB_ANALYTIC_RE, HB_ADVICE_RE, HB_CARD_EDIT_RE, hbEndingDecided, hbBoardHelloOn, hbBoardHelloHtml, hbCountedAt, hbBoardHeadHtml, hbPulseBtnHtml, hbExplorerBtnHtml, hbGreetOn, hbGreetSayHtml, hbGreetSince, hbNeedsOpen, hbNeedsPress, hbOpenCalendar, hbOpenContracts, hbOpenHome, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgPieceHtml, hbAgLookToggle, hbAgLookSet, hbNdOpts, hbNdLookHtml, hbAgentWorkPress, hbOpenAgent, hbAgLevelsHtml, hbLvAsk, hbLvAskState, hbAgLevelsWanted, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbDdOn, hbDdOnHtml, hbDdOnPress, hbDdBodyHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBriefShut, hbBriefStartHtml, hbArrivePage, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbAskFound, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSet, hbAnswerSay, HB_FOUND_TITLE_MAX, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS, HB_AMOUNT_Q, hbLeadSay,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbOpenRef, HB_OPEN_REF_LEAD, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

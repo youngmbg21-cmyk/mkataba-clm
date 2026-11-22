@@ -71,7 +71,8 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
        REVERSES "Owed first"'s face): Still owed's grid is the one worklist,
        every owed fact a row with its box; the answered ones are Key terms'
        lines, folded under it */
-    const FACE = () => { const og = document.getElementById('pd-og'); if (!og) return null;
+    /* RE-POINTED 16 Nov 2026 (#762): with the form put away the new look's Dossier has no #pd-og at all — read as no rows */
+    const FACE = () => { const og = document.getElementById('pd-og') || document.createElement('table');
       const vis = el => !!(el && (el.checkVisibility ? el.checkVisibility() : el.getClientRects().length) && getComputedStyle(el).display !== 'none');
       /* RE-POINTED 21 Oct 2026 (THE MIDDLE, owner): Key terms is ONE line in the Dossier and its table
          stands in the middle; its rows are the ones that table draws (pdKtRowsHtml) */
@@ -102,15 +103,18 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
       !!F && F.rows.length === F.left && F.rows.every(r => r.vis && r.top > F.headTop) && F.rows.some(r => /Start date/.test(r.label)) && F.rows.some(r => /Effective/.test(r.label)), JSON.stringify(F));
     /* RE-POINTED 28 Oct 2026 (owner picked "Fill in the contract"): the owed facts stand in the form the Fill in door
        opens; the answered ones are Key terms' one line on the Dossier, the form's way back */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's Dossier draws no Key terms line; the
+       answered ones are still Key terms' lines (pdKtFacts), its table opened in the middle by its one opener (pdKtMid,
+       the door "key terms" and Key terms' own doors press) and put away by it again */
     await page.evaluate(() => pdFormClose());
-    await until(() => !!document.querySelector('#ig-dock [data-pd-kt-mid] > summary'), null, 4000);
+    await until(() => !!document.querySelector('#ig-dock [data-pd2-card]') && !document.querySelector('#pd-og.is-form'), null, 4000);
     const FD = await page.evaluate(FACE);
-    check('1b the answered ones are Key terms\' lines, one line on the Dossier', !!FD && /^Key terms/.test(FD.fold) && FD.ktRows.length > 0 && FD.ktRows.every(r => !r.vis) && !FD.open, FD && FD.fold);
-    await page.click('#ig-dock [data-pd-kt-mid] > summary');
+    check('1b the answered ones are Key terms\' lines, its table not in the middle until asked', !!FD && FD.ktRows.length > 0 && FD.ktRows.every(r => !r.vis) && !FD.open, FD && JSON.stringify(FD.ktRows));
+    await page.evaluate(() => pdKtMid(pdContract().id));
     await until(() => !!document.querySelector('[data-pd-mid-kt] #pd-kt tr'), null, 4000); await page.waitForTimeout(300);
     const opened = await page.evaluate(FACE);
     check('1c pressed, the table comes to the middle and shows them', opened.open && opened.ktRows.length > 0 && opened.ktRows.every(r => r.vis), JSON.stringify(opened.ktRows));
-    await page.click('#ig-dock [data-pd-kt-mid] > summary');
+    await page.evaluate(() => pdKtMid(pdContract().id));
     await until(() => !document.querySelector('[data-pd-mid-kt]'), null, 4000);
     check('1d pressed again, the paper comes back', !(await page.evaluate(FACE)).open);
     await shot(page, 'owed-first-1440x780');
@@ -148,6 +152,10 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
       owed: ((detailsOf(pdContract()) || {}).items || []).filter(x => x && x.key === 'up_notice_period').map(x => ({ open: !!x.open, kind: x.kind })),
       left: (detailsOf(pdContract()) || {}).left,
       openNow: ((detailsOf(pdContract()) || {}).items || []).filter(x => x && x.open).map(x => x.key),
+      /* WHICH BOX THE LETTERS WENT TO (20 Nov 2026: once on GitHub the value was paid and the notice stayed owed with the
+         caret proved in the notice box before typing): the boxes holding "6", so a stolen caret names its thief */
+      typedIn: [...document.querySelectorAll('#pd-og [data-blankf], #pd-og input, #pd-og textarea')].filter(b => /6/.test(String(b.value || b.textContent || ''))).map(b => b.getAttribute('data-blankf') || b.name || b.id || b.tagName),
+      value: (pdContract() || {}).value,
       field: JSON.stringify(((pdContract() || {}).fields || {}).up_notice_period === undefined ? null : pdContract().fields.up_notice_period).slice(0, 60) }));
     check('2b the hand gone: no longer owed, a Key terms line; the form keeps its row, answered (our standard read into it, or ticked)', !!again, seen2b);
 
@@ -164,7 +172,7 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
     /* RE-POINTED 28 Oct 2026 (Fill in the contract): no Confirm on a row; the form's ONE Save stores them */
     check('4a an NDA owes its two facts: two rows of the form, in the count, its one Save under them',
       JSON.stringify(N.items) === JSON.stringify(['ndaDir:true', 'ndaEnds:true']) && N.rows.length === 2 && N.rows.every(r => !r.ok)
-      && await page.evaluate(() => !!document.querySelector('#ig-dock .pd-fm [data-pd-fm-save]')), JSON.stringify(N));
+      && await page.evaluate(() => !!document.querySelector(':is(#ig-dock, .pd2-fm-mid) .pd-fm [data-pd-fm-save]')), JSON.stringify(N)); /* RE-POINTED 16 Nov 2026 (#762): the form stands in the middle */
     /* this upload carries no read text, so the grid says the wording was not read for it — never a guess */
     /* RE-POINTED 21 Oct 2026 (owner: no grey line under an owed fact): an unread row is amber instead of saying "not in the wording" */
     check('4b the wording\'s reading is in the box as a suggestion, else the row is amber', N.rows.every(r => /suggested by|read from/.test(r.t) || /is-amb/.test(r.cls)), JSON.stringify(N.rows));

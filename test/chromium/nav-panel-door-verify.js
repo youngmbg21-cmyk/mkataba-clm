@@ -50,9 +50,11 @@ const panelNow = () => ({ open: !!(window.state && state.panelOpen), face: typeo
         /* ---- 2 opens on the Guide, even with something waiting (owner, 14 Nov 2026; reverses "on Alerts"); closes on a second press ---- */
         const waiting = await page.evaluate(() => alertCount());
         await page.click('#hdr-notify');
-        const open = await until(page, () => state.panelOpen && panelFace() === 'guide' && !!document.querySelector('#panel-body .gd'));
+        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the side Guide is drawn as .gdn (guidePanelNlHtml) */
+        /* RE-POINTED 21 Nov 2026 (P-38, owner: "delete the guide since we have the nav panel"): it opens on Alerts */
+        const open = await until(page, () => state.panelOpen && panelFace() === 'alerts' && !!document.querySelector('#panel-body .ndb'));
         const p1 = await page.evaluate(panelNow);
-        check('2 with something waiting, a press opens the panel on the Guide, and says so', waiting > 0 && open && p1.navX === 'true', { waiting, p1 });
+        check('2 with something waiting, a press opens the panel on Alerts, and says so', waiting > 0 && open && p1.navX === 'true', { waiting, p1 });
         await page.screenshot({ path: path.join(OUT, `guide-${nm}.png`) });
         await page.click('#hdr-notify');
         const shut = await until(page, () => !state.panelOpen);
@@ -69,8 +71,8 @@ const panelNow = () => ({ open: !!(window.state && state.panelOpen), face: typeo
         const shut2 = await until(page, () => !state.panelOpen);
         check('3b the button closes it from Alerts too', shut2, await page.evaluate(panelNow));
         await page.click('#hdr-notify');
-        const again = await until(page, () => state.panelOpen && panelFace() === 'guide');
-        check('3c left on Alerts, the next press still opens on the Guide', again, await page.evaluate(panelNow));
+        const again = await until(page, () => state.panelOpen && panelFace() === 'alerts');
+        check('3c left on Alerts, the next press opens on Alerts again', again, await page.evaluate(panelNow));
         await page.click('#hdr-notify'); await until(page, () => !state.panelOpen);
       }
       await page.close();

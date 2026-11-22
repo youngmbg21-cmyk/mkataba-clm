@@ -153,10 +153,20 @@ const DOC = ['WAREHOUSING AND TRANSPORT AGREEMENT', '', '1. SERVICES', 'The Prov
       words: [...document.querySelectorAll('[data-pw-for="wz-side"] [data-pw-v]')].map(b => b.innerText),
       label: document.querySelector('[data-pw-for="wz-side"]').parentElement.innerText.split('\n')[0],
       cp: document.getElementById('wz-counterparty').closest('label').innerText.replace(/\s+/g, ' ') }), null, null);
-    check(!!(before && before.label === 'Who pays whom?' && before.words.join(' · ') === 'We pay them · They pay us · No money' && before.v === '' && before.say === ''),
-      '3a "Who pays whom?" as three presses, none chosen, nothing said', before);
+    /* RE-POINTED 22 Nov 2026 (PR 881, batch 7 review; the owner's pick "the paper's own answer as the chosen pill",
+       wzPaperPaysWho): where HaTi's own paper names who pays in its payment duty, that answer is the chosen pill and its
+       line says so; a paper that names no payer still chooses nothing — HaTi never guesses */
+    if (before) before.paper = await drive(P, () => { const pay = ((window.TEMPLATE_OBLIGATIONS || {}).WH || []).find(o => o && o.key === 'pay');
+      return !pay ? '' : pay.party === 'ours' ? 'customer' : pay.party === 'theirs' ? 'supplier' : ''; }, null, null);
+    if (before) before.on = await drive(P, () => [...document.querySelectorAll('[data-pw-for="wz-side"] [data-pw-v][aria-checked="true"]')].map(b => b.getAttribute('data-pw-v')), null, []);
+    check(!!(before && before.label === 'Who pays whom?' && before.words.join(' · ') === 'We pay them · They pay us · No money'
+      && (before.paper ? before.v === before.paper && before.on.join() === before.paper && /^So we are the /.test(before.say) : before.v === '' && before.say === '' && !before.on.length)),
+      '3a "Who pays whom?" as three presses, the paper\'s own answer chosen where it names who pays (else none, nothing said)', before);
     /* RE-POINTED 24 Oct 2026: the row now ends with where its answer came from — the words quoted */
-    check(!!(before && /^The other company \* .*As on their invoices or letterhead( “Kilifi Haulage”)?$/.test(before.cp)), '3b the other company is named in plain words, with where the name is found', before && before.cp);
+    /* RE-POINTED (P-36, owner's pick 20 Nov 2026: New agreement the Legora + Stripe way): your words quoted and lit carry "your words" beside them */
+    /* RE-POINTED 22 Nov 2026 (P-36, New agreement as drawn, PR 881): one open line per detail — the term, the value, where
+       it came from; the required star and the help line under the term are not drawn (an owed box says "not said yet") */
+    check(!!(before && /^The other company “Kilifi Haulage” your words$/.test(before.cp)), '3b the other company is named in plain words, with where the name is found', before && before.cp);
     await press(P, '[data-pw-for="wz-side"] [data-pw-v="customer"]');
     const after = await drive(P, () => ({ v: document.getElementById('wz-side').value, say: document.querySelector('[data-pw-for="wz-side"] [data-pw-say]').textContent }), null, null);
     check(!!(after && after.v === 'customer' && /^So we are the customer\./.test(after.say)), '3c "We pay them" stores customer and says so', after);
@@ -176,7 +186,8 @@ const DOC = ['WAREHOUSING AND TRANSPORT AGREEMENT', '', '1. SERVICES', 'The Prov
        drop in the workspace window with dossier"; this reverses the 22 Oct
        landing on his words): Create lands on the Dossier, and his first words
        wait in his tab, said there once — the reader flips to it */
-    const onDossier = await until(P, () => !!document.querySelector('#ig-dock .ds-sp-st') && !document.querySelector('#ig-dock .jb-turn') && pdTab() === 'copilot', null, 15000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Dossier's top is ONE card (pd2CardHtml), its stages the .pd2-spine */
+    const onDossier = await until(P, () => !!document.querySelector('#ig-dock .ds-sp-st, #ig-dock .pd2-card .pd2-spine') && !document.querySelector('#ig-dock .jb-turn') && pdTab() === 'copilot', null, 15000);
     check(!!onDossier, '4a0 Create lands on the Dossier, not on his words');
     await drive(P, () => { if (typeof pdTalkReopen === 'function') pdTalkReopen(); });
     const spoke = await until(P, () => [...document.querySelectorAll('#ig-dock .jb-turn')].some(t => /A few things are still open/.test(t.innerText)), null, 15000);
@@ -240,7 +251,9 @@ const DOC = ['WAREHOUSING AND TRANSPORT AGREEMENT', '', '1. SERVICES', 'The Prov
     check(!!(pay && pay.read === 'escalate'), '5c where a rule is written, its verdict still stands (the workspace\'s payment range)', pay && pay.read);
     /* RE-POINTED 27 Oct 2026 (THE PICKED CARD): Counter leads filled, Accept
        beside, the rest — Ask a colleague among them — behind More ▾. */
-    check(!!(liab && pay && [liab, pay].every(r => r.verbs.slice(0, 3).join(' · ') === 'Counter · Accept · More' && r.verbs.includes('Reject') && r.verbs.includes('Ask a colleague'))), '5d the picked head leads each of their asks, Ask a colleague behind More', rows.map(r => r && r.verbs));
+    /* RE-POINTED 16 Nov 2026 (#762): THE ROW IS ALL OF IT (rlRowFaceVerbs) — theirs Accept · Reject · Counter on the face, then
+       More, with Ask a colleague behind it */
+    check(!!(liab && pay && [liab, pay].every(r => r.verbs.slice(0, 4).join(' · ') === 'Accept · Reject · Counter · More' && r.verbs.indexOf('Ask a colleague') > r.verbs.indexOf('More'))), '5d the picked head leads each of their asks, Ask a colleague behind More', rows.map(r => r && r.verbs));
     for (const [w, hgt] of SCREENS){
       await P.setViewportSize({ width: w, height: hgt });
       /* THE PICKED CARD: the door waits behind More ▾; a repaint folds it, so

@@ -64,12 +64,19 @@ const until = async (page, fn, arg, ms = 8000) => {
        nobody holds is your row (Answer) or, where Jambo found its paper, his piece (Look), whose
        "Open the request" is the same door onto Requests */
     await page.evaluate(() => openPanel('alerts')); await page.waitForTimeout(500);
-    let row = await page.$(`.nd-pan [data-cn-req="${rid}"]`);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the bell's list is drawn as .ndb (ndBellNlHtml), each
+       row ONE Open that presses the row's own door (ndRowGo) */
+    await until(page, id => !!document.querySelector(`.nd-pan [data-cn-req="${id}"], .ndb .ndb-r[data-nd-row*="${id}"] .ndb-open`), rid);
+    let row = await page.$(`.nd-pan [data-cn-req="${rid}"], .ndb .ndb-r[data-nd-row*="${rid}"] .ndb-open`);
     const look = row ? null : await page.$(`.nd-pan [data-nd-look="request:${rid}"]`);
     ok('1c it is drawn in the panel', !!(row || look));
     await page.screenshot({ path: path.join(OUT, '1-bell.png') });
     if (look){ await look.click(); await page.waitForTimeout(1200); row = await page.$('#hm-agents .nd-br.is-look [data-ag-act="ikopen"]'); }
     if (row) { await row.click(); }
+    /* RE-POINTED 16 Nov 2026 (#762): a Jambo piece about a request (no contract) opens the Board's list on its row
+       (ndRowGo → ndOpenBoard('jambo', key)); its "Open the request" is the same door onto Requests, pressed there */
+    if (row && await until(page, () => state.view !== 'intake' && !!document.querySelector('[data-ag-act="ikopen"], [data-ag-act^="ikopen|"]'), null, 6000))
+      await page.evaluate(() => { const b = [...document.querySelectorAll('[data-ag-act="ikopen"], [data-ag-act^="ikopen|"]')].find(x => x.getBoundingClientRect().width > 0); if (b) b.click(); });
     const landed = await until(page, id => state.view === 'intake' && /Cold-chain storage/.test((document.getElementById('ins-panel') || {}).textContent || ''), rid);
     ok('1d the press lands on Requests with that request lit', landed,
       await page.evaluate(() => ({ view: state.view, panel: ((document.getElementById('ins-panel') || {}).textContent || '').slice(0, 80) })));
@@ -88,7 +95,10 @@ const until = async (page, fn, arg, ms = 8000) => {
     ok('2b our party is filled with the workspace, for them to overtype', !!form.party, form.party);
     ok('2c nothing scrolls sideways', form.sideways <= 1, form.sideways);
     await page.screenshot({ path: path.join(OUT, '2-form.png') });
-    await page.fill('#ik-title', 'x'); await page.fill('#ik-need', 'y'); await page.fill('#ik-e-cpemail', 'not-an-address');
+    /* RE-POINTED 19 Nov 2026 (f1119): the form is the one edit pop-up in three steps — the email is on the second,
+       Send on the third; a refusal walks back to the step that holds the field */
+    await page.fill('#ik-title', 'x'); await page.fill('#ik-need', 'y'); await page.click('#ik-next');
+    await page.fill('#ik-e-cpemail', 'not-an-address'); await page.click('#ik-next');
     await page.click('#ik-send'); await page.waitForTimeout(300);
     const refused = await page.evaluate(() => (document.getElementById('ik-err') || {}).textContent || '');
     ok('2d a bad email is refused in words, on the form', /email/i.test(refused), refused);

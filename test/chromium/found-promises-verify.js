@@ -81,7 +81,8 @@ const SIGNED = 'MK-A1', LIVE = 'MK-A2';
     /* Home shows the first three; the whole list is the Board's "Show all", narrowed to duties */
     await page.evaluate(() => setView('counter'));
     await page.evaluate(() => ndOpenBoard('you'));
-    if (await until(page, () => !!document.querySelector('[data-nd-kind="duty"]'), null, 8000)) await page.click('[data-nd-kind="duty"]');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Board's Needs you as drawn has its tabs and find
+       box but no row of kind chips (.nd-chips hidden), so nothing narrows to duties — the row is found in the whole list */
     const sel = `.nd-br[data-nd-row="c:${SIGNED}:promises"]`;
     const homeRow = await until(page, s => !!document.querySelector(s), sel, 8000);
     const row = await page.evaluate(s => { const r = document.querySelector(s); const b = r && r.querySelector('button');

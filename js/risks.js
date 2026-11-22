@@ -468,6 +468,7 @@ function _rkEditorOpen(c, key, t){
 /* The first press: the window, on the clause the risk changes or holding the
    new clause it needs. */
 function riskEditStart(c, key){
+  if (typeof window.mayActOn === 'function' && !window.mayActOn(c)){ if (typeof toast === 'function') toast(i18t('viewer_reads_only'), 'warn'); return false; }
   const it = riskItemsOf(c).find(x => x.key === key);
   if (!c || !it) return false;
   const t = riskEditTarget(c, it);
@@ -1084,6 +1085,7 @@ function riskGoClause(c, key){
   /* ONE CARD LIT AT A TIME (owner, 23 Oct 2026): beside Home's paper the column is not inside the paper,
      so a redline row pressed before lets go here too */
   document.querySelectorAll('.redline-page :is(.rl-card, .rk-row).is-linked').forEach(n => n.classList.remove('is-linked'));
+  if (typeof window.rlLinkForget === 'function') window.rlLinkForget();
   const row = document.querySelector('#rl-risks [data-rk-key="' + q(key) + '"]');
   if (row) row.classList.add('is-linked');
   let found = false;

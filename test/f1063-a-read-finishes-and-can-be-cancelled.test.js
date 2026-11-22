@@ -22,7 +22,8 @@ const fnBody = (src, name) => { const at = src.search(new RegExp('\\n(?:async )?
 const ids = n => Array.from({ length: n }, (_, i) => 'CX-' + String(i + 1).padStart(2, '0'));
 
 test('f1063 (1) Read the N left ends on a screen that says what happened; a broken read is offered again', () => {
-  assert.match(RD, /if \(t\.closest\('#dsc-carry'\)\)\{ e\.preventDefault\(\); e\.stopPropagation\(\); dsnCarry\(\); return; \}/, 'the button goes through Discover\'s own carry');
+  /* RE-POINTED 22 Nov 2026 (P-42 review): the stopped panel's "read them" is the same carry (data-dsn-carry) */
+  assert.match(RD, /if \(t\.closest\('#dsc-carry, \[data-dsn-carry\]'\)\)\{ e\.preventDefault\(\); e\.stopPropagation\(\); dsnCarry\(\); return; \}/, 'the button goes through Discover\'s own carry');
   const C = fnBody(RD, 'dsnCarry');
   assert.match(C, /const pr = askColCarryOn\(\)/);
   assert.match(C, /_dsn\.done = Object\.assign\(\{\}, D, \{ k: Math\.max\(0, n - left\), n, stopped: !!\(got\.stopped \|\| \(got\.err && left\)\) \}\)/, 'the count and the heading follow the rest');
@@ -30,11 +31,16 @@ test('f1063 (1) Read the N left ends on a screen that says what happened; a brok
   assert.match(fnBody(RD, 'dsnAsk'), /stopped: !!\(got\.stopped \|\| \(got\.err && \(got\.left \|\| \[\]\)\.length\)\)/, 'a read that broke offers the rest, never a dead end');
 });
 
-test('f1063 (2) Cancel read: beside Stop and Read the N left; ONE question with three answers; lands on the list', () => {
+/* RE-POINTED 22 Nov 2026 (P-42 review, as drawn): the head while it reads carries Stop alone — askColStop's one door —
+   and, stopped, Ask another; the read is left by "‹ All reads" (it keeps reading) and thrown away from its results
+   ("Throw away this read", dsnThrowAway → dsnCancelGo('drop')). The exit ramp's one question is kept, unused by the page. */
+test('f1063 (2) the head: Stop alone while it reads, Ask another once stopped; throwing away is the results\' own', () => {
   const H = fnBody(RD, 'dsnReadingHtml');
-  assert.match(H, /const cancel = `<button type="button" class="rfp-pill" id="dsn-cancel">/);
-  assert.match(H, /id="dsc-stop"[^`]*\$\{cancel\}`/, 'while it reads');
-  assert.match(H, /id="dsc-carry"[^`]*\$\{cancel\}<button type="button" class="ui-btn ui-btn-primary" data-dsn-results>/, 'when it stopped');
+  assert.doesNotMatch(H, /id="dsn-cancel"/, 'no Cancel read beside Stop');
+  assert.match(H, /const right = b \? `<button type="button" class="rfp-pill" id="dsc-stop"/, 'while it reads: Stop');
+  assert.match(H, /data-dsn-again=/, 'stopped: Ask another');
+  assert.match(H, /class="dsn-stopbar"[^`]*id="dsc-carry"/, 'Read the N left, said with what is left');
+  assert.match(fnBody(RD, 'dsnThrowAway'), /dsnCancelGo\('drop'\)/, 'throwing a read away is the one throw-away');
   const O = fnBody(RD, 'dsnCancelOpen');
   assert.ok(O.indexOf('data-dsn-cx="keep"') < O.indexOf('data-dsn-cx="drop"') && O.indexOf('data-dsn-cx="drop"') < O.indexOf('data-dsn-cx="stay"'), 'act first, the way back last');
   assert.match(O, /data-dlg-cancel data-dsn-cx="stay"/);

@@ -376,7 +376,9 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
      the suggested Counter leads filled, Accept beside it, the rest behind
      More ▾ — and nothing is lost: Reject and Ladder are still offered on
      the card, inside the fold. */
-  check('18b their live ask leads Counter · Accept · More, with Reject and Ladder still offered', !!col18.v5 && /Counter/.test(col18.v5[0]) && /Accept/.test(col18.v5[1]) && /More/.test(col18.v5[2]) && col18.v5.some(v => /Reject/.test(v)) && col18.v5.some(v => /Ladder/.test(v)), JSON.stringify(col18.v5));
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): THE ROW IS ALL OF IT (rlRowFaceVerbs) — their ask
+     reads Accept · Reject · Counter in that order, then More; nothing is lost: Ladder is still offered on the card */
+  check('18b their live ask leads Accept · Reject · Counter, then More, with Ladder still offered', !!col18.v5 && /Accept/.test(col18.v5[0]) && /Reject/.test(col18.v5[1]) && /Counter/.test(col18.v5[2]) && col18.v5.some(v => /More/.test(v)) && col18.v5.some(v => /Ladder/.test(v)), JSON.stringify(col18.v5));
   /* ---- REVERSED IN PLACE 17 Sep 2026 (Young: "Image 2 = D") ----
      It read Edit · Send · Discard · Ladder and pinned Discard THIRD. On a row
      of five bare words the one press that throws work away sat exactly where

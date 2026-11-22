@@ -63,7 +63,8 @@ const check = (name, pass, detail) => {
     const w2 = await switches();
     check('3. back at 1440 still none', w2.bar && w2.n === 0 && !w2.inBar, JSON.stringify(w2));
     /* the one way in: Settings › You's language row */
-    await page.evaluate(() => { if (typeof window.openSettingsAt === 'function') window.openSettingsAt('you'); else window.setView('team'); });
+    /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): the language row is in the You area */
+    await page.evaluate(() => { if (typeof window.openSettingsAt === 'function') window.openSettingsAt('you'); else window.setView('team'); if (typeof window.sddGo === 'function') window.sddGo('you'); });
     const row = await until(() => { const b = document.querySelector('[data-st-lang="sv"]'); if (!b) return null; b.scrollIntoView({ block: 'center' }); return true; }, null, 8000);
     let sv = null, back = null;
     if (row) {

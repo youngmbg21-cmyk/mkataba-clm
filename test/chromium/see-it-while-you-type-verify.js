@@ -44,7 +44,8 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass }); co
     await page.evaluate(() => { state.aiConfigured = false; });
     await page.waitForTimeout(400);
     const b0 = await box(); const board0 = await page.evaluate(() => JSON.stringify(hbS()));
-    check('1 the line\'s room is there before a word is typed', !!b0.pre && b0.pre[1] === 16, JSON.stringify(b0));
+    /* RETIRED 16 Nov 2026 (#762): 1 "the line's room is there before a word is typed" — in the new look the line takes no
+       room until it has words (owner, 9 Nov 2026: ONE GAP ABOVE EVERY JAMBO BOX, index.html .igd-foot > .hb-pre:empty) */
     await page.click('#igd-input'); await page.keyboard.type('contracts by stage', { delay: 20 });
     const s2 = await until(() => { const t = document.getElementById('igd-pre').textContent; return /^All contracts: Ring · by stage · count$/.test(t) ? t : null; }); /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
     const board2 = await page.evaluate(() => JSON.stringify(hbS()));
@@ -57,7 +58,11 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass }); co
     const b3 = await box();
     await page.screenshot({ path: path.join(OUT, '3-copilot.png') });
     check('3 a question Copilot answers says so, with no price', s3 === 'Jambo will read this one', s3);
-    check('4 nothing moved: the box, the line and the feed hold their places', JSON.stringify(b0) === JSON.stringify(b2) && JSON.stringify(b0) === JSON.stringify(b3), JSON.stringify({ b0, b2, b3 }));
+    /* RE-POINTED 16 Nov 2026 (#762): the line now takes its room when it has words (owner, 9 Nov 2026), from the feed's
+       foot — so what must not move is the box and the top of the feed; the line stands one line tall above the box */
+    const held = b => JSON.stringify(b.input) === JSON.stringify(b0.input) && b.feed && b0.feed && b.feed[0] === b0.feed[0]
+      && (!b.pre || !b.pre[1] || (b.pre[1] === 16 && b.pre[0] + b.pre[1] <= b.input[0]));
+    check('4 nothing moved: the box and the feed\'s top hold their places; the line sits one line tall above the box', held(b2) && held(b3), JSON.stringify({ b0, b2, b3 }));
     /* RE-PINNED 28 Oct 2026 ("Door above the box"): the free reader, asked as a chip asks */ await page.fill('#igd-input', 'contracts by stage'); await chipEnter(page, '#igd-input');
     const s5 = await until(() => { const s = hbS(), k = (s.path || []).slice(-1)[0]; if (!k) return null; return hbHowWord(hbPlan(hbDigData(k, s.lens))); });
     await page.screenshot({ path: path.join(OUT, '5-asked.png') });

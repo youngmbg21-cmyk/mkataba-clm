@@ -231,8 +231,9 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     const drawn = await page.evaluate(() => ({ figs: document.querySelectorAll('#hb-book .hb-fig').length,
       stages: document.querySelectorAll('#hb-book .hb-stagekey button').length }));
     /* RE-POINTED 11 Oct 2026 (owner: "only 5 cards", each person may swap them) */
-    check('3b Your book draws its five figures and all three stages',
-      drawn.figs === 5 && drawn.stages === 3, JSON.stringify(drawn));
+    /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */
+    check('3b Your book draws its four figure cards and all three stages',
+      drawn.figs === 4 && drawn.stages === 3, JSON.stringify(drawn));
 
     /* ======= 3c. THE STAGES WEAR THE CONTRACTS LIST'S OWN COLOURS ========
        "The color code of the drafting, review and executed should match the
@@ -255,13 +256,29 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       return out;
     });
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
-    await page.waitForTimeout(1200);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders (the List pill is
+       the way to the list); there the STAGE's tone is its Standing word (td.reg-standing, in its tone's --st-X-fg) — the row's
+       mark now says whose move it is. The list's stage tone is read back as the tone's DOT (--st-X-dot), the shade the
+       Board's bar and square paint, so "the colour the list gives it" is the same tone, compared on one shade */
+    await page.waitForSelector('[data-ctf-show="list"]', { timeout: 8000 }).then(() => page.click('[data-ctf-show="list"]')).catch(() => {});
+    await page.waitForSelector('#reg-tbody tr[data-row]', { timeout: 8000 }).catch(() => {});
+    await page.waitForTimeout(600);
     const listTones = await page.evaluate(() => {
       const out = {};
+      const res = (prop, v) => { const i = document.createElement('i'); i.style[prop] = 'var(' + v + ')'; document.body.appendChild(i); const c = getComputedStyle(i)[prop]; i.remove(); return c; };
+      const TONES = ['gray', 'amber', 'green', 'steel', 'ruby', 'violet', 'blue', 'teal'];
       document.querySelectorAll('tr[data-row]').forEach(tr => {
         const c = state.contracts.find(x => x.id === tr.getAttribute('data-row'));
-        /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the row's mark carries the stage's dot tone now */
-        const dot = tr.querySelector('.reg-id .ls-mark') || tr.querySelector('.reg-stg i');
+        const w = tr.querySelector('td.reg-standing');
+        /* RE-POINTED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way): the Standing cell is a SOFT BADGE
+           (.reg-badge.is-<tone>, its tone's pale ground and ink); the tone it names is read off the badge and compared on
+           the tone's DOT, the shade the Board's bar and square paint */
+        const bdg = w && w.querySelector('.reg-badge');
+        const bt = bdg && (/(?:^|\s)is-([a-z]+)/.exec(bdg.className) || [])[1];
+        if (c && bdg && bt && TONES.includes(bt) && !out[c.status]) out[c.status] = res('color', '--st-' + bt + '-dot');
+        if (c && w && !bdg && !out[c.status]){ const ink = getComputedStyle(w).color; const t = TONES.find(x => res('color', '--st-' + x + '-fg') === ink);
+          out[c.status] = t ? res('color', '--st-' + t + '-dot') : 'ink ' + ink; }
+        const dot = !w && (tr.querySelector('.reg-id .ls-mark') || tr.querySelector('.reg-stg i'));
         if (c && dot && !out[c.status]) out[c.status] = dot.matches('.ls-mark') ? getComputedStyle(dot).color : getComputedStyle(dot).backgroundColor;
       });
       return out;
@@ -282,10 +299,19 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
        picker's half stands: the phone's sheet still offers the readings. */
     /* RE-POINTED 18 Oct 2026 (round 17, "Then and now"): Your book is a
        table, so the five numbers stand in ONE COLUMN, their right edges one */
-    const tops = await page.evaluate(() =>
-      [...document.querySelectorAll('#hb-book .hb-fig .hb-fig-n')].map(e => Math.round(e.getBoundingClientRect().right)));
-    check('4 the five figures stand in one column, one right edge',
-      tops.length === 5 && Math.max(...tops) - Math.min(...tops) <= 1, tops.join(' / '));
+    /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */
+    /* the book is drawn as figure CARDS (.is-cards): the four stand in ONE ROW,
+       their tops level, left to right, every one inside Your book's card */
+    const row = await page.evaluate(() => {
+      const book = document.getElementById('hb-book'), bb = book && book.getBoundingClientRect();
+      const r = [...document.querySelectorAll('#hb-book .hb-fig')].map(e => e.getBoundingClientRect());
+      return { n: r.length, cards: !!document.querySelector('#hb-book .hb-figs.is-cards'),
+        tops: r.map(x => Math.round(x.top)), lefts: r.map(x => Math.round(x.left)),
+        inside: !!bb && r.every(x => x.left >= bb.left - 1 && x.right <= bb.right + 1 && x.top >= bb.top - 1 && x.bottom <= bb.bottom + 1) };
+    });
+    check('4 the four figure cards stand in one row, equal tops, inside the card',
+      row.n === 4 && row.cards && Math.max(...row.tops) - Math.min(...row.tops) <= 1
+        && row.lefts.every((x, i) => i === 0 || x > row.lefts[i - 1]) && row.inside, JSON.stringify(row));
     const offered = await page.evaluate(() => (window.kpiCatalogOrder ? kpiCatalogOrder() : []));
     const want = ['lifecycle', 'compliance', 'importq', 'coverage'];
     check('4 the phone\'s picker still offers the four Portfolio readings',
@@ -408,7 +434,8 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       /* It ranks LAST: every row above it is work with somebody's name on it,
          and this is a setting nobody is blocked on this minute. */
       /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel's rows are the one desk's; the mail warning stays its own row, last */
-      const rows = [...document.querySelectorAll('#context-panel .nd-pan .nd-r')].map(r => r.innerText);
+      /* RE-POINTED 16 Nov 2026 (#762): the bell is one list in the new look (.ndb, its rows .ndb-r) */
+      const rows = [...document.querySelectorAll('#context-panel .nd-pan .nd-r, #context-panel .ndb .ndb-r')].map(r => r.innerText);
       return { has: /email/i.test(txt), last: rows.length ? /email/i.test(rows[rows.length - 1]) : false,
         n: rows.length };
     });
@@ -468,7 +495,7 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
         const board = document.getElementById('hb-board'), br = board.getBoundingClientRect();
         const figs = [...document.querySelectorAll('#hb-book .hb-fig')];
         return { sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth || board.scrollWidth > board.clientWidth + 1,
-          inside: figs.length === 5 && figs.every(f => { const x = f.getBoundingClientRect(); return x.left >= br.left - 1 && x.right <= br.right + 1; }) };
+          inside: figs.length === 4 /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */ && figs.every(f => { const x = f.getBoundingClientRect(); return x.left >= br.left - 1 && x.right <= br.right + 1; }) };
       });
       check(`9 ${w}: the board fits and the page never scrolls sideways`, !r.sideways && r.inside, JSON.stringify(r));
     }
@@ -485,7 +512,8 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
         clipped: el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1,
       })));
       const clipped = t.filter(x => x.clipped).map(x => x.name);
-      check(`10 ${w}: nothing on Your book has its content cut off`, t.length === 8 && clipped.length === 0, // RE-POINTED 11 Oct 2026: five figures (owner) + the stage key
+      check(`10 ${w}: nothing on Your book has its content cut off`, t.length === 7 && clipped.length === 0, // RE-POINTED 11 Oct 2026: five figures (owner) + the stage key
+        /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four): four cards + the three stage keys = 7 */
         clipped.length ? 'clipped: ' + clipped.join(', ') : `${t.length} figures clear`);
     }
     await page.setViewportSize({ width: 1440, height: 900 });

@@ -64,6 +64,14 @@ const check = (name, pass, detail) => {
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`);
 };
 const pause = ms => new Promise(r => setTimeout(r, ms));
+/* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): their page draws the outside look, where every head
+   verb — the reading buttons, the bell, Notes, Focus, More's copies and the deal verbs — is gathered under one More
+   (#pol-more opens #pol-pop). A check of those controls opens it first; shut, they are rightly not drawn. */
+const openPop = async page => {
+  if (await page.evaluate(() => { const p = document.getElementById('pol-pop'); return !!(p && p.hidden); })){
+    await page.click('#pol-more'); await pause(250);
+  }
+};
 
 /* A control is present when it paints pixels, not when it exists. */
 const SEEN = `(el => { if (!el) return null;
@@ -172,12 +180,9 @@ const PAPER = `(() => {
        line and the readings on the row below it; their head now does the same,
        so the deal verbs share the title's line and the readings keep the row
        below, at its left. Still asserted as geometry, on centres. */
-    check('1b the deal verbs share the title\'s line, centred on it, as on our room head',
-      !!row2.title && !!row2.foot && Math.abs(row2.title.mid - row2.foot.mid) <= 4,
-      JSON.stringify(row2));
-    check('1b with the readings on its LEFT, as on the negotiation page',
-      !!row2.segs && !!row2.foot && row2.segs.l < row2.foot.l,
-      JSON.stringify({ segs: row2.segs && row2.segs.l, foot: row2.foot && row2.foot.l }));
+    /* RETIRED 16 Nov 2026 (#762): "the deal verbs share the title's line, readings on its left" was the old head's
+       geometry; the outside look gathers the deal verbs under More (#pol-pop) by design (round 8), so there is no
+       title line for them to share. */
     check('1b and that line sits BELOW the contract\'s name',
       !!row2.title && !!row2.segs && row2.segs.y > row2.title.y,
       JSON.stringify({ title: row2.title && row2.title.y, segs: row2.segs && row2.segs.y }));
@@ -194,6 +199,7 @@ const PAPER = `(() => {
        learned three times that a neutral control reads as furniture, and that
        lesson is kept: border and ink stay the workspace accent, only the fill
        goes. Asserted as a RELATION against the deal verbs the owner named. */
+    await openPop(page);
     const dress = await page.evaluate(() => {
       const read = sel => [...document.querySelectorAll(sel)]
         .filter(b => b.getBoundingClientRect().height > 0)
@@ -201,7 +207,9 @@ const PAPER = `(() => {
           return { t: (b.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 18),
             bg: c.backgroundColor, bd: c.borderTopColor, bw: c.borderTopWidth }; });
       const res = v => { const p = document.createElement('span'); p.style.color = v; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; };
-      return { verbs: read('.pw-id-verb'), deal: read('#pt-nego-foot button'), edge: res('var(--btn-edge)'),
+      /* RE-POINTED 22 Nov 2026 (the P-44 review, the owner's picked drawing of the other side's page): the bell stands on
+         the black bar beside their name, drawn white on black with a red count — not one of the reading buttons any more */
+      return { verbs: read('.pw-id-verb:not(.pol-bar .pw-id-verb)'), deal: read('#pt-nego-foot button'), edge: res('var(--btn-edge)'),
         fill: (() => { const p = document.createElement('span'); p.style.backgroundColor = 'var(--surface-2)'; document.body.appendChild(p); const c = getComputedStyle(p).backgroundColor; p.remove(); return c; })() };
     });
     /* RE-POINTED 21 Sep 2026 (the redesign): every .ui-btn is the white face
@@ -250,6 +258,7 @@ const PAPER = `(() => {
       await page.evaluate(() => !document.getElementById('rl-read-note') && !document.querySelector('.rl-idx-reading')));
 
     /* ---- 4, 5, 6. THE MENU ---- */
+    await openPop(page);
     const moreShut = await page.evaluate(([seen]) => {
       const s = eval(seen);
       const b = document.getElementById('pt-more');
@@ -332,6 +341,7 @@ const PAPER = `(() => {
     const afterOutside = await page.evaluate(() =>
       document.getElementById('pt-more-menu').classList.contains('hidden'));
     check('11 an outside press closes it', afterOutside);
+    await openPop(page);
     await page.click('#pt-more'); await pause(250);
     await page.keyboard.press('Escape'); await pause(300);
     const afterEsc = await page.evaluate(() => ({
@@ -344,6 +354,7 @@ const PAPER = `(() => {
     /* ---- 8 & 9. FOCUS MODE ---- */
     const headBefore = await page.evaluate(([seen]) => eval(seen)(document.querySelector('.pw-id')), [SEEN]);
     const wallBefore = await page.evaluate(([seen]) => eval(seen)(document.querySelector('#rl-banner .rl-wall') || document.querySelector('.rl-wall')), [SEEN]);
+    await openPop(page);
     await page.click('#pt-focus'); await pause(600);
     await page.screenshot({ path: path.join(OUT, '04-focus-on.png') });
     const focusOn = await page.evaluate(([seen]) => {
@@ -406,7 +417,8 @@ const PAPER = `(() => {
         }
         return { n: kids.length, overflow: overflow.map(k => k.cls), overlaps,
           headH: s(head).h, switchOn: !!(s(document.querySelector('.pw-id .pw-tabs')) || {}).on,
-          moreOn: !!(s(document.getElementById('pt-more')) || {}).on };
+          /* RE-POINTED 16 Nov 2026 (#762): the More a reader sees on the outside look is #pol-more */
+          moreOn: !!(s(document.getElementById('pol-more') || document.getElementById('pt-more')) || {}).on };
       }, [SEEN]);
       check(`10 at ${w}px nothing leaves the window`, row.overflow.length === 0, row.overflow.join(', ') || 'none');
       check(`10 at ${w}px nothing in the row overlaps`, row.overlaps === 0, `${row.overlaps} overlaps`);
@@ -508,14 +520,9 @@ const PAPER = `(() => {
        live one heavier) still holds; the underline and the bare row are what the pick replaced. */
     const shade = await page.evaluate(() => { const g = v => { const p = document.createElement('span'); p.style.background = v; document.body.appendChild(p); const c = getComputedStyle(p).backgroundColor; p.remove(); return c; };
       return { track: g('var(--surface-2)'), white: g('var(--color-surface)') }; });
-    check('14 their tabs stand on the grey track',
-      tabLook.wrapBg === shade.track, tabLook.wrapBg + ' vs ' + shade.track);
-    check('14 the chosen tab is the white pill and heavier; a resting one has no fill',
-      tabLook.on && tabLook.off && tabLook.on.bg === shade.white && tabLook.off.bg === 'rgba(0, 0, 0, 0)' && tabLook.on.fw > tabLook.off.fw,
-      JSON.stringify(tabLook));
-    check('14 no underline on either tab',
-      tabLook.on && tabLook.off && !(tabLook.on.bw > 0 && tabLook.on.bs !== 'none') && !(tabLook.off.bw > 0 && tabLook.off.bs !== 'none'),
-      JSON.stringify({ on: tabLook.on, off: tabLook.off }));
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling 5): the three 14 checks (grey track, white chosen pill, no underline) —
+       the other side's page keeps the new look's underlined tabs */
+    void tabLook; void shade;
 
     /* ---- 15. MORE IS WHITE INSIDE, LIKE THE THREE BESIDE IT ----
        It carried .pt-verb, which fills the face with --color-accent-100 —

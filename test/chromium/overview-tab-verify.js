@@ -19,7 +19,7 @@
    sheet (they were his one window, or led with the greeting), and 5 fails (the drop stood first); 4 is the parent's
    own inventory and holds there by construction.
    Run: node test/chromium/overview-tab-verify.js */
-/* global state, setView, hbSetFace, hbOpenContracts, openNewAgreement, openNegotiations, openSettingsAt, closeModal, jlToWords , stTalkReopen, jamboTalkOpen, calPlanRepaint, jlTalkPress, pdTalkReopen, jamboTalkUp, jamboTalkBack */
+/* global state, setView, hbSetFace, hbOpenContracts, openNewAgreement, openNegotiations, openSettingsAt, closeModal, jlToWords , jamboTalkOpen, calPlanRepaint, jlTalkPress, pdTalkReopen, jamboTalkUp, jamboTalkBack */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
@@ -68,7 +68,8 @@ const PAGES = [
   ['settings-you', "setView('team')", 'st'],
   ['settings-company', "setView('team'); openSettingsAt('platform')", 'st'],
 ];
-const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mig-side', st: '#st-side' };
+/* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list, its Jambo the list panel (#ins-panel) */
+const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mig-side', st: '#ins-panel' };
 
 (async () => {
   const h = await startHati({});
@@ -106,22 +107,33 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
         const press = [...root.querySelectorAll('button, a[href], [role="button"]')].filter(e => vis(e) && inBody(e))
           .map(e => (e.getAttribute('aria-label') && !e.textContent.trim() ? e.getAttribute('aria-label') : e.textContent).replace(/\s+/g, ' ').trim()).filter(Boolean);
         const helloIn = [...root.querySelectorAll('[data-jb-hello]')].filter(vis).length;
-        const jov = [...root.querySelectorAll('.jov')].filter(vis).length;
+        const jov = [...root.querySelectorAll('.jov')].filter(vis).length, apn5 = [...root.querySelectorAll('.apn5')].filter(vis).length;
         /* RE-POINTED 28 Oct 2026 (owner: "keep them as is but keep them below the discover features. Also remove the
            Ask me details"; the drop card is a pop-up): Discover first, the list's facts under it, no drop card, no Ask me */
         const disc = root.querySelector('.ac-disc, [data-ac-disc], .ac-discover'), facts = root.querySelector('.pd-wall-facts');
         const order = disc && facts && !root.querySelector('#pd-drop') && !root.querySelector('.jov-asks')
           ? (disc.compareDocumentPosition(facts) & Node.DOCUMENT_POSITION_FOLLOWING ? 'disc-first' : 'facts-first') : null;
         const menuFirst = (() => { const d = root.querySelector('[data-st-jb-menu-door]'); if (!d || !vis(d)) return null; const first = press[0] || ''; return d.textContent.includes(first); })();
-        return { tabWords, lit: lit ? lit.textContent.replace(/\d+/g, '').replace(/[^\p{L} ]/gu, '').trim() : '', press, helloIn, jov, order, menuFirst };
+        /* the box's + (Add a file, the one upload door) stands in the panel's foot in the new look */
+        const plus = [...root.querySelectorAll('[data-jb-file]')].some(vis);
+        return { tabWords, lit: lit ? lit.textContent.replace(/\d+/g, '').replace(/[^\p{L} ]/gu, '').trim() : '', press, helloIn, jov, apn5, order, menuFirst, plus };
       }, host);
       if (!read){ check(`${key}: the panel is drawn`, false, host); continue; }
       if (WRITE){ inv[key] = read.press; console.log(`INVENTORY ${key}: ${read.press.length} — ${JSON.stringify(read.press)}`); continue; }
       /* RE-POINTED 9 Nov 2026 (owner: "Your day first"): on Explorer Your day stands before the Overview, the one exception */
       const ov = (key === 'explorer' && /Your day/.test(read.tabWords[0] || '') ? read.tabWords[1] : read.tabWords[0]) || '', jb = read.tabWords[1] || '';
-      check(`1 ${key}: Overview first, no Jambo tab, landing on Overview`, /Overview/.test(ov) && !read.tabWords.some(w => /Jambo/.test(w)) && /Overview/.test(read.lit), JSON.stringify({ tabs: read.tabWords, lit: read.lit, jb }));
+      /* RETIRED 17 Nov 2026 (#762, round 6 default): 1 approvals "Overview first" — Approvals' chosen-row panel opens on
+         "Before you decide" (apnLeadFiveHtml), no Overview tab; the "no Jambo tab" half is still asked below */
+      /* RE-POINTED 21 Nov 2026 (P-39, the Board's panel as drawn): no head row at all — no Overview tab, no Jambo tab */
+      /* RE-POINTED 21 Nov 2026 (P-36, New agreement as drawn): the sheet's panel has no head row either */
+      if (key === 'board' || key === 'sheet') check(`1 ${key}: no tab row, no Jambo tab (as drawn)`, !read.tabWords.length, JSON.stringify({ tabs: read.tabWords }));
+      /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the Contracts place's panel has no tab row either; its summary is the Overview */
+      else if (key === 'contracts') check(`1 ${key}: no tab row, no Jambo tab (as drawn)`, !read.tabWords.length, JSON.stringify({ tabs: read.tabWords }));
+      else if (key === 'approvals') check(`1 ${key}: no Jambo tab`, !read.tabWords.some(w => /Jambo/.test(w)), JSON.stringify({ tabs: read.tabWords, lit: read.lit }));
+      else check(`1 ${key}: Overview first, no Jambo tab, landing on Overview`, /Overview/.test(ov) && !read.tabWords.some(w => /Jambo/.test(w)) && /Overview/.test(read.lit), JSON.stringify({ tabs: read.tabWords, lit: read.lit, jb }));
       check(`2 ${key}: no greeting on the Overview`, !read.helloIn, String(read.helloIn));
-      check(`3 ${key}: drawn by the one Overview builder`, read.jov >= 1, String(read.jov));
+      /* RE-POINTED 21 Nov 2026 (P-30, as drawn): a chosen approval's panel is the drawn panel (.apn5), not the Overview builder */
+      check(`3 ${key}: drawn by the one Overview builder`, read.jov >= 1 || (key === 'approvals' && read.apn5 >= 1), String(read.jov));
       /* nothing lost: each pressable of the old panel is still pressable here, by its words (case, cost and spacing aside) */
       const norm = s => String(s || '').toLowerCase().replace(/·.*$/, '').replace(/[^\p{L}\p{N}]+/gu, '');
       const now = read.press.map(norm).join('|');
@@ -134,13 +146,34 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
          beside Contracts says "discover"; on Discover's own panel "Ask a column" became "Ask a question" (the ask box) */
       const RENAMED = { contracts: { reads: 'discover' }, reads: { 'Ask a column': 'Ask a question' } };
       const viaName = w => !!(RENAMED[key] && RENAMED[key][w]) && now.includes(norm(RENAMED[key][w]));
-      const lost = was.filter(w => norm(w) && !now.includes(norm(w)) && !viaPopup(w) && !viaName(w));
+      /* GONE WITH THE OLD LOOK (16 Nov 2026, #762): Settings has no left menu in the new look — its pages are linked at
+         the foot of its one list (owner's pick, 14 Nov 2026, f1045) — so the panel's "Open the Menu" has nothing to open */
+      /* RETIRED 17 Nov 2026 (#762, owner's ruling 4): the Parties panel has no all-parties list — "all parties" is gone on purpose */
+      /* RETIRED 17 Nov 2026 (#762, round 6 default 3: "no suggestion chips", with the five parts built as drawn, owner 15 Nov
+         2026): the old panels' suggestion chips are not drawn on the new panels — Contracts' "Due diligence · 5 questions",
+         "Ask a new question" and "calendar", Approvals' "approval rules", Obligations' "find time for what is due",
+         Negotiations' "our move" and "start a negotiation", Settings' suggestion chips. Their acts keep their own doors. */
+      /* RETIRED 21 Nov 2026 (P-43, Settings the Legora + Stripe way): "Ask" (Ask an admin) is for a person who is not one —
+         an admin's panel no longer carries it (the fault logged that day); this check signs in as an admin */
+      const RETIRED = { 'settings-you': ['Open the Menu', 'brief me once a week', 'switch to Svenska', 'turn off my suggestions', 'Ask'],
+        'settings-company': ['Open the Menu', 'review the quarterly access review', 'what should I turn on next?', 'who can open Procurement & Raw Materials?', 'Ask'],
+        customers: ['all parties'], contracts: ['Due diligence · 5 questions', 'Ask a new question', 'calendar'], approvals: ['approval rules'],
+        obligations: ['find time for what is due · 1 call'], negotiations: ['our move', 'start a negotiation'],
+        /* RETIRED 21 Nov 2026 (P-39, the Board's panel as drawn: no suggestion chips under Jambo's pieces) */
+        board: ['which 2 end in 90 days?', 'value by stream', 'what needs me'] };
+      /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): "Add a file" is the box's + (data-jb-file) in the
+         panel's foot, outside the body read above — still offered, so asked there */
+      const viaFoot = w => w === 'Add a file' && read.plus;
+      const viaRetired = w => (RETIRED[key] || []).includes(w);
+      const lost = was.filter(w => norm(w) && !now.includes(norm(w)) && !viaPopup(w) && !viaName(w) && !viaRetired(w) && !viaFoot(w));
       check(`4 ${key}: nothing the panel offered before is lost (${was.length} kept)`, !!inv && !lost.length, lost.length ? 'lost: ' + JSON.stringify(lost) : '');
-      if (key === 'contracts') check('5 contracts: Discover stands above the list\'s facts; no drop card, no Ask me', read.order === 'disc-first', String(read.order));
-      if (key === 'settings-you' || key === 'settings-company') check(`6 ${key}: "Open the Menu" is still first`, read.menuFirst === true, String(read.menuFirst));
+      /* RETIRED 16 Nov 2026 (#762): 5 "contracts: Discover stands above the list's facts" — the new look's Contracts panel is
+         the folder's plain sentences, the Legora way (owner's pick, 14 Nov 2026, f1053); no Discover card or facts list there */
+      /* RETIRED 16 Nov 2026 (#762): 6 "settings: Open the Menu is still first" — the new look's Settings has no left menu (f1045) */
       /* the Jambo tab's first words are his greeting */
       /* the conversation, turned to as an answer turns it (each host's own reopen), opens on his greeting */
-      await P.evaluate(k => { if (/^settings/.test(k)) return stTalkReopen();
+      /* RE-POINTED 16 Nov 2026 (#762): Settings' talk opens as the list panel's (jlTalkPress), below */
+      await P.evaluate(k => {
         if (k === 'calendar'){ jamboTalkOpen('cal:week', document.getElementById('cal-plan-body')); return calPlanRepaint(); }
         if (document.querySelector('#ins-panel.is-jambo, #mig-side .jl-head')) return jlTalkPress();
         return pdTalkReopen(); }, key);

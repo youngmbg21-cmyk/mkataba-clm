@@ -79,8 +79,9 @@ const REAL = 'Exclusive Distribution — Carrefour Kenya', PARTY = 'Carrefour Ke
     console.log('\n2 · the dialog');
     if (await press(FILE + ' [data-pd-kt-cn]', '2a Set')) {
       const d = await until(() => { const i = document.getElementById('cn-code'); const dlg = i && i.closest('[role="dialog"]'); if (!dlg) return null;
-        const rows = [...dlg.querySelectorAll('#cn-people label')].map(l => ({ t: l.textContent.replace(/\s+/g, ' ').trim(), on: l.querySelector('input').checked, lock: l.querySelector('input').disabled }));
-        return { text: dlg.textContent.replace(/\s+/g, ' ').trim(), rows, foot: [...dlg.querySelectorAll('[data-dlg-foot] button')].map(b => b.textContent.trim()) }; });
+        const rows = [...dlg.querySelectorAll('.lgp-list label')].map(l => ({ t: l.textContent.replace(/\s+/g, ' ').trim(), on: l.querySelector('input').checked, lock: l.querySelector('input').disabled }));
+        return { text: dlg.textContent.replace(/\s+/g, ' ').trim(), rows, foot: [...dlg.querySelectorAll('.lgp-ft button')].map(b => b.textContent.trim()) }; });
+      /* RE-POINTED 19 Nov 2026 (the one edit pop-up, the Legora way): the people are its tick list (.lgp-list), its foot .lgp-ft */
       const me = d && d.rows.find(r => /^Unrestricted Legal/.test(r.t));
       check('2a it asks the code name and who knows, the owner always on it; it says the real name; Save, Cancel last', !!d
         && /^Code name\s?Everyone outside the list sees the code name — in lists, search, Alerts and Jambo — and cannot open the deal\./.test(d.text)
@@ -88,7 +89,7 @@ const REAL = 'Exclusive Distribution — Carrefour Kenya', PARTY = 'Carrefour Ke
         && d.foot.join('|') === 'Save|Cancel', JSON.stringify(d && { ...d, text: d.text.slice(0, 200) }));
       await shot(page, 'code-name-dialog-1440x780');
       await page.fill('#cn-code', 'Project Falcon');
-      await page.evaluate(id => { const i = document.querySelector(`#cn-people input[value="${id}"]`); if (i) i.checked = true; }, N.id);
+      await page.evaluate(id => { const i = document.querySelector(`.lgp-list input[data-cn-who="${id}"]`); if (i && !i.checked) i.click(); }, N.id);
       await press('#cn-save', '2b Save');
       const told = await until(() => { const t = (document.getElementById('toast-root') || {}).textContent || ''; return /know the real name/.test(t) ? t.replace(/\s+/g, ' ').trim() : null; });
       await until(f => { const r = document.querySelector(f); return r && /Project Falcon/.test(r.textContent) ? true : null; }, FILE);
@@ -107,6 +108,9 @@ const REAL = 'Exclusive Distribution — Carrefour Kenya', PARTY = 'Carrefour Ke
     check('3a the book holds a stand-in: "Project Falcon", no party, the real name and party nowhere in it', !!book.stub && book.stub.name === 'Project Falcon'
       && book.stub.codeNamed && book.stub.party === '' && book.leak.length === 0, JSON.stringify(book));
     await page.evaluate(() => { regPlaceSet({ show: 'list' }); setView('register'); });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its folders; List (data-ctf-show)
+       draws the contracts themselves */
+    await until(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b && b.getAttribute('aria-pressed') !== 'true') { b.click(); return null; } return !!document.querySelector('#ct-place'); }, null, 15000);
     const listed = await until(([real, party]) => { const t = document.body.innerText; return /Project Falcon/.test(t) ? { leak: [real, party].filter(x => t.includes(x)) } : null; }, [REAL, PARTY], 15000);
     check('3b on the Contracts list it is "Project Falcon"; the real name and party are not on the page', !!listed && listed.leak.length === 0, JSON.stringify(listed));
     await shot(page, 'code-name-outsider-list-1440x780');

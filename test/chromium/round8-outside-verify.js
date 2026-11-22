@@ -1,7 +1,7 @@
 /* THE NEW LOOK, ROUND 8 FIRST HALF (2 Nov 2026; the review room's sign-in and an expired link, behind the company's own
    setting "the new look for people outside", off by default; the owner's answers of 2 Nov 2026).
-     1 · Off: the sign-in and an expired link are today's pages; /api/status says outsideLook false
-     2 · An admin turns it on from Settings & rules (People outside the company); /api/status says true
+     1 · (RETIRED 16 Nov 2026, #762: there is no off)
+     2 · (RE-POINTED 16 Nov 2026, #762) on with nothing set: no switch in Settings & rules; /api/status says true
      3 · The sign-in as drawn: the black bar with the language, the wordmark and what HaTi is, the fields as lines, Sign in
          and Forgot the password; no code box for someone without two-step; signing in still works
      4 · An expired link as drawn: nothing from the agreement, the day it stopped, Ask for a new link; the press is
@@ -32,29 +32,22 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   const status = () => fetch(h.base + '/api/status').then(r => r.json());
   const openExpired = async p => { await p.goto(h.base + '/#share=t:' + s.token, { waitUntil: 'networkidle' }); await p.reload({ waitUntil: 'networkidle' }); };
 
-  /* 1 · off */
-  try {
-    const p = await fresh(); await p.goto(h.base + '/', { waitUntil: 'networkidle' });
-    await until(p, () => !!document.getElementById('li-email'), null, 15000);
-    const a = await p.evaluate(() => !document.querySelector('.lin-wrap'));
-    await openExpired(p); await until(p, () => /expired/i.test(document.body.innerText), null, 15000);
-    const b = await p.evaluate(() => !document.querySelector('.pnl-gone'));
-    check('1 off: today\'s sign-in and expired page; the server says off', a && b && (await status()).outsideLook === false, { a, b });
-    await p.context().close();
-  } catch (e) { check('1 off', false, String(e).slice(0, 200)); }
+  /* RETIRED 16 Nov 2026 (#762): 1 "off: today's sign-in and expired page" — the outside look has no off any more */
 
-  /* 2 · an admin turns it on from Settings & rules */
+  /* 2 · RE-POINTED 16 Nov 2026 (the new look is the only look, #762): there is no switch to turn — the server says
+     on with nothing set, and Settings & rules draws no switch for it */
   const adm = await fresh();
   try {
     await adm.goto(h.base + '/', { waitUntil: 'networkidle' });
     await adm.fill('#li-email', 'admin@example.co.ke'); await adm.fill('#li-pass', 'adminpassword1'); await adm.click('#li-go');
-    await until(adm, () => typeof currentUser === 'function' && !!currentUser() && typeof stPrefSet === 'function', null, 40000);
-    await adm.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); setView('team'); });
-    const up = await until(adm, () => !!document.querySelector('#stn-outsidelook [data-st-sw="outsidelook"]'), null, 15000);
-    if (up){ await adm.evaluate(() => document.querySelector('#stn-outsidelook').scrollIntoView({ block: 'center' })); await adm.waitForTimeout(300); await adm.click('#stn-outsidelook [data-st-sw="outsidelook"]', { timeout: 8000 }).catch(async () => adm.evaluate(() => document.querySelector('#stn-outsidelook [data-st-sw="outsidelook"]').click())); }
-    const on = await until(adm, () => !!(state.settings && state.settings.outsideLook && state.settings.outsideLook.on), null, 8000);
-    let st = false; for (let i = 0; i < 20 && !st; i++){ st = (await status()).outsideLook === true; if (!st) await adm.waitForTimeout(250); }
-    check('2 an admin turns it on from Settings & rules; the server says on', up && on && st, { up, on, st });
+    await until(adm, () => typeof currentUser === 'function' && !!currentUser() && typeof setView === 'function', null, 40000);
+    await adm.evaluate(() => setView('team'));
+    /* RE-POINTED (P-11): Settings opens on the six areas; Set-up and records draws no switch for the outside look */
+    const up = await until(adm, () => typeof sddGo === 'function' && document.querySelectorAll('#stn-main [data-sdd-home]').length === 6, null, 15000);
+    if (up) await adm.evaluate(() => sddGo('setup'));
+    const none = await adm.evaluate(() => !document.querySelector('#sdd-outsidelook, [data-st-sw="outsidelook"]'));
+    const st = (await status()).outsideLook === true;
+    check('2 the outside look is on with no setting; Settings & rules draws no switch for it; the server says on', up && none && st, { up, none, st });
   } catch (e) { check('2 the setting', false, String(e).slice(0, 200)); }
 
   /* 3 · the sign-in */

@@ -49,14 +49,19 @@ const out = (ok, what, detail) => { console.log((ok ? 'LAND ' : 'MISS ') + ' ' +
     await P.waitForFunction(() => !!(window.currentUser && currentUser() && typeof setView === 'function' && state.contracts && state.contracts.length), null, { timeout: 20000 });
     await P.evaluate(() => { state.aiConfigured = true; });
 
+    /* SETTLED, OR SAID (20 Nov 2026): two equal readings a beat apart, nothing busy. While Jambo or a landing is still
+       busy the wait goes on, bounded (60 beats, 15 s); one that runs out says so (false), never passes off a busy page
+       as the answer — a held question read before it ran was one run's lone miss (BUGLOG 20 Nov 2026) */
     const settle = async () => {
       let prev = '';
-      for (let i = 0; i < 24; i++){
+      for (let i = 0; i < 60; i++){
         const now = await P.evaluate(src => { const busy = (window.intel && intel.busy) || (window.ai && ai.busy) || (typeof navLanding === 'function' && navLanding()); return JSON.stringify([busy, new Function('return (' + src + ')()')()]); }, navWhereSrc.toString()).catch(() => '');
-        if (now && now === prev && !JSON.parse(now)[0]) return;
+        const busy = !!(now && JSON.parse(now)[0]);
+        if (now && now === prev && !busy) return true;
         prev = now;
-        await P.waitForTimeout(250);   // a bounded poll: two equal readings a beat apart
+        await P.waitForTimeout(250);   // a bounded poll
       }
+      return false;
     };
     const where = () => P.evaluate(src => new Function('return (' + src + ')()')(), navWhereSrc.toString()).catch(e => ({ error: String(e.message || e) }));
     /* RE-PINNED 28 Oct 2026 (owner picked "Door above the box": every word TYPED in a box is the brain's but a page's
@@ -66,7 +71,9 @@ const out = (ok, what, detail) => { console.log((ok ? 'LAND ' : 'MISS ') + ' ' +
       /* RE-PINNED 26 Oct 2026 (owner: on the Board short commands are Overview's, everything typed on the Jambo tab goes to the AI, igBoardTalkFirst): this check is about the free readers, so it types under Overview — an answer turns the panel to his tab, and one press on it turns back */
       if (box === 'board'){ await P.evaluate(() => { if (typeof pdTalkShows === 'function' && pdTalkShows()) { if (typeof pdTalkBack === 'function') pdTalkBack(); } }); return chipAsk('#igd-input', 'intelAsk', q); }
       if (box === 'list'){ await P.evaluate(() => setView('approvals')); await settle(); return chipAsk('#jl-q', 'jlAsk', q); }
-      if (box === 'settings'){ await P.evaluate(() => setView('team')); await settle(); return chipAsk('#st-jb-q', 'stJbBoxAsk', q); }
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings' box is the list panel's (#jl-q, its reader
+         jlAsk, which on Settings asks the one finder stFind first), no longer #st-jb-q */
+      if (box === 'settings'){ await P.evaluate(() => setView('team')); await settle(); return chipAsk('#jl-q', 'jlAsk', q); }
       throw new Error('no such box ' + box);
     }
     /* EVERY SENTENCE STARTS FROM THE SAME PLACE: nothing open over the page, nothing landed, Present and
@@ -143,9 +150,10 @@ const out = (ok, what, detail) => { console.log((ok ? 'LAND ' : 'MISS ') + ' ' +
           await fresh(box);
           const before = await where();
           await typeInto(box, L.q);
-          await settle();
+          const still = !(await settle());
           const W = await where();
           why = judge(L.spot, W, before);
+          if (why.length && still) why.push('Jambo or a landing was still busy after 15 s');
         } catch (e){ why = ['could not be typed: ' + String(e && e.message || e).split('\n')[0]]; }
         out(!why.length, `[${L.door} · ${box}] "${L.q}"`, why.join('; '));
       }

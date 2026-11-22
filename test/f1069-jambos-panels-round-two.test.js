@@ -39,8 +39,9 @@ test('f1069 (1) the builder draws the week, the face and the crew', () => {
 test('f1069 (2) the four panels say the five parts in the new look, as before in the old', () => {
   const cal = read('js/views/calendar.js');
   assert.match(strip(cal), /jamboOverviewHtml\(\(typeof window\.newLookOn==='function'&&newLookOn\(\)\)\?calOverviewFive\(off\):\{/, "Calendar's panel");
-  const lib = region(read('js/views/library.js'), 'function tplnPanelHtml(card){', 'if (typeof document');
-  assert.match(lib, /newLookOn\(\) && typeof jamboOverviewHtml === 'function'\)\s*return `<div class="jl-words is-ov">\$\{jamboOverviewHtml\(tplnPanelFive\(/, "Our paper's panel");
+  const lib = region(read('js/views/library.js'), 'function tplnPanelHtml(card, opts){', 'if (typeof document'); /* RE-POINTED 17 Nov 2026 (Shelves, then the Legora way): the panel takes opts (Open the paper while the list is up) */
+  /* RE-POINTED (P-34, owner's pick 20 Nov 2026): the panel wears its page's class (no cards) */
+  assert.match(lib, /newLookOn\(\) && typeof jamboOverviewHtml === 'function'\)\s*return `<div class="jl-words is-ov tpln6-p">\$\{jamboOverviewHtml\(tplnPanelFive\(/, "Our paper's panel");
   const dir = region(read('js/views/directory.js'), 'function dirnPanelHtml(p){', 'if (typeof document');
   assert.match(dir, /newLookOn\(\) && typeof jamboOverviewHtml === 'function'\)\{[\s\S]*dirnPanelFive\(p, sub, w, away\)/, "People's panel");
   const jh = region(read('js/views/jambohouse.js'), 'function jhnPanelHtml(){', 'async function jhnMaySet');
@@ -69,6 +70,9 @@ test('f1069 (4) every word of the round is in both books', () => {
   const keys = new Set();
   for (const f of ['js/views/calendar.js', 'js/views/library.js', 'js/views/directory.js', 'js/views/jambohouse.js'])
     for (const m of read(f).matchAll(/['"](jov5_[a-z0-9_]+)['"]/g)) keys.add(m[1]);
+  /* RE-POINTED 21 Nov 2026 (P-26, as drawn): People's panel no longer says "Named on, most recent", "Reach them" or "Read
+     from the record" (the drawing draws none of them), so its own words (dirn_…) are asked of both books here too */
+  for (const m of read('js/views/directory.js').matchAll(/['"](dirn_[a-z0-9_]+)['"]/g)) keys.add(m[1]);
   assert.ok(keys.size >= 25, 'the round\'s words are found');
   const has = (b, k) => b[k] != null || b[k + '_one'] != null;
   assert.deepEqual([...keys].filter(k => !has(S.en, k) || !has(S.sv, k)), []);

@@ -101,8 +101,11 @@ describe('f312 (2) — no dialog states a second width on its inner box', () => 
      beside it rather than pinning the old call byte for byte. */
   /* RE-POINTED 22 Oct 2026: the signing route moved up a rung, to XL (owner: "the add signers pop up
      should be wide enough that you do not have to scroll left or right") */
-  test('the one dialog wider than a short form names its rung on the frame', () => {
-    assert.match(read('js/approvals.js'), /<\/div>`, \{ maxWidth: DLG_W\.xl(?:, label: i18t\('ap_signing_route'\))? \}\);/);
+  /* RE-POINTED 19 Nov 2026: the signing route is now drawn as THE ONE EDIT POP-UP, the Legora way (owner: "Build 1",
+     f1101) — lines with one signer on its own screen — so its width is that pop-up's own (LGP_W), still named once,
+     on the frame. */
+  test('the signing route names its width once, on the frame', () => {
+    assert.match(read('js/approvals.js'), /<\/div>`, \{ maxWidth: window\.LGP_W \|\| '480px', ownFrame: true, label: i18t\('ap_signing_route'\) \}\);/);
   });
 });
 
@@ -129,7 +132,7 @@ describe('f312 (3) — the source sheet fills its frame, and asks one question',
      down one side — and it holds for whatever dialog lives here. */
   const stage = () => {
     const cap = capture();
-    const w = loadViews(['js/views/library.js', 'js/views/newstandard.js'], {
+    const w = loadViews(['js/components.js', 'js/views/library.js', 'js/views/newstandard.js'], {
       state: { contracts: [], settings: {}, view: 'templates' },
       tplLibAll: () => ({ canManage: true, templates: [] }),
       openModal: cap.open, closeModal() {}, openCreateTemplateModal() {}, tplLibCreateModal() {},
@@ -144,15 +147,18 @@ describe('f312 (3) — the source sheet fills its frame, and asks one question',
     const cap = stage();
     assert.ok(cap.html, 'the dialog opened');
     assert.equal((cap.html.match(/data-ns-start="/g) || []).length, 3, 'three answers to one question');
-    assert.equal((cap.html.match(/class="sap-li"/g) || []).length, 4, 'one row shape each, their paper the fourth');
-    assert.match(cap.html, /^<div style="padding:16px 18px">/, 'the drawn padding');
+    /* RE-POINTED 19 Nov 2026 (f1118, the one edit sheet): the four answers are quiet choice lines on the one sheet
+       (lgpOpen), whose own frame states the width and the padding */
+    assert.equal((cap.html.match(/class="lgp-tick is-radio/g) || []).length, 4, 'one row shape each, their paper the fourth');
+    assert.match(cap.html, /^<form class="lgp" id="ns-form"/, 'the one sheet');
+    assert.equal(cap.opts.maxWidth, '480px', 'at the sheet\'s width');
   });
   test('each start carries its name and its one line; Continue and Cancel on the foot', () => {
     const cap = stage();
     assert.match(cap.html, /From nothing/, 'the first start, renamed 14 Nov 2026'); assert.match(cap.html, /From a template you have/); assert.match(cap.html, /From one of our contracts/);
-    assert.equal((cap.html.match(/class="sap-m"/g) || []).length, 4, 'a line under every name');
-    assert.match(cap.html, /id="ns-continue" class="ui-btn ui-btn-primary"/);
-    assert.match(cap.html, /data-dlg-cancel type="button" id="ns-close" class="ui-btn"/);
+    assert.equal((cap.html.match(/class="lgp-tsub"/g) || []).length, 4, 'a line under every name');
+    assert.match(cap.html, /class="ui-btn ui-btn-primary lgp-go" id="ns-continue"/);
+    assert.match(cap.html, /class="ui-btn" data-dlg-cancel id="ns-close"/);
     assert.match(cap.html, /id="ns-cp"/, 'the other side’s paper is on the list');
   });
   test('the dialog says its name to a screen reader', () => {
@@ -164,7 +170,7 @@ describe('f312 (3) — the source sheet fills its frame, and asks one question',
 describe('f312 (4) — “New standard template” fills its frame, and “Other” is listed once', () => {
   const stage = fn => {
     const cap = capture();
-    const w = loadViews(['js/views/templatelib.js'], {
+    const w = loadViews(['js/components.js', 'js/views/templatelib.js'], {
       state: { contracts: [], settings: {}, view: 'templates' },
       openModal: cap.open, closeModal() {},
       tplStreamOpts: sel => `<option value="proc"${sel === 'proc' ? ' selected' : ''}>Procurement</option>`,
@@ -214,7 +220,10 @@ describe('f312 (4) — “New standard template” fills its frame, and “Other
        record's own folder to the one stream-options reader (tplStreamOpts is
        this module's own, so a stub cannot stand in for it here). */
     assert.match(read('js/views/templatelib.js'), /tplStreamOpts\(folder \|\| ''\)/);
-    assert.match(read('js/views/templatelib.js'), /tplLibCatStreamRowHtml\('tpllib-m-cat', 'tpllib-m-stream', t\.category, t\.folder\)/);
+    /* RE-POINTED 19 Nov 2026 (f1118): the details dialog is the one edit sheet, so its two pickers are two of its
+       lines (label beside the words), read off the same two option builders the shared row reads */
+    assert.match(read('js/views/templatelib.js'), /<select id="tpllib-m-cat" class="lgp-in">\$\{tplLibCategoryOptions\(t\.category\)\}<\/select>/);
+    assert.match(read('js/views/templatelib.js'), /<select id="tpllib-m-stream" class="lgp-in"><option value="">\$\{i18t\('tl_stream_none'\)\}<\/option>\$\{tplStreamOpts\(t\.folder \|\| ''\)\}<\/select>/);
   });
   test('the “Other” label is the translated one, so Swedish does not list Övrigt beside Other', () => {
     const src = read('js/views/templatelib.js');

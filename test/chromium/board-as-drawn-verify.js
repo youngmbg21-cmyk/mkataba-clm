@@ -99,6 +99,9 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await until(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-A2'), null, 20000);
     await page.keyboard.press('Escape').catch(() => {});
+    /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */
+    /* this check reads the value figure (4b, 12), so the reader picks it, as the figure picker lets them */
+    await page.evaluate(() => { const s = hbS(); s.figs = ['live', 'value', 'ending', 'overdue']; hbSave(); if (typeof hbPaintBoard === 'function') hbPaintBoard(); });
     const toBoard = async () => { await page.evaluate(() => { if (state.view === 'dashboard') hbSetFace('board'); else { hbS().face = 'board'; hbSave(); setView('dashboard'); } });
       return until(() => hbFace() === 'board' && !!document.querySelector('#hb-book .hb-tn .hb-fig') && !!document.querySelector('#ig-dock #igd-feed'), null, 12000); };
     await toBoard();
@@ -109,11 +112,17 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
       return { title: (el.querySelector('h2.hb-bh-t') || {}).textContent || '', sub: (el.querySelector('.hb-bh-s') || {}).textContent || '',
         live: !!el.querySelector('.hb-live'), at: (el.querySelector('.hb-bh-at') || {}).textContent || '',
         cost: b ? (b.querySelector('.hb-bs-cost') ? 'ON THE FACE' : (/\bcalls?\b|\bfree\b|costs? nothing/i.test((b.title || '') + ' ' + b.textContent) ? 'SAID' : '')) : null, btn: b ? b.textContent.trim() : null, keyed: typeof copilotAvailable === 'function' && copilotAvailable(),
-        note: !!el.querySelector('.hb-note'), first: document.getElementById('hb-board').firstElementChild === el }; }, null, 8000);
-    check('1a the head says Board, what it is, and that it is live and when it was counted', !!hd && hd.title === 'Board' && hd.sub === 'your book against six months ago' && hd.live && /^· counted \d{1,2}[:.]\d{2}/.test(hd.at) && hd.first, JSON.stringify(hd));
+        note: !!el.querySelector('.hb-note'), first: document.getElementById('hb-board').firstElementChild === el,
+        greet: typeof cn2Greet === 'function' ? cn2Greet() : null, day: (el.querySelector('.hb-bh-day') || {}).textContent || '' }; }, null, 8000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Board's head is the greeting (cn2Greet) with the
+       day, CLAUDE.md "YOU LAND ON THE BOARD: head cn2Greet · pills · Live" — "Board" and its sub line were the old head */
+    /* RE-POINTED 21 Nov 2026 (P-39 rebuilt as drawn): the day is not said; Live and when it was counted are */
+    check('1a the head greets the reader, and says that it is live and when it was counted', !!hd && !!hd.greet && hd.title === hd.greet && !hd.day.trim() && hd.live && /^· counted \d{1,2}[:.]\d{2}/.test(hd.at) && hd.first, JSON.stringify(hd));
     /* RE-POINTED 29 Oct 2026 (owner: "the jambo count next to summarise my board disappears"): the cost is said in its hover, never on its face */
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
-    check('1b Summarise my board stands in the head, no cost on its face or its hover', !!hd && hd.cost === '' && (!hd.keyed || /Summarise my board/.test(hd.btn || '')), JSON.stringify(hd && { keyed: hd.keyed, cost: hd.cost, btn: hd.btn }));
+    /* RE-POINTED 22 Nov 2026 (owner: "combine summarise my board into read down"): Summarise left the Board's head; it
+       stands in Read down's brief (read-down-stripe-verify) */
+    check('1b Summarise my board is not in the Board\'s head (it lives in Read down now)', !!hd && hd.btn === null, JSON.stringify(hd && { btn: hd.btn }));
 
     /* RE-POINTED (owner, 10 Nov 2026): the saved views left the Board's head; they are blue links under Your day in
        Jambo's panel on Explorer (igSavedViewsHtml), where "+ Save this view" opens a name box */
@@ -139,10 +148,11 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
     console.log('\n3 · Needs you, whole, under Your book (Round A)');
     const gone = await page.evaluate(() => { const book = document.getElementById('hb-book'), work = document.getElementById('hm-agents'), ins = document.querySelector('#hb-board .hb-ins-head');
       return { old: !!document.querySelector('#hb-board #hb-needs, #hb-board .hb-ny'), work: !!work, nd: !!(work && work.classList.contains('nd-card')),
-        order: !!(book && work && ins && (book.compareDocumentPosition(work) & Node.DOCUMENT_POSITION_FOLLOWING) && (work.compareDocumentPosition(ins) & Node.DOCUMENT_POSITION_FOLLOWING)),
+        /* RE-POINTED 21 Nov 2026 (P-39, owner: remove Today's insights from the Board): Needs you under Your book, and nothing named Today's insights after it */
+        order: !!(book && work && !ins && (book.compareDocumentPosition(work) & Node.DOCUMENT_POSITION_FOLLOWING)),
         rows: work ? [...work.querySelectorAll('[data-nd-agent]')].map(r => r.getAttribute('data-nd-agent')) : [] }; });
     check('3a the old Needs you card is not drawn', !gone.old, JSON.stringify(gone));
-    check('3b Needs you stands on the Board, under Your book, above Today\'s insights, Jambo\'s pieces among its rows', gone.work && gone.nd && gone.order && gone.rows.includes('late'), JSON.stringify(gone));
+    check('3b Needs you stands on the Board, under Your book, the last card (no Today\'s insights), Jambo\'s pieces among its rows', gone.work && gone.nd && gone.order && gone.rows.includes('late'), JSON.stringify(gone));
     await page.evaluate(() => { const b = document.getElementById('hb-board'); if (b) b.scrollTop = 0; hbOpenAgent(); });
     const lit = await until(() => { const w = document.getElementById('hm-agents'); if (!w || !w.classList.contains('is-landed')) return null;
       const r = w.getBoundingClientRect(); return { top: Math.round(r.top), inView: r.top >= 0 && r.top < innerHeight }; }, null, 8000);
@@ -167,18 +177,21 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
       const ov = dock.querySelector('#igd-feed .hb-jb-hello .jov'); if (!ov) return null;
       /* RE-POINTED 13 Nov 2026 (owner picked "Brain welcome"): the head sentence and the facts gave way to the brain card, his line and the count under it */
       const t = s => (ov.querySelector(s) || {}).textContent || '';
-      return { word: (dock.querySelector('.igd-head-w') || {}).textContent || '', head: t('.hbw-say'), brain: !!ov.querySelector('.hbw-brain canvas[data-hb-brain-cv]'),
-        chips: [...ov.querySelectorAll('[data-igsug]')].map(b => b.getAttribute('data-igsug')), needs: (t('.hbw-say') + ' ' + t('.hbw-sub')).trim(), n: counterNeedsCount(),
+      /* RE-POINTED 16 Nov 2026 (#762): his line is the five parts' headline (.jov5-title), its second line .jov5-sub */
+      return { word: (dock.querySelector('.igd-head-w') || {}).textContent || '', head: t('.hbw-say, .jov5-title'), brain: !!ov.querySelector('.hbw-brain canvas[data-hb-brain-cv]'),
+        chips: [...ov.querySelectorAll('[data-igsug]')].map(b => b.getAttribute('data-igsug')), needs: (t('.hbw-say, .jov5-title') + ' ' + t('.hbw-sub, .jov5-sub')).trim(), n: counterNeedsCount(),
         hello: !!ov.querySelector('[data-jb-hello]'), bottom: !!dock.querySelector('[data-ig-chips]'),
         badge: (dock.querySelector('[data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || '', tabs: dock.querySelectorAll('.igd-head .pd-tab').length, ending: hbBookData('all').figs.ending.n }; }, null, 10000);
     /* RE-POINTED 28 Oct 2026 (owner picked "Door above the box"): Overview alone, no Jambo tab */
     check('5a one tab, Overview, and no word beside it', !!jb && jb.word === '' && jb.tabs === 1, jb && JSON.stringify({ word: jb.word, tabs: jb.tabs }));
-    check('5b the Overview opens on the brain and his one line, and no greeting',
-      !!jb && jb.brain && !!jb.head && !jb.hello, jb && (jb.head + ' | brain ' + jb.brain));
+    /* RE-POINTED 22 Nov 2026 (owner: "delete this explorer feature from the board side panel"): no brain card */
+    check('5b the Overview opens on his one line, with no Explorer map, and no greeting',
+      !!jb && !jb.brain && !!jb.head && !jb.hello, jb && (jb.head + ' | brain ' + jb.brain));
     check('5c his questions under "Ask me" — "which N end in 90 days?" only while any do, "what needs me" while anything does',
       !!jb && JSON.stringify(jb.chips) === JSON.stringify([jb.ending ? `which ${jb.ending} end in 90 days?` : null, 'value by stream', 'my saved views', jb.n ? 'what needs me' : null].filter(Boolean)), jb && JSON.stringify(jb.chips));
+    /* RE-POINTED 21 Nov 2026 (P-39, as drawn): the sentence goes on "; the oldest has waited N days." (owner: count every row) */
     check('5d Needs you counts Home\'s own number',
-      !!jb && (jb.n ? new RegExp(`(^|\\s)${jb.n} (things? needs? you today|needs? you in all)\\.`).test(jb.needs) : jb.needs === 'Nothing needs you right now.'), jb && (jb.needs + ' / ' + jb.n));
+      !!jb && (jb.n ? new RegExp(`(^|\\s)${jb.n} (things? needs? you today|needs? you in all)[.;]`).test(jb.needs) : jb.needs === 'Nothing needs you right now.'), jb && (jb.needs + ' / ' + jb.n));
     check('5e no row of chips above his box; the Overview tab carries no badge', !!jb && !jb.bottom && jb.badge === '' && jb.tabs === 1, jb && JSON.stringify({ bottom: jb.bottom, badge: jb.badge, n: jb.n }));
     await shot(page, '17-board-as-drawn-1440x780');
 
@@ -201,11 +214,21 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
       await page.setViewportSize({ width: w, height: ht });
       await toBoard(); await page.waitForTimeout(500);
       await page.evaluate(() => { const b = document.getElementById('hb-board'); if (b) b.scrollTop = 0; });
+      /* RE-POINTED 17 Nov 2026 (#762): a landing from the step before (5f's glide to Needs you) may still be moving; the head is
+         asked for once the Board stands at its top, bounded.
+         RE-POINTED 18 Nov 2026 (#762): in view for one poll was not enough — the glide could carry it off again before the
+         measure — so it is asked to be in view AND standing still (the same top on two polls in a row) */
+      /* …and the landing itself is let go first (5f's Needs you holds its target in view while it lands), so nothing
+         carries the Board off its top once it is put there */
+      await page.evaluate(() => { window.__h7 = null; try { landOff(); } catch (_){} });
+      await until(() => { const h = document.getElementById('hb-bhead'); for (let q = h && h.parentElement; q; q = q.parentElement) if (q.scrollTop) q.scrollTop = 0;
+        const r = h && h.getBoundingClientRect(); const inView = !!r && r.top >= 0 && r.bottom <= innerHeight;
+        const still = inView && window.__h7 === r.top; window.__h7 = inView ? r.top : null; return still; }, null, 8000);
       const fit = await page.evaluate(() => { const r = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; };
         const head = r('#hb-bhead'), tbl = r('#hb-book .hb-tn'), dock = r('#ig-dock'), board = r('#hb-board');
         const over = [...document.querySelectorAll('#hb-bhead *')].filter(e => { const q = e.getBoundingClientRect(); return q.width && q.right > board.right + 1; }).length;
         const wide = [...document.querySelectorAll('#ig-dock #igd-feed *')].filter(e => { const q = e.getBoundingClientRect(); return q.width && q.right > dock.right + 1; }).length;
-        return { head: !!head && head.top >= 0 && head.bottom <= innerHeight, table: !!tbl && tbl.top < innerHeight, over, wide, side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
+        return { head: !!head && head.top >= 0 && head.bottom <= innerHeight, at: head && [Math.round(head.top), Math.round(head.bottom), innerHeight], table: !!tbl && tbl.top < innerHeight, over, wide, side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
       check(`7 ${w}×${ht}: the head and the book in view, nothing past an edge, nothing sideways`, fit.head && fit.table && !fit.over && !fit.wide && fit.side, JSON.stringify(fit));
       await shot(page, `17-board-as-drawn-${w}x${ht}`);
     }
@@ -213,6 +236,13 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
     /* ================= PASS 2 ================= */
     await page.setViewportSize({ width: 1440, height: 780 });
     await toBoard();
+    /* RE-POINTED 21 Nov 2026 (P-39, owner: remove Today's insights from the Board): the Board ends after Needs you, as drawn; the
+       shelf's old walk (8, 9) runs only with HATI_SHELF_OLD=1 */
+    console.log('\n8 · no Today\'s insights on the Board');
+    const noShelf = await page.evaluate(() => ({ head: !!document.querySelector('#hb-board .hb-ins-head'), shelf: !!document.querySelector('#hb-board .hb-shelf-cards'),
+      last: (() => { const cards = [...document.querySelectorAll('#hb-board > .hb-card, #hb-board > section')]; return cards.length ? cards[cards.length - 1].id : ''; })() }));
+    check('8 the Board ends after Needs you: no Today\'s insights head, no shelf', !noShelf.head && !noShelf.shelf, JSON.stringify(noShelf));
+    if (process.env.HATI_SHELF_OLD){
     const shelf = await until(() => { const sh = document.querySelector('#hb-board .hb-shelf-cards'); const hd = document.querySelector('#hb-board .hb-ins-head');
       return sh && hd && hbS().ins && hbS().ins.list.length ? true : null; }, null, 12000);
     console.log('\n8 · Today\'s insights as drawn');
@@ -273,6 +303,7 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
       !!cp && cp.bars.length === 5 && cp.bars.every(b => b.name && /^\d[\d.,]*[KMB]?$/.test(b.val)) && cp.bars[0].lit && cp.bars[0].op === '1' && cp.bars.slice(1).every(b => !b.lit && Number(b.op) < 0.5) && !cp.rest && !cp.blocks
       && /^No party holds more than \d+% of the value: .+ holds the most\.$/.test(cp.say) && cp.inCard, JSON.stringify(cp));
     await shot(page, '17-board-insights-1440x780');
+    }
 
     console.log('\n10 · Your book as drawn');
     const book = await page.evaluate(() => { const b = document.getElementById('hb-book');
@@ -293,6 +324,9 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
 
     console.log('\n12 · where a figure\'s door lands');
     for (const k of ['live', 'ending', 'past', 'value']) {
+      /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */
+      /* only four cards stand at once: 'past' is shown in overdue's place for its own turn */
+      await page.evaluate(k => { const s = hbS(); s.figs = ['live', 'value', 'ending', k === 'past' ? 'past' : 'overdue']; hbSave(); if (state.view === 'dashboard' && typeof hbPaintBoard === 'function') hbPaintBoard(); }, k);
       await toBoard();
       const want = await page.evaluate(k => { const F = hbBookData(hbS().lens || 'all').figs[k]; const b = document.querySelector(`#hb-book .hb-fig-main[data-hb-dig="f:${k}"]`);
         return { ids: F.ids.slice().sort(), off: !b || b.disabled }; }, k);
@@ -306,17 +340,24 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
       await shot(page, `17-board-figure-${k}-1440x780`);
       await page.evaluate(() => { regState().only = null; });
     }
+    /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */
+    await page.evaluate(() => { const s = hbS(); s.figs = ['live', 'value', 'ending', 'overdue']; hbSave(); if (state.view === 'dashboard' && typeof hbPaintBoard === 'function') hbPaintBoard(); });
     await toBoard();
     const late = await page.evaluate(() => { const b = document.querySelector('#hb-book .hb-fig-main[data-hb-dig="f:overdue"]'); return b && !b.disabled ? hbBookData('all').figs.overdue.n : 0; });
     if (late) {
       await page.click('#hb-book .hb-fig-main[data-hb-dig="f:overdue"]');
       await page.click('#hb-figmenu [data-hb-fm="list"]').catch(() => {});
-      const ob = await until(() => state.view === 'obligations' && document.querySelector('[data-obw-view="overdue"][aria-selected="true"], [data-obw-view="overdue"].on, [data-obw-view="overdue"].is-on') ? true : null, null, 8000);
-      const obl = await until(() => !!document.querySelector('[data-obw-view="overdue"].is-landed'), null, 6000);
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Obligations page's tabs are its pills Late ·
+         Tracked · Proposals (obnRender, data-obn-tab); the overdue figure's list is the Late pill */
+      /* RE-POINTED 19 Nov 2026 (We owe · They owe): Late is no longer a tab; Next 30 days leads with what is late */
+      const ob = await until(() => state.view === 'obligations' && document.querySelector('[data-obn-tab="open"].is-on') ? true : null, null, 8000);
+      const obl = await until(() => !!document.querySelector('[data-obn-tab="open"].is-landed'), null, 6000);
       check('12 Obligations overdue: the Obligations page, on its Overdue tab, landed on it (landOn)', !!ob && !!obl, JSON.stringify({ ob, obl }));
       await shot(page, '17-board-figure-overdue-1440x780');
     } else check('12 the stage carries a late obligation of ours, so the overdue door can be pressed', false, 'no overdue figure');
 
+    /* RE-POINTED 21 Nov 2026 (P-39, owner: remove Today's insights from the Board): no insights head to measure; runs only with HATI_SHELF_OLD=1 */
+    if (process.env.HATI_SHELF_OLD){
     console.log('\n8c · the insights head at the owner\'s three screens');
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht });
@@ -344,8 +385,10 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
           btnOnLine: ab ? Math.abs((r(ab).top + r(ab).bottom) / 2 - (a.top + a.bottom) / 2) < 2 : null,
           oneLine: cs ? r(cs).height < 24 && getComputedStyle(cs).whiteSpace === 'nowrap' : null, against: nd.parentElement.id || nd.parentElement.className }; });
       check(`8c′ ${w}×${ht}: the insights head is the Needs you head — same height, words at the same left, Show on the line at the same right, never wrapped`,
-        !same.missing && same.h[0] === same.h[1] && same.left[0] === same.left[1] && same.btnRight[0] === same.btnRight[1] && same.btnOnLine && same.oneLine, JSON.stringify(same));
+        /* RE-POINTED 21 Nov 2026 (P-39, as drawn): Needs you draws no Hide, so the Show/Hide is matched only where both heads carry one */
+        !same.missing && Math.abs(same.h[0] - same.h[1]) <= 1 && same.left[0] === same.left[1] && (same.btnRight[1] == null || same.btnRight[0] === same.btnRight[1]) && same.btnOnLine && same.oneLine, JSON.stringify(same));
       await shot(page, `17-board-insights-head-${w}x${ht}`);
+    }
     }
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }
   finally {

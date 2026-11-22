@@ -819,6 +819,8 @@ const HM_MAP_STAGES = [
    f381 pins the literal EQUAL to STATUS_META's own, or it would drift. */
 const HM_STAGE_TONE_FALLBACK = { 'Draft':'var(--st-gray-dot)', 'Under Review':'var(--st-amber-dot)', 'Signed':'var(--st-green-dot)' };
 function hmStageTone(k){
+  /* the new look: the Contracts list's own three tones (regLsToneOfStatus), so a Draft is the amber "In review" on both */
+  if(typeof window!=='undefined'&&typeof window.newLookOn==='function'&&window.newLookOn()&&typeof window.regLsToneOfStatus==='function') return 'var(--st-'+window.regLsToneOfStatus(k)+'-dot)';
   const M=(typeof window!=='undefined' && window.STATUS_META) || null;
   return (M && M[k] && M[k].dot) || HM_STAGE_TONE_FALLBACK[k] || 'var(--st-gray-dot)';
 }
@@ -1552,10 +1554,14 @@ function needsYouOf(c){
   if(!c || c.archived) return [];
   const me=(typeof currentUser==='function')?currentUser():null;
   if(!me) return [];
+  /* WORK GOES ONLY TO WHO CAN DO IT (owner, 20 Nov 2026: "i am getting messages on rows on the board"): a company
+     Viewer may do none of these acts — the server refuses every write they send — so nothing on any contract is
+     theirs to do; what moved reaches them under the bell's News (ndAlerts) */
+  if(window.mayActOn ? !mayActOn(c, me) : me.role==='viewer') return [];
   const one=[c];
   const out=[];
   const take=fn=>{ try{ fn(); }catch(_){ /* a missing source adds nothing */ } };
-  take(()=>(window.deskStaleInboxFor?deskStaleInboxFor(one, me):[]).forEach(x=>{ const s=x.stale||{};
+  take(()=>(window.deskStaleInboxFor&&!(window.negoMayAnswer&&!negoMayAnswer(c, me))?deskStaleInboxFor(one, me):[]).forEach(x=>{ const s=x.stale||{};
     out.push({ kind:'quiet', urgent:true, n:s.n||0, since:s.since||null }); }));
   take(()=>(window.reviewInboxFor?reviewInboxFor(one, me):[]).forEach(x=>{ const rv=x.rv||{};
     out.push({ kind:'review', urgent:hmReviewLate(rv), who:rv.by||'', n:(x.st&&x.st.total)||0, due:rv.due||null }); }));

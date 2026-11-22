@@ -117,11 +117,13 @@ async function tabAround(page, sel, n = 25) {
 
   /* ---------- 4 · THE COMMAND PALETTE ----------
      RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): ⌘K puts the hand in Jambo's box; the jump list is
-     "/" pressed outside a box */
+     "/" pressed outside a box
+     RE-POINTED 19 Nov 2026 (the launchpad, owner: "1, yes"): ⌘K opens the jump window in the middle, as "/" does */
   await page.keyboard.press('Control+k'); await pause(400);
   {
-    const k = await page.evaluate(() => { const a = document.activeElement; return { jb: !!(a && a.closest && a.closest('.jb-card')), tag: a && a.tagName }; });
-    check('⌘K puts the hand in Jambo\'s box', k.jb, JSON.stringify(k));
+    const k = await page.evaluate(() => ({ open: !!document.getElementById('cmd-palette'), id: document.activeElement && document.activeElement.id }));
+    check('⌘K opens the launchpad, the hand in its box', k.open && k.id === 'cp-input', JSON.stringify(k));
+    await page.keyboard.press('Escape'); await pause(300);
   }
   await page.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); setView('obligations'); }); await pause(600);
   await page.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); });
@@ -183,26 +185,42 @@ async function tabAround(page, sel, n = 25) {
   /* ---------- 7 · THE NAV SAYS WHICH DOOR YOU ARE IN ---------- */
   await page.evaluate(() => setView('register')); await pause(600);
   {
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): NO LEFT RAIL but THE SYMBOL STRIP.
+       RE-POINTED 19 Nov 2026 (the launchpad, owner's pick): the bar's top-left symbol (#dk-nav) opens the jump window in
+       the middle, every page a row (lpBodyHtml); the page in front is the one row that says aria-current="page" */
+    const openPad = async () => { await page.evaluate(() => { if (!document.getElementById('cmd-palette')) document.getElementById('dk-nav').click(); });
+      await page.waitForFunction(() => !!document.querySelector('#cmd-palette .lp-p'), null, { timeout: 4000 }).catch(() => {}); };
+    const shutPad = async () => { if (await page.evaluate(() => !!document.getElementById('cmd-palette'))){ await page.keyboard.press('Escape'); await pause(250); } };
+    await openPad();
     const cur = await page.evaluate(() => {
-      const on = [...document.querySelectorAll('.nav-item[aria-current="page"]')];
-      /* the Contracts door is the fold's opener since its item went (step 7) */
-      return { n: on.length, view: on[0] ? (on[0].getAttribute('data-view') || on[0].getAttribute('data-nav-fold-open')) : null };
+      const on = [...document.querySelectorAll('#cmd-palette .lp-p[aria-current="page"], .nav-item[aria-current="page"]')].filter(e => e.getClientRects().length);
+      return { n: on.length, text: on[0] ? on[0].textContent.replace(/\s+/g, ' ').trim() : null, key: typeof guideHereKey === 'function' ? guideHereKey() : null };
     });
+    await shutPad();
     check('exactly one nav door says aria-current="page"', cur.n === 1, JSON.stringify(cur));
-    check('and it is the door the reader is standing in', cur.view === 'register', String(cur.view));
-    /* RE-POINTED 15 Oct 2026 (step 7): the place is Home's Document face, so
-       the reader moves to Home by its rail door, which lands on the Board */
-    await page.evaluate(() => document.querySelector('#side-nav .nav-item[data-view="dashboard"]').click()); await pause(500);
+    check('and it is the door the reader is standing in', cur.key === 'contracts' && /Contracts|Avtal/.test(String(cur.text)), JSON.stringify(cur));
+    /* RE-POINTED 19 Nov 2026: the move is the launchpad's own Board row, and the launchpad opened again says Board */
+    await openPad();
+    /* RE-POINTED 20 Nov 2026 (#818, owner: "assign an emoji to each"): a row's text now starts with its emoji mark, so the
+       Board row is found by its NAME (.lp-nm); a row not found is reported, not timed out */
+    const boardFound = await page.evaluate(() => { const b = [...document.querySelectorAll('#cmd-palette .lp-p')].find(x => /^(Board|Tavla)/.test(((x.querySelector('.lp-nm') || x).textContent || '').trim())); if (b) b.click(); return !!b; }); await pause(700);
+    if (!boardFound) check('the launchpad holds a Board row to press', false, 'no .lp-p row named Board');
+    await openPad();
     const moved = await page.evaluate(() => {
-      const on = document.querySelector('.nav-item[aria-current="page"]');
-      return on ? on.getAttribute('data-view') : null;
+      const on = [...document.querySelectorAll('#cmd-palette .lp-p[aria-current="page"]')].filter(e => e.getClientRects().length);
+      return on.length === 1 ? guideHereKey() + (state.view === 'dashboard' ? '' : ' (view ' + state.view + ')') : on.length + ' doors';
     });
-    check('and it MOVES with the reader', moved === 'dashboard', String(moved));
+    await shutPad();
+    check('and it MOVES with the reader', moved === 'board', String(moved));
   }
 
   /* ---------- 8 · THE REGISTER'S COLUMN HEADS AND ITS COUNT ---------- */
   /* the List of Home's Contracts place (step 7) */
   await page.evaluate(() => { regPlaceSet({ show: 'list' }); setView('register'); }); await pause(700);
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the head's List
+     pill is the way to the list */
+  await page.click('[data-ctf-show="list"]', { timeout: 8000 }).catch(() => {});
+  await page.waitForSelector('#reg-tbody tr[data-row]', { timeout: 8000 }).catch(() => {});
   {
     const th = await page.evaluate(() => {
       const t = document.querySelector('[data-reg-sort]');
@@ -223,7 +241,8 @@ async function tabAround(page, sel, n = 25) {
     });
     check('and pressing Enter on it actually sorts', sorted.before !== sorted.after, JSON.stringify(sorted));
     const live = await page.evaluate(() => {
-      const el = document.getElementById('reg-showing');
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's foot is its own count, #reg-nl-showing (regNlFootHtml) */
+      const el = document.getElementById('reg-showing') || document.getElementById('reg-nl-showing');
       return el ? { live: el.getAttribute('aria-live'), role: el.getAttribute('role') } : null;
     });
     check('the result count is announced when it changes',

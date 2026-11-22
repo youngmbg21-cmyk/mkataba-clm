@@ -99,7 +99,8 @@ const PROBE = `(() => {
       sep: !!r.querySelector('.hist-top .hist-sep'),
       bubBg: (() => { const b = r.querySelector('.hist-bub'); return b ? getComputedStyle(b).backgroundColor : null; })(),
       whenTip: (r.querySelector('.hist-when') || { getAttribute: () => '' }).getAttribute('title') || '',
-      pill: (() => { const p = r.querySelector('.hist-pill, .hist-ocw'); return p ? { cls: p.className, bg: getComputedStyle(p).backgroundColor } : null; })(),
+      /* RE-POINTED (P-44, owner's pick 20 Nov 2026: History the Legora + Stripe way): the outcome is a soft badge, .hist6-ob */
+      pill: (() => { const p = r.querySelector('.hist-pill, .hist-ocw, .hist6-ob'); return p ? { cls: p.className, bg: getComputedStyle(p).backgroundColor } : null; })(),
       rowBg: getComputedStyle(r).backgroundColor,
       day: day ? day.textContent.trim() : null,
       time: time ? time.textContent.trim() : null,
@@ -346,14 +347,23 @@ const PROBE = `(() => {
        other four fold behind Filter */
     const side = await page.evaluate(sel => [...document.querySelectorAll(sel + ' .hist-side [data-ht-side]')].filter(b => b.getBoundingClientRect().width > 0).map(b => b.textContent.trim()), HP);
     /* RE-POINTED 21 Oct 2026 (the SAP way): the filters stand in the open, in the drawing's order, no Filter button */
-    const f5 = await page.evaluate(sel => [...document.querySelectorAll(sel + ' .hist-f select')].filter(s => s.getBoundingClientRect().width > 0).map(s => s.getAttribute('data-ht-filter')), HP);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's filters are QUICK LINKS in the open
+       (owner, 31 Oct 2026, "Quick links as drawn"; histQuickHtml): theirs · sent · decisions · Jambo, a link that would
+       give nothing not drawn — read in place of the four boxes, same promise: in the open, in the drawn order */
+    /* RE-POINTED 22 Nov 2026 (the P-44 review, the owner's picked drawing "History, the Legora + Stripe way"): the chips are
+       All · Changes · Notes with their counts, then "+ Side" (histKindChipsHtml); the quick links are not in the drawing */
+    const f5 = await page.evaluate(sel => [...document.querySelectorAll(sel + ' .hist6-kinds [data-ht-kind]')].filter(s => s.getBoundingClientRect().width > 0).map(s => s.getAttribute('data-ht-kind')), HP);
+    /* RE-POINTED (P-44, owner's pick 20 Nov 2026: History the Legora + Stripe way): the quick links are chips with their
+       counts, All first (data-ht-quick="") */
+    const QORDER = ['', 'change', 'note'];
     const fbtn = await page.evaluate(sel => !!document.querySelector(sel + ' #hist-filter-btn'), HP);
-    ok('7a the filters stand in the open, no Filter button, and no side switch (the side is a column)', m.filters >= 4 && !fbtn && side.length === 0, m.filters + ' filters showing · button ' + fbtn + ' · ' + side.join(' · '));
-    ok('7a2 in the drawing\'s order (person, clause, outcome, round)', JSON.stringify(f5) === JSON.stringify(['actor', 'clauseId', 'outcome', 'round']), f5.join(' · '));
+    ok('7a the filters stand in the open, no Filter button, and no side switch (the side is a column)', f5.length >= 2 && !fbtn && side.length === 0, f5.length + ' chips showing · button ' + fbtn + ' · ' + side.join(' · '));
+    ok('7a2 in the drawing\'s order (All, Changes, Notes)', f5[0] === '' && f5.every((k, i) => QORDER.includes(k) && (i === 0 || QORDER.indexOf(k) > QORDER.indexOf(f5[i - 1]))), f5.join(' · '));
     await page.click('#hist-detail');
     await page.waitForTimeout(500);
     const wording = await page.evaluate(sel => document.querySelectorAll(sel + ' .hist-redline').length, HP);
-    ok('7b CONTROL "Show the wording" still prints a proposal\'s redline', wording > 0, wording + ' redlines');
+    /* RE-POINTED (P-44): the button is the switch "The wording" (same id, #hist-detail) */
+    ok('7b CONTROL "The wording" still prints a proposal\'s redline', wording > 0, wording + ' redlines');
     const w2 = await page.evaluate(PROBE);
     ok('7c and with the wording open every entry is still on the page', (w2.rows || []).length === rows.length,
       `${(w2.rows || []).length} of ${rows.length}`);

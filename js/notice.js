@@ -183,34 +183,24 @@ function openNoticeDialog(c){
    person did, so the day may not be in the future and the button says so. */
 function openNoticeServedDialog(c, after){
   if(!c) return false;
-  const e = _noEsc;
   const today = _noToday();
   const had = noticeServed(c);
-  const ways = NOTICE_WAYS.map(w => `<option value="${w}"${had && had.way===w ? ' selected' : ''}>${
-    e(i18t(NOTICE_WAY_KEY[w]))}</option>`).join('');
-  openModal(`<div class="p-6">
-    <h3 style="margin:0 0 var(--s-1);font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section)">${e(i18t('nt_served_title'))}</h3>
-    <p style="margin:0 0 var(--s-3);font-size:var(--t-meta);color:var(--color-neutral-700);line-height:1.55">${e(i18t('nt_served_sub'))}</p>
-    <div class="field-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:var(--s-3)">
-      <label style="display:block"><span style="display:block;font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:4px">${
-        e(i18t('nt_served_on'))}</span>
-        <input id="nts-on" type="date" class="field" max="${e(today)}" value="${e((had&&had.servedOn)||today)}" style="width:100%"></label>
-      <label style="display:block"><span style="display:block;font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:4px">${
-        e(i18t('nt_served_way'))}</span>
-        <select id="nts-way" class="field" style="width:100%">${ways}</select></label>
-    </div>
-    <label style="display:block;margin-top:var(--s-3)"><span style="display:block;font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:4px">${
-      e(i18t('nt_served_ref'))}</span>
-      <input id="nts-ref" class="field" maxlength="120" value="${e((had&&had.ref)||'')}" placeholder="${e(i18t('nt_served_ref_ph'))}" style="width:100%"></label>
-    <p id="nts-say" style="margin:var(--s-2) 0 0;font-size:var(--t-label);color:var(--danger);min-height:1.4em"></p>
-    <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:var(--s-4)">
-      ${had?`<button id="nts-clear" class="ui-btn" type="button" style="margin-right:auto">${e(i18t('nt_served_clear'))}</button>`:''}
-      <button data-dlg-cancel id="nts-cancel" class="ui-btn" type="button">${e(i18t('act_cancel'))}</button>
-      <button id="nts-ok" class="ui-btn ui-btn-primary" type="button">${e(i18t('nt_served_ok'))}</button>
-    </div></div>`, { label:i18t('nt_served_title'), maxWidth:DLG_W.m });
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1116): the three answers as quiet lines — the day, the way, the reference —
+     the record's own ids kept; withdrawing an earlier record is the ending act on the left. */
+  lgpOpen({ id:'nts-form', title:i18t('nt_served_title'), sub:i18t('nt_served_sub'),
+    rows:[
+      { k:i18t('nt_served_on'), id:'nts-on', type:'date', value:(had&&had.servedOn)||today },
+      { k:i18t('nt_served_way'), id:'nts-way', type:'select', value:(had&&had.way)||'',
+        opts:NOTICE_WAYS.map(w => ({ v:w, t:i18t(NOTICE_WAY_KEY[w]) })) },
+      { k:i18t('nt_served_ref'), id:'nts-ref', value:(had&&had.ref)||'', ph:i18t('nt_served_ref_ph'), max:120 }],
+    html:`<p class="lgp-err" id="nts-say" role="alert" hidden></p>`,
+    primary:{ label:i18t('nt_served_ok'), attr:'id="nts-ok"' },
+    left: had ? { label:i18t('nt_served_clear'), attr:'id="nts-clear"', danger:true } : null,
+    cancelAttr:'data-lgp-close id="nts-cancel"' });
+  /* the day may not be in the future: the date line's own ceiling, as before */
+  { const d0 = document.getElementById('nts-on'); if(d0) d0.max = today; }
   const done = () => { closeModal(); try{ if(typeof persist === 'function') persist(c); }catch(_){}
     try{ if(typeof after === 'function') after(); }catch(_){} };
-  document.getElementById('nts-cancel')?.addEventListener('click', closeModal);
   document.getElementById('nts-clear')?.addEventListener('click', () => { noticeClearServed(c); done(); });
   document.getElementById('nts-ok')?.addEventListener('click', () => {
     const on = (document.getElementById('nts-on') || {}).value || '';
@@ -218,7 +208,7 @@ function openNoticeServedDialog(c, after){
     const ref = (document.getElementById('nts-ref') || {}).value || '';
     const out = noticeMarkServed(c, on, way, ref);
     /* A REFUSAL CARRIES ITS WAY FORWARD ON THE SAME SCREEN. */
-    if(!out){ const say = document.getElementById('nts-say'); if(say) say.textContent = i18t('nt_served_bad_day'); return; }
+    if(!out){ const say = document.getElementById('nts-say'); if(say){ say.textContent = i18t('nt_served_bad_day'); say.hidden = false; } return; }
     if(typeof toast === 'function') toast(i18t('nt_served_ok_toast'), 'ok');
     done();
   });

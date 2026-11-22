@@ -1543,39 +1543,47 @@ let _up=null;   // pipeline result carried from the drop to the confirm
 function openUploadModal(){
   if(!canEdit()){ if(typeof draftWallToast==='function') draftWallToast(); else toast(i18t('ct_viewers_no_add'),'err'); return; }
   _up=null;
-  openModal(`
-    <div class="p-6">
-      ${''/* AS DRAWN (SAP pop-ups, 10 Oct 2026): the title in the dialog's
-             bar (it names the second step when the file has been read), the
-             drop area with its sign and the words "or choose a file", and the
-             way to several files on the foot's left. */}
-      <h2 id="up-title">${i18t('ct_add_received')}</h2>
+  /* ---- THE ONE EDIT POP-UP, THE LEGORA WAY (f1120) ----
+     One sheet, three kinds of step: the file (the drop area with its sign and "or choose a file", the way to
+     several files on the foot's left), then what was read, shown a few lines at a time — who it is between, how it
+     is filed, and any more details HaTi read — each line the label beside the words, no boxes. More than about
+     seven lines is a NEXT STEP, never a scroll; every step is in the one form, so File contract reads every box
+     wherever the reader stands, and it is there on every step of what was read. The head names the step on screen.
+     Nothing is filed before File contract, exactly as before. */
+  openModal(`<form class="lgp" id="up-form" novalidate>
+      <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h" id="up-title">${i18t('ct_add_received')}</h3>
+        <p class="lgp-sub lgp-steps" id="up-stepline"><b>${esc(i18t('up_step_file'))}</b> · ${esc(i18t('up_step_who'))} · ${esc(i18t('up_step_filing'))}</p></div>
+        <button type="button" class="lgp-x" data-lgp-close tabindex="-1" aria-label="${esc(i18t('lgp_close'))}">${icon('x','w-4 h-4')}</button></div>
+      <div class="lgp-bd">
       <div id="up-step-1">
-        <div id="up-drop" role="button" tabindex="0" aria-label="${i18t('ct_drop_file_here')}" style="border:1px dashed var(--accent-fill);border-radius:var(--radius);background:color-mix(in srgb, var(--accent-fill) 6%, var(--color-surface));padding:34px 20px;text-align:center;cursor:pointer;transition:background var(--dur-1)">
+        <div id="up-drop" role="button" tabindex="0" aria-label="${i18t('ct_drop_file_here')}" style="border:1px dashed var(--accent-fill);border-radius:var(--radius);background:color-mix(in srgb, var(--accent-fill) 6%, var(--color-surface));padding:34px 20px;text-align:center;cursor:pointer;transition:background var(--dur-1);margin:6px 0 4px">
           <div style="color:var(--accent-ink);display:flex;justify-content:center;margin-bottom:10px">${icon('upload','w-5 h-5')}</div>
           <div style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)">${i18t('ct_drop_or')} <span style="color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px">${i18t('ct_choose_file')}</span></div>
           <div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:5px">${i18t('ct_upload_hint2',{max:uploadMaxLabel()})}</div>
         </div>
         <input id="up-file" type="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" class="hidden"/>
         <div id="up-steps" class="hidden" style="margin-top:var(--s-3)"></div>
-        <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:14px">
-          ${''/* ---- UPLOAD SEVERAL IS THE WAY INTO THE IMPORTER (the process
-                 review, 4 Oct 2026) ----
-                 The importer had its own rail door as well as this link, so
-                 two doors reached one act. The rail door is gone; this is the
-                 one door, said plainly, and it carries the count the rail
-                 door used to carry — imported contracts still waiting for a
-                 person — only where there is one. */}
-          <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('ct_several_q')}</span>
-          <button id="up-bulk" type="button" class="ui-link" title="${i18t('ct_bulk_importer')}">${i18t('ct_import_contracts_link')}${
-            (()=>{ const n=(typeof navCounts==='function')?Number((navCounts()||{}).migration)||0:0;
-              return n>0?` <span id="up-bulk-waiting" style="margin-left:4px;color:var(--st-amber-fg)">· ${esc(i18tn('ct_import_waiting',n,{n}))}</span>`:''; })()}</button>
-          <span style="flex:1"></span>
-          <button data-dlg-cancel id="up-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-        </div>
       </div>
       <div id="up-step-2" class="hidden">${uploadConfirmHtml(null,null)}</div>
-    </div>`);
+      </div>
+      <div class="lgp-ft">
+        <button type="button" class="ui-btn lgp-back" id="up-back" hidden>‹ <span id="up-back-word">Another file</span></button>
+        ${''/* ---- UPLOAD SEVERAL IS THE WAY INTO THE IMPORTER (the process
+               review, 4 Oct 2026) ----
+               The importer had its own rail door as well as this link, so
+               two doors reached one act. The rail door is gone; this is the
+               one door, said plainly, and it carries the count the rail
+               door used to carry — imported contracts still waiting for a
+               person — only where there is one. */}
+        <span class="lgp-note" id="up-bulk-line">${i18t('ct_several_q')}
+          <button id="up-bulk" type="button" class="ui-link" title="${i18t('ct_bulk_importer')}">${i18t('ct_import_contracts_link')}${
+            (()=>{ const n=(typeof navCounts==='function')?Number((navCounts()||{}).migration)||0:0;
+              return n>0?` <span id="up-bulk-waiting" style="margin-left:4px;color:var(--st-amber-fg)">· ${esc(i18tn('ct_import_waiting',n,{n}))}</span>`:''; })()}</button></span>
+        <span class="lgp-sp"></span>
+        <button type="submit" id="up-go" class="ui-btn ui-btn-primary lgp-go" hidden><span id="up-go-word">${i18t('ct_file_contract')}</span></button>
+        <button type="button" id="up-next" class="ui-btn" hidden>${esc(i18t('of_next'))}</button>
+        <button type="button" data-dlg-cancel id="up-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      </div></form>`, { maxWidth: window.LGP_W || '480px', ownFrame: true, label: i18t('ct_add_received') });
   const drop=document.getElementById('up-drop'), input=document.getElementById('up-file');
   drop.addEventListener('click',()=>input.click());
   drop.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); input.click(); } });
@@ -1586,6 +1594,46 @@ function openUploadModal(){
   input.addEventListener('change',()=>{ const f=input.files&&input.files[0]; if(f) runUploadPipeline(f); });
   document.getElementById('up-cancel').addEventListener('click',closeModal);
   document.getElementById('up-bulk').addEventListener('click',()=>{ closeModal(); setView('migration'); });
+  /* THE FOOT IS WIRED ONCE, here, and never again when the card is redrawn: a second file read after "Another
+     file" draws a new card, and a press wired per drawing would file the contract twice */
+  document.getElementById('up-go').addEventListener('click',e=>{ e.preventDefault(); submitUpload(); });
+  document.getElementById('up-next').addEventListener('click',()=>uploadStepShow(uploadStepAt()+1));
+  document.getElementById('up-back').addEventListener('click',()=>{
+    if(uploadStepAt()>1){ uploadStepShow(uploadStepAt()-1); return; }
+    /* Another file: back to the drop, nothing filed and nothing kept */
+    _up=null;
+    const s2=document.getElementById('up-step-2'); if(s2) s2.innerHTML=uploadConfirmHtml(null,null);
+    const steps=document.getElementById('up-steps'); if(steps){ steps.classList.add('hidden'); steps.innerHTML=''; }
+    const d=document.getElementById('up-drop'); if(d){ d.style.pointerEvents=''; d.style.opacity=''; }
+    const inp=document.getElementById('up-file'); if(inp) inp.value='';
+    const t=document.getElementById('up-title'); if(t) t.textContent=i18t('ct_add_received');
+    uploadStepShow(0);
+  });
+}
+/* WHERE THE UPLOAD SHEET STANDS: step 0 is the file, 1… the panes of what was read (each carries its name). Read
+   off the page, so a redrawn card is read as it now stands; nothing is stored. */
+function uploadStepAt(){
+  const s2=document.getElementById('up-step-2');
+  if(!s2||s2.classList.contains('hidden')) return 0;
+  const panes=[...s2.querySelectorAll('[data-up-pane]')];
+  const i=panes.findIndex(p=>!p.hasAttribute('hidden'));
+  return i<0?1:i+1;
+}
+function uploadStepShow(k){
+  const s1=document.getElementById('up-step-1'), s2=document.getElementById('up-step-2');
+  if(!s1||!s2) return;
+  const panes=[...s2.querySelectorAll('[data-up-pane]')];
+  const at=Math.max(0, Math.min(panes.length, Number(k)||0));
+  s1.classList.toggle('hidden', at>0);
+  s2.classList.toggle('hidden', at===0);
+  panes.forEach((p,i)=>p.toggleAttribute('hidden', i!==at-1));
+  const set=(id,hide)=>document.getElementById(id)?.toggleAttribute('hidden', hide);
+  set('up-back', at===0); set('up-bulk-line', at>0); set('up-go', at===0); set('up-next', at===0||at>=panes.length);
+  const bw=document.getElementById('up-back-word'); if(bw) bw.textContent=at>1?i18t('lgp_back'):'Another file';
+  const names=[i18t('up_step_file'), ...(panes.length?panes.map(p=>p.getAttribute('data-up-name')||''):[i18t('up_step_who'), i18t('up_step_filing')])];
+  const line=document.getElementById('up-stepline');
+  if(line) line.innerHTML=names.map((s,i)=>i===at?`<b>${esc(s)}</b>`:esc(s)).join(' · ');
+  const bd=s2.closest('.lgp-bd'); if(bd) bd.scrollTop=0;
 }
 /* The confirm card — the old form's fields, handed back pre-answered. Called
    with (null, null) for the skeleton built into the dialog (so the fields
@@ -1613,30 +1661,20 @@ function uploadConfirmHtml(ext, meta){
   const esc2=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   const attr=s=>esc2(s).replace(/"/g,'&quot;');
   const has=k=>meta!=null&&m[k]!=null&&m[k]!==''&&!(typeof m[k]==='number'&&!(m[k]>0));
-  const MARK=`<span style="font-family:var(--font-mono);font-size:var(--t-figure);color:var(--accent-ink-700);letter-spacing:.05em"> ✦ ${i18t('ct_read_from_doc').toUpperCase()}</span>`;
+  const MARK=`✦ ${i18t('ct_read_from_doc').toUpperCase()}`;
   const found=k=>{ const q=spans[k]; if(!q) return '';
-    return `<span style="display:block;margin-top:2px;font-size:var(--t-label);line-height:1.4;color:var(--color-neutral-600)">found: <i>“${esc2(String(q).replace(/\s+/g,' ').trim().slice(0,140))}”</i></span>`; };
-  /* ---- THREE CHILDREN, ALWAYS, AND THAT IS WHAT KEEPS THE BOXES LEVEL ----
-     (owner-reported 22 Aug 2026: "the right and left entry fields should never
-     be misaligned.")
-     Every cell here is label · control · hint, and the cells are laid out with
-     `grid-template-rows:subgrid` (see .up-grid in index.html) so the two cells
-     in a row share the parent's rows: labels line up with labels, boxes with
-     boxes, hints with hints, whatever any of them wraps to.
-     THE HINT IS EMITTED EVEN WHEN EMPTY. Subgrid places children by ROW, so a
-     cell with only two children puts its control in the label's row and the
-     whole column shifts — the very fault this is fixing, in a new costume. An
-     empty span costs nothing and keeps every cell the same shape.
-     WHY NOT A MIN-HEIGHT ON THE LABEL: it fixes the two-line case and breaks
-     again on three, and it reserves a blank line on every wide screen where
-     nothing wraps at all. This holds at every width by construction. */
-  const cell=(labelHtml, controlHtml, hintHtml)=>
-    `<label class="block up-f"><span class="up-l text-xs font-medium text-brand-800/70">${labelHtml}</span>${controlHtml}<span class="up-h">${hintHtml||''}</span></label>`;
+    return ` · found: <q>${esc2(String(q).replace(/\s+/g,' ').trim().slice(0,140))}</q>`; };
+  /* ---- ONE LINE A FACT, THE LEGORA WAY (f1120) ----
+     The label beside the words, no box; under the line, what HaTi read it from (✦, and the phrase quoted) or the
+     one hint the line needs. Was: a two-column grid of boxes held level by subgrid (22 Aug 2026) — one column now,
+     so nothing beside a box can sit out of line with it. */
+  const line=(labelHtml, controlHtml, underHtml)=>
+    `<label class="lgp-row"><span class="lgp-k">${labelHtml}</span><span class="lgp-v">${controlHtml}</span></label>${underHtml||''}`;
   const fld=(id,label,opts={})=>{
     const read=!!opts.read;
-    return cell(`${label}${read?MARK:''}`,
-      `<input id="${id}" type="${opts.type||'text'}" value="${attr(opts.value||'')}" placeholder="${attr(opts.ph||'')}"${opts.list?` list="${opts.list}"`:''} class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas ui-fld outline-none focus:border-brand-400"${read?' style="border-color:var(--color-accent);background:var(--st-steel-bg)"':''}/>`,
-      `${read?found(opts.foundKey||''):''}${opts.sub?`<span style="display:block;margin-top:2px;font-size:var(--t-label);color:var(--color-neutral-600)">${opts.sub}</span>`:''}`);
+    return line(label,
+      `<input id="${id}" type="${opts.type||'text'}" value="${attr(opts.value||'')}" placeholder="${attr(opts.ph||'')}"${opts.list?` list="${opts.list}"`:''} class="lgp-in" autocomplete="off"/>`,
+      `${read?`<p class="lgp-quote">${MARK}${found(opts.foundKey||'')}</p>`:''}${opts.sub?`<p class="lgp-small">${opts.sub}</p>`:''}`);
   };
   const fileBase=ext?_ctFileTitle(ext.file.name):'';
   const nameFromDoc=has('contractType')&&has('counterparty');
@@ -1646,58 +1684,47 @@ function uploadConfirmHtml(ext, meta){
     ? `Everything marked <b style="color:var(--accent-ink-700)">✦</b> was read out of the document — confirm or correct it. What the machine could not find is left for you.`
     : `HaTi could not read text out of this file, so nothing could be pre-filled — add the details yourself. The file itself is attached either way.`;
   /* The details beyond the essentials — renewal, notice, governing law — ride
-     along folded: read from the same document, applied on filing, corrected
-     here if wrong, but never a wall the first-timer has to climb. */
+     along on their own steps: read from the same document, applied on filing,
+     corrected here if wrong, but never a wall the first-timer has to climb, and
+     never a step File contract waits for. */
   /* Guarded like every cross-module read: the node tests stage this file
      without js/metadata.js on the floor. */
   const extras=(typeof META_FIELDS!=='undefined'?META_FIELDS:[])
     .filter(f=>!['counterparty','value','expiryDate'].includes(f.k)&&has(f.k));
   const extraFld=f=>{
     const v=m[f.k];
-    if(f.type==='select') return cell(`${f.label}${MARK}`,
-      `<select data-umf="${f.k}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas ui-fld outline-none focus:border-brand-400">
-        ${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${typeof metaOptLabel==='function'?metaOptLabel(o):o}</option>`).join('')}</select>`, found(f.k));
-    return cell(`${f.label}${MARK}`,
-      `<input data-umf="${f.k}" type="${f.type==='date'?'date':f.type==='num'?'number':'text'}" value="${attr(v)}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas ui-fld outline-none focus:border-brand-400"/>`, found(f.k));
+    const under=`<p class="lgp-quote">${MARK}${found(f.k)}</p>`;
+    if(f.type==='select') return line(f.label,
+      `<select data-umf="${f.k}" class="lgp-in">
+        ${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${typeof metaOptLabel==='function'?metaOptLabel(o):o}</option>`).join('')}</select>`, under);
+    return line(f.label,
+      `<input data-umf="${f.k}" type="${f.type==='date'?'date':f.type==='num'?'number':'text'}" value="${attr(v)}" class="lgp-in"/>`, under);
   };
-  return `
-      <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
-        <h2 class="font-display font-700 text-brand-900">${i18t('ct_check_what_read')}</h2></div>
-      ${intro?`<p class="text-xs text-brand-800/70 mb-3" style="line-height:1.55">${intro}</p>`:''}
-      ${ext&&isOcrText(ext.textSource)?`<div style="display:flex;align-items:flex-start;gap:var(--s-2);border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:var(--s-2) 11px;font-size:var(--t-meta);line-height:1.55;margin:0 0 var(--s-3)">
-        <span style="flex:none;margin-top:1px">${icon('readpaper','w-3.5 h-3.5')}</span>
-        <span>${esc2(ocrProvenanceLine(ext.upload))} ${i18t('ct_capped_at')} <b>${i18t('ct_medium')}</b> ${i18t('ct_confidence_until')}</span></div>`:''}
-      <div class="grid sm:grid-cols-2 gap-2 mb-3 up-grid">
-        ${fld('up-name','Contract name',{value:suggestedName, ph:'e.g. Supply Agreement — Acme', read:nameFromDoc, sub:(ext&&!nameFromDoc)?'from the file name — rename it to what it is':''})}
-        ${fld('up-party',i18t('tf_our_party'),{value:(typeof window!=='undefined'&&window.FIRST_PARTY)||'', ph:i18t('tf_our_party_ph'), list:'up-party-list', sub:i18t('tf_our_party_hint')})}
-        <datalist id="up-party-list">${uploadPartyOptions().map(p=>`<option value="${attr(p)}"></option>`).join('')}</datalist>
-        ${fld('up-cp','Received from (counterparty)',{value:has('counterparty')?m.counterparty:'', ph:'e.g. Acme Ltd', read:has('counterparty'), foundKey:'counterparty'})}
-        ${fld('up-cpemail','Their email (so you can send it back)',{ph:'them@company.co.ke', type:'email', sub:ext?'the one thing a document never carries — add it and the first send is one click':''})}
-      </div>
-      <div class="grid sm:grid-cols-2 gap-2 mb-3 up-grid">
-        ${cell(i18t('ct_file_under'),
-          `<select id="up-folder" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas ui-fld outline-none focus:border-brand-400">${folderOptionsHtml(null, false)}</select>`)}
-        ${cell(i18t('ct_value_type'),
-          `<select id="up-vtype" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas ui-fld outline-none focus:border-brand-400">
+  /* the same groups, in the same order, as the review of what was read (metaStepGroups, js/metadata.js); six at most */
+  const extraSteps=!extras.length?[]:(typeof metaStepGroups==='function')?metaStepGroups(extras)
+    :extras.reduce((a,f,i)=>{ if(i%6===0) a.push({ name:'me_step_more', fields:[] }); a[a.length-1].fields.push(f); return a; },[]);
+  const pane=(i,name,body)=>`<div data-up-pane="${i}" data-up-name="${attr(name)}"${i?' hidden':''}>${body}</div>`;
+  return pane(0, i18t('up_step_who'), `
+      ${intro?`<p class="lgp-small" style="margin:6px 0 4px">${intro}</p>`:''}
+      ${ext&&isOcrText(ext.textSource)?`<p class="lgp-small" style="color:var(--st-amber-fg)">${esc2(ocrProvenanceLine(ext.upload))} ${i18t('ct_capped_at')} <b>${i18t('ct_medium')}</b> ${i18t('ct_confidence_until')}</p>`:''}
+      ${fld('up-name','Contract name',{value:suggestedName, ph:'e.g. Supply Agreement — Acme', read:nameFromDoc, sub:(ext&&!nameFromDoc)?'from the file name — rename it to what it is':''})}
+      ${fld('up-party',i18t('tf_our_party'),{value:(typeof window!=='undefined'&&window.FIRST_PARTY)||'', ph:i18t('tf_our_party_ph'), list:'up-party-list', sub:i18t('tf_our_party_hint')})}
+      <datalist id="up-party-list">${uploadPartyOptions().map(p=>`<option value="${attr(p)}"></option>`).join('')}</datalist>
+      ${fld('up-cp','Received from (counterparty)',{value:has('counterparty')?m.counterparty:'', ph:'e.g. Acme Ltd', read:has('counterparty'), foundKey:'counterparty'})}
+      ${fld('up-cpemail','Their email (so you can send it back)',{ph:'them@company.co.ke', type:'email', sub:ext?'the one thing a document never carries — add it and the first send is one click':''})}`)
+    + pane(1, i18t('up_step_filing'), `
+      ${line(i18t('ct_file_under'),
+          `<select id="up-folder" class="lgp-in">${folderOptionsHtml(null, false)}</select>`)}
+      ${line(i18t('ct_value_type'),
+          `<select id="up-vtype" class="lgp-in">
             <option value="estimated">${i18t('ct_estimated_value')}</option><option value="fixed">${i18t('ct_fixed_value')}</option><option value="none">Non-monetary</option></select>`)}
-      </div>
-      <div class="grid sm:grid-cols-2 gap-2 mb-3 up-grid">
-        ${fld('up-value',`Contract value (${jxCurrency()})`,{value:has('value')?m.value:'', ph:'e.g. 2500000', type:'number', read:has('value'), foundKey:'value'})}
-        ${fld('up-expiry','Expiry date (optional)',{value:has('expiryDate')?m.expiryDate:'', type:'date', read:has('expiryDate'), foundKey:'expiryDate'})}
-      </div>
-      ${extras.length?`<details style="margin:0 0 var(--s-3);border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2) var(--s-3)">
-        <summary style="cursor:pointer;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-neutral-700)">More details HaTi read (${extras.length}) — renewal, notice, governing law…</summary>
-        <div class="grid sm:grid-cols-2 gap-2 up-grid" style="margin-top:10px">${extras.map(extraFld).join('')}</div>
-      </details>`:''}
-      ${ext&&readCount?`<p style="margin:0 0 10px;font-size:var(--t-label);color:var(--color-neutral-600)">Everything ✦ came from the document${meta&&meta._source==='ai'?', read by Jambo':', pattern-matched'}. Nothing is saved until you press <b>${i18t('ct_file_contract')}</b>.</p>`:''}
+      ${fld('up-value',`Contract value (${jxCurrency()})`,{value:has('value')?m.value:'', ph:'e.g. 2500000', type:'number', read:has('value'), foundKey:'value'})}
+      ${fld('up-expiry','Expiry date (optional)',{value:has('expiryDate')?m.expiryDate:'', type:'date', read:has('expiryDate'), foundKey:'expiryDate'})}
+      ${ext&&readCount?`<p class="lgp-small">Everything ✦ came from the document${meta&&meta._source==='ai'?', read by Jambo':', pattern-matched'}. Nothing is saved until you press <b>${i18t('ct_file_contract')}</b>.</p>`:''}
       ${uploadRouteHtml(ext)}
-      ${triageOptInHtml(ext)}
-      <div class="flex items-center gap-2">
-        <button id="up-back" class="ui-btn">${icon('arrowLeft')}Another file</button>
-        <span style="flex:1"></span>
-        <button data-dlg-cancel id="up-cancel-2" class="ui-btn">${i18t('act_cancel')}</button>
-        <button id="up-go" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} <span id="up-go-word">${i18t(ext&&uploadRouteDefault()==='outside'?'ho_start_redlining':'ct_file_contract')}</span></button>
-      </div>`;
+      ${triageOptInHtml(ext)}`)
+    + extraSteps.map((g,i)=>pane(i+2, i18t(g.name),
+      `${i===0?`<p class="lgp-small" style="margin:6px 0 4px">More details HaTi read (${extras.length}) — renewal, notice, governing law…</p>`:''}${g.fields.map(extraFld).join('')}`)).join('');
 }
 /* ============================================================
    WHO RUNS THE SIGNING — the upload's one new question
@@ -1937,23 +1964,15 @@ async function runUploadPipeline(file, pre){
   s2.innerHTML=(window.outsideUploadOfferHtml?outsideUploadOfferHtml(hoMatch):'')+uploadConfirmHtml(_up, meta);
   if(window.wireOutsideUploadOffer) wireOutsideUploadOffer(s2, { file, name:file.name, size:file.size, mime,
     dataUrl:upload.dataUrl, fileHash:upload.fileHash, text:extractedText, textSource, word });
-  s1.classList.add('hidden');
-  s2.classList.remove('hidden');
-  /* The dialog's bar names the step now on screen; the step's own heading
-     steps aside so there is one title. */
-  { const t=document.getElementById('up-title'), h=s2.querySelector('h2');
-    if(t&&h){ t.textContent=h.textContent; (h.parentElement||h).hidden=true; } }
+  /* The sheet's head names the step now on screen, and its first pane of what was read is shown. The foot (File
+     contract, Next, Back / Another file, Cancel) was wired once when the sheet opened — never here, where a second
+     file read would wire it twice. */
+  uploadStepShow(1);
+  { const t=document.getElementById('up-title'); if(t) t.textContent=i18t('ct_check_what_read'); }
+  { const go=document.getElementById('up-go');
+    if(go){ go.disabled=false; go.innerHTML=`<span id="up-go-word">${i18t(uploadRouteDefault()==='outside'?'ho_start_redlining':'ct_file_contract')}</span>`; } }
   bindFolderSelect(document.getElementById('up-folder'));
   wireUploadRoute();
-  document.getElementById('up-go').addEventListener('click',submitUpload);
-  document.getElementById('up-cancel-2').addEventListener('click',closeModal);
-  document.getElementById('up-back').addEventListener('click',()=>{
-    _up=null;
-    s2.classList.add('hidden'); s2.innerHTML=uploadConfirmHtml(null,null);
-    s1.classList.remove('hidden');
-    const steps=document.getElementById('up-steps'); if(steps){ steps.classList.add('hidden'); steps.innerHTML=''; }
-    revive();
-  });
 }
 /* "File contract" — the one moment anything is created. Same validation, same
    record shape, same destination as the old form's Add button; the metadata
@@ -2441,7 +2460,7 @@ function openEditDocModal(c){
           <span style="flex:none;margin-top:1px">${icon('alert','w-3.5 h-3.5')}</span>
           <span>${i18t('ct_plain_text_warn')}</span></div>`:''}
       </div>
-      <textarea id="ed-text" class="scroll-thin" spellcheck="false" style="${COL};flex:1 1 auto;min-height:0;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:22px 26px;font:inherit;font-size:var(--t-card);line-height:1.95;resize:none;outline:none">${esc(cur)}</textarea>
+      <textarea id="ed-text" class="scroll-thin" spellcheck="false" style="${COL};flex:1 1 auto;min-height:0;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:22px 26px;font:inherit;font-size:var(--t-card);line-height:1.95;resize:none;outline:none">${esc(cur)}</textarea>
       <div style="${COL};padding:0 26px;margin-top:var(--s-3)">
         <label style="display:flex;align-items:flex-start;gap:var(--s-2);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:9px 11px;font-size:var(--t-meta);cursor:pointer">
           <input type="checkbox" id="ed-from-cp" style="margin-top:2px;flex:none"/>
@@ -2557,7 +2576,7 @@ function renderDiscussSection(c){
     // out loud rather than leaving to be discovered
     toast(res&&res.emailSent ? `Message sent to ${res.to}`
       : res&&res.to ? `Saved — but the email to ${res.to} could not be sent. They will see it when they open their link.`
-      : 'Saved — they will see it when they open their link');
+      : 'Saved — they will see it when they open their link', res&&!res.emailSent&&res.to?'warn':undefined);
   };
   wireDiscussPanel({ idp:'ws-discuss', topics, send:post, onSent:after });
   if(window.wireDiscussPoints) wireDiscussPoints({ send:post, onSent:after });
@@ -4640,7 +4659,9 @@ function focusKeyTerms(c, field){
   if(window.pdFillOpen&&!(typeof window!=='undefined'&&window.innerWidth&&window.innerWidth<768)){
     /* a fact this table does not name (governing law, disputes, payment terms …) is its own Key terms row, never the other party's */
     if(field&&!KT_FIELD_HOME[String(field)]&&state.view!=='workspace'&&window.pdKtFocus&&pdKtFocus(c.id,String(field||''))!==false) return;
-    let asks=false; try{ const d=detailsOf(c); asks=!!(d.live&&d.items.some(x=>x.kind==='kt'&&x.key===home.kt)); }catch(_){ asks=false; }
+    /* the form takes only a fact still OWED; one already on record is changed on its Key terms row (#762: "Fill it in"
+       for a recorded fact opened a form with nothing to fill, and landed nowhere) */
+    let asks=false; try{ const d=detailsOf(c); asks=!!(d.live&&d.items.some(x=>x.kind==='kt'&&x.key===home.kt&&x.open)); }catch(_){ asks=false; }
     if(asks){ pdFillOpen(c.id,{ key:home.kt }); return; }
     /* THE DETAILS PAGE IS RETIRED (owner, 22 Oct 2026): every other box is Key terms in the middle, ready on it */
     if(state.view!=='workspace'&&window.pdKtFocus&&pdKtFocus(c.id,home.kt)!==false) return;
@@ -4875,25 +4896,21 @@ function cnEditOpen(c){
   const fixed=new Set([String(me.id),String((c.owner&&c.owner.id)||'')].filter(Boolean));
   const on=new Set(((cn&&cn.people)||[]).map(p=>String(p.id)).concat([...fixed]));
   const people=(getUsers()||[]).slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));
-  openModal(`<div style="padding:16px 18px">
-    <h3>${esc(i18t('cn_dlg_title'))}</h3>
-    <p>${esc(i18t('cn_dlg_sub'))}</p>
-    <label class="sap-f" style="display:block;margin:0 0 12px"><span class="sap-lbl">${esc(i18t('cn_dlg_code'))}</span>
-      <input id="cn-code" type="text" maxlength="60" value="${esc((cn&&cn.code)||'')}" placeholder="${esc(i18t('cn_dlg_code_ph'))}" style="${window.HATI_FLD||''}"/></label>
-    <p class="sap-lbl">${esc(i18t('cn_dlg_who'))}</p>
-    <div class="sap-list cn-people" id="cn-people">${people.map(u=>{ const id=String(u.id), lock=fixed.has(id);
-      return `<label class="sap-li"><input type="checkbox" value="${esc(id)}"${on.has(id)?' checked':''}${lock?' disabled':''}/>
-        <span><b>${esc(u.name||u.email||id)}</b>${lock?` <span class="sap-m">${esc(i18t(id===String(me.id)?'cn_dlg_you':'cn_dlg_owner'))}</span>`:''}</span></label>`; }).join('')}</div>
-    <p class="st-note cn-real">${esc(i18t('cn_dlg_real',{name:c.name||''}))}</p>
-    <p class="cn-refusal" id="cn-refusal" role="alert" hidden></p>
-    <div data-dlg-foot style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px">
-      ${cn?`<button type="button" class="ui-btn" id="cn-off">${esc(i18t('cn_dlg_off'))}</button>`:''}
-      <button type="button" class="ui-btn ui-btn-primary" id="cn-save">${esc(i18t('act_save'))}</button>
-      <button type="button" class="ui-btn" data-dlg-cancel id="cn-cancel">${esc(i18t('act_cancel'))}</button>
-    </div></div>`,{ maxWidth:DLG_W.m, label:i18t('cn_dlg_title') });
-  const say=t=>{ const r=document.getElementById('cn-refusal'); if(r){ r.textContent=t; r.hidden=!t; } };
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (owner's pick, 19 Nov 2026): one line for the code name, then who may see the
+     real name as a tick list six at a time (you and the owner always, never unticked) */
+  const st={ page:1, err:'' };
+  const sheet=()=>({ id:'cn-form', title:i18t('cn_dlg_title'), sub:i18t('cn_dlg_sub'),
+    rows:[{ k:i18t('cn_dlg_code'), id:'cn-code', value:st.code!=null?st.code:((cn&&cn.code)||''), ph:i18t('cn_dlg_code_ph'), max:60 }],
+    html:`<p class="lgp-sub" style="margin-top:12px">${esc(i18t('cn_dlg_who'))}</p>`+lgpListHtml({ page:st.page, tickAttr:'data-cn-who', pageAttr:'data-cn-page',
+      items:people.map(u=>{ const id=String(u.id), lock=fixed.has(id); return { id, on:on.has(id), disabled:lock, label:u.name||u.email||id,
+        stage:lock?i18t(id===String(me.id)?'cn_dlg_you':'cn_dlg_owner'):'' }; }),
+      said:i18t('cn_dlg_real',{name:c.name||''}) }),
+    err:st.err, left:cn?{ label:i18t('cn_dlg_off'), attr:'id="cn-off"' }:null,
+    primary:{ label:i18t('act_save'), attr:'id="cn-save"' } });
+  const keep=()=>{ const f=document.getElementById('cn-code'); if(f) st.code=f.value; };
+  const say=t=>{ st.err=t||''; keep(); lgpRepaint(sheet()); };
   const send=async(code)=>{
-    const ids=[...document.querySelectorAll('#cn-people input:checked')].map(i=>i.value);
+    const ids=[...on];
     let r=null;
     try{ r=await api('contracts/'+encodeURIComponent(c.id)+'/code-name','PUT',{ code, ids }); }
     catch(e){ say((e&&e.message)||i18t('cn_failed')); return; }
@@ -4902,13 +4919,19 @@ function cnEditOpen(c){
     toast(r&&r.codeName?i18tn('cn_saved',r.codeName.people.length,{code:r.codeName.code,n:r.codeName.people.length}):i18t('cn_removed'),'ok');
     cnRowPaint(c);
   };
-  document.getElementById('cn-save')?.addEventListener('click',()=>{
+  const root=document.getElementById('modal-root');
+  const onChange=e=>{ const w=e.target&&e.target.getAttribute&&e.target.getAttribute('data-cn-who'); if(!w) return; if(e.target.checked) on.add(w); else on.delete(w); };
+  const onClick=e=>{
+    const pg=e.target.closest&&e.target.closest('[data-cn-page]'); if(pg){ e.preventDefault(); keep(); st.page=Math.max(1,Number(pg.getAttribute('data-cn-page'))||1); lgpRepaint(sheet()); return; }
+    if(e.target.closest&&e.target.closest('#cn-off')){ e.preventDefault(); send(''); }
+  };
+  const onSubmit=e=>{ if(!(e.target&&e.target.id==='cn-form')) return; e.preventDefault();
     const code=String((document.getElementById('cn-code')||{}).value||'').trim();
     if(!code){ say(i18t('cn_need_code')); return; }
-    send(code);
-  });
-  document.getElementById('cn-off')?.addEventListener('click',()=>send(''));
-  document.getElementById('cn-cancel')?.addEventListener('click',()=>closeModal());
+    send(code); };
+  /* the handlers live as long as this pop-up: added on open, taken off on close (modal-root outlives every dialog) */
+  root.addEventListener('change',onChange); root.addEventListener('click',onClick); root.addEventListener('submit',onSubmit);
+  lgpOpen(Object.assign(sheet(),{ onClose:()=>{ root.removeEventListener('change',onChange); root.removeEventListener('click',onClick); root.removeEventListener('submit',onSubmit); } }));
   return true;
 }
 function ovRecordOpen(c){ if(c) ovSetEditing(OV_KEY(c,'record'), true); }
@@ -5043,11 +5066,10 @@ function roomHomeLand(id, opts){
      lands on the paper and its Dossier, whose Next card carries "Fill in the contract ›" while details are owed; the
      form is its own door's (pdFillOpen), never a Workspace door's */
   void owed; void may;
-  /* THE COVER (owner, 16 Nov 2026): a door that opens the contract itself says so (opts.cover); a door on its way to a
-     job inside it lands on the paper alone */
-  const ok=!!pdOpenOnHome(c.id,mine==='jambo'?'plain':'open',{ cover:false });
-  if(ok&&opts&&opts.cover&&typeof window.pdCoverLand==='function') window.pdCoverLand(c.id);
-  return ok;
+  /* OPENED ON PURPOSE, THE DOSSIER (owner, 20 Nov 2026: "Delete it [the Cover], open the Dossier instead"): a door
+     that opens the contract itself says so (opts.open) and lands on the paper with the face this reader opens
+     contracts on — the Dossier unless they chose another; a door on its way to a job inside it keeps its own way */
+  return !!pdOpenOnHome(c.id,(opts&&opts.open)||mine!=='jambo'?'open':'plain');
 }
 /* ---- A RENEWAL IS DECIDED ON TODAY'S READING (Young, 27 Sep 2026) ----
    *"when you click on decide and it takes you to the overview page, the 5
@@ -6059,7 +6081,7 @@ function ktTermsRowsHtml(c,opts={}){
      of them to emit, in the order the caller asks for; absent means all of them,
      in this file's own order, which is what every older caller means. */
   const want=Array.isArray(opts.only)?opts.only:null;
-  const KIN='min-width:0;width:100%;border:1px solid var(--color-accent);background:var(--color-bg);border-radius:var(--radius);padding:var(--s-1) var(--s-2);font:inherit;font-size:var(--t-meta);text-align:right;outline:none';
+  const KIN='min-width:0;width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:var(--s-1) var(--s-2);font:inherit;font-size:var(--t-meta);text-align:right;outline:none';
   const dash=`<span class="kt-none" data-kt-none="1">${i18t('ct_not_set')}</span>`;
   /* A DATE ROW SAYS SO IN WORDS AS WELL AS IN ITS ICON. "Not set" is a state;
      "Pick a date" is an instruction, and the two date rows are the ones a
@@ -7212,6 +7234,9 @@ function ovFieldNoteHtml(mark,k){
   return `<span class="sec-f-n" title="${esc(say)}">${esc(i18t('ov_paper_differs'))}</span>`;
 }
 function ktFieldCell(c,k,edit,marks){
+  /* HIDDEN MONEY IS NOT DRAWN AT ALL (f259): no Value (or Pay) cell for a reader without money rights, never an
+     empty one or a box whose figure the server would put back */
+  if(k==='value'&&typeof canViewValues==='function'&&!canViewValues()) return null;
   /* A PRINTED TERM THAT HAS FROZEN IS NOT A BOX (27 Sep 2026) — see
      paperTermsFrozen. Its read-out says why on the hover. */
   const frozenTerm=PAPER_TERM_KEYS.includes(k) && paperTermsFrozen(c);
@@ -7698,25 +7723,22 @@ function openPartyEditor(c, id){
       <input type="radio" name="py-inv" value="${esc(k)}"${k===p.involvement?' checked':''} style="margin-top:3px;accent-color:var(--accent-fill)"/>
       <span><span style="display:block;font-weight:var(--w-label)">${esc(i18t('py_inv_'+k))}</span><span class="sap-m">${esc(i18t('py_inv_'+k+'_s'))}</span></span>
     </label>`).join('');
-  openModal(`
-    <div style="padding:16px 18px">
-      <h3>${esc(adding?i18t('py_add').replace(/^\+\s*/,''):i18t('py_edit'))}</h3>
-      <p>${esc(((typeof contractRef==='function')?contractRef(c):c.id)+' \u00b7 '+(c.name||''))}</p>
-      <div class="sap-body">
-        <div class="sap-row">${fld('name',i18t('py_reg_name'),i18t('py_name_ph'),p.name,true)}${roleSel(p.role)}</div>
-        ${fld('email',i18t('ov_f_email'),i18t('py_email_ph'),(!adding&&p.side!==PARTY_SIDE_OURS)?ctTheirEmail(c,p.id):p.email)}
-        <div class="sap-f"><span class="sap-lbl">${esc(i18t('py_inv_q'))}</span>
-          <div class="sap-list py-inv">${inv}</div></div>
-        <div id="py-say" class="py-say" hidden></div>
-      </div>
-      <div style="display:flex;gap:var(--s-2);align-items:center">
-        ${(!adding&&p.side!==PARTY_SIDE_OURS)?`<button type="button" class="ui-btn" id="py-del" style="color:var(--st-ruby-fg)">${
-          esc(i18t('py_remove'))}</button>`:''}
-        <span style="flex:1"></span>
-        <button data-dlg-cancel type="button" class="ui-btn" id="py-cancel">${esc(i18t('act_cancel'))}</button>
-        <button type="button" class="ui-btn ui-btn-primary" id="py-ok">${esc(i18t(adding?'py_add_go':'act_save'))}</button>
-      </div>
-    </div>`, { maxWidth: '540px' });
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (owner's pick, 19 Nov 2026): the name, the paper's word for them and the address
+     as lines; what they do as three quiet choices; Remove on the left (editing an outside party); Save, Cancel last.
+     Every id is kept (py-name, py-role, py-email, py-inv, py-say, py-del, py-ok). */
+  const roleOpts=[{ v:'', t:i18t('wz_not_set') }].concat(((typeof partyRoleOptions==='function')?partyRoleOptions(p.role):[]).map(o=>({ v:o.v, t:o.l })),
+    [{ v:PARTY_ROLE_OTHER, t:i18t('py_role_another') }]);
+  const curRole=String(p.role||'').trim(), roleVal=(roleOpts.find(o=>o.v&&o.v.toLowerCase()===curRole.toLowerCase())||{}).v||'';
+  lgpOpen({ id:'py-form', title:adding?i18t('py_add').replace(/^\+\s*/,''):i18t('py_edit'),
+    sub:((typeof contractRef==='function')?contractRef(c):c.id)+' · '+(c.name||''),
+    rows:[{ k:i18t('py_reg_name'), id:'py-name', value:p.name||'', ph:i18t('py_name_ph') },
+      { k:i18t('py_role'), id:'py-role', type:'select', value:roleVal, opts:roleOpts },
+      { k:i18t('ov_f_email'), id:'py-email', type:'email', value:(!adding&&p.side!==PARTY_SIDE_OURS)?ctTheirEmail(c,p.id):(p.email||''), ph:i18t('py_email_ph') }],
+    html:`<p class="lgp-sub" style="margin-top:12px">${esc(i18t('py_inv_q'))}</p><div class="lgp-list py-inv">${PARTY_INVOLVEMENT.map(k=>`<label class="lgp-tick is-radio">
+        <input type="radio" name="py-inv" value="${esc(k)}"${k===p.involvement?' checked':''}/><span class="lgp-tl">${esc(i18t('py_inv_'+k))}<span class="lgp-tsub">${esc(i18t('py_inv_'+k+'_s'))}</span></span></label>`).join('')}</div>
+      <p id="py-say" class="lgp-err" role="alert" hidden></p>`,
+    left:(!adding&&p.side!==PARTY_SIDE_OURS)?{ label:i18t('py_remove'), attr:'id="py-del"', danger:true }:null,
+    primary:{ label:i18t(adding?'py_add_go':'act_save'), attr:'id="py-ok"' }, cancelAttr:'data-lgp-close id="py-cancel"' });
 
   const say=m=>{ const el=document.getElementById('py-say'); if(!el) return;
     el.textContent=m||''; el.hidden=!m; };
@@ -8619,6 +8641,106 @@ const histTone=e=>{ const m=HIST_KIND[e&&e._k]||HIST_KIND.system;
 let _histDetail=false;
 /* whether History shows the wording under its rows (its panel says so, as drawn) */
 function histWordingShown(){ return !!_histDetail; }
+/* THE NOTES UNDER THEIR CHANGE (P-44, owner's pick 21 Nov 2026: "The notes", beside "The wording"): per sitting,
+   remembered like the wording; both may be on together */
+let _histNotes=false;
+function histNotesShown(){ return !!_histNotes; }
+/* the kind of an entry, as a soft badge: a change, a decision, a sending, a signature, an open — the trail's own
+   reading (e._k), never a new fact */
+function histKindOf(e){
+  const k=e&&e._k;
+  if(k==='proposed') return { w:i18t('hist6_k_change'), t:'amber' };
+  if(k==='decided') return { w:i18t('hist6_k_decision'), t:e.outcome==='rejected'?'ruby':'green' };
+  if(k==='withdrawn') return { w:i18t('hist6_k_withdrawn'), t:'gray' };
+  if(k==='round-closed'||k==='link'||k==='copies'||k==='handover') return { w:i18t('hist6_k_sent'), t:'steel' };
+  if(k==='signature'||k==='sealed') return { w:i18t('hist6_k_signed'), t:'green' };
+  if(k==='opened'||k==='access') return { w:i18t('hist6_k_inside'), t:'gray' };
+  /* P-44 review (22 Nov 2026), as drawn: a note is a row of the trail with its own badge; the upload that made the
+     contract says Created */
+  if(k==='note') return { w:i18t('hist6_k_note'), t:'violet' };
+  if(k==='system'&&/^(uploaded|created)$/i.test(String((e._audit&&e._audit.action)||'').trim())) return { w:i18t('hist6_k_created'), t:'gray' };
+  return { w:i18t('hist6_k_event'), t:'gray' };
+}
+/* the group a kind badge counts in (the chips and the panel's bar, as drawn: All · Changes · Notes; By kind) */
+function histKindGroup(e){
+  const k=e&&e._k;
+  if(k==='proposed'||k==='decided'||k==='withdrawn') return 'change';
+  if(k==='note') return 'note';
+  if(k==='round-closed'||k==='link'||k==='copies'||k==='handover') return 'sent';
+  if(k==='signature'||k==='sealed') return 'signed';
+  if(k==='system'&&/^(uploaded|created)$/i.test(String((e._audit&&e._audit.action)||'').trim())) return 'created';
+  return 'event';
+}
+const HIST_KIND_GROUPS=['change','note','sent','signed','created','event'];
+/* the new look's trail narrowed (oldest first): the folded entries under every filter but the kind, the notes under the
+   same side, clause and person, then the kind — the list, its chips' counts and the panel read this one function */
+function histRowsOf(c,f){
+  f=f||{};
+  const fT=Object.assign({},f,{ kind:'', quick:'' });
+  let L=histNlFold(roomHistoryEvents(c,fT),c);
+  const notes=histNoteEvents(c).filter(e=>(!f.side||e.side===f.side)&&(!f.clauseId||String(e.clauseId||'')===String(f.clauseId))&&(!f.actor||e.actor===String(f.actor))&&!f.round&&!f.outcome);
+  L=L.concat(notes).sort((a,b)=>String(a.at||'').localeCompare(String(b.at||'')));
+  return f.kind?L.filter(e=>histKindGroup(e)===f.kind):L;
+}
+/* the new look's whole trail as drawn, oldest first: the folded entries and the notes (the head's count, the chips' and
+   the panel's — one reading, so the numbers on the chips match the list behind them) */
+function histAllOf(c){
+  if(!c) return [];
+  const f=typeof histNlFold==='function'?histNlFold(roomHistoryEvents(c,{}),c):roomHistoryEvents(c,{});
+  return f.concat(histNoteEvents(c)).sort((a,b)=>String(a.at||'').localeCompare(String(b.at||'')));
+}
+/* ---- THE NOTES ARE ROWS OF THE TRAIL (P-44 review, 22 Nov 2026, as drawn: "Wrote a note on clause 2", "Replied on
+   clause 2, Price & Contract Value", a Note badge) ----
+   Read RAW off the record: each change's thread (ch.thread, never initialised) and the contract's own (c.thread), every
+   change the record holds (the live list and the rounds' archives, once each). Our seat only: our internal notes and the
+   shared ones are both ours to read; the other side's page draws its own (portalOutHistoryHtml, their room only). */
+function histNoteEvents(c){
+  if(!c) return [];
+  const seen=new Set(), chs=[];
+  const add=ch=>{ if(!ch||!ch.id||seen.has(String(ch.id))) return; seen.add(String(ch.id)); chs.push(ch); };
+  (Array.isArray(c.changes)?c.changes:[]).forEach(add);
+  ((c.negotiation&&Array.isArray(c.negotiation.rounds))?c.negotiation.rounds:[]).forEach(r=>((r&&Array.isArray(r.changes))?r.changes:[]).forEach(add));
+  const out=[];
+  const rows=(list,ch)=>{
+    const L=(Array.isArray(list)?list:[]).filter(m=>m&&String(m.text||m.body||'').trim());
+    const ids=new Set(L.map(m=>String(m.id||'')));
+    L.forEach(m=>{
+      const reply=!!(m.replyTo&&ids.has(String(m.replyTo)));
+      let label=String((ch&&ch.clauseLabel)||(m.anchor&&m.anchor.clauseLabel)||'').trim();
+      try{ if(label&&typeof window.negoClauseName==='function') label=String(negoClauseName(label)||label); }catch(_){ /* the stored label stands */ }
+      const num=(label.match(/^(\d+(?:\.\d+)*)/)||[])[1]||'';
+      const cl=reply||!num?histClauseWords(label):i18t('hist6_clause_n',{ n:num });
+      out.push({ _k:'note', at:String(m.at||''), actor:String(m.who||m.author||'').trim(), side:m.side==='counterparty'?'counterparty':'owner',
+        clauseId:(ch&&ch.clauseId)||(m.anchor&&m.anchor.clauseId)||null, clauseLabel:label, round:null, outcome:'', ch:null, _note:m,
+        text:String(m.text||m.body||''), _say:i18t(reply?'hist6_note_replied':(label?'hist6_note_wrote':'hist6_note_wrote_c'),{ clause:cl }) });
+    });
+  };
+  chs.forEach(ch=>rows(ch.thread,ch));
+  rows(c.thread,null);
+  return out.sort((a,b)=>String(a.at||'').localeCompare(String(b.at||'')));
+}
+/* a change's discussion, under its row: its notes as a thread (replies stepped in under the note they answer), read RAW
+   (ch.thread, never initialised); the reply box is the notes drawer's own door on that change (openNotesPanel — ONE
+   way to write a note); none: "No notes on this change · Write one" through the same door */
+/* a clause as the reply box says it (as drawn: "Reply on clause 2…"): its number where it has one, else its name */
+function histClauseShort(label){
+  let l=String(label||'').trim();
+  try{ if(l&&typeof window.negoClauseName==='function') l=String(negoClauseName(l)||l); }catch(_){ /* the stored label stands */ }
+  const n=(l.match(/^(?:clause\s+)?(\d+(?:\.\d+)*)/i)||[])[1];
+  return n?i18t('hist6_clause_n',{ n }):(l||i18t('ds_a_clause'));
+}
+function histNotesHtml(c,ch){
+  const list=Array.isArray(ch&&ch.thread)?ch.thread.filter(m=>m&&String(m.text||m.body||'').trim()):[];
+  const T=list.length&&typeof window.negoNoteThreads==='function'?negoNoteThreads(list):list.map(m=>({ root:m, replies:[] }));
+  const ini=n=>String(n||'?').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x.charAt(0).toUpperCase()).join('');
+  const msg=(m,sub)=>{ const theirs=m.side==='counterparty';
+    return `<div class="hist6-msg${sub?' is-reply':''}"><span class="hist6-ini${theirs?'':' is-us'}" aria-hidden="true">${esc(ini(m.who||m.author))}</span><div><b>${esc(m.who||m.author||'')}</b> <small>${esc(histWhen(m.at).time||histWhen(m.at).day||'')}</small><p>${esc(String(m.text||m.body||''))}</p></div></div>`; };
+  const door=`data-hist-note="${esc(ch.id)}"`;
+  const body=T.length?T.map(t=>msg(t.root,false)+(t.replies||[]).map(r=>msg(r,true)).join('')).join('')
+    +`<button type="button" class="hist6-reply" ${door}>${esc(i18t('hist6_reply',{ clause:histClauseShort(ch.clauseLabel) }))}</button>`
+    :`<p class="hist6-none">${esc(i18t('hist6_no_notes'))} · <button type="button" class="hist6-a" ${door}>${esc(i18t('hist6_writeone'))}</button></p>`;
+  return `<div class="hist-wfull hist6-notes" role="row"><div class="hist6-nt" role="cell">${body}</div></div>`;
+}
 /* THE HISTORY TAB, AS DRAWN (SAP batch 3): a search over the trail and the
    five filters folded behind one Filter button — per sitting, in memory. A
    filter in force keeps the fold open, so nothing narrows the list unseen. */
@@ -9041,8 +9163,8 @@ function histSaysOf(e){
    redline's way), with the unchanged words kept to a few either side of each
    edit; a cut is said with "…". The record is not touched: this draws it. */
 const HIST_WORDING_KEEP=8;
-function histWordingCut(ops){
-  const W=t=>String(t||'').split(/(\s+)/), K=HIST_WORDING_KEEP;
+function histWordingCut(ops,keep){
+  const W=t=>String(t||'').split(/(\s+)/), K=(keep>0?keep:HIST_WORDING_KEEP);
   const words=t=>W(t).filter(x=>x&&!/^\s+$/.test(x)).length;
   const head=(t,n)=>{ const p=W(t); let c=0, i=0; for(;i<p.length;i++){ if(p[i]&&!/^\s+$/.test(p[i])){ if(c===n) break; c++; } } return p.slice(0,i).join(''); };
   const tail=(t,n)=>{ const p=W(t); let c=0, i=p.length-1; for(;i>=0;i--){ if(p[i]&&!/^\s+$/.test(p[i])){ if(c===n) break; c++; } } return p.slice(i+1).join(''); };
@@ -9056,12 +9178,15 @@ function histWordingCut(ops){
     return n>2*K+2?{ op:'keep', text:head(o.text,K).replace(/\s+$/,'')+' \u2026 '+tail(o.text,K).replace(/^\s+/,'') }:o;
   });
 }
-function histWordingHtml(ch){
+function histWordingHtml(ch,o){
   if(!ch) return '';
+  /* THE ONE-LINE PEEK SHOWS THE CHANGE (P-44 review, 22 Nov 2026: at 1366 "within 3…" was cut before the change):
+     with The wording off a change keeps only a few words either side of its edit (o.keep) */
+  const keep=o&&o.keep;
   let ops=Array.isArray(ch.ops)&&ch.ops.length?ch.ops:null;
   if(!ops&&window.redlineOps&&(ch.oldText!=null||ch.newText!=null)){ try{ ops=redlineOps(String(ch.oldText||''),String(ch.newText||'')); }catch(_){ ops=null; } }
   if(!ops||!window.redlineOpsHtml) return window.negoChangeHtml?negoChangeHtml(ch):esc(String(ch.newText||''));
-  return redlineOpsHtml(histWordingCut(ops));
+  return redlineOpsHtml(histWordingCut(ops,keep));
 }
 /* ---- WHERE THE NEGOTIATION STANDS, FOR HISTORY'S HEAD AND JAMBO (round 12)
    ---- ONE reading: what is still open (their asks and ours, dsOpen's own
@@ -9157,12 +9282,15 @@ function roomHistoryHtml(c,f={},opts={}){
      they were written, latest first, which is what newest first means. */
   const q=String(_histQ||'').trim().toLowerCase();
   const nlH=typeof window.newLookOn==='function'&&newLookOn();
-  const evs=(nlH?histNlFold(roomHistoryEvents(c,f),c):roomHistoryEvents(c,f)).slice().reverse()
+  /* P-44 REVIEW (22 Nov 2026), AS DRAWN: the new look's trail carries the notes as rows (histNoteEvents) and is
+     narrowed by kind (All · Changes · Notes, f.kind) and side (+ Side, f.side); the quick links went with the drawing */
+  const evs0=nlH?histRowsOf(c,f):roomHistoryEvents(c,f);
+  const evs=evs0.slice().reverse()
     .filter(e=>!q||[e.text,histSaysOf(e),e.actor,e.clauseLabel].some(x=>String(x||'').toLowerCase().includes(q)));
   /* The total is the UNFILTERED list, counted the same way — merged twins are
      one event in both, so "7 of 11" can never appear over a page that is
      hiding nothing. */
-  const all=roomHistoryEvents(c,{}).length;
+  const all=nlH?histAllOf(c).length:roomHistoryEvents(c,{}).length;
   /* how many of them are opens, and how many older ones the server left out
      (a cap is a fact, said where the count is) */
   const opensN=Array.isArray(c._opens)?c._opens.length:0, cutN=Number(c._opensCut)||0;
@@ -9172,7 +9300,7 @@ function roomHistoryHtml(c,f={},opts={}){
      is still ONE handle on f.side — the Side dropdown left the fold with it.
      The Filter button counts the four it holds. */
   const onF=HIST_FOLD_FILTERS.filter(k=>f&&f[k]).length;
-  const on=onF+((f&&f.side)?1:0)+((f&&f.quick)?1:0)+(q?1:0);
+  const on=onF+((f&&f.side)?1:0)+((f&&f.quick)?1:0)+((f&&f.kind)?1:0)+(q?1:0);
   const row=e=>{
     const m=HIST_KIND[e._k]||HIST_KIND.system;
     /* ---- THE TIME LEADS THE ROW (owner-approved render, 24 Aug 2026) ----
@@ -9212,7 +9340,8 @@ function roomHistoryHtml(c,f={},opts={}){
       :(_histDetail&&e._chs&&e._chs.length)?`<div class="hist-wfull" role="row"><div class="hist-redline" role="cell">${e._chs.map(x=>`<div>… ${histWordingHtml(x)} …</div>`).join('')}${cap}</div></div>`:'';
     const body=(_histDetail&&(e._k==='proposed'||e._k==='decided')&&e.ch)
       ? `<div class="hist-wfull" role="row"><div class="hist-redline" role="cell">${histWordingHtml(e.ch)}</div></div>` : '';
-    const why=e.note?`<div class="hist-note">${esc(i18t('ct_hist_why_asked',{text:e.note}))}</div>`:'';
+    /* the new look draws no "Why they asked" under the row (P-44 review, as drawn): the reason stays on the change's card */
+    const why=e.note&&!nlH?`<div class="hist-note">${esc(i18t('ct_hist_why_asked',{text:e.note}))}</div>`:'';
     const reply=(e._k==='decided'&&e.reply)?`<div class="hist-note">${i18t('ct_reply_prefix',{text:esc(e.reply)})}</div>`:'';
     /* The system twin this row absorbed — its fingerprint and its actor kept on
        the row rather than printed as a second event. */
@@ -9272,14 +9401,24 @@ function roomHistoryHtml(c,f={},opts={}){
       :theirName?`<span class="hist-who is-party">${typeof window.regAvatarHtml==='function'?regAvatarHtml(theirName):''}<span title="${esc(theirName)}">${esc(theirName)}</span></span>`:whoH;
     const said=histSaysOf(e), named=said!==String(e.text||'');
     const whatT=inside&&e.actor?esc(said.charAt(0).toLocaleLowerCase()+said.slice(1)):esc(said);
+    /* P-44, HISTORY THE LEGORA + STRIPE WAY (owner's pick 21 Nov 2026): Time · Who · What happened · Kind · Outcome — the
+       side said by who (their party's name, ours by person; histLaneOf still on the row), the kind a soft badge
+       (histKindOf), the outcome a soft badge; with The wording off, a change still shows ONE line of its words under
+       it; The notes opens the change's discussion under its row (histNotesHtml) */
+    const K=histKindOf(e);
+    const kindB=K?`<span class="hist6-kb is-${K.t}">${esc(K.w)}</span>`:'';
+    const ocB=oc&&e._k!=='note'&&(lane!=='mid'||e._oc)?`<span class="hist6-ob is-${oc.t}"><i aria-hidden="true"></i>${esc(oc.w)}</span>`:'<span class="hist6-none-oc" aria-hidden="true">\u2014</span>';
+    const peek=!_histDetail&&(e._k==='proposed'||e._k==='decided')&&e.ch?`<div class="hist6-peek">${histWordingHtml(e.ch,{ keep:4 })}</div>`:'';
+    const notes=_histNotes&&e.ch&&(e._k==='proposed'||e._k==='decided')?histNotesHtml(c,e.ch):'';
+    void sideW; void ocW;
     return `<div class="hist-ev hist-tr is-${lane}${inside?' is-inside':''}${e._k==='opened'?' is-open':''}" data-hist-at="${esc(e.at||'')}" data-hist-lane="${lane}" role="row">
-      <span class="hist-c hist-c-time" role="cell">${when}</span><span class="hist-c hist-c-who" role="cell">${whoCell}</span><span class="hist-c hist-c-side" role="cell">${sideW}</span>
-      <div class="hist-c hist-c-what hist-body" role="cell"><div class="hist-text">${whatT}${named?'':cl}</div>${why}${reply}</div>
-      <span class="hist-c hist-c-oc hist-oc" role="cell">${ocW}</span></div>${bodyNl||body}`;
+      <span class="hist-c hist-c-time" role="cell">${when}</span><span class="hist-c hist-c-who" role="cell">${whoCell}</span>
+      <div class="hist-c hist-c-what hist-body" role="cell"><div class="hist-text" title="${esc(said)}">${whatT}${named?'':cl}</div>${peek}${why}${reply}</div>
+      <span class="hist-c hist-c-kind" role="cell">${kindB}</span><span class="hist-c hist-c-oc hist-oc" role="cell">${ocB}</span></div>${bodyNl||body}${notes}`;
   };
   const ours=_histOurPeople();
   /* the table's column head (the SAP way): the words above the columns */
-  const colHead=`<div class="hist-th" role="row"><span role="columnheader">${esc(i18t('ct_hist_col_time'))}</span><span role="columnheader">${esc(i18t('ct_hist_col_who'))}</span><span role="columnheader">${esc(i18t('ct_hist_col_side'))}</span><span role="columnheader">${esc(i18t('ct_hist_col_what'))}</span><span role="columnheader">${esc(i18t('ct_hf_outcome'))}</span></div>`;
+  const colHead=`<div class="hist-th" role="row"><span role="columnheader">${esc(i18t('ct_hist_col_time'))}</span><span role="columnheader">${esc(i18t('ct_hist_col_who'))}</span><span role="columnheader">${esc(i18t('ct_hist_col_what'))}</span><span role="columnheader">${esc(i18t('hist6_c_kind'))}</span><span role="columnheader">${esc(i18t('ct_hf_outcome'))}</span></div>`;
   /* THE DAY IS A HEADING OVER ITS ENTRIES, with its count (as drawn). */
   const dayKey=e=>String(e.at||'').slice(0,10);
   /* THE DAY'S PILL, AS DRAWN (round 12): the day a person would say it —
@@ -9345,9 +9484,12 @@ function roomHistoryHtml(c,f={},opts={}){
       <span class="hist-cap">${esc(i18t('ct_hist_reading'))} · ${on?esc(i18t('ct_hist_n_of',{n:evs.length,all}))
         :esc(i18tn('ct_hist_events',all,{n:all}))}${openN?` · <span class="hist-open-n">${esc(i18tn('ct_hist_open_n',openN,{n:openN}))}</span>`:''}${opensN?` · ${esc(i18tn('ct_hist_opens_n',opensN,{n:opensN}))}`:''}${cutN?` · ${esc(i18tn('ct_hist_opens_cut',cutN,{n:cutN}))}`:''}</span>
       <span class="hist-tools-sp"></span>
-      <button id="hist-detail" class="ui-btn" aria-pressed="${_histDetail?'true':'false'}"
-        title="${esc(_histDetail?i18t('ct_hist_back_short'):i18t('ct_hist_print_wording'))}">${_histDetail?i18t('ct_hist_hide_wording'):i18t('ct_hist_show_wording')}</button>
-      <div style="position:relative">
+      <span class="hist6-sw" role="group" aria-label="${esc(i18t('hist6_show'))}"><button id="hist-detail" type="button" class="hist6-tg${_histDetail?' is-on':''}" aria-pressed="${_histDetail?'true':'false'}"
+        title="${esc(_histDetail?i18t('ct_hist_back_short'):i18t('ct_hist_print_wording'))}"><i aria-hidden="true">${_histDetail?'✓':''}</i>${esc(i18t('hist6_wording'))}</button><button id="hist-notes" type="button" class="hist6-tg${_histNotes?' is-on':''}" aria-pressed="${_histNotes?'true':'false'}"
+        title="${esc(i18t('hist6_notes_tip'))}"><i aria-hidden="true">${_histNotes?'✓':''}</i>${esc(i18t('hist6_notes'))}</button></span>
+      ${''/* THE ⋯ MORE STAYS (P-44 review follow-up, 22 Nov 2026): the drawing does not show it, but it holds working
+           verbs the head has no other door to (Verify integrity, Download, Print, the whole trail) — a working control
+           kept, though not drawn */}<div style="position:relative">
         <button id="hist-more" class="ui-btn ui-btn-icon hist-more-btn" aria-haspopup="true" aria-expanded="false"
           aria-label="${esc(i18t('ct_more'))}" title="${esc(i18t('ct_hist_more_title'))}">
           ${icon('more')}</button>
@@ -9371,7 +9513,7 @@ function roomHistoryHtml(c,f={},opts={}){
            and ends at the last's, and a filter that leaves one entry draws no
            line at all. The empty sentence stays outside it — there is nothing
            to join. */}
-    ${evs.length?`<div class="hist-trail is-table" role="table" aria-label="${esc(i18t('tab_history'))}">${colHead}${grouped()}</div>`
+    ${evs.length?`<div class="hist-trail is-table is-ls" role="table" aria-label="${esc(i18t('tab_history'))}">${colHead}${grouped()}</div>`
       :`<p class="hist-empty">${on?esc(i18t('ct_hist_none_match')):esc(i18t('ct_hist_none_yet'))}</p>`}`;
 }
 /* the filters behind Filter (the values are the record's own keys; only the
@@ -9418,12 +9560,30 @@ function histQuickHtml(c,f){
   const all=roomHistoryEvents(c,{});
   const on=HIST_QUICK.filter(k=>all.some(e=>histQuickHit(e,k)));
   const any=!!(f&&f.quick)||!!String(_histQ||'').trim();
-  return `<div class="hist-filters hist-quick">${on.length?`<span class="hist-qk-l">${esc(i18t('ct_hq_filters'))}</span>${on.map((k,i)=>`${i?'<i aria-hidden="true"> · </i>':''}<button type="button" class="hist-qk" data-ht-quick="${k}" aria-pressed="${f&&f.quick===k?'true':'false'}">${esc(i18t('ct_hq_'+k))}</button>`).join('')}`:''}
+  /* P-44: the quick links are chips with their counts, All first (the Legora + Stripe way) */
+  const n=k=>all.filter(e=>histQuickHit(e,k)).length;
+  return `<div class="hist-filters hist-quick hist6-chips"><button type="button" class="hist-qk hist6-chip${f&&f.quick?'':' is-on'}" data-ht-quick="" aria-pressed="${f&&f.quick?'false':'true'}">${esc(i18t('ctf_tab_all'))} <span>${all.length}</span></button>${on.map(k=>`<button type="button" class="hist-qk hist6-chip${f&&f.quick===k?' is-on':''}" data-ht-quick="${k}" aria-pressed="${f&&f.quick===k?'true':'false'}">${esc((w=>w.charAt(0).toLocaleUpperCase()+w.slice(1))(i18t('ct_hq_'+k)))} <span>${n(k)}</span></button>`).join('')}
     <span class="hist-f-sp"></span>
     <button id="ht-clear" type="button" class="hist-clear"${any?'':` disabled title="${esc(i18t('ct_hist_clear_none'))}"`}>${i18t('ct_clear2')}</button></div>`;
 }
+/* THE CHIPS, AS DRAWN (P-44 review, 22 Nov 2026; replaces the quick links in the new look): All · Changes · Notes with
+   their counts — each count the rows its press leaves (histAllOf, the one reading) — and "+ Side", the Stripe way's
+   "+ filter" chip: pressed, it offers the sides the trail holds; chosen, it is a shaded chip naming the side, its × lets
+   go. A kind with no rows is not listed; Side only where both sides wrote. No Clear link: each chip lets go itself. */
+let _histSidePick=false;
+function histKindChipsHtml(c,f){
+  const all=histAllOf(c);
+  const n=k=>histRowsOf(c,Object.assign({},f,{ kind:k })).length;
+  const chip=(k,w)=>{ const on=(f.kind||'')===k; return `<button type="button" class="hist6-chip${on?' is-on':''}" data-ht-kind="${k}" aria-pressed="${on}">${esc(w)} <span>${n(k)}</span></button>`; };
+  const kinds=[['change','hist6_c_changes'],['note','hist6_c_notes']].filter(([k])=>n(k)>0);
+  const sides=['owner','counterparty'].filter(sd=>all.some(e=>e.side===sd));
+  const sideW=sd=>i18t(sd==='owner'?'hist6_side_ours':'hist6_side_theirs');
+  const side=f.side?`<button type="button" class="hist6-chip is-on is-set" data-ht-side-x aria-label="${esc(i18t('hist6_side_clear'))}">${esc(i18t('hist6_side_is',{ side:sideW(f.side) }))} <span aria-hidden="true">\u00d7</span></button>`
+    :sides.length>1?`<span class="hist6-side"><button type="button" class="hist6-chip is-add" data-ht-side-pick aria-expanded="${_histSidePick}">+ ${esc(i18t('hist6_c_side'))}</button>${_histSidePick?`<span class="hist6-side-pop" role="menu">${sides.map(sd=>`<button type="button" role="menuitem" data-ht-side-set="${sd}">${esc(sideW(sd))}</button>`).join('')}</span>`:''}</span>`:'';
+  return `<div class="hist6-chips hist6-kinds">${chip('',i18t('ctf_tab_all'))}${kinds.map(([k,w])=>chip(k,i18t(w))).join('')}${side}</div>`;
+}
 function roomHistoryFiltersHtml(c,f){
-  if(typeof newLookOn==='function'&&newLookOn()) return histQuickHtml(c,f);
+  if(typeof newLookOn==='function'&&newLookOn()) return histKindChipsHtml(c,f);
   const C=histFilterChoices(c);
   /* THE SAP WAY (21 Oct 2026): each filter a labelled box in the band — its name inside it, then
      what it holds — in the drawing's order: Person · Clause · Outcome · Round · Opens */
@@ -9474,7 +9634,14 @@ function roomPaintHistory(c,f={},at){
   const read=()=>{ const g=k=>{ const el=host.querySelector(`[data-ht-filter="${k}"]`); return el&&el.value?el.value:''; };
     const sd=host.querySelector('[data-ht-side][aria-pressed="true"]');
     const qk=host.querySelector('[data-ht-quick][aria-pressed="true"]');
-    return {clauseId:g('clauseId'),actor:g('actor'),side:sd?sd.getAttribute('data-ht-side'):'',round:g('round'),outcome:g('outcome'),opens:g('opens'),quick:qk?qk.getAttribute('data-ht-quick'):''}; };
+    const kept=f||{};
+    const has=k=>!!host.querySelector(`[data-ht-filter="${k}"]`);
+    return {clauseId:has('clauseId')?g('clauseId'):(kept.clauseId||''),actor:has('actor')?g('actor'):(kept.actor||''),side:sd?sd.getAttribute('data-ht-side'):(kept.side||''),round:g('round'),outcome:g('outcome'),opens:g('opens'),quick:qk?qk.getAttribute('data-ht-quick'):'',kind:kept.kind||''}; };
+  /* the kind chips and + Side (the new look, as drawn): one press narrows, All lets go; + Side offers the sides */
+  host.querySelectorAll('[data-ht-kind]').forEach(b=>b.addEventListener('click',()=>{ _histSidePick=false; roomPaintHistory(c,Object.assign({},f,{ kind:b.getAttribute('data-ht-kind')||'' }),at); }));
+  host.querySelector('[data-ht-side-pick]')?.addEventListener('click',()=>{ _histSidePick=!_histSidePick; roomPaintHistory(c,f,at); });
+  host.querySelectorAll('[data-ht-side-set]').forEach(b=>b.addEventListener('click',()=>{ _histSidePick=false; roomPaintHistory(c,Object.assign({},f,{ side:b.getAttribute('data-ht-side-set')||'' }),at); }));
+  host.querySelector('[data-ht-side-x]')?.addEventListener('click',()=>{ roomPaintHistory(c,Object.assign({},f,{ side:'' }),at); });
   /* a quick link: one press narrows, the same press again lets go */
   host.querySelectorAll('[data-ht-quick]').forEach(b=>
     b.addEventListener('click',()=>{ const k=b.getAttribute('data-ht-quick'); roomPaintHistory(c,Object.assign(read(),{ quick:b.getAttribute('aria-pressed')==='true'?'':k }),at); }));
@@ -9489,6 +9656,8 @@ function roomPaintHistory(c,f={},at){
   const qi=host.querySelector('#hist-q');
   if(qi) qi.addEventListener('input',()=>{ _histQ=qi.value; const caret=qi.selectionStart; roomPaintHistory(c,read(),at);
     const again=host.querySelector('#hist-q'); if(again){ again.focus(); try{ again.setSelectionRange(caret,caret); }catch(_){} } });
+  host.querySelector('#hist-notes')?.addEventListener('click',()=>{ _histNotes=!_histNotes; roomPaintHistory(c,read(),at); });
+  host.querySelectorAll('[data-hist-note]').forEach(b=>b.addEventListener('click',()=>{ if(typeof window.openNotesPanel==='function') openNotesPanel(c.id,b.getAttribute('data-hist-note')); }));
   host.querySelector('#hist-detail')?.addEventListener('click',()=>{
     _histDetail=!_histDetail; roomPaintHistory(c,read(),at);
     /* the new look's panel says whether the wording shows (as drawn): its glance is drawn again */
@@ -9767,10 +9936,10 @@ function openNegoProposeModal(c){
       </div>
       <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:20px 26px;background:var(--color-bg)">
         <div style="${COL}">
-          <textarea id="nego-prop-text" spellcheck="false" style="width:100%;min-height:52vh;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:14px var(--s-4);font:inherit;font-family:var(--font-mono);font-size:var(--t-body);line-height:1.8;outline:none;resize:vertical">${esc(base)}</textarea>
+          <textarea id="nego-prop-text" spellcheck="false" style="width:100%;min-height:52vh;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:14px var(--s-4);font:inherit;font-family:var(--font-mono);font-size:var(--t-body);line-height:1.8;outline:none;resize:vertical">${esc(base)}</textarea>
           <label style="display:block;margin-top:var(--s-3)">
             <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-bottom:5px">${i18t('ct_why_asking')}</span>
-            <input id="nego-prop-why" type="text" placeholder="${esc(i18t('ct_ph_reason'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>
+            <input id="nego-prop-why" type="text" placeholder="${esc(i18t('ct_ph_reason'))}" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>
           </label>
         </div>
       </div>
@@ -9801,7 +9970,7 @@ function openNegoProposeModal(c){
       toast(i18t('ct_could_not_file_changes')+err.message,'err'); return;
     }
     closeModal();
-    if(!filed.length){ toast(i18t('ct_identical_to_baseline')); return; }
+    if(!filed.length){ toast(i18t('ct_identical_to_baseline'), 'warn'); return; }
     persist(c);
     toast(`${filed.length} change${filed.length===1?'':'s'} proposed — ${filed.map(x=>'#'+x.id).join(', ')}`);
     renderWorkspace();
@@ -9994,7 +10163,10 @@ function detailsOf(c){
      contract owes its base pay here as a deal owes its value — the same box,
      read as pay (ktFieldCell), its one door Edit pay */
   const pay = !!(typeof fxIsPay === 'function' && fxIsPay(c));
-  if(money || pay) add(recSec, 'value', i18t(pay ? 'ov_f_pay' : 'ov_f_value'), !(Number(c.value) > 0), 'kt');
+  /* HIDDEN MONEY IS NOT ASKED FOR (f259): a reader without money rights is never shown, nor owed, a box they may not
+     see — the server would put the stored figure back over anything typed there */
+  const seeMoney = !(typeof canViewValues === 'function' && !canViewValues());
+  if(seeMoney && (money || pay)) add(recSec, 'value', i18t(pay ? 'ov_f_pay' : 'ov_f_value'), !(Number(c.value) > 0), 'kt');
   add(recSec, 'effDate', i18t('ov_f_effective'), !String((c.fields && c.fields.effDate) || '').trim(), 'kt');
   /* AN NDA'S TWO FACTS COUNT UNTIL A PERSON CONFIRMS THEM (round 8, owner's
      yes): who keeps it secret and until when — what the wording says is a
@@ -10436,7 +10608,7 @@ function blankFormSectionsOf(c){
 }
 
 function blankFormInputHtml(b){
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
+  const INP = 'width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
   const type = b.type === 'date' ? 'date' : (b.type === 'number' ? 'number' : 'text');
   return `<input type="${type}" data-blankf="${esc(b.key)}" value="${esc(b.value)}"
     placeholder="${esc(b.ph||'')}" style="${INP}">`;
@@ -12778,7 +12950,7 @@ function renderWorkspace(){
   const KROW='display:flex;justify-content:space-between;gap:var(--s-2);padding:var(--s-1) 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:var(--t-meta)';
   const KKEY='color:var(--color-neutral-600);flex:none';
   const kv=(k,v)=>`<div style="${KROW}"><span style="${KKEY}">${k}</span><span style="font-weight:var(--w-body);text-align:right;min-width:0">${v}</span></div>`;
-  const KIN='min-width:0;max-width:62%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:3px 7px;font:inherit;font-size:var(--t-meta);text-align:right;outline:none';
+  const KIN='min-width:0;max-width:62%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:3px 7px;font:inherit;font-size:var(--t-meta);text-align:right;outline:none';
   // Key terms stay editable until the seal binds them (sealString folds
   // counterparty/value/valueType in), and only for roles that can edit.
   // Back goes to the Contracts page — or the stream drawer the room was opened
@@ -15180,6 +15352,9 @@ function docThreadLineRow(){
    sheet), in which case the pressed row stays open and the reader's next
    scroll decides. */
 function docThreadGoTo(c,i){
+  /* THE READER'S PRESS WINS: a read still walking the paper (the Dossier's "Watch the read", played on arrival) is put
+     away, or it would carry the paper past the clause just pressed (#762, stakes 3f) */
+  if(typeof window.pd2WalkClose==='function') try{ window.pd2WalkClose(); }catch(_){ }
   const n=_docThreadRows.length; if(!n) return;
   docThreadShutClear();   /* a press that moves the paper is the reader's: the close is let go */
   i=Math.max(0,Math.min(n-1,Number(i)||0));
@@ -15199,9 +15374,14 @@ function docThreadGoTo(c,i){
 }
 function docThreadSettle(c){
   clearTimeout(_docThreadGlideT); _docThreadGlideT=null;
-  const held=_docThreadHold;
+  const held=_docThreadHold, pressed=_docThreadGlide;
   _docThreadGlide=-1; _docThreadHold=-1;
-  docThreadOpen(docThreadCur(c), held>=0?held:docThreadLineRow());
+  /* THE ROW PRESSED STAYS THE ONE OPEN (#762: the glide ended with another row at the line and that one opened): a
+     glide a press began settles on the pressed row; only a glide nobody pressed reads the line */
+  /* and the paper is put right under it if the glide fell short (the page moved under the glide while it ran) */
+  if(held<0&&pressed>=0){ try{ const sc=thEl('scroll'), el=_docThreadRows[pressed];
+    if(sc&&el){ const d=el.getBoundingClientRect().top-sc.getBoundingClientRect().top-DOC_THREAD_LINE+1; if(Math.abs(d)>4) sc.scrollTop+=d; } }catch(_){ } }
+  docThreadOpen(docThreadCur(c), held>=0?held:pressed>=0?pressed:docThreadLineRow());
 }
 /* The paper's scroller is rebuilt with the room, so the listener rides the
    element and is armed once per element. The contract is looked up LIVE at
@@ -17394,6 +17574,9 @@ let _scSettledOpen=false;
    from the paper. The four tiles of the first build are gone: the rows say
    the same things one at a time, which is what a list is for. */
 function signCheckCardHtml(c){
+  /* every row of this card is an act toward signing (accept, fix, run, dismiss), and a Viewer signs nothing: the card is
+     not drawn for them; the Sign button already says why (ct_viewer_no_signing). Round C, owner 20 Nov 2026. */
+  if(typeof window.mayActOn==='function' && !window.mayActOn(c)) return '';
   if(!window.signReadiness) return '';
   const rd=signReadiness(c);
   const rc=window.signCheck?signCheck(c):null;
@@ -17740,20 +17923,16 @@ async function signCheckEscalate(c,i,after){
   if(!people.length){ toast(i18t('sc_esc_nobody'),'warn'); return false; }
   const me=(window.currentUser&&currentUser())||null;
   const cat=v.category||i18t('sc_a_standard');
-  const head=window.reviewDialogHeadHtml?reviewDialogHeadHtml('&#9650;',i18t('sc_ask_title'),cat):`<h2 style="margin:0 0 10px">${esc(i18t('sc_ask_title'))}</h2>`;
-  const fld=window.HATI_FLD||'', lbl=window.HATI_LBL||'';
   const prev=v.escalation&&v.escalation.to?String(v.escalation.to.id):'';
   return new Promise(resolve=>{
-    openModal(`<div style="padding:22px var(--s-6)">
-      ${head}
-      <label style="display:block;margin:var(--s-3) 0 10px"><span style="${lbl}">${esc(i18t('sc_esc_who'))}</span>
-        <select id="sc-esc-who" style="${fld}">${people.map(u=>`<option value="${esc(u.id)}"${String(u.id)===prev?' selected':''}>${esc(u.name||u.email||u.id)}${u.email?` — ${esc(u.email)}`:''}</option>`).join('')}</select></label>
-      <label style="display:block"><span style="${lbl}">${esc(i18t('sc_esc_note'))}</span>
-        <textarea id="sc-esc-note" rows="3" style="${fld}resize:vertical" placeholder="${esc(i18t('sc_esc_note_ph'))}"></textarea></label>
-      <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
-        <button data-dlg-cancel id="sc-esc-cancel" class="ui-btn">${esc(i18t('act_cancel'))}</button>
-        <button id="sc-esc-go" class="ui-btn ui-btn-primary">${esc(i18t('sc_esc_go'))}</button>
-      </div></div>`);
+    /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1120): who and a note, two lines with the label beside the words; the
+       ask, its stamp and its mail are the ones this dialog always had */
+    lgpOpen({ id:'sc-esc-form', title:i18t('sc_ask_title'), sub:cat,
+      rows:[ { k:i18t('sc_esc_who'), id:'sc-esc-who', type:'select', value:prev,
+               opts:people.map(u=>({ v:String(u.id), t:`${u.name||u.email||u.id}${u.email?` — ${u.email}`:''}` })) },
+             { k:i18t('sc_esc_note'), id:'sc-esc-note', type:'area', ph:i18t('sc_esc_note_ph') } ],
+      primary:{ label:i18t('sc_esc_go'), attr:'id="sc-esc-go"' },
+      cancelAttr:'data-dlg-cancel id="sc-esc-cancel"', cancelLabel:i18t('act_cancel') });
     document.getElementById('sc-esc-cancel').addEventListener('click',()=>{ closeModal(); resolve(false); });
     document.getElementById('sc-esc-go').addEventListener('click',async e=>{
       const sel=document.getElementById('sc-esc-who'); const id=sel?String(sel.value):'';
@@ -18826,7 +19005,7 @@ async function signDocument(c){
   // mark; the seal is applied only when the last signature lands.
   const plan=signerPlan(c), ns=nextSigner(c);
   if(plan.length && ns){
-    if(ns.party!=='internal'){ toast(i18t('sgx_next_cp',{name:ns.name}),'err'); return; }
+    if(ns.party!=='internal'){ toast(i18t('sgx_next_cp',{name:ns.name}),'warn'); return; }
     if(ns.memberId && u && u.id!==ns.memberId){ toast(i18t('sgx_reserved',{name:ns.name}),'err'); return; }
     const sig=await captureSignature(ns.name);   // free choice: draw / type / upload
     if(!sig) return;                              // signer cancelled the pad
@@ -19058,9 +19237,9 @@ function openPaperSignatureModal(c){
         <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0">${i18t('ct_signed_on_paper')}</h2></div>
       <p style="font-size:var(--t-body);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55">${i18t('ct_paper_sig_line')}</p>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${i18t('ct_date_signed')}</span>
-        <input id="ps-date" type="date" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
+        <input id="ps-date" type="date" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${i18t('ct_note_optional')}</span>
-        <input id="ps-note" type="text" placeholder="${esc(i18t('ct_ph_signed_note'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
+        <input id="ps-note" type="text" placeholder="${esc(i18t('ct_ph_signed_note'))}" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
       <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${i18t('ct_the_signed_copy')}</span>
         <input id="ps-file" type="file" accept=".pdf,image/*" style="width:100%;font-size:var(--t-body)"/></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
@@ -19372,7 +19551,7 @@ Object.assign(window,{histWordingShown,histNlFold,signApprovalRowWhy,docReadLong
   docSealedCopy,docCopyOf,docSignBodyHtml,docSignPaperParts,docSheetHtml,docRepaintSheet,docPaginate,docPaperAnswersHtml,docAnswersWire,
   signCopySheetHtml,signCopyWatch,signCopyFit,signCopyTheirs,signCopyRunning,SC_ZOOMS,SC_ZOOM_KEY,scZoomPref,scZoomSet,scZoomFit,scZoomNow,
   scApplyZoom,scZoomStep,scPaintPage,scPageGo,scControlsHtml,scWireControls,
-  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,ktTriageReread,triageRepaintSurfaces,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,copiesNotOut,COPY_NOT_OUT,docBody,docBodyStructured,templateClauseTitles,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfNumCapsHead,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,ktFolderMove,sealPrepOf,sealPrepStamp,sealOnServer,distributionLine,
+  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,ktTriageReread,triageRepaintSurfaces,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,copiesNotOut,COPY_NOT_OUT,docBody,docBodyStructured,templateClauseTitles,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,uploadStepShow,uploadStepAt,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfNumCapsHead,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,ktFolderMove,sealPrepOf,sealPrepStamp,sealOnServer,distributionLine,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign
@@ -19402,7 +19581,7 @@ Object.assign(window,{histWordingShown,histNlFold,signApprovalRowWhy,docReadLong
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,roomChatDoorHtml,ROOM_TABS_HOME,roomTabHome,roomOpenAt,roomMoreMenuHtml,roomMenuWire,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,uploadReadFile,uploadReadMeta,uploadFromDrop,uploadDropBusy,uploadDropFolder,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,docWorkPreviewOf,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomArrivesOnHome,roomHomeLand,ROOM_ARRIVE_MS,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,ovPeopleRestHtml,ovPeopleRestPaint,ovFilingRestHtml,ovFilingRestPaint,histLaneOf,_histOurPeople,histTheirPerson,histTrailSaysOf,histSendOf,HIST_SEND_GAP_MS,histOutcomeKey,histWordingCut,histWordingHtml,histFilterChoices,histClauseWords,histSaysOf,histMoveOf,histClausesSay,HIST_SAY_CLAUSES_MAX,HIST_RECENT_DAYS,histSummaryOf,histNewestWords,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,detTintEmpties,detBasicsHtml,detNdaRows,detPaintBasics,detMarkOpen,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,docWorkPreviewOf,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomArrivesOnHome,roomHomeLand,ROOM_ARRIVE_MS,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,ovPeopleRestHtml,ovPeopleRestPaint,ovFilingRestHtml,ovFilingRestPaint,histLaneOf,_histOurPeople,histTheirPerson,histTrailSaysOf,histSendOf,HIST_SEND_GAP_MS,histOutcomeKey,histWordingCut,histWordingHtml,histKindOf,histKindGroup,HIST_KIND_GROUPS,histNoteEvents,histAllOf,histRowsOf,histKindChipsHtml,histFilterChoices,histClauseWords,histSaysOf,histMoveOf,histClausesSay,HIST_SAY_CLAUSES_MAX,HIST_RECENT_DAYS,histSummaryOf,histNewestWords,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,detTintEmpties,detBasicsHtml,detNdaRows,detPaintBasics,detMarkOpen,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is

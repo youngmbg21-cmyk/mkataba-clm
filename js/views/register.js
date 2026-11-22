@@ -69,7 +69,7 @@ function renderFolder(){
      exactly what happened: the arrow vanished entirely. Base64 has no quotes
      in it, so it survives the trip into the attribute. */
   const selChevron='url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTYgOSA2IDYgNi02Ii8+PC9zdmc+)';
-  const selStyle='font:inherit;font-size:var(--t-meta);border:1px solid var(--field-line);background-color:var(--color-surface);border-radius:var(--radius);padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
+  const selStyle='font:inherit;font-size:var(--t-meta);border:var(--fld-edge);border-bottom:var(--fld-under);background-color:var(--fld-bg);border-radius:var(--fld-r);padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:var(--page-pad)">
     <style>
@@ -92,7 +92,7 @@ function renderFolder(){
         </label>
         <div style="position:relative">
           <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--color-neutral-500);display:inline-flex">${icon('search','w-3.5 h-3.5')}</span>
-          <input id="folder-search" value="${(state.folderQuery||'').replace(/"/g,'&quot;')}" type="text" placeholder="${i18t('reg_search_folder')}" style="width:230px;max-width:60vw;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;color:inherit;height:var(--field-h);padding:0 var(--field-pad-x) 0 30px;font-size:var(--field-size)">
+          <input id="folder-search" value="${(state.folderQuery||'').replace(/"/g,'&quot;')}" type="text" placeholder="${i18t('reg_search_folder')}" style="width:230px;max-width:60vw;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;outline:none;color:inherit;height:var(--field-h);padding:0 var(--field-pad-x) 0 30px;font-size:var(--field-size)">
         </div>
       </div>
 
@@ -113,7 +113,7 @@ function renderFolder(){
                 <th style="width:26px;padding-left:var(--s-3)"><input id="fold-selall" type="checkbox" style="accent-color:var(--color-accent)"></th>
                 <th>${i18t('reg_col_contract')}</th>
                 <th>${i18t('reg_col_type')}</th>
-                <th style="text-align:right">${i18t('reg_col_value')}</th>
+                ${regSeeMoney()?`<th style="text-align:right">${i18t('reg_col_value')}</th>`:''}
                 <th>${i18t('reg_col_expires')}</th>
                 <th>${i18t('reg_col_updated')}</th>
                 <th style="width:58px;text-align:center" title="${i18t('reg_link_title')}">${i18t('reg_col_link')}</th>
@@ -292,8 +292,8 @@ function folderRowsHtml(cs){
         </span>
       </div></td>
       <td style="font-size:var(--t-meta);color:var(--color-neutral-700);white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px">${icon(cIcon(c),'w-4 h-4')}${cKind(c)}</span>${scan}</td>
-      <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?`title="${i18t('reg_non_monetary')}"`:''}>${!isMonetary(c)?'n/m':(()=>{ /* AS AMENDED (O-16): a signed amendment's value, never the stored one rewritten */
-        const cv=window.effectiveValueView?effectiveValueView(c):c; return cv.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(cv):fmtMoneyShort(cv.value)):'—'; })()}</td>
+      ${!regSeeMoney()?'':`<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?`title="${i18t('reg_non_monetary')}"`:''}>${!isMonetary(c)?'n/m':(()=>{ /* AS AMENDED (O-16): a signed amendment's value, never the stored one rewritten */
+        const cv=window.effectiveValueView?effectiveValueView(c):c; return cv.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(cv):fmtMoneyShort(cv.value)):'—'; })()}</td>`}
       <td style="font-size:var(--t-meta);font-variant-numeric:tabular-nums;white-space:nowrap">${folderExpiryCell(c)}</td>
       <td style="font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap">${c.lastAction||'—'}</td>
       ${''/* Same split as the register: the link mark to its own column, the
@@ -345,7 +345,7 @@ function renderFolderListOnly(){
   wireFolderRows(); renderFolderSelBar();
 }
 
-Object.assign(window,{FOLDER_PAGE,FOLDER_SORTS,folderFiltered,folderRowsHtml,folderExpiryCell,renderFolder,renderFolderListOnly,renderFolderSelBar,wireFolderRows,folderExportSelectedCsv});
+Object.assign(window,{ngnPlace,ngnPlacePut,FOLDER_PAGE,FOLDER_SORTS,folderFiltered,folderRowsHtml,folderExpiryCell,renderFolder,renderFolderListOnly,renderFolderSelBar,wireFolderRows,folderExportSelectedCsv});
 /* ============================================================
    VIEW: REGISTER (global filterable / sortable table + bulk select)
    Client-side over the loaded working set, consistent with the folder
@@ -808,7 +808,12 @@ function regNegoSpread(){ const f=regNegoFit(); return !!(f&&f.spread); }
 /* the seat's own columns for this paint's shape, before the reader's choice */
 /* the answer columns standing on the Contracts List (none on its narrow shape) */
 function regCtAskKeys(){ return (!regHomeNarrow()&&typeof window.askColKeys==='function')?askColKeys():[]; }
-function regColKeysSeat(){
+/* HIDDEN MONEY IS NOT DRAWN AT ALL (f259): a reader without money rights gets no Value column on any shape of the
+   list, never a column of dashes — every caller (head, rows, spans, Columns, widths) reads the keys through here */
+function regSeeMoney(){ return !(typeof canViewValues==='function'&&!canViewValues()); }
+function regMoneyCols(keys){ return regSeeMoney()?keys:keys.filter(k=>k!=='value'); }
+function regColKeysSeat(){ return regMoneyCols(regColKeysSeatAll()); }
+function regColKeysSeatAll(){
   const neg=regScope()==='negotiations', ins=regInspecting();
   if(!neg && regHome()){
     /* THE READER'S OWN COLUMNS (Columns, Part 8): the agreement first, then
@@ -823,7 +828,8 @@ function regColKeysSeat(){
     if(ask.length) shown=shown.filter(k=>k!=='owner'&&k!=='stream');
     /* inside one folder the stream is the same on every row: it steps out (the new look's folder list, as drawn) */
     { const R0=regState(); if(typeof window.newLookOn==='function'&&newLookOn()&&R0.type&&R0.type!=='all') shown=shown.filter(k=>k!=='stream'); }
-    if(!narrow&&regNl()) return ['counterparty','standing'].concat(ask, shown);
+    /* P-31: the other side · Standing · Folder · Needs you · Ends · Value (Our standards steps out of this list's rest) */
+    if(!narrow&&regNl()){ shown=shown.filter(k=>k!=='standards'); const at=shown.indexOf('expiry'); shown.splice(at<0?shown.length:at,0,'needs'); return ['counterparty','standing'].concat(ask, shown); }
     return ['counterparty'].concat(!narrow&&regHomeWide()?REG_HOME_SPREAD:[], shown, ask, ['acts']);
   }
   if(!ins && regNarrowTable()) return neg ? REG_COL_KEYS_NEGO_NARROW : REG_COL_KEYS_NARROW;
@@ -854,15 +860,25 @@ function regNarrowTable(){
    table's live width at the moment of the drag. */
 const REG_COL_MIN_PX = 54;
 const REG_COL_KEY = 'hati.v1.regCols';
-const regColDefaults = () => (regScope()==='negotiations'
+const regColDefaults = () => regMoneyW((regScope()==='negotiations'
   ? (regNarrowTable() && !regInspecting() ? REG_COL_W_NEGO_NARROW : REG_COL_W_NEGO)
   : regHome() ? regHomeColW(regColKeys())
-  : (regNarrowTable() && !regInspecting() ? REG_COL_W_NARROW : REG_COL_W)).slice();
+  : (regNarrowTable() && !regInspecting() ? REG_COL_W_NARROW : REG_COL_W)).slice());
+/* a width array read by position over the seat's whole shape loses the Value column's share to the agreement when
+   the reader may not see money (regMoneyCols); the home shape is already keyed */
+function regMoneyW(w){
+  if(regSeeMoney()) return w;
+  const all=regColKeysSeatAll(), i=all.indexOf('value');
+  if(i<0||w.length!==all.length) return w;
+  const gone=w.splice(i,1)[0]||0, c=all.filter(k=>k!=='value').indexOf('counterparty');
+  if(c>=0) w[c]=Math.round((w[c]+gone)*100)/100;
+  return w;
+}
 /* ON THE PLACE A DRAG IS KEPT FOR THE COLUMNS IT WAS MADE ON, IN THEIR ORDER
    (Part 8, the critic's 4.10): a stored array is read by position, so the
    key names the columns drawn — a set the reader hid or moved under Columns
    reads its own widths, never another order's */
-const regColStoreKey = () => REG_COL_KEY + (regScope()==='negotiations' ? '.nego' : regHome() ? '.home.' + regColKeys().map(k=>String(k).startsWith('ask:')?'ask':k).join(',') : '') + ((regNarrowTable() && !regInspecting()) || regHomeNarrow() ? '.narrow' : '');
+const regColStoreKey = () => REG_COL_KEY + (regScope()==='negotiations' ? '.nego' : regHome() ? '.home.' + regColKeys().map(k=>String(k).startsWith('ask:')?'ask':k).join(',') : '') + ((regNarrowTable() && !regInspecting()) || regHomeNarrow() ? '.narrow' : '') + (regSeeMoney() ? '' : '.nm');
 /* THE STORED ARRAY IS READ, NEVER TRUSTED. A length that does not match the
    seat's own column count is IGNORED rather than applied — which is the whole
    migration story for the Signed column: a browser that stored eight widths
@@ -1148,10 +1164,16 @@ const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',sig
    back as it was, or not at all; an unknown way of looking is the List
    (owner, 20 Oct 2026: "make the contracts landing page be on list as opposed
    to paper" — the place lands on the List until the reader picks Wall). */
-function regPlace(){ return { scope:regScope(), st:{ ...regState() } }; }
+/* the Contracts place's Folders-or-list choice rides the place too, so a refresh lands where the reader stood (#762) */
+function regPlace(){ return { scope:regScope(), st:{ ...regState() }, folders:(typeof _ctFolders==='boolean')?_ctFolders:true }; }
+/* Wall | List | Folders: whether the Contracts place stands on its folders, kept by Home's place too (#762: a refresh
+   with a paper open came back on Folders, not the Wall the reader chose) */
+function regFoldersNow(){ return (typeof _ctFolders==='boolean')?_ctFolders:true; }
+function regFoldersSet(b){ if(typeof b==='boolean') _ctFolders=b; }
 function regPlacePut(p){
   if(!p) return;
   regSetScope(p.scope);
+  if(typeof p.folders==='boolean') _ctFolders=p.folders;
   const s={ ...REG_STATE_DEF(), ...(p.st||{}) };
   const o=s.only;
   s.only=(o&&Array.isArray(o.ids)&&o.ids.length&&o.ids.every(x=>typeof x==='string'))
@@ -1212,22 +1234,28 @@ function regArchiveBtnHtml(R){
    Stream · Category · Quick filters, Clear, Adapt filters) and 9 Oct's one
    white band edge to edge on the place: the drawing's head is a card on the
    ground, like every list page's. */
+/* THE HEAD CARRIES THE NAME AND ITS THREE BUTTONS ONLY (owner, 19 Nov 2026: "delete the words beside the header name
+   because they are pushing the buttons to the right; list, wall and new agreement should be the same size and on the
+   same line"): no facts line beside the name (the sentence over the list and Jambo's panel say it); List · Wall ·
+   New agreement ONE group (`.ct-acts`), one height, one line, dropping under the name together where it does not fit */
 function regHomeHeadHtml(R){
   const show=R.show==='list'?'list':'wall';
   const ic=k=>typeof icon==='function'?icon(k==='wall'?'grid':'list','w-4 h-4'):'';
   const nlF=typeof window.newLookOn==='function'&&newLookOn();
   const fName=nlF&&R.type&&R.type!=='all'&&FOLDERS[R.type]?FOLDERS[R.type].name:(nlF&&R.view==='archived'?i18t('ctf_ended'):'');
   const top=`<div class="reg-tabbar ct-top ph-top">
-        <div class="ct-name">${nlF?`<button type="button" class="ctf-back" data-ctf-back>‹ ${esc(i18t('ctf_tab_folders'))}</button>${fName?'<span class="ctf-crumb">/</span>':''}`:''}<h2 class="ct-h">${esc(fName||i18t('nav_contracts'))}</h2><div id="reg-head-facts" class="ct-facts"></div></div>
-        ${regArchiveBtnHtml(R)}
+        ${nlF?`<div class="ct-name is-stack"><button type="button" class="ctf-back" data-ctf-back>‹ ${esc(i18t('ctf_tab_folders'))}</button><div class="ct-hrow"><h2 class="ct-h">${esc(fName||i18t('nav_contracts'))}</h2></div></div>`
+          :`<div class="ct-name"><h2 class="ct-h">${esc(fName||i18t('nav_contracts'))}</h2></div>`}
+        <div class="ct-acts">${regArchiveBtnHtml(R)}
         <div class="reg-seg ct-seg" role="group" aria-label="${esc(i18t('ct_show_as'))}">${REG_SHOWS.map(k=>
           `<button type="button" data-ct-show="${k}" aria-pressed="${show===k?'true':'false'}">${ic(k)}<span>${esc(i18t('ct_'+k))}</span></button>`).join('')}</div>
-        ${nlF&&((typeof canEdit!=='function')||canEdit())?`<button type="button" class="ui-btn ui-btn-primary ctf-new" data-ctf-draft>${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):'+'}${esc(i18t('ctf_new_agreement'))}</button>`:''}
+        ${nlF&&((typeof canEdit!=='function')||canEdit())?`<button type="button" class="ui-btn ui-btn-primary ctf-new" data-ctf-draft>${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):'+'}${esc(i18t('ctf_new_agreement'))}</button>`:''}</div>
       </div>`;
   if(typeof window.lhHtml!=='function'||!(window.LH_PAGES&&LH_PAGES[REG_CT_SEAT])) return `<div class="reg-band sap-band ph-card ct-head">${top}</div>`;
   const head=lhHtml(REG_CT_SEAT, { frame:'card', top, cls:'reg-band ct-head' });
-  /* the Wall as drawn: "upload a document" closes the tabs' line (the one drop door, pdDropDoor) */
-  return nlF&&show==='wall'&&typeof window.pdDropDoor==='function'?head.replace(/<\/div>\s*$/,`<button type="button" class="ctf-up" data-ctf-upload>${esc(i18t('ctf_upload'))}</button></div>`):head;
+  /* P-31 AS DRAWN (21 Nov 2026; reverses round 6's "upload a document" at the end of the Wall's tabs): the Wall's head is
+     the List's — the one drop door stays in Jambo's links line ("upload a document") and on the wall itself */
+  return head;
 }
 /* THE WALL UNDER THE SAME HEAD: the papers igWallBodyHtml draws, of the very
    rows the list holds (regFiltered), its count line carrying the list's own
@@ -1829,6 +1857,15 @@ function regScopeWords(){
     return bits.join(' \u00b7 ');
   });
 }
+/* the folder's first word, as the drawing's set chip says it ("Warehousing & Distribution" → "Warehousing") */
+function regLsFolderShort(fid){ const f=(typeof FOLDERS==='object'&&FOLDERS&&FOLDERS[fid])||null; return f&&f.name?String(f.name).split(/\s+[&\u2014-]\s+|\s+/)[0]:''; }
+/* THE SHELF'S CHIPS (P-31 as drawn: "All 1 · Ended ×"): how many stand on it, and the way off it */
+function regCtLeadHtml(R){
+  if(!regNl()||R.view!=='archived') return '';
+  let n=0; try{ n=regFiltered({ flat:true }).length; }catch(_){ n=0; }
+  const x=i18t('lh_remove',{ what:i18t('ctls_ended_chip') });
+  return `<span class="reg-vtab on ctls-all" aria-current="true">${esc(i18t('reg_tab_all'))}<span class="n">${n}</span></span><span class="lh-chip ctls-set"><label>${esc(i18t('ctls_ended_chip'))}</label><button type="button" class="lh-x" data-ctls-ended-x title="${esc(x)}" aria-label="${esc(x)}">${typeof icon==='function'?icon('x','w-3.5 h-3.5'):'\u00d7'}</button></span>`;
+}
 function regOnCt(fn){
   const was=REG_SCOPE; REG_SCOPE=null;
   try{ return fn(regState()); } finally { REG_SCOPE=was; }
@@ -1873,6 +1910,8 @@ function regCutCount(k, values){
 function regCtViews(){
   return regOnCt(R=>{
     const q=regCtQuickOf(R);
+    /* P-31: the shelf (Ended & archived) is its own set: its chips say "All N" and "Ended ×" (regCtLeadHtml), no tabs */
+    if(regNl()&&R.view==='archived') return [];
     const VS=regNl()?['needs','signed']:REG_CT_VIEWS;
     const by=regCutCount('view',[q].concat(VS));
     const n=k=>by?(by.get(k)||0):null;
@@ -1895,7 +1934,9 @@ function regCtFilterLists(R){
   if(curS!=='all'&&!signed.some(([k])=>k===curS)) signed.push([curS, regSignedYear(curS)]);
   return {
     stage:[i18t('reg_chip_stage'),i18t('reg_lifecycle_stage'),REG_STAGE_TABS.filter(k=>k!=='all').map(k=>[k,regStageWord(k)])],
-    type:[i18t('reg_chip_stream'),i18t('reg_value_stream'),regTypes().filter(t=>t.k!=='all').map(t=>[t.k,t.label])],
+    /* P-31: the set chip names the FOLDER the page is titled by ("Folder: Warehousing"), never a second name for it */
+    type:regNl()?[i18t('ctf_col_folder'),i18t('reg_value_stream'),regTypes().filter(t=>t.k!=='all').map(t=>[t.k,regLsFolderShort(t.k)||t.label])]
+      :[i18t('reg_chip_stream'),i18t('reg_value_stream'),regTypes().filter(t=>t.k!=='all').map(t=>[t.k,t.label])],
     category:[i18t('me_category'),i18t('me_category'),regCategories().map(k=>[k,regCatLabel(k)]).concat([['none',i18t('reg_uncategorised')]])],
     view:[i18t('reg_quick_filters'),i18t('reg_quick_filters'),REG_CT_QUICK.map(k=>[k,(REG_VIEWS.find(x=>x.k===k)||{}).label||k])],
     renewal:[i18t('reg_renewal'),i18t('reg_renewal'),[['auto-renew',i18t('reg_renew_auto')],['fixed',i18t('reg_fixed')],['evergreen',i18t('reg_evergreen')]]],
@@ -1912,7 +1953,8 @@ function regCtFilters(){
       const [label,title,list]=L[k];
       const by=regCutCount(k, list.map(x=>x[0]));
       const cur=k==='view'?(regCtQuickOf(R)||'all'):(R[k]==null||R[k]==='')?'all':String(R[k]);
-      return { k, label, title, cur, def:'all',
+      /* the set chip says it as drawn ("Folder: Warehousing"); + Filter's group keeps the plain name */
+      return { k, label, chipLabel:k==='type'&&regNl()?i18t('ctls_folder_chip'):undefined, title, cur, def:'all',
         opts:list.map(([v,l])=>[v,l,by?(by.get(String(v))||0):null]) };
     });
   });
@@ -1940,8 +1982,8 @@ function regCtToolsHtml(R){
    shows it (the drawing draws Agreement · Stage · Ends · Value). The
    agreement leads and the row's ⋯ ends every row, whatever is chosen. */
 const REG_CT_FIXED=['counterparty','acts'];
-const REG_CT_COL_WORD={ stage:'reg_col_stage', stream:'reg_col_stream', standards:'reg_col_standards', expiry:'reg_col_ends', value:'reg_col_value', owner:'reg_col_owner_word' };
-function regCtShapeKeys(){ return regOnCt(()=>regHomeNarrow()?REG_COL_KEYS_HOME_NARROW:REG_COL_KEYS_HOME); }
+const REG_CT_COL_WORD={ stage:'reg_col_stage', stream:'reg_col_stream', standards:'reg_col_standards', needs:'reg_col_needs', expiry:'reg_col_ends', value:'reg_col_value', owner:'reg_col_owner_word' };
+function regCtShapeKeys(){ return regMoneyCols(regOnCt(()=>regHomeNarrow()?REG_COL_KEYS_HOME_NARROW:REG_COL_KEYS_HOME)); }
 function regCtColDefs(){
   return regCtShapeKeys().filter(k=>!REG_CT_FIXED.includes(k)).map(k=>({ k, label:i18t(REG_CT_COL_WORD[k]||k) }));
 }
@@ -1958,6 +2000,8 @@ function regCtHeadReg(){
   const onList=regOnCt(R=>R.show==='list');
   return lhRegister(REG_CT_SEAT, {
     noun:'contracts', boxId:'ct-q',
+    /* AN HONEST FILTER (owner, 22 Nov 2026; reverses P-31's asking box of 21 Nov): the list head's own "Filter this list"
+       and its magnifying glass; every word narrows the list, and questions are Jambo's, in his box at the panel's foot */
     total:()=>regOnCt(()=>{ try{ return regRestBase().length; }catch(_){ return null; } }),
     q:()=>String((state.reg&&state.reg.query)||''),
     /* the rows only — never the box, so the caret stays; the head recounts
@@ -1965,7 +2009,7 @@ function regCtHeadReg(){
        top bar's box shows the same words (Q1, "keep both boxes") */
     setQuery:words=>{ const w=String(words==null?'':words);
       regOnCt(R=>{ R.query=w; R.page=1; });
-      regSetScope(null); renderRegisterBody();
+      regSetScope(null); renderRegisterBody(); regLsDockSoon();
       const bar=document.getElementById('cmd-search'); if(bar&&bar.value!==w) bar.value=w;
       if(typeof window.placeSave==='function'){ try{ placeSave(); }catch(_){ /* a convenience */ } } },
     /* the tab row is the views ("Views"); "Quick filters" is the + Filter group now */
@@ -1978,7 +2022,7 @@ function regCtHeadReg(){
     useSaved:id=>{ if(regOnCt(()=>regApplySaved(id))) regCtRepaint(); },
     unsave:id=>regForgetViewAsk(id).then(ok=>{ if(ok) regCtRepaint(); }),
     save:()=>{ regSetScope(null); return regSaveViewAsk().then(ok=>{ if(ok) regCtRepaint(); }); },
-    lead:()=>regOnCt(R=>regOnlyChipHtml(R)),
+    lead:()=>regOnCt(R=>regCtLeadHtml(R)+regOnlyChipHtml(R)),
     filters:()=>regCtFilters(),
     apply:patch=>{ regOnCt(R=>{
       Object.keys(patch||{}).forEach(k=>{ if(!REG_CT_FILTERS.includes(k)) return; const v=patch[k];
@@ -2194,9 +2238,10 @@ function regFolderGlanceHtml(book, r, folder){
     const rest=[E.later?i18tn('rfg_end_later', E.later, { n:E.later }):'', E.past?i18tn('rfg_end_past', E.past, { n:E.past }):'', E.none?i18tn('rfg_end_nodate', E.none, { n:E.none }):''].filter(Boolean).join(' · ');
     ends=cap(i18t('rfg_ends'))+strip+`<p class="rfg-say">${say}</p>`+(rest?`<p class="rfg-q">${esc(rest)}</p>`:'');
   } else ends=cap(i18t('rfg_ends'))+`<p class="rfg-say">${esc(i18t('rfg_end_none'))}</p>`;
-  /* WHERE THE MONEY IS (only for a reader who may see values) */
+  /* WHERE THE MONEY IS (only for a reader who may see values) — never in the new look's panel (P-31, owner's pick 20 Nov
+     2026: NO MONEY IN A SIDE PANEL; the list's Value column is where money shows) */
   let money='';
-  if(r.val!=null){ const M=regGlanceMoney(book);
+  if(r.val!=null&&!(typeof newLookOn==='function'&&newLookOn())){ const M=regGlanceMoney(book);
     if(M.length){ const top=M[0].v, shown=M.slice(0,RFG_BARS), names=shown.map(x=>nameOf(x.c)), twice=nm=>names.filter(y=>y===nm).length>1;
       money=cap(i18t('ctfp_money')+' · '+fmtMoneyShort(r.val))+`<div class="rfg-bars">${shown.map(x=>{ const nm=twice(nameOf(x.c))?String(nameOf(x.c)).split(/\s+/)[0]+' · '+refOf(x.c):nameOf(x.c);
         return `<button type="button" class="rfg-bar" data-rfp-open="${esc(x.c.id)}" title="${esc(nameOf(x.c)+' · '+refOf(x.c))}"><span class="rfg-bar-n">${esc(nm)}</span><span class="rfg-bar-b" aria-hidden="true"><i style="width:${Math.max(2, Math.round(x.v/top*100))}%"></i></span><b>${esc(fmtMoneyShort(x.v))}</b></button>`; }).join('')}</div>`
@@ -2237,7 +2282,15 @@ function regNlFootHtml(cs){
   const more=inF&&all>n?` · <button type="button" class="reg-nl-all" data-ctf-tab="all">${esc(i18t('reg_nl_show_all',{ n:all }))}</button>`:'';
   /* THE FOOT SAYS ONLY THE COUNT (owner, 9 Nov 2026: "Why do you need 2 columns?"): the sentence about the question
      column and Our standards is gone; how far a column is read is said in its ⋯ menu */
-  return `<span id="reg-nl-showing" class="reg-nl-foot-l" role="status" aria-live="polite">${esc(left)}${more}</span>`;
+  /* A CAP IS A FACT, NEVER A SILENT TRIM (16 Nov 2026, #762): the rows stop at a page (REG_PAGE), so the foot offers
+     the next ones, as the old foot did (lhFootHtml's Show N more, the same seat and press) */
+  const list=cs||[], shown=regMode()==='board'?n:Math.min(n, regCurPage(list)*REG_PAGE), k=Math.min(REG_PAGE, n-shown);
+  const next=k>0?` · <button type="button" class="ui-link lh-more" data-lh-more="${REG_CT_SEAT}">${esc(i18t('lh_more',{ n:k.toLocaleString(jxLocale()) }))}</button>`:'';
+  /* P-31 AS DRAWN (21 Nov 2026): no foot under the list — the chips say how many ("All 13"), the way back is ‹ Folders.
+     Only a list cut at a page says so (A CAP IS A FACT): "1–40 of 189 · Show 40 more" */
+  void left; void more;
+  if(k<=0) return `<span id="reg-nl-showing" class="reg-nl-foot-l" role="status" aria-live="polite"></span>`;
+  return `<span id="reg-nl-showing" class="reg-nl-foot-l" role="status" aria-live="polite">${esc(i18t('lh_range',{ a:'1', b:shown.toLocaleString(jxLocale()), n:n.toLocaleString(jxLocale()) }))}${next}</span>`;
 }
 /* the new look's foot is the count in its own row: as the list narrows, the row is written again whole */
 function regNlFootPut(cs){ const f=regNl()&&document.getElementById('reg-nl-showing'); if(f&&f.parentElement) f.parentElement.innerHTML=regNlFootHtml(cs); }
@@ -2263,7 +2316,8 @@ function regCtFootHtml(cs){
    — and a column the reader hid pays its share to the agreement, the
    column with the give, so the widths still sum to 100 */
 /* stream 13 (its chip's whole word), standards 17 (the Scorecard's one line) — owner's pick, 10 Nov 2026 */
-const REG_COL_W_NL={ standing:12, stream:13, standards:17, expiry:12, value:11, owner:10 };
+/* P-31 as drawn: Ends holds "20 Dec 2026 · in 30 days" and "ended 11 Oct 2026" whole */
+const REG_COL_W_NL={ standing:11, stream:13, standards:17, needs:13, expiry:20, value:10, owner:10 };
 function regHomeColW(keys){
   const ask=keys.filter(k=>String(k).startsWith('ask:'));
   if(regNl()&&!regHomeNarrow()){
@@ -2554,7 +2608,9 @@ function regFiltered(o){
      Signed contract is still Signed. Search (FTS and the palette) still
      finds them, which is the difference between filing and deleting. */
   if(use('view')){
-  if(R.view==='archived') cs=cs.filter(c=>!!c.archived);
+  /* P-31: on the new look's Contracts place the shelf is the landing's own "Ended & archived" — put away, declined, or
+     signed and past its end (regLsEnded) — so the row that says 1 opens on that 1, never an empty list */
+  if(R.view==='archived') cs=cs.filter(c=>regNl()?regLsEnded(c):!!c.archived);
   else cs=cs.filter(c=>!c.archived);
   }
   // 'awaiting' is a virtual stage = contracts out with a counterparty and not yet
@@ -2697,6 +2753,9 @@ function regFiltered(o){
   const cmp=REG_CMP[sortKey]||(String(sortKey||'').startsWith('ask:')&&typeof window.askColCmp==='function'?askColCmp(sortKey.slice(4)):null)||REG_CMP.updated;
   const dir=(R.dir===1||R.dir===-1)?R.dir:(REG_SORT_DEFDIR[sortKey]||-1);
   cs.sort((a,b)=>{ const r=dir*cmp(a,b); return r!==0?r:((Date.parse(b.lastAction)||0)-(Date.parse(a.lastAction)||0)); });
+  /* WORK FIRST (P-31 as drawn, 22 Nov 2026): at the list's default order the Contracts place reads what needs you, then
+     in review, then signed, ended last — inside each, the nearest end first; a sort the reader chose stands */
+  if(regNl()&&regScope()!=='negotiations'&&sortKey==='updated'&&!(R.dir===1)) regLsWorkFirst(cs);
   /* GROUPED BY WHOSE MOVE IT IS, not by family. An amendment carries its own
      negotiation, so nesting one under its parent here would put two separate
      arguments on one row; and the group order is the whole design of this page.
@@ -2794,7 +2853,7 @@ function regRunRowAct(act, id){
   const c=getContract(id); if(!c) return;
   /* "Workspace" is the panel's third door's word, and its landing (step 2,
      14 Oct 2026): Home, never the room, where Home has its paper */
-  if(act==='open'){ if(!(window.roomHomeLand&&roomHomeLand(id,{ cover:true }))) openWorkspace(id); }
+  if(act==='open'){ if(!(window.roomHomeLand&&roomHomeLand(id,{ open:true }))) openWorkspace(id); }
   else if(act==='share') openShareModal(c);
   else if(act==='scan') runScanFor(c);
   else if(act==='restore'){
@@ -3114,10 +3173,10 @@ function regRowsHtml(cs){
     const spreadOn=placeRows&&regHomeWide();
     CELL.party=`<td class="reg-party" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(coded?i18t('igw_kept_list'):(pyAll||cpName))}">${coded?esc(i18t('igw_kept_list')):esc(cpName)}</td>`;
     CELL.counterparty=`<td class="reg-cell-title" style="${c._famChild?'padding-left:30px':''}" title="${placeRows?`${esc(pyAll||cpName)} · ${regTitleOf(c)}`:`${esc(pyAll||cpName)} · ${regTitleOf(c)}`} · ${esc(kindRound)}">
-        <span class="reg-id">${placeRows?(regNl()?regSapMarkHtml(c):regStageMarkHtml(c)):(neg&&(insOn||regNl()))?regNegoMarkHtml(c):regAvatarHtml(cpName)}<span class="reg-id-txt">
+        <span class="reg-id">${placeRows?(regNl()?'':regStageMarkHtml(c)):(neg&&(insOn||regNl()))?regNegoMarkHtml(c):regAvatarHtml(cpName)}<span class="reg-id-txt">
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
         <span class="reg-title" style="min-width:0;${sampleTag?'flex:0 1 auto':'flex:1'};display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"${coded?' data-reg-coded':''}>${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc((()=>{ const pc=c.parentId&&getContract(c.parentId); return pc&&window.contractRef?contractRef(pc):c.parentId; })())}">↳ </span>`:''}${coded?regTitleOf(c):placeRows?esc(spreadOn||!cpName?regShortTitle(c):cpName):(neg&&insOn)?`${esc(cpName)}<span class="reg-t-dot"> · </span>${esc(regShortTitle(c))}`:esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>${sampleTag}
-        </span>${placeRows&&spreadOn?'':`<span class="reg-sub">${placeRows?`${coded?esc(i18t('igw_kept_list'))+' · ':cpName?esc(regShortTitle(c))+' · ':''}${refLine}${regStageLineHtml(c)}${stageMove}${lives}`:(neg&&insOn)?(regNegoSpread()?'':regNegoLineHtml(c,refLine)):`${regTitleOf(c)}`}</span>`}
+        </span>${placeRows&&spreadOn?'':`<span class="reg-sub">${placeRows?`${coded?esc(i18t('igw_kept_list'))+' · ':cpName?esc(regShortTitle(c))+' · ':''}${refLine}${regStageLineHtml(c)}${stageMove}${lives}`:(neg&&insOn)?(regNegoSpread()?'':regNegoLineHtml(c,refLine)):`${regTitleOf(c)}`}</span>${placeRows&&regNl()?regLsQuoteHtml(c):''}`}
         </span></span>
       </td>`;
     /* THE KIND AND THE ROUND ARE A COLUMN ON THE NEGOTIATIONS SEAT ALONE,
@@ -3155,12 +3214,22 @@ function regRowsHtml(cs){
       return listChipHtml(listStreamTone(c.folder),short).replace(/ title="[^"]*"/,` title="${esc(n)}"`); })()}</td>`;
     /* the Scorecard (10 Nov 2026) names what is missing on its hover, so the cell is one line (regStdMissHtml no longer drawn here) */
     CELL.standards=`<td style="overflow:hidden">${window.stdRowWordsHtml?stdRowWordsHtml(c):''}</td>`;
-    if(regNl()){ const st=regStageTone(c); CELL.standing=`<td class="reg-standing" style="white-space:nowrap;color:var(--st-${st.tone}-fg)">${esc((st.m&&st.m.label)||'')}</td>`; }
+    /* the SHORT word in the cell (a column has no room for a sentence), the whole sentence on its hover — the same
+       reading the old grey line used (regStageShortOf; #762) */
+    /* CONTRACTS, THE LEGORA + STRIPE WAY (P-31, owner's pick 20 Nov 2026): Standing a SOFT BADGE in its stage's colour
+       (amber in review, green signed, grey ended), and a Needs you column — what waits on the reader in amber words, "—"
+       when nothing (needsYouOf, the one reading every list asks) */
+    /* P-31 AS DRAWN (21 Nov 2026): three words only — amber In review, green ✓ Signed, grey Ended (regLsBadgeHtml) — the
+       stage's own words on the hover; the Ends amber when soon, grey "ended …" (regLsEndsHtml); Value in the row's own type */
+    if(regNl()){ const st=regStageTone(c); CELL.standing=`<td class="reg-standing"${st.m&&st.m.label?` title="${esc(st.m.label)}"`:''}>${regLsBadgeHtml(c)}</td>`;
+      CELL.needs=`<td class="reg-needs">${regNeedsCellHtml(c)}</td>`;
+      CELL.expiry=`<td class="reg-ends" style="white-space:nowrap">${regLsEndsHtml(c)}</td>`;
+      CELL.value=`<td class="reg-val${isMonetary(c)?'':' is-none'}" style="text-align:right;white-space:nowrap"${isMonetary(c)?'':` title="${esc(i18t('reg_non_monetary'))}"`}>${val}</td>`; }
     /* ON THE CONTRACTS PLACE the words go UNDER the day (the checkers of step
        7: in Home's narrower column "· in 25 days" was cut on every screen) —
        the row is two lines already, so it costs no height; the hover says
        both. The full tables keep them beside it. */
-    CELL.expiry=(regHome()&&!neg)
+    if(!regNl()) CELL.expiry=(regHome()&&!neg)
       ? `<td style="white-space:nowrap"${renIn?` title="${esc(renDate+' · '+renIn)}"`:''}><span class="reg-day" style="color:${renDateColor}">${renDate}</span>${renIn?`<span class="reg-sub" style="color:${renColor}">${renIn}</span>`:''}</td>`
       : `<td style="white-space:nowrap"><span class="reg-day" style="color:${renDateColor}">${renDate}</span>${renIn?` <span class="reg-day" style="color:${renColor}">· ${renIn}</span>`:''}</td>`;
     /* Built only on the seat that draws it: the Negotiations seat has no ⋯
@@ -3224,6 +3293,17 @@ const regAvatarHtml = name => `<span class="reg-av av-${regAvatarTone(name)}" ar
    ticked circle once signed, a dashed one for a draft, a triangle for what ended or was declined, a
    half circle for everything in between — and the stage's word in its own tone in the grey line,
    then when the contract last moved (the trail's last day, carried by the light list). */
+/* NEEDS YOU, IN WORDS (P-31): the first thing that waits on the reader on this contract, amber ("Your approval",
+   "3 details to fill"); a colleague's approval names them; "—" when nothing. A reading only. */
+function regNeedsCellHtml(c){
+  let L=[]; try{ L=typeof needsYouOf==='function'?(needsYouOf(c)||[]):[]; }catch(_){ L=[]; }
+  /* nothing waits on the reader: a colleague's yes, or their readiness to sign, in the one reading's words (regLsNeedWord) */
+  if(!L.length){ const w=regLsNeedWord(c); return w?`<span class="reg-need is-them">${esc(w)}</span>`:'<span class="reg-dash">\u2014</span>'; }
+  /* P-31 AS DRAWN: the first reason's words alone ("Your approval", "3 details to fill"); every reason on the hover */
+  const t=regLsNeedWord(c);
+  let all=''; try{ all=L.map(x=>{ const w=typeof insNeedWords==='function'?insNeedWords(c,x):null; return w&&w.title||''; }).filter(Boolean).join(' \u00b7 '); }catch(_){ all=t; }
+  return `<span class="reg-need" title="${esc(all||t)}">${esc(t)}</span>`;
+}
 function regStageTone(c){
   let m=null; try{ m=contractStatusMeta(c); }catch(_){ m=null; }
   const t=m&&/--st-([a-z]+)-/.exec(String(m.dot||''));
@@ -3283,6 +3363,13 @@ function regNegoClauseChips(c){
   const chips=names.slice(0,3).map(n=>window.listChipHtml?listChipHtml('gray',n):esc(n)).join(' ');
   return chips+(names.length>3?` <span class="reg-cl-more">+${names.length-3}</span>`:'');
 }
+/* a stage's SHORT word, where it has one (ready to sign, handed over, signed there) — else the stage itself */
+function regStageShortOf(m){
+  if(!m) return m;
+  const W=window;
+  return (W.READY_META&&m===W.READY_META&&W.READY_META_SHORT)||(W.HANDOVER_META&&m===W.HANDOVER_META&&W.HANDOVER_META_SHORT)
+    ||(W.HANDOVER_SIGNED_META&&m===W.HANDOVER_SIGNED_META&&W.HANDOVER_SIGNED_META_SHORT)||m;
+}
 function regStageLineHtml(c){
   /* the new look's list says the stage in its own Standing column (round 6), not on the grey line */
   if(regNl()) return '';
@@ -3290,8 +3377,7 @@ function regStageLineHtml(c){
   const at=c&&(c._lastAuditAt||c.updatedAt||c.lastAction);
   const ago=at&&typeof window.rlAgoWords==='function'?rlAgoWords(at):'';
   /* the SHORT word, as the stage column's dot printed it (contractStatusDotHtml) */
-  const W=window, short=(W.READY_META&&m===W.READY_META&&W.READY_META_SHORT)||(W.HANDOVER_META&&m===W.HANDOVER_META&&W.HANDOVER_META_SHORT)
-    ||(W.HANDOVER_SIGNED_META&&m===W.HANDOVER_SIGNED_META&&W.HANDOVER_SIGNED_META_SHORT)||m;
+  const short=regStageShortOf(m);
   return ` · <span class="reg-stg-w" style="color:${m.tx}" title="${esc(m.label)}">${esc(short.label)}</span>${ago?` · ${esc(ago)}`:''}`;
 }
 
@@ -3787,7 +3873,11 @@ let _regOpts={};
    file used to call renderRegister() bare, which with two pages sharing the
    renderer would have turned Negotiations into Contracts on the first press of
    a dropdown — the scope reset to null by the argument nobody passed. */
-function regRepaint(){ renderRegister(_regOpts); if(typeof regFolderPanelOn==='function'&&regFolderPanelOn()) ctfDockAgain(); }
+/* P-31 AS DRAWN: the list's panel reads the rows on screen, so a tab, a chip or a filter pressed redraws it too */
+function regRepaint(){ renderRegister(_regOpts); if((typeof regFolderPanelOn==='function'&&regFolderPanelOn())||regLsListUp()) ctfDockAgain(); }
+/* …and words typed in the box, once the typing pauses (the head's own pause, LH_SYNC_QUIET_MS) */
+let _regLsDockT=null;
+function regLsDockSoon(){ if(!regLsListUp()||typeof setTimeout!=='function') return; if(_regLsDockT) clearTimeout(_regLsDockT); _regLsDockT=setTimeout(()=>{ _regLsDockT=null; ctfDockAgain(); },160); }
 /* ---- CONTRACTS BY FOLDER, AS DRAWN (the new look, round 6) ----
    The place opens on the company's own folders (streams): a card each says how many, the money on paper and how many
    are signed or in review, and what in it needs you, in words (needsYouOf, the one checklist), amber; a green dot where
@@ -3798,7 +3888,8 @@ let _ctFolders = true;
 /* Jambo's panel follows the page's face (the folders' reading, or the list's) */
 function ctfDockAgain(){ if (typeof window.renderIntelDock === 'function') setTimeout(() => { try { renderIntelDock(); } catch (_){} }, 0); }
 const CTF_WORDS = { sign:'ctf_n_sign', approval:'ctf_n_approval', details:'ctf_n_details', review:'ctf_n_review', note:'ctf_n_note', suggest:'ctf_n_suggest', look:'ctf_n_look', refused:'ctf_n_refused', quiet:'ctf_n_quiet', join:'ctf_n_join' };
-function regFoldersOn(R){ return regHome() && typeof window.newLookOn === 'function' && newLookOn() && _ctFolders && (!R.type || R.type === 'all') && !R.only && R.view !== 'archived' && !String((state.reg && state.reg.query) || '').trim(); }
+/* a door asking for a stage (regGoFiltered({stage})) shows that list, never the Folders with the stage out of sight (#762) */
+function regFoldersOn(R){ return regHome() && typeof window.newLookOn === 'function' && newLookOn() && _ctFolders && (!R.type || R.type === 'all') && !R.only && !(R.stage && R.stage !== 'all') && R.view !== 'archived' && !String((state.reg && state.reg.query) || '').trim(); }
 function regFolderRead(cs){
   const money = !(typeof canViewValues === 'function' && !canViewValues());
   const val = cs.reduce((s, c) => { try { const h = (typeof fxHome === 'function') ? fxHome(c) : { v: Number(c.value) || 0 }; return s + ((typeof fxIsPay === 'function' && fxIsPay(c)) || h.missing ? 0 : (Number(h.v) || 0)); } catch (_){ return s; } }, 0);
@@ -3891,26 +3982,90 @@ function regFolderLive(){
   const gone = c => c.archived || c.status === 'Declined' || (c.status === 'Signed' && c.expiry && T && String(c.expiry).slice(0, 10) < T);
   return live.filter(c => !gone(c) && FOLDERS && FOLDERS[c.folder] && (typeof canAccessFolder !== 'function' || canAccessFolder(c.folder)));
 }
-function regFolderRowsHtml(live, fids, ended, endIds, isAdmin){
-  const money = v => v == null ? '' : (typeof fmtMoneyShort === 'function' ? fmtMoneyShort(v) : String(v));
-  const row = (attr, name, line, cls) => `<button type="button" class="ctf-row is-compact${cls || ''}" ${attr} title="${esc(name)}"><b class="ctf-name">${esc(name)}</b><span class="ctf-rl">${line}</span></button>`;
-  const dot = ' · ';
-  const rows = fids.map(fid => {
-    const cs = live.filter(c => c.folder === fid && !endIds.has(c.id)); if (!cs.length) return null;
-    return { fid, name: FOLDERS[fid].name || fid, cs, r: regFolderRead(cs) };
-  }).filter(Boolean).sort((a, b) => b.r.needN - a.r.needN || b.r.n - a.r.n);
-  const body = rows.map(x => { const r = x.r;
-    const need = r.needN ? `<span class="ctf-rn"><b>${r.needN}</b> ${esc(i18tn('ctf_t_need', r.needN, { n: r.needN }))}</span>` : esc(i18t('ctf_t_nothing'));
-    return row(`data-ctf-folder="${esc(x.fid)}"`, x.name, [String(r.n), r.val ? esc(money(r.val)) : '', need].filter(Boolean).join(dot));
-  }).join('');
-  const yrs = ended.map(c => String(c.signedAt || c.expiry || '').slice(0, 4)).filter(Boolean).sort();
-  const endR = regFolderRead(ended);
-  const endRow = ended.length ? row('data-ctf-ended', i18t('ctf_ended'),
-    [String(ended.length), endR.val ? esc(money(endR.val)) : '', yrs.length ? esc(yrs[0] === yrs[yrs.length - 1] ? yrs[0] : i18t('ctf_years', { a: yrs[0], b: yrs[yrs.length - 1] })) : ''].filter(Boolean).join(dot)) : '';
-  const newRow = isAdmin ? row('data-ctf-new', '+ ' + i18t('ctf_new'), esc(i18t('ctf_new_s')), ' is-new') : '';
-  const n = rows.length + (endRow ? 1 : 0);
-  return `${regFolderViewsHtml(rows.flatMap(x => x.cs))}<div class="ctf-cap">${esc(i18t('ctfv_folders'))}</div><div class="ctf-list is-two">${body}${endRow}${newRow}</div><div class="ctf-foot">${esc(i18tn('ctf_foot', n, { n }))}</div>`;
+/* THE FOLDERS LANDING, THE LEGORA + STRIPE WAY (P-31, owner's pick 20 Nov 2026: "a high-level summary of all the
+   contracts"): four figure cards (Contracts · Need you · In review · Ends within 90 days; NO money card) — a page whose
+   job is "how are we doing?"; "Where all N stand" as one bar; "When they end · next 12 months" as dots per month; then
+   "Folders" as a calm table: the name with the folder's own description (set in Settings, FOLDERS[id].desc), its
+   contracts, an amber "N need you" badge, a thin where-they-stand bar, the next to end. The "Views across every folder"
+   cards are gone. Every number is a door to the list behind it, through the doors a set already has (regShowOnly). */
+const CTF_END_SOON = 30;
+function regFolderEndOf(c){ try{ return String((typeof effectiveExpiry==='function'?effectiveExpiry(c):c.expiry)||'').slice(0,10); }catch(_){ return String(c.expiry||'').slice(0,10); } }
+function regFolderSummaryData(live, ended){
+  const T=typeof todayISO==='function'?String(todayISO()||''):'';
+  const add=(iso,n)=>{ const d=new Date(iso+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); };
+  const lim=T?add(T,CTF_VIEW_DAYS):'', soon=T?add(T,CTF_END_SOON):'';
+  const needIds=new Set(live.filter(c=>{ try{ return (typeof needsYouOf==='function'?needsYouOf(c):[]).length>0; }catch(_){ return false; } }).map(c=>c.id));
+  const signedOf=c=>{ try{ return typeof negoExecuted==='function'?!!negoExecuted(c):c.status==='Signed'; }catch(_){ return c.status==='Signed'; } };
+  const review=live.filter(c=>!signedOf(c));
+  const ends=T?live.filter(c=>{ const e=regFolderEndOf(c); return !!e&&e>=T&&e<=lim; }):[];
+  const folders=new Set(live.map(c=>c.folder)).size;
+  /* twelve months from this one: a dot per contract that ends in it */
+  const months=[];
+  if(T){ const d0=new Date(T.slice(0,7)+'-01T00:00:00Z');
+    for(let i=0;i<12;i++){ const d=new Date(d0); d.setUTCMonth(d0.getUTCMonth()+i); const k=d.toISOString().slice(0,7);
+      const L=live.filter(c=>regFolderEndOf(c).slice(0,7)===k&&regFolderEndOf(c)>=T);
+      months.push({ k, label:d.toLocaleDateString(typeof langLocale==='function'?langLocale():'en-GB',{ month:'short', timeZone:'UTC' }),
+        dots:L.map(c=>({ id:c.id, name:c.name||c.id, tone:regFolderEndOf(c)<=soon?'ruby':needIds.has(c.id)?'amber':signedOf(c)?'green':'gray' })) }); } }
+  return { T, live, ended, needIds, review, ends, folders, months, signed:live.filter(signedOf) };
 }
+function regFolderRowsHtml(live, fids, ended, endIds, isAdmin){
+  const all=fids.flatMap(fid=>live.filter(c=>c.folder===fid&&!endIds.has(c.id)));
+  const D=regFolderSummaryData(all, ended);
+  const need=all.filter(c=>D.needIds.has(c.id));
+  const card=(k,n,label,sub,tone)=>`<button type="button" class="ctf-fig${tone?' is-'+tone:''}" data-ctf-fig="${k}"${n?'':' disabled'}><span>${esc(label)}</span><b>${n}</b><small>${esc(sub)}</small></button>`;
+  /* P-31 AS DRAWN: Contracts counts the shelf too ("13 · in 2 folders and the shelf"); Need you says what, by contract
+     ("3 approvals · 3 details"); In review says whose yes it waits on ("1 waits on Joseph"); Ends within 90 days names
+     the nearest ("Fuel Supply · 20 Dec"), its number red only when that one ends very soon (CTF_END_SOON) */
+  const nf=D.folders, inF=ended.length?i18tn('ctls_in_folders_shelf',nf,{ n:nf }):i18tn('ctfv_in_folders',nf,{ n:nf });
+  const waits=regLsWaitsOn(D.review);
+  const nx=regLsNextEnd(D.ends), soon=!!(nx&&nx.n!=null&&nx.n<=CTF_END_SOON);
+  const nxSay=nx?i18t('ctls_next_end',{ name:nx.c.name||nx.c.id, d:regLsDayMonth(nx.e) }):i18t('ctf_t_nothing');
+  const figs=`<div class="ctf-figs">${card('all',all.length+ended.length,i18t('ctf_fig_all'),inF)}`
+    +card('need',need.length,i18t('ctf_fig_need'),need.length?regLsOwesWords(regLsOwes(need),true):i18t('ctf_t_nothing'),need.length?'amber':'')
+    +card('review',D.review.length,i18t('ctf_fig_review'),waits||i18t('ctf_fig_review_s'))
+    +card('end',D.ends.length,i18t('ctls_fig_end',{ n:CTF_VIEW_DAYS }),nxSay,soon?'ruby':'')+`</div>`;
+  /* where all N stand: in review · signed · ended, one bar and its legend */
+  const bar=`<div class="ctf-sec"><h4 class="ctf-cap">${esc(i18t('ctf_where_all',{ n:all.length+ended.length }))}</h4>${regLsBarHtml(all.concat(ended))}</div>`;
+  const dots=regLsDotsHtml(all);
+  const ends=dots?`<div class="ctf-sec"><h4 class="ctf-cap">${esc(i18t('ctf_when_end'))}</h4>${dots}</div>`:'';
+  const rows=fids.map(fid=>{ const cs=live.filter(c=>c.folder===fid&&!endIds.has(c.id)); if(!cs.length) return null; return { fid, name:FOLDERS[fid].name||fid, desc:FOLDERS[fid].desc||'', cs, r:regFolderRead(cs) }; })
+    .filter(Boolean).sort((a, b) => b.r.needN - a.r.needN || b.r.n - a.r.n);
+  const mix=cs=>{ const t=Math.max(1,cs.length), r=cs.filter(c=>regLsStandOf(c)==='review').length, s=cs.length-r, e=x=>(Math.round(x/t*1000)/10)+'%';
+    return `<span class="ctf-tbar"><i class="is-r" style="width:${e(r)}"></i><i class="is-s" style="width:${e(s)}"></i></span>`; };
+  /* the name gives way ("…"), the date never: two parts, the day held whole */
+  const nxHtml=(name,dayWords,joint)=>`<span class="ctf-nx"><span class="ctf-nx-n">${esc(name)}</span><span class="ctf-nx-d">${esc(joint)}${esc(dayWords)}</span></span>`;
+  const nextOf=cs=>{ const x=regLsNextEnd(cs); if(!x) return { t:'\u2014', h:'\u2014', amb:false };
+    return { t:i18t('ctls_next_end',{ name:x.c.name||x.c.id, d:regDotDate(x.e) }), h:nxHtml(x.c.name||x.c.id, regDotDate(x.e), ' \u00b7 '), amb:x.n!=null&&x.n<=CTF_VIEW_DAYS }; };
+  const trs=rows.map(x=>{ const nx2=nextOf(x.cs); return `<tr data-ctf-folder="${esc(x.fid)}" tabindex="0"${x.fid===_ctfPick?' class="is-sel"':''}><td><b class="ctf-name">${esc(x.name)}</b>${x.desc?`<span class="ctf-desc">${esc(x.desc)}</span>`:''}</td><td class="ctf-n">${x.r.n}</td>
+    <td>${x.r.needN?`<span class="reg-badge is-amber ctls-b"><i></i>${x.r.needN} ${esc(i18tn('ctf_t_need',x.r.needN,{ n:x.r.needN }))}</span>`:'<span class="reg-dash">—</span>'}</td><td>${mix(x.cs)}</td><td class="ctf-next${nx2.amb?' is-amb':''}" title="${esc(nx2.t)}">${nx2.h}</td></tr>`; }).join('');
+  const last=ended.map(c=>({ c, e:regLsEndOf(c) })).filter(x=>x.e).sort((a,b)=>b.e.localeCompare(a.e))[0];
+  const endNext=last?i18t('ctls_ended_next',{ name:last.c.name||last.c.id, d:regDotDate(last.e) }):'\u2014';
+  const endNextH=last?(()=>{ const w=i18t('ctls_ended_next',{ name:'\u0001', d:'\u0002' }), i=w.indexOf('\u0001'), j=w.indexOf('\u0002');
+    return i>=0&&j>i?`<span class="ctf-nx">${esc(w.slice(0,i))}<span class="ctf-nx-n">${esc(last.c.name||last.c.id)}</span><span class="ctf-nx-d">${esc(w.slice(i+1,j))}${esc(regDotDate(last.e))}${esc(w.slice(j+1))}</span></span>`:esc(endNext); })():'\u2014';
+  const endTr=ended.length?`<tr data-ctf-ended tabindex="0"><td><b class="ctf-name">${esc(i18t('ctf_ended'))}</b><span class="ctf-desc">${esc(i18t('ctls_shelf_desc'))}</span></td><td class="ctf-n">${ended.length}</td><td><span class="reg-dash">—</span></td><td><span class="ctf-tbar"><i class="is-e" style="width:100%"></i></span></td><td class="ctf-next" title="${esc(endNext)}">${endNextH}</td></tr>`:'';
+  const newTr=isAdmin?`<tr data-ctf-new tabindex="0" class="is-new"><td><b class="ctf-name">+ ${esc(i18t('ctf_new'))}</b><span class="ctf-desc">${esc(i18t('ctf_new_s'))}</span></td><td></td><td></td><td></td><td></td></tr>`:'';
+  const table=`<div class="ctf-sec"><h4 class="ctf-cap">${esc(i18t('ctfv_folders'))}</h4><table class="ctf-ftable"><thead><tr><th>${esc(i18t('ctf_col_folder'))}</th><th class="ctf-n">${esc(i18t('ctf_fig_all'))}</th><th>${esc(i18t('reg_col_needs'))}</th><th>${esc(i18t('ctls_h_where'))}</th><th>${esc(i18t('ctf_col_next'))}</th></tr></thead><tbody>${trs}${endTr}${newTr}</tbody></table></div>`;
+  /* the drawing has no foot under the table; "+ New folder" stays for an admin (owner, 21 Nov 2026: keep the working control) */
+  return `<div class="ctf-ls">${figs}<div class="ctf-two">${bar}${ends}</div>${table}</div>`;
+}
+/* "1 waits on Joseph": the in-review contracts whose next yes is a colleague's, named when it is one person */
+function regLsWaitsOn(cs){
+  const who=[]; cs.forEach(c=>{ try{ if((needsYouOf(c)||[]).length) return; const st=typeof approvalState==='function'?approvalState(c):null, nx=st&&st.next;
+    if(nx&&nx.status==='pending'&&st.approverLabel) who.push(String(st.approverLabel).split(/\s+/)[0]); }catch(_){ /* nothing waits */ } });
+  if(!who.length) return '';
+  const one=who.every(w=>w===who[0]);
+  return i18tn('ctls_waits_on',who.length,{ n:who.length, who:one?who[0]:i18t('ctls_others') });
+}
+function regLsDayMonth(iso){
+  const d=new Date(String(iso||'')+'T00:00:00'); if(isNaN(d.getTime())) return String(iso||'');
+  try{ return d.toLocaleDateString(typeof langLocale==='function'?langLocale():'en-GB',{ day:'numeric', month:'short' }); }catch(_){ return String(iso).slice(5); }
+}
+if(typeof document!=='undefined'&&!document._ctfFigWired){ document._ctfFigWired=true;
+  document.addEventListener('click',e=>{ const f=e.target&&e.target.closest?e.target.closest('[data-ctf-fig]'):null; if(!f||f.disabled) return; e.preventDefault();
+    const k=f.getAttribute('data-ctf-fig'), R=regState(), live=regFolderLive();
+    if(k==='all'||k==='need'){ _ctFolders=false; R.type='all'; R.view=k==='need'?'needs':null; R.only=null; regRepaint(); ctfDockAgain(); return; }
+    const D=regFolderSummaryData(live,[]); const L=k==='review'?D.review:D.ends;
+    if(L.length){ _ctFolders=false; regShowOnly(L.map(c=>c.id), f.querySelector('span').textContent); ctfDockAgain(); } }); }
 /* EVEN TILES' parts, one builder for Contracts' folders and Parties' folders */
 function regTileBig(n){
   return n ? `<span class="ctf-big">${n}<small>${esc(i18tn('ctf_t_need', n, { n }))}</small></span>`
@@ -3929,7 +4084,11 @@ if (typeof document !== 'undefined' && !document._ctfWired){ document._ctfWired 
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     const f = t.closest('[data-ctf-folder]');
-    if (f){ e.preventDefault(); const R = regState(); R.type = f.getAttribute('data-ctf-folder'); _ctFolders = false; regRepaint(); ctfDockAgain(); return; }
+    /* P-31: a folder's row on the landing's table CHOOSES (its panel sums it up); a second press, or Open the folder, opens */
+    if (f && f.matches('.ctf-ftable tr') && _ctfPick !== f.getAttribute('data-ctf-folder')){ e.preventDefault(); _ctfPick = f.getAttribute('data-ctf-folder');
+      document.querySelectorAll('.ctf-ftable tr.is-sel').forEach(x => x.classList.remove('is-sel')); f.classList.add('is-sel'); ctfDockAgain(); return; }
+    /* a folder opened from the landing lands on ITS list whole (P-31 as drawn: "All 5"), never on a tab left from before */
+    if (f){ e.preventDefault(); _ctfPick = ''; const R = regState(); R.type = f.getAttribute('data-ctf-folder'); R.view = null; R.only = null; _ctFolders = false; regRepaint(); ctfDockAgain(); return; }
     if (t.closest('[data-ctf-ended]')){ e.preventDefault(); const R = regState(); R.view = 'archived'; _ctFolders = false; regRepaint(); ctfDockAgain(); return; }
     const vw = t.closest('[data-ctf-view]');
     if (vw){ e.preventDefault(); const v = regFolderViewsData(regFolderLive()).find(x => x.k === vw.getAttribute('data-ctf-view'));
@@ -3955,14 +4114,13 @@ function regFolderCount(){
 function regFoldersHeadHtml(){
   const live = (state.contracts || []).filter(c => c && !c._codeNamed && !c.archived);
   const r = regFolderRead(live);
-  const facts = [String(r.n), r.val ? i18t('ctf_on_paper', { v: typeof fmtMoneyShort === 'function' ? fmtMoneyShort(r.val) : String(r.val) }) : '', r.signed ? i18t('ctf_n_signed', { n: r.signed }) : ''].filter(Boolean).join(' · ');
   const may = (typeof canEdit !== 'function') || canEdit();
-  return `<div class="ctf-head"><h2 class="ctf-h">${esc(i18t('nav_contracts'))}</h2><span class="ctf-hf">${esc(facts)}</span><span class="ctf-sp"></span>
-      <button type="button" class="ctf-pill" data-ctf-show="list">${esc(i18t('ct_list'))}</button><button type="button" class="ctf-pill" data-ctf-show="wall">${esc(i18t('ct_wall'))}</button>
+  /* P-31: the facts beside the title go; the ask box under it; chips with their counts, Needs you with an amber dot */
+  return `<div class="ctf-head"><h2 class="ctf-h">${esc(i18t('nav_contracts'))}</h2><span class="ctf-sp"></span>
+      <button type="button" class="ctf-pill is-lead" data-ctf-show="list">${esc(i18t('ct_list'))}</button><button type="button" class="ctf-pill" data-ctf-show="wall">${esc(i18t('ct_wall'))}</button>
       ${may ? `<button type="button" class="ui-btn ui-btn-primary ctf-new" data-ctf-draft>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${esc(i18t('ctf_new_agreement'))}</button>` : ''}</div>
-    <div class="apn-bar ctf-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ctf-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}"></label><span class="apn-sp"></span>
-      <button type="button" class="apn-tab is-on" data-ctf-tab="folders">${esc(i18t('ctf_tab_folders'))} <span>${regFolderCount()}</span></button><button type="button" class="apn-tab" data-ctf-tab="all">${esc(i18t('ctf_tab_all'))} <span>${r.n}</span></button>${r.needN ? `<button type="button" class="apn-tab" data-ctf-tab="needs">${esc(i18t('ctf_tab_needs'))} <span>${r.needN}</span></button>` : ''}
-</div>`;
+    <label class="apn-ask ctf-ask is-filter">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ctf-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" aria-label="${esc(i18t('lh_filter_ph'))}"></label>
+    <div class="apn-bar ctf-bar"><button type="button" class="apn-tab is-chip is-on" data-ctf-tab="folders">${esc(i18t('ctf_tab_folders'))} <span>${regFolderCount()}</span></button><button type="button" class="apn-tab is-chip" data-ctf-tab="all">${esc(i18t('ctf_tab_all'))} <span>${r.n}</span></button>${r.needN ? `<button type="button" class="apn-tab is-chip" data-ctf-tab="needs"><i class="apn-cd is-amber" aria-hidden="true"></i>${esc(i18t('ctf_tab_needs'))} <span>${r.needN}</span></button>` : ''}</div>`;
 }
 if (typeof document !== 'undefined' && !document._ctfWired2){ document._ctfWired2 = true;
   document.addEventListener('click', e => {
@@ -3975,6 +4133,7 @@ if (typeof document !== 'undefined' && !document._ctfWired2){ document._ctfWired
   /* words typed in the box leave the folders for the list, the words carried (the register's own query) */
   document.addEventListener('input', e => {
     const q = e.target && e.target.id === 'ctf-q' ? e.target : null; if (!q) return;
+    /* AN HONEST FILTER (owner, 22 Nov 2026): every word typed narrows the list; questions are Jambo's, in his box */
     state.reg = state.reg || {}; state.reg.query = q.value; _ctFolders = false; regRepaint();
     setTimeout(() => { const b = document.getElementById('ct-q'); if (b){ b.focus(); try { b.setSelectionRange(b.value.length, b.value.length); } catch (_){} } }, 0);
   });
@@ -4019,6 +4178,7 @@ function regFoldersGlanceHtml(rows, head, gaps, live){
      headline with its tag, three tiles (money on paper, signed, waiting on you), "Where the money is" kept as drawn
      (its own bar and legend, each a folder's door), "Not done yet" as rows by the page's own presses (data-rfp-only,
      data-rfp-rate). Read off the folders, no AI. The new look only. */
+  if(typeof newLookOn==='function'&&newLookOn()&&typeof jamboOverviewHtml==='function') return regFoldersLsPanelHtml(rows, head);
   if(typeof newLookOn==='function'&&newLookOn()&&typeof jamboOverviewHtml==='function'){
     const R=seeMoney&&sum>0?rows.filter(x=>x.r.val>0).sort((a,b)=>b.r.val-a.r.val):[];
     const bar=R.length?`<div class="rfg-split" aria-hidden="true">${R.map((x,i)=>`<i class="is-${Math.min(i+1,5)}" style="width:${(x.r.val/sum*100).toFixed(2)}%"></i>`).join('')}</div>`
@@ -4036,6 +4196,209 @@ function regFoldersGlanceHtml(rows, head, gaps, live){
   }
   return top+money+(todo?cap(i18t('rfg_todo'))+todo:'');
 }
+/* THE LANDING'S PANEL, P-31 (owner's pick 20 Nov 2026): NO CARDS AND NO MONEY. Nothing chosen: a sentence, where they
+   stand (the bar), when they end (the dots), what needs you (name and why). A folder chosen on the table: it is summed
+   up the same way, with Open the folder (black) and "Show the N that need you". Read off the folders; no AI. */
+let _ctfPick='';
+/* ---- P-31 AS DRAWN, EVERY VIEW (owner, 21 Nov 2026: "exactly what we agreed on, no short cuts") ----
+   ONE reading of where a contract stands, three words only (amber In review, green Signed, grey Ended), ONE reading of
+   what it asks of the reader in words (the Needs you column, the panels' "Needs you" rows), ONE bar of where a set
+   stands and ONE strip of when it ends \u2014 drawn by the landing, the four lists, the Wall's cards and every panel, so no
+   two places can say a contract differently. Read only; nothing is asked, spent or written. NO MONEY in any of it. */
+function regLsSigned(c){ try{ return typeof negoExecuted==='function'?!!negoExecuted(c):c.status==='Signed'; }catch(_){ return !!c&&c.status==='Signed'; } }
+/* the Ended & archived shelf's ONE rule (the landing's row and the list it opens): put away, declined, or signed and past its end */
+function regLsEnded(c){
+  if(!c) return false;
+  const T=typeof todayISO==='function'?String(todayISO()||''):'';
+  return !!(c.archived||c.status==='Declined'||(c.status==='Signed'&&c.expiry&&T&&String(c.expiry).slice(0,10)<T));
+}
+function regLsStandOf(c){ return regLsEnded(c)?'ended':regLsSigned(c)?'signed':'review'; }
+/* THE ONE COLOUR A STAGE WEARS (ONE FACT, ONE HOME): the three words' tones — In review amber, Signed green, Ended grey —
+   asked by the list's badge and by the Board's Your book bar and squares (hmStageTone) alike */
+const REG_LS_TONE={ review:'amber', signed:'green', ended:'gray' };
+function regLsToneOfStatus(st){ return REG_LS_TONE[st==='Signed'?'signed':st==='Declined'?'ended':'review']; }
+function regLsBadgeHtml(c){
+  const k=regLsStandOf(c);
+  if(k==='review') return `<span class="reg-badge is-${REG_LS_TONE.review} ctls-b"><i></i>${esc(i18t('ctls_review'))}</span>`;
+  if(k==='signed') return `<span class="reg-badge is-${REG_LS_TONE.signed} ctls-b">\u2713 ${esc(i18t('ctls_signed'))}</span>`;
+  return `<span class="reg-badge is-ended ctls-b">${esc(i18t('ctls_ended'))}</span>`;
+}
+/* what the contract asks of the reader, in the column's words: "Your approval", "Joseph's approval", "3 details to fill";
+   '' when nothing (the cell says "\u2014") */
+function regLsNeedWord(c){
+  /* THEY ARE READY TO SIGN: the stage's own SHORT form ("Ready to sign"), the badge keeping its three words and the
+     whole sentence on the Standing cell's hover */
+  try{ if(!regLsSigned(c)&&typeof cpReadyToSign==='function'&&cpReadyToSign(c)){ const sh=regStageShortOf(regStageTone(c).m); if(sh&&sh.label) return sh.label; } }catch(_){ /* the needs say it */ }
+  let L=[]; try{ L=typeof needsYouOf==='function'?(needsYouOf(c)||[]):[]; }catch(_){ L=[]; }
+  if(!L.length){
+    let w=''; try{ const st=!regLsSigned(c)&&typeof approvalState==='function'?approvalState(c):null; const nx=st&&st.next;
+      if(nx&&nx.status==='pending'&&st.approverLabel){ const mem=!!(nx.approver&&nx.approver.kind==='member'); w=mem?i18t('reg_need_whose',{ who:String(st.approverLabel).split(/\s+/)[0] }):i18t('reg_need_with',{ who:st.approverLabel }); } }catch(_){ w=''; }
+    return w;
+  }
+  const it=L[0];
+  if(it.kind==='approval') return i18t('reg_need_yours');
+  if(it.kind==='details'&&it.n) return i18tn('reg_need_details',it.n,{ n:it.n });
+  let t=''; try{ const w=typeof insNeedWords==='function'?insNeedWords(c,it):null; t=w&&w.title||''; }catch(_){ t=''; }
+  return t||i18t('reg_need_some');
+}
+function regLsEndOf(c){ return regFolderEndOf(c); }
+const REG_LS_RANK={ review:1, signed:2, ended:3 };
+function regLsWorkFirst(cs){
+  const rank=new Map(cs.map(c=>{ let need=false; try{ need=!regLsEnded(c)&&(needsYouOf(c)||[]).length>0; }catch(_){ need=false; }
+    return [c, need?0:REG_LS_RANK[regLsStandOf(c)]]; }));
+  const end=new Map(cs.map(c=>[c, regLsEndOf(c)||'9999']));
+  return cs.sort((a,b)=>(rank.get(a)-rank.get(b))||(rank.get(a)===3?end.get(b).localeCompare(end.get(a)):end.get(a).localeCompare(end.get(b))));
+}
+function regLsAddDays(iso,n){ const d=new Date(iso+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); }
+function regLsDaysTo(iso){ const T=typeof todayISO==='function'?String(todayISO()||''):''; if(!T||!iso) return null; return Math.round((Date.parse(iso+'T00:00:00Z')-Date.parse(T+'T00:00:00Z'))/864e5); }
+/* the list's Ends: grey "ended \u2026" once ended, amber "date \u00b7 in N days" inside CTF_VIEW_DAYS, else the date */
+function regLsEndsHtml(c){
+  const e=regLsEndOf(c); if(!e) return '<span class="reg-dash">\u2014</span>';
+  /* the day itself is the row's DATE, in the figure face at the label rung (.reg-day, regDotDate's own dress) */
+  const d=regDotDate(e), n=regLsDaysTo(e), day=`<span class="reg-day">${esc(d)}</span>`;
+  if(regLsEnded(c)||(n!=null&&n<0)) return `<span class="ctls-g">${esc(i18t('ctls_ended_on',{ d:'\u0000' })).replace('\u0000',day)}</span>`;
+  if(n!=null&&n<=CTF_VIEW_DAYS) return `<span class="ctls-amb">${day} \u00b7 ${esc(i18tn('ctls_in_days',n,{ n }))}</span>`;
+  return day;
+}
+/* the paper's own words for when it ends, with its \u00a7, on one line; nothing where the wording is not loaded (never guessed) */
+function regLsQuoteHtml(c){
+  const e=regLsEndOf(c);   /* every row one height (as drawn, each row three lines): a row whose paper is not read keeps the line, empty */
+if(!e||!c||c._codeNamed) return '<span class="ctls-q is-none" aria-hidden="true">\u00a0</span>';
+  const none='<span class="ctls-q is-none" aria-hidden="true">\u00a0</span>';
+  let q={ sec:'', quote:'' }; try{ q=regSayEndQuote(c,e)||q; }catch(_){ q={ sec:'', quote:'' }; }
+  if(!q.quote) return none;
+  /* the words give way ("…"), the § never does */
+  return `<span class="ctls-q" title="${esc(q.quote)}"><i>\u201c${esc(q.quote)}\u201d</i>${q.sec?`<small>${esc(q.sec)}</small>`:''}</span>`;
+}
+/* the kinds a set owes, counted by contract: approvals (the reader's), sets of details, the rest */
+/* the work a set owes, by contract, each kind NAMED (as drawn: "3 approvals · 3 details"): approvals, details, renewals
+   to decide, signatures, then any other kind in its own words */
+const REG_LS_KIND={ approval:'appr', details:'det', fill:'det', renewal:'renew', sign:'sign', signer:'sign' };
+function regLsOwes(cs){
+  const o={ appr:0, det:0, renew:0, sign:0, other:0 };
+  cs.forEach(c=>{ let L=[]; try{ L=typeof needsYouOf==='function'?(needsYouOf(c)||[]):[]; }catch(_){ L=[]; }
+    if(!L.length) return; const k=L.map(x=>x.kind);
+    const hit=['approval','details','fill','renewal','sign','signer'].find(x=>k.includes(x));
+    o[hit?REG_LS_KIND[hit]:'other']++; });
+  return o;
+}
+function regLsOwesWords(o, short){
+  const parts=[o.appr?i18tn('ctls_n_appr',o.appr,{ n:o.appr }):'', o.det?i18tn(short?'ctls_n_det':'ctls_n_detset',o.det,{ n:o.det }):'',
+    o.renew?i18tn(short?'ctls_n_renew_s':'ctls_n_renew',o.renew,{ n:o.renew }):'', o.sign?i18tn('ctls_n_sign',o.sign,{ n:o.sign }):'', o.other?i18tn('ctls_n_other',o.other,{ n:o.other }):''].filter(Boolean);
+  if(short) return parts.join(' \u00b7 ');
+  return parts.length>1?parts.slice(0,-1).join(', ')+i18t('ctls_and')+parts[parts.length-1]:(parts[0]||'');
+}
+/* where a set stands: one bar (amber in review, green signed, grey ended) and its legend, "3 in review \u00b7 9 signed \u00b7 1 ended" */
+function regLsBarHtml(cs, cls){
+  const n={ review:0, signed:0, ended:0 }; cs.forEach(c=>{ n[regLsStandOf(c)]++; });
+  const seg=(k,cl)=>n[k]?`<i class="${cl}" style="flex:${n[k]}"></i>`:'';
+  const key=(k,cl)=>n[k]?`<span><i class="${cl}"></i>${esc(i18t('ctls_k_'+k,{ n:n[k] }))}</span>`:'';
+  return `<div class="ctls-bar${cls?' '+cls:''}" aria-hidden="true">${seg('review','is-r')}${seg('signed','is-s')}${seg('ended','is-e')}</div>`
+    +`<div class="ctls-legend">${key('review','is-r')}${key('signed','is-s')}${key('ended','is-e')}</div>`;
+}
+/* when a set ends, the next twelve months: a dot per contract on a line (red very soon, amber needs you, green signed), the month under */
+function regLsDotsHtml(cs){
+  const D=regFolderSummaryData(cs.filter(c=>!regLsEnded(c)),[]);
+  if(!D.months.length) return '';
+  const mo=m=>String(m.label||'').replace(/\.$/,'').slice(0,3);
+  return `<div class="ctls-ends">${D.months.map(m=>`<div>${m.dots.slice(0,3).map(x=>`<i class="is-${esc(x.tone)}" title="${esc(x.name)}"></i>`).join('')}${m.dots.length>3?`<small title="${esc(m.dots.slice(3).map(x=>x.name).join(', '))}">+${m.dots.length-3}</small>`:''}</div>`).join('')}</div>`
+    +`<div class="ctls-endm">${D.months.map(m=>`<span>${esc(mo(m))}</span>`).join('')}</div>`;
+}
+/* what needs you: the contract's name, and why in amber; each row opens the contract */
+function regLsNeedRowsHtml(cs, max){
+  const L=regLsWorkFirst(cs.filter(c=>{ try{ return (needsYouOf(c)||[]).length>0; }catch(_){ return false; } }));
+  if(!L.length) return '';
+  const M=max||4, more=L.length-M;
+  /* A CAP IS A FACT: fewer names than the chip counts says how many more, its press the Needs you list */
+  return L.slice(0,M).map(c=>`<button type="button" class="ctls-nr" data-ctls-open="${esc(String(c.id))}"><span>${esc(c.name||c.id)}</span><b>${esc(regLsNeedWord(c))}</b></button>`).join('')
+    +(more>0?`<button type="button" class="ctls-lnk ctls-more" data-rfp-only="${esc(L.map(c=>String(c.id)).join(','))}" data-rfp-label="${esc(i18t('ctf_fig_need'))}">${esc(i18tn('ctls_and_more',more,{ n:more }))}</button>`:'');
+}
+const regLsSec=(h,body,last)=>`<div class="ctls-sec${last?' is-last':''}">${h?`<h4>${esc(h)}</h4>`:''}${body}</div>`;
+/* THE PANEL IS DRAWN BY THE ONE OVERVIEW BUILDER (jamboOverviewHtml, its five parts): the badge before the head, the
+   headline, the sentence and the acts under it, then the sections (where they stand, when they end, what needs you) as
+   its middle — no tiles, no cards, no money; the drawing's look is the slot's own (data-jov-slot="ctls"). The wrapper is
+   the panel's Overview (.is-ov), one block */
+function regLsFrame(cls, attrs, o){
+  const subHtml=`${o.subHtml||(o.sub?esc(o.sub):'')}${o.acts?`<span class="ctls-acts">${o.acts}</span>`:''}`;
+  const mid=regLsSecs(o.secs||[]);
+  const inner=typeof window.jamboOverviewHtml==='function'
+    ? jamboOverviewHtml({ before:o.badge?`<div class="ctls-bd">${o.badge}</div>`:'', title:o.head, subHtml, mid }, 'ctls')
+    : `${o.badge?`<div class="ctls-bd">${o.badge}</div>`:''}<div class="ctls-head">${esc(o.head)}</div><div class="ctls-sub">${subHtml}</div>${mid}`;
+  return `<div class="ctls is-ov ${cls}"${attrs?' '+attrs:''}>${inner}</div>`;
+}
+/* the panel's sections, a hairline between them and none under the last */
+const regLsSecs=list=>{ const L=list.filter(x=>x&&x[1]); return L.map((x,i)=>regLsSec(x[0],x[1],i===L.length-1)).join(''); };
+/* the nearest end inside CTF_VIEW_DAYS among the live ones: { c, e, n } */
+function regLsNextEnd(cs){
+  const T=typeof todayISO==='function'?String(todayISO()||''):''; if(!T) return null;
+  const L=cs.filter(c=>!regLsEnded(c)).map(c=>({ c, e:regLsEndOf(c) })).filter(x=>x.e&&x.e>=T).sort((a,b)=>a.e.localeCompare(b.e));
+  if(!L[0]) return null; const n=regLsDaysTo(L[0].e); return Object.assign(L[0],{ n });
+}
+/* THE LIST'S PANEL (All \u00b7 Needs you \u00b7 a folder \u00b7 Ended & archived; the Wall with nothing chosen): a sentence, where they
+   stand, when they end (not on the shelf), what needs you \u2014 of THE ROWS ON SCREEN, never the whole book */
+function regLsListUp(){
+  if(!regNl()||!regPlaceUp()) return false;
+  try{ if(regFoldersOn(regState())) return false; }catch(_){ return false; }
+  return true;
+}
+/* WHICH PANEL STANDS BESIDE THE LIST (the rule the folder's panel kept before P-31, regFolderPanelOn): inside a folder
+   the drawn summary stands, a kept question's column on the list included, unless a question is being asked, read,
+   counted or chosen; on every other list Ask a column's own card (the open question, its answers, Draw it · Copy ·
+   Show N) leads wherever it has one, else the drawn summary */
+function regLsPanelPick(){
+  if(!regLsListUp()) return '';
+  const R=regState(), A=window.AC;
+  const busy=!!(A&&(A.form||A.busy||A.count||A.stopped||A.chosen||(A.colOpen&&typeof askColKeys==='function'&&askColKeys().includes('ask:'+A.colOpen))));
+  if(R.show!=='wall'&&R.type&&R.type!=='all'&&!R.only&&!busy) return regLsListPanelHtml();
+  const ac=typeof window.askColPanelHtml==='function'?askColPanelHtml():'';
+  return ac?'':regLsListPanelHtml();
+}
+function regLsListPanelHtml(){
+  const R=regState();
+  let cs=[]; try{ cs=regFiltered({ flat:true })||[]; }catch(_){ cs=[]; }
+  cs=cs.filter(c=>c&&!c._codeNamed);
+  const n=cs.length, ended=R.view==='archived', inF=!!(R.type&&R.type!=='all');
+  const needN=cs.filter(c=>{ try{ return (needsYouOf(c)||[]).length>0; }catch(_){ return false; } }).length;
+  const signed=cs.filter(c=>regLsStandOf(c)==='signed').length, review=cs.filter(c=>regLsStandOf(c)==='review').length;
+  const owes=regLsOwesWords(regLsOwes(cs));
+  let head='', sub='';
+  if(ended){ head=i18tn('ctls_head_ended',n,{ n });
+    const last=cs.map(c=>({ c, e:regLsEndOf(c) })).filter(x=>x.e).sort((a,b)=>b.e.localeCompare(a.e))[0];
+    sub=last?i18t('ctls_sub_ended',{ name:last.c.name||last.c.id, d:regDotDate(last.e) }):''; }
+  else if(R.view==='needs'){ head=i18tn('ctls_head_need',n,{ n }); sub=owes?owes+'.':''; }
+  else if(inF&&needN){ head=needN===n?i18tn('ctls_head_all_need',n,{ n }):i18tn('ctls_head_some_need',needN,{ n, k:needN }); sub=owes?owes+'.':''; }
+  else { head=i18tn('ctls_head_all',n,{ n, k:signed });
+    const nx=regLsNextEnd(cs);
+    const bits=[review?i18tn('ctls_sub_review',review,{ n:review }):'', nx&&nx.n!=null&&nx.n<=CTF_VIEW_DAYS?i18t('ctls_sub_ends',{ name:nx.c.name||nx.c.id, when:i18tn('ctls_in_days',nx.n,{ n:nx.n }) }):''].filter(Boolean);
+    sub=bits.length?bits.join('; ')+'.':''; }
+  const dots=!ended&&n?regLsDotsHtml(cs):'';
+  return regLsFrame('ctls-list','data-ctls="list"',{ head, sub, secs:[[i18t('ctls_h_where'),n?regLsBarHtml(cs):''],[i18t('ctf_when_end'),dots],[i18t('ctls_h_needs'),regLsNeedRowsHtml(cs)]] });
+}
+/* THE LANDING'S PANEL, P-31 AS DRAWN: NO CARDS AND NO MONEY. A folder chosen on the table: its badge, its name, a
+   sentence, Open the folder (black) and "Show the N that need you", where they stand, when they end, what needs you.
+   Nothing chosen: the same parts over every folder. Read off the folders; no AI. */
+function regFoldersLsPanelHtml(rows, head){
+  const pick=rows.find(x=>x.fid===_ctfPick)||null;
+  const L=(pick?pick.cs:rows.flatMap(x=>x.cs)).filter(c=>c&&!c._codeNamed);
+  const need=L.filter(c=>{ try{ return (needsYouOf(c)||[]).length>0; }catch(_){ return false; } });
+  const owes=regLsOwesWords(regLsOwes(L));
+  const badge=need.length?`<span class="reg-badge is-amber ctls-b"><i></i>${esc(i18tn('rfg_need', need.length, { n:need.length }))}</span>`
+    :(L.length&&L.every(c=>regLsStandOf(c)==='signed')?`<span class="reg-badge is-green ctls-b">\u2713 ${esc(i18t('rfg_all_signed'))}</span>`:'');
+  const dots=L.length?regLsDotsHtml(L):'';
+  const secs=[[i18t('ctls_h_where'),L.length?regLsBarHtml(L):''],[i18t('ctf_when_end'),dots],[i18t('ctls_h_needs'),regLsNeedRowsHtml(L)]];
+  const attrs=`data-ctls="folders"${pick?` data-ctls-pick="${esc(pick.fid)}"`:''}`;
+  if(pick) return regLsFrame('ctls-folders', attrs, { badge, head:pick.name, sub:[i18tn('ctf_n_contracts', L.length, { n:L.length }), owes].filter(Boolean).join(' \u00b7 ')+'.',
+    acts:`<button type="button" class="ui-btn ui-btn-primary ctls-go" data-ctf-folder="${esc(pick.fid)}" data-ctf-open>${esc(i18t('ctls_open_folder'))}</button>${need.length?`<button type="button" class="ctls-lnk" data-rfp-only="${esc(need.map(c=>String(c.id)).join(','))}" data-rfp-label="${esc(i18t('ctf_fig_need'))}">${esc(i18tn('ctf_show_need',need.length,{ n:need.length }))}</button>`:''}`, secs });
+  return regLsFrame('ctls-folders', attrs, { badge, head:`${L.length} ${i18tn('rfg_contracts', L.length)} ${i18tn('rfg_in_folders', rows.length, { n:rows.length })}.`, sub:head||'', secs });
+}
+if(typeof document!=='undefined'&&!document._ctlsWired){ document._ctlsWired=true;
+  document.addEventListener('click',e=>{
+    const t=e.target&&e.target.closest?e.target:null; if(!t) return;
+    const o=t.closest('[data-ctls-open]');
+    if(o){ e.preventDefault(); regOpenContract(o.getAttribute('data-ctls-open')); return; }
+    /* the shelf's set chip: its \u00d7 leaves the shelf for every contract (the list at rest) */
+    if(t.closest('[data-ctls-ended-x]')){ e.preventDefault(); const R=regState(); R.view=null; R.page=1; regRepaint(); ctfDockAgain(); }
+  }); }
 function regFoldersPanelHtml(){
   const live = (state.contracts || []).filter(c => c && !c._codeNamed && !c.archived);
   const rows = Object.keys(FOLDERS || {}).filter(f => (typeof canAccessFolder !== 'function' || canAccessFolder(f)))
@@ -4054,7 +4417,10 @@ function regFoldersPanelHtml(){
       if (n && !seen.has(k) && !nda.has(k) && !(typeof ndaIs === 'function' && ndaIs(c))){ seen.add(k); gaps.push(n); } });
   } catch (_){ gaps = []; }
   const remark = gaps.length ? `<div class="apn-pj"><span class="apn-pdot" aria-hidden="true"></span><div><div class="apn-pcap">Jambo</div><p>${esc(i18tn('ctfp_nda', gaps.length, { n: gaps.length, list: gaps.slice(0, 2).join(' and '), first: String(gaps[0]).split(/\s+/)[0] }))}</p></div></div>` : '';
-  if (regNl()) return `<div class="apn-panel ctfp rfg">${regFoldersGlanceHtml(rows, head, gaps, live)}</div>`;
+  /* P-31 AS DRAWN: the landing's panel is the drawn one (regFoldersLsPanelHtml), its sentence the work, never the money */
+  if (regNl()){ void gaps; void regFoldersGlanceHtml;
+    const said = work && work.r.needN ? i18t('ctls_sub_most', { name: short(work.name), what: regLsOwesWords(regLsOwes(work.cs)) }) : i18t('ctls_sub_quiet');
+    return regFoldersLsPanelHtml(rows, said); }
   return `<div class="apn-panel ctfp"><p class="apn-pl">${esc(head)}</p>
     ${`<div class="apn-pcap">${esc(i18t('ctfp_across'))}</div>${rows.map(x => `<div class="apn-pr"><b>${esc(short(x.name))}</b><span>${esc(line(x))}</span><i></i></div>`).join('')}`}
     <div class="apn-pcap" style="margin-top:16px">${esc(i18t('ctfp_doors'))}</div>
@@ -4113,7 +4479,7 @@ function renderRegister(opts){
      exactly what happened: the arrow vanished entirely. Base64 has no quotes
      in it, so it survives the trip into the attribute. */
   const selChevron='url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTYgOSA2IDYgNi02Ii8+PC9zdmc+)';
-  const selStyle='font:inherit;font-size:var(--t-meta);border:1px solid var(--field-line);background-color:var(--color-surface);border-radius:var(--radius);padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
+  const selStyle='font:inherit;font-size:var(--t-meta);border:var(--fld-edge);border-bottom:var(--fld-under);background-color:var(--fld-bg);border-radius:var(--fld-r);padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
   /* ---- ONE FILTER BAR, NOT THREE TIERS OF PILLS ----
      Stages, streams and quick filters used to be three full-width rows of pills
      (plus a legend band and an export band) stacked above the table — the
@@ -4874,7 +5240,7 @@ function renderRegister(opts){
         <div id="reg-scroll" style="flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;padding:var(--s-3)">
           ${(typeof pipeBoardHtml==='function')?pipeBoardHtml(cs,{legend:false}):''}
         </div>
-        <div style="flex:none;border-top:1px solid var(--color-divider);display:flex;align-items:center;justify-content:space-between;gap:10px var(--s-4);flex-wrap:wrap;padding:5px var(--s-3);font-size:var(--t-label);color:var(--color-neutral-600)">
+        <div${regNl()?' class="reg-nl-footrow"':''} style="flex:none;border-top:1px solid var(--color-divider);${regNl()?'':'display:flex;'}align-items:center;justify-content:space-between;gap:10px var(--s-4);flex-wrap:wrap;padding:5px var(--s-3);font-size:var(--t-label);color:var(--color-neutral-600)">
           ${HOME?regCtFootHtml(cs):`<span id="reg-showing" role="status" aria-live="polite" aria-atomic="true">${regFooterText(cs,{all:true})}</span>`}
           ${''/* ---- NO VALUE STREAMS KEY ON THIS PAGE, BOARD OR TABLE (Young
                  ruled 24 Sep 2026: "delete this from both the contracts and
@@ -4961,7 +5327,8 @@ function renderRegister(opts){
                   if(k==='expiry') return sortableTh('expiry',i18t('reg_col_ends'),'',k);
                   if(k==='stage') return sortableTh('stage',i18t('reg_col_stage'),'',k);
                   if(k==='standing') return sortableTh('stage',i18t('reg_col_standing'),'',k);
-                  if(k==='stream') return sortableTh('stream',i18t('reg_col_stream'),'',k);
+                  if(k==='needs'){ const i=_colN; return `<th style="${colAt('',k)}">${esc(i18t('reg_col_needs'))}${gripFor(i)}</th>`; }
+                  if(k==='stream') return sortableTh('stream',i18t(regNl()?'ctf_col_folder':'reg_col_stream'),'',k);
                   /* the head is the name alone (owner, 8 Nov 2026: the column's sentence is the foot's, "Our standards is HaTi's own check") */
                   if(k==='standards') return sortableTh('standards',i18t('reg_col_standards'),'',k);
                   if(k==='move') return neg ? (()=>{ const i=_colN; return `<th style="${INS?'':'text-align:right;'}${colAt('',k)}">${i18t('ngl_col_move')}${gripFor(i)}</th>`; })()
@@ -4976,7 +5343,7 @@ function renderRegister(opts){
             <tbody id="reg-tbody">${regRowsHtml(cs)}</tbody>
           </table>
         </div>
-        <div style="flex:none;border-top:1px solid var(--color-divider);display:flex;align-items:center;justify-content:space-between;gap:10px var(--s-4);flex-wrap:wrap;padding:5px var(--s-3);font-size:var(--t-label);color:var(--color-neutral-600)">
+        <div${regNl()?' class="reg-nl-footrow"':''} style="flex:none;border-top:1px solid var(--color-divider);${regNl()?'':'display:flex;'}align-items:center;justify-content:space-between;gap:10px var(--s-4);flex-wrap:wrap;padding:5px var(--s-3);font-size:var(--t-label);color:var(--color-neutral-600)">
           ${neg?regNegoFootHtml(cs):HOME?regCtFootHtml(cs):`<span id="reg-showing" role="status" aria-live="polite" aria-atomic="true">${regFooterText(cs)}</span>
           <div id="reg-pager" style="display:flex;align-items:center;gap:6px">${regPager(cs)}</div>`}
           ${''/* ---- THE FOOT IS THE COUNT AND THE PAGER, AND NOTHING ELSE
@@ -5050,35 +5417,28 @@ function renderRegister(opts){
     const chosen=regBarChosen();
     /* On the full Contracts table the stage is the tab row, not a box, so it
        is not offered there; on the place (and on Negotiations) it is a box. */
-    const rows=REG_BAR_FILTERS.filter(f=>!(f.k==='stage'&&regScope()!=='negotiations'&&!regHome())).map(f=>{
-      const on=chosen.includes(f.k);
-      /* A FIXED FILTER IS SHOWN TICKED AND DISABLED rather than hidden: a
-         chooser that silently omits two of the six leaves the reader counting
-         and wondering where they went. It says what it is instead. */
-      return `<label style="display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--color-divider);${f.fixed?'opacity:.6':'cursor:pointer'}">
-        <input type="checkbox" data-adapt="${f.k}" ${on?'checked':''} ${f.fixed?'disabled':''} style="width:15px;height:15px;flex:none;accent-color:var(--accent-solid)"/>
-        <span style="flex:1;font-size:var(--t-body)">${esc(f.label)}</span>
-        ${f.fixed?`<span style="font-size:var(--t-micro);color:var(--color-neutral-500)">${esc(i18t('reg_adapt_always'))}</span>`:''}
-      </label>`;
-    }).join('');
-    openModal(`
-      <div style="padding:var(--s-4) 18px 10px;border-bottom:1px solid var(--color-divider)">
-        <h3 style="margin:0;font-size:var(--t-section);font-weight:var(--w-title)">${esc(i18t('reg_adapt_title'))}</h3>
-        <p style="margin:var(--s-1) 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5">${esc(i18t('reg_adapt_sub'))}</p>
-      </div>
-      <div style="padding:var(--s-1) 18px var(--s-2)">${rows}</div>
-      <div style="padding:var(--s-3) 18px var(--s-4);display:flex;gap:var(--s-2);align-items:center">
-        <button id="reg-adapt-reset" class="ui-btn ui-btn-plain">${esc(i18t('reg_adapt_reset'))}</button>
-        <span style="flex:1"></span>
-        <button id="reg-adapt-done" class="ui-btn ui-btn-primary">${esc(i18t('act_done'))}</button>
-      </div>`,{label:i18t('reg_adapt_title'),maxWidth:'440px'});
-    const read=()=>[...document.querySelectorAll('[data-adapt]:checked')].map(b=>b.getAttribute('data-adapt'));
-    document.getElementById('reg-adapt-reset')?.addEventListener('click',()=>{
-      regBarSetChosen(REG_BAR_DEFAULT.slice()); closeModal(); regRepaint();
-    });
-    document.getElementById('reg-adapt-done')?.addEventListener('click',()=>{
-      regBarSetChosen(read()); closeModal(); regRepaint();
-    });
+    /* THE ONE EDIT POP-UP (lgp; owner, 19 Nov 2026: "Fix all batches"): the filters a paged tick list (lgpListHtml),
+       the ticks held across its pages; Reset on the left, Done the one black button. A FIXED FILTER IS SHOWN TICKED
+       AND DISABLED rather than hidden: a chooser that silently omits two of the six leaves the reader counting and
+       wondering where they went. It says what it is instead. */
+    const fl=REG_BAR_FILTERS.filter(f=>!(f.k==='stage'&&regScope()!=='negotiations'&&!regHome()));
+    const ticked=new Set(fl.filter(f=>chosen.includes(f.k)).map(f=>f.k));
+    let page=1;
+    const sheet=()=>({ id:'reg-adapt-form', focus:false, title:i18t('reg_adapt_title'), sub:i18t('reg_adapt_sub'),
+      html:lgpListHtml({ page, tickAttr:'data-adapt', pageAttr:'data-adapt-page',
+        items:fl.map(f=>({ id:f.k, on:ticked.has(f.k), disabled:!!f.fixed, off:!!f.fixed, label:f.label, stage:f.fixed?i18t('reg_adapt_always'):'' })) }),
+      left:{ label:i18t('reg_adapt_reset'), attr:'id="reg-adapt-reset"' },
+      primary:{ label:i18t('act_done'), attr:'id="reg-adapt-done"' } });
+    lgpOpen(sheet());
+    const read=()=>fl.filter(f=>ticked.has(f.k)).map(f=>f.k);
+    /* one listener on the dialog (it outlives a page's redraw of the sheet); the presses resolved where they land */
+    const dlg=document.querySelector('#modal-root [role="dialog"]');
+    dlg?.addEventListener('change',e=>{ const b=e.target&&e.target.closest?e.target.closest('[data-adapt]'):null; if(!b) return;
+      const k=b.getAttribute('data-adapt'); if(b.checked) ticked.add(k); else ticked.delete(k); });
+    dlg?.addEventListener('click',e=>{ const t=e.target&&e.target.closest?e.target:null; if(!t) return;
+      const pg=t.closest('[data-adapt-page]'); if(pg){ e.preventDefault(); page=Number(pg.getAttribute('data-adapt-page'))||1; lgpRepaint(sheet()); return; }
+      if(t.closest('#reg-adapt-reset')){ regBarSetChosen(REG_BAR_DEFAULT.slice()); closeModal(); regRepaint(); return; }
+      if(t.closest('#reg-adapt-done')){ regBarSetChosen(read()); closeModal(); regRepaint(); } });
   });
 
   /* A DENSITY CHANGE IS A REPAINT, NOT A NAVIGATION: the page, the filters and
@@ -5255,7 +5615,7 @@ function ftsSearch(q){
 Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regFolderViewsData,regFolderViewsHtml,regFolderLive,CTF_VIEW_DAYS,CTF_VIEW_BIG,regFolderRowsHtml,regNlFootPut,regFolderPanelOn,regFolderPanelHtml,regScopeWords,regFolderOdd,RFP_ODD_MIN,regNl,regStdMissHtml,regNlFootHtml,REG_COL_W_NL,regFoldersUp, regFoldersShut,regFoldersPanelHtml,regFoldersOn,regFoldersHtml,regFolderRead,regOpenContract,regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_KEYS_NARROW,REG_COL_KEYS_NEGO_NARROW,REG_COL_W_NARROW,REG_COL_W_NEGO_NARROW,REG_NARROW_W,regNarrowTable,REG_COL_MIN_PX,regReopenAsk,
   /* the list inspector (26 Sep 2026) */
-  REG_COL_KEYS_INS,REG_COL_KEYS_NEGO_INS,REG_INS_COL_PX,regInspecting,regColKeys,regColKeysSeat,regInsSeat,regInsActs,regInsPaint,
+  REG_COL_KEYS_INS,REG_COL_KEYS_NEGO_INS,REG_INS_COL_PX,regInspecting,regColKeys,regColKeysSeat,regColKeysSeatAll,regSeeMoney,regMoneyCols,regMoneyW,regInsSeat,regInsActs,regInsPaint,
   regRowActsHtml,regRunRowAct,regOpenRow,regDisplayHtml,regCloseDisplay,REG_SOON_DAYS,regEndsSay,
   regColWidths,regColWidthsOwn,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
   REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,
@@ -5268,7 +5628,8 @@ Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regFol
   REG_CT_SEAT,REG_CT_VIEWS,REG_CT_QUICK,regCtQuickOf,REG_CT_FILTERS,regOnCt,regNeedsIds,regRowsCount,regCutCount,regCtViews,regCtFilterLists,regCtFilters,regCtRepaint,regCtToolsHtml,
   REG_CT_FIXED,REG_CT_COL_WORD,regCtShapeKeys,regCtColDefs,regCtHeadReg,regCtFootHtml,regHomeColW,regToolsWire,regToolsHtml,regWallRepaint,
   /* the Contracts place on Home (the overnight work order, step 7) */
-  REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,regStageTone,regStageMarkHtml,regSapMarkHtml,regSapMarkOf,regStageLineHtml,regNegoMarkHtml,regNegoLineHtml,regNegoClauseChips, regNegoClauseNames,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,REG_HOME_SPREAD,REG_COL_KEYS_HOME_WIDE,REG_COL_W_HOME_WIDE,REG_HOME_WIDE_W,regHomeWide,regHomeWatch,regPlaceSet,regPlaceUp,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});
+  REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,regStageTone,regStageMarkHtml,regSapMarkHtml,regSapMarkOf,regStageLineHtml,regNegoMarkHtml,regNegoLineHtml,regNegoClauseChips, regNegoClauseNames,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,REG_HOME_SPREAD,REG_COL_KEYS_HOME_WIDE,REG_COL_W_HOME_WIDE,REG_HOME_WIDE_W,regHomeWide,regHomeWatch,regPlaceSet,regPlaceUp,regFoldersNow,regFoldersSet,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale,regFolderSummaryData,
+  regLsSigned,regLsEnded,regLsStandOf,REG_LS_TONE,regLsFrame,regLsPanelPick,regLsWorkFirst,regLsSecs,regLsToneOfStatus,regLsBadgeHtml,regLsNeedWord,regLsEndOf,regLsEndsHtml,regLsQuoteHtml,regLsOwes,regLsOwesWords,regLsBarHtml,regLsDotsHtml,regLsNeedRowsHtml,regLsNextEnd,regLsListUp,regLsListPanelHtml,regLsWaitsOn,regLsDayMonth,regLsFolderShort,regCtLeadHtml,regSayEndQuote});
 
 /* ═══ NEGOTIATIONS, THE NEW LOOK (round 7, as drawn; behind the admin's "Try the new look") ═══
    One quiet list: whose move, the open asks quoted from the paper with their §, the lead, the last thing that
@@ -5276,16 +5637,38 @@ Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regFol
    panel reads the chosen row: their asks, what is unsent, the desk, the doors (each an existing one) and one line
    from Jambo. Every reading is the list's own (negoLiveList, negWhoseMove, regNegoCols, regNegoLeadOf), RAW. */
 let _ngn = 'live', _ngnSel = null, _ngnQ = '', _ngnNone = false;
+/* A REFRESH LANDS AT THE SAME SPOT (#762): the Negotiations list keeps its tab, its chosen round and the box's words
+   (carried inside the Negotiate page's own place, rlPlace) */
+function ngnPlace(){ return { tab: _ngn, sel: _ngnSel, q: _ngnQ }; }
+function ngnPlacePut(p){ if (!p) return; if (typeof p.tab === 'string') _ngn = p.tab; if (p.sel != null) _ngnSel = p.sel; if (typeof p.q === 'string') _ngnQ = p.q; }
 function ngnOn(){ return typeof window.newLookOn === 'function' && newLookOn() && typeof insFits === 'function' && insFits() && typeof insPaintPanel === 'function'; }
-function ngnBandOf(c){ let m = null; try { m = negWhoseMove(c); } catch (_){ m = null; } return !m ? 'settled' : m.k === 'you' ? 'you' : m.k === 'them' ? 'them' : 'settled'; }
+/* A DEAL OPENED AND NOTHING FILED YET (a working file opened to be redlined here; P-29 review, 22 Nov 2026) is listed
+   from the day it is opened: nothing is on the table, so the first round is ours to write — Your move, never Settled */
+function ngnNothingFiled(c){ const N = (c && c.negotiation) || {}; return !(Array.isArray(c && c.changes) && c.changes.length) && !(Array.isArray(N.rounds) && N.rounds.length); }
+function ngnBandOf(c){ let m = null; try { m = negWhoseMove(c); } catch (_){ m = null; }
+  if (m && m.k === 'clear' && ngnNothingFiled(c)) return 'you';
+  return !m ? 'settled' : m.k === 'you' ? 'you' : m.k === 'them' ? 'them' : 'settled'; }
+/* + Lead (P-29): the deals one colleague leads; a set chip with its × to let go */
+let _ngnLead = '';
+function ngnLeadChipHtml(all){
+  if (_ngnLead) return `<button type="button" class="apn-chip is-set" data-ngn-lead="">${esc(_ngnLead)} <span aria-hidden="true">\u00d7</span></button>`;
+  const L = [...new Set(all.map(r => r.lead && r.lead.name).filter(Boolean))];
+  if (!L.length) return '';
+  return `<span class="apn-rule-w"><button type="button" class="apn-chip is-add" data-ngn-lead-open aria-expanded="false">+ ${esc(i18t('ngn_c_lead'))}</button><span class="apn-rule-menu" hidden>${L.map(x => `<button type="button" data-ngn-lead="${esc(x)}">${esc(x)}</button>`).join('')}</span></span>`;
+}
 function ngnBook(){
   const rank = { you: 0, them: 1, settled: 2 };
   const all = (typeof negoLiveList === 'function' ? negoLiveList() : []).map(c => ({ c, b: ngnBandOf(c) }));
   const q = String(_ngnQ || '').trim().toLowerCase();
   const hit = x => !q || [x.c.name, x.c.counterparty, (window.contractRef ? contractRef(x.c) : x.c.id)].some(s => String(s || '').toLowerCase().includes(q));
-  const on = x => _ngn === 'live' ? true : _ngn === 'you' ? x.b === 'you' : _ngn === 'them' ? x.b === 'them' : x.b === 'settled';
+  /* Live is what is still argued: a settled deal is on Settled alone, so the chip's number is the list behind it (P-29, as drawn) */
+  const on = x => _ngn === 'live' ? x.b !== 'settled' : _ngn === 'you' ? x.b === 'you' : _ngn === 'them' ? x.b === 'them' : x.b === 'settled';
   const n = k => all.filter(x => k === 'live' ? x.b !== 'settled' : x.b === k).length;
-  return { all, n, list: all.filter(x => hit(x) && on(x)).sort((a, b) => (rank[a.b] - rank[b.b])) };
+  const led = x => { if (!_ngnLead) return true; try { return regNegoLeadOf(x.c).name === _ngnLead; } catch (_){ return false; } };
+  /* on our move, a deal whose asks wait on us comes first, the one waiting longest first (as drawn) */
+  const asked = x => (Array.isArray(x.c.changes) ? x.c.changes : []).some(ch => ch && ch.authorSide === 'counterparty' && ch.status === 'pending' && !ch.withdrawn) ? 0 : 1;
+  const since = x => String((x.c.negotiation && x.c.negotiation.turnAt) || x.c.lastAction || '');
+  return { all, n, list: all.filter(x => hit(x) && on(x) && led(x)).sort((a, b) => (rank[a.b] - rank[b.b]) || (a.b === 'you' ? (asked(a) - asked(b)) || since(a).localeCompare(since(b)) : 0)) };
 }
 /* the words their change puts on the paper, a few either side, never the whole clause */
 function ngnAskWords(ch){
@@ -5317,7 +5700,16 @@ function ngnInitials(name){ const p = String(name || '').trim().split(/\s+/).fil
 function ngnRead(x){
   const c = x.c, b = x.b, n = (c.negotiation && Number(c.negotiation.round)) || 1;
   let cols = { waiting: '—' }; try { cols = regNegoCols(c); } catch (_){ /* the row says less */ }
-  const asks = ngnTheirAsks(c), prep = ngnPrepared(c, asks), unsent = ngnUnsent(c);
+  const asks = ngnTheirAsks(c), prep = ngnPrepared(c, asks);
+  /* OURS IS NEVER THEIRS (P-29's check, 20 Nov 2026: our own unsent change was shown as their ask): what of ours has not
+     left (the Send all reading, rlUnsentList) and the answers we decided and have not sent (negoUnsentDecisions, RAW) are
+     counted apart from their asks; a send carries both */
+  let mine = []; try { mine = typeof rlUnsentList === 'function' ? rlUnsentList(c) : []; } catch (_){ mine = []; }
+  let decided = 0; try { decided = typeof negoUnsentDecisions === 'function' ? negoUnsentDecisions(c).length : 0; } catch (_){ decided = 0; }
+  const unsent = mine.length + decided;
+  /* what is still open with them on Their move: our changes that went and wait on their answer */
+  const mineIds = new Set(mine.map(ch => ch && ch.id));
+  const out = b === 'them' ? (Array.isArray(c.changes) ? c.changes : []).filter(ch => ch && ch.authorSide !== 'counterparty' && ch.status === 'pending' && !ch.withdrawn && !mineIds.has(ch.id)) : [];
   const all = Array.isArray(c.changes) ? c.changes : [];
   let ap = false; try { const s = window.approvalState ? approvalState(c) : null; ap = !!(s && s.required && !s.ok); } catch (_){ ap = false; }
   const round = b === 'you' ? i18t('ngn_round_theirs', { n }) : b === 'them' ? i18t('ngn_round_ours', { n }) : String(n);
@@ -5325,39 +5717,135 @@ function ngnRead(x){
   let open, sub = '';
   if (b === 'you' && asks.length){ open = { n: asks.length, quotes: asks.slice(0, 3).map(ch => ({ q: ngnAskWords(ch), s: ngnSecOf(ch), nm: ngnClauseNameOf(ch) })) };
     sub = prep && prep >= asks.length ? i18t('ngn_sub_prep') : unsent ? i18tn('ngn_sub_decided', unsent, { n: unsent }) : i18t('ngn_sub_answer'); }
-  else if (b === 'you'){ open = { n: 0, say: i18tn('ngn_open_decided', unsent || 0, { n: unsent || 0 }) }; }
+  /* a zero is never said as work (P-29's check: "your 0 answers are ready to send") */
+  else if (b === 'you'){ open = { n: 0, say: unsent ? i18tn('ngn_open_decided', unsent, { n: unsent }) : i18t('ngn_open_nothing') }; }
   else if (b === 'them'){ open = { n: 0, say: i18t('ngn_open_none_theirs') }; const d = ngnDayName((c.negotiation && c.negotiation.turnAt) || c.lastAction); sub = d ? i18t('ngn_sub_shared', { day: d }) : ''; }
   else { const acc = all.filter(ch => ch && ch.status === 'accepted').length;
     open = { n: 0, say: (all.length === 1 && acc === 1 ? i18t('ngn_open_as_sent') : i18tn('ngn_open_settled', all.length, { n: all.length })) + (ap ? i18t('ngn_open_in_approval') : '') }; }
-  let lastAt = '', lastSub = '';
-  if (b === 'you' && asks.length){ const L = asks.slice().sort((p, q) => String(q.createdAt || '').localeCompare(String(p.createdAt || '')))[0];
-    lastAt = L.createdAt || ''; lastSub = L.author ? i18t('ngn_last_round', { who: String(L.author).split(/\s+/)[0] }) : ''; }
-  else if (b === 'them'){ lastAt = (c.negotiation && c.negotiation.turnAt) || c.lastAction || ''; lastSub = i18t('ngn_last_sent'); }
-  else lastAt = (c.negotiation && c.negotiation.turnAt) || c.lastAction || '';
   let lead = { name: '', short: '—' }; try { lead = regNegoLeadOf(c); } catch (_){ /* nobody named */ }
-  return { c, b, round, move, open, sub, last: ngnWhen(lastAt), lastSub, lead, asks, prep, unsent, ap };
+  /* THE OPEN ASKS COLUMN, AS DRAWN: their asks on our move; on theirs, what of ours waits on their answer; settled none */
+  const openN = b === 'you' ? asks.length : b === 'them' ? out.length : 0;
+  /* the row's one line of the paper: their first ask, else what is open with them, else ours not sent (marked so) */
+  const first = b === 'you' && asks.length ? { ch: asks[0] } : b === 'them' && out.length ? { ch: out[0] } : b === 'you' && mine.length ? { ch: mine[0], ours: true } : null;
+  return { c, b, round, move, open, sub, wait: b === 'settled' ? '\u2014' : ngnWaitOf(c), lead, asks, prep, unsent, mine, decided, out, openN, first, ap };
 }
-function ngnRowHtml(r, sel){
+/* THE PAPER'S WORDS OF ONE CHANGE (P-29, as drawn): the whole sentence its new wording changes (the old one where it only
+   takes words away), as the paper says it — the row ends it in "…" where it runs long; nothing is invented */
+function ngnPaperWords(ch){
+  const plain = s => String(s || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+  const o = plain(ch && ch.oldText), n = plain(ch && ch.newText), src = n || o;
+  if (!src) return '';
+  let a = 0; if (n && o) while (a < o.length && a < n.length && o[a] === n[a]) a++;
+  const sents = src.match(/[^.!?;]+[.!?;]*/g) || [src];
+  let at = 0, pick = sents[0];
+  for (const s of sents){ if (a < at + s.length){ pick = s; break; } at += s.length; }
+  return pick.trim().replace(/[.;:,]+$/, '');
+}
+/* WAITING, FROM THE LATEST ACT OF EITHER SIDE (P-29 review, 22 Nov 2026): the hand-over, a change put on the table
+   (ours not sent included) or a change decided — whichever came last; said as the list says a wait */
+function ngnWaitOf(c){
+  const N = c.negotiation || {}, every = Array.isArray(c.changes) ? c.changes : [];
+  const at = [N.turnAt, ...every.map(ch => ch && ch.createdAt), ...every.map(ch => ch && ch.resolvedAt)].map(s => Date.parse(s || '')).filter(Number.isFinite);
+  const t = at.length ? Math.max(...at) : Date.parse(c.lastAction || '');
+  if (!Number.isFinite(t)) return '\u2014';
+  const d = Math.max(0, Math.floor((Date.now() - t) / 864e5));
+  return d === 0 ? i18t('home_today') : i18tn('ap_pg_days', d, { n: d });
+}
+/* what the change is, in a few words: its own short summary, else the clause's name */
+function ngnWhatOf(ch){ const s = String((ch && ch.summary) || '').trim(); return s && s.length <= 40 ? s : ngnClauseNameOf(ch); }
+function ngnDay(isoAt){ const t = Date.parse(isoAt || ''); if (!Number.isFinite(t)) return ''; return new Date(t).toLocaleDateString((typeof langLocale === 'function') ? langLocale() : 'en-GB', { day: 'numeric', month: 'short' }); }
+/* NEGOTIATIONS, THE LEGORA + STRIPE WAY (P-29, owner's pick 20 Nov 2026: "L+S and park it"; made to the drawing on every
+   tab 21 Nov 2026): one calm table — the Agreement (name; the other side and reference; the paper's words of the first
+   open ask with §, on one line; our own unsent change marked "yours, not sent", never as their ask) · Whose move (a soft
+   badge) · Rounds (a strip, one mark per round: green ours, blue theirs, the round in play ringed amber) · Open asks
+   (right) · Lead · Waiting (right) · the act, on the chosen row only, a green link. No money in a row, no amber "!". */
+function ngnBadgeOf(b){ return b === 'you' ? { tone: 'amber', w: i18t('ngn_tab_you') } : b === 'them' ? { tone: 'steel', w: i18t('ngn_tab_them') } : { tone: 'green', w: i18t('ngn_tab_settled') }; }
+function ngnBadgeHtml(b){
+  const bd = ngnBadgeOf(b);
+  /* a settled deal carries a tick, the two moves a dot (as drawn) */
+  const mk = b === 'settled' ? (typeof icon === 'function' ? icon('mkTick', 'apn-st-ic', 2.4) : '✓') : '<i></i>';
+  return `<span class="apn-st is-${bd.tone}">${mk}${esc(bd.w)}</span>`;
+}
+/* THE ROUNDS, READ OFF THE RECORD: every change carries the round it was filed in (roundN), the archived rounds keep
+   theirs; a round is the side that put it on the table; the one in play (not on a settled deal) is ringed. RAW. */
+function ngnRoundsOf(c, b){
+  const N = c.negotiation || {}, cur = Number(N.round) || 1;
+  const arch = Array.isArray(N.rounds) ? N.rounds : [];
+  const every = [].concat(...arch.map(rd => Array.isArray(rd && rd.changes) ? rd.changes : []), Array.isArray(c.changes) ? c.changes : []).filter(ch => ch && !ch.withdrawn);
+  const me = (typeof currentUser === 'function' && currentUser()) || {};
+  const L = [];
+  for (let k = Math.max(1, cur - 7); k <= cur; k++){
+    const inK = every.filter(ch => (Number(ch.roundN) || 1) === k);
+    const th = inK.filter(ch => ch.authorSide === 'counterparty'), ou = inK.filter(ch => ch.authorSide !== 'counterparty');
+    let side = th.length > ou.length ? 'theirs' : ou.length > th.length ? 'ours' : '';
+    if (!side && k === cur) side = b === 'you' && !ou.length ? 'theirs' : 'ours';
+    if (!side){ const ar = arch.find(rd => Number(rd && rd.n) === k); side = ar && ar.by && ar.by !== me.name ? 'theirs' : 'ours'; }
+    const own = side === 'theirs' ? th : ou;
+    const at = own.map(ch => String(ch.createdAt || '')).filter(Boolean).sort()[0] || '';
+    const by = own.length ? String(own[0].author || '') : '';
+    L.push({ n: k, side, at, by, mine: !by || by === me.name, now: k === cur && b !== 'settled' });
+  }
+  return L;
+}
+function ngnRoundsHtml(c, b){
+  const L = ngnRoundsOf(c, b);
+  return `<span class="ngn-rs" aria-label="${esc(i18tn('ngn_rounds_n', L.length, { n: L.length }))}">${L.map(x => `<i class="is-${x.side}${x.now ? ' is-now' : ''}" title="${esc(i18t(x.side === 'theirs' ? 'ngn_round_theirs' : 'ngn_round_ours', { n: x.n }))}"></i>`).join('')}</span>`;
+}
+/* the act on the chosen row: Answer (their asks wait) · Send (ours decided, unsent) · Remind (theirs to move) · Before you sign (settled) */
+function ngnActOf(r){
+  const c = r.c, E = esc;
+  const may = (typeof canEdit !== 'function' || canEdit()) && !(typeof window.deskMaySend === 'function' && !window.deskMaySend(c));
+  if (r.b === 'you' && r.unsent && !r.asks.length && may) return { label: i18t('ngn_act_send'), attr: `data-ngn-send="${E(c.id)}"` };
+  /* nothing of theirs to answer and nothing of ours waiting: the act is to open the redlines and write */
+  if (r.b === 'you' && !r.asks.length && !r.unsent) return { label: i18t('ngn_d_open'), attr: `data-ngn-open="${E(c.id)}"` };
+  if (r.b === 'you') return { label: i18t('ngn_act_answer'), attr: `data-ngn-open="${E(c.id)}"` };
+  if (r.b === 'them' && may) return { label: i18t('ngn_act_remind'), attr: `data-ngn-chase="${E(c.id)}"` };
+  if (r.b === 'settled') return { label: i18t('ngn_act_sign'), attr: `data-ngn-sign="${E(c.id)}"` };
+  return null;
+}
+/* the paper's words, its § and, where it is ours and has not gone, "yours, not sent" — one line, the words cut with "…" */
+function ngnQuoteLineHtml(f){
+  if (!f || !f.ch) return '';
+  const w = ngnPaperWords(f.ch), s = ngnSecOf(f.ch);
+  const tail = [s, f.ours ? i18t('ngn_yours_not_sent') : ''].filter(Boolean).join(' · ');
+  return `<div class="ngn-ql${f.ours ? ' is-ours' : ''}"><i>${w ? `“${esc(w)}”` : esc(ngnClauseNameOf(f.ch))}</i>${tail ? `<span>${esc(tail)}</span>` : ''}</div>`;
+}
+function ngnRowHtml(r, sel, keys){
   const c = r.c, E = esc, ref = window.contractRef ? contractRef(c) : c.id;
-  let money = ''; try { money = typeof fmtMoneyShortOf === 'function' && (!window.canViewValues || canViewValues()) ? fmtMoneyShortOf(c) : ''; } catch (_){ money = ''; }
-  const line = [E(c.counterparty || ''), `<b class="ngn-ref">${E(ref)}</b>`, money && money !== '—' ? E(money) : '', r.b === 'settled' ? E(i18t('ngn_settled_w')) : ''].filter(Boolean).join(' · ');
-  /* NAME THE CLAUSE (the harmony review, owner's yes 9 Nov 2026): an ask with no words of its own to quote says its
-     clause's number and name in the row's own font, never an empty pair of quote marks */
-  const open = r.open.n ? `${r.open.n} · ${r.open.quotes.map(q => q.q ? `<q class="ngn-q">${E(q.q)}</q>${q.s ? ` <span class="ngn-s">${E(q.s)}</span>` : ''}` : `<span class="ngn-nm">${E([q.s, q.nm].filter(Boolean).join(' '))}</span>`).join(' · ')}` : `0 · ${E(r.open.say)}`;
-  const nm = r.lead.name ? (r.lead.mine ? ngnShortName(r.lead.name) : ngnShortName(r.lead.name)) : '—';
+  const line = [E(c.counterparty || ''), `<b class="ngn-ref">${E(ref)}</b>`].filter(Boolean).join(' · ');
+  const nm = r.lead.name ? (r.lead.mine ? i18t('ng_you') : ngnShortName(r.lead.name)) : '—';
+  const act = sel ? ngnActOf(r) : null;
   return `<tr data-ngn-row="${E(c.id)}" class="${r.b === 'you' ? 'is-yours' : ''}${r.b === 'settled' ? ' is-settled' : ''}${sel ? ' is-sel' : ''}" tabindex="-1">`
-    + `<td>${listSapCellHtml(r.b === 'you' ? 'you' : r.b === 'them' ? 'them' : 'done', `<div class="cun-name">${E(c.name || '')}</div><div class="cun-sub">${line}</div>`, r.move)}</td>`
-    + `<td class="ngn-rd">${E(r.round)}</td>`
-    + `<td class="ngn-mv${r.b === 'you' ? ' is-you' : ''}">${E(r.move)}</td>`
-    + `<td><div class="ngn-open">${open}</div>${r.sub ? `<div class="cun-sub">${E(r.sub)}</div>` : ''}</td>`
-    + `<td>${r.lead.name ? `<span class="ngn-lead"><span class="ngn-av" aria-hidden="true">${E(ngnInitials(r.lead.name))}</span>${E(nm)}</span>` : '—'}</td>`
-    + `<td><div class="ngn-last">${E(r.last || '—')}</div>${r.lastSub ? `<div class="cun-sub">${E(r.lastSub)}</div>` : ''}</td></tr>`;
+    + `<td><div class="cun-name">${E(c.name || '')}</div><div class="cun-sub">${line}</div>${ngnQuoteLineHtml(r.first)}</td>`
+    + (keys || NGN_KEYS).map(k => k === 'move' ? `<td>${ngnBadgeHtml(r.b)}</td>`
+      : k === 'round' ? `<td>${ngnRoundsHtml(c, r.b)}</td>`
+      : k === 'asks' ? `<td class="ngn-n">${r.openN || '<span class="ngn-none">—</span>'}</td>`
+      : k === 'lead' ? `<td class="ngn-leadc">${r.lead.name ? `<span class="ngn-lead${r.lead.mine ? ' is-you' : ''}" title="${E(r.lead.name)}"><span class="ngn-av" aria-hidden="true">${E(ngnInitials(r.lead.name))}</span>${E(nm)}</span>` : '—'}</td>`
+      : k === 'last' ? `<td class="ngn-n ngn-wait">${E(r.wait || '—')}</td>`
+      : k === 'act' ? `<td class="ngn-act">${act ? `<button type="button" class="ngn-go" ${act.attr}>${E(act.label)}</button>` : ''}</td>` : '<td></td>').join('') + '</tr>';
+}
+/* THE NEW LOOK'S COLUMNS UNDER THE ONE COLUMN RULE (listCols; #762, 17 Nov 2026): the old list's seat, so a reader's
+   dragged widths carry over */
+const NGN_KEYS = ['move', 'round', 'asks', 'lead', 'last', 'act'];
+function ngnCols(){
+  /* P-29: Whose move · Rounds · Open asks · Lead · Waiting · the act; where the room is short Rounds steps aside first, then Lead */
+  const W = { move: 116, round: 92, asks: 84, lead: 100, last: 80, act: 116 }, R = { round: 1, lead: 2 };
+  const T = { name: 'ngn_c_agreement', round: 'ngn_c_rounds', move: 'ngn_c_move', asks: 'ngn_c_open_asks', lead: 'ngn_c_lead', last: 'ngn_c_waiting' };
+  const DEFS = [{ k: 'name' }, ...NGN_KEYS.map(k => ({ k, w: W[k], rank: R[k] }))];
+  const FIT = typeof listCols === 'function' ? listCols(REG_NEGO_SEAT, DEFS, () => ngnRepaint()) : { cols: DEFS };
+  const cols = FIT.cols;
+  return { keys: cols.slice(1).map(c => c.k),
+    colg: `<colgroup>${cols.map(c => typeof listColTag === 'function' ? listColTag(c, true) : `<col${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}>`).join('')}</colgroup>`,
+    th: `<thead><tr>${cols.map(c => `<th${c.k === 'asks' || c.k === 'last' ? ' class="ngn-n"' : c.k === 'lead' ? ' class="ngn-leadc"' : ''}>${c.k === 'act' ? '' : esc(i18t(T[c.k]))}${typeof listGripHtml === 'function' && c.k !== 'act' ? listGripHtml(REG_NEGO_SEAT, c.k) : ''}</th>`).join('')}</tr></thead>` };
 }
 /* the page in Jambo's words, counted from the list: whose answers wait, who holds our paper */
 function ngnPageSay(rows){
   const parts = [];
   rows.filter(r => r.b === 'you').slice(0, 2).forEach(r => { const p = r.c.counterparty || r.c.name;
-    parts.push(r.asks.length ? (r.prep >= r.asks.length ? i18tn('ngn_say_prep', r.asks.length, { p, n: r.asks.length }) : i18tn('ngn_say_wait', r.asks.length, { p, n: r.asks.length })) : i18t('ngn_say_decided', { p })); });
+    /* OURS IS NEVER CALLED AN ANSWER (P-29 review, 22 Nov 2026): our own change not sent is said as ours, read as the
+       table reads it (r.mine, r.decided: ngnRead) */
+    parts.push(r.asks.length ? (r.prep >= r.asks.length ? i18tn('ngn_say_prep', r.asks.length, { p, n: r.asks.length }) : i18tn('ngn_say_wait', r.asks.length, { p, n: r.asks.length }))
+      : r.decided ? i18t('ngn_say_decided', { p }) : r.mine.length ? i18t('ngn_say_mine', { p }) : i18t('ngn_say_decided', { p })); });
   rows.filter(r => r.b === 'them').slice(0, 2).forEach(r => { parts.push(i18t('ngn_say_theirs', { p: r.c.counterparty || r.c.name, day: ngnDayName((r.c.negotiation && r.c.negotiation.turnAt) || r.c.lastAction) })); });
   if (!parts.length) return i18t('ngn_say_none');
   const s = parts.join('; '); return s.charAt(0).toUpperCase() + s.slice(1) + '.';
@@ -5391,40 +5879,89 @@ function ngnPanelHtml(r, rows){
   return `<div class="pd2-chosen cun-panel ngn-panel"><p class="pd2-ch-head">${E(ngnPageSay(rows))}</p><div class="pd2-ch-cap">${E(c.name || '')}</div><div class="pd2-ch-tbl">${rowsH}</div>`
     + `<div class="pd2-ch-cap">${E(i18t('pd2_ch_doors'))}</div>${doors}${turn}</div>`;
 }
+/* THE TIMELINE, READ OFF THE RECORD (P-29, as drawn): who put each round on the table and when (the round each change
+   was filed in, roundN, and its day; our round in play on its hand-over, turnAt); on their move, the day they opened our
+   link (the link's own first-opened stamp, read from the shares this page keeps: counterpartySeenState); then what
+   waits — their asks on us, our answer not sent, their answer — or, settled, the day both sides agreed. Nothing is
+   guessed: a step whose day is not on the record is said without one. */
+function ngnTimelineOf(r){
+  const c = r.c, N = c.negotiation || {}, p = c.counterparty || '', cur = Number(N.round) || 1;
+  const L = [];
+  ngnRoundsOf(c, r.b).forEach(x => {
+    if (x.side === 'theirs'){ L.push({ tone: 'steel', t: i18t('ngn_tl_sent', { who: x.by || p, n: x.n }), s: ngnDay(x.at) }); return; }
+    if (x.n === cur && r.b === 'you') return;
+    const at = x.n === cur && N.turn === 'counterparty' && N.turnAt ? N.turnAt : x.at;
+    L.push({ tone: 'accent', t: x.mine ? i18t('ngn_tl_you_sent', { n: x.n }) : i18t('ngn_tl_sent', { who: x.by, n: x.n }), s: ngnDay(at) });
+  });
+  if (r.b === 'them'){
+    let seen = null; try { seen = typeof sharesKnown === 'function' && sharesKnown(c) && typeof counterpartySeenState === 'function' ? counterpartySeenState(c, cachedShares(c)) : null; } catch (_){ seen = null; }
+    if (seen && seen.kind === 'opened') L.push({ tone: 'steel', t: i18t('ngn_tl_opened', { p: p || seen.who }), s: ngnDay(seen.at) });
+    L.push({ tone: 'next', t: i18t('ngn_tl_their_answer'), s: i18t('ngn_tl_waiting') });
+  } else if (r.b === 'you'){
+    if (r.asks.length) L.push({ tone: 'amber', t: i18t('ngn_tl_wait_you'), s: r.wait && r.wait !== '—' ? r.wait : '' });
+    /* our own change not sent (nothing of theirs waits): the day we drafted it, then that it has not gone (P-29 review) */
+    if (!r.asks.length && !r.decided && r.mine.length){ const d = r.mine.map(ch => String((ch && ch.createdAt) || '')).filter(Boolean).sort().pop() || '';
+      L.push({ tone: 'accent', t: i18t('ngn_tl_drafted'), s: ngnDay(d) }); }
+    if (ngnNothingFiled(c)) L.push({ tone: 'next', t: i18t('ngn_tl_first'), s: i18t('ngn_tl_not_written') });
+    else L.push({ tone: 'next', t: i18t(r.asks.length || r.decided ? 'ngn_tl_your_answer' : 'ngn_tl_your_changes'), s: i18t('ngn_tl_not_sent') });
+  } else {
+    const arch = Array.isArray(N.rounds) ? N.rounds : [];
+    const every = [].concat(...arch.map(rd => Array.isArray(rd && rd.changes) ? rd.changes : []), Array.isArray(c.changes) ? c.changes : []);
+    const at = every.map(ch => String((ch && ch.resolvedAt) || '')).filter(Boolean).sort().pop() || '';
+    L.push({ tone: 'green', t: i18t('ngn_tl_agreed'), s: ngnDay(at) });
+  }
+  return L;
+}
+/* their move's timeline says the day they opened our link: the shares are read once for the deal shown, then drawn again */
+const _ngnSharesAsked = new Set();
+function ngnWarmShares(c){
+  if (!c || _ngnSharesAsked.has(String(c.id)) || typeof ensureSharesCached !== 'function' || (typeof sharesKnown === 'function' && sharesKnown(c))) return;
+  _ngnSharesAsked.add(String(c.id));
+  try { Promise.resolve(ensureSharesCached(c)).then(() => { if (String(_ngnSel) === String(c.id) && document.querySelector('.ngn-page')) ngnRepaint(); }).catch(() => {}); } catch (_){ /* the timeline says less */ }
+}
 function ngnPanelFiveHtml(r, rows){
   const E = esc, live = rows.filter(x => x.b !== 'settled'), you = rows.filter(x => x.b === 'you'), them = rows.filter(x => x.b === 'them');
-  const may = typeof canEdit !== 'function' || canEdit();
+  /* Send and Remind reach the other side: the negotiation's lead's act (deskMaySend), never a Viewer's (Round C) — read
+     by ngnActOf, the chosen row's and the panel's one act */
   /* THE PANEL IS THE ROW YOU PRESSED (owner, 16 Nov 2026: "the side panel information should reflect the contract you
      have pressed"; the page's totals stood on top and the pressed round's facts under them, so a press seemed to do
      nothing): its name the headline, its three numbers, its facts, its one black button. The page's own overview is
      one press back (the tab, "‹ Overview"), and there a row CHOOSES as a row of the list does (data-ngn-pick). */
   if (r){
+    /* THE CHOSEN DEAL'S PANEL, AS DRAWN (P-29, owner's pick 20 Nov 2026; made to the drawing 21 Nov 2026): NO CARDS AND NO
+       MONEY — three parts split by one hairline: the whose-move badge, the name, the other side and reference, Round ·
+       Open asks · the rounds strip, the act (black) and Open the redlines on one line; their asks (or, on their move,
+       what is still open with them; on ours, our own not sent) in the paper's words with § and what each is; a timeline,
+       a dot a step, ending in what comes next */
     const c = r.c, ref = window.contractRef ? contractRef(c) : c.id;
-    let money = ''; try { money = typeof fmtMoneyShortOf === 'function' && (!window.canViewValues || canViewValues()) ? fmtMoneyShortOf(c) : ''; } catch (_){ money = ''; }
-    const secs = [...new Set(r.asks.map(ngnSecOf).filter(Boolean))].join(' \u00b7 ');
-    const facts = [];
-    if (r.asks.length) facts.push({ t: i18t('ngn_p_asks'), s: [r.prep >= r.asks.length ? i18tn('ngn_p_asks_prep', r.asks.length, { n: r.asks.length }) : i18tn('ngn_p_asks_open', r.asks.length, { n: r.asks.length }), secs].filter(Boolean).join(' \u00b7 '), wrap: true });
-    else if (r.b === 'them') facts.push({ t: i18t('ngn_p_asks'), s: i18t('ngn_open_none_theirs'), wrap: true });
-    if (r.unsent) facts.push({ t: i18t('ngn_p_unsent'), s: i18tn('ngn_p_unsent_v', r.unsent, { n: r.unsent }), wrap: true });
-    else if (r.b === 'them') facts.push({ t: i18t('ngn_p_sent'), s: r.sub || '\u2014', wrap: true });
-    const contrib = (typeof deskContributors === 'function' ? deskContributors(c) : []).map(p => String(p.name || '').split(/\s+/)[0]).filter(Boolean);
-    if (r.lead.name) facts.push({ t: i18t('ngn_p_desk'), s: contrib.length ? i18tn('ngn_p_desk_v', contrib.length, { lead: String(r.lead.name).split(/\s+/)[0], who: contrib.join(', ') }) : i18t('ngn_p_desk_lead', { lead: String(r.lead.name).split(/\s+/)[0] }), wrap: true });
     const n = (c.negotiation && Number(c.negotiation.round)) || 1;
-    const say = String(r.sub || (r.open && r.open.say) || ''); const sub = say ? say.charAt(0).toUpperCase() + say.slice(1) + (/[.!?]$/.test(say) ? '' : '.') : '';
-    const chase = r.b === 'them' && may ? { label: i18t('ngn_d_chase', { p: c.counterparty || c.name }), attr: `data-ngn-chase="${E(c.id)}"` } : null;
-    const o = { eyebrow: [c.counterparty || '', ref, money && money !== '\u2014' ? money : ''].filter(Boolean).join(' \u00b7 '), title: c.name || '', sub,
-      glance: [{ n: r.unsent || 0, l: i18tn('ngn5c_g_unsent', r.unsent || 0, { n: r.unsent || 0 }), warn: r.unsent > 0 }, { n: r.asks.length, l: i18tn('ngn5c_g_asks', r.asks.length, { n: r.asks.length }), warn: r.asks.length > 0 }, { n, l: i18t('ngn5c_g_round') }],
-      groups: facts.length ? [{ label: '', rows: facts }] : [],
-      act: { label: i18t('ngn_d_open'), attr: `data-ngn-open="${E(c.id)}"`, link: r.unsent && may ? { label: i18tn('ngn_d_send', r.unsent, { n: r.unsent }), attr: `data-ngn-send="${E(c.id)}"` } : chase }, src: false };
-    return `<div class="ngn-panel jl-words is-ov" data-ngn-for="${E(c.id)}">${jamboOverviewHtml(o, 'ngn')}</div>`;
+    const act = ngnActOf(r);
+    const open = { label: i18t('ngn_d_open'), attr: `data-ngn-open="${E(c.id)}"` };
+    const black = act && act.attr !== open.attr ? act : (act || open);
+    const acts = `<div class="ngn5-acts"><button type="button" class="ngn5-k" ${black.attr}>${E(black.label)}</button>${black === open ? '' : `<button type="button" class="ngn-go" ${open.attr}>${E(open.label)}</button>`}</div>`;
+    const head = `<section class="ngn5-sec"><div class="ngn5-tag">${ngnBadgeHtml(r.b)}</div><div class="ngn5-t">${E(c.name || '')}</div>`
+      + `<div class="ngn5-s">${E(c.counterparty || '')}${c.counterparty ? ' · ' : ''}<span class="ngn5-ref">${E(ref)}</span></div>`
+      + `<div class="ngn5-figs"><span><small>${E(i18t('ngn5_fig_round'))}</small><b>${n}</b></span><span><small>${E(i18t('ngn_c_open_asks'))}</small><b class="${r.b === 'you' && r.openN ? 'is-amber' : ''}">${r.openN}</b></span><span><small>${E(i18t('ngn_c_rounds'))}</small>${ngnRoundsHtml(c, r.b)}</span></div>${acts}</section>`;
+    /* the words: theirs on our move; ours not sent where nothing of theirs waits (said as ours); what waits on them on theirs */
+    const list = r.b === 'you' && r.asks.length ? { h: 'ngn_p_their_asks', L: r.asks } : r.b === 'you' && r.mine.length ? { h: 'ngn_p_yours', L: r.mine, ours: true } : r.b === 'them' && r.out.length ? { h: 'ngn_p_still_open', L: r.out } : null;
+    const words = list ? `<section class="ngn5-sec"><h4 class="ngn5-h">${E(i18t(list.h))}</h4>${list.L.slice(0, 4).map(ch => { const w = ngnPaperWords(ch);
+      return `<button type="button" class="ngn5-q" data-ngn-open="${E(c.id)}">${w ? `“${E(w)}”` : E(ngnClauseNameOf(ch) || '—')}</button><div class="ngn5-qs">${E([ngnSecOf(ch), ngnWhatOf(ch), list.ours ? i18t('ngn_yours_not_sent') : ''].filter(Boolean).join(' · '))}</div>`; }).join('')}${list.L.length > 4 ? `<div class="ngn5-qs">${E(i18tn('ngn5_more', list.L.length - 4, { n: list.L.length - 4 }))}</div>` : ''}</section>` : '';
+    const tl = ngnTimelineOf(r);
+    const time = `<section class="ngn5-sec"><h4 class="ngn5-h">${E(i18t('apn5_timeline'))}</h4><ul class="ngn5-tl">${tl.map(x => `<li class="is-${x.tone}"><i aria-hidden="true"></i><span>${E(x.t)}${x.s ? ` <small>· ${E(x.s)}</small>` : ''}</span></li>`).join('')}</ul></section>`;
+    return `<div class="ngn-panel jl-words is-ov" data-ngn-for="${E(c.id)}"><div class="ngn5">${head}${words}${time}</div></div>`;
   }
-  const pick = x => ({ mark: 'alert', tone: x.b === 'you' ? 'amber' : '', t: x.c.name || '', s: [x.c.counterparty || '', x.unsent ? i18tn('ngn5_unsent', x.unsent, { n: x.unsent }) : (x.open && x.open.n ? i18tn('ngn5_asks', x.open.n, { n: x.open.n }) : '')].filter(Boolean).join(' \u00b7 '), v: x.move || '', attr: `data-ngn-pick="${E(x.c.id)}"` });
+  /* THE PAGE'S OVERVIEW, DRAWN AS THE CHOSEN DEAL'S PANEL IS (P-29 review, 22 Nov 2026): no number tiles and no "!"
+     marks — the headline, the page in one sentence, the tabs as a line of links with their counts, then plain rows naming
+     the work of each deal (their asks open · our changes not sent · our answers not sent), each choosing its deal */
+  const work = x => x.asks.length ? i18tn('ngn5_asks', x.asks.length, { n: x.asks.length }) : x.decided ? i18tn('ngn5_unsent', x.decided, { n: x.decided })
+    : x.mine.length ? i18tn('ngn5_mine', x.mine.length, { n: x.mine.length }) : x.b === 'them' ? i18tn('ngn5_out', x.out.length, { n: x.out.length }) : '';
+  const row = x => `<button type="button" class="ngn5-row" data-ngn-pick="${E(x.c.id)}"><span class="ngn5-rt"><b>${E(x.c.name || '')}</b><span>${E([x.c.counterparty || '', work(x)].filter(Boolean).join(' \u00b7 '))}</span></span><span class="ngn5-rv">${E(x.wait && x.wait !== '\u2014' ? x.wait : '')}</span></button>`;
   const title = you.length ? i18tn('ngn5_t_you', you.length, { n: you.length }) : them.length ? i18tn('ngn5_t_them', them.length, { n: them.length }) : i18t('ngn_say_none');
-  const first = you.length ? you : them;
-  const o = { eyebrow: i18t('ng_door_title'), title, sub: ngnPageSay(rows),
-    glance: [{ n: live.length, l: i18t('ngn5_g_live'), attr: 'data-ngn-gotab="live"' }, { n: you.length, l: i18t('ngn5_g_you'), warn: you.length > 0, attr: you.length ? 'data-ngn-gotab="you"' : '' }, { n: them.length, l: i18t('ngn5_g_them'), attr: them.length ? 'data-ngn-gotab="them"' : '' }],
-    groups: first.length ? [{ label: i18t(you.length ? 'ngn5_g_yours' : 'ngn5_g_them'), rows: first.slice(0, 4).map(pick) }] : [], src: false };
-  return `<div class="ngn-panel jl-words is-ov" data-ngn-for="">${jamboOverviewHtml(o, 'ngn')}</div>`;
+  const links = [['live', i18t('ngn_tab_live'), live.length], ['you', i18t('ngn_tab_you'), you.length], ['them', i18t('ngn_tab_them'), them.length]].filter(t => t[2] || t[0] === 'live')
+    .map(t => `<button type="button" class="ngn-go" data-ngn-gotab="${t[0]}">${E(t[1])} ${t[2]}</button>`).join('');
+  const part = (h, L) => L.length ? `<section class="ngn5-sec"><h4 class="ngn5-h">${E(h)}</h4><div class="ngn5-rows">${L.slice(0, 4).map(row).join('')}</div></section>` : '';
+  return `<div class="ngn-panel jl-words is-ov" data-ngn-for=""><div class="ngn5 is-ov"><section class="ngn5-sec"><div class="ngn5-s">${E(i18t('ng_door_title'))}</div><div class="ngn5-t is-head">${E(title)}</div>`
+    + `<p class="ngn5-say">${E(ngnPageSay(rows))}</p><div class="ngn5-acts">${links}</div></section>${part(i18t('ngn_tab_you'), you)}${part(i18t('ngn_tab_them'), them)}</div></div>`;
 }
 function ngnRender(host){
   const B = ngnBook(), rows = B.list.map(ngnRead), all = B.all.map(ngnRead);
@@ -5432,20 +5969,23 @@ function ngnRender(host){
   if (_ngnSel && !rows.some(r => String(r.c.id) === String(_ngnSel))) _ngnSel = null;
   if (!_ngnSel && !_ngnNone){ const y = rows.find(r => r.b === 'you'); _ngnSel = (y || rows[0] || {}).c ? (y || rows[0]).c.id : null; }
   const live = B.n('live'), you = B.n('you');
-  const facts = [i18tn('ngn_hf_live', live, { n: live }), you ? i18tn('ngn_hf_you', you, { n: you }) : ''].filter(Boolean).join(' · ');
   const tabs = [['live', i18t('ngn_tab_live'), live], ['you', i18t('ngn_tab_you'), you], ['them', i18t('ngn_tab_them'), B.n('them')], ['settled', i18t('ngn_tab_settled'), B.n('settled')]];
+  const C = ngnCols();
+  /* AN HONEST FILTER (owner, 22 Nov 2026): the box narrows the list and says only that; questions are Jambo's, in his box */
+  const askPh = i18t('lh_filter_ph');
   host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page ngn-page" data-ins-page="negotiations" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
-      <div class="cun-head"><h2 class="ctf-h">${esc(i18t('ng_door_title'))}</h2><span class="ctf-hf">${esc(facts)}</span><span class="ctf-sp"></span></div>
-      <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ngn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(_ngnQ)}"></label><span class="apn-sp"></span>
-        ${tabs.filter(t => t[2] || t[0] === 'live' || t[0] === _ngn).map(t => `<button type="button" class="apn-tab${_ngn === t[0] ? ' is-on' : ''}" data-ngn-tab="${t[0]}">${esc(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
-      <div class="cu-scroll"><table class="apn-table cun-table ngn-table"><colgroup><col style="width:26%"><col style="width:9%" data-floor="64"><col style="width:13%" data-floor="104"><col style="width:24%"><col style="width:14%" data-floor="112"><col data-floor="84"></colgroup>
-        <thead><tr><th>${esc(i18t('ngn_c_agreement'))}</th><th>${esc(i18t('ngn_c_round'))}</th><th>${esc(i18t('ngn_c_move'))}</th><th>${esc(i18t('ngn_c_asks'))}</th><th>${esc(i18t('ngn_c_lead'))}</th><th>${esc(i18t('ngn_c_last'))}</th></tr></thead>
-        <tbody>${rows.map(r => ngnRowHtml(r, String(r.c.id) === String(_ngnSel))).join('')}</tbody></table>${rows.length ? '' : `<p class="apn-none">${esc(i18t('ng_door_none'))}</p>`}</div>
-      <div class="apn-foot rdn-foot"><span>${esc(i18tn('ngn_foot', all.length, { n: all.length, live }))}</span><span></span></div>
+      <div class="cun-head"><h2 class="ctf-h">${esc(i18t('ng_door_title'))}</h2><span class="ctf-sp"></span>${(typeof canEdit !== 'function' || canEdit()) ? `<button type="button" class="ui-btn ngn-start" data-ngn-start>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5', 2) : ''}${esc(i18t('ngn_start'))}</button>` : ''}</div>
+      <label class="apn-ask is-filter">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ngn-q" type="search" autocomplete="off" placeholder="${esc(askPh)}" aria-label="${esc(askPh)}" value="${esc(_ngnQ)}"></label>
+      <div class="apn-bar" data-lh-seat="negotiations-nl">${tabs.filter(t => t[2] || t[0] === 'live' || t[0] === _ngn).map(t => `<button type="button" class="apn-tab is-chip${_ngn === t[0] ? ' is-on' : ''}" data-ngn-tab="${t[0]}">${t[0] === 'you' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${esc(t[1])} <span>${t[2]}</span></button>`).join('')}${ngnLeadChipHtml(all)}</div>
+      <div class="cu-scroll"><table class="apn-table cun-table ngn-table" data-list-seat="${esc(REG_NEGO_SEAT)}">${C.colg}
+        ${C.th}
+        <tbody>${rows.map(r => ngnRowHtml(r, String(r.c.id) === String(_ngnSel), C.keys)).join('')}</tbody></table>${rows.length ? '' : `<p class="apn-none">${esc(i18t('ng_door_none'))}</p>`}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
   const r = rows.find(x => String(x.c.id) === String(_ngnSel)) || null;
   const five = typeof jamboOverviewHtml === 'function' && typeof newLookOn === 'function' && newLookOn();
+  /* their move's timeline names the day they opened our link: the deal's shares are read once, then drawn again */
+  if (r && r.b === 'them') ngnWarmShares(r.c);
   if (r) insPaintPanel({ seat: 'negotiations', jlWord: i18t('ng_door_title'), item: { id: String(r.c.id) }, head: false, tabCount: live, body: ngnPanelHtml(r, all) });
   /* nothing chosen (the tab's way back): the page's own overview, its rows choosing as the list's rows do */
   else if (five && rows.length) insPaintPanel({ seat: 'negotiations', jlWord: i18t('ng_door_title'), item: { id: '' }, solo: true, head: false, tabCount: live, body: ngnPanelFiveHtml(null, all) });
@@ -5466,18 +6006,26 @@ if (typeof document !== 'undefined' && !document._ngnWired){ document._ngnWired 
     const t = e.target && e.target.closest ? e.target : null; if (!t) return; let el;
     if (!t.closest('.ngn-page') && !t.closest('#ins-panel .ngn-panel')) return;
     /* the page's tabs, and the panel's three numbers (their own attribute, so nothing that counts the page's tabs counts them) */
+    if ((el = t.closest('[data-ngn-lead-open]'))){ e.preventDefault(); const m = el.parentNode.querySelector('.apn-rule-menu'); if (m){ const show = m.hidden; m.hidden = !show; el.setAttribute('aria-expanded', String(show)); } return; }
+    if ((el = t.closest('[data-ngn-lead]'))){ e.preventDefault(); _ngnLead = el.getAttribute('data-ngn-lead') || ''; ngnRepaint(); return; }
+    if ((el = t.closest('[data-ngn-start]'))){ e.preventDefault(); if (typeof openNewDoors === 'function') openNewDoors(); return; }
+    if ((el = t.closest('[data-ngn-sign]'))){ e.preventDefault(); const id = el.getAttribute('data-ngn-sign'); if (typeof pdOpenOnHome === 'function') pdOpenOnHome(id, 'sign'); else if (typeof openRedlineWorkbench === 'function') openRedlineWorkbench(id); return; }
     if ((el = t.closest('[data-ngn-tab], [data-ngn-gotab]'))){ e.preventDefault(); _ngn = el.getAttribute('data-ngn-tab') || el.getAttribute('data-ngn-gotab'); ngnRepaint(); return; }
     if ((el = t.closest('[data-ngn-open]'))){ e.preventDefault(); if (typeof openRedlineWorkbench === 'function') openRedlineWorkbench(el.getAttribute('data-ngn-open')); return; }
     if ((el = t.closest('[data-ngn-send]'))){ e.preventDefault(); const c = getContract(el.getAttribute('data-ngn-send')); if (c && typeof pdSendWaiting === 'function') pdSendWaiting(c); return; }
-    if ((el = t.closest('[data-ngn-chase]'))){ e.preventDefault(); const c = getContract(el.getAttribute('data-ngn-chase')); if (c && typeof openShareModal === 'function') openShareModal(c); return; }
+    /* Remind is the one Remind (the Dossier's waiting card's, shareSendAgainRun): their last link sent again, said the same way */
+    if ((el = t.closest('[data-ngn-chase]'))){ e.preventDefault(); const c = getContract(el.getAttribute('data-ngn-chase')); if (!c) return;
+      if (typeof shareSendAgainRun === 'function') shareSendAgainRun(c, el, () => ngnRepaint()); else if (typeof openShareModal === 'function') openShareModal(c); return; }
     /* ONE RULE FOR EVERY PRESS: a row chooses, in the list and in the panel alike; the chosen row pressed again opens */
     if ((el = t.closest('[data-ngn-pick]'))){ e.preventDefault(); _ngnSel = el.getAttribute('data-ngn-pick'); _ngnNone = false; ngnRepaint(); return; }
     if ((el = t.closest('[data-ngn-row]'))){ const id = el.getAttribute('data-ngn-row');
       if (String(id) === String(_ngnSel)){ if (typeof openRedlineWorkbench === 'function') openRedlineWorkbench(id); return; }
       _ngnSel = id; _ngnNone = false; ngnRepaint(); }
   });
+  /* AN HONEST FILTER (owner, 22 Nov 2026): typing narrows the list to the deals it names; a question is Jambo's, asked in
+     his box at the side panel's foot */
   document.addEventListener('input', e => { if (!e.target || e.target.id !== 'ngn-q') return;
     _ngnQ = e.target.value; ngnRepaint(); const q = document.getElementById('ngn-q'); if (q){ q.focus(); const k = q.value.length; try { q.setSelectionRange(k, k); } catch (_){} } });
 }
-Object.assign(window,{ngnPanelFiveHtml,ngnOn,ngnRender,ngnRead,ngnBook,ngnAskWords,ngnRepaint});
+Object.assign(window,{ngnPanelFiveHtml,ngnOn,ngnRender,ngnRead,ngnBook,ngnAskWords,ngnRepaint,ngnBandOf});
 Object.assign(window,{regFolderSays,RFP_SOON_DAYS,regGlanceEnds,regGlanceMoney,regFolderGlanceHtml,regFoldersGlanceHtml,RFG_MONTHS,RFG_DOTS,RFG_BARS});

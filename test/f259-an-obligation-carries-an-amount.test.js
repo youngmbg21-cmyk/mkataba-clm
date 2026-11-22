@@ -91,7 +91,8 @@ describe('f259 (3) — money obeys the permission the product already has', () =
     assert.match(OB_CODE, /\$\{money \? `<span class="obt-amt/, 'the tab column');
     assert.match(OB_CODE, /\$\{money \? `<td class="obw-amt/, 'the worklist column');
     assert.match(OB_CODE, /const foot = \(\(\) => \{\s*if\(!money\) return '';/, 'and the foot total');
-    assert.match(OB_CODE, /\$\{obligationMoneyVisible\(\) \? `<label/, 'and the form’s own row');
+    /* RE-POINTED 19 Nov 2026 (the one edit pop-up, two steps): the row is drawn through the sheet's line() */
+    assert.match(OB_CODE, /\$\{obligationMoneyVisible\(\) \? line\(i18t\('ob_amount'\)/, 'and the form’s own row');
   });
 
   test('and opening an obligation without the permission does not erase its figure', () => {
@@ -111,7 +112,10 @@ describe('f259 (4) — the dialog draws everything it drew before', () => {
        this?" comes FIRST, because it decides what follows; every other field
        keeps its label and its order. The description is asked as the
        drawing words it, "What has to be done?" (ob_what_done). */
-    const order = ['ob_whose', 'ob_what_done', 'ob_due_date', 'ob_recurring', 'ob_amount', 'ob_assign_to'];
+    /* RE-POINTED 19 Nov 2026 (the one edit pop-up, owner: "Build 1", as drawn): two steps — 1 The duty (whose, what,
+       due, repeats, who on our side), 2 Money and proof (the amount, the document) — so Assign to now closes step 1
+       and the amount opens step 2. Every field is still drawn. */
+    const order = ['ob_whose', 'ob_what_done', 'ob_due_date', 'ob_recurring', 'ob_assign_to', 'ob_amount'];
     let at = -1;
     for (const k of order) {
       const i = dlg.indexOf(`i18t('${k}')`);
@@ -138,8 +142,9 @@ describe('f259 (4) — the dialog draws everything it drew before', () => {
        party painter touches it. */
     /* RE-POINTED 10 Oct 2026: the toggle moved to the top, so the amount is now
        drawn AFTER it — and still outside the one wrapper the toggle hides. */
-    const wrapAt = dlg.indexOf('id="of-assignee-wrap"');
-    assert.ok(dlg.indexOf("id=\"of-amount\"") > 0 && dlg.indexOf("id=\"of-amount\"") < wrapAt,
+    /* RE-POINTED 19 Nov 2026: the amount is drawn in step 2, after the wrapper Assign to lives in, so still outside it */
+    const wrapAt = dlg.indexOf("{ id:'of-assignee-wrap'"), stepTwo = dlg.indexOf('<div id="of-step-2"');
+    assert.ok(wrapAt > 0 && stepTwo > wrapAt && dlg.indexOf("id=\"of-amount\"") > stepTwo,
       'the amount is drawn outside Assign to, so no branch can hide it');
     const paint = OB_CODE.slice(OB_CODE.indexOf('const paintParty=()=>{'), OB_CODE.indexOf('document.querySelectorAll(\'[data-of-party]\')'));
     assert.ok(!/of-amount/.test(paint), 'and the toggle’s painter never touches it');

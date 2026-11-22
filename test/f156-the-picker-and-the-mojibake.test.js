@@ -123,7 +123,11 @@ describe('f156 · the picker is visible', () => {
        pass, because WCAG 1.4.11 wants 3:1 on a control's own boundary and the
        divider measures about 1.3:1 — a field edge nobody can see is not an
        edge. Pinned as the TOKEN, not as a colour, so the next retune is free. */
-    assert.match(field, /border:1px solid var\(--field-line\)/, 'it has the house field border');
+    /* RE-POINTED 19 Nov 2026 (owner: every entry field open, the Legora way): the house field is no longer a box;
+       the claim stays — it wears the HOUSE field look, read from the --fld-* tokens, not an invented one. */
+    /* RE-POINTED 20 Nov 2026 (f1117): the ask moved onto the ONE edit pop-up, where a field is the sheet's own line
+       (lgp-in: no box, the divider under the row) — still the house look, never an invented one. */
+    assert.match(field, /class="lgp-in"/, 'it has the house field look');
     assert.match(field, /role="combobox"/, 'and it is a combobox, not a bare select');
     assert.ok(!/<select id="rv-who"/.test(html), 'the scrolling list is gone');
   });

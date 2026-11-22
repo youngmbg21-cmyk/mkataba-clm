@@ -1222,14 +1222,14 @@ const dismissNote = async pg => {
     const chips = [...page.querySelectorAll('#ce-chips button')].filter(seen)
       .map(b => ({ t: b.textContent.replace(/\s+/g, ' ').trim(), std: b.getAttribute('data-ce-std') }));
     return { chips, scanTab: !!page.querySelector('[data-ce-tab="scan"]'), cards: page.querySelectorAll('.ce-rule, [data-ce-scan]').length,
-      add: /Add our standard|Missing from the contract/.test(page.innerHTML) };
+      add: /Add our position|Add our standard|Missing from the contract/.test(page.innerHTML) };
   });
   ck('12a no Playbook scan tab and no scan cards are drawn',
      !rail.scanTab && rail.cards === 0, JSON.stringify({ tab: rail.scanTab, cards: rail.cards }));
   ck('12b nothing offers to add a missing standard from this page',
      !rail.add);
   ck('12c the located rule\'s wordings lead the prepared questions, four at most',
-     rail.chips.length <= 4 && rail.chips.length > 0 && rail.chips[0].std === 'preferred' && /^Use our standard$/.test(rail.chips[0].t),
+     rail.chips.length <= 4 && rail.chips.length > 0 && rail.chips[0].std === 'preferred' && /^Use our position$/.test(rail.chips[0].t),
      JSON.stringify(rail.chips));
   const pressed = await p.evaluate(async () => {
     const c = window.CONTRACT;
@@ -1246,7 +1246,7 @@ const dismissNote = async pg => {
       marks: card && card.querySelector('.pv') ? card.querySelector('.pv').querySelectorAll('del, ins').length : -1 };
   });
   ck('12d a press puts our standard on a card, marked against the clause',
-     !pressed.none && /Our standard/i.test(pressed.chip) && pressed.marks > 0, JSON.stringify(pressed));
+     !pressed.none && /Our position/i.test(pressed.chip) && pressed.marks > 0, JSON.stringify(pressed));
   ck('12e and files nothing, leaving the clause the reader had open untouched',
      !pressed.none && pressed.grew === 0 && pressed.boxHeld === true, JSON.stringify(pressed));
 
@@ -1315,7 +1315,7 @@ const dismissNote = async pg => {
      !cost.none && cost.colour === cost.label && cost.colour !== cost.amber && cost.colour !== cost.ruby,
      `${cost.colour} (label ${cost.label}, amber ${cost.amber}, ruby ${cost.ruby})`);
   const t = cost.titles || {};
-  const std = t['Use our standard'], draft = t["Use Jambo's draft"];
+  const std = t['Use our position'], draft = t["Use Jambo's draft"];
   /* ---- PINNED AS A RELATION, NOT AS WHICH ONE IS BIGGER (31 Aug 2026) ----
      It asserted std "keeps none" and draft "keeps N", which is a fact about
      this fixture's WORDING rather than about the product: the clause the
@@ -3113,7 +3113,7 @@ const dismissNote = async pg => {
       await new Promise(r => setTimeout(r, 150));
       const box = panel.querySelector('.rl-np-in');
       const foot = panel.querySelector('.rl-np-foot');
-      return { tab: (panel.querySelector('.rl-np-tab.on') || {}).textContent,
+      return { tab: (panel.querySelector(':is(.rl-np-tab, .rl-np-room).on') || {}).textContent,
         tinted: !!(foot && foot.classList.contains('out')),
         ph: box ? box.getAttribute('placeholder') : '' };
     });

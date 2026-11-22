@@ -112,29 +112,16 @@ const TEXT = [
       await drive(() => pdOpenOnHome('MK-B2', 'copilot'), null, null);
       if (await until(P, () => !!(window.pdOnPaper && pdOnPaper() && pdContract() && pdContract().id === 'MK-B2' && document.querySelector('#pd-glance')), null, 1500)) break;
     }
-    const ROW = '#ig-dock tr[data-pd-og-row="web"]';
-    const rowUp = await until(P, s => !!document.querySelector(s), ROW, 10000);
-    check(rowUp, '1a the Dossier carries the "On the web" line', rowUp ? null : await drive(() => ({ dock: !!document.querySelector('#ig-dock'), gl: !!document.querySelector('#pd-glance'),
-      open: intel.dockOpen, tab: pdTab(), face: pdFaceNow(), onp: pdOnPaper(), cid: pdContract() && pdContract().id,
-      rows: [...document.querySelectorAll('#ig-dock tr[data-pd-og-row]')].map(r => r.getAttribute('data-pd-og-row')) }), null, null));
-    const row = await drive(s => {
-      const r = document.querySelector(s); if (!r) return null;
-      r.scrollIntoView({ block: 'nearest' });
-      const ppl = document.querySelector('#ig-dock tr[data-pd-og-row="people"]');
-      const b = r.getBoundingClientRect(); const at = document.elementFromPoint(b.left + 30, b.top + b.height / 2);
-      return { text: r.innerText.replace(/\s+/g, ' ').trim(), painted: !!(at && r.contains(at)),
-        afterPeople: !!(ppl && ppl.nextElementSibling === r), h: Math.round(b.height), hp: ppl ? Math.round(ppl.getBoundingClientRect().height) : 0,
-        hs: (() => { const sg = document.querySelector('#ig-dock tr[data-pd-og-row="signers"]'); return sg ? Math.round(sg.getBoundingClientRect().height) : 0; })() };
-    }, ROW, null);
-    check(!!(row && row.painted && /On the web/.test(row.text) && /Not looked up yet/.test(row.text)), '1b painted, and it says nothing is kept yet', row);
-    /* RE-POINTED 25 Oct 2026 (the owner picked "Two lines"): "Who else is on this agreement" may take a second
-       line, so the web row is measured against a one-line door row (the Signer's), and Who else against it as one
-       line or two (owner's pick: a door row's name takes two lines before "…") */
-    /* RE-POINTED 29 Oct 2026 (the owner: every row 11 above and 11 below, the 22px pill the one line's height): Who else's
-       second line of words adds less than a full 20 over the pill's 22 */
-    check(!!(row && row.afterPeople && row.h === row.hs && (row.hp === row.hs || (row.hp > row.hs && row.hp <= row.hs + 20))), '1c right after Who else, a door row of the same dress (one line as the Signer\'s; Who else one or two lines)', row && { afterPeople: row.afterPeople, h: row.h, hp: row.hp, hs: row.hs });
-    await still(P); await P.screenshot({ path: path.join(OUT, '1440x780-dossier-line.png') });
-    await drive(s => document.querySelector(s + ' [data-pd-web]').click(), ROW, null);
+    /* RETIRED 17 Nov 2026 (#762, owner's pick on the drawings: "5 Keep it gone"): 1a, 1b, 1c — the Dossier's own
+       "On the web" line (its words, its place after Who else, its dress). The look-up stays: its door is the Parties
+       panel's "Web search on <name>", measured from 1d on. */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the pop-up's one door that the new look draws is the
+       Parties panel's "Web search on <name>" ([data-cun-web], customers.js cunPanelHtml, MK-B2's party chosen through
+       cuSelectParty) — the pop-up and its press are the same (partyWebOpen); 1a–1c and 2g still ask for the Dossier's
+       own line (QUESTION Q-D3-2: the new-look Dossier draws none) */
+    /* RE-POINTED 19 Nov 2026 (owner: "Remove web search" from the Parties panel): no page draws a door onto the look-up
+       now; the pop-up itself (partyWebOpen, its press and its words) is measured as it stands, opened by its own name */
+    await drive(() => partyWebOpen('MK-B2'), null, null);
     const dlg = await until(P, () => !!document.querySelector('.pw-dlg [data-pw-go]'), null, 5000);
     const say = await drive(() => { const g = document.querySelector('.pw-dlg [data-pw-go]'); const d = document.querySelector('.pw-dlg');
       return g && { go: g.innerText.trim(), title: g.title, hidden: g.hidden, text: d.innerText.replace(/\s+/g, ' ') }; }, null, null);
@@ -177,19 +164,21 @@ const TEXT = [
     }
     await P.setViewportSize({ width: 1440, height: 780 });
     await drive(() => document.querySelector('[data-pw-done]').click(), null, null);
-    const back = await until(P, s => !document.querySelector('.pw-dlg') && /2 facts, looked up/.test((document.querySelector(s) || {}).innerText || ''), ROW, 6000);
-    check(back, '2g Done lands back on the Dossier, whose line now says what is kept');
-    for (const [w, hh] of [[1440, 780], [1536, 730], [1366, 950]]){
-      await P.setViewportSize({ width: w, height: hh });
-      const fit = await drive(s => { const r = document.querySelector(s); if (!r) return {}; r.scrollIntoView({ block: 'nearest' });
-        const b = r.getBoundingClientRect(); const at = document.elementFromPoint(b.left + 30, b.top + b.height / 2);
-        return { side: document.documentElement.scrollWidth > window.innerWidth + 1, painted: !!(at && r.contains(at)) }; }, ROW, {});
-      check(!fit.side && fit.painted, `4 ${w}×${hh}: the Dossier's line is painted, nothing sideways`, fit);
-      await still(P); await P.screenshot({ path: path.join(OUT, `${w}x${hh}-dossier-line.png`) });
-    }
+    /* RE-POINTED 17 Nov 2026 (#762, owner's pick "5 Keep it gone": no Dossier line to land on): Done closes the pop-up and
+       what was found is KEPT on the party (partyWebKept, the one reading) */
+    const back = await until(P, () => !document.querySelector('.pw-dlg') && !!(window.partyWebKept && partyWebKept(getContract('MK-B2')) && partyWebKept(getContract('MK-B2')).facts.length === 2), null, 6000);
+    check(back, '2g Done closes the pop-up, and what was found is kept on the party');
+    /* RETIRED 17 Nov 2026 (#762, owner's pick "5 Keep it gone"): 4 — the Dossier's line at the three screens (the pop-up's
+       own fit at the three screens is measured above) */
     await P.setViewportSize({ width: 1440, height: 780 });
 
     /* ============ 3 · HIS FIRST WORDS OFFER IT ============ */
+    /* RE-POINTED 16 Nov 2026 (#762): the pop-up was opened from the Parties page; his panel and its drop area are Home's,
+       so the run goes back to Home's paper first (bounded, as part 1 does) */
+    for (let i = 0; i < 20; i++){
+      await drive(() => pdOpenOnHome('MK-B2', 'copilot'), null, null);
+      if (await until(P, () => !!(window.pdOnPaper && pdOnPaper() && document.querySelector('#pd-glance')), null, 1500)) break;
+    }
     /* the provider's reading names the other side; the stand-in names nobody, so while its answers are
        held the record is given the name the reading would have found (the arrival reader then reads it) */
     const go = ai.holdOn();

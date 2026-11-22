@@ -25,7 +25,8 @@ const block = () => { const i = HTML.indexOf('/* ==== THE NEW LOOK: HARMONY'); a
 test('f977 (1) one head', () => {
   const app = read('js/app.js');
   assert.match(app, /\(\(view==='approvals'\|\|view==='obligations'\)&&typeof window\.newLookOn==='function'&&newLookOn\(\)&&typeof insFits==='function'&&insFits\(\)\)/, 'the page head steps aside for both');
-  assert.match(strip(fnBody(read('js/views/approvalsview.js'), 'apnRender')), /<div class="cun-head"><h2 class="ctf-h">\$\{esc\(i18t\('nav_approvals'\)\)\}<\/h2><span class="ctf-hf" id="page-head-facts">/);
+  /* RE-POINTED (P-30, owner's pick 20 Nov 2026): the facts beside the title go ("2 to decide": the chips say it) */
+  assert.match(strip(fnBody(read('js/views/approvalsview.js'), 'apnRender')), /<div class="cun-head"><h2 class="ctf-h">\$\{esc\(i18t\('nav_approvals'\)\)\}<\/h2><span class="ctf-sp"><\/span><span id="page-head-acts"/);
   assert.match(strip(fnBody(read('js/obligations.js'), 'obnRender')), /<div class="cun-head"><h2 class="ctf-h">\$\{_obEsc\(i18t\('nav_obligations'\)\)\}<\/h2>/);
   for (const f of ['js/app.js', 'js/views/library.js']) assert.match(read(f), /font-size:var\(--ph-title-size,20px\);font-weight:var\(--ph-title-w,var\(--w-title-serif\)\)/, f + ': the old look keeps 20');
   assert.match(block(), /html\.lg-new\{--ph-title-size:26px;--ph-title-w:400\}/);
@@ -49,10 +50,18 @@ test('f977 (3) one voice', () => {
 
 test('f977 (4) say it once', () => {
   const ap = strip(fnBody(read('js/views/approvalsview.js'), 'apnRender'));
-  assert.match(ap, /const same=rs\.length>1&&rs\.every\(x=>x!=null&&x===rs\[0\]\);/);
-  assert.match(ap, /\$\{same\?'':`<th>\$\{esc\(i18t\('apn_col_rests'\)\)\}<\/th>`\}/);
-  assert.match(strip(fnBody(read('js/views/directory.js'), 'dirnRender')), /const reachAny = list\.some/);
-  assert.match(strip(fnBody(read('js/views/customers.js'), 'cunRowHtml')), /const org = rec\.orgNo \? i18t\('cun_org', \{ n: rec\.orgNo \}\) : '';/);
+  /* RETIRED (P-30, owner's pick 20 Nov 2026): "What it rests on" is gone — the paper's words sit under the agreement's
+     name on its own row, and a column that steps aside does so by the one column rule (listCols) */
+  assert.doesNotMatch(ap, /apn_col_rests/);
+  assert.match(ap, /const cut=h=>Object\.keys\(CELL\)\.filter\(k=>!on\.has\(k\)\)/);
+  /* RETIRED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): the Phone column is gone from the table —
+     the phone is the panel's "Phone them" (data-dirn-call) — so there is no column left to step out when no row has one */
+  assert.doesNotMatch(strip(fnBody(read('js/views/directory.js'), 'dirnRowHtml')), /reach:/);
+  assert.match(strip(fnBody(read('js/views/directory.js'), 'dirnPanelFive')), /data-dirn-call=/);
+  /* RE-POINTED 21 Nov 2026 (P-25, as drawn): under a party's name the row says the words that name it on the paper, not its
+     org. no.; the org. no. is said once, in the panel's own facts */
+  assert.doesNotMatch(strip(fnBody(read('js/views/customers.js'), 'cunRowHtml')), /cun_org/);
+  assert.match(strip(fnBody(read('js/views/customers.js'), 'cunPanelFiveHtml')), /k: i18t\('cun_p_org'\), t: rec\.orgNo \|\| i18t\('cu_org_none'\)/);
 });
 
 test('f977 (5) one count', () => {
@@ -81,7 +90,9 @@ test('f977 (8) even tiles: one builder for both folder views, no dots, a key abo
   assert.doesNotMatch(f, /ctf-dot|ctf-tab/, 'no unexplained dots, no faint folder tab');
   assert.match(f, /regTileBig\(r\.needN\)\}\$\{regTileBar\(r\.signed, r\.review, r\.n - r\.signed - r\.review\)\}/);
   assert.match(f, /\$\{regTileKeyHtml\(\)\}<div class="ctf-grid is-tiles">/);
-  assert.match(strip(fnBody(cu, 'cunFolderCardHtml')), /regTileBig\(waitN\)/, 'Parties draws the same tile');
+  /* RETIRED 19 Nov 2026 (owner's yes on the Parties drawings: "delete the folders"): Parties has no folder tiles now —
+     the tab and its card builder are gone. RETIRED: 'Parties draws the same tile' (cunFolderCardHtml) */
+  assert.ok(!/function cunFolderCardHtml\(/.test(cu), 'Parties draws no folder tiles');
   assert.match(reg, /Object\.assign\(window,\{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,/);
   assert.doesNotMatch(strip(fnBody(reg, 'regFoldersHeadHtml')), /ctf-hint/, 'the hint leaves the tab line');
   assert.match(block(), /html\.lg-new \.ctf-card\.is-tile\{[^}]*height:150px/);
@@ -91,7 +102,10 @@ test('f977 (9) even cards: the party its own line, one footer', () => {
   assert.match(strip(fnBody(ig, 'igWallCardHtml')), /<span class="igw2-foot is-even"><span class="igw2-who">/);
   const foot = strip(fnBody(ig, 'igWallNlFootHtml'));
   assert.doesNotMatch(foot, /igw2-hint/, 'the how-to line is gone');
-  assert.match(foot, /if\(list\.length>shown\.length\) return '';/, 'the paging foot stands alone');
+  /* RE-POINTED 21 Nov 2026 (P-31, as drawn): nothing under the papers — the chips say how many; the paging foot is
+     igWallBodyHtml's own (lhFootHtml), so it still stands alone */
+  assert.match(foot, /^function igWallNlFootHtml\(list, shown\)\{\s*void list; void shown;\s*return '';\s*\}$/, 'the wall draws no foot of its own');
+  assert.match(strip(fnBody(ig, 'igWallBodyHtml')), /lhFootHtml\('wall', S\.k, S\.n, IG_WALL_STEP/, 'the paging foot stands alone');
 });
 test('f977 (10) grouped rows and the week ahead at the weekend', () => {
   /* RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): Home's grouped rows and its week line went
@@ -106,7 +120,9 @@ test('f977 (12, 13, 15) two lines a row, fold the quiet, name the clause', () =>
   const cal = read('js/views/calendar.js');
   assert.match(cal, /else if\(gap\)\{ gap\.z=z; gap\.n\+\+; \} else gap=\{ a, z, n:1 \};/);
   assert.match(cal, /i18tn\('cal_nl_quiet_wks',gap\.n,\{ n:gap\.n \}\)/);
-  assert.match(read('js/views/register.js'), /: `<span class="ngn-nm">\$\{E\(\[q\.s, q\.nm\]\.filter\(Boolean\)\.join\(' '\)\)\}<\/span>`/);
+  /* RE-POINTED (P-29): an ask with no words of its own names its clause, its § beside it */
+  /* RE-POINTED 21 Nov 2026 (P-29, as drawn): the paper's words of the change in quotes, else its clause's name; its § beside them */
+  assert.match(read('js/views/register.js'), /<i>\$\{w \? `“\$\{esc\(w\)\}”` : esc\(ngnClauseNameOf\(f\.ch\)\)\}<\/i>/);
 });
 
 /* Round 3, a contract: PAPER LINE HOLDS ALL, SAME CARD TWICE, SAID ONCE, BOX FITS THE WAY. */
@@ -114,7 +130,8 @@ test('f977 (16) the paper: the sheet not a band lower on a wide desk, the openin
   const b = block();
   assert.match(b, /@media \(min-width:1300px\)\{ html\.lg-new #ig-paper-scroll > \.paper-zc-row\{--zc-room:0px\} \}/);
   assert.match(b, /html\.lg-new #ig-paper \.pg-sheet \.doc-surface#ig-canvas p\.px-2\.-mx-2\{margin-left:-8px;margin-right:-8px\}/);
-  assert.match(read('js/paperdesk.js'), /\(f\.k === 'signer' \|\| f\.k === 'stream'\) \? _pdT\('pd2_go_change'\)/);
+  /* RE-POINTED 17 Nov 2026 (#762): Who else on this agreement is a Dossier fact again, its Change a link like the signer's */
+  assert.match(read('js/paperdesk.js'), /\(f\.k === 'signer' \|\| f\.k === 'stream' \|\| f\.k === 'people'\) \? _pdT\('pd2_go_change'\)/);
 });
 test('f977 (17) same card twice: Accept · Reject · Counter on every ask, the rest behind More', () => {
   const ng = read('js/views/negotiation.js');
@@ -137,7 +154,8 @@ test('f977 (20, 22, 23) one toolbar, a readable preview, a tight sheet', () => {
   assert.match(b, /html\.lg-new \.ig-brain \.ig-viewbar \.ig-lensrow\{position:static;display:flex\}/, 'the lenses join the one bar');
   assert.match(b, /html\.lg-new \.tpln-zoom\{zoom:\.72\}/);
   const lib = read('js/views/library.js');
-  assert.match(lib, /<b class="tpln-name">\$\{_tplEsc\(card\.name\)\}<\/b>/);
+  /* RE-POINTED 17 Nov 2026 (Our paper: Shelves, then the Legora way): the chosen paper's name is the step's head, its verbs beside the paper */
+  assert.match(lib, /if \(v === 'paper' && pick\)[\s\S]{0,200}h1\(pick\.c\.name\)/);
   assert.doesNotMatch(lib, /i18t\('tpln_p_src_(book|learned)'\)/, 'no stray source words in the panel');
   assert.match(b, /html\.lg-new #na-root\.na-one \.na-closest \.na-pick\.na-close\{min-height:0\}/);
   assert.match(b, /html\.lg-new #modal-root \.na-why\{color:var\(--color-quiet\);font-weight:400\}/);
@@ -177,7 +195,11 @@ test('f977 fix 7 · the Board counts rows in the new look, the number Home says'
   const cn = read('js/views/counter.js');
   assert.match(cn, /const ndRowsN = L => \(typeof newLookOn === 'function' && newLookOn\(\)\) \? \(L \|\| \[\]\)\.length : ndThings\(L\);/);
   assert.match(cn, /function ndOnBoard\(D\)\{[^\n]*n: ndRowsN\(D\.jambo\) \+ ndRowsN\(you\)/);
-  assert.match(cn, /\$\{tab\('you', ndRowsN\(B\.you\)\)\}\$\{tab\('jambo', ndRowsN\(B\.jambo\)\)\}/);
+  /* RE-POINTED (P-39, owner's pick 20 Nov 2026: chips All · Late · Your move · Jambo): Late has its own chip, so Your move counts its rows that are not late */
+  /* RE-POINTED 22 Nov 2026 (review of merged pages: ONE count, ndWaitCounts, read by the chips, the ring and the bell):
+     the chips read the one reading, and that reading still counts rows — Your move its rows not late */
+  assert.match(cn, /\$\{tab\('all', W\.all\)\}\$\{tab\('late', W\.late\)\}\$\{tab\('you', W\.you\)\}\$\{tab\('jambo', W\.jambo\)\}/);
+  assert.match(cn, /function ndWaitCounts\(D\)\{[\s\S]{0,200}?you: ndRowsN\(B\.you\.filter\(r => !r\.late\)\), jambo: ndRowsN\(B\.jambo\)/);
 });
 test('f977 fix 8 · one column per question, its name and ⋯; the foot says only the count', () => {
   const ac = read('js/views/askcolumn.js');

@@ -214,9 +214,9 @@ describe('F273 — auto-triage on upload', () => {
          be quieter AND worse. */
       const OB = strip(fs.readFileSync('js/obligations.js', 'utf8'));
       const PB = strip(fs.readFileSync('js/playbook.js', 'utf8'));
-      assert.match(OB, /catch\(e\)\{ if\(!opts\.quiet\) toast\(i18t\('ob_scan_unavailable'\),'err'\); \}/,
+      assert.match(OB, /catch\(e\)\{ if\(!opts\.quiet\) toast\(i18t\('ob_scan_unavailable'\),'warn'\); \}/,
         'the obligations scan still falls through to the heuristic');
-      assert.match(PB, /catch\(e\)\{ if\(!opts\.quiet\) toast\(i18t\('pb_review_unavailable'\),'err'\); \}/,
+      assert.match(PB, /catch\(e\)\{ if\(!opts\.quiet\) toast\(i18t\('pb_review_unavailable'\),'warn'\); \}/,
         'and so does the standards check');
       for (const [f, src] of [['obligations', OB], ['playbook', PB]])
         assert.ok(!/quiet\)\s*return \{ error:i18t\('(ob_scan|pb_review)_unavailable'\)/.test(src),

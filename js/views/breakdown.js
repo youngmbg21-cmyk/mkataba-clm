@@ -311,6 +311,8 @@ function stkFiltersHtml(b, all){
    is said and waits for Try again (the latch is raised before the read) */
 function stkAutoRun(c){
   if (!c || _bd.busy || !stkOwed(c)) return;
+  /* QUESTIONS YES, WORK NO (Round A, owner 20 Nov 2026): a Viewer's visit never starts a paid read (it could not be kept) */
+  if (typeof window.mayActOn === 'function' && !window.mayActOn(c)) return;
   /* a private folder's contract waits for a person's press (jamboOnPress) */
   if (typeof jamboOnPress === 'function' && jamboOnPress(c)) return;
   if (!(typeof API_MODE === 'function' && API_MODE() && state.aiConfigured)) return;
@@ -858,6 +860,7 @@ function stkRepaint(c){
 }
 async function stkRun(c){
   if (!c || _bd.busy) return;
+  if (typeof window.mayActOn === 'function' && !window.mayActOn(c)){ if (typeof toast === 'function') toast(i18t('viewer_reads_only'), 'warn'); return; }
   _bd.tried[stkKey(c)] = true;   // a press is a try: a refusal then says Try again
   _bd.runFor = c.id;
   const p = bdRun(c);

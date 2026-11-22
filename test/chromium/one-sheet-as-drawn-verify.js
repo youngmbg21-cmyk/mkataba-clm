@@ -125,7 +125,7 @@ const SAY = 'NDA with Volvo Cars for a pilot';
         src: [...document.querySelectorAll('#na-form .na-kt-r')].filter(vis).map(x => ({ term: t(x.firstElementChild), from: t(x.querySelector('.na-src')) })),
         count: t(document.getElementById('na-card-count')),
         step1: t(document.querySelector('#wz-pick .na-step')), cards: cards.map(c => ({ t: t(c), radio: !!c.querySelector('.na-radio'), checked: c.getAttribute('aria-checked') })),
-        sub: t(document.getElementById('na-card-sub')), cardName: t(document.getElementById('na-card-name')),
+        sub: t(document.getElementById('na-card-sub')), subTitle: (document.getElementById('na-card-sub') || {}).title || '', cardName: t(document.getElementById('na-card-name')),
         cp: t([...document.querySelectorAll('#na-form label > span:first-child')].find(sp => /^The other company/.test(sp.textContent.trim()))),
         people: t(document.querySelector('#na-people > summary')), file: (() => { const row = document.querySelector('#na-file .na-file-b'), cost = row && row.querySelector('.na-file-cost');
           return row && cost ? { cost: t(cost), inRow: cost.getBoundingClientRect().top < row.getBoundingClientRect().bottom && cost.getBoundingClientRect().top >= row.getBoundingClientRect().top - 1 } : null; })() }; };
@@ -186,13 +186,16 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said — and no lone "·" is left where it stood */
     check('10a Let Jambo fill the form says no cost beside it, and no separator is left hanging', C10.f.trim() === '', JSON.stringify(C10));
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
-    check('10b creating says what Jambo reads, no cost: "When it is created, Jambo reads it: the brief, our standards, risks and obligations."', C10.r === 'When it is created, Jambo reads it: the brief, our standards, risks and obligations.', JSON.stringify(C10));
+    check('10b creating says what Jambo reads, no cost: "When it is created, Jambo reads it: the brief, our standards, risks and obligations."', C10.r === 'When it is created, Jambo reads it: the brief, our playbook, risks and obligations.', JSON.stringify(C10));
     /* 4 Start from */
     /* RE-POINTED 24 Oct 2026 (the Legora way): one quiet list headed "Closest on our paper"; the picked one checked */
+    /* RE-POINTED 21 Nov 2026 (P-36, as drawn): "Search all our paper (N) · none fits? Ask Legal" */
     check('4a "Closest on our paper"; the search and Legal on its line',
-      /^Closest on our paper Search all our paper \(\d+\) ?· None fits\? ?Ask Legal with a request$/.test(S1.step1), S1.step1);
+      /^Closest on our paper Search all our paper \(\d+\) ?· none fits\? ?Ask Legal$/.test(S1.step1), S1.step1);
+    /* RE-POINTED 21 Nov 2026 (P-36, as drawn): the chosen card says "✓ chosen" at its badge's right (the closest mark
+       steps aside for it while it is chosen) */
     check('4b three rows, each with a radio and when to use it, the closest marked and checked', S1.cards.length === 3 && S1.cards.every(c => c.radio)
-      && /the closest/.test(S1.cards[0].t) && S1.cards[0].checked === 'true' && S1.cards.slice(1).every(c => c.checked === 'false') && S1.cards.every(c => /Use when|template|standard/i.test(c.t)), JSON.stringify(S1.cards));
+      && /the closest|✓ chosen/.test(S1.cards[0].t) && S1.cards[0].checked === 'true' && S1.cards.slice(1).every(c => c.checked === 'false') && S1.cards.every(c => /Use when|template|standard/i.test(c.t)), JSON.stringify(S1.cards));
     await shot(page, '4-one-sheet-1440x780');
     /* 5 picked */
     await page.click('#na-closest .na-pick');
@@ -205,13 +208,25 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     /* RE-POINTED 22 Oct 2026 (round 3 of the first-timer rounds): the counterparty is "The other company" on the form */
     /* RE-POINTED 24 Oct 2026 (the Legora way): the card's head is the paper, its shelf, Change paper and "N details · …";
        where a value came from is the row's own third column */
-    check('5b its head: the paper\'s name and shelf, "N details · …"', /^\d+ details · /.test(S5.count) && /template|standard/i.test(S5.sub) && !/asks$/.test(S5.cardName), `${S5.cardName} · ${S5.sub} · ${S5.count}`);
+    /* RE-POINTED 21 Nov 2026 (P-36, as drawn): "<shelf badge> <paper> change paper · N details · N not said yet" — the
+       badge says the stream's short name, the shelf on its hover */
+    check('5b its head: the paper\'s name and shelf, "N details · …"', /^\d+ details · /.test(S5.count) && !!S5.sub && /template|standard/i.test(S5.subTitle) && !/asks$/.test(S5.cardName), `${S5.cardName} · ${S5.sub} · ${S5.subTitle} · ${S5.count}`);
     const cp5 = (S5.src || []).find(x => /other company/i.test(x.term));
     check('5c the counterparty the sentence filled says so, quoting the words', !!cp5 && /“Volvo Cars”/.test(cp5.from), JSON.stringify(cp5));
     check('5d who else: "Who else is on this agreement · nobody is emailed until you send"', /^Who else is on this agreement · nobody is emailed until you send/.test(S5.people), S5.people);
     /* RE-POINTED 24 Oct 2026: the reading's cost is said under the "Filed in" line */
-    const cost5 = await page.evaluate(() => ((document.getElementById('na-file-cost') || {}).innerText || '').trim());
-    check('5e the cost of reading under the stream\'s line', /^When it is created, Jambo reads it/.test(cost5), cost5);
+    /* RE-POINTED 21 Nov 2026 (P-36, as drawn): what Jambo reads at Create is said once, in the panel's "After Create"
+       timeline ("Jambo reads it once · the brief, our playbook, risks, obligations"); the sheet's line is not drawn */
+    /* RE-POINTED 22 Nov 2026 (PR 881's red check): the sentence went in through Jambo's box, so his panel stands on his
+       answer (2b, 9c) and the "After Create" timeline is on its Overview, one press back — the reader presses "‹ Overview"
+       above the box, reads it there, and "Jambo ›" brings his answer back. Before, this read the talk and found nothing. */
+    await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-jb-door]:not([hidden]) .jb-door-back'); if (b) b.click(); });
+    await until(() => !!document.querySelector('#ig-dock .na6-tl') && document.querySelector('#ig-dock .na6-tl').getClientRects().length > 0, null, 4000);
+    const cost5 = await page.evaluate(() => ({ sheet: (() => { const c = document.getElementById('na-file-cost'); return c && c.getClientRects().length ? c.innerText.trim() : ''; })(),
+      panel: ((document.querySelector('#ig-dock .na6-tl') || {}).innerText || '').replace(/\s+/g, ' ').trim() }));
+    await page.evaluate(() => { const f = document.querySelector('#ig-dock [data-jb-fwd-door]:not([hidden]) [data-jb-fwd]'); if (f) f.click(); });
+    await until(() => !!document.querySelector('#ig-dock.is-talk'), null, 4000);
+    check('5e what Jambo reads at Create is said once, in the panel\'s "After Create" (not under the stream\'s line)', cost5.sheet === '' && /Jambo reads it once · the brief, our playbook, risks, obligations/.test(cost5.panel), JSON.stringify(cost5));
     check('5f the reason is now the stream\'s', S5.acts.join('|') === 'Choose a stream first|Create draft|Cancel', JSON.stringify(S5.acts));
     /* 11 step 2 in three columns, two rows; who else straight under */
     /* RE-POINTED 22 Oct 2026 (round 3 of the first-timer rounds): Who pays whom? is a group of presses, not a label */
@@ -222,16 +237,22 @@ const SAY = 'NDA with Volvo Cars for a pilot';
       const names = ls.map(l => (l.querySelector('span') || l).textContent.replace(/\s+/g, ' ').trim());
       const head = document.querySelector('#na-form .na-kt-grid > .na-kt-h');
       const sum = document.querySelector('#na-people > summary'), last = Math.max(...r.map(x => x.bottom));
-      return { n: ls.length, rows: [...new Set(r.map(x => Math.round(x.top)))].length, head: head ? head.innerText.replace(/\s+/g, ' ').trim() : '', first: names.slice(0, 3), gap: sum ? Math.round(sum.getBoundingClientRect().top - last) : null }; });
+      return { n: ls.length, rows: [...new Set(r.map(x => Math.round(x.top)))].length, head: head && head.getClientRects().length ? head.innerText.replace(/\s+/g, ' ').trim() : '', first: names.slice(0, 3), gap: sum ? Math.round(sum.getBoundingClientRect().top - last) : null }; });
     check('11 step 2: a row each — Term · What it says · Where it came from — who we are, the counterparty, their email first, and "Who else" straight under',
-      Q11.n >= 6 && Q11.rows === Q11.n && Q11.head === 'Term What it says Where it came from' && /^Our party/.test(Q11.first[0]) && /^The other company/.test(Q11.first[1]) && /^Their email/.test(Q11.first[2]) && Q11.gap != null && Q11.gap <= 40, JSON.stringify(Q11));
+      /* RE-POINTED 21 Nov 2026 (P-36, as drawn): one open line per detail, no column head over them */
+      Q11.n >= 6 && Q11.rows === Q11.n && Q11.head === '' && /^Our party/.test(Q11.first[0]) && /^The other company/.test(Q11.first[1]) && /^Their email/.test(Q11.first[2]) && Q11.gap != null && Q11.gap <= 40, JSON.stringify(Q11));
     /* 12 step 3 one row */
     /* RE-POINTED 24 Oct 2026 (the Legora way): "Filed in", the streams and "Needed before Create" on one line, the cost under it */
-    const R12 = await page.evaluate(() => { const row = document.querySelector('#na-file .na-file-b'), lab = row && row.querySelector('.na-file-l'), seg = row && row.querySelector('.na-seg'), need = row && row.querySelector('.na-need'), cost = document.getElementById('na-file-cost');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; its TIGHT SHEET): "Needed before Create" stands under its
+       own label "Filed in", beside the stream chips, the cost under */
+    /* RE-POINTED 21 Nov 2026 (P-36, as drawn): "Filed in · needed" on the label's one line, in amber, the stream chips
+       beside it; the cost line is not drawn (the panel's "After Create" says what Jambo reads) */
+    const R12 = await page.evaluate(() => { const row = document.querySelector('#na-file .na-file-b'), lab = row && row.querySelector('.na-file-l'), seg = row && row.querySelector('.na-seg'), cost = document.getElementById('na-file-cost');
       const r = el => el.getBoundingClientRect();
-      return row && lab && seg && need && cost ? { label: lab.textContent.trim(), needBeside: r(need).left >= r(seg).left && r(need).top < r(seg).bottom, costUnder: r(cost).top >= r(row).bottom - 1,
+      const amber = (() => { const d = document.createElement('i'); d.style.color = 'var(--st-amber-fg)'; document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; })();
+      return row && lab && seg && cost ? { label: lab.textContent.trim(), amber: getComputedStyle(lab).color === amber, beside: r(lab).right <= r(seg).left + 1 && r(lab).top < r(seg).bottom, costShown: cost.getClientRects().length > 0,
         newStream: !!row.querySelector('[data-na-stream="__new__"]') } : null; });
-    check('12 step 3: "Filed in", the streams, "Needed before Create" — the cost under — no "+ New stream"', !!R12 && R12.label === 'Filed in' && R12.needBeside && R12.costUnder && !R12.newStream, JSON.stringify(R12));
+    check('12 step 3: "Filed in", the streams, "Needed before Create" — the cost under — no "+ New stream"', !!R12 && R12.label === 'Filed in · needed' && R12.amber && R12.beside && !R12.costShown && !R12.newStream, JSON.stringify(R12));
     /* 15 (the third pass) the streams are separate buttons, each its own edge, amber while owed */
     const B15 = await page.evaluate(() => { const seg = document.querySelector('#na-file .na-seg'), bs = [...document.querySelectorAll('#na-file .na-seg-b')];
       const cs = el => getComputedStyle(el), edge = el => ['Top', 'Right', 'Bottom', 'Left'].every(k => cs(el)['border' + k + 'Style'] === 'solid' && parseFloat(cs(el)['border' + k + 'Width']) >= 1);
@@ -242,8 +263,10 @@ const SAY = 'NDA with Volvo Cars for a pilot';
         wash: bs.map(b => cs(b).backgroundColor), line: bs.map(b => cs(b).borderTopColor) }; });
     const AMB = await page.evaluate(() => { const d = document.createElement('i'); d.style.cssText = 'background:var(--need-bg);border:1px solid var(--st-amber-line)'; document.body.appendChild(d);
       const c = getComputedStyle(d), out = { bg: c.backgroundColor, line: c.borderTopColor }; d.remove(); return out; });
+    /* RE-POINTED 21 Nov 2026 (P-36, as drawn: "the stream as chips with 'Filed in · needed' in amber"): the chips are
+       quiet (no amber wash, no amber edge); the owed state is the label's amber (12) */
     check('15 step 3\'s streams are separate buttons — each its own edge, none sharing a box — amber-washed and amber-edged while owed',
-      B15.n >= 2 && B15.box === 0 && B15.edges && B15.apart && B15.wash.every(x => x === AMB.bg) && B15.line.every(x => x === AMB.line), JSON.stringify({ B15, AMB }));
+      B15.n >= 2 && B15.box === 0 && B15.edges && B15.apart && B15.wash.every(x => x !== AMB.bg) && B15.line.every(x => x !== AMB.line), JSON.stringify({ B15, AMB }));
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(450);
       const S = await page.evaluate(() => { const c = document.getElementById('na-create'), r = c && c.getBoundingClientRect();

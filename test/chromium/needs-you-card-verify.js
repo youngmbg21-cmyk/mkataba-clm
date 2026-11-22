@@ -85,11 +85,14 @@ const CONTRACTS = [
     await page.click('#li-go');
     await until(page, () => window.state && state.contracts && state.contracts.length > 0, null, 15000);
     await page.evaluate(() => { hbS().face = 'board'; hbSave(); setView('dashboard'); });
-    const landed = await until(page, () => document.querySelectorAll('#hb-board .hb-fig').length === 5);
+    /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */
+    const landed = await until(page, () => document.querySelectorAll('#hb-board .hb-fig').length === 4);
     ok('0 Home lands on the Board', landed);
     ok('0b the Board draws no Needs you card', await page.evaluate(() => !document.querySelector('#hb-board #hb-needs, #hb-board .hb-ny')));
 
     /* ===== 1. THE COUNTER LISTS IT, COUNTING THE CHECKLIST'S OWN ===== */
+    /* the book's own reading, asked once it has come (the four cards land sooner than the five did, P-39) */
+    await until(page, () => (state.contracts || []).filter(c => c && !c.archived).reduce((a, c) => a + ((typeof needsYouOf === 'function') ? needsYouOf(c).length : 0), 0) >= 4, null, 10000);
     const book = await page.evaluate(() => (state.contracts || []).filter(c => c && !c.archived).reduce((a, c) => a + ((typeof needsYouOf === 'function') ? needsYouOf(c).length : 0), 0));
     await page.evaluate(() => setView('counter'));
     const drawn = await until(page, () => !!document.querySelector('#hm-agents [data-cn-need]'));
@@ -115,9 +118,12 @@ const CONTRACTS = [
     });
     /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): the Board's two bubbles are its Overview; "where the owed work went" is its Needs you fact, "what needs me" an offer under "Ask me" */
     /* RE-POINTED 13 Nov 2026 (owner picked "Brain welcome"): the Needs you fact is his line and the count under it (.hbw-say, .hbw-sub) */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the welcome is Jambo's five parts — his line is the
+       headline (.jov5-title), the count under it its sub line (.jov5-sub) */
     const two = await page.evaluate(() => { const o = document.querySelector('#ig-dock .hb-jb-hello .jov'); const t = s => ((o && o.querySelector(s)) || {}).textContent || '';
-      return { tab: ((document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || ''), where: (t('.hbw-say') + ' ' + t('.hbw-sub')).replace(/\s+/g, ' ').trim(), chip: !!(o && o.querySelector('[data-igsug="what needs me"]')) }; });
-    const saysN = new RegExp(`(^|\\s)${one.n} (things? needs? you today|needs? you in all)\\.`);
+      return { tab: ((document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || ''), where: (t('.jov5-title') + ' ' + t('.jov5-sub')).replace(/\s+/g, ' ').trim(), chip: !!(o && o.querySelector('[data-igsug="what needs me"]')) }; });
+    /* RE-POINTED 21 Nov 2026 (P-39, as drawn): one sentence, "13 need you in all; the oldest has waited 2 days." */
+    const saysN = new RegExp(`(^|\\s)${one.n} (things? needs? you today|needs? you in all)[.;]`);
     ok('2a his Overview tab carries no number of its own (the number is in his welcome)', said && !two.tab && saysN.test(two.where), JSON.stringify(two));
     ok('2b the welcome says how many things need you', saysN.test(two.where), two.where);
     ok('2c "what needs me" stands under "Ask me"', two.chip, String(two.chip));
@@ -145,11 +151,16 @@ const CONTRACTS = [
     /* RE-POINTED 22 Oct 2026 (Round A): the urgent renewal is Jambo's memo, first of his group while late; the look leads your move */
     ok('4b the urgent renewal stays first: Jambo\'s memo for it leads his group, late', !!four.jambo0 && four.jambo0.kind === 'renewal' && four.jambo0.id === 'MK-W2' && four.jambo0.late === 1, JSON.stringify(four));
     ok('4c the look, having waited longest, leads your move', r0.kind === 'look' && r0.id === 'MK-W1', JSON.stringify(four.rows));
+    /* the Counter and his greeting are read by now; from here a contract is OPENED, and a contract never checked
+       against the Playbook is checked on its first open (owner picked "B", 19 Nov 2026; pbCheckOnOpen) */
+    const aiBeforeOpen = aiCalls.length;
     if (looked){
       /* beside its paper the look's own button is Done (needsYouGo → lookDone) */
       await page.evaluate(() => pdOpenOnHome('MK-W1', 'copilot'));
-      await until(page, () => !!document.querySelector('#pd-needs [data-pd-nd="look"]'), null, 10000);
-      if (await page.$('#pd-needs [data-pd-nd="look"]')) await page.click('#pd-needs [data-pd-nd="look"]');
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): no "Needs you here" card; the look is a row of the
+         Dossier's owed work beside the paper, with the same door (data-pd-nd → needsYouGo → lookDone) */
+      await until(page, () => !!document.querySelector('#ig-dock [data-pd-nd="look"]'), null, 10000);
+      if (await page.$('#ig-dock [data-pd-nd="look"]')) await page.click('#ig-dock [data-pd-nd="look"]');
       await until(page, n => counterNeedsCount() === n - 1, four.n);
     }
     const after = await page.evaluate(() => ({ n: counterNeedsCount(),
@@ -157,12 +168,17 @@ const CONTRACTS = [
     ok('4d Done answers it, and the Counter counts one less', after.n === four.n - 1 && after.answered === 1, JSON.stringify(after));
 
     /* ===== 5. A BUTTON IS THE CHECKLIST'S OWN DOOR ===== */
-    await page.evaluate(() => setView('counter'));
-    await until(page, () => !!document.querySelector('#hm-agents [data-cn-need]'));
-    const det = await page.$('#hm-agents [data-cn-need="details"]');
-    if (det) await det.click();
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Counter's rows are no longer painted where a
+       person can press them (0 × 0); the row a person presses is the Board's own Needs you row (ndBoardHtml), the same
+       data-cn-need door */
+    await page.evaluate(() => { hbS().face = 'board'; hbSave(); setView('dashboard'); });
+    const seen = '[data-cn-need="details"]';
+    await until(page, s => [...document.querySelectorAll(s)].some(b => b.getBoundingClientRect().width > 0), seen);
+    const det = await page.evaluateHandle(s => [...document.querySelectorAll(s)].find(b => { const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0; }) || null, seen).then(hd => hd.asElement());
+    if (det){ await det.scrollIntoViewIfNeeded(); await det.click(); }
     /* RE-POINTED 20 Oct 2026 (the Legora way): it lands on the paper's Still owed grid, a row in the hand */
-    const filled = det && await until(page, () => { const a = document.activeElement; return !!document.querySelector('#ig-dock #pd-og') && !!(a && a.closest && a.closest('#pd-og')); });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the details form stands in THE MIDDLE ([data-pd-mid]), not in the panel */
+    const filled = det && await until(page, () => { const a = document.activeElement; return !!document.querySelector(':is(#ig-dock, [data-pd-mid]) #pd-og') && !!(a && a.closest && a.closest('#pd-og')); });
     ok('5a "details to fill" lands on Still owed\'s grid beside the paper', !!filled);
     await page.screenshot({ path: path.join(OUT, '5-fill.png') });
 
@@ -176,13 +192,16 @@ const CONTRACTS = [
       hbS().face = 'board'; hbSave(); setView('dashboard'); });
     const quiet = await until(page, () => !document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') && !!document.querySelector('#ig-dock .hb-jb-hello'));
     /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"): the Board's two bubbles are its Overview; "where the owed work went" is its Needs you fact, "what needs me" an offer under "Ask me" */
-    const seven = await page.evaluate(() => { const o = document.querySelector('#ig-dock .hb-jb-hello .jov'); const f = o && o.querySelector('.hbw-say'); /* RE-POINTED 13 Nov 2026: his line */
+    const seven = await page.evaluate(() => { const o = document.querySelector('#ig-dock .hb-jb-hello .jov'); const f = o && o.querySelector('.jov5-title'); /* RE-POINTED 13 Nov 2026: his line; RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the five parts' headline */
       return { where: f ? f.textContent.trim() : '', chip: !!(o && o.querySelector('[data-igsug="what needs me"]')), n: counterNeedsCount() }; });
     ok('7a nothing waiting: Jambo says so, no chip, no count on his tab', quiet && seven.where === 'Nothing needs you right now.' && !seven.chip, JSON.stringify(seven));
     await page.screenshot({ path: path.join(OUT, '7-empty.png') });
     await page.evaluate(() => { window.needsYouOf = window.__ny; window.hbAgentsData = window.__ag; window.counterNeedsCount = window.__cn; });
 
-    ok('8 the Counter and his greeting called no AI route', aiCalls.length === 0, aiCalls.slice(0, 3).join(' | ') || 'none');
+    /* RE-POINTED 19 Nov 2026 (owner picked "B": a contract never checked is checked on its first open, pbCheckOnOpen):
+       the Counter and his greeting still call no AI route; opening a contract may call only the Playbook check */
+    const aiAfterOpen = aiCalls.slice(aiBeforeOpen).filter(u => !/\/api\/ai\/playbook\b/.test(u));
+    ok('8 the Counter and his greeting called no AI route (opening a contract calls only its first Playbook check)', aiBeforeOpen === 0 && aiAfterOpen.length === 0, aiCalls.slice(0, 3).join(' | ') || 'none');
     ok('9 no page errors', errs.length === 0, errs.slice(0, 3).join(' | ') || 'none');
   } catch (e) {
     ok('the stage ran to the end', false, e && e.message);

@@ -357,7 +357,8 @@ function dpPage(c, D){
   const touched = new Set(dsLive(c).filter(x => x.status !== 'accepted').map(x => numOf(x.clauseLabel)).filter(Boolean));
   const heads = [];
   dpText(c).replace(/<h[1-4][^>]*>([\s\S]*?)<\/h[1-4]>/gi, (m, inner) => {
-    const t = String(inner).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+    /* the heading's TEXT, its entities read back ("Supply &amp; Specification" is "Supply & Specification"; it is escaped once, where drawn) */
+    const t = String(inner).replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
     if (/^\d/.test(t) && !touched.has(numOf(t))) heads.push(t);
     return m;
   });

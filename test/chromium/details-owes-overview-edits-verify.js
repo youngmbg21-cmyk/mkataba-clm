@@ -82,6 +82,10 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
        up for a beat. */
     /* RE-POINTED 20 Oct 2026 (the Legora way): Details is Still owed's grid on the Dossier — only what is owed is asked */
     await page.evaluate(() => { openWorkspace('MK-DO1', { room: true }); roomGoTab(getContract('MK-DO1'), 'details'); });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the details door lands on the Dossier card; the form
+       is opened by its own door (pdFillOpen) and stands in THE MIDDLE */
+    if (!(await until(() => !!document.querySelector('#pd-og[data-pd-og-for="MK-DO1"] tr[data-pd-og-kind="kt"]'), null, 3000)))
+      await page.evaluate(() => { if (window.pdFillOpen) pdFillOpen('MK-DO1', {}); });
     await until(() => !!document.querySelector('#pd-og[data-pd-og-for="MK-DO1"] tr[data-pd-og-kind="kt"]'));
     const det = await page.evaluate(() => { const og = document.querySelector('#pd-og[data-pd-og-for="MK-DO1"]');
       return { keys: [...og.querySelectorAll('tr.pd-og-row:not(.is-saved)[data-pd-og-kind="kt"]')].map(e => e.getAttribute('data-pd-og-row')),
@@ -106,7 +110,10 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
 
     /* an answer typed on Details is the Overview's to read */
     const cp = '#pd-og [data-kt="counterparty"]';
-    await page.fill(cp, 'Nordic Bites AB'); await ckConfirm(page, 'counterparty'); await pause(300);
+    /* RE-POINTED 16 Nov 2026 (#762): the form's ONE Save stands in the middle with it (ckConfirm looks in the panel) */
+    await page.fill(cp, 'Nordic Bites AB');
+    if (await page.isVisible('[data-pd-mid^="form:"] [data-pd-fm-save]').catch(() => false)) await page.click('[data-pd-mid^="form:"] [data-pd-fm-save]'); else await ckConfirm(page, 'counterparty');
+    await pause(300);
 
     /* ===== 4. THE OVERVIEW EDITS AGAIN ===== */
     /* RE-POINTED 14 Oct 2026 (stage 5): Details is on Home now, so the

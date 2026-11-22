@@ -91,7 +91,7 @@ function lands(ctx, a){
   if (!a) return null;
   if (a.map) return a.map;
   const T = ctx.JM_TASKS;
-  if (a.kind === 'go' && a.place === 'ourpaper' && a.std) return 'standards';
+  if (a.kind === 'go' && ((a.place === 'ourpaper' && a.std) || a.place === 'standards')) return 'standards';   // Standards, its own page since 17 Nov 2026
   if (a.kind === 'go') { const t = T.find(x => x.to.place === a.place && !x.to.std); return t ? t.k : 'place:' + a.place; }
   if (a.kind === 'door') { const t = T.find(x => x.to.door === a.door); return t ? t.k : 'door:' + a.door; }
   if (a.kind === 'menu') { if (EXPORTS.includes(a.menu)) return 'export'; const t = T.find(x => x.to.menu === a.menu); return t ? t.k : 'menu:' + a.menu; }
@@ -217,7 +217,9 @@ describe('f920 (4) Our standards, on the right book', () => {
     const { a, calls, ctx } = run('standards for the procurement stream');
     assert.equal(lands(ctx, a), 'standards');
     assert.equal(a.book, 'supply');
-    assert.deepEqual(calls.filter(c => c[0] === 'view' || c[0] === 'book'), [['view', 'playbook'], ['book', 'supply']]);
+    /* RE-POINTED 17 Nov 2026 (the Ladder): Standards is one page with no book tabs; the book is named in Jambo's sentence */
+    assert.deepEqual(calls.filter(c => c[0] === 'view' || c[0] === 'book'), [['view', 'playbook']]);
+    assert.equal(a.say, 'jm_go_standards_book');
   });
   test('4b a contract type named opens its own book', () => {
     assert.equal(run('our standard positions for NDAs').a.book, 'nda');

@@ -105,6 +105,9 @@ const check = (name, pass, detail) => {
         window._asked.push(String((body && body.chart) || '')); await new Promise(r => setTimeout(r, 300));
         return { step: { name: 'finish', input: { summary: 'Signing came in a late burst: 25 contracts landed in two months. 37 contracts were imported in one day. Worth checking which of the open ones are close to signing.' } } }; };
       const s = hbS(); s.face = 'board'; s.prep = 'closed'; s.panels = []; s.why = {}; s.digBig = false; s.path = [k];
+      /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */
+      /* stage 8 (8a, 8e) opens the value's own card from its figure, so the reader picks it, as the figure picker lets them */
+      s.figs = ['live', 'value', 'ending', 'overdue'];
       /* (Chambers, 21 Oct 2026: the Board has no Dark screen to start on; stage 7 stores an old Dark press and asks that it is not read) */
       s.recipe = s.recipe || {}; s.recipe[k] = { which: 'all', pic: 'cols', split: { by: 'date', unit: 'm', date: 'signed' }, measure: 'count', trend: true };
       hbSave(); setView('dashboard'); }, KEY);

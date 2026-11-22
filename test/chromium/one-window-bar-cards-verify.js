@@ -63,7 +63,9 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     /* RE-POINTED 26 Oct 2026 (owner: "any page where there is a link to press on the first page needs a second
        tab for jambo"; reverses the Board's one window of the same day): his greeting and its chips are the
        Board's first page, under Overview; his conversation under the Jambo tab beside it; still no page word */
-    check('A1 the Board: Overview (his cards and chips), no Jambo tab; no word, no trail on the landing', !!A1 && A1.tabs.some(t => /Overview|Översikt/.test(t)) && noJb(A1) && A1.word.length === 0 && A1.trail === 0, JSON.stringify(A1));
+    /* RE-POINTED 21 Nov 2026 (P-39, the Board's panel as drawn): no head row — his cards are the panel itself, so no
+       Overview tab is drawn (nor a Jambo tab) */
+    check('A1 the Board: his cards with no tab row (as drawn), no Jambo tab; no word, no trail on the landing', !!A1 && A1.tabs.length === 0 && noJb(A1) && A1.word.length === 0 && A1.trail === 0, JSON.stringify(A1));
     ai.reset(); ai.script(deliver('Two things want you this week.'));
     await page.fill('#igd-input', 'explain this board to me in two lines'); await page.click('#igd-go');   /* typed: the brain's */
     /* RE-POINTED 26 Oct 2026: the answer stands under his tab; his greeting waits under Overview, one press back */
@@ -89,8 +91,13 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
        view therefore it warrants a second panel for jambo"). Its panel carries
        the wall and Discover — the page's own work, not his words — so it wears
        the Dossier's pattern: the page's tab and his, one press apart. */
-    check('A4 the Contracts place: the page\'s own tab alone, so Discover is never inside the talk',
-      !!A4 && A4.tabs.length === 1 && A4.tabs.some(t => /Overview|Översikt/.test(t)) && A4.word.length === 0, JSON.stringify(A4));
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the Contracts place's panel has no head row — the page's own summary (.ctls)
+       IS the panel, so no tab is drawn; the rule stands: the page's work (its summary, Discover's door) is never inside
+       the talk — no Discover section in the panel, no conversation drawn on the landing, no word, no trail */
+    A4.page = await page.evaluate(() => { const d = document.getElementById('ig-dock');
+      return { ctls: !!d.querySelector('.ctls'), disc: !!d.querySelector('[data-ac-discover], .ac-disc, .pd-disc'), talk: !!d.querySelector('[data-jb-turns] .ai-msg, .igd-talk [data-jb-turns]') }; });
+    check('A4 the Contracts place: the page\'s own summary as drawn, no tab row, so Discover is never inside the talk',
+      !!A4 && A4.tabs.length === 0 && noJb(A4) && A4.word.length === 0 && A4.trail === 0 && A4.page.ctls && !A4.page.disc && !A4.page.talk, JSON.stringify(A4));
 
     await page.evaluate(() => setView('intake'));
     await until(() => !!document.querySelector('#ins-panel .jl-body [data-jl-words] .jov'));
@@ -103,9 +110,11 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     const A6h = await panelHead('#ins-panel');
     check('A6 a question there: answered in his conversation, "‹ Overview" above the box', !!A6 && A6h.tabs.length === 1 && /Jambo/.test(A6h.tabs[0]) && /Overview/.test(A6h.door), JSON.stringify(A6h));
 
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list (.stn-page) and its
+       panel is the list pages' own (#ins-panel), its landing tab the Overview */
     await page.evaluate(() => setView('team'));
-    await until(() => !!document.getElementById('st-jb-feed'));
-    const A7 = await panelHead('#st-side');
+    await until(() => !!document.querySelector('.stn-page') && !!document.querySelector('#ins-panel .jl-tab'));
+    const A7 = await panelHead('#ins-panel');
     /* REVERSED (owner, 26 Oct 2026, of every page): Settings' landing carries
        "N things need you here" with a link per row, so it keeps its own tab
        beside his rather than being his one window. A7 now reads the rule's
@@ -128,7 +137,14 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     await page.evaluate(() => setView('playbook'));
     await until(() => !!document.querySelector('#ins-panel [data-jl-home]'));
     const A10 = await panelHead('#ins-panel');
-    check('A10 Our standards, a standard chosen, keeps Overview, no Jambo tab', !!A10 && A10.tabs.some(t => /Overview/.test(t)) && noJb(A10), JSON.stringify(A10));
+    /* RE-POINTED 22 Nov 2026 (P-35, the Playbook as drawn, the Legora + Stripe way): the panel starts with the chosen
+       position's own card — no head row, so no Overview tab is drawn (as P-31 Contracts, P-34 Our paper, P-33 Import, P-39
+       the Board). The rule stands: the panel holds the page's own reading (its five parts, slot "ld"), never the talk, and
+       no Jambo tab, no word, no trail */
+    if (A10) A10.five = await page.evaluate(() => { const p = document.getElementById('ins-panel'), f = p && p.querySelector('.jov5[data-jov-slot="ld"]');
+      return { five: !!f && f.getClientRects().length > 0, talk: !!p && p.classList.contains('is-talk') }; });
+    check('A10 the Playbook, a position chosen: its own card as drawn, no tab row, no Jambo tab, no word, no trail',
+      !!A10 && A10.tabs.length === 0 && noJb(A10) && A10.word.length === 0 && A10.trail === 0 && A10.five.five && !A10.five.talk, JSON.stringify(A10));
 
     /* THE RULE OF 26 OCT 2026 — that a page's own work is never inside the
        conversation — has its own home: test/chromium/jambo-panel-sweep-verify.js
@@ -156,13 +172,13 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     await page.keyboard.press('Escape');
 
     console.log('\nC · Jambo\'s cards, The Legora way');
-    await page.evaluate(() => setView('team')); await until(() => !!document.getElementById('st-jb-feed'));
+    await page.evaluate(() => setView('team')); await until(() => !!document.querySelector('.stn-page'));
     await page.evaluate(() => stJbAsk('turn off my suggestions'));
-    const C1 = await until(() => { const c = document.querySelector('#st-side .st-jb-card'); if (!c) return null; const f = c.querySelector('.st-jb-fine'); const cs = getComputedStyle(c);
-      const r = c.getBoundingClientRect(), fr = f ? f.getBoundingClientRect() : null;
-      return { bg: cs.backgroundColor, border: cs.borderTopWidth, radius: cs.borderTopLeftRadius, fineIn: fr ? Math.round(fr.left - r.left + parseFloat(getComputedStyle(f).paddingLeft)) : null, fineBottom: fr ? Math.round(r.bottom - fr.bottom) : null }; });
-    check('C1 a Settings card: one soft grey, no edge, 10px round (29 Oct 2026)', !!C1 && C1.bg === 'rgb(242, 242, 245)' && C1.border === '0px' && C1.radius === '10px', JSON.stringify(C1));
-    check('C2 "Found without AI · free" sits inside the card, never at its edge', !!C1 && C1.fineIn >= 12 && C1.fineBottom >= 0, JSON.stringify(C1));
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's Settings has no side feed (#st-side); the Settings card the
+       finder draws is measured where it stands, in the ✦ window (below, C1–C3), against Jambo's card fill TOKEN
+       (--jb-card-fill: the new look takes --jb-card-fill-new, owner 31 Oct 2026) rather than the old grey's number */
+    const FILL = () => { const t = document.createElement('div'); t.style.background = 'var(--jb-card-fill)'; document.body.appendChild(t); const v = getComputedStyle(t).backgroundColor; t.remove(); return v; };
+    const fill = await page.evaluate(FILL);
     /* the same card in the ✦ window (.jb-turn), where the footnote had no spacing */
     await page.evaluate(() => { if (!(ai.open && ai.win)) openAI(null, { win: true }); });
     await page.waitForTimeout(400);
@@ -170,15 +186,18 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     const C3ok = await until(() => !!document.querySelector('#ai-feed .st-jb-card .st-jb-fine'));
     check('C3a the card is drawn in the ✦ window', !!C3ok);
     const C3 = await page.evaluate(() => { const c = document.querySelector('#ai-feed .st-jb-card'); const f = c.querySelector('.st-jb-fine');
-      const r = c.getBoundingClientRect(), fr = f.getBoundingClientRect(); const pl = parseFloat(getComputedStyle(f).paddingLeft);
+      const r = c.getBoundingClientRect(), fr = f.getBoundingClientRect(); const pl = parseFloat(getComputedStyle(f).paddingLeft); const cs = getComputedStyle(c);
       const rd = c.closest('.jb-turn, .ai-msg, [data-st-jb-turn]'); const from = rd && [...rd.parentElement.querySelectorAll('.jb-read, .ai-read, [data-jb-read]')].find(x => x.getBoundingClientRect().top >= r.top);
-      return { bg: getComputedStyle(c).backgroundColor, fineIn: Math.round(fr.left - r.left + pl), readBelow: from ? Math.round(from.getBoundingClientRect().top - r.bottom) : null }; });
-    check('C3 in the ✦ window the same card and its footnote 12px+ inside', C3.bg === 'rgb(242, 242, 245)' && C3.fineIn >= 12, JSON.stringify(C3));
+      return { bg: cs.backgroundColor, border: cs.borderTopWidth, radius: cs.borderTopLeftRadius, fineIn: Math.round(fr.left - r.left + pl), fineBottom: Math.round(r.bottom - fr.bottom), readBelow: from ? Math.round(from.getBoundingClientRect().top - r.bottom) : null }; });
+    C3.fill = fill;
+    check('C1 a Settings card: Jambo\'s one soft card fill, no edge, 10px round (29 Oct 2026)', C3.bg === fill && C3.bg !== 'rgba(0, 0, 0, 0)' && C3.border === '0px' && C3.radius === '10px', JSON.stringify(C3));
+    check('C2 "Found without AI · free" sits inside the card, never at its edge', C3.fineIn >= 12 && C3.fineBottom >= 0, JSON.stringify(C3));
+    check('C3 in the ✦ window the same card and its footnote 12px+ inside', C3.bg === fill && C3.fineIn >= 12, JSON.stringify(C3));
     await page.evaluate(() => { if (window.aiWinToggle && ai.open) try { aiWinToggle(); } catch (_) {} });
     await homeFace('board'); await until(() => !!document.getElementById('igd-input'));
     await page.evaluate(() => intelAsk('help'));
     const C4 = await until(() => { const c = document.querySelector('#ig-dock .ca-card'); if (!c) return null; const cs = getComputedStyle(c); return { bg: cs.backgroundColor, border: cs.borderTopWidth, radius: cs.borderTopLeftRadius, pad: cs.paddingLeft }; });
-    check('C4 his own card (Words I know): the same grey, no edge, 10px round, 16px inside', !!C4 && C4.bg === 'rgb(242, 242, 245)' && C4.border === '0px' && C4.radius === '10px' && C4.pad === '16px', JSON.stringify(C4));
+    check('C4 his own card (Words I know): the same grey, no edge, 10px round, 16px inside', !!C4 && C4.bg === fill && C4.border === '0px' && C4.radius === '10px' && C4.pad === '16px', JSON.stringify(C4));
     for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350); await page.screenshot({ path: path.join(OUT, `C-cards-${w}x${hh}.png`) }); }
 
     check('D no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');

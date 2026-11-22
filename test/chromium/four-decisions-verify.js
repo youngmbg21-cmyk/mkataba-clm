@@ -95,7 +95,8 @@ const blocked = [];
         /* the Board's list also carries its own moves (/compare, /trend…), which fill a question: no "Open" there */
         ['the Board', () => { setView('dashboard'); try { hbSetFace('board'); } catch (_) {} }, '#igd-input', '#hb-askpop', '[data-hb-pop-kind="place"]'],
         ['Approvals\' panel', () => setView('approvals'), '#jl-q', '[data-jl-pop]'],
-        ['Settings\' Jambo box', () => openSettingsAt('you'), '#st-jb-q', '#ca-slash'],
+        /* RE-POINTED 16 Nov 2026 (#762): Settings' Jambo box is the list panel's #jl-q, its "/" list the panel's own pop [data-jl-pop] */
+        ['Settings\' Jambo box', () => openSettingsAt('you'), '#jl-q', '[data-jl-pop]'],
       ]){
         await clean(); await ev(go);
         const up = await until(sel => { const b = document.querySelector(sel); return !!(b && b.getBoundingClientRect().width); }, box);
@@ -123,7 +124,8 @@ const blocked = [];
       await page.click('#ig-dock .igd-head [data-pd-tab="copilot"]').catch(() => {});
       const five = await until(() => document.querySelector('#ig-dock .igd-head [data-pd-send-back]'), undefined, 5000);
       await settle(); await shot('q2-five-tabs');
-      if (!five) check(`${at} · Q2 — the waiting letter's tab is drawn`, false);
+      if (!five) check(`${at} · Q2 — the waiting letter's tab is drawn`, false, await ev(() => JSON.stringify({ modal: !!document.querySelector('#modal-root .modal-in[data-sh-page]'),
+        tabs: [...document.querySelectorAll('#ig-dock .igd-head [data-pd-tab], #ig-dock .igd-head button')].map(b => (b.getAttribute('data-pd-tab') || b.id || '') + ':' + b.textContent.trim().slice(0, 14)) })));
       else {
         const m = await ev(() => { const hd = document.querySelector('#ig-dock > .igd-head'), dock = document.querySelector('#ig-dock').getBoundingClientRect();
           const tabs = [...hd.querySelectorAll(':scope > .pd-tab')].map(t => { const w = t.querySelector('.pd-tab-w') || t, r = document.createRange(); r.selectNodeContents(w);
@@ -138,30 +140,45 @@ const blocked = [];
       }
       await clean();
 
-      /* ---- Q3 · two lines: the Dossier's door rows ---- */
+      /* RETIRED 16 Nov 2026 (#762): Q3 "the Dossier's Who else row reads whole" and "a one-line door row keeps its 44px" —
+         the Dossier's door rows (.pd-ck-hd: Who else, Signer, …) were the old look's list; the new look's Dossier is ONE
+         card (pd2CardHtml) with no such rows. The field-label line below still stands where any such row is drawn. */
       await ev(id => pdOpenOnHome(id, 'copilot'), reviewId);
-      await until(() => [...document.querySelectorAll('#ig-dock .pd-ck-hd')].some(b => /Who else/.test(b.textContent)));
-      await ev(() => { const b = [...document.querySelectorAll('#ig-dock .pd-ck-hd')].find(x => /Who else/.test(x.textContent)); if (b) b.scrollIntoView({ block: 'center' }); });
       await settle(); await shot('q3-dossier');
-      const who = await ev(() => { const b = [...document.querySelectorAll('#ig-dock button.pd-ck-hd')].find(x => /Who else/.test(x.textContent)); if (!b) return null;
-        const parts = [b.querySelector(':scope > b'), b.querySelector(':scope > .pd-ck-v')].filter(Boolean);
-        return { cut: parts.filter(p => p.scrollHeight > p.clientHeight + 1 || p.scrollWidth > p.clientWidth + 1).map(p => p.textContent.trim()), lines: parts.map(p => Math.round(p.getBoundingClientRect().height / 20)) }; });
-      check(`${at} · Q3 — the Dossier's "Who else" row reads whole, two lines at most`, who && !who.cut.length && who.lines.every(n => n <= 2), JSON.stringify(who));
-      const one = await ev(() => [...document.querySelectorAll('#ig-dock tr:is(.is-saved, .is-door, .is-named) button.pd-ck-hd')].filter(b => b.getBoundingClientRect().height && [...b.children].filter(c => !c.matches('.pd-ck-chev')).every(c => c.getBoundingClientRect().height <= 21)).map(b => Math.round(b.getBoundingClientRect().height)));
-      /* RE-POINTED 29 Oct 2026 (the owner: every last-column press a 22px grey pill): the pill is not a line of words */
-      check(`${at} · Q3 — a one-line door row keeps its 44px`, one && one.length && one.every(x => x === 44), JSON.stringify(one));
       const labels = await ev(() => [...document.querySelectorAll('#ig-dock #pd-og.is-sap tr.pd-og-row:not(.is-saved):not(.is-door):not(.is-named) .pd-ck-hd')].filter(b => b.getBoundingClientRect().height).map(b => Math.round(b.getBoundingClientRect().height)));
       check(`${at} · Q3 — a field's label line above its box stays one 20px line`, labels && labels.every(x => x <= 21), JSON.stringify(labels));
 
       /* ---- Q3 · two lines: a person's contracts on People ---- */
       await clean(); await ev(() => setView('directory'));
       await until(() => document.querySelector('#content table tbody tr'));
-      await page.click('#content table tbody tr').catch(() => {});
-      const list = await until(() => document.querySelector('.ins-panel .jl-ct-list .dir-ct-n'), undefined, 6000);
+      /* RE-POINTED 21 Nov 2026 (P-26, as drawn): the panel no longer lists "Named on, most recent" (Show their contracts
+         opens them all); the agreements it names are in what waits on the person (.dirn-w-t) and the timeline of what
+         they did (.dirn-tl li > button). The rule stands: each name whole in two lines or fewer. The rows are walked
+         until a person whose panel names an agreement is chosen. */
+      const NAMES = () => [...document.querySelectorAll('.ins-panel :is(.dirn-w-t, .dirn-tl li > button)')];
+      await ev(`window.__q3names = ${NAMES.toString()}`);
+      let list = false;
+      const nRows = await ev(() => document.querySelectorAll('#dir-tbody [data-dir-row]').length, undefined, 0);
+      for (let i = 1; i <= Math.min(nRows || 0, 12) && !list; i++){
+        await page.click(`#dir-tbody [data-dir-row]:nth-child(${i}) .cun-name`).catch(() => {});
+        list = await until(() => window.__q3names().length > 0, undefined, 1500);
+      }
+      /* RE-POINTED 22 Nov 2026 (P-26 review): the sample book's one person (the admin) has nothing in her timeline — no
+         signature, ask or proposal names her — so no panel names an agreement and the rule had nothing to measure. Where
+         the walk finds none, her signature is put on three of her agreements (the long "Regulatory" one first) in this
+         page's memory only, and her panel's timeline then names them; the rule measured is unchanged */
+      if (!list){
+        await ev(() => { const me = currentUser(); const p = (dirBook() || []).find(x => x.side === 'ours' && String(x.email || '').toLowerCase() === String(me.email || '').toLowerCase()); if (!p) return;
+          const cs = (p.contracts || []).map(id => getContract(id)).filter(Boolean).sort((a, b) => (/Regulatory/.test(b.name) ? 1 : 0) - (/Regulatory/.test(a.name) ? 1 : 0)).slice(0, 3);
+          cs.forEach((c, i) => { c.signatures = (Array.isArray(c.signatures) ? c.signatures : []).concat([{ name: me.name, email: me.email, at: new Date(Date.now() - (i + 1) * 864e5).toISOString() }]); });
+          renderDirectory(); });
+        await page.click('#dir-tbody [data-dir-row]:first-child .cun-name').catch(() => {});
+        list = await until(() => window.__q3names().length > 0, undefined, 3000);
+      }
       await settle(); await shot('q3-people');
       if (!list) check(`${at} · Q3 — People: a person's contracts are listed`, false);
       else {
-        const ns = await ev(() => [...document.querySelectorAll('.ins-panel .jl-ct-list .dir-ct-n')].map(n => ({ t: n.textContent.trim(), lines: Math.round(n.getBoundingClientRect().height / parseFloat(getComputedStyle(n).lineHeight || 20)), cut: n.scrollHeight > n.clientHeight + 1 || n.scrollWidth > n.clientWidth + 1 })));
+        const ns = await ev(() => window.__q3names().map(n => ({ t: n.textContent.trim(), lines: Math.round(n.getBoundingClientRect().height / parseFloat(getComputedStyle(n).lineHeight || 20)), cut: n.scrollHeight > n.clientHeight + 1 || n.scrollWidth > n.clientWidth + 1 })));
         const bad = ns.filter(x => x.cut || x.lines > 2);
         const long = ns.find(x => /Regulatory/.test(x.t));
         check(`${at} · Q3 — People: every contract name whole in two lines or fewer`, ns.length && !bad.length && (!long || !long.cut), bad.map(x => `"${x.t}" ${x.cut ? 'cut' : x.lines + ' lines'}`).join(' · ') || ns.map(x => `${x.t.slice(0, 22)}… ${x.lines}`).join(' · '));

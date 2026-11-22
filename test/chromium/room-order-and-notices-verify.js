@@ -473,9 +473,19 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
        The SUBJECT of the check is unchanged and is why it is kept: the signal
        is not a band across the top of their contract, it is one press away.
        What moved is which press. */
-    check('but the readiness signal is one press away, behind their header bell',
-      !cp.readyOnPage && !!cp.headBell && cp.headBell.on && cp.inPanel,
-      `on the page ${cp.readyOnPage}, head bell ${JSON.stringify(cp.headBell)}, in panel ${cp.inPanel}`);
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762; the owner's ruling 5, 17 Nov 2026: their page keeps
+       round 8's outside look, the deal's buttons behind More): their header bell stands in More's pop-up (#pol-more opens
+       #pol-pop), so the signal is behind the bell, the bell behind More — read once More is open */
+    let moreBell = cp.headBell;
+    if (!(cp.headBell && cp.headBell.on) && await cpage.$('#pol-more')) {
+      await cpage.click('#pol-more').catch(() => {});
+      await cpage.waitForFunction(() => { const p = document.getElementById('pol-pop'); return !!p && !p.hidden; }, null, { timeout: 4000 }).catch(() => {});
+      moreBell = await cpage.evaluate(([s]) => eval(s)(document.getElementById('pt-bell')), [seen]);
+      await cpage.click('#pol-more').catch(() => {});
+    }
+    check('but the readiness signal is not on the page: it is behind their header bell, in More\'s pop-up',
+      !cp.readyOnPage && !!moreBell && moreBell.on && cp.inPanel,
+      `on the page ${cp.readyOnPage}, head bell ${JSON.stringify(moreBell)}, in panel ${cp.inPanel}`);
     check('and there is only ONE bell on their page',
       !cp.floatBell || !cp.floatBell.on, JSON.stringify(cp.floatBell));
     check('no page errors on the counterparty page', cerrors.length === 0,

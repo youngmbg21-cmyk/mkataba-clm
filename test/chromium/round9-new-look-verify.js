@@ -1,6 +1,6 @@
 /* THE NEW LOOK, ROUND 9 (3 Nov 2026; the owner's answers: read down as a SECOND view of the Board, and a failed send
    keeping today's way, drawn in the new look; the phone's bar unchanged).
-     1 · Off: the Board has no Read down; a refused email says today's amber box under the form
+     1 · (RETIRED 16 Nov 2026, #762: the switch off — the new look is the only look)
      2 · On: Read down beside DNA in the Board's head; pressed, the page as drawn — the eyebrow (no call), the title,
          five sentences each with where it was read and a door, the quarters, the doors at the foot; Jambo's panel
          reads what was read. The first sentence counts the book the page reads
@@ -37,18 +37,8 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     await until(page, () => /Not delivered|Not sent/.test(((document.getElementById('sh-result') || {}).innerText || '') + ((document.getElementById('sh-lt-verdict') || {}).innerText || '')), null, 20000);
     await page.waitForTimeout(400);
   };
-  const shut = () => page.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
 
-  /* 1 · off */
-  try {
-    await page.evaluate(() => caGo({ kind: 'go', place: 'board' }));
-    await until(page, () => !!document.querySelector('#hb-bhead'), null, 20000);
-    const rd = await page.evaluate(() => !!document.querySelector('[data-hb-rdn]'));
-    await send();
-    const S = await page.evaluate(() => ({ box: /Not delivered/.test((document.getElementById('sh-result') || {}).innerText || ''), ns: !!document.querySelector('#sh-lt-verdict.is-notsent') }));
-    check('1 off: no Read down on the Board; a refused email says today\'s box under the form', !rd && S.box && !S.ns, { rd, ...S });
-    await shut();
-  } catch (e) { check('1 off', false, String(e).slice(0, 200)); }
+  /* RETIRED 16 Nov 2026 (#762): 1 "off: no Read down; a refused email says today's box" — there is no switch; the new look is the only look */
 
   await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); });
 
@@ -62,10 +52,15 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     /* RE-POINTED 10 Nov 2026: DNA was deleted, so Read down stands alone in the head */
     const btn = await until(page, () => !!document.querySelector('#hb-bhead [data-hb-rdn]') && !document.querySelector('#hb-bhead [data-hb-dna]'), null, 20000);
     if (btn) await page.click('#hb-bhead [data-hb-rdn]');
-    const up = await until(page, () => !!document.querySelector('#rd-page') && /Read from the records/i.test((document.querySelector('#ig-dock') || document.body).innerText), null, 15000);
+    /* RE-POINTED 18 Nov 2026 (owner's pick by name, "Five Parts"; f1094): Jambo's panel beside Read down is the five parts
+       (.rd-five: "Your book, in five sentences."), no longer the "Read from the records" table.
+       RE-POINTED 21 Nov 2026 (P-41, as drawn): the panel's title has no full stop ("Your book, in five sentences");
+       this check reads only that the title is there, so it stands as written */
+    const up = await until(page, () => !!document.querySelector('#rd-page') && !!document.querySelector('#ig-dock .rd-five .jov5-title'), null, 15000);
     const S = up ? await page.evaluate(() => ({ eyebrow: document.querySelector('.rd-eyebrow').textContent, h: document.querySelector('.rd-h').textContent,
-      rows: [...document.querySelectorAll('.rd-row')].map(r => ({ t: r.querySelector('.rd-t').textContent, src: r.querySelector('.rd-src b').textContent, go: (r.querySelector('[data-rd-go]') || {}).dataset ? r.querySelector('[data-rd-go]').dataset.rdGo : '' })),
+      rows: [...document.querySelectorAll('.rd-tbl tbody tr')].map(r => ({ t: r.querySelector('.rd-td-t').textContent, src: r.querySelector('.rd-td-src').textContent, go: (r.querySelector('[data-rd-go]') || {}).dataset ? r.querySelector('[data-rd-go]').dataset.rdGo : '' })),
       qs: document.querySelectorAll('.rd-q').length, foot: [...document.querySelectorAll('.rd-foot [data-rd-go]')].map(b => b.dataset.rdGo), n: hbRdnBook().length })) : null;
+    /* RE-POINTED 22 Nov 2026 (owner's pick "the Stripe way"): the five sentences are a table's rows (Reading · Status · Source · Open) */
     check('2a Read down sits in the Board\'s head, with no DNA beside it', btn);
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
     check('2b the page as drawn: no cost said, the title, five sentences each with its source and door, the quarters, the doors at the foot', !!S && !/call|free/i.test(S.eyebrow) && S.h === 'Your book, read down.'
@@ -75,7 +70,7 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
 
   /* 3 · a door goes there; back comes back */
   try {
-    await page.click('.rd-row [data-rd-go="calendar"]');
+    await page.click('.rd-tbl [data-rd-go="calendar"]');
     const went = await until(page, () => !document.querySelector('#rd-page') && !!document.querySelector('#hb-cal'), null, 15000);
     await page.evaluate(() => caGo({ kind: 'go', place: 'board' }));
     await until(page, () => !!document.querySelector('#hb-bhead [data-hb-rdn]'), null, 15000);

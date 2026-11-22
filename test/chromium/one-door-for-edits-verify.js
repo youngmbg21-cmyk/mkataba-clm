@@ -223,7 +223,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
       return r ? { says: r.textContent.replace(/\s+/g, ' '), go: !!r.querySelector('[data-rk-act="cov-go"]') } : null;
     });
     check(!!fold && /Covered by your redlines \(1\)/.test(await page.evaluate(() => (document.querySelector('[data-rk-act="covered"]') || {}).textContent || '')), '2a the fold reads "Covered by your redlines (1)"');
-    check(!!fold && /By CHG-\d+ · .*Payment.* · from your standards/.test(fold.says) && fold.go, '2b its line names the redline that covers it, and goes there', fold && fold.says);
+    check(!!fold && /By CHG-\d+ · .*Payment.* · from your playbook/.test(fold.says) && fold.go, '2b its line names the redline that covers it, and goes there', fold && fold.says);
     await shot('2-covered-fold.png');
 
     /* ============ 3. EDIT WITH COPILOT ============ */

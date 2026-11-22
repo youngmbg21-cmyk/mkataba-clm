@@ -122,6 +122,8 @@ const SEED = t => {
       mimeType: 'text/plain', buffer: buf });
     await pause(2600);
     await page.screenshot({ path: path.join(OUT, '01-confirm.png'), fullPage: true });
+    /* RE-POINTED (f1120, the one edit pop-up): the tick is on the confirm's second step, Filing — Next shows it */
+    await page.click('#up-next').catch(() => {});
     const box = await page.evaluate(() => {
       const el = document.getElementById('up-triage');
       if (!el) return null;
@@ -400,7 +402,12 @@ const SEED = t => {
     await pause(900);
     await drive(() => {
       /* the tab's own door (OB_FIND_DOORS names both ids; the tab draws obt-find) */
-      const b = document.getElementById('obt-find') || document.getElementById('ob-find');
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Jambo's Obligations panel is drawn in THE
+         FIVE PARTS — with nothing recorded, its Find is the one black button "Find them in the wording"
+         (jov5_cob_find → runFindObligations), the same funnel the old tab's obt-find pressed */
+      const want = i18t('jov5_cob_find');
+      const b = document.getElementById('obt-find') || document.getElementById('ob-find')
+        || [...document.querySelectorAll('#ig-dock button')].find(x => x.textContent.trim() === want);
       if (b) b.click();
     });
     await pause(2500);
@@ -682,25 +689,31 @@ const SEED = t => {
     await pause(1400);
     await page.screenshot({ path: path.join(OUT, '11-partial-brief.png'), fullPage: false });
     const after11 = await read11();
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the press lands the brief on THE ONE BRIEF PAGE
+       in the middle beside the paper (pd2BriefGo / pd2BriefOpen, [data-pd2-brief]); the Key terms strip and card it
+       was pressed from leave with it. The claims are read where the brief now stands: written without a reload, said
+       to be cut short, and the way forward — write it again — on that same page. */
+    const page11 = await drive(() => {
+      const el = document.querySelector('[data-pd2-brief]');
+      const t = x => (x ? x.textContent.replace(/\s+/g, ' ').trim() : '');
+      const shown = x => !!(x && x.getBoundingClientRect().width > 0 && x.getBoundingClientRect().height > 0);
+      const again = el ? [...document.querySelectorAll('[data-pd2-br-write], [data-kt-brief="run"]')].find(shown) : null;
+      return { up: shown(el), lead: t(el && el.querySelector('.pd2-br-lead')), cut: t(el && el.querySelector('.pd2-br-cut')),
+        again: !!again, againTip: again ? (again.getAttribute('title') || again.textContent.trim()) : '' };
+    }, undefined, null);
     check('11b · the press really wrote one (control)',
-      !!(after11 && after11.cardOpen === true), after11 && { open: after11.cardOpen });
-    check('11c · THE REPORTED FAULT: the strip repaints with the card, no reload',
-      !!(after11 && /Brief written|Sammanfattning skriven/.test(after11.head)),
-      after11 && after11.head);
+      !!(page11 && page11.up && /northern route/.test(page11.lead)) || !!(after11 && after11.cardOpen === true), page11 || (after11 && { open: after11.cardOpen }));
+    check('11c · THE REPORTED FAULT: the page repaints with the brief, no reload',
+      !!(page11 && page11.up && /northern route/.test(page11.lead)) || !!(after11 && /Brief written|Sammanfattning skriven/.test(after11.head)),
+      page11 ? page11.lead.slice(0, 80) : after11 && after11.head);
     check('11d · and it says the answer was cut short rather than serving half a memo whole',
-      !!(after11 && /cut short|klipptes/i.test(after11.detail)),
-      after11 && after11.detail);
-    /* RE-POINTED 8 Oct 2026 (the Constellation page): the brief's card left
-       the Overview; the second box is Read the brief's own slot, and a cut
-       short brief puts Rewrite the brief beside it, saying why on the hover. */
-    const cutSaid = await drive(() => { const b = document.querySelector('#kt-ov-brief [data-kt-brief="run"]');
-      return b ? (b.getAttribute('title') || '') : ''; }, undefined, '');
-    check('11e · the card beside it says it too, in the same breath',
-      !!(/cut short|Part of this|klipptes|En del av/i.test(cutSaid)),
-      cutSaid || (after11 && after11.cardTxt.slice(0, 120)));
-    check('11f · and the way forward is ON the card — write it again',
-      !!(after11 && after11.cardWrite === true && after11.cardOpen === true),
-      after11 && { write: after11.cardWrite, open: after11.cardOpen });
+      !!(page11 && /cut short|klipptes|Part of this|En del av/i.test(page11.cut)) || !!(after11 && /cut short|klipptes/i.test(after11.detail)),
+      page11 ? page11.cut : after11 && after11.detail);
+    /* RETIRED 16 Nov 2026 (#762): 11e "the card beside it says it too" — two boxes (the Key terms strip and its brief
+       card) agreeing is the old look's; the new look draws the brief on one page, whose saying is 11d */
+    check('11f · and the way forward is ON the page that says it — write it again',
+      !!(page11 && page11.up && page11.again) || !!(after11 && after11.cardWrite === true && after11.cardOpen === true),
+      page11 || (after11 && { write: after11.cardWrite, open: after11.cardOpen }));
     await ctx.unroute('**/api/ai/brief');
 
     /* ============ 12 · A CONTRACT HaTi DREW IS READ TOO ============

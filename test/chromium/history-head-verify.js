@@ -117,7 +117,11 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
         sideSeen: seen(host.querySelector('.hist-side')),
         lanes: [...host.querySelectorAll('.hist-trail.is-lanes > .hist-lh')].map(x => x.textContent.replace(/\\s+/g, ' ').trim()),
         cols: [...host.querySelectorAll('.hist-trail.is-table > .hist-th > *')].map(x => x.textContent.trim()),
-        sides: [...host.querySelectorAll('.hist-trail.is-table .hist-c-side')].map(x => x.textContent.trim()),
+        /* RE-POINTED (P-44, owner's pick 20 Nov 2026: History the Legora + Stripe way): the Side column is gone — the side is
+           said by who, and each row still carries histLaneOf's reading (data-hist-lane); the Kind column is a soft badge */
+        sides: [...host.querySelectorAll('.hist-trail.is-table .hist-ev[data-hist-lane]')].map(x => x.getAttribute('data-hist-lane')),
+        sideCol: host.querySelectorAll('.hist-trail.is-table .hist-c-side').length,
+        kinds: host.querySelectorAll('.hist-trail.is-table .hist-c-kind .hist6-kb').length,
         lid: !!host.querySelector('#hist-filter'),
         btn: seen(host.querySelector('#hist-filter-btn')),
         btnExp: (host.querySelector('#hist-filter-btn') || {}).getAttribute
@@ -126,6 +130,16 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
         selects: [...host.querySelectorAll('.hist-f select')].map(s =>
           ({ k: s.getAttribute('data-ht-filter'), ...seen(s) })),
         labels: [...host.querySelectorAll('.hist-f > span')].map(s => s.textContent.trim()),
+        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's filters are QUICK LINKS in the open
+           (owner, 31 Oct 2026, "Quick links as drawn"; histQuickHtml): theirs · sent · decisions · Jambo, a link that
+           would give nothing not drawn, named by one "Filters" label, Clear beside them */
+        /* RE-POINTED 22 Nov 2026 (the P-44 review, the owner's picked drawing "History, the Legora + Stripe way": the chips
+           are All · Changes · Notes with their counts and "+ Side" — histKindChipsHtml; the quick links theirs · sent ·
+           decisions · Jambo and the Clear link are not in the drawing, each chip lets go itself, All is the way back) */
+        quick: [...host.querySelectorAll('.hist6-kinds [data-ht-kind]')].map(b => ({ k: b.getAttribute('data-ht-kind'), ...seen(b) })),
+        /* RE-POINTED (P-44): the "Filters" label went; the quick links are chips with their counts, All first */
+        quickLabel: (host.querySelector('.hist-quick .hist-qk-l') || {}).textContent || '',
+        allChip: (() => { const b = host.querySelector('.hist6-kinds [data-ht-kind=""]'); return b ? { k: b.getAttribute('data-ht-kind'), text: b.textContent.replace(/\\s+/g, ' ').trim(), pressed: b.getAttribute('aria-pressed') } : null; })(),
         clear: seen(host.querySelector('#ht-clear')),
         more: (() => { const b = host.querySelector('#hist-more');
           return b ? { tag: b.tagName, text: (b.textContent || '').replace(/\\s+/g, ' ').trim(), aria: b.getAttribute('aria-label') || '', tip: b.getAttribute('title') || '',
@@ -147,25 +161,34 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
        stands; the switch is gone (reverses the 15 Oct switch in the open). */
     /* RE-POINTED 21 Oct 2026 (the owner picked "The SAP way"): ONE TABLE —
        the side is a column of words, read on every row; no switch, no lanes */
-    check('no side switch: the side is a column of the one table (Time · Who · Side · What happened · Outcome)',
-      head.chips === 0 && head.sideSwitch.length === 0 && head.lanes.length === 0 && JSON.stringify(head.cols) === JSON.stringify(['Time', 'Who', 'Side', 'What happened', 'Outcome']),
+    /* RE-POINTED (P-44, owner's pick 20 Nov 2026: History the Legora + Stripe way): Time · Who · What happened · Kind ·
+       Outcome — the Side column is gone, the side said by who */
+    check('no side switch: one table, Time · Who · What happened · Kind · Outcome (no Side column)',
+      head.chips === 0 && head.sideSwitch.length === 0 && head.lanes.length === 0 && head.sideCol === 0 && head.kinds > 0 && JSON.stringify(head.cols) === JSON.stringify(['Time', 'Who', 'What happened', 'Kind', 'Outcome']),
       `${head.chips} switch buttons · lanes ${head.lanes.length} · columns ${head.cols.join(' | ')}`);
     check('the old Filter lid (#hist-filter) is gone', !head.lid, head.lid ? 'still there' : 'none');
     /* RE-POINTED 21 Oct 2026 (the SAP way): the filters stand IN THE OPEN as
        labelled boxes in the band beside the search — the Filter button that
        folded them (SAP batch 3, 9 Oct) is gone. What still holds: the
        filters, Clear, one handle per filter, Side not among them. */
-    check('the filters stand in the open at rest: no Filter button, every box on screen, Clear with them',
-      !(head.btn && head.btn.on) && head.selects.length >= 4 && head.selects.every(s => s.on) && !!(head.clear && head.clear.on),
-      head.selects.map(s => `${s.k}:${s.w}x${s.h}`).join(' · ') + ` · button ${head.btn ? 'present' : 'absent'}`);
-    check('in the drawing\'s order, and side is NOT among them (one handle)',
-      !head.selects.some(s => s.k === 'side') && JSON.stringify(head.selects.map(s => s.k)) === JSON.stringify(['actor', 'clauseId', 'outcome', 'round']),
-      head.selects.map(s => s.k).join(' · '));
-    check('the band still names each filter', head.labels.length === 4, head.labels.join(' | '));
+    /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn): no Clear link — the All chip is the way back */
+    check('the filters stand in the open at rest: no Filter button, every chip on screen, All with them',
+      !(head.btn && head.btn.on) && head.quick.length >= 2 && head.quick.every(s => s.on) && head.quick[0].k === '',
+      head.quick.map(s => `${s.k}:${s.w}x${s.h}`).join(' · ') + ` · button ${head.btn ? 'present' : 'absent'}`);
+    /* RE-POINTED (P-44): All leads the chips (data-ht-quick=""); the rest keep the drawing's order */
+    const QORDER = ['', 'change', 'note'];   /* RE-POINTED 22 Nov 2026: the drawing's All · Changes · Notes (+ Side is its own handle) */
+    check('in the drawing\'s order, All first, and side is NOT among them (one handle)',
+      head.quick.length >= 1 && head.quick[0].k === '' && !head.quick.some(s => s.k === 'side') && head.quick.every((s, i) => QORDER.includes(s.k) && (i === 0 || QORDER.indexOf(s.k) > QORDER.indexOf(head.quick[i - 1].k))),
+      head.quick.map(s => s.k || 'all').join(' · '));
+    /* RE-POINTED (P-44, owner's pick 20 Nov 2026): the "Filters:" label is gone; the band names its list by the All chip
+       with its count, pressed at rest */
+    check('the band names its list: All with its count, pressed at rest (no "Filters:" label)',
+      !head.quickLabel && !!head.allChip && /^All \d+$/.test(head.allChip.text) && head.allChip.pressed === 'true', JSON.stringify({ label: head.quickLabel, all: head.allChip }));
 
     /* ---- the Side column says Ours / Theirs, in the owner's chair ---- */
-    check('the Side column says whose, in plain words: Ours and Theirs',
-      head.sides.includes('Ours') && head.sides.includes('Theirs'), head.sides.join(' | '));
+    /* RE-POINTED (P-44): no Side column; whose step it was is still read on every row (data-hist-lane, histLaneOf) */
+    check('every row still knows whose step it was: ours and theirs',
+      head.sides.includes('ours') && head.sides.includes('theirs'), head.sides.join(' | '));
 
     /* ============ 2. "MORE" IS NAMED, AND IS STILL A MENU =============== */
     /* RE-POINTED 18 Oct 2026 (round 12, "Two sides", as drawn): ⋯ stands
@@ -228,20 +251,23 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
     const before = head.rows;
     /* RE-POINTED 17 Oct 2026 (round 12): with the side switch gone, the
        narrowing is asked of the Person filter in the fold (still open). */
-    const person = await page.evaluate(() => { const s = document.querySelector('#pd2-hist [data-ht-filter="actor"]');
-      const o = s && [...s.options].find(x => x.value); return o ? o.value : ''; });
-    await page.selectOption('#pd2-hist [data-ht-filter="actor"]', person);
+    /* RE-POINTED 16 Nov 2026 (#762): the narrowing is a quick link's press (the first one drawn that narrows) */
+    /* RE-POINTED (P-44): All leads the chips now, so the narrowing is the first chip that is not All */
+    /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn): the narrowing is a kind chip's press (Changes, the first after All) */
+    const person = await page.evaluate(() => { const b = document.querySelector('#pd2-hist .hist6-kinds [data-ht-kind]:not([data-ht-kind=""])'); return b ? b.getAttribute('data-ht-kind') : ''; });
+    const pressQuick = k => page.evaluate(k => { const b = document.querySelector(`#pd2-hist [data-ht-kind="${k}"]`); if (b) b.click(); }, k);
+    await pressQuick(person);
     await page.waitForTimeout(700);
     await page.screenshot({ path: path.join(OUT, '03-filtered-ours.png') });
     const narrowed = await page.evaluate(`(() => {
       const host = document.querySelector('#pd2-hist');
+      const on = host.querySelector('[data-ht-kind][aria-pressed="true"]');
       return { rows: host.querySelectorAll('.hist-ev').length,
         pill: ((host.querySelector('.hist-cap') || {}).textContent || '').trim(),
-        side: (host.querySelector('[data-ht-filter="actor"]') || {}).value,
-        /* the band's own filter, not its wrapper (which takes no box since the SAP way) */
-        row: ${SEEN}(host.querySelector('[data-ht-filter="actor"]')) };
+        side: on ? on.getAttribute('data-ht-kind') : '',
+        row: ${SEEN}(host.querySelector('.hist6-kinds')) };
     })()`);
-    check('picking a person narrows the record', narrowed.rows > 0 && narrowed.rows < before,
+    check('picking a quick link narrows the record', narrowed.rows > 0 && narrowed.rows < before,
       `${before} → ${narrowed.rows}`);
     check('the count says how much of the record is showing', /of/.test(narrowed.pill || ''), narrowed.pill);
     check('the repaint keeps the choice on the control that made it',
@@ -253,9 +279,9 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
        filter change, and it used to add a document listener per paint. Proved
        from the reader's chair — after several repaints the menu must still take
        exactly one press to open and one to shut. */
-    await page.selectOption('#pd2-hist [data-ht-filter="actor"]', '');
+    await pressQuick('');
     await page.waitForTimeout(450);
-    await page.selectOption('#pd2-hist [data-ht-filter="actor"]', person);
+    await pressQuick(person);
     await page.waitForTimeout(450);
     await page.click('#pd2-hist #hist-more');
     await page.waitForTimeout(300);
@@ -271,15 +297,16 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
     check('after three repaints the menu still opens and shuts on one press each',
       stillOpens && !stillCloses, `opened=${stillOpens} closedAfter=${!stillCloses}`);
 
-    await page.click('#pd2-hist #ht-clear');
+    await pressQuick('');   /* RE-POINTED 22 Nov 2026: All is the way back (no Clear link in the drawing) */
     await page.waitForTimeout(700);
     const cleared = await page.evaluate(`(() => {
       const host = document.querySelector('#pd2-hist');
       return { rows: host.querySelectorAll('.hist-ev').length,
-        side: (host.querySelector('[data-ht-filter="actor"]') || {}).value,
+        /* RE-POINTED (P-44): cleared, the pressed chip is All (data-ht-quick="") */
+        side: (() => { const on = [...host.querySelectorAll('[data-ht-kind][aria-pressed="true"]')]; return on.length === 1 && on[0].getAttribute('data-ht-kind') === '' ? '' : on.map(b => b.getAttribute('data-ht-kind') || 'all').join(',') || 'none'; })(),
         pill: ((host.querySelector('.hist-cap') || {}).textContent || '').trim() };
     })()`);
-    check('Clear is the one way back, and it puts every filter back',
+    check('All is the one way back, and it puts the record back (All pressed)',
       cleared.rows === before && cleared.side === '', `${cleared.rows} rows · side "${cleared.side}" · ${cleared.pill}`);
 
     /* ============ 4. THE POP-OUT RECORD — SAME CHAIR ==================== */

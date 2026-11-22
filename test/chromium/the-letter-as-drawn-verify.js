@@ -113,7 +113,9 @@ async function mkUser(h, admin, name, email){
     await waitFor(page, () => { try { return JSON.stringify(localStorage.getItem('hati.v1.deskTabs') || '').includes('c:MK-0382'); } catch (_) { return false; } }, 6000);
 
     const openLetter = async () => {
-      await page.evaluate(() => { const s = document.getElementById('ws-share'); if (s) s.click(); else openShareModal(getContract('MK-0382')); });
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the paper's Send greys while nothing is left to send;
+         the letter is then opened through the one send door itself */
+      await page.evaluate(() => { const s = document.getElementById('ws-share'); if (s && !s.disabled) s.click(); else openShareModal(getContract('MK-0382')); });
       return waitFor(page, () => { const s = document.getElementById('share-send'); return !!document.querySelector('#modal-root .modal-in[data-sh-page]') && !!document.querySelector('#pd-sendface .sh-lt-side') && s && !s.disabled; }, 12000);
     };
     /* 1 the page and the face */
@@ -133,12 +135,17 @@ async function mkUser(h, admin, name, email){
     });
     check('1b the bar names "Send · MK-0382" in front; the paper waits as its own Recent row',
       F1.barName === 'Send · MK-0382' && F1.tabs.some(x => x.w === 'Send · MK-0382' && x.on) && F1.tabs.some(x => /MK-0382$/.test(x.w) && !/^Send/.test(x.w) && !x.on), JSON.stringify({ bar: F1.barName, tabs: F1.tabs }));
-    check('1c the head: "Send round N to Nordvik Logistik AB · MK-0382", Send to Anna and Cancel', /^Send round \d+ to Nordvik Logistik AB · MK-0382$/.test(F1.title || '')
-      && JSON.stringify(F1.acts) === JSON.stringify(['Send to Anna', 'Cancel']), JSON.stringify({ t: F1.title, a: F1.acts }));
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's head names the party and the agreement and what goes ("Send to
+       Nordvik Master services agreement · your 2 answers to their round 1"); its Send says one word (sh_nl_send) */
+    const sendWord = await page.evaluate(() => i18t('sh_nl_send'));
+    check('1c the head: "Send round N to Nordvik Logistik AB · MK-0382", Send to Anna and Cancel', (/^Send round \d+ to Nordvik Logistik AB · MK-0382$/.test(F1.title || '')
+      || /^Send to Nordvik\b.*Master services agreement.* round \d+$/.test(F1.title || ''))
+      && (JSON.stringify(F1.acts) === JSON.stringify(['Send to Anna', 'Cancel']) || JSON.stringify(F1.acts) === JSON.stringify([sendWord, 'Cancel'])), JSON.stringify({ t: F1.title, a: F1.acts }));
     check('1d "Before you send" is a face of Jambo\'s panel, its way back on the trail line, the ask box at its foot, beside the page',
       /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): Jambo's "word for word" line is gone;
          the face opens on its verdict and on what goes to Anna */
-      F1.faceWord === 'Before you send' && F1.back && F1.jsay === null && F1.verdict === 'Ready to send' && F1.goes === 'What goes to Anna'
+      /* RE-POINTED 16 Nov 2026 (#762): the verdict ends with its full stop and the list is headed "Goes" (the new look's words) */
+      F1.faceWord === 'Before you send' && F1.back && F1.jsay === null && /^Ready to send\.?$/.test(F1.verdict || '') && /^(What goes to Anna|Goes)$/.test(F1.goes || '')
       && F1.ask && F1.beside, JSON.stringify(F1));
     await shot(page, '11-letter-first-1440x780');
 
@@ -150,29 +157,51 @@ async function mkUser(h, admin, name, email){
       const ps = sel => [...document.querySelectorAll(sel + ' .sh-lt-p')].map(p => p.querySelector('[data-sh-lt-btn]') ? '{BTN:' + p.textContent.trim() + '}' : p.textContent.replace(/\s+/g, ' ').trim());
       const cs = getComputedStyle(document.querySelector('#sh-letter .sh-lt-note label'));
       return { from: t('sh-lt-from'), to: t('sh-lt-towho'), toShown: !document.getElementById('sh-lt-tosay').classList.contains('hidden'),
-        boxesHidden: document.querySelector('#sh-letter .sh-lt-who').classList.contains('hidden'), subject: document.getElementById('sh-lt-subject').value, chips,
+        boxesHidden: document.querySelector('#sh-letter .sh-lt-who').classList.contains('hidden'), email: (document.getElementById('sh-email') || {}).value || '', subject: document.getElementById('sh-lt-subject').value, chips,
         before: ps('#sh-lt-before'), after: ps('#sh-lt-after'), noteLbl: t('sh-summary-label'), dashed: cs.borderTopStyle,
         head: (document.getElementById('sh-lt-msghead') || {}).className || '' };
     });
     const n = (/^Round (\d+)/.exec(L.subject || '') || [])[1];
-    check('2a From, To as a line, Subject as drawn', L.from === 'Maria Lindgren, Lindqvist & Co AB · sent by HaTi' && L.toShown && L.boxesHidden
-      && L.to === 'Anna Holm · anna.holm@nordvik.example' && L.subject === `Round ${n} of the Master services agreement, from Lindqvist & Co AB`, JSON.stringify(L));
+    /* RE-POINTED 19 Nov 2026 (owner's pick, the send steps the Legora way, f1104): in the four steps the known person
+       stands in the To step's own lines (Person · Email), filled; the folded To line stands down there */
+    check('2a From, To in its lines, Subject as drawn', L.from === 'Maria Lindgren, Lindqvist & Co AB · sent by HaTi' && !L.toShown && !L.boxesHidden
+      && L.email === 'anna.holm@nordvik.example' && L.to === 'Anna Holm · anna.holm@nordvik.example' && L.subject === `Round ${n} of the Master services agreement, from Lindqvist & Co AB`, JSON.stringify(L));
     /* RE-POINTED, the SAP Way (owner picked it by name, 28 Oct 2026): a form of labelled fields, each the
        choice's own name, in the form's order; the note a white box with a solid green edge, named for Anna */
-    check('2b the form: four fields, each the choice\'s own name', JSON.stringify(L.chips) === JSON.stringify([`The contract, round ${n}`, 'Negotiate', 'Email', 'Open for the whole negotiation']), JSON.stringify(L.chips));
-    check('2c Hello, then the note in its green-edged box, with no heading in the email', JSON.stringify(L.before) === JSON.stringify(['Hello Anna,']) && L.noteLbl === 'Your note to Anna'
-      && L.dashed === 'solid' && /hidden/.test(L.head), JSON.stringify({ b: L.before, l: L.noteLbl, d: L.dashed, h: L.head }));
+    /* RE-POINTED 16 Nov 2026 (#762): FOUR STEPS — What goes · What they can do · How it goes · how long, each in the
+       choice's own words: what goes names the paper; the purpose is the negotiate choice's own title */
+    const negW = await page.evaluate(() => i18t('sh_nl_can_neg'));
+    const i18w = await page.evaluate(() => ({ email: i18t('sh_nl_ch_email') }));
+    check('2b the form: four fields, each the choice\'s own name', JSON.stringify(L.chips) === JSON.stringify([`The contract, round ${n}`, 'Negotiate', 'Email', 'Open for the whole negotiation'])
+      || (L.chips.length === 4 && /paper as redlined|round \d/.test(L.chips[0]) && !!negW && L.chips[1] === negW && L.chips[2] === i18w.email && L.chips[3] === 'Open for the whole negotiation'), JSON.stringify({ chips: L.chips, negW }));
+    /* RE-POINTED 16 Nov 2026 (#762): PLAIN LETTER (owner's pick, 14 Nov 2026) — "Dear Anna,", and the note is a line of
+       the letter with no box drawn round it (its label kept for a screen reader); still no heading in the email */
+    check('2c Hello, then the note in its green-edged box, with no heading in the email', (JSON.stringify(L.before) === JSON.stringify(['Hello Anna,']) || JSON.stringify(L.before) === JSON.stringify(['Dear Anna,']))
+      && L.noteLbl === 'Your note to Anna' && /hidden/.test(L.head), JSON.stringify({ b: L.before, l: L.noteLbl, d: L.dashed, h: L.head }));
     check('2d what this round answers, the button, the link\'s promise with the code, the sign-off', JSON.stringify(L.after) === JSON.stringify([
       'Lindqvist & Co AB has answered 1 of your 2 redlines:', 'Clause 11 · Payment terms: they propose 45 days (you asked for 60).', `{BTN:Open round ${n}}`,
       'You can propose changes on your own page. Nothing can be signed on this link. Before the page opens, we send a one-time code to this address.',
-      'Maria Lindgren · Legal counsel · Lindqvist & Co AB']), JSON.stringify(L.after));
+      'Maria Lindgren · Legal counsel · Lindqvist & Co AB'])
+      /* RE-POINTED 16 Nov 2026 (#762): THE LETTER AS DRAWN — with a note, the note stands where the answers were said;
+         then the round's one sentence (owner, 15 Nov 2026), the button, the code's promise, Kind regards, the sender
+         and title with the company, the small print */
+      || JSON.stringify(L.after) === JSON.stringify([`Round ${n} is ready for you to read. You can reply with your own changes.`, `{BTN:Open round ${n}}`,
+        'Before the page opens, we send a one-time code to this address.', 'Kind regards,', 'Maria LindgrenLegal counsel, Lindqvist & Co AB',
+        'This link is for you. It stays open for the whole negotiation. Replies to this email reach Maria Lindgren.']), JSON.stringify(L.after));
 
     /* 2e THE SAP WAY (owner picked it by name, 28 Oct 2026): at rest every list is put away; a field opens
        its list DOWNWARDS, every choice with its own sentence, the chosen one ticked */
     const rest = await page.evaluate(() => [...document.querySelectorAll('#sh-letter .sh-as-pop')]
       .filter(p => getComputedStyle(p).display !== 'none').map(p => p.getAttribute('data-sh-as-pop')));
     check('2e at rest every list is put away', rest.length === 0, JSON.stringify(rest));
-    await page.evaluate(() => document.querySelector('[data-sh-as-go="purpose"]').click());
+    /* RE-POINTED 16 Nov 2026 (#762): FOUR STEPS — a list lives in its step, which opens in place; the step is opened
+       first, then the list if it is still folded */
+    const stepOpen = async (st, as) => {
+      await page.evaluate(k => { const r = document.querySelector(`[data-sh-st="${k}"]`); if (r && !r.classList.contains('is-open')) { const g = r.querySelector(`[data-sh-st-go="${k}"]`); if (g) g.click(); } }, st);
+      await page.evaluate(a => { const box = document.querySelector(`[data-sh-as="${a}"]`); if (box && !box.classList.contains('is-open')) { const g = box.querySelector('[data-sh-as-go]'); if (g && g.getClientRects().length) g.click(); } }, as);
+      await pause(150);
+    };
+    await stepOpen('can', 'purpose');
     const D = await page.evaluate(() => {
       const go = document.querySelector('[data-sh-as-go="purpose"]').getBoundingClientRect();
       const pop = document.querySelector('[data-sh-as-pop="purpose"]'), pr = pop.getBoundingClientRect();
@@ -189,6 +218,9 @@ async function mkUser(h, admin, name, email){
 
     /* 3 the chips and Change */
     const press = sel => page.evaluate(s => { const x = document.querySelector(s); if (!x || x.disabled) return false; x.click(); return true; }, sel);
+    /* RE-POINTED 16 Nov 2026 (#762): the channel's list is step 4's (How it goes), opened in place first */
+    await page.evaluate(() => { const r = document.querySelector('[data-sh-st="by"]'); if (r && !r.classList.contains('is-open')) { const g = r.querySelector('[data-sh-st-go="by"]'); if (g) g.click(); } });
+    await pause(150);
     await press('[data-sh-as-go="ch"]');
     const c1 = await page.evaluate(() => { const box = document.querySelector('[data-sh-as="ch"]'), seg = box.querySelector('[data-share-ch="email"]');
       return { open: box.classList.contains('is-open'), seg: !!seg && !!seg.getClientRects().length }; });
@@ -198,7 +230,7 @@ async function mkUser(h, admin, name, email){
     const c3 = await page.evaluate(() => document.querySelector('[data-sh-as="ch"]').classList.contains('is-open'));
     check('3a a chip opens its own list of the screen\'s own controls; Esc puts it away and leaves the page; a press again closes it',
       c1.open && c1.seg && !c2.open && c2.page && !c3, JSON.stringify({ c1, c2, c3 }));
-    await press('[data-sh-as-go="purpose"]'); await press('[data-sh-as="purpose"] [data-share-purpose="view"]');
+    await stepOpen('can', 'purpose'); await press('[data-sh-as="purpose"] [data-share-purpose="view"]');
     /* the list puts itself away a beat after the choice (shareLetterAsWire's setTimeout 0): ask for that state, bounded */
     const c4read = () => ({ w: document.querySelector('[data-sh-as-w="purpose"]').textContent, s: document.getElementById('sh-lt-subject').value,
       open: document.querySelector('[data-sh-as="purpose"]').classList.contains('is-open') });
@@ -206,7 +238,7 @@ async function mkUser(h, admin, name, email){
     const c4 = await page.evaluate(c4read);
     check('3b a choice in a list is the screen\'s own choice: the chip and the letter follow it, the list goes', c4.w === 'View only' && /^The Master services agreement, from /.test(c4.s) && !c4.open, JSON.stringify(c4));
     /* 3g THE SAP WAY (28 Oct 2026): Sign while changes are open — the verdict says not ready, with its way forward */
-    await press('[data-sh-as-go="purpose"]'); await press('[data-sh-as="purpose"] [data-share-purpose="sign"]');
+    await stepOpen('can', 'purpose'); await press('[data-sh-as="purpose"] [data-share-purpose="sign"]');
     await waitFor(page, () => /Not ready to sign/.test((document.querySelector('#sh-lt-verdict h4') || {}).textContent || ''), 3000);
     const V1 = await page.evaluate(() => { const v = document.getElementById('sh-lt-verdict'); const r = v && v.getBoundingClientRect();
       const first = v && v.parentElement && [...v.parentElement.children].filter(x => x.getClientRects().length && x !== v && !x.classList.contains('sh-lt-jb'))[0];
@@ -214,10 +246,10 @@ async function mkUser(h, admin, name, email){
         go: !!(v && v.querySelector('[data-sh-v-go="negotiate"]')), top: !!(first && r && first.getBoundingClientRect().top >= r.bottom - 1) }; });
     await shot(page, '11-letter-sign-1440x780');
     await press('#sh-lt-verdict [data-sh-v-go="negotiate"]');
-    await waitFor(page, () => document.querySelector('[data-sh-as-w="purpose"]').textContent === 'Negotiate', 3000);
+    await waitFor(page, w => document.querySelector('[data-sh-as-w="purpose"]').textContent === w, 3000, negW);
     const V2 = await page.evaluate(() => ({ w: document.querySelector('[data-sh-as-w="purpose"]').textContent, h: (document.querySelector('#sh-lt-verdict h4') || {}).textContent }));
     check('3g Sign with changes open: "Not ready to sign" first in the panel, and its way forward turns the send to Negotiate',
-      V1.h === 'Not ready to sign' && V1.shown && V1.warn && V1.go && V1.top && V2.w === 'Negotiate' && /Ready to send/.test(V2.h || ''), JSON.stringify({ V1, V2 }));
+      V1.h === 'Not ready to sign' && V1.shown && V1.warn && V1.go && V1.top && (V2.w === 'Negotiate' || V2.w === negW) && /Ready to send/.test(V2.h || ''), JSON.stringify({ V1, V2 }));
     await press('#sh-lt-change');
     const c5 = await page.evaluate(() => ({ boxes: !document.querySelector('#sh-letter .sh-lt-who').classList.contains('hidden'), line: !document.getElementById('sh-lt-tosay').classList.contains('hidden') }));
     check('3c Change opens the two boxes', c5.boxes && !c5.line, JSON.stringify(c5));
@@ -230,7 +262,10 @@ async function mkUser(h, admin, name, email){
     check('4a "Clause 7 stays here": Sara named for the one who asked, Remind Sara, Go to clause 7', S && S.h === 'Clause 7 stays here'
       && /^Your counter on the liability cap \(75%\) is with Sara Nyström for internal review\. Nothing under review travels; it goes in your next send once Sara clears it\.$/.test(S.p)
       && JSON.stringify(S.acts) === JSON.stringify(['Remind Sara', 'Go to clause 7']), JSON.stringify(S));
-    check('4b "What Anna never sees"', S && S.never === 'What Anna never sees', S && S.never);
+    /* RE-POINTED 16 Nov 2026 (#762): the new look titles that card "Names" (sh_kv_names), its words unchanged */
+    const neverNl = await page.evaluate(() => { const h = document.getElementById('sh-lt-never-h'); const p = h && h.parentElement.querySelector('p');
+      return !!h && h.textContent.trim() === i18t('sh_kv_names') && !!p && p.textContent.trim() === i18t('sh_lt_never', { org: FIRST_PARTY }); });
+    check('4b "What Anna never sees"', S && (S.never === 'What Anna never sees' || neverNl), S && S.never);
     h.mail.reset();
     await press('#pd-sendface [data-sh-lt-remind]');
     const rem = await (async () => { const t0 = Date.now(); while (Date.now() - t0 < 8000) { const m = h.mail.sent.find(x => /sara@lindqvist/.test(JSON.stringify(x.to))); if (m) return m; await pause(150); } return null; })();
@@ -253,7 +288,10 @@ async function mkUser(h, admin, name, email){
         out.push(p); i++; }
       return out.join('\n\n'); })();
     check('5a the provider received the subject the letter showed', got && got.subject === shown.subject, JSON.stringify({ got: got && got.subject, shown: shown.subject }));
-    check('5b and its words, word for word, the real link under the button\'s words', got && !!link && got.text === expect, JSON.stringify({ got: got && got.text, expect }));
+    /* RE-POINTED 16 Nov 2026 (#762): the drawn letter signs off on separate lines where the screen draws the sender and
+       company as one block; the words are compared in order with line breaks set aside */
+    const flat = t => String(t || '').replace(/\s+/g, '');
+    check('5b and its words, word for word, the real link under the button\'s words', got && !!link && (got.text === expect || flat(got.text) === flat(expect)), JSON.stringify({ got: got && got.text, expect }));
     const html = got && got.body && got.body.html;
     check('5c an HTML part whose button carries the link', typeof html === 'string' && html.includes(`href="${link}"`) && new RegExp(`>Open round ${n}</a>`).test(html), String(html).slice(0, 200));
     await page.evaluate(() => { try { closeModal(); } catch (_) {} });

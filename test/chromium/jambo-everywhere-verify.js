@@ -37,9 +37,14 @@ const check = (name, pass, detail) => {
   if (!pass) failures++;
 };
 const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
+/* RE-POINTED 19 Nov 2026 (owner picked "B": a contract never checked against the Playbook is checked the first time
+   someone opens it — pbCheckOnOpen, f1106). Every contract made in HaTi is checked on arrival (contractArrived); these
+   fixtures are put straight on the server, so they arrive as one that was already checked — a kept check (`playbook`) —
+   and opening them is not a first open's check. What is counted below is still EVERY AI route: nothing else is spent. */
+const CHECKED = c => Object.assign(c, { playbook: { key: 'default', label: 'Our playbook', source: 'ai', verdicts: [] } });
 const CONTRACTS = [
-  H.fixtureContract('MK-J1', 'Raw Material Supply Agreement', 'Nandi Dairy', H.FOLDER_A, 800000, 'Under Review'),
-  H.fixtureContract('MK-J2', 'Office lease', 'Britam Properties', H.FOLDER_B, 4e6, 'Signed'),
+  CHECKED(H.fixtureContract('MK-J1', 'Raw Material Supply Agreement', 'Nandi Dairy', H.FOLDER_A, 800000, 'Under Review')),
+  CHECKED(H.fixtureContract('MK-J2', 'Office lease', 'Britam Properties', H.FOLDER_B, 4e6, 'Signed')),
 ];
 
 (async () => {
@@ -105,18 +110,22 @@ const CONTRACTS = [
     check('2b Enter on a row goes there, and the list is gone', !!v2, JSON.stringify(await page.evaluate(() => ({ view: state.view, list: !!document.getElementById('ca-slash') }))));
 
     /* ===== 3 · SETTINGS' BOX ===== */
-    const openSt = async () => { await page.evaluate(() => setView('team')); await until(() => !!document.getElementById('st-jb-q'), null, 6000)
-      || await page.evaluate(() => { if (window.stSideSet) stSideSet('jambo'); }); return until(() => !!document.getElementById('st-jb-q'), null, 4000); };
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings' Jambo is the list pages' panel (#ins-panel,
+       box #jl-q); a setting's words are answered in that panel (the settings finder lands on its row, or he answers in
+       the panel's talk) — never another page */
+    const ST_Q = '#jl-q';
+    const openSt = async () => { await page.evaluate(() => setView('team')); return until(() => state.view === 'team' && !!document.querySelector('#ins-panel #jl-q'), null, 6000); };
     const st = await openSt();
     check('3 (setup) Settings\' Jambo box is up', !!st);
     if (st) {
       ai.length = 0;
-      await typeIn('#st-jb-q', 'calendar');
+      await typeIn(ST_Q, 'calendar');
       const v3 = await until(() => state.view === 'dashboard' && hbFace() === 'calendar' ? true : null, null, 6000);
       check('3a a page\'s name in Settings\' box moves there', !!v3, String(await page.evaluate(() => state.view)));
       await openSt();
-      await typeIn('#st-jb-q', 'two-step sign-in');
-      const kept = await until(() => state.view === 'team' && document.querySelectorAll('#st-jb-feed [data-st-jb-turn]').length >= 1 ? true : null, null, 4000);
+      await typeIn(ST_Q, 'two-step sign-in');
+      const kept = await until(() => { if (state.view !== 'team') return null; const t = document.querySelector('#ins-panel [data-jt-talk]');
+        return (t && !t.hidden && /two-step/i.test(t.textContent)) || document.querySelector('#set-page .is-landed, #set-page [data-sdd-row].is-landed') ? true : null; }, null, 4000);
       check('3b a setting\'s words stay with the settings finder', !!kept, String(await page.evaluate(() => state.view)));
       check('3c and nothing was spent', !ai.length, ai.join(', '));
     }

@@ -71,6 +71,10 @@ const check = (name, ok, detail) => {
        memory for this sitting. The page loads once, so it holds for the file. */
     await page.evaluate(() => { if (window.insForce) insForce(false); });
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the
+       head's List pill is the way to the list */
+    await page.waitForSelector('[data-ctf-show="list"]', { timeout: 10000 }).then(() => page.click('[data-ctf-show="list"]')).catch(() => {});
+    await page.waitForSelector('tr[data-row]', { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(1500);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
 
@@ -117,44 +121,49 @@ const check = (name, ok, detail) => {
     /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep contracts … as designed"): on the Contracts place the
        stage is its word in its own tone in the grey line under the agreement, and the row's MARK in the same
        tone leads it — the mark is the dot's job now, its colour the meta's brighter shade */
+    /* RE-POINTED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way): the stage is a SOFT BADGE in its own
+       Standing column (td.reg-standing .reg-badge: its tone's pale ground, its tone's ink, a small dot of the ink) and NO
+       mark leads the row any more (regSapMarkHtml is no longer drawn) */
     const stage = await page.evaluate(() => {
-      const s = document.querySelector('tr[data-row] .reg-stg-w');
-      if (!s) return { err: 'no .reg-stg-w' };
-      const cs = getComputedStyle(s);
-      const mark = s.closest('tr').querySelector('.reg-id .ls-mark');
-      const dcs = mark ? getComputedStyle(mark) : null;
+      const s = document.querySelector('tr[data-row] td.reg-standing');
+      if (!s) return { err: 'no td.reg-standing' };
+      const bdg = s.querySelector('.reg-badge');
+      if (!bdg) return { err: 'no .reg-badge in the Standing cell' };
+      const cs = getComputedStyle(bdg);
+      const tr = s.closest('tr');
       return {
-        word: s.textContent.trim(),
+        word: bdg.textContent.trim(),
         ink: cs.color,
-        dotW: dcs ? dcs.width : null,
-        dotBg: dcs ? dcs.color : null,
-        svg: !!(mark && mark.querySelector('svg')),
+        ground: cs.backgroundColor,
+        dot: !!bdg.querySelector('i'),
+        marks: tr.querySelectorAll('.ls-mk').length,
         /* the chip must be GONE from the row, not merely restyled */
         chips: document.querySelectorAll('tr[data-row] .badge').length,
         /* same tone family: the dominant channel of both is the same one */
         hueMatch: (() => {
           const rgb = c => (c.match(/\d+/g) || []).map(Number);
-          const a = rgb(cs.color), b = rgb(dcs ? dcs.backgroundColor : '');
+          const a = rgb(cs.color), b = rgb(cs.backgroundColor);
           if (a.length < 3 || b.length < 3) return false;
-          const domi = v => v.indexOf(Math.max(...v));
+          /* a grey stage (Draft): both shades are greys, which is one tone */
+          const grey = v => Math.max(...v.slice(0, 3)) - Math.min(...v.slice(0, 3)) < 14;
+          if (grey(a) && grey(b)) return true;
+          const domi = v => v.indexOf(Math.max(...v.slice(0, 3)));
           return domi(a) === domi(b);
         })(),
       };
     });
-    check('2a the stage is a word, and a mark leads the row',
-      !stage.err && stage.svg && stage.dotW === '22px',
-      `${stage.err || ''} ${stage.dotW} ${stage.svg}`);
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn): three words only — In review carries its dot, "✓ Signed" its tick, Ended none */
+    check('2a the stage is a soft badge, and no mark leads the row',
+      !stage.err && (stage.dot || /Signed|Ended/.test(stage.word)) && stage.marks === 0 && !!stage.ground && !/rgba\(0, 0, 0, 0\)|transparent/.test(stage.ground),
+      `${stage.err || ''} marks ${stage.marks} ground ${stage.ground} dot ${stage.dot}`);
     check('2b the word carries the meaning ink, so colour is not the only carrier',
       !!stage.word && stage.ink !== 'rgb(0, 0, 0)', `"${stage.word}" ${stage.ink}`);
-    /* THE DOT AND THE WORD ARE TWO SHADES OF ONE TONE, DELIBERATELY — the
-       meta's brighter `dot` against its darker `fg`, which is what every chip
-       in this product already does and what keeps a 14px word readable while
-       an 8px circle still catches the eye. What matters is that BOTH come from
-       the one meta, so they can never name different tones: asserted by their
-       hues agreeing while their lightness differs. */
-    check('2c the mark and the word are two shades of ONE tone',
-      stage.dotBg !== stage.ink && stage.hueMatch,
-      `${stage.dotBg} vs ${stage.ink}`);
+    /* THE BADGE'S GROUND AND ITS WORD ARE TWO SHADES OF ONE TONE, DELIBERATELY (RE-POINTED P-31: the badge's pale ground
+       against its ink, where the mark's brighter colour stood): both from the one tone, so they can never name different
+       tones — their hues agree while their lightness differs. */
+    check('2c the badge\'s ground and its word are two shades of ONE tone',
+      stage.ground !== stage.ink && stage.hueMatch,
+      `${stage.ground} vs ${stage.ink}`);
     check('2d no filled chip is left in a row', stage.chips === 0, `${stage.chips} chips`);
 
     /* ============ 3. THE COLUMNS ARE THE DESIGN'S ============ */
@@ -176,10 +185,10 @@ const check = (name, ok, detail) => {
        KEPT the filter, so the claims now say exactly that. */
     /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the stream is a column again on the Contracts place, a soft chip */
     check('3a the stream is a column again, a soft chip in every row that has one',
-      cols.heads.some(x => /^stream$|^värdeflöde$/i.test(x)) && (await page.evaluate(() => document.querySelectorAll('tr[data-row] .ls-chip').length > 0)), cols.heads.join(' · '));
+      /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the column is called Folder */
+      cols.heads.some(x => /^stream$|^värdeflöde$|^folder$|^mapp$/i.test(x)) && (await page.evaluate(() => document.querySelectorAll('tr[data-row] .ls-chip').length > 0)), cols.heads.join(' · '));
     check('3b and no row draws its stream tick', !cols.tick);
-    check('3c CONTROL the Stream filter is still offered (under + Filter), with its streams to pick',
-      !!cols.streamChip && cols.streamChip.w > 0 && cols.streamChip.opts >= 1, JSON.stringify(cols.streamChip));
+    /* RETIRED 16 Nov 2026 (#762): 3c "the Stream filter is still offered under + Filter" — the new look's Contracts head draws no + Filter (lead's ruling) */
     check('3d the LINK column is gone from this table',
       !cols.heads.some(x => /^link$|^länk$/i.test(x)), cols.heads.join(' · '));
 
@@ -189,15 +198,38 @@ const check = (name, ok, detail) => {
       dots: document.querySelectorAll('tr[data-row] [data-menu]').length,
     }));
     check('4a no row draws a text verb', verbs.actlink === 0, `${verbs.actlink} found`);
-    check('4b every row keeps its ⋯', verbs.dots === rows.n, `${verbs.dots} of ${rows.n}`);
-    /* IT MUST STILL OPEN — a menu that is drawn and dead is worse than none. */
-    await page.evaluate(() => document.querySelector('tr[data-row] [data-menu]').click());
-    await page.waitForTimeout(400);
-    const menuOpen = await page.evaluate(() => {
-      const p = document.querySelector('[data-menu-pop]');
-      return p ? getComputedStyle(p).display !== 'none' : false;
-    });
-    check('4c and pressing it really opens the menu', menuOpen);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's list draws no ⋯ column (regColKeys has no
+       'acts' when regNl()); a row's ONE press opens its contract, and the contract's ⋯ (#ig-actions) carries the row's acts.
+       4b/4c and 14 ask that way: the press opens it, and its ⋯ opens painted with End or pause and Delete */
+    const firstId = await page.evaluate(() => (document.querySelector('#reg-tbody tr[data-row]') || {}).getAttribute?.('data-row') || null);
+    await page.click('#reg-tbody tr[data-row] td:nth-child(2)', { timeout: 5000 }).catch(() => {});
+    /* RE-POINTED 19 Nov 2026 (f1099, the Cover is a page of its own): a row's press lands on the contract's Cover, the paper
+       under it only once Open the dossier is pressed — either is "opened" */
+    const opened = await page.waitForFunction(id => !!document.querySelector(`#modal-root .cv-page[data-cv="${id}"]`) || !!(window.pdContract && pdContract() && pdContract().id === id), firstId, { timeout: 8000 }).then(() => true, () => false);
+    check('4b a row\'s one press opens its contract, where its acts are', !!firstId && opened, String(firstId));
+    /* a contract opened on purpose lands on its Cover (f1085); its Open the dossier is the step onto the paper */
+    /* RE-POINTED 18 Nov 2026 (#762): on a slow runner the Cover was not drawn yet when it was looked for, so the ⋯ was
+       pressed behind it — the Cover is asked for (bounded), pressed through, and asked to be gone (bounded) */
+    if (await page.waitForSelector('[data-cv-open]', { timeout: 6000 }).then(() => true, () => false)) {
+      await page.click('[data-cv-open]', { timeout: 5000 }).catch(() => {});
+      await page.waitForFunction(() => !document.querySelector('[data-cv-open]'), null, { timeout: 6000 }).catch(() => {});
+      await page.waitForSelector('#ig-actions', { state: 'visible', timeout: 6000 }).catch(() => {});
+    }
+    const menuUp = await page.click('#ig-actions', { timeout: 5000 }).then(() => true, () => false);
+    await page.waitForTimeout(500);
+    const actsSeen = () => page.evaluate(() => [...document.querySelectorAll('button, a, [role="menuitem"]')].filter(b => { const r = b.getBoundingClientRect();
+      if (!r.width || !r.height) return false; const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!el && (el === b || b.contains(el)); })
+      .map(b => b.textContent.replace(/\s+/g, ' ').trim()));
+    const seen = await actsSeen();
+    check('4c and its ⋯ really opens, End or pause among its painted acts', menuUp && seen.some(t => /^End or pause$/i.test(t)), seen.filter(t => t.length < 40).slice(-8).join(' · '));
+    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /^All acts/.test(x.textContent.trim()) && x.getBoundingClientRect().width > 0); if (b) b.click(); });
+    await page.waitForTimeout(600);
+    const all = await actsSeen();
+    check('4d and every act, Delete among them, one press further (All acts), painted', all.some(t => /delete/i.test(t)), all.filter(t => t.length < 40).slice(-12).join(' · '));
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    await page.waitForSelector('[data-ctf-show="list"]', { timeout: 8000 }).then(() => page.click('[data-ctf-show="list"]')).catch(() => {});
+    await page.waitForSelector('#reg-tbody [data-row]', { timeout: 8000 }).catch(() => {});
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
 
@@ -229,14 +261,8 @@ const check = (name, ok, detail) => {
       await new Promise(r => setTimeout(r, 400));
       return out;
     });
-    check('5a every filter "+ Filter" offers carries its label',
-      filters.n >= 4 && filters.labelled === filters.n, `${filters.labelled}/${filters.n}: ${filters.groups.join(' | ')}`);
-    /* The fault this guards: the quick-filter dropdown's own sentence — 57
-       characters — used as a LABEL, which ran to 460px and pushed the bar off
-       its row. The claim is about LENGTH, so it costs nothing when a label is
-       renamed. */
-    check('5b no label is a sentence — the long one stays a tooltip',
-      filters.widest <= 24, `longest label ${filters.widest} chars`);
+    /* RETIRED 16 Nov 2026 (#762): 5a/5b, the labels "+ Filter" offers — the new look's Contracts head draws no + Filter
+       (lead's ruling); the chips a chosen filter stands as are still asked (5c) */
     check('5c and the chosen filters stand as chips on one row at 1440', filters.chips.length === 2 && filters.oneRow === 1,
       `${filters.oneRow} rows: ${filters.chips.join(' | ')}`);
 
@@ -290,11 +316,14 @@ const check = (name, ok, detail) => {
        one edge, level with each other. */
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(1500);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): ONE SHEET — the head draws no card of its own, it lies
+       on the page's white sheet; the white it sits on is the first painted ground under it */
     const band = await page.evaluate(() => {
+      const under = e => { for (let n = e; n; n = n.parentElement){ const b = getComputedStyle(n).backgroundColor; if (!/rgba\([^)]*,\s*0\s*\)|transparent/.test(b)) return b; } return ''; };
       const box = s => { const e = document.querySelector(s); if (!e) return null;
-        const r = e.getBoundingClientRect(), c = getComputedStyle(e);
+        const r = e.getBoundingClientRect();
         return { top: Math.round(r.top), bottom: Math.round(r.bottom),
-          left: Math.round(r.left), right: Math.round(r.right), w: Math.round(r.width), bg: c.backgroundColor }; };
+          left: Math.round(r.left), right: Math.round(r.right), w: Math.round(r.width), bg: under(e) }; };
       const paint = v => { const d = document.createElement('div'); d.style.background = 'var(' + v + ')';
         document.body.appendChild(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; };
       const gap = (() => { const d = document.createElement('div'); d.style.height = 'var(--s-3)'; document.body.appendChild(d);
@@ -401,11 +430,15 @@ const check = (name, ok, detail) => {
         await page.waitForTimeout(900);
       }
       pages.push(await page.evaluate(`(() => { const r = ${READ}; if (r) { r.rows = document.querySelectorAll('#reg-tbody tr[data-row]').length;
-        r.last = ((document.querySelector('#reg-tbody tr[data-row]:last-child td') || {}).textContent || '').trim(); } return r; })()`));
+        r.last = ((document.querySelector('#reg-tbody tr[data-row]:last-child td') || {}).textContent || '').trim();
+        r.long = [...document.querySelectorAll('#reg-tbody tr[data-row]')].filter(x => /Naivas Supermarkets Kenya Limited/.test(x.textContent)).length; } return r; })()`));
     }
+    /* RE-POINTED 22 Nov 2026 (P-31 review, work-first order): the list's default order puts what needs you first, so the
+       long-named rows are no longer the last drawn; the claim is unchanged — the list really grows four times and, by the
+       end, long-named rows are drawn among them (more than at first), so a column that moved for them could not hide */
     check('10a the fixture really grows the list, the long names drawn by the end, so the claim can fail',
-      new Set(pages.map(p => p.rows)).size === 4 && /Naivas Supermarkets Kenya Limited/.test(pages[3].last) && !/Naivas/.test(pages[0].last),
-      pages.map(p => p.rows + ':' + p.last.slice(0, 24)).join(' · '));
+      new Set(pages.map(p => p.rows)).size === 4 && pages[3].long > 0 && pages[3].long > pages[0].long,
+      pages.map(p => p.rows + ':' + p.long + ' long · ' + p.last.slice(0, 24)).join(' · '));
     check('10b every column is the same width however many rows are drawn',
       pages.every(p => String(p.w) === String(pages[0].w)),
       pages.map(p => p.w.join(',')).join('  |  '));
@@ -501,7 +534,7 @@ const check = (name, ok, detail) => {
     await page.waitForTimeout(900);
     const act = await page.evaluate(() => { const c = document.querySelector('[data-lh-seat="contracts"] .lh-chip'); if (!c) return null;
       const l = c.querySelector('label'), b = l && l.querySelector('b'), cs = getComputedStyle(c);
-      return { bc: cs.borderTopColor, lw: Number(getComputedStyle(l).fontWeight), bw: b ? Number(getComputedStyle(b).fontWeight) : null,
+      return { bc: cs.borderTopColor, bg: cs.backgroundColor, lw: Number(getComputedStyle(l).fontWeight), bw: b ? Number(getComputedStyle(b).fontWeight) : null,
         lfg: getComputedStyle(l).color, bfg: b ? getComputedStyle(b).color : null }; });
     const actAdd = await page.evaluate(ADD);
     const chipEdge = await page.evaluate(RESOLVE, '--chip-edge');
@@ -515,8 +548,15 @@ const check = (name, ok, detail) => {
     const textInk = await page.evaluate(INK, '--color-text');
     check('12f "+ Filter"\'s ink is the text ink, as every grey pill\'s (the accent is for links)',
       !!actAdd && actAdd.fg === textInk && textInk !== accentInk, `+ Filter ${actAdd && actAdd.fg} · text ${textInk}`);
-    check('12f and the chip wears the hairline, --chip-edge reading --rule-strong',
-      !!act && act.bc === chipEdge && chipEdge === ruleStrong, act && act.bc);
+    /* RE-POINTED 20 Nov 2026 (the owner, 19 Nov 2026, f1109: "The selected stream in the search
+       should be shaded so it is easier to know there is a filter"): the chip in force is no longer
+       white with the --chip-edge hairline; it is FILLED with the grey pill ground (--surface-2) and
+       its edge is the same grey, so it reads as shaded beside the resting "+ Filter". */
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn; the owner's word: "white with a solid outline" on Contracts only — f1109's
+       shading stands on every other list): the chip in force is white with a solid line, not the grey pill ground */
+    check('12f and the chip in force is white with a solid line (Contracts, as drawn)',
+      !!act && act.bg === 'rgb(255, 255, 255)' && act.bc !== 'rgba(0, 0, 0, 0)' && act.bc !== act.bg,
+      act && `bg ${act.bg} · edge ${act.bc} · pill ${pillBg} · old hairline ${chipEdge} (--rule-strong ${ruleStrong})`);
     const night = await page.evaluate(() => ({ dark: document.documentElement.classList.contains('dark'),
       fns: ['setTheme', 'setDark', 'toggleTheme', 'toggleDark'].filter(n => typeof window[n] === 'function') }));
     check('12g no night look is left to switch to', !night.dark && night.fns.length === 0, JSON.stringify(night));
@@ -534,7 +574,8 @@ const check = (name, ok, detail) => {
       const add = document.querySelector('[data-lh-seat="contracts"] select[data-lh-add]');
       const groups = add ? [...add.querySelectorAll('optgroup')].map(g => g.label) : [];
       /* three chosen: Stage, Stream and Category's first choices */
-      for (const k of ['Stage', 'Stream', 'Category']){
+      /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the stream filter is called Folder on Contracts */
+      for (const k of ['Stage', 'Folder', 'Category']){
         const sel = document.querySelector('[data-lh-seat="contracts"] select[data-lh-add]');
         const o = sel && sel.querySelector(`optgroup[label="${k}"] option`); if (!o) continue;
         sel.value = o.value; sel.dispatchEvent(new Event('change', { bubbles: true }));
@@ -550,7 +591,7 @@ const check = (name, ok, detail) => {
       return { groups, chips };
     });
     check('13a every filter is offered under + Filter, the stages among them, and no stage tab row',
-      ['Stage', 'Stream', 'Category'].every(k => six.groups.includes(k)) && (await page.evaluate(() => !document.querySelector('[data-reg-home] [data-reg-stage]'))),
+      ['Stage', 'Folder', 'Category'].every(k => six.groups.includes(k)) && (await page.evaluate(() => !document.querySelector('[data-reg-home] [data-reg-stage]'))),
       six.groups.join(' · '));
     check('13a2 and the search box is not among them any more',
       !(await page.evaluate(() => !!document.getElementById('reg-search'))), 'not drawn');
@@ -662,48 +703,8 @@ const check = (name, ok, detail) => {
        still reports its full rectangle, so a geometry check passes on the
        broken page. document.elementFromPoint at each row's own centre is the
        only honest question, and it is one a browser alone can answer. */
-    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
-    await page.waitForTimeout(1600);
-    await page.click('#reg-tbody [data-menu]');
-    await page.waitForTimeout(600);
-    const menu = await page.evaluate(() => {
-      const pop = document.querySelector('#reg-tbody [data-menu-pop]');
-      if (!pop) return { absent: true };
-      const items = [...pop.querySelectorAll('button,a')];
-      const hit = items.map(b => {
-        const r = b.getBoundingClientRect();
-        const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-        return { label: b.textContent.trim(),
-          reachable: !!el && (el === b || b.contains(el) || pop.contains(el)) };
-      });
-      const cell = pop.closest('td');
-      /* EVERY ROW has a menu cell, so "the others" means every cell that is not
-         one — comparing against all cells counts the other 39 menu cells and
-         reports the exemption as a leak. */
-      const other = [...document.querySelectorAll('#reg-tbody tr[data-row] td:not(.reg-cell-menu)')];
-      return { shown: pop.style.display === 'flex',
-        items: items.length,
-        reachable: hit.filter(h => h.reachable).length,
-        unreachable: hit.filter(h => !h.reachable).map(h => h.label),
-        labels: hit.map(h => h.label),
-        cellOverflow: getComputedStyle(cell).overflow,
-        othersClipped: other.every(td => getComputedStyle(td).overflow === 'hidden'),
-        otherCount: other.length };
-    });
-    check('14a the menu opens', !menu.absent && menu.shown && menu.items > 0,
-      menu.absent ? 'no menu in the row' : menu.items + ' rows');
-    check('14b every row in it is actually painted, not clipped away',
-      menu.reachable === menu.items,
-      `${menu.reachable}/${menu.items} reachable · missing ${JSON.stringify(menu.unreachable)}`);
-    check('14c and it still carries the acts the row menu is for',
-      /* archive is an answer in End or pause since 15 Oct 2026 (owner picked "One question") */
-      /end or pause/i.test(menu.labels.join(' ')) && /delete/i.test(menu.labels.join(' ')),
-      menu.labels.join(' · '));
-    /* THE EXEMPTION IS NARROW, which is the other half: WO-9's clip must still
-       be doing its job on every cell that holds text. */
-    check('14d the exemption is the menu cell alone — every text cell still clips',
-      menu.cellOverflow === 'visible' && menu.othersClipped && menu.otherCount > 0,
-      `menu cell ${menu.cellOverflow} · ${menu.otherCount} others clipped ${menu.othersClipped}`);
+    /* RETIRED 16 Nov 2026 (#762): 14a–14d, the row ⋯ menu's pop-up painted over the clipping cells — the new look's list draws
+       no ⋯ cell (the acts are the contract's ⋯, asked painted in 4b–4d above) */
     await page.keyboard.press('Escape');
     await page.waitForTimeout(400);
 
@@ -887,7 +888,10 @@ const check = (name, ok, detail) => {
        <style>, so the next view gets the shell's reserved gutter back — which
        is what stops content jolting sideways between a scrolling page and a
        fixed one. A rule that leaked would take that with it. */
-    await page.evaluate(() => setView('dashboard'));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Home holds no gutter by design in the new look
+       (`html.lg-new #content-scroll:has(#ig-page){scrollbar-gutter:auto}`), so the next page asked is one that reserves
+       it, Settings */
+    await page.evaluate(() => setView('team'));
     await page.waitForTimeout(1500);
     const elsewhere = await page.evaluate(() => {
       const sc = document.getElementById('content-scroll');
@@ -897,6 +901,8 @@ const check = (name, ok, detail) => {
     check('15 and the next page gets its reserved gutter back',
       elsewhere.gutter > 0 || /stable/.test(elsewhere.rule || ''),
       `${elsewhere.gutter}px · ${elsewhere.rule}`);
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));   /* back to the list for 16 */
+    await page.waitForTimeout(1500);
 
     /* ============================================================
        16. ONE SEARCH BOX, AND IT IS THE SHELL'S (N-3, 31 Aug 2026)
@@ -1060,9 +1066,8 @@ const check = (name, ok, detail) => {
       heads.some(h => h.sort === 'party') && heads.some(h => h.sort === 'stream')
         && (await page.evaluate(() => !!document.querySelector('#reg-sort option[value="ref"]'))),
       JSON.stringify(heads.map(h => h.sort)));
-    check('18b and the last column, which has no heading, still does not',
-      heads.length > 0 && heads[heads.length - 1].sort === null,
-      JSON.stringify(heads[heads.length - 1] || null));
+    /* RETIRED 16 Nov 2026 (#762): 18b "the last column, which has no heading, does not sort" — that column was the row's ⋯,
+       which the new look's list does not draw (regColKeys: counterparty, standing, …, no 'acts'); its last column is Value, which sorts */
 
     /* THE TABLE PAGES AT 40, so ascending and descending show two different
        slices of the book rather than one list reversed — the claim is that

@@ -12,8 +12,7 @@
      5 · Calendar Agenda: the late duty first, today's approval, an empty week one line; Horizon: each row its own months
      6 · History with the wording: the nudge, the duty done, the approval with its note under it, both changes as one row
      7 · Amend: the sealed paper and the amendment side by side, the line's Discard and Create the amendment (grey)
-   And the switch off:
-     8 · Approvals, Obligations and the Calendar are drawn as before
+   (8, the switch off, RETIRED 16 Nov 2026, #762: the new look is the only look)
    At the parent (before this round) 1–7 fail: none of it is drawn.
    Run: node test/chromium/round5-new-look-verify.js   (pictures: ROUND5_SHOTS=<dir>) */
 const fs = require('node:fs');
@@ -48,18 +47,28 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await page.evaluate(() => caGo({ kind: 'go', place: 'approvals' }));
     const up = await until(page, () => !!document.querySelector('.apn-table [data-ap-row]'), null, 15000);
     const heads = up ? await page.evaluate(() => [...document.querySelectorAll('.apn-table thead th')].map(x => x.innerText.trim().toLowerCase()).filter(Boolean)) : [];
-    const row = up ? await page.evaluate(() => { const r = document.querySelector('.apn-table [data-ap-kind="approval"]'); return r ? { approve: !!r.querySelector('[data-ap-approve]'), decline: !!r.querySelector('[data-ap-refuse]'), quote: !!r.querySelector('.apn-q') } : null; }) : null;
-    const signing = up ? await page.evaluate(() => !!document.querySelector('.apn-table [data-ap-kind="signature"] [data-ap-open]')) : false;
+    /* RE-POINTED (P-30, owner's pick 20 Nov 2026: Approvals the Legora + Stripe way): the row carries NO buttons — a soft
+       status badge, the approver, the steps; Approve and Decline are the chosen row's panel's (data-apn-act); the quote
+       line is .apn-ql; a signing row is a row of the same table (its Open went with the row buttons) */
+    const row = up ? await page.evaluate(() => { const r = document.querySelector('.apn-table [data-ap-kind="approval"]'); return r ? { noButtons: !r.querySelector('[data-ap-approve], [data-ap-refuse], [data-apn-act], .ui-btn'), badge: !!r.querySelector('.apn-st'), quote: !!r.querySelector('.apn-ql') } : null; }) : null;
+    const signing = up ? await page.evaluate(() => !!document.querySelector('.apn-table [data-ap-kind="signature"] .apn-st')) : false;
     if (up) await page.click('.apn-table [data-ap-kind="approval"] td');
     /* RE-POINTED (owner, 16 Nov 2026: the chosen row's panel in the five parts; f1073): Before you decide is drawn by the
        one builder (data-jov-slot="apn"), its own links still above the box */
-    const panel = up && await until(page, () => !!document.querySelector('#ins-panel [data-jov-slot="apn"]') && /What the paper says/i.test(document.getElementById('ins-panel').innerText), null, 8000);
+    /* RE-POINTED (P-30, 20 Nov 2026): the panel's groups are "What you are approving" and "Timeline", and it carries the
+       row's Approve and Decline */
+    /* RE-POINTED 21 Nov 2026 (P-30, as drawn): the panel is the drawn one (.apn5), no longer the five-part builder */
+    const panel = up && await until(page, () => !!document.querySelector('#ins-panel .apn5') && /What you are approving/i.test(document.getElementById('ins-panel').innerText)
+      && !!document.querySelector('#ins-panel [data-apn-act="approve"]') && !!document.querySelector('#ins-panel [data-apn-act="refuse"]'), null, 8000);
     const tab = await txt(page, '#ins-panel [data-jl-home]');
     const links = await page.evaluate(() => [...document.querySelectorAll('#ins-panel .jb-ways.is-own [data-apn-go]')].map(b => b.getAttribute('data-apn-go')));
     const junk = /\[object Object\]/.test(await txt(page, '#ins-panel'));
     await shot('1-approvals');
-    check('1 Approvals: one worklist, Approve and Decline on the row, signing under it; Before you decide with its own links', up && heads.join('|') === 'agreement|what it rests on|rule|waited'
-      && !!row && row.approve && row.decline && row.quote && signing && panel && /before you decide/i.test(tab) && links.includes('clause') && links.includes('hist') && !junk,
+    /* RE-POINTED (P-30, 20 Nov 2026): Agreement · Status · Approver · Steps · Rule · Asked (Approver, Steps and Rule may
+       step aside where the room is short — listCols' rank) */
+    check('1 Approvals: one worklist, no buttons on the row (Approve and Decline in the chosen row\'s panel), signing under it; Before you decide with its own links', up && heads[0] === 'agreement' && heads[1] === 'status' && heads[heads.length - 1] === 'asked'
+      && heads.every(h => ['agreement', 'status', 'approver', 'steps', 'rule', 'asked'].includes(h))
+      && !!row && row.noButtons && row.badge && row.quote && signing && panel && /before you decide/i.test(tab) && links.includes('clause') && links.includes('hist') && !junk,
       { heads, row, signing, panel, tab, links, junk });
   } catch (e) { check('1 Approvals', false, String(e).slice(0, 200)); }
 
@@ -77,7 +86,7 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const paperEnd = await page.evaluate(() => document.querySelectorAll('#ig-canvas .sig2 .sig2-col').length);
     await shot('2-sign');
     check('2 Before you sign: six lines, Nothing blocks you with Sign and Read it first, the line says Ready to sign, the paper ends in two ruled lines',
-      rows.length === 6 && /details/i.test(rows[0][1]) && /standards/i.test(rows[1][1]) && /approval/i.test(rows[2][1]) && /signed/i.test(rows[3][1]) && /your turn/i.test(rows[4][1]) && /then|sealed/i.test(rows[5][1]) /* re-pointed 15 Nov 2026: under its "Then" label the row says what happens */
+      rows.length === 6 && /details/i.test(rows[0][1]) && /standards|playbook|position/i.test(rows[1][1]) && /approval/i.test(rows[2][1]) && /signed/i.test(rows[3][1]) && /your turn/i.test(rows[4][1]) && /then|sealed/i.test(rows[5][1]) /* re-pointed 15 Nov 2026: under its "Then" label the row says what happens */
       && /nothing blocks you/i.test(card) && btns.sign && btns.read && /ready to sign/i.test(line) && /before you sign/i.test(tabs[0] || '') && paperEnd === 2,
       { rows, card: card.slice(0, 60), btns, line, tabs, paperEnd });
   } catch (e) { check('2 Before you sign', false, String(e).slice(0, 200)); }
@@ -86,18 +95,20 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
      re-pointed from round 5's box-and-tabs-on-one-line and its pop-up desk) */
   try {
     await page.evaluate(() => setView('obligations'));
-    const up = await until(page, () => !!document.querySelector('.obn-page .obn-table'), null, 15000);
+    /* RE-POINTED 19 Nov 2026 (We owe · They owe, the owner's pick): the tabs over the filter line; two columns; a line
+       carries its day as a toned word, who is reminded and one act */
+    const up = await until(page, () => !!document.querySelector('.obn-page .obt-cols'), null, 15000);
     const pills = up ? await page.evaluate(() => [...document.querySelectorAll('.obn-bar [data-obn-tab]')].map(b => b.getAttribute('data-obn-tab'))) : [];
     const box = up ? await page.evaluate(() => !!document.querySelector('.obn-bar2r #obn-q') && !document.querySelector('.obn-bar #obn-q')) : false;
-    const row = up ? await page.evaluate(() => { const r = document.querySelector('.obn-table tr.obn-r'); if (!r) return null;
-      const c1 = r.querySelector('td.obn-c1'), ch = r.querySelector('.obn-ch');
-      return { band: c1 ? getComputedStyle(c1).borderLeftWidth : '', tone: ch ? ch.className : '', when: ch ? ch.textContent.trim() : '',
-        who: (r.querySelector('.obn-who') || {}).textContent, act: (r.querySelector('.obn-act .obn-pill') || {}).innerText || '' }; }) : null;
-    const foot = up ? await txt(page, '.obn-pager .obn-pg-say') : '';
+    const row = up ? await page.evaluate(() => { const r = document.querySelector('.obt-cols .obt-li'); if (!r) return null;
+      const w = r.querySelector('.obt-w');
+      return { tone: w ? w.className : '', when: w ? w.textContent.trim() : '', rem: (r.querySelector('.obt-rem') || {}).textContent || '',
+        act: (r.querySelector('.obt-act') || {}).innerText || '', cols: document.querySelectorAll('.obt-col').length, table: !!document.querySelector('.obt-cols.obs-table .obs-th'), whose: !!r.querySelector('.obs-b.is-ours, .obs-b.is-theirs') }; }) : null;
     await shot('3-obligations');
-    check('3 Obligations: three pills over the filter line; a row carries its stream band, its day as a tone chip and one act; the foot says where in the book you are',
-      up && box && pills.includes('open') && pills.includes('prop') && !!row && row.band === '3px' && /obn-ch is-(ruby|amber|green|gray)/.test(row.tone)
-      && !!String(row.who || '').trim() && /mark done|chase|decide/i.test(row.act) && /showing 1/i.test(foot), { pills, box, row, foot });
+    /* RE-POINTED (P-13, owner's pick 20 Nov 2026: the Stripe way): one calm table, whose a soft badge on each row */
+    check('3 Obligations: the tiles over the filter line; one table, whose on each row; a line carries its day, who is reminded and one act',
+      up && box && pills.includes('open') && pills.includes('later') && pills.includes('done') && !!row && row.cols === 0 && row.table && row.whose && /obt-w is-(late|soon|ok)/.test(row.tone)
+      && !!String(row.rem || '').trim() && /mark done|chase|decide/i.test(row.act), { pills, box, row });
   } catch (e) { check('3 Obligations', false, String(e).slice(0, 200)); }
 
   /* 4 · Proposals by agreement, answered where the row stands */
@@ -105,18 +116,22 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="prop"]'); if (b) b.click(); });
     const up = await until(page, () => !!document.querySelector('.obn-table.is-proj .obn-pr'), null, 10000);
     const heads = up ? await page.evaluate(() => [...document.querySelectorAll('.obn-table.is-proj thead th')].map(t => t.textContent.trim()).filter(Boolean)) : [];
-    const pr = up ? await page.evaluate(() => { const r = document.querySelector('.obn-pr'); return r ? { ring: !!r.querySelector('.obn-ring'), bar: !!r.querySelector('.obn-bar2 i'),
-      said: (r.querySelector('.obn-pgb small') || {}).textContent, status: (r.querySelector('.obn-stt .obn-ch') || {}).textContent,
+    const pr = up ? await page.evaluate(() => { const r = document.querySelector('.obn-pr'); return r ? { ring: true /* RE-POINTED 21 Nov 2026 (P-13, as drawn): no ring on the row, a progress bar */, bar: !!r.querySelector('.obn-pbar, .obn-bar2') /* RE-POINTED 19 Nov 2026 (f1102, rings and bars say whose): nothing starts decided, so the bar is drawn with no part in it yet */,
+      said: (r.querySelector('.obn-pgs small, .obn-pgb small') || {}).textContent, status: (r.querySelector('.obn-stt .obs-b, .obn-stt .obn-ch') || {}).textContent,
       open: (r.querySelector('[data-obn-open]') || {}).innerText, add: (r.querySelector('[data-obn-addall]') || {}).innerText } : null; }) : null;
-    await page.evaluate(() => { const b = document.querySelector('[data-obn-open]'); if (b) b.click(); });
-    await until(page, () => !!document.querySelector('.obn-dr'), null, 5000);
-    const duty = await page.evaluate(() => { const r = document.querySelector('.obn-dr'); return r ? { whose: r.querySelectorAll('[data-obn-whose]').length,
-      on: !!r.querySelector('.obn-wh.is-on'), skip: !!r.querySelector('[data-obn-skip]'), quote: !!r.querySelector('.obn-q i') } : null; });
-    const side = /start with|nothing is waiting/i.test(await txt(page, '#ins-panel'));
+    /* RE-POINTED 19 Nov 2026 (f1102): the duties no longer open under the row; a press chooses it and they stand in the panel */
+    await page.evaluate(() => { const r = document.querySelector('.obn-pr[data-obn-pick] td.obn-c1'); if (r) r.click(); });
+    await until(page, () => !!document.querySelector('#ins-panel .obn-lg .obn-lg-it'), null, 5000);
+    const duty = await page.evaluate(() => { const r = document.querySelector('#ins-panel .obn-lg .obn-lg-it'); return r ? { whose: r.querySelectorAll('[data-obn-whose]').length,
+      on: !!r.querySelector('.obn-lg-w.is-on'), skip: !!r.querySelector('[data-obn-skip]'), quote: !!r.querySelector('.obn-lg-q') } : null; });
+    /* RE-POINTED 19 Nov 2026: Open makes the agreement the panel's subject, the Legora way (owner: "the row press the legora way") */
+    const side = await page.evaluate(() => !!document.querySelector('#ins-panel .obn-lg .obn-lg-it'));
     await shot('4-proposals');
-    check('4 Proposals: one row per agreement with its progress and status, the duties answered under it, three answers and Add all; the panel says where to start',
-      up && heads.length === 5 && !!pr && pr.ring && pr.bar && /decided/i.test(pr.said || '') && !!String(pr.status || '').trim() && /^open/i.test(pr.open || '')
-      && /^add all/i.test(pr.add || '') && !!duty && duty.whose === 3 && duty.on && duty.skip && side, { heads, pr, duty, side });
+    check('4 Proposals: one row per agreement with its progress and status, the duties answered under it, three answers and Add all; the panel turns to that agreement the Legora way',
+      /* RE-POINTED 19 Nov 2026: four heads — the owner had Found taken off ("delete the found column") */
+      /* RE-POINTED 21 Nov 2026 (P-13, the owner's pick of 20 Nov): the drawn six heads, Found back; "N of M" on the bar */
+      up && heads.join() === 'Agreement,Other side,Progress,Status,Duties,Found' && !!pr && pr.ring && pr.bar && /\d+ of \d+/.test(pr.said || '') && !!String(pr.status || '').trim() && !pr.open
+      && !pr.add && !!duty && duty.whose === 4 && duty.on   /* RE-POINTED 19 Nov 2026 (f1102): Undecided lit first, nothing decided, nothing to add */ && duty.skip && side, { heads, pr, duty, side });
   } catch (e) { check('4 Proposals', false, String(e).slice(0, 200)); }
 
   /* 5 · Calendar */
@@ -169,17 +184,7 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
       up && !!side && side.beside && acts.discard && acts.create && acts.grey && /as amended/i.test(face) && /say the change/i.test(ph), { side, acts, ph });
   } catch (e) { check('7 Amend', false, String(e).slice(0, 200)); }
 
-  /* 8 · the switch off: as before */
-  try {
-    await page.evaluate(async () => { const x = document.querySelector('[data-pd2-am-discard]'); if (x) x.click(); await stPrefSet('newLook', false); newLookApply(); });
-    await page.evaluate(() => caGo({ kind: 'go', place: 'approvals' }));
-    await until(page, () => !!document.querySelector('.ap-table'), null, 15000);
-    const ap = await page.evaluate(() => ({ nl: !!document.querySelector('.apn-table') }));
-    await page.evaluate(() => setView('obligations'));
-    await until(page, () => !!document.querySelector('.obw-ins, .obw-weeks'), null, 15000);
-    const ob = await page.evaluate(() => ({ nl: !!document.querySelector('.obn-page') }));
-    check('8 the switch off: Approvals and Obligations as before', !ap.nl && !ob.nl, { ap, ob });
-  } catch (e) { check('8 switch off', false, String(e).slice(0, 200)); }
+  /* RETIRED 16 Nov 2026 (#762): 8 "the switch off: as before" — there is no switch; the new look is the only look */
 
   await browser.close(); await h.stop();
   console.log(fails ? `\n${fails} FAILED` : '\nall passed');

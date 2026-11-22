@@ -71,25 +71,22 @@ describe('f481 (2) Templates & standards is one page with one door', () => {
     assert.match(RAIL, /data-view="templates"[^>]*data-i18n-title="nav_tpl_std_title"/);
     assert.match(RAIL, /data-i18n="nav_tpl_std"/);
   });
-  test('the three tabs are one list, and Our standards is the third', () => {
-    assert.match(LIB, /const PAPER_TABS=\['book','list','standards'\];/);
+  /* RE-POINTED 17 Nov 2026 (the owner picked The Ladder and answered "Remove it" for Our paper's Our standards tab):
+     Our paper is two tabs; Standards is a page of its own, the old view id ('playbook') still lands on it. */
+  test('Our paper is two tabs; Our standards left it', () => {
+    assert.match(LIB, /const PAPER_TABS=\['book','list'\];/);
     const tpl = strip(fnBody(LIB, 'renderTemplatesPage'));
-    assert.match(tpl, /data-paper-tab="standards"/);
+    assert.ok(!/data-paper-tab="standards"/.test(tpl), 'no standards tab on Our paper');
     assert.match(tpl, /paperTabsWire\(\)/);
   });
-  test('the old view id opens that tab, under the page\'s name, lighting the one door', () => {
+  test('the old view id opens Standards, its own page under its own name', () => {
     const pb = strip(fnBody(LIB, 'renderPlaybookPage'));
-    /* ONE ROW since CI's short laptop (4 Oct 2026): the page's tabs and the
-       standards sub-tabs stand side by side in the one pinned block. */
-    assert.match(pb, /class="st-tabs-pin" style="flex:none;display:flex[^"]*">\$\{paperTabsHtml\('standards', true\)\}<div class="st-tabs" role="tablist"/,
-      'the page row and the sub-tabs pin together, in both shapes');
-    assert.match(pb, /setActiveNav\('templates'\)/);
-    assert.ok(!/setActiveNav\('playbook'\)/.test(pb));
-    assert.match(read('js/app.js'), /case 'playbook':\s+return \[i18t\('nav_tpl_std'\)/);
+    assert.match(pb, /window\.renderStandardsPage\(\)/, 'every caller of the old page lands on the new one');
+    assert.match(read('js/app.js'), /else if\(view==='playbook'\) renderStandardsPage\(\);/);
+    assert.match(read('js/app.js'), /case 'playbook':\s+return \[i18t\('ld_page'\), ''\];/);
   });
-  test('a press on a tab of the other view changes view; the standards tab is the playbook view', () => {
+  test('a press on a tab of the other view changes view', () => {
     const w = strip(fnBody(LIB, 'paperTabsWire'));
-    assert.match(w, /setView\('playbook'\)/);
     assert.match(w, /_tplPageTab=k;\s*setView\('templates'\)/);
   });
 });

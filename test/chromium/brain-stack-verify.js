@@ -109,9 +109,14 @@ const ok = (name, good, detail) => {
 
     /* ---- 4. the counts are read from the route, never typed in ---- */
     await page.waitForFunction(() => !/reading the code/.test((document.querySelector('#br-stk-panel .br-stk-gl') || {}).textContent || 'reading the code'), null, { timeout: 8000 }).catch(() => {});
-    const st = await page.evaluate(async () => { const r = await api('brain', 'GET'); return r && r.stack; });
+    /* RE-POINTED 19 Nov 2026: the node tests passed 1,000 (1001 files), and the panel prints a count as a reader reads
+       a number (toLocaleString in the person's language, "1,001"), as it always did; so the server's counts are compared
+       in that same written form, read in the page with the panel's own locale (langLocale) */
+    const st = await page.evaluate(async () => { const r = await api('brain', 'GET'); const s = r && r.stack; if (!s) return null;
+      const lc = typeof langLocale === 'function' ? langLocale() : undefined; const f = v => Number(v).toLocaleString(lc);
+      return { tables: f(s.tables), routes: f(s.routes), tests: { node: f(s.tests && s.tests.node) } }; });
     const gl = await page.evaluate(() => (document.querySelector('#br-stk-panel .br-stk-gl') || {}).textContent || '');
-    ok('4a "at a glance" says the tables, routes and tests the server counted', !!st && gl.includes(st.tables + ' tables') && gl.includes(st.routes + ' routes') && gl.includes(String(st.tests.node)),
+    ok('4a "at a glance" says the tables, routes and tests the server counted', !!st && gl.includes(st.tables + ' tables') && gl.includes(st.routes + ' routes') && gl.includes(st.tests.node),
       st ? `${st.tables} tables, ${st.routes} routes, ${st.tests.node} tests · ${gl.slice(0, 160)}` : 'no stack');
 
     /* ---- 5. a second trip renames the stage; a ring opens its stop ---- */

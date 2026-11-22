@@ -109,12 +109,15 @@ function participantAdd(c, p){
   const row = { id: PARTY_ID(), name, email, role, access,
     memberId: _ptStr(p.memberId) || '', at: new Date().toISOString(),
     by: (_ptCall('currentUser') || {}).name || '' };
+  /* A CONTACT'S JOB TITLE AND PHONE (owner, 19 Nov 2026): kept on the row, with the person; a row never sends either */
+  if (_ptStr(p.title)) row.title = _ptStr(p.title).slice(0, 80);
+  if (_ptStr(p.phone)) row.phone = _ptStr(p.phone).slice(0, 40);
   if (participantDuplicate(c, row)) return null;
   c.participants = Array.isArray(c.participants) ? c.participants : [];
   c.participants.push(row);
   return row;
 }
-const PARTY_PATCH_KEYS = ['name', 'email', 'role', 'access', 'memberId'];
+const PARTY_PATCH_KEYS = ['name', 'email', 'role', 'access', 'memberId', 'title', 'phone'];
 function participantSet(c, id, patch){
   const row = participantsOf(c).find(p => p.id === id);
   if (!row || !patch) return null;
@@ -234,6 +237,8 @@ function contactSet(c, p){
   const has = k => Object.prototype.hasOwnProperty.call(p, k) && p[k] !== undefined;
   const email = has('email') ? _ptStr(p.email) : undefined;
   const name = has('name') ? _ptStr(p.name) : undefined;
+  const title = has('title') ? _ptStr(p.title).slice(0, 80) : undefined;
+  const phone = has('phone') ? _ptStr(p.phone).slice(0, 40) : undefined;
   const list = participantsOf(c);
   const samePerson = (x, mail) => _ctOutside(x) && mail && _ptFold(x.email) === _ptFold(mail)
     && contactPartyOf(c, x) === partyId;
@@ -252,12 +257,15 @@ function contactSet(c, p){
       return null;
     }
     row = participantAdd(c, { name: name != null ? name : (derived ? derived.name : ''),
-      email: email || '', role, access: PARTY_ACCESS_DEFAULT });
+      email: email || '', role, access: _ptStr(p.access) || PARTY_ACCESS_DEFAULT, title, phone });
     if (!row) return null;
     if (partyId) row.partyId = partyId;
   } else {
     if (email !== undefined) row.email = email;
     if (name !== undefined) row.name = name;
+    if (title !== undefined){ if (title) row.title = title; else delete row.title; }
+    if (phone !== undefined){ if (phone) row.phone = phone; else delete row.phone; }
+    if (has('access') && PARTY_ACCESS_OF[_ptStr(p.access)]) row.access = _ptStr(p.access);
   }
   if (p.main) row.main = true;
   /* A CONTACT WITH NEITHER NAME NOR ADDRESS IS NOBODY — it goes, and the
@@ -612,7 +620,7 @@ function participantsClaim(c){
    cannot reach the contract is said on THEIR row, where the act is. */
 const _ptEsc = s => String(s == null ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const PT_IN = 'min-width:0;width:100%;box-sizing:border-box;border:1px solid var(--color-neutral-300,#CBD3D0);background:var(--color-surface,#fff);border-radius:var(--radius);padding:4px 7px;font:inherit;font-size:var(--t-meta);outline:none';
+const PT_IN = 'min-width:0;width:100%;box-sizing:border-box;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:4px 7px;font:inherit;font-size:var(--t-meta);outline:none';
 function participantRoleOptions(sel){
   let out = '', side = '';
   PARTY_ROLES.forEach(r => {
@@ -655,6 +663,10 @@ function participantRowHtml(carrier, p, opts){
       _ptEsc(i18t('ppl_name'))}" style="${PT_IN}"/>` : `<b>${_ptEsc(p.name)}</b>`, i18t('ppl_name'))}
     ${cell(ed ? `<input data-pt-f="email" type="email" value="${_ptEsc(p.email)}" placeholder="${
       _ptEsc(i18t('ppl_email'))}" style="${PT_IN}"/>` : _ptEsc(p.email), i18t('ppl_email'))}
+    ${o.labels && participantSideOf(p.role) === 'theirs' ? cell(ed ? `<input data-pt-f="title" type="text" value="${_ptEsc(p.title || '')}" placeholder="${
+      _ptEsc(i18t('ppl_title_job'))}" style="${PT_IN}"/>` : _ptEsc(p.title || ''), i18t('ppl_title_job'))
+      + cell(ed ? `<input data-pt-f="phone" type="tel" value="${_ptEsc(p.phone || '')}" placeholder="${
+      _ptEsc(i18t('ppl_phone'))}" style="${PT_IN}"/>` : _ptEsc(p.phone || ''), i18t('ppl_phone')) : ''}
     ${cell(ed ? `<select data-pt-f="role" style="${PT_IN}">${participantRoleOptions(p.role)}</select>`
       : _ptEsc(participantRoleLabel(p.role)), i18t('ppl_role'))}
     ${cell(ed ? `<select data-pt-f="access" style="${PT_IN}">${participantAccessOptions(p.access)}</select>`
@@ -889,6 +901,198 @@ function shareMoreChosen(){
     .filter(x=>/.+@.+\..+/.test(x.email));
 }
 
+/* ═══ ONE POP-UP FOR A PARTY'S CONTACTS (owner's yes on the drawings, 19 Nov 2026: "the build includes contacts") ═══
+   "Who else is on this agreement", opened for a WHOLE PARTY — from the Parties panel's + Add, from People narrowed to a
+   party (+ Add contact) and from a person's panel (Edit contact). It lists their people already on file, and one card
+   to type in: Person, Job title, Email, Phone, Role (their side's roles only; a new person starts as "Can read it"),
+   Access, and the party's agreements to save them on (every live one ticked for a new person; an ended one never).
+   EVERY WRITE IS THE ADDRESS BOOK'S ONE WRITER (contactSet) on each ticked contract, and participantRemove on each
+   unticked one, then the record's own save (participantsKeep). Nothing is sent to the person; a signed agreement keeps
+   the name it was signed with (contactFollow never moves a signed route row). Undo puts every touched record back. */
+const PC_THEIR_ROLES = ['cpsign', 'negotiate', 'advise', 'cpread'];
+let _pc = null;
+function partyContactsMay(){ return ((typeof canEdit !== 'function') || !!canEdit()) && !(typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE); }
+function _pcView(key){ const f = _ptCall('cuCustomerOf', key); return f ? _ptCall('cuView', f) : null; }
+function _pcKeyFold(n){ return _ptStr(n).replace(/\s+/g, ' ').toLowerCase(); }
+function _pcPartyIdOf(c, key){ const hit = _ctTheirs(c).find(py => _pcKeyFold(py && py.name) === key); return hit ? _ptStr(hit.id) : ''; }
+function _pcSame(r, who){
+  if (!r || !who) return false;
+  const em = _ptFold(who.email);
+  if (em) return _ptFold(r.email) === em;
+  return !_ptStr(r.email) && !!_ptStr(who.name) && _ptFold(r.name) === _ptFold(who.name);
+}
+function _pcPeople(key){ const l = _ptCall('dirPeopleOfParty', key); return Array.isArray(l) ? l : []; }
+function _pcLive(c){ const b = _ptCall('cuBucket', c); return !b || b === 'active'; }
+function _pcDraftOf(key, pkey){
+  const v = _pcView(key); const cs = v ? (v.items || []) : [];
+  if (!pkey) return { pkey: '', was: null, name: '', title: '', email: '', phone: '', role: 'cpread', access: PARTY_ACCESS_DEFAULT,
+    ids: new Set(cs.filter(_pcLive).map(c => c.id)) };
+  const p = _pcPeople(key).find(x => x && x.key === pkey); if (!p) return null;
+  const roles = [...(p.roles || [])];
+  let row = null; for (const c of cs){ row = contactsOf(c).find(r => _pcSame(r, p)); if (row) break; }
+  return { pkey, was: { email: _ptStr(p.email), name: _ptStr(p.name) }, name: _ptStr(p.name), title: _ptStr(p.title || (row && row.title)),
+    email: _ptStr(p.email), phone: _ptStr(p.phone || (row && row.phone)), role: PC_THEIR_ROLES.find(k => roles.includes(k)) || 'cpread',
+    access: _ptStr(row && row.access) || PARTY_ACCESS_DEFAULT, ids: new Set(cs.filter(c => contactsOf(c).some(r => _pcSame(r, p))).map(c => c.id)) };
+}
+/* THE LEGORA WAY (owner's pick by name, 19 Nov 2026): the ONE edit pop-up (lgpHtml, js/components.js), in two steps —
+   1 Person (name, job title, email, phone, role, access), 2 Agreements (the party's agreements, live ones ticked, an
+   ended one never; listed by Live · Ended, six at a time). Jambo may fill step 1 from a person's sentence
+   (opts.prefill, opts.from): each line he filled says "from your words"; NOTHING is saved before the black button. */
+function partyContactsOpen(key, opts){
+  const o = opts || {};
+  const v = _pcView(key); if (!v || typeof lgpOpen !== 'function') return false;
+  if (!o.edit && !partyContactsMay()) return false;
+  const d = o.edit ? _pcDraftOf(v.key, o.edit) : _pcDraftOf(v.key, '');
+  if (!d) return false;
+  const from = new Set();
+  if (o.prefill && !o.edit){
+    ['name', 'title', 'email', 'phone'].forEach(k => { const w = _ptStr(o.prefill[k]); if (w){ d[k] = w; from.add(k); } });
+    if (PC_THEIR_ROLES.includes(o.prefill.role)){ d.role = o.prefill.role; from.add('role'); }
+  }
+  _pc = { key: v.key, name: v.name, d, err: '', busy: false, step: 1, page: 1, show: 'live', from, jambo: !!o.from };
+  lgpOpen(Object.assign(_pcSheet(v), { onClose: () => { _pc = null; } }));
+  return true;
+}
+function _pcStage(c){ const m = _ptCall('contractStatusMeta', c); return { t: (m && m.label) || _ptStr(c.status), dot: (m && m.dot) || '' }; }
+function _pcSheet(v){
+  const d = _pc.d, newOne = !d.pkey, short = _ptStr(_ptCall('cuShortName', v.name) || v.name);
+  const steps = { at: _pc.step, names: [i18t('pc_step_person'), i18t('pc_step_ags')] };
+  const head = newOne ? i18t('pc_head_new', { party: short }) : (d.name || d.email);
+  if (_pc.step === 1){
+    const f = k => _pc.from.has(k);
+    return { id: 'pc-form', attr: 'data-pc-step="1"', title: head, steps, jambo: _pc.jambo ? i18t('pc_jambo_filled') : '',
+      sub: newOne ? '' : i18t('pc_edit_sub', { party: short }),
+      rows: [
+        { k: i18t('ppl_name'), id: 'pc-name', value: d.name, max: 120, from: f('name') },
+        { k: i18t('ppl_title_job'), id: 'pc-title', value: d.title, max: 80, from: f('title') },
+        { k: i18t('ppl_email'), id: 'pc-email', type: 'email', value: d.email, max: 160, from: f('email') },
+        { k: i18t('ppl_phone'), id: 'pc-phone', type: 'tel', value: d.phone, max: 40, ph: i18t('pc_phone_ph'), from: f('phone') },
+        { k: i18t('ppl_role'), id: 'pc-role', type: 'select', value: d.role, opts: PC_THEIR_ROLES.map(k => ({ v: k, t: participantRoleLabel(k) })), from: f('role') },
+        { k: i18t('ppl_access'), id: 'pc-access', type: 'select', value: d.access, opts: PARTY_ACCESS.map(a => ({ v: a.k, t: a.label })) }],
+      err: _pc.err, note: i18t('pc_not_sent_short'),
+      left: newOne ? null : { label: i18t('pc_remove_all'), attr: 'data-pc-remove', danger: true },
+      primary: { label: i18t('lgp_next_step'), attr: 'data-pc-next' } };
+  }
+  const cs = v.items || [];
+  const live = cs.filter(_pcLive), ended = cs.filter(c => !_pcLive(c));
+  const shown = _pc.show === 'ended' ? ended : live;
+  const items = shown.map(c => { const st = _pcStage(c); return { id: c.id, on: d.ids.has(c.id), off: !_pcLive(c), label: c.name || c.id, stage: st.t, dot: st.dot }; });
+  const chips = [{ label: i18t('pc_chip_live', { n: live.length }), attr: 'data-pc-show="live"', on: _pc.show !== 'ended' }];
+  if (ended.length) chips.push({ label: i18t('pc_chip_ended', { n: ended.length }), attr: 'data-pc-show="ended"', on: _pc.show === 'ended' });
+  const said = i18t('pc_ticked', { n: d.ids.size, all: cs.length });
+  return { id: 'pc-form', attr: 'data-pc-step="2"', title: i18t('pc_head_ags', { name: _ptStr(d.name).split(/\s+/)[0] || d.email || short }), steps,
+    html: lgpListHtml({ items, chips, page: _pc.page, said, tickAttr: 'data-pc-ag', pageAttr: 'data-pc-page', none: i18t('pc_none_here') })
+      + (live.length ? `<p class="lgp-sub"><button type="button" class="lgp-use" data-pc-all-live>${_ptEsc(i18t('pc_tick_live'))}</button></p>` : ''),
+    err: _pc.err, back: { label: i18t('lgp_back'), attr: 'data-pc-back' },
+    primary: { label: i18t(newOne ? 'pc_add_btn' : 'cu_pr_save'), attr: 'data-pc-save' + (_pc.busy ? ' disabled' : '') } };
+}
+function _pcPaint(focus){
+  if (!_pc) return; const v = _pcView(_pc.key); if (!v) return;
+  if (typeof lgpRepaint === 'function') lgpRepaint(_pcSheet(v));
+  if (focus){ const f = document.getElementById('pc-name'); if (f) try { f.focus({ preventScroll: true }); } catch (_){} }
+}
+function _pcRead(){
+  const d = _pc && _pc.d; if (!d || _pc.step !== 1) return;
+  const has = id => !!document.getElementById(id);
+  const val = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+  if (!has('pc-name')) return;
+  ['name', 'title', 'email', 'phone'].forEach(k => { const w = val('pc-' + k); if (_ptStr(w) !== _ptStr(d[k])) _pc.from.delete(k); d[k] = w; });
+  const role = val('pc-role'); if (PC_THEIR_ROLES.includes(role)){ if (role !== d.role) _pc.from.delete('role'); d.role = role; }
+  d.access = PARTY_ACCESS_OF[val('pc-access')] ? val('pc-access') : d.access;
+}
+function _pcSnap(c){
+  const cl = x => x === undefined ? undefined : JSON.parse(JSON.stringify(x));
+  return { c, participants: cl(c.participants || []), counterpartyEmail: c.counterpartyEmail, counterpartyName: c.counterpartyName, parties: cl(c.parties) };
+}
+/* UNDO puts the people back as they were; the signing order is never written here (saveSignerPlan is its one
+   authority): an address the save moved on an unsigned route row is moved back by the same follower that moved it */
+function _pcRestore(snaps, moved){
+  snaps.forEach(sn => { const c = sn.c;
+    c.participants = sn.participants;
+    ['counterpartyEmail', 'counterpartyName'].forEach(k => { if (sn[k] === undefined) delete c[k]; else c[k] = sn[k]; });
+    /* the address book only ever mirrors an email onto a party (contactMirror), so Undo puts back just those emails,
+       never the list itself (the parties module is its one writer; f359) */
+    if (Array.isArray(sn.parties) && Array.isArray(c.parties)) c.parties.forEach(py => {
+      const was = py && sn.parties.find(x => x && _ptStr(x.id) === _ptStr(py.id)); if (was) py.email = was.email || ''; });
+    if (moved && moved.from && moved.to && _ptFold(moved.from) !== _ptFold(moved.to)) contactFollow(c, moved.to, moved.from);
+    participantsKeep(c); });
+}
+function _pcAfter(){ ['cuRepaint', 'dirRepaint'].forEach(f => { try { _ptCall(f); } catch (_){} }); }
+/* THE ONE SAVE: each of the party's agreements, ticked or not, through the address book's own writer */
+async function _pcApply(ids, removing){
+  const d = _pc.d, key = _pc.key, v = _pcView(key); if (!v || !d) return null;
+  const who = { name: _ptStr(d.name), email: _ptStr(d.email) };
+  const snaps = []; let n = 0;
+  for (const c0 of (v.items || [])){
+    const c = (_ptCall('getContract', c0.id)) || c0;
+    if (typeof ensureFull === 'function'){ try { await ensureFull(c); } catch (_){ continue; } }
+    const want = !removing && ids.has(c.id);
+    const mine = participantsOf(c).filter(r => _ctOutside(r) && d.was && _pcSame(r, d.was));
+    if (!want && !mine.length) continue;
+    snaps.push(_pcSnap(c));
+    if (want){
+      mine.filter(r => r.role !== d.role).forEach(r => participantRemove(c, r.id));
+      const keep = mine.find(r => r.role === d.role);
+      const row = contactSet(c, { id: keep ? keep.id : undefined, partyId: _pcPartyIdOf(c, key) || undefined, role: d.role,
+        name: who.name, email: who.email, title: _ptStr(d.title), phone: _ptStr(d.phone), access: d.access, was: d.was ? d.was.email : undefined });
+      if (row) n++;
+    } else { mine.forEach(r => participantRemove(c, r.id)); n++; }
+    if (typeof logAudit === 'function') try { logAudit(c, 'Record', want ? `Kept ${who.name || who.email} among their people` : `Took ${who.name || who.email} off the contract`); } catch (_){}
+    participantsKeep(c);
+  }
+  return { n, snaps, who, moved: { from: d.was ? d.was.email : '', to: who.email } };
+}
+async function _pcSave(removing){
+  if (!_pc || !_pc.d || _pc.busy) return;
+  _pcRead();
+  const d = _pc.d, newOne = !d.pkey;
+  if (!removing){
+    const bad = _pcStepOneBad(); if (bad){ _pc.err = bad; _pc.step = 1; _pcPaint(); return; }
+    if (!d.ids.size && newOne){ _pc.err = i18t('pc_need_ag'); _pcPaint(); return; }
+  }
+  _pc.busy = true; _pc.err = '';
+  let r = null;
+  try { r = await _pcApply(new Set(d.ids), !!removing); }
+  catch (e){ if (_pc){ _pc.busy = false; _pc.err = i18t('pc_err', { msg: (e && e.message) || '' }); _pcPaint(); } return; }
+  if (!_pc) return;
+  _pc.busy = false; _pc.d = null;
+  if (typeof closeModal === 'function') closeModal();
+  _pcAfter();
+  if (r && r.snaps.length && typeof toast === 'function'){
+    const name = r.who.name || r.who.email;
+    const msg = removing ? i18tn('pc_removed', r.n, { name, n: r.n }) : newOne ? i18tn('pc_added', r.n, { name, n: r.n }) : i18tn('pc_saved', r.n, { name, n: r.n });
+    toast(msg, 'ok', { action: { label: i18t('pc_undo'), onClick: () => { _pcRestore(r.snaps, r.moved); _pcAfter(); toast(i18t('pc_undone'), 'ok'); } } });
+  }
+}
+function _pcStepOneBad(){
+  const d = _pc && _pc.d; if (!d) return '';
+  if (!_ptStr(d.name) && !_ptStr(d.email)) return i18t('pc_need');
+  if (_ptStr(d.email) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(_ptStr(d.email))) return i18t('pc_bad_mail');
+  return '';
+}
+if (typeof document !== 'undefined' && document.addEventListener && !document._pcWired){ document._pcWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#pc-form') || !_pc) return;
+    if (t.closest('[data-pc-back]')){ e.preventDefault(); _pc.step = 1; _pc.err = ''; _pcPaint(true); return; }
+    const sh = t.closest('[data-pc-show]'); if (sh){ e.preventDefault(); _pc.show = sh.getAttribute('data-pc-show'); _pc.page = 1; _pcPaint(); return; }
+    const pg = t.closest('[data-pc-page]'); if (pg){ e.preventDefault(); _pc.page = Math.max(1, Number(pg.getAttribute('data-pc-page')) || 1); _pcPaint(); return; }
+    if (t.closest('[data-pc-all-live]')){ e.preventDefault(); const v = _pcView(_pc.key); (v ? v.items || [] : []).filter(_pcLive).forEach(c => _pc.d.ids.add(c.id)); _pcPaint(); return; }
+    if (t.closest('[data-pc-remove]')){ e.preventDefault(); _pcRead();
+      const ask = typeof confirmDialog === 'function' ? confirmDialog({ title: i18t('pc_remove_q', { name: _pc.d.name || _pc.d.email, party: _pc.name }), message: i18t('pc_remove_msg'), confirmLabel: i18t('pc_remove_all'), danger: true }) : Promise.resolve(true);
+      Promise.resolve(ask).then(ok => { if (ok) _pcSave(true); }); return; }
+  });
+  document.addEventListener('change', e => {
+    const t = e.target; if (!t || !t.closest || !t.closest('#pc-form') || !_pc || !_pc.d) return;
+    const ag = t.getAttribute('data-pc-ag'); if (ag){ if (t.checked) _pc.d.ids.add(ag); else _pc.d.ids.delete(ag);
+      const said = t.closest('.lgp') && t.closest('.lgp').querySelector('.lgp-lfoot > span:first-child'); const v = _pcView(_pc.key);
+      if (said && v) said.textContent = i18t('pc_ticked', { n: _pc.d.ids.size, all: (v.items || []).length }); return; }
+    _pcRead();
+  });
+  document.addEventListener('input', e => { const t = e.target; if (t && t.closest && t.closest('#pc-form') && _pc) _pcRead(); });
+  document.addEventListener('submit', e => { const f = e.target && e.target.closest ? e.target.closest('#pc-form') : null; if (!f || !_pc) return; e.preventDefault();
+    if (_pc.step === 1){ _pcRead(); const bad = _pcStepOneBad(); _pc.err = bad; if (!bad){ _pc.step = 2; _pc.page = 1; _pc.show = 'live'; } _pcPaint(); return; }
+    _pcSave(); });
+}
 if (typeof window !== 'undefined') Object.assign(window, {
   shareMoreRowsHtml, shareMoreChosen,
   participantsKeep, participantsPanelHtml, participantsDirHtml, participantsDirItems, participantRowHtml, participantsWire, participantsAuto, participantAutoOff,
@@ -904,4 +1108,5 @@ if (typeof window !== 'undefined') Object.assign(window, {
   CONTACT_ROLE_OF_PURPOSE, CONTACT_MAIN_ROLE, contactsOf, contactMain, contactEmail, contactSet,
   contactFollow, contactMirror, contactUnmirror, contactAdopt, contactChoices, contactPartyOf,
   contactRoleOfPurpose,
+  partyContactsMay, partyContactsOpen, PC_THEIR_ROLES,
 });

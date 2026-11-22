@@ -6,7 +6,8 @@
      3  each change says where it sits: "§2 · “…the changed words…”";
      4  chips per pile + All, each counted as its pile; a press shows that pile alone, All brings all back;
      5  the box at the foot writes to us through the Notes drawer's own send (one door);
-     6  their rows keep Ladder (owner, 24 Oct 2026: "Keep it");
+     6  their rows offer no Ladder (RE-POINTED, P-44, owner's pick 20 Nov 2026: "no Ladder and no Jambo advice on their
+        side"; reverses 24 Oct 2026 "Keep it");
      7  the head names the round and who it is with; no progress pile on their page;
      8  at the owner's three screens: nothing sideways, the foot box inside its card.
    Red at the parent: 1–5, 7 (the tabs underlined, no cards, no §, no chips, no box, no round line).
@@ -83,38 +84,35 @@ const until = async (page, fn, arg, ms = 8000) => { const t0 = Date.now(); for (
           sideways: document.scrollingElement.scrollWidth - innerWidth };
       });
       const tag = `${w}x${hh}:`;
-      check(M.track === M.trackWant && M.onBg === M.white && M.onFw > M.offFw && !M.onUl, `1  ${tag} the tabs are the grey track with the chosen one a white pill, heavier, no underline`, M);
-      check(M.rowH != null && M.rowH <= 28, `1  ${tag} the tab row is no taller for the pill (28px, as the underlined row was)`, { row: M.rowH, tabs: M.tabsH });
+      /* RETIRED 16 Nov 2026 (#762): 1 (the grey tab track with a white pill, the row no taller for it) was the Legora Way
+         drawing of their page; the outside look (round 8, "their pages as ours") draws the tabs underlined by design. */
       /* RE-POINTED 29 Oct 2026 (owner: ONE CORNER, every card 10px): the card's corner is the token --radius-lg, never below 10 */
       const floats = c => c.bg === M.white && parseFloat(c.r) === parseFloat(M.radLg) && parseFloat(c.r) >= 10 && /8px 28px/.test(c.sh || '');
-      check(floats(M.docCard) && floats(M.sideCard) && M.sideCard.bl === '0px', `2  ${tag} the paper and the change list are two floating white cards`, { doc: M.docCard, side: M.sideCard });
-      check(M.first === 258, `2  ${tag} the wording's first line stands where it stood (258)`, M.first);
+      /* RETIRED 16 Nov 2026 (#762): 2 (two floating white cards, the wording's first line at 258) was the Legora Way
+         drawing; the outside look lays their page as ours — the change column a hairline panel beside the paper. */
+      void floats;
 
       const ex = await page.evaluate(() => [...document.querySelectorAll('#pt-nego .rl-card-ex')].map(e => e.innerText.trim()));
       check(ex.length >= 2 && ex.every(t => /^§\d+(\.\d+)* · “.+”$/.test(t)), `3  ${tag} each change says where it sits: § and the words in quotes`, ex);
 
+      /* RE-POINTED 22 Nov 2026 (the P-44 review, the owner's picked drawing "the other side's page, the Legora + Stripe way":
+         the Redlines panel reads Changes · Notes, the round's line, then each pile under its own head with its count —
+         "Waiting on you 2" — and no chips over them; every pile is shown) */
       const chips = await page.evaluate(() => {
-        const piles = [...document.querySelectorAll('#pt-nego .rl-pile')].map(p => ({ b: p.getAttribute('data-rl-pile'), n: p.querySelectorAll('[data-nego-card]').length, hidden: p.hidden }));
-        const cs = [...document.querySelectorAll('#pt-nego [data-rl-pile-chip]')].map(b => ({ k: b.getAttribute('data-rl-pile-chip'), n: Number((b.querySelector('b') || {}).textContent), on: b.getAttribute('aria-pressed') }));
+        const vis = e => !!e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
+        const piles = [...document.querySelectorAll('#pt-nego .rl-pile')].map(p => ({ b: p.getAttribute('data-rl-pile'), n: p.querySelectorAll('[data-nego-card]').length, hidden: p.hidden,
+          head: (h => h ? h.textContent.replace(/\s+/g, ' ').trim() : '')(document.querySelector(`#pt-nego [data-rl-band="${p.getAttribute('data-rl-pile')}"]`)) }));
+        const cs = [...document.querySelectorAll('#pt-nego [data-rl-pile-chip]')].filter(vis).length;
         return { piles, cs };
       });
-      const total = chips.piles.reduce((a, p) => a + p.n, 0);
-      const matches = chips.piles.every(p => chips.cs.some(c => c.k === p.b && c.n === p.n));
-      const all = chips.cs.find(c => c.k === 'all');
-      check(chips.cs.length === chips.piles.length + 1 && matches && all && all.n === total && all.on === 'true',
-        `4  ${tag} one chip per pile, counted as its pile, then All (pressed)`, chips);
-      if (w === 1440 && chips.piles.length && chips.cs.length){   /* a page without chips reports above, it does not stall here */
-        const first = chips.piles[0].b;
-        await page.click(`#pt-nego [data-rl-pile-chip="${first}"]`);
-        const only = await page.evaluate(k => [...document.querySelectorAll('#pt-nego .rl-pile')].every(p => p.hidden === (p.getAttribute('data-rl-pile') !== k))
-          && document.querySelector(`#pt-nego [data-rl-pile-chip="${k}"]`).getAttribute('aria-pressed') === 'true', first);
-        await page.click('#pt-nego [data-rl-pile-chip="all"]');
-        const back = await page.evaluate(() => [...document.querySelectorAll('#pt-nego .rl-pile')].every(p => !p.hidden));
-        check(only && back, `4  ${tag} a chip shows its pile alone, All brings every pile back`, { only, back });
-      }
+      check(chips.piles.length >= 1 && chips.cs === 0 && chips.piles.every(p => !p.hidden && new RegExp('(^|\\D)' + p.n + '$').test(p.head)),
+        `4  ${tag} no chips, as drawn: every pile shown under its own head, counted as its pile`, chips);
 
-      const lad = await page.evaluate(() => [...document.querySelectorAll('#pt-nego [data-nego-card]')].filter(c => !!c.querySelector('[data-rl-ladder]')).length);
-      check(lad >= 1, `6  ${tag} their rows keep the Ladder`, lad);
+      /* RE-POINTED (P-44, owner's pick 20 Nov 2026): their Redlines cards no longer offer the Ladder; the cards must be
+         drawn for the absence to mean anything */
+      const lad = await page.evaluate(() => { const cs = [...document.querySelectorAll('#pt-nego [data-nego-card]')];
+        return { cards: cs.length, ladder: cs.filter(c => !!c.querySelector('[data-rl-ladder]')).length }; });
+      check(lad.cards >= 1 && lad.ladder === 0, `6  ${tag} their rows offer no Ladder`, lad);
       const head = await page.evaluate(() => ({ round: ((document.querySelector('#rl-side .rl-round-at') || {}).textContent || '').trim(),
         progress: !!document.querySelector('#pt-nego .rl-progress-pile, #pt-nego [data-rl-progress]') }));
       check(/^Round \d+ · from Highland Corporate$/.test(head.round), `7  ${tag} the head names the round and who it is with`, head.round);
@@ -122,17 +120,33 @@ const until = async (page, fn, arg, ms = 8000) => { const t0 = Date.now(); for (
       const foot = await page.evaluate(() => { const f = document.querySelector('#rl-side .pt-write'), s = document.querySelector('#rl-side'); if (!f) return null;
         const a = f.getBoundingClientRect(), b = s.getBoundingClientRect(); const top = document.elementFromPoint(a.left + 30, a.top + a.height / 2);
         return { inside: a.bottom <= b.bottom + 1 && a.left >= b.left && a.right <= b.right + 1, painted: !!(top && f.contains(top)), ph: document.getElementById('pt-write-in').placeholder }; });
-      check(!!foot && foot.inside && foot.painted && foot.ph === 'Write to Highland Corporate…', `5  ${tag} the box at the foot stands inside the change card, painted, "Write to Highland Corporate…"`, foot);
+      /* RETIRED 16 Nov 2026 (#762): the box at the foot of their change card is not drawn on the outside look
+         (index.html `html.lg-out … #rl-side .pt-write{display:none}`): their notes are written in the Notes drawer,
+         which the journey below opens by its own door. */
+      void foot;
       check(M.sideways <= 0, `8  ${tag} nothing scrolls sideways`, M.sideways);
 
       if (w === 1440){
         await page.screenshot({ path: path.join(OUT, '1440x780-redlines.png') });
-        if (!(await page.$('#pt-write-in'))){ check(false, '5  the box at the foot is there to write in'); await ctx.close(); continue; }
-        await page.fill('#pt-write-in', 'Can we keep 3 days if you inspect at the gate?');
-        await page.press('#pt-write-in', 'Enter');
+        /* RE-POINTED 16 Nov 2026 (#762): on the outside look they write to us in the Notes drawer, opened by its door under
+           More (#pol-more → #pt-notes-door); the words go through that drawer's own composer and send (one door) */
+        if (await page.$('#pol-more')) { await page.click('#pol-more').catch(() => {}); await page.waitForTimeout(250); }
+        await page.click('#pt-notes-door').catch(() => {});
+        await until(page, () => { const b = document.querySelector('#pt-notes-body .rl-np-in'); return !!b && b.getClientRects().length > 0; }, null, 5000);
+        await page.fill('#pt-notes-body .rl-np-in', 'Can we keep 3 days if you inspect at the gate?').catch(() => {});
         const opened = await until(page, () => document.getElementById('pt-notes').classList.contains('open')
           && /inspect at the gate/.test((document.querySelector('#pt-notes-body .rl-np-in') || {}).value || ''), null, 5000);
-        await page.getByRole('button', { name: 'Send to Highland Corporate', exact: true }).last().click().catch(() => {});
+        /* RE-POINTED 16 Nov 2026 (#762): the drawer's rooms are its tabs (their team · Highland Corporate); the note to us
+           is written in Highland Corporate's room and sent by the drawer's own "Add note" */
+        await page.evaluate(() => { const t = [...document.querySelectorAll('#pt-notes button')].find(b => /^Highland Corporate\b/.test(b.textContent.trim()) && b.getClientRects().length);
+          if (t && t.getAttribute('aria-selected') !== 'true') t.click(); });
+        await page.waitForTimeout(200);
+        if (!/inspect at the gate/.test(await page.evaluate(() => (document.querySelector('#pt-notes-body .rl-np-in') || {}).value || '')))
+          await page.fill('#pt-notes-body .rl-np-in', 'Can we keep 3 days if you inspect at the gate?').catch(() => {});
+        /* the drawer's own send, then the crossing's question ("Send to Highland Corporate"), as a person answers it */
+        await page.click('#pt-notes-body .rl-np-send', { timeout: 5000 }).catch(() => {});
+        if (await until(page, () => [...document.querySelectorAll('button')].some(b => b.textContent.trim() === 'Send to Highland Corporate' && b.getClientRects().length), null, 4000))
+          await page.getByRole('button', { name: 'Send to Highland Corporate', exact: true }).last().click().catch(() => {});
         const asked = await until(page, () => !!document.querySelector('input[placeholder="Your full name"]'), null, 4000);
         if (asked){ await page.fill('input[placeholder="Your full name"]', 'Wanjiru Kamau'); await page.getByRole('button', { name: 'Save', exact: true }).click().catch(() => {}); }
         const landed = await until(page, () => /inspect at the gate/.test((document.getElementById('pt-notes-body') || {}).innerText || ''), null, 8000);

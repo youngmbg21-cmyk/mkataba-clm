@@ -300,9 +300,11 @@ describe('what is ours stays ours', () => {
     assert.ok(!/Email:/.test(page), 'our mail configuration is ours');
     assert.ok(!/Last seen/.test(page), 'a reader should not be shown a log of their own visits');
     /* the shared sheet's facts row (4 Oct 2026) */
-    const facts = v.$('#pt-where-pane .ds-facts').textContent.replace(/\s+/g, ' ');
-    assert.match(facts, /Round\s*1/, 'the negotiation facts stay on both sides');
-    assert.match(facts, /Settled\s*\d+ of \d+/);
+    /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn): no figures row — the round heads the side panel, the counts ride
+       the Still open · Settled chips */
+    const side = v.$('#pol-side').textContent.replace(/\s+/g, ' ');
+    assert.match(side, /Round\s*1/, 'the negotiation facts stay on both sides');
+    assert.match(v.$('#pt-where-pane .pol-w-chips').textContent.replace(/\s+/g, ' '), /Still open\s*\d+\s*Settled\s*\d+/);
   });
 
   test('the owner still has every one of those', async () => {

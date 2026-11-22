@@ -138,6 +138,11 @@ let H;
     });
     const st0 = await stage();
     check('2a  the lead\'s browser knows the contract needs an approval', st0.needs === 1, JSON.stringify(st0));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): on the new look's Before you sign face the waiting
+       approval row carries its own door, "Send for approval" (.pd2-sg [data-sa-ask]); #sign-btn stands in the foot only in
+       the reader's own stop. The asking press is that door wherever #sign-btn is not drawn. */
+    const askPress = async P => { const b = await P.$('#sign-btn'); if (b && await b.isVisible()) return b.click();
+      return P.click('.pd2-sg [data-sa-ask]', { timeout: 10000 }); };
     const openSign = async (P) => {
       await P.evaluate(() => { const c = getContract('MK-A2'); openWorkspace(c.id, { room: true }); });
       await P.waitForTimeout(700);
@@ -176,10 +181,10 @@ let H;
     const top0 = s2.canvasTop;
 
     /* ================= 3 · SEND FOR APPROVAL ================= */
-    await L.page.click('#sign-btn');
+    await askPress(L.page);
     await L.page.waitForTimeout(500);
     const dlg = await L.page.evaluate(() => {
-      const d = document.querySelector('.sa-dlg');
+      const d = document.querySelector('#sa-dlg');
       return { there: !!d, text: d ? d.textContent.replace(/\s+/g, ' ') : '' };
     });
     check('3a  the press opens the request: approver, backup and exactly what is approved',
@@ -214,10 +219,23 @@ let H;
       const tr = document.querySelector('[data-ap-row="MK-A2"]');
       return tr ? tr.textContent.replace(/\s+/g, ' ').trim() : '';
     });
+    /* RE-POINTED (P-30, owner's pick 20 Nov 2026: Approvals the Legora + Stripe way): the row is Agreement · Status ·
+       Approver · Steps · Rule · Asked — the approver's cell names the person whose yes it is (for the reader: "You", its
+       hover the turn), the Rule cell "<name>'s contracts"; WHO ASKED moved to the chosen row's panel, its Timeline
+       ("<name> asked") — so the row is pressed and the panel read (the eyebrow carries the rule too) */
+    const apc = await P.page.evaluate(() => { const w = document.querySelector('[data-ap-row="MK-A2"] td.apn-apc .apn-who');
+      return w ? { text: w.textContent.replace(/\s+/g, ' ').trim(), title: w.getAttribute('title') || '' } : null; });
+    await P.page.click('[data-ap-row="MK-A2"] td').catch(() => {});
+    /* RE-POINTED 21 Nov 2026 (P-30, as drawn): the drawn panel (.apn5); its Timeline names the asker by first name ("Unrestricted asked for approval") */
+    await P.page.waitForFunction(() => /asked/i.test((document.querySelector('#ins-panel .apn5') || {}).innerText || ''), null, { timeout: 6000 }).catch(() => {});
+    const apPanel = await P.page.evaluate(() => { const p = document.querySelector('#ins-panel'); return p ? p.innerText.replace(/\s+/g, ' ').trim() : ''; });
     check('4a  it is on the approver\'s Approvals page, named for the person, asked by the lead',
       /* RE-POINTED 18 Oct 2026 (round 15 as drawn, "Jonas's yes before signing /
          Erik's contracts need it"): the line under the step names whose contracts need it */
-      /Unrestricted Legal/.test(list) && /contracts need it/.test(list), list);
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's row (apnRowHtml) says "asked by …" and the rule's line, "<name>'s contracts" */
+      !!list && !!apc && /You$/.test(apc.text) && /Unrestricted (Legal )?asked/.test(apPanel)
+        && (/Unrestricted Legal['’]s contracts/.test(list) || /Unrestricted Legal['’]s contracts/.test(apPanel)),
+      JSON.stringify({ list, apc, panel: apPanel.slice(0, 300) }));
     await shot(P.page, 'sa-05-list');
     await openSign(P.page);
     /* RE-POINTED 18 Oct 2026 (the gaps, round 10 "The road", f752): the approval
@@ -225,7 +243,10 @@ let H;
        it covers, the asker's note, Approve · Refuse… — and carries the card's id */
     const card = await P.page.evaluate(() => {
       const c = document.getElementById('sa-card');
-      return { there: !!c, text: c ? c.textContent.replace(/\s+/g, ' ') : '', stop: !!(c && c.closest('[data-pd-road-stop="yes"]')),
+      /* RE-POINTED 17 Nov 2026 (#762): the card must be PAINTED — the old road column is still in the markup but
+         0px wide in the new look, so "there" asks for a drawn box, not only the element */
+      const seen = !!(c && c.getBoundingClientRect().width > 0 && c.getBoundingClientRect().height > 0);
+      return { there: seen, text: c ? c.textContent.replace(/\s+/g, ' ') : '', stop: !!(c && c.closest('[data-pd-road-stop="yes"]')),
         approve: !!(c && c.querySelector('[data-pd-rd-approve]')), refuse: !!(c && c.querySelector('[data-pd-rd-refuse]')) };
     });
     check('4b  the approval asked of you stands at its stop, with what it covers, the note, Approve and Refuse…',
@@ -255,7 +276,8 @@ let H;
             if (!c) return r({ card: false });
             const b = c.getBoundingClientRect();
             return r({ card: true, lit: wasLit,
-              inView: b.top >= 0 && b.bottom <= (window.innerHeight || 0) + 2,
+              /* RE-POINTED 17 Nov 2026 (#762): in view means a drawn box (a 0px card in the folded column is not in view) */
+              inView: b.width > 0 && b.height > 0 && b.top >= 0 && b.bottom <= (window.innerHeight || 0) + 2,
               approve: !!c.querySelector('[data-pd-rd-approve]'),
               hash: location.hash });
           }
@@ -288,7 +310,8 @@ let H;
     check('4L5 an unknown word opens the room and lands on nothing',
       junk.ok && junk.onRoom && !junk.lit, JSON.stringify(junk));
 
-    if (card.refuse) {
+    /* only a PAINTED Refuse is pressed (17 Nov 2026, #762): a hidden one reports below instead of timing out */
+    if (card.there && card.refuse) {
       await P.page.click('[data-pd-rd-refuse]');
       await P.page.waitForTimeout(400);
       const empty = await P.page.evaluate(() => !!document.getElementById('pd-input'));
@@ -321,7 +344,7 @@ let H;
     check('5a  the lead sees who refused and why, and may send it again', /Refused by Restricted Legal/.test(s5.row) && /45 days/.test(s5.row)
       && /^Send for approval$/.test(s5.label), `${s5.row} · ${s5.label}`);
     await shot(L.page, 'sa-07-refused');
-    await L.page.click('#sign-btn');
+    await askPress(L.page);
     await L.page.waitForTimeout(500);
     if (await L.page.$('#sa-ask-go')) { await L.page.fill('#sa-ask-note', 'Now 45 days, as asked.'); await L.page.click('#sa-ask-go'); await L.page.waitForTimeout(1500); }
     await P.page.reload({ waitUntil: 'networkidle' });
@@ -330,8 +353,12 @@ let H;
     /* RE-POINTED 18 Oct 2026 (the gaps, round 10): the road's Approve is one
        press, as drawn — the optional note went with the column's card (the
        phone keeps its note box, 8b) */
+    /* RE-POINTED 17 Nov 2026 (owner: "optional note"): every Approve offers a note in a small pop-up; its own
+       Approve sends the yes, here with a note */
     if (await P.page.$('[data-pd-rd-approve]')) {
       await P.page.click('[data-pd-rd-approve]');
+      const ok = await P.page.waitForSelector('#prompt-overlay #pd-ok', { timeout: 4000 }).catch(() => null);
+      if (ok) { await P.page.fill('#pd-input', 'Fine at 45 days.'); await ok.click(); }
       await P.page.waitForTimeout(1500);
     }
     const rec5 = await W.admin.json('/api/contracts/MK-A2');
@@ -377,7 +404,7 @@ let H;
        desktop's own approveContract, which hands a personal approval to the
        one decider — so what is proved here is that the door is drawn, the
        note box is there, and the answer lands on the record. */
-    await L.page.click('#sign-btn');
+    await askPress(L.page);
     await L.page.waitForTimeout(500);
     if (await L.page.$('#sa-ask-go')) { await L.page.click('#sa-ask-go'); await L.page.waitForTimeout(1500); }
     const M = await (async () => {

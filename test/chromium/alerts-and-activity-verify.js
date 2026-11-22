@@ -123,7 +123,8 @@ const BOX = `(sel => { const el = document.querySelector(sel); if (!el) return n
       body: (document.getElementById('panel-body') || {}).textContent,
       /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the Needs you tab draws the one desk's
          own rows, one per row of the reading (a bundle is one row counting its contracts) */
-      face: panelFace(), rows: document.querySelectorAll('#panel-body .nd-pan .nd-r').length,
+      /* RE-POINTED 16 Nov 2026 (#762): the new look's bell draws them as .ndb .ndb-r[data-nd-row] (ndBellNlHtml) */
+      face: panelFace(), rows: document.querySelectorAll('#panel-body .ndb .ndb-r[data-nd-row]').length,
       want: (() => { const D = ndRead(); return D.jambo.length + D.you.length; })(),
       panels: document.querySelectorAll('#context-panel').length,
     }), BOX);
@@ -135,7 +136,8 @@ const BOX = `(sel => { const el = document.querySelector(sel); if (!el) return n
       `${act.panel.w}x${act.panel.h} at ${act.panel.x} → ${al.panel.w}x${al.panel.h} at ${al.panel.x}`);
     check('the panel SAYS which it is showing', /Alerts/i.test(al.title.text || ''), al.title.text);
     check('and its scope is the person, not the workspace',
-      /Needs you/.test(al.body || '') && !/whole workspace/i.test(al.body || ''),
+      /* RE-POINTED 21 Nov 2026 (P-38, the Legora + Stripe way): the person's work is said by its chips (All · Late · Your move · Jambo) */
+      /(Your move|Late|Jambo|Needs you)/.test(al.body || '') && !/whole workspace/i.test(al.body || ''),
       (al.body || '').slice(0, 60));
     check('the contents genuinely differ', al.body !== act.body);
     check('and every alert is a row you can press', al.rows > 0 && al.rows === al.want, `${al.rows} rows of ${al.want}`);

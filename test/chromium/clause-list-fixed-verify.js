@@ -119,28 +119,34 @@ const READING = {
       JSON.stringify({ three, subs: walk.filter(r => /^3\./.test(r.name)).map(r => r.name.slice(0, 20) + (r.sec ? ' (sec)' : '')) }));
 
     /* ===== 2 the finding sits ON clause 2 ===== */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the row's name shows the paper's title, its number
+       carried by the mark (THE LIST SHOWS THE PAPER'S OWN NUMBERS AND TITLES), so a row is found by its whole name's
+       text (textContent), number included, not by what innerText paints */
     const open2 = () => page.evaluate(async () => {
-      const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => /^2\. Term/.test((r.querySelector('.doc-th-name') || {}).innerText || ''));
+      const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => /^2\. Term/.test((r.querySelector('.doc-th-name') || {}).textContent || ''));
       if (!row) return false;
       if (!row.classList.contains('is-open')){ row.querySelector('[data-th-go]').click(); await new Promise(z => setTimeout(z, 900)); }
       return true;
     });
     await open2();
     const e2 = await page.evaluate(id => {
-      const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => /^2\. Term/.test((r.querySelector('.doc-th-name') || {}).innerText || ''));
+      const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => /^2\. Term/.test((r.querySelector('.doc-th-name') || {}).textContent || ''));
       const card = row && row.querySelector('.stk-card');
       const txt = el => String((el && el.textContent) || '').replace(/\s+/g, ' ').trim();
       const groups = [...document.querySelectorAll('#pd-thread .stk-miss')].map(m => ({ h: txt(m.querySelector('.stk-miss-h')), t: txt(m) }));
       return { onRow: !!(card && /clause 2 is blank/.test(card.textContent)), state: txt(row && row.querySelector('[data-th-state]')),
-        inGroup: groups.some(g => /clause 2 is blank/.test(g.t)), groups: groups.map(g => g.h), need: stkNeedCount(getContract(id)) };
+        inGroup: groups.some(g => /clause 2 is blank/.test(g.t)), groups: groups.map(g => g.h), need: stkNeedCount(getContract(id)),
+        marked: !!(row && row.classList.contains('stk-b-need')) };
     }, ID);
+    /* RE-POINTED 16 Nov 2026 (#762): the Legora way's rows carry no "Needs you · 1" sentence (CLAUDE.md "no amber
+       sentence on a row"); the row is MARKED need (stk-b-need, its amber mark) and the tab's count still counts it */
     ok('2 "clause 2 is blank" stands ON clause 2\'s row, not in a not-in-the-contract group, and the tab counts it',
-      e2.onRow && !e2.inGroup && /Needs you · 1/.test(e2.state) && e2.need === 2, JSON.stringify(e2));
+      e2.onRow && !e2.inGroup && e2.marked && e2.need === 2, JSON.stringify(e2));
     /* 2b A CLAUSE WITH NO WORDING HAS NOTHING TO READ: HaTi knows before the
        press, so Plain is greyed with the reason rather than spending a call
        to be told the clause is empty. */
     const plain = await page.evaluate(() => {
-      const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => /^2\. Term/.test((r.querySelector('.doc-th-name') || {}).innerText || ''));
+      const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => /^2\. Term/.test((r.querySelector('.doc-th-name') || {}).textContent || ''));
       const b = row && row.querySelector('[data-th-explain]');
       const say = row && row.querySelector('.doc-th-cost');
       return { there: !!b, dis: !!(b && b.disabled), why: b ? b.getAttribute('title') : '', said: say ? say.textContent.trim() : '' };
@@ -149,7 +155,7 @@ const READING = {
        draws its own press, so clause 1 is opened to be asked, then clause 2
        is put back for the close below) */
     const plainLive = await page.evaluate(async () => {
-      const open = async re => { const r = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(x => re.test((x.querySelector('.doc-th-name') || {}).innerText || ''));
+      const open = async re => { const r = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(x => re.test((x.querySelector('.doc-th-name') || {}).textContent || ''));
         if (r && !r.classList.contains('is-open')) r.querySelector('[data-th-go]').click(); await new Promise(z => setTimeout(z, 900)); return r; };
       const one = await open(/^1\. Services/);
       const b = one && one.querySelector('[data-th-explain]');
@@ -193,7 +199,7 @@ const READING = {
     await page.screenshot({ path: path.join(OUT, '3-closed-and-scrolled.png') });
     /* the next press lets the close go, and the paper's follow works again */
     await page.evaluate(async () => {
-      const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => /^1\. Services/.test((r.querySelector('.doc-th-name') || {}).innerText || ''));
+      const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => /^1\. Services/.test((r.querySelector('.doc-th-name') || {}).textContent || ''));
       const b = row && row.querySelector('[data-th-go]'); if (!b) return;
       b.click(); await new Promise(z => setTimeout(z, 900));
     });
@@ -255,10 +261,14 @@ const READING = {
     ok('5b the not-in-the-contract group keeps its indent and its label, with no border',
       !!lines.miss && (lines.miss.style === 'none' || lines.miss.w === '0px') && parseFloat(lines.miss.ml) >= 20, JSON.stringify(lines.miss));
     /* RE-POINTED 23 Oct 2026 (owner: "Build the dot but without the quote"): the verdict is a coloured dot before the title, no edge */
-    const dot = await page.evaluate(() => { const d = document.querySelector('#pd-thread .stk-card .stk-ct > .stk-d8'); const s = d && getComputedStyle(d);
-      return s ? { w: s.width, bg: s.backgroundColor, shown: d.getClientRects().length > 0 } : null; });
-    ok('5c the point card shows its verdict as a coloured dot, and no edge',
-      !!dot && dot.shown && dot.w === '8px' && dot.bg !== 'rgba(0, 0, 0, 0)' && !!lines.edge && lines.edge.c === 'none', JSON.stringify({ dot, edge: lines.edge }));
+    /* RE-POINTED 16 Nov 2026 (#762): the Legora way draws no card dot — the verdict's colour is the ROW's own mark
+       (.doc-th-bead, amber for a clause that needs you, never the resting grey), and still no edge */
+    const dot = await page.evaluate(() => { const row = document.querySelector('#pd-thread .doc-th-row.stk-b-need, #pd-thread .doc-th-row.stk-b-look');
+      const d = row && row.querySelector('.doc-th-bead'); const s = d && getComputedStyle(d);
+      const rest = document.querySelector('#pd-thread .doc-th-row.stk-b-none .doc-th-bead');
+      return s ? { bg: s.backgroundColor, rest: rest ? getComputedStyle(rest).backgroundColor : null, shown: d.getClientRects().length > 0 } : null; });
+    ok('5c the point\'s verdict shows as its row\'s coloured mark, and no edge',
+      !!dot && dot.shown && dot.bg !== 'rgba(0, 0, 0, 0)' && dot.bg !== dot.rest && !!lines.edge && lines.edge.c === 'none', JSON.stringify({ dot, edge: lines.edge }));
 
     /* ===== 6 no count line; the tabs do the filters' work =====
        RE-POINTED 23 Oct 2026 (owner picked "Marquee"): a headline and the clauses as tabs with counts in place of
@@ -267,18 +277,15 @@ const READING = {
       tally: !!document.querySelector('#pd-thread .stk-tally, #pd-thread [data-stk-sev]'),
       title: ((document.querySelector('#pd-thread .stk-mq-t') || {}).textContent || '').trim(),
       boxes: document.querySelectorAll('#pd-thread .stk-flt').length,
-      tabs: [...document.querySelectorAll('#pd-thread .stk-tab')].map(b => b.getAttribute('data-stk-tab')).join(',') }));
-    ok('6a the three-count line is gone; a headline and the tabs stand, no boxes',
-      /* RE-POINTED 24 Oct 2026 (Round 3, owner's yes, the SAP heads): "Clauses N · M need you · K worth a look" */
-      !head.tally && /^Clauses ?\d+( ?· \d+ need you)?( · \d+ worth a look)?$/.test(head.title) && head.boxes === 0 && /^,need/.test(head.tabs), JSON.stringify(head));
-    const pick = v => page.evaluate(v => { const el = document.querySelector(`#pd-thread [data-stk-tab="${v}"]`); if (el) el.click(); }, v);
-    await pick('need');
-    await page.waitForTimeout(400);
-    const narrowed = await page.evaluate(() => document.querySelectorAll('#pd-thread .stk-card').length);
-    await pick('');
-    await page.waitForTimeout(400);
-    const back = await page.evaluate(() => document.querySelectorAll('#pd-thread .stk-card').length);
-    ok('6b the "Needs you" tab narrows to the same points, and All lets go', narrowed === 2 && back === 4, JSON.stringify({ narrowed, back }));
+      tabs: [...document.querySelectorAll('#pd-thread .stk-tab')].map(b => b.getAttribute('data-stk-tab')).join(','),
+      top: (() => { const t = document.querySelector('#pd-thread .stk-lg-top'); if (!t) return null; const r = t.getBoundingClientRect();
+        const cs = getComputedStyle(t), lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.4;
+        return { words: t.textContent.trim(), h: Math.round(r.height), lh, oneLine: r.height > 0 && r.height < lh * 1.6 }; })() }));
+    /* RE-POINTED 16 Nov 2026 (#762; the owner's "Legora way" for Clauses, 16 Nov 2026): no count line, no headline, no
+       tabs — ONE line, "Clause review · the contract · where to start" (stkMarqueeHtml, .stk-lg-top), no boxes */
+    ok('6a the three-count line is gone; the one top line stands, no headline, no tabs, no boxes',
+      !head.tally && head.title === '' && head.tabs === '' && head.boxes === 0 && !!head.top && /^Clause review\b/.test(head.top.words), JSON.stringify(head));
+    /* RETIRED 16 Nov 2026 (#762): 6b "the Needs you tab narrows to the same points" — the new look's Clauses draw no tabs */
     await page.screenshot({ path: path.join(OUT, '6-head-without-the-count-line.png') });
 
     ok('7 no page errors', errs.length === 0, errs.join(' | ').slice(0, 300));

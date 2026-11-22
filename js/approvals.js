@@ -85,7 +85,7 @@ function approvalAnswersFor(c, u){
 }
 Object.assign(window,{approvalAnswersFor});
 function userCanApprove(a, u){
-  if(!u) return false;
+  if(!u || (typeof window.mayActOn==='function' && !window.mayActOn(null, u))) return false;   // a Viewer approves nothing (Round C)
   /* …or the member's stand-in while they are away (piece 9, awayCovers) */
   if(a.kind==='member') return (a.id!=null&&a.id!=='') ? String(a.id)===String(u.id) || (typeof awayCovers==='function'&&awayCovers(u,a.id)) : a.name===u.name;
   if(a.role==='admin') return u.role==='admin';
@@ -318,7 +318,8 @@ async function approveContract(c, comment){
       askAnswer(x, ask.id, { state:'yes', by:u, why:comment||null, stamp, for:fw });
       logAudit(x,'Approved',`Step "${step.name}" approved by ${u.name}${fw?` for ${fw.name}`:''} (${ROLE_LABEL[u.role]})`
         +` — for ${fmtMoneyShort(stamp.value)} and the wording as it stands`
-        +(was==='stale'?' · re-approved after the contract changed':was==='rejected'?' · previously refused':''));
+        +(was==='stale'?' · re-approved after the contract changed':was==='rejected'?' · previously refused':'')
+        +(comment?` — “${String(comment).slice(0,AP_YES_NOTE_MAX)}”`:''));
     };
     if(!(await approvalDecisionLands(c, ruleId, write))) return false;
     const done=approvalState(c).ok;
@@ -427,6 +428,17 @@ function approvalDecidableNow(c, u){
 /* THE ONE ASKER for a rule step's refusal — the room's gate and the page
    both press it. Required: an empty answer is said in words and refuses
    nothing. Null = nothing refused. */
+/* A YES MAY CARRY A NOTE (owner, 17 Nov 2026: "optional note"): offered, never required — leave it empty and the yes
+   still goes; cancel and nothing is decided. The note rides with the decision to the person who asked (the bell's
+   light-green row) and onto the contract's history; it never travels to the other side. */
+const AP_YES_NOTE_MAX=400;
+async function approvalYesNote(){
+  if(typeof window.promptDialog!=='function') return '';
+  const v=await window.promptDialog({ title:i18t('ap_yes_note_t'), message:i18t('ap_yes_note_msg'), label:i18t('ap_yes_note_l'),
+    placeholder:i18t('ap_yes_note_ph'), confirmLabel:i18t('ap_pg_approve'), multiline:true, required:false });
+  if(v==null) return null;
+  return String(v).trim().slice(0,AP_YES_NOTE_MAX);
+}
 async function approvalRefuseWhy(){
   if(typeof window.promptDialog!=='function') return null;
   const why=await window.promptDialog({ title:i18t('ap_reject_step_q'), message:i18t('ap_refuse_msg'),
@@ -458,7 +470,7 @@ async function approvalDecideAsk(c, verdict){
   const d=approvalDecidableNow(c);
   if(!d){ toast(i18t('sa_gone'),'warn'); return false; }
   if(d.kind==='rule'){
-    if(verdict==='approved') return !!(await approveContract(c));
+    if(verdict==='approved'){ const note=await approvalYesNote(); if(note==null) return false; return !!(await approveContract(c, note||undefined)); }
     const why=await approvalRefuseWhy(); if(why==null) return false;
     return !!(await rejectApprovalStep(c, why));
   }
@@ -473,6 +485,7 @@ async function signApprovalDecideAsk(c, row, verdict){
   if(!c||!row||!row.req) return false;
   if(verdict!=='approved') return openSignApprovalRefuse(c, row.req.id);
   let note='';
+  if(row.as!=='admin'){ const n=await approvalYesNote(); if(n==null) return false; note=n; }
   if(row.as==='admin'){
     if(typeof window.promptDialog!=='function') return false;
     const v=await window.promptDialog({ title:i18t('sa_card_approve'), label:i18t('sa_card_note_admin'), multiline:true,
@@ -815,6 +828,19 @@ function signApprovalWithdraw(c, reqId){
 /* A deliberate nudge, with a visible result, never a silent retry. The server
    holds it to once a day for one request, so a button cannot become a way of
    flooding somebody's inbox. */
+/* REMIND A RULE'S APPROVER BY HAND (owner, 21 Nov 2026, P-30): the server sends one email, once a day, and writes the
+   record (POST /api/contracts/:id/rule-remind → c.ruleReminds); "sent" is said as the server's mailReport says it,
+   a refusal in the server's own words */
+async function ruleStepRemind(c, who){
+  if(!c||!(typeof API_MODE==='function'&&API_MODE())) return false;
+  try{
+    try{ if(typeof flushSaves==='function') await flushSaves(); }catch(_){}
+    const out=await api('contracts/'+encodeURIComponent(c.id)+'/rule-remind','POST',{},{ quiet:true });
+    if(out&&Array.isArray(out.ruleReminds)) c.ruleReminds=out.ruleReminds;
+    if(out&&out.emailSent){ toast(i18t('apn_reminded_toast',{ who }),'ok'); return true; }
+    toast(i18t('apn_reminded_outbox',{ who }),'warn'); return true;
+  }catch(e){ toast(i18t('apn_remind_not_sent',{ why:(e&&e.message)||i18t('srv_arm_failed') }),'warn'); return false; }
+}
 async function signApprovalRemind(c, reqId){
   const live=(c&&c.signApprovals||[]).find(x=>x&&x.id===reqId);
   if(!live||live.status!=='pending'){ toast(i18t('sa_gone'),'warn'); return false; }
@@ -895,43 +921,38 @@ function openSignApprovalDialog(c){
   const shows=saShows(c, signApprovalRound(c));
   const users=(typeof getUsers==='function'?getUsers():[])||[];
   const titleOf=id=>{ const u=users.find(x=>String(x.id)===String(id)); return (u&&u.title)||''; };
-  const person=(name,sub)=>`<div class="sa-who"><span class="sa-av" aria-hidden="true">${e(String(name||'?').split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase())}</span><span><span class="sa-who-t">${e(name)}</span>${sub?`<span class="sa-who-s">${e(sub)}</span>`:''}</span></div>`;
+  const person=(name,sub)=>`<span class="sa-who"><span class="sa-av" aria-hidden="true">${e(String(name||'?').split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase())}</span><span><span class="sa-who-t">${e(name)}</span>${sub?`<span class="sa-who-s">${e(sub)}</span>`:''}</span></span>`;
   const first=can.rows[0].need;
   const apName=first.approverName||i18t('sa_admins');
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1117): the same request on the one sheet (lgpOpen) — each line a label beside
+     its words, no boxes; who approves (their backup said under them), exactly what they approve, the note, and the one
+     black button. Every id, word and act below is the one this window always had. */
+  const read=(k,vHtml)=>lgpRowHtml({ k, type:'html', valueHtml:vHtml });
   const needs=can.rows.map(r=>{ const n=r.need;
-    return `<div class="sa-pair">
-      <div><span class="sa-lbl">${e(i18t('sa_dlg_approver'))}</span>${n.approverId?person(n.approverName,titleOf(n.approverId)):`<div class="sa-who-s">${e(i18t('sa_dlg_admins'))}</div>`}</div>
-      <div><span class="sa-lbl">${e(i18t('sa_dlg_backup'))}</span>${n.backupId?person(n.backupName,titleOf(n.backupId)):`<div class="sa-who-s">${e(i18t('sa_dlg_no_backup'))}</div>`}</div>
-    </div>`; }).join('');
-  const kv=(k,v)=>`<span class="sa-k">${e(k)}</span><span class="sa-v">${e(v)}</span>`;
+    const ap=n.approverId?person(n.approverName,titleOf(n.approverId)):`<span class="sa-who-s">${e(i18t('sa_dlg_admins'))}</span>`;
+    const bk=`<span class="sa-who-s">${e(i18t('sa_dlg_backup'))}: ${e(n.backupId?n.backupName:i18t('sa_dlg_no_backup'))}</span>`;
+    return read(i18t('sa_dlg_approver'), `<span>${ap}${bk}</span>`); }).join('');
+  const kv=(k,v)=>read(k, e(v));
   const cp=(typeof signerPlan==='function'?signerPlan(c):[]).filter(s=>s&&s.party==='counterparty'&&!s.signed)[0];
   /* Our own side is named from the workspace where the record names no
      entity of ours — the paper does the same (contractParty). */
   const partiesShown=(shows.parties||[]).slice();
   try{ const ours=(typeof contractParty==='function')?contractParty(c):''; if(ours && !partiesShown.includes(ours)) partiesShown.unshift(ours); }catch(_){}
-  openModal(`<div class="sa-dlg">
-    <h3 class="sa-h">${e(i18t('sa_dlg_title'))}</h3>
-    <div class="sa-sub">${[window.refHtml?refHtml(c):e(c.id), e(c.name||''), e(c.counterparty||'')].filter(Boolean).join(' · ')}</div>
-    ${needs}
-    <div class="sa-box">
-      <div class="sa-boxh">${e(i18t('sa_dlg_exactly',{who:apName}))}</div>
-      <div class="sa-kv">
-        ${kv(i18t('sa_dlg_version'), shows.round?i18t('sa_v_round_today',{n:shows.round}):i18t('sa_v_now_today'))}
-        ${kv(i18t('sa_dlg_value'), shows.value==null?i18t('sa_no_money'):saMoney(c,shows.value))}
-        ${(shows.start||shows.end)?kv(i18t('sa_dlg_dates'), [saFmtDay(shows.start),saFmtDay(shows.end)].filter(Boolean).join(' – ')):''}
-        ${partiesShown.length?kv(i18t('sa_dlg_parties'), partiesShown.join(' · ')):''}
-        ${shows.signers.length?kv(i18t('sa_dlg_signers'), shows.signers.join(i18t('sa_then'))):''}
-      </div>
-      <div class="sa-note">${e(i18t('sa_dlg_also'))}</div>
-    </div>
-    <label class="sa-lbl" for="sa-ask-note">${e(i18t('sa_dlg_note',{who:apName}))}</label>
-    <textarea id="sa-ask-note" class="sa-inp" maxlength="${SA_NOTE_MAX}" rows="3"></textarea>
-    <div class="sa-foot">
-      <span class="sa-foot-note">${e(cp?i18t('sa_dlg_foot_cp',{who:cp.name}):i18t('sa_dlg_foot'))}</span>
-      <button data-dlg-cancel type="button" class="ui-btn" id="sa-ask-cancel">${e(i18t('act_cancel'))}</button>
-      <button type="button" class="ui-btn ui-btn-primary" id="sa-ask-go">${e(i18t('sa_dlg_go'))}</button>
-    </div>
-  </div>`, { maxWidth: DLG_W.m });
+  if(typeof lgpOpen!=='function') return false;
+  lgpOpen({ id:'sa-dlg', title:i18t('sa_dlg_title'),
+    subHtml:[window.refHtml?refHtml(c):e(c.id), e(c.name||''), e(c.counterparty||'')].filter(Boolean).join(' · '),
+    html:`${needs}
+      <p class="lgp-small">${e(i18t('sa_dlg_exactly',{who:apName}))}</p>
+      ${kv(i18t('sa_dlg_version'), shows.round?i18t('sa_v_round_today',{n:shows.round}):i18t('sa_v_now_today'))}
+      ${kv(i18t('sa_dlg_value'), shows.value==null?i18t('sa_no_money'):saMoney(c,shows.value))}
+      ${(shows.start||shows.end)?kv(i18t('sa_dlg_dates'), [saFmtDay(shows.start),saFmtDay(shows.end)].filter(Boolean).join(' – ')):''}
+      ${partiesShown.length?kv(i18t('sa_dlg_parties'), partiesShown.join(' · ')):''}
+      ${shows.signers.length?kv(i18t('sa_dlg_signers'), shows.signers.join(i18t('sa_then'))):''}
+      <p class="lgp-small">${e(i18t('sa_dlg_also'))}</p>
+      ${lgpRowHtml({ k:i18t('sa_dlg_note',{who:apName}), id:'sa-ask-note', type:'area', max:SA_NOTE_MAX })}`,
+    note:cp?i18t('sa_dlg_foot_cp',{who:cp.name}):i18t('sa_dlg_foot'),
+    primary:{ label:i18t('sa_dlg_go'), attr:'id="sa-ask-go"' },
+    cancelAttr:'data-dlg-cancel id="sa-ask-cancel"', cancelLabel:i18t('act_cancel') });
   document.getElementById('sa-ask-cancel')?.addEventListener('click',()=>closeModal());
   document.getElementById('sa-ask-go')?.addEventListener('click',async ev=>{
     const b=ev.currentTarget; b.disabled=true;
@@ -1693,11 +1714,21 @@ function openSignerPlanEditor(c, opts){
    The window's own queries are asked of its own element (#sr-win), never the
    document, so no data-sp-* control elsewhere can be read as one of its own.
    ========================================================================== */
+/* CLOSED, THE READER IS BACK ON THE LINE THEY PRESSED (#762): the page drew that line again while the route window stood,
+   so the hand goes to the same door as it stands now (the same contract's route door) */
+function srReturnWhenClosed(win, opener, cid){
+  if(!win || typeof MutationObserver!=='function') return;
+  const mo=new MutationObserver(()=>{ if(win.isConnected) return; mo.disconnect();
+    setTimeout(()=>{ try{
+      if(opener && opener.isConnected){ opener.focus({ preventScroll:true }); return; }
+      const b=[...document.querySelectorAll(`[data-pd-og-route="${CSS.escape(String(cid))}"]`)].find(x => x.getClientRects().length);
+      if(b && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('[role="dialog"]'))) b.focus({ preventScroll:true });
+    }catch(_){ } }, 0); });
+  mo.observe(document.body, { childList:true, subtree:true });
+}
 function signerRouteWindow(c, plan, back){
+  const _srOpener=(typeof document!=='undefined'&&document.activeElement&&document.activeElement!==document.body)?document.activeElement:null;
   const esc1=v=>String(v==null?'':v).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
-  const FLD=(typeof HATI_FLD==='string')?HATI_FLD:'';
-  const LBL=(typeof HATI_LBL==='string')?HATI_LBL:'';
-  const WARN='border-color:var(--st-amber-line);';
   const ic=(n,cls)=>icon(n,cls||'w-3.5 h-3.5');
   const ini=n=>String(n||'').trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'·';
   const newId=()=>'sg_'+Math.random().toString(36).slice(2,7);
@@ -1749,7 +1780,11 @@ function signerRouteWindow(c, plan, back){
       else if(!signerHasEmail(r)) o.email=i18t('ap_sr_email_ours');
     }
     return o; };
-  const open=new Set(rows.filter(r=>Object.keys(needs(r)).length).map(r=>r.id));
+  /* THE ROUTE FIRST, ONE SIGNER AT A TIME (owner, 19 Nov 2026: "Build 1", as drawn): the window opens on the route as
+     quiet lines — a person with something missing says so in amber on their line — and pressing a person (or adding
+     one) turns the window to that person's three lines, the route's next screen, with ‹ Route back. One open at most. */
+  const open=new Set();
+  const openOnly=id=>{ open.clear(); if(id) open.add(id); };
   const rowsOut=()=>{ norm(); return rows.map(r=>({ id:r.id, party:r.party, name:r.name.trim(), role:r.role.trim(),
     email:r.email.trim(), memberId:r.party==='internal'?r.memberId:'', step:r.step,
     ...(r.party==='counterparty' && r.partyId ? { partyId:r.partyId } : {}) })); };
@@ -1762,10 +1797,10 @@ function signerRouteWindow(c, plan, back){
     const id=`sp-${key}-${r.id}`;
     const v=esc1(r[key]);
     const box=(f==='name' && r.party!=='counterparty')
-      ? `<div class="sr-cb"><input id="${id}" data-sp-f="name" data-sp-id="${r.id}" data-sp-combo value="${v}" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sp-cbl-${r.id}" placeholder="${esc1(i18t('ap_sr_name_ph'))}" style="${FLD}${n?WARN:''}"></div>`
-      : `<input id="${id}" data-sp-f="${key}" data-sp-id="${r.id}" value="${v}" autocomplete="off"${f==='name'?' list="sp-dir-names"':''}${f==='email'?' type="email" inputmode="email"':''} style="${FLD}${n&&f==='name'?WARN:''}">`;
-    return `<div class="sr-f${wide?' sr-wide':''}"><label for="${id}" style="${LBL}">${esc1(label)}</label>${box}${
-      f==='title'?'':`<div class="sr-hint" data-sp-hint="${r.id}:${key}"${n?'':' hidden'}>${esc1(n)}</div>`}</div>`;
+      ? `<div class="sr-cb"><input id="${id}" data-sp-f="name" data-sp-id="${r.id}" data-sp-combo value="${v}" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sp-cbl-${r.id}" placeholder="${esc1(i18t('ap_sr_name_ph'))}" class="lgp-in"></div>`
+      : `<input id="${id}" data-sp-f="${key}" data-sp-id="${r.id}" value="${v}" autocomplete="off"${f==='name'?' list="sp-dir-names"':''}${f==='email'?' type="email" inputmode="email"':''} class="lgp-in">`;
+    return `<div class="sr-f lgp-row${wide?' sr-wide':''}"><label for="${id}" class="lgp-k">${esc1(label)}</label><span class="lgp-v">${box}</span></div>${
+      f==='title'?'':`<div class="sr-hint" data-sp-hint="${r.id}:${key}"${n?'':' hidden'}>${esc1(n)}</div>`}`;
   };
   const moreBtn=r=>{ const who=r.name.trim()||i18t('ap_sr_this_signer'); const lab=esc1(i18t('ap_sr_more_for',{ name:who }));
     return `<span class="sr-mwrap"><button type="button" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" data-sp-menu="${r.id}" aria-haspopup="menu" aria-expanded="false" aria-label="${lab}" title="${lab}">${ic('more')}</button></span>`; };
@@ -1783,8 +1818,7 @@ function signerRouteWindow(c, plan, back){
     }
     return `<div class="sr-card is-open" data-sp-row="${r.id}">
       <div class="sr-ch"><span class="sr-for${us?' us':''}">${forTx}</span>${moreBtn(r)}</div>
-      <div class="sr-grid">${fld(r,'name',i18t('ap_name'))}${fld(r,'title',i18t('ap_sr_title'))}${fld(r,'email',i18t('ap_email'),true)}</div>
-      <div class="sr-cf"><button type="button" class="ui-btn ui-btn-sm" data-sp-done="${r.id}">${esc1(i18t('act_done'))}</button></div></div>`;
+      <div class="sr-grid">${fld(r,'name',i18t('ap_name'))}${fld(r,'title',i18t('ap_sr_title'))}${fld(r,'email',i18t('ap_email'),true)}</div></div>`;
   };
   /* A party with no row at all is an empty place carrying the act that fills
      it. A row somebody started is its own card, asking its own question. */
@@ -1802,6 +1836,8 @@ function signerRouteWindow(c, plan, back){
   };
   const bodyHtml=()=>{
     norm();
+    const one=rows.find(r=>open.has(r.id));
+    if(one) return card(one);
     return stepsOf().map(g=>`<section class="sr-step" data-sr-step="${g.n}">
         <span class="sr-node" aria-hidden="true">${g.n}</span>
         <div class="sr-sh"><span class="sr-sn">${esc1(i18t('py_step_n',{ n:g.n }))}</span>${g.rows.length>1?`<span class="sr-any">· ${esc1(i18t('ap_sr_any'))}</span>`:''}</div>
@@ -1811,16 +1847,21 @@ function signerRouteWindow(c, plan, back){
       <div class="sr-end"><span class="sr-node" aria-hidden="true">${ic('plus','w-3 h-3')}</span><span class="sr-mwrap sr-addwrap"><button type="button" class="ui-btn ui-btn-sm" data-sp-add="new" aria-haspopup="menu" aria-expanded="false">${esc1(i18t('ap_sr_add_step'))}</button></span></div>`;
   };
 
-  openModal(`<div class="p-6 sr-win" id="sr-win">
-    <h3>${i18t('ap_signing_route')}</h3>
-    <p>${i18t('ap_route_line')}</p>
+  const ref=(typeof contractRef==='function'?contractRef(c):c.id);
+  openModal(`<div class="lgp sr-win" id="sr-win">
+    <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h" id="sr-h">${esc1(i18t('ap_signing_route'))}</h3>
+      <p class="lgp-sub lgp-steps" id="sr-steps-say"></p>
+      <p class="lgp-sub">${esc1([c.name||'', ref].filter(Boolean).join(' · '))}</p></div>
+      <button type="button" class="lgp-x" id="sr-x" tabindex="-1" aria-label="${esc1(i18t('lgp_close'))}">${ic('x','w-4 h-4')}</button></div>
+    <p class="lgp-small sr-line" id="sr-line">${esc1(i18t('ap_route_line'))}</p>
     ${dirList}
-    <div class="sr-steps" id="sr-steps">${bodyHtml()}</div>
-    <div class="dlg-foot sr-foot"><span class="sr-say" id="sr-say" role="alert"></span>
-      <button data-dlg-cancel id="sp-cancel" type="button" class="ui-btn">${i18t('act_cancel')}</button>
-      <button id="sp-save" type="button" class="ui-btn ui-btn-primary">${i18t('ap_save_route')}</button></div>
-  </div>`, { maxWidth: DLG_W.xl, label: i18t('ap_signing_route') });
+    <div class="sr-steps lgp-bd" id="sr-steps">${bodyHtml()}</div>
+    <div class="dlg-foot sr-foot lgp-ft"><button type="button" class="ui-btn lgp-back" id="sp-back" hidden>‹ ${esc1(i18t('ap_sr_route'))}</button><span class="sr-say" id="sr-say" role="alert"></span>
+      <button id="sp-save" type="button" class="ui-btn ui-btn-primary">${i18t('ap_save_route')}</button>
+      <button data-dlg-cancel id="sp-cancel" type="button" class="ui-btn">${i18t('act_cancel')}</button></div>
+  </div>`, { maxWidth: window.LGP_W || '480px', ownFrame: true, label: i18t('ap_signing_route') });
   const win=document.getElementById('sr-win'); if(!win) return;
+  srReturnWhenClosed(win, _srOpener, c && c.id);
   const panel=win.closest('[role="dialog"]');
   const q=sel=>win.querySelector(sel);
 
@@ -1831,11 +1872,22 @@ function signerRouteWindow(c, plan, back){
   const paintSay=()=>{ const s=q('#sr-say'); if(!s) return;
     const html=say?`${icon('alert','w-3.5 h-3.5')}<span>${esc1(say)}</span>`:'';
     if(s.innerHTML!==html) s.innerHTML=html; };
+  /* the screen says where it is: the route, or one signer (Route · Signer), ‹ Route back, Save route on both */
+  const screenSync=()=>{
+    const one=rows.find(r=>open.has(r.id));
+    const st=q('#sr-steps-say'), h=q('#sr-h'), back=q('#sp-back'), line=q('#sr-line');
+    const w1=esc1(i18t('ap_sr_route')), w2=esc1(i18t('ap_sr_signer'));
+    if(st) st.innerHTML=one?`${w1} · <b>${w2}</b>`:`<b>${w1}</b> · ${w2}`;
+    if(h) h.textContent=one?(one.name.trim()||i18t('ap_sr_who_for',{ party:nameOfKey(keyOf(one)) })):i18t('ap_signing_route');
+    if(back) back.hidden=!one;
+    if(line) line.hidden=!!one;
+  };
   const repaint=focusSel=>{
     closeMenu(); comboHide();
     const top=panel?panel.scrollTop:0;
     const host=q('#sr-steps'); if(!host) return;
     host.innerHTML=bodyHtml();
+    screenSync();
     paintSay();
     if(panel) panel.scrollTop=top;
     if(focusSel){ const el=q(focusSel); if(el){ try{ el.focus({ preventScroll:false }); }catch(_){ el.focus(); } } }
@@ -1848,8 +1900,6 @@ function signerRouteWindow(c, plan, back){
       const r=rows.find(x=>x.id===id); if(!r) return;
       const n=needs(r)[f]||'';
       h.hidden=!n; if(h.textContent!==n) h.textContent=n;
-      if(f==='name'){ const box=q(`[data-sp-f="name"][data-sp-id="${id}"]`);
-        if(box) box.style.borderColor=n?'var(--st-amber-line)':'var(--field-line)'; }
     });
     const m=q('#sr-misses'); if(m){ const h=missHtml(); if(m.innerHTML!==h) m.innerHTML=h; }
     if(say){ say=signerPlanWhy(c, rowsOut())||''; paintSay(); }
@@ -1897,7 +1947,7 @@ function signerRouteWindow(c, plan, back){
     const n=stepArg==='new' ? stepsOf().length+1 : Number(stepArg);
     const r={ id:newId(), party:key==='us'?'internal':'counterparty', name:'', role:'', email:'', memberId:'',
       partyId:(key!=='us' && multi)?key:'', step:n, ord:rows.length+.5, from:'' };
-    rows.push(r); open.add(r.id); norm();
+    rows.push(r); openOnly(r.id); norm();
     repaint(`[data-sp-f="name"][data-sp-id="${r.id}"]`);
   };
   /* MOVING. Up: a person sharing a step leaves it for a step of their own just
@@ -1914,12 +1964,12 @@ function signerRouteWindow(c, plan, back){
   const doMenu=(act, id, arg)=>{
     if(act==='add'){ closeMenu(); addRow(arg, id); return; }
     const r=rows.find(x=>x.id===id); if(!r){ closeMenu(); return; }
-    if(act==='edit'){ open.add(id); repaint(`[data-sp-f="name"][data-sp-id="${id}"]`); return; }
+    if(act==='edit'){ openOnly(id); repaint(`[data-sp-f="name"][data-sp-id="${id}"]`); return; }
     if(act==='remove'){ rows.splice(rows.indexOf(r),1); open.delete(id); norm(); if(say) say=signerPlanWhy(c, rowsOut())||''; repaint('[data-sp-add="new"]'); return; }
     if(act==='side'){
       if(arg==='us'){ r.party='internal'; r.partyId=''; }
       else { r.party='counterparty'; r.memberId=''; r.from=''; r.partyId=multi?arg:''; }
-      open.add(r.id);
+      openOnly(r.id);
       if(say) say=signerPlanWhy(c, rowsOut())||'';
       repaint(`[data-sp-f="name"][data-sp-id="${id}"]`); return;
     }
@@ -1966,13 +2016,13 @@ function signerRouteWindow(c, plan, back){
     if(!b){
       /* The whole resting card is the way in, not only its name. */
       const rest=t.closest('.sr-card.is-rest');
-      if(rest && !t.closest('button')){ const id=rest.getAttribute('data-sp-row'); open.add(id); repaint(`[data-sp-f="name"][data-sp-id="${id}"]`); }
+      if(rest && !t.closest('button')){ const id=rest.getAttribute('data-sp-row'); openOnly(id); repaint(`[data-sp-f="name"][data-sp-id="${id}"]`); }
       return;
     }
     if(b.hasAttribute('data-sp-menu')){ openMenu(b, rowMenu(b.getAttribute('data-sp-menu'))); return; }
     if(b.hasAttribute('data-sp-add')){ openMenu(b, addMenu(b.getAttribute('data-sp-add')), true); return; }
     if(b.hasAttribute('data-sp-addfor')){ addRow(b.getAttribute('data-sp-addfor'), 'new'); return; }
-    if(b.hasAttribute('data-sp-edit')){ const id=b.getAttribute('data-sp-edit'); open.add(id); repaint(`[data-sp-f="name"][data-sp-id="${id}"]`); return; }
+    if(b.hasAttribute('data-sp-edit')){ const id=b.getAttribute('data-sp-edit'); openOnly(id); repaint(`[data-sp-f="name"][data-sp-id="${id}"]`); return; }
     if(b.hasAttribute('data-sp-done')){ const id=b.getAttribute('data-sp-done'); open.delete(id); repaint(`[data-sp-edit="${id}"]`); return; }
   });
   win.addEventListener('input', e=>{
@@ -2037,7 +2087,14 @@ function signerRouteWindow(c, plan, back){
     }
   });
 
+  screenSync();
+  /* the keyboard lands on the route's first line, with no ring (NO RING AFTER A PRESS); never on the close cross */
+  const landFirst=()=>{ const f=q('[data-sp-edit], [data-sp-addfor], [data-sp-add]'); if(!f) return;
+    try{ (typeof fieldFocus==='function')?fieldFocus(f,{ focusVisible:false }):f.focus({ preventScroll:true, focusVisible:false }); }catch(_){} };
+  landFirst(); if(typeof requestAnimationFrame==='function') requestAnimationFrame(landFirst);
   document.getElementById('sp-cancel').addEventListener('click',()=>{ closeModal(); if(back) back(); });
+  q('#sr-x')?.addEventListener('click',()=>q('#sp-cancel')?.click());
+  q('#sp-back')?.addEventListener('click',()=>{ const id=[...open][0]; openOnly(null); repaint(id?`[data-sp-edit="${id}"]`:'[data-sp-add="new"]'); });
   document.getElementById('sp-save').addEventListener('click',()=>{
     /* The rule lives in saveSignerPlan and is shared with the phone's picker.
        This decides only HOW a refusal is said: in the window, beside Save,
@@ -2047,14 +2104,14 @@ function signerRouteWindow(c, plan, back){
     if(why){
       say=why;
       const hit=signerPlanRefusal(c, plan.filter(s=>s.name));
-      if(hit && hit.rowId){ open.add(hit.rowId); repaint(`[data-sp-f="${hit.field||'name'}"][data-sp-id="${hit.rowId}"]`); return; }
+      if(hit && hit.rowId){ openOnly(hit.rowId); repaint(`[data-sp-f="${hit.field||'name'}"][data-sp-id="${hit.rowId}"]`); return; }
       /* A side or a party with nobody named: the empty place that fills it,
          or the unnamed card somebody already started for it. */
       repaint();
       const place=(hit && hit.partyId && q(`[data-sp-miss="${hit.partyId}"] [data-sp-addfor]`)) || q('.sr-miss [data-sp-addfor]');
       if(place){ place.focus(); return; }
       const blank=rows.find(r=>!r.name.trim());
-      if(blank){ open.add(blank.id); repaint(`[data-sp-f="name"][data-sp-id="${blank.id}"]`); }
+      if(blank){ openOnly(blank.id); repaint(`[data-sp-f="name"][data-sp-id="${blank.id}"]`); }
       return;
     }
     closeModal();
@@ -2416,7 +2473,8 @@ function signerRouteHtml(c, opts){
   return html;
 }
 function wireApprovalPanel(c){
-  document.getElementById('ap-approve')?.addEventListener('click',()=>approveContract(c));
+  /* every Approve offers the same optional note (approvalYesNote) */
+  document.getElementById('ap-approve')?.addEventListener('click',async()=>{ const n=await approvalYesNote(); if(n!=null) approveContract(c, n||undefined); });
   /* A refusal with no reason on it is the thing that pushes the argument into
      email — the same reasoning js/versioning.js gives for the reply that
      travels with a rejected round. Asked here, once, and shown to the owner on
@@ -2508,11 +2566,11 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{AP_UNDO_MS,approvalUndoable,approvalUndo,approvalRulesCleared,approvalDecidableNow,approvalRefuseWhy,approvalDecideAsk,signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,approverForOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,signerRouteWindow,signerPlanWhy,signerPlanRefusal,signerIsCompany,signerHasEmail,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel,
+Object.assign(window,{AP_YES_NOTE_MAX,approvalYesNote,AP_UNDO_MS,approvalUndoable,approvalUndo,approvalRulesCleared,approvalDecidableNow,approvalRefuseWhy,approvalDecideAsk,signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,approverForOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,signerRouteWindow,signerPlanWhy,signerPlanRefusal,signerIsCompany,signerHasEmail,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel,
   signApprovalLegacyOn,signApprovalNeeds,signApprovalStateOf,saStepName,saMoney,saDriftWords,SA_CHAIN_STATUS,saChainStep,
   signApprovalDecidable,signApprovalWaitsOn,SA_PAPER_KEYS,signApprovalPaperHolds,signApprovalRequestable,signApprovalRound,
   saFmtDay,saWhen,saShowsLine,signApprovalNotify,saNoticeOf,saDeliveryWords,signApprovalRequest,signApprovalDecide,
-  signApprovalWithdraw,signApprovalRemind,saRepaint,signApprovalRows,signApprovalBlockLabel,signApprovalSettledRows,
+  signApprovalWithdraw,signApprovalRemind,ruleStepRemind,saRepaint,signApprovalRows,signApprovalBlockLabel,signApprovalSettledRows,
   signApprovalHoldsLinks,openSignApprovalDialog,openSignApprovalRefuse,signApprovalDecideAsk,signApprovalAskCardHtml,wireSignApprovalCard});
 
 /* ============================================================

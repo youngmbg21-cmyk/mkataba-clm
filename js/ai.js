@@ -384,7 +384,7 @@ async function runScanFor(c, opts){
   const quiet=!!(opts&&opts.quiet);
   if(!canEdit()){ if(!quiet) toast(i18t('ai_viewers_no_scan'),'err'); return false; }
   if(!quiet) toast(i18t('ai_scanning'),'ok',{busy:true});   /* progress: the scan takes seconds and nothing else moves */
-  try{ await ensureFull(c); }catch(e){ if(!quiet) toast(i18t('ai_could_not_load')+e.message,'err'); return false; }
+  try{ await ensureFull(c); }catch(e){ if(!quiet) toast(window.toastAbout(c,i18t('ai_could_not_load')+e.message),'err'); return false; }
   runScan(c);
   const n=openFindings(c).length;
   logAudit(c,'Scanned',`Jambo contract scan run — ${n} open finding${n===1?'':'s'}`);
@@ -393,7 +393,7 @@ async function runScanFor(c, opts){
   /* 'ok' rather than a bare call, and the clean case says so. A bare toast
      prints NOTHING — so on a clean contract, which is the commonest outcome,
      the scan ran, cost money, wrote an audit line and answered with silence. */
-  toast(n ? i18tn('ai_scan_found',n,{n}) : i18t('ai_scan_clean'), 'ok');
+  toast(window.toastAbout(c, n ? i18tn('ai_scan_found',n,{n}) : i18t('ai_scan_clean')), 'ok');
   /* the list on Home's Contracts place repaints where it stands (step 7) */
   if(window.regPlaceUp&&regPlaceUp()&&window.regRepaint) regRepaint();
   else if(state.view==='register'&&window.renderRegister) renderRegister();
@@ -1582,6 +1582,7 @@ function aiMsgHtml(m,i){
       <div class="max-w-[88%] space-y-2">
         ${m.text?`<div class="ai-bub jl-bub text-sm">${m.text}</div>`:''}
         ${proposal}
+        ${m.stdDraft&&typeof window.ldJbDraftHtml==='function'?window.ldJbDraftHtml(m,i):''}
         ${m.cards?m.cards:''}
         ${(Array.isArray(m.cardIds)&&m.cardIds.length>=2&&typeof window.hbShowFound==='function'&&typeof window.caHomeFace==='function'&&!(typeof window.mPhone==='function'&&mPhone()))?`<div class="igd-doors"><button type="button" class="ui-btn ui-btn-sm" data-ai-board-go="${i}">${_aiEsc(i18t('int_show_on_board'))}</button></div>`:''}
         ${''/* THE PREPARED PRESS AND SHOW ME › (js/jambopress.js, 21 Oct 2026); a watch Jambo proposes, and Your watches, drawn live from the store */}
@@ -2335,7 +2336,7 @@ const AI_PAGE_NAMES = {
   dashboard: 'the Board', register: 'Contracts', folder: 'Contracts',
   redline: 'Negotiations', workspace: 'a contract',
   obligations: 'Obligations', approvals: 'Approvals & signing', customers: 'Parties', agents: "Jambo's work", jambo: "Jambo's agents", brain: 'the Brain', calendar: 'Calendar', mynotes: 'My notes', reads: 'Discover', pulse: 'the Pulse board', handbook: 'Handbook', flowmap: 'the Flow map', templates: 'Templates',
-  playbook: 'Our standards', pipeline: 'Approvals', intake: 'Requests',
+  playbook: 'Our playbook', pipeline: 'Approvals', intake: 'Requests',
   directory: 'People', team: 'Settings & rules', reports: 'Reports',
   migration: 'Import contracts', advice: 'Advice desk',
 };
@@ -2728,6 +2729,13 @@ function aiGotoNote(res){ _aiGoto=(res&&typeof res==='object'&&res.goto&&typeof 
 function aiGotoTake(since){ const g=_aiGoto; _aiGoto=null; return (g&&g.at>=(since||0))?g.g:null; }
 /* run it through the map's own door: a page opens, an act that waits for a
    press is Jambo's card; said in his conversation (jmGotoAct, js/jambomap.js) */
+/* the places an answer offered (STAY ON THE ANSWER): kept by key, gone to only on the reader's press */
+const _jbGoActs=new Map();
+function jbGoKeep(a){ const k='g'+(_jbGoActs.size+1)+'-'+Date.now().toString(36); _jbGoActs.set(k,a); return k; }
+function jbGoPress(k){ const a=_jbGoActs.get(String(k||'')); if(!a||typeof window.caGo!=='function') return false; try{ return !!caGo(a); }catch(_){ return false; } }
+if(typeof document!=='undefined'&&typeof document.addEventListener==='function'&&!document._jbGoWired){ document._jbGoWired=true;
+  document.addEventListener('click',e=>{ const b=e.target&&e.target.closest?e.target.closest('[data-jb-go]'):null; if(!b) return;
+    e.preventDefault(); e.stopPropagation(); jbGoPress(b.getAttribute('data-jb-go')); }, true); }
 function aiGotoRun(g, q){
   if(!g) return false;
   if(typeof window.jamboMovedNow==='function') window.jamboMovedNow();
@@ -2750,6 +2758,31 @@ function aiGotoRun(g, q){
      own list, so on Home he said "I've opened New agreement beside me" and opened nothing (owner, 27 Oct 2026) —
      an editor's draft opens the sheet, a viewer's is the card with its refusal */
   const card=a.kind!=='go'||!!a.missing||(typeof window.caIsCardWord==='function'?caIsCardWord(a.place):(Array.isArray(window.JM_CARD_PLACES)&&JM_CARD_PLACES.includes(a.place)));
+  /* STAY ON THE ANSWER (owner, 20 Nov 2026: "when the results are about to come back it jumps to the overview tab";
+     picked "Stay on the answer"): when Jambo ANSWERED and also named a place, nothing moves — the conversation stays
+     where the reader is reading it, and the answer ends with one link that goes there on a press (jbGoPress). Only a
+     place named with no answer (a plain "take me to …") still moves at once, as before. A card that waits for a
+     press keeps its own turn. */
+  /* …but words that ASK to be taken somewhere ("take me to obligations", "open MK-12", "visa avtalen") are a go ask:
+     those still move at once (A GO TO ASK TAKES YOU THERE, 19 Oct 2026); the read is the typed number's own (JB_REF_OPEN_RE) */
+  const goAsk=!!(typeof window.JB_REF_OPEN_RE!=='undefined'&&window.JB_REF_OPEN_RE&&window.JB_REF_OPEN_RE.test(String(q||'')));
+  if(!card&&!goAsk){
+    const H=(typeof window.jamboConvo==='function')?jamboConvo():(typeof ai==='object'&&ai&&Array.isArray(ai.history)?ai.history:[]);
+    const last=H[H.length-1];
+    /* THE ANSWER MUST BE THIS ASK'S (20 Nov 2026, jambo-doors-verify 22): the turn before it is the person's own words
+       for this ask. An earlier answer still standing at the foot (no question now, or an ask that drew no answer) is
+       not an answer to this goto: the place is gone to at once, as before */
+    const asked=String(q||'').trim(), prevU=H[H.length-2];
+    const thisAsk=!!(asked&&prevU&&prevU.role==='user'&&String(typeof prevU.raw==='string'?prevU.raw:(prevU.text||'')).replace(/<[^>]*>/g,'').trim()===asked);
+    if(thisAsk&&last&&last.role==='assistant'&&!last.err&&!last.act&&String(last.text||'').replace(/<[^>]*>/g,'').trim()){
+      /* the link is the message's own (m.goTo), drawn by the one turn builder every host uses (jamboTurnHtml):
+         an answer's words are sanitised, a button in them would not survive */
+      last.goTo=jbGoKeep(a);
+      if(typeof window.aiHostsRepaint==='function') try{ aiHostsRepaint(); }catch(_){}
+      if(typeof window.renderAIFeed==='function'&&ai.open) try{ renderAIFeed(!!ai.busy); }catch(_){}
+      return true;
+    }
+  }
   const onHome=typeof state!=='undefined'&&state&&state.view==='dashboard'&&typeof intel!=='undefined';
   if(onHome){
     const line=a.kind==='go'&&typeof window.caGoSay==='function'?caGoSay(a):i18t('ca_intro_job');
@@ -4813,8 +4846,8 @@ function aiProposalCardHtml(p){
     </div>
     ${p.editing
       ? `<textarea data-ai-prop-edit="${e(p.id)}" class="ai-suggestion-editor" spellcheck="true" rows="6"
-          style="width:100%;font:inherit;font-size:var(--t-body);line-height:1.6;border:1px solid rgba(99,102,241,.35);border-radius:var(--radius);
-            padding:9px 11px;background:var(--color-surface);color:inherit;resize:vertical">${e(p.text)}</textarea>`
+          style="width:100%;font:inherit;font-size:var(--t-body);line-height:1.6;border:var(--fld-edge);border-bottom:var(--fld-under);border-radius:var(--fld-r);
+            padding:9px 11px;background:var(--fld-bg);color:inherit;resize:vertical">${e(p.text)}</textarea>`
       : `<div class="ai-proposal-text" style="font-size:var(--t-body);line-height:1.65;white-space:pre-wrap;
           border-left:2px solid rgba(99,102,241,.45);padding-left:10px;color:var(--color-neutral-800)">${e(p.text)}</div>`}
     ${aiProposalAnchorHtml(p)}
@@ -4834,7 +4867,7 @@ function aiProposalCardHtml(p){
         <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);margin-bottom:3px">${i18t('ai_why_change_optional')}</span>
         <textarea data-ai-prop-why="${e(p.id)}" rows="2" wrap="soft" spellcheck="true"
           placeholder="${_aiEsc(i18t('ng_ph_reason_example'))}"
-          style="box-sizing:border-box;width:100%;max-width:100%;min-height:44px;resize:vertical;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px 9px;font:inherit;font-size:var(--t-meta);line-height:1.6;background:var(--color-surface);color:var(--color-text);outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${e(p.why || '')}</textarea>
+          style="box-sizing:border-box;width:100%;max-width:100%;min-height:44px;resize:vertical;border:var(--fld-edge);border-bottom:var(--fld-under);border-radius:var(--fld-r);padding:7px 9px;font:inherit;font-size:var(--t-meta);line-height:1.6;background:var(--fld-bg);color:var(--color-text);outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${e(p.why || '')}</textarea>
       </label>`}
     ${done
       ? `<div style="font-size:var(--t-label);font-weight:var(--w-strong);border-radius:var(--radius);padding:5px 9px;background:${tone[0]};color:${tone[1]}">${tone[2]}</div>`
@@ -6281,7 +6314,7 @@ async function aiFillSaid(c, said, blanks){
 }
 Object.assign(window,{ aiFillSaid });
 Object.assign(window,{ AI_HANDBOOK_RULE,AI_SEND_NOTE_RULE,aiSendNoteHtml,aiSendNoteClean,aiSendNoteFrom,aiSendNoteAsksBack,aiHbkWord,aiLocalChapterButton,AI_GOVERNANCE_RULE,aiRuleDoorOf,aiRuleDoorHtml,aiRuleDoorGo,AI_CALENDAR_RULE,chatTodayLine,aiAsksPastCard,aiOpenCardSays });
-Object.assign(window,{ aiMsgHtml,aiFeedWire,aiConvoClear,aiHostsRepaint,aiDoorFace,aiFaceHtml,aiSideSync,aiSideOn,aiSideToggle,AI_SIDE_W,AI_SIDE_SPLIT,aiSideFit,aiSideShown,aiPopOut,aiPopBack,aiPopped,aiStarPress,aiPopMay,aiEl,aiWinToggle,aiConvoInWindow,aiConvoBack,aiFloatOn,aiFloatClamp,aiFloatMaxBox,aiFloatHome,AI_FLOAT_MIN,aiHereSays,aiHereAsked,aiHereExplain,aiReadFrom,aiPasteNote,aiPasteAct,aiPasteLooksLong,aiDropFile,aiOnScreenContract,aiEmbeddedHere,aiGoEmbedded,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
+Object.assign(window,{ jbGoKeep,jbGoPress,aiMsgHtml,aiFeedWire,aiConvoClear,aiHostsRepaint,aiDoorFace,aiFaceHtml,aiSideSync,aiSideOn,aiSideToggle,AI_SIDE_W,AI_SIDE_SPLIT,aiSideFit,aiSideShown,aiPopOut,aiPopBack,aiPopped,aiStarPress,aiPopMay,aiEl,aiWinToggle,aiConvoInWindow,aiConvoBack,aiFloatOn,aiFloatClamp,aiFloatMaxBox,aiFloatHome,AI_FLOAT_MIN,aiHereSays,aiHereAsked,aiHereExplain,aiReadFrom,aiPasteNote,aiPasteAct,aiPasteLooksLong,aiDropFile,aiOnScreenContract,aiEmbeddedHere,aiGoEmbedded,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
   AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_LIST_RULE,aiListLines,aiListLine,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
   AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,
   aiProposalAnchorHtml,aiProposalPlacementHtml,aiProposalSetPlacement,aiCleanAddedWording,

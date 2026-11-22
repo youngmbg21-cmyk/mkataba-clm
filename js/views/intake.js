@@ -376,6 +376,9 @@ function ikFieldHtml(f, streams, FLD, LBL){
   if(f.type==='stream') return `<label style="display:block"><span style="${LBL}">${esc(i18t('ik_f_stream'))}</span>
     <select id="${id}" style="${FLD}"><option value="">${esc(i18t('ik_f_stream_unsure'))}</option>
       ${(streams||[]).map(x=>`<option value="${esc(x.id)}"${v===String(x.id)?' selected':''}>${esc(x.name)}</option>`).join('')}</select></label>`;
+  /* WHO PAYS WHOM IS THREE BUTTONS (owner, 19 Nov 2026: "Who pays whom should be buttons"): the one builder, its
+     answer in the hidden box of the same id, so the request reads it as it read the dropdown */
+  if(f.key==='side' && typeof window.payWhoHtml==='function') return `<div style="display:block">${lab}${window.payWhoHtml(id, v)}</div>`;
   if(f.type==='select') return `<label style="display:block">${lab}
     <select id="${id}" style="${FLD}">${(f.opts||[]).map(o=>(typeof window.fieldOpt==='function')?window.fieldOpt(o):{ v:String(o), l:String(o) })
       .map(o=>`<option value="${esc(o.v)}"${v===o.v?' selected':''}>${esc(o.l)}</option>`).join('')}</select></label>`;
@@ -387,16 +390,18 @@ function ikFieldHtml(f, streams, FLD, LBL){
    (draft-from-a-sentence's "nothing fits"): its first line, cut at a word
    before 80 characters. The person can change it; the form no longer refuses
    them for a box they never saw empty. */
-/* One box the way the drawings lay it: label over field, nothing else. */
-function ikSapField(f, streams, FLD){
+/* One line the way the one edit pop-up lays it (lgp; owner, 19 Nov 2026: "Fix all batches"): the label beside the
+   words, no box, the line under the row. Every id is the field's own (ikFieldId). */
+function ikSapField(f, streams){
   const id=ikFieldId(f.key), v=String(f.def||'');
-  const lab=`<label for="${id}">${esc(String(f.type==='stream'?i18t('ik_f_stream'):(f.label||f.key)))}</label>`;
-  if(f.type==='stream') return `<div class="sap-f">${lab}<select id="${id}" style="${FLD}"><option value="">${esc(i18t('ik_f_stream_unsure'))}</option>
-      ${(streams||[]).map(x=>`<option value="${esc(x.id)}"${v===String(x.id)?' selected':''}>${esc(x.name)}</option>`).join('')}</select></div>`;
-  if(f.type==='select') return `<div class="sap-f">${lab}<select id="${id}" style="${FLD}">${(f.opts||[]).map(o=>(typeof window.fieldOpt==='function')?window.fieldOpt(o):{ v:String(o), l:String(o) })
-      .map(o=>`<option value="${esc(o.v)}"${v===o.v?' selected':''}>${esc(o.l)}</option>`).join('')}</select></div>`;
+  const row=(k,ctl,tag)=>`<${tag||'label'} class="lgp-row"><span class="lgp-k">${esc(String(k))}</span><span class="lgp-v">${ctl}</span></${tag||'label'}>`;
+  if(f.type==='stream') return row(i18t('ik_f_stream'), `<select id="${id}" class="lgp-in"><option value="">${esc(i18t('ik_f_stream_unsure'))}</option>
+      ${(streams||[]).map(x=>`<option value="${esc(x.id)}"${v===String(x.id)?' selected':''}>${esc(x.name)}</option>`).join('')}</select>`);
+  if(f.key==='side' && typeof window.payWhoHtml==='function') return row(f.label||f.key, window.payWhoHtml(id, v), 'div');
+  if(f.type==='select') return row(f.label||f.key, `<select id="${id}" class="lgp-in">${(f.opts||[]).map(o=>(typeof window.fieldOpt==='function')?window.fieldOpt(o):{ v:String(o), l:String(o) })
+      .map(o=>`<option value="${esc(o.v)}"${v===o.v?' selected':''}>${esc(o.l)}</option>`).join('')}</select>`);
   const it=f.type==='date'?'date':(f.type==='num'?'number':(f.type==='email'?'email':'text'));
-  return `<div class="sap-f">${lab}<input id="${id}" type="${it}" value="${esc(v)}" placeholder="${esc(String(f.ph||''))}" style="${FLD}" maxlength="200"${it==='number'?' min="0"':''}/></div>`;
+  return row(f.label||f.key, `<input id="${id}" class="lgp-in" type="${it}" autocomplete="off" value="${esc(v)}" placeholder="${esc(String(f.ph||''))}" maxlength="200"${it==='number'?' min="0"':''}/>`);
 }
 function intakeTitleFrom(sentence){
   const line=String(sentence||'').split(/\r?\n/).map(x=>x.trim()).find(Boolean)||'';
@@ -406,55 +411,58 @@ function intakeTitleFrom(sentence){
 }
 function openIntakeForm(pre){
   const streams=(typeof visibleFolders==='function')?visibleFolders():Object.values(FOLDERS||{});
-  /* READS THE ONE PAIR (25 Aug 2026). It was a local copy on its own
-     padding and type; seven such copies in three flavours is how a form ends
-     up two pixels off the form beside it. Through window because this is a
-     module and a bare cross-module read throws. */
-  const FLD=window.HATI_FLD;
-  const LBL=window.HATI_LBL;
-  /* AS DRAWN (SAP pop-ups, 10 Oct 2026 — the owner: "This is what i see for
-     ask for a contract"): the two questions first, then the optional facts
-     under their own group rule, laid two and three across — counterparty and
-     their address; value, start and end; then our side's facts and the
-     stream. Every box keeps its id, so the send below reads them as before. */
+  /* THE ONE EDIT POP-UP IN THREE STEPS (lgp; owner, 19 Nov 2026: "Fix all batches"; it was the SAP pop-up of 10 Oct
+     2026, "This is what i see for ask for a contract"): 1 the two questions and the attachments, 2 who it is with and
+     where it is filed, 3 its value and dates — the optional facts each a line with the label beside the words. All three
+     stay in the one form, so Send reads every box wherever the reader stands; every box keeps its id. */
   const fs=intakeFormFields(pre), byKey=k=>fs.find(f=>f.key===k);
-  const cell=f=>f?ikSapField(f, streams, FLD):'';
+  const cell=f=>f?ikSapField(f, streams):'';
   const used=new Set(['counterparty','cpemail','value','effDate','expiry','party','side','folder']);
   const rest=fs.filter(f=>!used.has(f.key));
-  const pair=(a,b)=>(a||b)?`<div class="sap-row">${cell(a)||'<span></span>'}${cell(b)||'<span></span>'}</div>`:'';
-  openModal(`<div style="padding:24px">
-    <h3>${i18t('ik_ask_title')}</h3>
-    <p id="ik-lead">${esc(i18t('ik_lead_asker'))}</p>
-    <div class="sap-body">
-      <div class="sap-f"><label for="ik-title">${i18t('ik_f_title')} <span class="sap-req">*</span></label>
-        <input id="ik-title" value="${esc(String((pre&&pre.title)||''))}" style="${FLD}" placeholder="${esc(i18t('ik_f_title_ph'))}" maxlength="200"/></div>
-      <div class="sap-f"><label for="ik-need">${i18t('ik_f_need')} <span class="sap-req">*</span></label>
-        <textarea id="ik-need" rows="3" style="${FLD};height:auto;min-height:72px;resize:vertical" placeholder="${esc(i18t('ik_f_need_ph'))}" maxlength="4000">${esc(String((pre&&pre.need)||''))}</textarea></div>
-      ${''/* THE SAME ESSENTIALS CREATE ASKS (4 Oct 2026, the process review):
-            CONTRACT_ESSENTIALS through essentialFields, ALL OPTIONAL — they
-            ride the request (`answers`) into the drafting screen's boxes. */}
-      <p class="sap-grp">${esc(i18t('ik_f_essentials'))}</p>
-      ${pair(byKey('counterparty'), byKey('cpemail'))}
-      ${(byKey('value')||byKey('effDate')||byKey('expiry'))?`<div class="sap-row3">${cell(byKey('value'))}${cell(byKey('effDate'))}${cell(byKey('expiry'))}</div>`:''}
-      ${pair(byKey('party'), byKey('side'))}
-      ${pair(byKey('folder'), rest[0])}
-      ${rest.slice(1).map((f,i,a)=>i%2?'':pair(f,a[i+1])).join('')}
+  const IK_STEPS=[i18t('ik_step_ask'), i18t('ik_step_who'), i18t('ik_step_terms')];
+  lgpOpen({ stepped:true, id:'ik-form', focus:'#ik-title', title:i18t('ik_ask_title'),
+    steps:{ at:1, names:IK_STEPS },
+    subHtml:`<span id="ik-lead">${esc(i18t('ik_lead_asker'))}</span>`,
+    html:`<div data-lgp-step="1">
+      <label class="lgp-row"><span class="lgp-k">${i18t('ik_f_title')} *</span><span class="lgp-v">
+        <input id="ik-title" class="lgp-in" autocomplete="off" value="${esc(String((pre&&pre.title)||''))}" placeholder="${esc(i18t('ik_f_title_ph'))}" maxlength="200"/></span></label>
+      <label class="lgp-row is-tall"><span class="lgp-k">${i18t('ik_f_need')} *</span><span class="lgp-v">
+        <textarea id="ik-need" class="lgp-in is-area" rows="3" placeholder="${esc(i18t('ik_f_need_ph'))}" maxlength="4000">${esc(String((pre&&pre.need)||''))}</textarea></span></label>
       ${''/* ATTACHMENTS (SAP benchmark, batch 2): stored with the request on
             the server (IK_FILES_MAX of up to IK_FILE_MAX_MB each). The
             browser's own file button is hidden behind HaTi's. */}
-      <div class="sap-f"><span class="sap-lbl">${esc(i18t('ik_f_files'))}</span>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div class="lgp-row"><span class="lgp-k">${esc(i18t('ik_f_files'))}</span><span class="lgp-v" style="flex-wrap:wrap;padding:var(--s-2) 0">
           <button type="button" class="ui-btn" id="ik-files-go">${icon('upload','w-4 h-4')}${esc(i18t('ik_f_attach'))}</button>
-          <span id="ik-files-say" class="sap-help">${esc(i18t('ik_f_files_note',{ n:IK_FILES_MAX, mb:IK_FILE_MAX_MB }))}</span>
+          <span id="ik-files-say" class="lgp-note">${esc(i18t('ik_f_files_note',{ n:IK_FILES_MAX, mb:IK_FILE_MAX_MB }))}</span>
           <input id="ik-files" type="file" multiple accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.xlsx,.csv" hidden/>
-        </div></div>
-      <p id="ik-err" style="font-size:var(--t-meta);color:var(--st-ruby-fg);margin:0" hidden></p>
+        </span></div>
     </div>
-    <div style="display:flex;gap:var(--s-2);justify-content:flex-end">
-      <button data-dlg-cancel id="ik-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      <button id="ik-send" class="ui-btn ui-btn-primary">${i18t('ik_send')}</button>
+    ${''/* THE SAME ESSENTIALS CREATE ASKS (4 Oct 2026, the process review):
+          CONTRACT_ESSENTIALS through essentialFields, ALL OPTIONAL — they
+          ride the request (`answers`) into the drafting screen's boxes. */}
+    <div data-lgp-step="2" hidden>
+      <p class="lgp-small">${esc(i18t('ik_f_essentials'))}</p>
+      ${cell(byKey('counterparty'))}${cell(byKey('cpemail'))}${cell(byKey('party'))}${cell(byKey('side'))}${cell(byKey('folder'))}
     </div>
-  </div>`,{maxWidth:'600px'});
+    <div data-lgp-step="3" hidden>
+      <p class="lgp-small">${esc(i18t('ik_f_essentials'))}</p>
+      ${cell(byKey('value'))}${cell(byKey('effDate'))}${cell(byKey('expiry'))}${rest.map(cell).join('')}
+    </div>
+    <p id="ik-err" class="lgp-err" role="alert" hidden></p>`,
+    nextAttr:'id="ik-next"', backAttr:'id="ik-back"',
+    primary:{ label:i18t('ik_send'), attr:'id="ik-send"' },
+    cancelAttr:'data-dlg-cancel id="ik-cancel"', cancelLabel:i18t('act_cancel') });
+  const ikForm=()=>document.getElementById('ik-form');
+  const ikGo=n=>lgpStepGo(ikForm(), n, IK_STEPS);
+  const ikAt=()=>Number(ikForm()?.getAttribute('data-lgp-at')||1);
+  /* Next asks only what the first step must have (the two questions), in the same words Send uses */
+  document.getElementById('ik-next')?.addEventListener('click',()=>{
+    const err=document.getElementById('ik-err'); if(err) err.hidden=true;
+    if(ikAt()===1 && (!(document.getElementById('ik-title')||{value:''}).value.trim()||!(document.getElementById('ik-need')||{value:''}).value.trim())){
+      if(err){ err.textContent=i18t('ik_need_both'); err.hidden=false; } return; }
+    ikGo(ikAt()+1); });
+  document.getElementById('ik-back')?.addEventListener('click',()=>ikGo(ikAt()-1));
+  ikGo(1);
   const filesIn=document.getElementById('ik-files');
   document.getElementById('ik-files-go')?.addEventListener('click',()=>filesIn&&filesIn.click());
   filesIn?.addEventListener('change',()=>{ const say=document.getElementById('ik-files-say'); const n=filesIn.files.length;
@@ -465,15 +473,15 @@ function openIntakeForm(pre){
     const err=document.getElementById('ik-err');
     if(err){ err.hidden=true; }
     const say=m=>{ if(err){ err.textContent=m; err.hidden=false; } };
-    if(!g('ik-title')||!g('ik-need')){ say(i18t('ik_need_both')); return; }
+    if(!g('ik-title')||!g('ik-need')){ ikGo(1); say(i18t('ik_need_both')); return; }
     const answers={};
     for(const f of intakeFormFields()){ if(f.key==='counterparty'||f.key==='folder') continue;
       const v=g(ikFieldId(f.key)); if(v) answers[f.key]=v; }
-    if(answers.cpemail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(answers.cpemail)){ say(i18t('ik_bad_email')); return; }
-    if(answers.effDate && answers.expiry && answers.expiry<answers.effDate){ say(i18t('ik_bad_term')); return; }
+    if(answers.cpemail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(answers.cpemail)){ ikGo(2); say(i18t('ik_bad_email')); return; }
+    if(answers.effDate && answers.expiry && answers.expiry<answers.effDate){ ikGo(3); say(i18t('ik_bad_term')); return; }
     const picked=[...((document.getElementById('ik-files')||{}).files||[])];
-    if(picked.length>IK_FILES_MAX){ say(i18t('ik_files_too_many',{ n:IK_FILES_MAX })); return; }
-    if(picked.some(fl=>fl.size>IK_FILE_MAX_MB*1024*1024)){ say(i18t('ik_file_too_big',{ mb:IK_FILE_MAX_MB })); return; }
+    if(picked.length>IK_FILES_MAX){ ikGo(1); say(i18t('ik_files_too_many',{ n:IK_FILES_MAX })); return; }
+    if(picked.some(fl=>fl.size>IK_FILE_MAX_MB*1024*1024)){ ikGo(1); say(i18t('ik_file_too_big',{ mb:IK_FILE_MAX_MB })); return; }
     const btn=document.getElementById('ik-send'); if(btn) btn.disabled=true;
     try{
       const files=await Promise.all(picked.map(fl=>new Promise((res,rej)=>{ const rd=new FileReader();
@@ -623,7 +631,14 @@ function intakeGoTo(id){
   /* the list head's box says the words at rest too (a question typed there goes) */
   if(typeof lhBoxSet==='function') lhBoxSet(IK_SEAT, '');
   try{ if(typeof window.insSelect==='function') window.insSelect('intake:team', String(id)); }catch(_){}
+  /* THE NEW LOOK LANDS ON IT TOO (#762): the tab that lists it, the row chosen, then lit through the one lander */
+  const nl=typeof window.newLookOn==='function'&&newLookOn();
+  if(nl){ const keep=_ikn; const tab=['open','mine','drafted','advice'].find(k=>{ _ikn=k; return iknRows().list.some(r=>String(r.id)===String(id)); });
+    _ikn=tab||keep; _iknSel=String(id); _iknBack=null; }
   if(typeof setView==='function') setView('intake');
+  /* the row is drawn once the page (and the list) stands: asked for, bounded, never a fixed wait */
+  if(nl){ let n=0; const look=()=>{ const row=document.querySelector(`[data-ikn-row="${CSS.escape(String(id))}"]`);
+    if(row&&typeof window.landOn==='function'){ window.landOn(row,{ block:'nearest' }); return; } if(++n<30) setTimeout(look,100); }; setTimeout(look,0); }
 }
 /* WHAT THE BELL SAYS: open requests nobody holds, raised by a colleague, for
    a reader who may draft. Borrowed off the list GET /api/intake already
@@ -1037,7 +1052,8 @@ function ikFilters(){ if(!_ikF) _ikF={ ...IK_DEF }; return _ikF; }
    list falls back to insPick's first row, as a filter would. */
 function ikPlace(){
   const sel=k=>(typeof insSelected==='function')?insSelected(k):null;
-  return { ...ikFilters(), sel:{ team:sel('intake:team'), asker:sel('intake:asker') } };
+  /* the new look's tab and chosen request (_ikn, _iknSel) are the place too (#762: a refresh lost both) */
+  return { ...ikFilters(), sel:{ team:sel('intake:team'), asker:sel('intake:asker') }, nl:_ikn, nlSel:_iknSel!=null?String(_iknSel):null, nlBy:_iknBy||'' };
 }
 function ikPlacePut(p){
   if(!p||typeof p!=='object') return;
@@ -1046,7 +1062,11 @@ function ikPlacePut(p){
   /* the chosen row waits for the list (it is fetched once per sitting) */
   const s=p.sel||{};
   _ikBack={ 'intake:team':s.team?String(s.team):null, 'intake:asker':s.asker?String(s.asker):null };
+  if(['open','mine','drafted','advice','all'].includes(p.nl)) _ikn=p.nl;
+  _iknBack=p.nlSel?String(p.nlSel):null;
+  _iknBy=typeof p.nlBy==='string'?p.nlBy:'';
 }
+let _iknBack=null;   // the new look's chosen request, waiting for the list (as _ikBack does)
 let _ikBack=null;
 let _ikHead = { facts:'', acts:'' };
 function ikPaintHead(){
@@ -1767,8 +1787,15 @@ function iknRows(){
   const q = String(ikFilters().q || '').trim().toLowerCase();
   const on = r => _ikn === 'open' ? (!r._adv && IK_LIVE.includes(r.status) && !r.contractId) : _ikn === 'mine' ? (!r._adv && me && ((r.assignee && r.assignee.id === me.id) || (r.by && r.by.id === me.id)))
     : _ikn === 'drafted' ? (!r._adv && !!r.contractId) : _ikn === 'advice' ? !!r._adv : true;
-  return { all, list: all.filter(r => ikHit(r, q) && on(r)), n: k => { const keep = _ikn; _ikn = k; const x = all.filter(r => on(r)).length; _ikn = keep; return x; } };
+  /* P-32, as drawn: "+ Asked by" narrows the tab to one asker (_iknBy); the order stays as it was (the owner, 17 Nov 2026: "the oldest-first order stays gone";
+     the drawing lists its sample rows, it sets no sort) */
+  const by = r => !_iknBy || iknByKey(r) === _iknBy;
+  const list = all.filter(r => ikHit(r, q) && on(r) && by(r));
+  return { all, list, tabAll: all.filter(r => on(r)), n: k => { const keep = _ikn; _ikn = k; const x = all.filter(r => on(r)).length; _ikn = keep; return x; } };
 }
+/* "+ ASKED BY" (P-32): the asker one request names — a person's id, else their name as written (advice has no id) */
+let _iknBy = '';
+function iknByKey(r){ const b = (r && r.by) || {}; return b.id != null && b.id !== '' ? 'id:' + b.id : 'n:' + String(b.name || '').trim().toLowerCase(); }
 function iknStands(r){
   if (r._adv) return { t: i18t('ikn_advice', { s: String(r.status || '') }) };
   if (r.contractId){ const c = typeof getContract === 'function' ? getContract(r.contractId) : null;
@@ -1796,48 +1823,168 @@ function iknStateOf(r){
   if (r._adv) return { mk: 'them', tone: 'steel' };
   return r.assignee ? { mk: 'them', tone: 'steel' } : { mk: 'you', tone: 'amber' };
 }
-function iknRowHtml(r, may){
-  const st = iknStands(r), S = iknStateOf(r);
+/* REQUESTS, THE LEGORA + STRIPE WAY (P-32, owner's pick 20 Nov 2026: "L+S and park it"): one calm table — the Request
+   (its title; an advice request's title is the person's QUESTION; the other side; the asker's own words on one line) ·
+   Status (a soft badge) · Steps (asked → taken → drafted → sent; advice: submitted → scoping → in progress → delivered) ·
+   Asked by · Paper that fits (Became <contract> on Drafted; About <contract> on Advice) · Waiting (red past a week).
+   NO BUTTONS ON THE ROWS: Take it, Start the draft, Put it down, Open the contract, Open the request live in the panel.
+   The Stream column ("—" on every row) and the row's mark are gone. */
+function iknDays(r){ const t = Date.parse(String((r && r.createdAt) || '')); return isFinite(t) ? Math.max(0, Math.floor((Date.now() - t) / 86400000)) : null; }
+function iknIsMe(p){ const me = typeof currentUser === 'function' ? currentUser() : null; return !!(me && p && p.id != null && String(p.id) === String(me.id)); }
+/* the asker is me: by id, or (an advice request, which carries no id) by the e-mail it was sent from */
+function iknByMe(r){
+  const me = typeof currentUser === 'function' ? currentUser() : null; if (!me || !r || !r.by) return false;
+  if (r.by.id != null && String(r.by.id) === String(me.id)) return true;
+  const em = String((r.by && r.by.email) || (r.raw && r.raw.email) || '').toLowerCase();
+  return !!(em && me.email && em === String(me.email).toLowerCase());
+}
+/* a day as a person says it: "today", else "11 Nov" in the reader's language */
+function iknDay(iso){
+  const t = Date.parse(String(iso || '')); if (!isFinite(t)) return '';
+  const d = new Date(t), n = new Date();
+  if (d.toDateString() === n.toDateString()) return i18t('home_today');
+  try { return d.toLocaleDateString(typeof langLocale === 'function' ? langLocale() : 'en-GB', { day: 'numeric', month: 'short' }); } catch (_){ return String(iso).slice(0, 10); }
+}
+function iknIni(name){ const p = String(name || '').trim().split(/\s+/).filter(Boolean); return (((p[0] || '')[0] || '') + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase(); }
+/* AN ADVICE REQUEST'S CONTRACT (P-32: "About <contract>"): the agreement the asker named, read off the book by its name —
+   only where exactly one agreement the reader may see carries that name; else the name as they wrote it, never a guess */
+function iknAdvAbout(r){
+  if (!r || !r._adv) return null;
+  const n = String((r.raw && r.raw.contractName) || '').trim().toLowerCase(); if (!n) return null;
+  const cs = (typeof window !== 'undefined' && window.state && Array.isArray(state.contracts)) ? state.contracts : [];
+  const hit = cs.filter(c => c && String(c.name || '').trim().toLowerCase() === n);
+  return hit.length === 1 ? hit[0] : null;
+}
+/* AN ADVICE REQUEST'S TITLE IS THE PERSON'S QUESTION (P-32), never the service's name: the first sentence they wrote */
+function iknAdvQuestion(r){
+  const w = String((r && r.need) || '').trim(); if (!w) return String((r && r.title) || '');
+  const m = w.match(/^[\s\S]*?[?.!](?=\s|$)/); return (m ? m[0] : w).trim();
+}
+function iknTitleOf(r){ return r && r._adv ? iknAdvQuestion(r) : String((r && r.title) || ''); }
+/* the asker's own words under the title, on one line; never the title said twice */
+function iknWordsOf(r){ const w = String((r && r.need) || '').trim(); return w && w !== iknTitleOf(r) ? w : ''; }
+/* the other side: the request's own counterparty, or the advice's agreement's */
+function iknSideOf(r){ if (r && r._adv){ const a = iknAdvAbout(r); return a ? String(a.counterparty || '') : ''; } return String((r && r.counterparty) || '').trim(); }
+function iknBadgeOf(r){
+  if (r._adv) return { tone: 'violet', w: i18t('ikn_st_advice', { s: String(r.status || '') }) };
+  if (r.contractId) return { tone: 'green', w: i18t('ikn_tab_drafted'), tick: true };
+  if (r.assignee && r.assignee.id) return { tone: 'steel', w: iknIsMe(r.assignee) ? i18t('ikn_st_with_you') : i18t('ikn_s_with', { name: String(r.assignee.name || '').split(/\s+/)[0] }) };
+  const d = iknDays(r);
+  if (d != null && d >= IKN_OLD_DAYS) return { tone: 'ruby', w: i18tn('ikn_st_noone', d, { n: d }) };
+  return { tone: 'amber', w: i18t('ikn_s_needs') };
+}
+/* the soft badge: a dot in its colour, or a drawn tick on Drafted */
+function iknBadgeHtml(r){
+  const bd = iknBadgeOf(r);
+  const lead = bd.tick ? `<span class="ikn-tick" aria-hidden="true">${typeof icon === 'function' ? icon('check2', 'w-3 h-3') : ''}</span>` : '<i></i>';
+  return `<span class="apn-st ikn-st is-${bd.tone}">${lead}${esc(bd.w)}</span>`;
+}
+function iknAdvAt(r){ const st = String(r.status || '').toLowerCase(); return /deliver|done|closed/.test(st) ? 4 : /progress|work/.test(st) ? 2 : /scop|review/.test(st) ? 1 : 0; }
+function iknStepsOf(r){
+  const W = r._adv ? ['ikn_sp_submitted', 'ikn_sp_scoping', 'ikn_sp_progress', 'ikn_sp_delivered'] : ['ikn_sp_asked', 'ikn_sp_taken', 'ikn_sp_drafted', 'ikn_sp_sent'];
+  let at = 0, tone = iknBadgeOf(r).tone;
+  if (r._adv) at = iknAdvAt(r);
+  else if (r.contractId){ const c = typeof getContract === 'function' ? getContract(r.contractId) : null; at = c && c.status && c.status !== 'Draft' ? 4 : 3; }
+  else at = r.assignee && r.assignee.id ? 2 : 1;
+  return W.map((k, i) => ({ w: i18t(k), k: i < at ? 'done' : i === at ? 'on:' + tone : 'next' }));
+}
+/* the small strip on the row; BIG in the panel (P-32): the steps drawn larger, each word under its dot, the one in play
+   ringed in its colour and its word in ink, on one grey line */
+function iknStepsHtml(r, big){
+  const S = iknStepsOf(r);
+  const dot = x => { const on = x.k.indexOf('on:') === 0; return `<i class="apn-sd${x.k === 'done' ? ' is-done' : on ? ' is-on is-' + esc(x.k.slice(3)) : ''}" title="${esc(x.w)}"></i>`; };
+  if (!big) return `<span class="apn-steps">${S.map((x, i) => dot(x) + (i < S.length - 1 ? `<b class="apn-sl${x.k === 'done' ? ' is-done' : ''}"></b>` : '')).join('')}</span>`;
+  return `<div class="ikn-jr" style="grid-template-columns:repeat(${S.length},minmax(0,1fr))">${S.map(x => { const on = x.k.indexOf('on:') === 0;
+    return `<div class="ikn-jr-s${on ? ' is-on' : ''}">${dot(x)}<span>${esc(x.w)}</span></div>`; }).join('')}</div>`;
+}
+/* the paper: the contract it became, or the advice's agreement, as "<name> · <ref>"; else the standard that fits */
+function iknPaperOf(r){
+  const ref = c => typeof contractRef === 'function' ? contractRef(c) : c.id;
+  const c = r.contractId && typeof getContract === 'function' ? getContract(r.contractId) : null;
+  if (r.contractId) return c ? { w: [c.name || '', ref(c)].filter(Boolean).join(' · '), id: c.id } : { w: i18t('ikn_drafted') };
+  if (r._adv){ const a = iknAdvAbout(r); const n = String((r.raw && r.raw.contractName) || '').trim();
+    return a ? { w: [a.name || '', ref(a)].filter(Boolean).join(' · '), id: a.id } : n ? { w: n } : null; }
+  const fit = ikFitOf(r); return fit && fit.strong ? { w: fit.name } : null;
+}
+function iknRowHtml(r, may, keys){
+  void may;
   const sel = String(r.id) === String(_iknSel);
-  const streamName = r.folder && window.FOLDERS && FOLDERS[r.folder] ? ((typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[r.folder]) || FOLDERS[r.folder].name) : '';
-  const stream = streamName ? (typeof listChipHtml === 'function' ? listChipHtml(typeof listStreamTone === 'function' ? listStreamTone(r.folder) : 'gray', streamName) : esc(streamName)) : '—';
-  const fits = st.fit && st.fit.strong ? i18t('ikn_s_fits', { name: st.fit.name }) : '';
-  const word = r.contractId || r._adv ? st.t : r.assignee ? i18t('ikn_s_with', { name: String(r.assignee.name || '').split(/\s+/)[0] }) : i18t('ikn_s_needs');
-  const stands = typeof listWordHtml === 'function' ? listWordHtml(S.tone, word, r.contractId || r._adv ? '' : fits) : esc(word);
-  const act = r._adv ? '' : r.contractId ? `<button type="button" class="rfp-a" data-ikn-open="${esc(r.contractId)}">${esc(i18t('ikn_open_go'))}</button>`
-    : may ? `<button type="button" class="ui-btn ${sel ? 'ui-btn-primary ' : ''}ui-btn-sm ikn-go" data-ikn-draft="${esc(r.id)}">${esc(i18t('ikn_start'))}</button>` : '';
-  const name = `<div class="cun-name">${esc(r.title || '')}</div>${r._adv ? `<div class="cun-sub">${esc(i18t('ikn_advice_w'))}</div>` : ''}${r.need ? `<div class="ikn-q">“${esc(String(r.need).slice(0, 120))}${String(r.need).length > 120 ? '…' : ''}”</div>` : ''}`;
-  const by = ikFirstLast(r.by && r.by.name), age = typeof ikAgeWords === 'function' ? ikAgeWords(r) : '';
-  return `<tr data-ikn-row="${esc(r.id)}" class="${sel ? 'is-sel' : ''}${r.contractId ? ' is-done' : ''}" tabindex="-1"><td>${typeof listSapCellHtml === 'function' ? listSapCellHtml(S.mk, name) : name}</td>
-    <td class="cun-wait ikn-stream">${stream}</td>
-    <td class="cun-wait">${stands}</td>
-    <td class="cun-wait ikn-age${iknAgeTone(r)}">${esc(by || '—')}${age ? `<div class="cun-sub">${esc(age)}</div>` : ''}</td><td class="cun-go">${act}</td></tr>`;
+  const title = iknTitleOf(r), words = iknWordsOf(r), side = iknSideOf(r);
+  const name = `<div class="ikn-t">${esc(title)}</div>${side ? `<div class="ikn-sub">${esc(side)}</div>` : ''}${words ? `<div class="ikn-ql"><i>“${esc(words)}”</i></div>` : ''}`;
+  const mine = iknByMe(r);
+  const byName = r.by && r.by.name ? (mine ? i18t('ap_wl_you') : String(r.by.name).split(/\s+/)[0]) : '';
+  const d = iknDays(r), late = d != null && d >= IKN_OLD_DAYS && !r.contractId && !r._adv;
+  const pp = iknPaperOf(r);
+  const cell = {
+    stands: () => `<td>${iknBadgeHtml(r)}</td>`,
+    steps: () => `<td>${iknStepsHtml(r)}</td>`,
+    by: () => `<td>${byName ? `<span class="apn-who ikn-who"><b class="ikn-ini${mine ? ' is-me' : ''}" aria-hidden="true">${esc(iknIni(r.by.name))}</b><span>${esc(byName)}</span></span>` : '<span class="apn-none-c">—</span>'}</td>`,
+    paper: () => `<td class="ikn-pp">${pp ? esc(pp.w) : '<span class="apn-none-c">—</span>'}</td>`,
+    wait: () => `<td class="ikn-wait">${d == null ? '—' : late ? `<span class="late">${esc(i18tn('ap_pg_days', d, { n: d }))}</span>` : esc(d === 0 ? i18t('home_today') : i18tn('ap_pg_days', d, { n: d }))}</td>`,
+  };
+  return `<tr data-ikn-row="${esc(r.id)}" class="${sel ? 'is-sel' : ''}${r.contractId ? ' is-done' : ''}" tabindex="-1"><td>${name}</td>
+    ${(keys || IKN_KEYS).map(k => cell[k] ? cell[k]() : '<td></td>').join('')}</tr>`;
+}
+/* THE COLUMNS UNDER THE ONE COLUMN RULE (listCols): Status · Steps · Asked by · Paper that fits (Became on Drafted,
+   About on Advice) · Waiting, right-aligned; Steps steps aside first where the room is short, then the paper */
+const IKN_KEYS = ['stands', 'steps', 'by', 'paper', 'wait'];
+function iknCols(){
+  const W = { stands: 150, steps: 92, by: 110, paper: 180, wait: 58 }, R = { steps: 1, paper: 2 };
+  const T = { name: 'ikn_c_req', stands: 'apn_col_status', steps: 'apn_col_steps', by: 'ikn_c_by',
+    paper: _ikn === 'drafted' ? 'ikn_c_became' : _ikn === 'advice' ? 'ikn_c_about' : 'ikn_c_paper', wait: 'ngn_c_waiting' };
+  const DEFS = [{ k: 'name' }, ...IKN_KEYS.map(k => ({ k, w: W[k], rank: R[k] }))];
+  const FIT = typeof listCols === 'function' ? listCols(IK_SEAT, DEFS, () => ikRepaint()) : { cols: DEFS };
+  const cols = FIT.cols;
+  return { keys: cols.slice(1).map(c => c.k), n: cols.length,
+    colg: `<colgroup>${cols.map(c => typeof listColTag === 'function' ? listColTag(c, true) : `<col${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}>`).join('')}</colgroup>`,
+    th: `<thead><tr>${cols.map(c => T[c.k] ? `<th${c.k === 'wait' ? ' class="ikn-wait-h"' : ''}>${esc(i18t(T[c.k]))}${typeof listGripHtml === 'function' ? listGripHtml(IK_SEAT, c.k) : ''}</th>` : '<th></th>').join('')}</tr></thead>` };
 }
 let _iknSel = null;
+/* a door choosing Requests' tab before the page is drawn (the Advice board's old doors land on the Advice tab, #762) */
+function iknTabSet(k){ if (['open', 'mine', 'drafted', 'advice'].includes(k)){ _ikn = k; _iknSel = null; } }
+/* the askers on the tab, for "+ Asked by" (only askers with a request on it: a choice with no results is not listed) */
+function iknAskers(rows){
+  const seen = new Map();
+  (rows || []).forEach(r => { const k = iknByKey(r); if (!seen.has(k) && r.by && String(r.by.name || '').trim()) seen.set(k, iknByMe(r) ? i18t('ap_wl_you') : String(r.by.name).trim()); });
+  return [...seen.entries()].map(([k, name]) => ({ k, name })).sort((a, b) => a.name.localeCompare(b.name));
+}
+function iknByChipHtml(askers){
+  const E = esc;
+  if (_iknBy){ const a = askers.find(x => x.k === _iknBy);
+    return `<button type="button" class="ikn-by is-set" data-ikn-by-clear title="${E(i18t('ikn_by_clear'))}">${E(i18t('ikn_by_is', { who: a ? a.name : '' }))}<span aria-hidden="true">×</span></button>`; }
+  if (!askers.length) return '';
+  return `<label class="ikn-by"><span>+ ${E(i18t('ikn_add_by'))}</span><select class="reg-chip-sel" data-ikn-by aria-label="${E(i18t('ikn_add_by'))}"><option value="" selected disabled hidden></option>${askers.map(a => `<option value="${E(a.k)}">${E(a.name)}</option>`).join('')}</select></label>`;
+}
 /* REQUESTS' TABS ALL DRAW THE ONE TABLE (read 10 Nov 2026: Open · Mine · Drafted · Advice only pick which requests),
    so a tab press and a typed letter redraw only the rows (listRowsSwapHtml); a tab that comes or goes (a tab at 0
    steps out) draws the whole page, with the caret put back. */
 let _iknPanelSel;
 function iknRender(host, o){
   const may = (typeof canEdit === 'function' && canEdit());
-  const R = iknRows();
-  const open = R.n('open'), noEd = (R.all.filter(r => !r._adv && IK_LIVE.includes(r.status) && !r.contractId && !r.assignee)).length;
+  let R = iknRows();
+  /* an asker no longer on this tab lets go of the chip */
+  if (_iknBy && !R.tabAll.some(r => iknByKey(r) === _iknBy)){ _iknBy = ''; R = iknRows(); }
+  const open = R.n('open');
+  /* a refresh's chosen request comes back once the list has come (ikPlacePut) */
+  if (_iknBack && _intake.loaded){ if (R.list.some(r => String(r.id) === _iknBack)) _iknSel = _iknBack; _iknBack = null; }
   if (!_iknSel || !R.list.some(r => String(r.id) === String(_iknSel))) _iknSel = R.list[0] ? R.list[0].id : null;
   const tabs = [['open', i18t('ik_v_open'), open], ['mine', i18t('ik_v_mine'), R.n('mine')], ['drafted', i18t('ikn_tab_drafted'), R.n('drafted')], ['advice', i18t('rq_kind_advice'), R.n('advice')]];
-  const facts = [i18tn('ik_hf_open', open, { n: open }), noEd ? i18tn('ikn_noed', noEd, { n: noEd }) : ''].filter(Boolean).join(' \u00b7 ');
+  const C = iknCols();
+  /* P-32, AS DRAWN: the title and Ask for a contract (black); ONE ask box (Jambo's mark; letters narrow the list, a
+     question that narrows it to nothing goes to Jambo on Enter); the tabs as chips with their counts, Open with its amber
+     dot, then "+ Asked by"; one calm table; no foot under it (the chips carry the count) */
   const PAGE = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page ikn-page" data-ins-page="intake" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
-      <div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_intake'))}</h2><span class="ctf-hf">${esc(facts)}</span><span class="ctf-sp"></span>
+      <div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_intake'))}</h2><span class="ctf-sp"></span>
         <button type="button" id="ik-new" class="ui-btn ui-btn-primary ctf-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''}${esc(i18t('ik_ask_btn'))}</button></div>
-      <div class="apn-bar"><label class="apn-box">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ikn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" value="${esc(ikFilters().q || '')}"></label><span class="apn-sp"></span>
-        ${tabs.filter(t => t[2] || t[0] === 'open' || t[0] === _ikn).map(t => `<button type="button" class="apn-tab${_ikn === t[0] ? ' is-on' : ''}" data-ikn-tab="${t[0]}">${esc(t[1])} <span>${t[2]}</span></button>`).join('')}</div>
-      <div class="cu-scroll"><table class="apn-table cun-table ikn-table"><colgroup><col style="width:36%"><col style="width:15%"><col style="width:22%"><col style="width:13%"><col></colgroup>
-        <thead><tr><th>${esc(i18t('ikn_c_req'))}</th><th>${esc(i18t('ikn_c_stream'))}</th><th>${esc(i18t('ikn_c_stands'))}</th><th>${esc(i18t('ikn_c_by'))}</th><th></th></tr></thead>
-        <tbody>${R.list.map(r => iknRowHtml(r, may)).join('') || `<tr><td colspan="5" class="apn-none">${esc(i18t('ik_queue_empty'))}</td></tr>`}</tbody></table></div>
-      <div class="apn-foot rdn-foot"><span>${esc(i18tn('ikn_foot', R.list.length, { n: R.list.length }))}</span></div>
+      <label class="apn-ask ikn-ask is-filter">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ikn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" aria-label="${esc(i18t('lh_filter_ph'))}" value="${esc(ikFilters().q || '')}"></label>
+      <div class="apn-bar ikn-bar" data-lh-seat="intake-nl">${tabs.filter(t => t[2] || t[0] === 'open' || t[0] === _ikn).map(t => `<button type="button" class="apn-tab is-chip${_ikn === t[0] ? ' is-on' : ''}" data-ikn-tab="${t[0]}">${t[0] === 'open' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${esc(t[1])} <span>${t[2]}</span></button>`).join('')}<span class="ikn-by-w">${iknByChipHtml(iknAskers(R.tabAll))}</span></div>
+      <div class="cu-scroll"><table class="apn-table cun-table ikn-table" data-list-seat="${esc(IK_SEAT)}">${C.colg}
+        ${C.th}
+        <tbody>${R.list.map(r => iknRowHtml(r, may, C.keys)).join('') || `<tr><td colspan="${C.n}" class="apn-none">${esc(i18t('ik_queue_empty'))}</td></tr>`}</tbody></table></div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
   const rowsOnly = !!(o && o.rows) && typeof listRowsSwapHtml === 'function'
-    && listRowsSwapHtml({ page: '.ikn-page', html: PAGE, table: '.ikn-table', tabSel: '[data-ikn-tab]', tabKey: 'data-ikn-tab', footSel: '.ikn-page .apn-foot', also: '.ikn-page .cun-head .ctf-hf' });
+    && listRowsSwapHtml({ page: '.ikn-page', html: PAGE, table: '.ikn-table', tabSel: '[data-ikn-tab]', tabKey: 'data-ikn-tab', also: '.ikn-page .ikn-by-w' });
   if (!rowsOnly){
     const at = typeof listCaretAt === 'function' ? listCaretAt('#ikn-q') : null;
     host.innerHTML = PAGE;
@@ -1859,31 +2006,178 @@ function iknRender(host, o){
   if (typeof setActiveNav === 'function') setActiveNav('intake');
   if (typeof insWatchWidth === 'function') insWatchWidth();
 }
+/* THE CHOSEN REQUEST'S PANEL, THE LEGORA + STRIPE WAY (P-32, owner's pick 20 Nov 2026), NO CARDS: the status badge, the
+   title, the other side · who asked · when, the acts (Take it black + Start the draft while nobody holds it; Start the
+   draft black + Hand on when you hold it; Open the contract on Drafted; Open the request on Advice); the Steps drawn
+   larger with their words; In their words, quoted; Read from the ask as plain label rows (Party · NDA, amber when none ·
+   Paper that fits / Became / About · Their paper); a timeline (who asked, who took it, how long it waited). The same
+   readings the table uses (iknBadgeOf, iknStepsOf, ikFitOf, ikCpNdaWords); no AI, no money. */
+function iknPanelLs(r, may){
+  const E = esc;
+  const byMe = iknByMe(r);
+  const c = r.contractId && typeof getContract === 'function' ? getContract(r.contractId) : null;
+  const ref = x => typeof contractRef === 'function' ? contractRef(x) : x.id;
+  const about = iknAdvAbout(r), side = iknSideOf(r), day = iknDay(r.createdAt);
+  const full = String((r.by && r.by.name) || '').trim(), first = full.split(/\s+/)[0] || full;
+  const sub = [side, byMe ? i18t('ikn_sub_by_you') : full ? i18t('ikn_sub_by', { who: full }) : '', day].filter(Boolean).join(' · ');
+  const held = !!(r.assignee && r.assignee.id), mineHeld = held && iknIsMe(r.assignee);
+  const btn = (k, label, attr, title) => `<button type="button" class="ui-btn ${k ? 'ui-btn-primary ' : ''}ikn-lg-b${k ? ' is-k' : ''}" ${attr}${title ? ` title="${E(title)}"` : ''}>${E(label)}</button>`;
+  let acts = '';
+  if (r._adv) acts = btn(1, i18t('ik_act_open_advice'), `data-ikn-adv="${E(r.id)}"`);
+  else if (c) acts = btn(1, i18t('ikn_open_contract'), `data-ikn-open="${E(c.id)}"`);
+  else if (!r.contractId && may){
+    if (!held) acts = btn(1, i18t('ikn_take'), `data-ikn-pick="${E(r.id)}"`) + btn(0, i18t('ikn_start'), `data-ikn-draft="${E(r.id)}"`, i18t('ikn_start_cost'));
+    else if (mineHeld) acts = btn(1, i18t('ikn_start'), `data-ikn-draft="${E(r.id)}"`, i18t('ikn_start_cost')) + btn(0, i18t('ikn_hand_on'), `data-ikn-hand="${E(r.id)}"`);
+    else acts = btn(1, i18t('ikn_start'), `data-ikn-draft="${E(r.id)}"`, i18t('ikn_start_cost')) + btn(0, intakePickLabel(r), `data-ikn-pick="${E(r.id)}"`);
+    /* HAND BACK (owner's pick, 17 Nov 2026: "Bring it back"): the decline with its reason, a quiet link after the two */
+    if (r.status === 'open') acts += `<button type="button" class="ikn-lg-back" data-ikn-back="${E(r.id)}" title="${E(i18t('ikn_back_cost', { who: ikFirst(full) || i18t('ikn_back_them') }))}">${E(i18t('ik_act_hand_back'))}</button>`;
+  }
+  /* READ FROM THE ASK: plain label rows */
+  const rows = [], row = (k, vHtml, tone) => rows.push(`<div class="ikn-rd"><span>${E(k)}</span><b${tone ? ` class="is-${tone}"` : ''}>${vHtml}</b></div>`);
+  const cp = String(r.counterparty || '').trim();
+  if (!r._adv){
+    let cpKey = '', cpDoor = false;
+    try { cpKey = cp && typeof window.cuKeyOf === 'function' ? cuKeyOf(cp) : ''; const v = cpKey && typeof window.cuCustomerOf === 'function' ? cuCustomerOf(cpKey) : null; cpDoor = !!(v && v.items && v.items.length); } catch (_){ cpDoor = false; }
+    if (cp) row(i18t('ikn_rd_party'), cpDoor ? `<button type="button" class="ikn-lg-a" data-ikn-cp="${E(cpKey)}" title="${E(i18t('ik_cp_go', { cp }))}">${E(cp)}</button>` : E(cp));
+    const nda = cp ? ikCpNdaWords(cp) : '';
+    if (nda) row(i18t('ikn_rd_nda'), E(nda === i18t('ik_cp_nda_none') ? i18t('ikn_nda_none') : nda), nda === i18t('ik_cp_nda_none') ? 'amber' : '');
+    if (c) row(i18t('ikn_rd_became'), `<button type="button" class="ikn-lg-a" data-ikn-open="${E(c.id)}">${E([c.name || '', ref(c)].filter(Boolean).join(' · '))}</button>`);
+    else if (!r.contractId){ const fit = ikFitOf(r); row(i18t('ikn_rd_fits'), E(fit && fit.strong ? fit.name : i18t('ikn_fit_none')), fit && fit.strong ? '' : 'quiet'); }
+    if (typeof _ikRx === 'function' && _ikRx('IK_THEIR_PAPER').test(`${r.title || ''} ${r.need || ''}`)) row(i18t('ikn_rd_theirs'), E(i18t('ikn_rd_theirs_v')));
+    if (r.lane) row(i18t('ikn_rd_lane'), E(r.lane));
+    if (r.folder && window.FOLDERS && FOLDERS[r.folder]) row(i18t('ikn_rd_stream'), E(FOLDERS[r.folder].name));
+    const who = iknByMe(r) ? '' : full;
+    (r.files || []).forEach(fl => row(i18t('ikn_rd_file'), `<button type="button" class="ikn-lg-a" data-ikn-file="${E(fl.id)}" data-ikn-fname="${E(fl.name)}" title="${E(who ? i18t('ik_file_by', { size: ikFileSize(fl.size), who }) : i18t('ik_file_by_you', { size: ikFileSize(fl.size) }))}">${E(fl.name)}</button>`));
+  } else {
+    const n = String((r.raw && r.raw.contractName) || '').trim();
+    if (about) row(i18t('ikn_rd_about'), `<button type="button" class="ikn-lg-a" data-ikn-open="${E(about.id)}">${E([about.name || '', ref(about)].filter(Boolean).join(' · '))}</button>`);
+    else if (n) row(i18t('ikn_rd_about'), E(n));
+  }
+  /* THE TIMELINE: only what the record holds — who asked and when, who holds it, how long it has waited, what it became */
+  const tl = [], add = (t, s, k) => tl.push({ t, s, k });
+  const nx = i18t('ikn_tl_next');
+  add(byMe ? i18t('ikn_tl_you_asked') : i18t('ikn_tl_asked', { who: (r._adv ? full : first) || '—' }), day, 'asked');
+  if (r._adv){ const at = iknAdvAt(r); if (at < 3) add(i18t('ikn_tl_adv_' + at), nx, 'next'); else add(i18t('ikn_sp_delivered'), '', 'done'); }
+  else if (r.contractId){
+    /* the draft is its holder's (a lane drafts for the person it names); else whoever pressed it */
+    const holder = r.assignee && r.assignee.name ? r.assignee : null;
+    const dWho = holder ? String(holder.name) : String(r.decidedBy || '');
+    const dMe = holder ? iknIsMe(holder) : !!(dWho && typeof currentUser === 'function' && currentUser() && String(currentUser().name || '') === dWho);
+    if (dWho) add(dMe ? i18t('ikn_tl_you_drafted') : i18t('ikn_tl_drafted', { who: dWho.split(/\s+/)[0] }), iknDay(r.decidedAt), 'asked');
+    if (c) add(i18t('ikn_tl_became', { name: [c.name || '', ref(c)].filter(Boolean).join(' · ') }), iknDay(r.decidedAt), 'done');
+  } else if (held){
+    /* the day it was taken, where the server stamped one (takenAt, P-32 review); an older request says no day */
+    add(mineHeld ? i18t('ikn_tl_you_took') : i18t('ikn_tl_took', { who: String(r.assignee.name || '').split(/\s+/)[0] }), iknDay(r.takenAt), 'held');
+    add(i18t('ikn_tl_draft_next'), nx, 'next');
+  } else {
+    const d = iknDays(r);
+    if (d != null && d >= IKN_OLD_DAYS) add(i18tn('ikn_tl_noone', d, { n: d }), i18tn('ap_pg_days', d, { n: d }), 'late');
+    else add(i18t('ikn_tl_wait_ed'), d == null ? '' : d === 0 ? i18t('home_today') : i18tn('ap_pg_days', d, { n: d }), 'wait');
+    add(i18t('ikn_tl_taken_next'), nx, 'next');
+  }
+  const sec = (h, body, k) => `<section class="ikn-lg-s"${k ? ` data-ikn-sec="${k}"` : ''}>${h ? `<h4>${E(h)}</h4>` : ''}${body}</section>`;
+  return `<div class="ikn-lg jl-words" data-ikn-lg="${E(r.id)}">
+    <section class="ikn-lg-s is-top">${iknBadgeHtml(r)}<b class="ikn-lg-t">${E(iknTitleOf(r))}</b>${sub ? `<p class="ikn-lg-sub">${E(sub)}</p>` : ''}${acts ? `<div class="ikn-lg-acts">${acts}</div>` : ''}</section>
+    ${sec(i18t('apn_col_steps'), iknStepsHtml(r, true), 'steps')}
+    ${r.need ? sec(i18t('ikn_p_words'), `<p class="ikn-lg-q">“${E(String(r.need).trim())}”</p>`, 'words') : ''}
+    ${rows.length ? sec(i18t('ikn_p_read'), rows.join(''), 'read') : ''}
+    ${sec(i18t('apn5_timeline'), `<ol class="ikn-tl">${tl.map(x => `<li class="is-${x.k}"><i></i><span>${E(x.t)}${x.s ? ` <small>· ${E(x.s)}</small>` : ''}</span></li>`).join('')}</ol>`, 'tl')}
+  </div>`;
+}
+/* HAND ON (P-32: "Start the draft black + Hand on when you hold it"): the request goes to a colleague who edits, through
+   the one writer of who holds it (intakePatch → PATCH /api/intake/:id, the server looks the person up); "Nobody" puts it
+   back on Open. A Viewer is never offered (mayActOn). */
+function iknHandOn(id){
+  const r = ((_intake && _intake.list) || []).find(x => String(x.id) === String(id)); if (!r || typeof lgpOpen !== 'function') return false;
+  const me = typeof currentUser === 'function' ? currentUser() : null;
+  const users = ((typeof getUsers === 'function' ? getUsers() : []) || []).filter(u => u && (!me || String(u.id) !== String(me.id))
+    && (typeof window.mayActOn === 'function' ? window.mayActOn(null, u) : u.role !== 'viewer'));
+  const opts = users.map(u => ({ v: u.id, t: u.name || u.email || '' })).concat([{ v: '', t: i18t('ikn_hand_nobody') }]);
+  lgpOpen({ id: 'ikn-hand', title: i18t('ikn_hand_title'), sub: i18t('ikn_hand_sub', { title: r.title || '' }),
+    rows: [{ k: i18t('ikn_hand_to'), id: 'ikn-hand-to', type: 'select', opts, value: users[0] ? users[0].id : '' }],
+    note: users.length ? '' : i18t('ikn_hand_none'), primary: { label: i18t('ikn_hand_go'), attr: 'id="ikn-hand-go"' } });
+  const form = document.getElementById('ikn-hand');
+  if (form) form.addEventListener('submit', async ev => { ev.preventDefault();
+    const v = String((document.getElementById('ikn-hand-to') || {}).value || ''), u = users.find(x => String(x.id) === v);
+    if (typeof closeModal === 'function') closeModal();
+    if (await intakePatch(r.id, { status: r.status, assignee: v })) toast(v ? i18t('ikn_handed', { who: (u && u.name) || '' }) : i18t('ik_dropped'), 'ok'); });
+  return true;
+}
 function iknPanelHtml(r, may){
+  /* P-32: the new look's panel is the Legora + Stripe way (iknPanelLs), no cards */
+  if (typeof window.newLookOn === 'function' && newLookOn()) return iknPanelLs(r, may);
   const E = esc, st = iknStands(r);
   const fit = st.fit && st.fit.strong ? st.fit : null;
   const head = r.contractId ? st.t + '.' : fit ? i18t('ikn_p_fits', { title: r.title || '', name: fit.name }) : i18t('ikn_p_open', { title: r.title || '' });
-  const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src || '')}</i></div>`;
-  const rows = (r.counterparty ? row(i18t('cun_c_party'), r.counterparty, i18t('ikn_src_ask')) : '')
+  const row = (l, v, src, vHtml, srcCls) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${vHtml || E(v)}</b><i${srcCls ? ` class="${srcCls}"` : ''}>${E(src || '')}</i></div>`;
+  /* BROUGHT BACK (owner's picks on the drawings, 17 Nov 2026: "2 Bring it back"): the party's name is the door to their
+     contracts (cuOpenCustomer, where the book holds any), whether an NDA with them stands today (ikCpNdaWords, the
+     Parties page's own reading), and each file with who added it */
+  const cp = String(r.counterparty || '').trim();
+  let cpKey = '', cpDoor = false;
+  try { cpKey = cp && typeof window.cuKeyOf === 'function' ? cuKeyOf(cp) : ''; const v = cpKey && typeof window.cuCustomerOf === 'function' ? cuCustomerOf(cpKey) : null; cpDoor = !!(v && v.items && v.items.length); } catch (_){ cpDoor = false; }
+  const nda = cp && !r._adv ? ikCpNdaWords(cp) : '';
+  const ndaOwed = nda && nda === i18t('ik_cp_nda_none');
+  const who = ikIsMine(r) ? '' : String((r.by && r.by.name) || '').trim();
+  const files = (r.files || []).map(fl => row(i18t('ikn_files'), '', who ? i18t('ik_file_by', { size: ikFileSize(fl.size), who }) : i18t('ik_file_by_you', { size: ikFileSize(fl.size) }),
+    `<button type="button" class="rfp-a" data-ikn-file="${E(fl.id)}" data-ikn-fname="${E(fl.name)}">${E(fl.name)}</button>`)).join('');
+  const rows = (cp ? row(i18t('cun_c_party'), cp, i18t('ikn_src_ask'), cpDoor ? `<button type="button" class="rfp-a" data-ikn-cp="${E(cpKey)}" title="${E(i18t('ik_cp_go', { cp }))}">${E(cp)}</button>` : '') : '')
+    + (nda ? row(i18t('cu_col_nda'), nda, ndaOwed ? i18t('ikn_p_nda_todo') : '', '', ndaOwed ? 'is-amb' : '') : '')
     + (r.folder && window.FOLDERS && FOLDERS[r.folder] ? row(i18t('reg_chip_stream'), FOLDERS[r.folder].name, i18t('ikn_src_ask')) : '')
     + (fit ? row(i18t('ikn_paper'), fit.name, i18t('ikn_src_fits')) : '')
-    + ((r.files || []).length ? row(i18t('ikn_files'), i18tn('ikn_files_n', r.files.length, { n: r.files.length }), '') : '');
+    + files;
   const door = (attr, w, cost) => `<div class="pd2-ch-door"><button type="button" class="rfp-a" ${attr}>${E(w)}</button><span>${E(cost)}</span></div>`;
-  const doors = r._adv ? '' : r.contractId ? door(`data-ikn-open="${E(r.contractId)}"`, i18t('ikn_open_go'), i18t('pd2_ch_free'))
-    : may ? door(`data-ikn-draft="${E(r.id)}"`, i18t('ikn_start'), i18t('ikn_start_cost')) : '';
-  return `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p>${r.need ? `<div class="pd2-ch-cap">${E(i18t('ikn_p_words'))}</div><div class="mnn-note"><p>${E(r.need)}</p></div>` : ''}
+  /* AN ADVICE REQUEST KEEPS ITS DOOR (16 Nov 2026, #762: the new look's panel drew none, a dead end) — the advice itself
+     (ik_act_open_advice); the board it lived on is gone (owner's pick, 17 Nov 2026: "6 The tab alone") */
+  const doors = r._adv ? door(`data-ikn-adv="${E(r.id)}"`, i18t('ik_act_open_advice'), i18t('pd2_ch_free')) : r.contractId ? door(`data-ikn-open="${E(r.contractId)}"`, i18t('ikn_open_go'), i18t('pd2_ch_free'))
+    : may ? door(`data-ikn-draft="${E(r.id)}"`, i18t('ikn_start'), i18t('ikn_start_cost'))
+      /* HAND BACK (owner's pick, "1 Bring it back"): the decline with its reason, told to whoever asked (intakeSetStatus) */
+      + (r.status === 'open' ? door(`data-ikn-back="${E(r.id)}"`, i18t('ik_act_hand_back'), i18t('ikn_back_cost', { who: ikFirst((r.by && r.by.name) || '') || i18t('ikn_back_them') })) : '') : '';
+  /* WHICH ROUTE SENT IT IN (owner's pick, "3 Bring it back"): one quiet line under the headline */
+  const lane = r.lane ? `<p class="pd2-ch-sub ikn-lane">${E(i18t('ikn_p_lane', { lane: r.lane }))}</p>` : '';
+  return `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p>${lane}${r.need ? `<div class="pd2-ch-cap">${E(i18t('ikn_p_words'))}</div><div class="mnn-note"><p>${E(r.need)}</p></div>` : ''}
     ${rows ? `<div class="pd2-ch-cap">${E(i18t('ikn_p_read'))}</div><div class="pd2-ch-tbl">${rows}</div>` : ''}${doors ? `<div class="pd2-ch-cap">${E(i18t('pd2_ch_doors'))}</div>${doors}` : ''}</div>`;
+}
+function iknOpenDraftOf(id){
+  const r = (_intake.list || []).find(x => x && String(x.id) === String(id)); const cid = r && r.contractId; if (!cid) return false;
+  if (!(typeof pdOpenOnHome === 'function' && pdOpenOnHome(cid, 'open')) && typeof openWorkspace === 'function') openWorkspace(cid);
+  return true;
 }
 if (typeof document !== 'undefined' && !document._iknWired){ document._iknWired = true;
   document.addEventListener('click', e => {
     if (typeof state === 'undefined' || state.view !== 'intake') return;
     const t = e.target && e.target.closest ? e.target : null; if (!t) return; let el;
     if ((el = t.closest('[data-ikn-tab]'))){ e.preventDefault(); _ikn = el.getAttribute('data-ikn-tab'); renderIntake({ rows: true }); return; }
+    if ((el = t.closest('[data-ikn-adv]'))){ e.preventDefault(); e.stopPropagation(); if (typeof window.openAdviceModal === 'function') window.openAdviceModal(el.getAttribute('data-ikn-adv')); return; }
+    if (t.closest('[data-ikn-adv-board]')){ e.preventDefault(); e.stopPropagation(); setView('advice'); return; }
     if ((el = t.closest('[data-ikn-draft]'))){ e.preventDefault(); e.stopPropagation(); intakeDraft(el.getAttribute('data-ikn-draft')); return; }
+    if ((el = t.closest('[data-ikn-hand]'))){ e.preventDefault(); e.stopPropagation(); iknHandOn(el.getAttribute('data-ikn-hand')); return; }
+    if (t.closest('[data-ikn-by-clear]')){ e.preventDefault(); _iknBy = ''; _iknSel = null; renderIntake({ rows: true }); ikPlaceKeep(); return; }
+    if ((el = t.closest('[data-ikn-pick]'))){ e.preventDefault(); e.stopPropagation(); intakePick(el.getAttribute('data-ikn-pick')); return; }
+    if ((el = t.closest('[data-ikn-back]'))){ e.preventDefault(); e.stopPropagation(); intakeSetStatus(el.getAttribute('data-ikn-back'), 'declined'); return; }
+    if ((el = t.closest('[data-ikn-cp]'))){ e.preventDefault(); e.stopPropagation(); if (typeof window.cuOpenCustomer === 'function'){ cuOpenCustomer(el.getAttribute('data-ikn-cp'));
+      /* LAND ON IT: the party's own page, on its agreements (asked for once drawn, bounded) */
+      let n = 0; const land = () => { const tb = document.querySelector('.cun-page[data-cu-screen="party"] .cunp-table');
+        if (tb && typeof window.landOn === 'function'){ window.landOn(tb, { block: 'nearest', focus: false }); return; } if (++n < 30) setTimeout(land, 80); }; setTimeout(land, 0); } return; }
+    if ((el = t.closest('[data-ikn-file]'))){ e.preventDefault(); e.stopPropagation(); const r = (_intake.list || []).find(x => x && x.files && x.files.some(f => String(f.id) === el.getAttribute('data-ikn-file'))); if (r) intakeFileGet(r.id, el.getAttribute('data-ikn-file'), el.getAttribute('data-ikn-fname'), { open: true }); return; }
     if ((el = t.closest('[data-ikn-open]'))){ e.preventDefault(); e.stopPropagation(); const id = el.getAttribute('data-ikn-open'); if (!(typeof pdOpenOnHome === 'function' && pdOpenOnHome(id, 'open')) && typeof openWorkspace === 'function') openWorkspace(id); return; }
     if ((el = t.closest('#ik-new')) && t.closest('.ikn-page')){ e.preventDefault(); openIntakeForm(); return; }
-    if ((el = t.closest('[data-ikn-row]'))){ const id = el.getAttribute('data-ikn-row'); if (String(id) === String(_iknSel)) return; _iknSel = id; renderIntake(); }
+    /* A PRESS SELECTS, A DOUBLE PRESS OPENS (the list rule, insListWire; #762): the second press of a double press on the
+       chosen row opens a drafted request's draft, as its panel's door does (the row is redrawn between the two presses,
+       so the press's own count is read rather than a dblclick) */
+    if ((el = t.closest('[data-ikn-row]'))){ const id = el.getAttribute('data-ikn-row'); if (String(id) === String(_iknSel)){ if (e.detail >= 2) iknOpenDraftOf(id); return; } _iknSel = id; renderIntake(); }
   });
+  /* Enter on the chosen row opens it too (the keyboard's second press) */
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || typeof state === 'undefined' || state.view !== 'intake' || !_iknSel) return;
+    const a = document.activeElement; if (a && a !== document.body && !(a.closest && a.closest('[data-ikn-row]'))) return;
+    if (iknOpenDraftOf(_iknSel)){ e.preventDefault(); e.stopPropagation(); }
+  });
+  /* "+ Asked by": the chosen asker narrows the tab (HaTi's own list writes the select's value) */
+  document.addEventListener('change', e => { const s = e.target; if (!s || !s.matches || !s.matches('select[data-ikn-by]') || typeof state === 'undefined' || state.view !== 'intake') return;
+    _iknBy = String(s.value || ''); _iknSel = null; renderIntake({ rows: true }); ikPlaceKeep(); });
+  /* THE ASK BOX (P-32, "Ask about requests"): letters narrow the list; Enter on words that narrow it to nothing hands them
+     to Jambo's own box (jlAsk, the one door), and the list stands whole again */
   document.addEventListener('input', e => { if (!e.target || e.target.id !== 'ikn-q' || typeof state === 'undefined' || state.view !== 'intake') return;
     /* the box is not redrawn under the caret: every letter moves the rows and leaves the box alone */
     ikFilters().q = e.target.value; renderIntake({ rows: true }); });
@@ -2174,7 +2468,7 @@ async function intakeTrackCopy(id){
   catch(_){ try{ window.open(url,'_blank'); }catch(__){ toast(url,'warn'); } }
 }
 
-Object.assign(window,{ikPlace,ikPlacePut,ikWithListHtml,ikFilesCellHtml,INTAKE_STATUS,IK_LIVE,IK_ROADS,IK_TONE,IK_MEDIAN_MIN,IK_STOPPED,
+Object.assign(window,{ikPlace,iknPanelLs,iknHandOn,iknAdvAbout,iknTitleOf,iknRows,ikPlacePut,iknTabSet,ikWithListHtml,ikFilesCellHtml,INTAKE_STATUS,IK_LIVE,IK_ROADS,IK_TONE,IK_MEDIAN_MIN,IK_STOPPED,
   ikKnownCounterparty,intakeRoad,intakeStoppedAt,intakeMinutes,
   intakeMedianDays,intakePromise,intakePastDue,intakeTrackUrl,intakeLanes,intakeLaneFor,
   intakeRefresh,intakeSweepStart,IK_SWEEP_MS,intakeFormFields,ikFieldHtml,ikFieldId,intakeTitleFrom,intakeHoldDraft,intakeHeldDraft,intakeClaimDraft,intakeContractSent,intakeGoTo,intakeAlertRows,intakeLaneDraftRows,intakeLaneArrivals,ikShelfOf,IK_HOLD_AFTER_CREATE_MS,ikClockHtml,ikFactHtml,intakePick,intakePromiseAsk,intakeTrackCopy,intakePatch,

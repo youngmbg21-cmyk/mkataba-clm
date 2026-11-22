@@ -168,7 +168,7 @@ function openTemplateFillModal(t, prefill, ho){
     const _mapNote='';
     const _mapTitle=(_map && _map.trim().toLowerCase()!==String(f.label||'').trim().toLowerCase()) ? ` title="${_tplEsc(_map).replace(/"/g,'&quot;')}"` : '';
     const lbl=`<span${_mapTitle} style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${_tplEsc(f.label)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${_mapNote}</span>`;
-    const st='width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--need-bg,var(--color-surface));border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none';
+    const st='width:100%;height:var(--field-h,28px);border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none';
     /* AN OPTION MAY BE A {v,l} PAIR (the side question is), so it is read
        through fieldOpt, the one reading — printed whole it said "[object
        Object]" three times (seen 9 Oct 2026, the SAP pop-up photographs). */
@@ -208,7 +208,7 @@ function openTemplateFillModal(t, prefill, ho){
              made from a saved template goes on naming the workspace. */}
       <label style="display:block">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('tf_our_party')}</span>
-        <input id="tf-party" type="text" value="${_tplEsc((typeof FIRST_PARTY!=='undefined'&&FIRST_PARTY)||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(i18t('tf_our_party_ph'))}" style="width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none"/></label>
+        <input id="tf-party" type="text" value="${_tplEsc((typeof FIRST_PARTY!=='undefined'&&FIRST_PARTY)||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(i18t('tf_our_party_ph'))}" style="width:100%;height:var(--field-h,28px);border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none"/></label>
       ${fs.map(inp).join('')}
       ${''/* THE SAME QUESTION THE BUILT-IN TEMPLATES ASK, because this is the
              same act. Saved templates create contracts through their own fill
@@ -217,7 +217,7 @@ function openTemplateFillModal(t, prefill, ho){
              the negotiation room, and again by the share dialog. */}
       <label style="display:block">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('lib_their_email')}</span>
-        <input id="tf-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none"/></label>
+        <input id="tf-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;height:var(--field-h,28px);border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none"/></label>
       ${sideHtml}
       ${''/* WHERE IT IS FILED (Young ruled 18 Sep 2026). Hand-written beside
              the other two record facts for the same reason they are: a saved
@@ -226,23 +226,25 @@ function openTemplateFillModal(t, prefill, ho){
              template's own filing is the answer already in the box. */}
       <label style="display:block">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('tl_stream')}</span>
-        <select id="tf-folder" style="width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--need-bg,var(--color-surface));border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none">${
+        <select id="tf-folder" style="width:100%;height:var(--field-h,28px);border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none">${
           (typeof folderOptionsHtml==='function') ? folderOptionsHtml(t.folder||null, false, { reach:true }) : ''}</select></label>
     </div>`;
   const errHtml=`<div id="tf-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-top:var(--s-2)"></div>`;
   const tfFolder=()=>((document.getElementById('tf-folder')||{}).value||'');
+  let stepTo=null, tfWire=null;   /* the one sheet's steps (f1118, below); a host's form and the page have none */
   const readNow=()=>{ const values={};
     for(const f of fs){ const el=document.getElementById('tf-'+f.key); if(el) values[f.key]=String(el.value||'').trim(); }
     return { t, values, party:((document.getElementById('tf-party')||{}).value||'') }; };
   const skip=()=>{ const fo=tfFolder(); closeModal(); buildFromCustomTemplate(t, {}, { folder:fo }); };
   const create=()=>{
-    const values={}, errs=[];
+    const values={}, errs=[]; let errAt='';
     for(const f of fs){ const el=document.getElementById('tf-'+f.key); const raw=el?el.value.trim():'';
-      const e=validateField(f, raw); if(e) errs.push(e); else values[f.key]=raw; }
+      const e=validateField(f, raw); if(e){ errs.push(e); errAt=errAt||('tf-'+f.key); } else values[f.key]=raw; }
     const cpEmail=(document.getElementById('tf-cpemail')||{}).value||'';
-    if(cpEmail.trim() && !/.+@.+\..+/.test(cpEmail.trim()))
-      errs.push(`"${cpEmail.trim()}" is not an email address — leave it blank if you do not have it yet.`);
-    if(errs.length){ const er=document.getElementById('tf-err'); if(er) er.textContent=errs[0]; return false; }
+    if(cpEmail.trim() && !/.+@.+\..+/.test(cpEmail.trim())){
+      errs.push(`"${cpEmail.trim()}" is not an email address — leave it blank if you do not have it yet.`); errAt=errAt||'tf-cpemail'; }
+    /* on the one sheet in steps, the refused answer's own step comes back into view (stepTo) */
+    if(errs.length){ const er=document.getElementById('tf-err'); if(er) er.textContent=errs[0]; if(stepTo) stepTo(errAt); return false; }
     const party=((document.getElementById('tf-party')||{}).value||'').trim();
     const folder=tfFolder();
     const side=((document.getElementById('tf-side')||{}).value||'').trim();
@@ -259,7 +261,73 @@ function openTemplateFillModal(t, prefill, ho){
     }
     return { create, skip, count };
   }
-  openModal(`<div style="padding:20px 22px">
+  /* ---- THE ONE EDIT POP-UP, THE LEGORA WAY, WHERE THE PAPER DOES NOT FIT (f1118) ----
+     The short form is the one sheet: each question a line, its label beside the words, no boxes; the same ids, the
+     same three acts, the same check. More than seven lines is a NEXT STEP, never a scroll: the agreement's own facts
+     first, then the template's blanks six at a time — every step stays in the form, so Create reads every answer, and
+     a refused answer brings its own step back into view. The page (paper beside it) and a host's form keep their own
+     layout above. */
+  const tfLgpHtml=()=>{
+    const E=_tplEsc, q=s=>E(String(s==null?'':s)).replace(/"/g,'&quot;');
+    const key=(txt, title)=>`<span class="lgp-k"${title||''}>${txt}</span>`;
+    const line=(k, ctl)=>`<label class="lgp-row">${k}<span class="lgp-v">${ctl}</span></label>`;
+    /* a need-mark (needAttrs) may carry its own class: it joins the line's, never a second class attribute */
+    const need=(f, v)=>{ const a=(typeof needAttrs==='function')?needAttrs(f, v):''; return { attr:a.replace(' class="need-empty"',''), cls:/class="need-empty"/.test(a)?' need-empty':'' }; };
+    const blank=f=>{ const id='tf-'+f.key;
+      const _map=f.maps?String(tplMapLabel(f.maps)||''):'';
+      const tt=(_map && _map.trim().toLowerCase()!==String(f.label||'').trim().toLowerCase()) ? ` title="${q(_map)}"` : '';
+      const k=key(`${E(f.label)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}`, tt);
+      if(f.type==='select'){
+        const dv=(f.def==null?'':f.def)||((f.opts||[])[0]!=null&&typeof window.fieldOpt==='function'?window.fieldOpt(f.opts[0]).v:'');
+        const n=need(f, dv);
+        return { id, html:line(k, `<select id="${id}" class="lgp-in${n.cls}"${n.attr}>${(f.opts||[]).map(o=>(typeof window.fieldOpt==='function')?window.fieldOpt(o):{v:String(o),l:String(o)}).map(o=>`<option value="${q(o.v)}" ${String(f.def==null?'':f.def)===o.v?'selected':''}>${E(o.l)}</option>`).join('')}</select>`) };
+      }
+      const it=f.type==='date'?'date':(f.type==='num'?'number':'text'), n=need(f, f.def);
+      return { id, html:line(k, `<input id="${id}" class="lgp-in${n.cls}" type="${it}" autocomplete="off"${n.attr} value="${q(f.def||'')}" placeholder="${q(f.ph||'')}">`) }; };
+    const party={ id:'tf-party', html:line(key(E(i18t('tf_our_party'))), `<input id="tf-party" class="lgp-in" type="text" autocomplete="off" value="${q((typeof FIRST_PARTY!=='undefined'&&FIRST_PARTY)||'')}" placeholder="${q(i18t('tf_our_party_ph'))}">`) };
+    const email={ id:'tf-cpemail', html:line(key(E(i18t('lib_their_email'))), `<input id="tf-cpemail" class="lgp-in" type="email" autocomplete="off" placeholder="${q((typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke')}">`) };
+    /* who pays whom is three presses, never a label round buttons (a label would press the first one) */
+    const side=sideF?{ id:'tf-side', html:`<div class="lgp-row is-tall">${key(E(sideF.label))}<span class="lgp-v">${(typeof payWhoHtml==='function')?payWhoHtml('tf-side', sideF.def||''):''}</span></div>` }:null;
+    const folder={ id:'tf-folder', html:line(key(E(i18t('tl_stream'))), `<select id="tf-folder" class="lgp-in">${(typeof folderOptionsHtml==='function') ? folderOptionsHtml(t.folder||null, false, { reach:true }) : ''}</select>`) };
+    const blanks=fs.map(blank);
+    const all=[party, ...blanks, email].concat(side?[side]:[], [folder]);
+    const groups=[];
+    if(all.length<=7) groups.push({ name:'', lines:all });
+    else {
+      groups.push({ name:i18t('tf_step_agreement'), lines:[party, folder, email].concat(side?[side]:[]) });
+      const per=(typeof LGP_PAGE==='number'&&LGP_PAGE)||6, n=Math.ceil(blanks.length/per);
+      for(let i=0;i<n;i++) groups.push({ name:n>1?i18t('tf_step_blanks_n',{ n:i+1 }):i18t('tf_step_blanks'), lines:blanks.slice(i*per,(i+1)*per) });
+    }
+    const multi=groups.length>1;
+    const stepsHtml=at=>groups.map((g,i)=>i+1===at?`<b>${E(g.name)}</b>`:E(g.name)).join(' · ');
+    const show=at=>{
+      document.querySelectorAll('#tf-form [data-tf-step]').forEach(d=>d.toggleAttribute('hidden', Number(d.getAttribute('data-tf-step'))!==at));
+      const last=at===groups.length;
+      document.getElementById('tf-back')?.toggleAttribute('hidden', at===1);
+      document.getElementById('tf-next')?.toggleAttribute('hidden', last);
+      document.getElementById('tf-create')?.toggleAttribute('hidden', !last);
+      const st=document.getElementById('tf-steps'); if(st) st.innerHTML=stepsHtml(at);
+      tfAt=at; };
+    let tfAt=1;
+    if(multi){
+      stepTo=id=>{ const i=groups.findIndex(g=>g.lines.some(l=>l.id===id)); if(i>=0) show(i+1); };
+      tfWire=()=>{
+        document.getElementById('tf-next')?.addEventListener('click',()=>show(Math.min(groups.length, tfAt+1)));
+        document.getElementById('tf-back')?.addEventListener('click',()=>show(Math.max(1, tfAt-1)));
+      };
+    }
+    return `<form class="lgp" id="tf-form" novalidate>
+      <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${E(t.name)}</h3>${multi?`<p class="lgp-sub lgp-steps" id="tf-steps">${stepsHtml(1)}</p>`:''}</div>
+        <button type="button" class="lgp-x" data-lgp-close tabindex="-1" aria-label="${q(i18t('lgp_close'))}">${typeof icon==='function'?icon('x','w-4 h-4'):''}</button></div>
+      <div class="lgp-bd">${groups.map((g,i)=>`<div data-tf-step="${i+1}"${i?' hidden':''}>${g.lines.map(l=>l.html).join('')}</div>`).join('')}
+        <p class="lgp-err" id="tf-err" role="alert"></p></div>
+      <div class="lgp-ft"><button type="button" class="ui-btn lgp-back" id="tf-back" hidden>‹ ${E(i18t('lgp_back'))}</button><span class="lgp-sp"></span>
+        ${multi?`<button type="button" id="tf-next" class="ui-btn ui-btn-primary lgp-go">${E(i18t('lgp_next_step'))}</button>`:''}
+        <button type="button" id="tf-create" class="ui-btn ui-btn-primary lgp-go"${multi?' hidden':''}>${i18t('lib_create_draft')}</button>
+        <button type="button" id="tf-skip" class="ui-btn" title="${q(i18t('lib_create_now_fill_later'))}">${i18t('lib_skip_for_now')}</button>
+        <button type="button" data-dlg-cancel id="tf-cancel" class="ui-btn">${i18t('act_cancel')}</button></div></form>`;
+  };
+  openModal(!_pv ? tfLgpHtml() : `<div style="padding:20px 22px">
     <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0 0 3px">${_tplEsc(t.name)}</h3>
     <div id="tf-cols" style="display:grid;grid-template-columns:${_pv?'minmax(0,1fr) minmax(0,1fr)':'minmax(0,1fr)'};gap:var(--s-4);align-items:start">
     ${fieldsHtml}
@@ -276,7 +344,9 @@ function openTemplateFillModal(t, prefill, ho){
          2026): the form and the paper fill the work area, Create draft,
          Skip and Cancel at the top. The short form stays a dialog. */
       ? { page:{ acts:['tf-create','tf-skip','tf-cancel'], crumb:`${i18t('nav_contracts')} › ${i18t('na_title')}` } }
-      : {maxWidth:'620px'});
+      /* the short form: the one sheet (f1118), its own frame, the sheet's width */
+      : { maxWidth: window.LGP_W||'480px', ownFrame:true, label:t.name });
+  if(tfWire) tfWire();
   if(typeof bindFolderSelect==='function') bindFolderSelect(document.getElementById('tf-folder'));
   /* THE ANSWERS AS THEY STAND, read exactly as the Create press reads them, so
      the preview cannot draw a contract the press would not make. */
@@ -317,20 +387,13 @@ function saveContractAsTemplate(c){
   const saveBody=rich?sanitizeRich(c.redlineText):text;
   const defName=c.name.replace(/\s*\(Draft\)\s*$/,'').replace(/\s*—.*$/,'').trim()||c.name;
   const opts=folderOptionsHtml(c.folder, false);
-  openModal(`
-    <div style="padding:20px 22px">
-      <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:6px"><span style="color:var(--color-accent)">${icon('copy','w-4 h-4')}</span>
-        <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('lib_save_as_template')}</h3></div>
-      <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.5">Saves this document's current text (${text.length.toLocaleString()} characters${rich?', with its formatting':''}) as a reusable template. It will appear under <b>${i18t('lib_cp_templates')}</b> ${i18t('lib_and_in_new_menu')}</p>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_template_name')}</span>
-        <input id="tpl-name" value="${defName.replace(/"/g,'&quot;')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
-      <label style="display:block;margin-bottom:14px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_value_stream')}</span>
-        <select id="tpl-folder" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">${opts}</select></label>
-      <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-        <button data-dlg-cancel id="tpl-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-        <button id="tpl-save" class="ui-btn ui-btn-primary">${i18t('lib_save_template')}</button>
-      </div>
-    </div>`);
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1118): two lines, the name and the stream, label beside the words; the
+     same ids, the same check, the same save. Enter in the name presses Save, as the button does. */
+  lgpOpen({ id:'tpl-sat', title:i18t('lib_save_as_template'),
+    subHtml:`Saves this document's current text (${text.length.toLocaleString()} characters${rich?', with its formatting':''}) as a reusable template. It will appear under <b>${i18t('lib_cp_templates')}</b> ${i18t('lib_and_in_new_menu')}`,
+    rows:[{ k:i18t('lib_template_name'), id:'tpl-name', value:defName }],
+    html:`<label class="lgp-row"><span class="lgp-k">${_tplEsc(i18t('lib_value_stream'))}</span><span class="lgp-v"><select id="tpl-folder" class="lgp-in">${opts}</select></span></label>`,
+    primary:{ label:i18t('lib_save_template'), attr:'id="tpl-save"' }, cancelAttr:'data-dlg-cancel id="tpl-cancel"' });
   document.getElementById('tpl-cancel').addEventListener('click',closeModal);
   bindFolderSelect(document.getElementById('tpl-folder'));
   document.getElementById('tpl-save').addEventListener('click',()=>{
@@ -381,7 +444,7 @@ function openCreateTemplateModal(mode){
         <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_template_name')}</span>
           <input id="ct-name" placeholder="e.g. Standard Distribution Agreement" style="${FLD}"/></label>
         <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_value_stream')}</span>
-          <select id="ct-folder" style="${FLD};background:var(--color-surface)">${opts}</select></label>
+          <select id="ct-folder" style="${FLD};background:var(--fld-bg)">${opts}</select></label>
       </div>
 
       <!-- Both panes share one grid cell, so the modal is as tall as the
@@ -656,7 +719,7 @@ function openBlanksEditor(tid){
   // work on a copy — nothing is written until Save
   let body=templateBody(rec);
   let fields=(rec.fields||[]).map(f=>({ ...f }));
-  let dirty=false;
+  let dirty=false, bePage=1;
   // A rich template is NOT edited as raw HTML in a textarea — that would show
   // the customer their own contract as markup and destroy it on the first
   // keystroke. It is shown as the document it is, and a blank is made from the
@@ -671,20 +734,23 @@ function openBlanksEditor(tid){
     const used=bodyPlaceholders(body);
     const orphanFields=fields.filter(f=>!used.includes(f.key));
     const orphanBlanks=used.filter(k=>!fields.some(f=>f.key===k));
-    const st='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-1) 7px;font:inherit;font-size:var(--t-meta);outline:none';
-    const rows=fields.map((f,i)=>`
-      <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:var(--s-1) 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
-        <input data-f="label" value="${String(f.label||'').replace(/"/g,'&quot;')}" placeholder="${i18t('lb_label')}" style="${st}"/>
-        <select data-f="type" style="${st}">${TPL_FIELD_TYPES.map(x=>`<option value="${x.k}" ${f.type===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
-        <select data-f="maps" style="${st}">${TPL_MAPS.map(x=>`<option value="${x.k}" ${(f.maps||'')===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
+    /* THE ONE SHEET (f1118): each blank a line, no boxes; more than six a NEXT PAGE (‹ 1–6 of 9 ›), never a scroll */
+    const per=(typeof LGP_PAGE==='number'&&LGP_PAGE)||6, pages=Math.max(1,Math.ceil(fields.length/per));
+    bePage=Math.min(Math.max(1,bePage),pages);
+    const rows=fields.map((f,i)=>[f,i]).slice((bePage-1)*per, bePage*per).map(([f,i])=>`
+      <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:var(--s-1) 0;border-bottom:1px solid var(--color-divider)">
+        <input data-f="label" class="lgp-in" value="${String(f.label||'').replace(/"/g,'&quot;')}" placeholder="${i18t('lb_label')}"/>
+        <select data-f="type" class="lgp-in">${TPL_FIELD_TYPES.map(x=>`<option value="${x.k}" ${f.type===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
+        <select data-f="maps" class="lgp-in">${TPL_MAPS.map(x=>`<option value="${x.k}" ${(f.maps||'')===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
         <label style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap"><input data-f="required" type="checkbox" ${f.required?'checked':''} style="accent-color:var(--color-accent)"/>req</label>
-        <button data-del="${i}" title="${i18t('lb_remove_blank')}" aria-label="${i18t('lb_remove_blank')}" class="ui-btn ui-btn-sm ui-btn-icon ui-btn-danger">${icon('x')}</button>
-        ${f.type==='select'?`<input data-f="opts" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="${i18t('lb_choices_comma')}" style="${st};grid-column:1 / -1"/>`:''}
+        <button type="button" data-del="${i}" title="${i18t('lb_remove_blank')}" aria-label="${i18t('lb_remove_blank')}" class="ui-btn ui-btn-sm ui-btn-icon ui-btn-danger">${icon('x')}</button>
+        ${f.type==='select'?`<input data-f="opts" class="lgp-in" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="${i18t('lb_choices_comma')}" style="grid-column:1 / -1"/>`:''}
         <div style="grid-column:1 / -1;font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?` <span style="color:var(--st-ruby-fg)">${i18t('lib_blank_unused')}</span>`:''}</div>
-      </div>`).join('');
+      </div>`).join('')+(pages>1?`<div class="lgp-lfoot"><span></span><span class="lgp-pager"><button type="button" class="lgp-pg" data-be-page="${bePage-1}"${bePage<=1?' disabled':''} aria-label="${_tplEsc(i18t('lgp_prev'))}">‹</button>${_tplEsc(i18t('lgp_of',{ a:(bePage-1)*per+1, b:Math.min(bePage*per, fields.length), n:fields.length }))}<button type="button" class="lgp-pg" data-be-page="${bePage+1}"${bePage>=pages?' disabled':''} aria-label="${_tplEsc(i18t('lgp_next'))}">›</button></span></div>`:'');
     const host=document.getElementById('be-fields');
     if(host){
-      host.innerHTML=rows||`<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:6px 0">${i18t('lib_no_blanks_yet')} <b>${i18t('lib_make_this_blank')}</b>.</div>`;
+      host.innerHTML=rows||`<p class="lgp-none">${i18t('lib_no_blanks_yet')} <b>${i18t('lib_make_this_blank')}</b>.</p>`;
+      host.querySelectorAll('[data-be-page]').forEach(b=>b.addEventListener('click',()=>{ bePage=Number(b.getAttribute('data-be-page'))||1; draw(); }));
       host.querySelectorAll('[data-fld]').forEach(row=>{
         const i=Number(row.getAttribute('data-fld'));
         row.querySelectorAll('[data-f]').forEach(el=>el.addEventListener('change',()=>{
@@ -712,26 +778,38 @@ function openBlanksEditor(tid){
       : `<span style="color:var(--color-neutral-600)">${fields.length} blank${fields.length===1?'':'s'} · they become the contract's structured data when someone fills this template in.</span>`;
   };
 
-  openModal(`<div style="padding:20px 22px">
-    <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)"><span style="color:var(--color-accent)">${icon('copy','w-4 h-4')}</span>
-      <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">Blanks in “${_tplEsc(rec.name)}”</h3></div>
-    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">The blanks in a template are the database. Anything you mark here becomes a guided field when someone creates a contract, and its value is filed as contract data — so the register, filters, folder routing and reports get structured information with no separate data entry.</p>
-    <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:10px">
-      <button id="be-make" class="ui-btn ui-btn-primary">${i18t('lib_make_selection_blank')}</button>
-      <button id="be-detect" class="ui-btn">${i18t('lib_detect_brackets')}</button>
-      ${(API_MODE()&&state.aiConfigured)?`<button id="be-suggest" class="ui-btn">${icon('sparkle','w-3.5 h-3.5')} Suggest blanks</button>`:''}
-    </div>
-    <div id="be-fields" class="scroll-thin" style="max-height:190px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:var(--radius);padding:6px 9px;margin-bottom:var(--s-2)"></div>
-    <div id="be-warn" style="font-size:var(--t-label);margin-bottom:var(--s-2);min-height:14px"></div>
-    <label style="display:block;margin-bottom:var(--s-3)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">Template body — select text, then “Make selection a blank”${rich?` <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${i18t('lib_formatted_template')}</span>`:''}</span>
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1118): the sheet's head, lines and foot, in two steps — the paper (where a
+     blank is made from a selection) then the blanks (each a line) — both in the form, so Save reads every blank
+     wherever the reader stands. The paper keeps its room: a template's wording is not read at the sheet's 480. */
+  const E=_tplEsc;
+  openModal(`<form class="lgp" id="be-form" novalidate>
+    <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">Blanks in “${E(rec.name)}”</h3>
+      <p class="lgp-sub lgp-steps" id="be-steps"><b>${E(i18t('lib_document'))}</b> · ${E(i18t('lib_blanks'))}</p>
+      <p class="lgp-sub">The blanks in a template are the database. Anything you mark here becomes a guided field when someone creates a contract, and its value is filed as contract data — so the register, filters, folder routing and reports get structured information with no separate data entry.</p></div>
+      <button type="button" class="lgp-x" id="be-x" tabindex="-1" aria-label="${E(i18t('lgp_close'))}">${icon('x','w-4 h-4')}</button></div>
+    <div class="lgp-bd">
+    <div id="be-step-1">
+      <div class="lgp-chips">
+        <button type="button" id="be-make" class="ui-btn">${i18t('lib_make_selection_blank')}</button>
+        <button type="button" id="be-detect" class="ui-btn">${i18t('lib_detect_brackets')}</button>
+        ${(API_MODE()&&state.aiConfigured)?`<button type="button" id="be-suggest" class="ui-btn">${icon('sparkle','w-3.5 h-3.5')} Suggest blanks</button>`:''}
+      </div>
+      <p class="lgp-small">Template body — select text, then “Make selection a blank”${rich?` · ${i18t('lib_formatted_template')}`:''}</p>
       ${rich
-        ? `<div id="be-body" class="scroll-thin doc-surface" style="width:100%;height:210px;overflow-y:auto;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:9px 13px"></div>`
-        : `<textarea id="be-body" class="scroll-thin" style="width:100%;height:210px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:9px 11px;font:inherit;font-size:var(--t-meta);line-height:1.6;font-family:var(--font-mono);outline:none;resize:vertical"></textarea>`}</label>
-    <div id="be-status" style="font-size:var(--t-label);color:var(--color-neutral-600);min-height:15px;margin-bottom:var(--s-2)"></div>
-    <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-      <button data-dlg-cancel id="be-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      <button id="be-save" class="ui-btn ui-btn-primary">${i18t('lib_save_blanks')}</button>
-    </div></div>`, {maxWidth:'760px',
+        ? `<div id="be-body" class="scroll-thin doc-surface" style="width:100%;height:210px;overflow-y:auto;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;padding:9px 13px;margin-top:var(--s-2)"></div>`
+        : `<textarea id="be-body" class="lgp-in is-area scroll-thin" style="width:100%;height:210px;font-size:var(--t-meta);line-height:1.6;font-family:var(--font-mono)"></textarea>`}
+    </div>
+    <div id="be-step-2" hidden>
+      <div id="be-fields"></div>
+      <p id="be-warn" class="lgp-small"></p>
+    </div>
+    <p id="be-status" class="lgp-small" role="status"></p>
+    </div>
+    <div class="lgp-ft"><button type="button" class="ui-btn lgp-back" id="be-back" hidden>‹ ${E(i18t('lgp_back'))}</button><span class="lgp-sp"></span>
+      <button type="button" id="be-next" class="ui-btn ui-btn-primary lgp-go">${E(i18t('lgp_next_step'))}</button>
+      <button type="button" id="be-save" class="ui-btn ui-btn-primary lgp-go" hidden>${i18t('lib_save_blanks')}</button>
+      <button type="button" data-dlg-cancel id="be-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+    </div></form>`, {maxWidth:'760px', ownFrame:true, label:`Blanks in “${rec.name}”`,
     /* Escape and the scrim ask the SAME question Cancel does. Without this they
        walked straight past the guard below and took every unsaved blank with
        them. */
@@ -739,6 +817,15 @@ function openBlanksEditor(tid){
       message:'The blanks you added, renamed or removed since opening this editor will be lost. The template itself is unchanged.',
       confirmLabel:'Discard changes', cancelLabel:'Keep editing', danger:true })});
   draw();
+  /* the two steps: Next shows the blanks, Back the paper; the cross asks what Cancel asks */
+  const beStep=n=>{ const one=n===1;
+    document.getElementById('be-step-1')?.toggleAttribute('hidden', !one); document.getElementById('be-step-2')?.toggleAttribute('hidden', one);
+    document.getElementById('be-back')?.toggleAttribute('hidden', one); document.getElementById('be-next')?.toggleAttribute('hidden', !one);
+    document.getElementById('be-save')?.toggleAttribute('hidden', one);
+    const sp=document.getElementById('be-steps'); if(sp) sp.innerHTML=one?`<b>${E(i18t('lib_document'))}</b> · ${E(i18t('lib_blanks'))}`:`${E(i18t('lib_document'))} · <b>${E(i18t('lib_blanks'))}</b>`; };
+  document.getElementById('be-next')?.addEventListener('click',()=>beStep(2));
+  document.getElementById('be-back')?.addEventListener('click',()=>beStep(1));
+  document.getElementById('be-x')?.addEventListener('click',()=>document.getElementById('be-cancel')?.click());
 
   const bodyEl=document.getElementById('be-body');
   if(!rich) bodyEl.addEventListener('input',()=>{ body=bodyEl.value; dirty=true; draw(); });
@@ -898,65 +985,56 @@ function openTemplateEditor(tid){
   let body=templateBody(rec);
   let format=templateFormat(rec);
   let fields=(rec.fields||[]).map(f=>({...f}));
-  let editor=null, dirty=false, previewing=false;
+  let editor=null, dirty=false, previewing=false, tePage=1;
   const usage=templateUsage(tid);
   const startedRich=isRich(format);
   const bodyText=()=> isRich(format) ? richToText(body) : body;
 
-  /* READS THE ONE PAIR (25 Aug 2026) — see HATI_FLD in core.js. */
-  const FLD=window.HATI_FLD;
-  openModal(`<div style="padding:20px 22px">
-    <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:3px">
-      <span style="color:var(--color-accent)">${icon('pencil','w-4 h-4')}</span>
-      <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('lib_edit_template')}</h3>
-      <span style="font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-steel-fg);border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:var(--radius);padding:1px 6px">v${templateVersionNo(rec)}</span>
-      <span style="flex:1"></span>
-      <button id="te-versions" class="ui-btn ui-btn-sm" style="white-space:nowrap">${icon('history','w-3.5 h-3.5')} Versions (${templateVersions(rec).length+1})</button>
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1118): the sheet's head, lines and foot, in three steps — the name, its
+     stream and what changed; the document; the blanks — all in the form, so Save reads everything wherever the reader
+     stands, and a refusal brings its own step back into view. The paper keeps its room: a template's wording is not
+     read at the sheet's 480. */
+  const E=_tplEsc, vNow=templateVersionNo(rec), vNext=vNow+1;
+  const TE_STEPS=[i18t('te_step_name'), i18t('lib_document'), i18t('lib_blanks')];
+  const teStepsHtml=at=>TE_STEPS.map((n,i)=>i+1===at?`<b>${E(n)}</b>`:E(n)).join(' · ');
+  const line=(k, ctl)=>`<label class="lgp-row"><span class="lgp-k">${E(k)}</span><span class="lgp-v">${ctl}</span></label>`;
+  openModal(`<form class="lgp" id="te-form" novalidate>
+    <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${i18t('lib_edit_template')} · v${vNow}</h3>
+      <p class="lgp-sub lgp-steps" id="te-steps">${teStepsHtml(1)}</p>
+      <p class="lgp-sub">${E(templateUsageLabel(usage))} · saving creates <b>v${vNext}</b>. <button type="button" class="lgp-use" id="te-versions">Versions (${templateVersions(rec).length+1})</button></p></div>
+      <button type="button" class="lgp-x" id="te-x" tabindex="-1" aria-label="${E(i18t('lgp_close'))}">${icon('x','w-4 h-4')}</button></div>
+    <div class="lgp-bd">
+    <div data-te-step="1">
+      ${line(i18t('lib_template_name'), `<input id="te-name" class="lgp-in" autocomplete="off" value="${String(name).replace(/"/g,'&quot;')}"/>`)}
+      ${line(i18t('lib_value_stream'), `<select id="te-folder" class="lgp-in">${folderOptionsHtml(folder,false)}</select>`)}
+      ${line(i18t('lib_what_changed'), `<input id="te-note" class="lgp-in" autocomplete="off" placeholder="${esc(i18t('lib_ph_version_note'))}"/>`)}
+      <p class="lgp-small">(recorded against v${vNext})</p>
+      <p class="lgp-small"><b>${i18t('lib_existing_unaffected')}</b> A contract copies the wording when it is created; it does not follow the template afterwards. Changes here apply to the next draft you generate.</p>
     </div>
-    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-1);line-height:1.5">
-      ${_tplEsc(templateUsageLabel(usage))} · saving creates <b>v${templateVersionNo(rec)+1}</b>.</p>
-    <div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:7px 10px;margin:0 0 var(--s-3);font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-700)">
-      <span style="flex:none;margin-top:1px;color:var(--color-accent)">${icon('shield','w-3.5 h-3.5')}</span>
-      <span><b>${i18t('lib_existing_unaffected')}</b> A contract copies the wording when it is created; it does not follow the template afterwards. Changes here apply to the next draft you generate.</span>
+    <div data-te-step="2" hidden>
+      <div class="lgp-chips">
+        <button type="button" id="te-blank" class="ui-btn ui-btn-sm">${i18t('lib_make_selection_blank')}</button>
+        <button type="button" id="te-preview" class="ui-btn ui-btn-sm">${i18t('lib_preview')}</button>
+      </div>
+      <p class="lgp-small" style="margin-bottom:var(--s-2)">${startedRich?'formatted — paste over it to replace, or edit in place':'plain text — paste formatted paper here to upgrade it'}</p>
+      <div id="te-body" class="scroll-thin doc-surface" style="height:230px;font-size:var(--t-body)"
+           data-placeholder="${i18t('lb_paste_or_type')}"></div>
+      <div id="te-previewpane" class="scroll-thin doc-surface" style="display:none;height:230px;overflow-y:auto;border:1px solid var(--color-accent-300);background:var(--color-bg);border-radius:0;padding:14px 18px"></div>
+      <p class="lgp-small">${RICH_EDITOR_NOTE}</p>
     </div>
-
-    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-bottom:var(--s-3)">
-      <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_template_name')}</span>
-        <input id="te-name" value="${String(name).replace(/"/g,'&quot;')}" style="${FLD}"/></label>
-      <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_value_stream')}</span>
-        <select id="te-folder" style="${FLD};background:var(--color-surface)">${folderOptionsHtml(folder,false)}</select></label>
+    <div data-te-step="3" hidden>
+      <p class="lgp-small">${i18t('lib_blanks_become_fields')}</p>
+      <div id="te-fields"></div>
+      <div id="te-warn" class="lgp-small"></div>
     </div>
-
-    <div style="display:flex;align-items:baseline;gap:var(--s-2);margin-bottom:var(--s-1)">
-      <span style="font-size:var(--t-label);font-weight:var(--w-strong)">${i18t('lib_document')}</span>
-      <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${startedRich?'formatted — paste over it to replace, or edit in place':'plain text — paste formatted paper here to upgrade it'}</span>
-      <span style="flex:1"></span>
-      <button id="te-blank" class="ui-btn ui-btn-sm">${i18t('lib_make_selection_blank')}</button>
-      <button id="te-preview" class="ui-btn ui-btn-sm">${i18t('lib_preview')}</button>
+    <p id="te-status" class="lgp-small" role="status"></p>
     </div>
-    <div id="te-body" class="scroll-thin doc-surface" style="height:230px;font-size:var(--t-body)"
-         data-placeholder="${i18t('lb_paste_or_type')}"></div>
-    <div id="te-previewpane" class="scroll-thin doc-surface" style="display:none;height:230px;overflow-y:auto;border:1px solid var(--color-accent-300);background:var(--color-bg);border-radius:0;padding:14px 18px"></div>
-    <p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:6px 0 0;line-height:1.5">${RICH_EDITOR_NOTE}</p>
-
-    <div style="display:flex;align-items:baseline;gap:var(--s-2);margin:var(--s-3) 0 var(--s-1)">
-      <span style="font-size:var(--t-label);font-weight:var(--w-strong)">${i18t('lib_blanks')}</span>
-      <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('lib_blanks_become_fields')}</span>
-    </div>
-    <div id="te-fields" class="scroll-thin" style="max-height:150px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:var(--radius);padding:6px 9px"></div>
-    <div id="te-warn" style="font-size:var(--t-label);margin:7px 0;min-height:15px;line-height:1.5"></div>
-
-    <label style="display:block;margin-bottom:var(--s-3)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_what_changed')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">(recorded against v${templateVersionNo(rec)+1})</span></span>
-      <input id="te-note" placeholder="${esc(i18t('lib_ph_version_note'))}" style="${FLD}"/></label>
-
-    <div id="te-status" style="font-size:var(--t-label);min-height:16px;margin-bottom:var(--s-2)"></div>
-    <div style="display:flex;justify-content:space-between;gap:var(--s-2)">
-      <button id="te-delete" class="ui-btn" style="border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${i18t('lib_delete_template')}</button>
-      <span style="display:flex;gap:var(--s-2)">
-        <button data-dlg-cancel id="te-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-        <button id="te-save" class="ui-btn ui-btn-primary" style="white-space:nowrap">${icon('check2','w-3.5 h-3.5')} Save as v${templateVersionNo(rec)+1}</button>
-      </span>
-    </div></div>`, {maxWidth:'880px',
+    <div class="lgp-ft"><button type="button" class="ui-btn lgp-back" id="te-back" hidden>‹ ${E(i18t('lgp_back'))}</button>
+      <button type="button" id="te-delete" class="lgp-left is-danger">${i18t('lib_delete_template')}</button><span class="lgp-sp"></span>
+      <button type="button" id="te-next" class="ui-btn ui-btn-primary lgp-go">${E(i18t('lgp_next_step'))}</button>
+      <button type="button" id="te-save" class="ui-btn ui-btn-primary lgp-go" style="white-space:nowrap" hidden>${icon('check2','w-3.5 h-3.5')} Save as v${vNext}</button>
+      <button type="button" data-dlg-cancel id="te-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+    </div></form>`, {maxWidth:'880px', ownFrame:true, label:i18t('lib_edit_template'),
     /* Same as the blanks editor above: the quiet ways out ask the same question
        the Cancel button asks, or ten minutes of editing goes without a word. */
     onBeforeClose:async()=>!dirty || await confirmDialog({ title:'Discard these changes?',
@@ -964,6 +1042,16 @@ function openTemplateEditor(tid){
       confirmLabel:'Discard changes', cancelLabel:'Keep editing', danger:true })});
 
   const st=m=>{ const el=document.getElementById('te-status'); if(el) el.innerHTML=m||''; };
+  /* the three steps: Next on, Back back; Delete stands on the first only; a refusal shows its own step (teStep) */
+  let teAt=1;
+  const teStep=n=>{ teAt=n;
+    document.querySelectorAll('#te-form [data-te-step]').forEach(d=>d.toggleAttribute('hidden', Number(d.getAttribute('data-te-step'))!==n));
+    document.getElementById('te-back')?.toggleAttribute('hidden', n===1); document.getElementById('te-delete')?.toggleAttribute('hidden', n!==1);
+    document.getElementById('te-next')?.toggleAttribute('hidden', n===TE_STEPS.length); document.getElementById('te-save')?.toggleAttribute('hidden', n!==TE_STEPS.length);
+    const sp=document.getElementById('te-steps'); if(sp) sp.innerHTML=teStepsHtml(n); };
+  document.getElementById('te-next')?.addEventListener('click',()=>teStep(Math.min(TE_STEPS.length, teAt+1)));
+  document.getElementById('te-back')?.addEventListener('click',()=>teStep(Math.max(1, teAt-1)));
+  document.getElementById('te-x')?.addEventListener('click',()=>document.getElementById('te-cancel')?.click());
   bindFolderSelect(document.getElementById('te-folder'));
 
   /* ---- the document, in a real rich editor (reuses the paste conversion) ---- */
@@ -994,19 +1082,22 @@ function openTemplateEditor(tid){
     const used=usedIn();
     const orphanFields=fields.filter(f=>!used.includes(f.key));      // a field with no blank
     const orphanBlanks=used.filter(k=>!fields.some(f=>f.key===k));   // a blank with no field
-    const stl='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-1) 7px;font:inherit;font-size:var(--t-meta);outline:none';
     const host2=document.getElementById('te-fields'); if(!host2) return;
-    host2.innerHTML=fields.length?fields.map((f,i)=>`
-      <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:var(--s-1) 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
-        <input data-f="label" value="${String(f.label||'').replace(/"/g,'&quot;')}" placeholder="${i18t('lb_label')}" style="${stl}"/>
-        <select data-f="type" style="${stl}">${TPL_FIELD_TYPES.map(x=>`<option value="${x.k}" ${f.type===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
-        <select data-f="maps" style="${stl}">${TPL_MAPS.map(x=>`<option value="${x.k}" ${(f.maps||'')===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
+    /* THE ONE SHEET (f1118): each blank a line, no boxes; more than six a NEXT PAGE, never a scroll */
+    const per=(typeof LGP_PAGE==='number'&&LGP_PAGE)||6, pages=Math.max(1,Math.ceil(fields.length/per));
+    tePage=Math.min(Math.max(1,tePage),pages);
+    host2.innerHTML=fields.length?fields.map((f,i)=>[f,i]).slice((tePage-1)*per, tePage*per).map(([f,i])=>`
+      <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:var(--s-1) 0;border-bottom:1px solid var(--color-divider)">
+        <input data-f="label" class="lgp-in" value="${String(f.label||'').replace(/"/g,'&quot;')}" placeholder="${i18t('lb_label')}"/>
+        <select data-f="type" class="lgp-in">${TPL_FIELD_TYPES.map(x=>`<option value="${x.k}" ${f.type===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
+        <select data-f="maps" class="lgp-in">${TPL_MAPS.map(x=>`<option value="${x.k}" ${(f.maps||'')===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
         <label style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap"><input data-f="required" type="checkbox" ${f.required?'checked':''} style="accent-color:var(--color-accent)"/>req</label>
-        <button data-del="${i}" title="${i18t('lb_remove_blank')}" aria-label="${i18t('lb_remove_blank')}" class="ui-btn ui-btn-sm ui-btn-icon ui-btn-danger">${icon('x')}</button>
-        ${f.type==='select'?`<input data-f="opts" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="${i18t('lb_choices_comma')}" style="${stl};grid-column:1 / -1"/>`:''}
+        <button type="button" data-del="${i}" title="${i18t('lb_remove_blank')}" aria-label="${i18t('lb_remove_blank')}" class="ui-btn ui-btn-sm ui-btn-icon ui-btn-danger">${icon('x')}</button>
+        ${f.type==='select'?`<input data-f="opts" class="lgp-in" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="${i18t('lb_choices_comma')}" style="grid-column:1 / -1"/>`:''}
         <div style="grid-column:1 / -1;font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?` <span style="color:var(--st-ruby-fg)">${i18t('lib_not_used_above')}</span>`:''}</div>
-      </div>`).join('')
-      :`<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:6px 0">${i18t('lib_no_blanks_press')} <b>${i18t('lib_make_selection_blank')}</b>.</div>`;
+      </div>`).join('')+(pages>1?`<div class="lgp-lfoot"><span></span><span class="lgp-pager"><button type="button" class="lgp-pg" data-te-page="${tePage-1}"${tePage<=1?' disabled':''} aria-label="${E(i18t('lgp_prev'))}">‹</button>${E(i18t('lgp_of',{ a:(tePage-1)*per+1, b:Math.min(tePage*per, fields.length), n:fields.length }))}<button type="button" class="lgp-pg" data-te-page="${tePage+1}"${tePage>=pages?' disabled':''} aria-label="${E(i18t('lgp_next'))}">›</button></span></div>`:'')
+      :`<p class="lgp-none">${i18t('lib_no_blanks_press')} <b>${i18t('lib_make_selection_blank')}</b>.</p>`;
+    host2.querySelectorAll('[data-te-page]').forEach(b=>b.addEventListener('click',()=>{ tePage=Number(b.getAttribute('data-te-page'))||1; drawFields(); }));
     host2.querySelectorAll('[data-fld]').forEach(row=>{
       const i=Number(row.getAttribute('data-fld'));
       row.querySelectorAll('[data-f]').forEach(el=>el.addEventListener('change',()=>{
@@ -1117,11 +1208,11 @@ function openTemplateEditor(tid){
 
   document.getElementById('te-save').addEventListener('click',async()=>{
     const nm=document.getElementById('te-name').value.trim();
-    if(!nm){ st(`<span style="color:var(--st-ruby-fg)">${i18t('lib_needs_name')}</span>`); return; }
+    if(!nm){ teStep(1); st(`<span style="color:var(--st-ruby-fg)">${i18t('lib_needs_name')}</span>`); return; }
     if(previewing) pvBtn.click();
     if(isRich(format)) body=unmarkPlaceholders(editor.get());
     const text=bodyText();
-    if(!text.trim()){ st(`<span style="color:var(--st-ruby-fg)">${i18t('lib_doc_not_empty')}</span>`); return; }
+    if(!text.trim()){ teStep(2); st(`<span style="color:var(--st-ruby-fg)">${i18t('lib_doc_not_empty')}</span>`); return; }
 
     // the blank/body sync warnings are BLOCKING in one direction and advisory in
     // the other: a placeholder with no field would render as literal braces in
@@ -1129,7 +1220,7 @@ function openTemplateEditor(tid){
     // just asks a pointless question, which the user may well intend mid-edit.
     const used=usedIn();
     const orphanBlanks=used.filter(k=>!fields.some(f=>f.key===k));
-    if(orphanBlanks.length){ st(`<span style="color:var(--st-ruby-fg)">The document uses ${orphanBlanks.map(k=>'{{'+k+'}}').join(', ')} with no matching blank. Add the blank or remove the placeholder — otherwise it prints as literal braces in every contract made from this template.</span>`); return; }
+    if(orphanBlanks.length){ teStep(3); st(`<span style="color:var(--st-ruby-fg)">The document uses ${orphanBlanks.map(k=>'{{'+k+'}}').join(', ')} with no matching blank. Add the blank or remove the placeholder — otherwise it prints as literal braces in every contract made from this template.</span>`); return; }
     const orphanFields=fields.filter(f=>!used.includes(f.key));
     if(orphanFields.length && !await confirmDialog({
       title:`Save with ${orphanFields.length} unused blank${orphanFields.length===1?'':'s'}?`,
@@ -1137,9 +1228,9 @@ function openTemplateEditor(tid){
         `${orphanFields.length===1?'It':'They'} will still be asked for when someone uses this template, and the answer will not appear in the contract.`,
       confirmLabel:'Save anyway', cancelLabel:'Go back and fix it' })) return;
     const bad=fields.find(f=>!String(f.label||'').trim());
-    if(bad){ st(`<span style="color:var(--st-ruby-fg)">${i18t('lib_every_blank_label')}</span>`); return; }
+    if(bad){ teStep(3); st(`<span style="color:var(--st-ruby-fg)">${i18t('lib_every_blank_label')}</span>`); return; }
     const badSel=fields.find(f=>f.type==='select'&&!(f.opts||[]).length);
-    if(badSel){ st(`<span style="color:var(--st-ruby-fg)">${i18t('lib_choice_no_choices',{label:_tplEsc(badSel.label)})}</span>`); return; }
+    if(badSel){ teStep(3); st(`<span style="color:var(--st-ruby-fg)">${i18t('lib_choice_no_choices',{label:_tplEsc(badSel.label)})}</span>`); return; }
 
     const note=document.getElementById('te-note').value.trim();
     const next=saveTemplateVersion(tid, {
@@ -1325,6 +1416,12 @@ function tplBuiltinDraftBody(bid){
    copy every start makes: filed in the template's own value stream, with the
    category its stream states, and opened in the builder with Copilot's list of
    likely blanks. The creation itself lives in the start (nsOpenTemplate). */
+/* THE DOOR TO NEW AGREEMENT (owner, 17 Nov 2026): From scratch › From one of our templates, this paper chosen and in view;
+   without the new-paper grant, the grant's own refusal (Requests) */
+function tplnOursGo(bid){
+  if (typeof naNewPaperOk === 'function' && !naNewPaperOk()){ if (typeof window.newPaperBlock === 'function' && window.newPaperBlock()) return; toast(i18t('lb_viewers_no_add'), 'err'); return; }
+  return openNewAgreement({ newPaper:true, start:'template', pick:bid });
+}
 function tplMakeItOurs(bid){
   if(typeof window.newPaperBlock==='function' && window.newPaperBlock()) return;
   if(!tplCanManage()){ toast(i18t('lb_viewers_no_add'),'err'); return; }
@@ -1341,20 +1438,17 @@ function openBulkCreateModal(t){
   if(!canEdit()){ if(typeof draftWallToast==='function') draftWallToast(); else toast(i18t('lib_viewers_no_create'),'err'); return; }
   const fs=templateFields(t);
   if(!fs.length){ toast(i18t('lb_no_blanks_add_first'),'err'); return; }
-  openModal(`<div style="padding:20px 22px">
-    <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)"><span style="color:var(--color-accent)">${icon('list','w-4 h-4')}</span>
-      <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">Create in bulk — ${_tplEsc(t.name||t.kind)}</h3></div>
-    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">${i18t('lib_bulk_line', { n:TPL_BULK_MAX })}</p>
-    <div style="display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:var(--s-3)">
-      <button id="bk-csv" class="ui-btn">${icon('download','w-3.5 h-3.5')} ${i18tn('lib_download_csv',fs.length,{n:fs.length})}</button>
-      <label class="ui-btn" style="font-size:var(--t-meta);padding:5px 11px;cursor:pointer">${icon('upload','w-3.5 h-3.5')} Upload the filled sheet
-        <input id="bk-file" type="file" accept=".csv" style="display:none"/></label>
-    </div>
-    <div id="bk-out" style="font-size:var(--t-meta);color:var(--color-neutral-700);min-height:20px"></div>
-    <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:14px">
-      <button id="bk-cancel" class="ui-btn">${i18t('act_close')}</button>
-      <button id="bk-go" class="ui-btn ui-btn-primary" disabled style="opacity:.5">${i18t('lib_create_drafts')}</button>
-    </div></div>`, {maxWidth:'700px'});
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1118): two lines — the blank sheet to download, the filled one to bring
+     back — what was checked under them, Create drafts the one black button (asleep until every row is valid), Close
+     last. The same ids, the same check, nothing created before the press. */
+  const E=_tplEsc;
+  lgpOpen({ id:'bk-form', title:`Create in bulk — ${t.name||t.kind}`, sub:i18t('lib_bulk_line', { n:TPL_BULK_MAX }),
+    html:`<div class="lgp-row"><span class="lgp-k">${E(i18t('bk_row_sheet'))}</span><span class="lgp-v"><button type="button" id="bk-csv" class="ui-btn">${icon('download','w-3.5 h-3.5')} ${i18tn('lib_download_csv',fs.length,{n:fs.length})}</button></span></div>
+      <div class="lgp-row"><span class="lgp-k">${E(i18t('bk_row_filled'))}</span><span class="lgp-v"><label class="ui-btn" style="cursor:pointer">${icon('upload','w-3.5 h-3.5')} Upload the filled sheet
+        <input id="bk-file" type="file" accept=".csv" style="display:none"/></label></span></div>
+      <div id="bk-out" class="lgp-small" role="status"></div>`,
+    primary:{ label:i18t('lib_create_drafts'), attr:'id="bk-go" disabled style="opacity:.5"' },
+    cancelAttr:'id="bk-cancel"', cancelLabel:i18t('act_close') });
 
   let ready=null;
   const out=document.getElementById('bk-out');
@@ -1373,9 +1467,9 @@ function openBulkCreateModal(t){
       if(r.errors.length){
         const byRow={};
         r.errors.forEach(er=>{ (byRow[er.row]=byRow[er.row]||[]).push(er); });
-        out.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:9px 11px">
+        out.innerHTML=`<div>
           <div style="font-weight:var(--w-strong);color:var(--st-ruby-fg);margin-bottom:5px">${r.errors.length} problem${r.errors.length===1?'':'s'} found — <b>${i18t('lib_nothing_created')}</b>.</div>
-          <div class="scroll-thin" style="max-height:200px;overflow-y:auto">
+          <div class="scroll-thin" style="max-height:160px;overflow-y:auto">
           ${Object.keys(byRow).sort((a,b)=>a-b).map(rn=>`<div style="padding:2px 0;color:var(--st-ruby-fg)">
             ${rn==='0'?`<b>${i18t('lib_sheet')}</b>`:`<b>Row ${rn}</b>`} — ${byRow[rn].map(er=>`${er.cell?`<i>${_tplEsc(er.cell)}</i>: `:''}${_tplEsc(er.msg)}`).join('; ')}</div>`).join('')}
           </div>
@@ -1383,7 +1477,7 @@ function openBulkCreateModal(t){
         return;
       }
       ready=r.rows;
-      out.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:var(--radius);padding:9px 11px;color:var(--st-steel-fg)">
+      out.innerHTML=`<div style="color:var(--color-text)">
         <b>${r.rows.length} row${r.rows.length===1?'':'s'} checked, every cell valid.</b> ${i18t('lib_press')} <b>${i18t('lib_create_drafts')}</b> to file them all in one pass.
         <div style="margin-top:5px;color:var(--color-neutral-700);font-size:var(--t-label)">First few: ${r.rows.slice(0,3).map(x=>_tplEsc(x.name)).join(' · ')}${r.rows.length>3?` … and ${r.rows.length-3} more`:''}</div></div>`;
       go.disabled=false; go.style.opacity='1';
@@ -2693,7 +2787,7 @@ const TPL_SHELF_SUB = { company:'lib_shelf_sub_company', builtin:'lib_shelf_sub_
    never wording. Jambo's panel beside the page says the same from the record,
    nothing spent. The choice, the open shelves and the find box are per
    sitting (and kept through a refresh, tplPlace); nothing is written. */
-const _tplPf = { pick:null, q:'', open:{}, docs:{}, read:null, chips:[], lq:'', ls:'', quotes:{} };
+const _tplPf = { pick:null, q:'', open:{}, docs:{}, read:null, chips:[], lq:'', ls:'', quotes:{}, view:'shelves', lf:'', lk:'', shelfPick:'' };
 /* true while the page draws the Legora head (Part 8), whose box narrows the
    index: the index then draws no find box of its own (one box, one query) */
 let _tplHeadBox = false;
@@ -2741,7 +2835,7 @@ function tplPfTally(cs, o){
     if (hit.size) ids.push(c.id);
     for (const k of hit){ const e = byCat.get(k) || { category:k, n:0, ids:[] }; e.n++; e.ids.push(c.id); byCat.set(k, e); }
   }
-  return { used:recent.length, checked, changed:ids.length, ids,
+  return { used:recent.length, usedIds:recent.map(c => c.id), checked, changed:ids.length, ids,
     byCat:[...byCat.values()].sort((a, b) => b.n - a.n || String(a.category).localeCompare(String(b.category))) };
 }
 function tplPfStats(card){
@@ -2833,7 +2927,7 @@ function tplPfDocLoad(id){
   if (typeof api !== 'function' || typeof templateFormDocHtml !== 'function'){ _tplPf.docs[id] = { failed:true }; return; }
   const stamp = tplPfDocStamp(id);
   _tplPf.docs[id] = { busy:true, stamp };
-  Promise.resolve().then(async () => {
+  return Promise.resolve().then(async () => {
     const d = await api('templates/' + id, 'GET', null, { quiet:true });
     const vs = (d && d.versions) || [];
     const v = vs.find(x => x.status === 'published') || vs.find(x => x.status === 'draft') || null;
@@ -2905,9 +2999,12 @@ function tplDraftFrom(id){
 }
 function tplPfVerbs(card){
   const row = { kind:card.kind, id:card.id, i:card.i, name:card.name, draft:card.draft, imported:card.imported };
-  let own = []; try { own = (tplPanelActs(row).acts || []).filter(a => !['more', 'use', 'edit'].includes(a.k)); } catch (_){ own = []; }
+  /* "Make it ours" is not pressed here (owner, 17 Nov 2026): a door to New agreement's From scratch takes its place,
+     landing on this very paper there (tplnOursGo) */
+  let own = []; try { own = (tplPanelActs(row).acts || []).filter(a => !['more', 'use', 'edit', 'ours'].includes(a.k)); } catch (_){ own = []; }
   const out = own.map(a => Object.assign({}, a, { kind:a.k === 'import' ? 'accent' : '' }));
   const mayMake = tplCanManage();
+  if (card.kind === 'builtin' && mayMake && typeof openNewAgreement === 'function') out.push({ k:'ours', kind:'link', label:i18t('tpln5_ours_door'), run:() => tplnOursGo(card.id) });
   if (card.kind === 'company' && mayMake) out.push({ k:'builder', label:i18t('lib_pf_open_builder'), run:() => tplLibEdit(card.id) });
   const mayDraft = (typeof canEdit !== 'function') || canEdit();
   const pick = card.kind === 'company' ? 'lib' : card.kind === 'cp' ? 'mine' : card.kind === 'builtin' ? 'tid' : null;
@@ -2944,40 +3041,257 @@ function tplnLastOf(card){
   const who = String(last.c.counterparty || '').trim().split(/\s+/)[0] || '';
   return { cs, word: [who, mon].filter(Boolean).join(' \u00b7 '), who, mon };
 }
+/* ---- OUR PAPER: SHELVES, THEN THE LEGORA WAY (owner's pick by prototype, 17 Nov 2026: "I LIKE the shelves landing
+   page but the rest is legora"; "there should be a search bar between the papers and the kpi cards"; "make the search
+   filter to be above the kpi cards and similar to this" (Contracts); "both pages should have a similar looking filter").
+   THREE STEPS ON ONE PAGE, the new look only (tplnOn):
+     1 SHELVES (tplnShelvesHtml): the filter line (tplnFilterLineHtml: the box, then Shelves · All on the right, as
+       Contracts), four figures — each the list it counts (tplnFigs) — and a coloured shelf per folder (tplnShelfData);
+     2 A FOLDER, THE LEGORA WAY (tplnListHtml): the same filter line, one sentence counted from the rows
+       (tplnSayHtml), the stream chips, the quoted rows (tplnRowHtml) — grouped by folder under All; a row press
+       CHOOSES (Jambo's panel shows it), a second press OPENS its paper;
+     3 THE PAPER (tplnPaperHtml): the sheet as before, beside it the facts and the paper's own verbs.
+   The head says where you are and carries the way back one step (tplnHeadHtml; Esc too); Our standards is a link to
+   its own page. Nothing is read with AI; every door is one that already exists (tplPfVerbs, regShowOnly). ---- */
+function tplnOn(){ return typeof window.newLookOn === 'function' && newLookOn() && tplListIns(); }
+function tplnView(){ return _tplPf.view === 'list' || _tplPf.view === 'paper' ? _tplPf.view : 'shelves'; }
+function tplnPicked(rows){ return (rows || []).find(x => tplPfKey(x.c) === _tplPf.pick) || null; }
+function tplnFolderName(fid){ return fid && typeof FOLDERS === 'object' && FOLDERS[fid] ? FOLDERS[fid].name : i18t('tpln5_no_folder'); }
+function tplnShelfData(rows){
+  const m = new Map();
+  for (const x of rows){ const f = tplnFid(x.c); const e = m.get(f) || { fid:f, name:tplnFolderName(f), rows:[], uses:0 }; e.rows.push(x); e.uses += x.last.cs.length; m.set(f, e); }
+  return [...m.values()].sort((a, b) => b.uses - a.uses || b.rows.length - a.rows.length || String(a.name).localeCompare(String(b.name)));
+}
+/* the four figures, each counted off the rows it opens: templates and ready ones on the list, what was drafted and
+   what came back changed on Contracts (the tally's own ids) */
+function tplnFigs(rows){
+  const usedIds = [], chIds = [];
+  rows.forEach(x => { (x.st.usedIds || []).forEach(id => usedIds.push(id)); (x.st.ids || []).forEach(id => chIds.push(id)); });
+  return { n:rows.length, ready:rows.filter(x => !x.c.draft).length, used:[...new Set(usedIds)], changed:[...new Set(chIds)] };
+}
+/* P-34, OUR PAPER THE LEGORA + STRIPE WAY (owner's pick 20 Nov 2026: "L+S and park it"). The head carries the title and
+   the way back; under it ONE ask box (it narrows the papers, as the old box did) and chips: Shelves · All with their
+   counts, + Shelf, + Kind (on a shelf: the shelves as chips, the chosen one set). NO figure cards and NO facts line:
+   the three numbers (templates · drafted · came back changed) are said ONCE, in the panel. Each shelf keeps its own soft
+   colour (listStreamTone) for its dot, badge and bars. */
+function tplnTone(fid){ return typeof listStreamTone === 'function' && fid ? listStreamTone(fid) : 'gray'; }
+function tplnKindOf(c){ return c && c.kind ? c.kind : ''; }
+function tplnKindName(k){ return tplOvBucketLabel({ key:k, sec:'library' }); }
+function tplnShort(fid){ const n = tplnFolderName(fid); return (typeof tplShortStream === 'function' && fid ? tplShortStream(n) : '') || n; }
+/* A BADGE NEVER CLIPS MID-WORD (RE-POINTED 22 Nov 2026, batch 7 review): its words in their own run, ending in "…" when
+   its column is narrower than the word, the whole word in its title */
+function tplnShelfBadge(fid, name){ const t = tplnTone(fid); return `<span class="tpln6-badge" style="background:var(--st-${t}-bg);color:var(--st-${t}-fg)" title="${_tplEsc(tplnFolderName(fid))}"><span class="tpln6-bw">${_tplEsc(name || tplnShort(fid))}</span></span>`; }
+function tplnKindBadge(k){ const w = tplnKindName(k); return `<span class="tpln6-badge is-kind" title="${_tplEsc(w)}"><span class="tpln6-bw">${_tplEsc(w)}</span></span>`; }
+function tplnFilterLineHtml(rows, shelves){
+  const v = tplnView(), allOn = v === 'list' && !_tplPf.ls;
+  const chip = (attr, on, w, n, cls) => `<button type="button" class="apn-tab is-chip${on ? ' is-on' : ''}${cls || ''}" ${attr} aria-pressed="${on ? 'true' : 'false'}">${_tplEsc(w)}${n != null ? ` <span>${n}</span>` : ''}</button>`;
+  const kinds = [...new Set(rows.map(x => tplnKindOf(x.c)).filter(Boolean))];
+  const menu = (open, label, items) => `<span class="apn-rule-w"><button type="button" class="apn-chip is-add" ${open} aria-expanded="false">+ ${_tplEsc(label)}</button><span class="apn-rule-menu" hidden>${items}</span></span>`;
+  let chips;
+  if (v === 'list' && _tplPf.ls){
+    /* on a shelf: the shelves as chips, the chosen one set */
+    chips = shelves.map(sh => `<button type="button" class="apn-tab is-chip is-shelf${sh.fid === _tplPf.ls ? ' is-on' : ''}" data-tpln-shelfchip="${_tplEsc(sh.fid)}" aria-pressed="${sh.fid === _tplPf.ls ? 'true' : 'false'}" title="${_tplEsc(sh.name)}" style="--sd:var(--st-${tplnTone(sh.fid)}-dot)"><i aria-hidden="true"></i>${_tplEsc(tplnShort(sh.fid))} <span>${sh.rows.length}</span></button>`).join('');
+  } else {
+    chips = chip('data-tpln-view="shelves"', v === 'shelves', i18t('tpln5_shelves'), shelves.length) + chip('data-tpln-view="list"', allOn, i18t('tpln5_all'), rows.length)
+      + (shelves.length > 1 ? menu('data-tpln-menu', i18t('tpln6_shelf'), shelves.map(sh => `<button type="button" data-tpln-shelfchip="${_tplEsc(sh.fid)}">${_tplEsc(sh.name)}</button>`).join('')) : '');
+  }
+  const kOn = _tplPf.lk ? `<button type="button" class="apn-chip is-set" data-tpln-kind="">${_tplEsc(tplnKindName(_tplPf.lk))} <span aria-hidden="true">×</span></button>`
+    : kinds.length && (v !== 'list' || !_tplPf.ls) ? menu('data-tpln-menu', i18t('tpln6_kind'), kinds.map(k => `<button type="button" data-tpln-kind="${_tplEsc(k)}">${_tplEsc(tplnKindName(k))}</button>`).join('')) : '';
+  return `<label class="apn-ask tpln6-ask is-filter">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input type="search" data-tpln-q value="${_tplEsc(_tplPf.lq)}" placeholder="${_tplEsc(i18t('lh_filter_ph'))}" aria-label="${_tplEsc(i18t('lh_filter_ph'))}" autocomplete="off"></label>
+    <div class="apn-bar tpln6-bar">${chips}${kOn}</div>`;
+}
+/* SHELVES: calm cards — a dot in the shelf's own colour, the name (never cut where it fits), "N papers · N drafted", at
+   most TPLN_FC_SHOWN papers (the ones used most) each with a small used-bar in the shelf's colour, the most used paper's
+   opening words in the paper's type; a shelf with more says "· the 3 used most" and ends in "N more papers ›" (it opens
+   the shelf's list). A press CHOOSES the shelf (outlined in ink, the panel speaks for it); its Open opens it. */
+function tplnShelfNow(shelves){ return shelves.find(y => y.fid === _tplPf.shelfPick) || shelves[0] || null; }
+function tplnShelvesHtml(rows){
+  const shelves = tplnShelfData(rows), on = tplnShelfNow(shelves);
+  /* the used-bars are measured against the paper used most on any shelf, so two shelves' bars compare */
+  const gmax = Math.max(1, ...rows.map(x => x.last.cs.length));
+  const card = sh => { const tone = tplnTone(sh.fid);
+    const top = sh.rows.slice().sort((a, b) => b.last.cs.length - a.last.cs.length).slice(0, TPLN_FC_SHOWN);
+    const more = sh.rows.length - top.length;
+    /* the opening words of the most used paper, only where it has been used (as drawn: a shelf nobody drafts from is not quoted) */
+    const q = top[0] && top[0].last.cs.length ? tplnQuote(top[0].c) : '';
+    const paper = x => { const u = x.last.cs.length;
+      return `<button type="button" class="tpln6-fp" data-tpln-open="${_tplEsc(tplPfKey(x.c))}" title="${_tplEsc(x.c.name)}"><span>${_tplEsc(x.c.name)}</span><i style="--p:${u ? Math.max(8, Math.round(u / gmax * 100)) : 0}%" aria-hidden="true"></i><em>${u}</em></button>`; };
+    const line = i18tn('tpln5_papers', sh.rows.length, { n:sh.rows.length }) + ' · ' + i18tn('tpln6_drafted', sh.uses, { n:sh.uses }) + (more > 0 ? ' · ' + i18t('tpln6_top3', { n:TPLN_FC_SHOWN }) : '');
+    return `<div class="tpln6-fc${on && on.fid === sh.fid ? ' is-on' : ''}" role="button" tabindex="0" data-tpln-pickshelf="${_tplEsc(sh.fid)}" style="--sd:var(--st-${tone}-dot)">
+      <span class="tpln6-fch"><i aria-hidden="true"></i><b>${_tplEsc(sh.name)}</b></span>
+      <small class="tpln6-fcs">${_tplEsc(line)}</small>
+      <span class="tpln6-fcl">${top.map(paper).join('')}</span>
+      ${more > 0 ? `<button type="button" class="tpln6-more" data-tpln-shelf="${_tplEsc(sh.fid)}">${_tplEsc(i18tn('tpln6_more_papers', more, { n:more }))} ›</button>` : ''}
+      ${q ? `<q class="tpln6-fq">${_tplEsc(q)}</q>` : ''}</div>`; };
+  return `<div class="tpln5 tpln6 is-shelves">${tplnFilterLineHtml(rows, shelves)}<div class="tpln6-fcg">${shelves.map(card).join('')}</div></div>`;
+}
+/* ALL AND A SHELF: one calm table — a lettered mark in the shelf's colour, the paper's name with "§ 1 · " and its
+   opening words on one line ending in "…" · Shelf (a soft badge in its colour) · Kind (a grey badge) · Drafted from it
+   (a small bar and the number) · Signed. A press CHOOSES, a second OPENS the paper (tplnChoose). */
+function tplnListHtml(rows){
+  const shelves = tplnShelfData(rows), pick = _tplPf.pick;
+  const shown = rows.filter(x => (!_tplPf.lf || !x.c.draft) && (!_tplPf.lk || tplnKindOf(x.c) === _tplPf.lk));
+  const max = Math.max(1, ...shown.map(x => x.last.cs.length));
+  const groups = (_tplPf.ls ? shelves.filter(y => y.fid === _tplPf.ls) : shelves).map(sh => {
+    const rs = sh.rows.filter(x => shown.includes(x)); if (!rs.length) return '';
+    return rs.map(x => tplnRowHtml(x.c, x.last.cs.length, tplPfKey(x.c) === pick, max)).join('');
+  }).join('');
+  const ready = _tplPf.lf ? `<button type="button" class="apn-chip is-set" data-tpln-ready-off>${_tplEsc(i18t('tpln5_f_ready'))} ×</button>` : '';
+  return `<div class="tpln5 tpln6 is-list">${tplnFilterLineHtml(rows, shelves)}${ready ? `<div class="apn-bar tpln6-bar">${ready}</div>` : ''}
+    <table class="apn-table tpln6-table tpln-lrs"><colgroup><col><col style="width:118px"><col style="width:160px"><col style="width:130px"><col style="width:52px"></colgroup>
+      <thead><tr><th>${_tplEsc(i18t('tpln6_c_paper'))}</th><th>${_tplEsc(i18t('tpln6_shelf'))}</th><th>${_tplEsc(i18t('tpln6_kind'))}</th><th>${_tplEsc(i18t('tpln6_c_drafted'))}</th><th class="tpln6-n">${_tplEsc(i18t('tpln6_signed'))}</th></tr></thead>
+      <tbody>${groups}<tr class="tpln-none"${groups ? ' hidden' : ''}><td colspan="5" class="apn-none">${_tplEsc(i18t('lib_nothing_matches'))}</td></tr></tbody></table></div>`;
+}
+function tplnRowHtml(c, uses, lit, max){
+  const fid = tplnFid(c), q = tplnQuote(c), tone = tplnTone(fid);
+  const text = [c.name, tplPfStream(c), q].join(' ').toLowerCase();
+  const shown = tplnMatches(text, fid);
+  let signed = 0; try { signed = (tplRowContracts({ kind:c.kind, id:c.id }) || []).filter(x => x.status === 'Signed' || x.status === 'Executed').length; } catch (_){ signed = 0; }
+  const p = uses ? Math.max(8, Math.round(uses / Math.max(1, max || uses || 1) * 100)) : 0;
+  return `<tr class="tpln-lr${lit ? ' is-on is-sel' : ''}" tabindex="0" data-tpl-pf="${_tplEsc(tplPfKey(c))}" aria-selected="${lit ? 'true' : 'false'}" data-tpln-text="${_tplEsc(text)}" data-tpln-stream="${_tplEsc(fid)}"${shown ? '' : ' hidden'}>
+    <td><div class="tpln6-nm"><i class="tpln-mk" style="background:var(--st-${tone}-bg);color:var(--st-${tone}-fg)" aria-hidden="true">${_tplEsc(String(c.name || '?').trim().charAt(0).toUpperCase())}</i>
+      <span class="tpln-lt"><b class="tpln-n" title="${_tplEsc(c.name)}">${_tplEsc(c.name)}</b>${q ? `<span class="tpln-q"><small>§ 1 ·</small> “${_tplEsc(q)}”</span>` : ''}</span></div></td>
+    <td>${fid ? tplnShelfBadge(fid, tplPfStream(c) || tplnShort(fid)) : '<span class="apn-none-c">—</span>'}</td><td>${tplnKindBadge(tplnKindOf(c))}</td>
+    <td><span class="tpln6-ub"><i style="--p:${p}%;--sd:var(--st-${tone}-dot)" aria-hidden="true"></i><b>${uses}</b></span></td><td class="tpln6-n">${signed}</td></tr>`;
+}
+/* THE PAPER OPEN = TODAY'S LAYOUT, THE STRIPE WAY: the paper on the left (cream, blanks lit amber, our playbook's
+   positions marked in green under their clauses — tplPfMarksPaint, as before); beside it IN THE PAGE a column: shelf
+   and kind as soft badges; Draft from it (black) and "Make our own version in New agreement ›"; the four facts as a calm
+   2×2, each with a thin coloured bar; the blanks as amber chips. Each fact said once (the panel carries what this does not). */
+function tplnBlanksOf(card){ try { return card.kind === 'builtin' && typeof templateFields === 'function' && TEMPLATES[card.id] ? templateFields(TEMPLATES[card.id]).map(f => f.label || f.key).filter(Boolean) : []; } catch (_){ return []; } }
+function tplnPaperHtml(x){
+  const card = x.c, st = x.st, cs = x.last.cs, fid = tplnFid(card);
+  const blanks = tplnBlanksOf(card);
+  const verbs = tplPfVerbs(card); _tplPf.acts = verbs;
+  /* the black button first, as drawn; each keeps its own index (the one handler reads it) */
+  const acts = verbs.map((a, i) => ({ a, i })).sort((p, q) => (q.a.kind === 'accent') - (p.a.kind === 'accent')).map(({ a, i }) => `<button type="button" class="${a.kind === 'accent' ? 'ui-btn ui-btn-primary tpln-go' : a.kind === 'link' ? 'tpln5-door' : 'ctf-pill'}" data-tpl-pf-act="${i}"${a.off ? ` disabled title="${_tplEsc(a.why || '')}"` : ''}>${_tplEsc(a.label)}</button>`).join('');
+  const signed = cs.filter(c => c.status === 'Signed' || c.status === 'Executed').length, made = cs.length;
+  /* the four facts as drawn: Made in the link's teal, Signed green, Came back changed amber, the blanks amber (the number too) */
+  const fact = (w, n, p, ink, cls) => `<div class="tpln6-fa${cls || ''}"><span>${_tplEsc(w)}</span><b>${n}</b><i style="--p:${Math.max(0, Math.min(100, Math.round(p)))}%;--sd:${ink}" aria-hidden="true"></i></div>`;
+  const facts = fact(i18t('tpln5_fa_made'), made, made ? 100 : 0, 'var(--accent-ink)') + fact(i18t('tpln5_fa_signed'), signed, made ? signed / made * 100 : 0, 'var(--st-green-dot)')
+    + fact(i18t('tpln5_fa_changed'), st.changed, made ? st.changed / made * 100 : 0, 'var(--st-amber-dot)') + fact(i18t('tpln5_fa_blanks'), blanks.length, blanks.length ? 100 : 0, 'var(--st-amber-dot)', blanks.length ? ' is-amber' : '');
+  return `<div class="tpln5 is-paper tpln"><aside class="tpln-sheet"><div class="tpln-zoom">${tplPfPaperHtml(card)}</div></aside>
+    <section class="tpln5-side tpln6-side"><div class="tpln6-badges">${fid ? tplnShelfBadge(fid) : ''}${tplnKindBadge(tplnKindOf(card))}</div><div class="tpln-acts">${acts}</div>
+      <div class="tpln6-facts">${facts}</div>
+      ${blanks.length ? `<div class="tpln6-blanks" aria-label="${_tplEsc(i18tn('tpln6_blanks_h', blanks.length, { n:blanks.length }))}"><h4>${_tplEsc(i18t('tpln6_the_blanks'))}</h4><div>${blanks.map(b => `<span class="tpln6-blank">${_tplEsc(b)}</span>`).join('')}</div></div>` : ''}</section></div>`;
+}
+/* THE HEAD SAYS WHERE YOU ARE, the way back one step above it; Our playbook › and New standard (black) on the right */
+function tplnHeadHtml(rows){
+  const v = tplnView(), pick = tplnPicked(rows);
+  const std = `<button type="button" class="tpln5-std" data-paper-tab="standards">${_tplEsc(i18t('tpln5_std'))}</button>`;
+  let neu = '';
+  if (tplCanManage()){ const off = typeof newPaperBlocked === 'function' && newPaperBlocked();
+    neu = `<button type="button" class="ui-btn ui-btn-primary tpln6-new" data-tpln-new=""${off ? ` disabled title="${_tplEsc(i18t('np_refused') + ' ' + i18t('np_refused_ask'))}"` : ''}>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''}${_tplEsc(i18t('tpln6_new'))}</button>`; }
+  const right = `<span class="tpln5-sp"></span>${std}${neu}`;
+  const h1 = w => `<h1 class="tpln5-h1">${_tplEsc(w)}</h1>`;
+  /* the paper open: Our playbook › alone on the right (as drawn — Draft from it stands in the column beside the paper) */
+  if (v === 'paper' && pick)
+    return `<button type="button" class="tpln5-back" data-tpln-back>‹ ${_tplEsc(_tplPf.ls ? tplnFolderName(_tplPf.ls) : i18t('nav_tpl_std'))}</button><div class="tpln5-hrow">${h1(pick.c.name)}<span class="tpln5-sp"></span>${std}</div>`;
+  /* a shelf: its name under "‹ Our paper"; All is Our paper itself (its chip set), no way back drawn */
+  if (v === 'list' && _tplPf.ls)
+    return `<button type="button" class="tpln5-back" data-tpln-back>‹ ${_tplEsc(i18t('nav_tpl_std'))}</button><div class="tpln5-hrow">${h1(tplnFolderName(_tplPf.ls))}${right}</div>`;
+  return `<div class="tpln5-hrow">${h1(i18t('nav_tpl_std'))}${right}</div>`;
+}
+const TPLN_FC_SHOWN = 3;
+/* one sentence, counted from the rows the list shows: how many, what came from them, the lead paper a door */
+function tplnSayHtml(rows, shelves){
+  const lk = (x, w) => `<button type="button" class="tpln5-lk" data-tpl-pf="${_tplEsc(tplPfKey(x.c))}">${_tplEsc(w)}</button>`;
+  if (_tplPf.ls){
+    const sh = shelves.find(y => y.fid === _tplPf.ls); if (!sh) return '';
+    const lead = sh.rows.slice().sort((a, b) => b.last.cs.length - a.last.cs.length)[0];
+    return i18tn('tpln5_say_f', sh.rows.length, { name:_tplEsc(sh.name), n:sh.rows.length }) + ' '
+      + (sh.uses ? i18tn('tpln5_say_f_used', sh.uses, { n:sh.uses, lead:lk(lead, lead.c.name) }) : _tplEsc(i18t('tpln5_say_f_none')));
+  }
+  const f = tplnFigs(rows), top = rows.slice().sort((a, b) => (b.st.used || 0) - (a.st.used || 0))[0];
+  return i18tn('tpln5_say_all', f.n, { n:f.n, f:shelves.length }) + ' '
+    + (f.used.length && top && top.st.used ? i18tn('tpln5_say_used', f.used.length, { n:f.used.length, lead:lk(top, top.c.name) }) : _tplEsc(i18t('tpln5_say_used0'))) + ' '
+    + _tplEsc(f.changed.length ? i18tn('tpln5_say_ch', f.changed.length, { n:f.changed.length }) : i18t('tpln5_say_ch0'));
+}
+function tplnBack(){
+  if (tplnView() === 'paper') _tplPf.view = 'list';
+  else if (tplnView() === 'list'){ _tplPf.view = 'shelves'; _tplPf.pick = null; _tplPf.lq = ''; _tplPf.ls = ''; _tplPf.lf = ''; }
+  tplBookRepaint();
+}
+/* ---- JAMBO'S PANEL SPEAKS FOR THE STEP (P-34, NO CARDS, NO TILES): the chosen shelf on Shelves and on a shelf's list
+   (its badge and name, Open the shelf black and "Draft from <most used>"; "Used most, every shelf" as bars ranked by use;
+   "Came back changed" in a sentence), the whole book under All, the chosen paper once one is pressed ---- */
+function tplnBarsHtml(items){
+  const max = Math.max(1, ...items.map(x => x.n));
+  return `<div class="tpln6-bars">${items.map(x => `<${x.attr ? 'button type="button"' : 'div'} class="tpln6-bar"${x.attr ? ' ' + x.attr : ''}><span title="${_tplEsc(x.t)}">${_tplEsc(x.t)}</span><i style="--p:${x.n ? Math.max(8, Math.round(x.n / max * 100)) : 0}%;--sd:var(--st-${x.tone}-dot)" aria-hidden="true"></i><b>${x.n}</b></${x.attr ? 'button' : 'div'}>`).join('')}</div>`;
+}
+/* a section of the panel as drawn (no cards): its bold head, then its body; a hairline above (CSS) */
+function tplnSecHtml(head, body, more){ return `<p class="jov5-label tpln6-h">${_tplEsc(head)}${more ? ` <span>${_tplEsc(more)}</span>` : ''}</p>${body}`; }
+function tplnUsedMostHtml(rows){
+  const most = rows.slice().sort((a, b) => b.last.cs.length - a.last.cs.length || String(a.c.name).localeCompare(String(b.c.name))).slice(0, 5);
+  return tplnBarsHtml(most.map(x => ({ t:x.c.name, n:x.last.cs.length, tone:tplnTone(tplnFid(x.c)), attr:`data-tpln-open="${_tplEsc(tplPfKey(x.c))}"` })));
+}
+function tplnBookFive(rows, sh){
+  const f = tplnFigs(rows), shelves = tplnShelfData(rows);
+  const scope = sh ? sh.rows : rows;
+  const top = scope.slice().sort((a, b) => b.last.cs.length - a.last.cs.length)[0] || null;
+  const changed = scope.reduce((n, x) => n + ((x.st && x.st.changed) || 0), 0);
+  const drafted = sh ? sh.uses : f.used.length;
+  const say = drafted ? (changed ? i18tn('tpln6_changed_some', changed, { n:changed, of:drafted }) : i18tn('tpln6_changed_none', drafted, { n:drafted })) : i18t('tpln6_changed_unused');
+  /* as drawn: the shelf's badge, its name, "N papers · N agreements drafted from them", Open the shelf (black) beside
+     "Draft from <the one used most>"; then "Used most, every shelf" as bars, then "Came back changed" in a sentence */
+  const o = { before:sh ? `<div class="tpln6-pb">${tplnShelfBadge(sh.fid)}</div>` : '',
+    title:sh ? sh.name : i18t('nav_tpl_std'),
+    sub:sh ? i18tn('tpln5_papers', sh.rows.length, { n:sh.rows.length }) + ' · ' + i18tn('tpln6_ags_from_them', sh.uses, { n:sh.uses }) : i18tn('tpln5_p_title', f.n, { n:f.n, f:shelves.length }),
+    actFirst:true,
+    act:sh ? { label:i18t('tpln6_open_shelf'), attr:`data-tpln-shelf="${_tplEsc(sh.fid)}"`, links:top && tplCanDraftFrom(top.c) ? [{ label:i18t('tpln6_draft_this'), attr:`data-tpln-draft="${_tplEsc(tplPfKey(top.c))}" title="${_tplEsc(i18t('tpln6_draft_from', { name:top.c.name }))}"` }] : [] }
+      : (top && top.last.cs.length && tplCanDraftFrom(top.c) ? { label:i18t('tpln6_draft_from', { name:top.c.name }), attr:`data-tpln-draft="${_tplEsc(tplPfKey(top.c))}"` } : null),
+    groups:[{ key:'used', html:tplnSecHtml(i18t('tpln6_used_most'), tplnUsedMostHtml(rows)) },
+      { key:'changed', html:tplnSecHtml(i18t('tpln5_f_changed'), changed ? `<button type="button" class="tpln6-say is-door" data-tpln-ids="changed">${_tplEsc(say)}</button>` : `<p class="tpln6-say">${_tplEsc(say)}</p>`) }] };
+  return o;
+}
+function tplCanDraftFrom(card){ try { const a = tplPfVerbs(card).find(y => y.k === 'draft'); return !!(a && !a.off); } catch (_){ return false; } }
+function tplnShelfFive(sh){ return tplnBookFive(tplnRowsNow(), sh); }
+function tplnRowsNow(){
+  const d = tplOverviewData();
+  return tplPfGroups(d).flatMap(g => g.cards).filter(c => c.kind !== 'sample').map(c => ({ c, st:tplPfStats(c), last:tplnLastOf(c) }))
+    .sort((a, b) => b.last.cs.length - a.last.cs.length || String(a.c.name).localeCompare(String(b.c.name)));
+}
+function tplnPanelBody(){
+  const rows = tplnRowsNow(), v = tplnView(), pick = tplnPicked(rows);
+  if (pick && v !== 'shelves'){ _tplPf.acts = tplPfVerbs(pick.c); return { id:'tpln:' + v + ':' + tplPfKey(pick.c), word:pick.c.name, body:tplnPanelHtml(pick.c, { open:v === 'list', paper:v === 'paper' }) }; }
+  /* Shelves: the chosen shelf (the most used, until another is pressed); a shelf's list: that shelf; All: the book */
+  const shelves = tplnShelfData(rows);
+  const sh = v === 'list' ? (_tplPf.ls ? shelves.find(y => y.fid === _tplPf.ls) : null) : tplnShelfNow(shelves);
+  const o = tplnBookFive(rows, sh);
+  return { id:'tpln:' + v + ':' + (sh ? sh.fid : 'book'), word:sh ? sh.name : i18t('nav_tpl_std'), body:`<div class="jl-words is-ov tpln6-p">${jamboOverviewHtml(o, 'tpln')}</div>` };
+}
 function tplnHtml(d, groups, card){
   const all = groups.flatMap(g => g.cards).filter(c => c.kind !== 'sample');
   const statOf = c => tplPfStats(c);
   const rows = all.map(c => ({ c, st: statOf(c), last: tplnLastOf(c) })).sort((a, b) => b.last.cs.length - a.last.cs.length || String(a.c.name).localeCompare(String(b.c.name)));
-  const on = c => card && tplPfKey(c) === tplPfKey(card);
-  /* the use bars (9 Nov 2026) gave way to the uses said on the right (the Legora way, 14 Nov 2026) */
-  /* OUR PAPER, THE LEGORA WAY (owner's pick, 14 Nov 2026): each row a round mark in its stream's colour, the name and
-     its stream, the paper's first line quoted under it, and its uses in small type on the right; filtered in place by the
-     ask box and the stream chips (tplnFilter), so typing never loses the box */
-  const stdRows = rows.map(x => tplnRowHtml(x.c, x.last.cs.length, on(x.c))).join('') + `<p class="tpln-none" hidden>${_tplEsc(i18t('lib_nothing_matches'))}</p>`;
-  const stdN = (typeof paperStandardsCount === 'function') ? paperStandardsCount() : null;
-  const shelves = `<div class="tpln-r is-shelf"><span class="tpln-n">${_tplEsc(i18tn('tpln_shelf_list', all.length, { n: all.length }))}</span><span></span><button type="button" class="rfp-a" data-tpln-tab="list">${_tplEsc(i18t('tpln_open'))}</button></div>`
-    + (stdN != null ? `<div class="tpln-r is-shelf"><span class="tpln-n">${_tplEsc(i18tn('tpln_shelf_std', stdN, { n: stdN }))}</span><span></span><button type="button" class="rfp-a" data-tpln-tab="standards">${_tplEsc(i18t('tpln_open'))}</button></div>` : '');
-  let line = '', paper = `<p class="tpl-empty">${_tplEsc(i18t('lib_nothing_matches'))}</p>`, acts = '';
-  if (card){
-    const st = statOf(card), last = tplnLastOf(card);
-    let blanks = 0; try { blanks = card.kind === 'builtin' && typeof templateFields === 'function' && TEMPLATES[card.id] ? templateFields(TEMPLATES[card.id]).length : 0; } catch (_){ blanks = 0; }
-    /* READABLE PREVIEW (the harmony review, owner's yes 9 Nov 2026): the name and its buttons share one line; the facts
-       stand under the name, never wrapping beside the buttons */
-    line = [tplOvBucketLabel({ key: card.kind, sec: 'library' }), last.cs.length ? i18tn('tpln_used', last.cs.length, { n: last.cs.length, who: last.who || '', mon: last.mon || '' }) : i18t('tpln_unused'),
-      st.changed ? i18tn('lib_pf_came_back', st.changed, { n: st.changed }) : '', blanks ? i18tn('tpln_blanks', blanks, { n: blanks }) : ''].filter(Boolean).join(' \u00b7 ');
-    paper = tplPfPaperHtml(card);
-    const verbs = tplPfVerbs(card); _tplPf.acts = verbs;
-    acts = verbs.map((a, i) => `<button type="button" class="${a.kind === 'accent' ? 'ui-btn ui-btn-primary tpln-go' : 'ctf-pill'}" data-tpl-pf-act="${i}"${a.off ? ` disabled title="${_tplEsc(a.why || '')}"` : ''}>${_tplEsc(a.label)}</button>`).join('');
-  }
-  /* no New standard here any more: From scratch starts on the New agreement page, the one door (owner, 14 Nov 2026) */
-  return `<div class="tpl-book tpl-pf tpln">
-    <aside class="tpln-sheet"><div class="tpln-zoom">${paper}</div></aside>
-    <section class="tpln-side">${tplnAskHtml()}${tplnChipsHtml(rows.map(x => x.c))}<div class="tpln-top"><div class="tpln-line">${card ? `<b class="tpln-name">${_tplEsc(card.name)}</b>` : ''}<span class="tpln-facts">${_tplEsc(line)}</span></div><div class="tpln-acts">${acts}</div></div>
-      <div class="tpln-list tpln-lrs">${stdRows}</div>
-      <div class="pd2-ch-cap">${_tplEsc(i18t('tpln_shelves_h'))}</div><div class="tpln-list">${shelves}</div></section></div>`;
+  /* SHELVES, THEN THE LEGORA WAY (17 Nov 2026): the step decides what is drawn; the paper only once one is chosen */
+  if (tplnView() === 'paper'){ const x = tplnPicked(rows); if (x) return tplnPaperHtml(x); _tplPf.view = 'list'; }
+  if (tplnView() === 'list') return tplnListHtml(rows);
+  return tplnShelvesHtml(rows);
 }
 /* the stream a paper is filed in (its id), read as the page's own stream reader reads it */
 function tplnFid(c){ return String((c && c.stream) || ((tplPfLib(c) || {}).folder) || ''); }
+/* THE QUOTED ROWS ARE READ, NEVER GUESSED (Shelves, then the Legora way, 17 Nov 2026): a company paper's first line is
+   known only once its words are read, and with no paper beside the list nothing read them. The shelves and the list
+   read the company papers they show in the background (TPLN_QUOTE_READS a paint, each once per stamp) and put each
+   quote in where its row stands — no repaint, so a box being typed in keeps its words and the carousel keeps turning */
+const TPLN_QUOTE_READS = 24;
+function tplnQuotesFill(){
+  if (typeof document === 'undefined' || !tplnOn() || tplnView() === 'paper') return;
+  tplnRowsNow().filter(x => x.c.kind === 'company' && !tplnQuote(x.c)).slice(0, TPLN_QUOTE_READS).forEach(x => {
+    const p = tplPfDocLoad(x.c.id); if (p && typeof p.then === 'function') p.then(() => tplnQuotePut(x.c), () => {});
+  });
+}
+function tplnQuotePut(c){
+  const q = tplnQuote(c); if (!q || typeof document === 'undefined') return;
+  const k = tplPfKey(c), at = typeof CSS === 'object' && CSS.escape ? CSS.escape(k) : k.replace(/["\\]/g, '\\$&');
+  document.querySelectorAll(`.tpln-lrs [data-tpl-pf="${at}"]`).forEach(r => {
+    const lt = r.querySelector('.tpln-lt'); if (!lt || lt.querySelector('.tpln-q')) return;
+    lt.insertAdjacentHTML('beforeend', `<span class="tpln-q">§ 1 · “${_tplEsc(q)}${q.length >= 140 ? '…' : ''}”</span>`);
+    r.setAttribute('data-tpln-text', (String(r.getAttribute('data-tpln-text') || '') + ' ' + q.toLowerCase()).trim());
+  });
+  document.querySelectorAll(`.tpln5-cfp[data-tpln-open="${at}"]`).forEach(b => { if (!b.querySelector('q')) b.insertAdjacentHTML('beforeend', `<q>“${_tplEsc(q)}…”</q>`); });
+}
 /* THE PAPER'S FIRST LINE, QUOTED (the Legora way: each fact shows where on the paper it was read): HaTi's own paper is read
    at once; a company paper once its words have been read for the paper beside the list; never guessed */
 function tplnQuote(c){
@@ -2994,19 +3308,24 @@ function tplnQuote(c){
     const p = [...t.querySelectorAll('p, li')].map(e => String(e.textContent || '').replace(/\s+/g, ' ').trim()).find(x => x.length > 24);
     q = p ? p.slice(0, 140) : '';
   }
+  /* a paper the company brought in carries its own words (customTemplates): its first real line is quoted, as HaTi's own
+     are; with no words nothing is said (RE-POINTED 22 Nov 2026, batch 7 review) */
+  if (!q && c.kind === 'cp'){
+    let body = ''; try { const t = (typeof customTemplates === 'function' ? customTemplates() : []).find(x => String(x.id) === String(c.id)); body = t ? String(t.body || '') : ''; } catch (_){ body = ''; }
+    if (body){
+      let lines;
+      if (/<[a-z][\s\S]*>/i.test(body) && typeof document !== 'undefined'){ const t = document.createElement('div'); t.innerHTML = body; lines = [...t.querySelectorAll('p, li, div')].map(e => String(e.textContent || '')); }
+      else lines = body.split(/\n\s*\n|\n/);
+      /* the first real line: a title in capitals is the paper's name, not its opening words */
+      const p = lines.map(x => x.replace(/\s+/g, ' ').trim()).find(x => x.length > 24 && x !== x.toUpperCase());
+      q = p ? p.slice(0, 140) : '';
+    }
+    _tplPf.quotes[k] = { q, stamp };
+    return q;
+  }
   if (!q && c.kind !== 'company'){ const d = String((c.sub || c.description || '')).trim(); q = d.slice(0, 140); }
   if (html || c.kind !== 'company') _tplPf.quotes[k] = { q, stamp };
   return q;
-}
-function tplnRowHtml(c, uses, lit){
-  const fid = tplnFid(c), stream = tplPfStream(c), q = tplnQuote(c);
-  const tone = typeof listStreamTone === 'function' && fid ? listStreamTone(fid) : 'gray';
-  const text = [c.name, stream, q].join(' ').toLowerCase();
-  const shown = tplnMatches(text, fid);
-  return `<button type="button" class="tpln-r tpln-lr${lit ? ' is-on' : ''}" data-tpl-pf="${_tplEsc(tplPfKey(c))}" aria-pressed="${lit ? 'true' : 'false'}" data-tpln-text="${_tplEsc(text)}" data-tpln-stream="${_tplEsc(fid)}"${shown ? '' : ' hidden'}>
-    <i class="tpln-mk" style="background:var(--st-${tone}-dot)" aria-hidden="true">${_tplEsc(String(c.name || '?').trim().charAt(0).toUpperCase())}</i>
-    <span class="tpln-lt"><span class="tpln-l1"><b class="tpln-n">${_tplEsc(c.name)}</b>${stream ? `<span class="tpln-st">${_tplEsc(stream)}</span>` : ''}</span>${q ? `<span class="tpln-q">§ 1 · “${_tplEsc(q)}${q.length >= 140 ? '…' : ''}”</span>` : ''}</span>
-    <span class="tpln-u">${_tplEsc(i18tn('tpln_uses', uses, { n: uses }))}</span></button>`;
 }
 /* a need, not only a name: the small words are left out, each word is read by its stem ("warehouse" finds
    "Warehousing"), and a paper shows when ANY word of the need is on it (no AI) */
@@ -3040,12 +3359,15 @@ function tplnFilter(){
   const rows = [...document.querySelectorAll('.tpln-lrs .tpln-lr')]; let n = 0;
   rows.forEach(r => { const ok = tplnMatches(r.getAttribute('data-tpln-text') || '', r.getAttribute('data-tpln-stream') || ''); r.hidden = !ok; if (ok) n++; });
   const none = document.querySelector('.tpln-lrs .tpln-none'); if (none) none.hidden = n > 0;
+  document.querySelectorAll('.tpln-lrs [data-tpln-glab]').forEach(g => { let x = g.nextElementSibling, any = false; while (x && !x.hasAttribute('data-tpln-glab')){ if (x.matches('.tpln-lr') && !x.hidden) any = true; x = x.nextElementSibling; } g.hidden = !any; });
   document.querySelectorAll('[data-tpln-chip]').forEach(b => b.classList.toggle('is-on', b.getAttribute('data-tpln-chip') === (_tplPf.ls || '')));
   return n;
 }
 if (typeof document !== 'undefined' && !window._tplnWired){
   window._tplnWired = true;
-  document.addEventListener('input', e => { const t = e.target; if (!t || !t.matches || !t.matches('[data-tpln-q]')) return; _tplPf.lq = String(t.value || ''); tplnFilter(); });
+  document.addEventListener('input', e => { const t = e.target; if (!t || !t.matches || !t.matches('[data-tpln-q]')) return; _tplPf.lq = String(t.value || '');
+    if (tplnOn() && tplnView() === 'shelves' && _tplPf.lq.trim()){ _tplPf.view = 'list'; _tplPf.ls = ''; _tplPf.lf = ''; _tplPf.pick = null; tplBookRepaint(); tplnBoxBack(); return; }
+    tplnFilter(); });
   document.addEventListener('submit', e => { const f = e.target; if (!f || !f.matches || !f.matches('[data-tpln-ask]')) return; e.preventDefault();
     const shown = [...document.querySelectorAll('.tpln-lrs .tpln-lr:not([hidden])')]; if (shown.length === 1) shown[0].click(); });
   document.addEventListener('click', e => {
@@ -3053,6 +3375,7 @@ if (typeof document !== 'undefined' && !window._tplnWired){
     const more = t.closest('[data-tpln-more]');
     if (more){ const m = more.parentElement.querySelector('.tpln-menu'); if (m){ m.hidden = !m.hidden; more.setAttribute('aria-expanded', String(!m.hidden)); } return; }
     const ch = t.closest('[data-tpln-chip]');
+    if (ch && tplnOn()){ _tplPf.ls = ch.getAttribute('data-tpln-chip') || ''; _tplPf.pick = null; _tplPf.view = 'list'; const m = ch.closest('.tpln-menu'); if (m) m.hidden = true; tplBookRepaint(); return; }
     if (ch){ _tplPf.ls = ch.getAttribute('data-tpln-chip') || ''; const m = ch.closest('.tpln-menu'); if (m){ m.hidden = true; if (typeof tplBookRepaint === 'function') tplBookRepaint(); return; } tplnFilter(); return; }
     if (!t.closest('.tpln-more')) document.querySelectorAll('.tpln-menu:not([hidden])').forEach(m => { m.hidden = true; });
   });
@@ -3131,12 +3454,24 @@ function tplPfMarkPlace(sheet, sec){
 }
 /* the same reading as tplPfMarksPaint, of any sheet, painting nothing — the
    template's own page asks it for Jambo's lines (25 Oct 2026) */
+/* A POSITION THAT DOES NOT APPLY TO THIS KIND OF PAPER IS "n/a", NEVER "not found" (RE-POINTED 22 Nov 2026, batch 7
+   review; the playbook check's own 'na', pbStandardsFor): a paper no money passes under (isMonetary, the template's own
+   valueType) has no occasion for payment terms — not on the paper is then not a miss, and it is not counted against
+   "N of N met". Nothing else is guessed: every other position not found stays "not found". */
+function tplnCovNa(cov, card){
+  if (!cov || !cov.rows || !card || card.kind !== 'builtin' || typeof isMonetary !== 'function' || isMonetary({ template:card.id })) return cov;
+  const payCat = ((window.CLAUSE_KINDS || []).find(k => k.key === 'payment') || {}).category || '';
+  const isPay = x => x.rkey === 'paymentDays' || (payCat && x.category === payCat) || /\bpayment|\bbetalning/i.test(String(x.category || ''));
+  const rows = cov.rows.map(x => x.state === 'open' && isPay(x) ? Object.assign({}, x, { state:'na' }) : x);
+  const real = rows.filter(x => x.state !== 'na');
+  return Object.assign({}, cov, { rows, total:real.length, covered:real.filter(x => x.state !== 'open').length, met:real.filter(x => x.state === 'hit').length, na:rows.length - real.length });
+}
 function tplPfReadOf(card, sheet){
   if (!card) return null;
   if (!sheet || typeof tbCoverageOf !== 'function') return { key:tplPfKey(card), cov:null, st:tplPfStats(card), secs:[], marks:[], loose:[] };
   const secs = tplPfSheetSections(sheet);
   const list = secs.map((x, i) => ({ head:x.head, text:x.text, s:i }));
-  const cov = tbCoverageOf(list, tplPfBookKey(card));
+  const cov = tplnCovNa(tbCoverageOf(list, tplPfBookKey(card)), card);
   const st = tplPfStats(card);
   const r = tbMarksOf(list, cov, st.byCat);
   return { key:tplPfKey(card), cov, st, secs:secs.map(x => ({ no:x.no, head:x.head })), marks:r.marks, loose:r.loose };
@@ -3147,7 +3482,7 @@ function tplPfMarksPaint(card){
   sheet.querySelectorAll('.tpl-mks').forEach(el => el.remove());
   const secs = tplPfSheetSections(sheet);
   const list = secs.map((x, i) => ({ head:x.head, text:x.text, s:i }));
-  const cov = tbCoverageOf(list, tplPfBookKey(card));
+  const cov = tplnCovNa(tbCoverageOf(list, tplPfBookKey(card)), card);
   const st = tplPfStats(card);
   const r = tbMarksOf(list, cov, st.byCat);
   secs.forEach((x, i) => {
@@ -3155,6 +3490,8 @@ function tplPfMarksPaint(card){
     const at = tplPfMarkPlace(sheet, x);
     const box = document.createElement('div'); box.innerHTML = html;
     const el = box.firstElementChild; if (el && at.parent) at.parent.insertBefore(el, at.before);
+    /* Our paper as drawn (P-34): a met position reads "<what it holds> · our position" under its clause */
+    if (el && tplnOn()) el.querySelectorAll('.tpl-mk:not(.is-dev):not(.is-changed)').forEach(m => { if (!m.querySelector('.tpln6-ours')) m.insertAdjacentHTML('beforeend', `<span class="tpln6-ours">· ${_tplEsc(i18t('tpln6_our_position'))}</span>`); });
   });
   _tplPf.read = { key:tplPfKey(card), cov, st, secs:secs.map(x => ({ no:x.no, head:x.head })), marks:r.marks, loose:r.loose };
   return _tplPf.read;
@@ -3236,31 +3573,64 @@ function tplPfPageSay(d){
    came back changed as tiles (changed opens them on Contracts, the page's own data-tpln-changed reading); the blanks a
    draft asks for as rows; Jambo's remark where one standard keeps coming back changed; Draft from it the one black
    button (the paper's own verb), its other verb beside it. Counted, no call. The new look only. */
-function tplnPanelFive(card, st, cs, signed, blanks){
+/* P-34, A CHOSEN PAPER'S PANEL (no cards): its shelf and kind as badges, the name, "Made N agreements · none came back
+   changed", Draft from it (black) and Open the paper; "What happened to its drafts" as three bars (drafted → signed →
+   came back changed); "A draft asks for · N blanks" as amber chips like the paper's blanks. On the paper itself the
+   panel carries what the page's column does not: "What this paper holds" — our positions on it (N of N met, each with
+   its §, read off the sheet as the marks are, tplPfMarksPaint) and the latest agreements drafted from it, "All N ›". */
+function tplnPanelFive(card, st, cs, signed, blanks, opts){
   const verbs = _tplPf.acts || [];
   const di = verbs.findIndex(a => a.k === 'draft'), dv = di >= 0 ? verbs[di] : null;
-  const other = verbs.find(a => a.k !== 'draft' && !a.off);
-  const kind = card.kind === 'builtin' ? i18t('jov5_tp_builtin') : card.kind === 'company' ? i18t('jov5_tp_company') : '';
-  const stream = (card.folder && typeof window.FOLDERS === 'object' && window.FOLDERS && FOLDERS[card.folder]) ? FOLDERS[card.folder].name : '';
+  const fid = tplnFid(card), key = _tplEsc(tplPfKey(card));
+  const before = `<div class="tpln6-pb">${fid ? tplnShelfBadge(fid) : ''}${tplnKindBadge(tplnKindOf(card))}</div>`;
+  const sub = cs.length ? (st.changed ? i18tn('tpln6_made_ch', cs.length, { n:cs.length, c:st.changed }) : i18tn('tpln6_made_none', cs.length, { n:cs.length })) : i18t('jov5_tp_unused');
   const groups = [];
-  if (blanks.length) groups.push({ label:i18tn('jov5_tp_blanks', blanks.length, { n:blanks.length }), rows:blanks.slice(0, 3).map(b => ({ mark:'pencil', t:b }))
-    .concat(blanks.length > 3 ? [{ mark:'pencil', t:blanks[3], s:blanks.length > 4 ? i18tn('jov5_tp_more', blanks.length - 4, { n:blanks.length - 4 }) : '' }] : []) });
-  if (st.byCat.length) groups.push({ label:i18t('tpln_p_dep'), rows:st.byCat.slice(0, 3).map(x => ({ mark:'shield', tone:'amber', t:String(x.category), v:i18tn('jov5_tp_times', x.n, { n:x.n }) })) });
-  const top = st.byCat[0];
-  if (top && top.n >= 2) groups.push({ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('tpln_p_jambo', { n:top.n, of:st.used, what:String(top.category).toLowerCase() }), wrap:true }] });
-  const changedRun = st.changed ? () => { const b = document.createElement('button'); b.setAttribute('data-tpln-changed', tplPfKey(card)); b.hidden = true; document.body.appendChild(b); b.click(); b.remove(); } : null;
-  return { eyebrow:[i18t('nav_tpl_std'), kind, stream].filter(Boolean).join(' \u00b7 '), title:card.name,
-    sub:cs.length ? i18tn('jov5_tp_sub', cs.length, { n:cs.length, c:st.changed }) : i18t('jov5_tp_unused'),
-    glance:[{ n:cs.length, l:i18t('jov5_tp_made') }, { n:signed, l:i18t('jov5_signed') }, { n:st.changed, l:i18t('jov5_tp_changed'), warn:st.changed > 0, run:changedRun }],
-    groups, act:dv ? { say:i18t('jov5_tp_say'), label:dv.label, run:dv.off ? null : () => dv.run(), link:other ? { label:other.label, run:() => other.run() } : null } : null,
-    src:i18t('lib_pf_j_src') };
+  if (opts && opts.paper){
+    /* the paper open: "What this paper holds" — our positions on it, in the paper's order, each with its §, and the
+       latest agreements drafted from it with their state as a soft badge, "All N ›" */
+    const R = _tplPf.read && _tplPf.read.key === tplPfKey(card) ? _tplPf.read : null;
+    const cov = R && R.cov;
+    if (cov && cov.total){
+      const seen = new Set();
+      const rows = cov.rows.filter(x => { const k = x.category + '|' + x.at; if (seen.has(k)) return false; seen.add(k); return true; })
+        .sort((a, b) => (a.at < 0 ? 1e6 : a.at) - (b.at < 0 ? 1e6 : b.at));
+      const html = rows.map(x => { const sec = x.at >= 0 && R.secs ? R.secs[x.at] : null;
+        const mk = x.at >= 0 && R.marks && R.marks[x.at] ? (R.marks[x.at] || []).find(m => m && m.category === x.category && m.kind === 'met') : null;
+        const where = sec ? (sec.no ? '§ ' + sec.no : sec.head) : x.state === 'na' ? i18t('tpln6_pos_na') : i18t('tpln6_not_on_paper');
+        return `<div class="tpln6-pos${x.state === 'hit' ? '' : x.state === 'na' ? ' is-na' : ' is-amber'}"${x.state === 'na' ? ` title="${_tplEsc(i18t('pb_na_line'))}"` : ''}><i aria-hidden="true"></i><span>${_tplEsc((mk && mk.label) || x.category)}</span><small>${_tplEsc(where)}</small></div>`; }).join('');
+      groups.push({ key:'holds', html:tplnSecHtml(i18t('tpln6_pos_on'), `<div class="tpln6-poss">${html}</div>`, i18t('tpln6_pos_met', { met:cov.met, n:cov.total })) });
+    }
+    const latest = cs.slice().sort((a, b) => String(b.updatedAt || b.createdAt || '').localeCompare(String(a.updatedAt || a.createdAt || ''))).slice(0, 3);
+    if (latest.length){
+      /* a signed agreement's badge says "Signed", as drawn, however the record names its state (RE-POINTED 22 Nov 2026) */
+      const badge = c => { const done = c.status === 'Signed' || c.status === 'Executed', w = done ? i18t('tpln6_badge_signed') : typeof statusLabel === 'function' ? statusLabel(c.status) : c.status;
+        return done ? `<span class="tpln6-badge is-green">✓ ${_tplEsc(w)}</span>` : `<span class="tpln6-badge is-amber"><i aria-hidden="true"></i>${_tplEsc(w)}</span>`; };
+      const html = latest.map(c => `<button type="button" class="tpln6-dr" data-tpln-ct="${_tplEsc(c.id)}"><span><b>${_tplEsc(c.name || c.counterparty || c.id)}</b>${c.counterparty ? ` <small>· ${_tplEsc(c.counterparty)}</small>` : ''}</span>${badge(c)}</button>`).join('')
+        + (cs.length > latest.length ? `<button type="button" class="tpln6-all" data-tpln-made="${key}">${_tplEsc(i18tn('tpln6_all_n', cs.length, { n:cs.length }))} ›</button>` : '');
+      groups.push({ key:'latest', html:tplnSecHtml(i18t('tpln6_latest'), `<div class="tpln6-drs">${html}</div>`) });
+    }
+    /* the badges and "Made N" stand in the page's column beside the paper: said once, there */
+    return { title:i18t('tpln6_holds_t'), sub:i18t('tpln6_holds_s'), actFirst:true, groups };
+  }
+  /* a paper chosen in a list: its badges, name, "Made N agreements · none came back changed", Draft from it (black)
+     beside Open the paper; "What happened to its drafts" as three bars; "A draft asks for · N blanks" as amber chips,
+     six and "and N more" (the paper itself holds them all) */
+  const made = cs.length;
+  const B = [[i18t('tpln6_c_drafted'), made, made ? 100 : 0, 'var(--accent-ink)', ''], [i18t('tpln6_signed'), signed, made ? signed / made * 100 : 0, 'var(--st-green-dot)', ''],
+    [i18t('tpln5_f_changed'), st.changed, made ? Math.max(2, st.changed / made * 100) : 0, 'var(--st-amber-dot)', st.changed ? `data-tpln-changed="${key}"` : '']];
+  if (made) groups.push({ key:'flow', html:tplnSecHtml(i18t('tpln6_what_happened'), `<div class="tpln6-fun">${B.map(([w, n, p, ink, attr]) => `<${attr ? 'button type="button"' : 'div'} class="tpln6-fr"${attr ? ' ' + attr : ''}><span>${_tplEsc(w)}</span><i style="width:${Math.round(p)}%;background:${ink}" aria-hidden="true"></i><b>${n}</b></${attr ? 'button' : 'div'}>`).join('')}</div>`) });
+  if (blanks.length){ const shown = blanks.slice(0, TPLN_BLANKS_SHOWN), rest = blanks.length - shown.length;
+    groups.push({ key:'blanks', html:tplnSecHtml(i18tn('tpln6_asks_for', blanks.length, { n:blanks.length }), `<div class="tpln6-chips">${shown.map(b => `<span class="tpln6-blank">${_tplEsc(b)}</span>`).join('')}${rest > 0 ? `<span class="tpln6-more-n">${_tplEsc(i18t('tpln_p_more', { n:rest }))}</span>` : ''}</div>`) }); }
+  return { before, title:card.name, sub, actFirst:true,
+    groups, act:dv ? { label:dv.label, run:dv.off ? null : () => dv.run(), links:[{ label:i18t('tpln5_open_paper'), attr:`data-tpln-open="${key}"` }] } : { label:i18t('tpln5_open_paper'), attr:`data-tpln-open="${key}"` } };
 }
-function tplnPanelHtml(card){
+const TPLN_BLANKS_SHOWN = 6;
+function tplnPanelHtml(card, opts){
   const E = _tplEsc, st = tplPfStats(card), last = tplnLastOf(card), cs = last.cs;
   const signed = cs.filter(c => c.status === 'Signed').length, declined = cs.filter(c => c.status === 'Declined').length, live = cs.length - signed - declined;
   let blanks = []; try { blanks = card.kind === 'builtin' && typeof templateFields === 'function' && TEMPLATES[card.id] ? templateFields(TEMPLATES[card.id]).map(f => f.label || f.key).filter(Boolean) : []; } catch (_){ blanks = []; }
   if (typeof newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function')
-    return `<div class="jl-words is-ov">${jamboOverviewHtml(tplnPanelFive(card, st, cs, signed, blanks), 'tpln')}</div>`;
+    return `<div class="jl-words is-ov tpln6-p">${jamboOverviewHtml(tplnPanelFive(card, st, cs, signed, blanks, opts), 'tpln')}</div>`;
   const head = cs.length ? i18tn('tpln_p_head', cs.length, { name: card.name, n: cs.length, c: st.changed }) : i18t('tpln_p_unused', { name: card.name });
   const row = (l, v, src) => `<div class="pd2-ch-r"><span>${E(l)}</span><b>${E(v)}</b><i>${E(src || '')}</i></div>`;
   const rows = (cs.length ? row(i18tn('tpln_p_ags', cs.length, { n: cs.length }), [signed ? i18t('tpln_p_signed', { n: signed }) : '', live ? i18t('tpln_p_live', { n: live }) : '', declined ? i18t('tpln_p_declined', { n: declined }) : ''].filter(Boolean).join(' \u00b7 '), '') : '')
@@ -3275,12 +3645,68 @@ function tplnPanelHtml(card){
     + (st.changed ? door(`data-tpln-changed="${E(tplPfKey(card))}"`, i18tn('tpln_p_see_changed', st.changed, { n: st.changed }), i18t('pd2_ch_free')) : '');
   return `<div class="pd2-chosen cun-panel"><p class="pd2-ch-head">${E(head)}</p>${rows ? `<div class="pd2-ch-cap">${E(i18t('tpln_p_used_h'))}</div><div class="pd2-ch-tbl">${rows}</div>` : ''}${turn}${doors ? `<div class="pd2-ch-cap">${E(i18t('pd2_ch_doors'))}</div>${doors}` : ''}</div>`;
 }
+/* a press on a paper's row: the first CHOOSES it (Jambo's panel shows it), the second OPENS its paper */
+function tplnChoose(k){
+  if (_tplPf.pick === k && tplnView() === 'list'){ _tplPf.view = 'paper'; }
+  else { _tplPf.pick = k; if (tplnView() !== 'list'){ const x = tplnRowsNow().find(y => tplPfKey(y.c) === k); _tplPf.view = 'list'; if (x && !_tplPf.ls) _tplPf.ls = tplnFid(x.c) || ''; } }
+  if (typeof insSelect === 'function') insSelect('tpl-book', k);
+  tplBookRepaint();
+}
+function tplnBoxBack(){ const n = document.querySelector('[data-tpl-sec="book"] [data-tpln-q]'); if (n){ try { n.focus({ preventScroll:true }); const L = n.value.length; n.setSelectionRange(L, L); } catch (_){ } } }
+function tplnShowIds(which){
+  const f = tplnFigs(tplnRowsNow()), ids = which === 'changed' ? f.changed : f.used;
+  if (!ids.length || typeof regShowOnly !== 'function') return;
+  if (typeof setView === 'function') setView('register');
+  regShowOnly(ids, i18t(which === 'changed' ? 'tpln_changed_label' : 'tpln5_drafted_label'));
+}
 if (typeof document !== 'undefined' && !document._tplnWired){ document._tplnWired = true;
+  document.addEventListener('keydown', e => { const r = e.target && e.target.matches && e.target.matches('.tpln5-fc, .tpln6-fc, tr.tpln-lr') ? e.target : null; if (!r) return;
+    if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); r.click(); } });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || e.defaultPrevented || !tplnOn() || tplnView() === 'shelves' || typeof state === 'undefined' || state.view !== 'templates') return;
+    if (document.querySelector('.modal-backdrop:not([hidden]), [role="dialog"]:not([hidden])')) return;
+    const a = document.activeElement; if (a && a.matches && a.matches('input, textarea') && String(a.value || '')) return;
+    e.preventDefault(); tplnBack();
+  });
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    if (tplnOn()){
+      const go = (fn) => { e.preventDefault(); fn(); };
+      /* P-34: + Shelf and + Kind open their small menu; a shelf chip opens that shelf's list; a kind narrows the papers */
+      const mo = t.closest('[data-tpln-menu]');
+      if (mo) return go(() => { const m = mo.parentNode.querySelector('.apn-rule-menu'); document.querySelectorAll('.tpln6 .apn-rule-menu').forEach(x => { if (x !== m) x.hidden = true; }); if (m){ m.hidden = !m.hidden; mo.setAttribute('aria-expanded', String(!m.hidden)); } });
+      if (!t.closest('.apn-rule-w')) document.querySelectorAll('.tpln6 .apn-rule-menu:not([hidden])').forEach(m => { m.hidden = true; });
+      const sc = t.closest('[data-tpln-shelfchip]');
+      if (sc) return go(() => { _tplPf.view = 'list'; _tplPf.ls = sc.getAttribute('data-tpln-shelfchip') || ''; _tplPf.pick = null; tplBookRepaint(); });
+      const kd = t.closest('[data-tpln-kind]');
+      if (kd) return go(() => { _tplPf.lk = kd.getAttribute('data-tpln-kind') || ''; if (tplnView() === 'shelves') _tplPf.view = 'list'; _tplPf.pick = null; tplBookRepaint(); });
+      /* a shelf card's press CHOOSES it (outlined, the panel speaks for it); a second press, its "N more papers ›" and the panel's Open open it */
+      const ps = t.closest('[data-tpln-open], [data-tpln-shelf]') ? null : t.closest('[data-tpln-pickshelf]');
+      if (ps) return go(() => { const k = ps.getAttribute('data-tpln-pickshelf') || '';
+        if ((tplnShelfNow(tplnShelfData(tplnRowsNow())) || {}).fid === k){ _tplPf.view = 'list'; _tplPf.ls = k; _tplPf.pick = null; } else _tplPf.shelfPick = k; tplBookRepaint(); });
+      const mk = t.closest('[data-tpln-made]');
+      if (mk) return go(() => { const x = tplnRowsNow().find(y => tplPfKey(y.c) === mk.getAttribute('data-tpln-made')); if (!x || typeof regShowOnly !== 'function') return; if (typeof setView === 'function') setView('register'); regShowOnly(x.last.cs.map(c => c.id), x.c.name); });
+      const ct = t.closest('#ins-panel [data-tpln-ct]');
+      if (ct) return go(() => { const id = ct.getAttribute('data-tpln-ct'); if (typeof regOpenContract === 'function') regOpenContract(id); else if (typeof openWorkspace === 'function') openWorkspace(id); });
+      const v = t.closest('[data-tpln-view]');
+      if (v) return go(() => { const k = v.getAttribute('data-tpln-view'); _tplPf.view = k === 'list' ? 'list' : 'shelves'; _tplPf.ls = ''; _tplPf.lf = ''; _tplPf.lk = ''; _tplPf.pick = null; if (k !== 'list') _tplPf.lq = ''; tplBookRepaint(); });
+      const sh = t.closest('[data-tpln-open]') ? null : t.closest('[data-tpln-shelf]');
+      if (sh) return go(() => { _tplPf.view = 'list'; _tplPf.ls = sh.getAttribute('data-tpln-shelf') || ''; _tplPf.lf = ''; _tplPf.lq = ''; _tplPf.pick = null; tplBookRepaint(); });
+      if (t.closest('[data-tpln-back]')) return go(tplnBack);
+      if (t.closest('[data-tpln-ready]')) return go(() => { _tplPf.view = 'list'; _tplPf.ls = ''; _tplPf.lf = 'ready'; _tplPf.pick = null; tplBookRepaint(); });
+      if (t.closest('[data-tpln-ready-off]')) return go(() => { _tplPf.lf = ''; tplBookRepaint(); });
+      const ids = t.closest('[data-tpln-ids]');
+      if (ids) return go(() => tplnShowIds(ids.getAttribute('data-tpln-ids')));
+      const op = t.closest('[data-tpln-open]');
+      if (op) return go(() => { const k = op.getAttribute('data-tpln-open'); const x = tplnRowsNow().find(y => tplPfKey(y.c) === k); if (!x) return; _tplPf.pick = k; if (tplnView() === 'shelves') _tplPf.ls = tplnFid(x.c) || ''; _tplPf.view = 'paper'; if (typeof insSelect === 'function') insSelect('tpl-book', k); tplBookRepaint(); });
+      const dr = t.closest('[data-tpln-draft]');
+      if (dr) return go(() => { const x = tplnRowsNow().find(y => tplPfKey(y.c) === dr.getAttribute('data-tpln-draft')); if (!x) return; const a = tplPfVerbs(x.c).find(y => y.k === 'draft'); if (a && a.run && !a.off) a.run(); });
+      const pr = t.closest('#ins-panel [data-tpl-pf]');
+      if (pr) return go(() => tplnChoose(pr.getAttribute('data-tpl-pf')));
+    }
     const tb = t.closest('[data-tpln-tab]');
     if (tb){ e.preventDefault(); const k = tb.getAttribute('data-tpln-tab');
-      if (k === 'list') tplPageSetTab('list'); else { const b = [...document.querySelectorAll('[data-paper-tab="standards"]')].find(x => !x.closest('.tpln')); if (b) b.click(); } return; }
+      if (k === 'list') tplPageSetTab('list'); return; }
     const pa = t.closest('#ins-panel [data-tpl-pf-act]');
     if (pa){ e.preventDefault(); const a = (_tplPf.acts || [])[Number(pa.getAttribute('data-tpl-pf-act'))]; if (a && a.run && !a.off) a.run(); return; }
     if (t.closest('[data-tpln-new]')){ e.preventDefault(); const b = document.getElementById('tpl-new'); if (b && !b.disabled) b.click(); else if (typeof openNewStandard === 'function') openNewStandard(); return; }
@@ -3294,9 +3720,9 @@ function tplPfPanelPaint(){
   const host = document.getElementById('ins-panel'); if (!host) return;
   const d = tplOverviewData(); const card = tplPfChosen(d);
   const base = { seat:'tpl-book', jlPh:i18t('jl_ph_any'), jlHome:i18t('nav_tpl_std'), jlSay:() => tplPfPageSay(d) };
-  if (!card || insLetGone('tpl-book')){ insPaintPanel(Object.assign(base, { c:null, item:null })); return; }
+  if ((!card || insLetGone('tpl-book')) && !tplnOn()){ insPaintPanel(Object.assign(base, { c:null, item:null })); return; }
   const read = _tplPf.read && _tplPf.read.key === tplPfKey(card) ? _tplPf.read : null;
-  if (typeof window.newLookOn === 'function' && newLookOn()){ insPaintPanel(Object.assign(base, { item:{ id:tplPfKey(card) }, head:false, solo:true, jlWord:card.name, body:tplnPanelHtml(card), acts:[] })); return; }
+  if (typeof window.newLookOn === 'function' && newLookOn()){ const P = tplnPanelBody(); insPaintPanel(Object.assign(base, { item:{ id:P.id }, head:false, solo:true, jlWord:P.word, body:P.body, acts:[] })); return; }
   insPaintPanel(Object.assign(base, { item:{ id:tplPfKey(card) }, head:false, solo:true, jlWord:card.name, body:tplPfJamboHtml(card, read), acts:[] }));
 }
 /* the head's facts: "24 templates · 41 contracts drafted from them in 12
@@ -3363,7 +3789,8 @@ function tplBookRepaint(){
      line above never found; every scroller in the book keeps its place but the paper beside it, which shows the
      paper just picked and starts at its top (keepScrollIn, js/components.js) */
   const li=document.getElementById('tpl-pf-list'); const top=li?li.scrollTop:0;
-  const draw=()=>{ host.innerHTML=tplBookHtml(tplOverviewData()); };
+  const draw=()=>{ host.innerHTML=tplBookHtml(tplOverviewData());
+    const hd=document.querySelector('[data-tpln-head]'); if(hd&&tplnOn()){ hd.innerHTML=tplnHeadHtml(tplnRowsNow()); if(typeof paperTabsWire==='function') paperTabsWire(); } };
   if(typeof keepScrollIn==='function') keepScrollIn(host, draw, '.tpl-pf-paper, .tpl-pf-paper *'); else draw();
   const li2=document.getElementById('tpl-pf-list'); if(li2&&top) li2.scrollTop=top;
   tplBookWire(host);
@@ -3376,6 +3803,7 @@ function tplPfAfterPaint(){
   const card=tplPfChosen(tplOverviewData());
   try{ tplPfMarksPaint(card); }catch(e){ if(typeof console!=='undefined') console.warn('book: marks failed', e); }
   try{ tplPfPanelPaint(); }catch(e){ if(typeof console!=='undefined') console.warn('book: panel failed', e); }
+  try{ tplnQuotesFill(); }catch(e){ if(typeof console!=='undefined') console.warn('book: quotes failed', e); }
 }
 /* The book's own doors, bound on its host each paint (the rows are rebuilt):
    a shelf row lands on the Templates list narrowed to it; the switch flips
@@ -3388,7 +3816,9 @@ function tplBookWire(host){
      own verbs */
   /* the list's place is held from the press's very start: choosing the row (insSelect) moves the panel beside it
      before the book is drawn again (the flash survey, 14 Nov 2026) */
-  host.querySelectorAll('[data-tpl-pf]').forEach(b=>b.addEventListener('click',()=>{ const k=b.getAttribute('data-tpl-pf'); _tplPf.pick=k;
+  host.querySelectorAll('[data-tpl-pf]').forEach(b=>b.addEventListener('click',()=>{ const k=b.getAttribute('data-tpl-pf');
+    if(tplnOn()){ tplnChoose(k); return; }
+    _tplPf.pick=k;
     const go=()=>{ if(typeof insSelect==='function') insSelect('tpl-book',k); tplBookRepaint(); };
     if(typeof keepScrollIn==='function') keepScrollIn(host, go, '.tpl-pf-paper, .tpl-pf-paper *'); else go(); }));
   host.querySelectorAll('[data-tpl-pf-shelf]').forEach(b=>b.addEventListener('click',()=>{ const k=b.getAttribute('data-tpl-pf-shelf');
@@ -3506,7 +3936,7 @@ let _tplPageTab=null;
 /* …and, since the Legora head (Part 8), the words in each tab's box and the
    list's pile and chips (a question being typed is not kept: it narrows
    nothing, so the page's own query is empty while it stands) */
-function tplPlace(){ return { tab:tplPageTab(), pick:_tplPf.pick||null, open:Object.assign({}, _tplPf.open||{}),
+function tplPlace(){ return { tab:tplPageTab(), pick:_tplPf.pick||null, open:Object.assign({}, _tplPf.open||{}), view:tplnView(), ls:String(_tplPf.ls||''), lq:String(_tplPf.lq||''), lf:_tplPf.lf==='ready'?'ready':'',
   bq:String(_tplPf.q||''), list:{ group:_tplPage.group, kind:_tplPage.kind||'all', stream:_tplPage.stream||null, q:String(_tplPage.q||'') } }; }
 /* A REFRESH LANDS AT THE SAME SPOT: the tab, and on the book the template
    that was up and the shelves the reader opened or folded */
@@ -3514,6 +3944,10 @@ function tplPlacePut(p){ if(p&&TPL_PAGE_TABS.includes(p.tab)) _tplPageTab=p.tab;
   if(p&&typeof p.pick==='string') _tplPf.pick=p.pick;
   if(p&&p.open&&typeof p.open==='object') _tplPf.open=Object.fromEntries(Object.entries(p.open).filter(([k])=>TPL_PF_SHELVES.includes(k)).map(([k,v])=>[k,!!v]));
   if(p&&typeof p.bq==='string') _tplPf.q=p.bq;
+  if(p&&['shelves','list','paper'].includes(p.view)) _tplPf.view=p.view;
+  if(p&&typeof p.ls==='string') _tplPf.ls=p.ls;
+  if(p&&typeof p.lq==='string') _tplPf.lq=p.lq;
+  if(p) _tplPf.lf=p.lf==='ready'?'ready':'';
   const L=p&&p.list;
   if(L&&typeof L==='object'){
     if(['all','company','cp','builtin','sample',...TPL_PILES].includes(L.group)) _tplPage.group=L.group;
@@ -3527,6 +3961,8 @@ function tplPageTab(){ return TPL_PAGE_TABS.includes(_tplPageTab)?_tplPageTab:TP
    "see all") set that box before switching. */
 function tplPageSetTab(k){
   if(!TPL_PAGE_TABS.includes(k)) return;
+  /* THE TABLE HAS NO DOOR IN THE NEW LOOK (Shelves, then the Legora way, 17 Nov 2026): its doors open the list */
+  if(k==='list'&&tplnOn()){ _tplPf.view='list'; _tplPf.ls=''; _tplPf.lf=''; _tplPf.pick=null; k='book'; _tplPageTab='book'; tplBookRepaint(); }
   _tplPageTab=k;
   /* a tab of the classic row says it is selected; a press of the page's
      switch (the Legora head) says it is pressed, as List | Wall does */
@@ -3553,6 +3989,7 @@ function tplPageSetTab(k){
    table's own search box, filled with the name in plain sight, and emptying
    it is the way back. */
 function tplGoList(name){
+  if(tplnOn()){ _tplPf.view='list'; _tplPf.ls=''; _tplPf.lf=''; _tplPf.pick=null; _tplPf.lq=String(name||''); _tplPageTab='book'; tplBookRepaint(); tplnBoxBack(); return; }
   _tplPage.q=String(name||''); _tplPage.group='all'; _tplPage.stream=null; _tplPage.showAll=false;
   tplPageSetTab('list');
   const box=document.getElementById('tpl-search');
@@ -3582,6 +4019,7 @@ function tplGoList(name){
    on nothing looks exactly like a broken one. */
 function tplGoBucket(key){
   const k=String(key||'');
+  if(tplnOn()){ _tplPf.view='list'; _tplPf.ls=k.startsWith('stream:')?k.slice(7):''; _tplPf.lf=''; _tplPf.lq=''; _tplPf.pick=null; _tplPageTab='book'; tplBookRepaint(); return; }
   const stream=k.startsWith('stream:')?k.slice(7):null;
   _tplPage.q='';
   _tplPage.stream=stream;
@@ -3611,6 +4049,10 @@ function renderTemplatesPage(){
   const total=rows.length;
   const lib=(typeof tplLibAll==='function')?tplLibAll():{canManage:false,loaded:true};
   const canManage=tplCanManage();
+  /* SHELVES, THEN THE LEGORA WAY (17 Nov 2026): in the new look the book carries the whole page — the head says the
+     step, the filter line is the book's own, and the table has no door */
+  const T5=tplnOn();
+  if(T5&&_tplPageTab==='list') _tplPageTab='book';
   const tab=tplPageTab();
   const ov=tplOverviewData();
   const hf=tplPfHeadFacts(ov);
@@ -3651,7 +4093,7 @@ function renderTemplatesPage(){
      emptied the shell's subtitle never reached it; a tab row with a .st-tabsub
      under it would put the same sentence back one line lower. */
   document.getElementById('content').innerHTML=`
-  <div class="view-enter sap-page tpl-page" data-ins-page="templates" data-ins="${INS?'1':'0'}" style="padding:var(--page-pad);padding-bottom:var(--tpl-pb,var(--page-pad))">
+  <div class="view-enter sap-page tpl-page${T5?' is-tpln5':''}" data-ins-page="templates" data-ins="${INS?'1':'0'}" style="padding:var(--page-pad);padding-bottom:var(--tpl-pb,var(--page-pad))">
     <div class="sap-band tpl-band ph-card">
     ${''/* the card's title row (.ph-top, 19 Oct 2026): the 12px and the hairline
            under it are the one rule every head card wears, so the tabs stand
@@ -3663,7 +4105,7 @@ function renderTemplatesPage(){
             MEASURED, and it is exactly the spread the owner reported on
             25 Aug. Home answers this the same way, by taking one element out
             of the row's alignment rather than by moving the row. */}
-      <div class="tpl-hd-row" style="min-width:0;align-self:flex-start"><h1 style="margin:0;font-family:var(--font-title);font-size:var(--ph-title-size,20px);font-weight:var(--ph-title-w,var(--w-title-serif));letter-spacing:-.005em;color:var(--color-text);line-height:1.2">${i18t('nav_tpl_std')}<span class="tpl-hd-n">${esc(i18tn('lib_pf_h_n',hf.n,{n:hf.n}))}</span></h1>
+      ${T5?`<div class="tpln5-head" data-tpln-head>${tplnHeadHtml(tplnRowsNow())}</div>`:`<div class="tpl-hd-row" style="min-width:0;align-self:flex-start"><h1 style="margin:0;font-family:var(--font-title);font-size:var(--ph-title-size,20px);font-weight:var(--ph-title-w,var(--w-title-serif));letter-spacing:-.005em;color:var(--color-text);line-height:1.2">${i18t('nav_tpl_std')}<span class="tpl-hd-n">${esc(i18tn('lib_pf_h_n',hf.n,{n:hf.n}))}</span></h1>
       ${''/* ROUND 21 AS DRAWN (the owner's "build all the gaps", 18 Oct 2026):
              the page's facts are ONE LINE beside its name — "41 contracts
              drafted from them in 12 months · 9 came back changed" — where the
@@ -3676,7 +4118,7 @@ function renderTemplatesPage(){
       ${''/* NO LINE UNDER THE TITLE (SAP benchmark, batch 2): the drawing puts
              the book's three figures there instead — they are the page's
              facts. lib_templates_sub is inert. */}</div>
-      <span style="flex:1"></span>
+      <span style="flex:1"></span>`}
       ${''/* ONE BUTTON (Young's go on "One Door to Standards", 24 Sep 2026).
              "Convert a document" is gone from beside it again — reversing the
              second pass of 21 Sep, which put it back as a proxy because the
@@ -3694,7 +4136,7 @@ function renderTemplatesPage(){
     ${''/* THE LIST HEAD UNDER THE TITLE ROW, one per tab and flipped with it
            (tplPageSetTab flips [data-tpl-head]): the book's box; the list's
            box, piles and chips; the page's switch at the box's right */}
-    ${_tplHeadBox?(()=>{ const seg=paperSegHtml(tab,'templates',{ book:hf.n, list:rows.length, standards:stdN });
+    ${T5?'':_tplHeadBox?(()=>{ const seg=paperSegHtml(tab,'templates',{ book:hf.n, list:rows.length, standards:stdN });
       /* ONE switch on the page, in the head on show (tplPageSetTab moves it) */
       return `<div data-tpl-head="book"${tab==='book'?'':' hidden'}>${paperLhHtml(TPL_LH_BOOK,{ frame:'rows' },tab==='book'?seg:'')}</div>
     <div data-tpl-head="list"${tab==='list'?'':' hidden'}>${paperLhHtml(TPL_LH_LIST,{ frame:'rows' },tab==='list'?seg:'')}</div>`; })():`
@@ -3703,12 +4145,7 @@ function renderTemplatesPage(){
              note on tplHealthData: the card it drew is kept, unreferenced. */}
       <button class="st-tab${tab==='book'?' on':''}" data-tpl-tab="book" role="tab" aria-selected="${tab==='book'?'true':'false'}">${i18t('lib_tab_book')}<span class="st-tab-n">${hf.n}</span></button>
       <button class="st-tab${tab==='list'?' on':''}" data-tpl-tab="list" role="tab" aria-selected="${tab==='list'?'true':'false'}">${i18t('nav_templates')}<span class="st-tab-n">${rows.length}</span></button>
-      ${''/* OUR STANDARDS IS THIS PAGE'S THIRD TAB (the process review,
-             4 Oct 2026): one door for the paper and its rulebook. The tab is
-             the standards page itself, drawn under this page's name — see
-             paperTabsHtml — so every one of its own tabs, its inspector and
-             its links are exactly what they were. */}
-      <button class="st-tab" data-paper-tab="standards" role="tab" aria-selected="false">${i18t('nav_our_standards')}${stdN!=null?`<span class="st-tab-n">${stdN}</span>`:''}</button>
+      ${''/* Our standards was this page's third tab until 17 Nov 2026: it is a page of its own now (the Ladder; the owner answered "Remove it") */}
     </div>`}
     </div>
 
@@ -3830,7 +4267,7 @@ function renderTemplatesPage(){
    (clause library · playbook · deviations) sits under this one as its
    sub-tabs. PAPER_TABS is the one list; the Templates page draws the first
    two itself, and the standards page draws all three with its own lit. */
-const PAPER_TABS=['book','list','standards'];
+const PAPER_TABS=['book','list'];
 /* EACH TAB CARRIES ITS COUNT (round 21 as drawn: "The book 24 · Templates 24
    · Our standards 6"), the number of what the tab's own list opens on: every
    template in the book, the list's first pile (Ready to use), and Our
@@ -3878,8 +4315,9 @@ function paperLhHtml(seat, o, seg){
 function paperTabsWire(){
   document.querySelectorAll('[data-paper-tab]').forEach(b=>{ if(b.dataset.paperBound) return; b.dataset.paperBound='1'; b.addEventListener('click',()=>{
     const k=b.getAttribute('data-paper-tab');
-    if(!PAPER_TABS.includes(k)) return;
+    /* Our standards is its own page now (the Ladder, 17 Nov 2026): the Shelves' "Our standards" door goes there */
     if(k==='standards'){ if(state.view!=='playbook') setView('playbook'); return; }
+    if(!PAPER_TABS.includes(k)) return;
     _tplPageTab=k;
     setView('templates');
   }); });
@@ -3936,6 +4374,8 @@ function pbTabGo(k){
   if(typeof stLandTop==='function') stLandTop();
 }
 function renderPlaybookPage(){
+  /* THE LADDER (17 Nov 2026): Standards is a page of its own (js/views/ladder.js); every caller of the old page lands on it */
+  if(typeof window.renderStandardsPage==='function') return window.renderStandardsPage();
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius-lg)';
   const canEditLib=isAdmin()||currentUser()?.role==='legal';
   /* THE INSPECTOR WHERE THE WIDTH HOLDS IT (Young ruled 26 Sep 2026: all three
@@ -4908,7 +5348,7 @@ function sdWire(d, mayEdit){
   PB_PAGE_TABS.forEach(sdWireList);
 }
 
-Object.assign(window,{tplnPanelFive,tplPageRows,sdPlace,sdPlacePut,pbTabGo,paperSegHtml,sdSettledHtml,sdLearnApply,sdLearnProposal,sdLearnChartHtml,sdLearnNewText,sdPanelClauseId,tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
+Object.assign(window,{tplnTone,tplnShort,tplnSecHtml,TPLN_BLANKS_SHOWN,tplnKindOf,tplnKindName,tplnShelfBadge,tplnKindBadge,tplnShelfNow,tplnBlanksOf,tplnBarsHtml,tplnUsedMostHtml,tplCanDraftFrom,tplnBack,tplnPanelFive,tplnOursGo,tplPageRows,sdPlace,sdPlacePut,pbTabGo,paperSegHtml,sdSettledHtml,sdLearnApply,sdLearnProposal,sdLearnChartHtml,sdLearnNewText,sdPanelClauseId,tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
   tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
   PAPER_TABS,paperTabsHtml,paperTabsWire,openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookShelvesHtml,tplPfHtml,tplPfGroups,tplPfChosen,tplPfPaperHtml,TPL_PF_SHELVES,_tplPf,TPL_PF_DAYS,tplPfShelfOpen,tplPfDocStamp,tplPfTally,tplPfStats,tplPfVersion,tplPfStream,tplPfBookKey,tplPfBlanksHtml,tplPfLabels,tplPfDocLoad,tplPfFacts,tplPfVerbs,tplDraftFrom,tplShortStream,TPL_PF_SIG_RE,tplPfSheetSections,tplPfMarkPlace,tplPfMarksPaint,tplPfReadOf,tplPfTimes,tplPfSaid,tplPfChips,tplPfJamboHtml,tplPfPageSay,tplPfPanelPaint,tplPfHeadFacts,tplPfAfterPaint,paperStandardsCount,paperTabCounts,tplBookRepaint,tplBookWire,tplBookGlanceHtml,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,tplListIns,tplInsPaint,tplPanelOpts,tplPanelActs,tplReadOf,tplColDefs,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

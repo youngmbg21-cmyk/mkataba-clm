@@ -122,8 +122,14 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
     check('N-4d no brand or dark switch is left (nothing published, no Light | Dark on the Board)', gone.fns.length === 0 && !gone.screenSwitch, JSON.stringify(gone));
 
     /* ============ N-5 Summarise my board is a button ============ */
-    const sum = await page.evaluate(() => { const b = document.querySelector('.hb-bs-go'); return b ? { tag: b.tagName, cls: b.className } : null; });
-    check('N-5 "Summarise my board" is a button, dressed as one', !!sum && sum.tag === 'BUTTON' && /\bhb-btn\b/.test(sum.cls), sum ? sum.cls : 'not drawn');
+    /* RE-POINTED 22 Nov 2026 (owner: "combine summarise my board into read down"): the button left the Board's head and
+       stands in Read down's brief, "Jambo, in brief"; still a button, dressed as one */
+    const sum = await page.evaluate(async () => { const off = !document.querySelector('#hb-bhead .hb-bs-go, #hb-bhead [data-hb-why]');
+      const d = document.querySelector('#hb-bhead [data-hb-rdn]'); if (d) d.click();
+      for (let i = 0; i < 40 && !document.querySelector('.rd-brief-go'); i++) await new Promise(r => setTimeout(r, 100));
+      const b = document.querySelector('.rd-brief-go'); const r = b ? { off, tag: b.tagName, cls: b.className } : { off };
+      const back = document.querySelector('[data-rd-back]'); if (back) back.click(); return r; });
+    check('N-5 "Summarise my board" left the Board and is a button in Read down\'s brief, dressed as one', !!sum && sum.off && sum.tag === 'BUTTON' && /\bui-btn\b/.test(sum.cls || ''), JSON.stringify(sum));
 
     /* ============ N-1 Present survives a change of side ============ */
     const pres = () => page.evaluate(() => ({ fs: !!document.fullscreenElement,
@@ -153,6 +159,10 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
 
     /* ============ N-2 and N-9 on the Contracts list ============ */
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the head's
+       List pill is the way to the list */
+    await waitFor(page, () => !!document.querySelector('[data-ctf-show="list"]'), null, 10000);
+    await page.click('[data-ctf-show="list"]').catch(() => {});
     await waitFor(page, () => document.querySelectorAll('#reg-tbody tr').length > 2, null, 10000);
     await page.waitForTimeout(800);
     /* The seed has no live negotiation, so every row is given one whose move

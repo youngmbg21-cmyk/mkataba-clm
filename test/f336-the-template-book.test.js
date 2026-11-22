@@ -288,7 +288,8 @@ describe('f336 (4) — the book is an index and a paper', () => {
   test('the switch and the rows are wired by the book\'s own wiring', () => {
     assert.match(fnBody('renderTemplatesPage'), /tplBookWire\(document\.querySelector\('\[data-tpl-sec="book"\]'\)\)/);
     assert.match(fnBody('tplBookWire'), /tplGoBucket/);
-    assert.match(fnBody('tplBookWire'), /const k=b\.getAttribute\('data-tpl-pf'\); _tplPf\.pick=k;/);
+    /* RE-POINTED 17 Nov 2026 (Our paper: Shelves, then the Legora way): in the new look the press goes to tplnChoose (chooses, then opens) */
+    assert.match(fnBody('tplBookWire'), /const k=b\.getAttribute\('data-tpl-pf'\);\s*if\(tplnOn\(\)\)\{ tplnChoose\(k\); return; \}\s*_tplPf\.pick=k;/);
     assert.match(fnBody('tplBookWire'), /_tplBookCut=/);
   });
 

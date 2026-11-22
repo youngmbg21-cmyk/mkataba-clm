@@ -208,6 +208,8 @@ async function watch(page, press) {
     /* ---------- 5. the market, with a language already chosen ---------- */
     /* An approval rule with a money threshold, so there is something OFF this
        card that has to follow the currency. */
+    /* RE-POINTED 22 Nov 2026 (P-43 review): a sheet holds its edits until its Save; the work-shape sheet's are saved before another opens */
+    await page.evaluate(async () => { const b = document.getElementById('st-dsave'); if (b && window.stHoldSave) await stHoldSave(b); });
     await page.evaluate(() => {
       saveApprovalRules([{ id: 'r_mkt', order: 1, cond: { type: 'value', op: '>=', value: 5000000 },
         approver: { kind: 'role', role: 'admin' } }]);
@@ -232,6 +234,8 @@ async function watch(page, press) {
     /* The rules live behind their own row now, so the money is read where a
        person would read it. The point of the claim is unchanged: a currency
        change reaches a panel that is NOT the one being answered. */
+    /* RE-POINTED 22 Nov 2026 (P-43 review): the market waits in the Company sheet until its Save */
+    await page.evaluate(async () => { const b = document.getElementById('st-dsave'); if (b && window.stHoldSave) await stHoldSave(b); });
     await page.evaluate(() => stDrawerOpen('approvals'));
     await page.waitForTimeout(400);
     const arText = await page.textContent('#approval-rules');
@@ -263,7 +267,10 @@ async function watch(page, press) {
       /* "Elsewhere on the page" is the tab row now — the page's own furniture,
          outside the drawer that was being answered (the You · Company pill
          since 16 Oct 2026, the Control Room; "You" is "Du" in Swedish). */
-      elsewhere: document.querySelector('#set-page .st-face') ? document.querySelector('#set-page .st-face').textContent : '',
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the page's own furniture is the one list's area
+         heads — "You" leads it ("Du" in Swedish) */
+      /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): the six areas' first row, "You" */
+      elsewhere: ((document.querySelector('#set-page #sdd-area-you .sdd-n') || document.querySelector('#set-page .sdd-title') || {}).textContent) || '',
       facts: document.getElementById('set-market-facts').textContent,
     }));
     check('a market that would have changed the language keeps the reader\'s own (owner, 9 Oct 2026)',

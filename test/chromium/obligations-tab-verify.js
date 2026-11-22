@@ -543,10 +543,13 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
        about. Asked of the state, bounded. */
     /* RE-POINTED 15 Oct 2026: a row opens the Obligations page narrowed to
        its contract (its own table) */
-    await page.waitForFunction(() => state.view === 'obligations' && !!document.querySelector('#obw-one-host'), null, { timeout: 8000 }).catch(() => {});
-    const back = await page.evaluate(() => { const h = document.querySelector('#obw-one-host'); return { view: state.view, id: h ? h.getAttribute('data-ins-cid') : null }; });
-    check('pressing a row opens that contract\'s own table on the Obligations page',
-      back.view === 'obligations' && back.id === want, JSON.stringify(back));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; the platform review, 6 Nov 2026): a duty's row opens
+       on its contract's PAPER, Jambo's panel on that contract's Obligations face — the place the row is about, never the
+       old narrowed page (obligation-opens-on-the-paper-verify pins the double press) */
+    await page.waitForFunction(w => state.view === 'dashboard' && typeof pdContract === 'function' && pdContract() && pdContract().id === w && typeof pdTab === 'function' && pdTab() === 'oblig', want, { timeout: 8000 }).catch(() => {});
+    const back = await page.evaluate(() => ({ view: state.view, id: (typeof pdContract === 'function' && pdContract()) ? pdContract().id : null, tab: typeof pdTab === 'function' ? pdTab() : null }));
+    check('pressing a row opens that contract\'s Obligations, on its paper',
+      back.view === 'dashboard' && back.id === want && back.tab === 'oblig', JSON.stringify(back));
 
     /* ---- THE CHASE RECORDS THE FACT WHATEVER THE MAIL DOES ---- */
     await page.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'obligations');
@@ -559,8 +562,11 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
       await new Promise(r => setTimeout(r, 400));
       /* confirmDialog mounts its own overlay — #confirm-overlay — rather than
          going through openModal, so the press is found there. */
-      const go = [...document.querySelectorAll('#confirm-overlay button')]
-        .find(x => /Send the reminder/i.test(x.textContent || ''));
+      /* RE-POINTED 19 Nov 2026 (owner's pick, Chase now is the Send screen as a reminder; f1105): on a computer the
+         press opens the reminder page (#obr-pg) and its Send the reminder asks no more; the phone keeps the question */
+      await new Promise(r => setTimeout(r, 400));
+      const go = [...document.querySelectorAll('#confirm-overlay button, #obr-pg [data-obr-send]')]
+        .find(x => /Send the reminder|Send it again/i.test(x.textContent || '') && !x.disabled);
       const asked = !!go;
       if (go) go.click();
       await new Promise(r => setTimeout(r, 1500));

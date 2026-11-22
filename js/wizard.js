@@ -24,7 +24,17 @@ const TEMPLATE_PRIMARY = {
 function templateVars(tid){
   const t=TEMPLATES[tid]; if(!t) return [];
   return templateFields(t).map(f=>({ ...f,
-    def: f.key==='effDate' && !f.def ? new Date().toISOString().slice(0,10) : (f.def||'') }));
+    def: f.key==='effDate' && !f.def ? new Date().toISOString().slice(0,10)
+      : (f.key==='side' && f.maps==='category' && !f.def) ? wzPaperPaysWho(tid) : (f.def||'') }));
+}
+/* WHO PAYS WHOM, WHERE THE PAPER SAYS IT (RE-POINTED 22 Nov 2026, batch 7 review; the owner's pick: "the paper's own
+   answer as the chosen pill"): HaTi's own paper names who pays in its own payment duty (TEMPLATE_OBLIGATIONS: ours to
+   pay the supplier's invoices = we pay them; theirs = they pay us). A paper that names no payer chooses nothing — HaTi
+   still never guesses who pays. */
+function wzPaperPaysWho(tid){
+  const T=(typeof window!=='undefined'&&window.TEMPLATE_OBLIGATIONS)||null;
+  const pay=((T&&T[tid])||[]).find(o=>o&&o.key==='pay');
+  return !pay?'':pay.party==='ours'?'customer':pay.party==='theirs'?'supplier':'';
 }
 
 /* ---- role gating (E6-T4): which templates each role may self-serve ---- */
@@ -266,7 +276,7 @@ function openWizard(preTid, prefill){
             <div style="${GRID}">${forYou.map(card).join('')}</div>
           </div>`:''}
           ${admin?`<label style="display:flex;align-items:center;gap:var(--s-2);margin:0 0 var(--s-3);font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('wz_line_of_business')}
-            <select id="wz-industry" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;color:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+            <select id="wz-industry" style="border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;color:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
               <option value="">${i18t('wz_not_set')}</option>
               ${Object.keys(INDUSTRY_TEMPLATES).map(k=>`<option value="${k}" ${industry===k?'selected':''}>${INDUSTRY_LABEL[k]}</option>`).join('')}
             </select></label>`:''}
@@ -275,7 +285,7 @@ function openWizard(preTid, prefill){
                  for when you do. Making the search obey the open folder would
                  make the faster of the two routes the narrower one. */}
           <input id="wz-search" type="search" placeholder="${i18t('wz_search_all')}" autocomplete="off"
-            style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);font:inherit;color:inherit;outline:none;margin-bottom:10px;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>
+            style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;color:inherit;outline:none;margin-bottom:10px;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>
           <div id="wz-hits" style="${GRID};margin-bottom:10px"></div>
           <span style="${EYE}">${i18t('wz_streams_head')}</span>
           <div style="${GRID}">${order.map(streamCard).join('')}</div>`}
@@ -520,7 +530,7 @@ function wzMapNote(v){
   if(!m || String(m).trim().toLowerCase()===String(v.label||'').trim().toLowerCase()) return '';
   return `<span style="font-weight:var(--w-body);color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → ${m}</span>`;
 }
-const WZ_ST='width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--need-bg,var(--color-surface));border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;';
+const WZ_ST='width:100%;height:var(--field-h,28px);border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:0 var(--field-pad-x,10px);font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);outline:none;';
 function wzFieldHtml(v){
   const id='wz-'+String(v.key).replace(/[:]/g,'_');
   const lbl=`<span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${v.label}${v.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${wzMapNote(v)}</span>`;
@@ -835,8 +845,13 @@ function naNewPaperDoorHtml(){
 function naNewPaperPaneHtml(){
   if(!naNewPaperOk()||typeof window.NS_STARTS==='undefined') return '';
   const rows=window.NS_STARTS.map(x=>({k:x.k,t:x.t,d:x.d})).concat([{k:'cp',t:i18t('ns_cp_t'),d:i18t('ns_cp_d')}]);
-  return `<div id="na-np" class="na-np" hidden><span class="na-np-lead">${esc(i18t('ns_lead'))}</span>
-    <div class="na-np-list" role="radiogroup">${rows.map((r,i)=>`<label class="na-np-row"><input type="radio" name="na-np" value="${esc(r.k)}"${i===0?' checked':''}><span><b>${esc(r.t)}</b><span>${esc(r.d)}</span></span></label>`).join('')}</div>
+  /* P-36: the four starts as calm cards in a 2×2 grid, each with a coloured mark, the chosen one outlined (the radio is
+     the card's own; Continue stands in the head, naNewPaperShow) */
+  const NA6_NP_TONE=['green','steel','violet','amber'];
+  /* each start's own drawn mark (f385: drawn icons, never a typed glyph): a pen, a copy, a contract's columns, a way back */
+  const NA6_NP_ICON=['pencil','copy','columns','arrowLeft'];
+  return `<div id="na-np" class="na-np na6-np" hidden><span class="na-np-lead">${esc(i18t('ns_lead'))}</span>
+    <div class="na-np-list na6-np-grid" role="radiogroup">${rows.map((r,i)=>`<label class="na-np-row na6-np-card"><input type="radio" name="na-np" value="${esc(r.k)}"${i===0?' checked':''}><i class="na6-np-mk" style="background:var(--st-${NA6_NP_TONE[i%4]}-bg);color:var(--st-${NA6_NP_TONE[i%4]}-fg)" aria-hidden="true">${typeof icon==='function'?icon(NA6_NP_ICON[i%4],'w-4 h-4'):i+1}</i><span><b>${esc(r.t)}</b><span>${esc(r.d)}</span></span></label>`).join('')}</div>
     <div class="na-np-foot"><button type="button" id="na-np-go" class="ui-btn ui-btn-primary">${esc(i18t('act_continue'))}</button></div></div>`;
 }
 function naNewPaperShow(root,on){
@@ -846,11 +861,21 @@ function naNewPaperShow(root,on){
   root.classList.toggle('is-newpaper',!!on); pane.hidden=!on;
   /* Create draft and its reason live in the page's head (dlgPageAdopt moved them): they step aside here too */
   ['na-create','na-why'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=on?'none':''; });
+  /* P-36: CONTINUE IN THE HEAD, where Create stands on the other tabs — the pane's own Continue pressed (one door) */
+  const cr=document.getElementById('na-create'); let hc=document.getElementById('na-np-go-h');
+  if(on&&cr&&!hc){ cr.insertAdjacentHTML('afterend',`<button type="button" id="na-np-go-h" class="ui-btn ui-btn-primary">${esc(i18t('act_continue'))}</button>`); hc=document.getElementById('na-np-go-h');
+    hc.addEventListener('click',()=>{ const g=document.getElementById('na-np-go'); if(g) g.click(); }); }
+  if(hc) hc.style.display=on?'':'none';
+  const pf=pane.querySelector('.na-np-foot'); if(pf) pf.style.display=(on&&hc)?'none':'';
+  /* the panel says the start chosen as it changes */
+  if(on&&!pane._na6Wired){ pane._na6Wired=true; pane.addEventListener('change',()=>{ if(typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ } }); }
   const t=root.querySelector('[data-na-newpaper]'); if(t) t.setAttribute('aria-selected',String(!!on));
   if(on) root.querySelectorAll('[data-na-paper]').forEach(b=>b.setAttribute('aria-selected','false'));
   else { const cur=root.getAttribute('data-paper'); root.querySelectorAll('[data-na-paper]').forEach(b=>b.setAttribute('aria-selected',String(b.getAttribute('data-na-paper')===cur))); }
+  /* the panel follows the tab at once (it read the tab left behind until something else redrew it) */
+  if(typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ }
 }
-function naNewPaperGo(k){
+function naNewPaperGo(k,x){
   if(!naNewPaperOk()) return;
   /* each start opens INSIDE this tab (owner, 14 Nov 2026), and Back brings the four starts back to the same place */
   const host=document.getElementById('na-np');
@@ -860,7 +885,8 @@ function naNewPaperGo(k){
     /* the new look draws it the Legora way (owner's pick, 14 Nov 2026); elsewhere the door that has always filed it */
     if(typeof nsLgOn==='function'&&nsLgOn()&&typeof nsOpenTheirs==='function') return nsOpenTheirs();
     if(typeof openCreateTemplateModal==='function') openCreateTemplateModal('paste'); return; }
-  openNewStandard({ start:k||'scratch', back, host });
+  /* a door that names a paper (Our paper's "Make our own", tplnOursGo) lands on that paper in its start */
+  openNewStandard({ start:k||'scratch', back, host, pick:(x&&x.pick)||null });
 }
 function openNewAgreement(o){
   if(o===undefined) return openNewDoors();
@@ -967,12 +993,17 @@ function openNewAgreement(o){
     /* THE LEGORA WAY'S ROW (24 Oct 2026): the name, then one line — what it matched in your words
        and when to use it (else its shelf) — and how often it was used at the right */
     const why=card===true?[shares.length?i18t('na_matched',{ w:shares.slice(0,2).map(w=>'“'+w+'”').join(', ') }):'', use||[shelfOf(r), r.kind==='tid'?'':(r.go||'')].filter(Boolean).join(' · ')].filter(Boolean).join(' · '):'';
+    /* P-36, THE CALM CARD (owner's pick 20 Nov 2026; no filled lavender or mint): a soft shelf badge, the name, "Use
+       when …", how the paper opens in the paper's type on one line ending in "…", a small used-bar and "used N times" */
+    const naTn=(r&&r.folder&&typeof listStreamTone==='function')?listStreamTone(r.folder):'gray';
+    const opens=card===true?naOpensOf(r):'';
     const inner=card===true
-      ? `<span class="na-radio" aria-hidden="true"></span><span class="na-lr-t"><span class="na-lr-top"><span class="na-pick-n">${esc(r.name)}</span>${best===true?`<span class="na-best">${esc(i18t('na_best'))}</span>`:''}</span>${why?`<span class="na-pick-m">${esc(why)}</span>`:''}</span><span class="na-lr-used">${used?esc(i18tn('na_used_n',used,{n:used})):''}</span>`
+      ? `<span class="na-radio" aria-hidden="true"></span><span class="na-lr-t"><span class="na6-ch"><span class="na6-cb" style="background:var(--st-${naTn}-bg);color:var(--st-${naTn}-fg)"${r.stream?` title="${esc(r.stream)}"`:''}>${esc(naShelfShort(r))}</span><span class="na6-chm is-on">✓ ${esc(i18t('na6_chosen'))}</span>${best===true?`<span class="na6-chm na-best">${esc(i18t('na_best'))}</span>`:''}</span><span class="na-lr-top"><span class="na-pick-n">${esc(r.name)}</span></span>${why?`<span class="na-pick-m">${esc(why)}</span>`:''}${opens?`<span class="na6-opens">“${esc(opens)}</span>`:''}<span class="na6-used"><i style="--p:${Math.round(Math.min(1, used/Math.max(1,naUsedMax()))*100)}%;--sd:var(--st-${naTn}-dot)" aria-hidden="true"></i>${esc(used?i18tn('na6_used_times',used,{n:used}):i18t('na6_unused'))}</span></span>`
       : `<span class="na-pick-n">${esc(r.name)}</span>${best===true?`<span class="na-best">${esc(i18t('na_best'))}</span>`:''}${meta?`<span class="na-pick-m">${esc(meta)}</span>`:''}${use?`<span class="na-use">${esc(use)}</span>`:''}`;
     /* SOFT TINT (owner's pick, 16 Nov 2026, "keep it as drawn"): a card wears its paper's stream colour, the list
        language's own (listStreamTone); a stream whose colour is grey is drawn green here, on the card only */
-    const tint=card===true?naCardTone(r):'';
+    /* the card wears no fill of its own now (P-36): its colour is the shelf badge and the bar */
+    const tint='';
     return `<button type="button" class="na-pick${card===true?' na-close':''}${on?' on':''}"${card===true?` role="radio" aria-checked="${on}"`:''} data-wz-${r.kind}="${esc(r.id)}"${hint?` title="${esc(hint)}"`:''}${tint?` data-tone="${tint}"`:''}>${inner}</button>`; };
   /* ONE SHEET'S FIRST STEP: the closest rows, in the reading's order — drawn as
      cards (the gaps, round 4, 18 Oct 2026): a radio, the name, the best marked,
@@ -980,6 +1011,20 @@ function openNewAgreement(o){
      a HaTi template its shelf alone — read off each shelf's own count of use
      (contractsCreated, templateUsage, builtinUsageCount) */
   const shelfOf=r=>i18t(r.kind==='lib'?'na_shelf_lib':r.kind==='mine'?'na_shelf_mine':'na_shelf_tid');
+  /* P-36: the soft shelf badge says the stream's short name ("Procurement", "Corporate": core's streamLabel), the whole
+     name on its hover; a paper with no stream says its shelf */
+  const naShelfShort=r=>{ const w=(r&&r.folder&&typeof streamLabel==='function')?String(streamLabel({ folder:r.folder })||''):''; return (w&&w!=='—')?w:(r.stream||shelfOf(r)); };
+  const naShelfBadge=r=>{ const tn=(r&&r.folder&&typeof listStreamTone==='function')?listStreamTone(r.folder):'gray';
+    return `<span class="na6-cb" style="background:var(--st-${tn}-bg);color:var(--st-${tn}-fg)"${r&&r.stream?` title="${esc(r.stream)}"`:''}>${esc(naShelfShort(r))}</span>`; };
+  /* how the paper opens, the paper's own first words (HaTi's and our saved papers read here; a company paper only once
+     its words were read elsewhere — never guessed) */
+  const _naOpens={};
+  const naOpensOf=r=>{ const k=r.kind+':'+r.id; if(k in _naOpens) return _naOpens[k]; let h='';
+    try{ if(r.kind==='tid'&&typeof fillPreviewHtml==='function') h=fillPreviewHtml('builtin',{ tid:r.id });
+      else if(r.kind==='mine'&&typeof fillPreviewHtml==='function'){ const t=(typeof customTemplates==='function'?customTemplates():[]).find(x=>String(x.id)===String(r.id)); if(t) h=fillPreviewHtml('saved',{ t }); } }catch(_){ h=''; }
+    let q=''; if(h&&typeof document!=='undefined'){ const d=document.createElement('div'); d.innerHTML=h; const p=[...d.querySelectorAll('p, li')].map(e=>String(e.textContent||'').replace(/\s+/g,' ').trim()).find(x=>x.length>24); q=p?p.slice(0,160):''; }
+    return (_naOpens[k]=q); };
+  const naUsedMax=()=>{ let m=1; try{ closestBase().forEach(r=>{ m=Math.max(m, usedOf(r)); }); }catch(_){ } return m; };
   const usedOf=r=>{ let n=0; try{ n=r.kind==='lib'?(Number((libOf().find(t=>t.id===r.id)||{}).contractsCreated)||0)
     :r.kind==='mine'?(Number((typeof templateUsage==='function'?templateUsage(r.id):{}).count)||0)
     :(typeof builtinUsageCount==='function'?builtinUsageCount(r.id):0); }catch(_){ n=0; } return n; };
@@ -1041,7 +1086,8 @@ function openNewAgreement(o){
     facts.forEach(f=>L.push({ k:f.k, t:i18t('na_rd_k_'+f.k), say:f.say, quote:f.quote }));
     if(purpose) L.push({ k:'for', t:i18t('na_rd_k_for'), say:naCap(purpose), quote:naQuoteOf(purpose) });
     return L; };
-  const naQuoteHtml=q=>q?`<span class="na-q1">“<mark>${esc(q)}</mark>”</span>`:`<span class="na-src-m">${esc(i18t('na_rd_from_words'))}</span>`;
+  /* YOUR WORDS QUOTED AND LIT (P-36): “Nandi Dairy” your words */
+  const naQuoteHtml=q=>q?`<span class="na-q1">“<mark>${esc(q)}</mark>” <span class="na6-yw">${esc(i18t('na6_your_words'))}</span></span>`:`<span class="na-src-m">${esc(i18t('na_rd_from_words'))}</span>`;
   const naReadHtml=()=>{ const L=naReadRows(); if(!L.length) return '';
     return `<section class="na-field na-read" id="na-read"><div class="na-read-h"><b>${esc(i18t('na_rd_head'))}</b></div>
       <div class="na-kt" role="table"><div class="na-kt-h" role="row"><span role="columnheader">${esc(i18t('na_kt_term'))}</span><span role="columnheader">${esc(i18t('na_kt_says'))}</span><span role="columnheader">${esc(i18t('na_kt_where_words'))}</span></div>
@@ -1059,7 +1105,7 @@ function openNewAgreement(o){
   const naKeptHtml=()=>keptOf().length?`<div class="na-kept" id="na-kept"><p class="na-kept-lead">${esc(i18t('na_kept_lead'))}</p><p class="na-kept-cap">${esc(i18t('na_kept_cap'))}</p>
       <div class="na-kept-list" id="na-kept-list">${naKeptRowsHtml()}</div><button type="button" class="ui-link na-kept-new" data-na-kept-new>${esc(i18t('na_kept_new'))}</button></div>`:'';
   const naTheirsHtml=()=>`<section class="na-field na-theirs" id="na-theirs" hidden>${naKeptHtml()}
-      <div class="na-drop" id="na-drop" data-na-drop><span class="na-drop-ic" aria-hidden="true">${icon('import','w-5 h-5')}</span>
+      <div class="na-drop" id="na-drop" data-na-drop><span class="na-drop-ic" aria-hidden="true">${icon('upload','w-5 h-5')}</span>
         <b>${esc(i18t('na_theirs_drop'))} <button type="button" class="ui-link" id="na-theirs-pick">${esc(i18t('na_theirs_choose'))}</button></b>
         <span class="na-hint">${esc(i18t('na_theirs_sub'))}</span><span class="na-theirs-file" id="na-theirs-file" hidden></span></div>
       <input type="file" id="na-theirs-input" hidden tabindex="-1" aria-hidden="true" accept="${esc((typeof PD_DROP_ACCEPT==='string'&&PD_DROP_ACCEPT)||'.docx,.pdf,.doc,.txt')}"></section>`;
@@ -1259,18 +1305,29 @@ function openNewAgreement(o){
       const lab=sb.closest('label'), cap=lab&&lab.querySelector('span');
       if(cap&&!cap.querySelector('[data-na-req]')) cap.insertAdjacentHTML('beforeend',' <span data-na-req style="color:var(--st-ruby-fg)">*</span>'); }
     let on=!!api&&!noStream;
-    let why=!api?i18t('na_pick_first'):i18t('na_stream_first');
+    /* P-36, AS DRAWN: "Pick a paper first" on the one sheet (the older form keeps its words) */
+    let why=!api?i18t(one?'na6_pick_paper':'na_pick_first'):i18t('na_stream_first');
     /* THEIR PAPER: Create needs their file and a stream (the drop's own two) */
     if(one&&paper==='theirs'){ on=!!theirFile&&!!streamPicked; why=!theirFile?i18t('na_theirs_need'):i18t('na_stream_first'); }
     if(one){ root.setAttribute('data-paper',paper); const tp=paper==='kept'?'theirs':paper; root.querySelectorAll('[data-na-paper]').forEach(b=>b.setAttribute('aria-selected',String(b.getAttribute('data-na-paper')===tp)));
-      const th=document.getElementById('na-theirs'); if(th) th.hidden=tp!=='theirs'; }
-    ['na-create','na-skip'].forEach(id=>{ const b=document.getElementById(id); if(!b) return;
+      const th=document.getElementById('na-theirs'); if(th) th.hidden=tp!=='theirs';
+      /* Their paper's panel says the file and the stream as they stand: a change to either draws it again (the dock
+         writes nothing where nothing moved, igDockSame) */
+      const tk=tp==='theirs'?[paper,theirFile?theirFile.name:'',streamPicked].join('|'):'';
+      if(tk!==root._naTheirKey){ const was=root._naTheirKey; root._naTheirKey=tk; if(tk&&was!==undefined&&typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ } } }
+    /* WHILE THE SERVER MAKES IT, NOTHING UN-GREYS THE PAIR (22 Nov 2026, create-lands-clean 3a): a late light() — the
+       form's debounced input, a stream box settling — ran during the wait and gave Create back mid-press */
+    if(!root._naBusy) ['na-create','na-skip'].forEach(id=>{ const b=document.getElementById(id); if(!b) return;
       b.disabled=!on; b.title=on?(b.getAttribute('data-title-on')||''):why; });
-    /* their paper is created as theirs, not drafted (as drawn: "Create") — never while the press turns */
-    if(one){ const cb=document.getElementById('na-create'); if(cb&&!cb.querySelector('.ob-spin')) cb.textContent=i18t(paper==='theirs'?'act_create':'tl_create_draft'); }
+    /* P-36, AS DRAWN: "Create draft" on every tab (Their paper's said "Create" before) — never while the press turns */
+    if(one){ const cb=document.getElementById('na-create'); if(cb&&!cb.querySelector('.ob-spin')&&cb.textContent!==i18t('tl_create_draft')) cb.textContent=i18t('tl_create_draft'); }
     /* as drawn, the reason is said beside Create, not only on its hover */
     const wy=document.getElementById('na-why'); if(wy) wy.textContent=on?'':String(why).replace(/\.\s*$/,'');
-    naForPaint(); };
+    naForPaint();
+    /* P-36: THE PANEL FOLLOWS THE SCREEN — a paper chosen, a stream picked, a needed box filled draws it again (the fault
+       of 20 Nov 2026: the panel did not change when a paper was chosen); the dock writes nothing where nothing moved */
+    if(one&&paper==='ours'){ let nk=''; try{ nk=[sel?sel.kind+':'+sel.id:'',naNeedRows().map(x=>x.done?1:0).join('')].join('|'); }catch(_){ nk=''; }
+      if(nk!==root._naOursKey){ const was=root._naOursKey; root._naOursKey=nk; if(was!==undefined&&typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ } } } };
   /* WHAT IT IS FOR, mirrored from the paper's own question while it is answered (never read without AI) */
   const naForPaint=()=>{ const el=document.getElementById('na-w-for'); if(!el) return;
     const host=document.getElementById('na-form');
@@ -1338,6 +1395,9 @@ function openNewAgreement(o){
        a new stream is made where streams are kept (Settings · Contract streams), not here */
     seg.innerHTML=opts.map(x=>`<button type="button" class="na-seg-b" data-na-stream="${esc(x.id)}" aria-pressed="${x.id===now}">${lock(x.id)}${esc(x.name)}</button>`).join('');
     const need=document.getElementById('na-file-need'); if(need) need.hidden=!!now;
+    /* P-36, AS DRAWN: "Filed in · needed" in amber on the label's one line while no stream is chosen */
+    const lab=document.querySelector('#na-file .na-file-l');
+    if(lab){ const w=now?i18t('na_filed_in'):i18t('na_filed_in')+' · '+i18t('na6_filed_need'); if(lab.textContent!==w) lab.textContent=w; lab.classList.toggle('is-need', !now); }
   };
   const naKeptPaint=()=>{ const l=document.getElementById('na-kept-list'); if(l) l.innerHTML=naKeptRowsHtml(); };
   const naKeptPick=id=>{ const t=keptOf().find(x=>String(x.id)===String(id)); if(!t) return;
@@ -1376,7 +1436,10 @@ function openNewAgreement(o){
     /* the sheet asks the stream at step 3, so step 2 neither draws nor counts it */
     const n=(one&&naStreamBox(host))?Math.max(0,nAll-1):nAll;
     if(one){ naRowsLay(host); if(root.classList) root.classList.add('is-picked'); }
-    if(one&&sb){ sb.textContent=[i18t(kind==='lib'?'na_shelf_lib':kind==='mine'?'na_shelf_mine':'na_shelf_tid'), ver].filter(Boolean).join(' · ');
+    /* P-36, AS DRAWN: "<shelf badge> <paper> · change paper · N details · N not said yet" — the badge before the name */
+    if(one&&sb){ const rr=rows().find(x=>x.kind===kind&&String(x.id)===String(id));
+      sb.textContent=''; if(rr) sb.innerHTML=naShelfBadge(rr);
+      sb.title=[i18t(kind==='lib'?'na_shelf_lib':kind==='mine'?'na_shelf_mine':'na_shelf_tid'), ver].filter(Boolean).join(' · ');
       naCountPaint(host); }
     else if(sb) sb.textContent=`${ver&&!one?ver+' · ':''}${kind==='lib'
       ? i18tn('na_details', n, {n})+(follow?' · '+i18tn('na_tpl_q_follow', follow, {n:follow}):'')
@@ -1429,16 +1492,23 @@ function openNewAgreement(o){
     [...grid.children].forEach(el=>{ if(el.classList.contains('na-kt-h')) return;
       el.classList.add('na-kt-r');
       const box=el.querySelector('input[id],select[id],textarea[id]');
+      /* AN EMPTY VALUE SAYS "not said yet", NEVER "0" (P-36; the fault of 20 Nov 2026) */
+      if(box&&!box.hasAttribute('data-na-drawn')&&box.tagName==='INPUT'&&(String(box.value)==='0'||(!String(box.value)&&String(box.getAttribute('placeholder')||'').trim()==='0'))){ box.value=''; box.setAttribute('placeholder', i18t('na6_not_said')); }
+      /* P-36, AS DRAWN: an empty box owed now reads "not said yet" (amber), one that can wait reads "—"; the paper's own
+         example moves to the box's hover, never lost */
+      if(box&&!box.hasAttribute('data-na-drawn')&&box.tagName==='INPUT'&&box.type!=='date'&&!String(box.value||'').trim()){
+        const was=String(box.getAttribute('placeholder')||'').trim(), owedNow=!!el.querySelector('span[style*="ruby"]')||box.hasAttribute('data-need');
+        if(was&&was!==i18t('na6_not_said')&&!box.title) box.title=was;
+        box.setAttribute('placeholder', owedNow?i18t('na6_not_said'):'—'); }
       if(box&&!box.hasAttribute('data-na-drawn')) box.setAttribute('data-na-drawn', String(box.value||''));
       if(el.style.display==='block') el.style.removeProperty('display');
-      const term=el.querySelector(':scope > span:first-child'); if(term) term.style.marginBottom='0';
+      const term=el.querySelector(':scope > span:first-child'); if(term){ term.style.marginBottom='0'; ['color','font-weight','font-size'].forEach(k=>term.style.removeProperty(k)); }
       if(!el.querySelector(':scope > .na-src')) el.insertAdjacentHTML('beforeend','<span class="na-src" data-na-src></span>'); });
     naTermFill(host); naSrcPaint(host); };
   const naSrcPaint=host=>{
     (host||document).querySelectorAll('.na-kt-r').forEach(el=>{
       const src=el.querySelector(':scope > .na-src'); if(!src) return;
       const box=el.querySelector('input[id],select[id],textarea[id]');
-      const pw=el.classList.contains('pw-field');
       const k=box?naCarryKey(box.id):'', v=box?String(box.value||'').trim():'', drawn=box?String(box.getAttribute('data-na-drawn')||'').trim():'';
       /* needed to Create (the label's star) is owed and counted; owed later (data-need, the details) is said, not counted */
       const need=!!el.querySelector('span[style*="ruby"]'), later=!!(box&&box.hasAttribute('data-need'));
@@ -1446,8 +1516,10 @@ function openNewAgreement(o){
       let html='', owed=false;
       if(f&&v&&v===String(f.val).trim()) html=naQuoteHtml(f.quote);
       else if(v&&v!==drawn) html=`<span class="na-src-m">${esc(i18t(box&&box.tagName==='SELECT'?'na_src_picked':'na_src_typed'))}</span>`;
-      else if(v||pw) html=`<span class="na-src-m">${esc(i18t('na_src_paper'))}</span>`;
-      else if(need||later){ html=`<span class="na-src-need">${esc(i18t('na_src_not_said'))}</span>`; owed=true; }
+      /* P-36, AS DRAWN: the paper's own is a grey badge; not said yet an amber badge with its dot */
+      /* who pays whom is "the paper's own" only where the paper answered it (wzPaperPaysWho); unanswered it is not */
+      else if(v) html=`<span class="na-src-m na6-sb">${esc(i18t('na_src_paper'))}</span>`;
+      else if(need||later){ html=`<span class="na-src-need"><i aria-hidden="true"></i>${esc(i18t('na_src_not_said'))}</span>`; owed=true; }
       else html=`<span class="na-src-m">${esc(i18t('na_src_later'))}</span>`;
       if(src.innerHTML!==html) src.innerHTML=html;
       el.classList.toggle('is-owed', owed); }); };
@@ -1466,7 +1538,39 @@ function openNewAgreement(o){
       const mark=sp.querySelector('.na-from-words'), same=String(el.value||'').trim()===who;
       if(same&&!mark) sp.insertAdjacentHTML('beforeend', ` <span class="na-from-words">✦ ${esc(i18t('na_from_words'))}</span>`);
       else if(!same&&mark) mark.remove(); }); };
+  /* P-36: WHAT CREATE STILL NEEDS, as the panel's dot list — the paper, the stream it is filed in, then the paper's own
+     starred boxes (the form's star, naNeeded's reading), each done with its value or still needed */
+  /* AS DRAWN (21 Nov 2026): the paper first, then — in the form's own order — its starred boxes and the boxes it owes that
+     were drawn empty (the amber "not said yet" rows), the stream last; each not yet done says what it waits for ("pick
+     one", "not said yet"). MONEY ONLY IN THE VALUE BOX: the contract value's row says "said", never the figure. */
+  function naNeedRows(){ const out=[]; const r=sel?rows().find(x=>x.kind===sel.kind&&String(x.id)===String(sel.id)):null;
+    out.push({ t:i18t('na6_need_paper'), v:r?r.name:'', done:!!r, want:i18t('na6_to_pick') });
+    const host=document.getElementById('na-form');
+    if(r&&host) host.querySelectorAll('.na-kt-r').forEach(el=>{ if(el.hidden||el.style.display==='none') return;
+      const box=el.querySelector('input[id],select[id],textarea[id]');
+      const star=!!el.querySelector('span[style*="ruby"]'), owes=!!(box&&box.hasAttribute('data-need')&&!String(box.getAttribute('data-na-drawn')||'').trim());
+      if(!star&&!owes) return;
+      const sp=el.querySelector(':scope > span:first-child, label > span:first-child'); const t=sp?sp.cloneNode(true):null; if(t) t.querySelectorAll('span').forEach(x=>x.remove());
+      let v=box?String(box.value||'').trim():''; const k=box?naCarryKey(box.id):'';
+      /* said as the reader sees it: a choice by its words, a day as a day */
+      if(v&&box.tagName==='SELECT'){ const o1=box.options[box.selectedIndex]; v=o1?String(o1.textContent||'').trim():v; }
+      else if(/^\d{4}-\d{2}-\d{2}$/.test(v)&&typeof fmtDocDate==='function') v=fmtDocDate(v)||v;
+      const name=k==='value'?i18t('na6_need_value'):(t?String(t.textContent||'').replace(/\s*\*\s*$/,'').trim():'');
+      const done=!!v&&v!=='0';
+      if(name&&!out.some(x=>x.t===name)) out.push({ t:name, v:k==='value'?(done?i18t('na6_said'):''):(v==='0'?'':v), done, want:i18t('na6_not_said'), money:k==='value' }); });
+    /* the stream as Create reads it: the form's own stream box, else the one picked (light's own test) */
+    const sbx=naStreamBox(host); const sv=sbx&&sbx.value&&sbx.value!=='__new__'?sbx.value:streamPicked;
+    const f=sv&&window.FOLDERS&&FOLDERS[sv];
+    out.push({ t:i18t('na6_need_stream'), v:f?String(f.name||''):'', done:!!f, want:i18t('na6_to_pick') });
+    return out; }
+  /* how many of the sentence's words were read (the lit quotes), for "N details read from it" */
+  function naSentenceReadN(){ if(!asked) return 0; return new Set(naReadRows().map(x=>String(x.quote||'').toLowerCase()).filter(Boolean)).size; }
+  /* the sentence as said, the words read from it lit (each fact's own quote) */
+  function naSentenceLitHtml(){ if(!asked) return ''; const qs=naReadRows().map(x=>String(x.quote||'')).filter(Boolean).sort((a,b)=>b.length-a.length);
+    let h=esc(asked); qs.forEach(q=>{ const e=esc(q); const at=h.indexOf(e); if(at>=0&&!/<mark>/.test(h.slice(Math.max(0,at-6),at))) h=h.slice(0,at)+'<mark>'+e+'</mark>'+h.slice(at+e.length); }); return h; }
   root._naPick=pick;
+  /* a needed box filled while typing wakes the panel too (light's own key; nothing is drawn where nothing moved) */
+  document.getElementById('na-form')?.addEventListener('input',()=>{ clearTimeout(root._naPT); root._naPT=setTimeout(()=>{ if(document.body.contains(root)) light(); },250); });
   /* the stream box is the form's; a change to it wakes or greys Create (light) */
   document.getElementById('na-form')?.addEventListener('change',e=>{
     const sb=naStreamBox(document.getElementById('na-form')); if(!e.target||e.target!==sb) return;
@@ -1528,7 +1632,9 @@ function openNewAgreement(o){
         if(document.getElementById('na-root')) return;
         ob.disconnect();
         /* left without a draft (Cancel, the crumb's ‹, ✕, Esc): back to the page it was started on */
-        if(!_naClaimed && naFrom) try{ naBackFrom(naFrom); }catch(_){ }
+        /* …unless a door inside it already took the reader on (From scratch's start opening the builder moves the view
+           off Home before the sheet closes): going "back" then would draw the old page over where they were sent */
+        if(!_naClaimed && naFrom && !(typeof state==='object'&&state&&state.view&&state.view!=='dashboard')) try{ naBackFrom(naFrom); }catch(_){ }
         dropHeld();
       });
       ob.observe(mr,{childList:true,subtree:true});
@@ -1553,13 +1659,13 @@ function openNewAgreement(o){
     if(_naBusy) return;
     const btn=ev&&ev.currentTarget, was=btn?btn.innerHTML:'';
     const acts=['na-create','na-skip'].map(id=>document.getElementById(id)).filter(Boolean);
-    _naClaimed=true; _naBusy=true;
+    _naClaimed=true; _naBusy=true; root._naBusy=true;
     acts.forEach(b=>{ b.disabled=true; });
     if(btn&&typeof busySet==='function') busySet(btn,i18t('na_creating'));
     /* made from the one sheet, it lands on its Dossier (pdLandOnDossier) */
     if(one&&typeof pdLandOnDossier==='function') pdLandOnDossier(true);
     try{ await fn(); }catch(_){ /* the act says its own refusal */ }
-    _naBusy=false;
+    _naBusy=false; root._naBusy=false;
     if(document.getElementById('na-root')){ _naClaimed=false; if(one&&typeof pdLandOnDossier==='function') pdLandOnDossier(false);
       if(btn) btn.innerHTML=was; acts.forEach(b=>{ b.disabled=false; }); light(); } };
   const createOurs=goCreate(()=>api.create());
@@ -1585,7 +1691,7 @@ function openNewAgreement(o){
     if(typeof renderIntelDock==='function') setTimeout(()=>{ try{ renderIntelDock(); }catch(_){ } },0);
     const mroot=document.getElementById('modal-root');
     if(mroot&&typeof MutationObserver==='function'){
-      const mo=new MutationObserver(()=>{ if(document.getElementById('na-root')) return; mo.disconnect(); _naBack=null; _naOurs=null;
+      const mo=new MutationObserver(()=>{ if(document.getElementById('na-root')) return; mo.disconnect(); _naBack=null; _naOurs=null; _naTheirs=null; _naNew=null;
         if(typeof renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ }
         /* the bar names the page in front again */
         if(typeof deskBarPaint==='function') try{ deskBarPaint(); }catch(_){ } });
@@ -1622,7 +1728,7 @@ function openNewAgreement(o){
     /* FROM SCRATCH'S CONTINUE: the chosen start, through the one door to new paper */
     /* delegated: Back from a start puts the four starts back, a fresh Continue with them */
     root.addEventListener('click',e=>{ if(!e.target.closest||!e.target.closest('#na-np-go')) return; const k=(root.querySelector('input[name="na-np"]:checked')||{}).value; naNewPaperGo(k); });
-    if(o&&o.newPaper) naNewPaperShow(root,true);
+    if(o&&o.newPaper){ naNewPaperShow(root,true); if(o.start) naNewPaperGo(o.start,{ pick:o.pick }); }
     /* THEIR PAPERS YOU KEPT: a press chooses one (the card asks what any paper asks, the company filled in from it);
        "Or drop a new file from them" lets it go for the drop below */
     root.addEventListener('click',e=>{
@@ -1631,8 +1737,28 @@ function openNewAgreement(o){
       if(e.target.closest&&e.target.closest('[data-na-kept-new]')){ paper='theirs'; sel=null; api=null; root.classList.remove('is-picked'); naKeptPaint(); light();
         const d=document.getElementById('na-drop'); if(d) try{ d.scrollIntoView({ block:'nearest' }); }catch(_){} } });
     /* Our paper's own words for the panel (the new look): the closest papers, the one chosen, the lines filled from the words */
-    _naOurs={ up:()=>paper==='ours'&&naSheetUp(), closest:()=>closestRows().map(r=>r.name), chosen:()=>{ const r=sel?rows().find(x=>x.kind===sel.kind&&String(x.id)===String(sel.id)):null; return r?r.name:''; },
-      read:()=>naReadRows().length, asked:()=>!!asked };
+    /* FROM SCRATCH IS UP, NO PAPER IS (18 Nov 2026, the panel-from-visit-to-visit bug): while the third tab shows,
+       neither paper's hand answers, so Jambo's panel says the sheet's own words every time, never the tab left behind */
+    const npUp=()=>root.classList.contains('is-newpaper');
+    _naOurs={ up:()=>paper==='ours'&&naSheetUp()&&!npUp(), closest:()=>closestRows().map(r=>r.name), chosen:()=>{ const r=sel?rows().find(x=>x.kind===sel.kind&&String(x.id)===String(sel.id)):null; return r?r.name:''; },
+      read:()=>naReadRows().length, asked:()=>!!asked,
+      /* P-36: what the panel says, read off the sheet as it stands — the paper, the party, what Create still needs (the
+         paper, the stream, the form's starred boxes), the sentence with the words read lit */
+      paper:()=>{ const r=sel?rows().find(x=>x.kind===sel.kind&&String(x.id)===String(sel.id)):null; return r?{ name:r.name, shelf:shelfOf(r), folder:r.folder||'' }:null; },
+      party:()=>{ const host=document.getElementById('na-form'); const b=host?[...host.querySelectorAll(NA_CARRY_SEL)].find(x=>naCarryKey(x.id)==='counterparty'):null;
+        return String((b&&b.value)||(o.words&&o.words.who)||'').trim(); },
+      need:()=>naNeedRows(),
+      sentence:()=>naSentenceLitHtml(), readN:()=>naSentenceReadN() };
+    /* Their paper's own words for the panel (the five parts, 18 Nov 2026): the file added and the stream picked, the two
+       Create needs (light's own test), read as they stand — the panel says them, the sheet is where they are given */
+    /* FROM SCRATCH'S OWN HAND (P-36: the panel follows the screen on every tab): the start chosen among the four */
+    const npPart=sel=>{ const r=root.querySelector('#na-np input[name="na-np"]:checked'); const l=r&&r.closest('label'); const b=l&&l.querySelector(sel); return b?String(b.textContent||'').trim():''; };
+    _naNew={ up:()=>naSheetUp()&&npUp(), start:()=>npPart('b'), desc:()=>npPart('b + span'),
+      key:()=>{ const r=root.querySelector('#na-np input[name="na-np"]:checked'); return r?String(r.value||''):''; } };
+    _naTheirs={ up:()=>(paper==='theirs'||paper==='kept')&&naSheetUp()&&!npUp(), file:()=>theirFile?String(theirFile.name||''):'',
+      kept:()=>{ if(paper!=='kept'||!sel) return ''; const r=rows().find(x=>x.kind===sel.kind&&String(x.id)===String(sel.id)); return r?String(r.name||''):''; },
+      stream:()=>{ const f=streamPicked&&window.FOLDERS&&FOLDERS[streamPicked]; return f?String(f.name||''):''; },
+      pick:()=>{ const b=document.getElementById('na-theirs-pick'); if(b) b.click(); } };
     /* THEIR FILE: chosen or dropped, one at a time, read only at Create */
     const tIn=document.getElementById('na-theirs-input');
     const tSet=f=>{ theirFile=f||null; const el=document.getElementById('na-theirs-file');
@@ -1729,6 +1855,49 @@ function openNewAgreement(o){
 /* Our paper's hand to the panel beside it (paperdesk) */
 let _naOurs=null;
 function naOursNow(){ try { return _naOurs && _naOurs.up() ? _naOurs : null; } catch (_){ return null; } }
+let _naTheirs=null;
+let _naNew=null;
+function naNewNow(){ try { return _naNew && _naNew.up() ? _naNew : null; } catch (_){ return null; } }
+/* P-36, THE PANEL FOLLOWS THE SCREEN, THE SAME ON EVERY TAB (owner's pick 20 Nov 2026: New agreement the Legora + Stripe
+   way; no cards): a badge ("N of M ready", green "Ready to create"); a headline ("Raw Material Supply, for Nandi Dairy");
+   "Needed before Create" as a small bar of segments and a dot list (green done with its value, amber still needed); on
+   a chosen paper "Your sentence" quoted with the words read lit; then "After Create" as a timeline. Read off the sheet
+   (naOursNow, naTheirsNow, naNewNow); no AI. */
+function naSheetFive(){
+  const O=naOursNow(), T=naTheirsNow(), N=naNewNow(); if(!O&&!T&&!N) return null;
+  const E=s=>String(s==null?'':s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  let need=[], title='', sub='', sentence='', readN=0;
+  if(O){ need=O.need(); const P=O.paper(), party=O.party();
+    title=P?(party?i18t('na6_t_for',{ paper:P.name, party }):P.name):i18t('jov5_na_t');
+    /* AS DRAWN: "Read from your sentence \u00b7 1 amount still to say" \u2014 what is still owed, never a figure */
+    const left=need.filter(x=>!x.done&&x.want===i18t('na6_not_said'));
+    const leftSay=!left.length?'':(left.length===1&&left[0].money)?i18t('na6_s_amount'):i18tn('na6_s_left',left.length,{ n:left.length });
+    sub=P?[i18t(O.asked()?'na6_s_read':'na6_s_chosen'), leftSay].filter(Boolean).join(' \u00b7 '):(O.asked()?i18t('na6_s_pick'):i18t('jov5_na_s'));
+    sentence=P&&O.asked()?O.sentence():''; readN=sentence&&O.readN?O.readN():0; }
+  else if(T){ const file=T.kept?T.kept()||T.file():T.file(), stream=T.stream();
+    need=[{ t:i18t('na6_need_file'), v:file, done:!!file, want:i18t('na6_not_added') }, { t:i18t('na6_need_stream'), v:stream, done:!!stream, want:i18t('na6_to_pick') }];
+    title=file?file:i18t('na6_t_theirs'); sub=i18t('na6_s_theirs'); }
+  else { const st=N.start(), k=N.key?N.key():'';
+    need=[{ t:i18t('na6_need_start'), v:st, done:!!st, want:i18t('na6_to_pick') }];
+    /* AS DRAWN: "Start from nothing" and the start's own sentence; the other side's paper says its own name */
+    title=st?(k==='cp'?st:i18t('na6_t_start',{ what:st.charAt(0).toLowerCase()+st.slice(1) })):i18t('na6_t_scratch');
+    sub=k==='scratch'?i18t('na6_s_start_scratch'):((N.desc&&N.desc())||i18t('na6_s_scratch')); }
+  const done=need.filter(x=>x.done).length, all=need.length, ready=done===all&&all>0;
+  /* THE SAME WORDS AND THE SAME TIMELINE ON EVERY TAB, From scratch too, as drawn (RE-POINTED 22 Nov 2026, batch 7 review):
+     "Ready to create", "Needed before Create", "After Create" with its three stops */
+  const badge=`<span class="na6-badge is-${ready?'green':'amber'}">${E(ready?'\u2713 '+i18t('na6_ready'):i18t('na6_n_ready',{ n:done, m:all }))}</span>`;
+  const bar=`<div class="na6-seg" aria-hidden="true">${need.map(x=>`<i class="${x.done?'is-done':'is-need'}"></i>`).join('')}</div>`;
+  const rows=need.map(x=>`<div class="na6-nr${x.done?' is-done':''}"><i aria-hidden="true"></i><span>${E(x.t)}</span><b title="${E(x.v||'')}">${E(x.done?x.v:(x.want||i18t('na6_still')))}</b></div>`).join('');
+  const groups=[{ key:'need', label:i18t('na6_need_h'), html:`${bar}<div class="na6-need">${rows}</div>` }];
+  if(sentence) groups.push({ key:'words', label:i18t('na6_words_h'), html:`<p class="na6-said">\u201c${sentence}\u201d</p>${readN?`<p class="na6-readn">${E(i18tn('na6_read_n',readN,{ n:readN }))}</p>`:''}` });
+  /* AFTER CREATE AS A TIMELINE (as drawn): the first stop lit amber, a thin line down to the next; the first stop's own
+     words beside it in grey */
+  const tl=[[i18t('na6_tl_create'),i18t('na6_tl_create_s')],[i18t('na6_tl_lands'),''],[i18t('na6_tl_reads'),i18t('na6_tl_reads_s')]];
+  groups.push({ key:'after', label:i18t('nao_p_after_h'), html:`<ol class="na6-tl">${tl.map(([t,s],i)=>`<li${i===0?' class="is-now"':''}><i aria-hidden="true"></i><span>${E(t)}${s?` <small>\u00b7 ${E(s)}</small>`:''}</span></li>`).join('')}</ol>` });
+  /* nothing at the foot but Jambo's own box (as drawn: no button, no small print) */
+  return { before:`<div class="na6-pb">${badge}</div>`, title, sub, groups };
+}
+function naTheirsNow(){ try { return _naTheirs && _naTheirs.up() ? _naTheirs : null; } catch (_){ return null; } }
 function naHomeFirst(){
   if(typeof document==='undefined'||typeof setView!=='function') return null;
   if(typeof mPhone==='function'&&mPhone()) return null;
@@ -1811,4 +1980,4 @@ function naPickFromDraft(pick, prefill){
   return true;
 }
 
-Object.assign(window,{naNewPaperOk,naNewPaperDoorHtml,naNewPaperGo,naOursNow,naUseWhen,naNoTeam,openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naStreamBox,naSheetUp,naSheetBack,naHomeFirst,naBackFrom,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,naPasteJoined,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});
+Object.assign(window,{naSheetFive,naNewNow,naNewPaperOk,naNewPaperDoorHtml,naNewPaperGo,naOursNow,naTheirsNow,naUseWhen,naNoTeam,openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naStreamBox,naSheetUp,naSheetBack,naHomeFirst,naBackFrom,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,naPasteJoined,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});

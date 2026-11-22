@@ -18,6 +18,9 @@
    RE-POINTED 21 Oct 2026: the owner picked "The SAP way" for History (one
    table, Time · Who · Side · What happened · Outcome), which reverses the
    lanes; 1, 2, 3a and 5 now read the Side column; 4 (the admin's door) holds.
+   RE-POINTED (P-44, owner's pick 20 Nov 2026: History the Legora + Stripe way): Time · Who · What happened · Kind ·
+   Outcome — the Side column went, the side is said by who (ours by person, theirs by their name or party) and still
+   read on every row (data-hist-lane); the Kind column is a soft badge in one straight column.
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/two-sides-verify.js */
 const fs = require('node:fs');
@@ -75,7 +78,9 @@ const HP = '#pd2-hist';
       const rows = [...tr.querySelectorAll(':scope > .hist-ev')].map(r => { const box = (r.querySelector('.hist-bub, .hist-inside') || r).getBoundingClientRect();
         return { lane: r.getAttribute('data-hist-lane'), text: (r.querySelector('.hist-text') || {}).textContent || '', l: box.left, r: box.right,
           dashed: getComputedStyle(r.querySelector('.hist-bub, .hist-inside') || r).borderTopStyle,
-          side: ((r.querySelector('.hist-c-side') || {}).textContent || '').trim(), sideX: r.querySelector('.hist-c-side') ? Math.round(r.querySelector('.hist-c-side').getBoundingClientRect().left) : null,
+          side: ((r.querySelector('.hist-c-side') || {}).textContent || '').trim(),
+          who: ((r.querySelector('.hist-c-who') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+          kind: ((r.querySelector('.hist-c-kind') || {}).textContent || '').trim(), kindX: r.querySelector('.hist-c-kind') ? Math.round(r.querySelector('.hist-c-kind').getBoundingClientRect().left) : null,
           inside: r.classList.contains('is-inside') }; });
       const days = [...tr.querySelectorAll(':scope > .hist-day-h')].map(d => { const x = d.getBoundingClientRect(); return Math.abs((x.left + x.width / 2) - mid); });
       return { trail: true, lanes: [...tr.querySelectorAll(':scope > .hist-lh')].map(x => x.textContent.trim()),
@@ -88,15 +93,17 @@ const HP = '#pd2-hist';
     const party = await page.evaluate(() => { const c = getContract('MK-A2'); return { us: (window.contractParty && contractParty(c)) || FIRST_PARTY, them: c.counterparty }; });
     /* RE-POINTED 21 Oct 2026: the owner picked "The SAP way" for History, which reverses "Two sides".
        Whose step it was is still read on every row — histLaneOf's reading, said in the Side column. */
-    check('1a ONE TABLE under one head: Time · Who · Side · What happened · Outcome; no lanes',
-      A && A.lanes.length === 0 && JSON.stringify(A.cols) === JSON.stringify(['Time', 'Who', 'Side', 'What happened', 'Outcome']), JSON.stringify(A && { lanes: A.lanes, cols: A.cols }));
+    check('1a ONE TABLE under one head: Time · Who · What happened · Kind · Outcome; no lanes, no Side column',
+      A && A.lanes.length === 0 && JSON.stringify(A.cols) === JSON.stringify(['Time', 'Who', 'What happened', 'Kind', 'Outcome']) && A.rows.every(r => !r.side), JSON.stringify(A && { lanes: A.lanes, cols: A.cols }));
     check('1b the head no longer says "our side left, theirs right", and there is no side switch', A && !/our side left/.test(A.cap) && A.sw === 0, JSON.stringify(A && { cap: A.cap, sw: A.sw }));
     void party;
     const ours = A.rows.find(r => /Net-30/.test(r.text)), theirs = A.rows.find(r => /Notice to 90/.test(r.text) && r.lane === 'theirs');
-    check('2a our proposal reads "Ours", theirs "Theirs", in one straight Side column',
-      !!ours && ours.lane === 'ours' && ours.side === 'Ours' && !!theirs && theirs.side === 'Theirs' && ours.sideX === theirs.sideX, JSON.stringify({ ours, theirs }));
+    /* RE-POINTED (P-44): the side said by who — our proposal by our person, theirs by theirs — each row on its lane; both a
+       Change in one straight Kind column */
+    check('2a our proposal is ours and said by our person, theirs by theirs; both "Change" in one straight Kind column',
+      !!ours && ours.lane === 'ours' && ours.who.includes(me) && !!theirs && /Erik Lindqvist|Lindqvist/.test(theirs.who) && ours.kind === 'Change' && theirs.kind === 'Change' && ours.kindX === theirs.kindX, JSON.stringify({ ours, theirs }));
     const decided = A.rows.find(r => /rejected/i.test(r.text));
-    check('2b our refusal of their ask is ours', !!decided && decided.lane === 'ours' && decided.side === 'Ours', JSON.stringify(decided));
+    check('2b our refusal of their ask is ours, a Decision', !!decided && decided.lane === 'ours' && decided.kind === 'Decision', JSON.stringify(decided));
     check('2c no line runs down the trail; each day is a row with its count', A.spine == null && A.dayCounts.length > 0 && A.dayCounts.every(d => /event/.test(d)), JSON.stringify({ spine: A.spine, days: A.dayCounts }));
 
     /* 3 the inside-only line, and nothing hidden */
@@ -105,7 +112,8 @@ const HP = '#pd2-hist';
       roomPaintHistory(c, host._histF || {}, host); }, HP);
     A = await page.evaluate(READ, HP);
     const open = A.rows.find(r => r.lane === 'mid' && /opened/i.test(r.text));
-    check('3a who opened it is a quiet row of the table like any other, its side a dash', !!open && open.inside && open.side === '\u2014', JSON.stringify(open));
+    /* RE-POINTED (P-44): no Side column to hold a dash; its kind says it is ours alone ("Inside") */
+    check('3a who opened it is a quiet row of the table like any other, its kind "Inside"', !!open && open.inside && open.kind === 'Inside', JSON.stringify(open));
     const all = await page.evaluate(() => roomHistoryEvents(getContract('MK-A2'), {}).length);
     check('3b the table hides nothing: every entry is drawn', A.rows.length === all, `${A.rows.length} of ${all}`);
     if (OUT) await (await page.$(HP)).screenshot({ path: path.join(OUT, 'two-sides-strip.png') }).catch(() => {});

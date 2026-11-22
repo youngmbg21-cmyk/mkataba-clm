@@ -35,7 +35,29 @@ const CARD = () => { const k = document.querySelector('#ig-dock .pd2-card'); if 
     rows: [...k.querySelectorAll('[data-pd2-rd]')].map(r => r.getAttribute('data-pd2-rd')),
     black: [...k.querySelectorAll('.pd2-rd-go')].map(b => ({ t: b.textContent.trim(), road: b.getAttribute('data-pd2-road'), risks: b.hasAttribute('data-pd-gl-risks') })),
     chips: [...k.querySelectorAll('.pd2-rd-chip')].map(c => c.textContent.trim()), quotes: [...k.querySelectorAll('.pd2-rd-q')].map(q => q.textContent.trim()) }; };
-const purposeNow = () => { const m = (document.body.innerText || '').match(/WHAT THEY CAN DO\s*\n\s*([^\n]+)/i); return m ? m[1].trim() : ''; };
+/* RE-POINTED 19 Nov 2026 (owner's pick, the Send screen's steps the Legora way in the page; f1104): the step's label
+   is now "They can", beside what is chosen — so the choice is read off the step's own value (.sh-st-v), the old
+   "WHAT THEY CAN DO" line only where the steps are not drawn */
+/* WHAT TOOK THE SEND SCREEN AWAY (20 Nov 2026): every way a pop-up leaves #modal-root is noted with the code that
+   did it, and said only when a step finds no Send screen — a red run names its cause (BUGLOG 20 Nov 2026) */
+const WATCH_GONE = () => { if (window.__goneOn) { window.__gone = []; return; } window.__goneOn = true; window.__gone = [];
+  const at = () => (new Error().stack || '').split('\n').slice(2, 7).map(x => x.trim().replace(/\(?https?:\/\/[^/]+\//, '').replace(/\)$/, '')).join(' < ');
+  const root = () => document.getElementById('modal-root');
+  const note = (how, n) => { const r = root(); if (r && n && (n === r || r.contains(n) || n.parentNode === r)) window.__gone.push(how + ' ' + (n.id || n.className || n.tagName) + ' ' + at()); };
+  const rm = Element.prototype.remove; Element.prototype.remove = function (){ note('remove', this); return rm.apply(this, arguments); };
+  const rc = Node.prototype.removeChild; Node.prototype.removeChild = function (n){ if (this === root()) note('removeChild', n); return rc.apply(this, arguments); };
+  const d = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+  Object.defineProperty(Element.prototype, 'innerHTML', { configurable: true, get(){ return d.get.call(this); },
+    set(v){ if (this === root() && this.children.length) window.__gone.push('innerHTML of modal-root ' + at()); return d.set.call(this, v); } });
+  for (const k of ['closeModal', 'closeModalGuarded', 'setView']){ const f = window[k]; if (typeof f === 'function') window[k] = function (...a){ window.__gone.push(k + '(' + (typeof a[0] === 'string' ? a[0] : '') + ') ' + at()); return f.apply(this, a); }; }
+};
+const GONE_SAY = () => JSON.stringify({ view: (window.state || {}).view, modal: !!document.querySelector('#modal-root .modal-in'), letter: !!document.getElementById('sh-letter'), gone: (window.__gone || []).slice(0, 10) });
+/* RE-POINTED 20 Nov 2026 (#834): the Send screen stands only once "what they can do" holds WORDS — a red run read
+   the "·" between the step names while the steps were still being laid out */
+const SEND_SCREEN = () => { const v = document.querySelector('.sh-st[data-sh-st="can"] .sh-st-v');
+  return /[A-Za-z]/.test(v ? String(v.textContent || '') : '') || /WHAT THEY CAN DO\s*\n\s*[^\n]*[A-Za-z]/i.test(document.body.innerText || ''); };
+const purposeNow = () => { const v = document.querySelector('.sh-st[data-sh-st="can"] .sh-st-v'); const t = v ? String(v.textContent || '').replace(/\s+/g, ' ').trim() : '';
+  if (/[A-Za-z]/.test(t)) return t; const m = (document.body.innerText || '').match(/WHAT THEY CAN DO\s*\n\s*([^\n]*[A-Za-z][^\n]*)/i); return m ? m[1].trim() : t; };
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -64,10 +86,10 @@ const purposeNow = () => { const m = (document.body.innerText || '').match(/WHAT
     check('1 our paper, nothing open: Choose the road, mark-up then signature, "Send to Juno Logistics" black',
       r1 && C1 && C1.head === 'Choose the road' && C1.rows.join() === 'markup,sign' && C1.black.length === 1 && C1.black[0].road === 'markup' && /Send to Juno Logistics/.test(C1.black[0].t), C1);
     await page.screenshot({ path: path.join(OUT, 'ours.png') });
-    if (r1){ await page.click('#ig-dock .pd2-rd-go');
-      const s2 = await until(page, () => /WHAT THEY CAN DO/i.test(document.body.innerText || ''), null, 8000);
+    if (r1){ await page.evaluate(WATCH_GONE); await page.click('#ig-dock .pd2-rd-go');
+      const s2 = await until(page, SEND_SCREEN, null, 8000);
       const p2 = await page.evaluate(purposeNow);
-      check('2 its press opens the Send screen with "Reply with their own changes" chosen', s2 && /Reply with their own changes/i.test(p2), p2); }
+      check('2 its press opens the Send screen with "Reply with their own changes" chosen', s2 && /Reply with their own changes/i.test(p2), p2 || await page.evaluate(GONE_SAY)); }
     await page.close();
 
     /* 3–4 our paper with notes */
@@ -89,10 +111,10 @@ const purposeNow = () => { const m = (document.body.innerText || '').match(/WHAT
     check('5 their paper with a risk: Negotiate black with "1 risk" and the words quoted, then Send for signature as it is',
       r5 && C5 && C5.rows.join() === 'nego,sign' && C5.black.length === 1 && C5.black[0].risks && C5.black[0].t === 'Negotiate' && C5.chips.includes('1 risk') && C5.quotes.some(q => /requirements may be rejected/.test(q)), C5);
     await page.screenshot({ path: path.join(OUT, 'theirs.png') });
-    if (r5){ await page.click('#ig-dock [data-pd2-rd="sign"] [data-pd2-road="sign"]');
-      const s6 = await until(page, () => /WHAT THEY CAN DO/i.test(document.body.innerText || ''), null, 8000);
+    if (r5){ await page.evaluate(WATCH_GONE); await page.click('#ig-dock [data-pd2-rd="sign"] [data-pd2-road="sign"]');
+      const s6 = await until(page, SEND_SCREEN, null, 8000);
       const p6 = await page.evaluate(purposeNow);
-      check('6 Send as it is opens the Send screen with "Sign" chosen', s6 && /^Sign\b/.test(p6), p6); }
+      check('6 Send as it is opens the Send screen with "Sign" chosen', s6 && /^Sign\b/.test(p6), p6 || await page.evaluate(GONE_SAY)); }
     await page.close();
 
     /* 7 something has gone to them */

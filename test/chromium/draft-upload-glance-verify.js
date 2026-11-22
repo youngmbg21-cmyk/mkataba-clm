@@ -108,8 +108,13 @@ const pastFirstWords = async page => {
     const i = await page.evaluate(([s, v]) => [...document.querySelector(s).options].findIndex(o => o.value === v), [sel, value]);
     if (i < 0) return false;
     await page.click(`.hati-selmenu [data-sm="${i}"]`); return page.evaluate(([s, v]) => document.querySelector(s).value === v, [sel, value]); };
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the head's Wall
+     pill turns it to the wall, and Jambo's panel beside it is the page's five-part Overview (.jov5), not the old .pd-wall */
   const wall = async () => { await page.evaluate(() => { setView('dashboard'); caHomeWall(); intel.history = []; renderIntelDock(); });
-    return waitFor(page, () => !intel.paper && !!document.querySelector('#ig-dock .pd-wall'), 8000); };
+    if (await waitFor(page, () => !!document.querySelector('[data-ctf-show="wall"]'), 6000)) await page.click('[data-ctf-show="wall"]').catch(() => {});
+    return waitFor(page, () => !intel.paper && !!document.querySelector('#ig-paper [data-ct-show="wall"]') && !!document.querySelector('#ig-dock .jov5, #ig-dock .pd-wall, #ig-dock .ctls'), 8000); };
+  /* RE-POINTED 21 Nov 2026 (P-31, as drawn): beside the Contracts wall the panel is the list's own (.ctls): a sentence of
+     the papers on screen, where they stand, when they end, what needs you — no cards, no money */
   /* RE-POINTED 28 Oct 2026 (owner: "the card no longer sits on a panel … it shows up as a pop up card"): the drop card
      is opened by its door, in a pop-up over the wall */
   const card = async () => { if (!(await wall())) return false; await page.evaluate(() => pdDropDoor());
@@ -123,7 +128,7 @@ const pastFirstWords = async page => {
     await page.evaluate(() => closeModal()); await pause(300);
     const head = await page.evaluate(() => ({ draft: !!document.querySelector('#hb-head #hero-draft, #hb-head .hm-primary'),
       chips: [...document.querySelectorAll('#ig-dock [data-ig-chips] button')].map(b => b.textContent.trim()),
-      hello: (document.querySelector('#ig-dock .pd-hello') || {}).innerText || '', welcome: !!document.querySelector('#ig-dock .ig-welcome'),
+      hello: (document.querySelector('#ig-dock .ctls') || document.querySelector('#ig-dock .pd-hello') || document.querySelector('#ig-dock .jov5') || {}).innerText || '', welcome: !!document.querySelector('#ig-dock .ig-welcome'),
       first: (() => { const w = document.querySelector('#ig-dock [data-jb-hello]'), p = document.querySelector('#ig-dock .pd-hello');
         return !!(w && p && (w.compareDocumentPosition(p) & Node.DOCUMENT_POSITION_FOLLOWING)); })() }));
     check('1b Home\'s head carries no "+ Draft new agreement"', !head.draft);
@@ -132,7 +137,7 @@ const pastFirstWords = async page => {
        panel, so his own greeting (jamboHelloHtml) leads it, then the wall's line saying what to do */
     /* RE-POINTED 26 Oct 2026 (owner: "we will have an overview tab side panel in each page followed by the jambo tab"):
        the wall's Overview says what to do, and his greeting is the Jambo tab's, not the Overview's */
-    check('1d the wall\'s Overview says what to do, no greeting on it', /Press one and I say what it holds/.test(head.hello) && !head.welcome, head.hello);
+    check('1d the wall\'s panel says what the papers on screen hold, no greeting on it', /^\s*\d+ contracts?, \d+ signed\./.test(head.hello) && /Where they stand/.test(head.hello) && !head.welcome, head.hello);
     await shoot('1-wall');
     /* 1e THE WALL'S WAYS IN (owner, 28 Oct 2026: "remove board and add reads"): upload · draft · reads · calendar,
        no board; "reads" lands on the Reads page */
@@ -152,7 +157,8 @@ const pastFirstWords = async page => {
     await shoot('2-draft-card');
     const f0 = await page.evaluate(() => { const b = document.getElementById('na-create'); return { menu: window._seen.menu, dis: !!(b && b.disabled), why: b && b.title }; });
     check('2b Open the form opens the one form, never the two-door menu', form && !f0.menu, f0);
-    check('2c Create is grey with its reason until a template is picked', f0.dis && /Pick a template first/.test(f0.why || ''), f0.why);
+    /* RE-POINTED 21 Nov 2026 (P-36, as drawn): the one sheet says "Pick a paper first" */
+    check('2c Create is grey with its reason until a template is picked', f0.dis && /Pick a paper first/.test(f0.why || ''), f0.why);
     await page.evaluate(() => closeModal()); await pause(300);
 
     /* ===== 3. A SENTENCE ===== */
@@ -268,15 +274,10 @@ const pastFirstWords = async page => {
     /* ===== 5. THE STREAM IN STILL OWED =====
        RE-POINTED 20 Oct 2026 (owner picked "The Legora way"): the stream is a saved row in the
        grid, "set when the draft was made"; moving it is the filing door's (⋯ › Filing), not the grid's */
+    /* RETIRED 17 Nov 2026 (#762): 5a (Still owed's grid names the stream on a saved row) — the old Dossier's Still owed
+       grid (#pd-og) is not drawn in the new look; the Dossier's top is ONE card (pd2CardHtml, MAP "THE DOSSIER'S TOP IS
+       ONE CARD") and the stream is one of its facts. 5b (never counted as owed) still reads the one reading. */
     await page.evaluate(id => pdOpenOnHome(id, 'plain'), upId);
-    await waitFor(page, () => !!document.querySelector('#pd-og [data-pd-og-row="stream"]'), 8000);
-    const s0 = await page.evaluate(() => { const c = getContract(intel.paper.id); const r = document.querySelector('#pd-og [data-pd-og-row="stream"]');
-      /* RE-POINTED 28 Oct 2026 (Fill in the contract, as drawn): the stream's line carries "Edit ›" (Key terms in the
-         middle, its Move open) — a door, never a box to type in */
-      return { folder: c.folder, name: (FOLDERS[c.folder] || {}).name, said: r ? r.textContent : '', box: !!(r && r.querySelector('input, select')), ring: !!(r && r.querySelector('.pd-ck-ring.is-done')) }; });
-    /* RE-POINTED 21 Oct 2026 (owner: the grey line under an owed fact was noise): the row names the stream and says Saved */
-    /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): an answered row says so with its filled ring, not the word */
-    check('5a Still owed names the stream, saved', !!s0.name && s0.said.includes(s0.name) && s0.ring && !/set when/i.test(s0.said) && !s0.box, s0);
     check('5b and never counts it as owed', !(await page.evaluate(() => detailsOf(getContract(intel.paper.id)).items.some(x => /folder|stream/.test(x.key)))));
 
     /* ===== 6. AT A GLANCE ===== */
@@ -293,8 +294,16 @@ const pastFirstWords = async page => {
       /* RE-POINTED 22 Oct 2026 (the Checklist): the number leads the risks row's grey value */
       const rk = el.querySelector('[data-pd-ds="risks"] .ds-val');
       /* RE-POINTED 23 Oct 2026 (Spine): no section heads; the stages stand down the spine, one current */
-      return { title: [...el.querySelectorAll('.ds-sp-st b')].map(b => b.textContent).join(' | '), pill: !!el.querySelector('.ds-spine .ds-sp-st.is-cur'), rows,
-        fillN: fillRows.reduce((a, b) => a + b, 0), riskN: rk ? Number((/^\d+/.exec(rk.textContent.trim()) || [0])[0]) : 0,
+      /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the Dossier's top is ONE card — its stage line is
+         [data-pd2-spine] (one stage in focus), its next step "Fill in N details", the worst risks a line whose door
+         says "N risks ›" (.pd2-turn-go[data-pd-gl-risks]) */
+      const sp = [...el.querySelectorAll('[data-pd2-spine] i em')].map(b => b.textContent);
+      const card = /Fill in (\d+) details?/.exec((document.querySelector('#ig-dock [data-pd2-card]') || el).innerText || '');
+      const rk2 = el.querySelector('.pd2-turn-go[data-pd-gl-risks]');
+      return { title: sp.length ? sp.join(' | ') : [...el.querySelectorAll('.ds-sp-st b')].map(b => b.textContent).join(' | '),
+        pill: sp.length ? el.querySelectorAll('[data-pd2-spine] i.is-focus').length === 1 : !!el.querySelector('.ds-spine .ds-sp-st.is-cur'), rows,
+        fillN: card ? Number(card[1]) : fillRows.reduce((a, b) => a + b, 0), cardFill: !!card,
+        riskN: rk2 ? Number((/\d+/.exec(rk2.textContent) || [0])[0]) : rk ? Number((/^\d+/.exec(rk.textContent.trim()) || [0])[0]) : 0,
         left: detailsOf(c).left, risks: (c.scan && riskMayAct(c, {})) ? riskOpenOf(c).length : 0, nobody: signBlockers(c).some(b => b.key === 'signers'),
         unsent: c.negotiation ? rlUnsentCount(c, {}) : 0, nego: !!c.negotiation,
         ogSign: !!el.querySelector('#pd-og [data-pd-og-row="signers"]'),
@@ -303,13 +312,19 @@ const pastFirstWords = async page => {
         above: (() => { const chips = document.querySelector('#ig-dock [data-ig-chips]'); const sc = el.closest('.overflow-y-auto') || el;
           return !!chips && sc.getBoundingClientRect().bottom <= chips.getBoundingClientRect().top + 1; })() }; });
     const num = k => { const r = g.rows.find(x => x[0] === k); return r ? Number((/(\d+)/.exec(r[1]) || [])[1] || (k === 'sign' ? 1 : 0)) : 0; };
-    check('6a Jambo\'s tab opens on the dossier: the stage on the spine, What Jambo read, Still owed', gl && /^Arrived \| Read \| Fill in \| Negotiate \| Sign \| Live$/.test(g.title) && g.pill, g.title);
-    check('6b each count is the reading its own face uses', g.fillN === g.left && g.riskN === g.risks && num('share') === g.unsent && g.ogSign === g.nobody, g);
+    /* RE-POINTED 17 Nov 2026 (#762): 6a the six stages stand on the card's stage line, one in focus ("What Jambo read" and
+       Still owed were the old Dossier's); 6b the card's counts are the readings their faces use — the details its next
+       step names (detailsOf) and the risks its line names (riskOpenOf); Still owed's share and signer rows went with
+       its grid */
+    check('6a Jambo\'s tab opens on the dossier: the stage on the spine', gl && /^Arrived? \| Read \| Fill(?: in)? \| Negotiate \| Sign \| Live$/.test(g.title) && g.pill, g.title);
+    check('6b each count is the reading its own face uses', (g.left > 0 ? g.cardFill && g.fillN === g.left : !g.cardFill) && g.riskN === g.risks, g);
+    void num;
     check('6c reading it starts no negotiation', !g.nego);
     check('6d the card sits above the chips and the box', g.above);
     await shoot('6-glance');
     /* RE-POINTED 20 Oct 2026: no Fill in face; Still owed IS the form */
-    check('6e Still owed carries the boxes beside the paper, no Fill in face', await page.evaluate(() => !!document.querySelector('#pd-glance #pd-og [data-pd-og-row]') && !document.getElementById('pd-fillface')));
+    /* RETIRED 17 Nov 2026 (#762): 6e (Still owed's grid carries the boxes beside the paper) — the new look fills on the
+       paper (pdFillGo → pd2FillStart) and in the form in the middle (MAP "THE DETAILS TAB") */
     /* a fresh upload has nobody named to sign: the row must be there to press (a missing row is reported, never skipped) */
     /* RE-POINTED 20 Oct 2026 (the Legora way, signer "Yes, our signer here"): nobody named to sign is a
        row of the grid asking our signer and theirs, one Confirm (a route needs a signer on each side) */
@@ -319,19 +334,20 @@ const pastFirstWords = async page => {
        signer, boxes for their name and address, one Confirm. */
     /* RE-POINTED 22 Oct 2026 (owner: the signer boxes went, "the use for it is in the pop up feature for
        signer"): the row is one line whose press is the signing route editor's door — no boxes, no Confirm */
-    const signRow = await page.evaluate(() => { const r = document.querySelector('#pd-og [data-pd-og-row="signers"]');
-      return r ? { door: !!r.querySelector('.pd-ck-hd[data-pd-og-route]'), boxes: r.querySelectorAll('input, select').length, ok: !!r.querySelector('[data-pd-og-ok]') } : null; });
-    check('6f nobody named to sign is a grid row whose line opens the signing route', g.nobody && !!signRow && signRow.door && signRow.boxes === 0 && !signRow.ok, { nobody: g.nobody, signRow });
+    /* RETIRED 17 Nov 2026 (#762): 6f (nobody named to sign is a row of Still owed's grid opening the signing route) —
+       the grid is gone; who signs is the Before you sign face's rows */
     /* the risks row says what the Redlines face draws */
     await page.evaluate(id => pdOpenOnHome(id, 'plain'), upId);
     await waitFor(page, () => !!document.getElementById('pd-glance'), 6000);
-    const rkRow = await page.evaluate(() => { const r = document.querySelector('#pd-glance [data-pd-ds="risks"] .ds-val'); return r ? Number((/^\d+/.exec(r.textContent.trim()) || [0])[0]) : 0; });
+    /* RE-POINTED 17 Nov 2026 (#762): the glance's risk count is the card's risk line door, "N risks ›" */
+    const rkRow = await page.evaluate(() => { const t = document.querySelector('#pd-glance .pd2-turn-go[data-pd-gl-risks]'); if (t) return Number((/\d+/.exec(t.textContent) || [0])[0]);
+      const r = document.querySelector('#pd-glance [data-pd-ds="risks"] .ds-val'); return r ? Number((/^\d+/.exec(r.textContent.trim()) || [0])[0]) : 0; });
     /* RE-POINTED (owner, 23 Oct 2026: "when you press on risk to look at it
        should take you to where risks are … and place you there"): the risks
        row's door opens the Redlines face beside the paper, landed on its
        "Risks to look at" list, whose count is the row's number. Pressed, never
        called; a missing door is reported. */
-    const rkPressed = await page.click('#pd-glance [data-pd-gl-risks]', { timeout: 3000 }).then(() => true).catch(() => false);
+    const rkPressed = await page.click(await page.$('#pd-glance .pd2-turn-go[data-pd-gl-risks]') ? '#pd-glance .pd2-turn-go[data-pd-gl-risks]' : '#pd-glance [data-pd-gl-risks]', { timeout: 3000 }).then(() => true).catch(() => false);
     await waitFor(page, () => { const r = document.querySelector('#ig-dock #rl-risks'); return !!(r && r.classList.contains('is-landed')); }, 8000);
     const rkFace = await page.evaluate(() => { const r = document.querySelector('#ig-dock #rl-risks');
       return { list: !!r, landed: !!(r && r.classList.contains('is-landed')), n: r ? r.querySelectorAll(':scope > .rk-row[data-rk-key]:not(.is-gone)').length : 0, editor: !!document.querySelector('#clause-editor') }; });

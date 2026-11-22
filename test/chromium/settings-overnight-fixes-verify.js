@@ -94,8 +94,10 @@ const openSettings = async (page, tab) => {
     await page.waitForTimeout(250);
     await page.click('#ar-save');
     const saved = await until(page, () => !document.getElementById('ar-save') && (approvalRules() || []).length === 1);
-    check('D1 a press on Save writes the rule', saved, `${await page.evaluate(() => (approvalRules() || []).length)} rule(s)`);
-    await page.evaluate(() => stDrawerClose());
+    check('D1 a press on Save puts the rule in the sheet', saved, `${await page.evaluate(() => (approvalRules() || []).length)} rule(s)`);
+    /* RE-POINTED 22 Nov 2026 (P-43 review): the sheet holds the rule until its own Save, which writes it and closes the sheet */
+    await page.evaluate(async () => { const b = document.getElementById('st-dsave'); if (b && window.stHoldSave) await stHoldSave(b); });
+    check('D1 and the sheet\'s Save keeps it', await until(page, () => !document.querySelector('body > #st-drawer.open') && (approvalRules() || []).length === 1));
 
     /* ================= D2 — re-file alone saves ================= */
     const rid = W.users.restricted.id;
@@ -149,11 +151,13 @@ const openSettings = async (page, tab) => {
       key: document.getElementById('mail-key').value, emailOff: emailOff(),
       /* since the full build (16 Oct 2026) the panel is a fact on its card or a
          row in the Menu, each saying its state */
-      row: ((document.querySelector('.st-fact[data-st-panel="mail"]') || {}).getAttribute ? document.querySelector('.st-fact[data-st-panel="mail"]').getAttribute('title') : '')
-        || (document.querySelector('.st-mrow[data-st-panel="mail"]') || {}).textContent || '' }));
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the row behind the drawer is the one list's Mail row */
+      /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): the Mail area's Email delivery row, read as drawn */
+      row: (() => { const r = (typeof sddRows === 'function' ? sddRows(true) : []).find(x => x.id === 'mail'); return r ? [r.say, r.now, r.sub].filter(Boolean).join(' · ') : ''; })() }));
     check('D8 saving a mail key turns email on, and the box empties', on && !d8.key && d8.emailOff === false, d8.status);
     check('D8 the key itself is never shown back (last four only)', /abcd/.test(d8.status) && !/re_screenKey/.test(d8.status));
-    check('D8 the row behind the drawer says configured at once', /configured/i.test(d8.row) && !/not configured/i.test(d8.row), d8.row.replace(/\s+/g, ' ').trim().slice(0, 90));
+    /* RE-POINTED 19 Nov 2026 (f1091): the Mail area's row says it in words — "Email is being delivered." */
+    check('D8 the row behind the drawer says configured at once', /being delivered|configured/i.test(d8.row) && !/not configured|not set up/i.test(d8.row), d8.row.replace(/\s+/g, ' ').trim().slice(0, 90));
     await page.evaluate(() => stDrawerClose());
     await ctx.close();
 

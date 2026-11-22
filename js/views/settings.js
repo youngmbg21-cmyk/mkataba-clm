@@ -151,7 +151,7 @@ function renderAllowancePanel(a){
 function renderRateTable(rates, meta){
   const host=document.getElementById('ai-rates-table'); if(!host) return;
   const models=Object.keys(rates||{}).sort((a,b)=>a==='default'?1:b==='default'?-1:a.localeCompare(b));
-  const inp='width:74px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:3px 6px;font:inherit;font-family:var(--font-mono);font-size:var(--t-label);text-align:right;outline:none';
+  const inp='width:74px;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:3px 6px;font:inherit;font-family:var(--font-mono);font-size:var(--t-label);text-align:right;outline:none';
   host.innerHTML=models.map(m=>`
     <div data-rate-model="${PB_ATTR(m)}" style="display:flex;align-items:center;gap:var(--s-2);padding:3px 2px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
       <span style="flex:1;min-width:0;font-size:var(--t-label);font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis${m==='default'?';color:var(--color-neutral-500);font-style:italic':''}">${PB_ESC(m)}</span>
@@ -256,7 +256,7 @@ function settingsPaintShapeBoxes(){
 /* Shared inline tokens. They were declared inside renderTeam(), which meant
    every drawer body that wanted a field had to restate them; one copy is one
    place a control's clothes are decided. */
-const ST_INPUT='width:100%;height:var(--field-h);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);color:inherit;outline:none';
+const ST_INPUT='width:100%;height:var(--field-h);border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);color:inherit;outline:none';
 const ST_MONO='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:5px var(--s-2);font-family:var(--font-mono);font-size:var(--t-label);color:inherit;outline:none';
 const ST_BTN='font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-body);padding:6px 14px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:var(--radius);cursor:pointer;white-space:nowrap';
 const ST_BTN_SM='font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-meta);padding:5px var(--s-3);background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:var(--radius);cursor:pointer';
@@ -326,9 +326,9 @@ function settingsTab(){
 /* A REFRESH LANDS WHERE YOU WERE (Young, 28 Sep 2026): what this page keeps
    across a reload, read by placeSave and put back by placeResume (js/app.js)
    BEFORE the first paint. */
-function settingsPlace(){ return { area:(typeof _stnArea==='string'&&_stnArea!=='all')?_stnArea:null, tab:_stTab, side:_stSide, page:_stPage||null, stream:(_stPage==='streams'&&_stSwPick)||null, dock:(_stPage==='panel'&&_stDock)||null, fold:!!_stSideFold }; }
+function settingsPlace(){ return { sdd:_sddArea||null, pick:_sddPick||null, tab:_stTab, side:_stSide, page:_stPage||null, stream:(_stPage==='streams'&&_stSwPick)||null, dock:(_stPage==='panel'&&_stDock)||null, fold:!!_stSideFold }; }
 function settingsPlacePut(p){ const f=p&&stFaceOf(p.tab); if(f) _stTab=f;
-  _stnArea=(p&&STN_AREAS.includes(p.area))?p.area:'all';
+  _sddArea=(p&&SDD_AREAS.includes(p.sdd))?p.sdd:null; _sddPick=(p&&_sddArea&&p.pick)?String(p.pick):null; _sddHome=null; _sddQ='';
   if(p && (p.side==='jambo'||p.side==='menu')) _stSide=p.side;
   /* a page inside the board (Team, Who holds what) comes back too */
   _stPage=(p && ST_PAGES.includes(p.page))?p.page:null;
@@ -350,6 +350,7 @@ function settingsGoTab(k){
    admin-only and one place that knows how a tab and a panel are asked for. */
 function openSettingsAt(tab, panel){
   if(typeof isAdmin==='function' && !isAdmin()){ openMyAccount(); return; }
+  _sddArea=null; _sddPick=null; _sddHome=null; _sddQ='';
   /* a company panel's named door is its page, as a card's door is
      (stDockable, the gaps' fourth pass) */
   if(panel && stDockable(panel)){ stDockOpen(panel, null); return; }
@@ -423,8 +424,15 @@ function stWireDrawerOnce(){
   document.addEventListener('click',e=>{
     const t=e.target;
     if(!t||!t.closest) return;
-    if(t.closest('#st-scrim')){ stDrawerClose(); return; }
-    if(t.closest('[data-st-dclose]')){ stDrawerClose(); return; }
+    /* a door inside a sheet that holds edits goes on only once the leave question is answered (P-43) */
+    if(stHoldDirty() && t.closest('#st-drawer') && t.closest('[data-st-page],[data-st-view],[data-st-jump],[data-st-you]')){
+      e.preventDefault(); if(e.stopImmediatePropagation) e.stopImmediatePropagation();
+      stHoldLeaveThen(()=>{ stDrawerClose(); t.click(); }); return; }
+    if(t.closest('#st-scrim')){ stDrawerLeave(); return; }
+    /* P-43: Save lets what the sheet holds leave once; Cancel throws it away; ✕ and the veil ask while anything is held */
+    const hs=t.closest('[data-st-hsave]'); if(hs){ stHoldSave(hs); return; }
+    if(t.closest('[data-st-dcancel]')){ stHoldDrop(); stDrawerClose(); return; }
+    if(t.closest('[data-st-dclose]')){ stDrawerLeave(); return; }
     /* THE CONTROL ROOM'S DOORS (16 Oct 2026) — each one opens, shows or
        readies; none of them writes */
     const stage=t.closest('[data-st-stage]');
@@ -489,6 +497,10 @@ function stWireDrawerOnce(){
       if(id && typeof landOn==='function') landOn(`[data-ap-row="${String(id).replace(/["\\]/g,'')}"][data-ap-kind="approval"]`,{ block:'nearest' });
       return; }
     const row=t.closest('[data-st-panel]');
+    /* A SETTINGS ANSWER PRESSED AWAY FROM SETTINGS (the one conversation follows you; #762): the finder's card goes to
+       Settings first, then opens there, as a Settings-born turn always did */
+    if(row && row.closest('.st-jb-cards') && !document.querySelector('.stn-page, #set-page') && typeof setView==='function'){
+      const k0=row.getAttribute('data-st-panel'); setView('team'); setTimeout(()=>{ try{ stDrawerOpen(k0); }catch(_){ /* the page is there */ } },0); return; }
     if(row){ const k=row.getAttribute('data-st-panel');
       /* a card's door (and its facts, and the ladder's) opens the panel as
          its page; Needs your attention and the sheet keep the drawer */
@@ -526,7 +538,7 @@ function stWireDrawerOnce(){
   /* Escape closes the drawer — and on a card's page goes back to Settings,
      landing on its door, as ‹ Settings does */
   document.addEventListener('keydown',e=>{ if(e.key==='Escape' && _stOpen
-    && !document.querySelector('#modal-root [role="dialog"],[data-top-overlay]')) stDrawerClose(); });
+    && !document.querySelector('#modal-root [role="dialog"],[data-top-overlay]')) stDrawerLeave(); });
   document.addEventListener('keydown',e=>{ if(e.key!=='Escape' || !_stRow || _stOpen) return;
     const host=document.getElementById('st-rform');
     if(host && e.target && host.contains(e.target) && !document.querySelector('#modal-root [role="dialog"]')){ const k=_stRow.key; stRowFormClose();
@@ -539,6 +551,9 @@ function stDrawerClose(){
   /* A FORM OPEN IN ITS ROW is closed by the same word its save already says
      (round 24 as drawn: the saves that close the drawer close the row) */
   if(_stRow && !_stOpen){ stRowFormClose(); return; }
+  /* WHAT A SHEET HELD AND NOBODY SAVED IS THROWN AWAY HERE (P-43): Save has already written and let go; any other
+     way out has asked first (stHoldLeaveThen), so nothing half-written is ever left on the screen */
+  if(_stHold) stHoldDrop();
   /* a docked drawer is a page: its Done, Cancel or Save go back to Settings */
   if(stDrawerDocked()){ stDockBack(); return; }
   _stOpen=null;
@@ -551,15 +566,132 @@ function stDrawerClose(){
   if(d){ d.classList.remove('open'); d.setAttribute('hidden',''); }
   if(s){ s.classList.remove('open'); s.setAttribute('hidden',''); }
 }
+/* ════ A SHEET HOLDS ITS EDITS UNTIL SAVE (P-43, the owner's pick 21 Nov 2026: "the foot: … Cancel and SAVE (today
+   only 'Done')"; built 22 Nov 2026) ════
+   Every sheet from the right that wrote on each press (its foot said Done) now HOLDS what the reader changes: the
+   switches, choices and rows move on the screen at once, the writes wait here, and leave ONCE, on Save, through the
+   writers and routes they always used (saveSettings → PUT /api/settings; a person's own flags → PUT /api/me/prefs; the
+   monthly report → its own route) — the server is still the wall. Cancel, ✕, Esc and a press on the veil throw the held
+   edits away with nothing written; while anything is held, every way out asks first (stHoldLeaveThen, the house's
+   leave question). A press that is an ACT of its own (Save key, Add a rate, Run it now, Send now) still goes when it is
+   pressed: it says so on its own button. While a sheet holds, its "saved" toasts are not said — nothing is saved yet;
+   the one Save says it once. */
+const ST_HOLD_ROUTES=[/^me\/prefs$/, /^reports\/monthly\/settings$/, /^settings\/folder-access$/, /^org\/jurisdiction$/, /^org\/workshape$/];
+let _stHold=null;
+const _stHoldClone=v=>{ try{ return v===undefined?undefined:JSON.parse(JSON.stringify(v)); }catch(_){ return undefined; } };
+const _stHoldSame=(a,b)=>{ try{ return JSON.stringify(a)===JSON.stringify(b); }catch(_){ return a===b; } };
+function stHoldDirty(){ return !!(_stHold && (_stHold.keys.size || _stHold.api.size)); }
+function stHoldBegin(key){
+  if(_stHold && _stHold.key===key) return;      /* the same sheet drawn again keeps what it holds */
+  if(_stHold) stHoldDrop();
+  const me=(typeof currentUser==='function')?currentUser():null;
+  /* the market and the work shape live on the company's record, not in the settings: their old values are kept too */
+  let mkt=null, ws=null; try{ mkt=(typeof jxId==='function')?jxId():null; }catch(_){ mkt=null; } try{ ws=(typeof wsCfg==='function')?_stHoldClone(wsCfg()):null; }catch(_){ ws=null; }
+  _stHold={ key, keys:new Set(), api:new Map(), snap:_stHoldClone((state&&state.settings)||{})||{}, me, prefs:me?_stHoldClone(me.prefs):undefined, mkt, ws, toast:null };
+  stHoldToastQuiet();
+}
+/* the settings keys this sheet has changed so far: those differing from the copy taken when it opened (an act's own
+   write moves that copy along with it, stHoldApi, so only the sheet's own edits are ever counted) */
+function stHoldMark(){
+  const h=_stHold; if(!h) return; const cur=(state&&state.settings)||{};
+  new Set(Object.keys(cur).concat(Object.keys(h.snap))).forEach(k=>{ if(!h.keys.has(k) && !_stHoldSame(cur[k],h.snap[k])) h.keys.add(k); });
+}
+/* core.js's saveSettings asks this first: true = held (nothing leaves now) */
+function stHoldTake(what){ if(!_stHold || what!=='settings') return false; stHoldMark(); return true; }
+/* api.js asks this before any write: a held setting's route waits (its bodies merged, the last word kept), answered
+   at once with nothing; any other write goes now, and what it changed is taken into the sheet's opening copy */
+function stHoldApi(path, method, body){
+  const h=_stHold; if(!h) return null;
+  if(ST_HOLD_ROUTES.some(re=>re.test(String(path||'')))){
+    const k=method+' '+path, was=h.api.get(k);
+    h.api.set(k,{ path, method, body:(was&&was.body&&body&&typeof body==='object'&&typeof was.body==='object')?Object.assign({},was.body,body):body });
+    return Promise.resolve({});
+  }
+  const real=api(path, method, body, { unheld:true });
+  const rebase=()=>{ if(_stHold!==h) return; const cur=(state&&state.settings)||{};
+    new Set(Object.keys(cur).concat(Object.keys(h.snap))).forEach(x=>{ if(!h.keys.has(x)){ if(cur[x]===undefined) delete h.snap[x]; else h.snap[x]=_stHoldClone(cur[x]); } }); };
+  real.then(()=>Promise.resolve().then(()=>Promise.resolve()).then(rebase), ()=>{});
+  return real;
+}
+/* a "saved" toast while the sheet holds would be untrue: only the warnings and refusals are said */
+function stHoldToastQuiet(){
+  const h=_stHold; if(!h || typeof window==='undefined') return;
+  if(!h.toast && typeof window.toast==='function'){ const real=window.toast; h.toast=real;
+    window.toast=function(m,k){ if(_stHold===h && (k==null || k==='ok' || (k&&typeof k==='object'&&k.kind==='ok'))){ if(!h.allow) return; h.allow--; } return real.apply(this, arguments); }; }
+}
+/* THROW AWAY: the settings keys the sheet changed and the reader's own flags go back to what they were; nothing written */
+function stHoldDrop(){
+  const h=_stHold; if(!h) return;
+  /* the market and the work shape go back through their own setters WHILE the sheet still holds, so the writes those
+     setters send are caught here and thrown away with the rest — nothing reaches the server */
+  const held=k=>[...h.api.keys()].some(x=>x.endsWith(' '+k));
+  try{ if(held('org/jurisdiction') && h.mkt && typeof jxSet==='function'){ jxSet(h.mkt); if(typeof setRegion==='function' && typeof regionCodeFor==='function') setRegion(regionCodeFor(h.mkt),{ silent:true }); } }catch(_){ /* the page redraws from the record */ }
+  try{ if(held('org/workshape') && h.ws && typeof wsSet==='function') wsSet(h.ws.shapes, h.ws.word); }catch(_){ /* the page redraws from the record */ }
+  stHoldMark(); _stHold=null; if(h.toast){ window.toast=h.toast; h.toast=null; }
+  if(!h.keys.size && !h.api.size) return;
+  const cur=state.settings=state.settings||{};
+  h.keys.forEach(k=>{ if(h.snap[k]===undefined) delete cur[k]; else cur[k]=_stHoldClone(h.snap[k]); });
+  if(h.me && [...h.api.keys()].some(k=>/me\/prefs$/.test(k))) h.me.prefs=h.prefs;
+  stHoldRepaint();
+}
+/* SAVE: the held writes leave, once each — the settings in one PUT, each held route once; a refusal keeps the sheet
+   open with its edits still held and says why in its foot */
+async function stHoldCommit(){
+  const h=_stHold; if(!h) return true;
+  stHoldMark(); _stHold=null; if(h.toast){ window.toast=h.toast; h.toast=null; }
+  let ok=true, why='';
+  if(h.keys.size){ let r=true; try{ r=await saveSettings(); }catch(e){ r=false; why=(e&&e.message)||''; } if(r===false) ok=false; }
+  if(ok) for(const w of h.api.values()){ try{ await api(w.path, w.method, w.body, { unheld:true }); }catch(e){ ok=false; why=(e&&e.message)||''; break; } }
+  if(!ok){ _stHold=h; stHoldToastQuiet(); stDrawerRefuse(why||i18t('co_settings_save_failed')); return false; }
+  stHoldRepaint();
+  return true;
+}
+function stHoldRepaint(){
+  try{ if(typeof document!=='undefined' && document.querySelector('.sdd-page')) sddRepaint(); }catch(_){ /* the page redraws on its next paint */ }
+}
+/* A SAVE BUTTON INSIDE A SHEET IS A SAVE (the lanes' Save, the mailroom's key, the pay days, the address book's import
+   and Clear): it writes now, everything the sheet holds with it (the settings go as one record), and the sheet's
+   opening copy moves to what was written, so a later Cancel puts back only what came after it */
+async function stSaveSettingsNow(){
+  const h=_stHold; if(!h) return saveSettings();
+  _stHold=null; let r;
+  try{ r=await saveSettings(); }
+  finally{ _stHold=h; }
+  if(r!==false){ h.snap=_stHoldClone((state&&state.settings)||{})||{}; h.keys.clear(); h.allow=1; }   /* its own "saved" is true: said */
+  return r;
+}
+/* THE HOUSE'S LEAVE QUESTION (the Send screen's, the new agreement's): only while something is held */
+function stHoldLeaveThen(go){
+  if(!stHoldDirty()){ go(); return; }
+  const ask=(typeof confirmDialog==='function')
+    ? confirmDialog({ title:i18t('st_leave_q'), message:i18t('st_leave_body'), confirmLabel:i18t('st_leave_go'), cancelLabel:i18t('st_leave_stay'), danger:true, leave:true })
+    : true;
+  Promise.resolve(ask).then(ok=>{ if(!ok) return; stHoldDrop(); go(); }).catch(()=>{});
+}
+/* the sheet's ✕, Esc and the veil: a way out, asked while something is held */
+function stDrawerLeave(){ stHoldLeaveThen(()=>stDrawerClose()); }
+/* the sheet's Save: what it holds leaves once, then it closes and says so */
+async function stHoldSave(btn){
+  if(btn) btn.disabled=true;
+  const had=stHoldDirty();
+  const ok=await stHoldCommit();
+  if(btn) btn.disabled=false;
+  if(!ok) return;
+  if(had && typeof toast==='function') toast(i18t('st_hold_saved'),'ok');
+  stDrawerClose();
+}
 /* Build the drawer from a descriptor. `foot` is the honest half of this:
-   'save' draws Save & close + Cancel and the panel writes nothing until the
-   press; 'done' draws one Done, because that panel has already written every
-   answer as it was given — which is a rule this product keeps deliberately for
-   its gates and must not be papered over with a button that does nothing. */
+   'save' draws Save + Cancel and the form writes nothing until the press (its
+   own d.save); every other sheet draws Save + Cancel too since P-43 (owner's
+   pick 21 Nov 2026), and HOLDS what its presses change until that Save
+   (stHoldBegin) — the old 'done' foot, which wrote on every press, is gone.
+   The house rule orders the foot: Save (black) first, Cancel last. */
 function stDrawerPaint(d){
   stWireDrawerOnce();
   /* one form at a time: a drawer opening closes a form open in its row */
   if(_stRow) stRowFormClose();
+  /* P-43: a sheet that wrote on each press now HOLDS until Save; a form sheet (its own Save) holds nothing here */
+  if(d.foot!=='save') stHoldBegin(String(_stOpen||_stDock||d.title||'')); else if(_stHold) stHoldDrop();
   const el=stDrawerHost(), scrim=document.getElementById('st-scrim');
   const glyph=d.glyph||'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>';
   /* A PERSON'S DRAWER WEARS THEIR INITIALS (SAP pop-ups, 10 Oct 2026, the
@@ -587,8 +719,9 @@ function stDrawerPaint(d){
     : place
     ? `<div class="st-dcrumb">
          <span class="st-dcrumb-g">${esc(i18t('st_grp_'+place.group))}</span>
-         <span class="st-dcrumb-sep" aria-hidden="true">›</span>
+         <span class="st-dcrumb-sep" aria-hidden="true">·</span>
          <span class="st-dcrumb-n">${esc(i18t('st_panel_pos',{n:place.n,total:place.total}))}</span>
+         ${''/* P-43 (owner's pick 21 Nov 2026): the steps of the group as small dashes, those reached in ink */}<span class="st-dsteps" aria-hidden="true">${Array.from({ length:place.total },(_,i)=>`<i${i<place.n?' class="is-on"':''}></i>`).join('')}</span>
        </div>` : '';
   document.getElementById('st-dhead').innerHTML=
     `${crumb}${head}<button class="st-dx" data-st-dclose title="${esc(i18t('st_close_drawer'))}" aria-label="${esc(i18t('st_close_drawer'))}">${icon('x')}</button>`;
@@ -607,20 +740,21 @@ function stDrawerPaint(d){
      group does not close, hunt and open four times. It carries data-st-panel,
      which is the door every row already presses, so there is ONE way a panel
      is opened and this cannot drift from the list.
-     NOT DRAWN ON A PANEL THAT SAVES ON A PRESS. Twenty-three of the two dozen
-     write as the reader changes them and their foot is a Done; exactly one
-     holds typed edits until Save, and a link that quietly threw those away
-     because it sat beside the button is not a convenience. */
+     NOT DRAWN ON A FORM SHEET (its own Save): a link that quietly threw typed
+     edits away because it sat beside the button is not a convenience. On a
+     sheet that HOLDS its edits until Save (P-43) it is drawn, and pressing it
+     while anything is held asks first (stDrawerOpen → stHoldLeaveThen). */
   const nextKey=(d.foot!=='save' && place && place.next && SET_PANELS[place.next]) ? place.next : '';
   const nextBtn=nextKey
-    ? `<button class="st-dnext" data-st-panel="${nextKey}">${esc(i18t('st_next',{name:SET_PANELS[nextKey].title()}))}</button>`
+    ? `<button class="st-dnext" data-st-panel="${nextKey}">${esc(i18t('st_next',{name:SET_PANELS[nextKey].title()}))} ›</button>`
     : '';
   document.getElementById('st-dfoot').innerHTML =
     `<div id="st-drawer-refusal" class="st-refusal" hidden></div>
      <div class="st-dfoot-acts">${nextBtn}${d.foot==='save'
       ? `<button class="ui-btn ui-btn-primary" id="st-dsave">${i18t('act_save')}</button>${d.footExtra||''}
          <button data-dlg-cancel class="ui-btn" data-st-dclose>${i18t('act_cancel')}</button>`
-      : `<button class="ui-btn ui-btn-primary" data-st-dclose>${i18t('st_done')}</button>`}</div>`;
+      : `<button class="ui-btn ui-btn-primary" id="st-dsave" data-st-hsave>${i18t('act_save')}</button>
+         <button data-dlg-cancel class="ui-btn" data-st-dcancel>${i18t('act_cancel')}</button>`}</div>`;
   /* DOCKED, IT IS A PAGE (round 25 as drawn, the gaps' third pass): placed
      in the page's main column, no scrim, no trap — the reader may go on to
      Jambo beside it; the panel it shows is the page's (_stDock) */
@@ -678,6 +812,8 @@ function stDrawerRefuse(msg){
 }
 function stDrawerClearRefusal(){ document.getElementById((_stRow&&!_stOpen)?'st-rform-refusal':'st-drawer-refusal')?.setAttribute('hidden',''); }
 function stDrawerOpen(key){
+  /* another sheet while this one holds edits: asked first (P-43); the same sheet drawn again keeps them */
+  if(stHoldDirty() && _stHold.key!==String(key)){ stHoldLeaveThen(()=>stDrawerOpen(key)); return; }
   if(key==='account'){ openMyAccount(); return; }
   if(String(key||'').indexOf('person:')===0){ settingsPersonDrawer(String(key).slice(7)); return; }
   /* A BUSINESS ROLE'S OWN DRAWER (piece 6) */
@@ -945,7 +1081,11 @@ function stRepaintRow(key){
    so nothing appears under the reader's hand; the full membership is worked
    out again on the next paint of the page. */
 function stSyncAttention(){
+  /* the six areas read the same needs: drawn again where they stand (P-11) */
+  if(document.querySelector('.sdd-page')&&typeof sddRepaint==='function'){ sddRepaint(); return; }
   stCrSync();
+  /* THE NEW LOOK'S ONE LIST AND ITS PANEL say the same as the record after a save (16 Nov 2026, #762: a saved name, a
+     stream that now names an admin, a mail key — each row and need went on saying what was) */
   const host=document.getElementById('st-att'); if(!host) return;
   const rows=stNeedsAll(), keep=new Set(rows.map(r=>r.key));
   [...host.querySelectorAll('.st-need[data-st-need]')].forEach(el=>{
@@ -1134,16 +1274,20 @@ function stClashes(){
       /* "Open Lina Ek" opens her drawer with the limit that clashes lit
          (round 25 as drawn) — the person's whole name, as the row says it */
       return { key:x.key, dot:'red', who:p, appr:a, cap:x.cap, acap:x.acap,
+        /* NO MONEY OUTSIDE SETTINGS (P-38, review of the merged pages 22 Nov 2026): the Board's company row and the bell
+           say the clash without the sums (`plain`); Settings, the admin's own page, keeps them */
+        plain:i18t('st_clash_cap_plain',{who:stNameOf(p),appr:stNameOf(a)}),
         text:x.cap==null?i18t('st_clash_cap_any',{who:stNameOf(p),appr:stNameOf(a),acap:money(x.acap)})
           :i18t('st_clash_cap',{who:stNameOf(p),cap:money(x.cap),appr:stNameOf(a),acap:money(x.acap)}),
         btn:`data-st-panel="person:${PB_ATTR(p.id)}" data-st-focus="${x.cap==null?'#tm-cap-none':'#tm-cap'}"`, verb:i18t('st_clash_open',{name:stNameOf(p)}) }; }
     if(x.kind==='each') return { key:x.key, dot:'warn', text:i18t('st_clash_each',{a:stNameOf(x.who),b:stNameOf(x.appr)}),
       btn:`data-st-panel="person:${PB_ATTR(x.who.id)}"`, verb:i18t('st_clash_open',{name:stNameOf(x.who)}) };
-    if(x.kind==='self') return { key:x.key, dot:'warn',
+    if(x.kind==='self') return { key:x.key, kind:'self', stream:x.stream||null, dot:'warn',
       text:x.stream?i18t('st_clash_self_stream',{who:stNameOf(x.who),stream:(FOLDERS[x.stream]||{}).name||x.stream})
         :i18t('st_clash_self_rule',{who:stNameOf(x.who),rule:condLabel((x.rule&&x.rule.cond)||{})}),
+      ...(x.stream?{}:{ plain:i18t('st_clash_self_rule_plain',{who:stNameOf(x.who)}) }),
       btn:'data-st-panel="approvals"', verb:i18t('st_clash_rule') };
-    return { key:x.key, dot:'warn', text:i18t('st_clash_nobody',{stream:(FOLDERS[x.stream]||{}).name||x.stream}), btn:'data-st-panel="approvals"', verb:i18t('st_clash_rule') };
+    return { key:x.key, kind:x.kind, dot:'warn', text:i18t('st_clash_nobody',{stream:(FOLDERS[x.stream]||{}).name||x.stream}), btn:'data-st-panel="approvals"', verb:i18t('st_clash_rule') };
   });
 }
 /* ---- THE DAY A CLASH WAS FIRST SEEN (owner's answer 12, 18 Oct 2026) ----
@@ -1213,7 +1357,10 @@ function stNeedsAll(){
   const out=[];
   if(!stIsAdmin()) return out;
   /* a colleague's ask, answered here (Ask an admin, js below) */
-  if(typeof stAsksOpen==='function') stAsksOpen().forEach(a=>out.push({ key:'ask:'+a.id, dot:'warn',
+  /* `at`: the day each began, where the record keeps it (the ask's own day, the day a clash was first seen, the
+     quarter the access review fell due, the day an invitation went) — the Board's company row says the oldest wait
+     (review of the merged pages, 22 Nov 2026); a row with no day carries none */
+  if(typeof stAsksOpen==='function') stAsksOpen().forEach(a=>out.push({ key:'ask:'+a.id, dot:'warn', at:a.createdAt||null,
     text:i18t('st_need_ask',{who:a.byName||'',what:a.what}), sub:stDay(a.createdAt),
     btn:`data-st-panel="ask:${PB_ATTR(a.id)}"`, verb:i18t('st_need_answer') }));
   /* the clashes in who may do what (piece 7), the red one first */
@@ -1221,10 +1368,11 @@ function stNeedsAll(){
      "Control room", round 25, 17 Oct 2026) */
   /* …and since the day HaTi first saw it (owner's answer 12, 18 Oct 2026:
      "since 14 Oct"), kept on the server by stClashSeenSync */
-  stClashes().forEach(r=>{ const seen=stClashSeenDay(r.key);
-    out.push((r.sub||r.subHtml)?r:{ ...r, sub:seen?i18t('st_need_kind_clash_since',{ day:seen }):i18t('st_need_kind_clash') }); });
+  stClashes().forEach(r=>{ const seen=stClashSeenDay(r.key), at=String(((state&&state.clashSeen)||{})[r.key]||'')||null;
+    out.push((r.sub||r.subHtml)?{ ...r, at }:{ ...r, at, sub:seen?i18t('st_need_kind_clash_since',{ day:seen }):i18t('st_need_kind_clash') }); });
   /* the quarter's access review, until it is done (piece 8) */
-  const arRow=stArNeedRow(); if(arRow) out.push(arRow);
+  const arRow=stArNeedRow(); if(arRow){ const m=/^(\d{4})-Q(\d)$/.exec(String((stAr()||{}).quarter||'')); out.push(m?{ ...arRow, at:new Date(+m[1],(+m[2]-1)*3,1).toISOString() }:arRow); }
+  /* (a change to a standard waiting for a yes is on Approvals & signing's second pile, owner 17 Nov 2026 — not here) */
   /* contracts past their keeping period, waiting for an admin's yes (piece 10) */
   stKpNeedRows().forEach(r=>out.push(r));
   const unset=stCapUnset();
@@ -1243,7 +1391,7 @@ function stNeedsAll(){
     out.push({ key:'panel:'+k, dot:'warn', text:p.title(), subHtml:st.text?stShortState(st.text):'',
       btn:`data-st-panel="${k}"`, verb:(p.fixVerb&&p.fixVerb())||i18t('st_need_open') }); });
   const inv=stInvited();
-  if(inv.length===1) out.push({ key:'invite', dot:'quiet',
+  if(inv.length===1) out.push({ key:'invite', dot:'quiet', at:(inv[0].prefs&&inv[0].prefs.invitedAgainAt)||inv[0].createdAt||null,
     text:i18t('st_need_invite_single',{name:stNameOf(inv[0])}),
     sub:(inv[0].prefs&&inv[0].prefs.invitedAgainAt)?i18t('st_need_invite_again',{day:stDay(inv[0].prefs.invitedAgainAt)}):i18t('st_need_invite_sent',{day:stDay(inv[0].createdAt)}),
     btn:`data-st-resend="${PB_ATTR(inv[0].id)}"`, verb:i18t('st_resend') });
@@ -1532,7 +1680,7 @@ function stSheetCardHtml(){
    Who holds what (every grant, read-only, with Download). Each says where it
    is and carries ‹ Settings back; a refresh comes back to it (settingsPlace). */
 let _stPage=null;
-const ST_PAGES=['team','sheet','roles','streams','data','panel','look'];
+const ST_PAGES=['team','sheet','roles','streams','data','panel','look','guard'];
 /* ---- A CARD'S DOOR OPENS ITS PAGE (round 25 as drawn, the gaps' third
    pass, 19 Oct 2026: every door on the Company board's cards and the ladder
    "opens its page on the desk, with ‹ Settings to come back") ----
@@ -1568,6 +1716,7 @@ function stDockPageHtml(){
 }
 function stDockOpen(key, from){
   if(!key) return;
+  if(stHoldDirty() && _stHold.key!==String(key)){ stHoldLeaveThen(()=>stDockOpen(key, from)); return; }
   /* an overlay drawer up gives way: one drawer, one place */
   if(_stOpen && !stDrawerDocked()) stDrawerClose();
   _stDock=String(key); _stDockFrom=from||null;
@@ -1612,12 +1761,22 @@ function stDockBack(){
       ||document.querySelector(`${card} [data-st-panel="${was.key}"]`)||document.querySelector(card),{ block:'center', delay:60 });
   }
 }
+/* THE WAY BACK GOES TO THE PAGE'S AREA (P-11): People & roles, Who holds what, Roles, Streams and How our contracts look
+   say "‹ Company", Trail & backup "‹ Set-up and records" (sddPageArea); the press lands on the row that opened it */
+const sddPageArea=()=>{ if(!(typeof newLookOn==='function'&&newLookOn())) return null; if(_stPage==='panel'&&_stDock){ try{ return sddAreaOfRow(sddRows(stIsAdmin()),_stDock); }catch(_){ return null; } } return SDD_PAGE_AREA[_stPage]||null; };
+const SDD_PAGE_ROW={ team:'people', sheet:'sheet', roles:'roles', streams:'streams', look:'look', data:'trail' };
+function sddPeopleTabsHtml(){
+  if(!(typeof newLookOn==='function'&&newLookOn())||!['team','sheet','roles'].includes(_stPage)) return '';
+  const t=[['team','sdd_tab_people'],['sheet','st_pg_sheet']].concat(typeof stBzOn==='function'&&stBzOn()?[['roles','st_pg_roles']]:[]);
+  return `<div class="sdd-ptabs" role="tablist">${t.map(([k,w])=>`<button type="button" role="tab" class="sdd-ptab${_stPage===k?' is-on':''}" aria-selected="${_stPage===k?'true':'false'}" data-st-page="${k}">${esc(i18t(w))}</button>`).join('')}</div>`;
+}
 function stPageHeadHtml(title, sub, acts){
-  return `<div class="st-pg-head">
-    <button type="button" class="st-pg-back" data-st-page="">‹ ${esc(i18t('pg_team'))}</button>
+  const ar=sddPageArea(), row=_stPage==='panel'?_stDock:SDD_PAGE_ROW[_stPage];
+  return `${ar?`<div class="sdd-pgback-line"><button type="button" class="st-pg-back sdd-pgback" data-st-page="" data-sdd-to="${ar}"${row?` data-sdd-to-row="${PB_ATTR(row)}"`:''}>‹ ${esc(i18t('sdd_a_'+ar))}</button></div>${sddPeopleTabsHtml()}`:''}${ar&&!title&&!acts?'':`<div class="st-pg-head">
+    ${ar?'':`<button type="button" class="st-pg-back" data-st-page="">‹ ${esc(i18t('pg_team'))}</button>`}
     ${title?`<h2 class="st-pg-t">${esc(title)}${sub?` <span class="st-pg-n">${esc(sub)}</span>`:''}</h2>`:''}
     <span class="st-pg-sp"></span>${acts||''}
-  </div>`;
+  </div>`}`;
 }
 function stTeamPageHtml(){
   return `<div class="st-pg" data-st-pg="team">
@@ -1705,6 +1864,7 @@ function stStreamsPageHtml(){
   </div>`;
 }
 function stSwRepaint(){
+  if(stLsOn()&&document.querySelector('#set-page.st-ls-page')){ stLsRepaint(); return; }
   const tb=document.getElementById('st-sw-tb'); if(!tb) return;
   tb.innerHTML=stSwTableHtml();
   const n=document.getElementById('st-sw-n'); if(n) n.textContent=String(stSwShown(stSwRows()).length);
@@ -1721,7 +1881,7 @@ function stSwPickSet(fid){
   _stSwPick=fid&&FOLDERS[fid]?String(fid):null;
   if(_stSwPick&&_stSideFold) stSideFoldSet(false);
   if(_stSwPick&&_stSide!=='jambo') stSideSet('jambo');
-  document.querySelectorAll('#set-page .st-sw-row').forEach(tr=>{ const on=tr.getAttribute('data-st-sw-pick')===_stSwPick; tr.classList.toggle('is-picked',on); tr.setAttribute('aria-selected',String(on)); });
+  document.querySelectorAll('#set-page .st-sw-row').forEach(tr=>{ const on=tr.getAttribute('data-st-sw-pick')===_stSwPick; tr.classList.toggle('is-picked',on); tr.classList.toggle('is-chosen',on&&!!tr.closest('.st-ls-page')); tr.setAttribute('aria-selected',String(on)); });
   stJbFeedRepaint();
   if(_stSwPick&&stKpOn()&&!_stKp.data&&!_stKp.busy) Promise.resolve(stKpLoad()).then(()=>{ if(_stSwPick) stJbFeedRepaint(); },()=>{});
 }
@@ -1814,6 +1974,15 @@ function stHeldOpen(id){
   /* the Dossier's All acts fold (the Menu tab folded into it, 20 Oct 2026), in Jambo's panel */
   const sel=`#ig-dock .pd-nx[data-pd-menu="${String(id).replace(/["\\]/g,'')}"] .pd-mn-rows #ws-hold`;
   if(typeof pdOpenOnHome==='function' && pdOpenOnHome(id,'copilot')!==false){
+    /* THE NEW LOOK: the paper's acts live in its More pop-up (pdActsToggle) — it opens there, on Release hold, lit,
+       pressing nothing (#762: the folded rows the old landing found are drawn hidden) */
+    if(typeof newLookOn==='function'&&newLookOn()&&typeof pdActsToggle==='function'){
+      const pop='#pd-acts-pop [data-pd-acts-go="#ws-hold"]';
+      if(typeof landOn==='function') landOn(()=>{ let r=document.querySelector(pop); if(r) return r;
+        /* the pop-up opens once the paper's line (its anchor) is drawn */
+        if(!document.getElementById('pd-acts-pop')&&document.getElementById('ig-actions')) try{ pdActsToggle(id); }catch(_){ /* not yet */ }
+        r=document.querySelector(pop); return r; },{ focus:false, block:'nearest', missing:i18t('st_swp_hold_missing') });
+      return; }
     if(typeof landOn==='function') landOn(()=>{ const r=document.querySelector(sel); if(r){ const d=r.closest('details'); if(d&&!d.open) d.open=true; } return r; },
       { focus:false, block:'center', missing:i18t('st_swp_hold_missing') });
     return; }
@@ -1871,7 +2040,7 @@ const stArCount=()=>{ const a=stAr(); if(!a) return { done:0, total:0 }; const i
 function stArNeedRow(){
   if(!stArDue()) return null;
   const a=stAr(), n=stArCount();
-  return { key:'review', dot:'warn', text:i18t('st_ar_need',{q:stArLabel(a.quarter)}), sub:i18t('st_ar_need_sub',{n:n.done,total:n.total}),
+  return { key:'review', dot:'warn', text:i18t('st_ar_need',{q:stArLabel(a.quarter)}), sub:i18t('st_ar_need_sub',{n:n.done,total:n.total}), short:i18t('sdd5_ar_s',{n:n.done,total:n.total}),
     btn:'data-st-page="sheet" data-st-land="ar"', verb:i18t(n.done?'st_ar_continue':'st_ar_start') };
 }
 /* the trail, read once per sitting (and again after the review moves) */
@@ -1884,7 +2053,7 @@ async function stArLoadUse(force){
   _stAr.busy=false;
   stArRepaint();
 }
-function stArRepaint(){ if(_stPage==='sheet'&&document.querySelector('[data-st-pg="sheet"]')) renderTeam(); }
+function stArRepaint(){ if(_stPage==='sheet'&&document.querySelector('[data-st-pg="sheet"]')){ if(stLsOn()&&document.querySelector('#set-page.st-ls-page')) stLsRepaint(); else renderTeam(); } }
 const stArDays=t=>{ const ms=Date.parse(t||''); return Number.isFinite(ms)?Math.floor((Date.now()-ms)/864e5):null; };
 /* one line per person: what of theirs went unused for 90 days, or when they
    last used HaTi — never a guess: where nothing is on record it says so */
@@ -2111,6 +2280,681 @@ function stCompanyHtml(){
 }
 
 /* ============================================================
+   THE SIX PAGES INSIDE SETTINGS, THE LEGORA + STRIPE WAY (P-45, owner's pick 22 Nov 2026: "Build them all in one
+   batch"; drawing https://claude.ai/artifact/7AEGbWRsBS6jzbb8RUD2jt)
+   ============================================================
+   People · Who holds what · Roles · Contract streams · How our contracts look · Data & backup, drawn in the area's own
+   frame (the shell stnPaint draws): the way back on the line "‹ Settings" stands on over an area, the serif title with
+   its line, a plain filter box (the top box filters, Jambo's box asks), chips with their counts, one calm table, no button on a row (a row chooses, a second press
+   opens its sheet from the right, as each did before), and Jambo's panel without cards: the page in a sentence, a small
+   ring or bar, what needs you as rows, the page's one act once. Every column, filter and door the pages had is kept;
+   Re-file · New paper · Hold share one column of three ticks; Keep · Change move from every row of Who holds what to
+   the panel; Contract streams' two dropdowns become chips. NO MOTION (as the rest of Settings). How our contracts look
+   keeps its editing as it was: the paper in the middle, its settings beside it (owner, 22 Nov 2026). Nothing here
+   writes: every press is a door the pages already had. */
+const ST_LS_PAGES=['team','sheet','roles','streams','look','data','guard'];
+function stLsOn(){
+  if(typeof _stPage==='undefined'||!ST_LS_PAGES.includes(_stPage)) return false;
+  if(!stIsAdmin()||settingsTab()!=='company') return false;
+  return typeof newLookOn==='function'&&newLookOn();
+}
+/* per page, per sitting: the chip in front, the ask box's words, the row chosen */
+const _stLs={ chip:{}, q:{}, pick:{} };
+const stLsChip=pg=>_stLs.chip[pg]||'all';
+const stLsQ=pg=>String(_stLs.q[pg]||'');
+const stLsPick=pg=>_stLs.pick[pg]||null;
+const stLsIni=u=>String((u&&(u.name||u.email))||'?').split(/\s+/).filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+const stLsBadge=(t,tone,dot)=>`<span class="apn-st is-${tone||'grey'}">${dot?'<i></i>':''}${esc(t)}</span>`;
+const stLsHay=(...xs)=>xs.filter(Boolean).join(' ').toLocaleLowerCase();
+function stLsQFits(pg, hay){ const q=stLsQ(pg).trim().toLocaleLowerCase(); return !q||q.split(/\s+/).every(w=>String(hay||'').includes(w)); }
+/* THE HEAD, the area's own: the way back (to the area, landing on the row that opened the page), the serif title with
+   the page's one act beside it, its line, tabs where the page has them, the ask box and the chips */
+function stLsHeadHtml(o){
+  const ar=sddPageArea()||(o&&o.area)||'company', row=SDD_PAGE_ROW[_stPage]||'';
+  const chips=(o.chips||[]).filter(c=>c&&(c.k==='all'||c.n||c.k===o.chip));
+  return `<div class="sdd-head st-ls-head">
+    <button type="button" class="sdd-back st-ls-back" data-st-page="" data-sdd-to="${esc(ar)}"${row?` data-sdd-to-row="${PB_ATTR(row)}"`:''}>‹ ${esc(i18t('sdd_a_'+ar))}</button>
+    <div class="cun-head st-ls-hrow"><h2 class="ctf-h stn-title sdd-title">${esc(o.title)}</h2>${o.acts?`<span class="st-ls-acts">${o.acts}</span>`:''}</div>
+    ${o.sub?`<p class="sdd-sub st-ls-sub">${esc(o.sub)}</p>`:''}
+    ${o.tabs||''}
+    ${o.ask?`<label class="apn-ask sdd-find st-ls-find is-filter"><span class="sdd-find-ic" aria-hidden="true">${typeof icon==='function'?icon('search','sdd-spark-ic'):''}</span><input id="${o.ask.id}" type="search" autocomplete="off" placeholder="${esc(o.ask.ph)}" aria-label="${esc(o.ask.ph)}" value="${esc(o.ask.value||'')}"${o.ask.attr?' '+o.ask.attr:''}></label>`:''}
+    ${o.askHtml||''}
+    ${chips.length?`<div class="apn-bar sdd-chips st-ls-chips">${chips.map(c=>`<button type="button" class="apn-tab is-chip${o.chip===c.k?' is-on':''}" data-st-ls-chip="${esc(o.page)}:${esc(c.k)}">${c.amber?'<i class="apn-cd is-amber" aria-hidden="true"></i>':''}${esc(c.label)} <span>${c.n}</span></button>`).join('')}</div>`:''}
+  </div>`;
+}
+/* People · Who holds what · Roles: one page with three tabs, as today (sddPeopleTabsHtml's three doors) */
+function stLsPeopleTabsHtml(){
+  const t=[['team','sdd_tab_people'],['sheet','st_pg_sheet']].concat(typeof stBzOn==='function'&&stBzOn()?[['roles','st_pg_roles']]:[]);
+  return `<div class="st-ls-tabs" role="tablist">${t.map(([k,w])=>`<button type="button" role="tab" class="st-ls-tab${_stPage===k?' is-on':''}" aria-selected="${_stPage===k?'true':'false'}" data-st-page="${k}">${esc(i18t(w))}</button>`).join('')}</div>`;
+}
+const stLsPeopleTitle=()=>i18t('stn_m_people');
+const stLsPeopleSub=()=>i18t('sdd_co_people_sub');
+
+/* ---- 1 · PEOPLE ---- */
+function stLsPersonGap(u){
+  const me=(typeof currentUser==='function'&&currentUser())||{};
+  const invited=!!(u.prefs&&u.prefs.mustChangePassword)&&u.id!==me.id;
+  const miss=stPersonMissing(u);
+  if(invited) return { t:i18t('st_sh_not_in'), invited:true };
+  if(!miss.length) return null;
+  return { t:miss.length===1?i18t('st_setup_missing',{ what:miss[0] }):i18tn('st_n_missing',miss.length,{ n:miss.length }), title:miss.join(', ') };
+}
+function stLsTeamRows(){
+  const me=(typeof currentUser==='function'&&currentUser())||{};
+  return (getUsers()||[]).map(u=>({ u, me:u.id===me.id, role:u.role, gap:stLsPersonGap(u),
+    hay:stLsHay(u.name,u.email,u.title,roleName(u.role)) }));
+}
+function stLsTeamChips(rows){
+  const n=f=>rows.filter(f).length;
+  return [{ k:'all', label:i18t('ctf_tab_all'), n:rows.length }, { k:'need', label:i18t('sdd_chip_need'), n:n(r=>r.gap), amber:true },
+    { k:'admin', label:i18t('st_ls_admins'), n:n(r=>r.role==='admin') }, { k:'editor', label:i18t('st_ls_editors'), n:n(r=>r.role!=='admin'&&r.role!=='viewer') },
+    { k:'viewer', label:i18t('st_ls_viewers'), n:n(r=>r.role==='viewer') }];
+}
+function stLsTeamFits(r, chip){
+  if(chip==='need') return !!r.gap;
+  if(chip==='admin') return r.role==='admin';
+  if(chip==='editor') return r.role!=='admin'&&r.role!=='viewer';
+  if(chip==='viewer') return r.role==='viewer';
+  return true;
+}
+function stLsTeamTableHtml(){
+  const all=stLsTeamRows(), chip=stLsChip('team'), bz=stBzOn();
+  const rows=all.filter(r=>stLsTeamFits(r,chip)&&stLsQFits('team',r.hay));
+  const body=rows.map(({ u, me, gap })=>{
+    let cap=''; try{ cap=signCapText(u); }catch(_){ cap=''; }
+    const capOwed=(()=>{ try{ return u.role!=='admin'&&u.role!=='viewer'&&!signCapOf(u).answered; }catch(_){ return false; } })();
+    const sa=stApprovalRowText(u);
+    const two=u.twoStep===true?stLsBadge(i18t('st_sh_on'),'green'):u.twoStep===false?stLsBadge(i18t('st_sh_off'),'grey'):'<span class="st-ls-dash">—</span>';
+    return `<tr class="st-person st-ls-row" data-st-panel="person:${PB_ATTR(u.id)}" data-st-hay="${esc(stLsHay(u.name,u.email,u.title,roleName(u.role)))}" tabindex="0">
+      <td><span class="st-ls-who"><span class="st-ls-ini${u.role==='admin'?' is-admin':''}" aria-hidden="true">${esc(stLsIni(u))}</span><span class="st-ls-id"><b>${esc(u.name||u.email)}${me?` <small>${esc(i18t('set_you'))}</small>`:''}</b>${u.name&&u.email?`<span>${esc(u.email)}</span>`:''}</span></span></td>
+      <td>${stLsBadge(roleName(u.role),u.role==='admin'?'steel':'grey')}</td>
+      ${bz?`<td class="st-ls-q" data-st-bz="${PB_ATTR(u.id)}">${esc((stBzOf(u)||{}).name||'—')}</td>`:''}
+      <td>${esc(stAccessOf(u).text)}</td>
+      <td><span class="${capOwed?'st-ls-owed':''}" data-st-cap="${PB_ATTR(u.id)}">${esc(cap)}</span>${sa?`<span class="st-ls-sub" data-st-sa="${PB_ATTR(u.id)}">${esc(sa)}</span>`:''}</td>
+      <td>${two}</td>
+      <td>${gap?`<span class="apn-st is-amber"${gap.title?` title="${esc(gap.title)}"`:''}><i></i>${esc(gap.t)}</span>`:stLsBadge(i18t('st_complete'),'green')}</td>
+    </tr>`; }).join('');
+  return `<table class="st-ls-t st-people-table"><thead><tr><th>${esc(i18t('st_ls_c_person'))}</th><th>${esc(i18t('dir_col_role'))}</th>${bz?`<th>${esc(i18t('bz_col_role'))}</th>`:''}<th>${esc(i18t('st_col_streams'))}</th><th>${esc(i18t('st_col_cap'))}</th><th>${esc(i18t('st_sh_twostep'))}</th><th>${esc(i18t('st_ls_c_setup'))}</th></tr></thead>
+    <tbody class="st-people">${body||`<tr><td colspan="${bz?7:6}" class="st-ls-none">${esc(i18t('st_ls_none'))}</td></tr>`}</tbody></table>`;
+}
+function stLsTeamHtml(){
+  const rows=stLsTeamRows();
+  return stLsHeadHtml({ page:'team', title:stLsPeopleTitle(), sub:stLsPeopleSub(), tabs:stLsPeopleTabsHtml(),
+      acts:`<button type="button" id="st-add-person" class="ui-btn ui-btn-primary" data-st-panel="person:new">${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):''}${esc(i18t('st_ls_add_person'))}</button>`,
+      ask:{ id:'st-people-q', ph:i18t('lh_filter_ph'), value:stLsQ('team') }, chips:stLsTeamChips(rows), chip:stLsChip('team') })
+    +`<div class="st-ls-body" data-st-pg="team" id="st-ls-list">${stLsTeamTableHtml()}</div>`;
+}
+function stLsTeamPanel(){
+  const rows=stLsTeamRows(), n=rows.length, ok=rows.filter(r=>!r.gap).length;
+  const two=rows.filter(r=>r.u.twoStep===true).length;
+  const bar=`<div class="st-ls-bar" aria-hidden="true"><i style="flex:${two}" class="is-green"></i><i style="flex:${n-two}"></i></div><p class="st-ls-small">${esc(two?i18t('st_ls_two_some',{ n:two, m:n }):i18t('st_ls_two_none',{ n }))}</p>`;
+  const need=rows.filter(r=>r.gap).slice(0,6).map(r=>r.gap.invited
+    ? { mark:'', markText:'✉️', tone:'amber', t:stNameOf(r.u), s:i18t('st_ls_resend_s'), attr:`data-st-resend="${PB_ATTR(r.u.id)}"` }
+    : { mark:'', markText:'👤', tone:'amber', t:stNameOf(r.u), s:r.gap.t, attr:`data-st-panel="person:${PB_ATTR(r.u.id)}"` });
+  const more=rows.filter(r=>r.gap).length-need.length;
+  return { eyebrow:stLsPeopleTitle(), title:i18tn('st_ls_team_t',n,{ n }), sub:ok===n?i18t('st_ls_team_all_set'):i18tn('st_ls_team_s',ok,{ n:ok, m:n }),
+    mid:`<div class="sdd5-today">${sdd5RingHtml(ok,n,ok===n?'green':'amber',i18t('st_ls_set_cap'))}<div><b>${esc(i18t('st_ls_set_h'))}</b><span>${esc(i18t('sdd5_done_of',{ n:ok, m:n }))}</span></div></div>`,
+    groups:[{ label:i18t('st_sh_twostep'), rows:[], html:bar }, { label:i18t('sdd5_needs'), rows:need, foot:more>0?{ label:i18tn('st_ls_more',more,{ n:more }), attr:'data-st-ls-chip="team:need"' }:null }] };
+}
+
+/* ---- 2 · WHO HOLDS WHAT ---- */
+function stLsSheetRows(){
+  const a=stAr(), due=stArDue();
+  return stUsers().map(u=>{ const m=a&&a.marks&&a.marks[u.id];
+    const me=(typeof currentUser==='function'&&currentUser())||{};
+    const rev=!due?'':u.id===me.id?'you':!(a.people||[]).includes(u.id)?'':m?(m.v==='keep'?'kept':'changed'):'review';
+    return { u, rev, hay:stLsHay(stNameOf(u),u.email,u.title,roleName(u.role)) }; });
+}
+function stLsSheetChips(rows){
+  if(!stArDue()) return [{ k:'all', label:i18t('ctf_tab_all'), n:rows.length }];
+  const n=k=>rows.filter(r=>r.rev===k).length;
+  return [{ k:'all', label:i18t('ctf_tab_all'), n:rows.length }, { k:'review', label:i18t('st_ls_to_review'), n:n('review'), amber:true },
+    { k:'kept', label:i18t('st_ar_kept'), n:n('kept') }, { k:'changed', label:i18t('st_ar_changed'), n:n('changed') }];
+}
+function stLsSheetTableHtml(){
+  const chip=stLsChip('sheet'), ar=stArOn(), due=stArDue(), pick=stLsPick('sheet');
+  const rows=stLsSheetRows().filter(r=>(chip==='all'||r.rev===chip)&&stLsQFits('sheet',r.hay));
+  const tick=v=>/^—$/.test(String(v))?'<i class="is-no">—</i>':'<i class="is-yes">✓</i>';
+  const revB=k=>k==='review'?stLsBadge(i18t('st_ls_to_review'),'amber'):k==='kept'?stLsBadge(i18t('st_ar_kept'),'green'):k==='changed'?stLsBadge(i18t('st_ar_changed'),'steel'):k==='you'?stLsBadge(i18t('st_ls_you'),'grey'):'';
+  const body=rows.map(({ u, rev })=>{ const c=stSheetCells(u);
+    const bz=(typeof stBzOf==='function'&&stBzOn())?stBzOf(u):null;
+    const aw=((state.away||{}).everyone||[]).find(r=>r&&String(r.userId)===String(u.id)&&r.from<=((state.away||{}).today||todayISO()));
+    return `<tr class="st-ls-row st-sh-row${pick===String(u.id)?' is-chosen':''}" data-st-ls-row="sheet:${PB_ATTR(u.id)}" tabindex="0" aria-pressed="${pick===String(u.id)?'true':'false'}">
+      <td><span class="st-ls-who"><span class="st-ls-ini" aria-hidden="true">${esc(stLsIni(u))}</span><span class="st-ls-id"><b>${esc(stNameOf(u))}</b>${aw?`<span>${esc(i18t('st_sh_away',{ day:stAwayDay(aw.to), who:String(aw.deputyName||'').split(' ')[0] }))}</span>`:''}</span></span></td>
+      <td>${stLsBadge((bz&&bz.name)||u.title||roleName(u.role),u.role==='admin'?'steel':'grey')}${(u.prefs&&u.prefs.mustChangePassword)?`<span class="st-ls-sub">${esc(i18t('st_sh_invited'))}</span>`:''}</td>
+      <td>${c.cap}</td><td>${c.yes}</td><td>${c.checked}</td>
+      <td><span class="st-ls-ticks" title="${esc([i18t('st_sh_refile'),i18t('st_sh_paper'),i18t('st_sh_hold')].join(' · '))}">${tick(c.refile)}${tick(c.paper)}${tick(c.hold)}</span></td>
+      <td>${c.streams}</td>${ar?`<td class="st-ar-cell" data-st-ar-used="${PB_ATTR(u.id)}">${stArUsedHtml(u)}</td>`:''}${due?`<td>${revB(rev)}</td>`:''}</tr>`; }).join('');
+  const th=k=>`<th>${esc(i18t(k))}</th>`;
+  return `<table class="st-ls-t st-ls-sheet"><thead><tr>${th('st_sh_person')}${th('st_sh_role')}${th('st_sh_cap')}${th('st_sh_yes_from')}${th('st_sh_checked')}<th>${esc([i18t('st_sh_refile'),i18t('st_sh_paper'),i18t('st_sh_hold')].join(' · '))}</th>${th('st_sh_streams')}${ar?th('st_ar_used'):''}${due?th('st_ar_review'):''}</tr></thead>
+    <tbody>${body||`<tr><td colspan="9" class="st-ls-none">${esc(i18t('st_ls_none'))}</td></tr>`}</tbody></table>
+    <p class="st-ls-foot">${esc(i18t(stArOn()?'st_ar_foot':'st_sh_foot'))}</p>`;
+}
+function stLsSheetHtml(){
+  if(stArOn()&&!_stAr.use&&!_stAr.busy) setTimeout(()=>stArLoadUse(),0);
+  const rows=stLsSheetRows();
+  return stLsHeadHtml({ page:'sheet', title:stLsPeopleTitle(), sub:i18t('sdd_co_sheet_say'), tabs:stLsPeopleTabsHtml(),
+      acts:`<button type="button" class="ui-btn" data-st-sheet-csv>${typeof icon==='function'?icon('download','w-3.5 h-3.5'):''} ${esc(i18t('st_sh_download'))}</button>`,
+      ask:{ id:'st-ls-q', ph:i18t('lh_filter_ph'), value:stLsQ('sheet') }, chips:stLsSheetChips(rows), chip:stLsChip('sheet') })
+    +`<div class="st-ls-body${stArDue()?' is-reviewing':''}" data-st-pg="sheet" id="st-ls-list">${stLsSheetTableHtml()}</div>`;
+}
+function stLsSheetPanel(){
+  const pick=stLsPick('sheet'), u=pick?stUsers().find(x=>String(x.id)===pick):null;
+  if(u){
+    const c=stSheetCells(u), a=stAr(), due=stArDue(), m=a&&a.marks&&a.marks[u.id];
+    const me=(typeof currentUser==='function'&&currentUser())||{};
+    const txt=h=>sddTxt(h);
+    const facts=[{ k:i18t('st_sh_role'), t:roleName(u.role) }, { k:i18t('st_sh_cap'), t:txt(c.cap) }, { k:i18t('st_sh_yes_from'), t:txt(c.yes) },
+      { k:i18t('st_sh_checked'), t:txt(c.checked) }, { k:i18t('st_sh_streams'), t:txt(c.streams) },
+      { k:[i18t('st_sh_refile'),i18t('st_sh_paper'),i18t('st_sh_hold')].join(' · '), t:[c.refile,c.paper,c.hold].map(txt).join(' · ') }]
+      .concat(stArOn()?[{ k:i18t('st_ar_used'), t:txt(stArUsedHtml(u)) }]:[]).map(x=>Object.assign({ wrap:true },x));
+    const inReview=due&&u.id!==me.id&&(a.people||[]).includes(u.id);
+    return { before:sdd5Tags([[roleName(u.role),u.role==='admin'?'steel':'grey'], inReview?(m?[i18t(m.v==='keep'?'st_ar_kept':'st_ar_changed'),'green']:[i18t('st_ls_to_review'),'amber',true]):null]),
+      title:stNameOf(u), sub:i18t('st_ls_sheet_person_s'),
+      act:inReview?{ label:i18t(m&&m.v==='keep'?'st_ar_kept':'st_ar_keep'), attr:`data-st-ar="keep" data-st-ar-who="${PB_ATTR(u.id)}"`, link:{ label:i18t(m&&m.v==='change'?'st_ar_changed':'st_ar_change'), attr:`data-st-ar="change" data-st-ar-who="${PB_ATTR(u.id)}"` } }
+        :{ label:i18t('st_ls_open_person'), attr:`data-st-panel="person:${PB_ATTR(u.id)}"` },
+      groups:[{ label:'', rows:facts }] };
+  }
+  if(stArDue()){
+    const a=stAr(), n=stArCount(), left=n.total-n.done;
+    const done=`<button type="button" class="jov5-go st-ls-go" id="st-ar-done"${left?` disabled aria-disabled="true" title="${esc(i18tn('st_ar_left',left,{ n:left }))}"`:''}>${esc(i18t('st_ar_mark_done'))}</button>`;
+    return { before:sdd5Tags([[i18t('st_ls_review_tag',{ q:stArLabel(a.quarter) }),'amber']]), title:i18t('st_ls_reviewed',{ n:n.done, m:n.total }), sub:i18t('st_ls_review_s'),
+      mid:`<div class="sdd5-today">${sdd5RingHtml(n.done,n.total,left?'amber':'green',i18t('st_ls_reviewed_cap'))}<div><span>${esc(left?i18tn('st_ar_left',left,{ n:left }):i18t('st_ar_all_in'))}</span>${done}</div></div>` };
+  }
+  const gaps=stUsers().filter(u=>stSheetCells(u).gap);
+  return { eyebrow:i18t('st_pg_sheet'), title:i18t('sdd_co_sheet_say'), sub:stArHeadSub(),
+    groups:gaps.length?[{ label:i18t('sdd5_needs'), rows:gaps.slice(0,6).map(u=>({ mark:'', markText:'📋', tone:'amber', t:stNameOf(u), s:i18t('st_ls_gap_s'), attr:`data-st-panel="person:${PB_ATTR(u.id)}"` })) }]:[] };
+}
+
+/* ---- 3 · ROLES ---- */
+function stLsRolesRows(){ return stBzBook().roles.map(r=>({ r, n:stBzHolders(r.id).length, hay:stLsHay(r.name,stBzSummary(r)) })); }
+function stLsRolesTableHtml(){
+  const chip=stLsChip('roles'), pick=stLsPick('roles');
+  const rows=stLsRolesRows().filter(x=>(chip==='all'||(chip==='used'?x.n>0:x.n===0))&&stLsQFits('roles',x.hay));
+  if(!stBzBook().roles.length) return `<p class="st-ls-none st-bz-empty">${esc(i18t('bz_page_empty'))}</p>`;
+  return `<table class="st-ls-t st-bz-table"><thead><tr><th>${esc(i18t('bz_col_role'))}</th><th>${esc(i18t('bz_col_brings'))}</th><th class="r">${esc(i18t('bz_col_people'))}</th></tr></thead><tbody>${
+    rows.map(({ r, n })=>`<tr class="st-ls-row${pick===String(r.id)?' is-chosen':''}" data-st-ls-row="roles:${PB_ATTR(r.id)}" tabindex="0" aria-pressed="${pick===String(r.id)?'true':'false'}">
+      <td><b class="st-ls-name">${esc(r.name)}</b></td><td><span class="st-ls-brings">${stBzBrings(r).map(w=>stLsBadge(w,'grey')).join('')}</span></td><td class="r${n?'':' st-ls-q'}">${n}</td></tr>`).join('')
+    ||`<tr><td colspan="3" class="st-ls-none">${esc(i18t('st_ls_none'))}</td></tr>`}</tbody></table>`;
+}
+function stLsRolesHtml(){
+  const rows=stLsRolesRows(), n=k=>rows.filter(k).length;
+  return stLsHeadHtml({ page:'roles', title:stLsPeopleTitle(), sub:i18t('bz_page_sub_line'), tabs:stLsPeopleTabsHtml(),
+      acts:`<button type="button" class="ui-btn ui-btn-primary" data-st-panel="role:new">${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):''} ${esc(i18t('bz_new'))}</button>`,
+      ask:{ id:'st-ls-q', ph:i18t('lh_filter_ph'), value:stLsQ('roles') },
+      chips:[{ k:'all', label:i18t('ctf_tab_all'), n:rows.length }, { k:'used', label:i18t('st_ls_in_use'), n:n(x=>x.n>0) }, { k:'unused', label:i18t('st_ls_unused'), n:n(x=>x.n===0) }], chip:stLsChip('roles') })
+    +`<div class="st-ls-body" data-st-pg="roles" id="st-ls-list">${stLsRolesTableHtml()}<p class="st-ls-foot">${esc(i18t('bz_page_foot'))}</p></div>`;
+}
+function stLsRolesPanel(){
+  const pick=stLsPick('roles'), r=pick?stBzRole(pick):null;
+  if(r){ const who=stBzHolders(r.id);
+    return { eyebrow:i18t('st_pg_roles'), title:r.name, sub:i18t('st_ls_role_s',{ what:stBzSummary(r) }), act:{ label:i18t('st_you_change'), attr:`data-st-panel="role:${PB_ATTR(r.id)}"` },
+      groups:[{ label:i18t('st_ls_holds_it'), rows:who.length?who.map(u=>({ mark:'', markText:stLsIni(u), tone:'steel', t:stNameOf(u), attr:`data-st-panel="person:${PB_ATTR(u.id)}"` })):[{ t:i18t('st_ls_nobody_holds'), wrap:true }] },
+        { label:i18t('sdd5_if_h'), rows:[{ t:i18t('st_ls_role_if'), wrap:true }] }] };
+  }
+  const n=stBzBook().roles.length;
+  return { eyebrow:i18t('st_pg_roles'), title:n?i18tn('st_ls_roles_t',n,{ n }):i18t('st_ls_roles_none'), sub:i18t('sdd_co_roles_say'),
+    groups:[{ label:'', rows:[{ t:i18t('bz_page_foot'), wrap:true }] }] };
+}
+
+/* ---- 4 · CONTRACT STREAMS (the dropdowns as chips; the row chooses, as before) ---- */
+function stLsSwFits(r, chip){
+  if(chip==='everyone') return !r.priv; if(chip==='named') return r.priv;
+  if(chip==='keep') return r.years!=null; if(chip==='due') return !!r.due;
+  return true;
+}
+function stLsSwChips(rows){
+  const n=k=>rows.filter(r=>stLsSwFits(r,k)).length;
+  return [{ k:'all', label:i18t('ctf_tab_all'), n:rows.length }, { k:'everyone', label:i18t('st_ls_sw_everyone'), n:n('everyone') },
+    { k:'named', label:i18t('st_ls_sw_named'), n:n('named') }, { k:'keep', label:i18t('st_ls_sw_keep'), n:n('keep') }, { k:'due', label:i18t('st_ls_sw_due'), n:n('due'), amber:true }];
+}
+function stLsSwTableHtml(){
+  const all=stSwRows(), chip=stLsChip('streams'), kpRead=!!(_stKp.data&&_stKp.data.streams);
+  const rows=stSwShown(all).filter(r=>stLsSwFits(r,chip));
+  const dash='<span class="st-ls-q">—</span>', num=v=>v==null?dash:esc(String(v));
+  const who=r=>r.priv?`${esc(i18t('st_sw_named',{ n:r.named }))}${r.mine?'':` <span class="st-ls-q">· ${esc(i18t('st_sw_not_you'))}</span>`}`
+    :`${esc(i18t('st_ls_sw_given'))} <span class="st-ls-q">· ${esc(i18tn('st_ls_people_n',r.seers,{ n:r.seers }))}</span>`;
+  const body=rows.map(r=>`<tr class="st-ls-row st-sw-row${_stSwPick===r.id?' is-picked is-chosen':''}" data-st-sw-pick="${PB_ATTR(r.id)}" tabindex="0" aria-selected="${_stSwPick===r.id}">
+      <td><span class="st-ls-strm"><i style="background:${esc(r.color||'var(--color-neutral-400)')}" aria-hidden="true"></i><b>${esc(r.name)}</b>${r.priv?stLsBadge(i18t('st_ps_private'),'steel'):''}</span></td>
+      <td>${who(r)}</td><td class="r">${r.shut?`<span class="st-ls-q">${esc(i18t('st_sw_not_counted'))}</span>`:num(r.contracts)}</td>
+      <td>${r.years!=null?stLsBadge(stKpYearsWord(r.years),'green'):stLsBadge(i18t('st_sw_no_period'),'grey')}</td>
+      <td class="r">${r.due?`<span class="st-ls-owed">${r.due}</span>`:num(r.shut?null:(r.due==null?0:r.due))}</td><td class="r">${kpRead&&!r.shut?num(r.held):dash}</td></tr>`).join('')
+    ||`<tr><td colspan="6" class="st-ls-none">${esc(i18t('st_sw_none'))}</td></tr>`;
+  return `<table class="st-ls-t st-sw-tb"><thead><tr><th>${esc(i18t('st_sw_c_stream'))}</th><th>${esc(i18t('st_sw_c_who'))}</th><th class="r">${esc(i18t('st_sw_c_contracts'))}</th>
+    <th>${esc(i18t('st_sw_c_kept'))}</th><th class="r">${esc(i18t('st_sw_c_due'))}</th><th class="r">${esc(i18t('st_sw_c_onhold'))}</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+function stLsStreamsHtml(){
+  const rows=stSwRows();
+  return stLsHeadHtml({ page:'streams', title:i18t('st_sw_title'), sub:i18t('st_ls_sw_sub'),
+      acts:`<button type="button" class="ui-btn ui-btn-primary" data-st-panel="stream:new" data-st-focus="#st-stream-name">${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):''} ${esc(i18t('st_sw_new'))}</button>`,
+      ask:{ id:'st-sw-q', ph:i18t('lh_filter_ph'), value:_stSw.q }, chips:stLsSwChips(rows), chip:stLsChip('streams') })
+    +`<div class="st-ls-body" data-st-pg="streams"><div id="st-sw-tb">${stLsSwTableHtml()}</div></div>`;
+}
+function stLsStreamPanel(fid){
+  const f=FOLDERS[fid]; if(!f) return null;
+  const r=stSwRows().find(x=>x.id===fid)||{};
+  const d=_stKp.data, s=(d&&d.streams&&d.streams[fid])||null, saved=stKpSaved(fid);
+  const seers=r.priv?stPsIds(stPsSaved(fid)).map(id=>stUsers().find(u=>String(u.id)===String(id))).filter(Boolean):stUsers().filter(u=>typeof canAccessFolder==='function'&&canAccessFolder(fid,u));
+  const kept=saved?i18t(saved.then==='archive'?'st_swp_kept_archive':'st_swp_kept_delete',{ period:stKpYearsWord(saved.years) }):i18t('st_sw_no_period');
+  const loading=stKpOn()&&!d;
+  const due=(!r.shut&&s&&saved)?s.due:[], held=(!r.shut&&s)?s.held:[];
+  const facts=[{ k:i18t('st_sw_c_contracts'), t:r.shut?i18t('st_sw_not_counted'):String(r.contracts==null?'—':r.contracts) },
+    { k:i18t('st_sw_c_kept'), t:kept, wrap:true },
+    { k:i18t('st_ls_sw_due_hold'), t:r.shut||loading?'—':`${due.length} · ${held.length}` },
+    { k:i18t('sdd_f_history'), t:i18t('sdd_in_trail'), link:(typeof stTrailOn==='function'&&stTrailOn())?{ label:i18t('sdd_see_it'), attr:'data-st-panel="trail"' }:undefined }];
+  const n=due.length, del=saved&&saved.then!=='archive';
+  const groups=[];
+  if(!r.shut&&seers.length) groups.push({ label:i18t('st_ls_sw_who_h'), rows:[{ faces:seers.map(stLsIni), t:seers.length<=3?seers.map(stNameOf).join(', '):i18tn('st_ls_people_n',seers.length,{ n:seers.length }), wrap:true }] });
+  groups.push({ label:'', key:'facts', rows:facts });
+  if(r.shut) groups.push({ label:'', rows:[{ t:i18t('st_swp_shut'), wrap:true }] });
+  if(n) groups.push({ label:i18t('st_sw_c_due'), rows:due.slice(0,6).map(x=>({ mark:'', markText:'📄', tone:'amber', t:`${x.ref} ${x.name||''}`.trim(), s:[x.counterparty, i18t('st_ls_ended',{ day:stAwayDay(x.ended) })].filter(Boolean).join(' · ') })),
+    foot:{ label:i18tn(del?'st_kp_delete_n':'st_kp_archive_n',n,{ n }), attr:`data-st-swp-run="${PB_ATTR(fid)}"` } });
+  if(held.length) groups.push({ label:i18t('st_swp_hold'), rows:held.slice(0,6).map(x=>({ mark:'', markText:'🔒', tone:'steel', t:`${x.ref} ${x.name||''}`.trim(), s:i18t('st_swp_held_since',{ day:stAwayDay(x.since) }), attr:`data-st-swp-open="${PB_ATTR(x.id)}"` })) });
+  groups.push({ label:i18t('sdd5_if_h'), rows:[{ t:i18t('st_ls_sw_if'), wrap:true }] });
+  return { before:sdd5Tags([[r.priv?i18t('st_ps_private'):i18t('st_ls_sw_open_all'),r.priv?'steel':'green'], [saved?stKpYearsWord(saved.years):i18t('st_ls_sw_no_keep'),saved?'green':'grey']]),
+    title:f.name, sub:r.shut?i18t('st_swp_shut'):i18t('st_ls_sw_one_s',{ who:i18tn('st_ls_people_n',seers.length,{ n:seers.length }), n:r.contracts==null?0:r.contracts }),
+    act:{ label:i18t('st_you_change'), attr:`data-st-panel="stream:${PB_ATTR(fid)}"` }, groups };
+}
+function stLsStreamsPanel(){
+  if(_stSwPick){ const o=stLsStreamPanel(_stSwPick); if(o) return o; }
+  const rows=stSwRows(), counted=rows.filter(r=>!r.shut&&r.contracts), total=counted.reduce((a,r)=>a+(r.contracts||0),0);
+  const anyKeep=rows.some(r=>r.years!=null);
+  const bar=total?`<div class="st-ls-bar" aria-hidden="true">${counted.map(r=>`<i style="flex:${r.contracts};background:${esc(r.color||'var(--color-neutral-400)')}"></i>`).join('')}</div>
+    <div class="st-ls-legend">${counted.map(r=>`<span><i style="background:${esc(r.color||'var(--color-neutral-400)')}"></i>${esc(r.name)} <b>${r.contracts}</b></span>`).join('')}</div>
+    ${rows.length>counted.length?`<p class="st-ls-small">${esc(i18tn('st_ls_sw_rest',rows.length-counted.length,{ n:rows.length-counted.length }))}</p>`:''}`:`<p class="st-ls-small">${esc(i18t('st_ls_sw_none_filed'))}</p>`;
+  const needs=sddNeedList(true,'company').filter(x=>x.row==='streams');
+  return { eyebrow:i18t('st_sw_title'), title:i18t('st_ls_sw_t',{ s:i18tn('st_ls_sw_n',rows.length,{ n:rows.length }), c:i18tn('st_ls_ct_n',total,{ n:total }) }),
+    sub:i18t(rows.every(r=>!r.priv)?(anyKeep?'st_ls_sw_s_all_keep':'st_ls_sw_s_all'):(anyKeep?'st_ls_sw_s_some_keep':'st_ls_sw_s_some')),
+    groups:[{ label:i18t('st_ls_sw_where'), rows:[], html:bar }].concat(needs.length?[{ label:i18t('sdd5_needs'), rows:needs.map(x=>{ const w=sdd5NeedSay(x,[]); return { mark:'', markText:'🗂️', tone:'amber', t:w.t, s:w.s, attr:x.btn||'' }; }) }]:[]) };
+}
+
+/* ---- 5 · HOW OUR CONTRACTS LOOK: the page is designstep's (clPageHtml), its head and panel are drawn here ---- */
+function stLsLookPanel(){
+  const f=(typeof window.clFacts==='function')?window.clFacts():null; if(!f) return { title:i18t('cl_title') };
+  const need=[];
+  if(f.admin&&!f.logo) need.push({ mark:'', markText:'🎨', tone:'amber', t:i18t('st_ls_cl_logo'), attr:'data-st-ls-cl="g"' });
+  if(f.admin&&!f.footer) need.push({ mark:'', markText:'🎨', tone:'amber', t:i18t('st_ls_cl_footer'), attr:'data-st-ls-cl="f"' });
+  return { eyebrow:i18t('cl_title'), title:i18t(f.own?'st_ls_cl_t_some':'st_ls_cl_t_all',{ style:f.style }),
+    sub:[f.logo?'':i18t('cl_no_logo'), f.footer?'':i18t('cl_no_footer'), f.company?i18t('st_ls_cl_lh',{ name:f.company }):''].filter(Boolean).join(' · '),
+    mid:`<div class="sdd5-today">${sdd5RingHtml(f.own,f.streams,'green',i18t('st_ls_cl_own_cap'))}<p>${esc(f.own?i18tn('st_ls_cl_own',f.own,{ n:f.own, m:f.streams }):i18t('st_ls_cl_own_none',{ m:f.streams }))}</p></div>`,
+    groups:need.length?[{ label:i18t('sdd5_needs'), rows:need }]:[] };
+}
+
+/* ---- 6 · DATA & BACKUP ---- */
+function stLsDataTabsHtml(){
+  if(!stTrailOn()) return '';
+  return `<div class="st-ls-tabs" role="tablist">${[['trail','st_bk_tab_trail'],['backup','st_bk_tab_backup']].map(([k,w])=>`<button type="button" role="tab" class="st-ls-tab${_stBkTab===k?' is-on':''}" aria-selected="${_stBkTab===k}" data-st-ls-bk="${k}">${esc(i18t(w))}</button>`).join('')}</div>`;
+}
+/* the trail's count said as four figures (the server's own count, never a guess), the streams it leaves out under them */
+function stLsTrailFigsHtml(){
+  const d=_stTr, bad=stTrailBad();
+  if(bad) return `<p class="st-ls-owed">${esc(i18t('st_tr_bad_period'))}</p>`;
+  if(d.sumErr) return `<p class="st-ls-owed">${esc(d.sumErr)}</p>`;
+  if(!d.sum||d.sumKey!==stTrailQuery()) return `<p class="st-ls-small">${(typeof busyHtml==='function')?busyHtml(i18t('st_tr_counting')):esc(i18t('st_tr_counting'))}</p>`;
+  const s=d.sum, loc=(typeof jxLocale==='function')?jxLocale():undefined;
+  const fig=(k,v)=>`<div class="st-ls-fig"><span>${esc(i18t(k))}</span><b>${esc(v)}</b></div>`;
+  const names=stTrailLeftOut();
+  const out=names.length?i18tn('st_tr_left_out_named',names.length,{ names:stListJoin(names) }):s.leftOut?i18tn('st_tr_left_out',s.leftOut,{ n:s.leftOut }):'';
+  return `<div class="st-ls-figs">${fig('st_ls_tr_acts',Number(s.acts).toLocaleString(loc))}${fig('st_ls_tr_streams',String(s.streams))}${fig('st_ls_tr_people',String(s.people))}${fig('st_ls_tr_period',stTrailPeriodWords(d.from,d.to))}</div>${out?`<p class="st-ls-small st-tr-out">${esc(out)}</p>`:''}`;
+}
+function stLsTrailBtnHtml(){
+  const d=_stTr, bad=stTrailBad(), grey=bad||d.busy;
+  return `<button type="button" class="ui-btn ui-btn-primary" id="st-tr-download"${grey?' disabled aria-disabled="true"':''}${bad?` title="${esc(i18t('st_tr_bad_period'))}"`:''}>${
+    d.busy?((typeof busyHtml==='function')?busyHtml(i18t('st_tr_preparing')):esc(i18t('st_tr_preparing'))):`${icon('download','w-3.5 h-3.5')} ${esc(i18t('st_tr_download'))}`}</button>${d.err?`<p class="st-ls-owed st-tr-err">${esc(d.err)}</p>`:''}`;
+}
+function stLsTrailBodyHtml(){
+  const d=_stTr, streams=stTrailStreams();
+  return `<div class="st-ls-fields st-tr-band">
+      <label class="st-ls-f"><span>${esc(i18t('st_tr_from'))}</span><input type="date" id="st-tr-from" value="${esc(d.from)}"/></label>
+      <label class="st-ls-f"><span>${esc(i18t('st_tr_to'))}</span><input type="date" id="st-tr-to" value="${esc(d.to)}"/></label>
+      <label class="st-ls-f"><span>${esc(i18t('st_tr_streams'))}</span><select id="st-tr-stream">
+        <option value="all"${d.stream==='all'?' selected':''}>${esc(i18t('st_tr_all'))}</option>
+        ${streams.map(f=>`<option value="${esc(f.id)}"${d.stream===f.id?' selected':''}>${esc(f.name)}</option>`).join('')}</select></label>
+      <label class="st-ls-f"><span>${esc(i18t('st_tr_as'))}</span><select id="st-tr-as-sel">
+        <option value="csv"${d.as!=='pdf'?' selected':''}>${esc(i18t('st_tr_csv'))}</option>
+        <option value="pdf"${d.as==='pdf'?' selected':''}>${esc(i18t('st_tr_pdf'))}</option></select></label>
+      <div class="st-ls-trbtn" id="st-ls-trbtn">${stLsTrailBtnHtml()}</div>
+    </div>
+    <div id="st-tr-go" class="st-ls-trgo">${stLsTrailFigsHtml()}</div>
+    <div class="st-tr-past st-ls-past" id="st-tr-past">${stTrailPastHtml()}</div>`;
+}
+function stLsBackupBodyHtml(){
+  const api=API_MODE();
+  const row=(t,s,holds,act)=>`<tr><td><b class="st-ls-name">${esc(t)}</b><span class="st-ls-sub">${esc(s)}</span></td><td class="st-ls-q">${esc(holds)}</td><td class="r">${act}</td></tr>`;
+  const dl=typeof icon==='function'?icon('download','w-3.5 h-3.5'):'';
+  return `<table class="st-ls-t st-ls-bk"><thead><tr><th>${esc(i18t('st_ls_bk_c_copy'))}</th><th>${esc(i18t('st_ls_bk_c_holds'))}</th><th></th></tr></thead><tbody>
+      ${row(i18t('set_export_backup'),i18t('st_ls_bk_json'),i18t('st_ls_bk_json_holds'),`<button type="button" class="ui-link st-ls-lnk" id="bk-export">${dl} ${esc(i18t('st_ls_bk_download'))}</button>`)}
+      ${api?row(i18t('set_full_workspace_zip'),i18t('st_ls_bk_zip'),i18t('st_ls_bk_zip_holds'),`<a class="ui-link st-ls-lnk" id="bk-zip" href="api/export/workspace.zip">${dl} ${esc(i18t('st_ls_bk_download'))}</a>`)
+        :row(i18t('set_restore_backup'),i18t('st_ls_bk_json'),i18t('st_ls_bk_restore_holds'),`<label class="ui-link st-ls-lnk" style="cursor:pointer">${typeof icon==='function'?icon('upload','w-3.5 h-3.5'):''} ${esc(i18t('set_restore_backup'))}<input id="bk-import" type="file" accept=".json,application/json" style="display:none"/></label>`)}
+    </tbody></table>
+    <p class="st-ls-foot">${esc(i18t(api?'st_ls_bk_foot':'st_ls_bk_foot_local'))}</p>
+    ${!api?`<div class="st-danger"><button id="bk-reset" class="ui-btn ui-btn-danger">${typeof icon==='function'?icon('ban','w-3.5 h-3.5'):''} ${esc(i18t('set_reset_workspace'))}</button></div>`:''}`;
+}
+function stLsDataHtml(){
+  const trail=stTrailOn();
+  if(trail&&!_stTr.from) Object.assign(_stTr,stTrailDefault());
+  if(!trail) _stBkTab='backup';
+  return stLsHeadHtml({ page:'data', area:'setup', title:i18t('st_p_backup'), sub:i18t('st_ls_data_sub'), tabs:stLsDataTabsHtml() })
+    +`<div class="st-ls-body" data-st-pg="data"><div id="st-bk-pane" class="st-ls-pane">${_stBkTab==='trail'?stLsTrailBodyHtml():stLsBackupBodyHtml()}</div></div>`;
+}
+function stLsDataPanel(){
+  if(_stBkTab!=='trail') return { eyebrow:i18t('st_bk_tab_backup'), title:i18t('st_ls_bk_t'), sub:i18t('st_ls_bk_s'), groups:stLsGoLiveGroups() };
+  const df=stTrailDefault();
+  return { title:stJbDataWords(false), titleAttr:'data-st-jb-hello', sub:'',
+    groups:[{ label:'', rows:[{ mark:'download', t:i18t('st_jb_c_tr_pdf',{ period:stTrailPeriodWords(_stTr.from||df.from,_stTr.to||df.to,true) }), attr:'data-st-tr-pdf=""' },
+      { mark:'sparkle', tone:'dark', t:i18t('st_jb_c_sealed'), attr:'data-st-jb-say="sealed"' }] }].concat(stLsGoLiveGroups()) };
+}
+/* going live, as the landing's ring says it (Set-up and records' one thing that needs you) */
+function stLsGoLiveGroups(){
+  if(!SET_PANELS.golive||typeof stGoLive!=='function') return [];
+  let gl=[]; try{ gl=stGoLive()||[]; }catch(_){ gl=[]; }
+  if(!gl.length) return [];
+  const done=gl.filter(x=>x.ok).length;
+  return [{ label:i18t('sdd5_needs'), rows:[], html:`<div class="sdd5-today">${sdd5RingHtml(done,gl.length,'green',i18t('sdd5_live'))}<div><b>${esc(sddTxt(SET_PANELS.golive.title()))}</b><span>${esc(i18t('sdd5_done_of',{ n:done, m:gl.length }))}</span>${done<gl.length?`<button type="button" class="jov-lnk" data-st-panel="golive">${esc(i18t('sdd5_see_left'))}</button>`:''}</div></div>` }];
+}
+
+/* ---- THE SHELL: the area's frame (stnPaint's), this page's head, list and panel ---- */
+function stLsBodyHtml(){
+  if(_stPage==='team') return stLsTeamHtml();
+  if(_stPage==='sheet') return stLsSheetHtml();
+  if(_stPage==='roles') return stLsRolesHtml();
+  if(_stPage==='streams') return stLsStreamsHtml();
+  if(_stPage==='data') return stLsDataHtml();
+  if(_stPage==='guard') return acPageHtml();
+  if(_stPage==='look') return (typeof window.clPageHtml==='function')?window.clPageHtml():'';
+  return '';
+}
+function stLsPanelO(){
+  if(_stPage==='team') return stLsTeamPanel();
+  if(_stPage==='sheet') return stLsSheetPanel();
+  if(_stPage==='roles') return stLsRolesPanel();
+  if(_stPage==='streams') return stLsStreamsPanel();
+  if(_stPage==='look') return stLsLookPanel();
+  if(_stPage==='data') return stLsDataPanel();
+  if(_stPage==='guard') return acPanel();
+  return null;
+}
+function stLsPanelHtml(){
+  const o=stLsPanelO(); if(!o||typeof jamboOverviewHtml!=='function') return '';
+  const card=jamboOverviewHtml(Object.assign({ actFirst:true }, o),'stn');
+  return `<div class="jl-words is-ov sdd5-p st-ls-p">${o.titleAttr?card.replace('<h3 class="jov5-title">',`<h3 class="jov5-title" ${o.titleAttr}>`):card}</div>`;
+}
+function stLsPanelPaint(){
+  if(!document.getElementById('ins-panel')) return;
+  insPaintPanel({ seat:'team', jlWord:i18t('stn_title'), item:{ id:'settings' }, head:false, tabCount:0, body:stLsPanelHtml() });
+  stLsBackWire();
+}
+/* OVERVIEW IS THE PAGE'S OWN (owner, 22 Nov 2026): the panel's Overview tab lets go of the chosen row and shows this
+   page's landing again — never the shared panel's "Choose a contract" words. The shared press asks the page first
+   (host._jlBack, as Import and Negotiations answer it). */
+function stLsLetGo(){
+  if(!document.querySelector('#set-page.st-ls-page')||!stLsOn()) return false;
+  if(_stPage==='streams'){ if(_stSwPick) stSwPickSet(null); else stLsPanelPaint(); return true; }
+  if(stLsPick(_stPage)) stLsPickSet(_stPage,null); else stLsPanelPaint();
+  return true;
+}
+function stLsBackWire(){ const h=document.getElementById('ins-panel'); if(h) h._jlBack=stLsLetGo; }
+function stLsPaint(admin){
+  const host=document.getElementById('content'); if(!host) return;
+  host.innerHTML=`<div id="set-page" class="view-enter sap-page ap-page is-ins apn-page stn-page sdd-page st-ls-page" data-st-face="company" data-st-sub="${esc(_stPage)}" data-st-ls="${esc(_stPage)}" data-ins-page="team" data-ins="1">
+    <div class="ap-body is-ins"><section class="ap-card apn-card stn-card">
+      <div class="stn-main scroll-thin st-ls-main" id="st-ls-main">${stLsBodyHtml()}</div>
+    </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
+  stWireDrawerOnce();
+  stLsPanelPaint();
+  if(_stPage==='data') stBkWirePane();
+  if(_stPage==='data'&&_stBkTab==='trail'){ stTrailCount(); stTrailList(); }
+  if(_stPage==='streams') stSwLoad();
+  if(_stPage==='guard') acLoad();
+  stDressPage();
+  if(_stAsks===null&&typeof stAsksLoad==='function') stAsksLoad();
+  if(typeof insWatchWidth==='function') insWatchWidth();
+  if(typeof setActiveNav==='function') setActiveNav('team');
+  if(typeof syncViewHeight==='function') try{ syncViewHeight(); }catch(_){ /* the page stands */ }
+  if(admin&&typeof stLoadAiCfgOnce==='function') stLoadAiCfgOnce();
+}
+/* the list alone (a chip, the ask box, a row chosen): the head, the box with its words and caret, and the panel stand */
+function stLsListPaint(){
+  const L=document.getElementById('st-ls-list');
+  if(L){ L.innerHTML=_stPage==='team'?stLsTeamTableHtml():_stPage==='sheet'?stLsSheetTableHtml():_stPage==='roles'?stLsRolesTableHtml()+`<p class="st-ls-foot">${esc(i18t('bz_page_foot'))}</p>`:_stPage==='guard'?acTableHtml():L.innerHTML; }
+  if(_stPage==='streams'){ const tb=document.getElementById('st-sw-tb'); if(tb) tb.innerHTML=stLsSwTableHtml(); }
+}
+/* the whole page drawn again where it stands (a chip's counts, a tab) — the box keeps its words and its caret */
+function stLsRepaint(){
+  const m=document.getElementById('st-ls-main'); if(!m) return;
+  const q=document.activeElement&&document.activeElement.matches&&document.activeElement.matches('#st-ls-main input[type="search"]')?document.activeElement:null;
+  const id=q&&q.id, pos=q?q.selectionStart:0;
+  m.innerHTML=stLsBodyHtml();
+  if(_stPage==='data') stBkWirePane();
+  stDressPage();
+  if(id){ const n=document.getElementById(id); if(n){ n.focus({ preventScroll:true }); try{ n.setSelectionRange(pos,pos); }catch(_){ /* a date */ } } }
+  stLsPanelPaint();
+}
+function stLsChipSet(pg, k){ if(!pg) return; _stLs.chip[pg]=k||'all'; if(pg==='streams') _stSwPick=null; else _stLs.pick[pg]=null; stLsRepaint(); }
+function stLsPickSet(pg, id){ _stLs.pick[pg]=id?String(id):null; stLsListPaint(); stLsPanelPaint(); }
+if(typeof document!=='undefined' && !window._stLsWired){ window._stLsWired=true;
+  document.addEventListener('click',e=>{
+    const t=e.target; if(!t||!t.closest||!t.closest('#set-page.st-ls-page, #ins-panel')||!stLsOn()) return;
+    const ch=t.closest('[data-st-ls-chip]');
+    if(ch){ const [pg,k]=String(ch.getAttribute('data-st-ls-chip')).split(':'); stLsChipSet(pg,k); return; }
+    const bk=t.closest('[data-st-ls-bk]');
+    if(bk){ _stBkTab=bk.getAttribute('data-st-ls-bk')==='trail'?'trail':'backup'; stLsRepaint(); if(_stBkTab==='trail'){ stTrailCount(); stTrailList(); } else if(stTrailOn()) stTrailCount(); return; }
+    if(t.closest('#st-ls-trbtn #st-tr-download')){ stTrailDownload(); return; }
+    const cl=t.closest('[data-st-ls-cl]');
+    if(cl){ if(typeof window.clModeGo==='function') window.clModeGo(cl.getAttribute('data-st-ls-cl')); return; }
+    /* a row of Who holds what or Roles: the first press chooses, the second opens its sheet (a door inside the row goes on) */
+    const row=t.closest('[data-st-ls-row]');
+    if(row&&!t.closest('button,a,input,select,label')){ const [pg,id]=String(row.getAttribute('data-st-ls-row')).split(':');
+      if(stLsPick(pg)===id){ if(pg==='guard') acFixGo(id); else stDrawerOpen((pg==='roles'?'role:':'person:')+id); return; }
+      stLsPickSet(pg,id); return; }
+  });
+  document.addEventListener('keydown',e=>{ const t=e.target; if(!t||!t.matches||!stLsOn()) return;
+    if((e.key==='Enter'||e.key===' ')&&t.matches('#set-page.st-ls-page [data-st-ls-row], #set-page.st-ls-page tr.st-person')){ e.preventDefault(); t.click(); return; }
+    if(e.key==='Escape'&&!_stOpen&&!document.querySelector('#modal-root [role="dialog"]')){ const pg=_stPage; if(stLsPick(pg)){ stLsPickSet(pg,null); } } });
+  /* the ask box narrows the list as typed (THE SETTINGS PAGE HOLDS STILL: only the list is drawn again) */
+  document.addEventListener('input',e=>{ const t=e.target; if(!t||(t.id!=='st-ls-q'&&t.id!=='st-people-q')||!stLsOn()||!t.closest('#set-page.st-ls-page')) return; _stLs.q[_stPage]=t.value; stLsListPaint(); });
+}
+
+/* ============================================================
+   THE ACCESS CHECK (owner's pick 22 Nov 2026: "Build the Legora + Stripe way";
+   drawing https://claude.ai/artifact/6ayRMLtaAQGoYNTMbRYb4V)
+   ============================================================
+   An admin's one press on the Settings landing (a soft card at the top of Jambo's panel): the guardrails in place, the
+   concerns, and what to change about who can see what. The report is a page inside Settings (the six pages' frame):
+   chips with counts, one calm table whose every row says the concern, the setting's OWN WORDS and where they stand,
+   and its fix; Jambo's panel names the one thing to do first, a ring, what is already in place.
+   BY FIXED RULES, NEVER A MODEL: acRead reads counts and the settings' own words that this admin already sees. It
+   reads no person's activity and no contract's wording, names, scores and ranks nobody, and changes nothing: a fix is
+   a door to the setting that already exists. A fact that is not known is left out, never guessed. Each check is one
+   line in the trail, written by the server (POST /api/access-check; the two counts only). */
+const AC_LEVELS=['high','medium','gdpr','low'];
+const AC_TONE={ high:'amber', medium:'amber', gdpr:'steel', low:'grey', ok:'green' };
+let _ac={ last:null, err:'', area:'', areaOpen:false, asked:false, local:false };
+function acRead(f){
+  const q=f.q||{}, out=[];
+  const add=(k,area,ok,level,x)=>out.push(Object.assign({ k, area, ok:!!ok, level:ok?'ok':level, quote:ok?'':String(q[k]||'') }, x||{}));
+  if(f.twoKnown>0) add('twostep','people', f.twoOff===0, (f.twoOffAdmins>0||f.twoOff===f.twoKnown)?'high':'medium', { n:f.twoOff, m:f.twoKnown, mine:!!f.twoMine });
+  if(f.people>1) add('admins','people', !(f.admins===1||(f.admins>3&&f.admins*2>f.people)), 'medium', { n:f.admins, m:f.people, many:f.admins>1 });
+  if(f.editors>0) add('cap','people', f.noCap===0, 'medium', { n:f.noCap, m:f.editors });
+  if(f.noKeep!=null&&f.streams>0) add('keep','streams', f.noKeep===0, 'gdpr', { n:f.noKeep, m:f.streams });
+  if(f.due!=null&&f.noKeep!=null&&f.noKeep<f.streams) add('due','streams', f.due===0, 'gdpr', { n:f.due });
+  if(f.reviewLeft!=null) add('review','people', f.reviewLeft===0, 'medium', { n:f.reviewLeft, m:f.reviewTotal });
+  if(f.streams>1&&f.nonAdmins>0) add('allstreams','streams', f.allStreams===0, 'low', { n:f.allStreams, m:f.nonAdmins });
+  if(f.linkCode!=null) add('linkcode','sharing', f.linkCode===true, 'low', {});
+  if(f.invited!=null) add('invited','people', f.invited===0, 'medium', { n:f.invited });
+  if(f.limited>0) add('limited','streams', true, 'ok', { n:f.limited });
+  if(f.server) add('trail','records', true, 'ok', {});
+  add('adminsonly','records', true, 'ok', {});
+  if(f.streams>0) add('private','streams', true, 'ok', {});
+  /* the order: what is outright first, then the concerns as the rules list them; in place last, the standing guardrails leading */
+  const lead=['trail','adminsonly','limited','private'];
+  const rank=x=>x.ok?(lead.includes(x.k)?2:3):(x.level==='high'?0:1);
+  return out.map((x,i)=>Object.assign(x,{ i:x.ok&&lead.includes(x.k)?lead.indexOf(x.k):i })).sort((a,b)=>rank(a)-rank(b)||a.i-b.i);
+}
+/* the facts, gathered where Settings already reads them: counts, and the words each page shows */
+function acFacts(){
+  const us=stUsers(), me=(typeof currentUser==='function'&&currentUser())||{};
+  const non=us.filter(u=>u.role!=='admin'), eds=non.filter(u=>u.role!=='viewer'), admins=us.length-non.length;
+  const known=us.filter(u=>typeof u.twoStep==='boolean'), off=known.filter(u=>u.twoStep!==true);
+  const capOff=eds.filter(u=>{ try{ return !signCapOf(u).answered; }catch(_){ return false; } });
+  const acc=u=>{ try{ return stAccessOf(u)||{}; }catch(_){ return {}; } };
+  const all=non.filter(u=>{ const a=acc(u); return a.all&&!a.but; }), lim=non.filter(u=>acc(u).all===false);
+  let rows=[]; try{ rows=stSwRows().filter(r=>!r.shut); }catch(_){ rows=[]; }
+  const kpOn=stKpOn(), kpRead=!!(_stKp.data&&_stKp.data.streams);
+  const noKeep=kpOn?rows.filter(r=>r.years==null).length:null, due=kpRead?rows.reduce((a,r)=>a+(Number(r.due)||0),0):null;
+  const a=stAr(), ar=stArOn()&&a, cnt=ar?stArCount():null;
+  const lc=(typeof window.linkCodeCfg==='function')?!!(window.linkCodeCfg()||{}).on:null;
+  const invited=stApiOnly()?us.filter(u=>u.prefs&&u.prefs.mustChangePassword&&u.id!==me.id).length:null;
+  let capWord=''; try{ capWord=capOff.length?signCapText(capOff[0]):''; }catch(_){ capWord=''; }
+  let lcName=''; try{ lcName=sddTxt(SET_PANELS.linkcode.title()); }catch(_){ lcName=''; }
+  return { people:us.length, admins, nonAdmins:non.length, editors:eds.length, twoKnown:known.length, twoOff:off.length, twoOffAdmins:off.filter(u=>u.role==='admin').length,
+    twoMine:off.some(u=>u.id===me.id), noCap:capOff.length, streams:rows.length, noKeep, due,
+    reviewLeft:ar?(a.done?0:cnt.total-cnt.done):null, reviewTotal:cnt?cnt.total:0, allStreams:all.length, limited:lim.length, linkCode:lc, invited, server:stApiOnly(),
+    q:{ twostep:`${i18t('st_sh_twostep')} · ${i18t('st_sh_off')}`, admins:`${i18t('st_ls_admins')} ${admins}`, cap:capWord,
+      keep:`${i18t('st_sw_c_kept')} · ${i18t('st_sw_no_period')}`, due:`${i18t('st_sw_c_due')} · ${due||0}`,
+      review:ar?`${stArLabel(a.quarter)} · ${i18t('st_ls_reviewed',{ n:cnt.done, m:cnt.total })}`:'', allstreams:i18t('set_all_streams_short'),
+      linkcode:lcName?`${lcName} · ${i18t('st_sh_off')}`:'', invited:i18t('st_sh_not_in') } };
+}
+const acNow=()=>acRead(acFacts());
+/* what each finding says: its line, where it was read, whom it touches, its fix, why it matters */
+function acTitle(x){
+  if(x.ok) return x.k==='limited'?i18tn('ac_ok_limited',x.n,{ n:x.n }):i18t('ac_ok_'+x.k);
+  if(x.k==='twostep') return x.n===x.m?i18t('ac_t_twostep_all'):i18tn('ac_t_twostep',x.n,{ n:x.n });
+  if(x.k==='admins') return x.many?i18t('ac_t_admins_many',{ n:x.n, m:x.m }):i18t('ac_t_admins_lone');
+  if(x.k==='keep') return x.n===x.m?i18t('ac_t_keep_all'):i18tn('ac_t_keep',x.n,{ n:x.n });
+  if(x.k==='review'||x.k==='linkcode') return i18t('ac_t_'+x.k);
+  return i18tn('ac_t_'+x.k,x.n,{ n:x.n });
+}
+function acWhere(x){
+  if(x.k==='twostep'||x.k==='cap'||x.k==='allstreams') return i18t('ac_w_people_rows',{ n:x.n, m:x.k==='twostep'?x.m:stUsers().length });
+  if(x.k==='invited') return i18t('ac_w_people');
+  if(x.k==='admins') return i18t('ac_w_admins');
+  if(x.k==='keep') return i18t('ac_w_streams_rows',{ n:x.n, m:x.m });
+  if(x.k==='due') return i18t('ac_w_streams_due');
+  if(x.k==='review') return i18t('st_pg_sheet');
+  if(x.k==='linkcode') return i18t('sdd_a_rules');
+  return '';
+}
+function acAffects(x){
+  if(x.ok) return x.k==='limited'?i18tn('ac_a_person',x.n,{ n:x.n }):i18t('ac_a_everyone');
+  if(x.k==='twostep') return i18t('ac_a_people',{ n:x.n, m:x.m });
+  if(x.k==='admins') return i18tn('ac_a_admin',x.n,{ n:x.n });
+  if(x.k==='cap') return i18tn('ac_a_editor',x.n,{ n:x.n });
+  if(x.k==='keep') return i18t('ac_a_streams',{ n:x.n, m:x.m });
+  if(x.k==='due') return i18tn('ac_a_contract',x.n,{ n:x.n });
+  if(x.k==='linkcode') return i18t('ac_a_links');
+  return i18tn('ac_a_person',x.n,{ n:x.n });
+}
+const acFixWord=x=>i18t(x.k==='twostep'&&x.mine?'ac_f_twostep_mine':x.k==='admins'&&x.many?'ac_f_admins_many':'ac_f_'+x.k);
+const acWhy=x=>i18t(x.k==='admins'&&x.many?'ac_y_admins_many':'ac_y_'+x.k);
+const acName=x=>i18t(x.k==='admins'&&x.many?'ac_n_admins_many':'ac_n_'+x.k);
+const acBadge=x=>stLsBadge(i18t('ac_lv_'+x.level),AC_TONE[x.level],!x.ok);
+function acShown(list){
+  const chip=stLsChip('guard');
+  return list.filter(x=>(chip==='all'||(chip==='concerns'?!x.ok:chip==='ok'?x.ok:x.level==='gdpr'))&&(!_ac.area||x.area===_ac.area));
+}
+function acTableHtml(){
+  const list=acNow(), rows=acShown(list), pick=stLsPick('guard')||((list.find(x=>!x.ok)||{}).k||'');
+  const body=rows.map(x=>{ const w=acWhere(x);
+    return `<tr class="st-ls-row ac-row${pick===x.k?' is-chosen':''}" data-st-ls-row="guard:${esc(x.k)}" tabindex="0" aria-pressed="${pick===x.k?'true':'false'}">
+      <td><b class="st-ls-name">${esc(acTitle(x))}</b>${x.ok?'':`<span class="ac-q">${x.quote?`<em>“${esc(x.quote)}”</em>${w?' · ':''}`:''}${esc(w)}</span>`}</td>
+      <td>${esc(acAffects(x))}</td><td>${acBadge(x)}</td>
+      <td class="r">${x.ok?'':`<button type="button" class="ui-link st-ls-lnk" data-ac-fix="${esc(x.k)}">${esc(acFixWord(x))} ›</button>`}</td></tr>`; }).join('');
+  return `<table class="st-ls-t ac-t"><thead><tr><th>${esc(i18t('ac_c_finding'))}</th><th>${esc(i18t('ac_c_affects'))}</th><th>${esc(i18t('apn_col_status'))}</th><th class="r">${esc(i18t('ac_c_fix'))}</th></tr></thead>
+    <tbody>${body||`<tr><td colspan="4" class="st-ls-none">${esc(i18t('st_ls_none'))}</td></tr>`}</tbody></table>
+    <p class="st-ls-foot">${esc(i18t('ac_priv'))}</p>`;
+}
+function acPageHtml(){
+  const list=acNow(), n=f=>list.filter(f).length, chip=stLsChip('guard');
+  const chips=[{ k:'all', label:i18t('ctf_tab_all'), n:list.length }, { k:'concerns', label:i18t('ac_chip_concerns'), n:n(x=>!x.ok), amber:true },
+    { k:'ok', label:i18t('ac_lv_ok'), n:n(x=>x.ok) }, { k:'gdpr', label:i18t('ac_lv_gdpr'), n:n(x=>x.level==='gdpr') }].filter(c=>c.k==='all'||c.n||c.k===chip);
+  const areas=[...new Set(list.map(x=>x.area))];
+  const areaChip=_ac.area?`<button type="button" class="apn-chip is-set" data-ac-area="">${esc(i18t('ac_area_'+_ac.area))} <span aria-hidden="true">×</span></button>`
+    :`<span class="apn-rule-w"><button type="button" class="apn-chip is-add" data-ac-area-open aria-expanded="${_ac.areaOpen?'true':'false'}">+ ${esc(i18t('ac_chip_area'))}</button>${_ac.areaOpen?`<span class="apn-rule-menu">${areas.map(a=>`<button type="button" data-ac-area="${esc(a)}">${esc(i18t('ac_area_'+a))}</button>`).join('')}</span>`:''}</span>`;
+  return `<div class="sdd-head st-ls-head">
+    <button type="button" class="sdd-back st-ls-back" data-st-page="">‹ ${esc(i18t('stn_title_short'))}</button>
+    <div class="cun-head st-ls-hrow"><h2 class="ctf-h stn-title sdd-title">${esc(i18t('ac_page_title'))}</h2><span class="st-ls-acts"><button type="button" class="ui-btn" data-ac-run>${esc(i18t('ac_run_again'))}</button></span></div>
+    <p class="sdd-sub st-ls-sub">${esc(i18t('ac_sub'))}</p>
+    <div class="apn-bar sdd-chips st-ls-chips">${chips.map(c=>`<button type="button" class="apn-tab is-chip${chip===c.k?' is-on':''}" data-st-ls-chip="guard:${c.k}">${c.amber?'<i class="apn-cd is-amber" aria-hidden="true"></i>':''}${esc(c.label)} <span>${c.n}</span></button>`).join('')}${areaChip}</div>
+  </div><div class="st-ls-body" data-st-pg="guard" id="st-ls-list">${acTableHtml()}</div>`;
+}
+/* when it was checked, as the server recorded it; where it could not be recorded, that is said, never "written" */
+function acStampSay(){
+  if(_ac.err) return i18t('ac_not_rec',{ why:_ac.err });
+  if(_ac.last&&_ac.last.at){ const t=Date.parse(_ac.last.at);
+    const when=Number.isFinite(t)?new Date(t).toLocaleString((typeof langLocale==='function')?langLocale():undefined,{ day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }):String(_ac.last.at);
+    return i18t('ac_checked',{ when, who:_ac.last.by||'' }); }
+  return _ac.local?i18t('ac_local'):'';
+}
+function acPanel(){
+  const list=acNow(), con=list.filter(x=>!x.ok), ok=list.filter(x=>x.ok), pick=stLsPick('guard');
+  const gd=con.filter(y=>y.level==='gdpr').length;
+  const go=y=>`<button type="button" class="jov5-go ac-go" data-ac-fix="${esc(y.k)}">${esc(acFixWord(y))}</button>`;
+  const ring=`<div class="sdd5-today">${sdd5RingHtml(ok.length,list.length,'green',i18t('ac_ring_cap'))}<div><b>${esc(i18t('ac_ring_t',{ n:ok.length, m:list.length }))}</b><span>${esc(i18tn('ac_ring_s',con.length,{ n:con.length })+(gd?i18t('ac_ring_gdpr',{ n:gd }):''))}</span></div></div>`;
+  const x=(pick&&list.find(y=>y.k===pick))||null, lead=x||con[0]||null;
+  /* the one act stands first, across the panel, then the ring (as drawn) */
+  const mid=(lead&&!lead.ok?go(lead):'')+ring;
+  const stamp=acStampSay();
+  const groups=[{ label:i18t('ac_ok_h'), rows:ok.slice(0,3).map(y=>({ mark:'', markText:'✓', tone:'green', t:acTitle(y), wrap:true })),
+      foot:ok.length>3?{ label:i18t('ac_ok_all',{ n:ok.length }), attr:'data-st-ls-chip="guard:ok"' }:null },
+    { label:'', rows:[], html:`<p class="st-ls-small">${esc(i18t('ac_priv'))}${stamp?' '+esc(stamp):''}</p>` }].filter(g=>g.html||g.rows.length);
+  if(!lead) return { eyebrow:i18t('ac_page_title'), title:i18t('ac_all_ok_t'), sub:i18t('ac_all_ok_s'), mid, groups };
+  if(lead.ok) return { eyebrow:i18t('ac_page_title'), before:sdd5Tags([[i18t('ac_lv_ok'),'green']]), title:acTitle(lead), sub:i18t('ac_ok_s'), mid, groups };
+  return { eyebrow:i18t('ac_page_title'), before:x?sdd5Tags([[i18t('ac_lv_'+lead.level),AC_TONE[lead.level],true]]):'', title:x?acTitle(lead):i18t('ac_start',{ what:acName(lead) }),
+    sub:(x?'':acTitle(lead)+'. ')+acWhy(lead), mid, groups };
+}
+/* THE CARD ON THE LANDING, admins only: what the check does, said before the press */
+function acCardHtml(){
+  return `<div class="ac-card"><div class="ac-card-h"><span class="ac-mk" aria-hidden="true">🛡️</span><div><b>${esc(i18t('ac_card_t'))}</b><span>${esc(i18t('ac_card_s'))}</span></div></div>
+    <button type="button" class="jov5-go ac-go" data-ac-run>${esc(i18t('ac_card_go'))}</button><p class="ac-card-p">${esc(i18t('ac_card_p'))}</p></div>`;
+}
+/* how many of the landing's needs fit under the card at this window's height (bar, head, the ask box and the card's own part taken off) */
+function acNeedsRoom(n){
+  const h=(typeof window!=='undefined'&&window.innerHeight)||900, room=h-552;
+  if(Math.floor(room/52)>=n) return n;
+  return Math.max(1,Math.floor((room-44)/52));
+}
+/* what the page still waits for (the keeping periods' counts, the last check's stamp): asked once, the page drawn again */
+function acLoad(){
+  if(stKpOn()&&!_stKp.data&&!_stKp.busy) Promise.resolve(stKpLoad()).then(()=>{ if(_stPage==='guard') stLsRepaint(); },()=>{});
+  if(stApiOnly()&&!_ac.last&&!_ac.asked){ _ac.asked=true;
+    api('access-check').then(r=>{ if(r&&r.last&&!_ac.last){ _ac.last=r.last; if(_stPage==='guard') stLsPanelPaint(); } },()=>{}); }
+}
+/* THE PRESS: the report opens at once; the server writes the trail line once the counts are whole */
+function acRun(){
+  if(!stIsAdmin()) return;
+  _stLs.chip.guard='all'; _stLs.pick.guard=null; _ac.area=''; _ac.areaOpen=false; _ac.err='';
+  if(_stPage!=='guard') settingsGoPage('guard'); else stLsRepaint();
+  if(!stApiOnly()){ _ac.local=true; stLsPanelPaint(); return; }
+  const ready=(stKpOn()&&!_stKp.data)?Promise.resolve(stKpLoad()).catch(()=>{}):Promise.resolve();
+  ready.then(()=>{ const list=acNow(), c=list.filter(x=>!x.ok).length; return api('access-check','POST',{ concerns:c, inPlace:list.length-c }); })
+    .then(r=>{ _ac.last=(r&&r.last)||null; _ac.asked=true; },e=>{ _ac.err=(e&&e.message)||'?'; if(typeof toast==='function') toast(i18t('ac_not_rec',{ why:_ac.err }),'warn'); })
+    .then(()=>{ if(_stPage==='guard') stLsRepaint(); });
+}
+/* A FIX IS A DOOR to the setting that already exists; it presses nothing there */
+function acFixGo(k){
+  const x=acNow().find(y=>y.k===k); if(!x||x.ok) return;
+  const go=(pg,chip)=>{ _stLs.chip[pg]=chip||'all'; _stLs.pick[pg]=null; settingsGoPage(pg); };
+  if(k==='twostep'&&x.mine){ stDrawerOpen('me:twostep'); return; }
+  if(k==='linkcode'){ stDrawerOpen('linkcode'); return; }
+  if(k==='keep'){ go('streams','all'); return; }
+  if(k==='due'){ go('streams','due'); return; }
+  if(k==='review'){ go('sheet','review'); return; }
+  go('team', k==='admins'?'admin':k==='cap'?'editor':k==='invited'?'need':'all');
+}
+if(typeof document!=='undefined' && !window._acWired){ window._acWired=true;
+  document.addEventListener('click',e=>{
+    const t=e.target; if(!t||!t.closest||!t.closest('#set-page, #ins-panel')) return;
+    if(t.closest('[data-ac-run]')){ acRun(); return; }
+    const fx=t.closest('[data-ac-fix]'); if(fx){ acFixGo(fx.getAttribute('data-ac-fix')); return; }
+    if(t.closest('[data-ac-area-open]')){ _ac.areaOpen=!_ac.areaOpen; stLsRepaint(); return; }
+    const ar=t.closest('[data-ac-area]'); if(ar){ _ac.area=ar.getAttribute('data-ac-area')||''; _ac.areaOpen=false; _stLs.pick.guard=null; stLsRepaint(); return; }
+    if(_ac.areaOpen&&_stPage==='guard'){ _ac.areaOpen=false; stLsRepaint(); }
+  });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&_ac.areaOpen&&_stPage==='guard'){ _ac.areaOpen=false; stLsRepaint(); } });
+}
+
+/* ============================================================
    THE YOU BOARD, AS DRAWN (16 Oct 2026, the full build)
    ============================================================
    One short card per part of the person's own settings — two facts and the
@@ -2198,7 +3042,9 @@ function stPushHtml(){
   const sw=(st==='on'||st==='off')?stSwHtml('push',st==='on',i18t('st_you_push_row')):'';
   return `<span data-st-push class="st-push">${sw}<span class="st-you-sub">${esc(typeof pushStateSaid==='function'?pushStateSaid(st):st)}</span></span>`;
 }
-function stPushPaint(){ document.querySelectorAll('#set-page [data-st-push]').forEach(el=>{ el.outerHTML=stPushHtml(); }); }
+function stPushPaint(){ document.querySelectorAll('#set-page [data-st-push]').forEach(el=>{ el.outerHTML=stPushHtml(); });
+  /* the new look's one list draws the row itself (stnYouHtml): repaint it when the answer lands */
+  if(document.querySelector('.sdd-page')&&typeof sddRepaint==='function') sddRepaint(); }
 function stPushRefresh(){
   if(typeof pushState!=='function') return;
   pushState().then(st=>{ if(st!==_stPush){ _stPush=st; stPushPaint(); } }).catch(()=>{});
@@ -2290,7 +3136,8 @@ function stYouCardHtml(it){
     rows=stSrHtml(esc(i18t('st_you_chips')), `${stSwHtml('chips',chips,i18t('st_you_chips'))}${sub(esc(i18t('st_you_chips_box')))}`, '', 'is-sw')
       +stSrHtml(esc(i18t('st_you_opens')), `<select data-st-opens aria-label="${esc(i18t('st_you_opens'))}">${((typeof OPENS_ON!=='undefined')?OPENS_ON:['jambo']).map(v=>`<option value="${v}"${v===opens?' selected':''}>${esc(i18t('st_opens_'+v))}</option>`).join('')}</select>`, '')
       /* THE NEW LOOK (owner, 31 Oct 2026): an admin's own preview of the Legora way while it is built page by page */
-      +((typeof isAdmin==='function'&&isAdmin())?stSrHtml(esc(i18t('st_you_newlook')), `${stSwHtml('newlook',(typeof newLookOn==='function')&&newLookOn(),i18t('st_you_newlook'))}${sub(esc(i18t('st_you_newlook_sub')))}`, '', 'is-sw'):'');
+      /* the new look's switch is gone: it is on for everyone (owner, 16 Nov 2026) */
+      +'';
   } else if(it.key==='data'){
     rows=stSrHtml(esc(i18t('st_you_data_line')), sub(esc(i18t(apiOn?'st_you_data_kept':'st_you_data_sub'))), `<button type="button" class="ui-btn ui-btn-sm" data-st-mycopy>${icon('download','w-3.5 h-3.5')} ${esc(i18t('st_you_download'))}</button>`);
   } else if(it.key==='design'){
@@ -2432,10 +3279,6 @@ if(typeof document!=='undefined' && !window._stSheetWired){
     if((el=t.closest('[data-st-sw]'))){ const k=el.getAttribute('data-st-sw'), on=el.getAttribute('aria-checked')!=='true';
       el.setAttribute('aria-checked',String(on)); el.classList.toggle('on',on);
       if(k==='chips') stChipsSet(on);
-      if(k==='newlook') stNewLookSet(on);
-      /* the new look for people outside the company (round 8): the company's setting, an admin's, saved with the rest */
-      if(k==='outsidelook'){ state.settings=state.settings||{}; state.settings.outsideLook={ on };
-        Promise.resolve(typeof saveSettings==='function'?saveSettings():null).then(()=>{ window._outsideLook=on; if(typeof toast==='function') toast(i18t(on?'stn_out_on_t':'stn_out_off_t'),'ok'); }); }
       if(k==='push' && typeof pushToggle==='function'){ el.disabled=true;
         pushToggle(on).then(r=>{ _stPush=r.state; stPushPaint(); }); }
       return; }
@@ -2452,8 +3295,11 @@ if(typeof document!=='undefined' && !window._stSheetWired){
    Language lights the one switch at the top of the window instead. */
 function stYouGo(key, focusSel){
   const it=stYouItem(key); if(!it) return;
-  if(settingsTab()!=='you' || _stPage){ _stTab='you'; _stPage=null; renderTeam(); }
-  const card=document.querySelector(`#set-page [data-st-you-card="${it.key}"]`);
+  if(settingsTab()!=='you' || _stPage || (typeof _sddArea!=='undefined'&&_sddArea!=='you')){ _stTab='you'; _stPage=null; if(typeof _sddArea!=='undefined'){ _sddArea='you'; _sddHome=null; _sddQ=''; } renderTeam(); }
+  /* the new look's one list has a ROW where the old look had a You card (16 Nov 2026, #762): land on it */
+  /* Jambo's points are kept with his agents in the new look (the house's Change points): their door lands on that row (#762) */
+  const STN_OF={ lang:'lang', who:'who', away:'away', safety:'twostep', told:'told', data:'mydata', work:'work', points:'points' };
+  const card=document.querySelector(`#set-page [data-st-you-card="${it.key}"]`)||(STN_OF[it.key]?document.querySelector(`#stn-main [data-sdd-row="${STN_OF[it.key]}"]`):null);
   /* LAND ON IT (owner, 18 Oct 2026): a form that opens in its row lands on
      its box; otherwise on the card, its control readied (the one lander) */
   if(it.door){
@@ -2466,10 +3312,28 @@ function stYouGo(key, focusSel){
   const ctl=f&&f.matches&&f.matches('button,input,a')?null:'button:not([aria-pressed="true"]),button,input';
   if(card && typeof landOn==='function') landOn(card,{ block:'nearest', focus:ctl||false });
   if(f && !ctl) try{ f.focus({preventScroll:true}); }catch(_){}
+  /* THE NEW LOOK'S LIST IS DRAWN AGAIN A MOMENT AFTER IT OPENS (#762: the light went with the old row): the row is asked
+     for again, bounded, and the landing put on the one that stands */
+  const stn=STN_OF[it.key]; if(!stn||typeof landOn!=='function') return;
+  let n=0, pressed=false; const off=()=>{ pressed=true; };
+  document.addEventListener('pointerdown',off,{ once:true, capture:true });
+  let held=0;
+  const stop=()=>document.removeEventListener('pointerdown',off,{ capture:true });
+  const again=()=>{
+    /* never past the reader: a press, another page, or another landing ends it */
+    if(pressed||state.view!=='team'||settingsTab()!=='you'){ stop(); return; }
+    const other=document.querySelector('.is-landed:not([data-sdd-row])'); if(other){ stop(); return; }
+    const row=document.querySelector(`#stn-main [data-sdd-row="${stn}"]`);
+    if(row&&row.classList.contains('is-landed')){ if(++held>=4){ stop(); return; } }
+    else if(row){ held=0; landOn(row,{ block:'nearest', focus:ctl||false }); }
+    if(++n<24) setTimeout(again,60); else stop(); };
+  setTimeout(again,30);
 }
 /* a You card redrawn where it stands after its form wrote (THE SETTINGS PAGE
    HOLDS STILL); a form open in one of its rows is drawn open again */
 function stYouCardRepaint(key){
+  /* the new look draws no You cards: its one list says the saved value (16 Nov 2026, #762) */
+  if(document.querySelector('.sdd-page')&&typeof sddRepaint==='function'){ sddRepaint(); return; }
   const card=document.querySelector(`#set-page [data-st-you-card="${key}"]`); if(!card) return;
   /* the open form is carried across, as it stands — what the hand typed and
      what its wiring listens to stay where they were */
@@ -3189,9 +4053,25 @@ const stAdminsSaid=()=>stNamesSaid(stUsers().filter(u=>u.role==='admin'));
 /* FROM WHERE A RULE STOPPED SOMEBODY (piece 20): Settings opens with Jambo's
    ask card ready — the same card, the same tracked ask — its words naming
    what stopped them. Nothing is sent until they press Ask an admin. */
+/* THE NEW LOOK: Settings' Jambo is the list panel; an ask card is put in his one conversation there (the same card and
+   the same Send, stAskSend) — the old side feed is not drawn (16 Nov 2026, #762). True when it was put there. */
+function stAskCardNl(t){
+  if(typeof window!=='undefined'&&typeof window.newLookOn==='function'&&!window.newLookOn()) return false;
+  if(typeof jlTalkOpen!=='function'||typeof aiPush!=='function'||typeof renderAIFeed!=='function') return false;
+  if(!document.querySelector('.stn-page')){ if(typeof setView!=='function') return false; setView('team'); }
+  if(!document.querySelector('.stn-page')) return false;
+  jlTalkOpen();
+  aiPush('assistant',{ text:'', cards:`<div class="st-jb-turn" data-st-jb-turn="${t.id}">${stAskCardHtml(t.force.cards[0], t)}</div>`, free:true });
+  try{ const H=(typeof ai!=='undefined'&&ai&&Array.isArray(ai.history))?ai.history:[]; t._aiMsg=H[H.length-1]||null; }catch(_){ t._aiMsg=null; }
+  renderAIFeed();
+  const box=document.getElementById('st-ask-why-'+t.id)||document.getElementById('st-ask-what-'+t.id);
+  if(box) try{ box.focus({preventScroll:true}); }catch(_){ /* the card is there */ }
+  return true;
+}
 function stAskFrom(panel, words){
   const t={ id:++_stJbSeq, q:String(words||'').slice(0,200), force:{ say:'', cards:[{ k:'askadmin', panel }] } };
   stJbPush(t);
+  if(stAskCardNl(t)) return;
   _stSide='jambo';
   const feed=document.getElementById('st-jb-feed');
   if(feed && typeof state!=='undefined' && state.view==='team'){ stSideSet('jambo'); stJbTurnAdd(t); }
@@ -3231,7 +4111,9 @@ async function stAskSend(turnId, panel){
   const t=stJbLog().find(x=>String(x.id)===String(turnId)); if(!t) return;
   const why=String((document.getElementById('st-ask-why-'+turnId)||{}).value||'').trim();
   /* a question the reader wrote themselves (an ask begun from a door) */
-  const wbox=document.getElementById('st-ask-what-'+turnId);
+  /* the one conversation may stand in two places at once (the side panel and the list panel's talk): the box read is
+     the one the reader wrote in */
+  const wbox=[...document.querySelectorAll(`[id="st-ask-what-${turnId}"]`)].sort((a,b)=>String(b.value||'').trim().length-String(a.value||'').trim().length)[0]||null;
   if(wbox){ const w=String(wbox.value||'').trim();
     if(!w){ t.ask={ state:'err', error:i18t('st_ask_free_need') }; stJbTurnRepaint(t); return; }
     t.q=w; }
@@ -3241,6 +4123,12 @@ async function stAskSend(turnId, panel){
     toast(i18t('st_ask_toast',{who:stAdminsSaid()}),'ok');
     stAsksLoad();
   }catch(e){ t.ask={ state:'err', error:(e&&e.message)||'' }; }
+  /* the new look's card stands in the list panel's talk: written again in place */
+  if(t.force&&t.force.cards&&t.force.cards[0]){
+    const html=stAskCardHtml(t.force.cards[0], t);
+    /* the conversation keeps the card as it now stands, so a redraw does not bring the unsent one back */
+    if(t._aiMsg) t._aiMsg.cards=`<div class="st-jb-turn" data-st-jb-turn="${t.id}">${html}</div>`;
+    document.querySelectorAll(`.st-jb-turn[data-st-jb-turn="${t.id}"]`).forEach(here=>{ here.innerHTML=html; }); }
   stJbTurnRepaint(t);
 }
 /* ONE ASK, SENT FROM THE PLACE THE RULE STOOD IN THE WAY — the SAME record
@@ -3760,6 +4648,7 @@ function stJbDataWords(html){
   return parts.map((w,i)=>(i===0&&counting&&typeof busyHtml==='function')?busyHtml(w):esc(w)).join(' ');
 }
 function stJbDataRepaint(){
+  if(stLsOn()&&_stPage==='data'&&document.querySelector('#set-page.st-ls-page')){ stLsPanelPaint(); return; }
   const el=document.querySelector('#st-jb-feed [data-st-jb-hello]');
   if(el && _stPage==='data') el.innerHTML=stJbDataWords(true);
 }
@@ -3829,6 +4718,8 @@ function stJbTalkWrap(feed){
    already offered — no face, no bubble. His greeting is the Jambo tab's (stJbTalkInnerHtml). */
 function stJbLandHtml(){
   const admin=stIsAdmin(), face=admin?settingsTab():'you';
+  /* THE DOSSIER CARD ON EVERY SETTINGS PAGE (P-11): the page's own area, what needs you there first */
+  if(admin&&typeof newLookOn==='function'&&newLookOn()&&typeof sddCardHtml==='function') return sddCardHtml(admin,{ area:sddPageArea(), pick:null });
   const chipsOn=(typeof jamboChipsOn!=='function')||jamboChipsOn();
   const ask=q=>`data-st-jb-ask="${esc(q)}"`;
   const chip=(label,attr)=>({ label:stChipWord(label), attr });
@@ -3885,7 +4776,8 @@ function stJbLandHtml(){
    lit — the download is still the reader's press, recorded before it leaves */
 function stTrailReadyPdf(){
   if(!(stIsAdmin()&&settingsTab()==='company'&&_stPage==='data')){ _stBkTab='trail'; settingsGoPage('data'); }
-  else if(_stBkTab!=='trail'){ const b=document.querySelector('[data-st-bk-tab="trail"]'); if(b) b.click(); }
+  else if(_stBkTab!=='trail'){ if(stLsOn()&&document.querySelector('#set-page.st-ls-page')){ _stBkTab='trail'; stLsRepaint(); stTrailCount(); stTrailList(); }
+    else { const b=document.querySelector('[data-st-bk-tab="trail"]'); if(b) b.click(); } }
   _stTr.as='pdf';
   const sel=document.getElementById('st-tr-as-sel'); if(sel) sel.value='pdf';
   /* LAND ON IT: Download lit and ready, the one lander's way; it follows the
@@ -3919,6 +4811,7 @@ function stAdminFirstSaid(to){
 }
 /* the feed drawn again for the page in front (a page or face turned) */
 function stJbFeedRepaint(){
+  if(stLsOn()&&document.querySelector('#set-page.st-ls-page')){ stLsPanelPaint(); return; }
   const feed=document.getElementById('st-jb-feed'); if(!feed) return;
   feed.innerHTML=stJbFeedHtml();
   stJbTalkPaint();
@@ -3932,8 +4825,10 @@ function stAskGeneral(about){
   if(stIsAdmin()) return;
   const t={ id:++_stJbSeq, q:about==='role'?i18t('st_ask_role_words'):'', force:{ say:'', cards:[{ k:'askadmin', panel:about==='role'?'me:role':'', free:true }] } };
   stJbPush(t);
-  stSideSet('jambo');
-  stJbTurnAdd(t);
+  /* THE NEW LOOK: Settings' Jambo is the list panel; the ask is put in front of them there, the same card and the same
+     Send (stAskSend), drawn in his one conversation (16 Nov 2026, #762: the old side feed is not drawn, so the press
+     did nothing) */
+  if(!stAskCardNl(t)){ stSideSet('jambo'); stJbTurnAdd(t); }
   const box=document.getElementById('st-ask-what-'+t.id);
   if(box) try{ box.focus({preventScroll:true}); box.setSelectionRange(box.value.length,box.value.length); }catch(_){}
 }
@@ -4014,6 +4909,9 @@ const stReFileOn=u=>(typeof mayReFile==='function')
 /* THE EIGHTH GRANT'S READING, asked through the one predicate exactly as its
    two neighbours are, with the same literal fallback for a stage that has not
    loaded js/core.js. */
+/* WHO DECIDES ON OUR STANDARDS (17 Nov 2026), read through the one predicate (js/core.js) */
+const stStdDecOn=u=>(typeof window.mayDecideStandards==='function')
+  ? window.mayDecideStandards(u) : (u.role==='admin'||u.decideStandards===true);
 const stHoldOn=u=>(typeof mayHoldContract==='function')
   ? mayHoldContract(u) : (u.role==='admin'||u.holdContracts===true);
 /* WHAT IS MISSING, AS A LIST OF WORDS — the same list the drawer refuses with
@@ -4092,6 +4990,7 @@ function stPersonSays(u){
   if(u.newPaper === true) grants.push(say('st_sum_g_paper'));
   if(u.reFile === true) grants.push(say('st_sum_g_refile'));
   if(u.holdContracts === true) grants.push(say('st_sum_g_hold'));
+  if(u.decideStandards === true) grants.push(say('st_sum_g_std'));
   out.push(grants.length ? say('st_sum_grants', { list: grants.join(', ') }) : say('st_sum_no_grants'));
   return out;
 }
@@ -4656,7 +5555,9 @@ function stNewGrantRowsHtml(u){
     +row('legal',tick('tm-refile',stReFileOn(u),'st_refile_on','st_refile_off','st_refile_note'))
     +row('admin',note('st_refile_admin'))
     +row('legal',tick('tm-hold',stHoldOn(u),'st_hold_on','st_hold_off','st_hold_note'))
-    +row('admin',note('st_hold_admin'));
+    +row('admin',note('st_hold_admin'))
+    +row('legal',tick('tm-stddec',stStdDecOn(u),'st_stddec_on','st_stddec_off','st_stddec_note'))
+    +row('admin',note('st_stddec_admin'));
 }
 function stGrantRowsSync(role){
   document.querySelectorAll('#st-dbody [data-tm-for]').forEach(el=>{
@@ -4670,7 +5571,7 @@ function stGrantBox(id){
 /* A TICK SAYS WHICH WAY IT IS SET, AS IT IS PRESSED: the row's words were
    painted once, so "May not create new paper" stayed beside a ticked box */
 const ST_GRANT_WORDS={ 'tm-values':['st_values_on','st_values_off'], 'tm-paper':['st_paper_on','st_paper_off'],
-  'tm-refile':['st_refile_on','st_refile_off'], 'tm-hold':['st_hold_on','st_hold_off'] };
+  'tm-refile':['st_refile_on','st_refile_off'], 'tm-hold':['st_hold_on','st_hold_off'], 'tm-stddec':['st_stddec_on','st_stddec_off'] };
 function stGrantWordsWire(){
   Object.keys(ST_GRANT_WORDS).forEach(id=>{
     const b=document.getElementById(id); if(!b) return;
@@ -4787,7 +5688,9 @@ async function stBzRoleSave(was){
   const failed=[];
   for(const p of plan){
     try{
-      if(p.keys.includes('sys')){ const r=await api('users/'+p.u.id,'PATCH',{ role:now.sys }); if(r&&r.user) Object.assign(p.u,r.user); else p.u.role=now.sys; }
+      if(p.keys.includes('sys')){ const r=await api('users/'+p.u.id,'PATCH',{ role:now.sys }); if(r&&r.user) Object.assign(p.u,r.user); else p.u.role=now.sys;
+        /* made a Viewer: what they held was handed on, said to the admin (Round A, srvViewerHandOn) */
+        if(r&&r.handedOn) toast(r.handedOn,'warn'); }
       const body={};
       for(const k of p.keys){
         if(k==='values') body.canViewValues=now.values;
@@ -4944,6 +5847,15 @@ function settingsPersonDrawer(idOrNew){
         <input id="tm-hold" type="checkbox" ${stHoldOn(u)?'checked':''}/>
         <span><span class="st-role-name">${esc(stHoldOn(u)?i18t('st_hold_on'):i18t('st_hold_off'))}</span>
         <span class="st-note">${esc(i18t('st_hold_note'))}</span></span>
+      </label>`):''}
+      ${/* WHO DECIDES ON OUR STANDARDS (owner, 17 Nov 2026: "admins plus named people") — the hold's twin */''}
+      ${(!isNew && isAdmin() && !isMe && API_MODE() && u.role!=='viewer')?(
+        u.role==='admin'
+        ? `<p class="st-note" style="margin-top:10px">${esc(i18t('st_stddec_admin'))}</p>`
+        : `<label class="st-toggle" style="margin-top:10px">
+        <input id="tm-stddec" type="checkbox" ${stStdDecOn(u)?'checked':''}/>
+        <span><span class="st-role-name">${esc(stStdDecOn(u)?i18t('st_stddec_on'):i18t('st_stddec_off'))}</span>
+        <span class="st-note">${esc(i18t('st_stddec_note'))}</span></span>
       </label>`):''}
       ${(isNew && isAdmin() && API_MODE())?stNewGrantRowsHtml(u):''}`)}
 
@@ -5119,12 +6031,13 @@ async function settingsSavePerson(existing){
     Object.assign(after, ovPatch.patch||{});
     if(API_MODE()) Object.assign(after, stBzNewGrants());
     /* the grants ticked on the form win over the role's; only rows shown */
-    const gv=stGrantBox('tm-values'), gp=stGrantBox('tm-paper'), gr=stGrantBox('tm-refile'), gh=stGrantBox('tm-hold');
+    const gv=stGrantBox('tm-values'), gp=stGrantBox('tm-paper'), gr=stGrantBox('tm-refile'), gh=stGrantBox('tm-hold'), gs=stGrantBox('tm-stddec');
     if(gv&&role!=='admin') after.canViewValues=!!gv.checked;
     if(role==='legal'){
       if(gp) after.newPaper=!!gp.checked;
       if(gr) after.reFile=!!gr.checked;
       if(gh) after.holdContracts=!!gh.checked;
+      if(gs) after.decideStandards=!!gs.checked;
     }
     if(newId && signFolders!==undefined && typeof saveSignFolders==='function'){
       try{ await saveSignFolders(newId, signFolders); }catch(e){ toast(e.message,'err'); }
@@ -5184,6 +6097,9 @@ async function settingsSavePerson(existing){
   const holdBox=document.getElementById('tm-hold');
   const holdTo = holdBox ? !!holdBox.checked : null;
   const holdChanged = holdTo!==null && holdTo!==stHoldOn(target);
+  const stdBox=document.getElementById('tm-stddec');
+  const stdTo = stdBox ? !!stdBox.checked : null;
+  const stdChanged = stdTo!==null && stdTo!==stStdDecOn(target);
   if(valuesChanged && valuesTo===false){
     const ok=await confirmDialog({ title:i18t('st_hide_values_q',{who:target.name}),
       message:i18t('st_hide_values_msg'),
@@ -5198,6 +6114,7 @@ async function settingsSavePerson(existing){
     if(paperChanged) patch.newPaper=paperTo;
     if(reFileChanged) patch.reFile=reFileTo;
     if(holdChanged) patch.holdContracts=holdTo;
+    if(stdChanged) patch.decideStandards=stdTo;
     const capNow=(typeof signCapOf==='function')?signCapOf(target):{answered:false,limit:null};
     const capWas=capNow.answered?(capNow.limit==null?'none':capNow.limit):null;
     if(cap!==undefined && cap!==capWas) patch.signCap=cap;
@@ -5215,13 +6132,14 @@ async function settingsSavePerson(existing){
     if(patch.newPaper!==undefined) body.newPaper=patch.newPaper;
     if(patch.reFile!==undefined) body.reFile=patch.reFile;
     if(patch.holdContracts!==undefined) body.holdContracts=patch.holdContracts;
+    if(patch.decideStandards!==undefined) body.decideStandards=patch.decideStandards;
     if(patch.signCap!==undefined) body.signCap=patch.signCap;
     if(patch.reviewChecked!==undefined) body.reviewChecked=patch.reviewChecked;
     if(patch.reviewerId!==undefined) body.reviewerId=patch.reviewerId;
     for(const k of ['overseerId','overseerOn','overseerBackupId','overseerWhen'])
       if(patch[k]!==undefined) body[k]=patch[k];
     if(Object.keys(body).length){
-      try{ const r=await api('users/'+target.id,'PATCH',body); if(r&&r.user) Object.assign(target,r.user); }
+      try{ const r=await api('users/'+target.id,'PATCH',body); if(r&&r.user) Object.assign(target,r.user); if(r&&r.handedOn) toast(r.handedOn,'warn'); }
       catch(e){ stDrawerRefuse(e.message); return; }
     }
     repointRules(false);
@@ -5231,6 +6149,7 @@ async function settingsSavePerson(existing){
     if(paperChanged) target.newPaper=paperTo;
     if(reFileChanged) target.reFile=reFileTo;
     if(holdChanged) target.holdContracts=holdTo;
+    if(stdChanged) target.decideStandards=stdTo;
     if(patch.signCap!==undefined) target.signCap=patch.signCap;
     if(patch.reviewChecked!==undefined) target.reviewChecked=patch.reviewChecked;
     if(patch.reviewerId!==undefined) target.reviewerId=patch.reviewerId;
@@ -5846,18 +6765,15 @@ async function stTwoStepToggle(){
   let start;
   try{ start=await api('me/totp/start','POST',{}); }
   catch(e){ toast((e&&e.message)||i18t('ts_failed'),'err'); return; }
-  openModal(`<div style="padding:24px">
-    <h3 style="margin:0 0 6px;font-size:var(--t-card);font-weight:var(--w-title);font-family:var(--font-heading)">${esc(i18t('ts_enrol_title'))}</h3>
-    <p class="st-note" style="margin:0 0 var(--s-1)">${esc(i18t('ts_enrol_msg'))}</p>
-    <div style="font-family:var(--font-mono);font-size:var(--t-card);letter-spacing:.14em;background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);padding:10px var(--s-3);margin:var(--s-2) 0;word-break:break-all;user-select:all">${esc(start.secret)}</div>
-    <p class="st-note" style="margin:var(--s-2) 0 var(--s-1)">${esc(i18t('ts_enrol_code_msg'))}</p>
-    <input id="ts-code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" style="${window.RV_FLD||ST_INPUT}"/>
-    <p id="ts-err" class="st-note" style="color:var(--st-ruby-fg);min-height:16px;margin:6px 0 0"></p>
-    <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:var(--s-3)">
-      <button data-dlg-cancel id="ts-cancel" style="${ST_BTN2}">${i18t('act_cancel')}</button>
-      <button id="ts-confirm" class="ui-btn ui-btn-primary">${i18t('ts_confirm')}</button>
-    </div>
-  </div>`,{ maxWidth: DLG_W.m });
+  /* THE ONE EDIT POP-UP (lgp; owner, 19 Nov 2026: "Fix all batches"): the key on its own line, the code typed beside
+     its label; every id, the call and its refusal exactly as they were — only the look moved onto the one sheet. */
+  lgpOpen({ id:'ts-form', title:i18t('ts_enrol_title'), sub:i18t('ts_enrol_msg'), focus:'#ts-code',
+    html:`<div class="lgp-row"><span class="lgp-k">${esc(i18t('ts_key_k'))}</span><span class="lgp-v"><span class="lgp-in is-read" style="font-family:var(--font-mono);letter-spacing:.14em;word-break:break-all;user-select:all">${esc(start.secret)}</span></span></div>
+      <p class="lgp-small">${esc(i18t('ts_enrol_code_msg'))}</p>
+      <label class="lgp-row"><span class="lgp-k">${esc(i18t('ts_code_k'))}</span><span class="lgp-v"><input id="ts-code" class="lgp-in" inputmode="numeric" autocomplete="one-time-code" placeholder="123456"/></span></label>
+      <p id="ts-err" class="lgp-err" role="alert"></p>`,
+    primary:{ label:i18t('ts_confirm'), attr:'id="ts-confirm"' },
+    cancelAttr:'data-dlg-cancel id="ts-cancel"', cancelLabel:i18t('act_cancel') });
   document.getElementById('ts-cancel')?.addEventListener('click',()=>closeModal());
   document.getElementById('ts-confirm')?.addEventListener('click',async()=>{
     const code=(document.getElementById('ts-code')?.value||'').trim();
@@ -5867,16 +6783,14 @@ async function stTwoStepToggle(){
       const u2=currentUser(); if(u2) u2.twoStep=true;
       closeModal();
       // the ten one-time codes, shown exactly ONCE — the server keeps hashes
-      openModal(`<div style="padding:24px">
-        <h3 style="margin:0 0 6px;font-size:var(--t-card);font-weight:var(--w-title);font-family:var(--font-heading)">${esc(i18t('ts_recovery_title'))}</h3>
-        <p class="st-note" style="margin:0 0 10px">${esc(i18t('ts_recovery_msg'))}</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-family:var(--font-mono);font-size:var(--t-body);letter-spacing:.08em;user-select:all">
-          ${(r.recovery||[]).map(cd=>`<span style="background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);padding:6px 10px;text-align:center">${esc(cd)}</span>`).join('')}
-        </div>
-        <div style="display:flex;justify-content:flex-end;margin-top:14px">
-          <button id="ts-done" class="ui-btn ui-btn-primary">${i18t('ts_done')}</button>
-        </div>
-      </div>`,{ maxWidth: DLG_W.m });
+      /* the ten codes as quiet lines, two across; I have saved them the one black button (its ✕ the same press) */
+      lgpOpen({ id:'ts-codes', title:i18t('ts_recovery_title'), sub:i18t('ts_recovery_msg'), focus:false,
+        html:`<div style="display:grid;grid-template-columns:1fr 1fr;column-gap:var(--s-4);font-family:var(--font-mono);font-size:var(--t-body);letter-spacing:.08em;user-select:all">
+          ${(r.recovery||[]).map(cd=>`<span style="border-bottom:1px solid var(--color-divider);padding:10px 0">${esc(cd)}</span>`).join('')}
+        </div>`,
+        primary:{ label:i18t('ts_done'), attr:'id="ts-done"' }, noCancel:true });
+      const tsX=document.querySelector('#ts-codes .lgp-x');
+      if(tsX){ tsX.removeAttribute('data-lgp-close'); tsX.addEventListener('click',()=>document.getElementById('ts-done')?.click()); }
       document.getElementById('ts-done')?.addEventListener('click',()=>{ closeModal(); toast(i18t('ts_on_done'),'ok'); stAfterTwoStep(); });
     }catch(e){ if(errEl) errEl.textContent=(e&&e.message)||i18t('ts_failed'); }
   });
@@ -6094,7 +7008,11 @@ const SET_PANELS={
                other currencies", answered with this workspace's own facts. */}
         <button id="st-fx-add" style="${ST_BTN2}">&#43; ${i18t('st_fx_add')}</button>
         <div id="st-fx-row" hidden style="display:flex;gap:var(--s-2);align-items:flex-end;flex-wrap:wrap;margin-top:9px">
-          <label style="flex:1 1 210px;min-width:180px"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_code'))}</span>
+          ${''/* EACH BOX ITS OWN ROW (20 Nov 2026). Since "every entry field is open" (19 Nov) a Settings label
+                 holding a field is a grid row, its words in a 150px column beside the box. Two such rows
+                 side by side squeezed the rate's box to 0px wide — nothing to type in. Each takes the
+                 whole line, as the pop-ups' side-by-side rows stack. */}
+          <label style="flex:1 1 100%;min-width:0"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_code'))}</span>
             ${''/* THE VALUE IS UPPERCASED, THE PROMPT IS NOT. text-transform
                    catches the placeholder too, so the search hint rendered as
                    "SEARCH — USD, EURO, RAND…" — a shout where a prompt was
@@ -6104,7 +7022,7 @@ const SET_PANELS={
             <input id="st-fx-code" type="text" list="st-fx-codes" autocomplete="off"
               placeholder="${esc(i18t('st_fx_code_ph'))}" style="${window.RV_FLD||ST_INPUT}"/></label>
           <datalist id="st-fx-codes"></datalist>
-          <label style="flex:1;min-width:150px"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_rate',{cur:jxCurrency()}))}</span>
+          <label style="flex:1 1 100%;min-width:0"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_rate',{cur:jxCurrency()}))}</span>
             <input id="st-fx-rate" type="number" step="any" min="0" placeholder="129.50" style="${window.RV_FLD||ST_INPUT}"/></label>
           <button id="st-fx-save" style="${ST_BTN_SM};flex:none">${i18t('act_save')}</button>
         </div>
@@ -6174,9 +7092,9 @@ const SET_PANELS={
         }catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
         finally{ if(btn) btn.disabled=false; }
       });
-      document.getElementById('st-company-design')?.addEventListener('click',()=>{
+      document.getElementById('st-company-design')?.addEventListener('click',()=>stHoldLeaveThen(()=>{
         stDrawerClose(); openDesignStep({ mode:'settings', onBack:()=>renderTeam() });
-      });
+      }));
       stFxPaint();
       /* WITH NOTHING ON FILE THE ROW IS ALREADY OPEN: a panel whose only
          content is a button to reveal the only thing on it is a press that
@@ -6272,9 +7190,13 @@ const SET_PANELS={
       return { dot:rules.length?'ok':'warn',
         text:rules.length?rules.map(r=>esc(condLabel(r.cond))).join(' · '):i18t('set_no_approval_rules') }; },
     chip(){ const n=(typeof approvalRules==='function'?approvalRules():[]).length; return n?String(n):''; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_rules_sub')}</p>
+    /* P-43 (owner's pick 21 Nov 2026): THE RULE IN WORDS first, then the rules as a calm table, + Add a rule, a clash
+       said once in amber with its way forward, the order in small print (renderApprovalRules draws all four) */
+    body(){ return `<p class="st-inwords" id="ar6-words"></p>
       <div id="approval-rules"></div>
-      <button id="ar-add" style="margin-top:var(--s-2);${ST_BTN2};border-color:transparent;background:var(--surface-2);color:var(--color-text);border-radius:999px">${icon('plus','w-3.5 h-3.5')} ${i18t('set_add_rule_btn')}</button>
+      <button type="button" id="ar-add" class="ar6-add">${icon('plus','w-3.5 h-3.5')} ${esc(i18t('ar6_add'))}</button>
+      <div id="ar6-clash"></div>
+      <p class="st-note ar6-foot">${esc(i18t('ar6_foot'))}</p>
       ${''/* THE SIGNING LIMIT AND THE FOLDER RULE LEFT THIS DRAWER (4 Oct 2026,
              the process review) for rows of their own under "Before anyone
              signs" — see signcap and signfolder. THE OVERSEER SWITCH left it
@@ -6473,10 +7395,10 @@ const SET_PANELS={
       return n?{ s:i18tn('st_cf_capped',n,{ n }) }:null; },
     state(){ const on=(typeof signCapEnforced==='function')&&signCapEnforced();
       return { dot:on?'ok':'off', text:`${esc(i18t('sc_rule_on'))} — ${on?stOn():stOff()}` }; },
-    body(){ return `<label class="st-toggle" style="margin-bottom:var(--s-2)">
-        <input id="sc-rule-on" type="checkbox"${((typeof signCapEnforced==='function')&&signCapEnforced())?' checked':''}/>
-        <span><span class="st-role-name">${esc(i18t('sc_rule_on'))}</span></span></label>
-      <div style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text);margin:10px 0 6px">${esc(i18t('sc_ladder'))}</div>
+    /* P-43 (owner's pick 21 Nov 2026): the rule a SWITCH with its state beside it; who can sign what today under it */
+    body(){ const on=(typeof signCapEnforced==='function')&&signCapEnforced();
+      return `<div class="sc6-swrow"><label class="sc6-sw"><input id="sc-rule-on" type="checkbox" role="switch"${on?' checked':''}/><i aria-hidden="true"></i></label>
+        <span class="sc6-sw-t">${esc(i18t('sc_rule_on'))}</span><span id="sc6-state" class="apn-st is-${on?'green':'grey'}">${esc(i18t(on?'stn_pill_on':'stn_pill_off'))}</span></div>
       <div id="sc-ladder"></div>`; },
     wire(){
       stPaintLadder();
@@ -6648,7 +7570,7 @@ const SET_PANELS={
           state.settings=state.settings||{};
           const was=state.settings.mailroom||{};
           state.settings.mailroom = key ? { key, folder, ...(ownerId ? { ownerId } : {}), ...(was.savedById ? { savedById:was.savedById } : {}) } : {};
-          await saveSettings();
+          await stSaveSettingsNow();
           toast(key?i18t('set_mailroom_saved'):i18t('set_mailroom_stopped'),'ok');
           stRepaintRow('mailroom');
         }catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
@@ -6794,7 +7716,7 @@ const SET_PANELS={
         stDrawerClearRefusal();
         try{
           state.settings=state.settings||{}; state.settings.intakeLanes=all;
-          await saveSettings();
+          await stSaveSettingsNow();
           toast(i18t('set_lanes_saved'),'ok');
           stRepaintRow('lanes');
         }catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
@@ -6810,6 +7732,21 @@ const SET_PANELS={
     body(){ return `<div style="display:flex;gap:6px">${[90,60,30].map(d=>`<span style="${ST_TAG}">${i18t('set_days_out',{n:d})}</span>`).join('')}</div>
       <p class="st-note" style="margin-top:var(--s-2)">${i18t('set_delivered_resend')}</p>`; },
     wire(){},
+  },
+
+  /* ---- THE OTHER SIDE IS REMINDED OF THEIR OBLIGATIONS BY ITSELF (owner's yes, 19 Nov 2026) ----
+     Off for the company until an admin switches it on; then each obligation of theirs carries its own switch (its panel
+     and the reminder's Send screen), and the overnight run sends the chase letter 7 days before and on the day. The
+     SERVER reads the stored rule (srvRemindTheirsOn); this is the switch, not what decides. No email, no switch on. */
+  remindtheirs:{
+    tab:'platform', group:'links', mandatory:false,
+    title:()=>i18t('set_remind_theirs'),
+    sub:()=>i18t('set_remind_theirs_sub'),
+    state(){ const c=(window.remindTheirsCfg?remindTheirsCfg():{on:false});
+      return { dot:c.on?'ok':'off', text:`${i18t('set_remind_theirs')} — ${c.on?stOn():stOff()}` }; },
+    body(){ return `<div id="rt-rule-panel"></div>`; },
+    find:()=>[i18t('set_remind_theirs')],
+    wire(){ renderRemindTheirsPanel(); },
   },
 
   /* ---- TWO PAYMENT TARGETS, ONE PER SIDE (owner-ruled 2 Sep 2026) ----
@@ -6874,7 +7811,7 @@ const SET_PANELS={
         try{
           state.settings=state.settings||{};
           state.settings.payTargets={ customer:a.v, supplier:b.v };
-          await saveSettings();
+          await stSaveSettingsNow();
           toast(i18t('set_pay_saved'),'ok');
           /* THE ROW STATES THE PAIR WITHOUT BEING OPENED, so it is repainted
              where it stands — never renderTeam(), which rebuilds the whole
@@ -6988,8 +7925,8 @@ const SET_PANELS={
       </div>`;
     },
     /* the card opens the one page that sets the look (How our contracts look), admins only */
-    wire(){ document.getElementById('brand-edit')?.addEventListener('click',()=>{
-      stDrawerClose(); if(typeof window.clGo==='function') window.clGo(); }); },
+    wire(){ document.getElementById('brand-edit')?.addEventListener('click',()=>stHoldLeaveThen(()=>{
+      stDrawerClose(); if(typeof window.clGo==='function') window.clGo(); })); },
   },
 
   report:{
@@ -7737,14 +8674,22 @@ function stPaintLadder(){
   const rows=(typeof signCapLadder==='function')?signCapLadder():[];
   const un=(typeof signCapUnanswered==='function')?signCapUnanswered():[];
   const enforced=(typeof signCapEnforced==='function')&&signCapEnforced();
-  host.innerHTML=(rows.length?rows.map(r=>`<div class="st-frow">
-      <span class="st-fname" data-st-fixed="1">${esc(r.name)}</span>
-      <span class="st-fmeta">${esc(roleName(r.role))}</span>
-      <span class="st-fmeta" style="color:${(!r.answered&&r.mayEverSign&&r.role!=='admin')?'var(--st-amber-fg)':'var(--color-neutral-600)'}">${esc(r.text)}</span>
-      <span class="st-fmeta" style="opacity:.8">${esc((typeof signFolderText==='function')?signFolderText((getUsers()||[]).find(u=>u.id===r.id)||{}):'')}</span>
+  const stt=document.getElementById('sc6-state'); if(stt){ stt.className='apn-st is-'+(enforced?'green':'grey'); stt.textContent=i18t(enforced?'stn_pill_on':'stn_pill_off'); }
+  /* P-43: a calm table — initials, the name, the role a soft badge, the limit (amber where nobody has set one, with its
+     own door, the person's drawer on their limit), the folders; a bar of how many who may sign have no limit */
+  const owed=r=>!r.answered&&r.mayEverSign&&r.role!=='admin';
+  const signers=rows.filter(r=>r.mayEverSign||r.role==='admin');
+  const nOwed=rows.filter(owed).length;
+  const ini=n=>String(n||'').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w.charAt(0).toUpperCase()).join('');
+  host.innerHTML=`<div class="sc6-lh"><b>${esc(i18t('sc_ladder'))}</b>${nOwed?`<span class="sc6-amber">${esc(i18t('sc6_no_limit',{ n:nOwed, m:signers.length||rows.length }))}</span>`:''}</div>`
+    +(signers.length&&nOwed?`<div class="sc6-bar" aria-hidden="true"><i class="is-ok" style="flex:${Math.max(0,(signers.length||rows.length)-nOwed)}"></i><i class="is-owed" style="flex:${nOwed}"></i></div>`:'')
+    +(rows.length?rows.map(r=>`<div class="st-frow sc6-lrow">
+      <span class="sc6-who"><span class="ar6-ini${r.role==='admin'?' is-green':''}" aria-hidden="true">${esc(ini(r.name))}</span><span class="st-fname" data-st-fixed="1">${esc(r.name)}</span></span>
+      <span><span class="apn-st is-grey">${esc(roleName(r.role))}</span></span>
+      <span class="st-fmeta${owed(r)?' sc6-amber':''}">${esc(r.role==='admin'?i18t('sc6_never'):owed(r)?i18t('sc6_none'):r.text)}${owed(r)&&r.id!=null?` · <button type="button" class="ui-link" data-st-panel="person:${PB_ATTR(r.id)}" data-st-focus="#tm-cap">${esc(i18t('sc6_set'))}</button>`:''}</span>
+      <span class="st-fmeta sc6-fold">${esc((typeof signFolderText==='function')?signFolderText((getUsers()||[]).find(u=>u.id===r.id)||{}):'')}</span>
     </div>`).join(''):`<p class="st-note">${esc(i18t('sc_ladder_none'))}</p>`)
-    +(un.length?`<p class="st-note" style="color:var(--st-amber-fg)">${esc(i18tn('sc_unanswered',un.length,{n:un.length}))}</p>`:'')
-    +(enforced?'':`<p class="st-note">${esc(i18t('sc_not_enforced'))}</p>`);
+    +(un.length&&!nOwed?`<p class="st-note sc6-amber">${esc(i18tn('sc_unanswered',un.length,{n:un.length}))}</p>`:'');
 }
 
 /* WHO IS NARROWED TODAY — the folder rule's own drawer. Read-only; each
@@ -7823,8 +8768,8 @@ function stPaintRules(){
     <div class="st-rules">${rows.filter(r=>!r.holds).map(row).join('')}</div>`;
   host.querySelectorAll('[data-st-rule-go]').forEach(b=>b.addEventListener('click',()=>{
     const [tab,panel]=String(b.getAttribute('data-st-rule-go')||'').split(':');
-    try{ stDrawerClose(); }catch(_){}
-    openSettingsAt(tab, panel||null);
+    stHoldLeaveThen(()=>{ try{ stDrawerClose(); }catch(_){}
+      openSettingsAt(tab, panel||null); });
   }));
 }
 
@@ -7860,7 +8805,7 @@ function stPaintDirectory(){
         if(k && byEmail[k]){ const p=byEmail[k]; if(r.name)p.name=r.name; if(r.title)p.title=r.title; updated++; }
         else { const p={ name:r.name||'', email:r.email||'', title:r.title||'' }; d.push(p); if(k)byEmail[k]=p; added++; } });
       state.settings.directory=d;
-      try{ await saveSettings(); }catch(err){ toast(i18t('set_t_sync_failed',{err:err.message}),'err'); }
+      try{ await stSaveSettingsNow(); }catch(err){ toast(i18t('set_t_sync_failed',{err:err.message}),'err'); }
       stDrawerClearRefusal();
       toast(i18t('set_t_dir_import',{added})+(updated?i18t('set_t_dir_updated',{n:updated}):''));
       stPaintDirectory();
@@ -7869,7 +8814,7 @@ function stPaintDirectory(){
   });
   document.getElementById('dir-clear')?.addEventListener('click',async()=>{
     if(!await confirmDialog({title:i18t('st_dir_clear_q'), message:i18t('st_dir_clear_msg'), confirmLabel:i18t('st_dir_clear_go'), danger:true})) return;
-    state.settings=state.settings||{}; state.settings.directory=[]; await saveSettings();
+    state.settings=state.settings||{}; state.settings.directory=[]; await stSaveSettingsNow();
     toast(i18t('set_t_dir_cleared')); stPaintDirectory();
   });
 }
@@ -7987,6 +8932,13 @@ function stTrailPastHtml(){
 }
 function stTrailPaint(part){
   const go=document.getElementById('st-tr-go'), past=document.getElementById('st-tr-past');
+  /* P-45: on the new page the count is four figures and the button stands in the row of asks */
+  const lsBtn=document.getElementById('st-ls-trbtn');
+  if(lsBtn){ const had=document.activeElement&&document.activeElement.id==='st-tr-download';
+    if(!part||part==='go'){ if(go) go.innerHTML=stLsTrailFigsHtml(); lsBtn.innerHTML=stLsTrailBtnHtml();
+      if(had){ const b=document.getElementById('st-tr-download'); if(b) try{ b.focus({preventScroll:true}); }catch(_){ /* gone */ } } }
+    if((!part||part==='past')&&past) past.innerHTML=stTrailPastHtml();
+    return; }
   /* the button is drawn again with every count: a readied one stays lit and
      keeps the reader's focus (Jambo's "download … as a PDF") */
   const had=document.activeElement&&document.activeElement.id==='st-tr-download';
@@ -8907,7 +9859,7 @@ function stWireMonthlyReport(){
   });
   document.getElementById('mr-send-now')?.addEventListener('click',async()=>{
     try{ const r=await api('reports/monthly/run','POST',{});
-      toast(r.sent?i18tn('set_mr_sent_n',r.sent,{n:r.sent,month:r.month}):i18t('set_mr_nothing_sent'));
+      toast(r.sent?i18tn('set_mr_sent_n',r.sent,{n:r.sent,month:r.month}):i18t('set_mr_nothing_sent'), r.sent?undefined:'warn');
       loadMonthly(); }
     catch(err){ stDrawerRefuse(err.message); }
   });
@@ -8985,11 +9937,14 @@ function stPagePaint(admin){
      by scope), and "‹ Settings" on the page is the way back */
   const sub=(admin&&face==='company'&&_stPage)?_stPage:'';
   /* THE NEW LOOK (round 7, as drawn): one list of sentences; the pages inside Settings (People & roles, Streams…) stay as they are */
-  if(!_stPage && typeof stnOn==='function' && stnOn()){ stnPaint(admin); return; }
+  /* the new look's list takes a door's panel too (a person, a role…), consumed once as below (#762: it was never opened) */
+  if(!_stPage && typeof stnOn==='function' && stnOn()){ stnPaint(admin); if(admin && _stWantPanel){ const want=_stWantPanel; _stWantPanel=null; stDrawerOpen(want); } return; }
   /* a docked drawer lives in the page: it is lifted out before the page is
      drawn again, and put back after (stDockPaint) — nothing typed is lost */
   { const dr=document.getElementById('st-drawer');
     if(dr && dr.closest && dr.closest('#content')){ if(_stPage==='panel'&&face==='company') document.body.appendChild(dr); else stDockLeave(); } }
+  /* P-45: the six pages inside Settings are drawn in the area's own frame, the Legora + Stripe way */
+  if(stLsOn()){ stLsPaint(admin); return; }
   document.getElementById('content').innerHTML=`
   <div id="set-page" class="view-enter st-page sap-page st-cr${_stSideFold?' is-side-folded':''}" data-st-face="${face}"${sub?` data-st-sub="${sub}"`:''}>
     <div class="st-cr-cols">
@@ -9606,47 +10561,57 @@ function openPlaybookEditor(key, opts={}){
   const e=pb[key]; e.positions=e.positions||[]; e.ranges=e.ranges||[]; e.match=e.match||[];
   const inherited=(!isBase)?resolvePlaybook('_default'):null;
   const POS=[['required',i18t('set_pos_required')],['preferred',i18t('set_pos_preferred')],['forbidden',i18t('set_pos_forbidden')]];
-  const inp='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:6px var(--s-2);font:inherit;font-size:var(--t-body);color:inherit;outline:none';
-  openModal(`<div style="padding:20px 22px">
-    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:16px;margin:0 0 var(--s-3)">${isNew?i18t('set_add_contract_type'):isBase?i18t('set_edit_baseline'):i18t('set_edit_playbook_for',{label:PB_ESC(e.label||key)})}</h3>
-    <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text);margin-bottom:3px">${isBase?i18t('set_name'):i18t('set_type_name')}</span>
-      <input id="pb-f-label" value="${PB_ATTR(e.label||'')}" placeholder="${isBase?esc(i18t('set_ph_baseline')):esc(i18t('set_ph_eg_distribution'))}" style="${inp}"></label>
-    ${!isBase?`<label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text);margin-bottom:3px">${i18t('set_applies_matching')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${i18t('set_comma_keywords')}</span></span>
-      <input id="pb-f-match" value="${PB_ATTR(e.match.join(', '))}" placeholder="${esc(i18t('set_ph_eg_keywords'))}" style="${inp}"></label>
-    <div style="font-size:var(--t-label);color:var(--color-neutral-600);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px 9px;margin-bottom:var(--s-3)">${i18t('set_inherited_baseline')} <span style="display:inline-flex;flex-wrap:wrap;gap:var(--s-1);vertical-align:middle">${inherited.positions.map(pbPosChip).join('')}${inherited.ranges.map(pbRangeChip).join('')}</span></div>`:''}
-
-    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text)">${isBase?i18t('set_positions'):i18t('set_positions_for_type')}</span><button id="pb-add-pos" class="ui-link" style="margin-left:auto">${(typeof window!=='undefined'&&window.plusLed?window.plusLed(i18t('set_add_position')):i18t('set_add_position'))}</button></div>
-    <div id="pb-pos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>
-
-    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_numeric_limits')}</span><button id="pb-add-rng" class="ui-link" style="margin-left:auto">${(typeof window!=='undefined'&&window.plusLed?window.plusLed(i18t('set_add_limit')):i18t('set_add_limit'))}</button></div>
-    <div id="pb-rng-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:var(--s-4)"></div>
-
-    <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-      <button data-dlg-cancel id="pb-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      <button id="pb-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button>
+  /* THE ONE EDIT POP-UP IN THREE STEPS (lgp; owner, 19 Nov 2026: "Fix all batches"): 1 the name (and, for a type,
+     the words it matches and what it inherits), 2 its positions, 3 its numeric limits — each a list of quiet lines, no
+     boxes. All three stay in the one form, so Save reads every field wherever the reader stands; every id and data-
+     attribute below is the one this editor always had. */
+  const PB_STEPS=[i18t('set_name'), i18t('set_positions'), i18t('set_numeric_limits')];
+  const pbHead=(label, id, add)=>`<div class="lgp-lfoot"><span style="color:var(--color-text)">${label}</span><button type="button" id="${id}" class="ui-link">${(typeof window!=='undefined'&&window.plusLed?window.plusLed(add):add)}</button></div>`;
+  lgpOpen({ stepped:true, id:'pb-form', focus:String(opts.focus||'').trim()?false:'#pb-f-label',
+    title:isNew?i18t('set_add_contract_type'):isBase?i18t('set_edit_baseline'):i18t('set_edit_playbook_for',{label:e.label||key}),
+    steps:{ at:1, names:PB_STEPS },
+    html:`<div data-lgp-step="1">
+      <label class="lgp-row"><span class="lgp-k">${isBase?i18t('set_name'):i18t('set_type_name')}</span><span class="lgp-v"><input id="pb-f-label" class="lgp-in" autocomplete="off" value="${PB_ATTR(e.label||'')}" placeholder="${isBase?esc(i18t('set_ph_baseline')):esc(i18t('set_ph_eg_distribution'))}"></span></label>
+      ${!isBase?`<label class="lgp-row"><span class="lgp-k">${i18t('set_applies_matching')}</span><span class="lgp-v"><input id="pb-f-match" class="lgp-in" autocomplete="off" value="${PB_ATTR(e.match.join(', '))}" placeholder="${esc(i18t('set_ph_eg_keywords'))}"></span></label>
+      <p class="lgp-small">${i18t('set_comma_keywords')}</p>
+      <p class="lgp-small">${i18t('set_inherited_baseline')} <span style="display:inline-flex;flex-wrap:wrap;gap:var(--s-1);vertical-align:middle">${inherited.positions.map(pbPosChip).join('')}${inherited.ranges.map(pbRangeChip).join('')}</span></p>`:''}
     </div>
-  </div>`, {maxWidth:'34rem'});
+    <div data-lgp-step="2" hidden>${pbHead(isBase?i18t('set_positions'):i18t('set_positions_for_type'),'pb-add-pos',i18t('set_add_position'))}<div id="pb-pos-list" class="lgp-list"></div></div>
+    <div data-lgp-step="3" hidden>${pbHead(i18t('set_numeric_limits'),'pb-add-rng',i18t('set_add_limit'))}<div id="pb-rng-list" class="lgp-list"></div></div>`,
+    nextAttr:'id="pb-next"', backAttr:'id="pb-back"',
+    primary:{ label:i18t('act_save'), attr:'id="pb-save"' },
+    cancelAttr:'data-dlg-cancel id="pb-cancel"', cancelLabel:i18t('act_cancel') });
+  const pbForm=()=>document.getElementById('pb-form');
+  const pbGo=n=>lgpStepGo(pbForm(), n, PB_STEPS);
+  document.getElementById('pb-next')?.addEventListener('click',()=>pbGo(Number(pbForm()?.getAttribute('data-lgp-at')||1)+1));
+  document.getElementById('pb-back')?.addEventListener('click',()=>pbGo(Number(pbForm()?.getAttribute('data-lgp-at')||1)-1));
+  pbGo(1);
 
-  const seg=(i)=>POS.map(([v,l])=>{ const on=e.positions[i].pos===v; const hard=v==='required'||v==='forbidden';
-    return `<button data-pb-pos="${i}" data-v="${v}" style="font-size:var(--t-label);font-weight:var(--w-strong);border:1px solid ${on?(hard?'var(--st-ruby-line)':'var(--color-accent)'):'var(--color-divider)'};background:${on?(hard?'var(--st-ruby-bg)':'var(--color-accent-100)'):'var(--color-surface)'};color:${on?(hard?'var(--st-ruby-fg)':'var(--accent-ink)'):'var(--color-neutral-600)'};padding:var(--s-1) 9px;border-radius:var(--radius);cursor:pointer">${l}</button>`; }).join('');
+  /* the three positions are grey pills, the chosen one in ink (a choice of a few) */
+  const seg=(i)=>POS.map(([v,l])=>{ const on=e.positions[i].pos===v;
+    return `<button type="button" class="lgp-chip${on?' is-on':''}" aria-pressed="${on?'true':'false'}" data-pb-pos="${i}" data-v="${v}">${l}</button>`; }).join('');
+  const line='display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;border-bottom:1px solid var(--color-divider);padding:var(--s-2) 0';
+  const tick=(attr,i,on)=>`<label style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;cursor:pointer"><input type="checkbox" ${attr}="${i}" ${on?'checked':''} style="accent-color:var(--color-text)">${i18t('set_flag_legal')}</label>`;
+  const rm=(attr,i)=>`<button type="button" ${attr}="${i}" title="${i18t('act_remove')}" aria-label="${i18t('act_remove')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('x')}</button>`;
+  const none=t=>`<p class="lgp-none">${t}</p>`;
   const paint=()=>{
     const pl=document.getElementById('pb-pos-list');
     pl.innerHTML=e.positions.length?e.positions.map((p,i)=>`
-      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px var(--s-2);background:var(--color-bg)">
-        <input data-pb-cat="${i}" value="${PB_ATTR(p.category||'')}" placeholder="${esc(i18t('set_ph_category'))}" style="flex:1;min-width:150px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
-        <span style="display:inline-flex;gap:3px">${seg(i)}</span>
-        <label style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--t-label);color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-esc="${i}" ${p.escalate?'checked':''} style="accent-color:var(--color-accent)">${i18t('set_flag_legal')}</label>
-        <button data-pb-rmpos="${i}" title="${i18t('act_remove')}" aria-label="${i18t('act_remove')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('x')}</button>
-      </div>`).join(''):`<p style="font-size:var(--t-label);color:var(--color-neutral-500);margin:0">${isBase?i18t('set_no_specific_positions'):i18t('set_no_specific_inherits')}</p>`;
+      <div style="${line}">
+        <input data-pb-cat="${i}" class="lgp-in" autocomplete="off" value="${PB_ATTR(p.category||'')}" placeholder="${esc(i18t('set_ph_category'))}" style="min-width:150px">
+        <span style="display:inline-flex;gap:var(--s-1)">${seg(i)}</span>
+        ${tick('data-pb-esc',i,p.escalate)}
+        ${rm('data-pb-rmpos',i)}
+      </div>`).join(''):none(isBase?i18t('set_no_specific_positions'):i18t('set_no_specific_inherits'));
     const rl=document.getElementById('pb-rng-list');
     rl.innerHTML=e.ranges.length?e.ranges.map((r,i)=>`
-      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px var(--s-2);background:var(--color-bg)">
-        <input data-pb-rlabel="${i}" value="${PB_ATTR(r.label||'')}" placeholder="${esc(i18t('set_ph_label_payment'))}" style="flex:1;min-width:120px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
-        <select data-pb-rop="${i}" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;cursor:pointer;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"><option value="<=" ${r.op==='<='?'selected':''}>≤</option><option value=">=" ${r.op==='>='?'selected':''}>≥</option></select>
-        <input data-pb-rval="${i}" type="number" value="${r.value}" style="width:74px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
-        <label style="display:inline-flex;align-items:center;gap:var(--s-1);font-size:var(--t-label);color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-resc="${i}" ${r.escalate?'checked':''} style="accent-color:var(--color-accent)">${i18t('set_flag_legal')}</label>
-        <button data-pb-rmrng="${i}" title="${i18t('act_remove')}" aria-label="${i18t('act_remove')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('x')}</button>
-      </div>`).join(''):`<p style="font-size:var(--t-label);color:var(--color-neutral-500);margin:0">${i18t('set_no_numeric_limits')}</p>`;
+      <div style="${line}">
+        <input data-pb-rlabel="${i}" class="lgp-in" autocomplete="off" value="${PB_ATTR(r.label||'')}" placeholder="${esc(i18t('set_ph_label_payment'))}" style="min-width:120px">
+        <select data-pb-rop="${i}" class="lgp-in" style="flex:none;width:44px"><option value="<=" ${r.op==='<='?'selected':''}>≤</option><option value=">=" ${r.op==='>='?'selected':''}>≥</option></select>
+        <input data-pb-rval="${i}" class="lgp-in" type="number" value="${r.value}" style="flex:none;width:74px">
+        ${tick('data-pb-resc',i,r.escalate)}
+        ${rm('data-pb-rmrng',i)}
+      </div>`).join(''):none(i18t('set_no_numeric_limits'));
     // wire row inputs → live working copy
     pl.querySelectorAll('[data-pb-cat]').forEach(el=>el.addEventListener('input',()=>{ e.positions[+el.dataset.pbCat].category=el.value; }));
     pl.querySelectorAll('[data-pb-esc]').forEach(el=>el.addEventListener('change',()=>{ e.positions[+el.dataset.pbEsc].escalate=el.checked; }));
@@ -9669,7 +10634,8 @@ function openPlaybookEditor(key, opts={}){
     else { e.positions.push({ category:focus, pos:'preferred', escalate:false }); at=`[data-pb-cat="${e.positions.length-1}"]`; }
   }
   paint();
-  if(at){ const row=()=>{ const el=document.querySelector('#pb-pos-list '+at+', #pb-rng-list '+at); return el?el.parentElement:null; };
+  if(at){ pbGo(/data-pb-rlabel/.test(at)?3:2);
+    const row=()=>{ const el=document.querySelector('#pb-pos-list '+at+', #pb-rng-list '+at); return el?el.parentElement:null; };
     if(typeof landOn==='function') landOn(row, { block:'center' }); else { const r=row(); if(r) r.scrollIntoView({ block:'center' }); } }
   document.getElementById('pb-add-pos').addEventListener('click',()=>{ e.positions.push({category:'',pos:'preferred',escalate:false}); paint(); });
   document.getElementById('pb-add-rng').addEventListener('click',()=>{ e.ranges.push({key:'',label:'',op:'<=',value:30,escalate:true}); paint(); });
@@ -9677,7 +10643,7 @@ function openPlaybookEditor(key, opts={}){
   document.getElementById('pb-save').addEventListener('click',()=>{
     e.label=document.getElementById('pb-f-label').value.trim();
     if(!isBase){ const mv=document.getElementById('pb-f-match'); e.match=(mv?mv.value:'').split(',').map(s=>s.trim()).filter(Boolean); }
-    if(!e.label){ toast(i18t('set_t_give_name'),'err'); return; }
+    if(!e.label){ toast(i18t('set_t_give_name'),'err'); pbGo(1); return; }
     e.positions=e.positions.filter(p=>p.category&&p.category.trim());
     e.ranges=e.ranges.filter(r=>r.label&&r.label.trim());
     // help the review engine enforce the common numeric limits
@@ -9689,15 +10655,13 @@ function openPlaybookEditor(key, opts={}){
 function openClauseEditor(idx){
   const lib=clauseLibrary().slice();
   const cl=idx>=0?{...lib[idx]}:{ id:'cl_'+Math.random().toString(36).slice(2,7), category:'', name:'', preferred:'', fallback:'', guidance:'' };
-  const fld=(k,label,ta)=>ta
-    ? `<label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${label}</span><textarea id="ce-${k}" rows="2" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500">${(cl[k]||'').replace(/</g,'&lt;')}</textarea></label>`
-    : `<label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${label}</span><input id="ce-${k}" value="${(cl[k]||'').replace(/"/g,'&quot;')}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/></label>`;
-  openModal(`<div class="p-6">
-    <h3 class="font-serif font-600 text-lg text-ink mb-3">${idx>=0?'Edit':'Add'} clause</h3>
-    ${fld('category','Category')}${fld('name','Name')}${fld('preferred','Preferred wording',true)}${fld('fallback','Fallback wording',true)}${fld('guidance','Guidance',true)}
-    <div class="flex justify-end gap-2 mt-2"><button data-dlg-cancel id="ce-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      <button id="ce-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button></div>
-  </div>`);
+  /* THE ONE EDIT POP-UP (lgp; owner, 19 Nov 2026: "Fix all batches"): five lines, the label beside the words, the
+     three wordings as text areas; every id and the save exactly as they were. */
+  const fld=(k,label,ta)=>({ k:label, id:'ce-'+k, value:cl[k]||'', type:ta?'area':'text' });
+  lgpOpen({ id:'ce-form', title:`${idx>=0?'Edit':'Add'} clause`,
+    rows:[fld('category','Category'), fld('name','Name'), fld('preferred','Preferred wording',true), fld('fallback','Fallback wording',true), fld('guidance','Guidance',true)],
+    primary:{ label:i18t('act_save'), attr:'id="ce-save"' },
+    cancelAttr:'data-dlg-cancel id="ce-cancel"', cancelLabel:i18t('act_cancel') });
   document.getElementById('ce-cancel').addEventListener('click',closeModal);
   document.getElementById('ce-save').addEventListener('click',()=>{
     ['category','name','preferred','fallback','guidance'].forEach(k=>cl[k]=document.getElementById('ce-'+k).value.trim());
@@ -9711,7 +10675,7 @@ function openClauseEditor(idx){
 const AR_CONDS=()=>[['value',i18t('set_cond_value',{cur:jxCurrency()})],['folder',i18t('set_cond_folder')],['kind',i18t('set_cond_kind')],['foreignLaw',i18t('set_cond_foreign')],['deviation',i18t('set_cond_deviation')]];
 function condLabel(cond){
   switch(cond.type){
-    case 'value': return i18t('set_cond_value_is',{op:cond.op||'>=',amount:fmtMoneyShort(cond.value)});
+    case 'value': return i18t('set_cond_value_is',{op:({ '>=':'≥', '<=':'≤' })[cond.op||'>=']||cond.op,amount:fmtMoneyShort(cond.value)});
     case 'folder': return i18t('set_cond_folder_is',{name:(FOLDERS[cond.value]||{}).name||cond.value});
     case 'kind': return i18t('set_cond_kind_is',{value:cond.value});
     case 'foreignLaw': return i18t('set_cond_foreign');
@@ -9719,19 +10683,66 @@ function condLabel(cond){
     default: return cond.type;
   }
 }
+/* P-43, THE APPROVAL RULES THE LEGORA + STRIPE WAY (owner's pick 21 Nov 2026): the rules said in words first, in the
+   paper's type; then one calm row a rule — its order, the If as a soft chip, whose yes (initials where it is a person),
+   the asks open under it today as a badge (approvalState's chain, the one reading), and ⋯ holding Edit and Remove;
+   a clash in who asks and who answers said once, in amber, with Who holds what as its way forward. Remove writes on
+   the press, as it always did. */
+function arInitials(label){ return String(label||'').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w.charAt(0).toUpperCase()).join(''); }
+function arOpenAsks(rule){
+  let n=0; (state.contracts||[]).forEach(c=>{ if(!c||c.status==='Signed'||c.archived) return;
+    try{ const st=window.approvalState?approvalState(c):null; if(st&&st.required&&(st.chain||[]).some(x=>x.ruleId===rule.id&&x.status!=='approved')) n++; }catch(_){ /* not counted */ } });
+  return n;
+}
+/* THE RULE IN WORDS, as drawn (P-43): "A contract of KES 10M or more needs <b>Unrestricted Legal</b>'s yes; below that,
+   <b>Amina Otieno</b>'s." — a threshold and the rule under it at the same figure said as one sentence; a stream's rule
+   by its stream; any other as "When …, a contract needs …'s yes". Names bold; every word read off the rules. */
+function arWordsHtml(rules){
+  if(!rules.length) return esc(i18t('set_no_approval_rules'));
+  const who=r=>'<b>'+esc(approverLabelOf(r.approver))+'</b>';
+  const amt=v=>esc(typeof fmtMoneyShort==='function'?fmtMoneyShort(v):String(v));
+  const val=r=>r&&r.cond&&r.cond.type==='value'?Number(r.cond.value):null;
+  const out=[], used=new Set();
+  rules.forEach((r,i)=>{ if(used.has(i)) return; used.add(i);
+    const c=r.cond||{};
+    if(c.type==='value'&&(c.op||'>=')==='>='){
+      /* the rule just under it: ≤ the same figure (or one less), said as "below that" */
+      const j=rules.findIndex((x,k)=>!used.has(k)&&x.cond&&x.cond.type==='value'&&x.cond.op==='<='&&val(x)<=val(r)&&val(x)>=val(r)-1);
+      let t=i18t('ar6_w_more',{ amount:amt(c.value), who:who(r) });
+      if(j>=0){ used.add(j); t+='; '+i18t('ar6_w_below',{ who:who(rules[j]) }); }
+      out.push(t); return; }
+    if(c.type==='value') { out.push(i18t('ar6_w_less',{ amount:amt(c.value), who:who(r) })); return; }
+    if(c.type==='folder') { out.push(i18t('ar6_w_stream',{ stream:esc((FOLDERS[c.value]||{}).name||c.value), who:who(r) })); return; }
+    out.push(i18t('ar6_w_cond',{ cond:esc(condLabel(c)), who:who(r) }));
+  });
+  return out.map(t=>t+'.').join(' ');
+}
 function renderApprovalRules(){
   const host=document.getElementById('approval-rules'); if(!host) return;
   const rules=approvalRules().slice().sort((a,b)=>(a.order||99)-(b.order||99));
-  host.innerHTML=rules.length?rules.map((r,i)=>`
-    <div style="border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:10px var(--s-3);margin-bottom:var(--s-2)">
-      <div style="display:flex;align-items:center;gap:var(--s-2)">
-        <span style="width:22px;height:22px;display:inline-grid;place-items:center;border-radius:50%;background:var(--tile-steel-bg);font-size:var(--t-label);font-weight:var(--w-title);color:var(--tile-steel-fg);flex:none">${r.order||1}</span>
-        <span style="font-size:var(--t-meta);color:var(--color-text)"><b>${i18t('set_if')}</b> ${condLabel(r.cond)} <b>${i18t('set_then')}</b> ${approverLabelOf(r.approver)}</span>
-        ${isAdmin()?`<span style="margin-left:auto;display:flex;gap:10px;font-size:var(--t-label);font-weight:var(--w-strong)"><button data-ar-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--accent-ink-700)">${i18t('set_edit_lower')}</button><button data-ar-del="${i}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">${i18t('set_remove_lower')}</button></span>`:''}
-      </div>
-    </div>`).join(''):`<p style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('set_no_approval_rules')}</p>`;
+  const all=approvalRules();
+  const words=document.getElementById('ar6-words');
+  if(words) words.innerHTML=arWordsHtml(rules);
+  const admin=isAdmin();
+  host.innerHTML=rules.length?`<div class="ar6-row is-head"><span></span><span>${esc(i18t('ar6_h_if'))}</span><span>${esc(i18t('ar6_h_then'))}</span><span>${esc(i18t('ar6_h_open'))}</span><span></span></div>`+rules.map(r=>{
+    const i=all.indexOf(r), who=approverLabelOf(r.approver), n=arOpenAsks(r);
+    return `<div class="ar6-row"><span class="ar6-n">${r.order||1}</span><span class="ar6-if"><span class="ar6-cond" title="${esc(condLabel(r.cond))}">${esc(condLabel(r.cond))}</span></span>
+      <span class="ar6-who">${r.approver&&r.approver.kind==='member'?`<span class="ar6-ini" aria-hidden="true">${esc(arInitials(who))}</span>`:''}<span title="${esc(who)}">${esc(who)}</span></span>
+      <span>${n?`<span class="apn-st is-amber">${esc(i18tn('ar6_asks',n,{ n }))}</span>`:''}</span>
+      <span class="ar6-more">${admin?`<button type="button" class="ar6-dots" data-ar6-more aria-expanded="false" aria-label="${esc(i18t('ar6_more'))}" title="${esc(i18t('ar6_more'))}">${icon('more','w-4 h-4')}</button><span class="apn-rule-menu ar6-menu" hidden><button type="button" data-ar-edit="${i}">${esc(i18t('ar6_edit'))}</button><button type="button" data-ar-del="${i}">${esc(i18t('ar6_remove'))}</button></span>`:''}</span></div>`; }).join('')
+    :`<p class="st-note">${esc(i18t('set_no_approval_rules'))}</p>`;
+  if(!document._ar6Wired){ document._ar6Wired=true; document.addEventListener('click',e=>{ if(e.target&&e.target.closest&&e.target.closest('.ar6-more')) return;
+    document.querySelectorAll('#approval-rules .ar6-menu:not([hidden])').forEach(m=>{ m.hidden=true; }); }); }
+  host.querySelectorAll('[data-ar6-more]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); const m=b.parentNode.querySelector('.ar6-menu'); if(!m) return;
+    const show=m.hidden; host.querySelectorAll('.ar6-menu').forEach(x=>{ x.hidden=true; }); host.querySelectorAll('[data-ar6-more]').forEach(x=>x.setAttribute('aria-expanded','false'));
+    m.hidden=!show; b.setAttribute('aria-expanded',String(show)); }));
   host.querySelectorAll('[data-ar-edit]').forEach(b=>b.addEventListener('click',()=>openApprovalRuleEditor(Number(b.getAttribute('data-ar-edit')))));
   host.querySelectorAll('[data-ar-del]').forEach(b=>b.addEventListener('click',()=>{ const rules2=approvalRules().slice(); rules2.splice(Number(b.getAttribute('data-ar-del')),1); saveApprovalRules(rules2); renderApprovalRules(); toast(i18t('set_rule_removed'),'ok'); }));
+  /* the clash, said once: who both asks for and gives the yes on a rule, or a stream nobody may say yes in */
+  const ch=document.getElementById('ar6-clash');
+  if(ch){ let cl=null; try{ cl=(typeof stClashes==='function'?stClashes():[]).find(x=>(x.kind==='self'&&!x.stream)||x.kind==='nobody')||null; }catch(_){ cl=null; }
+    ch.innerHTML=cl?`<div class="ar6-clash"><i aria-hidden="true"></i><div>${esc(cl.text)}. <button type="button" class="ui-link" data-ar6-sheet>${esc(i18t('ar6_clash_go'))}</button></div></div>`:'';
+    ch.querySelector('[data-ar6-sheet]')?.addEventListener('click',()=>stHoldLeaveThen(()=>{ stDrawerClose(); if(typeof settingsGoPage==='function') settingsGoPage('sheet'); })); }
 }
 function openApprovalRuleEditor(idx){
   const rules=approvalRules().slice();
@@ -9755,34 +10766,27 @@ function openApprovalRuleEditor(idx){
      WHICH STEP (a list of steps, not a number box), then the rule read back
      in one line. Every id is kept: ar-order is now the step list. */
   const steps=Math.max(rules.length+(idx>=0?0:1), Number(r.order)||1, 1);
-  const selCls='style="'+HATI_FLD+'"';
-  openModal(`<div class="p-6">
-    <h3>${idx>=0?i18t('set_edit_rule'):i18t('set_add_rule')}</h3>
-    <div class="sap-body">
-      <div class="sap-f"><span class="sap-lbl">${esc(i18t('ar_when'))}</span>
-        <div class="sap-row">
-          <select id="ar-cond" ${selCls} aria-label="${esc(i18t('set_condition'))}">${AR_CONDS().map(([k,l])=>`<option value="${k}" ${r.cond.type===k?'selected':''}>${l}</option>`).join('')}</select>
-          <div id="ar-condval"></div>
-        </div></div>
-      <div class="sap-row">
-        <div class="sap-f"><label for="ar-approver">${esc(i18t('ar_who'))}</label>
-          <select id="ar-approver" ${selCls}>
-            <option value="role:admin" ${r.approver.kind==='role'&&r.approver.role==='admin'?'selected':''}>${i18t('set_any_admin')}</option>
-            <option value="role:legal" ${r.approver.kind==='role'&&r.approver.role==='legal'?'selected':''}>${i18t('set_any_legal')}</option>
-            ${orphan?`<option value="orphan" selected>${esc(orphan)} — ${i18t('set_approver_gone')}</option>`:''}
-            ${members.map(m=>`<option value="member:${esc(m.id)}" ${isAp(m)?'selected':''}>${esc(m.name)} (${roleName(m.role)})</option>`).join('')}
-          </select></div>
-        <div class="sap-f"><label for="ar-order">${esc(i18t('ar_step'))}</label>
-          <select id="ar-order" ${selCls}>${Array.from({length:steps},(_,i)=>`<option value="${i+1}"${Number(r.order||1)===i+1?' selected':''}>${esc(i18t('ar_step_n',{n:i+1}))}</option>`).join('')}</select></div>
-      </div>
-      ${orphan?`<span style="display:block;font-size:var(--t-label);color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);padding:6px 9px;border-radius:var(--radius)">${i18t('set_approver_gone_note',{name:esc(orphan)})}</span>`:''}
+  /* THE ONE EDIT POP-UP (lgp; owner, 19 Nov 2026: "Fix all batches"): When, its value, Who approves and in which step
+     as quiet lines with the label beside the words, the rule read back under them. Every id is the one it had. */
+  const selCls='class="lgp-in"';
+  const apM0=members.find(isAp);
+  const apVal=orphan?'orphan':(r.approver.kind==='member'?(apM0?'member:'+apM0.id:''):'role:'+(r.approver.role||'admin'));
+  lgpOpen({ id:'ar-form', focus:false, title:idx>=0?i18t('set_edit_rule'):i18t('set_add_rule'),
+    html:`<label class="lgp-row"><span class="lgp-k">${esc(i18t('ar_when'))}</span><span class="lgp-v">
+        <select id="ar-cond" ${selCls} aria-label="${esc(i18t('set_condition'))}">${AR_CONDS().map(([k,l])=>`<option value="${k}" ${r.cond.type===k?'selected':''}>${esc(l)}</option>`).join('')}</select></span></label>
+      <label class="lgp-row" id="ar-condrow"><span class="lgp-k" id="ar-condk"></span><span class="lgp-v" id="ar-condval"></span></label>
+      ${lgpRowHtml({ k:i18t('ar_who'), id:'ar-approver', type:'select', value:apVal, opts:[
+        { v:'role:admin', t:i18t('set_any_admin') }, { v:'role:legal', t:i18t('set_any_legal') },
+        ...(orphan?[{ v:'orphan', t:`${orphan} — ${i18t('set_approver_gone')}` }]:[]),
+        ...members.map(m=>({ v:'member:'+m.id, t:`${m.name} (${roleName(m.role)})` })) ] })}
+      ${lgpRowHtml({ k:i18t('ar_step'), id:'ar-order', type:'select', value:String(Number(r.order||1)),
+        opts:Array.from({length:steps},(_,i)=>({ v:String(i+1), t:i18t('ar_step_n',{n:i+1}) })) })}
+      ${orphan?`<p class="lgp-small" style="color:var(--st-amber-fg)">${i18t('set_approver_gone_note',{name:esc(orphan)})}</p>`:''}
       ${''/* THE RULE READ BACK AS A SENTENCE (SAP pop-ups, owner's yes 10 Oct
              2026): painted on every change by arSays below. */}
-      <div id="ar-says" role="status" style="display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border-radius:var(--radius);border:1px solid color-mix(in srgb, var(--accent-fill) 25%, transparent);background:color-mix(in srgb, var(--accent-fill) 8%, var(--color-surface));color:var(--accent-ink);font-size:var(--t-body);line-height:1.45"></div>
-    </div>
-    <div class="flex justify-end gap-2"><button data-dlg-cancel id="ar-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      <button id="ar-save" class="ui-btn ui-btn-primary">${i18t(idx>=0?'set_save_rule':'ar_add_go')}</button></div>
-  </div>`,{maxWidth:'560px'});
+      <div id="ar-says" class="lgp-small" role="status" style="display:flex;gap:var(--s-2);align-items:flex-start;color:var(--color-text);line-height:1.45"></div>`,
+    primary:{ label:i18t(idx>=0?'set_save_rule':'ar_add_go'), attr:'id="ar-save"' },
+    cancelAttr:'data-dlg-cancel id="ar-cancel"', cancelLabel:i18t('act_cancel') });
   const arSays=()=>{
     const host=document.getElementById('ar-says'); if(!host) return;
     const t=document.getElementById('ar-cond').value, cv=document.getElementById('ar-cv');
@@ -9791,11 +10795,15 @@ function openApprovalRuleEditor(idx){
     const who=(apSel && apSel.selectedOptions[0]) ? apSel.selectedOptions[0].textContent.trim() : '';
     host.innerHTML=`${icon('info','w-4 h-4')}<span>${esc(i18t('ar_reads_k'))} <b>${esc(i18t('ar_reads_s',{ who, n:Math.max(1,Number(document.getElementById('ar-order').value||1)), cond:condLabel(cond) }))}</b></span>`;
   };
+  /* the condition's value on its own line, labelled with the words that name it; a condition that needs no value
+     says so on that line */
   const renderCondVal=()=>{ const t=document.getElementById('ar-cond').value; const h=document.getElementById('ar-condval');
-    if(t==='value') h.innerHTML=`<span class="of-amt"><i>${esc(jxCurrency())}</i><input id="ar-cv" type="number" aria-label="${esc(i18t('set_threshold',{cur:jxCurrency()}))}" value="${r.cond.type==='value'?r.cond.value:5000000}"/></span>`;
+    const k=document.getElementById('ar-condk');
+    if(k) k.textContent=t==='value'?i18t('set_threshold',{cur:jxCurrency()}):t==='folder'?i18t('set_value_stream'):t==='kind'?i18t('set_type_contains'):'';
+    if(t==='value') h.innerHTML=`<span class="of-amt"><i>${esc(jxCurrency())}</i><input id="ar-cv" class="lgp-in" type="number" aria-label="${esc(i18t('set_threshold',{cur:jxCurrency()}))}" value="${r.cond.type==='value'?r.cond.value:5000000}"/></span>`;
     else if(t==='folder') h.innerHTML=`<select id="ar-cv" ${selCls} aria-label="${esc(i18t('set_value_stream'))}">${Object.values(FOLDERS).map(f=>`<option value="${esc(f.id)}" ${r.cond.value===f.id?'selected':''}>${esc(f.name)}</option>`).join('')}</select>`;
-    else if(t==='kind') h.innerHTML=`<input id="ar-cv" ${selCls} aria-label="${esc(i18t('set_type_contains'))}" value="${r.cond.type==='kind'?(r.cond.value||''):''}" placeholder="${esc(i18t('set_ph_eg_lease'))}"/>`;
-    else h.innerHTML=`<p class="sap-help" style="padding-top:7px">${i18t('set_no_extra_value')}</p>`; };
+    else if(t==='kind') h.innerHTML=`<input id="ar-cv" ${selCls} autocomplete="off" aria-label="${esc(i18t('set_type_contains'))}" value="${r.cond.type==='kind'?(r.cond.value||''):''}" placeholder="${esc(i18t('set_ph_eg_lease'))}"/>`;
+    else h.innerHTML=`<span class="lgp-in is-read" style="color:var(--color-quiet)">${i18t('set_no_extra_value')}</span>`; };
   document.getElementById('ar-cond').addEventListener('change',()=>{ renderCondVal(); arSays(); }); renderCondVal();
   document.querySelector('#modal-root [role="dialog"]').addEventListener('input',arSays);
   document.querySelector('#modal-root [role="dialog"]').addEventListener('change',arSays);
@@ -9965,16 +10973,20 @@ function renderReviewGatePanel(){
 /* THE GATE IS A SETTING AND WRITES ON CHANGE — gates have no Save (the
    rulebook's own line). Three answers, safest first, so the default is the one
    the eye lands on. A non-admin is shown the state and cannot move it. */
+/* P-43, THE CHECK BEFORE SIGNING THE LEGORA + STRIPE WAY (owner's pick 21 Nov 2026): the three answers as ONE
+   segmented control (the radios kept, written on change as before); the chosen one in words; what happens at signing
+   as a small timeline, read off the three answers' own sentences; the other two in a line each */
+const SC6_STEPS={ off:[['green','sc6_tl_see'],['grey','sc6_tl_off']], advise:[['green','sc6_tl_see'],['amber','sc6_tl_esc','sc6_tl_esc_s'],['grey','sc6_tl_else']], require:[['green','sc6_tl_see'],['amber','sc6_tl_req','sc6_tl_req_s']] };
 function renderSignCheckGatePanel(){
   const host=document.getElementById('sc-gate-panel'); if(!host) return;
   const admin=isAdmin();
   const now=(window.signCheckGate?signCheckGate():'off');
-  const row=k=>`<label style="display:flex;gap:9px;align-items:flex-start;font-size:var(--t-meta);line-height:1.5;margin-bottom:9px;cursor:${admin?'pointer':'not-allowed'}">
-    <input type="radio" name="sc-gate" value="${k}"${now===k?' checked':''}${admin?'':' disabled'} style="margin-top:2px"/>
-    <span><span style="font-weight:var(--w-strong);color:var(--color-text)">${i18t('sc_set_'+k)}</span>
-    <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${i18t('sc_set_'+k+'_d')}</span></span>
-  </label>`;
-  host.innerHTML=(window.SIGN_CHECK_GATES||['off','advise','require']).map(row).join('');
+  const G=(window.SIGN_CHECK_GATES||['off','advise','require']);
+  const seg=`<div class="sc6-seg" role="radiogroup" aria-label="${esc(i18t('sc_set_title'))}">${G.map(k=>`<label class="sc6-o${now===k?' is-on':''}${admin?'':' is-locked'}"><input type="radio" name="sc-gate" value="${k}"${now===k?' checked':''}${admin?'':' disabled'}/><span>${esc(i18t('sc_set_'+k))}</span></label>`).join('')}</div>`;
+  const steps=(SC6_STEPS[now]||SC6_STEPS.off);
+  const tl=`<div class="sc6-tl"><p class="sc6-h">${esc(i18t('sc6_tl_h',{ gate:i18t('sc_set_'+now) }))}</p><ol class="sc6-tline">${steps.map(([tone,k,sk])=>`<li class="is-${tone}"><i aria-hidden="true"></i><span>${esc(i18t(k))}${sk?`<small> · ${esc(i18t(sk))}</small>`:''}</span></li>`).join('')}<li class="is-sign"><i aria-hidden="true"></i><span>${esc(i18t('sdd5_signature'))}</span></li></ol></div>`;
+  const others=`<div class="sc6-others">${G.filter(k=>k!==now).map(k=>`<div><b>${esc(i18t('sc_set_'+k))}</b><span>${esc(i18t('sc6_other_'+k))}</span></div>`).join('')}</div>`;
+  host.innerHTML=seg+`<p class="st-inwords">${i18t('sc6_words_'+now,{ gate:'<b>'+esc(i18t('sc_set_'+now))+'</b>' })}</p>`+tl+others;
   if(!admin) return;
   host.querySelectorAll('input[name="sc-gate"]').forEach(r=>r.addEventListener('change',()=>{
     if(!r.checked) return;
@@ -10037,6 +11049,25 @@ function renderLinkCodePanel(){
     if(window.toast) toast(i18t(e.target.checked?'set_link_code_on':'set_link_code_off'),'ok');
   });
 }
+function renderRemindTheirsPanel(){
+  const host=document.getElementById('rt-rule-panel'); if(!host) return;
+  const admin=isAdmin();
+  const cfg=(window.remindTheirsCfg?remindTheirsCfg():{on:false});
+  const noMail=!!(window.emailOff&&emailOff());
+  const blocked=noMail&&!cfg.on;
+  host.innerHTML=`
+    <label style="display:flex;gap:9px;align-items:flex-start;font-size:var(--t-meta);line-height:1.5;cursor:${admin&&!blocked?'pointer':'not-allowed'}">
+      <input id="rt-rule-on" type="checkbox"${cfg.on?' checked':''}${admin&&!blocked?'':' disabled'} style="margin-top:2px"/>
+      <span style="font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_remind_theirs')}</span>
+    </label>${noMail?`<p class="st-note" style="margin:6px 0 0 24px">${esc(i18t('set_remind_theirs_no_mail'))}</p>`:''}`;
+  if(!admin) return;
+  host.querySelector('#rt-rule-on')?.addEventListener('change',e=>{
+    if(e.target.checked && window.emailOff && emailOff()){ e.target.checked=false; toast(i18t('set_remind_theirs_no_mail'),'err'); return; }
+    if(window.saveRemindTheirsCfg) saveRemindTheirsCfg({ on:!!e.target.checked });
+    stRepaintRow('remindtheirs');
+    if(window.toast) toast(i18t(e.target.checked?'set_remind_theirs_on':'set_remind_theirs_off'),'ok');
+  });
+}
 function renderDeskRulePanel(){
   const host=document.getElementById('dk-rule-panel'); if(!host) return;
   const admin=isAdmin();
@@ -10095,13 +11126,13 @@ async function loadSessions(){
    the else branch and nobody catches it — the lesson rlPaperFootHtml taught
    this codebase for a year. openMyAccount and openSettingsAt are the two doors
    the shell calls; SET_PANELS and the readers beside it are what the tests read. */
-Object.assign(window,{stNeedGo,stNeedDoorEl,stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsPlace,settingsPlacePut,stAgentsPaint,ST_AGENT_KEYS,AG_MONEY_NOTE_KEYS,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
+Object.assign(window,{acRead,acRun,acFixGo,AC_LEVELS,stLsOn,stLsHeadHtml,stLsPanelPaint,stLsRepaint,ST_LS_PAGES,stNeedGo,stNeedDoorEl,stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsPlace,settingsPlacePut,stAgentsPaint,ST_AGENT_KEYS,AG_MONEY_NOTE_KEYS,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
   renderPlaybookView,openPlaybookEditor,stdPositionOpen,pbRemoveType,pbResetPlaybook,stdRemoveClause,stdDraftSetOpen,
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   stRulesRows,stPaintRules,stPaintSignFolders,
   openMyAccount,openSettingsAt,settingsGoTab,stUnfinishedCount,stPeopleWire,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
   ST_FACES,stPageHeadHtml,stPushHtml,stPushPaint,stPushRefresh,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stYouHtml,stYouCardHtml,stYouSheetItems,ST_YOU_SHEET,stChipsSet,stNewLookSet,stOpensSet,stBriefSet,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stAskDirect,stAskOpenOn,stAdminsSaid,stDay,stJbAnswer,stJbAmount,stJbAsk,stJbAskJambo,stJbTalkNow,stJamboFocus,stSideSet,stSideFit,ST_SIDE_MIN,ST_BOARD_MIN,ST_SPLIT_KEY,ST_SPLIT,stSplitFit,
-  stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
+  stDrawerOpen,stDrawerClose,stDrawerRefuse,stHoldTake,stHoldApi,stHoldDirty,stHoldLeaveThen,stHoldSave,stHoldDrop,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stLoadAiCfgOnce,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stPersonSays,stPersonSumHtml,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
   stSigningSectionHtml,stSigningRead,stPaintLadder,stReviewSectionHtml,stReviewRead,stSignFolderHtml,stSignFolderRead,
@@ -10112,42 +11143,12 @@ Object.assign(window,{stNeedGo,stNeedDoorEl,stClashes,stArDue,stArLabel,stArCoun
    (PAGE_HEAD_PAINT reads it off window), a form in its row, the stream beside
    the list, Jambo's words for the page in front, your own copy and name and
    email, and the readings the checks ask */
-Object.assign(window,{stnOn,stnPaint,stnPanelPaint,stnPanelHtml,stnYouHtml,stnCompanyHtml,stnListHtml,stnListPaint,stnRowsAll,stnAgentsSaid,stLessonsLoad,stLessonsPaint,stLessonTeach,stLessonFine,stLessonForget,stLessonPlaces,stJbBoxAsk,stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
+Object.assign(window,{stJbCardHtml,stnOn,stnPaint,stnPanelPaint,stnPanelHtml,stnAgentsSaid,sddRows,sddGo,sddCardHtml,sddNeedList,sddPanelNeeds,sddPickSet,stLessonsLoad,stLessonsPaint,stLessonTeach,stLessonFine,stLessonForget,stLessonPlaces,stJbBoxAsk,stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
   stSwPickSet,stSwPanelHtml,stSwRows,stJbFeedHtml,stJbFeedRepaint,stJbCompanyWords,stJbDataWords,stJbStreamsWords,stJbNeedPhrase,stSideFoldSet,
   stTrailLeftOut,stHouseFacts,stTrailPastHtml,stYouCardRepaint,stGovLadderHtml,stSheetCardHtml});
 
-/* ═══ SETTINGS & RULES, THE NEW LOOK (round 7, as drawn; behind the admin's "Try the new look") ═══
-   One list of sentences: each setting says its state, who may change it and what it gates. You first; the company
-   for admins. A menu down the left lands on a row (or opens People & roles, Streams, the trail and Jambo's lessons
-   as today); every Change opens the drawer that changes it today. The panel: Needs an admin (stNeedsAll), Ask an
-   admin (a record), Jambo's lessons (the phrases nobody could place). Nothing here writes but the existing doors. */
+/* ═══ SETTINGS IN THE NEW LOOK: THE SIX AREAS (P-11, below) on the page the list stood on (#set-page.stn-page) ═══ */
 function stnOn(){ return typeof window.newLookOn==='function' && newLookOn() && typeof insFits==='function' && insFits() && typeof insPaintPanel==='function'; }
-/* THE LEGORA WAY, WITH COLOUR (owner's pick by name, 13 Nov 2026: "build the legora way", after "No color what so ever"):
-   nothing boxed, one quiet list. Every setting belongs to ONE area (STN_AREA_OF) and wears its tone: a round coloured
-   mark leads the row, the name in ink with its sentence under it, what it is set to as a dot and a word, its one door
-   last. Coloured chips choose an area (only areas that have rows); the left menu is gone, its four pages are links at
-   the foot. A row is one object {id, html}; the list groups them by area. Nothing here writes but the existing doors. */
-const STN_AREAS=['you','sec','rule','money','msg'];
-const STN_AREA_OF={ name:'you', lang:'you', agents:'you', twostep:'sec', signcap:'sec', linkcode:'sec', approvals:'rule', review:'rule', rates:'money', push:'msg', mail:'msg', outsidelook:'msg' };
-const STN_ICON={ name:'user', lang:'chat', agents:'sparkle', twostep:'lock', signcap:'pencil', linkcode:'link', approvals:'check2', review:'readpaper', rates:'coins', push:'megaphone', mail:'send', outsidelook:'building' };
-let _stnArea='all';
-function stnAreaOf(id){ return STN_AREA_OF[id]||'you'; }
-function stnRow(id, label, value, sub, act){
-  const ar=stnAreaOf(id), ic=(typeof icon==='function')?icon(STN_ICON[id]||'cog','w-4 h-4'):'';
-  return { id, area:ar, html:`<div class="stn-row a-${ar}" id="stn-${id}" data-stn-row="${id}"><span class="stn-mark" aria-hidden="true">${ic}</span><div class="stn-t"><div class="stn-l">${esc(label)}</div>${sub?`<div class="stn-sub">${esc(sub)}</div>`:''}</div><div class="stn-v"><div class="stn-val">${value}</div></div><div class="stn-a">${act||''}</div></div>` };
-}
-const stnDoor=(attr,w)=>`<button type="button" class="ui-link stn-go" ${attr}>${esc(w)}</button>`;
-/* ON / OFF PILLS (owner's pick by name, 9 Nov 2026; the colour round): what a setting is set to reads as a soft pill in
-   its state's tone, read off the panel's own reading (st.dot): working green, off grey, wanting a decision amber. The
-   words stay the panel's own. */
-const STN_PILL_TONE = { ok:'on', on:'on', off:'off', warn:'need', need:'need' };
-function stnPill(html, dot){ const t=STN_PILL_TONE[dot]||''; return html&&t?`<span class="stn-pill stn-dot is-${t}">${html}</span>`:html; }
-/* the alerts row: a short word in the pill (On · Off · Blocked), the browser's own sentence under it */
-function stnPushSaid(ps, said){
-  const short=ps==='on'?i18t('stn_pill_on'):ps==='blocked'?i18t('stn_pill_blocked'):i18t('stn_pill_off');
-  return `${stnPill(esc(short), ps==='on'?'on':ps==='blocked'?'need':'off')}${ps==='on'?'':`<div class="stn-said">${said}</div>`}`;
-}
-function stnStateText(k){ const st=stStateOf(k); return st&&st.text?stnPill(esc(stShortState(st.text)), st.dot):''; }
 function stnAgentsSaid(){
   const keys=(typeof AG_KEYS!=='undefined'&&Array.isArray(AG_KEYS))?AG_KEYS:[];
   if(!keys.length||typeof agLevelOf!=='function') return '';
@@ -10168,119 +11169,545 @@ function stnApprovalsOpen(){
   let n=0; (state.contracts||[]).forEach(c=>{ try{ const s=window.approvalState?approvalState(c):null; if(s&&s.required&&!s.ok&&c.status!=='Signed') n++; }catch(_){ /* not counted */ } });
   return n;
 }
-function stnYouHtml(){
-  const u=(typeof currentUser==='function'&&currentUser())||{};
-  const api=(typeof API_MODE==='function')&&API_MODE();
-  const name=[u.name||u.email||'', u.title||u.jobTitle||''].filter(Boolean).join(' · ');
-  const L=(typeof LANGUAGES!=='undefined'?LANGUAGES:[]), now=(typeof langId==='function')?langId():'';
-  const langName=(L.find(l=>l.id===now)||{}).name||now;
-  const seg=`<span class="st-yseg stn-seg" role="group" aria-label="${esc(i18t('st_you_lang'))}">${L.map(l=>`<button type="button" data-st-lang="${esc(l.id)}" aria-pressed="${l.id===now?'true':'false'}">${esc(l.name||l.id)}</button>`).join('')}</span>`;
-  const ps=_stPush;
-  const push=ps?esc(ps==='on'?i18t('stn_push_on'):(typeof pushStateSaid==='function'?pushStateSaid(ps):ps)):'';
-  if(!ps) setTimeout(()=>{ if(typeof pushState==='function') pushState().then(st=>{ if(st!==_stPush){ _stPush=st; if(document.querySelector('.stn-page')) stnPaint(stIsAdmin()); } }).catch(()=>{}); },0);
-  const out=[stnRow('name', i18t('st_you_name_row'), esc(name), i18t('stn_name_sub'), stnDoor('data-st-panel="me:name"', i18t('st_you_change'))),
-    stnRow('lang', i18t('st_you_lang'), esc(langName), i18t('stn_lang_sub'), seg)];
-  if(api) out.push(stnRow('twostep', i18t('ts_title'), stnPill(esc(u.twoStep?i18t('stn_ts_on'):i18t('stn_ts_off')), u.twoStep?'on':'off'), u.twoStep?i18t('stn_ts_on_sub'):i18t('stn_ts_off_sub'), stnDoor('data-st-panel="me:twostep"', i18t('st_you_change'))));
-  if(api) out.push(stnRow('push', i18t('stn_push'), push?stnPushSaid(ps, push):esc(i18t('push_checking')), i18t('stn_push_sub'), (ps==='on'||ps==='off')?stSwHtml('push',ps==='on',i18t('stn_push')):''));
+/* ═══ SETTINGS, DOOR TO DOOR (P-11; the owner picked "Six doors", then "build it with the Dossier card", 17 Nov 2026) ═══
+   ROUND 1, as the Parking lot's plan says: the landing is six areas (You · Company · Rules · Jambo · Mail and intake ·
+   Set-up and records), each listing what it holds; every setting has ONE row in ONE area, saying in a plain sentence
+   what it is set to, read off the setting's own reading (stStateOf, the workspace's records), never guessed; one find
+   box searches every row. A press CHOOSES a row (Jambo's panel says what it does, who it touches, what is set), a
+   second press OPENS it through the door it has today (the same data-st-* attributes, the same drawer, page or
+   switch) — the small forms in their rows are the later rounds'. Today's four pages at the foot sit inside an area:
+   People & roles and Streams & categories in Company, Jambo's lessons in Jambo, Trail & backup in Set-up and records;
+   their "‹" goes back to that area. Nothing here writes: every act is the existing door's. The new look only. */
+const SDD_AREAS=['you','company','rules','jambo','mail','setup'];
+/* the area a page inside Settings belongs to (its "‹" goes back there) */
+const SDD_PAGE_AREA={ team:'company', sheet:'company', roles:'company', streams:'company', look:'company', data:'setup', panel:null, guard:null };
+const SDD_TONE={ you:'you', company:'money', rules:'rule', jambo:'jambo', mail:'msg', setup:'sec' };
+/* each area and row wears an emoji for what it is, HaTi's own where one already says the same (owner, 19 Nov 2026);
+   a mark, never a button's words (f385). A row id ending in a number (awayfor0) reads its stem. */
+const SDD_EMOJI={ area:{ you:'👤', company:'🏢', rules:'⚖️', jambo:'✨', mail:'✉️', setup:'🛠️' },
+  row:{ who:'👤', email:'✉️', lang:'🗣️', told:'📬', push:'🔔', work:'🧭', 'agents-mine':'✨', points:'⭐', away:'🏖️', awayfor:'🤝',
+    twostep:'🔒', sessions:'💻', password:'🔑', mydata:'📥',
+    company:'🏢', streams:'🗂️', workshape:'📊', people:'👥', sheet:'📋', roles:'🏷️', directory:'📇', look:'🎨', rates:'💱', paydays:'💳',
+    rules:'⚖️', approvals:'✅', signcheck:'🔍', signcap:'✍️', signfolder:'🖊️', signroute:'📝', hold:'⏹️', review:'👀', desk:'✏️', linkcode:'🔐',
+    budget:'💵', questions:'💬', person:'⏱️', bigjobs:'⚠️', imports:'📦', agents:'✨', overnight:'🌙', navigate:'🧭', boardwords:'📖', lessons:'🎓', facts:'📌', boardaccuracy:'🎯', copilot:'🤖', engine:'⚙️',
+    mail:'✉️', outbox:'📤', renewals:'🔁', remindtheirs:'📨', report:'📰', webhooks:'🔌', mailroom:'📥', lanes:'🛤️',
+    golive:'🚀', samples:'🧪', pilot:'👣', trail:'🧾', integrity:'🔏', env:'🖥️' },
+  /* THE PAGES' OWN (owner, 21 Nov 2026: "add the new emojis to the emoji rule book"): the seven the launchpad took from the old
+     panel's symbols because the book had none for them (LP_EMOJI, js/app.js). The book now holds every emoji HaTi draws. */
+  page:{ contracts:'📄', draft:'📝', negotiations:'🔁', oblig:'📃', calendar:'📅', reads:'🔍', pulse:'📈' } };
+function sddEmojiOf(id, area){ const R=SDD_EMOJI.row; return R[id]||R[String(id||'').replace(/\d+$/,'')]||SDD_EMOJI.area[area]||'•'; }
+function sddMkHtml(emo, area, need){ return `<span class="sdd-mk is-emo a-${SDD_TONE[area]||'you'}${need?' is-need':''}" aria-hidden="true">${emo}</span>`; }
+let _sddArea=null, _sddPick=null, _sddHome=null, _sddQ='';
+const sddTxt=h=>{ const s=String(h==null?'':h); if(!/[<&]/.test(s)) return s.trim();
+  if(typeof document==='undefined') return s.replace(/<[^>]*>/g,'').trim();
+  const d=document.createElement('div'); d.innerHTML=s; return String(d.textContent||'').replace(/\s+/g,' ').trim(); };
+/* a setting's own reading, as words: the panel's state line, with its own "Name — " lead taken off */
+function sddState(k){ const st=stStateOf(k)||{}; let t=sddTxt(stShortState(String(st.text||'')));
+  const p=SET_PANELS[k]; const ttl=p&&p.title?sddTxt(p.title()):''; t=t.replace(/^●\s*/,'');
+  const dash=t.lastIndexOf(' — '); if(dash>0&&(!ttl||t.slice(0,dash).length>=Math.min(ttl.length,12))) t=t.slice(dash+3);
+  return { t, dot:st.dot==='ok'||st.dot==='on'?'on':st.dot==='warn'?'need':st.dot==='off'?'off':'' }; }
+const sddOn=k=>{ const st=stStateOf(k)||{}; return st.dot==='ok'||st.dot==='on'; };
+const sddMoney=n=>'$'+Number(n||0).toFixed(2);
+const sddUser=()=>(typeof currentUser==='function'&&currentUser())||{};
+const sddApi=()=>(typeof API_MODE==='function')&&API_MODE();
+/* ONE ROW: { id, area, g (group), name, say (the sentence), sub (small print), now, dot, verb + door (today's
+   data-st-* attributes), or ctl (today's own control drawn in the row), who ('you' | 'admins'), affects } */
+function sddRow(o){ return Object.assign({ who:'admins', dot:'', now:'' }, o); }
+function sddPanelRow(area, g, k, x){
+  const s=sddState(k), p=SET_PANELS[k]; if(!p) return null;
+  return sddRow(Object.assign({ id:k, area, g, name:sddTxt(p.title()), say:s.t, now:s.t, dot:s.dot, verb:i18t('sdd_open'), door:`data-st-panel="${k}"` }, x||{}));
+}
+function sddYouRows(){
+  const u=sddUser(), api=sddApi(), rows=[];
+  const title=u.title||u.jobTitle||'', role=(typeof roleName==='function')?roleName(u.role):'';
+  rows.push(sddRow({ id:'who', area:'you', g:'about', who:'you', name:i18t('sdd_you_who'),
+    say:title?i18t('sdd_you_who_say',{ name:u.name||u.email||'', role, title }):i18t('sdd_you_who_say_nt',{ name:u.name||u.email||'', role }),
+    sub:i18t('sdd_you_who_sub'), now:title||i18t('sdd_you_who_nt'), dot:title?'':'need', verb:i18t('st_you_change'), door:'data-st-panel="me:name"' }));
+  if(api) rows.push(sddRow({ id:'email', area:'you', g:'about', who:'you', name:i18t('st_you_email_row'), say:i18t('sdd_you_email_say',{ email:u.email||'' }),
+    sub:i18t('sdd_you_email_sub'), now:u.email||'', verb:i18t('st_you_change'), door:'data-st-panel="me:email"' }));
+  const L=(typeof LANGUAGES!=='undefined'?LANGUAGES:[]), lid=(typeof langId==='function')?langId():'';
+  rows.push(sddRow({ id:'lang', area:'you', g:'about', who:'you', name:i18t('st_you_lang'), say:i18t('sdd_you_lang_say',{ lang:stLangName() }),
+    sub:i18t('stn_lang_sub'), now:stLangName(),
+    ctl:`<span class="st-yseg stn-seg" role="group" aria-label="${esc(i18t('st_you_lang'))}">${L.map(l=>`<button type="button" data-st-lang="${esc(l.id)}" aria-pressed="${l.id===lid?'true':'false'}">${esc(l.name||l.id)}</button>`).join('')}</span>` }));
+  if(api){ const cad=(typeof briefCadenceOf==='function')?briefCadenceOf(u):'daily';
+    rows.push(sddRow({ id:'told', area:'you', g:'about', who:'you', name:i18t('st_you_told'), say:i18t('sdd_you_told_say_'+cad),
+      sub:i18t('sdd_you_told_sub'), now:i18t('st_you_brief_'+cad), verb:i18t('st_you_change'), door:'data-st-panel="me:told"' }));
+    const ps=_stPush;
+    if(!ps) setTimeout(()=>{ if(typeof pushState==='function') pushState().then(st=>{ _stPush=st; if(st&&document.querySelector('.sdd-page')) sddRepaint(); }).catch(()=>{}); },0);
+    rows.push(sddRow({ id:'push', area:'you', g:'about', who:'you', name:i18t('stn_push'), say:i18t(ps==='on'?'sdd_you_push_on':ps==='blocked'?'sdd_you_push_blocked':'sdd_you_push_off'),
+      sub:i18t('stn_push_sub'), now:i18t(ps==='on'?'stn_pill_on':ps==='blocked'?'stn_pill_blocked':'stn_pill_off'), dot:ps==='on'?'on':ps==='blocked'?'need':'off',
+      ctl:(ps==='on'||ps==='off')?stSwHtml('push',ps==='on',i18t('stn_push')):'' })); }
+  rows.push(sddRow({ id:'work', area:'you', g:'about', who:'you', name:i18t('st_you_work'), say:i18t('sdd_you_work_say',{ opens:stOpensWord() }),
+    sub:i18t('sdd_you_work_sub'), now:stOpensWord(), verb:i18t('st_you_change'), door:'data-st-panel="me:work"' }));
   const ag=stnAgentsSaid();
-  if(ag) out.push(stnRow('agents', i18t('stn_agents'), esc(ag), i18t('stn_agents_sub'), stnDoor('data-st-view="jambo"', i18t('stn_open'))));
+  if(ag) rows.push(sddRow({ id:'agents-mine', area:'you', g:'about', who:'you', name:i18t('sdd_you_agents'), say:i18t('sdd_you_agents_say',{ said:ag }),
+    sub:i18t('stn_agents_sub'), now:ag, verb:i18t('stn_open'), door:'data-st-view="jambo"' }));
+  if(api&&typeof agPointsTableHtml==='function') rows.push(sddRow({ id:'points', area:'you', g:'about', who:'you', name:i18t('jh_pt_h_mine'), say:i18t('sdd_you_points_say'),
+    sub:i18t('sdd_you_points_sub'), verb:i18t('stn_open'), door:'data-st-panel="me:points"' }));
+  if(api){ const aw=state.away||{}, m=aw.mine, meF=stFirstOf(u.name)||u.email||'';
+    rows.push(sddRow({ id:'away', area:'you', g:'about', who:'you', name:i18t('st_you_away'), say:stAwayState(),
+      sub:m?i18t('st_aw_line',{ who:m.deputyName||'', from:stAwayWeekDay(m.from), to:stAwayWeekDay(m.to) })+' '+i18t('st_aw_sub',{ who:stFirstOf(m.deputyName)||m.deputyName||'', me:meF }):i18t('st_aw_none_sub'),
+      now:m?stAwayState():i18t('sdd_not_set'), dot:m?'on':'off',
+      ...(m?{ ctl:`<button type="button" class="sdd-go" data-sdd-go data-st-panel="me:away">${esc(i18t('st_aw_change'))}</button><button type="button" class="sdd-go" data-st-away-end="">${esc(i18t('st_aw_end'))}</button>` }
+        :{ verb:i18t('st_aw_set'), door:'data-st-panel="me:away"' }) }));
+    (Array.isArray(aw.covering)?aw.covering:[]).forEach((r,i)=>{ const on=r.from<=(aw.today||todayISO()); const w=on?stAwayWaiting(r):[]; const first=w[0]&&w[0].c;
+      const waits=w.length?' '+i18tn('st_aw_waits',w.length,{ n:w.length, what:i18t('st_aw_waits_what',{ party:(first&&(first.counterparty||first.name))||'' }) }):'';
+      rows.push(sddRow({ id:'awayfor'+i, area:'you', g:'about', who:'you', name:i18t('sdd_you_covering'),
+        say:i18t(on?'st_aw_covering':'st_aw_covering_later',{ who:r.userName, from:stAwayWeekDay(r.from), to:stAwayWeekDay(r.to) }), sub:i18t('st_aw_cover_what')+waits,
+        ...(on?{ verb:i18t('st_aw_open_it'), door:`data-st-away-open="${PB_ATTR((first&&first.id)||'')}"` }:{}) })); }); }
+  if(api){
+    rows.push(sddRow({ id:'twostep', area:'you', g:'signin', who:'you', name:i18t('ts_title'), say:i18t(u.twoStep?'sdd_you_ts_on':'sdd_you_ts_off'),
+      sub:i18t(u.twoStep?'stn_ts_on_sub':'stn_ts_off_sub'), now:i18t(u.twoStep?'stn_ts_on':'stn_ts_off'), dot:u.twoStep?'on':'off', verb:i18t('st_you_change'), door:'data-st-panel="me:twostep"' }));
+    rows.push(sddRow({ id:'sessions', area:'you', g:'signin', who:'you', name:i18t('st_acct_sessions'), say:i18t('sdd_you_sessions_say'),
+      sub:i18t('sdd_you_sessions_sub'), verb:i18t('stn_open'), door:'data-st-panel="me:sessions"' }));
+    rows.push(sddRow({ id:'password', area:'you', g:'signin', who:'you', name:i18t('sdd_you_password'), say:i18t('sdd_you_password_say'),
+      sub:i18t('st_you_password_sub'), verb:i18t('st_you_change'), door:'data-st-panel="me:password"' }));
+  }
+  rows.push(sddRow({ id:'mydata', area:'you', g:'signin', who:'you', name:i18t('st_you_data'), say:i18t('sdd_you_data_say'),
+    sub:i18t(api?'st_you_data_kept':'st_you_data_sub'), verb:i18t('st_you_download'), door:'data-st-mycopy' }));
+  return rows;
+}
+function sddCompanyRows(){
+  const rows=[], users=(typeof stUsers==='function')?stUsers():[], inv=(typeof stInvited==='function')?stInvited():[];
+  const nF=Object.values(FOLDERS||{}).filter(f=>f&&f.id).length;
+  rows.push(sddPanelRow('company','who','company',{ say:i18t('sdd_co_company_say',{ what:sddState('company').t }), sub:i18t('sdd_co_company_sub'), verb:i18t('st_you_change') }));
+  rows.push(sddRow({ id:'streams', area:'company', g:'who', name:i18t('stn_m_streams'), say:i18tn('sdd_co_streams_say',nF,{ n:nF }),
+    sub:i18t('sdd_co_streams_sub'), now:i18tn('sdd_co_streams_now',nF,{ n:nF }), verb:i18t('stn_open'), door:'data-st-page="streams"', page:'streams' }));
+  rows.push(sddPanelRow('company','who','workshape',{ say:i18t('sdd_co_shape_say',{ what:sddState('workshape').t }), sub:i18t('sdd_co_shape_sub'), verb:i18t('st_you_change') }));
+  const nU=users.length;
+  rows.push(sddRow({ id:'people', area:'company', g:'people', name:i18t('stn_m_people'),
+    say:inv.length?i18t('sdd_co_people_say_inv',{ n:nU, k:inv.length }):i18tn('sdd_co_people_say',nU,{ n:nU }),
+    sub:i18t('sdd_co_people_sub'), now:i18tn('sdd_co_people_now',nU,{ n:nU }), verb:i18t('stn_open'), door:'data-st-page="team"', page:'team' }));
+  rows.push(sddRow({ id:'sheet', area:'company', g:'people', name:i18t('st_pg_sheet'), say:i18t('sdd_co_sheet_say'),
+    sub:i18t('sdd_co_sheet_sub'), verb:i18t('stn_open'), door:'data-st-page="sheet"', page:'sheet' }));
+  if(typeof stBzOn==='function'&&stBzOn()) rows.push(sddRow({ id:'roles', area:'company', g:'people', name:i18t('st_pg_roles'), say:i18t('sdd_co_roles_say'),
+    sub:i18t('sdd_co_roles_sub'), verb:i18t('stn_open'), door:'data-st-page="roles"', page:'roles' }));
+  rows.push(sddPanelRow('company','people','directory',{ name:i18t('sdd_co_contacts'), say:i18t('sdd_co_contacts_say',{ what:sddState('directory').t }), sub:i18t('sdd_co_contacts_sub') }));
+  rows.push(sddRow({ id:'look', area:'company', g:'paper', name:SET_PANELS.design?sddTxt(SET_PANELS.design.title()):i18t('sdd_co_look'), say:sddState('design').t,
+    sub:i18t('sdd_co_look_sub'), now:sddState('design').t, dot:sddState('design').dot, verb:i18t('stn_open'), door:'data-st-page="look"', page:'look' }));
+  const fx=stnRatesSaid();
+  rows.push(sddRow({ id:'rates', area:'company', g:'paper', name:i18t('stn_rates'), say:i18t('sdd_co_rates_say',{ what:sddTxt(fx.v) }), sub:i18t('stn_rates_sub'),
+    now:sddTxt(fx.v), verb:i18t('stn_update'), door:'data-st-panel="company" data-st-focus="#st-fx-row"' }));
+  rows.push(sddPanelRow('company','paper','paydays',{ say:i18t('sdd_co_paydays_say',{ what:sddState('paydays').t }), sub:i18t('sdd_co_paydays_sub'), verb:i18t('st_you_change') }));
+  return rows.filter(Boolean);
+}
+function sddRulesRows(){
+  const rows=[], ap=stnApprovalsOpen();
+  /* the panel's one button says Change, on or off (P-43 as drawn: "Change" for Signing limits while it is off too) */
+  const onoff=(k,x)=>sddPanelRow('rules',x.g,k,{ say:i18t('sdd_ru_'+k+(sddOn(k)?'_on':'_off')), sub:i18t('sdd_ru_'+k+'_sub'), now:i18t(sddOn(k)?'stn_pill_on':'stn_pill_off'), verb:i18t('st_you_change') });
+  /* "4 of 7 on" in the Now column, "Before signing: 4 of 7 rules are on." as its sentence (P-43 as drawn; the rules
+     page's own count, stRulesRows — the rules that ever hold a signature) */
+  const hr=(typeof stRulesRows==='function'?stRulesRows():[]).filter(r=>r&&r.holds), hn=hr.filter(r=>r.on).length;
+  rows.push(sddPanelRow('rules','sign','rules',{ say:i18t('sdd_ru_rules_say',{ n:hn, of:hr.length }), now:i18t('sdd_ru_rules_now',{ n:hn, of:hr.length }), sub:i18t('sdd_ru_rules_sub') }));
+  rows.push(sddPanelRow('rules','sign','approvals',{ say:i18t('sdd_ru_approvals_say',{ what:sddState('approvals').t }),
+    sub:ap?i18tn('stn_ap_open',ap,{ n:ap }):i18t('sdd_ru_approvals_sub'), verb:i18t('st_you_change') }));
+  rows.push(sddPanelRow('rules','sign','signcheck',{ say:i18t('sdd_ru_signcheck_say',{ what:sddState('signcheck').t }), sub:i18t('sdd_ru_signcheck_sub'), verb:i18t('st_you_change') }));
+  rows.push(onoff('signcap',{ g:'sign' }));
+  rows.push(onoff('signfolder',{ g:'sign' }));
+  rows.push(sddPanelRow('rules','sign','signroute',{ say:i18t('sdd_ru_signroute_say',{ what:sddState('signroute').t }), sub:i18t('sdd_ru_signroute_sub'), verb:i18t('st_you_change') }));
+  rows.push(sddRow({ id:'hold', area:'rules', g:'sign', name:i18t('sdd_ru_hold'), say:i18t('sdd_ru_hold_say'), sub:i18t('sdd_ru_hold_sub'),
+    now:i18t('sdd_always_on'), dot:'on', verb:i18t('stn_m_people'), door:'data-st-page="team"', page:'team' }));
+  rows.push(onoff('review',{ g:'send' }));
+  rows.push(onoff('desk',{ g:'send' }));
+  rows.push(onoff('linkcode',{ g:'links' }));
+  return rows.filter(Boolean);
+}
+function sddJamboRows(){
+  const C=state.aiCfg||{}, L=C.limits||null, S=C.spend||null, A=C.allowance||null, rows=[];
+  const eng=x=>sddRow(Object.assign({ area:'jambo', verb:i18t('st_you_change'), door:'data-st-panel="engine"' }, x));
+  const known=!!L;
+  const sp=known?Number(L.dailySpendLimit)||0:null;
+  rows.push(eng({ id:'budget', g:'spend', name:i18t('sdd_jb_budget'),
+    say:!known?i18t('sdd_reading'):sp>0?i18t('sdd_jb_budget_say',{ money:sddMoney(sp) }):i18t('sdd_jb_budget_none'),
+    sub:S&&S.cost!=null?i18t('sdd_jb_budget_sub_spent',{ money:sddMoney(S.cost) }):i18t('sdd_jb_budget_sub'),
+    now:!known?'':sp>0?i18t('sdd_jb_budget_now',{ money:sddMoney(sp) }):i18t('sdd_no_limit'), dot:!known?'':sp>0?'on':'off' }));
+  const dl=known?Number(L.dailyLimit)||0:null, req=S&&S.requests!=null?Number(S.requests):null;
+  rows.push(eng({ id:'questions', g:'spend', name:i18t('sdd_jb_questions'),
+    say:!known?i18t('sdd_reading'):dl>0?i18tn('sdd_jb_questions_say',dl,{ n:dl.toLocaleString() }):i18t('sdd_jb_questions_none'),
+    sub:i18t('sdd_jb_questions_sub'), now:req!=null?i18tn('sdd_jb_questions_now',req,{ n:req.toLocaleString() }):'' }));
+  const rl=known?Number(L.rateLight)||0:0, rd=known?Number(L.rateDeep)||0:0, ro=known?Number(L.rateOcr)||0:0;
+  rows.push(eng({ id:'person', g:'spend', name:i18t('sdd_jb_person'),
+    say:!known?i18t('sdd_reading'):(rl||rd||ro)?i18t('sdd_jb_person_say',{ light:rl||'—', deep:rd||'—', min:L.windowMinutes||15 }):i18t('sdd_jb_person_none'),
+    sub:i18t('sdd_jb_person_sub'), now:known?((rl||rd||ro)?i18t('sdd_limited'):i18t('sdd_no_limit')):'', dot:known?((rl||rd||ro)?'on':'off'):'' }));
+  const ec=known?Number(L.estimateConfirmAt)||0:null;
+  rows.push(eng({ id:'bigjobs', g:'spend', name:i18t('sdd_jb_bigjobs'),
+    say:!known?i18t('sdd_reading'):ec>0?i18t('sdd_jb_bigjobs_say',{ money:sddMoney(ec) }):i18t('sdd_jb_bigjobs_none'),
+    sub:i18t('sdd_jb_bigjobs_sub'), now:known?(ec>0?i18t('stn_pill_on'):i18t('stn_pill_off')):'', dot:known?(ec>0?'on':'off'):'' }));
+  rows.push(eng({ id:'imports', g:'spend', name:i18t('sdd_jb_imports'),
+    say:A&&A.open?i18t('sdd_jb_imports_open'):i18t('sdd_jb_imports_none'), sub:i18t('sdd_jb_imports_sub'),
+    now:A&&A.open?i18t('stn_pill_on'):i18t('sdd_none_open'), dot:A&&A.open?'on':'off' }));
+  rows.push(sddPanelRow('jambo','alone','agents',{ name:i18t('sdd_jb_agents'), say:i18t('sdd_jb_agents_say',{ what:sddState('agents').t }), sub:i18t('sdd_jb_agents_sub') }));
+  const rp=known?!!L.renewalPrep:null;
+  rows.push(eng({ id:'overnight', g:'alone', name:i18t('sdd_jb_overnight'),
+    say:rp==null?i18t('sdd_reading'):i18t(rp?'sdd_jb_overnight_on':'sdd_jb_overnight_off'),
+    sub:known&&rp?i18tn('sdd_jb_overnight_sub',Number(L.renewalPrepMax)||0,{ n:Number(L.renewalPrepMax)||0 }):i18t('sdd_jb_overnight_sub_off'),
+    now:rp==null?'':i18t(rp?'stn_pill_on':'stn_pill_off'), dot:rp==null?'':rp?'on':'off' }));
+  const nv=known?L.navigate!==false:null;
+  rows.push(eng({ id:'navigate', g:'alone', name:i18t('sdd_jb_navigate'),
+    say:nv==null?i18t('sdd_reading'):i18t(nv?'sdd_jb_navigate_on':'sdd_jb_navigate_off'), sub:i18t('sdd_jb_navigate_sub'),
+    now:nv==null?'':i18t(nv?'stn_pill_on':'stn_pill_off'), dot:nv==null?'':nv?'on':'off' }));
+  rows.push(sddPanelRow('jambo','knows','boardwords',{ say:i18t('sdd_jb_words_say',{ what:sddState('boardwords').t }), sub:i18t('sdd_jb_words_sub') }));
+  const les=(_stLessons&&_stLessons.rows)||[];
+  rows.push(sddPanelRow('jambo','knows','lessons',{ name:i18t('stn_m_lessons'), say:les.length?i18tn('sdd_jb_lessons_say',les.length,{ n:les.length }):i18t('sdd_jb_lessons_none'),
+    sub:i18t('sdd_jb_lessons_sub'), now:les.length?i18tn('sdd_jb_lessons_now',les.length,{ n:les.length }):sddState('lessons').t, dot:les.length?'need':'' }));
+  rows.push(sddPanelRow('jambo','knows','facts',{ say:i18t('sdd_jb_facts_say',{ what:sddState('facts').t }), sub:i18t('sdd_jb_facts_sub') }));
+  rows.push(sddPanelRow('jambo','knows','boardaccuracy',{ say:i18t('sdd_jb_accuracy_say'), sub:i18t('sdd_jb_accuracy_sub'), now:'' }));
+  rows.push(sddPanelRow('jambo','tech','copilot',{ say:i18t(sddOn('copilot')?'sdd_jb_on_say':'sdd_jb_off_say'), sub:i18t('sdd_jb_on_sub'), now:i18t(sddOn('copilot')?'stn_pill_on':'stn_pill_off') }));
+  rows.push(sddPanelRow('jambo','tech','engine',{ name:i18t('sdd_jb_tech'), say:i18t('sdd_jb_tech_say'), sub:i18t('sdd_jb_tech_sub') }));
+  return rows.filter(Boolean);
+}
+function sddMailRows(){
+  const ok=sddOn('mail');
+  return [sddPanelRow('mail','out','mail',{ name:i18t('sdd_ml_mail'), say:i18t(ok?'sdd_ml_mail_ok':'sdd_ml_mail_no'), sub:i18t(ok?'stn_mail_ok_sub':'sdd_ml_mail_sub'),
+      verb:i18t(ok?'stn_health':'sdd_set_up'), now:i18t(ok?'sdd_working':'sdd_not_set_up') }),
+    sddRow({ id:'outbox', area:'mail', g:'out', name:i18t('sdd_ml_outbox'), say:i18t('sdd_ml_outbox_say'), sub:i18t('sdd_ml_outbox_sub'), verb:i18t('stn_open'), door:'data-st-panel="mail"' }),
+    sddPanelRow('mail','out','remindtheirs'), sddPanelRow('mail','out','renewals',{ say:i18t('sdd_ml_renewals_say',{ what:sddState('renewals').t }), sub:i18t('sdd_ml_renewals_sub'), verb:i18t('st_you_change') }),
+    sddPanelRow('mail','out','report',{ say:i18t('sdd_ml_report_say'), sub:i18t('sdd_ml_report_sub'), now:'' }),
+    sddPanelRow('mail','out','webhooks',{ say:i18t('sdd_ml_webhooks_say',{ what:sddState('webhooks').t }), sub:i18t('sdd_ml_webhooks_sub') }),
+    sddPanelRow('mail','in','mailroom',{ say:sddState('mailroom').t, sub:i18t('sdd_ml_mailroom_sub') }),
+    sddPanelRow('mail','in','lanes',{ say:sddState('lanes').t, sub:i18t('sdd_ml_lanes_sub') })].filter(Boolean);
+}
+function sddSetupRows(){
+  return [sddPanelRow('setup','ready','golive',{ say:sddState('golive').t, sub:i18t('sdd_su_golive_sub') }),
+    sddPanelRow('setup','ready','samples',{ say:sddState('samples').t, sub:i18t('sdd_su_samples_sub') }),
+    sddPanelRow('setup','ready','pilot',{ name:i18t('sdd_su_pilot'), say:i18t('sdd_su_pilot_say'), sub:i18t('sdd_su_pilot_sub'), now:'' }),
+    sddRow({ id:'trail', area:'setup', g:'records', name:i18t('sdd_su_trail'), say:i18t('sdd_su_trail_say'), sub:i18t('sdd_su_trail_sub'),
+      verb:i18t('stn_open'), door:'data-st-page="data"', page:'data' }),
+    sddPanelRow('setup','records','integrity',{ say:sddState('integrity').t, sub:i18t('sdd_su_integrity_sub') }),
+    sddPanelRow('setup','records','env',{ say:sddState('env').t, sub:i18t('sdd_su_env_sub') })].filter(Boolean);
+}
+/* every row this reader may see, the needs placed on their rows (stNeedsAll is the ONE list) */
+function sddRows(admin){
+  const rows=sddYouRows().concat(admin?sddCompanyRows().concat(sddRulesRows(),sddJamboRows(),sddMailRows(),sddSetupRows()):[]);
+  sddNeedsOf(admin).forEach(n=>{ const r=rows.find(x=>x.id===n.row); if(r){ r.dot='need'; r.needs=(r.needs||[]).concat(n); } });
+  return rows;
+}
+/* a need's row: a panel's own row, the people for an invitation, the access review, a missing backup, the limits */
+function sddNeedRowOf(n){
+  const k=String(n.key||'');
+  if(k.indexOf('panel:')===0) return k.slice(6);
+  if(k==='invite'||k==='backup'||k.indexOf('clash')===0) return 'people';
+  if(k==='review') return 'sheet';
+  if(k==='limits') return 'signcap';
+  if(k.indexOf('keep')===0) return 'streams';
+  return null;
+}
+function sddNeedsOf(admin){
+  if(!admin||typeof stNeedsAll!=='function') return [];
+  return stNeedsAll().map(n=>Object.assign({}, n, { row:sddNeedRowOf(n) }));
+}
+const sddAreaOfRow=(rows,id)=>{ const r=rows.find(x=>x.id===id); return r?r.area:null; };
+/* THE ONE LIST OF WHAT NEEDS YOU: every row that needs you (with the need's own door where the need has one), then
+   any need no row carries (a colleague's ask) under Company. The landing's count, an area's count and Jambo's card
+   all read it, so the number on a door is the list behind it. */
+function sddNeedList(admin, area, rows){
+  rows=rows||sddRows(admin); const out=[];
+  /* every need a row carries is its own line (four clashes on People & roles are four lines, as stNeedsAll says them) */
+  rows.filter(r=>r.dot==='need'&&(!area||r.area===area)).forEach(r=>{ (r.needs&&r.needs.length?r.needs:[null]).forEach(n=>{
+    out.push({ row:r.id, area:r.area, key:n?n.key:null, need:n||null, dot:n&&n.dot, text:n?sddTxt(n.text):r.name, sub:n?sddTxt(n.sub||n.subHtml||''):r.say,
+      btn:n&&n.btn?n.btn:(r.door||`data-sdd-pick="${r.area}:${PB_ATTR(r.id)}"`), verb:n&&n.verb?n.verb:(r.door?r.verb:i18t('sdd_open')) }); }); });
+  if(!area||area==='company') sddNeedsOf(admin).filter(n=>!n.row||!rows.some(r=>r.id===n.row))
+    .forEach(n=>out.push({ row:null, area:'company', key:n.key, need:n, dot:n.dot, text:sddTxt(n.text), sub:sddTxt(n.sub||n.subHtml||''), btn:n.btn||'', verb:n.verb||i18t('st_need_open') }));
   return out;
 }
-function stnCompanyHtml(){
-  const ap=stnApprovalsOpen(), fx=stnRatesSaid();
-  const mailSt=stStateOf('mail');
-  return [stnRow('approvals', SET_PANELS.approvals.title(), stnStateText('approvals'), ap?i18tn('stn_ap_open',ap,{ n:ap }):'', stnDoor('data-st-panel="approvals"', i18t('stn_add_rule'))),
-    stnRow('review', i18t('stn_review'), stnStateText('review'), i18t('stn_review_sub'), stnDoor('data-st-panel="review"', i18t('st_you_change'))),
-    stnRow('signcap', i18t('stn_signcap'), stnStateText('signcap'), i18t('stn_signcap_sub'), stnDoor('data-st-panel="signcap"', i18t('st_you_change'))),
-    stnRow('linkcode', i18t('stn_linkcode'), stnStateText('linkcode'), i18t('stn_linkcode_sub'), stnDoor('data-st-panel="linkcode"', i18t('st_you_change'))),
-    stnRow('rates', i18t('stn_rates'), fx.v, i18t('stn_rates_sub'), stnDoor('data-st-panel="company" data-st-focus="#st-fx-row"', i18t('stn_update'))),
-    stnRow('mail', i18t('stn_mail'), stnStateText('mail'), (mailSt&&(mailSt.dot==='ok'||mailSt.dot==='on'))?i18t('stn_mail_ok_sub'):'', stnDoor('data-st-panel="mail"', i18t('stn_health'))),
-    stnRow('outsidelook', i18t('stn_out'), stnPill(esc(i18t((state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on)?'stn_out_on':'stn_out_off')), (state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on)?'on':'off'), i18t('stn_out_sub'), stSwHtml('outsidelook', !!(state.settings&&state.settings.outsideLook&&state.settings.outsideLook.on), i18t('stn_out')))];
+/* ---- the middle ---- */
+/* P-43, SETTINGS THE LEGORA + STRIPE WAY (owner's pick 21 Nov 2026): no button on any row — the row opens (a press
+   chooses, a second press goes in through the row's own door, kept here unseen); what a setting is set to is a SWITCH
+   with its word where the setting is on or off, an amber soft badge where it needs you, else its word; the six areas a
+   calm table (the mark with its dot, the name, what it holds on one line, a soft badge for now, the count) */
+function sddMarkHtml(r){ return sddMkHtml(sddEmojiOf(r.id, r.area), r.area, r.dot==='need'); }
+function sddVal(r){ return r.now?`<span class="sdd-v${r.dot?' is-'+r.dot:''}">${esc(r.now)}</span>`:''; }
+function sddStateHtml(r){
+  if(!r.now) return '';
+  /* a row that carries its own control (the language, the phone's switch) says its word only: the control is the switch */
+  if(r.ctl) return `<span class="sdd-v">${esc(r.now)}</span>`;
+  if(r.dot==='on'||r.dot==='off') return `<span class="sdd-onoff"><span class="sdd-sw${r.dot==='on'?' is-on':''}" aria-hidden="true"></span><span class="sdd-sw-t sdd-v">${esc(r.now)}</span></span>`;
+  if(r.dot==='need') return `<span class="apn-st is-amber" title="${esc(r.now)}"><i></i>${esc(r.now)}</span>`;
+  return sddVal(r);
 }
-/* THE LIST: the rows grouped by area in STN_AREAS' order, each area under its own coloured head; a chosen chip shows
-   one area. An area with no rows for this reader is not listed (a viewer has no Rules, no Money). */
-function stnRowsAll(admin){ return stnYouHtml().concat(admin?stnCompanyHtml():[]); }
-function stnAreaNow(rows){ return (_stnArea!=='all'&&rows.some(r=>r.area===_stnArea))?_stnArea:'all'; }
-function stnChipsHtml(rows){
-  const now=stnAreaNow(rows), have=STN_AREAS.filter(k=>rows.some(r=>r.area===k));
-  if(have.length<2) return '';
-  const chip=(k,w,n)=>`<button type="button" class="stn-chip${k==='all'?' is-all':' a-'+k}" data-stn-area="${k}" aria-pressed="${now===k?'true':'false'}">${esc(w)}<em>${n}</em></button>`;
-  return `<div class="stn-chips" id="stn-chips" role="group" aria-label="${esc(i18t('stn_ar_label'))}">${chip('all',i18t('stn_ar_all'),rows.length)}${have.map(k=>chip(k,i18t('stn_ar_'+k),rows.filter(r=>r.area===k).length)).join('')}</div>`;
+function sddRowHtml(r, opts){
+  const o=opts||{}, chosen=r.id===_sddPick;
+  /* the row's own door, unseen: the second press on the row (or Enter) presses it; the panel's one button carries it too */
+  const door=r.door?`<span class="sdd-door" hidden data-sdd-go ${r.door}></span>`:'';
+  return `<div class="sdd-row${chosen?' is-chosen':''}" id="sdd-${esc(r.id)}" data-sdd-row="${esc(r.id)}"${o.found?` data-sdd-found="${esc(r.area)}"`:''} role="button" tabindex="0" aria-pressed="${chosen?'true':'false'}">
+    ${sddMarkHtml(r)}<div class="sdd-t">${o.found?`<div class="sdd-n">${esc(r.name)} <small>${esc(i18t('sdd_in',{ area:i18t('sdd_a_'+r.area) }))}</small></div>`:`<div class="sdd-k">${esc(r.name)}</div>`}<div class="sdd-s">${esc(r.say)}</div>${r.sub?`<div class="sdd-u" title="${esc(r.sub)}">${esc(r.sub)}</div>`:''}</div>
+    <div class="sdd-now">${sddStateHtml(r)}</div><div class="sdd-a">${r.ctl||''}${r.ctl?'':`<span class="sdd-chev" aria-hidden="true">›</span>`}${door}</div></div>`;
 }
-function stnPagesHtml(admin){
-  if(!admin) return '';
-  const go=(attr,w)=>`<button type="button" class="ui-link stn-go stn-pg" ${attr}>${esc(w)} ${typeof icon==='function'?icon('chevR','w-3 h-3'):'›'}</button>`;
-  return `<div class="stn-pages" id="stn-pages"><div class="stn-h stn-pages-h">${esc(i18t('stn_pages'))}</div>${go('data-st-page="team"',i18t('stn_m_people'))}${go('data-st-page="streams"',i18t('stn_m_streams'))}${go('data-st-panel="lessons"',i18t('stn_m_lessons'))}${(typeof stTrailOn==='function'&&stTrailOn())?go('data-st-panel="trail"',i18t('stn_m_trail')):''}</div>`;
+function sddAreaState(a, rows){
+  const mine=rows.filter(r=>r.area===a), need=sddNeedList(stIsAdmin(), a, rows).length;
+  if(need) return { t:i18tn('sdd_need_n',need,{ n:need }), dot:'need' };
+  if(a==='you') return { t:i18t('sdd_st_you'), dot:'' };
+  const r=x=>mine.find(y=>y.id===x)||{};
+  if(a==='company') return { t:r('people').now||'', dot:'' };
+  if(a==='rules') return { t:r('approvals').now||'', dot:'on' };
+  /* Jambo's badge says whether he is on, never his spending (P-43 as drawn: "On"; no money in an area's badge) */
+  if(a==='jambo'){ const on=sddOn('copilot'); return { t:i18t(on?'stn_pill_on':'stn_pill_off'), dot:on?'on':'' }; }
+  if(a==='mail') return { t:r('mail').now||'', dot:r('mail').dot||'' };
+  return { t:r('golive').now||'', dot:'' };
 }
-function stnListHtml(admin){
-  const rows=stnRowsAll(admin), now=stnAreaNow(rows);
-  const secs=STN_AREAS.filter(k=>(now==='all'||now===k)&&rows.some(r=>r.area===k))
-    .map(k=>`<h3 class="stn-h a-${k}" id="stn-sec-${k}">${esc(i18t('stn_ar_'+k))}</h3>`+rows.filter(r=>r.area===k).map(r=>r.html).join('')).join('');
-  return stnChipsHtml(rows)+secs+stnPagesHtml(admin);
+/* THE CHIPS (All · Need you on the landing; All · On · Off, and Need you where something does, in an area): which rows
+   show, nothing else; a chip is the area's own (a chip chosen on one area is All on the next) */
+let _sddChip='all', _sddChipAt='';
+const sddChipNow=()=>_sddChipAt===(_sddArea||'')?_sddChip:'all';
+function sddChipSet(k){ _sddChip=k||'all'; _sddChipAt=_sddArea||''; sddRepaint(); }
+const sddHomeBadge=st=>st.t?`<span class="apn-st is-${st.dot==='need'?'amber':st.dot==='on'?'green':'grey'}" title="${esc(st.t)}">${st.dot==='need'?'<i></i>':''}${esc(st.t)}</span>`:'';
+function sddHomeHtml(admin){
+  const rows=sddRows(admin);
+  if(_sddQ.trim()) return sddFoundHtml(rows);
+  const chip=sddChipNow();
+  const areas=SDD_AREAS.filter(a=>rows.some(r=>r.area===a)).filter(a=>chip!=='need'||sddAreaState(a,rows).dot==='need');
+  return `<div class="sdd-colh is-home"><span>${esc(i18t('sdd_col_area'))}</span><span>${esc(i18t('sdd_col_now'))}</span><span>${esc(i18t('sdd_col_count'))}</span></div>`
+    +areas.map(a=>{ const mine=rows.filter(r=>r.area===a), st=sddAreaState(a,rows), chosen=a===_sddHome;
+      const mk=sddMkHtml(SDD_EMOJI.area[a], a, st.dot==='need');
+      const list=mine.map(r=>r.name).join(' · ');
+      return `<div class="sdd-row is-area${chosen?' is-chosen':''}" id="sdd-area-${a}" data-sdd-home="${a}" role="button" tabindex="0" aria-pressed="${chosen?'true':'false'}">
+        ${mk}<div class="sdd-t"><div class="sdd-n">${esc(i18t('sdd_a_'+a))}</div><div class="sdd-s is-list" title="${esc(list)}">${esc(list)}</div></div>
+        <div class="sdd-now">${sddHomeBadge(st)}</div><div class="sdd-a sdd-num">${mine.length}<span class="sdd-door" hidden data-sdd-door="${a}"></span></div></div>`; }).join('');
 }
-/* a chip's press redraws the list alone: the title, the panel and the page stand */
-function stnListPaint(){ const m=document.getElementById('stn-main'); if(m) m.innerHTML=stnListHtml(stIsAdmin()); }
-const STN_NEED_KIND={ ask:'stn_nk_ask', backup:'stn_nk_rule', limits:'stn_nk_caps', invite:'stn_nk_people', access:'stn_nk_access' };
-function stnPanelHtml(admin){
-  const E=esc;
-  const row=(l,v,src,attr)=>`<div class="pd2-ch-r${attr?' stn-pr':''}"${attr?` ${attr} role="button" tabindex="0"`:''}><span>${E(l)}</span><b>${E(v)}</b><i>${E(src||'')}</i></div>`;
-  const needs=admin&&typeof stNeedsAll==='function'?stNeedsAll():[];
-  /* THE FIVE PARTS (owner, 15 Nov 2026, round 3): how many need an admin as the headline, each as a row by its own
-     door (the need's own press attributes), Ask an admin a row (data-st-ask-head), what Jambo was taught a row
-     (data-st-panel="lessons"). The same readings (stNeedsAll, _stLessons). The new look only. */
-  if(typeof newLookOn==='function'&&newLookOn()&&typeof jamboOverviewHtml==='function'){
-    const needRows=needs.slice(0,5).map(r=>{ const k=String(r.key||'').split(':')[0]; const lab=k==='panel'&&SET_PANELS[String(r.key).slice(6)]?SET_PANELS[String(r.key).slice(6)].title():i18t(STN_NEED_KIND[k]||'stn_nk_setting');
-      const sub=r.sub||(r.subHtml?String(r.subHtml).replace(/<[^>]*>/g,''):''); const what=k==='panel'?(sub?stShortState(sub):r.text):r.text;
-      /* a need with no kind of its own is named by what it is ("Quarterly access review · Q4 2026"), never the bare word "Setting" */
-      if(!(k==='panel'&&SET_PANELS[String(r.key).slice(6)])&&!STN_NEED_KIND[k]) return { mark:'alert', tone:'amber', t:what||lab, s:sub, attr:r.btn||'' };
-      return { mark:'alert', tone:'amber', t:lab, s:[what, k==='panel'?'':sub].filter(Boolean).join(' \u00b7 '), attr:r.btn||'' }; });
-    const groups=[];
-    if(needRows.length) groups.push({ label:i18t('jov5_st_needs'), rows:needRows });
-    groups.push({ label:i18t('stn_p_ask'), rows:[{ mark:'msg', t:i18t('st_ask_go'), s:i18t('stn_p_ask_s'), attr:'data-st-ask-head=""' }] });
-    const L=_stLessons; const les=(L&&L.rows)||[];
-    if(admin&&L===null&&typeof stLessonsLoad==='function'&&!stnPanelHtml._asked){ stnPanelHtml._asked=true; Promise.resolve(stLessonsLoad()).then(()=>{ if(document.querySelector('.stn-page')) stnPanelPaint(); }).catch(()=>{}); }
-    if(admin&&les.length) groups.push({ label:i18t('stn_p_lessons'), rows:[{ mark:'sparkle', tone:'dark', t:i18tn('stn_p_lessons_s',les.length,{ n:les.length, list:les.slice(0,3).map(r=>'\u201c'+String(r.text||'')+'\u201d').join(', ') }), wrap:true, attr:'data-st-panel="lessons"' }] });
-    return `<div class="jl-words is-ov">${jamboOverviewHtml({ eyebrow:i18t(admin?'jov5_st_eb_co':'jov5_st_eb_you'), title:needs.length?i18tn('jov5_st_t',needs.length,{ n:needs.length }):i18t('jov5_st_clear'),
-      sub:i18t('stn_p_head'), groups, src:i18t('jov5_st_src') },'stn')}</div>`;
+function sddFoundHtml(rows){
+  const toks=String(_sddQ).toLowerCase().split(/\s+/).filter(Boolean);
+  const hay=r=>[i18t('sdd_a_'+r.area), r.name, r.say, r.sub, r.now, i18t('sdd_also_'+r.id)==='sdd_also_'+r.id?'':i18t('sdd_also_'+r.id)].join(' ').toLowerCase();
+  const hit=rows.filter(r=>{ const h=hay(r); return toks.every(t=>h.includes(t)); });
+  if(!hit.length) return `<p class="sdd-empty">${esc(i18t('sdd_found_none',{ q:_sddQ.trim() }))}</p>`;
+  return `<div class="sdd-colh"><span>${esc(i18tn('sdd_found_n',hit.length,{ n:hit.length }))}</span><span>${esc(i18t('sdd_col_now'))}</span></div>`+hit.map(r=>sddRowHtml(r,{ found:true })).join('');
+}
+const sddChipFits=(r,chip)=>chip==='all'||(chip==='need'?r.dot==='need':r.dot===chip);
+function sddAreaHtml(admin, a){
+  const chip=sddChipNow();
+  const rows=sddRows(admin).filter(r=>r.area===a&&sddChipFits(r,chip)), groups=[];
+  rows.forEach(r=>{ let g=groups.find(x=>x.k===r.g); if(!g) groups.push(g={ k:r.g, rows:[] }); g.rows.push(r); });
+  if(_sddQ.trim()) return sddFoundHtml(sddRows(admin));
+  return `<div class="sdd-colh"><span>${esc(i18t('sdd_col_setting'))}</span><span>${esc(i18t('sdd_col_now'))}</span></div>`
+    /* a group's head is quiet grey; amber with its dot only where something in it needs you (P-43 as drawn) */
+    +groups.map(g=>`<h3 class="sdd-gh a-${SDD_TONE[a]}${g.rows.some(r=>r.dot==='need')?' is-need':''}">${esc(i18t('sdd_g_'+a+'_'+g.k))}</h3>`+g.rows.map(r=>sddRowHtml(r)).join('')).join('');
+}
+function sddHeadHtml(admin){
+  const rows=sddRows(admin), a=_sddArea, chip=sddChipNow();
+  const need=sddNeedList(admin, a||null, rows).length;
+  /* the chips: what the list holds, by what it is set to; Need you carries an amber dot and stands only where something needs you */
+  let chips;
+  if(a){ const mine=rows.filter(r=>r.area===a), n=k=>mine.filter(r=>sddChipFits(r,k)).length;
+    chips=[['all',i18t('ctf_tab_all'),mine.length],['on',i18t('stn_pill_on'),n('on')],['off',i18t('stn_pill_off'),n('off')],['need',i18t('sdd_chip_need'),need]].filter(c=>c[0]==='all'||c[2]||c[0]===chip); }
+  else { const areas=SDD_AREAS.filter(x=>rows.some(r=>r.area===x));
+    chips=[['all',i18t('ctf_tab_all'),areas.length],['need',i18t('sdd_chip_need'),areas.filter(x=>sddAreaState(x,rows).dot==='need').length]].filter(c=>c[0]==='all'||c[2]||c[0]===chip); }
+  return `${a?`<button type="button" class="sdd-back" data-sdd-back>‹ ${esc(i18t('stn_title_short'))}</button>`:''}
+    <div class="cun-head"><h2 class="ctf-h stn-title sdd-title">${esc(a?i18t('sdd_a_'+a):i18t('stn_title_short'))}</h2></div>
+    ${a?`<p class="sdd-sub">${esc(i18t('sdd_sub_'+a))}</p>`:''}
+    <label class="apn-ask sdd-find is-filter"><span class="sdd-find-ic" aria-hidden="true">${typeof icon==='function'?icon('search','sdd-spark-ic'):''}</span><input id="sdd-q" type="search" autocomplete="off" placeholder="${esc(sddAskPh(a))}" aria-label="${esc(i18t('sdd_find_ph'))}" value="${esc(_sddQ)}"></label>
+    <div class="apn-bar sdd-chips">${chips.map(c=>`<button type="button" class="apn-tab is-chip${chip===c[0]?' is-on':''}" data-sdd-chip="${c[0]}">${c[0]==='need'?'<i class="apn-cd is-amber" aria-hidden="true"></i>':''}${esc(c[1])} <span>${c[2]}</span></button>`).join('')}</div>`;
+}
+/* the ask box's words: the landing's, an area's own example where it has one (P-43 as drawn), else the area's line */
+/* AN HONEST FINDER (owner, 22 Nov 2026): the box finds a setting and says only that; questions are Jambo's, in his box
+   (the old "or ask" words stay inert in both books) */
+function sddAskPh(a){ return a?i18t('sdd_find_in',{ area:i18t('sdd_a_'+a) }):i18t('sdd_find_ph'); }
+function sddMainHtml(admin){ return _sddArea?sddAreaHtml(admin,_sddArea):sddHomeHtml(admin); }
+/* the list alone (a find, a choice): the head, the box and the panel stand; the box keeps its words and its caret */
+function sddListPaint(){ const m=document.getElementById('stn-main'); if(!m) return; m.innerHTML=sddMainHtml(stIsAdmin()); }
+/* a reading that lands late (the engine's limits, the lessons) redraws the head, the list and the panel; the box keeps its words and caret */
+function sddRepaint(){
+  const h=document.getElementById('sdd-head'); if(h){ const q=document.getElementById('sdd-q'), had=q&&document.activeElement===q, pos=had?q.selectionStart:0;
+    h.innerHTML=sddHeadHtml(stIsAdmin()); if(had){ const n=document.getElementById('sdd-q'); if(n){ n.focus({ preventScroll:true }); try{ n.setSelectionRange(pos,pos); }catch(_){} } } }
+  sddListPaint(); stnPanelPaint();
+}
+function sddGo(area, pick){
+  _sddArea=SDD_AREAS.includes(area)?area:null; _sddPick=pick||null; _sddHome=null; _sddQ='';
+  if(_stPage){ settingsGoPage(''); } else stnPaint(stIsAdmin());
+  if(typeof placeSave==='function') placeSave();
+  if(pick&&typeof landOn==='function') landOn(`#stn-main [data-sdd-row="${PB_ATTR(pick)}"]`,{ block:'nearest', focus:false });
+}
+function sddPickSet(id){ _sddPick=id||null; sddListPaint(); stnPanelPaint(); if(typeof placeSave==='function') placeSave(); }
+function sddHomeSet(a){ _sddHome=a||null; sddListPaint(); stnPanelPaint(); }
+/* ---- Jambo's panel, THE LEGORA + STRIPE WAY (P-43, owner's pick 21 Nov 2026): no cards, no tiles, no money ----
+   The landing: "N things need you", how many areas have something to do, a RING of going live with See what is left,
+   and what needs you as rows (the mark, what, where, ›) — each row its own door, so no button is drawn twice. An area:
+   a badge (Nothing needs you, or the count), the area, its line; Rules adds THE ROAD TO A SIGNATURE, the rules that
+   hold a signature in the order HaTi asks them (stRulesRows), on in green, off in grey, then the signature. A setting
+   chosen: badges (its state · its group), the name, the rule in one sentence, Change ONCE (here, never on the row),
+   what it does today as a ring where the record counts it (Approval rules: the asks open), who it affects, who may
+   change it, its history, and what changing it does. Nothing here writes; every press is an existing door's. */
+const sdd5Tags=list=>`<div class="sdd5-tags">${list.filter(Boolean).map(([t,tone,dot])=>`<span class="apn-st is-${tone}">${dot?'<i></i>':''}${esc(t)}</span>`).join('')}</div>`;
+function sdd5RingHtml(num, den, tone, cap){
+  const R=24, L=2*Math.PI*R, off=den>0?L*(1-Math.max(0,Math.min(1,num/den))):L;
+  /* the number, and under it its small word ("live", "asks open"), as drawn (P-43) */
+  return `<svg class="sdd5-ring is-${tone}" viewBox="0 0 64 64" aria-hidden="true"><circle class="sdd5-rb" cx="32" cy="32" r="${R}"/><circle class="sdd5-rf" cx="32" cy="32" r="${R}" stroke-dasharray="${L.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 32 32)"/><text x="32" y="${cap?33:36}" text-anchor="middle">${num}/${den}</text>${cap?`<text class="sdd5-rcap" x="32" y="43" text-anchor="middle">${esc(cap)}</text>`:''}</svg>`;
+}
+/* the contracts that need a yes before signing, and how many of them still wait for it (approvalState, the one reading) */
+function stnApprovalsRing(){
+  let open=0, need=0; const on={};
+  (state.contracts||[]).forEach(c=>{ if(!c||c.status==='Signed'||c.archived) return; try{ const s=window.approvalState?approvalState(c):null; if(s&&s.required){ need++; if(!s.ok){ open++;
+    /* whose yes it waits on, where the step names a person (a role's step names nobody) */
+    const a=s.next&&s.next.approver; if(a&&a.kind==='member'){ const nm=String((typeof approverLabelOf==='function'?approverLabelOf(a):a.name)||'').trim(); if(nm) on[nm]=(on[nm]||0)+1; } } } }catch(_){ /* not counted */ } });
+  const top=Object.keys(on).sort((x,y)=>on[y]-on[x])[0]||'';
+  return { open, need, who:top?{ name:top.split(/\s+/)[0], n:on[top] }:null };
+}
+/* the road to a signature: the rules that hold a signature, in signBlockers' order (stRulesRows), then the signature */
+/* P-43 as drawn: the four settings this area sets on the way to a signature — Approval rules (its one rule named, as
+   "Value ≥ KES 10M", else how many), the check before signing, signing limits, who may sign in which stream — each on
+   (green) or off (grey) with its state, then the signature. The rules page keeps the whole list (stPaintRules). */
+const SDD_ROAD=['approval','signcheck','signcap','signfolder'];
+function sddRoadHtml(){
+  const all=(typeof stRulesRows==='function'?stRulesRows():[]).filter(r=>r&&r.holds);
+  const rows=SDD_ROAD.map(k=>all.find(r=>r.k===k)).filter(Boolean);
+  if(!rows.length) return '';
+  const rules=(typeof approvalRules==='function')?approvalRules():[];
+  const said=r=>r.k==='approval'&&rules.length===1&&typeof condLabel==='function'?condLabel(rules[0].cond||{}):r.state;
+  return `<ol class="sdd5-road">${rows.map(r=>`<li class="${r.on?'is-on':'is-off'}"><i aria-hidden="true"></i><span>${esc(r.name)}<small> · ${esc(said(r))}</small></span></li>`).join('')}<li class="is-sign"><i aria-hidden="true"></i><span>${esc(i18t('sdd5_signature'))}</span></li></ol><p class="sdd5-small">${esc(i18t('sdd5_road_s'))}</p>`;
+}
+/* THE ROWS JAMBO'S PANEL DRAWS UNDER "NEEDS YOU", AND SO ITS HEADLINE'S COUNT: the one list (sddNeedList), less going
+   live on the landing, which its ring says (P-43 as drawn) — unless it is the only thing left, then it is a row too */
+function sddPanelNeeds(admin, area, rows, needs){
+  needs=needs||sddNeedList(admin, area, rows||sddRows(admin));
+  const ringed=!area&&admin&&SET_PANELS.golive&&typeof stGoLive==='function';
+  const rest=ringed?needs.filter(x=>x.key!=='panel:golive'):needs;
+  return rest.length?rest:needs;
+}
+/* WHAT NEEDS YOU, SAID PROBLEM FIRST, PLACE SECOND (P-43 as drawn: "Your job title is missing / Who you are"): the need's
+   own words where they already say the problem; a setting that needs you says its state over its name */
+function sdd5NeedSay(x, rows){
+  const n=x.need||null, k=String(x.key||'');
+  if(!n && x.row==='who') return { t:i18t('sdd5_need_who'), s:x.text };
+  if(!n){ const r=(rows||[]).find(y=>y.id===x.row); return r&&r.now?{ t:r.now, s:x.text }:{ t:x.text, s:x.sub }; }
+  /* A CLASH SAYS ITSELF: its own sentence is the problem (who signs above whom, who gives whom the yes), its kind under it
+     ("a clash in who may do what · since …") — four clashes under one shared headline could not be told apart, nor
+     found by their own words (clashes-verify, 22 Nov 2026) */
+  if(k.indexOf('clash')===0) return { t:x.text, s:x.sub };
+  if(k==='review' && n.short) return { t:x.text, s:n.short };
+  if(k.indexOf('panel:')===0 && k!=='panel:company' && x.sub) return { t:x.sub, s:x.text };
+  return { t:x.text, s:x.sub };
+}
+function sddCardHtml(admin, ctx){
+  if(typeof jamboOverviewHtml!=='function') return '';
+  const c=ctx||{}, rows=sddRows(admin), area=c.area!==undefined?c.area:(_sddArea||_sddHome||null);
+  const pick=c.pick!==undefined?c.pick:(_sddArea?_sddPick:null), r=pick?rows.find(x=>x.id===pick):null;
+  const place=area?i18t('sdd_a_'+area):i18t('stn_title_short');
+  const awM=(state.away||{}).mine;
+  if(r){
+    const who=r.who==='you'?i18t('sdd_who_you'):i18t('sdd_who_admins');
+    const after=r.ctl?i18t('sdd_after_ctl'):r.page?i18t('sdd_after_page'):i18t(r.id==='approvals'?'sdd5_if_change_ap':'sdd5_if_change');
+    const first=(r.needs||[])[0];
+    const stTag=r.dot==='on'?[i18t('stn_pill_on'),'green']:r.dot==='off'?[i18t('stn_pill_off'),'grey']:r.dot==='need'?[i18t('sdd_chip_need'),'amber',true]:null;
+    const gTag=r.g&&i18t('sdd_g_'+r.area+'_'+r.g)!=='sdd_g_'+r.area+'_'+r.g?[i18t('sdd_g_'+r.area+'_'+r.g),'grey']:null;
+    /* what it does today, where the record counts it (Approval rules: the asks open under it), drawn after Change */
+    const today=[];
+    if(r.id==='approvals'){ const q=stnApprovalsRing();
+      /* the ring: the asks open of the contracts that need a yes, "asks open" under the number; whose yes is waited on */
+      if(q.need) today.push({ label:i18t('sdd5_today'), html:`<div class="sdd5-today">${sdd5RingHtml(q.open,q.need,q.open?'amber':'green',i18t('sdd5_asks_cap'))}<p>${esc(i18tn('sdd5_asks_n',q.open,{ n:q.open })+(q.who?i18tn('sdd5_waits_on',q.who.n,{ n:q.who.n, name:q.who.name }):'')+'.')}</p></div>` }); }
+    const groups=today.concat([{ label:'', key:'facts', rows:[{ k:i18t('sdd_f_affects'), t:i18t(r.who==='you'?'sdd_affects_you':'sdd_affects_all') }, { k:i18t('sdd_f_who'), t:who },
+        { k:i18t('sdd_f_history'), t:i18t('sdd_in_trail'), link:(admin&&typeof stTrailOn==='function'&&stTrailOn())?{ label:i18t('sdd_see_it'), attr:'data-st-panel="trail"' }:null }].map(x=>x.link?x:Object.assign(x,{ link:undefined })) },
+      { label:i18t('sdd5_if_h'), rows:[{ t:after, wrap:true }] }])
+      /* while you are away, Jambo says who answers for you on every You row's card too (when-youre-away 3c) */
+      .concat(r.area==='you'&&awM&&awM.deputyName?[{ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('st_jb_away',{ who:awM.deputyName }), wrap:true }] }]:[]);
+    /* the rule in one sentence, its condition bold as drawn (P-43: "…when: <b>Value ≥ KES 10M</b>.") */
+    const subHtml=r.id==='approvals'?esc(i18t('sdd_ru_approvals_say',{ what:'\u0001' })).replace('\u0001','<b>'+esc(sddState('approvals').t)+'</b>'):'';
+    return `<div class="jl-words is-ov sdd5-p">${jamboOverviewHtml({ before:sdd5Tags([stTag,gTag]), title:r.name, sub:r.say, subHtml, actFirst:true,
+      act:(first&&first.btn)||r.door?{ say:first?(sddTxt(first.text)+(first.sub?' · '+sddTxt(first.sub):'')):'', label:first&&first.verb?first.verb:r.verb, attr:first&&first.btn?first.btn:r.door }:null,
+      groups },'stn')}</div>`;
   }
-  let h=`<div class="pd2-chosen cun-panel stn-panel"><p class="pd2-ch-head">${E(i18t('stn_p_head'))}</p>`;
-  if(needs.length){ h+=`<div class="pd2-ch-cap">${E(i18tn('stn_p_needs',needs.length,{ n:needs.length }))}</div><div class="pd2-ch-tbl">`
-    +needs.slice(0,4).map(r=>{ const k=String(r.key||'').split(':')[0]; const lab=k==='panel'&&SET_PANELS[String(r.key).slice(6)]?SET_PANELS[String(r.key).slice(6)].title():i18t(STN_NEED_KIND[k]||'stn_nk_setting');
-      const sub=r.sub||(r.subHtml?String(r.subHtml).replace(/<[^>]*>/g,''):'');
-      const what=k==='panel'?(sub?stShortState(sub):r.text):r.text, more=k==='panel'?'':sub;
-      return `<div class="pd2-ch-r stn-nd stn-pr" ${r.btn||''} role="button" tabindex="0"><span>${E(lab)}</span><b>${E(what)}${more?`<small>${E(more)}</small>`:''}</b><i class="stn-go" aria-hidden="true">${typeof icon==='function'?icon('chevR','w-3.5 h-3.5'):'›'}</i></div>`; }).join('')+`</div>`; }
-  h+=`<div class="pd2-ch-cap">${E(i18t('stn_p_ask'))}</div><p class="stn-pp">${E(i18t('stn_p_ask_s'))}</p><div class="pd2-ch-door"><button type="button" class="rfp-a" data-st-ask-head="">${E(i18t('st_ask_go'))}</button><span>${E(i18t('stn_p_ask_cost'))}</span></div>`;
-  if(admin){
-    const L=_stLessons; const rows=(L&&L.rows)||[];
-    if(L===null&&typeof stLessonsLoad==='function'&&!stnPanelHtml._asked){ stnPanelHtml._asked=true; Promise.resolve(stLessonsLoad()).then(()=>{ if(document.querySelector('.stn-page')) stnPanelPaint(); }).catch(()=>{}); }
-    if(rows.length){ const shown=rows.slice(0,3).map(r=>'“'+String(r.text||'')+'”').join(', ');
-      h+=`<div class="pd2-ch-cap">${E(i18t('stn_p_lessons'))}</div><p class="stn-pp">${E(i18tn('stn_p_lessons_s',rows.length,{ n:rows.length, list:shown }))}</p><div class="pd2-ch-door"><button type="button" class="rfp-a" data-st-panel="lessons">${E(i18tn('stn_p_teach',Math.min(rows.length,3),{ n:Math.min(rows.length,3) }))}</button><span>${E(i18t('pd2_ch_free'))}</span></div>`; }
+  const needs=sddNeedList(admin, area, rows);
+  const mkOf=x=>sddEmojiOf(x.row||'', x.area)||'•';
+  const groups=[];
+  /* each need keeps its tone (red where it is outright, amber otherwise) around its emoji mark */
+  /* on the landing the ring says going live, so its row is not said again under it (P-43 as drawn) */
+  const rowsOf=sddPanelNeeds(admin, area, rows, needs);
+  /* on the landing the access check's card stands over the list, so the list stops where the panel's room does and says how many more (as drawn) */
+  const capN=(!area&&admin)?acNeedsRoom(rowsOf.length):rowsOf.length;
+  if(rowsOf.length) groups.push({ label:i18t('sdd5_needs'), foot:capN<rowsOf.length?{ label:i18tn('st_ls_more',rowsOf.length-capN,{ n:rowsOf.length-capN }), attr:'data-sdd-chip="need"' }:null, rows:rowsOf.slice(0,capN).map(x=>{ const w=sdd5NeedSay(x, rows); return { mark:'', markText:mkOf(x), tone:x.dot==='red'?'red':'amber', t:w.t, s:w.s, attr:x.btn||'' }; }) });
+  if(awM&&awM.deputyName&&(!area||area==='you')) groups.push({ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('st_jb_away',{ who:awM.deputyName }), wrap:true }] });
+  /* ASK AN ADMIN is for a person who is not one (fault logged 21 Nov 2026: an admin's panel carried it under Jambo's links) */
+  if(!admin) groups.push({ label:i18t('stn_p_ask'), rows:[{ mark:'msg', t:i18t('st_ask_go'), s:i18t('stn_p_ask_s'), attr:'data-st-ask-head=""', wrap:true }] });
+  const les=(_stLessons&&_stLessons.rows)||[];
+  if(admin&&_stLessons===null&&typeof stLessonsLoad==='function'&&!sddCardHtml._asked){ sddCardHtml._asked=true; Promise.resolve(stLessonsLoad()).then(()=>{ if(document.querySelector('.stn-page')) sddRepaint(); }).catch(()=>{}); }
+  /* ONE ROW, ONE DOOR (owner, 22 Nov 2026: "The two jambo lessons links in the side panel are the same link"): where a
+     needs-you row above already opens Jambo's lessons, the lessons are not said again under it */
+  const lesShown=groups.some(g=>(g.rows||[]).some(x=>/data-st-panel="lessons"/.test(String(x.attr||''))));
+  if(admin&&les.length&&!lesShown&&(!area||area==='jambo')) groups.push({ label:i18t('stn_p_lessons'), rows:[{ mark:'sparkle', tone:'dark', t:i18tn('stn_p_lessons_s',les.length,{ n:les.length, list:les.slice(0,3).map(x=>'“'+String(x.text||'')+'”').join(', ') }), wrap:true, attr:'data-st-panel="lessons"' }] });
+  /* Trail & backup: Jambo heads with the trail's own count, and offers its PDF and what sealed means (as he did before
+     the Dossier card; stJbDataRepaint fills the count when it lands) */
+  const onData=typeof _stPage!=='undefined'&&_stPage==='data';
+  if(onData){ const df=stTrailDefault();
+    groups.unshift({ label:'', rows:[{ mark:'download', t:i18t('st_jb_c_tr_pdf',{ period:stTrailPeriodWords(_stTr.from||df.from,_stTr.to||df.to,true) }), attr:'data-st-tr-pdf=""' },
+      { mark:'sparkle', tone:'dark', t:i18t('st_jb_c_sealed'), attr:'data-st-jb-say="sealed"' }] }); }
+  let o;
+  if(!area){
+    /* THE LANDING: what needs you, how many areas, the ring of going live */
+    const areasN=SDD_AREAS.filter(a=>rows.some(x=>x.area===a)), withN=areasN.filter(a=>needs.some(x=>x.area===a)).length;
+    let mid='';
+    if(admin&&SET_PANELS.golive&&typeof stGoLive==='function'){ let gl=[]; try{ gl=stGoLive()||[]; }catch(_){ gl=[]; }
+      const done=gl.filter(x=>x.ok).length;
+      if(gl.length) mid=`<div class="sdd5-today">${sdd5RingHtml(done,gl.length,'green',i18t('sdd5_live'))}<div><b>${esc(sddTxt(SET_PANELS.golive.title()))}</b><span>${esc(i18t('sdd5_done_of',{ n:done, m:gl.length }))}</span>${done<gl.length?`<button type="button" class="jov-lnk" data-st-panel="golive">${esc(i18t('sdd5_see_left'))}</button>`:''}</div></div>`; }
+    /* THE ACCESS CHECK's card stands first, for admins (owner's pick 22 Nov 2026) */
+    if(admin) mid=acCardHtml()+mid;
+    /* the headline counts the rows drawn under it, no more (the number on a door is the list behind it) */
+    o={ eyebrow:place, title:rowsOf.length?i18tn('sdd_card_t',rowsOf.length,{ n:rowsOf.length }):i18t('sdd_card_clear'),
+      sub:rowsOf.length?i18t('sdd5_areas_n',{ n:withN, m:areasN.length }):i18t('sdd_card_clear_s'), mid, groups };
+  } else {
+    o={ before:sdd5Tags([needs.length?[i18tn('sdd_need_n',needs.length,{ n:needs.length }),'amber',true]:['✓ '+i18t('sdd5_clear_badge'),'green']]),
+      title:onData?stJbDataWords(false):place, sub:i18t('sdd_card_clear_s'),
+      mid:area==='rules'&&!onData?sddRoadHtml():'', midLabel:area==='rules'&&!onData?i18t('sdd5_road'):'', groups };
   }
-  return h+`</div>`;
+  /* no "Read from the settings" under it (P-43 as drawn; it ran under the links line at 1536 × 730) */
+  const card=jamboOverviewHtml(Object.assign(o,{ actFirst:true }),'stn');
+  return `<div class="jl-words is-ov sdd5-p">${onData?card.replace('<h3 class="jov5-title">','<h3 class="jov5-title" data-st-jb-hello>'):card}</div>`;
 }
+/* ---- presses: a row chooses, a second press opens through its own door; Open on an area goes in; the find box ---- */
+if(typeof document!=='undefined' && !document._sddWired){ document._sddWired=true;
+  const press=el=>{ if(!el||!el.closest||!el.closest('#set-page')) return false;
+    const to=el.closest('[data-sdd-to]');
+    if(to){ _sddArea=to.getAttribute('data-sdd-to'); _sddPick=to.getAttribute('data-sdd-to-row')||null; _sddHome=null; _sddQ='';
+      if(_sddPick) setTimeout(()=>{ if(typeof landOn==='function') landOn(`#stn-main [data-sdd-row="${PB_ATTR(_sddPick)}"]`,{ block:'nearest', focus:false }); },60);
+      return false; }
+    if(el.closest('[data-sdd-back]')){ sddGo(null); return true; }
+    const ch=el.closest('[data-sdd-chip]'); if(ch){ sddChipSet(ch.getAttribute('data-sdd-chip')); return true; }
+    const dr=el.closest('[data-sdd-door]'); if(dr){ sddGo(dr.getAttribute('data-sdd-door')); return true; }
+    const pk=el.closest('[data-sdd-pick]'); if(pk){ const [a,id]=String(pk.getAttribute('data-sdd-pick')).split(':'); sddGo(a,id); return true; }
+    const hm=el.closest('[data-sdd-home]');
+    if(hm&&!el.closest('button,a,input,[role="switch"],.st-yseg')){ sddGo(hm.getAttribute('data-sdd-home')); return true; }
+    const row=el.closest('[data-sdd-row]'); if(!row) return false;
+    const id=row.getAttribute('data-sdd-row');
+    if(row.hasAttribute('data-sdd-found')&&!el.closest('[data-sdd-go]')){ sddGo(row.getAttribute('data-sdd-found'), id); return true; }
+    const go=el.closest('[data-sdd-go]');
+    if(go){ if(_sddPick!==id){ _sddPick=id; row.classList.add('is-chosen'); stnPanelPaint(); } return false; }
+    if(el.closest('button,a,input,select,[role="switch"],.st-yseg')) return false;
+    if(_sddPick===id){ const b=row.querySelector('[data-sdd-go]'); if(b){ b.click(); return true; } }
+    sddPickSet(id); return true; };
+  document.addEventListener('click',e=>{ press(e.target); });
+  document.addEventListener('keydown',e=>{ if(e.key!=='Enter'&&e.key!==' ') return; const t=e.target;
+    if(!t||!t.matches||!t.matches('[data-sdd-row],[data-sdd-home]')) return; e.preventDefault(); press(t); });
+  document.addEventListener('input',e=>{ const t=e.target; if(!t||t.id!=='sdd-q') return; _sddQ=t.value; if(!_sddQ.trim()) _sddHome=null; sddListPaint(); });
+  /* an area reached by the keyboard is shown beside you before Enter goes in (the press itself goes straight in) */
+  document.addEventListener('focusin',e=>{ const t=e.target; if(!t||!t.matches||!t.matches('[data-sdd-home]')) return;
+    let kb=false; try{ kb=t.matches(':focus-visible'); }catch(_){ kb=false; } if(!kb) return;
+    const a=t.getAttribute('data-sdd-home'); if(_sddHome===a) return; _sddHome=a;
+    document.querySelectorAll('#stn-main [data-sdd-home]').forEach(x=>{ const on=x===t; x.classList.toggle('is-chosen',on); x.setAttribute('aria-pressed',on?'true':'false'); });
+    stnPanelPaint(); });
+}
+/* the panel beside the six areas: the Dossier card (sddCardHtml) */
+function stnPanelHtml(admin){ return sddCardHtml(admin); }
 function stnPanelPaint(){
   if(!document.getElementById('ins-panel')) return;
+  if(stLsOn()&&document.querySelector('#set-page.st-ls-page')){ stLsPanelPaint(); return; }
   insPaintPanel({ seat:'team', jlWord:i18t('stn_title'), item:{ id:'settings' }, head:false, tabCount:0, body:stnPanelHtml(stIsAdmin()) });
+  /* Overview is the page's own: it lets go of the chosen setting and shows the area's landing again */
+  const h=document.getElementById('ins-panel'); if(h) h._jlBack=stnLetGo;
+}
+function stnLetGo(){
+  if(!document.querySelector('#set-page.stn-page')) return false;
+  if(document.querySelector('#set-page.st-ls-page')) return stLsLetGo();
+  if(_sddPick) sddPickSet(null); else stnPanelPaint();
+  return true;
 }
 function stnPaint(admin){
   const host=document.getElementById('content'); if(!host) return;
-  host.innerHTML=`<div id="set-page" class="view-enter sap-page ap-page is-ins apn-page stn-page" data-st-face="you" data-ins-page="team" data-ins="1">
+  host.innerHTML=`<div id="set-page" class="view-enter sap-page ap-page is-ins apn-page stn-page sdd-page" data-st-face="you" data-ins-page="team" data-ins="1"${_sddArea?` data-sdd-area="${_sddArea}"`:''}>
     <div class="ap-body is-ins"><section class="ap-card apn-card stn-card">
-      <h2 class="ctf-h stn-title">${esc(i18t('stn_title'))}</h2>
-      <div class="stn-main scroll-thin" id="stn-main">${stnListHtml(admin)}</div>
+      <div class="sdd-head" id="sdd-head">${sddHeadHtml(admin)}</div>
+      <div class="stn-main scroll-thin" id="stn-main">${sddMainHtml(admin)}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
   stWireDrawerOnce();
   stnPanelPaint();
   if(_stAsks===null&&typeof stAsksLoad==='function') stAsksLoad();
+  /* the Jambo area reads the engine's own limits: asked once, the rows drawn again where they stand */
+  if(admin&&!state.aiCfg&&typeof stLoadAiCfgOnce==='function') Promise.resolve(stLoadAiCfgOnce()).then(()=>{ if(state.aiCfg&&document.querySelector('.stn-page')) sddRepaint(); }).catch(()=>{});
   if(typeof insWatchWidth==='function') insWatchWidth();
   if(typeof setActiveNav==='function') setActiveNav('team');
-}
-if(typeof document!=='undefined' && !document._stnWired){ document._stnWired=true;
-  document.addEventListener('click',e=>{
-    const t=e.target&&e.target.closest?e.target:null; if(!t||!t.closest('.stn-page')) return;
-    const ch=t.closest('[data-stn-area]'); if(!ch) return;
-    _stnArea=ch.getAttribute('data-stn-area')||'all';
-    stnListPaint();
-    if(typeof placeSave==='function') placeSave();
-  });
 }

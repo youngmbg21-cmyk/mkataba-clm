@@ -100,7 +100,10 @@ const ok = (name, good, detail) => {
        arrows move the selection on Contracts) retired with the panel — the
        inspector's own mechanics are measured where it still stands
        (four-inspectors-verify, and section 4 below on Negotiations). */
-    const toContracts = async () => { await page.evaluate(() => { regPlaceSet({ show: 'list' }); setView('register'); }); await page.waitForTimeout(1000); };
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its Folders; the List is the
+       Folders' "List" pill ([data-ctf-show="list"]), which draws the place's List ([data-ct-show="list"]) */
+    const toContracts = async () => { await page.evaluate(() => { regPlaceSet({ show: 'list' }); setView('register'); }); await page.waitForTimeout(600);
+      await page.click('[data-ctf-show="list"]').catch(() => {}); await page.waitForTimeout(900); };
     const toNego = async () => { await page.evaluate(() => openNegotiations({ list: true })); await page.waitForTimeout(1000); };
     await toContracts();
     const shape = await page.evaluate(() => ({
@@ -115,7 +118,12 @@ const ok = (name, good, detail) => {
        reference rides under the party ("kind · ref") and Owner waits under
        Columns — and the row's ⋯ unheaded */
     /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep contracts … as designed"): Stream and Our standards stand where Stage stood */
-    ok('1b the List is the drawing\'s five columns, in plain words, and the row\'s ⋯ unheaded', shape.heads.join('|') === 'Agreement|Stream|Our standards|Ends|Value|', shape.heads.join(' | '));
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's List (THE NEW LOOK IS THE ONLY LOOK: "a status = dot + word") adds
+       Standing after the agreement, and draws no ⋯ column — a row's one press opens it (1f) */
+    /* RE-POINTED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way): Our playbook steps out of the
+       List; Needs you stands before Ends */
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the column is called Folder */
+    ok('1b the List is the drawing\'s columns, in plain words: Agreement · Standing · Folder · Needs you · Ends · Value', shape.heads.join('|') === 'Agreement|Standing|Folder|Needs you|Ends|Value', shape.heads.join(' | '));
     await page.screenshot({ path: path.join(OUT, '1-contracts-1440.png') });
 
     const rows = await page.$$('#reg-tbody tr[data-row]');
@@ -162,6 +170,10 @@ const ok = (name, good, detail) => {
       return {
         amp: /&amp;/.test(rowsText), nm: /\bn\/m\b/.test(rowsText),
         facts: (document.getElementById('reg-head-facts') || {}).textContent || '',
+        factsSlot: !!document.querySelector('[data-reg-home] .ct-head #reg-head-facts'),
+        say: ((document.querySelector('[data-reg-home] .ct-say') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+        restBook: (() => { if (typeof regRestBase !== 'function') return null; const R = state.reg || {}; let b = regRestBase();
+          if (R.type && R.type !== 'all') b = b.filter(c => String(c.folder) === String(R.type)); return b.length; })(),
         /* RE-POINTED 16 Oct 2026: the place's stages are the Stage box (owner:
            "take the status choices and put them in a dropdown"); a stage with
            nothing in it is not offered, and no choice prints "(0)" */
@@ -180,6 +192,14 @@ const ok = (name, good, detail) => {
         placeFilled: [...document.querySelectorAll('[data-reg-home] button')].filter(b => !b.hasAttribute('data-ct-show')).filter(b => {
           const r = b.getBoundingClientRect(); if (!(r.width > 0 && r.height > 0)) return false;
           const cs = getComputedStyle(b); return cs.backgroundColor === tok('--accent-fill') && cs.color === 'rgb(255, 255, 255)'; }).length,
+        /* RE-POINTED 16 Nov 2026 (#762): the new look draws the page's head IN the place (.ct-head): its filled buttons, by name, and where they stand */
+        placeFilledAt: [...document.querySelectorAll('[data-reg-home] button')].filter(b => !b.hasAttribute('data-ct-show')).filter(b => {
+          const r = b.getBoundingClientRect(); if (!(r.width > 0 && r.height > 0)) return false;
+          const cs = getComputedStyle(b); return (cs.backgroundColor === tok('--accent-fill') || cs.backgroundColor === tok('--color-text')) && cs.color === 'rgb(255, 255, 255)'; })
+          .map(b => (b.closest('.ct-head') ? 'head:' : 'place:') + b.textContent.trim()),
+        liveBook: state.contracts.filter(c => c && !c.archived && c.status !== 'Declined' && !c.parentId && !c._codeNamed).length,
+        headGround: (() => { for (let e = document.querySelector('.reg-band[data-lh-seat="contracts"]'); e; e = e.parentElement) { const b = getComputedStyle(e).backgroundColor, a = (b.match(/[\d.]+/g) || []);
+          if (b && b !== 'transparent' && !(a.length === 4 && Number(a[3]) === 0)) return b; } return null; })(),
         litShow: [...document.querySelectorAll('[data-reg-home] [data-ct-show][aria-pressed="true"]')].map(b => b.getAttribute('data-ct-show')),
         accent: tok('--accent-ink'),
         filled: filled.map(b => b.innerText.trim()),
@@ -193,7 +213,15 @@ const ok = (name, good, detail) => {
     });
     ok('1i a name prints "&", never "&amp;"', !floor.amp);
     ok('1j "Non-monetary", never "n/m"', !floor.nm);
-    ok('1k the head counts the live book, and says so', /\blive\b/.test(floor.facts), floor.facts);
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's head says, as drawn, "N · money on paper · N signed" (regHeadFactsHtml
+       over regFolderRead) — its first number is the live book; the word "live" went with the old head */
+    /* RE-POINTED 20 Nov 2026 (#802, owner 19 Nov 2026: "delete the words beside the header name because they are
+       pushing the buttons to the right"): the head carries no facts line beside the name any more; the count of the
+       book is said by the sentence over the list (regCtSayHtml, "You hold N contracts, M of them signed"), whose N is
+       the list's own book at rest (regRestBase) */
+    /* RE-POINTED 20 Nov 2026 (owner: "delete the highlighted parts"): the sentence over the list is gone too */
+    ok('1k the head draws no facts line, and no sentence stands over the list', !floor.factsSlot && floor.restBook > 0 && floor.say === '',
+      { facts: floor.factsSlot, say: floor.say, book: floor.restBook, live: floor.liveBook });
     ok('1l a stage with nothing in it is not offered, and no choice prints a zero', floor.stageOpts >= 2 && floor.zeroTabs === 0 && floor.zeroCounts === 0, `${floor.stageOpts} stage choices, ${floor.zeroTabs} empty offered, ${floor.zeroCounts} zeros printed`);
     ok('1m no idle sort arrows', !floor.idle);
     /* (its "the selected one is" half retired with the selection, step 7) */
@@ -203,12 +231,16 @@ const ok = (name, good, detail) => {
        AREA — the page head's Draft new agreement and the panel's lead act. */
     /* RE-POINTED AT STEP 7: no panel, so the place itself fills no act; the
        page head fills at most one; the switch lights the one view shown */
-    ok('1o one filled button in each area: none in the Contracts place (its switch lights its view), at most one in the head', floor.placeFilled === 0
-      && floor.filled.length <= 1 && floor.litShow.join() === 'list', floor.filled.join(' | ') + ' · lit ' + floor.litShow.join());
+    /* RE-POINTED 16 Nov 2026 (#762): the page's head stands IN the place (.ct-head) — so the one filled button allowed is
+       the head's (New agreement), and none anywhere else in the place */
+    ok('1o one filled button in each area: the place\'s head at most one, none elsewhere in the place (its switch lights its view)', floor.placeFilledAt.filter(x => /^head:/.test(x)).length <= 1
+      && !floor.placeFilledAt.some(x => /^place:/.test(x)) && floor.filled.length <= 1 && floor.litShow.join() === 'list', floor.placeFilledAt.join(' | ') + ' · ' + floor.filled.join(' | ') + ' · lit ' + floor.litShow.join());
     /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the filters sit in
        the page's white band; the list's own head (name, count, Sort, Display)
        is its card's top row. */
-    ok('1p the filters sit in the white head card; the list draws no card head of its own', floor.barInCard && floor.filtersInBand && !/rgba\(0, 0, 0, 0\)|transparent/.test(String(floor.bandBg)),
+    /* RE-POINTED 16 Nov 2026 (#762): ONE SHEET — the head band is clear over the page's white sheet, so the white is read
+       off the nearest painted ground under it */
+    ok('1p the filters sit in the white head card; the list draws no card head of its own', floor.barInCard && floor.filtersInBand && floor.headGround === 'rgb(255, 255, 255)',
       `no card head ${floor.barInCard} · filters in the head ${floor.filtersInBand} · band ${floor.bandBg}`);
 
     /* the one line, at every laptop width, in both languages */
@@ -249,138 +281,99 @@ const ok = (name, good, detail) => {
     await page.evaluate(() => { if (typeof window.langSet === 'function') window.langSet('en'); }); await page.waitForTimeout(700);
     await page.setViewportSize({ width: 1440, height: 900 }); await toContracts();
 
-    /* the Display menu */
-    const disp = await page.$('#reg-display');
-    if (disp) {
-      await disp.click(); await page.waitForTimeout(150);
-      const open = await page.evaluate(() => !document.getElementById('reg-display-pop').hidden);
-      await page.click('button[data-reg-density="comfortable"]'); await page.waitForTimeout(500);
-      const dens = await page.evaluate(() => regDensity());
-      await page.click('#reg-display'); await page.click('button[data-reg-density="compact"]'); await page.waitForTimeout(500);
-      await page.click('#reg-display'); await page.keyboard.press('Escape'); await page.waitForTimeout(150);
-      const shut = await page.evaluate(() => document.getElementById('reg-display-pop').hidden);
-      ok('1r Display opens, sets the row density, and Escape shuts it', open && dens === 'comfortable' && shut, JSON.stringify({ open, dens, shut }));
-    } else ok('1r Display opens, sets the row density, and Escape shuts it', false, 'no Display control');
+    /* RETIRED 16 Nov 2026 (#762): 1r "Display opens, sets the row density, and Escape shuts it" — old look only: the
+       Display cog lives in the list head's filter bar (.reg-filterbar), which the drawn new-look head does not show
+       (index.html: ".ct-head :is(.lh-add,.lh-sp,.reg-filterbar,…){display:none}") */
 
     /* ================= 2 · NEGOTIATIONS ================= */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Negotiations is ONE table (.ngn-table) beside Jambo's
+       panel: Agreement (party · reference · value on its line) · Round · Whose move (with how long) · Open asks (each ask
+       quoted with its §) · Lead · Last; whose move are the tabs Live · Your move · Their move ([data-ngn-tab]); the chosen
+       round's panel is THE PRESSED ROUND ALONE (ngnPanelFiveHtml). Each claim asked of its new place. */
     await page.evaluate(() => openNegotiations({ list: true })); await page.waitForTimeout(1200);
-    const ng = await page.evaluate(() => ({
+    /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): the columns are Agreement ·
+       Whose move (a soft badge) · Rounds (a strip) · Open asks (theirs, a count) · Lead · Waiting · the act (no head);
+       the first open ask's words and § ride the agreement cell (.ngn-ql); NO money in a row nor in the panel; the tabs
+       are chips (count in their span); the chosen deal's panel has NO tiles: its name, a whose-move tag, the facts block
+       (.ngn-pfacts: Round, Open asks, the strip) and its act (.jov5-go). */
+    const MONEY = /\b(KES|SEK|EUR|USD)\s?[\d.]+/;
+    const ng = await page.evaluate(MONEY_SRC => { const MONEY = new RegExp(MONEY_SRC); return {
       ins: document.querySelector('[data-ins-page]')?.getAttribute('data-ins'),
-      heads: [...document.querySelectorAll('.reg-table thead th')].map(t => t.textContent.replace(/[▲▼↕]/g, '').trim()),
-      widths: [...document.querySelectorAll('.reg-table thead th')].map(t => +t.getBoundingClientRect().width.toFixed(1)),
-      moves: [...document.querySelectorAll('#reg-tbody tr[data-row] .reg-ch')].map(x => ((x.querySelector('.ls-word-v') || x).textContent.trim())), /* RE-POINTED 28 Oct 2026: the reading's words, its grey line under */
-      /* the wait's days (27 Oct 2026: whose wait it is rides the line under it) */
-      waits: [...document.querySelectorAll('#reg-tbody tr[data-row] td.reg-wait .reg-wait-d')].map(x => x.textContent.trim()),
-      bandTabs: [...document.querySelectorAll('.reg-views [data-reg-band]')].map(x => x.textContent.replace(/\d+/g, '').trim()),
-      bands: [...document.querySelectorAll('#reg-tbody .ngl-band-k')].map(x => x.textContent.trim()),
+      heads: [...document.querySelectorAll('.ngn-table thead th')].map(t => t.textContent.trim()),
+      moves: [...document.querySelectorAll('.ngn-table tr[data-ngn-row] .apn-st')].map(x => x.textContent.trim()),
+      asks: [...document.querySelectorAll('.ngn-table tr[data-ngn-row]')].map(r => ({ yours: r.classList.contains('is-yours'),
+        n: ((r.querySelector('td.ngn-n') || {}).textContent || '').trim(), ql: ((r.querySelector('.ngn-ql') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+        /* RE-POINTED 21 Nov 2026 (P-29, as drawn): the wait is its own right-aligned cell (td.ngn-wait) */
+        wait: ((r.querySelector('.ngn-wait') || {}).textContent || '').trim() })),
+      money: [...document.querySelectorAll('.ngn-table tr[data-ngn-row]')].some(x => MONEY.test(x.textContent)),
+      tabs: [...document.querySelectorAll('[data-ngn-tab]')].map(x => x.getAttribute('data-ngn-tab') + ':' + ((x.querySelector('span') || {}).textContent || '')),
+      chips: [...document.querySelectorAll('[data-ngn-tab]')].every(x => x.classList.contains('apn-tab') && x.classList.contains('is-chip')),
       views: !!document.querySelector('[data-reg-view]'),
-      /* RE-POINTED 18 Oct 2026: the panel is Jambo's — its head, then the body
-         holding what it says — so the sections are read inside the body */
-      first: document.getElementById('ins-panel') ? [...(document.querySelector('#ins-panel .jl-body') || document.getElementById('ins-panel')).children].map(x => x.className)[1] : null,
-      table: document.querySelector('#ins-panel .ins-table') ? document.querySelector('#ins-panel .ins-table').innerText : '',
-    }));
-    /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the drawing's
-       columns — Round, Changes, Waiting — and whose move as tabs and bands. */
-    /* RE-POINTED 17 Oct 2026 (round 14, "Whose move"): "What is open", and the
-       Lead column the owner said yes to, after the wait */
-    /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE, owner: "keep" the Clauses in play): the reference, the round and the
-       lead ride the grey line under the counterparty (Round and Lead one press away under Columns) */
-    ok('2a Negotiations draws the list and the panel, with the clauses in play, what is open, the wait and the value', ng.ins === '1'
-      /* RE-POINTED 28 Oct 2026 (ROOM TO SPREAD, owner: "go ahead on all list pages"): where the list has the
-         room (1440 here), the grey line's reference, round and lead are columns of their own */
-      && ['Counterparty and agreement|Clauses in play|What is open|Waiting|Value', 'Counterparty and agreement|Ref|Clauses in play|What is open|Waiting|Value|Round|Lead'].includes(ng.heads.join('|')), ng.heads.join(' | '));
-    ok('2b the changes say what they ask of whom, and the wait says how long', /* RE-POINTED 18 Oct 2026 (round 14 as drawn): "N redlines to answer", "N sent, no answer yet" */ ng.moves.some(m => /^\d+ redlines? to answer$/.test(m)) && ng.moves.some(m => /^\d+ sent, no answer yet$/.test(m))
-      && ng.waits.some(w => /^(\d+ days?|today)$/.test(w)), `${ng.moves.join(' | ')} · ${ng.waits.join(' | ')}`);
-    ok('2c only the groups that have rows are drawn, whose move is a tab row, and no Contracts views', !ng.bands.includes('Nothing outstanding') && !ng.views
-      && ng.bandTabs.includes('Our move') && ng.bandTabs.includes('Their move'), `${ng.bands.join(' | ')} · tabs ${ng.bandTabs.join(' | ')}`);
-    /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner: less clutter): the panel
-       draws the drawing's four facts first; the round's detail is Negotiate's. */
-    const ngFacts = await page.evaluate(() => [...document.querySelectorAll('#ins-panel .ins-facts [data-ins-fact]')].map(x => x.getAttribute('data-ins-fact')));
-    ok('2d the panel leads with the drawing\'s four facts — value, lead, their changes, last sent', ng.first === 'ins-facts' && ngFacts.join(',') === 'value,lead,theirs,sent' && !ng.table,
-      `${ng.first} · ${ngFacts.join(',')}`);
-    /* BALANCE ACROSS THE TWO PAGES, as the full tables have kept it since 21
-       Sep: the reference, the counterparty and the value are cut identically
-       in pixels, so a reader moving between the pages sees the same edges.
-       Red at 3cc28b1, where whose move was narrower than a stage and the
-       counterparty 32px wider on this seat. */
-    /* RE-POINTED 9 Oct 2026: Value is not a Negotiations column in the drawing,
-       so the two columns both pages still share are the ones held equal. */
-    /* 2e RETIRED 15 Oct 2026 (the overnight work order, step 7): "the columns
-       both pages share are cut identically, in pixels" paired the Contracts
-       page's inspector list with the Negotiations page's. Contracts is now
-       Home's Contracts place, with no inspector, its List in Home's paper
-       column beside Jambo's panel — the two lists no longer share a width
-       to be cut alike (contracts-page-verify 11d and counterparty-leads-
-       verify 2f retire with it). 2a–2d still ask the Negotiations list. */
+      /* RE-POINTED 21 Nov 2026 (P-29, as drawn): the chosen deal's panel is drawn without cards (.ngn5): its badge (.ngn5-tag), name (.ngn5-t),
+         Round · Open asks · Rounds (.ngn5-figs), the act in black (.ngn5-k) and Open the redlines beside it (.ngn5-acts) */
+      panel: (() => { const p = document.querySelector('#ins-panel .ngn-panel'); if (!p) return null;
+        return { title: !!p.querySelector('.ngn5-t'), tag: ((p.querySelector('.ngn5-tag') || {}).textContent || '').trim(),
+          glance: p.querySelectorAll('.jov5-glance').length, facts: ((p.querySelector('.ngn5-figs') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+          strip: !!p.querySelector('.ngn5-figs .ngn-rs'), money: MONEY.test(p.textContent),
+          go: ((p.querySelector('.ngn5-k') || {}).textContent || '').trim(), link: [...p.querySelectorAll('.ngn5-acts [data-ngn-open]')].map(x => x.textContent.trim()) }; })(),
+    }; }, MONEY.source);
+    ok('2a Negotiations draws the list and the panel: Agreement · Whose move · Rounds · Open asks · Lead · Waiting · the act, and no money in a row', ng.ins === '1'
+      && ng.heads.filter(Boolean).join('|') === 'Agreement|Whose move|Rounds|Open asks|Lead|Waiting' && ng.heads[ng.heads.length - 1] === '' && !ng.money, ng.heads.join(' | ') + ` · money ${ng.money}`);
+    ok('2b whose move is a badge, a row of yours counts their open asks and quotes the first with its §, and the wait is said',
+      ng.moves.includes('Your move') && ng.moves.includes('Their move') && ng.moves.every(m => /^(Your move|Their move|Settled)$/.test(m))
+      && ng.asks.some(a => a.yours && /^[1-9]\d*$/.test(a.n) && /§/.test(a.ql)) && ng.asks.some(a => a.wait && a.wait !== '—'), `${ng.moves.join(' | ')} · ${JSON.stringify(ng.asks)}`);
+    ok('2c only the tabs that have rows are drawn, as chips carrying their counts, and no Contracts views', !ng.views && ng.chips
+      && ng.tabs.some(t => /^you:[1-9]/.test(t)) && ng.tabs.some(t => /^them:[1-9]/.test(t)) && ng.tabs.every(t => !/:0$/.test(t) || /^live:/.test(t)), ng.tabs.join(' | '));
+    /* was: the panel's three numbers (unsent · asks · round) — the chosen deal's panel carries no tiles and no money */
+    ok('2d the panel leads with the chosen deal: its name, whose move, Round and Open asks with the rounds strip, its act, no tiles and no money', !!ng.panel && ng.panel.title
+      && /^(Your move|Their move|Settled)$/.test(ng.panel.tag) && ng.panel.glance === 0 && /round/i.test(ng.panel.facts) && /Open asks/.test(ng.panel.facts) && ng.panel.strip && !ng.panel.money
+      && (ng.panel.go === 'Open the redlines' || (/^(Answer|Send|Remind|Before you sign)$/.test(ng.panel.go) && ng.panel.link.includes('Open the redlines'))), JSON.stringify(ng.panel));
+    /* 2e RETIRED 15 Oct 2026 (the overnight work order, step 7). */
     await page.screenshot({ path: path.join(OUT, '2-negotiations-1440.png') });
 
     /* ================= 3 · APPROVALS & SIGNING ================= */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Approvals is ONE table (.apn-table) beside Jambo's
+       panel; the chosen approval's panel is THE FIVE PARTS with NO button — Approve and Decline stay on the row
+       (apnLeadFiveHtml, owner 16 Nov 2026) */
     await page.evaluate(() => setView('approvals')); await page.waitForTimeout(1000);
     const ap = await page.evaluate(() => ({
       ins: document.querySelector('[data-ins-page="approvals"]')?.getAttribute('data-ins'),
-      rows: [...document.querySelectorAll('.ap-table tbody tr[data-ap-row]')].map(r => r.getAttribute('data-ap-row')),
-      buttons: document.querySelectorAll('.ap-table [data-ap-open]').length,
+      rows: [...document.querySelectorAll('.apn-table tbody tr[data-ap-row]')].map(r => r.getAttribute('data-ap-row')),
+      /* RE-POINTED (P-30, owner's pick 20 Nov 2026): no row carries Approve or Decline; the chosen approval's panel does (its acts, [data-apn-act]) */
+      rowActs: [...document.querySelectorAll('.apn-table tbody tr[data-ap-row][data-ap-kind="approval"]')].every(r => !r.querySelector('[data-ap-approve], [data-ap-refuse]')),
+      panelBtns: document.querySelectorAll('#ins-panel [data-ins-act]').length,
       pid: document.getElementById('ins-panel')?.getAttribute('data-ins-id'),
-      lead: document.querySelector('#ins-panel [data-ins-act]')?.innerText.trim(),
     }));
-    ok('3a Approvals draws the list and the panel; the row buttons moved into it', ap.ins === '1' && ap.buttons === 0 && !!ap.pid, JSON.stringify({ ins: ap.ins, buttons: ap.buttons, pid: ap.pid }));
+    ok('3a Approvals draws the list and the panel; no row carries a decision, the panel draws no old act button', ap.ins === '1' && ap.rowActs && ap.panelBtns === 0 && !!ap.pid, JSON.stringify({ ins: ap.ins, rowActs: ap.rowActs, panelBtns: ap.panelBtns, pid: ap.pid }));
     await page.screenshot({ path: path.join(OUT, '3-approvals-1440.png') });
     if (ap.rows.length > 1 && ap.pid) {
-      await page.click(`.ap-table tbody tr[data-ap-row="${ap.rows[1]}"]`); await page.waitForTimeout(300);
+      const other = ap.rows.find(id => id !== ap.pid);
+      await page.click(`.apn-table tbody tr[data-ap-row="${other}"] td:first-child`); await page.waitForTimeout(300);
       const s = await page.evaluate(() => ({ view: state.view, pid: document.getElementById('ins-panel').getAttribute('data-ins-id') }));
-      ok('3b a press selects on Approvals too', s.view === 'approvals' && s.pid === ap.rows[1], JSON.stringify(s));
-      /* RE-POINTED 4 Oct 2026 (the process review, approved): a step this
-         reader may decide now LEADS with Approve and Refuse (f466), so the door
-         to the Signing tab is pressed by its own name — it is still there. */
-      /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
-         Signing tab went home — its door (apOpenSigning → roomTabHome) opens
-         Jambo's Before you sign face beside Home's paper, on that contract
-         (#pd-signface .pd-sf[data-pd-sf="<id>"], the paper Home's #ig-canvas
-         drawn as the signing copy). Waited for by that contract's id. */
-      await page.click('#ins-panel [data-ins-act="gate"]');
-      await page.waitForFunction(id => !!document.querySelector(`#pd-signface .pd-sf[data-pd-sf="${id}"]`), ap.rows[1], { timeout: 8000 }).catch(() => {});
-      const g = await page.evaluate(() => { const f = document.querySelector('#pd-signface .pd-sf[data-pd-sf]');
-        return { view: state.view, id: f ? f.getAttribute('data-pd-sf') : null, paper: window.pdContract && pdContract() ? pdContract().id : null,
-          sheet: !!document.querySelector('#ig-paper .pg-sheet.pg-sign #ig-canvas') }; });
-      ok('3c the panel’s Signing-tab door opens that contract on its Signing tab', g.view === 'dashboard' && g.id === ap.rows[1] && g.paper === ap.rows[1] && g.sheet, JSON.stringify(g));
-    } else {
-      ok('3b a press selects on Approvals too', false, 'fewer than two approval rows, or no panel');
-      ok('3c the panel’s lead act opens that contract on its Signing tab', false, 'nothing to press');
-    }
-
-    /* (12 Oct 2026, owner: the panel's Open contract is now the Document door, data-ins-act="door-doc") */
-    /* 3d–3e (owner, 11 Oct 2026): "Open contract" on Approvals and on
-       Obligations lands on Home's Document, on that contract — Obligations on
-       the panel's Obligations tab. */
+      ok('3b a press selects on Approvals too', s.view === 'approvals' && s.pid === other, JSON.stringify(s));
+    } else ok('3b a press selects on Approvals too', false, 'fewer than two approval rows, or no panel');
+    /* RETIRED 16 Nov 2026 (#762): 3c "the panel's Signing-tab door opens that contract on its Signing tab" and 3d "the
+       panel's way to the paper (Workspace / Open Before you sign) lands on Home" — old look only: the approval's panel
+       draws no button (Approve and Decline on the row); the row's own press and Enter land on Before you sign
+       (every-door-lands-on-home-verify, Approvals row) */
     const HOMED = () => ({ view: state.view, id: (window.intel && intel.paper) ? intel.paper.id : null,
       tab: document.querySelector('#ig-dock .pd-tab.on')?.getAttribute('data-pd-tab') || null });
-    await page.evaluate(() => setView('approvals')); await page.waitForTimeout(1000);
-    const apPid = await page.evaluate(() => document.getElementById('ins-panel')?.getAttribute('data-ins-id'));
-    /* RE-POINTED 15 Oct 2026 (owner): the Document door went; the Workspace door opens Home */
-    if (apPid && await page.$('#ins-panel [data-ins-act="door-ws"]')) {
-      await page.click('#ins-panel [data-ins-act="door-ws"]'); await page.waitForTimeout(1200);
-      const r = await page.evaluate(HOMED);
-      ok('3d Approvals: the Workspace door lands on Home, on that contract', r.view === 'dashboard' && r.id === apPid, JSON.stringify(r));
-    } else if (apPid && await page.$('#ins-panel [data-ins-act="gate"]')) {
-      /* RE-POINTED 18 Oct 2026 (round 15 as drawn, owner's "build all the
-         gaps"): an Approval's panel draws no doors — "Open Before you sign" is
-         its way to the paper, and it lands on Home, on that contract */
-      await page.click('#ins-panel [data-ins-act="gate"]'); await page.waitForTimeout(1200);
-      const r = await page.evaluate(HOMED);
-      ok('3d Approvals: an Approval\'s "Open Before you sign" lands on Home, on that contract', r.view === 'dashboard' && r.id === apPid, JSON.stringify(r));
-    } else ok('3d Approvals: the panel\'s way to the paper lands on Home', false, 'no panel, no Workspace door, no Open Before you sign');
     const obCid = await page.evaluate(() => { const c = state.contracts.find(x => !x.archived); if (!c) return null;
       c.obligations = (c.obligations || []).concat([{ id: 'ob-ins-3e', desc: 'Send the quarterly report', due: todayISO(), party: 'us', status: 'open' }]); return c.id; });
     await page.evaluate(() => setView('obligations')); await page.waitForTimeout(1200);
-    const obRow = await page.$('[data-ins-page="obligations"] tbody tr:not(.ins-grp)'); if (obRow) { await obRow.click(); await page.waitForTimeout(500); }
+    const obRow = (await page.$(`[data-ins-page="obligations"] .obt-cols [data-ob-key="${obCid}::ob-ins-3e"]`)) || (await page.$('[data-ins-page="obligations"] .obt-cols [data-ins-row]')); if (obRow) { await obRow.click(); await page.waitForTimeout(500); }
     const obPid = await page.evaluate(() => document.getElementById('ins-panel')?.getAttribute('data-ins-id'));
-    const obBtn = await page.$('#ins-panel [data-ins-act="door-ws"]');
+    /* RE-POINTED 18 Nov 2026 (owner's pick by name, "Five Parts"; f1094): a chosen duty's panel draws no Workspace door
+       now; its contract row is the door (data-obp-contract → obOpenContract), landing on Home's paper, that contract */
+    /* RE-POINTED 19 Nov 2026 ("We owe · They owe", f1099): the duty is a line in a column; its panel's door to the paper is
+       "Open the paper" (data-obt-paper → obOpenContract) */
+    const obBtn = await page.$('#ins-panel [data-obt-paper], #ins-panel [data-obp-contract]');
     if (obBtn) {
       await obBtn.click(); await page.waitForTimeout(1200);
       const r = await page.evaluate(HOMED);
       /* (the Obligations-tab landing went with the Document door, 15 Oct 2026) */
-      ok('3e Obligations: the Workspace door lands on Home, on that contract', r.view === 'dashboard' && !!r.id && r.id === obCid, JSON.stringify({ ...r, obCid, obPid }));
-    } else ok('3e Obligations: the Workspace door lands on Home', false, 'no Workspace door in the panel');
+      ok('3e Obligations: the contract row lands on Home, on that contract', r.view === 'dashboard' && !!r.id && r.id === obCid, JSON.stringify({ ...r, obCid, obPid }));
+    } else ok('3e Obligations: the contract row lands on Home', false, 'no contract row in the panel');
 
     /* ================= 4 · BELOW THE LINE, AND A WIDTH THAT CROSSES IT ================= */
     /* RE-POINTED AT STEP 7: the Contracts List draws no inspector, so the
@@ -437,8 +430,12 @@ const ok = (name, good, detail) => {
       /* the surface a word sits on: the nearest box that paints a ground */
       const ground = el => { for (let e = el; e; e = e.parentElement) { const b = getComputedStyle(e).backgroundColor, a = (b.match(/[\d.]+/g) || []);
         if (b && b !== 'transparent' && !(a.length === 4 && Number(a[3]) === 0)) return b; } return 'rgb(255, 255, 255)'; };
-      const cpE = p.querySelector('.ins-cp'), dtE = p.querySelector('.ins-facts dt');
-      if (!cpE || !dtE) return { missing: [!cpE && '.ins-cp', !dtE && '.ins-facts dt'].filter(Boolean) };
+      /* RE-POINTED 16 Nov 2026 (#762): the chosen round's panel is the five parts — its headline (.jov5-title) and a
+         fact's small line (.jov5-rt > span) are the words read */
+      /* RE-POINTED 22 Nov 2026 (P-29 review): the chosen deal's panel is drawn without cards (.ngn5) — its name (.ngn5-t)
+         and its grey small line, the other side and reference (.ngn5-s), are the words read; AA is asked of them the same way */
+      const cpE = p.querySelector('.ngn5-t, .jov5-title'), dtE = p.querySelector('.ngn5-s, .jov5-group .jov5-rt > span');
+      if (!cpE || !dtE) return { missing: [!cpE && '.ngn5-t', !dtE && '.ngn5-s'].filter(Boolean) };
       const cpBg = ground(cpE), dtBg = ground(dtE);
       return { cpBg, dtBg, cp: ratio(getComputedStyle(cpE).color, cpBg), dt: ratio(getComputedStyle(dtE).color, dtBg) };
     });

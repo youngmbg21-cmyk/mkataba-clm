@@ -156,9 +156,12 @@ async function login(b, base, email, pass, errs){
       const word = trail && trail.querySelector('.pd-trail-w b'); const back = trail && trail.querySelector('[data-pd-back]');
       const face = document.getElementById('pd-redface');
       const x = face ? [...face.querySelectorAll('button')].filter(bt => (bt.textContent || '').trim() === '×' && bt.offsetParent).length : -1;
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): under the new look's Redlines face the panel draws
+         the face's own links as drawn (CA_RED_LINKS) — no Jambo chip that is not one of the face's own doors */
+      const chipKeys = [...document.querySelectorAll('#ig-dock [data-ig-chips] [data-ca-chip]')].filter(b => b.getClientRects().length).map(b => b.getAttribute('data-ca-chip'));
       const chips = document.querySelector('#ig-dock [data-ig-chips]');
       return { tabs, word: word ? word.textContent.trim() : null, back: back ? back.textContent.trim() : null, backFace: back && back.getAttribute('data-pd-back'),
-        x, chips: chips ? getComputedStyle(chips).display : 'none' };
+        x, chips: chips ? getComputedStyle(chips).display : 'none', chipKeys };
     });
     /* RE-POINTED 21 Oct 2026 (owner picked "The Dossier", 20 Oct 2026: it reverses the Menu tab, folded into the Dossier's All acts; the first tab beside a paper is "Dossier"): */
     /* RE-POINTED 23 Oct 2026 (Spine): the row is Dossier · Clauses · Redlines */
@@ -167,7 +170,7 @@ async function login(b, base, email, pass, errs){
        beside a contract is renamed Overview"): the faces' back says "‹ Overview" */
     check('1b "‹ Dossier" opens the trail line, for this face', /Dossier/.test(row.back || '') && row.backFace === 'red', row.back);
     check('1c the face\'s head draws no ×', row.x === 0, String(row.x));
-    check('1d no chips under the face', row.chips === 'none', row.chips);
+    check('1d no chips under the face but the face\'s own links', row.chips === 'none' || JSON.stringify(row.chipKeys) === JSON.stringify(['rl_ladder', 'rl_notes', 'rl_theirs', 'history']), JSON.stringify(row.chipKeys));
 
     /* 2 the head */
     const head = await page.evaluate(() => {
@@ -176,14 +179,15 @@ async function login(b, base, email, pass, errs){
       const n = (title.match(/Redlines\s*(\d+)/) || [])[1];
       const inSight = [...f.querySelectorAll('[data-rl-pile]:not(.rl-pile-quiet) [data-nego-card]')].length;
       const notes = q('[data-rl-notes-all]'); const here = q('.rl-head-here'); const round = q('.rl-round-at');
-      const send = q('.rl-unsent-go[data-redline-proxy="nego-send"]'); const rv = q('[data-rl-review-go]');
+      const send = q('.rl-unsent-go[data-redline-proxy="nego-send"]'); const rv = document.querySelector('#ig-strip #ws-review'); /* RE-POINTED 16 Nov 2026 (#762): the paper line's Ask for review, the face's head copy is not drawn */
       const faces = here ? here.querySelectorAll('[data-pz-slot] .pz-face, [data-pz-slot] [data-pz-follow]').length : 0;
       return { n: n == null ? null : Number(n), inSight, notes: notes ? notes.innerText.replace(/\s+/g, ' ').trim() : null,
         here: here ? here.innerText.replace(/\s+/g, ' ').trim() : null, hereShown: !!(here && here.offsetParent), faces,
         round: round ? round.textContent.trim() : null, send: send ? send.innerText.replace(/\s+/g, ' ').trim() : null,
         review: rv ? rv.innerText.trim() : null, reviewOn: !!(rv && !rv.disabled) };
     });
-    check('2a "Redlines N" counts the rows in sight', head.n != null && head.n === head.inSight && head.n === 4, JSON.stringify({ n: head.n, inSight: head.inSight }));
+    /* RETIRED 16 Nov 2026 (#762): 2a '"Redlines N" counts the rows in sight' — the new look's Redlines face has no
+       headline (owner's pick, 16 Nov 2026, "cards first": one line, round label + Send all, then the cards) */
     check('2b "Notes 2" in the head', head.notes === 'Notes 2', head.notes);
     check('2c "Here now" with the faces of who is on it', head.hereShown && /^Here now/.test(head.here || '') && head.faces >= 2, JSON.stringify({ here: head.here, faces: head.faces }));
     /* RE-POINTED 24 Oct 2026 (Round 3, owner's yes, the SAP heads): "N not sent" leads the round line, beside the Deal door */
@@ -268,7 +272,9 @@ async function login(b, base, email, pass, errs){
     check('9a Notes opens the notes in the column, not the drawer', !!notesUp);
     await page.click('#pd-redface [data-rl-notes-all]');
     await waitFor(page, () => !document.querySelector('#pd-redface .rl-fn') && !!document.querySelector('#pd-redface [data-rl-pile]'), 5000);
-    await page.click('#pd-redface [data-rl-review-go]');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Ask for review is the paper line's own door (#ws-review,
+       rlReviewDoor), the face's head copy is not drawn */
+    await page.click('#ig-strip #ws-review');
     const rvUp = await waitFor(page, () => { const m = document.querySelector('#modal-root'); return m && (m.querySelector('[data-rv-entry]') || m.querySelector('[data-rv-pick], .rv-pick, #rv-ask-send')) ? m.innerText.replace(/\s+/g, ' ').slice(0, 80) : null; }, 5000);
     check('9b Ask for review opens the review\'s own chooser', !!rvUp, rvUp);
     await page.evaluate(() => { try { closeModal(); } catch (_) {} });

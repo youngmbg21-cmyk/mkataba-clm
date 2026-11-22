@@ -91,6 +91,8 @@ const pastFirstWords = async page => {
   const before = await page.evaluate(() => window.state.contracts.length);
   await page.fill('#ce-counterparty', 'Naivas Supermarkets Ltd');
   await page.fill('#ce-cpemail', 'legal@naivas.co.ke');
+  /* RE-POINTED (f1120, the one edit pop-up): the parties are the first step, term and money the second (Next) */
+  await page.click('#ce-form [data-ce-next]').catch(() => {});
   await page.fill('#ce-value', '2500000');
   /* A pop-up's date wears HaTi's face (SAP pop-ups, 10 Oct 2026): the real box
      is kept, not drawn, as the value — written as the calendar writes it. */
@@ -101,6 +103,7 @@ const pastFirstWords = async page => {
      to the workspace's own name. A subsidiary is typed over the prefill. */
   const askedParty = await page.evaluate(() => !!document.getElementById('ce-party') && !!document.getElementById('ce-side'));
   if (askedParty) {
+    await page.click('#ce-form [data-ce-back]').catch(() => {});   // back to the parties (f1120)
     await page.fill('#ce-party', 'Highland Logistics (K) Ltd');
     await page.selectOption('#ce-side', 'supplier');
   }
@@ -153,7 +156,10 @@ const pastFirstWords = async page => {
      the reader is actually looking at, not off the module's variable. */
   await pastFirstWords(page);
   const landed = await page.evaluate(() => ({ view: window.state.view, paper: window.intel && intel.paper && intel.paper.id,
-    face: !!document.getElementById('pd-fillface'), grid: !!document.querySelector('#ig-dock #pd-glance #pd-og') }));
+    face: !!document.getElementById('pd-fillface'), grid: !!document.querySelector('#ig-dock #pd-glance #pd-og')
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Dossier's top is ONE card (pd2CardHtml) whose
+         headline says what is owed and whose ONE black button asks it (.pd2-card-go) — the Still owed grid's place */
+      || !!document.querySelector('#ig-dock #pd-glance [data-pd2-card] .pd2-card-go') }));
   /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 2, owner picked
      "Form"): a new draft lands on Home's paper with Jambo's panel on Fill in
      (12 Oct 2026: the room's Details tab) */

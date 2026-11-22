@@ -107,7 +107,10 @@ describe('f394 (3) the divider is the other two pages\' own', () => {
     assert.match(code(region(IG, 'igWireSplit')), /splitWire\(rez, IG_SPLIT\)/);
     const w = code(region(CMP, 'splitWire'));
     /* RE-POINTED 6 Oct 2026: the strip's left edge is the seam now. */
-    assert.match(w, /grabDx = hb\.left - e\.clientX/);
+    /* RE-POINTED 17 Nov 2026 (#762): the grab is measured from the SEAM (the edge less the width in force), not the strip's
+       drawn box, which a transform shifts (explorer-verify 4d: 160 dragged, 167 moved) */
+    assert.match(w, /seam = h\.edge\(\) - splitWidth\(h\)/);
+    assert.match(w, /grabDx = \(Number\.isFinite\(seam\) \? seam : hb\.left\) - e\.clientX/);
     assert.match(w, /h\.edge\(\) - \(x \+ grabDx\)/);
     assert.match(code(IG_HOST), /edge: \(\) => document\.getElementById\('ig-row'\)\.getBoundingClientRect\(\)\.right/, 'the far edge is the row\'s right');
     assert.match(w, /h\.dragging\(true\)/);

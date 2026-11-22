@@ -394,12 +394,12 @@ function tbCoverageOf(list, key) {
       || (r.key === 'paymentDays' && k.key === 'payment')
       || (r.key === 'liabilityMonths' && k.key === 'liability'));
     const hit = t ? find(t.category) : null;
-    if (!hit) { rows.push({ category: r.label, note: r.note || '', escalate: !!r.escalate, state: 'open', where: null, at: -1 }); return; }
+    if (!hit) { rows.push({ category: r.label, rkey: r.key, note: r.note || '', escalate: !!r.escalate, state: 'open', where: null, at: -1 }); return; }
     const m = (typeof window.pbRangeRead === 'function') ? pbRangeRead(r.key, hit.text) : null;
-    if (!m) { rows.push({ category: r.label, note: r.note || '', escalate: !!r.escalate, state: 'hit', where: hit.s, at: hit.at }); return; }
+    if (!m) { rows.push({ category: r.label, rkey: r.key, note: r.note || '', escalate: !!r.escalate, state: 'hit', where: hit.s, at: hit.at }); return; }
     const n = Number(m[1]);
     const ok = r.op === '<=' ? n <= r.value : n >= r.value;
-    rows.push({ category: r.label, note: r.note || '', escalate: !!r.escalate,
+    rows.push({ category: r.label, rkey: r.key, note: r.note || '', escalate: !!r.escalate,
                 state: ok ? 'hit' : 'dev', where: hit.s, at: hit.at, figure: n, want: r.value, op: r.op,
                 unit: r.key === 'paymentDays' ? 'days' : r.key === 'liabilityMonths' ? 'months' : '' });
   });
@@ -1870,7 +1870,7 @@ function tbPaperHtml() {
      it yet, one quiet line says what lands here (index.html gives the sheet a page's height) */
   if (!_tb.blocks.length) html += `<p class="tb-empty-line">${esc(i18t('tb_empty_paper'))}</p>`;
   html += `<div class="tb-add">
-      <select id="tb-addtype" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+      <select id="tb-addtype" style="border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
         ${Object.entries(TB_BLOCK_META).map(([k, m]) => `<option value="${k}" title="${esc(m.tip)}">${m.label}</option>`).join('')}
       </select>
       <button type="button" id="tb-addblock" class="ui-btn ui-btn-sm">${icon('plus', 'w-3 h-3')} ${i18t('tb_add_block')}</button>
@@ -3284,22 +3284,19 @@ async function tbLookAsk() {
   if (typeof refreshOrgBranding === 'function') { try { await refreshOrgBranding(); } catch (_) { /* the choice still opens */ } }
   const org = window.ORG_BRANDING || null, has = !!(org && org.designId);
   const name = tbHeadFacts().name, v = _tb.versionNumber;
-  const row = (k, t, d, on, dead) => `<label class="sap-li" style="align-items:flex-start${dead ? ';opacity:.55;cursor:not-allowed' : ''}">
-      <input type="radio" name="tb-look" value="${k}"${on ? ' checked' : ''}${dead ? ' disabled' : ''} style="margin-top:3px;accent-color:var(--accent-fill)">
-      <span><span style="display:block;font-weight:var(--w-label)">${esc(t)}</span><span class="sap-m">${esc(d)}</span></span></label>`;
-  const note = v > 1 ? `<label class="sap-f" style="display:block;margin-top:var(--s-3)"><span class="sap-lbl">${esc(i18t('tb_look_note'))}</span>
-      <textarea id="tb-look-note" class="ui-input" rows="2" maxlength="500" style="width:100%;height:auto;padding:var(--field-pad-y) var(--field-pad-x)"></textarea></label>` : '';
-  openModal(`<div style="padding:16px 18px">
-    <h3>${esc(i18t('tb_look_title', { name }))}</h3>
-    <p class="sap-m" style="margin:0 0 var(--s-3)">${esc(i18t('tb_look_lead'))}</p>
-    <div class="sap-body"><div class="sap-list">
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1118): the two answers as quiet choice lines (a ring, the name, its one
+     line), the change note a line of its own, the one black button whose words follow the choice, Cancel last */
+  const row = (k, t, d, on, dead) => `<label class="lgp-tick is-radio${dead ? ' is-off' : ''}"${dead ? ' style="cursor:not-allowed"' : ''}>
+      <input type="radio" name="tb-look" value="${k}"${on ? ' checked' : ''}${dead ? ' disabled' : ''}>
+      <span class="lgp-tl">${esc(t)}<span class="lgp-tsub">${esc(d)}</span></span></label>`;
+  const note = v > 1 ? lgpRowHtml({ k: i18t('tb_look_note'), id: 'tb-look-note', type: 'area', max: 500 }) : '';
+  lgpOpen({ id: 'tb-look', title: i18t('tb_look_title', { name }), sub: i18t('tb_look_lead'),
+    html: `<div class="lgp-list">
       ${row('company', i18t('tb_look_company'), has ? i18t('tb_look_company_d') : i18t('tb_look_company_none'), has, !has)}
       ${row('design', i18t('tb_look_design'), i18t('tb_look_design_d'), !has, false)}
-    </div>${note}</div>
-    <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
-      <button type="button" id="tb-look-go" class="ui-btn ui-btn-primary">${esc(i18t(has ? 'tb_look_publish' : 'tb_look_next'))}</button>
-      <button data-dlg-cancel type="button" id="tb-look-x" class="ui-btn">${esc(i18t('act_cancel'))}</button></div>
-  </div>`, { maxWidth: (window.DLG_W && DLG_W.m) || '520px', label: i18t('tb_look_title', { name }) });
+    </div>${note}`,
+    primary: { label: i18t(has ? 'tb_look_publish' : 'tb_look_next'), attr: 'id="tb-look-go"' },
+    cancelAttr: 'data-dlg-cancel id="tb-look-x"', focus: 'input[name="tb-look"]:checked' });
   const pick = () => (document.querySelector('input[name="tb-look"]:checked') || {}).value || 'design';
   const go = document.getElementById('tb-look-go');
   document.querySelectorAll('input[name="tb-look"]').forEach(r => r.addEventListener('change', () => {
@@ -3360,59 +3357,61 @@ function tbFieldModal(index, presetKey) {
     options: [], required: false, defaultValue: '', helpText: '',
     detectionConfidence: 'manual', humanReviewed: true,
   };
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
   const types = Object.entries(window.FIELD_LIB || {}).map(([k, v]) =>
     `<option value="${k}"${f.fieldType === k ? ' selected' : ''}>${v.label}</option>`).join('');
-  openModal(`
-    <div style="padding:24px">
-      <h3 style="margin:0 0 14px;font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${i18t(index != null ? 'tb_field_edit' : 'tb_field_add')}</h3>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <label><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_label')}</span>
-          <input id="tbf-label" style="${INP}" maxlength="200" value="${esc(f.label)}" placeholder="${esc(i18t('tb_ph_label'))}"></label>
-        <label><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_type')}</span>
-          <select id="tbf-type" style="${INP}">${types}</select></label>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
-        <label><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_answers')}</span>
-          <select id="tbf-control" style="${INP}">
+  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1118): eight lines are more than fit, so TWO STEPS — the question (its
+     label, type, how it is answered, the approved options, required) then its default and help (default, section,
+     help text) — both in the one form, so Save reads every line wherever the reader stands. Same ids, same checks. */
+  const line = (k, ctl, o) => `<label class="lgp-row${o && o.tall ? ' is-tall' : ''}"${o && o.id ? ` id="${o.id}"` : ''}${o && o.hide ? ' style="display:none"' : ''}><span class="lgp-k">${k}</span><span class="lgp-v">${ctl}</span></label>`;
+  const stepsHtml = at => [i18t('tbf_step_question'), i18t('tbf_step_more')].map((n, i) => i + 1 === at ? `<b>${esc(n)}</b>` : esc(n)).join(' · ');
+  openModal(`<form class="lgp" id="tbf-form" novalidate>
+    <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${i18t(index != null ? 'tb_field_edit' : 'tb_field_add')}</h3>
+      <p class="lgp-sub lgp-steps" id="tbf-steps">${stepsHtml(1)}</p></div>
+      <button type="button" class="lgp-x" data-lgp-close tabindex="-1" aria-label="${esc(i18t('lgp_close'))}">${typeof icon === 'function' ? icon('x', 'w-4 h-4') : ''}</button></div>
+    <div class="lgp-bd">
+    <div id="tbf-step-1">
+      ${line(i18t('tb_label'), `<input id="tbf-label" class="lgp-in" autocomplete="off" maxlength="200" value="${esc(f.label)}" placeholder="${esc(i18t('tb_ph_label'))}">`)}
+      ${line(i18t('tb_type'), `<select id="tbf-type" class="lgp-in">${types}</select>`)}
+      ${line(i18t('tb_answers'), `<select id="tbf-control" class="lgp-in">
             <option value="free"${f.control === 'free' ? ' selected' : ''}>${i18t('tb_free')}</option>
             <option value="guided"${f.control === 'guided' ? ' selected' : ''}>${i18t('tb_guided')}</option>
-          </select></label>
-        <label style="display:flex;align-items:flex-end;gap:7px;padding-bottom:var(--s-2)">
-          <input type="checkbox" id="tbf-required" ${f.required ? 'checked' : ''}>
-          <span style="font-size:var(--t-meta)">${i18t('tb_required')}</span></label>
-      </div>
-      <label id="tbf-optwrap" style="display:${f.control === 'guided' ? 'block' : 'none'};margin-top:10px">
-        <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_approved_options')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${i18t('tb_one_per_line')}</span></span>
-        <textarea id="tbf-options" style="${INP};height:auto;padding:var(--field-pad-y) var(--field-pad-x);min-height:64px">${esc(f.options.join('\n'))}</textarea></label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
-        <label><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_default_value')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${esc(i18t('tb_supports_org'))}</span></span>
-          <input id="tbf-default" style="${INP}" maxlength="2000" value="${esc(f.defaultValue)}" placeholder="e.g. {{org.company_name}}"></label>
-        <label><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_section')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${i18t('tb_groups_form')}</span></span>
-          <input id="tbf-section" style="${INP}" maxlength="200" value="${esc(f.section)}" placeholder="${esc(i18t('tb_ph_section'))}"></label>
-      </div>
-      <label style="display:block;margin-top:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tb_help_text')}</span>
-        <input id="tbf-help" style="${INP}" maxlength="1000" value="${esc(f.helpText)}" placeholder="${i18t('tb_shown_under_input')}"></label>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:var(--s-4)">
-        <span style="font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)" id="tbf-keyprev">${f.fieldKey ? `{{${esc(f.fieldKey)}}}` : ''}</span>
-        <div style="display:flex;gap:var(--s-2)">
-          <button data-dlg-cancel class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
-          <button id="tbf-save" class="ui-btn ui-btn-primary">${i18t(index != null ? 'tb_field_save' : 'tb_field_add')}</button>
-        </div>
-      </div>
-    </div>`);
+          </select>`)}
+      ${line(`${i18t('tb_approved_options')} <span class="lgp-tsub">${i18t('tb_one_per_line')}</span>`, `<textarea id="tbf-options" class="lgp-in is-area" rows="3">${esc(f.options.join('\n'))}</textarea>`, { tall: true, id: 'tbf-optwrap', hide: f.control !== 'guided' })}
+      <label class="lgp-tick"><input type="checkbox" id="tbf-required" ${f.required ? 'checked' : ''}><span class="lgp-tl">${i18t('tb_required')}</span></label>
+    </div>
+    <div id="tbf-step-2" hidden>
+      ${line(i18t('tb_default_value'), `<input id="tbf-default" class="lgp-in" autocomplete="off" maxlength="2000" value="${esc(f.defaultValue)}" placeholder="e.g. {{org.company_name}}">`)}
+      <p class="lgp-small">${esc(i18t('tb_supports_org'))}</p>
+      ${line(i18t('tb_section'), `<input id="tbf-section" class="lgp-in" autocomplete="off" maxlength="200" value="${esc(f.section)}" placeholder="${esc(i18t('tb_ph_section'))}">`)}
+      <p class="lgp-small">${i18t('tb_groups_form')}</p>
+      ${line(i18t('tb_help_text'), `<input id="tbf-help" class="lgp-in" autocomplete="off" maxlength="1000" value="${esc(f.helpText)}" placeholder="${i18t('tb_shown_under_input')}">`)}
+    </div>
+    </div>
+    <div class="lgp-ft"><button type="button" class="ui-btn lgp-back" id="tbf-back" hidden>‹ ${esc(i18t('lgp_back'))}</button>
+      <span class="lgp-note" id="tbf-keyprev" style="font-family:var(--font-mono)">${f.fieldKey ? `{{${esc(f.fieldKey)}}}` : ''}</span><span class="lgp-sp"></span>
+      <button type="button" id="tbf-next" class="ui-btn ui-btn-primary lgp-go">${esc(i18t('lgp_next_step'))}</button>
+      <button type="button" id="tbf-save" class="ui-btn ui-btn-primary lgp-go" hidden>${i18t(index != null ? 'tb_field_save' : 'tb_field_add')}</button>
+      <button type="button" data-dlg-cancel class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
+    </div></form>`, { maxWidth: window.LGP_W || '480px', ownFrame: true, label: i18t(index != null ? 'tb_field_edit' : 'tb_field_add') });
+  const step = n => { const one = n === 1;
+    document.getElementById('tbf-step-1')?.toggleAttribute('hidden', !one); document.getElementById('tbf-step-2')?.toggleAttribute('hidden', one);
+    document.getElementById('tbf-back')?.toggleAttribute('hidden', one); document.getElementById('tbf-next')?.toggleAttribute('hidden', !one);
+    document.getElementById('tbf-save')?.toggleAttribute('hidden', one);
+    const st = document.getElementById('tbf-steps'); if (st) st.innerHTML = stepsHtml(n); };
+  document.getElementById('tbf-next')?.addEventListener('click', () => step(2));
+  document.getElementById('tbf-back')?.addEventListener('click', () => step(1));
   document.getElementById('tbf-control')?.addEventListener('change', e => {
-    document.getElementById('tbf-optwrap').style.display = e.target.value === 'guided' ? 'block' : 'none';
+    document.getElementById('tbf-optwrap').style.display = e.target.value === 'guided' ? '' : 'none';
   });
   document.getElementById('tbf-label')?.addEventListener('input', e => {
     if (index == null) document.getElementById('tbf-keyprev').textContent = '{{' + tbKeyFromLabel(e.target.value) + '}}';
   });
   document.getElementById('tbf-save')?.addEventListener('click', () => {
     const label = document.getElementById('tbf-label').value.trim();
-    if (!label) { toast(i18t('tb_field_needs_label'), 'err'); return; }
+    if (!label) { step(1); toast(i18t('tb_field_needs_label'), 'err'); return; }
     const control = document.getElementById('tbf-control').value;
     const options = document.getElementById('tbf-options').value.split('\n').map(s => s.trim()).filter(Boolean);
-    if (control === 'guided' && !options.length) { toast(i18t('tb_guided_needs_option'), 'err'); return; }
+    if (control === 'guided' && !options.length) { step(1); toast(i18t('tb_guided_needs_option'), 'err'); return; }
     const next = {
       ...f, label, control, options: control === 'guided' ? options : [],
       fieldType: document.getElementById('tbf-type').value,
@@ -3439,7 +3438,7 @@ async function tbPaintBranding() {
   let b = null;
   try { b = (await api('org/branding')).branding; } catch (_) {}
   b = b || { logoUrl: null, companyName: '', registrationNumber: '', address: '', defaultFooterText: '' };
-  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
+  const INP = 'width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
   /* ONE LINE UNDER THE PAPER (round 21 draws the paper ending with its
      wording; check #1, 19 Oct 2026): the company's letterhead is folded to
      its name until pressed — the same form inside, kept open across repaints */

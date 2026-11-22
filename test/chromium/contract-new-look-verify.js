@@ -97,8 +97,8 @@ const READ = () => {
       const F = Object.fromEntries(R.facts.map(f => [f.k, f]));
       check(`${nm} 1 the Dossier: one line of stages, one sentence, what Jambo read, the facts with their sources, his one remark`,
         /Arrived .*·\s*Read\s*·\s*Fill, \d+ to do\s*·\s*Negotiate\s*·\s*Sign, \d+ to do\s*·\s*Live/.test(R.spine) && /before anyone signs/.test(R.next) && R.nextLinks === 1
-        && /Jambo/.test(R.read) && F.value && F.value.s === '§ 2' && F.ends && F.ends.s === '§ 4' && /renews by itself/.test(F.ends.v)
-        && F.signer && F.signer.s === 'Change' /* RE-POINTED (the harmony review, PAPER LINE HOLDS ALL, owner's yes 9 Nov 2026): a fact that can be changed ends in a green Change link */ && F.stream && F.stream.s === 'filed' && F.approval && F.approval.s === '§ 2' && F.std && /Not checked yet/.test(F.std.v) && !/call/.test(F.std.v)
+        && /Jambo/.test(R.read) && !F.value /* RE-POINTED 22 Nov 2026 (the owner's ruling of 20 Nov 2026, "MONEY IS NEVER A BIG PART OF A PAGE: no money in a side panel", applied to the Dossier in the P-44 review): no Value fact in the panel — the value stays on the paper's own note and in the form */ && F.ends && F.ends.s === '§ 4' && /renews by itself/.test(F.ends.v)
+        && F.signer && F.signer.s === 'Change' /* RE-POINTED (the harmony review, PAPER LINE HOLDS ALL, owner's yes 9 Nov 2026): a fact that can be changed ends in a green Change link */ && F.stream && F.stream.s === 'filed' && F.approval && F.approval.s === '§ 2' && F.std && /Not checked yet|Checking against the Playbook|Could not check: .+ · Check|\d+ of \d+ met/.test(F.std.v) /* RE-POINTED 19 Nov 2026 (owner picked "B": a contract never checked is checked on its first open, pbCheckOnOpen; f1106): the fact says Not checked yet, Checking…, the refusal with Check, or the ring's count */ && !/call/.test(F.std.v)
         && /Rejection window/.test(R.turn) && !R.old, { spine: R.spine, next: R.next, facts: R.facts, turn: R.turn.slice(0, 80) });
       check(`${nm} 2 one row of links above Jambo's box`, R.rows.length === 1 && R.rows[0] === 'fill in · redline · share · history', R.rows);
       /* the four notes HaTi read; a Clauses point (once Clauses is read) joins its clause's group and is checked in 14 */
@@ -299,11 +299,7 @@ const READ = () => {
         /* put back as it was (the form's Save filled "Goods"), held until the server has it, so the next screens read the same paper */
         await page.evaluate(async () => { const c = getContract('MK-A2'); contractBlankSet(c, 'up_goods', '', { quiet: true, hold: true }); await persist(c);
           for (let i = 0; i < 40; i++){ const r = await fetch('/api/contracts/MK-A2', { credentials: 'include' }); const j = await r.json(); if (!(((j.contract || j).fields || {}).up_goods)) return; await new Promise(z => setTimeout(z, 250)); } });
-        await page.evaluate(async () => { await stPrefSet('newLook', false); newLookApply(); roomHomeLand('MK-A2'); });
-        /* the crossfade's ghost of the face before (no ids) is gone a moment later */
-        await until(page, () => !!document.querySelector('#ig-dock .pd-dossier') && !document.querySelector('.pd2-dossier'), null, 20000);
-        const O = await page.evaluate(() => ({ notes: !!document.getElementById('pd2-notes'), pd2: !!document.querySelector('.pd2-dossier'), moved: !!document.querySelector('[data-pd2-left]') }));
-        check('6 off: the old Dossier, no notes, the paper where it was', !O.notes && !O.pd2 && !O.moved, O);
+        /* RETIRED 16 Nov 2026 (#762): 6 'off: the old Dossier, no notes' — there is no new-look switch any more; the new look is the only look */
       }
       await page.close();
     }

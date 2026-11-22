@@ -270,11 +270,12 @@ describe('f784 (8) the third pass: the frame, every card door a page, the facts,
     assert.ok(g.$('st-drawer').hidden && g.$('st-drawer').parentElement === g.win.document.body, 'the drawer put away');
     assert.ok(landed.some(el => el && el.getAttribute && el.getAttribute('data-st-panel') === 'limits' && el.classList.contains('st-door')), 'landed on the door that was pressed');
   });
-  test('8c Done on a docked page goes back to Settings; Needs your attention\'s own buttons keep the drawer', () => {
+  /* RE-POINTED 22 Nov 2026 (P-43 review): the foot is Save · Cancel (the owner's pick), so Cancel is the way back */
+  test('8c Cancel on a docked page goes back to Settings; Needs your attention\'s own buttons keep the drawer', () => {
     const g = company({ capOn: true, more: LINA() });
     g.click(g.q('[data-st-card="links"] .st-door[data-st-panel="linkcode"]'));
     assert.ok(g.q('#st-dock #st-drawer.is-docked'));
-    g.click(g.q('#st-dfoot [data-st-dclose]'));
+    g.click(g.q('#st-dfoot [data-st-dcancel]'));
     assert.equal(g.q('#set-page[data-st-sub]'), null);
     g.click(g.q('#st-att .st-need[data-st-need^="clash:cap:"] .st-need-go'));
     const dr = g.$('st-drawer');
@@ -333,8 +334,9 @@ describe('f784 (9) the Menu\'s rows, ⌘K, Jambo\'s Open and a named door open t
     const g = company();
     g.sb.stFindGo('panel:webhooks');
     assert.ok(docked(g) && g.sb.settingsPlace().dock === 'webhooks', '⌘K: the page');
-    g.click(g.q('#st-dfoot [data-st-dclose]'));
-    assert.equal(g.q('#set-page[data-st-sub]'), null, 'Done goes back to Settings');
+    /* RE-POINTED 22 Nov 2026 (P-43 review): Cancel, where Done stood */
+    g.click(g.q('#st-dfoot [data-st-dcancel]'));
+    assert.equal(g.q('#set-page[data-st-sub]'), null, 'Cancel goes back to Settings');
     g.sb.openSettingsAt('build', 'engine');
     assert.ok(docked(g) && g.sb.settingsPlace().dock === 'engine', 'a named door from elsewhere: the page');
     g.sb.stFindGo('person:u_two');

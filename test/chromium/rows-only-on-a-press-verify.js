@@ -61,27 +61,30 @@ const MARK = ([pg, bx]) => {
 
 const PAGES = [
   { k: 'approvals', view: 'approvals', rowSel: '.apn-table [data-ap-row]', tabSel: '[data-apn-tab]', tabKey: 'data-apn-tab',
-    box: '#apn-q', home: 'mine', word: 'carton', wholeSel: '.apn-table thead th', pageSel: '.apn-page' },
-  { k: 'obligations', view: 'obligations', rowSel: '#obn-body [data-ins-row]', tabSel: '[data-obn-tab]', tabKey: 'data-obn-tab',
-    box: '#obn-q', home: 'open', word: 'pallets', wholeSel: '.obn-table.is-two-line thead th', pageSel: '.obn-page' },
+    box: '#apn-q', home: 'mine', word: 'carton', wholeSel: '.apn-table thead th', pageSel: '.apn-page', facts: '.apn-page .apn-bar' },   /* RE-POINTED (P-30): no facts beside the title — the chips count */
+  /* RE-POINTED 19 Nov 2026 (We owe · They owe, the owner's pick): the lines stand in two columns; their heads are the marks */
+  /* RE-POINTED AGAIN (P-13, owner's pick 20 Nov 2026): one calm table under figure tiles — its column heads, and the tiles' counts in place of the head's facts */
+  { k: 'obligations', view: 'obligations', rowSel: '#obn-list [data-ins-row]', tabSel: '[data-obn-tab]', tabKey: 'data-obn-tab',
+    /* RE-POINTED 21 Nov 2026 (P-13, as drawn): Obligations draws no filter box (the "+ filter" chips narrow it) */
+    box: '#obn-q', noBox: true, home: 'open', word: 'pallets', wholeSel: '.obs-th > span', pageSel: '.obn-page', facts: '.obn-page .obs-tiles' },
   /* the overnight run, job 6 (10 Nov 2026): People. Every tab draws the one table (they only pick which people) */
   { k: 'people', view: 'directory', rowSel: '#dir-tbody [data-dir-row]', tabSel: '[data-dirn-tab]', tabKey: 'data-dirn-tab',
-    box: '#dirn-q', home: 'all', word: 'amina', wholeSel: '#dir-page .apn-table.cun-table thead th', pageSel: '#dir-page', facts: '#dir-page .ctf-hf' },
+    box: '#dirn-q', home: 'all', word: 'amina', wholeSel: '#dir-page .apn-table.cun-table thead th', pageSel: '#dir-page', facts: '#dir-page .apn-bar' },   /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): no facts beside the title — the chips count */
   /* job 7: Reads. Its three tabs draw the one table; All's pack lines are rows inside the same body */
   /* job 8: Requests. Its four tabs draw the one table; a tab at 0 steps out */
   { k: 'requests', view: 'intake', rowSel: '.ikn-page .ikn-table tbody tr', tabSel: '[data-ikn-tab]', tabKey: 'data-ikn-tab',
-    box: '#ikn-q', home: 'open', word: 'supply', wholeSel: '.ikn-page .ikn-table thead th', pageSel: '.ikn-page', facts: '.ikn-page .cun-head .ctf-hf' },
+    box: '#ikn-q', home: 'open', word: 'supply', wholeSel: '.ikn-page .ikn-table thead th', pageSel: '.ikn-page', facts: '.ikn-page .apn-bar' },   /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way): no facts beside the title — the chips count */
   /* job 9: Import. Its three tabs draw the one table */
   { k: 'import', view: 'migration', rowSel: '.mign-page .mign-table tbody tr', tabSel: '[data-mign-tab]', tabKey: 'data-mign-tab',
-    box: '#mign-q', home: 'all', word: 'supply', wholeSel: '.mign-page .mign-table thead th', pageSel: '.mign-page', facts: '.mign-page .cun-head .ctf-hf' },
+    box: '#mign-q', home: 'all', word: 'supply', wholeSel: '.mign-page .mign-table thead th', pageSel: '.mign-page', facts: '.mign-page .apn-bar' },   /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way): no facts beside the title — the chips count */
   /* job 10: My notes. Its tabs draw the one table; the foot comes and goes with the rows */
   { k: 'mynotes', view: 'mynotes', rowSel: '#mn-page .mnn-table tbody tr', tabSel: '[data-mnn-tab]', tabKey: 'data-mnn-tab',
-    box: '#mnn-q', home: 'all', word: 'call', wholeSel: '#mn-page .mnn-table thead th', pageSel: '#mn-page.mnn-page', facts: '#mn-page .cun-head .ctf-hf' },
-  /* job 11: Parties. Folders draws CARDS and hides the table, so it is a whole-page press by name: the generic tab
-     step leaves it out, and step 4 below presses it and asks for the cards */
-  { k: 'parties', view: 'customers', rowSel: '[data-cu-screen="list"] #cu-tbody tr', tabSel: '[data-cun-tab]', tabKey: 'data-cun-tab', skip: ['folders'],
+    box: '#mnn-q', home: 'all', word: 'call', wholeSel: '#mn-page .mnn-table thead th', pageSel: '#mn-page.mnn-page', facts: '#mn-page .apn-bar' },   /* RE-POINTED (P-27, owner's pick 20 Nov 2026: My notes the Legora + Stripe way): no facts beside the title — the chips count */
+  /* job 11: Parties. RE-POINTED 19 Nov 2026 (the Parties round): Folders is gone, so both tabs draw the one table
+     and step 4 (the tab that drew cards) has nothing to press here */
+  { k: 'parties', view: 'customers', rowSel: '[data-cu-screen="list"] #cu-tbody tr', tabSel: '[data-cun-tab]', tabKey: 'data-cun-tab',
     box: '#cun-q', home: 'all', word: 'kabras', wholeSel: '[data-cu-screen="list"] .apn-table.cun-table thead th', pageSel: '.cun-page[data-cu-screen="list"]',
-    facts: '[data-cu-screen="list"] .cun-head .ctf-hf', folders: true },
+    facts: '[data-cu-screen="list"] .apn-bar' },   /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way): no facts beside the title — the chips count */
   /* Reads became the Discover page (owner, 12 Nov 2026): it has an ask box, not a filter box, so this file's typed-word
      steps have nothing to type into there; its tab press still swaps only the rows (rdnRender, listRowsSwapHtml) */
 ];
@@ -169,6 +172,10 @@ const PAGES = [
           && tab.counts.every(c => /^\d+$/.test(String(c).trim())),
           Object.assign({ pressed, rows0 }, tab));
 
+        if (P.noBox){
+          const nb = await page.evaluate(bx => { const el = document.querySelector(bx); return !el || !el.getClientRects().length; }, P.box);
+          check(`${at} ${P.k} 2 · no filter box is drawn (as drawn)`, nb);
+        } else {
         /* 2 · typing: the whole word reaches the box, which is never replaced */
         await page.evaluate(([sel, key, home]) => {
           const b = [...document.querySelectorAll(sel)].find(x => x.getAttribute(key) === home);
@@ -193,6 +200,7 @@ const PAGES = [
           typed.value === P.word && typed.focused && typed.caret === P.word.length && typed.box && typed.page,
           typed);
 
+        }
         /* 3 · the page is still whole */
         const whole = await page.evaluate(([ws, fs]) => ({ marks: document.querySelectorAll(ws).length,
           facts: ((document.querySelector(fs) || {}).textContent || '').trim() }), [P.wholeSel, P.facts || '#page-head-facts']);

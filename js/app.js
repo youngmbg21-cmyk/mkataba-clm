@@ -13,6 +13,7 @@ import './migread.js';      // Archive import: what an imported contract's readi
 import './sealtext.js';     // the frozen copy's text, one reading: the server seals with it, Verify reads it (9 Oct 2026)
 import './asks.js';         // one ask record: who was asked, the answer, when and for what — both hosts (4 Oct 2026)
 import './sharemail.js';    // the letter: the share email's words, the send screen and the server alike (round 11, 17 Oct 2026)
+import './stdladder.js';     // the Ladder: a standard's rules, read and applied one way, the page and the server alike (17 Nov 2026)
 import './nda.js';          // an NDA's two facts: who keeps it secret, and until when — both hosts (17 Oct 2026)
 import './section.js';      // the section grammar: one way of grouping a screen (16 Sep 2026)
 import './core.js';
@@ -141,6 +142,7 @@ import './intakelanes.js';      // a request's lane and answers: one reading, bo
 import './views/intake.js';     // the intake front door: anybody may ASK for a contract (W2-2)
 import './templatefields.js';
 import './views/library.js';
+import './views/ladder.js';  // Standards, a page of its own: the Ladder (owner's pick, 17 Nov 2026)
 import './fieldlib.js';            // the template-library field catalogue (shared with the server)
 import './branding.js';            // document designs AND structures (shared with the server — one catalogue)
 import './pages.js';               // a contract drawn as pages: the working copy and the signing copy (25 Sep 2026)
@@ -314,7 +316,7 @@ function commandMeta(view){
     case 'templates': return [i18t('nav_tpl_std'), i18t('pg_templates_sub')];
     /* ONE PAGE (4 Oct 2026): Our standards is a tab of Templates & standards,
        so its head carries the page's name, not the tab's. */
-    case 'playbook':  return [i18t('nav_tpl_std'), i18t('pg_standards_sub')];
+    case 'playbook':  return [i18t('ld_page'), ''];
     case 'pipeline':  return [i18t('pg_queue'), i18t('pg_queue_sub')];
     /* ONE PAGE (gap F, 4 Oct 2026): the Advice desk is the Advice tab of
        Requests, so its head carries the page's name, not the tab's. */
@@ -424,7 +426,7 @@ const PAGE_ACTIONS = {
    Filter and + Add an obligation at the right (obwPaintHead). */
 /* Import (round 22 as drawn, 18 Oct 2026): what the batch is beside the name
    ("Old contracts from … · started … by you · 24 files") and Choose files… */
-const PAGE_HEAD_PAINT = { intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'pbPaintHead', agents:'agPaintHead', approvals:'apPaintHead', obligations:'obwPaintHead', migration:'migPaintHead' };
+const PAGE_HEAD_PAINT = { intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'ldPaintHead', agents:'agPaintHead', approvals:'apPaintHead', obligations:'obwPaintHead', migration:'migPaintHead' };
 function pageActionHtml(kind){
   if(kind==='export') return `<button data-page-export class="ui-btn" title="${i18t('ap_export_working_set')}">`+
     `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>${i18t('ap_export')}</button>`;
@@ -974,6 +976,8 @@ function navCounts(){
     }
     let negotiations = 0;
     try{ if(window.negoNeedsYouTotal) negotiations = negoNeedsYouTotal(); }catch(_){ negotiations = 0; }
+    /* A NUMBER MATCHES WHAT YOU CAN DO (Round B, owner 20 Nov 2026): who may not act is owed nothing, so no amber count */
+    if(!countsAreMine()) negotiations = 0;
     _navCounts = { pipeline, migration, negotiations };
   } finally { _navBusy = false; }
   try{ Promise.resolve().then(navCountsClear); }catch(_){ navCountsClear(); }
@@ -1005,6 +1009,11 @@ function navCounts(){
    still finishes and stores its own count. */
 let _doorCounts = null, _doorBusy = false;
 function doorCountsClear(){ _doorCounts = null; }
+/* THE COUNTS THAT SAY WORK WAITS (Round B of the ground rules, owner 20 Nov 2026: "a number labelled waiting on
+   you counts only what this person can act on"): one question, mayActOn — a Viewer is owed nothing. */
+const DOOR_WORK_COUNTS = ['intake', 'obligations', 'approvals', 'agents', 'calendar', 'negotiations'];
+const GUIDE_WORK_COUNTS = ['requests', 'negotiations', 'approvals', 'oblig', 'standards', 'house'];
+function countsAreMine(){ try{ return typeof window.mayActOn!=='function' || window.mayActOn(null); }catch(_){ return true; } }
 function doorCounts(nc){
   if(_doorCounts) return _doorCounts;
   if(_doorBusy) return { customers:0, pipeline:0, intake:0, obligations:0, approvals:0, agents:0,
@@ -1049,6 +1058,9 @@ function doorCounts(nc){
     templates: Object.keys(TEMPLATES).length + (window.customTemplates?customTemplates().length:0)
       + (window.tplLibCount?tplLibCount():0),
     };
+    /* A NUMBER MATCHES WHAT YOU CAN DO (Round B): every count that says work waits is nought for who may not act;
+       sizes (customers, templates) and their own notes stand */
+    if(!countsAreMine()) DOOR_WORK_COUNTS.forEach(k=>{ _doorCounts[k]=0; });
   } finally { _doorBusy = false; }
   try{ Promise.resolve().then(doorCountsClear); }catch(_){ doorCountsClear(); }
   return _doorCounts;
@@ -1145,7 +1157,7 @@ function updateSidebarCounts(){
 /* ============================================================ SHELL VIEW SWITCH */
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insights',
   calendar:'Calendar', reports:'Reports', register:'Contracts', migration:'Import contracts',
-  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', customers:'Parties', agents:"Jambo's work", jambo:"Jambo's agents", brain:'the Brain', templates:'Templates', playbook:'Our standards',
+  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', customers:'Parties', agents:"Jambo's work", jambo:"Jambo's agents", brain:'the Brain', templates:'Templates', playbook:'Playbook',
   team:'Team & settings', directory:'Directory', workspace:'the contract workspace',
   redline:'Negotiations', counter:'the counter' };
 
@@ -1266,6 +1278,13 @@ function viewLayersClosed(view){
       return false;
     }
   }
+  /* A SETTINGS SHEET HOLDING EDITS (P-43, 22 Nov 2026): its Save writes them; leaving the page asks first, in the
+     house's leave words, and an answered "leave" throws them away (stHoldLeaveThen, js/views/settings.js) */
+  if(!_leavingCe && typeof window!=='undefined' && typeof window.stHoldDirty==='function' && window.stHoldDirty() && typeof window.stHoldLeaveThen==='function'){
+    window.stHoldLeaveThen(()=>{ if(typeof window.stDrawerClose==='function') window.stDrawerClose();
+      _leavingCe = true; try{ setView(view); } finally { _leavingCe = false; } });
+    return false;
+  }
   /* THE DESIGN STEP (js/views/designstep.js) paints over the page too, and its
      choices are lost on the way out — so it is asked the same way. */
   if(typeof window!=='undefined' && window.designStepOpen && designStepOpen()){
@@ -1342,6 +1361,10 @@ function setView(view){
   if(typeof window!=='undefined' && typeof window.hbSheetLetGo==='function') try{ window.hbSheetLetGo(); }catch(_){ }
   /* a page asked for while signing in is still loading wins over the Counter's landing (Round 1) */
   if(typeof window!=='undefined' && window._cnSignedIn && view!=='counter') window._cnSignedIn=false;
+  /* THE ADVICE BOARD IS GONE (owner's pick on the drawings, 17 Nov 2026: "6 The tab alone"): on a computer every door
+     still asking for it lands on Requests' own Advice tab (iknTabSet); the phone keeps its own pages */
+  if(view==='advice' && typeof window!=='undefined' && typeof window.newLookOn==='function' && window.newLookOn() && !(window.innerWidth && window.innerWidth<768) && typeof window.iknTabSet==='function'){
+    window.iknTabSet('advice'); view='intake'; }
   /* THE HOME PAGE IS GONE (owner, 10 Nov 2026: "Home page should be removed / deleted"; it was the Counter, 17 Oct
      2026): an old link, a kept place or a door still asking for it lands on the Board, the page you sign in to */
   if(view==='counter'){ view='dashboard'; if(typeof window!=='undefined' && typeof window.hbS==='function'){ try{ window.hbS().face='board'; if(typeof window.hbSave==='function') window.hbSave(); }catch(_){ } } }
@@ -1497,7 +1520,7 @@ function setView(view){
     else if(view==='jambo') renderJamboHouse();
     else if(view==='intake') renderIntake();
     else if(view==='templates') renderTemplatesPage();
-    else if(view==='playbook') renderPlaybookPage();
+    else if(view==='playbook') renderStandardsPage();
     /* ON THE PHONE THE SETTINGS PAGE IS NOT BUILT BEHIND THE SCENES (the
        owner's list, 27 Sep 2026): the phone draws its own screens, and the
        desktop's four tabs and every drawer were being built underneath where
@@ -1763,6 +1786,8 @@ function placeResume(){
   return p;
 }
 let _placeBack=null;
+/* a refresh is putting the reader's place back (the read on the paper waits for it; #762) */
+function placeBackOn(){ return !!_placeBack; }
 function placeScrollBack(p){
   const want=Object.entries((p&&p.scroll)||{}); if(!want.length) return;
   const t0=Date.now(); let stop=false;
@@ -1835,7 +1860,7 @@ function openFolder(fid){
    checks that test its insides. Remembered for the contract it named
    (_roomByName, declared above setView), so the room's own repaints
    (setView('workspace') again) stay in the room. */
-function openWorkspace(id, opts){ if(typeof codeNameStop==='function'&&codeNameStop(getContract(id))) return; _roomByName=(opts&&opts.room)?String(id):null; state.activeId=id; state.selId=id; setView('workspace'); }
+function openWorkspace(id, opts){ if(typeof codeNameStop==='function'&&codeNameStop(getContract(id))) return; if(typeof window.pbCheckOnOpen==='function') try{ window.pbCheckOnOpen(id); }catch(_){} _roomByName=(opts&&opts.room)?String(id):null; state.activeId=id; state.selId=id; setView('workspace'); }
 /* Create a draft from a built-in template WITHOUT the guided fill — every field
    left blank for the user to complete in the document. No interface path calls
    this any more: both routes into a built-in template (the Templates page and
@@ -2050,6 +2075,8 @@ function commandPaletteResults(q){
   return out.slice(0,14);
 }
 function openCommandPalette(prefill){
+  /* BACK IN THE MIDDLE (owner, 22 Nov 2026: "revert back the change for the nav panel and bring it back as a rectangle
+     pop up in the middle of the page"): P-37's panel at the left is gone; every door opens this one window, centred */
   const prev=document.getElementById('cmd-palette'); if(prev){ const pi=prev.querySelector('#cp-input'); if(pi){ if(typeof prefill==='string'&&prefill) pi.value=prefill; pi.focus(); pi.dispatchEvent(new Event('input')); } return; }
   /* WHO OPENED IT, so focus can go back there. Without this, Escape drops a
      keyboard reader at the top of the document and they have to Tab in again
@@ -2058,23 +2085,28 @@ function openCommandPalette(prefill){
   const opener = document.activeElement;
   const ov=document.createElement('div');
   ov.id='cmd-palette';
-  ov.style.cssText='position:fixed;inset:0;z-index:85;display:flex;align-items:flex-start;justify-content:center;padding:12vh var(--s-4) var(--s-4)';
+  ov.className='lp';
+  /* IN THE MIDDLE OF THE SCREEN, up and down as well as across (owner, 19 Nov 2026: "nav panel pop up should appear at the center of the page") */
+  ov.style.cssText='position:fixed;inset:0;z-index:85;display:flex;align-items:center;justify-content:center;padding:var(--s-4)';
+  /* THE LAUNCHPAD (owner's pick, 19 Nov 2026): every opening starts on All */
+  _lpChip='all';
   ov.innerHTML=`
-    <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 42%,transparent)"></div>
-    <div class="modal-in" style="position:relative;width:100%;max-width:560px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden">
-      <div style="display:flex;align-items:center;gap:9px;padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider)">
-        <span style="color:var(--color-neutral-500);display:inline-flex">${icon('search','w-4 h-4')}</span>
-        <input id="cp-input" placeholder="${i18t('ap_search_placeholder')}" autocomplete="off"
+    <div class="lp-veil" style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 42%,transparent)"></div>
+    <div class="modal-in lp-sheet" style="position:relative;width:100%;max-width:1300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden;max-height:calc(100vh - 2 * var(--s-4))">
+      <div class="lp-top">
+        <input id="cp-input" class="lp-in" placeholder="${esc(i18t('lp_where'))}" autocomplete="off"
           role="combobox" aria-expanded="true" aria-controls="cp-list" aria-autocomplete="list"
-          aria-label="${esc(i18t('ap_search_placeholder'))}"
-          style="flex:1;border:0;outline:0;background:transparent;font:inherit;font-size:var(--t-card);color:inherit"/>
-        <span style="font-size:var(--t-label);border:1px solid var(--color-divider);padding:2px 6px;border-radius:var(--radius);color:var(--color-neutral-600);font-family:var(--font-mono)">ESC</span>
+          aria-label="${esc(i18t('lp_where'))}"/>
+        <span id="lp-ph" class="lp-ph" aria-hidden="true">${lpWhereHtml()}</span>
       </div>
-      <div id="cp-list" class="scroll-thin" role="listbox" aria-label="${esc(i18t('ap_results'))}"
-        style="max-height:52vh;overflow-y:auto;padding:6px"></div>
+      <div id="lp-chips" class="lp-chips" role="group" aria-label="${esc(i18t('gds_label'))}"></div>
+      <div id="cp-list" class="scroll-thin lp-list" role="listbox" aria-label="${esc(i18t('ap_results'))}"></div>
+      <div id="lp-side" class="scroll-thin lp-side" role="listbox" aria-label="${esc(i18t('lp_chip_need'))}" hidden></div>
+      <div id="lp-foot" class="lp-foot"></div>
     </div>`;
   document.body.appendChild(ov);
-  const input=ov.querySelector('#cp-input'), list=ov.querySelector('#cp-list');
+  const input=ov.querySelector('#cp-input'), list=ov.querySelector('#cp-list'), chips=ov.querySelector('#lp-chips'), foot=ov.querySelector('#lp-foot'), side=ov.querySelector('#lp-side'), ph=ov.querySelector('#lp-ph');
+  lpDoorSay(true);
   /* THE KEYBOARD STAYS IN THE PALETTE. focus:false because this overlay
      focuses its own box — Tab is what was walking out of it into the page,
      and the trap's own restore is the same one written by hand below, kept
@@ -2092,7 +2124,7 @@ function openCommandPalette(prefill){
   const close=()=>{
     clearTimeout(ftsT);
     if(trapRelease){ try{ trapRelease(); }catch(_){} }
-    ov.remove(); document.removeEventListener('keydown',onKey,true);
+    ov.remove(); document.removeEventListener('keydown',onKey,true); lpDoorSay(false);
     try{ if(opener&&opener.focus&&document.contains(opener)) opener.focus({preventScroll:true}); }catch(_){}
   };
   const openItem=it=>{
@@ -2104,6 +2136,8 @@ function openCommandPalette(prefill){
       return;
     }
     if(it.kind==='place'){ close(); if(window.caPlaceRun) caPlaceRun(it.id); return; }
+    /* a launchpad row: the Guide's own door to that page */
+    if(it.kind==='page'){ close(); guideGo(it.id); return; }
     if(it.kind==='task'){ const asked=input.value; close(); if(window.jmRun) jmRun(it.id,asked); return; }
     if(it.kind==='setting'){ close(); if(window.stFindGo) stFindGo(it.id); return; }
     close(); if(it.kind==='folder') openFolder(it.id); else openWorkspace(it.id);
@@ -2120,7 +2154,23 @@ function openCommandPalette(prefill){
       }catch(_){ /* the sync rows stand alone — search down is not palette down */ }
     },250);
   };
+  /* NOTHING TYPED: THE LAUNCHPAD, as drawn. A hover moves the selection without redrawing (no row jumps under the hand). */
+  const lpSel=i=>{ active=i; ov.querySelectorAll('[data-cp-i]').forEach(b=>{ const on=+b.getAttribute('data-cp-i')===i; b.classList.toggle('is-sel',on); b.setAttribute('aria-selected',on?'true':'false'); });
+    const act=ov.querySelector(`[data-cp-i="${i}"]`); if(act&&act.scrollIntoView) act.scrollIntoView({block:'nearest'}); input.setAttribute('aria-activedescendant',act?act.id:''); };
+  const lpPaint=()=>{
+    results=lpItems(); if(active>=results.length) active=Math.max(0,results.length-1);
+    chips.hidden=false; chips.innerHTML=lpChipsHtml();
+    const sideOn=lpSideOn(results);
+    list.innerHTML=lpBodyHtml(results,active,{ side:sideOn }); side.hidden=!sideOn; side.innerHTML=sideOn?lpSideHtml(results,active):''; foot.innerHTML=lpFootHtml(false,sideOn);
+    ov.querySelectorAll('[data-cp-i]').forEach(b=>{ const i=+b.getAttribute('data-cp-i');
+      b.addEventListener('click',()=>openItem(results[i])); b.addEventListener('mousemove',()=>{ if(active!==i) lpSel(i); }); });
+    lpSel(active);
+  };
+  chips.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('[data-lp-chip]'); if(!b) return; _lpChip=b.getAttribute('data-lp-chip'); active=0; paint(); input.focus(); });
   const paint=()=>{
+    if(ph) ph.hidden=!!input.value;
+    if(!input.value.trim()){ lpPaint(); return; }
+    chips.hidden=true; side.hidden=true; side.innerHTML=''; foot.innerHTML=lpFootHtml(true);
     results=commandPaletteResults(input.value);
     const q=input.value.trim();
     if(q){
@@ -2172,6 +2222,8 @@ function openCommandPalette(prefill){
     input.setAttribute('aria-activedescendant', act ? act.id : '');
   };
   function onKey(e){
+    /* A WINDOW TAKEN AWAY WITHOUT ITS CLOSE (a test, a page swap) stops listening: its keys never act on rows no longer drawn */
+    if(!document.contains(ov)){ document.removeEventListener('keydown',onKey,true); lpDoorSay(false); return; }
     /* ESCAPE BELONGS TO THE TOP LAYER AND STOPS THERE. This handler is on
        document in the CAPTURE phase, so it runs before everything — and
        without stopPropagation the same press went on to reach the nav
@@ -2186,8 +2238,11 @@ function openCommandPalette(prefill){
   document.addEventListener('keydown',onKey,true);
   input.addEventListener('input',()=>{ active=0; paint(); ftsPlan(); });
   ov.addEventListener('click',e=>{ if(e.target===ov||e.target===ov.firstElementChild) close(); });
+  ov._lpClose=close;
   if(typeof prefill==='string' && prefill){ input.value=prefill; ftsPlan(); }
   paint(); input.focus();
+  /* centred, it keeps the height it opened at: fewer rows as you type never move the box under your eyes */
+  const sheet=ov.querySelector('.lp-sheet'); if(sheet){ const h=Math.round(sheet.getBoundingClientRect().height); if(h>0) sheet.style.minHeight=h+'px'; }
 }
 
 /* ============================================================ CONTEXT PANEL */
@@ -2207,12 +2262,14 @@ function activityCategory(txt){
   if(/creat|draft|generat/.test(t)) return 'gray';
   return 'steel';
 }
-const CAT_DOT={gray:'var(--st-gray-dot)',amber:'var(--st-amber-dot)',green:'var(--st-green-dot)',ruby:'var(--st-ruby-dot)',steel:'var(--color-accent)'};
-function activityRow(id,action,detail,at,ref){
+/* (CAT_DOT went with the old Activity rows, P-38: the new rows colour by kind, actKindOf) */
+function activityRow(id,action,detail,at,ref,user,name){
   const txt=detail||action||'';
   /* `ref` is what a person reads (the contract number, where a working file
-     has taken one); `id` stays the key the row opens. */
-  return {id, ref:ref||id, txt:`${action?action+' — ':''}${txt}`.replace(/^ — /,''), at, when:relTime(at), cat:activityCategory((action||'')+' '+txt)};
+     has taken one); `id` stays the key the row opens. `action`, `detail`, `user` and `name` are the entry's own parts,
+     kept so the panel can say it in one short line (actSayOf); `txt` stays the record's whole sentence. */
+  return {id, ref:ref||id, txt:`${action?action+' — ':''}${txt}`.replace(/^ — /,''), at, when:relTime(at), cat:activityCategory((action||'')+' '+txt),
+    action:action||'', detail:detail||'', user:user||'', name:name||''};
 }
 function buildActivityFeed(limit=40){
   // Server mode: the light contract list carries no audit trail, so the
@@ -2221,7 +2278,7 @@ function buildActivityFeed(limit=40){
   if(API_MODE()&&state.activityFeed) return state.activityFeed.slice(0,limit);
   const feed=[];
   state.contracts.forEach(c=>{
-    (c.audit||[]).forEach(a=>feed.push(activityRow(c.id,a.action,a.detail,a.at,(window.contractRef?contractRef(c):c.id))));
+    (c.audit||[]).forEach(a=>feed.push(activityRow(c.id,a.action,a.detail,a.at,(window.contractRef?contractRef(c):c.id),a.user,c.name)));
   });
   feed.sort((a,b)=>Date.parse(b.at||0)-Date.parse(a.at||0));
   return feed.slice(0,limit);
@@ -2229,15 +2286,27 @@ function buildActivityFeed(limit=40){
 // Pull the workspace-wide activity feed from the server (server mode only) and
 // re-render the panel when it lands. Throttled so panel re-renders don't hammer
 // the endpoint; a fresh cache within the window is reused as-is.
-let _activityAt=0, _activityBusy=false;
+/* WHEN SOMETHING LOADS, SOMETHING MOVES (22 Nov 2026): pressing Activity drew the
+   face at once and EMPTY ("Live", no chips, no rows) while the feed was still on
+   its way — an empty panel reads as one that failed. `activityFeedState()` says
+   which it is: 'loading' (nothing to show yet, the read is out), 'failed' (the
+   read came back refused and there is nothing earlier to show) or 'ready'. A
+   failed read is not re-asked by every redraw (that looped); only a press
+   (force, or the face's Try again) asks again. */
+let _activityAt=0, _activityBusy=false, _activityFailed=false;
 function refreshActivityFeed(force){
   if(!API_MODE()||_activityBusy) return;
+  if(!force&&_activityFailed&&!state.activityFeed) return;
   if(!force&&state.activityFeed&&(Date.now()-_activityAt)<15000) return;
   _activityBusy=true;
   api('activity?limit=40')
-    .then(r=>{ state.activityFeed=(r.events||[]).map(e=>activityRow(e.id,e.action,e.detail,e.at,e.contractNo)); })
-    .catch(()=>{})
+    .then(r=>{ state.activityFeed=(r.events||[]).map(e=>activityRow(e.id,e.action,e.detail,e.at,e.contractNo,e.user,e.name)); _activityFailed=false; })
+    .catch(()=>{ _activityFailed=true; })
     .finally(()=>{ _activityAt=Date.now(); _activityBusy=false; if(state.panelOpen&&state.view!=='intel') renderContextPanel(); });
+}
+function activityFeedState(){
+  if(!API_MODE()||state.activityFeed) return 'ready';
+  return _activityFailed&&!_activityBusy?'failed':'loading';
 }
 // Selecting a contract (register row, home list, or an activity entry) now opens
 // its workspace.
@@ -2391,6 +2460,14 @@ const ALERT_KINDS = [
      somebody picks it up, drafts it or declines it. Ranked under approvals:
      a colleague is waiting, but no live deal is held by it. Amber: work owed. */
   { k:'request',     tone:'amber', ic:'&#128233;' },
+  /* ---- A DECISION ON A STANDARD COMES BACK (owner, 17 Nov 2026: "bell only") ----
+     A departure allowed or refused goes to the contract's owner; a change to a standard approved or refused goes to
+     whoever proposed it. Each carries the decider's name and note; a no is light red, a yes light green (ndTintOf).
+     A refused departure is work (change the wording); the rest is news. Nothing is mailed. */
+  { k:'dep-refused', tone:'amber', ic:'&#8617;'  },
+  { k:'dep-allowed', tone:'green', ic:'&#9989;'  },
+  { k:'std-approved',tone:'green', ic:'&#9989;'  },
+  { k:'std-refused', tone:'amber', ic:'&#8617;'  },
   /* ---- DETAILS STILL TO FILL IN (owner, 12 Oct 2026) ----
      A contract this reader owns with boxes still empty on its Details tab
      (detailsOf, the tab's own count); the press opens that tab. Amber: work
@@ -2474,6 +2551,8 @@ const ALERT_KINDS = [
   /* Waiting on somebody else, and last of all a date that moved by itself —
      neither is a thing this reader can clear this minute. */
   { k:'review-out',  tone:'gray',  ic:'&#8987;'  },
+  /* their changes, told to who may not answer them (negoMayAnswer): news, never work */
+  { k:'nego-news',   tone:'gray',  ic:'&#9998;' },
   { k:'renewal',     tone:'gray',  ic:'&#128197;'},
   /* ---- THE WORKSPACE'S OWN FAULTS SORT LAST (24 Aug 2026) ----
      "Email isn't set up" was a permanent amber strip across the top of the
@@ -2503,6 +2582,34 @@ function streamNewsSeen(fid){
 }
 /* Every alert is a DOOR — it goes to the thing that needs doing, not to a list.
    `go` is what the row's press runs. */
+/* THE ANSWERS ON OUR STANDARDS THAT COME BACK TO ME (owner, 17 Nov 2026: "bell only"): a departure on a contract I
+   own that somebody else allowed or refused, and a change to a standard I proposed that somebody else decided. Read
+   off what the browser holds; news for ALERT_STD_DAYS, a refused departure for as long as it stands. */
+const ALERT_STD_DAYS=14;
+function alStandardsAnswers(me, cs){
+  const out=[], since=Date.now()-ALERT_STD_DAYS*864e5, mine=id=>me&&String(id||'')===String(me.id);
+  const q=t=>t?{ sub:'“'+String(t).slice(0,140)+'”' }:{};
+  (cs||[]).forEach(c=>{
+    if(!c||c.archived||c.status==='Signed'||c.status==='Executed'||c.status==='Declined') return;
+    if(!(typeof contractOwnedBy==='function'&&contractOwnedBy(c, me))) return;
+    const vs=(c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:[];
+    vs.forEach((v,i)=>{ if(!v) return;
+      const go=()=>{ if(typeof roomHomeLand==='function') roomHomeLand(c.id); else if(typeof openWorkspace==='function') openWorkspace(c.id); };
+      const a=v.accepted, r=v.refused, cat=v.category||'';
+      if(r&&r.at&&!(a&&a.at)&&!mine(r.byId)) out.push({ kind:'dep-refused', c, go, text:i18t('al_dep_refused',{ cat, who:r.by||'' }), extra:Object.assign({ tint:'no' }, q(r.why)) });
+      else if(a&&a.at&&Date.parse(a.at)>=since&&!mine(a.byId)) out.push({ kind:'dep-allowed', c, go, text:i18t('al_dep_allowed',{ cat, who:a.by||'' }), extra:Object.assign({ tint:'yes' }, q(a.why)) });
+      void i; });
+  });
+  const chs=(state.settings&&Array.isArray(state.settings.standardChanges))?state.settings.standardChanges:[];
+  chs.forEach(ch=>{
+    if(!ch||!mine(ch.byId)||!['approved','refused'].includes(ch.state)||Date.parse(ch.decidedAt||'')<since||mine(ch.decidedById)) return;
+    const name=(ch.draft&&ch.draft.name)||'', yes=ch.state==='approved';
+    const go=()=>{ if(typeof caOpenStandards==='function') caOpenStandards(); else if(typeof setView==='function') setView('playbook'); };
+    out.push({ kind:yes?'std-approved':'std-refused', c:null, go, text:i18t(yes?'al_std_approved':'al_std_refused',{ name, who:ch.decidedBy||'' }),
+      extra:Object.assign({ tint:yes?'yes':'no', name }, q(ch.decidedWhy)) });
+  });
+  return out;
+}
 function buildAlerts(){
   const out=[];
   // archived contracts alert nobody (WO-5) — the shelf is quiet
@@ -2624,6 +2731,9 @@ function buildAlerts(){
       /* every negotiation row here opens Jambo's Redlines face beside Home's
          paper (the one-page Home plan, stage 3): the page's own door, its
          walls first; the phone carries on to its own page */
+      /* WORK GOES ONLY TO WHO CAN DO IT (negoMayAnswer): who may not answer is told what came, as news */
+      if(n && window.negoMayAnswer && !negoMayAnswer(c)){ push('nego-news',c,i18tn('al_nego_news',n,{n}),()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id, { face: true }); },
+        sub?{ sub }:null); return; }
       if(n) push('negotiation',c,i18tn('al_nego',n,{n}),()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id, { face: true }); },
         sub?{ sub }:null);
     });
@@ -2774,7 +2884,7 @@ function buildAlerts(){
       if(!bad) return;
       push('ap-refused',c,i18t('al_ap_refused',{ step:bad.name||'', who:bad.by||'' }),
         ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } },
-        bad.comment?{ sub:'“'+String(bad.comment).slice(0,140)+'”' }:undefined);
+        Object.assign({ tint:'no' }, bad.comment?{ sub:'“'+String(bad.comment).slice(0,140)+'”' }:{}));
     });
     /* ---- AND WHEN THE LAST RULE STEP IS GIVEN, THE OWNER IS TOLD ----
        Read off approvalRulesCleared (js/approvals.js); only rule chains (a named
@@ -2787,9 +2897,14 @@ function buildAlerts(){
       if(!ok) return;
       /* A named person's yes still owed is not "cleared" — that row says so. */
       try{ if(typeof signApprovalStateOf==='function'&&signApprovalStateOf(c).rows.some(r=>r.status!=='approved')) return; }catch(_){}
-      push('ap-cleared',c,i18t('al_ap_cleared'),
-        ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } });
+      /* WHO SAID THE LAST YES, AND THEIR NOTE (owner, 17 Nov 2026) */
+      const yes=(Array.isArray(c.approvalChain)?c.approvalChain:[]).filter(s=>s&&s.status==='approved').sort((a,b)=>String(a.at||'').localeCompare(String(b.at||''))).pop();
+      push('ap-cleared',c,yes&&yes.by?i18t('al_ap_cleared_by',{ who:yes.by }):i18t('al_ap_cleared'),
+        ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'sign'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} } },
+        Object.assign({ tint:'yes' }, yes&&yes.comment?{ sub:'“'+String(yes.comment).slice(0,140)+'”' }:{}));
     });
+    /* ---- A DECISION ON A STANDARD (owner, 17 Nov 2026) ---- */
+    if(meNow&&typeof alStandardsAnswers==='function') alStandardsAnswers(meNow, cs).forEach(x=>push(x.kind, x.c, x.text, x.go, x.extra));
     /* ---- A NEGOTIATION GONE QUIET, AND A COLLEAGUE ASKING TO JOIN ----
        (24 Sep 2026.) Read off the same slices the approvals above ride on —
        myStaleDesks and myJoinAsks, which were "Needs your decision"'s own two
@@ -2944,7 +3059,7 @@ function buildAlerts(){
         : i18tn('al_ob_due',o.days,{n:o.days,desc});
       push('obligation',c,text,
         ()=>{ if(window.roomOpenAt) roomOpenAt(c.id,'oblig'); else { openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'oblig'); }catch(_){} } },
-        { obId:o.id||null, late:o.days<0 });
+        { obId:o.id||null, late:o.days<0, days:o.days });
     });
   }
   /* ---- A REQUIRED DOCUMENT HAS LAPSED (S8) ----
@@ -3705,7 +3820,8 @@ function panelDoorPress(){
   if(panelSuppressed()) return;
   if(state.panelOpen){ closeContextPanel(); return; }
   const tabs=(typeof deskShellOn==='function')?!!deskShellOn():true;
-  if(tabs){ openPanel('guide'); return; }
+  /* THE GUIDE TAB IS GONE (P-38, owner 20 Nov 2026: "delete the guide since we have the nav panel"): the button opens on Alerts */
+  if(tabs){ openPanel('alerts'); return; }
   let n=0; try{ n=alertCount(); }catch(_){ n=0; }
   openPanel(n>0?'alerts':panelFace());
 }
@@ -3716,6 +3832,9 @@ function openPanel(face){
      control that does nothing. Nothing answers true today: Insights used to,
      and no longer does, because the panel stopped being a column. */
   if(panelSuppressed()) return;
+  /* THE GUIDE LIVES IN THE NAV PANEL NOW (P-38): every door that asked for the Guide face (Jambo's "guide", "?", the
+     Handbook's door) opens the nav pop-up in the middle (owner, 22 Nov 2026) — the same pages by stage, one door, no second list */
+  if(face==='guide'){ if(state.panelOpen) closeContextPanel(); if(!document.getElementById('cmd-palette')) openCommandPalette(''); return; }
   const same=state.panelOpen&&panelFace()===face;
   setPanelFace(face);
   state.panelOpen=!same;
@@ -3755,8 +3874,8 @@ const PANEL_FACES = ['guide', 'alerts', 'notes', 'activity'];
    answered there — a press on Send asks, never only fills a box. Built once. */
 function panelAskPaint(face){
   const f=document.getElementById('panel-ask'); if(!f) return;
-  const off=face==='notes';
-  f.hidden=off; if(off) return;
+  /* EVERY FACE, Notes too (P-38: "Jambo's box at the foot of EVERY face (today Notes has none)") */
+  f.hidden=false;
   if(!f.dataset.built){
     f.dataset.built='1';
     const ph=i18t('jl_ph_any');
@@ -3772,7 +3891,7 @@ function panelAskPaint(face){
     });
   }
 }
-function panelFace(){ return PANEL_FACES.includes(state.panelFace)?state.panelFace:'activity'; }
+function panelFace(){ const f=state.panelFace==='guide'?'alerts':state.panelFace; return PANEL_FACES.includes(f)?f:'activity'; }
 function setPanelFace(k){ state.panelFace=PANEL_FACES.includes(k)?k:'activity'; }
 /* THE ONE DOOR ONTO THE NOTES FACE. It needs a contract and a change where the
    other two need nothing, so it is a named door rather than a bare face swap —
@@ -3883,6 +4002,9 @@ function renderContextPanel(){
      !important — the lesson this product has paid for twice. */
   body.classList.toggle('pb-flow', notes);
   if(notes){
+    /* WITH A CONTRACT IN FRONT, NOTES SHOWS ITS NOTES (P-38: it said "Open a contract…" with one open) */
+    const nf0=state.notesFor||{}, inFront=(typeof chatContractId==='function')?chatContractId():null;
+    if(!nf0.contractId&&inFront) state.notesFor={ contractId:String(inFront), changeId:null };
     const nf=state.notesFor||{};
     const c=(state.contracts||[]).find(x=>x&&String(x.id)===String(nf.contractId));
     const opts={side:'owner',
@@ -3949,6 +4071,8 @@ function renderContextPanel(){
   } else {
     /* A ROW OF THE TRAIL OPENS THAT CONTRACT'S HISTORY ON THE BOARD (the
        one-page Home plan, stage 4, 14 Oct 2026); the phone's room as before */
+    body.querySelectorAll('[data-act-chip]').forEach(b=>b.addEventListener('click',()=>{ _actChip=b.getAttribute('data-act-chip')||'all'; renderContextPanel(); }));
+    body.querySelectorAll('[data-act-retry]').forEach(b=>b.addEventListener('click',()=>{ refreshActivityFeed(true); renderContextPanel(); }));
     body.querySelectorAll('[data-sel-act]').forEach(el=>el.addEventListener('click',()=>{
       const id=el.getAttribute('data-sel-act');
       if(!(typeof window.hbOpenView==='function'&&hbOpenView(id,'hist'))) selectContract(id); }));
@@ -3963,10 +4087,13 @@ function renderContextPanel(){
    prints (the door's reading), shown only while something waits; "You are
    here" is read off the page in front (deskKeyNow). Reads only — no AI, no
    writes beyond the reader's own "seen" mark for the tab's "new". */
+/* WORKSPACE IS NOT A ROW (owner, 20 Nov 2026: "Workspace takes you to the contracts page so why don't we leave contracts
+   and delete workspace from both the guide and nav panel"): one contract's paper is reached by opening a contract, so the
+   Guide and the jump window list Contracts alone, and a contract's paper counts as standing on Contracts */
 const GUIDE_STAGES = [
   { k: 'ask', rows: ['requests', 'import'] },
-  { k: 'draft', rows: ['ourpaper', 'draft'] },
-  { k: 'agree', rows: ['document', 'negotiations', 'parties', 'people'] },
+  { k: 'draft', rows: ['ourpaper', 'standards', 'draft'] },
+  { k: 'agree', rows: ['negotiations', 'parties', 'people'] },
   { k: 'sign', rows: ['approvals'] },
   { k: 'keep', rows: ['contracts', 'reads', 'oblig', 'calendar', 'mynotes'] },
   { k: 'see', rows: ['pulse', 'explorer', 'house'] },
@@ -3982,8 +4109,11 @@ function guideCountOf(k){
     approvals:()=>typeof approvalsDoorCount==='function'?approvalsDoorCount():0,
     oblig:()=>typeof obligationsDoorCount==='function'?obligationsDoorCount():0,
     mynotes:()=>typeof mineNotesDue==='function'?mineNotesDue().length:0,
-    house:()=>typeof agentsDoorCount==='function'?agentsDoorCount():0 };
+    house:()=>typeof agentsDoorCount==='function'?agentsDoorCount():0,
+    /* open departures from the standards (the Ladder, 17 Nov 2026), the number its head prints */
+    standards:()=>typeof window.ldStandards==='function'?window.ldStandards().reduce((t,r)=>t+r.open.length,0):0 };
   if(!W[k]) return null;
+  if(GUIDE_WORK_COUNTS.includes(k) && !countsAreMine()) return null;   // Round B: nothing waits on who may not act
   const v=n(W[k]); return v>0?{ n:v, w:i18t('gd_n_'+k,{ n:v }) }:null;
 }
 /* the page in front, as a row's key */
@@ -3991,11 +4121,11 @@ function guideHereKey(){
   try{
     const v=state&&state.view; if(!v) return 'board';
     if(v==='dashboard'){ const f=(typeof hbFace==='function')?hbFace():'board';
-      if(f==='paper'){ const c=(typeof pdOnPaper==='function'&&pdOnPaper()&&typeof pdContract==='function')?pdContract():null; return c?'document':'contracts'; }
+      if(f==='paper') return 'contracts';
       return ({ board:'board', calendar:'calendar', explorer:'explorer' })[f]||'board'; }
-    return ({ intake:'requests', migration:'import', templates:'ourpaper', playbook:'ourpaper', redline:'negotiations', customers:'parties',
+    return ({ intake:'requests', migration:'import', templates:'ourpaper', playbook:'standards', redline:'negotiations', customers:'parties',
       directory:'people', approvals:'approvals', register:'contracts', obligations:'oblig', mynotes:'mynotes', reads:'reads', pulse:'pulse', jambo:'house',
-      team:'settings', workspace:'document', doc:'document', handbook:'handbook', flowmap:'flowmap' })[v]||null;
+      team:'settings', workspace:'contracts', doc:'contracts', handbook:'handbook', flowmap:'flowmap' })[v]||null;
   }catch(_){ return null; }
 }
 /* a page this reader cannot use is not listed (Import needs the right to add) */
@@ -4021,8 +4151,8 @@ function guideRowHtml(k, here, cls){
    it and its count — amber where something needs you, plain where it is a size. Every page the Guide had stays on it
    (rule 9c): the drawing's rows, and the pages it did not draw in the stage they belong to. */
 const GUIDE_NL=[
-  { k:'arrive', tone:'green', rows:[['contracts'],['requests'],['import'],['ourpaper'],['draft']] },
-  { k:'negsign', tone:'amber', rows:[['negotiations'],['approvals'],['document']] },
+  { k:'arrive', tone:'green', rows:[['contracts'],['requests'],['import'],['ourpaper'],['standards'],['draft']] },
+  { k:'negsign', tone:'amber', rows:[['negotiations'],['approvals']] },
   { k:'live', tone:'steel', rows:[['oblig'],['calendar'],['parties','people'],['mynotes']] },
   { k:'book', tone:'violet', rows:[['board','explorer','reads'],['pulse','house'],['flowmap'],['handbook'],['settings']] },
 ];
@@ -4041,7 +4171,7 @@ function guideNlCount(k){
 /* EACH PAGE WEARS ITS SYMBOL (owner, 14 Nov 2026: "Give it symbols in color as well"): a drawn mark per row, the
    stage's tone behind it (HaTi's own tones, as Settings wears them); the row you stand on is ink. A row naming several
    pages wears its first page's symbol. */
-const GUIDE_NL_ICON={ board:'grid', contracts:'file', requests:'chat', import:'download', ourpaper:'copy', draft:'filenew',
+const GUIDE_NL_ICON={ board:'grid', contracts:'file', requests:'chat', import:'download', ourpaper:'copy', standards:'shield', draft:'filenew',
   negotiations:'refresh', approvals:'check2', document:'readpaper', oblig:'list', calendar:'calendar', parties:'users', people:'users',
   mynotes:'pencil', explorer:'network', reads:'search', pulse:'trend', house:'sparkle', flowmap:'lane', handbook:'scroll', settings:'cog' };
 function guideNlMarkHtml(k, tone){
@@ -4052,7 +4182,8 @@ function guideNlRowHtml(keys, here, tone){
   const shown=keys.filter(guideRowShown); if(!shown.length) return '';
   const words=shown.map(guideWordOf).filter(Boolean).map(w=>'\u201c'+w+'\u201d');
   const cnt=shown.length===1?guideNlCount(shown[0]):null;
-  return `<div class="gdn-r${shown.includes(here)?' is-here':''}">${guideNlMarkHtml(shown[0], tone)}<span class="gdn-nm">${shown.map(k=>`<button type="button" class="gdn-go" data-gd-go="${k}"${here===k?' aria-current="page"':''}>${esc(i18t('gd_p_'+k))}</button>`).join('<i aria-hidden="true"> \u00b7 </i>')}</span>`
+  /* a row of several pages says its words on their own line under the names (#762: beside them they ran past the panel) */
+  return `<div class="gdn-r${shown.includes(here)?' is-here':''}${shown.length>1?' is-multi':''}">${guideNlMarkHtml(shown[0], tone)}<span class="gdn-nm">${shown.map(k=>`<button type="button" class="gdn-go" data-gd-go="${k}"${here===k?' aria-current="page"':''}>${esc(i18t('gd_p_'+k))}</button>`).join('<i aria-hidden="true"> \u00b7 </i>')}</span>`
     +`${words.length?`<span class="gdn-say">${esc(i18t('gdn_say',{ words:words.join(' \u00b7 ') }))}</span>`:''}<span class="gdn-n${cnt&&cnt.owed?' is-owed':''}">${cnt?cnt.n:''}</span></div>`;
 }
 function guidePanelNlHtml(){
@@ -4065,84 +4196,129 @@ function guidePanelNlHtml(){
   return `<div class="gdn${five?' is-five':''}"><p class="gdn-say-top">${esc(i18t('gdn_top'))}</p><div class="gdn-h">${esc(i18t('gdn_here'))}</div>${g(guideNlRowHtml(hereRow,here,'ink'))}`
     +GUIDE_NL.map(st=>{ const rows=st.rows.map(r=>guideNlRowHtml(r,here,st.tone)).filter(Boolean).join(''); return rows?`<div class="gdn-h">${esc(i18t('gdn_s_'+st.k))}</div>${g(rows)}`:''; }).join('')+`</div>`;
 }
-/* THE SYMBOL STRIP — THE GUIDE'S COMPACT FACE (owner, 15 Nov 2026: "Build the symbol nav panel per your
-   recommendation"; lifts "no left rail" for this strip only, which lies OVER the page and takes no room). The symbol
-   at the top left of the bar (#dk-nav) opens it on a press, or after a short rest of the mouse; one symbol per page,
-   Board first and Settings at the foot, the order FIXED (the Rolodex was drawn and turned down: a page must stay
-   where the hand learnt it). Every row, word, count and door is the Guide's own (GUIDE_NL, guideNlCount,
-   guideWordOf, guideHereKey, guideGo): no second list of pages. The name shows beside the symbol pointed at or
-   focused, in ONE tip outside the strip so the strip may scroll on a short screen without clipping it. Reads only. */
-const GUIDE_STRIP_ICON={ parties:'building' };
-const GUIDE_STRIP_HOVER_MS=250, GUIDE_STRIP_LEAVE_MS=300;
-let _gdsHow=null, _gdsHoverT=0, _gdsLeaveT=0;
-function guideStripRows(){
+/* THE LAUNCHPAD — BENTO, THE LEGORA WAY (owner's pick by name, 19 Nov 2026: "bento the legora way it is", then "1, yes ·
+   A · 3, replace" and "BUILD IT"; drawn on photos of the app). It REPLACES the symbol strip (15 Nov 2026). The jump window
+   in the middle of the screen (openCommandPalette — "/" outside a box) IS the launchpad: ONE door, never a second list.
+   With nothing typed it draws the drawing: one ask box, chips (All · Waiting on you · Arrive · Deal · Live · Book), what
+   waits on you on top in large numbers, each quoting the line it was read from with its button in the row, then every
+   page as a quiet list by stage, its symbol in the stage's tone. Typed, it is the jump list it always was
+   (commandPaletteResults). Opened by the bar's top-left symbol (#dk-nav), ⌘K / Ctrl K, and "/" outside a box. Every page,
+   count, word and door is the Guide's own (GUIDE_NL, guideNlCount, guideHereKey, guideGo). Reads only. */
+const LP_WAIT_MAX=3;
+const LP_CHIPS=['all','need','arrive','negsign','live','book'];
+/* A MARK FOR EVERY PAGE (owner, 21 Nov 2026: "assign an emoji to each. use the emoji reference book ... if nothing there use the
+   previous nav panel as a reference"): Settings' own emoji (SDD_EMOJI, js/views/settings.js) where it has the meaning — requests,
+   import, ourpaper, standards, approvals, document, parties, people, mynotes, board, explorer, house, flowmap, handbook, settings —
+   else the emoji of the symbol the panel drew before (GUIDE_NL_ICON), since added to the book as SDD_EMOJI.page (f1097 (8) keeps
+   the two the same). A mark beside the name, never the name itself. */
+const LP_EMOJI={ contracts:'📄', requests:'💬', import:'📦', ourpaper:'📋', standards:'⚖️', draft:'📝', negotiations:'🔁', approvals:'✅',
+  oblig:'📃', calendar:'📅', parties:'🏢', people:'👥', mynotes:'📌', board:'📊', explorer:'🧭', reads:'🔍', pulse:'📈', house:'✨', flowmap:'🛤️', handbook:'📖', settings:'⚙️' };
+function lpEmoHtml(k){ const e=LP_EMOJI[k]; return e?`<span class="lp-em" aria-hidden="true">${e}</span>`:''; }
+let _lpChip='all';
+/* the Guide's pages, Board first and Settings last, the order FIXED (as the strip had it) */
+function lpRows(){
   const out=[{ k:'board', tone:'violet' }];
   GUIDE_NL.forEach(st=>st.rows.flat().forEach(k=>{ if(k!=='board'&&k!=='settings'&&!out.some(o=>o.k===k)) out.push({ k, tone:st.tone }); }));
   out.push({ k:'settings', tone:'violet' });
   return out.filter(r=>guideRowShown(r.k));
 }
-function guideStripIcon(k){ return GUIDE_STRIP_ICON[k]||GUIDE_NL_ICON[k]||'file'; }
-function guideStripOwed(k){ const c=guideNlCount(k); return c&&c.owed?c.n:0; }
-function guideStripHtml(){
-  const here=guideHereKey()||'board'; let tone=null;
-  return guideStripRows().map(({ k, tone:t })=>{
-    const on=here===k, n=on?0:guideStripOwed(k), name=i18t('gd_p_'+k);
-    const div=(tone&&t!==tone&&k!=='settings')?'<span class="gds-div" aria-hidden="true"></span>':''; tone=t;
-    return div+`<button type="button" class="gds-r${k==='settings'?' is-foot':''}" data-gds-go="${k}" aria-label="${esc(name)}"${on?' aria-current="page"':''}>`
-      +`<span class="gds-mk ${on?'t-ink':'t-'+t}" aria-hidden="true">${typeof icon==='function'?icon(guideStripIcon(k),'gds-ic',1.8):''}</span>`
-      +(n?`<span class="gds-n" aria-hidden="true">${n>99?'99+':n}</span>`:'')+`</button>`;
-  }).join('');
+function lpStageOf(k){ return GUIDE_NL.find(st=>st.rows.flat().includes(k))||null; }
+function lpOwed(k){ const c=guideNlCount(k); return c&&c.owed?c.n:0; }
+function lpSize(k){ const c=guideNlCount(k); return c&&!c.owed?c.n:0; }
+const lpPlain=h=>String(h==null?'':h).replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+/* WHAT WAITS, QUOTED FROM WHERE IT WAS READ: the page's own first row, never a guess; a page with no reader shows its number alone */
+function lpQuoteOf(k){
+  const more=(list,say)=>list.length<2?'':list.length===2?i18t('lp_and',{ what:say(list[1]) }):i18tn('lp_and_n',list.length-1,{ n:list.length-1 });
+  try{
+    if(k==='approvals'&&typeof window.apWorkRows==='function'){
+      const ys=(window.apWorkRows().yours||[]).filter(r=>r&&r.c&&!r.done);
+      const say=r=>[r.c.name, r.c.counterparty, typeof window.jov5Money==='function'?window.jov5Money(r.c):''].filter(Boolean).join(' · ');
+      if(ys.length) return { q:say(ys[0]), more:more(ys,say) };
+    }
+    if(k==='settings'&&typeof window.stNeedsAll==='function'){
+      const ns=(window.stNeedsAll()||[]).filter(r=>r&&lpPlain(r.text));
+      const say=r=>lpPlain(r.text);
+      if(ns.length) return { q:say(ns[0]), more:more(ns,say) };
+    }
+    if(k==='house'){ const n=lpOwed('house'); if(n) return { q:i18tn('lp_house',n,{ n }), more:'' }; }
+  }catch(_){}
+  return null;
 }
-function guideStripTipHtml(k){
-  const on=(guideHereKey()||'board')===k, n=on?0:guideStripOwed(k), w=guideWordOf(k);
-  return `<b>${esc(i18t('gd_p_'+k))}</b>${w?`<span>${esc(i18t('gdn_say',{ words:'“'+w+'”' }))}</span>`:''}`
-    +(on?`<em>${esc(i18t('gd_here'))}</em>`:n?`<i>${n}</i>`:'');
+function lpWaits(){ const here=guideHereKey()||'board'; return lpRows().map(r=>r.k).filter(k=>k!==here&&lpOwed(k)); }
+/* the launchpad's rows, in the order they are drawn and walked by the arrows */
+function lpItems(){
+  const ch=LP_CHIPS.includes(_lpChip)?_lpChip:'all', items=[];
+  if(ch==='all'||ch==='need') lpWaits().slice(0,LP_WAIT_MAX).forEach(k=>items.push({ kind:'page', id:k, wait:true }));
+  if(ch!=='need'){ const ks=lpRows().map(r=>r.k);
+    GUIDE_NL.filter(st=>ch==='all'||st.k===ch).forEach(st=>ks.filter(k=>lpStageOf(k)===st).forEach(k=>items.push({ kind:'page', id:k, st:st.k }))); }
+  return items;
 }
-function guideStripTip(btn){
-  let tt=document.getElementById('gd-strip-tt');
-  if(!btn){ if(tt) tt.hidden=true; return; }
-  if(!tt){ tt=document.createElement('div'); tt.id='gd-strip-tt'; tt.className='gds-tt'; tt.setAttribute('role','tooltip'); document.body.appendChild(tt); }
-  const r=btn.getBoundingClientRect();
-  tt.innerHTML=guideStripTipHtml(btn.getAttribute('data-gds-go')); tt.hidden=false;
-  tt.style.left=Math.round(r.right+6)+'px'; tt.style.top=Math.round(r.top+r.height/2)+'px';
+function lpWaitWord(k){ return i18t(({ approvals:'lp_w_approvals', house:'lp_w_house', settings:'lp_w_settings' })[k]||'lp_w_any'); }
+function lpActWord(k){ return i18t(({ approvals:'lp_act_approvals', house:'lp_act_house', settings:'lp_act_settings' })[k]||'lp_act_open'); }
+/* THE STRIPE WAY (owner, 20 Nov 2026: "Build the nav panel as drawn but it should be at the center of the screen"): no page
+   symbols, no stage colours. Every page says what is behind it in the Guide's own line (gd_w_*), its name in the link
+   ink; what waits on you stands in ONE tinted column at the right (lpSideHtml) as plain rows: the same large numbers,
+   the same quoted line, the same buttons. Under the Waiting chip the rows take the list's place (no column beside). */
+function lpOpt(items,active,it,cls,inner){
+  const here=guideHereKey()||'board', n=items.indexOf(it), on=it.id===here&&!it.wait;
+  return `<button type="button" class="${cls}${n===active?' is-sel':''}${on?' is-here':''}" data-cp-i="${n}" data-lp-go="${it.id}" id="cp-opt-${n}" role="option" aria-selected="${n===active}"${on?' aria-current="page"':''}>${inner}</button>`;
 }
-function guideStripIsOpen(){ const el=document.getElementById('gd-strip'); return !!(el&&!el.hidden); }
-function guideStripOpen(how){
-  clearTimeout(_gdsHoverT); clearTimeout(_gdsLeaveT);
-  let el=document.getElementById('gd-strip');
-  if(!el){ el=document.createElement('nav'); el.id='gd-strip'; el.className='gds'; document.body.appendChild(el); }
-  el.setAttribute('aria-label',i18t('gds_label'));
-  el.innerHTML=guideStripHtml();
-  const hdr=document.getElementById('top-header'), top=hdr?Math.round(hdr.getBoundingClientRect().bottom):0;
-  el.style.top=top+'px'; el.hidden=false; _gdsHow=how==='hover'?'hover':'press';
-  const b=document.getElementById('dk-nav'); if(b){ b.setAttribute('aria-expanded','true'); b.classList.add('is-on'); }
-  return el;
+function lpWaitRowsHtml(items,active){
+  return `<div class="lp-work" role="group" aria-label="${esc(i18t('lp_chip_need'))}">`+items.filter(x=>x.wait).map(it=>{
+    const k=it.id, n=lpOwed(k), Q=lpQuoteOf(k);
+    return lpOpt(items,active,it,'lp-w',`<span class="lp-wt"><span class="lp-n"><b>${n}</b><span>${esc(lpWaitWord(k))}</span></span><span class="lp-pg">${lpEmoHtml(k)}${esc(i18t('gd_p_'+k))}</span></span>`
+      +`<span class="lp-act">${esc(lpActWord(k))}</span>`
+      +(Q?`<q>${esc(Q.q)}</q>${Q.more?`<span class="lp-src">${esc(Q.more)}</span>`:''}<span class="lp-src">${esc(i18t('lp_from',{ page:i18t('gd_p_'+k) }))}</span>`:'')); }).join('')+`</div>`;
 }
-function guideStripClose(){
-  clearTimeout(_gdsHoverT); clearTimeout(_gdsLeaveT); _gdsHow=null; guideStripTip(null);
-  const el=document.getElementById('gd-strip'); if(el) el.hidden=true;
-  const b=document.getElementById('dk-nav'); if(b){ b.setAttribute('aria-expanded','false'); b.classList.remove('is-on'); }
+/* the tinted column stands beside the pages under All, and only while something waits */
+function lpSideOn(items){ return _lpChip==='all'&&(items||[]).some(x=>x.wait); }
+/* how many more pages wait than the three drawn — a cap is said, never a silent trim */
+function lpMoreSay(){
+  const ch=LP_CHIPS.includes(_lpChip)?_lpChip:'all', left=(ch==='all'||ch==='need')?lpWaits().length-LP_WAIT_MAX:0;
+  return left>0?i18tn('lp_more',left,{ n:left }):i18t('lp_foot');
 }
-/* a press opens it to stay; a press on a strip the mouse opened keeps it; a press on one it pressed open closes it */
-function guideStripPress(){ if(guideStripIsOpen()&&_gdsHow==='press') guideStripClose(); else guideStripOpen('press'); }
-function guideStripGo(k){ guideStripClose(); guideGo(k); }
-function guideStripWire(){
-  const b=document.getElementById('dk-nav'); if(!b||!b.dataset||typeof b.addEventListener!=='function'||b.dataset.gdsWired) return; b.dataset.gdsWired='1';
-  const leaveSoon=()=>{ if(_gdsHow!=='hover') return; clearTimeout(_gdsLeaveT); _gdsLeaveT=setTimeout(guideStripClose,GUIDE_STRIP_LEAVE_MS); };
-  b.addEventListener('click',guideStripPress);
-  b.addEventListener('pointerenter',e=>{ if(e.pointerType!=='mouse') return; clearTimeout(_gdsLeaveT);
-    if(!guideStripIsOpen()){ clearTimeout(_gdsHoverT); _gdsHoverT=setTimeout(()=>guideStripOpen('hover'),GUIDE_STRIP_HOVER_MS); } });
-  b.addEventListener('pointerleave',e=>{ if(e.pointerType!=='mouse') return; clearTimeout(_gdsHoverT); leaveSoon(); });
-  document.addEventListener('pointerover',e=>{ const s=e.target.closest&&e.target.closest('#gd-strip'); if(!s) return;
-    clearTimeout(_gdsLeaveT); const r=e.target.closest('[data-gds-go]'); guideStripTip(r||null); });
-  document.addEventListener('pointerout',e=>{ const s=e.target.closest&&e.target.closest('#gd-strip'); if(!s) return;
-    const to=e.relatedTarget; if(to&&to.closest&&to.closest('#gd-strip')) return; guideStripTip(null); if(!(to&&to.closest&&to.closest('#dk-nav'))) leaveSoon(); });
-  document.addEventListener('focusin',e=>{ const r=e.target.closest&&e.target.closest('#gd-strip [data-gds-go]'); if(r) guideStripTip(r); });
-  document.addEventListener('click',e=>{ const r=e.target.closest&&e.target.closest('#gd-strip [data-gds-go]'); if(r) guideStripGo(r.getAttribute('data-gds-go')); });
-  document.addEventListener('pointerdown',e=>{ if(!guideStripIsOpen()) return; const t=e.target;
-    if(t.closest&&(t.closest('#gd-strip')||t.closest('#dk-nav'))) return; guideStripClose(); },true);
-  document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||!guideStripIsOpen()) return; guideStripClose(); try{ b.focus({ focusVisible:true }); }catch(_){ b.focus(); } });
-  addEventListener('resize',()=>{ if(guideStripIsOpen()) guideStripClose(); });
+function lpSideHtml(items,active){
+  return `<h5 class="lp-h">${esc(i18t('lp_chip_need'))}</h5>${lpWaitRowsHtml(items,active)}<p class="lp-more">${esc(lpMoreSay())}</p>`;
+}
+function lpBodyHtml(items,active,o){
+  const here=guideHereKey()||'board', side=!!(o&&o.side);
+  const W=items.filter(x=>x.wait), P=items.filter(x=>!x.wait);
+  let h='';
+  if(W.length&&!side) h+=`<h5 class="lp-h">${esc(i18t('lp_chip_need'))}</h5>`+lpWaitRowsHtml(items,active);
+  else if(!W.length&&_lpChip==='need') h+=`<p class="lp-none">${esc(i18t('lp_none'))}</p>`;
+  if(P.length){
+    const groups=GUIDE_NL.map(st=>({ st, its:P.filter(x=>x.st===st.k) })).filter(g=>g.its.length);
+    h+=`<div class="lp-pages" style="--lp-cols:${groups.length}">`+groups.map(g=>
+      `<div class="lp-st" role="group" aria-label="${esc(i18t('gdn_s_'+g.st.k))}"><h5>${esc(i18t('gdn_s_'+g.st.k))}</h5>`+g.its.map(it=>{
+        const k=it.id, on=k===here, ow=on?0:lpOwed(k), z=on?0:lpSize(k);
+        return lpOpt(items,active,it,'lp-p',`${lpEmoHtml(k)}<span class="lp-nm">${esc(i18t('gd_p_'+k))}</span>`
+          +(on?`<span class="lp-ct">${esc(i18t('gd_here'))}</span>`:ow?`<span class="lp-ct is-owed">${ow}</span>`:z?`<span class="lp-ct">${z}</span>`:'')
+          +`<span class="lp-wh">${esc(i18t('gd_w_'+k))}</span>`);
+      }).join('')+`</div>`).join('')+`</div>`;
+  }
+  return h;
+}
+/* the ask line in two tones, as drawn: the question in ink, how to answer it in grey (the box's own words, lp_where) */
+function lpWhereHtml(){ const t=String(i18t('lp_where')), m=/^(.+?[?.!])\s+(.+)$/.exec(t); return m?`<b>${esc(m[1])}</b> ${esc(m[2])}`:esc(t); }
+/* the foot: the keys, then what the panel holds — a cap is said, never a silent trim */
+function lpFootHtml(typed,side){
+  const keys=`<span class="lp-keys"><span><kbd>↑</kbd> <kbd>↓</kbd> ${esc(i18t('lp_k_move'))}</span><span><kbd>Enter</kbd> ${esc(i18t('lp_k_go'))}</span><span><kbd>Esc</kbd> ${esc(i18t('lp_k_close'))}</span></span>`;
+  /* beside the pages, the tinted column says it at its own foot (lpSideHtml) */
+  if(typed||side) return keys;
+  return keys+`<span>${esc(lpMoreSay())}</span>`;
+}
+function lpChipsHtml(){
+  /* ONE NAME FOR ONE STAGE (owner, 21 Nov 2026: the chip said Deal over a column headed Negotiate · sign): a stage's chip says its column's own head */
+  const word=c=>c==='all'?i18t('lp_chip_all'):c==='need'?i18t('lp_chip_need'):i18t('gdn_s_'+c);
+  return LP_CHIPS.map(c=>`<button type="button" class="lp-chip" data-lp-chip="${c}" aria-pressed="${c===_lpChip}">${esc(word(c))}</button>`).join('');
+}
+/* the bar's top-left symbol: a press opens the launchpad, a second press (on the dimmed screen) closes it */
+function lpIsOpen(){ return !!document.getElementById('cmd-palette'); }
+function lpDoorSay(on){ const b=document.getElementById('dk-nav'); if(!b) return; b.setAttribute('aria-expanded',on?'true':'false'); b.classList.toggle('is-on',!!on); }
+function lpToggle(){ const p=document.getElementById('cmd-palette'); if(p&&typeof p._lpClose==='function'){ p._lpClose(); return; } openCommandPalette(); }
+function lpWire(){
+  const b=document.getElementById('dk-nav'); if(!b||!b.dataset||typeof b.addEventListener!=='function'||b.dataset.lpWired) return; b.dataset.lpWired='1';
+  b.addEventListener('click',lpToggle);
 }
 function guidePanelHtml(){
   if(typeof window.newLookOn==='function'&&newLookOn()) return guidePanelNlHtml();
@@ -4185,37 +4361,112 @@ function panelTabsPaint(face){
   const head=host.previousElementSibling; if(head&&head.style) head.style.borderBottom=desk?'0':'';
   if(!desk){ host.innerHTML=''; return; }
   const cid=(typeof chatContractId==='function')?chatContractId():null;
-  const tabs=[['guide','gd_tab'],['alerts','sh_alerts'],['notes','ng_card_notes'],['activity','sh_activity']];
+  const tabs=[['alerts','sh_alerts'],['notes','ng_card_notes'],['activity','sh_activity']];
   host.innerHTML=tabs.map(([k,w])=>{ const dead=k==='notes'&&!cid&&face!=='notes';
     const nl=typeof window.newLookOn==='function'&&newLookOn();
     let cnt=''; if(nl&&k==='alerts'){ let n=0; try{ n=(typeof counterNeedsCount==='function')?Number(counterNeedsCount())||0:0; }catch(_){ n=0; } if(n) cnt=`<span class="pt-n">${n>99?'99+':n}</span>`; }
+    /* AS DRAWN (P-38): with a contract in front, Notes carries the number of its notes in the room shown (the same
+       threads the face lists, rlChatThreads); none, no number */
+    if(nl&&k==='notes'&&cid&&typeof window.rlChatThreads==='function'){ let n=0; try{ const c=getContract(cid); const room=typeof window.rlNpRoomNow==='function'?rlNpRoomNow(c,{},'owner'):null; n=c?(rlChatThreads(c,{},room)||[]).length:0; }catch(_){ n=0; } if(n) cnt=`<span class="pt-n">${n>99?'99+':n}</span>`; }
     return `<button type="button" role="tab" class="pt-tab${k===face?' on':''}" data-pt-face="${k}" aria-selected="${k===face}"${dead?` disabled aria-disabled="true" title="${esc(i18t('ng_chat_none'))}"`:''}>${esc(i18t(w))}${cnt}${k==='guide'&&!nl&&!guideSeen()&&face!=='guide'?`<span class="pt-new">${esc(i18t('gd_new'))}</span>`:''}</button>`; }).join('');
   host.querySelectorAll('[data-pt-face]').forEach(b=>b.addEventListener('click',()=>{
     const k=b.getAttribute('data-pt-face'); if(k===panelFace()||b.disabled) return;
     if(k==='notes'){ const id=(typeof chatContractId==='function')?chatContractId():null; if(id) openNotesPanel(id,null,{ force:true }); return; }
     setPanelFace(k); applyPanelLayout(); if(k==='activity') refreshActivityFeed(true); renderContextPanel(); }));
 }
+/* ---- ACTIVITY, THE LEGORA + STRIPE WAY (P-38, owner 20 Nov 2026) ----
+   "Live · whole workspace", chips by kind (All · Signed · Sent · Changed · Asked; a kind with nothing is not drawn), a
+   timeline grouped Today · Yesterday · Earlier: a dot coloured by kind (green signed or approved, blue sent or opened,
+   amber changed, violet asked, grey filed), who did what, the reference, the time and a soft kind badge; under an event
+   that said or changed something, its words quoted (only words the trail itself carries in quotes — never guessed). */
+let _actChip='all';
+const ACT_KINDS=['signed','sent','changed','asked'];
+function actKindOf(a){
+  const t=String(a&&a.txt||'').toLowerCase();
+  if(/\b(sign|signed|approv|executed|sealed|allowed)/.test(t)) return 'signed';
+  if(/\b(sent|send|shared|opened|viewed|link|mailed|reminded|chase)/.test(t)) return 'sent';
+  if(/\b(counter|chang|edit|redline|accept|reject|propos|amend|fill)/.test(t)) return 'changed';
+  if(/\b(ask|asked|request|review|mention|question)/.test(t)) return 'asked';
+  return 'filed';
+}
+/* WHO DID WHAT, IN ONE SHORT LINE (P-38 as drawn: "Amina approved Cleaning Services"; review of the merged pages, 22 Nov
+   2026: the panel printed the trail's whole system sentence, cut with "…"). Read off the entry's own parts — its writer
+   (`user`, first name), its action, and the agreement's name — never guessed: an entry this table does not know says
+   its action word plainly. Its KIND follows the same reading, so a note or an ask is Asked (violet), never Sent. The
+   record keeps its own sentence (History, the export, the search read `txt`); this is only how the panel says it. */
+const ACT_SAYS=[
+  [/^negotiation$/i, /^(internal note|comment|note)\b/i, 'note', 'asked'],
+  [/^negotiation$/i, /\bproposed by\b|\brevised by\b|\bis written on\b/i, 'proposed', 'changed'],
+  [/^negotiation$/i, /\b(accepted|rejected|decided|refused|withdrawn|retracted)\b/i, 'decided', 'changed'],
+  [/^negotiation$/i, /\b(sent|round)\b/i, 'round', 'sent'],
+  [/^negotiation$/i, null, 'redlines', 'changed'],
+  [/^approved$/i, null, 'approved', 'signed', 'approved'],
+  [/^(signed|signature|signing|ready to sign|executed outside hati)$/i, null, 'signed', 'signed'],
+  [/^(approval requested|requested|approval resubmitted)$/i, null, 'asked_yes', 'asked'],
+  [/^changes requested$/i, null, 'asked_changes', 'asked'],
+  [/^(declined|approval rejected)$/i, null, 'declined', 'changed'],
+  [/^(shared|distributed|notice)$/i, /\b(opened|viewed)\b/i, 'opened', 'sent', 'opened'],
+  [/^(shared|distributed|notice)$/i, null, 'sent', 'sent'],
+  [/^(created|uploaded|migrated|imported|template)$/i, null, 'filed', 'filed'],
+  [/^(obligation|obligations)$/i, null, 'duty', 'changed'],
+  [/^playbook$/i, null, 'playbook', 'filed'],
+  [/^(read|scanned|scan|jambo extraction)$/i, null, 'read', 'filed'],
+  [/^(edited|key terms|parties|record|corrected|metadata confirmed|renumbered|document|status changed|renewal term|renewal decision|redline|wording accepted|risk marked|risk|re-filed)$/i, null, 'edited', 'changed'],
+];
+function actSayOf(a){
+  const act=String(a&&a.action||'').trim(), det=String(a&&a.detail||'');
+  const hit=act?ACT_SAYS.find(([ra,rd])=>ra.test(act)&&(!rd||rd.test(det))):null;
+  const raw=String(a&&a.user||'').trim(), sys=!raw||/^(system|hati)$/i.test(raw);
+  const who=sys?'HaTi':raw.split(/\s+/)[0];
+  let nm=String(a&&a.name||'').trim();
+  if(!nm&&a&&a.id&&typeof getContract==='function'){ try{ const c=getContract(a.id); nm=String((c&&c.name)||''); }catch(_){ nm=''; } }
+  const name=nm||String(a&&(a.ref||a.id)||'');
+  if(!hit) return { line:act?i18t('act_s_else',{ who, what:act.toLowerCase(), name }):String(a&&a.txt||''), kind:actKindOf(a), badge:'' };
+  const [, , k, kind, badge]=hit;
+  return { line:i18t(sys&&k==='filed'?'act_s_filed_sys':'act_s_'+k,{ who, name }), kind, badge:badge||'', say:k };
+}
+/* the words an event said, where the trail carries them in quotes */
+function actQuoteOf(a){
+  const m=/[“"]([^”"]{3,})[”"]/.exec(String(a&&a.txt||'')); if(m) return m[1];
+  /* A NOTE'S OWN WORDS (P-38 as drawn: the words quoted under the line): the trail names the note, the record holds it —
+     the writer's latest note on that agreement at or just before the entry's time (a repeat within the minute is one
+     entry, logAudit). Read from the contract on hand, never fetched; none found, none said. */
+  if(!(a&&a.say==='note'&&a.id&&typeof getContract==='function'&&typeof window.rlChatRows==='function')) return '';
+  try{
+    const c=getContract(a.id), at=Date.parse(a.at||''), who=String(a.user||'').trim().toLowerCase(); if(!c||!isFinite(at)) return '';
+    const hit=(rlChatRows(c,{},null)||[]).map(x=>x&&x.m).filter(n=>n&&n.text&&String(n.who||'').trim().toLowerCase()===who)
+      .filter(n=>{ const t=Date.parse(n.at||''); return isFinite(t)&&t<=at+1000&&at-t<120000; })
+      .sort((x,y)=>String(y.at).localeCompare(String(x.at)))[0];
+    return hit?String(hit.text).replace(/\s+/g,' ').trim():'';
+  }catch(_){ return ''; }
+}
+function actDayOf(at){
+  const d=new Date(at||0); if(isNaN(d)) return 'earlier';
+  const t=new Date(); const k=x=>x.getFullYear()+'-'+x.getMonth()+'-'+x.getDate();
+  if(k(d)===k(t)) return 'today'; const y=new Date(t); y.setDate(t.getDate()-1); return k(d)===k(y)?'yesterday':'earlier';
+}
 function activityPanelHtml(){
   refreshActivityFeed();   // server mode: keep the whole-workspace feed current
-  const feed=buildActivityFeed();
-  return `
-      <div style="padding:10px var(--s-3);">
-        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-micro);color:var(--color-neutral-600);margin-bottom:var(--s-2);">
-          <span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot);"></span>${i18t('ap_scope_workspace')}
-        </div>
-        ${feed.length?feed.map(a=>`
-          <button data-sel-act="${esc(a.id)}" style="display:flex;gap:9px;width:100%;padding:7px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
-            <span style="width:8px;height:8px;border-radius:50%;background:${CAT_DOT[a.cat]};flex:none;margin-top:var(--s-1);"></span>
-            <span style="flex:1;min-width:0;">${/* THE TRAIL IS STORED TEXT AND IS PRINTED AS TEXT (26 Sep 2026, the
-                 overnight clean-up): a line's detail carries whatever a
-                 colleague typed — an obligation's wording, a clause name — and
-                 printed raw, an <img onerror> in it ran in the admin's session
-                 the moment the panel opened (measured). */''}
-              <span style="display:block;font-size:var(--t-meta);line-height:1.4;">${esc(a.txt)}</span>
-              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);margin-top:1px;">${window.refHtml?refHtml(a.ref||a.id):esc(a.ref||a.id)} · ${esc(a.when)}</span>
-            </span>
-          </button>`).join(''):`<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:var(--s-3) 2px;">${i18t('ap_no_activity')}</div>`}
-      </div>`;
+  const live=`<div class="act-live"><span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot);"></span>${i18t('ap_scope_workspace')}</div>`;
+  const ld=activityFeedState();
+  if(ld==='loading') return `<div class="act" data-act-state="loading">${live}<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:var(--s-3) 2px;">${busyHtml(i18t('set_loading'))}</div></div>`;
+  if(ld==='failed') return `<div class="act" data-act-state="failed">${live}<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:var(--s-3) 2px;">${esc(i18t('act_load_failed'))} <button type="button" class="ui-link" data-act-retry>${esc(i18t('act_load_retry'))}</button></div></div>`;
+  const feed=buildActivityFeed().map(a=>{ const S=actSayOf(a); return Object.assign({},a,{ kind:S.kind, line:S.line, badge:S.badge, say:S.say||'' }); });
+  const n={}; feed.forEach(a=>{ n[a.kind]=(n[a.kind]||0)+1; });
+  if(_actChip!=='all'&&!n[_actChip]) _actChip='all';
+  const shown=feed.filter(a=>_actChip==='all'||a.kind===_actChip);
+  const chip=(k,word)=>`<button type="button" class="act-chip" data-act-chip="${k}" aria-pressed="${_actChip===k}">${esc(word)}</button>`;
+  const time=a=>{ const d=new Date(a.at||0); return actDayOf(a.at)==='today'&&!isNaN(d)?d.toLocaleTimeString(typeof langLocale==='function'?langLocale():undefined,{hour:'2-digit',minute:'2-digit'}):a.when; };
+  /* THE TRAIL IS STORED TEXT AND IS PRINTED AS TEXT (26 Sep 2026): a line's detail carries whatever a colleague typed */
+  const row=a=>{ const q=actQuoteOf(a);
+    return `<button type="button" class="act-r is-${a.kind}" data-sel-act="${esc(a.id)}" title="${esc(a.txt)}"><i class="act-dot" aria-hidden="true"></i><span class="act-w"><b>${esc(a.line||a.txt)}</b><span class="act-ref">${window.refHtml?refHtml(a.ref||a.id):esc(a.ref||a.id)}</span>${q?`<q class="act-q">${esc(q)}</q>`:''}</span>`
+      +`<span class="act-e"><span class="act-t">${esc(time(a))}</span><span class="act-b">${esc(i18t('act_k_'+(a.badge||a.kind)))}</span></span></button>`; };
+  const days=['today','yesterday','earlier'].map(d=>{ const G=shown.filter(a=>actDayOf(a.at)===d); return G.length?`<div class="act-h">${esc(i18t('act_d_'+d))}</div><div class="act-tl">${G.map(row).join('')}</div>`:''; }).join('');
+  return `<div class="act" data-act-state="ready">
+      ${live}
+      ${feed.length?`<div class="act-chips" role="group" aria-label="${esc(i18t('sh_activity'))}">${chip('all',i18t('act_k_all'))}${ACT_KINDS.filter(k=>n[k]).map(k=>chip(k,i18t('act_k_'+k))).join('')}</div>${days}`
+        :`<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:var(--s-3) 2px;">${i18t('ap_no_activity')}</div>`}
+    </div>`;
 }
 /* "NOTHING NEEDS YOU RIGHT NOW" IS A REAL MESSAGE and a good one — an empty
    panel reads as a panel that failed to load.
@@ -4534,7 +4785,8 @@ function wireShell(){
   document.addEventListener('keydown',e=>{
     /* THE KEYS ARE THE SHELL'S, NOT THE BAR'S SEARCH'S (round 1, 29 Oct 2026): wired here, so the bar's box leaving
      takes none of them with it. Cmd/Ctrl+K → Jambo's box (works even while typing in a field) */
-    if((e.metaKey||e.ctrlKey)&&(e.key==='k'||e.key==='K')){ e.preventDefault(); jamboBoxFocus(); return; }
+    /* RE-POINTED 19 Nov 2026 (owner: "1, yes"): ⌘K / Ctrl K opens the launchpad, the jump window in the middle */
+    if((e.metaKey||e.ctrlKey)&&(e.key==='k'||e.key==='K')){ e.preventDefault(); openCommandPalette(); return; }
     /* ⌘B / Ctrl+B → collapse or open the sidebar. The settled binding —
        verified in shadcn's own source, which is the de-facto modern
        dashboard implementation, and the same key Vercel and Linear use.
@@ -4625,8 +4877,8 @@ function wireShell(){
 
   /* ONE DOOR TO THE SIDE PANEL (owner picked "The SAP Way", 9 Nov 2026): the clock and the Guide's door left the bar */
   document.getElementById('hdr-notify')?.addEventListener('click',panelDoorPress);
-  /* THE SYMBOL STRIP: the bar's top-left symbol opens the Guide's compact face down the left edge */
-  guideStripWire();
+  /* THE LAUNCHPAD (19 Nov 2026): the bar's top-left symbol opens the jump window in the middle, drawn as Bento, the Legora way */
+  lpWire();
   /* CHAT IS THE CONTRACT'S CONVERSATION, so it opens the notes face with no
      change named — openNotesPanel is the one door onto that face and this is
      the press arriving there, never a second way of putting the panel up.
@@ -4758,6 +5010,11 @@ if(state.panelOpen===undefined) state.panelOpen=false;
   window._outsideLook=!!(st&&st.outsideLook); if(typeof window.outsideLookApply==='function') outsideLookApply();
   if(st && st.mode==='api'){
     REMOTE={ org:st.orgName?{name:st.orgName}:null, me:null, users:[] };
+    /* NO DEMO BOOK ON A SERVER (21 Nov 2026): state is born holding the thirty sample contracts, which only the
+       browser-only mode keeps. On a server the book is the server's, so it is empty until loadBootstrap brings it —
+       the sample book sat in memory through sign-in, and anything painted meanwhile (the Board counted 29 live) read
+       contracts that do not exist. The setup screen's "start with sample data" builds its own set (sampleContracts). */
+    state.contracts=[];
     if(rs){ renderAuth('reset:'+rs[1]); return; }
     if(!st.setup){ renderAuth('setup'); return; }
     if(!st.authed){ renderAuth('login'); return; }
@@ -4850,6 +5107,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{GUIDE_NL,guidePanelNlHtml,GUIDE_STRIP_ICON,guideStripRows,guideStripHtml,guideStripTipHtml,guideStripOpen,guideStripClose,guideStripIsOpen,guideStripPress,guideStripGo,guideStripWire,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
-  buildAlerts,alertCount,updateAlertBadge,jamboBoxFocus,JB_BOX_SEL,JB_BOX_TRIES,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,alertsShowTab,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+Object.assign(window,{alStandardsAnswers,ALERT_STD_DAYS,GUIDE_NL,guidePanelNlHtml,LP_WAIT_MAX,LP_CHIPS,LP_EMOJI,lpRows,lpItems,lpQuoteOf,lpWaits,lpBodyHtml,lpSideHtml,lpSideOn,lpFootHtml,lpChipsHtml,lpIsOpen,lpToggle,lpWire,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,placeBackOn,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
+  buildAlerts,alertCount,updateAlertBadge,jamboBoxFocus,JB_BOX_SEL,JB_BOX_TRIES,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,alertsShowTab,activityPanelHtml,actSayOf,ACT_SAYS,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,activityFeedState,relTime});
 Object.assign(window,{BP});

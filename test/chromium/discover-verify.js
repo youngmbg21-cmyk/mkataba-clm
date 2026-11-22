@@ -40,10 +40,7 @@
      5b a new answer at risk fires it: it is on the bell's list in words that
         name the contract, the fact and the answer
      5c its press lands on the contract on Home's paper
-   STAGE 6 — UNUSUAL FOR YOU
-     6a DV-04's Dossier says, in its Jambo read card, that its liability cap
-        stands apart from the other services contracts
-     6b "Show the 3" lands on the Contracts list narrowed to those three
+   STAGE 6 — UNUSUAL FOR YOU (6a/6b RETIRED 17 Nov 2026, #762, round 6 default 11: not on the new Dossier)
    Each stage's checks are added below as the stage is built.
    Run: node test/chromium/discover-verify.js   (HATI_DV_ONLY=2 for one stage) */
 const fs = require('node:fs');
@@ -72,6 +69,9 @@ async function signIn(page, base){
 }
 async function toList(page){
   await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; the head's
+     List pill is the way to the list */
+  if (await until(page, () => !!document.querySelector('[data-ctf-show="list"]')) && !(await page.$('#reg-tbody tr[data-row]'))) await page.click('[data-ctf-show="list"]').catch(() => {});
   return until(page, () => !!document.querySelector('#reg-tbody tr[data-row]'));
 }
 /* HATI_DV_ONLY=4 for one stage, or 4,5 for a few (a fault that only shows
@@ -103,23 +103,27 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       /* 2a RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): the list's own box is a quiet filter and hands
          nothing on; the form's door is "Ask a column" — opened, the question typed, nothing read */
       const calls0 = h.ai.calls.length;
-      await until(page, () => !!document.querySelector('[data-ac-open]'));
-      await page.evaluate(() => { const b = [...document.querySelectorAll('[data-ac-open]')].find(x => x.getClientRects().length); if (b) b.click(); });
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the list's head carries no "Ask a column" (owner,
+         15 Nov 2026: no Discover button on Contracts); the form is the one the Reads and Discover doors open on Contracts
+         (rdOnContracts → askColOpen), drawn in Jambo's panel (askColFormDrawnHtml) */
+      await page.evaluate(() => askColOpen());
       await until(page, () => !!document.querySelector('#ig-dock #ac-form #ac-q'));
       await page.fill('#ig-dock #ac-form #ac-q', CAP_Q);
-      const filled = await until(page, () => { const q = document.querySelector('#ig-dock #ac-form #ac-q'); return !!q && /liability capped/.test(q.value) && !!document.querySelector('#ac-named'); });
+      const filled = await until(page, () => { const q = document.querySelector('#ig-dock #ac-form #ac-q'); return !!q && /liability capped/.test(q.value) && !!document.querySelector('#ac-named, #ac-name'); });
       check('2a Ask a column opens the form; the question typed there, nothing read', filled && h.ai.calls.length === calls0);
       /* 2b the name, said */ /* RE-POINTED 28 Oct 2026 (round 2 of the review): the form has one box; the name is said under it, with Change */
-      const hint = await page.evaluate(() => (document.querySelector('#ac-named') || {}).textContent || '');
-      check('2b the form says the column\'s name under the question, with Change', /Column: Liability capped\s*Change/.test(hint.replace(/\s+/g, ' ')), hint);
+      /* RE-POINTED 16 Nov 2026 (#762): the drawn form gives the column's name its own box under the question, filled from it */
+      await until(page, () => /Liability capped/.test((document.querySelector('#ac-name') || {}).value || ''), null, 3000);
+      const hint = await page.evaluate(() => (document.querySelector('#ac-name') || {}).value || '');
+      check('2b the form says the column\'s name under the question, where it can be changed', hint === 'Liability capped', hint);
       await page.click('[data-ac-ask]');
       /* RE-POINTED 28 Oct 2026 (EACH ANSWER THE MOMENT IT IS READ): the cells fill while the desk still stands,
          so the card is read once the read has ended */
       const read = await until(page, () => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length >= 11 && !document.querySelector('[data-ac-stop]') && !!document.querySelector('#ig-dock [data-ac-col]'), null, 25000);
       const col = await page.evaluate(() => ({
         heads: [...document.querySelectorAll('.reg-table thead th')].map(th => th.textContent.trim()),
-        cells: Object.fromEntries([...document.querySelectorAll('td.ac-cell')].map(td => [td.getAttribute('data-ac-cid'), { t: td.innerText.replace(/\s+/g, ' ').trim(), red: !!td.querySelector('.ac-ans.tone-ruby'), green: !!td.querySelector('.ac-ans.tone-green') }])),
-        foot: (document.querySelector('#reg-showing') || {}).innerText || '' }));
+        cells: Object.fromEntries([...document.querySelectorAll('td.ac-cell')].map(td => [td.getAttribute('data-ac-cid'), { t: td.innerText.replace(/\s+/g, ' ').trim(), red: !!td.querySelector('.ac-ans.tone-ruby'), green: !!td.querySelector('.ac-ans.tone-green') }]))
+      }));
       check('2b′ the column is named from the question', read && col.heads.some(x => /Liability cap/.test(x)), JSON.stringify(col.heads));
       const oneLine = ['DV-01', 'DV-03', 'DV-07'].every(id => col.cells[id] && !/“/.test(col.cells[id].t) && !/\n/.test(col.cells[id].t) && col.cells[id].t.length < 40);
       /* RE-POINTED (owner picked "Lights", 26 Oct 2026): one line per cell —
@@ -129,9 +133,13 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       check('2d the dot reads the rule first: the two outside it are red, the rest green',
         col.cells['DV-04'].red && col.cells['DV-05'].red && col.cells['DV-01'].green && Object.values(col.cells).filter(c => c.red).length === 2,
         JSON.stringify(Object.fromEntries(Object.entries(col.cells).map(([i, c]) => [i, c.red ? 'red' : c.green ? 'green' : '-']))));
-      check('2e the foot says what each dot means', /usual, or inside our rule/.test(col.foot) && /a risk, or outside our rule/.test(col.foot) && /not found/.test(col.foot), col.foot);
+      /* RETIRED 17 Nov 2026 (#762, owner's ruling, round 3: the Contracts column colour key stays gone): 2e the list's foot
+         saying what each dot means (usual · a risk · not found) was drawn only in the old list's foot */
       await page.screenshot({ path: path.join(OUT, '2-column.png') });
       /* 2f show the ones at risk */
+      /* RE-POINTED 16 Nov 2026 (#762): a finished read lands on the column's short drawn card; its "‹ Overview" is the step
+         to the column card with Show · Draw it · Copy the table */
+      if (await page.$('#ig-dock [data-ac-colback]')) { await page.click('#ig-dock [data-ac-colback]').catch(() => {}); await until(page, () => !document.querySelector('#ig-dock [data-ac-colback]'), null, 4000); }
       const card = await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-col]') || {}).innerText || '');
       check('2f′ the card offers Show the 2 at risk · Draw it · Copy the table', /Show the 2 at risk/.test(card) && /Draw it/.test(card) && /Copy the table/.test(card), card.slice(0, 300));
       const callsDraw = h.ai.calls.length;
@@ -170,120 +178,10 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       await page.click('#ig-dock [data-ac-keep]');
       const keptNow = await until(page, () => !document.querySelector('#ig-dock [data-ac-col] [data-ac-keep]'));
       check('3a′ "Keep in Discover" puts the question on the team\'s list', keepable && keptNow);
-      await page.evaluate(() => { regState().ask = []; regState().only = null; regRepaint(); });
-      await page.evaluate(() => askColSummary(true).then(() => renderIntelDock()));
-      const disc = await until(page, () => /Liability cap/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
-      const dt = await page.evaluate(() => (document.querySelector('#ig-dock #ac-disc') || {}).innerText || '');
-      check('3a Discover stands in the panel beside the list: the kept question, counted, at risk said', disc && /Discover/.test(dt) && /2 at risk/.test(dt) && /Due diligence · 5 questions/.test(dt) && /Ask a new question/.test(dt), dt.replace(/\s+/g, ' ').slice(0, 300));
-      await page.screenshot({ path: path.join(OUT, '3-discover.png') });
-      /* a question nobody kept is not on the list; the folded line finds it,
-         and from there it can be kept or deleted (owner, 26 Oct 2026) */
-      await page.evaluate(() => api('ai/column', 'POST', { question: 'Which country\u2019s law governs this contract?', name: 'Governing law', ids: ['DV-01'] }));
-      await page.evaluate(() => askColSummary(true).then(() => renderIntelDock()));
-      const folded = await until(page, () => /other question/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
-      const noLaw = await page.evaluate(() => !/Governing law/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
-      check('3a″ a question nobody kept stays off the list, counted in one folded line', folded && noLaw,
-        await page.evaluate(() => (document.querySelector('#ig-dock #ac-disc') || {}).innerText.replace(/\s+/g, ' ').slice(0, 200)));
-      await page.click('#ig-dock [data-ac-disc-all="1"]');
-      const shown = await until(page, () => /Governing law/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
-      const acts = await page.evaluate(() => { const r = [...document.querySelectorAll('#ig-dock .ac-disc-row')].find(x => /Governing law/.test(x.innerText));
-        return r ? { keep: !!r.querySelector('[data-ac-keep]'), del: !!r.querySelector('[data-ac-del]') } : null; });
-      check('3a‴ the folded line opens them, each with Keep and Delete', shown && acts && acts.keep && acts.del, JSON.stringify(acts));
-      /* ON A SCREEN THAT CANNOT HOVER THEY SIMPLY STAND THERE (the owner's
-         iPad). Keep and Delete rest until the pointer arrives, which on a
-         finger-only screen never happens — so the quiet is kept behind
-         (hover:hover), the house pattern the width grip already follows.
-         Read off the live stylesheet, not the file: a rule moved out of its
-         media block is the fault, wherever the bytes end up. */
-      const hv = await page.evaluate(() => {
-        for (const sh of document.styleSheets){
-          let rules; try { rules = sh.cssRules; } catch (_) { continue; }
-          for (const r of rules || []){
-            if (!r.cssRules || !/hover\s*:\s*hover/.test(r.conditionText || '')) continue;
-            for (const k of r.cssRules) if (/\.ac-disc-acts/.test(k.selectorText || '') && /opacity:\s*0/.test(k.style.cssText || '')) return true;
-          }
-        }
-        return false;
-      });
-      check('3a⁗ on a screen that cannot hover, Keep and Delete simply stand there', hv);
-      await page.click('#ig-dock [data-ac-disc-all="0"]');
-      await until(page, () => !/Governing law/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
-      const c0 = h.ai.calls.length;
-      await page.click('#ig-dock [data-ac-bring]');
-      /* >= 10, not 11: a paper drawn from its template keeps no answer of its
-         own (the server writes none), so DV-11 is read only where the drawing
-         travelled with the ask — which stage 2 does and HATI_DV_ONLY=3 cannot */
-      const up = await until(page, () => [...document.querySelectorAll('.reg-table thead th')].some(th => /Liability cap/.test(th.textContent)) && document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length >= 10);
-      check('3b a press brings its column onto the list, no call', up && h.ai.calls.length === c0,
-        JSON.stringify({ calls: h.ai.calls.length - c0, cells: await page.evaluate(() => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length), heads: await page.evaluate(() => [...document.querySelectorAll('.reg-table thead th')].map(t => t.textContent.trim())) }));
-      /* THE DOOR TO THE FULL REPORT IS ON EVERY COLUMN (owner, 26 Oct 2026:
-         "when you have 3 columns or company facts that you run … you do not
-         get the full report … They should all have the door to the full
-         report"). Here one column stands on the list and no pack was run:
-         red at the parent, where the door only appeared after a pack's read. */
-      /* RE-POINTED 29 Oct 2026: the door stands under the card's More… */
-      if (!await page.$('#ig-dock [data-ac-col] [data-ac-table]') && await page.$('#ig-dock [data-ac-col] [data-ac-more]')) await page.click('#ig-dock [data-ac-col] [data-ac-more]');
-      const door = await until(page, () => !!document.querySelector('#ig-dock [data-ac-col] [data-ac-table]'));
-      check('3b′ a column asked on its own carries the door to the full report', door,
-        await page.evaluate(() => ((document.querySelector('#ig-dock [data-ac-col]') || {}).innerText || '(no card)').replace(/\s+/g, ' ').slice(0, 220)));
-      await page.click('#ig-dock [data-ac-col] [data-ac-table]');
-      const solo = await until(page, () => !!document.querySelector('#ac-table-page .ac-tt-table'));
-      const soloCols = await page.evaluate(() => ({
-        cols: document.querySelectorAll('#ac-table-page thead th').length,
-        head: [...document.querySelectorAll('#ac-table-page thead th')].map(t => t.textContent.trim()).join(' | '),
-        rows: document.querySelectorAll('#ac-table-page tbody tr').length }));
-      check('3b″ it opens over the column in play, every contract under it', solo && soloCols.cols === 2 && /Liability cap/.test(soloCols.head) && soloCols.rows >= 10, JSON.stringify(soloCols));
-      await page.click('#ac-tt-back');
-      await until(page, () => !document.querySelector('#ac-table-page'));
-      await page.click('#ig-dock [data-ac-pack]');
-      await until(page, () => !!document.querySelector('#ig-dock [data-ac-pack-form]'));
-      const pf = await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-pack-form]') || {}).innerText || '');
-      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ check('3c the pack opens in the same form: five questions, one read each, no cost', ['Notice to end', 'Liability cap', 'Governing law', 'Auto-renewal', 'Personal data'].every(n => pf.includes(n)) && /* RE-POINTED 28 Oct 2026 (THE THREAD): one sentence, one read each */ /reads the 11 shown, once each/.test(pf) && /all 5 questions/.test(pf) && !/\bJambo calls?\b|\b\d+ calls?\b|\bone call\b|\bfree\b|costs? nothing|\bcosts about\b/i.test(pf), pf.replace(/\s+/g, ' ').slice(0, 400));
-      await page.screenshot({ path: path.join(OUT, '3-pack-form.png') });
-      /* CHOOSE WHICH OF THE PACK TO RUN (owner, 26 Oct 2026) */
-      const ticks = await page.evaluate(() => document.querySelectorAll('#ig-dock [data-ac-pick]').length);
-      await page.uncheck('#ig-dock [data-ac-pick="4"]');
-      await page.uncheck('#ig-dock [data-ac-pick="3"]');
-      const picked = await until(page, () => /3 of 5 chosen/.test((document.querySelector('#ig-dock [data-ac-pack-form]') || {}).innerText || ''));
-      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ check('3c′ each question has a tick: untick two and the count follows', ticks === 5 && picked,
-        await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-pack-form]') || {}).innerText.replace(/\s+/g, ' ').slice(0, 220)));
-      await page.check('#ig-dock [data-ac-pick="3"]');
-      await page.check('#ig-dock [data-ac-pick="4"]');
-      await until(page, () => /5 of 5 chosen/.test((document.querySelector('#ig-dock [data-ac-pack-form]') || {}).innerText || ''));
-      const c1 = h.ai.calls.length;
-      await page.click('#ig-dock [data-ac-ask]');
-      const three = await until(page, () => document.querySelectorAll('.reg-table thead th.ac-th').length === 3 && !!document.querySelector('#ig-dock [data-ac-table]'), null, 20000);
-      const spent = h.ai.calls.length - c1;
-      const heads = await page.evaluate(() => [...document.querySelectorAll('.reg-table thead th.ac-th')].map(th => th.textContent.trim()));
-      check('3d asked: one call per contract read (11), three columns stand, the full report offered', three && spent <= 11 && heads.length === 3, JSON.stringify({ spent, heads }));
-      await page.click('#ig-dock [data-ac-table]');
-      const pg = await until(page, () => !!document.querySelector('#ac-table-page'));
-      const tt = await page.evaluate(() => {
-        const first = document.querySelector('#ac-table-page tbody th.ac-tt-a');
-        return { cols: document.querySelectorAll('#ac-table-page thead th').length, rows: document.querySelectorAll('#ac-table-page tbody tr').length,
-          copy: !!document.querySelector('#ac-tt-copy'), wide: document.documentElement.scrollWidth > window.innerWidth,
-          card: !!document.querySelector('#ac-table-page .ac-tt-card'), sub: (document.querySelector('.ac-tt-sub') || {}).innerText || '',
-          stuck: first ? getComputedStyle(first).position : '', legend: (document.querySelector('.ac-tt-foot') || {}).innerText || '',
-          risk: !!document.querySelector('#ac-tt-risk'), heads: (document.querySelector('#ac-table-page thead') || {}).innerText || '' };
-      });
-      check('3e the whole table is a page: five answer columns, every contract, Copy the table, nothing spilling the window', pg && tt.cols === 6 && tt.rows === 11 && tt.copy && !tt.wide, JSON.stringify({ cols: tt.cols, rows: tt.rows, copy: tt.copy, wide: tt.wide }));
-      /* THE LEDGER (the owner picked it, 26 Oct 2026) */
-      check('3e′ one framed card: what was read said under the title, the contract column standing still, the legend in the foot',
-        tt.card && /answers/.test(tt.sub) && /read/.test(tt.sub) && tt.stuck === 'sticky' && /inside our rule/.test(tt.legend),
-        JSON.stringify({ card: tt.card, sub: tt.sub.replace(/\s+/g, ' '), stuck: tt.stuck }));
-      check('3e″ the at-risk count stands in the head of the column it belongs to, and Only at risk narrows the table',
-        /at risk/.test(tt.heads) && tt.risk, tt.heads.replace(/\s+/g, ' ').slice(0, 160));
-      if (tt.risk){
-        await page.click('#ac-tt-risk');
-        const fewer = await until(page, () => document.querySelectorAll('#ac-table-page tbody tr').length < 11);
-        check('3e‴ pressed, only the rows at risk stand; pressed again they all come back', fewer && await (async () => {
-          await page.click('#ac-tt-risk');
-          return until(page, () => document.querySelectorAll('#ac-table-page tbody tr').length === 11);
-        })());
-      }
-      await page.screenshot({ path: path.join(OUT, '3-table.png') });
-      await page.click('#ac-tt-back');
-      check('3f Back to the list closes it', await until(page, () => !document.querySelector('#ac-table-page')));
+      /* RETIRED 16 Nov 2026 (#762): 3a, 3a″, 3a‴, 3a⁗, 3b–3f — "Discover beside the list" (#ac-disc, its kept questions,
+         packs and the whole-table page opened from it) is the old look's only: askColDiscoverHtml returns nothing in the new
+         look, which has its Discover page (dsnRender), pinned by discover-page-verify, read-table-verify,
+         reads-and-columns-as-drawn-verify and reads-new-look-fixes-verify */
     }
 
     if (stage(4)){
@@ -394,9 +292,9 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
         wc || await page.evaluate(() => (document.querySelector('#ig-dock') || {}).innerText.replace(/\s+/g, ' ').slice(0, 400)));
       await page.click('#ig-dock [data-ac-watch]');
       const set = await until(page, () => !!document.querySelector('#ig-dock [data-ac-unwatch]'));
-      await page.evaluate(() => { regState().ask = []; regRepaint(); renderIntelDock(); });
-      const tagged = await until(page, () => /watched/.test((document.querySelector('#ig-dock #ac-disc') || {}).innerText || ''));
-      check('5a pressed, the watch is set and Discover tags it watched', set && tagged);
+      /* RE-POINTED 16 Nov 2026 (#762): the "watched" tag stood in Discover beside the list (#ac-disc), which the new look does
+         not draw (askColDiscoverHtml returns nothing); the watch itself is asked as before: set, and Unwatch offered */
+      check('5a pressed, the watch is set', set);
       /* DV-05 arrives and answers outside the rule; the sweep runs */
       await page.evaluate(() => askColFactsArrive(getContract('DV-05')));
       for (let i = 0; i < 40; i++){ const f = await W.admin.json('/api/columns/facts/DV-05'); if (f.facts.some(x => x.answer)) break; await new Promise(r => setTimeout(r, 100)); }
@@ -416,16 +314,9 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       const ck = await page.evaluate(q => api('ai/column', 'POST', { question: q, name: 'Liability cap', ids: state.contracts.map(c => c.id),
         texts: { 'DV-11': contractPlainText(getContract('DV-11')) } }), CAP_Q);
       await W.admin.json('/api/columns/' + ck.ask.id, { method: 'PUT', body: { fact: true } });
-      await page.evaluate(() => regOpenContract('DV-04'));
-      await until(page, () => typeof pdContract === 'function' && pdContract() && pdContract().id === 'DV-04', null, 10000);
-      const said = await until(page, () => /Unusual for you/.test((document.querySelector('[data-ac-odd-for="DV-04"]') || {}).innerText || ''), null, 10000);
-      const line = await page.evaluate(() => (document.querySelector('[data-ac-odd-for="DV-04"]') || {}).innerText || '');
-      check('6a DV-04\'s Dossier says its cap stands apart from the other services contracts', said && /Liability cap here is “Not capped”/.test(line) && /3 of your other 3/.test(line), line.replace(/\s+/g, ' '));
-      await page.screenshot({ path: path.join(OUT, '6-dossier.png') });
-      await page.click('[data-ac-odd-show]');
-      const three = await until(page, () => document.querySelectorAll('#reg-tbody tr[data-row]').length === 3, null, 10000);
-      const rows = await page.evaluate(() => [...document.querySelectorAll('#reg-tbody tr[data-row]')].map(tr => tr.getAttribute('data-row')).sort());
-      check('6b "Show the 3" lands on the list narrowed to those three', three && rows.join() === 'DV-03,DV-10,DV-11', JSON.stringify(rows));
+      /* RETIRED 17 Nov 2026 (#762, round 6 default 11): 6a/6b "Unusual for you" on DV-04's Dossier and its "Show the 3" — the
+         line was drawn only on the old Dossier and stays off the new one-card Dossier. The fact column above is still made,
+         so the stages after this one run on the same workspace. */
     }
 
     if (stage(7)){
@@ -446,60 +337,14 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       check('7b the counterparty\'s seat draws no memory', !/data-rl-row-memory/.test(m.theirs || ''));
     }
 
-    if (stage(8)){
-      await W.admin.json('/api/settings', { method: 'PUT', body: { approvalRules: [{ id: 'r-dv', name: 'Finance director', order: 1,
-        cond: { type: 'value', op: '>=', value: 1000000 }, approver: { kind: 'role', role: 'admin' } }] } });
-      await W.admin.json('/api/contracts/DV-AP1', { method: 'PUT', body: { baseVersion: 0, contract: {
-        id: 'DV-AP1', name: 'Managed IT Services', counterparty: 'Equity Bank', folder: 'sales', status: 'Under Review', value: 145000000, expiry: '2028-01-31',
-        valueType: 'standard', template: 'RM', fields: {}, metadata: { value: 145000000, currency: 'KES' }, comments: [], audit: [], signatures: [], format: 'text',
-        redlineText: 'MANAGED IT SERVICES\n\n1. Liability\nNothing in this Agreement limits the Supplier\'s liability arising from the Services.\n\n2. Term\nThis Agreement ends on 31 January 2028.' } } });
-      await page.goto(h.base + '/', { waitUntil: 'networkidle' });
-      await until(page, () => window.state && Array.isArray(state.contracts) && state.contracts.some(c => c.id === 'DV-AP1'), null, 15000);
-      await page.evaluate(() => { apSetTab('approvals'); setView('approvals'); });
-      const listed = await until(page, () => !!document.querySelector('[data-ap-row="DV-AP1"]'), null, 10000);
-      if (listed) await page.click('[data-ap-row="DV-AP1"]');
-      const card = await until(page, () => !!document.querySelector('#ins-panel [data-ap-what-for="DV-AP1"]'), null, 10000);
-      const t = await page.evaluate(() => (document.querySelector('#ins-panel [data-ap-what-for]') || {}).innerText || '');
-      const above = await page.evaluate(() => { const a = document.querySelector('#ins-panel .ap-what'), b = [...document.querySelectorAll('#ins-panel *')].find(x => /^Why it waits$/.test((x.textContent || '').trim()));
-        return !!(a && b && (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)); });
-      check('8a the panel says What you are approving above Why it waits: money, unchecked standards said, plain words offered', listed && card && above
-        && /What you are approving/.test(t) && /KES/.test(t) && /2028-01-31/.test(t) && /not been checked/.test(t) && /Put it in plain words/.test(t), t.replace(/\s+/g, ' ').slice(0, 400));
-      await page.screenshot({ path: path.join(OUT, '8-approvals.png') });
-      const c0 = h.ai.calls.length;
-      await page.click('#ins-panel [data-ap-what-brief]');
-      /* RE-POINTED (the owner picked "Jambo's card", 26 Oct 2026): his words
-         come back in HIS card — the one soft grey card on the panel, named for
-         him — not as a paragraph among the facts, where it was missed. */
-      const said = await until(page, () => !!document.querySelector('#ins-panel [data-ap-what-say]:not(.is-ask) .jb-say-b'), null, 10000);
-      const say = await page.evaluate(() => { const el = document.querySelector('#ins-panel [data-ap-what-say]');
-        if (!el) return null; const cs = getComputedStyle(el);
-        return { cls: el.className, head: (el.querySelector('.jb-say-h') || {}).innerText || '', fill: cs.backgroundColor, r: cs.borderRadius, pad: cs.padding }; });
-      check('8b "Put it in plain words" spends one call and the brief is said there', said && h.ai.calls.length - c0 === 1, String(h.ai.calls.length - c0));
-      /* RE-POINTED 29 Oct 2026 (ONE CORNER): his card is 10px round, like every card */
-      check('8b′ it comes back in Jambo\'s own card: his name on it, the soft grey fill, the card corner, 16px inside',
-        !!say && /jb-say/.test(say.cls) && /Jambo/.test(say.head) && /In plain words/.test(say.head)
-        && say.fill !== 'rgba(0, 0, 0, 0)' && parseFloat(say.r) >= 10 && parseFloat(say.pad) >= 16, JSON.stringify(say));
-      check('8c Approve and Refuse are where they were', await page.evaluate(() => !!document.querySelector('#ins-panel [data-ins-act="approve"]') && !!document.querySelector('#ins-panel [data-ins-act="refuse"]')));
-    }
+    /* RETIRED 16 Nov 2026 (#762): stage 8 (8a, 8b, 8b′, 8c) — the old Approvals inspector panel's "What you are approving"
+       with its "Put it in plain words" press (#ins-panel [data-ap-what-for]); the new look's chosen approval's panel is the
+       five parts (apnLeadFiveHtml: no button, Approve/Decline on the row), pinned by approve-from-the-list-verify and
+       approve-on-row-verify */
 
-    if (stage(9)){
-      await fresh(page);
-      await page.evaluate(() => cuSelectParty('siginon group'));
-      const sec = await until(page, () => /Before the call/.test((document.querySelector('#ins-panel') || {}).innerText || '') && !!document.querySelector('#ins-panel [data-cu-brief]'), null, 10000);
-      const t = await page.evaluate(() => ((document.querySelector('#ins-panel [data-cu-brief-for]') || {}).innerText || ''));
-      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ check('9a the party\'s panel says Before the call and offers the brief, no cost', sec && /How they negotiate|No settled rounds/.test(t) && /Write the two-minute brief/.test(t) && !/\bJambo calls?\b|\b\d+ calls?\b|\bone call\b|\bfree\b|costs? nothing|\bcosts about\b/i.test(t), t.replace(/\s+/g, ' ').slice(0, 300));
-      await page.screenshot({ path: path.join(OUT, '9-party.png') });
-      const c0 = h.ai.calls.length;
-      await page.click('#ins-panel [data-cu-brief]');
-      const said = await until(page, () => !!document.querySelector('#ins-panel .cu-br-text'), null, 10000);
-      const t2 = await page.evaluate(() => ((document.querySelector('#ins-panel [data-cu-brief-for]') || {}).innerText || ''));
-      check('9b pressed: one call, the brief said, the unfound figure named', said && h.ai.calls.length - c0 === 1 && /2 agreements/.test(t2) && /check them: 999/.test(t2), t2.replace(/\s+/g, ' ').slice(0, 300));
-      const psay = await page.evaluate(() => { const el = document.querySelector('#ins-panel [data-cu-br-say]');
-        if (!el) return null; const cs = getComputedStyle(el);
-        return { cls: el.className, head: (el.querySelector('.jb-say-h') || {}).innerText || '', fill: cs.backgroundColor, r: cs.borderRadius }; });
-      check('9b\u2032 the two minutes wear the same card as the approver\'s brief (one builder, both panels)',
-        !!psay && /jb-say/.test(psay.cls) && /The two minutes/.test(psay.head) && psay.fill !== 'rgba(0, 0, 0, 0)' && parseFloat(psay.r) >= 10, JSON.stringify(psay));
-    }
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling 4): stage 9 (9a, 9b, 9b′) — the party's panel "Before the call" with its
+       two-minute brief ([data-cu-brief]); the new look's Parties panel has no Before the call brief, and the owner ruled
+       it stays gone */
     /* ============ 11. STOP WHILE HE READS (the owner's note 1, 26 Oct 2026) ============ */
     if (stage(11)){
       await fresh(page);

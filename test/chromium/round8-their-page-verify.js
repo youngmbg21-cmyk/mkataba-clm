@@ -1,6 +1,6 @@
 /* THE NEW LOOK, ROUND 8 SECOND HALF (2 Nov 2026; the review room's drawing of the other side's negotiation page,
    behind the company's own setting "the new look for people outside", off by default).
-     1 · Off: their page is today's — the change column beside the paper, no black bar
+     1 · (RETIRED 16 Nov 2026, #762: there is no off)
      2 · On, as drawn: the black bar (their party · your view of … with us), the tabs underlined with "Redlines · 2
          answers for you", Download Word and More; "Where we are" on the right (what waits, the six-stop road with
          your move, Still open); the paper with a numbered dot after each of our asks and a note beside it with
@@ -52,14 +52,7 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     return p;
   };
 
-  /* 1 · off */
-  try {
-    const p = await theirs();
-    const S = await p.evaluate(() => ({ bar: !!document.querySelector('.pol-bar'), side: !!document.querySelector('.pol-side'),
-      col: !!document.querySelector('#rl-side') && getComputedStyle(document.querySelector('#rl-side')).display !== 'none' }));
-    check('1 off: their page as today, the change column beside the paper, no black bar', !!tok && !S.bar && !S.side && S.col, S);
-    await p.context().close();
-  } catch (e) { check('1 off', false, String(e).slice(0, 200)); }
+  /* RETIRED 16 Nov 2026 (#762): 1 "off: their page as today" — there is no off; the outside look is always on */
 
   await us.evaluate(async () => { state.settings = state.settings || {}; state.settings.outsideLook = { on: true }; await saveSettings(); });
 
@@ -89,11 +82,15 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
       send: (document.getElementById('pol-send') || {}).textContent || '', sendOff: (document.getElementById('pol-send') || {}).disabled,
       later: !!document.getElementById('pol-later') })) : null;
     check('2a the black bar, the tabs with the count, Download Word and More', !!S && /Parcelway Logistics Ltd · your view of .+ with Highland Corporate Ltd/.test(S.bar) && /Erik Lindqvist/.test(S.bar)
-      && /Redlines · 2 answers for you/.test(S.tab) && S.top.join('|') === 'Download Word|More', S && { bar: S.bar, tab: S.tab, top: S.top });
+      /* RE-POINTED 22 Nov 2026 (the P-44 review, the owner's picked drawing "the other side's page, the Legora + Stripe
+         way": the tab reads "Redlines 2", its count a chip) */
+      && /^\s*Redlines\s*2\s*$/.test(S.tab) && S.top.join('|') === 'Download Word|More', S && { bar: S.bar, tab: S.tab, top: S.top });
     check('2b Where we are, the panel\'s second face: what waits, the four-stop road with your move, Still open; our cards stay under it', !!S && /2 answers wait for your decision/.test(S.say)
       && S.road.length === 4 && S.road[1] === 'is-now' && /your move/i.test(S.move) && S.open === 2 && S.col !== 'none', S && { say: S.say, road: S.road, open: S.open, col: S.col });
 
-    check('2c a numbered dot after each of our asks and a note beside it: Accept · Counter · Reject', !!S && S.dots.join(',') === '1,2' && /answers 45 days/.test(S.note) && /45 is where our last agreement landed/.test(S.note)
+    /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn: the note says "Highland asks 45 days" with who and when under it; the
+       reason stands on the card) — the note keeps Accept · Counter · Reject (kept, though not drawn) */
+    check('2c a numbered dot after each of our asks and a note beside it: Accept · Counter · Reject', !!S && S.dots.join(',') === '1,2' && /Highland asks 45 days/.test(S.note) && /Amina Otieno/.test(S.note)
       && S.acts.join('|') === 'accept|counter|reject', S && { dots: S.dots, note: S.note, acts: S.acts });
     check('2d the foot bar: Save for later, Send back · 0 of 2, grey', !!S && S.later && /Send back · 0 of 2/.test(S.send) && S.sendOff === true, S && { send: S.send, off: S.sendOff });
   } catch (e) { check('2 on', false, String(e).slice(0, 200)); }
@@ -102,7 +99,8 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   try {
     await p.click('.pol-note [data-pol-act="accept"]');
     const ok = await until(p, () => /You accepted it/.test((document.querySelector('.pol-note') || {}).innerText || '')
-      && /1 answer for you/.test(document.getElementById('pt-tab-redlines').textContent)
+      /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn): the tab's count is its chip, "Redlines 1" */
+      && /^\s*Redlines\s*1\s*$/.test(document.getElementById('pt-tab-redlines').textContent)
       && /Send back · 1 of 2/.test(document.getElementById('pol-send').textContent) && !document.getElementById('pol-send').disabled, null, 10000);
     const card = await p.evaluate(() => !!document.querySelector('#pt-nego [data-nego-undo]'));
     check('3 a note\'s Accept presses the card\'s own: the note says so, the tab counts one, Send back 1 of 2 is live', ok && card, { ok, card });
@@ -110,11 +108,13 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
 
   /* 4 · More */
   try {
+    /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn: the bell stands on the black bar beside their name, not in More) */
+    const bellOnBar = await p.evaluate(() => !!document.querySelector('.pol-bar #pt-bell') && !document.querySelector('#pol-pop #pt-bell'));
     await p.click('#pol-more');
-    const open = await until(p, () => { const pop = document.getElementById('pol-pop'); return !!pop && !pop.hidden && !!pop.querySelector('#pt-bell') && !!pop.querySelector('#pt-notes-door') && !!pop.querySelector('#pt-nego-decline'); }, null, 5000);
+    const open = bellOnBar && await until(p, () => { const pop = document.getElementById('pol-pop'); return !!pop && !pop.hidden && !!pop.querySelector('#pt-notes-door') && !!pop.querySelector('#pt-nego-decline'); }, null, 5000);
     await p.keyboard.press('Escape');
     const shut = await until(p, () => document.getElementById('pol-pop').hidden, null, 5000);
-    check('4 More holds today\'s verbs (the bell, Notes, Decline); Esc shuts it', open && shut, { open, shut });
+    check('4 the bell on the bar; More holds today\'s verbs (Notes, Decline); Esc shuts it', open && shut, { bellOnBar, open, shut });
   } catch (e) { check('4 more', false, String(e).slice(0, 200)); }
 
   /* 5 · Send back opens the panel's Send back face (RE-POINTED 8 Nov 2026: the check before send stands in the panel;

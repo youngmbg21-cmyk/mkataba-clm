@@ -59,6 +59,8 @@ function stage(users, me, place) {
   sb.window = sb;
   vm.createContext(sb);
   vm.runInContext(read('js/views/listhead.js'), sb, { filename: 'listhead.js' });
+  /* the one initials helper (nameInitials, js/components.js; P-25 review, 22 Nov 2026) — this harness loads no components.js */
+  vm.runInContext(read('js/components.js').match(/function nameInitials\(name, fallback\)\{[\s\S]*?\n\}/)[0], sb, { filename: 'components.js#nameInitials' });
   vm.runInContext(read('js/views/directory.js'), sb, { filename: 'directory.js' });
   sb.dirPlacePut(place || { tab: 'all' });
   sb.renderDirectory();

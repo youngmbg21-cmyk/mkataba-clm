@@ -117,6 +117,8 @@ const DEAL = {
     ok('1a the switch is in Settings, on the platform tab, where the other walls live', sawPanel);
     if (sawPanel) {
       await page.check('#lc-rule-on');
+      /* RE-POINTED 22 Nov 2026 (P-43 review): the sheet holds the switch until its Save, which is what writes it */
+      await page.evaluate(async () => { const b = document.getElementById('st-dsave'); if (b && window.stHoldSave) await stHoldSave(b); });
       await page.evaluate(() => flushSaves && flushSaves());
       await page.waitForTimeout(400);
     }

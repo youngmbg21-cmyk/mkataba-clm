@@ -14,7 +14,7 @@
      3  Requests: your own request is under "What you have asked for" and not
         in the queue too; the queue leads with the one past its promise; the
         heading counts what nobody holds; a declined request says so.
-     4  Our standards: every book names a standard once.
+     4  Our standards: every standard is listed once (the Ladder, 17 Nov 2026).
 
    Against the parent (01bf6cc) this file reports every numbered check but
    1a, 3a (the stages) and 5 (the error sweep) red. */
@@ -140,8 +140,11 @@ const isoIn = off => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d
       await page.click('#obw-one-host [data-obt-chase="o-theirs"]');
       await page.waitForTimeout(500);
     }
-    /* The chase asks first, as it does everywhere: confirmDialog's own layer. */
-    const asked = await page.evaluate(() => !!document.getElementById('confirm-overlay'));
+    /* The chase asks first, as it does everywhere: confirmDialog's own layer — or, RE-POINTED 19 Nov 2026
+       (owner's pick, Chase now is the Send screen as a reminder; f1105), on a computer the reminder page
+       (#obr-pg), whose own Send the reminder is the ask. Nothing is stamped before that press. */
+    const asked = await page.evaluate(() => (!!document.getElementById('confirm-overlay') || !!document.querySelector('#obr-pg [data-obr-send]'))
+      && !((getContract('MK-A1').obligations || []).find(o => o.id === 'o-theirs') || {}).chaseFirmAt);
     check('2d and pressing it asks first — the one chase act, not a silent send', asked, String(asked));
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
@@ -171,23 +174,14 @@ const isoIn = off => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d
       ik.decl.includes(ik.declWord) && !(ik.doneWord && ik.decl.includes(ik.doneWord)), ik.decl.slice(0, 160));
 
     /* ================= 4 · OUR STANDARDS ================= */
+    /* RE-POINTED 17 Nov 2026 (the owner picked The Ladder): the books are no longer a tab; the page lists each standard
+       ONCE, grouped by how firm, however many books hold it */
     await page.evaluate(() => setView('playbook'));
-    await page.waitForTimeout(1200);
-    await page.evaluate(() => { const b = document.querySelector('[data-pb-tab="playbook"]'); if (b) b.click(); });
-    await page.waitForTimeout(600);
-    const pb = await page.evaluate(() => {
-      const pv = document.getElementById('playbook-view');
-      if (!pv) return { cards: 0, dup: null };
-      const cards = [...pv.children].filter(x => x.querySelector && x.querySelector('span'));
-      let dup = null;
-      cards.forEach(card => {
-        const names = [...card.querySelectorAll('div[style*="flex-wrap"] > span')].map(s => s.textContent.replace(/\s*(<=|>=|<|>|=).*$/, '').replace(/\s*⚑\s*$/, '').trim().toLowerCase());
-        const seen = new Set();
-        names.forEach(n => { if (seen.has(n) && !dup) dup = ((card.querySelector('span') || {}).textContent || '') + ': ' + n; seen.add(n); });
-      });
-      return { cards: cards.length, dup };
-    });
-    check('4 every book on the Negotiation playbook tab names a standard once', pb.cards > 0 && !pb.dup, pb.dup || `${pb.cards} books, no name twice`);
+    const pb = await (async () => { for (let k = 0; k < 40; k++){ const r = await page.evaluate(() => {
+      const it = [...document.querySelectorAll('.ld-list [data-ld-pick]')]; if (!it.length) return null;
+      const ids = it.map(b => b.getAttribute('data-ld-pick')); const dup = ids.find((x, i) => ids.indexOf(x) !== i) || null;
+      return { cards: it.length, dup }; }); if (r) return r; await page.waitForTimeout(150); } return { cards: 0, dup: null }; })();
+    check('4 every standard is listed once on Our standards', pb.cards > 0 && !pb.dup, pb.dup || `${pb.cards} standards, none twice`);
   } finally {
     check('5 no page error anywhere in the run', errors.length === 0, errors.join(' | ') || 'none');
     await browser.close();

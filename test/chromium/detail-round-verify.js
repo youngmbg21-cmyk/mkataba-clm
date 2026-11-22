@@ -111,7 +111,10 @@ const blocked = [];
             const head = await ev(() => { const e = document.querySelector('.cal-head'), cs = getComputedStyle(e), r = e.getBoundingClientRect(), pr = e.parentElement.getBoundingClientRect();
               return { rad: parseFloat(cs.borderTopLeftRadius), shadow: cs.boxShadow !== 'none', inset: Math.round(r.left - pr.left) }; });
             /* RE-POINTED 29 Oct 2026 (ONE CORNER): every card is 10px round now, "half as round" */
-            check(`${at} · 1b — the Calendar's head floats as a card`, head && head.rad >= 10 && head.shadow && head.inset >= 8, JSON.stringify(head));
+            /* RETIRED 16 Nov 2026 (#762): 1b "the Calendar's head floats as a card" (lift, inset 8) — the Legora look's floating
+               halves; the new look's head and page are ONE white sheet, no gap, no lift (ONE SHEET; CLAUDE.md: cards with gaps
+               are the old look) */
+            void head;
           }
         }
         if (on(3)){ await ev(() => { const t = document.querySelector('.cal-cop [data-cal-talk]'); if (t) t.click(); }); await until(() => document.querySelector('.cal-cop .jb-hello'), undefined, 4000);
@@ -124,18 +127,19 @@ const blocked = [];
       for (const [v, name] of [['mynotes', 'My notes'], ['obligations', 'Obligations'], ['intake', 'Requests'], ['migration', 'Import'], ['approvals', 'Approvals'], ['customers', 'Customers']]) {
         if (!(on(3) || on(8) || on(10))) break;
         await clean(); await ev(v2 => setView(v2), v);
-        await until(() => document.querySelector('.ins-panel.is-jambo, #ig-dock') && document.querySelector('.ph-card'));
+        /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): a list page's head and its list are ONE white
+           sheet (MAP "ONE SHEET AND THREE BUTTONS"): the list pages' .apn-card, Import's own head .mig-own-head — the
+           old floating .ph-card is not drawn; the sheet's top is what must be level with Jambo's panel */
+        await until(() => document.querySelector('.ins-panel.is-jambo, #ig-dock') && document.querySelector('#content .apn-card, #content .mig-own-head, .ph-card'));
         await settle();
         if (on(3) && !['approvals', 'customers'].includes(v)) await greetCheck(name);
-        if (on(8)) await levelCheck(name, '.ph-card');
+        if (on(8)) await levelCheck(name, '#content .apn-card, #content .mig-own-head, .ph-card');
         if (on(8) && ['approvals', 'customers', 'obligations'].includes(v)) await bottomCheck(name);
-        if (on(10) && v === 'mynotes') {
-          const gap = await ev(() => { const e = document.querySelector('.mn-card2 .hati-empty'); const c = e && e.closest('section'); const r = document.createRange(); if (e) r.selectNodeContents(e);
-            return e && c ? Math.round(r.getBoundingClientRect().top - c.getBoundingClientRect().top) : null; });
-          check(`${at} · 10a — "No notes yet." clear of its card's top`, gap != null && gap >= 12, `${gap}px`);
-        }
+        /* RETIRED 17 Nov 2026 (#762): 10a "No notes yet." clear of its card's top (.mn-card2) — the old My notes ledger's
+           own card; the new look's My notes is the one sheet (mnnRender) whose empty sentence is a row of its table */
         if (on(10) && v === 'migration') {
-          const w = await ev(() => { const hd = document.querySelector('#page-head .ph-card, .ph-card'), ft = document.querySelector('#content .ph-foot'); if (!hd || !ft) return null;
+          /* RE-POINTED 17 Nov 2026 (#762): Import's head is its own white head (.mig-own-head), the strip under it the drop card */
+          const w = await ev(() => { const hd = document.querySelector('#content .mig-own-head, #page-head .ph-card, .ph-card'), ft = document.querySelector('#content .mig-drop-card, #content .mign-start') || document.querySelector('#content .ph-foot'); /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way): before any file the drop area is one calm section (.mign-start) */ if (!hd || !ft) return null;
             const a = hd.getBoundingClientRect(), b = ft.getBoundingClientRect(); return { l: Math.round(a.left - b.left), r: Math.round(a.right - b.right) }; });
           check(`${at} · 10b — Import's head card is as wide as the strip under it`, w && Math.abs(w.l) <= 1 && Math.abs(w.r) <= 1, JSON.stringify(w));
           await shot('import');
@@ -145,8 +149,9 @@ const blocked = [];
       /* ---- 8 · CONTRACTS (a place on Home) ---- */
       if (on(8)) {
         await clean(); await ev(() => setView('register'));
-        await until(() => document.querySelector('#ct-place .ph-card') && document.querySelector('#ig-dock'));
-        await settle(); await levelCheck('Contracts', '#ct-place .ph-card'); await bottomCheck('Contracts');
+        /* RE-POINTED 17 Nov 2026 (#762): the Contracts place is one white sheet, .ctf-page (head and list together) */
+        await until(() => document.querySelector('#ct-place .ctf-page, #ct-place .ph-card') && document.querySelector('#ig-dock'));
+        await settle(); await levelCheck('Contracts', '#ct-place .ctf-page, #ct-place .ph-card'); await bottomCheck('Contracts');
       }
 
       /* ---- 4 · OUR PAPER ---- */
@@ -154,7 +159,9 @@ const blocked = [];
         await clean(); await ev(() => setView('templates'));
         await until(() => document.querySelector('#ins-panel .jl-head .jl-tab, #ins-panel .jl-head .pd-tab'));
         await settle(); await shot('our-paper');
-        await tabsWhole('Our paper', '#ins-panel .jl-head');
+        /* RE-POINTED 22 Nov 2026 (P-34, Our paper as drawn, PR 881): its side panel has no head row — the page's own card
+           (slot "tpln") is the panel — so there are no head words to cut; held to the drawing instead: no head row drawn */
+        await noHeadRow('Our paper', '#ins-panel .jl-head', '#ins-panel .jov5[data-jov-slot="tpln"]');
       }
 
       /* ---- 4 + 5 + 9 · THE NEW AGREEMENT SHEET ---- */
@@ -168,15 +175,22 @@ const blocked = [];
         await settle(); await shot('new-agreement');
         if (!up) check(`${at} · 4/5 — the New agreement sheet opened`, false);
         else {
-          if (on(4)) await tabsWhole('New agreement', '#ig-dock .igd-head');
+          /* RE-POINTED 22 Nov 2026 (P-36, New agreement as drawn, PR 881): the sheet's panel has no head row — its five
+             parts (slot "na6") are the panel — so it is held to the drawing: no head row drawn */
+          if (on(4)) await noHeadRow('New agreement', '#ig-dock > .igd-head', '#ig-dock .jov5[data-jov-slot="na6"]');
           if (on(8)) await levelCheck('New agreement', '#modal-root [data-dlg-page] .dlg-pg-head');
           if (on(5)) {
             const said = await ev(() => { const f = document.querySelector('#ig-dock #igd-feed'); return f ? (f.innerText || '').replace(/\s+/g, ' ').trim() : ''; });
             check(`${at} · 5 — beside the New agreement sheet Jambo's panel says something`, !!said, said ? `"${said.slice(0, 60)}"` : 'the panel is empty');
           }
           if (on(9)) {
-            const hs = await ev(() => [...document.querySelectorAll('#na-root .na-ptab')].map(b => Math.round(b.getBoundingClientRect().height)));
-            check(`${at} · 9b — Our paper / Their paper are 30px pills`, hs && hs.length && hs.every(x => x === 30), JSON.stringify(hs));
+            /* RE-POINTED 22 Nov 2026 (P-36, New agreement as drawn, PR 881): Our paper · Their paper · From scratch are the
+               drawing's underlined tabs (.ntabs: the words, 10px under them, a 2px line) — no longer a fixed 30px; the
+               relation is pinned: every tab the same height, each its words + 10px + the 2px line */
+            const hs = await ev(() => [...document.querySelectorAll('#na-root .na-ptab')].filter(b => b.getClientRects().length).map(b => { const cs = getComputedStyle(b);
+              return { h: Math.round(b.getBoundingClientRect().height), pb: parseFloat(cs.paddingBottom), line: parseFloat(cs.borderBottomWidth), words: Math.round(b.getBoundingClientRect().height - parseFloat(cs.paddingBottom) - parseFloat(cs.borderBottomWidth) - parseFloat(cs.paddingTop)) }; }));
+            check(`${at} · 9b — Our paper / Their paper / From scratch are the drawn underlined tabs: words, 10px, a 2px line`,
+              hs && hs.length >= 2 && hs.every(x => x.h === hs[0].h && x.pb === 10 && x.line === 2 && x.words >= 14 && x.words <= 24), JSON.stringify(hs));
           }
         }
       }
@@ -189,7 +203,11 @@ const blocked = [];
         const up = await until(() => document.querySelector('#na-root') && document.querySelector('#ig-dock #igd-feed'));
         await settle(); await shot('new-agreement-over-calendar');
         const said = await ev(() => ({ cal: !!document.querySelector('#ig-dock .cal-cop'), words: ((document.querySelector('#ig-dock #igd-feed') || {}).innerText || '').replace(/\s+/g, ' ').trim() }));
-        check(`${at} · 5b — over the Calendar, the panel beside the New agreement sheet says the sheet's line`, up && !said.cal && /New agreement/.test(said.words), JSON.stringify(said).slice(0, 140));
+        /* RE-POINTED 21 Nov 2026 (P-36, New agreement the Legora + Stripe way): the sheet's panel speaks in its own five
+           parts — "N of 2 ready", then "Say what you need in one sentence. I pick the paper that fits." — no longer naming
+           the sheet */
+        /* RE-POINTED 21 Nov 2026 (P-36, as drawn): "Jambo picks the paper that fits." */
+        check(`${at} · 5b — over the Calendar, the panel beside the New agreement sheet says the sheet's line`, up && !said.cal && /New agreement|Jambo picks the paper that fits/.test(said.words), JSON.stringify(said).slice(0, 140));
         /* RE-POINTED 28 Oct 2026 ("Door above the box"): no Jambo tab — the panel is in his own conversation's key */
         const tabs = await ev(() => ({ key: typeof pdTalkKey === 'function' ? pdTalkKey() : null }));
         check(`${at} · 5b — …in his own conversation (not the Calendar's)`, /^dock:/.test(tabs.key || ''), JSON.stringify(tabs));
@@ -201,16 +219,21 @@ const blocked = [];
       /* ---- 9 · NEEDS YOU'S CHIPS, SETTINGS' ON/OFF ---- */
       if (on(9)) {
         await clean(); await ev(() => hbOpenAgent());
-        await until(() => document.querySelector('.nd-chip'));
+        await until(() => document.querySelector('.nd-chip'), undefined, 2000);
         await settle();
         const hs = await ev(() => [...document.querySelectorAll('.nd-chip')].filter(b => b.getBoundingClientRect().width).map(b => Math.round(b.getBoundingClientRect().height)));
-        check(`${at} · 9a — Needs you's chips are 28px pills`, hs && hs.length && hs.every(x => x === 28), JSON.stringify(hs));
+        /* RETIRED 16 Nov 2026 (#762): 9a "Needs you's chips are 28px pills" — the new look's Needs you draws no kind chips
+           (.nd-chips display:none, as drawn; see found-promises-verify) */
+        void hs;
         await clean(); await ev(() => openSettingsAt('you'));
-        await until(() => document.querySelector('.st-cr .chip.st-chip-off, .st-cr .chip.st-chip-on'));
+        await until(() => document.querySelector('.st-cr .chip.st-chip-off, .st-cr .chip.st-chip-on'), undefined, 2000);
         await settle();
-        if (on(8)) await levelCheck('Settings', '.st-cr .st-headcard');
+        /* RE-POINTED 17 Nov 2026 (#762): Settings is the one list on one white sheet (.stn-card, stnPaint) */
+        if (on(8)) await levelCheck('Settings', '#content .stn-card, .st-cr .st-headcard');
         const cs = await ev(() => [...document.querySelectorAll('.st-cr .chip.st-chip-off, .st-cr .chip.st-chip-on')].filter(b => b.getBoundingClientRect().width).map(b => Math.round(b.getBoundingClientRect().height)));
-        check(`${at} · 9c — Settings' On/Off chip is a 22px pill`, cs && cs.length && cs.every(x => x === 22), JSON.stringify(cs));
+        /* RETIRED 16 Nov 2026 (#762): 9c "Settings' On/Off chip is a 22px pill" — the old You cards' chip; the new look's
+           Settings is one list by area with a round mark per row (stnRow, f1045), no On/Off chip */
+        void cs;
       }
 
       /* ---- 6 + 7 · THE DOSSIER AND KEY TERMS ---- */
@@ -221,17 +244,21 @@ const blocked = [];
         if (on(6)) {
           /* every contract in the sample book: the first act wears its WHOLE name, so the longest names show */
           const ids = await ev(() => state.contracts.filter(c => !c._fake).slice(0, 40).map(c => c.id));
-          const seen = [], bad = [];
+          const seen = [], bad = []; let measured = 0;
           for (const cid of ids || []) {
             await ev(x => pdOpenOnHome(x, 'copilot'), cid);
-            if (!(await until(x => { const p = window.pdContract && pdContract(); return p && p.id === x && document.querySelector('#ig-dock .ds-acts-b.is-mq'); }, cid, 3000))) continue;
-            const row = await ev(() => [...document.querySelectorAll('#ig-dock .ds-acts-b.is-mq > *')].filter(b => b.getBoundingClientRect().width).map(b => {
+            /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Dossier's top is ONE card (pd2CardHtml) whose
+               act is its one black button (.pd2-card-go) — measured the same way, over every contract in the book */
+            if (!(await until(x => { const p = window.pdContract && pdContract(); return p && p.id === x && document.querySelector('#ig-dock [data-pd2-card] .pd2-card-go'); }, cid, 3000))) continue;
+            const row = await ev(() => [...document.querySelectorAll('#ig-dock [data-pd2-card] .pd2-card-go')].filter(b => b.getBoundingClientRect().width).map(b => {
               const r = document.createRange(); r.selectNodeContents(b); const t = r.getBoundingClientRect(), cs = getComputedStyle(b), bx = b.getBoundingClientRect();
               const room = bx.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth);
               return { t: b.textContent.trim(), cut: t.width > room + 0.5, out: Math.round(bx.right - b.closest('#ig-dock').getBoundingClientRect().right) }; }));
             for (const x of row || []) { if (!seen.includes(x.t)) seen.push(x.t); if (x.cut || x.out > 0) bad.push(x.t); }
+            if ((row || []).length) measured++;
           }
-          check(`${at} · 6 — the Dossier's act buttons keep their words`, seen.length > 2 && !bad.length, bad.length ? [...new Set(bad)].map(t => `"${t}" cut`).join(', ') : `${seen.length} buttons whole`);
+          /* the new look's card carries ONE button, so "it really drew" is asked as several contracts measured, not several words */
+          check(`${at} · 6 — the Dossier's act buttons keep their words`, measured > 2 && !bad.length, bad.length ? [...new Set(bad)].map(t => `"${t}" cut`).join(', ') : `${measured} contracts, ${seen.length} words, all whole`);
           await ev(id => pdOpenOnHome(id, 'copilot'), reviewId);
           await until(x => { const p = window.pdContract && pdContract(); return p && p.id === x; }, reviewId, 4000);
         }
@@ -259,7 +286,9 @@ const blocked = [];
           else {
             const hd = await ev(() => { const e = document.querySelector('#modal-root .modal-in[data-sh-page] .sh-hd'), cs = getComputedStyle(e), r = e.getBoundingClientRect(), pr = e.closest('.modal-in').getBoundingClientRect();
               return { rad: parseFloat(cs.borderTopLeftRadius), shadow: cs.boxShadow !== 'none', inset: Math.round(r.left - pr.left) }; });
-            check(`${at} · 2a — the Send screen's head floats as a card`, hd && hd.rad >= 10 && hd.shadow && hd.inset >= 8, JSON.stringify(hd));
+            /* RETIRED 16 Nov 2026 (#762): 2a "the Send screen's head floats as a card" — the old look's floating head; the new
+               look draws heads flat on the one white sheet */
+            void hd;
             if (on(8)) await levelCheck('Send screen', '#modal-root .modal-in[data-sh-page] .sh-hd');
             const ln = await ev(() => { const p = document.querySelector('#sh-noemail'); if (!p || !p.getBoundingClientRect().width) return null;
               const box = p.previousElementSibling || p.parentElement.previousElementSibling; const card = [...document.querySelectorAll('#pd-sendface .sh-lt-card')].find(e => e.getClientRects().length); /* RE-POINTED, the SAP Way (28 Oct 2026): the first card SHOWN — the verdict card leads and steps out where a blocking check says no */
@@ -311,7 +340,7 @@ const blocked = [];
       }
       async function bottomCheck(name) {
         const m = await ev(() => { const pn = [...document.querySelectorAll('.ins-panel.is-jambo, #ig-dock')].find(x => x.getBoundingClientRect().width); if (!pn) return null;
-          const cards = [...document.querySelectorAll('#content .ap-card, #content .ins-card, #ct-place .reg-body > *')].filter(x => x.getBoundingClientRect().height > 100 && !x.closest('#ins-panel'));
+          const cards = [...document.querySelectorAll('#content .ap-card, #content .ins-card, #ct-place .reg-body > *, #ct-place .ctf-page')].filter(x => x.getBoundingClientRect().height > 100 && !x.closest('#ins-panel'));
           const low = cards.map(x => x.closest('.ap-body, .ins-body, .reg-body') || x).map(x => Math.round(x.getBoundingClientRect().bottom));
           return low.length ? { list: Math.max(...low), panel: Math.round(pn.getBoundingClientRect().bottom) } : null; });
         check(`${at} · 8 — ${name}: the list ends level with Jambo's panel`, m && Math.abs(m.list - m.panel) <= 1, JSON.stringify(m));
@@ -320,6 +349,14 @@ const blocked = [];
         const m = await ev(s => { const hd = [...document.querySelectorAll(s)].find(x => x.getBoundingClientRect().width), pn = [...document.querySelectorAll('.ins-panel.is-jambo, #ig-dock, .cal-cop, .st-cr .st-side')].find(x => x.getBoundingClientRect().width);
           return hd && pn ? { head: Math.round(hd.getBoundingClientRect().top), panel: Math.round(pn.getBoundingClientRect().top) } : null; }, sel);
         check(`${at} · 8 — ${name}: the head starts level with Jambo's panel`, m && Math.abs(m.head - m.panel) <= 1, JSON.stringify(m));
+      }
+      /* RE-POINTED 22 Nov 2026 (owner: "ensure all the jambo panels do have the minimize button"): a panel drawn with no
+         head row keeps the row for its minimise arrow ALONE — no tab, no head words — and its own panel stands under it */
+      async function noHeadRow(name, head, own) {
+        const m = await ev(([hs, os]) => { const h = document.querySelector(hs), o = document.querySelector(os);
+          const shown = h ? [...h.children].filter(x => x.getBoundingClientRect().width > 0) : [];
+          return { arrow: shown.some(x => x.matches('#igd-collapse, .jl-fold')), words: shown.filter(x => !x.matches('#igd-collapse, .jl-fold, .flex-1, .jl-sp')).map(x => x.textContent.trim().slice(0, 20)), own: !!o && o.getClientRects().length > 0 }; }, [head, own]);
+        check(`${at} · 4 — ${name}: the head row holds only the minimise arrow — no tab, no head words — the page's own panel under it`, !!m && m.arrow && !m.words.length && m.own, JSON.stringify(m));
       }
       async function tabsWhole(name, head) {
         const t = await ev(hs => { const h = document.querySelector(hs); if (!h) return null;

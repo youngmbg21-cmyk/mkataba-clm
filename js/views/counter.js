@@ -118,7 +118,7 @@ function deskKeyNow(){
 }
 /* A page's name, read when it is drawn, so it follows the reader's language. */
 const DK_VIEW_WORD = { redline: 'nav_negotiations', customers: 'nav_customers', approvals: 'nav_approvals', obligations: 'nav_obligations',
-  mynotes: 'nav_mynotes', reads: 'nav_reads', pulse: 'nav_pulse', intel: 'nav_insights', jambo: 'nav_jambo', templates: 'nav_tpl_std', playbook: 'nav_tpl_std', migration: 'nav_import',
+  mynotes: 'nav_mynotes', reads: 'nav_reads', pulse: 'nav_pulse', intel: 'nav_insights', jambo: 'nav_jambo', templates: 'nav_tpl_std', playbook: 'ld_page', migration: 'nav_import',
   intake: 'nav_intake', directory: 'nav_directory', team: 'nav_settings_rules', brain: 'nav_brain', register: 'nav_contracts', handbook: 'nav_handbook' };
 function deskTabLabel(k){
   k = String(k || '');
@@ -209,6 +209,19 @@ function deskGoBack(){
      beside it — the sentence that drafted it stands in Jambo's conversation
      there (19 Oct 2026, one-sheet-as-drawn 7a) */
   if (deskSheetUp() && typeof window.naSheetBack === 'function'){ window.naSheetBack(); return true; }
+  /* THE TEMPLATE BUILDER'S WAY OUT IS ‹ (#762: its own back button is the old look's): it leaves through the builder's
+     own leave (tbLeave — asks first if anything is unsaved) and lands on the template's page */
+  if (deskBuilderUp()){ window.tbLeave(); return true; }
+  /* A PAGE IN THE MIDDLE OPENED FROM ANOTHER PAGE (f1099, owner 19 Nov 2026): ‹ goes back to that page in ONE press —
+     drawn first, the page in the middle taken away after it, so the paper is never shown on the way */
+  const from = typeof window.pdMidFrom === 'function' ? window.pdMidFrom() : '';
+  if (from){
+    const i = _dkTrail.lastIndexOf(from); if (i >= 0) _dkTrail = _dkTrail.slice(0, i + 1);
+    _dkMenuOpen = false;
+    if (from === 'home') deskGoCounter(); else deskTabOpen(from);
+    if (typeof window.pdMidClose === 'function') window.pdMidClose();
+    deskBarPaint(); return true;
+  }
   /* a page standing in the middle beside the Dossier: ‹ brings the paper back (the middle, 21 Oct 2026) */
   if (typeof window.pdMidClose === 'function' && window.pdMidClose()) return true;
   if (deskStepBack(true)){ deskBarPaint(); return true; }
@@ -219,6 +232,8 @@ function deskGoBack(){
 }
 /* THE ONE SHEET AND THE TRAIL: the page settled on when the sheet opened is
    where its ‹ returns (a page the reader is already on is not opened twice) */
+function deskMidUp(){ return typeof window !== 'undefined' && typeof window.pdMidUp === 'function' && !!window.pdMidUp(); }
+function deskBuilderUp(){ return typeof document !== 'undefined' && !!document.getElementById('tb-page') && typeof window.tbLeave === 'function'; }
 function deskSheetUp(){ return typeof window !== 'undefined' && typeof window.naSheetUp === 'function' && !!window.naSheetUp(); }
 function deskSheetFrom(){
   return _dkTrail[_dkTrail.length - 1] || (dkHomeHere() ? 'home' : null);
@@ -320,12 +335,15 @@ function deskBarPaint(){
   const back = document.getElementById('dk-back'), w = document.getElementById('dk-pg-w'), btn = document.getElementById('dk-page');
   if (back){
     back.hidden = !on;
-    const can = deskSheetUp() || deskStepBack(false) || !!deskBackTarget();
-    back.disabled = !can;
+    const can = deskSheetUp() || deskMidUp() || deskStepBack(false) || !!deskBackTarget();
+    back.disabled = !(can || deskBuilderUp());
     /* ‹ SAYS WHERE IT GOES (the glitch audit, 24 Oct 2026: it said only "Back", and a press that
        stepped the panel looked like one that did nothing) */
     let where = '';
-    if (can && !deskSheetUp()){
+    /* from a page in the middle opened from another page, ‹ goes back there, by its name */
+    const midFrom = typeof window !== 'undefined' && typeof window.pdMidFrom === 'function' ? window.pdMidFrom() : '';
+    if (midFrom) where = deskTabLabel(midFrom);
+    else if (can && !deskSheetUp()){
       try {
         const w = typeof window !== 'undefined' ? window : {};
         const t = (deskStepBack(false) && typeof w.pdTrail === 'function') ? w.pdTrail() : null;
@@ -590,6 +608,10 @@ let _ndMemo = null;
 let _nd = { tab: 'all', kind: 'any', q: '', more: 0 };
 
 function ndPieces(){
+  /* WORK GOES ONLY TO WHO CAN DO IT (negoMayAnswer's rule): every piece Jambo prepares asks for an act, and a
+     company Viewer may do none — they hear what moved under the bell's News */
+  const me = (typeof currentUser === 'function') ? currentUser() : null;
+  if (me && (typeof window.mayActOn === 'function' ? !window.mayActOn(null, me) : me.role === 'viewer')) return [];
   let D = null; try { D = (typeof agentsData === 'function') ? agentsData() : null; } catch (_){ D = null; }
   if (!D || !D.agents) return [];
   const keys = Array.isArray(window.AG_KEYS) ? AG_KEYS : [];
@@ -608,18 +630,35 @@ function ndPieces(){
    or the piece Jambo prepared for it, ND_AL_PIECES), and the rest joins the
    one desk as a row of its own ('al'), so nothing the bell rang about is lost
    now that it counts what Home counts. */
-const ND_NEWS = ['review-out', 'ap-cleared', 'gift', 'settings-answer', 'finding-sent', 'finding-answer', 'stream-self'];
+const ND_NEWS = ['review-out', 'ap-cleared', 'dep-allowed', 'std-approved', 'std-refused', 'gift', 'settings-answer', 'finding-sent', 'finding-answer', 'stream-self', 'nego-news'];
 const ND_AL_ROWS = { 'review-mine': ['review'], suggest: ['suggest'], look: ['look'], details: ['details'], 'note-mine': ['note'], approval: ['approval', 'refused'], 'ap-refused': ['refused'], 'desk-quiet': ['quiet'], 'desk-join': ['join'], negotiation: ['quiet'], renewal: ['renewal'], signature: ['sign'] };
 const ND_AL_PIECES = { negotiation: ['answer'], 'desk-quiet': ['answer'], renewal: ['renewal', 'notice'], details: ['read'] };
 /* the admin's own list (stNeedsAll) already holds these: the setup or company row stands for them, last of
    Your move. The mail warning (the owner moved it off the page onto the bell) leads that row's line */
 const ND_AL_ADMIN = ['settings-ask', 'access-review', 'email-off'];
-const ND_AL_KIND = { negotiation: 'review', 'review-back': 'review', 'suggest-back': 'review', 'cp-ready': 'sign', 'cp-accepted': 'sign', handover: 'sign', signature: 'sign', link: 'sign', mailroom: 'details', renewal: 'renewal', obligation: 'duty', 'cert-lapsed': 'duty', approval: 'approval', 'ap-refused': 'approval', 'desk-quiet': 'review', 'review-mine': 'review', details: 'details' };
+const ND_AL_KIND = { negotiation: 'review', 'review-back': 'review', 'suggest-back': 'review', 'cp-ready': 'sign', 'cp-accepted': 'sign', handover: 'sign', signature: 'sign', link: 'sign', mailroom: 'details', renewal: 'renewal', obligation: 'duty', 'cert-lapsed': 'duty', approval: 'approval', 'ap-refused': 'approval', 'dep-refused': 'approval', 'desk-quiet': 'review', 'review-mine': 'review', details: 'details' };
 const ND_AL_BTN = { negotiation: 'review', 'review-back': 'review', 'suggest-back': 'review', 'desk-quiet': 'review', 'review-mine': 'review', 'cp-ready': 'sign', 'cp-accepted': 'sign', signature: 'sign', approval: 'decide', 'ap-refused': 'decide', renewal: 'decide', mailroom: 'look', details: 'fill', 'finding-ask': 'answer', 'settings-ask': 'answer', 'desk-join': 'answer' };
 function ndIsNews(a){ return !!a && (ND_NEWS.includes(a.kind) || (a.kind === 'watch' && !a.fired)); }
+/* WORK GOES ONLY TO WHO CAN DO IT (owner, 20 Nov 2026): for a company Viewer every alert that asks for an act is told
+   as NEWS — under the bell's News tab, never counted — but their own note falling due and a watch of theirs that
+   fired, which are theirs to act on */
+const ND_VIEWER_WORK = ['note-due', 'watch'];
+/* THE OWNER'S ALERTS (owner, 20 Nov 2026: "Owner and admins"): "they are ready to sign", a renewal to decide or an
+   ending, a certificate lapsed — work for the contract's owner and the admins (whom HaTi already mails), news for
+   every other member. A contract nobody owns is the admins'. */
+const ND_OWNER_WORK = ['cp-ready', 'cp-accepted', 'renewal', 'cert-lapsed'];
+function ndAlertIsMine(a, me){
+  if (!ND_OWNER_WORK.includes(a.kind) || !me) return true;
+  if (me.role === 'admin') return true;
+  const c = (a.id && typeof getContract === 'function') ? getContract(a.id) : null;
+  return !!(c && c.owner && typeof contractOwnedBy === 'function' && contractOwnedBy(c, me));
+}
 function ndAlerts(){
   let L = []; try { L = (typeof buildAlerts === 'function') ? (buildAlerts() || []) : []; } catch (_){ L = []; }
-  return { work: L.filter(a => a && !ndIsNews(a)), news: L.filter(ndIsNews) };
+  const me = (typeof currentUser === 'function') ? currentUser() : null;
+  const reads = !!me && (typeof window.mayActOn === 'function' ? !window.mayActOn(null, me) : me.role === 'viewer');
+  const work = a => a && !ndIsNews(a) && (!reads || ND_VIEWER_WORK.includes(a.kind)) && ndAlertIsMine(a, me);
+  return { work: L.filter(work), news: L.filter(a => a && !work(a)) };
 }
 const _ndCid = it => (it && (it.cid || (it.c && it.c.id))) || '';
 function ndAlCovered(a, rows, P, admin){
@@ -644,8 +683,36 @@ function ndAlCovered(a, rows, P, admin){
 const _ndHash = t => { let h = 0; const x = String(t || ''); for (let i = 0; i < x.length; i++) h = (h * 31 + x.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
 const ndAlKey = a => 'al:' + a.kind + ':' + (a.id || '') + ':' + _ndHash(a.text);
 const _ndAge = iso => { const t = Date.parse(String(iso || '')); return isFinite(t) ? Math.max(0, Math.floor((Date.now() - t) / 864e5)) : null; };
+/* EVERY ROW'S WAIT, ONE READING (owner, 21 Nov 2026: "count every row's wait … so the head and the rows always agree"):
+   what a row has no wait on record for is read the way its Waited cell says it — an approval since it was asked (the
+   ask record), else since the contract last moved (the Approvals page's idle); details owed since the contract was
+   raised (repRaisedAt). The row's cell, the bundle, Needs you's "the oldest has waited", the panel's sentence and the
+   brief all read this one age. */
+function ndWaitedDays(c, it){
+  if (!c || !it) return null;
+  const since = t => { const n = typeof t === 'number' ? t : Date.parse(String(t || '')); return isFinite(n) ? Math.max(0, Math.floor((Date.now() - n) / 864e5)) : null; };
+  if (it.kind === 'approval'){
+    let d = null;
+    try { const st = typeof approvalState === 'function' ? approvalState(c) : null, nx = st && st.next;
+      const a = nx && !nx.sa && typeof askOpenFor === 'function' ? askOpenFor(c, 'rule', nx.ruleId) : null; d = since(a && a.at); } catch (_){ d = null; }
+    /* A STEP WITH NO QUESTION ON RECORD YET (review of the merged pages, 22 Nov 2026: "134 days" on one load, "today"
+       on the next): never `c.lastAction` — a DISPLAY day any act rewrites, and one a sample carries from months ago — but
+       a stored time that is the same on every load, whether the heavy fields have come or not: the day the record was
+       raised (repRaisedAt: the light list's _raisedAt, else the trail's own first line). Once the server opens the
+       step's question (a save, or the reminders' sweep for a step that fell due before its rule was saved), its `at`
+       is the wait. */
+    if (d != null) return d;
+    let t = null; try { t = typeof window.repRaisedAt === 'function' ? repRaisedAt(c) : null; } catch (_){ t = null; }
+    return t == null ? null : since(t);
+  }
+  if (it.kind === 'details'){
+    let t = null; try { t = typeof window.repRaisedAt === 'function' ? repRaisedAt(c) : null; } catch (_){ t = null; }
+    return t == null ? null : since(t);
+  }
+  return null;
+}
 function ndAgeOf(y){
-  if (y.k === 'c') return y.x && y.x.age != null ? y.x.age : null;
+  if (y.k === 'c') return y.x && y.x.age != null ? y.x.age : (y.x && typeof ndWaitedDays === 'function' ? ndWaitedDays(y.x.c, y.x.it) : null);
   if (y.k === 'req') return _ndAge(y.r && y.r.createdAt);
   return null;
 }
@@ -688,14 +755,17 @@ function ndRead(){
   const seen = new Set();
   AL.work.forEach(a => { if (ndAlCovered(a, rows, P, !!(S || R0.length))) return;
     const key = ndAlKey(a); if (seen.has(key)) return; seen.add(key);
-    you.push({ g: 'you', key, kind: ND_AL_KIND[a.kind] || 'ask', al: a, n: 1, late: a.late ? 1 : 0, age: null }); });
+    const lateBy = a.kind === 'obligation' && Number(a.days) < 0 ? -Number(a.days) : null;
+    you.push({ g: 'you', key, kind: ND_AL_KIND[a.kind] || 'ask', al: a, n: 1, late: a.late ? 1 : 0, age: lateBy }); });
   const mailOff = AL.work.find(a => a.kind === 'email-off') || null;
   const R = mailOff ? R0.filter(x => !(x && x.key === 'panel:mail')) : R0;
   if (S) you.push({ g: 'you', key: 'setup', kind: 'ask', setup: S, n: 1, late: 0, age: null });
-  else if (R0.length) you.push({ g: 'you', key: 'company', kind: 'ask', company: R, mail: mailOff, n: 1, late: 0, age: null });
+  else if (R0.length){ const a = R.map(x => _ndAge(x && x.at)).filter(x => x != null);
+    you.push({ g: 'you', key: 'company', kind: 'ask', company: R, mail: mailOff, n: 1, late: 0, age: a.length ? Math.max(...a) : null }); }
   const tone = it => it.tone === 'ruby' ? 2 : it.tone === 'amber' ? 1 : 0;
   const jambo = P.map(({ it, agent, cov }, i) => {
     const a = [ndPieceAge(it)].concat(ages(cov)).filter(x => x != null);
+    if (!a.length && !ND_NOT_WAITED.includes(it.kind)){ const t = Date.parse(String(it.at || it.since || '')); if (isFinite(t)) a.push(Math.max(0, Math.floor((Date.now() - t) / 864e5))); }
     return { g: 'jambo', key: 'p:' + it.key, kind: 'jambo', it, agent, n: 1, late: (it.tone === 'ruby' || cov.some(y => y.urgent)) ? 1 : 0, age: a.length ? Math.max(...a) : null, i };
   }).sort((a, b) => (b.late - a.late) || (tone(b.it) - tone(a.it)) || (a.i - b.i));
   const all = jambo.concat(you);
@@ -753,6 +823,10 @@ function ndParts(r){
     P.when = (it.kind === 'chase' || it.kind === 'chase-firm') ? String(parts.urg || '').split(' · ')[0]
       : (it.kind === 'renewal' || it.kind === 'notice') && isFinite(d) ? (d <= 0 ? String(parts.urg || '').split(' · ')[0] : _cnTn('ins_need_in', d, { n: d }))
       : r.age != null ? days(r.age) : String(parts.urg || '').split(' · ')[0];
+    /* NO EMPTY WAITED CELL (P-39, as drawn): a renewal whose day is behind it says "date passed"; a piece read on
+       arrival says how long since it was read (its own `at`) */
+    if ((it.kind === 'renewal' || it.kind === 'notice') && isFinite(d) && d < 0) P.when = _cnT('nd_when_passed');
+    if (!P.when){ const t = Date.parse(String(it.at || it.since || '')); if (isFinite(t)) P.when = days(Math.max(0, Math.floor((Date.now() - t) / 864e5))); }
     P.read = _cnT('nd_read_' + r.agent);
     P.ref = _ndCall('agPieceRefHtml', it, '');
     P.line = _ndCall('agPieceLine', it, '');
@@ -783,14 +857,24 @@ function ndParts(r){
     if (a.hint) P.tip = String(a.hint);
     P.ref = (c && typeof refHtml === 'function') ? refHtml(c) : '';
     if (c){ P.name = _ndName(c); P.party = String(c.counterparty || '').trim(); P.note = String(a.sub || ''); }
+    /* a duty's own day (the bell's reading, openObligations' `days`): "3 days late", never an empty Waited cell */
+    if (a.kind === 'obligation' && a.days != null && isFinite(Number(a.days))){ const n = Number(a.days);
+      P.when = n < 0 ? _cnTn('hb_days_late', -n, { n: -n }) : n === 0 ? _cnT('ins_days_today') : _cnTn('ins_need_in', n, { n }); P.late = n < 0; }
     P.btn = ND_AL_BTN[a.kind] || 'open';
     P.attrs = `data-nd-al="${_cnE(r.key)}"`;
     return P;
   }
   if (r.setup){ P.title = _cnTn('hb_setup_left', r.setup, { n: r.setup }); P.attrs = 'data-cn-setup'; return P; }
   if (r.company){
+    /* THE COMPANY ROW KEEPS THE TABLE'S SHAPE (review of the merged pages, 22 Nov 2026): what waits, and under it the
+       first thing in one line (never a sum of money: a clash names "the company's approval rule", `plain`); the
+       Agreement column names where the work is, like every row's agreement; Waited says the oldest item's wait */
     P.title = _cnT('cn_company') + ' · ' + (r.company.length + (r.mail ? 1 : 0));
-    P.deal = [r.mail ? String(r.mail.text || '').trim() : ''].concat(r.company.slice(0, r.mail ? 2 : 3).map(x => String(x.text || '').trim())).filter(Boolean).join(' · ');
+    const first = r.mail || r.company[0] || null;
+    P.line = first ? String(first.plain || first.text || '').trim() : '';
+    P.deal = P.line;
+    P.name = _cnT('cn_company_where');
+    P.when = r.age != null ? days(r.age) : _cnT('cn_company_open');
     P.attrs = 'data-cn-co'; return P;
   }
   const y = r.y;
@@ -830,6 +914,9 @@ function ndParts(r){
   if (x.age != null) P.when = days(x.age);
   else if (it.kind === 'renewal' && it.d != null) P.when = it.d <= 0 ? _cnT('ins_days_today') : _cnTn('ins_need_in', it.d, { n: it.d });
   else { const due = String(it.due || '').slice(0, 10); P.when = /^\d{4}-\d{2}-\d{2}$/.test(due) ? _cnT('cn_due', { day: cnDayWords(due) }) : ''; }
+  /* NO EMPTY WAITED CELL (P-39, as drawn; the fault logged 20 Nov 2026): the row's own age (ndWaitedDays, read in
+     ndRead), the same number Needs you's head counts. A row with no such record stays empty. */
+  if (!P.when && r.age != null) P.when = days(r.age);
   P.btn = ND_BTN[it.kind] || 'open';
   /* the button says what happens (Round 2, 24 Oct 2026): an approval asked of you is "Approve…" */
   if (it.kind === 'approval') P.btn = 'approve';
@@ -919,16 +1006,58 @@ function ndPanelHtml(D){
 /* ---- THE BELL, THE NEW LOOK (round 7, as drawn) ----
    The same eight things Home lists (ndRead, in Home's own order, cn2Rows), each a dot in its kind's tone, what it
    is and where, and ONE Open that presses the row's own door; News under it, never counted (ndIsNews). */
+/* a decision's colour on the bell: `tint` 'no' (declined, refused) light red, 'yes' (approved, allowed) light green */
+function ndTintOf(a){ return a && a.tint === 'no' ? ' is-tint-no' : a && a.tint === 'yes' ? ' is-tint-yes' : ''; }
+/* ---- THE BELL, THE LEGORA + STRIPE WAY (P-38, owner 20 Nov 2026) ----
+   Chips All · Late · Your move · Jambo with their counts (a chip with nothing is not drawn); ONE small bar of what waits
+   (red late, amber your move, violet Jambo prepared) with its legend; the rows grouped Late, Your move, Jambo, each a dot,
+   what waits, the agreement and its number, when (red if late) and its OWN act as a small pill (the row's own door,
+   ndParts' button word — never the same "Open" on every row); where the paper's words are known, they are quoted
+   under it (cn2QuoteHtml). NO MONEY in the rows. News under it, never counted (ndIsNews). */
+let _ndbChip = 'all';
+const NDB_GROUPS = [['late', ['late']], ['you', ['you', 'week']], ['jambo', ['jambo']]];
+function ndbGroupOf(k){ return k === 'late' ? 'late' : k === 'jambo' ? 'jambo' : 'you'; }
+/* the act's word ON THE BELL, as drawn (P-38): a row's door is named for what it does there — Open what is late or
+   yours to look at, Decide an approval (never "Approve…", which promises the yes before the reading); Jambo's pieces
+   keep Look. The press is the row's own door either way (P.attrs). */
+/* the agreement's number on the bell's line (as drawn: "Office Lease 2023 · MK-201"), from the row's own contract */
+function ndbRefOf(r, P){
+  const t = _ndText(P.ref || ''); if (t) return t;
+  const c = (r.it && (r.it.c || (r.it.cid && typeof getContract === "function" ? getContract(r.it.cid) : null))) || (r.al && r.al.id && typeof getContract === 'function' ? getContract(r.al.id) : null);
+  return c ? String(c.contractNo || c.id || '') : '';
+}
+function ndbBtnOf(btn, g){ return btn === 'approve' ? 'decide' : (btn === 'look' && g !== 'jambo') ? 'open' : btn; }
 function ndBellNlHtml(D){
   const L = cn2Rows(D), news = D.news || [];
-  const row = x => { const r = x.r, P = ndParts(r);
+  /* THE BOARD'S OWN COUNT (ndWaitCounts): Jambo counts every piece he prepared, the late among them too */
+  const n = (({ late, you, jambo }) => ({ late, you, jambo }))(ndWaitCounts(D));
+  if (_ndbChip !== 'all' && !n[_ndbChip]) _ndbChip = 'all';
+  const row = x => { const r = x.r, P = ndParts(r), g = ndbGroupOf(x.k);
     const title = P.title || P.name || '';
-    const sub = r.g === 'jambo' ? _ndText(P.deal || P.line || '') : [P.name && P.name !== title ? P.name : '', P.party && !String(title).includes(P.party) && !String(P.name).includes(P.party) ? P.party : '', P.money || '', P.when || ''].filter(Boolean).join(' \u00b7 ');
-    return `<div class="ndb-r" data-nd-row="${_cnE(r.key)}"><i class="ndb-dot is-${x.k}" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(title)}</b>${sub ? `<span>${_cnE(sub)}</span>` : ''}</div>`
-      + `<button type="button" class="ui-btn ui-btn-sm ndb-open" ${P.attrs}${P.tip ? ` title="${_cnE(P.tip)}"` : ''}>${_cnE(_cnT('act_open'))}</button></div>`; };
-  const newsRow = (a, i) => `<button type="button" class="ndb-r is-news" data-alert-i="${i}" data-alert-kind="${_cnE(a.kind || '')}"><i class="ndb-dot is-news" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(a.text || '')}</b>${(a.sub || a.name) ? `<span>${_cnE([a.name, a.sub].filter(Boolean).join(' \u00b7 '))}</span>` : ''}</div></button>`;
-  return `<div class="ndb">${L.length ? `<div class="ndb-h">${_cnE(_cnT('ndb_need', { n: ndThings(D.jambo) + ndThings(D.you) }))}</div>${L.map(row).join('')}` : `<p class="ndb-none">${_cnE(_cnT('ap_nothing_needs_you'))}</p>`}`
-    + (news.length ? `<div class="ndb-h">${_cnE(_cnT('ndb_news'))}</div>${news.map(newsRow).join('')}` : '') + `</div>`;
+    /* the agreement and its number (never money); a row about no one contract keeps its own line */
+    /* AS DRAWN (P-38): every row says "contract · reference" — Jambo's pieces about one agreement too ("Office Lease
+       2023 · MK-201"); a piece about no one contract, and the company row, keep their own line */
+    const sub = (r.g === 'jambo' && P.name) ? [P.name, ndbRefOf(r, P)].filter(Boolean).join(' · ')
+      : (r.g === 'jambo' || r.company) ? _ndText(P.deal || P.line || '')
+      : [P.note && !String(title).includes(P.note) ? P.note : '', P.name && P.name !== title ? P.name : (!P.name && P.deal && !String(title).includes(_ndText(P.deal)) ? _ndText(P.deal) : ''), ndbRefOf(r, P) && !String(title).includes(ndbRefOf(r, P)) ? ndbRefOf(r, P) : '', P.party && !String(title).includes(P.party) && !String(P.name).includes(P.party) ? P.party : ''].filter(Boolean).join(' \u00b7 ');
+    /* A NO IS LIGHT RED, A YES LIGHT GREEN (owner, 17 Nov 2026), and the decider's note is quoted under it */
+    const why = r.y && r.y.k === 'c' && r.y.x.it.kind === 'refused' && r.y.x.it.why ? '“' + String(r.y.x.it.why).slice(0, 140) + '”'
+      : r.al && r.al.tint && r.al.sub ? String(r.al.sub) : '';
+    const tint = ndTintOf(r.al || (r.y && r.y.k === 'c' && r.y.x.it.kind === 'refused' ? { tint: 'no' } : null));
+    const quote = cn2QuoteHtml(r).replace(/^ · /, '');
+    return `<div class="ndb-r${tint || (P.good ? ' nd-good' : '')}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}" data-ndb-g="${g}"><i class="ndb-dot is-${P.good ? 'good' : g}" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(title)}</b>${sub ? `<span>${_cnE(sub)}</span>` : ''}${quote ? `<span class="ndb-q">${quote}</span>` : ''}${why ? `<span class="ndb-note">${_cnE(why)}</span>` : ''}</div>`
+      + `<div class="ndb-e">${P.when ? `<span class="ndb-when${P.late || g === 'late' ? ' is-late' : ''}">${_cnE(P.when)}</span>` : ''}<button type="button" class="ui-btn ui-btn-sm ndb-open" ${P.attrs}${P.tip ? ` title="${_cnE(P.tip)}"` : ''}>${_cnE(_cnT('nd_btn_' + ndbBtnOf(P.btn, g)))}</button></div></div>`; };
+  const newsRow = (a, i) => `<button type="button" class="ndb-r is-news${ndTintOf(a)}" data-alert-i="${i}" data-alert-kind="${_cnE(a.kind || '')}"><i class="ndb-dot is-news" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(a.text || '')}</b>${(a.sub || a.name) ? `<span>${_cnE([a.name, a.sub].filter(Boolean).join(' \u00b7 '))}</span>` : ''}</div></button>`;
+  const all = L.length;
+  const chip = (k, m) => `<button type="button" class="ndb-chip" data-ndb-chip="${k}" aria-pressed="${_ndbChip === k}">${_cnE(_cnT('ndb_chip_' + k))} <span>${m}</span></button>`;
+  const head = all ? `<div class="ndb-chips" role="group" aria-label="${_cnE(_cnT('ap_scope_you'))}">${chip('all', all)}${['late', 'you', 'jambo'].filter(k => n[k]).map(k => chip(k, n[k])).join('')}</div>`
+    + `<div class="ndb-bar" aria-hidden="true">${['late', 'you', 'jambo'].filter(k => n[k]).map(k => `<i class="is-${k}" style="flex:${n[k]}"></i>`).join('')}</div>`
+    + `<div class="ndb-legend">${['late', 'you', 'jambo'].filter(k => n[k]).map(k => `<span><i class="is-${k}" aria-hidden="true"></i>${_cnE(_cnTn('ndb_leg_' + k, n[k], { n: n[k] }))}</span>`).join('')}</div>` : '';
+  /* on All each row stands once, in its group; the Jambo chip lists every piece he prepared, as its count says */
+  const groups = NDB_GROUPS.filter(([g]) => _ndbChip === 'all' || _ndbChip === g).map(([g, ks]) => { const G = L.filter(x => (_ndbChip === 'jambo' && g === 'jambo') ? x.r.g === 'jambo' : ks.includes(x.k));
+    return G.length ? `<div class="ndb-h" data-ndb-head="${g}">${_cnE(_cnT('ndb_g_' + g))}</div>${G.map(row).join('')}` : ''; }).join('');
+  return `<div class="ndb">${all ? head + groups : `<p class="ndb-none">${_cnE(_cnT('ap_nothing_needs_you'))}</p>`}`
+    + (news.length && _ndbChip === 'all' ? `<div class="ndb-h">${_cnE(_cnT('ndb_news'))}</div>${news.map(newsRow).join('')}` : '') + `</div>`;
 }
 /* ---- THE BOARD: ALL OF IT, UNDER YOUR BOOK ----
    Tabs (All · Your move · Jambo prepared), the kinds there are (a kind with
@@ -943,7 +1072,19 @@ function ndKindsOf(L){
 /* the Board's own share of the reading: a brand-new workspace's "Finish setting up" row stays Home's — the empty
    Board stands its own setup door (hbSetupDoorHtml), never a second one */
 function ndOnBoard(D){ const you = D.you.filter(r => !r.setup); return { jambo: D.jambo, you, n: ndRowsN(D.jambo) + ndRowsN(you) }; }
-function ndInTab(D){ const B = ndOnBoard(D); return _nd.tab === 'jambo' ? B.jambo : _nd.tab === 'you' ? B.you : B.jambo.concat(B.you); }
+/* LATE IS A CHIP OF ITS OWN (P-39, the Legora + Stripe way): the late of both groups; Your move is yours not late */
+function ndInTab(D){ const B = ndOnBoard(D); return _nd.tab === 'jambo' ? B.jambo : _nd.tab === 'late' ? B.jambo.concat(B.you).filter(r => r.late) : _nd.tab === 'you' ? B.you.filter(r => !r.late) : B.jambo.concat(B.you); }
+/* the row's status, as its soft badge says it: Late, Your move, Jambo prepared */
+function ndStatusOf(r){ return r.late ? 'late' : r.g === 'jambo' ? 'jambo' : 'you'; }
+/* ONE COUNT OF WHAT WAITS, EVERYWHERE IT IS SAID (review of the merged pages, 22 Nov 2026: the panel's ring said "3
+   Jambo" and the bell's chip "Jambo 3" while Needs you said "Jambo prepared 5"): All, Late (late of both groups),
+   Your move (yours not late) and Jambo (EVERY piece he prepared, late or not — the list his chip opens). The Board's
+   chips, the panel's ring and its headline, and the bell's chips all read this one function, so the number on a door
+   is the list behind it. A late piece is counted under Late and under Jambo: both lists hold it. */
+function ndWaitCounts(D){
+  const B = ndOnBoard(D || ndRead()), all = B.jambo.concat(B.you);
+  return { all: ndRowsN(all), late: ndRowsN(all.filter(r => r.late)), you: ndRowsN(B.you.filter(r => !r.late)), jambo: ndRowsN(B.jambo) };
+}
 function ndBoardList(D){
   let L = ndInTab(D);
   if (_nd.kind !== 'any') L = L.filter(r => r.kind === _nd.kind);
@@ -959,11 +1100,18 @@ function ndBoardRowHtml(r, opts){
   const look = piece && opts && typeof opts.look === 'function' ? opts.look(r.it) : '';
   const btn = piece
     ? `<button type="button" class="ui-btn ui-btn-sm nd-btn${look ? ' is-on' : ''}" data-hb-ag-look="${_cnE(r.it.key)}" aria-expanded="${!!look}">${_cnE(_cnT('nd_btn_look'))}</button>`
-    : _ndBtnHtml(P);
+    /* the row's act as drawn (P-39: Look · Decide · Open · Approve · Fill in): the word without its "…" (the phone's own
+       reading, mNlRowOf), so a small pill never cuts it */
+    : _ndBtnHtml(P).replace(/\u2026<\/button>$/, '</button>');
   return `<div class="nd-br${look ? ' is-look' : ''}${P.good ? ' nd-good' : ''}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"${piece ? ` data-hb-ag-item="${_cnE(r.it.key)}" data-nd-agent="${_cnE(r.agent)}"` : ''}>`
-    + `<span class="nd-c nd-c-what"${piece && P.line ? ` title="${_cnE(P.line)}"` : ''}>${typeof listSapOn === 'function' && listSapOn() ? ndSapMarkHtml(r, P) : ''}<b>${_cnE(P.title)}</b>${_ndTagHtml(P)}${P.priv}</span>`
+    /* THE LEGORA + STRIPE WAY (P-39): what waits, and under it the paper's words where they are known (cn2QuoteHtml); a
+       soft status badge; the agreement and its number, NEVER MONEY */
+    + `<span class="nd-c nd-c-what"${piece && P.line ? ` title="${_cnE(P.line)}"` : ''}>${typeof listSapOn === 'function' && listSapOn() ? ndSapMarkHtml(r, P) : ''}<span class="nd-what-w"><b>${_cnE(P.title)}</b>${(() => { const q = (typeof cn2QuoteHtml === 'function' ? cn2QuoteHtml(r) : '').replace(/^ · /, ''); return q ? `<span class="nd-q">${q}</span>` : (r.company && P.line ? `<span class="nd-sub" title="${_cnE(P.line)}">${_cnE(P.line)}</span>` : ''); })()}</span>${_ndTagHtml(P)}${P.priv}</span>`
+    + `<span class="nd-c nd-c-st"><span class="nd-st is-${ndStatusOf(r)}">${_cnE(_cnT('ndb_g_' + ndStatusOf(r)))}</span></span>`
     /* the number first and never cut; the name gives way with "…" (owner, 23 Oct 2026) */
-    + `<span class="nd-c nd-c-deal" title="${_cnE([_ndText(P.ref), P.deal].filter(Boolean).join(' · '))}">${P.ref}${P.ref && P.deal ? '<i class="nd-dot" aria-hidden="true">·</i>' : ''}${P.deal ? `<span class="nd-deal-t">${_cnE(P.deal)}</span>` : ''}</span>`
+    /* AS DRAWN (P-39, owner 21 Nov 2026): the agreement's name, then its number — "Office Lease 2023 · MK-201"; the
+       name gives way with "…", the number is never cut (reverses 23 Oct's number-first) */
+    + (() => { const deal = P.name || P.deal, ref = P.ref || ''; return `<span class="nd-c nd-c-deal" title="${_cnE([deal, _ndText(ref)].filter(Boolean).join(' · '))}">${deal ? `<span class="nd-deal-t">${_cnE(deal)}</span>` : ''}${ref && deal ? '<i class="nd-dot" aria-hidden="true">·</i>' : ''}${ref}</span>`; })()
     /* no "Who or what asked" column (owner, 24 Oct 2026): empty on most rows; the search still reads it */
     + `<span class="nd-c nd-c-when${P.late ? ' cn-late' : ''}">${_cnE(P.when)}</span><span class="nd-c nd-c-next">${btn}</span>${look}</div>`;
 }
@@ -990,16 +1138,21 @@ function ndBoardHtml(opts){
   if (_nd.kind !== 'any' && !kinds.some(x => x.k === _nd.kind)) _nd.kind = 'any';
   const sum = [_cnTn('nd_things', B.n, { n: B.n }), ndSumWords(D)].filter(Boolean).join(' · ');
   /* ("Home shows the top N · this is all of it" went with Home, 10 Nov 2026: the card is the whole list, said once) */
-  const tab = (k, n) => `<button type="button" class="nd-tab${_nd.tab === k ? ' on' : ''}" data-nd-tab="${k}" aria-pressed="${_nd.tab === k}">${_cnE(_cnT('nd_tab_' + k))} <span class="nd-tab-n">${n}</span></button>`;
+  /* chips with their counts, a soft dot of their colour (P-39); a chip with nothing in it is not drawn (but All) */
+  const tab = (k, n) => (k !== 'all' && !n && _nd.tab !== k) ? '' : `<button type="button" class="nd-tab is-chip${_nd.tab === k ? ' on' : ''}" data-nd-tab="${k}" aria-pressed="${_nd.tab === k}">${k === 'late' ? `<i class="nd-st-dot is-${k}" aria-hidden="true"></i>` : ''}${_cnE(_cnT(k === 'late' ? 'ndb_chip_late' : 'nd_tab_' + k))} <span class="nd-tab-n">${n}</span></button>`;
+  const W = ndWaitCounts(D);
   const chip = (k, n) => `<button type="button" class="nd-chip${_nd.kind === k ? ' on' : ''}" data-nd-kind="${k}" aria-pressed="${_nd.kind === k}">${_cnE(_cnT('nd_k_' + k))}${n != null ? ' ' + n : ''}</button>`;
   const jamboOn = _nd.tab === 'jambo' || _nd.kind === 'jambo';
-  const folded = ndFolded();
-  return `<section class="hb-card nd-card${folded ? ' is-folded' : ''}" id="hm-agents"><header class="hb-ch"><span class="hb-ct">${_cnE(_cnT('hb_ny_title'))}</span><span class="hb-cs">${_cnE(sum)}</span><span class="hb-grow"></span>${ndFoldBtnHtml(folded)}</header>`
-    + `<div class="nd-main" id="nd-main"${folded ? ' hidden' : ''}><div class="nd-bar"><div class="nd-tabs">${tab('all', B.n)}${tab('you', ndRowsN(B.you))}${tab('jambo', ndRowsN(B.jambo))}</div>`
+  /* P-39, AS DRAWN: the Board's Needs you has no Hide (nor a find box) — so it is never left folded with no way to open
+     it again: a fold kept from before is not honoured where the button is not drawn */
+  const noFold = typeof window.newLookOn === 'function' && newLookOn();
+  const folded = !noFold && ndFolded();
+  return `<section class="hb-card nd-card${folded ? ' is-folded' : ''}" id="hm-agents"><header class="hb-ch"><span class="hb-ct">${_cnE(_cnT('hb_ny_title'))}</span><span class="hb-cs">${_cnE(sum)}</span><span class="hb-grow"></span>${noFold ? '' : ndFoldBtnHtml(folded)}</header>`
+    + `<div class="nd-main" id="nd-main"${folded ? ' hidden' : ''}><div class="nd-bar"><div class="nd-tabs">${tab('all', W.all)}${tab('late', W.late)}${tab('you', W.you)}${tab('jambo', W.jambo)}</div>`
     + `<input type="search" id="nd-q" class="nd-find" autocomplete="off" placeholder="${_cnE(_cnT('nd_find_ph'))}" aria-label="${_cnE(_cnT('nd_find_label'))}" value="${_cnE(_nd.q)}"></div>`
     + (kinds.length > 1 ? `<div class="nd-chips">${chip('any', null)}${kinds.map(x => chip(x.k, x.n)).join('')}</div>` : '')
     + (jamboOn && o.chase ? o.chase : '')
-    + `<div class="nd-cols"><span>${_cnE(_cnT('nd_col_what'))}</span><span>${_cnE(_cnT('nd_col_deal'))}</span><span>${_cnE(_cnT('nd_col_when'))}</span><span>${_cnE(_cnT('nd_col_next'))}</span></div>`
+    + `<div class="nd-cols"><span>${_cnE(_cnT('nd_col_what'))}</span><span>${_cnE(_cnT('nd_col_status'))}</span><span>${_cnE(_cnT('nd_col_deal'))}</span><span>${_cnE(_cnT('nd_col_when'))}</span><span aria-label="${_cnE(_cnT('nd_col_next'))}"></span></div>`
     + `<div class="nd-rows" id="nd-rows">${ndBoardRowsHtml(D, o)}</div>${o.foot || ''}</div></section>`;
 }
 /* ---- THE CARD FOLDS TO ITS HEAD (owner, 25 Oct 2026: "add the ability for the needs you card to be able to be
@@ -1028,7 +1181,7 @@ function ndBoardRepaint(){ if (typeof hbPaintBoard === 'function') try { hbPaint
 function ndShow(tab, key){
   /* a door onto the card lands on its rows: a folded card is opened first */
   if (ndFolded()) ndFoldSet(false);
-  _nd = { tab: ['all', 'you', 'jambo'].includes(tab) ? tab : 'all', kind: 'any', q: '', more: 0 };
+  _nd = { tab: ['all', 'late', 'you', 'jambo'].includes(tab) ? tab : 'all', kind: 'any', q: '', more: 0 };
   if (key){ const L = ndBoardList(ndRead()); const i = L.findIndex(r => r.key === key || (r.it && r.it.key === key)); if (i >= ND_PAGE) _nd.more = Math.floor(i / ND_PAGE); }
 }
 function ndOpenBoard(tab, key){
@@ -1040,7 +1193,7 @@ function ndOpenBoard(tab, key){
 function ndPlace(){ return { tab: _nd.tab, kind: _nd.kind, q: _nd.q }; }
 function ndPlacePut(p){
   if (!p || typeof p !== 'object') return;
-  _nd = { tab: ['all', 'you', 'jambo'].includes(p.tab) ? p.tab : 'all', kind: ND_KINDS.includes(p.kind) ? p.kind : 'any', q: String(p.q || '').slice(0, 120), more: 0 };
+  _nd = { tab: ['all', 'late', 'you', 'jambo'].includes(p.tab) ? p.tab : 'all', kind: ND_KINDS.includes(p.kind) ? p.kind : 'any', q: String(p.q || '').slice(0, 120), more: 0 };
 }
 /* the bundled details: the very contracts the row counted, on the Contracts list */
 function ndBundleGo(){
@@ -1076,20 +1229,49 @@ function cn2Say(L){
 }
 /* THE PAPER'S WORDS, ONLY WHERE THEY ARE KNOWN (owner's answer 3): their changes quote the words they propose; owed
    details name the section their blanks stand in; every other row says only what waits */
-function cn2QuoteHtml(r){
-  const y = r && r.y, x = y && y.x, c = x && x.c, it = x && x.it; if (!c || !it) return '';
+/* THE PAPER'S WORDS UNDER A ROW, AS DRAWN (P-38, P-39: "§ 2 · “The lease ends on 11 October 2026”", one line ending
+   in "…"): read off the record only, never guessed — their waiting change's new words; a renewal's own term sentence
+   (hbRdnTermQuote: the sentence on the paper that carries the end date's year); a duty's own quote and clause (the
+   bell's overdue duty, a chase); a departure from our standards the approval is about. NEVER MONEY: an approval's
+   value is not looked for on the paper. Each { sec, w }; a row with no words on record gets none. */
+function cn2QuoteOf(r){
+  const secOf = v => { const m = String(v == null ? '' : v).trim().match(/^§?\s*(\d+(?:\.\d+)*)/); return m ? '§ ' + m[1] : ''; };
+  const clean = t => String(t || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().replace(/^[“"]|[”"]$/g, '');
+  const term = c => { try { const q = typeof window.hbRdnTermQuote === 'function' ? hbRdnTermQuote(c) : null; return q && q.w ? [{ sec: q.sec || '', w: clean(q.w) }] : []; } catch (_){ return []; } };
+  const duty = (c, id) => { const o = (Array.isArray(c && c.obligations) ? c.obligations : []).find(x => x && id != null && String(x.id) === String(id));
+    return o && o.quote ? [{ sec: secOf(o.clause), w: clean(o.quote) }] : []; };
+  if (r && r.g === 'jambo'){
+    const it = r.it || {}, c = it.c || (it.cid && typeof getContract === 'function' ? getContract(it.cid) : null); if (!c) return [];
+    if (it.kind === 'renewal' || it.kind === 'notice') return term(c);
+    if (it.ob && it.ob.quote) return [{ sec: secOf(it.ob.clause), w: clean(it.ob.quote) }];
+    return [];
+  }
+  if (r && r.al){
+    const a = r.al, c = a.id && typeof getContract === 'function' ? getContract(a.id) : null; if (!c) return [];
+    if (a.kind === 'obligation') return duty(c, a.obId);
+    if (a.kind === 'renewal' && !a.ends) return term(c);
+    return [];
+  }
+  const y = r && r.y, x = y && y.x, c = x && x.c, it = x && x.it; if (!c || !it) return [];
   if (it.kind === 'quiet'){
-    const chs = (Array.isArray(c.changes) ? c.changes : []).filter(ch => ch && ch.authorSide === 'counterparty' && ch.status === 'pending' && ch.newText).slice(0, 2);
-    return chs.map(ch => { const lab = String(ch.clauseLabel || ''), m = lab.match(/^\s*(\d+(?:\.\d+)*)[.)]?\s*(.*)$/);
-      const sec = m ? '§ ' + m[1] + (m[2] ? ' ' + m[2].charAt(0) + m[2].slice(1).toLowerCase() : '') : lab;
-      const w = String(ch.newText).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(); const short = w.length > 70 ? w.slice(0, 69).replace(/\s+\S*$/, '') + '…' : w;
-      return ` · <b class="cn2-sec">${_cnE(sec)}</b> — <q class="cn2-src">${_cnE(short)}</q>`; }).join('');
+    return (Array.isArray(c.changes) ? c.changes : []).filter(ch => ch && ch.authorSide === 'counterparty' && ch.status === 'pending' && ch.newText).slice(0, 2)
+      .map(ch => { const lab = String(ch.clauseLabel || ''), m = lab.match(/^\s*(\d+(?:\.\d+)*)[.)]?\s*(.*)$/);
+        return { sec: m ? '§ ' + m[1] + (m[2] ? ' ' + m[2].charAt(0) + m[2].slice(1).toLowerCase() : '') : lab, w: clean(ch.newText) }; });
+  }
+  if (it.kind === 'renewal') return term(c);
+  if (it.kind === 'approval'){
+    const v = ((c.playbook && Array.isArray(c.playbook.verdicts)) ? c.playbook.verdicts : []).find(d => d && d.status === 'deviation' && d.quote && !(d.accepted && d.accepted.at));
+    return v ? [{ sec: secOf(v.clause || v.section || v.clauseLabel), w: clean(v.quote) }] : [];
   }
   if (it.kind === 'details' && typeof contractBlanks === 'function'){
     let B = []; try { B = contractBlanks(c).filter(b => b && !b.value && b.section); } catch (_){ B = []; }
-    return [...new Set(B.map(b => b.section))].slice(0, 2).map(t => ` · <b class="cn2-sec">${_cnE(t)}</b>`).join('');
+    return [...new Set(B.map(b => b.section))].slice(0, 2).map(t => ({ sec: t, w: '' }));
   }
-  return '';
+  return [];
+}
+function cn2QuoteHtml(r){
+  let Q = []; try { Q = cn2QuoteOf(r); } catch (_){ Q = []; }
+  return Q.map(q => ` · ${q.sec ? `<b class="cn2-sec">${_cnE(q.sec)}</b>` : ''}${q.sec && q.w ? ' · ' : ''}${q.w ? `<q class="cn2-src">${_cnE(q.w)}</q>` : ''}`).join('');
 }
 
 /* COMPANY NEEDS YOU LANDS ON THE EXACT JOB (owner, 16 Nov 2026): one job opens that job; several open Settings
@@ -1174,6 +1356,7 @@ if (typeof document !== 'undefined' && !window._cnWired){
       step();
       if (r && r.al && typeof r.al.go === 'function') r.al.go(); return; }
     if (t.closest('[data-nd-fold]')){ ndFoldApply(!ndFolded()); return; }
+    if ((el = t.closest('[data-ndb-chip]'))){ _ndbChip = el.getAttribute('data-ndb-chip') || 'all'; if (typeof renderContextPanel === 'function') renderContextPanel(); return; }
     if ((el = t.closest('[data-nd-tab]'))){ _nd = { ..._nd, tab: el.getAttribute('data-nd-tab'), more: 0 }; ndBoardRepaint(); return; }
     if ((el = t.closest('[data-nd-kind]'))){ _nd = { ..._nd, kind: el.getAttribute('data-nd-kind'), more: 0 }; ndBoardRepaint(); return; }
     if ((el = t.closest('[data-nd-more]'))){ _nd = { ..._nd, more: (_nd.more || 0) + 1 }; ndRowsRepaint(); return; }
@@ -1214,5 +1397,5 @@ if (typeof document !== 'undefined' && !window._cnWired){
 
 Object.assign(window, { dkLeavePageThen, deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnReqWhat, CN_REQ_WHAT_RE, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter, dkHomeHere, DK_HOME_KEY,
-  ndRowGo, cnCompanyGo, ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndAvHtml, ndSapKeyOf, ndSapMarkHtml, ndKindOfRow, ndKindHtml, CN2_RANK, cn2Rows, cn2Say, cn2Greet, cn2Name, cn2QuoteHtml, ndPanelHtml, ndBellNlHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
+  ndRowGo, cnCompanyGo, ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndWaitCounts, ndParts, ndSumWords, ndAvHtml, ndSapKeyOf, ndSapMarkHtml, ndKindOfRow, ndKindHtml, CN2_RANK, cn2Rows, cn2Say, cn2Greet, cn2Name, cn2QuoteOf, cn2QuoteHtml, ndWaitedDays, ndPanelHtml, ndBellNlHtml, ndTintOf, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo, ndFolded, ndFoldSet, ndFoldBtnHtml, ndFoldApply,
   CN_ROWS, counterNeedsCount });

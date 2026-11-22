@@ -31,7 +31,8 @@ const PAGES = [
   ['board', "setView('dashboard'); hbSetFace('board')", '#ig-dock', '#igd-input'],
   ['contract', "roomHomeLand('MK-A2')", '#ig-dock', '#igd-input'],
   ['approvals', "setView('approvals')", '#ins-panel', '#jl-q'],
-  ['settings', "setView('team')", '#st-side', '#st-jb-q'],
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings' Jambo is the list pages' panel (#ins-panel, box #jl-q), no longer its own #st-side */
+  ['settings', "setView('team')", '#ins-panel', '#jl-q'],
   ['calendar', "setView('calendar')", '#cal-plan', '#cal-plan-in'],
   ['window', "setView('obligations'); if (!(window.ai && ai.open && ai.win)) aiWinToggle()", '#ai-panel', '#ai-input'],
 ];

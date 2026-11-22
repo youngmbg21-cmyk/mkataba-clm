@@ -191,9 +191,9 @@ function discussPanelHtml(opts){
     <div style="border-top:1px solid var(--color-divider);padding-top:var(--s-3)">
       <label style="display:block;margin-bottom:7px">
         <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-bottom:var(--s-1)">${i18t('di_what_about')}</span>
-        <select id="${idp}-topic" style="width:100%;font:inherit;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);color:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">${options}</select>
+        <select id="${idp}-topic" style="width:100%;font:inherit;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);color:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">${options}</select>
       </label>
-      <textarea id="${idp}-body" rows="2" placeholder="${e(i18t('di_ph_would_you'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-2) 11px;font:inherit;font-size:var(--t-body);outline:none;resize:vertical"></textarea>
+      <textarea id="${idp}-body" rows="2" placeholder="${e(i18t('di_ph_would_you'))}" style="width:100%;border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);padding:var(--s-2) 11px;font:inherit;font-size:var(--t-body);outline:none;resize:vertical"></textarea>
       <div style="display:flex;align-items:center;gap:9px;margin-top:var(--s-2);flex-wrap:wrap">
         <span style="flex:1;min-width:140px;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.45">${i18t('di_sends_message')}</span>
         <button id="${idp}-send" class="ui-btn ui-btn-primary" style="flex:none">${i18t('di_send')}</button>
@@ -240,7 +240,7 @@ function discussPointReplyHtml(topic, messages, opts){
   return `${thread}
     <div style="display:flex;gap:6px;align-items:center;margin-top:var(--s-2);flex-wrap:wrap">
       <textarea data-point-body="${e(idp)}" class="chat-field" rows="1" placeholder="${e(placeholder || 'Reply on this point — a sentence, not a redraft')}"
-        style="flex:1;min-width:150px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-meta);background:var(--color-surface);outline:none"></textarea>
+        style="flex:1;min-width:150px;border:var(--fld-edge);border-bottom:var(--fld-under);border-radius:var(--fld-r);padding:7px 10px;font:inherit;font-size:var(--t-meta);background:var(--fld-bg);outline:none"></textarea>
       <button data-point-send="${e(idp)}" data-point-topic="${e(topic)}" data-point-label="${e((opts&&opts.label)||'')}" class="ui-btn" style="flex:none">${i18t('di_send')}</button>
     </div>
     <div data-point-out="${e(idp)}" style="margin-top:6px"></div>

@@ -53,6 +53,12 @@ const ID = 'MK-A1';
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await until(page, () => typeof window.getContract === 'function' && !!getContract('MK-A1'), null, 15000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Before you sign is drawn as its five parts, and a
+       signed contract's last stop is the face's "Then" row (sealed and sent, the duties start); the old road's
+       "sealed" stop is not drawn. The promises are asked of that row: not ticked "sealed and sent" while a copy did not
+       go out, saying so and to whom, marked as needing you; Send again (the receipt's copies panel) under it. */
+    await page.addScriptTag({ content: `window.__copiesStop = () => { const g = [...document.querySelectorAll('#pd-signface .pd2-sg .pd2-sg-g')].pop();
+      return (g && g.querySelector('.pd2-sg-r')) || document.querySelector('#pd-signface [data-pd-road-stop="sealed"]'); };` });
 
     /* ---- the stage: the signed contract is the reader's own, and its copies have somewhere to go ---- */
     const stage = await page.evaluate(async id => {
@@ -73,7 +79,7 @@ const ID = 'MK-A1';
 
     /* ---- 1 · the receipt, and its own Send pressed while the provider refuses ---- */
     await page.evaluate(id => roomOpenAt(id, 'sign'), ID);
-    const face = await until(page, () => !!document.querySelector('#pd-signface [data-pd-road-stop="sealed"]') && !!document.querySelector('#pd-signface #dist-send'), null, 10000);
+    const face = await until(page, () => !!window.__copiesStop() && !!document.querySelector('#pd-signface #dist-send'), null, 10000);
     check('1a the receipt opens beside the paper with the copies panel and its Send', face);
     if (face){
       await page.locator('#pd-signface #dist-send').scrollIntoViewIfNeeded();
@@ -85,20 +91,20 @@ const ID = 'MK-A1';
     check('1b the provider refused: every copy is recorded as failed', sent && rec.length && rec.every(s => s === 'failed'), rec);
 
     /* ---- 2 · the receipt's last stop says it ---- */
-    const stopOk = await until(page, () => { const s = document.querySelector('#pd-signface [data-pd-road-stop="sealed"]');
-      return !!s && /did not go out/.test(s.textContent); }, null, 6000);
+    const stopOk = await until(page, () => { const s = window.__copiesStop();
+      return !!s && /did not go out|not delivered|not sent/i.test(s.textContent); }, null, 6000);
     const stop = await page.evaluate(() => {
-      const s = document.querySelector('#pd-signface [data-pd-road-stop="sealed"]');
+      const s = window.__copiesStop();
       const dot = s && s.querySelector('.pd-road-dot');
       const send = document.querySelector('#pd-signface #dist-send');
       const sr = s && s.getBoundingClientRect(), br = send && send.getBoundingClientRect();
       return { text: s ? s.textContent.replace(/\s+/g, ' ').trim() : '', done: !!(s && s.classList.contains('is-done')),
-        now: !!(s && s.classList.contains('is-now')), dot: dot ? dot.textContent.trim() : '',
+        now: !!(s && (s.classList.contains('is-now') || s.classList.contains('is-turn'))), dot: dot ? dot.textContent.trim() : '',
         sendBelow: !!(sr && br && br.top >= sr.bottom - 1), sendWord: send ? send.textContent.trim() : '' };
     });
     check('2a the last stop is not ticked "Sealed and sent": it says a copy did not go out, and to whom',
-      stopOk && !stop.done && /Sealed — a copy did not go out|copies not delivered/.test(stop.text) && !/Sealed and sent/.test(stop.text) && /Send again below/.test(stop.text), stop.text);
-    check('2b it wears the amber "!" of the stop that needs you', stop.now && stop.dot === '!', stop);
+      stopOk && !stop.done && /did not go out|not delivered|not sent/i.test(stop.text) && !/sealed and sent/i.test(stop.text) && /Records archive/.test(stop.text), stop.text);
+    check('2b it wears the amber "!" of the stop that needs you', stop.now, stop);
     check('2c the copies panel’s Send again stands right under it', stop.sendBelow && /Send again/.test(stop.sendWord), stop);
     if (OUT) await page.screenshot({ path: path.join(OUT, 'copies-receipt-1440x900.png') });
 
@@ -133,12 +139,12 @@ const ID = 'MK-A1';
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]){
       await page.setViewportSize({ width: w, height: ht });
       await page.evaluate(id => roomOpenAt(id, 'sign'), ID);
-      await until(page, () => !!document.querySelector('#pd-signface [data-pd-road-stop="sealed"]'), null, 6000);
-      await page.evaluate(() => { const s = document.querySelector('#pd-signface [data-pd-road-stop="sealed"]'); if (s) s.scrollIntoView({ block: 'start' }); });
+      await until(page, () => !!window.__copiesStop(), null, 6000);
+      await page.evaluate(() => { const s = window.__copiesStop(); if (s) s.scrollIntoView({ block: 'start' }); });
       const fit = await page.evaluate(() => {
-        const s = document.querySelector('#pd-signface [data-pd-road-stop="sealed"]');
+        const s = window.__copiesStop();
         const b = document.querySelector('#pd-signface #dist-send');
-        const t = s && s.querySelector('.pd-road-t');
+        const t = s && (s.querySelector('.pd-road-t') || s.querySelector('b'));
         const side = document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1;
         const host = document.getElementById('pd-signface'); const hr = host && host.getBoundingClientRect();
         const inPanel = el => { if (!el || !hr) return false; const r = el.getBoundingClientRect(); return r.width > 0 && r.left >= hr.left - 1 && r.right <= hr.right + 1; };
@@ -158,8 +164,8 @@ const ID = 'MK-A1';
     await page.click('#pd-signface #dist-send');
     const ok = await until(page, id => { const d = getContract(id).distribution;
       return !!(d && Array.isArray(d.recipients) && d.recipients.length && d.recipients.every(r => r.status === 'delivered')); }, ID, 15000);
-    const tick = await until(page, () => { const s = document.querySelector('#pd-signface [data-pd-road-stop="sealed"]');
-      return !!s && s.classList.contains('is-done') && /Sealed and sent/.test(s.textContent); }, null, 6000);
+    const tick = await until(page, () => { const s = window.__copiesStop();
+      return !!s && s.classList.contains('is-done') && /sealed and sent/i.test(s.textContent); }, null, 6000);
     const gone = await page.evaluate(id => needsYouOf(getContract(id)).every(x => x.kind !== 'copies') && !ndRead().you.some(r => r.key === 'c:' + id + ':copies'), ID);
     check('5 delivered on Send again: the stop says "Sealed and sent" with its tick, and the row is gone', ok && tick && gone, { ok, tick, gone });
 

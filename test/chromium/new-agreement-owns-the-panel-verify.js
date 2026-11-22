@@ -28,7 +28,9 @@ const still = P => until(P, () => !document.getAnimations().some(a => a.playStat
   const errors = []; P.on('pageerror', e => errors.push(String(e && e.message || e)));
   const panel = () => P.evaluate(() => { const d = document.getElementById('ig-dock'); if (!d) return null;
     return { tabs: [...d.querySelectorAll('.pd-tab[data-pd-tab]')].map(t => t.getAttribute('data-pd-tab')), red: !!d.querySelector('.rl-card-d, #rl-risks'),
-      guide: /New agreement beside me/.test(d.innerText), box: !!d.querySelector('#igd-input'), sheet: !!document.querySelector('#na-root.na-one') }; });
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the sheet's guide is Jambo's Five panel
+         (.pd-sheet-hello, drawn only while the one sheet is up: the ask, the papers that fit, what Create does) */
+      guide: /New agreement beside me/.test(d.innerText) || !!d.querySelector('.pd-sheet-hello .jov5'), box: !!d.querySelector('#igd-input'), sheet: !!document.querySelector('#na-root.na-one') }; });
   try {
     await P.goto(h.base + '/', { waitUntil: 'networkidle' });
     await P.fill('#li-email', 'admin@example.co.ke'); await P.fill('#li-pass', 'adminpassword1'); await P.click('#li-go');

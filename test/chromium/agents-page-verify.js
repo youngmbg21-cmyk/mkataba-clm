@@ -277,9 +277,23 @@ const ok = (name, good, detail) => {
       const b = await page.$(CARD + ' [data-ag-act="chase"]');
       if (b) { await b.click(); await page.waitForTimeout(500); }
     }
-    const asked = await page.evaluate(() => !!document.getElementById('confirm-overlay'));
-    ok('5b "Send the chase" asks before it sends — obligationChase\'s own question', asked);
-    if (asked) { await page.click('#cf-ok'); await page.waitForTimeout(1500); }
+    /* RE-POINTED 19 Nov 2026 (owner's pick, Chase now is the Send screen as a reminder; f1105): on a computer the
+       press opens the reminder page (#obr-pg) — who it goes to, the letter — and its Send the reminder is the
+       ask; the confirm question stays where the page is not drawn (the phone). Nothing is sent before that press. */
+    const asked = await page.evaluate(() => {
+      if (document.getElementById('confirm-overlay')) return 'confirm';
+      const b = document.querySelector('#obr-pg [data-obr-send]');
+      return b && !b.disabled ? 'page' : '';
+    });
+    const before = await page.evaluate(() => ((getContract('MK-131').obligations || []).find(x => x.id === 'ob_late1') || {}).chasedAt || '');
+    ok('5b "Send the chase" asks before it sends — obligationChase\'s own question (the reminder page on a computer)', !!asked && !before, JSON.stringify({ asked, before }));
+    if (asked === 'confirm') { await page.click('#cf-ok'); await page.waitForTimeout(1500); }
+    else if (asked === 'page') {
+      await page.click('#obr-pg [data-obr-send]');
+      await page.waitForFunction(() => !document.getElementById('obr-pg')
+        && !!((getContract('MK-131').obligations || []).find(x => x.id === 'ob_late1') || {}).chasedAt, null, { timeout: 8000 }).catch(() => {});
+      await page.waitForTimeout(500);
+    }
     const chased = await page.evaluate(() => {
       const o = (getContract('MK-131').obligations || []).find(x => x.id === 'ob_late1') || {};
       return { at: o.chasedAt || '', ready: agentsData().agents.late.ready.length, done: agentsData().agents.late.done.map(x => x.ob && x.ob.id) };
@@ -427,13 +441,18 @@ const ok = (name, good, detail) => {
          brief, "Why it matters" and all, is 10d's side panel. */
       ok('10a the card shows THE BRIEF itself once the whole record lands, and counts what is worth watching (RED at faa8f95)', /FY2026 external audit/.test(opened.brief) && /1 worth watching/.test(opened.brief), opened.brief.slice(0, 140));
       ok('10b and the departures, their words beside your standard (RED at faa8f95)',
-        /Liability cap/.test(opened.std) && /Their words/.test(opened.std) && /Your standard/.test(opened.std) && /1 other standard is met/.test(opened.std), opened.std.slice(0, 160));
+        /Liability cap/.test(opened.std) && /Their words/.test(opened.std) && /Your position/.test(opened.std) && /1 other position is met/.test(opened.std), opened.std.slice(0, 160));
       ok('10c and the obligations found, whose each is, with one door onto adding them (RED at faa8f95)',
         /Deliver the audit plan/.test(opened.obs) && /Theirs/.test(opened.obs) && /Review 2 obligations/.test(opened.obsBtn), opened.obs.slice(0, 120) + ' · ' + opened.obsBtn);
       await page.screenshot({ path: path.join(OUT, '10-new-paper-panel.png') });
       const rb = await page.$(`${CA} [data-ag-act="brief"]`);
       if (rb) { await rb.click(); await page.waitForTimeout(1800); }
-      const briefShown = await page.evaluate(() => { const s = document.getElementById('brief-section'); if (!s) return null; const x = s.cloneNode(true); x.querySelectorAll('style').forEach(n => n.remove()); return x.textContent.replace(/\s+/g, ' ').trim(); });
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): every brief door lands on the ONE brief page in
+         the middle beside the paper (pd2BriefGo → pd2BriefOpen, [data-pd2-brief]), no longer the side panel's
+         #brief-section; the promise is the same — the brief itself, never "Nothing has been briefed". */
+      const BRIEF_AT = () => { const s = document.querySelector('[data-pd2-brief]') || document.getElementById('brief-section'); if (!s) return null; const x = s.cloneNode(true); x.querySelectorAll('style').forEach(n => n.remove()); return x.textContent.replace(/\s+/g, ' ').trim(); };
+      await page.waitForFunction(`(${BRIEF_AT})() && /FY2026 external audit/.test((${BRIEF_AT})())`, null, { timeout: 8000 }).catch(() => {});
+      const briefShown = await page.evaluate(() => { const s = document.querySelector('[data-pd2-brief]') || document.getElementById('brief-section'); if (!s) return null; const x = s.cloneNode(true); x.querySelectorAll('style').forEach(n => n.remove()); return x.textContent.replace(/\s+/g, ' ').trim(); });
       ok('10d "Read the brief" opens the brief, not an empty panel — the owner\'s report (RED at faa8f95)',
         !!briefShown && /FY2026 external audit/.test(briefShown) && !/Nothing has been briefed/.test(briefShown), String(briefShown).slice(0, 140));
       await page.screenshot({ path: path.join(OUT, '10-brief.png') });
@@ -455,7 +474,9 @@ const ok = (name, good, detail) => {
       ok('10f GATE — the second contract is still a light row that carries no brief', stillLight);
       await page.evaluate(id => openCheckPanel(getContract(id), 'brief'), fresh.b);
       await page.waitForTimeout(1500);
-      const funnel = await page.evaluate(() => { const s = document.getElementById('brief-section'); if (!s) return null; const x = s.cloneNode(true); x.querySelectorAll('style').forEach(n => n.remove()); return x.textContent.replace(/\s+/g, ' ').trim(); });
+      /* RE-POINTED 16 Nov 2026 (#762): read on the brief page in the middle, as 10d */
+      await page.waitForFunction(id => { const s = document.querySelector(`[data-pd2-brief="${id}"]`); return !!s && /supply agreement for packaging/.test(s.textContent); }, fresh.b, { timeout: 8000 }).catch(() => {});
+      const funnel = await page.evaluate(id => { const s = document.querySelector(`[data-pd2-brief="${id}"]`) || document.getElementById('brief-section'); if (!s) return null; const x = s.cloneNode(true); x.querySelectorAll('style').forEach(n => n.remove()); return x.textContent.replace(/\s+/g, ' ').trim(); }, fresh.b);
       ok('10f the brief panel\'s own funnel loads a light record first, whatever door opened it (RED at faa8f95)',
         !!funnel && /supply agreement for packaging/.test(funnel), String(funnel).slice(0, 140));
       await page.evaluate(() => { try { closeModal(); } catch (_){} });

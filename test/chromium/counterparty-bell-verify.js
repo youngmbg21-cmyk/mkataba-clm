@@ -99,11 +99,17 @@ const SEEN = `(el => { if (!el) return null;
     await pause(900);
 
     /* ---- 1. THE BELL IS IN THEIR HEADER ---- */
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): their page draws the outside look, where the
+       bell sits with every other head verb under More (#pol-more opens #pol-pop). Open More first; the bell must
+       still be visible pixels inside their head once it is open. */
+    if (await page.$('#pol-more')) { await page.click('#pol-more'); await pause(250); }
     const bell = await page.evaluate(([seen]) => {
       const s = eval(seen);
       const b = document.getElementById('pt-bell');
       const hist = document.getElementById('pt-hist');
-      const head = document.querySelector('.pw-id');
+      /* RE-POINTED 22 Nov 2026 (the P-44 review, the owner's picked drawing "the other side's page, the Legora + Stripe
+         way"): the bell stands on the black bar beside their name (.pol-bar), no longer inside More */
+      const head = document.querySelector('.pol-bar') || document.querySelector('.pw-id');
       return { box: s(b), inHead: !!(b && head && head.contains(b)),
         besideReading: !!(b && hist),
         dot: (() => { const d = document.getElementById('pt-bell-dot');
@@ -130,7 +136,8 @@ const SEEN = `(el => { if (!el) return null;
        One count, many surfaces: the bell must not say 3 over a column
        showing 2. Read the page's OWN numbers and compare. */
     const agree = await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('#pt-alerts-body .pt-alert-t')]
+      /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn): a row's words are its ink line (.pt-al-main b) */
+      const rows = [...document.querySelectorAll('#pt-alerts-body .pt-alert-t, #pt-alerts-body .pt-al-main > b')]
         .map(x => x.textContent.trim());
       const awaiting = (rows.find(t => /waiting on your answer/i.test(t)) || '').match(/\d+/);
       /* The cards the column actually draws for them to answer. */
@@ -159,11 +166,13 @@ const SEEN = `(el => { if (!el) return null;
       return { box: s(a), scrim: !!sc && !sc.hidden,
         fromRight: Math.abs(r.right - window.innerWidth) <= 2,
         onScreen: r.left < window.innerWidth && r.right > 0,
-        title: (document.querySelector('.pt-alerts-title') || {}).textContent };
+        /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn): the panel's head is its two tabs, Alerts · Notes, Alerts up */
+        title: (document.querySelector('#pt-alerts .pt-alerts-title, #pt-alerts .pt-ptab.is-on') || {}).textContent };
     }, [SEEN]);
     check('3 pressing it slides a panel IN FROM THE RIGHT',
       open.box && open.box.on && open.fromRight && open.onScreen, JSON.stringify(open.box));
-    check('3 with a dimmed backdrop', open.scrim);
+    /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn): the panel stands beside the page with no dimmed backdrop */
+    check('3 with no dimmed backdrop (as drawn)', !open.scrim);
     check('3 and a title saying what it is', /alert/i.test(open.title || ''), open.title);
     await page.screenshot({ path: path.join(OUT, '01-open.png') });
 
@@ -174,7 +183,8 @@ const SEEN = `(el => { if (!el) return null;
       await page.evaluate(() => portalAlertsOpen(true));
       await pause(320);
       if (how === 'x') await page.click('#pt-alerts-close');
-      else if (how === 'scrim') await page.click('#pt-alerts-scrim', { position: { x: 40, y: 300 } });
+      /* RE-POINTED 22 Nov 2026: no backdrop is drawn, so the backdrop's press is a press beside the panel */
+      else if (how === 'scrim') await page.mouse.click(40, 300);
       else await page.keyboard.press('Escape');
       await pause(320);
       return page.evaluate(() => {
@@ -184,7 +194,7 @@ const SEEN = `(el => { if (!el) return null;
       });
     };
     check('4 the ✕ closes it', await closes('x'));
-    check('4 the backdrop closes it', await closes('scrim'));
+    check('4 a press outside closes it', await closes('scrim'));
     check('4 Escape closes it', await closes('esc'));
 
     /* ---- 5. EVERY ROW IS A DOOR, AND THE PANEL CLOSES BEHIND IT ---- */

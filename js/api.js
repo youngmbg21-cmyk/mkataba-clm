@@ -18,10 +18,26 @@ const API_MODE=()=>!!REMOTE;
    presence withdraws a reader's asks for a clause on pagehide, and only a
    keepalive request outlives the page that sent it. Off for everybody else. */
 async function api(path, method='GET', body, opts){
-  const res=await fetch('api/'+path,{ method,
-    headers:body?{'Content-Type':'application/json'}:undefined,
-    body:body?JSON.stringify(body):undefined, credentials:'same-origin',
-    ...(opts&&opts.keepalive?{keepalive:true}:{}) });
+  /* A SETTINGS SHEET HOLDS ITS EDITS UNTIL SAVE (P-43): a held setting's write waits in the open sheet and leaves on
+     its Save (js/views/settings.js, stHoldApi); everything else goes now, as it always did */
+  if(method!=='GET' && !(opts&&opts.unheld) && typeof window!=='undefined' && typeof window.stHoldApi==='function'){
+    const held=window.stHoldApi(path, method, body); if(held) return held; }
+  /* THE BROWSER'S OWN WORDS NEVER REACH THE READER (owner, 22 Nov 2026): a
+     dropped connection threw "Failed to fetch" and about 160 callers printed
+     it raw in a red alert. This is the one place a request becomes an Error,
+     so the plain sentence is given here; `network` says what kind it was. */
+  const _say=(key,fallback,vars)=>{ try{ if(typeof window!=='undefined'&&typeof window.i18t==='function'){ const v=window.i18t(key,vars); if(v&&v!==key) return v; } }catch(_){ } return fallback; };
+  let res;
+  try{
+    res=await fetch('api/'+path,{ method,
+      headers:body?{'Content-Type':'application/json'}:undefined,
+      body:body?JSON.stringify(body):undefined, credentials:'same-origin',
+      ...(opts&&opts.keepalive?{keepalive:true}:{}) });
+  }catch(e){
+    if(e&&e.name==='AbortError') throw e;
+    const err=new Error(_say('net_unreachable','HaTi could not be reached. Check your connection and try again.'));
+    err.network=true; err.cause=e; throw err;
+  }
   let data=null; try{ data=await res.json(); }catch(e){}
   // Rate-limit / daily-ceiling responses (429) carry a friendly message —
   // surface it centrally so every caller shows it, even ones that otherwise
@@ -39,13 +55,15 @@ async function api(path, method='GET', body, opts){
      contract's arrival starts by itself hit the limit, and the red box landed
      on whatever the reader pressed next). A quiet caller is handed the error
      and says it where the reader looks, as its `quiet` promises. */
-  if(res.status===429&&data&&data.error&&typeof toast==='function'&&!(opts&&opts.quiet)) toast(_sm(data.error),'err');
+  if(res.status===429&&data&&data.error&&typeof toast==='function'&&!(opts&&opts.quiet)) toast(_sm(data.error),'err',{limit:true});
   if(!res.ok){
     // Carry the structured flags onto the Error so callers can tell "wait a
     // few minutes" (rate limit) from "an admin has to raise a budget"
     // (spendLimit / allowanceExhausted) and degrade accordingly.
-    const err=new Error(_sm(data?.error)||('Request failed ('+res.status+')'));
-    err.status=res.status; err.data=data||null;
+    const err=new Error(_sm(data?.error)||([502,503,504].includes(res.status)
+      ? _say('net_unreachable','HaTi could not be reached. Check your connection and try again.')
+      : _say('net_srv_fail','HaTi’s server could not do that just now ('+res.status+'). Try again in a moment.',{n:res.status})));
+    err.status=res.status; err.data=data||null; if(!(data&&data.error)&&[502,503,504].includes(res.status)) err.network=true;
     if(data){ err.spendLimit=!!data.spendLimit; err.dailyLimit=!!data.dailyLimit; err.allowanceExhausted=!!data.allowanceExhausted; err.needsKey=!!data.needsKey; err.kind=(typeof data.kind==='string')?data.kind:''; }
     throw err;
   }
@@ -127,14 +145,18 @@ async function loadBootstrap(){
   state.emailConfigured=b.emailConfigured!==false;
   // Load contract SUMMARIES (heavy fields stripped) in pages — full bodies load
   // on open. Capped so a very large portfolio can't blow up the initial load.
-  state.contracts=[]; let offset=0; const limit=200; let total=Infinity;
-  while(offset<total && state.contracts.length<5000){
+  /* THE BOOK ARRIVES WHOLE (21 Nov 2026): the pages are gathered aside and put in place in one step. Emptied first and
+     filled page by page, anything painted between two pages (a beat, a press) counted an empty or half book — the
+     Board's figures read 0 while the real book was on its way. */
+  const book=[]; let offset=0; const limit=200; let total=Infinity;
+  while(offset<total && book.length<5000){
     const pg=await api('contracts?limit='+limit+'&offset='+offset);
     total=pg.total;
-    pg.rows.forEach(r=>{ const c=migrateContract(r); c._light=true; c._loaded=false; c._v=r._v; state.contracts.push(c); });
+    pg.rows.forEach(r=>{ const c=migrateContract(r); c._light=true; c._loaded=false; c._v=r._v; book.push(c); });
     if(!pg.rows.length) break;
     offset+=pg.rows.length;
   }
+  state.contracts=book;
   state.truncated = total>state.contracts.length;
   // screen position is per-device, not shared with teammates
   const ui=lsGet(LS.ui)||{};

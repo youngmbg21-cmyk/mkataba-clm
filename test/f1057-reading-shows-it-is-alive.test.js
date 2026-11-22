@@ -19,42 +19,49 @@ const RD = strip(read('js/views/reads.js')), ACJ = strip(read('js/views/askcolum
 const fnBody = (src, name) => { const at = src.search(new RegExp('\\n(?:async )?function ' + name + '\\(')); assert.ok(at >= 0, name + ' exists'); const nx = src.slice(at + 10).search(/\n(?:async )?function |\nif \(typeof document/); return src.slice(at, nx > 0 ? at + 10 + nx : src.length); };
 
 test('f1057 (1) a Discover read takes up to 100 a press', () => {
-  assert.match(RD, /const DSN_READ_MAX = 100;/); assert.match(RD, /const _dscSize = \(\) => DSN_READ_MAX;/);
-  assert.match(fnBody(RD, 'dsnAsk'), /Object\.assign\(o, \{ size: DSN_READ_MAX,/);
+  /* RE-POINTED 22 Nov 2026 (P-42 review: "read 50 or 100 a press" as drawn): the reader chooses 50 or 100, 100 until
+     chosen; never more than DSN_READ_MAX */
+  assert.match(RD, /const DSN_READ_MAX = 100;/); assert.match(RD, /const DSN_SIZES = \[50, DSN_READ_MAX\];/);
+  assert.match(RD, /const _dscSize = \(\) => \(DSN_SIZES\.includes\(_dsn\.size\) \? _dsn\.size : DSN_READ_MAX\);/);
+  assert.match(fnBody(RD, 'dsnAsk'), /Object\.assign\(o, \{ size: _dscSize\(\),/);
+  assert.match(fnBody(RD, 'dsnNewHtml'), /dsnSizeHtml\(\)/, 'the choice is on New read');
   assert.match(ACJ, /const AC_MAX = 100;/, 'the most one press may read');
 });
 
-test('f1057 (2) while it reads: the four newest answers above, the Legora way below; the old motion is gone', () => {
+/* RE-POINTED (P-42, owner's pick 20 Nov 2026: Discover the Legora + Stripe way; reading is "The Reading Room"): the
+   flipbook, the typed line and the next papers are gone — the page shows the paper itself (dsnRoomHtml), a hairline and
+   one counted sentence, then the answers filed so far (the last four, the rest "↑ N more above · show them"). */
+test('f1057 (2) while it reads: the paper being read, a hairline, the last few filed; the flipbook is gone', () => {
   const R = fnBody(RD, 'dsnReadingHtml');
-  assert.match(R, /doneIds\.slice\(b \? -DSN_ROWS_SHOWN : 0\)/); assert.match(RD, /const DSN_ROWS_SHOWN = 4,/);
-  assert.match(R, /<div class="dsn-rows">[\s\S]*\$\{dsnLegoraHtml\(b, got\)\}/);
-  const L = fnBody(RD, 'dsnLegoraHtml');
-  assert.match(L, /dsn-book/); assert.match(L, /dsn-hl/); assert.match(L, /_rdT\('dsn_now'\)/); assert.match(L, /data-dsn-typ/); assert.match(L, /dsn-mini/);
-  assert.doesNotMatch(L, /<button|data-dsn-(?!typ)|href=/, 'nothing in the motion is pressed');
+  assert.match(R, /doneIds\.slice\(-DSN_FILED_SHOWN\)/); assert.match(RD, /const DSN_FILED_SHOWN = 4;/);
+  assert.match(R, /dsnRoomHtml\(b, got, doneIds, k, n\)/); assert.match(R, /class="dsn-hair"/); assert.match(R, /data-dsn-filed/);
+  const M = fnBody(RD, 'dsnRoomHtml');
+  assert.match(M, /_rdT\('dsn_room_now'\)/); assert.match(M, /dsnRoomWords\(a\)/); assert.match(M, /dsn-room-sc/);
+  assert.doesNotMatch(M, /<button|href=/, 'nothing in the room is pressed');
+  assert.doesNotMatch(RD, /function dsnLegoraHtml|function dsnTypeTick/, 'the flipbook and the typed line are gone');
   assert.doesNotMatch(RD + CSS, /dsnGhostRowsHtml|dsnScanHtml|dsn-ghost|class="dsn-scan/, 'the waiting rows and the scan light are gone');
 });
 
-test('f1057 (3) the typed line runs on its own clock and says only what HaTi holds', () => {
-  const T = fnBody(RD, 'dsnTypeLines');
-  assert.match(T, /_rdT\('dsn_looking', \{ q:/, 'what Jambo is looking for');
-  assert.match(T, /got\[id\]\.found && String\(got\[id\]\.quote/, 'only words actually found');
-  assert.match(fnBody(RD, 'dsnTypeStart'), /setInterval\(dsnTypeTick, 400\)/);
-  assert.match(fnBody(RD, 'dsnTypeTick'), /clearInterval\(_dsnTypeT\)/, 'it stops when the read ends');
-  assert.match(fnBody(RD, 'dsnRender'), /if \(_dsn\.screen === 'reading' && busy\) dsnTypeStart\(\);/);
+/* RETIRED (P-42): the typed line went with the flipbook — the room shows the words themselves. What stands of it: only
+   words HaTi holds are shown, Yes words lit yellow (dsnYesMarked), the rest pale green. */
+test('f1057 (3) the room says only what HaTi holds: yellow only on a Yes\'s own words', () => {
+  const W = fnBody(RD, 'dsnRoomWords');
+  assert.match(W, /a\.yes === true && a\.yesWords/); assert.match(W, /dsnYesMarked\(a\)/); assert.match(W, /mark class="dsn-read"/);
+  assert.doesNotMatch(fnBody(RD, 'dsnRender'), /dsnTypeStart/);
 });
 
-test('f1057 (4) Jambo\'s panel while it reads: the words found, drifting; no links; motion picks up where it was', () => {
+/* RE-POINTED (P-42): Jambo's panel while it reads — the ring of read and Stop at the top, then FOUND SO FAR filling the
+   panel down to his links, newest first, sliding in at the top; no links; the room's motion by transform only */
+test('f1057 (4) Jambo\'s panel while it reads: ring and Stop, found so far newest first; no links; transform only', () => {
   const P = fnBody(RD, 'dsnPanelPaint');
-  assert.match(P, /if \(_dsn\.screen === 'reading' && b\)\{/); assert.match(P, /item: \{ id: 'drift' \}, body: `<div class="rfp-panel is-drawn rdn-panel dsn-drift-panel">\$\{dsnDriftHtml\(\)\}<\/div>`/);
-  /* the quotes fill the panel, piling up from the foot (owner, 15 Nov 2026: "Make use of the space") */
-  assert.match(CSS, /\.rdn-panel\.dsn-drift-panel\{box-sizing:border-box;height:100%;display:flex;flex-direction:column\}/);
-  assert.match(CSS, /\.dsn-drift\{display:flex;flex-direction:column;flex:1;min-height:0\}/);
-  assert.match(fnBody(RD, 'dsnDriftHtml'), /\.slice\(-DSN_DRIFT_KEEP\)/); assert.match(RD, /const DSN_DRIFT_KEEP = 30;/); assert.match(P, /jlLinks: '' \}\)\);\s*return;/, 'no links while it reads');
-  assert.match(fnBody(RD, 'dsnDriftHtml'), /_dsnDelay\(9\)/);
-  assert.match(RD, /const _dsnDelay = \(period, off\) => `animation-delay:\$\{\(-/);
+  assert.match(P, /if \(_dsn\.screen === 'reading' && b\)\{/); assert.match(P, /item: \{ id: 'drift' \}, body: `<div class="dsl dsn-drift-panel">\$\{dsnDriftHtml\(\)\}<\/div>`/);
+  const D = fnBody(RD, 'dsnDriftHtml');
+  assert.match(D, /\.slice\(-DSN_DRIFT_KEEP\)\.reverse\(\)/); assert.match(RD, /const DSN_DRIFT_KEEP = 30;/); assert.match(P, /jlLinks: '' \}\)\);\s*return;/, 'no links while it reads');
+  assert.match(D, /dsnRingHtml\(k, n, 'amber'/); assert.match(D, /data-dsn-stop/); assert.match(D, /is-new/);
+  assert.match(CSS, /\.dsn-finds\{flex:1;min-height:0/);
   const kf = n => (CSS.match(new RegExp('@keyframes ' + n + '\\{[^\\n]*')) || [''])[0];
-  for (const k of ['dsn-flip', 'dsn-scanp', 'dsn-bob', 'dsn-rise']) { assert.ok(kf(k), k); assert.doesNotMatch(kf(k), /\b(height|top|left|width):/, k + ' moves by transform'); }
-  assert.match(CSS, /@media \(prefers-reduced-motion:reduce\)\{ html\.lg-new :is\(\.dsn-pg/);
+  for (const k of ['dsn-turn', 'dsn-roomscan', 'dsn-fade', 'dsn-slidein']) { assert.ok(kf(k), k); assert.doesNotMatch(kf(k), /\b(height|top|left|width):/, k + ' moves by transform'); }
+  assert.match(CSS, /@media \(prefers-reduced-motion: reduce\)\{ html\.lg-new :is\(\.dsn-room\.is-turn/);
 });
 
 test('f1057 (5) the words in both books; colours only from tokens', () => {

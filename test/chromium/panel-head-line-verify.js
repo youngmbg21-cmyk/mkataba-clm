@@ -1,0 +1,98 @@
+/* SAP PAGE, LEGORA PANEL (owner's pick by name, 19 Nov 2026; f1107). The line under a side panel's head never
+   touches the divider or the window's edge; the page's own line is unchanged.
+     1 · (RE-POINTED 22 Nov 2026, owner: delete the line across all Jambo panels) at the owner's three screens, on six
+         pages, NO line is drawn under the panel head: its border clear and nothing painted in its row
+     3 · the page's list line under the filter box is still drawn solid, from the page's words to their end
+     4 · nothing scrolls sideways; no page errors
+   Red at the parent: 1 and 2 on every page (the line ran from the divider to the edge, solid).
+   Run: node test/chromium/panel-head-line-verify.js */
+const fs = require('node:fs');
+const path = require('node:path');
+const { chromium } = require('playwright-core');
+const { startHati } = require('../helpers');
+const { seedDiscoverWorld } = require('../discover-world');
+
+const EXEC = process.env.CHROMIUM_BIN || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
+const OUT = process.env.SHOTS_OUT || path.join(__dirname, 'shots', 'panel-head-line');
+fs.mkdirSync(OUT, { recursive: true });
+const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
+const PAGES = ['approvals', 'register', 'calendar', 'team', 'templates', 'contract'];
+let failures = 0, passes = 0;
+const check = (ok, what, detail) => { console.log((ok ? 'PASS  ' : 'FAIL  ') + what + (detail != null ? ' — ' + JSON.stringify(detail) : '')); if (ok) passes++; else failures++; };
+const until = async (P, fn, arg, ms = 10000) => { try { await P.waitForFunction(fn, arg, { timeout: ms }); return true; } catch (_) { return false; } };
+
+/* the darkness (255 - average channel) of every pixel in one row of a clip, read in the page from the screenshot */
+async function rowInk(P, clip){
+  const b64 = (await P.screenshot({ clip, type: 'png' })).toString('base64');
+  return P.evaluate(async b64 => {
+    const img = new Image(); img.src = 'data:image/png;base64,' + b64; await img.decode();
+    const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height;
+    const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0);
+    const d = cx.getImageData(0, 0, img.width, 1).data, out = [];
+    for (let i = 0; i < d.length; i += 4) out.push(255 - Math.round((d[i] + d[i + 1] + d[i + 2]) / 3));
+    return out;
+  }, b64);
+}
+
+(async () => {
+  const h = await startHati(); await seedDiscoverWorld(h);
+  const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
+  try {
+    for (const [w, hh] of SCREENS){
+      const P = await (await browser.newContext({ viewport: { width: w, height: hh } })).newPage();
+      const errors = []; P.on('pageerror', e => errors.push(String(e && e.message || e)));
+      await P.goto(h.base + '/', { waitUntil: 'networkidle' });
+      await P.fill('#li-email', 'admin@example.co.ke'); await P.fill('#li-pass', 'adminpassword1'); await P.click('#li-go');
+      const ready = await until(P, () => window.state && Array.isArray(state.contracts) && state.contracts.length >= 5 && typeof setView === 'function', null, 20000);
+      check(ready, `${w}×${hh} signed in with the world`);
+      if (!ready){ await P.close(); continue; }
+      for (const pg of PAGES){
+        await P.evaluate(v => { if (v === 'contract') pdOpenOnHome(state.contracts[0].id, 'job'); else setView(v); }, pg);
+        const head = await until(P, () => [...document.querySelectorAll('.jl-head, #ig-dock > .igd-head')].some(e => e.getBoundingClientRect().width > 200), null, 10000);
+        /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the Contracts place's panel draws no head row at all (its summary is
+           the panel), so there is no head line to measure there; every other page keeps its head and its line */
+        if (!head && pg === 'register'){ const none = await P.evaluate(() => !!document.querySelector('#ig-dock .ctls') && ![...document.querySelectorAll('#ig-dock > .igd-head')].some(e => e.getBoundingClientRect().width > 0));
+          check(none, `${w}×${hh} ${pg}: no panel head is drawn (as drawn), the summary is the panel`); continue; }
+        /* RE-POINTED 22 Nov 2026 (P-34, Our paper as drawn, PR 881): its panel draws no head row either (the page's own
+           card, slot "tpln", is the panel), so there is no head line to measure there and the page is skipped, saying so;
+           every page that draws a head keeps the line (f1107) */
+        if (!head && pg === 'templates'){ const none = await P.evaluate(() => !!document.querySelector('#ins-panel .jov5[data-jov-slot="tpln"]') && ![...document.querySelectorAll('#ins-panel .jl-head')].some(e => e.getBoundingClientRect().width > 0));
+          check(none, `${w}×${hh} ${pg}: no panel head is drawn (as drawn), so no head line to measure — the page's own card is the panel`); continue; }
+        if (!head){ check(false, `${w}×${hh} ${pg}: a panel head is drawn`); continue; }
+        await P.waitForTimeout(600);
+        /* RE-POINTED 22 Nov 2026 (owner: "there is this line in the jambo pages. delete it across all jambos"; reverses
+           1 and 2's painted, faded line): no line under the panel head — its border clear, nothing painted in its row.
+           Read off the style, not the pixels: the watermark's weave passes behind the head's bottom row */
+        const r = await P.evaluate(() => { const e = [...document.querySelectorAll('.jl-head, #ig-dock > .igd-head')].find(x => x.getBoundingClientRect().width > 200); const c = getComputedStyle(e);
+          return { border: c.borderBottomColor, width: c.borderBottomWidth, image: c.backgroundImage }; });
+        const clear = /rgba\(\d+, \d+, \d+, 0\)|transparent/.test(r.border);
+        check(clear && !/linear-gradient/.test(r.image), `1 ${w}×${hh} ${pg}: no line under the panel head (its border clear, nothing painted)`, r);
+        if (pg === 'approvals'){
+          /* RE-POINTED (P-30, owner's pick 20 Nov 2026: Approvals the Legora + Stripe way): the filter box is the ask box
+             (label.apn-ask) under the title, and the page's line is drawn under IT; the chips' bar under it draws none */
+          const bar = await P.evaluate(() => { const e = document.querySelector('.apn-page label.apn-ask'); if (!e) return null; const b = e.getBoundingClientRect(), s = getComputedStyle(e); return { x: b.left, y: b.bottom - 1, w: b.width, solid: s.borderBottomStyle === 'solid' && !/, 0\)$/.test(s.borderBottomColor) }; });
+          if (!bar) check(false, `3 ${w}×${hh}: the list head is drawn`);
+          else {
+            /* RE-POINTED 20 Nov 2026: the bar's bottom can sit on a fractional y (1440×780 lands whole, 1536×730 and
+               1366×950 do not), and Chromium snaps a 1px border to a whole device row that need not be floor(bottom - 1):
+               the one row read there was blank from end to end (lo 0) while the line was drawn one row lower. The line
+               is now looked for in the rows round its bottom edge, and the row that carries it must be solid end to end. */
+            let lo = -1;
+            for (let dy = -2; dy <= 1; dy++){
+              const li = await rowInk(P, { x: Math.round(bar.x), y: Math.floor(bar.y) + dy, width: Math.floor(bar.w) - 1, height: 1 });
+              lo = Math.max(lo, Math.min(...li.slice(1, li.length - 1)));
+            }
+            check(bar.solid && lo >= 10, `3 ${w}×${hh}: the page's line under the filter box is still solid from end to end`, { solid: bar.solid, lo });
+          }
+        }
+        await P.screenshot({ path: path.join(OUT, `${w}x${hh}-${pg}.png`) });
+      }
+      const side = await P.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+      check(side <= 0, `4 ${w}×${hh}: nothing sideways`, side);
+      check(errors.length === 0, `4 ${w}×${hh}: no page errors`, errors.join(' | '));
+      await P.close();
+    }
+  } finally { await browser.close(); await h.stop(); }
+  console.log(`\n${passes} passed, ${failures} failed`);
+  process.exit(failures ? 1 : 0);
+})().catch(e => { console.error(e); process.exit(1); });

@@ -120,17 +120,20 @@ async function run(mode) {
         check(tag(`${ch}: the contract is still a draft`), f.status === 'Draft', f.status);
         check(tag(`${ch}: the move is still ours`), f.turn !== 'counterparty', String(f.turn));
         check(tag(`${ch}: the trail says NOT sent`), /NOT sent/.test(f.last) && !/^Sent to/.test(f.last), f.last);
-        const btn = await page.evaluate(() => {
-          const b = document.getElementById('share-by-hand'); if (!b) return null;
+        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): "not sent" is said in Before you send, as drawn;
+           the result box folds and its by-hand button's door is that panel's own pill ([data-sh-ns="hand"]) */
+        const HAND = (await page.$('[data-sh-ns="hand"]')) ? '[data-sh-ns="hand"]' : '#share-by-hand';
+        const btn = await page.evaluate(sel => {
+          const b = document.querySelector(sel); if (!b) return null;
           b.scrollIntoView({ block: 'center' });
           const r = b.getBoundingClientRect();
           const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
           return { text: b.textContent.trim(), painted: !!hit && (hit === b || b.contains(hit)) };
-        });
+        }, HAND);
         check(tag(`${ch}: the result box carries the person's own hand-over`), !!(btn && btn.painted), btn && btn.text);
         if (process.env.SHOT_DIR) await page.screenshot({ path: `${process.env.SHOT_DIR}/sent-means-sent-${mode}-${ch}.png` });
         if (btn) {
-          await page.evaluate(() => document.getElementById('share-by-hand').click());
+          await page.click(HAND);
           await waitFor(page, id => state.contracts.find(x => x.id === id).status === 'Under Review', id);
           const g = await facts(id);
           check(tag(`${ch}: their press IS the hand-over`), g.status === 'Under Review' && g.turn === 'counterparty',
@@ -187,8 +190,10 @@ async function run(mode) {
       }, null, 10000);
       /* RE-POINTED 24 Oct 2026 (Round 3): OFF the letter is a link you copy, so what travels is named on the
          screen ("the contract, round 1") and it says nothing is sent from here; ON the letter's words name the change */
-      check(tag('Send all: opens the letter, naming what travels'), !!asked && (on ? /proposes a change of its own/i.test(asked)
-        : /round 1/.test(asked) && /Nothing is sent from here/.test(asked)), (asked || '').slice(0, 400));
+      /* RE-POINTED 16 Nov 2026 (#762): the plain letter names the change in the sender's voice ("We propose a change to
+         clause 13, Governing Law"); OFF, step 2 "What goes" names what travels (the answer and the paper as redlined) */
+      check(tag('Send all: opens the letter, naming what travels'), !!asked && (on ? /proposes? a change (of its own|to clause)/i.test(asked)
+        : (/round 1/.test(asked) || /What goes Your answer and the paper as redlined/.test(asked)) && /Nothing is sent from here/.test(asked)), (asked || '').slice(0, 400));
       if (asked) await page.evaluate(() => { const ack = document.getElementById('sh-ack'); if (ack) ack.checked = true;
         document.getElementById('share-send').click(); });
       /* RE-POINTED (round 11's gaps, second pass): delivered by email, the

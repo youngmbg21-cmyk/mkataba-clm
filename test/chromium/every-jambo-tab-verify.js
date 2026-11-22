@@ -34,6 +34,10 @@ function world(){
   const at = new Date(Date.now() - 4 * 864e5).toISOString();
   a2.negotiation = { rounds: [{ n: 1 }], turn: 'us', turnAt: at };
   a2.changes = [{ id: 'ch1', clauseId: 'c1', clauseLabel: '3. Payment', status: 'pending', authorSide: 'counterparty', kind: 'edit', at, before: 'thirty', after: 'sixty' }];
+  /* ONE LATE DUTY (17 Nov 2026): the new look's Obligations draws its Late pill only when something is late, so a
+     second tab stands for his press (B obligations, G2) */
+  const wh = cs.find(c => (c.obligations || []).some(o => o.id === 'ob-count'));
+  if (wh) wh.obligations.push({ id: 'ob-late', desc: 'Insurance certificate to the warehouse', due: new Date(Date.now() - 3 * 864e5).toISOString().slice(0, 10), party: 'ours', assignee: 'admin@example.co.ke', status: 'open' });
   return cs;
 }
 /* page, how it opens, its panel, its box, the view it must stay on, and what his presses should do there */
@@ -54,7 +58,8 @@ const PAGES = [
   ['pulse', "setView('pulse')", '#ins-panel', '#jl-q', 'pulse', null],   /* THE PULSE BOARD (29 Oct 2026) */
   ['handbook', "setView('handbook')", '#ins-panel', '#jl-q', 'handbook', null],
   ['migration', "setView('migration')", '#mig-side', '#jl-q', 'migration', null],
-  ['settings', "setView('team')", '#st-side', '#st-jb-q', 'team', null],
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings' Jambo is the list pages' panel (#ins-panel, box #jl-q), no longer its own #st-side */
+  ['settings', "setView('team')", '#ins-panel', '#jl-q', 'team', null],
 ];
 const deliver = (answer, extra) => ({ content: [{ type: 'tool_use', id: 'tu_e', name: 'deliver_answer', input: Object.assign({ answer, citations: [] }, extra || {}) }] });
 const toolsOf = c => (c && c.body && Array.isArray(c.body.tools)) ? c.body.tools.map(t => t.name) : [];

@@ -22,7 +22,7 @@ let fails = 0;
 const check = (name, ok, more) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${more !== undefined ? ' — ' + (typeof more === 'string' ? more : JSON.stringify(more)) : ''}`); if (!ok) fails++; };
 const until = async (page, fn, ms = 15000) => { try { await page.waitForFunction(fn, null, { timeout: ms }); return true; } catch (_) { return false; } };
 const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
-const txt = async (page, sel) => page.evaluate(s => { const n = document.querySelector(s); return n ? n.innerText.trim() : ''; }, sel);
+
 
 /* a book big enough to page: 30 duties on one contract, three agreements of Jambo's finds, one late */
 function world(){
@@ -58,98 +58,167 @@ function world(){
   await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
   await until(page, () => typeof caGo === 'function' && typeof currentUser === 'function' && !!currentUser() && !!getContract('MK-PG'), 40000);
   await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); setView('obligations'); });
-  await until(page, () => !!document.querySelector('.obn-page .obn-table'));
+  await until(page, () => !!document.querySelector('.obn-page .obn-table, .obt-page .obt-cols'));
   await page.waitForTimeout(400);
 
-  /* 1 · twenty a page, and a foot that says where you are */
-  const one = await page.evaluate(() => ({ rows: document.querySelectorAll('#obn-body tr.obn-r').length,
-    say: (document.querySelector('.obn-pager .obn-pg-say') || {}).textContent || '',
-    pages: [...document.querySelectorAll('.obn-pn[data-obn-page]')].map(b => b.textContent.trim()),
-    per: !!document.querySelector('#obn-per') }));
-  check('1 · twenty duties a page, the foot says 1–20 of 30 and offers the rest', one.rows === 20 && /1.20/.test(one.say) && /30/.test(one.say) && one.pages.includes('2') && one.per, one);
+  /* 1–4 RE-POINTED 19 Nov 2026 (We owe · They owe, the owner's pick "Build as drawn"; replaces Late · Tracked and twenty a
+     page): the tabs Next 30 days · Later · Done; two columns; late first; each line's day a toned word */
+  await until(page, () => !!document.querySelector('.obt-cols .obt-li'), 8000);
+  const one = await page.evaluate(() => { for (let m, i = 0; (m = document.querySelector('[data-obt-more]')) && i < 4; i++) m.click();   /* one at a time: a press redraws the lines */
+    /* RE-POINTED (P-13): a tile's count is its big number (.obs-tn b); its note can carry a day */
+    const tabs = Object.fromEntries([...document.querySelectorAll('.obn-bar [data-obn-tab]')].map(b => [b.getAttribute('data-obn-tab'), Number(((b.querySelector('.obs-tn b') || b).textContent.match(/(\d+)\D*$/) || [0, 0])[1])]));
+    /* RE-POINTED (P-13, owner's pick 20 Nov 2026: Obligations the Stripe way): one calm table, whose a soft badge (ours ·
+       theirs) on each row, the tabs are figure tiles */
+    return { tabs, whose: [...new Set([...document.querySelectorAll('.obt-cols .obt-li .obs-b.is-ours, .obt-cols .obt-li .obs-b.is-theirs')].map(b => b.classList.contains('is-ours') ? 'ours' : 'theirs'))].sort(), lines: document.querySelectorAll('.obt-cols .obt-li').length }; });
+  check('1 · ours and theirs in one table, under the tiles Next 30 days · Later · Done; the tile counts its lines', one.whose.join('|') === 'ours|theirs' && 'open' in one.tabs && 'later' in one.tabs && 'done' in one.tabs && one.lines === one.tabs.open, one);
   await page.screenshot({ path: path.join(OUT, '1-tracked.png') });
 
-  /* 2 · page two is the rest, and nothing more is built than the page asks for */
-  await page.evaluate(() => { const b = [...document.querySelectorAll('.obn-pn')].find(x => x.textContent.trim() === '2'); if (b) b.click(); });
+  await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="later"]'); if (b) b.click(); });
   await page.waitForTimeout(400);
-  const two = await page.evaluate(() => ({ rows: document.querySelectorAll('#obn-body tr.obn-r').length, say: (document.querySelector('.obn-pg-say') || {}).textContent || '' }));
-  check('2 · page two holds the rest', two.rows === 10 && /21/.test(two.say), two);
+  const two = await page.evaluate(() => { for (let m, i = 0; (m = document.querySelector('[data-obt-more]')) && i < 4; i++) m.click();   /* one at a time: a press redraws the lines */
+    return { lines: document.querySelectorAll('.obt-cols .obt-li').length, n: Number(((document.querySelector('[data-obn-tab="later"] .obs-tn b') || document.querySelector('[data-obn-tab="later"]') || {}).textContent || '').replace(/\D/g, '')) || 0 }; });
+  check('2 · Later holds the rest, as its tab counts', two.lines >= 1 && two.lines === two.n, two);
 
-  /* 3 · colour that carries a meaning: the stream's band, the day as a tone chip */
-  await page.evaluate(() => { const b = [...document.querySelectorAll('.obn-pn')].find(x => x.textContent.trim() === '1'); if (b) b.click(); });
-  await page.waitForTimeout(300);
-  const tone = await page.evaluate(() => { const rs = [...document.querySelectorAll('#obn-body tr.obn-r')];
-    const band = rs.map(r => { const c = r.querySelector('td.obn-c1'); const s = getComputedStyle(c); return s.borderLeftWidth + ' ' + s.borderLeftColor; });
-    const chips = rs.map(r => (r.querySelector('.obn-ch') || {}).className || '');
-    return { band: band[0], same: band.every(b => b === band[0]), ruby: chips.filter(c => /is-ruby/.test(c)).length, green: chips.filter(c => /is-green/.test(c)).length, amber: chips.filter(c => /is-amber/.test(c)).length }; });
-  check('3 · every row wears its stream’s band and its day as a tone chip, the late one in red', /^3px/.test(tone.band) && tone.ruby === 1 && (tone.green + tone.amber) > 0, tone);
-
-  /* 4 · the Late pill is the first thing said, and it narrows to the late ones */
-  const pills = await page.evaluate(() => [...document.querySelectorAll('.obn-bar [data-obn-tab]')].map(b => ({ k: b.getAttribute('data-obn-tab'), w: b.textContent.trim() })));
-  await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="late"]'); if (b) b.click(); });
+  await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="open"]'); if (b) b.click(); });
   await page.waitForTimeout(400);
-  const lateRows = await page.evaluate(() => [...document.querySelectorAll('#obn-body tr.obn-r .obn-ch')].map(c => c.className));
-  check('4 · Late leads the pills and narrows to what is late', pills[0] && pills[0].k === 'late' && /late/i.test(pills[0].w) && lateRows.length === 1 && /is-ruby/.test(lateRows[0]), { pills, lateRows });
+  const tone = await page.evaluate(() => { const ls = [...document.querySelectorAll('.obt-cols .obt-li')].filter(x => x.querySelector('.obs-b.is-ours'));
+    return { first: ls[0] ? (ls[0].querySelector('.obt-w') || {}).className : '', late: document.querySelectorAll('.obt-cols .obt-w.is-late').length,
+      head: ((document.querySelector('.obs-tile[data-obn-tab="open"] .obs-tl em') || {}).textContent || '').trim() }; });
+  check('3 · the late one leads its column in red, and every line says its day', /is-late/.test(tone.first) && tone.late === 1, tone);
+  /* RE-POINTED (P-13): the facts beside the title went; the Next 30 days tile says how many are late */
+  check('4 · the Next 30 days tile says what is late', /^1 late$/.test(tone.head), tone);
 
   /* 5 · proposals by agreement: a row each, oldest first, with its progress and status */
   await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="prop"]'); if (b) b.click(); });
   await until(page, () => !!document.querySelector('.obn-table.is-proj .obn-pr'));
   await page.waitForTimeout(300);
   const proj = await page.evaluate(() => ({ heads: [...document.querySelectorAll('.obn-table.is-proj thead th')].map(t => t.textContent.trim()).filter(Boolean),
-    rows: [...document.querySelectorAll('.obn-pr')].map(r => ({ name: (r.querySelector('.obn-what') || {}).textContent, ring: !!r.querySelector('.obn-ring'),
-      said: (r.querySelector('.obn-pgb small') || {}).textContent, age: (r.querySelector('.obn-age') || {}).textContent, st: (r.querySelector('.obn-stt .obn-ch') || {}).textContent })) }));
-  check('5 · one row per agreement, oldest wait first, each with its ring, its progress and its status',
-    proj.heads.length === 5 && proj.rows.length === 3 && /Milk/.test(proj.rows[0].name || '') && proj.rows.every(r => r.ring && /decided/i.test(r.said || '') && String(r.st || '').trim()),
+    rows: [...document.querySelectorAll('.obn-pr')].map(r => ({ name: (r.querySelector('.obn-what') || {}).textContent, bar: !!r.querySelector('.obn-pbar'),
+      said: (r.querySelector('.obn-pgs small') || {}).textContent, st: (r.querySelector('.obn-stt .obs-b') || {}).textContent })) }));
+  /* RE-POINTED 21 Nov 2026 (P-13, the owner's pick of 20 Nov, newer than the 19 Nov "delete the found column"): the drawn
+     table — Agreement · Other side · Progress (a bar and "N of M") · Status (a soft badge) · Duties · Found; no ring */
+  check('5 · one row per agreement, oldest wait first, each with its progress bar and its status',
+    proj.heads.join() === 'Agreement,Other side,Progress,Status,Duties,Found' && proj.rows.length === 3 && /Milk/.test(proj.rows[0].name || '') && proj.rows.every(r => r.bar && /\d+ of \d+/.test(r.said || '') && String(r.st || '').trim()),
     proj);
   await page.screenshot({ path: path.join(OUT, '2-proposals.png') });
 
-  /* 6 · the row opens where it stands and each duty is answered on its own line */
-  await page.evaluate(() => { const b = document.querySelector('[data-obn-open]'); if (b) b.click(); });
-  await until(page, () => !!document.querySelector('.obn-dr'));
-  const open = await page.evaluate(() => ({ duties: document.querySelectorAll('.obn-dr').length,
-    whose: document.querySelectorAll('.obn-dr [data-obn-whose]').length,
-    chosen: [...document.querySelectorAll('.obn-dr')].every(r => !!r.querySelector('.obn-wh.is-on')),
-    quote: !!document.querySelector('.obn-dr .obn-q i'), skip: !!document.querySelector('.obn-dr [data-obn-skip]'),
-    modal: !!document.querySelector('#modal-root #obd') }));
-  check('6 · the duties open under their agreement — three answers each, the words they rest on, and no pop-up',
-    open.duties === 3 && open.whose === 9 && open.chosen && open.quote && open.skip && !open.modal, open);
+  /* 6–9 RE-POINTED 19 Nov 2026 (owner, with a picture: "the obligations are redundant as they are already in the side
+     panel. Delete them"; f1102): the duties no longer open under the row; a press chooses the agreement and its duties are
+     answered in Jambo's panel — Undecided · Us · Theirs · Both sides, Undecided lit */
+  await page.evaluate(() => { const r = document.querySelector('.obn-pr[data-obn-pick] td.obn-c1'); if (r) r.click(); });
+  await until(page, () => !!document.querySelector('#ins-panel .obn-lg .obn-lg-it'));
+  const open = await page.evaluate(() => { const its = [...document.querySelectorAll('#ins-panel .obn-lg .obn-lg-it:not(.is-next)')];
+    return { duties: its.length, whose: its.reduce((n, i) => n + i.querySelectorAll('[data-obn-whose]').length, 0),
+      undecided: its.every(i => ((i.querySelector('.obn-lg-w.is-on') || {}).textContent || '') === 'Undecided'),
+      quote: its.every(i => !!i.querySelector('.obn-lg-q')), skip: its.every(i => !!i.querySelector('[data-obn-skip]')),
+      under: document.querySelectorAll('.obn-table [data-obn-whose], [data-obn-open]').length, modal: !!document.querySelector('#modal-root #obd') }; });
+  check('6 · a row pressed: its duties stand in Jambo\'s panel, four answers each with Undecided lit, the words they rest on, nothing under the row, no pop-up',
+    open.duties === 3 && open.whose === 12 && open.undecided && open.quote && open.skip && open.under === 0 && !open.modal, open);
   await page.screenshot({ path: path.join(OUT, '3-open.png') });
 
-  /* 7 · the chips decide whose job it is, and Add all adds them that way */
-  const cid = await page.evaluate(() => { const b = [...document.querySelectorAll('.obn-dr [data-obn-whose="them"]')][0]; const id = b && b.getAttribute('data-cid'); if (b) b.click(); return id; });
+  /* 7 · an answer paints the row's ring in its side's colour, and Add takes only what was decided */
+  const cid = await page.evaluate(() => { const b = document.querySelector('#ins-panel .obn-lg [data-obn-whose="them"]'); const id = b && b.getAttribute('data-cid'); if (b) b.click(); return id; });
   await page.waitForTimeout(300);
-  await page.evaluate(id => { const b = document.querySelector(`[data-obn-addall="${id}"]`); if (b) b.click(); }, cid);
+  /* RE-POINTED 21 Nov 2026 (P-13, as drawn): no ring on the row — its progress counts the answer ("1 of N") */
+  const ring = await page.evaluate(id => ((document.querySelector(`.obn-pr[data-obn-pick="${id}"] .obn-pgs small`) || {}).textContent || '').trim(), cid);
+  await page.evaluate(id => { const b = document.querySelector(`#ins-panel [data-obn-addall="${id}"]`); if (b) b.click(); }, cid);
   await page.waitForTimeout(900);
   const added = await page.evaluate(id => { const c = getContract(id); return { n: (c.obligations || []).length, parties: (c.obligations || []).map(o => o.party),
     left: obReviewWaiting(c).length, rows: document.querySelectorAll('.obn-pr').length }; }, cid);
-  check('7 · Add all adds every undecided duty the way the chips say, and the agreement leaves the list',
-    added.n === 3 && added.parties.filter(p => p === 'theirs').length === 1 && added.left === 0 && added.rows === 2, added);
+  check('7 · "Theirs" counts on the row\'s progress; Add adds only what the reader decided; the undecided stay',
+    /^1 of \d+/.test(ring) && added.n === 1 && added.parties.join() === 'theirs' && added.left === 2 && added.rows === 3, { ring, added });
 
   /* 8 · a Skip is kept as the desk keeps it, and can be undone */
-  await page.evaluate(() => { const b = document.querySelector('[data-obn-open]'); if (b) b.click(); });
-  await until(page, () => !!document.querySelector('.obn-dr'));
-  const sid = await page.evaluate(() => { const b = document.querySelector('[data-obn-skip]'); const id = b && b.getAttribute('data-cid'); if (b) b.click(); return id; });
+  const sid = await page.evaluate(() => { const b = document.querySelector('#ins-panel .obn-lg [data-obn-skip]'); const id = b && b.getAttribute('data-cid'); if (b) b.click(); return id; });
   await page.waitForTimeout(700);
-  const skipped = await page.evaluate(id => ({ skipped: ((getContract(id) || {}).obReview || {}).skipped || [], undo: !!document.querySelector('[data-obn-unskip]') }), sid);
+  await page.evaluate(() => { const t = document.querySelector('#ins-panel [data-obn-lgtab="done"]'); if (t) t.click(); });
+  await page.waitForTimeout(300);
+  const skipped = await page.evaluate(id => ({ skipped: ((getContract(id) || {}).obReview || {}).skipped || [], undo: !!document.querySelector('#ins-panel [data-obn-unskip]') }), sid);
   check('8 · a Skip is kept on the record and offers its undo', skipped.skipped.length === 1 && skipped.undo, skipped);
+  await page.evaluate(() => { const t = document.querySelector('#ins-panel [data-obn-lgtab="todo"]'); if (t) t.click(); });
+  await page.waitForTimeout(300);
 
-  /* 9 · nothing is saved until Add all: the chips alone write no obligation */
+  /* 9 · nothing is saved until Add: the answers alone write no obligation */
   const quiet = await page.evaluate(id => { const c = getContract(id); const before = (c.obligations || []).length;
-    const b = [...document.querySelectorAll(`.obn-dr [data-obn-whose="them"]`)][0]; if (b) b.click();
+    const b = document.querySelector('#ins-panel .obn-lg [data-obn-whose="us"]'); if (b) b.click();
     return { before, after: ((getContract(id) || {}).obligations || []).length }; }, sid);
-  check('9 · pressing an answer saves nothing until Add all is pressed', quiet.before === quiet.after, quiet);
+  check('9 · pressing an answer saves nothing until Add is pressed', quiet.before === quiet.after, quiet);
 
   /* 10 · the three screens: the head, the first row and the foot all stand inside the window */
   for (const [w, hgt] of [[1440, 780], [1536, 730], [1366, 950]]){
     await page.setViewportSize({ width: w, height: hgt });
     await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="open"]'); if (b) b.click(); });
     await page.waitForTimeout(400);
-    const fit = await page.evaluate(() => { const card = document.querySelector('.apn-card'), bar = document.querySelector('.obn-bar'), r = document.querySelector('tr.obn-r');
+    const fit = await page.evaluate(() => { const card = document.querySelector('.apn-card'), bar = document.querySelector('.obn-bar'), r = document.querySelector('.obt-li');
       const sideways = document.documentElement.scrollWidth > document.documentElement.clientWidth + 1;
       const rb = r ? r.getBoundingClientRect() : null;
       return { card: !!card, bar: bar ? Math.round(bar.getBoundingClientRect().bottom) : null, row: rb ? Math.round(rb.top) : null, inWin: rb ? rb.top < window.innerHeight : false, sideways }; });
     check(`10 · ${w}×${hgt}: the pills and the first row stand in the window, nothing spills sideways`, fit.card && fit.inWin && !fit.sideways, fit);
     await page.screenshot({ path: path.join(OUT, `4-${w}x${hgt}.png`) });
+  }
+  await page.setViewportSize({ width: 1440, height: 780 });
+
+  /* 12–16 · PROPOSALS' PANEL AND FIT (owner, 19 Nov 2026: "when you land on the page it should be five parts. When you
+     press a row it should be legora way … the page seems to extend behind the panel so delete the found column and
+     find ways to make the page fit without hiding"). At the parent: the panel was four counted lines and a sentence
+     about loading, a row press did nothing, and at 1366 the table ran 160px under the panel. Every driven half is
+     guarded, so a missing part reports FAIL rather than timing out. */
+  await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="prop"]'); if (b) b.click(); });
+  await until(page, () => !!document.querySelector('.obn-table.is-proj .obn-pr'), 8000);
+  /* the row step 8 opened is shut again, so 14 sees a second press open it */
+  /* Open also chose that agreement (19 Nov 2026), so "‹ Overview" lets it go and the page is as landed */
+  await page.evaluate(() => { if (document.querySelector('#ins-panel .obn-lg')){ const b = document.querySelector('#ins-panel [data-jl-home]'); if (b) b.click(); } });
+  await page.waitForTimeout(400);
+  const land = await page.evaluate(() => { const p = document.getElementById('ins-panel'); const f = p && p.querySelector('.obn-five .jov5');
+    return { five: !!f, title: f ? (f.querySelector('.jov5-title') || {}).textContent : '', tiles: f ? f.querySelectorAll('.jov5-g').length : 0,
+      rows: f ? f.querySelectorAll('[data-obn-pick]').length : 0, black: f ? !!f.querySelector('.jov5-go[data-obn-pickopen]') : false, lg: !!(p && p.querySelector('.obn-lg')) }; });
+  check('12 · landed on Proposals, Jambo\'s panel is the five parts: the headline counts the duties, three tiles, the oldest as rows, one black button',
+    land.five && /dut/i.test(land.title || '') && land.tiles === 3 && land.rows >= 1 && land.black && !land.lg, land);
+  await page.screenshot({ path: path.join(OUT, '5-landed.png') });
+
+  /* RE-POINTED 19 Nov 2026 (f1102: Add takes only what was given a side, so the agreement 7–9 answered STAYS in the list
+     with one duty left, whose words carry no time limit to mark): the press goes to an agreement nobody has answered yet */
+  const cid2 = await page.evaluate(done => { const tr = [...document.querySelectorAll('.obn-pr[data-obn-pick]')].find(x => ![done.a, done.b].includes(x.getAttribute('data-obn-pick')));
+    const r = tr && tr.querySelector('td.obn-c1'); const id = r && tr.getAttribute('data-obn-pick'); if (r) r.click(); return id; }, { a: cid, b: sid });
+  const chose = cid2 ? await until(page, () => !!document.querySelector('#ins-panel .obn-lg'), 5000) : false;
+  const lg = chose ? await page.evaluate(id => { const p = document.getElementById('ins-panel'), L = p.querySelector('.obn-lg');
+    const its = [...L.querySelectorAll('.obn-lg-it:not(.is-next)')];
+    return { for: L.getAttribute('data-obn-lg'), sel: !!document.querySelector(`.obn-pr.is-sel[data-obn-pick="${id}"]`), items: its.length,
+      quoted: its.every(i => !!i.querySelector('.obn-lg-q')), answers: its.every(i => i.querySelectorAll('[data-obn-whose]').length === 4 && /* RE-POINTED 19 Nov 2026 (f1102): Undecided first */ !!i.querySelector('[data-obn-skip]')),
+      mark: !!L.querySelector('.obn-lg-q mark'), boxed: !!L.querySelector('.jov5-group, .jov5-g'), tab: ((p.querySelector('[data-jl-home] .pd-tab-w') || {}).textContent || '').trim(),
+      open: !!document.querySelector('.obn-dr') }; }, cid2) : null;
+  check('13 · a row pressed is chosen, and the panel turns the Legora way: its duties in their own quoted words, each answered in its row, nothing boxed, "‹ Overview" the way back',
+    !!lg && lg.for === cid2 && lg.sel && lg.items >= 1 && lg.quoted && lg.answers && lg.mark && !lg.boxed && /^\u2039/.test(lg.tab) && !lg.open, lg);
+  await page.screenshot({ path: path.join(OUT, '6-chosen.png') });
+
+  /* 14 RE-POINTED 19 Nov 2026 (f1102): an answer in the panel is the list's own answer — the row's ring takes its side's
+     colour (the duties no longer open under the row) */
+  if (lg) await page.evaluate(() => { const b = document.querySelector('#ins-panel .obn-lg [data-obn-whose="them"]'); if (b) b.click(); });
+  await page.waitForTimeout(300);
+  /* RE-POINTED 21 Nov 2026 (P-13, as drawn): the row has no ring — its progress counts the answer */
+  const same = lg ? await page.evaluate(id => { const r = document.querySelector(`.obn-pr[data-obn-pick="${id}"] .obn-pgs small`), pa = document.querySelector('#ins-panel .obn-lg .obn-lg-w.is-on');
+    return { ring: /^[1-9]\d* of \d+/.test(((r && r.textContent) || '').trim()), panel: pa && pa.getAttribute('data-obn-whose'), under: !!document.querySelector('.obn-table [data-obn-whose]') }; }, cid2) : null;
+  check('14 · answered in the panel, the list says the same: the row\'s progress counts it, nothing unfolds under it',
+    !!same && same.ring && same.panel === 'them' && !same.under, same);
+
+  /* 15 · "‹ Overview" lets the row go and the five parts come back */
+  await page.evaluate(() => { const b = document.querySelector('#ins-panel [data-jl-home]'); if (b) b.click(); });
+  const back = await until(page, () => !!document.querySelector('#ins-panel .obn-five .jov5') && !document.querySelector('.obn-pr.is-sel'), 5000);
+  check('15 · "‹ Overview" lets the row go, and the five parts return', back);
+
+  /* 16 · the three screens: Proposals stands beside the panel, nothing under it, nothing sideways, no column hidden */
+  for (const [w, hgt] of [[1440, 780], [1536, 730], [1366, 950]]){
+    await page.setViewportSize({ width: w, height: hgt });
+    await page.waitForTimeout(600);
+    const fit = await page.evaluate(() => { const t = document.querySelector('.obn-table.is-proj'), list = document.getElementById('obn-list'), p = document.getElementById('ins-panel');
+      const acts = [...document.querySelectorAll('.obn-pr td.obn-act')].map(td => Math.round(td.getBoundingClientRect().right));
+      return { table: t ? Math.round(t.getBoundingClientRect().right) : null, panel: p ? Math.round(p.getBoundingClientRect().left) : null,
+        acts: acts.length ? Math.max(...acts) : null, sideways: list ? list.scrollWidth > list.clientWidth + 1 : true,
+        heads: t ? [...t.querySelectorAll('thead th')].map(x => x.textContent.trim()).filter(Boolean) : [] }; });
+    check(`16 · ${w}×${hgt}: Proposals ends before Jambo's panel begins, its buttons in sight, nothing sideways, four heads`,
+      /* RE-POINTED 21 Nov 2026 (P-13, as drawn): six heads; the row carries no buttons (Add all decided is the panel's) */
+      fit.table != null && fit.panel != null && fit.table <= fit.panel && (fit.acts == null || fit.acts <= fit.panel) && !fit.sideways && fit.heads.length === 6, fit);
+    await page.screenshot({ path: path.join(OUT, `7-prop-${w}x${hgt}.png`) });
   }
   await page.setViewportSize({ width: 1440, height: 780 });
 

@@ -48,7 +48,7 @@ describe('f719 (1) Your book is a table', () => {
   test('1a a head row and one row per chosen figure', () => {
     const w = world();
     const html = w.hbBookHtml(w.hbBookData('all'), null, null);
-    assert.match(html, /<div class="hb-figs hb-tn is-n\d"/);
+    assert.match(html, /<div class="hb-figs hb-tn is-cards is-n\d"/);
     const head = (html.match(/<div class="hb-tn-h"[^>]*>([\s\S]*?)<\/div>/) || [])[1] || '';
     const cells = [...head.matchAll(/<span>([^<]*)<\/span>/g)].map(m => m[1]);
     assert.equal(cells.length, 5);

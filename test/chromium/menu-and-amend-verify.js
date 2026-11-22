@@ -57,9 +57,15 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     ok('1a no ⋯ on the paper\'s line', await page.evaluate(() => !document.querySelector('#ig-strip #ws-more')));
     await page.evaluate(() => { const f = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); if (f) f.open = true; });
     await until(page, () => !!(document.querySelector('#ig-dock .ds-nx') || {}).dataset?.wired, null, 8000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): every act is pressed from the paper line's More
+       (#ig-actions → pdActsToggle → #pd-acts-pop, "More, halved"; the Dossier's All acts fold is kept closed and unseen) —
+       the rows are read in that card, in their groups */
+    await page.evaluate(() => { if (window.pdActsPopClose) pdActsPopClose(); const a = document.getElementById('ig-actions'); if (a && window.pdActsToggle) pdActsToggle('MK-B2', a); });
+    await until(page, () => !!document.getElementById('pd-acts-pop'), null, 4000);
     const menu = await page.evaluate(() => ({ tab: !!document.querySelector('#ig-dock [data-pd-tab="menu"]'),
-      groups: [...document.querySelectorAll('#ig-dock .ds-fold[data-ds-fold="acts"] .ds-fold-h')].map(x => x.textContent.trim()),
-      rows: ['#ws-pdf', '#ws-word', '#ws-filing', '#ws-import'].filter(s => document.querySelector('#ig-dock .ds-fold .pd-mn-rows ' + s)) }));
+      groups: [...document.querySelectorAll('#pd-acts-pop .pd-acts-h')].map(x => x.textContent.trim()),
+      rows: ['#ws-pdf', '#ws-word', '#ws-filing', '#ws-import'].filter(s => document.querySelector(`#pd-acts-pop [data-pd-acts-go="${s}"]`)) }));
+    await page.evaluate(() => { if (window.pdActsPopClose) pdActsPopClose(); });
     ok('1b All acts: the ⋯ rows in their groups, no Menu tab', !menu.tab && menu.groups.length >= 3 && menu.rows.length === 4, JSON.stringify(menu));
     await page.screenshot({ path: path.join(OUT, '1-menu.png') });
 
@@ -160,6 +166,10 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     /* 4 the highlight's Comment keeps its words */
     await page.evaluate(() => { setView('dashboard'); igAnalyze('MK-B2'); });
     await until(page, () => !!document.querySelector('#ig-canvas [data-anchor="c1"] p, #ig-canvas [data-anchor="c1"]'), null, 10000);
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): a contract opened on purpose lands on its Cover, which
+       lies over the paper (owner's "Margin Notes" pick); its largest button, Open the dossier, uncovers the paper to highlight */
+    if (await until(page, () => !!document.querySelector('[data-cv-open]'), null, 4000)) await page.click('[data-cv-open]');
+    await until(page, () => !document.querySelector('[data-cv-open]'), null, 4000);
     await page.waitForTimeout(600);
     const words = await page.evaluate(() => {
       const el = document.querySelector('#ig-canvas [data-anchor="c1"]'); const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -175,6 +185,9 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     const box = await page.$('.rl-np textarea, [data-rl-np-input], .rl-np-input');
     if (box){ await box.fill('A note on these words'); await page.locator('button', { hasText: 'Add note' }).last().click(); }
     await page.waitForTimeout(1500);
+    /* RE-POINTED 21 Nov 2026 (P-38, Notes the Stripe way): a row per discussion; opened, the note carries its words */
+    await page.evaluate(() => { const r = [...document.querySelectorAll('.rl-np-crow')].find(b => /A note on these words/.test(b.textContent)); if (r) r.click(); });
+    await page.waitForTimeout(500);
     const kept = await page.evaluate(w => { const t = [...document.querySelectorAll('.rl-np *')].map(e => e.textContent).join(' ');
       return t.includes('A note on these words') && t.includes(w.slice(0, 15)); }, words);
     ok('4 the saved note carries the highlighted words', kept, words);
@@ -184,22 +197,35 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     ok('5a not offered on an agreement still being written', await page.evaluate(() => pdAmendOpen('MK-B2') === false && !document.querySelector('#pd-amendface')));
     await page.evaluate(() => { setView('dashboard'); igAnalyze('MK-B1'); });
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the row stands in the dossier's All acts fold */
-    await until(page, () => !!(document.querySelector('#ig-dock .ds-nx') || {}).dataset?.wired && intel.paper && intel.paper.id === 'MK-B1', null, 10000);
-    await page.evaluate(() => { const b = document.querySelector('#ig-dock .ds-fold .pd-mn-rows #ws-m-amend'); if (!b) return; b.closest('details').open = true; b.click(); });
-    ok('5b the All acts row opens Amend beside the paper', await until(page, () => !!document.querySelector('#pd-amendface'), null, 5000));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): opened on purpose it lands on its Cover — Open the dossier
+       uncovers it; the act is the paper line's More (#ig-actions, pdActsToggle), whose row presses the room's own #ws-m-amend */
+    if (await until(page, () => !!document.querySelector('[data-cv-open]'), null, 4000)) await page.click('[data-cv-open]');
+    await until(page, () => !document.querySelector('[data-cv-open]') && intel.paper && intel.paper.id === 'MK-B1' && !!document.getElementById('ig-actions'), null, 10000);
+    await page.click('#ig-actions');
+    await until(page, () => !!document.querySelector('#pd-acts-pop [data-pd-acts-go]'), null, 4000);
+    if (!await page.$('#pd-acts-pop [data-pd-acts-go="#ws-m-amend"]') && await page.$('#pd-acts-pop [data-pd-acts-every]')) await page.click('#pd-acts-pop [data-pd-acts-every]');
+    if (await page.$('#pd-acts-pop [data-pd-acts-go="#ws-m-amend"]')) await page.click('#pd-acts-pop [data-pd-acts-go="#ws-m-amend"]');
+    ok('5b the More menu\'s Amend row opens Amend beside the paper', await until(page, () => !!document.querySelector('#pd-amendface'), null, 5000));
     await page.waitForTimeout(400);
     const signedBefore = await page.evaluate(() => JSON.stringify([getContract('MK-B1').redlineText || '', getContract('MK-B1').status, (getContract('MK-B1').signatures || []).length]));
     await page.locator('#ig-canvas [data-anchor="c1"]').first().click({ position: { x: 30, y: 8 } });
     await page.waitForTimeout(300);
-    await page.fill('#pd-amendface [data-pd-am-txt="0"]', 'The Supplier shall supply an estimated 6000 metric tonnes per annum.');
-    await page.fill('#pd-amendface [data-pd-am-fact="expiry"]', '2028-12-31');
-    await page.waitForTimeout(200);
-    const marked = await page.evaluate(() => ({ items: document.querySelectorAll('#pd-amendface .pd-am-it').length,
-      mark: (document.querySelector('#ig-canvas [data-anchor="c1"] .pd-am-mk') || {}).textContent || '', ins: !!document.querySelector('#ig-canvas .pd-am-insert'),
-      go: !document.querySelector('#pd-amendface [data-pd-am-go]').disabled }));
-    ok('5c a clause pressed is change 1, numbered on the paper with its new words', marked.items === 1 && marked.mark === '1' && marked.ins && marked.go, JSON.stringify(marked));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Amend AS DRAWN (round 5, the owner's "as drawn: no
+       boxes") — the sealed paper and the amendment side by side; a clause pressed is change 1 in the panel's list and
+       numbered on the paper; the end date is SAID in Jambo's box (one call to the amendment reader, POST /api/ai/amend —
+       answered here by a stand-in) and read on the amendment beside it; Create is the paper line's [data-pd2-am-create] */
+    const listed = await until(page, () => document.querySelectorAll('#pd-amendface .pd2-am-list li').length === 1, null, 5000);
+    await page.route('**/api/ai/amend', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [], facts: { expiry: '2028-12-31' } }) }));
+    const said = await page.$('#igd-input');
+    if (said){ await said.fill('The term now ends on 31 December 2028'); await page.keyboard.press('Enter'); }
+    await until(page, () => /2028/.test((document.querySelector('#ig-paper .pd2-am-col') || {}).textContent || ''), null, 8000);
+    const marked = await page.evaluate(() => ({ items: document.querySelectorAll('#pd-amendface .pd2-am-list li').length,
+      mark: (document.querySelector('#ig-canvas [data-anchor="c1"] .pd-am-mk') || {}).textContent || '',
+      end: /2028/.test((document.querySelector('#ig-paper .pd2-am-col') || {}).textContent || ''),
+      go: !!document.querySelector('[data-pd2-am-create]') && !document.querySelector('[data-pd2-am-create]').disabled }));
+    ok('5c a clause pressed is change 1, numbered on the paper; the end date said in the box is on the amendment beside it', listed && marked.items === 1 && marked.mark === '1' && marked.end && marked.go, JSON.stringify(marked));
     await page.screenshot({ path: path.join(OUT, '5-amend.png') });
-    await page.click('#pd-amendface [data-pd-am-go]');
+    if (marked.go) await page.click('[data-pd2-am-create]');
     await page.waitForTimeout(1500);
     const made = await page.evaluate(() => { const k = state.contracts.find(c => c.parentId === 'MK-B1');
       return k ? { status: k.status, n: (k.amends || []).length, op: k.amends && k.amends[0] && k.amends[0].op, end: k.amendFacts && k.amendFacts.expiry, on: intel.paper && intel.paper.id === k.id } : null; });

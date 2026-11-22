@@ -233,15 +233,18 @@ const BODY =
        Obligations tab went home — its twin is the Board's Obligations view
        (#obw-one-host), so "the tab" the tile goes to is that
        view, on Home, for this contract. */
-    if (tile2 && !tile2.none) await page.waitForFunction(() => !!document.querySelector('#obw-one-host')
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): roomGoTab(c,'oblig') lands on the contract's paper
+       on Home with its Obligations face (pdTab 'oblig') — "the tab" is that face, for this contract */
+    if (tile2 && !tile2.none) await page.waitForFunction(() => (state.view === 'dashboard' && typeof pdTab === 'function' && pdTab() === 'oblig') || !!document.querySelector('#obw-one-host')
       || !!document.querySelector('[data-ob-pick]') || !!document.querySelector('#ws-tabs [data-ws-tab="oblig"][aria-selected="true"]'), null, { timeout: 8000 }).catch(() => {});
     if (tile2 && !tile2.none) Object.assign(tile2, await page.evaluate(() => {
       const view = document.querySelector('#obw-one-host');
       const on = document.querySelector('#ws-tabs .room-tab.is-on, #ws-tabs [aria-selected="true"]');
       /* RE-POINTED 15 Oct 2026: the Obligations page narrowed to this contract draws its table */
       const forThis = !!(view && String(view.getAttribute('data-ins-cid')) === String(window.__cid));
+      const face = state.view === 'dashboard' && typeof pdTab === 'function' && pdTab() === 'oblig' && typeof pdContract === 'function' && pdContract() && String(pdContract().id) === String(window.__cid);
       return { modal: !!document.querySelector('[data-ob-pick]'),
-        tab: (view && state.view === 'obligations' && forThis) ? 'oblig' : (on ? on.getAttribute('data-ws-tab') : null) };
+        tab: face ? 'oblig' : (view && state.view === 'obligations' && forThis) ? 'oblig' : (on ? on.getAttribute('data-ws-tab') : null) };
     }));
     check('3b once the tab has obligations, the tile goes straight to the tab',
       !!(tile2 && !tile2.modal && tile2.tab === 'oblig'), JSON.stringify(tile2));

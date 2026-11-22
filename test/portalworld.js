@@ -31,6 +31,7 @@ const MODULES = [
   'js/outside.js',     // contractRef and the handover's readings (26 Sep 2026)
   'js/nda.js',         // an NDA's two facts, read by the panel (17 Oct 2026)
   'js/sharemail.js',   // the share email's words (round 11, 17 Oct 2026)
+  'js/stdladder.js',   // the Ladder: a standard's rules (17 Nov 2026)
   'js/sealtext.js',    // the frozen copy's text (9 Oct 2026)
   'js/asks.js',        // the one ask record: never on their page, but core.js and versioning.js read it (4 Oct 2026)
   'js/richdoc.js',

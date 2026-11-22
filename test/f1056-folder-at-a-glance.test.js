@@ -43,7 +43,8 @@ test('f1056 · the folder\'s panel: the count and one chip, when they end, where
   assert.ok(at('const top=') < at('const E=regGlanceEnds(book)') && at('const E=regGlanceEnds(book)') < at('regGlanceMoney(book)') && at('regGlanceMoney(book)') < at('regFolderSays(book, r)'), 'in the drawn order');
   assert.match(g, /class="rfg-chip is-amber" data-rfp-view="needs"/, 'what needs you is the Needs you tab\'s door');
   assert.match(g, /class="rfg-mo has" \$\{only\(m\.ids, /, 'a month with any is a door to exactly those');
-  assert.match(g, /if\(r\.val!=null\)/, 'the money only for a reader who may see values');
+  /* RE-POINTED (P-31, owner's pick 20 Nov 2026: no money in a side panel): the money part is drawn only in the old look */
+  assert.match(g, /if\(r\.val!=null&&!\(typeof newLookOn==='function'&&newLookOn\(\)\)\)/, 'the money only for a reader who may see values, and never in the new look');
   assert.match(g, /data-rfp-open="\$\{esc\(x\.c\.id\)\}"/, 'a bar opens its contract');
   assert.match(g, /x\.kind==='need'&&x\.std/); assert.match(g, /x\.kind==='money'/); assert.match(g, /x\.kind==='std'/);
   assert.doesNotMatch(g + fn('regFolderPanelHtml'), /api\/ai|aiAsk|copilot|fetch\(|data-ac-discover/i, 'no AI, no call, no Discover');
@@ -55,7 +56,9 @@ test('f1056 · the folders page: one bar split by folder, each row its folder\'s
   assert.match(g, /class="rfg-lg" data-ctf-folder=/);
   assert.match(g, /i18t\('rfg_nda'\)/); assert.match(g, /i18t\('rfg_checked'\)/);
   assert.match(g, /data-rfp-label="\$\{esc\(i18t\('rfg_label_nda'\)\)\}"/);
-  assert.match(strip(fn('regFoldersPanelHtml')), /if \(regNl\(\)\) return `<div class="apn-panel ctfp rfg">/, 'the new look draws it; the old look keeps its own');
+  /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the new look's landing panel is the drawn one (regFoldersLsPanelHtml) — no
+     money, no cards; At a Glance stays for the old look */
+  assert.match(strip(fn('regFoldersPanelHtml')), /if \(regNl\(\)\)\{[\s\S]*?return regFoldersLsPanelHtml\(rows, said\); \}/, 'the new look draws it; the old look keeps its own');
 });
 
 test('f1056 · a list shown from the panel names itself', () => {

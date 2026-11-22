@@ -64,28 +64,33 @@ function book(){
       await until(page, () => window.state && Array.isArray(state.contracts) && state.contracts.length >= 24 && typeof caGo === 'function' && typeof pulseOpen === 'function', null, 40000);
       /* the Board, asked until it stands (the first page can still be landing when the book arrives) */
       await until(page, () => { if (!(state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'board')) { try { caGo({ kind: 'go', place: 'board' }); } catch (_){} }
-        return !!document.querySelector('#hb-bhead .hb-bs-go'); }, null, 30000);
+        return !!document.querySelector('#hb-bhead [data-hb-rdn]'); }, null, 30000);
 
       /* ---- 1 the head ---- */
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look draws Read down where the Pulse
+         board's button stood (round 6, as drawn; hbPulseBtnHtml → hbRdnBtnHtml); the Pulse board's door is its row on the
+         Guide (guideGo('pulse')). The head's run is measured with Read down in the Pulse board's place */
       const hd = await page.evaluate(() => { const row = document.querySelector('#hb-bhead .hb-bh-r'); if (!row) return null;
-        const bs = row.querySelector('.hb-bs-go'), pu = row.querySelector('[data-hb-pulse]'), ex = row.querySelector('[data-hb-explorer]'), ctl = [...row.querySelectorAll('button')];
+        const bs = row.querySelector('.hb-bs-go'), pu = row.querySelector('[data-hb-rdn]'), ex = row.querySelector('[data-hb-explorer]'), ctl = [...row.querySelectorAll('button')];
         const r = e => e ? e.getBoundingClientRect() : null;
-        return { pulse: !!pu, explorer: !!ex, last: ctl[ctl.length - 1] === ex || (ctl[ctl.length - 1] === row.querySelector('[data-hb-draft]') && (ctl[ctl.length - 2] === ex || (ctl[ctl.length - 2] === row.querySelector('[data-hb-discover]') && ctl[ctl.length - 3] === ex))), left: !!(bs && pu && ex) && r(bs).right <= r(pu).left && r(pu).right <= r(ex).left,
-          sameLine: !!(bs && pu && ex) && Math.abs(r(bs).top - r(pu).top) < 4 && Math.abs(r(pu).top - r(ex).top) < 4, word: pu ? pu.textContent.trim() : '', exWord: ex ? ex.textContent.trim() : '',
-          bsWord: bs ? bs.textContent.trim() : '', noFaceCost: !!bs && !bs.querySelector('.hb-bs-cost') }; });
+        return { pulse: !!pu, explorer: !!ex, last: ctl[ctl.length - 1] === ex || (ctl[ctl.length - 1] === row.querySelector('[data-hb-draft]') && (ctl[ctl.length - 2] === ex || (ctl[ctl.length - 2] === row.querySelector('[data-hb-discover]') && ctl[ctl.length - 3] === ex))), left: !bs && !!(pu && ex) && r(pu).right <= r(ex).left,
+          sameLine: !!(pu && ex) && Math.abs(r(pu).top - r(ex).top) < 4, word: pu ? pu.textContent.trim() : '', exWord: ex ? ex.textContent.trim() : '',
+          bsWord: bs ? bs.textContent.trim() : '' }; });
       /* RE-POINTED (owner's pick, 15 Nov 2026): Discover may stand between Explorer and Draft agreement */
-      check(`${nm} 1 the head: Summarise my board, then the Pulse board, then Explorer, then Discover and Draft agreement ending the run (owner, 14–15 Nov 2026), on one line; no cost on Summarise's face`, !!hd && hd.pulse && hd.explorer && hd.last && hd.left && hd.sameLine && hd.word === 'Pulse board' && hd.exWord === 'Explorer' && hd.bsWord === 'Summarise my board' && hd.noFaceCost, hd);
+      /* RE-POINTED 22 Nov 2026 (owner: "combine summarise my board into read down"): Summarise left the head for Read down's brief */
+      check(`${nm} 1 the head: Read down, then Explorer, then Discover and Draft agreement ending the run (owner, 14–15 Nov 2026), on one line; Summarise is not in it`, !!hd && hd.pulse && hd.explorer && hd.last && hd.left && hd.sameLine && hd.word === 'Read down' && hd.exWord === 'Explorer' && hd.bsWord === '', hd);
       if (nm === 'laptop-a' && hd && hd.explorer){
         await page.click('#hb-bhead [data-hb-explorer]');
         const ex = await until(page, () => typeof hbFace === 'function' && hbFace() === 'explorer');
         check('1b Explorer\'s button opens the map', ex);
-        await until(page, () => { if (!(state.view === 'dashboard' && hbFace() === 'board')) { try { caGo({ kind: 'go', place: 'board' }); } catch (_){} } return !!document.querySelector('#hb-bhead [data-hb-pulse]'); }, null, 20000);
+        await until(page, () => { if (!(state.view === 'dashboard' && hbFace() === 'board')) { try { caGo({ kind: 'go', place: 'board' }); } catch (_){} } return !!document.querySelector('#hb-bhead [data-hb-explorer]'); }, null, 20000);
       }
       const head = await page.$('#hb-bhead'); if (head) await head.screenshot({ path: path.join(OUT, `head-${nm}.png`) });
 
       /* ---- 2 the page ---- */
       if (!hd || !hd.pulse){ await page.close(); continue; }
-      await page.click('#hb-bhead [data-hb-pulse]');
+      /* RE-POINTED 16 Nov 2026 (#762): the Pulse board opened by its Guide row (the board's own door in the new look) */
+      await page.evaluate(() => guideGo('pulse'));
       const landed = await until(page, () => state.view === 'pulse' && document.querySelectorAll('#pu-tbody tr[data-pu-row]').length >= 20);
       const P = await page.evaluate(() => ({ rows: document.querySelectorAll('#pu-tbody tr[data-pu-row]').length, strands: document.querySelectorAll('#pu-tbody .pu-strand svg .pu-today').length,
         chips: [...document.querySelectorAll('#pu-page [data-pu-crit]')].map(b => b.textContent.trim()), on: (document.querySelector('#pu-page .pu-chip.is-on') || {}).textContent,

@@ -716,7 +716,8 @@ describe('f331 (13) — the link, and the room to draw it', () => {
     assert.ok(fn, 'the door is still one function');
     assert.match(fn[0], /fillPreviewFits\(\)/, 'it asks the shared width reading');
     assert.match(fn[0], /fillPreviewPaneHtml\(/, 'and draws the shared pane');
-    assert.match(fn[0], /maxWidth:_pv\?'1040px':'620px'/, 'widening only where it fits');
+    /* RE-POINTED (f1120): under the width it is the one edit pop-up's own width (LGP_W), not a 620px card */
+    assert.match(fn[0], /maxWidth:_pv\?'1040px':\(window\.LGP_W\|\|'480px'\)/, 'widening only where it fits');
     assert.match(fn[0], /minmax\(0,1fr\) minmax\(0,1fr\)/, 'two columns, the other doors\' own shape');
     /* THE QUESTIONS ARE UNTOUCHED — the owner asked for the paper, not for
        more to answer. CONTRACT_ESSENTIALS is still the one list. */
@@ -773,7 +774,9 @@ describe('f331 (13) — the link, and the room to draw it', () => {
       /* RE-POINTED 10 Oct 2026 (SAP pop-ups, owner's go): where the paper fits,
          the saved-template fill is a PAGE (dlgPageAdopt), not a 1040px card;
          under the width it is still the 620px dialog it was. */
-      assert.ok(/maxWidth:_pv\?'1040px':'620px'|_pv\?\{maxWidth:'1040px'\}:undefined|_pv\s*(\/\*[\s\S]*?\*\/\s*)?\?\s*\{\s*page:[\s\S]{0,200}:\s*\{maxWidth:'620px'\}/.test(src),
+      /* RE-POINTED 19 Nov 2026 (f1118): under the width the saved-template fill is the one edit sheet (LGP_W, its own
+         frame) — still a dialog, still narrower than the page it becomes where the paper fits. */
+      assert.ok(/maxWidth:_pv\?'1040px':'620px'|_pv\?\{maxWidth:'1040px'\}:undefined|_pv\s*(\/\*[\s\S]*?\*\/\s*)?\?\s*\{\s*page:[\s\S]{0,200}:\s*(\/\*[\s\S]*?\*\/\s*)?\{\s*maxWidth:\s*(?:'620px'|window\.LGP_W\|\|'480px', ownFrame:true)/.test(src),
         name + ' widens the frame only where it fits');
     }
   });

@@ -65,6 +65,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     /* The full table, where one press opens a row (the Inspector's own stage
        door; a selection there loads the record first and would hide nothing). */
     await page.evaluate(() => { if (window.insForce) insForce(false); (regPlaceSet({ show: 'list' }), setView('register')); });
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its Folders; the table of
+       every contract is its All tab ([data-ctf-tab="all"]), the same rows (#reg-tbody tr[data-row]) */
+    const toAll = async () => {
+      await page.waitForFunction(() => !!document.querySelector('[data-ctf-tab="all"]') || !!document.querySelector('#reg-tbody tr[data-row]'), null, { timeout: 8000 }).catch(() => {});
+      if (await page.$('[data-ctf-tab="all"]:not(.is-on)')) await page.click('[data-ctf-tab="all"]');
+      await page.waitForFunction(() => !!document.querySelector('#reg-tbody tr[data-row]'), null, { timeout: 8000 }).catch(() => {});
+    };
+    await toAll();
     await page.waitForTimeout(900);
 
     const stored = async id => page.evaluate(async x => {
@@ -85,9 +93,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     check('1a GATE — MK-A2 is a list row nobody has loaded, on hold, and drawn',
       before.light && !before.loaded && before.hold && before.row, JSON.stringify(before));
     if (before.row) {
-      await page.click('#reg-tbody [data-menu="MK-A2"]');
-      await page.waitForTimeout(200);
-      await page.click('#reg-tbody [data-menu-pop="MK-A2"] [data-act="release"]');
+      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's list rows carry no ⋯ menu, so the
+         release is the same writer that menu's "Release" pressed (contractSetHold(c, false, '')), on the light row, then
+         the open — still an edit on its way while the record is read */
+      await page.evaluate(() => { contractSetHold(getContract('MK-A2'), false, ''); });
       await page.click('#reg-tbody tr[data-row="MK-A2"] .reg-title');   // straight away, the way a person does
     }
     await page.waitForTimeout(3200);
@@ -112,6 +121,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
     /* ================= 2 · AN EDIT MADE WHILE THE OPEN'S READ IS OUT ================= */
     await page.evaluate(() => { (regPlaceSet({ show: 'list' }), setView('register')); });
+    await toAll();
     await page.waitForTimeout(700);
     let heldRead = null;
     await page.route('**/api/contracts/MK-B2', async route => {
@@ -148,6 +158,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
     /* ================= 3 · CONTROL: NOTHING PENDING, THE WHOLE RECORD LOADS ================= */
     await page.evaluate(() => { (regPlaceSet({ show: 'list' }), setView('register')); });
+    await toAll();
     await page.waitForTimeout(700);
     const b1was = await page.evaluate(() => { const c = getContract('MK-B1'); return { light: !!c._light, audit: (c.audit || []).length }; });
     await page.click('#reg-tbody tr[data-row="MK-B1"] .reg-title');

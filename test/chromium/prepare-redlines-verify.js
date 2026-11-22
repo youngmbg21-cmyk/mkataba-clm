@@ -53,7 +53,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
    beside the memo and the playbook pass. MENU is that row; pressRow opens the
    tab first, as a reader would. */
 /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab's rows are the dossier's All acts fold */
-const MENU = '#ig-dock .ds-fold .pd-mn-rows [data-rl-prepare]';
+/* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): every act is pressed from the paper line's More
+   (#ig-actions → pdActsToggle → #pd-acts-pop), each row the Dossier's own by key; the All acts fold is not drawn */
+const MENU = '#pd-acts-pop [data-pd-acts-go="[data-rl-prepare]"]';
 const COLUMN = '#pd-redface .rl-cards-empty [data-rl-prepare]';
 const pressIn = (page, sel) => page.evaluate(s => { const b = document.querySelector(s); if (!b || b.disabled) return false; b.closest('details') && (b.closest('details').open = true); b.click(); return true; }, sel);
 /* RE-POINTED 19 Oct 2026 (round 9 as drawn, "Piles"): while the Redlines face
@@ -63,7 +65,8 @@ const pressIn = (page, sel) => page.evaluate(s => { const b = document.querySele
    and the row is there as before. Asked for, bounded. */
 const menuOpen = async page => {
   await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-pd-back="red"]'); if (b) b.click(); });
-  await page.waitForFunction(() => { const f = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); if (f) f.open = true; return !!f; }, null, { timeout: 6000 }).catch(() => {});
+  await page.waitForFunction(() => !document.getElementById('pd-redface') && !!document.getElementById('ig-actions'), null, { timeout: 6000 }).catch(() => {});
+  await page.evaluate(() => { const c = typeof pdContract === 'function' && pdContract(); if (window.pdActsPopClose) pdActsPopClose(); if (c) pdActsToggle(c.id, document.getElementById('ig-actions')); });
   await page.waitForFunction(m => !!document.querySelector(m), MENU, { timeout: 6000 }).catch(() => {});
   await new Promise(r => setTimeout(r, 300));
 };
@@ -123,7 +126,7 @@ const VERDICTS = [
      helper's own form for a route that must answer what it was asked — gives
      the four scripted findings their scripted verdicts and calls every other
      standard met, which is what a provider that obeyed the prompt returns. */
-  ai.script(body => {
+  const REVIEW = body => {
     const prompt = String(((body.messages || [])[0] || {}).content || '');
     let positions = [];
     try{ positions = (JSON.parse(prompt.slice(prompt.indexOf('PLAYBOOK:\n') + 10, prompt.indexOf('\n\nDOCUMENT:'))).positions) || []; }catch(_){}
@@ -131,7 +134,8 @@ const VERDICTS = [
     const verdicts = positions.map(p => byCat.get(p.category)
       || { category: p.category, status: 'aligned', quote: '', position: p.note || '', redline: '', escalate: false });
     return [{ type: 'tool_use', id: 'tu_pb', name: 'playbook_review', input: { verdicts } }];
-  });
+  };
+  ai.script(REVIEW);
   const ID = 'MK-A12';
   await W.admin.json('/api/contracts/' + ID, { method: 'PUT', body: { contract: {
     id: ID, name: 'Nordkust supply agreement', counterparty: 'Nordkust Industri AB', counterpartyEmail: 'ola@nordkust.se',
@@ -173,6 +177,19 @@ const VERDICTS = [
   await page.evaluate(id => openRedlineWorkbench(id), ID);
   await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#pd-redface'), null, { timeout: 10000 }).catch(() => {});
   await pause(1800);
+  /* RE-POINTED 19 Nov 2026 (owner picked "B": a contract never checked against the Playbook is checked the first time
+     someone opens it — pbCheckOnOpen, f1106). Opening the paper above is now that first open: ONE quiet check ran and
+     was kept. Sections 2 and 3 are about the press on a contract with NO review on file, so that kept check is let
+     land (asked for, bounded) and then put away here, as section 9 puts it away; the press's spend is counted from
+     the moment of the press (callsAtPress), not from the start of the run. */
+  await page.waitForFunction(id => { const c = state.contracts.find(x => x.id === id);
+    const run = c && typeof pbOpenCheckState === 'function' && pbOpenCheckState(c);
+    return !!c && !(run && run.run) && (!!c.playbook || !!(run && run.why)); }, ID, { timeout: 10000 }).catch(() => {});
+  await page.evaluate(id => { const c = state.contracts.find(x => x.id === id); if (c) delete c.playbook;
+    if (typeof pdRedRepaint === 'function') try { pdRedRepaint(); } catch (_){} }, ID);
+  /* the stand-in answers ONE call per scripted turn, and the opening check above took it (a provider call was made):
+     the press gets its own, given only then so no spare turn is left for section 9's cut-short answer */
+  if (ai.calls.length) ai.script(REVIEW);
 
   /* ============ 1. THE ROW IS IN THE MENU, AND ON SCREEN ============ */
   /* RE-POINTED 12 Sep 2026. This asked for exactly ONE button on the page,
@@ -192,9 +209,9 @@ const VERDICTS = [
   await menuOpen(page);
   const hasRow = await page.evaluate(m => document.querySelectorAll(m).length === 1, MENU);
   const row = hasRow ? await page.evaluate(s => { const b = document.querySelector(s); return { text: b.textContent.trim(), dead: b.disabled, title: b.title }; }, MENU) : { text: '', dead: true, title: '' };
-  check(/draft from our standards/i.test(row.text) && !row.dead, '1c the Menu tab\'s row says what it is and is live on a readable draft', JSON.stringify(row));
+  check(/draft from our playbook/i.test(row.text) && !row.dead, '1c the Menu tab\'s row says what it is and is live on a readable draft', JSON.stringify(row));
   check(/nothing goes to the other side/i.test(row.title), '1d its hover says nothing is sent', row.title);
-  check(hasRow && await page.evaluate(() => !!document.querySelector('#ig-dock .ds-fold [data-ig-memo]') && !!document.querySelector('#ig-dock .ds-fold [data-ig-pbreview]')), '1e beside the memo and the playbook pass (the same All acts fold)');
+  check(hasRow && await page.evaluate(() => !!document.querySelector('#pd-acts-pop [data-pd-acts-go="[data-ig-memo]"]') && !!document.querySelector('#pd-acts-pop [data-pd-acts-go="[data-ig-pbreview]"]')), '1e beside the memo and the playbook pass (the same More card)');
   await page.keyboard.press('Escape').catch(() => {}); await pause(300);
   await page.screenshot({ path: path.join(OUT, '01-menu.png') });
 
@@ -207,7 +224,7 @@ const VERDICTS = [
     const text = ok ? (ok.closest('[role="dialog"]') || ok.parentElement.parentElement).innerText : ''; return { there: !!ok, text }; });
   check(ask.there, '2a a real press raises the confirm dialog');
   /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
-  check(/against Our standards/i.test(ask.text) && /nothing is sent/i.test(ask.text) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(ask.text), '2b and the sentence names what it does, no cost, and says nothing is sent', ask.text.slice(0, 160));
+  check(/against Our playbook/i.test(ask.text) && /nothing is sent/i.test(ask.text) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(ask.text), '2b and the sentence names what it does, no cost, and says nothing is sent', ask.text.slice(0, 160));
   await page.screenshot({ path: path.join(OUT, '02-ask.png') });
   /* REFUSING WRITES NOTHING. */
   if (ask.there){ await page.click('#cf-cancel'); await pause(500); }
@@ -216,6 +233,7 @@ const VERDICTS = [
 
   /* ============ 3. THE PRESS FILES THE DRAFTS ============ */
   /* RE-POINTED 14 Oct 2026 (stage 5): the door is the face's foot, no menu */
+  const callsAtPress = ai.calls.length;
   await pressRow(page); await pause(700);
   if (await page.locator('#cf-ok').count()){ await page.click('#cf-ok'); }
   await pause(2500);
@@ -245,7 +263,7 @@ const VERDICTS = [
   check(new RegExp(after.drafts + ' drafts filed under Your drafts — nothing sent').test(toast3 + after.toast), '3f one toast says what happened, with the count', after.toast.trim().slice(0, 120));
   check(after.audit.length === 1 && new RegExp(after.drafts + ' drafts filed unsent').test(after.audit[0]), '3g one English audit line names the count', after.audit[0]);
   const calls1 = ai.calls.length;
-  check(calls1 === 1, '3i and exactly ONE deep Jambo call was spent for it', String(calls1));
+  check(calls1 - callsAtPress === 1, '3i and exactly ONE deep Jambo call was spent for it', String(calls1 - callsAtPress));
   /* NO BAND, STRIP OR NOTICE anywhere: the column repainting is the confirmation. */
   const strips = await page.evaluate(() => document.querySelectorAll('.rl-notices > *:not(#rl-banner), .rl-plan, .rl-unsent').length);
   check(strips === 0, '3h and nothing was added to the page — no band, strip or notice', String(strips));
@@ -321,7 +339,7 @@ const VERDICTS = [
     '6a the empty column draws three buttons — the two asked for, and Add a clause', JSON.stringify({ n: emptyDoors.n, labels: emptyDoors.labels }));
   check(emptyDoors.onScreen.every(Boolean) && !emptyDoors.dead.some(Boolean),
     '6b all are VISIBLE PIXELS and none is dead on a readable draft', JSON.stringify(emptyDoors));
-  check(/draft from our standards/i.test(emptyDoors.labels.join(' ')) && /edit a clause/i.test(emptyDoors.labels.join(' ')),
+  check(/draft from our playbook/i.test(emptyDoors.labels.join(' ')) && /edit a clause/i.test(emptyDoors.labels.join(' ')),
     '6c and they are the two acts the owner asked for', emptyDoors.labels.join(' · '));
   check(!emptyDoors.blurb && /nothing is sent until you press Send/i.test(emptyDoors.lead),
     '6d the how-to paragraph is gone and one line says what the press spends', emptyDoors.lead.slice(0, 120));

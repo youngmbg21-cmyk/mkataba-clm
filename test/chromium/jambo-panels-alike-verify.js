@@ -56,13 +56,15 @@ const PAGES = [
   ['pulse', "setView('pulse')", '#ins-panel'],   /* THE PULSE BOARD (29 Oct 2026) */
   ['handbook', "setView('handbook')", '#ins-panel'],
   ['migration', "setView('migration')", '#mig-side'],
-  ['settings-you', "setView('team')", '#st-side'],
-  ['settings-company', "setView('team'); openSettingsAt('platform')", '#st-side'],
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings' Jambo is the list pages' panel (#ins-panel, box #jl-q), no longer its own #st-side */
+  ['settings-you', "setView('team')", '#ins-panel'],
+  ['settings-company', "setView('team'); openSettingsAt('platform')", '#ins-panel'],
 ];
 /* RE-POINTED 28 Oct 2026 (owner picked "Door above the box"): no Jambo tab to press — the conversation is opened the
    way an answer opens it (each host's own reopen), and its way back and the bin stand in the door above the box */
 const OPEN_TALK = key => { const CAL = 'cal:week';
-  if (/^settings/.test(key)) return stTalkReopen();
+  /* RE-POINTED 16 Nov 2026 (#762): Settings' Jambo is the list panel (#ins-panel.is-jambo): its talk opens as the list's */
+  if (/^settings/.test(key) && !document.querySelector('#ins-panel.is-jambo')) return stTalkReopen();
   if (key === 'calendar'){ jamboTalkOpen(CAL, document.getElementById('cal-plan-body')); calPlanRepaint(); return calTurnsAfter(); }
   if (document.querySelector('#ins-panel.is-jambo, #mig-side .jl-head')) return jlTalkPress();
   return pdTalkReopen(); };
@@ -96,7 +98,8 @@ const SAY = () => { ai.history.length = 0; ai.history.push({ role: 'user', text:
       await P.waitForTimeout(300);
       /* 1 THE OVERVIEW'S ROOM: where its words actually stand, against the panel's own box */
       const room = await P.evaluate(s => {
-        const root = document.querySelector(s); const jov = [...root.querySelectorAll('.jov')].find(e => e.getBoundingClientRect().height > 0);
+        /* RE-POINTED 21 Nov 2026 (P-31, as drawn): beside Contracts the Overview is the drawn panel (.ctls), the same 16px rule */
+        const root = document.querySelector(s); const jov = [...root.querySelectorAll('.jov, .ctls')].find(e => e.getBoundingClientRect().height > 0);
         if (!jov) return null;
         const c = root.getBoundingClientRect(), cs = getComputedStyle(root);
         const l0 = c.left + parseFloat(cs.borderLeftWidth), r0 = c.right - parseFloat(cs.borderRightWidth);
@@ -111,7 +114,9 @@ const SAY = () => { ai.history.length = 0; ai.history.push({ role: 'user', text:
         return head ? [...head.querySelectorAll('.pd-tab, .jl-tab, .st-side-tab, [data-st-overview], [data-jb-bin], #igd-history-clear')].filter(e => e.getBoundingClientRect().width > 0)
           .map(e => ({ w: (e.textContent || e.getAttribute('aria-label') || '').replace(/[^\p{L} ]/gu, '').trim().slice(0, 14), c: getComputedStyle(e).cursor })) : []; }, [host, HEAD]);
       const c1 = await cursors();
-      check(`2 ${key}: every tab shows the hand on the Overview`, c1.length >= 1 && c1.every(x => x.c === 'pointer'), JSON.stringify(c1));
+      /* RE-POINTED 21 Nov 2026 (P-39, as drawn): the Board's panel has no head row, so no tab to point at */
+      /* RE-POINTED 21 Nov 2026 (P-31, P-34, P-33, as drawn): nor do the Contracts place's, Our paper's and Import's panels */
+      check(`2 ${key}: every tab shows the hand on the Overview`, ['board', 'contracts', 'templates', 'migration'].includes(key) ? c1.every(x => x.c === 'pointer') : c1.length >= 1 && c1.every(x => x.c === 'pointer'), JSON.stringify(c1));
       await P.evaluate(OPEN_TALK, key);
       const shows = await until(P, s => /HISTQ/.test(document.querySelector(s).innerText) && /HISTA/.test(document.querySelector(s).innerText), host, 3000);
       check(`3 ${key}: the conversation shows what was said elsewhere`, !!shows);

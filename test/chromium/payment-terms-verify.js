@@ -185,14 +185,22 @@ const EXTRA = [
     await seedBook();
     await page.evaluate(() => { setView('team'); });
     await page.waitForTimeout(1200);
-    await page.evaluate(() => { if (window.settingsGoTab) settingsGoTab('platform'); });
+    await page.evaluate(() => { if (window.settingsGoTab) settingsGoTab('platform'); if (window.sddGo) sddGo('company'); });
     await page.waitForTimeout(700);
-    /* Since the Control Room was built in full (owner, 16 Oct 2026) a setting
+    /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): Payment targets is a row in the Company area. Since the Control Room was built in full (owner, 16 Oct 2026) a setting
        is a door on its group's card, not a row. */
     const rowThere = await page.evaluate(() => !!document.querySelector('[data-st-panel="paydays"]'));
     check('11a the targets have a row on Settings', rowThere, rowThere ? 'drawn' : 'missing');
     if (rowThere) {
-      await page.click('[data-st-panel="paydays"]');
+      /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+      /* no Change button on the row: the first press on Payment targets chooses it, the second goes in through its
+         own door (kept on the row, unseen) */
+      const PD_ROW = '#stn-main [data-sdd-row="paydays"]';
+      if ((await page.getAttribute(PD_ROW, 'aria-pressed').catch(() => null)) !== 'true') {
+        await page.click(PD_ROW + ' .sdd-t');
+        await page.waitForFunction(s => { const r = document.querySelector(s); return !!r && r.getAttribute('aria-pressed') === 'true'; }, PD_ROW, { timeout: 3000 }).catch(() => {});
+      }
+      await page.click(PD_ROW + ' .sdd-t');
       await page.waitForTimeout(700);
       const boxes = await page.evaluate(() => {
         const a = document.getElementById('st-pay-in'), b = document.getElementById('st-pay-out');
@@ -227,9 +235,15 @@ const EXTRA = [
         if (q) { q.value = 'payment'; q.dispatchEvent(new Event('input', { bubbles: true })); }
       });
       await page.waitForTimeout(500);
+      await page.evaluate(() => { if (typeof sddGo === 'function') sddGo('company'); });
+      await page.waitForFunction(() => !!document.querySelector('#stn-main [data-sdd-row="paydays"]'), null, { timeout: 5000 }).catch(() => {});
       const saved = await page.evaluate(() => ({
         t: Object.assign({}, payTargets()),
-        row: (document.querySelector('#st-list .st-mrow[data-st-panel="paydays"] .st-mrow-s') || {}).textContent || '',
+        /* RE-POINTED 16 Nov 2026 (#762); 19 Nov 2026 (Settings, door to door, f1091): the Company area's Payment targets
+           row says its state in its Now column (.sdd-v) */
+        /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
+        /* the Now column holds a switch's word, a soft badge or the plain word: read the column, not one class */
+        row: ((document.querySelector('#stn-main [data-sdd-row="paydays"] .sdd-now') || {}).textContent) || '',
         reading: ((window.SET_PANELS && SET_PANELS.paydays) ? (SET_PANELS.paydays.state() || {}).text : '') || '',
       }));
       check('11d the pair is stored and each side reads its own',
@@ -294,18 +308,16 @@ const EXTRA = [
     await seedBook();
     await page.evaluate(() => { window.langSet('en'); (regPlaceSet({ show: 'list' }), setView('register')); });
     await page.waitForTimeout(1200);
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the Contracts place opens on its Folders; every
+       contract is its All tab ([data-ctf-tab="all"]), where the list head with its chips stands */
+    await page.waitForFunction(() => !!document.querySelector('[data-ctf-tab="all"]') || !!document.querySelector('[data-lh-seat="contracts"]'), null, { timeout: 8000 }).catch(() => {});
+    if (await page.$('[data-ctf-tab="all"]:not(.is-on)')) { await page.click('[data-ctf-tab="all"]'); await page.waitForTimeout(800); }
     const PT_CHIP = '[data-lh-seat="contracts"] [data-lh-chip="payterms"]';
     const offBar = await page.evaluate(C => !document.getElementById('reg-payterms') && !document.querySelector(C), PT_CHIP);
     check('13a it is NOT on the bar by default — the row still fits one line', offBar,
       offBar ? 'under + Filter' : 'drawn unasked');
-    const inCat = await page.evaluate(() => {
-      const add = document.querySelector('[data-lh-seat="contracts"] select[data-lh-add]');
-      if (!add) return null;
-      return [...add.querySelectorAll('optgroup')].map(g => ({ v: g.label, t: g.label }));
-    });
-    check('13b it is offered under + Filter',
-      Array.isArray(inCat) && inCat.some(x => /payment terms/i.test(x.t)),
-      Array.isArray(inCat) ? inCat.map(x => x.t.trim()).join(' | ').slice(0, 120) : 'no + Filter');
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling): 13b "it is offered under + Filter" — the Contracts list has no + Filter
+       in the new look (the owner's answer 1, 17 Nov 2026); the chip that draws itself while it narrows (13c-13f) stays */
 
     /* THE SAFETY PROPERTY: turned on from the model, it must appear on the bar
        by itself rather than narrowing the book from behind a closed dialog. */

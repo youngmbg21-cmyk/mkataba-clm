@@ -458,10 +458,11 @@ describe('f861 (11) the box shows the page\'s query', () => {
     assert.equal(inp.value, 'which ones end soon');
   });
   /* RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): the bar's search left; ⌘K puts the hand in Jambo's box */
-  test('the top bar has no search box; ⌘K focuses Jambo\'s box', () => {
+  /* RE-POINTED 19 Nov 2026 (the launchpad, owner: "1, yes"): ⌘K opens the launchpad, the jump window in the middle (f1097) */
+  test('the top bar has no search box; ⌘K opens the launchpad', () => {
     assert.doesNotMatch(read('index.html'), /<input id="cmd-search"/);
     const app = read('js/app.js').replace(/\/\*[\s\S]*?\*\//g, ' ');
-    assert.match(app, /\(e\.key==='k'\|\|e\.key==='K'\)\)\{ e\.preventDefault\(\); jamboBoxFocus\(\); return; \}/);
+    assert.match(app, /\(e\.key==='k'\|\|e\.key==='K'\)\)\{ e\.preventDefault\(\); openCommandPalette\(\); return; \}/);
   });
   test('a page left and come back to starts from its own query', () => {
     need(); const x = stage(); const P = page(x.sb); paint(x);
@@ -571,5 +572,41 @@ describe('f861 (14) the foot in place, a column aside, the numbers grouped', () 
     need(); const { sb, doc } = stage();
     doc.body.innerHTML = sb.insViewTabsHtml({ attr: 'data-t', cur: 'all', views: [{ k: 'all', label: 'All', n: 3000, keep: true }] });
     assert.equal(doc.querySelector('.n').textContent, (3000).toLocaleString(), 'grouped, never "3000"');
+  });
+});
+
+/* CONTRACTS' BOX ASKS (owner, 21 Nov 2026, P-31 as drawn: "Ask about your contracts: …"): a page that lets its box ask
+   (spec.asks) hands a QUESTION to the one reader (lhAsk: the page's own, else jlAsk / intelAsk — no second door) and
+   narrows nothing with it; plain words still filter and Enter spends nothing. Every other page's box stays a filter. */
+describe('f861 (15) a box that asks: Contracts', () => {
+  test('a question goes to the one reader, emptying the box; the list is not narrowed by it', () => {
+    need(); const x = stage(); const P = page(x.sb, { spec: { asks: true } }); paint(x);
+    const inp = x.doc.querySelector('input[data-lh-q]');
+    inp.value = 'which ones end before June?'; inp.dispatchEvent(new x.win.Event('input', { bubbles: true }));
+    assert.deepEqual(P.S.queries, [], 'a question narrows nothing');
+    inp.dispatchEvent(new x.win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    assert.deepEqual(P.S.asked, ['which ones end before June?'], 'handed to the reader');
+    assert.equal(inp.value, '', 'the box empties once it is taken');
+  });
+  test('plain words still filter, and Enter sends nothing', () => {
+    need(); const x = stage(); const P = page(x.sb, { spec: { asks: true } }); paint(x);
+    const inp = x.doc.querySelector('input[data-lh-q]');
+    inp.value = 'Nandi'; inp.dispatchEvent(new x.win.Event('input', { bubbles: true }));
+    assert.deepEqual(P.S.queries, ['Nandi']);
+    inp.dispatchEvent(new x.win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    assert.deepEqual(P.S.asked, []);
+  });
+  /* RE-POINTED 22 Nov 2026 (owner: "make them honest labels but jambo should have the ability to answer those questions";
+     reverses P-31's asking box of 21 Nov): Contracts' box is an honest filter — the list head's "Filter this list" and
+     magnifying glass, every word narrows, Enter hands nothing on; the landing's box alike. Questions are Jambo's, in his
+     box at the panel's foot. The asking machinery above stays, used by no page. */
+  test('Contracts\' head and landing boxes only filter: no asks, no spark, no Enter hand-off', () => {
+    const REG = read('js/views/register.js').replace(/\/\*[\s\S]*?\*\//g, '');
+    const spec = REG.slice(REG.indexOf('lhRegister(REG_CT_SEAT, {'), REG.indexOf('lcSeat:onList'));
+    assert.doesNotMatch(spec, /\basks:true\b/, 'the box does not ask');
+    assert.doesNotMatch(spec, /mkSpark|ctls_ask_ph/, 'no spark, no "Ask about" words');
+    assert.doesNotMatch(REG, /e\.target\.id === 'ctf-q' \? e\.target : null; if \(!q \|\| e\.key !== 'Enter'/, 'the landing hands nothing on at Enter');
+    assert.doesNotMatch(REG, /lhIsQuestion\(q\.value\)\) return;/, 'the landing narrows on every word');
+    assert.match(REG, /<label class="apn-ask ctf-ask is-filter">[^\n]*icon\('search'[^\n]*placeholder="\$\{esc\(i18t\('lh_filter_ph'\)\)\}"/);
   });
 });

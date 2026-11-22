@@ -614,6 +614,9 @@ function navGo(a){
   /* a Settings drawer left open would stand over the place this moves to: shut by its own close
      (the same as a press outside it), unless the move is to another Settings spot */
   if (!['you', 'company', 'person', 'stream'].includes(n.k) && typeof document !== 'undefined' && document.querySelector('#st-drawer.open') && typeof stDrawerClose === 'function'){
+    /* a sheet holding edits asks first (P-43): the move goes on once it is answered */
+    if (typeof window !== 'undefined' && typeof window.stHoldDirty === 'function' && window.stHoldDirty() && typeof window.stHoldLeaveThen === 'function'){
+      window.stHoldLeaveThen(() => navGo(a)); return true; }
     try { stDrawerClose(); } catch (_){}
   }
   if (n.k === 'party'){
@@ -648,7 +651,9 @@ const NAV_PAPER_TRIES = 15;
 /* A LANDING STILL ON ITS WAY: raised from the press until the clause is landed or said not to be there,
    so a page or a check waiting for the screen to stand still can ask (navLanding) */
 let _navLanding = false;
-const navLanding = () => _navLanding;
+/* …and a contract still being read whole for Home's paper (igAnalyze's intel.opening) is a landing on its way too,
+   whichever door asked for it */
+const navLanding = () => _navLanding || !!(typeof window !== 'undefined' && window.intel && window.intel.opening);
 /* A TOPIC THE HEADINGS DO NOT NAME ("the delivery promise": the clause headed "Supply" that says "delivered") is read
    in the wording — its numbered heading lines, the heading first, then the words under it by their root — and
    landed by its number (stage 3d); none found, the paper's own search goes on as before */
@@ -744,6 +749,7 @@ function navQuoteKey(s){
 }
 /* a contract and its face, each through its own door */
 const navC = id => (typeof getContract === 'function') ? getContract(id) : null;
+const NAV_ACTS_WRITE = ['fill', 'send', 'amend', 'value', 'counterparty', 'category', 'stream', 'rename', 'codename', 'nda', 'signers', 'renewal'];
 function navGoAct(n){
   const id = n.cid;
   const go = {
@@ -768,7 +774,7 @@ function navGoAct(n){
     redlines: () => (typeof pdRedOpen === 'function') ? pdRedOpen(id) : false,
     brief: () => (typeof caBriefOpen === 'function' && typeof getContract === 'function') ? caBriefOpen(getContract(id)) : false,
     open: () => pdOpenOnHome(id, 'open'),
-    paper: () => pdOpenOnHome(id, 'open', { cover: false }),
+    paper: () => pdOpenOnHome(id, 'open'),
     /* Key terms in the middle, on the row asked for (pdKtFocus: a fact's row, Move, Category, Rename) */
     terms: () => (typeof pdKtOpen === 'function') ? pdKtOpen(id) : false,
     value: () => (typeof pdKtFocus === 'function') ? pdKtFocus(id, 'value') : false,
@@ -799,17 +805,60 @@ function navGoAct(n){
       if (!(state.panelOpen && typeof panelFace === 'function' && panelFace() === 'notes')) openPanel('notes');
       return true; },
     /* "Risks to look at" in what Jambo read, its own Read or See */
-    risks: () => { if (pdOpenOnHome(id, 'copilot') === false) return false; return navLandWhen(() => document.querySelector('#ig-dock [data-pd-ds="risks"]')); },
+    /* in the new look the risk list stands in the Redlines face (#rl-risks; MAP: Dossier Risks › Open lands ON #rl-risks) —
+       the old Dossier's line where it is drawn (#762: the door landed nowhere) */
+    risks: () => { if (pdOpenOnHome(id, 'copilot') === false) return false;
+      if (!document.querySelector('#ig-dock [data-pd-ds="risks"]') && typeof pdRedOpen === 'function' && pdRedOpen(id)) return navLandWhen(() => document.querySelector('#ig-dock #rl-risks'));
+      return navLandWhen(() => document.querySelector('#ig-dock [data-pd-ds="risks"]')); },
     ladder: () => (typeof pdRedOpen === 'function') ? pdRedOpen(id) : false,
     /* who opened it is on its History (the trail keeps the opens) */
     opened: () => (typeof hbOpenView === 'function') ? hbOpenView(id, 'hist') : pdOpenOnHome(id, 'copilot'),
   }[n.act];
   if (typeof go !== 'function' || typeof pdOpenOnHome !== 'function') return false;
+  /* A VIEWER READS (Round A, owner 20 Nov 2026): an act that would change the contract opens it to read and says one
+     line why, never its form */
+  if (NAV_ACTS_WRITE.includes(n.act) && typeof window.mayActOn === 'function' && !window.mayActOn((typeof getContract === 'function') ? getContract(id) : null)){
+    pdOpenOnHome(id, 'copilot');
+    if (typeof toast === 'function') toast(i18t('viewer_reads_only'), 'warn');
+    return true;
+  }
   /* THE LETTER WAITS (as a clause asked for does, navGoClause): another part of a contract asked for while the
      letter is up steps the letter one tab away, kept; it never stands in front of what was asked */
-  if (n.act !== 'send'){ try { if (typeof pdSendShows === 'function' && pdSendShows() && typeof pdSendAway === 'function') pdSendAway(); } catch (_){} }
-  const ok = go();
+  const run = () => {
+    if (n.act !== 'send'){ try { if (typeof pdSendShows === 'function' && pdSendShows() && typeof pdSendAway === 'function') pdSendAway(); } catch (_){} }
+    return go();
+  };
+  /* a contract not read whole yet is read first (navReadFirst), then the door opens */
+  if (navReadFirst(navC(id), run)) return true;
+  const ok = run();
   return ok !== false;
+}
+/* THE WHOLE RECORD BEFORE THE DOOR (BUGLOG 22 Nov 2026, the Board's box "did nothing"): a contract not opened yet this
+   sitting is a LIGHT row, and its paper waits for the whole record (igAnalyze → ensureFull). Opened straight away, the
+   door's own landers (Key terms' row, the Dossier's line, the NDA's facts) counted their beats against a paper not yet
+   drawn and gave up on a slow read, and from the Board nothing moved and nothing said a landing was on its way
+   (navLanding false), so the screen read as standing still on the Board. The record is read FIRST, the landing raised
+   meanwhile, then the door (run) opens on a paper drawn at once. The newest door wins, and a person who moved on
+   meanwhile (another page, another face of Home) keeps where they went. True when the door waits for the read. */
+let _navReadSeq = 0;
+function navReadFirst(c, run){
+  if (!(c && c._light && !c._loaded && !c._codeNamed && typeof ensureFull === 'function' && typeof run === 'function')) return false;
+  const seq = ++_navReadSeq, was = navStandsAt();
+  _navLanding = true;
+  const then = () => {
+    if (seq !== _navReadSeq) return;
+    _navLanding = false;
+    if (navStandsAt() !== was) return;
+    try { run(); } catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); }
+  };
+  Promise.resolve().then(() => ensureFull(c)).then(then, then);
+  return true;
+}
+/* where the person stands, read before and after a record is read: the page, and Home's face */
+function navStandsAt(){
+  const v = (typeof state === 'object' && state) ? state.view : '';
+  let f = ''; try { f = (v === 'dashboard' && typeof hbFace === 'function') ? String(hbFace() || '') : ''; } catch (_){ f = ''; }
+  return v + ':' + f;
 }
 /* does the paper in front mark its clauses at all? */
 function navPaperMarked(){
@@ -1022,6 +1071,10 @@ function navGoStage2(n){
     /* a standard named in Jambo's own words: the row that says them */
     const re = NAV_STD_ROW_RE[n.row] || new RegExp(String(n.row).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').split(/\s+/).slice(0, 3).join('.*'), 'i');
     return navLandWhen(() => {
+      /* THE LADDER (17 Nov 2026): the standard's own row in the list is pressed (its own press chooses it), and the
+         ladder it draws is landed on */
+      const it = [...document.querySelectorAll('.ld-list [data-ld-pick]')].find(x => re.test(x.textContent || '') || re.test(x.querySelector('[title]')?.getAttribute('title') || ''));
+      if (it){ if (!it.classList.contains('is-on')) it.click(); return document.querySelector('.ld-main .ld-title'); }
       const host = document.querySelector('#ins-panel') || document.querySelector('.sd-ins'); if (!host) return null;
       const all = [...host.querySelectorAll('li, tr, dt, dd, p, [class*="row"]')].filter(x => re.test(x.textContent || ''));
       return all.find(x => !all.some(y => y !== x && x.contains(y))) || null;   // the innermost row that says it
@@ -1315,7 +1368,7 @@ function navDoorOf(d){
 
 Object.assign(window, { NAV_PLACES, NAV_PLACES_ADMIN, navIsAdmin, navReadHandbook, navReadPlace, navGoPlace, navReadStTitle, navStTitles, navDoorOf, navLeftover, navNorm, navBook, navStreamWords, navStreamOf, navStageOf, navEndingOf, navEndingSpan, navParties, navPartiesIn,
   navClauseTopicOf, navRead, navReadClause, navClauseCount, navReadContracts, navContractsLabel, navReadParty, navWhich, navGo, navGoClause,
-  navContractByName, navLanding, NAV_PAGES, navReadPage, NAV_ACTS, NAV_ACT_OWN, navReadContractAct, navGoAct, navClauseEl, navClauseRow, navPaperMarked, NAV_PAPER_TRIES, navSayLate, navChoicePress, NAV_STREAM_EXTRA, NAV_CLAUSE_TOPICS, NAV_LAND_TRIES,
+  navContractByName, navLanding, navReadFirst, navStandsAt, NAV_PAGES, navReadPage, NAV_ACTS, NAV_ACT_OWN, navReadContractAct, navGoAct, navClauseEl, navClauseRow, navPaperMarked, NAV_PAPER_TRIES, navSayLate, navChoicePress, NAV_STREAM_EXTRA, NAV_CLAUSE_TOPICS, NAV_LAND_TRIES,
   NAV_YOU, NAV_COMPANY, navReadSettings, navReadStandards, navUsersIn, navLandWhen, navGoStage2, NAV_STD_BOOKS, NAV_STD_ROWS,
   navReadDuty, navReadRequest, navReadPerson, navGoStage3, navWords, navWordHits, navReadNone, navUnknownNames, NAV_HOLD_BEATS,
   navReadCompare, navGoCompare, NAV_COMPARE_WORDS, NAV_COMPARE_SIDES });

@@ -105,10 +105,13 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
     /* 4 — summarise my board */
     await page.evaluate(() => { const s = hbS(); s.path = []; hbSave(); hbPaintBoard(); });
     /* RE-POINTED 18 Oct 2026 (round 17 as drawn): the top line is the Board's head card, and the button says its cost ("1 Jambo call") after its words */
-    const bs = await until(() => { const b = document.querySelector('.hb-note [data-hb-why="board:all"]'); return b ? b.textContent.replace((b.querySelector('.hb-bs-cost') || {}).textContent || '', '').trim() : null; });
-    check('4a "Summarise my board" sits on the board\'s top line', bs === 'Summarise my board', bs);
-    if (bs){ await page.evaluate(() => document.querySelector('.hb-note [data-hb-why="board:all"]').click());
-      const box = await until(() => { const n = document.getElementById('hb-bhead'); /* the brief is its own card under the greeting (owner, 11 Nov 2026; Card Inside reversed) */ const w = n && (n.querySelector(':scope > .hb-why') || n.nextElementSibling); return w && w.classList.contains('hb-why') && w.querySelector('.hb-why-b') ? w.textContent.replace(/\s+/g, ' ').trim() : null; });
+    /* RE-POINTED 22 Nov 2026 (owner: "combine summarise my board into read down"): the button and its brief stand in Read
+       down ("Jambo, in brief"), the same press (data-hb-why="board:all"), the same fact sheet */
+    await page.evaluate(() => { const d = document.querySelector('#hb-bhead [data-hb-rdn]'); if (d) d.click(); });
+    const bs = await until(() => { const b = document.querySelector('.rd-brief [data-hb-why="board:all"]'); return b ? b.textContent.trim() : null; });
+    check('4a "Summarise my board" sits in Read down\'s brief', bs === 'Summarise my board', bs);
+    if (bs){ await page.evaluate(() => document.querySelector('.rd-brief [data-hb-why="board:all"]').click());
+      const box = await until(() => { const w = document.querySelector('.rd-brief #hb-gr-say'); return w && w.textContent.trim() ? w.textContent.replace(/\s+/g, ' ').trim() : null; });
       check('4b its answer is under the top line, checked', !!box && !/37%/.test(box), box && box.slice(0, 140)); }
     await page.screenshot({ path: path.join(OUT, '3-board-summary.png') });
 

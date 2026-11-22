@@ -54,7 +54,11 @@ const EXEC = process.env.CHROMIUM_BIN
         const before = await where();
         const ran = await P.evaluate(d => aiGotoRun({ task: '', door: d }, ''), door);
         await settle();
-        const W = await where();
+        /* RE-POINTED 18 Nov 2026 (#762): on a slow runner a door that loads its contract first can read "still" for two beats
+           before it moves (GitHub saw 5 stand on MK-Z9 while Jambo had already said "The history of MK-B1"), so the screen
+           is asked for the spot itself, bounded — a door that never lands still fails with where it stood */
+        let W = await where();
+        for (let t0 = Date.now(); ran && judge(spot, W, before).length && Date.now() - t0 < 8000; ){ await P.waitForTimeout(250); await settle(); W = await where(); }
         why = ran ? judge(spot, W, before) : ['aiGotoRun did not run the door'];
         if (why.length) why.push('at ' + JSON.stringify(W).slice(0, 300));
       } catch (e){ why = ['threw: ' + String(e && e.message || e).split('\n')[0]]; }

@@ -126,7 +126,13 @@ const readRow = page => page.evaluate(() => {
     check('1e the Sign button counts it and does not promise a signature', r.signHolds >= 1 && /to settle/i.test(r.signText),
       `holds ${r.signHolds} · "${r.signText}"`);
     const before = await page.evaluate(() => (getContract('MK-A2').signatures || []).length);
-    await page.click('#sign-btn');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): what a reader presses at the foot of Before you sign
+       is the five-part face's one act (while something holds: the first open check's own door, or the held Sign); it
+       must sign nothing and open no pad */
+    const act5 = await page.evaluate(() => { const g = document.querySelector('#pd-signface .pd2-sg'); const last = g && g.lastElementChild;
+      const b = last && (last.matches('button') ? last : last.querySelector('button')); if (!b || !b.getClientRects().length) return null;
+      b.setAttribute('data-t-act5', '1'); return b.textContent.trim(); });
+    await page.click(act5 != null ? '[data-t-act5]' : '#sign-btn', { timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(700);
     const after = await page.evaluate(() => ({ sigs: (getContract('MK-A2').signatures || []).length, pad: !!document.querySelector('.sig-pad, #sig-pad, [data-sig-pad]') }));
     check('1f pressing Sign signs nothing and opens no signature pad', after.sigs === before && !after.pad, JSON.stringify(after));

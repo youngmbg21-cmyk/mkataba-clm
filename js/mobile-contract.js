@@ -137,7 +137,7 @@ function mDetCountHtml(c){
   return (d&&d.left)?`<span class="m-ctab-n">${d.left}</span>`:'';
 }
 function mDetBoxHtml(c, x, bmap){
-  const IN='width:100%;height:44px;padding:0 12px;font:inherit;font-size:16px;border:1px solid var(--color-divider);border-radius:var(--radius);background:'+(x.open?'var(--st-amber-bg)':'var(--color-surface)')+';color:var(--color-text)';
+  const IN='width:100%;height:44px;padding:0 12px;font:inherit;font-size:16px;border:var(--fld-edge);border-bottom:'+(x.open?'1px solid var(--st-amber-line)':'var(--fld-under)')+';border-radius:var(--fld-r);background:var(--fld-bg);color:var(--color-text)';
   if(x.kind==='kt'){
     if(x.key==='party') return `<input type="text" data-kt="party" value="${mEsc(c.party||'')}" placeholder="${mEsc((typeof contractParty==='function'?contractParty(c):'')||'')}" style="${IN}">`;
     if(x.key==='counterparty') return `<input type="text" data-kt="counterparty" value="${mEsc(c.counterparty||'')}" style="${IN}">`;
@@ -160,6 +160,8 @@ function mDetBoxHtml(c, x, bmap){
 function mDetHtml(c){
   let d=null; try{ d=(typeof detailsOf==='function')?detailsOf(c):null; }catch(_){ d=null; }
   const may=(typeof canEdit!=='function'||canEdit())&&!mLocked(c);
+  /* a Viewer is told the true reason, not "nothing to suggest" (Round C) */
+  if(d&&d.live&&d.all&&typeof window.mayActOn==='function'&&!window.mayActOn(c)) return `<div class="m-scroll"><div class="m-card" style="margin:var(--s-3);padding:var(--s-4)"><div class="m-note">${mEsc(i18t('viewer_reads_only'))}</div></div></div>`;
   if(!d||!d.live||!d.all||!may) return `<div class="m-scroll"><div class="m-card" style="margin:var(--s-3);padding:var(--s-4)"><div class="m-note">${mEsc(i18t(d&&d.all&&!d.left?'det_all_filled':'det_jambo_none'))}</div></div></div>`;
   const bs=(typeof contractBlanks==='function')?(contractBlanks(c)||[]):[];
   const bmap=new Map(bs.map(b=>[String(b.key),b]));
@@ -405,6 +407,7 @@ function mDocNoticesHtml(c){
   try{ plan = (typeof negoRenumberPlan==='function') ? negoRenumberPlan(c) : null; }catch(_){ plan=null; }
   const moves = plan && Array.isArray(plan.moves) ? plan.moves.filter(mv=>mv && mv.from!==mv.to) : [];
   if(!moves.length) return rv;
+  if(typeof window.mayActOn==='function' && !window.mayActOn(c)) return rv;   // Renumber is an edit; a Viewer is not offered it (Round C)
   const refs = (plan && Array.isArray(plan.refs) ? plan.refs.length : 0);
   return rv + `
     <div class="m-notice" style="display:block;background:var(--st-amber-bg);border-color:var(--st-amber-line)">
@@ -717,6 +720,7 @@ function mActionBarHtml(c){
     </div>`;
 }
 
+const M_ROW_WRITES = ['look-done', 'edit', 'edit-locked', 'share', 'renumber', 'renumber-locked', 'template'];
 function mContractHtml(){
   const c = mContract();
   if(!c) return `
@@ -758,7 +762,8 @@ function mOverflowSheetHtml(){
     { k:'copilot', get label(){ return i18t('mc_ask_copilot'); } },
     { k:'compare', get label(){ return i18t('mc_compare_versions'); }, desk:true },
     { k:'template', get label(){ return i18t('mc_save_as_template'); }, desk:true },
-  ].filter(Boolean);
+  /* a Viewer reads: the rows that would change the contract or send it are not offered (Round C, owner 20 Nov 2026) */
+  ].filter(Boolean).filter(i => !(typeof window.mayActOn==='function' && !window.mayActOn(c)) || !M_ROW_WRITES.includes(i.k));
   return `
     <div class="m-grab"></div>
     ${items.map(i=>`

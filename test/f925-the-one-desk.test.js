@@ -131,12 +131,17 @@ describe('f925 (3) the Board', () => {
     const html = w.ndBoardHtml({});
     assert.match(html, /^<section class="hb-card nd-card" id="hm-agents">/);
     assert.match(html, /data-nd-tab="all" aria-pressed="true">All <span class="nd-tab-n">15<\/span>/);
+    /* RE-POINTED 21 Nov 2026 (P-39, the Legora + Stripe way): chips with a dot of their colour, and Late a chip of its own */
+    assert.match(html, /data-nd-tab="late" aria-pressed="false"><i class="nd-st-dot is-late" aria-hidden="true"><\/i>Late <span class="nd-tab-n">1<\/span>/);
+    /* RE-POINTED 21 Nov 2026 (P-39 rebuilt as drawn): only Late wears its dot */
     assert.match(html, /data-nd-tab="you" aria-pressed="false">Your move <span class="nd-tab-n">14<\/span>/);
     assert.match(html, /data-nd-tab="jambo" aria-pressed="false">Jambo prepared <span class="nd-tab-n">1<\/span>/);
     const chips = [...html.matchAll(/data-nd-kind="(\w+)"/g)].map(m => m[1]).join(',');
     assert.equal(chips, 'any,sign,review,jambo', 'only the kinds there are');
     assert.match(html, /<input type="search" id="nd-q"/);
-    assert.equal((html.match(/<div class="nd-cols">(.*?)<\/div>/) || [])[1].match(/<span>/g).length, 4);
+    /* RE-POINTED 21 Nov 2026 (P-39): a Status column of soft badges joins — five */
+    /* RE-POINTED 21 Nov 2026 (P-39 rebuilt as drawn): the act's column has no word over it (named for the reader only) */
+    assert.equal((html.match(/<div class="nd-cols">(.*?)<\/div>/) || [])[1].match(/<span[ >]/g).length, 5);
     assert.equal((html.match(/class="nd-br/g) || []).length, 12, 'twelve at a time');
     assert.match(html, /data-nd-more>Show 3 more<\/button>/);
     assert.match(html, /hb_ny_title|Needs you/);
@@ -161,11 +166,13 @@ describe('f925 (3) the Board', () => {
     assert.match(look, /agRowActOf/);
     assert.match(look, /data-ag-act="away"/, 'Put away, last');
   });
-  test('3c2 the contract\'s number leads the Agreement cell and is never cut; the name gives way (owner, 23 Oct 2026)', () => {
+  /* RE-POINTED 21 Nov 2026 (P-39 rebuilt as drawn: "Office Lease 2023 · MK-201"): the name first, the number after it and
+     never cut; the name gives way */
+  test('3c2 the agreement\'s name, then its number, which is never cut; the name gives way', () => {
     const w = world([row('MK-101', 'sign', { who: 'Sara Lind' })], [chase]);
     const html = w.ndBoardRowsHtml(w.ndRead(), {});
-    assert.match(html, /<span class="nd-c nd-c-deal" title="MK-3 · [^"]+">(?:<span class="hati-ref">)?MK-3(?:<\/span>)?<i class="nd-dot" aria-hidden="true">·<\/i><span class="nd-deal-t">/);
-    assert.match(html, /<span class="nd-c nd-c-deal" title="MK-101 · [^"]+">(?:<span class="hati-ref">)?MK-101(?:<\/span>)?<i class="nd-dot"/);
+    assert.match(html, /<span class="nd-c nd-c-deal" title="[^"]+ · MK-3"><span class="nd-deal-t">[^<]+<\/span><i class="nd-dot" aria-hidden="true">·<\/i>(?:<span class="hati-ref">)?MK-3/);
+    assert.match(html, /<span class="nd-c nd-c-deal" title="[^"]+ · MK-101"><span class="nd-deal-t">[^<]+<\/span><i class="nd-dot"/);
     assert.match(CSS, /\.nd-c-deal \.hati-ref,\.nd-c-deal \.nd-dot\{flex:none;/);
     assert.match(CSS, /\.nd-deal-t\{min-width:0;overflow:hidden;text-overflow:ellipsis\}/);
   });

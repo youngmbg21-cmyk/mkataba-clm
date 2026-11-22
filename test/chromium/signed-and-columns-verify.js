@@ -70,6 +70,10 @@ const check = (name, ok, detail) => {
       if (cs[2]) { cs[2].status = 'Draft'; delete cs[2].execution; delete cs[2].signedAt; }
     });
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Contracts opens on its Folders; its List is pressed */
+    await page.waitForFunction(() => !!document.querySelector('[data-ctf-show="list"]') || !!document.querySelector('.reg-table'), null, { timeout: 10000 }).catch(() => {});
+    await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b) b.click(); });
+    await page.waitForFunction(() => !!document.querySelector('.reg-table'), null, { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(1200);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
 
@@ -127,17 +131,9 @@ const check = (name, ok, detail) => {
     /* RE-POINTED 15 Oct 2026 (step 7): with no Signed column the order is
        chosen where the List offers it — its Sort — and read off each row's
        own signed day. */
-    const sorted = await page.$('#reg-sort') ? (await page.selectOption('#reg-sort', 'signed'), true) : false;
-    await page.waitForTimeout(700);
-    const order = (await page.evaluate(SIGNED_OF)).slice(0, 30);
-    const DAY2 = /^\d{4}-\d{2}-\d{2}/;
-    const dated = order.filter(t => DAY2.test(t.trim()));
-    const dashAfter = order.findIndex(t => t.trim() === '—');
-    const lastDated = order.map(t => DAY2.test(t.trim())).lastIndexOf(true);
-    check('the List\'s Sort orders the book by signature',
-      sorted && dated.length >= 2, `${dated.length} dated rows`);
-    check('AND A CONTRACT WITH NO SIGNATURE SORTS LAST',
-      dashAfter === -1 || dashAfter > lastDated, `first dash@${dashAfter} last date@${lastDated}`);
+    /* RETIRED 17 Nov 2026 (#762, owner's ruling): "the List's Sort orders the book by signature" and "a contract with no
+       signature sorts last" pressed the List's Sort (#reg-sort), which the new look's Contracts list does not offer —
+       Sort, + Filter, row height and the row's ⋯ menu stay gone (owner, 17 Nov 2026, answer 1) */
 
     /* ============ 5. THE FILTER: OFF BY DEFAULT, ON WHEN NARROWING ======== */
     /* RE-POINTED 21 Oct 2026 (Part 8): the Signed filter is a group under

@@ -373,14 +373,17 @@ describe('f193 — the drawer', () => {
     assert.equal(win.document.querySelector('#st-dhead .rvd-title').textContent, sb.SET_PANELS.approvals.title());
   });
 
-  test('a form drawer offers Save & close and Cancel; a write-on-change panel offers Done', () => {
+  /* RE-POINTED 22 Nov 2026 (P-43 review): the owner's pick ("Cancel and SAVE (today only 'Done')") reverses "the gates
+     write on change and have no Save": every sheet says Save, black and first, and Cancel last (the house rule); a
+     gate's presses wait in the sheet until that Save (stHoldBegin), so the Save is the one that writes */
+  test('every sheet offers Save first and Cancel last; a form drawer too', () => {
     const { sb, $ } = stage();
-    /* THE GATES WRITE ON CHANGE AND HAVE NO SAVE BUTTON — a gate armed only if
-       you remember to press Save is a gate that is off when it matters. So the
-       foot says Done there rather than pretending a press is what saves. */
     sb.stDrawerOpen('review');
-    assert.ok(!$('st-dsave'), 'the review gate has no Save button to be wrong about');
-    assert.ok($('st-dfoot').textContent.includes(S.st_done));
+    const acts = [...$('st-dfoot').querySelectorAll('.st-dfoot-acts > button')].filter(b => !b.classList.contains('st-dnext'));
+    assert.equal(acts[0] && acts[0].id, 'st-dsave', 'Save first');
+    assert.ok(acts[0].classList.contains('ui-btn-primary') && acts[0].textContent.trim() === S.act_save, 'black, and it says Save');
+    assert.ok(acts[acts.length - 1].hasAttribute('data-st-dcancel') && acts[acts.length - 1].textContent.trim() === S.act_cancel, 'Cancel last');
+    assert.ok(!$('st-dfoot').textContent.includes(S.st_done), 'no Done');
     sb.settingsPersonDrawer('new');
     assert.ok($('st-dsave'), 'a real form does');
     assert.ok($('st-dfoot').textContent.includes(S.act_cancel));

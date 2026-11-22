@@ -96,6 +96,8 @@ const SEED = () => {
       card.detect.project >= 5, `detected ${card.detect.project} project, ${card.detect.standing} standing, ${card.detect.unknown} unknown`);
 
     const saved = await page.evaluate(() => { window.wsSet(['standing', 'project'], 'job'); return window.wsCfg(); });
+    /* RE-POINTED 22 Nov 2026 (P-43 review): the sheet holds the choice until its Save, which is what sends it to the server */
+    await page.evaluate(async () => { const b = document.getElementById('st-dsave'); if (b && window.stHoldSave) await stHoldSave(b); });
     check('the choice sticks and carries the word', saved.word === 'job' && saved.shapes.length === 2);
     const onServer = await page.evaluate(async () => (await (await fetch('/api/bootstrap')).json()).org.workShape);
     check('and reaches the server, so every member sees the same answer',

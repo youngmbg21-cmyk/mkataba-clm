@@ -118,6 +118,11 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
     ok('3b the symbols are the artifact\'s marks, the Dossier ▦ (his face is the Jambo tab\'s)', tabs.map(t => t.g).join('') === '▦▢⇄', tabs.map(t => t.g).join(' '));
 
     /* ===== 4. WHITE, UNDER THE GREETING ROW ===== */
+    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the Clauses tab plays THE READ quickly over the paper
+       (pd2WalkWithRead), and while it walks the paper's strip steps aside (#ig-page.is-pd2-walk); a quick read closes itself
+       at its end — the line is measured once the read has ended (bounded; a read that never ends leaves the strip at 0) */
+    await page.waitForFunction(() => !document.querySelector('#ig-page.is-pd2-walk'), null, { timeout: 30000 }).catch(() => {});
+    await page.waitForTimeout(300);
     const lay = await page.evaluate(() => { const R = e => e.getBoundingClientRect();
       const d = document.getElementById('ig-dock'), s = document.getElementById('ig-strip'), hd = document.querySelector('#ig-dock > .igd-head');
       return { bg: getComputedStyle(d).backgroundColor, before: getComputedStyle(d, '::before').content, top: Math.round(R(d).top), strip: Math.round(R(s).top),
@@ -149,11 +154,18 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
     const pb = await page.evaluate(() => { const r = document.getElementById('ig-paper-scroll').getBoundingClientRect();
       return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; });
     await page.mouse.move(pb.x, pb.y);
+    /* RE-POINTED 18 Nov 2026 (PR 779, red twice on GitHub, green here): twelve 40px steps were a fixed distance that had
+       to cross a clause boundary; on the runner's fonts the first boundary lies further down, every step read "idle" and
+       the check never saw the moment it tests. The wheel now turns until the list has followed (a WAIT ASKS FOR THE STATE,
+       BOUNDED: at most 40 steps) and four more steps are read after it — the same assertion, measured where it happens. */
     const still = [];
-    for (let k = 0; k < 12; k++) {
+    let after = -1;
+    for (let k = 0; k < 40 && (after < 0 || k - after < 4); k++) {
       await page.mouse.wheel(0, 40); await page.waitForTimeout(40);
-      still.push(await page.evaluate(() => { const c = document.getElementById('pd-thread'); const o = c.querySelector('.doc-th-row.is-open .doc-th-body');
-        return c.classList.contains('th-still') ? (o ? getComputedStyle(o).transitionDuration : 'none') : 'idle'; }));
+      const v = await page.evaluate(() => { const c = document.getElementById('pd-thread'); const o = c.querySelector('.doc-th-row.is-open .doc-th-body');
+        return c.classList.contains('th-still') ? (o ? getComputedStyle(o).transitionDuration : 'none') : 'idle'; });
+      still.push(v);
+      if (after < 0 && v !== 'idle') after = k;
     }
     ok('6c while the paper scrolls, a row opens in one step — no animation', still.some(v => v === '0s') && !still.some(v => v !== '0s' && v !== 'idle' && v !== 'none'), still.join(' '));
     await page.screenshot({ path: path.join(OUT, '6-home-still.png') });

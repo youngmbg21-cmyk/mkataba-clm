@@ -61,6 +61,8 @@ describe('f746 (1) what the value counts, said under it', () => {
   });
   test('1c it is the value row\'s line in the table, in the quiet ink', () => {
     const w = world([mk('A'), mk('B', { metadata: { currency: 'NOK', startDate: ago(300) } })]);
+    /* RE-POINTED 21 Nov 2026 (P-39): Value under contract is no longer in the usual four; a person who picks it sees its line */
+    w.eval('hbS().figs = ["live", "value", "ending", "past"]');
     const html = w.hbBookHtml(w.hbBookData('all'), null, null);
     const row = (html.match(/data-hb-fig="value">([\s\S]*?)<\/div>/) || [])[1] || '';
     assert.match(row, new RegExp(`<span class="hb-fig-left is-split">in ${w.fxHomeCode()} · 1 in NOK left out, no rate</span>`));

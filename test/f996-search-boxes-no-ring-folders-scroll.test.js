@@ -35,7 +35,8 @@ test('f996 (1) a search box wears no ring: the field, and the line that holds it
 
 test('f996 (2) the folders page scrolls inside the place that clips it', () => {
   assert.match(CSS, /\.ig-pick\.ct-place\{[^}]*overflow:hidden/, 'the place clips (the reason a scroller is owed)');
-  assert.match(CSS, new RegExp(esc('html.lg-new #ct-place .ctf-page > :is(.ctf-list, .ctf-grid){flex:1 1 0%;min-height:0;overflow-y:auto}')));
+  /* RE-POINTED (P-31, owner's pick 20 Nov 2026): the Contracts summary scrolls inside its frame the same way */
+  assert.match(CSS, new RegExp(esc('html.lg-new #ct-place .ctf-page > :is(.ctf-list, .ctf-grid, .ctf-ls){flex:1 1 0%;min-height:0;overflow-y:auto}')));
   assert.match(CSS, new RegExp(esc('html.lg-new #ct-place .ctf-page > .ctf-list > *{flex:none}')), 'a row never squeezes');
   assert.match(strip(read('js/views/register.js')), /class="sap-page ct-page ctf-page"[^`]*\$\{regFoldersHeadHtml\(\)\}\$\{regFoldersHtml\(\)\}<\/div>/, 'the list is the page\'s own child');
 });

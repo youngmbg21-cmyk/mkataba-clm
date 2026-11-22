@@ -84,7 +84,9 @@ const typeInto = async (page, sel, value, ev) => {
     if (!pdKtFacts(c).some(f => f.key === k)) return null;
     /* RE-POINTED 28 Oct 2026 (Fill in the contract): Key terms is a line of the Dossier, the form's way back */
     if (typeof pdFormShows === 'function' && pdFormShows()) pdFormClose();
-    const line = document.querySelector('#ig-dock [data-pd-kt-mid] > summary'); if (line) line.click();
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's Dossier card draws no Key terms
+       line; Key terms in the middle is opened by its one opener pdKtMid (the line's own press) */
+    const line = document.querySelector('#ig-dock [data-pd-kt-mid] > summary'); if (line) line.click(); else if (window.pdKtMid) pdKtMid(c.id);
     const r = document.querySelector(`[data-pd-mid-kt] #pd-kt tr[data-pd-og-row="${k}"]`); if (!r) return null;
     const b = r.querySelector('[data-pd-kt-change]'); if (b) b.click(); return 'kt'; }, k);
   if (!where) return false;
@@ -119,6 +121,13 @@ const openRoom = async (page, id) => {
       && !!document.querySelector(`#ig-dock :is(#pd-og.is-form[data-pd-og-for="${x}"], #pd-glance[data-pd-glance-for="${x}"])`) && !!(window.intel && intel.paper && intel.paper.id === x), id)) break;
     await page.evaluate(x => { roomGoTab(getContract(x), 'details'); }, id);
     await page.waitForTimeout(400);
+  }
+  /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the details door lands on the Dossier card; the
+     form of the contract's details (#pd-og.is-form) is opened by its own door, pdFillOpen, and stands in THE MIDDLE
+     where the paper was ([data-pd-mid^="form:"]) — opened here as the Dossier's Details line does */
+  if (!(await page.evaluate(() => !!document.querySelector('#pd-og.is-form')))){
+    await page.evaluate(x => { if (window.pdFillOpen) pdFillOpen(x, {}); }, id);
+    await page.waitForFunction(() => !!document.querySelector('#pd-og.is-form'), null, { timeout: 4000 }).catch(() => {});
   }
   await page.waitForFunction(() => !!document.querySelector('#pd-og, #pd-kt'), null, { timeout: 2500 }).catch(() => {});
   await page.waitForTimeout(300);
@@ -344,7 +353,8 @@ const CONTRACT = (id, over) => Object.assign({
     await page.evaluate(() => { if (document.querySelector('#pd-og tr:not(.is-saved) [data-blankf]')) return;
       /* RE-POINTED 28 Oct 2026 (Fill in the contract): Key terms is a line of the Dossier, the form's way back */
       if (typeof pdFormShows === 'function' && pdFormShows()) pdFormClose();
-      const line = document.querySelector('#ig-dock [data-pd-kt-mid] > summary'); if (line && !document.querySelector('[data-pd-mid-kt]')) line.click();
+      /* RE-POINTED 16 Nov 2026 (#762): no Key terms line on the new look's card — its opener pdKtMid */
+      const line = document.querySelector('#ig-dock [data-pd-kt-mid] > summary'); if (!document.querySelector('[data-pd-mid-kt]')){ if (line) line.click(); else if (window.pdKtMid && window.intel && intel.paper) pdKtMid(intel.paper.id); }
       const rows = [...document.querySelectorAll('#pd-kt tr[data-pd-og-kind="blank"]')];
       const r = rows[rows.length - 1]; const b = r && r.querySelector('[data-pd-kt-change]'); if (b) b.click(); });
     await pause(500);
@@ -537,7 +547,8 @@ const CONTRACT = (id, over) => Object.assign({
       /* the ANSWERED one: its Key terms line opened by Change, its box in the hand */
       /* RE-POINTED 21 Oct 2026 (THE MIDDLE): Key terms' line brings its table to the middle, then Change */
       if (typeof pdFormShows === 'function' && pdFormShows()) pdFormClose();   /* RE-POINTED 28 Oct 2026: Key terms is the Dossier's line */
-      const line = document.querySelector('#ig-dock [data-pd-kt-mid] > summary'); if (line && !document.querySelector('[data-pd-mid-kt]')) line.click();
+      /* RE-POINTED 16 Nov 2026 (#762): no Key terms line on the new look's card — its opener pdKtMid */
+      const line = document.querySelector('#ig-dock [data-pd-kt-mid] > summary'); if (!document.querySelector('[data-pd-mid-kt]')){ if (line) line.click(); else if (window.pdKtMid && window.intel && intel.paper) pdKtMid(intel.paper.id); }
       const ch = document.querySelector('#pd-kt tr[data-pd-og-kind="tplf"] [data-pd-kt-change]'); if (ch) ch.click();
       await new Promise(r => setTimeout(r, 400));
       const b = document.querySelector('#pd-kt [data-tplf]');

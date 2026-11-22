@@ -54,7 +54,11 @@ const PROBE = () => {
   const out = { cut: [], spill: [] };
   const lab = el => el.tagName.toLowerCase() + (el.id ? '#' + el.id : '')
     + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/)[0] : '');
-  const EXEMPT = /hm-hero|rl-turnwrap|nego-turn|live-dot/;
+  /* tpln5-cff JOINED 17 Nov 2026 (#762, Our paper: shelves, then the Legora way — the owner's "build cover flow"): a
+     folder's carousel is a WINDOW onto its papers by design; the papers turned away lie edge-on past its side and come to
+     the front as it turns (pointed at, or the arrow keys). Its overflow is that turn, never a label: each paper's name
+     and quote hold to one line with "…" on their own, and those are still measured. */
+  const EXEMPT = /hm-hero|rl-turnwrap|nego-turn|live-dot|tpln5-cff/;
   const seen = new Set();
   document.querySelectorAll('#app-shell *, #m-root *').forEach(el => {
     const r = el.getBoundingClientRect();
@@ -170,6 +174,16 @@ const PROBE = () => {
 
        So the question asked is the only one that matters: is the centre of
        the button inside the window, and is the button what is painted there? */
+    /* what stands where the button is, said when it cannot be pressed (a red run says WHY, not only that) */
+    const whereIs = lang => page.evaluate(l => {
+      const b = document.querySelector(`[data-st-lang="${l}"]`);
+      if (!b) return 'no button';
+      const r = b.getBoundingClientRect(), x = r.x + r.width / 2, y = r.y + r.height / 2;
+      const hit = document.elementFromPoint(x, y);
+      const card = document.querySelector('.stn-card'), main = document.getElementById('stn-main'), pan = document.getElementById('ins-panel');
+      const w = el => el ? Math.round(el.getBoundingClientRect().left) + '..' + Math.round(el.getBoundingClientRect().right) : '-';
+      return `btn ${Math.round(x)},${Math.round(y)} win ${innerWidth}x${innerHeight} hit ${hit ? (hit.id || hit.className || hit.tagName) : 'none'} card ${w(card)} main ${w(main)} panel ${w(pan)}`;
+    }, lang || 'sv');
     const pressable = lang => page.evaluate(l => {
       const b = document.querySelector(`[data-st-lang="${l}"]`);
       if (!b) return false;
@@ -183,7 +197,8 @@ const PROBE = () => {
     /* Settings › You, opened through its own door, the language row brought
        into view the way a reader scrolls to it */
     const openYou = async lang => {
-      await page.evaluate(() => { if (typeof window.openSettingsAt === 'function') window.openSettingsAt('you'); else window.setView('team'); });
+      /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): the language row is in the You area */
+      await page.evaluate(() => { if (typeof window.openSettingsAt === 'function') window.openSettingsAt('you'); else window.setView('team'); if (typeof window.sddGo === 'function') window.sddGo('you'); });
       await page.waitForFunction(l => !!document.querySelector(`[data-st-lang="${l}"]`), lang || 'sv', { timeout: 8000 }).catch(() => {});
       await page.evaluate(l => { const b = document.querySelector(`[data-st-lang="${l}"]`); if (b) b.scrollIntoView({ block: 'center' }); }, lang || 'sv');
       await page.waitForTimeout(450);
@@ -200,7 +215,7 @@ const PROBE = () => {
       where = await pressable('sv') ? 'desktop: Settings › You, the language row' : null;
     }
     check(`${S.name}: there is a language control a user can actually reach`,
-      !!where, where || 'nothing a person could press');
+      !!where, where || ('nothing a person could press — ' + (onPhone ? '' : await whereIs('sv'))));
     await pick('sv');
 
     const sv = await page.evaluate(() => ({

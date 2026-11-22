@@ -139,10 +139,12 @@ const TEXT = [
       if (!b) return false; b.click(); return true;
     }, label, false);
     check(await press('No, someone else') || await press('Name the other side'), '3a "No, someone else" (or "Name the other side") is there to press');
-    const named = await until(P, () => { const r = document.querySelector('#ig-dock tr[data-pd-og-row="counterparty"]');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the details form stands in THE MIDDLE
+       ([data-pd-mid^="form:"]), so the other side's name is landed on there, or in the panel where a build draws it */
+    const named = await until(P, () => { const r = document.querySelector('[data-pd-mid^="form:"] tr[data-pd-og-row="counterparty"], #ig-dock tr[data-pd-og-row="counterparty"]');
       if (!r) return false; const b = r.getBoundingClientRect(); const at = document.elementFromPoint(b.left + 20, b.top + Math.min(10, b.height / 2));
       return b.height > 0 && b.top >= 0 && b.bottom <= window.innerHeight && !!(at && r.contains(at)); }, null, 8000);
-    check(named, '3b the panel turns back to the Dossier and lands on the other side\'s name, in view');
+    check(named, '3b it lands on the other side\'s name, in view (the form in the middle)');
     await still(P); await P.screenshot({ path: path.join(OUT, '1440x780-their-name.png') });
     /* back to the conversation by his own tab, and the road */
     await drive(() => { if (typeof pdTalkReopen === 'function') pdTalkReopen(); }, null, null);

@@ -71,10 +71,12 @@ async function readWin(page){
           ? ((cd.querySelector('[data-sp-f="name"]') || {}).value || '')
           : (((cd.querySelector('.sr-who b') || {}).textContent) || ''),
         forTx: ((cd.querySelector('.sr-for') || {}).textContent || '').trim(),
+        sub: ((cd.querySelector('.sr-who > span') || {}).textContent || '').trim(),
       })),
     }));
     return {
-      lead: ((w.querySelector('p') || {}).textContent || '').trim(),
+      /* RE-POINTED 19 Nov 2026 (the one edit pop-up): the top line is its own line under the head (#sr-line) */
+      lead: ((w.querySelector('#sr-line') || w.querySelector('p') || {}).textContent || '').trim(),
       steps,
       /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn): an empty row now leads
          with the PARTY's initials badge (.sr-av, drawn); the place is empty of
@@ -179,9 +181,10 @@ async function readWin(page){
     const n = await openOn(staged.nda);
     await page.screenshot({ path: path.join(OUT, '2-nda.png') });
     const their = n && n.steps[1] && n.steps[1].people[0];
-    ok('2a the company standing in for a person opens, and says why',
-      !!their && their.open && n.hints.includes('That is the company’s name. Who signs for it?')
-        && n.hints.includes('Needed to send their signing link.'), n && { their, hints: n.hints });
+    /* RE-POINTED 19 Nov 2026 (the one edit pop-up, owner: "Build 1", as drawn): the route opens resting; the person
+       still owed says why in amber ON THEIR LINE, and Save (2b) turns the window to their own screen */
+    ok('2a the company standing in for a person says why, on its line',
+      !!their && !their.open && their.sub === 'That is the company’s name. Who signs for it?', n && { their });
     await page.click('#sp-save').catch(() => {}); await pause(400);
     const r2 = await readWin(page);
     ok('2b Save REFUSES in the window, naming the company, and the window stays',
@@ -236,6 +239,8 @@ async function readWin(page){
     });
     ok('3d Enter picks the colleague: their title and email fill in, and the caret moves on',
       !!r3d && r3d.title === 'Finance Director' && r3d.email === 'peter.mwangi@highland.co.ke' && r3d.focus, r3d);
+    /* RE-POINTED 19 Nov 2026: the signer is the route's next screen; ‹ Route goes back to the steps */
+    await page.click('#sp-back').catch(() => {}); await pause(200);
     const r3e = await readWin(page);
     ok('3e step 1 now holds two people who sign in any order',
       !!r3e && r3e.steps[0].people.length === 2 && /any order/.test(r3e.steps[0].head), r3e && r3e.steps.map(x => x.head));
@@ -252,11 +257,13 @@ async function readWin(page){
     const r3h = await readWin(page);
     ok('3h "Sign on a step of their own" gives them a step after the one they shared',
       !!r3h && r3h.steps.length === 3 && r3h.steps[1].people.map(p => p.name).join() === 'Peter Mwangi', r3h && r3h.steps.map(x => x.people.map(p => p.name)));
-    const focusIn = await page.$(`#sr-win [data-sp-row="${peterId}"] [data-sp-f="role"]`);
+    /* RE-POINTED 19 Nov 2026: on the route a person is one line, so the keyboard stands on their line's own button */
+    const focusIn = await page.$(`#sr-win [data-sp-row="${peterId}"] [data-sp-edit]`);
     if (focusIn) { await focusIn.focus(); await page.keyboard.press('Alt+ArrowUp'); await pause(300); }
     const r3i = await readWin(page);
-    ok('3i Alt+↑ moves them above the step before, and keeps the caret with them',
-      !!r3i && r3i.steps[0].people.map(p => p.name).join() === 'Peter Mwangi' && r3i.active === 'role', r3i && { steps: r3i.steps.map(x => x.people.map(p => p.name)), active: r3i.active });
+    const keptOn = await page.evaluate(id => !!(document.activeElement && document.activeElement.getAttribute('data-sp-edit') === id), peterId);
+    ok('3i Alt+↑ moves them above the step before, and keeps the keyboard with them',
+      !!r3i && r3i.steps[0].people.map(p => p.name).join() === 'Peter Mwangi' && keptOn, r3i && { steps: r3i.steps.map(x => x.people.map(p => p.name)), keptOn });
     if (peterId) { await menuOf(peterId); const rm = await page.$('#sr-win .sr-menu .sr-mi[data-sp-do="remove"]'); if (rm) { await rm.click(); await pause(300); } }
     const graceId = await page.evaluate(() => { const c = [...document.querySelectorAll('#sr-win .sr-card')].find(x => /Grace Njeri/.test(x.textContent)); return c && c.getAttribute('data-sp-row'); });
     if (graceId) { await menuOf(graceId); const rm = await page.$('#sr-win .sr-menu .sr-mi[data-sp-do="remove"]'); if (rm) { await rm.click(); await pause(300); } }
@@ -301,8 +308,10 @@ async function readWin(page){
     /* ---------- 5 · A NEW ROUTE ---------- */
     const f = await openOn(staged.fresh);
     const freshTheirs = f && f.steps.flatMap(x => x.people).find(p => /^For /.test(p.forTx) && p.forTx !== 'For Highland Corporate Ltd');
+    /* RE-POINTED 19 Nov 2026 (the one edit pop-up, owner: "Build 1", as drawn; as 2a): the route opens resting, so their
+       person is a line, not an open box; the line still never carries the company's name as the person */
     ok('5a a new route never opens with the company\'s name in their box',
-      !!freshTheirs && freshTheirs.open && freshTheirs.name !== staged.freshCp, freshTheirs);
+      !!freshTheirs && !freshTheirs.open && !!freshTheirs.name && freshTheirs.name !== staged.freshCp, freshTheirs);
     ok('5b where the record knows nobody there, it asks the question instead',
       !!freshTheirs && (freshTheirs.name !== '' || f.hints.includes('Who signs for ' + staged.freshCp + '?')), f && { name: freshTheirs && freshTheirs.name, hints: f.hints });
     await page.evaluate(() => { if (document.getElementById('sr-win')) closeModal(); });

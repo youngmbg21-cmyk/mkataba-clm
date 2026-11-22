@@ -53,9 +53,15 @@ test('2 · ONE mark: a filled circle, a white drawn glyph, the six meanings in t
 test('3 · every named list leads its rows with the mark, behind the switch; late is never ruby', () => {
   assert.match(fnBody(REG, 'regSapMarkHtml'), /listSapMarkHtml\(regSapMarkOf\(c\)/, 'Contracts');
   assert.match(fnBody(REG, 'regNegoMarkHtml'), /listSapOn\(\)\) return listSapMarkHtml\(/, 'Negotiations (the list language row)');
-  assert.match(fnBody(REG, 'ngnRowHtml'), /listSapCellHtml\(r\.b === 'you' \? 'you'/, 'Negotiations (the new look row)');
+  /* RETIRED (P-29, owner's pick 20 Nov 2026: "Gone: the amber '!' on every row"): Whose move is a soft badge */
+  /* RE-POINTED 21 Nov 2026 (P-29, as drawn): the row's badge is ngnBadgeHtml's (a dot, a tick when settled), shared with the panel */
+  assert.match(fnBody(REG, 'ngnRowHtml'), /k === 'move' \? `<td>\$\{ngnBadgeHtml\(r\.b\)\}<\/td>`/, 'Negotiations (the new look row): a badge, no mark');
+  assert.match(fnBody(REG, 'ngnBadgeHtml'), /<span class="apn-st is-\$\{bd\.tone\}">/, 'Negotiations: the badge');
   assert.match(AP, /listSapOn\(\)\)\?listSapMarkHtml\(r\.done\?'done':r\.mine\?'you':'them'/, 'Approvals (the list language row)');
-  assert.match(AP, /listSapCellHtml\(r\.done\|\|r\.type==='receipt'\?'done'/, 'Approvals (the new look row)');
+  /* RETIRED (P-30, owner's pick 20 Nov 2026: "Gone: the amber '!' on every row"): the new look's Approvals row leads with
+     the agreement's name; its state is the Status column's soft badge (apnBadgeHtml) */
+  assert.match(fnBody(AP, 'apnRowHtml'), /<td class="apn-stc">\$\{apnBadgeHtml\(st\)\}<\/td>/, 'Approvals (the new look row): a badge, no mark');
+  assert.doesNotMatch(fnBody(AP, 'apnRowHtml'), /listSapCellHtml/);
   assert.match(fnBody(OB, 'obwRowMarkHtml'), /listSapMarkHtml\(obState\(r\) === 'done' \? 'done'/, 'Obligations (the week)');
   assert.match(fnBody(OB, 'obnRowHtml'), /const mk = r\.st === 'done' \? 'done'[\s\S]*?r\.win === 'overdue'[\s\S]*?\? 'you'[\s\S]*listSapCellHtml\(mk,/, 'Obligations (the new look row)');
   assert.match(fnBody(CN, 'ndAvHtml'), /listSapOn\(\)\) return ndSapMarkHtml\(r, P\)/, 'Home: the mark replaces the initials');

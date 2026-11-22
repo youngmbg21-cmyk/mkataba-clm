@@ -342,6 +342,7 @@ function saState(c, needs, opts){
    person signed in. */
 function saMayDecide(req, u, covers){
   if (!req || !u || u.id == null) return null;
+  if (u.role === 'viewer') return null;   // a Viewer decides nothing (Round C; both hosts read this file)
   const me = String(u.id);
   if (req.askedBy && String(req.askedBy.id) === me) return null;
   if ((Array.isArray(req.people) ? req.people : []).some(p => p && String(p.id) === me)) return null;

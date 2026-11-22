@@ -85,11 +85,13 @@ const check = (name, pass, detail) => {
     await toCounter();
     await counterAsk('where do I change my language?');
     /* Language has no drawer: Settings lights its card on You, where the switch is (stYouGo) */
-    const lang = await until(() => { const k = document.querySelector('[data-st-you-card="lang"]');
+    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): You is one list (stnPaint); the Language row is
+       [data-sdd-row="lang"] in the You area (re-pointed 19 Nov 2026, f1091), lit by the one lander, as the old card was */
+    const lang = await until(() => { const k = document.querySelector('[data-sdd-row="lang"], [data-st-you-card="lang"]');
       /* re-pointed 19 Oct 2026 (lane F's third pass, LAND ON IT): the card is lit by the one lander */
       return state.view === 'team' && settingsTab() === 'you' && k && k.classList.contains('is-landed') && k.getBoundingClientRect().height > 0; });
     check('1b "where do I change my language?" opens You with the Language card lit', !!lang,
-      await page.evaluate(() => JSON.stringify({ view: state.view, tab: window.settingsTab ? settingsTab() : null, card: !!document.querySelector('[data-st-you-card="lang"].is-landed') })));
+      await page.evaluate(() => JSON.stringify({ view: state.view, tab: window.settingsTab ? settingsTab() : null, card: !!document.querySelector(':is([data-sdd-row="lang"], [data-st-you-card="lang"]).is-landed') })));
     await page.screenshot({ path: path.join(OUT, '1b-language-1440x780.png') });
     await page.keyboard.press('Escape'); await page.waitForTimeout(200);
     await toCounter();
@@ -164,8 +166,10 @@ const check = (name, pass, detail) => {
     console.log('\n7 · ⌘K');
     await toCounter();
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K');
-    const k7 = await until(() => { const a = document.activeElement; return a && a.closest && a.closest('.jb-card') ? (a.id || a.tagName) : null; });
-    check('7a ⌘K on Home puts the hand in Jambo\'s box', !!k7, String(k7));
+    /* RE-POINTED 19 Nov 2026 (the launchpad, owner: "1, yes"): ⌘K opens the jump window in the middle, its box has the hand */
+    const k7 = await until(() => { const a = document.activeElement; return document.getElementById('cmd-palette') && a && a.id === 'cp-input' ? a.id : null; });
+    check('7a ⌘K on Home opens the launchpad, the hand in its box', !!k7, String(k7));
+    await page.keyboard.press('Escape');
     /* the jump list itself still reads the map's sentences (its door is "/" outside a box, off Home): opened as its door does */
     const palette = async q => { await page.evaluate(() => { const p = document.getElementById('cmd-palette'); if (p) p.remove(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); openCommandPalette(); });
       if (!(await until(() => !!document.getElementById('cp-input')))) return null;

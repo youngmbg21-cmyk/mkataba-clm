@@ -5,6 +5,8 @@
    WHAT THIS PINS, driven in a real browser on the Board
      1 Your book is a table: Figure · the day six months ago · Today · Change ·
        Six months, one row per figure, the numbers in one column
+       (RE-POINTED P-39, 20 Nov 2026: the Board draws the book as four figure
+       CARDS in one row; the table's head and the "then" column are not shown)
      2 each row's "then" and "today" are its line's first and last points, and
        today is the door: a press opens the list behind it
      3 the stage bar is drawn twice, the day six months ago above Today; the
@@ -46,15 +48,21 @@ const check = (name, pass, detail) => {
     await until(() => !!document.querySelector('#hb-book .hb-tn .hb-fig'), null, 12000);
 
     /* ---- 1 the table ---- */
+    /* RE-POINTED (P-39, owner's pick 20 Nov 2026: never more than four figure cards; Value under contract not in the usual four) */
+    /* the table mode is gone from the Board: hbBookHtml draws .is-cards, the table's head (.hb-tn-h) and the
+       "then" figure (.hb-fig-then) are hidden, and the four figures stand as cards in ONE row, left to right,
+       each with its number and its change */
     const T = await page.evaluate(() => {
-      const head = [...document.querySelectorAll('#hb-book .hb-tn-h > span')].map(s => s.textContent.trim());
+      const shown = e => !!e && getComputedStyle(e).display !== 'none';
       const rows = [...document.querySelectorAll('#hb-book .hb-tn > .hb-fig')];
-      const right = rows.map(r => Math.round(r.querySelector('.hb-fig-n').getBoundingClientRect().right));
-      const tops = rows.map(r => Math.round(r.getBoundingClientRect().top));
-      return { head, n: rows.length, oneCol: new Set(right).size === 1, oneEach: new Set(tops).size === rows.length, then: hbThenWord() };
+      const rs = rows.map(r => r.getBoundingClientRect()), tops = rs.map(r => Math.round(r.top)), lefts = rs.map(r => Math.round(r.left));
+      return { n: rows.length, cards: !!document.querySelector('#hb-book .hb-tn.is-cards'),
+        head: shown(document.querySelector('#hb-book .hb-tn-h')), then: rows.some(r => shown(r.querySelector('.hb-fig-then'))),
+        oneRow: tops.length > 0 && Math.max(...tops) - Math.min(...tops) <= 1, inOrder: lefts.every((x, i) => i === 0 || x > lefts[i - 1]),
+        parts: rows.every(r => shown(r.querySelector('.hb-fig-n')) && !!r.querySelector('.hb-fig-chg')) };
     });
-    check('1 Your book is a table: Figure · six months ago · Today · Change · Six months, one row per figure, the numbers in one column',
-      JSON.stringify(T.head) === JSON.stringify(['Figure', T.then, 'Today', 'Change', 'Six months']) && T.n === 5 && T.oneCol && T.oneEach, JSON.stringify(T));
+    check('1 Your book is four figure cards in one row, each with its number and its change; no table head, no "then" column',
+      T.n === 4 && T.cards && !T.head && !T.then && T.oneRow && T.inOrder && T.parts, JSON.stringify(T));
 
     /* ---- 2 then and today are the line's ends; today is the door ---- */
     const R = await page.evaluate(() => {

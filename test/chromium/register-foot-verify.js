@@ -48,10 +48,14 @@ const BOOK = FIXTURES.concat(Array.from({ length: 46 }, (_, i) => {
 
 /* What the foot draws, read off the painted page. The foot is the element
    that holds the count — the one fact on it that nobody asked to remove. */
+/* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Contracts list's foot is #reg-nl-showing (the count,
+   then "Show N more" where the rows stop at a page, regNlFootHtml); the Negotiations page's is its .apn-foot (the count
+   in its first span, ngnRender). The foot measured is that element itself */
 const FOOT = `(() => {
-  const show = document.getElementById('reg-showing');
+  const nl = document.getElementById('reg-nl-showing'), ngn = document.querySelector('tr[data-ngn-row]') && document.querySelector('.apn-foot.rdn-foot');
+  const show = document.getElementById('reg-showing') || nl || (ngn && ngn.firstElementChild);
   if (!show) return null;
-  const foot = show.parentElement, fr = foot.getBoundingClientRect();
+  const foot = nl ? nl : show.parentElement, fr = foot.getBoundingClientRect();
   const kids = [...foot.children].filter(k => {
     const r = k.getBoundingClientRect(), cs = getComputedStyle(k);
     return r.width > 0 && r.height > 0 && cs.display !== 'none' && cs.visibility !== 'hidden';
@@ -64,7 +68,7 @@ const FOOT = `(() => {
   return {
     text: foot.textContent.replace(/\\s+/g, ' ').trim(),
     kids: kids.map(k => k.id || k.tagName.toLowerCase()),
-    oneLine: mids.length > 0 && Math.max(...mids) - Math.min(...mids) <= 4,
+    oneLine: (nl ? foot.getClientRects().length === 1 : mids.length > 0) && (mids.length === 0 || Math.max(...mids) - Math.min(...mids) <= 4),
     tops: mids.join('/'),
     h: Math.round(fr.height),
     showing: show.textContent.replace(/\\s+/g, ' ').trim(),
@@ -106,6 +110,9 @@ const KEYS = `(() => {
     /* ════════ 1. THE CONTRACTS TABLE ════════ */
     await page.evaluate(() => { regSetMode('table'); (regPlaceSet({ show: 'list' }), setView('register')); });
     await page.waitForTimeout(1500);
+    /* RE-POINTED 16 Nov 2026 (#762): Contracts opens on its Folders; its List is pressed */
+    await page.evaluate(() => { const b = document.querySelector('[data-ctf-show="list"]'); if (b) b.click(); });
+    await page.waitForTimeout(1200);
     await page.screenshot({ path: path.join(OUT, '01-contracts-table.png') });
     const words = await page.evaluate(() => ({
       key: i18t('fo_value_streams'),
@@ -124,16 +131,20 @@ const KEYS = `(() => {
        head's — "1–40 of 50 · Show 10 more" on #reg-showing itself — so the
        Prev/Next pager became "Show 10 more". What these pin is unchanged: the
        foot is the count and the way to the rest, and nothing else. */
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's foot is ONE line of words, "50 contracts · Show 10 more" — the count
+       is its text, the way to the rest its one button (data-lh-more="contracts") */
     const f1 = await page.evaluate(() => {
-      const foot = document.querySelector('#reg-showing[data-lh-foot]');
+      const foot = document.getElementById('reg-nl-showing');
       if (!foot) return null;
       const kids = [...foot.children].filter(k => { const r = k.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
-      return { kids: kids.map(k => k.className.split(' ').find(c => c.startsWith('lh-')) || k.tagName.toLowerCase()),
+      return { kids: kids.map(k => k.className.split(' ').find(c => c.startsWith('lh-')) || k.tagName.toLowerCase()), text: foot.textContent.replace(/\s+/g, ' ').trim(),
         more: !!foot.querySelector('[data-lh-more="contracts"]'), pager: !!document.getElementById('reg-pager') };
     });
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn): no foot under the list — the chips say how many — except where the rows
+       stop at a page, which it says as the list head's own range: "1–40 of 50 · Show 10 more" */
     ok('1d the foot holds the count and "Show N more", and nothing else',
-      !!f1 && f1.kids[0] === 'lh-range' && f1.kids.includes('lh-more') && f1.kids.every(k => ['lh-range', 'lh-more', 'lh-extra'].includes(k)),
-      f1 ? f1.kids.join(',') : 'no foot');
+      !!f1 && f1.kids.join(',') === 'lh-more' && /^1–[\d,.\s]+ of [\d,.\s]+ · Show \d+ more$/.test(f1.text),
+      f1 ? f1.kids.join(',') + ' · ' + f1.text : 'no foot');
     ok('1e and it is one line, not a wall', !!c1 && c1.oneLine, c1 ? `centres ${c1.tops} · ${c1.h}px` : 'no foot');
     ok('1f CONTROL the count is still there', !!c1 && c1.showOn && /50/.test(c1.showing),
       c1 ? c1.showing : 'no foot');
@@ -204,15 +215,19 @@ const KEYS = `(() => {
     await page.screenshot({ path: path.join(OUT, '03-negotiations.png') });
     const n = await page.evaluate(FOOT);
     const k3 = await page.evaluate(KEYS);
-    const onList = await page.evaluate(() => !!document.querySelector('.ngl-head-table') && !!document.querySelector('.reg-table'));
+    /* RE-POINTED 16 Nov 2026 (#762): the new look's Negotiations list is ngnRender's table, a row per deal (tr[data-ngn-row]) */
+    const onList = await page.evaluate(() => !!document.querySelector('.apn-table tr[data-ngn-row]'));
     ok('3a the Negotiations list is really on screen', onList);
     ok('3b the Negotiations page draws no value-streams key', onList && k3 === 0, `${k3} key(s) painted`);
-    ok('3c and its paging note is gone too', !!n && n.text.indexOf(words.noPaging) < 0,
-      n ? n.text : 'no foot');
-    ok('3d its foot holds the count alone (no pager on a page that never pages)',
-      !!n && n.kids.join(',') === 'reg-showing', n ? n.kids.join(',') : 'no foot');
-    ok('3e CONTROL the count is still there', !!n && n.showOn && n.showing.length > 0,
-      n ? n.showing : 'no foot');
+    /* RE-POINTED 22 Nov 2026 (P-29 review): the drawn Negotiations page has NO foot under its list (the count line went
+       as drawn; BUGLOG 21 Nov 2026) — the chips carry the counts. So: no foot, no paging note, no pager, and the count
+       still said, on the Live chip. The foot checks above stand for every list that still has one. */
+    const ngChip = await page.evaluate(() => ({ foot: !!document.querySelector('.ngn-page .apn-foot'), pager: !!document.querySelector('.ngn-page #reg-pager, .ngn-page .apn-foot button'),
+      text: (document.querySelector('.ngn-page') || {}).textContent || '', live: ((document.querySelector('.ngn-page [data-ngn-tab="live"] span') || {}).textContent || '').trim() }));
+    ok('3c and its paging note is gone too', !ngChip.foot && ngChip.text.indexOf(words.noPaging) < 0, JSON.stringify({ foot: ngChip.foot }));
+    ok('3d no foot and no pager under the list (a page that never pages; as drawn)', !ngChip.foot && !ngChip.pager, JSON.stringify(ngChip.foot));
+    ok('3e CONTROL the count is still there — on the Live chip', /^[1-9]\d*$/.test(ngChip.live), ngChip.live || 'no count');
+    void n;
 
     /* ════════ 4. MY QUEUE — NOT NAMED, SO UNTOUCHED ════════ */
     await page.evaluate(() => setView('pipeline'));

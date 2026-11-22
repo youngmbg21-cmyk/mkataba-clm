@@ -130,7 +130,9 @@ describe('f745 (2) saved views are links in Jambo\'s panel on Explorer, never on
   test('2c the name is yours when saving: a box filled with the view\'s own name; Save keeps what was typed', () => {
     const IG = code(read('js/views/intelligence.js'));
     const body = IG.slice(IG.indexOf('function igSavedViewsHtml('), IG.indexOf('function igSaveViewDoor('));
-    assert.match(body, /<input type="text" id="ig-sv-name" class="ig-sv-in"[^`]*value="\$\{igEsc\(nm\)\}"/, 'the box opens holding igViewName()');
+    /* RE-POINTED 19 Nov 2026 (the one edit pop-up, owner: "Build 1"): the name line opens in lgpOpen, holding igViewName() */
+    assert.match(body, /lgpOpen\(\{ id:'ig-sv-form'[\s\S]*?\{ k:i18t\('int_sv_name'\), id:'ig-sv-name', value:nm/, 'the line opens holding igViewName()');
+    assert.doesNotMatch(body.slice(0, body.indexOf('function igSavedViewForm(')), /<form|<input/, 'nothing is typed inside the panel');
     assert.match(body, /let nm=''; try\{ nm=igViewName\(\); \}/);
     assert.match(body, /const n=igViewSave\(typed\);/, 'the one writer, with the typed name');
     assert.match(body, /igRecipePush\(\); igRecipeSet\(v\.recipe\);/, 'a link lays the view over the map, one step back on Undo');
@@ -510,13 +512,23 @@ describe('f745 (7) the Board greets you and says the latest', () => {
   /* RE-POINTED AGAIN 11 Nov 2026 (owner: "move the summary back to having its own card like in image 2 but with an exit
      (x) button on the top right … It should also only appear once you have pressed summarize my board"; reverses Card
      Inside): the greeting holds no brief; the brief is its own card under it (hbBoardHtml), with a × (hbBriefShut) */
+  /* THE HIGHLIGHTS ARE DOORS TO THEIR CONTRACTS (owner, 22 Nov 2026): "N things are late" and "I prepared N for you"
+     open Contracts on just the contracts they count; a count with no contract behind it keeps the Board's list */
+  test('7a2 the brief\'s highlights open their own contracts', () => {
+    const w = greetWorld({ late: 2, oldest: 3, jambo: [{ late: 1, it: { cid: 'MK-1' } }, { late: 0, it: { c: { id: 'MK-2' } } }], you: [{ late: 1, y: { x: { c: { id: 'MK-3' } } } }, { late: 0, al: { id: 'MK-4' } }] });
+    w.getContract = id => /^MK-[1-4]$/.test(id) ? { id } : null;
+    const say = w.hbGreetSayHtml(null, null);
+    assert.match(say, /class="hb-gr-a is-late" data-rd-show="MK-1,MK-3" data-rd-label="2 things are late">2 things are late</, 'late opens the late contracts');
+    assert.match(say, /class="hb-gr-a" data-rd-show="MK-1,MK-2" data-rd-label="I prepared 2 for you">I prepared 2 for you</, 'prepared opens what Jambo prepared');
+    assert.match(read('js/views/homeboard.js'), /if \(\(el = t\.closest\('\[data-rd-show\]'\)\)\)\{[^\n]*\n[^\n]*regShowOnly\(ids/, 'the door is the one Read down\'s rows use');
+  });
   test('7a the greeting, then the pills and Live; nothing under them until Summarise; pressed, the brief is its own card with a ×', () => {
     const w = greetWorld({ late: 2, oldest: 36, jambo: [{}, {}, {}], you: [{}] });
     const latest = { moved: { past: M(5), value: M(1000000) }, since: ago(1) };
     const since = w.hbGreetSayHtml(latest.moved, latest.since);
     assert.equal(w.hbBoardSumHtml(since).box, '', 'before Summarise is pressed nothing is written');
     const html = w.hbBoardHeadHtml('08:02', '', w.hbBoardSumHtml(), '', '', latest);
-    assert.match(html, /^<section class="hb-card hb-bhead is-greet" id="hb-bhead"><h2 class="hb-bh-t">Good morning, Maria\.<\/h2><div class="hb-note hb-bh-r">/);
+    assert.match(html, /^<section class="hb-card hb-bhead is-greet" id="hb-bhead"><div class="hb-bh-top"><h2 class="hb-bh-t">Good morning, Maria\.<\/h2><span class="hb-bh-live">[\s\S]*?<\/span><\/div><div class="hb-note hb-bh-r">/);
     assert.ok(!/hb-gr-say|hb-gr-a|class="hb-why/.test(html), 'nothing under the buttons before the press');
     const box = '<div class="hb-why"><div class="hb-why-h">x</div><p class="hb-why-b hb-why-since" id="hb-gr-say">' + since + '</p></div>';
     const inside = w.hbBoardHeadHtml('08:02', '', { btn: '', box }, '', '', latest);
@@ -526,12 +538,19 @@ describe('f745 (7) the Board greets you and says the latest', () => {
     assert.match(code(HB), /if \(\(el = on\('\[data-hb-bs-x\]'\)\)\)\{ hbBriefShut\(\); return; \}/, 'pressing it shuts the brief');
     /* RE-POINTED 14 Nov 2026 (owner: the same space above the FIRST card, whichever it is): the greeting paints no band over the gap at all */
     assert.ok(!/#hb-bhead\.is-greet[^{}]*::after\{/.test(read('index.html')), 'under the greeting, the Board\'s own gap, as between its cards: no white band over it');
-    assert.match(code(HB), /else if \(kept\) box = [^\n]*\n\s*\$\{lead\}<div class="hb-why-b">\$\{who\}/, 'the kept summary carries the counted sentence first, Jambo marked');
+    /* RE-POINTED 21 Nov 2026 (P-39, as drawn): the brief is ONE paragraph — the counted sentence, the one to start with
+       (counted, quoted from the paper), then Jambo's words; no dashed line, no "Jambo:" label */
+    assert.match(code(HB), /else if \(kept\) box = [^\n]*\n\s*<div class="hb-why-b hb-why-one"[^\n]*\[since, hbBriefStartHtml\(\), hbSay\(kept\.text\)\]/, 'the kept summary is one paragraph: the counted sentence first, the one to start with, then Jambo');
+    assert.ok(!/hb-why-who/.test(code(HB).slice(code(HB).indexOf('function hbBoardSumHtml'), code(HB).indexOf('function hbBoardSumHtml') + 4000)), 'no "Jambo:" label in the brief');
     assert.ok(!/is-since/.test(code(HB)), 'no card before the press');
     const say = since;
     assert.match(say, /Since [^:<]+: <button type="button" class="hb-gr-a" data-hb-dig="mv:past">5 more contracts passed their end date<\/button> and <button type="button" class="hb-gr-a" data-hb-dig="mv:value">[^<]+ came under contract<\/button>\./);
-    assert.match(say, /<button type="button" class="hb-gr-a is-late" data-hb-gr="all">2 things are late<\/button>, the oldest has waited 36 days and <button type="button" class="hb-gr-a" data-hb-gr="jambo">I prepared 3 for you<\/button>\.$/);
-    assert.match(html, /<div class="hb-note hb-bh-r">[\s\S]*data-hb-explorer[\s\S]*<span class="hb-grow"><\/span><span class="hb-bh-day">[^<]+<\/span><span class="hb-live"><i><\/i>Live<\/span><span class="hb-bh-at">· counted 08:02<\/span>/, 'the pills, then the day, Live and when it was counted; .hb-note stays');
+    assert.match(say, /<button type="button" class="hb-gr-a is-late" data-hb-gr="all">2 things are late<\/button>, the oldest has waited 36 days, and <button type="button" class="hb-gr-a" data-hb-gr="jambo">I prepared 3 for you<\/button>\.$/);
+    /* RE-POINTED 21 Nov 2026 (P-39 rebuilt as drawn): the greeting's own line carries Live and when it was counted at its
+       right; the pills under it; the day is not said */
+    assert.match(html, /<div class="hb-bh-top"><h2 class="hb-bh-t">[^<]+<\/h2><span class="hb-bh-live"><span class="hb-live"><i><\/i>Live<\/span><span class="hb-bh-at">· counted 08:02<\/span>/, 'the greeting, then Live and when it was counted, on one line');
+    assert.match(html, /<div class="hb-note hb-bh-r">[\s\S]*data-hb-explorer/, 'the pills under it; .hb-note stays');
+    assert.ok(!/hb-bh-day/.test(html), 'the day is not said');
     assert.ok(!/hb-bh-s"/.test(html), 'no "your book against six months ago" in the greeting');
   });
   test('7a2 the × lets the brief go: nothing is written until Summarise is pressed again', () => {

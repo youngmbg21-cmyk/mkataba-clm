@@ -102,9 +102,11 @@ function openAlert(body){
     await until(P, () => !!(window.currentUser && currentUser() && typeof setView === 'function'), null, 15000);
 
     /* ============ 1 · THE ROW ============ */
-    const ROW = '#set-page [data-st-row="push"]';
+    /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): the row is "Alerts on your phone" in the You area under
+       About you (data-sdd-row="push"); it says what this device gets, its state (Off · On) in the Now column, its switch last */
+    const ROW = '#set-page [data-sdd-row="push"]';
     for (let i = 0; i < 10; i++){
-      await drive(() => { if (state.view !== 'team') setView('team'); if (typeof settingsGoTab === 'function') settingsGoTab('you'); }, null, null);
+      await drive(() => { if (state.view !== 'team') setView('team'); if (typeof sddGo === 'function') sddGo('you'); }, null, null);
       if (await until(P, s => !!document.querySelector(s), ROW, 1500)) break;
     }
     const said = await until(P, s => { const r = document.querySelector(s); return !!(r && r.querySelector('[data-st-sw="push"]')); }, ROW, 8000);
@@ -115,20 +117,22 @@ function openAlert(body){
       const at = document.elementFromPoint(b.left + 20, b.top + b.height / 2); return !!(at && r.contains(at)); }, ROW, 3000);
     const row = await drive(s => { const r = document.querySelector(s); if (!r) return null;
       const b = r.getBoundingClientRect(); const at = document.elementFromPoint(b.left + 20, b.top + b.height / 2);
-      const labels = [...r.closest('[data-st-you-card="told"]').querySelectorAll('.st-sl')].map(x => x.textContent);
-      return { text: r.innerText.replace(/\s+/g, ' ').trim(), painted: !!(at && r.contains(at)), labels,
+      const head = [...document.querySelectorAll('#stn-main h3.sdd-gh')].filter(h3 => h3.compareDocumentPosition(r) & Node.DOCUMENT_POSITION_FOLLOWING).pop();
+      const labels = [head ? head.textContent.trim() : '', (document.querySelector('.sdd-page') || { getAttribute: () => '' }).getAttribute('data-sdd-area')];
+      return { text: r.textContent.replace(/\s+/g, ' ').trim(), now: ((r.querySelector('.sdd-v') || {}).textContent || '').trim(), painted: !!(at && r.contains(at)), labels,
         sw: (r.querySelector('[data-st-sw="push"]') || {}).getAttribute ? r.querySelector('[data-st-sw="push"]').getAttribute('aria-checked') : null }; }, ROW, null);
-    check(said && !!(row && row.painted && /Alerts on this device/.test(row.text) && /Off\. Turn on/.test(row.text) && row.sw === 'false'),
-      '1a "Alerts on this device" is painted, says Off and what on would do, with its switch', row);
-    check(!!(row && row.labels[0] === 'Daily brief' && row.labels[1] === 'Alerts on this device'), '1b right after the daily brief', row && row.labels);
+    check(said && !!(row && row.painted && /Alerts on your phone/i.test(row.text) && /gets no alerts/.test(row.text) && row.now === 'Off' && row.sw === 'false'),
+      '1a "Alerts on your phone" is painted, says this device gets no alerts and Off, with its switch', row);
+    check(!!(row && /^About you$/i.test(row.labels[0]) && row.labels[1] === 'you'), '1b in the You area, under About you', row && row.labels);
     await still(P); await P.screenshot({ path: path.join(OUT, '1440x780-off.png') });
 
     /* ============ 2 · TURNING ON ============ */
     await P.click(ROW + ' [data-st-sw="push"]');
-    const on = await until(P, s => /On: urgent things as they happen/.test((document.querySelector(s) || {}).innerText || ''), ROW, 10000);
+    const on = await until(P, s => { const r = document.querySelector(s); const pill = r && r.querySelector('.sdd-v'); const w = r && r.querySelector('[data-st-sw="push"]');
+      return !!(pill && /^On$/.test(pill.textContent.trim()) && /gets alerts as things happen/.test(r.textContent) && w && w.getAttribute('aria-checked') === 'true'); }, ROW, 10000);
     const toastSaid = await drive(() => document.body.innerText, null, '');
     const reg = await drive(async () => { const r = await navigator.serviceWorker.getRegistration('/'); return r ? (r.active || r.waiting || r.installing || {}).scriptURL || 'none' : null; }, null, null);
-    check(on, '2a the row then says On: urgent things as they happen, the rest each morning');
+    check(on, '2a the row then says On, its switch on');
     check(/Alerts are on\. The first one is on its way\./.test(toastSaid), '2b the toast says the first alert is on its way', toastSaid.slice(0, 200));
     check(/\/sw\.js$/.test(String(reg || '')), '2c HaTi\'s helper is registered at /sw.js', reg);
     let first = null; try { first = push.got.length ? openAlert(push.got[0].body) : null; } catch (e) { first = { error: e.message }; }

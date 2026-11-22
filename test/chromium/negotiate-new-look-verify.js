@@ -14,8 +14,7 @@
    Then, once, at the first screen:
      8 · the note's Counter at 45 files OUR counter on top of their ask (nothing sent)
      9 · their figure dragged on the paper to 50 files our counter "50" on top of theirs
-   And the switch off:
-    10 · no notes beside the paper, no quick links
+   (10, the switch off, RETIRED 16 Nov 2026, #762: there is no switch.)
    At the parent (before this round) 1–9 fail: none of it is drawn.
    Run: node test/chromium/negotiate-new-look-verify.js   (pictures: NEGOTIATE_SHOTS=<dir>) */
 const fs = require('node:fs');
@@ -147,27 +146,29 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
       /* 5 · History */
       await face(page, ID);
       await page.click('#ig-dock [data-ca-chip="history"]').catch(() => {});
-      await until(page, () => !!document.querySelector('.hist-quick'), null, 10000);
-      const h5a = await page.evaluate(() => ({ links: [...document.querySelectorAll('.hist-quick [data-ht-quick]')].map(b => b.textContent.trim()), rows: document.querySelectorAll('.hist-trail .hist-ev').length, selects: document.querySelectorAll('.hist-tools select').length }));
-      await page.click('.hist-quick [data-ht-quick="theirs"]').catch(() => {});
-      await until(page, () => !!document.querySelector('.hist-quick [data-ht-quick="theirs"][aria-pressed="true"]'), null, 5000);
-      const h5b = await page.evaluate(() => ({ rows: document.querySelectorAll('.hist-trail .hist-ev').length, sides: [...document.querySelectorAll('.hist-trail .hist-ev .hist-sd')].map(s => s.textContent.trim()) }));
-      check(`${nm} 5 History: quick links that give rows, one press narrows`, h5a.links.join(' · ') === 'theirs' && h5a.selects === 0
-        && h5b.rows === 2 && h5a.rows > h5b.rows && h5b.sides.every(s => s === 'Theirs'), { h5a, h5b });
+      await until(page, () => !!document.querySelector('.hist6-kinds'), null, 10000);
+      /* RE-POINTED 22 Nov 2026 (the P-44 review, the owner's picked drawing "History, the Legora + Stripe way"): the chips in the
+         open are All · Changes · Notes with their counts and "+ Side" (histKindChipsHtml); no quick links, no Clear link */
+      /* the narrowing is a kind chip's press (Changes): on this trail only their side wrote, so "+ Side" is not offered
+         (a side alone is not a choice); the changes are both theirs (the row's own lane, data-hist-lane) */
+      const h5a = await page.evaluate(() => ({ links: [...document.querySelectorAll('.hist6-kinds [data-ht-kind]')].map(b => b.getAttribute('data-ht-kind') || 'all'),
+        words: [...document.querySelectorAll('.hist6-kinds [data-ht-kind]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
+        rows: document.querySelectorAll('.hist-trail .hist-ev').length, selects: document.querySelectorAll('.hist-tools select').length }));
+      await page.click('.hist6-kinds [data-ht-kind="change"]').catch(() => {});
+      await until(page, () => !!document.querySelector('.hist6-kinds [data-ht-kind="change"][aria-pressed="true"]'), null, 5000);
+      const h5b = await page.evaluate(() => ({ rows: document.querySelectorAll('.hist-trail .hist-ev').length, sides: [...document.querySelectorAll('.hist-trail .hist-ev[data-hist-lane]')].map(s => s.getAttribute('data-hist-lane')) }));
+      check(`${nm} 5 History: chips with their counts (All first, then the kinds that give rows), one press narrows`, h5a.links.join(' · ') === 'all · change' && /^All \d+$/.test(h5a.words[0] || '') && /^Changes \d+$/.test(h5a.words[1] || '') && h5a.selects === 0
+        && h5b.rows === 2 && h5a.rows > h5b.rows && h5b.sides.length === 2 && h5b.sides.every(s => s === 'theirs'), { h5a, h5b });
       await page.screenshot({ path: path.join(OUT, `history-${nm}.png`) });
       /* 6 · Where we are, as drawn: in the middle beside the paper, the six stages, each side's position, the overlap panel */
       /* RE-POINTED 16 Nov 2026 (owner: our Where we are page is the Cover now, f1085): the door opens the Cover over the
          paper and the panel: its headline, the Dossier's six stages, ONE count, and its way back (Open the dossier) */
       await page.evaluate(id => hbStripBring(id, 'where'), ID);
-      await until(page, () => !!document.querySelector('#modal-root .cv-page .cv-road'), null, 10000);
-      const w6 = await page.evaluate(() => ({
-        stages: [...document.querySelectorAll('#modal-root .cv-page .cv-road .cv-st b')].map(b => b.textContent.trim()).join(' · '),
-        head: ((document.querySelector('#modal-root .cv-page .cv-h') || {}).textContent || '').trim(),
-        counts: document.querySelectorAll('#modal-root .cv-page .cv-count').length,
-        old: document.querySelectorAll('.pd2-stands').length,
-        back: !!document.querySelector('#modal-root .cv-page .cv-open[data-pd-mid-back]') }));
-      check(`${nm} 6 Where we are is the Cover: its headline, the six stages, one count, Open the dossier the way back`,
-        w6.stages === 'Arrive · Read · Fill · Negotiate · Sign · Live' && !!w6.head && w6.counts === 1 && w6.old === 0 && w6.back, w6);
+      /* RE-POINTED 20 Nov 2026 (owner: the Cover is deleted, "open the Dossier instead"): Where we are opens the Dossier */
+      await until(page, id => typeof pdContract === 'function' && pdContract() && pdContract().id === id && typeof pdTab === 'function' && pdTab() === 'copilot', ID, 10000);
+      const w6 = await page.evaluate(() => ({ tab: typeof pdTab === 'function' ? pdTab() : null, cover: !!document.querySelector('.cv-page'),
+        old: document.querySelectorAll('.pd2-stands').length, card: !!document.querySelector('#ig-dock .pd2-card') }));
+      check(`${nm} 6 Where we are opens the Dossier: its card, no Cover`, w6.tab === 'copilot' && !w6.cover && w6.old === 0 && w6.card, w6);
       await page.screenshot({ path: path.join(OUT, `where-${nm}.png`) });
       await back(page);
       /* 7 · the clause editor's card */
@@ -206,15 +207,7 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
       const c9 = await page.evaluate(() => { const o = (getContract('MK-R5').changes || []).find(x => x.authorSide === 'owner'); return o ? String(o.newText || '').slice(0, 80) : ''; });
       check('9 their figure dragged to 50 files our counter "50" on top of theirs', dial && /\b50\b/.test(c9), { dial, c9 });
       await page.close(); }
-    /* 10 · the switch off */
-    { const page = await browser.newPage({ viewport: { width: 1440, height: 780 } });
-      await open(page, h.base, false);
-      await page.evaluate(THEIR_ROUND, 'MK-R6');
-      await face(page, 'MK-R6');
-      await until(page, () => !!document.querySelector('#ig-canvas .ig-redpaper, #ig-canvas'), null, 5000);
-      const off = await page.evaluate(() => ({ notes: document.querySelectorAll('#pd2-notes .pd2-mn').length }));
-      check('10 the switch off: no notes beside the paper', off.notes === 0, off);
-      await page.close(); }
+    /* RETIRED 16 Nov 2026 (#762): 10 "the switch off: no notes beside the paper" — there is no switch; the new look is the only look */
   } finally { await browser.close(); await h.stop(); }
   console.log(fails ? `\n${fails} FAILED` : '\nALL PASS');
   process.exit(fails ? 1 : 0);

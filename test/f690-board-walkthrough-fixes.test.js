@@ -99,7 +99,7 @@ describe('F690 (4) — the side list lies outside the board and its door closes 
      through hbSheetGo, so there is no record to load here. */
   test('a row pressed lands on the contract, through the one door', () => {
     assert.match(strip(bodyOf(HB, 'hbOnClick')), /data-hb-sheet-c[^\n]*hbSheetGo\(/);
-    assert.match(bodyOf(HB, 'hbSheetGo'), /roomHomeLand\(id, \{ cover: true \}\)/);
+    assert.match(bodyOf(HB, 'hbSheetGo'), /roomHomeLand\(id, \{ open: true \}\)/);
     assert.ok(!/hbCardHtml\(/.test(bodyOf(HB, 'hbSheetHtml')), 'the sheet draws no contract card');
   });
 });
@@ -125,7 +125,7 @@ describe('F690 (7, 8) — the Board\'s wording and tiles', () => {
   });
   test('the tiles say their count and wrap by the book\'s own width', () => {
     /* the then-and-now table (round 17) keeps the count class on the same box */
-    assert.match(HB, /class="hb-figs hb-tn is-n\$\{chosen\.length\}"/);
+    assert.match(HB, /class="hb-figs hb-tn is-cards is-n\$\{chosen\.length\}"/);
     assert.ok(!/minmax\(min\(150px,100%\),1fr\)/.test(HB), 'the auto-fit that left one tile alone is gone');
     assert.match(CSS, /\.hb-book>\.hb-cb\{container-type:inline-size\}/);
     assert.match(CSS, /@container \(max-width:749\.98px\)\{\s*\.hb-book \.hb-figs\.is-n5/);

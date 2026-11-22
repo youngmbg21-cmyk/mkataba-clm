@@ -1282,7 +1282,7 @@ function igLensDoorGo(kind, id){
     const c=(typeof getContract==='function')?getContract(id):null, who=c&&igLensOwnerOf(c);
     if(who){ const ids=(state.contracts||[]).filter(x=>igLensOwnerOf(x)===who).map(x=>x.id); regShowOnly(ids, who); return true; }
   }
-  if(window.roomHomeLand&&roomHomeLand(id,{ cover:true })) return true;
+  if(window.roomHomeLand&&roomHomeLand(id,{ open:true })) return true;
   if(typeof openWorkspace==='function') openWorkspace(id);
   return true;
 }
@@ -3345,6 +3345,8 @@ async function intelAsk(qRaw, opts){
   if(!q) return;
   /* still answering: the question waits its turn (jamboAskLater), never dropped */
   if(intel.busy){ if(typeof jamboAskLater==='function') jamboAskLater(q, ()=>intel.busy, w=>intelAsk(w, opts)); return; }
+  /* "add … as the contact" opens the one contact sheet filled in from the words (cuContactAsk, owner 19 Nov 2026) */
+  if(typeof cuContactAsk==='function'){ let pc=false; try{ pc=cuContactAsk(q); }catch(_){ pc=false; } if(pc) return; }
   intel.fdTab=false; intel.dayTab=false;
   if(!(opts&&opts.guide)) intel.gdTab=false;
   /* A QUESTION KEEPS THE FACE (owner, 19 Oct 2026: "you can go back to the
@@ -6842,9 +6844,13 @@ function igFindingsHtml(){
   /* THE FIVE PARTS (owner, 15 Nov 2026, round 1): no findings is a headline, the three real steps a finding takes
      (ask the map · Pin this finding · colleagues open it here) and two questions to start with (intelAsk) */
   if(!L.length&&typeof window.newLookOn==='function'&&window.newLookOn()&&typeof window.jamboOverviewHtml==='function')
-    return `<div class="jl-words is-ov">${jamboOverviewHtml({ eyebrow:i18t('jov5_fd_eb'), title:i18t('jov5_fd_t'), sub:i18t('jov5_fd_s'),
-      steps:{ label:i18t('jov5_fd_how'), items:[{ b:i18t('jov5_fd_s1b'), s:i18t('jov5_fd_s1') },{ b:i18t('jov5_fd_s2b'), s:i18t('jov5_fd_s2') },{ b:i18t('jov5_fd_s3b'), s:i18t('jov5_fd_s3') }] },
-      asks:[i18t('jov5_fd_q1'),i18t('jov5_fd_q2')].map(q=>({ verb:q, run:()=>intelAsk(q) })), src:i18t('jov5_fd_src') },'ig-fd')}</div>`;
+    /* FINDINGS, THE LEGORA + STRIPE WAY (owner's pick, 22 Nov 2026; drawn like the Overview tab beside it): a small pin beside
+       the headline, the three real steps as a coloured timeline, the two questions as quoted rows that ask the map
+       (intelAsk), and Kept findings with its count. Nothing kept yet: said, never filled. */
+    return `<div class="jl-words is-ov ig-fd-ls">${jamboOverviewHtml({ eyebrow:i18t('jov5_fd_eb'), title:i18t('jov5_fd_t'), sub:i18t('jov5_fd_s'), avatar:'\u2316', avatarTone:'green',
+      groups:[{ label:i18t('jov5_fd_how'), rows:[['jov5_fd_s1b','jov5_fd_s1','green'],['jov5_fd_s2b','jov5_fd_s2','steel'],['jov5_fd_s3b','jov5_fd_s3','violet']].map(([tk,sk,tone])=>({ cls:'ig-day-tl', mark:'', markText:'', tone, t:i18t(tk), s:i18t(sk) })) },
+        { label:i18t('int_fd_ls_ask'), rows:[i18t('jov5_fd_q1'),i18t('jov5_fd_q2')].map(q=>({ cls:'ig-fd-q', mark:'sparkle', tone:'green', t:'\u201c'+q+'\u201d', run:()=>intelAsk(q) })) },
+        { label:i18t('int_fd_ls_kept'), rows:[{ t:'', s:i18t('int_fd_ls_kept_s'), v:'0' }] }] },'ig-fd')}</div>`;
   if(!L.length) return `<p class="ig-fd-empty">${igEsc(i18t('int_fd_none'))}</p>`;
   const users=(typeof getUsers==='function'?getUsers():[])||[];
   const card=f=>{ const op=intel.fdOpen&&intel.fdOpen.id===f.id, ui=(intel.fdUi||{})[f.id]||'';
@@ -7164,18 +7170,30 @@ function igDayHtml(){
      high risk · new since yesterday), the rest as rows (duties, renewals), each by the tile's own press (data-ig-day →
      igDayGo, the panel's one listener on #ig-day); Pin as my morning view the one black button (data-ig-day-pin); the
      saved views under it as they are. The same readings (igDayData); no AI. The new look only. */
+  /* YOUR DAY, THE LEGORA + STRIPE WAY (owner's pick, 22 Nov 2026; drawn like the Overview tab beside it, P-40): the day as a
+     headline and one sentence, "What needs you today" as rows each with its count in a soft badge (a door, by the tile's
+     own press, data-ig-day), "The next 30 days" as a short timeline (the first renewal's own notice words, quoted with
+     their §, hbRdnTermQuote — never guessed), the morning pin and the saved views as rows. No boxes, NO MONEY in the
+     panel (owner, 20 Nov 2026). The same readings (igDayData); no AI. The new look only. */
   if(typeof window.newLookOn==='function'&&window.newLookOn()&&typeof window.jamboOverviewHtml==='function'){
     const word=t=>t.k==='duties'?i18t('int_day_duties',{ d:IG_BRIEF_DUE_DAYS }):i18t('int_day_'+t.k);
     const may=t=>!!(t.n&&(t.go!=='onmap'||t.ids.length));
-    const pick=['needs','risk','new'], tiles=pick.map(k=>T.find(t=>t.k===k)).filter(Boolean).concat(T.filter(t=>!pick.includes(t.k))).slice(0,3);
-    const rest=T.filter(t=>!tiles.includes(t));
-    const needs=T.find(t=>t.k==='needs');
-    return `<div class="ig-day">${jamboOverviewHtml({ eyebrow:day.replace(/^./,c=>c.toUpperCase()),
-      title:needs&&needs.n?i18tn('jov5_day_t',needs.n,{ n:needs.n }):i18t('jov5_day_clear'), sub:i18t('int_day_counted',{ t:at }),
-      glance:tiles.map(t=>({ n:t.n, l:t.k==='duties'?i18t('jov5_day_duties_tl'):word(t), warn:t.tone==='ruby'||t.tone==='amber', attr:may(t)?`data-ig-day="${t.k}"`:'' })),
-      groups:rest.length?[{ label:i18t('jov5_day_next'), rows:rest.map(t=>({ mark:t.k==='renew'?'refresh':'calendar', tone:t.tone?'amber':'', t:word(t), s:t.sub||'', v:t.n?String(t.n):i18t('int_day_none'), attr:may(t)?`data-ig-day="${t.k}"`:'' })) }]:[],
-      act:{ say:i18t('jov5_day_pin_say'), label:i18t(pin?'int_brief_unpin':'int_brief_pin'), attr:`data-ig-day-pin aria-pressed="${pin}"` },
-      after:igSavedViewsHtml(), src:i18t('int_day_src') },'ig-day')}</div>`;
+    const by=k=>T.find(t=>t.k===k);
+    const needs=by('needs'), risk=by('risk'), duties=by('duties'), renew=by('renew'), since=by('since');
+    const toneOf=t=>t.tone==='ruby'?'red':t.tone==='amber'?'amber':'';
+    const sub=[risk&&risk.n?i18tn('int_day_ls_risk',risk.n,{ n:risk.n }):'', duties&&duties.n?i18tn('int_day_ls_duties',duties.n,{ n:duties.n }):''].filter(Boolean).join('; ');
+    const today=[needs,risk,duties].filter(Boolean).map(t=>({ cls:'ig-day-b', mark:'', markText:String(t.n), tone:toneOf(t), t:word(t), s:t.sub||(t.n?'':i18t('int_day_none')), attr:may(t)?`data-ig-day="${t.k}"`:'' }));
+    /* the first renewal's own notice words (the paper's, with its §), where its term is read */
+    let quote=''; try{ const ids=renew&&renew.ids||[]; const first=ids.map(id=>getContract(id)).filter(Boolean).sort((a,b)=>String(graphDecisionOf(a).date||'').localeCompare(String(graphDecisionOf(b).date||'')))[0];
+      const q=first&&typeof window.hbRdnTermQuote==='function'?window.hbRdnTermQuote(first):null; if(q&&q.w) quote='\u201c'+q.w+'\u201d'+[q.sec,first.name||''].filter(Boolean).map(x=>' '+x).join(' \u00b7'); }catch(_){ quote=''; }
+    const next=[renew&&{ cls:'ig-day-tl', mark:'', markText:'', tone:renew.n?'amber':'', t:renew.n?i18tn('int_day_ls_renew',renew.n,{ n:renew.n }):word(renew), s:(renew.n?i18t('int_day_in',{ d:IG_BRIEF_ENDING_DAYS, v:'' }):i18t('int_day_none'))+(quote?' \u00b7 '+quote:''), quote:!!quote, attr:may(renew)?`data-ig-day="renew"`:'' },
+      since&&{ cls:'ig-day-tl', mark:'', markText:'', tone:since.n?'green':'', t:since.n?word(since):i18t('int_day_ls_nothing_new'), s:since.n?(since.sub||''):'', attr:may(since)?`data-ig-day="since"`:'' }].filter(Boolean);
+    const pinRow={ mark:'target', tone:'green', t:i18t(pin?'int_brief_unpin':'int_brief_pin'), s:i18t('jov5_day_pin_say'), attr:`data-ig-day-pin aria-pressed="${pin}"` };
+    const eb=[day.replace(/^./,c=>c.toUpperCase()), i18t('int_day_counted',{ t:at }).replace(/^./,c=>c.toLowerCase())].join(' \u00b7 ');
+    return `<div class="ig-day is-ls">${jamboOverviewHtml({ eyebrow:eb,
+      title:needs&&needs.n?i18tn('jov5_day_t',needs.n,{ n:needs.n }):i18t('jov5_day_clear'), sub,
+      groups:[{ label:i18t('int_day_ls_today'), rows:today }, next.length?{ label:i18t('jov5_day_next'), rows:next }:null, { label:'', rows:[pinRow] }].filter(Boolean),
+      act:null, after:igSavedViewsHtml(), src:i18t('int_day_src') },'ig-day')}</div>`;
   }
   return `<div class="ig-day">
     <div class="ig-day-hd"><b>${igEsc(day.replace(/^./,c=>c.toUpperCase()))}</b><span class="ig-day-at">${igEsc(i18t('int_day_counted',{ t:at }))}</span></div>
@@ -7197,18 +7215,28 @@ function igSavedViewsHtml(){
   let v=[]; try{ v=igViewsRead().slice().reverse(); }catch(_){ v=[]; }
   const links=v.map(x=>{ let n=null; try{ n=igRecipeShown(x.recipe); }catch(_){ n=null; }
     return `<button type="button" class="ig-sv-a" data-ig-sv="${igEsc(x.name)}" title="${igEsc(i18t('hb_views_tip'))}"><span class="ig-sv-n">${igEsc(x.name)}</span>${n!=null?`<b>${n}</b>`:''}</button>`; }).join('');
-  let nm=''; try{ nm=igViewName(); }catch(_){ nm=''; }
-  const form=_igSvForm?`<form class="ig-sv-form" data-ig-sv-form><input type="text" id="ig-sv-name" class="ig-sv-in" maxlength="${IG_SV_NAME_MAX}" autocomplete="off" value="${igEsc(nm)}" aria-label="${igEsc(i18t('int_sv_name'))}"><button type="submit" class="ig-sv-ok">${igEsc(i18t('int_sv_save'))}</button><button type="button" class="ig-sv-no" data-ig-sv-cancel>${igEsc(i18t('int_sv_cancel'))}</button></form>`:'';
-  return `<div class="ig-sv" id="ig-sv"><div class="ig-sv-hd"><span class="ig-sv-l">${igEsc(i18t('int_saved_views'))}</span>${_igSvForm?'':`<button type="button" class="ig-sv-new" data-ig-sv-new>${igEsc(i18t('int_sv_new'))}</button>`}</div>${form}`
+  return `<div class="ig-sv" id="ig-sv"><div class="ig-sv-hd"><span class="ig-sv-l">${igEsc(i18t('int_saved_views'))}</span><button type="button" class="ig-sv-new" data-ig-sv-new>${igEsc(i18t('int_sv_new'))}</button></div>`
     +(links?`<div class="ig-sv-list">${links}</div>`:`<span class="ig-day-src">${igEsc(i18t('int_sv_none'))}</span>`)+`</div>`;
 }
 const IG_SV_NAME_MAX=60;
-function igSavedViewForm(on){ _igSvForm=!!on; igDayRepaint();
-  if(_igSvForm){ const i=document.getElementById('ig-sv-name'); if(i){ try{ i.focus({ preventScroll:true }); i.select(); }catch(_){} } } return true; }
+/* NAMING IT IS THE ONE EDIT POP-UP (owner, 19 Nov 2026: "Build 1"): one line holding the view's own name, what the
+   view holds said under the headline, Save; the map and the panel stay as they were (lgpOpen) */
+function igSavedViewForm(on){
+  _igSvForm=!!on;
+  if(!_igSvForm){ if(document.getElementById('ig-sv-form')&&typeof closeModal==='function') closeModal(); return true; }
+  let nm=''; try{ nm=igViewName(); }catch(_){ nm=''; }
+  let n=null; try{ n=igRecipeShown(igRecipeNow()); }catch(_){ n=null; }
+  lgpOpen({ id:'ig-sv-form', title:i18t('int_sv_head'), sub:n!=null?i18t('int_sv_sub',{ n }):'',
+    rows:[{ k:i18t('int_sv_name'), id:'ig-sv-name', value:nm, max:IG_SV_NAME_MAX }],
+    html:`<p class="lgp-small">${igEsc(i18t('int_sv_mine'))}</p>`,
+    primary:{ label:i18t('int_sv_save') }, onClose:()=>{ _igSvForm=false; } });
+  const i=document.getElementById('ig-sv-name'); if(i){ try{ i.select(); }catch(_){} }
+  return true;
+}
 /* the name typed is the name kept; an empty box keeps the view's own name; a namesake is replaced (igViewSave) */
 function igSavedViewKeep(){
   const i=document.getElementById('ig-sv-name'); const typed=String((i&&i.value)||'').replace(/\s+/g,' ').trim().slice(0,IG_SV_NAME_MAX);
-  const n=igViewSave(typed); _igSvForm=false; igDayRepaint();
+  const n=igViewSave(typed); _igSvForm=false; if(typeof closeModal==='function'&&document.getElementById('ig-sv-form')) closeModal(); igDayRepaint();
   if(typeof toast==='function') toast(n?i18t('int_did_saved',{ name:n }):i18t('int_save_failed'),n?'ok':'err');
   return !!n;
 }
@@ -7224,10 +7252,9 @@ function igSavedViewOpen(name){
    has no Your day tab, it saves under the view's own name as it always did) */
 function igSaveViewDoor(){
   if(!igDayTabOn()){ igRecipeRun({ acts:[{ save:'' }] }); renderIntelDock(); return true; }
-  intel.tour=null; intel.walk=null; intel.fdTab=false; intel.gdTab=false; intel.dayTab=true; _igSvForm=true;
+  intel.tour=null; intel.walk=null; intel.fdTab=false; intel.gdTab=false; intel.dayTab=true;
   renderIntelDock(); updateIntelNote();
-  const i=document.getElementById('ig-sv-name'); if(i){ try{ i.focus({ preventScroll:true }); i.select(); }catch(_){} }
-  return true;
+  return igSavedViewForm(true);
 }
 function igDayRepaint(){ const host=document.getElementById('ig-day'); if(!host||!igDayShows()) return; host.innerHTML=igDayHtml(); }
 /* a figure's own door: each the page that does the work, the map's own for risk */
@@ -7265,11 +7292,9 @@ function igBriefAutoStart(){
 document.addEventListener('click',e=>{ const t=e.target&&e.target.closest?e.target:null; if(!t||!t.closest('#ig-day')) return;
   if(t.closest('[data-ig-day-pin]')){ igBriefPinSet(!igBriefPinned()); igDayRepaint(); return; }
   if(t.closest('[data-ig-sv-new]')){ igSavedViewForm(true); return; }
-  if(t.closest('[data-ig-sv-cancel]')){ igSavedViewForm(false); return; }
   const sv=t.closest('[data-ig-sv]'); if(sv){ igSavedViewOpen(sv.getAttribute('data-ig-sv')); return; }
   const f=t.closest('[data-ig-day]'); if(f){ if(IG) igPaintIds(null); igDayGo(f.getAttribute('data-ig-day')); } });
-document.addEventListener('submit',e=>{ const f=e.target&&e.target.closest?e.target.closest('#ig-day [data-ig-sv-form]'):null; if(!f) return; e.preventDefault(); igSavedViewKeep(); });
-document.addEventListener('keydown',e=>{ if(e.key!=='Escape'||!_igSvForm) return; const i=e.target&&e.target.closest?e.target.closest('#ig-sv-name'):null; if(!i) return; e.stopPropagation(); igSavedViewForm(false); },true);
+document.addEventListener('submit',e=>{ const f=e.target&&e.target.closest?e.target.closest('#ig-sv-form'):null; if(!f) return; e.preventDefault(); igSavedViewKeep(); });
 /* pointing at a figure lights its contracts on the map; letting go puts the map back */
 document.addEventListener('mouseover',e=>{ const f=e.target&&e.target.closest?e.target.closest('#ig-day [data-ig-day]'):null; if(!f||!IG) return;
   if(f._igLit) return; f._igLit=true; const t=igDayData().find(x=>x.k===f.getAttribute('data-ig-day')); if(t) igPaintIds(t.ids); });
@@ -7430,8 +7455,8 @@ function igSugInRows(){
     &&!intel.dayTab&&!intel.fdTab&&!intel.gdTab&&!(typeof window.pdTalkShows==='function'&&pdTalkShows())); } catch(_){ return false; }
 }
 function igSugOnMap(){ return !(state.view==='dashboard'&&typeof window.hbFace==='function')||hbFace()==='explorer'; }
-function igViewSuggestions(){
-  const vw=igbCam().view, out=[], G=IG||{};
+function igViewSuggestions(opts){
+  const vw=igbCam().view, out=[], G=IG||{}, noMoney=!!(opts&&opts.noMoney);
   const money=(typeof canViewValues!=='function')||canViewValues();
   const acts=q=>{ try{ const r=igRecipeParse(q); return (r&&r.acts)||[]; }catch(_){ return []; } };
   const offer=(q,reads)=>{ if(out.length<2&&q&&reads(q)) out.push(q); };
@@ -7451,9 +7476,14 @@ function igViewSuggestions(){
   } else if(vw===2){
     IG_SUG_FLOORS.filter(k=>k!==G.floorKey).forEach(k=>offer(i18t('int_sug_floors',{ x:word(k) }),q=>acts(q).some(a=>a.role==='floors'&&a.fact===k)));
   } else if(vw===3){
-    if(money&&intel.shadeBy!=='value') offer(i18t('int_sug_cells'),q=>acts(q).some(a=>a.shadeBy==='value'));
-    IG_SUG_GRID.filter(([a,b])=>!(a===G.colKey&&b===G.floorKey)).forEach(([a,b])=>offer(cap(i18t('int_sug_grid',{ a:word(a), b:word(b) })),q=>{ const A=acts(q);
-      return A.some(x=>x.role==='columns'&&x.fact===a)&&A.some(x=>x.role==='floors'&&x.fact===b); }));
+    /* AS DRAWN (P-40, 21 Nov 2026): a grid pairing first, then the cells' shading — back to "how many" where the cells
+       are shaded by money; the money shading itself is never offered in the side panel (noMoney) */
+    const pairs=IG_SUG_GRID.filter(([a,b])=>!(a===G.colKey&&b===G.floorKey)), pair=([a,b])=>offer(cap(i18t('int_sug_grid',{ a:word(a), b:word(b) })),q=>{ const A=acts(q);
+      return A.some(x=>x.role==='columns'&&x.fact===a)&&A.some(x=>x.role==='floors'&&x.fact===b); });
+    if(pairs[0]) pair(pairs[0]);
+    if(intel.shadeBy==='value') offer(i18t('int_sug_cells_count'),q=>acts(q).some(a=>a.shadeBy==='count'));
+    else if(money&&!noMoney) offer(i18t('int_sug_cells'),q=>acts(q).some(a=>a.shadeBy==='value'));
+    pairs.slice(1).forEach(pair);
   } else if(vw===4){
     offer(i18t('int_sug_until'),q=>{ const r=igUntilRead(q); return !!(r&&r[0]&&r[0].until&&r[0].until!=='none'&&r[0].until!==intel.tlUntil); });
     offer(i18t('int_sug_asof'),q=>{ const r=igAsOfRead(q); return !!(r&&r[0]&&r[0].asOf&&r[0].asOf!=='none'&&r[0].asOf!==intel.asOf); });
@@ -7471,19 +7501,50 @@ function igViewSuggestions(){
 function igOverviewFive(shown){
   let M=null; try{ M=buildGraphModel(); }catch(_){ M=null; }
   const cs=(typeof state!=='undefined'&&state&&Array.isArray(state.contracts))?state.contracts.filter(c=>c&&!c.archived):[];
-  const parties=new Set(cs.map(c=>String(c.counterparty||'').trim().toLowerCase()).filter(Boolean)).size;
+  /* the parties and the overdue promises OF WHAT THE MAP DREW (P-40), never the whole book */
+  const drawnIds=new Set(((M&&M.nodes)||[]).filter(n=>n.kind==='contract').map(n=>String(n.id||(n.c&&n.c.id)||'')));
+  const drawnCs=drawnIds.size?cs.filter(c=>drawnIds.has(String(c.id))):cs;
+  const parties=new Set(drawnCs.map(c=>String(c.counterparty||'').trim().toLowerCase()).filter(Boolean)).size;
+  const today0=typeof todayISO==='function'?todayISO():'';
+  let late=0; drawnCs.forEach(c=>(Array.isArray(c.obligations)?c.obligations:[]).forEach(o=>{ if(!o||o.status==='done') return; const due=String((typeof obligationDue==='function'?obligationDue(o):o.due)||'').slice(0,10); if(due&&today0&&due<today0) late++; }));
   const streams=new Set(cs.map(c=>c.folder).filter(Boolean)).size;
   const tour=i18t('int_tour_ask');
-  const sugs=igViewSuggestions().slice(0,3);
-  const rows=sugs.map(s=>({ mark:s===tour?'sparkle':'network', tone:s===tour?'dark':'green', t:s, s:s===tour?i18t('jov5_ig_tour_s'):i18t('jov5_ig_try_s'), run:()=>intelAsk(s) }));
+  /* NO MONEY IN THE PANEL (P-40 as drawn: the Grid's rows are "Value streams against liability cap" · "Shade the cells
+     by how many"): the money shading stays a chip and a typed ask, never a row here */
+  const sugs=igViewSuggestions({ noMoney:true }).slice(0,3);
+  /* AS DRAWN (P-40, owner 21 Nov 2026): each suggestion one line with its mark and a › that nudges; no line under it */
+  /* AS DRAWN (P-40, 21 Nov 2026): the suggestions wear the ⌘ mark, "Explain this view" the spark, both soft green */
+  const rows=sugs.map(s=>({ mark:s===tour?'mkSpark':'cmd', tone:'green', t:s, run:()=>intelAsk(s) }));
   let v=[]; try{ v=igViewsRead().slice().reverse(); }catch(_){ v=[]; }
   const saved=v.length?v.slice(0,3).map(x=>({ mark:'star', t:x.name, run:()=>igSavedViewOpen(x.name) }))
-    :[{ t:i18t('jov5_ig_sv_none'), s:i18t('jov5_ig_sv_s'), link:{ label:i18t('jov5_ig_sv_save'), run:()=>igSaveViewDoor() } }];
+    :[{ t:i18t('jov5_ig_sv_none_short'), link:{ label:i18t('jov5_ig_sv_save'), run:()=>igSaveViewDoor() } }];
   const fd=(typeof igFindingsTabOn==='function'&&igFindingsTabOn())?igFindingsCount():null;
-  return { eyebrow:i18t('jov5_ig_eb'), title:i18t('jov_ig_head_b'), sub:i18t('jov_ig_head_s'),
-    glance:[{ n:(M&&M.shown)||shown||0, l:i18t('jov5_ig_drawn') },{ n:streams, l:i18t('jov5_ig_streams') },{ n:parties, l:i18t('jov5_ig_parties') }],
-    groups:[{ label:i18t('jov5_ig_try'), rows }, { label:i18t('int_saved_views'), rows:saved }].concat(fd&&fd.n?[{ label:i18t('jov_ig_fd'), rows:[{ mark:'star', tone:fd.tone==='amber'?'amber':'', t:i18tn('jov_ig_fd_v',fd.n,{ n:fd.n }), run:()=>igFindingsShow() }] }]:[]),
-    src:i18t('jov_ig_src') };
+  /* THE LEGORA + STRIPE WAY (P-40, owner 20 Nov 2026: "Only change the side panels and go for L+S"): no three mixed tiles;
+     WHAT IS DRAWN is a ring of the contracts the map drew, by its own groups (the model's hubs, never the whole book),
+     with its legend and one quiet line */
+  void streams;
+  const hubs=((M&&M.nodes)||[]).filter(n=>n.kind==='hub').map(n=>({ label:String(n.label||''), n:((M.nodes||[]).filter(x=>x.kind==='contract'&&x.group===n.label).length) })).filter(h=>h.n).sort((a,b)=>b.n-a.n);
+  const drawn=hubs.reduce((a,h)=>a+h.n,0)||(M&&M.shown)||shown||0;
+  const TONES=['var(--st-violet-dot)','var(--st-amber-dot)','var(--st-green-dot)','var(--st-steel-dot)','var(--st-gray-dot)'];
+  const top=hubs.slice(0,4), rest=hubs.slice(4).reduce((a,h)=>a+h.n,0);
+  const segs=top.map((h,i)=>({ l:h.label, n:h.n, c:TONES[i] })).concat(rest?[{ l:i18t('jov5_ig_rest'), n:rest, c:TONES[4] }]:[]);
+  /* THE RING AS DRAWN (P-40): 64 across, a grey track, each group its own arc with a hair's gap, drawn on in turn
+     (--L its length; the arrival sweeps it from nothing, igoSweep); the count in its middle */
+  const C=2*Math.PI*13.5, gap=segs.length>1?C*0.01:0; let off=0;
+  const ring=drawn?`<div class="igo-drawn"><span class="igo-ring" aria-hidden="true"><svg viewBox="0 0 36 36"><circle class="igo-trk" cx="18" cy="18" r="13.5"/>${segs.map((g,k)=>{ const len=Math.max(0,C*g.n/drawn-gap), el=`<circle class="igo-seg" cx="18" cy="18" r="13.5" transform="rotate(${(-90+off/C*360).toFixed(2)} 18 18)" style="stroke:${g.c};stroke-dasharray:${len.toFixed(2)} ${C.toFixed(2)};--L:${len.toFixed(2)};--igo-k:${k}"/>`; off+=C*g.n/drawn; return el; }).join('')}</svg><b>${drawn}</b></span>`
+    +`<span class="igo-leg">${segs.map(g=>`<span><i style="background:${g.c}"></i>${igEsc(g.l)} · <b>${g.n}</b></span>`).join('')}<small>${igEsc([i18tn('jov5_ig_parties_n',parties,{ n:parties })].concat(late?[i18tn('jov5_ig_overdue_n',late,{ n:late })]:[]).join(' \u00b7 '))}</small></span></div>`:'';
+  /* WHAT JAMBO SEES (P-40, the Legora reading, as drawn): one sentence on the drawn contract that ends first, with the
+     paper's own words where its term is read (hbRdnTermQuote); only what the map DREW, nothing guessed */
+  const sees=(()=>{ const today=typeof todayISO==='function'?todayISO():''; const ex=c=>{ try{ return String((typeof effectiveExpiry==='function'?effectiveExpiry(c):c.expiry)||'').slice(0,10); }catch(_){ return ''; } };
+    const f=drawnCs.filter(c=>{ const e=ex(c); return e&&e>=today; }).sort((a,b)=>ex(a).localeCompare(ex(b)))[0]; if(!f) return '';
+    const q=typeof window.hbRdnTermQuote==='function'?window.hbRdnTermQuote(f):null;
+    let d=''; try{ d=new Date(ex(f)+'T00:00:00').toLocaleDateString(langLocale(),{ day:'numeric', month:'long', year:'numeric' }); }catch(_){ d=ex(f); }
+    return q?`<p class="igo-sees">${igEsc(i18t('jov5_ig_sees_q',{ name:f.name||'' }))} <q>${igEsc(q.w)}</q>${q.sec?' '+igEsc(q.sec):''}.</p>`
+      :`<p class="igo-sees">${igEsc(i18t('jov5_ig_sees',{ name:f.name||'', d }))}</p>`; })();
+  return { title:i18t('jov5_ig_t2'), sub:i18t('jov5_ig_s2'),
+    mid:ring+(sees?`</div><div class="jov5-sec igo-sees-sec"><p class="jov5-label">${igEsc(i18t('jov5_ig_sees_h'))}</p>${sees}`:''), midLabel:drawn?i18t('jov5_ig_what_drawn'):'',
+    groups:[{ key:'try', label:i18t('jov5_ig_try'), rows }, { label:i18t('int_saved_views'), rows:saved }].concat(fd&&fd.n?[{ label:i18t('jov_ig_fd'), rows:[{ mark:'star', tone:fd.tone==='amber'?'amber':'', t:i18tn('jov_ig_fd_v',fd.n,{ n:fd.n }), run:()=>igFindingsShow() }] }]:[]),
+    src:'' };
 }
 function igOverviewHtml(){
   let shown=0; try{ shown=buildGraphModel().shown||0; }catch(_){ shown=0; }
@@ -7500,7 +7561,9 @@ function igSugRepaint(){
   const box=document.querySelector('#ig-dock [data-ig-chips]'); if(!box||!igSugOnMap()||box.querySelector('[data-ca-chip],[data-ca-next]')) return;
   /* Fill in and Before you sign draw no chips (the gaps, rounds 8 and 10): the row stays his perch */
   if(window.pdChipsQuiet&&pdChipsQuiet()) return;
+  /* where the view's questions are the Overview's own rows ("Try on the map"), the panel is drawn again so they follow the view (#762) */
   box.innerHTML=igSugInRows()?'':igViewSuggestions().map(igSugChipHtml).join('');
+  if(igSugInRows()){ try{ if(typeof renderIntelDock==='function') renderIntelDock(); }catch(_){ } return; }
   box.querySelectorAll('[data-igsug]').forEach(b=>b.addEventListener('click',()=>intelAsk(b.getAttribute('data-igsug'))));
 }
 /* A FILTER ON THIS PAGE KEEPS THE READER'S PLACE; A TAB DOES NOT, and that is
@@ -7603,7 +7666,7 @@ function renderIntel(){
   /* THE GROUP-BY SELECT, one builder for both heads that carry it — the map's
      wiring asks for #ig-group by id wherever the map is drawn. */
   const groupSel=`<span style="position:relative;display:inline-flex;align-items:center">
-          <select id="ig-group" style="appearance:none;-webkit-appearance:none;-moz-appearance:none;border:1.5px solid var(--color-accent);background:var(--st-steel-bg);color:var(--st-steel-fg);font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-body);letter-spacing:0;text-transform:none;padding:5px 26px 5px 11px;border-radius:var(--radius);cursor:pointer;outline:none">
+          <select id="ig-group" style="appearance:none;-webkit-appearance:none;-moz-appearance:none;border:1.5px solid var(--color-accent);background:var(--st-steel-bg);color:var(--st-steel-fg);font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-body);letter-spacing:0;text-transform:none;padding:5px 26px 5px 11px;border-radius:var(--fld-r);cursor:pointer;outline:none">
             ${''/* Copilot's own grouping gets its row here too — see igPaintGroupSelect. */}
             ${igGroupOptsHtml()}
           </select>
@@ -10599,7 +10662,8 @@ function renderIntelDock(){
     /* YOUR DAY (owner picked "The SAP Way", 9 Nov 2026): the day's five figures */
     :igDayShows()?`<div id="ig-day" class="flex-1 min-h-0 overflow-y-auto scroll-thin" role="tabpanel">${igDayHtml()}</div><div id="igd-feed" hidden></div>`
     :igGuideShows()?`<div id="ig-gd" class="flex-1 min-h-0 overflow-y-auto scroll-thin" role="tabpanel">${igGuideHtml()}</div><div id="igd-feed" hidden></div>`:`
-    ${(state.view==='dashboard'&&typeof window.caBackRowHtml==='function')?caBackRowHtml():''}
+    ${''/* NO GREEN "‹ Back to …" LINK ON THE PANEL (owner, 22 Nov 2026: "delete the green links that say back to the
+           page you were on"): the bar's ‹ is the way back; the trail itself stays (caBackRowHtml, a typed "back") */}
     ${''/* NEEDS YOU HERE, PINNED above the conversation (round 3: it stays at
            the top of the Jambo tab while the talk scrolls under it) */}
     ${(state.view==='dashboard'&&typeof window.pdJamboPinHtml==='function')?pdJamboPinHtml():''}
@@ -10793,7 +10857,7 @@ function renderIntelDock(){
     igOnce(el,'pointerleave','el-pointerleave',()=>igPaintIds(null));
   });
   /* "Workspace" opens Home, never the room (step 2, 14 Oct 2026; roomHomeLand) */
-  dock.querySelectorAll('[data-ig-ws]').forEach(b=>igOnce(b,'click','[data-ig-ws]',e=>{ e.stopPropagation(); const id=b.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id,{ cover:true }))) openWorkspace(id); }));
+  dock.querySelectorAll('[data-ig-ws]').forEach(b=>igOnce(b,'click','[data-ig-ws]',e=>{ e.stopPropagation(); const id=b.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id,{ open:true }))) openWorkspace(id); }));
   /* the whole-book door (igFailTurn's stand-in): the Contracts page with nothing narrowing it, as the window's press */
   dock.querySelectorAll('[data-ai-worklist-all]').forEach(b=>igOnce(b,'click','[data-ai-worklist-all]',e=>{ e.stopPropagation(); if(typeof window.regShowOnly==='function') regShowOnly([], ''); }));
   /* ONE CONVERSATION EVERYWHERE: said here, taken off the other hosts; the side panel's turns bound here too */
@@ -11742,8 +11806,10 @@ function igWallStageWord(k){
 function igWallSheetHtml(c,opening){
   if(c&&c._codeNamed) return `<span class="igw-sheet is-coded" aria-hidden="true"><span class="igw-cn">${typeof icon==='function'?icon('tag','w-3.5 h-3.5'):''}<span class="igw-t">${igEsc(c.name||'')}</span><span class="igw-p">${igEsc(i18t('igw_code_name'))}</span></span>${opening?igOpeningHtml():''}</span>`;
   /* the new look (round 6, as drawn): the sheet names both parties, "Highland Corporate Ltd and Nandi Dairy" */
-  let us=''; if(typeof newLookOn==='function'&&newLookOn()){ try{ us=typeof contractParty==='function'?String(contractParty(c)||''):''; }catch(_){ us=''; } }
-  const between=us&&c.counterparty?i18t('igw2_between',{ a:us, b:c.counterparty }):(c.counterparty||'');
+  /* THE STRIPE WALL (P-31, owner's pick 20 Nov 2026): the paper carries its title and blank lines, no other words — the
+     parties are said under it */
+  if(typeof newLookOn==='function'&&newLookOn()) return `<span class="igw-sheet" aria-hidden="true"><span class="igw-t">${igEsc(c.name||'')}</span><span class="igw-ln"></span>${opening?igOpeningHtml():''}</span>`;
+  const between=c.counterparty||'';
   return `<span class="igw-sheet" aria-hidden="true"><span class="igw-t">${igEsc(c.name||'')}</span><span class="igw-p">${igEsc(between)}</span><span class="igw-ln"></span>${opening?igOpeningHtml():''}</span>`;
 }
 /* the number's companion under the paper: its value, read as the List reads
@@ -11777,12 +11843,18 @@ function igWallCardHtml(c,need){
   /* the paper chosen with one press wears the accent's edge (round 13): its panel says it */
   const chosen=igWallChosenId()===String(c.id);
   /* THE WALL AS DRAWN (the new look, round 6): each paper a sheet, its stage's mark at its corner, the party and the
-     value at its foot; nothing under it (the stage is the mark, what needs you is said in the panel) */
+     value at its foot; nothing under it (the stage is the mark, what needs you is said in the panel). A private stream's
+     paper says so in its top corner, the lock with the stream's name, as the old card did (#762) */
+  /* THE STRIPE WALL (P-31, owner's pick 20 Nov 2026; replaces round 6's mark at the corner and value at the foot): a calm
+     paper, under it the other side, a soft standing badge and the end date; NO MONEY; the chosen card outlined in ink */
   if(window.newLookOn&&newLookOn()){
-    const mark=typeof window.regSapMarkHtml==='function'?regSapMarkHtml(c):(typeof window.regStageMarkHtml==='function'?regStageMarkHtml(c):'');
-    return `<button type="button" role="listitem" class="igw-card is-nl${opening?' is-opening':''}${c._codeNamed?' is-coded':''}${chosen?' is-chosen':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${chosen?' aria-current="true"':''}${opening?' aria-busy="true"':''}>
-    ${igWallSheetHtml(c,opening)}<span class="igw2-mark">${mark}</span>
-    <span class="igw2-foot is-even"><span class="igw2-who">${igEsc(c._codeNamed?i18t('igw_kept_list'):(c.counterparty||''))}</span><span class="igw2-st"><span><i style="background:${dot}"></i>${igEsc(word)}</span>${val?`<b>${igEsc(val)}</b>`:''}</span></span></button>`;
+    void val;
+    const tone=st==='expired'?'ruby':(typeof window.regStageTone==='function'?regStageTone(c).tone:'gray');
+    let end=''; try{ end=String((typeof effectiveExpiry==='function'?effectiveExpiry(c):c.expiry)||'').slice(0,10); }catch(_){ end=String(c.expiry||'').slice(0,10); }
+    const endW=end?(typeof regDotDate==='function'?regDotDate(end):end):'';
+    return `<button type="button" role="listitem" class="igw-card is-nl is-stripe${opening?' is-opening':''}${c._codeNamed?' is-coded':''}${chosen?' is-chosen':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${chosen?' aria-current="true"':''}${opening?' aria-busy="true"':''}>
+    ${igWallSheetHtml(c,opening)}${priv?`<span class="igw-lock igw2-lock" title="${igEsc(i18t('igw_private_title',{ s:fname }))}">${typeof icon==='function'?icon('lock','w-3 h-3'):''}${igEsc(fname)}</span>`:''}
+    <span class="igw2-foot is-even"><span class="igw2-who">${igEsc(c._codeNamed?i18t('igw_kept_list'):(c.counterparty||''))}</span><span class="igw2-st">${typeof window.regLsBadgeHtml==='function'?regLsBadgeHtml(c):`<span class="reg-badge is-${igEsc(tone)}"><i></i>${igEsc(word)}</span>`}${endW?`<small class="igw2-end">${igEsc(endW)}</small>`:''}</span></span></button>`;
   }
   return `<button type="button" role="listitem" class="igw-card${opening?' is-opening':''}${c._codeNamed?' is-coded':''}${chosen?' is-chosen':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${chosen?' aria-current="true"':''}${opening?' aria-busy="true"':''}>
     ${igWallSheetHtml(c,opening)}
@@ -11937,14 +12009,11 @@ function igWallBodyHtml(rows,o){
 /* THE WALL'S TWO LINES, AS DRAWN (the new look, round 6): under the papers what the press does (and which one is
    chosen), and at the page's foot how many, and that a file dropped on the wall is read (the one drop door) */
 function igWallNlFootHtml(list, shown){
-  if(typeof newLookOn!=='function'||!newLookOn()) return '';
-  const ch=igWallChosenId(), c=ch?shown.find(x=>String(x.id)===ch):null;
-  const left=c?i18t('ctf_wall_chosen',{ name:c.name||'' }):'';
-  /* EVEN CARDS (the harmony review, owner's yes 9 Nov 2026): the how-to sentence goes, and one footer stands under the
-     cards — the paging foot when there is more to show, else the count */
-  void left;
-  if(list.length>shown.length) return '';
-  return `<div class="igw2-pfoot"><span>${igEsc(i18tn('ctf_wall_n',list.length,{ n:list.length }))}</span>${typeof window.pdDropDoor==='function'?`<span>${igEsc(i18t('ctf_wall_drop'))}</span>`:''}</div>`;
+  /* P-31 AS DRAWN (21 Nov 2026; reverses the harmony review's count-and-drop foot): nothing under the papers — the chips
+     say how many ("All 5"), the drop door is Jambo's links line ("upload a document"), a file dropped on the wall is
+     still read (the one drop door, pdDropTake), and a wall cut at a page keeps its own "Show N more" (lhFootHtml) */
+  void list; void shown;
+  return '';
 }
 /* THE PLACE'S FRAME on Home's paper with nothing chosen; the register draws
    the place into it (renderRegister, home) and lights the rail's Contracts */
@@ -12118,7 +12187,7 @@ function igStripWire(){
       const faceUp=typeof window.pdRedShows==='function'&&pdRedShows()&&pdRedFor()===String(p.id);
       if((p.red==='theirs')!==was&&faceUp) renderIntelDock();
       return; }
-    const ws=e.target.closest('[data-ig-ws]'); if(ws){ const id=ws.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id,{ cover:true }))) openWorkspace(id); }
+    const ws=e.target.closest('[data-ig-ws]'); if(ws){ const id=ws.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id,{ open:true }))) openWorkspace(id); }
   });
 }
 /* ---- the paper ---- */
@@ -12300,6 +12369,13 @@ function igPaperRefresh(){
   /* a patch after which the blanks' marks are owed on the clean paper's new blocks (the whole drawing paints them) */
   if(patched&&patched.n&&c&&!igRedOn(c)&&!igSignOn(c)){ const cv=document.getElementById('ig-canvas'); try{ if(cv&&window.uploadBlanksPaint) uploadBlanksPaint(c,cv); }catch(_){ } }
   const sc2=document.getElementById('ig-paper-scroll'); if(sc2) sc2.scrollTop=top;
+  /* THE PLACE IS KEPT ONCE THE PAGES ARE CUT AGAIN (22 Nov 2026, GitHub's run of decision-redraws-one-clause: 240 came back
+     as 113): while a slow machine re-cuts the pages the paper is briefly shorter, and the browser clamps the place to what
+     fits. Put back again over the next few frames, bounded, only while nobody has scrolled since the clamp */
+  if(sc2&&Math.abs(sc2.scrollTop-top)>1){ let tries=0, was=sc2.scrollTop;
+    const again=()=>{ if(!sc2.isConnected||Math.abs(sc2.scrollTop-was)>1) return; sc2.scrollTop=top; was=sc2.scrollTop;
+      if(Math.abs(was-top)>1&&++tries<20) requestAnimationFrame(again); };
+    requestAnimationFrame(again); }
 }
 let _igPaperPatched=null;   // what the last refresh did: { n, of } blocks put back, or null where the paper was drawn whole
 const igPaperLastPatch=()=>_igPaperPatched;
