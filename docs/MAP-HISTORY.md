@@ -40024,3 +40024,27 @@ card go), `askColRowTagsHtml`, and the uncalled `askColLastRead`, `askColInitial
 `askColTableFor`, `askColMoreChipsHtml`; the presses only those drew (data-ac-discover, data-ac-open, data-ac-open-new,
 data-ac-del, data-ac-disc-all, data-ac-pack); their CSS (.ac-btn, .ac-disc-*, .ac-tag); 20 keys × both books; Brain part
 'askcoldisc'. Engine, Discover, columns on Contracts, company facts, Unusual for you: untouched.
+
+## ASK A COLUMN (js/views/askcolumn.js) — ASK A COLUMN IS GONE; EVERY QUESTION IS ASKED IN DISCOVER (22 Nov 2026)
+The first deletion (PR 907) stopped short: Discover's read table "Ask again", a read's next batch and the narrow list's
+"+ Ask a column" still opened Ask a column's form on Contracts (measured at main: reads-and-columns-as-drawn-verify 2–5
+passed). The owner decided: "There is not asking a column again only the features related to discovery."
+REROUTED (js/views/reads.js): `readsAgain`, `readsNext` and `readsAskNew` all go through one helper, `rdNewRead(r)`, onto
+Discover's own New read: `dsnFill(r)` puts the read's question in the box (a pack: the pack chosen, as its chip does), every
+folder chosen; New read's button reads the first not yet read, so a "next batch" press lands on its remaining contracts.
+`_dsn.resumed` keeps the screen when the press comes from the old read table or the narrow list, and New read now draws at
+any width (`renderReadsDraw`: `wide || _dsn.screen === 'new'`). The narrow list's `#rd-ask` says `dsn_new` ("New read").
+"Bring the column onto the list" (`readsBring`) went; Show the N at risk stays (it loads with `askColLoad`, then
+`regShowOnly`). Jambo's "ask a column" words (JM_TASKS 'askcol') go to Discover (`to: { place: 'reads' }`).
+DELETED: the form, pack form, count turn, reading/stopped cards, the column card and its links, the results table pop-up
+(`askColTableOpen` and its painters), the question columns on Contracts (head, cell, legend, sort, widths, the ⋯ menu with
+Sort · Read the other N · Rename · Remove), `askColTakes`, `askColSync`, `askColBring`, `askColNext`, `askColOpen`,
+`acSizeSet`; 77 top-level declarations in askcolumn.js; register.js draws no 'ask:' key (`regCtAskKeys` gone; `R.ask` kept
+in state and saved views, never drawn), no Owner-aside, no column-card panel (`regLsPanelPick`); paperdesk no column panel;
+listhead hands nothing to the form; 156 CSS rules; ~160 keys × both books (`ac_desk_spent` stays: f975's retired-cost list
+needs it empty); Brain parts askcol, askcolcells; Handbook 5.5 now says Discover, 5.5.7 Watches says no door sets a new one.
+KEPT, the engine Discover runs on: AC, askColAskHere/askColReadRun, askColLoad(Many), askColSummary, askColReads,
+askColPlan, askColStop/CarryOn, askColTexts, askColTableOf/CopyMany/Xlsx and the xl* writer, askColClauseNo, askColNameOf,
+askColMay, askColDelete, keep, packs, company facts (Settings, Key terms, arrival), Unusual for you; server routes untouched.
+SAID TO THE OWNER: setting a NEW watch on a company fact had its only door on the deleted column card; watches already set
+still fire. "+ Add a fact" in Settings now opens Discover (it opened Contracts).

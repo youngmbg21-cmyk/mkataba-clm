@@ -90,10 +90,4 @@ async function R6_IN_PAGE(){
   const id2 = r2 && r2.ask && r2.ask.id;
   if (id2) await api('columns/' + encodeURIComponent(id2) + '/keep', 'POST', { kept: true });
 }
-/* on a folder's list: the kept question brought up as its column */
-async function R6_BRING(){
-  if (!window.__r6Ask || typeof askColBring !== 'function') return;
-  if (typeof askColSummary === 'function') await askColSummary(true);
-  await askColBring(window.__r6Ask);
-}
-module.exports = { r6Contracts, r6Answer, seedRound6, R6_IN_PAGE, R6_BRING, R6_Q, R6_Q2, iso, day };
+module.exports = { r6Contracts, r6Answer, seedRound6, R6_IN_PAGE, R6_Q, R6_Q2, iso, day };

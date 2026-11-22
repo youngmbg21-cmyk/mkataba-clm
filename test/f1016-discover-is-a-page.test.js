@@ -126,7 +126,8 @@ test('f1016 (8) the old Discover section beside the list is never drawn in the n
      drew it under a column's card, where the paperdesk's own gate did not reach */
   /* RE-POINTED (owner, 22 Nov 2026: "delete ask a column's leftover code"): the builder is deleted, so nothing can draw it */
   assert.doesNotMatch(AC + PD + REG, /\baskColDiscoverHtml\b/, 'the old Discover section is gone, its builder and every call');
-  assert.doesNotMatch(fnBody(AC, 'askColPanelHtml'), /askColDiscoverHtml/, 'nothing under a column card asks for it');
+  /* RE-POINTED 22 Nov 2026 (owner: "There is not asking a column again only the features related to discovery"): the column card is deleted too */
+  assert.doesNotMatch(AC + PD + REG, /\baskColPanelHtml\b/, 'no column card beside the list, nor any call to one');
 });
 
 /* RE-POINTED (15 Nov 2026): both Discover pills on Contracts are gone (the folder panel's with At a Glance, f1056; the list
