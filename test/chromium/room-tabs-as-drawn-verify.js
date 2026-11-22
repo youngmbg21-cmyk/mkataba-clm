@@ -157,8 +157,10 @@ const LIVE = { ...H.fixtureContract('MK-R2', 'Raw Milk Collection', 'Nandi Dairy
       q: !!document.getElementById('hist-q'),
       /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the filters in the open are the history's quick links
          (histQuickHtml, owner 31 Oct "Quick links as drawn"), only those that give rows */
-      open: [...document.querySelectorAll('.hist-quick [data-ht-quick]')].filter(x => x.offsetParent).length,
-      bar: !!(document.querySelector('.hist-quick') || {}).offsetParent,
+      /* RE-POINTED 22 Nov 2026 (the P-44 review, the owner's picked drawing "History, the Legora + Stripe way"): the chips in the
+         open are All · Changes · Notes with their counts and "+ Side" (histKindChipsHtml); no quick links, no Clear link */
+      open: [...document.querySelectorAll('.hist6-kinds [data-ht-kind]')].filter(x => x.offsetParent).length,
+      bar: !!(document.querySelector('.hist6-kinds') || {}).offsetParent,
       btn: !!document.getElementById('hist-filter-btn'),
       days: document.querySelectorAll('.hist-day-h').length,
       /* RE-POINTED (P-44, owner's pick 20 Nov 2026: History the Legora + Stripe way): the outcome is a soft badge

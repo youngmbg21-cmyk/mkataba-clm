@@ -350,13 +350,15 @@ const PROBE = `(() => {
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's filters are QUICK LINKS in the open
        (owner, 31 Oct 2026, "Quick links as drawn"; histQuickHtml): theirs · sent · decisions · Jambo, a link that would
        give nothing not drawn — read in place of the four boxes, same promise: in the open, in the drawn order */
-    const f5 = await page.evaluate(sel => [...document.querySelectorAll(sel + ' .hist-quick [data-ht-quick]')].filter(s => s.getBoundingClientRect().width > 0).map(s => s.getAttribute('data-ht-quick')), HP);
+    /* RE-POINTED 22 Nov 2026 (the P-44 review, the owner's picked drawing "History, the Legora + Stripe way"): the chips are
+       All · Changes · Notes with their counts, then "+ Side" (histKindChipsHtml); the quick links are not in the drawing */
+    const f5 = await page.evaluate(sel => [...document.querySelectorAll(sel + ' .hist6-kinds [data-ht-kind]')].filter(s => s.getBoundingClientRect().width > 0).map(s => s.getAttribute('data-ht-kind')), HP);
     /* RE-POINTED (P-44, owner's pick 20 Nov 2026: History the Legora + Stripe way): the quick links are chips with their
        counts, All first (data-ht-quick="") */
-    const QORDER = ['', 'theirs', 'sent', 'decisions', 'jambo'];
+    const QORDER = ['', 'change', 'note'];
     const fbtn = await page.evaluate(sel => !!document.querySelector(sel + ' #hist-filter-btn'), HP);
-    ok('7a the filters stand in the open, no Filter button, and no side switch (the side is a column)', f5.length >= 2 && !fbtn && side.length === 0, f5.length + ' quick links showing · button ' + fbtn + ' · ' + side.join(' · '));
-    ok('7a2 in the drawing\'s order (All, theirs, sent, decisions, Jambo)', f5[0] === '' && f5.every((k, i) => QORDER.includes(k) && (i === 0 || QORDER.indexOf(k) > QORDER.indexOf(f5[i - 1]))), f5.join(' · '));
+    ok('7a the filters stand in the open, no Filter button, and no side switch (the side is a column)', f5.length >= 2 && !fbtn && side.length === 0, f5.length + ' chips showing · button ' + fbtn + ' · ' + side.join(' · '));
+    ok('7a2 in the drawing\'s order (All, Changes, Notes)', f5[0] === '' && f5.every((k, i) => QORDER.includes(k) && (i === 0 || QORDER.indexOf(k) > QORDER.indexOf(f5[i - 1]))), f5.join(' · '));
     await page.click('#hist-detail');
     await page.waitForTimeout(500);
     const wording = await page.evaluate(sel => document.querySelectorAll(sel + ' .hist-redline').length, HP);

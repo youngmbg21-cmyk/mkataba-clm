@@ -39716,3 +39716,18 @@ repaint — the Board always settled on the true book:
     so a redraw writing the same number keeps the count going and a new number stops it.
 Measured at the parent: 5 of 6 runs at 4× and 3 of 3 at 1× had frames where the figures' words differed from the book;
 after: 0 of 18 (six each at 1×, 4× and 6×). Looks the same: the count still climbs from 0, from the number's start edge.
+
+## THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM / THE COUNTERPARTY'S PAGE (P-44 review follow-up, 22 Nov 2026)
+GitHub's browser checks on PR 879 went red in 24 files; every one was green on main and red on the branch, measured here
+on both. Built back (working controls kept, though not drawn, as the owner prefers): History's ⋯ More (Verify integrity,
+Download, Print, the whole trail — the head's only door to them); their Notes door in More; a note beside their paper keeps
+Accept · Counter · Reject (each presses the card's own verb). Faults the review made, fixed at the root: their paper lost
+Home's 720 ceiling (1151 wide at 1920) — it now gives way only while notes stand beside it (`has-pol-notes`, 192 = the
+notes' margin), as Home's does (pd2SheetLay); on a phone the new side panel covered Where we are (it stands down under
+768px) and the bell showed in the phone's head (hidden again); the Dossier door left History's panel up (pdOpenOnHome puts
+History away first); a refused point on their Where we are wore the agreed green (ruby now); the bell panel, drawn with no
+backdrop, did not shut on a press outside. Re-pointed to the drawing: History's chips All · Changes · Notes · + Side (no
+quick links, no Clear), no ×; their tab "Redlines 2", the bell on the black bar, the panel's tabs (no title, no backdrop),
+Changes · Notes, no pile chips, the foot's Send back as the one Send, Where we are and Signing as drawn, the note's words
+"Highland asks 45 days", History always a tab (the drawing names its absence on a first share a fault), the sign row only
+on a negotiated paper. By the owner's 20 Nov ruling (no money in a side panel): no Value fact in the Dossier panel.

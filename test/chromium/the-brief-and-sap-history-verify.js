@@ -237,8 +237,8 @@ const BOXES = sel => {
           kinds: rows.map(r => r.querySelector('.hist-c-kind .hist6-kb')).filter(Boolean).length,
           sides: rows.map(r => r.getAttribute('data-hist-lane') || ''),
           day: day ? day.textContent.replace(/\s+/g, ' ').trim() : null,
-          filterBtn: !!host.querySelector('#hist-filter-btn'), filters: [...host.querySelectorAll('[data-ht-filter], .hist-quick [data-ht-quick]')].filter(s => s.getBoundingClientRect().width > 0).length, quickBar: !!host.querySelector('.hist-quick'),
-          clear: !!host.querySelector('#ht-clear'), face: title ? getComputedStyle(title).fontFamily : null };
+          filterBtn: !!host.querySelector('#hist-filter-btn'), filters: [...host.querySelectorAll('[data-ht-filter], .hist6-kinds [data-ht-kind]')].filter(s => s.getBoundingClientRect().width > 0).length, quickBar: !!host.querySelector('.hist6-kinds'),
+          allChip: !!host.querySelector('.hist6-kinds [data-ht-kind=""][aria-pressed="true"]'), face: title ? getComputedStyle(title).fontFamily : null };
       });
       check('4a History is one table: Time · Who · What happened · Kind · Outcome (no Side column)', /is-table/.test(T.cls) && T.heads.join('|') === 'Time|Who|What happened|Kind|Outcome' && T.sideCol === 0, JSON.stringify(T.heads));
       check('4b every entry the trail reads is a row of it', T.rows === T.all && T.rows >= 3, `${T.rows} of ${T.all}`);
@@ -247,7 +247,9 @@ const BOXES = sel => {
       check('4e the day is a row with its count', !!T.day && /\d+ events?/.test(T.day), T.day);
       /* RE-POINTED 16 Nov 2026 (#762): the filters in the open are the history's quick links (histQuickHtml, owner 31 Oct
          "Quick links as drawn"), only those that give rows — this trail gives none, so the band stands with Clear */
-      check('4f the filters stand in the open: no Filter button, the quick links\' band shown, Clear at the band\'s end; the title is the serif', !T.filterBtn && T.quickBar && T.clear && /Source Serif 4/.test(T.face || ''), JSON.stringify(T));
+      /* RE-POINTED 22 Nov 2026 (the P-44 review, the owner's picked drawing "History, the Legora + Stripe way"): the chips in the
+         open are All · Changes · Notes with their counts and "+ Side" (histKindChipsHtml); no quick links, no Clear link */
+      check('4f the filters stand in the open: no Filter button, the chips shown, All pressed at rest; the title is the serif', !T.filterBtn && T.quickBar && T.allChip && T.filters >= 1 && /Source Serif 4/.test(T.face || ''), JSON.stringify(T));
       if (OUT) await page.screenshot({ path: path.join(OUT, 'sap-history-1440x780.png') });
 
       /* ================= 5. THE OWNER'S THREE SCREENS ================= */
