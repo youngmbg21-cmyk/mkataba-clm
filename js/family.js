@@ -671,7 +671,8 @@ function familyActs(c){
 function familyActRun(c, k, again){
   if(!c) return false;
   const back=again||(()=>{ renderFamilySection(getContract(c.id),{ bare:true, drawn:true }); });
-  if(k==='create'){ if(amendmentShutWhy(c)) return false; openCreateAmendmentModal(c); return true; }
+  /* ONE AMEND DOOR (Dossier L+S, 22 Nov 2026): the Amend page where Home has a paper (pdAmendOpen, as the chip's own act), else the dialog */
+  if(k==='create'){ if(amendmentShutWhy(c)) return false; if(typeof window.pdAmendOpen==='function'&&window.pdAmendOpen(c.id)) return true; openCreateAmendmentModal(c); return true; }
   if(k==='add'){ openLinkModal(c, back, {mode:'parent'}); return true; }
   if(k==='link'){ openLinkModal(c, back, {mode:'child'}); return true; }
   if(k==='unlink'){ unlinkContract(c, back); return true; }
@@ -987,7 +988,8 @@ function amendmentSkeletonBody(parent, opts={}){
      reader's language. Null when it is not a date we can print, in which case
      the sentence simply names the agreement and no date. */
   const effDoc = eff && window.fmtDocDate ? fmtDocDate(String(eff).slice(0,10)) : null;
-  const dated = effDoc ? ` dated ${_famEsc(effDoc)}` : '';
+  /* AMEND L+S: a date HaTi does not hold is a ruled line — the amendment's own fill-in makes it a box (ownBlanks) */
+  const dated = effDoc ? ` dated ${_famEsc(effDoc)}` : ' dated ____________';
   const between = (us&&them) ? ` between <strong>${us}</strong> and <strong>${them}</strong>` : '';
   /* ---- THE VERB FITS THE DOCUMENT (audit finding 9, 14 Aug 2026) ----
      Every kind opened with amendment language: a Statement of Work said the
@@ -1048,6 +1050,35 @@ function amendmentSkeletonBody(parent, opts={}){
 /* The wording of one item, in English like the rest of the skeleton (a
    record keeps English). The clause is named by its number and heading as the
    signed agreement prints them. */
+/* THE SMALLEST TRUE SENTENCE (Amend L+S, as drawn: "In clause 2, “KES 85,000,000” is replaced by “KES 92,000,000”"):
+   where a replacement changes a few words, the paper names them — each change with the word either side of it, so the
+   words it quotes are found ONCE in the signed clause; any doubt (more than three changes, a phrase found twice, a long
+   change) keeps the whole-clause replacement, which is never ambiguous. Null = use the whole clause. */
+function amendPinpoint(signed, amended){
+  if(typeof window.wordDiff!=='function') return null;
+  const S=String(signed||'').replace(/\s+/g,' ').trim(), A=String(amended||'').replace(/\s+/g,' ').trim();
+  if(!S||!A||S===A) return null;
+  let parts=[]; try{ parts=wordDiff(S,A)||[]; }catch(_){ return null; }
+  const groups=[]; let g=null;
+  parts.forEach((p,i)=>{
+    /* a lone space between two changed words keeps them ONE change ("three (3)" → "four (4)") */
+    if(p.t==='eq'){ const nx=parts[i+1]; if(g&&/^\s+$/.test(p.text)&&nx&&nx.t!=='eq'){ g.del+=p.text; g.add+=p.text; g.b=i; return; } g=null; return; }
+    if(!g){ g={ del:'', add:'', a:i, b:i }; groups.push(g); } g.b=i; if(p.t==='del') g.del+=p.text; else g.add+=p.text; });
+  if(!groups.length||groups.length>3) return null;
+  const out=[];
+  for(const x of groups){
+    const before=parts[x.a-1]&&parts[x.a-1].t==='eq'?(String(parts[x.a-1].text).match(/(\S+)\s*$/)||[])[1]||'':'';
+    const after=parts[x.b+1]&&parts[x.b+1].t==='eq'?(String(parts[x.b+1].text).match(/^\s*(\S+)/)||[])[1]||'':'';
+    const was=[before,x.del.trim(),after].filter(Boolean).join(' ').replace(/\s+([,.;:])/g,'$1').trim();
+    const now=[before,x.add.trim(),after].filter(Boolean).join(' ').replace(/\s+([,.;:])/g,'$1').trim();
+    /* only a true swap of words: an insertion or a deletion keeps the whole clause (never "“until” is replaced by “… until”") */
+    if(!x.del.trim()||!x.add.trim()) return null;
+    if(!was||!now||was.length>120||now.length>120) return null;
+    if(S.split(was).length!==2) return null;          // found once, or the sentence would be ambiguous
+    out.push({ was, now });
+  }
+  return out;
+}
 function amendmentItemHtml(it, n){
   const label = String((it && it.clauseLabel) || '').replace(/\s+/g,' ').trim();
   const m = /^((?:\d+(?:\.\d+)*\.?)|(?:[A-Z]\.)|(?:[IVXLC]+\.))\s*(.*)$/.exec(label);
@@ -1058,7 +1089,10 @@ function amendmentItemHtml(it, n){
   const op = (it && it.op) || 'replace';
   const say = op === 'insert' ? `A new clause${num ? ' ' + _famEsc(num) : ''} is added: ${q(it.amended)}`
     : op === 'delete' ? `${where} is deleted.`
-    : `${where} is deleted and replaced with: ${q(it.amended)}`;
+    : (()=>{ const pin=amendPinpoint(it&&it.signed, it&&it.amended);
+        if(!pin) return `${where} is deleted and replaced with: ${q(it.amended)}`;
+        const inWhere = num ? `In clause ${_famEsc(num)}` : (label ? `In the clause headed &ldquo;${_famEsc(label)}&rdquo;` : 'In that clause');
+        return `${inWhere}, ${pin.map(p=>`${q(p.was)} is replaced by ${q(p.now)}`).join(', and ')}.`; })();
   return `<p><strong>${n}. ${_famEsc(heading)}.</strong> ${say}</p>`;
 }
 /* Mint the draft. No UI, no navigation — returns the contract so the dialog can
@@ -1133,6 +1167,8 @@ function createAmendment(parent, opts={}){
     signed:String(it.signed||'').slice(0,4000), amended:String(it.amended||'').slice(0,4000) }));
   /* THE FACTS IT PROPOSES (O-15): suggestions for a person to confirm, never
      written onto the record by themselves. */
+  /* THE KIND OF AMENDMENT (Amend L+S): kept on the amendment, a record of ours (it never travels) */
+  if(['terms','admin','restate','party'].includes(opts.kind)) c.amendKind = opts.kind;
   if(opts.facts && typeof opts.facts === 'object'){
     const f = opts.facts, out = {};
     if(f.expiry && /^\d{4}-\d{2}-\d{2}$/.test(String(f.expiry))) out.expiry = String(f.expiry);
@@ -1375,8 +1411,25 @@ function openCreateAmendmentModal(parent, onDone, opts){
 /* THE SIGNED AGREEMENT'S CLAUSES, for the picker and for matching Copilot's
    items to clause ids. Read off the wording the parent is drawn from; READS,
    never writes (no negotiation is initialised). */
+/* THE FIGURES COME WITH THE CLAUSE (Amend L+S, 22 Nov 2026; BUGLOG 17 Nov: "KES , based on…"): a paper drawn from the
+   record carries its figures in form boxes (<input value="85000000">, <select>), which a text reading drops. Each box is
+   read as the words it shows — a number as the paper prints it (85,000,000), an empty box as a ruled line the
+   amendment's own fill-in turns into a box (ownBlanks) — so a copied clause keeps every figure. */
+function amendBoxesAsWords(html){
+  const esc=_famEsc, line='____________';
+  const num=v=>{ const n=Number(String(v).replace(/[\s,]/g,'')); return (String(v).trim()!==''&&isFinite(n)&&/^[\d\s,.]+$/.test(String(v).trim()))?n.toLocaleString('en-US'):String(v); };
+  return String(html||'')
+    .replace(/<input\b[^>]*>/gi, m=>{ const v=(m.match(/\bvalue="([^"]*)"/i)||[])[1]||''; const t=(m.match(/\btype="([^"]*)"/i)||[])[1]||'';
+      if(/^(checkbox|radio|hidden|button|submit)$/i.test(t)) return '';
+      const raw=v.replace(/&quot;/g,'"').replace(/&amp;/g,'&'); return raw.trim()?esc(/number/i.test(t)?num(raw):raw):line; })
+    .replace(/<select\b[^>]*>([\s\S]*?)<\/select>/gi, (m,inner)=>{ const o=inner.match(/<option\b[^>]*\bselected\b[^>]*>([\s\S]*?)<\/option>/i); return o?o[1]:line; })
+    .replace(/<textarea\b[^>]*>([\s\S]*?)<\/textarea>/gi, (m,inner)=>inner.trim()?inner:line);
+}
 function amendParentHtml(parent){
   if(!parent) return '';
+  return amendBoxesAsWords(_amendParentHtmlRaw(parent));
+}
+function _amendParentHtmlRaw(parent){
   try{
     if(parent.redlineText && window.isRich && isRich(parent.format)) return String(parent.redlineText);
     if(window.isUpload && isUpload(parent)){
@@ -1421,7 +1474,58 @@ async function unlinkContract(c, onDone){
   if(onDone) onDone(); else if(typeof setView==='function') setView(state.view||'workspace');
 }
 
-Object.assign(window,{familyOrder,familyCheck,amendmentShutWhy,amendSetsValue,effectiveExpiryFrom,asAmendedItems,asAmendedHtml,effectiveTerm,effectiveValueView,EFFECTIVE_TERMS,amendSuggestions,amendChangesHtml,amendmentItemHtml,amendParentClauses,amendParentText,amendSayAsk,amendParentHtml,FAMILY_TERMS,familyAgreement,familyAgreeLine,
+/* ---- AN AGREEMENT'S AMENDMENTS, READ ONCE (Dossier L+S and Amend L+S, the owner's "Build", 22 Nov 2026) ----
+   The ONE reading the paper's line (its tag), the Dossier's card and its Family card draw, so they cannot disagree:
+   a child names its agreement; an agreement names the amendment being drafted, else the last signed one. Each label is
+   the Family card's own (bsFamRows: "Amendment No. 1"); nothing is stored, nothing fetched. */
+function famStateOf(c){
+  if(!c) return null;
+  const refOf=x=>(window.contractRef?contractRef(x):x.id);
+  if(c.parentId){ const p=(typeof getContract==='function')?getContract(c.parentId):null;
+    return { kind:'child', go:String(c.parentId), ref:p?refOf(p):String(c.parentId) }; }
+  let rows=[]; try{ rows=(typeof window.bsFamRows==='function')?(bsFamRows(c)||[]):[]; }catch(_){ rows=[]; }
+  const kids=rows.slice(1).filter(r=>r&&r.c&&!r.c.archived&&r.c.status!=='Declined');
+  if(!kids.length) return { kind:'none', kids:[] };
+  const open=kids.find(r=>!amendmentExecuted(r.c))||null;
+  const signed=kids.filter(r=>amendmentExecuted(r.c));
+  const last=signed[signed.length-1]||null;
+  return { kind:open?'drafting':'amended', kids, open, last, go:String((open||last).c.id), label:(open||last).label };
+}
+/* the changes an amendment carries, one short line ("§ 2 85,000,000 → 92,000,000"), read off its own items (c.amends) */
+function famChangesLine(k, max){
+  const items=(k&&Array.isArray(k.amends))?k.amends:[]; if(!items.length) return '';
+  const cut=t=>{ t=String(t||'').replace(/\s+/g,' ').trim(); return t.length>48?t.slice(0,46)+'…':t; };
+  const short=t=>{ t=String(t||'').replace(/\s+/g,' ').trim(); return t.length>28?t.slice(0,26)+'…':t; };
+  return items.slice(0,max||3).map(it=>{ const at=it.clauseNumber?('§ '+it.clauseNumber):(it.clauseLabel||'');
+    if(it.op==='delete') return `${at} ${i18t('fam_ch_deleted')}`;
+    if(it.op==='insert') return `${i18t('fam_ch_new')} ${cut(it.amended)}`;
+    /* each swap of words on its own (amendPinpoint, the paper's own sentence): "KES 85,000,000 → KES 92,000,000 · within 30 → within 45" */
+    let pin=null; try{ pin=amendPinpoint(it.signed, it.amended); }catch(_){ pin=null; }
+    if(pin&&pin.length) return `${at} ${pin.map(x=>`${short(x.was)} \u2192 ${short(x.now)}`).join(' \u00b7 ')}`;
+    /* what the change does, read as words: the struck words → the new ones (wordDiff, the As amended view's own reading) */
+    let parts=[]; try{ parts=(typeof window.wordDiff==='function')?wordDiff(String(it.signed||''),String(it.amended||'')):[]; }catch(_){ parts=[]; }
+    const was=parts.filter(x=>x.t==='del').map(x=>x.text).join(' ').trim(), now=parts.filter(x=>x.t==='add').map(x=>x.text).join(' ').trim();
+    if(was||now) return `${at} ${was?short(was):''}${was&&now?' \u2192 ':''}${now?short(now):''}`.replace(/\s+/g,' ').trim();
+    return `${at} ${cut(it.clauseLabel||it.amended)}`; }).join(' · ')
+    +(items.length>(max||3)?` · +${items.length-(max||3)}`:'');
+}
+/* THE TAG ON THE PAPER'S LINE: "Amends MK-B1 ›", "Amendment No. 1 · drafting ›", "Amended by Amendment No. 1 ›" — a
+   press lands on that paper through the family rows' own door (hbStripBring → pdHeldLand) */
+function famTagHtml(c){
+  const S=famStateOf(c); if(!S||S.kind==='none') return '';
+  const say=S.kind==='child'?i18t('fam_tag_amends',{ ref:S.ref }):S.kind==='drafting'?i18t('fam_tag_drafting',{ label:S.label }):i18t('fam_tag_amended',{ label:S.label });
+  const tone=S.kind==='drafting'?'is-amber':S.kind==='amended'?'is-green':'is-gray';
+  return `<button type="button" class="fam-tag ${tone}" data-fam-go="${_famEsc(S.go)}"><i aria-hidden="true"></i>${_famEsc(say)} ›</button>`;
+}
+function famGo(id){
+  if(!id) return false;
+  if(typeof window.hbStripBring==='function'&&hbStripBring(String(id))!==false){ if(typeof window.pdHeldLand==='function') pdHeldLand('page',String(id)); return true; }
+  return false;
+}
+if(typeof document!=='undefined'&&typeof document.addEventListener==='function'&&!document._famTagWired){ document._famTagWired=true;
+  document.addEventListener('click',e=>{ const b=e.target&&e.target.closest?e.target.closest('[data-fam-go]'):null; if(!b) return;
+    e.preventDefault(); famGo(b.getAttribute('data-fam-go')); }); }
+Object.assign(window,{amendPinpoint,amendBoxesAsWords,famStateOf,famChangesLine,famTagHtml,famGo,familyOrder,familyCheck,amendmentShutWhy,amendSetsValue,effectiveExpiryFrom,asAmendedItems,asAmendedHtml,effectiveTerm,effectiveValueView,EFFECTIVE_TERMS,amendSuggestions,amendChangesHtml,amendmentItemHtml,amendParentClauses,amendParentText,amendSayAsk,amendParentHtml,FAMILY_TERMS,familyAgreement,familyAgreeLine,
   openLinkModal,unlinkContract,renderFamilySection,familyActs,familyActRun,familyDrawnRowsHtml,
   openCreateAmendmentModal,createAmendment,amendmentDefaultName,amendmentOrdinal,
   amendmentSkeletonBody,RELATION_DOC_WORD,FAMILY_BLANK_BODY,

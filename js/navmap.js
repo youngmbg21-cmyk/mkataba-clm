@@ -795,7 +795,7 @@ function navGoAct(n){
     people: () => (typeof pdPeopleOpen === 'function') ? pdPeopleOpen(id) : false,
     /* the Dossier's Family line, opened and landed */
     family: () => { if (pdOpenOnHome(id, 'copilot') === false) return false;
-      return navLandWhen(() => { const f = document.querySelector('#ig-dock [data-ds-fold="family"]'); if (f && !f.open) f.open = true; return f; }); },
+      return navLandWhen(() => { const f = document.querySelector('#ig-dock [data-pd2-famc], #ig-dock [data-ds-fold="family"]'); if (f && f.tagName === 'DETAILS' && !f.open) f.open = true; return f; }); },
     /* the Obligations tab, where the renewal stands as its lines (Ends · Notice by · Renewal) */
     renewal: () => { if (pdOpenOnHome(id, 'oblig') === false) return false;
       return navLandWhen(() => document.querySelector('#ig-dock [data-pd-rn]')); },

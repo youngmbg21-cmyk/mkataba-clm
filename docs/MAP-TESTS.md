@@ -24,6 +24,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## AN AMENDMENT IS WRITTEN HERE (js/family.js)
 - f170, f176, f901, f544, amendment-journey, amendment-blanks-and-clauses, menu-and-amend verify.
+- Amend L+S and Dossier L+S (22 Nov 2026): f1153, dossier-and-amend-ls-verify; re-pointed in place f1065 (2), f1088 (1), f731 (8).
 
 ## THE UPLOAD
 - f257, f286, f233, f366, f370, f679, f707, upload-party, upload-structure, pdf-structure, draft-upload-glance verify.

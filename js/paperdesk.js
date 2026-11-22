@@ -2857,7 +2857,7 @@ function pdSignPaperPaint(c){
    changes are this sitting's; Jambo's drafting stays the dialog's ("Ask Jambo
    to draft the changes" opens it). */
 let _pdAmend = null;                 // the signed agreement the face is open for
-const _pdAm = { id: null, items: [], expiry: '', value: '' };
+const _pdAm = { id: null, items: [], expiry: '', value: '', tab: '', kind: 'terms', eff: '', reason: '', reasonOpen: false, menu: '', edit: null };
 const PD_AMEND_ITEMS_MAX = 20;
 function pdAmendFor(){ return _pdAmend; }
 function pdAmendShows(){
@@ -2872,7 +2872,7 @@ function pdAmendOpen(id){
   const c = (typeof getContract === 'function') ? getContract(id) : null;
   if (!pdAmendMay(c)) return false;
   if (typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768) return false;
-  if (_pdAm.id !== String(id)){ _pdAm.id = String(id); _pdAm.items = []; _pdAm.expiry = ''; _pdAm.value = ''; }
+  if (_pdAm.id !== String(id)){ _pdAm.id = String(id); _pdAm.items = []; _pdAm.expiry = ''; _pdAm.value = ''; _pdAm.tab = ''; _pdAm.kind = 'terms'; _pdAm.eff = ''; _pdAm.reason = ''; _pdAm.reasonOpen = false; _pdAm.menu = ''; }
   return pdOpenOnHome(id, 'amend');
 }
 function pdAmendSeen(id){ if (_pdAmend && String(id) !== _pdAmend) _pdAmend = null; }
@@ -2892,7 +2892,13 @@ function pdAmendClauseOf(c, el){
   const id = String(el.getAttribute('data-anchor') || '');
   const head = el.querySelector('h1,h2,h3,h4,h5,h6,.rl-clause-top,strong');
   const label = String((head && head.textContent) || '').replace(/\s+/g, ' ').trim();
-  const text = String(el.textContent || '').replace(/\s+/g, ' ').trim();
+  /* THE FIGURES COME WITH THE CLAUSE: the paper's boxes read as their words (as amendBoxesAsWords reads the stored paper), not dropped */
+  let text = String(el.textContent || '').replace(/\s+/g, ' ').trim();
+  try { if (el.querySelector('input, select, textarea')){ const cl = el.cloneNode(true), live = [...el.querySelectorAll('input, select, textarea')];
+    [...cl.querySelectorAll('input, select, textarea')].forEach((n, i) => { const L = live[i] || n, v = String(('value' in L ? L.value : '') || '').trim();
+      const shown = !v ? '____________' : (n.tagName === 'INPUT' && n.type === 'number' && isFinite(Number(v)) ? Number(v).toLocaleString('en-US') : v);
+      n.replaceWith(document.createTextNode(shown)); });
+    text = String(cl.textContent || '').replace(/\s+/g, ' ').trim(); } } catch (_){ /* the plain reading stands */ }
   let cls = []; try { cls = (typeof amendParentClauses === 'function') ? amendParentClauses(c) : []; } catch (_){ cls = []; }
   const hit = cls.find(x => x.id && x.id === id) || (label && cls.find(x => x.label === label)) || null;
   const signed = hit ? hit.text : (label && text.startsWith(label) ? text.slice(label.length).trim() : text);
@@ -2959,45 +2965,250 @@ function pd2AmSheetHtml(c){
     ${items || facts ? `<h4>${E(T('pd2_am_changes'))}</h4>${items}${facts}` : `<div class="pd2-am-none">${E(T('pd2_am_none_paper'))}</div>`}
     <h4>${E(T('pd2_am_effect'))}</h4><p>${E(T('pd2_am_effect_t'))}</p></div>`;
 }
-function pd2AmFaceHtml(c){
-  const E = _pdE, T = _pdT;
-  const row = (k, v, src) => `<div class="apn-pr"><b>${E(k)}</b><span>${E(v)}</span><i>${E(src)}</i></div>`;
-  const end = _pdAm.expiry || ((typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : '') || c.expiry || '');
-  const endW = end ? ((typeof regDotDate === 'function') ? regDotDate(String(end).slice(0, 10)) : String(end).slice(0, 10)) : '—';
-  const money = (typeof isMonetary !== 'function') || isMonetary(c);
-  const val = Number(_pdAm.value) > 0 ? ((typeof fmtMoneyOf === 'function') ? fmtMoneyOf(c, Number(_pdAm.value)) : String(_pdAm.value))
-    : (typeof fmtMoneyShortOf === 'function' ? fmtMoneyShortOf(c) : '');
-  /* the approval rules, read for the amended value (ruleMatches, the rules' own test) */
-  let rules = []; try { const probe = Object.assign({}, c, { value: Number(_pdAm.value) > 0 ? Number(_pdAm.value) : Number(c.value) || 0, status: 'Under Review' });
-    rules = (typeof approvalRules === 'function' ? approvalRules() : []).filter(r => typeof ruleMatches === 'function' && ruleMatches(r, probe)); } catch (_){ rules = []; }
-  const secOf = re => { const p = String(c.redlineText || ''); const m = p.match(re); return m ? '§ ' + m[1] : ''; };
-  const list = _pdAm.items.length ? `<ol class="pd2-am-list">${_pdAm.items.map((it, i) => `<li><b>${i + 1}</b><span>${E(it.clauseLabel || T('fa_new_clause'))} · ${E(T('fa_op_' + (it.op || 'replace')))}</span><button type="button" class="pd2-link" data-pd-am-rm="${i}">${E(T('pd_am_remove'))}</button></li>`).join('')}</ol>` : `<p class="pd2-am-nil">${E(T('pd2_am_none_yet'))}</p>`;
-  return `<div class="pd-sf pd-am is-pd2" data-pd-am="${E(c.id)}"><div class="pd2-am-face apn-panel">
-    <div class="pd2-am-intro">${E(T('pd2_am_intro'))}</div>
-    <div class="apn-pcap">${E(T('pd2_am_changes_h'))}</div>${list}
-    <div class="pd2-am-say" data-pd2-am-say hidden></div>
-    <div class="apn-pcap" style="margin-top:16px">${E(T('pd2_am_reading_h'))}</div>
-    ${row(T('pd2_am_ends'), endW, secOf(/<h\d[^>]*>\s*(\d+)\.?\s*Term/i))}
-    ${money ? row(T('pd2_am_value'), val ? T('pd2_am_value_v', { v: val }) : '—', secOf(/<h\d[^>]*>\s*(\d+)\.?\s*Price/i)) : ''}
-    ${row(T('pd2_am_signers'), T('pd2_am_signers_v'), T('pd2_am_route'))}
-    ${row(T('pd2_am_approval'), rules.length ? rules.map(r => r.name).join(' · ') : T('pd2_am_appr_none'), T('pd2_am_rule'))}
-  </div></div>`;
+/* ---- AMEND, THE LEGORA + STRIPE WAY (the owner's "Build Amend L+S", 22 Nov 2026; replaces round 5's two papers) ----
+   ONE page over the paper with three tabs: Changes (one calm table, one row per change: the clause and its §, the signed
+   words quoted with what goes struck, the new words typed in the row, what the change does as a soft badge with its one
+   press), Signed paper (the sealed paper alone; a press on a clause adds it, as before) and Amendment paper (what Create
+   will write, from the one writer amendmentSkeletonBody, a missing date a box to fill). Chips in the tab's own row: Kind,
+   Takes effect, + Reason. Panel beside it: the badge, the count, the term bar, what changes once signed, the family.
+   Nothing is stored until Create (the one creator, createAmendment); a suggestion becomes a fact only by a press, and only
+   as the amendment's own suggestion (c.amendFacts) — the signed agreement is never rewritten. */
+const PD2_AMX_KINDS = ['terms', 'admin', 'restate', 'party'];
+const PD2_AMX_MONTHS = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+function pd2AmxIso(d){ return d && !isNaN(d) ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : ''; }
+/* the dates written in a text, as ISO days: 2028-06-30 · 30 June 2028 · June 30, 2028 */
+function pd2AmxDates(t){
+  const out = new Set(), s = String(t || '');
+  (s.match(/\b\d{4}-\d{2}-\d{2}\b/g) || []).forEach(x => out.add(x));
+  const re = /\b(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+),?\s+(\d{4})\b|\b([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})\b/g; let m;
+  while ((m = re.exec(s))){ const day = Number(m[1] || m[5]), mon = PD2_AMX_MONTHS.indexOf(String(m[2] || m[4]).toLowerCase()), yr = Number(m[3] || m[6]);
+    if (mon >= 0 && day >= 1 && day <= 31) out.add(pd2AmxIso(new Date(yr, mon, day))); }
+  return [...out];
 }
-/* the paper beside the sealed one, its labels and foot lines (painted after every paint of the paper, never stored) */
+function pd2AmxMoney(t){ return (String(t || '').match(/\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\b|\b\d{5,}\b/g) || []).map(x => Number(x.replace(/,/g, ''))).filter(n => n >= 1000); }
+function pd2AmxYears(t){ const m = String(t || '').match(/\((\d{1,2})\)\s*years?\b|\b(\d{1,2})\s*years?\b/i); return m ? Number(m[1] || m[2]) : null; }
+function pd2AmxDays(t){ return (String(t || '').match(/\b(\d{1,3})\s*days?\b/gi) || []).map(x => Number(x.match(/\d+/)[0])); }
+/* WHAT A CHANGE DOES, read off the two wordings — never guessed: a new date, a new term in years, a new figure, new days;
+   else the wording only. A date or a figure carries its one press (the amendment's own suggestion: _pdAm.expiry / value) */
+function pd2AmxEffectOf(c, it){
+  if (!it || it.op === 'delete') return { k: 'words' };
+  const was = String(it.signed || ''), now = String(it.amended || '');
+  if (was.replace(/\s+/g, ' ').trim() === now.replace(/\s+/g, ' ').trim()) return { k: 'same' };
+  const newDates = pd2AmxDates(now).filter(d => pd2AmxDates(was).indexOf(d) < 0);
+  if (newDates.length) return { k: 'end', iso: newDates[0] };
+  const y0 = pd2AmxYears(was), y1 = pd2AmxYears(now);
+  if (y0 && y1 && y0 !== y1){ const base = (typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : '') || c.expiry || '';
+    const d = base ? new Date(String(base).slice(0, 10) + 'T12:00:00') : null; if (d && !isNaN(d)){ d.setFullYear(d.getFullYear() + (y1 - y0)); return { k: 'end', iso: pd2AmxIso(d), from: base }; }
+    return { k: 'term' }; }
+  const m0 = pd2AmxMoney(was), m1 = pd2AmxMoney(now).filter(n => m0.indexOf(n) < 0);
+  if (m1.length) return { k: 'value', v: m1[0] };
+  const d0 = pd2AmxDays(was), d1 = pd2AmxDays(now).filter(n => d0.indexOf(n) < 0);
+  if (d1.length) return { k: 'days', from: d0[0], to: d1[0] };
+  return { k: 'words' };
+}
+/* EVERY EFFECT A CHANGE HAS (as drawn, a clause changing its value and its days shows both): each reading on its own */
+function pd2AmxEffectsOf(c, it){
+  const F = pd2AmxEffectOf(c, it); if (F.k !== 'value' && F.k !== 'end') return [F];
+  const out = [F], was = String(it.signed || ''), now = String(it.amended || '');
+  if (F.k === 'value'){ const d0 = pd2AmxDays(was), d1 = pd2AmxDays(now).filter(n => d0.indexOf(n) < 0); if (d1.length) out.push({ k: 'days', from: d0[0], to: d1[0] }); }
+  return out;
+}
+function pd2AmxEffectHtml(c, it, i){
+  return pd2AmxEffectsOf(c, it).map(F => `<div class="pd2-amx-e1">${pd2AmxEffectOneHtml(c, F)}</div>`).join('');
+}
+function pd2AmxEffectOneHtml(c, F){
+  const E = _pdE, T = _pdT, may = (typeof canEdit !== 'function') || canEdit();
+  const day = iso => (typeof regDotDate === 'function') ? regDotDate(iso) : iso;
+  const badge = (tone, w) => `<span class="pd2-badge is-${tone}"><i aria-hidden="true"></i>${E(w)}</span>`;
+  if (F.k === 'end'){ const on = _pdAm.expiry === F.iso;
+    return badge(on ? 'green' : 'gray', T(on ? 'pd2_amx_e_end_ok' : 'pd2_amx_e_end')) + (on ? `<p class="pd2-amx-ans is-ok">${E(T('pd2_amx_to', { d: day(F.iso) }))} ✓</p>`
+      : may ? `<button type="button" class="ui-link pd2-amx-ans" data-pd2-amx-use="expiry" data-pd2-amx-v="${E(F.iso)}">${E(T('pd2_amx_use_end', { d: day(F.iso) }))}</button>` : ''); }
+  if (F.k === 'value'){ const seeMoney = (typeof canViewValues !== 'function') || canViewValues(), on = Number(_pdAm.value) === F.v;
+    const money = (typeof isMonetary !== 'function') || isMonetary(c);
+    if (!money || !seeMoney) return badge('gray', T('pd2_amx_e_value'));
+    return badge(on ? 'green' : 'gray', T('pd2_amx_e_value')) + (on ? `<p class="pd2-amx-ans is-ok">${E(T('pd2_amx_value_ok'))} ✓</p>`
+      : may ? `<button type="button" class="ui-link pd2-amx-ans" data-pd2-amx-use="value" data-pd2-amx-v="${E(String(F.v))}">${E(T('pd2_amx_use_value'))}</button>` : ''); }
+  if (F.k === 'days') return badge('amber', T('pd2_amx_e_days')) + `<p class="pd2-amx-ans is-q">${E(T('pd2_amx_days', { a: F.from == null ? '—' : F.from, b: F.to }))}</p>`;
+  if (F.k === 'term') return badge('gray', T('pd2_amx_e_term'));
+  if (F.k === 'same') return `<span class="pd2-q">${E(T('pd2_amx_e_same'))}</span>`;
+  return badge('gray', T('pd2_amx_e_words'));
+}
+/* the signed words, what goes struck, shortened round the first change */
+function pd2AmxWasHtml(it, tight){
+  const E = _pdE, was = String(it.signed || '').replace(/\s+/g, ' ').trim(); if (!was) return '';
+  let parts = []; try { parts = (typeof wordDiff === 'function') ? wordDiff(was, String(it.op === 'delete' ? '' : (it.amended || '')).replace(/\s+/g, ' ').trim()) : []; } catch (_){ parts = []; }
+  if (!parts.length) parts = [{ t: 'eq', text: was }];
+  let html = '', len = 0, first = -1;
+  parts.forEach(p => { if (p.t === 'add') return; if (p.t === 'del' && first < 0) first = len; html += p.t === 'del' ? `<s>${E(p.text)}</s>` : E(p.text); len += p.text.length; });
+  const W = tight ? 36 : 70, L = tight ? 90 : 170;
+  if (len <= L) return `“${html}”`;
+  /* long: the words round the first change, cut at the window (the markup is rebuilt over the window) */
+  /* the window starts and ends on a word, never inside one */
+  let a = Math.max(0, (first < 0 ? 0 : first) - W); if (a > 0){ const sp = was.indexOf(' ', a); if (sp > 0 && sp - a < 24) a = sp + 1; }
+  let b = a + L; if (b < len){ const sp = was.lastIndexOf(' ', b); if (sp > a + 20) b = sp; } let pos = 0, out = '';
+  parts.forEach(p => { if (p.t === 'add') return; const s0 = pos, s1 = pos + p.text.length; pos = s1;
+    const x0 = Math.max(a, s0), x1 = Math.min(b, s1); if (x1 <= x0) return; const t = E(p.text.slice(x0 - s0, x1 - s0)); out += p.t === 'del' ? `<s>${t}</s>` : t; });
+  return `“${a ? '…' : ''}${out}${b < len ? '…' : ''}”`;
+}
+function pd2AmxTabsHtml(c){
+  const E = _pdE, T = _pdT, n = _pdAm.items.length, t = _pdAm.tab;
+  const tab = (k, w, cnt) => `<button type="button" role="tab" class="pd2-amx-tab${t === k ? ' is-on' : ''}" aria-selected="${t === k}" data-pd2-amx-tab="${k}">${E(w)}${cnt != null ? ` <span class="pd2-amx-n">${cnt}</span>` : ''}</button>`;
+  const hint = t === 'signed' ? T('pd2_amx_hint_signed') : t === 'paper' ? T('pd2_amx_hint_paper') : '';
+  return `<div class="pd2-amx-tabs" role="tablist">${tab('changes', T('pd2_amx_t_changes'), n)}${tab('signed', T('pd2_amx_t_signed'))}${tab('paper', T('pd2_amx_t_paper'))}${hint ? `<span class="pd2-amx-hint">${E(hint)}</span>` : ''}</div>`;
+}
+function pd2AmxChipsHtml(){
+  const E = _pdE, T = _pdT, open = _pdAm.menu || '';
+  const kindW = T('pd2_amx_k_' + (_pdAm.kind || 'terms'));
+  const effW = _pdAm.eff ? ((typeof regDotDate === 'function') ? regDotDate(_pdAm.eff) : _pdAm.eff) : T('pd2_amx_eff_sign');
+  const menu = open === 'kind' ? `<div class="pd2-amx-menu" role="menu">${PD2_AMX_KINDS.map(k => `<button type="button" role="menuitemradio" aria-checked="${(_pdAm.kind || 'terms') === k}" data-pd2-amx-kind="${k}"><b>${E(T('pd2_amx_k_' + k))}</b><span>${E(T('pd2_amx_kd_' + k))}</span></button>`).join('')}</div>`
+    : open === 'eff' ? `<div class="pd2-amx-menu" role="menu"><button type="button" role="menuitemradio" aria-checked="${!_pdAm.eff}" data-pd2-amx-eff=""><b>${E(T('pd2_amx_eff_sign'))}</b></button><label class="pd2-amx-date"><span>${E(T('pd2_amx_eff_on'))}</span><input type="date" data-pd2-amx-effd value="${E(_pdAm.eff || '')}"></label></div>` : '';
+  const reason = _pdAm.reasonOpen || _pdAm.reason
+    ? `<label class="pd2-amx-reason"><span class="sr-only">${E(T('pd2_amx_reason'))}</span><input type="text" maxlength="200" data-pd2-amx-reason placeholder="${E(T('pd2_amx_reason_ph'))}" value="${E(_pdAm.reason || '')}"></label>`
+    : `<button type="button" class="pd2-amx-chip is-add" data-pd2-amx-chip="reason">+ ${E(T('pd2_amx_reason'))}</button>`;
+  return `<div class="pd2-amx-chips"><span class="pd2-amx-wrap"><button type="button" class="pd2-amx-chip" data-pd2-amx-chip="kind" aria-expanded="${open === 'kind'}"><b>${E(T('pd2_amx_kind'))}</b> ${E(kindW)} ▾</button>${open === 'kind' ? menu : ''}</span>
+    <span class="pd2-amx-wrap"><button type="button" class="pd2-amx-chip" data-pd2-amx-chip="eff" aria-expanded="${open === 'eff'}"><b>${E(T('pd2_amx_eff'))}</b> ${E(effW)} ▾</button>${open === 'eff' ? menu : ''}</span>${reason}</div>`;
+}
+function pd2AmxTableHtml(c){
+  const E = _pdE, T = _pdT, may = (typeof canEdit !== 'function') || canEdit();
+  const seeMoney = ((typeof canViewValues !== 'function') || canViewValues()) && ((typeof isMonetary !== 'function') || isMonetary(c));
+  if (!_pdAm.items.length) return `<div class="pd2-amx-none"><p>${E(T('pd2_amx_none'))}</p><button type="button" class="ui-link" data-pd2-amx-tab="signed">${E(T('pd2_amx_none_go'))}</button></div>`;
+  const rows = _pdAm.items.map((it, i) => {
+    const at = it.clauseNumber ? `§ ${it.clauseNumber} ` : '';
+    const name = String(it.clauseLabel || T('fa_new_clause')).replace(/^\s*\d+(?:\.\d+)*\.?\s*/, '');
+    /* THE WORDS THAT CHANGE (as drawn: "KES 92,000,000"): the row shows the new words alone (amendPinpoint, the paper's own
+       reading of the change); a press opens the whole clause to type in, and leaving it shows the words again */
+    let pin = null; try { pin = (typeof amendPinpoint === 'function' && it.op !== 'insert') ? amendPinpoint(it.signed, it.amended) : null; } catch (_){ pin = null; }
+    const short = pin && pin.length ? pin.map(p => p.now).join(' \u2026 ') : '';
+    const bec = it.op === 'delete' ? `<span class="pd2-q">${E(T('pd2_amx_deleted'))}</span>`
+      : may && _pdAm.edit !== i && (short || String(it.amended || '').trim() === String(it.signed || '').trim())
+        ? `<button type="button" class="pd2-amx-bec is-go" data-pd2-amx-edit="${i}" title="${E(T('pd2_amx_edit'))}">${short ? E(short) : `<span class="pd2-q">${E(T('pd2_amx_type'))}</span>`}</button>`
+      : may ? `<textarea class="pd2-amx-ed" rows="${Math.min(6, Math.max(2, Math.ceil(String(it.amended || '').length / 46)))}" data-pd2-amx-txt="${i}" aria-label="${E(T('pd2_amx_becomes'))}">${E(it.amended || '')}</textarea>`
+      : `<span class="pd2-amx-bec">${E(it.amended || '')}</span>`;
+    const F = pd2AmxEffectOf(c, it), v = seeMoney && F.k === 'value' ? ((typeof fmtMoneyShortIn === 'function' && typeof contractCurrency === 'function') ? fmtMoneyShortIn(F.v, contractCurrency(c)) : String(F.v)) : '—';
+    return `<tr data-pd2-amx-row="${i}"><td class="pd2-amx-i">${i + 1}</td><td class="pd2-amx-cl"><b>${E(at + name)}</b><small>${E(T(it.op === 'insert' ? 'pd2_amx_new_clause' : 'pd2_amx_signed_words'))}</small></td>
+      <td class="pd2-amx-was">${it.op === 'insert' ? '<span class="pd2-q">—</span>' : pd2AmxWasHtml(it, !!short)}</td><td class="pd2-amx-becw">${bec}</td>
+      <td class="pd2-amx-eff" data-pd2-amx-effc="${i}">${pd2AmxEffectHtml(c, it, i)}</td>${seeMoney ? `<td class="pd2-amx-val" data-pd2-amx-val="${i}">${E(v)}</td>` : ''}
+      <td class="pd2-amx-x">${may ? `<span class="pd2-amx-more"><button type="button" class="pd2-amx-rm" data-pd2-amx-chip="row${i}" aria-expanded="${_pdAm.menu === 'row' + i}" aria-label="${E(T('pd2_amx_more'))}">⋯</button>${_pdAm.menu === 'row' + i ? `<span class="pd2-amx-menu" role="menu"><button type="button" role="menuitem" data-pd2-amx-rm="${i}"><b>${E(T('pd_am_remove'))}</b></button></span>` : ''}</span>` : ''}</td></tr>`; }).join('');
+  return `<table class="pd2-amx-t"><thead><tr><th class="pd2-amx-i">#</th><th>${E(T('pd2_amx_h_clause'))}</th><th>${E(T('pd2_amx_h_was'))}</th><th>${E(T('pd2_amx_h_becomes'))}</th><th>${E(T('pd2_amx_h_effect'))}</th>${seeMoney ? `<th class="pd2-amx-val">${E(T('pd2_amx_h_value'))}</th>` : ''}<th></th></tr></thead>
+    <tbody>${rows}<tr class="pd2-amx-add"><td></td><td colspan="${seeMoney ? 6 : 5}">${may ? `<button type="button" class="ui-link" data-pd2-amx-tab="signed">+ ${E(T('pd2_amx_add'))}</button> <span class="pd2-q">${E(T('pd2_amx_add_or'))}</span>` : ''}</td></tr></tbody></table>`;
+}
+/* the amendment's paper: what Create will write, from the one writer, the missing date drawn as a box to fill */
+function pd2AmxPaperHtml(c){
+  const E = _pdE; let body = '';
+  try { body = (typeof amendmentSkeletonBody === 'function') ? amendmentSkeletonBody(c, { relation: 'amendment', ordinal: pd2AmNo(c), items: _pdAm.items }) : ''; } catch (_){ body = ''; }
+  const name = (typeof amendmentDefaultName === 'function') ? amendmentDefaultName(c, 'amendment') : pd2AmTitle(c);
+  const between = [c.party || (typeof FIRST_PARTY === 'string' ? FIRST_PARTY : ''), c.counterparty].filter(Boolean).join(' and ');
+  body = String(body).replace(/_{6,}/g, `<span class="pd2-amx-blank">${E(_pdT('pd2_amx_blank'))}</span>`);
+  return `<div class="pd2-amx-paper"><article class="pd2-amx-sheet"><p class="pd2-amx-kick">${E(String(_pdT('pd2_am_kind')).toUpperCase())}</p><h2>${E(name)}</h2>${between ? `<p class="pd2-amx-sub">${E(_pdT('pd2_amx_between', { who: between }))}</p>` : ''}${body}</article></div>`;
+}
+function pd2AmxHtml(c){
+  const t = _pdAm.tab;
+  return `<div class="pd2-amx is-${t}" data-pd2-amx>${pd2AmxTabsHtml(c)}${t === 'changes' ? pd2AmxChipsHtml() + `<div class="pd2-amx-body">${pd2AmxTableHtml(c)}</div>` : t === 'paper' ? pd2AmxPaperHtml(c) : ''}</div>`;
+}
+/* the page over the paper: drawn after every paint of the paper and every change of the list; a box being typed in is never
+   redrawn under the reader (the row's own cells follow it, pd2AmxRowSync) */
 function pd2AmPaperPaint(c){
   const zoom = (typeof document !== 'undefined') ? document.querySelector('#ig-paper .ig-zoom') : null; if (!zoom) return;
   const on = pd2On() && pdAmendShows() && !!c;
-  zoom.classList.toggle('is-am2', on);
+  zoom.classList.remove('is-am2');
   zoom.querySelectorAll(':scope > .pd2-am-col, :scope > .pd2-am-lab').forEach(n => n.remove());
-  const wrap = zoom.closest('#ig-paper-scroll');
+  const wrap = zoom.closest('#ig-paper-scroll') || zoom.parentElement;
+  const old = wrap ? wrap.querySelector(':scope > .pd2-amx') : null;
   if (wrap) wrap.querySelectorAll(':scope > .pd2-am-foot').forEach(n => n.remove());
-  if (!on) return;
-  const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
-  const sheet = zoom.querySelector(':scope > .blueprint');
-  if (sheet && !sheet.previousElementSibling?.classList?.contains('pd2-am-lab')) sheet.insertAdjacentHTML('beforebegin', `<div class="pd2-am-lab is-l"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>${_pdE(_pdT('pd2_am_lab_l', { ref }).toUpperCase())}</div>`);
-  zoom.insertAdjacentHTML('beforeend', `<div class="pd2-am-lab is-r">${_pdE(_pdT('pd2_am_lab_r', { n: pd2AmNo(c), ref }).toUpperCase())}</div><div class="pd2-am-col">${pd2AmSheetHtml(c)}</div>`);
-  /* no band at the foot (the owner, 1 Nov 2026: "remove the bar at the bottom of the page"), nothing above the box */
+  if (!on){ if (old) old.remove(); zoom.classList.remove('is-amx-hide'); if (wrap) wrap.classList.remove('is-amx'); return; }
+  if (!PD2_AMX_TABS.includes(_pdAm.tab)) _pdAm.tab = _pdAm.items.length ? 'changes' : 'signed';
+  const typing = old && document.activeElement && old.contains(document.activeElement) && /^(TEXTAREA|INPUT)$/.test(document.activeElement.tagName) && old.classList.contains('is-' + _pdAm.tab);
+  zoom.classList.toggle('is-amx-hide', _pdAm.tab !== 'signed');
+  if (wrap) wrap.classList.add('is-amx');
+  if (typing) return;
+  const html = pd2AmxHtml(c);
+  if (old){ if (old._pd2Html !== html){ old.outerHTML = html; const nw = wrap.querySelector(':scope > .pd2-amx'); if (nw) nw._pd2Html = html; } }
+  else { wrap.insertAdjacentHTML('afterbegin', html); const nw = wrap.querySelector(':scope > .pd2-amx'); if (nw) nw._pd2Html = html; }
   if (typeof jamboOwnWays === 'function') setTimeout(() => { if (pdAmendShows()) jamboOwnWays('#ig-dock .igd-foot', '', '#pd-amendface'); }, 0);
+}
+const PD2_AMX_TABS = ['changes', 'signed', 'paper'];
+/* one row followed while its box is typed in: its effect and value cells, the panel, the line's Create — never the box */
+function pd2AmxRowSync(i){
+  const c = pdContract(), it = _pdAm.items[i]; if (!c || !it) return;
+  const eff = document.querySelector(`.pd2-amx [data-pd2-amx-effc="${i}"]`); if (eff) eff.innerHTML = pd2AmxEffectHtml(c, it, i);
+  const val = document.querySelector(`.pd2-amx [data-pd2-amx-val="${i}"]`);
+  if (val){ const F = pd2AmxEffectOf(c, it); val.textContent = F.k === 'value' ? ((typeof fmtMoneyShortIn === 'function' && typeof contractCurrency === 'function') ? fmtMoneyShortIn(F.v, contractCurrency(c)) : String(F.v)) : '—'; }
+  pd2AmPanelRepaint();
+}
+function pd2AmPanelRepaint(){
+  const host = (typeof document !== 'undefined') ? document.getElementById('pd-amendface') : null, c = pdContract();
+  if (host && c) host.innerHTML = pdAmendFaceHtml(c);
+  document.querySelectorAll('[data-pd2-am-create]').forEach(b => { const ok = pdAmendReady(); b.disabled = !ok; if (ok) b.removeAttribute('title'); else b.title = _pdT('pd_am_go_why'); });
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._pd2AmxWired){ document._pd2AmxWired = true;
+  const again = () => { try { pdAmendRepaint(); } catch (_){} };
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('.pd2-amx')){ if (_pdAm.menu && !(t && t.closest('.pd2-amx-menu'))){ _pdAm.menu = ''; again(); } return; }
+    const tab = t.closest('[data-pd2-amx-tab]'); if (tab){ e.preventDefault(); _pdAm.tab = tab.getAttribute('data-pd2-amx-tab'); _pdAm.menu = ''; again(); return; }
+    const chip = t.closest('[data-pd2-amx-chip]');
+    if (chip){ e.preventDefault(); const k = chip.getAttribute('data-pd2-amx-chip');
+      if (k === 'reason'){ _pdAm.reasonOpen = true; again(); const box = document.querySelector('.pd2-amx [data-pd2-amx-reason]'); if (box && typeof fieldFocus === 'function') fieldFocus(box); else if (box) box.focus(); return; }
+      /* PRESS IT AGAIN AND IT CLOSES */
+      _pdAm.menu = _pdAm.menu === k ? '' : k; again(); return; }
+    const ed = t.closest('[data-pd2-amx-edit]');
+    if (ed){ e.preventDefault(); _pdAm.edit = Number(ed.getAttribute('data-pd2-amx-edit')); _pdAm.menu = ''; again();
+      const box = document.querySelector(`.pd2-amx [data-pd2-amx-txt="${_pdAm.edit}"]`); if (box){ if (typeof fieldFocus === 'function') fieldFocus(box); else box.focus(); } return; }
+    const kind = t.closest('[data-pd2-amx-kind]'); if (kind){ e.preventDefault(); _pdAm.kind = kind.getAttribute('data-pd2-amx-kind'); _pdAm.menu = ''; again(); return; }
+    const ef = t.closest('[data-pd2-amx-eff]'); if (ef){ e.preventDefault(); _pdAm.eff = ''; _pdAm.menu = ''; again(); return; }
+    const use = t.closest('[data-pd2-amx-use]');
+    if (use){ e.preventDefault(); const k = use.getAttribute('data-pd2-amx-use'), v = use.getAttribute('data-pd2-amx-v') || '';
+      if (k === 'expiry') _pdAm.expiry = v; else if (k === 'value') _pdAm.value = v; again(); return; }
+    const rm = t.closest('[data-pd2-amx-rm]');
+    if (rm){ e.preventDefault(); _pdAm.items.splice(Number(rm.getAttribute('data-pd2-amx-rm')), 1); again(); return; }
+  });
+  document.addEventListener('input', e => {
+    const t = e.target; if (!t || !t.closest || !t.closest('.pd2-amx')) return;
+    if (t.hasAttribute('data-pd2-amx-txt')){ const i = Number(t.getAttribute('data-pd2-amx-txt')), it = _pdAm.items[i]; if (it){ it.amended = String(t.value || '').slice(0, 4000); pd2AmxRowSync(i); } return; }
+    if (t.hasAttribute('data-pd2-amx-reason')){ _pdAm.reason = String(t.value || '').slice(0, 200); return; }
+  });
+  document.addEventListener('change', e => {
+    const t = e.target; if (!t || !t.closest || !t.closest('.pd2-amx')) return;
+    if (t.hasAttribute('data-pd2-amx-effd')){ _pdAm.eff = /^\d{4}-\d{2}-\d{2}$/.test(t.value) ? t.value : ''; _pdAm.menu = ''; again(); }
+  });
+  /* leaving the whole clause shows the words that change again */
+  document.addEventListener('focusout', e => { const t = e.target; if (!t || !t.hasAttribute || !t.hasAttribute('data-pd2-amx-txt')) return;
+    setTimeout(() => { const a = document.activeElement; if (a && a.hasAttribute && a.hasAttribute('data-pd2-amx-txt')) return; if (_pdAm.edit != null){ _pdAm.edit = null; again(); } }, 0); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && _pdAm.menu){ e.preventDefault(); e.stopImmediatePropagation(); _pdAm.menu = ''; again(); } }, true);
+}
+/* the panel beside it: the badge, how many, the term bar, what changes once signed (no money in a side panel), the family */
+function pd2AmFaceHtml(c){
+  const E = _pdE, T = _pdT, n = _pdAm.items.length;
+  const day = iso => iso ? ((typeof regDotDate === 'function') ? regDotDate(String(iso).slice(0, 10)) : String(iso).slice(0, 10)) : '—';
+  const was = (typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : '') || c.expiry || '';
+  const now = _pdAm.expiry || '';
+  const start = (c.metadata && c.metadata.effectiveDate) || (typeof contractSignedAt === 'function' ? contractSignedAt(c) : '') || c.signedAt || '';
+  let bar = '';
+  if (was){ const t0 = start ? new Date(String(start).slice(0, 10) + 'T12:00:00') : null, t1 = new Date(String(was).slice(0, 10) + 'T12:00:00'), t2 = now ? new Date(now + 'T12:00:00') : null;
+    let old = 100, ext = 0; if (t2 && t2 > t1){ if (t0 && !isNaN(t0) && t1 > t0){ const all = t2 - t0; old = Math.round((t1 - t0) / all * 100); ext = 100 - old; } else { old = 75; ext = 25; } }
+    bar = `<div class="pd2-amls-sec"><b>${E(T('pd2_amls_term'))}</b><div class="pd2-amls-bar" role="img" aria-label="${E(now ? T('pd2_amls_term_to', { a: day(was), b: day(now) }) : day(was))}"><i style="width:${old}%"></i>${ext ? `<i class="is-ext" style="width:${ext}%"></i>` : ''}</div>
+      <p class="pd2-amls-bl"><span>${E(start ? day(start) : T('pd2_amls_start'))}</span><span>${E(day(was))}</span>${ext ? `<span class="is-ext">${E(day(now))}${(() => { const y = Math.round((t2 - t1) / (365.25 * 864e5)); return y >= 1 ? ' · ' + E(_pdTn('pd2_amls_plus_y', y, { n: y })) : ''; })()}</span>` : ''}</p></div>`; }
+  let rules = []; try { const probe = Object.assign({}, c, { value: Number(_pdAm.value) > 0 ? Number(_pdAm.value) : Number(c.value) || 0, status: 'Under Review' });
+    rules = (typeof approvalRules === 'function' ? approvalRules() : []).filter(r => typeof ruleMatches === 'function' && ruleMatches(r, probe)); } catch (_){ rules = []; }
+  const kv = (k, v) => `<span>${E(k)}</span><span>${v}</span>`;
+  let fam = []; try { fam = (typeof bsFamRows === 'function') ? (bsFamRows(c) || []) : []; } catch (_){ fam = []; }
+  const done = x => !!(x && (x.status === 'Signed' || (typeof amendmentExecuted === 'function' && amendmentExecuted(x))));
+  const famRows = (fam.length ? fam : [{ c, label: T('pd2_amls_original') }]).map((r, k) => `<div><i class="${done(r.c) ? '' : 'is-open'}" aria-hidden="true"></i><span>${E(k === 0 ? T('pd2_amls_orig_exec') : r.label + ' · ' + ((typeof contractRef === 'function') ? contractRef(r.c) : r.c.id))}</span><span class="pd2-badge ${done(r.c) ? 'is-green' : 'is-amber'}"><i aria-hidden="true"></i>${E(T(done(r.c) ? 'pd2_amls_in_force' : 'pd2_fam_drafting'))}</span></div>`).join('')
+    + `<div><i class="is-open" aria-hidden="true"></i><span><b>${E(T('pd2_amls_nth', { n: pd2AmNo(c) }))}</b> · ${E(T('pd2_amls_drafting'))}${n ? ' · ' + E(_pdTn('pd2_amls_n', n, { n })) : ''}</span><span class="pd2-badge is-amber"><i aria-hidden="true"></i>${E(T('pd2_amls_today'))}</span></div>`
+    + `<div class="is-ahead"><i class="is-ahead" aria-hidden="true"></i><span>${E(T('pd2_amls_ahead'))}</span><span></span></div>`;
+  return `<div class="pd-sf pd-am is-pd2" data-pd-am="${E(c.id)}"><div class="pd2-amls">
+    <p class="pd2-amls-b"><span class="pd2-badge is-amber"><i aria-hidden="true"></i>${E(T('pd2_amls_badge', { n: pd2AmNo(c) }))}</span></p>
+    <h3 class="pd2-amls-t">${E(n ? _pdTn('pd2_amls_ready', n, { n }) : T('pd2_amls_empty'))}</h3>
+    <p class="pd2-amls-sub">${E([c.name, (typeof contractRef === 'function') ? contractRef(c) : c.id, c.counterparty].filter(Boolean).join(' · '))}</p>
+    <div class="pd2-am-say" data-pd2-am-say hidden></div>
+    ${bar}
+    <div class="pd2-amls-sec"><b>${E(T('pd2_amls_once'))}</b><div class="pd2-amls-kv">
+      ${kv(T('pd2_am_ends'), now ? `<s>${E(day(was))}</s> ${E(day(now))}` : E(day(was)))}
+      ${kv(T('pd2_am_approval'), rules.length ? E(rules.map(r => r.name).join(' · ')) : E(T('pd2_am_appr_none')))}
+      ${kv(T('pd2_am_signers'), E(T('pd2_am_signers_v')))}
+      ${(() => { const d = [].concat(..._pdAm.items.map(it => pd2AmxEffectsOf(c, it))).find(F => F.k === 'days'); return d ? kv(T('pd2_amls_pay'), `${d.from != null ? `<s>${E(_pdTn('pd2_amls_days', d.from, { n: d.from }))}</s> ` : ''}${E(_pdTn('pd2_amls_days', d.to, { n: d.to }))}`) : ''; })()}
+      ${_pdAm.eff ? kv(T('pd2_amx_eff'), E(day(_pdAm.eff))) : ''}</div></div>
+    <div class="pd2-amls-sec"><b>${E(T('dos_mq_family'))}</b><div class="pd2-amls-tl">${famRows}</div></div>
+  </div></div>`;
 }
 /* SAY THE CHANGE (as drawn): Jambo's box, while Amend is up, sends the words to the amendment reader — one call */
 async function pd2AmSay(text){
@@ -3012,6 +3223,7 @@ async function pd2AmSay(text){
     const cls = (typeof amendParentClauses === 'function') ? amendParentClauses(c) : [];
     items.forEach(it => { if (_pdAm.items.length >= PD_AMEND_ITEMS_MAX) return; const hit = cls.find(x => x.num && it.clauseNumber && String(x.num) === String(it.clauseNumber));
       _pdAm.items.push({ clauseId: hit ? hit.id : '', clauseLabel: it.clauseLabel || (hit && hit.label) || '', clauseNumber: it.clauseNumber || '', op: it.op || 'replace', signed: it.signed || (hit && hit.text) || '', amended: it.amended || '' }); });
+    if (items.length) _pdAm.tab = 'changes';
     if (r && r.facts && r.facts.expiry) _pdAm.expiry = String(r.facts.expiry).slice(0, 10);
     if (r && r.facts && Number(r.facts.value) > 0) _pdAm.value = String(r.facts.value);
     if (!items.length && !(r && r.facts && (r.facts.expiry || r.facts.value))){ say((r && r.error) || _pdT('fa_ai_nothing'), 'warn'); return; }
@@ -3085,11 +3297,14 @@ async function pdAmendCreate(){
   const c = pdContract(); if (!c || !pdAmendMay(c) || !pdAmendReady() || typeof createAmendment !== 'function') return;
   const items = _pdAm.items.map(it => ({ clauseId: it.clauseId || '', clauseLabel: it.clauseLabel || '', clauseNumber: it.clauseNumber || '', op: it.op, signed: it.signed || '', amended: it.amended || '', manual: true }));
   const facts = {}; if (_pdAm.expiry) facts.expiry = _pdAm.expiry; if (Number(_pdAm.value) > 0) facts.value = Number(_pdAm.value);
-  const made = createAmendment(c, { relation: 'amendment', expiry: _pdAm.expiry || null, items, facts, skeleton: true });
+  /* AMEND L+S: when it takes effect (a date, else on signing) is the amendment's own suggested fact; the kind is kept on it;
+     the reason rides the link's own audit line (applyParentLink's note) */
+  if (_pdAm.eff) facts.effectiveDate = _pdAm.eff;
+  const made = createAmendment(c, { relation: 'amendment', expiry: _pdAm.expiry || null, items, facts, skeleton: true, kind: _pdAm.kind || 'terms', note: _pdAm.reason || '' });
   if (!made || made.error){ if (typeof toast === 'function') toast((made && made.error) || _pdT('pd_failed'), 'err'); return; }
   const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
   if (typeof toast === 'function') toast(_pdT('fa_created', { id: (typeof contractRef === 'function') ? contractRef(made.contract) : made.contract.id, pid: ref, rel: _pdT('pd_am_rel') }), 'ok');
-  _pdAm.id = null; _pdAm.items = []; _pdAm.expiry = ''; _pdAm.value = ''; _pdAmend = null;
+  _pdAm.id = null; _pdAm.items = []; _pdAm.expiry = ''; _pdAm.value = ''; _pdAm.tab = ''; _pdAm.kind = 'terms'; _pdAm.eff = ''; _pdAm.reason = ''; _pdAm.reasonOpen = false; _pdAm.menu = ''; _pdAmend = null;
   if (typeof updateSidebarCounts === 'function') updateSidebarCounts();
   /* the draft lands where it is written: Home's paper (the dialog's own landing) */
   if (typeof regOpenContract === 'function') regOpenContract(made.contract.id);
@@ -7848,8 +8063,19 @@ function pd2Facts(c, D){
   /* MONEY IS NEVER IN A SIDE PANEL (owner, 20 Nov 2026; P-44 review, 22 Nov 2026: the Dossier panel showed KES 22,000,000):
      the new look's panel draws no Value fact — the value stays on the paper, in the form and in the list's own column */
   if (R.money && !(typeof window.newLookOn === 'function' && newLookOn())) out.push({ k: 'value', l: _pdT('pd2_f_value'), v: R.money, s: pd2SectionOf(c, 'value', cls) });
+  const nlF = typeof window.newLookOn === 'function' && newLookOn();
   if (R.expiry){ const renews = typeof contractRenewsItself === 'function' && contractRenewsItself(c);
-    out.push({ k: 'ends', l: _pdT('pd2_f_ends'), v: R.expiry + (renews ? ', ' + E(_pdT('pd2_renews')) : ''), s: pd2SectionOf(c, 'expiry', cls) }); }
+    /* DOSSIER L+S: the paper's own words where it says the end (pd2QuoteOf), and the signed amendment that set it, a door
+       to that paper (effectiveExpiryFrom, the Overview's own reading; famGo) */
+    let src = pd2SectionOf(c, 'expiry', cls), by = '';
+    if (nlF){ let q = null; try { q = (typeof pd2QuoteOf === 'function') ? pd2QuoteOf(c, pd2Needles(c, 'expiry')) : null; } catch (_){ q = null; }
+      if (q && q.quote) src = `${pd2Cap(q.sec)} · “${q.quote}”`;
+      let from = null; try { from = (typeof effectiveExpiryFrom === 'function') ? effectiveExpiryFrom(c) : null; } catch (_){ from = null; }
+      if (from && from.from){ const S = (typeof famStateOf === 'function') ? famStateOf(c) : null;
+        const row = S && S.kids ? S.kids.find(r => String(r.c.id) === String(from.from.id)) : null;
+        const label = row ? row.label : ((typeof contractRef === 'function') ? contractRef(from.from) : from.from.id);
+        by = ` <button type="button" class="ui-link pd2-setby" data-fam-go="${E(from.from.id)}">${E(_pdT('pd2_set_by', { label }))} ›</button>`; } }
+    out.push({ k: 'ends', l: _pdT('pd2_f_ends'), v: R.expiry + (renews ? ', ' + E(_pdT('pd2_renews')) : '') + by, s: src }); }
   let signer = ''; try { signer = pdCkSignerSay(c); } catch (_){ signer = ''; }
   out.push({ k: 'signer', l: _pdT('pd2_f_signer'), v: signer ? E(signer) : `<span class="pd2-amb">${E(_pdT('pd2_none_yet'))}</span>`, s: _pdT('pd2_src_route'),
     /* A VIEWER CANNOT SAVE A SIGNER (BUGLOG 22086): no Change drawn for them, the fact stands alone */
@@ -7869,7 +8095,9 @@ function pd2Facts(c, D){
     const mine = (() => { try { return !!(typeof approvalDecidableNow === 'function' && approvalDecidableNow(c)); } catch (_){ return false; } })();
     const rule = ap.next ? ap.next.name : ((ap.chain[0] || {}).name || '');
     const st = ap.ok ? E(_pdT('pd2_ap_ok')) : mine ? `<span class="pd2-amb">${E(_pdT('pd2_ap_you'))}</span>` : E(_pdT('pd2_ap_waits', { who: ap.approverLabel || '' }));
-    out.push({ k: 'approval', l: _pdT('pd2_f_approval'), v: st + (rule ? ' · ' + E(_pdT('pd2_ap_rule', { rule })) : ''), s: pd2SectionOf(c, 'value', cls) });
+    /* DOSSIER L+S: an approval asked of you is answered in its row — the one decision (approvalDecideAsk), as the note's Approve */
+    out.push({ k: 'approval', l: _pdT('pd2_f_approval'), v: st + (rule ? ' · ' + E(_pdT('pd2_ap_rule', { rule })) : ''), s: pd2SectionOf(c, 'value', cls),
+      owed: nlF && mine && !ap.ok, go: nlF && mine && !ap.ok ? 'data-pd-ap-go' : '', word: _pdT('pd2_ap_go') });
   }
   const sd = D.read && D.read.std;
   /* THE SCORE RING (owner picked "Score Ring" by name, 19 Nov 2026): the share of positions met as a small ring, coloured by
@@ -7889,6 +8117,15 @@ function pd2Facts(c, D){
     if (os && os.run) out.push({ k: 'std', l: _pdT('pd2_f_std'), v: `<span class="pd2-q">${(typeof busyHtml === 'function') ? busyHtml(_pdT('pd2_std_checking')) : E(_pdT('pd2_std_checking'))}</span>`, s: '' });
     else if (os && os.why) out.push({ k: 'std', l: _pdT('pd2_f_std'), v: `<span class="pd2-amb">${E(_pdT('pd2_std_failed', { why: os.why }))}</span> · ${chk}`, s: '' });
     else out.push({ k: 'std', l: _pdT('pd2_f_std'), v: `${E(_pdT('pd2_std_not'))} · ${chk} <span class="pd2-q">${E(_pdT('pd2_one_call'))}</span>`, s: '' });
+  }
+  /* DOSSIER L+S: a blank the paper still owes is a row of its own with Fill in (the notes' own door, pd2FillStart → pdFillOpen),
+     and what is owed comes first */
+  if (nlF){
+    let blanks = []; try { blanks = (typeof contractBlanks === 'function') ? contractBlanks(c) : []; } catch (_){ blanks = []; }
+    const may = (typeof window.mayActOn !== 'function') || window.mayActOn(c);
+    blanks.filter(b => b && !String(b.value || '').trim()).slice(0, 3).forEach(b => out.push({ k: 'blank', l: String(b.label || b.key), v: `<span class="pd2-badge is-amber"><i aria-hidden="true"></i>${E(_pdT('pd2_f_blank'))}</span>`, s: '',
+      owed: true, go: may ? `data-pd-fill-key="${E(b.key)}"` : '', word: _pdT('pd2_fill') }));
+    return out.filter(f => f.owed).concat(out.filter(f => !f.owed));
   }
   return out;
 }
@@ -7916,6 +8153,40 @@ function pdDocFillRowHtml(c){
 function pd2FamilyHtml(c){
   return typeof dossierFamilyFoldHtml === 'function' ? `<div class="pd2-fam">${dossierFamilyFoldHtml(c)}</div>` : '';
 }
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._pd2LsWired){ document._pd2LsWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    const ap = t.closest('#pd-glance [data-pd-ap-go]'), fk = t.closest('#pd-glance [data-pd-fill-key]'); if (!ap && !fk) return;
+    e.preventDefault();
+    const g = (ap || fk).closest('#pd-glance'), id = g && g.getAttribute('data-pd-glance-for'), c = id && typeof getContract === 'function' ? getContract(id) : null; if (!c) return;
+    if (ap && typeof approvalDecideAsk === 'function') Promise.resolve(approvalDecideAsk(c, 'approved')).then(() => { try { pdGlanceRepaint(); } catch (_){} }, () => {});
+    if (fk){ const key = fk.getAttribute('data-pd-fill-key') || ''; if (!(key && pd2FillStart(c.id, key))) pdFillOpen(c.id, key ? { key } : {}); }
+  });
+}
+/* A FACT ROW, THE LEGORA + STRIPE WAY (Dossier L+S): label · value with where on the paper it was read under it · the
+   row's one act (Change, Approve, Fill in) at its right; a source that is not the paper's (route, filed) stays quiet at the right */
+function pd2FactRowLs(f){
+  const E = _pdE, paper = f.s && /^(§|\d|[IVX]+\b|Article|Opening|Preamble)/i.test(String(f.s));
+  const word = f.word || ((f.k === 'signer' || f.k === 'stream' || f.k === 'people') ? _pdT('pd2_go_change') : (f.s || _pdT('dos_go_open')));
+  const act = f.go ? `<button type="button" class="pd2-sgo is-link" ${f.go}>${E(word)}</button>` : (!paper && f.s ? E(f.s) : '');
+  return `<div class="pd2-fact is-ls${f.cls ? ' ' + f.cls : ''}${f.owed ? ' is-owed' : ''}" data-pd2-fact="${f.k}"><span class="pd2-l">${E(f.l)}</span><span class="pd2-v"${f.k === 'people' ? ` title="${String(f.v).replace(/<[^>]*>/g, '')}"` : ''}>${f.v}${paper ? `<span class="pd2-src">${E(f.s)}</span>` : ''}</span><span class="pd2-s">${act}</span></div>`;
+}
+/* THE FAMILY CARD (Dossier L+S): always open, right under the card — the original and every amendment, each row its paper's
+   door (data-pd-ds-fam, the fold's own), the amendment's changes quoted, a soft badge for where it stands; the family's
+   other acts as links (Create is the card's Amend: one door) */
+function pd2FamCardHtml(c){
+  const E = _pdE; let rows = []; try { rows = (typeof bsFamRows === 'function') ? (bsFamRows(c) || []) : []; } catch (_){ rows = []; }
+  let acts = []; try { acts = (typeof familyActs === 'function') ? (familyActs(c) || []) : []; } catch (_){ acts = []; }
+  const ref = x => (typeof contractRef === 'function') ? contractRef(x) : x.id;
+  const done = x => !!(x && (x.status === 'Signed' || (typeof amendmentExecuted === 'function' && amendmentExecuted(x))));
+  const body = rows.map(r => { const here = String(r.c.id) === String(c.id), ok = done(r.c);
+    const nm = here ? `<span class="pd2-fam-nm">${E(r.label)} · ${E(ref(r.c))} <span class="pd2-q">· ${E(_pdT('pd2_fam_here'))}</span></span>`
+      : `<button type="button" class="pd2-fam-nm is-go" data-pd-ds-fam="${E(r.c.id)}">${E(r.label)} · ${E(ref(r.c))} ›</button>`;
+    const ch = r.c.parentId && typeof famChangesLine === 'function' ? famChangesLine(r.c, 3) : '';
+    return `<div class="pd2-fam-row"><i class="pd2-fam-dot ${ok ? 'is-ok' : 'is-open'}" aria-hidden="true"></i><div class="pd2-fam-w">${nm}${ch ? `<p class="pd2-fam-ch">${E(ch)}</p>` : ''}</div><span class="pd2-badge ${ok ? 'is-green' : 'is-amber'}"><i aria-hidden="true"></i>${E(_pdT(ok ? 'pd2_fam_signed' : 'pd2_fam_drafting'))}</span></div>`; }).join('');
+  const links = acts.filter(a => a && a.k !== 'create' && !a.shut).map(a => `<button type="button" class="ui-link" data-pd-ds-famact="${E(a.k)}">${E(a.label)}</button>`).join('<span class="pd2-card-sep" aria-hidden="true">·</span>');
+  return `<section class="pd2-famc" data-pd2-famc><div class="pd2-famc-h"><b>${E(_pdT('dos_mq_family'))}</b>${rows.length ? '' : `<span>${E(_pdT('pd2_fam_none'))}</span>`}</div>${body}${links ? `<p class="pd2-famc-acts">${links}</p>` : ''}</section>`;
+}
 function pd2Html(c){
   const E = _pdE, D = dossierOf(c); if (!D) return '';
   if (pd2WalkOn(c.id)) return `<div id="pd-glance" class="pd2-dossier is-walk" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2WalkFaceHtml(c)}</div>`;
@@ -7926,8 +8197,8 @@ function pd2Html(c){
   /* PAPER LINE HOLDS ALL (the harmony review, owner's yes 9 Nov 2026): a fact that can be changed ends in a green
      "Change" link, never a small grey word that is secretly a button */
   const nl = typeof window.newLookOn === 'function' && newLookOn();
-  const facts = pd2Facts(c, D).map(f => `<div class="pd2-fact${f.cls ? ' ' + f.cls : ''}" data-pd2-fact="${f.k}"><span class="pd2-l">${E(f.l)}</span><span class="pd2-v"${f.k === 'people' ? ` title="${String(f.v).replace(/<[^>]*>/g, '')}"` : ''}>${f.v}</span><span class="pd2-s">${f.go ? `<button type="button" class="pd2-sgo${nl ? ' is-link' : ''}" ${f.go}>${E(nl && (f.k === 'signer' || f.k === 'stream' || f.k === 'people') ? _pdT('pd2_go_change') : (f.s || _pdT('dos_go_open')))}</button>` : E(f.s || '')}</span></div>`).join('');
-  return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2CardHtml(c, D)}${nl && facts ? `<div class="pd2-eye">${E(_pdT('jov5_pd_facts'))}</div>` : ''}<div class="pd2-facts">${facts}</div>${pd2FamilyHtml(c)}${pdDocFillRowHtml(c)}${pd2TurnHtml(c)}</div>`;
+  const facts = pd2Facts(c, D).map(f => nl ? pd2FactRowLs(f) : `<div class="pd2-fact${f.cls ? ' ' + f.cls : ''}" data-pd2-fact="${f.k}"><span class="pd2-l">${E(f.l)}</span><span class="pd2-v"${f.k === 'people' ? ` title="${String(f.v).replace(/<[^>]*>/g, '')}"` : ''}>${f.v}</span><span class="pd2-s">${f.go ? `<button type="button" class="pd2-sgo${nl ? ' is-link' : ''}" ${f.go}>${E(nl && (f.k === 'signer' || f.k === 'stream' || f.k === 'people') ? _pdT('pd2_go_change') : (f.s || _pdT('dos_go_open')))}</button>` : E(f.s || '')}</span></div>`).join('');
+  return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2CardHtml(c, D)}${nl ? pd2FamCardHtml(c) : ''}${nl && facts ? `<div class="pd2-eye">${E(_pdT('jov5_pd_facts'))}</div>` : ''}<div class="pd2-facts">${facts}</div>${nl ? '' : pd2FamilyHtml(c)}${pdDocFillRowHtml(c)}${pd2TurnHtml(c)}</div>`;
 }
 /* ---- THE DOSSIER'S TOP IS ONE CARD (owner picked "One card", 8 Nov 2026: "I want 1 card but the read it, watch the
    read and the brief need to be better designed … 'Read it | Watch the read | The brief' in green and underlined") ----
@@ -8101,6 +8372,30 @@ function pd2CardFiveHtml(c, cls, at, head, sayHtml, steps, act){
   return `<div class="pd2-card is-five${cls ? ' ' + cls : ''}" data-pd2-card>
     <p class="pd2-next" data-pd2-next>${E(head)}</p>${sayHtml}${steps}${act ? `<div class="pd2-card-act">${act}</div>` : ''}</div>`;
 }
+/* ---- THE CARD ON A SIGNED AGREEMENT (Dossier L+S, the owner's "Build", 22 Nov 2026) ----
+   Nothing owed and the agreement signed: the card says how it stands (Live · ends in N months, read from the end date),
+   quotes where the paper says it, and its one black button is Amend — the family's own act (familyActRun 'create', the
+   same door the folded Family line pressed), so Amend keeps ONE door. While an amendment is drafting the button is
+   Continue it (its row's own door, famGo), with its changes quoted — so a second is not started by mistake. */
+const pd2Cap = t => { t = String(t || ''); return t.charAt(0).toUpperCase() + t.slice(1); };
+function pd2AmendCardOf(c){
+  if (!c || c.parentId) return null;
+  if ((typeof canEdit === 'function') && !canEdit()) return null;
+  const S = (typeof famStateOf === 'function') ? famStateOf(c) : null, E = _pdE;
+  if (S && S.kind === 'drafting'){
+    const ch = (typeof famChangesLine === 'function') ? famChangesLine(S.open.c, 3) : '';
+    return { say: `<p class="pd2-am-st"><span class="pd2-badge is-amber"><i aria-hidden="true"></i>${E(_pdT('pd2_amend_open', { label: S.open.label }))}</span></p>${ch ? `<p class="pd2-am-q">${E(ch)}</p>` : ''}`,
+      btn: `<button type="button" class="ui-btn ui-btn-primary pd2-card-go" data-fam-go="${E(S.go)}">${E(_pdT('pd2_amend_continue', { label: S.open.label }))}</button>` };
+  }
+  if (!(typeof pdAmendMay === 'function' && pdAmendMay(c))) return null;
+  const end = (typeof effectiveExpiry === 'function') ? effectiveExpiry(c) : (c.expiry || '');
+  let months = -1; if (end){ const d = new Date(String(end).slice(0, 10) + 'T12:00:00'), t = new Date();
+    if (!isNaN(d)) months = Math.max(0, (d.getFullYear() - t.getFullYear()) * 12 + (d.getMonth() - t.getMonth()) - (d.getDate() < t.getDate() ? 1 : 0)); }
+  const badge = months >= 0 ? _pdTn('pd2_live_ends', months, { n: months }) : _pdT('pd2_live');
+  let q = null; try { q = (typeof pd2QuoteOf === 'function') ? pd2QuoteOf(c, pd2Needles(c, 'expiry')) : null; } catch (_){ q = null; }
+  return { say: `<p class="pd2-am-st"><span class="pd2-badge is-green"><i aria-hidden="true"></i>${E(badge)}</span></p>${q && q.quote ? `<p class="pd2-am-q"><b>${E(pd2Cap(q.sec))}</b>“${E(q.quote)}”</p>` : ''}`,
+    btn: `<button type="button" class="ui-btn ui-btn-primary pd2-card-go" data-pd-ds-famact="create">${E(_pdT('pd2_amend_go'))}</button>` };
+}
 function pd2CardHtml(c, D){
   const E = _pdE, focus = dossierFocusOf(D), N = dossierNextOf(c, D, focus), b = N.btns[0];
   const RD = pd2RoadOf(c, D);
@@ -8133,9 +8428,12 @@ function pd2CardHtml(c, D){
     `<button type="button" class="ui-link" data-pd2-wk-open>${E(_pdT('pd2_wk_watch'))}</button>`,
     hasBrief ? `<button type="button" class="ui-link" data-pd-gl-brief>${E(_pdT('pd2_brief'))}</button>` : ''].filter(Boolean).join('<span class="pd2-card-sep" aria-hidden="true">|</span>');
   const foot = `<div class="pd2-card-foot"><p class="pd2-read">${E(sayRead)}</p><p class="pd2-card-links">${links}</p></div>`;
-  if (typeof window.newLookOn === 'function' && newLookOn())
-    /* no sentence under the headline (owner, 16 Nov 2026): who it goes to is the bar's, what waits after is the steps' */
-    return pd2CardFiveHtml(c, '', at, String(N.head || '').replace(/\.$/, ''), '', pd2StepsHtml(D, focus, words), btn + foot);
+  if (typeof window.newLookOn === 'function' && newLookOn()){
+    /* no sentence under the headline (owner, 16 Nov 2026): who it goes to is the bar's, what waits after is the steps';
+       on a signed agreement with nothing owed, the card carries Amend (pd2AmendCardOf) */
+    const AM = b ? null : pd2AmendCardOf(c);
+    return pd2CardFiveHtml(c, AM ? 'is-amend' : '', at, String(N.head || '').replace(/\.$/, ''), '', pd2StepsHtml(D, focus, words), (AM ? AM.say + AM.btn : btn) + foot);
+  }
   return `<div class="pd2-card" data-pd2-card><div class="pd2-card-top"><span>${E(at)}</span><span class="pd2-spine" data-pd2-spine role="img" aria-label="${E(words)}">${dots}</span></div>
     <p class="pd2-next" data-pd2-next>${E(String(N.head || '').replace(/\.$/, ''))}</p>${say ? `<p class="pd2-card-say">${E(say)}</p>` : ''}${btn}
     ${foot}</div>`;
@@ -10291,7 +10589,7 @@ function pdMidVeil(on){
 }
 Object.assign(window, { pdArriveNote, pdMidArriving, pdArriveEnd, pdMidFrom, pdMidVeil, CV_LAND_MS });
 Object.assign(window, { pd2StandsOpen, pd2StandsUp, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
-Object.assign(window, { pd2StepsHtml, pd2CardFiveHtml, pd2CardWho, pd2FormAskTakes, pd2FormAsk, pd2FormFaceHtml, pd2FormChipsPaint, pd2On, pd2Html, pd2HistFaceHtml, PD2_HK_TONE, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
+Object.assign(window, { pd2AmendCardOf, pd2FactRowLs, pd2FamCardHtml, pd2StepsHtml, pd2CardFiveHtml, pd2CardWho, pd2FormAskTakes, pd2FormAsk, pd2FormFaceHtml, pd2FormChipsPaint, pd2On, pd2Html, pd2HistFaceHtml, PD2_HK_TONE, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
 Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2NotesHiddenGet, pd2NotesHiddenSet, pd2NotesTgHtml, pd2NotesTgSolo, PD2_NOTES_HIDDEN_KEY, pd2RedAnswers, pd2RedStdAnswers, pd2RedBlocks, pd2RedGroupHtml, pd2RedChipsHtml, pd2RedAskHtml, pd2RedFloor, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendReady, pd2AmNo, pd2AmSay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,

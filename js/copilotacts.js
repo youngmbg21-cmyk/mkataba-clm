@@ -1517,7 +1517,10 @@ function caNextSteps(c){
   const executed = !!(typeof negoExecuted === 'function' && negoExecuted(c));
   /* THE NEW LOOK'S REDLINES FACE, AS DRAWN: its own four links — each presses a door the face already has */
   if (face === 'red' && !executed && typeof pd2On === 'function' && pd2On()) return CA_RED_LINKS.slice();
-  const ladder = executed ? ['oblig', 'amend', 'history']
+  /* DOSSIER L+S (22 Nov 2026): on the new look Amend is the Dossier card's own button on a signed agreement, so it leaves
+     the links above Jambo's box (one door, where the eye lands) */
+  const amendHere = !(typeof window.newLookOn === 'function' && newLookOn() && !face);
+  const ladder = executed ? (amendHere ? ['oblig', 'amend', 'history'] : ['oblig', 'history'])
     : face === 'red' ? ['edit', 'sign', 'share']
     : ['redline', 'share', 'sign'];
   const owed = executed ? [] : caOwedSteps(c);
