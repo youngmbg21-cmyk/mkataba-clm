@@ -128,8 +128,10 @@ const HP = '#pd2-hist';
       return { group: (g || {}).textContent || '', door: (t || {}).textContent || '' }; });
     check('4a an admin finds the whole trail under "Every contract · admins only"', M && /Every contract · admins only/.test(M.group) && /The whole trail, as a file/.test(M.door), JSON.stringify(M));
     await page.click('#ht-trail');
-    const landed = await until(page, () => { const t = document.querySelector('[data-st-bk-tab="trail"]');
-      return t && (t.getAttribute('aria-selected') === 'true' || t.classList.contains('on') || t.getAttribute('aria-pressed') === 'true') ? 'trail' : null; }, null, 10000);
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): Data & backup's tabs are its head's
+       (.st-ls-tab[data-st-ls-bk]) on the page #set-page[data-st-ls="data"] */
+    const landed = await until(page, () => { const t = document.querySelector('#set-page[data-st-ls="data"] .st-ls-tab[data-st-ls-bk="trail"]');
+      return t && (t.getAttribute('aria-selected') === 'true' || t.classList.contains('is-on')) ? 'trail' : null; }, null, 10000);
     check('4b and it lands on Settings → Data & backup, on The trail', landed === 'trail', String(landed));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'two-sides-trail-door.png') });
     const p2 = await (await browser.newContext({ viewport: { width: 1440, height: 780 } })).newPage();

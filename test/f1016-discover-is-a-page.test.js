@@ -21,13 +21,13 @@ const I18N = read('js/i18n.js'), CSS = read('index.html');
 
 /* RE-POINTED (owner, 15 Nov 2026: "Remove discover button but leave the door or discover link"): the new look draws no
    Discover button in the list's head; the way in from Contracts is the "discover" link above Jambo's box */
-test('f1016 (1) the list\'s head: no Discover button in the new look, the old door in the old look', () => {
-  const b = fnBody(AC, 'askColBtnHtml');
-  assert.match(b, /newLookOn\(\)\) return '';/, 'the new look draws nothing in the list\'s head');
-  assert.match(b, /data-ac-open /, 'the old look keeps "+ Ask a column"');
+/* RE-POINTED (owner, 22 Nov 2026: "delete ask a column's leftover code"): the list head's old-look door (askColBtnHtml,
+   "+ Ask a column", data-ac-open) and the old look's Discover section are deleted, with their presses */
+test('f1016 (1) the list\'s head: no Discover button and no "+ Ask a column"; the "discover" link above Jambo\'s box stays', () => {
+  assert.doesNotMatch(AC + REG, /\baskColBtnHtml\b/, 'the list head\'s old door is deleted, and nothing calls it');
+  assert.doesNotMatch(AC, /data-ac-open[\s"'=\]>`]|data-ac-discover|data-ac-open-new/, 'no press is wired for a door nobody draws');
   assert.match(read('js/copilotacts.js'), /const CA_CHIPS_WALL = \[[^\]]*'reads'/, 'the Contracts page keeps its "discover" link above Jambo\'s box');
-  assert.match(AC, /closest\('\[data-ac-discover\]'\)\)\{ e\.preventDefault\(\); if \(typeof window\.discoverOpen === 'function'\) discoverOpen\(\)/, 'the press opens the Discover page');
-  assert.match(PD, /const disc = \(!c && !ac && typeof askColDiscoverHtml === 'function' && !\(typeof window\.newLookOn === 'function' && newLookOn\(\)\)\)/, 'no Discover section beside the list in the new look');
+  assert.doesNotMatch(PD, /askColDiscoverHtml|const disc = /, 'no Discover section beside the list');
 });
 
 test('f1016 (2) the ask from Discover is the one read, over the Contracts list as filtered', () => {
@@ -124,7 +124,10 @@ test('f1016 (7) a read asked on Discover never draws the Contracts list over the
 test('f1016 (8) the old Discover section beside the list is never drawn in the new look, under a column card either', () => {
   /* the owner's picture, 12 Nov 2026: the old list of past questions came and went on Contracts' panel; askColPanelHtml
      drew it under a column's card, where the paperdesk's own gate did not reach */
-  assert.match(fnBody(AC, 'askColDiscoverHtml'), /^function askColDiscoverHtml\(\)\{\s*if \(typeof window\.newLookOn === 'function' && newLookOn\(\)\) return '';/, 'the builder itself stands down in the new look');
+  /* RE-POINTED (owner, 22 Nov 2026: "delete ask a column's leftover code"): the builder is deleted, so nothing can draw it */
+  assert.doesNotMatch(AC + PD + REG, /\baskColDiscoverHtml\b/, 'the old Discover section is gone, its builder and every call');
+  /* RE-POINTED 22 Nov 2026 (owner: "There is not asking a column again only the features related to discovery"): the column card is deleted too */
+  assert.doesNotMatch(AC + PD + REG, /\baskColPanelHtml\b/, 'no column card beside the list, nor any call to one');
 });
 
 /* RE-POINTED (15 Nov 2026): both Discover pills on Contracts are gone (the folder panel's with At a Glance, f1056; the list

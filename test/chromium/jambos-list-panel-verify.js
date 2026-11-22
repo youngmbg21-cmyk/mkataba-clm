@@ -638,7 +638,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         await page.evaluate(() => setView('migration'));
         const HI = await until(sel => { const q = document.querySelector('#mig-side #jl-q'), e = q && (q.closest('.jb-card') || q);
           return e && e.getClientRects().length ? { hints: document.querySelectorAll(sel).length, inView: e.getBoundingClientRect().bottom <= innerHeight, ph: q.getAttribute('placeholder') } : null; }, HINTS, 10000);
-        check(`7c Import ${w}×${ht}: the shared box in its panel, no hint line under it, in view`, !!HI && HI.hints === 0 && HI.ph === 'Ask Jambo, or type / for a place' && HI.inView, JSON.stringify(HI));
+        /* RE-POINTED 22 Nov 2026 (the top box filters, Jambo's box asks, #888): Import's Jambo box carries the page's question */
+        check(`7c Import ${w}×${ht}: the shared box in its panel with the page's question, no hint line under it, in view`, !!HI && HI.hints === 0 && HI.ph === 'Ask Jambo: “which ones end this year?”' && HI.inView, JSON.stringify(HI));
         await shot(`hint-import-${w}x${ht}.png`);
       });
     }

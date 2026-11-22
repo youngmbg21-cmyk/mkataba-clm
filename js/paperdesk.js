@@ -7276,26 +7276,19 @@ function pdJamboTopHtml(){
   /* the new look's Contracts on its folders (round 6, as drawn): the panel reads across the folders */
   if (!c && typeof regFoldersUp === 'function' && regFoldersUp() && typeof regFoldersPanelHtml === 'function') return regFoldersPanelHtml();
   /* P-31 AS DRAWN (21 Nov 2026): beside every list of the place — All, Needs you, a folder, Ended & archived, the Wall
-     with nothing chosen — ONE panel of the rows on screen (regLsListPanelHtml); Ask a column's own panel stands while
-     a question is open (askColPanelHtml). Reverses round 6's folder reading (regFolderPanelHtml) on the new look. */
+     with nothing chosen — ONE panel of the rows on screen (regLsListPanelHtml). Reverses round 6's folder reading (regFolderPanelHtml) on the new look. */
   if (!c && typeof regLsPanelPick === 'function'){ const ls = regLsPanelPick(); if (ls) return ls; }
   /* a folder's list (round 6, as drawn): the folder's own reading, until a cell is chosen or a question asked */
   if (!c && typeof regFolderPanelOn === 'function' && regFolderPanelOn() && typeof regFolderPanelHtml === 'function') return regFolderPanelHtml();
-  /* ASK A COLUMN (owner picked "In Jambo's panel", 20 Oct 2026): beside the
-     Contracts list his panel holds the question, then the answers' why */
-  const ac = (!c && typeof askColPanelHtml === 'function') ? askColPanelHtml() : '';
+  /* ASK A COLUMN'S PANEL beside the list is deleted (owner, 22 Nov 2026): every question is asked in Discover */
   /* THE CHECKLIST'S ORDER: stage, Needs you, Jambo read, Next acts, then Key terms and the folds */
-  /* DISCOVER (owner, 25 Oct 2026): beside the Contracts list, the kept questions under his greeting */
-  /* with kept questions it stands first, in sight under his greeting; with none, its one line waits under the drop area */
-  /* DISCOVER IS A PAGE NOW (owner, 12 Nov 2026: "One link", then the Discover button in the list's head): the panel
-     beside the list carries no Discover section in the new look; the button is the one way in. The old look keeps its
-     section until it is deleted. */
-  const disc = (!c && !ac && typeof askColDiscoverHtml === 'function' && !(typeof window.newLookOn === 'function' && newLookOn())) ? askColDiscoverHtml() : '';
+  /* DISCOVER IS A PAGE (owner, 12 Nov 2026): the panel beside the list carries no Discover section; the old look's
+     section (askColDiscoverHtml) is deleted with Ask a column's leftovers (owner, 22 Nov 2026) */
   /* A REFRESH ON A CONTRACT (owner, 16 Nov 2026): while the paper a refresh puts back is on its way (intel.resuming,
      hbPlacePut) his panel says it is opening, never the Contracts place's overview in its stead */
   if (!c && typeof window !== 'undefined' && window.intel && intel.resuming && typeof getContract === 'function' && getContract(intel.resuming.id))
     return `<div class="ig-pick-wait" aria-busy="true">${typeof window.igOpeningHtml === 'function' ? window.igOpeningHtml() : ''}</div>`;
-  return c ? (pd2On() ? pd2Html(c) + pdMenuRowsHtml(c) : pdGlanceHtml(c, { noKt: true }) + pdNextUpHtml(c, { kt: true })) : (ac || pdWallHtml(disc));
+  return c ? (pd2On() ? pd2Html(c) + pdMenuRowsHtml(c) : pdGlanceHtml(c, { noKt: true }) + pdNextUpHtml(c, { kt: true })) : pdWallHtml();
 }
 /* NEEDS YOU HERE STAYS AT THE TOP OF THE TAB (round 3, "Tabs and faces" — the
    Compare's reason it won over Conversation: "the checklist would scroll

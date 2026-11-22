@@ -8,8 +8,8 @@
    this person may see, who read last and when, how many are at risk, and the
    next batch on the row itself: "Next 50 →". The row's panel tells the read as
    a thread — Next · the batches, newest first · Asked — and where the answers
-   are. NOTHING HERE READS: every door is an existing one (askColNext reads the
-   next batch through the one engine; the column on the Contracts list; the
+   are. NOTHING HERE READS: every door is an existing one (the next batch is asked on
+   Discover's New read, rdNewRead; the
    Ledger). The page counts what the server kept: the answers (GET
    /api/columns/summary) and the presses (GET /api/columns/reads).
    ========================================================================== */
@@ -133,7 +133,7 @@ function readsFacts(){
 function readsBandHtml(){
   const n = (_rd.rows || []).length;
   const top = `<div class="rd-head ph-top"><div class="rd-hl"><h1 class="rd-t1">${_rdE(_rdT('nav_reads'))}</h1><span class="rd-hn">${n}</span><span class="rd-hs">${_rdE(readsFacts())}</span></div>
-      <button type="button" class="ui-btn ui-btn-primary" id="rd-ask">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''}${_rdE(_rdT('ac_btn'))}</button></div>`;
+      <button type="button" class="ui-btn ui-btn-primary" id="rd-ask">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''}${_rdE(_rdT('dsn_new'))}</button></div>`;
   return typeof lhHtml === 'function' ? lhHtml(RD_SEAT, { frame: 'card', cls: 'rd-band', top }) : `<div class="sap-band rd-band ph-card">${top}</div>`;
 }
 /* THE ROW, THE LIST LANGUAGE (js/listlang.js): a mark leads it — a half circle partly read, a ticked circle
@@ -351,9 +351,11 @@ function readParts(r){
   }
   if (r.arrivals && r.arrivals.n) thread.push(`<li><b>${_rdE(_rdTn('rd_th_arrivals', r.arrivals.n))}</b><span>${_rdE(_rdTn('ac_n_calls', r.arrivals.calls))}${r.arrivals.last ? ` · ${_rdE(_rdT('ac_read_at', { when: rdWhen(r.arrivals.last) }))}` : ''}</span></li>`);
   if (r.asked && r.asked.at) thread.push(`<li><b>${_rdE(_rdT('rd_th_asked', { when: rdWhen(r.asked.at) }))}</b><span>${_rdE([r.asked.by, r.fact ? _rdT('ac_disc_fact') : r.kept ? _rdT('rd_th_kept') : _rdT('rd_chip_loose')].filter(Boolean).join(' · '))}</span></li>`);
-  const whereAns = `<p class="rd-where">${_rdT('rd_where_says', { name: `<b>${_rdE(r.pack ? r.name : r.name)}</b>` })} ${r.risk ? `<button type="button" class="ac-link" data-rd-act="risk">${_rdE(_rdTn('ac_chip_risk', r.risk))}</button> · ` : ''}<button type="button" class="ac-link" data-rd-act="bring">${_rdE(_rdT('rd_bring'))}</button></p>`;
+  /* NO QUESTION COLUMN ON CONTRACTS (owner, 22 Nov 2026): "Bring the column onto the list" is gone; the at-risk
+     contracts are still shown on the list, narrowed (regShowOnly) */
+  const whereAns = r.risk ? `<p class="rd-where"><button type="button" class="ac-link" data-rd-act="risk">${_rdE(_rdTn('ac_chip_risk', r.risk))}</button></p>` : '';
   const body = `<section class="ins-sec rd-sec"><h3>${_rdE(_rdT('rd_sec_thread'))}</h3><ul class="rd-thread">${thread.join('')}</ul></section>
-    <section class="ins-sec rd-sec"><h3>${_rdE(_rdT('rd_sec_where'))}</h3>${whereAns}</section>`;
+    ${whereAns ? `<section class="ins-sec rd-sec"><h3>${_rdE(_rdT('rd_sec_where'))}</h3>${whereAns}</section>` : ''}`;
   return { head: { eyebrow: `<span class="rd-eb">${_rdE(r.pack ? _rdT('rd_chip_pack', { n: r.pack.n }) : r.fact ? _rdT('ac_disc_fact') : _rdT('rd_eb_question'))}</span>`, title: r.name, sub: r.q ? `“${_rdE(r.q)}”` : '', acts }, body };
 }
 function AC_SIZES_OF(){ return (typeof AC_SIZES !== 'undefined' && Array.isArray(AC_SIZES)) ? AC_SIZES : [50, 100]; }
@@ -366,7 +368,7 @@ function rdJlSay(){
   if (risk) lines.push(_rdTn('jl_rd_say_risk', risk, { n: risk }));
   const chips = [{ label: _rdT('dsc_chip_ask'), run: () => readsAskNew() }];
   const first = qs.find(r => r.total > r.read);
-  if (first) chips.push({ label: rdNextLabel(first, rdSizeNow()), run: () => ((typeof newLookOn === 'function' && newLookOn() && document.querySelector('#rd-page.dsc-page')) ? dsnFill(first) : readsNext(first.key, rdSizeNow())) });
+  if (first) chips.push({ label: rdNextLabel(first, rdSizeNow()), run: () => readsNext(first.key, rdSizeNow()) });
   return { lines: [_rdE(lines.join(' '))], chips, src: _rdT('jl_rd_src') };
 }
 function rdChoose(list, wide){
@@ -467,7 +469,7 @@ function renderReadsDraw(o){
   const wide = typeof window.insFits === 'function' && insFits() && typeof window.insPaintPanel === 'function';
   const list = readsShown();
   if (_rdBack){ if (list.some(r => r.key === _rdBack)){ _rd.sel = _rdBack; if (typeof insSelect === 'function') insSelect(RD_SEAT, _rdBack); } if (_rd.rows && _rd.rows.length) _rdBack = null; }
-  const nl = !_rd.table && wide && typeof window.newLookOn === 'function' && newLookOn();
+  const nl = !_rd.table && (wide || _dsn.screen === 'new') && typeof window.newLookOn === 'function' && newLookOn();
   if (!nl) rdChoose(list, wide);
   const keep = document.activeElement && document.activeElement.id && document.activeElement.closest && document.activeElement.closest('#rd-page') ? document.activeElement.id : '';
   const caret = keep ? document.activeElement.selectionStart : null;
@@ -481,7 +483,7 @@ function renderReadsDraw(o){
       ${rdFootHtml(list)}
     </section>`;
   /* the new look (round 6, as drawn): its own page — kept questions and packs as one table, the panel reads the chosen one */
-  if (!tr && wide && typeof window.newLookOn === 'function' && newLookOn()){ rdnRender(host, o); return; }
+  if (!tr && (wide || _dsn.screen === 'new') && typeof window.newLookOn === 'function' && newLookOn()){ rdnRender(host, o); return; }
   host.innerHTML = `<div class="view-enter sap-page ins-page rd-page rd-ins${wide ? '' : ' is-narrow'}" id="rd-page" data-ins-page="reads" data-ins="${wide ? 1 : 0}"><style>${readsCss()}</style>
     ${tr && _rdScOn() ? '' : readsBandHtml()}
     <div class="ins-body">${card}${wide ? `<aside id="ins-panel" class="ins-panel" aria-label="${_rdE(_rdT('rd_panel_label'))}"></aside>` : ''}</div></div>`;
@@ -502,7 +504,7 @@ function renderReadsDraw(o){
    one table — Question (and what it is: kept, a column on Contracts, its rule), Answers (yes · no · not read, or
    the answers' own words), Read "5 of 7", Spent, and the row's one press (Read N more, or Open the table); the
    packs under their own line, each "Run on N · N calls"; the foot "A kept answer is never read again" and The
-   read table. Every press is an existing door (readsNext, readsTableOpen, askColOpen on Contracts). */
+   read table. Every press is an existing door (readsNext, readsTableOpen, rdNewRead → New read). */
 const _rdnLoading = new Set();
 /* EVERY QUESTION ASKED FOR IN ONE GO, AND ONE REDRAW WHEN THEY LAND (owner, 20 Nov 2026: "fix Discover"): a page drawn
    asks rdnAnswers for each read's questions in turn; those asked while it is drawn are gathered and fetched together
@@ -556,7 +558,7 @@ function rdnRedrawIfHere(){ if (state.view === 'reads') renderReads(); }
    and + Ask a question on one line; the box and All · On a list · Not finished; one table — Question (its name, its
    words under), Read "k of n", Answers (the top three and Not found), On the list of, Asked (by · when); the panel reads
    the chosen question: its answers, where it shows (Open · Remove, Add to a list), Read the other N, Delete question.
-   No cost is said. Every press is an existing door (readsNext, readsBring, askColOpen, askColDelete). */
+   No cost is said. Every press is an existing door (readsNext → New read, askColDelete). */
 /* ANSWER COLOURS (owner's pick by name, 9 Nov 2026; the colour round): each answer wears its own tone as a soft chip (the
    same tone its bar has in the panel: the first answer green, the next amber, Not found grey), and "k of n" gets a thin
    progress bar under it */
@@ -2064,28 +2066,27 @@ function rdOnContracts(then){
   const tick = () => { if (document.querySelector('#reg-tbody') && typeof askColOn === 'function' && askColOn()){ then(); return; } if (++n < 40) setTimeout(tick, 100); };
   setTimeout(tick, 100);
 }
-/* ASK A NEW QUESTION: on the Discover page it is the ask box; where that page is not drawn (the phone-narrow window, the
-   old look) the question is still asked from the Contracts list's panel, as before */
+/* EVERY QUESTION IS ASKED IN DISCOVER (owner, 22 Nov 2026: "There is not asking a column again only the features
+   related to discovery"): Ask again, a read's next batch and the narrow list's New read all land on Discover's own New
+   read (dsnFill: the question, or the pack chosen, in its box; the first not yet read are what its button reads), never
+   on Contracts. A press inside the old read table or the narrow list arrives there too (_dsn.resumed keeps the screen). */
+function rdNewRead(r){
+  _rd.table = null; _dsn.resumed = true;
+  if (r) dsnFill(r);
+  else { _dsc.q = ''; _dsc.askId = null; _dsc.pack = null; _dsc.fix = null; _dsc.say = ''; _dsn.pick = new Set(['all']); _dsn.status = 'all'; _dsn.party = ''; dsnGo('new'); }
+  setTimeout(() => { const q = document.getElementById('dsc-q'); if (q){ q.focus(); try { q.setSelectionRange(q.value.length, q.value.length); } catch (_){ /* not a text box */ } } }, 0);
+}
 function readsAskNew(){
-  if (state.view === 'reads' && document.querySelector('#rd-page.dsc-page')){ const q = document.getElementById('dsc-q'); if (q) q.focus(); return; }
-  rdOnContracts(() => { if (typeof askColOpen === 'function') askColOpen(); });
+  if (state.view === 'reads' && document.querySelector('#rd-page.dsc-page') && _dsn.screen === 'new'){ const q = document.getElementById('dsc-q'); if (q) q.focus(); return; }
+  rdNewRead(null);
 }
-function readsNext(key, size){
-  const r = rdFind(key); if (!r) return;
-  if (r.pack){ rdOnContracts(() => { const p = ((typeof AC !== 'undefined' && AC.packs) || []).find(x => x.id === r.pack.id); if (p && typeof askColOpen === 'function'){ if (typeof acSizeSet === 'function') acSizeSet(size); askColOpen({ pack: p }); } }); return; }
-  rdOnContracts(() => { if (typeof askColNext === 'function') askColNext(r.askIds[0], size); });
-}
-function readsAgain(key){
-  const r = rdFind(key); if (!r) return;
-  const a = (typeof AC !== 'undefined' && AC.asks) ? AC.asks[r.askIds[0]] : null;
-  rdOnContracts(() => { if (typeof askColOpen === 'function') askColOpen(a ? { question: a.question, name: a.name, askId: a.id, force: true } : {}); });
-}
+function readsNext(key){ const r = rdFind(key); if (r) rdNewRead(r); }
+function readsAgain(key){ const r = rdFind(key); if (r) rdNewRead(r); }
 /* OPEN THE TABLE STAYS ON THIS PAGE (round 4): the read table opens inside Reads, never by way of Contracts */
 function readsTable(key){ readsTableOpen(key); }
-function readsBring(key){ const r = rdFind(key); if (!r) return; rdOnContracts(() => { if (typeof askColBring === 'function') askColBring(r.askIds[0]); }); }
 function readsRisk(key){
   const r = rdFind(key); if (!r) return;
-  rdOnContracts(async () => { if (typeof askColBring === 'function') await askColBring(r.askIds[0]);
+  rdOnContracts(async () => { if (typeof askColLoad === 'function') await askColLoad(r.askIds[0], (typeof askColShown === 'function' ? askColShown() : []).slice(0, 500));
     const ids = (typeof askColAtRisk === 'function') ? askColAtRisk(r.askIds[0]) : [];
     if (ids.length && typeof regShowOnly === 'function') regShowOnly(ids, _rdT('ac_risk_label', { name: r.name })); });
 }
@@ -2117,7 +2118,6 @@ function readsWire(){
       if (act === 'next') readsNext(_rd.sel, Number(el.getAttribute('data-rd-n')) || (typeof acSize === 'function' ? acSize() : 50));
       else if (act === 'again') readsAgain(_rd.sel);
       else if (act === 'table') readsTable(_rd.sel);
-      else if (act === 'bring') readsBring(_rd.sel);
       else if (act === 'risk') readsRisk(_rd.sel);
       else if (act === 'unlist'){ const r = rdFind(_rd.sel); if (r && typeof askColDrop === 'function'){ askColDrop(r.askIds[0]); renderReads(); } }
       else if (act === 'delete'){ const r = rdFind(_rd.sel); if (r && typeof askColDelete === 'function') Promise.resolve(askColDelete(r.askIds[0])).then(() => rdLoad(true)).catch(() => {}); }

@@ -565,8 +565,9 @@ describe('f861 (14) the foot in place, a column aside, the numbers grouped', () 
     doc.body.innerHTML = sb.lcPopHtml('t');
     assert.equal(doc.querySelector('[data-lc-k="owner"]').disabled, false, 'back, it is live again');
     const REG = read('js/views/register.js');
-    assert.match(REG, /off:\(\)=>regOnCt\(\(\)=>regCtAskKeys\(\)\.length\?\{ owner:i18t\('reg_col_owner_aside'\) \}:\{\}\)/, 'Contracts names Owner aside while answer columns stand');
-    assert.ok(EN.reg_col_owner_aside && BOOKS.sv.reg_col_owner_aside, 'its reason in both books');
+    /* RE-POINTED 22 Nov 2026 (owner: "There is not asking a column again only the features related to discovery"): no answer
+       column stands on Contracts any more, so Owner never steps aside for one */
+    assert.doesNotMatch(REG, /regCtAskKeys|reg_col_owner_aside/, 'Contracts sets nothing aside for answer columns');
   });
   test('a tab\'s number is grouped the way the foot\'s is', () => {
     need(); const { sb, doc } = stage();

@@ -29,7 +29,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
 const { startHati } = require('../helpers');
-const { seedRound6, R6_IN_PAGE, R6_BRING } = require('../round6-world');
+const { seedRound6, R6_IN_PAGE } = require('../round6-world');
 
 const OUT = process.env.ROUND6_SHOTS || path.join(__dirname, 'shots', 'round6-new-look');
 const EXEC = process.env.CHROMIUM_BIN || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
@@ -81,14 +81,16 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     if (proc && await until(page, () => !!document.querySelector('.ctf-ftable tr.is-sel[data-ctf-folder]'), null, 4000))
       await page.evaluate(() => { const b = document.querySelector('.ctf-ftable tr.is-sel[data-ctf-folder]'); if (b) b.click(); });
     await until(page, () => !!document.querySelector('#reg-tbody tr[data-row]'), null, 10000);
-    await page.evaluate('(' + R6_BRING.toString() + ')()');
+    /* RE-POINTED 22 Nov 2026 (owner: "There is not asking a column again only the features related to discovery"): no kept
+       question is brought onto the list as a column any more; the list draws none, even with one still in its state */
+    await page.evaluate(() => { if (window.__r6Ask){ regState().ask = [window.__r6Ask]; regRepaint(); } });
     /* RE-POINTED (owner, 9 Nov 2026: "the column should only reflect the name of the column … The count should maybe go to
        the side panel"): the head is the question's name alone; how far it is read stands in the panel, "3 of 6 read" */
     /* RE-POINTED (14 Nov 2026): the panel no longer says "3 of N read" (Columns you asked is gone); the column's head and the panel drawn are the wait */
     /* RE-POINTED 21 Nov 2026 (P-31, as drawn): beside a folder's list the panel is the list's own (.ctls-list) */
-    const up = await until(page, () => !!document.querySelector('#ct-place th.ac-th.is-nl') && !!document.querySelector('#ig-dock .ctls-list'), null, 15000);
+    const up = await until(page, () => !!document.querySelector('#reg-tbody tr[data-row]') && !!document.querySelector('#ig-dock .ctls-list'), null, 15000);
     const heads = await page.evaluate(() => [...document.querySelectorAll('#ct-place .reg-table thead th')].map(x => x.innerText.trim().toLowerCase().split('\n')[0].trim()).filter(Boolean));
-    const sub = await txt(page, '#ct-place th.ac-th.is-nl .reg-th-sub');
+    const sub = '', askCols = await page.evaluate(() => document.querySelectorAll('#ct-place th.ac-th, #ct-place td.ac-cell').length);
     const tabs = await page.evaluate(() => [...document.querySelectorAll('#ct-place .reg-views .reg-vtab')].filter(b => b.offsetParent).map(b => b.innerText.replace(/\s+/g, ' ').trim()));
     /* RE-POINTED (owner's pick, 10 Nov 2026: the Scorecard): what is missing is named on the standards bar's hover, the cell one line */
     /* RETIRED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way): Our playbook steps out of the List
@@ -119,8 +121,8 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
       panel && says.months === 12 && says.bar && says.needs === says.owed && new RegExp('^' + says.n + ' contracts?').test(says.head) && !says.money && says.cards === 0 && says.spill === 0
       && /Where they stand[\s\S]*When they end/i.test(kept), { says });
     await shot('2-folder-list');
-    check('2 a folder\'s list: Standing, the kept question (its name alone), what is missing; All · Needs you · Signed; the folder\'s panel as drawn',
-      proc && up && heads.includes('standing') && heads.includes('needs you') && !heads.includes('our playbook') && !sub.trim() && !/Columns you asked|read · (not )?on this list|Add to list/i.test(kept) && tabs.some(t => /^Signed/.test(t)) && !miss
+    check('2 a folder\'s list: Standing, no question column, what is missing; All · Needs you · Signed; the folder\'s panel as drawn',
+      proc && up && askCols === 0 && heads.includes('standing') && heads.includes('needs you') && !heads.includes('our playbook') && !sub.trim() && !/Columns you asked|read · (not )?on this list|Add to list/i.test(kept) && tabs.some(t => /^Signed/.test(t)) && !miss
       && panel && /When they end/i.test(kept) && !/Remove from list/.test(kept) && !/\bcalls?\b|\bfree\b/i.test(kept), { heads, sub, tabs, miss, panel, kept: kept.slice(0, 600) });
     /* (P-31 as drawn, 21 Nov 2026) the heads say Folder only where the list holds many folders: inside one it steps out */
   } catch (e) { check('2 a folder\'s list', false, String(e).slice(0, 200)); }

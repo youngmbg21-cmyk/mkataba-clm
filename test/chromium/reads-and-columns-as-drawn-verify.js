@@ -5,15 +5,8 @@
    or overlapping to neighboring columns"). New look on, a folder of 60, at the owner's three screens:
      1 · the folder's top on ONE line, nothing above 15px; "+ Ask a column" a grey pill; the panel: This folder
          (Contracts · Need you · Signed · On paper), then + Ask a column and All your reads
-     2 · the ask form: ‹ Overview, your question, the column's name with its hint, First 50 | All 60, Read 50 contracts, Cancel
-     3 · while it reads, the reading card with Stop stands at the top of the panel
-     4 · read: the column's card — the question, how far and when, Answers (bar and rows with Show), This column (Read the
-         rest, Remove column); the column's head "Governing law ⋯" on one line, its name alone (owner, 9 Nov 2026: the count is the panel's)
-     5 · ⋯: Sort by this column · Read the other 10 · Rename column · Remove from this list (5b: Rename keeps the new name); Remove → "Column removed · its 50 answers are
-         kept in Reads" with Undo; Undo puts it back; the folder's panel does NOT list it (owner, 14 Nov 2026)
-     6 · Reads: "Reads · 1 question · 50 answers kept" and + Ask a question on one line; All · On a list · Not finished;
-         Question · Read · Answers · On the list of · Asked; every cell inside its column; the panel: Where it shows, Read
-         the other 10, Delete question
+     2–5 RETIRED 22 Nov 2026 with Ask a column (form, reading card, column card and head, its ⋯ menu)
+     6 · Discover's list of reads, the chosen read in the panel with Open the results and Delete question
    No word of cost anywhere on these screens. At the parent 1, 2, 4, 5 and 6 fail.
    Run: node test/chromium/reads-and-columns-as-drawn-verify.js (RC_SHOTS=<dir> takes the pictures) */
 const fs = require('node:fs');
@@ -70,57 +63,12 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
         T.mids === 2 && T.big.length === 1 && /\bct-h\b/.test(T.big[0]) && !T.crumb && !T.pill && /^\s*60\s*contracts[\s\S]*WHEN THEY END/i.test(T.panel) && !/WHERE THE MONEY IS/i.test(T.panel) /* RE-POINTED, INVERTED (P-31, owner's pick 20 Nov 2026: MONEY IS NEVER A BIG PART OF A PAGE — no money in a side panel) */ && !/Discover/.test(T.panel) && !/Ask a column|All your reads/.test(T.panel) && !COST.test(T.panel), T);
       await shot('1-rest');
 
-      /* 2 · the form */
-      await page.evaluate(() => askColOpen({ question: 'What are the governing laws?', name: 'Governing law' }));
-      await until(page, () => !!document.querySelector('.ac-nl-form'), null, 8000);
-      const F = await page.evaluate(() => { const f = document.querySelector('.ac-nl-form'); if (!f) return null;
-        return { text: f.innerText, name: (document.getElementById('ac-name') || {}).value, opts: [...f.querySelectorAll('.ac-nl-opt')].map(b => b.textContent.trim()),
-          go: (f.querySelector('[data-ac-ask]') || {}).textContent, lit: !!document.querySelector('#ct-place .ac-btn.is-open') }; });
-      /* RE-POINTED (owner, 12 Nov 2026, "Discover is a page"): the list's pill is Discover now and opens the Discover page, not
-         this form, so no pill is lit while the form stands (the form is still reached by its other doors) */
-      check(`${nm} 2 the form as drawn: ‹ Overview, your question, the column's name and its hint, First 50 | All 60, Read 50 contracts · Cancel; no pill lit`,
-        !!F && /‹ Overview/.test(F.text) && /YOUR QUESTION/i.test(F.text) && /COLUMN NAME/i.test(F.text) && /Read from your question/.test(F.text) && F.name === 'Governing law'
-        && JSON.stringify(F.opts) === '["First 50","All 60"]' && F.go === 'Read 50 contracts' && /Cancel/.test(F.text) && !F.lit && !COST.test(F.text), F);
-      await shot('2-form');
-
-      /* 3 · the reading card with Stop */
-      await page.click('.ac-nl-form [data-ac-ask]');
-      const reading = await until(page, () => !!document.querySelector('#ig-dock .ac-dk-card [data-ac-stop]') || !!document.querySelector('.ac-nl-done'), null, 15000);
-      await shot('3-reading');
-      check(`${nm} 3 while it reads, the reading card with Stop (or the read already done)`, reading);
-
-      /* 4 · the column's card and its head */
-      const done = await until(page, () => !!document.querySelector('.ac-nl-done') && !(window.AC && AC.busy), null, 60000);
-      const D = done ? await page.evaluate(() => { const c = document.querySelector('.ac-nl-done'), th = document.querySelector('th.ac-th.is-nl');
-        const line = th ? [...th.querySelectorAll('.ac-th-w, .ac-th-more')].map(e => { const r = e.getBoundingClientRect(); return r.top + r.height / 2; }) : [];
-        return { text: c.innerText, bar: !!c.querySelector('.ac-gbar'), th: th ? th.innerText.replace(/\s+/g, ' ').trim() : '', more: !!(th && th.querySelector('[data-ac-thmore] svg')), oneLine: line.length === 2 && Math.max(...line) - Math.min(...line) <= 4 }; }) : null;
-      check(`${nm} 4 read: the column's card (the question, how far and when, Answers with Show, This column) and its head on one line`,
-        !!D && /What are the governing laws\?/.test(D.text) && /50 of 60 read · finished/.test(D.text) && D.bar && /ANSWERS[\s\S]*Show/i.test(D.text)
-        && /Not read yet[\s\S]*10 contracts[\s\S]*Read the rest/.test(D.text) && /Remove column/.test(D.text) && /^Governing law$/.test(D.th) && D.more && D.oneLine && !COST.test(D.text), D);
-      await shot('4-done');
-
-      /* 5 · the head's menu, Remove and Undo */
-      await page.click('[data-ac-thmore]');
-      const M = await page.evaluate(() => [...document.querySelectorAll('#ac-th-menu .ac-thm-i')].map(b => b.textContent.trim()));
-      await shot('5-menu');
-      await page.click('#ac-th-menu [data-ac-remove]');
-      const gone = await until(page, () => !document.querySelector('th.ac-th') && /Column removed · its 50 answers are kept in Reads/.test((document.getElementById('toast-root') || {}).textContent || ''), null, 8000);
-      /* RE-POINTED (owner, 14 Nov 2026: Columns you asked is deleted from the folder's panel): the removed column is NOT listed there */
-      const listed = await until(page, () => { const p = document.querySelector('#ig-dock .ctls-list'); return !!p && !/COLUMNS YOU ASKED|Add to list|Governing law/i.test(p.innerText || ''); }, null, 8000);
-      await shot('6-removed');
-      await page.evaluate(() => { const b = [...document.querySelectorAll('#toast-root [data-toast-act]')].pop(); if (b) b.click(); });
-      const back = await until(page, () => !!document.querySelector('th.ac-th'), null, 8000);
-      check(`${nm} 5 ⋯: Sort · Read the other 10 · Rename column · Remove from this list; Remove says the answers are kept, with Undo; the folder's panel does not list it; Undo puts it back`,
-        JSON.stringify(M) === '["Sort by this column","Read the other 10","Rename column","Remove from this list"]' && gone && listed && back, { M, gone, listed, back });
-
-      /* 5b · Rename (owner, 8 Nov 2026: "Add rename"): the box holds the name; the new name stands on the head and in the panel */
-      await page.click('[data-ac-thmore]'); await page.click('#ac-th-menu [data-ac-rename]');
-      const box = await until(page, () => (document.getElementById('pd-input') || {}).value === 'Governing law', null, 8000);
-      if (box){ await page.fill('#pd-input', 'Which law'); await page.click('#pd-ok'); }
-      const renamed = box && await until(page, () => /^Which law/.test(((document.querySelector('th.ac-th.is-nl .ac-th-w') || {}).textContent || '').trim()), null, 8000);
-      const kept = await page.evaluate(async () => { const r = await api('columns'); return ((r && r.asks) || []).some(a => a.name === 'Which law'); });
-      check(`${nm} 5b Rename: the box holds the name; "Which law" stands on the column's head and is kept on the server`, box && renamed && kept, { box, renamed, kept });
-      await page.evaluate(async () => { const id = Object.keys(AC.asks).find(k => AC.asks[k].name === 'Which law'); if (id) await api('columns/' + id + '/name', 'POST', { name: 'Governing law' }); if (id) AC.asks[id].name = 'Governing law'; });
+      /* RETIRED 22 Nov 2026 (owner: "There is not asking a column again only the features related to discovery"): checks 2–5b —
+         Ask a column's form, its reading card, the column's card and head, the head's ⋯ menu (Sort · Read the other N · Rename
+         · Remove, Undo). All of it is deleted: a question is asked on Discover's New read and its answers stand there. The read
+         check 6 needs is made through the one engine route, as Discover's New read makes it. Every question asked in Discover,
+         and no question column on Contracts: every-question-in-discover-verify. */
+      if (nm === 'laptop-a') await page.evaluate(() => api('ai/column', 'POST', { question: 'What are the governing laws?', name: 'Governing law', ids: state.contracts.slice(0, 50).map(c => c.id) }));
 
       /* 6 · Reads — RE-POINTED (owner, 15 Nov 2026: THE NEW DISCOVER, f1055): the list of reads — one top line with New
          read, When · Question · Where · Read · Found · By, nothing out of its cell; the chosen read's summary in the panel

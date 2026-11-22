@@ -120,7 +120,8 @@ test('f1049 (5b) which look wins, and a move before signing follows the stream (
 
 test('f1049 (6) Settings, How our contracts look: its page, a sentence read without AI, admins only', () => {
   const ST = read('js/views/settings.js');
-  assert.match(ST, /const ST_PAGES=\['team','sheet','roles','streams','data','panel','look'\];/);
+  /* RE-POINTED 22 Nov 2026: the access check added its page ('guard') after 'look' — the claim is that 'look' is a page */
+  assert.match(ST, /const ST_PAGES=\['team','sheet','roles','streams','data','panel','look'(,'[a-z]+')*\];/);
   assert.match(ST, /if\(_stPage==='look'\) return \(typeof window\.clPageHtml==='function'\)\?window\.clPageHtml\(\):'';/);
   assert.match(ST, /\{ key:'company-look', what:/, 'the Editor\'s lost door is a named closure');
   const sb = { window: {}, i18t: k => k };

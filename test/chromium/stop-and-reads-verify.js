@@ -28,7 +28,7 @@ const book = n => Array.from({ length: n }, (_, i) => fixtureContract(`HC-${3001
     const errors = []; page.on('pageerror', e => errors.push(String(e && e.message || e)));
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
-    await until(page, () => window.state && state.contracts && state.contracts.length >= 40 && typeof window.askColOpen === 'function', null, 40000);
+    await until(page, () => window.state && state.contracts && state.contracts.length >= 40 && typeof window.askColAskHere === 'function', null, 40000);
     await page.waitForTimeout(1000);
 
     /* ---- 1 "reads" typed ---- */

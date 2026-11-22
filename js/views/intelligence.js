@@ -1744,7 +1744,7 @@ function igRecipeUndo(){
    (aiPageContext) and by "what am I looking at" (aiHereSays). Counts nothing of its own: the drawn model's. */
 function igMapNow(){
   const out={ shown:null, total:null, by:'', says:[] };
-  try{ const model=buildGraphModel(); out.shown=model.shown; }catch(_){ out.shown=null; }
+  try{ const model=igDrawnModel(); out.shown=model.shown; }catch(_){ out.shown=null; }
   try{ out.total=igBookTotal(); }catch(_){ out.total=null; }
   try{ out.by=intel.groupBy?graphGroupingWord(intel.groupBy):''; }catch(_){ out.by=''; }
   try{ out.says=igRecipeSays(); }catch(_){ out.says=[]; }
@@ -6304,6 +6304,15 @@ function igKeptKey(cs, groupBy, groups, lenses){
   const ls=(lenses||[]).filter(l=>l&&l.on!==false).map(l=>(l.action||'')+':'+[...(l.ids||[])].slice().sort().join(',')).join(';');
   return [groupBy||'', groups?JSON.stringify(groups):'', ls, book].join('#');
 }
+/* THE MODEL THE MAP DREW (22 Nov 2026, home-speed-verify 2: coming back to Explorer, its panel built the whole map's
+   model again three or four times over — the ring, the day, the head — though the kept map held it). A READER asks
+   here: the drawn map's own model while it stands for this book, grouping and lenses (the same key igTurnFace keeps
+   the map by), else a fresh build. Never for a writer that changes the lenses first (igLegendPickIds builds its own). */
+function igDrawnModel(){
+  try{ if(IG&&IG._model&&igMapUp()&&IG.svg===document.getElementById('ig-svg')
+    &&_igKept.key===igKeptKey(window.state&&state.contracts, intel.groupBy, intel.groups, intel.lenses)) return IG._model; }catch(_){}
+  return buildGraphModel();
+}
 function igWake(){ _igWokeAt=Date.now(); if(IG){ IG._furn=null; }
   if(_igKick){ const k=_igKick; _igKick=null; if(_igTimer){ clearTimeout(_igTimer); _igTimer=0; } requestAnimationFrame(k); } }
 function rebuildIntelGraph(){
@@ -7108,7 +7117,7 @@ function igBriefPinned(){ try{ return localStorage.getItem(IG_BRIEF_PIN_KEY)==='
 function igBriefPinSet(on){ try{ if(on) localStorage.setItem(IG_BRIEF_PIN_KEY,'1'); else localStorage.removeItem(IG_BRIEF_PIN_KEY); }catch(_){}
   if(typeof toast==='function') toast(i18t(on?'int_brief_pinned':'int_brief_unpinned'),'ok'); updateIntelNote(); }
 /* the book the briefing reads: every contract the map draws with nothing cut */
-function igBriefBook(){ try{ return (buildGraphModel().nodes||[]).filter(n=>n&&n.kind==='contract').map(n=>n.c||getContract(n.id)).filter(Boolean); }catch(_){ return []; } }
+function igBriefBook(){ try{ return (igDrawnModel().nodes||[]).filter(n=>n&&n.kind==='contract').map(n=>n.c||getContract(n.id)).filter(Boolean); }catch(_){ return []; } }
 function igBriefNeeds(book){
   const out={ n:0, late:0, oldest:null, ids:[] };
   if(typeof window.ndRead!=='function') return out;
@@ -7498,8 +7507,8 @@ function igViewSuggestions(opts){
 /* THE FIVE PARTS (owner, 15 Nov 2026, round 1): what the map draws as three numbers; the view's own suggestions
    (igViewSuggestions — the same words the chips carried, a row's press is the chip's, intelAsk) as rows with a line
    on what each does; the saved views (igSavedViewOpen) or the map's one Save door (igSaveViewDoor). The new look. */
-function igOverviewFive(shown){
-  let M=null; try{ M=buildGraphModel(); }catch(_){ M=null; }
+function igOverviewFive(shown, model){
+  let M=model||null; if(!M) try{ M=igDrawnModel(); }catch(_){ M=null; }
   const cs=(typeof state!=='undefined'&&state&&Array.isArray(state.contracts))?state.contracts.filter(c=>c&&!c.archived):[];
   /* the parties and the overdue promises OF WHAT THE MAP DREW (P-40), never the whole book */
   const drawnIds=new Set(((M&&M.nodes)||[]).filter(n=>n.kind==='contract').map(n=>String(n.id||(n.c&&n.c.id)||'')));
@@ -7547,8 +7556,8 @@ function igOverviewFive(shown){
     src:'' };
 }
 function igOverviewHtml(){
-  let shown=0; try{ shown=buildGraphModel().shown||0; }catch(_){ shown=0; }
-  if(typeof window.newLookOn==='function'&&window.newLookOn()&&typeof window.jamboOverviewHtml==='function') return `<div class="jl-words is-ov">${jamboOverviewHtml(igOverviewFive(shown),'ig')}</div>`;
+  let M=null, shown=0; try{ M=igDrawnModel(); shown=M.shown||0; }catch(_){ shown=0; }
+  if(typeof window.newLookOn==='function'&&window.newLookOn()&&typeof window.jamboOverviewHtml==='function') return `<div class="jl-words is-ov">${jamboOverviewHtml(igOverviewFive(shown, M),'ig')}</div>`;
   const facts=[{ k:i18t('jov_ig_map'), v:i18tn('jov_ig_map_v',shown,{ n:shown }) }];
   const fd=(typeof igFindingsTabOn==='function'&&igFindingsTabOn())?igFindingsCount():null;
   if(fd) facts.push({ k:i18t('jov_ig_fd'), v:i18tn('jov_ig_fd_v',fd.n,{ n:fd.n }), need:fd.tone==='amber', link:i18t('jov_ln_see'), run:()=>igFindingsShow() });

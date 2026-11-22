@@ -204,7 +204,8 @@ test('f977 fix 7 · the Board counts rows in the new look, the number Home says'
 test('f977 fix 8 · one column per question, its name and ⋯; the foot says only the count', () => {
   const ac = read('js/views/askcolumn.js');
   assert.doesNotMatch(strip(ac), /ac_nl_th_sub/, 'no "k of n read" in the head');
-  assert.match(ac, /<span class="ac-th-w">\$\{_acE\(a\.name \|\| a\.question \|\| ''\)\}<\/span><button type="button" class="ac-th-more"/);
+  /* RE-POINTED 22 Nov 2026 (owner: "There is not asking a column again only the features related to discovery"): no question column at all */
+  assert.doesNotMatch(strip(ac), /class="ac-th-w"|function askColThHtml/, 'no question column head');
   const reg = read('js/views/register.js');
   const foot = reg.match(/function regNlFootHtml\(cs\)\{[\s\S]*?\n\}/)[0];
   assert.doesNotMatch(strip(foot), /reg_nl_foot_ask|reg_nl_foot_std|reg-nl-foot-r/);

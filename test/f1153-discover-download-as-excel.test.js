@@ -1,5 +1,5 @@
 'use strict';
-/* f1152 — DOWNLOAD AS EXCEL (owner, 22 Nov 2026: "add a download as Excel button and merge").
+/* f1153 — DOWNLOAD AS EXCEL (owner, 22 Nov 2026: "add a download as Excel button and merge").
    Discover's results (and its older read table) carry "Download as Excel" beside Export. It writes the SAME table
    Export copies (askColTableOf, one reading) as a real .xlsx: a zip of the Office Open XML parts, stored, with a bold
    header row — no library, nothing sent anywhere.
@@ -42,13 +42,13 @@ function unzip(buf, crc){
   return out;
 }
 
-test('f1152 (1) the zip CRC is the standard one', () => {
+test('f1153 (1) the zip CRC is the standard one', () => {
   const w = world();
   assert.equal(w.xlCrc(new TextEncoder().encode('123456789')).toString(16).toUpperCase(), 'CBF43926');
   assert.equal(w.xlCol(0), 'A'); assert.equal(w.xlCol(25), 'Z'); assert.equal(w.xlCol(26), 'AA');
 });
 
-test('f1152 (2)+(3) the book holds the parts Excel needs, the header in bold and every row, escaped', async () => {
+test('f1153 (2)+(3) the book holds the parts Excel needs, the header in bold and every row, escaped', async () => {
   const w = world();
   const blob = w.xlBook(['Ref', 'Party', 'Notice'], [['MK-1', 'Smith & Sons <Ltd>', '30 "days"'], ['MK-2', 'Riverside Foods', '']], 'Notice period');
   const buf = Buffer.from(await blob.arrayBuffer());
@@ -64,7 +64,7 @@ test('f1152 (2)+(3) the book holds the parts Excel needs, the header in bold and
   assert.match(parts['xl/styles.xml'], /<font><b\/>/);
 });
 
-test('f1152 (4) both Discover tables draw Download beside Export, and Copy and Download read one table', () => {
+test('f1153 (4) both Discover tables draw Download beside Export, and Copy and Download read one table', () => {
   assert.match(RD, /data-dsn-copy>[^<]*<\/button><button type="button" class="rfp-pill" data-dsn-xlsx>/, 'the results head: Export, then Download as Excel');
   assert.match(RD, /data-rdt-copy>[^]*?<\/button><button type="button" class="ui-btn ui-btn-sm" data-rdt-xlsx>/, 'the read table: Copy, then Download as Excel');
   assert.match(RD, /closest\('\[data-dsn-xlsx\]'\)[^\n]*askColXlsx\(r\.askIds, S\.list\.map/, 'the results press writes the rows shown');
@@ -73,6 +73,6 @@ test('f1152 (4) both Discover tables draw Download beside Export, and Copy and D
   assert.match(fnOf(AC, 'askColXlsx'), /\.xlsx/);
 });
 
-test('f1152 (5) the words are in both books', () => {
+test('f1153 (5) the words are in both books', () => {
   for (const k of ['dsn_xlsx', 'ac_xlsx_done', 'ac_xlsx_none', 'ac_xlsx_failed']) assert.equal((I18N.match(new RegExp('\\n\\s+' + k + ':', 'g')) || []).length, 2, k + ' is in en and sv');
 });

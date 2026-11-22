@@ -101,7 +101,9 @@ const signIn = async (page, base, email, pass) => {
     await page.reload({ waitUntil: 'networkidle' });
     const back = await until(() => !!document.querySelector('[data-st-pg="team"]'), null, 15000);
     check('2d. a refresh comes back to the Team page', !!back);
-    await page.click('.st-pg-back');
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the page's way back is the area frame's
+       "‹ Company" on the line above the title (.st-ls-back, data-sdd-to the area, landing on the row that opened it) */
+    await page.click('#set-page .st-ls-back');
     const board = await until(() => !!document.querySelector('.stn-page[data-sdd-area="company"] #stn-main [data-sdd-row="people"]'));
     check('2e. ‹ Company goes back to the Company area', !!board);
 
@@ -188,7 +190,12 @@ const signIn = async (page, base, email, pass) => {
     /* RE-POINTED 16 Nov 2026 (#762): the admin typed in this panel at step 5, so it still shows his talk and the
        Overview (where Needs you's rows stand) is hidden under it — the reader presses the one way back above the box first */
     if (await page.evaluate(() => { const d = document.querySelector('#ins-panel [data-jb-door]'); return !!d && !d.hidden && d.offsetParent !== null; })) await page.click('#ins-panel [data-jb-door] .jb-door-back');
-    const need = await until(q => { const r = document.querySelector(q); return r && r.offsetParent !== null ? r.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) : null; }, ASK);
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the landing's panel carries the access
+       check's card and stops its needs where its room does ("N more"); a need past it is a row on the Company area's
+       panel (a colleague's ask stands under Company), which the reader reaches from the landing's Company row */
+    const need = await until(q => { const r = document.querySelector(q); if (r && r.offsetParent !== null) return r.textContent.replace(/\s+/g, ' ').trim().slice(0, 80);
+      if (document.querySelector('#ins-panel .jov5-flink[data-sdd-chip="need"]')) { const co = document.querySelector('#set-page [data-sdd-home="company"]'); if (co) co.click(); }
+      return null; }, ASK);
     check('6b. the admin finds it in Needs you', !!need && /Unrestricted Legal/.test(need), need);
     const bell = await page.evaluate(() => buildAlerts().some(a => a.kind === 'settings-ask'));
     check('6c. and in the bell', bell);

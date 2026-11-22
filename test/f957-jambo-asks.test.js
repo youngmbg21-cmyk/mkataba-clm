@@ -49,20 +49,5 @@ test('1–3 · the turn costs one call and keeps nothing; the read keeps yes per
   } finally { await h.stop(); }
 });
 
-test('4 · the browser opens Jambo\'s card for a counting question; records are read free off the list\'s conditions', () => {
-  const A = read('js/views/askcolumn.js');
-  const run = A.slice(A.indexOf('async function askColRun()'), A.indexOf('/* one read, then its end said'));
-  assert.match(run, /if \(askColIsPortfolio\(question\)\)\{ askColCountOpen\(question\); return; \}/);
-  assert.doesNotMatch(run, /ac_q_portfolio/, 'no refusal under the box');
-  const rec = A.slice(A.indexOf('function askColRecordsOf'), A.indexOf('function askColCountOpen'));
-  assert.match(rec, /jmOnlyNarrows\(q\)/, 'only a question whose every word the list reads');
-  assert.doesNotMatch(rec, /api\(/, 'no call');
-  const turn = A.slice(A.indexOf('async function askColCountTurn'), A.indexOf('async function askColCountGo'));
-  assert.match(turn, /api\('ai\/column-turn', 'POST'/);
-  const card = A.slice(A.indexOf('function askColCountHtml'), A.indexOf('async function askColCountTurn'));
-  assert.match(card, /ac-dk-card/, 'Jambo\'s grey card'); assert.match(card, /ac_ct_turn'/, 'the turn is offered');
-  assert.match(card, /ac_ct_go', m/, 'the read is offered');
-  const I = read('js/i18n.js');
-  assert.match(I, /ac_ct_turn: 'Turn it into one question'/); /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
-  assert.match(I, /ac_ct_of: '\{y\} of \{n\}'/);
-});
+/* RETIRED 22 Nov 2026 (owner: "There is not asking a column again only the features related to discovery"): test 4 — the counting card Ask a column's form opened (askColCountOpen, askColRecordsOf) is deleted;
+   a counting question on Discover is turned down and shown how to ask (f1064). The server's turn (1–3) stays. */

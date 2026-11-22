@@ -14,7 +14,8 @@ const read = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const AC = strip(read('js/views/askcolumn.js')), RD = strip(read('js/views/reads.js')), INS = strip(read('js/views/inspector.js')), I18N = read('js/i18n.js');
 const fnBody = (src, name) => { const at = src.search(new RegExp('\\n(?:async )?function ' + name + '\\(')); assert.ok(at >= 0, name + ' exists'); const nx = src.slice(at + 10).search(/\n(?:async )?function /); return src.slice(at, nx > 0 ? at + 10 + nx : undefined); };
-const reword = () => { const a = AC.indexOf('const AC_PORTFOLIO_RE'), b = AC.search(/\nfunction askColSay\(/); assert.ok(a >= 0 && b > a, 'the rules stand between the counting rule and the refusal');
+/* RE-POINTED 22 Nov 2026 (Ask a column deleted, askColSay with its form): the rules run from the counting rule to the end of askColReword */
+const reword = () => { const a = AC.indexOf('const AC_PORTFOLIO_RE'), r0 = AC.search(/\nfunction askColReword\(/), b = r0 < 0 ? -1 : AC.indexOf('\n}', r0) + 2; assert.ok(a >= 0 && b > a, 'the rules stand from the counting rule to the rewording');
   assert.match(AC.slice(a, b), /function askColReword\(/, 'askColReword exists');
   return new Function(AC.slice(a, b) + '; return { askColReword, askColIsPortfolio };')(); };
 

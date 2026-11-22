@@ -1042,4 +1042,17 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 - test/f1150-an-alert-belongs-to-its-page.test.js: leaves with the page, rides a move, button stays; names its contract; one limit once; a wait ends on its result; plain words for a dropped connection; amber's time; the silent refusals speak. Beside it: f209, f1023, f942, f242, f273, f472, f624.
 
 ## ASK A COLUMN — Download as Excel (22 Nov 2026)
-- test/f1152-discover-download-as-excel.test.js: the CRC check value, the zip's parts each stored with its CRC right, the bold header and escaped cells, both Discover tables draw Download beside Export, Copy and Download read one table, the words in both books.
+- test/f1153-discover-download-as-excel.test.js: the CRC check value, the zip's parts each stored with its CRC right, the bold header and escaped cells, both Discover tables draw Download beside Export, Copy and Download read one table, the words in both books.
+
+## ASK A COLUMN (js/views/askcolumn.js) — the leftovers deleted (22 Nov 2026)
+- f1016 (1) and (8) RE-POINTED (red at the parent: `askColBtnHtml` and `askColDiscoverHtml` stood): no list-head door, no press wired for a door nobody draws, no old Discover section nor any call to it; the "discover" link above Jambo's box stays.
+- Re-ran green: f1016, f1055, f1057, f1058, f1061, f1062, f1063, f1064, f1074, f1076, f1113, f1114, f1124, f1127, f1145, f1153, f148, f232, f48, f561, f705, f843, f884, f888–f893, f904, f934, f937, f954, f956, f957, f963, f965, f976, f977, f986. Browser (here, allowed for this job): discover-page-verify, discover-verify, reads-and-columns-as-drawn-verify.
+
+## ASK A COLUMN (js/views/askcolumn.js) — Ask a column gone, every question in Discover (22 Nov 2026)
+- NEW: test/chromium/every-question-in-discover-verify.js (9 of 9 red at main d43c5cd; green here at the three screens): Ask again on a read's table lands on New read with the question in the box and never opens Contracts; the narrow list's button says "New read" and opens it; Contracts draws no question column with a question id still in the list's state. Pictures with EQD_SHOTS=<dir>.
+- RETIRED test/chromium/column-card-legora-verify.js: it drove Ask a column's form and checked the question's card on Contracts; both deleted.
+- RETIRED test/chromium/jambo-asks-verify.js: it drove the form's counting card (Jambo asks); deleted with the form. A counting question on Discover is f1064.
+- RETIRED test/chromium/reading-desk-verify.js: it checked the reading desk inside Ask a column's card; Discover's reading screen is f1057 and stop-and-reads-verify.
+- RETIRED test/f934-ask-a-column-rough-edges.test.js: both tests pinned the form (the refusal under #ac-q; the team chips).
+- RETIRED parts: discover-verify stages 2, 3, 11 and 4a′, 4f, 5a′ (form, column, card, card's watch/fact chips; re-pointed 4a and 5a to the server route and watchCreate); reads-and-columns-as-drawn-verify 2–5b (form, reading card, column card, ⋯ menu, rename); f954 2 (the form's sentence); f956 2 (form and cards); f957 4 (the counting card).
+- RE-POINTED: f954 1 and 4 (no acSizeSet; Reads lands on dsnFill/rdNewRead, never askColOpen/Next/Bring), f956 1 (slice end), f1064 (slice end), f1016 (8) (no askColPanelHtml), f705 1a/1c ('askcol' goes to place 'reads'; no task opens the form), f861 (14) (no Owner aside), f977 fix 8 (no question column head), f148 (SAME_IN_BOTH lost ac_nl_team_sub), round6-new-look-verify 2 (no question column), stop-and-reads-verify, handbook-verify (no askColClose).

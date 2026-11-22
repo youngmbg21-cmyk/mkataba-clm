@@ -80,11 +80,16 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
        is in Jambo's panel beside it (#ins-panel) */
     const company = () => until(() => { if (!document.getElementById('set-page') || document.querySelector('#set-page[data-st-sub]')) { try { settingsGoPage(''); } catch (_) {} setView('team'); return null; }
       return document.querySelector('.stn-page #ins-panel .jov5-title') ? true : null; }, null, 15000);
-    return { until, press, company };
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe; the access check's card on the landing): the
+       landing's needs stop where the panel's room does ("N more" → the Need you chip, acNeedsRoom); every Company need
+       is said whole in the Company area's own panel, each row the same door */
+    const companyArea = sel => until(s => { if (!document.querySelector('.stn-page[data-sdd-area="company"]')) { try { sddGo('company'); } catch (_) {} return null; }
+      return document.querySelector(s) ? true : null; }, sel, 15000);
+    return { until, press, company, companyArea };
   };
   try {
     const page = await open('admin@example.co.ke', 'adminpassword1');
-    const { until, press, company } = kit(page);
+    const { until, press, company, companyArea } = kit(page);
     await company();
 
     console.log('\n1 · Jambo counts what the list holds');
@@ -106,6 +111,8 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     console.log('\n2 · a clash: since when, whose drawer, the limit lit, back to the role');
     /* RE-POINTED 16 Nov 2026 (#762): the clash is a row in Jambo's panel, the row itself the door to her drawer */
     const CLASH = '#ins-panel .jov5-row[data-st-panel^="person:"][data-st-focus]';
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): read in the Company area's panel (companyArea) */
+    await companyArea(CLASH);
     const clash = await until(sel => { const r = document.querySelector(sel); if (!r) return null;
       const s = r.querySelector('.jov5-rt > span'); if (!s || !/since/.test(s.textContent)) return null;
       return { sub: s.textContent.trim(), t: (r.querySelector('.jov5-rt > b') || {}).textContent || '' }; }, CLASH, 10000);
@@ -139,39 +146,55 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     /* RE-POINTED 16 Nov 2026 (#762): Data & backup has no card door on the one list; it is reached by its name (the
        navigation map's own call for a Settings page, js/navmap.js) */
     if (await page.evaluate(() => { openSettingsAt('company'); settingsGoPage('data'); return true; })) {
-      const dp = await until(() => { const on = document.querySelector('[data-st-pg="data"] [data-st-bk-tab].is-on'); if (!on) return null;
-        return { tab: on.getAttribute('data-st-bk-tab'), head: getComputedStyle(document.getElementById('page-head')).display, tabs: !!document.querySelector('#set-page .st-facebar'),
+      /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): The trail · Backup are the page head's tabs
+         (.st-ls-tab[data-st-ls-bk]) */
+      const dp = await until(() => { const on = document.querySelector('#set-page[data-st-ls="data"] .st-ls-tab.is-on[data-st-ls-bk]'); if (!on) return null;
+        return { tab: on.getAttribute('data-st-ls-bk'), head: getComputedStyle(document.getElementById('page-head')).display, tabs: !!document.querySelector('#set-page .st-facebar'),
           streams: ((document.querySelector('#st-tr-stream option[value="all"]') || {}).textContent || '').trim() }; });
       check('3b it lands on The trail, the page at its own name', !!dp && dp.tab === 'trail' && dp.head === 'none' && !dp.tabs, dp && JSON.stringify(dp));
       check('3c the Streams box says "All you can see"', !!dp && dp.streams === 'All you can see', dp && dp.streams);
-      await press('[data-st-bk-tab="backup"]', '3d the Backup tab');
-      const jb = await until(() => { const b = document.querySelector('#st-jb-feed [data-st-jb-hello]'); if (!b || !document.getElementById('bk-export')) return null;
-        return /^The trail for /.test(b.textContent) && !/counting/.test(b.textContent) ? b.textContent : null; }, null, 8000);
-      check('3d on Backup, Jambo says the trail\'s count', !!jb, jb || 'still counting, or nothing said');
+      /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the Backup tab is the head's */
+      if (await press('#set-page[data-st-ls="data"] .st-ls-tab[data-st-ls-bk="backup"]', '3d the Backup tab')) {
+        const bk = await until(() => { const on = document.querySelector('#set-page[data-st-ls="data"] .st-ls-tab.is-on[data-st-ls-bk]');
+          return on && on.getAttribute('data-st-ls-bk') === 'backup' && document.getElementById('bk-export') ? true : null; }, null, 8000);
+        check('3d the Backup tab opens, its copies listed', !!bk);
+      }
+      /* RETIRED 22 Nov 2026: "on Backup, Jambo says the trail's count" — the owner's pick of the six pages (22 Nov 2026,
+         drawing 6b "Data & backup: backup") draws Backup's panel as "whether a copy has been taken, and going live"
+         (stLsDataPanel: "A copy to take away"); the trail's count is said on The trail tab, as four figures */
     }
 
     console.log('\n4 · Contract streams as drawn');
     await page.evaluate(() => settingsGoPage('streams'));
-    const sw = await until(() => { const ht = document.querySelector('.st-sw-card .st-card-ht'); if (!ht || !document.querySelector('.st-sw-row')) return null;
-      const n = ht.querySelector('#st-sw-n'), note = ht.querySelector('.st-card-sub-l'), sel = document.querySelector('[data-st-sw-f]');
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the page wears the area's head
+       (.st-ls-head: ‹ Company, the serif title .sdd-title, its line), the list one table (.st-sw-tb) */
+    const sw = await until(() => { const hd = document.querySelector('#set-page.st-ls-page[data-st-ls="streams"] .st-ls-head'); if (!hd || !document.querySelector('.st-sw-row')) return null;
+      const page = document.getElementById('set-page');
       return { head: getComputedStyle(document.getElementById('page-head')).display, tabs: !!document.querySelector('#set-page .st-facebar'),
-        gap: n && note ? Math.round(note.getBoundingClientRect().left - n.getBoundingClientRect().right) : null, dots: document.querySelectorAll('.st-sw-row .st-fdot').length,
-        face: sel ? getComputedStyle(sel).appearance : '', name: ((document.querySelector('#set-page .st-pg-t') || {}).textContent || '').trim(), top: Math.round(document.querySelector('#set-page .st-pg').getBoundingClientRect().top) }; });
-    check('4a the page starts at its own name: no Settings head, no tabs', !!sw && sw.head === 'none' && !sw.tabs && /^Contract streams/.test(sw.name), sw && JSON.stringify({ head: sw.head, tabs: sw.tabs, name: sw.name, top: sw.top }));
-    check('4b the note right after the count; no dot before a name', !!sw && sw.gap != null && sw.gap >= 0 && sw.gap < 24 && sw.dots === 0, sw && `gap ${sw.gap} · dots ${sw.dots}`);
-    check('4c the closed filter boxes wear HaTi\'s clothes', !!sw && sw.face === 'none', sw && sw.face);
+        name: ((hd.querySelector('.sdd-title') || {}).textContent || '').trim(),
+        selects: page.querySelectorAll('select').length, chips: [...hd.querySelectorAll('.st-ls-chips [data-st-ls-chip^="streams:"]')].map(c => c.textContent.replace(/\s+/g, ' ').trim()) }; });
+    check('4a the page starts at its own name: no Settings head, no tabs', !!sw && sw.head === 'none' && !sw.tabs && /^Contract streams/.test(sw.name), sw && JSON.stringify({ head: sw.head, tabs: sw.tabs, name: sw.name }));
+    /* RETIRED 22 Nov 2026: 4b "the note right after the count; no dot before a name" — the owner's pick of the six pages
+       (22 Nov 2026, drawing 4 "Contract streams") takes the count off the title (each chip carries its own count), puts
+       the page's line under the serif title, and draws "the stream with its colour" before its name */
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): "The dropdowns become chips" (the owner's
+       pick): the filters wear HaTi's clothes as chips with their counts, and no system dropdown is left on the page */
+    check('4c the filters wear HaTi\'s clothes: chips, no system dropdown', !!sw && sw.selects === 0 && sw.chips.length >= 1 && /^All \d+$/.test(sw.chips[0]), sw && JSON.stringify({ selects: sw.selects, chips: sw.chips }));
     if (await press('.st-sw-row[data-st-sw-pick="sales"]', '4d Sales')) {
       /* ASK FOR THE STATE (22 Oct 2026): the acts row is drawn while the keeping book is still being
          read, its Delete button only once it has been, so the wait asks for the button; on time-out
          the row as it stands reports */
-      const actsNow = () => { const a = document.querySelector('#st-jb-feed .st-swp-acts'), f = document.getElementById('st-jb-feed'); if (!a || !f) return null;
-        const ar = a.getBoundingClientRect(), fr = f.getBoundingClientRect(); return { inside: ar.bottom <= fr.bottom + 1 && ar.top >= fr.top - 1, del: !!a.querySelector('[data-st-swp-run]') }; };
-      const acts = await until(() => document.querySelector('#st-jb-feed .st-swp-acts [data-st-swp-run]') ? true : null)
+      /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the old side feed (#st-jb-feed) is gone; the
+         stream's acts are Jambo's panel's (#ins-panel): Change its one act, Delete these N at the foot of Due now */
+      const actsNow = () => { const f = document.getElementById('ins-panel'), d = f && f.querySelector('.jov5-foot [data-st-swp-run]'), c = f && f.querySelector('.jov5-act .jov5-go[data-st-panel^="stream:"]'); if (!d || !c) return null;
+        const fr = f.getBoundingClientRect(); return { inside: [d, c].every(x => { const r = x.getBoundingClientRect(); return r.width > 0 && r.left >= fr.left - 1 && r.right <= fr.right + 1 && r.top >= fr.top - 1; }), del: true }; };
+      const acts = await until(() => document.querySelector('#ins-panel .jov5-foot [data-st-swp-run]') ? true : null)
         .then(() => page.evaluate(actsNow));
       check('4d the stream\'s acts in reach inside the panel', !!acts && acts.inside && acts.del, acts && JSON.stringify(acts));
       await shot(page, '26-streams-sales-1440x780');
     }
-    if (await press('.st-pg-head [data-st-panel="stream:new"]', '4e + New stream')) {
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): + New stream is the head's one act (.st-ls-head) */
+    if (await press('.st-ls-head [data-st-panel="stream:new"]', '4e + New stream')) {
       await until(() => document.getElementById('st-stream-name'));
       await page.fill('#st-stream-name', 'Legal Ops');
       await press('#st-dsave', '4e Save');
@@ -180,8 +203,10 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       check('4e + New stream: its own form, then the new stream\'s page; back says Contract streams', !!made && /Contract streams/.test(made.back || ''), made && JSON.stringify(made));
       await press('#st-drawer .st-dback', 'back'); await until(() => !document.querySelector('#st-drawer.open'));
     }
-    await until(() => { if (!document.querySelector('#st-jb-feed [data-st-swp-open]')) { const r = document.querySelector('.st-sw-row[data-st-sw-pick="sales"]'); if (r && !r.classList.contains('is-picked')) r.click(); return null; } return true; });
-    if (await press('#st-jb-feed [data-st-swp-open]', '4f the held contract\'s Open')) {
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the held contract is a row of the stream's
+       panel (#ins-panel), the row itself its Open */
+    await until(() => { if (!document.querySelector('#ins-panel [data-st-swp-open]')) { const r = document.querySelector('.st-sw-row[data-st-sw-pick="sales"]'); if (r && !r.classList.contains('is-picked')) r.click(); return null; } return true; });
+    if (await press('#ins-panel [data-st-swp-open]', '4f the held contract\'s Open')) {
       /* re-pointed 19 Oct 2026 (the gaps' third pass, LAND ON IT): the
          contract's Menu beside its paper, ON Release hold — where its hold
          is placed (End or pause) and released */
@@ -204,8 +229,14 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       await p.evaluate(() => settingsGoPage('streams'));
       await k.until(() => document.querySelector('.st-sw-row[data-st-sw-pick="sales"]'));
       await p.locator('.st-sw-row[data-st-sw-pick="sales"]').first().click();
-      const fit = await k.until(() => { const a = document.querySelector('#st-jb-feed .st-swp-acts'), f = document.getElementById('st-jb-feed'); if (!a || !f) return null;
-        const ar = a.getBoundingClientRect(), fr = f.getBoundingClientRect(); return { inside: ar.bottom <= fr.bottom + 1 && ar.bottom <= innerHeight }; });
+      /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the acts are Jambo's panel's (#ins-panel):
+         Change, its one act, whole in the panel and the window; Delete these N inside the panel's width and, where it
+         stands below the window, inside a scroller of the panel (in reach, never cut off) */
+      const fit = await k.until(() => { const f = document.getElementById('ins-panel'), d = f && f.querySelector('.jov5-foot [data-st-swp-run]'), c = f && f.querySelector('.jov5-act .jov5-go[data-st-panel^="stream:"]'); if (!d || !c) return null;
+        const fr = f.getBoundingClientRect(), cr = c.getBoundingClientRect(), dr = d.getBoundingClientRect();
+        let sc = d.parentElement; while (sc && !(/(auto|scroll)/.test(getComputedStyle(sc).overflowY) && sc.scrollHeight > sc.clientHeight)) sc = sc === f ? null : sc.parentElement;
+        const reach = dr.bottom <= Math.min(fr.bottom, innerHeight) + 1 || !!sc;
+        return { inside: cr.bottom <= fr.bottom + 1 && cr.bottom <= innerHeight && cr.right <= fr.right + 1 && dr.left >= fr.left - 1 && dr.right <= fr.right + 1 && reach }; });
       const c2 = await side();
       await p.evaluate(() => settingsGoPage('data'));
       await k.until(() => document.querySelector('[data-st-pg="data"]'));

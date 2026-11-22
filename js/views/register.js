@@ -750,7 +750,6 @@ function regHomeWide(){
   if(!regHome() || regScope()==='negotiations' || typeof document==='undefined') return false;
   if(regNl()) return false;
   if(_regWidePaint!=null) return _regWidePaint;
-  if(typeof window.askColKeys==='function' && askColKeys().length) return false;
   const el=document.getElementById((_regOpts&&_regOpts.hostId)||'');
   const w=el?el.clientWidth:0;
   return w>=REG_HOME_WIDE_W;
@@ -806,8 +805,6 @@ function regNegoFit(shown){
 /* the grey line under the deal stands down where its facts are columns */
 function regNegoSpread(){ const f=regNegoFit(); return !!(f&&f.spread); }
 /* the seat's own columns for this paint's shape, before the reader's choice */
-/* the answer columns standing on the Contracts List (none on its narrow shape) */
-function regCtAskKeys(){ return (!regHomeNarrow()&&typeof window.askColKeys==='function')?askColKeys():[]; }
 /* HIDDEN MONEY IS NOT DRAWN AT ALL (f259): a reader without money rights gets no Value column on any shape of the
    list, never a column of dashes — every caller (head, rows, spans, Columns, widths) reads the keys through here */
 function regSeeMoney(){ return !(typeof canViewValues==='function'&&!canViewValues()); }
@@ -818,19 +815,17 @@ function regColKeysSeatAll(){
   if(!neg && regHome()){
     /* THE READER'S OWN COLUMNS (Columns, Part 8): the agreement first, then
        the shape's own columns in the reader's order (Owner hidden at rest),
-       then any answers, then the ⋯ */
+       then the ⋯. NO QUESTION COLUMNS (owner, 22 Nov 2026: "There is not asking a column again only the features
+       related to discovery"): a list state or saved view still holding question ids (R.ask) draws none; the answers
+       live on in Discover */
     const narrow=regHomeNarrow();
     const mid=(narrow?REG_COL_KEYS_HOME_NARROW:REG_COL_KEYS_HOME).filter(k=>k!=='counterparty'&&k!=='acts');
     let shown=(typeof window.lcShown==='function'&&window.LC_PAGES&&LC_PAGES.contracts)?lcShown('contracts', mid):mid.filter(k=>k!=='owner');
-    /* ASK A COLUMN (20 Oct 2026): the answers stand before the ⋯, and Owner
-       steps aside for them, as drawn (it stays in the filters and the sort) */
-    const ask=regCtAskKeys();
-    if(ask.length) shown=shown.filter(k=>k!=='owner'&&k!=='stream');
     /* inside one folder the stream is the same on every row: it steps out (the new look's folder list, as drawn) */
     { const R0=regState(); if(typeof window.newLookOn==='function'&&newLookOn()&&R0.type&&R0.type!=='all') shown=shown.filter(k=>k!=='stream'); }
     /* P-31: the other side · Standing · Folder · Needs you · Ends · Value (Our standards steps out of this list's rest) */
-    if(!narrow&&regNl()){ shown=shown.filter(k=>k!=='standards'); const at=shown.indexOf('expiry'); shown.splice(at<0?shown.length:at,0,'needs'); return ['counterparty','standing'].concat(ask, shown); }
-    return ['counterparty'].concat(!narrow&&regHomeWide()?REG_HOME_SPREAD:[], shown, ask, ['acts']);
+    if(!narrow&&regNl()){ shown=shown.filter(k=>k!=='standards'); const at=shown.indexOf('expiry'); shown.splice(at<0?shown.length:at,0,'needs'); return ['counterparty','standing'].concat(shown); }
+    return ['counterparty'].concat(!narrow&&regHomeWide()?REG_HOME_SPREAD:[], shown, ['acts']);
   }
   if(!ins && regNarrowTable()) return neg ? REG_COL_KEYS_NEGO_NARROW : REG_COL_KEYS_NARROW;
   return neg ? (ins?REG_COL_KEYS_NEGO_INS:REG_COL_KEYS_NEGO) : (ins?REG_COL_KEYS_INS:REG_COL_KEYS);
@@ -878,7 +873,7 @@ function regMoneyW(w){
    (Part 8, the critic's 4.10): a stored array is read by position, so the
    key names the columns drawn — a set the reader hid or moved under Columns
    reads its own widths, never another order's */
-const regColStoreKey = () => REG_COL_KEY + (regScope()==='negotiations' ? '.nego' : regHome() ? '.home.' + regColKeys().map(k=>String(k).startsWith('ask:')?'ask':k).join(',') : '') + ((regNarrowTable() && !regInspecting()) || regHomeNarrow() ? '.narrow' : '') + (regSeeMoney() ? '' : '.nm');
+const regColStoreKey = () => REG_COL_KEY + (regScope()==='negotiations' ? '.nego' : regHome() ? '.home.' + regColKeys().join(',') : '') + ((regNarrowTable() && !regInspecting()) || regHomeNarrow() ? '.narrow' : '') + (regSeeMoney() ? '' : '.nm');
 /* THE STORED ARRAY IS READ, NEVER TRUSTED. A length that does not match the
    seat's own column count is IGNORED rather than applied — which is the whole
    migration story for the Signed column: a browser that stored eight widths
@@ -1968,14 +1963,14 @@ function regCtRepaint(){
 }
 /* THE CHIP ROW'S RIGHT END (the drawing's, and the list card head's tools):
    Sort and Display as the two small icons they were, "Do this to these N"
-   while the list is narrowed (cohortButtonHtml decides), then "✦ Ask a
-   column" (it draws only on the List, askColOn). The Wall keeps its Sort in
+   while the list is narrowed (cohortButtonHtml decides). The list head's
+   "+ Ask a column" (askColBtnHtml) is deleted (owner, 22 Nov 2026). The Wall keeps its Sort in
    its own count line, so only "Do this to these N" stands here on it. */
 function regCtToolsHtml(R){
   let cohort=''; try{ cohort=(typeof cohortButtonHtml==='function')?cohortButtonHtml():''; }catch(_){ cohort=''; }
   const slot=`<span id="reg-cohort-slot" class="ct-cohort">${cohort}</span>`;
   if(R.show!=='list') return slot;
-  return `${regToolsHtml(R,false)}${slot}${typeof window.askColBtnHtml==='function'?askColBtnHtml():''}`;
+  return `${regToolsHtml(R,false)}${slot}`;
 }
 /* COLUMNS (the drawing's right end, the List only): the columns after the
    agreement, in the shape this paint draws; Owner hidden until the reader
@@ -1991,9 +1986,7 @@ function regCtColDefs(){
    keeps nothing of its own) */
 function regCtHeadReg(){
   if(typeof window.LC_PAGES==='object'&&window.LC_PAGES&&!LC_PAGES[REG_CT_SEAT])
-    LC_PAGES[REG_CT_SEAT]={ cols:()=>regCtColDefs(), repaint:()=>regCtRepaint(), hide:['owner'],
-      /* Owner steps aside for Jambo's answers (regColKeysSeat): its tick is greyed with why, never live and dead */
-      off:()=>regOnCt(()=>regCtAskKeys().length?{ owner:i18t('reg_col_owner_aside') }:{}) };
+    LC_PAGES[REG_CT_SEAT]={ cols:()=>regCtColDefs(), repaint:()=>regCtRepaint(), hide:['owner'] };
   /* the Wall carries no Columns: its seat names a page Columns does not know */
   if(typeof window.lhRegister==='function') lhRegister('wall', { more:()=>{ if(typeof window.igWallShowMore==='function') igWallShowMore(); } });
   if(typeof window.lhRegister!=='function') return null;
@@ -2062,16 +2055,14 @@ const _rfpLoading = new Set();
 function regFolderPanelOn(){
   if(!regNl() || !regPlaceUp()) return false;
   const R=regState(), A=window.AC;
-  return R.show!=='wall' && !!R.type && R.type!=='all' && !R.only && !!A && !A.form && !A.busy && !A.chosen && !(A.colOpen && typeof askColKeys==='function' && askColKeys().includes('ask:'+A.colOpen));
+  return R.show!=='wall' && !!R.type && R.type!=='all' && !R.only && !!A && !A.busy;
 }
 function regFolderAns(askId, cs){
   const A=window.AC; if(!A) return null;
   const got=A.ans&&A.ans[askId];
   if(!got){ if(!_rfpLoading.has(askId)&&typeof window.askColLoad==='function'){ _rfpLoading.add(askId);
       Promise.resolve(askColLoad(askId, cs.map(c=>String(c.id)))).catch(()=>{}).then(()=>{
-        /* the column on the list shows these same answers: it is drawn again with them, not left saying "not read" */
-        const up=typeof window.askColKeys==='function'&&askColKeys().includes('ask:'+askId);
-        if(up&&regPlaceUp()) regRepaint(); else ctfDockAgain(); }); }
+        ctfDockAgain(); }); }
     return null; }
   return got;
 }
@@ -2309,7 +2300,7 @@ function regCtFootHtml(cs){
   const say=esc(i18tn('reg_foot_n',n,{n:n.toLocaleString(jxLocale())}))+(live!==n&&!regNarrowed()?' · '+esc(i18tn('ngl_n_live',live,{n:live.toLocaleString(jxLocale())})):'');
   const fam=familyCounts(list);
   const famNote=fam.amendments?`<span class="lh-extra"> · ${i18tn('reg_agreements',fam.agreements,{n:B(fam.agreements.toLocaleString(jxLocale()))})} · ${i18t('reg_documents',{n:B(fam.documents.toLocaleString(jxLocale()))})}</span>`:'';
-  return lhFootHtml(REG_CT_SEAT, shown, n, REG_PAGE, { id:'reg-showing', extra:total+famNote+(typeof window.askColLegendHtml==='function'?askColLegendHtml():''), say });
+  return lhFootHtml(REG_CT_SEAT, shown, n, REG_PAGE, { id:'reg-showing', extra:total+famNote, say });
 }
 /* THE PLACE'S WIDTHS, BY KEY (Part 8): the seat's own shares — the place's
    full set, its narrow set, or the answers' shape while Ask a column stands
@@ -2319,17 +2310,16 @@ function regCtFootHtml(cs){
 /* P-31 as drawn: Ends holds "20 Dec 2026 · in 30 days" and "ended 11 Oct 2026" whole */
 const REG_COL_W_NL={ standing:11, stream:13, standards:17, needs:13, expiry:20, value:10, owner:10 };
 function regHomeColW(keys){
-  const ask=keys.filter(k=>String(k).startsWith('ask:'));
   if(regNl()&&!regHomeNarrow()){
-    const o=keys.map(k=>String(k).startsWith('ask:')?24:k==='counterparty'?0:(REG_COL_W_NL[k]||10));
+    const o=keys.map(k=>k==='counterparty'?0:(REG_COL_W_NL[k]||10));
     let rest=o.reduce((a,b)=>a+b,0); const i=keys.indexOf('counterparty');
     if(rest>78){ const f=78/rest; for(let j=0;j<o.length;j++) o[j]=Math.round(o[j]*f*100)/100; rest=o.reduce((a,b)=>a+b,0); }
     if(i>=0) o[i]=Math.round((100-rest)*100)/100;
     return o;
   }
-  const narrow=regHomeNarrow(), wide=!narrow&&!ask.length&&regHomeWide();
-  const shape=narrow?REG_COL_KEYS_HOME_NARROW:ask.length?['counterparty','standards','expiry','value'].concat(ask,['acts']):wide?REG_COL_KEYS_HOME_WIDE:REG_COL_KEYS_HOME;
-  const w=narrow?REG_COL_W_HOME_NARROW:ask.length&&typeof window.askColWidths==='function'?askColWidths(ask.length):wide?REG_COL_W_HOME_WIDE:REG_COL_W_HOME;
+  const narrow=regHomeNarrow(), wide=!narrow&&regHomeWide();
+  const shape=narrow?REG_COL_KEYS_HOME_NARROW:wide?REG_COL_KEYS_HOME_WIDE:REG_COL_KEYS_HOME;
+  const w=narrow?REG_COL_W_HOME_NARROW:wide?REG_COL_W_HOME_WIDE:REG_COL_W_HOME;
   const at=k=>{ const i=shape.indexOf(k); return i>=0&&typeof w[i]==='number'?w[i]:0; };
   const out=keys.map(at);
   const spare=100-out.reduce((a,b)=>a+b,0);
@@ -2750,7 +2740,7 @@ function regFiltered(o){
   /* a count needs neither the order nor the families (regCutCount) */
   if(o&&o.flat) return cs;
   const sortKey=(R.sort==='value' && typeof canViewValues==='function' && !canViewValues()) ? 'updated' : R.sort;
-  const cmp=REG_CMP[sortKey]||(String(sortKey||'').startsWith('ask:')&&typeof window.askColCmp==='function'?askColCmp(sortKey.slice(4)):null)||REG_CMP.updated;
+  const cmp=REG_CMP[sortKey]||REG_CMP.updated;
   const dir=(R.dir===1||R.dir===-1)?R.dir:(REG_SORT_DEFDIR[sortKey]||-1);
   cs.sort((a,b)=>{ const r=dir*cmp(a,b); return r!==0?r:((Date.parse(b.lastAction)||0)-(Date.parse(a.lastAction)||0)); });
   /* WORK FIRST (P-31 as drawn, 22 Nov 2026): at the list's default order the Contracts place reads what needs you, then
@@ -3250,8 +3240,6 @@ function regRowsHtml(cs){
           and a builder with no key in REG_COL_KEYS is a builder nothing can
           call. `reg_col_title` stays LIVE: it is the sort dropdown's own
           label, and sorting by title is still offered there. */
-    /* ASK A COLUMN (20 Oct 2026): each answer column's cell, drawn by its own builder */
-    if(typeof window.askColTdHtml==='function') regColKeys().forEach(k=>{ if(k.startsWith('ask:')) CELL[k]=askColTdHtml(c,k.slice(4)); });
     return `
     <tr data-row="${c.id}"${neg?' data-nego-row="1"':''} tabindex="${i===0?0:-1}"
       style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">${regColKeys().map(k=>CELL[k]||'').join('')}
@@ -3739,8 +3727,6 @@ function regMenuFit(pop, btn){
   }
 }
 function wireRegRows(){
-  /* ASK A COLUMN: the answers for the rows now in front of the reader, and the chosen one lit */
-  if(typeof window.askColSync==='function'){ askColMarkRows(); askColSync(); }
   /* Whole-row click opens the contract's workspace — EXCEPT on the Negotiations
      page, where a row opens the NEGOTIATION. Same table, same builder, one
      different destination, decided off the row's own attribute rather than off
@@ -4341,17 +4327,11 @@ function regLsListUp(){
   try{ if(regFoldersOn(regState())) return false; }catch(_){ return false; }
   return true;
 }
-/* WHICH PANEL STANDS BESIDE THE LIST (the rule the folder's panel kept before P-31, regFolderPanelOn): inside a folder
-   the drawn summary stands, a kept question's column on the list included, unless a question is being asked, read,
-   counted or chosen; on every other list Ask a column's own card (the open question, its answers, Draw it · Copy ·
-   Show N) leads wherever it has one, else the drawn summary */
+/* WHICH PANEL STANDS BESIDE THE LIST: the drawn summary of the rows on screen, on every list of the place (Ask a
+   column's own card, which once led here while a question was open, is deleted: owner, 22 Nov 2026) */
 function regLsPanelPick(){
   if(!regLsListUp()) return '';
-  const R=regState(), A=window.AC;
-  const busy=!!(A&&(A.form||A.busy||A.count||A.stopped||A.chosen||(A.colOpen&&typeof askColKeys==='function'&&askColKeys().includes('ask:'+A.colOpen))));
-  if(R.show!=='wall'&&R.type&&R.type!=='all'&&!R.only&&!busy) return regLsListPanelHtml();
-  const ac=typeof window.askColPanelHtml==='function'?askColPanelHtml():'';
-  return ac?'':regLsListPanelHtml();
+  return regLsListPanelHtml();
 }
 function regLsListPanelHtml(){
   const R=regState();
@@ -5226,12 +5206,11 @@ function renderRegister(opts){
       ${''/* NOT ON NEGOTIATIONS (Part 8): the list head above says the count
              (the All tab) and carries Sort and Display at its chip row's end */}
       ${''/* NOR ON THE CONTRACTS PLACE (Part 8): its All tab and its foot say
-             the count, and Sort, Display and Ask a column stand at the list
+             the count, and Sort and Display stand at the list
              head's chip row's end */}
       ${(neg||HOME)?'':`<div class="reg-cardhead reg-filterbar">
         <h2 id="reg-tt" class="reg-tt">${regListTitle(cs)}</h2>
         <span style="flex:1;min-width:8px"></span>
-        ${typeof window.askColBtnHtml==='function'?askColBtnHtml():''}
         ${regSortIconHtml(sortOpts)}
         ${regDisplayHtml(neg)}
       </div>`}
@@ -5335,7 +5314,6 @@ function renderRegister(opts){
                     : sortableTh('move',i18t('ngl_col_move'),'',k);
                   if(k==='owner') return sortableTh('owner',i18t('reg_col_owner_word'),'',k);
                   if(k==='round'||k==='changes'||k==='waiting'||k==='lead'||k==='clauses'){ const i=_colN; return `<th style="${colAt('',k)}">${esc(i18t('ngl_col_'+k))}${gripFor(i)}</th>`; }
-                  if(k.startsWith('ask:')&&typeof window.askColThHtml==='function'){ const i=_colN; return askColThHtml(k.slice(4),colAt('',k),gripFor(i),R.sort===k?sortCaret(k):''); }
                   return (()=>{ const i=_colN; return `<th style="text-align:right;${colAt('',k)}">${gripFor(i)}</th>`; })();
                 }).map((h,i,a)=>neg&&INS&&typeof listGripHtml==='function'?h.replace(/<\/th>\s*$/, listGripHtml(REG_NEGO_SEAT, (k=>k==='counterparty'?'name':k)(regColKeys()[i]))+'</th>'):h).join('')}
               </tr>

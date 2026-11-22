@@ -63,7 +63,10 @@ test('f1094 (2a) Read down: the first decision the black button, then three thin
   assert.ok(d.querySelector('[data-rd-show="a,b"]'), 'the party opens its agreements by the page\'s own press');
   assert.ok(d.querySelector('[data-rd-go="oblig"]'), 'the late duties by the page\'s own press');
   assert.doesNotMatch(d.textContent, /KES/, 'no money in the panel');
-  assert.match(txt(d.querySelector('.jov5-go')), /Warehousing Services/, 'the first renewal is the black button');
+  /* RE-POINTED 22 Nov 2026 ("Read down: a short Decide button"): the black button says Decide, the first renewal is named
+     in the sentence above it */
+  assert.match(txt(d.querySelector('.jov5-go')), /^Decide on the renewal$/, 'the first renewal\'s decision is the black button');
+  assert.match(d.textContent, /Warehousing Services/, 'the first renewal named');
   const none = W.hbRdnPanelFive(Object.assign({}, R, { ending: [], late: 0 }));
   assert.ok(none.act && none.act.attr === 'data-rd-go="calendar"', 'nothing ending: the calendar, never an empty panel');
   const src = region(read('js/views/homeboard.js'), 'function hbRdnPanelFive(R){', 'function hbRdnBtnHtml');
