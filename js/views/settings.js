@@ -2285,7 +2285,7 @@ function stCompanyHtml(){
    ============================================================
    People · Who holds what · Roles · Contract streams · How our contracts look · Data & backup, drawn in the area's own
    frame (the shell stnPaint draws): the way back on the line "‹ Settings" stands on over an area, the serif title with
-   its line, Jambo's ask box, chips with their counts, one calm table, no button on a row (a row chooses, a second press
+   its line, a plain filter box (the top box filters, Jambo's box asks), chips with their counts, one calm table, no button on a row (a row chooses, a second press
    opens its sheet from the right, as each did before), and Jambo's panel without cards: the page in a sentence, a small
    ring or bar, what needs you as rows, the page's one act once. Every column, filter and door the pages had is kept;
    Re-file · New paper · Hold share one column of three ticks; Keep · Change move from every row of Who holds what to
@@ -2317,7 +2317,7 @@ function stLsHeadHtml(o){
     <div class="cun-head st-ls-hrow"><h2 class="ctf-h stn-title sdd-title">${esc(o.title)}</h2>${o.acts?`<span class="st-ls-acts">${o.acts}</span>`:''}</div>
     ${o.sub?`<p class="sdd-sub st-ls-sub">${esc(o.sub)}</p>`:''}
     ${o.tabs||''}
-    ${o.ask?`<label class="apn-ask sdd-find st-ls-find"><span class="sdd-find-ic" aria-hidden="true">${typeof icon==='function'?icon('mkSpark','sdd-spark-ic',0):''}</span><input id="${o.ask.id}" type="search" autocomplete="off" placeholder="${esc(o.ask.ph)}" aria-label="${esc(o.ask.ph)}" value="${esc(o.ask.value||'')}"${o.ask.attr?' '+o.ask.attr:''}></label>`:''}
+    ${o.ask?`<label class="apn-ask sdd-find st-ls-find is-filter"><span class="sdd-find-ic" aria-hidden="true">${typeof icon==='function'?icon('search','sdd-spark-ic'):''}</span><input id="${o.ask.id}" type="search" autocomplete="off" placeholder="${esc(o.ask.ph)}" aria-label="${esc(o.ask.ph)}" value="${esc(o.ask.value||'')}"${o.ask.attr?' '+o.ask.attr:''}></label>`:''}
     ${o.askHtml||''}
     ${chips.length?`<div class="apn-bar sdd-chips st-ls-chips">${chips.map(c=>`<button type="button" class="apn-tab is-chip${o.chip===c.k?' is-on':''}" data-st-ls-chip="${esc(o.page)}:${esc(c.k)}">${c.amber?'<i class="apn-cd is-amber" aria-hidden="true"></i>':''}${esc(c.label)} <span>${c.n}</span></button>`).join('')}</div>`:''}
   </div>`;
@@ -2381,7 +2381,7 @@ function stLsTeamHtml(){
   const rows=stLsTeamRows();
   return stLsHeadHtml({ page:'team', title:stLsPeopleTitle(), sub:stLsPeopleSub(), tabs:stLsPeopleTabsHtml(),
       acts:`<button type="button" id="st-add-person" class="ui-btn ui-btn-primary" data-st-panel="person:new">${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):''}${esc(i18t('st_ls_add_person'))}</button>`,
-      ask:{ id:'st-people-q', ph:i18t('st_ls_ask_team'), value:stLsQ('team') }, chips:stLsTeamChips(rows), chip:stLsChip('team') })
+      ask:{ id:'st-people-q', ph:i18t('lh_filter_ph'), value:stLsQ('team') }, chips:stLsTeamChips(rows), chip:stLsChip('team') })
     +`<div class="st-ls-body" data-st-pg="team" id="st-ls-list">${stLsTeamTableHtml()}</div>`;
 }
 function stLsTeamPanel(){
@@ -2435,7 +2435,7 @@ function stLsSheetHtml(){
   const rows=stLsSheetRows();
   return stLsHeadHtml({ page:'sheet', title:stLsPeopleTitle(), sub:i18t('sdd_co_sheet_say'), tabs:stLsPeopleTabsHtml(),
       acts:`<button type="button" class="ui-btn" data-st-sheet-csv>${typeof icon==='function'?icon('download','w-3.5 h-3.5'):''} ${esc(i18t('st_sh_download'))}</button>`,
-      ask:{ id:'st-ls-q', ph:i18t('st_ls_ask_sheet'), value:stLsQ('sheet') }, chips:stLsSheetChips(rows), chip:stLsChip('sheet') })
+      ask:{ id:'st-ls-q', ph:i18t('lh_filter_ph'), value:stLsQ('sheet') }, chips:stLsSheetChips(rows), chip:stLsChip('sheet') })
     +`<div class="st-ls-body${stArDue()?' is-reviewing':''}" data-st-pg="sheet" id="st-ls-list">${stLsSheetTableHtml()}</div>`;
 }
 function stLsSheetPanel(){
@@ -2481,7 +2481,7 @@ function stLsRolesHtml(){
   const rows=stLsRolesRows(), n=k=>rows.filter(k).length;
   return stLsHeadHtml({ page:'roles', title:stLsPeopleTitle(), sub:i18t('bz_page_sub_line'), tabs:stLsPeopleTabsHtml(),
       acts:`<button type="button" class="ui-btn ui-btn-primary" data-st-panel="role:new">${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):''} ${esc(i18t('bz_new'))}</button>`,
-      ask:{ id:'st-ls-q', ph:i18t('st_ls_ask_roles'), value:stLsQ('roles') },
+      ask:{ id:'st-ls-q', ph:i18t('lh_filter_ph'), value:stLsQ('roles') },
       chips:[{ k:'all', label:i18t('ctf_tab_all'), n:rows.length }, { k:'used', label:i18t('st_ls_in_use'), n:n(x=>x.n>0) }, { k:'unused', label:i18t('st_ls_unused'), n:n(x=>x.n===0) }], chip:stLsChip('roles') })
     +`<div class="st-ls-body" data-st-pg="roles" id="st-ls-list">${stLsRolesTableHtml()}<p class="st-ls-foot">${esc(i18t('bz_page_foot'))}</p></div>`;
 }
@@ -2527,7 +2527,7 @@ function stLsStreamsHtml(){
   const rows=stSwRows();
   return stLsHeadHtml({ page:'streams', title:i18t('st_sw_title'), sub:i18t('st_ls_sw_sub'),
       acts:`<button type="button" class="ui-btn ui-btn-primary" data-st-panel="stream:new" data-st-focus="#st-stream-name">${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):''} ${esc(i18t('st_sw_new'))}</button>`,
-      ask:{ id:'st-sw-q', ph:i18t('st_ls_ask_streams'), value:_stSw.q }, chips:stLsSwChips(rows), chip:stLsChip('streams') })
+      ask:{ id:'st-sw-q', ph:i18t('lh_filter_ph'), value:_stSw.q }, chips:stLsSwChips(rows), chip:stLsChip('streams') })
     +`<div class="st-ls-body" data-st-pg="streams"><div id="st-sw-tb">${stLsSwTableHtml()}</div></div>`;
 }
 function stLsStreamPanel(fid){

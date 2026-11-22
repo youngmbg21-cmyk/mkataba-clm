@@ -40,6 +40,8 @@ test('f1147 (2) one head for all six: way back, title, ask box, chips that hide 
   const h = fn('stLsHeadHtml');
   assert.match(h, /class="sdd-back st-ls-back" data-st-page="" data-sdd-to=/);
   assert.match(h, /filter\(c=>c&&\(c\.k==='all'\|\|c\.n\|\|c\.k===o\.chip\)\)/, 'a chip with nothing behind it is not listed, unless it is the one in front');
+  assert.match(h, /class="apn-ask sdd-find st-ls-find is-filter"><span[^>]*>\$\{typeof icon==='function'\?icon\('search'/, 'the top box filters: the magnifying glass, never the spark (f1146)');
+  assert.doesNotMatch(S.slice(S.indexOf('const ST_LS_PAGES='), S.indexOf('function stLsBodyHtml')), /st_ls_ask_/, 'no asking words in a box that only filters');
   for (const p of ['stLsTeamHtml', 'stLsSheetHtml', 'stLsRolesHtml', 'stLsStreamsHtml', 'stLsDataHtml']) assert.match(fn(p), /stLsHeadHtml\(\{/, p);
   assert.match(D, /window\.stLsHeadHtml\(\{ page: 'look'/, 'the look page wears the same head');
 });
