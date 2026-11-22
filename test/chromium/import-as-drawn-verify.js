@@ -315,13 +315,23 @@ const FILES = {
       check('12a the draft NDA is held, not filed: "To check · not signed: import as a draft?"', !!nkey && await page.evaluate(k => { const r = migRowByKey(k); return r.st.k === 'check' && r.st.why === 'not signed: import as a draft?' && !migContracts().some(c => /NDA_Acme/.test((c.upload || {}).fileName || '')); }, nkey), String(nkey));
       if (nkey){
         const onIt = await until(k => migCheckId() === k ? true : null, nkey, 3000) || await page.evaluate(k => { migCheckTo(k); return migCheckId() === k; }, nkey);
-        const N = await until(() => { const f = document.getElementById('mig-ck-facts'), d = document.getElementById('mig-ck-doc'); if (!f || !d || !f.querySelector('[data-mig-unsigned]')) return null;
-          return { acts: [...f.querySelectorAll('[data-mig-unsigned]')].map(b => b.textContent.trim()), text: !!d.querySelector('.mig-ck-text'), as: (f.querySelector('[data-mig-ff="status"]') || {}).textContent || '' }; }, null, 5000);
-        check('12b in the walk it is a page: its own words, what it would be filed as, and three answers', !!onIt && !!N && N.text && N.acts.join() === 'Import as a draft,Import as signed,Leave it out' && /not signed: import as a draft\?/.test(N.as), JSON.stringify(N));
+        /* RE-POINTED 22 Nov 2026 (PR 881, batch 7 review; THE CHECK, MADE LIKE THE SEND SCREEN, owner 20 Nov 2026, f1125):
+           the three answers stand in the page's head as Skip and File it do — Leave it out · Import as signed · Import as a
+           draft, the one black button last — and the owed "Filed as" is an EMPTY amber box whose words are on its title,
+           no amber words (.need-empty) */
+        const N = await until(() => { const f = document.getElementById('mig-ck-facts'), d = document.getElementById('mig-ck-doc'), a = document.getElementById('page-head-acts');
+          if (!f || !d || !a || !a.querySelector('[data-mig-unsigned]')) return null;
+          const st = f.querySelector('[data-mig-ff="status"] .mig-ff-ro'), bs = [...a.querySelectorAll('[data-mig-unsigned]')];
+          return { acts: bs.map(b => b.textContent.trim()), black: bs.filter(b => b.classList.contains('ui-btn-primary')).map(b => b.textContent.trim()),
+            inFacts: !!f.querySelector('[data-mig-unsigned]'), text: !!d.querySelector('.mig-ck-text'),
+            as: st ? (st.getAttribute('title') || '') : '', empty: !!st && st.classList.contains('need-empty') && st.textContent.trim() === '' }; }, null, 5000);
+        check('12b in the walk it is a page: its own words, what it would be filed as, and three answers in the head',
+          !!onIt && !!N && N.text && N.acts.join() === 'Leave it out,Import as signed,Import as a draft' && N.black.join() === 'Import as a draft' && !N.inFacts
+          && /not signed: import as a draft\?/.test(N.as) && N.empty, JSON.stringify(N));
         const J = await page.evaluate(() => { const w = document.querySelector('#mig-side .mig-ck-why'); return w ? { t: w.innerText, use: !!w.querySelector('[data-mig-use]') } : null; });
         check('12b2 Jambo asks only the one question until it is answered — no instruction its read-only boxes cannot follow', !!J && /call it a draft/.test(J.t) && !/write the date|made between/.test(J.t) && !J.use, JSON.stringify(J));
         await shot(page, 'import-drawn-unsigned-1440x780');
-        if (N && await press('#mig-ck-facts [data-mig-unsigned="draft"]', '12c Import as a draft')){
+        if (N && await press('#page-head-acts [data-mig-unsigned="draft"]', '12c Import as a draft')){
           /* ASK FOR THE STATE (22 Oct 2026): the draft exists a beat before the walk's id moves from the
              queue key ("q:2") to it, so the wait asks for both together; on time-out the last state reports */
           const draftNow = () => { const c = migContracts().find(x => /NDA_Acme/.test((x.upload || {}).fileName || '')); return c ? { id: c.id, status: c.status, hash: c.hash || null, out: !!(c.migration && c.migration.executedOutside), on: migCheckId() } : null; };
