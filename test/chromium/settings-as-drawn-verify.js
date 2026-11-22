@@ -87,17 +87,25 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     if (await press('.st-sw-row[data-st-sw-pick="sales"]', '3a the Sales row')) {
       /* A WAIT ASKS FOR THE STATE (21 Oct 2026, red on GitHub only): the panel is drawn at once and its
          keeping figures arrive after (/api/keeping) — read them once Due now is drawn, bounded */
-      const side = await until(() => { const p = document.querySelector('#st-jb-feed .st-swp'); if (!p) return null;
-        const facts = {}; p.querySelectorAll('.st-swp-f').forEach(f => { facts[f.querySelector('dt').textContent.trim()] = f.querySelector('dd').textContent.replace(/\s+/g, ' ').trim(); });
-        if (!facts['Due now'] && !p.querySelector('[data-st-swp-run]')) return null;
-        return { word: (document.getElementById('st-side-word') || { textContent: '' }).textContent.trim(), facts, due: p.querySelectorAll('.st-swp-tb tbody tr').length, held: p.querySelectorAll('.st-swp-held').length,
+      /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the stream is said in Jambo's panel beside
+         the list (#ins-panel, the old side feed #st-jb-feed gone): its facts a list of key · value rows ("Due now · On
+         hold" one row), Due now its own group with "Delete these N" at its foot, the held contract a row of "On legal
+         hold"; the panel's word beside its tabs is read off the panel's own head ([data-jl-word]) */
+      const side = await until(() => { const p = document.getElementById('ins-panel'); if (!p || !p.querySelector('.jov5')) return null;
+        const facts = {}; p.querySelectorAll('[data-jov5-sec="facts"] .jov5-row').forEach(f => { const k = f.querySelector('.jov5-k'), v = f.querySelector('.jov5-rt > b'); if (k && v) facts[k.textContent.trim()] = v.textContent.replace(/\s+/g, ' ').trim(); });
+        if (!p.querySelector('[data-st-swp-run]')) return null;
+        const sec = label => [...p.querySelectorAll('.jov5-sec')].find(x => ((x.querySelector('.jov5-label') || {}).textContent || '').trim() === label);
+        const dueSec = sec('Due now'), heldSec = sec('On legal hold');
+        const w = p.querySelector('[data-jl-word]'), wr = w && w.getBoundingClientRect();
+        return { word: ((w && wr.width > 0 && getComputedStyle(w).display !== 'none' ? w.textContent : '') + (document.getElementById('st-side-word') || { textContent: '' }).textContent).trim(), facts,
+          due: dueSec ? dueSec.querySelectorAll('.jov5-row').length : 0, held: heldSec ? heldSec.querySelectorAll('.jov5-row[data-st-swp-open]').length : 0,
           del: ((p.querySelector('[data-st-swp-run]') || {}).textContent || '').trim() }; }, null, 8000);
       /* RE-POINTED 26 Oct 2026 (owner: "the name of the page next to the Jambos which looks like an additional tab. These are to be deleted."): no word beside the tabs */
       check('3a the stream\'s panel, no word beside the tabs', !!side && side.word === '', side && side.word);
-      check('3b its facts: Due now 2, On legal hold 1', !!side && /^2 contracts/.test(side.facts['Due now'] || '') && /^1 · held back$/.test(side.facts['On legal hold'] || ''), JSON.stringify(side && side.facts));
+      check('3b its facts: Due now 2, On legal hold 1', !!side && side.facts['Due now · On hold'] === '2 · 1', JSON.stringify(side && side.facts));
       check('3c the Due now table and the held row', !!side && side.due === 2 && side.held === 1, side && (side.due + ' · ' + side.held));
       await shot(page, 'settings-as-drawn-stream-1440x780');
-      if (side && side.del === 'Delete these 2' && await press('#st-jb-feed [data-st-swp-run="sales"]', '3d Delete these 2')) {
+      if (side && side.del === 'Delete these 2' && await press('#ins-panel [data-st-swp-run="sales"]', '3d Delete these 2')) {
         const asked = await until(() => document.getElementById('cf-ok') ? true : null, null, 4000);
         check('3d asked once more', !!asked);
         if (asked) await page.click('#cf-ok');

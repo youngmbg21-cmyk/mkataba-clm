@@ -104,7 +104,11 @@ const K = (id, name, end, over = {}) => ({ ...H.fixtureContract(id, name, 'Rift 
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list; what needs an admin is a row
        in Jambo's panel beside it ("Needs an admin"), the row itself the door (the need's own press: the stream on Keeping) */
     const NEED = '#ins-panel .jov5-row[data-st-panel="stream:sales@keeping"]';
-    const need = await until(sel => { if (typeof renderTeam === 'function' && !document.querySelector(sel)) renderTeam();
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe; the access check's card on the landing): the
+       landing's needs stop where the panel's room does ("N more" → the Need you chip, acNeedsRoom), and this need comes
+       last; every Company need is said whole in the Company area's own panel (sddGo('company')), the row the same door */
+    const need = await until(sel => { if (!document.querySelector('.stn-page[data-sdd-area="company"]')) { sddGo('company'); return null; }
+      if (typeof renderTeam === 'function' && !document.querySelector(sel)) renderTeam();
       const r = document.querySelector(sel); return r ? [...r.querySelectorAll('.jov5-rt > *')].map(x => x.textContent).join(' ').replace(/\s+/g, ' ').trim() : null; }, NEED);
     check('3a "Ready to delete · Sales & Route-to-Market — 2 contracts past their keeping period, waiting for an admin\'s yes"', !!need
       && /^Ready to delete · Sales & Route-to-Market 2 contracts past their keeping period, waiting for an admin's yes$/.test(need), need);
@@ -139,7 +143,10 @@ const K = (id, name, end, over = {}) => ({ ...H.fixtureContract(id, name, 'Rift 
           return /2 contracts deleted — each is in the trail\./.test(t) && d && /Nothing is due now/.test(d.textContent) ? { book: state.contracts.map(c => c.id).filter(id => /^KP-/.test(id)).sort() } : null; });
         check('4c an \'ok\', nothing more due, and they leave this book', !!gone && gone.book.join(',') === 'KP-2,KP-3', JSON.stringify(gone));
         await page.evaluate(() => stDrawerClose());
-        const left = await until(sel => { renderTeam(); return document.querySelector('#ins-panel .jov5-row') && !document.querySelector(sel) ? 'gone' : null; }, NEED);
+        /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): read in the Company area's panel, where a
+           need is never hidden by the landing's cap (the panel drawn = its headline) */
+        const left = await until(sel => { if (!document.querySelector('.stn-page[data-sdd-area="company"]')) { sddGo('company'); return null; }
+          renderTeam(); return document.querySelector('#ins-panel .jov5-title') && !document.querySelector(sel) ? 'gone' : null; }, NEED);
         check('4d the Needs row goes', left === 'gone', left);
       }
     }

@@ -107,6 +107,11 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
         /* Needs your attention's own button keeps the drawer, as drawn */
         await shut(); await company();
         /* RE-POINTED 16 Nov 2026 (#762): the clash is a row in Jambo's panel, the row itself the door */
+        /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe; the access check's card on the landing): the
+           landing's needs stop where the panel's room does ("N more", acNeedsRoom); the clash row is read in the Company
+           area's own panel, where every Company need is said whole, the same door */
+        await until(() => { if (!document.querySelector('.stn-page[data-sdd-area="company"]')) { try { sddGo('company'); } catch (_) {} return null; }
+          return document.querySelector('#ins-panel .jov5-row[data-st-panel^="person:"][data-st-focus]') ? true : null; }, null, 15000);
         if (await press('#ins-panel .jov5-row[data-st-panel^="person:"][data-st-focus]', '1f the clash row')) {
           const r = await until(() => { const dr = document.getElementById('st-drawer'); return dr && dr.classList.contains('open') ? { docked: dr.classList.contains('is-docked'), onBody: dr.parentElement === document.body } : null; });
           check('1f Needs your attention\'s "Open …" still opens the person\'s drawer (as drawn)', !!r && !r.docked && r.onBody, JSON.stringify(r));

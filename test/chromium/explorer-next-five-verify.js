@@ -154,8 +154,18 @@ const check = (name, pass, detail) => {
         const r = [...d.querySelectorAll('.jov5-row')].filter(x => !x.hasAttribute('data-ig-day-pin'));
         const pin = d.querySelector('[data-ig-day-pin]');
         return r.concat(pin ? [pin] : []); };
-      const d = await page.evaluate(`(() => { const DAY = ${DAY.toString()}; const L = DAY();
-        return { tiles: L.map(t => ({ door: t.hasAttribute('data-ig-day'), pin: t.hasAttribute('data-ig-day-pin'), n: Number(((t.classList.contains('ig-day-b') ? t.querySelector('.jov5-mk') : null) || t.querySelector('.jov5-v') || t.querySelector('b') || {}).textContent.trim().replace(/^(\\d+).*/, '$1')) || 0,
+      /* RE-POINTED 22 Nov 2026 (Your day, Legora + Stripe): a timeline row's figure is no longer a number in a tile — "N
+         renewals to decide" carries it in its title, and "New since yesterday" in its line ("MK-N15 added", or "2 contracts
+         added · 1 signed"); read there, so the figure is what the row SAYS it counts, and a row saying none reads 0 */
+      const FIG = t => { const lead = x => { const m = /^(\d+)/.exec(String(x || '').trim()); return m ? Number(m[1]) : null; };
+        if (t.classList.contains('ig-day-b')) return lead((t.querySelector('.jov5-mk') || {}).textContent) || 0;
+        const b = lead((t.querySelector('.jov5-rt b') || t.querySelector('b') || {}).textContent); if (b != null) return b;
+        if (!t.classList.contains('ig-day-tl')) return lead((t.querySelector('.jov5-v') || {}).textContent) || 0;
+        const line = String((t.querySelector('.jov5-rt > span') || {}).textContent || '').trim();
+        const ns = [...line.matchAll(/(\d+)\s+(?:contracts?\s+added|signed)\b/gi)].map(m => Number(m[1]));
+        return ns.length ? ns.reduce((a, x) => a + x, 0) : /^\S+\s+(?:added|signed)$/i.test(line) ? 1 : 0; };
+      const d = await page.evaluate(`(() => { const DAY = ${DAY.toString()}; const FIG = ${FIG.toString()}; const L = DAY();
+        return { tiles: L.map(t => ({ door: t.hasAttribute('data-ig-day'), pin: t.hasAttribute('data-ig-day-pin'), n: FIG(t),
             label: t.hasAttribute('data-ig-day-pin') ? 'pin' : ((t.querySelector('.jov5-rt b') || t.querySelector('span') || {}).textContent || '').trim(),
             text: t.textContent.replace(/\\s+/g, ' ').trim(), k: t.getAttribute('data-ig-day') || '' })),
           needs: ndRead().n, head: (document.querySelector('#ig-day .jov5-eb') || document.querySelector('#ig-day .jov5-sub') || {}).textContent || '', src: (document.querySelector('#ig-day .jov5-src') || {}).textContent || '' }; })()`);
@@ -378,8 +388,13 @@ const check = (name, pass, detail) => {
         const box = d.getBoundingClientRect(), T = [...d.querySelectorAll('.jov5-row')];
         const inView = T.every(t => { const r = t.getBoundingClientRect(); return r.bottom <= box.bottom + 1 && r.right <= box.right + 1; });
         const inside = T.every(t => { const r = t.getBoundingClientRect(); return [...t.children].every(c => { const q = c.getBoundingClientRect(); return q.left >= r.left - 1 && q.right <= r.right + 1; }); });
-        return { tiles: T.length, inView, inside }; });
-      check(`6b ${w}×${hh}: Your day's five figures and the pin are in sight, every line inside its tile`, !!dfit && dfit.tiles === 6 && dfit.inView && dfit.inside, JSON.stringify(dfit));
+        /* which row is out of sight, and by how much (said, so a red here names its row; the promise is unchanged) */
+        const out = T.filter(t => { const r = t.getBoundingClientRect(); return r.bottom > box.bottom + 1 || r.right > box.right + 1; })
+          .map(t => { const r = t.getBoundingClientRect(); return ((t.querySelector('.jov5-rt b') || {}).textContent || '').trim() + ' +' + Math.round(Math.max(r.bottom - box.bottom, r.right - box.right)) + 'px'; });
+        return { tiles: T.length, inView, inside, out, boxH: Math.round(box.height), scrollH: d.scrollHeight }; });
+      /* RE-POINTED 22 Nov 2026 (owner: "Let it scroll" — Your day, Legora + Stripe, may scroll on a short screen; retires
+         the 9 Nov "all in sight" half): every line still stays inside its row, nothing cut sideways */
+      check(`6b ${w}×${hh}: Your day's figures and the pin are drawn, every line inside its row (it may scroll)`, !!dfit && dfit.tiles === 6 && dfit.inside, JSON.stringify(dfit));
       await page.waitForTimeout(700);  /* the panel's crossfade finished before the picture */
       await page.screenshot({ path: path.join(OUT, `6-day-${w}x${hh}.png`) });
       await page.evaluate(() => { intel.dayTab = false; renderIntelDock(); });

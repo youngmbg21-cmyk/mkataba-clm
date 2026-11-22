@@ -22875,3 +22875,5 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - Changed (the owner's word; reverses "no motion in Settings" for the watermark only): the stop that held the watermark still on Settings is removed; it stays still only for a reader who asked for less motion.
 - Checked page by page in a browser: no other page drew the watermark still.
 - Noticed, not fixed: the Brain page shows no side panel at all in this check (so no waves); not looked into.
+- 22 Nov 2026 (noticed, not fixed — a design question for the owner): on Settings' landing, the access check's card now tops Jambo's panel and its "needs you" list stops at the room left ("N more"); at 1440×780 about three show, and "N more" only filters the areas to Need you — the quarter's review, clashes and Ready to delete sit two presses away (the Company area's panel lists them all).
+- 22 Nov 2026: brain-welcome-photos.js retired (deleted) — the Board's map welcome it photographed was removed by the owner the same day; CLAUDE.md's "NEVER BUILD FROM MEMORY" line and a comment in f1042 still name it.

@@ -68,7 +68,9 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     const empty = await until(() => { const p = document.querySelector('[data-st-pg="roles"]'); return p ? (p.querySelector('.st-bz-empty') || {}).textContent || 'listed' : null; });
     check('1b the page lands, saying no roles yet and what one is', /No business roles yet/.test(empty || ''), empty);
     await shot(page, 'roles-empty');
-    if (await press('[data-st-pg="roles"] [data-st-panel="role:new"]', '1c New role')) {
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): New role is the page's one act in the head,
+       beside the title (stLsRolesHtml's acts), no longer inside the list */
+    if (await press('#set-page.st-ls-page .st-ls-acts [data-st-panel="role:new"]', '1c New role')) {
       await drawerOpen();
       if (await page.locator('#bz-name').count()) await page.fill('#bz-name', 'Finance');
       await page.evaluate(() => {
@@ -82,9 +84,13 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       await press('#st-dsave', '1c Save');
       await drawerShut();
     }
-    const row = await until(() => { const tr = [...document.querySelectorAll('[data-st-pg="roles"] tr.st-person')].find(r => /Finance/.test(r.textContent));
-      return tr ? tr.textContent.replace(/\s+/g, ' ').trim() : null; });
-    check('1c New role makes Finance, listed with what it brings and who holds it', /Finance Editor — redlines and signs · Sees contract values · Signs up to KES 5M · Streams: .+ · Checked before sending · May put contracts on hold 0 people/.test(row || ''), row);
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the roles are one calm table — the role's
+       name, what it brings as soft badges (one per right, stBzBrings), the number of people under "People"; the row
+       chooses, no button on it */
+    const row = await until(() => { const tr = [...document.querySelectorAll('[data-st-pg="roles"] tr[data-st-ls-row^="roles:"]')].find(r => /Finance/.test(r.textContent));
+      if (!tr) return null; const brings = [...tr.cells[1].querySelectorAll('.apn-st')].map(b => b.textContent.trim()).join(' · ');
+      return [tr.cells[0].textContent, brings, tr.cells[2].textContent].map(x => x.replace(/\s+/g, ' ').trim()).join(' '); });
+    check('1c New role makes Finance, listed with what it brings and who holds it', /^Finance Editor — redlines and signs · Sees contract values · Signs up to KES 5M · Streams: .+ · Checked before sending · May put contracts on hold 0$/.test(row || ''), row);
 
     console.log('\n2 · the person\'s drawer opens with the role');
     await page.evaluate(id => stDrawerOpen('person:' + id), target.id);
@@ -131,7 +137,9 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
 
     console.log('\n4 · a change to the role says who it reaches, then moves only what came from it');
     await page.evaluate(() => settingsGoPage('roles'));
-    const fin = await until(() => { const tr = [...document.querySelectorAll('[data-st-pg="roles"] tr.st-person')].find(r => /Finance/.test(r.textContent)); return tr ? tr.getAttribute('data-st-panel') : null; });
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the role's row carries its id as
+       data-st-ls-row="roles:<id>"; its sheet is role:<id> (the second press, or the panel's Change, opens it) */
+    const fin = await until(() => { const tr = [...document.querySelectorAll('[data-st-pg="roles"] tr[data-st-ls-row^="roles:"]')].find(r => /Finance/.test(r.textContent)); return tr ? 'role:' + tr.getAttribute('data-st-ls-row').slice(6) : null; });
     if (fin) {
       await page.evaluate(k => stDrawerOpen(k), fin);
       await drawerOpen();

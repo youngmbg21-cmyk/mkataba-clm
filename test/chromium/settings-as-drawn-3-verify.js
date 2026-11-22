@@ -89,7 +89,12 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list, Jambo's panel beside it */
     const company = () => until(() => { if (!document.getElementById('set-page') || document.querySelector('#set-page[data-st-sub]')) { try { settingsGoPage(''); } catch (_) {} setView('team'); return null; }
       return document.querySelector('.stn-page #stn-main .sdd-row') && document.querySelector('#ins-panel #jl-q') ? true : null; }, null, 15000);
-    return { until, press, company };
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): on the landing the access check's card
+       stands over Jambo's needs and the list stops where the panel's room does ("N more" → the Need you chip,
+       acNeedsRoom); every Company need is said whole in the Company area's own panel, each row the same door */
+    const companyArea = sel => until(s => { if (!document.querySelector('.stn-page[data-sdd-area="company"]')) { try { sddGo('company'); } catch (_) {} return null; }
+      return document.querySelector(s) ? true : null; }, sel, 15000);
+    return { until, press, company, companyArea };
   };
   /* the frame, read: head card, panel, ask box (whole, not covered), panel head (not covered) */
   const frame = page => page.evaluate(() => {
@@ -127,7 +132,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     /* RETIRED 16 Nov 2026 (#762): 1f "a member's head card: Your settings · yours alone" — the old look's head card */
 
     const page = await open('admin@example.co.ke', 'adminpassword1');
-    const { until, press, company } = kit(page);
+    const { until, press, company, companyArea } = kit(page);
     await company();
 
     /* RETIRED 16 Nov 2026 (#762): 2a–2c (every card door opens its page with ‹ Settings; Jambo's agents among them; back
@@ -138,6 +143,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
 
     console.log('\n5 · Ready to delete → Review');
     /* RE-POINTED 16 Nov 2026 (#762): Ready to delete is a row in Jambo's panel beside the list, the row itself the door */
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the row is read in the Company area's panel,
+       where the landing's capped needs are said whole (companyArea above) */
+    await companyArea('#ins-panel .jov5-row[data-st-panel^="stream:"][data-st-panel$="@keeping"]');
     if (await press('#ins-panel .jov5-row[data-st-panel^="stream:"][data-st-panel$="@keeping"]', '5a Review')) {
       /* THE WAIT ASKS FOR THE WHOLE STATE (19 Oct 2026): the lander tries again
          every LAND_WAIT, so the list can be painted a beat before its light is
@@ -158,11 +166,20 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     await page.evaluate(() => settingsGoPage('streams'));
     await until(() => document.querySelector('.st-sw-row[data-st-sw-pick="sales"]'));
     if (await press('.st-sw-row[data-st-sw-pick="sales"]', '6a Sales')) {
-      const acts = await until(() => { const a = document.querySelector('#st-jb-feed .st-swp-acts'); if (!a) return null; const b = [...a.querySelectorAll('button')].map(x => x.getBoundingClientRect());
-        return b.length >= 3 ? { tops: [...new Set(b.map(x => Math.round(x.top)))], right: Math.round(b[b.length - 1].right), feed: Math.round(document.getElementById('st-jb-feed').getBoundingClientRect().right) } : null; });
-      check('6a Delete these N · Change keeping · Close, on one row', !!acts && acts.tops.length === 1 && acts.right <= acts.feed, JSON.stringify(acts));
+      /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the stream's side feed (#st-jb-feed) and
+         its row of three buttons are gone; the picked drawing puts the stream's acts in Jambo's panel (#ins-panel):
+         "Delete these N" at the foot of its Due now list, Change as the panel's one act; Close is the panel's Overview
+         (it lets go of the row, stLsLetGo). The promise kept: the acts are there, in reach, inside the panel */
+      const acts = await until(() => { const P = document.getElementById('ins-panel'); if (!P) return null;
+        const run = P.querySelector('.jov5-foot [data-st-swp-run="sales"]'), ch = P.querySelector('.jov5-act .jov5-go[data-st-panel="stream:sales"]');
+        if (!run || !ch) return null; const pr = P.getBoundingClientRect(), r1 = run.getBoundingClientRect(), r2 = ch.getBoundingClientRect();
+        return { run: run.textContent.trim(), change: ch.textContent.trim(), inside: [r1, r2].every(r => r.width > 0 && r.left >= pr.left - 0.5 && r.right <= pr.right + 0.5) }; });
+      check('6a Delete these N · Change, inside the stream\'s panel', !!acts && /^Delete these 2$/.test(acts.run) && !!acts.change && acts.inside, JSON.stringify(acts));
     }
-    if (await press('#st-jb-feed [data-st-swp-open]', '6b the held contract\'s Open')) {
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the held contract is a row of the stream's
+       panel (#ins-panel), the row itself its Open */
+    await until(() => document.querySelector('#ins-panel [data-st-swp-open]'));
+    if (await press('#ins-panel [data-st-swp-open]', '6b the held contract\'s Open')) {
       /* RE-POINTED 21 Oct 2026 (the Dossier, 20 Oct): the Menu tab folded into the Dossier's All acts */
       /* RE-POINTED 16 Nov 2026 (#762): the paper's acts are its More pop-up; Open lands there, on Release hold */
       const held = await until(() => { const r = document.querySelector('#pd-acts-pop[data-pd-acts-pop="MK-S3"] [data-pd-acts-go="#ws-hold"]') || document.querySelector('#ig-dock .pd-nx[data-pd-menu="MK-S3"] #ws-hold');
@@ -174,20 +191,27 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     console.log('\n7 · Data & backup');
     await company();
     await page.evaluate(() => settingsGoPage('data'));
-    const dt = await until(() => { const c = document.querySelector('#st-jb-feed [data-st-tr-pdf]'), w0 = document.querySelector('.st-tr-tb .st-ps-who');
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): Jambo's offer is a row of the page's panel
+       (#ins-panel), no longer a chip in the old side feed */
+    const dt = await until(() => { const c = document.querySelector('#ins-panel .jov5-row[data-st-tr-pdf] .jov5-rt > b'), w0 = document.querySelector('.st-tr-tb .st-ps-who');
       return c && w0 ? { chip: c.textContent.trim(), who: getComputedStyle(w0).fontWeight } : null; }, null, 10000);
     /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"; "Yes, every page"): his words are the Overview's head, his offers verb first with a capital */
     check('7a "Download Q3 as a PDF"', !!dt && /^download Q\d as a PDF$/i.test(dt.chip), dt && dt.chip);
     check('7b Downloads so far: Who in plain weight', !!dt && Number(dt.who) <= 400, dt && dt.who);
     await company();
     await page.evaluate(() => stDrawerOpen('backup'));
-    const menuTab = await until(() => { const on = document.querySelector('[data-st-pg="data"] [data-st-bk-tab].is-on'); return on ? on.getAttribute('data-st-bk-tab') : null; });
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the trail · backup tabs are the page head's
+       (.st-ls-tab[data-st-ls-bk]), above the body */
+    const menuTab = await until(() => { const on = document.querySelector('#set-page[data-st-ls="data"] .st-ls-tab.is-on[data-st-ls-bk]'); return on ? on.getAttribute('data-st-ls-bk') : null; });
     check('7c the Menu\'s "Data & backup" opens The trail, as the card\'s door does', menuTab === 'trail', String(menuTab));
 
     console.log('\n8 · a clash made by a write, stamped by the server');
     check('8a the server stamped it with no page open', !!stamped, String(stamped));
     await company();
     /* RE-POINTED 16 Nov 2026 (#762): the clash is a row in Jambo's panel beside the list; its second line says since when */
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): read in the Company area's panel, where the
+       landing's capped needs are said whole */
+    await companyArea('#ins-panel .jov5-row[data-st-panel^="person:"][data-st-focus]');
     const since = await until(() => { const s = document.querySelector('#ins-panel .jov5-row[data-st-panel^="person:"][data-st-focus] .jov5-rt > span'); return s && /since/.test(s.textContent) ? s.textContent.trim() : null; });
     check('8b its row says since when', !!since, since);
 

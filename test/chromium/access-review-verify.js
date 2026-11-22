@@ -74,9 +74,16 @@ const CONTRACTS = [
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list; what needs an admin is a row
        in Jambo's panel beside it ("Needs an admin"), the row itself the door (the need's own press: the sheet, reviewing) */
     const NEED = '#ins-panel .jov5-row[data-st-page="sheet"][data-st-land="ar"]';
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the landing's panel now carries the access
+       check's card and stops its needs where the panel's room does ("N more", acNeedsRoom); a need past that room is a
+       row on its area's panel (Company, uncapped). The reader's way: the landing's row where it is drawn, else the
+       landing's "N more" (Need you), then the Company area. */
     const ask = await until(sel => {
       if (!document.querySelector('.stn-page')) { setView('team'); return null; }
       const r = document.querySelector(sel);
+      if (!r) { const more = document.querySelector('#ins-panel .jov5-flink[data-sdd-chip="need"]'), co = document.querySelector('#set-page [data-sdd-home="company"]');
+        if (more && !document.querySelector('#set-page [data-sdd-chip="need"].is-on')) more.click(); else if (co) co.click();
+        return null; }
       return r ? { text: [...r.querySelectorAll('.jov5-rt > *')].map(x => x.textContent).join(' ').replace(/\s+/g, ' ').trim() } : null; }, NEED, 15000);
     /* re-pointed 18 Oct 2026 (round 25 as drawn): the second line says it is
        asked until the quarter is stamped.
@@ -88,8 +95,14 @@ const CONTRACTS = [
     check('1b …and so does the bell', bell === `The quarterly access review is due · ${qWord()}`, bell);
     await shot(page, 'ar-needs');
     if (ask) await press(NEED, '1c Review');
-    const head = await until(() => { const p = document.querySelector('[data-st-pg="sheet"]'); return p ? (p.querySelector('.st-pg-t') || {}).textContent.replace(/\s+/g, ' ').trim() : null; });
-    check('1c Review opens Who holds what, reviewing', head === `Who holds what Reviewing · ${qWord()} · 0 of 3 reviewed`, head);
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): Who holds what is a tab of People & roles in
+       the area's frame; "Reviewing · Q · n of m" moved to Jambo's panel beside it — the tag "Q review" over "0 of 3
+       reviewed" — and the list wears is-reviewing */
+    const head = await until(() => { const p = document.querySelector('#set-page.st-ls-page [data-st-pg="sheet"]'); if (!p) return null;
+      const tab = (document.querySelector('#set-page .st-ls-tab.is-on') || {}).textContent, pn = document.querySelector('#ins-panel');
+      const tag = pn && (pn.querySelector('.sdd5-tags') || {}).textContent, title = pn && (pn.querySelector('.jov5-title') || {}).textContent;
+      return tag && title ? [tab, p.classList.contains('is-reviewing') ? 'Reviewing' : '', tag, title].map(x => String(x || '').replace(/\s+/g, ' ').trim()).join(' · ') : null; });
+    check('1c Review opens Who holds what, reviewing', head === `Who holds what · Reviewing · ${qWord()} review · 0 of 3 reviewed`, head);
 
     console.log('\n2 · used in the last 90 days, read from the trail');
     const used = await until(ids => {
@@ -98,44 +111,71 @@ const CONTRACTS = [
     check('2a the active one: Used this week', !!used && used[0].t === 'Used this week' && !used[0].amber, JSON.stringify(used && used[0]));
     check('2b a stream with no work for 200 days, in amber', !!used && used[1].t === 'Procurement & Raw Materials: no work in 200 days' && used[1].amber, JSON.stringify(used && used[1]));
     check('2c not signed in for 130 days, in amber', !!used && used[2].t === 'Not signed in for 130 days' && used[2].amber, JSON.stringify(used && used[2]));
-    const meRow = await page.evaluate(() => { const me = currentUser(); const r = document.querySelector(`[data-st-ar-row="${me.id}"]`); return r ? r.textContent.trim() : null; });
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the Review column is a soft badge per row
+       (To review · Kept · Changed · You); the admin's own row's badge says You */
+    const meRow = await page.evaluate(() => { const me = currentUser(); const r = document.querySelector(`#set-page [data-st-ls-row="sheet:${me.id}"]`); return r ? r.lastElementChild.textContent.trim() : null; });
     check('2d the admin themself is not reviewed', meRow === 'You', meRow);
     /* while reviewing the sheet carries two columns more: Keep · Change must
        sit inside the card, never cut and never off to the side */
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): Keep · Change left every row for Jambo's
+       panel (MAP-HISTORY: "Keep · Change left every row of Who holds what for the panel"); a row chooses the person and
+       the panel carries the pair. Pinned: the sheet with its two review columns fits its card, and the chosen person's
+       Keep · Change sit inside the panel, never cut, nothing scrolling sideways */
+    const pick = async id => { const sel = `#set-page [data-st-ls-row="sheet:${id}"]`;
+      if (!(await page.evaluate(s => { const r = document.querySelector(s); return !!r && r.classList.contains('is-chosen'); }, sel))) { if (!(await press(sel, 'choose the row'))) return false; }
+      return !!(await until(i => !!document.querySelector(`#ins-panel [data-st-ar][data-st-ar-who="${i}"]`), id)); };
+    await pick(U.restricted.id);
     for (const vp of [{ width: 1440, height: 780 }, { width: 1536, height: 730 }, { width: 1366, height: 950 }]) {
       await page.setViewportSize(vp);
-      const fit = await until(() => { const card = document.querySelector('.st-sheet-full'), b = [...document.querySelectorAll('[data-st-ar="change"]')].pop();
-        if (!card || !b) return null; const cr = card.getBoundingClientRect(), br = b.getBoundingClientRect();
-        return { inside: br.right <= cr.right + 1 && br.left >= cr.left, scroll: card.scrollWidth - card.clientWidth, page: document.documentElement.scrollWidth - innerWidth }; });
+      const fit = await until(() => { const card = document.querySelector('#set-page .stn-card'), main = document.getElementById('st-ls-main'), tb = card && card.querySelector('.st-ls-sheet'),
+        pn = document.getElementById('ins-panel'), b = pn && [...pn.querySelectorAll('[data-st-ar="change"]')].pop();
+        if (!card || !tb || !b) return null; const cr = card.getBoundingClientRect(), tr = tb.getBoundingClientRect(), pr = pn.getBoundingClientRect(), br = b.getBoundingClientRect();
+        return { inside: br.right <= pr.right + 1 && br.left >= pr.left && tr.right <= cr.right + 1, scroll: Math.max(main.scrollWidth - main.clientWidth, pn.scrollWidth - pn.clientWidth), page: document.documentElement.scrollWidth - innerWidth }; });
       await shot(page, `ar-sheet-${vp.width}x${vp.height}`);
       check(`2e ${vp.width}×${vp.height}: while reviewing, Keep · Change sit inside the card`, !!fit && fit.inside && fit.scroll <= 0 && fit.page <= 0, JSON.stringify(fit));
     }
     await page.setViewportSize({ width: 1440, height: 780 });
 
     console.log('\n3 · keep, change, and the foot');
-    await press(`[data-st-ar-row="${U.restricted.id}"] [data-st-ar="keep"]`, '3a Keep');
-    const kept = await until(id => { const b = document.querySelector(`[data-st-ar-row="${id}"] [data-st-ar="keep"]`); return b && b.getAttribute('aria-pressed') === 'true' ? b.textContent.trim() : null; }, U.restricted.id);
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): Keep · Change are the chosen person's, in
+       Jambo's panel; the row's Review badge says Kept ✓ / Changed ✓ and so does the panel's button. Mark the review done
+       is the panel's own button once no row is chosen (Escape lets the row go) */
+    const letGo = async () => { await page.keyboard.press('Escape'); return until(() => !document.querySelector('#set-page [data-st-ls-row].is-chosen') && !!document.getElementById('st-ar-done')); };
+    const badgeOf = id => `#set-page [data-st-ls-row="sheet:${id}"]`;
+    if (await pick(U.restricted.id)) await press(`#ins-panel [data-st-ar="keep"][data-st-ar-who="${U.restricted.id}"]`, '3a Keep');
+    const kept = await until(([id, row]) => { const r = document.querySelector(row), b = document.querySelector(`#ins-panel [data-st-ar="keep"][data-st-ar-who="${id}"]`);
+      const t = r && r.lastElementChild.textContent.trim(); return t === 'Kept ✓' && b && b.textContent.trim() === t ? t : null; }, [U.restricted.id, badgeOf(U.restricted.id)]);
+    await letGo();
     const foot1 = await page.evaluate(() => { const b = document.getElementById('st-ar-done'); return b ? { disabled: b.disabled, title: b.getAttribute('title') } : null; });
     check('3a Keep marks the row Kept; Mark the review done is greyed, saying 2 people left', kept === 'Kept ✓' && !!foot1 && foot1.disabled && foot1.title === '2 people left', JSON.stringify({ kept, foot1 }));
-    await press(`[data-st-ar-row="${U.novalues.id}"] [data-st-ar="change"]`, '3b Change');
+    if (await pick(U.novalues.id)) await press(`#ins-panel [data-st-ar="change"][data-st-ar-who="${U.novalues.id}"]`, '3b Change');
     const drawer = await until(() => { const d = document.getElementById('st-drawer'); return d && d.classList.contains('open') ? (document.querySelector('#st-dhead .rvd-title') || {}).textContent : null; });
     check('3b Change opens the person', drawer === 'No Values Legal', drawer);
     if (drawer) {
       await page.evaluate(() => { const t = document.getElementById('tm-title'); if (t) { t.value = 'Analyst'; t.dispatchEvent(new Event('input', { bubbles: true })); } });
       await press('#st-dsave', '3c Save');
     }
-    const changed = await until(id => { const b = document.querySelector(`[data-st-ar-row="${id}"] [data-st-ar="change"]`); return b && b.getAttribute('aria-pressed') === 'true' ? b.textContent.trim() : null; }, U.novalues.id, 10000);
+    const changed = await until(row => { const r = document.querySelector(row), t = r && r.lastElementChild.textContent.trim(); return t === 'Changed ✓' ? t : null; }, badgeOf(U.novalues.id), 10000);
     check('3c …and the saved drawer marks the row Changed', changed === 'Changed ✓', changed);
-    await press(`[data-st-ar-row="${U.unrestricted.id}"] [data-st-ar="keep"]`, '3d Keep the last');
-    const ready = await until(() => { const b = document.getElementById('st-ar-done'); return b && !b.disabled ? (document.querySelector('.st-ar-foot') || {}).textContent.replace(/\s+/g, ' ').trim() : null; });
+    await until(() => { const d = document.getElementById('st-drawer'); return !d || !d.classList.contains('open'); });
+    if (await pick(U.unrestricted.id)) await press(`#ins-panel [data-st-ar="keep"][data-st-ar-who="${U.unrestricted.id}"]`, '3d Keep the last');
+    await until(row => { const r = document.querySelector(row); return r && r.lastElementChild.textContent.trim() === 'Kept ✓'; }, badgeOf(U.unrestricted.id));
+    await letGo();
+    const ready = await until(() => { const b = document.getElementById('st-ar-done'); const say = b && b.parentElement.querySelector('span');
+      return b && !b.disabled ? [say ? say.textContent : '', b.textContent].map(x => x.replace(/\s+/g, ' ').trim()).join(' ') : null; });
     check('3d everyone decided: the foot says so and the button is live', ready === 'Everyone is kept or changed. Mark the review done', ready);
 
     console.log('\n4 · done, stamped');
     await press('#st-ar-done', '4 Mark the review done');
-    const done = await until(() => { const p = document.querySelector('[data-st-pg="sheet"]'); const t = p && (p.querySelector('.st-pg-t') || {}).textContent.replace(/\s+/g, ' ').trim();
-      return t && /Reviewed/.test(t) ? { head: t, rev: document.querySelectorAll('[data-st-ar-row]').length, foot: !!document.querySelector('.st-ar-foot'), toast: (document.getElementById('toast-root') || {}).textContent || '' } : null; });
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): who stamped it is said under the panel's
+       headline ("Reviewed · Q · day by who", stArHeadSub); the Review column is the table's last head ("Review"), and
+       the done button is the panel's (#st-ar-done) */
+    const done = await until(() => { const p = document.querySelector('#set-page [data-st-pg="sheet"]'), pn = document.getElementById('ins-panel');
+      const t = pn && [...pn.querySelectorAll('.jov5-sub')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).find(x => /^Reviewed/.test(x));
+      return p && t ? { head: t, rev: [...p.querySelectorAll('th')].filter(th => th.textContent.trim() === 'Review').length + p.querySelectorAll('.st-ls-row .apn-st.is-amber').length,
+        foot: !!document.getElementById('st-ar-done') || p.classList.contains('is-reviewing'), toast: (document.getElementById('toast-root') || {}).textContent || '' } : null; });
     check('4a an \'ok\' says it is stamped in the trail', !!done && /access review is done, and stamped in the trail/.test(done.toast), done && done.toast);
-    check('4b the head says who stamped it; the Review column and the foot are gone', !!done && new RegExp(`^Who holds what Reviewed · ${qWord()} · .+ by Amina Otieno$`).test(done.head) && done.rev === 0 && !done.foot, JSON.stringify(done));
+    check('4b the head says who stamped it; the Review column and the foot are gone', !!done && new RegExp(`^Reviewed · ${qWord()} · .+ by Amina Otieno$`).test(done.head) && done.rev === 0 && !done.foot, JSON.stringify(done));
     const after = await page.evaluate(() => ({ ask: typeof stNeedsAll === 'function' ? stNeedsAll().some(r => r.key === 'review') : null,
       bell: (typeof buildAlerts === 'function' ? buildAlerts() : []).some(a => a.kind === 'access-review') }));
     check('4c the ask and the bell entry are gone', after.ask === false && after.bell === false, JSON.stringify(after));
@@ -144,7 +184,9 @@ const CONTRACTS = [
     for (const vp of [{ width: 1440, height: 780 }, { width: 1536, height: 730 }, { width: 1366, height: 950 }]) {
       await page.setViewportSize(vp);
       const fit = await page.evaluate(() => {
-        const card = document.querySelector('.st-sheet-full'), tb = card && card.querySelector('table');
+        /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the sheet is the page's one table
+           (.st-ls-sheet) in the area's card (.stn-card) */
+        const card = document.querySelector('#set-page .stn-card'), tb = card && card.querySelector('.st-ls-sheet');
         return { page: document.documentElement.scrollWidth - innerWidth, table: tb && card ? Math.round(tb.getBoundingClientRect().right - card.getBoundingClientRect().right) : null };
       });
       await shot(page, `ar-done-${vp.width}x${vp.height}`);
