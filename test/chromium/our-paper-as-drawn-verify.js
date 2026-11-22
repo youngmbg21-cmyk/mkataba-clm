@@ -287,7 +287,9 @@ async function SEED(){
     check('5c the next step is the column\'s: the panel on the paper draws no second Draft from it', !E.go.trim(), JSON.stringify({ say: E.say, go: E.go, link: E.link }));
     /* RE-POINTED 21 Oct 2026 (Chambers, owner's pick 20 Oct 2026): no hint line under any Jambo box */
     /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): Jambo's panel FLOATS, a white card 8px in from the window's edge, its top and its foot (the owner's drawing) */
-    check('5d the ask box at the panel\'s foot, no hint line under it; the panel 8px in from the window\'s edge', E.ph === 'Ask Jambo, or type / for a place' && E.hints === 0 && E.right, JSON.stringify({ ph: E.ph, hints: E.hints, right: E.right }));
+    /* RE-POINTED 22 Nov 2026 (owner: "make them honest labels but jambo should have the ability to answer those questions"): the
+       page's example question moved from the top box into Jambo's box at the panel's foot */
+    check('5d the ask box at the panel\'s foot with the page\'s question, no hint line under it; the panel 8px in from the window\'s edge', E.ph === 'Ask Jambo: “which paper for a new supplier?”' && E.hints === 0 && E.right, JSON.stringify({ ph: E.ph, hints: E.hints, right: E.right }));
     await press('#ins-panel [data-jl-home]');
     const E2 = await until(() => { const p = document.getElementById('ins-panel'); return p && ![...p.querySelectorAll('.jov5-title')].some(t => /Master services agreement/.test(t.textContent)) && p.querySelector('[data-jl-words]') ? p.querySelector('[data-jl-words]').textContent.replace(/\s+/g, ' ').trim() : null; });
     check('5e ‹ Jambo lets the template go: his words say the book', !!E2 && /Our paper holds \d+ templates/.test(E2) && /contracts were drafted from them in 12 months; 2 came back changed/.test(E2), E2);

@@ -2000,11 +2000,8 @@ function regCtHeadReg(){
   const onList=regOnCt(R=>R.show==='list');
   return lhRegister(REG_CT_SEAT, {
     noun:'contracts', boxId:'ct-q',
-    /* P-31 AS DRAWN: the drawing's words in the box and its spark; the box still narrows the list by its words */
-    ph:()=>regOnCt(()=>regNl()?i18t('ctls_ask_ph'):null), boxIcon:()=>regOnCt(()=>regNl()?'mkSpark':null),
-    /* the box's words ask (owner, 21 Nov 2026): a QUESTION goes to Jambo through the one reader (lhAsk → intelAsk, answered
-       in the panel beside the list); plain words filter the list */
-    asks:true,
+    /* AN HONEST FILTER (owner, 22 Nov 2026; reverses P-31's asking box of 21 Nov): the list head's own "Filter this list"
+       and its magnifying glass; every word narrows the list, and questions are Jambo's, in his box at the panel's foot */
     total:()=>regOnCt(()=>{ try{ return regRestBase().length; }catch(_){ return null; } }),
     q:()=>String((state.reg&&state.reg.query)||''),
     /* the rows only — never the box, so the caret stays; the head recounts
@@ -4122,7 +4119,7 @@ function regFoldersHeadHtml(){
   return `<div class="ctf-head"><h2 class="ctf-h">${esc(i18t('nav_contracts'))}</h2><span class="ctf-sp"></span>
       <button type="button" class="ctf-pill is-lead" data-ctf-show="list">${esc(i18t('ct_list'))}</button><button type="button" class="ctf-pill" data-ctf-show="wall">${esc(i18t('ct_wall'))}</button>
       ${may ? `<button type="button" class="ui-btn ui-btn-primary ctf-new" data-ctf-draft>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${esc(i18t('ctf_new_agreement'))}</button>` : ''}</div>
-    <label class="apn-ask ctf-ask is-spark">${typeof icon === 'function' ? icon('mkSpark', 'w-3.5 h-3.5') : ''}<input id="ctf-q" type="search" autocomplete="off" placeholder="${esc(i18t('ctls_ask_ph'))}"></label>
+    <label class="apn-ask ctf-ask is-filter">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ctf-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" aria-label="${esc(i18t('lh_filter_ph'))}"></label>
     <div class="apn-bar ctf-bar"><button type="button" class="apn-tab is-chip is-on" data-ctf-tab="folders">${esc(i18t('ctf_tab_folders'))} <span>${regFolderCount()}</span></button><button type="button" class="apn-tab is-chip" data-ctf-tab="all">${esc(i18t('ctf_tab_all'))} <span>${r.n}</span></button>${r.needN ? `<button type="button" class="apn-tab is-chip" data-ctf-tab="needs"><i class="apn-cd is-amber" aria-hidden="true"></i>${esc(i18t('ctf_tab_needs'))} <span>${r.needN}</span></button>` : ''}</div>`;
 }
 if (typeof document !== 'undefined' && !document._ctfWired2){ document._ctfWired2 = true;
@@ -4133,17 +4130,10 @@ if (typeof document !== 'undefined' && !document._ctfWired2){ document._ctfWired
     if (t.closest('[data-ctf-draft]')){ e.preventDefault(); if (typeof openNewAgreement === 'function') openNewAgreement(); return; }
     if (t.closest('[data-ctf-upload]')){ e.preventDefault(); if (typeof pdDropDoor === 'function') pdDropDoor(); return; }
   });
-  /* a question typed on the landing's box goes to the one reader (lhAsk → intelAsk, answered in the panel), as the lists' box */
-  document.addEventListener('keydown', e => {
-    const q = e.target && e.target.id === 'ctf-q' ? e.target : null; if (!q || e.key !== 'Enter' || e.isComposing) return;
-    const w = String(q.value || '').trim(); if (!w || typeof lhIsQuestion !== 'function' || !lhIsQuestion(w) || typeof lhAsk !== 'function') return;
-    e.preventDefault(); if (lhAsk(REG_CT_SEAT, w)) q.value = '';
-  });
   /* words typed in the box leave the folders for the list, the words carried (the register's own query) */
   document.addEventListener('input', e => {
     const q = e.target && e.target.id === 'ctf-q' ? e.target : null; if (!q) return;
-    /* a QUESTION stays in the box for Enter (the list head's own rule, spec.asks): it narrows nothing */
-    if (typeof lhIsQuestion === 'function' && lhIsQuestion(q.value)) return;
+    /* AN HONEST FILTER (owner, 22 Nov 2026): every word typed narrows the list; questions are Jambo's, in his box */
     state.reg = state.reg || {}; state.reg.query = q.value; _ctFolders = false; regRepaint();
     setTimeout(() => { const b = document.getElementById('ct-q'); if (b){ b.focus(); try { b.setSelectionRange(b.value.length, b.value.length); } catch (_){} } }, 0);
   });
@@ -5981,13 +5971,12 @@ function ngnRender(host){
   const live = B.n('live'), you = B.n('you');
   const tabs = [['live', i18t('ngn_tab_live'), live], ['you', i18t('ngn_tab_you'), you], ['them', i18t('ngn_tab_them'), B.n('them')], ['settled', i18t('ngn_tab_settled'), B.n('settled')]];
   const C = ngnCols();
-  /* THE ONE ASK BOX, AS DRAWN: Jambo's spark, and an example asked of a deal that waits on you ("what is Vivo asking for?") */
-  const ex = all.find(x => x.b === 'you' && x.asks.length && x.c.counterparty) || all.find(x => x.c.counterparty);
-  const askPh = ex ? i18t('ngn_ask_ph_p', { p: String(ex.c.counterparty).trim().split(/\s+/)[0] }) : i18t('ngn_ask_ph');
+  /* AN HONEST FILTER (owner, 22 Nov 2026): the box narrows the list and says only that; questions are Jambo's, in his box */
+  const askPh = i18t('lh_filter_ph');
   host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page ngn-page" data-ins-page="negotiations" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${esc(i18t('ng_door_title'))}</h2><span class="ctf-sp"></span>${(typeof canEdit !== 'function' || canEdit()) ? `<button type="button" class="ui-btn ngn-start" data-ngn-start>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5', 2) : ''}${esc(i18t('ngn_start'))}</button>` : ''}</div>
-      <label class="apn-ask is-spark">${typeof icon === 'function' ? icon('mkSpark', 'w-3.5 h-3.5', 0) : ''}<input id="ngn-q" type="search" autocomplete="off" placeholder="${esc(askPh)}" aria-label="${esc(i18t('ngn_ask_ph'))}" value="${esc(_ngnQ)}"></label>
+      <label class="apn-ask is-filter">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ngn-q" type="search" autocomplete="off" placeholder="${esc(askPh)}" aria-label="${esc(askPh)}" value="${esc(_ngnQ)}"></label>
       <div class="apn-bar" data-lh-seat="negotiations-nl">${tabs.filter(t => t[2] || t[0] === 'live' || t[0] === _ngn).map(t => `<button type="button" class="apn-tab is-chip${_ngn === t[0] ? ' is-on' : ''}" data-ngn-tab="${t[0]}">${t[0] === 'you' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${esc(t[1])} <span>${t[2]}</span></button>`).join('')}${ngnLeadChipHtml(all)}</div>
       <div class="cu-scroll"><table class="apn-table cun-table ngn-table" data-list-seat="${esc(REG_NEGO_SEAT)}">${C.colg}
         ${C.th}
@@ -6033,11 +6022,8 @@ if (typeof document !== 'undefined' && !document._ngnWired){ document._ngnWired 
       if (String(id) === String(_ngnSel)){ if (typeof openRedlineWorkbench === 'function') openRedlineWorkbench(id); return; }
       _ngnSel = id; _ngnNone = false; ngnRepaint(); }
   });
-  /* THE ASK BOX ASKS: typing narrows the list to the deals it names; Enter on words that name no deal asks Jambo, who
-     answers in the side panel (jlAsk, the panel's own) — the list comes back whole */
-  document.addEventListener('keydown', e => { if (!e.target || e.target.id !== 'ngn-q' || e.key !== 'Enter') return;
-    const w = String(e.target.value || '').trim(); if (!w || ngnBook().list.length || typeof jlAsk !== 'function') return;
-    e.preventDefault(); _ngnQ = ''; ngnRepaint(); jlAsk(w, { typed: true }); });
+  /* AN HONEST FILTER (owner, 22 Nov 2026): typing narrows the list to the deals it names; a question is Jambo's, asked in
+     his box at the side panel's foot */
   document.addEventListener('input', e => { if (!e.target || e.target.id !== 'ngn-q') return;
     _ngnQ = e.target.value; ngnRepaint(); const q = document.getElementById('ngn-q'); if (q){ q.focus(); const k = q.value.length; try { q.setSelectionRange(k, k); } catch (_){} } });
 }

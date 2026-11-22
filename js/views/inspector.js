@@ -1296,6 +1296,20 @@ function jlAskHtml(o){
 }
 /* The frame is built ONCE per panel element, so the words in the box and its
    caret survive every row press; only the body and the head's word move. */
+/* THE TOP BOX FILTERS, JAMBO'S BOX ASKS (owner, 22 Nov 2026: "make them honest labels but jambo should have the ability to
+   answer those questions"): each list page's top box says "Filter this list" and only narrows it; the page's example
+   question moves here, to Jambo's box at the panel's foot. A page that hands in its own words (opt.jlPh other than the
+   two plain ones) keeps them. Negotiations is named by its seat (its list stands on the shared Negotiate view). */
+const JL_PAGE_ASKS = { approvals: 'jl_ph_pg_approvals', standards: 'jl_ph_pg_standards', ourpaper: 'jl_ph_pg_ourpaper', settings: 'jl_ph_pg_settings',
+  import: 'jl_ph_pg_import', mynotes: 'jl_ph_pg_mynotes', contracts: 'jl_ph_pg_contracts', negotiations: 'jl_ph_pg_negotiations',
+  requests: 'jl_ph_pg_requests', people: 'jl_ph_pg_people', parties: 'jl_ph_pg_parties' };
+function jlPagePh(opt){
+  const o = opt || {}, plain = [i18t('jl_ph_any'), i18t('jl_ph_list')];
+  if (o.jlPh && !plain.includes(o.jlPh)) return o.jlPh;
+  let k = null;
+  try { k = o.seat === 'negotiations' ? 'negotiations' : (typeof window.guideHereKey === 'function' ? window.guideHereKey() : null); } catch (_){ k = null; }
+  return (k && Object.prototype.hasOwnProperty.call(JL_PAGE_ASKS, k)) ? i18t(JL_PAGE_ASKS[k]) : (o.jlPh || i18t('jl_ph_any'));
+}
 function jlFrame(host, opt){
   host.classList.add('is-jambo');
   host.classList.toggle('is-folded', jlFolded());
@@ -1307,14 +1321,14 @@ function jlFrame(host, opt){
     /* JAMBO AS A TAB YOU FLIP TO (owner, 19 Oct 2026): the body is the
        landing (data-jt-land); the conversation is its own view beside it,
        the trail over it — the box at the foot asks for both */
-    host.innerHTML = `${jlDoorHtml()}${grip}${jlHeadHtml()}<div class="jl-body" id="jl-body" data-jl-body data-jt-land></div>${jlTalkHtml()}${jlAskHtml({ placeholder: opt.jlPh })}`;
+    host.innerHTML = `${jlDoorHtml()}${grip}${jlHeadHtml()}<div class="jl-body" id="jl-body" data-jl-body data-jt-land></div>${jlTalkHtml()}${jlAskHtml({ placeholder: jlPagePh(opt) })}`;
     body = host.querySelector(':scope > .jl-body');
   }
   jlTalkPaint(host);
   const inp = host.querySelector('#jl-q');
   /* a half-typed question outlives a repaint of the page (the flash survey, 13 Nov 2026): the box's own draft */
   if (inp && typeof boxDraftJoin === 'function') boxDraftJoin(inp, 'list');
-  const ph = opt.jlPh || i18t('jl_ph_any');
+  const ph = jlPagePh(opt);
   if (inp && inp.getAttribute('placeholder') !== ph){ inp.setAttribute('placeholder', ph); inp.setAttribute('aria-label', ph); }
   jlLayout();
   return body;
@@ -1917,7 +1931,7 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined' && !window.
   window.addEventListener('resize', () => { try { jlLayout(); } catch (_){} });
 }
 
-Object.assign(window, { INS_MIN_W, INS_ASKS_MAX, INS_LATEST, INS_READ_TONE,
+Object.assign(window, { jlPagePh, JL_PAGE_ASKS, INS_MIN_W, INS_ASKS_MAX, INS_LATEST, INS_READ_TONE,
   insForce, insFits, insSelected, insSelect, insPick, insFacts, insMove, insMoveCellHtml,
   insTable, insReads, insLatest, insSecHtml, insFactsHtml, insTableHtml, insReadsHtml, insLatestHtml,
   insHeadHtml, insParties, insPartiesHtml, insNeedsHtml, insNeedsLineHtml, insNeedWords, INS_NEED_VERB, INS_NEED_GO, insPanelHtml, insPanelEmptyHtml, insPaintPanel, insCloseMenu, insMarkRow, insListWire,

@@ -1736,7 +1736,7 @@ function migNlListHtml(rows){
 /* THE PAGE, AS DRAWN (P-33): the title alone (the facts line goes: the bar and the chips say it), Review spreadsheet and
    Check all · N (grey), Choose files (black); one ask box; chips Need you (amber dot) · Read · All with counts, + Stream;
    the batch bar; the table; the chosen file's panel */
-/* the ask box's mark, as drawn: Jambo's four-pointed spark in the link ink (not a magnifier) */
+/* the first screen's ask box's mark, as drawn: Jambo's four-pointed spark in the link ink (that box asks; a batch's box is an honest filter) */
 const MIGN_SPARK = '<svg class="mign-spark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z"/></svg>';
 function migNlPageHtml(rows){
   const need = rows.filter(r => MIG_NEEDS.includes(r.st.k)).length, read = rows.length - need;
@@ -1753,7 +1753,7 @@ function migNlPageHtml(rows){
         <button type="button" class="ctf-pill" id="mig-sheet" aria-haspopup="menu" aria-expanded="false">${esc(i18t('mig_sheet'))}</button>${may ? '<input id="mig-sheet-file" type="file" accept=".csv" hidden>' : ''}
         ${may && need ? `<button type="button" class="ctf-pill" id="mig-check-all">${esc(i18t('mign_check_all', { n: need }))}</button>` : ''}
         ${may ? `<button type="button" class="ui-btn ui-btn-primary ctf-new" id="mign-choose">${esc(i18t('mign_choose_files'))}</button><input type="file" id="mign-files" multiple hidden>` : ''}</div>
-      <label class="apn-ask mign-ask">${MIGN_SPARK}<input id="mign-q" type="search" autocomplete="off" placeholder="${esc(i18t('mign_ask_ph'))}" value="${esc(_migQ || '')}"></label>
+      <label class="apn-ask mign-ask is-filter">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="mign-q" type="search" autocomplete="off" placeholder="${esc(i18t('mign_filter_ph'))}" aria-label="${esc(i18t('mign_filter_ph'))}" value="${esc(_migQ || '')}"></label>
       <div class="apn-bar" data-lh-seat="migration-nl">${chip('need', i18t('mign_tab_need'), need, true)}${chip('read', i18t('mign_tab_read'), read)}${chip('all', i18t('ctf_tab_all'), rows.length)}${sChip}</div>
       ${migNlBatchHtml(rows)}
       <div class="cu-scroll">${migNlListHtml(rows)}${migNlListBoxHtml()}</div>
@@ -2045,7 +2045,7 @@ if (typeof document !== 'undefined' && !document._mignWired){ document._mignWire
   /* the dates in "What Jambo read" stay whole at every width: the fit is read again when the window changes */
   if (typeof window !== 'undefined' && window.addEventListener){ let _rf = 0; window.addEventListener('resize', () => { clearTimeout(_rf); _rf = setTimeout(migNlReadFit, 120); }); }
   /* the box is not redrawn under the caret: every letter moves the rows and leaves the box alone */
-  /* the ask box before any file asks Jambo (the panel's own reader, jlAsk), as every page's box does once Enter is pressed */
+  /* the ask box before any file asks Jambo (the panel's own reader, jlAsk); a batch's own box only filters (owner, 22 Nov 2026) */
   document.addEventListener('keydown', e => { if (!e.target || e.target.id !== 'mign-ask0' || e.key !== 'Enter') return; e.preventDefault();
     const v = String(e.target.value || '').trim(); if (v && typeof jlAsk === 'function'){ jlAsk(v, { typed:true }); e.target.value = ''; } });
   document.addEventListener('input', e => { if (!e.target || e.target.id !== 'mign-q') return; _migQ = e.target.value; renderMigration({ rows: true }); });

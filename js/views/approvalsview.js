@@ -1753,11 +1753,9 @@ function apnRender(W, o){
   const dotOf={ mine:'amber' };
   const ruleChip=_apnRule?`<button type="button" class="apn-chip is-set" data-apn-rule="">${esc(_apnRule)} <span aria-hidden="true">×</span></button>`
     :rules.length?`<span class="apn-rule-w"><button type="button" class="apn-chip is-add" data-apn-rule-open aria-expanded="false">+ ${esc(i18t('apn_col_rule'))}</button><span class="apn-rule-menu" hidden>${rules.map(x=>`<button type="button" data-apn-rule="${esc(x)}">${esc(x)}</button>`).join('')}</span></span>`:'';
-  /* THE ASK BOX, AS DRAWN: Jambo's spark and a question about the first that waits on you ("why does Cleaning Services
-     need my yes?"); the words narrow the rows as they are typed, and Enter on words no row holds asks Jambo beside it */
-  const firstMine=W.all.yours.find(r=>r.type==='approval'&&!r.done);
-  const askPh=firstMine&&firstMine.c&&firstMine.c.name?i18t('apn_ask_ph_q',{ name:firstMine.c.name }):i18t('apn_ask_ph');
-  const head=`<label class="apn-ask is-spark">${typeof icon==='function'?icon('mkSpark','w-3.5 h-3.5'):''}<input id="apn-q" type="search" autocomplete="off" placeholder="${esc(askPh)}" aria-label="${esc(askPh)}" value="${esc(_apnQ)}"></label>
+  /* AN HONEST FILTER (owner, 22 Nov 2026): the box narrows the list and says only that; questions are Jambo's, in his box */
+  const askPh=i18t('lh_filter_ph');
+  const head=`<label class="apn-ask is-filter">${typeof icon==='function'?icon('search','w-3.5 h-3.5'):''}<input id="apn-q" type="search" autocomplete="off" placeholder="${esc(askPh)}" aria-label="${esc(askPh)}" value="${esc(_apnQ)}"></label>
     <div class="apn-bar" data-lh-seat="approvals-nl">${tabs.map(t=>`<button type="button" class="apn-tab is-chip${_apnTab===t[0]?' is-on':''}" data-apn-tab="${t[0]}">${dotOf[t[0]]?`<i class="apn-cd is-${dotOf[t[0]]}" aria-hidden="true"></i>`:''}${esc(t[1])} <span>${t[2]}</span></button>`).join('')}${ruleChip}</div>`;
   /* THE TABLE, P-30: seven columns, the same on every tab; "Asked" reads "Decided" on Done; Steps, then Approver, then Rule step aside
      first where the room is short (listCols' rank), the paper link last of all */

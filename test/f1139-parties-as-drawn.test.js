@@ -87,14 +87,16 @@ test('f1139 (4) the panel as drawn: no cards, no money; facts on All, what waits
   assert.match(tl, /tone: 'green'/); assert.match(tl, /tone: 'amber'/); assert.match(tl, /tone: 'red'/); assert.match(tl, /tone: 'hollow'/);
 });
 
-test('f1139 (5) the head: + Add a party is the one door to a new agreement; the ask box asks Jambo', () => {
+test('f1139 (5) the head: + Add a party is the one door to a new agreement; the box is an honest filter', () => {
   assert.match(CU, /data-cun-add\]'\); if \(add\)\{ e\.preventDefault\(\); if \(cunAddMay\(\)\) openNewAgreement\(\{ door: true \}\);/);
   assert.match(strip(fnBody(CU, 'cunAddMay')), /canEdit/);
-  const ask = strip(fnBody(CU, 'cunAskGo'));
-  assert.match(ask, /if \(names \|\| typeof jlAsk !== 'function'\) return false;/);
-  assert.match(ask, /jlAsk\(t, \{ typed: true \}\)/);
-  assert.match(CU, /icon\('mkSpark', 'cun-spark', 0\)/);
-  assert.match(read('js/i18n.js'), /cun_ask_ph: "Ask about a party: “who do we owe the most to\?”"/);
+  /* RE-POINTED 22 Nov 2026 (owner: "make them honest labels but jambo should have the ability to answer those questions"):
+     the box only filters — the magnifying glass, "Filter this list", every word narrows (a "no match" row where none
+     does); Enter hands nothing to Jambo; questions are his, in his box at the panel's foot */
+  assert.doesNotMatch(CU, /cunAskGo|icon\('mkSpark'/, 'no asking box, no spark');
+  assert.match(CU, /<label class="apn-ask cun-ask is-filter">\$\{typeof icon === 'function' \? icon\('search', 'cun-spark'\) : ''\}/);
+  assert.match(strip(fnBody(CU, 'cunAskPh')), /return i18t\('lh_filter_ph'\);/);
+  assert.match(strip(CU), /const narrow = !!q;/, 'words that name nothing narrow to nothing, never the whole list');
 });
 
 /* (6) THE REVIEW'S DIFFERENCES (P-25/P-26 review, 22 Nov 2026), each red at the parent: the chips of My notes, Parties
