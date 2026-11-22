@@ -39905,3 +39905,9 @@ on a negotiated paper. By the owner's 20 Nov ruling (no money in a side panel): 
 
 ## THE SHELL — RAIL, BAR, PANELS (22 Nov 2026: P-37 REVERTED)
 The owner, 22 Nov 2026: "revert back the change for the nav panel and bring it back as a rectangle pop up in the middle of the page as it was prior to the the latest change". P-37 (21 Nov, #856) had the bar's nav button (`lpToggle`) and, after P-38, the Guide's doors (`openPanel('guide')`) open the launchpad as a 400-wide panel sliding in from the left (`openCommandPalette('',{left:true})`, `_lpLeft`, `#cmd-palette.is-left`, `lp_where_left`, `lp_out`). All of the left mode is taken out — not left unused: both doors open the one window in the middle, as ⌘K and "/" always did (the Stripe-way launchpad of 20 Nov, unchanged). `lp_where_left` and `lp_out` stay inert in both books. f1097 (9) now pins the middle and fails on the parent; launchpad-verify 8 re-pointed (the nav button opens the centred rectangle, a page press goes there); round7-new-look 4, guide-panel 2, jambo-moves-and-opens 3, guide-is-the-map 1/3 look for `#cmd-palette` without `.is-left`. The Board flow map's Guide line says "in the nav window in the middle". P-37 marked Reverted in the Parking lot.
+
+## THE SHELL — RAIL, BAR, PANELS (the watermark glides, 22 Nov 2026)
+Owner: "The watermark you have built is poor in quality. It does not flow seamlessly or smoothly like water flows. It
+seems like it's stuttering." Cause: the build moved the weave in STEPS (steps(264) over 70s: a one-pixel jump about four
+times a second) to spare repaints; the drawing glided. Measured over one second on Approvals: before 5 places, 1px jumps;
+after (linear) 61 places, 0.063px a frame. The repaint is the 384×200 masked corner each frame. panel-watermark-verify 1d.
