@@ -63,7 +63,6 @@
       "Read(./server/data/**)",
       "Read(./server/data-*/**)",
 
-      "Read(./BUGLOG.md)",
       "Read(./SUMMARY.md)",
       "Read(./TESTREPORT.md)",
       "Read(./CHECKLIST.md)",
