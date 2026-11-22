@@ -39684,6 +39684,45 @@ cells are shaded by money. Kept against the drawing, asked of the owner: the hea
 board · contracts links line over the box (Jambo's box rule), and "Shade the cells by how many" in the default Grid
 (the cells are already shaded by how many there, so the row would do nothing).
 
+## THE SHELL — RAIL, BAR, PANELS (the watermark, 22 Nov 2026)
+The owner said the side panels looked "too flat" and wanted colour and some motion, but serious for a contracts
+platform. Drawn as Living Side Panels (Slow Wash, Top Light, Edge Thread, State Light; then ocean waves, then
+"real life waves like California coast" in WebGL) — all set aside: "maybe this is overkill … options for a serious CLM
+platform". Serious Side Panels drew Watermark (guilloche line-work, the certificate's engraving), Live Line, Status Head,
+Drawn In. The owner: "I love watermark", then Gentle (a level added between Soft and Clear: layer opacity .65), the
+minimise arrow "in an encircle shade, more visible", a "slight darker outline" (17% ink) — tried and reverted: every
+grey page button in the Positions chip's design, and buttons made solid on the pattern ("go back to the previous type of
+shading": buttons keep their shade, the lines show faintly through). Then "build the watermark that is moving and in
+gentle color. Include the buttons as they are now", plus "delete the green links that say back to the page you were on"
+and "add the minimize button to the board page side panel".
+BUILT: index.html, end of the HARMONY block — ::before (accent ink, .27) and ::after (steel status ink, .22) of
+`#ig-dock` (not folded: no `.igd-door` child) and `.ins-panel.is-jambo` (not `.is-folded`), 200 tall, multiply, masked by
+the guilloche (16 and 11 curves, the drawing's exact sums) ∩ a fade 64→196; the accent-50 wash behind (background-image).
+Motion = mask-position in STEPS (264 over 70s, 176 over 52s): a box no wider than the panel, so nothing can scroll it
+sideways (a transformed wider layer would have made a hidden panel programmatically scrollable); a few repaints a second
+of a 384×200 corner. Still under `#set-page` (owner's 21 Nov "no motion in Settings", from the Settings Clean-up artifact)
+and `prefers-reduced-motion`; not under 768px. `#ig-dock .cal-cop` made transparent so the wash shows on the Calendar.
+The two @keyframes sit just before the HARMONY block (f977 (6, 7): every rule in it starts html.lg-new).
+OUTLINES: the chosen tab in `.igd-head`/`.jl-head`/`.cal-plan-head`, and `.jov5-tag`/`.apn-st`/`.tpln6-badge`/`.reg-badge`
+in a panel's intro (`.jov5-intro`, `.ld6-pb`, `.tpln6-pb`). THE ARROW: `#igd-collapse` and `.jl-fold`, 30px circle in
+`--surface-2`, the same outline, ink, stroke 2.6.
+THE BOARD'S ARROW reverses P-39's "no head row on the Board": the head row stands with only `#igd-collapse` (its tab kept
+off, the 24 Oct "no word that looks like a tab" ruling). Read down (`rdn`) and Obligations' chosen line (`obs-one`) still
+hide their heads — not asked.
+THE GREEN LINK: `caBackRowHtml()` no longer drawn in Home's panel (intelligence.js renderIntelDock) — it was the
+"‹ Back to the Board / Contracts / MK-x on the paper" row on the Board, Contracts, Explorer and a contract's Dossier.
+The trail and the function stay (a typed "back", f672 (5)); the bar's ‹ is the way back.
+Same day, after "Added only on 16 pages? Have you also added in the subsequent tabs in the pages?": the watermark rides
+the panel, so every tab inside a panel has it (a contract's Dossier · Clauses · Redlines, Explorer's Your day · Overview ·
+Findings, Read down, Jambo's agents — photographed). Panels built apart were added: Settings' own pages (`.st-cr
+.st-side`, still, arrow `.st-side-fold` circled), the template builder's (`.tb-rail.tb-jl`, given position:relative) and
+the clause editor's (our seat `.ce-rail`). Owner: "Do not add to the alerts panel" — `#context-panel` left plain
+(panel-watermark-verify 8). Jambo's pop-out window (`#ai-panel`) left out: a window, not a side panel. The builder and
+the editor were not photographed (the sample book had no paper to open them on).
+Later the same day the owner narrowed it: "Do not add them to the clause editor page and the dossier page and its tabs
+either. This includes in the builder page. These are areas for serious work." Off: `#ig-dock` while a contract is open
+(`:has(> .igd-head[data-pd-head="paper"])` — Dossier, Clauses, Redlines and every face beside the paper), `.ce-rail`,
+`.tb-rail`; there the tab outline and the circled arrow are off too (the buttons as they were). panel-watermark-verify 9.
 ## SETTINGS & RULES — THE CONTROL ROOM · THE P-43 DRAWING, SECOND PASS (22 Nov 2026)
 The reviewer's list (review8/differences.md) against the owner's picked drawing ("The Legora + Stripe way"), every point built, the owner asleep and having said "Stop asking me questions. Just choose what you recommend":
 - THE SHEETS' FOOT (P-43: "Cancel and SAVE (today only 'Done')"): every sheet from the right that wrote on each press now HOLDS what is pressed (`stHoldBegin`), and writes it once on Save (`stHoldCommit`: saveSettings' one PUT, each held route once — `me/prefs`, `reports/monthly/settings`, `settings/folder-access`, `org/jurisdiction`, `org/workshape`); Cancel throws it away (`stHoldDrop`, the market and work shape put back through their own setters while the hold still catches their writes); ✕, Esc, the veil, Next, another sheet, a door inside it, the bar and a typed move ask the house's leave question (`stHoldLeaveThen`; app.js `viewLayersClosed`, navmap `navGo`). A button inside a sheet that says Save (lanes, mailroom key, pay days, the address book's import and Clear) writes now (`stSaveSettingsNow`). Acts with their own buttons (Save key, Add a rate, Run now, Add a word) go when pressed. While a sheet holds, its "saved" toasts are not said; Save says "Saved. The change is written in the trail with your name." once. ORDER: the drawing put Cancel before Save; the house rule (THE POP-UPS: act first, Cancel LAST) won — Save first. This REVERSES the 13 Sep 2026 rule "a gate writes on change and has no Save" — the owner's pick is later.
