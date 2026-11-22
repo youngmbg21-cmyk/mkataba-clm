@@ -94,7 +94,7 @@ function stage(o){
     'MIG_ST_ORDER', 'migRows', 'migFieldLabel', 'migDay', 'migSideFacts', 'MIG_MON', 'migFind', 'migDateAt', 'migAmountAt', 'MIG_RENEW_RE', 'migRenewAt', 'migClauseAt', 'migFoundAt',
     'migQuoteOf', 'MIG_FORM_KEYS', 'MIG_FORM_LABEL', 'MIG_GATE_KEYS', 'migFormOf', 'migFormMarks', 'migReviewOpen', 'migDateRead', 'MIG_RENEWS_RE', 'migFormRead', 'migFormWaits',
     'migFormWaitsOf', 'migWaitWords', 'migFileIt', 'MIG_PERIOD_RE', 'MIG_PERIOD_WORD', 'migPeriodEnd', 'migPeriodAt', 'migAmountWithPeriod', 'MIG_NUM_WORD', 'migNoticeDays', 'migNoticeWords', 'migNoticeDay',
-    'migPartyGuess', 'migAmountGuess', 'migWhyHtml', 'migParked', 'migRowByKey', 'migCheckWaits', 'migCheckIds', 'migCheckId', 'migCheckOpen', 'migCheckGo', 'migCheckNext'])
+    'migPartyGuess', 'migAmountGuess', 'migWhyHtml', 'migParked', 'migRowByKey', 'migCheckWaits', 'migCheckIds', 'migCheckId', 'MIG_CK_LAND', 'migCheckOpen', 'migCheckGo', 'migCheckNext'])
     + '\nlet _migCheck = null, _migPick = null;\nthis.api = { migFind, migDateAt, migAmountAt, migRenewAt, migClauseAt, migFoundAt, migFormOf, migFormMarks, migDateRead, migFormRead, migFormWaits, migFormWaitsOf, migWaitWords, migFileIt, migWhyHtml, migCheckOpen, migCheckGo, migCheckNext, migCheckId, get check(){ return _migCheck; } };', ctx);
   return ctx;
 }
@@ -191,7 +191,10 @@ describe('f772 (4) Jambo\'s why and the likely answer', () => {
     assert.match(w.lines[0], /mig_why_end_none/); assert.equal(w.offers.length, 0);
   });
   test('4c said as read from the file, no call', () => {
-    assert.match(fnBody(MIG, 'migCheckSideHtml'), /i18t\('mig_src_file'\)/);
+    /* RE-POINTED 22 Nov 2026 (THE CHECK, A CALM TABLE, owner's pick; f1151): the panel's small print gave way to its
+       timeline — "Read by Jambo" (or by HaTi's rules) with the day the record keeps; still no call, no cost */
+    assert.match(fnBody(MIG, 'migCkTimelineHtml'), /i18t\(mg\.aiSource === 'ai' \? 'mig_ckn_tl_read_ai' : 'mig_ckn_tl_read_rules'\)/);
+    assert.doesNotMatch(fnBody(MIG, 'migCheckSideHtml'), /api\(|fetch\(|aiAsk/);
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
     assert.equal(BOOKS.en.mig_src_file, 'Read from the file');
   });
@@ -215,8 +218,11 @@ describe('f772 (5) check all, one at a time', () => {
   test('5b the view as drawn: the file\'s own words beside the facts, numbered; File it with its reason; Skip for now; next and previous', () => {
     /* RE-POINTED 20 Nov 2026 (the check made like the Send screen, owner: "build it as drawn"): File it and Skip for now stand in the page's head (migCheckActsHtml) */
     const f = fnBody(MIG, 'migCheckHtml') + fnBody(MIG, 'migCheckBarHtml') + fnBody(MIG, 'migCheckActsHtml');
-    for (const k of ['mig_ck_doc_sub', 'mig_ck_facts_h', 'mig_ck_facts_sub', 'mig_file_it', 'mig_ck_skip', 'mig_ck_pos', 'mig_ck_prev', 'mig_ck_next', 'mig_ck_back']) assert.ok(f.includes("'" + k + "'"), k);
-    assert.match(fnBody(MIG, 'migCheckHtml'), /migFormHtml\(c, \{ marks:true, asRow:true/);
+    /* RE-POINTED 22 Nov 2026 (THE CHECK, A CALM TABLE, owner's pick; f1151): the facts are one table (migCkTableHtml), its
+       head "What it will be filed as" with a badge, no sub-line; the rows are numbered like the paper's marks */
+    for (const k of ['mig_ck_doc_sub', 'mig_file_it', 'mig_ck_skip', 'mig_ck_pos', 'mig_ck_prev', 'mig_ck_next', 'mig_ck_back']) assert.ok(f.includes("'" + k + "'"), k);
+    assert.match(fnBody(MIG, 'migCheckHtml'), /migCkTableHtml\(c, F\)/);
+    assert.match(fnBody(MIG, 'migCkTableHtml'), /i18t\('mig_ck_facts_h'\)/);
     assert.match(fnBody(MIG, 'migDocHtml'), /<sup class="mig-ck-sup">/);
   });
 });
