@@ -158,6 +158,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - phone-verify, f630, f631, phone-fits-verify.
 
 ## THE ONE DESK — NEEDS YOU, ONE READING
+- f1174 no Answer chip nor Dossier ask rows for who may not answer (22 Nov 2026; red at the parent).
 - f1173 Settings' Jambo reads the levels in plain words (22 Nov 2026; red at the parent).
 - THE NEW LOOK'S HOME TAKES ITS PRESSES (owner-reported 6 Nov 2026): home-new-look-buttons-verify 2–4 (new, red at the parent: Approve…, Fill in and "Company needs you · Open" did nothing on #cn2-page); 1 and 5 keep Look, the counts, the week, the panel's Open links and its ways moving.
 - THE BOX PREDICTS (round 5, 29 Oct 2026): f803 1a/1a2 (new, red at the parent 64b84ca1: the four places only) — "Likely next:", board, up to three tasks in Needs you's order, each with its row's door; names keep their capital. RE-POINTED f803 8b (the held approval leads the tasks too), counter-as-drawn 1b/1d (+1e new: the first task lands on the Board's card, its piece in view), every-jambo-tab H2 (presses board, not contracts). Handbook 0.1 (a step, the caption, picture 0.1-2 retaken).

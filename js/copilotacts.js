@@ -1494,6 +1494,8 @@ function caOwedSteps(c){
   const out = []; if (!c) return out;
   const lead = caChipLead(c);
   let asks = 0; try { asks = (typeof negoNeedsYouIds === 'function') ? negoNeedsYouIds(c).length : 0; } catch (_){ asks = 0; }
+  /* a Viewer or a desk Reader answers nothing (negoMayAnswer, 22 Nov 2026): no "Answer the redlines" chip */
+  try { if (asks && typeof negoMayAnswer === 'function' && !negoMayAnswer(c)) asks = 0; } catch (_){ /* kept */ }
   if (lead && !(lead === 'redline' && asks)) out.push(lead);
   if (asks) out.push('answer');
   return out;

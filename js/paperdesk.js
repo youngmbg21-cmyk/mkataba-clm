@@ -4380,6 +4380,8 @@ function pdGlanceRows(c){
 const PD_GL_ASKS_MAX = 3;
 const PD_GL_QUOTE = 40;
 function pdTheirAsks(c){
+  /* WORK GOES ONLY TO WHO CAN DO IT (22 Nov 2026, bug log): a Viewer or a desk Reader is offered no ask to answer */
+  try { if (typeof negoMayAnswer === 'function' && !negoMayAnswer(c)) return []; } catch (_){ /* the seat is the desk's to say */ }
   let ids = []; try { ids = (typeof negoNeedsYouIds === 'function') ? negoNeedsYouIds(c) : []; } catch (_){ ids = []; }
   const set = new Set(ids.map(String));
   return (Array.isArray(c && c.changes) ? c.changes : []).filter(x => x && set.has(String(x.id)));
@@ -7562,7 +7564,7 @@ function pdTheirAsksRow(c){
   if (!c || c._codeNamed) return null;
   let m = null; try { m = (typeof histMoveOf === 'function') ? histMoveOf(c) : null; } catch (_){ m = null; }
   if (!m || m.k !== 'you' || !m.theirs.length) return null;
-  try { if (typeof deskMayRedline === 'function' && !deskMayRedline(c)) return null; } catch (_){ /* the seat is the desk's to say */ }
+  try { if (typeof negoMayAnswer === 'function' ? !negoMayAnswer(c) : (typeof deskMayRedline === 'function' && !deskMayRedline(c))) return null; } catch (_){ /* the seat is the desk's to say */ }
   let late = false; try { late = ((typeof needsYouOf === 'function') ? (needsYouOf(c) || []) : []).some(x => x && x.kind === 'quiet'); } catch (_){ late = false; }
   if (late) return null;
   const seen = new Set(), names = [];
