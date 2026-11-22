@@ -1881,7 +1881,7 @@ function stSwPickSet(fid){
   _stSwPick=fid&&FOLDERS[fid]?String(fid):null;
   if(_stSwPick&&_stSideFold) stSideFoldSet(false);
   if(_stSwPick&&_stSide!=='jambo') stSideSet('jambo');
-  document.querySelectorAll('#set-page .st-sw-row').forEach(tr=>{ const on=tr.getAttribute('data-st-sw-pick')===_stSwPick; tr.classList.toggle('is-picked',on); tr.setAttribute('aria-selected',String(on)); });
+  document.querySelectorAll('#set-page .st-sw-row').forEach(tr=>{ const on=tr.getAttribute('data-st-sw-pick')===_stSwPick; tr.classList.toggle('is-picked',on); tr.classList.toggle('is-chosen',on&&!!tr.closest('.st-ls-page')); tr.setAttribute('aria-selected',String(on)); });
   stJbFeedRepaint();
   if(_stSwPick&&stKpOn()&&!_stKp.data&&!_stKp.busy) Promise.resolve(stKpLoad()).then(()=>{ if(_stSwPick) stJbFeedRepaint(); },()=>{});
 }
@@ -2680,7 +2680,18 @@ function stLsPanelHtml(){
 function stLsPanelPaint(){
   if(!document.getElementById('ins-panel')) return;
   insPaintPanel({ seat:'team', jlWord:i18t('stn_title'), item:{ id:'settings' }, head:false, tabCount:0, body:stLsPanelHtml() });
+  stLsBackWire();
 }
+/* OVERVIEW IS THE PAGE'S OWN (owner, 22 Nov 2026): the panel's Overview tab lets go of the chosen row and shows this
+   page's landing again — never the shared panel's "Choose a contract" words. The shared press asks the page first
+   (host._jlBack, as Import and Negotiations answer it). */
+function stLsLetGo(){
+  if(!document.querySelector('#set-page.st-ls-page')||!stLsOn()) return false;
+  if(_stPage==='streams'){ if(_stSwPick) stSwPickSet(null); else stLsPanelPaint(); return true; }
+  if(stLsPick(_stPage)) stLsPickSet(_stPage,null); else stLsPanelPaint();
+  return true;
+}
+function stLsBackWire(){ const h=document.getElementById('ins-panel'); if(h) h._jlBack=stLsLetGo; }
 function stLsPaint(admin){
   const host=document.getElementById('content'); if(!host) return;
   host.innerHTML=`<div id="set-page" class="view-enter sap-page ap-page is-ins apn-page stn-page sdd-page st-ls-page" data-st-face="company" data-st-sub="${esc(_stPage)}" data-st-ls="${esc(_stPage)}" data-ins-page="team" data-ins="1">
@@ -11467,6 +11478,14 @@ function stnPanelPaint(){
   if(!document.getElementById('ins-panel')) return;
   if(stLsOn()&&document.querySelector('#set-page.st-ls-page')){ stLsPanelPaint(); return; }
   insPaintPanel({ seat:'team', jlWord:i18t('stn_title'), item:{ id:'settings' }, head:false, tabCount:0, body:stnPanelHtml(stIsAdmin()) });
+  /* Overview is the page's own: it lets go of the chosen setting and shows the area's landing again */
+  const h=document.getElementById('ins-panel'); if(h) h._jlBack=stnLetGo;
+}
+function stnLetGo(){
+  if(!document.querySelector('#set-page.stn-page')) return false;
+  if(document.querySelector('#set-page.st-ls-page')) return stLsLetGo();
+  if(_sddPick) sddPickSet(null); else stnPanelPaint();
+  return true;
 }
 function stnPaint(admin){
   const host=document.getElementById('content'); if(!host) return;
