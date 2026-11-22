@@ -61,7 +61,10 @@ const mnInTab = (n, k) => { const st = myNoteState(n).k;
 function mnHit(n, q){
   if (!q) return true;
   const c = _mnContract(n.contractId);
-  return [n.title, n.body, n.quote, c && _mnRef(c), c && c.name, c && c.counterparty].some(x => String(x || '').toLowerCase().includes(q));
+  const hay = [n.title, n.body, n.quote, c && _mnRef(c), c && c.name, c && c.counterparty].map(x => String(x || '').toLowerCase());
+  /* a QUESTION ("what did I note about Topeca?", P-27's ask box) is read by its own words: each one left must be found */
+  if (typeof mnnIsAsk === 'function' && mnnIsAsk(q)){ const w = mnnAskTerms(q); return !w.length || w.every(t => hay.some(x => x.includes(t))); }
+  return hay.some(x => x.includes(q));
 }
 /* the Contract filter's cut: '' any, '-' no contract, else that contract */
 const mnCtPass = (n, ct) => !ct || (ct === '-' ? !n.contractId : String(n.contractId || '') === String(ct));
@@ -390,34 +393,43 @@ function renderMyNotesDraw(o){
    word (Review, Review again, Open); the foot "Never on a contract, a share or the history". The panel: the note in
    one sentence, THE NOTE in its own grey, BESIDE IT, READ FOR YOU (its contract's approval and end), Jambo's line
    and the DOORS — every press the page's own (data-mn-act, the contract's own door). */
-/* P-27, MY NOTES THE LEGORA + STRIPE WAY (owner's pick 20 Nov 2026): one calm table — the Note (its title, THE NOTE'S
-   OWN WORDS on one line under it, and a passage note's paper words with their § on one more line) · Contract (name,
-   reference under) · Status (a soft badge: red Overdue, amber Due today, grey Later, grey No day, green Reviewed) ·
-   Due / Reviewed (the day right-aligned, "2 days overdue · today · in 6 days" under) · the act, ONLY on the chosen row
-   (Mark reviewed · Open · Review again — the panel's own presses, data-mn-act). "Written <day>" and "review again <past
-   day>" leave the rows; the panel keeps both days. */
+/* P-27, MY NOTES THE LEGORA + STRIPE WAY (owner's pick 20 Nov 2026; REBUILT AS DRAWN 21 Nov 2026): one calm table — the
+   Note (its title, THE NOTE'S OWN WORDS on one line under it, and a passage note's paper words with their § on one more
+   line) · Contract (name, reference under) · Status (a soft badge: red Overdue and amber Due today with a dot, grey Later,
+   grey No day, green ✓ Reviewed) · Due / Reviewed (the day right-aligned, "2 days overdue" red · "today" amber · "in 6
+   days" grey under it) · the act, on the row you are on (the chosen one, or the one under the pointer: Mark reviewed ·
+   Open · Review again — the panel's own presses, data-mn-act). "Written <day>" and "review again <past day>" leave the
+   rows; the panel keeps both days. */
 const MNN_ST = { late:['mnn_st_overdue', 'ruby'], today:['mnn_st_today', 'amber'], later:['mnn_st_later', 'gray'], none:['mnn_st_none', 'gray'], done:['mnn_st_done', 'green'] };
 function mnnStatusOf(n){ const k = myNoteState(n).k, m = MNN_ST[k] || MNN_ST.later; return { k, w:i18t(m[0]), tone:m[1] }; }
+/* the badge as drawn: a dot only where something is owed (Overdue, Due today), a tick on Reviewed, the word alone else */
+function mnnBadgeHtml(S){
+  const mk = (S.k === 'late' || S.k === 'today') ? '<i></i>' : S.k === 'done' ? (typeof icon === 'function' ? icon('mkTick', 'mnn-tick', 2.2) : '✓') : '';
+  return `<span class="apn-st is-${S.tone} mnn-bd is-${S.k}">${mk}${_mnE(S.w)}</span>`;
+}
 const _mnDays = (a, b) => Math.round((Date.parse(b + 'T00:00:00') - Date.parse(a + 'T00:00:00')) / 864e5);
-/* the day the Due column says, and the words under it */
+/* the day the Due column says, and the words under it (their tone: late red, today amber, else grey) */
 function mnnWhen(n){
   const st = myNoteState(n).k, t = _mnToday();
-  if (st === 'done') return { d:_mnShort(String(n.reviewedAt).slice(0, 10)), s:'' };
-  if (!n.reviewBy) return { d:'—', s:i18t('mnn_rel_none') };
+  if (st === 'done') return { d:_mnShort(String(n.reviewedAt).slice(0, 10)), s:'', k:st };
+  if (!n.reviewBy) return { d:'—', s:i18t('mnn_rel_none'), k:st };
   const k = _mnDays(t, n.reviewBy);
-  return { d:_mnShort(n.reviewBy), s:k < 0 ? i18tn('mnn_rel_over', -k, { n:-k }) : k === 0 ? i18t('mnn_rel_today') : i18tn('mnn_rel_in', k, { n:k }), late:k < 0 };
+  return { d:_mnShort(n.reviewBy), s:k < 0 ? i18tn('mnn_rel_over', -k, { n:-k }) : k === 0 ? i18t('mnn_rel_today') : i18tn('mnn_rel_in', k, { n:k }), late:k < 0, k:st };
 }
-/* a passage note's § — read off the paper where it can be found (pd2QuoteOf), never guessed; kept per note and words */
+/* a passage note's § — read off the paper where it can be found (pd2QuoteOf), never guessed; kept per note and words;
+   said with its § sign, as the drawing says it ("§ 5") */
 const _mnnSec = new Map();
 function mnnSecOf(n){
   if (!n || !n.quote) return '';
   const key = String(n.id) + '|' + n.quote;
   if (_mnnSec.has(key)) return _mnnSec.get(key);
-  let sec = ''; try { const c = _mnContract(n.contractId); const q = c && typeof window.pd2QuoteOf === 'function' ? window.pd2QuoteOf(c, [String(n.quote).slice(0, 60)]) : null; sec = q && /§|\d/.test(String(q.sec || '')) ? String(q.sec) : ''; } catch (_){ sec = ''; }
-  _mnnSec.set(key, sec);
+  let sec = ''; try { const c = _mnContract(n.contractId); const q = c && typeof window.pd2QuoteOf === 'function' ? window.pd2QuoteOf(c, [String(n.quote).slice(0, 60)]) : null; sec = q && /§|\d/.test(String(q.sec || '')) ? String(q.sec).trim() : ''; } catch (_){ sec = ''; }
+  if (sec && !/§/.test(sec)) sec = '§ ' + sec;
+  /* only a found § is kept: a paper not yet read in full is asked again at the next paint */
+  if (sec) _mnnSec.set(key, sec);
   return sec;
 }
-/* the chosen row's one act: what the panel's black button would do, or Open where the note is not due */
+/* the row's one act: what the panel's black button would do, or Open where the note is not due */
 function mnnActOf(n){
   const st = myNoteState(n).k;
   if (st === 'done') return { w:i18t('mn_review_again'), act:'unreview' };
@@ -428,17 +440,38 @@ function mnnRowHtml(n){
   const st = mnnStatusOf(n), c = _mnContract(n.contractId), wh = mnnWhen(n);
   const on = String(n.id) === String(_mn.sel);
   const title = String(n.title || '').trim(), body = String(n.body || '').replace(/\s+/g, ' ').trim();
-  const sec = mnnSecOf(n), A = on ? mnnActOf(n) : null;
+  const sec = mnnSecOf(n), A = mnnActOf(n);
+  /* THE ACT ON THE ROW YOU ARE ON (as drawn: the chosen row, and the one under the pointer): drawn on every row, shown
+     only there (.mnn-rowact, index.html), and a press on it acts on ITS note (myNotesWire chooses the row first) */
   return `<tr data-mn-row="${_mnE(n.id)}" data-ins-row="${_mnE(n.id)}" tabindex="0" class="${on ? 'is-sel' : ''}"><td><div class="cun-name">${_mnE(title || body)}</div>${title && body ? `<div class="mnn-words" title="${_mnE(body)}">${_mnE(body)}</div>` : ''}${n.quote ? `<div class="mnn-ql"><i>“${_mnE(n.quote)}”</i>${sec ? ` <span>${_mnE(sec)}</span>` : ''}</div>` : ''}</td>
     <td class="mnn-ctc">${c ? `<div class="mnn-ct" title="${_mnE(c.name || '')}">${_mnE(c.name || '')}</div><div class="cun-sub">${typeof refHtml === 'function' ? refHtml(c) : _mnE(_mnRef(c))}</div>` : '<span class="apn-none-c">—</span>'}</td>
-    <td><span class="apn-st is-${st.tone}"><i></i>${_mnE(st.w)}</span></td>
-    <td class="mnn-dd">${_mnE(wh.d)}${wh.s ? `<div class="cun-sub${wh.late ? ' is-late' : ''}">${_mnE(wh.s)}</div>` : ''}</td>
-    <td class="mnn-act">${A ? `<button type="button" class="ui-link" data-mn-act="${A.act}">${_mnE(A.w)}</button>` : ''}</td></tr>`;
+    <td>${mnnBadgeHtml(st)}</td>
+    <td class="mnn-dd">${_mnE(wh.d)}${wh.s ? `<div class="cun-sub is-${wh.k}${wh.late ? ' is-late' : ''}">${_mnE(wh.s)}</div>` : ''}</td>
+    <td class="mnn-act"><button type="button" class="ui-link mnn-rowact" data-mn-act="${A.act}"${on ? '' : ' tabindex="-1"'}>${_mnE(A.w)}</button></td></tr>`;
+}
+/* THE ASK BOX THAT ALSO WRITES A NOTE (as drawn: "Write a note, or ask: “what did I note about Topeca?”"). A question
+   narrows the list to the notes it is about — read HERE, in this browser, by its words (the question's own words left
+   out), so no note is handed to anyone; anything else, pressed Enter, opens New note with those words in it (the one
+   door, myNotesNew). The party named in the hint is one the reader's notes really sit on. */
+const MNN_ASK_RE = /\?\s*$|^\s*(what|which|when|where|who|whom|did|do|does|have|has|is|are|any|show|find|list|vad|vilka|vilken|vilket|när|var|vem|har|finns|visa|hitta)\b/i;
+const MNN_ASK_SKIP = new Set(('what which when where who whom did do does have has had is are was were any show find list me my mine i '
+  + 'note notes noted write wrote written about on for of to the a an in with from that this those these there anything something '
+  + 'vad vilka vilken vilket när var vem har hade finns visa hitta mig min mina jag anteckning anteckningar antecknade skrev skrivit '
+  + 'om på för av till den det de en ett med från något').split(/\s+/));
+const mnnIsAsk = q => MNN_ASK_RE.test(String(q || ''));
+function mnnAskTerms(q){
+  return String(q || '').toLowerCase().replace(/[“”"'‘’?!.,;:()]/g, ' ').split(/\s+/).filter(w => w && !MNN_ASK_SKIP.has(w));
+}
+function mnnAskPh(list){
+  const all = typeof mineList === 'function' ? mineList('note') : [];
+  const pick = (list || []).concat(all).map(n => _mnContract(n.contractId)).find(c => c && c.counterparty);
+  return pick ? i18t('mnn_ask_ph_about', { who: String(pick.counterparty).replace(/\s+(LLC|Ltd|Limited|PLC|Inc|AB)\.?$/i, '') }) : i18t('mnn_ask_ph');
 }
 /* MY NOTES' TABS ALL DRAW THE ONE TABLE (All · Due · Reviewed only pick which notes), so a tab press and a typed letter
-   redraw only the rows (listRowsSwapHtml). P-27: the title with a lock and "Only you see these" beside it (the facts line
-   goes: the chips say it), New note; the box under it (it narrows the list, as before); chips All · Due (an amber dot) ·
-   Reviewed · + Contract, a small menu of the contracts your notes sit on (chosen, a chip with its ×). */
+   redraw only the rows (listRowsSwapHtml). P-27 as drawn: the title with a lock and "Only you see these" beside it (the
+   facts line goes: the chips say it), New note (black); the ask box under it (✦, a line under it); chips All · Due (an
+   amber dot) · Reviewed with their counts, the chosen one drawn solid, the others dashed, then + Contract, a small menu of
+   the contracts your notes sit on (chosen, a chip with its ×). No count under the table (the chips say it). */
 let _mnnPanelSel;
 function mnnRender(host, list, n, o){
   const all = typeof mineList === 'function' ? mineList('note') : [];
@@ -451,20 +484,20 @@ function mnnRender(host, list, n, o){
   const ctChip = ctOn ? `<button type="button" class="apn-chip is-set" data-mnn-ct="">${_mnE(ctOn.name || _mnRef(ctOn))} <span aria-hidden="true">×</span></button>`
     : cts.length > 1 ? `<span class="apn-rule-w"><button type="button" class="apn-chip is-add" data-mnn-ct-open aria-expanded="false">+ ${_mnE(i18t('mn_row_contract'))}</button><span class="apn-rule-menu" hidden>${cts.map(c => `<button type="button" data-mnn-ct="${_mnE(c.id)}">${_mnE(c.name || _mnRef(c))}</button>`).join('')}</span></span>` : '';
   const chips = tabs.filter(t => t[2] || t[0] === 'all' || t[0] === tab).map(t => `<button type="button" class="apn-tab is-chip${tab === t[0] ? ' is-on' : ''}" data-mnn-tab="${t[0]}">${t[0] === 'today' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${_mnE(t[1])} <span>${t[2]}</span></button>`).join('') + ctChip;
+  const spark = typeof icon === 'function' ? icon('mkSpark', 'mnn-spark', 0) : '✦';
   const PAGE = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page mnn-page${all.length ? '' : ' is-empty'}" id="mn-page" data-ins-page="mynotes" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${_mnE(i18t('nav_mynotes'))}</h2><span class="mnn-only">${_mnLock()}${_mnE(i18t('mnn_only_you'))}</span><span class="ctf-sp"></span>
         <button type="button" class="ui-btn ui-btn-primary ctf-new" id="mn-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${_mnE(i18t('mnn_new'))}</button></div>
-      <label class="apn-ask">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="mnn-q" type="search" autocomplete="off" placeholder="${_mnE(i18t('mnn_ask_ph'))}" value="${_mnE(_mn.q || '')}"></label>
+      <label class="apn-ask mnn-ask">${spark}<input id="mnn-q" type="search" autocomplete="off" enterkeyhint="done" placeholder="${_mnE(mnnAskPh(list))}" aria-label="${_mnE(i18t('mnn_ask_label'))}" value="${_mnE(_mn.q || '')}"></label>
       <div class="apn-bar" data-lh-seat="mynotes-nl">${chips}</div>
-      <div class="cu-scroll"><table class="apn-table cun-table mnn-table"><colgroup><col><col style="width:24%"><col style="width:120px"><col style="width:120px"><col style="width:132px"></colgroup>
+      <div class="cu-scroll"><table class="apn-table cun-table mnn-table"><colgroup><col><col style="width:19%"><col style="width:112px"><col style="width:104px"><col style="width:124px"></colgroup>
         <thead><tr><th>${_mnE(i18t('mn_col_note'))}</th><th>${_mnE(i18t('mn_row_contract'))}</th><th>${_mnE(i18t('apn_col_status'))}</th><th class="mnn-dd">${_mnE(i18t(tab === 'done' ? 'mnn_c_reviewed' : 'mnn_c_due'))}</th><th></th></tr></thead>
         <tbody>${list.map(mnnRowHtml).join('') || `<tr><td colspan="5" class="apn-none">${_mnE(all.length ? i18t('mn_none_here') : i18t('mn_empty'))}</td></tr>`}</tbody></table></div>
-      ${list.length ? `<div class="apn-foot">${_mnE(i18tn('mnn_n', list.length, { n: list.length }))}</div>` : ''}
     </section><aside id="ins-panel" class="ins-panel" aria-label="${_mnE(i18t('mn_panel_label'))}"></aside></div></div>`;
   const sel = n ? String(n.id) : '';
   if (o && o.rows && typeof listRowsSwapHtml === 'function'
-    && listRowsSwapHtml({ page: '#mn-page.mnn-page', html: PAGE, table: '.mnn-table', tabSel: '[data-mnn-tab]', tabKey: 'data-mnn-tab', footSel: '#mn-page .apn-foot' })){
+    && listRowsSwapHtml({ page: '#mn-page.mnn-page', html: PAGE, table: '.mnn-table', tabSel: '[data-mnn-tab]', tabKey: 'data-mnn-tab' })){
     /* the panel stays as it stands while the rows move, unless the note it reads has gone */
     if (sel === _mnnPanelSel) return;
   } else {
@@ -482,44 +515,47 @@ function mnnRender(host, list, n, o){
   if (typeof setActiveNav === 'function') setActiveNav('mynotes');
   if (typeof insWatchWidth === 'function') insWatchWidth();
 }
-/* P-27, THE NOTE'S PANEL THE LEGORA + STRIPE WAY: NO TILES. Its status badge and "Only you" over the title; the contract
-   under it; the note's words in full; Due (or Reviewed) and Written as two days; Mark reviewed / Review again (black)
-   with Snooze a week and Delete note beside it; "From the paper · §" with the passage, a press opening it on the paper
-   (data-mn-act="passage"); what it sits beside (its contract, an open approval, when it ends); a timeline from the days
-   the note keeps (written, rings, reviewed). The page's own presses (data-mn-act, data-mnn-ap); no AI. */
+/* P-27, THE NOTE'S PANEL THE LEGORA + STRIPE WAY, AS DRAWN: NO CARDS, NO TILES, NO MONEY. Its status badge and "Only you"
+   over the title (a plain, not a serif, headline); the contract under it (a quiet door to it, data-mn-act="open"); THE
+   NOTE'S OWN WORDS IN FULL; Due (or Reviewed) large in its tone and Written beside it; Mark reviewed (black) with Snooze a
+   week beside it — on a reviewed note Review again with Delete note; then, each under a hairline, "From the paper · §"
+   with the passage in the paper's type and Open it on the paper (data-mn-act="passage"), and a timeline of the days the
+   note keeps: written, the bell (its review day is the day the bell rings, mineNotesDue — no other day is kept; on a
+   reviewed note shown only where it came before the review), marked reviewed. The page's own presses; no AI. Drawn by
+   the one builder (jamboOverviewHtml). */
+function mnnTimelineHtml(n){
+  const E = _mnE, st = myNoteState(n).k, t = _mnToday(), tl = [];
+  if (n.createdAt) tl.push({ k:'acc', t:i18t('mnn5_tl_written'), s:_mnShort(String(n.createdAt).slice(0, 10)) });
+  if (st === 'done'){
+    const rv = String(n.reviewedAt).slice(0, 10);
+    if (n.reviewBy && n.reviewBy <= rv) tl.push({ k:'amber', t:i18t('mnn5_tl_rang'), s:_mnShort(n.reviewBy) });
+    tl.push({ k:'green', t:i18t('mnn5_tl_marked'), s:_mnShort(rv) });
+  } else if (n.reviewBy){
+    tl.push({ k:st === 'later' ? 'open' : 'amber', t:i18t(st === 'late' ? 'mnn5_tl_rang' : st === 'today' ? 'mnn5_tl_rings_today' : 'mnn5_tl_rings'), s:_mnShort(n.reviewBy) });
+    tl.push({ k:'open', t:i18t(n.reviewBy <= t ? 'mnn5_tl_until' : 'mnn5_tl_then'), s:'', quiet:true });
+  } else tl.push({ k:'open', t:i18t('mnn5_tl_no_bell'), s:'', quiet:true });
+  return `<ol class="mnn5-tl">${tl.map(x => `<li class="is-${x.k}"><i aria-hidden="true"></i><span${x.quiet ? ' class="is-quiet"' : ''}>${E(x.t)}${x.s ? ` <small>· ${E(x.s)}</small>` : ''}</span></li>`).join('')}</ol>`;
+}
 function mnnPanelFiveHtml(n){
-  const E = _mnE, st = myNoteState(n), S = mnnStatusOf(n), c = _mnContract(n.contractId), rows = [];
+  const E = _mnE, st = myNoteState(n), S = mnnStatusOf(n), c = _mnContract(n.contractId);
   const what = String(n.title || n.body || '').trim();
-  if (c){
-    let mine = false; try { mine = !!(typeof approvalDecidableNow === 'function' && approvalDecidableNow(c)); } catch (_){ mine = false; }
-    rows.push({ mark: 'file', t: c.name || _mnRef(c), s: [c.counterparty || '', _mnRef(c)].filter(Boolean).join(' · '), attr: mine ? `data-mnn-ap="${E(c.id)}"` : 'data-mn-act="open"' });
-    let ap = null; try { ap = (typeof window.approvalState === 'function') ? window.approvalState(c) : null; } catch (_){ ap = null; }
-    if (ap && ap.required && !ap.ok) rows.push({ mark: 'shield', tone: 'amber', t: i18t('mnn_p_approval'), s: i18t('mnn_p_asked') });
-    if (c.expiry){ const nd = Number((c.metadata || {}).noticePeriodDays) || 0; rows.push({ mark: 'clock', t: i18t('mnn_p_ends'), s: [_mnShort(String(c.expiry).slice(0, 10)), nd ? i18t('mnn_p_notice', { n: nd }) : ''].filter(Boolean).join(' · ') }); }
-  }
   const written = n.createdAt ? _mnShort(String(n.createdAt).slice(0, 10)) : '';
   const groups = [];
   if (n.quote){ const sec = mnnSecOf(n);
-    groups.push({ key: 'paper', label: sec ? i18t('mnn5_from_paper_s', { s: sec }) : i18t('mnn5_from_paper'), rows: [Object.assign({ quote: true, wrap: true, t: '“' + String(n.quote) + '”', s: c ? i18t('mnn5_open_paper') : '' }, c ? { attr: 'data-mn-act="passage"' } : {})] }); }
-  if (rows.length) groups.push({ key: 'beside', label: i18t('mnn5_this'), rows });
-  /* the timeline: only the days the note keeps */
-  const tl = [];
-  if (written) tl.push({ mark: 'mkTick', tone: 'green', t: i18t('mnn5_tl_written'), s: written });
-  if (st.k === 'done') tl.push({ mark: 'mkTick', tone: 'green', t: i18t('mnn5_tl_reviewed'), s: _mnShort(String(n.reviewedAt).slice(0, 10)) });
-  else if (n.reviewBy){ tl.push({ mark: 'clock', tone: st.k === 'late' ? 'red' : st.k === 'today' ? 'amber' : '', t: i18t(st.k === 'late' ? 'mnn5_tl_rang' : 'mnn5_tl_rings'), s: _mnShort(n.reviewBy) });
-    tl.push({ mark: 'calendar', t: i18t('mnn5_tl_until'), s: '' }); }
-  if (tl.length) groups.push({ key: 'timeline', label: i18t('apn5_timeline'), rows: tl });
-  const day = st.k === 'done' ? _mnShort(String(n.reviewedAt).slice(0, 10)) : n.reviewBy ? _mnShort(n.reviewBy) : i18t('mnn_st_none');
+    groups.push({ key: 'paper', label: sec ? i18t('mnn5_from_paper_s', { s: sec }) : i18t('mnn5_from_paper'),
+      html: `<p class="mnn5-q">“${E(n.quote)}”</p>${c ? `<button type="button" class="ui-link mnn5-lnk" data-mn-act="passage">${E(i18t('mnn5_open_paper'))}</button>` : ''}` }); }
+  groups.push({ key: 'timeline', label: i18t('apn5_timeline'), html: mnnTimelineHtml(n) });
+  const day = st.k === 'done' ? _mnShort(String(n.reviewedAt).slice(0, 10)) : n.reviewBy ? _mnShort(n.reviewBy) : '—';
   const words = String(n.body || '').trim();
-  const mid = `${words && words !== what ? `<p class="mnn5-words">${E(words)}</p>` : ''}<div class="ngn-pfacts mnn5-figs"><span><small>${E(i18t(st.k === 'done' ? 'mnn_c_reviewed' : 'mnn_c_due'))}</small><b class="${st.k === 'late' ? 'is-ruby' : st.k === 'today' ? 'is-amber' : ''}">${E(day)}</b></span>${written ? `<span><small>${E(i18t('mnn5_written_k'))}</small><b>${E(written)}</b></span>` : ''}</div>`;
-  const o = { before: `<div class="mnn5-top"><span class="apn-st is-${S.tone}"><i></i>${E(S.w)}</span><span class="mnn-only">${_mnLock()}${E(i18t('mnn5_only_short'))}</span></div>`,
+  const mid = `${words && words !== what ? `<p class="mnn5-words">${E(words)}</p>` : ''}<div class="mnn5-figs"><span><small>${E(i18t(st.k === 'done' ? 'mnn_c_reviewed' : 'mnn_c_due'))}</small><b class="is-${st.k}">${E(day)}</b></span>${written ? `<span class="is-w"><small>${E(i18t('mnn5_written_k'))}</small><b>${E(written)}</b></span>` : ''}</div>`;
+  const o = { before: `<div class="mnn5-top">${mnnBadgeHtml(S)}<span class="mnn-only">${_mnLock()}${E(i18t('mnn5_only_short'))}</span></div>`,
     title: what.length > 120 ? what.slice(0, 117) + '…' : what,
-    sub: c ? [c.name || '', _mnRef(c)].filter(Boolean).join(' · ') : i18t('mnn5_no_contract'),
+    subHtml: c ? `<button type="button" class="mnn5-ct" data-mn-act="open" title="${E(i18t('mn_open', { ref: _mnRef(c) }))}">${E([c.name || '', _mnRef(c)].filter(Boolean).join(' · '))}</button>` : E(i18t('mnn5_no_contract')),
     mid, groups, actFirst: true,
     act: { label: i18t(n.reviewedAt ? 'mn_review_again' : 'mn_mark_reviewed'), attr: `data-mn-act="${n.reviewedAt ? 'unreview' : 'reviewed'}"`,
-      /* SNOOZE A WEEK (owner's pick on the drawings, 17 Nov 2026: "4 Bring it back"): the note out of the way for seven days */
-      links: (n.reviewedAt ? [] : [{ label: i18t('mn_snooze'), attr: 'data-mn-act="snooze"' }]).concat([{ label: i18t('mn_delete_note'), attr: 'data-mn-act="delete"' }]) },
-    src: i18t('mnn5_src') };
+      /* SNOOZE A WEEK (owner's pick on the drawings, 17 Nov 2026: "4 Bring it back") beside Mark reviewed; Delete note
+         beside Review again — as drawn, one quiet link beside the black button */
+      links: n.reviewedAt ? [{ label: i18t('mn_delete_note'), attr: 'data-mn-act="delete"' }] : [{ label: i18t('mn_snooze'), attr: 'data-mn-act="snooze"' }] } };
   return `<div class="jl-words is-ov mnn5">${jamboOverviewHtml(o, 'mnn')}</div>`;
 }
 function mnnPanelHtml(n){
@@ -561,6 +597,11 @@ if (typeof document !== 'undefined' && !document._mnnWired){ document._mnnWired 
     const t = e.target && e.target.closest ? e.target.closest('[data-mnn-tab]') : null; if (!t) return;
     e.preventDefault(); _mn.filter = t.getAttribute('data-mnn-tab'); renderMyNotes({ rows: true });
   });
+  /* THE ASK BOX ALSO WRITES A NOTE (P-27, as drawn): Enter on words that are not a question opens New note with them in
+     it — the one door (myNotesNew → the sheet, Save the one writer); a question only narrows, as it is typed */
+  document.addEventListener('keydown', e => { if (e.key !== 'Enter' || !e.target || e.target.id !== 'mnn-q' || typeof state === 'undefined' || state.view !== 'mynotes') return;
+    const w = String(e.target.value || '').trim(); if (!w || mnnIsAsk(w)) return;
+    e.preventDefault(); _mn.q = ''; myNotesNew({ body: w }); });
   document.addEventListener('input', e => { if (!e.target || e.target.id !== 'mnn-q' || typeof state === 'undefined' || state.view !== 'mynotes') return;
     /* the box is not redrawn under the caret: every letter moves the rows and leaves the box alone */
     _mn.q = e.target.value; renderMyNotes({ rows: true }); });
@@ -571,7 +612,7 @@ function myNotesNew(seed){
   const s = seed || {};
   const sheet = mnSheetOn();
   if (!sheet) _mn.mode = 'new';
-  _mn.form = { body:'', title:'', contractId:s.contractId || '', quote:s.quote || '', clauseId:s.clauseId || '', when:'week', date:'', query:'', listOpen:false, focus:!sheet };
+  _mn.form = { body:String(s.body || ''), title:'', contractId:s.contractId || '', quote:s.quote || '', clauseId:s.clauseId || '', when:'week', date:'', query:'', listOpen:false, focus:!sheet };
   _mn.filter = 'all'; _mn.ct = ''; _mn.q = '';
   /* a door that writes the box's words says so to the box (a question left
      standing there goes) */
@@ -692,7 +733,11 @@ function myNotesWire(){
     if ((el = hit('[data-mn-ct]'))){ _mn.form.contractId = el.getAttribute('data-mn-ct'); _mn.form.listOpen = false; renderMyNotes(); return; }
     if ((el = hit('[data-mn-act="ct-clear"]'))){ _mn.form.contractId = ''; _mn.form.query = ''; _mn.form.listOpen = true; renderMyNotes(); const i = document.getElementById('mn-ct'); if (i) i.focus(); return; }
     if ((el = hit('#mn-ct'))){ if (_mn.form && !_mn.form.listOpen){ _mn.form.listOpen = true; renderMyNotes(); } return; }
-    if ((el = hit('[data-mn-act]'))){ myNoteAct(el.getAttribute('data-mn-act')); return; }
+    if ((el = hit('[data-mn-act]'))){
+      /* a row's own act (shown on the row under the pointer) acts on ITS note: that row is chosen first */
+      const r = el.closest('[data-mn-row]'), rid = r && r.getAttribute('data-mn-row');
+      if (rid && String(rid) !== String(_mn.sel)){ _mn.mode = 'view'; _mn.form = null; _mn.sel = rid; _mn.fresh = null; if (typeof insSelect === 'function') insSelect('mynotes', rid); }
+      myNoteAct(el.getAttribute('data-mn-act')); return; }
     if ((el = hit('[data-mn-row]'))){
       if (_mn.mode === 'new' && _mn.form && String(_mn.form.body || '').trim()){ if (typeof toast === 'function') toast(i18t('mn_finish_first'), 'warn'); return; }
       /* the row already chosen, pressed again (a double press): nothing changes, nothing is drawn again (the glitch audit, 24 Oct 2026) */
