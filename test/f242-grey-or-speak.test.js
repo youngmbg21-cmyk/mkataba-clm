@@ -213,7 +213,7 @@ describe('f242 · the seven that speak, because greying is impossible', () => {
     /* TWO DOORS ONTO ONE ACT — the register row's runScanFor and the contract's
        own runScan — and both had the same bare toast. Fixing one would have
        been the duplication warning in its usual direction. */
-    assert.match(src, /toast\(n \? i18tn\('ai_scan_found',n,\{n\}\) : i18t\('ai_scan_clean'\), 'ok'\)/);
+    assert.match(src, /toast\(window\.toastAbout\(c, n \? i18tn\('ai_scan_found',n,\{n\}\) : i18t\('ai_scan_clean'\)\), 'ok'\)/);   /* f1150: names its contract when that is not the one in front */
     assert.match(src, /toast\(n \? i18tn\('ai_scan_pinned',n,\{n\}\) : i18t\('ai_scan_clean'\), 'ok'\)/);
     assert.ok(!/'Scan complete — no issues found'/.test(src),
       'and neither is an English literal any more');

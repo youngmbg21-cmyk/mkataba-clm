@@ -891,7 +891,7 @@ async function migRerunAi(){
   if(!API_MODE()||!state.aiConfigured){ toast(i18t('mig_connect_key'),'err'); return; }
   M.aiDown=false;
   const todo=migContracts().filter(c=>c.migration.needsReview && c.migration.aiSource!=='ai' && !(c.metadata&&c.metadata.confirmedAt));
-  if(!todo.length){ toast(i18t('mig_no_pattern_left')); return; }
+  if(!todo.length){ toast(i18t('mig_no_pattern_left'), 'warn'); return; }
   const btn=document.getElementById('mig-rerun'); if(btn){ btn.disabled=true; }
   let done=0;
   for(const c of todo){
@@ -1001,7 +1001,7 @@ async function migImportSheet(file){
     persist(c); updated++;
   }
   if(API_MODE()){ try{ await flushSaves(); }catch(e){} }
-  toast(`Sheet imported — ${updated} contract${updated===1?'':'s'} updated${missed?`, ${missed} rows didn’t match a migrated contract`:''}`);
+  toast(`Sheet imported — ${updated} contract${updated===1?'':'s'} updated${missed?`, ${missed} rows didn’t match a migrated contract`:''}`, missed?'warn':undefined);
   updateSidebarCounts(); renderMigration();
 }
 

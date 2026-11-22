@@ -910,6 +910,56 @@ function toastPlace(root){
     root.style.left=Math.round(right/2)+'px';
   }catch(e){ /* a stage with no layout keeps the sheet's centre */ }
 }
+/* ---- AN ALERT BELONGS TO THE PAGE IT WAS RAISED ON (owner, 22 Nov 2026) ----
+   An alert knew nothing of where it was raised: it stayed over the next page,
+   a spinner turned for a fixed time whatever the work did, and one limit
+   was said twice. Four small rules, all here so every caller has them:
+   - WHERE: each alert is stamped with the page (and the contract on it); once
+     the reader stands somewhere else it goes. One raised just before the move
+     (TOAST_RIDE_MS) is the move's own confirmation and rides along. An alert
+     with a button or its own dwell was raised to outlive the page and stays.
+   - A WAIT: a busy alert stays until the next alert (its result or its
+     refusal) takes its place, TOAST_BUSY_MS at the longest.
+   - ONE LIMIT, SAID ONCE: after api()'s own limit sentence (opts.limit), a
+     caller's red "unavailable" inside TOAST_LIMIT_MS is the same news again.
+   - A HEADS-UP WITH NOTHING TO PRESS reads as fast as a refusal. */
+const TOAST_RIDE_MS=1200, TOAST_SWEEP_MS=400, TOAST_BUSY_MS=30000, TOAST_LIMIT_MS=1500;
+let _toastSweep=null, _toastLimitAt=0;
+function toastWhere(){
+  try{
+    const st=(typeof state!=='undefined'&&state)||null; if(!st) return '';
+    let k=String(st.view||'');
+    if(k==='dashboard'){
+      try{ if(typeof window.hbS==='function') k+='|'+((window.hbS()||{}).face||''); }catch(_){}
+      try{ const p=typeof window.pdContract==='function'?window.pdContract():null; if(p&&p.id) k+='|'+p.id; }catch(_){}
+    } else if(st.activeId&&(k==='workspace'||k==='doc'||k==='redline')) k+='|'+st.activeId;
+    return k;
+  }catch(e){ return ''; }
+}
+function toastSweepStart(root){
+  if(_toastSweep||typeof setInterval!=='function') return;
+  _toastSweep=setInterval(()=>{
+    try{
+      const kids=[...root.children];
+      if(!kids.length){ clearInterval(_toastSweep); _toastSweep=null; return; }
+      const here=toastWhere(), now=Date.now();
+      kids.forEach(el=>{
+        if(el._tKeep||el._tWhere===undefined||el._tWhere===here) return;
+        if(now-el._tAt>TOAST_RIDE_MS) el.remove(); else el._tWhere=here;
+      });
+    }catch(e){ /* a sweep that cannot read the page leaves the alerts to their own clocks */ }
+  },TOAST_SWEEP_MS);
+}
+/* WHICH CONTRACT, WHEN IT IS NOT THE ONE IN FRONT: news or a failure about a
+   contract the reader is not looking at leads with its number. */
+function toastAbout(c,msg){
+  try{
+    if(!c||!c.id) return msg;
+    if((typeof contractOnScreen==='function'&&contractOnScreen(c))||(typeof contractOnHome==='function'&&contractOnHome(c))) return msg;
+    const ref=(typeof window!=='undefined'&&typeof window.contractRef==='function')?window.contractRef(c):c.id;
+    return ref&&String(msg).indexOf(String(ref))<0 ? ref+': '+msg : msg;
+  }catch(e){ return msg; }
+}
 function toast(msg,kind,opts){
   const root=document.getElementById('toast-root');
   if(!root) return;
@@ -931,6 +981,11 @@ function toast(msg,kind,opts){
      error keeps every one of them exactly as loud as it is today. */
   const k = TOAST_KINDS[kind] ? kind : 'err';
   const spec = TOAST_KINDS[k];
+  /* one limit, said once (see above) */
+  try{
+    if(opts&&opts.limit) _toastLimitAt=Date.now();
+    else if(k==='err' && Date.now()-_toastLimitAt<TOAST_LIMIT_MS && root.querySelector('[data-toast-limit]')) return;
+  }catch(e){}
   const el=document.createElement('div');
   el.className='toast-in';
   /* ---- EVERY DOM CALL BEYOND THE OLD FOUR IS GUARDED ----
@@ -999,14 +1054,24 @@ function toast(msg,kind,opts){
       if(old.dataset.toastMsg===String(msg) && old.dataset.toastKind===k) old.remove();
     });
   }catch(e){ /* stand-in elements in test stages have no dataset — see above */ }
+  /* the wait this alert answers stops turning */
+  try{ root.querySelectorAll('[data-toast-busy]').forEach(old => old.remove()); }catch(e){}
+  const ownDwell = !!(opts && Number(opts.dwell) > 0), busyAuto = !!(opts && opts.busy && !ownDwell);
+  try{ if(busyAuto) el.dataset.toastBusy='1'; if(opts&&opts.limit) el.dataset.toastLimit='1'; }catch(e){}
+  el._tAt=Date.now(); el._tWhere=toastWhere(); el._tKeep=!!(act||ownDwell);
   toastPlace(root);
   root.appendChild(el);
+  toastSweepStart(root);
   /* EVERY TOAST GOES BY ITSELF. `dwell` is read from the table, which has no
      zero in it; an opts.dwell of 0 falls through to the table's value rather
      than pinning the message to the screen, because "stays until dismissed" is
      the state the owner asked to be rid of. */
-  const dwell = (opts && Number(opts.dwell) > 0 ? Number(opts.dwell) : spec.dwell) || 5000;
+  const dwell = (ownDwell ? Number(opts.dwell)
+    : busyAuto ? TOAST_BUSY_MS
+    : (k==='warn' && !act) ? Math.min(spec.dwell, TOAST_KINDS.err.dwell)
+    : spec.dwell) || 5000;
   setTimeout(go,dwell);
+  return go;
 }
 /* SHA-256, with an honest failure mode.
 
@@ -1040,7 +1105,7 @@ async function sha256(str){
 }
 const generatePseudo = seed => { let h=0; for(const ch of seed) h=(h*33+ch.charCodeAt(0))>>>0; return h.toString(16).padStart(60,'0').slice(0,60); };
 
-Object.assign(window,{NAV_EARN_AT,navShowEverything,navSetShowEverything,navEarned,navSeen,navMarkSeen,STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,UPLOAD_MAX_API,uploadMax,uploadMaxLabel,uploadTooBigMsg,EXTRACT_MAX_CHARS,approvalLabel,cIcon,cKind,cParty,cPrimary,cSecondary,contractRisk,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,sha256IsReal,shareChip,shareDot,shareDotStyle,shareLinkCell,shareLegendHtml,SHARE_LEGEND,state,statusChip,statusLabel,streamLabel,toast,uid});
+Object.assign(window,{toastAbout,toastWhere,NAV_EARN_AT,navShowEverything,navSetShowEverything,navEarned,navSeen,navMarkSeen,STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,UPLOAD_MAX_API,uploadMax,uploadMaxLabel,uploadTooBigMsg,EXTRACT_MAX_CHARS,approvalLabel,cIcon,cKind,cParty,cPrimary,cSecondary,contractRisk,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,sha256IsReal,shareChip,shareDot,shareDotStyle,shareLinkCell,shareLegendHtml,SHARE_LEGEND,state,statusChip,statusLabel,streamLabel,toast,uid});
 /* ============================================================
    PLATFORM CORE — persistence · auth · audit · sharing · export
    MVP runs fully client-side (localStorage) so it deploys as a
@@ -1626,7 +1691,7 @@ async function saveContract(c){
           confirmLabel:'Keep mine & save', cancelLabel:'Load theirs', danger:true });
         if(keepMine){ if(fresh) c._v=fresh._v; await saveContract(c); return; }
         if(fresh){ Object.assign(c,fresh); c._v=fresh._v; c._loaded=true; c._light=false; if(typeof renderWorkspace==='function') renderWorkspace(); }
-        toast(i18t('co_loaded_server_version'),'err');
+        toast(i18t('co_loaded_server_version'),'warn');
       } else {
         toast((window.contractRef?contractRef(c):c.id)+' changed on the server — your edit is kept but not yet saved. Open it and save again to keep your version.','err');
       }
@@ -1648,8 +1713,8 @@ async function saveContract(c){
           else if(state.view==='redline' && window.redlineHeldId && String(redlineHeldId())===String(c.id) && window.renderRedline) renderRedline();
         }catch(_){}
       }
-      toast(i18t('co_save_refused',{why:e.message}),'err');
-    } else toast(i18t('co_save_failed')+e.message,'err');
+      toast(toastAbout(c,i18t('co_save_refused',{why:e.message})),'err');
+    } else toast(toastAbout(c,i18t('co_save_failed')+e.message),'err');
   }
 }
 /* ---- A DECISION WAITS FOR THE SERVER'S YES (B3, 8 Oct 2026) ----
@@ -10471,7 +10536,7 @@ async function applyResponse(c, r, opts={}){
     return false;
   }
   if(docChanged)
-    toast(i18t('co_doc_changed_after'),'err');
+    toast(toastAbout(c,i18t('co_doc_changed_after')),'warn');
   const who=r.name+(r.title?', '+r.title:'');
   /* Values the counterparty filled into a template form. Only known open
      fields land (never fixed wording, never invented keys), each re-checked
@@ -10578,7 +10643,7 @@ async function applyResponse(c, r, opts={}){
     logAudit(c,oursFirst?'Countersigned':'Signature',`${who}${forCo?` for ${forCo}`:''} signed via share link${r.verify?' — checked by email code':''} (${r.method||'share-link'}${sig.form?', '+sig.form+' signature':''})${boundRow?` — step ${boundRow.order} of the signing route, on their own bound link`:''}${signerProvenance(r.ip,r.ua)}${unverified?' — NOT independently verified: this workspace cannot send verification codes':''}${routeNote}`);
     /* NEWS, SAID WHERE THE READER LOOKS (4 Oct 2026): a bare toast prints
        nothing, so every arrival that moves whose move it is names a kind. */
-    toast(i18t('co_arr_signed',{ who:r.name }),'ok');
+    toast(toastAbout(c,i18t('co_arr_signed',{ who:r.name })),'ok');
     // Last signature on a route ⇒ freeze, seal and distribute automatically.
     const routeDone = window.allSigned && allSigned(c);
     /* THE SAME MOMENT, REACHED WITHOUT A ROUTE. A contract with no signing
@@ -10629,7 +10694,7 @@ async function applyResponse(c, r, opts={}){
     c.comments.push({ author:r.name, role:'Counterparty — Wording accepted', side:'external',
       text:r.comment||'Accepted the current wording. Not yet signed.', at:r.at, ts:fmtDT(r.at) });
     logAudit(c,'Wording accepted',`${who} accepted the current wording without signing`);
-    toast(i18t('co_arr_accepted',{ who:r.name }),'ok');
+    toast(toastAbout(c,i18t('co_arr_accepted',{ who:r.name })),'ok');
   } else if(r.action==='decisions'){
     /* Answers to individual fingerprinted changes we proposed. Applied through
        negoResolve, so the wording is rebuilt from the accepted set by the same
@@ -10701,7 +10766,7 @@ async function applyResponse(c, r, opts={}){
       filed.length?i18tn('co_arr_filed',filed.length,{ n:filed.length }):'',
       withdrew.length?i18tn('co_arr_withdrew',withdrew.length,{ n:withdrew.length }):'']
       .filter(Boolean).join('; ');
-    toast(saidHere?i18t('co_arr_answered_said',{ who:r.name, said:saidHere }):i18t('co_arr_answered',{ who:r.name }),'ok');
+    toast(toastAbout(c,saidHere?i18t('co_arr_answered_said',{ who:r.name, said:saidHere }):i18t('co_arr_answered',{ who:r.name })),'ok');
   } else if(r.action==='ready'){
     /* ONE PRESS, ONE CALL. "Ready to sign" carries whatever decisions were
        still held on their page AND the readiness signal, in a single response.
@@ -10792,7 +10857,7 @@ async function applyResponse(c, r, opts={}){
     negoTurnBack(c, who);
     logAudit(c,'Ready to sign',`${who} signalled ready to sign via the negotiation link`
       +`${parts.length?` — ${parts.join('; ')}`:''}. Nothing is signed: issue a signing link to take it forward.`);
-    toast(i18t('co_arr_ready',{ who:r.name }),'ok');
+    toast(toastAbout(c,i18t('co_arr_ready',{ who:r.name })),'ok');
   } else if(r.action==='changes'){
     c.comments.push({ author:r.name, role:'Counterparty — Changes requested', side:'external', text:r.comment, at:r.at, ts:fmtDT(r.at) });
     c.rounds=c.rounds||[];
@@ -10835,12 +10900,12 @@ async function applyResponse(c, r, opts={}){
           baseText:base, roundN:c.rounds.length, notes, via:'the counterparty’s link' });
       }catch(e){ /* the round is filed either way — the fingerprints are the bonus, not the record */ }
     }
-    toast(i18t('co_arr_changes',{ who:r.name }),'ok');
+    toast(toastAbout(c,i18t('co_arr_changes',{ who:r.name })),'ok');
   } else if(r.action==='decline'){
     c.status='Declined';
     c.comments.push({ author:r.name, role:'Counterparty — Declined', side:'external', text:r.comment, at:r.at, ts:fmtDT(r.at) });
     logAudit(c,'Declined',`${who} declined via share link${r.comment?` — “${String(r.comment).slice(0,600)}”`:''}`);
-    toast(`${r.name} declined the agreement`,'err');
+    toast(toastAbout(c,i18t('co_arr_declined',{ who:r.name||i18t('co_resp_cp') })),'warn');
   } else { if(!opts.background) toast(i18t('co_unknown_response'),'err'); return false; }
   c.lastAction=todayStr(); persist(c);
   /* WRITTEN BEFORE ANYTHING REPAINTS, and this is not a nicety.
@@ -11182,7 +11247,7 @@ async function responseFiledOnServer(c, item){
      && !(c.execution&&c.execution.at)){
     try{ await sealPrepStamp(c); persist(c); await flushSaves(); }catch(_){}
   }
-  toast(i18t(c.status==='Signed'?'co_arr_signed_sealed':'co_arr_signed',{ who:r.name||c.counterparty||'' }),'ok');
+  toast(toastAbout(c,i18t(c.status==='Signed'?'co_arr_signed_sealed':'co_arr_signed',{ who:r.name||c.counterparty||'' })),'ok');
   try{
     if(window.contractOnScreen && (contractOnScreen(c)||contractOnHome(c)) && typeof renderWorkspace==='function') renderWorkspace();
     else if(state.view==='redline' && window.redlineHeldId && String(redlineHeldId())===String(c.id) && window.renderRedline) renderRedline();

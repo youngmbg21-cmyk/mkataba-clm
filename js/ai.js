@@ -384,7 +384,7 @@ async function runScanFor(c, opts){
   const quiet=!!(opts&&opts.quiet);
   if(!canEdit()){ if(!quiet) toast(i18t('ai_viewers_no_scan'),'err'); return false; }
   if(!quiet) toast(i18t('ai_scanning'),'ok',{busy:true});   /* progress: the scan takes seconds and nothing else moves */
-  try{ await ensureFull(c); }catch(e){ if(!quiet) toast(i18t('ai_could_not_load')+e.message,'err'); return false; }
+  try{ await ensureFull(c); }catch(e){ if(!quiet) toast(window.toastAbout(c,i18t('ai_could_not_load')+e.message),'err'); return false; }
   runScan(c);
   const n=openFindings(c).length;
   logAudit(c,'Scanned',`Jambo contract scan run — ${n} open finding${n===1?'':'s'}`);
@@ -393,7 +393,7 @@ async function runScanFor(c, opts){
   /* 'ok' rather than a bare call, and the clean case says so. A bare toast
      prints NOTHING — so on a clean contract, which is the commonest outcome,
      the scan ran, cost money, wrote an audit line and answered with silence. */
-  toast(n ? i18tn('ai_scan_found',n,{n}) : i18t('ai_scan_clean'), 'ok');
+  toast(window.toastAbout(c, n ? i18tn('ai_scan_found',n,{n}) : i18t('ai_scan_clean')), 'ok');
   /* the list on Home's Contracts place repaints where it stands (step 7) */
   if(window.regPlaceUp&&regPlaceUp()&&window.regRepaint) regRepaint();
   else if(state.view==='register'&&window.renderRegister) renderRegister();

@@ -9859,7 +9859,7 @@ function stWireMonthlyReport(){
   });
   document.getElementById('mr-send-now')?.addEventListener('click',async()=>{
     try{ const r=await api('reports/monthly/run','POST',{});
-      toast(r.sent?i18tn('set_mr_sent_n',r.sent,{n:r.sent,month:r.month}):i18t('set_mr_nothing_sent'));
+      toast(r.sent?i18tn('set_mr_sent_n',r.sent,{n:r.sent,month:r.month}):i18t('set_mr_nothing_sent'), r.sent?undefined:'warn');
       loadMonthly(); }
     catch(err){ stDrawerRefuse(err.message); }
   });

@@ -11719,6 +11719,9 @@ const STRINGS = {
     // ---- shell messages and share purposes ----
     co_delete_failed: 'Delete failed: ',
     co_save_failed: 'Save failed: ',
+    net_unreachable: 'HaTi could not be reached. Check your connection and try again.',
+    net_srv_fail: 'HaTi’s server could not do that just now ({n}). Try again in a moment.',
+    co_arr_declined: '{who} declined the agreement',
     co_save_refused: 'Not saved: {why} The page now shows what is on file.',
     co_settings_save_failed: 'Settings save failed: ',
     co_enter_full_name: 'Enter your full name',
@@ -38682,6 +38685,9 @@ const STRINGS = {
     // ---- shell messages and share purposes ----
     co_delete_failed: 'Radering misslyckades: ',
     co_save_failed: 'Sparning misslyckades: ',
+    net_unreachable: 'HaTi kunde inte nås. Kontrollera anslutningen och försök igen.',
+    net_srv_fail: 'HaTis server kunde inte göra det just nu ({n}). Försök igen om en stund.',
+    co_arr_declined: '{who} avböjde avtalet',
     co_save_refused: 'Inte sparat: {why} Sidan visar nu det som finns sparat.',
     co_settings_save_failed: 'Sparning av inställningar misslyckades: ',
     co_enter_full_name: 'Ange ditt fullständiga namn',

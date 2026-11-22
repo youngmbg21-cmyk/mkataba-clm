@@ -6005,7 +6005,7 @@ async function portalSendCheck(p, action){
 const PT_NET_FAIL = /failed to fetch|networkerror|load failed|network request failed|network error/i;
 function portalErrText(e, fallback, kept){
   const m=String((e&&e.message)||'');
-  if((e&&e.name==='TypeError'&&!m) || PT_NET_FAIL.test(m)
+  if((e&&e.network) || (e&&e.name==='TypeError'&&!m) || PT_NET_FAIL.test(m)
     || (e&&[502,503,504].includes(e.status)&&!(e.data&&e.data.error))) return i18t(kept?'po_unreachable_kept':'po_unreachable');
   return m || fallback || i18t('po_something_went_wrong');
 }

@@ -1065,7 +1065,7 @@ async function runPlaybookReview(c,opts={}){
       r=await api('ai/playbook','POST',{ text,
         playbook:{ label:std.label, positions:pbStandardsSent(std.standards), ranges:[] },
         kind:cKind(c) }, { quiet:!!opts.quiet });
-    }catch(e){ if(!opts.quiet) toast(i18t('pb_review_unavailable'),'err'); }
+    }catch(e){ if(!opts.quiet) toast(i18t('pb_review_unavailable'),'warn'); }
     if(r&&r.notice) opts.notice=r.notice;
     if(r){
       if(r.truncated) return refuse('pb_cut_short');

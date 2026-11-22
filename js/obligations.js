@@ -530,7 +530,7 @@ async function extractObligations(c,opts={}){
     /* THE TOAST IS WHAT IS SUPPRESSED, never the fallback: the loud path
        falls through to the heuristic below and so does this one, or a quiet
        caller would be handed "unavailable" where a person gets a real list. */
-    catch(e){ if(!opts.quiet) toast(i18t('ob_scan_unavailable'),'err'); }
+    catch(e){ if(!opts.quiet) toast(i18t('ob_scan_unavailable'),'warn'); }
   }
   return heuristicObligations(text, c);
 }

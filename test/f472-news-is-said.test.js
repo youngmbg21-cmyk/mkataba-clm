@@ -33,8 +33,8 @@ const I18N = read('js/i18n.js');
 describe('f472 (1) — every hand-off is said', () => {
   test('their answer arriving names a kind, every action of it', () => {
     for (const k of ['co_arr_signed', 'co_arr_accepted', 'co_arr_ready', 'co_arr_changes'])
-      assert.match(CORE, new RegExp(`toast\\(i18t\\('${k}',\\{ who:r\\.name \\}\\),'ok'\\)`), k);
-    assert.match(CORE, /i18t\('co_arr_answered',\{ who:r\.name \}\),'ok'\)/, 'the decisions arrival');
+      assert.match(CORE, new RegExp(`toast\\(toastAbout\\(c,i18t\\('${k}',\\{ who:r\\.name \\}\\)\\),'ok'\\)`), k);   /* f1150: it names its contract when that is not the one in front */
+    assert.match(CORE, /i18t\('co_arr_answered',\{ who:r\.name \}\)\),'ok'\)/, 'the decisions arrival');
     assert.ok(!/toast\(said\?/.test(CORE), 'the old bare sentence is gone');
   });
 
