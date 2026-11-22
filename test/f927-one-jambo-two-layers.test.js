@@ -127,7 +127,8 @@ describe('f927 (4) the screen\'s sentence carries the map and the Board, the sam
     const i = AI.indexOf('function aiPageContext('); const body = AI.slice(i, AI.indexOf('\n}\n', i));
     for (const need of ["if (view === 'dashboard')", 'hbFace()', 'hbBoardNow()', 'igMapNow()', 'AI_HOME_FACE_NAMES[face]']) assert.ok(body.includes(need), need);
     const m = IG.indexOf('function igMapNow('); const map = IG.slice(m, IG.indexOf('\n}\n', m));
-    assert.ok(map.includes('buildGraphModel()') && map.includes('igBookTotal()') && map.includes('igRecipeSays()'), 'the map\'s own readings');
+    /* RE-POINTED 22 Nov 2026 (home-speed-verify 2): the map's own model is read through igDrawnModel(), the drawn map's model while it stands, else a fresh build */
+    assert.ok(map.includes('igDrawnModel()') && map.includes('igBookTotal()') && map.includes('igRecipeSays()'), 'the map\'s own readings');
   });
 });
 
