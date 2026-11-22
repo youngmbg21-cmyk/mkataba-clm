@@ -64,7 +64,8 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const ended = up ? await page.evaluate(() => !!document.querySelector('.ctf-ls [data-ctf-ended]')) : false;
     await shot('1-folders');
     const views = up ? await page.evaluate(() => [...document.querySelectorAll('.ctf-ls button.ctf-fig[data-ctf-fig]')].map(b => b.innerText.replace(/\s+/g, ' ').trim())) : [];
-    const parts = up ? await page.evaluate(() => ({ stand: !!document.querySelector('.ctf-ls .ctf-stand'), months: document.querySelectorAll('.ctf-ls .ctf-months .ctf-mo').length,
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the bar and the month dots are the one drawing the panels share (.ctls-bar, .ctls-endm) */
+    const parts = up ? await page.evaluate(() => ({ stand: !!document.querySelector('.ctf-ls .ctls-bar'), months: document.querySelectorAll('.ctf-ls .ctls-endm span').length,
       oldViews: document.querySelectorAll('[data-ctf-view], .ctf-list').length })) : {};
     check('1 Contracts opens on its folders: four figure cards, where they stand, when they end, then the folders as a table with their facts, Ended & archived its own door',
       up && cards.some(t => /Procurement/.test(t) && /\d+ needs? you/.test(t)) && ended && views.length === 4 && views.every(t => /\d/.test(t))
@@ -84,7 +85,8 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     /* RE-POINTED (owner, 9 Nov 2026: "the column should only reflect the name of the column … The count should maybe go to
        the side panel"): the head is the question's name alone; how far it is read stands in the panel, "3 of 6 read" */
     /* RE-POINTED (14 Nov 2026): the panel no longer says "3 of N read" (Columns you asked is gone); the column's head and the panel drawn are the wait */
-    const up = await until(page, () => !!document.querySelector('#ct-place th.ac-th.is-nl') && !!document.querySelector('.rfp-panel.is-drawn'), null, 15000);
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn): beside a folder's list the panel is the list's own (.ctls-list) */
+    const up = await until(page, () => !!document.querySelector('#ct-place th.ac-th.is-nl') && !!document.querySelector('#ig-dock .ctls-list'), null, 15000);
     const heads = await page.evaluate(() => [...document.querySelectorAll('#ct-place .reg-table thead th')].map(x => x.innerText.trim().toLowerCase().split('\n')[0].trim()).filter(Boolean));
     const sub = await txt(page, '#ct-place th.ac-th.is-nl .reg-th-sub');
     const tabs = await page.evaluate(() => [...document.querySelectorAll('#ct-place .reg-views .reg-vtab')].filter(b => b.offsetParent).map(b => b.innerText.replace(/\s+/g, ' ').trim()));
@@ -99,32 +101,28 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
        Columns you asked is gone from the panel: no asked question, no Add to list, no Remove from list there */
     /* RE-POINTED (owner's pick by name, 15 Nov 2026: At a Glance, f1056): the folder's panel is the count and one chip, When
        they end (a month with any is a door to exactly those), Where the money is, Not done yet (who is not checked, its list) */
-    const panel = await until(page, () => !!document.querySelector('.rfp-panel.rfg .rfg-top'), null, 12000);
-    const kept = await txt(page, '.rfp-panel');
-    const says = await page.evaluate(() => { const p = document.querySelector('.rfp-panel.rfg'), b = p ? p.getBoundingClientRect() : null;
-      const mo = document.querySelector('.rfp-panel.rfg button.rfg-mo.has');
-      return { months: document.querySelectorAll('.rfp-panel.rfg .rfg-strip .rfg-mo').length, mo: mo ? (mo.getAttribute('data-rfp-only') || '').split(',').filter(Boolean).length : 0,
-        bars: document.querySelectorAll('.rfp-panel.rfg .rfg-bar[data-rfp-open]').length,
-        only: ((document.querySelector('.rfp-panel.rfg .rfp-row [data-rfp-only]') || { getAttribute: () => '' }).getAttribute('data-rfp-only') || '').split(',').filter(Boolean).length,
-        /* RE-POINTED (P-31, 20 Nov 2026): the list no longer carries the standards column ("Not checked yet" on the row),
-           so the folder's unchecked contracts are counted off the record, the way the panel's own reading counts them */
-        unchecked: (() => { const R = regState(); return state.contracts.filter(c => c && !c.archived && c.status !== 'Declined' && !c.parentId && c.folder === R.type && !c._codeNamed
-          && !(typeof stdRowReading === 'function' && stdRowReading(c))).length; })(),
-        money: !!p && /Where the money is/i.test(p.innerText),
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn; reverses At a Glance on the new look): the folder's panel is the list's own —
+       a sentence of the rows on screen, where they stand (one bar), when they end (twelve months of dots), what needs you
+       by name (each name its contract's door); NO money, no cards; nothing spills */
+    const panel = await until(page, () => !!document.querySelector('#ig-dock .ctls-list .jov5-title'), null, 12000);
+    const kept = await txt(page, '#ig-dock .ctls-list');
+    const says = await page.evaluate(() => { const p = document.querySelector('#ig-dock .ctls-list'), b = p ? p.getBoundingClientRect() : null;
+      const R = regState(), rows = regFiltered({ flat: true });
+      return { months: document.querySelectorAll('#ig-dock .ctls-list .ctls-endm span').length, bar: !!document.querySelector('#ig-dock .ctls-list .ctls-bar'),
+        needs: document.querySelectorAll('#ig-dock .ctls-list [data-ctls-open]').length,
+        owed: Math.min(4, rows.filter(c => { try { return needsYouOf(c).length > 0; } catch (_){ return false; } }).length),
+        head: ((p && p.querySelector('.jov5-title')) || {}).textContent || '', n: rows.length, folder: R.type,
+        cards: p ? p.querySelectorAll('.jov5-tile, .jov5-row, .jov5-g, .rfp-row').length : -1,
+        money: !!p && /KES|SEK|USD|EUR|on paper|Where the money is/i.test(p.innerText),
         spill: b ? [...p.querySelectorAll('*')].filter(e => { const r = e.getBoundingClientRect(); return r.width && (r.right > b.right + 1 || r.left < b.left - 1); }).length : -1 }; });
-    let narrowed = false;
-    if (says.mo){ await page.click('.rfp-panel.rfg button.rfg-mo.has');
-      narrowed = await until(page, n => document.querySelectorAll('#reg-tbody tr[data-row]').length === n, says.mo, 6000);
-      await page.evaluate(() => regShowOnly(null)); await until(page, () => !regState().only, null, 6000); }
-    /* RE-POINTED, INVERTED (P-31, owner's pick 20 Nov 2026; MONEY IS NEVER A BIG PART OF A PAGE: no money in a side
-       panel): the folder's panel draws NO money — no bars, no "Where the money is" */
-    check('2b the folder at a glance (f1056): twelve months, a month a door to its contracts, NO money in the panel, who is not checked with its list; nothing spills',
-      panel && says.months === 12 && says.mo > 0 && narrowed && says.bars === 0 && !says.money && says.only > 0 && says.only === says.unchecked && says.spill === 0
-      && /When they end[\s\S]*Not done yet/i.test(kept) && !/Where the money is/i.test(kept), { says, narrowed });
+    check('2b the folder\'s panel as drawn: a sentence of its own rows, where they stand, twelve months, what needs you by name, NO money, no cards; nothing spills',
+      panel && says.months === 12 && says.bar && says.needs === says.owed && new RegExp('^' + says.n + ' contracts?').test(says.head) && !says.money && says.cards === 0 && says.spill === 0
+      && /Where they stand[\s\S]*When they end/i.test(kept), { says });
     await shot('2-folder-list');
     check('2 a folder\'s list: Standing, the kept question (its name alone), what is missing; All · Needs you · Signed; the folder\'s panel as drawn',
       proc && up && heads.includes('standing') && heads.includes('needs you') && !heads.includes('our playbook') && !sub.trim() && !/Columns you asked|read · (not )?on this list|Add to list/i.test(kept) && tabs.some(t => /^Signed/.test(t)) && !miss
       && panel && /When they end/i.test(kept) && !/Remove from list/.test(kept) && !/\bcalls?\b|\bfree\b/i.test(kept), { heads, sub, tabs, miss, panel, kept: kept.slice(0, 600) });
+    /* (P-31 as drawn, 21 Nov 2026) the heads say Folder only where the list holds many folders: inside one it steps out */
   } catch (e) { check('2 a folder\'s list', false, String(e).slice(0, 200)); }
 
   /* 3 · the Wall */
@@ -139,13 +137,15 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
       return K.length > 0 && K.every(k => !k.querySelector('.igw-sheet .igw-p') && !!k.querySelector('.igw2-foot .reg-badge'))
         && K.some(k => ((k.querySelector('.igw2-who') || {}).textContent || '').trim().length > 0); }) : false;
     if (up) await page.evaluate(() => { const k = [...document.querySelectorAll('.igw-card.is-nl')].find(x => /Raw Milk/.test(x.textContent)); if (k) k.click(); });
-    const chosen = up && await until(page, () => !!document.querySelector('.pd2-chosen .pd2-ch-tbl'), null, 10000);
-    const said = await txt(page, '.pd2-chosen');
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the chosen paper's panel (.ctls-chosen) — badge, name, Open it, the six
+       stages, what was read off its paper (where its wording is loaded), a timeline */
+    const chosen = up && await until(page, () => !!document.querySelector('#ig-dock .ctls-chosen .ctls-spine'), null, 10000);
+    const said = await txt(page, '#ig-dock .ctls-chosen');
     const hint = await txt(page, '.igw2-hint');
     await shot('3-wall');
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
     check('3 the Wall: the other side under each paper, a soft badge beside it; a press chooses, the panel reads it off its paper with its doors, no cost said, no how-to line under the papers',
-      up && both && chosen && /Raw Milk Collection, chosen/.test(said) && /Read off its paper/i.test(said) && /Open it/i.test(said) && !/\bfree\b|\bcalls?\b|costs? nothing/i.test(said) && !hint /* RE-POINTED (the harmony review, EVEN CARDS, owner's yes 9 Nov 2026): the how-to line under the papers is gone; the panel says what is chosen */, { said: said.slice(0, 160), hint });
+      up && both && chosen && /Raw Milk Collection/.test(said) && /Where it stands/i.test(said) && /Timeline/i.test(said) && /Open it/i.test(said) && !/\bfree\b|\bcalls?\b|costs? nothing/i.test(said) && !hint /* RE-POINTED (the harmony review, EVEN CARDS, owner's yes 9 Nov 2026): the how-to line under the papers is gone; the panel says what is chosen */, { said: said.slice(0, 160), hint });
   } catch (e) { check('3 the Wall', false, String(e).slice(0, 200)); }
 
   /* 4 · Parties: RE-POINTED 19 Nov 2026 (the Parties round, owner's "build all the designs in parties"): Folders and a

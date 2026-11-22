@@ -151,7 +151,8 @@ const check = (name, pass, detail) => {
       /* RE-POINTED 20 Nov 2026 (owner: "delete the highlighted parts"): the sentence over the Contracts list is gone */
       /* (20 Nov 2026: the element is read in the page, not in node, where `document` does not exist) */
       check('5b no sentence over the list', C.say === '' && !C.sayEl, C.say);
-      check('5c rows about 66px tall', C.rows.length > 0 && C.rows.every(x => x >= 58 && x <= 76), JSON.stringify(C.rows));
+      /* RE-POINTED 21 Nov 2026 (P-31, as drawn): a row whose paper is loaded carries a third line, its words for when it ends */
+      check('5c rows about 66px tall, a third line of the paper\'s words where it is read', C.rows.length > 0 && C.rows.every(x => x >= 58 && x <= 92), JSON.stringify(C.rows));
       await shot('pc-5-contracts-1440x780.png');
     });
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));

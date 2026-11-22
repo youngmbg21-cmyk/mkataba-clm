@@ -102,7 +102,10 @@ test('f977 (9) even cards: the party its own line, one footer', () => {
   assert.match(strip(fnBody(ig, 'igWallCardHtml')), /<span class="igw2-foot is-even"><span class="igw2-who">/);
   const foot = strip(fnBody(ig, 'igWallNlFootHtml'));
   assert.doesNotMatch(foot, /igw2-hint/, 'the how-to line is gone');
-  assert.match(foot, /if\(list\.length>shown\.length\) return '';/, 'the paging foot stands alone');
+  /* RE-POINTED 21 Nov 2026 (P-31, as drawn): nothing under the papers — the chips say how many; the paging foot is
+     igWallBodyHtml's own (lhFootHtml), so it still stands alone */
+  assert.match(foot, /^function igWallNlFootHtml\(list, shown\)\{\s*void list; void shown;\s*return '';\s*\}$/, 'the wall draws no foot of its own');
+  assert.match(strip(fnBody(ig, 'igWallBodyHtml')), /lhFootHtml\('wall', S\.k, S\.n, IG_WALL_STEP/, 'the paging foot stands alone');
 });
 test('f977 (10) grouped rows and the week ahead at the weekend', () => {
   /* RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): Home's grouped rows and its week line went

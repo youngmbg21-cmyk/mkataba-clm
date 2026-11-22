@@ -271,7 +271,8 @@ describe('f678 (3) Open party opens Home\'s Contracts place, narrowed to the par
        the place the chip leads the list head's chip row (its lead), in the
        place's one head over the Wall or the List; its × is bound once per
        element with the page's other tools (regToolsWire) */
-    assert.match(REGS, /lead:\(\)=>regOnCt\(R=>regOnlyChipHtml\(R\)\)/, 'it leads the list head\'s chip row');
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the shelf's own chips ("All 1 · Ended ×", regCtLeadHtml) stand before it */
+    assert.match(REGS, /lead:\(\)=>regOnCt\(R=>regCtLeadHtml\(R\)\+regOnlyChipHtml\(R\)\)/, 'it leads the list head\'s chip row');
     assert.match(REGS, /\$\{HOME\?regHomeHeadHtml\(R\):/, 'and the place\'s one head draws it, over the Wall or the List');
     assert.match(REG, /once\(document\.getElementById\('reg-only-clear'\),'click',\(\)=>\{ const R=regState\(\); R\.only=null; R\.page=1; regRepaint\(\); \}\)/);
     const i18n = R('js/i18n.js');
