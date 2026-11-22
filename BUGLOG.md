@@ -22900,5 +22900,7 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 ### 22 Nov 2026 — Settings' panel said Jambo's lessons twice (f1152)
 - Fixed: on Settings › Jambo, the "Needs you" row and a "Jambo's lessons" group under it opened the same thing; the group is now drawn only when no needs-you row already opens the lessons. Checked: no other door is drawn twice on any Settings panel.
 - Fixed (22 Nov 2026, the owner's word): f148's "no Swedish value is a forgotten copy of the English" is green again — `rd_th_status` ("Status") and `rd_brief_jambo` ("Jambo") are the same in both books on purpose, now listed in SAME_IN_BOTH.
+
+- Noticed, not fixed (22 Nov 2026): on an iPad-size screen (1024 wide) an open contract's line above the paper drops the contract's name and "More" touches the side panel; seen while photographing for the "Who does what" drawing.
 - 22 Nov 2026 — Noticed, not fixed: Ask a column's panel, form and results table could not be deleted — Discover's read table "Ask again", a pack's next batch and the narrow window's "+ Ask a column" (readsAgain, readsNext, readsAskNew) still open that form on the Contracts list (measured: reads-and-columns-as-drawn-verify 2–5 pass at main). Owner to decide: point those presses at Discover's own ask box, then delete.
 - 22 Nov 2026 — Noticed, not fixed: with Ask a column's column card deleted, there is no door left to SET a new watch on a company fact ("Tell me when a new contract answers at risk"); watches already set still fire. Owner to decide whether Discover's results get the door.
