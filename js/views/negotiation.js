@@ -503,7 +503,7 @@ async function negoHistoryExportRun(c){
   const r = await negoIntegrityReport(c);
   const html = negoHistoryExportHtml(c, r);
   if (window.downloadFile) downloadFile(`${(window.contractRef ? contractRef(c) : c.id)}-negotiation-history.html`, html, 'text/html');
-  if (window.toast) toast(`History exported — the report carries its own verification result (${r.ok ? 'verified' : 'FAILED'})`);
+  if (window.toast) toast(`History exported — the report carries its own verification result (${r.ok ? 'verified' : 'FAILED'})`, r.ok?undefined:'err');
 }
 /* THE SAME REPORT, HANDED TO THE PRINTER INSTEAD OF TO THE DISK.
 
@@ -3311,7 +3311,7 @@ async function negoBatchConfirm(c, kind, split){
   if (!take.length){
     if (window.toast) toast(kind === 'accept'
       ? 'Nothing is clear to accept — every pending change tripped a risk signal, so each needs a person'
-      : 'No changes from the other side are pending');
+      : 'No changes from the other side are pending', 'warn');
     return null;
   }
   const list = arr => arr.slice(0, 12).map(x => {
@@ -3995,7 +3995,7 @@ function wireNegotiationTab(c, opts = {}){
        dead one (the fault that opened the formatting-only work order). */
     if (!ch){
       if (typeof onNothing === 'function') onNothing();
-      else if (window.toast) toast(i18t('ng_nothing_changed_no_fp'));
+      else if (window.toast) toast(i18t('ng_nothing_changed_no_fp'), 'warn');
       return;
     }
     _negoActive = ch.id;
@@ -4608,7 +4608,7 @@ function wireNegotiationTab(c, opts = {}){
           let n = bar.querySelector('.nego-nofile');
           if (!n){ n = document.createElement('span'); n.className = 'nego-nofile'; bar.appendChild(n); }
           n.textContent = i18t('ng_nothing_changed_inline');
-          if (window.toast) toast(i18t('ng_nothing_changed_no_fp'));
+          if (window.toast) toast(i18t('ng_nothing_changed_no_fp'), 'warn');
         });
     };
     /* ---- THE SPELL CHECK STANDS AT THIS SAVE TOO (28 Sep 2026) ----
@@ -5403,7 +5403,7 @@ function wireNegotiationTab(c, opts = {}){
   const bulk = kind => {
     const split = negoBatchSplit(c, side);
     if (!split.pending.length){
-      if (window.toast) toast(i18t('ng_nothing_pending'));
+      if (window.toast) toast(i18t('ng_nothing_pending'), 'warn');
       return;
     }
     const take = kind === 'accept' ? split.clear : split.theirs;
@@ -11574,7 +11574,7 @@ async function rlAiPropose(ctx){
         : negoEditClause(c, j.clauseId, j.html, { side, author: opts && opts.by, note, why })))
       .then(chs => {
         const filed = chs.filter(Boolean);
-        if (!filed.length){ if (window.toast) toast(i18t('ng_wording_matches')); return; }
+        if (!filed.length){ if (window.toast) toast(i18t('ng_wording_matches'), 'warn'); return; }
         if (window.negoInvalidateVerification) negoInvalidateVerification(c);
         if (opts && opts.persist !== false && window.persist) persist(c);
         if (window.toast) toast(filed.length === 1

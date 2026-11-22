@@ -22875,3 +22875,12 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - Changed (the owner's word; reverses "no motion in Settings" for the watermark only): the stop that held the watermark still on Settings is removed; it stays still only for a reader who asked for less motion.
 - Checked page by page in a browser: no other page drew the watermark still.
 - Noticed, not fixed: the Brain page shows no side panel at all in this check (so no waves); not looked into.
+
+### 22 Nov 2026 — an alert belongs to its page (f1150)
+- FIXED: alerts stayed over the next page; the other side's news named no contract and "declined" was red and English only; one usage limit raised two red boxes; the "Scanning…" spinner ran a fixed 2.6s; "Failed to fetch" reached the reader; information shown in red and amber with no button stayed 8s; eleven refusals rode silent bare calls.
+- Noticed, not fixed: f148 "no Swedish value is a forgotten copy of the English" is red on main for `rd_th_status` and `rd_brief_jambo`.
+- Noticed, not fixed: the same kind of refusal is amber in some places and red in others across about 775 alerts; needs the owner's rule before a sweep.
+- Noticed, not fixed: the other side's arrival news shows as a pop-up as well as in the bell.
+- Noticed, not fixed: two copy-link failures show the bare web address as an amber alert (the deal's status link, a request's tracking link).
+- Noticed, not fixed: 30 visible alerts are hardcoded English; "The builder arrives in the next phase of this feature" looks like a leftover.
+- Noticed, not fixed: on the phone an alert still lives by its clock when the screen changes.

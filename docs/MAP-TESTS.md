@@ -1034,3 +1034,6 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 ## THE OVERVIEW — READ DOWN, ONE SHEET / INSIGHTS (22 Nov 2026)
 - test/chromium/read-down-stripe-verify.js — no Summarise on the Board; Read down's figures, brief, table; Your day and Findings without boxes (red at the parent).
 - test/f1068-jambos-panels-five-parts.test.js (6), test/f1070-jambos-panels-round-three-a.test.js (5) — the words in both books.
+
+## THE POP-UPS, THE SAP WAY (22 Nov 2026, an alert belongs to its page)
+- test/f1150-an-alert-belongs-to-its-page.test.js: leaves with the page, rides a move, button stays; names its contract; one limit once; a wait ends on its result; plain words for a dropped connection; amber's time; the silent refusals speak. Beside it: f209, f1023, f942, f242, f273, f472, f624.
