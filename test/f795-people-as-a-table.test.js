@@ -78,6 +78,8 @@ function stage(o = {}){
   vm.runInContext(read('js/participants.js'), sb, { filename: 'participants.js' });
   vm.runInContext(read('js/listlang.js'), sb, { filename: 'listlang.js' });   // the list language (27 Oct 2026)
   vm.runInContext(read('js/views/listhead.js'), sb, { filename: 'listhead.js' });
+  /* the one initials helper (nameInitials, js/components.js; P-25 review, 22 Nov 2026) — this harness loads no components.js */
+  vm.runInContext(read('js/components.js').match(/function nameInitials\(name, fallback\)\{[\s\S]*?\n\}/)[0], sb, { filename: 'components.js#nameInitials' });
   vm.runInContext(read('js/views/customers.js'), sb, { filename: 'customers.js' });
   vm.runInContext(read('js/views/directory.js'), sb, { filename: 'directory.js' });
   return { sb, doc: win.document, landed };

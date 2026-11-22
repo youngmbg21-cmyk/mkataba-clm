@@ -1395,7 +1395,7 @@ function cuPersonDoes(p, v){
   return ids.length > 1 ? `${said} · ${i18t('cu_pp_more', { n: ids.length - 1 })}` : said;
 }
 function cuPanelPeopleHtml(list, v){
-  const ini = n => String(n || '').trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toLocaleUpperCase() || '—';
+  const ini = n => nameInitials(n, '—');
   return `<div class="cu-list">${list.map(p => {
     const sub = [p.title, cuPersonDoes(p, v)].filter(Boolean).join(' · ');
     return `<button type="button" class="cu-li cu-pp" data-cu-pp="${_cuE(p.key)}"><span class="cu-pp-av" aria-hidden="true">${_cuE(ini(p.name || p.email))}</span><span class="cu-li-b"><b>${_cuE(p.name || p.email)}</b><span title="${_cuE(sub)}">${_cuE(sub)}</span></span></button>`; }).join('')}</div>`;
@@ -1543,7 +1543,7 @@ function cunPanelFiveHtml(r){
   const mid = `<div class="cun5-figs"><div><small>${E(i18t('cun_c_ags'))}</small><b>${total}</b></div><div><small>${E(i18t('cun_c_ends'))}</small><b class="is-day"${next ? ` title="${E(next.name)}"` : ''}>${E(endsSay)}</b></div></div>`
     + `<div class="cun-pring">${cunRingSvg(n.signed, total, 44)}<span>${E(i18t('cun_p_ring', { k: n.signed, n: total }))}${n.open ? ` · ${E(i18tn('cun_split_open', n.open, { n: n.open }))}` : ''}</span></div>`;
   const act = { label: i18t('cun_p_open_cts'), attr: `data-cun-cts="${E(r.key)}"`, links: may ? [{ label: i18t('cun_p_edit_short'), attr: `data-cu-pr-edit="${E(r.key)}"` }] : [] };
-  const ava = String(r.name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '·';
+  const ava = nameInitials(r.name);
   return `<div class="jl-words is-ov cun-five cun5">${jamboOverviewHtml({ title: r.name, sub: sts.join(' · '), avatar: ava, avatarTone: tone, mid, midLabel: i18t('cun_c_ags'), act, actFirst: true,
     groups: groups.filter(g => g.html || (g.rows || []).length) }, 'cun')}</div>`;
 }
@@ -1735,7 +1735,7 @@ function cunRowHtml(v, keys){
   const streamNames = v.streams.map(f => shortOf(f)).filter(Boolean);
   const streamCell = streamNames.length ? `<span class="cun-badge is-${esc(toneOf(v.streams[0]))}">${esc(streamNames[0])}</span>`
     + (streamNames.length > 1 ? ` <span class="cun-plus" title="${esc(streamNames.join(' · '))}">+${streamNames.length - 1}</span>` : '') : '<span class="apn-none-c">—</span>';
-  const ini = String(v.name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '·';
+  const ini = nameInitials(v.name);
   const avTone = v.streams.length ? toneOf(v.streams[0]) : 'gray';
   const money = !(typeof canViewValues === 'function' && !canViewValues());
   const val = money ? cunMoney(v) : 0;
@@ -1748,7 +1748,7 @@ function cunRowHtml(v, keys){
     streams: () => `<td class="cun-streams">${streamCell}</td>`,
     agreements: () => `<td class="cun-num"><span class="cun-ags" title="${esc(split)}">${cunRingSvg(cnt.signed, total, 26)}<span class="cun-ags-s">${esc(i18tn('cun_split_signed', cnt.signed, { n: cnt.signed }))}</span></span></td>`,
     paper: () => `<td class="cun-money">${money && val ? esc(cunPaperSay(val)) : '<span class="apn-none-c">—</span>'}</td>`,
-    ends: () => `<td class="cun-ends">${next ? `${esc(next.day)}<div class="cun-endof" title="${esc(next.name)}"><span dir="ltr">${esc(next.name)}</span></div>` : '<span class="apn-none-c">—</span>'}</td>`,
+    ends: () => `<td class="cun-ends">${next ? `${esc(next.day)}<div class="cun-endof"><span title="${esc(next.name)}">${esc(next.name)}</span></div>` : '<span class="apn-none-c">—</span>'}</td>`,
     waiting: () => `<td class="cun-wait${ws ? ' is-owed' : ''}"${needs.length ? ` title="${esc(needs.map(cuNeedTitle).filter(Boolean).join(' · '))}"` : ''}>${ws ? `<span class="cun-badge is-${ws.late ? 'ruby' : 'amber'}">${esc(ws.head)}${ws.late ? ` · ${esc(i18t('cun_late'))}` : ''}</span>` : '<span class="apn-none-c">—</span>'}</td>`,
   };
   return `<tr data-cu-cust="${esc(v.key)}" tabindex="-1">
@@ -1801,7 +1801,7 @@ function cunKindOf(x){
   return { w: i18t(k[0]), tone: k[1] };
 }
 function cunWaitRowHtml(v, x, first){
-  const ini = String(v.name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '·';
+  const ini = nameInitials(v.name);
   const tone = v.streams.length && typeof listStreamTone === 'function' ? listStreamTone(v.streams[0]) : 'gray';
   const kd = cunKindOf(x), what = cunWaitVerb(x) || cuNeedTitle(x), title = cuNeedTitle(x);
   const ref = x.c && typeof contractRef === 'function' ? contractRef(x.c) : '';

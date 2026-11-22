@@ -122,3 +122,28 @@ test('f1139 (6) the review\'s differences: one chip rule, the dash, no foot, the
   assert.match(fnBody(D, 'dirnRowHtml'), /<span class="cun-badge is-\$\{tone\}"/);
   assert.match(CSS, /html\.lg-new \.cun-badge\{[^}]*border-radius:6px[^}]*font-size:var\(--t-label\)/);
 });
+
+/* (7) INITIALS ARE LETTERS, AND THE "…" ENDS THE LINE (P-25 review, 22 Nov 2026), red at the parent: "Bowmans (Coulson
+   Harney LLP)" drew "B(" — one helper now takes the first letter of each word (nameInitials, js/components.js), read by
+   Parties (row, worklist, panel, contacts) and People (rows, panel, avatars); the Ends next name is an inline box flush
+   right, its lines left-aligned inside, so its two-line clamp ends in "…" inside the box, never cut off */
+test('f1139 (7) initials take letters only; the Ends next name ends in "…" inside its box', () => {
+  const C = read('js/components.js');
+  const sb = {}; vm.createContext(sb);
+  vm.runInContext(fnBody(C, 'nameInitials') + '\nthis.f = nameInitials;', sb);
+  assert.equal(sb.f('Bowmans (Coulson Harney LLP)'), 'BC');
+  assert.equal(sb.f('Saw Sawa LLC'), 'SS');
+  assert.equal(sb.f('“Quoted” & Co.'), 'QC');
+  assert.equal(sb.f('amina.otieno@example.co.ke'), 'AO', 'an address with no space splits at its dots');
+  assert.equal(sb.f('Åsa Öberg'), 'ÅÖ');
+  assert.equal(sb.f('Buyer 01'), 'B0', 'a digit is kept; only punctuation is skipped');
+  assert.equal(sb.f('(—)'), '·'); assert.equal(sb.f('', '—'), '—');
+  assert.match(C, /Object\.assign\(window,\{nameInitials\}\);/);
+  assert.equal((CU.match(/nameInitials\(/g) || []).length, 4, 'every initials on Parties through the one helper');
+  assert.doesNotMatch(CU, /split\(\/\\s\+\/\)\.filter\(Boolean\)\.(?:slice\(0, 2\)\.)?map\(w => w\[0\]\)/);
+  const D = read('js/views/directory.js');
+  assert.match(D, /function dirInitials\(name\)\{\n  return nameInitials\(_dStr\(name\), '—'\);/);
+  assert.match(D, /function dirnInitials\(p\)\{ return nameInitials\(p\.name \|\| p\.email \|\| '', '\?'\); \}/);
+  assert.match(strip(fnBody(CU, 'cunRowHtml')), /<div class="cun-endof"><span title="\$\{esc\(next\.name\)\}">/);
+  assert.match(CSS, /td\.cun-ends \.cun-endof > span\{display:-webkit-inline-box;max-width:100%;text-align:left;[^}]*-webkit-line-clamp:2/);
+});

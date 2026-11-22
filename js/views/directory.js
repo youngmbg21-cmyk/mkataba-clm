@@ -105,7 +105,7 @@ function dirStreamName(id){
   return (F && F[id] && F[id].name) || '';
 }
 function dirInitials(name){
-  return _dStr(name).split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toLocaleUpperCase() || '—';
+  return nameInitials(_dStr(name), '—');
 }
 function dirAvHtml(p){
   const who = (p && (p.name || p.email)) || '—';
@@ -877,7 +877,7 @@ function dirnRoleOf(p){
   return ours ? hati
     : (roles.includes('negotiate') ? i18t('dirn_their_lead') : roles.includes('cpsign') ? i18t('dirn_their_signer') : i18t('dirn_their_side'));
 }
-function dirnInitials(p){ return String(p.name || p.email || '?').split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(x => x.charAt(0).toUpperCase()).join(''); }
+function dirnInitials(p){ return nameInitials(p.name || p.email || '', '?'); }
 /* a day said short, as the drawing says it ("12 Nov"); the year only where it is not this one */
 function dirnDay(iso){
   const s = String(iso || '').slice(0, 10), d = new Date(s + 'T00:00:00');

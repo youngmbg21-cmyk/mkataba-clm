@@ -368,6 +368,17 @@ if (typeof document !== 'undefined' && document.addEventListener && !window._nee
   document.addEventListener('change', on, true);
 }
 Object.assign(window,{NEED_BG,needAttrs,needMark});
+/* ---- INITIALS, LETTERS ONLY (P-25 review, 22 Nov 2026: "Bowmans (Coulson Harney LLP)" drew "B(") ----
+   The first letter (or digit: "Buyer 01" is "B0") of each of the first two words that have one — a bracket, a dash,
+   an ampersand or a quote is never an initial. A name with no space (an address, "amina.otieno@x") splits at its dots and @ instead, so it still gives
+   two. None at all → the fallback. Parties (rows, worklist, panel) and People (rows, panel, avatars) read it. */
+function nameInitials(name, fallback){
+  const s = String(name == null ? '' : name).trim();
+  const parts = s.split(/\s/.test(s) ? /\s+/ : /[\s@._-]+/);
+  const out = parts.map(w => (w.match(/[\p{L}\p{N}]/u) || [])[0]).filter(Boolean).slice(0, 2).join('');
+  return out ? out.toLocaleUpperCase() : (fallback == null ? '·' : fallback);
+}
+Object.assign(window,{nameInitials});
 /* ============================================================
    SHARED: contract row (compact list item, used everywhere)
    ============================================================ */
