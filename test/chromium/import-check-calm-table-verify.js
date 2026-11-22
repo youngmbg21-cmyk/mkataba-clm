@@ -65,7 +65,8 @@ const FILES = {
   const page = await (await browser.newContext({ viewport: { width: 1440, height: 780 } })).newPage();
   const errors = []; page.on('pageerror', e => errors.push(e.message));
   const until = async (fn, arg, ms = 8000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { let v; try { v = await page.evaluate(fn, arg); } catch (_) {} if (v) return v; await page.waitForTimeout(150); } return null; };
-  const press = async (sel, name) => { const ok = await until(s => !!document.querySelector(s), sel, 4000); if (!ok) { check(name, false, 'not drawn: ' + sel); return false; } await page.click(sel); return true; };
+  const press = async (sel, name) => { const ok = await until(s => !!document.querySelector(s), sel, 4000); if (!ok) { check(name, false, 'not drawn: ' + sel); return false; }
+    try { await page.click(sel, { timeout: 4000 }); } catch (e) { check(name, false, 'not pressable: ' + sel); return false; } return true; };
   try {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
