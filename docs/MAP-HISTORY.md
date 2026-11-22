@@ -40105,3 +40105,6 @@ The owner, on the iPad: "When on my iPad and i try to enter my cursor in the fie
 
 ## THE TRACKED-CHANGES COLUMN (22 Nov 2026, auto pilot batch 2)
 - Bug log: the settled pile's name came from the CURRENT round, so changes all settled in round 1 read "Settled in rounds 1–2" in round 3. `rlSettledPileLabel` now places each change in the closed round it was settled in (the first `negotiation.rounds` close at or after its settling) and names the latest. f1179, red at the parent.
+
+## THE POP-UPS, THE SAP WAY (22 Nov 2026, auto pilot batch 2)
+- Bug log: Import their response offered a SIGNED contract the "Choose the Word file" button and refused only after a file was picked. On open the button is now grey with co_import_executed under it; the pick keeps its own check. Left for the owner: the same note asks that a returned Word file be read first and filed only on a press (or with Undo) — it is filed the moment it is chosen; that is a change to the flow, not a fix. f1180, red at the parent.

@@ -605,6 +605,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f871 (the meter prices a dated model id as its model: a fast call booked at Haiku's price, an admin's exact row still wins, the import estimate the same; 2 of 3 red at the parent).
 
 ## THE POP-UPS, THE SAP WAY
+- f1180 Import on a signed contract says no before the Word file is picked (22 Nov 2026; red at the parent).
 - sap-popups, negotiate-as-drawn, new-agreement, end-or-pause verify, f390 1h, f358 (6).
 - Alerts bottom centre: f1023 (node); photos by hand at the three screens.
 - No outlines on paper entry fields: f1028 (node; red at the parent).
