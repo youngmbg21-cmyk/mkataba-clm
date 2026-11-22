@@ -40008,3 +40008,19 @@ The owner, 22 Nov 2026, with a photo of Settings › Jambo: "The two jambo lesso
 
 ## ASK A COLUMN — THE EXCEL BUTTON UNDONE (22 Nov 2026)
 The owner: "What has been added to ask a column because ask a column was to be retired" — its door left the list head on 15 Nov and its check was retired on 21 Nov, so its panel paints nowhere. PR 905 had put "Download as Excel" under each column and on its results table, places no reader can reach, and a Handbook line describing them. Owner: "yes undo it and merge". Reverted; Discover's Download as Excel (PR 904) and the shared writer (`askColXlsx`, `xlBook`) stay. The test keeps the number f1153 (f1152 is "one row, one door").
+
+## ASK A COLUMN (js/views/askcolumn.js) — THE LEFTOVERS DELETED, AND WHAT COULD NOT BE (22 Nov 2026)
+The owner: "delete ask a column's leftover code and merge". The work order said the panel, the form and the results table
+paint nowhere in the new look. MEASURED FIRST, at unmodified main 5274383: reads-and-columns-as-drawn-verify 2–5 PASS at all
+three screens — `askColOpen` paints the form (`.ac-nl-form`) beside Contracts, the reading card with Stop, the column's card
+and the head's ⋯ menu (Sort · Read the other N · Rename · Remove). And Discover still opens that form: the read table's black
+"Ask again" (`rdScHeadHtml` data-rdt-again → `readsAgain` → `askColOpen`), a pack's next batch (`readsNext`), and the narrow
+window's "+ Ask a column" (`readsAskNew`, `#rd-ask`). So the panel, form and table pop-up are REACHABLE and were KEPT; deleting
+them is the owner's decision (point those three Discover presses at Discover's own ask box first).
+DELETED, nothing reachable calls them: the list head's door `askColBtnHtml` (it drew nothing once `newLookOn()`; callers in
+`regCtToolsHtml` and the old filter bar), its sign-in fixer `askColBtnFix`/`askColWhoWait`, the old Discover section
+`askColDiscoverHtml`/`askColDiscoverLeads` (returned nothing in the new look; the paperdesk gate and its call under the column
+card go), `askColRowTagsHtml`, and the uncalled `askColLastRead`, `askColInitials`, `askColDeskRestHtml`, `askColProgressHtml`,
+`askColTableFor`, `askColMoreChipsHtml`; the presses only those drew (data-ac-discover, data-ac-open, data-ac-open-new,
+data-ac-del, data-ac-disc-all, data-ac-pack); their CSS (.ac-btn, .ac-disc-*, .ac-tag); 20 keys × both books; Brain part
+'askcoldisc'. Engine, Discover, columns on Contracts, company facts, Unusual for you: untouched.

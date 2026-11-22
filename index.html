@@ -9915,8 +9915,6 @@
   @media (max-height:640px){ :is(#ig-dock, #modal-root) .pd-drop{padding:12px 14px;gap:4px} }
   /* THE DROP CARD AS A POP-UP (owner, 28 Oct 2026): the card under the dialog's title, Cancel last at its foot */
   .pd-drop-dlg h2{margin:0 0 12px}
-  /* Discover right under his one line (the drop card no longer stands between them) */
-  #ig-dock .pd-wall > .ac-disc > .pd-gl-h:first-child{margin-top:4px}
   .pd-drop-dlg-f{display:flex;justify-content:flex-end;margin-top:14px}
   :is(#ig-dock, #modal-root) .pd-drop.is-over{background:var(--color-accent-100)}
   :is(#ig-dock, #modal-root) .pd-drop.is-busy{border-style:solid}
@@ -10131,15 +10129,7 @@
      words under an entry box stands 8px below it — the hint under the name, and the refusal under the question */
   #ig-dock .ac-hint{display:block;font-size:12px;color:var(--color-text);margin-top:8px}
   #ig-dock #ac-q-say{margin-top:8px}
-  /* DISCOVER STAGE 3: the kept questions under his greeting, the pack's questions, the whole table's page */
-  #ig-dock .ac-disc-list{display:grid;margin-top:6px}
-  #ig-dock .ac-disc-row{display:grid;gap:2px;text-align:left;border:0;background:none;padding:8px 0;border-top:1px solid var(--rule);font:inherit;color:inherit;cursor:pointer;min-width:0}
-  #ig-dock .ac-disc-row:last-child{border-bottom:1px solid var(--rule)}
-  #ig-dock .ac-disc-row:hover .ac-disc-n b,#ig-dock .ac-disc-row:focus-visible .ac-disc-n b{color:var(--accent-ink)}
-  #ig-dock .ac-disc-n{display:flex;align-items:center;gap:6px;min-width:0}
-  #ig-dock .ac-disc-n b{font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-  #ig-dock .ac-disc-m{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--color-text)}
-  #ig-dock .ac-tag{flex:none;font-size:11px;line-height:1.5;padding:0 7px;border-radius:999px;background:var(--color-neutral-100);color:var(--color-text);white-space:nowrap}
+  /* DISCOVER STAGE 3: the pack's questions, the whole table's page */
   #ig-dock .ac-pack-h{display:flex;align-items:baseline;gap:8px;justify-content:space-between}
   #ig-dock .ac-pack-qs{margin:2px 0 0;padding:0;list-style:none;display:grid;gap:2px}
   #ig-dock .ac-pack-qs .ac-pick{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:start;padding:6px 0;border-top:1px solid var(--rule);cursor:pointer}
@@ -10158,26 +10148,6 @@
   #ig-dock .ac-th b{font-weight:var(--w-label)}
   #ig-dock .ac-th-prog{display:flex;flex-direction:column;gap:4px;margin-top:2px}
   #ig-dock .ac-th-prog .ac-next{margin-top:2px}
-  /* Discover's rows: the question presses, its two acts sit beside it */
-  #ig-dock .ac-disc-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;border-top:1px solid var(--rule)}
-  #ig-dock .ac-disc-row:last-of-type{border-bottom:1px solid var(--rule)}
-  #ig-dock .ac-disc-go{display:grid;gap:2px;text-align:left;border:0;background:none;padding:8px 0;font:inherit;color:inherit;cursor:pointer;min-width:0}
-  #ig-dock .ac-disc-acts{display:flex;gap:10px;flex:none}
-  /* WHERE THE DEVICE HOVERS (the house rule the width grip already follows,
-     Round 1, 24 Oct 2026). On the owner's iPad there is no hover, so hiding
-     Keep and Delete until a pointer arrives left them unreachable: a tap on
-     the row brings the column instead. They simply stand there on a touch
-     screen — a dead button wearing a live one's clothes is a fault. */
-  @media (hover:hover){
-    #ig-dock .ac-disc-acts{opacity:0;transition:opacity .12s}
-    #ig-dock .ac-disc-row:hover .ac-disc-acts,#ig-dock .ac-disc-row:focus-within .ac-disc-acts{opacity:1}
-  }
-  #ig-dock .ac-disc-act{border:0;background:none;padding:0;font:inherit;font-size:12px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
-  #ig-dock .ac-disc-act.is-del{color:var(--st-ruby-fg)}
-  #ig-dock .ac-disc-row.is-loose .ac-disc-n b{font-weight:var(--w-body)}
-  #ig-dock .ac-disc-more{display:block;margin-top:8px;border:0;background:none;padding:0;font:inherit;font-size:12.5px;color:var(--color-neutral-600);cursor:pointer;text-align:left}
-  #ig-dock .ac-disc-more:hover{color:var(--accent-ink)}
-  #ig-dock .ac-disc-more::after{content:' \203A'}
   /* the tick, where the reading is (Lights, 26 Oct 2026) */
   #ig-dock .ac-ck-row{display:inline-flex;align-items:center;gap:6px;border:0;background:none;padding:0;font:inherit;font-size:12.5px;color:var(--accent-ink);cursor:pointer;text-align:left}
   #ig-dock .ac-ck-row.on{color:var(--color-text)}
@@ -10280,7 +10250,6 @@
   .cu-br-text{margin:0}
   .cu-br-note{margin:0}
   .cu-br-warn{margin:0;color:var(--st-amber-fg)}
-  .ac-btn svg{margin-right:4px}
   #ig-dock .pd-gl-row{display:flex;align-items:center;gap:10px}
   #ig-dock .pd-gl-row>span{flex:1;min-width:0}
   #ig-dock .pd-gl-row .ui-btn{flex:none}
@@ -21344,10 +21313,6 @@
   /* an APPLIED filter's chip stays (lhChipHtml draws only applied ones): a filter narrowing the list is never quietly on,
      and its × is the way out (16 Nov 2026, #762); the drawn head has no + Filter */
   html.lg-new #ct-place .ct-page .ct-head :is(.lh-add,.lh-sp,.reg-filterbar,.ct-cohort,.lh-save){display:none}
-  html.lg-new #ct-place .ct-page .ct-head .ac-btn{order:3;margin-left:auto;border:0;border-radius:999px;background:var(--surface-2);box-shadow:none;padding:0 14px;color:var(--color-text);font-size:13px;font-weight:var(--w-label);white-space:nowrap}
-  html.lg-new #ct-place .ct-page .ct-head .ac-btn.is-open{background:var(--color-text);color:var(--color-surface)}
-  html.lg-new #ct-place .ct-page .ct-head .ac-btn svg{display:none}
-  html.lg-new #ct-place .ct-page .ct-head .ac-btn::before{content:"+ "}
   html.lg-new #ct-place .ct-page .ct-head .lc-wrap{order:4}
   html.lg-new #ct-place .ct-page .ct-head .lc-btn{border-radius:999px;background:var(--surface-2);border:0;box-shadow:none}
   html.lg-new #ct-place .reg-table .reg-standing{font-weight:var(--w-label)}
@@ -24286,7 +24251,7 @@
   html.lg-new :is(.ce-stat .ce-none,.ce-foot #ce-draft,.ce-rowpath){color:var(--color-neutral-400)}
   html.lg-new .ce-rowpath b{color:var(--color-text)}
   html.lg-new :is(.tb-railfoot>span,.tb-fchip>.k){color:var(--color-neutral-400)}
-  html.lg-new :is(#ig-dock,#ins-panel) :is(.jov-k,.jov-head,.ac-meta,.ac-disc-m){color:var(--color-neutral-400)}
+  html.lg-new :is(#ig-dock,#ins-panel) :is(.jov-k,.jov-head,.ac-meta){color:var(--color-neutral-400)}
   html.lg-new :is(#ig-dock,#ins-panel) .jov-head b{color:var(--color-text)}
   /* THE SAP WAY MARK (listSapMarkHtml, owner 9 Nov 2026: at the head of every row): a 20px filled circle in the house's
      status colour, a white drawn glyph; Jambo's own sparkle filled, on black shading into grey, one grey ring rippling

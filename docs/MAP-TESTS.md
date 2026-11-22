@@ -1042,3 +1042,7 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 
 ## ASK A COLUMN — Download as Excel (22 Nov 2026)
 - test/f1153-discover-download-as-excel.test.js: the CRC check value, the zip's parts each stored with its CRC right, the bold header and escaped cells, both Discover tables draw Download beside Export, Copy and Download read one table, the words in both books.
+
+## ASK A COLUMN (js/views/askcolumn.js) — the leftovers deleted (22 Nov 2026)
+- f1016 (1) and (8) RE-POINTED (red at the parent: `askColBtnHtml` and `askColDiscoverHtml` stood): no list-head door, no press wired for a door nobody draws, no old Discover section nor any call to it; the "discover" link above Jambo's box stays.
+- Re-ran green: f1016, f1055, f1057, f1058, f1061, f1062, f1063, f1064, f1074, f1076, f1113, f1114, f1124, f1127, f1145, f1153, f148, f232, f48, f561, f705, f843, f884, f888–f893, f904, f934, f937, f954, f956, f957, f963, f965, f976, f977, f986. Browser (here, allowed for this job): discover-page-verify, discover-verify, reads-and-columns-as-drawn-verify.
