@@ -22884,3 +22884,6 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - Noticed, not fixed: two copy-link failures show the bare web address as an amber alert (the deal's status link, a request's tracking link).
 - Noticed, not fixed: 30 visible alerts are hardcoded English; "The builder arrives in the next phase of this feature" looks like a leftover.
 - Noticed, not fixed: on the phone an alert still lives by its clock when the screen changes.
+## 22 Nov 2026 — THE CLEAN-UP BEFORE A DEVELOPER READS THE CODE (owner's yes in the chat)
+Deleted, read by nothing: prototype/redesign-shots (268 old photos, about 35 MB), five old prototype pages (hati-redesign-reference.html kept; comments name it), findings.json, probe2.js, the "(1)" backlog download, six one-off review pages in the main folder. Moved, not deleted, to docs/archive/: every WORKORDER file (main folder and docs), the old audits, summaries, plans and DESIGN notes. No code, test or setting changed. Comments in code that name a moved note now mean docs/archive/<name>. Lint 0 errors; the nearest tests green.
+Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name browser checks that no longer exist; eslint.config.js still names probe2.js (matches nothing now).
