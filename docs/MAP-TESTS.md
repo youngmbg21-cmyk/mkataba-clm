@@ -488,6 +488,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - deal-in-the-middle-verify 8 (23 Oct 2026: a stray renderRedline paints no Negotiate page over Home; at the parent it did). Re-pointed to the face (they relied on that stray repaint): one-copilot-editor, one-copilot-editor-plain, a-risk-finds-its-clause, panel-tidy-and-risk-footer, one-door-for-edits, selected-card-and-advice; tracked-changes-scroll opens the page by name.
 
 ## THE TRACKED-CHANGES COLUMN
+- f1179 the settled pile is named for the rounds it was settled in (22 Nov 2026; red at the parent: 1).
 - f37, f929, f246, f570 (2), f674, f711, f734, f756, f759, redline, flat-rows-and-alerts, send-after-refusal, copilot-answer-on-paper, redlines-beside-the-paper, piles, piles-as-drawn verify.
 
 ## THE CLAUSE PANEL AND THE LADDER

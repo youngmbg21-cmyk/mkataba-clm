@@ -40102,3 +40102,6 @@ The owner, on the iPad: "When on my iPad and i try to enter my cursor in the fie
 
 ## THE SHELL — RAIL, BAR, PANELS (22 Nov 2026, auto pilot batch 2)
 - Bug log: caReadSend (and the draft reader) set the send screen / draft form opening from inside the READING, so a reading caActOf then dropped still opened the screen while the question went to the model, and caTakesWords (which only asks) opened it too. The opener now rides on the act, non-enumerable (`caActLater`), and runs only on a kept reading (`caActGo`, both of caActOf's returns). f1178, red at the parent.
+
+## THE TRACKED-CHANGES COLUMN (22 Nov 2026, auto pilot batch 2)
+- Bug log: the settled pile's name came from the CURRENT round, so changes all settled in round 1 read "Settled in rounds 1–2" in round 3. `rlSettledPileLabel` now places each change in the closed round it was settled in (the first `negotiation.rounds` close at or after its settling) and names the latest. f1179, red at the parent.
