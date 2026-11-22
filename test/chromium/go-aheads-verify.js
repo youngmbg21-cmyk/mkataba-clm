@@ -183,7 +183,15 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
     /* ================= 2 · THEIR BELL'S SIGN ROW ================= */
     const tok2 = await own.evaluate(async () => {
       const c = getContract('MK-B2');
-      await ensureFull(c); negoInit(c); persist(c); await flushSaves();
+      await ensureFull(c); negoInit(c);
+      /* RE-POINTED 22 Nov 2026 (the P-44 review of the owner's picked drawing of the other side's page, which logs "For you:
+         Tell them you are ready to sign" on a first share with nothing negotiated as a fault): the sign row now waits for a
+         negotiated paper — a change on it, none open — so this stage settles one change before it shares */
+      const cl = negoClauseList(c).find(x => x && x.clauseId && x.clauseId !== 'front');
+      if (cl) c.changes = (c.changes || []).concat([{ id: 'CHG-GA2', status: 'accepted', authorSide: 'counterparty', clauseId: cl.clauseId,
+        clauseLabel: (typeof clauseLabel === 'function' ? clauseLabel(cl) : '') || 'Clause', kind: 'edit', changeType: 'edit',
+        author: 'Naivas Legal', createdAt: new Date(Date.now() - 864e5).toISOString(), resolvedAt: new Date().toISOString(), seq: 1 }]);
+      persist(c); await flushSaves();
       const full = await api('contracts/MK-B2');
       const payload = buildSharePayload(full, await sha256(canonicalDoc(full)), null, { purpose: 'negotiate' });
       const r = await api('shares', 'POST', { payload, channel: 'link', purpose: 'negotiate', durable: true,
@@ -202,7 +210,9 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
       if (b) { await b.click(); await pause(600); }
       bell2 = await cp2.evaluate(() => {
         const ready = document.getElementById('pt-nego-ready');
-        const r = document.querySelector('[data-pt-kind="sign"]');
+        /* the row's words (the new look's row also carries its own button; its words are the row's ink line) */
+        const r0 = document.querySelector('[data-pt-kind="sign"]');
+        const r = r0 && (r0.querySelector('.pt-al-main > b') || r0);
         return { ready: !!ready, live: !!(ready && !ready.disabled), hover: ready ? ready.getAttribute('title') : null,
           row: r ? r.innerText.trim() : null };
       });

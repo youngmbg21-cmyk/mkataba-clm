@@ -86,8 +86,11 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
     return { lit: lit ? lit.id : null, onTop: !!(mid && pane.contains(mid)),
       toolsShown: tools.length ? tools.some(seen) : null,
       inert: !!(document.getElementById('pt-nego') || {}).inert,
-      steps: document.querySelectorAll('#pt-where-pane .ds-j li').length,
-      now: (document.querySelector('#pt-where-pane .ds-j li.is-now b') || {}).textContent || '' };
+      /* RE-POINTED 22 Nov 2026 (the P-44 review, the owner's picked drawing "the other side's page, the Legora + Stripe way":
+           Where we are is drawn as its serif title, the amber "For you" band whose button is the bell's own row, the four stops
+           with their days, Still open · Settled over one table — portalOutWhereHtml, read off the same dealStands) */
+      steps: document.querySelectorAll('#pt-where-pane :is(.ds-j, .pol-stops) li').length,
+      now: (document.querySelector('#pt-where-pane :is(.ds-j, .pol-stops) li.is-now b') || {}).textContent || '' };
   });
   check('1b the Where we are tab is lit', l.lit === 'pt-tab-where', l.lit);
   check('1c the pane is what is painted, over the contract', l.onTop);
@@ -97,12 +100,13 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
 
   /* ---- 2 · their own line is the bell's first row of work (the shared
      sheet, Young 4 Oct 2026: "Waiting on you" became one line in its head) ---- */
-  const w = await page.evaluate(() => { const m = document.querySelector('#pt-where-pane .ds-sheet .ds-mine'); const d = m && m.querySelector('[data-pt-where-row]');
+  /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn): their own line is the amber band (.pol-w-band) */
+  const w = await page.evaluate(() => { const m = document.querySelector('#pt-where-pane :is(.ds-sheet .ds-mine, .pol-where .pol-w-band)'); const d = m && m.querySelector('[data-pt-where-row]');
     const row = d && document.querySelector(`#pt-alerts-body [data-pt-alert="${d.getAttribute('data-pt-where-row')}"]`);
     return { line: m ? m.textContent.replace(/\s+/g, ' ').trim() : null, kind: row && row.getAttribute('data-pt-kind') }; });
   check('2a their own line names what the bell lists first, and its door is that row',
     !!w.line && /For you:/.test(w.line) && w.kind === 'answer', JSON.stringify(w));
-  const door = await page.evaluate(() => { const b = document.querySelector('#pt-where-pane .ds-mine button[data-pt-where-row]'); if (!b) return null; b.click(); return 'answer'; });
+  const door = await page.evaluate(() => { const b = document.querySelector('#pt-where-pane :is(.ds-mine, .pol-w-band) button[data-pt-where-row]'); if (!b) return null; b.click(); return 'answer'; });
   check('2b a row is a door', !!door, door);
   if (door){
     const went = await until(page, () => document.getElementById('pw-page').dataset.ptTab === 'redlines');
@@ -128,7 +132,8 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
       more: !!document.getElementById('pt-more'),
       inMore: [...document.querySelectorAll('#pt-more-menu [id^="pt-"]')].map(b => b.id),
       copies: [...document.querySelectorAll('#pt-where-pane [data-pt-copy]')].map(b => b.dataset.ptCopy),
-      shared: !!document.querySelector('#pt-where-pane .ds-sheet') && !document.querySelector('#pt-where-pane .pw-shrule, #pt-where-pane .pw-card') };
+      /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn): the one sheet is the drawn page (.pol-where) */
+      shared: !!document.querySelector('#pt-where-pane :is(.ds-sheet, .pol-where)') && !document.querySelector('#pt-where-pane .pw-shrule, #pt-where-pane .pw-card') };
   });
   check('4a Notes is a button beside the bell, not a row in More', nf.notes);
   check('4b Focus is a button on the control row, not a row in More', nf.focus);
@@ -164,9 +169,12 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
     const pane = document.getElementById('pt-where-pane');
     const ink = el => { if (!el) return null; const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n;
       while ((n = w.nextNode())) if (n.textContent.trim()) { const r = document.createRange(); r.selectNodeContents(n); return r.getBoundingClientRect().left; } return null; };
-    const card = pane.querySelector('.ds-sheet');
-    return { head: ink(pane.querySelector('.ds-sheet .ds-h1')), step: ink(pane.querySelector('.ds-j li b')),
-      cardHead: ink(pane.querySelector('.ds-facts > div')), cardEdge: card ? card.getBoundingClientRect().left : null,
+    /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn): the title, the four stops and the table's head start on one line */
+    const card = pane.querySelector('.ds-sheet') || pane.querySelector('.pol-where');
+    return { head: ink(pane.querySelector('.ds-sheet .ds-h1, .pol-where .pol-w-h')), step: ink(pane.querySelector('.ds-j li b, .pol-stops li b')),
+      cardHead: pane.querySelector('.pol-w-chips') ? pane.querySelector('.pol-w-chips').getBoundingClientRect().left : ink(pane.querySelector('.ds-facts > div')),
+      /* the drawn page is its own flat sheet: its words start inside its padding */
+      cardEdge: card ? card.getBoundingClientRect().left + (card.classList.contains('pol-where') ? parseFloat(getComputedStyle(card).paddingLeft) || 0 : 0) : null,
       paneEdge: pane.getBoundingClientRect().left,
       flat: card ? (cs => parseFloat(cs.borderLeftWidth) === 0 && cs.boxShadow === 'none' && /rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor))(getComputedStyle(card)) : false };
   });
@@ -208,7 +216,9 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
       rooms: p ? p.querySelectorAll('.rl-np-tabs .rl-np-tab').length : 0, lit: ((p && p.querySelector('.rl-np-tabs .rl-np-tab.on')) || { textContent: '' }).textContent.replace(/\s+/g, ' ').trim(),
       seatTag: seat ? seat.tagName : null, empty: ((p && p.querySelector('.rl-np-empty b')) || {}).textContent || '' };
   });
-  check('12a their Notes opens at our drawer\'s width (460, or 92% of a narrow window)', np && n12.w === Math.min(460, Math.floor(n12.vw * 0.92)), JSON.stringify(n12));
+  /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn: their Notes is the second tab of the one panel the bell opens,
+     Alerts · Notes, so it stands at that panel's width — 400, or 92% of a narrow window) */
+  check('12a their Notes opens at the bell panel\'s width (400, or 92% of a narrow window)', np && n12.w === Math.min(400, Math.floor(n12.vw * 0.92)), JSON.stringify(n12));
   check('12b and leaves the contract lit, as ours does — no scrim', np && !n12.scrim, JSON.stringify(n12));
   check('12c their one room is named as our tabs are, with no strip across the panel', np && !n12.strip && ((!!n12.seat && / \d+$/.test(n12.seat) /* RE-POINTED 13 Nov 2026 (the Thread): the count rides the name without brackets */ && n12.seatTag === 'SPAN')
     /* RE-POINTED 21 Nov 2026 (P-38 rebuilt as drawn): the rooms are pills named without a count */
@@ -275,7 +285,8 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
   check('9b the grey "Your table" strip is gone', !strip);
   await press(page, '#pt-tab-signing');
   const sg = await page.evaluate(() => { const p = document.getElementById('pt-sign-pane');
-    return p && !p.hidden ? { n: p.querySelectorAll('.ps-stage').length, turn: /Your turn/.test(p.textContent),
+    /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn): the four steps are numbered rows (.pol-sg > li) */
+    return p && !p.hidden ? { n: p.querySelectorAll('.ps-stage, .pol-sg > li').length, turn: /Your turn/.test(p.textContent),
       seen: (() => { const r = p.getBoundingClientRect(); const e = document.elementFromPoint(r.left + r.width / 2, r.top + 80); return !!e && p.contains(e); })() } : null; });
   check('9c the Signing tab draws four stages, painted, and never "Your turn"', !!sg && sg.n === 4 && !sg.turn && sg.seen, JSON.stringify(sg));
   await page.screenshot({ path: path.join(OUT, '05-signing-tab.png') });

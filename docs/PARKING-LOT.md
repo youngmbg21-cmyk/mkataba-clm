@@ -273,7 +273,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — Ended & archived opens empty though its tile says 1; inside a folder the tabs and panel count every contract; "Stream Distribution" vs "Warehousing & Distribution" (two names for one folder); the Wall panel's "Overview 13" in a folder of 5; a signed contract owing details wears the green tick on Needs you.
 
 ### P-32 · Requests page, the Legora + Stripe way, on all four tabs
-- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #860, the overnight batch 5)
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #860, the overnight batch 5; rebuilt to the drawing in full the same day, every tab and the side panel)
 - **What:** build the owner's pick for Requests: the Legora + Stripe way on Open, Mine, Drafted and Advice. Owner's words: "L+S and park it."
 - **Where it came from:** the page clean-up, day 9. The drawings: https://claude.ai/artifact/9bvu98ikq9zuirYDDqqfKy (choose "The Legora + Stripe way" on each tab). All four tabs were photographed from the running app that day.
 - **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):

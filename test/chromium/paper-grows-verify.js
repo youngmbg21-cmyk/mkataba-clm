@@ -109,7 +109,10 @@ const SHEET = () => {
     gutterL: Math.round(p.left - c.left), gutterR: Math.round(c.right - p.right),
     zoom: wrap ? Number(getComputedStyle(wrap).zoom) || 1 : null,
     lineH: line ? Math.round(line.getBoundingClientRect().height) : null,
-    words: line ? Math.round(line.getBoundingClientRect().width) : null };
+    words: line ? Math.round(line.getBoundingClientRect().width) : null,
+    /* their page: notes stand beside the paper (has-pol-notes), and the rightmost of them ends inside the column */
+    notes: !!document.querySelector('#pt-nego.has-pol-notes:not(.pol-clean)'), zw: wrap ? wrap.clientWidth : null,
+    notesOut: Math.max(0, ...[...document.querySelectorAll('#pt-nego .pol-note')].map(n => Math.round(n.getBoundingClientRect().right - c.right))) };
 };
 
 (async () => {
@@ -165,9 +168,13 @@ const SHEET = () => {
       await page.evaluate(() => window.SHOW_COUNTERPARTY());
       await pause(500);
       const cp = await page.evaluate(SHEET);
+      /* RE-POINTED 22 Nov 2026 (the P-44 review of the owner's picked drawing of the other side's page, with the owner's
+         20 Nov ruling "nothing is pushed behind the side panel"): their paper is Home's 720 — and, as Home's does
+         (pd2SheetLay), it gives way only where the notes beside it would otherwise run under the panel: then it is its
+         paper's own room less the notes' margin (192), and no note ends past the column */
       check(`${w} · counterparty: ONE FIX REACHES BOTH MOUNTS`,
-        !!cp && cp.zoom === 1 && Math.abs(cp.paper - Math.min(720, cp.col)) <= 1,
-        cp ? `${cp.paper} of ${cp.col}, zoom ${cp.zoom}` : 'no sheet');
+        !!cp && cp.zoom === 1 && Math.abs(cp.paper - Math.min(720, cp.notes ? cp.zw - 192 : cp.col)) <= 1 && cp.notesOut <= 0,
+        cp ? `${cp.paper} of ${cp.col}, zoom ${cp.zoom}, notes ${cp.notes} (past the column by ${cp.notesOut})` : 'no sheet');
     }
     await page.setViewportSize({ width: 1920, height: 940 });
     await pause(300);
