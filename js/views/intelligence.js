@@ -12352,6 +12352,13 @@ function igPaperRefresh(){
   /* a patch after which the blanks' marks are owed on the clean paper's new blocks (the whole drawing paints them) */
   if(patched&&patched.n&&c&&!igRedOn(c)&&!igSignOn(c)){ const cv=document.getElementById('ig-canvas'); try{ if(cv&&window.uploadBlanksPaint) uploadBlanksPaint(c,cv); }catch(_){ } }
   const sc2=document.getElementById('ig-paper-scroll'); if(sc2) sc2.scrollTop=top;
+  /* THE PLACE IS KEPT ONCE THE PAGES ARE CUT AGAIN (22 Nov 2026, GitHub's run of decision-redraws-one-clause: 240 came back
+     as 113): while a slow machine re-cuts the pages the paper is briefly shorter, and the browser clamps the place to what
+     fits. Put back again over the next few frames, bounded, only while nobody has scrolled since the clamp */
+  if(sc2&&Math.abs(sc2.scrollTop-top)>1){ let tries=0, was=sc2.scrollTop;
+    const again=()=>{ if(!sc2.isConnected||Math.abs(sc2.scrollTop-was)>1) return; sc2.scrollTop=top; was=sc2.scrollTop;
+      if(Math.abs(was-top)>1&&++tries<20) requestAnimationFrame(again); };
+    requestAnimationFrame(again); }
 }
 let _igPaperPatched=null;   // what the last refresh did: { n, of } blocks put back, or null where the paper was drawn whole
 const igPaperLastPatch=()=>_igPaperPatched;
