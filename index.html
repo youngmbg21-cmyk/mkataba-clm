@@ -20377,6 +20377,110 @@
   html.lg-new .mign5-nw.is-ruby{color:var(--st-ruby-fg)}
   html.lg-new .mign5-link .mig-cf-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
   html.lg-new .mign5-link select{max-width:100%;font:inherit;font-size:var(--t-label)}
+  /* THE CHECK, A CALM TABLE (owner's pick 22 Nov 2026, the Legora + Stripe way; REPLACES "the check, made like the Send
+     screen", 20 Nov): Check · Decide · Filed as calm chips with their counts (the one in use filled ink, the others
+     dashed); What it will be filed as ONE quiet table beside the paper on its own sheet; the panel without cards. */
+  html.lg-new .mig-page .mig-ck-tabs{align-items:center;align-self:center;gap:6px;margin-left:10px}
+  html.lg-new .mig-page .mig-ck-tab{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border:1px dashed var(--color-neutral-300);border-radius:999px;background:none;font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-neutral-700)}
+  html.lg-new .mig-page .mig-ck-tab:hover{color:var(--color-text);border-color:var(--color-neutral-400)}
+  html.lg-new .mig-page .mig-ck-tab.is-on{border:1px solid var(--color-text);background:var(--color-text);color:var(--color-surface);font-weight:var(--w-label)}
+  html.lg-new .mig-page .mig-ck-tab .mig-ck-tn{color:var(--color-quiet);font-weight:var(--w-body)}
+  html.lg-new .mig-page .mig-ck-tab.is-on .mig-ck-tn{color:var(--color-neutral-300)}
+  html.lg-new .mig-page .mig-ck-tab.is-zero{color:var(--color-neutral-500)}
+  html.lg-new .mig-page .mig-ck-back{margin-right:4px}
+  html.lg-new .mig-page.is-checking > #mig-band{margin-inline:40px;padding-inline:0}
+  html.lg-new .mig-page.is-checking .mig-ck-bar{gap:14px}
+  html.lg-new .mig-page.is-checking .mig-ck-bar .mig-ck-new{margin-right:0}
+  html.lg-new .mig-page.is-checking .mig-ck-bar .ui-btn-icon{width:26px;height:26px;min-width:26px;padding:0;border-radius:50%;border:0;background:var(--surface-2)}
+  /* the table on the left, the paper on the right; each ends inside the window and scrolls within itself */
+  html.lg-new .mig-page .mig-ck{display:grid;grid-template-columns:minmax(0,500px) minmax(320px,1fr);gap:28px;align-items:start;padding:8px 40px 16px}
+  html.lg-new .mig-ck .mig-ck-facts{display:flex;flex-direction:column;min-width:0;max-height:calc(100vh - 216px)}
+  html.lg-new .mig-ck .mig-ck-body{flex:1 1 auto;min-height:0;overflow:auto}
+  html.lg-new .mig-ck-h{display:flex;align-items:center;gap:10px;margin:0 0 6px;min-width:0}
+  html.lg-new .mig-ck-h h3{margin:0;font-family:var(--font-body);font-size:16px;line-height:1.3;font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap}
+  html.lg-new :is(.mig-ck, .mig-ckn) .apn-st{height:22px;gap:6px;padding:0 8px;border-radius:6px;font-size:var(--t-label);font-weight:var(--w-label)}
+  html.lg-new :is(.mig-ck, .mig-ckn) .apn-st i{width:7px;height:7px;opacity:1}
+  html.lg-new :is(.mig-ck, .mig-ckn) .apn-st.is-amber i{background:var(--st-amber-dot)}
+  html.lg-new :is(.mig-ck, .mig-ckn) .apn-st.is-green i{background:var(--st-green-dot)}
+  html.lg-new :is(.mig-ck, .mig-ckn) .apn-st.is-violet i{background:var(--st-violet-dot)}
+  html.lg-new :is(.mig-ck, .mig-ckn) .apn-st.is-gray i{background:var(--st-gray-dot)}
+  html.lg-new :is(.mig-ck, .mig-ckn) .apn-st.is-steel i{background:var(--st-steel-dot)}
+  html.lg-new :is(.mig-ck, .mig-ckn) .apn-st.is-ruby i{background:var(--st-ruby-dot)}
+  html.lg-new .mig-ckt{width:100%;border-collapse:collapse;table-layout:fixed}
+  html.lg-new .mig-ckt thead th{padding:8px 0;border-bottom:1px solid var(--color-divider);font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-quiet);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .mig-ckt thead th:first-child{width:84px}
+  html.lg-new .mig-ckt thead th.mig-ckt-st{width:96px;text-align:right}
+  html.lg-new .mig-ckt tbody :is(th, td){padding:11px 0;border-bottom:1px solid var(--color-divider);vertical-align:top}
+  html.lg-new .mig-ckt .mig-ckr-k{padding-top:13px;font-size:15px;font-weight:var(--w-body);line-height:1.3;color:var(--color-neutral-700);text-align:left;overflow-wrap:anywhere}
+  html.lg-new .mig-ckt .mig-ckr-v{min-width:0;padding-right:12px}
+  html.lg-new .mig-ckt .mig-ckr-b{padding-top:12px;text-align:right;white-space:nowrap}
+  html.lg-new .mig-ckt .mig-ckr-b .apn-st{max-width:100%}
+  html.lg-new .mig-ckr-show{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;min-width:0;min-height:22px}
+  html.lg-new .mig-ckr-show:empty{display:none}
+  html.lg-new .mig-ckr-val{min-width:0;font-size:15px;line-height:22px;font-weight:var(--w-label);color:var(--color-text);overflow-wrap:anywhere}
+  html.lg-new .mig-ckr-val.is-btn{appearance:none;border:0;background:none;padding:0;font-family:inherit;text-align:left;cursor:text}
+  html.lg-new .mig-ckr-val.is-btn:hover{text-decoration:underline;text-decoration-color:var(--color-neutral-300);text-underline-offset:3px}
+  html.lg-new .mig-ckr-val.is-none{font-weight:var(--w-body);color:var(--color-neutral-400)}
+  html.lg-new .mig-ckr-val.is-owed{font-weight:var(--w-body);color:var(--st-amber-fg)}
+  html.lg-new .mig-ckr-acts{display:inline-flex;align-items:baseline;gap:8px}
+  html.lg-new .mig-ckl{appearance:none;border:0;background:none;padding:0;font:inherit;font-size:13px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
+  html.lg-new .mig-ckl:hover{color:var(--color-text)}
+  html.lg-new .mig-ckr-ans{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+  html.lg-new .mig-ckc{height:28px;max-width:100%;padding:0 11px;border:1px solid var(--color-neutral-300);border-radius:999px;background:var(--color-surface);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+  html.lg-new .mig-ckc:hover{border-color:var(--color-neutral-400)}
+  html.lg-new .mig-ckc.is-likely{border-color:var(--accent-ink);color:var(--accent-ink)}
+  html.lg-new .mig-ckc.is-dash{border-style:dashed;font-weight:var(--w-body);color:var(--color-quiet)}
+  html.lg-new .mig-ckr.is-editing .mig-ckr-show{display:none}
+  html.lg-new .mig-ckr-edit .mig-ff-in{width:100%;min-width:0;height:28px;padding:0;font-size:15px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new .mig-ckt{--fld-under:var(--fld-under-none)}
+  html.lg-new .mig-ckt .mig-ckr-sel{width:auto;max-width:100%;height:24px;min-height:0;padding:0 22px 0 0;border:0;background-color:transparent;font-size:15px;font-weight:var(--w-label);color:var(--color-text)}
+  /* under the value: its number like the paper's mark, the § (or Heading / Opening), the paper's own words on one line */
+  html.lg-new .mig-ckr-q{display:flex;align-items:baseline;gap:6px;margin-top:4px;min-width:0;font-size:var(--t-label);line-height:1.4;color:var(--color-neutral-700)}
+  html.lg-new .mig-ckr-q b{flex:none;font-weight:var(--w-label);color:var(--color-neutral-400)}
+  html.lg-new .mig-ckr-n{flex:none;display:inline-grid;place-items:center;align-self:center;width:16px;height:16px;border-radius:50%;background:var(--surface-2);font-size:10px;font-weight:var(--w-strong);color:var(--color-neutral-700)}
+  html.lg-new .mig-ckr-qt{min-width:0;font-family:var(--font-doc);font-size:var(--t-meta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .mig-ckr-qt.is-owed{color:var(--st-amber-fg)}
+  html.lg-new .mig-ckr .mig-ff-sub{margin-top:4px;font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new .mig-ck-foot{padding:12px 0 0}
+  html.lg-new .mig-ck-foot .mig-link{font-size:var(--t-meta);text-decoration:underline;text-underline-offset:3px}
+  /* the paper: one sheet, its name and how it was read on one line, the marks numbered like the rows */
+  html.lg-new .mig-ck .mig-ck-doc{display:flex;flex-direction:column;min-width:0;height:calc(100vh - 216px);border:1px solid var(--color-divider);border-radius:10px;background:var(--color-surface);overflow:hidden}
+  html.lg-new .mig-ck-meta{flex:none;display:flex;align-items:center;gap:12px;min-width:0;padding:12px 18px;border-bottom:1px solid var(--color-divider);font-size:var(--t-meta);color:var(--color-neutral-700)}
+  html.lg-new .mig-ck-meta .mig-ck-fn{flex:1 1 auto;min-width:0;font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .mig-ck-meta > span{flex:0 1 auto;min-width:0;max-width:52%;line-height:1.35;text-align:left}
+  html.lg-new .mig-ck-page{flex:1 1 auto;min-height:0;overflow:auto}
+  html.lg-new .mig-ck-title{padding:20px 34px 0;font-family:var(--font-doc);font-weight:var(--w-strong);text-align:center;letter-spacing:.02em}
+  html.lg-new .mig-ck-text{padding:8px 34px 24px;font-family:var(--font-doc);font-size:15px;line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--color-text)}
+  html.lg-new .mig-ck-m{border-radius:3px;padding:0 2px;color:inherit;background:var(--st-green-bg)}
+  html.lg-new .mig-ck-m.is-amber{background:var(--st-amber-bg)}
+  html.lg-new .mig-ck-m.is-violet{background:var(--st-violet-bg)}
+  html.lg-new .mig-ck-m.is-gray{background:var(--st-gray-bg)}
+  html.lg-new .mig-ck-sup{font-family:var(--font-body);font-size:10px;font-weight:var(--w-strong);color:var(--color-neutral-700);margin-left:2px}
+  /* the panel: a ring and one headline, Before you file, This file as a timeline, Up next as a calm list */
+  html.lg-new .mig-ckn{display:flex;flex-direction:column;gap:0;min-width:0}
+  html.lg-new .mig-ckn-top{display:flex;align-items:center;gap:14px;min-width:0;margin:2px 0 4px}
+  html.lg-new .mig-ckn-tt{flex:1;min-width:0}
+  html.lg-new .mig-ckn-h{margin:0;font-family:var(--font-title);font-size:22px;line-height:1.2;font-weight:500;letter-spacing:-.005em;color:var(--color-text);overflow-wrap:anywhere}
+  html.lg-new .mig-ckn-tt p{margin:3px 0 0;font-size:var(--t-meta);line-height:1.4;color:var(--color-neutral-700)}
+  html.lg-new .mig-ckn-sec{margin:20px 0 6px;font-family:var(--font-body);font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new .mig-ckn-need{display:flex;align-items:flex-start;gap:10px;min-width:0;padding:9px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .mig-ckn-need:last-child{border-bottom:0}
+  html.lg-new .mig-ckn-need .apn-st{flex:none;max-width:40%}
+  html.lg-new .mig-ckn-need p{flex:1;min-width:0;margin:0;font-size:13px;line-height:1.4;color:var(--color-neutral-700);overflow-wrap:anywhere}
+  html.lg-new .mig-ckn-tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+  html.lg-new .mig-ckn-tl li{display:flex;align-items:baseline;gap:10px;padding:4px 0;font-size:var(--t-meta);color:var(--color-text)}
+  html.lg-new .mig-ckn-tl li i{flex:none;align-self:center;width:9px;height:9px;border-radius:50%;background:var(--color-surface);box-shadow:0 0 0 2px var(--color-surface),0 0 0 3px var(--color-neutral-300)}
+  html.lg-new .mig-ckn-tl li.is-done i{background:var(--st-green-dot)}
+  html.lg-new .mig-ckn-tl li.is-now i{background:var(--st-amber-dot)}
+  html.lg-new .mig-ckn-tl li.is-next{color:var(--color-quiet)}
+  html.lg-new .mig-ckn-tl small{margin-left:4px;font-size:var(--t-label);color:var(--color-neutral-400)}
+  html.lg-new .mig-ckn-up{display:flex;flex-direction:column}
+  html.lg-new .mig-ckn-nx{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-width:0;padding:6px 0;border:0;border-bottom:1px solid var(--color-divider);background:none;font:inherit;text-align:left;cursor:pointer}
+  html.lg-new .mig-ckn-nx:last-child{border-bottom:0}
+  html.lg-new .mig-ckn-nx:hover .mig-ckn-nf{text-decoration:underline}
+  html.lg-new .mig-ckn-nf{flex:1;min-width:0;font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .mig-ckn-nx .apn-st{flex:none;max-width:55%}
+  html.lg-new .mig-ckn-more{margin:6px 0 0;font-size:var(--t-label);color:var(--color-neutral-400)}
   /* BEFORE ANY FILE, AS DRAWN: the ask box, a calm dashed drop area (a square-cornered upload mark, the limits, a grey
      Choose files), the choices as set chips */
   html.lg-new .mig-page>.mign-start{display:flex;flex-direction:column;gap:16px;padding:22px 40px 0}

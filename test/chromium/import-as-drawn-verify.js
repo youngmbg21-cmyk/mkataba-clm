@@ -272,23 +272,27 @@ const FILES = {
 
       console.log('\n6 · Open the file: one at a time');
       if (await press('#ins-panel .jov5-go', '6 Check it (Open the file)')) {
+        /* RE-POINTED 22 Nov 2026 (THE CHECK, A CALM TABLE, owner's pick): the rows carry the numbers (.mig-ckr-n), the
+           title is the Title row's place (1, "Heading"), and the end Jambo could not read is answered in its own row (the
+           "Renews by itself" chip), never in the panel */
         const V = await until(() => { const d = document.getElementById('mig-ck-doc'), f = document.getElementById('mig-ck-facts'); if (!d || !f || !d.querySelector('.mig-ck-text')) return null;
-          return { title: (d.querySelector('.mig-ck-title') || {}).textContent, marks: [...d.querySelectorAll('.mig-ck-m')].map(m => [m.getAttribute('data-mig-n'), m.textContent.replace(/\s+/g, ' ')]),
-            nums: [...f.querySelectorAll('.mig-ff-n')].map(n => n.textContent), bar: (document.querySelector('.mig-ck-bar') || {}).innerText || '',
-            why: (document.querySelector('#mig-side .mig-ck-why') || {}).innerText || '', use: !!document.querySelector('#mig-side [data-mig-use="renews"]') }; }, null, 8000);
+          return { title: ((d.querySelector('.mig-ck-title .mig-ck-m') || {}).textContent || ''), marks: [...d.querySelectorAll('.mig-ck-m')].map(m => [m.getAttribute('data-mig-n'), m.textContent.replace(/\s+/g, ' ')]),
+            nums: [...f.querySelectorAll('.mig-ckr-n')].map(n => n.textContent), bar: ((document.querySelector('.mig-ck-bar') || {}).innerText || '').replace(/\s+/g, ' '),
+            why: (document.querySelector('#mig-side .mig-ck-why') || {}).innerText || '', use: !!document.querySelector('#mig-ck-facts tr[data-mig-ff="expiryDate"] [data-mig-renews]') }; }, null, 8000);
         check('6a the file\'s own words, its title, numbered where each fact was found', !!V && V.title === 'WAREHOUSE LEASE'
-          && JSON.stringify(V.marks.map(m => m[1])) === JSON.stringify(['Bandari Warehousing Ltd', '1 April 2019', 'It renews by itself for a further year at a time unless it is ended three months before the term runs out.', 'KES 480,000'])
-          && V.nums.join() === '1,2,3,4', JSON.stringify(V && { marks: V.marks, nums: V.nums }));
+          && JSON.stringify(V.marks.map(m => m[1])) === JSON.stringify(['WAREHOUSE LEASE', 'Bandari Warehousing Ltd', '1 April 2019', 'It renews by itself for a further year at a time unless it is ended three months before the term runs out.', 'KES 480,000'])
+          && V.nums.join() === '1,2,3,4,5', JSON.stringify(V && { marks: V.marks, nums: V.nums }));
         /* re-pointed (fix pass, 19 Oct 2026): option 1's tabs as drawn — Check 3 · Decide N · Filed N — and Jambo's drawn sentence with the yearly reminder */
         check('6b the bar: ‹ All files · Check 3 · Decide 1 · Filed 7 · File n of 3', !!V && /All files/.test(V.bar) && /Check 3/.test(V.bar) && /Decide 1/.test(V.bar) && /Filed 7/.test(V.bar) && /File \d of 3/.test(V.bar), V && V.bar.replace(/\s+/g, ' '));
         /* RE-POINTED 20 Nov 2026 (the check made like the Send screen, owner: "build it as drawn"): the reason stands in the Ends card of Jambo's panel, the card naming the fact */
-        check('6c Jambo says why he was not sure, in the file\'s own words, and offers renews by itself', !!V && /Ends\s+§ 3 has no end date\. It reads: “It renews by itself/.test(V.why)
-          && /3 months' notice\. If you choose that, HaTi will remind you each year before the notice day\./.test(V.why) && V.use, V && V.why.slice(0, 260));
+        /* RE-POINTED 22 Nov 2026 (THE CHECK, A CALM TABLE): the panel's Before you file says why, the row offers the answer */
+        check('6c Jambo says why he was not sure, in the file\'s own words, and the row offers renews by itself', !!V && /Ends\s+No end date; § 3 says it renews by itself\./.test(V.why)
+          && /With 3 months' notice, HaTi will remind you each year before the notice day\./.test(V.why) && V.use, V && V.why.slice(0, 260));
         await shot(page, 'import-drawn-check-1440x780');
         /* RE-POINTED 20 Nov 2026 (the check made like the Send screen): File it stands in the page's head, its reason on the button */
         const waitedGrey = await page.evaluate(() => { const b = document.querySelector('#page-head-acts [data-mig-file]');
           return b ? { dis: b.disabled, why: (b.title || '') } : null; });
-        if (await press('#mig-side [data-mig-use="renews"]', '6d Use: renews by itself')) {
+        if (await press('#mig-ck-facts tr[data-mig-ff="expiryDate"] [data-mig-renews]', '6d the row\'s Renews by itself')) {
           const F = await until(() => { const f = document.getElementById('mig-ck-facts'); const b = document.querySelector('#page-head-acts [data-mig-file]'); const e = f && f.querySelector('[data-mig-f="expiryDate"]');
             return b && e && e.value === 'Renews by itself' && !b.disabled ? true : null; }, null, 4000);
           check('6d a press fills the box; File it is ready — a second press', !!F);
@@ -321,10 +325,13 @@ const FILES = {
            no amber words (.need-empty) */
         const N = await until(() => { const f = document.getElementById('mig-ck-facts'), d = document.getElementById('mig-ck-doc'), a = document.getElementById('page-head-acts');
           if (!f || !d || !a || !a.querySelector('[data-mig-unsigned]')) return null;
+          /* RE-POINTED 22 Nov 2026 (THE CHECK, A CALM TABLE): the owed Import as is a row like the others — its amber words and
+             its "To fill" badge */
           const st = f.querySelector('[data-mig-ff="status"] .mig-ff-ro'), bs = [...a.querySelectorAll('[data-mig-unsigned]')];
+          const bd = f.querySelector('[data-mig-ff="status"] .mig-ckr-b .apn-st');
           return { acts: bs.map(b => b.textContent.trim()), black: bs.filter(b => b.classList.contains('ui-btn-primary')).map(b => b.textContent.trim()),
             inFacts: !!f.querySelector('[data-mig-unsigned]'), text: !!d.querySelector('.mig-ck-text'),
-            as: st ? (st.getAttribute('title') || '') : '', empty: !!st && st.classList.contains('need-empty') && st.textContent.trim() === '' }; }, null, 5000);
+            as: st ? (st.getAttribute('title') || '') : '', empty: !!st && st.classList.contains('is-owed') && !!bd && bd.textContent.trim() === 'To fill' }; }, null, 5000);
         check('12b in the walk it is a page: its own words, what it would be filed as, and three answers in the head',
           !!onIt && !!N && N.text && N.acts.join() === 'Leave it out,Import as signed,Import as a draft' && N.black.join() === 'Import as a draft' && !N.inFacts
           && /not signed: import as a draft\?/.test(N.as) && N.empty, JSON.stringify(N));
@@ -338,9 +345,10 @@ const FILES = {
           const D = await until(() => { const c = migContracts().find(x => /NDA_Acme/.test((x.upload || {}).fileName || '')); return c && migCheckId() === c.id ? true : null; }, null, 10000)
             .then(() => page.evaluate(draftNow));
           check('12c Import as a draft makes a draft — nothing sealed, not signed outside HaTi — and the walk stays on it', !!D && D.status === 'Draft' && !D.hash && !D.out && D.on === D.id, JSON.stringify(D));
-          const U = await until(() => { const b = document.querySelector('#mig-side [data-mig-use="party"]'); return b ? b.textContent : null; }, null, 5000);
-          check('12d no party marked: Jambo offers the one the file is made with — "Use: Acme Ltd"', U === 'Use: Acme Ltd', String(U));
-          if (U){ await page.click('#mig-side [data-mig-use="party"]');
+          /* RE-POINTED 22 Nov 2026 (THE CHECK, A CALM TABLE): the party the paper names is a chip in the Party row */
+          const U = await until(() => { const b = document.querySelector('#mig-ck-facts [data-mig-ck-pick="counterparty"]'); return b ? b.textContent : null; }, null, 5000);
+          check('12d no party marked: the row offers the one the file is made with — "Acme Ltd"', U === 'Acme Ltd', String(U));
+          if (U){ await page.click('#mig-ck-facts [data-mig-ck-pick="counterparty"]');
             const P = await until(() => { const e = document.querySelector('#mig-ck-facts [data-mig-f="counterparty"]'); return e && e.value === 'Acme Ltd' ? true : null; }, null, 3000);
             check('12e a press fills the box; nothing is filed until File it', !!P && await page.evaluate(() => { const c = getContract(migCheckId()); return !!(c && c.migration && c.migration.needsReview); })); }
         }
