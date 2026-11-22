@@ -57,7 +57,9 @@ test('f1048 (5) Requests: SAP mark, stream chip, coloured word, the chosen row\'
      ON THE ROWS; the state is a soft badge */
   const R = body(read('js/views/intake.js'), 'iknRowHtml');
   assert.doesNotMatch(R, /listSapCellHtml|listChipHtml|ikn-go|<button/);
-  assert.match(R, /<span class="apn-st is-\$\{bd\.tone\}">/);
+  /* RE-POINTED 21 Nov 2026 (P-32, as drawn): the soft badge is one builder (iknBadgeHtml), the row calls it */
+  assert.match(R, /iknBadgeHtml\(r\)/);
+  assert.match(body(read('js/views/intake.js'), 'iknBadgeHtml'), /<span class="apn-st ikn-st is-\$\{bd\.tone\}">/);
 });
 test('f1048 (6) the Builder: full bar, 720 paper, no outline in hand, options wrap, the clause named', () => {
   assert.match(CSS, /html\.lg-new #tb-page \.tb-strip\{box-shadow:none;border-radius:0;/);

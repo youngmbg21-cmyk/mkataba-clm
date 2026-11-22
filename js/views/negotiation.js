@@ -8880,6 +8880,8 @@ function negoLiveList(){
    "with them for signature", never yours). */
 function negoNeedsYouTotal(){
   return negoLiveList().filter(c => {
+    /* the tab's own reading where the page is loaded (a deal opened with nothing filed is ours to write; P-29 review) */
+    if (typeof window.ngnBandOf === 'function') return window.ngnBandOf(c) === 'you';
     if (typeof window.negWhoseMove === 'function'){ const m = window.negWhoseMove(c); return m.k === 'you' && m.why !== 'handover'; }
     return negoNeedsYouIds(c).length > 0;
   }).length;

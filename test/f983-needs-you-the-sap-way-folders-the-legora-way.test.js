@@ -41,7 +41,8 @@ test('2 · the folders: one builder, the most work first, the folder\'s own door
 test('3 · the folders\' panel: where the money is, each folder its own door', () => {
   const p = fnBody(REG, 'regFoldersGlanceHtml');
   assert.match(p, /class="rfg-lg" data-ctf-folder="\$\{esc\(x\.fid\)\}"/, 'each row its folder\'s door');
-  assert.match(fnBody(REG, 'regFoldersPanelHtml'), /if \(regNl\(\)\) return `<div class="apn-panel ctfp rfg">\$\{regFoldersGlanceHtml\(rows, head, gaps, live\)\}<\/div>`;/);
+  /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the new look's landing panel carries no money (regFoldersLsPanelHtml) */
+  assert.match(fnBody(REG, 'regFoldersPanelHtml'), /return regFoldersLsPanelHtml\(rows, said\);/);
   assert.match(I18N, /ctfp_money: 'Where the money is'/); assert.match(I18N, /ctfp_money: 'Där pengarna finns'/);
   assert.doesNotMatch(REG, /function regFolderRanksHtml/);
 });
