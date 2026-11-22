@@ -146,15 +146,18 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
       /* 5 · History */
       await face(page, ID);
       await page.click('#ig-dock [data-ca-chip="history"]').catch(() => {});
-      await until(page, () => !!document.querySelector('.hist-quick'), null, 10000);
-      /* RE-POINTED (P-44, owner's pick 20 Nov 2026: History the Legora + Stripe way): the quick links are chips with their
-         counts, All first; the Side column went, so whose row it is is read off the row's own lane (data-hist-lane) */
-      const h5a = await page.evaluate(() => ({ links: [...document.querySelectorAll('.hist-quick [data-ht-quick]')].map(b => b.getAttribute('data-ht-quick') || 'all'),
-        words: [...document.querySelectorAll('.hist-quick [data-ht-quick]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()), rows: document.querySelectorAll('.hist-trail .hist-ev').length, selects: document.querySelectorAll('.hist-tools select').length }));
-      await page.click('.hist-quick [data-ht-quick="theirs"]').catch(() => {});
-      await until(page, () => !!document.querySelector('.hist-quick [data-ht-quick="theirs"][aria-pressed="true"]'), null, 5000);
+      await until(page, () => !!document.querySelector('.hist6-kinds'), null, 10000);
+      /* RE-POINTED 22 Nov 2026 (the P-44 review, the owner's picked drawing "History, the Legora + Stripe way"): the chips in the
+         open are All · Changes · Notes with their counts and "+ Side" (histKindChipsHtml); no quick links, no Clear link */
+      /* the narrowing is a kind chip's press (Changes): on this trail only their side wrote, so "+ Side" is not offered
+         (a side alone is not a choice); the changes are both theirs (the row's own lane, data-hist-lane) */
+      const h5a = await page.evaluate(() => ({ links: [...document.querySelectorAll('.hist6-kinds [data-ht-kind]')].map(b => b.getAttribute('data-ht-kind') || 'all'),
+        words: [...document.querySelectorAll('.hist6-kinds [data-ht-kind]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
+        rows: document.querySelectorAll('.hist-trail .hist-ev').length, selects: document.querySelectorAll('.hist-tools select').length }));
+      await page.click('.hist6-kinds [data-ht-kind="change"]').catch(() => {});
+      await until(page, () => !!document.querySelector('.hist6-kinds [data-ht-kind="change"][aria-pressed="true"]'), null, 5000);
       const h5b = await page.evaluate(() => ({ rows: document.querySelectorAll('.hist-trail .hist-ev').length, sides: [...document.querySelectorAll('.hist-trail .hist-ev[data-hist-lane]')].map(s => s.getAttribute('data-hist-lane')) }));
-      check(`${nm} 5 History: chips with their counts (All, then the quick links that give rows), one press narrows`, h5a.links.join(' · ') === 'all · theirs' && /^All \d+$/.test(h5a.words[0] || '') && /^Theirs \d+$/.test(h5a.words[1] || '') && h5a.selects === 0
+      check(`${nm} 5 History: chips with their counts (All first, then the kinds that give rows), one press narrows`, h5a.links.join(' · ') === 'all · change' && /^All \d+$/.test(h5a.words[0] || '') && /^Changes \d+$/.test(h5a.words[1] || '') && h5a.selects === 0
         && h5b.rows === 2 && h5a.rows > h5b.rows && h5b.sides.length === 2 && h5b.sides.every(s => s === 'theirs'), { h5a, h5b });
       await page.screenshot({ path: path.join(OUT, `history-${nm}.png`) });
       /* 6 · Where we are, as drawn: in the middle beside the paper, the six stages, each side's position, the overlap panel */

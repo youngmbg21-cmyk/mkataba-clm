@@ -706,6 +706,8 @@
        the two it deliberately skips. Each rung here carries the ROLE it serves,
        because a size with no role is a size the next author re-picks. */
     --t-display:26px;   /* hero only */
+    --t-figure-tile:24px; /* a figure tile's number (Obligations' tiles, P-13) */
+    --t-lead:17px;      /* a side panel's title (the drawings' 17) */
     --t-page:20px;      /* the h1 of a view */
     --t-section:16px;   /* drawer head, dialog title */
     --t-card:14px;      /* card title, contract room title */
@@ -20559,6 +20561,43 @@
   html.lg-new .hist6-reply{align-self:stretch;padding:6px 10px;border:1px solid var(--color-neutral-300);border-radius:10px;background:none;font:inherit;font-size:12.5px;color:var(--color-neutral-400);text-align:left;cursor:text}
   html.lg-new .hist6-none{margin:0;font-size:12.5px;color:var(--color-neutral-400)}
   html.lg-new .hist6-a{border:0;background:none;padding:0;font:inherit;font-weight:var(--w-label);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  /* P-44 REVIEW (22 Nov 2026), AS DRAWN: the chips — the chosen one solid, the others dashed, "+ Side" dashed with its
+     choice under it, a chosen side shaded with its x; a note's badge violet; an outcome nobody has is a dash; the
+     columns give What happened the room (nothing wraps at 1366); the panel while History is open */
+  html.lg-new .hist6-chips .hist6-chip:not(.is-on){border-style:dashed}
+  html.lg-new .hist6-chips .hist6-chip.is-set{background:var(--surface-2);border-style:solid}
+  html.lg-new .hist6-side{position:relative;display:inline-flex}
+  html.lg-new .hist6-side-pop{position:absolute;left:0;top:calc(100% + 4px);z-index:5;display:flex;flex-direction:column;min-width:150px;padding:4px;border-radius:var(--radius);background:var(--color-surface);box-shadow:var(--shadow-lg)}
+  html.lg-new .hist6-side-pop button{border:0;background:none;padding:7px 10px;border-radius:6px;font:inherit;font-size:13px;text-align:left;color:var(--color-text);cursor:pointer}
+  html.lg-new .hist6-side-pop button:hover{background:var(--surface-2)}
+  html.lg-new :is(.hist6-kb,.hist6-ob).is-violet{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  html.lg-new .hist6-none-oc{color:var(--color-neutral-400)}
+  html.lg-new .hist-trail.is-table.is-ls > .hist-th, html.lg-new .hist-trail.is-table.is-ls > .hist-tr{grid-template-columns:56px minmax(0,150px) minmax(0,1fr) 84px 112px}
+  html.lg-new .hist-trail.is-ls .hist-tr .hist-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .hist-trail.is-ls .hist-c-oc{min-width:0;overflow:hidden}
+  html.lg-new .hist6-kinds{margin-left:8px}
+  html.lg-new #pd-glance.is-hist{padding:0}
+  /* the drawing's panel has no tab row and no Board way back while History stands (Back to the paper is its way back) */
+  html.lg-new #ig-dock:has(#pd-glance.is-hist) :is(.igd-head,.ca-back){display:none}
+  html.lg-new .pd2-hf{display:flex;flex-direction:column}
+  html.lg-new .pd2-hf-eb{margin:0;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .pd2-hf-t{margin:6px 0 4px;font-family:var(--font-ui);font-size:17px;line-height:1.35;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new .pd2-hf-sub{margin:0;padding:0 0 14px;border-bottom:1px solid var(--color-divider);font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .pd2-hf-sec{padding:14px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .pd2-hf-sec:last-child{border-bottom:0}
+  html.lg-new .pd2-hf-h{margin:0 0 10px;font-size:13px;font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-new .pd2-hf-bar{display:flex;gap:2px;height:6px;border-radius:3px;overflow:hidden}
+  html.lg-new .pd2-hf-bar i{display:block;height:100%;min-width:4px}
+  html.lg-new .pd2-hf :is(.pd2-hf-bar,.pd2-hf-key) i.is-amber{background:var(--st-amber-dot)}
+  html.lg-new .pd2-hf :is(.pd2-hf-bar,.pd2-hf-key) i.is-violet{background:var(--st-violet-dot)}
+  html.lg-new .pd2-hf :is(.pd2-hf-bar,.pd2-hf-key) i.is-steel{background:var(--st-steel-dot)}
+  html.lg-new .pd2-hf :is(.pd2-hf-bar,.pd2-hf-key) i.is-green{background:var(--st-green-dot)}
+  html.lg-new .pd2-hf :is(.pd2-hf-bar,.pd2-hf-key) i.is-gray{background:var(--color-neutral-300)}
+  html.lg-new .pd2-hf-key{display:flex;flex-wrap:wrap;gap:4px 12px;margin:8px 0 0;font-size:var(--t-micro);color:var(--color-text)}
+  html.lg-new .pd2-hf-key span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+  html.lg-new .pd2-hf-key i{display:inline-block;width:6px;height:6px;border-radius:50%}
+  html.lg-new .pd2-hf-ex{margin:0;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .pd2-hf-ex .ui-link{font-size:var(--t-label);text-decoration:underline;text-underline-offset:3px}
   /* THEIR HISTORY, THE LEGORA + STRIPE WAY (P-44): the same table as ours — the kind and the outcome soft badges, the
      switches, chips, one line of words under a change, the wording and their notes under its row */
   html.lg-out .pol6 .pol-hist-hd{align-items:center}
@@ -21479,6 +21518,7 @@
   html.lg-out .pol-pop > *,html.lg-out .pol-pop .pw-foot,html.lg-out .pol-pop .pol-pop-tools,html.lg-out .pol-pop .pw-id-read{display:flex;flex-direction:column;align-items:stretch;gap:8px;margin:0}
   html.lg-out .pol-pop .pw-foot:empty{display:none}
   html.lg-out .pol-pop .ui-btn{justify-content:flex-start;width:100%}
+  html.lg-out .pol-pop > .ui-btn{flex-direction:row;align-items:center;gap:6px}
   html.lg-out .pw-notes:has(> *){padding:8px 24px}
   html.lg-out #pw-page[data-pt-tab="redlines"] .pw-mount{display:grid;grid-template-columns:minmax(0,1fr) var(--pol-side-w,384px);grid-template-rows:minmax(0,1fr) auto}
   html.lg-out .pw-mount > .pol-side,html.lg-out .pw-mount > .pol-foot{display:none}
@@ -21547,7 +21587,7 @@
   html.lg-out .pol-hist-t th{text-align:left;padding:9px 12px 9px 0;border-bottom:1px solid var(--color-divider);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
   html.lg-out .pol-hist-t td{padding:11px 12px 11px 0;border-bottom:1px solid var(--color-divider);vertical-align:top}
   html.lg-out .pol-hist-t td:first-child{width:64px;font-variant-numeric:tabular-nums}
-  html.lg-out .pol-h-day td{background:var(--color-bg);font-weight:var(--w-strong);font-size:13px;padding-left:12px}
+  html.lg-out .pol-h-day td{background:transparent;font-weight:var(--w-label);font-size:12.5px;padding-left:0}
   html.lg-out .pol-h-day span{margin-left:8px;font-weight:var(--w-label);color:var(--color-quiet)}
   html.lg-out .pol-oc{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
   html.lg-out .pol-oc::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
@@ -21588,7 +21628,7 @@
   html.lg-out .pol-nt-n{flex:none;display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border:1px solid var(--color-text);border-radius:50%;font-size:11px}
   html.lg-out .pol-nt-t{font-weight:var(--w-label)}
   html.lg-out .pol-nt-q{margin-top:2px;font-size:11.5px;color:var(--color-quiet)}
-  html.lg-out .pol-nt-a{margin-top:4px;font-weight:var(--w-label)}
+  html.lg-out .pol-nt-a{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;margin-top:4px;font-weight:var(--w-label)}
   html.lg-out .pol-nt-a .ui-link{text-decoration:underline}
   html.lg-out .pol-nt-dec{color:var(--accent-ink)}
   html.lg-out .pol-side-in{display:flex;flex-direction:column;height:100%;min-height:0}
@@ -21612,6 +21652,170 @@
   html.lg-out .pol-ft-say{flex:1;min-width:0;font-size:13px;font-weight:var(--w-label)}
   html.lg-out .pol-send{height:var(--ctl-h-sm);padding:0 16px;border:0;border-radius:999px;background:var(--color-text);color:var(--color-surface);font:inherit;font-size:13px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
   html.lg-out .pol-send:disabled{background:var(--surface-2);color:var(--color-quiet);cursor:default}
+  /* P-44 REVIEW (22 Nov 2026), THEIR PAGE AS DRAWN — the bell on the black bar with its red count; ONE right panel under
+     the bar with Alerts · Notes as tabs, its x, no scrim (the page stays lit); the alerts' chips, bar and rows with their
+     own button */
+  html.lg-out .pol-bar .pt-bell.pt-bell{display:inline-grid;place-items:center;flex:none;width:32px;height:32px;min-width:0;padding:0;margin:0;border:0;border-radius:8px;background:transparent;box-shadow:none;color:var(--color-surface);cursor:pointer}
+  html.lg-out .pol-bar .pt-bell.pt-bell[hidden]{display:none}
+  /* the phone keeps what it had: no bell in its head (the page's own rule, portalAlertsStyle), at equal reach here */
+  @media (max-width:767px){ html.lg-out .pol-bar .pt-bell.pt-bell{display:none} }
+  html.lg-out .pol-w-pnotes{display:none;margin:0 0 14px;font-size:13px;color:var(--color-quiet)}
+  @media (max-width:767px){ html.lg-out .pol-w-pnotes{display:block} }
+  html.lg-out .pol-bar .pt-bell.pt-bell[aria-expanded="true"]{background:color-mix(in srgb,var(--color-surface) 18%,transparent)}
+  html.lg-out .pol-bar .pt-bell svg{width:16px;height:16px}
+  html.lg-out .pol-bar .pt-bell .pt-bell-dot{top:1px;right:0;min-width:15px;height:15px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:var(--st-ruby-dot);color:var(--color-surface);font-family:var(--font-ui);font-size:10px;line-height:15px}
+  html.lg-out .pt-alerts.is-out{top:48px;width:min(400px,92vw);border-left:1px solid var(--color-divider);box-shadow:var(--shadow-lg)}
+  html.lg-out .pt-alerts.is-out .pt-alerts-head{min-height:56px;box-sizing:border-box;padding:0 12px 0 16px}
+  html.lg-out .pt-ptabs{flex:1;display:inline-flex;gap:4px}
+  html.lg-out .pt-ptab{display:inline-flex;align-items:center;gap:6px;height:var(--ctl-h-sm);padding:0 12px;border:0;border-radius:999px;background:none;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer}
+  html.lg-out .pt-ptab.is-on{background:var(--surface-2)}
+  html.lg-out .pt-ptab-n{color:var(--accent-ink)}
+  html.lg-out .pt-ptab-n:empty{display:none}
+  html.lg-out .pt-alerts.is-out .pt-alerts-x:focus:not(:focus-visible){outline:0;box-shadow:none}
+  html.lg-out .pt-alerts.is-out .pt-alerts-body{padding:12px 16px}
+  html.lg-out .pt-al-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+  html.lg-out .pt-al-chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border:1px dashed var(--color-neutral-300);border-radius:999px;background:none;font:inherit;font-size:var(--t-label);color:var(--color-text);cursor:pointer}
+  html.lg-out .pt-al-chip.is-on{border-style:solid;border-color:var(--color-neutral-400)}
+  html.lg-out .pt-al-chip span{color:var(--color-quiet)}
+  html.lg-out .pt-al-chip i{width:6px;height:6px;border-radius:50%;background:var(--st-amber-dot)}
+  html.lg-out .pt-al-bar{display:flex;gap:2px;height:5px;margin:0 0 6px;border-radius:3px;overflow:hidden}
+  html.lg-out .pt-al-bar i{display:block;height:100%}
+  html.lg-out .pt-al-bar i.is-move,html.lg-out .pt-al-dot.is-move{background:var(--st-amber-dot)}
+  html.lg-out .pt-al-bar i.is-news,html.lg-out .pt-al-dot.is-news{background:var(--st-steel-dot)}
+  html.lg-out .pt-al-row{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:10px;align-items:start;padding:10px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-out .pt-al-dot{width:7px;height:7px;margin-top:6px;border-radius:50%}
+  html.lg-out .pt-al-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+  html.lg-out .pt-al-main b{font-size:13px;font-weight:var(--w-label);line-height:1.4;color:var(--color-text)}
+  html.lg-out .pt-al-main small{font-size:11.5px;line-height:1.45;color:var(--color-quiet);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-out .pt-al-side{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  html.lg-out .pt-al-when{font-size:11.5px;color:var(--color-quiet);white-space:nowrap}
+  html.lg-out .pt-al-act{height:24px;padding:0 10px;border:0;border-radius:999px;background:var(--surface-2);font:inherit;font-size:12px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;white-space:nowrap}
+  /* where we are, signing and history on their page, as drawn (P-44 review): the side panel on Where we are and Signing,
+     the page's own width beside it; the title, the amber band with its black button, the four stops, chips over one
+     table; the signing steps with their badges */
+  html.lg-out #pw-page:is([data-pt-tab="where"],[data-pt-tab="signing"]) .pw-mount > .pol-side{position:absolute;top:0;right:0;bottom:0;width:var(--pol-page-side-w,384px);z-index:7;display:flex;flex-direction:column;min-height:0;border-left:1px solid var(--color-divider);background:var(--color-surface)}
+  html.lg-out #pw-page:is([data-pt-tab="where"],[data-pt-tab="signing"]) .pw-mount > :is(#pt-where-pane,#pt-sign-pane){right:var(--pol-page-side-w,384px)}
+  /* the phone has no room beside the page: the side panel (drawn for the desktop) stands down there, the page takes the
+     whole width, as it did before the panel was drawn (P-44 review follow-up, 22 Nov 2026) */
+  @media (max-width:767px){
+    html.lg-out #pw-page:is([data-pt-tab="where"],[data-pt-tab="signing"]) .pw-mount > .pol-side{display:none}
+    html.lg-out #pw-page:is([data-pt-tab="where"],[data-pt-tab="signing"]) .pw-mount > :is(#pt-where-pane,#pt-sign-pane){right:0}
+  }
+  html.lg-out .pol-side-page .pol-side-body{padding:20px 16px}
+  html.lg-out .pol-ps-eb{margin:0;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-out .pol-ps-t{margin:6px 0 4px;font-family:var(--font-ui);font-size:17px;line-height:1.35;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-out .pol-ps-sub{margin:0;padding:0 0 14px;border-bottom:1px solid var(--color-divider);font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-out .pol-ps-sub.is-tight{border-bottom:0;padding-bottom:10px}
+  html.lg-out .pol-side-page .pol-send{align-self:flex-start;margin:0 0 14px}
+  html.lg-out .pol-ps-sec{padding:14px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-out .pol-ps-h{margin:0 0 10px;font-size:13px;font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-out .pol-ps-foot{margin-top:14px}
+  html.lg-out .pol-pp{display:flex;gap:10px;align-items:flex-start;margin:0 0 10px}
+  html.lg-out .pol-pp-ini{flex:none;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;font-size:9px;font-weight:var(--w-strong);background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-out .pol-pp-ini.is-you{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-out .pol-pp b{font-size:13px;font-weight:var(--w-label)}
+  html.lg-out .pol-pp small{font-size:11.5px;color:var(--color-quiet)}
+  html.lg-out .pol-pp > div > span{display:block;font-size:11.5px;color:var(--color-quiet)}
+  html.lg-out .pol-tl{list-style:none;margin:0;padding:0;position:relative}
+  html.lg-out .pol-tl li{position:relative;display:flex;gap:10px;align-items:baseline;padding:0 0 12px 18px;font-size:13px}
+  html.lg-out .pol-tl li::before{content:"";position:absolute;left:4px;top:10px;bottom:-2px;width:1px;background:var(--color-divider)}
+  html.lg-out .pol-tl li:last-child::before{display:none}
+  html.lg-out .pol-tl-dot{position:absolute;left:0;top:4px;width:9px;height:9px;border-radius:50%;box-sizing:border-box;background:var(--st-steel-dot)}
+  html.lg-out .pol-tl li.is-now .pol-tl-dot{background:var(--st-amber-dot)}
+  html.lg-out .pol-tl li.is-next .pol-tl-dot{background:var(--color-surface);border:1.5px solid var(--color-neutral-300)}
+  html.lg-out .pol-tl li.is-next .pol-tl-t{color:var(--color-quiet)}
+  html.lg-out .pol-tl-t{flex:1;min-width:0}
+  html.lg-out .pol-tl-at{flex:none;font-size:11.5px;color:var(--color-quiet)}
+  html.lg-out #pw-page .pw-where.pol-where{padding:24px 32px}
+  html.lg-out .pol-w-head{display:flex;align-items:center;gap:10px;margin:0 0 14px}
+  html.lg-out .pol-w-h{margin:0;font-family:var(--font-title);font-weight:400;font-size:26px;line-height:1.2;color:var(--color-text)}
+  html.lg-out .pol-tag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:6px;background:var(--surface-2);font-size:11.5px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-out .pol-w-band{display:flex;align-items:center;gap:12px;margin:0 0 18px;padding:12px 12px 12px 16px;border:1px solid var(--st-amber-line);border-radius:var(--radius);background:var(--st-amber-bg)}
+  html.lg-out .pol-w-band p{flex:1;min-width:0;margin:0;font-size:13.5px;line-height:1.45;color:var(--color-text)}
+  html.lg-out .pol-w-band b{font-weight:var(--w-strong)}
+  html.lg-out .pol-w-dot{flex:none;width:7px;height:7px;border-radius:50%;background:var(--st-amber-dot)}
+  html.lg-out .pol-w-band .pol-send{flex:none;height:var(--ctl-h)}
+  html.lg-out .pol-w-line{margin:0 0 18px;font-size:13.5px;color:var(--color-quiet)}
+  html.lg-out .pol-stops{list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));max-width:880px;margin:0 0 18px;padding:0}
+  html.lg-out .pol-stops li{position:relative;display:flex;flex-direction:column;gap:2px;padding-top:24px}
+  html.lg-out .pol-stops li::before{content:"";position:absolute;left:0;right:0;top:7px;height:2px;background:var(--color-divider)}
+  html.lg-out .pol-stops li.is-done::before{background:var(--accent-ink)}
+  html.lg-out .pol-stops li:last-child::before{right:auto;width:0}
+  html.lg-out .pol-stop-dot{position:absolute;left:0;top:0;width:16px;height:16px;box-sizing:border-box;border-radius:50%;border:1.5px solid var(--color-neutral-300);background:var(--color-surface);z-index:1}
+  html.lg-out .pol-stops li.is-done .pol-stop-dot{background:var(--accent-ink);border-color:var(--accent-ink)}
+  html.lg-out .pol-stops li.is-now .pol-stop-dot{border-color:var(--st-amber-dot)}
+  html.lg-out .pol-stops b{font-size:13px;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-out .pol-stops small{font-size:11.5px;color:var(--color-quiet)}
+  html.lg-out .pol-w-chips{display:flex;gap:6px;margin:0 0 8px}
+  html.lg-out .pol-chip:not(.is-on){border-style:dashed}
+  html.lg-out .pol-chip.is-set{background:var(--surface-2);border-style:solid}
+  html.lg-out .pol-w-t{width:100%;border-collapse:collapse;table-layout:fixed;font-size:13.5px}
+  html.lg-out .pol-w-t th{text-align:left;padding:9px 12px 9px 8px;border-bottom:1px solid var(--color-divider);font-size:12px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-out .pol-w-t th:nth-child(2){width:180px}
+  html.lg-out .pol-w-t th:nth-child(3){width:170px;text-align:right}
+  html.lg-out .pol-w-t td{padding:12px 12px 12px 8px;border-bottom:1px solid var(--color-divider);vertical-align:middle}
+  html.lg-out .pol-w-cl{display:flex;align-items:center;gap:8px;min-width:0}
+  html.lg-out .pol-w-cl b{font-size:15px;font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-out .pol-sec{flex:none;display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:5px;background:var(--surface-2);font-size:11px;color:var(--color-quiet)}
+  html.lg-out .pol-wn{display:block;margin-top:3px;font-family:var(--font-doc);font-size:13px;line-height:1.5;color:var(--color-quiet);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-out .pol-wn del{color:var(--rl2-del-ink)}
+  html.lg-out .pol-wn ins{color:var(--rl2-ins-ink);text-decoration:none}
+  html.lg-out .pol-w-from{text-align:right;font-size:12.5px;color:var(--color-quiet);white-space:nowrap}
+  html.lg-out .pol-ob:not([class*=" is-"]){background:var(--surface-2);color:var(--color-quiet)}
+  html.lg-out #pw-page .pw-sign.pol-sign{padding:24px 32px}
+  html.lg-out .pol-sg-sub{margin:6px 0 14px;font-size:12.5px;color:var(--color-quiet)}
+  html.lg-out .pol-sg{list-style:none;margin:0;padding:0}
+  html.lg-out .pol-sg > li{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-out .pol-sg-n{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--surface-2);font-size:11px;color:var(--color-quiet)}
+  html.lg-out .pol-sg > li.is-open .pol-sg-n{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-out .pol-sg > li.is-done .pol-sg-n{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-out .pol-sg-b{display:flex;flex-direction:column;gap:2px;min-width:0}
+  html.lg-out .pol-sg-b b{font-size:14px;font-weight:var(--w-label)}
+  html.lg-out .pol-sg-b small{font-size:12px;color:var(--color-quiet)}
+  html.lg-out .pol-dash{color:var(--color-neutral-400)}
+  html.lg-out .pol-kb.is-vio{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  html.lg-out .pol-who-add{position:relative;display:inline-flex}
+  html.lg-out .pol-who-pop{position:absolute;left:0;top:calc(100% + 4px);z-index:5;display:flex;flex-direction:column;min-width:150px;padding:4px;border-radius:var(--radius);background:var(--color-surface);box-shadow:var(--shadow-lg)}
+  html.lg-out .pol-who-pop button{border:0;background:none;padding:7px 10px;border-radius:6px;font:inherit;font-size:13px;text-align:left;color:var(--color-text);cursor:pointer}
+  html.lg-out .pol-who-pop button:hover{background:var(--surface-2)}
+  html.lg-out #pt-hist-pane .ht-filters{display:none}
+  /* Redlines, as drawn: the tab bar runs the whole width (Clean · Redline, Download Word, More at its right); the panel
+     starts under it with Changes · Notes as one segment and the round's line; the cards under them; Notes turns the
+     panel; the notes beside the paper never run under the panel (the paper gives way first) */
+  html.lg-out #pw-page[data-pt-tab="redlines"] .pw-id{padding-right:24px}
+  html.lg-out #pw-page[data-pt-tab="redlines"] .pw-mount > .pol-side{margin-top:0}
+  html.lg-out #pw-page[data-pt-tab="redlines"][data-pol-shows="red"] .pw-mount > .pol-side{height:84px;border-bottom:0}
+  html.lg-out #pw-page[data-pt-tab="redlines"][data-pol-shows="red"] #pt-nego #rl-side{padding-top:68px}
+  html.lg-out #pw-page[data-pt-tab="redlines"] #pt-nego #rl-side :is(.rl-idx-top,.rl-idx-head,.rl-pile-chips){display:none}
+  html.lg-out .pol-side-hd.is-seg{height:auto;padding:12px 16px 0;border-bottom:0}
+  html.lg-out .pol-seg{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:3px;border-radius:999px;background:var(--surface-2)}
+  html.lg-out .pol-seg-b{height:28px;border:0;border-radius:999px;background:none;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer}
+  html.lg-out .pol-seg-b.is-on{background:var(--color-text);color:var(--color-surface)}
+  html.lg-out .pol-seg-b span{opacity:.75}
+  html.lg-out .pol-rd-line{margin:10px 16px 0;font-size:12px;color:var(--color-quiet)}
+  html.lg-out #pw-page[data-pt-tab="redlines"][data-pol-shows="notes"] .pw-mount > .pol-side{grid-row:1;height:auto;align-self:stretch}
+  html.lg-out .pol-notes-in{display:flex;flex-direction:column;padding:12px 0 0;overflow:auto}
+  html.lg-out .pol-notes-in .rl-np{display:flex;flex-direction:column;min-height:0;flex:1}
+  html.lg-out .pol-read{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface-2)}
+  html.lg-out .pol-read-b{height:26px;padding:0 12px;border:0;border-radius:999px;background:none;font:inherit;font-size:12.5px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;white-space:nowrap}
+  html.lg-out .pol-read-b.is-on{background:var(--color-surface);box-shadow:0 1px 2px color-mix(in srgb,var(--color-text) 14%,transparent)}
+  html.lg-out #pw-page:not([data-pt-tab="redlines"]) .pol-read{display:none}
+  html.lg-out #pt-nego.pol-clean .rl-paper del{display:none}
+  html.lg-out #pt-nego.pol-clean .rl-paper ins{background:none;color:inherit;text-decoration:none}
+  html.lg-out #pt-nego.pol-clean :is(.pol-dot,.pol-note){display:none}
+  html.lg-out .pol-tab-n{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;margin-left:6px;padding:0 5px;box-sizing:border-box;border-radius:999px;background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:11px;font-weight:var(--w-label)}
+  /* THE PAPER GIVES WAY ONLY FOR ITS NOTES (P-44 review follow-up, 22 Nov 2026): Home's paper (720, pd2SheetLay) where the
+     column has room for it and its notes beside it; where it has not, it narrows by the notes' margin (32 left, 24 gutter,
+     120 the narrowest note, 16 right) so no note runs under the panel. No notes drawn (none to answer, or Clean), no
+     giving way: the paper is Home's 720 */
+  html.lg-out #pw-page #pt-nego.has-pol-notes:not(.pol-clean) .rl-zoom > .rl-paper{max-width:min(720px,calc(100% - 192px))}
+  html.lg-out .pol-top{align-items:center}
+  html.lg-out #pw-page #pt-nego .rl-card .rl-card-whyq{display:none}
+  html.lg-out #pw-page #pt-nego .rl-card.pol-more-open .rl-card-whyq{display:block}
+  html.lg-out #pw-page #pt-nego .pol-more{border:0;background:none;padding:0 4px;font:inherit;font-size:12.5px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;white-space:nowrap}
+  html.lg-out #pw-page #pt-nego .rl-card[data-rl-origin="them"] .rl-card-meta{display:flex;align-items:center;gap:8px}
+  html.lg-out #pw-page #pt-nego .rl-card[data-rl-origin="them"] .rl-card-meta::before{content:"!";flex:none;display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--st-amber-dot);color:var(--color-surface);font-size:11px;font-weight:var(--w-strong)}
+  html.lg-out .pol-nt-q{color:var(--color-quiet)}
   /* WHEN IT GOES WRONG (round 9; today's sending, drawn): Not sent in Before you send, the rows, the two doors */
   html.lg-new #sh-result.is-ns-folded{display:none}
   html.lg-new .sh-ns-h{display:flex;align-items:center;gap:8px;margin:0 0 6px;font-size:15px;font-weight:var(--w-label);color:var(--color-text)}
@@ -22695,7 +22899,7 @@
   html.lg-new .obs-30{position:relative;height:22px;margin:0 0 var(--s-3);border-bottom:2px solid var(--color-neutral-200)}
   html.lg-new .obs-30 i{position:absolute;bottom:-5px}
   html.lg-new .obs-30 i.obs-30-today{left:50%;width:2px;height:14px;bottom:-2px;background:var(--color-text)}
-  html.lg-new .obs-30-due{width:9px;height:9px;margin-left:-4px;border-radius:50%;background:var(--st-amber-dot)}
+  html.lg-new .obs-30-due{left:var(--x, 0);width:9px;height:9px;margin-left:-4px;border-radius:50%;background:var(--st-amber-dot)}
   html.lg-new .obs-30-due.is-late{background:var(--st-ruby-dot)}
   html.lg-new .obs-30 small{position:absolute;top:-4px;left:50%;transform:translateX(-50%);font-size:var(--t-micro);color:var(--color-quiet)}
   html.lg-new .obs-tl-list{list-style:none;margin:0;padding:0 0 0 2px;display:flex;flex-direction:column;gap:8px;border-left:1px solid var(--color-neutral-300)}
@@ -22741,6 +22945,29 @@
   html.lg-new .obs-res-w{font-size:11.5px;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .obs-th.is-done>span:nth-child(5),html.lg-new .obs-th.is-done>span:nth-child(6){text-align:right}
   html.lg-new .obs-due.is-was b{font-weight:400;color:var(--color-quiet)}
+  /* OBLIGATIONS, EVERY TAB AS DRAWN (P-13, 21 Nov 2026): Later's five columns (Duty · Whose · Repeats · Reminded · Due), a
+     duty with no date an amber badge; the Reminded words end in "…" in their column; the Later panel's year ahead as twelve
+     small bars with the months under them; their duty's controls under the timeline */
+  html.lg-new .obs-th.is-later,html.lg-new .obs-r.is-later{grid-template-columns:minmax(0,2.4fr) 90px 104px minmax(0,1fr) 110px}
+  html.lg-new .obs-th.is-later>span:nth-child(5){text-align:right}
+  html.lg-new .obs-r.is-later .obs-rep{font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .obs-b.is-st-nodate{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new .obs-r .obs-c .obt-rem:not(:has(.obs-av)){display:block;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .obs-tl-list li.is-read > i{background:var(--accent-ink);border-color:var(--accent-ink)}
+  /* Done, as drawn: the Result column wide enough for "✓ On time  1 day early", a late result red, Was due grey and
+     Done on plain; the receipt's last part with no rule under it */
+  html.lg-new .obs-th.is-done,html.lg-new .obs-r.is-done{grid-template-columns:minmax(0,2.2fr) 90px 190px minmax(0,1fr) 84px 84px}
+  html.lg-new .obs-b.is-st-donelate{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new .obs-r.is-done .obs-c.obs-due.is-was b{font-weight:400;color:var(--color-quiet)}
+  html.lg-new .obs-r.is-done .obs-c.obs-due:not(.is-was) b{font-weight:400}
+  html.lg-new .obs-receipt > .obn-lg-it:last-child{border-bottom:0}
+  html.lg-new .obs-year{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+  html.lg-new .obs-year small{font-size:11.5px;color:var(--color-quiet)}
+  html.lg-new .obs-year-bars{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;align-items:end;height:40px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .obs-year-bars i{display:block;height:2px;border-radius:2px 2px 0 0;background:var(--color-neutral-300)}
+  html.lg-new .obs-year-bars i.is-on{height:100%;background:var(--st-green-dot);opacity:.55}
+  html.lg-new .obs-year-m{display:flex;justify-content:space-between}
+  html.lg-new .obs-tl-ctl{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:8px}
   html.lg-new .obs-receipt .obs-tick{display:grid;place-items:center;width:30px;height:30px;margin-bottom:8px;border-radius:50%;background:var(--st-green-bg);color:var(--st-green-fg);font-size:14px}
   html.lg-new .obs-rec-days{display:flex;gap:20px;margin-bottom:6px}
   html.lg-new .obs-rec-days span{display:flex;flex-direction:column;gap:2px}
@@ -22787,6 +23014,80 @@
   html.lg-new .obn-lg-addall:disabled{background:var(--color-neutral-300);cursor:not-allowed}
   html.lg-new .obs-receipt .obn-lg-link{align-self:flex-start}
   html.lg-new .obs-receipt .obn-lg-it:last-child{display:flex;justify-content:flex-start}
+  /* ===== OBLIGATIONS, THE REVIEW'S DIFFERENCES MENDED (P-13 review, 22 Nov 2026; the owner asked for an exact match) =====
+     the tiles' numbers at the drawn 24, their charts 70 by 26, grey on every tile but the chosen one (a late bar stays red);
+     Done's line read from the done duties with its shaded area and end dot; the rings' arcs round-ended so nought still
+     shows the violet mark; the sort a quiet choice with its ▾; the due day in the body weight; a name two lines, then "…";
+     the hovered row lighter than a grey badge; the panel's title 17 and its big day 26; Was due in the detail grey */
+  html.lg-new .obs-tile .obs-tn b{font-size:var(--t-figure-tile);line-height:1.1;font-weight:var(--w-label);font-variant-numeric:normal}
+  html.lg-new .obs-tile .obs-bars{width:70px;height:26px;gap:3px}
+  html.lg-new .obs-tile .obs-bars i{flex:1;width:auto;min-width:0}
+  html.lg-new .obs-tile.is-on .obs-bars i:not(.is-late){background:var(--accent-ink);opacity:.5}
+  html.lg-new .obs-tile:not(.is-on) .obs-bars i:not(.is-late){background:var(--color-neutral-300);opacity:1}
+  html.lg-new .obs-tile .obs-line{width:70px;height:26px;overflow:visible}
+  html.lg-new .obs-line polygon{fill:var(--accent-ink);fill-opacity:.12;stroke:none}
+  html.lg-new .obs-line polyline{fill:none;stroke:var(--accent-ink);stroke-width:1.6}
+  html.lg-new .obs-line circle{fill:var(--accent-ink)}
+  html.lg-new .obs-tile:not(.is-on) .obs-line polygon{fill:var(--color-neutral-400)}
+  html.lg-new .obs-tile:not(.is-on) .obs-line polyline{stroke:color-mix(in srgb,var(--color-neutral-400) 55%,var(--color-surface))}
+  html.lg-new .obs-tile:not(.is-on) .obs-line circle{fill:color-mix(in srgb,var(--color-neutral-400) 55%,var(--color-surface))}
+  html.lg-new .obs-tile .obs-ring{width:30px;height:30px}
+  html.lg-new .obs-tile .obs-ring circle{stroke-width:5}
+  html.lg-new :is(.obs-ring,.obs-rring) circle.is-f{stroke-linecap:round}
+  html.lg-new .obs-sort{display:inline-flex;align-items:center;gap:4px;color:var(--color-neutral-400);cursor:pointer;white-space:nowrap}
+  html.lg-new .obs-sort:hover{color:var(--color-text)}
+  html.lg-new .obs-sort select{appearance:none;-webkit-appearance:none;field-sizing:content;margin:0;padding:0;border:0;background:none;box-shadow:none;font:inherit;font-size:var(--t-label);color:inherit;cursor:pointer;text-align-last:right}
+  html.lg-new .obs-sort .obs-sort-ic{flex:none;width:12px;height:12px;pointer-events:none}
+  html.lg-new .obs-r .obs-due b{font-weight:var(--w-body)}
+  html.lg-new .obs-r .obs-duty b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal;overflow:hidden;overflow-wrap:anywhere;line-height:1.35}
+  html.lg-new .obn-table.is-proj .obn-pr.is-stripe .obn-what{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal;overflow:hidden;overflow-wrap:anywhere}
+  html.lg-new .obs-r:hover:not(.is-sel):not([aria-selected="true"]){background:var(--color-chat-bg)}
+  html.lg-new .obs-r.is-done .obs-c.obs-due.is-was b{color:var(--color-neutral-400)}
+  html.lg-new .obs-one .obn-lg-top b,html.lg-new .obn-lg.is-stripe .obn-lg-tw b{font-size:var(--t-lead);line-height:1.3}
+  html.lg-new .obs-one .obn-lg-top .hati-ref,html.lg-new .obn-lg.is-stripe .obn-lg-tw .hati-ref{font-size:inherit}
+  html.lg-new .obs-big b,html.lg-new .obs-rec-days b{font-size:var(--t-display);line-height:1.1}
+  html.lg-new .obs-rec-days .is-was b{color:var(--color-neutral-400)}
+  html.lg-new .obs-one .obs-year{margin-bottom:var(--s-3)}
+  html.lg-new .obs-30-due.is-decide{background:var(--st-violet-dot)}
+  /* THE 30-DAY LINE AS DRAWN (P-13 review, second pass): the line 2 thick; the ten days behind today a soft red band along
+     it (the late tone, --st-ruby-bg); the due day a larger dot ringed in the page's white, on every row type */
+  html.lg-new .obs-one .obs-30{border-bottom:2px solid var(--color-neutral-300)}
+  html.lg-new .obs-one .obs-30 i.obs-30-late{left:0;width:25%;height:4px;bottom:-3px;border-radius:2px;background:var(--st-ruby-bg)}
+  html.lg-new .obs-one .obs-30 i.obs-30-today{bottom:-7px;height:16px}
+  html.lg-new .obs-one .obs-30 i.obs-30-due{width:14px;height:14px;margin-left:-7px;bottom:-8px;box-sizing:border-box;border:2px solid var(--color-surface);border-radius:50%}
+  /* the dot stays on the line at either end, never past the panel's edge */
+  html.lg-new .obs-one .obs-30 i.obs-30-due{left:clamp(7px, var(--x, 0), calc(100% - 7px));z-index:1}
+  html.lg-new .obs-one .obs-30 i.obs-30-end{bottom:-4.5px}
+  html.lg-new .obs-one .obs-say{margin:0;font-size:var(--t-body);line-height:1.45;color:var(--color-text)}
+  html.lg-new .obs-receipt .obs-tick{width:40px;height:40px;font-size:18px}
+  html.lg-new .obs-receipt .obs-tick.is-late{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new .obs-receipt .obs-tick svg{width:20px;height:20px}
+  html.lg-new .obs-rring{width:52px;height:52px}
+  html.lg-new .obs-rring b{font-size:var(--t-md);font-weight:var(--w-label)}
+  html.lg-new .obn-lg.is-stripe .obs-rring{width:56px;height:56px}
+  /* Proposals' table starts where the other tabs' tables start: its first column 8 in, its last 8 from the edge, its
+     heads on the same line as the other tabs' heads; the other side's name the row's size */
+  html.lg-new .obn-table.is-proj th{padding-top:8px;padding-bottom:6px}
+  html.lg-new .obn-table.is-proj :is(th,td):first-child{padding-left:8px}
+  html.lg-new .obn-table.is-proj :is(th,td):last-child{padding-right:8px}
+  html.lg-new .obn-table.is-proj .obn-pr.is-stripe td.obn-pt{font-size:13.5px}
+  /* "‹ Overview" in the new look (as the rebuilt pages' overviews): nothing boxed — the headline in the body face, the
+     month a line ruled under, the rows plain with a soft mark, the black button its own width */
+  html.lg-new .jov5[data-jov-slot="obt"]{padding-top:0;gap:12px}
+  html.lg-new .jov5[data-jov-slot="obt"] .jov5-intro{display:flex;flex-direction:column;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .jov5[data-jov-slot="obt"] .jov5-eb{margin:0;font-size:12.5px;font-weight:400;color:var(--color-neutral-400);letter-spacing:0;text-transform:none}
+  html.lg-new .jov5[data-jov-slot="obt"] .jov5-title{margin:0;font-family:var(--font-body);font-size:var(--t-lead);line-height:1.3;font-weight:var(--w-label)}
+  html.lg-new .jov5[data-jov-slot="obt"] .jov5-sub{margin:0;font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new .jov5[data-jov-slot="obt"] .jov5-sec{display:flex;flex-direction:column;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .jov5[data-jov-slot="obt"] .jov5-label{margin:0;font-size:11.5px;font-weight:var(--w-label);color:var(--color-quiet);letter-spacing:0;text-transform:none}
+  html.lg-new .jov5[data-jov-slot="obt"] .obt-tl{background:none;border-radius:0;padding:0}
+  html.lg-new .jov5[data-jov-slot="obt"] .jov5-group{display:flex;flex-direction:column;gap:4px;border:0;border-radius:0;background:none;box-shadow:none}
+  html.lg-new .jov5[data-jov-slot="obt"] .jov5-row{min-height:0;padding:4px;border:0;border-radius:6px;background:none;font-size:13px}
+  html.lg-new .jov5[data-jov-slot="obt"] .jov5-row.is-door:hover{background:var(--surface-2)}
+  html.lg-new .jov5[data-jov-slot="obt"] .jov5-rt > span{font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new .jov5[data-jov-slot="obt"] .jov5-act{display:flex;flex-direction:column;gap:8px;padding:0;border:0;border-radius:0;background:none}
+  html.lg-new .jov5[data-jov-slot="obt"] .jov5-act .jov5-acts{display:flex;flex-direction:row;align-items:center;justify-content:flex-start}
+  html.lg-new .jov5[data-jov-slot="obt"] .jov5-act .jov5-acts > .jov5-go{width:auto;min-width:0;flex:none;height:auto;padding:7px 16px;border-radius:999px;font-size:13px;line-height:1.3}
   /* READ DOWN, THE LEGORA + STRIPE WAY (P-41): each sentence a calm row with its small graphic; the quarters by count, the nearest red */
   html.lg-new .rd-page.is-ls .rd-head{display:flex;align-items:center;gap:var(--s-3)}
   html.lg-new .rd-page.is-ls .rd-row{display:grid;grid-template-columns:40px minmax(0,1fr) minmax(0,220px);align-items:center;gap:var(--s-3)}
