@@ -217,9 +217,16 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     /* RE-POINTED 24 Oct 2026: the reading's cost is said under the "Filed in" line */
     /* RE-POINTED 21 Nov 2026 (P-36, as drawn): what Jambo reads at Create is said once, in the panel's "After Create"
        timeline ("Jambo reads it once · the brief, our playbook, risks, obligations"); the sheet's line is not drawn */
+    /* RE-POINTED 22 Nov 2026 (PR 881's red check): the sentence went in through Jambo's box, so his panel stands on his
+       answer (2b, 9c) and the "After Create" timeline is on its Overview, one press back — the reader presses "‹ Overview"
+       above the box, reads it there, and "Jambo ›" brings his answer back. Before, this read the talk and found nothing. */
+    await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-jb-door]:not([hidden]) .jb-door-back'); if (b) b.click(); });
+    await until(() => !!document.querySelector('#ig-dock .na6-tl') && document.querySelector('#ig-dock .na6-tl').getClientRects().length > 0, null, 4000);
     const cost5 = await page.evaluate(() => ({ sheet: (() => { const c = document.getElementById('na-file-cost'); return c && c.getClientRects().length ? c.innerText.trim() : ''; })(),
       panel: ((document.querySelector('#ig-dock .na6-tl') || {}).innerText || '').replace(/\s+/g, ' ').trim() }));
-    check('5e the cost of reading under the stream\'s line', cost5.sheet === '' && /Jambo reads it once · the brief, our playbook, risks, obligations/.test(cost5.panel), JSON.stringify(cost5));
+    await page.evaluate(() => { const f = document.querySelector('#ig-dock [data-jb-fwd-door]:not([hidden]) [data-jb-fwd]'); if (f) f.click(); });
+    await until(() => !!document.querySelector('#ig-dock.is-talk'), null, 4000);
+    check('5e what Jambo reads at Create is said once, in the panel\'s "After Create" (not under the stream\'s line)', cost5.sheet === '' && /Jambo reads it once · the brief, our playbook, risks, obligations/.test(cost5.panel), JSON.stringify(cost5));
     check('5f the reason is now the stream\'s', S5.acts.join('|') === 'Choose a stream first|Create draft|Cancel', JSON.stringify(S5.acts));
     /* 11 step 2 in three columns, two rows; who else straight under */
     /* RE-POINTED 22 Oct 2026 (round 3 of the first-timer rounds): Who pays whom? is a group of presses, not a label */
