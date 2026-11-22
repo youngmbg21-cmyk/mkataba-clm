@@ -52,14 +52,14 @@ function hbStripBring(id, page){
   if (bsPhone() || typeof roomHomeLand !== 'function') return false;
   /* THE CONTRACT IN HAND: the one brought up is the one every door names next (the room's door set it so) */
   if (window.state){ state.activeId = c.id; state.selId = c.id; }
-  /* WHERE WE ARE IS THE DOSSIER (owner, 20 Nov 2026: the Cover is deleted, "open the Dossier instead") */
-  if (page === 'where') return roomHomeLand(c.id, { open: true }) !== false;
-  const mid = page === 'hist' ? 'pd2HistOpen' : null;
+  /* WHERE THE DEAL STANDS IS OURS AGAIN (owner, 22 Nov 2026, "Build l+s"; reverses 20 Nov's "Where we are is the
+     Dossier"): it lands in the middle beside the paper, as History does (pd2StandsOpen) */
+  const mid = page === 'hist' ? 'pd2HistOpen' : page === 'where' ? 'pd2StandsOpen' : null;
   const onIt = () => { try { const pc = (typeof pdContract === 'function') ? pdContract() : null;
     return !!(pc && String(pc.id) === String(c.id) && typeof pdOnPaper === 'function' && pdOnPaper()); } catch (_){ return false; } };
   /* A DOOR LANDS, IT NEVER SHUTS: History or Where we are already up for this contract stays up ("‹ Paper" is its
      way back; the Dossier's own line, pressed again, still closes it) */
-  const upFn = page === 'hist' ? window.pd2HistUp : null;
+  const upFn = page === 'hist' ? window.pd2HistUp : page === 'where' ? window.pd2StandsUp : null;
   const isUp = () => { try { return !!(typeof upFn === 'function' && upFn(c.id)); } catch (_){ return false; } };
   if (mid && onIt() && isUp()) return true;
   if (mid && typeof window[mid] === 'function' && onIt() && window[mid](c.id)) return true;

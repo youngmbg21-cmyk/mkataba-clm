@@ -427,6 +427,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - THE DEAL TAB (THE CLOSE PLAN) AND THE DEAL BOARD REMOVED (owner, 16 Nov 2026): f1084 (new, red at the parent: (1)–(4)); f936 deleted; f313 (23)(34) and f675 (1b)(2b)(3)(4)(6b)(6d), f875 3h, f1066 (1)(3) re-pointed to "gone", f313 (40)–(43) deleted. Browser: deal-in-the-middle-verify 1 re-pointed (no Deal on the face; 2–7 deleted; 8–10 kept), memo-in-close-plan-verify 1 re-pointed (the memo's own side panel; 2–4 deleted), more-menu-new-look-verify 3, negotiate-new-look-verify 2/3/10, ladder-verify 6a (6b–6h and 20 deleted).
 
 ## WHERE THE DEAL STANDS — ONE PAGE EVERY PARTY READS (js/dealstands.js)
+- WHO DOES WHAT, OUR PAGE L+S AND THEIRS THE LEGORA WAY (22 Nov 2026): f1163-who-does-what (the reading both hosts, the overlap, the walls, where the reader looks); test/chromium/who-does-what-verify.js (GitHub). Re-pointed: f1122 (3) (reversed by the owner).
 - 21 Oct 2026 (overnight): where-we-are-verify 10a (the journey on the page's line; .ds-st spine rules scoped to .ds-spine).
 - f451, f459 (B), deal-stands, status-link, where-we-are verify.
 

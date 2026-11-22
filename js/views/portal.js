@@ -2980,6 +2980,8 @@ function portalRenderOpts(token, d){
        (work order O-1). Null where the route serves none. */
     signatures:Array.isArray(d.signatures)?d.signatures:null,
     emailConfigured:d.emailConfigured!==false, messages:d.messages||[],
+    /* WHO DOES WHAT (22 Nov 2026), read LIVE like the messages: the overlap only (dutyPayload on the server) */
+    duties:(d.duties&&Array.isArray(d.duties.rows))?d.duties:null,
     /* The server states it on the envelope as well as inside the payload, and
        the render reads whichever arrives — a reader who may do nothing must not
        depend on one of two flags surviving a refactor. */
@@ -3025,6 +3027,8 @@ function portalSignature(d){
     (d.lastResponse&&d.lastResponse.applied!=null)?`ap${d.lastResponse.applied?1:0}`:'',
     /* A signature landing anywhere puts a mark on the paper. */
     Array.isArray(d.signatures)?'sg'+d.signatures.length:'',
+    /* who does what: a line read again, or either side's answer landing */
+    (d.duties&&Array.isArray(d.duties.rows))?'dw'+d.duties.rows.map(r=>r.key+r.state+(r.ours?r.ours.answer:'')+(r.theirs?r.theirs.answer:'')).join(','):'',
   ].join('');
   let h=0; for(let i=0;i<parts.length;i++) h=(h*31+parts.charCodeAt(i))>>>0;
   return parts.length+'.'+h.toString(16);
@@ -4285,6 +4289,8 @@ function portalOutWhereHtml(c, p){
   else band=`<p class="pol-w-line">${esc(live.some(x=>x.status==='pending')?i18t('pol_w_them',{ org:short }):i18t('pol_w_none'))}</p>`;
   const open=live.filter(x=>x.status==='pending'), settled=live.filter(x=>x.status!=='pending');
   if(_polWhereK==='settled'&&!settled.length&&open.length) _polWhereK='open';
+  const W=portalDuties();
+  if(_polWhereK==='duties'&&!(W&&W.read)) _polWhereK='open';
   const L=_polWhereK==='settled'?settled:open;
   const by=ch=>ch.authorSide==='owner'?short:i18t('pol_h_you');
   /* a refused point is NOT agreed: it wears ruby, never the green a taken one wears (P-44 review follow-up, 22 Nov 2026) */
@@ -4294,16 +4300,58 @@ function portalOutWhereHtml(c, p){
   const row=ch=>{ const cl=portalOutClause(ch)||i18t('ds_a_clause'); const m=cl.match(/^§ (\S+)\s*(.*)$/);
     const day=ch.createdAt||ch.at||'';
     return `<tr><td><div class="pol-w-cl">${m?`<span class="pol-sec">§ ${esc(m[1])}</span><b>${esc(m[2]||cl)}</b>`:`<b>${esc(cl)}</b>`}</div>${portalWasNowHtml(ch)}</td><td>${waitOn(ch)}</td><td class="pol-w-from">${esc(by(ch))}${day?' \u00b7 '+esc(portalShortDay(day)):''}</td></tr>`; };
-  const chip=(k,n)=>`<button type="button" class="pol-chip${_polWhereK===k?' is-on':''}" data-pol-w-k="${k}" aria-pressed="${_polWhereK===k}">${esc(i18t(k==='open'?'pol_w_k_open':'pol_w_k_settled'))} <span>${n}</span></button>`;
+  const chip=(k,n)=>`<button type="button" class="pol-chip${_polWhereK===k?' is-on':''}" data-pol-w-k="${k}" aria-pressed="${_polWhereK===k}">${esc(i18t(k==='open'?'pol_w_k_open':k==='duties'?'pol_wd_k':'pol_w_k_settled'))} <span>${n}</span></button>`;
   /* THE PHONE KEEPS ITS WAY TO NOTES (P-44 review follow-up, 22 Nov 2026): at a phone's width the bell and More's Notes
      are not on screen, so their contact and "Write in Notes" stand under the band there — drawn for the phone only (the
      drawing is the desktop page, whose bell carries Notes) */
   const pn=PORTAL_OPTS&&PORTAL_OPTS.token?`<p class="pol-w-pnotes">${esc(i18t('po_your_contact',{ who:(p&&p.sharedBy)||org }))} · <button type="button" class="ui-link" data-pt-where-notes>${esc(i18t('po_write_notes'))}</button></p>`:'';
   return `<div class="pw-where pol-where"><div class="pol-w-head"><h2 class="pol-w-h">${esc(i18t('ds_eyebrow'))}</h2><span class="pol-tag">${esc(i18t('ds_seen_by_all'))}</span></div>
     ${band}${pn}${portalOutStopsHtml(c, p, D)}
-    <div class="pol-w-chips">${chip('open',open.length)}${chip('settled',settled.length)}</div>
-    <table class="pol-w-t"><thead><tr><th>${esc(i18t(_polWhereK==='settled'?'pol_w_c_settled':'pol_w_c_open'))}</th><th>${esc(i18t('pol_w_c_wait'))}</th><th>${esc(i18t('pol_w_c_from'))}</th></tr></thead>
-    <tbody>${L.length?L.map(row).join(''):`<tr><td colspan="3" class="pol-small">${esc(i18t(_polWhereK==='settled'?'pol_w_none_settled':'pol_w_none_open'))}</td></tr>`}</tbody></table></div>`;
+    <div class="pol-w-chips">${chip('open',open.length)}${chip('settled',settled.length)}${W&&W.read?chip('duties',W.total):''}</div>
+    ${_polWhereK==='duties'?portalOutDutiesHtml(W, short):`<table class="pol-w-t"><thead><tr><th>${esc(i18t(_polWhereK==='settled'?'pol_w_c_settled':'pol_w_c_open'))}</th><th>${esc(i18t('pol_w_c_wait'))}</th><th>${esc(i18t('pol_w_c_from'))}</th></tr></thead>
+    <tbody>${L.length?L.map(row).join(''):`<tr><td colspan="3" class="pol-small">${esc(i18t(_polWhereK==='settled'?'pol_w_none_settled':'pol_w_none_open'))}</td></tr>`}</tbody></table>`}</div>`;
+}
+/* ---- WHO DOES WHAT, THEIR WAY: THE LEGORA WAY (owner, 22 Nov 2026: "Legora way for the other side") ----
+   Nothing boxed, one quiet list. Each line: who (You · the sender · Both · ? where the paper does not say), the duty in
+   plain words, and under it the clause's § and the paper's own words; the answer IN ITS ROW — the sender's answer, then
+   Agree · Not how we read it (Undo once given). A clause still argued is answered in Redlines first; "?" lines are
+   settled there. The list is the server's live reading (dutyPayload: the overlap only); an answer goes by the link
+   (POST /api/shares/:token/duties) and the page draws what the server sends back. */
+let _polWdChip='all', _polWdBusy='';
+function portalDuties(){ const d=PORTAL_OPTS&&PORTAL_OPTS.duties; return d&&Array.isArray(d.rows)?d:null; }
+function portalOutDutiesHtml(W, org){
+  if(!W||!W.read) return `<p class="pol-small">${esc(i18t('pol_wd_none'))}</p>`;
+  const ini=n=>String(n||'?').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x.charAt(0).toUpperCase()).join('');
+  const may=!portalReadOnly()&&!(PORTAL_OPTS&&PORTAL_OPTS.viewOnly);
+  const kOf=r=>r.whose==='them'?'yours':r.whose==='us'?'theirs':r.whose==='both'?'both':'none';
+  const cnt=k=>k==='all'?W.rows.length:W.rows.filter(r=>kOf(r)===k).length;
+  if(_polWdChip!=='all'&&!cnt(_polWdChip)) _polWdChip='all';
+  const word=k=>k==='all'?i18t('pd2_dl_ch_all'):k==='yours'?i18t('pol_wd_ch_yours'):k==='theirs'?i18t('pol_wd_ch_theirs',{ who:org }):k==='both'?i18t('pd2_dl_ch_both'):i18t('pd2_dl_not_said');
+  const chips=['all','yours','theirs','both','none'].filter(k=>k==='all'||cnt(k)).map(k=>`<button type="button" class="pol-wd-chip${_polWdChip===k?' is-on':''}" data-pol-wd-chip="${k}" aria-pressed="${_polWdChip===k}">${esc(word(k))} <i>${cnt(k)}</i></button>`).join('');
+  const mark=r=>r.whose==='them'?`<span class="pol-wd-m is-you">${esc(i18t('pol_wd_you'))}</span>`:r.whose==='us'?`<span class="pol-wd-m is-them">${esc(ini(org))}</span>`:r.whose==='both'?`<span class="pol-wd-m">${esc(i18t('pol_wd_both'))}</span>`:'<span class="pol-wd-m is-none">?</span>';
+  const red=w=>`<button type="button" class="ui-link" data-pol-go="redlines">${esc(i18t(w))}</button>`;
+  const ans=r=>{ const k=esc(r.key), busy=_polWdBusy===r.key?' disabled':'';
+    if(r.state==='open') return `<span class="pol-wd-wait">${esc(i18t('pd2_dl_st_open'))}</span>${red('pd2_dl_open_red')}`;
+    if(r.state==='none') return red('pd2_dl_settle_red');
+    if(r.state==='agreed') return `<span class="pol-wd-ok">${esc(i18t('pd2_dl_both_agree'))} ✓</span>`;
+    const undo=may&&r.theirs?`<button type="button" class="ui-link" data-pol-wd-ans="${k}" data-v="clear"${busy}>${esc(i18t('pd2_dl_undo'))}</button>`:'';
+    const sender=r.ours?(r.ours.answer==='yes'?`<span class="pol-wd-ok">${esc(i18t('pol_wd_they_ok',{ who:org }))}</span>`:`<span class="pol-wd-no">${esc(i18t('pol_wd_they_no',{ who:org }))}</span>`):`<span class="pol-small">${esc(i18t('pol_wd_they_wait',{ who:org }))}</span>`;
+    if(r.state==='disputed') return sender+(r.theirs&&r.theirs.answer==='no'?`<span class="pol-wd-no">${esc(i18t('pol_wd_you_no'))}</span>`:'')+undo+(r.ours&&r.ours.answer==='no'?red('pd2_dl_settle_red'):'');
+    if(r.theirs) return sender+`<span class="pol-wd-ok">${esc(i18t('pol_wd_you_agree'))}</span>`+undo;
+    if(!may) return sender;
+    return sender+`<button type="button" class="pol-wd-btn" data-pol-wd-ans="${k}" data-v="yes"${busy}>${esc(i18t('pd2_dl_agree'))}</button><button type="button" class="ui-link" data-pol-wd-ans="${k}" data-v="no"${busy}>${esc(i18t('pd2_dl_not_ours'))}</button>`; };
+  const rows=W.rows.filter(r=>_polWdChip==='all'||kOf(r)===_polWdChip).map(r=>`<div class="pol-wd-r" data-pol-wd-row="${esc(r.key)}">${mark(r)}<div class="pol-wd-t"><b>${esc(r.desc)}</b><span>${r.clause?`§ ${esc(r.clause)}`:''}${r.clause&&(r.quote||r.whose==='none')?' · ':''}${r.quote?`“${esc(r.quote)}”`:r.whose==='none'?esc(i18t('pol_wd_unsaid')):''}</span></div><div class="pol-wd-a">${ans(r)}</div></div>`).join('');
+  return `<div class="pol-wd"><div class="pol-wd-chips">${chips}<span class="pol-wd-note">${esc(i18t('pd2_dl_note'))}</span></div><div class="pol-wd-list">${rows}</div>${W.cut?`<p class="pol-small">${esc(i18tn('pd2_dl_cut',W.cut,{ n:W.cut }))}</p>`:''}</div>`;
+}
+async function portalDutyAnswer(key, answer){
+  if(_polWdBusy||!PORTAL_OPTS||!PORTAL_OPTS.token||portalReadOnly()) return;
+  _polWdBusy=key; portalPaintWhere();
+  try{
+    const t=(typeof portalTicket==='function')?portalTicket(PORTAL_OPTS.token):'';
+    const r=await api('shares/'+PORTAL_OPTS.token+'/duties','POST',{ key, answer, t });
+    if(r&&r.duties) PORTAL_OPTS.duties=r.duties;
+  }catch(e){ if(typeof toast==='function') toast((e&&e.message)||i18t('pd_failed'),'err'); }
+  finally{ _polWdBusy=''; portalPaintWhere(); }
 }
 /* ---- THE SIDE PANELS ON WHERE WE ARE AND SIGNING, AS DRAWN (P-44 review, 22 Nov 2026) ----
    Where we are: "The deal", the round and what waits on whom, what is settled; Who is in it (the parties with what each
@@ -5244,7 +5292,11 @@ if (typeof document !== 'undefined' && !document._polWired){
     const pg = t.closest('[data-pol-go]');
     if (pg){ ev.preventDefault(); _polFace = 'red'; portalSetTab(pg.getAttribute('data-pol-go')); return; }
     const wk = t.closest('[data-pol-w-k]');
-    if (wk){ ev.preventDefault(); _polWhereK = wk.getAttribute('data-pol-w-k') === 'settled' ? 'settled' : 'open'; portalPaintWhere(); return; }
+    if (wk){ ev.preventDefault(); const k = wk.getAttribute('data-pol-w-k'); _polWhereK = k === 'settled' || k === 'duties' ? k : 'open'; portalPaintWhere(); return; }
+    const wdc = t.closest('[data-pol-wd-chip]');
+    if (wdc){ ev.preventDefault(); const k = wdc.getAttribute('data-pol-wd-chip'); _polWdChip = _polWdChip === k && k !== 'all' ? 'all' : k; portalPaintWhere(); return; }
+    const wda = t.closest('[data-pol-wd-ans]');
+    if (wda && !wda.disabled){ ev.preventDefault(); portalDutyAnswer(wda.getAttribute('data-pol-wd-ans'), wda.getAttribute('data-v') || 'yes'); return; }
     const nt = t.closest('.pol-note');
     if (nt && !t.closest('button, a')){ const id = nt.getAttribute('data-pol-note');
       const css = v => (window.CSS && CSS.escape) ? CSS.escape(v) : v;
