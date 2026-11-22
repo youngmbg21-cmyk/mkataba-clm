@@ -225,7 +225,7 @@ function ld6StripHtml(rows){
      ink; while a position is edited, Positions stays the chosen chip (the edit is a position's own view) */
   const on = m => (_ld.edit ? 'ladder' : _ld.mode) === m;
   const chip = (m, w, n, dot) => `<button type="button" class="apn-tab is-chip ld6-chip${on(m) ? ' is-on' : ''}" data-ld-mode="${m}" aria-pressed="${on(m)}">${dot ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${LD_E(w)} <span>${n}</span></button>`;
-  return `<div class="ld6-top"><label class="apn-ask ld6-ask">${typeof icon === 'function' ? icon('mkSpark', 'w-3.5 h-3.5 ld6-spk') : ''}<input id="ld-q" type="search" autocomplete="off" placeholder="${LD_E(i18t('ld6_ask_ph'))}" value="${LD_E(_ld.q || '')}"></label>
+  return `<div class="ld6-top"><label class="apn-ask ld6-ask is-filter">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ld-q" type="search" autocomplete="off" placeholder="${LD_E(i18t('lh_filter_ph'))}" aria-label="${LD_E(i18t('lh_filter_ph'))}" value="${LD_E(_ld.q || '')}"></label>
     <div class="apn-bar ld6-bar">${chip('ladder', i18t('ld6_positions'), rows.length)}${chip('departures', i18t('ld_departures'), deps, deps > 0)}${chip('history', i18t('ld_history'), hist)}</div></div>`;
 }
 /* the time a row has waited, as drawn: today · yesterday · N days; a day long ago as "12 Nov" */

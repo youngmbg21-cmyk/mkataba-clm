@@ -10479,7 +10479,10 @@ function hbSuggestions0(s){
   if (s.panels.length) out.push(s.lens === 'all' ? i18t('hb_sug_suppliers') : i18t('hb_sug_all'));
   return out.slice(0, 3);
 }
-function hbPlaceholder(){ return hbS().face === 'board' ? i18t('hb_ask_ph') : null; }
+/* the Contracts list on Home (the 'paper' face with no contract in front, igAskPlaceholder) asks with its own example: the
+   list's top box only filters, questions are Jambo's, here (owner, 22 Nov 2026: "make them honest labels but jambo should
+   have the ability to answer those questions") */
+function hbPlaceholder(){ const f = hbS().face; return f === 'board' ? i18t('hb_ask_ph') : f === 'paper' ? i18t('jl_ph_pg_contracts') : null; }
 
 /* An answer from Copilot or the map that came back as a LIST: shown on the
    board as a dig-in, so a question asked on the board never lands only on

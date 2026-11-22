@@ -1977,7 +1977,7 @@ function iknRender(host, o){
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_intake'))}</h2><span class="ctf-sp"></span>
         <button type="button" id="ik-new" class="ui-btn ui-btn-primary ctf-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''}${esc(i18t('ik_ask_btn'))}</button></div>
-      <label class="apn-ask ikn-ask" title="${esc(i18t('ikn_ask_jambo'))}">${typeof icon === 'function' ? icon('mkSpark', 'w-3.5 h-3.5') : ''}<input id="ikn-q" type="search" autocomplete="off" placeholder="${esc(i18t('ikn_ask_ph'))}" value="${esc(ikFilters().q || '')}"></label>
+      <label class="apn-ask ikn-ask is-filter">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ikn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" aria-label="${esc(i18t('lh_filter_ph'))}" value="${esc(ikFilters().q || '')}"></label>
       <div class="apn-bar ikn-bar" data-lh-seat="intake-nl">${tabs.filter(t => t[2] || t[0] === 'open' || t[0] === _ikn).map(t => `<button type="button" class="apn-tab is-chip${_ikn === t[0] ? ' is-on' : ''}" data-ikn-tab="${t[0]}">${t[0] === 'open' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${esc(t[1])} <span>${t[2]}</span></button>`).join('')}<span class="ikn-by-w">${iknByChipHtml(iknAskers(R.tabAll))}</span></div>
       <div class="cu-scroll"><table class="apn-table cun-table ikn-table" data-list-seat="${esc(IK_SEAT)}">${C.colg}
         ${C.th}
@@ -2178,9 +2178,6 @@ if (typeof document !== 'undefined' && !document._iknWired){ document._iknWired 
     _iknBy = String(s.value || ''); _iknSel = null; renderIntake({ rows: true }); ikPlaceKeep(); });
   /* THE ASK BOX (P-32, "Ask about requests"): letters narrow the list; Enter on words that narrow it to nothing hands them
      to Jambo's own box (jlAsk, the one door), and the list stands whole again */
-  document.addEventListener('keydown', e => { if (e.key !== 'Enter' || !e.target || e.target.id !== 'ikn-q' || typeof state === 'undefined' || state.view !== 'intake') return;
-    const w = String(e.target.value || '').trim(); if (!w || iknRows().list.length || typeof jlAsk !== 'function') return;
-    e.preventDefault(); ikFilters().q = ''; e.target.value = ''; renderIntake({ rows: true }); jlAsk(w, { typed: true }); });
   document.addEventListener('input', e => { if (!e.target || e.target.id !== 'ikn-q' || typeof state === 'undefined' || state.view !== 'intake') return;
     /* the box is not redrawn under the caret: every letter moves the rows and leaves the box alone */
     ikFilters().q = e.target.value; renderIntake({ rows: true }); });

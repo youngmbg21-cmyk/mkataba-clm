@@ -263,9 +263,12 @@ async function SEED(){
        named under the Overview tab, his greeting the Jambo tab's; still no name tab and no back button */
     /* RE-POINTED 22 Nov 2026 (P-34, Our paper as drawn, PR 881): the panel draws no head row — the paper's own card (slot
        "tpln") is the panel, so no Overview tab is drawn; the rest stands: no greeting on it, no name word, no back button */
+    /* RE-POINTED 22 Nov 2026 (owner: "ensure all the jambo panels do have the minimize button"): the head row stands for the
+       minimise arrow ALONE — still no Overview tab, no name word, no back button */
     E0.head = await page.evaluate(() => { const h = document.querySelector('#ins-panel .jl-head'), f = document.querySelector('#ins-panel .jov5[data-jov-slot="tpln"]');
-      return { drawn: !!h && h.getClientRects().length > 0, own: !!f && f.getClientRects().length > 0 }; });
-    check('5a the panel as drawn: the template\'s own card, no head row, no greeting there, no name tab, no back button', !E0.solo && !E0.word && !E0.home && !E0.head.drawn && E0.head.own && !E.back
+      const shown = h ? [...h.children].filter(x => x.getBoundingClientRect().width > 0) : [];
+      return { drawn: shown.some(x => !x.matches('.jl-fold, .jl-sp')), arrow: shown.some(x => x.matches('.jl-fold')), own: !!f && f.getClientRects().length > 0 }; });
+    check('5a the panel as drawn: the template\'s own card, a head row holding only the minimise arrow, no greeting there, no name tab, no back button', !E0.solo && !E0.word && !E0.home && !E0.head.drawn && E0.head.arrow && E0.head.own && !E.back
       && !E0.landHello, JSON.stringify({ ...E0, b: E.back }));
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; JAMBO'S PANELS — THE FIVE PARTS): his words from the
        record are the panel's title, sub and tiles (made 5 · signed · 2 came back changed, the last a door) and the
@@ -284,7 +287,9 @@ async function SEED(){
     check('5c the next step is the column\'s: the panel on the paper draws no second Draft from it', !E.go.trim(), JSON.stringify({ say: E.say, go: E.go, link: E.link }));
     /* RE-POINTED 21 Oct 2026 (Chambers, owner's pick 20 Oct 2026): no hint line under any Jambo box */
     /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): Jambo's panel FLOATS, a white card 8px in from the window's edge, its top and its foot (the owner's drawing) */
-    check('5d the ask box at the panel\'s foot, no hint line under it; the panel 8px in from the window\'s edge', E.ph === 'Ask Jambo, or type / for a place' && E.hints === 0 && E.right, JSON.stringify({ ph: E.ph, hints: E.hints, right: E.right }));
+    /* RE-POINTED 22 Nov 2026 (owner: "make them honest labels but jambo should have the ability to answer those questions"): the
+       page's example question moved from the top box into Jambo's box at the panel's foot */
+    check('5d the ask box at the panel\'s foot with the page\'s question, no hint line under it; the panel 8px in from the window\'s edge', E.ph === 'Ask Jambo: “which paper for a new supplier?”' && E.hints === 0 && E.right, JSON.stringify({ ph: E.ph, hints: E.hints, right: E.right }));
     await press('#ins-panel [data-jl-home]');
     const E2 = await until(() => { const p = document.getElementById('ins-panel'); return p && ![...p.querySelectorAll('.jov5-title')].some(t => /Master services agreement/.test(t.textContent)) && p.querySelector('[data-jl-words]') ? p.querySelector('[data-jl-words]').textContent.replace(/\s+/g, ' ').trim() : null; });
     check('5e ‹ Jambo lets the template go: his words say the book', !!E2 && /Our paper holds \d+ templates/.test(E2) && /contracts were drafted from them in 12 months; 2 came back changed/.test(E2), E2);

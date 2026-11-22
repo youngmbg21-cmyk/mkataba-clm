@@ -165,7 +165,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
        (CLAUDE.md: a panel that is not edge to edge is the old look) — its right edge is the window's */
     check('1a the panel is Jambo\'s, edge to edge at the right, Home\'s panel\'s width, with his tab', !!N0 && N0.jambo && N0.tab && N0.w === 384 && Math.abs(N0.right - 1440) <= 1, JSON.stringify(N0 && { w: N0.w, right: N0.right, tab: N0.tab }));
     /* RE-POINTED 20 Oct 2026 (Chambers): no hint line under any Jambo box */
-    check('1c the box asks in its words, and no hint line under it', !!N0 && N0.ph === 'Ask Jambo, or type / for a place' && N0.hint === null, JSON.stringify(N0 && { ph: N0.ph, hint: N0.hint }));
+    /* RE-POINTED 22 Nov 2026 (owner: "make them honest labels but jambo should have the ability to answer those questions"): the
+       page's example question moved from the top box into Jambo's box at the panel's foot */
+    check('1c the box asks with the page\'s question, and no hint line under it', !!N0 && N0.ph === 'Ask Jambo: “whose move is it?”' && N0.hint === null, JSON.stringify(N0 && { ph: N0.ph, hint: N0.hint }));
 
     /* ---- 2 a row pressed ---- */
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the chosen round's panel is THE PRESSED ROUND ALONE

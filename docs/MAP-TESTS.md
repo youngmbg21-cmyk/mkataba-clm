@@ -91,6 +91,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f841, f842 (the Guide's row), f561, f564 (the brain's three parts), f232 (the published names).
 
 ## THE SHELL — RAIL, BAR, PANELS
+- EVERY JAMBO PANEL HAS ITS MINIMISE ARROW (owner, 22 Nov 2026): panel-watermark-verify 10 (new; red at the parent: Read down, Contracts, Playbook, Our paper, New agreement had none) — the arrow alone in its head row, and it folds; detail-round-verify 4, our-paper-as-drawn-verify 5a re-pointed.
 - THE WATERMARK ON EVERY SIDE PANEL, THE CIRCLED ARROW, NO GREEN WAY-BACK LINK (owner, 22 Nov 2026): panel-watermark-verify (new; red at the parent: no watermark, a bare arrow, none on the Board, the link drawn) — drawn and moving on the Board, Contracts, Approvals, Playbook; still in Settings and with less motion asked; the 30px arrow on every panel and on the Board (folds it); outlines on the chosen tab and a top tag; no `.ca-back`; nothing sideways; 1d it glides (≥60% of frames a new place, no jump ≥0.5px; red at the parent: steps); 8 the Alerts panel plain; 9 a contract's tabs plain, buttons as they were. jambo-words-verify 3b/3c/7c/7d re-pointed (no link; a typed "back" still returns). f977 (6, 7) keeps the slides' @keyframes outside the HARMONY block.
 - THE EMOJI BOOK HOLDS THE LAUNCHPAD'S SEVEN (owner, 21 Nov 2026): f1097 (8) (new; red at the parent: SDD_EMOJI has no `page`) — the seven in the book equal LP_EMOJI's, and every emoji the launchpad draws is in the book; f1100 still green.
 - AN EMOJI MARKS EVERY PAGE, ONE NAME FOR ONE STAGE (owner, 21 Nov 2026): f1097 (7) (new; red at the parent: LP_EMOJI does not exist there) — one emoji per Guide page, none shared, left of the name and never in it, the same beside it where it waits; each stage's chip says its column's head; lp_chip_deal retired from the code and both books. launchpad-verify 2h — GitHub.
@@ -1020,3 +1021,8 @@ Re-pointed to the drawing (dated comments): history-head, history-timeline 7a, t
 1f/2a/4f/9c/10/12a, their-page-parties-and-notes 1, their-page-legora-way 4, portal-header-verbs (the foot's Send),
 counterparty-reading-and-more 1c, paper-grows (counterparty gives way only for its notes), round-delivery 8a, go-aheads 2,
 sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
+
+## HOW THINGS MOVE — the watermark in Sunset lines (22 Nov 2026)
+- test/chromium/panel-watermark-verify.js 10a (the weaves are a flowing colour mix), red on main. 2, 2b, 3 (still in Settings and for less motion) were red on main and pass now.
+- f965 (tokens): the --wm-* colours live in :root and docs/design/tokens.json (node test/tokens-export.js).
+- panel-watermark-verify 11: Jambo's talk scrolled 120, the weave rises 120, and comes back at the top (red on main).

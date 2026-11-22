@@ -13,9 +13,10 @@
      1d it glides, a new place nearly every frame, never a pixel jump (owner, 22 Nov 2026: no stutter)
      8  the Alerts · Notes · Activity panel stays plain (owner, 22 Nov 2026)
      9  a contract open on Home (Dossier, Clauses, Redlines) is serious work: no watermark, its buttons as they were
+    10  every Jambo panel has its minimise arrow — the ones drawn without a head row keep the row for the arrow alone
    AT THE PARENT every claim FAILS: no watermark, the arrow is a bare icon, the Board has none, the link is drawn.
    ============================================================ */
-/* global state, setView, hbSetFace, pdOpenOnHome */
+/* global state, setView, hbSetFace, pdOpenOnHome, openNewAgreement */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
@@ -93,6 +94,29 @@ const READ = () => {
     }
     const ap = await go('approvals', () => !!document.querySelector('#ins-panel .jl-head'));
     ok('5a Approvals: the chosen tab wears the thin outline', !!ap && ap.tabEdge === true, JSON.stringify(ap));
+    /* 10 — SUNSET LINES (owner's pick, 22 Nov 2026): the two weaves are a flowing mix of colours, not one ink; the
+       buttons on it stay as they were, see-through (owner, 22 Nov 2026: "keep the translucent buttons") */
+    await page.mouse.move(2, 400); await page.waitForTimeout(300);   /* away from the arrow, so its own colour is read, not its hover */
+    const sun = await page.evaluate(() => { const p = document.querySelector('#ins-panel'); if (!p) return null;
+      const b = getComputedStyle(p, '::before'), a = getComputedStyle(p, '::after');
+      const stops = s => (String(s).match(/rgb\(/g) || []).length;
+      const tab = p.querySelector('.jl-head .pd-tab.on'), fold = p.querySelector('.jl-head .jl-fold');
+      const lifted = el => { if (!el) return null; const c = getComputedStyle(el); return { bg: c.backgroundColor, z: c.zIndex, rad: c.borderTopLeftRadius }; };
+      return { before: stops(b.backgroundImage), after: stops(a.backgroundImage), anim: b.animationName + ' | ' + a.animationName, tab: lifted(tab), fold: lifted(fold) }; });
+    ok('10a the watermark\'s weaves are a mix of colours flowing along them (Sunset lines)', !!sun && sun.before >= 5 && sun.after >= 3 && /wmFlowA/.test(sun.anim) && /wmFlowB/.test(sun.anim), JSON.stringify(sun));
+    /* 11 — IT SCROLLS WITH THE READING (owner, 22 Nov 2026): Jambo's talk scrolled 120 down, the weave rises 120 with it;
+       back at the top, it comes back down */
+    const lift = await page.evaluate(async () => { const p = document.querySelector('#ins-panel'); if (!p) return null;
+      try { ai.history.push({ role: 'user', text: 'What is due this week?' }, { role: 'assistant', text: 'Two duties are due this week. '.repeat(120) }); jlTalkPress(); } catch (_){ }
+      await new Promise(r => setTimeout(r, 600));
+      const sc = p.querySelector('#jl-talk-sc'); if (!sc) return { missing: 'the talk scroller' };
+      const ty = () => { const m = getComputedStyle(p, '::before').transform; const v = /matrix\(([^)]+)\)/.exec(m); return v ? Math.round(parseFloat(v[1].split(',')[5])) : 0; };
+      sc.scrollTop = 0; await new Promise(r => setTimeout(r, 150)); const at0 = ty();
+      sc.scrollTop = 120; await new Promise(r => setTimeout(r, 150)); const at120 = ty();
+      sc.scrollTop = 0; await new Promise(r => setTimeout(r, 150)); const back = ty();
+      try { jlTalkBack(); } catch (_){ }
+      return { at0, at120, back, room: sc.scrollHeight - sc.clientHeight }; });
+    ok('11 the watermark scrolls up with Jambo\'s talk and comes back down at the top', !!lift && lift.at0 === 0 && lift.at120 === -120 && lift.back === 0, JSON.stringify(lift));
     await go('playbook', () => !!document.querySelector('#ins-panel .jov5'));
     const tag = await page.evaluate(() => { const t = document.querySelector('#ins-panel .jov5 :is(.jov5-intro, .ld6-pb, .tpln6-pb) :is(.jov5-tag, .apn-st, .tpln6-badge, .reg-badge)'); return t ? getComputedStyle(t).boxShadow : 'no tag'; });
     ok('5b Playbook: a tag at the top of the panel wears the thin outline', !!tag && tag !== 'none' && tag !== 'no tag', tag);
@@ -145,6 +169,33 @@ const READ = () => {
     const rm0 = await go('approvals', () => !!document.querySelector('#ins-panel .jl-head'));
     const rm = rm0;
     ok('3 less motion asked: the watermark is drawn and still', !!rm && rm.painted && !rm.moving, JSON.stringify(rm));
+
+    /* 10 — EVERY JAMBO PANEL HAS ITS MINIMISE BUTTON (owner, 22 Nov 2026: "drawdown should have a minimize button for jambo
+       panel. review the whole hati and ensure all the jambo panels do have the minimize button"): the panels drawn with no
+       head row (Read down, Contracts, Playbook, Our paper, New agreement) keep the row for the arrow alone, and it folds */
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    const ARROW = () => { const a = [...document.querySelectorAll('#igd-collapse, .jl-fold')].find(x => { const r = x.getBoundingClientRect(); return r.width > 0 && r.left > innerWidth / 2; });
+      const h = a && a.parentElement; const words = h ? [...h.children].filter(x => x.getBoundingClientRect().width > 0 && !x.matches('#igd-collapse, .jl-fold, .flex-1, .jl-sp')).length : -1;
+      return a ? { words } : null; };
+    for (const [name, open, ready] of [
+      ['Read down', () => { setView('dashboard'); hbSetFace('board'); setTimeout(() => { const b = document.querySelector('.hb-rdn-go'); if (b) b.click(); }, 600); }, () => !!document.querySelector('#ig-dock .jov5[data-jov-slot="rdn"]')],
+      ['Contracts', () => setView('register'), () => !!document.querySelector('#ig-dock .ctls')],
+      ['Playbook', () => setView('playbook'), () => !!document.querySelector('#ins-panel .jov5[data-jov-slot="ld"]')],
+      ['Our paper', () => setView('templates'), () => !!document.querySelector('#ins-panel .jov5[data-jov-slot="tpln"]')],
+      ['New agreement', () => { setView('dashboard'); hbSetFace('board'); openNewAgreement(); }, () => !!document.querySelector('#ig-dock .jov5[data-jov-slot="na6"]')]]) {
+      await page.evaluate(open);
+      const there = await until(page, ready, null, 10000); await page.waitForTimeout(400);
+      const a = there ? await page.evaluate(ARROW) : null;
+      ok(`10 ${name}: the panel has its minimise arrow, alone in its head row`, !!a && a.words === 0, there ? JSON.stringify(a) : 'the panel did not open');
+      if (a) {
+        await page.evaluate(() => { const x = [...document.querySelectorAll('#igd-collapse, .jl-fold')].find(e => e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().left > innerWidth / 2); x.click(); });
+        const folded = await until(page, () => !!document.querySelector('#ig-dock > .igd-door, .ins-panel.is-folded'), null, 4000);
+        ok(`10 ${name}: the arrow folds the panel`, folded);
+        await page.evaluate(() => { const d = document.querySelector('#ig-dock > .igd-door, .ins-panel.is-folded .igd-door, .ins-panel.is-folded button'); if (d) d.click(); });
+        await until(page, () => !document.querySelector('#ig-dock > .igd-door, .ins-panel.is-folded'), null, 4000);
+      }
+      if (name === 'New agreement') await page.keyboard.press('Escape');
+    }
 
     ok('no page errors', !errs.length, errs.join(' | '));
   } catch (e) {

@@ -35,7 +35,9 @@ test('f1091 (2) Shelves: the ask box and chips, no figures; a calm card per fold
   assert.match(s, /class="tpln6-fc\$\{on && on\.fid === sh\.fid \? ' is-on' : ''\}" role="button" tabindex="0" data-tpln-pickshelf="\$\{_tplEsc\(sh\.fid\)\}" style="--sd:var\(--st-\$\{tone\}-dot\)"/, 'a card per folder in its own colour; a press chooses it');
   assert.match(s, /class="tpln6-fp" data-tpln-open="\$\{_tplEsc\(tplPfKey\(x\.c\)\)\}"/, 'each named paper opens its paper');
   const f = body('tplnFilterLineHtml');
-  assert.match(f, /<input type="search" data-tpln-q[^>]*placeholder="\$\{_tplEsc\(i18t\('tpln6_ask_ph'\)\)\}"/, 'one ask box');
+  /* RE-POINTED 22 Nov 2026 (owner: "make them honest labels"): the box filters and says so, with the magnifying glass;
+     questions are Jambo's, in his box at the panel's foot */
+  assert.match(f, /<label class="apn-ask tpln6-ask is-filter">\$\{typeof icon === 'function' \? icon\('search', 'w-3\.5 h-3\.5'\) : ''\}<input type="search" data-tpln-q[^>]*placeholder="\$\{_tplEsc\(i18t\('lh_filter_ph'\)\)\}"/, 'one honest filter box');
   assert.match(f, /data-tpln-view="shelves"[\s\S]*data-tpln-view="list"/, 'Shelves · All as chips');
   assert.match(f, /i18t\('tpln6_shelf'\)[\s\S]*i18t\('tpln6_kind'\)/, '+ Shelf and + Kind');
   assert.match(body('tplnFigs'), /usedIds[\s\S]*st\.ids/, 'the tally\'s own contracts');
