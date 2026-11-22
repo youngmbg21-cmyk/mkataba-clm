@@ -3203,7 +3203,7 @@ function pd2AmFaceHtml(c){
     ${bar}
     <div class="pd2-amls-sec"><b>${E(T('pd2_amls_once'))}</b><div class="pd2-amls-kv">
       ${kv(T('pd2_am_ends'), now ? `<s>${E(day(was))}</s> ${E(day(now))}` : E(day(was)))}
-      ${kv(T('pd2_am_approval'), rules.length ? E(rules.map(r => r.name).join(' · ')) : E(T('pd2_am_appr_none')))}
+      ${/* NO MONEY IN A SIDE PANEL (owner, 20 Nov 2026): a rule's name carries its threshold ("Value ≥ KES 5M"), so the panel counts the rules that apply and never names the figure */ ''}${kv(T('pd2_am_approval'), rules.length ? E(_pdTn('pd2_am_appr_n', rules.length, { n: rules.length })) : E(T('pd2_am_appr_none')))}
       ${kv(T('pd2_am_signers'), E(T('pd2_am_signers_v')))}
       ${(() => { const d = [].concat(..._pdAm.items.map(it => pd2AmxEffectsOf(c, it))).find(F => F.k === 'days'); return d ? kv(T('pd2_amls_pay'), `${d.from != null ? `<s>${E(_pdTn('pd2_amls_days', d.from, { n: d.from }))}</s> ` : ''}${E(_pdTn('pd2_amls_days', d.to, { n: d.to }))}`) : ''; })()}
       ${_pdAm.eff ? kv(T('pd2_amx_eff'), E(day(_pdAm.eff))) : ''}</div></div>

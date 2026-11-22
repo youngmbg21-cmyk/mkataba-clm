@@ -276,7 +276,9 @@ const VISIBLE = `(el) => {
        effective date above; where a date is printed it must be the paper's
        form, never the picker's. */
     check('and prints its date the way paper writes a date, never the picker’s',
-      (!/ dated /.test(landed.body) || /dated \d{1,2} (January|February|March|April|May|June|July|August|September|October|November|December) \d{4}/.test(landed.body))
+      /* RE-POINTED 22 Nov 2026 (Amend L+S, #911: "a date HaTi does not hold is a ruled line — the amendment's own fill-in
+         makes it a box", ownBlanks): no date, or the paper's form, or the ruled line to fill — never the picker's */
+      (!/ dated /.test(landed.body) || /dated \d{1,2} (January|February|March|April|May|June|July|August|September|October|November|December) \d{4}/.test(landed.body) || /dated _{6,}/.test(landed.body))
       && !/dated \d{4}-\d{2}-\d{2}/.test(landed.body),
       (landed.body.match(/dated [^(]+/) || [])[0]);
     check('it closes with the survival line',

@@ -39,6 +39,8 @@ const SAME_IN_BOTH = new Set([ 'rd_th_status' /* 'Status' is the Swedish too (Re
   'obn_col_status',
   /* the Import check's table head (22 Nov 2026, the check as a calm table): "Status" is the Swedish word too */
   'mig_ckt_status',
+  /* the Dossier's table head (Dossier L+S, 22 Nov 2026): "Status" is the Swedish word too */
+  'pd2_dl_h_status',
   /* Jambo's words (stage 1 of the one-page Home plan, 14 Oct 2026): "3×", how often a place was used, is a number */
   'hb_pop_used',
   /* his name on his own card (26 Oct 2026): a name is a name in both books */
