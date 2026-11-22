@@ -821,6 +821,24 @@ function clPageHtml() {
   if (!_cl) clInit();
   const admin = clAdmin(), page = _cl.mode === 'page';
   const editing = _cl.editing ? i18t('cl_editing_stream', { name: clStreamName(_cl.editing) }) : '';
+  /* P-45, THE LEGORA + STRIPE WAY (owner's pick 22 Nov 2026): Settings' own head (the way back, the serif title with
+     Admins only and Save beside it, its line, the sentence box as the ask box, the chips); the editing stays as it was —
+     the paper in the middle, its settings beside it on both sides (owner: "keep everything apart from the editing") */
+  if (typeof window.stLsOn === 'function' && window.stLsOn() && typeof window.stLsHeadHtml === 'function') {
+    const spark = (typeof icon === 'function') ? icon('mkSpark', 'sdd-spark-ic', 0) : '';
+    const actsLs = `<span class="apn-st is-grey">${clE(i18t('cl_admins_only'))}</span>${admin ? `<button type="button" id="cl-save" class="ui-btn ui-btn-primary"${_cl.dirty ? '' : ' disabled'}>${clE(i18t('act_save'))}</button>` : ''}`;
+    const ask = admin ? `<form class="apn-ask sdd-find st-ls-find cl-ask" id="cl-ask" autocomplete="off"><span class="sdd-find-ic" aria-hidden="true">${spark}</span><input type="text" id="cl-say" maxlength="300" autocomplete="off" placeholder="${clE(i18t('cl_ask_ph'))}" aria-label="${clE(i18t('cl_ask_ph'))}" value="${clE(_cl.said)}"></form><p class="cl-said" id="cl-said" aria-live="polite"></p>`
+      : `<p class="st-ls-small">${clE(i18t('cl_read_only'))}</p>`;
+    return `<div class="st-pg cl-pg is-ls" data-st-pg="look">${window.stLsHeadHtml({ page: 'look', title: i18t('cl_title'), sub: editing || i18t('cl_sub'), acts: actsLs, askHtml: ask + clChipsHtml() })}
+    <div class="cl-body">
+      <div class="cl-desk${page ? '' : ' is-picking'}">
+        ${page ? `<div class="cl-notes is-l">${clNotesHtml('l')}</div>` : ''}
+        ${clSheetHtml()}
+        ${page ? `<div class="cl-notes is-r">${clNotesHtml('r')}</div>` : `<div class="cl-pick">${clPickHtml()}</div>`}
+      </div>
+      ${clOthersHtml()}
+    </div></div>`;
+  }
   const acts = admin
     ? `<span class="cl-admin">${clE(i18t('cl_admins_only'))}</span><button type="button" id="cl-save" class="ui-btn ui-btn-primary"${_cl.dirty ? '' : ' disabled'}>${clE(i18t('act_save'))}</button>`
     : `<span class="cl-admin">${clE(i18t('cl_admins_only'))}</span>`;
@@ -843,7 +861,18 @@ function clRepaint() {
   const sc = pg.closest('.scroll-thin, #content-scroll') || document.getElementById('content-scroll'); const top = sc ? sc.scrollTop : 0;
   const t = document.createElement('div'); t.innerHTML = clPageHtml(); pg.replaceWith(t.firstElementChild);
   if (sc) sc.scrollTop = top;
+  /* P-45: Jambo's panel beside the page says the look as it now stands */
+  if (typeof window.stLsOn === 'function' && window.stLsOn() && typeof window.stLsPanelPaint === 'function') window.stLsPanelPaint();
 }
+/* P-45: what the panel beside the page says (read here, where the look is kept), and its rows' one door: a setting's
+   own Change, as the page's own link opens it */
+function clFacts() {
+  if (!_cl) clInit();
+  const org = window.ORG_BRANDING || {};
+  return { admin: clAdmin(), style: clDesign().name, layout: clStructure().name, logo: !!_cl.logoUrl, footer: !!String(_cl.footer || '').trim(),
+    company: org.companyName || '', own: Object.keys(_cl.streams || {}).length, streams: clStreamIds().length };
+}
+function clModeGo(m) { if (!_cl) clInit(); if (!clAdmin()) return; _cl.mode = m || 'page'; clRepaint(); }
 function clSet(fn) { fn(); _cl.dirty = true; clRepaint(); }
 /* A LOOK TYPED IN A SENTENCE, READ WITHOUT AI: colours, the logo's place, a style or a layout named; what is not read is said */
 function clReadLook(text) {
@@ -928,4 +957,4 @@ if (typeof document !== 'undefined' && !window._clWired) {
   });
 }
 
-Object.assign(window, { openDesignStep, dsApplyZoom, designStepOpen, designStepDirty, designStepClose, CL_ACCENTS, clPageHtml, clReadLook, clGo, clSave, clInit });
+Object.assign(window, { openDesignStep, dsApplyZoom, designStepOpen, designStepDirty, designStepClose, CL_ACCENTS, clPageHtml, clReadLook, clGo, clSave, clInit, clFacts, clModeGo });

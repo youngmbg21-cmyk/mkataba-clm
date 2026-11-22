@@ -22577,6 +22577,89 @@
   html.lg-new .sdd-page .sdd-gh.is-need::before{display:block;background:var(--st-amber-dot)}
   html.lg-new .sdd-page .sdd-u{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .sdd-page .sdd-row.is-chosen{background:var(--color-accent-50)}
+  /* P-45, THE SIX PAGES INSIDE SETTINGS THE LEGORA + STRIPE WAY (owner's pick 22 Nov 2026): the area's own frame — the
+     way back on the line "‹ Settings" stands on over an area, the serif title with the page's one act beside it, its
+     line, tabs, the ask box, the chips; one calm table (no button on a row: a row opens or chooses); no motion */
+  html.lg-new .st-ls-page .st-ls-main{padding:0 0 24px}
+  html.lg-new .st-ls-page .st-ls-head{margin:0 0 2px}
+  html.lg-new .st-ls-page .st-ls-hrow{display:flex;align-items:center;gap:12px;align-self:stretch;margin-top:4px;min-width:0}
+  html.lg-new .st-ls-page .st-ls-hrow .sdd-title{flex:1;min-width:0}
+  html.lg-new .st-ls-page .st-ls-acts{display:inline-flex;align-items:center;gap:8px;flex:none}
+  html.lg-new .st-ls-page .st-ls-tabs{display:flex;gap:24px;align-self:stretch;margin:14px 0 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .st-ls-page .st-ls-tab{appearance:none;border:0;background:none;padding:0 0 9px;margin-bottom:-1px;font:inherit;font-size:14px;font-weight:var(--w-label);color:var(--color-quiet);border-bottom:2px solid transparent;cursor:pointer}
+  html.lg-new .st-ls-page .st-ls-tab.is-on{color:var(--color-text);border-bottom-color:var(--color-text)}
+  html.lg-new .st-ls-page .st-ls-head .apn-ask{align-self:stretch;margin:12px 0 10px}
+  html.lg-new .st-ls-page .st-ls-head .sdd-chips{align-self:stretch;gap:6px;margin:0 0 4px;border-bottom:0;flex-wrap:wrap}
+  html.lg-new .st-ls-page .st-ls-t{width:100%;border-collapse:collapse;table-layout:auto;font-size:13.5px;font-variant-numeric:tabular-nums;margin-top:6px}
+  html.lg-new .st-ls-page .st-ls-t th{text-align:left;font-size:12.5px;font-weight:400;color:var(--color-quiet);padding:10px 12px 8px;border-bottom:1px solid var(--color-divider);white-space:nowrap}
+  html.lg-new .st-ls-page .st-ls-t td{padding:12px;border-bottom:1px solid var(--color-divider);vertical-align:middle;overflow-wrap:anywhere}
+  html.lg-new .st-ls-page .st-ls-t :is(th,td).r{text-align:right}
+  html.lg-new .st-ls-page .st-ls-t tbody tr{cursor:pointer}
+  @media (hover:hover){ html.lg-new .st-ls-page .st-ls-t tbody tr:hover td{background:var(--surface-2)} }
+  html.lg-new .st-ls-page .st-ls-t tbody tr.is-chosen td{background:var(--color-accent-50)}
+  html.lg-new .st-ls-page .st-ls-t tbody tr.is-chosen td:first-child{box-shadow:inset 3px 0 0 var(--accent-ink)}
+  html.lg-new .st-ls-page .st-ls-t tbody tr:focus-visible{outline:2px solid var(--accent-ink);outline-offset:-2px}
+  html.lg-new .st-ls-page .st-ls-t .apn-st{height:22px;gap:5px;padding:0 7px;border-radius:6px;font-size:var(--t-label)}
+  html.lg-new .st-ls-page .st-ls-t .apn-st.is-grey{background:var(--surface-2);color:var(--color-quiet)}
+  html.lg-new .st-ls-page .st-ls-who{display:flex;align-items:center;gap:10px;min-width:0}
+  html.lg-new .st-ls-page .st-ls-ini{width:28px;height:28px;border-radius:50%;display:inline-grid;place-items:center;flex:none;font-size:10.5px;font-weight:var(--w-strong);background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-new .st-ls-page .st-ls-id{display:flex;flex-direction:column;min-width:0}
+  html.lg-new .st-ls-page .st-ls-id b{font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .st-ls-page .st-ls-id b small{font-size:12.5px;font-weight:400;color:var(--color-quiet)}
+  html.lg-new .st-ls-page .st-ls-id span,html.lg-new .st-ls-page .st-ls-sub{display:block;font-size:12.5px;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .st-ls-page .st-ls-name{font-weight:var(--w-label)}
+  html.lg-new .st-ls-page :is(.st-ls-q,.st-ls-dash){color:var(--color-quiet)}
+  html.lg-new .st-ls-page .st-ls-owed{color:var(--st-amber-fg)}
+  html.lg-new .st-ls-page .st-ls-none{padding:18px 12px;color:var(--color-quiet);cursor:default}
+  html.lg-new .st-ls-page .st-ls-foot{margin:12px 0 0;font-size:12.5px;color:var(--color-quiet);max-width:72ch}
+  html.lg-new .st-ls-page .st-ls-small{margin:4px 0 0;font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new .st-ls-page .st-ls-ticks{display:inline-flex;gap:10px;font-size:12.5px}
+  html.lg-new .st-ls-page .st-ls-ticks i{font-style:normal;width:12px;text-align:center}
+  html.lg-new .st-ls-page .st-ls-ticks .is-yes{color:var(--st-green-fg)}
+  html.lg-new .st-ls-page .st-ls-ticks .is-no{color:var(--color-neutral-400)}
+  html.lg-new .st-ls-page .st-ls-sheet th{white-space:normal;font-size:12px;line-height:1.25}
+  html.lg-new .st-ls-page .st-ls-sheet td{padding:11px 8px;font-size:13px}
+  html.lg-new .st-ls-page .st-ls-sheet th{padding:8px}
+  html.lg-new .st-ls-page .st-ls-sheet .st-sh-sub{display:block;font-size:12px;color:var(--color-quiet)}
+  html.lg-new .st-ls-page .st-ls-brings{display:flex;flex-wrap:wrap;gap:6px}
+  html.lg-new .st-ls-page .st-ls-strm{display:flex;align-items:center;gap:10px;min-width:0}
+  html.lg-new .st-ls-page .st-ls-strm > i{width:8px;height:8px;border-radius:50%;flex:none}
+  html.lg-new .st-ls-page .st-ls-strm b{font-weight:var(--w-label)}
+  html.lg-new .st-ls-page .st-ls-fields{display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;margin:16px 0 0}
+  html.lg-new .st-ls-page .st-ls-f{display:flex;flex-direction:column;gap:3px;min-width:150px;flex:1 1 150px}
+  html.lg-new .st-ls-page .st-ls-f > span{font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new .st-ls-page .st-ls-f :is(input,select){border:0;border-bottom:1px solid var(--fld-under-c,var(--color-neutral-300));border-radius:0;background-color:transparent;padding:5px 22px 5px 0;font:inherit;font-size:14px;color:var(--color-text);box-shadow:none;outline:0;height:auto}
+  html.lg-new .st-ls-page .st-ls-trbtn{flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+  html.lg-new .st-ls-page .st-ls-figs{display:flex;gap:32px;flex-wrap:wrap;margin:20px 0 0}
+  html.lg-new .st-ls-page .st-ls-fig{display:flex;flex-direction:column;gap:2px}
+  html.lg-new .st-ls-page .st-ls-fig span{font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new .st-ls-page .st-ls-fig b{font-size:22px;font-weight:var(--w-label);line-height:1.15}
+  html.lg-new .st-ls-page .st-ls-past{margin:22px 0 0}
+  html.lg-new .st-ls-page .st-ls-past .st-ps-tb{width:100%}
+  html.lg-new .st-ls-page .st-ls-lnk{display:inline-flex;align-items:center;gap:6px;color:var(--accent-ink);font-weight:var(--w-label);font-size:13.5px;white-space:nowrap}
+  html.lg-new .st-ls-page .st-ls-bk tbody tr{cursor:default}
+  html.lg-new .st-ls-page .st-ls-bk tbody tr:hover td{background:none}
+  /* Jambo's panel beside the six pages: the area's own (no cards), a bar and its legend where a page draws one */
+  html.lg-new .st-ls-p .st-ls-bar,html.lg-new .st-ls-page .st-ls-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;gap:2px;background:var(--surface-2)}
+  html.lg-new .st-ls-p .st-ls-bar i{display:block;min-width:0;background:var(--color-neutral-300)}
+  html.lg-new .st-ls-p .st-ls-bar i.is-green{background:var(--st-green-dot)}
+  html.lg-new .st-ls-p .st-ls-legend{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;font-size:12.5px}
+  html.lg-new .st-ls-p .st-ls-legend span{display:inline-flex;align-items:center;gap:6px;min-width:0}
+  html.lg-new .st-ls-p .st-ls-legend i{width:8px;height:8px;border-radius:50%;flex:none}
+  html.lg-new .st-ls-p .st-ls-legend b{font-weight:var(--w-label)}
+  html.lg-new .st-ls-p .st-ls-small{margin:6px 0 0;font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new .st-ls-p .st-ls-go{margin-top:6px}
+  html.lg-new .st-ls-p .st-ls-go[disabled]{opacity:.45;cursor:not-allowed}
+  /* How our contracts look (P-45): Settings' head; the sentence box is the ask box; the chips dressed as the head's
+     chips; the editing as it was — the paper in the middle, its settings beside it, their names small and caps */
+  html.lg-new .st-ls-page .cl-pg.is-ls .cl-said:empty{display:none}
+  html.lg-new .st-ls-page .cl-pg.is-ls .cl-said{margin:0 0 8px;font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new .st-ls-page .cl-pg.is-ls .cl-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 4px;align-self:stretch}
+  html.lg-new .st-ls-page .cl-pg.is-ls .cl-chip{border:1px dashed var(--color-neutral-300);background:none;color:var(--color-text);border-radius:999px;height:28px;padding:0 11px;font-size:13px;font-weight:var(--w-label)}
+  html.lg-new .st-ls-page .cl-pg.is-ls .cl-chip.is-on{border-style:solid;border-color:var(--color-neutral-400);background:none;color:var(--color-text)}
+  html.lg-new .st-ls-page .cl-pg.is-ls .cl-body{padding:12px 0 0}
+  html.lg-new .st-ls-page .cl-pg.is-ls .cl-note b{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new .st-ls-page .cl-pg.is-ls .cl-note > span{font-size:13px;color:var(--color-text)}
   html.lg-new .sdd5-p .jov5[data-jov-slot="stn"] .jov5-title{font-family:var(--font-body);font-size:16px;line-height:1.3;font-weight:var(--w-label);letter-spacing:0}
   html.lg-new .sdd5-p .jov5[data-jov-slot="stn"] .jov5-label{font-size:13px;font-weight:var(--w-strong);color:var(--color-text);letter-spacing:0;text-transform:none}
   html.lg-new .sdd5-p .jov5[data-jov-slot="stn"] .jov5-group > .jov5-row + .jov5-row::before{display:none}

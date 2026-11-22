@@ -1864,6 +1864,7 @@ function stStreamsPageHtml(){
   </div>`;
 }
 function stSwRepaint(){
+  if(stLsOn()&&document.querySelector('#set-page.st-ls-page')){ stLsRepaint(); return; }
   const tb=document.getElementById('st-sw-tb'); if(!tb) return;
   tb.innerHTML=stSwTableHtml();
   const n=document.getElementById('st-sw-n'); if(n) n.textContent=String(stSwShown(stSwRows()).length);
@@ -2052,7 +2053,7 @@ async function stArLoadUse(force){
   _stAr.busy=false;
   stArRepaint();
 }
-function stArRepaint(){ if(_stPage==='sheet'&&document.querySelector('[data-st-pg="sheet"]')) renderTeam(); }
+function stArRepaint(){ if(_stPage==='sheet'&&document.querySelector('[data-st-pg="sheet"]')){ if(stLsOn()&&document.querySelector('#set-page.st-ls-page')) stLsRepaint(); else renderTeam(); } }
 const stArDays=t=>{ const ms=Date.parse(t||''); return Number.isFinite(ms)?Math.floor((Date.now()-ms)/864e5):null; };
 /* one line per person: what of theirs went unused for 90 days, or when they
    last used HaTi — never a guess: where nothing is on record it says so */
@@ -2276,6 +2277,468 @@ function stCompanyHtml(){
     ${stGovLadderHtml()}
     ${stSheetCardHtml()}
   </div>`;
+}
+
+/* ============================================================
+   THE SIX PAGES INSIDE SETTINGS, THE LEGORA + STRIPE WAY (P-45, owner's pick 22 Nov 2026: "Build them all in one
+   batch"; drawing https://claude.ai/artifact/7AEGbWRsBS6jzbb8RUD2jt)
+   ============================================================
+   People · Who holds what · Roles · Contract streams · How our contracts look · Data & backup, drawn in the area's own
+   frame (the shell stnPaint draws): the way back on the line "‹ Settings" stands on over an area, the serif title with
+   its line, a plain filter box (the top box filters, Jambo's box asks), chips with their counts, one calm table, no button on a row (a row chooses, a second press
+   opens its sheet from the right, as each did before), and Jambo's panel without cards: the page in a sentence, a small
+   ring or bar, what needs you as rows, the page's one act once. Every column, filter and door the pages had is kept;
+   Re-file · New paper · Hold share one column of three ticks; Keep · Change move from every row of Who holds what to
+   the panel; Contract streams' two dropdowns become chips. NO MOTION (as the rest of Settings). How our contracts look
+   keeps its editing as it was: the paper in the middle, its settings beside it (owner, 22 Nov 2026). Nothing here
+   writes: every press is a door the pages already had. */
+const ST_LS_PAGES=['team','sheet','roles','streams','look','data'];
+function stLsOn(){
+  if(typeof _stPage==='undefined'||!ST_LS_PAGES.includes(_stPage)) return false;
+  if(!stIsAdmin()||settingsTab()!=='company') return false;
+  return typeof newLookOn==='function'&&newLookOn();
+}
+/* per page, per sitting: the chip in front, the ask box's words, the row chosen */
+const _stLs={ chip:{}, q:{}, pick:{} };
+const stLsChip=pg=>_stLs.chip[pg]||'all';
+const stLsQ=pg=>String(_stLs.q[pg]||'');
+const stLsPick=pg=>_stLs.pick[pg]||null;
+const stLsIni=u=>String((u&&(u.name||u.email))||'?').split(/\s+/).filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+const stLsBadge=(t,tone,dot)=>`<span class="apn-st is-${tone||'grey'}">${dot?'<i></i>':''}${esc(t)}</span>`;
+const stLsHay=(...xs)=>xs.filter(Boolean).join(' ').toLocaleLowerCase();
+function stLsQFits(pg, hay){ const q=stLsQ(pg).trim().toLocaleLowerCase(); return !q||q.split(/\s+/).every(w=>String(hay||'').includes(w)); }
+/* THE HEAD, the area's own: the way back (to the area, landing on the row that opened the page), the serif title with
+   the page's one act beside it, its line, tabs where the page has them, the ask box and the chips */
+function stLsHeadHtml(o){
+  const ar=sddPageArea()||(o&&o.area)||'company', row=SDD_PAGE_ROW[_stPage]||'';
+  const chips=(o.chips||[]).filter(c=>c&&(c.k==='all'||c.n||c.k===o.chip));
+  return `<div class="sdd-head st-ls-head">
+    <button type="button" class="sdd-back st-ls-back" data-st-page="" data-sdd-to="${esc(ar)}"${row?` data-sdd-to-row="${PB_ATTR(row)}"`:''}>‹ ${esc(i18t('sdd_a_'+ar))}</button>
+    <div class="cun-head st-ls-hrow"><h2 class="ctf-h stn-title sdd-title">${esc(o.title)}</h2>${o.acts?`<span class="st-ls-acts">${o.acts}</span>`:''}</div>
+    ${o.sub?`<p class="sdd-sub st-ls-sub">${esc(o.sub)}</p>`:''}
+    ${o.tabs||''}
+    ${o.ask?`<label class="apn-ask sdd-find st-ls-find is-filter"><span class="sdd-find-ic" aria-hidden="true">${typeof icon==='function'?icon('search','sdd-spark-ic'):''}</span><input id="${o.ask.id}" type="search" autocomplete="off" placeholder="${esc(o.ask.ph)}" aria-label="${esc(o.ask.ph)}" value="${esc(o.ask.value||'')}"${o.ask.attr?' '+o.ask.attr:''}></label>`:''}
+    ${o.askHtml||''}
+    ${chips.length?`<div class="apn-bar sdd-chips st-ls-chips">${chips.map(c=>`<button type="button" class="apn-tab is-chip${o.chip===c.k?' is-on':''}" data-st-ls-chip="${esc(o.page)}:${esc(c.k)}">${c.amber?'<i class="apn-cd is-amber" aria-hidden="true"></i>':''}${esc(c.label)} <span>${c.n}</span></button>`).join('')}</div>`:''}
+  </div>`;
+}
+/* People · Who holds what · Roles: one page with three tabs, as today (sddPeopleTabsHtml's three doors) */
+function stLsPeopleTabsHtml(){
+  const t=[['team','sdd_tab_people'],['sheet','st_pg_sheet']].concat(typeof stBzOn==='function'&&stBzOn()?[['roles','st_pg_roles']]:[]);
+  return `<div class="st-ls-tabs" role="tablist">${t.map(([k,w])=>`<button type="button" role="tab" class="st-ls-tab${_stPage===k?' is-on':''}" aria-selected="${_stPage===k?'true':'false'}" data-st-page="${k}">${esc(i18t(w))}</button>`).join('')}</div>`;
+}
+const stLsPeopleTitle=()=>i18t('stn_m_people');
+const stLsPeopleSub=()=>i18t('sdd_co_people_sub');
+
+/* ---- 1 · PEOPLE ---- */
+function stLsPersonGap(u){
+  const me=(typeof currentUser==='function'&&currentUser())||{};
+  const invited=!!(u.prefs&&u.prefs.mustChangePassword)&&u.id!==me.id;
+  const miss=stPersonMissing(u);
+  if(invited) return { t:i18t('st_sh_not_in'), invited:true };
+  if(!miss.length) return null;
+  return { t:miss.length===1?i18t('st_setup_missing',{ what:miss[0] }):i18tn('st_n_missing',miss.length,{ n:miss.length }), title:miss.join(', ') };
+}
+function stLsTeamRows(){
+  const me=(typeof currentUser==='function'&&currentUser())||{};
+  return (getUsers()||[]).map(u=>({ u, me:u.id===me.id, role:u.role, gap:stLsPersonGap(u),
+    hay:stLsHay(u.name,u.email,u.title,roleName(u.role)) }));
+}
+function stLsTeamChips(rows){
+  const n=f=>rows.filter(f).length;
+  return [{ k:'all', label:i18t('ctf_tab_all'), n:rows.length }, { k:'need', label:i18t('sdd_chip_need'), n:n(r=>r.gap), amber:true },
+    { k:'admin', label:i18t('st_ls_admins'), n:n(r=>r.role==='admin') }, { k:'editor', label:i18t('st_ls_editors'), n:n(r=>r.role!=='admin'&&r.role!=='viewer') },
+    { k:'viewer', label:i18t('st_ls_viewers'), n:n(r=>r.role==='viewer') }];
+}
+function stLsTeamFits(r, chip){
+  if(chip==='need') return !!r.gap;
+  if(chip==='admin') return r.role==='admin';
+  if(chip==='editor') return r.role!=='admin'&&r.role!=='viewer';
+  if(chip==='viewer') return r.role==='viewer';
+  return true;
+}
+function stLsTeamTableHtml(){
+  const all=stLsTeamRows(), chip=stLsChip('team'), bz=stBzOn();
+  const rows=all.filter(r=>stLsTeamFits(r,chip)&&stLsQFits('team',r.hay));
+  const body=rows.map(({ u, me, gap })=>{
+    let cap=''; try{ cap=signCapText(u); }catch(_){ cap=''; }
+    const capOwed=(()=>{ try{ return u.role!=='admin'&&u.role!=='viewer'&&!signCapOf(u).answered; }catch(_){ return false; } })();
+    const sa=stApprovalRowText(u);
+    const two=u.twoStep===true?stLsBadge(i18t('st_sh_on'),'green'):u.twoStep===false?stLsBadge(i18t('st_sh_off'),'grey'):'<span class="st-ls-dash">—</span>';
+    return `<tr class="st-person st-ls-row" data-st-panel="person:${PB_ATTR(u.id)}" data-st-hay="${esc(stLsHay(u.name,u.email,u.title,roleName(u.role)))}" tabindex="0">
+      <td><span class="st-ls-who"><span class="st-ls-ini${u.role==='admin'?' is-admin':''}" aria-hidden="true">${esc(stLsIni(u))}</span><span class="st-ls-id"><b>${esc(u.name||u.email)}${me?` <small>${esc(i18t('set_you'))}</small>`:''}</b>${u.name&&u.email?`<span>${esc(u.email)}</span>`:''}</span></span></td>
+      <td>${stLsBadge(roleName(u.role),u.role==='admin'?'steel':'grey')}</td>
+      ${bz?`<td class="st-ls-q" data-st-bz="${PB_ATTR(u.id)}">${esc((stBzOf(u)||{}).name||'—')}</td>`:''}
+      <td>${esc(stAccessOf(u).text)}</td>
+      <td><span class="${capOwed?'st-ls-owed':''}" data-st-cap="${PB_ATTR(u.id)}">${esc(cap)}</span>${sa?`<span class="st-ls-sub" data-st-sa="${PB_ATTR(u.id)}">${esc(sa)}</span>`:''}</td>
+      <td>${two}</td>
+      <td>${gap?`<span class="apn-st is-amber"${gap.title?` title="${esc(gap.title)}"`:''}><i></i>${esc(gap.t)}</span>`:stLsBadge(i18t('st_complete'),'green')}</td>
+    </tr>`; }).join('');
+  return `<table class="st-ls-t st-people-table"><thead><tr><th>${esc(i18t('st_ls_c_person'))}</th><th>${esc(i18t('dir_col_role'))}</th>${bz?`<th>${esc(i18t('bz_col_role'))}</th>`:''}<th>${esc(i18t('st_col_streams'))}</th><th>${esc(i18t('st_col_cap'))}</th><th>${esc(i18t('st_sh_twostep'))}</th><th>${esc(i18t('st_ls_c_setup'))}</th></tr></thead>
+    <tbody class="st-people">${body||`<tr><td colspan="${bz?7:6}" class="st-ls-none">${esc(i18t('st_ls_none'))}</td></tr>`}</tbody></table>`;
+}
+function stLsTeamHtml(){
+  const rows=stLsTeamRows();
+  return stLsHeadHtml({ page:'team', title:stLsPeopleTitle(), sub:stLsPeopleSub(), tabs:stLsPeopleTabsHtml(),
+      acts:`<button type="button" id="st-add-person" class="ui-btn ui-btn-primary" data-st-panel="person:new">${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):''}${esc(i18t('st_ls_add_person'))}</button>`,
+      ask:{ id:'st-people-q', ph:i18t('lh_filter_ph'), value:stLsQ('team') }, chips:stLsTeamChips(rows), chip:stLsChip('team') })
+    +`<div class="st-ls-body" data-st-pg="team" id="st-ls-list">${stLsTeamTableHtml()}</div>`;
+}
+function stLsTeamPanel(){
+  const rows=stLsTeamRows(), n=rows.length, ok=rows.filter(r=>!r.gap).length;
+  const two=rows.filter(r=>r.u.twoStep===true).length;
+  const bar=`<div class="st-ls-bar" aria-hidden="true"><i style="flex:${two}" class="is-green"></i><i style="flex:${n-two}"></i></div><p class="st-ls-small">${esc(two?i18t('st_ls_two_some',{ n:two, m:n }):i18t('st_ls_two_none',{ n }))}</p>`;
+  const need=rows.filter(r=>r.gap).slice(0,6).map(r=>r.gap.invited
+    ? { mark:'', markText:'✉️', tone:'amber', t:stNameOf(r.u), s:i18t('st_ls_resend_s'), attr:`data-st-resend="${PB_ATTR(r.u.id)}"` }
+    : { mark:'', markText:'👤', tone:'amber', t:stNameOf(r.u), s:r.gap.t, attr:`data-st-panel="person:${PB_ATTR(r.u.id)}"` });
+  const more=rows.filter(r=>r.gap).length-need.length;
+  return { eyebrow:stLsPeopleTitle(), title:i18tn('st_ls_team_t',n,{ n }), sub:ok===n?i18t('st_ls_team_all_set'):i18tn('st_ls_team_s',ok,{ n:ok, m:n }),
+    mid:`<div class="sdd5-today">${sdd5RingHtml(ok,n,ok===n?'green':'amber',i18t('st_ls_set_cap'))}<div><b>${esc(i18t('st_ls_set_h'))}</b><span>${esc(i18t('sdd5_done_of',{ n:ok, m:n }))}</span></div></div>`,
+    groups:[{ label:i18t('st_sh_twostep'), rows:[], html:bar }, { label:i18t('sdd5_needs'), rows:need, foot:more>0?{ label:i18tn('st_ls_more',more,{ n:more }), attr:'data-st-ls-chip="team:need"' }:null }] };
+}
+
+/* ---- 2 · WHO HOLDS WHAT ---- */
+function stLsSheetRows(){
+  const a=stAr(), due=stArDue();
+  return stUsers().map(u=>{ const m=a&&a.marks&&a.marks[u.id];
+    const me=(typeof currentUser==='function'&&currentUser())||{};
+    const rev=!due?'':u.id===me.id?'you':!(a.people||[]).includes(u.id)?'':m?(m.v==='keep'?'kept':'changed'):'review';
+    return { u, rev, hay:stLsHay(stNameOf(u),u.email,u.title,roleName(u.role)) }; });
+}
+function stLsSheetChips(rows){
+  if(!stArDue()) return [{ k:'all', label:i18t('ctf_tab_all'), n:rows.length }];
+  const n=k=>rows.filter(r=>r.rev===k).length;
+  return [{ k:'all', label:i18t('ctf_tab_all'), n:rows.length }, { k:'review', label:i18t('st_ls_to_review'), n:n('review'), amber:true },
+    { k:'kept', label:i18t('st_ar_kept'), n:n('kept') }, { k:'changed', label:i18t('st_ar_changed'), n:n('changed') }];
+}
+function stLsSheetTableHtml(){
+  const chip=stLsChip('sheet'), ar=stArOn(), due=stArDue(), pick=stLsPick('sheet');
+  const rows=stLsSheetRows().filter(r=>(chip==='all'||r.rev===chip)&&stLsQFits('sheet',r.hay));
+  const tick=v=>/^—$/.test(String(v))?'<i class="is-no">—</i>':'<i class="is-yes">✓</i>';
+  const revB=k=>k==='review'?stLsBadge(i18t('st_ls_to_review'),'amber'):k==='kept'?stLsBadge(i18t('st_ar_kept'),'green'):k==='changed'?stLsBadge(i18t('st_ar_changed'),'steel'):k==='you'?stLsBadge(i18t('st_ls_you'),'grey'):'';
+  const body=rows.map(({ u, rev })=>{ const c=stSheetCells(u);
+    const bz=(typeof stBzOf==='function'&&stBzOn())?stBzOf(u):null;
+    const aw=((state.away||{}).everyone||[]).find(r=>r&&String(r.userId)===String(u.id)&&r.from<=((state.away||{}).today||todayISO()));
+    return `<tr class="st-ls-row st-sh-row${pick===String(u.id)?' is-chosen':''}" data-st-ls-row="sheet:${PB_ATTR(u.id)}" tabindex="0" aria-pressed="${pick===String(u.id)?'true':'false'}">
+      <td><span class="st-ls-who"><span class="st-ls-ini" aria-hidden="true">${esc(stLsIni(u))}</span><span class="st-ls-id"><b>${esc(stNameOf(u))}</b>${aw?`<span>${esc(i18t('st_sh_away',{ day:stAwayDay(aw.to), who:String(aw.deputyName||'').split(' ')[0] }))}</span>`:''}</span></span></td>
+      <td>${stLsBadge((bz&&bz.name)||u.title||roleName(u.role),u.role==='admin'?'steel':'grey')}${(u.prefs&&u.prefs.mustChangePassword)?`<span class="st-ls-sub">${esc(i18t('st_sh_invited'))}</span>`:''}</td>
+      <td>${c.cap}</td><td>${c.yes}</td><td>${c.checked}</td>
+      <td><span class="st-ls-ticks" title="${esc([i18t('st_sh_refile'),i18t('st_sh_paper'),i18t('st_sh_hold')].join(' · '))}">${tick(c.refile)}${tick(c.paper)}${tick(c.hold)}</span></td>
+      <td>${c.streams}</td>${ar?`<td class="st-ar-cell" data-st-ar-used="${PB_ATTR(u.id)}">${stArUsedHtml(u)}</td>`:''}${due?`<td>${revB(rev)}</td>`:''}</tr>`; }).join('');
+  const th=k=>`<th>${esc(i18t(k))}</th>`;
+  return `<table class="st-ls-t st-ls-sheet"><thead><tr>${th('st_sh_person')}${th('st_sh_role')}${th('st_sh_cap')}${th('st_sh_yes_from')}${th('st_sh_checked')}<th>${esc([i18t('st_sh_refile'),i18t('st_sh_paper'),i18t('st_sh_hold')].join(' · '))}</th>${th('st_sh_streams')}${ar?th('st_ar_used'):''}${due?th('st_ar_review'):''}</tr></thead>
+    <tbody>${body||`<tr><td colspan="9" class="st-ls-none">${esc(i18t('st_ls_none'))}</td></tr>`}</tbody></table>
+    <p class="st-ls-foot">${esc(i18t(stArOn()?'st_ar_foot':'st_sh_foot'))}</p>`;
+}
+function stLsSheetHtml(){
+  if(stArOn()&&!_stAr.use&&!_stAr.busy) setTimeout(()=>stArLoadUse(),0);
+  const rows=stLsSheetRows();
+  return stLsHeadHtml({ page:'sheet', title:stLsPeopleTitle(), sub:i18t('sdd_co_sheet_say'), tabs:stLsPeopleTabsHtml(),
+      acts:`<button type="button" class="ui-btn" data-st-sheet-csv>${typeof icon==='function'?icon('download','w-3.5 h-3.5'):''} ${esc(i18t('st_sh_download'))}</button>`,
+      ask:{ id:'st-ls-q', ph:i18t('lh_filter_ph'), value:stLsQ('sheet') }, chips:stLsSheetChips(rows), chip:stLsChip('sheet') })
+    +`<div class="st-ls-body${stArDue()?' is-reviewing':''}" data-st-pg="sheet" id="st-ls-list">${stLsSheetTableHtml()}</div>`;
+}
+function stLsSheetPanel(){
+  const pick=stLsPick('sheet'), u=pick?stUsers().find(x=>String(x.id)===pick):null;
+  if(u){
+    const c=stSheetCells(u), a=stAr(), due=stArDue(), m=a&&a.marks&&a.marks[u.id];
+    const me=(typeof currentUser==='function'&&currentUser())||{};
+    const txt=h=>sddTxt(h);
+    const facts=[{ k:i18t('st_sh_role'), t:roleName(u.role) }, { k:i18t('st_sh_cap'), t:txt(c.cap) }, { k:i18t('st_sh_yes_from'), t:txt(c.yes) },
+      { k:i18t('st_sh_checked'), t:txt(c.checked) }, { k:i18t('st_sh_streams'), t:txt(c.streams) },
+      { k:[i18t('st_sh_refile'),i18t('st_sh_paper'),i18t('st_sh_hold')].join(' · '), t:[c.refile,c.paper,c.hold].map(txt).join(' · ') }]
+      .concat(stArOn()?[{ k:i18t('st_ar_used'), t:txt(stArUsedHtml(u)) }]:[]).map(x=>Object.assign({ wrap:true },x));
+    const inReview=due&&u.id!==me.id&&(a.people||[]).includes(u.id);
+    return { before:sdd5Tags([[roleName(u.role),u.role==='admin'?'steel':'grey'], inReview?(m?[i18t(m.v==='keep'?'st_ar_kept':'st_ar_changed'),'green']:[i18t('st_ls_to_review'),'amber',true]):null]),
+      title:stNameOf(u), sub:i18t('st_ls_sheet_person_s'),
+      act:inReview?{ label:i18t(m&&m.v==='keep'?'st_ar_kept':'st_ar_keep'), attr:`data-st-ar="keep" data-st-ar-who="${PB_ATTR(u.id)}"`, link:{ label:i18t(m&&m.v==='change'?'st_ar_changed':'st_ar_change'), attr:`data-st-ar="change" data-st-ar-who="${PB_ATTR(u.id)}"` } }
+        :{ label:i18t('st_ls_open_person'), attr:`data-st-panel="person:${PB_ATTR(u.id)}"` },
+      groups:[{ label:'', rows:facts }] };
+  }
+  if(stArDue()){
+    const a=stAr(), n=stArCount(), left=n.total-n.done;
+    const done=`<button type="button" class="jov5-go st-ls-go" id="st-ar-done"${left?` disabled aria-disabled="true" title="${esc(i18tn('st_ar_left',left,{ n:left }))}"`:''}>${esc(i18t('st_ar_mark_done'))}</button>`;
+    return { before:sdd5Tags([[i18t('st_ls_review_tag',{ q:stArLabel(a.quarter) }),'amber']]), title:i18t('st_ls_reviewed',{ n:n.done, m:n.total }), sub:i18t('st_ls_review_s'),
+      mid:`<div class="sdd5-today">${sdd5RingHtml(n.done,n.total,left?'amber':'green',i18t('st_ls_reviewed_cap'))}<div><span>${esc(left?i18tn('st_ar_left',left,{ n:left }):i18t('st_ar_all_in'))}</span>${done}</div></div>` };
+  }
+  const gaps=stUsers().filter(u=>stSheetCells(u).gap);
+  return { eyebrow:i18t('st_pg_sheet'), title:i18t('sdd_co_sheet_say'), sub:stArHeadSub(),
+    groups:gaps.length?[{ label:i18t('sdd5_needs'), rows:gaps.slice(0,6).map(u=>({ mark:'', markText:'📋', tone:'amber', t:stNameOf(u), s:i18t('st_ls_gap_s'), attr:`data-st-panel="person:${PB_ATTR(u.id)}"` })) }]:[] };
+}
+
+/* ---- 3 · ROLES ---- */
+function stLsRolesRows(){ return stBzBook().roles.map(r=>({ r, n:stBzHolders(r.id).length, hay:stLsHay(r.name,stBzSummary(r)) })); }
+function stLsRolesTableHtml(){
+  const chip=stLsChip('roles'), pick=stLsPick('roles');
+  const rows=stLsRolesRows().filter(x=>(chip==='all'||(chip==='used'?x.n>0:x.n===0))&&stLsQFits('roles',x.hay));
+  if(!stBzBook().roles.length) return `<p class="st-ls-none st-bz-empty">${esc(i18t('bz_page_empty'))}</p>`;
+  return `<table class="st-ls-t st-bz-table"><thead><tr><th>${esc(i18t('bz_col_role'))}</th><th>${esc(i18t('bz_col_brings'))}</th><th class="r">${esc(i18t('bz_col_people'))}</th></tr></thead><tbody>${
+    rows.map(({ r, n })=>`<tr class="st-ls-row${pick===String(r.id)?' is-chosen':''}" data-st-ls-row="roles:${PB_ATTR(r.id)}" tabindex="0" aria-pressed="${pick===String(r.id)?'true':'false'}">
+      <td><b class="st-ls-name">${esc(r.name)}</b></td><td><span class="st-ls-brings">${stBzBrings(r).map(w=>stLsBadge(w,'grey')).join('')}</span></td><td class="r${n?'':' st-ls-q'}">${n}</td></tr>`).join('')
+    ||`<tr><td colspan="3" class="st-ls-none">${esc(i18t('st_ls_none'))}</td></tr>`}</tbody></table>`;
+}
+function stLsRolesHtml(){
+  const rows=stLsRolesRows(), n=k=>rows.filter(k).length;
+  return stLsHeadHtml({ page:'roles', title:stLsPeopleTitle(), sub:i18t('bz_page_sub_line'), tabs:stLsPeopleTabsHtml(),
+      acts:`<button type="button" class="ui-btn ui-btn-primary" data-st-panel="role:new">${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):''} ${esc(i18t('bz_new'))}</button>`,
+      ask:{ id:'st-ls-q', ph:i18t('lh_filter_ph'), value:stLsQ('roles') },
+      chips:[{ k:'all', label:i18t('ctf_tab_all'), n:rows.length }, { k:'used', label:i18t('st_ls_in_use'), n:n(x=>x.n>0) }, { k:'unused', label:i18t('st_ls_unused'), n:n(x=>x.n===0) }], chip:stLsChip('roles') })
+    +`<div class="st-ls-body" data-st-pg="roles" id="st-ls-list">${stLsRolesTableHtml()}<p class="st-ls-foot">${esc(i18t('bz_page_foot'))}</p></div>`;
+}
+function stLsRolesPanel(){
+  const pick=stLsPick('roles'), r=pick?stBzRole(pick):null;
+  if(r){ const who=stBzHolders(r.id);
+    return { eyebrow:i18t('st_pg_roles'), title:r.name, sub:i18t('st_ls_role_s',{ what:stBzSummary(r) }), act:{ label:i18t('st_you_change'), attr:`data-st-panel="role:${PB_ATTR(r.id)}"` },
+      groups:[{ label:i18t('st_ls_holds_it'), rows:who.length?who.map(u=>({ mark:'', markText:stLsIni(u), tone:'steel', t:stNameOf(u), attr:`data-st-panel="person:${PB_ATTR(u.id)}"` })):[{ t:i18t('st_ls_nobody_holds'), wrap:true }] },
+        { label:i18t('sdd5_if_h'), rows:[{ t:i18t('st_ls_role_if'), wrap:true }] }] };
+  }
+  const n=stBzBook().roles.length;
+  return { eyebrow:i18t('st_pg_roles'), title:n?i18tn('st_ls_roles_t',n,{ n }):i18t('st_ls_roles_none'), sub:i18t('sdd_co_roles_say'),
+    groups:[{ label:'', rows:[{ t:i18t('bz_page_foot'), wrap:true }] }] };
+}
+
+/* ---- 4 · CONTRACT STREAMS (the dropdowns as chips; the row chooses, as before) ---- */
+function stLsSwFits(r, chip){
+  if(chip==='everyone') return !r.priv; if(chip==='named') return r.priv;
+  if(chip==='keep') return r.years!=null; if(chip==='due') return !!r.due;
+  return true;
+}
+function stLsSwChips(rows){
+  const n=k=>rows.filter(r=>stLsSwFits(r,k)).length;
+  return [{ k:'all', label:i18t('ctf_tab_all'), n:rows.length }, { k:'everyone', label:i18t('st_ls_sw_everyone'), n:n('everyone') },
+    { k:'named', label:i18t('st_ls_sw_named'), n:n('named') }, { k:'keep', label:i18t('st_ls_sw_keep'), n:n('keep') }, { k:'due', label:i18t('st_ls_sw_due'), n:n('due'), amber:true }];
+}
+function stLsSwTableHtml(){
+  const all=stSwRows(), chip=stLsChip('streams'), kpRead=!!(_stKp.data&&_stKp.data.streams);
+  const rows=stSwShown(all).filter(r=>stLsSwFits(r,chip));
+  const dash='<span class="st-ls-q">—</span>', num=v=>v==null?dash:esc(String(v));
+  const who=r=>r.priv?`${esc(i18t('st_sw_named',{ n:r.named }))}${r.mine?'':` <span class="st-ls-q">· ${esc(i18t('st_sw_not_you'))}</span>`}`
+    :`${esc(i18t('st_ls_sw_given'))} <span class="st-ls-q">· ${esc(i18tn('st_ls_people_n',r.seers,{ n:r.seers }))}</span>`;
+  const body=rows.map(r=>`<tr class="st-ls-row st-sw-row${_stSwPick===r.id?' is-picked is-chosen':''}" data-st-sw-pick="${PB_ATTR(r.id)}" tabindex="0" aria-selected="${_stSwPick===r.id}">
+      <td><span class="st-ls-strm"><i style="background:${esc(r.color||'var(--color-neutral-400)')}" aria-hidden="true"></i><b>${esc(r.name)}</b>${r.priv?stLsBadge(i18t('st_ps_private'),'steel'):''}</span></td>
+      <td>${who(r)}</td><td class="r">${r.shut?`<span class="st-ls-q">${esc(i18t('st_sw_not_counted'))}</span>`:num(r.contracts)}</td>
+      <td>${r.years!=null?stLsBadge(stKpYearsWord(r.years),'green'):stLsBadge(i18t('st_sw_no_period'),'grey')}</td>
+      <td class="r">${r.due?`<span class="st-ls-owed">${r.due}</span>`:num(r.shut?null:(r.due==null?0:r.due))}</td><td class="r">${kpRead&&!r.shut?num(r.held):dash}</td></tr>`).join('')
+    ||`<tr><td colspan="6" class="st-ls-none">${esc(i18t('st_sw_none'))}</td></tr>`;
+  return `<table class="st-ls-t st-sw-tb"><thead><tr><th>${esc(i18t('st_sw_c_stream'))}</th><th>${esc(i18t('st_sw_c_who'))}</th><th class="r">${esc(i18t('st_sw_c_contracts'))}</th>
+    <th>${esc(i18t('st_sw_c_kept'))}</th><th class="r">${esc(i18t('st_sw_c_due'))}</th><th class="r">${esc(i18t('st_sw_c_onhold'))}</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+function stLsStreamsHtml(){
+  const rows=stSwRows();
+  return stLsHeadHtml({ page:'streams', title:i18t('st_sw_title'), sub:i18t('st_ls_sw_sub'),
+      acts:`<button type="button" class="ui-btn ui-btn-primary" data-st-panel="stream:new" data-st-focus="#st-stream-name">${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):''} ${esc(i18t('st_sw_new'))}</button>`,
+      ask:{ id:'st-sw-q', ph:i18t('lh_filter_ph'), value:_stSw.q }, chips:stLsSwChips(rows), chip:stLsChip('streams') })
+    +`<div class="st-ls-body" data-st-pg="streams"><div id="st-sw-tb">${stLsSwTableHtml()}</div></div>`;
+}
+function stLsStreamPanel(fid){
+  const f=FOLDERS[fid]; if(!f) return null;
+  const r=stSwRows().find(x=>x.id===fid)||{};
+  const d=_stKp.data, s=(d&&d.streams&&d.streams[fid])||null, saved=stKpSaved(fid);
+  const seers=r.priv?stPsIds(stPsSaved(fid)).map(id=>stUsers().find(u=>String(u.id)===String(id))).filter(Boolean):stUsers().filter(u=>typeof canAccessFolder==='function'&&canAccessFolder(fid,u));
+  const kept=saved?i18t(saved.then==='archive'?'st_swp_kept_archive':'st_swp_kept_delete',{ period:stKpYearsWord(saved.years) }):i18t('st_sw_no_period');
+  const loading=stKpOn()&&!d;
+  const due=(!r.shut&&s&&saved)?s.due:[], held=(!r.shut&&s)?s.held:[];
+  const facts=[{ k:i18t('st_sw_c_contracts'), t:r.shut?i18t('st_sw_not_counted'):String(r.contracts==null?'—':r.contracts) },
+    { k:i18t('st_sw_c_kept'), t:kept, wrap:true },
+    { k:i18t('st_ls_sw_due_hold'), t:r.shut||loading?'—':`${due.length} · ${held.length}` },
+    { k:i18t('sdd_f_history'), t:i18t('sdd_in_trail'), link:(typeof stTrailOn==='function'&&stTrailOn())?{ label:i18t('sdd_see_it'), attr:'data-st-panel="trail"' }:undefined }];
+  const n=due.length, del=saved&&saved.then!=='archive';
+  const groups=[];
+  if(!r.shut&&seers.length) groups.push({ label:i18t('st_ls_sw_who_h'), rows:[{ faces:seers.map(stLsIni), t:seers.length<=3?seers.map(stNameOf).join(', '):i18tn('st_ls_people_n',seers.length,{ n:seers.length }), wrap:true }] });
+  groups.push({ label:'', key:'facts', rows:facts });
+  if(r.shut) groups.push({ label:'', rows:[{ t:i18t('st_swp_shut'), wrap:true }] });
+  if(n) groups.push({ label:i18t('st_sw_c_due'), rows:due.slice(0,6).map(x=>({ mark:'', markText:'📄', tone:'amber', t:`${x.ref} ${x.name||''}`.trim(), s:[x.counterparty, i18t('st_ls_ended',{ day:stAwayDay(x.ended) })].filter(Boolean).join(' · ') })),
+    foot:{ label:i18tn(del?'st_kp_delete_n':'st_kp_archive_n',n,{ n }), attr:`data-st-swp-run="${PB_ATTR(fid)}"` } });
+  if(held.length) groups.push({ label:i18t('st_swp_hold'), rows:held.slice(0,6).map(x=>({ mark:'', markText:'🔒', tone:'steel', t:`${x.ref} ${x.name||''}`.trim(), s:i18t('st_swp_held_since',{ day:stAwayDay(x.since) }), attr:`data-st-swp-open="${PB_ATTR(x.id)}"` })) });
+  groups.push({ label:i18t('sdd5_if_h'), rows:[{ t:i18t('st_ls_sw_if'), wrap:true }] });
+  return { before:sdd5Tags([[r.priv?i18t('st_ps_private'):i18t('st_ls_sw_open_all'),r.priv?'steel':'green'], [saved?stKpYearsWord(saved.years):i18t('st_ls_sw_no_keep'),saved?'green':'grey']]),
+    title:f.name, sub:r.shut?i18t('st_swp_shut'):i18t('st_ls_sw_one_s',{ who:i18tn('st_ls_people_n',seers.length,{ n:seers.length }), n:r.contracts==null?0:r.contracts }),
+    act:{ label:i18t('st_you_change'), attr:`data-st-panel="stream:${PB_ATTR(fid)}"` }, groups };
+}
+function stLsStreamsPanel(){
+  if(_stSwPick){ const o=stLsStreamPanel(_stSwPick); if(o) return o; }
+  const rows=stSwRows(), counted=rows.filter(r=>!r.shut&&r.contracts), total=counted.reduce((a,r)=>a+(r.contracts||0),0);
+  const anyKeep=rows.some(r=>r.years!=null);
+  const bar=total?`<div class="st-ls-bar" aria-hidden="true">${counted.map(r=>`<i style="flex:${r.contracts};background:${esc(r.color||'var(--color-neutral-400)')}"></i>`).join('')}</div>
+    <div class="st-ls-legend">${counted.map(r=>`<span><i style="background:${esc(r.color||'var(--color-neutral-400)')}"></i>${esc(r.name)} <b>${r.contracts}</b></span>`).join('')}</div>
+    ${rows.length>counted.length?`<p class="st-ls-small">${esc(i18tn('st_ls_sw_rest',rows.length-counted.length,{ n:rows.length-counted.length }))}</p>`:''}`:`<p class="st-ls-small">${esc(i18t('st_ls_sw_none_filed'))}</p>`;
+  const needs=sddNeedList(true,'company').filter(x=>x.row==='streams');
+  return { eyebrow:i18t('st_sw_title'), title:i18t('st_ls_sw_t',{ s:i18tn('st_ls_sw_n',rows.length,{ n:rows.length }), c:i18tn('st_ls_ct_n',total,{ n:total }) }),
+    sub:i18t(rows.every(r=>!r.priv)?(anyKeep?'st_ls_sw_s_all_keep':'st_ls_sw_s_all'):(anyKeep?'st_ls_sw_s_some_keep':'st_ls_sw_s_some')),
+    groups:[{ label:i18t('st_ls_sw_where'), rows:[], html:bar }].concat(needs.length?[{ label:i18t('sdd5_needs'), rows:needs.map(x=>{ const w=sdd5NeedSay(x,[]); return { mark:'', markText:'🗂️', tone:'amber', t:w.t, s:w.s, attr:x.btn||'' }; }) }]:[]) };
+}
+
+/* ---- 5 · HOW OUR CONTRACTS LOOK: the page is designstep's (clPageHtml), its head and panel are drawn here ---- */
+function stLsLookPanel(){
+  const f=(typeof window.clFacts==='function')?window.clFacts():null; if(!f) return { title:i18t('cl_title') };
+  const need=[];
+  if(f.admin&&!f.logo) need.push({ mark:'', markText:'🎨', tone:'amber', t:i18t('st_ls_cl_logo'), attr:'data-st-ls-cl="g"' });
+  if(f.admin&&!f.footer) need.push({ mark:'', markText:'🎨', tone:'amber', t:i18t('st_ls_cl_footer'), attr:'data-st-ls-cl="f"' });
+  return { eyebrow:i18t('cl_title'), title:i18t(f.own?'st_ls_cl_t_some':'st_ls_cl_t_all',{ style:f.style }),
+    sub:[f.logo?'':i18t('cl_no_logo'), f.footer?'':i18t('cl_no_footer'), f.company?i18t('st_ls_cl_lh',{ name:f.company }):''].filter(Boolean).join(' · '),
+    mid:`<div class="sdd5-today">${sdd5RingHtml(f.own,f.streams,'green',i18t('st_ls_cl_own_cap'))}<p>${esc(f.own?i18tn('st_ls_cl_own',f.own,{ n:f.own, m:f.streams }):i18t('st_ls_cl_own_none',{ m:f.streams }))}</p></div>`,
+    groups:need.length?[{ label:i18t('sdd5_needs'), rows:need }]:[] };
+}
+
+/* ---- 6 · DATA & BACKUP ---- */
+function stLsDataTabsHtml(){
+  if(!stTrailOn()) return '';
+  return `<div class="st-ls-tabs" role="tablist">${[['trail','st_bk_tab_trail'],['backup','st_bk_tab_backup']].map(([k,w])=>`<button type="button" role="tab" class="st-ls-tab${_stBkTab===k?' is-on':''}" aria-selected="${_stBkTab===k}" data-st-ls-bk="${k}">${esc(i18t(w))}</button>`).join('')}</div>`;
+}
+/* the trail's count said as four figures (the server's own count, never a guess), the streams it leaves out under them */
+function stLsTrailFigsHtml(){
+  const d=_stTr, bad=stTrailBad();
+  if(bad) return `<p class="st-ls-owed">${esc(i18t('st_tr_bad_period'))}</p>`;
+  if(d.sumErr) return `<p class="st-ls-owed">${esc(d.sumErr)}</p>`;
+  if(!d.sum||d.sumKey!==stTrailQuery()) return `<p class="st-ls-small">${(typeof busyHtml==='function')?busyHtml(i18t('st_tr_counting')):esc(i18t('st_tr_counting'))}</p>`;
+  const s=d.sum, loc=(typeof jxLocale==='function')?jxLocale():undefined;
+  const fig=(k,v)=>`<div class="st-ls-fig"><span>${esc(i18t(k))}</span><b>${esc(v)}</b></div>`;
+  const names=stTrailLeftOut();
+  const out=names.length?i18tn('st_tr_left_out_named',names.length,{ names:stListJoin(names) }):s.leftOut?i18tn('st_tr_left_out',s.leftOut,{ n:s.leftOut }):'';
+  return `<div class="st-ls-figs">${fig('st_ls_tr_acts',Number(s.acts).toLocaleString(loc))}${fig('st_ls_tr_streams',String(s.streams))}${fig('st_ls_tr_people',String(s.people))}${fig('st_ls_tr_period',stTrailPeriodWords(d.from,d.to))}</div>${out?`<p class="st-ls-small st-tr-out">${esc(out)}</p>`:''}`;
+}
+function stLsTrailBtnHtml(){
+  const d=_stTr, bad=stTrailBad(), grey=bad||d.busy;
+  return `<button type="button" class="ui-btn ui-btn-primary" id="st-tr-download"${grey?' disabled aria-disabled="true"':''}${bad?` title="${esc(i18t('st_tr_bad_period'))}"`:''}>${
+    d.busy?((typeof busyHtml==='function')?busyHtml(i18t('st_tr_preparing')):esc(i18t('st_tr_preparing'))):`${icon('download','w-3.5 h-3.5')} ${esc(i18t('st_tr_download'))}`}</button>${d.err?`<p class="st-ls-owed st-tr-err">${esc(d.err)}</p>`:''}`;
+}
+function stLsTrailBodyHtml(){
+  const d=_stTr, streams=stTrailStreams();
+  return `<div class="st-ls-fields st-tr-band">
+      <label class="st-ls-f"><span>${esc(i18t('st_tr_from'))}</span><input type="date" id="st-tr-from" value="${esc(d.from)}"/></label>
+      <label class="st-ls-f"><span>${esc(i18t('st_tr_to'))}</span><input type="date" id="st-tr-to" value="${esc(d.to)}"/></label>
+      <label class="st-ls-f"><span>${esc(i18t('st_tr_streams'))}</span><select id="st-tr-stream">
+        <option value="all"${d.stream==='all'?' selected':''}>${esc(i18t('st_tr_all'))}</option>
+        ${streams.map(f=>`<option value="${esc(f.id)}"${d.stream===f.id?' selected':''}>${esc(f.name)}</option>`).join('')}</select></label>
+      <label class="st-ls-f"><span>${esc(i18t('st_tr_as'))}</span><select id="st-tr-as-sel">
+        <option value="csv"${d.as!=='pdf'?' selected':''}>${esc(i18t('st_tr_csv'))}</option>
+        <option value="pdf"${d.as==='pdf'?' selected':''}>${esc(i18t('st_tr_pdf'))}</option></select></label>
+      <div class="st-ls-trbtn" id="st-ls-trbtn">${stLsTrailBtnHtml()}</div>
+    </div>
+    <div id="st-tr-go" class="st-ls-trgo">${stLsTrailFigsHtml()}</div>
+    <div class="st-tr-past st-ls-past" id="st-tr-past">${stTrailPastHtml()}</div>`;
+}
+function stLsBackupBodyHtml(){
+  const api=API_MODE();
+  const row=(t,s,holds,act)=>`<tr><td><b class="st-ls-name">${esc(t)}</b><span class="st-ls-sub">${esc(s)}</span></td><td class="st-ls-q">${esc(holds)}</td><td class="r">${act}</td></tr>`;
+  const dl=typeof icon==='function'?icon('download','w-3.5 h-3.5'):'';
+  return `<table class="st-ls-t st-ls-bk"><thead><tr><th>${esc(i18t('st_ls_bk_c_copy'))}</th><th>${esc(i18t('st_ls_bk_c_holds'))}</th><th></th></tr></thead><tbody>
+      ${row(i18t('set_export_backup'),i18t('st_ls_bk_json'),i18t('st_ls_bk_json_holds'),`<button type="button" class="ui-link st-ls-lnk" id="bk-export">${dl} ${esc(i18t('st_ls_bk_download'))}</button>`)}
+      ${api?row(i18t('set_full_workspace_zip'),i18t('st_ls_bk_zip'),i18t('st_ls_bk_zip_holds'),`<a class="ui-link st-ls-lnk" id="bk-zip" href="api/export/workspace.zip">${dl} ${esc(i18t('st_ls_bk_download'))}</a>`)
+        :row(i18t('set_restore_backup'),i18t('st_ls_bk_json'),i18t('st_ls_bk_restore_holds'),`<label class="ui-link st-ls-lnk" style="cursor:pointer">${typeof icon==='function'?icon('upload','w-3.5 h-3.5'):''} ${esc(i18t('set_restore_backup'))}<input id="bk-import" type="file" accept=".json,application/json" style="display:none"/></label>`)}
+    </tbody></table>
+    <p class="st-ls-foot">${esc(i18t(api?'st_ls_bk_foot':'st_ls_bk_foot_local'))}</p>
+    ${!api?`<div class="st-danger"><button id="bk-reset" class="ui-btn ui-btn-danger">${typeof icon==='function'?icon('ban','w-3.5 h-3.5'):''} ${esc(i18t('set_reset_workspace'))}</button></div>`:''}`;
+}
+function stLsDataHtml(){
+  const trail=stTrailOn();
+  if(trail&&!_stTr.from) Object.assign(_stTr,stTrailDefault());
+  if(!trail) _stBkTab='backup';
+  return stLsHeadHtml({ page:'data', area:'setup', title:i18t('st_p_backup'), sub:i18t('st_ls_data_sub'), tabs:stLsDataTabsHtml() })
+    +`<div class="st-ls-body" data-st-pg="data"><div id="st-bk-pane" class="st-ls-pane">${_stBkTab==='trail'?stLsTrailBodyHtml():stLsBackupBodyHtml()}</div></div>`;
+}
+function stLsDataPanel(){
+  if(_stBkTab!=='trail') return { eyebrow:i18t('st_bk_tab_backup'), title:i18t('st_ls_bk_t'), sub:i18t('st_ls_bk_s'), groups:stLsGoLiveGroups() };
+  const df=stTrailDefault();
+  return { title:stJbDataWords(false), titleAttr:'data-st-jb-hello', sub:'',
+    groups:[{ label:'', rows:[{ mark:'download', t:i18t('st_jb_c_tr_pdf',{ period:stTrailPeriodWords(_stTr.from||df.from,_stTr.to||df.to,true) }), attr:'data-st-tr-pdf=""' },
+      { mark:'sparkle', tone:'dark', t:i18t('st_jb_c_sealed'), attr:'data-st-jb-say="sealed"' }] }].concat(stLsGoLiveGroups()) };
+}
+/* going live, as the landing's ring says it (Set-up and records' one thing that needs you) */
+function stLsGoLiveGroups(){
+  if(!SET_PANELS.golive||typeof stGoLive!=='function') return [];
+  let gl=[]; try{ gl=stGoLive()||[]; }catch(_){ gl=[]; }
+  if(!gl.length) return [];
+  const done=gl.filter(x=>x.ok).length;
+  return [{ label:i18t('sdd5_needs'), rows:[], html:`<div class="sdd5-today">${sdd5RingHtml(done,gl.length,'green',i18t('sdd5_live'))}<div><b>${esc(sddTxt(SET_PANELS.golive.title()))}</b><span>${esc(i18t('sdd5_done_of',{ n:done, m:gl.length }))}</span>${done<gl.length?`<button type="button" class="jov-lnk" data-st-panel="golive">${esc(i18t('sdd5_see_left'))}</button>`:''}</div></div>` }];
+}
+
+/* ---- THE SHELL: the area's frame (stnPaint's), this page's head, list and panel ---- */
+function stLsBodyHtml(){
+  if(_stPage==='team') return stLsTeamHtml();
+  if(_stPage==='sheet') return stLsSheetHtml();
+  if(_stPage==='roles') return stLsRolesHtml();
+  if(_stPage==='streams') return stLsStreamsHtml();
+  if(_stPage==='data') return stLsDataHtml();
+  if(_stPage==='look') return (typeof window.clPageHtml==='function')?window.clPageHtml():'';
+  return '';
+}
+function stLsPanelO(){
+  if(_stPage==='team') return stLsTeamPanel();
+  if(_stPage==='sheet') return stLsSheetPanel();
+  if(_stPage==='roles') return stLsRolesPanel();
+  if(_stPage==='streams') return stLsStreamsPanel();
+  if(_stPage==='look') return stLsLookPanel();
+  if(_stPage==='data') return stLsDataPanel();
+  return null;
+}
+function stLsPanelHtml(){
+  const o=stLsPanelO(); if(!o||typeof jamboOverviewHtml!=='function') return '';
+  const card=jamboOverviewHtml(Object.assign({ actFirst:true }, o),'stn');
+  return `<div class="jl-words is-ov sdd5-p st-ls-p">${o.titleAttr?card.replace('<h3 class="jov5-title">',`<h3 class="jov5-title" ${o.titleAttr}>`):card}</div>`;
+}
+function stLsPanelPaint(){
+  if(!document.getElementById('ins-panel')) return;
+  insPaintPanel({ seat:'team', jlWord:i18t('stn_title'), item:{ id:'settings' }, head:false, tabCount:0, body:stLsPanelHtml() });
+}
+function stLsPaint(admin){
+  const host=document.getElementById('content'); if(!host) return;
+  host.innerHTML=`<div id="set-page" class="view-enter sap-page ap-page is-ins apn-page stn-page sdd-page st-ls-page" data-st-face="company" data-st-sub="${esc(_stPage)}" data-st-ls="${esc(_stPage)}" data-ins-page="team" data-ins="1">
+    <div class="ap-body is-ins"><section class="ap-card apn-card stn-card">
+      <div class="stn-main scroll-thin st-ls-main" id="st-ls-main">${stLsBodyHtml()}</div>
+    </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
+  stWireDrawerOnce();
+  stLsPanelPaint();
+  if(_stPage==='data') stBkWirePane();
+  if(_stPage==='data'&&_stBkTab==='trail'){ stTrailCount(); stTrailList(); }
+  if(_stPage==='streams') stSwLoad();
+  stDressPage();
+  if(_stAsks===null&&typeof stAsksLoad==='function') stAsksLoad();
+  if(typeof insWatchWidth==='function') insWatchWidth();
+  if(typeof setActiveNav==='function') setActiveNav('team');
+  if(typeof syncViewHeight==='function') try{ syncViewHeight(); }catch(_){ /* the page stands */ }
+  if(admin&&typeof stLoadAiCfgOnce==='function') stLoadAiCfgOnce();
+}
+/* the list alone (a chip, the ask box, a row chosen): the head, the box with its words and caret, and the panel stand */
+function stLsListPaint(){
+  const L=document.getElementById('st-ls-list');
+  if(L){ L.innerHTML=_stPage==='team'?stLsTeamTableHtml():_stPage==='sheet'?stLsSheetTableHtml():_stPage==='roles'?stLsRolesTableHtml()+`<p class="st-ls-foot">${esc(i18t('bz_page_foot'))}</p>`:L.innerHTML; }
+  if(_stPage==='streams'){ const tb=document.getElementById('st-sw-tb'); if(tb) tb.innerHTML=stLsSwTableHtml(); }
+}
+/* the whole page drawn again where it stands (a chip's counts, a tab) — the box keeps its words and its caret */
+function stLsRepaint(){
+  const m=document.getElementById('st-ls-main'); if(!m) return;
+  const q=document.activeElement&&document.activeElement.matches&&document.activeElement.matches('#st-ls-main input[type="search"]')?document.activeElement:null;
+  const id=q&&q.id, pos=q?q.selectionStart:0;
+  m.innerHTML=stLsBodyHtml();
+  if(_stPage==='data') stBkWirePane();
+  stDressPage();
+  if(id){ const n=document.getElementById(id); if(n){ n.focus({ preventScroll:true }); try{ n.setSelectionRange(pos,pos); }catch(_){ /* a date */ } } }
+  stLsPanelPaint();
+}
+function stLsChipSet(pg, k){ if(!pg) return; _stLs.chip[pg]=k||'all'; if(pg==='streams') _stSwPick=null; else _stLs.pick[pg]=null; stLsRepaint(); }
+function stLsPickSet(pg, id){ _stLs.pick[pg]=id?String(id):null; stLsListPaint(); stLsPanelPaint(); }
+if(typeof document!=='undefined' && !window._stLsWired){ window._stLsWired=true;
+  document.addEventListener('click',e=>{
+    const t=e.target; if(!t||!t.closest||!t.closest('#set-page.st-ls-page, #ins-panel')||!stLsOn()) return;
+    const ch=t.closest('[data-st-ls-chip]');
+    if(ch){ const [pg,k]=String(ch.getAttribute('data-st-ls-chip')).split(':'); stLsChipSet(pg,k); return; }
+    const bk=t.closest('[data-st-ls-bk]');
+    if(bk){ _stBkTab=bk.getAttribute('data-st-ls-bk')==='trail'?'trail':'backup'; stLsRepaint(); if(_stBkTab==='trail'){ stTrailCount(); stTrailList(); } else if(stTrailOn()) stTrailCount(); return; }
+    if(t.closest('#st-ls-trbtn #st-tr-download')){ stTrailDownload(); return; }
+    const cl=t.closest('[data-st-ls-cl]');
+    if(cl){ if(typeof window.clModeGo==='function') window.clModeGo(cl.getAttribute('data-st-ls-cl')); return; }
+    /* a row of Who holds what or Roles: the first press chooses, the second opens its sheet (a door inside the row goes on) */
+    const row=t.closest('[data-st-ls-row]');
+    if(row&&!t.closest('button,a,input,select,label')){ const [pg,id]=String(row.getAttribute('data-st-ls-row')).split(':');
+      if(stLsPick(pg)===id){ stDrawerOpen((pg==='roles'?'role:':'person:')+id); return; }
+      stLsPickSet(pg,id); return; }
+  });
+  document.addEventListener('keydown',e=>{ const t=e.target; if(!t||!t.matches||!stLsOn()) return;
+    if((e.key==='Enter'||e.key===' ')&&t.matches('#set-page.st-ls-page [data-st-ls-row], #set-page.st-ls-page tr.st-person')){ e.preventDefault(); t.click(); return; }
+    if(e.key==='Escape'&&!_stOpen&&!document.querySelector('#modal-root [role="dialog"]')){ const pg=_stPage; if(stLsPick(pg)){ stLsPickSet(pg,null); } } });
+  /* the ask box narrows the list as typed (THE SETTINGS PAGE HOLDS STILL: only the list is drawn again) */
+  document.addEventListener('input',e=>{ const t=e.target; if(!t||(t.id!=='st-ls-q'&&t.id!=='st-people-q')||!stLsOn()||!t.closest('#set-page.st-ls-page')) return; _stLs.q[_stPage]=t.value; stLsListPaint(); });
 }
 
 /* ============================================================
@@ -3972,6 +4435,7 @@ function stJbDataWords(html){
   return parts.map((w,i)=>(i===0&&counting&&typeof busyHtml==='function')?busyHtml(w):esc(w)).join(' ');
 }
 function stJbDataRepaint(){
+  if(stLsOn()&&_stPage==='data'&&document.querySelector('#set-page.st-ls-page')){ stLsPanelPaint(); return; }
   const el=document.querySelector('#st-jb-feed [data-st-jb-hello]');
   if(el && _stPage==='data') el.innerHTML=stJbDataWords(true);
 }
@@ -4099,7 +4563,8 @@ function stJbLandHtml(){
    lit — the download is still the reader's press, recorded before it leaves */
 function stTrailReadyPdf(){
   if(!(stIsAdmin()&&settingsTab()==='company'&&_stPage==='data')){ _stBkTab='trail'; settingsGoPage('data'); }
-  else if(_stBkTab!=='trail'){ const b=document.querySelector('[data-st-bk-tab="trail"]'); if(b) b.click(); }
+  else if(_stBkTab!=='trail'){ if(stLsOn()&&document.querySelector('#set-page.st-ls-page')){ _stBkTab='trail'; stLsRepaint(); stTrailCount(); stTrailList(); }
+    else { const b=document.querySelector('[data-st-bk-tab="trail"]'); if(b) b.click(); } }
   _stTr.as='pdf';
   const sel=document.getElementById('st-tr-as-sel'); if(sel) sel.value='pdf';
   /* LAND ON IT: Download lit and ready, the one lander's way; it follows the
@@ -4133,6 +4598,7 @@ function stAdminFirstSaid(to){
 }
 /* the feed drawn again for the page in front (a page or face turned) */
 function stJbFeedRepaint(){
+  if(stLsOn()&&document.querySelector('#set-page.st-ls-page')){ stLsPanelPaint(); return; }
   const feed=document.getElementById('st-jb-feed'); if(!feed) return;
   feed.innerHTML=stJbFeedHtml();
   stJbTalkPaint();
@@ -8253,6 +8719,13 @@ function stTrailPastHtml(){
 }
 function stTrailPaint(part){
   const go=document.getElementById('st-tr-go'), past=document.getElementById('st-tr-past');
+  /* P-45: on the new page the count is four figures and the button stands in the row of asks */
+  const lsBtn=document.getElementById('st-ls-trbtn');
+  if(lsBtn){ const had=document.activeElement&&document.activeElement.id==='st-tr-download';
+    if(!part||part==='go'){ if(go) go.innerHTML=stLsTrailFigsHtml(); lsBtn.innerHTML=stLsTrailBtnHtml();
+      if(had){ const b=document.getElementById('st-tr-download'); if(b) try{ b.focus({preventScroll:true}); }catch(_){ /* gone */ } } }
+    if((!part||part==='past')&&past) past.innerHTML=stTrailPastHtml();
+    return; }
   /* the button is drawn again with every count: a readied one stays lit and
      keeps the reader's focus (Jambo's "download … as a PDF") */
   const had=document.activeElement&&document.activeElement.id==='st-tr-download';
@@ -9257,6 +9730,8 @@ function stPagePaint(admin){
      drawn again, and put back after (stDockPaint) — nothing typed is lost */
   { const dr=document.getElementById('st-drawer');
     if(dr && dr.closest && dr.closest('#content')){ if(_stPage==='panel'&&face==='company') document.body.appendChild(dr); else stDockLeave(); } }
+  /* P-45: the six pages inside Settings are drawn in the area's own frame, the Legora + Stripe way */
+  if(stLsOn()){ stLsPaint(admin); return; }
   document.getElementById('content').innerHTML=`
   <div id="set-page" class="view-enter st-page sap-page st-cr${_stSideFold?' is-side-folded':''}" data-st-face="${face}"${sub?` data-st-sub="${sub}"`:''}>
     <div class="st-cr-cols">
@@ -10438,7 +10913,7 @@ async function loadSessions(){
    the else branch and nobody catches it — the lesson rlPaperFootHtml taught
    this codebase for a year. openMyAccount and openSettingsAt are the two doors
    the shell calls; SET_PANELS and the readers beside it are what the tests read. */
-Object.assign(window,{stNeedGo,stNeedDoorEl,stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsPlace,settingsPlacePut,stAgentsPaint,ST_AGENT_KEYS,AG_MONEY_NOTE_KEYS,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
+Object.assign(window,{stLsOn,stLsHeadHtml,stLsPanelPaint,stLsRepaint,ST_LS_PAGES,stNeedGo,stNeedDoorEl,stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsPlace,settingsPlacePut,stAgentsPaint,ST_AGENT_KEYS,AG_MONEY_NOTE_KEYS,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
   renderPlaybookView,openPlaybookEditor,stdPositionOpen,pbRemoveType,pbResetPlaybook,stdRemoveClause,stdDraftSetOpen,
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   stRulesRows,stPaintRules,stPaintSignFolders,
@@ -10990,6 +11465,7 @@ if(typeof document!=='undefined' && !document._sddWired){ document._sddWired=tru
 function stnPanelHtml(admin){ return sddCardHtml(admin); }
 function stnPanelPaint(){
   if(!document.getElementById('ins-panel')) return;
+  if(stLsOn()&&document.querySelector('#set-page.st-ls-page')){ stLsPanelPaint(); return; }
   insPaintPanel({ seat:'team', jlWord:i18t('stn_title'), item:{ id:'settings' }, head:false, tabCount:0, body:stnPanelHtml(stIsAdmin()) });
 }
 function stnPaint(admin){
