@@ -158,7 +158,9 @@ describe('f731 (7) a reminder names only somebody the server would mail', () => 
   });
   test('the reminder sentence and the agents page ask the same', () => {
     const ob = strip(R('js/obligations.js'));
-    assert.equal((ob.match(/const m = obligationReachable\(obligationReminderTo\(o\), c\);/g) || []).length, 2, 'the sentence and the one line');
+    /* RE-POINTED 22 Nov 2026 (f1181): a duty owed to us reads its watcher the same way, in obTheirsPlan — three asks */
+    assert.equal((ob.match(/const m = obligationReachable\(obligationReminderTo\(o\), c\);/g) || []).length, 3, 'the sentence, the one line and their side\'s plan');
+    assert.match(fnOf(R('js/obligations.js'), 'obTheirsPlan'), /const m = obligationReachable\(obligationReminderTo\(o\), c\);/, 'their side asks it too');
     assert.match(fnOf(R('js/views/agents.js'), 'agForName'), /canAccessFolder\(c\.folder \|\| '', to0\)/);
     assert.match(strip(fnOf(R('js/views/agents.js'), 'agForName')), /const ow = to \? null : obligationOwnerTo\(c\)/, 'the owner the same way');
   });
