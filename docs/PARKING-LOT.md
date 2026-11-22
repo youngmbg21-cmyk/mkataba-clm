@@ -458,6 +458,15 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
 - **Where it came from:** the owner, 22 Nov 2026.
 - **Notes:** a design question. Ask first which parts of the Dossier the owner means (for example its one card at the top with the stage and the next step, the paper centred with notes beside it, or Jambo's panel in five parts). Then follow the design rules: real photos of the builder as it is today, the four ways (SAP, Legora, Stripe, Legora + Stripe) drawn on those photos, and the owner picks one. Jambo's box stays at the foot of the panel. The builder's own rules hold: Jambo writes only on a press and nothing reaches the paper without a person accepting it; sections move whole; Publish asks the look once.
 
+### P-47 · Onboarding a person ends with a summary pop-up; every folder is marked sensitive or not
+- **Added:** 22 Nov 2026 · **Status:** Waiting
+- **What:** the owner's words: "Add a safe guard so that when you onboard a person and give them the access, before you complete the job, a summary pop up advising you of what you have done. Also add that each folder that is built should be marked as sensitive or not so that this information appears in the summary pop during the onboarding."
+  1. **A summary before you finish:** when an admin adds a person and gives them access, a pop-up shows everything they are about to give before it is saved: role, folders (streams), what they may do (signing cap, approvals, re-filing and the other grants). The admin confirms or goes back.
+  2. **Each folder marked sensitive or not:** every folder carries a yes/no mark, and the summary shows which of the person's folders are sensitive.
+- **Where it came from:** the owner, 22 Nov 2026.
+- **Open question:** HaTi already has PRIVATE STREAMS (Settings › Company › Streams › a stream's Access: "Only the people named here", every open recorded). The owner did not know about it and asked to see it (22 Nov 2026). Decide whether "sensitive" is that same setting or a new mark that changes nothing about who can see the folder.
+- **Notes:** a design question: photos of today's add-a-person screens first, then options, then the owner picks. The pop-up is built the Legora way (`lgpOpen`). Settings, the Handbook (both languages) and the flow map change with it.
+
 ## Done
 
 ### P-20 · Remove "Workspace" from the navigation panel
