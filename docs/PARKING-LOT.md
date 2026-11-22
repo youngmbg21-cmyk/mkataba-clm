@@ -452,6 +452,12 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
 - **Where it came from:** the owner, 21 Nov 2026.
 - **Notes:** to settle before building: which file types (for example Excel, Word, PDF, CSV), and whether copying stays as one of the choices. Sending to colleagues: inside the company only, never the other side; walls hold (each colleague sees only the contracts their streams allow, private streams and code names stay hidden, money only for those with money rights); a send should leave a record and reach the colleague where they look (the bell), not only an email (flow rules 3, 6, 8). Built the Legora way as a pop-up (`lgpOpen`). The Handbook's Discover chapter (its picture marks Export) changes with it.
 
+### P-46 · The template builder page gets an upgrade like the Dossier page
+- **Added:** 22 Nov 2026 · **Status:** Waiting
+- **What:** the owner's words: "Give builder page and improvement similar to the dossier page." The page where a company template is written (the template builder: the paper in the middle, Jambo's panel beside it) gets the same kind of improvement the contract's Dossier page has had.
+- **Where it came from:** the owner, 22 Nov 2026.
+- **Notes:** a design question. Ask first which parts of the Dossier the owner means (for example its one card at the top with the stage and the next step, the paper centred with notes beside it, or Jambo's panel in five parts). Then follow the design rules: real photos of the builder as it is today, the four ways (SAP, Legora, Stripe, Legora + Stripe) drawn on those photos, and the owner picks one. Jambo's box stays at the foot of the panel. The builder's own rules hold: Jambo writes only on a press and nothing reaches the paper without a person accepting it; sections move whole; Publish asks the look once.
+
 ## Done
 
 ### P-20 · Remove "Workspace" from the navigation panel
