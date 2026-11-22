@@ -512,6 +512,16 @@ describe('f745 (7) the Board greets you and says the latest', () => {
   /* RE-POINTED AGAIN 11 Nov 2026 (owner: "move the summary back to having its own card like in image 2 but with an exit
      (x) button on the top right … It should also only appear once you have pressed summarize my board"; reverses Card
      Inside): the greeting holds no brief; the brief is its own card under it (hbBoardHtml), with a × (hbBriefShut) */
+  /* THE HIGHLIGHTS ARE DOORS TO THEIR CONTRACTS (owner, 22 Nov 2026): "N things are late" and "I prepared N for you"
+     open Contracts on just the contracts they count; a count with no contract behind it keeps the Board's list */
+  test('7a2 the brief\'s highlights open their own contracts', () => {
+    const w = greetWorld({ late: 2, oldest: 3, jambo: [{ late: 1, it: { cid: 'MK-1' } }, { late: 0, it: { c: { id: 'MK-2' } } }], you: [{ late: 1, y: { x: { c: { id: 'MK-3' } } } }, { late: 0, al: { id: 'MK-4' } }] });
+    w.getContract = id => /^MK-[1-4]$/.test(id) ? { id } : null;
+    const say = w.hbGreetSayHtml(null, null);
+    assert.match(say, /class="hb-gr-a is-late" data-rd-show="MK-1,MK-3" data-rd-label="2 things are late">2 things are late</, 'late opens the late contracts');
+    assert.match(say, /class="hb-gr-a" data-rd-show="MK-1,MK-2" data-rd-label="I prepared 2 for you">I prepared 2 for you</, 'prepared opens what Jambo prepared');
+    assert.match(read('js/views/homeboard.js'), /if \(\(el = t\.closest\('\[data-rd-show\]'\)\)\)\{[^\n]*\n[^\n]*regShowOnly\(ids/, 'the door is the one Read down\'s rows use');
+  });
   test('7a the greeting, then the pills and Live; nothing under them until Summarise; pressed, the brief is its own card with a ×', () => {
     const w = greetWorld({ late: 2, oldest: 36, jambo: [{}, {}, {}], you: [{}] });
     const latest = { moved: { past: M(5), value: M(1000000) }, since: ago(1) };
