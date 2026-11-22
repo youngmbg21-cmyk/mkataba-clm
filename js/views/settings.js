@@ -1680,7 +1680,7 @@ function stSheetCardHtml(){
    Who holds what (every grant, read-only, with Download). Each says where it
    is and carries ‹ Settings back; a refresh comes back to it (settingsPlace). */
 let _stPage=null;
-const ST_PAGES=['team','sheet','roles','streams','data','panel','look'];
+const ST_PAGES=['team','sheet','roles','streams','data','panel','look','guard'];
 /* ---- A CARD'S DOOR OPENS ITS PAGE (round 25 as drawn, the gaps' third
    pass, 19 Oct 2026: every door on the Company board's cards and the ladder
    "opens its page on the desk, with ‹ Settings to come back") ----
@@ -2292,7 +2292,7 @@ function stCompanyHtml(){
    the panel; Contract streams' two dropdowns become chips. NO MOTION (as the rest of Settings). How our contracts look
    keeps its editing as it was: the paper in the middle, its settings beside it (owner, 22 Nov 2026). Nothing here
    writes: every press is a door the pages already had. */
-const ST_LS_PAGES=['team','sheet','roles','streams','look','data'];
+const ST_LS_PAGES=['team','sheet','roles','streams','look','data','guard'];
 function stLsOn(){
   if(typeof _stPage==='undefined'||!ST_LS_PAGES.includes(_stPage)) return false;
   if(!stIsAdmin()||settingsTab()!=='company') return false;
@@ -2660,6 +2660,7 @@ function stLsBodyHtml(){
   if(_stPage==='roles') return stLsRolesHtml();
   if(_stPage==='streams') return stLsStreamsHtml();
   if(_stPage==='data') return stLsDataHtml();
+  if(_stPage==='guard') return acPageHtml();
   if(_stPage==='look') return (typeof window.clPageHtml==='function')?window.clPageHtml():'';
   return '';
 }
@@ -2670,6 +2671,7 @@ function stLsPanelO(){
   if(_stPage==='streams') return stLsStreamsPanel();
   if(_stPage==='look') return stLsLookPanel();
   if(_stPage==='data') return stLsDataPanel();
+  if(_stPage==='guard') return acPanel();
   return null;
 }
 function stLsPanelHtml(){
@@ -2703,6 +2705,7 @@ function stLsPaint(admin){
   if(_stPage==='data') stBkWirePane();
   if(_stPage==='data'&&_stBkTab==='trail'){ stTrailCount(); stTrailList(); }
   if(_stPage==='streams') stSwLoad();
+  if(_stPage==='guard') acLoad();
   stDressPage();
   if(_stAsks===null&&typeof stAsksLoad==='function') stAsksLoad();
   if(typeof insWatchWidth==='function') insWatchWidth();
@@ -2713,7 +2716,7 @@ function stLsPaint(admin){
 /* the list alone (a chip, the ask box, a row chosen): the head, the box with its words and caret, and the panel stand */
 function stLsListPaint(){
   const L=document.getElementById('st-ls-list');
-  if(L){ L.innerHTML=_stPage==='team'?stLsTeamTableHtml():_stPage==='sheet'?stLsSheetTableHtml():_stPage==='roles'?stLsRolesTableHtml()+`<p class="st-ls-foot">${esc(i18t('bz_page_foot'))}</p>`:L.innerHTML; }
+  if(L){ L.innerHTML=_stPage==='team'?stLsTeamTableHtml():_stPage==='sheet'?stLsSheetTableHtml():_stPage==='roles'?stLsRolesTableHtml()+`<p class="st-ls-foot">${esc(i18t('bz_page_foot'))}</p>`:_stPage==='guard'?acTableHtml():L.innerHTML; }
   if(_stPage==='streams'){ const tb=document.getElementById('st-sw-tb'); if(tb) tb.innerHTML=stLsSwTableHtml(); }
 }
 /* the whole page drawn again where it stands (a chip's counts, a tab) — the box keeps its words and its caret */
@@ -2742,7 +2745,7 @@ if(typeof document!=='undefined' && !window._stLsWired){ window._stLsWired=true;
     /* a row of Who holds what or Roles: the first press chooses, the second opens its sheet (a door inside the row goes on) */
     const row=t.closest('[data-st-ls-row]');
     if(row&&!t.closest('button,a,input,select,label')){ const [pg,id]=String(row.getAttribute('data-st-ls-row')).split(':');
-      if(stLsPick(pg)===id){ stDrawerOpen((pg==='roles'?'role:':'person:')+id); return; }
+      if(stLsPick(pg)===id){ if(pg==='guard') acFixGo(id); else stDrawerOpen((pg==='roles'?'role:':'person:')+id); return; }
       stLsPickSet(pg,id); return; }
   });
   document.addEventListener('keydown',e=>{ const t=e.target; if(!t||!t.matches||!stLsOn()) return;
@@ -2750,6 +2753,205 @@ if(typeof document!=='undefined' && !window._stLsWired){ window._stLsWired=true;
     if(e.key==='Escape'&&!_stOpen&&!document.querySelector('#modal-root [role="dialog"]')){ const pg=_stPage; if(stLsPick(pg)){ stLsPickSet(pg,null); } } });
   /* the ask box narrows the list as typed (THE SETTINGS PAGE HOLDS STILL: only the list is drawn again) */
   document.addEventListener('input',e=>{ const t=e.target; if(!t||(t.id!=='st-ls-q'&&t.id!=='st-people-q')||!stLsOn()||!t.closest('#set-page.st-ls-page')) return; _stLs.q[_stPage]=t.value; stLsListPaint(); });
+}
+
+/* ============================================================
+   THE ACCESS CHECK (owner's pick 22 Nov 2026: "Build the Legora + Stripe way";
+   drawing https://claude.ai/artifact/6ayRMLtaAQGoYNTMbRYb4V)
+   ============================================================
+   An admin's one press on the Settings landing (a soft card at the top of Jambo's panel): the guardrails in place, the
+   concerns, and what to change about who can see what. The report is a page inside Settings (the six pages' frame):
+   chips with counts, one calm table whose every row says the concern, the setting's OWN WORDS and where they stand,
+   and its fix; Jambo's panel names the one thing to do first, a ring, what is already in place.
+   BY FIXED RULES, NEVER A MODEL: acRead reads counts and the settings' own words that this admin already sees. It
+   reads no person's activity and no contract's wording, names, scores and ranks nobody, and changes nothing: a fix is
+   a door to the setting that already exists. A fact that is not known is left out, never guessed. Each check is one
+   line in the trail, written by the server (POST /api/access-check; the two counts only). */
+const AC_LEVELS=['high','medium','gdpr','low'];
+const AC_TONE={ high:'amber', medium:'amber', gdpr:'steel', low:'grey', ok:'green' };
+let _ac={ last:null, err:'', area:'', areaOpen:false, asked:false, local:false };
+function acRead(f){
+  const q=f.q||{}, out=[];
+  const add=(k,area,ok,level,x)=>out.push(Object.assign({ k, area, ok:!!ok, level:ok?'ok':level, quote:ok?'':String(q[k]||'') }, x||{}));
+  if(f.twoKnown>0) add('twostep','people', f.twoOff===0, (f.twoOffAdmins>0||f.twoOff===f.twoKnown)?'high':'medium', { n:f.twoOff, m:f.twoKnown, mine:!!f.twoMine });
+  if(f.people>1) add('admins','people', !(f.admins===1||(f.admins>3&&f.admins*2>f.people)), 'medium', { n:f.admins, m:f.people, many:f.admins>1 });
+  if(f.editors>0) add('cap','people', f.noCap===0, 'medium', { n:f.noCap, m:f.editors });
+  if(f.noKeep!=null&&f.streams>0) add('keep','streams', f.noKeep===0, 'gdpr', { n:f.noKeep, m:f.streams });
+  if(f.due!=null&&f.noKeep!=null&&f.noKeep<f.streams) add('due','streams', f.due===0, 'gdpr', { n:f.due });
+  if(f.reviewLeft!=null) add('review','people', f.reviewLeft===0, 'medium', { n:f.reviewLeft, m:f.reviewTotal });
+  if(f.streams>1&&f.nonAdmins>0) add('allstreams','streams', f.allStreams===0, 'low', { n:f.allStreams, m:f.nonAdmins });
+  if(f.linkCode!=null) add('linkcode','sharing', f.linkCode===true, 'low', {});
+  if(f.invited!=null) add('invited','people', f.invited===0, 'medium', { n:f.invited });
+  if(f.limited>0) add('limited','streams', true, 'ok', { n:f.limited });
+  if(f.server) add('trail','records', true, 'ok', {});
+  add('adminsonly','records', true, 'ok', {});
+  if(f.streams>0) add('private','streams', true, 'ok', {});
+  /* the order: what is outright first, then the concerns as the rules list them; in place last, the standing guardrails leading */
+  const lead=['trail','adminsonly','limited','private'];
+  const rank=x=>x.ok?(lead.includes(x.k)?2:3):(x.level==='high'?0:1);
+  return out.map((x,i)=>Object.assign(x,{ i:x.ok&&lead.includes(x.k)?lead.indexOf(x.k):i })).sort((a,b)=>rank(a)-rank(b)||a.i-b.i);
+}
+/* the facts, gathered where Settings already reads them: counts, and the words each page shows */
+function acFacts(){
+  const us=stUsers(), me=(typeof currentUser==='function'&&currentUser())||{};
+  const non=us.filter(u=>u.role!=='admin'), eds=non.filter(u=>u.role!=='viewer'), admins=us.length-non.length;
+  const known=us.filter(u=>typeof u.twoStep==='boolean'), off=known.filter(u=>u.twoStep!==true);
+  const capOff=eds.filter(u=>{ try{ return !signCapOf(u).answered; }catch(_){ return false; } });
+  const acc=u=>{ try{ return stAccessOf(u)||{}; }catch(_){ return {}; } };
+  const all=non.filter(u=>{ const a=acc(u); return a.all&&!a.but; }), lim=non.filter(u=>acc(u).all===false);
+  let rows=[]; try{ rows=stSwRows().filter(r=>!r.shut); }catch(_){ rows=[]; }
+  const kpOn=stKpOn(), kpRead=!!(_stKp.data&&_stKp.data.streams);
+  const noKeep=kpOn?rows.filter(r=>r.years==null).length:null, due=kpRead?rows.reduce((a,r)=>a+(Number(r.due)||0),0):null;
+  const a=stAr(), ar=stArOn()&&a, cnt=ar?stArCount():null;
+  const lc=(typeof window.linkCodeCfg==='function')?!!(window.linkCodeCfg()||{}).on:null;
+  const invited=stApiOnly()?us.filter(u=>u.prefs&&u.prefs.mustChangePassword&&u.id!==me.id).length:null;
+  let capWord=''; try{ capWord=capOff.length?signCapText(capOff[0]):''; }catch(_){ capWord=''; }
+  let lcName=''; try{ lcName=sddTxt(SET_PANELS.linkcode.title()); }catch(_){ lcName=''; }
+  return { people:us.length, admins, nonAdmins:non.length, editors:eds.length, twoKnown:known.length, twoOff:off.length, twoOffAdmins:off.filter(u=>u.role==='admin').length,
+    twoMine:off.some(u=>u.id===me.id), noCap:capOff.length, streams:rows.length, noKeep, due,
+    reviewLeft:ar?(a.done?0:cnt.total-cnt.done):null, reviewTotal:cnt?cnt.total:0, allStreams:all.length, limited:lim.length, linkCode:lc, invited, server:stApiOnly(),
+    q:{ twostep:`${i18t('st_sh_twostep')} · ${i18t('st_sh_off')}`, admins:`${i18t('st_ls_admins')} ${admins}`, cap:capWord,
+      keep:`${i18t('st_sw_c_kept')} · ${i18t('st_sw_no_period')}`, due:`${i18t('st_sw_c_due')} · ${due||0}`,
+      review:ar?`${stArLabel(a.quarter)} · ${i18t('st_ls_reviewed',{ n:cnt.done, m:cnt.total })}`:'', allstreams:i18t('set_all_streams_short'),
+      linkcode:lcName?`${lcName} · ${i18t('st_sh_off')}`:'', invited:i18t('st_sh_not_in') } };
+}
+const acNow=()=>acRead(acFacts());
+/* what each finding says: its line, where it was read, whom it touches, its fix, why it matters */
+function acTitle(x){
+  if(x.ok) return x.k==='limited'?i18tn('ac_ok_limited',x.n,{ n:x.n }):i18t('ac_ok_'+x.k);
+  if(x.k==='twostep') return x.n===x.m?i18t('ac_t_twostep_all'):i18tn('ac_t_twostep',x.n,{ n:x.n });
+  if(x.k==='admins') return x.many?i18t('ac_t_admins_many',{ n:x.n, m:x.m }):i18t('ac_t_admins_lone');
+  if(x.k==='keep') return x.n===x.m?i18t('ac_t_keep_all'):i18tn('ac_t_keep',x.n,{ n:x.n });
+  if(x.k==='review'||x.k==='linkcode') return i18t('ac_t_'+x.k);
+  return i18tn('ac_t_'+x.k,x.n,{ n:x.n });
+}
+function acWhere(x){
+  if(x.k==='twostep'||x.k==='cap'||x.k==='allstreams') return i18t('ac_w_people_rows',{ n:x.n, m:x.k==='twostep'?x.m:stUsers().length });
+  if(x.k==='invited') return i18t('ac_w_people');
+  if(x.k==='admins') return i18t('ac_w_admins');
+  if(x.k==='keep') return i18t('ac_w_streams_rows',{ n:x.n, m:x.m });
+  if(x.k==='due') return i18t('ac_w_streams_due');
+  if(x.k==='review') return i18t('st_pg_sheet');
+  if(x.k==='linkcode') return i18t('sdd_a_rules');
+  return '';
+}
+function acAffects(x){
+  if(x.ok) return x.k==='limited'?i18tn('ac_a_person',x.n,{ n:x.n }):i18t('ac_a_everyone');
+  if(x.k==='twostep') return i18t('ac_a_people',{ n:x.n, m:x.m });
+  if(x.k==='admins') return i18tn('ac_a_admin',x.n,{ n:x.n });
+  if(x.k==='cap') return i18tn('ac_a_editor',x.n,{ n:x.n });
+  if(x.k==='keep') return i18t('ac_a_streams',{ n:x.n, m:x.m });
+  if(x.k==='due') return i18tn('ac_a_contract',x.n,{ n:x.n });
+  if(x.k==='linkcode') return i18t('ac_a_links');
+  return i18tn('ac_a_person',x.n,{ n:x.n });
+}
+const acFixWord=x=>i18t(x.k==='twostep'&&x.mine?'ac_f_twostep_mine':x.k==='admins'&&x.many?'ac_f_admins_many':'ac_f_'+x.k);
+const acWhy=x=>i18t(x.k==='admins'&&x.many?'ac_y_admins_many':'ac_y_'+x.k);
+const acName=x=>i18t(x.k==='admins'&&x.many?'ac_n_admins_many':'ac_n_'+x.k);
+const acBadge=x=>stLsBadge(i18t('ac_lv_'+x.level),AC_TONE[x.level],!x.ok);
+function acShown(list){
+  const chip=stLsChip('guard');
+  return list.filter(x=>(chip==='all'||(chip==='concerns'?!x.ok:chip==='ok'?x.ok:x.level==='gdpr'))&&(!_ac.area||x.area===_ac.area));
+}
+function acTableHtml(){
+  const list=acNow(), rows=acShown(list), pick=stLsPick('guard')||((list.find(x=>!x.ok)||{}).k||'');
+  const body=rows.map(x=>{ const w=acWhere(x);
+    return `<tr class="st-ls-row ac-row${pick===x.k?' is-chosen':''}" data-st-ls-row="guard:${esc(x.k)}" tabindex="0" aria-pressed="${pick===x.k?'true':'false'}">
+      <td><b class="st-ls-name">${esc(acTitle(x))}</b>${x.ok?'':`<span class="ac-q">${x.quote?`<em>“${esc(x.quote)}”</em>${w?' · ':''}`:''}${esc(w)}</span>`}</td>
+      <td>${esc(acAffects(x))}</td><td>${acBadge(x)}</td>
+      <td class="r">${x.ok?'':`<button type="button" class="ui-link st-ls-lnk" data-ac-fix="${esc(x.k)}">${esc(acFixWord(x))} ›</button>`}</td></tr>`; }).join('');
+  return `<table class="st-ls-t ac-t"><thead><tr><th>${esc(i18t('ac_c_finding'))}</th><th>${esc(i18t('ac_c_affects'))}</th><th>${esc(i18t('apn_col_status'))}</th><th class="r">${esc(i18t('ac_c_fix'))}</th></tr></thead>
+    <tbody>${body||`<tr><td colspan="4" class="st-ls-none">${esc(i18t('st_ls_none'))}</td></tr>`}</tbody></table>
+    <p class="st-ls-foot">${esc(i18t('ac_priv'))}</p>`;
+}
+function acPageHtml(){
+  const list=acNow(), n=f=>list.filter(f).length, chip=stLsChip('guard');
+  const chips=[{ k:'all', label:i18t('ctf_tab_all'), n:list.length }, { k:'concerns', label:i18t('ac_chip_concerns'), n:n(x=>!x.ok), amber:true },
+    { k:'ok', label:i18t('ac_lv_ok'), n:n(x=>x.ok) }, { k:'gdpr', label:i18t('ac_lv_gdpr'), n:n(x=>x.level==='gdpr') }].filter(c=>c.k==='all'||c.n||c.k===chip);
+  const areas=[...new Set(list.map(x=>x.area))];
+  const areaChip=_ac.area?`<button type="button" class="apn-chip is-set" data-ac-area="">${esc(i18t('ac_area_'+_ac.area))} <span aria-hidden="true">×</span></button>`
+    :`<span class="apn-rule-w"><button type="button" class="apn-chip is-add" data-ac-area-open aria-expanded="${_ac.areaOpen?'true':'false'}">+ ${esc(i18t('ac_chip_area'))}</button>${_ac.areaOpen?`<span class="apn-rule-menu">${areas.map(a=>`<button type="button" data-ac-area="${esc(a)}">${esc(i18t('ac_area_'+a))}</button>`).join('')}</span>`:''}</span>`;
+  return `<div class="sdd-head st-ls-head">
+    <button type="button" class="sdd-back st-ls-back" data-st-page="">‹ ${esc(i18t('stn_title_short'))}</button>
+    <div class="cun-head st-ls-hrow"><h2 class="ctf-h stn-title sdd-title">${esc(i18t('ac_page_title'))}</h2><span class="st-ls-acts"><button type="button" class="ui-btn" data-ac-run>${esc(i18t('ac_run_again'))}</button></span></div>
+    <p class="sdd-sub st-ls-sub">${esc(i18t('ac_sub'))}</p>
+    <div class="apn-bar sdd-chips st-ls-chips">${chips.map(c=>`<button type="button" class="apn-tab is-chip${chip===c.k?' is-on':''}" data-st-ls-chip="guard:${c.k}">${c.amber?'<i class="apn-cd is-amber" aria-hidden="true"></i>':''}${esc(c.label)} <span>${c.n}</span></button>`).join('')}${areaChip}</div>
+  </div><div class="st-ls-body" data-st-pg="guard" id="st-ls-list">${acTableHtml()}</div>`;
+}
+/* when it was checked, as the server recorded it; where it could not be recorded, that is said, never "written" */
+function acStampSay(){
+  if(_ac.err) return i18t('ac_not_rec',{ why:_ac.err });
+  if(_ac.last&&_ac.last.at){ const t=Date.parse(_ac.last.at);
+    const when=Number.isFinite(t)?new Date(t).toLocaleString((typeof langLocale==='function')?langLocale():undefined,{ day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }):String(_ac.last.at);
+    return i18t('ac_checked',{ when, who:_ac.last.by||'' }); }
+  return _ac.local?i18t('ac_local'):'';
+}
+function acPanel(){
+  const list=acNow(), con=list.filter(x=>!x.ok), ok=list.filter(x=>x.ok), pick=stLsPick('guard');
+  const gd=con.filter(y=>y.level==='gdpr').length;
+  const go=y=>`<button type="button" class="jov5-go ac-go" data-ac-fix="${esc(y.k)}">${esc(acFixWord(y))}</button>`;
+  const ring=`<div class="sdd5-today">${sdd5RingHtml(ok.length,list.length,'green',i18t('ac_ring_cap'))}<div><b>${esc(i18t('ac_ring_t',{ n:ok.length, m:list.length }))}</b><span>${esc(i18tn('ac_ring_s',con.length,{ n:con.length })+(gd?i18t('ac_ring_gdpr',{ n:gd }):''))}</span></div></div>`;
+  const x=(pick&&list.find(y=>y.k===pick))||null, lead=x||con[0]||null;
+  /* the one act stands first, across the panel, then the ring (as drawn) */
+  const mid=(lead&&!lead.ok?go(lead):'')+ring;
+  const stamp=acStampSay();
+  const groups=[{ label:i18t('ac_ok_h'), rows:ok.slice(0,3).map(y=>({ mark:'', markText:'✓', tone:'green', t:acTitle(y), wrap:true })),
+      foot:ok.length>3?{ label:i18t('ac_ok_all',{ n:ok.length }), attr:'data-st-ls-chip="guard:ok"' }:null },
+    { label:'', rows:[], html:`<p class="st-ls-small">${esc(i18t('ac_priv'))}${stamp?' '+esc(stamp):''}</p>` }].filter(g=>g.html||g.rows.length);
+  if(!lead) return { eyebrow:i18t('ac_page_title'), title:i18t('ac_all_ok_t'), sub:i18t('ac_all_ok_s'), mid, groups };
+  if(lead.ok) return { eyebrow:i18t('ac_page_title'), before:sdd5Tags([[i18t('ac_lv_ok'),'green']]), title:acTitle(lead), sub:i18t('ac_ok_s'), mid, groups };
+  return { eyebrow:i18t('ac_page_title'), before:x?sdd5Tags([[i18t('ac_lv_'+lead.level),AC_TONE[lead.level],true]]):'', title:x?acTitle(lead):i18t('ac_start',{ what:acName(lead) }),
+    sub:(x?'':acTitle(lead)+'. ')+acWhy(lead), mid, groups };
+}
+/* THE CARD ON THE LANDING, admins only: what the check does, said before the press */
+function acCardHtml(){
+  return `<div class="ac-card"><div class="ac-card-h"><span class="ac-mk" aria-hidden="true">🛡️</span><div><b>${esc(i18t('ac_card_t'))}</b><span>${esc(i18t('ac_card_s'))}</span></div></div>
+    <button type="button" class="jov5-go ac-go" data-ac-run>${esc(i18t('ac_card_go'))}</button><p class="ac-card-p">${esc(i18t('ac_card_p'))}</p></div>`;
+}
+/* how many of the landing's needs fit under the card at this window's height (bar, head, the ask box and the card's own part taken off) */
+function acNeedsRoom(n){
+  const h=(typeof window!=='undefined'&&window.innerHeight)||900, room=h-552;
+  if(Math.floor(room/52)>=n) return n;
+  return Math.max(1,Math.floor((room-44)/52));
+}
+/* what the page still waits for (the keeping periods' counts, the last check's stamp): asked once, the page drawn again */
+function acLoad(){
+  if(stKpOn()&&!_stKp.data&&!_stKp.busy) Promise.resolve(stKpLoad()).then(()=>{ if(_stPage==='guard') stLsRepaint(); },()=>{});
+  if(stApiOnly()&&!_ac.last&&!_ac.asked){ _ac.asked=true;
+    api('access-check').then(r=>{ if(r&&r.last&&!_ac.last){ _ac.last=r.last; if(_stPage==='guard') stLsPanelPaint(); } },()=>{}); }
+}
+/* THE PRESS: the report opens at once; the server writes the trail line once the counts are whole */
+function acRun(){
+  if(!stIsAdmin()) return;
+  _stLs.chip.guard='all'; _stLs.pick.guard=null; _ac.area=''; _ac.areaOpen=false; _ac.err='';
+  if(_stPage!=='guard') settingsGoPage('guard'); else stLsRepaint();
+  if(!stApiOnly()){ _ac.local=true; stLsPanelPaint(); return; }
+  const ready=(stKpOn()&&!_stKp.data)?Promise.resolve(stKpLoad()).catch(()=>{}):Promise.resolve();
+  ready.then(()=>{ const list=acNow(), c=list.filter(x=>!x.ok).length; return api('access-check','POST',{ concerns:c, inPlace:list.length-c }); })
+    .then(r=>{ _ac.last=(r&&r.last)||null; _ac.asked=true; },e=>{ _ac.err=(e&&e.message)||'?'; if(typeof toast==='function') toast(i18t('ac_not_rec',{ why:_ac.err }),'warn'); })
+    .then(()=>{ if(_stPage==='guard') stLsRepaint(); });
+}
+/* A FIX IS A DOOR to the setting that already exists; it presses nothing there */
+function acFixGo(k){
+  const x=acNow().find(y=>y.k===k); if(!x||x.ok) return;
+  const go=(pg,chip)=>{ _stLs.chip[pg]=chip||'all'; _stLs.pick[pg]=null; settingsGoPage(pg); };
+  if(k==='twostep'&&x.mine){ stDrawerOpen('me:twostep'); return; }
+  if(k==='linkcode'){ stDrawerOpen('linkcode'); return; }
+  if(k==='keep'){ go('streams','all'); return; }
+  if(k==='due'){ go('streams','due'); return; }
+  if(k==='review'){ go('sheet','review'); return; }
+  go('team', k==='admins'?'admin':k==='cap'?'editor':k==='invited'?'need':'all');
+}
+if(typeof document!=='undefined' && !window._acWired){ window._acWired=true;
+  document.addEventListener('click',e=>{
+    const t=e.target; if(!t||!t.closest||!t.closest('#set-page, #ins-panel')) return;
+    if(t.closest('[data-ac-run]')){ acRun(); return; }
+    const fx=t.closest('[data-ac-fix]'); if(fx){ acFixGo(fx.getAttribute('data-ac-fix')); return; }
+    if(t.closest('[data-ac-area-open]')){ _ac.areaOpen=!_ac.areaOpen; stLsRepaint(); return; }
+    const ar=t.closest('[data-ac-area]'); if(ar){ _ac.area=ar.getAttribute('data-ac-area')||''; _ac.areaOpen=false; _stLs.pick.guard=null; stLsRepaint(); return; }
+    if(_ac.areaOpen&&_stPage==='guard'){ _ac.areaOpen=false; stLsRepaint(); }
+  });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&_ac.areaOpen&&_stPage==='guard'){ _ac.areaOpen=false; stLsRepaint(); } });
 }
 
 /* ============================================================
@@ -10924,7 +11126,7 @@ async function loadSessions(){
    the else branch and nobody catches it — the lesson rlPaperFootHtml taught
    this codebase for a year. openMyAccount and openSettingsAt are the two doors
    the shell calls; SET_PANELS and the readers beside it are what the tests read. */
-Object.assign(window,{stLsOn,stLsHeadHtml,stLsPanelPaint,stLsRepaint,ST_LS_PAGES,stNeedGo,stNeedDoorEl,stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsPlace,settingsPlacePut,stAgentsPaint,ST_AGENT_KEYS,AG_MONEY_NOTE_KEYS,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
+Object.assign(window,{acRead,acRun,acFixGo,AC_LEVELS,stLsOn,stLsHeadHtml,stLsPanelPaint,stLsRepaint,ST_LS_PAGES,stNeedGo,stNeedDoorEl,stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsPlace,settingsPlacePut,stAgentsPaint,ST_AGENT_KEYS,AG_MONEY_NOTE_KEYS,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
   renderPlaybookView,openPlaybookEditor,stdPositionOpen,pbRemoveType,pbResetPlaybook,stdRemoveClause,stdDraftSetOpen,
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   stRulesRows,stPaintRules,stPaintSignFolders,
@@ -10978,7 +11180,7 @@ function stnApprovalsOpen(){
    their "‹" goes back to that area. Nothing here writes: every act is the existing door's. The new look only. */
 const SDD_AREAS=['you','company','rules','jambo','mail','setup'];
 /* the area a page inside Settings belongs to (its "‹" goes back there) */
-const SDD_PAGE_AREA={ team:'company', sheet:'company', roles:'company', streams:'company', look:'company', data:'setup', panel:null };
+const SDD_PAGE_AREA={ team:'company', sheet:'company', roles:'company', streams:'company', look:'company', data:'setup', panel:null, guard:null };
 const SDD_TONE={ you:'you', company:'money', rules:'rule', jambo:'jambo', mail:'msg', setup:'sec' };
 /* each area and row wears an emoji for what it is, HaTi's own where one already says the same (owner, 19 Nov 2026);
    a mark, never a button's words (f385). A row id ending in a number (awayfor0) reads its stem. */
@@ -11407,7 +11609,9 @@ function sddCardHtml(admin, ctx){
   /* each need keeps its tone (red where it is outright, amber otherwise) around its emoji mark */
   /* on the landing the ring says going live, so its row is not said again under it (P-43 as drawn) */
   const rowsOf=sddPanelNeeds(admin, area, rows, needs);
-  if(rowsOf.length) groups.push({ label:i18t('sdd5_needs'), rows:rowsOf.map(x=>{ const w=sdd5NeedSay(x, rows); return { mark:'', markText:mkOf(x), tone:x.dot==='red'?'red':'amber', t:w.t, s:w.s, attr:x.btn||'' }; }) });
+  /* on the landing the access check's card stands over the list, so the list stops where the panel's room does and says how many more (as drawn) */
+  const capN=(!area&&admin)?acNeedsRoom(rowsOf.length):rowsOf.length;
+  if(rowsOf.length) groups.push({ label:i18t('sdd5_needs'), foot:capN<rowsOf.length?{ label:i18tn('st_ls_more',rowsOf.length-capN,{ n:rowsOf.length-capN }), attr:'data-sdd-chip="need"' }:null, rows:rowsOf.slice(0,capN).map(x=>{ const w=sdd5NeedSay(x, rows); return { mark:'', markText:mkOf(x), tone:x.dot==='red'?'red':'amber', t:w.t, s:w.s, attr:x.btn||'' }; }) });
   if(awM&&awM.deputyName&&(!area||area==='you')) groups.push({ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('st_jb_away',{ who:awM.deputyName }), wrap:true }] });
   /* ASK AN ADMIN is for a person who is not one (fault logged 21 Nov 2026: an admin's panel carried it under Jambo's links) */
   if(!admin) groups.push({ label:i18t('stn_p_ask'), rows:[{ mark:'msg', t:i18t('st_ask_go'), s:i18t('stn_p_ask_s'), attr:'data-st-ask-head=""', wrap:true }] });
@@ -11428,6 +11632,8 @@ function sddCardHtml(admin, ctx){
     if(admin&&SET_PANELS.golive&&typeof stGoLive==='function'){ let gl=[]; try{ gl=stGoLive()||[]; }catch(_){ gl=[]; }
       const done=gl.filter(x=>x.ok).length;
       if(gl.length) mid=`<div class="sdd5-today">${sdd5RingHtml(done,gl.length,'green',i18t('sdd5_live'))}<div><b>${esc(sddTxt(SET_PANELS.golive.title()))}</b><span>${esc(i18t('sdd5_done_of',{ n:done, m:gl.length }))}</span>${done<gl.length?`<button type="button" class="jov-lnk" data-st-panel="golive">${esc(i18t('sdd5_see_left'))}</button>`:''}</div></div>`; }
+    /* THE ACCESS CHECK's card stands first, for admins (owner's pick 22 Nov 2026) */
+    if(admin) mid=acCardHtml()+mid;
     /* the headline counts the rows drawn under it, no more (the number on a door is the list behind it) */
     o={ eyebrow:place, title:rowsOf.length?i18tn('sdd_card_t',rowsOf.length,{ n:rowsOf.length }):i18t('sdd_card_clear'),
       sub:rowsOf.length?i18t('sdd5_areas_n',{ n:withN, m:areasN.length }):i18t('sdd_card_clear_s'), mid, groups };

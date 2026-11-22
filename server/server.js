@@ -16465,6 +16465,19 @@ function acctRecord(by, user, kind, detail) {
     .run(now(), String((by && by.id) || ''), String((by && (by.name || by.email)) || ''), String((user && user.id) || ''),
       String((user && (user.name || user.email)) || ''), kind, String(detail || '').slice(0, 300));
 }
+/* THE ACCESS CHECK (owner's pick 22 Nov 2026, "the Legora + Stripe way"): an admin's press on Settings reads who can
+   see what, by fixed rules in the browser, off settings that admin already sees — no person's activity, no contract
+   wording, nothing sent to a model. The server's part is the RECORD (flow rule 8): each check is one trail line, with
+   the two counts only (clamped numbers; nothing else is read from the body). */
+ACCT_KINDS.accesscheck = 'Ran the access check';
+const acLast = () => { const r = db.prepare(`SELECT at, by_name FROM account_acts WHERE kind='accesscheck' ORDER BY id DESC LIMIT 1`).get();
+  return r ? { at: r.at, by: String(r.by_name || '') } : null; };
+app.get('/api/access-check', auth, admin, (req, res) => { res.json({ last: acLast() }); });
+app.post('/api/access-check', auth, admin, (req, res) => {
+  const b = req.body || {}, n = v => Math.max(0, Math.min(99, Math.floor(Number(v) || 0)));
+  acctRecord(req.user, req.user, 'accesscheck', `${n(b.concerns)} concerns · ${n(b.inPlace)} in place`);
+  res.json({ last: acLast() });
+});
 app.post('/api/me/email', rlAuth, auth, (req, res) => {
   const b = req.body || {};
   const u = db.prepare('SELECT * FROM users WHERE id=?').get(req.user.id);
