@@ -22875,3 +22875,7 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - Changed (the owner's word; reverses "no motion in Settings" for the watermark only): the stop that held the watermark still on Settings is removed; it stays still only for a reader who asked for less motion.
 - Checked page by page in a browser: no other page drew the watermark still.
 - Noticed, not fixed: the Brain page shows no side panel at all in this check (so no waves); not looked into.
+
+## 22 Nov 2026 — THE CLEAN-UP BEFORE A DEVELOPER READS THE CODE (owner's yes in the chat)
+Deleted, read by nothing: prototype/redesign-shots (268 old photos, about 35 MB), five old prototype pages (hati-redesign-reference.html kept; comments name it), findings.json, probe2.js, the "(1)" backlog download, six one-off review pages in the main folder. Moved, not deleted, to docs/archive/: every WORKORDER file (main folder and docs), the old audits, summaries, plans and DESIGN notes. No code, test or setting changed. Comments in code that name a moved note now mean docs/archive/<name>. Lint 0 errors; the nearest tests green.
+Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name browser checks that no longer exist; eslint.config.js still names probe2.js (matches nothing now).
