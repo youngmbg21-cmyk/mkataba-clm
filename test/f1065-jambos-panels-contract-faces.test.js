@@ -50,7 +50,9 @@ test('f1065 (1) the stage line is labelled, and the card keeps where it stands f
 });
 
 test('f1065 (2) each contract face says the five parts in the new look, by its own presses', () => {
-  assert.match(region(PD, 'function pd2CardHtml(c, D){', 'function pd2ClausePoints('), /if \(typeof window\.newLookOn === 'function' && newLookOn\(\)\)\s*return pd2CardFiveHtml\(c, '', at,/);
+  assert.match(region(PD, 'function pd2CardHtml(c, D){', 'function pd2ClausePoints('), /if \(typeof window\.newLookOn === 'function' && newLookOn\(\)\)\{[\s\S]*?return pd2CardFiveHtml\(c, AM \? 'is-amend' : '', at,/);
+  /* RE-POINTED IN PLACE (Dossier L+S, 22 Nov 2026): the new look's card is the same five-part card; on a signed agreement
+     with nothing owed it carries Amend (pd2AmendCardOf) and the class says so */
   const fill = region(PD, 'function pd2FillFaceHtml(c, D){', 'const PD2_REST_NAMED');
   assert.match(fill, /rows\.replace\(\/\(<div class="pd2-fp" \[\^>\]\*>\)\/g/, 'the same rows, a mark added');
   assert.match(fill, /W\.length \? head \+ `<div class="pd2-fp-list is-five">/, 'the walk\'s own head kept');

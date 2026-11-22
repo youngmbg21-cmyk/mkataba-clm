@@ -24,7 +24,7 @@ test('f1088 (1) the Dossier card opens on its headline', () => {
   const five = fn(PD, 'pd2CardFiveHtml');
   assert.doesNotMatch(five, /pd2-card-top|pd2-card-who/, 'no eyebrow');
   assert.match(five, /data-pd2-card>\s*<p class="pd2-next" data-pd2-next>/, 'the headline first');
-  assert.match(fn(PD, 'pd2CardHtml'), /return pd2CardFiveHtml\(c, '', at, String\(N\.head \|\| ''\)\.replace\(\/\\\.\$\/, ''\), '', pd2StepsHtml/, 'no sentence under it');
+  assert.match(fn(PD, 'pd2CardHtml'), /return pd2CardFiveHtml\(c, AM \? 'is-amend' : '', at, String\(N\.head \|\| ''\)\.replace\(\/\\\.\$\/, ''\), '', pd2StepsHtml/, 'no sentence under it (re-pointed in place, Dossier L+S: the class says when Amend rides the card)');
 });
 
 test('f1088 (2) the panels\' headlines are one size smaller', () => {

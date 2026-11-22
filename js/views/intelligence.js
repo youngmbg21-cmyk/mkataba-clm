@@ -11593,7 +11593,8 @@ function igStripActsHtml(c){
   /* AMEND, AS DRAWN (round 5): the line says how to make a change and carries Discard and Create the amendment (grey until there is one) */
   if(window.newLookOn&&newLookOn()&&window.pdFaceNow&&pdFaceNow()==='amend'){
     const ready=!!(window.pdAmendReady&&pdAmendReady());
-    return `<span class="ig-acts"><span class="ig-am-hint">${igEsc(i18t('pd2_am_hint'))}</span><button type="button" class="ui-btn ui-btn-sm" data-pd2-am-discard>${igEsc(i18t('pd2_am_discard'))}</button><button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-pd2-am-create${ready?'':` disabled title="${igEsc(i18t('pd_am_go_why'))}"`}>${igEsc(i18t('pd2_am_create'))}</button></span>`;
+    /* AMEND L+S, AS DRAWN (22 Nov 2026): no hint on the line — the page's tabs say how ("Press a clause to add it as a change") */
+    return `<span class="ig-acts"><button type="button" class="ui-btn ui-btn-sm" data-pd2-am-discard>${igEsc(i18t('pd2_am_discard'))}</button><button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-pd2-am-create${ready?'':` disabled title="${igEsc(i18t('pd_am_go_why'))}"`}>${igEsc(i18t('pd2_am_create'))}</button></span>`;
   }
   /* before you sign, as drawn: Sign is the area's one filled button, so Share stands grey */
   const signUp=!!(window.newLookOn&&newLookOn()&&window.pdFaceNow&&pdFaceNow()==='signing');
@@ -11658,7 +11659,8 @@ function igLineIdHtml(c,ref){
   try{ if(typeof window.pd2On==='function'&&pd2On()&&typeof window.pdAmendShows==='function'&&pdAmendShows()){
     const sd=String(c.signedAt||'').slice(0,10); const day=sd?new Date(sd+'T12:00:00').toLocaleDateString((typeof langLocale==='function')?langLocale():undefined,{ day:'numeric', month:'short' }):'';
     const n=(typeof window.pd2AmNo==='function')?pd2AmNo(c):1;
-    pill=`<span class="ig-line-sg is-sealed"><i aria-hidden="true"></i>${igEsc([i18t('ig_line_executed'), day?i18t('ig_line_sealed_on',{ d:day }):'', i18t('ig_line_amend_n',{ n })].filter(Boolean).join(' · '))}</span>`;
+    /* AMEND L+S, AS DRAWN: two soft badges — "Executed" and "Amendment 1 · drafting" */
+    pill=`<span class="ig-line-bdg is-green"><i aria-hidden="true"></i>${igEsc(i18t('ig_line_executed'))}</span><span class="ig-line-bdg is-amber"><i aria-hidden="true"></i>${igEsc(i18t('pd2_amls_badge',{ n }))}</span>`;
   } }catch(_){ }
   /* BEFORE YOU SIGN, AS DRAWN (the new look, round 5): while its face is up the line says where signing stands —
      "Ready to sign · Nandi signed 08:40" — off the one list (signBlockers) and the signatures on file */
@@ -11676,7 +11678,10 @@ function igLineIdHtml(c,ref){
      head's own reading; the stored name is never rewritten) */
   const kind=(typeof bsShortName==='function')?bsShortName(c):(c.name||'');
   /* THE REF ONCE (owner, 23 Oct 2026: "yes" to taking it off the line — the bar above carries it) */
-  return `<span class="ig-strip-ref ig-line-id" title="${igEsc([ref,c.name,party].filter(Boolean).join(' · '))}"><span class="ig-line-t">${igEsc(kind)}</span></span>${mark}${pill?`<span class="ig-line-st">${pill}</span>`:''}`;
+  /* THE FAMILY ON THE LINE (Dossier L+S, the owner's "Build", 22 Nov 2026): "Amends MK-B1 ›" on an amendment, "Amendment No. 1 ·
+     drafting ›" or "Amended by Amendment No. 1 ›" on its agreement — the one reading (famStateOf), a door to that paper */
+  let fam=''; try{ fam=(typeof window!=='undefined'&&typeof window.newLookOn==='function'&&newLookOn()&&typeof window.famTagHtml==='function')?famTagHtml(c):''; }catch(_){ fam=''; }
+  return `<span class="ig-strip-ref ig-line-id" title="${igEsc([ref,c.name,party].filter(Boolean).join(' · '))}"><span class="ig-line-t">${igEsc(kind)}</span></span>${fam}${mark}${pill?`<span class="ig-line-st">${pill}</span>`:''}`;
 }
 /* the line over Home's paper, drawn again in place (a face that changes what it says — Amend, Before you sign — asks it) */
 function igStripRepaint(){
