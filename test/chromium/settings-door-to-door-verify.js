@@ -139,11 +139,14 @@ const openRow = async (pg, sel) => {
     await waitFor(page, () => !document.querySelector('#st-drawer.open') && !!document.querySelector('#sdd-people [data-sdd-go]'), null, 5000);
     /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
     await openRow(page, '#sdd-people');
-    const P = await waitFor(page, () => !!document.querySelector('.sdd-ptabs') && !!document.querySelector('.sdd-pgback'), null, 5000);
-    const PT = P ? await page.evaluate(() => ({ back: document.querySelector('.sdd-pgback').textContent.trim(), tabs: [...document.querySelectorAll('.sdd-ptab')].map(b => b.textContent.trim()), panel: !!document.querySelector('#st-side .jov5'), menu: !!document.querySelector('#st-side [data-st-jb-menu-door]') })) : null;
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the page wears the area's head (.st-ls-head:
+       its way back .st-ls-back, its tabs .st-ls-tab); Jambo's panel is the page's own (#ins-panel), drawn as the
+       Dossier card (.jov5) */
+    const P = await waitFor(page, () => !!document.querySelector('#set-page.st-ls-page .st-ls-tabs .st-ls-tab') && !!document.querySelector('#set-page.st-ls-page .st-ls-back') && !!document.querySelector('#ins-panel .jov5'), null, 5000);
+    const PT = P ? await page.evaluate(() => ({ back: document.querySelector('#set-page.st-ls-page .st-ls-back').textContent.trim(), tabs: [...document.querySelectorAll('#set-page.st-ls-page .st-ls-tabs .st-ls-tab')].map(b => b.textContent.trim()), panel: !!document.querySelector('#ins-panel .jov5'), menu: !!document.querySelector('#ins-panel [data-st-jb-menu-door], #st-side [data-st-jb-menu-door]') })) : null;
     check('5a People & roles opens with its tabs and "‹ Company"', !!PT && PT.back === '‹ Company' && PT.tabs[0] === 'People' && PT.tabs.includes('Who holds what'), PT);
     check('7 an inner page\'s panel is the Dossier card, not the Menu door', !!PT && PT.panel && !PT.menu, PT);
-    if (P) { await page.screenshot({ path: path.join(OUT, 'people-1440x780.png') }); await page.click('.sdd-pgback');
+    if (P) { await page.screenshot({ path: path.join(OUT, 'people-1440x780.png') }); await page.click('#set-page.st-ls-page .st-ls-back');
       check('5b ‹ Company comes back onto the row that opened it', await waitFor(page, () => !!document.querySelector('.sdd-page[data-sdd-area="company"] #sdd-people.is-chosen'), null, 5000)); }
 
     /* 6 · Trail & backup */
@@ -151,7 +154,9 @@ const openRow = async (pg, sel) => {
     /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
     await waitFor(page, () => !!document.querySelector('#sdd-trail'), null, 4000);
     await openRow(page, '#sdd-trail');
-    check('6 Trail & backup opens its page with "‹ Set-up and records"', await waitFor(page, () => /Set-up and records/.test((document.querySelector('.sdd-pgback') || {}).textContent || '') && !!document.querySelector('[data-st-bk-tab]'), null, 5000));
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the way back and The trail · Backup are the
+       page head's (.st-ls-back, .st-ls-tab[data-st-ls-bk]) */
+    check('6 Trail & backup opens its page with "‹ Set-up and records"', await waitFor(page, () => /Set-up and records/.test((document.querySelector('#set-page[data-st-ls="data"] .st-ls-back') || {}).textContent || '') && !!document.querySelector('#set-page[data-st-ls="data"] .st-ls-tab[data-st-ls-bk]'), null, 5000));
 
     /* 8 · a refresh lands where you were */
     await page.evaluate(() => { sddGo('mail'); sddPickSet('mailroom'); });

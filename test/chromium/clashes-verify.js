@@ -66,6 +66,14 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
        its kind under it. The row's key is read off the ONE reading (stNeedsAll) by its words. */
     const readNeeds = () => until(() => {
       if (!document.getElementById('set-page') || settingsTab() !== 'company') { setView('team'); settingsGoTab('company'); return null; }
+      /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the landing's panel now carries the access
+         check's card and stops its needs where the panel's room does ("N more", acNeedsRoom), so at 780 tall the clashes
+         fall past it; Company › Needs you is the Company area's own panel, which lists every need of the area, uncapped.
+         The reader's way in: the Company area's row on the landing. */
+      if (!document.querySelector('#set-page.stn-page[data-sdd-area="company"]')) {
+        const a = document.querySelector('#set-page [data-sdd-home="company"]');
+        if (a) a.click(); else if (document.querySelector('#set-page [data-sdd-back], #set-page .st-ls-back')) document.querySelector('#set-page [data-sdd-back], #set-page .st-ls-back').click();
+        return null; }
       const needs = typeof stNeedsAll === 'function' ? stNeedsAll() : [];
       /* RE-POINTED 19 Nov 2026 (Settings, door to door, f1091): Jambo's panel is the Dossier card — the FIRST thing that
          needs you stands in its black-button card (its words before " · ", its door the black button), the rest are its
@@ -149,11 +157,24 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
        the headline counts what needs an admin, and each clash row names itself "a clash in who may do what" (its kind,
        under its words); nothing on it says anything is blocked */
     /* RE-POINTED 22 Nov 2026 (P-43 review): the headline counts the rows drawn (sddPanelNeeds; going live is its ring) */
-    const jb = await until(() => { const p = document.querySelector('#ins-panel'); if (!p) return null;
-      const title = ((p.querySelector('.jov5-title, h2, h3') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): under the access check's card the landing's
+       headline still counts every need, the rows stop where the panel's room does and its foot says how many more
+       (drawn + more = the count); the clashes, each naming itself "a clash in who may do what", are read on the Company
+       area's panel, where every need of the area is a row. Nothing on either says anything is blocked. */
+    await until(() => { if (document.querySelector('#set-page.stn-page:not([data-sdd-area])')) return true;
+      const b = document.querySelector('#set-page [data-sdd-back]'); if (b) b.click(); return false; });
+    const land = await until(() => { const p = document.querySelector('#ins-panel'); if (!p || !document.querySelector('#set-page.stn-page:not([data-sdd-area])')) return null;
+      const title = ((p.querySelector('.jov5-title') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+      const sec = [...p.querySelectorAll('.jov5-sec')].find(s => ((s.querySelector('.jov5-label') || {}).textContent || '').trim() === i18t('sdd5_needs'));
+      const more = sec && sec.querySelector('.jov5-flink[data-sdd-chip="need"]');
+      return title ? { title, drawn: sec ? sec.querySelectorAll('.jov5-row').length : 0, more: more ? Number((more.textContent.match(/\d+/) || [0])[0]) : 0,
+        blocked: /nothing is blocked|blocks?\b/i.test(p.textContent) } : null; });
+    await readNeeds();
+    const jb = await until(() => { const p = document.querySelector('#ins-panel'); if (!p || !document.querySelector('#set-page[data-sdd-area="company"]')) return null;
       const subs = [...p.querySelectorAll('.jov5-row .jov5-rt span, .jov5-act .jov5-say')].map(x => x.textContent.trim());
-      return title ? { title, clashSaid: subs.filter(t => /clash in who may do what/.test(t)).length, n: (typeof sddPanelNeeds === 'function' ? sddPanelNeeds(true, null, sddRows(true)) : sddNeedList(true, null, sddRows(true))).length, blocked: /nothing is blocked|blocks?\b/i.test(p.textContent) } : null; });
-    check('3 Jambo names the clashes, and says nothing after the drawn sentence', !!jb && new RegExp('\\b' + jb.n + '\\b').test(jb.title) && jb.clashSaid === 4 && !jb.blocked, JSON.stringify(jb));
+      return { clashSaid: subs.filter(t => /clash in who may do what/.test(t)).length, n: (typeof sddPanelNeeds === 'function' ? sddPanelNeeds(true, null, sddRows(true)) : sddNeedList(true, null, sddRows(true))).length, blocked: /nothing is blocked|blocks?\b/i.test(p.textContent) }; });
+    if (jb && land) Object.assign(jb, { title: land.title, drawn: land.drawn, more: land.more, landBlocked: land.blocked });
+    check('3 Jambo names the clashes, and says nothing after the drawn sentence', !!jb && new RegExp('\\b' + jb.n + '\\b').test(jb.title) && jb.drawn + jb.more === jb.n && jb.clashSaid === 4 && !jb.blocked && !jb.landBlocked, JSON.stringify(jb));
 
     console.log('\n4 · a clash goes when the rights change');
     /* the same limit as the approver: neither now may sign more than the other */

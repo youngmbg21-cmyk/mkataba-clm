@@ -452,7 +452,8 @@ const FILES = {
       return { ph: (document.querySelector('#ins-panel #jl-q') || {}).placeholder,
         hints: side ? side.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length : -1,
         said: side ? /Typing never signs, sends or files/.test(side.textContent) : null }; });
-    check('10a "Ask Jambo, or type / for a place" with no hint line under it', A.ph === 'Ask Jambo, or type / for a place' && A.hints === 0 && A.said === false, JSON.stringify(A));
+    /* RE-POINTED 22 Nov 2026 (the top box filters, Jambo's box asks, #888): Import's Jambo box carries the page's question */
+    check('10a "Ask Jambo: “which ones end this year?”" with no hint line under it', A.ph === 'Ask Jambo: “which ones end this year?”' && A.hints === 0 && A.said === false, JSON.stringify(A));
     await page.fill('#ins-panel #jl-q', 'contracts'); await page.press('#ins-panel #jl-q', 'Enter');
     const went = await until(() => state.view !== 'migration' ? state.view : null, null, 6000);
     check('10b a place word typed in it opens that place, as every Jambo box does', !!went, String(went));

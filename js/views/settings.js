@@ -2138,7 +2138,10 @@ function stSheetCsv(){
    decide, the first approver with no backup, the first invitation to send
    again — lit, nothing pressed, nothing readied */
 const ST_PAGE_LAND={
-  ar:()=>{ const c=[...document.querySelectorAll('#set-page [data-st-ar-row]')].find(x=>!x.querySelector('.st-ar-btn.is-on'));
+  /* the quarter's review lands on the first person still to decide (18 Oct 2026); since the six pages inside were
+     rebuilt (22 Nov 2026) that row is Who holds what's own, its badge "To review" (data-st-ls-rev) */
+  ar:()=>{ const n=document.querySelector('#set-page [data-st-ls-rev="review"]'); if(n) return n;
+    const c=[...document.querySelectorAll('#set-page [data-st-ar-row]')].find(x=>!x.querySelector('.st-ar-btn.is-on'));
     return c?(c.closest('tr')||c):document.querySelector('#set-page [data-st-pg="sheet"]'); },
   backup:'#set-page .st-amber-btn[data-st-focus="#tm-sa-backup"]',
   invite:'#set-page [data-st-resend]',
@@ -2419,7 +2422,7 @@ function stLsSheetTableHtml(){
   const body=rows.map(({ u, rev })=>{ const c=stSheetCells(u);
     const bz=(typeof stBzOf==='function'&&stBzOn())?stBzOf(u):null;
     const aw=((state.away||{}).everyone||[]).find(r=>r&&String(r.userId)===String(u.id)&&r.from<=((state.away||{}).today||todayISO()));
-    return `<tr class="st-ls-row st-sh-row${pick===String(u.id)?' is-chosen':''}" data-st-ls-row="sheet:${PB_ATTR(u.id)}" tabindex="0" aria-pressed="${pick===String(u.id)?'true':'false'}">
+    return `<tr class="st-ls-row st-sh-row${pick===String(u.id)?' is-chosen':''}" data-st-ls-row="sheet:${PB_ATTR(u.id)}" data-st-ls-rev="${esc(rev||'')}" tabindex="0" aria-pressed="${pick===String(u.id)?'true':'false'}">
       <td><span class="st-ls-who"><span class="st-ls-ini" aria-hidden="true">${esc(stLsIni(u))}</span><span class="st-ls-id"><b>${esc(stNameOf(u))}</b>${aw?`<span>${esc(i18t('st_sh_away',{ day:stAwayDay(aw.to), who:String(aw.deputyName||'').split(' ')[0] }))}</span>`:''}</span></span></td>
       <td>${stLsBadge((bz&&bz.name)||u.title||roleName(u.role),u.role==='admin'?'steel':'grey')}${(u.prefs&&u.prefs.mustChangePassword)?`<span class="st-ls-sub">${esc(i18t('st_sh_invited'))}</span>`:''}</td>
       <td>${c.cap}</td><td>${c.yes}</td><td>${c.checked}</td>

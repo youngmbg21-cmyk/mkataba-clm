@@ -165,8 +165,11 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
       const p = window.runScanFor(c);
       const t = [...document.querySelectorAll('#toast-root [data-toast-kind]')].find(e => /Scanning/.test(e.textContent));
       const s = t && t.querySelector('.ob-spin');
+      /* RE-POINTED 22 Nov 2026 (f1150, an alert belongs to its page: the wait's alert goes when its answer comes): the
+         ring is read while the scan runs, before its result replaces the "Scanning…" alert */
+      const name = s ? getComputedStyle(s).animationName : 'no ring';
       await p.catch(() => {});
-      return s ? getComputedStyle(s).animationName : 'no ring';
+      return name;
     });
     ok('10 the "Scanning…" message carries a turning ring', scanRing === 'obSpin', scanRing);
 

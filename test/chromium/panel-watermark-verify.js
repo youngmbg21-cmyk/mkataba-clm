@@ -127,7 +127,9 @@ const READ = () => {
     const glide = await page.evaluate(() => new Promise(res => { const p = document.querySelector('.ins-panel.is-jambo'); if (!p) return res(null); const v = []; const t0 = performance.now();
       const tick = () => { const m = getComputedStyle(p, '::before'); v.push(parseFloat(String(m.maskPosition || m.webkitMaskPosition || '').split(',')[0])); if (performance.now() - t0 < 1000) requestAnimationFrame(tick); else res(v); }; requestAnimationFrame(tick); }));
     const gl = glide && { frames: glide.length, places: new Set(glide).size, jump: Math.max(...glide.slice(1).map((x, i) => Math.abs(x - glide[i]))) };
-    ok('1d the watermark glides: a new place almost every frame, no pixel jumps', !!gl && gl.places >= gl.frames * 0.6 && gl.jump < 0.5, JSON.stringify(gl));
+    /* RE-POINTED 22 Nov 2026 (owner: "Same glide, lighter"): redrawn about 15 times a second, not every frame — still a
+       glide: at least 10 new places in the second, never a step of half a pixel or more (the stutter was whole pixels) */
+    ok('1d the watermark glides: a new place at least 10 times a second, no pixel jumps', !!gl && gl.places >= 10 && gl.jump < 0.5, JSON.stringify(gl));
 
     /* 2 — Settings: drawn, moving (RE-POINTED 22 Nov 2026) */
     const st = await go('team', () => !!document.querySelector('#set-page #ins-panel .jl-head'));
@@ -136,8 +138,11 @@ const READ = () => {
     /* 2b — Settings' own pages (People & roles): their panel carries it too, moving */
     await page.evaluate(() => { if (window.sddGo) sddGo('rules'); }); await page.waitForTimeout(800);
     await page.evaluate(() => { if (window.openSettingsAt) openSettingsAt('people'); });
-    await until(page, () => !!document.querySelector('.st-cr .st-side:not(.is-folded)'), null, 8000);
-    const sp = await page.evaluate(() => { const e = document.querySelector('.st-cr .st-side:not(.is-folded)'); if (!e) return null; const b = getComputedStyle(e, '::before'); return { painted: /data:image\/svg/.test(b.maskImage || b.webkitMaskImage || ''), moving: b.animationName !== 'none' }; });
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): People & roles is drawn in the area's own
+       frame (stLsPaint), its side panel Jambo's list panel (#ins-panel.is-jambo), no longer the old .st-cr .st-side */
+    const SP = '#set-page.st-ls-page[data-st-ls="team"] #ins-panel.ins-panel.is-jambo:not(.is-folded)';
+    await until(page, sel => !!document.querySelector(sel), SP, 8000);
+    const sp = await page.evaluate(sel => { const e = document.querySelector(sel); if (!e) return null; const b = getComputedStyle(e, '::before'); return { painted: /data:image\/svg/.test(b.maskImage || b.webkitMaskImage || ''), moving: b.animationName !== 'none' }; }, SP);
     ok('2b Settings\' own pages: the panel carries the watermark, moving', !!sp && sp.painted && sp.moving, JSON.stringify(sp));
     /* 8 — the Alerts · Notes · Activity panel stays plain (owner, 22 Nov 2026: "Do not add to the alerts panel") */
     await page.evaluate(() => { setView('dashboard'); if (window.openPanel) openPanel('alerts'); });

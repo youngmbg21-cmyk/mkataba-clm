@@ -63,12 +63,14 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     const door = await until(() => {
       if (!document.getElementById('set-page')) { setView('team'); return null; }
       if (!document.querySelector('[data-st-pg="team"]')) { const f = document.querySelector('#stn-main [data-sdd-row="people"] [data-st-page="team"]'); if (f) f.click(); else if (typeof sddGo === 'function') sddGo('company'); return null; }
-      const d = document.querySelector('[data-st-pg="team"] [data-st-panel="person:new"]');
+      /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): Add a person is the People page's one act,
+         in the head beside the title (#st-add-person, stLsTeamHtml's acts), no longer inside the list */
+      const d = document.querySelector('#set-page.st-ls-page .st-ls-acts [data-st-panel="person:new"]');
       return d && d.getBoundingClientRect().width > 0;
     }, null, 15000);
     check('0 Settings › People & roles carries Add member', !!door);
     if (!door) throw new Error('no Add member door');
-    await page.locator('[data-st-pg="team"] [data-st-panel="person:new"]').first().click();
+    await page.locator('#set-page.st-ls-page .st-ls-acts [data-st-panel="person:new"]').first().click();
     await drawerOpen();
 
     console.log('\n1 · a Viewer');

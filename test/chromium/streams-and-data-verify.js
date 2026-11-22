@@ -69,11 +69,18 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
         await until(q => { const r = document.querySelector(q); return r && r.getAttribute('aria-pressed') === 'true' ? true : null; }, STREAMS, 3000); }
       await page.click(STREAMS + ' .sdd-t'); return true; };
     if (await streamsDoor()) {
-      const pg = await until(() => { const p = document.querySelector('[data-st-pg="streams"]'); if (!p) return null;
-        return { filters: [...p.querySelectorAll('.st-sw-band .st-sw-f > span')].map(x => x.textContent.trim()),
+      /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe; the owner's pick: "The dropdowns become chips:
+         Open to everyone · Named people · Keeping period set · Due now, each with its count. The search becomes the ask
+         box"): the filters are the head's chips (a chip with nothing behind it not listed) and its find box */
+      const pg = await until(() => { const p = document.querySelector('[data-st-pg="streams"]'), hd = document.querySelector('#set-page[data-st-ls="streams"] .st-ls-head'); if (!p || !hd) return null;
+        const q = hd.querySelector('#st-sw-q');
+        return { filters: [...hd.querySelectorAll('.st-ls-chips [data-st-ls-chip^="streams:"]')].map(x => x.getAttribute('data-st-ls-chip').slice(8) + '=' + x.textContent.replace(/\s+/g, ' ').trim()),
+          find: q ? (q.getAttribute('aria-label') || '') : null,
           cols: [...p.querySelectorAll('.st-sw-tb thead th')].map(x => x.textContent.trim()),
           rows: p.querySelectorAll('.st-sw-row').length, streams: Object.keys(FOLDERS).length }; });
-      check('1a labelled filters: Who may open · Keeping · Find', !!pg && pg.filters.join('|') === 'Who may open|Keeping|Find', JSON.stringify(pg && pg.filters));
+      const CHIP = { all: 'All', everyone: 'Open to everyone', named: 'Named people', keep: 'Keeping period set', due: 'Due now' };
+      check('1a labelled filters: All first, then who may open and keeping as chips with their counts; a find box', !!pg && pg.filters.length >= 1 && /^all=All \d+$/.test(pg.filters[0])
+        && pg.filters.every(f => { const [k, w] = f.split('='); return CHIP[k] && new RegExp('^' + CHIP[k] + ' \\d+$').test(w); }) && pg.filters.some(f => /^(everyone|named)=/.test(f)) && !!pg.find, JSON.stringify(pg && { filters: pg.filters, find: pg.find }));
       check('1b a table of every stream, six columns', !!pg && pg.cols.length === 6 && pg.rows === pg.streams && pg.rows > 0, JSON.stringify(pg));
       await shot(page, 'streams-1440x780');
     }
@@ -81,14 +88,20 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     console.log('\n2 · the filters');
     await page.fill('#st-sw-q', 'sales').catch(() => null);
     const found = await until(() => { const rows = [...document.querySelectorAll('.st-sw-row')]; return rows.length >= 1 && rows.every(r => /sales/i.test(r.textContent)) ? rows.length : null; }, null, 3000);
-    const said = await page.evaluate(() => (document.getElementById('st-sw-n') || {}).textContent || '');
-    /* the count is the head's small tag since round 26 as drawn (18 Oct 2026) */
-    check('2a find narrows the table to matching names, and the count says so', !!found && said.trim() === String(found), found + ' · ' + said);
-    await page.fill('#st-sw-q', '').catch(() => null);
-    await page.selectOption('[data-st-sw-f="keep"]', 'set').catch(() => null);
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the narrowing is read against the streams
+       themselves (every row shown matches, every stream that matches is shown) */
+    const all = await page.evaluate(() => Object.values(FOLDERS).filter(f => /sales/i.test(f.name)).length);
+    check('2a find narrows the table to matching names', !!found && found === all, found + ' of ' + all);
+    /* RETIRED 22 Nov 2026: "and the count says so" — the owner's pick of the six pages (22 Nov 2026, drawing 4
+       "Contract streams") takes the count off the title (#st-sw-n): each chip carries the count of what it filters */
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): a filter is a chip now, and a chip with
+       nothing behind it is not listed (THE STANDING LESSON: a filter choice with no results NOT LISTED); what finds
+       nothing says so in the table */
+    const keepChip = await page.evaluate(() => ({ set: stSwRows().filter(r => r.years != null).length, chip: !!document.querySelector('[data-st-ls-chip="streams:keep"]') }));
+    await page.fill('#st-sw-q', 'zz-no-such-stream').catch(() => null);
     const none = await until(() => document.querySelectorAll('.st-sw-row').length === 0 && /No stream matches/.test((document.querySelector('.st-sw-tb tbody') || {}).textContent || '') ? true : null, null, 3000);
-    check('2b a filter with nothing behind it says so in the table', !!none);
-    await page.selectOption('[data-st-sw-f="keep"]', 'any').catch(() => null);
+    check('2b a filter with nothing behind it is not offered, and a find with nothing behind it says so in the table', !!none && keepChip.chip === (keepChip.set > 0), JSON.stringify({ none, keepChip }));
+    await page.fill('#st-sw-q', '').catch(() => null);
 
     /* RE-POINTED 18 Oct 2026 (round 26 as drawn): a press shows the stream in
        the side panel (settings-as-drawn-verify); Enter or a double press opens
@@ -102,7 +115,8 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     }
 
     console.log('\n4 · + New stream');
-    if (await press('[data-st-pg="streams"] .st-pg-head [data-st-panel="stream:new"]', '4 + New stream')) {
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): + New stream is the head's one act */
+    if (await press('#set-page[data-st-ls="streams"] .st-ls-head [data-st-panel="stream:new"]', '4 + New stream')) {
       const add = await until(() => { const dw = document.getElementById('st-drawer'); return dw && dw.classList.contains('open') && document.getElementById('st-stream-name') ? true : null; }, null, 4000);
       check('4 it opens its own form, a name box', !!add);
       await page.evaluate(() => stDrawerClose());
@@ -111,21 +125,27 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     console.log('\n5 · Data & backup');
     await toCompany();
     if (await page.evaluate(() => { openSettingsAt('company'); settingsGoPage('data'); return true; })) {
-      const dp = await until(() => { const p = document.querySelector('[data-st-pg="data"]'); const dw = document.getElementById('st-drawer');
-        return p ? { title: (p.querySelector('.st-pg-t') || {}).textContent, tabs: [...p.querySelectorAll('[data-st-bk-tab]')].map(b => b.textContent.trim() + (b.classList.contains('is-on') ? '*' : '')).join(' | '),
+      /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the page wears the area's head (.st-ls-head:
+         the serif title, The trail · Backup as its tabs, .st-ls-tab[data-st-ls-bk]) above its body */
+      const dp = await until(() => { const p = document.querySelector('[data-st-pg="data"]'), hd = document.querySelector('#set-page[data-st-ls="data"] .st-ls-head'); const dw = document.getElementById('st-drawer');
+        return p && hd ? { title: (hd.querySelector('.sdd-title') || {}).textContent, tabs: [...hd.querySelectorAll('.st-ls-tab[data-st-ls-bk]')].map(b => b.textContent.trim() + (b.classList.contains('is-on') ? '*' : '')).join(' | '),
           drawer: !!(dw && dw.classList.contains('open')), backup: !!document.getElementById('bk-export') } : null; }, null, 6000);
       check('5a by its name it lands on the page, The trail in front, no drawer', !!dp && /Data/.test(dp.title) && dp.tabs === 'The trail* | Backup' && !dp.drawer, JSON.stringify(dp));
-      await press('[data-st-pg="data"] [data-st-bk-tab="backup"]', '5a Backup');
+      await press('#set-page[data-st-ls="data"] .st-ls-tab[data-st-ls-bk="backup"]', '5a Backup');
       const bk = await until(() => !!document.getElementById('bk-export'), null, 4000);
       check('5a the Backup tab holds the backup', !!bk);
-      await press('[data-st-pg="data"] [data-st-bk-tab="trail"]', '5b The trail');
+      await press('#set-page[data-st-ls="data"] .st-ls-tab[data-st-ls-bk="trail"]', '5b The trail');
+      /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the asks are open fields the Legora way
+         (.st-ls-f: the label, one line under), in one row with Download the trail; the count is said as four figures
+         under them (#st-tr-go .st-ls-fig: Acts · Streams · People · Period) */
       const band = await until(() => { const b = document.querySelector('.st-tr-band'); if (!b) return null;
-        const boxes = [...b.querySelectorAll('.st-sw-f')]; const tops = new Set(boxes.map(x => Math.round(x.getBoundingClientRect().top)));
-        const fig = (document.querySelector('.st-tr-band .st-tr-fig b') || {}).textContent || '';
-        return fig ? { labels: boxes.map(x => x.querySelector('span').textContent.trim()).join('|'), oneRow: tops.size === 1, fig } : null; }, null, 6000);
-      check('5b the trail\'s asks are labelled boxes in one row, with its count', !!band && band.labels === 'From|To|Streams|As' && band.oneRow && /act/.test(band.fig), JSON.stringify(band));
+        const boxes = [...b.querySelectorAll('.st-ls-f')]; const tops = new Set(boxes.map(x => Math.round(x.getBoundingClientRect().bottom))); /* RE-POINTED 22 Nov 2026: the row aligns its fields at their foot (align-items:flex-end; a date box and a dropdown differ in height), so one row is one shared bottom line */
+        const figs = [...document.querySelectorAll('#st-tr-go .st-ls-fig')].map(f => ({ k: ((f.querySelector('span') || {}).textContent || '').trim(), v: ((f.querySelector('b') || {}).textContent || '').trim() }));
+        return figs.length ? { labels: boxes.map(x => x.querySelector('span').textContent.trim()).join('|'), oneRow: tops.size === 1, figs } : null; }, null, 6000);
+      check('5b the trail\'s asks are labelled boxes in one row, with its count', !!band && band.labels === 'From|To|Streams|As' && band.oneRow && band.figs.length === 4 && band.figs[0].k === 'Acts' && /^\d[\d,\s\u00a0\u202f.]*$/.test(band.figs[0].v), JSON.stringify(band));
       await shot(page, 'data-trail-1440x780');
-      if (await press('[data-st-pg="data"] .st-pg-back', '5c ‹ Set-up and records')) {
+      /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the way back is the head's (.st-ls-back) */
+      if (await press('#set-page[data-st-ls="data"] .st-ls-head .st-ls-back', '5c ‹ Set-up and records')) {
         const back = await until(() => !document.querySelector('[data-st-pg]') && document.querySelector('.stn-page[data-sdd-area="setup"] #stn-main .sdd-row') ? true : null, null, 4000);
         check('5c ‹ Set-up and records goes back to its area', !!back);
       }

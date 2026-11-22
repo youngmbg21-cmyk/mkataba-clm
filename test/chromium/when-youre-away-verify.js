@@ -176,7 +176,11 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
       });
       await shot(page, `away-card-${vp.width}x${vp.height}`);
       await page.locator('#sdd-away [data-st-panel="me:away"]').first().click().catch(() => {});
-      const dr = await until(() => { const d = document.getElementById('st-drawer'); if (!d || !d.classList.contains('open') || !document.getElementById('st-aw-who') || document.getAnimations().some(a => a.playState === 'running')) return null;
+      /* RE-POINTED 22 Nov 2026 (the watermark moves in Settings too, owner's word; Settings' six pages inside): the side
+         panel's watermark is an endless glide now on Settings, so "nothing is moving" never comes; the drawer has landed
+         once every FINITE animation (its slide, its fade) has finished — the endless watermark is not the drawer */
+      const dr = await until(() => { const settling = document.getAnimations().some(a => a.playState === 'running' && a.effect && a.effect.getComputedTiming().iterations !== Infinity);
+        const d = document.getElementById('st-drawer'); if (!d || !d.classList.contains('open') || !document.getElementById('st-aw-who') || settling) return null;
         const r = d.getBoundingClientRect();
         const save = document.getElementById('st-dsave'); const s = save && save.getBoundingClientRect();
         const shown = el => (el.style.display === 'none' && el.nextElementSibling) ? el.nextElementSibling : el;
