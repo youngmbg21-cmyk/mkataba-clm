@@ -379,6 +379,37 @@ function nameInitials(name, fallback){
   return out ? out.toLocaleUpperCase() : (fallback == null ? '·' : fallback);
 }
 Object.assign(window,{nameInitials});
+
+/* ---- THE WATERMARK SCROLLS WITH THE READING (owner, 22 Nov 2026: "when you scroll on jambo, the waves should scroll
+   up as well and not remain frozen at the same location") ----
+   The side panel's watermark is drawn by the panel itself (index.html, THE WATERMARK ON EVERY SIDE PANEL), which does
+   not scroll: its feed, its talk or its list scrolls inside it. So whatever scrolls inside a watermarked panel lends the
+   panel its distance (--wm-y), and the weave and its wash rise by it, up to WM_LIFT_MAX, where they have left the top.
+   ONE listener, delegated on document at load (a scroll does not bubble: caught on the way down). A scroller drawn
+   again at its top (the panel repainted, a new turn) brings the weave back down: checked while it is lifted. */
+const WM_PANELS = '#ig-dock, .ins-panel.is-jambo, .st-cr .st-side';
+const WM_LIFT_MAX = 200;
+function wmLiftSet(p, y){
+  y = Math.max(0, Math.min(WM_LIFT_MAX, Math.round(y || 0)));
+  if (p._wmY === y) return;
+  p._wmY = y; p.style.setProperty('--wm-y', y + 'px');
+}
+function wmFollow(p, sc){
+  p._wmSc = sc; wmLiftSet(p, sc.scrollTop);
+  if (p._wmY && !p._wmWatch) p._wmWatch = setInterval(() => {
+    const s = p._wmSc, gone = !p.isConnected;
+    wmLiftSet(p, !gone && s && s.isConnected ? s.scrollTop : 0);
+    if (gone || !p._wmY){ clearInterval(p._wmWatch); p._wmWatch = null; }
+  }, 400);
+}
+if (typeof document !== 'undefined'){
+  document.addEventListener('scroll', e => {
+    const t = e.target; if (!t || t.nodeType !== 1 || typeof t.closest !== 'function') return;
+    const p = t.closest(WM_PANELS); if (!p || p === t) return;
+    wmFollow(p, t);
+  }, { capture: true, passive: true });
+}
+Object.assign(window, { WM_PANELS, WM_LIFT_MAX, wmLiftSet, wmFollow });
 /* ============================================================
    SHARED: contract row (compact list item, used everywhere)
    ============================================================ */

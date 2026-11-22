@@ -1020,3 +1020,8 @@ Re-pointed to the drawing (dated comments): history-head, history-timeline 7a, t
 1f/2a/4f/9c/10/12a, their-page-parties-and-notes 1, their-page-legora-way 4, portal-header-verbs (the foot's Send),
 counterparty-reading-and-more 1c, paper-grows (counterparty gives way only for its notes), round-delivery 8a, go-aheads 2,
 sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
+
+## HOW THINGS MOVE — the watermark in Sunset lines (22 Nov 2026)
+- test/chromium/panel-watermark-verify.js 10a (the weaves are a flowing colour mix), red on main. 2, 2b, 3 (still in Settings and for less motion) were red on main and pass now.
+- f965 (tokens): the --wm-* colours live in :root and docs/design/tokens.json (node test/tokens-export.js).
+- panel-watermark-verify 11: Jambo's talk scrolled 120, the weave rises 120, and comes back at the top (red on main).
