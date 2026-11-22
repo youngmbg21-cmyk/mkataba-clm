@@ -153,7 +153,7 @@ async function reset(P, base){
     ['pdFillAway', 'pdRedAway', 'pdSignAway', 'pdAmendAway', 'pdSendAway', 'pdMidOff', 'pdTalkClose'].forEach(f => { try { if (typeof window[f] === 'function') window[f](); } catch (_){} });
     try { if (typeof pdSetTab === 'function') pdSetTab('copilot'); } catch (_){}
     /* the Contracts list back at rest: no column brought up, no set from another screen, Discover's form shut */
-    try { const R = regState(); (R.ask || []).slice().forEach(id => { if (typeof askColDrop === 'function') askColDrop(id); }); R.ask = []; R.only = null; if (typeof askColClose === 'function') askColClose(); } catch (_){}
+    try { const R = regState(); (R.ask || []).slice().forEach(id => { if (typeof askColDrop === 'function') askColDrop(id); }); R.ask = []; R.only = null; } catch (_){}
     setView('counter'); });
   await settle(P);
 }

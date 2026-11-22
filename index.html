@@ -9603,8 +9603,8 @@
   /* CHAMBERS (owner picked it by name, 20 Oct 2026): A SUGGESTION IS A LINK,
      NOT A CHIP — every row of next steps under a Jambo box is a line of
      underlined words in the accent ink (.jb-chip: Home's panel, a held
-     contract's, the Board's hello; .cn-chip, .jl-chip, .st-jb-chip, .ai-chip
-     and .ac-chip read the same). The lead one, for work owed, is the same link
+     contract's, the Board's hello; .cn-chip, .jl-chip, .st-jb-chip and .ai-chip
+     read the same). The lead one, for work owed, is the same link
      at the strong weight (was the accent outline, 18 Oct). */
   .jb-chip{border:0;background:none;padding:1px 0;border-radius:0;height:auto;min-height:0;font:inherit;font-size:12.5px;font-weight:var(--w-body);line-height:1.45;color:var(--accent-ink);text-decoration:underline;text-decoration-color:var(--color-accent-200);text-underline-offset:3px;cursor:pointer;text-align:left}
   .jb-chip:hover,.jb-chip:focus-visible{text-decoration-color:currentColor;color:var(--accent-ink-700)}
@@ -9939,10 +9939,8 @@
   #ig-dock .ac-l{display:block;font-size:12px;font-weight:var(--w-label);margin-bottom:4px}
   #ig-dock .ac-in{display:block;width:100%;border:1px solid var(--color-neutral-300);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:13px;line-height:1.4;background:var(--color-surface);color:var(--color-text);resize:vertical}
   #ig-dock .ac-in:focus{outline:2px solid var(--accent-solid);outline-offset:1px}
-  #ig-dock .ac-cost{font-size:12px;line-height:1.45;color:var(--accent-ink);background:var(--color-accent-50);border-radius:var(--radius);padding:7px 10px}
   #ig-dock .ac-why{font-size:12px;color:var(--st-amber-fg)}
   #ig-dock .ac-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  #ig-dock .ac-foot{justify-content:flex-end;border-top:1px solid var(--color-divider);padding-top:10px}
   #ig-dock .ac-chips{display:flex;flex-wrap:wrap;gap:4px 12px}
   /* THE CLOTHES FOLLOW THE BUILDER: askcolumn.js draws .ac-chips on Settings'
      Company facts page too, which is nowhere near #ig-dock — undressed there,
@@ -9950,21 +9948,14 @@
      declarations, unscoped; the dock's own rule carries more weight, so it still
      wins wherever both apply. */
   .ac-chips{display:flex;flex-wrap:wrap;gap:4px 12px}
-  #ig-dock .ac-chip{border:0;background:none;padding:1px 0;border-radius:0;height:auto;min-height:0;font:inherit;font-size:12.5px;font-weight:var(--w-body);line-height:1.45;color:var(--accent-ink);text-decoration:underline;text-decoration-color:var(--color-accent-200);text-underline-offset:3px;cursor:pointer;text-align:left}
-  #ig-dock .ac-chip:hover{text-decoration-color:currentColor;color:var(--accent-ink-700)}
-  #ig-dock .ac-chip:focus-visible,#ig-dock .ac-link:focus-visible{outline:2px solid var(--accent-solid);outline-offset:2px}
+  #ig-dock .ac-link:focus-visible{outline:2px solid var(--accent-solid);outline-offset:2px}
   #ig-dock .ac-link{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
-  #ig-dock .ac-ckline{font-size:12.5px}
   #ig-dock .ac-fl{display:grid;grid-template-columns:64px minmax(0,1fr);gap:7px 10px;margin:0;font-size:12.5px;line-height:1.45}
   #ig-dock .ac-fl dt{font-size:12px}
   #ig-dock .ac-fl dd{margin:0;min-width:0}
   #ig-dock .ac-quote{font-family:var(--font-doc);border-left:3px solid var(--color-accent-300);background:var(--color-accent-50);padding:7px 10px;border-radius:0 var(--radius) var(--radius) 0}
   #ig-dock .ac-busy{font-size:13px}
   /* THE READING DESK (the owner picked it, 28 Oct 2026): the ten in flight, one real answer with its quote, the last three turned past, the counts */
-  #ig-dock .ac-desk-now{display:flex;align-items:center;gap:6px;font-size:12.5px;min-width:0}
-  #ig-dock .ac-desk-now .ob-spin{margin-right:0}
-  #ig-dock .ac-desk-refs{margin-left:auto;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #ig-dock .ac-desk{background:var(--color-surface);border:1px solid var(--rule);border-radius:var(--radius);padding:12px;margin-top:8px;min-height:112px;display:flex;flex-direction:column;justify-content:center}
   #ig-dock .ac-desk-in{display:flex;flex-direction:column;gap:6px;min-width:0}
   #ig-dock .ac-desk-who{display:flex;align-items:baseline;gap:8px;min-width:0;font-size:13px}
   #ig-dock .ac-desk-nm{font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
@@ -9974,8 +9965,6 @@
   #ig-dock .ac-desk-q{margin:0;font-family:var(--font-doc);font-style:italic;font-size:14px;line-height:1.45;opacity:.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
   #ig-dock .ac-desk-noq{font-size:12.5px;color:var(--color-quiet)}
   #ig-dock .ac-desk-empty{font-size:13px;color:var(--color-quiet);text-align:center}
-  #ig-dock .ac-stack{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
-  #ig-dock .ac-stack:empty{display:none}
   #ig-dock .ac-stack-r{display:flex;align-items:center;gap:8px;font-size:12.5px;background:var(--color-surface);border:1px solid var(--rule);border-radius:var(--radius);padding:5px 10px;min-width:0}
   #ig-dock .ac-stack-r .ac-ans{flex:none}
   /* THE LIGHTS IN JAMBO'S PANEL (the owner, 28 Oct 2026: "the reading or results are coming out color coded as well"): the desk, the stack, the reading of a chosen answer and the count carry the same coloured light as the list's cell; the words stay the ink, as drawn */
@@ -9992,36 +9981,19 @@
   /* THE READING DESK AS DRAWN (round 2 of the review, 28 Oct 2026): Jambo's grey card, the eyebrow and the question,
      refs in the reference face, white desk and stack, Stop a button; the same card is left behind when the read ends */
   #ig-dock .ac-dk-card{background:var(--jb-card-fill);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
-  #ig-dock .ac-dk-eb{font-size:11.5px;color:var(--color-quiet)}
-  #ig-dock .ac-dk-q{margin:-6px 0 0;font-weight:var(--w-strong);font-size:14.5px;line-height:1.3}
-  #ig-dock .ac-dk-said{font-size:13px;line-height:1.45}
-  #ig-dock .ac-dk-said b{font-weight:var(--w-strong)}
-  #ig-dock .ac-dk-q2{margin:-4px 0 0;font-weight:var(--w-strong);font-size:14px;line-height:1.35}
-  #ig-dock .ac-dk-count{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px}
   #ig-dock .ac-dk-card .ac-acts{margin:0}
-  #ig-dock .ac-dk-card .ac-desk{border:0;border-radius:8px;margin-top:0}
-  #ig-dock .ac-dk-card .ac-stack{margin:0}
   #ig-dock .ac-dk-card .ac-stack-r{border:0;border-radius:8px}
-  #ig-dock .ac-dk-card .ac-desk-refs,#ig-dock .ac-dk-card .ac-desk-who .ac-meta{font-family:var(--font-ref);font-size:12px}
+  #ig-dock .ac-dk-card .ac-desk-who .ac-meta{font-family:var(--font-ref);font-size:12px}
   #ig-dock .ac-dk-card .ac-desk-foot{margin-top:0}
   #ig-dock .ac-dk-card .ac-desk-foot .ui-btn:not(.ui-btn-primary){background:var(--color-surface);border:1px solid var(--color-neutral-300);border-radius:999px}
   #ig-dock .pd-gl-b > .ac-dk-card.is-rest + *{margin-top:4px}
   /* the form: the column's name said under the box, with Change */
-  #ig-dock .ac-named{font-size:12.5px;margin-top:2px}
-  #ig-dock .ac-named b{font-weight:var(--w-label)}
   #ig-dock .ac-th-prog .ac-next{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .reg-table th.ac-th{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .reg-table .ac-th-i{width:12px;height:12px;margin-left:4px;color:var(--accent-ink);vertical-align:-1px;display:inline-block}
   /* LIGHTS (the owner picked it, 26 Oct 2026): a cell says ONE thing — the
      light and the short answer, on one line, never cut by a chip or a tick
      fighting it for the width. Everything else is in the panel's reading. */
-  .reg-table td.ac-cell{line-height:1.3;cursor:pointer;white-space:nowrap;overflow:hidden}
-  .reg-table td.ac-cell .ac-ans>i{width:10px;height:10px}
   .reg-table .ac-ans.tone-none{color:var(--color-neutral-500)}
   .ac-ans.tone-none>i{background:transparent;box-shadow:inset 0 0 0 1.5px var(--color-neutral-400)}
-  .reg-table th.ac-th .ac-th-risk,.ac-tt-table th .ac-th-risk{margin-left:6px;font-size:11.5px;font-weight:var(--w-label);color:var(--st-ruby-fg);white-space:nowrap}
-  .reg-table td.ac-cell.is-on{box-shadow:inset 0 0 0 2px var(--accent-solid)}
-  .reg-table tr.ac-row-on>td{background:var(--color-accent-50)}
   .reg-table .ac-ans{display:inline-flex;align-items:center;gap:6px;font-weight:var(--w-label);max-width:100%}
   .reg-table .ac-ans>i{width:7px;height:7px;border-radius:50%;flex:none}
   /* AS DRAWN (28 Oct 2026): the light carries the colour; the short answer is the ink ("not found" keeps its grey) */
@@ -10030,26 +10002,11 @@
   .reg-table .ac-ans.tone-amber>i{background:var(--st-amber-dot)}
   .reg-table .ac-ans.tone-ruby>i{background:var(--st-ruby-dot)}
   .reg-table .ac-ans.tone-gray{color:var(--st-gray-fg)} .reg-table .ac-ans.tone-gray>i{background:var(--st-gray-dot)}
-  .reg-table .ac-a{min-width:0;overflow:hidden;text-overflow:ellipsis}
-  .reg-table .ac-a.is-unck{text-decoration:underline dotted;text-underline-offset:3px}
   .reg-table .ac-sub{display:block;font-size:11.5px;color:var(--color-text);overflow:hidden;text-overflow:ellipsis}
   .reg-table .ac-dash{color:var(--color-text)}
-  .reg-table .ac-ck{flex:none;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--color-neutral-400);background:var(--color-surface);display:inline-grid;place-items:center;padding:0;cursor:pointer;color:var(--st-green-fg)}
-  .reg-table .ac-ck.on{background:var(--st-green-bg);border-color:var(--st-green-dot)}
-  .reg-table .ac-ck:disabled{cursor:not-allowed}
-  .reg-table .ac-ck:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
-  .reg-table .ac-ck-i{width:10px;height:10px}
   /* DISCOVER STAGE 2 (owner, 25 Oct 2026): the legend in the list's foot, the drawn counts, the name's hint */
-  .ac-legend{display:inline-flex;flex-wrap:wrap;gap:4px 12px;align-items:center}
-  .ac-legend .ac-lg{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
-  .ac-lg i,.ac-bar-t i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--st-gray-dot)}
   i.ac-lg-green{background:var(--st-green-dot)} i.ac-lg-amber{background:var(--st-amber-dot)} i.ac-lg-ruby{background:var(--st-ruby-dot)} i.ac-lg-gray{background:var(--st-gray-dot)}
   #ig-dock .ac-next{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px}
-  #ig-dock .ac-draw{display:grid;gap:6px;margin-top:10px}
-  #ig-dock .ac-bar{display:grid;grid-template-columns:minmax(0,9.5em) 1fr 2.2em;gap:8px;align-items:center;font-size:12.5px}
-  #ig-dock .ac-bar>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #ig-dock .ac-bar>b{text-align:right;font-variant-numeric:tabular-nums;font-weight:var(--w-label)}
-  #ig-dock .ac-bar-t{display:block;height:10px;border-radius:5px;background:var(--color-neutral-100);overflow:hidden}
   /* NO GREY (owner, 29 Oct 2026, the Legora way): yes green, no blue, a plain fact its answer's own colour,
      nothing found an empty ring; red is a risk alone. One set of rules for every place an answer is drawn
      (the list, Jambo's panel, Reads, the read table, Key terms), at an id's weight so the older scoped
@@ -10070,119 +10027,24 @@
   /* AN ITALIC WORD IS NEVER CUT (owner, 9 Nov 2026: "The column … is cutting off some of the words"): a leaning last
      letter reaches past its box; where the box clips (an ellipsis cell), it keeps that much room at its right */
   :is(#ig-dock, html) .ac-ans.tone-none > :is(span, b){padding-right:.2em}
-  :is(#ig-dock, html) .ac-gbar i.ac-lg-none{background:var(--st-steel-line);box-shadow:none}
-  :is(#ig-dock, html) .ac-bar-t i.ac-lg-none{background:var(--st-steel-line);box-shadow:none}
-  /* THE QUESTION'S CARD, THE LEGORA WAY (as drawn, 29 Oct 2026): nothing boxed; the question, one sentence,
-     the coloured bar, one row per answer, the quote, one button, three links and More… */
-  #ig-dock .ac-col.is-open{display:flex;flex-direction:column;gap:12px;background:transparent;border:0;box-shadow:none;padding:0}
-  #ig-dock .ac-col-h{display:flex;flex-direction:column;gap:2px;text-align:left;background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer}
-  #ig-dock .ac-col-h .ac-dk-eb{font-size:13px;color:var(--color-text)}
-  #ig-dock .ac-col-q{font-weight:var(--w-strong);font-size:15px;line-height:1.35}
-  #ig-dock .ac-col-say{margin:0;font-size:14px;line-height:1.5}
-  #ig-dock .ac-col-say b{font-weight:var(--w-strong)}
-  #ig-dock .ac-col-say .ac-link.is-risk{color:var(--st-ruby-fg)}
-  #ig-dock .ac-gbar{display:flex;height:6px;border-radius:999px;background:var(--color-divider);overflow:hidden}
-  #ig-dock .ac-gbar.is-mini{height:4px}
-  #ig-dock .ac-gbar i{display:block;height:100%;flex:none}
-  #ig-dock .ac-tally{display:flex;flex-direction:column;gap:2px}
-  #ig-dock .ac-tl{display:flex;align-items:center;gap:8px;min-height:32px}
-  /* the chosen answer's shade reaches 6px past its words on each side as paint only, so the row's box stays inside the card */
-  #ig-dock .ac-tl.is-on{background:var(--jb-card-fill);box-shadow:-6px 0 0 0 var(--jb-card-fill),6px 0 0 0 var(--jb-card-fill)}
-  #ig-dock .ac-tl-b{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:none;border:0;padding:0;font:inherit;font-size:14px;color:inherit;text-align:left;cursor:pointer}
-  #ig-dock .ac-tl-n{min-width:24px;text-align:right;font-variant-numeric:tabular-nums;font-weight:var(--w-strong)}
-  #ig-dock .ac-tl-w{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #ig-dock .ac-tl-names{color:var(--color-text)}
-  #ig-dock .ac-tl .ac-link{flex:none;font-size:14px}
-  #ig-dock .ac-qw{display:flex;flex-direction:column;gap:4px}
-  #ig-dock .ac-qw-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px}
-  #ig-dock .ac-qw-st{display:inline-flex;gap:4px;flex:none}
-  #ig-dock .ac-qw-b{width:26px;height:26px;border-radius:999px;border:0;background:var(--jb-card-fill);font:inherit;font-size:15px;line-height:1;cursor:pointer;color:var(--color-text)}
-  #ig-dock .ac-qw-b:hover{background:var(--color-divider)}
-  #ig-dock .ac-qw-q{margin:0;font-family:var(--font-doc);font-style:italic;font-size:14.5px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-  #ig-dock .ac-qw-q.is-none{font-style:normal;font-family:inherit;font-size:14px}
-  #ig-dock .ac-qw-src{align-self:flex-start;background:none;border:0;padding:0;font:inherit;font-size:13px;color:var(--color-text);text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:var(--color-divider);text-underline-offset:3px}
-  #ig-dock .ac-col-go{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  #ig-dock .ac-col-links{display:flex;flex-wrap:wrap;gap:6px 16px;padding-top:12px;border-top:1px solid var(--color-divider)}
-  #ig-dock .ac-col-links .ac-link, #ig-dock .ac-col-more .ac-link{font-size:14px}
-  #ig-dock .ac-col-more{display:flex;flex-direction:column;align-items:flex-start;gap:8px;background:var(--jb-card-fill);border-radius:var(--radius);padding:12px 16px}
-  #ig-dock .ac-col-more .ac-link.is-danger{color:var(--st-ruby-fg)}
-  #ig-dock .ac-col .ac-ckline{font-size:13px}
-  #ig-dock .ac-col-eb{font-size:13px;margin:8px 0 -4px}
-  #ig-dock .ac-col-fold{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;background:var(--jb-card-fill);border:0;border-radius:var(--radius);padding:12px 16px;font:inherit;color:inherit;cursor:pointer}
-  #ig-dock .ac-col-fold:hover{background:var(--color-divider)}
-  #ig-dock .ac-fd-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-width:0}
-  #ig-dock .ac-fd-h b{font-weight:var(--w-strong);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #ig-dock .ac-fd-n{flex:none;font-size:13px;white-space:nowrap}
-  #ig-dock .ac-fd-cs{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:13px}
-  #ig-dock .ac-fd-c{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
   /* STOP STANDS STILL (29 Oct 2026): Stop heads the running card; the desk and the stack keep one size */
   #ig-dock .ac-dk-card.is-running .ac-dk-top{display:flex;align-items:center;gap:10px;min-width:0;min-height:28px}
-  #ig-dock .ac-dk-card.is-running .ac-dk-top .ac-desk-now{flex:1;min-width:0}
   #ig-dock .ac-dk-card.is-running .ac-dk-stop{flex:none;background:var(--color-surface);border:1px solid var(--st-ruby-line);color:var(--st-ruby-fg);border-radius:999px}
-  #ig-dock .ac-dk-card.is-running .ac-dk-q{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  #ig-dock .ac-dk-card.is-running .ac-desk{height:128px;min-height:128px;justify-content:flex-start;overflow:hidden}
   #ig-dock .ac-dk-card.is-running .ac-desk-q{-webkit-line-clamp:2}
   #ig-dock .ac-dk-card.is-running .ac-stack-r{height:30px;flex:none}
   #ig-dock .ac-dk-card.is-running .ac-stack-r.is-keep{visibility:hidden}
-  #ig-dock .ac-bar-t i{display:block;height:100%;width:0;border-radius:5px;min-width:0}
   /* BREATHING ROOM (owner, 28 Oct 2026: "the feedback or response is very close the entry field"): a line of
      words under an entry box stands 8px below it — the hint under the name, and the refusal under the question */
   #ig-dock .ac-hint{display:block;font-size:12px;color:var(--color-text);margin-top:8px}
-  #ig-dock #ac-q-say{margin-top:8px}
-  /* DISCOVER STAGE 3: the pack's questions, the whole table's page */
-  #ig-dock .ac-pack-h{display:flex;align-items:baseline;gap:8px;justify-content:space-between}
-  #ig-dock .ac-pack-qs{margin:2px 0 0;padding:0;list-style:none;display:grid;gap:2px}
-  #ig-dock .ac-pack-qs .ac-pick{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:start;padding:6px 0;border-top:1px solid var(--rule);cursor:pointer}
-  #ig-dock .ac-pack-qs li:first-child .ac-pick{border-top:0}
-  #ig-dock .ac-pack-qs .ac-pick input{margin:2px 0 0;accent-color:var(--accent-solid);width:15px;height:15px}
-  #ig-dock .ac-pack-qs .ac-pick>span{min-width:0}
-  #ig-dock .ac-pack-qs .ac-pick .ac-meta{display:block}
   /* while he reads: how far he has got, and Stop (owner, 26 Oct 2026) */
   #ig-dock .ac-prog{height:4px;border-radius:2px;background:var(--color-neutral-100);overflow:hidden}
   #ig-dock .ac-prog>i{display:block;height:100%;background:var(--accent-solid);border-radius:2px;transition:width .2s linear}
   /* THE THREAD (owner picked it, 28 Oct 2026): the choice 50 | 100 inside the sentence; the progress line under a column's facts */
-  .ac-size{display:inline-flex;background:var(--color-neutral-100);border-radius:999px;padding:2px;vertical-align:middle;margin:0 2px}
   .ac-size-b{border:0;background:none;font:inherit;font-size:12px;font-weight:var(--w-label);line-height:18px;padding:0 9px;border-radius:999px;color:var(--color-text);cursor:pointer}
   .ac-size-b.on{background:var(--color-text);color:#fff}
   .ac-size-b:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
-  #ig-dock .ac-th b{font-weight:var(--w-label)}
   #ig-dock .ac-th-prog{display:flex;flex-direction:column;gap:4px;margin-top:2px}
   #ig-dock .ac-th-prog .ac-next{margin-top:2px}
-  /* the tick, where the reading is (Lights, 26 Oct 2026) */
-  #ig-dock .ac-ck-row{display:inline-flex;align-items:center;gap:6px;border:0;background:none;padding:0;font:inherit;font-size:12.5px;color:var(--accent-ink);cursor:pointer;text-align:left}
-  #ig-dock .ac-ck-row.on{color:var(--color-text)}
-  #ig-dock .ac-ck-row:disabled{cursor:not-allowed;color:var(--color-neutral-500)}
-  #ig-dock .ac-ck{flex:none;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--color-neutral-400);background:var(--color-surface);display:inline-grid;place-items:center;color:var(--st-green-fg)}
-  #ig-dock .ac-ck.on{background:var(--st-green-bg);border-color:var(--st-green-dot)}
-  #ig-dock .ac-ck-i{width:10px;height:10px}
-  /* THE LEDGER (the owner picked it, 26 Oct 2026: "better designed and tidy
-     for professionals"). One framed card: a real head, the contract column
-     standing still while the answers scroll, one rhythm in every cell, the
-     counts in the heads and the legend in the foot. */
-  .ac-tt{display:grid;gap:12px}
-  .ac-tt-pacts{display:flex;gap:8px;flex-wrap:wrap}
-  .ac-tt-pacts .ui-btn.is-on{background:var(--accent-fill);color:#fff;border-color:transparent}
-  .ac-tt-card{background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden}
-  .ac-tt-top{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--color-divider)}
-  .ac-tt-top h2{margin:0;font-family:var(--font-doc);font-size:21px;font-weight:var(--w-title);line-height:1.2}
-  .ac-tt-sub{margin-top:3px;font-size:12.5px;color:var(--color-neutral-600)}
-  .ac-tt-sub .ac-tt-risk{color:var(--st-ruby-fg);font-weight:var(--w-label)}
-  .ac-tt-scroll{overflow-x:auto;max-width:100%}
-  .ac-tt-table{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
-  .ac-tt-table th{text-align:left;font-weight:var(--w-label);font-size:12px;color:var(--color-neutral-600);padding:9px 14px;background:var(--color-neutral-50);border-bottom:1px solid var(--rule-strong);white-space:nowrap;position:sticky;top:0;z-index:1}
-  .ac-tt-table td{padding:11px 14px;border-bottom:1px solid var(--color-divider);vertical-align:top;line-height:1.35;max-width:260px}
-  .ac-tt-table tbody tr:last-child td,.ac-tt-table tbody tr:last-child th{border-bottom:0}
-  .ac-tt-table th.ac-tt-a{position:sticky;left:0;z-index:2;background:var(--color-surface);border-right:1px solid var(--color-divider);text-align:left;font-weight:400;color:var(--color-text);white-space:normal;min-width:190px;padding:11px 14px;border-bottom:1px solid var(--color-divider);top:auto}
-  .ac-tt-table thead th.ac-tt-a{background:var(--color-neutral-50);z-index:3;top:0}
-  .ac-tt-table th.ac-tt-a b{font-weight:var(--w-label)}
-  .ac-tt-table .ac-ans{display:inline-flex;align-items:center;gap:6px;font-weight:var(--w-label)}
-  .ac-tt-table .ac-ans>i{width:10px;height:10px;border-radius:50%;flex:none;background:var(--st-gray-dot)}
-  .ac-tt-table .ac-ans.tone-green>i{background:var(--st-green-dot)} .ac-tt-table .ac-ans.tone-amber>i{background:var(--st-amber-dot)} .ac-tt-table .ac-ans.tone-ruby>i{background:var(--st-ruby-dot)}
-  .ac-tt-table .ac-tt-w{min-width:0}
-  .ac-tt-table .ac-sub{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:11.5px;color:var(--color-quiet);white-space:normal;margin-top:3px;font-family:var(--font-doc)}
-  .ac-tt-table .ac-cite{display:inline-flex;align-items:center;height:18px;padding:0 5px;border-radius:5px;background:var(--color-neutral-100);font-size:11px;font-weight:var(--w-label);color:var(--color-quiet)}
-  .ac-tt-none{margin:0;padding:24px 20px;color:var(--color-neutral-600);font-size:13px}
-  .ac-tt-foot{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;font-size:12px;padding:10px 20px;border-top:1px solid var(--color-divider);color:var(--color-neutral-600)}
   /* DISCOVER STAGE 4: the company's facts in Settings and in Key terms */
   #fa-panel .fa-scroll{overflow-x:auto;max-width:100%}
   #fa-panel .fa-t{width:100%;border-collapse:collapse;font-size:13px}
@@ -16152,9 +16014,6 @@
   .lh-foot{display:flex;align-items:center;gap:var(--s-2);min-height:var(--ctl-h);font-size:var(--t-meta);color:var(--color-neutral-500);}
   .lh-foot .lh-range{white-space:nowrap;}
   .lh-foot .lh-more{font-size:var(--t-meta);}
-  /* the § chip in a Jambo answer cell (askColTdHtml) */
-  .reg-table td.ac-cell .ac-cite{display:inline-flex;align-items:center;height:18px;margin-left:6px;padding:0 4px;border:1px solid var(--rule);border-radius:var(--radius);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:var(--t-meta);line-height:1;cursor:pointer;}
-  .reg-table td.ac-cell .ac-cite:hover,.reg-table td.ac-cell .ac-cite:focus-visible{border-color:var(--accent-ink);color:var(--accent-ink);}
   /* ═══ REQUESTS AND MY NOTES, AS DRAWN (round 20 of the redesign, owner
      picked "The SAP way"; every drawn part built on the owner's yes of 18 Oct
      2026; js/views/intake.js, js/views/mynotes.js) ═══
@@ -21376,7 +21235,6 @@
   html.lg-new .rfp-k{min-width:0;font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis}
   html.lg-new .rfp-k small{display:block;margin-top:2px;font-size:11.5px;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .rfp-v{flex:none;white-space:nowrap;font-variant-numeric:tabular-nums}
-  html.lg-new .rfp-acts{display:flex;align-items:center;gap:16px;margin-top:20px}
   /* WHAT THIS FOLDER SAYS, THE LEGORA WAY (f1053): nothing boxed; chips, then one quiet list of sentences, each with
      where it was read (the quote in the paper's own face) and its act in its row */
   /* AT A GLANCE (owner's pick by name, 15 Nov 2026): the Contracts panel draws when a folder's contracts end and where its money
@@ -21415,13 +21273,7 @@
   html.lg-new .rfg-pc{font-size:12px;color:var(--color-quiet);text-align:right;font-variant-numeric:tabular-nums}
   html.lg-new .rfp-panel.is-drawn .rfp-pill{height:var(--ctl-h);padding:0 16px;font-size:13px}
   /* the ask form as drawn: captions over full-width boxes, a two-way choice, a quiet hint under each */
-  html.lg-new .rfp-panel .ac-nl-back{display:block;margin:0 0 16px;font-size:13px}
-  html.lg-new .ac-nl-form .rfp-cap{margin:18px 0 6px}
-  html.lg-new .ac-nl-form .ac-nl-back + .rfp-cap{margin-top:0}
-  html.lg-new .ac-nl-form .ac-in{display:block;width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);font:inherit;font-size:13.5px;color:var(--color-text);resize:vertical}
-  html.lg-new .ac-nl-form input.ac-in{height:var(--ctl-h-lg)}
   html.lg-new .ac-nl-hint{margin:6px 0 0;font-size:12px;color:var(--color-quiet)}
-  html.lg-new .ac-nl-q{margin:0;font-size:14px;font-weight:var(--w-strong);line-height:1.4}
   /* READS AS DRAWN (8 Nov 2026): one line at the top; the table fixed, every cell inside its column (the iPad); the panel's bar */
   html.lg-new .rdn-page .rdn-head{display:flex;align-items:center;gap:12px;flex-wrap:nowrap;min-width:0}
   html.lg-new .rdn-page .rdn-head .ctf-h{font-family:inherit;font-size:15px;font-weight:var(--w-strong);margin:0;white-space:nowrap}
@@ -21594,8 +21446,6 @@
   html.lg-new .dsc-a>.ac-ans.tone-ruby>i{background:var(--st-ruby-dot)}
   html.lg-new .dsc-a>.ac-ans.tone-none>i{background:transparent;box-shadow:inset 0 0 0 1.5px var(--color-neutral-400)}
   html.lg-new .dsc-pad{padding:var(--s-2)}
-  html.lg-new .dsc-page .rdn-panel .rfp-acts{flex-wrap:wrap;gap:var(--s-2)}
-  html.lg-new .dsc-page .rdn-panel .rfp-acts>button{flex:none;white-space:nowrap}
   html.lg-new .dsc-live-bar{height:4px;margin:var(--s-2);border-radius:999px;background:var(--surface-2);overflow:hidden}
   html.lg-new .dsc-live-bar>i{display:block;height:100%;background:var(--color-text)}
   /* THE NEW DISCOVER (owner, 15 Nov 2026): four screens on the one white sheet — the list of reads, New read, while it
@@ -21720,24 +21570,10 @@
   html.lg-new .dsc-sheet .dsc-head{font-weight:var(--w-strong);color:var(--color-text)}
   html.lg-new .dsc-sheet .dsc-gap{margin:var(--s-2) 0 var(--s-4);text-align:center;color:var(--color-quiet);letter-spacing:.3em}
   /* a column's head as drawn: name · k of n read · ⋯ on one line; its menu */
-  html.lg-new #ct-place th.ac-th.is-nl .ac-th-line{display:flex;align-items:center;gap:6px;white-space:nowrap;min-width:0}
-  html.lg-new #ct-place th.ac-th.is-nl .ac-th-w{overflow:hidden;text-overflow:ellipsis;min-width:0}
-  html.lg-new #ct-place th.ac-th.is-nl .reg-th-sub{display:inline;margin:0;flex:none;text-transform:none;letter-spacing:0;font-weight:var(--w-label)}
   html.lg-new .ac-th-more{flex:none;margin-left:auto;width:24px;height:22px;border:0;border-radius:6px;background:transparent;font:inherit;font-size:14px;line-height:1;color:var(--color-text);cursor:pointer}
   @media (hover:hover){ html.lg-new .ac-th-more:hover{background:var(--surface-2)} }
-  html.lg-new .ac-th-menu{position:fixed;z-index:72;min-width:200px;padding:6px;border-radius:var(--radius);background:var(--color-surface);box-shadow:var(--shadow-lg);border:1px solid var(--color-divider)}
-  html.lg-new .ac-th-menu .ac-thm-i{display:block;width:100%;text-align:left;padding:8px 10px;border:0;border-radius:6px;background:transparent;font:inherit;font-size:13px;color:var(--color-text);cursor:pointer;white-space:nowrap}
-  @media (hover:hover){ html.lg-new .ac-th-menu .ac-thm-i:hover{background:var(--surface-2)} }
-  html.lg-new .ac-th-menu .ac-thm-i.is-red{color:var(--danger)}
-  html.lg-new .ac-th-menu hr{margin:4px 0;border:0;border-top:1px solid var(--color-divider)}
-  html.lg-new .ac-nl-done .ac-nl-bar{margin:8px 0 4px}
-  html.lg-new .ac-nl-done .rfp-k .ac-ans{margin-right:8px;vertical-align:middle}
   html.lg-new .rfp-a.rfp-qn{color:var(--color-text);text-decoration:none;font-weight:var(--w-label)}
   @media (hover:hover){ html.lg-new .rfp-a.rfp-qn:hover{text-decoration:underline} }
-  html.lg-new .ac-nl-seg{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface-2)}
-  html.lg-new .ac-nl-opt{height:30px;padding:0 14px;border:0;border-radius:999px;background:transparent;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;white-space:nowrap}
-  html.lg-new .ac-nl-opt.on{background:var(--color-surface);box-shadow:var(--shadow-sm)}
-  html.lg-new .ac-nl-form .rfp-acts .ui-btn{height:var(--ctl-h);border-radius:999px;padding:0 16px;white-space:nowrap}
   html.lg-new .rfp-p{margin:0 0 18px;font-size:13.5px}
   html.lg-new .rfp-p b{font-weight:var(--w-label)}
   html.lg-new .rfp-a{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;text-align:left}
@@ -21756,9 +21592,7 @@
   html.lg-new .rfp-ask .rfp-a{font-size:13.5px;font-weight:var(--w-label)}
   /* the list's heads as drawn: small capitals on the white page, two lines where the head names both */
   html.lg-new #ct-place .ct-page .reg-table thead th .reg-th-sub{display:block;text-transform:none;letter-spacing:0;font-size:11px;font-weight:var(--w-label);margin-top:2px;white-space:normal}
-  html.lg-new #ct-place .ct-page .reg-table thead th.ac-th.is-nl{text-transform:none;letter-spacing:0;font-size:12.5px;white-space:nowrap}
   /* ONE COLUMN, ONE LINE (fix round 1, item 8): the name takes the column's width and gives way with "…"; ⋯ at its end */
-  html.lg-new #ct-place .ct-page .reg-table thead th.ac-th.is-nl .ac-th-w{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .rfp-panel{padding:4px 0 16px}
   html.lg-new #ct-place .ct-page .reg-table thead th{background:var(--color-surface);text-transform:uppercase;font-size:11px;letter-spacing:.06em;font-weight:var(--w-label);vertical-align:bottom}
   /* THE WALL AS DRAWN: papers on the page itself (no box around them), each a sheet with its mark at the corner and the party and value at its foot */
@@ -22660,8 +22494,6 @@
   html.lg-new .sdd5-p .ac-card-p{margin:8px 0 0;font-size:12px;color:var(--color-quiet)}
   html.lg-new .st-ls-page .ac-t td{padding-top:10px;padding-bottom:10px}
   html.lg-new .st-ls-page .ac-t .st-ls-name{display:block}
-  html.lg-new .st-ls-page .ac-q{display:block;margin-top:2px;font-family:var(--font-title);font-size:13px;color:var(--color-quiet);overflow-wrap:anywhere}
-  html.lg-new .st-ls-page .ac-q em{font-style:italic;color:var(--color-text)}
   html.lg-new .st-ls-page .ac-t .st-ls-lnk{border:0;background:none;padding:0;font:inherit;font-size:13.5px;font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer}
   html.lg-new .st-ls-page .st-ls-chips .apn-rule-w{display:inline-flex}
   /* P-45, THE SIX PAGES INSIDE SETTINGS THE LEGORA + STRIPE WAY (owner's pick 22 Nov 2026): the area's own frame — the

@@ -44,7 +44,8 @@ test('1 · the plan: the next are the first not yet read, in the list\'s order; 
   assert.equal(sb.AC_MAX, 100);
   assert.match(read('server/server.js'), /^const COLUMN_MAX = 100;/m, 'the server holds the same wall');
   assert.equal(sb.acSize(), 50, 'the first choice is 50');
-  sb.acSizeSet(100); assert.equal(sb.acSize(), 100, 'the choice is kept'); sb.acSizeSet(7); assert.equal(sb.acSize(), 50, 'a number that is not a size falls back');
+  /* RE-POINTED 22 Nov 2026 (owner: "There is not asking a column again only the features related to discovery"): the form's size switch (acSizeSet) went with the form; a choice already kept is still read */
+  sb.localStorage.setItem('hati.v1.acSize', '100'); assert.equal(sb.acSize(), 100, 'the choice is kept'); sb.localStorage.setItem('hati.v1.acSize', '7'); assert.equal(sb.acSize(), 50, 'a number that is not a size falls back');
   let p = sb.askColPlan({ askId: 'a1', size: 50 });
   assert.deepEqual([p.shown, p.read, p.unread, p.pick.length, p.from, p.to, p.contiguous, p.calls], [500, 0, 500, 50, 1, 50, true, 50]);
   /* the first 50 read and kept: the next are 51–100, never the first 50 again */
@@ -69,35 +70,9 @@ test('1 · the plan: the next are the first not yet read, in the list\'s order; 
   assert.match(run.id, /^cr_[0-9a-f]{16}$/); assert.deepEqual([run.from, run.to], [p.from, p.to]);
 });
 
-test('2 · one sentence: the choice, the count, where they stand', () => {
-  /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
-  const sb = stage({ shown: ids(500) });
-  const say = (o, s) => text(sb.askColSentenceHtml(sb.askColPlan(o), Object.assign({ force: !!o.force }, s || {})));
-  assert.equal(say({ askId: 'a1', size: 50 }), 'Jambo reads the first 50 100 of the 500 shown: contracts 1–50. Each answer shows the sentence it came from.');
-  assert.match(sb.askColSentenceHtml(sb.askColPlan({ askId: 'a1', size: 100 })), /<button type="button" class="ac-size-b" data-ac-size="50" aria-pressed="false">50<\/button><button type="button" class="ac-size-b on" data-ac-size="100" aria-pressed="true">100<\/button>/, 'the choice is inside the sentence, the chosen one lit');
-  sb.AC.ans.a1 = Object.fromEntries(ids(50).map(id => [id, { found: true }]));
-  assert.equal(say({ askId: 'a1', size: 50 }), 'Jambo reads the next 50 100 of the 450 not yet read: contracts 51–100. The 50 already read are kept and not read again. Each answer shows the sentence it came from.');
-  assert.equal(say({ askId: 'a1', size: 50, force: true }), 'Ask again reads the first 50 100 of the 500 shown afresh, even where an answer is kept: contracts 1–50.');
-  /* a pack says it reads once and answers every question */
-  assert.match(say({ askIds: ['a1'], size: 50 }, { pack: true, q: 5 }), /^Jambo reads the next 50 100 of the 450 not yet read, once each, and answers all 5 questions from that one read: contracts 51–100\./);
-  /* fewer left than a size: no choice to make, the count said plainly */
-  sb.AC.ans.a1 = Object.fromEntries(ids(488).map(id => [id, { found: true }]));
-  assert.equal(say({ askId: 'a1', size: 50 }), 'Jambo reads the 12 not yet read: contracts 489–500. The 488 already read are kept and not read again. Each answer shows the sentence it came from.');
-  /* a gap is said as one, never as a range that is not one */
-  sb.AC.ans.a1 = Object.fromEntries(ids(50).concat(['HC-1070']).map(id => [id, { found: true }]));
-  assert.match(say({ askId: 'a1', size: 50 }), /: 50 down the list from no\. 51\./);
-  /* every one read: the kept answers offered, nothing to read */
-  sb.AC.ans.a1 = Object.fromEntries(ids(500).map(id => [id, { found: true }]));
-  assert.equal(say({ askId: 'a1', size: 50 }), 'Every one of the 500 shown is read and kept to bring onto the list. Ask again reads them afresh.');
-  assert.equal(sb.askColAskWords(sb.askColPlan({ askId: 'a1', size: 50, force: true })), 'Read again'); /* RE-POINTED 28 Oct 2026 (round 2): the button says what it spends */
-  sb.AC.ans.a1 = Object.fromEntries(ids(50).map(id => [id, { found: true }]));
-  assert.equal(sb.askColAskWords(sb.askColPlan({ askId: 'a1', size: 50 })), 'Read the next 50');
-  assert.equal(sb.askColAskWords(sb.askColPlan({ askId: 'a9', size: 50 })), 'Read 50 contracts');
-  /* a small book: no choice to make either */
-  const small = stage({ shown: ids(12) });
-  assert.equal(text(small.askColSentenceHtml(small.askColPlan({ askId: 'a1', size: 50 }))), 'Jambo reads the 12 shown. Each answer shows the sentence it came from.');
-});
-
+/* RETIRED 22 Nov 2026 (owner: "There is not asking a column again only the features related to discovery"): test 2 — the
+   form's sentence and its button words (askColSentenceHtml, askColAskWords) went with Ask a column's form; Discover's New
+   read says its own count (f1055, discover-page-verify 4a) */
 test('3 · the server records every press; its batches share the record; Stop marks it; the count is what the reader may see', async () => {
   const h = await startHati();
   try {
@@ -159,11 +134,13 @@ test('4 · the Reads page is on every list a page must be on', () => {
   for (const part of ["['reads', 'renderReads', 'see', 0]", "['askcolnext', 'askColPlan', 'see', 1]", "['askcolruns', 'GET /api/columns/reads', 'wall', 2]", "['askcolstop', 'POST /api/columns/reads/:id/stop', 'wall', 2]"])
     assert.ok(BR.includes(part), 'the Brain names ' + part);
   assert.match(read('js/ai.js'), /reads: 'Discover'/);   /* RE-POINTED 12 Nov 2026: the Reads page is named Discover */
-  for (const k of ['nav_reads', 'ca_w_reads', 'gd_p_reads', 'gd_w_reads', 'brn_p_reads', 'rd_next_arrow', 'ac_th_next', 'ac_th_every_read', 'lh_ph_reads_other']) assert.ok(EN[k], k + ' is in the book');
+  for (const k of ['nav_reads', 'ca_w_reads', 'gd_p_reads', 'gd_w_reads', 'brn_p_reads', 'rd_next_arrow', 'lh_ph_reads_other']) assert.ok(EN[k], k + ' is in the book');
   /* the page's own words: the thread and the next batch, every door an existing one */
   const RD = read('js/views/reads.js');
   /* RE-POINTED 28 Oct 2026 (round 4 of the review): the read table opens on this page, off the kept answers (askColLoad), never by way of Contracts */
-  for (const fn of ['askColNext', 'askColBring', 'askColLoad', 'askColOpen', 'regShowOnly']) assert.ok(RD.includes(fn + '('), 'the page opens the existing door ' + fn);
+  /* RE-POINTED 22 Nov 2026 (owner: "There is not asking a column again only the features related to discovery"): the next batch and Ask again land on Discover's New read (dsnFill), never on Contracts' deleted form */
+  for (const fn of ['askColLoad', 'regShowOnly', 'dsnFill', 'rdNewRead']) assert.ok(RD.includes(fn + '('), 'the page opens the existing door ' + fn);
+  assert.doesNotMatch(RD.replace(/\/\*[\s\S]*?\*\//g, ''), /\b(askColOpen|askColNext|askColBring)\(/, 'no press asks on Contracts');
   assert.doesNotMatch(RD.replace(/\/\*[\s\S]*?\*\//g, ''), /askColTableFor\(/, 'the table is never opened by way of Contracts');
   assert.doesNotMatch(RD, /api\('ai\/column'/, 'the page itself reads nothing');
 });
