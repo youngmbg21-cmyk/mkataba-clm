@@ -350,10 +350,13 @@ const blocked = [];
           return hd && pn ? { head: Math.round(hd.getBoundingClientRect().top), panel: Math.round(pn.getBoundingClientRect().top) } : null; }, sel);
         check(`${at} · 8 — ${name}: the head starts level with Jambo's panel`, m && Math.abs(m.head - m.panel) <= 1, JSON.stringify(m));
       }
+      /* RE-POINTED 22 Nov 2026 (owner: "ensure all the jambo panels do have the minimize button"): a panel drawn with no
+         head row keeps the row for its minimise arrow ALONE — no tab, no head words — and its own panel stands under it */
       async function noHeadRow(name, head, own) {
         const m = await ev(([hs, os]) => { const h = document.querySelector(hs), o = document.querySelector(os);
-          return { head: !!h && h.getClientRects().length > 0, own: !!o && o.getClientRects().length > 0 }; }, [head, own]);
-        check(`${at} · 4 — ${name}: no head row, as drawn — the page's own panel instead, so no head words to cut`, !!m && !m.head && m.own, JSON.stringify(m));
+          const shown = h ? [...h.children].filter(x => x.getBoundingClientRect().width > 0) : [];
+          return { arrow: shown.some(x => x.matches('#igd-collapse, .jl-fold')), words: shown.filter(x => !x.matches('#igd-collapse, .jl-fold, .flex-1, .jl-sp')).map(x => x.textContent.trim().slice(0, 20)), own: !!o && o.getClientRects().length > 0 }; }, [head, own]);
+        check(`${at} · 4 — ${name}: the head row holds only the minimise arrow — no tab, no head words — the page's own panel under it`, !!m && m.arrow && !m.words.length && m.own, JSON.stringify(m));
       }
       async function tabsWhole(name, head) {
         const t = await ev(hs => { const h = document.querySelector(hs); if (!h) return null;

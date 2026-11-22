@@ -13,9 +13,10 @@
      1d it glides, a new place nearly every frame, never a pixel jump (owner, 22 Nov 2026: no stutter)
      8  the Alerts · Notes · Activity panel stays plain (owner, 22 Nov 2026)
      9  a contract open on Home (Dossier, Clauses, Redlines) is serious work: no watermark, its buttons as they were
+    10  every Jambo panel has its minimise arrow — the ones drawn without a head row keep the row for the arrow alone
    AT THE PARENT every claim FAILS: no watermark, the arrow is a bare icon, the Board has none, the link is drawn.
    ============================================================ */
-/* global state, setView, hbSetFace, pdOpenOnHome */
+/* global state, setView, hbSetFace, pdOpenOnHome, openNewAgreement */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
@@ -157,6 +158,33 @@ const READ = () => {
     const rm0 = await go('approvals', () => !!document.querySelector('#ins-panel .jl-head'));
     const rm = rm0;
     ok('3 less motion asked: the watermark is drawn and still', !!rm && rm.painted && !rm.moving, JSON.stringify(rm));
+
+    /* 10 — EVERY JAMBO PANEL HAS ITS MINIMISE BUTTON (owner, 22 Nov 2026: "drawdown should have a minimize button for jambo
+       panel. review the whole hati and ensure all the jambo panels do have the minimize button"): the panels drawn with no
+       head row (Read down, Contracts, Playbook, Our paper, New agreement) keep the row for the arrow alone, and it folds */
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    const ARROW = () => { const a = [...document.querySelectorAll('#igd-collapse, .jl-fold')].find(x => { const r = x.getBoundingClientRect(); return r.width > 0 && r.left > innerWidth / 2; });
+      const h = a && a.parentElement; const words = h ? [...h.children].filter(x => x.getBoundingClientRect().width > 0 && !x.matches('#igd-collapse, .jl-fold, .flex-1, .jl-sp')).length : -1;
+      return a ? { words } : null; };
+    for (const [name, open, ready] of [
+      ['Read down', () => { setView('dashboard'); hbSetFace('board'); setTimeout(() => { const b = document.querySelector('.hb-rdn-go'); if (b) b.click(); }, 600); }, () => !!document.querySelector('#ig-dock .jov5[data-jov-slot="rdn"]')],
+      ['Contracts', () => setView('register'), () => !!document.querySelector('#ig-dock .ctls')],
+      ['Playbook', () => setView('playbook'), () => !!document.querySelector('#ins-panel .jov5[data-jov-slot="ld"]')],
+      ['Our paper', () => setView('templates'), () => !!document.querySelector('#ins-panel .jov5[data-jov-slot="tpln"]')],
+      ['New agreement', () => { setView('dashboard'); hbSetFace('board'); openNewAgreement(); }, () => !!document.querySelector('#ig-dock .jov5[data-jov-slot="na6"]')]]) {
+      await page.evaluate(open);
+      const there = await until(page, ready, null, 10000); await page.waitForTimeout(400);
+      const a = there ? await page.evaluate(ARROW) : null;
+      ok(`10 ${name}: the panel has its minimise arrow, alone in its head row`, !!a && a.words === 0, there ? JSON.stringify(a) : 'the panel did not open');
+      if (a) {
+        await page.evaluate(() => { const x = [...document.querySelectorAll('#igd-collapse, .jl-fold')].find(e => e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().left > innerWidth / 2); x.click(); });
+        const folded = await until(page, () => !!document.querySelector('#ig-dock > .igd-door, .ins-panel.is-folded'), null, 4000);
+        ok(`10 ${name}: the arrow folds the panel`, folded);
+        await page.evaluate(() => { const d = document.querySelector('#ig-dock > .igd-door, .ins-panel.is-folded .igd-door, .ins-panel.is-folded button'); if (d) d.click(); });
+        await until(page, () => !document.querySelector('#ig-dock > .igd-door, .ins-panel.is-folded'), null, 4000);
+      }
+      if (name === 'New agreement') await page.keyboard.press('Escape');
+    }
 
     ok('no page errors', !errs.length, errs.join(' | '));
   } catch (e) {
