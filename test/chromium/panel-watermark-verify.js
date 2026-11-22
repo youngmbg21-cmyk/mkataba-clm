@@ -93,6 +93,18 @@ const READ = () => {
     }
     const ap = await go('approvals', () => !!document.querySelector('#ins-panel .jl-head'));
     ok('5a Approvals: the chosen tab wears the thin outline', !!ap && ap.tabEdge === true, JSON.stringify(ap));
+    /* 10 — SUNSET LINES (owner's pick, 22 Nov 2026): the two weaves are a flowing mix of colours, not one ink; the
+       chosen tab is a white pill and the arrow a white circle, both lifted above the weave */
+    await page.mouse.move(2, 400); await page.waitForTimeout(300);   /* away from the arrow, so its own colour is read, not its hover */
+    const sun = await page.evaluate(() => { const p = document.querySelector('#ins-panel'); if (!p) return null;
+      const b = getComputedStyle(p, '::before'), a = getComputedStyle(p, '::after');
+      const stops = s => (String(s).match(/rgb\(/g) || []).length;
+      const tab = p.querySelector('.jl-head .pd-tab.on'), fold = p.querySelector('.jl-head .jl-fold');
+      const lifted = el => { if (!el) return null; const c = getComputedStyle(el); return { bg: c.backgroundColor, z: c.zIndex, rad: c.borderTopLeftRadius }; };
+      return { before: stops(b.backgroundImage), after: stops(a.backgroundImage), anim: b.animationName + ' | ' + a.animationName, tab: lifted(tab), fold: lifted(fold) }; });
+    ok('10a the watermark\'s weaves are a mix of colours flowing along them (Sunset lines)', !!sun && sun.before >= 5 && sun.after >= 3 && /wmFlowA/.test(sun.anim) && /wmFlowB/.test(sun.anim), JSON.stringify(sun));
+    ok('10b the chosen tab is a solid white pill above the weave', !!sun && !!sun.tab && sun.tab.bg === 'rgb(255, 255, 255)' && Number(sun.tab.z) > 4 && parseFloat(sun.tab.rad) >= 14, JSON.stringify(sun && sun.tab));
+    ok('10c the minimise arrow is a solid white circle above the weave', !!sun && !!sun.fold && sun.fold.bg === 'rgb(255, 255, 255)' && Number(sun.fold.z) > 4, JSON.stringify(sun && sun.fold));
     await go('playbook', () => !!document.querySelector('#ins-panel .jov5'));
     const tag = await page.evaluate(() => { const t = document.querySelector('#ins-panel .jov5 :is(.jov5-intro, .ld6-pb, .tpln6-pb) :is(.jov5-tag, .apn-st, .tpln6-badge, .reg-badge)'); return t ? getComputedStyle(t).boxShadow : 'no tag'; });
     ok('5b Playbook: a tag at the top of the panel wears the thin outline', !!tag && tag !== 'none' && tag !== 'no tag', tag);
