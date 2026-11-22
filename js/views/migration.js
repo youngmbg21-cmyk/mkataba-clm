@@ -1205,7 +1205,9 @@ function migPaintHead(){
   /* THE CHECK, MADE LIKE THE SEND SCREEN (owner, 20 Nov 2026: "make the page almost like this", "build it as drawn"):
      while a file is being checked the head carries its two acts, Skip for now and File it, where Send keeps Cancel
      and Send; "New batch" stands in the check's bar as a link (migCheckBarHtml) */
-  if (a) a.innerHTML = _migCheck ? migCheckActsHtml() : '';
+  /* P-33 AS DRAWN (21 Nov 2026): before any file the head carries Choose files, black (the drawn page's head) */
+  const first = !_migCheck && typeof newLookOn === 'function' && newLookOn() && !migRows().length && !migState().running && canEdit();
+  if (a) a.innerHTML = _migCheck ? migCheckActsHtml() : first ? `<button type="button" class="ui-btn ui-btn-primary" data-mig-choose0>${esc(i18t('mig_choose_files'))}</button>` : '';
 }
 /* the check's acts, for the head: Skip for now (more than one file waits), then the ONE filled button — File it,
    grey with its reason while a fact is owed, or Link it where the file is filed and only its family link waits.
@@ -1215,7 +1217,12 @@ function migCheckActsHtml(){
   if (!row) return '';
   const n = _migCheck.ids.length, c = row.c, edit = canEdit();
   const skip = n > 1 ? `<button type="button" class="ui-btn" data-mig-ck-skip>${esc(i18t('mig_ck_skip'))}</button>` : '';
-  if (!c) return skip;
+  /* A FILE THAT LOOKS UNSIGNED: its three answers stand in the head, as Send keeps its acts there (RE-POINTED 22 Nov
+     2026, batch 7 review — THE CHECK, MADE LIKE THE SEND SCREEN): Leave it out · Import as signed · Import as a draft,
+     the one black button last */
+  if (!c) return skip + (edit && migParked(row) && migNlKindOf(row) === 'unsigned' ? `<button type="button" class="ui-btn" data-mig-unsigned="skip" data-i="${row.i}">${esc(i18t('mig_unsigned_leave'))}</button>`
+    + `<button type="button" class="ui-btn" data-mig-unsigned="signed" data-i="${row.i}">${esc(i18t('mig_unsigned_signed_b'))}</button>`
+    + `<button type="button" class="ui-btn ui-btn-primary" data-mig-unsigned="draft" data-i="${row.i}">${esc(i18t('mig_unsigned_draft'))}</button>` : '');
   const waits = migReviewOpen(c) ? migFormWaitsOf(c) : [], say = migWaitWords(waits);
   return skip
     + (edit && migReviewOpen(c) ? `<button type="button" class="ui-btn ui-btn-primary" data-mig-file="${esc(c.id)}" data-mig-ck-file${waits.length ? ` disabled title="${esc(say)}"` : ''}>${esc(i18t('mig_file_it'))}</button>` : '')
@@ -1330,7 +1337,8 @@ function migCostLine(){
   if (aw.done) return head + ' ' + i18t('mig_allow_done');
   /* one short sentence (Round 2, owner's yes 24 Oct 2026) from the daily allowance; an onboarding allowance
      an admin opened still says how much of it is used, in files */
-  if (aw.open) return head + ' ' + i18t('mig_cost_calls', { from:aw.said }) + ' ' + i18t('mig_cost_before');
+  /* as drawn (P-33, 21 Nov 2026): "Word, PDF or scans, up to 25 at a time. You see the total before Jambo starts." */
+  if (aw.open) return head + ' ' + i18t('mig_cost_before');
   return head + ' ' + i18t('mig_cost_short');
 }
 /* P-33, BEFORE ANY FILE, THE LEGORA + STRIPE WAY: a calm drop area (the upload mark, "Drop old contracts here, or a whole
@@ -1342,20 +1350,25 @@ function migNlDropHtml(){
   const asW = { Signed:i18t('mig_as_signed'), 'Under Review':i18t('mig_as_review'), Draft:i18t('mig_as_draft') };
   const autoW = i18t(API_MODE() && state.aiConfigured ? 'mig_auto_jambo' : 'fo_auto_route');
   const fs = (typeof visibleFolders === 'function' ? visibleFolders() : []).map(f => [f.id, f.name]);
-  const fW = M.defaults.folder && M.defaults.folder !== 'auto' && FOLDERS[M.defaults.folder] ? FOLDERS[M.defaults.folder].name : autoW;
-  const menu = (id, k, now, items) => `<span class="apn-rule-w"><button type="button" class="apn-chip is-set" id="${id}" data-mig-chip-open aria-expanded="false"><small>${esc(k)}</small> ${esc(now)}</button><span class="apn-rule-menu" hidden>${items.map(([v, w]) => `<button type="button" data-mig-chip="${id}" data-v="${esc(v)}">${esc(w)}</button>`).join('')}</span></span>`;
+  /* RE-BUILT 21 Nov 2026 (P-33, as drawn): the chips read as one phrase — "Import as: signed outside HaTi", "File under:
+     Jambo suggests", "+ A spreadsheet of what is in them"; the menus keep the full words */
+  const asC = { Signed:i18t('mign_as_c_signed'), 'Under Review':i18t('mign_as_c_review'), Draft:i18t('mign_as_c_draft') };
+  const fC = M.defaults.folder && M.defaults.folder !== 'auto' && FOLDERS[M.defaults.folder] ? FOLDERS[M.defaults.folder].name : (API_MODE() && state.aiConfigured ? i18t('mign_auto_c') : migNlLow(autoW));
+  const menu = (id, k, now, items) => `<span class="apn-rule-w"><button type="button" class="apn-chip is-set" id="${id}" data-mig-chip-open aria-expanded="false">${esc(k)}: ${esc(now)}</button><span class="apn-rule-menu" hidden>${items.map(([v, w]) => `<button type="button" data-mig-chip="${id}" data-v="${esc(v)}">${esc(w)}</button>`).join('')}</span></span>`;
   const list = M.manifest
     ? `<button type="button" class="apn-chip is-set" id="mig-manifest-btn" title="${esc(i18t('mig_list_csv'))}">${esc(M.manifestName || '')} · ${esc(i18t('mig_list_matched', { n:M.manifest.filter(r => r.matchedId).length, of:M.manifest.length }))}</button>`
-    : `<button type="button" class="apn-chip is-add" id="mig-manifest-btn" title="${esc(i18t('mig_list_csv'))}">+ ${esc(i18t('mign_list_chip'))}</button>`;
+    : `<button type="button" class="apn-chip is-add" id="mig-manifest-btn" title="${esc(i18t('mig_list_csv'))}">+ ${esc(migNlCap(i18t('mign_list_chip')))}</button>`;
+  /* as drawn: the ask box under the head, then the calm drop area (its Choose files grey: the head carries the black
+     one), then the three choices as set chips */
   return `<section class="mign-start">
+    <label class="apn-ask mign-ask">${MIGN_SPARK}<input id="mign-ask0" type="search" autocomplete="off" placeholder="${esc(i18t('mign_ask_ph0'))}"></label>
     <div id="mig-drop" class="mign-drop" role="button" tabindex="0" aria-label="${esc(i18t('mig_drop_h'))}">
       <span class="mign-drop-i" aria-hidden="true">${icon('upload', 'w-5 h-5')}</span>
       <b>${esc(i18t('mig_drop_h'))}</b><span id="mig-cost" class="mign-drop-s">${esc(migCostLine())}</span>
-      <span class="ui-btn ui-btn-primary mign-drop-b" aria-hidden="true">${esc(i18t('mig_choose_files'))}</span>
+      <span class="ui-btn mign-drop-b" aria-hidden="true">${esc(i18t('mig_choose_files'))}</span>
     </div>
-    <div class="apn-bar mign-opts">${menu('mig-status', i18t('mig_import_as'), asW[M.defaults.status] || asW.Signed, Object.entries(asW))}${menu('mig-folder', i18t('mig_file_under'), fW, [['auto', autoW]].concat(fs))}${list}
+    <div class="apn-bar mign-opts">${menu('mig-status', i18t('mig_import_as'), asC[M.defaults.status] || asC.Signed, Object.entries(asW))}${menu('mig-folder', i18t('mig_file_under'), fC, [['auto', autoW]].concat(fs))}${list}
       <button type="button" id="mig-manifest-tpl" hidden></button><input id="mig-manifest-file" type="file" accept=".csv" hidden></div>
-    <label class="apn-ask mign-ask">${icon('search', 'w-3.5 h-3.5')}<input id="mign-ask0" type="search" autocomplete="off" placeholder="${esc(i18t('mign_ask_ph0'))}"></label>
     ${API_MODE() ? '' : `<p class="mig-note">${esc(i18t('mig_static_mode'))}</p>`}
     ${migUnfinishedHtml()}
     ${M.manifestError ? `<div class="mig-warn is-ruby"><strong>${migEsc(M.manifestError.name)}</strong> was not loaded — ${migEsc(M.manifestError.reason)}.${M.manifest ? ` Still using <strong>${migEsc(M.manifestName)}</strong>.` : ''}</div>` : ''}
@@ -1539,22 +1552,127 @@ function migNlStatusOf(r){ const k = migNlKindOf(r), m = MIGN_ST[k] || MIGN_ST.r
 function migNlBadgeHtml(r){ const s = migNlStatusOf(r); return `<span class="apn-st is-${s.tone}"><i></i>${esc(s.w)}</span>`; }
 /* the paper a row reads: its contract, or a parked file's reading (nothing saved) */
 function migNlPaperOf(r){ if (!r) return null; if (r.c) return r.c; try { return migParked(r) ? migPendingAsContract(r) : null; } catch (_){ return null; } }
-/* the words Jambo read it from: the one he was not sure of first, else the first fact found, with its § (never guessed) */
+/* WHERE A FACT SITS, SAID WITH § AS DRAWN ("§ 3"), however the file numbers its paragraph (§ 3, 3., clause 3) — read
+   off the start of its line, never invented (RE-BUILT 21 Nov 2026, P-33 as drawn) */
+function migNlSecAt(text, at){
+  const t = String(text || ''); const ls = t.lastIndexOf('\n', Math.max(0, at - 1)) + 1; const line = t.slice(ls, ls + 40);
+  const m = /^\s*§\s*(\d+[a-z]?)/i.exec(line) || /^\s*(?:clause|section|article|punkt|avsnitt|artikel)\s+(\d+(?:\.\d+)*)/i.exec(line) || /^\s*(\d{1,2}(?:\.\d+)*)[.)]\s/.exec(line);
+  return m ? '§ ' + m[1] : '';
+}
+/* the sentence a found place stands in — the file's own words, never translated; a long one is cut at a word after
+   the found words and ends in "…" (the drawing's "It renews by itself for a further year at a time") */
+function migNlSentence(text, at, room){
+  const t = String(text || ''); if (!at || !t) return null;
+  const ls = t.lastIndexOf('\n', Math.max(0, at.s - 1)) + 1;
+  let s = ls; const re = /[.!?]\s+/g; re.lastIndex = ls; let m;
+  while ((m = re.exec(t)) && m.index + m[0].length <= at.s) s = m.index + m[0].length;
+  let le = t.indexOf('\n', at.e); if (le < 0) le = t.length;
+  let e = le; const from = Math.max(s, at.e - 1); const tail = /[.!?](?=\s|$)/.exec(t.slice(from, le)); if (tail) e = from + tail.index;
+  let cut = false; const max = room || 110;
+  if (e - s > max){ const sp = t.lastIndexOf(' ', s + max); if (sp > at.e){ e = sp; cut = true; } }
+  return { s, e, cut, q: t.slice(s, e).replace(/\s+/g, ' ').trim() + (cut ? '…' : '') };
+}
+/* NO SUM IN A QUOTE OUTSIDE THE VALUE COLUMN (RE-POINTED 22 Nov 2026, batch 7 review; P-33 and CLAUDE.md "money only
+   in the Value column"): the same rule as Approvals' quotes (apnSumFree / apnQuoteShown on the approvals branch, not on
+   main yet — to be joined into one helper once both merge): a quote that carries a sum is cut to the words before it,
+   ending "…", when four words or more say something; else the next sentence of the same part that carries no sum (the
+   one before it where none follows); else nothing (the § alone is said). The file's own words are only cut, never
+   rewritten; the check's view of the file itself is left whole. */
+const MIG_SUM_RE = /(?:\b(?:KES|KSh|Ksh|USD|EUR|GBP|SEK|UGX|TZS|ZAR|kr)\b\.?\s?|[$€£]\s?)\d|\b\d{1,3}(?:[,\s]\d{3})+(?:\.\d+)?\b|\b\d[\d,.]*\s?(?:KES|KSh|USD|EUR|GBP|SEK|kronor|shillings?|dollars?|euros?)\b/i;
+const MIG_QUOTE_WORDS = 4;
+/* words that say something: a § or a number alone is not one */
+const migNlWordN = t => String(t || '').split(/\s+/).filter(w => /[A-Za-zÀ-ÿ]/.test(w)).length;
+function migNlSumCut(t){
+  t = String(t || ''); const m = MIG_SUM_RE.exec(t); if (!m) return t;
+  let cut = t.slice(0, m.index);
+  for (let i = 0; i < 3; i++) cut = cut.replace(/[\s,;:(–—-]+$/, '').replace(/\s+(?:of|at|is|are|be|being|for|to|a|an|the|by|from|up|was|will)$/i, '');
+  return migNlWordN(cut) >= MIG_QUOTE_WORDS ? cut.trim() + '…' : '';
+}
+/* the sentence S (migNlSentence) as it may be shown: { q, s, e } with e where the shown words end in the file, or null */
+function migNlNoSum(text, S){
+  if (!S || !S.q) return null;
+  if (!MIG_SUM_RE.test(S.q)) return { q:S.q, s:S.s, e:S.e, same:true };
+  const cut = migNlSumCut(S.q.replace(/…$/, ''));
+  if (cut){ const m = MIG_SUM_RE.exec(String(text).slice(S.s, S.e)); return { q:cut, s:S.s, e:m ? S.s + m.index : S.e }; }
+  const t = String(text || ''); const ls = t.lastIndexOf('\n', Math.max(0, S.s - 1)) + 1; let le = t.indexOf('\n', S.e); if (le < 0) le = t.length;
+  const part = t.slice(ls, le), sents = []; const re = /[^.!?;:]+[.!?;:]?/g; let m;
+  while ((m = re.exec(part))){ const w = m[0].replace(/\s+/g, ' ').trim(); if (w) sents.push({ w, s:ls + m.index, e:ls + m.index + m[0].length }); }
+  const ok = x => !MIG_SUM_RE.test(x.w) && migNlWordN(x.w) >= MIG_QUOTE_WORDS && /[.;:!?]$/.test(x.w);
+  const pick = sents.filter(x => x.s >= S.e).find(ok) || sents.filter(x => x.e <= S.s).reverse().find(ok);
+  return pick ? { q:pick.w.replace(/[\s;,:]+$/, ''), s:pick.s, e:pick.e } : { q:'', s:S.s, e:S.s };
+}
+/* a file parked because it looks unsigned: the line that calls it a draft (its title, where it is the first line) */
+function migNlDraftWords(text){
+  const t = String(text || ''), m = MIG_DRAFT_RE.exec(t.slice(0, 400)); if (!m) return null;
+  const at = m.index + m[0].toLowerCase().indexOf(m[1].toLowerCase());
+  const ls = t.lastIndexOf('\n', Math.max(0, at - 1)) + 1; let le = t.indexOf('\n', at); if (le < 0) le = t.length;
+  const line = t.slice(ls, le).replace(/\s+/g, ' ').trim(); if (!line) return null;
+  const first = ((/\S[^\n]*/.exec(t) || [''])[0]).replace(/\s+/g, ' ').trim();
+  const title = line === first;
+  return { q: line.length > 110 ? line.slice(0, line.lastIndexOf(' ', 110)) + '…' : line, sec: title ? '' : migNlSecAt(t, ls), title };
+}
+/* the words Jambo read it from, as drawn: a file that waits — the sentence of the fact he was not sure of (or did not
+   find); a parked one — the line that calls it a draft; a filed one — the words that say when it ends. A copy, a file
+   with no words: none. Each with its § (never guessed). */
+function migNlWordsOf(r, P){
+  const k = migNlKindOf(r); if (!P || !['unsigned', 'check', 'filed'].includes(k)) return null;
+  const text = (P.upload && P.upload.extractedText) || ''; if (!text) return null;
+  if (k === 'unsigned') return migNlDraftWords(text);
+  let F = []; try { F = migFormOf(P).filter(f => f.k !== 'folder'); } catch (_){ F = []; }
+  const x = k === 'filed' ? (F.find(f => f.k === 'expiryDate' && f.at) || F.find(f => f.at && f.k !== 'contractType'))
+    : (F.find(f => f.need && f.at) || F.find(f => f.at && f.k !== 'contractType'));
+  if (!x) return null;
+  const S = migNlSentence(text, x.at); if (!S || !S.q) return null;
+  const N = migNlNoSum(text, S), sec = migNlSecAt(text, x.at.s);
+  return N && N.q ? { q:N.q, sec, k:x.k } : sec ? { q:'', sec, k:x.k } : null;
+}
+/* kept for the pages that read it: the first quote, as before */
 function migNlQuoteOf(P){
   if (!P) return null;
   let F = []; try { F = migFormOf(P); } catch (_){ F = []; }
   const x = F.find(f => f.need && f.quote) || F.find(f => f.quote && f.k !== 'contractType') || F.find(f => f.quote);
   return x ? { q:x.quote, sec:x.where || '' } : null;
 }
-/* kind · party · dates, as read */
-function migNlReadOf(P){
-  let F = []; try { F = migSideFacts(P); } catch (_){ F = []; }
-  const f = Object.fromEntries(F.map(x => [x.k, x]));
-  const term = [f.effectiveDate && f.effectiveDate.text, f.expiryDate && f.expiryDate.text].filter(Boolean).join(' – ');
-  return [f.contractType && f.contractType.text, P.counterparty || '', term].filter(Boolean).join(' · ');
+const migNlLow = w => { w = String(w || ''); return w.charAt(0).toLowerCase() + w.slice(1); };
+const migNlCap = w => { w = String(w || '').trim(); return w.charAt(0).toUpperCase() + w.slice(1); };
+/* kind · party · dates, as read and as drawn: "1 May 2024 – 30 Apr 2027", "from 1 Apr 2019", "from 1 Feb 2024 · renews
+   by itself"; a likely copy says what it is and with whom (its dates are the one we have's) */
+function migNlReadOf(P, short){
+  const m = P.metadata || {};
+  const eff = (P.fields && P.fields.effDate) || m.effectiveDate || '', end = P.expiry || m.expiryDate || '';
+  const renews = !end && m.renewalType === 'evergreen';
+  const a = eff ? migDay(eff) : '', b = end ? migDay(end) : '';
+  const term = short ? '' : [a && b ? `${a} – ${b}` : a ? i18t('mign_from', { d:a }) : b ? i18t('mign_until', { d:b }) : '', renews ? migNlLow(i18t('mig_renews')) : ''].filter(Boolean).join(' · ');
+  return [m.contractType || '', P.counterparty || m.counterparty || '', term].filter(Boolean).join(' · ');
 }
-function migSureCellHtml(c){
-  const s = migSureOf(c); if (!s) return '<span class="apn-none-c">—</span>';
+/* WHAT JAMBO READ, DATES NEVER CUT (RE-POINTED 22 Nov 2026, batch 7 review): kind · party, then the dates in their own
+   unbreakable run; where the whole will not fit in two lines (migNlReadFit, after paint) the kind and party take one
+   line ending in "…" and the dates the second, whole */
+function migNlReadHtml(P, short, read){
+  const m = P.metadata || {}, kp = [m.contractType || '', P.counterparty || m.counterparty || ''].filter(Boolean).join(' · ');
+  const term = read.slice(kp.length).replace(/^ · /, '');
+  if (!term || !kp) return `<span class="mign-read" title="${esc(read)}">${esc(read)}</span>`;
+  return `<span class="mign-read" title="${esc(read)}"><span class="mign-rk">${esc(kp)}</span><span class="mign-rs">\u00a0· </span><span class="mign-rd">${esc(term)}</span></span>`;
+}
+function migNlReadFit(){
+  if (typeof document === 'undefined') return;
+  document.querySelectorAll('.mign-table .mign-read').forEach(el => {
+    if (!el.querySelector('.mign-rd')) return;
+    el.classList.remove('is-split');
+    if (el.scrollHeight > el.clientHeight + 1) el.classList.add('is-split');
+  });
+}
+/* the value as the list says it, the one place money shows: "KES 480K/yr" (the period the file writes), never wrapped */
+function migNlValueOf(P){
+  if (!P || !(Number(P.value) > 0) || (typeof isMonetary === 'function' && !isMonetary(P))) return '';
+  const amt = window.fmtMoneyShortOf ? fmtMoneyShortOf(P) : fmtMoneyShort(P.value);
+  const text = (P.upload && P.upload.extractedText) || '';
+  const per = (text ? migPeriodAt(text, migFoundAt(text, 'value', P)) : '') || (P.migration && P.migration.valuePer) || '';
+  return MIG_PERIOD_WORD[per] ? amt + i18t('mign_per_' + MIG_PERIOD_WORD[per]) : amt;
+}
+function migSureCellHtml(c, none){
+  /* a file with no words to read: none of its five found ("0 of 5", one red bar), as drawn */
+  const s = none ? { n:0, of:(migSureOf(c) || { of:5 }).of || 5, level:'low' } : migSureOf(c); if (!s) return '<span class="apn-none-c">—</span>';
   return `<span class="mign-sure is-${s.level}" title="${esc(i18t('mign_sure_' + s.level))}"><span class="mign-bar" aria-hidden="true"><i></i><i></i><i></i></span>${esc(i18t('mign_sure_of', { n: s.n, of: s.of }))}</span>`;
 }
 /* ONE BATCH BAR replaces the five coloured tiles: the whole batch in one thin bar (green filed, amber to check, violet
@@ -1570,27 +1688,33 @@ function migNlBatchHtml(rows){
       return s.fig ? `<button type="button" class="mign-bk${on ? ' is-on' : ''}" data-mign-fig="${s.fig}" aria-pressed="${on ? 'true' : 'false'}">${inner}</button>` : `<span class="mign-bk">${inner}</span>`; }).join('')}</div></div>`;
 }
 function migNlRowHtml(r){
-  const c = r.c, st = r.st, P = migNlPaperOf(r), S = migNlStatusOf(r);
-  const read = P && st.k !== 'none' ? migNlReadOf(P) : '';
+  const c = r.c, st = r.st, P = migNlPaperOf(r), S = migNlStatusOf(r), k = S.k;
+  /* RE-BUILT 21 Nov 2026 (P-33, as drawn): a parked file (is it signed?, a copy?) says no sureness; a copy no stream and
+     no value (it is the one we have's); a file with no words "nothing read", "0 of 5", no stream */
+  const parked = k === 'unsigned' || k === 'dupe', none = k === 'none' || k === 'failed';
+  const read = P && !none ? migNlReadOf(P, k === 'dupe') : '';
   const why = String(st.why || '').trim();
-  /* under the name: the new reference once filed, else why it waits in its colour — never the same words as the next cell */
-  const under = S.k === 'filed' && c ? `<div class="mign-ref">${typeof refHtml === 'function' ? refHtml(c) : esc(c.id)}</div>`
-    : why && why !== read ? `<div class="mign-why is-${S.tone}" title="${esc(why)}">${esc(why)}</div>` : '';
-  const q = P && st.k !== 'none' ? migNlQuoteOf(P) : null;
-  const ql = q ? `<div class="mign-ql"><i>“${esc(q.q)}”</i>${q.sec ? ` <span>${esc(q.sec)}</span>` : ''}</div>` : '';
-  const stream = P && P.folder && window.FOLDERS && FOLDERS[P.folder] ? ((typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[P.folder]) || FOLDERS[P.folder].name) : '';
-  let value = '';
-  if (P && st.k !== 'none'){ const f = Object.fromEntries(migSideFacts(P).map(x => [x.k, x]));
-    /* the amount with the period the file writes ("KES 480K/yr"), the old list's own reading (#762) */
-    value = f.value && f.value.text ? ((Number(P.value) > 0 && typeof migAmountWithPeriod === 'function') ? migAmountWithPeriod(P) : f.value.text) : ''; }
+  /* under the name: the new reference once filed (plain, as drawn), "looks like a draft" for a parked one, else why it
+     waits in its colour, its first word a capital — never the same words as the next cell */
+  const under = k === 'filed' && c ? `<div class="mign-ref">${esc(window.contractRef ? contractRef(c) : c.id)}</div>`
+    : k === 'unsigned' ? `<div class="mign-why is-gray">${esc(i18t('mign_why_unsigned'))}</div>`
+    : why && why !== read ? `<div class="mign-why is-${S.tone}" title="${esc(migNlCap(why))}">${esc(migNlCap(why))}</div>` : '';
+  const q = migNlWordsOf(r, P);
+  /* RE-POINTED 22 Nov 2026 (batch 7 review): the § sits INSIDE the quote's line, right after its closing mark, as drawn
+     ("until 31 August 2027" § 4) — the words give way ("…" inside the marks), never the §; a title quote says no tag */
+  const ql = q && q.q ? `<div class="mign-ql"><i><span class="mign-qt">“${esc(String(q.q).replace(/…$/, ''))}${/…$/.test(q.q) ? '…' : ''}</span><span class="mign-qe">”</span></i>${!q.title && q.sec ? `<span class="mign-qs">${esc(q.sec)}</span>` : ''}</div>`
+    : q && q.sec ? `<div class="mign-ql"><span class="mign-qs">${esc(q.sec)}</span></div>` : '';
+  const stream = P && !none && k !== 'dupe' && P.folder && window.FOLDERS && FOLDERS[P.folder] ? ((typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[P.folder]) || FOLDERS[P.folder].name) : '';
+  const value = P && !none && k !== 'dupe' ? migNlValueOf(P) : '';
   const money = !(typeof canViewValues === 'function' && !canViewValues());
   const need = MIG_NEEDS.includes(st.k);
+  const dash = '<span class="apn-none-c">—</span>';
   return `<tr data-row="${esc(r.key)}" class="${_migPick === r.key ? 'is-picked is-sel' : ''}${need ? '' : ' is-done'}" tabindex="-1"><td><div class="cun-name mign-name" title="${esc(r.file || '')}">${esc(r.file || '')}</div>${under}${ql}</td>
     <td>${migNlBadgeHtml(r)}</td>
-    <td class="mign-readc">${read ? `<span class="mign-read" title="${esc(read)}">${esc(read)}</span>` : `<span class="apn-none-c">${esc(st.k === 'none' ? i18t('mign_nothing') : '—')}</span>`}</td>
-    <td>${P && st.k !== 'none' ? migSureCellHtml(P) : '<span class="apn-none-c">—</span>'}</td>
-    <td class="mign-stc">${stream ? `<span title="${esc(stream)}">${esc(stream)}</span>` : '<span class="apn-none-c">—</span>'}</td>
-    ${money ? `<td class="mign-val">${value ? esc(value) : '<span class="apn-none-c">—</span>'}</td>` : ''}</tr>`;
+    <td class="mign-readc">${read ? migNlReadHtml(P, k === 'dupe', read) : `<span class="apn-none-c">${esc(none ? i18t('mign_nothing_read') : '—')}</span>`}</td>
+    <td>${P && !parked ? migSureCellHtml(P, none) : dash}</td>
+    <td class="mign-stc">${stream ? `<span title="${esc(stream)}">${esc(stream)}</span>` : dash}</td>
+    ${money ? `<td class="mign-val">${value ? esc(value) : dash}</td>` : ''}</tr>`;
 }
 let _mignStream = '';
 function migNlListHtml(rows){
@@ -1607,12 +1731,13 @@ function migNlListHtml(rows){
   return `
     <table class="apn-table cun-table mign-table"><colgroup><col><col style="width:136px"><col style="width:24%"><col style="width:96px"><col style="width:112px">${money ? '<col style="width:116px">' : ''}</colgroup>
     <thead><tr><th>${esc(i18t('mign_c_file'))}</th><th>${esc(i18t('mign_c_reading'))}</th><th>${esc(i18t('mign_c_read'))}</th><th>${esc(i18t('mign_c_sure'))}</th><th>${esc(i18t('mig_col_stream'))}</th>${money ? `<th class="mign-val">${esc(i18t('reg_col_value'))}</th>` : ''}</tr></thead>
-    <tbody>${A.map(migNlRowHtml).join('')}${B.length && A.length ? `<tr class="rdn-grp"><td colspan="${cols}">${esc(i18t('mign_read_whole', { n: B.length }))}</td></tr>` : ''}${B.map(migNlRowHtml).join('')}${A.length || B.length ? '' : `<tr><td colspan="${cols}" class="apn-none">${esc(i18t('mig_none_match'))}</td></tr>`}</tbody></table>
-    <div class="apn-foot rdn-foot"><span>${esc(i18tn('mign_foot', rows.length, { n: rows.length }))}</span><span>${esc(i18t('mign_foot_r'))}</span></div>`;
+    <tbody>${A.map(migNlRowHtml).join('')}${B.map(migNlRowHtml).join('')}${A.length || B.length ? '' : `<tr><td colspan="${cols}" class="apn-none">${esc(i18t('mig_none_match'))}</td></tr>`}</tbody></table>`;
 }
 /* THE PAGE, AS DRAWN (P-33): the title alone (the facts line goes: the bar and the chips say it), Review spreadsheet and
    Check all · N (grey), Choose files (black); one ask box; chips Need you (amber dot) · Read · All with counts, + Stream;
    the batch bar; the table; the chosen file's panel */
+/* the ask box's mark, as drawn: Jambo's four-pointed spark in the link ink (not a magnifier) */
+const MIGN_SPARK = '<svg class="mign-spark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z"/></svg>';
 function migNlPageHtml(rows){
   const need = rows.filter(r => MIG_NEEDS.includes(r.st.k)).length, read = rows.length - need;
   const chip = (k, w, n, dot) => `<button type="button" class="apn-tab is-chip${_mign === k ? ' is-on' : ''}" data-mign-tab="${k}">${dot ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${esc(w)} <span>${n}</span></button>`;
@@ -1628,7 +1753,7 @@ function migNlPageHtml(rows){
         <button type="button" class="ctf-pill" id="mig-sheet" aria-haspopup="menu" aria-expanded="false">${esc(i18t('mig_sheet'))}</button>${may ? '<input id="mig-sheet-file" type="file" accept=".csv" hidden>' : ''}
         ${may && need ? `<button type="button" class="ctf-pill" id="mig-check-all">${esc(i18t('mign_check_all', { n: need }))}</button>` : ''}
         ${may ? `<button type="button" class="ui-btn ui-btn-primary ctf-new" id="mign-choose">${esc(i18t('mign_choose_files'))}</button><input type="file" id="mign-files" multiple hidden>` : ''}</div>
-      <label class="apn-ask">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="mign-q" type="search" autocomplete="off" placeholder="${esc(i18t('mign_ask_ph'))}" value="${esc(_migQ || '')}"></label>
+      <label class="apn-ask mign-ask">${MIGN_SPARK}<input id="mign-q" type="search" autocomplete="off" placeholder="${esc(i18t('mign_ask_ph'))}" value="${esc(_migQ || '')}"></label>
       <div class="apn-bar" data-lh-seat="migration-nl">${chip('need', i18t('mign_tab_need'), need, true)}${chip('read', i18t('mign_tab_read'), read)}${chip('all', i18t('ctf_tab_all'), rows.length)}${sChip}</div>
       ${migNlBatchHtml(rows)}
       <div class="cu-scroll">${migNlListHtml(rows)}${migNlListBoxHtml()}</div>
@@ -1660,89 +1785,191 @@ function migNlLitHtml(text, at){
   return `${s > 0 ? '…' : ''}${w(t.slice(s, at.s))}<mark>${w(t.slice(at.s, at.e))}</mark>${w(t.slice(at.e, e))}${e < t.length ? '…' : ''}`;
 }
 const MIGN_USE_FOR = { party:'counterparty', value:'value', renews:'expiryDate', date:'expiryDate' };
-function migNlFactsHtml(r, P){
-  /* NO MONEY IN THE PANEL (P-33: the Value column is "the one place money shows"): the value is checked on the check screen */
-  let F = []; try { F = migFormOf(P).filter(x => x.k !== 'folder' && x.k !== 'value'); } catch (_){ F = []; }
-  if (!F.length) return '';
+/* the found words lit inside their sentence, as drawn ("It renews by itself for a further year at a time"): a whole
+   sentence found (the end that renews) lights only the words that say it */
+function migNlLitSentenceHtml(text, at, k){
+  const t = String(text || ''), S0 = migNlSentence(t, at, 70); if (!S0) return '';
+  /* no sum in the panel's quote (migNlNoSum): the words before it, or a sum-free sentence beside it, else none */
+  const N = migNlNoSum(t, S0); if (!N || !N.q) return '';
+  if (!N.same){ const w0 = x => esc(String(x).replace(/\s+/g, ' '));
+    const ls0 = Math.max(N.s, at.s), le0 = Math.min(N.e, at.e);
+    const body = N.q.replace(/…$/, ''), tail = /…$/.test(N.q) ? '…' : '';
+    if (le0 > ls0 && N.e <= S0.e && N.s === S0.s){ const a = t.slice(N.s, ls0).replace(/\s+/g, ' ').replace(/^\s+/, ''), b = t.slice(ls0, le0).replace(/\s+/g, ' ');
+      if ((a + b).trim() && body.startsWith((a + b).trim().slice(0, Math.min(body.length, (a + b).trim().length))) && (a + b).length <= body.length + 1)
+        return `“${w0(a)}<mark>${w0(b)}</mark>${w0(body.slice((a + b).length))}${tail}”`; }
+    return `“${w0(body)}${tail}”`; }
+  const S = S0;
+  let ls = Math.max(S.s, at.s), le = Math.min(S.e, at.e);
+  if (k === 'expiryDate' && le - ls > 40){ const m = MIG_RENEW_RE.exec(t.slice(ls, le)); if (m){ ls += m.index; le = ls + m[0].length; } }
+  const w = x => esc(String(x).replace(/\s+/g, ' '));
+  const lit = le > ls ? `${w(t.slice(S.s, ls)).replace(/^\s+/, '')}<mark>${w(t.slice(ls, le))}</mark>${w(t.slice(le, S.e)).replace(/\s+$/, '')}` : w(t.slice(S.s, S.e)).trim();
+  return `“${lit}${S.cut ? '…' : ''}”`;
+}
+/* P-33 (RE-BUILT 21 Nov 2026, as drawn): WHAT IT WILL BE FILED AS — each fact with its dot (green sure, amber not sure,
+   grey not found) and the one Jambo was not sure of OPENED IN PLACE: the file's own words with the found words lit, its §
+   (or "its title"), and the chip that answers it. A file parked as unsigned says "Signed · Not said anywhere", opened
+   on the line that calls it a draft, its chip "Import it as a draft"; a copy says which one it copies, its chip "Skip the
+   copy"; a file with no words says each fact "—". NO MONEY IN THE PANEL (the Value column is the one place money shows):
+   the value is counted in "N of 5" but not said here. Returns { html, n, of }. */
+function migNlFactsOf(r, P){
+  const k = migNlKindOf(r), may = canEdit();
+  const none = k === 'none' || k === 'failed' || !P;
+  const dash = '—';
+  const L = x => i18t(MIG_FORM_LABEL[x]);
+  /* RE-POINTED 22 Nov 2026 (batch 7 review): "N of 5 sure" counts exactly the facts listed — Value is the fifth, as
+     drawn, said by its state (sure · not sure · not found), never its amount (MONEY IS NEVER IN A SIDE PANEL) */
+  if (none){
+    const rows = ['contractType', 'counterparty', 'effectiveDate', 'expiryDate', 'value'].map(x => ({ k:x, label:L(x), val:dash, tone:'gray' }));
+    return { rows, n:0, of:rows.length };
+  }
+  let F = []; try { F = migFormOf(P).filter(x => x.k !== 'folder'); } catch (_){ F = []; }
+  if (!F.length) return { rows:[], n:0, of:0 };
   const text = (P.upload && P.upload.extractedText) || '';
-  const open = F.find(x => x.unsure && x.at) || F.find(x => x.need && x.at) || null;
-  let offers = []; try { offers = r.c && canEdit() ? (migWhyHtml(P).offers || []) : []; } catch (_){ offers = []; }
-  return `<div class="mign5-facts">${F.map(x => {
-    const tone = x.missing || !x.val ? 'gray' : x.unsure ? 'amber' : 'green';
-    const val = x.val || i18t('mig_side_not_found');
-    let more = '';
-    if (x === open){
-      const where = x.where || (x.k === 'contractType' ? i18t('mign5_its_title') : '');
-      const of = offers.find(o => MIGN_USE_FOR[o.k] === x.k);
-      const use = of ? `<button type="button" class="apn-chip is-set mign5-use" data-mign-use="${esc(of.k)}" data-mign-key="${esc(r.key)}"${of.iso ? ` data-iso="${esc(of.iso)}"` : ''}${of.val ? ` data-val="${esc(of.val)}"` : ''}>${esc(i18t('mign5_use', { v: of.k === 'renews' ? i18t('mig_renews') : of.k === 'date' ? migDay(of.iso) : of.val }))}</button>`
-        : (r.c && canEdit() && x.val ? `<button type="button" class="apn-chip is-set mign5-use" data-mign-use="keep" data-mign-k="${esc(x.k)}" data-mign-key="${esc(r.key)}" data-val="${esc(x.val)}"${x.iso ? ` data-iso="${esc(x.iso)}"` : ''}>${esc(i18t('mign5_use', { v:x.val }))}</button>` : '');
-      more = `<div class="mign5-open"><p class="mign5-lit">${migNlLitHtml(text, x.at)}</p><div class="mign5-ow">${where ? `<span>${esc(where)}</span>` : ''}${use}</div></div>`;
-    }
-    return `<div class="mign5-f${x === open ? ' is-open' : ''}"><i class="mign5-d is-${tone}" aria-hidden="true"></i><span class="mign5-k">${esc(x.label)}</span><b class="mign5-v${tone === 'gray' ? ' is-none' : ''}" title="${esc(val)}">${esc(val)}</b>${tone === 'amber' ? `<small>${esc(i18t('mign5_unsure'))}</small>` : ''}</div>${more}`; }).join('')}</div>`;
+  const tone = x => x.missing || !x.val ? 'gray' : x.unsure ? 'amber' : 'green';
+  if (k === 'dupe'){
+    const d = ((r.q && r.q.dupes) || [])[0];
+    const rows = F.filter(x => x.k === 'contractType' || x.k === 'counterparty').map(x => ({ k:x.k, label:x.label, val:x.val || dash, tone:tone(x) }));
+    /* the copy's one act is the black button above (Skip the copy): the fact says what it copies, no second button */
+    if (d) rows.push({ k:'copy', label:i18t('mign5_f_copy'), val:migRefOf(d.id), tone:'amber', open:{ say:migNlCap(migDupeWhy(r.q)), chip:'' } });
+    return { rows, n:rows.filter(x => x.tone === 'green').length, of:rows.length };
+  }
+  const shown = F.filter(x => x.k !== 'value');
+  let offers = []; try { offers = r.c && may ? (migWhyHtml(P).offers || []) : []; } catch (_){ offers = []; }
+  const rows = shown.map(x => ({ k:x.k, label:x.label, val:x.val || i18t('mign5_not_found'), tone:tone(x), x }));
+  /* Value, the fifth fact: its state, never the amount; a paper where no money passes says so (no figure in it) */
+  const vx = F.find(x => x.k === 'value');
+  if (k !== 'unsigned' && vx){
+    const vt = tone(vx);
+    rows.push({ k:'value', label:vx.label, val:vx.ro ? vx.val : vt === 'gray' ? i18t('mign5_not_found') : vt === 'amber' ? i18t('mign5_unsure') : i18t('mign5_val_sure'), tone:vt, vx });
+  }
+  if (k === 'unsigned'){
+    const D = migNlDraftWords(text);
+    rows.push({ k:'signed', label:i18t('mign5_f_signed'), val:i18t('mign5_signed_none'), tone:'amber',
+      open:{ quote:D ? `“${esc(D.q)}”` : `“${esc(r.file || '')}”`, where:D ? (D.title ? i18t('mign5_its_title') : D.sec) : i18t('mign5_its_name'),
+        chip:may && migParked(r) ? `<button type="button" class="mign5-use" data-mig-unsigned="draft" data-i="${r.i}">${esc(i18t('mign5_as_draft'))}</button>` : '' } });
+  } else if (k !== 'filed'){
+    /* EVERY FACT JAMBO WAS NOT SURE OF (or did not find) OPENS IN PLACE: the file's words with the found words lit, its §,
+       and the chip that answers it. The value opens too, but without its amount: it says the file writes one and its
+       act opens the check on the Value box, where the amount is read and typed */
+    rows.forEach(row => {
+      if (row.k === 'value'){
+        if (!row.vx || row.vx.ro || !(row.vx.unsure || row.vx.missing)) return;
+        row.tone = 'amber';
+        row.open = { say:i18t(row.vx.missing ? 'mign5_val_none_say' : 'mign5_val_say'),
+          chip:r.c && may ? `<button type="button" class="mign5-use" data-mign-use="checkval" data-mign-key="${esc(r.key)}">${esc(i18t('mign5_val_check'))}</button>` : '' };
+        return;
+      }
+      const x = row.x; if (!x || !x.need) return;
+      row.tone = 'amber';
+      const of = offers.find(o => MIGN_USE_FOR[o.k] === x.k && o.k !== 'value');
+      const chip = of ? `<button type="button" class="mign5-use" data-mign-use="${esc(of.k)}" data-mign-key="${esc(r.key)}"${of.iso ? ` data-iso="${esc(of.iso)}"` : ''}${of.val ? ` data-val="${esc(of.val)}"` : ''}>${esc(i18t('mign5_use', { v: of.k === 'renews' ? migNlLow(i18t('mig_renews')) : of.k === 'date' ? migDay(of.iso) : of.val }))}</button>`
+        : (r.c && may && x.val ? `<button type="button" class="mign5-use" data-mign-use="keep" data-mign-k="${esc(x.k)}" data-mign-key="${esc(r.key)}" data-val="${esc(x.val)}"${x.iso ? ` data-iso="${esc(x.iso)}"` : ''}>${esc(i18t('mign5_use', { v:x.val }))}</button>` : '');
+      const quote = x.at ? migNlLitSentenceHtml(text, x.at, x.k) : '';
+      const secOnly = !quote && x.at ? migNlSecAt(text, x.at.s) : '';
+      row.open = { quote, say:quote || secOnly ? '' : i18t('mign5_none_said'), where:x.at ? (migNlSecAt(text, x.at.s) || (x.k === 'contractType' ? i18t('mign5_its_title') : '')) : '', chip };
+      if (x.missing || !x.val) row.val = i18t('mign5_not_found');
+    });
+  }
+  /* the count is the green dots drawn, over the facts drawn */
+  return { rows, n:rows.filter(x => x.tone === 'green').length, of:rows.length };
+}
+function migNlFactsHtml(r, P, F){
+  F = F || migNlFactsOf(r, P);
+  if (!F.rows.length) return '';
+  return `<div class="mign5-fh"><b>${esc(i18t('mign5_filed_as'))}</b><span>${esc(i18t('mign5_sure', { n:F.n, of:F.of }))}</span></div>`
+    + `<div class="mign5-facts">${F.rows.map(x => {
+      const o = x.open;
+      const more = o ? `<div class="mign5-open">${o.quote ? `<p class="mign5-lit">${o.quote}${o.where ? ` <span class="mign5-w">${esc(o.where)}</span>` : ''}</p>` : o.say ? `<p class="mign5-say">${esc(o.say)}</p>` : o.where ? `<p class="mign5-lit"><span class="mign5-w">${esc(o.where)}</span></p>` : ''}${o.chip ? `<div class="mign5-ow">${o.chip}</div>` : ''}</div>` : '';
+      return `<div class="mign5-f${o ? ' is-open' : ''}"><i class="mign5-d is-${x.tone}" aria-hidden="true"></i><span class="mign5-k">${esc(x.label)}</span><span class="mign5-v is-${x.tone}" title="${esc(x.val)}">${esc(x.val)}</span></div>${more}`; }).join('')}</div>`;
 }
 function migNlRingSvg(k, n){
-  const S = 44, rr = S / 2 - 4, c = 2 * Math.PI * rr, f = n ? Math.min(1, k / n) : 0;
-  return `<svg class="cun-ring is-big mign5-ring" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}" aria-hidden="true"><circle class="rb" cx="${S / 2}" cy="${S / 2}" r="${rr}"/>`
-    + (f > 0 ? `<circle class="rf" cx="${S / 2}" cy="${S / 2}" r="${rr}" stroke-dasharray="${(c * f).toFixed(2)} ${c.toFixed(2)}" transform="rotate(-90 ${S / 2} ${S / 2})"/>` : '')
-    + `<text x="50%" y="50%" text-anchor="middle" dominant-baseline="central">${k}/${n}</text></svg>`;
+  const S = 54, rr = 22, c = 2 * Math.PI * rr, f = n ? Math.min(1, k / n) : 0;
+  return `<svg class="mign5-ring" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}" aria-hidden="true"><circle class="rb" cx="27" cy="27" r="${rr}"/>`
+    + (f > 0 ? `<circle class="rf" cx="27" cy="27" r="${rr}" stroke-dasharray="${(c * f).toFixed(2)} ${c.toFixed(2)}" transform="rotate(-90 27 27)"/>` : '')
+    + `<text x="27" y="27" text-anchor="middle" dominant-baseline="central">${k}/${n}</text></svg>`;
 }
+/* the batch as drawn: a ring (filed of all) beside "This batch · N need you" and, under those words, the next two files
+   waiting with their reading in its colour — each a press that chooses it */
 function migNlBatchSideHtml(r, rows, need){
   const filed = rows.filter(x => x.st && x.st.k === 'filed').length;
   const next = need.filter(x => x.key !== r.key).slice(0, 2);
-  return `<div class="mign5-batch"><div class="mign5-bh">${migNlRingSvg(filed, rows.length)}<div><b>${esc(i18t('mign5_batch'))}</b><span>${esc(need.length ? i18tn('mign5_batch_need', need.length, { n:need.length }) : i18t('mign5_batch_clear'))}</span></div></div>`
-    + (next.length ? `<p class="jov5-label">${esc(i18t('mign5_next'))}</p>${next.map(x => { const S = migNlStatusOf(x);
-      return `<button type="button" class="mign5-nx" data-mign-pick="${esc(x.key)}"><span class="mign5-nf" title="${esc(x.file || '')}">${esc(x.file || '')}</span><span class="mign5-nw is-${S.tone}">${esc(S.w)}</span></button>`; }).join('')}` : '')
-    + '</div>';
+  return `<div class="mign5-batch">${migNlRingSvg(filed, rows.length)}<div class="mign5-bt"><b>${esc(i18t('mign5_batch'))} · ${esc(need.length ? i18tn('mign5_batch_need', need.length, { n:need.length }) : i18t('mign5_batch_clear'))}</b>`
+    + next.map(x => { const S = migNlStatusOf(x);
+      return `<button type="button" class="mign5-nx" data-mign-pick="${esc(x.key)}"><span class="mign5-nf" title="${esc(x.file || '')}">${esc(x.file || '')}</span><span class="mign5-nw is-${S.tone}">${esc(S.w)}</span></button>`; }).join('')
+    + '</div></div>';
+}
+/* File it, from the panel: the file filed as Jambo read it (the one writer, migFileIt, over the record's own boxes) */
+function migNlFileNow(id){
+  const c = getContract(id); if (!c) return;
+  const box = document.createElement('div'); box.innerHTML = migFormHtml(c);
+  return migFileIt(id, box).then(ok => { if (ok) renderMigration(); });
 }
 function migNlPanelFiveHtml(r, rows, need){
   const E = esc, P = migNlPaperOf(r), S = migNlStatusOf(r), key = r.key, may = canEdit();
-  const sure = P && r.st.k !== 'none' ? migSureOf(P) : null;
-  /* the acts by what the file is: main black, the second grey, a quiet link under them */
-  let main = null, second = null, quiet = null;
+  const F = migNlFactsOf(r, P);
+  /* the acts by what the file is, as drawn: main black, the second grey, a quiet link under them */
+  let main = null, second = null, quiet = null, quiet2 = null, wait = '';
   if (S.k === 'unsigned' && migParked(r) && may){
     main = { l:i18t('mig_unsigned_draft'), a:`data-mig-unsigned="draft" data-i="${r.i}"` };
     second = { l:i18t('mig_unsigned_signed_b'), a:`data-mig-unsigned="signed" data-i="${r.i}"` };
     quiet = { l:i18t('mig_unsigned_leave'), a:`data-mig-unsigned="skip" data-i="${r.i}"` };
   } else if (S.k === 'dupe' && migParked(r) && may){
-    const d = (r.q.dupes || [])[0];
     main = { l:i18t('mign5_skip_copy'), a:`data-dup-skip="${r.i}"` };
-    second = d ? { l:i18t('mign5_open_ours'), a:`data-mign-open="${E(d.id)}"` } : null;
     quiet = { l:i18t('mign5_keep_both'), a:`data-dup-import="${r.i}"` };
+    /* RE-POINTED 22 Nov 2026 (batch 7 review): "link it to the one we have" is a quiet link beside Keep both; its two
+       choices (what it is, and to which) ask in the house pop-up (migDupeLinkOpen), not as dropdowns in the panel */
+    if (r.q && (r.q.dupes || []).length) quiet2 = { l:i18t('mign5_link_it'), a:`data-mign-duplink="${r.i}"` };
+  } else if (r.c && (r.st.k === 'none' || r.st.k === 'failed') && may){
+    main = { l:i18t('mign_name_it'), a:`data-mign-go="${E(key)}" data-mign-need="1"` };
   } else if (r.c && MIG_NEEDS.includes(r.st.k) && may){
-    main = { l:i18t(r.st.k === 'none' ? 'mign_name_it' : 'mign_fill'), a:`data-mign-go="${E(key)}" data-mign-need="1"` };
-    second = { l:i18t('mign_open'), a:`data-mign-open="${E(r.c.id)}"` };
+    /* Check it opens the one-at-a-time check; File it files it as read — grey, with its reason, while a fact is owed */
+    const waits = migReviewOpen(r.c) ? migFormWaitsOf(r.c) : [];
+    main = { l:i18t('mign5_check_it'), a:`data-mign-go="${E(key)}" data-mign-need="1"` };
+    if (migReviewOpen(r.c)) second = { l:i18t('mig_file_it'), a:`data-mign-file="${E(r.c.id)}"${waits.length ? ` disabled title="${E(migWaitWords(waits))}" aria-describedby="mign5-wait"` : ''}` };
+    /* A GREY BUTTON SAYS WHY, on the screen (RE-POINTED 22 Nov 2026, batch 7 review): the reason under the acts */
+    if (migReviewOpen(r.c) && waits.length) wait = migWaitWords(waits, true);
   } else if (r.c){
-    main = { l:i18t('mign5_open'), a:`data-mign-go="${E(key)}" data-mign-need="0"` };
-    second = may && need.length ? { l:i18t('mign_check_all', { n:need.length }), a:'data-mign-checkall' } : null;
+    main = { l:i18t('mign5_open_it'), a:`data-mign-go="${E(key)}" data-mign-need="0"` };
   }
-  const acts = main ? `<div class="mign5-acts"><div class="mign5-ar"><button type="button" class="jov5-go" ${main.a}>${E(main.l)}</button>${second ? `<button type="button" class="ui-btn mign5-2nd" ${second.a}>${E(second.l)}</button>` : ''}</div>${quiet ? `<button type="button" class="mign5-quiet" ${quiet.a}>${E(quiet.l)}</button>` : ''}</div>` : '';
-  const sub = sure ? i18t('mign_sure_n', { n:sure.n, of:sure.of }) : '';
-  const say = String(r.st.why || '').trim();
+  const acts = main ? `<div class="mign5-acts"><div class="mign5-ar"><button type="button" class="jov5-go" ${main.a}>${E(main.l)}</button>${second ? `<button type="button" class="ui-btn mign5-2nd" ${second.a}>${E(second.l)}</button>` : ''}</div>${wait ? `<p class="mign5-wait" id="mign5-wait">${E(wait)}</p>` : ''}${quiet ? `<div class="mign5-ql"><button type="button" class="mign5-quiet" ${quiet.a}>${E(quiet.l)}</button>${quiet2 ? `<button type="button" class="mign5-quiet" ${quiet2.a}>${E(quiet2.l)}</button>` : ''}</div>` : ''}</div>` : '';
+  const sub = S.k === 'filed' && r.c ? i18t('mign5_filed_ref', { ref: window.contractRef ? contractRef(r.c) : r.c.id }) : F.of ? i18t('mign_sure_n', { n:F.n, of:F.of }) : '';
   const top = `<div class="mign5-top">${migNlPaperPicHtml(S.tone)}<div class="mign5-tt"><span class="apn-st is-${S.tone}"><i></i>${E(S.w)}</span><h3 class="jov5-title" title="${E(r.file || '')}">${E(r.file || '')}</h3>${sub ? `<p class="jov5-sub">${E(sub)}</p>` : ''}</div></div>`;
   const groups = [];
-  if (P && r.st.k !== 'none'){
-    const html = migNlFactsHtml(r, P);
-    if (html) groups.push({ key:'facts', label:sure ? i18t('mign5_filed_as_n', { n:sure.n, of:sure.of }) : i18t('mign5_filed_as'), html });
-  } else if (say) groups.push({ key:'why', rows:[{ mark:'alert', tone:S.tone === 'ruby' ? 'red' : 'amber', t:say, wrap:true }] });
-  /* a likely copy can still be joined to the one we have, its old link row kept whole (#762) */
-  if (S.k === 'dupe' && migParked(r) && may && typeof migDupeRowHtml === 'function'){
-    const h = migDupeRowHtml(r.q, r.i); const m = /<div class="mig-cf-acts mig-dup-link">[\s\S]*<\/div>\s*$/.exec(h);
-    if (m) groups.push({ key:'link', label:i18t('mign5_or_link'), html:`<div class="mig-cf mign5-link">${m[0]}</div>` });
-  }
+  const html = migNlFactsHtml(r, P, F);
+  if (html) groups.push({ key:'facts', html });
   groups.push({ key:'batch', html:migNlBatchSideHtml(r, rows, need) });
-  const o = { before:top + acts, title:r.file || i18t('mign_title'), groups, src:i18t('mign5_src') };
+  const o = { before:`<div class="mign5-head">${top}${acts}</div>`, title:r.file || i18t('mign_title'), groups, src:false };
   return `<div class="jl-words is-ov mign5">${jamboOverviewHtml(o, 'mign')}</div>`;
+}
+/* LINK IT TO THE ONE WE HAVE, in the house pop-up (lgpOpen; RE-POINTED 22 Nov 2026, batch 7 review): what it is to the
+   other (an amendment, a renewal…) and which one it belongs to, Import and link the one black button, Cancel last; the
+   one writer stays migResolveDuplicate(i, 'link', parent, relation) */
+function migDupeLinkOpen(i){
+  const q = migState().queue[i]; if (!q || !(q.dupes || []).length || typeof lgpOpen !== 'function') return;
+  const rel = (typeof CONTRACT_RELATIONS !== 'undefined' ? CONTRACT_RELATIONS : []).map(x => ({ v:x.k, t:x.label }));
+  const par = q.dupes.map(d => { const c = getContract(d.id); return { v:d.id, t:[window.contractRef && c ? contractRef(c) : d.id, c && c.name].filter(Boolean).join(' · ') }; });
+  lgpOpen({ id:'mig-dl-form', title:i18t('mign5_link_title'), sub:q.name || q.file || '',
+    rows:[{ k:i18t('mig_dup_rel'), id:'mig-dl-rel', type:'select', opts:rel, value:rel[0] && rel[0].v }, { k:i18t('mig_dup_parent'), id:'mig-dl-par', type:'select', opts:par, value:par[0] && par[0].v }],
+    primary:{ label:i18t('mign5_link_go'), attr:'id="mig-dl-go"' }, focus:false });
+  const form = document.getElementById('mig-dl-form'); if (!form) return;
+  form.addEventListener('submit', e => { e.preventDefault();
+    const p = (document.getElementById('mig-dl-par') || {}).value, r = (document.getElementById('mig-dl-rel') || {}).value;
+    if (typeof closeModal === 'function') closeModal();
+    migResolveDuplicate(i, 'link', p, r); });
 }
 /* "Use: …" in the panel FILLS IT IN: the file's check opens (the one walk, migCheckOpen) and the box takes the words, as
    the check's own Use does (data-mig-use); nothing is filed until File it is pressed */
 function migNlUse(el){
   const key = el.getAttribute('data-mign-key'), use = el.getAttribute('data-mign-use'); if (!key) return;
   migCheckOpen(key);
-  const k = use === 'keep' ? el.getAttribute('data-mign-k') : (MIGN_USE_FOR[use] || 'expiryDate');
+  /* "Check the value" (RE-POINTED 22 Nov 2026): the check opens on the Value box, nothing put in it — the amount is
+     read and typed there, never said in the panel */
+  const only = use === 'checkval';
+  const k = only ? 'value' : use === 'keep' ? el.getAttribute('data-mign-k') : (MIGN_USE_FOR[use] || 'expiryDate');
   const v = use === 'renews' ? i18t('mig_renews') : use === 'date' ? migDay(el.getAttribute('data-iso')) : (el.getAttribute('data-val') || '');
   let n = 0; const put = () => { const form = document.querySelector('#mig-ck-facts[data-mig-form]'); const box = form && form.querySelector(`[data-mig-f="${k}"]`);
     if (!box){ if (++n < 10) setTimeout(put, 60); return; }
-    box.value = v; if (typeof migFormGatePaint === 'function') migFormGatePaint(form);
+    if (!only){ box.value = v; if (typeof migFormGatePaint === 'function') migFormGatePaint(form); }
     if (typeof landOn === 'function') landOn(() => box, { block:'nearest' }); };
   put();
 }
@@ -1798,6 +2025,7 @@ function migNlRender(rows, o){
     && listRowsSwapHtml({ page: '.mign-page', html: PAGE, table: '.mign-table', tabSel: '[data-mign-tab]', tabKey: 'data-mign-tab', footSel: '.mign-page .apn-foot', also: ['.mign-page .mign-batch', '.mign-page .apn-bar'] })){
     /* the panel stays as it stands while the rows move, unless the file it reads has gone */
     if (_migPick !== _mignPanelPick){ _mignPanelPick = _migPick; migNlPanelPaint(rows); }
+    migNlReadFit();
     return;
   }
   const at = typeof listCaretAt === 'function' ? listCaretAt('#mign-q') : null;
@@ -1805,6 +2033,7 @@ function migNlRender(rows, o){
   if (typeof listCaretPut === 'function') listCaretPut('#mign-q', at);
   _mignPanelPick = _migPick;
   migNlPanelPaint(rows);
+  migNlReadFit();
   const fi = document.getElementById('mign-files');
   if (fi) fi.addEventListener('change', () => { if (fi.files.length) migProcessFiles(fi.files); fi.value = ''; });
   if (typeof setActiveNav === 'function') setActiveNav('migration');
@@ -1813,6 +2042,8 @@ function migNlRender(rows, o){
 let _mign = 'all';
 /* the drawn page's row press is handled below; the older list keeps migPickSet */
 if (typeof document !== 'undefined' && !document._mignWired){ document._mignWired = true;
+  /* the dates in "What Jambo read" stay whole at every width: the fit is read again when the window changes */
+  if (typeof window !== 'undefined' && window.addEventListener){ let _rf = 0; window.addEventListener('resize', () => { clearTimeout(_rf); _rf = setTimeout(migNlReadFit, 120); }); }
   /* the box is not redrawn under the caret: every letter moves the rows and leaves the box alone */
   /* the ask box before any file asks Jambo (the panel's own reader, jlAsk), as every page's box does once Enter is pressed */
   document.addEventListener('keydown', e => { if (!e.target || e.target.id !== 'mign-ask0' || e.key !== 'Enter') return; e.preventDefault();
@@ -1831,6 +2062,8 @@ if (typeof document !== 'undefined' && !document._mignWired){ document._mignWire
     if ((el = t.closest('[data-mign-open]'))){ e.preventDefault(); e.stopPropagation(); const id = el.getAttribute('data-mign-open'); if (id && typeof regOpenContract === 'function') regOpenContract(id); return; }
     if ((el = t.closest('[data-mign-pick]'))){ e.preventDefault(); _migPick = el.getAttribute('data-mign-pick'); renderMigration(); return; }
     if ((el = t.closest('[data-mign-use]'))){ e.preventDefault(); e.stopPropagation(); migNlUse(el); return; }
+    if ((el = t.closest('[data-mign-duplink]'))){ e.preventDefault(); e.stopPropagation(); migDupeLinkOpen(Number(el.getAttribute('data-mign-duplink'))); return; }
+    if ((el = t.closest('[data-mign-file]'))){ e.preventDefault(); e.stopPropagation(); if (!el.disabled) migNlFileNow(el.getAttribute('data-mign-file')); return; }
     /* a figure shows its files; pressed again it lets go (press it again and it closes) */
     if ((el = t.closest('[data-mign-fig]'))){ e.preventDefault(); const k = el.getAttribute('data-mign-fig'); _mign = (_mign === k && k !== 'all') ? 'all' : k; renderMigration({ rows: true }); return; }
     if ((el = t.closest('#mign-choose'))){ e.preventDefault(); const fi = document.getElementById('mign-files'); if (fi) fi.click(); return; }
@@ -2348,9 +2581,11 @@ function migSideSayFive(k){
   if (!k.files){
     /* P-33: the drop area is drawn ONCE, in the page (the panel's second one goes; its door, data-mig-paneldrop, stays
        known to the page's press for any older panel); How it goes is a three-step timeline */
-    const how = [['jov5_mig_s1b', 'jov5_mig_s1'], ['jov5_mig_s2b', 'jov5_mig_s2'], ['jov5_mig_s3b', 'jov5_mig_s3']].map(([b, x], i) => ({ mark:'dot', markText:String(i + 1), t:i18t(b), s:i18t(x), wrap:true }));
+    /* RE-BUILT 21 Nov 2026 (P-33, as drawn): the sentence, Choose files (black) with "Get the empty spreadsheet" beside
+       it, then How it goes as a three-step timeline (the first step lit) */
+    const how = [['jov5_mig_s1b', 'jov5_mig_s1'], ['jov5_mig_s2b', 'jov5_mig_s2'], ['jov5_mig_s3b', 'jov5_mig_s3']].map(([b, x]) => ({ b:i18t(b), s:i18t(x) }));
     return { title:i18t('jov5_mig_none_t'), sub:i18t('jov5_mig_none_s'), actFirst:true,
-      groups:[{ key:'how', label:i18t('jov5_mig_how'), rows:how }],
+      steps:{ label:i18t('jov5_mig_how'), items:how },
       act:may ? { label:i18t('jov5_mig_choose'), run:choose, link:{ label:i18t('jov5_mig_sheet'), run:() => { document.getElementById('mig-manifest-tpl')?.click(); } } } : null, src:false };
   }
   const show = (w) => () => { migShowSet(w, true); migLandFirst(); };
@@ -2675,11 +2910,11 @@ function migWhyHtml(c){
          a notice period and a start day to count the years from */
       say(esc(days && start ? i18t('mig_why_end_so_remind', { notice:migNoticeWords(days) })
         : (days ? i18t('mig_why_end_so_notice', { n:days }) : i18t('mig_why_end_so'))));
-      offers.push({ k:'renews', label:i18t('mig_use_renews_colon') });
+      offers.push({ k:'renews', f:'expiryDate', label:i18t('mig_use_renews_colon') });
     } else if (m.checks && m.checks.expiryDate && m.checks.expiryDate.expected){
       const d = migDay(m.checks.expiryDate.expected);
       say(`<b>${esc(i18t('mig_why_end_h'))}</b> ${esc(i18t('mig_why_end_term', { d }))}`);
-      offers.push({ k:'date', iso:m.checks.expiryDate.expected, label:i18t('mig_use_date', { d }) });
+      offers.push({ k:'date', f:'expiryDate', iso:m.checks.expiryDate.expected, label:i18t('mig_use_date', { d }) });
     } else if (e.missing) say(`<b>${esc(i18t('mig_why_end_h'))}</b> ${esc(i18t('mig_why_end_none'))}`);
     else say(esc(i18t('mig_why_unsure_q', { what:i18t('mig_fw_ends'), q:e.quote || e.val })));
   }
@@ -2690,11 +2925,14 @@ function migWhyHtml(c){
     const guess = k === 'counterparty' ? migPartyGuess(text, c) : (k === 'value' && !r.ro ? migAmountGuess(text) : null);
     if (guess && k === 'counterparty'){
       say(esc(i18t(r.missing ? 'mig_why_party_guess' : 'mig_why_party_guess_unsure', { q:guess.quote })));
-      offers.push({ k:'party', val:guess.name, label:i18t('mig_use_val', { v:guess.name }) });
+      offers.push({ k:'party', f:'counterparty', val:guess.name, label:i18t('mig_use_val', { v:guess.name }) });
     } else if (guess && k === 'value'){
-      say(esc(i18t(r.missing ? 'mig_why_value_guess' : 'mig_why_value_guess_unsure', { q:guess.quote })));
-      offers.push({ k:'value', val:guess.quote, label:i18t('mig_use_val', { v:guess.quote }) });
+      /* NO MONEY IN A SIDE PANEL (RE-POINTED 22 Nov 2026, batch 7 review): the file writes a value, the amount stays in
+         the form beside it; the chip that puts it in the box says no figure */
+      say(esc(i18t(r.missing ? 'mig_why_value_none_form' : 'mig_why_value_form')));
+      offers.push({ k:'value', f:'value', val:guess.quote, label:i18t('mig_use_val_file') });
     }
+    else if (k === 'value' && !r.ro) say(esc(i18t(r.missing ? 'mig_why_missing_say' : 'mig_why_value_form', { what:i18t(MIG_FACT_WORD[k]) })));
     else if (r.missing) say(esc(i18t('mig_why_missing_say', { what:i18t(MIG_FACT_WORD[k]) })));
     else say(esc(i18t('mig_why_unsure_q', { what:i18t(MIG_FACT_WORD[k]), q:r.quote || r.val })));
   }
@@ -2728,12 +2966,17 @@ function migCheckSideHtml(r){
   const ps = hs => hs.map(h => `<p>${h}</p>`).join('');
   const warn = !!(c._parked || miss.length || unsure.length);
   const head = c._parked ? i18t('mig_ckn_h_unsigned') : (miss.length ? i18tn('mig_ckn_h_missing', miss.length, { n:cnt(miss.length) }) : (unsure.length ? i18tn('mig_ckn_h_unsure', unsure.length, { n:cnt(unsure.length) }) : i18t('mig_ckn_h_ready')));
+  /* A "USE:" CHIP SITS INSIDE ITS CARD (RE-POINTED 22 Nov 2026, batch 7 review): each offer goes in the card of the fact
+     it answers (the missing fact's own card, else the "not sure" card), never loose between two cards */
+  const offers = w.offers.length && canEdit() && !c._parked ? w.offers : [];
+  const chipsFor = ks => { const os = offers.filter(o => ks.includes(o.f)); return os.length ? `<div class="jl-chips mig-ckn-chips">${os.map(o => `<button type="button" class="ui-btn ui-btn-sm" data-mig-use="${o.k}"${o.iso ? ` data-iso="${esc(o.iso)}"` : ''}${o.val ? ` data-val="${esc(o.val)}"` : ''}>${esc(o.label)}</button>`).join('')}</div>` : ''; };
+  const placed = miss.map(g => g.k).concat(unsure.map(g => g.k));
+  const loose = offers.filter(o => !placed.includes(o.f)).map(o => o.f);
   return `<div class="jl-words mig-ck-why mig-ckn">
       <div class="mig-ckn-head${warn ? ' is-warn' : ''}"><i class="mig-ckn-mark" aria-hidden="true"></i><h3 class="jov5-title">${esc(head)}</h3></div>
-      ${miss.map(g => `<div class="mig-ckn-card is-kv" data-mig-ckn="${esc(g.k)}"><b>${esc(i18t(MIG_FORM_LABEL[g.k]))}</b><div>${ps(g.html.map(bare))}</div></div>`).join('')}
-      ${unsure.length ? `<div class="mig-ckn-card" data-mig-ckn="unsure"><b>${esc(i18t('mig_ckn_unsure'))}</b>${ps(unsure.flatMap(g => g.html))}</div>` : ''}
-      ${plain.length ? `<div class="mig-ckn-card" data-mig-ckn="note">${ps(plain.map(x => x.html))}</div>` : ''}
-      ${w.offers.length && canEdit() && !c._parked ? `<div class="jl-chips">${w.offers.map(o => `<button type="button" class="ui-btn ui-btn-sm" data-mig-use="${o.k}"${o.iso ? ` data-iso="${esc(o.iso)}"` : ''}${o.val ? ` data-val="${esc(o.val)}"` : ''}>${esc(o.label)}</button>`).join('')}</div>` : ''}
+      ${miss.map(g => `<div class="mig-ckn-card is-kv" data-mig-ckn="${esc(g.k)}"><b>${esc(i18t(MIG_FORM_LABEL[g.k]))}</b><div>${ps(g.html.map(bare))}${chipsFor([g.k])}</div></div>`).join('')}
+      ${unsure.length ? `<div class="mig-ckn-card" data-mig-ckn="unsure"><b>${esc(i18t('mig_ckn_unsure'))}</b>${ps(unsure.flatMap(g => g.html))}${chipsFor(unsure.map(g => g.k))}</div>` : ''}
+      ${plain.length || loose.length ? `<div class="mig-ckn-card" data-mig-ckn="note">${ps(plain.map(x => x.html))}${chipsFor(loose)}</div>` : ''}
       ${next.length ? `<div class="mig-ckn-card mig-ck-next"><b>${esc(i18t('mig_ck_next_h'))}</b>
         <div class="mig-ck-nl">${next.map(x => `<button type="button" class="mig-ck-nr" data-mig-ck-to="${esc(x.key)}"><span class="mig-ck-nf">${esc(x.file)}</span><span class="mig-ck-nw">${esc(x.st.why)}</span></button>`).join('')}</div></div>` : ''}
       <p class="jl-src mig-ckn-small">${esc(i18t('mig_src_file'))}.${c._parked ? '' : ' ' + esc(i18t('mig_ckn_small'))}</p>
@@ -2763,8 +3006,7 @@ function migCheckHtml(){
     <section class="mig-card mig-ck-facts" id="mig-ck-facts">
       <div class="mig-ck-h"><b>${esc(i18t('mig_ck_facts_h'))}</b><span>${esc(i18t('mig_unsigned_after'))}</span></div>
       <div class="mig-ck-body">${migFormHtml(c, { marks:true, ro:true, noUse:true })}
-        <div class="mig-ff" data-mig-ff="status"><span class="mig-ff-l">${esc(i18t('mig_f_as'))}</span><div class="mig-ff-c"><span class="mig-ff-ro is-need">${esc(i18t('mig_why_unsigned'))}</span></div></div></div>
-      <div class="mig-ck-foot">${migUnsignedActsHtml(row.i)}</div>
+        <div class="mig-ff is-need" data-mig-ff="status"><span class="mig-ff-l">${esc(i18t('mig_f_as'))}</span><div class="mig-ff-c"><span class="mig-ff-ro mig-ff-owed need-empty" role="note" title="${esc(i18t('mig_why_unsigned'))}" aria-label="${esc(i18t('mig_why_unsigned'))}"></span></div></div></div>
     </section>
     ${sheet}
   </div>`;
@@ -3113,6 +3355,11 @@ function renderMigration(o){
       .mig-ckn-card > b{display:block;font-weight:var(--w-strong);margin-bottom:2px}
       .mig-ckn-card p{margin:0;overflow-wrap:anywhere}
       .mig-ckn-card p + p{margin-top:6px}
+      .mig-ckn-card .mig-ckn-chips{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:6px;margin:8px 0 0;padding:0}
+      .mig-ckn-card .mig-ckn-chips .ui-btn{background:var(--color-surface);border:1px solid var(--color-neutral-300)}
+      .mig-ck-body .mig-ff-owed{display:block;height:30px;margin-left:-8px;width:calc(100% + 8px);border-radius:var(--radius);background:var(--st-amber-bg)}
+      .mig-ck-body .mig-ff:has(.mig-ff-owed) .mig-ff-l{color:var(--st-amber-fg);font-weight:var(--w-label);padding-top:5px}
+      .mig-page.is-checking .mig-own-head .ctf-h{flex:none;white-space:nowrap}
       .mig-ckn-card.is-kv{display:grid;grid-template-columns:84px minmax(0,1fr);gap:12px;align-items:baseline}
       .mig-ckn-card.is-kv > b{margin:0}
       .mig-ck-nl{display:flex;flex-direction:column}
@@ -3200,7 +3447,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t || !inPage(t)) return;
     let el;
-    if ((el = t.closest('#mig-choose'))){ document.getElementById('mig-files')?.click(); return; }
+    if ((el = t.closest('#mig-choose, [data-mig-choose0]'))){ document.getElementById('mig-files')?.click(); return; }
     /* the panel's drop area is the page's own door (THE FIVE PARTS, 15 Nov 2026) */
     if ((el = t.closest('[data-mig-paneldrop]'))){ document.getElementById('mig-files')?.click(); return; }
     /* a likely copy's three choices answer from Jambo's panel too, which stands outside the page (#762) */

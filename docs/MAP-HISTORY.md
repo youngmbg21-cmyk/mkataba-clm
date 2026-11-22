@@ -39694,6 +39694,57 @@ The reviewer's list (review8/differences.md) against the owner's picked drawing 
 - A setting chosen: faint green row (`--color-accent-50`); the condition bold in its sentence; the ring with "asks open" under its number and whose yes is waited on; "In the trail · See it" together, no lines; "If you change it" for approval rules adds "it applies from the next contract asked."; the button says Change for an off setting too.
 - The sheets: the rule in words as drawn (`arWordsHtml`: "A contract of KES 10M or more needs **X**'s yes; below that, **Y**'s."), the column "Open", the clash quiet (pale box, dark words, amber dot); the foot line keeps the TRUE order rule ("a lower number gives its yes first" — every rule that matches asks, so the drawn "the first that matches asks for its yes" would be false) and adds "The change is written in the trail with your name."; the check's quote "With **Advise**, …", the other two in a line each; signing limits: an admin "never limited", nobody's limit "none on file · set", the folders wrap; the ✕ bare, no circle, no fade.
 
+## ASK A COLUMN (js/views/askcolumn.js) — DISCOVER MATCHED TO THE PICKED DRAWINGS (P-42 review, 22 Nov 2026)
+An independent review listed where Discover on main differed from the picked drawings (discover-options "mix" and
+discover-every); every state was rebuilt to them and photographed at the three screens. THE ENDLESS "LOADING…": with
+no reads at all, rdLoad's "drawn again only if the rows changed" compared none with none, so the list that had drawn
+"Loading…" was never drawn again; a page still showing the loading row (`data-dsn-loading`) is now drawn once the load
+is back, and the empty list is the drawn dashed "No reads yet" with no table head. THE LIST: the question (never the
+short name) with the chosen row's words and § under it, a faint green chosen row, Where as the first folder and "+N",
+When as a day ("today", "18 Nov"), the line "Every read your team has run · N reads · N questions", the ask box a box
+edged in Jambo's green (it HOLDS a field, `--fld-under` none). THE PANEL: the title in the body's type, hairlines between
+parts, "The one to look at" a heading, Open the results a small black button; Keep left the panel (one door: each
+question's column head on the results), Delete question stayed (no other door). NEW READ: ‹ All reads above the title;
+each pack its own chip, the first's ▾ opening ONE pop-up of every pack (Ask this pack, Edit · Delete on yours, + Save
+these questions as a pack; Manage is gone) with the pack's questions in the panel (`dsnPackPeekPanel`); the "Asked
+before" chips left the page (the panel's Asked here before is the one door, each question once); Where on one line with
+"Folder: All"; 50 | 100 a press back (`DSN_SIZES`, `_dsn.size`, 100 until chosen); the panel counts as the button does
+(`dsl_new_some` / `dsl_new_before`: "1 is read on this press. 10 were read before."). TURNED DOWN: your words kept, the
+line why in its amber band (the drawn refusal's way forward), nothing else until Read. THE READING ROOM: the question as
+the title, Stop alone in the head (askColStop's one door; Cancel read removed — leaving keeps it reading, the results
+throw a read away), a warm sheet of fixed height, the table Contract (number · party under it) · Answer in its colour ·
+Where it says so · §, "Filed so far" said once; Found so far cards white, a Yes amber, YES/NO tags. A class clash
+fixed on the way: New read's bar class `.dsn-read` was also the Reading Room's green mark (renamed `.dsn-rdb`).
+STOPPED: Ask another; the stopped panel "Stopped · N left" with the ring of read and "read them" = the stop's carry; the
+table never empties while the read's record is still being written (`_dsn.lastDone`, `dsnWaitForRun`); the stop
+sentence's "{n} left" no longer took the total (`{total}`). RESULTS: one Contract column then one whole column per
+question (heads wrap, Keep under them, "✓ kept" short past three questions), the answer's words with its mark against
+our playbook; one question: Contract with the words lit · Answer · Against our playbook · §; the row's panel
+(`dsnResultPanelHtml`): its badge, contract · answer, Open the paper · Redline it (the existing doors), where it was read
+(every place for a pack), OUR PLAYBOOK ASKS — the standard read from the clause library by the question a standard asks
+(DSN_STD_Q) or the topic it names, its ladder by `stdLadderOf`, the answer placed on the rung it says word for word, else
+by the read's own verdict (below the ladder · meets); nothing claimed without a rule (`dsnLadderFor`, `dsnPlaybookOf`) —
+and Mark checked. Kept, and why: the shared panel top line ("Overview ›", "Reading · k of n"); the filters with no values
+not drawn (filters with results only); a single question's chips by its answers (the owner's coloured tiles), not by
+verdict; each column's "kept" or "Keep" is the question's own record, shown as it stands (the drawing's mix was sample data).
+
+## THE ONE DESK — NEEDS YOU, ONE READING — ONE COUNT, ONE WAIT (review of merged pages against P-38/P-39, 22 Nov 2026)
+An independent review photographed the merged Board and side panel against the owner's picked drawings. Found: the
+panel's ring legend said "3 Jambo" and the bell's chip "Jambo 3" (late pieces dropped from Jambo's count) while Needs you
+said "Jambo prepared 5"; one approval read "134 days" on one load and "today" on the next — measured: no question was on
+record for a step that was already due when the rule was saved, so the wait fell back to `lastAction` ("10 Jul 2026" in
+the sample), until the reminders' sweep (30 s after boot) opened the question; the Company row put its sentence in the
+Agreement column with an empty Waited and named a rule by its sum ("Value >= KES 10M") in the side panel; Activity
+printed the trail's whole sentence and called an internal note "Sent"; note rows had no quote, the opened note no amber
+band, @names four inks; Redlines' Notes lost its count when chosen and sat 12 + 16 px in with a 50 px gap; the panel's
+last piece was cut at 1536×730; Explorer and Read down showed no quote for a term the paper states without a date.
+Built: ndWaitCounts (one count); hbHelloFitN with "N more, on the Board"; ndWaitedDays and apApprovalRows off the
+question's `at`, else repRaisedAt; the company row's name/line/oldest wait and `plain` clash words; actSayOf; the
+note quote, the amber band, the one green; the notes face level with its switch; hbRdnTermQuote's term-sentence
+fallback. The "All seven agents … Change · The agents" foot line was removed, then RESTORED the same day (a working control stays
+though undrawn). Kept as ruled: "Show N more",
+"‹ Back to Contracts", "Payment gap", two-line titles, Notes greyed without a contract, Done notes under Done only, nav
+counts grey unless waiting on you.
 ## CUSTOMER FOLDERS — SHELVES, THE SAP WAY — P-25 REBUILT TO THE DRAWING (21 Nov 2026)
 The first build of P-25 (PR #861) was compared, part by part, with the owner's picked drawing ("The Legora + Stripe way",
 graphic "Ring", tabs All and Waiting on you) rendered at 1440 and with photos of the running app; every gap was built.

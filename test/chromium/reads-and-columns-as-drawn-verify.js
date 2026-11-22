@@ -127,7 +127,9 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
          with Open the results and Delete question; no cost
          RE-POINTED (P-42, owner's pick 20 Nov 2026: Discover the Legora + Stripe way): the title stands alone with New read
          (its facts line is gone), the ask box under it (#dsn-ask, it only fills New read), and the table is Question · Status ·
-         Answered · To look at · Where · By · When */
+         Answered · To look at · Where · By · When
+         RE-POINTED 22 Nov 2026 (P-42 review: the picked drawing): beside the title, one quiet line — "Every read your team has
+         run · N reads · N questions" (.dsn-facts) — and New read with its "+" */
       await page.evaluate(() => setView('reads'));
       await until(page, () => !!document.querySelector('#rd-page.dsn-page tbody tr[data-dsn-run]') && !!document.querySelector('#ins-panel [data-dsn-open]'), null, 15000);
       const R = await page.evaluate(() => { const hd = document.querySelector('.rdn-head');
@@ -136,7 +138,7 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
         return { head: hd.innerText.replace(/\s+/g, ' ').trim(), ask: !!document.querySelector('#rd-page #dsn-ask'), facts: !!hd.querySelector('.ctf-hf'), oneLine: Math.max(...mids) - Math.min(...mids) <= 6,
           cols: [...document.querySelectorAll('.dsn-table thead th')].map(t => t.textContent.trim()), out, panel: document.getElementById('ins-panel').innerText, page: document.getElementById('rd-page').innerText }; });
       check(`${nm} 6 Discover's list of reads: the title alone on one top line with New read, the ask box under it, the seven columns, nothing out of its cell; the panel's Open the results and Delete question`,
-        /^Discover\s*New read$/.test(R.head) && !R.facts && R.ask && R.oneLine && R.cols.join('|') === 'Question|Status|Answered|To look at|Where|By|When' && R.out === 0
+        /^Discover\s*Every read your team has run · \d+ reads? · \d+ questions?\s*\+\s*New read$/.test(R.head) && !R.facts && R.ask && R.oneLine && R.cols.join('|') === 'Question|Status|Answered|To look at|Where|By|When' && R.out === 0
         && /Open the results/.test(R.panel) && /Delete question/.test(R.panel) && !COST.test(R.panel + R.page), { head: R.head, ask: R.ask, facts: R.facts, oneLine: R.oneLine, cols: R.cols, out: R.out, panel: R.panel.slice(0, 300) });
       await shot('7-reads');
       check(`${nm} 7 no page errors`, !errs.length, errs);

@@ -91,7 +91,8 @@ describe('f1032 — the Notes drawer is a Thread', () => {
     p.c.thread[2].done = { at: daysAgo(0), by: ME.name };
     h = p.paint();
     const chips = () => [...h.querySelectorAll('.rl-np-chip')].map(b => b.textContent.replace(/\s+/g, ' ').trim());
-    assert.deepEqual(chips(), ['Open 2', 'Yours 1', 'Done 1']);
+    /* RE-POINTED 22 Nov 2026 (review of merged pages): the chip is named as P-38 draws it, "Asks you" */
+    assert.deepEqual(chips(), ['Open 2', 'Asks you 1', 'Done 1']);
     assert.equal(h.querySelectorAll('.rl-np-crow').length, 2, 'Open lists the open threads');
     assert.equal(h.querySelector('[data-rl-np-donefold]'), null, 'the fold is gone from the drawer');
     assert.ok(h.querySelector('.rl-np-st.is-ask'), 'the one given to you says "Asks you" in amber');

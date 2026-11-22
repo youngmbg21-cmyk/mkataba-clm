@@ -2232,6 +2232,14 @@ function caGo(a){
   if (!a || a.kind !== 'go') return false;
   if (a.place === 'back'){ const ok = caTrailBack(); caGoRepaint(); return ok; }
   if (a.place === 'help') return true;
+  /* A CONTRACT'S DOOR OPENS ON ITS WHOLE RECORD (navReadFirst, js/navmap.js): a contract not read whole yet this sitting
+     is read first, a landing said to be on its way meanwhile, then this same go runs — so a typed door from the Board
+     lands, never stands still on a slow read (BUGLOG 22 Nov 2026) */
+  if (!a.narrow && !a.reg && !a.st && !a.missing && !a.narrowOff && !caIsCardWord(a.place) && typeof window !== 'undefined' && typeof window.navReadFirst === 'function'){
+    const cid = a.cid || (a.nav && a.nav.cid);
+    const c0 = cid && typeof getContract === 'function' ? getContract(cid) : null;
+    if (c0 && window.navReadFirst(c0, () => caGo(a))) return true;
+  }
   caUseBump(a.place);
   /* "paper" asked while a page stands in the middle: the paper comes back (the middle, 21 Oct 2026) */
   if (a.place === 'document' && typeof pdMidClose === 'function') pdMidClose();

@@ -651,7 +651,9 @@ const NAV_PAPER_TRIES = 15;
 /* A LANDING STILL ON ITS WAY: raised from the press until the clause is landed or said not to be there,
    so a page or a check waiting for the screen to stand still can ask (navLanding) */
 let _navLanding = false;
-const navLanding = () => _navLanding;
+/* …and a contract still being read whole for Home's paper (igAnalyze's intel.opening) is a landing on its way too,
+   whichever door asked for it */
+const navLanding = () => _navLanding || !!(typeof window !== 'undefined' && window.intel && window.intel.opening);
 /* A TOPIC THE HEADINGS DO NOT NAME ("the delivery promise": the clause headed "Supply" that says "delivered") is read
    in the wording — its numbered heading lines, the heading first, then the words under it by their root — and
    landed by its number (stage 3d); none found, the paper's own search goes on as before */
@@ -822,9 +824,41 @@ function navGoAct(n){
   }
   /* THE LETTER WAITS (as a clause asked for does, navGoClause): another part of a contract asked for while the
      letter is up steps the letter one tab away, kept; it never stands in front of what was asked */
-  if (n.act !== 'send'){ try { if (typeof pdSendShows === 'function' && pdSendShows() && typeof pdSendAway === 'function') pdSendAway(); } catch (_){} }
-  const ok = go();
+  const run = () => {
+    if (n.act !== 'send'){ try { if (typeof pdSendShows === 'function' && pdSendShows() && typeof pdSendAway === 'function') pdSendAway(); } catch (_){} }
+    return go();
+  };
+  /* a contract not read whole yet is read first (navReadFirst), then the door opens */
+  if (navReadFirst(navC(id), run)) return true;
+  const ok = run();
   return ok !== false;
+}
+/* THE WHOLE RECORD BEFORE THE DOOR (BUGLOG 22 Nov 2026, the Board's box "did nothing"): a contract not opened yet this
+   sitting is a LIGHT row, and its paper waits for the whole record (igAnalyze → ensureFull). Opened straight away, the
+   door's own landers (Key terms' row, the Dossier's line, the NDA's facts) counted their beats against a paper not yet
+   drawn and gave up on a slow read, and from the Board nothing moved and nothing said a landing was on its way
+   (navLanding false), so the screen read as standing still on the Board. The record is read FIRST, the landing raised
+   meanwhile, then the door (run) opens on a paper drawn at once. The newest door wins, and a person who moved on
+   meanwhile (another page, another face of Home) keeps where they went. True when the door waits for the read. */
+let _navReadSeq = 0;
+function navReadFirst(c, run){
+  if (!(c && c._light && !c._loaded && !c._codeNamed && typeof ensureFull === 'function' && typeof run === 'function')) return false;
+  const seq = ++_navReadSeq, was = navStandsAt();
+  _navLanding = true;
+  const then = () => {
+    if (seq !== _navReadSeq) return;
+    _navLanding = false;
+    if (navStandsAt() !== was) return;
+    try { run(); } catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); }
+  };
+  Promise.resolve().then(() => ensureFull(c)).then(then, then);
+  return true;
+}
+/* where the person stands, read before and after a record is read: the page, and Home's face */
+function navStandsAt(){
+  const v = (typeof state === 'object' && state) ? state.view : '';
+  let f = ''; try { f = (v === 'dashboard' && typeof hbFace === 'function') ? String(hbFace() || '') : ''; } catch (_){ f = ''; }
+  return v + ':' + f;
 }
 /* does the paper in front mark its clauses at all? */
 function navPaperMarked(){
@@ -1334,7 +1368,7 @@ function navDoorOf(d){
 
 Object.assign(window, { NAV_PLACES, NAV_PLACES_ADMIN, navIsAdmin, navReadHandbook, navReadPlace, navGoPlace, navReadStTitle, navStTitles, navDoorOf, navLeftover, navNorm, navBook, navStreamWords, navStreamOf, navStageOf, navEndingOf, navEndingSpan, navParties, navPartiesIn,
   navClauseTopicOf, navRead, navReadClause, navClauseCount, navReadContracts, navContractsLabel, navReadParty, navWhich, navGo, navGoClause,
-  navContractByName, navLanding, NAV_PAGES, navReadPage, NAV_ACTS, NAV_ACT_OWN, navReadContractAct, navGoAct, navClauseEl, navClauseRow, navPaperMarked, NAV_PAPER_TRIES, navSayLate, navChoicePress, NAV_STREAM_EXTRA, NAV_CLAUSE_TOPICS, NAV_LAND_TRIES,
+  navContractByName, navLanding, navReadFirst, navStandsAt, NAV_PAGES, navReadPage, NAV_ACTS, NAV_ACT_OWN, navReadContractAct, navGoAct, navClauseEl, navClauseRow, navPaperMarked, NAV_PAPER_TRIES, navSayLate, navChoicePress, NAV_STREAM_EXTRA, NAV_CLAUSE_TOPICS, NAV_LAND_TRIES,
   NAV_YOU, NAV_COMPANY, navReadSettings, navReadStandards, navUsersIn, navLandWhen, navGoStage2, NAV_STD_BOOKS, NAV_STD_ROWS,
   navReadDuty, navReadRequest, navReadPerson, navGoStage3, navWords, navWordHits, navReadNone, navUnknownNames, NAV_HOLD_BEATS,
   navReadCompare, navGoCompare, NAV_COMPARE_WORDS, NAV_COMPARE_SIDES });

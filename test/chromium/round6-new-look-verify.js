@@ -252,7 +252,9 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await page.evaluate(() => setView('migration'));
     const up = await until(page, () => !!document.querySelector('.mign-table tbody tr[data-row]'), null, 12000);
     const heads = await page.evaluate(() => [...document.querySelectorAll('.mign-table thead th')].map(x => x.innerText.trim().toLowerCase()).filter(Boolean));
-    const first = await txt(page, '.mign-table tbody tr[data-row]');
+    /* RE-POINTED 21 Nov 2026 (P-33, as drawn): a parked file (is it signed?, a copy?) says no sureness ("—"), so "N of 5" is
+       looked for over the rows, not only the first */
+    const first = await page.evaluate(() => [...document.querySelectorAll('.mign-table tbody tr[data-row]')].map(r => r.innerText).join(' | '));
     await shot('10-import');
     /* RE-POINTED (owner, 16 Nov 2026: the figures and "the level of confidence for each contract" are back; f1081): How sure
        stands after What Jambo read, and five figures over the list */

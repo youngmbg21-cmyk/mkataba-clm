@@ -65,7 +65,9 @@ test('f1113 (3) an answer pressed marks its place; one question is the one-quest
 });
 
 test('f1113 (4) the results page draws it for the chosen row; an answer pressed lands on its place', () => {
-  assert.match(RD, /body: dscPaperAllHtml\(r\.askIds, _dsn\.cid, focus\)/);
+  /* RE-POINTED 22 Nov 2026 (P-42 review, as drawn): the result's own panel (dsnResultPanelHtml) holds every place, under
+     "Every place the answers were read" */
+  assert.match(RD, /body: dsnResultPanelHtml\(r, _dsn\.cid, focus\)/); assert.match(RD, /pack \? dscPaperAllHtml\(r\.askIds, cid, focus\) : dscPaperHtml\(k, cid\)/);
   assert.match(RD, /landOn\('\[data-dsc-paper\] \[data-dsc-focus\]', \{ focus: false, block: 'center'/);
   assert.match(RD, /data-dsn-q="\$\{_rdE\(r\.askIds\[i\]\)\}"/, 'a found answer\'s cell carries its question');
   assert.match(RD, /const q = t\.closest\('\[data-dsn-q\]'\), f = q \? q\.getAttribute\('data-dsn-q'\) : null;/);

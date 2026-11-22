@@ -100,8 +100,10 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
     const stay = await page.evaluate(([sel, rs]) => { const b = document.querySelector(sel); return !!b && b.classList.contains('is-on') && document.querySelectorAll(rs).length; }, [TAB('need'), ROWS]);
     check('2a the lit tab pressed again stays where it is (a tab, not a toggle)', stay === want.length && stay === needN, String(stay));
     if (await page.$(TAB('all'))) await page.click(TAB('all'));
-    const R2 = await until(([n, foot, rs]) => { const ids = [...document.querySelectorAll(rs)].map(r => r.getAttribute('data-row'));
-      return ids.length === n && ((document.querySelector(foot + ' span') || {}).textContent || '').trim() === `${n} files` ? ids : null; }, [R0.length, FOOT, ROWS]);
+    /* RE-POINTED 21 Nov 2026 (P-33, as drawn): the table has no foot (the drawing draws none; "All N" says the count) —
+       All brings the whole list back, its chip counting what it shows */
+    const R2 = await until(([n, foot, rs, all]) => { const ids = [...document.querySelectorAll(rs)].map(r => r.getAttribute('data-row'));
+      return ids.length === n && !document.querySelector(foot) && ((document.querySelector(all) || {}).textContent || '').replace(/\s+/g, ' ').trim() === `All ${n}` ? ids : null; }, [R0.length, FOOT, ROWS, TAB('all')]);
     check('2b All brings the whole list back', !!R2, JSON.stringify(R2));
 
     /* ---- 3 Choose files ---- */
