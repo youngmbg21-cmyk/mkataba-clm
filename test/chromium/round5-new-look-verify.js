@@ -173,15 +173,17 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await page.evaluate(() => { roomHomeLand('MK-A1'); });
     await until(page, () => !!document.querySelector('#ig-canvas'), null, 15000);
     await page.evaluate(() => pdAmendOpen('MK-A1'));
-    const up = await until(page, () => !!document.querySelector('#ig-paper .ig-zoom.is-am2 .pd2-am-sheet'), null, 15000);
-    const side = up ? await page.evaluate(() => { const a = document.querySelector('#ig-paper .ig-zoom.is-am2 > .blueprint'), b = document.querySelector('#ig-paper .pd2-am-col'); if (!a || !b) return null;
-      const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect(); return { beside: rb.left >= ra.right - 2 && Math.abs(rb.top - ra.top) < 4 }; }) : null;
+    /* RE-POINTED 22 Nov 2026 (Amend L+S as drawn, #911): no longer the sealed paper and the amendment side by side —
+       ONE full page over the paper (pd2AmxHtml) whose tabs are Changes · Signed paper · Amendment paper; the panel says
+       what this amendment will change once (pd2AmFaceHtml) */
+    const up = await until(page, () => !!document.querySelector('#ig-paper-scroll.is-amx > .pd2-amx'), null, 15000);
+    const side = up ? await page.evaluate(() => ({ tabs: [...document.querySelectorAll('.pd2-amx [data-pd2-amx-tab]')].map(b => b.getAttribute('data-pd2-amx-tab')).join(',') })) : null;
     const acts = await page.evaluate(() => { const c = document.querySelector('[data-pd2-am-create]'); return { discard: !!document.querySelector('[data-pd2-am-discard]'), create: !!c, grey: !!(c && c.disabled) }; });
     const face = await txt(page, '#pd-amendface');
     const ph = await page.evaluate(() => (document.getElementById('igd-input') || {}).placeholder || '');
     await shot('7-amend');
-    check('7 Amend: the sealed paper and the amendment side by side, Discard and Create the amendment (grey until a change), the reading, the box takes the change',
-      up && !!side && side.beside && acts.discard && acts.create && acts.grey && /as amended/i.test(face) && /say the change/i.test(ph), { side, acts, ph });
+    check('7 Amend: one page over the paper (Changes · Signed paper · Amendment paper), Discard and Create the amendment (grey until a change), what it changes once signed, the box takes the change',
+      up && !!side && /changes/.test(side.tabs) && /signed/.test(side.tabs) && /paper/.test(side.tabs) && acts.discard && acts.create && acts.grey && /once signed/i.test(face) && /say the change/i.test(ph), { side, acts, ph });
   } catch (e) { check('7 Amend', false, String(e).slice(0, 200)); }
 
   /* RETIRED 16 Nov 2026 (#762): 8 "the switch off: as before" — there is no switch; the new look is the only look */
