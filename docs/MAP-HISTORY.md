@@ -39684,6 +39684,40 @@ cells are shaded by money. Kept against the drawing, asked of the owner: the hea
 board · contracts links line over the box (Jambo's box rule), and "Shade the cells by how many" in the default Grid
 (the cells are already shaded by how many there, so the row would do nothing).
 
+## ASK A COLUMN (js/views/askcolumn.js) — DISCOVER MATCHED TO THE PICKED DRAWINGS (P-42 review, 22 Nov 2026)
+An independent review listed where Discover on main differed from the picked drawings (discover-options "mix" and
+discover-every); every state was rebuilt to them and photographed at the three screens. THE ENDLESS "LOADING…": with
+no reads at all, rdLoad's "drawn again only if the rows changed" compared none with none, so the list that had drawn
+"Loading…" was never drawn again; a page still showing the loading row (`data-dsn-loading`) is now drawn once the load
+is back, and the empty list is the drawn dashed "No reads yet" with no table head. THE LIST: the question (never the
+short name) with the chosen row's words and § under it, a faint green chosen row, Where as the first folder and "+N",
+When as a day ("today", "18 Nov"), the line "Every read your team has run · N reads · N questions", the ask box a box
+edged in Jambo's green (it HOLDS a field, `--fld-under` none). THE PANEL: the title in the body's type, hairlines between
+parts, "The one to look at" a heading, Open the results a small black button; Keep left the panel (one door: each
+question's column head on the results), Delete question stayed (no other door). NEW READ: ‹ All reads above the title;
+each pack its own chip, the first's ▾ opening ONE pop-up of every pack (Ask this pack, Edit · Delete on yours, + Save
+these questions as a pack; Manage is gone) with the pack's questions in the panel (`dsnPackPeekPanel`); the "Asked
+before" chips left the page (the panel's Asked here before is the one door, each question once); Where on one line with
+"Folder: All"; 50 | 100 a press back (`DSN_SIZES`, `_dsn.size`, 100 until chosen); the panel counts as the button does
+(`dsl_new_some` / `dsl_new_before`: "1 is read on this press. 10 were read before."). TURNED DOWN: your words kept, the
+line why in its amber band (the drawn refusal's way forward), nothing else until Read. THE READING ROOM: the question as
+the title, Stop alone in the head (askColStop's one door; Cancel read removed — leaving keeps it reading, the results
+throw a read away), a warm sheet of fixed height, the table Contract (number · party under it) · Answer in its colour ·
+Where it says so · §, "Filed so far" said once; Found so far cards white, a Yes amber, YES/NO tags. A class clash
+fixed on the way: New read's bar class `.dsn-read` was also the Reading Room's green mark (renamed `.dsn-rdb`).
+STOPPED: Ask another; the stopped panel "Stopped · N left" with the ring of read and "read them" = the stop's carry; the
+table never empties while the read's record is still being written (`_dsn.lastDone`, `dsnWaitForRun`); the stop
+sentence's "{n} left" no longer took the total (`{total}`). RESULTS: one Contract column then one whole column per
+question (heads wrap, Keep under them, "✓ kept" short past three questions), the answer's words with its mark against
+our playbook; one question: Contract with the words lit · Answer · Against our playbook · §; the row's panel
+(`dsnResultPanelHtml`): its badge, contract · answer, Open the paper · Redline it (the existing doors), where it was read
+(every place for a pack), OUR PLAYBOOK ASKS — the standard read from the clause library by the question a standard asks
+(DSN_STD_Q) or the topic it names, its ladder by `stdLadderOf`, the answer placed on the rung it says word for word, else
+by the read's own verdict (below the ladder · meets); nothing claimed without a rule (`dsnLadderFor`, `dsnPlaybookOf`) —
+and Mark checked. Kept, and why: the shared panel top line ("Overview ›", "Reading · k of n"); the filters with no values
+not drawn (filters with results only); a single question's chips by its answers (the owner's coloured tiles), not by
+verdict; each column's "kept" or "Keep" is the question's own record, shown as it stands (the drawing's mix was sample data).
+
 ## THE ONE DESK — NEEDS YOU, ONE READING — ONE COUNT, ONE WAIT (review of merged pages against P-38/P-39, 22 Nov 2026)
 An independent review photographed the merged Board and side panel against the owner's picked drawings. Found: the
 panel's ring legend said "3 Jambo" and the bell's chip "Jambo 3" (late pieces dropped from Jambo's count) while Needs you

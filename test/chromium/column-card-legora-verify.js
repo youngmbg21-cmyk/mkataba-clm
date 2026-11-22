@@ -183,7 +183,7 @@ const Q3 = 'Which country do the courts sit in?', N3 = 'Courts country';
     /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the new Discover keeps a further read ON Reads, in
        the page, never in Jambo's panel — a read is opened from the list of reads (a press chooses, a second opens its
        results) and its head's "Read N left" ([data-dsn-more]) starts the rest; the promise is the same: the press shows
-       the read (the while-it-reads screen, #dsn-cancel, in the page) and the run going, whatever the panel holds
+       the read (the while-it-reads screen, its Stop #dsc-stop in the page; RE-POINTED 22 Nov 2026 (P-42 review): Cancel read is gone) and the run going, whatever the panel holds
        ("A FINISHED READ LANDS ON ITS RESULTS"; the old landing on Contracts' column card is gone with the old Reads rows) */
     const runIds = await page.evaluate(() => [...document.querySelectorAll('#rd-page [data-dsn-run]')].map(r => r.getAttribute('data-dsn-run')).slice(0, 5));
     let moreUp = false;
@@ -196,9 +196,9 @@ const Q3 = 'Which country do the courts sit in?', N3 = 'Courts country';
       await until(page, () => !!document.querySelector('#rd-page [data-dsn-run]'), null, 3000);
     }
     check('7a′ the read-the-rest door stands on Reads', moreUp && await page.click('#rd-page [data-dsn-more] >> nth=0', { timeout: 5000 }).then(() => true, () => false), { reads: runIds.length });
-    const back = await until(page, () => state.view === 'reads' && !!AC.busy && (() => { const x = document.querySelector('#rd-page #dsn-cancel'); return !!x && x.getBoundingClientRect().width > 0; })(), null, 20000);
+    const back = await until(page, () => state.view === 'reads' && !!AC.busy && (() => { const x = document.querySelector('#rd-page #dsc-stop'); return !!x && x.getBoundingClientRect().width > 0; })(), null, 20000);
     check('7b the further read stays on Reads, its while-it-reads screen in sight', back, await page.evaluate(() => ({ view: state.view, busy: !!AC.busy,
-      reading: !!document.querySelector('#rd-page #dsn-cancel') })));
+      reading: !!document.querySelector('#rd-page #dsc-stop') })));
     await page.screenshot({ path: path.join(OUT, '7-next-from-reads.png') });
     h.ai.slow(0);
     await ended();
