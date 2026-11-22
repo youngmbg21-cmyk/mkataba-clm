@@ -189,6 +189,10 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS resets (
     id TEXT PRIMARY KEY, user_id TEXT, token_hash TEXT, expires INTEGER, used INTEGER DEFAULT 0);
   CREATE TABLE IF NOT EXISTS reminders (rkey TEXT PRIMARY KEY, created_at TEXT);
+  -- WHO A DUTY'S REMINDER WENT TO, AND WHEN (owner, 21 Nov 2026: "Build the records"): the Obligations side panel's
+  -- timeline says "Amina reminded by email · 10 Nov". One row per reminder actually sent; read only through
+  -- GET /api/contracts/:id/ob-reminders (folder-scoped). A name, never an address.
+  CREATE TABLE IF NOT EXISTS ob_reminds (cid TEXT, okey TEXT, kind TEXT, to_name TEXT, side TEXT, at TEXT);
   -- The Contract Brief cache (WO-2, WORKORDER-gap-map.md). Its OWN table, not a
   -- field on the contract JSON, for the signer_notices reason: a server-side
   -- write onto the record would bump the version under an open editor, and a
@@ -5197,6 +5201,17 @@ const srvHereOthers = (map, meId) => Object.keys(map || {})
     card: (map[k] || {}).card || null, face: (map[k] || {}).face || null, askAt: (map[k] || {}).askAt || null,
     allow: Array.isArray((map[k] || {}).allow) ? map[k].allow : [], deny: Array.isArray((map[k] || {}).deny) ? map[k].deny : [] }))
   .sort((a, b) => String(a.at).localeCompare(String(b.at)));
+/* WHO A DUTY'S REMINDER WENT TO (owner, 21 Nov 2026): written where the reminder is sent, read by the side panel's timeline */
+function obRemindLog(cid, okey, kind, name, side){
+  try { db.prepare('INSERT INTO ob_reminds (cid,okey,kind,to_name,side,at) VALUES (?,?,?,?,?,?)').run(String(cid), String(okey), String(kind), String(name || '').slice(0, 120), side || 'ours', now()); } catch (_) {}
+}
+app.get('/api/contracts/:id/ob-reminders', auth, (req, res) => {
+  const row = db.prepare('SELECT folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  const rows = db.prepare('SELECT okey, kind, to_name, side, at FROM ob_reminds WHERE cid=? ORDER BY at').all(req.params.id);
+  res.json({ reminders: rows.map(r => ({ ob: r.okey, kind: r.kind, to: r.to_name || '', side: r.side, at: r.at })) });
+});
+
 app.post('/api/contracts/:id/here', auth, (req, res) => {
   const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
   if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
@@ -24409,6 +24424,7 @@ function runReminders() {
         const rk = `${c.id}:ob:${okey}:them${od}`;
         if (dest && !db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rk)) {
           db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(rk, now());
+          obRemindLog(c.id, okey, 'them' + od, dest.name || '', 'theirs');
           Promise.resolve().then(() => srvChaseSend(null, full.id ? full : { ...full, id: c.id }, o, dest.to, {})).catch(e => console.warn('[hati] their reminder failed: ' + (e && e.message)));
           queued++;
         }
@@ -24430,7 +24446,7 @@ function runReminders() {
               + `\n\n${tFor(L, 'mail_ob_open')}\n${link}\n\n${tFor(L, 'mail_automated_notice')}`,
           };
         };
-        if (od === 7 && fireTo(`${c.id}:ob:${okey}:soon`, [who.email], oMail('soon'), `obligation soon: ${c.name}`)) queued++;
+        if (od === 7 && fireTo(`${c.id}:ob:${okey}:soon`, [who.email], oMail('soon'), `obligation soon: ${c.name}`)){ queued++; obRemindLog(c.id, okey, 'soon', who.name, 'ours'); }
         if (od === 0 && fireTo(`${c.id}:ob:${okey}:today`, [who.email], oMail('today'), `obligation today: ${c.name}`)) {
           queued++;
           /* a duty of yours due today is urgent on the phone (round 4), riding the mail's own dedupe */
@@ -24438,8 +24454,9 @@ function runReminders() {
           // W2-3: rides the mail's OWN dedupe, so an outside system is told
           // exactly as often as the person is — once
           webhookQueue('obligation.due', () => ({ contractId: c.id, obligationId: String(okey).slice(0, 64), due }));
+          obRemindLog(c.id, okey, 'today', who.name, 'ours');
         }
-        if (od === -1 && fireTo(`${c.id}:ob:${okey}:overdue`, [who.email], oMail('over'), `obligation overdue: ${c.name}`)) queued++;
+        if (od === -1 && fireTo(`${c.id}:ob:${okey}:overdue`, [who.email], oMail('over'), `obligation overdue: ${c.name}`)){ queued++; obRemindLog(c.id, okey, 'overdue', who.name, 'ours'); }
         if (od === -4 && fireTo(`${c.id}:ob:${okey}:escalate`, admins, oMail('esc'), `obligation escalated: ${c.name}`)) queued++;
       } else if (od === -1 && fire(`${c.id}:ob:${okey}:overdue`,
         `Obligation overdue: ${c.name}`,
