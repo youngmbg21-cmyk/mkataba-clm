@@ -19,8 +19,12 @@ const RD = strip(read('js/views/reads.js')), ACJ = strip(read('js/views/askcolum
 const fnBody = (src, name) => { const at = src.search(new RegExp('\\n(?:async )?function ' + name + '\\(')); assert.ok(at >= 0, name + ' exists'); const nx = src.slice(at + 10).search(/\n(?:async )?function |\nif \(typeof document/); return src.slice(at, nx > 0 ? at + 10 + nx : src.length); };
 
 test('f1057 (1) a Discover read takes up to 100 a press', () => {
-  assert.match(RD, /const DSN_READ_MAX = 100;/); assert.match(RD, /const _dscSize = \(\) => DSN_READ_MAX;/);
-  assert.match(fnBody(RD, 'dsnAsk'), /Object\.assign\(o, \{ size: DSN_READ_MAX,/);
+  /* RE-POINTED 22 Nov 2026 (P-42 review: "read 50 or 100 a press" as drawn): the reader chooses 50 or 100, 100 until
+     chosen; never more than DSN_READ_MAX */
+  assert.match(RD, /const DSN_READ_MAX = 100;/); assert.match(RD, /const DSN_SIZES = \[50, DSN_READ_MAX\];/);
+  assert.match(RD, /const _dscSize = \(\) => \(DSN_SIZES\.includes\(_dsn\.size\) \? _dsn\.size : DSN_READ_MAX\);/);
+  assert.match(fnBody(RD, 'dsnAsk'), /Object\.assign\(o, \{ size: _dscSize\(\),/);
+  assert.match(fnBody(RD, 'dsnNewHtml'), /dsnSizeHtml\(\)/, 'the choice is on New read');
   assert.match(ACJ, /const AC_MAX = 100;/, 'the most one press may read');
 });
 
