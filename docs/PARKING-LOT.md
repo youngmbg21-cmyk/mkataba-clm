@@ -465,6 +465,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   2. **Each folder marked sensitive or not:** every folder carries a yes/no mark, and the summary shows which of the person's folders are sensitive.
 - **Where it came from:** the owner, 22 Nov 2026.
 - **Open question:** HaTi already has PRIVATE STREAMS (Settings › Company › Streams › a stream's Access: "Only the people named here", every open recorded). The owner did not know about it and asked to see it (22 Nov 2026). Decide whether "sensitive" is that same setting or a new mark that changes nothing about who can see the folder.
+- **The owner's answer, 22 Nov 2026:** "These folders do not say whether it is a sensitive folder or not. That should be added when creating this folder." So: creating a folder ASKS whether it is sensitive, and the folders list shows the answer on every folder (today a folder only shows "Private" if it was made private later, from its Access page). Still to settle when building: whether answering "sensitive" also makes the folder private (named people only), or is only a label.
 - **Notes:** a design question: photos of today's add-a-person screens first, then options, then the owner picks. The pop-up is built the Legora way (`lgpOpen`). Settings, the Handbook (both languages) and the flow map change with it.
 
 ## Done
