@@ -18,7 +18,11 @@ const check = (name, ok, more) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${name
 const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFunction(fn, arg, { timeout: ms }); return true; } catch (_) { return false; } };
 const NAMES = [['E-commerce Distribution Agreement', 'Copia Global'], ['Digital & Influencer Campaign', 'Aleph Group'], ['Last-Mile Distribution — Western Region', 'Wasoko'],
   ['Corrugated Carton Supply', 'Statpack Industries Ltd'], ['Trade Activation & Field Marketing', 'Ogilvy Kenya'], ['Raw Material Supply Agreement — Juno Limited', 'Juno Limited'],
-  ['Cold Chain Warehousing', 'Bidco'], ['Packaging Film Supply', 'Polyflex'], ['Fleet Leasing', 'Rift Haulage'], ['Security Services', 'KK Guards'], ['Sugar Haulage', 'Mumias Movers'], ['Shelf Space Rental', 'Quickmart']];
+  ['Cold Chain Warehousing', 'Bidco'], ['Packaging Film Supply', 'Polyflex'], ['Fleet Leasing', 'Rift Haulage'], ['Security Services', 'KK Guards'], ['Sugar Haulage', 'Mumias Movers'], ['Shelf Space Rental', 'Quickmart'],
+  /* RE-POINTED 22 Nov 2026 (P-30 review): the drawn rows are shorter (about 67px against 84px), so at 1366×950 twelve no
+     longer scroll the head past its sticking point (the sheet could move only 145px, the table still 11px down); six more
+     keep the list long enough on every screen — what is asked is unchanged */
+  ['Fuel Supply', 'Vivo Energy Kenya'], ['IT Support', 'Safaricom PLC'], ['Cleaning Services', 'Saw Sawa LLC'], ['Office Lease', 'Hass Properties'], ['Courier Services', 'Swift Couriers'], ['Bottling Line Service', 'Krones']];
 
 (async () => {
   const h = await startHati();
@@ -55,7 +59,9 @@ const NAMES = [['E-commerce Distribution Agreement', 'Copia Global'], ['Digital 
       /* RE-POINTED (owner, 16 Nov 2026: Negotiations' grey "is what this should look like … as if a patch was applied";
          f1073): the chosen row is one grey band inside its own edges — no bar, no patch into the sheet's margin; the mark
          where the others are */
-      check(`${at} 3 the chosen row is one grey band inside the row, no bar or patch, the mark where the others are`, !!row && !row.has && row.same && row.rowFill === 'rgb(240, 240, 243)', row);
+      /* RE-POINTED 21 Nov 2026 (P-30, as drawn; owner's answer that day): on Approvals the chosen row is LIGHT GREEN
+         (--color-accent-50), still one band inside the row with no bar or patch */
+      check(`${at} 3 the chosen row is one light-green band inside the row, no bar or patch, the mark where the others are`, !!row && !row.has && row.same && row.rowFill === 'rgb(238, 243, 240)', row);
       /* 1, 2 · scrolled */
       const moved = await page.evaluate(() => { const s = document.getElementById('ap-scroll'); s.scrollTop = 170; return s.scrollTop; });
       await until(page, () => document.getElementById('ap-scroll').scrollTop > 100, null, 4000);
