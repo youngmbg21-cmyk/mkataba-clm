@@ -40090,3 +40090,6 @@ The owner, on the iPad: "When on my iPad and i try to enter my cursor in the fie
 ## THE ONE DESK — NEEDS YOU, ONE READING (22 Nov 2026, auto pilot batch 1)
 - Bug log, 20 Nov 2026: Jambo called an Editor "legal (viewer) permissions — cannot edit". Round A gave the chat plain levels; the Settings "why" route still handed him the raw code for each person and the asker. Now each person reads "(Editor: may edit, negotiate…)" from `SRV_ROLE_PLAIN`/`SRV_ROLE_MAY`, and the prompt tells him to use only Admin, Editor or Viewer. f1173, red at the parent.
 - (22 Nov 2026, auto pilot batch 2) Bug log, 20 Nov: a Viewer was still offered the "Answer the redlines" chip (caOwedSteps) and the Dossier's "their ask · Go to it" rows (pdTheirAsks) — leading to Redlines they can only read. Both now ask negoMayAnswer, as Needs you does. f1174, red at the parent.
+
+## HOME — THE BOARD AND THE MAP (22 Nov 2026, auto pilot batch 2)
+- Bug log: "How many approvals are late?" was answered with the late DUTIES list — the Board's free reader (hbParse) took any "late" as the obligations question. `HB_RX.appr` now keeps a question naming approvals off the duties' reading (both the condition path and the panel word); a question about duties still opens them. f1175, red at the parent.
