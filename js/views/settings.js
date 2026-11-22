@@ -10448,7 +10448,7 @@ Object.assign(window,{stNeedGo,stNeedDoorEl,stClashes,stArDue,stArLabel,stArCoun
    (PAGE_HEAD_PAINT reads it off window), a form in its row, the stream beside
    the list, Jambo's words for the page in front, your own copy and name and
    email, and the readings the checks ask */
-Object.assign(window,{stJbCardHtml,stnOn,stnPaint,stnPanelPaint,stnPanelHtml,stnAgentsSaid,sddRows,sddGo,sddCardHtml,sddNeedList,sddPickSet,stLessonsLoad,stLessonsPaint,stLessonTeach,stLessonFine,stLessonForget,stLessonPlaces,stJbBoxAsk,stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
+Object.assign(window,{stJbCardHtml,stnOn,stnPaint,stnPanelPaint,stnPanelHtml,stnAgentsSaid,sddRows,sddGo,sddCardHtml,sddNeedList,sddPanelNeeds,sddPickSet,stLessonsLoad,stLessonsPaint,stLessonTeach,stLessonFine,stLessonForget,stLessonPlaces,stJbBoxAsk,stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
   stSwPickSet,stSwPanelHtml,stSwRows,stJbFeedHtml,stJbFeedRepaint,stJbCompanyWords,stJbDataWords,stJbStreamsWords,stJbNeedPhrase,stSideFoldSet,
   stTrailLeftOut,stHouseFacts,stTrailPastHtml,stYouCardRepaint,stGovLadderHtml,stSheetCardHtml});
 
@@ -10856,6 +10856,14 @@ function sddRoadHtml(){
   const said=r=>r.k==='approval'&&rules.length===1&&typeof condLabel==='function'?condLabel(rules[0].cond||{}):r.state;
   return `<ol class="sdd5-road">${rows.map(r=>`<li class="${r.on?'is-on':'is-off'}"><i aria-hidden="true"></i><span>${esc(r.name)}<small> · ${esc(said(r))}</small></span></li>`).join('')}<li class="is-sign"><i aria-hidden="true"></i><span>${esc(i18t('sdd5_signature'))}</span></li></ol><p class="sdd5-small">${esc(i18t('sdd5_road_s'))}</p>`;
 }
+/* THE ROWS JAMBO'S PANEL DRAWS UNDER "NEEDS YOU", AND SO ITS HEADLINE'S COUNT: the one list (sddNeedList), less going
+   live on the landing, which its ring says (P-43 as drawn) — unless it is the only thing left, then it is a row too */
+function sddPanelNeeds(admin, area, rows, needs){
+  needs=needs||sddNeedList(admin, area, rows||sddRows(admin));
+  const ringed=!area&&admin&&SET_PANELS.golive&&typeof stGoLive==='function';
+  const rest=ringed?needs.filter(x=>x.key!=='panel:golive'):needs;
+  return rest.length?rest:needs;
+}
 /* WHAT NEEDS YOU, SAID PROBLEM FIRST, PLACE SECOND (P-43 as drawn: "Your job title is missing / Who you are"): the need's
    own words where they already say the problem; a setting that needs you says its state over its name */
 function sdd5NeedSay(x, rows){
@@ -10903,8 +10911,7 @@ function sddCardHtml(admin, ctx){
   const groups=[];
   /* each need keeps its tone (red where it is outright, amber otherwise) around its emoji mark */
   /* on the landing the ring says going live, so its row is not said again under it (P-43 as drawn) */
-  const ringed=!area&&admin&&SET_PANELS.golive&&typeof stGoLive==='function';
-  const rowsOf=needs.filter(x=>!(ringed&&x.key==='panel:golive'));
+  const rowsOf=sddPanelNeeds(admin, area, rows, needs);
   if(rowsOf.length) groups.push({ label:i18t('sdd5_needs'), rows:rowsOf.map(x=>{ const w=sdd5NeedSay(x, rows); return { mark:'', markText:mkOf(x), tone:x.dot==='red'?'red':'amber', t:w.t, s:w.s, attr:x.btn||'' }; }) });
   if(awM&&awM.deputyName&&(!area||area==='you')) groups.push({ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('st_jb_away',{ who:awM.deputyName }), wrap:true }] });
   /* ASK AN ADMIN is for a person who is not one (fault logged 21 Nov 2026: an admin's panel carried it under Jambo's links) */
@@ -10926,8 +10933,9 @@ function sddCardHtml(admin, ctx){
     if(admin&&SET_PANELS.golive&&typeof stGoLive==='function'){ let gl=[]; try{ gl=stGoLive()||[]; }catch(_){ gl=[]; }
       const done=gl.filter(x=>x.ok).length;
       if(gl.length) mid=`<div class="sdd5-today">${sdd5RingHtml(done,gl.length,'green',i18t('sdd5_live'))}<div><b>${esc(sddTxt(SET_PANELS.golive.title()))}</b><span>${esc(i18t('sdd5_done_of',{ n:done, m:gl.length }))}</span>${done<gl.length?`<button type="button" class="jov-lnk" data-st-panel="golive">${esc(i18t('sdd5_see_left'))}</button>`:''}</div></div>`; }
-    o={ eyebrow:place, title:needs.length?i18tn('sdd_card_t',needs.length,{ n:needs.length }):i18t('sdd_card_clear'),
-      sub:needs.length?i18t('sdd5_areas_n',{ n:withN, m:areasN.length }):i18t('sdd_card_clear_s'), mid, groups };
+    /* the headline counts the rows drawn under it, no more (the number on a door is the list behind it) */
+    o={ eyebrow:place, title:rowsOf.length?i18tn('sdd_card_t',rowsOf.length,{ n:rowsOf.length }):i18t('sdd_card_clear'),
+      sub:rowsOf.length?i18t('sdd5_areas_n',{ n:withN, m:areasN.length }):i18t('sdd_card_clear_s'), mid, groups };
   } else {
     o={ before:sdd5Tags([needs.length?[i18tn('sdd_need_n',needs.length,{ n:needs.length }),'amber',true]:['✓ '+i18t('sdd5_clear_badge'),'green']]),
       title:onData?stJbDataWords(false):place, sub:i18t('sdd_card_clear_s'),

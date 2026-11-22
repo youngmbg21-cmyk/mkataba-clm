@@ -74,7 +74,10 @@ test('f1091 (5) Jambo\'s panel is the Dossier card on every Settings page', () =
   /* RE-POINTED 22 Nov 2026 (P-43 review): each row says the problem first and the place second (sdd5NeedSay), and the
      landing's going-live row is not said again under its ring */
   assert.match(c, /rows:rowsOf\.map\(x=>\{ const w=sdd5NeedSay\(x, rows\); return \{ mark:'', markText:mkOf\(x\), tone:[^,]+, t:w\.t, s:w\.s, attr:x\.btn\|\|'' \}; \}\)/, 'what needs you: rows, each its own door');
-  assert.match(c, /x\.key==='panel:golive'/, 'the ring is not said twice');
+  /* RE-POINTED 22 Nov 2026 (P-43 review): the rows and the headline's count are ONE reading, sddPanelNeeds — going live left to its ring */
+  assert.match(c, /const rowsOf=sddPanelNeeds\(admin, area, rows, needs\);/);
+  assert.match(c, /title:rowsOf\.length\?i18tn\('sdd_card_t',rowsOf\.length/, 'the headline counts the rows drawn');
+  assert.match(fn('sddPanelNeeds'), /x\.key!=='panel:golive'/, 'the ring is not said twice');
   assert.doesNotMatch(fn('sddRowHtml'), /<button[^>]*data-sdd-go/, 'no button on a row');
 });
 test('f1091 (6) nothing here writes', () => {

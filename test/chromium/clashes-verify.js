@@ -148,10 +148,11 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Jambo's words on Settings are its Five-parts panel —
        the headline counts what needs an admin, and each clash row names itself "a clash in who may do what" (its kind,
        under its words); nothing on it says anything is blocked */
+    /* RE-POINTED 22 Nov 2026 (P-43 review): the headline counts the rows drawn (sddPanelNeeds; going live is its ring) */
     const jb = await until(() => { const p = document.querySelector('#ins-panel'); if (!p) return null;
       const title = ((p.querySelector('.jov5-title, h2, h3') || {}).textContent || '').replace(/\s+/g, ' ').trim();
       const subs = [...p.querySelectorAll('.jov5-row .jov5-rt span, .jov5-act .jov5-say')].map(x => x.textContent.trim());
-      return title ? { title, clashSaid: subs.filter(t => /clash in who may do what/.test(t)).length, n: sddNeedList(true, null, sddRows(true)).length, blocked: /nothing is blocked|blocks?\b/i.test(p.textContent) } : null; });
+      return title ? { title, clashSaid: subs.filter(t => /clash in who may do what/.test(t)).length, n: (typeof sddPanelNeeds === 'function' ? sddPanelNeeds(true, null, sddRows(true)) : sddNeedList(true, null, sddRows(true))).length, blocked: /nothing is blocked|blocks?\b/i.test(p.textContent) } : null; });
     check('3 Jambo names the clashes, and says nothing after the drawn sentence', !!jb && new RegExp('\\b' + jb.n + '\\b').test(jb.title) && jb.clashSaid === 4 && !jb.blocked, JSON.stringify(jb));
 
     console.log('\n4 · a clash goes when the rights change');

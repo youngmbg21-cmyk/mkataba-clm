@@ -78,11 +78,14 @@ const openRow = async (pg, sel) => {
       const card = ((document.querySelector('#ins-panel .jov5-title') || {}).textContent || '').trim();
       const cm = /^(\d+) things? needs? you/.exec(card), n = cm ? +cm[1] : 0;
       const chipEl = document.querySelector('.sdd-chips [data-sdd-chip="need"] span'), chip = chipEl ? +chipEl.textContent.trim() : 0;
-      return { title: ((document.querySelector('.sdd-title') || {}).textContent || '').trim(), find: !!document.getElementById('sdd-q'), areas, per, n, card, chip,
+      /* RE-POINTED 22 Nov 2026 (P-43 review): the card heads with the rows it draws — going live is its ring, not a row
+         (sddPanelNeeds), so the areas' sum is one more where the ring stands for it */
+      const ring = typeof sddPanelNeeds === 'function' ? sddNeedList(true, null, sddRows(true)).length - sddPanelNeeds(true, null, sddRows(true)).length : 0;
+      return { title: ((document.querySelector('.sdd-title') || {}).textContent || '').trim(), find: !!document.getElementById('sdd-q'), areas, per, n, ring, card, chip,
         all: !!document.querySelector('.sdd-chips [data-sdd-chip="all"]') };
     });
     check('0a the title, the find box, the chips, the six areas in order', L.title === 'Settings' && L.find && L.all && JSON.stringify(L.areas) === JSON.stringify(AREAS), L);
-    check('0b the areas\' counts added up head Jambo\'s card; the Need you chip counts the areas that need you', L.n === L.per.reduce((a, b) => a + b, 0) && L.chip === L.per.filter(Boolean).length && (L.n ? true : /Nothing here needs you/.test(L.card)), L);
+    check('0b the areas\' counts added up head Jambo\'s card; the Need you chip counts the areas that need you', L.n === L.per.reduce((a, b) => a + b, 0) - L.ring && L.chip === L.per.filter(Boolean).length && (L.n ? true : /Nothing here needs you/.test(L.card)), L);
     await page.screenshot({ path: path.join(OUT, 'landing-1440x780.png') });
 
     /* 1 · an area: chosen, then in, then back */
