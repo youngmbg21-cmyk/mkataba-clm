@@ -33,7 +33,7 @@ test('f1102 (1) every duty starts Undecided, whatever Jambo guessed; Undecided i
   const d = W.document.createElement('div'); d.innerHTML = W.obnLgHtml(rows[0], rows);
   for (const it of d.querySelectorAll('.obn-lg-it:not(.is-next)')){
     const b = [...it.querySelectorAll('[data-obn-whose]')];
-    assert.deepEqual(b.map(x => x.textContent), ['Undecided', 'Us', 'Theirs', 'Both sides']);
+    assert.deepEqual(b.map(x => x.textContent), ['Undecided', 'Us', 'Theirs', 'Both'] /* RE-POINTED 21 Nov 2026 (P-13, as drawn: "Both") */);
     assert.deepEqual(b.filter(x => x.classList.contains('is-on')).map(x => x.textContent), ['Undecided']);
     assert.equal(it.querySelector('.obn-lg-now'), null, 'no side named beside the duty until the reader picks one');
   }
