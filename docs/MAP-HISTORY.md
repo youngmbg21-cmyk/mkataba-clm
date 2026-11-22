@@ -40011,3 +40011,19 @@ The owner: "What has been added to ask a column because ask a column was to be r
 
 ## DESIGN OPTIONS — EVERY NEW PAGE: L+S OFFERED, WAVES ON JAMBO'S PANEL (22 Nov 2026)
 The owner, 22 Nov 2026, on the first drawing of "Agree who does what, before you sign" (drawn only for the other side's Where we are, with The SAP way, The Legora way and Side by side): "I need an L+S version plus you have not added the waves. Add a rule that for all pages being added apart from the other sides page, the L+S should be an option plus the waves above the jambo panel are to be added as unless stated otherwise." And: "Where the deal stands should be for both the other side and for the owner side. What you built is for the other side so keep it as it is." The drawing was redone with a second side (ours: SAP, Legora, Stripe, Legora + Stripe; the waves over Jambo's panel), the other side's left as drawn. Claude's reading, not the owner's words: the same day's watermark rule keeps the waves off an open contract's panel; the new rule does not lift that by itself, so a new page beside an open contract is drawn with the waves and the owner is asked in the round whether that page is an exception.
+
+## ASK A COLUMN (js/views/askcolumn.js) — THE LEFTOVERS DELETED, AND WHAT COULD NOT BE (22 Nov 2026)
+The owner: "delete ask a column's leftover code and merge". The work order said the panel, the form and the results table
+paint nowhere in the new look. MEASURED FIRST, at unmodified main 5274383: reads-and-columns-as-drawn-verify 2–5 PASS at all
+three screens — `askColOpen` paints the form (`.ac-nl-form`) beside Contracts, the reading card with Stop, the column's card
+and the head's ⋯ menu (Sort · Read the other N · Rename · Remove). And Discover still opens that form: the read table's black
+"Ask again" (`rdScHeadHtml` data-rdt-again → `readsAgain` → `askColOpen`), a pack's next batch (`readsNext`), and the narrow
+window's "+ Ask a column" (`readsAskNew`, `#rd-ask`). So the panel, form and table pop-up are REACHABLE and were KEPT; deleting
+them is the owner's decision (point those three Discover presses at Discover's own ask box first).
+DELETED, nothing reachable calls them: the list head's door `askColBtnHtml` (it drew nothing once `newLookOn()`; callers in
+`regCtToolsHtml` and the old filter bar), its sign-in fixer `askColBtnFix`/`askColWhoWait`, the old Discover section
+`askColDiscoverHtml`/`askColDiscoverLeads` (returned nothing in the new look; the paperdesk gate and its call under the column
+card go), `askColRowTagsHtml`, and the uncalled `askColLastRead`, `askColInitials`, `askColDeskRestHtml`, `askColProgressHtml`,
+`askColTableFor`, `askColMoreChipsHtml`; the presses only those drew (data-ac-discover, data-ac-open, data-ac-open-new,
+data-ac-del, data-ac-disc-all, data-ac-pack); their CSS (.ac-btn, .ac-disc-*, .ac-tag); 20 keys × both books; Brain part
+'askcoldisc'. Engine, Discover, columns on Contracts, company facts, Unusual for you: untouched.
