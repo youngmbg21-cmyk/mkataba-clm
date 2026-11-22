@@ -58,7 +58,10 @@ test('f977 (4) say it once', () => {
      the phone is the panel's "Phone them" (data-dirn-call) — so there is no column left to step out when no row has one */
   assert.doesNotMatch(strip(fnBody(read('js/views/directory.js'), 'dirnRowHtml')), /reach:/);
   assert.match(strip(fnBody(read('js/views/directory.js'), 'dirnPanelFive')), /data-dirn-call=/);
-  assert.match(strip(fnBody(read('js/views/customers.js'), 'cunRowHtml')), /const org = rec\.orgNo \? i18t\('cun_org', \{ n: rec\.orgNo \}\) : '';/);
+  /* RE-POINTED 21 Nov 2026 (P-25, as drawn): under a party's name the row says the words that name it on the paper, not its
+     org. no.; the org. no. is said once, in the panel's own facts */
+  assert.doesNotMatch(strip(fnBody(read('js/views/customers.js'), 'cunRowHtml')), /cun_org/);
+  assert.match(strip(fnBody(read('js/views/customers.js'), 'cunPanelFiveHtml')), /k: i18t\('cun_p_org'\), t: rec\.orgNo \|\| i18t\('cu_org_none'\)/);
 });
 
 test('f977 (5) one count', () => {
@@ -99,7 +102,10 @@ test('f977 (9) even cards: the party its own line, one footer', () => {
   assert.match(strip(fnBody(ig, 'igWallCardHtml')), /<span class="igw2-foot is-even"><span class="igw2-who">/);
   const foot = strip(fnBody(ig, 'igWallNlFootHtml'));
   assert.doesNotMatch(foot, /igw2-hint/, 'the how-to line is gone');
-  assert.match(foot, /if\(list\.length>shown\.length\) return '';/, 'the paging foot stands alone');
+  /* RE-POINTED 21 Nov 2026 (P-31, as drawn): nothing under the papers — the chips say how many; the paging foot is
+     igWallBodyHtml's own (lhFootHtml), so it still stands alone */
+  assert.match(foot, /^function igWallNlFootHtml\(list, shown\)\{\s*void list; void shown;\s*return '';\s*\}$/, 'the wall draws no foot of its own');
+  assert.match(strip(fnBody(ig, 'igWallBodyHtml')), /lhFootHtml\('wall', S\.k, S\.n, IG_WALL_STEP/, 'the paging foot stands alone');
 });
 test('f977 (10) grouped rows and the week ahead at the weekend', () => {
   /* RETIRED (owner, 10 Nov 2026: "Home page should be removed / deleted"): Home's grouped rows and its week line went
@@ -115,7 +121,8 @@ test('f977 (12, 13, 15) two lines a row, fold the quiet, name the clause', () =>
   assert.match(cal, /else if\(gap\)\{ gap\.z=z; gap\.n\+\+; \} else gap=\{ a, z, n:1 \};/);
   assert.match(cal, /i18tn\('cal_nl_quiet_wks',gap\.n,\{ n:gap\.n \}\)/);
   /* RE-POINTED (P-29): an ask with no words of its own names its clause, its § beside it */
-  assert.match(read('js/views/register.js'), /q\.q \? `<i>\u201c\$\{E\(q\.q\)\}\u201d<\/i>` : `<i>\$\{E\(q\.nm \|\| ''\)\}<\/i>`/);
+  /* RE-POINTED 21 Nov 2026 (P-29, as drawn): the paper's words of the change in quotes, else its clause's name; its § beside them */
+  assert.match(read('js/views/register.js'), /<i>\$\{w \? `“\$\{esc\(w\)\}”` : esc\(ngnClauseNameOf\(f\.ch\)\)\}<\/i>/);
 });
 
 /* Round 3, a contract: PAPER LINE HOLDS ALL, SAME CARD TWICE, SAID ONCE, BOX FITS THE WAY. */
@@ -189,7 +196,10 @@ test('f977 fix 7 · the Board counts rows in the new look, the number Home says'
   assert.match(cn, /const ndRowsN = L => \(typeof newLookOn === 'function' && newLookOn\(\)\) \? \(L \|\| \[\]\)\.length : ndThings\(L\);/);
   assert.match(cn, /function ndOnBoard\(D\)\{[^\n]*n: ndRowsN\(D\.jambo\) \+ ndRowsN\(you\)/);
   /* RE-POINTED (P-39, owner's pick 20 Nov 2026: chips All · Late · Your move · Jambo): Late has its own chip, so Your move counts its rows that are not late */
-  assert.match(cn, /\$\{tab\('late', lateN\)\}\$\{tab\('you', ndRowsN\(B\.you\.filter\(r => !r\.late\)\)\)\}\$\{tab\('jambo', ndRowsN\(B\.jambo\)\)\}/);
+  /* RE-POINTED 22 Nov 2026 (review of merged pages: ONE count, ndWaitCounts, read by the chips, the ring and the bell):
+     the chips read the one reading, and that reading still counts rows — Your move its rows not late */
+  assert.match(cn, /\$\{tab\('all', W\.all\)\}\$\{tab\('late', W\.late\)\}\$\{tab\('you', W\.you\)\}\$\{tab\('jambo', W\.jambo\)\}/);
+  assert.match(cn, /function ndWaitCounts\(D\)\{[\s\S]{0,200}?you: ndRowsN\(B\.you\.filter\(r => !r\.late\)\), jambo: ndRowsN\(B\.jambo\)/);
 });
 test('f977 fix 8 · one column per question, its name and ⋯; the foot says only the count', () => {
   const ac = read('js/views/askcolumn.js');

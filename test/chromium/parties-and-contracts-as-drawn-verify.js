@@ -83,7 +83,7 @@ const check = (name, pass, detail) => {
          the link beside it ([data-cu-pr-edit]); then the party's own facts, its timeline, Contacts with + Add a contact */
       const P = await until(() => { const p = document.getElementById('ins-panel'); if (!p || !p.querySelector('.jov5-go[data-cun-cts]')) return null;
         return { secs: [...p.querySelectorAll('.jov5-sec .jov5-label')].map(x => x.textContent.trim()), edit: !!p.querySelector('.jov5-act [data-cu-pr-edit]'),
-          add: !!p.querySelector('.jov5-more[data-cun-add-ct]'), all: ((p.querySelector('.jov5-go[data-cun-cts]') || {}).textContent || '').trim(),
+          add: !!p.querySelector(':is(.jov5-more, .jov5-flink)[data-cun-add-ct]') /* RE-POINTED 21 Nov 2026 (P-25, as drawn): + Add a contact stands under the contacts (.jov5-flink) */, all: ((p.querySelector('.jov5-go[data-cun-cts]') || {}).textContent || '').trim(),
           ring: ((p.querySelector('.cun-pring > span') || {}).textContent || '').replace(/\s+/g, ' ').trim(), svg: !!p.querySelector('.cun-pring svg.cun-ring'),
           tiles: p.querySelectorAll('.jov5-glance, .jov5-g').length,
           money: [...p.querySelectorAll('.jov5-sec, .jov5-act, .jov5-intro')].filter(r => /\b(KES|SEK|USD|EUR)\b|\d+(\.\d+)?\s?[MK]\b/.test(r.textContent)).map(r => r.textContent.trim().slice(0, 60)),
@@ -151,7 +151,8 @@ const check = (name, pass, detail) => {
       /* RE-POINTED 20 Nov 2026 (owner: "delete the highlighted parts"): the sentence over the Contracts list is gone */
       /* (20 Nov 2026: the element is read in the page, not in node, where `document` does not exist) */
       check('5b no sentence over the list', C.say === '' && !C.sayEl, C.say);
-      check('5c rows about 66px tall', C.rows.length > 0 && C.rows.every(x => x >= 58 && x <= 76), JSON.stringify(C.rows));
+      /* RE-POINTED 21 Nov 2026 (P-31, as drawn): a row whose paper is loaded carries a third line, its words for when it ends */
+      check('5c rows about 66px tall, a third line of the paper\'s words where it is read', C.rows.length > 0 && C.rows.every(x => x >= 58 && x <= 92), JSON.stringify(C.rows));
       await shot('pc-5-contracts-1440x780.png');
     });
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));

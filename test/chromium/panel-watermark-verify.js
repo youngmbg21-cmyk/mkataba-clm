@@ -78,20 +78,23 @@ const READ = () => {
     }
 
     /* 1, 5, 6 — Contracts on Home, then a list page */
-    const ct = await go('register', () => !!document.querySelector('#ig-dock .pd-tab.on'));
+    /* main's Contracts panel has no head row of its own (#ig-dock:has(.ctls) > .igd-head hidden), so no tab and no arrow there */
+    const ct = await go('register', () => !!document.querySelector('#ig-dock .ctls, #ig-dock .jov5'));
     ok('1b Contracts: the watermark, moving', !!ct && ct.painted && ct.moving, JSON.stringify(ct));
-    ok('5a Contracts: the chosen tab wears the thin outline', !!ct && ct.tabEdge === true, JSON.stringify(ct));
     ok('6a Contracts: no green "‹ Back to …" link on the panel', !!ct && ct.back.length === 0, JSON.stringify(ct && ct.back));
     ok('7a Contracts: nothing scrolls sideways', !!ct && ct.side <= 0 && ct.pageSide <= 0, JSON.stringify(ct));
-    const tag = await page.evaluate(() => { const t = document.querySelector('#ig-dock .jov5 .jov5-intro .jov5-tag'); return t ? getComputedStyle(t).boxShadow : 'no tag'; });
-    ok('5b a tag at the top of the panel wears the thin outline', !!tag && tag !== 'none' && tag !== 'no tag', tag);
     await page.screenshot({ path: path.join(OUT, '2-contracts.png') });
-    for (const v of ['approvals', 'playbook']) {
+    for (const v of ['approvals', 'obligations']) {
       const r = await go(v, () => !!document.querySelector('#ins-panel .jl-head'));
       ok(`1c ${v}: the list page's panel carries the watermark, moving`, !!r && r.painted && r.moving, JSON.stringify(r));
       ok(`4d ${v}: its minimise arrow is a 30px circle with an edge`, !!r && !!r.arrow && r.arrow.w === 30 && r.arrow.round && r.arrow.edge, JSON.stringify(r && r.arrow));
       ok(`7b ${v}: nothing scrolls sideways`, !!r && r.side <= 0 && r.pageSide <= 0, JSON.stringify(r));
     }
+    const ap = await go('approvals', () => !!document.querySelector('#ins-panel .jl-head'));
+    ok('5a Approvals: the chosen tab wears the thin outline', !!ap && ap.tabEdge === true, JSON.stringify(ap));
+    await go('playbook', () => !!document.querySelector('#ins-panel .jov5'));
+    const tag = await page.evaluate(() => { const t = document.querySelector('#ins-panel .jov5 :is(.jov5-intro, .ld6-pb, .tpln6-pb) :is(.jov5-tag, .apn-st, .tpln6-badge, .reg-badge)'); return t ? getComputedStyle(t).boxShadow : 'no tag'; });
+    ok('5b Playbook: a tag at the top of the panel wears the thin outline', !!tag && tag !== 'none' && tag !== 'no tag', tag);
     await page.screenshot({ path: path.join(OUT, '3-playbook.png') });
 
     /* 2 — Settings: drawn, still */

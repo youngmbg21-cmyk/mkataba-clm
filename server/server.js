@@ -189,6 +189,10 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS resets (
     id TEXT PRIMARY KEY, user_id TEXT, token_hash TEXT, expires INTEGER, used INTEGER DEFAULT 0);
   CREATE TABLE IF NOT EXISTS reminders (rkey TEXT PRIMARY KEY, created_at TEXT);
+  -- WHO A DUTY'S REMINDER WENT TO, AND WHEN (owner, 21 Nov 2026: "Build the records"): the Obligations side panel's
+  -- timeline says "Amina reminded by email · 10 Nov". One row per reminder actually sent; read only through
+  -- GET /api/contracts/:id/ob-reminders (folder-scoped). A name, never an address.
+  CREATE TABLE IF NOT EXISTS ob_reminds (cid TEXT, okey TEXT, kind TEXT, to_name TEXT, side TEXT, at TEXT);
   -- The Contract Brief cache (WO-2, WORKORDER-gap-map.md). Its OWN table, not a
   -- field on the contract JSON, for the signer_notices reason: a server-side
   -- write onto the record would bump the version under an open editor, and a
@@ -767,6 +771,10 @@ addColumnIfMissing('intake_requests', 'assignee_id', 'TEXT');
 addColumnIfMissing('intake_requests', 'assignee_name', 'TEXT');
 addColumnIfMissing('intake_requests', 'promised_at', 'TEXT');
 addColumnIfMissing('intake_requests', 'lane', 'TEXT');
+/* WHEN IT WAS TAKEN (P-32 review, 22 Nov 2026): the moment an editor came to hold the request, stamped by the PATCH that
+   names them and cleared when it is put down; a request taken before this column existed has none (nothing invented).
+   Inside only: it rides intakeRow to the team and the asker, never the tracker page an outsider may open. */
+addColumnIfMissing('intake_requests', 'taken_at', 'TEXT');
 addColumnIfMissing('intake_requests', 'track_token', 'TEXT');
 /* THE ESSENTIALS THE PERSON ASKING GAVE (4 Oct 2026): our party, their email,
    the value and which side of the money, the start and the end — a JSON map
@@ -5193,6 +5201,17 @@ const srvHereOthers = (map, meId) => Object.keys(map || {})
     card: (map[k] || {}).card || null, face: (map[k] || {}).face || null, askAt: (map[k] || {}).askAt || null,
     allow: Array.isArray((map[k] || {}).allow) ? map[k].allow : [], deny: Array.isArray((map[k] || {}).deny) ? map[k].deny : [] }))
   .sort((a, b) => String(a.at).localeCompare(String(b.at)));
+/* WHO A DUTY'S REMINDER WENT TO (owner, 21 Nov 2026): written where the reminder is sent, read by the side panel's timeline */
+function obRemindLog(cid, okey, kind, name, side){
+  try { db.prepare('INSERT INTO ob_reminds (cid,okey,kind,to_name,side,at) VALUES (?,?,?,?,?,?)').run(String(cid), String(okey), String(kind), String(name || '').slice(0, 120), side || 'ours', now()); } catch (_) {}
+}
+app.get('/api/contracts/:id/ob-reminders', auth, (req, res) => {
+  const row = db.prepare('SELECT folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  const rows = db.prepare('SELECT okey, kind, to_name, side, at FROM ob_reminds WHERE cid=? ORDER BY at').all(req.params.id);
+  res.json({ reminders: rows.map(r => ({ ob: r.okey, kind: r.kind, to: r.to_name || '', side: r.side, at: r.at })) });
+});
+
 app.post('/api/contracts/:id/here', auth, (req, res) => {
   const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
   if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
@@ -5364,6 +5383,52 @@ app.post('/api/contracts/:id/points/:key/review', auth, editor, (req, res) => {
   if (Object.keys(map).length) next.pointReviews = map; else delete next.pointReviews;
   db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(next), req.params.id);
   res.json({ pointReviews: map, line });
+});
+
+/* ---- REMIND THE APPROVER OF A RULE STEP, BY HAND (owner, 21 Nov 2026: P-30's "Remind Joseph", built for an
+   approval a company RULE asked for, not only one named person's) ----
+   One press sends ONE reminder to whoever approves the waiting step (ruleStepPeople, through saMailTo: in the folder,
+   never a Viewer), in the automatic reminder's own words (ruleStepTell 'remind'), the plain app link landing on the
+   decision (go 'approval'; nothing secret in the mail). THE SERVER IS THE WALL: only somebody who may act
+   (srvMayAct), inside folderScopeFor, never the approver themselves, and once a day per waiting step — each refusal
+   said in plain words. "SENT" MEANS SENT: the record (c.ruleReminds, and a line in the trail) is written only when the
+   mail went or waits in the outbox (mailReport); a refused send takes back the day's turn. The list is this route's
+   alone (the PUT keeps the stored one) and never travels to the other side. JSON only, never `version`. */
+const RULE_REMIND_MAX = 50;
+app.post('/api/contracts/:id/rule-remind', auth, editor, async (req, res) => {
+  if (!srvMayAct(req.user)) return res.status(403).json({ error: 'You can read this contract but not remind anybody on it. Ask an editor or an admin.' });
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { return res.status(409).json({ error: 'Contract not readable' }); }
+  if (!c.id) c.id = req.params.id;
+  const told0 = Object.assign({}, c, { folder: row.folder });
+  const step = ruleStepDueOf(c);
+  const rule = step && srvApprovalRules().find(r => r && r.id === step.ruleId);
+  if (!step || !rule) return res.status(409).json({ error: 'No approval step is waiting on this contract, so there is nobody to remind.' });
+  const deciders = ruleStepPeople(rule, db.prepare('SELECT * FROM users').all());
+  if (deciders.some(u => String(u.id) === String(req.user.id)))
+    return res.status(403).json({ error: 'This approval waits on you. There is nobody to remind but yourself.' });
+  if (!saMailTo(deciders, row.folder).length)
+    return res.status(409).json({ error: 'Nobody who approves this step can be reached by email. Ask an admin to check who approves it.' });
+  const key = `arm:${c.id}:${step.ruleId}:${now().slice(0, 10)}`;
+  if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(key))
+    return res.status(429).json({ error: 'They have already been reminded about this approval today. You can remind them again tomorrow.' });
+  db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(key, now());
+  const told = await ruleStepTell(req, told0, step, 'remind', { go: 'approval' });
+  const rep = (told && told.first && told.first.sent) || mailReport(null);
+  if (!(rep.emailSent || rep.outbox)) {
+    db.prepare('DELETE FROM reminders WHERE rkey=?').run(key);
+    return res.status(502).json(Object.assign({ error: rep.emailError || 'The reminder could not be sent.' }, rep));
+  }
+  const names = deciders.map(u => u.name).filter(Boolean);
+  const rec = { ruleId: String(step.ruleId), step: String(rule.name || ''), at: now(), by: { id: String(req.user.id || ''), name: String(req.user.name || '') }, to: names.slice(0, 10), outbox: !rep.emailSent };
+  const line = { at: rec.at, user: req.user.name || '', action: 'Reminded', detail: `Reminded ${names.join(', ') || rule.name} of the approval step "${rule.name || ''}"${rep.emailSent ? '' : ' (the email waits in the outbox)'}` };
+  const fresh = db.prepare('SELECT json FROM contracts WHERE id=?').get(req.params.id);
+  let cur = c; try { cur = fresh ? JSON.parse(fresh.json) || c : c; } catch (_) { cur = c; }
+  const list = (Array.isArray(cur.ruleReminds) ? cur.ruleReminds : []).concat([rec]).slice(-RULE_REMIND_MAX);
+  const next = { ...cur, ruleReminds: list, audit: (Array.isArray(cur.audit) ? cur.audit : []).concat([line]) };
+  db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(next), req.params.id);
+  res.json(Object.assign({ ruleReminds: list, reminded: rec, line }, rep));
 });
 
 /* ---------- executed records are immutable ----------
@@ -5618,6 +5683,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      `pointReviews` is written by POST /api/contracts/:id/points/:key/review
      and by nothing else — the same rule as `here`: the stored map wins. */
   if (prev && prev.pointReviews) c.pointReviews = prev.pointReviews; else delete c.pointReviews;
+  /* `ruleReminds` is POST /api/contracts/:id/rule-remind's alone (21 Nov 2026): the stored list wins */
+  if (prev && Array.isArray(prev.ruleReminds)) c.ruleReminds = prev.ruleReminds; else delete c.ruleReminds;
   /* ---- AND WHETHER COPILOT STILL OWES IT ITS ARRIVAL READING (4 Oct 2026) ----
      `arrivalOwed` is written by a lane's mint and cleared by POST
      /api/contracts/:id/arrival, and by nothing else — the same rule as
@@ -12121,6 +12188,7 @@ const intakeRow = r => ({ id: r.id, title: r.title, need: r.need, counterparty: 
      had one would make every request on file read as "answered, with nothing"
      where the honest answer is "nobody has said". */
   assignee: r.assignee_id ? { id: r.assignee_id, name: r.assignee_name || '' } : null,
+  takenAt: r.assignee_id && r.taken_at ? r.taken_at : null,
   promisedAt: r.promised_at || null, lane: r.lane || null,
   trackToken: r.track_token || null, answers: intakeAnswersOf(r), files: intakeFilesOf(r.id) });
 /* Names and sizes only — never the bytes (see intake_files). */
@@ -12314,6 +12382,7 @@ app.patch('/api/intake/:id', auth, (req, res) => {
      but the assignee is looked UP rather than taken from the body, because a
      name in a request body is a name anybody could type. */
   let asgId = r.assignee_id, asgName = r.assignee_name;
+  let takenAt = r.taken_at || null;   // the moment it was taken (P-32 review): kept unless the holder changes
   if (isEditor && b.assignee !== undefined) {
     const want = clean(b.assignee).slice(0, 60);
     if (!want) { asgId = null; asgName = null; }
@@ -12321,8 +12390,10 @@ app.patch('/api/intake/:id', auth, (req, res) => {
       const u = db.prepare('SELECT id,name,role FROM users WHERE id=?').get(want);
       if (!u) return res.status(400).json({ error: 'No such member' });
       if (!srvMayAct(u)) return res.status(400).json({ error: `${u.name} is a Viewer and cannot hold a request. Choose a member who edits.`, viewerNamed: true });
+      if (String(u.id) !== String(r.assignee_id || '')) takenAt = now();
       asgId = u.id; asgName = u.name || '';
     }
+    if (!asgId) takenAt = null;
   }
   let promised = r.promised_at;
   if (isEditor && b.promisedAt !== undefined) {
@@ -12334,9 +12405,9 @@ app.patch('/api/intake/:id', auth, (req, res) => {
   /* THE LANE IS WRITTEN ONCE AND NEVER REWRITTEN. A rule that fired is a fact
      about what happened, so a later call cannot relabel it. */
   const lane = r.lane || (isEditor ? (clean(b.lane).slice(0, 80) || null) : null);
-  db.prepare('UPDATE intake_requests SET status=?, note=?, contract_id=?, decided_by=?, decided_at=?, updated_at=?, assignee_id=?, assignee_name=?, promised_at=?, lane=? WHERE id=?')
+  db.prepare('UPDATE intake_requests SET status=?, note=?, contract_id=?, decided_by=?, decided_at=?, updated_at=?, assignee_id=?, assignee_name=?, promised_at=?, lane=?, taken_at=? WHERE id=?')
     .run(status2, clean(b.note).slice(0, 2000) || r.note, contractId || null,
-      req.user.name || '', now(), now(), asgId, asgName, promised, lane, req.params.id);
+      req.user.name || '', now(), now(), asgId, asgName, promised, lane, takenAt, req.params.id);
   const after = db.prepare('SELECT * FROM intake_requests WHERE id=?').get(req.params.id);
   /* Only where the answer actually MOVED, and never back to the person who
      moved it. Re-saving the same status is not news. */
@@ -18788,7 +18859,8 @@ async function ruleStepTell(req, c, step, kind, extra) {
     if (kind === 'due') db.prepare('INSERT OR IGNORE INTO reminders (rkey,created_at) VALUES (?,?)')
       .run(`ar:${c.id}:${step.ruleId}:due:${now()}`, now());
     const cName = c.name || c.id;
-    const link = contractUrl(req, c.id, 'sign');
+    /* a hand reminder (POST /api/contracts/:id/rule-remind) lands on the decision itself, as the named person's does */
+    const link = contractUrl(req, c.id, 'sign', extra && extra.go === 'approval' ? 'approval' : undefined);
     let n = 0, first = null;
     for (const u of to) {
       const L = langForEmail(u.email);
@@ -20882,6 +20954,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
        adds a field — the discipline the brief beside it keeps. */
     delete payload.contract.here;
     delete payload.contract.pointReviews;       // which points we marked reviewed is ours (21 Oct 2026)
+    delete payload.contract.ruleReminds;        // whom we reminded to approve is ours (21 Nov 2026)
     delete payload.contract.arrivalOwed;       // a lane's bookkeeping is ours (4 Oct 2026)
     delete payload.contract._readings;          // idea 7: our plain-English reading of their paper is ours
     delete payload.contract._roundPrep; }       // Copilot's answers to their round are ours alone
@@ -21776,8 +21849,11 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
        and the engagement timeline read to show "opened" on the page, so the
        fact is still recorded and still visible — it just no longer sends an
        email to say so. See responseIsWorthEmail for why. */
-    if (!s.first_opened_at)
-      db.prepare('UPDATE shares SET first_opened_at=? WHERE token=?').run(now(), s.token);
+    if (!s.first_opened_at){
+      const at = now();
+      db.prepare('UPDATE shares SET first_opened_at=? WHERE token=?').run(at, s.token);
+      s.first_opened_at = at;   /* this very answer says it was opened (their History's "Opened the link") */
+    }
   } catch (_) {}
   /* A durable link is never superseded — it IS the current copy, refreshed in
      place — and answering it once does not shut it: the next round comes back
@@ -21907,8 +21983,11 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
        is still the OWNER's record of what they sent — the share panel and the
        audit trail read it. This is a decision about what leaves the building
        on a public token, not about what we keep. */
+    /* WHEN THIS LINK WAS SENT AND FIRST OPENED (P-44 review, 22 Nov 2026: their History says "Shared the contract with
+       you" and "Opened the link", as drawn): two facts about THEIR OWN link — never who else opened anything, never ours */
     share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
-      expiresAt: s.expires_at || null, channel: s.channel || 'link' },
+      expiresAt: s.expires_at || null, channel: s.channel || 'link',
+      sentAt: s.created_at || null, firstOpenedAt: s.first_opened_at || null },
   });
 });
 
@@ -24351,6 +24430,7 @@ function runReminders() {
         const rk = `${c.id}:ob:${okey}:them${od}`;
         if (dest && !db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rk)) {
           db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(rk, now());
+          obRemindLog(c.id, okey, 'them' + od, dest.name || '', 'theirs');
           Promise.resolve().then(() => srvChaseSend(null, full.id ? full : { ...full, id: c.id }, o, dest.to, {})).catch(e => console.warn('[hati] their reminder failed: ' + (e && e.message)));
           queued++;
         }
@@ -24372,7 +24452,7 @@ function runReminders() {
               + `\n\n${tFor(L, 'mail_ob_open')}\n${link}\n\n${tFor(L, 'mail_automated_notice')}`,
           };
         };
-        if (od === 7 && fireTo(`${c.id}:ob:${okey}:soon`, [who.email], oMail('soon'), `obligation soon: ${c.name}`)) queued++;
+        if (od === 7 && fireTo(`${c.id}:ob:${okey}:soon`, [who.email], oMail('soon'), `obligation soon: ${c.name}`)){ queued++; obRemindLog(c.id, okey, 'soon', who.name, 'ours'); }
         if (od === 0 && fireTo(`${c.id}:ob:${okey}:today`, [who.email], oMail('today'), `obligation today: ${c.name}`)) {
           queued++;
           /* a duty of yours due today is urgent on the phone (round 4), riding the mail's own dedupe */
@@ -24380,8 +24460,9 @@ function runReminders() {
           // W2-3: rides the mail's OWN dedupe, so an outside system is told
           // exactly as often as the person is — once
           webhookQueue('obligation.due', () => ({ contractId: c.id, obligationId: String(okey).slice(0, 64), due }));
+          obRemindLog(c.id, okey, 'today', who.name, 'ours');
         }
-        if (od === -1 && fireTo(`${c.id}:ob:${okey}:overdue`, [who.email], oMail('over'), `obligation overdue: ${c.name}`)) queued++;
+        if (od === -1 && fireTo(`${c.id}:ob:${okey}:overdue`, [who.email], oMail('over'), `obligation overdue: ${c.name}`)){ queued++; obRemindLog(c.id, okey, 'overdue', who.name, 'ours'); }
         if (od === -4 && fireTo(`${c.id}:ob:${okey}:escalate`, admins, oMail('esc'), `obligation escalated: ${c.name}`)) queued++;
       } else if (od === -1 && fire(`${c.id}:ob:${okey}:overdue`,
         `Obligation overdue: ${c.name}`,

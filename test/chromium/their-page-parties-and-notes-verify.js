@@ -88,30 +88,36 @@ const DEAL = {
     const g = await gctx.newPage();
     g.on('pageerror', e => errs.push('guest: ' + e.message));
     await g.goto(h.base + '/#share=t:' + tokB, { waitUntil: 'networkidle' });
-    const landed = await until(g, () => !!document.querySelector('#pt-where-pane .ds-sheet'), null, 15000);
+    /* RE-POINTED 22 Nov 2026 (the P-44 review, the owner's picked drawing "the other side's page, the Legora + Stripe way":
+       Where we are is the drawn page — the "For you" band, the four stops, Still open · Settled over one table — and the
+       parties stand in its side panel's "Who is in it", each with what it does; portalOutWhereHtml, off dealStands) */
+    const landed = await until(g, () => !!document.querySelector('#pt-where-pane .pol-where') && !!document.querySelector('.pol-side-page .pol-pp'), null, 15000);
     ok('1a their page lands on the shared sheet', landed);
-    const s = await g.evaluate(() => {
-      const sheet = document.querySelector('#pt-where-pane .ds-sheet');
+    const s = await g.evaluate(async () => {
       const txt = el => el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
-      return { chips: [...sheet.querySelectorAll('.ds-pch')].map(txt),
-        /* RE-POINTED 9 Oct 2026 (SAP batch 3): Still open is a table on the
-           left card, Settled the first card of the right-hand column. */
-        open: [...sheet.querySelectorAll('.ds-open .ds-pt')].map(txt),
-        settledHead: txt(sheet.querySelector('.ds-side > .ds-card:first-child .ds-h')),
-        settled: [...sheet.querySelectorAll('.ds-side > .ds-card:first-child .ds-li')].map(li => ({ t: txt(li), refused: li.classList.contains('is-refused'),
-          mark: txt(li.querySelector('.ds-tick')) })),
-        facts: txt(sheet.querySelector('.ds-facts')),
+      const rows = () => [...document.querySelectorAll('#pt-where-pane .pol-w-t tbody tr')].map(tr => ({ t: txt(tr), refused: !!tr.querySelector('.pol-ob.is-red'), taken: !!tr.querySelector('.pol-ob.is-grn') }));
+      const open = rows().map(r => r.t);
+      const facts = txt(document.querySelector('#pt-where-pane .pol-w-band'));
+      /* Settled is the second chip; pressed, the table names its column and lists what is settled */
+      const sc = document.querySelector('#pt-where-pane [data-pol-w-k="settled"]'); if (sc) sc.click();
+      await new Promise(r => setTimeout(r, 300));
+      const settledHead = txt(document.querySelector('#pt-where-pane .pol-w-t th'));
+      const settled = rows();
+      const oc = document.querySelector('#pt-where-pane [data-pol-w-k="open"]'); if (oc) oc.click();
+      return { chips: [...document.querySelectorAll('.pol-side-page .pol-pp')].map(txt), open, settledHead,
+        settled: settled.map(r => ({ t: r.t, refused: r.refused, mark: r.refused ? '✕' : r.taken ? '✓' : '' })), facts,
         party: (window.PORTAL_OPTS && PORTAL_OPTS.payload && PORTAL_OPTS.payload.party) || null,
         parties: ((window.PORTAL_OPTS && PORTAL_OPTS.payload && PORTAL_OPTS.payload.contract.parties) || []).map(p => Object.keys(p).join(',')) };
     });
     ok('1b the sheet names all three parties', s.chips.some(t => /Juno/.test(t)) && s.chips.some(t => /Nordfrakt/.test(t)) && s.chips.some(t => /Highland/.test(t)), JSON.stringify(s.chips));
     ok('1c an outside party that negotiates is said to sign too', s.chips.filter(t => /Nordfrakt|Juno/.test(t)).every(t => /signs/.test(t)), JSON.stringify(s.chips));
-    ok('1d the open point waits on "you" (Nordfrakt), not on Juno', s.open.some(t => /Liability/.test(t) && /with you/.test(t)), JSON.stringify(s.open));
+    ok('1d the open point waits on "you" (Nordfrakt), not on Juno', s.open.some(t => /Liability/.test(t) && /Your answer/.test(t)), JSON.stringify(s.open));
     ok('1e the link carries its own party, and no address in the party list', s.party && s.party.id === 'py_b' && s.parties.every(k => !/email|address/.test(k)), JSON.stringify(s.party));
-    ok('1f the facts say what waits on you', /Waiting on you/.test(s.facts), s.facts);
-    ok('2a the column is headed Settled, not Agreed', /^Settled/.test(s.settledHead), s.settledHead);
+    ok('1f the facts say what waits on you', /For you:.*wait.*your answer/.test(s.facts), s.facts);
+    ok('2a the column is headed Settled, not Agreed', /settled/i.test(s.settledHead) && !/agreed/i.test(s.settledHead), s.settledHead);
     const refused = s.settled.find(r => /Payment/.test(r.t)), taken = s.settled.find(r => /Term/.test(r.t));
-    ok('2b the refused point wears a cross and "not taken"', refused && refused.refused && refused.mark === '✕' && /not taken/.test(refused.t), JSON.stringify(refused));
+    /* RE-POINTED 22 Nov 2026 (as drawn): a refused point's badge says "rejected" in ruby, never the taken one's green */
+    ok('2b the refused point wears a cross and "not taken"', refused && refused.refused && refused.mark === '✕' && /rejected/.test(refused.t), JSON.stringify(refused));
     ok('2c the taken point wears a tick', taken && !taken.refused && taken.mark === '✓', JSON.stringify(taken));
     await g.screenshot({ path: path.join(OUT, '01-nordfrakt-where.png') });
 
@@ -131,11 +137,11 @@ const DEAL = {
     const j = await jctx.newPage();
     j.on('pageerror', e => errs.push('juno: ' + e.message));
     await j.goto(h.base + '/#share=t:' + tokA, { waitUntil: 'networkidle' });
-    await until(j, () => !!document.querySelector('#pt-where-pane .ds-sheet'), null, 15000);
-    const jo = await j.evaluate(() => ({ open: [...document.querySelectorAll('#pt-where-pane .ds-open .ds-pt')].map(x => x.textContent.replace(/\s+/g, ' ').trim()),
+    await until(j, () => !!document.querySelector('#pt-where-pane .pol-where'), null, 15000);
+    const jo = await j.evaluate(() => ({ open: [...document.querySelectorAll('#pt-where-pane .pol-w-t tbody tr')].map(x => x.textContent.replace(/\s+/g, ' ').trim()),
       party: PORTAL_OPTS.payload && PORTAL_OPTS.payload.party,
       notes: (document.getElementById('pt-notes-n') || {}).hidden }));
-    ok('1g Juno\'s link is Juno\'s — the open point waits on "you" there too', jo.party && jo.party.id === 'py_a' && jo.open.some(t => /with you/.test(t)), JSON.stringify(jo));
+    ok('1g Juno\'s link is Juno\'s — the open point waits on "you" there too', jo.party && jo.party.id === 'py_a' && jo.open.some(t => /Your answer/.test(t)), JSON.stringify(jo));
     ok('1h our note to Nordfrakt does not count on Juno\'s door', jo.notes === true);
 
     /* ===== 4: their note rings our bell ===== */

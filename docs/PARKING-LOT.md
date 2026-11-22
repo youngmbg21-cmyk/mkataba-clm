@@ -190,7 +190,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
 - **Notes:** measured 19 Nov 2026: about 220 places in 35 files where the app asks "new look or old?", about 2,860 new-look style rules laid on top of the old look's styling, and about 115 checks that mention the old look. Best practice: wait a quiet week or two after the switch (so a rollback stays easy), then remove it in small pieces. Part 1, the app's logic and its checks: about one long session plus a few rounds of GitHub's checks; suggested around the end of November 2026. Part 2, the styling: two to four days of work in all, done page by page, ideally when that page is being worked on anyway, with photos at the three screens before each merge. Overlaps P-5 (delete the old versions of HaTi completely); settle P-17's questions first.
 
 ### P-25 · Parties page, the Legora + Stripe way, with the ring, on both tabs
-- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #861, the overnight batch 6)
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #861, the overnight batch 6; rebuilt part by part to the drawing 21 Nov 2026, both tabs and the panel)
 - **What:** build the owner's pick for Parties: the Legora + Stripe way on All and on Waiting on you, with the Ring as the agreements graphic. Owner's words: "L+S and ring. Park it."
 - **Where it came from:** the page clean-up, day 3. The drawings, on photos of the page as it was that day: https://claude.ai/artifact/D4MwQEurNNotwb8Tdc8zYt (choose "The Legora + Stripe way" and the graphic "Ring").
 - **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
@@ -203,7 +203,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Jambo's box is a must** (owner, 20 Nov 2026, after this was parked): the side panel ends, on both tabs, with Jambo's ask box at its foot and the line of links above it, as today; the panel's own content stops above it.
 
 ### P-26 · People page, the Legora + Stripe way, on all four tabs
-- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #861, the overnight batch 6)
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #861, the overnight batch 6); rebuilt as drawn the same day, every gap closed (the Add a person pill, the ask box that also asks Jambo, the signature-page words, the panel without cards: Away only where known, what waits with Remind where HaTi can remind, where the paper names them, the timeline, their party)
 - **What:** build the owner's pick for People: the Legora + Stripe way on All, Yours, Outside and Waiting on them. Owner's words: "L+S and park it."
 - **Where it came from:** the page clean-up, day 4. The drawings, on photos of the page as it was that day: https://claude.ai/artifact/C9a6Tc93nKEN2SiqeDrWZi (choose "The Legora + Stripe way" on each tab).
 - **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
@@ -215,7 +215,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Check before building:** where the signature-page words come from (the signature block of a signed paper; a person with none shows none, never an invented line); the timeline needs each person's recorded acts (link opened, round sent, signed, asked to approve).
 
 ### P-27 · My notes page, the Legora + Stripe way, on all three tabs
-- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #861, the overnight batch 6)
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #861, the overnight batch 6; rebuilt as drawn on all three tabs 21 Nov 2026, the gaps closed)
 - **What:** build the owner's pick for My notes: the Legora + Stripe way on All, Due and Reviewed. Owner's words: "L+S and park it."
 - **Where it came from:** the page clean-up, day 5. The drawings, on photos of the page as it was that day: https://claude.ai/artifact/A49R2yfsqxSvXJzhhk79qk (choose "The Legora + Stripe way" on each tab).
 - **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
@@ -273,7 +273,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — Ended & archived opens empty though its tile says 1; inside a folder the tabs and panel count every contract; "Stream Distribution" vs "Warehousing & Distribution" (two names for one folder); the Wall panel's "Overview 13" in a folder of 5; a signed contract owing details wears the green tick on Needs you.
 
 ### P-32 · Requests page, the Legora + Stripe way, on all four tabs
-- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #860, the overnight batch 5)
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #860, the overnight batch 5; rebuilt to the drawing in full the same day, every tab and the side panel)
 - **What:** build the owner's pick for Requests: the Legora + Stripe way on Open, Mine, Drafted and Advice. Owner's words: "L+S and park it."
 - **Where it came from:** the page clean-up, day 9. The drawings: https://claude.ai/artifact/9bvu98ikq9zuirYDDqqfKy (choose "The Legora + Stripe way" on each tab). All four tabs were photographed from the running app that day.
 - **Notes:** what the drawing holds, to be built in full (the picked design is the agreement):
@@ -341,7 +341,7 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Check before building:** the faults logged on 20 Nov 2026 are fixed in the same build — the panel not changing when a paper is chosen; an empty value shown as "0"; From scratch's different plain panel; the sentence box left on Their paper (it may stay only if it reads their file's words).
 
 ### P-37 · The nav panel slides in from the left
-- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #856, the overnight batch 1)
+- **Added:** 20 Nov 2026 · **Status:** Done (21 Nov 2026, pull request #856, the overnight batch 1) · **Reverted 22 Nov 2026** at the owner's word: "revert back the change for the nav panel and bring it back as a rectangle pop up in the middle of the page as it was prior to the latest change" — the nav button and the Guide's doors open the window in the middle again
 - **What:** the top-left nav button (`#dk-nav`, `lpWire` → `lpToggle`) opens the nav as a panel that slides in from the left over the page, and slides back after a press. Owner's words: "a nav panel coming from the left of the screen with the same style in the current nav panel but from the left it slides over the screen then goes back after the press"; then "park it".
 - **Where it came from:** drawn on today's photo of the Board: https://claude.ai/artifact/4Fcey7Vekvbd7YTkBkJyYk (press the nav button, or "Play"). The owner's answers (20 Nov 2026): draw it first; "Waiting on you" becomes each page's own count; only the nav button opens it.
 - **Notes:** what the drawing holds:

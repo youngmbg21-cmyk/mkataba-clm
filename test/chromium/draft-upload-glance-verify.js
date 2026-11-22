@@ -112,7 +112,9 @@ const pastFirstWords = async page => {
      pill turns it to the wall, and Jambo's panel beside it is the page's five-part Overview (.jov5), not the old .pd-wall */
   const wall = async () => { await page.evaluate(() => { setView('dashboard'); caHomeWall(); intel.history = []; renderIntelDock(); });
     if (await waitFor(page, () => !!document.querySelector('[data-ctf-show="wall"]'), 6000)) await page.click('[data-ctf-show="wall"]').catch(() => {});
-    return waitFor(page, () => !intel.paper && !!document.querySelector('#ig-paper [data-ct-show="wall"]') && !!document.querySelector('#ig-dock .jov5, #ig-dock .pd-wall'), 8000); };
+    return waitFor(page, () => !intel.paper && !!document.querySelector('#ig-paper [data-ct-show="wall"]') && !!document.querySelector('#ig-dock .jov5, #ig-dock .pd-wall, #ig-dock .ctls'), 8000); };
+  /* RE-POINTED 21 Nov 2026 (P-31, as drawn): beside the Contracts wall the panel is the list's own (.ctls): a sentence of
+     the papers on screen, where they stand, when they end, what needs you — no cards, no money */
   /* RE-POINTED 28 Oct 2026 (owner: "the card no longer sits on a panel … it shows up as a pop up card"): the drop card
      is opened by its door, in a pop-up over the wall */
   const card = async () => { if (!(await wall())) return false; await page.evaluate(() => pdDropDoor());
@@ -126,7 +128,7 @@ const pastFirstWords = async page => {
     await page.evaluate(() => closeModal()); await pause(300);
     const head = await page.evaluate(() => ({ draft: !!document.querySelector('#hb-head #hero-draft, #hb-head .hm-primary'),
       chips: [...document.querySelectorAll('#ig-dock [data-ig-chips] button')].map(b => b.textContent.trim()),
-      hello: (document.querySelector('#ig-dock .pd-hello') || document.querySelector('#ig-dock .jov5') || {}).innerText || '', welcome: !!document.querySelector('#ig-dock .ig-welcome'),
+      hello: (document.querySelector('#ig-dock .ctls') || document.querySelector('#ig-dock .pd-hello') || document.querySelector('#ig-dock .jov5') || {}).innerText || '', welcome: !!document.querySelector('#ig-dock .ig-welcome'),
       first: (() => { const w = document.querySelector('#ig-dock [data-jb-hello]'), p = document.querySelector('#ig-dock .pd-hello');
         return !!(w && p && (w.compareDocumentPosition(p) & Node.DOCUMENT_POSITION_FOLLOWING)); })() }));
     check('1b Home\'s head carries no "+ Draft new agreement"', !head.draft);
@@ -135,7 +137,7 @@ const pastFirstWords = async page => {
        panel, so his own greeting (jamboHelloHtml) leads it, then the wall's line saying what to do */
     /* RE-POINTED 26 Oct 2026 (owner: "we will have an overview tab side panel in each page followed by the jambo tab"):
        the wall's Overview says what to do, and his greeting is the Jambo tab's, not the Overview's */
-    check('1d the wall\'s Overview says what to do, no greeting on it', /Press one and I say what it holds/.test(head.hello) && !head.welcome, head.hello);
+    check('1d the wall\'s panel says what the papers on screen hold, no greeting on it', /^\s*\d+ contracts?, \d+ signed\./.test(head.hello) && /Where they stand/.test(head.hello) && !head.welcome, head.hello);
     await shoot('1-wall');
     /* 1e THE WALL'S WAYS IN (owner, 28 Oct 2026: "remove board and add reads"): upload · draft · reads · calendar,
        no board; "reads" lands on the Reads page */
@@ -155,7 +157,8 @@ const pastFirstWords = async page => {
     await shoot('2-draft-card');
     const f0 = await page.evaluate(() => { const b = document.getElementById('na-create'); return { menu: window._seen.menu, dis: !!(b && b.disabled), why: b && b.title }; });
     check('2b Open the form opens the one form, never the two-door menu', form && !f0.menu, f0);
-    check('2c Create is grey with its reason until a template is picked', f0.dis && /Pick a template first/.test(f0.why || ''), f0.why);
+    /* RE-POINTED 21 Nov 2026 (P-36, as drawn): the one sheet says "Pick a paper first" */
+    check('2c Create is grey with its reason until a template is picked', f0.dis && /Pick a paper first/.test(f0.why || ''), f0.why);
     await page.evaluate(() => closeModal()); await pause(300);
 
     /* ===== 3. A SENTENCE ===== */

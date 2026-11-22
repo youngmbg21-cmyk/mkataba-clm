@@ -11838,7 +11838,7 @@ function igWallCardHtml(c,need){
     const endW=end?(typeof regDotDate==='function'?regDotDate(end):end):'';
     return `<button type="button" role="listitem" class="igw-card is-nl is-stripe${opening?' is-opening':''}${c._codeNamed?' is-coded':''}${chosen?' is-chosen':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${chosen?' aria-current="true"':''}${opening?' aria-busy="true"':''}>
     ${igWallSheetHtml(c,opening)}${priv?`<span class="igw-lock igw2-lock" title="${igEsc(i18t('igw_private_title',{ s:fname }))}">${typeof icon==='function'?icon('lock','w-3 h-3'):''}${igEsc(fname)}</span>`:''}
-    <span class="igw2-foot is-even"><span class="igw2-who">${igEsc(c._codeNamed?i18t('igw_kept_list'):(c.counterparty||''))}</span><span class="igw2-st"><span class="reg-badge is-${igEsc(tone)}"><i></i>${igEsc(word)}</span>${endW?`<small class="igw2-end">${igEsc(endW)}</small>`:''}</span></span></button>`;
+    <span class="igw2-foot is-even"><span class="igw2-who">${igEsc(c._codeNamed?i18t('igw_kept_list'):(c.counterparty||''))}</span><span class="igw2-st">${typeof window.regLsBadgeHtml==='function'?regLsBadgeHtml(c):`<span class="reg-badge is-${igEsc(tone)}"><i></i>${igEsc(word)}</span>`}${endW?`<small class="igw2-end">${igEsc(endW)}</small>`:''}</span></span></button>`;
   }
   return `<button type="button" role="listitem" class="igw-card${opening?' is-opening':''}${c._codeNamed?' is-coded':''}${chosen?' is-chosen':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${chosen?' aria-current="true"':''}${opening?' aria-busy="true"':''}>
     ${igWallSheetHtml(c,opening)}
@@ -11993,14 +11993,11 @@ function igWallBodyHtml(rows,o){
 /* THE WALL'S TWO LINES, AS DRAWN (the new look, round 6): under the papers what the press does (and which one is
    chosen), and at the page's foot how many, and that a file dropped on the wall is read (the one drop door) */
 function igWallNlFootHtml(list, shown){
-  if(typeof newLookOn!=='function'||!newLookOn()) return '';
-  const ch=igWallChosenId(), c=ch?shown.find(x=>String(x.id)===ch):null;
-  const left=c?i18t('ctf_wall_chosen',{ name:c.name||'' }):'';
-  /* EVEN CARDS (the harmony review, owner's yes 9 Nov 2026): the how-to sentence goes, and one footer stands under the
-     cards — the paging foot when there is more to show, else the count */
-  void left;
-  if(list.length>shown.length) return '';
-  return `<div class="igw2-pfoot"><span>${igEsc(i18tn('ctf_wall_n',list.length,{ n:list.length }))}</span>${typeof window.pdDropDoor==='function'?`<span>${igEsc(i18t('ctf_wall_drop'))}</span>`:''}</div>`;
+  /* P-31 AS DRAWN (21 Nov 2026; reverses the harmony review's count-and-drop foot): nothing under the papers — the chips
+     say how many ("All 5"), the drop door is Jambo's links line ("upload a document"), a file dropped on the wall is
+     still read (the one drop door, pdDropTake), and a wall cut at a page keeps its own "Show N more" (lhFootHtml) */
+  void list; void shown;
+  return '';
 }
 /* THE PLACE'S FRAME on Home's paper with nothing chosen; the register draws
    the place into it (renderRegister, home) and lights the rail's Contracts */
@@ -12356,6 +12353,13 @@ function igPaperRefresh(){
   /* a patch after which the blanks' marks are owed on the clean paper's new blocks (the whole drawing paints them) */
   if(patched&&patched.n&&c&&!igRedOn(c)&&!igSignOn(c)){ const cv=document.getElementById('ig-canvas'); try{ if(cv&&window.uploadBlanksPaint) uploadBlanksPaint(c,cv); }catch(_){ } }
   const sc2=document.getElementById('ig-paper-scroll'); if(sc2) sc2.scrollTop=top;
+  /* THE PLACE IS KEPT ONCE THE PAGES ARE CUT AGAIN (22 Nov 2026, GitHub's run of decision-redraws-one-clause: 240 came back
+     as 113): while a slow machine re-cuts the pages the paper is briefly shorter, and the browser clamps the place to what
+     fits. Put back again over the next few frames, bounded, only while nobody has scrolled since the clamp */
+  if(sc2&&Math.abs(sc2.scrollTop-top)>1){ let tries=0, was=sc2.scrollTop;
+    const again=()=>{ if(!sc2.isConnected||Math.abs(sc2.scrollTop-was)>1) return; sc2.scrollTop=top; was=sc2.scrollTop;
+      if(Math.abs(was-top)>1&&++tries<20) requestAnimationFrame(again); };
+    requestAnimationFrame(again); }
 }
 let _igPaperPatched=null;   // what the last refresh did: { n, of } blocks put back, or null where the paper was drawn whole
 const igPaperLastPatch=()=>_igPaperPatched;

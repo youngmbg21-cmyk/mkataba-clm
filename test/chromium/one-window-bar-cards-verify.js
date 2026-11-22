@@ -91,8 +91,13 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
        view therefore it warrants a second panel for jambo"). Its panel carries
        the wall and Discover — the page's own work, not his words — so it wears
        the Dossier's pattern: the page's tab and his, one press apart. */
-    check('A4 the Contracts place: the page\'s own tab alone, so Discover is never inside the talk',
-      !!A4 && A4.tabs.length === 1 && A4.tabs.some(t => /Overview|Översikt/.test(t)) && A4.word.length === 0, JSON.stringify(A4));
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the Contracts place's panel has no head row — the page's own summary (.ctls)
+       IS the panel, so no tab is drawn; the rule stands: the page's work (its summary, Discover's door) is never inside
+       the talk — no Discover section in the panel, no conversation drawn on the landing, no word, no trail */
+    A4.page = await page.evaluate(() => { const d = document.getElementById('ig-dock');
+      return { ctls: !!d.querySelector('.ctls'), disc: !!d.querySelector('[data-ac-discover], .ac-disc, .pd-disc'), talk: !!d.querySelector('[data-jb-turns] .ai-msg, .igd-talk [data-jb-turns]') }; });
+    check('A4 the Contracts place: the page\'s own summary as drawn, no tab row, so Discover is never inside the talk',
+      !!A4 && A4.tabs.length === 0 && noJb(A4) && A4.word.length === 0 && A4.trail === 0 && A4.page.ctls && !A4.page.disc && !A4.page.talk, JSON.stringify(A4));
 
     await page.evaluate(() => setView('intake'));
     await until(() => !!document.querySelector('#ins-panel .jl-body [data-jl-words] .jov'));
@@ -132,7 +137,14 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_o', name: 'deliver_answer
     await page.evaluate(() => setView('playbook'));
     await until(() => !!document.querySelector('#ins-panel [data-jl-home]'));
     const A10 = await panelHead('#ins-panel');
-    check('A10 Our standards, a standard chosen, keeps Overview, no Jambo tab', !!A10 && A10.tabs.some(t => /Overview/.test(t)) && noJb(A10), JSON.stringify(A10));
+    /* RE-POINTED 22 Nov 2026 (P-35, the Playbook as drawn, the Legora + Stripe way): the panel starts with the chosen
+       position's own card — no head row, so no Overview tab is drawn (as P-31 Contracts, P-34 Our paper, P-33 Import, P-39
+       the Board). The rule stands: the panel holds the page's own reading (its five parts, slot "ld"), never the talk, and
+       no Jambo tab, no word, no trail */
+    if (A10) A10.five = await page.evaluate(() => { const p = document.getElementById('ins-panel'), f = p && p.querySelector('.jov5[data-jov-slot="ld"]');
+      return { five: !!f && f.getClientRects().length > 0, talk: !!p && p.classList.contains('is-talk') }; });
+    check('A10 the Playbook, a position chosen: its own card as drawn, no tab row, no Jambo tab, no word, no trail',
+      !!A10 && A10.tabs.length === 0 && noJb(A10) && A10.word.length === 0 && A10.trail === 0 && A10.five.five && !A10.five.talk, JSON.stringify(A10));
 
     /* THE RULE OF 26 OCT 2026 — that a page's own work is never inside the
        conversation — has its own home: test/chromium/jambo-panel-sweep-verify.js

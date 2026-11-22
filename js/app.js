@@ -1278,6 +1278,13 @@ function viewLayersClosed(view){
       return false;
     }
   }
+  /* A SETTINGS SHEET HOLDING EDITS (P-43, 22 Nov 2026): its Save writes them; leaving the page asks first, in the
+     house's leave words, and an answered "leave" throws them away (stHoldLeaveThen, js/views/settings.js) */
+  if(!_leavingCe && typeof window!=='undefined' && typeof window.stHoldDirty==='function' && window.stHoldDirty() && typeof window.stHoldLeaveThen==='function'){
+    window.stHoldLeaveThen(()=>{ if(typeof window.stDrawerClose==='function') window.stDrawerClose();
+      _leavingCe = true; try{ setView(view); } finally { _leavingCe = false; } });
+    return false;
+  }
   /* THE DESIGN STEP (js/views/designstep.js) paints over the page too, and its
      choices are lost on the way out — so it is asked the same way. */
   if(typeof window!=='undefined' && window.designStepOpen && designStepOpen()){
@@ -2067,11 +2074,9 @@ function commandPaletteResults(q){
     title:c.name, ref:(window.contractRef?contractRef(c):c.id), sub:`${c.counterparty?' · '+c.counterparty:''}${c.archived?' · '+i18t('ct_archived_tag'):''}`, ic:(window.cIcon?cIcon(c):'file'), status:c.status}));
   return out.slice(0,14);
 }
-function openCommandPalette(prefill,o){
-  /* THE NAV PANEL SLIDES IN FROM THE LEFT (owner, P-37, 21 Nov 2026): ONLY the bar's nav button opens it at the left (o.left);
-     ⌘K and "/" keep the window in the middle. The same rows, the same doors — one window, two places to stand. */
-  const left=!!(o&&o.left);
-  const gone=document.getElementById('cmd-palette'); if(gone&&gone.dataset.leaving) gone.remove();
+function openCommandPalette(prefill){
+  /* BACK IN THE MIDDLE (owner, 22 Nov 2026: "revert back the change for the nav panel and bring it back as a rectangle
+     pop up in the middle of the page"): P-37's panel at the left is gone; every door opens this one window, centred */
   const prev=document.getElementById('cmd-palette'); if(prev){ const pi=prev.querySelector('#cp-input'); if(pi){ if(typeof prefill==='string'&&prefill) pi.value=prefill; pi.focus(); pi.dispatchEvent(new Event('input')); } return; }
   /* WHO OPENED IT, so focus can go back there. Without this, Escape drops a
      keyboard reader at the top of the document and they have to Tab in again
@@ -2080,19 +2085,14 @@ function openCommandPalette(prefill,o){
   const opener = document.activeElement;
   const ov=document.createElement('div');
   ov.id='cmd-palette';
-  ov.className='lp'+(left?' is-left':'');
+  ov.className='lp';
   /* IN THE MIDDLE OF THE SCREEN, up and down as well as across (owner, 19 Nov 2026: "nav panel pop up should appear at the center of the page") */
   ov.style.cssText='position:fixed;inset:0;z-index:85;display:flex;align-items:center;justify-content:center;padding:var(--s-4)';
-  /* at the left: under the black bar to the window's foot, over the page; the bar stays pressable (its nav button closes it) */
-  if(left){ const bar=document.getElementById('dk-nav'), hd=bar&&bar.closest&&bar.closest('header'), top=hd?Math.max(0,Math.round(hd.getBoundingClientRect().bottom)):0;
-    ov.style.cssText=`position:fixed;left:0;right:0;bottom:0;top:${top}px;z-index:85;display:block`; }
-  _lpLeft=left;
   /* THE LAUNCHPAD (owner's pick, 19 Nov 2026): every opening starts on All */
   _lpChip='all';
   ov.innerHTML=`
-    <div class="lp-veil" style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d ${left?28:42}%,transparent)"></div>
-    <div class="modal-in lp-sheet" style="${left?'position:absolute;left:0;top:0;bottom:0;width:min(400px,100vw);background:var(--color-surface);border-right:1px solid var(--color-divider);box-shadow:var(--shadow-lg);overflow:hidden'
-      :'position:relative;width:100%;max-width:1300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden;max-height:calc(100vh - 2 * var(--s-4))'}">
+    <div class="lp-veil" style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 42%,transparent)"></div>
+    <div class="modal-in lp-sheet" style="position:relative;width:100%;max-width:1300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden;max-height:calc(100vh - 2 * var(--s-4))">
       <div class="lp-top">
         <input id="cp-input" class="lp-in" placeholder="${esc(i18t('lp_where'))}" autocomplete="off"
           role="combobox" aria-expanded="true" aria-controls="cp-list" aria-autocomplete="list"
@@ -2121,25 +2121,12 @@ function openCommandPalette(prefill,o){
      an always-last "Ask Copilot" row that HANDS the question to the existing
      Copilot door with it prefilled — never a second AI path from here. */
   let ftsRows=[], ftsFor='', ftsT=null;
-  const lpSheet=ov.querySelector('.lp-sheet');
-  /* the panel slides (a transform, never width/left); reduced motion = at once */
-  const lpStill=()=>{ try{ return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(_){ return false; } };
   const close=()=>{
-    if(ov.dataset.leaving) return;
     clearTimeout(ftsT);
     if(trapRelease){ try{ trapRelease(); }catch(_){} }
-    document.removeEventListener('keydown',onKey,true); document.removeEventListener('pointerdown',onOut,true); lpDoorSay(false);
-    if(left&&!lpStill()&&lpSheet&&lpSheet.animate){
-      ov.dataset.leaving='1'; ov.style.pointerEvents='none';
-      const veil=ov.querySelector('.lp-veil'); if(veil&&veil.animate) veil.animate([{ opacity:1 },{ opacity:0 }],{ duration:180, easing:'ease-in', fill:'forwards' });
-      const a=lpSheet.animate([{ transform:'translateX(0)' },{ transform:'translateX(-100%)' }],{ duration:180, easing:'cubic-bezier(.4,0,1,1)', fill:'forwards' });
-      a.onfinish=()=>ov.remove(); setTimeout(()=>ov.remove(),400);
-    } else ov.remove();
+    ov.remove(); document.removeEventListener('keydown',onKey,true); lpDoorSay(false);
     try{ if(opener&&opener.focus&&document.contains(opener)) opener.focus({preventScroll:true}); }catch(_){}
   };
-  /* a press anywhere outside the panel lets it go (the bar too); the nav button's own press toggles it, so it is left alone */
-  function onOut(e){ if(!left) return; const t=e.target; if(!t||!t.closest) return; if(lpSheet.contains(t)||t.closest('#dk-nav')) return; close(); }
-  if(left) document.addEventListener('pointerdown',onOut,true);
   const openItem=it=>{
     if(it.kind==='ask'){
       close();
@@ -2254,9 +2241,6 @@ function openCommandPalette(prefill,o){
   ov._lpClose=close;
   if(typeof prefill==='string' && prefill){ input.value=prefill; ftsPlan(); }
   paint(); input.focus();
-  if(left){ if(!lpStill()&&lpSheet&&lpSheet.animate){ lpSheet.animate([{ transform:'translateX(-100%)' },{ transform:'translateX(0)' }],{ duration:240, easing:'cubic-bezier(.22,.61,.36,1)' });
-      const veil=ov.querySelector('.lp-veil'); if(veil&&veil.animate) veil.animate([{ opacity:0 },{ opacity:1 }],{ duration:240, easing:'ease-out' }); }
-    return; }
   /* centred, it keeps the height it opened at: fewer rows as you type never move the box under your eyes */
   const sheet=ov.querySelector('.lp-sheet'); if(sheet){ const h=Math.round(sheet.getBoundingClientRect().height); if(h>0) sheet.style.minHeight=h+'px'; }
 }
@@ -2279,11 +2263,13 @@ function activityCategory(txt){
   return 'steel';
 }
 /* (CAT_DOT went with the old Activity rows, P-38: the new rows colour by kind, actKindOf) */
-function activityRow(id,action,detail,at,ref){
+function activityRow(id,action,detail,at,ref,user,name){
   const txt=detail||action||'';
   /* `ref` is what a person reads (the contract number, where a working file
-     has taken one); `id` stays the key the row opens. */
-  return {id, ref:ref||id, txt:`${action?action+' — ':''}${txt}`.replace(/^ — /,''), at, when:relTime(at), cat:activityCategory((action||'')+' '+txt)};
+     has taken one); `id` stays the key the row opens. `action`, `detail`, `user` and `name` are the entry's own parts,
+     kept so the panel can say it in one short line (actSayOf); `txt` stays the record's whole sentence. */
+  return {id, ref:ref||id, txt:`${action?action+' — ':''}${txt}`.replace(/^ — /,''), at, when:relTime(at), cat:activityCategory((action||'')+' '+txt),
+    action:action||'', detail:detail||'', user:user||'', name:name||''};
 }
 function buildActivityFeed(limit=40){
   // Server mode: the light contract list carries no audit trail, so the
@@ -2292,7 +2278,7 @@ function buildActivityFeed(limit=40){
   if(API_MODE()&&state.activityFeed) return state.activityFeed.slice(0,limit);
   const feed=[];
   state.contracts.forEach(c=>{
-    (c.audit||[]).forEach(a=>feed.push(activityRow(c.id,a.action,a.detail,a.at,(window.contractRef?contractRef(c):c.id))));
+    (c.audit||[]).forEach(a=>feed.push(activityRow(c.id,a.action,a.detail,a.at,(window.contractRef?contractRef(c):c.id),a.user,c.name)));
   });
   feed.sort((a,b)=>Date.parse(b.at||0)-Date.parse(a.at||0));
   return feed.slice(0,limit);
@@ -2300,15 +2286,27 @@ function buildActivityFeed(limit=40){
 // Pull the workspace-wide activity feed from the server (server mode only) and
 // re-render the panel when it lands. Throttled so panel re-renders don't hammer
 // the endpoint; a fresh cache within the window is reused as-is.
-let _activityAt=0, _activityBusy=false;
+/* WHEN SOMETHING LOADS, SOMETHING MOVES (22 Nov 2026): pressing Activity drew the
+   face at once and EMPTY ("Live", no chips, no rows) while the feed was still on
+   its way — an empty panel reads as one that failed. `activityFeedState()` says
+   which it is: 'loading' (nothing to show yet, the read is out), 'failed' (the
+   read came back refused and there is nothing earlier to show) or 'ready'. A
+   failed read is not re-asked by every redraw (that looped); only a press
+   (force, or the face's Try again) asks again. */
+let _activityAt=0, _activityBusy=false, _activityFailed=false;
 function refreshActivityFeed(force){
   if(!API_MODE()||_activityBusy) return;
+  if(!force&&_activityFailed&&!state.activityFeed) return;
   if(!force&&state.activityFeed&&(Date.now()-_activityAt)<15000) return;
   _activityBusy=true;
   api('activity?limit=40')
-    .then(r=>{ state.activityFeed=(r.events||[]).map(e=>activityRow(e.id,e.action,e.detail,e.at,e.contractNo)); })
-    .catch(()=>{})
+    .then(r=>{ state.activityFeed=(r.events||[]).map(e=>activityRow(e.id,e.action,e.detail,e.at,e.contractNo,e.user,e.name)); _activityFailed=false; })
+    .catch(()=>{ _activityFailed=true; })
     .finally(()=>{ _activityAt=Date.now(); _activityBusy=false; if(state.panelOpen&&state.view!=='intel') renderContextPanel(); });
+}
+function activityFeedState(){
+  if(!API_MODE()||state.activityFeed) return 'ready';
+  return _activityFailed&&!_activityBusy?'failed':'loading';
 }
 // Selecting a contract (register row, home list, or an activity entry) now opens
 // its workspace.
@@ -3835,8 +3833,8 @@ function openPanel(face){
      and no longer does, because the panel stopped being a column. */
   if(panelSuppressed()) return;
   /* THE GUIDE LIVES IN THE NAV PANEL NOW (P-38): every door that asked for the Guide face (Jambo's "guide", "?", the
-     Handbook's door) opens the nav panel at the left — the same pages by stage, one door, no second list */
-  if(face==='guide'){ if(state.panelOpen) closeContextPanel(); if(!document.getElementById('cmd-palette')) openCommandPalette('',{ left:true }); return; }
+     Handbook's door) opens the nav pop-up in the middle (owner, 22 Nov 2026) — the same pages by stage, one door, no second list */
+  if(face==='guide'){ if(state.panelOpen) closeContextPanel(); if(!document.getElementById('cmd-palette')) openCommandPalette(''); return; }
   const same=state.panelOpen&&panelFace()===face;
   setPanelFace(face);
   state.panelOpen=!same;
@@ -4074,6 +4072,7 @@ function renderContextPanel(){
     /* A ROW OF THE TRAIL OPENS THAT CONTRACT'S HISTORY ON THE BOARD (the
        one-page Home plan, stage 4, 14 Oct 2026); the phone's room as before */
     body.querySelectorAll('[data-act-chip]').forEach(b=>b.addEventListener('click',()=>{ _actChip=b.getAttribute('data-act-chip')||'all'; renderContextPanel(); }));
+    body.querySelectorAll('[data-act-retry]').forEach(b=>b.addEventListener('click',()=>{ refreshActivityFeed(true); renderContextPanel(); }));
     body.querySelectorAll('[data-sel-act]').forEach(el=>el.addEventListener('click',()=>{
       const id=el.getAttribute('data-sel-act');
       if(!(typeof window.hbOpenView==='function'&&hbOpenView(id,'hist'))) selectContract(id); }));
@@ -4216,8 +4215,6 @@ const LP_EMOJI={ contracts:'📄', requests:'💬', import:'📦', ourpaper:'�
   oblig:'📃', calendar:'📅', parties:'🏢', people:'👥', mynotes:'📌', board:'📊', explorer:'🧭', reads:'🔍', pulse:'📈', house:'✨', flowmap:'🛤️', handbook:'📖', settings:'⚙️' };
 function lpEmoHtml(k){ const e=LP_EMOJI[k]; return e?`<span class="lp-em" aria-hidden="true">${e}</span>`:''; }
 let _lpChip='all';
-/* true while the window stands at the left (the nav button's panel): one column, each page's own count, no waiting column */
-let _lpLeft=false;
 /* the Guide's pages, Board first and Settings last, the order FIXED (as the strip had it) */
 function lpRows(){
   const out=[{ k:'board', tone:'violet' }];
@@ -4251,10 +4248,6 @@ function lpWaits(){ const here=guideHereKey()||'board'; return lpRows().map(r=>r
 /* the launchpad's rows, in the order they are drawn and walked by the arrows */
 function lpItems(){
   const ch=LP_CHIPS.includes(_lpChip)?_lpChip:'all', items=[];
-  /* AT THE LEFT, "Waiting on you" narrows the ONE list to the pages with their own amber count (P-37) */
-  if(_lpLeft){ const ks=lpRows().map(r=>r.k), here=guideHereKey()||'board';
-    GUIDE_NL.filter(st=>ch==='all'||ch==='need'||st.k===ch).forEach(st=>ks.filter(k=>lpStageOf(k)===st&&(ch!=='need'||(k!==here&&lpOwed(k)))).forEach(k=>items.push({ kind:'page', id:k, st:st.k })));
-    return items; }
   if(ch==='all'||ch==='need') lpWaits().slice(0,LP_WAIT_MAX).forEach(k=>items.push({ kind:'page', id:k, wait:true }));
   if(ch!=='need'){ const ks=lpRows().map(r=>r.k);
     GUIDE_NL.filter(st=>ch==='all'||st.k===ch).forEach(st=>ks.filter(k=>lpStageOf(k)===st).forEach(k=>items.push({ kind:'page', id:k, st:st.k }))); }
@@ -4278,7 +4271,7 @@ function lpWaitRowsHtml(items,active){
       +(Q?`<q>${esc(Q.q)}</q>${Q.more?`<span class="lp-src">${esc(Q.more)}</span>`:''}<span class="lp-src">${esc(i18t('lp_from',{ page:i18t('gd_p_'+k) }))}</span>`:'')); }).join('')+`</div>`;
 }
 /* the tinted column stands beside the pages under All, and only while something waits */
-function lpSideOn(items){ return !_lpLeft&&_lpChip==='all'&&(items||[]).some(x=>x.wait); }
+function lpSideOn(items){ return _lpChip==='all'&&(items||[]).some(x=>x.wait); }
 /* how many more pages wait than the three drawn — a cap is said, never a silent trim */
 function lpMoreSay(){
   const ch=LP_CHIPS.includes(_lpChip)?_lpChip:'all', left=(ch==='all'||ch==='need')?lpWaits().length-LP_WAIT_MAX:0;
@@ -4292,7 +4285,7 @@ function lpBodyHtml(items,active,o){
   const W=items.filter(x=>x.wait), P=items.filter(x=>!x.wait);
   let h='';
   if(W.length&&!side) h+=`<h5 class="lp-h">${esc(i18t('lp_chip_need'))}</h5>`+lpWaitRowsHtml(items,active);
-  else if(!W.length&&_lpChip==='need'&&!P.length) h+=`<p class="lp-none">${esc(i18t('lp_none'))}</p>`;
+  else if(!W.length&&_lpChip==='need') h+=`<p class="lp-none">${esc(i18t('lp_none'))}</p>`;
   if(P.length){
     const groups=GUIDE_NL.map(st=>({ st, its:P.filter(x=>x.st===st.k) })).filter(g=>g.its.length);
     h+=`<div class="lp-pages" style="--lp-cols:${groups.length}">`+groups.map(g=>
@@ -4306,14 +4299,12 @@ function lpBodyHtml(items,active,o){
   return h;
 }
 /* the ask line in two tones, as drawn: the question in ink, how to answer it in grey (the box's own words, lp_where) */
-function lpWhereHtml(){ const t=String(i18t(_lpLeft?'lp_where_left':'lp_where')), m=/^(.+?[?.!])\s+(.+)$/.exec(t); return m?`<b>${esc(m[1])}</b> ${esc(m[2])}`:esc(t); }
+function lpWhereHtml(){ const t=String(i18t('lp_where')), m=/^(.+?[?.!])\s+(.+)$/.exec(t); return m?`<b>${esc(m[1])}</b> ${esc(m[2])}`:esc(t); }
 /* the foot: the keys, then what the panel holds — a cap is said, never a silent trim */
 function lpFootHtml(typed,side){
   const keys=`<span class="lp-keys"><span><kbd>↑</kbd> <kbd>↓</kbd> ${esc(i18t('lp_k_move'))}</span><span><kbd>Enter</kbd> ${esc(i18t('lp_k_go'))}</span><span><kbd>Esc</kbd> ${esc(i18t('lp_k_close'))}</span></span>`;
   /* beside the pages, the tinted column says it at its own foot (lpSideHtml) */
   if(typed||side) return keys;
-  /* the panel at the left says its keys and nothing more (P-37, as drawn); lp_out stays inert in both books */
-  if(_lpLeft) return keys;
   return keys+`<span>${esc(lpMoreSay())}</span>`;
 }
 function lpChipsHtml(){
@@ -4324,7 +4315,7 @@ function lpChipsHtml(){
 /* the bar's top-left symbol: a press opens the launchpad, a second press (on the dimmed screen) closes it */
 function lpIsOpen(){ return !!document.getElementById('cmd-palette'); }
 function lpDoorSay(on){ const b=document.getElementById('dk-nav'); if(!b) return; b.setAttribute('aria-expanded',on?'true':'false'); b.classList.toggle('is-on',!!on); }
-function lpToggle(){ const p=document.getElementById('cmd-palette'); if(p&&!p.dataset.leaving&&typeof p._lpClose==='function'){ p._lpClose(); return; } openCommandPalette('',{ left:true }); }
+function lpToggle(){ const p=document.getElementById('cmd-palette'); if(p&&typeof p._lpClose==='function'){ p._lpClose(); return; } openCommandPalette(); }
 function lpWire(){
   const b=document.getElementById('dk-nav'); if(!b||!b.dataset||typeof b.addEventListener!=='function'||b.dataset.lpWired) return; b.dataset.lpWired='1';
   b.addEventListener('click',lpToggle);
@@ -4398,8 +4389,57 @@ function actKindOf(a){
   if(/\b(ask|asked|request|review|mention|question)/.test(t)) return 'asked';
   return 'filed';
 }
+/* WHO DID WHAT, IN ONE SHORT LINE (P-38 as drawn: "Amina approved Cleaning Services"; review of the merged pages, 22 Nov
+   2026: the panel printed the trail's whole system sentence, cut with "…"). Read off the entry's own parts — its writer
+   (`user`, first name), its action, and the agreement's name — never guessed: an entry this table does not know says
+   its action word plainly. Its KIND follows the same reading, so a note or an ask is Asked (violet), never Sent. The
+   record keeps its own sentence (History, the export, the search read `txt`); this is only how the panel says it. */
+const ACT_SAYS=[
+  [/^negotiation$/i, /^(internal note|comment|note)\b/i, 'note', 'asked'],
+  [/^negotiation$/i, /\bproposed by\b|\brevised by\b|\bis written on\b/i, 'proposed', 'changed'],
+  [/^negotiation$/i, /\b(accepted|rejected|decided|refused|withdrawn|retracted)\b/i, 'decided', 'changed'],
+  [/^negotiation$/i, /\b(sent|round)\b/i, 'round', 'sent'],
+  [/^negotiation$/i, null, 'redlines', 'changed'],
+  [/^approved$/i, null, 'approved', 'signed', 'approved'],
+  [/^(signed|signature|signing|ready to sign|executed outside hati)$/i, null, 'signed', 'signed'],
+  [/^(approval requested|requested|approval resubmitted)$/i, null, 'asked_yes', 'asked'],
+  [/^changes requested$/i, null, 'asked_changes', 'asked'],
+  [/^(declined|approval rejected)$/i, null, 'declined', 'changed'],
+  [/^(shared|distributed|notice)$/i, /\b(opened|viewed)\b/i, 'opened', 'sent', 'opened'],
+  [/^(shared|distributed|notice)$/i, null, 'sent', 'sent'],
+  [/^(created|uploaded|migrated|imported|template)$/i, null, 'filed', 'filed'],
+  [/^(obligation|obligations)$/i, null, 'duty', 'changed'],
+  [/^playbook$/i, null, 'playbook', 'filed'],
+  [/^(read|scanned|scan|jambo extraction)$/i, null, 'read', 'filed'],
+  [/^(edited|key terms|parties|record|corrected|metadata confirmed|renumbered|document|status changed|renewal term|renewal decision|redline|wording accepted|risk marked|risk|re-filed)$/i, null, 'edited', 'changed'],
+];
+function actSayOf(a){
+  const act=String(a&&a.action||'').trim(), det=String(a&&a.detail||'');
+  const hit=act?ACT_SAYS.find(([ra,rd])=>ra.test(act)&&(!rd||rd.test(det))):null;
+  const raw=String(a&&a.user||'').trim(), sys=!raw||/^(system|hati)$/i.test(raw);
+  const who=sys?'HaTi':raw.split(/\s+/)[0];
+  let nm=String(a&&a.name||'').trim();
+  if(!nm&&a&&a.id&&typeof getContract==='function'){ try{ const c=getContract(a.id); nm=String((c&&c.name)||''); }catch(_){ nm=''; } }
+  const name=nm||String(a&&(a.ref||a.id)||'');
+  if(!hit) return { line:act?i18t('act_s_else',{ who, what:act.toLowerCase(), name }):String(a&&a.txt||''), kind:actKindOf(a), badge:'' };
+  const [, , k, kind, badge]=hit;
+  return { line:i18t(sys&&k==='filed'?'act_s_filed_sys':'act_s_'+k,{ who, name }), kind, badge:badge||'', say:k };
+}
 /* the words an event said, where the trail carries them in quotes */
-function actQuoteOf(a){ const m=/[“"]([^”"]{3,})[”"]/.exec(String(a&&a.txt||'')); return m?m[1]:''; }
+function actQuoteOf(a){
+  const m=/[“"]([^”"]{3,})[”"]/.exec(String(a&&a.txt||'')); if(m) return m[1];
+  /* A NOTE'S OWN WORDS (P-38 as drawn: the words quoted under the line): the trail names the note, the record holds it —
+     the writer's latest note on that agreement at or just before the entry's time (a repeat within the minute is one
+     entry, logAudit). Read from the contract on hand, never fetched; none found, none said. */
+  if(!(a&&a.say==='note'&&a.id&&typeof getContract==='function'&&typeof window.rlChatRows==='function')) return '';
+  try{
+    const c=getContract(a.id), at=Date.parse(a.at||''), who=String(a.user||'').trim().toLowerCase(); if(!c||!isFinite(at)) return '';
+    const hit=(rlChatRows(c,{},null)||[]).map(x=>x&&x.m).filter(n=>n&&n.text&&String(n.who||'').trim().toLowerCase()===who)
+      .filter(n=>{ const t=Date.parse(n.at||''); return isFinite(t)&&t<=at+1000&&at-t<120000; })
+      .sort((x,y)=>String(y.at).localeCompare(String(x.at)))[0];
+    return hit?String(hit.text).replace(/\s+/g,' ').trim():'';
+  }catch(_){ return ''; }
+}
 function actDayOf(at){
   const d=new Date(at||0); if(isNaN(d)) return 'earlier';
   const t=new Date(); const k=x=>x.getFullYear()+'-'+x.getMonth()+'-'+x.getDate();
@@ -4407,19 +4447,23 @@ function actDayOf(at){
 }
 function activityPanelHtml(){
   refreshActivityFeed();   // server mode: keep the whole-workspace feed current
-  const feed=buildActivityFeed().map(a=>Object.assign({},a,{ kind:actKindOf(a) }));
+  const live=`<div class="act-live"><span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot);"></span>${i18t('ap_scope_workspace')}</div>`;
+  const ld=activityFeedState();
+  if(ld==='loading') return `<div class="act" data-act-state="loading">${live}<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:var(--s-3) 2px;">${busyHtml(i18t('set_loading'))}</div></div>`;
+  if(ld==='failed') return `<div class="act" data-act-state="failed">${live}<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:var(--s-3) 2px;">${esc(i18t('act_load_failed'))} <button type="button" class="ui-link" data-act-retry>${esc(i18t('act_load_retry'))}</button></div></div>`;
+  const feed=buildActivityFeed().map(a=>{ const S=actSayOf(a); return Object.assign({},a,{ kind:S.kind, line:S.line, badge:S.badge, say:S.say||'' }); });
   const n={}; feed.forEach(a=>{ n[a.kind]=(n[a.kind]||0)+1; });
   if(_actChip!=='all'&&!n[_actChip]) _actChip='all';
   const shown=feed.filter(a=>_actChip==='all'||a.kind===_actChip);
   const chip=(k,word)=>`<button type="button" class="act-chip" data-act-chip="${k}" aria-pressed="${_actChip===k}">${esc(word)}</button>`;
   const time=a=>{ const d=new Date(a.at||0); return actDayOf(a.at)==='today'&&!isNaN(d)?d.toLocaleTimeString(typeof langLocale==='function'?langLocale():undefined,{hour:'2-digit',minute:'2-digit'}):a.when; };
   /* THE TRAIL IS STORED TEXT AND IS PRINTED AS TEXT (26 Sep 2026): a line's detail carries whatever a colleague typed */
-  const row=a=>{ const q=actQuoteOf(a), txt=q?String(a.txt).replace(/\s*[—-]?\s*[“"][^”"]*[”"]\s*/,' ').trim():a.txt;
-    return `<button type="button" class="act-r is-${a.kind}" data-sel-act="${esc(a.id)}"><i class="act-dot" aria-hidden="true"></i><span class="act-w"><b>${esc(txt)}</b><span class="act-ref">${window.refHtml?refHtml(a.ref||a.id):esc(a.ref||a.id)}</span>${q?`<q class="act-q">${esc(q)}</q>`:''}</span>`
-      +`<span class="act-e"><span class="act-t">${esc(time(a))}</span><span class="act-b">${esc(i18t('act_k_'+a.kind))}</span></span></button>`; };
+  const row=a=>{ const q=actQuoteOf(a);
+    return `<button type="button" class="act-r is-${a.kind}" data-sel-act="${esc(a.id)}" title="${esc(a.txt)}"><i class="act-dot" aria-hidden="true"></i><span class="act-w"><b>${esc(a.line||a.txt)}</b><span class="act-ref">${window.refHtml?refHtml(a.ref||a.id):esc(a.ref||a.id)}</span>${q?`<q class="act-q">${esc(q)}</q>`:''}</span>`
+      +`<span class="act-e"><span class="act-t">${esc(time(a))}</span><span class="act-b">${esc(i18t('act_k_'+(a.badge||a.kind)))}</span></span></button>`; };
   const days=['today','yesterday','earlier'].map(d=>{ const G=shown.filter(a=>actDayOf(a.at)===d); return G.length?`<div class="act-h">${esc(i18t('act_d_'+d))}</div><div class="act-tl">${G.map(row).join('')}</div>`:''; }).join('');
-  return `<div class="act">
-      <div class="act-live"><span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot);"></span>${i18t('ap_scope_workspace')}</div>
+  return `<div class="act" data-act-state="ready">
+      ${live}
       ${feed.length?`<div class="act-chips" role="group" aria-label="${esc(i18t('sh_activity'))}">${chip('all',i18t('act_k_all'))}${ACT_KINDS.filter(k=>n[k]).map(k=>chip(k,i18t('act_k_'+k))).join('')}</div>${days}`
         :`<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:var(--s-3) 2px;">${i18t('ap_no_activity')}</div>`}
     </div>`;
@@ -4966,6 +5010,11 @@ if(state.panelOpen===undefined) state.panelOpen=false;
   window._outsideLook=!!(st&&st.outsideLook); if(typeof window.outsideLookApply==='function') outsideLookApply();
   if(st && st.mode==='api'){
     REMOTE={ org:st.orgName?{name:st.orgName}:null, me:null, users:[] };
+    /* NO DEMO BOOK ON A SERVER (21 Nov 2026): state is born holding the thirty sample contracts, which only the
+       browser-only mode keeps. On a server the book is the server's, so it is empty until loadBootstrap brings it —
+       the sample book sat in memory through sign-in, and anything painted meanwhile (the Board counted 29 live) read
+       contracts that do not exist. The setup screen's "start with sample data" builds its own set (sampleContracts). */
+    state.contracts=[];
     if(rs){ renderAuth('reset:'+rs[1]); return; }
     if(!st.setup){ renderAuth('setup'); return; }
     if(!st.authed){ renderAuth('login'); return; }
@@ -5059,5 +5108,5 @@ if (typeof window !== 'undefined' && window.addEventListener){
 }
 
 Object.assign(window,{alStandardsAnswers,ALERT_STD_DAYS,GUIDE_NL,guidePanelNlHtml,LP_WAIT_MAX,LP_CHIPS,LP_EMOJI,lpRows,lpItems,lpQuoteOf,lpWaits,lpBodyHtml,lpSideHtml,lpSideOn,lpFootHtml,lpChipsHtml,lpIsOpen,lpToggle,lpWire,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,placeBackOn,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
-  buildAlerts,alertCount,updateAlertBadge,jamboBoxFocus,JB_BOX_SEL,JB_BOX_TRIES,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,alertsShowTab,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+  buildAlerts,alertCount,updateAlertBadge,jamboBoxFocus,JB_BOX_SEL,JB_BOX_TRIES,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,alertsShowTab,activityPanelHtml,actSayOf,ACT_SAYS,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,activityFeedState,relTime});
 Object.assign(window,{BP});

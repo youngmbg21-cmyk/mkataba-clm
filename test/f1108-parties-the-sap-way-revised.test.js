@@ -63,12 +63,14 @@ test('f1108 (3) what waits is a count across contracts, late said', () => {
 test('f1108 (4) the panel: streams in the facts; two links under facts and contacts', () => {
   const p = strip(fnBody(CU, 'cunPanelFiveHtml'));
   assert.match(p, /facts\.push\(\{ k: i18t\('cun_c_streams'\)/);
-  assert.match(p, /data-cun-cts=/); assert.match(p, /data-cun-attn=/);
+  /* RE-POINTED 21 Nov 2026 (P-25, as drawn): the drawing has no "needs your attention" link in the panel — on Waiting on
+     you the panel lists WHAT WAITS ON YOU, each with its act (data-cu-need), in place of the facts */
+  assert.match(p, /data-cun-cts=/); assert.match(p, /data-cu-need=/); assert.doesNotMatch(p, /data-cun-attn=/);
   /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way): all the agreements on Contracts is the
      panel's black button (act, data-cun-cts) and what needs attention its own group above the facts; facts, a timeline of
      the agreements, then contacts */
   assert.match(p, /const act = \{ label: i18t\('cun_p_open_cts'\), attr: `data-cun-cts=/);
-  assert.ok(p.indexOf("key: 'attn'") < p.indexOf("key: 'facts'") && p.indexOf("key: 'facts'") < p.indexOf("key: 'timeline'") && p.indexOf("key: 'timeline'") < p.indexOf("key: 'contacts'"), 'attention, facts, timeline, then contacts');
+  assert.ok(p.indexOf("key: 'waits'") < p.indexOf("key: 'facts'") && p.indexOf("key: 'facts'") < p.indexOf("key: 'timeline'") && p.indexOf("key: 'timeline'") < p.indexOf("key: 'contacts'"), 'what waits (Waiting on you) or the facts (All), a timeline, then contacts');
   assert.doesNotMatch(p, /CUN_PANEL_AGS/, 'no list of three agreements');
   assert.match(CU, /closest\('\[data-cun-attn\]'\)[\s\S]{0,400}regShowOnly\(ws\.ids/, 'the attention link shows only the contracts waiting on you');
 });
@@ -77,10 +79,12 @@ test('f1108 (5) hidden money is not drawn at all: no On paper column, never a co
   const run = may => {
     const sb = { canViewValues: () => may };
     vm.createContext(sb);
-    vm.runInContext(CU.match(/const CUN_KEYS = [^\n]*\n/)[0] + fnBody(CU, 'cunKeys') + '\nthis.k = cunKeys();', sb);
+    vm.runInContext(CU.match(/const CUN_KEYS = [^\n]*\n/)[0] + fnBody(CU, 'cunKeys') + '\nthis.k = cunKeys(); this.n = cunKeys(true);', sb);
     return JSON.parse(JSON.stringify(sb.k));
   };
   assert.deepEqual(run(true), ['streams', 'agreements', 'paper', 'ends', 'waiting']);
   assert.deepEqual(run(false), ['streams', 'agreements', 'ends', 'waiting'], 'no On paper column for a reader without money rights');
-  assert.match(strip(fnBody(CU, 'cunCols')), /\.\.\.cunKeys\(\)\.map/, 'the header is drawn from the same keys');
+  /* RE-POINTED 22 Nov 2026 (P-25 review): cunCols(noWork) passes on whether anything waits anywhere (cunNoWork), so a
+     reader with nothing waiting gets no Waiting on you column either, with no gap */
+  assert.match(strip(fnBody(CU, 'cunCols')), /\.\.\.cunKeys\(noWork\)\.map/, 'the header is drawn from the same keys');
 });

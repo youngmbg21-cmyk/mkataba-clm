@@ -368,6 +368,17 @@ if (typeof document !== 'undefined' && document.addEventListener && !window._nee
   document.addEventListener('change', on, true);
 }
 Object.assign(window,{NEED_BG,needAttrs,needMark});
+/* ---- INITIALS, LETTERS ONLY (P-25 review, 22 Nov 2026: "Bowmans (Coulson Harney LLP)" drew "B(") ----
+   The first letter (or digit: "Buyer 01" is "B0") of each of the first two words that have one — a bracket, a dash,
+   an ampersand or a quote is never an initial. A name with no space (an address, "amina.otieno@x") splits at its dots and @ instead, so it still gives
+   two. None at all → the fallback. Parties (rows, worklist, panel) and People (rows, panel, avatars) read it. */
+function nameInitials(name, fallback){
+  const s = String(name == null ? '' : name).trim();
+  const parts = s.split(/\s/.test(s) ? /\s+/ : /[\s@._-]+/);
+  const out = parts.map(w => (w.match(/[\p{L}\p{N}]/u) || [])[0]).filter(Boolean).slice(0, 2).join('');
+  return out ? out.toLocaleUpperCase() : (fallback == null ? '·' : fallback);
+}
+Object.assign(window,{nameInitials});
 /* ============================================================
    SHARED: contract row (compact list item, used everywhere)
    ============================================================ */
@@ -593,7 +604,11 @@ function jamboWaysHere(){
   const face = JB_WAY_FACES.has(k);
   return { k, doors: row.d.filter(d => d !== k && (face || !JB_WAY_FACES.has(d))) };
 }
-function jamboWayWord(k){ const w = _jbT('ca_w_' + k); return (w && w !== 'ca_w_' + k) ? w : k; }
+function jamboWayWord(k){
+  /* P-31 AS DRAWN (21 Nov 2026): beside the Contracts place, a paper chosen on the Wall included, the links line says them
+     in full, as the list's own line does ("upload a document · draft a new agreement · discover") */
+  try { if (window.CA_CHIP_WALL_WORD && window.CA_CHIP_WALL_WORD[k] && typeof window.regPlaceUp === 'function' && window.regPlaceUp()) return _jbT(window.CA_CHIP_WALL_WORD[k]); } catch (_){ /* the short word stands */ }
+  const w = _jbT('ca_w_' + k); return (w && w !== 'ca_w_' + k) ? w : k; }
 function jamboWaysHtml(here, cls){
   /* the new look's (owner, 31 Oct 2026: built behind the switch until each page is approved) */
   if (typeof window.newLookOn === 'function' && !window.newLookOn()) return '';
@@ -1590,7 +1605,7 @@ function jov5ContractRow(c, v, extra){
   return Object.assign({ mark: 'mkTick', tone: 'green', t: (c && (c.name || c.id)) || '', s: (c && c.counterparty) || '', v: v || '', run: () => jov5Open(c.id) }, extra || {});
 }
 /* the five parts, drawn (jamboOverviewHtml hands over its slot's run list, so presses resolve as every other) */
-var JOV5_TONES = { amber: 1, green: 1, dark: 1, red: 1, violet: 1, steel: 1 };
+var JOV5_TONES = { amber: 1, green: 1, dark: 1, red: 1, violet: 1, steel: 1, gray: 1, pink: 1 };
 /* THE FIVE PARTS' HEAD AND MARK, for a face that draws its own body (a contract's faces, round 3b): the same eyebrow,
    serif headline and sentence, the same round mark in its tone, so a contract's panel and a page's read alike */
 function jov5HeadHtml(o){
@@ -1613,7 +1628,9 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
   /* `avatar`: a person's initials in a dark circle beside the headline; `ring`: a share (0–100) drawn as a ring there */
   const pct = o.ring != null ? Math.max(0, Math.min(100, Number(o.ring) || 0)) : null;
   const ring = pct != null ? `<span class="jov5-ring" aria-hidden="true"><svg viewBox="0 0 80 80"><circle class="jov5-rb" cx="40" cy="40" r="34"/><circle class="jov5-rf" cx="40" cy="40" r="34" style="stroke-dashoffset:${(213.6 * (1 - pct / 100)).toFixed(1)}"/></svg><b>${pct}%</b></span>` : '';
-  const head = o.avatar ? `<div class="jov5-who"><span class="jov5-ava" aria-hidden="true">${E(o.avatar)}</span>${headIn}</div>` : ring ? `<div class="jov5-who">${ring}${headIn}</div>` : headIn;
+  /* `avatarTone` / `avaTone`: the initials in a soft status tone instead of the dark circle (Parties P-25: the party's stream; People P-26: green our team, steel the other side) */
+  const _avaT = o.avatarTone && JOV5_TONES[o.avatarTone] ? o.avatarTone : (o.avaTone ? String(o.avaTone) : '');
+  const head = o.avatar ? `<div class="jov5-who"><span class="jov5-ava${_avaT ? ' is-' + E(_avaT) : ''}" aria-hidden="true">${E(o.avatar)}</span>${headIn}</div>` : ring ? `<div class="jov5-who">${ring}${headIn}</div>` : headIn;
   const glance = (o.glance || []).filter(g => g && g.l != null).slice(0, 3);
   const glanceHtml = glance.length ? `<div class="jov5-glance">${glance.map(g => { const t = tag(g.run, g.attr);
     /* A TILE THAT HOLDS WORDS, NOT A NUMBER ("Every month"), takes the smaller size and may wrap — never past its card
@@ -1623,13 +1640,14 @@ function jamboOverviewFiveHtml(o, slot, reg, lnk, asks){
       + `<b>${E(g.n)}</b><span>${E(g.l)}</span></${t}>`; }).join('')}</div>` : '';
   const rowHtml = r => {
     const t = (r.btn || r.link) ? 'div' : tag(r.run, r.attr);
-    /* `faces`: up to four people's initials, overlapping, where a row is about people (Parties' contacts, 19 Nov 2026) */
+    /* `faces`: up to four people's initials, overlapping, where a row is about people (Parties' contacts, 19 Nov 2026);
+       `cls`: a page's own class on the row, for its own tone (Parties' kind badges and an owed fact, P-25 as drawn) */
     const mark = Array.isArray(r.faces) && r.faces.length ? `<span class="jov5-faces" aria-hidden="true">${r.faces.slice(0, 4).map(f => `<i>${E(f)}</i>`).join('')}</span>`
       : r.mark != null ? `<span class="jov5-mk${JOV5_TONES[r.tone] ? ' is-' + r.tone : ''}">${r.markText != null ? E(r.markText) : ic(r.mark)}</span>` : '';
     const act = r.btn ? `<button type="button" class="jov5-pill${r.btn.black ? ' is-black' : ''}"${door(r.btn.run, r.btn.attr)}>${E(r.btn.label)}</button>`
       : r.link ? lnk(r.link.attr ? -1 : reg(r.link.run), E(r.link.label), r.link.title, '', r.link.attr) : '';
     const chev = (t === 'button') ? `<span class="jov5-chev" aria-hidden="true">${ic('chevR')}</span>` : '';
-    return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-row${t === 'button' ? ' is-door' : ''}${mark ? '' : ' is-plain'}${r.wrap || r.quote ? ' is-wrap' : ''}${r.quote ? ' is-quote' : ''}"${t === 'button' ? door(r.run, r.attr) : ''}${r.title ? ` title="${E(r.title)}"` : ''}>`
+    return `<${t}${t === 'button' ? ' type="button"' : ''} class="jov5-row${t === 'button' ? ' is-door' : ''}${mark ? '' : ' is-plain'}${r.wrap || r.quote ? ' is-wrap' : ''}${r.quote ? ' is-quote' : ''}${r.cls ? ' ' + E(r.cls) : ''}"${t === 'button' ? door(r.run, r.attr) : ''}${r.title ? ` title="${E(r.title)}"` : ''}>`
       + `${mark}${r.k ? `<span class="jov5-k">${E(r.k)}</span>` : ''}<span class="jov5-rt"><b>${E(r.t)}</b>${r.s ? `<span>${E(r.s)}</span>` : ''}${r.stg ? `<span class="jov5-stg"><span class="reg-stg"><i style="background:${E(r.stg.dot || 'currentColor')}"></i>${E(r.stg.label)}</span></span>` : ''}</span>`
       + `${r.swatch ? `<span class="jov5-sw is-${E(r.swatch)}" aria-hidden="true"></span>` : ''}${r.v != null && r.v !== '' ? `<span class="jov5-v${r.need ? ' is-need' : ''}">${E(r.v)}</span>` : ''}${act}${chev}</${t}>`;
   };
@@ -1955,16 +1973,31 @@ function jovMoves(el){
   const slot = String(el.getAttribute('data-jov-slot') || '');
   return JOV_MOVE_SLOTS.has(slot);
 }
-/* the numbers count up from nothing to what they say (a leading whole number only; "697M" counts 0…697, then M) */
+/* A COUNT-UP IS DRAWN OVER THE NUMBER, NEVER WRITTEN INTO IT (21 Nov 2026). The count used to write '0', '3', '7'…
+   into the number's own text and put the true one back at the end, so for most of a second after an arrival the page
+   SAID 0 — to a screen reader, to a copy, to anything reading the page (the Board's check read its four figures as
+   0,0,0,0 while the book said 10,1,1,1) — and a repaint landing mid-count had to guess which text was whose. Now the
+   number's text stays the true number throughout; the counting figure is painted over it (data-jov-count, its
+   ::after, index.html) and taken away at the end, by the last frame or by a timer, since frames stop while hidden.
+   A leading whole number only; "697M" counts 0…697, then M; never twice at once on one number. */
+function jovCountOver(b){
+  if (!b || b.hasAttribute('data-jov-count')) return;
+  const m = String(b.textContent || '').match(/^(\d{1,6})(\D.*)?$/); if (!m) return;
+  const to = Number(m[1]), rest = m[2] || ''; if (!to) return;
+  const t0 = performance.now(), dur = 700, delay = 160, was = b.textContent;
+  let done = false;
+  const finish = () => { if (done) return; done = true; b.removeAttribute('data-jov-count'); };
+  /* a redraw that writes a NEW number meanwhile wins: the count stops and the new number shows at once */
+  const step = now => { if (done) return; if (!b.isConnected || b.textContent !== was) { finish(); return; }
+    const k = Math.min(1, Math.max(0, (now - t0 - delay) / dur)); if (k >= 1) { finish(); return; }
+    b.setAttribute('data-jov-count', Math.round(to * (1 - Math.pow(1 - k, 3))) + rest); requestAnimationFrame(step); };
+  b.setAttribute('data-jov-count', '0' + rest); requestAnimationFrame(step);
+  setTimeout(finish, delay + dur + 120);
+}
+/* the numbers count up from nothing to what they say */
 function jovCountUp(el){
   /* the tiles' numbers, and the Board panel's ring ("4/12" counts 0…4, as drawn, P-39) */
-  el.querySelectorAll('.jov5-g b, .hbw2-ring > b').forEach(b => {
-    const m = String(b.textContent || '').match(/^(\d{1,6})(\D.*)?$/); if (!m) return;
-    const to = Number(m[1]), rest = m[2] || ''; if (!to) return;
-    const t0 = performance.now(), dur = 700, delay = 160;
-    const step = now => { const k = Math.min(1, Math.max(0, (now - t0 - delay) / dur)); b.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))) + rest; if (k < 1) requestAnimationFrame(step); };
-    b.textContent = '0' + rest; requestAnimationFrame(step);
-  });
+  el.querySelectorAll('.jov5-g b, .hbw2-ring > b').forEach(jovCountOver);
 }
 function jovPlay(el){
   [...el.children].forEach((ch, i) => ch.style.setProperty('--jov-i', String(i)));
@@ -2025,7 +2058,7 @@ if (typeof document !== 'undefined' && typeof MutationObserver !== 'undefined' &
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 }
 
-Object.assign(window, { jovArriveQuiet, jovArriveDue, jovArriveMark, jovPageKeyOf, jovArriveSweep, JOV_MOVE_SLOTS, jov5HeadHtml, jov5MarkHtml });
+Object.assign(window, { jovCountOver, jovArriveQuiet, jovArriveDue, jovArriveMark, jovPageKeyOf, jovArriveSweep, JOV_MOVE_SLOTS, jov5HeadHtml, jov5MarkHtml });
 
 /* ======================================================================================================================
    THE ONE EDIT POP-UP, THE LEGORA WAY (owner's pick by name, 19 Nov 2026: "use legora way"; drawn on today's pages)

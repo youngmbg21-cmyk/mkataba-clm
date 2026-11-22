@@ -120,7 +120,9 @@ describe('f726 (1) Needs your attention, two lines a row', () => {
      since the day HaTi first saw the clash where the server holds it */
   test('1c a clash says what kind of thing it is', () => {
     const SET = fs.readFileSync(path.join(ROOT, 'js/views/settings.js'), 'utf8');
-    assert.match(SET, /stClashes\(\)\.forEach\(r=>\{ const seen=stClashSeenDay\(r\.key\);\s*out\.push\(\(r\.sub\|\|r\.subHtml\)\?r:\{ \.\.\.r, sub:seen\?i18t\('st_need_kind_clash_since',\{ day:seen \}\):i18t\('st_need_kind_clash'\) \}\); \}\);/);
+    /* RE-POINTED 22 Nov 2026 (review of merged pages): each row also carries the day it began (`at`, the day the clash
+       was first seen), which the Board's company row reads for its wait */
+    assert.match(SET, /stClashes\(\)\.forEach\(r=>\{ const seen=stClashSeenDay\(r\.key\), at=[^;]*;\s*out\.push\(\(r\.sub\|\|r\.subHtml\)\?\{ \.\.\.r, at \}:\{ \.\.\.r, at, sub:seen\?i18t\('st_need_kind_clash_since',\{ day:seen \}\):i18t\('st_need_kind_clash'\) \}\); \}\);/);
   });
 });
 

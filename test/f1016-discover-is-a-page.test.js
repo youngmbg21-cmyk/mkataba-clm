@@ -54,7 +54,9 @@ test('f1016 (3) New read: one box, one black button saying how many, chips that 
   assert.match(n, /p\.unread <= p\.size \? _rdTn\('dsn_read_n', p\.unread\) : _rdT\('dsn_read_first', \{ k: p\.pick \}\)/, 'a cap is a fact: the button says how many');
   assert.doesNotMatch(n, /calls|rd_calls|ac_n_calls/, 'no Jambo cost is said');
   /* RE-POINTED (owner, 15 Nov 2026, build a pack): the pack's chip is drawn by the row's one builder, one pack at a time */
-  assert.match(n, /const packs = dsnPackRowHtml\(\);/); assert.match(fnBody(RD, 'dsnPackRowHtml'), /data-dsc-pack=/); assert.match(n, /data-dsc-q=/);
+  /* RE-POINTED 22 Nov 2026 (P-42 review): the questions asked before are offered once, in the panel (dslNewHtml), not
+     also as chips on the page (one door) */
+  assert.match(n, /const packs = dsnPackRowHtml\(\);/); assert.match(fnBody(RD, 'dsnPackRowHtml'), /data-dsc-pack=/); assert.match(fnBody(RD, 'dslNewHtml'), /data-dsc-q=/);
   const wire = RD.slice(RD.indexOf('document._rdnWired = true'));
   assert.match(wire, /closest\('\[data-dsc-pack\]'\)[\s\S]{0,400}?_dsc\.pack = [\s\S]{0,120}?renderReads\(\)/, 'a pack chip fills the box');
   assert.doesNotMatch(wire.slice(wire.indexOf("closest('[data-dsc-pack]')"), wire.indexOf("closest('[data-dsc-open]')")), /askColAskHere|dsnAsk\(/, 'a chip never reads on its own');
@@ -68,13 +70,18 @@ test('f1016 (4) the panel: the paper just read, the chosen answer\'s paper, else
   assert.match(p, /if \(_dsn\.screen === 'reading'\)\{[\s\S]*?dscPaperHtml\(askId, cid\)/, 'a read in flight: the paper of the contract just read');
   /* RE-POINTED 19 Nov 2026 (owner: "All 4 should be there"): a result chosen shows EVERY place its answers were read,
      dscPaperAllHtml, which hands a one-question read to dscPaperHtml as before (f1113) */
-  assert.match(p, /if \(r && _dsn\.cid\)\{[\s\S]*?dscPaperAllHtml\(r\.askIds, _dsn\.cid, focus\)[\s\S]*?jlLinks: dscPaperLinksHtml/, 'a result chosen: its paper, the two links above Jambo\'s box');
+  /* RE-POINTED 22 Nov 2026 (P-42 review, as drawn): the result's own panel (dsnResultPanelHtml) carries the paper and its
+     two acts as buttons under the title — Open the paper, Redline it — the same two doors */
+  assert.match(p, /if \(r && _dsn\.cid\)\{[\s\S]*?dsnResultPanelHtml\(r, _dsn\.cid, focus\)/, 'a result chosen: its own panel');
+  const rp = fnBody(RD, 'dsnResultPanelHtml');
+  assert.match(rp, /dscPaperAllHtml\(r\.askIds, cid, focus\)/); assert.match(rp, /data-dsc-open=/); assert.match(rp, /data-dsc-redline=/);
   assert.match(fnBody(RD, 'dsnResultsShown'), /_dscRank\(_rdTone\(x\)\)/, 'the risky answers first');
   assert.match(fnBody(RD, 'dscLand'), /askColLandOn\(cid, quote\)/, 'Open clause is the one lander');
   assert.match(fnBody(RD, 'dscLand'), /openRedlineWorkbench\(cid\)/, 'redlining goes through the one door');
   /* RE-POINTED (owner, 15 Nov 2026: Jambo's panel on Discover, the Legora way, f1071): the read's summary is drawn by
      dslReadHtml, which dsnListPanel hands it to; Keep in Discover still stands on it */
-  assert.match(fnBody(RD, 'dslReadHtml'), /data-dsn-keep=/, 'Keep in Discover stands on the read\'s summary');
+  /* RE-POINTED 22 Nov 2026 (P-42 review): Keep is the results' own, on each question's column head (one door) */
+  assert.match(fnBody(RD, 'dsnKeepHtml'), /data-dsn-keepq=/, 'Keep stands on the results');
   assert.doesNotMatch(RD.slice(RD.indexOf('const DSC_OPEN_MAX')), /negoFileChange|changes\.push|persist\(/, 'the page files nothing');
 });
 

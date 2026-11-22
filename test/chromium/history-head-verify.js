@@ -133,10 +133,13 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
         /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's filters are QUICK LINKS in the open
            (owner, 31 Oct 2026, "Quick links as drawn"; histQuickHtml): theirs · sent · decisions · Jambo, a link that
            would give nothing not drawn, named by one "Filters" label, Clear beside them */
-        quick: [...host.querySelectorAll('.hist-quick [data-ht-quick]')].map(b => ({ k: b.getAttribute('data-ht-quick'), ...seen(b) })),
+        /* RE-POINTED 22 Nov 2026 (the P-44 review, the owner's picked drawing "History, the Legora + Stripe way": the chips
+           are All · Changes · Notes with their counts and "+ Side" — histKindChipsHtml; the quick links theirs · sent ·
+           decisions · Jambo and the Clear link are not in the drawing, each chip lets go itself, All is the way back) */
+        quick: [...host.querySelectorAll('.hist6-kinds [data-ht-kind]')].map(b => ({ k: b.getAttribute('data-ht-kind'), ...seen(b) })),
         /* RE-POINTED (P-44): the "Filters" label went; the quick links are chips with their counts, All first */
         quickLabel: (host.querySelector('.hist-quick .hist-qk-l') || {}).textContent || '',
-        allChip: (() => { const b = host.querySelector('.hist-quick [data-ht-quick]'); return b ? { k: b.getAttribute('data-ht-quick'), text: b.textContent.replace(/\\s+/g, ' ').trim(), pressed: b.getAttribute('aria-pressed') } : null; })(),
+        allChip: (() => { const b = host.querySelector('.hist6-kinds [data-ht-kind=""]'); return b ? { k: b.getAttribute('data-ht-kind'), text: b.textContent.replace(/\\s+/g, ' ').trim(), pressed: b.getAttribute('aria-pressed') } : null; })(),
         clear: seen(host.querySelector('#ht-clear')),
         more: (() => { const b = host.querySelector('#hist-more');
           return b ? { tag: b.tagName, text: (b.textContent || '').replace(/\\s+/g, ' ').trim(), aria: b.getAttribute('aria-label') || '', tip: b.getAttribute('title') || '',
@@ -168,11 +171,12 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
        labelled boxes in the band beside the search — the Filter button that
        folded them (SAP batch 3, 9 Oct) is gone. What still holds: the
        filters, Clear, one handle per filter, Side not among them. */
-    check('the filters stand in the open at rest: no Filter button, every quick link on screen, Clear with them',
-      !(head.btn && head.btn.on) && head.quick.length >= 2 && head.quick.every(s => s.on) && !!(head.clear && head.clear.on),
+    /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn): no Clear link — the All chip is the way back */
+    check('the filters stand in the open at rest: no Filter button, every chip on screen, All with them',
+      !(head.btn && head.btn.on) && head.quick.length >= 2 && head.quick.every(s => s.on) && head.quick[0].k === '',
       head.quick.map(s => `${s.k}:${s.w}x${s.h}`).join(' · ') + ` · button ${head.btn ? 'present' : 'absent'}`);
     /* RE-POINTED (P-44): All leads the chips (data-ht-quick=""); the rest keep the drawing's order */
-    const QORDER = ['', 'theirs', 'sent', 'decisions', 'jambo'];
+    const QORDER = ['', 'change', 'note'];   /* RE-POINTED 22 Nov 2026: the drawing's All · Changes · Notes (+ Side is its own handle) */
     check('in the drawing\'s order, All first, and side is NOT among them (one handle)',
       head.quick.length >= 1 && head.quick[0].k === '' && !head.quick.some(s => s.k === 'side') && head.quick.every((s, i) => QORDER.includes(s.k) && (i === 0 || QORDER.indexOf(s.k) > QORDER.indexOf(head.quick[i - 1].k))),
       head.quick.map(s => s.k || 'all').join(' · '));
@@ -249,18 +253,19 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
        narrowing is asked of the Person filter in the fold (still open). */
     /* RE-POINTED 16 Nov 2026 (#762): the narrowing is a quick link's press (the first one drawn that narrows) */
     /* RE-POINTED (P-44): All leads the chips now, so the narrowing is the first chip that is not All */
-    const person = await page.evaluate(() => { const b = document.querySelector('#pd2-hist .hist-quick [data-ht-quick]:not([data-ht-quick=""])'); return b ? b.getAttribute('data-ht-quick') : ''; });
-    const pressQuick = k => page.evaluate(k => { const b = document.querySelector(`#pd2-hist [data-ht-quick="${k}"]`); if (b) b.click(); }, k);
+    /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn): the narrowing is a kind chip's press (Changes, the first after All) */
+    const person = await page.evaluate(() => { const b = document.querySelector('#pd2-hist .hist6-kinds [data-ht-kind]:not([data-ht-kind=""])'); return b ? b.getAttribute('data-ht-kind') : ''; });
+    const pressQuick = k => page.evaluate(k => { const b = document.querySelector(`#pd2-hist [data-ht-kind="${k}"]`); if (b) b.click(); }, k);
     await pressQuick(person);
     await page.waitForTimeout(700);
     await page.screenshot({ path: path.join(OUT, '03-filtered-ours.png') });
     const narrowed = await page.evaluate(`(() => {
       const host = document.querySelector('#pd2-hist');
-      const on = host.querySelector('[data-ht-quick][aria-pressed="true"]');
+      const on = host.querySelector('[data-ht-kind][aria-pressed="true"]');
       return { rows: host.querySelectorAll('.hist-ev').length,
         pill: ((host.querySelector('.hist-cap') || {}).textContent || '').trim(),
-        side: on ? on.getAttribute('data-ht-quick') : '',
-        row: ${SEEN}(host.querySelector('.hist-quick')) };
+        side: on ? on.getAttribute('data-ht-kind') : '',
+        row: ${SEEN}(host.querySelector('.hist6-kinds')) };
     })()`);
     check('picking a quick link narrows the record', narrowed.rows > 0 && narrowed.rows < before,
       `${before} → ${narrowed.rows}`);
@@ -274,7 +279,7 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
        filter change, and it used to add a document listener per paint. Proved
        from the reader's chair — after several repaints the menu must still take
        exactly one press to open and one to shut. */
-    await pressQuick(person);
+    await pressQuick('');
     await page.waitForTimeout(450);
     await pressQuick(person);
     await page.waitForTimeout(450);
@@ -292,16 +297,16 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
     check('after three repaints the menu still opens and shuts on one press each',
       stillOpens && !stillCloses, `opened=${stillOpens} closedAfter=${!stillCloses}`);
 
-    await page.click('#pd2-hist #ht-clear');
+    await pressQuick('');   /* RE-POINTED 22 Nov 2026: All is the way back (no Clear link in the drawing) */
     await page.waitForTimeout(700);
     const cleared = await page.evaluate(`(() => {
       const host = document.querySelector('#pd2-hist');
       return { rows: host.querySelectorAll('.hist-ev').length,
         /* RE-POINTED (P-44): cleared, the pressed chip is All (data-ht-quick="") */
-        side: (() => { const on = [...host.querySelectorAll('[data-ht-quick][aria-pressed="true"]')]; return on.length === 1 && on[0].getAttribute('data-ht-quick') === '' ? '' : on.map(b => b.getAttribute('data-ht-quick') || 'all').join(',') || 'none'; })(),
+        side: (() => { const on = [...host.querySelectorAll('[data-ht-kind][aria-pressed="true"]')]; return on.length === 1 && on[0].getAttribute('data-ht-kind') === '' ? '' : on.map(b => b.getAttribute('data-ht-kind') || 'all').join(',') || 'none'; })(),
         pill: ((host.querySelector('.hist-cap') || {}).textContent || '').trim() };
     })()`);
-    check('Clear is the one way back, and it puts every filter back (All pressed)',
+    check('All is the one way back, and it puts the record back (All pressed)',
       cleared.rows === before && cleared.side === '', `${cleared.rows} rows · side "${cleared.side}" · ${cleared.pill}`);
 
     /* ============ 4. THE POP-OUT RECORD — SAME CHAIR ==================== */

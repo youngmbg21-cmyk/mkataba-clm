@@ -144,9 +144,11 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     /* RETIRED 17 Nov 2026 (#762, owner's ruling, round 3): 1c "oldest waiting first" — the oldest-first order stays gone */
     /* RE-POINTED 29 Oct 2026 (owner: ONE SHEET — the list card reaches the foot of Jambo's panel; REVERSES "the card ends after its rows")
        RE-POINTED 17 Nov 2026 (#762): the head is inside the card now, so the card meets no separate head; the foot says "4 requests" */
-    check('1d one sheet: "4 requests" inside the card under the rows, the card reaching the foot of Jambo\'s panel',
-      B.foot === '4 requests' && B.footIn && B.panelFoot != null && Math.abs(B.panelFoot) <= 2,
-      JSON.stringify({ foot: B.foot, footIn: B.footIn, panelFoot: B.panelFoot }));
+    /* RE-POINTED 21 Nov 2026 (P-32, as drawn): no foot under the rows (the chips carry the count); the card still reaches
+       the foot of Jambo's panel */
+    check('1d one sheet: no foot under the rows, the card reaching the foot of Jambo\'s panel',
+      B.foot === '' && B.panelFoot != null && Math.abs(B.panelFoot) <= 2,
+      JSON.stringify({ foot: B.foot, panelFoot: B.panelFoot }));
 
     /* ---- 2 · the request in Jambo's panel ----
        RE-POINTED 17 Nov 2026 (#762; ruling 3, round 6 as drawn): the chosen row's panel is .pd2-chosen — one sentence
@@ -162,40 +164,48 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
          the request's title as the serif headline (.jov5-title), the ask quoted (.jov5-row.is-quote), each fact a row
          labelled under its value ("Party", "NDA · to do", "Files · … added by …"), Start the draft the black button
          with Hand back beside it (.jov5-acts). Every word main brought back on 17 Nov stands. */
-      const doors = [...p.querySelectorAll('.jov5-acts button')];
+      /* RE-POINTED 21 Nov 2026 (P-32, as drawn): the panel has no cards and no five parts — the badge, the title
+         (.ikn-lg-t), the acts (.ikn-lg-acts; the black one .is-k), In their words (.ikn-lg-q, quoted), Read from the ask as
+         label rows ([data-ikn-sec="read"] .ikn-rd: the label, then the value), a timeline; the head line is not drawn */
+      const doors = [...p.querySelectorAll('.ikn-lg-acts button')];
       /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way) */
       /* the black button leads (.jov5-go); the facts read from the ask are the "read" group's rows (the timeline is its own group) */
-      const go = p.querySelector('.jov5-acts .jov5-go');
+      const go = p.querySelector('.ikn-lg-acts .is-k');
       const row = document.querySelector(`.ikn-table [data-ikn-row="${id}"]`), cells = row ? [...row.children] : [];
       const ths = [...document.querySelectorAll('.ikn-table thead th')].map(t => t.textContent.trim());
-      return { word: (p.querySelector('[data-jl-word]') || {}).textContent, head: (p.querySelector('.jov5-title') || {}).textContent,
+      const wd = p.querySelector('[data-jl-word]');
+      return { word: wd && wd.getClientRects().length ? wd.textContent : '', head: (p.querySelector('.ikn-lg-t') || {}).textContent,
         stands: cells[ths.indexOf('Status')] ? cells[ths.indexOf('Status')].textContent.replace(/\s+/g, ' ').trim() : '',
         go: go ? go.textContent.trim() : null,
         text: p.innerText.replace(/\s+/g, ' '),
         doors: doors.map(b => b.textContent.trim()), inside: doors.every(b => b.getBoundingClientRect().right <= pr.right + 1 && b.scrollWidth <= b.clientWidth + 1),
-        quote: (p.querySelector('.jov5-row.is-quote .jov5-rt b') || {}).textContent,
-        rows: Object.fromEntries([...p.querySelectorAll('[data-jov5-sec="read"] .jov5-row')].filter(r => r.querySelector('.jov5-rt > span') && !r.classList.contains('is-quote'))
-          .map(r => [String(r.querySelector('.jov5-rt > span').textContent).split(' \u00b7 ')[0], (r.querySelector('.jov5-rt b') || {}).textContent])) };
+        quote: ((p.querySelector('.ikn-lg-q') || {}).textContent || '').replace(/^\u201c|\u201d$/g, ''),
+        fileBy: ((p.querySelector('[data-ikn-file]') || {}).title || ''),
+        rows: Object.fromEntries([...p.querySelectorAll('[data-ikn-sec="read"] .ikn-rd')].map(r => [(r.querySelector('span') || {}).textContent, ((r.querySelector('b') || {}).textContent || '').trim()])) };
     }, r1.id);
     /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way) */
     /* the row's Status badge says who holds it — "With you" for the reader */
     check('2a no word in his head; the panel names the request; the row says who holds it ("With you")', !!P && !P.word
       && /^Mutual NDA with Naivas Supermarkets/.test(P.head || '') && P.stands.startsWith('With you'), P && JSON.stringify({ head: P.head, stands: P.stands, me: me.name }));
     /* KEPT AS IT WAS PROMISED (question for the owner, R2-Q4): the lane that sent the request to the reader */
-    check('2a+ the panel says the lane that sent it ("by the NDA lane")', !!P && /NDA lane/.test(P.text), P && P.text.slice(0, 240));
+    /* RE-POINTED 21 Nov 2026 (P-32, as drawn): the lane is a row read from the ask, "Came by NDA" */
+    check('2a+ the panel says the lane that sent it ("Came by NDA")', !!P && P.rows['Came by'] === 'NDA', P && JSON.stringify(P.rows));
     /* KEPT: Hand back (the decline with its reason) is an act the old panel carried and the new one does not draw — a question for the owner */
     /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests the Legora + Stripe way) */
     /* held by the reader: Start the draft the black button, Put it down and Hand back as links beside it */
-    check('2b Start the draft (black), Put it down and Hand back, each whole, inside the panel', !!P && P.go === 'Start the draft' && JSON.stringify(P.doors) === '["Start the draft","Put it down","Hand back"]' && P.inside, P && JSON.stringify({ go: P.go, doors: P.doors }));
+    /* RE-POINTED 21 Nov 2026 (P-32, as drawn): held by the reader — Start the draft (black) and Hand on (grey), Hand back a quiet link after them */
+    check('2b Start the draft (black), Hand on and Hand back, each whole, inside the panel', !!P && P.go === 'Start the draft' && JSON.stringify(P.doors) === '["Start the draft","Hand on","Hand back"]' && P.inside, P && JSON.stringify({ go: P.go, doors: P.doors }));
     /* RE-POINTED 17 Nov 2026 (the owner's picks on the drawings, "2 Bring it back"): the NDA line stands under the party,
        and each file is its own row by name, who added it beside it */
-    check('2c her words whole; Party · NDA · Stream · Paper · Files read from the ask, the one file by name', !!P && /^Naivas want/.test(P.quote || '') && /standard one\?$/.test(P.quote || '')
-      && JSON.stringify(Object.keys(P.rows)) === '["Party","NDA","Stream","Paper","Files"]' && P.rows.Party === 'Naivas Supermarkets' && /pilot-brief\.pdf/.test(P.rows.Files || ''), P && JSON.stringify({ quote: (P.quote || '').slice(0, 40), rows: P.rows }));
+    /* RE-POINTED 21 Nov 2026 (P-32, as drawn): label rows Party · NDA · Paper that fits · Came by · Stream · File */
+    check('2c her words whole; Party · NDA · Paper that fits · Came by · Stream · File read from the ask, the one file by name', !!P && /^Naivas want/.test(P.quote || '') && /standard one\?$/.test(P.quote || '')
+      && JSON.stringify(Object.keys(P.rows)) === '["Party","NDA","Paper that fits","Came by","Stream","File"]' && P.rows.Party === 'Naivas Supermarkets' && /pilot-brief\.pdf/.test(P.rows.File || ''), P && JSON.stringify({ quote: (P.quote || '').slice(0, 40), rows: P.rows }));
     /* KEPT AS IT WAS PROMISED (question for the owner): "no NDA with them today" beside the party, and who added each attachment */
-    check('2c+ "no NDA with them today" and who added the file', !!P && /no NDA with them today/.test(P.text) && /added by Wanjiru/.test(P.text), P && P.text.slice(0, 300));
+    /* RE-POINTED 21 Nov 2026 (P-32, as drawn): NDA "none with them today" (amber), who added the file on the file's own line */
+    check('2c+ "none with them today" and who added the file', !!P && P.rows.NDA === 'none with them today' && /added by Wanjiru/.test(P.fileBy), P && JSON.stringify({ nda: P.rows.NDA, by: P.fileBy }));
     /* re-pointed 19 Oct 2026 (second pass): the name the New agreement form lists it under
        RE-POINTED 17 Nov 2026 (#762): the panel's Paper row and its sentence */
-    check('2d Jambo names the paper that fits, read without a call', !!P && P.rows.Paper === 'NDA' && aiCalls.length === 0, JSON.stringify({ fit: P && P.rows.Paper, ai: aiCalls }));
+    check('2d Jambo names the paper that fits, read without a call', !!P && P.rows['Paper that fits'] === 'NDA' && aiCalls.length === 0, JSON.stringify({ fit: P && P.rows['Paper that fits'], ai: aiCalls }));
     if (OUT) await page.screenshot({ path: path.join(OUT, '20-requests-1440x780.png') });
 
     /* ---- 3 · Start the draft ---- */
@@ -216,7 +226,7 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     check('3b the sheet stands in front: its chosen paper and Create are painted, not under Jambo\'s panel', O.pick && O.create !== false, JSON.stringify(O));
     const BK = await page.evaluate(() => { const b = document.getElementById('wz-pick-cancel'); const n = document.getElementById('na-card-name');
       return { back: b ? b.textContent.trim() : null, name: n ? n.textContent.trim() : null }; });
-    check('3c the sheet names the paper as Jambo said, with Cancel to go back', !!P && BK.name === P.rows.Paper && BK.back === 'Cancel', JSON.stringify(BK));
+    check('3c the sheet names the paper as Jambo said, with Cancel to go back', !!P && BK.name === P.rows['Paper that fits'] && BK.back === 'Cancel', JSON.stringify(BK));
     if (BK.back) { await press('#wz-pick-cancel'); await until(() => !document.getElementById('na-root') && state.view === 'intake' ? true : null, null, 4000); }
     check('3d Cancel goes back to Requests', !!S && await page.evaluate(() => !document.getElementById('na-root') && state.view === 'intake'));
     await page.keyboard.press('Escape').catch(() => {});
@@ -257,12 +267,15 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
       const due = rows.map(r => { const td = r.children[di]; if (!td) return ['', ''];
         const sub = td.querySelector('.cun-sub'); return [[...td.childNodes].filter(x => x.nodeType === 3).map(x => x.textContent).join('').trim(), sub ? sub.textContent.trim() : '']; });
       const status = rows.map(r => { const b = r.querySelector('.apn-st'); return b ? [b.textContent.trim(), ((b.className.match(/\bis-(\w+)/) || [])[1]) || ''] : null; });
-      const acts = rows.map(r => [...r.querySelectorAll('[data-mn-act]')].map(b => b.textContent.trim()));
+      /* RE-POINTED 21 Nov 2026 (P-27, as drawn): every row carries its one act, SHOWN only on the row you are on (the
+         chosen one, or the one under the pointer) — counted here as drawn and as seen */
+      const acts = rows.map(r => [...r.querySelectorAll('[data-mn-act]')].filter(b => getComputedStyle(b).visibility !== 'hidden' && b.getBoundingClientRect().width > 0).map(b => b.textContent.trim()));
+      const drawnActs = rows.map(r => r.querySelectorAll('[data-mn-act]').length);
       const verbs = [...p.querySelectorAll('[data-mn-act]')];
       return { word: (p.querySelector('[data-jl-word]') || {}).textContent, title: (document.querySelector('#mn-page .ctf-h') || {}).textContent, facts: (document.querySelector('#mn-page .ctf-hf') || {}).textContent || null,
         only: ((document.querySelector('#mn-page .cun-head .mnn-only') || {}).textContent || '').trim(),
         tabs: [...document.querySelectorAll('[data-mnn-tab]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
-        box: !!document.querySelector('#mn-page label.apn-ask #mnn-q'), due, status, acts, sel: rows.findIndex(r => r.classList.contains('is-sel')),
+        box: !!document.querySelector('#mn-page label.apn-ask #mnn-q'), due, status, acts, drawnActs, sel: rows.findIndex(r => r.classList.contains('is-sel')),
         last: rows[4] ? rows[4].textContent.replace(/\s+/g, ' ').trim() : '',
         verbs: verbs.map(b => [b.getAttribute('data-mn-act'), b.textContent.replace(/\s+/g, ' ').trim()]),
         whole: verbs.every(b => b.scrollWidth <= b.clientWidth + 1 && b.getBoundingClientRect().right <= pr.right + 1),
@@ -276,15 +289,17 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
       && !!N.status[0] && N.status[0][0] === 'Due today' && N.status[0][1] === 'amber' && /^\d+ \S+$/.test(N.due[0][0]) && N.due[0][1] === 'today'
       && /^\d+ \S+$/.test(N.due[1][0]) && /^in \d+ days?$/.test(N.due[1][1]) && N.due[3][0] === '—' && N.due[3][1] === 'no day'
       && !!N.status[4] && N.status[4][0] === 'Reviewed' && N.status[4][1] === 'green' && /^\d+ \S+$/.test(N.due[4][0])
-      && N.sel >= 0 && N.acts.every((a, i) => i === N.sel ? a.length === 1 : a.length === 0),
-      N && JSON.stringify({ facts: N.facts, only: N.only, tabs: N.tabs, status: N.status, due: N.due, acts: N.acts, sel: N.sel, last: N.last }));
+      && N.sel >= 0 && N.acts[N.sel].length === 1 && N.acts.filter(a => a.length).length <= 2 && N.drawnActs.every(k => k === 1),
+      N && JSON.stringify({ facts: N.facts, only: N.only, tabs: N.tabs, status: N.status, due: N.due, acts: N.acts, drawnActs: N.drawnActs, sel: N.sel, last: N.last }));
     /* RE-POINTED 17 Nov 2026 (#762): the note's verbs are the five parts' — the review row ("Review today · It rings
        your bell…"), the contract's row (its door), ONE black Mark reviewed, Delete note a quiet link; each whole */
     /* RE-POINTED (P-27, owner's pick 20 Nov 2026: My notes the Legora + Stripe way): no tiles and no review row — the
        note's Due today is its badge over the title, and the bell is the timeline's "Your bell rings … Rings each day until reviewed" */
-    check('6b the note in Jambo\'s panel (no word beside the tabs): Due today, the bell ringing until reviewed, Open its contract, Mark reviewed, Delete note, each whole', !!N && !N.word
+    /* RE-POINTED 21 Nov 2026 (P-27, as drawn): the contract line under the title is its door (data-mn-act="open"); a due
+       note's black button has Snooze a week beside it and no Delete (Delete note stands beside Review again, as drawn) */
+    check('6b the note in Jambo\'s panel (no word beside the tabs): Due today, the bell ringing until reviewed, Open its contract, Mark reviewed, no Delete on a due note, each whole', !!N && !N.word
       && /Due today/.test(N.text) && /Your bell rings .*Rings each day until reviewed/.test(N.text)
-      && N.verbs.some(v => v[0] === 'open' && /MK-A2/.test(v[1])) && N.verbs.some(v => v[0] === 'reviewed' && v[1] === 'Mark reviewed') && N.verbs.some(v => v[0] === 'delete' && v[1] === 'Delete note') && N.whole,
+      && N.verbs.some(v => v[0] === 'open' && /MK-A2/.test(v[1])) && N.verbs.some(v => v[0] === 'reviewed' && v[1] === 'Mark reviewed') && !N.verbs.some(v => v[0] === 'delete') && N.whole,
       N && JSON.stringify({ verbs: N.verbs, text: N.text.slice(0, 200) }));
     /* KEPT AS IT WAS PROMISED (question for the owner): Snooze a week, which the old panel carried */
     check('6b+ the note offers Snooze a week', !!N && N.verbs.some(v => v[0] === 'snooze'), N && JSON.stringify(N.verbs));

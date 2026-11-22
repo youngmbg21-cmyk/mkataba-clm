@@ -166,7 +166,12 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
       await until(() => /On until/.test(((document.getElementById('sdd-away') || {}).textContent) || ''));
       const fit = await page.evaluate(() => {
         const c = document.getElementById('sdd-away'); const r = c.getBoundingClientRect();
-        const cut = [...c.querySelectorAll('.sdd-k, .sdd-s, .sdd-u, .sdd-v, button')].filter(e => e.scrollWidth > e.clientWidth + 1).length;
+        /* RE-POINTED 22 Nov 2026 (P-43, the owner's Settings drawing): a row's explanation (.sdd-u) is drawn as ONE line
+           ending in "…", so it is not counted as cut; it must end in "…" and carry its whole sentence in its title.
+           The name, the state, the value and the buttons must still fit uncut. */
+        const cut = [...c.querySelectorAll('.sdd-k, .sdd-s, .sdd-v, button')].filter(e => e.scrollWidth > e.clientWidth + 1).length
+          + [...c.querySelectorAll('.sdd-u')].filter(e => e.scrollWidth > e.clientWidth + 1
+            && !(getComputedStyle(e).textOverflow === 'ellipsis' && e.getAttribute('title') === e.textContent.trim())).length;
         return { right: r.right <= innerWidth + 1, cut, page: document.documentElement.scrollWidth - innerWidth };
       });
       await shot(page, `away-card-${vp.width}x${vp.height}`);

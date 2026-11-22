@@ -2,12 +2,12 @@
    ============================================================
    RE-WRITTEN 21 Nov 2026. The owner: "delete the guide since we have the nav panel but keep the side of the panel";
    "L+S for both alerts and activity and stripe way for notes". The Guide face this file used to check is gone: its
-   pages live in the nav panel at the left (P-37), and every door that asked for the Guide opens it there.
+   pages live in the nav panel, and every door that asked for the Guide opens it. RE-POINTED 22 Nov 2026: the owner had P-37's panel at the left reverted; it is the window in the middle again.
 
    Claims:
      1  the panel's tabs are Alerts · Notes · Activity (no Guide); the bar's button opens it on Alerts; Notes is grey and
         not pressable with no contract in front, its reason on the hover
-     2  the Guide's door (openPanel('guide')) opens the nav panel at the left, never a side-panel face
+     2  the Guide's door (openPanel('guide')) opens the nav panel, never a side-panel face
      3  Alerts, the Legora + Stripe way: chips with counts, ONE bar and its legend, rows grouped (Late · Your move ·
         Jambo prepared), each row's OWN button word (never "Open" on every row), no money in a row
      4  Activity: "Live · whole workspace", chips by kind, the timeline under day heads, a soft badge on every row
@@ -80,9 +80,13 @@ async function until(page, fn, arg, ms = 8000){
     } else check('3 Alerts drawn with rows to read', false, A);
     await page.screenshot({ path: path.join(OUT, 'alerts-1440x780.png') });
 
-    /* 4 Activity */
+    /* 4 Activity — RE-POINTED 22 Nov 2026 (wait for the loaded face): the face draws at once with the busy mark
+       while the server's feed is on its way (data-act-state="loading"); the check waits, bounded, for it to say
+       it is loaded (or that it failed) instead of reading the first face it sees */
     await page.click('#panel-tabs [data-pt-face="activity"]');
     const V = await until(page, () => { const b = document.querySelector('#panel-body .act'); if (!b) return null;
+      const st = b.getAttribute('data-act-state'); if (st === 'loading') return null;
+      if (st === 'failed') return { failed: true };
       const rows = [...b.querySelectorAll('.act-r')];
       return { live: !!b.querySelector('.act-live'), chips: b.querySelectorAll('[data-act-chip]').length, heads: b.querySelectorAll('.act-h').length, rows: rows.length, badges: rows.filter(r => r.querySelector('.act-b')).length,
         ask: !document.getElementById('panel-ask').hidden }; }, null, 6000);
@@ -91,8 +95,8 @@ async function until(page, fn, arg, ms = 8000){
 
     /* 2 the Guide's door opens the nav panel */
     await page.evaluate(() => openPanel('guide'));
-    const G = await until(page, () => !!document.querySelector('#cmd-palette.is-left .lp-p') && !(state.panelOpen && panelFace() === 'guide'), null, 5000);
-    check('2 the Guide\'s door opens the nav panel at the left, not a side-panel face', !!G);
+    const G = await until(page, () => !!document.querySelector('#cmd-palette .lp-p') && !(state.panelOpen && panelFace() === 'guide'), null, 5000);
+    check('2 the Guide\'s door opens the nav panel, not a side-panel face', !!G);
     await page.keyboard.press('Escape');
     await until(page, () => !document.getElementById('cmd-palette'), null, 3000);
 

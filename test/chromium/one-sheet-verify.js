@@ -70,15 +70,19 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     if (await press('#pref-jb-chips', '2 the suggestions switch')) {
       const saved = await until(() => currentUser().prefs && currentUser().prefs.jamboChips === false && document.getElementById('pref-jb-chips').checked === false ? true : null, null, 5000);
       check('2a Jambo\'s suggestions off, the switch says so', !!saved);
-      const told = await until(() => { const t = (document.getElementById('toast-root') || {}).textContent || ''; return /Saved/.test(t) ? t.replace(/\s+/g, ' ').trim() : null; }, null, 4000);
-      check('2b a passing "Saved"', !!told, told);
+      /* RE-POINTED 22 Nov 2026 (P-43 review): the sheet holds what you change until its Save (owner's pick "Cancel and SAVE"), so "Saved" is said
+         once, on that Save — 2b moved under 3a */
     }
 
     console.log('\n3 · a choice changes where it stands');
     await page.locator('[data-pref-brief="weekly"]').first().check().catch(() => null);
     await page.selectOption('#pref-opens-on', 'fill').catch(() => null);
     const choices = await until(() => { const p = currentUser().prefs || {}; return p.briefEvery === 'weekly' && p.opensOn === 'fill' ? JSON.stringify({ briefEvery: p.briefEvery, opensOn: p.opensOn }) : null; }, null, 5000);
-    check('3a the brief and where a contract opens are saved as they change', !!choices, choices);
+    check('3a the brief and where a contract opens change where they stand', !!choices, choices);
+    /* RE-POINTED 22 Nov 2026 (P-43 review): the sheet's Save writes the three together, and says so once */
+    await press('#st-dsave', '3 the sheet\'s Save');
+    const told = await until(() => { const t = (document.getElementById('toast-root') || {}).textContent || ''; return /Saved/.test(t) ? t.replace(/\s+/g, ' ').trim() : null; }, null, 4000);
+    check('2b a passing "Saved", once, on the sheet\'s Save', !!told, told);
     await page.reload({ waitUntil: 'networkidle' });
     await page.waitForFunction(() => window.state && Array.isArray(state.contracts), null, { timeout: 20000 });
     await toAccount();

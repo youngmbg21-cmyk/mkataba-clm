@@ -153,11 +153,20 @@ const DOC = ['WAREHOUSING AND TRANSPORT AGREEMENT', '', '1. SERVICES', 'The Prov
       words: [...document.querySelectorAll('[data-pw-for="wz-side"] [data-pw-v]')].map(b => b.innerText),
       label: document.querySelector('[data-pw-for="wz-side"]').parentElement.innerText.split('\n')[0],
       cp: document.getElementById('wz-counterparty').closest('label').innerText.replace(/\s+/g, ' ') }), null, null);
-    check(!!(before && before.label === 'Who pays whom?' && before.words.join(' · ') === 'We pay them · They pay us · No money' && before.v === '' && before.say === ''),
-      '3a "Who pays whom?" as three presses, none chosen, nothing said', before);
+    /* RE-POINTED 22 Nov 2026 (PR 881, batch 7 review; the owner's pick "the paper's own answer as the chosen pill",
+       wzPaperPaysWho): where HaTi's own paper names who pays in its payment duty, that answer is the chosen pill and its
+       line says so; a paper that names no payer still chooses nothing — HaTi never guesses */
+    if (before) before.paper = await drive(P, () => { const pay = ((window.TEMPLATE_OBLIGATIONS || {}).WH || []).find(o => o && o.key === 'pay');
+      return !pay ? '' : pay.party === 'ours' ? 'customer' : pay.party === 'theirs' ? 'supplier' : ''; }, null, null);
+    if (before) before.on = await drive(P, () => [...document.querySelectorAll('[data-pw-for="wz-side"] [data-pw-v][aria-checked="true"]')].map(b => b.getAttribute('data-pw-v')), null, []);
+    check(!!(before && before.label === 'Who pays whom?' && before.words.join(' · ') === 'We pay them · They pay us · No money'
+      && (before.paper ? before.v === before.paper && before.on.join() === before.paper && /^So we are the /.test(before.say) : before.v === '' && before.say === '' && !before.on.length)),
+      '3a "Who pays whom?" as three presses, the paper\'s own answer chosen where it names who pays (else none, nothing said)', before);
     /* RE-POINTED 24 Oct 2026: the row now ends with where its answer came from — the words quoted */
     /* RE-POINTED (P-36, owner's pick 20 Nov 2026: New agreement the Legora + Stripe way): your words quoted and lit carry "your words" beside them */
-    check(!!(before && /^The other company \* .*As on their invoices or letterhead( “Kilifi Haulage”( your words)?)?$/.test(before.cp)), '3b the other company is named in plain words, with where the name is found', before && before.cp);
+    /* RE-POINTED 22 Nov 2026 (P-36, New agreement as drawn, PR 881): one open line per detail — the term, the value, where
+       it came from; the required star and the help line under the term are not drawn (an owed box says "not said yet") */
+    check(!!(before && /^The other company “Kilifi Haulage” your words$/.test(before.cp)), '3b the other company is named in plain words, with where the name is found', before && before.cp);
     await press(P, '[data-pw-for="wz-side"] [data-pw-v="customer"]');
     const after = await drive(P, () => ({ v: document.getElementById('wz-side').value, say: document.querySelector('[data-pw-for="wz-side"] [data-pw-say]').textContent }), null, null);
     check(!!(after && after.v === 'customer' && /^So we are the customer\./.test(after.say)), '3c "We pay them" stores customer and says so', after);

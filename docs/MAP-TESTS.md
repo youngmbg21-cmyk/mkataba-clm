@@ -285,6 +285,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## CUSTOMER FOLDERS — SHELVES, THE SAP WAY (js/views/customers.js)
 - f399, f412, f561, f564, f720, f738, f739, f796; customers, contracts-page 12, parties-sap-way, parties-nda-column, parties-and-people verify.
+- P-25 AS DRAWN (21 Nov 2026): test/f1139-parties-as-drawn.test.js (new; 5 of 5 red at the parent) — the paper's own "between … and …" words (cunWordsIn, run for real), On paper's currency in the head (cunPaperSay), the worklist's words, quotes and badges, the panel's facts / what waits split with no money and no attention link, + Add a party and the ask box. Browser: parties-and-people 2b, 3b, 3e, 4i, 9d and parties-sap-way 1, parties-and-contracts-as-drawn 2a RE-POINTED.
+- P-25/P-26 REVIEW (22 Nov 2026): f1139 (6) (new; red at the parent) — one chip rule for My notes, Parties and People, the grey dash, no foot line, no Waiting column where nothing waits (cunNoWork), the Waiting on you timeline (started · late · the next step), People's soft badges; f1139 (2) and (4), f1108 (5), f1070 (ring 44), f986 (People's badge) RE-POINTED; browser parties-and-people 2a, 6b, 6d and people-directory roles RE-POINTED.
 
 ## ASK A COLUMN (js/views/askcolumn.js)
 - DISCOVER IS READY BEFORE IT IS OPENED (20 Nov 2026): test/f1127-discover-is-ready-before-it-is-opened.test.js (new; renumbered: main took f1125, f1126; 3 of 3 red at the parent) — the quiet fetch once a sitting (idle, not phone, not in front, from startApp), the list waits only for what it draws and asks for the answers at once, Loading… before the reads. Re-ran green with the area: 138 of 138.
@@ -354,6 +356,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f641, f798, my-notes, requests-and-notes-as-drawn verify.
 
 ## SETTINGS & RULES — THE CONTROL ROOM (owner picked it 16 Oct 2026)
+- SETTINGS AGAINST THE P-43 DRAWING, THE SECOND PASS (22 Nov 2026): test/f1143-settings-sheets-hold-until-save.test.js (new; red at the parent: the foot said Done and every press wrote) — a press in a sheet writes nothing, Cancel writes nothing and puts it back, Save writes once with the last word, ✕ asks while held, another sheet asks first, a person's flags merge into one write while an act goes now, the hooks in core.js's saveSettings and api.js's api, the foot Save · Cancel. RE-POINTED node: f193 (foot), f784 8c/9b (Cancel, not Done), f1091 (4) one press opens an area, (5) needs said problem first, (7) the chosen row green, f1070 (5) one word fewer. RE-POINTED browser (for GitHub): settings-door-to-door 1a/1b, one-sheet 2b/3, control-room-in-full 4, named-guest 1, settings-tabs (Cancel), shaped-and-weekly, settings-overnight-fixes D1, settings-holds-still 5. Re-ran green: f1091, f1100, f193, f194, f600, f601, f725, f726, f780, f784, f786, f788, f789, f1119, f965, f937, f561, f1107, f1110, f986, f1097, f1070, f232, f48, f148, f467, f1068.
 - SETTINGS, DOOR TO DOOR (P-11, round 1, 17 Nov 2026): test/f1091-settings-door-to-door.test.js (new; red at the parent: the six areas absent) and test/chromium/settings-door-to-door-verify.js (new, for GitHub: the landing's six areas and counts, choose then open, every area at the three screens, the budget row and its drawer, the find box, People & roles and Trail & backup and their way back, the card on an inner page, a refresh). REPLACED: f1045 and settings-menu-verify (the twelve-row list is gone). RE-POINTED: f1070 (2), f986 (Settings), f148 (two words the same in both books), round7-new-look-verify 2a–2d, round8-outside-verify 2.
 - SETTINGS' EMOJI MARKS AND THE BUTTON ACROSS JAMBO'S CARD (owner, 19 Nov 2026): f1100 (test/f1100-settings-emoji-marks.test.js; 4 of 4 red at the parent). Re-ran green: f1091, f385, f965, f937, f1065, f1094, f148.
 - SETTINGS, DOOR TO DOOR, GITHUB'S FIRST RUN (pull request 794, 19 Nov 2026): browser checks re-pointed to the six areas — alerts-on-your-phone, control-room-in-full, new-person-grants, draft-beside-jambo, jambo-everywhere, jambo-map, one-sheet, payment-terms, settings-as-drawn (-2, -3, -4), settings-groups, settings-holds-still, settings-overnight-fixes, settings-tabs, streams-and-data, trail-export, when-youre-away, language-switch-stays, legora-look 9, jambo-words 7, swedish, clashes (the first need stands in the black-button card), refresh-keeps-your-spot 4a; test/nav-read.js reads `data-sdd-row`; the Handbook's Settings recipes (7.1, 7.3, 7.4, 7.5) go through `sddGo`.
@@ -420,6 +423,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## HOW THINGS MOVE (22 Oct 2026; owner picked "Glide over" and "Crossfade")
 - page-jumps-verify (A–I, three screens; D red at the parent: 14 frames).
+- THE BOARD NEVER SAYS A NUMBER IT DOES NOT HOLD (21 Nov 2026): f1137 (1)–(4), all red at the parent; home-board-verify 1d.
 - NOTHING CHANGED, NOTHING WRITTEN · THE LINE'S ONE WRITER · THREE THEN COUNT (13 Nov 2026): f1024 (3)–(6); tab-change-no-flash-verify 3b, 10a–10d. test/chromium/_audit/flash-measure.js (a measuring instrument; `.github/workflows/flash-measure.yml`): films every page move.
 - A FACE CHANGE IS DRAWN AT ONCE (12 Nov 2026): f1024 (parts (1) and (2), red at the parent); tab-change-no-flash-verify (0–9; every frame after a tab press, another paper, a panel opening wider; 1, 2, 3, 6 and 7 red at the parent); page-jumps-verify H re-pointed (no copy, nothing fading, the underline glides); f676 10f re-pointed.
 
@@ -996,3 +1000,22 @@ f1070 (3), f989 3, f997 (1), f998 (3) re-pointed.
 ## INSIGHTS — EXPLORER'S PANEL AS DRAWN (P-40, 21 Nov 2026)
 - test/chromium/explorer-chips-follow-the-view-verify.js 3e, 3f: the Grid's rows, a pairing first and no money
   shading in the panel; shaded by money, "Shade the cells by how many" second.
+
+## THE ONE DESK — NEEDS YOU, ONE READING — ONE COUNT, ONE WAIT (review of merged pages, 22 Nov 2026)
+- test/f1140-one-count-one-wait.test.js: ndWaitCounts (Jambo = every piece, late too) read by the Board's chips, the
+  panel's ring and "I have N things ready", the bell's chips and its Jambo filter; hbHelloFitN + "N more" (never a cut
+  row); an approval's wait off its question's `at`, else the raised day, never `lastAction` (the Board; the Approvals page's idle column keeps its own fact); the
+  company row (name, one line, oldest wait, `plain` clash words, no sum); Activity's short lines (actSayOf, a note Asked).
+- Re-pointed: f869 2c (one line under the company row), f726 1c (clash `at`), f1032 (3)(4) ("Asks you"),
+  counter-as-drawn-verify 11a (a piece with the paper's words is a two-line row). The levels line was restored (f801 3h and
+  open-in-place-verify 2 stand as on main).
+## THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM / THE COUNTERPARTY'S PAGE (P-44 review, 22 Nov 2026)
+f439, f143, f37, f49, f440 re-pointed to the drawn page (the band, the stops, the chips, the panels, the bell on the bar);
+f743 (3d) pins the one-line What happened with its hover. Run: f439 f143 f37 f49 f440 f743 f191 f148.
+
+## THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM / THE COUNTERPARTY'S PAGE (P-44 review follow-up, 22 Nov 2026)
+Re-pointed to the drawing (dated comments): history-head, history-timeline 7a, the-brief-and-sap-history 4f, room-tabs-as-drawn
+6b, negotiate-new-look 5, round8-their-page 2a/2c/3/4, counterparty-bell 1/3/4/6, their-pages-as-ours 1/3/6, where-we-are
+1f/2a/4f/9c/10/12a, their-page-parties-and-notes 1, their-page-legora-way 4, portal-header-verbs (the foot's Send),
+counterparty-reading-and-more 1c, paper-grows (counterparty gives way only for its notes), round-delivery 8a, go-aheads 2,
+sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).

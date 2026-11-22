@@ -1677,8 +1677,11 @@ function hbBoardHelloHtml(){
   let views = 0; try { views = (typeof igViewsRead === 'function') ? igViewsRead().length : 0; } catch (_){ views = 0; }
   let n = 0; try { n = (typeof counterNeedsCount === 'function') ? counterNeedsCount() : hbNeedsCount(); } catch (_){ n = 0; }
   _hbNyDockN = n; _hbNyDockBook = (state.contracts || []).length;
-  let work = 0; try { work = hbAgentsData(null).ready || 0; } catch (_){ work = 0; }
   let D = null; try { D = (typeof ndRead === 'function') ? ndRead() : null; } catch (_){ D = null; }
+  /* ONE COUNT (ndWaitCounts, review of the merged pages 22 Nov 2026): "I have N things ready", the ring's legend and the
+     Board's "Jambo prepared N" chip are one reading — every piece he prepared, late or not */
+  let W = null; try { W = (D && typeof ndWaitCounts === 'function') ? ndWaitCounts(D) : null; } catch (_){ W = null; }
+  let work = 0; try { work = W ? W.jambo : (hbAgentsData(null).ready || 0); } catch (_){ work = 0; }
   const late = (D && D.late) || 0;
   /* the ONE count rules: nothing on the desk is said as nothing, whatever a slower count of his work still holds */
   const say = !n ? i18t('hb_jb_counter_none') : work ? i18tn('hbw_ready', work, { n: work }) : i18tn('hbw_needs', n, { n });
@@ -1712,9 +1715,9 @@ function hbBoardHelloHtml(){
        Jambo) with its counts; then "Jambo prepared, for your yes": each piece, the paper's words where it has them, a ›. */
     void live; void days;
     let B = null; try { B = (typeof ndOnBoard === 'function' && D) ? ndOnBoard(D) : null; } catch (_){ B = null; }
-    const all = B ? B.jambo.concat(B.you) : [];
-    const cnt = { late: all.filter(r => r.late).length, you: B ? B.you.filter(r => !r.late).length : 0, jambo: B ? B.jambo.filter(r => !r.late).length : 0 };
-    const tot = cnt.late + cnt.you + cnt.jambo;
+    /* the ring is the late of ALL that waits; the legend says each chip's own count (a late piece is late AND Jambo's) */
+    const cnt = W ? { late: W.late, you: W.you, jambo: W.jambo } : { late: 0, you: 0, jambo: 0 };
+    const tot = W ? W.all : 0;
     const R = 2 * Math.PI * 17, frac = tot ? cnt.late / tot : 0;
     const ringBar = tot ? `<div class="hbw2-wait"><span class="hbw2-ring" role="img" aria-label="${_hbE(i18t('hbw2_ring', { a: cnt.late, b: tot }))}"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="hbw2-rb" cx="20" cy="20" r="17"/><circle class="hbw2-rf" cx="20" cy="20" r="17" style="stroke-dasharray:${R.toFixed(1)};stroke-dashoffset:${(R * (1 - frac)).toFixed(1)}"/></svg><b>${cnt.late}/${tot}</b></span>`
       + `<span class="hbw2-bw"><span class="hbw2-bar">${['late', 'you', 'jambo'].filter(k => cnt[k]).map(k => `<i class="is-${k}" style="flex:${cnt[k]}"></i>`).join('')}</span>`
@@ -1722,8 +1725,13 @@ function hbBoardHelloHtml(){
     const parts = r => { try { return (typeof ndParts === 'function') ? ndParts(r) : {}; } catch (_){ return {}; } };
     /* the paper's words as drawn: "§ 2 · “The lease ends on 11 October 2026”" (cn2QuoteOf, the one reading the rows use) */
     const quote = r => { try { const Q = typeof window.cn2QuoteOf === 'function' ? cn2QuoteOf(r).filter(q => q.w) : []; return Q.length ? [Q[0].sec, '\u201c' + Q[0].w + '\u201d'].filter(Boolean).join(' \u00b7 ') : ''; } catch (_){ return ''; } };
-    const prep = (B ? B.jambo : []).slice(0, 5).map(r => { const P = parts(r); const q = quote(r);
-      return { mark: '', markText: '', tone: 'violet', t: P.title || P.name || '', s: q || [P.name || P.deal, _ndPlain(P.ref)].filter(Boolean).join(' \u00b7 '), quote: !!q, attr: `data-hbw-row="${_hbE(r.key)}"` }; }).filter(x => x.t);
+    /* THE LAST ROW IS NEVER CUT (review of the merged pages, 22 Nov 2026: at 1536×730 "Arrival check: Brut Africa Ltd"
+       stood half under the links line): as many pieces as fit whole above the panel's foot (hbHelloFitN), and where some
+       do not, a last row says how many more — a cap is said, never a silent trim — and opens them on the Board */
+    const allP = B ? B.jambo : [], fit = hbHelloFitN(allP.length), more = allP.length - fit;
+    const prep = allP.slice(0, fit).map(r => { const P = parts(r); const q = quote(r);
+      return { mark: '', markText: '', tone: 'violet', t: P.title || P.name || '', s: q || [P.name || P.deal, _ndPlain(P.ref)].filter(Boolean).join(' \u00b7 '), quote: !!q, attr: `data-hbw-row="${_hbE(r.key)}"` }; }).filter(x => x.t)
+      .concat(more > 0 ? [{ mark: '', markText: '', tone: '', t: i18tn('hbw2_more', more, { n: more }), s: '', attr: 'data-hbw="jambo" data-hbw-more' }] : []);
     return `<div class="jl-words is-ov hb-jb-hello is-welcome is-five is-ls">${jamboOverviewHtml({ before: brain, title: say, sub,
       mid: ringBar, midLabel: tot ? i18t('hbw2_wait') : '',
       groups: prep.length ? [{ label: i18t('hbw2_prepared'), rows: prep }] : [],
@@ -1732,6 +1740,37 @@ function hbBoardHelloHtml(){
   }
   const before = `${brain}<h3 class="hbw-say">${_hbE(say)}</h3>${sub ? `<p class="hbw-sub">${_hbE(sub)}</p>` : ''}${trio}${acts}`;
   return (typeof jamboOverviewHtml === 'function') ? `<div class="jl-words is-ov hb-jb-hello is-welcome">${jamboOverviewHtml({ before, asks }, 'hb')}</div>` : '';
+}
+/* HOW MANY OF JAMBO'S PIECES FIT WHOLE in the Board's panel above its foot (the links line and the ask box): measured on
+   the panel as last drawn (the list's top inside the scroller, a row's height), else the scroller's own height read from
+   the window; one row is kept for "N more" when they do not all fit. Never fewer than one piece. */
+let _hbHelloGeo = null;
+function hbHelloFitN(total){
+  const n = Math.max(0, total | 0); if (n <= 1 || typeof document === 'undefined') return n;
+  try {
+    const feed = document.getElementById('igd-feed');
+    const g = feed && feed.querySelector('.hb-jb-hello .jov5-group');
+    if (feed && g){
+      const fr = feed.getBoundingClientRect(), gr = g.getBoundingClientRect(), row = g.querySelector('.jov5-row');
+      if (gr.height > 0) _hbHelloGeo = { top: gr.top - fr.top + feed.scrollTop, row: (row && row.offsetHeight) || 42 };
+    }
+    const G = _hbHelloGeo || { top: 400, row: 42 };
+    const H = (feed && feed.clientHeight) || Math.max(0, (typeof innerHeight === 'number' ? innerHeight : 800) - 151);
+    const rows = Math.floor((H - G.top - 4) / G.row);
+    if (!(rows > 0)) return 1;
+    return rows >= n ? n : Math.max(1, rows - 1);
+  } catch (_){ return n; }
+}
+/* the window changes size: the Board's panel is drawn again only when what fits changed */
+if (typeof window !== 'undefined' && !window._hbHelloFitWired){
+  window._hbHelloFitWired = true;
+  let t = 0;
+  window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { try {
+    if (!hbBoardHelloOn() || typeof renderIntelDock !== 'function') return;
+    const shown = document.querySelectorAll('#igd-feed .hb-jb-hello [data-hbw-row]').length;
+    const D = typeof ndRead === 'function' ? ndRead() : null, all = D && typeof ndOnBoard === 'function' ? ndOnBoard(D).jambo.length : 0;
+    if (hbHelloFitN(all) !== shown) renderIntelDock();
+  } catch (_){} }, 200); });
 }
 /* the welcome's doors, each an existing one: the late and "show all" open the Board's Needs you on All (the late
    stand first there, ndBoardList), prepared opens it on Jambo's tab, ending soon the list behind the book's Ending
@@ -1808,6 +1847,8 @@ function hbNdOpts(A, since){
   const at = since || null;
   const done = (H.done && H.done.length) ? `<div class="hb-done">${_hbE(i18t('hb_done_since', { when: hbDayWords(at) }))} ${H.done.map(x => `<button type="button" data-hb-dig="dn:${_hbE(x.k)}">${_hbE(i18tn('hb_done_' + x.k, x.n, { n: _hbN(x.n) }))}</button>`).join('<span aria-hidden="true">·</span>')}<span class="hb-grow"></span><span class="hb-quiet">${_hbE(i18t('hb_done_trail'))}</span></div>` : '';
   let its = []; try { its = (typeof ndPieces === 'function') ? ndPieces().map(p => p.it) : []; } catch (_){ its = []; }
+  /* THE AGENTS' LEVELS LINE STAYS (review of the merged pages, 22 Nov 2026: P-39 does not draw it, but it is a working
+     control — an admin's Change, a member's Ask an admin — and working controls stay though undrawn) */
   const levels = hbAgLevelsHtml();
   const house = `<button type="button" class="hb-edge-b" data-hb-agents-page>${_hbE(i18t('hb_the_agents'))}</button>`;
   return { look: hbNdLookHtml, chase: hbChaseManyHtml(its), keep: !!done, foot: `<div class="nd-foot">${done}<div class="nd-foot-r">${levels || '<span class="hb-grow"></span>'}${house}</div></div>` };
@@ -6355,7 +6396,12 @@ function hbRdnTermQuote(c){
     for (const cl of cls){
       const title = String(cl.title || ''), text = String(cl.text || cl.html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
       if (!/\b(term|duration|renew\w*|expir\w*)\b/i.test(title + ' ' + text.slice(0, 200))) continue;
-      const sent = text.split(/(?<=[.;])\s+/).find(t => t.includes(yr) && /\b(term|end|expir|renew)/i.test(t));
+      const parts = text.split(/(?<=[.;])\s+/);
+      /* the sentence naming the end's year; where the paper states its term without a date ("The term is three (3)
+         years from the effective date…"), its own first sentence about the term — still the paper's words where the
+         term is read, never guessed (review of the merged pages, 22 Nov 2026: Explorer and Read down said no quote for a
+         term the paper plainly states) */
+      const sent = parts.find(t => t.includes(yr) && /\b(term|end|expir|renew)/i.test(t)) || parts.find(t => /\b(term|ends?|expir\w*|renew\w*)\b/i.test(t) && t.length > 20);
       if (sent){ const m = /^\s*(\d+(?:\.\d+)*)/.exec(String(cl.num || cl.number || title)); return { w: sent.replace(/[.;]$/, ''), sec: m ? '§ ' + m[1] : '', name: c.name || '' }; }
     }
   } catch (_){ return null; }
@@ -6756,22 +6802,9 @@ function hbArrivePage(){
   const parts = [...book.querySelectorAll('.hb-spark, .hb-stagebar')];
   parts.forEach(x => x.classList.add('jov-draw'));
   setTimeout(() => parts.forEach(x => { try { x.classList.remove('jov-draw'); } catch (_){} }), 2200);
-  book.querySelectorAll('.hb-fig-n').forEach(b => {
-    /* never twice at once (a second start would read the '0' as the true number), and the true number ALWAYS comes
-       back — by a timer as well as the last frame, since frames stop while the board is moved or hidden */
-    if (b.dataset.hbCounting) return;
-    const m = String(b.textContent || '').match(/^(\d{1,6})(\D.*)?$/); if (!m) return;
-    const to = Number(m[1]), rest = m[2] || '', was = b.textContent; if (!to) return;
-    const t0 = performance.now(), dur = 700, delay = 160;
-    /* a redraw that writes a NEW number meanwhile (hbMorph keeps the span, changes its text) wins: the count stops and
-       leaves that number alone — only a number this count wrote itself is put back */
-    let done = false, last = '';
-    const put = v => { last = v; b.textContent = v; };
-    const finish = () => { if (done) return; done = true; delete b.dataset.hbCounting; if (b.textContent === last) b.textContent = was; };
-    const step = now => { if (done) return; if (!b.isConnected || b.textContent !== last) { finish(); return; } const k = Math.min(1, Math.max(0, (now - t0 - delay) / dur)); if (k >= 1) { finish(); return; } put(Math.round(to * (1 - Math.pow(1 - k, 3))) + rest); requestAnimationFrame(step); };
-    b.dataset.hbCounting = '1'; put('0' + rest); requestAnimationFrame(step);
-    setTimeout(finish, delay + dur + 120);
-  });
+  /* the numbers count up OVER the true number, which the figure's own text keeps throughout (jovCountOver): a repaint
+     meanwhile (hbMorph) simply replaces the span and the count ends there */
+  if (typeof window.jovCountOver === 'function') book.querySelectorAll('.hb-fig-n').forEach(b => window.jovCountOver(b));
 }
 /* THE ONE TO START WITH (P-39, as drawn: "The one to start with: Fuel Supply’s renewal, “The Term ends on 20 December
    2026 unless renewed” § 2."): the first late row that is the reader's own to decide (else the first late row) whose paper
@@ -7500,7 +7533,10 @@ function hbMorph(host, html){
 function hbMorphSameShell(a, b){
   if (a.nodeType !== b.nodeType || a.nodeName !== b.nodeName) return false;
   if (a.nodeType !== 1) return true;
-  if (a.attributes.length !== b.attributes.length) return false;
+  /* a number counting up carries its count as a mark painted over it (data-jov-count, jovCountOver), never in its
+     words: the mark is not markup, so a redraw that writes the same number keeps the count going */
+  const extra = a.hasAttribute('data-jov-count') && !b.hasAttribute('data-jov-count') ? 1 : 0;
+  if (a.attributes.length - extra !== b.attributes.length) return false;
   for (const at of b.attributes) if (a.getAttribute(at.name) !== at.value) return false;
   return true;
 }
@@ -10311,7 +10347,9 @@ function hbAsk(q){
   }
   if (r.act === 'openc'){
     const c = hbContract(r.id); const K = hbCardData(c);
-    setTimeout(() => { if (typeof regOpenContract === 'function') regOpenContract(c.id); }, 0);
+    /* a contract not read whole yet is read first, its landing said meanwhile (navReadFirst, js/navmap.js) */
+    const open = () => { if (typeof regOpenContract === 'function') regOpenContract(c.id); };
+    if (!(typeof window.navReadFirst === 'function' && window.navReadFirst(c, open))) setTimeout(open, 0);
     return say(`${_hbE(i18t('hb_opening'))} <b>${_hbRefH(K.ref)} · ${_hbE(K.name)}</b>`, { noPaint: true });
   }
   if (r.act === 'analyze'){

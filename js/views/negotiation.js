@@ -8880,6 +8880,8 @@ function negoLiveList(){
    "with them for signature", never yours). */
 function negoNeedsYouTotal(){
   return negoLiveList().filter(c => {
+    /* the tab's own reading where the page is loaded (a deal opened with nothing filed is ours to write; P-29 review) */
+    if (typeof window.ngnBandOf === 'function') return window.ngnBandOf(c) === 'you';
     if (typeof window.negWhoseMove === 'function'){ const m = window.negWhoseMove(c); return m.k === 'you' && m.why !== 'handover'; }
     return negoNeedsYouIds(c).length > 0;
   }).length;
@@ -16509,11 +16511,15 @@ function rlNpRoomsHtml(c, room, counts, opts = {}, side = 'owner'){
   if (rooms.length < 2) return '';
   /* THE STRIPE WAY (P-38, as drawn): "Room", then a pill a room — Internal, then each outside party by name; the chosen
      one filled in ink. The same rooms and the same press (data-rl-np-room). */
-  if (opts.stripe) return `<div class="rl-np-tabs rl-np-rooms" role="tablist"><span class="rl-np-rooms-k">${_ne(i18t('ng_np_room_label'))}</span>${rooms.map(r =>
+  /* THEIR PAGE, AS DRAWN (P-44 review, 22 Nov 2026): "With", the other side first, then "Your team" — the same rooms and
+     the same press; their team's room is still where they land (rlNpRoomNow), the quiet one */
+  const theirSeat = side !== 'owner' && PORTAL_MODE;
+  const shown = theirSeat ? rooms.filter(r => r.external).concat(rooms.filter(r => !r.external)) : rooms;
+  if (opts.stripe) return `<div class="rl-np-tabs rl-np-rooms" role="tablist"><span class="rl-np-rooms-k">${_ne(i18t(theirSeat ? 'ng_np_room_with' : 'ng_np_room_label'))}</span>${shown.map(r =>
       `<button type="button" role="tab" class="rl-np-tab rl-np-room${r.key === room ? ' on' : ''}" data-rl-np-room="${_nea(r.key)}" aria-selected="${r.key === room}" title="${_nea(r.external
         ? i18t('ng_np_room_t_ext', { who: r.name || '' }) : i18t('ng_np_room_t_int'))}">${_ne(r.external ? (r.name || i18t('ng_np_tab_ext'))
-        /* on their own pages their team's room keeps its name ("… · your team"); on ours it is "Internal", as drawn */
-        : (PORTAL_MODE && r.name) ? i18t('ng_np_room_us', { org: r.name }) : i18t('ng_np_tab_int'))}</button>`).join('')}</div>`;
+        /* on their own pages their team's room is "Your team" (P-44 review, as drawn); on ours it is "Internal" */
+        : theirSeat ? i18t('ng_np_room_your_team') : (PORTAL_MODE && r.name) ? i18t('ng_np_room_us', { org: r.name }) : i18t('ng_np_tab_int'))}</button>`).join('')}</div>`;
   const by = (counts && counts.byRoom) || {};
   return `<div class="rl-np-tabs" role="tablist">
       ${rooms.map(r => {
@@ -17685,6 +17691,9 @@ function rlNpCompactHtml(c, ch, th){
   const home = ch || ((th.root.anchor && window.negoNoteHomeFor) ? negoNoteHomeFor(c, th.root.anchor.clauseId) : null);
   return `<button type="button" class="rl-np-crow" data-rl-np-open="${_nea(key)}"${home ? ` data-rl-np-chg="${_nea(home.id)}" title="${_nea(home.id)}"` : ''}>
       <span class="rl-np-ch">${S.sec ? `<span class="rl-np-sec">${_ne(S.sec)}</span>` : ''}<b>${_ne(S.name || i18t('ng_np_on_contract'))}</b><span class="rl-np-st is-${st}">${_ne(i18t('ng_np_st_' + st))}</span></span>
+      ${''/* THE PAPER'S WORDS THE NOTE IS PINNED TO, quoted under its clause (P-38, the Legora + Stripe way, as drawn); a
+             note pinned to no words says none */}
+      ${th.root.anchor && th.root.anchor.quote ? `<q class="rl-np-cq">${_ne(String(th.root.anchor.quote).replace(/\s+/g, ' ').trim())}</q>` : ''}
       <span class="rl-np-cl">${rlNpAvatarHtml(last.who || '', true)}<span class="w">${_ne(words)}</span><span class="t">· ${_ne(negoWhen(last.at))}</span></span>
       ${earlier ? `<span class="rl-np-ce">${_ne(i18tn('ng_np_earlier', earlier, { n: earlier }))} · <u>${_ne(i18t('ng_np_show'))}</u></span>` : ''}
     </button>`;
@@ -17704,8 +17713,8 @@ function rlNpOpenHtml(c, ch, th, room, side, other, opts){
     ${opts.rooms || ''}
     <div class="rl-np-ch is-head">${S.sec ? `<span class="rl-np-sec">${_ne(S.sec)}</span>` : ''}<b>${_ne(S.name || i18t('ng_np_on_contract'))}</b><span class="rl-np-st is-${st}">${_ne(i18t('ng_np_st_' + st))} · ${_ne(i18tn('ng_np_msgs', msgs.length, { n: msgs.length }))}</span></div>
     ${opts.headRef || ''}
-    ${''/* the words the note was written on stay said, once, under the clause (the drawing shows none; a note pinned to
-           words would otherwise lose them — named to the owner) */}
+    ${''/* the words the note was written on, once, under the clause — lit amber, as the Legora + Stripe way draws them
+           (P-38), so everyone argues about the same words */}
     ${th.root.anchor && th.root.anchor.quote ? `<p class="rl-np-on-q"><q>${_ne(th.root.anchor.quote)}</q></p>` : ''}
     <div class="rl-np-people">${who.slice(0, 4).map(n => rlNpAvatarHtml(n, true)).join('')}<span>${_ne(i18tn('ng_np_people', who.length, { n: who.length }))} · ${_ne(i18t('ng_np_last', { when: negoWhen(last.at) }))}</span></div>
     <div class="rl-np-tl">${rlNpThreadHtml(c, ch, th, room, side, other, { ...opts, stripe: true })}</div>
@@ -17817,7 +17826,7 @@ function rlChatPanelHtml(c, opts = {}){
        the contract-wide one; and "nothing has been written on this contract"
        was printed even while the other room held notes */
     : (all.length ? null : rlNotesEmptyFive(c, ext, other)) != null ? `<div class="rl-np-empty is-five">${rlNotesEmptyFive(c, ext, other)}</div>` : `<div class="rl-np-empty">
-        <b>${ext ? i18t('ng_chat_none_ext', { who: _ne(other) }) : i18t('ng_chat_none_int')}</b>
+        <b>${ext ? i18t('ng_chat_none_ext', { who: _ne(other) }) : i18t(side === 'counterparty' ? 'ng_chat_none_team' : 'ng_chat_none_int')}</b>
         ${all.length ? '' : `<span>${i18t('ng_chat_empty')}</span>`}
       </div>`);
   /* AS DRAWN (P-38, the Stripe way): the chips, the rooms as a labelled line of pills, the write box at the top; no
@@ -22113,7 +22122,11 @@ function rlRowByHtml(ch, short){
   /* "You · today" on our own row (round 9 as drawn); anyone else's name in
      the card's short form, "Anna H." (owner, 13 Aug 2026: a name on a change
      card is first name plus initial; the whole name stays on the hover) */
-  const words = [who ? (rlRowIsMine(ch) ? i18t('ng_row_you') : (typeof short === 'function' ? short(who) : who)) : '', when].filter(Boolean).join(' · ');
+  /* THEIR PAGE'S NEW LOOK NAMES THE PARTY (P-44 review, 22 Nov 2026, as drawn: "Highland · today"): our change on their
+     cards says our party, theirs says You; the person stays on the hover */
+  const out = rlOnTheirPage() && typeof window.portalOutOn === 'function' && window.portalOutOn() && typeof window.portalOutShort === 'function';
+  const party = out ? (ch && ch.authorSide === 'counterparty' ? i18t('pol_h_you') : portalOutShort((window.PORTAL_OPTS && PORTAL_OPTS.payload && PORTAL_OPTS.payload.org) || '')) : '';
+  const words = [party || (who ? (rlRowIsMine(ch) ? i18t('ng_row_you') : (typeof short === 'function' ? short(who) : who)) : ''), when].filter(Boolean).join(' · ');
   return words ? `<span class="rl-card-by" title="${_nea([who, ch.id].filter(Boolean).join(' · '))}">${_ne(words)}</span>` : '';
 }
 /* ---- A COUNTER THAT UNDOES ONLY PART OF THEIR ASK SAYS WHAT IT KEEPS (owner,

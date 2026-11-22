@@ -139,6 +139,12 @@ async function reset(P, base){
     await P.goto(base + '/', { waitUntil: 'networkidle' });
     await until(P, () => !!(window.state && state.view && Array.isArray(state.contracts) && state.contracts.length && typeof hbkOpen === 'function'), null, 20000);
     await P.evaluate(() => { state.aiConfigured = true; });
+    /* RE-POINTED 22 Nov 2026 (P-43, the owner's Settings drawing: a sheet HOLDS every write until its Save): the fresh
+       load lands back where the last picture stood (A REFRESH LANDS AT THE SAME SPOT), so a Settings sheet a picture
+       opened (3.5's Internal review) stands open again, and the pref written below would wait in it as the sheet's own
+       edit — every later door then asked "leave without saving?" and nothing after 3.5 could land. The sheet is shut
+       by its own close first, as this reset says ("a Settings page open never stands in the next"). */
+    await P.evaluate(() => { try { if (document.querySelector('#st-drawer.open') && typeof stDrawerClose === 'function') stDrawerClose(); } catch (_){} });
     /* a picture taken in the new look leaves it on (it is the person's own setting): off again for the next one */
     await P.evaluate(async () => { if (typeof newLookOn === 'function' && newLookOn() && typeof stPrefSet === 'function'){ await stPrefSet('newLook', false); if (typeof newLookApply === 'function') newLookApply(); } });
   }
@@ -167,7 +173,7 @@ async function reset(P, base){
 
     if (!ONLY.length){
       /* ---- 1 the doors in ---- */
-      /* RE-POINTED 21 Nov 2026 (P-38): the Guide's door opens the nav panel at the left; its Book stage ends Handbook, Settings */
+      /* RE-POINTED 21 Nov 2026 (P-38): the Guide's door opens the nav panel (in the middle again since 22 Nov 2026); its Book stage ends Handbook, Settings */
       await P.evaluate(() => { setView('counter'); openPanel('guide'); });
       await until(P, () => document.querySelector('#cmd-palette [data-lp-go="handbook"]'));
       const rows = await P.evaluate(() => [...document.querySelectorAll('#cmd-palette .lp-p[data-lp-go]')].map(b => b.getAttribute('data-lp-go')));

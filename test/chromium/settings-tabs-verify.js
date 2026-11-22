@@ -399,7 +399,8 @@ const signIn = async (page, base, email, pass) => {
     await page.evaluate(() => { document.getElementById('rv-gate-on').checked = false;
       document.getElementById('rv-gate-on').dispatchEvent(new Event('change', { bubbles: true })); });
     await page.waitForTimeout(500);
-    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+    /* RE-POINTED 22 Nov 2026 (P-43 review): the sheet held both presses; Cancel puts it back with nothing written (Escape would ask first) */
+    await page.click('#st-dfoot [data-st-dcancel]').catch(() => null); await page.waitForTimeout(300);
 
     /* RE-POINTED 4 Oct 2026 (the process review, approved): the limit and the
        folder rule each have a row of their own now, under "Before anyone

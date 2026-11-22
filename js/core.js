@@ -1677,6 +1677,10 @@ async function decisionFreshen(c){
   return true;
 }
 async function saveSettings(){
+  /* A SETTINGS SHEET HOLDS ITS EDITS UNTIL SAVE (P-43, 22 Nov 2026): while a sheet from the right is open, a write
+     waits in the sheet (js/views/settings.js, stHoldTake) and leaves once, on its Save; Cancel throws it away. The
+     server is still the wall: the one write that leaves is this same PUT. */
+  if(typeof window!=='undefined' && typeof window.stHoldTake==='function' && window.stHoldTake('settings')) return true;
   if(API_MODE()){
     /* H-3: folderAccess is an access-control map and is written ONLY through its
        own atomic endpoint. Never include it in a whole-blob save — that is what
@@ -1695,9 +1699,10 @@ async function saveSettings(){
          answers with the lanes as it stored them, so the lanes panel names the
          right default without a reload. Nothing else in the answer is taken. */
       if(r && Array.isArray(r.intakeLanes) && state.settings) state.settings.intakeLanes=r.intakeLanes;
-    }catch(e){ toast(i18t('co_settings_save_failed')+e.message,'err'); }
+    }catch(e){ toast(i18t('co_settings_save_failed')+e.message,'err'); return false; }
   }
   else persist();
+  return true;
 }
 /* The company default document design (DESIGN-contract-designer.md §2),
    cached on window for the synchronous render paths. Server mode reads the
@@ -3175,7 +3180,9 @@ function trapFocus(panel, opts={}){
     const lgp=!!panel.querySelector('.lgp');
     if(lgp && panel.contains(document.activeElement) && document.activeElement!==panel) return;
     /* the bell's side panel too: its ✕ arrives with no ring (P-38) */
-    const quiet=lgp||panel.id==='context-panel';
+    /* and a PAGE (openModal's page mode, data-dlg-page): its "‹ Back to …" arrives with no ring either (P-44 review,
+       22 Nov 2026: History's "Back to the paper" landed ringed) — a page is arrived at, never tabbed to */
+    const quiet=lgp||panel.id==='context-panel'||panel.hasAttribute('data-dlg-page')||panel.classList.contains('pt-alerts');
     const f=focusables(); fieldFocus(f[0]||panel, quiet ? {preventScroll:true, focusVisible:false} : {preventScroll:true});
   },0);
   let done=false;

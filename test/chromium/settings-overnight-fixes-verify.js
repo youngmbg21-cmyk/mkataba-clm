@@ -94,8 +94,10 @@ const openSettings = async (page, tab) => {
     await page.waitForTimeout(250);
     await page.click('#ar-save');
     const saved = await until(page, () => !document.getElementById('ar-save') && (approvalRules() || []).length === 1);
-    check('D1 a press on Save writes the rule', saved, `${await page.evaluate(() => (approvalRules() || []).length)} rule(s)`);
-    await page.evaluate(() => stDrawerClose());
+    check('D1 a press on Save puts the rule in the sheet', saved, `${await page.evaluate(() => (approvalRules() || []).length)} rule(s)`);
+    /* RE-POINTED 22 Nov 2026 (P-43 review): the sheet holds the rule until its own Save, which writes it and closes the sheet */
+    await page.evaluate(async () => { const b = document.getElementById('st-dsave'); if (b && window.stHoldSave) await stHoldSave(b); });
+    check('D1 and the sheet\'s Save keeps it', await until(page, () => !document.querySelector('body > #st-drawer.open') && (approvalRules() || []).length === 1));
 
     /* ================= D2 — re-file alone saves ================= */
     const rid = W.users.restricted.id;

@@ -105,7 +105,10 @@ describe('f869 (2) the bell\'s signals: news apart, work never lost, never twice
     const D2 = w2.ndRead();
     assert.equal(D2.you.map(r => r.key).join(','), 'company', 'one row, the admin\'s own, last');
     const C2 = w2.ndParts(D2.you[0]);
-    assert.match(C2.title, / · 2$/, 'the mail warning counted once'); assert.match(C2.deal, /^Email isn’t set up · Answer Sara$|^Email isn't set up · Answer Sara$/);
+    /* RE-POINTED 22 Nov 2026 (review of merged pages): the company row keeps the table's shape — ONE line under what
+       waits (the mail warning leads it), the Agreement column names where the work is, the count says the rest */
+    assert.match(C2.title, / · 2$/, 'the mail warning counted once'); assert.match(C2.deal, /^Email isn’t set up$|^Email isn't set up$/);
+    assert.equal(C2.line, C2.deal, 'the one line under what waits');
     const w = world({ pieces: [week], company: [{ key: 'ask:1', text: 'Answer Sara' }],
       alerts: [al('obligation', 'MK-2', 'Due in 2 days', { obId: 'ob-1' }), al('renewal', 'MK-3', 'Ends in 20 days', { ends: true }),
         al('settings-ask'), al('access-review'), al('email-off'), al('obligation', 'MK-1', 'Overdue: the report', { obId: 'ob-7', late: true })] });
