@@ -22892,3 +22892,4 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - Noticed, not fixed: f805 (2c) is red before this change — it expects jlFrame to build its box with `jlAskHtml({ placeholder: opt.jlPh })`, but js/views/inspector.js now passes a page's own question (JL_PAGE_ASKS).
 - Noticed, not fixed: import-as-drawn-verify 10a is red before this change for the same reason — Import's box now asks "Ask Jambo: “which ones end this year?”", the check still wants "Ask Jambo, or type / for a place".
 - Removed with the 20 Nov layout (said to the owner): the check's side-panel cards and their "Use:" chips (the answers moved into the rows) and the "Read from the file." small print.
+- 22 Nov 2026 — Noticed, not fixed: f148 "no Swedish value is a forgotten copy of the English" is red on main for rd_th_status and rd_brief_jambo (Discover's words), not from the Import check build.
