@@ -90,8 +90,9 @@ const PAGE = () => {
     n: cards.length,
     names: cards.map(c => txt(c, '.cun-name')),
     /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): the Role cell is the second cell, a
-       soft badge (.reg-badge); td.cun-wait is now only the Waiting on them cell */
-    roles: cards.map(c => { const td = c.children[1]; const b = td && td.querySelector('.reg-badge'); return b ? b.textContent.replace(/\s+/g, ' ').trim() : ''; }),
+       soft badge (.reg-badge); td.cun-wait is now only the Waiting on them cell.
+       RE-POINTED 22 Nov 2026 (P-26 review): the badge is the house's soft badge, the one Parties wears (.cun-badge, 6px corners, 12px) */
+    roles: cards.map(c => { const td = c.children[1]; const b = td && td.querySelector('.cun-badge'); return b ? b.textContent.replace(/\s+/g, ' ').trim() : ''; }),
     subs: cards.map(c => txt(c, '.cun-sub')),
     rowLinks: cards.reduce((n, c) => n + c.querySelectorAll('a').length, 0),
     words: (document.getElementById('dir-page') || {}).textContent || '',
@@ -229,7 +230,12 @@ const PAGE = () => {
        the All tab's own number */
     const edge = await page.evaluate(() => ({ az: !!document.querySelector('#dir-page .dir-az'), foot: ((document.querySelector('#dir-page .apn-foot') || {}).textContent || '').trim(),
       all: Number((document.querySelector('#dir-page [data-dirn-tab="all"] span') || {}).textContent || NaN) }));
-    check('no A to Z edge; the foot says how many are shown', !edge.az && new RegExp('^' + edge.all + ' (people|person)$').test(edge.foot), JSON.stringify(edge));
+    /* RE-POINTED 21 Nov 2026 (P-26, as drawn): the drawing has no foot line under the table — the chips say how many
+       (All N); the rule kept is that the All chip's number is the rows the page holds (no cap, nothing trimmed) */
+    const rowsAll = await page.evaluate(() => { const b = document.querySelector('#dir-page [data-dirn-tab="all"]'); if (b) b.click(); return new Promise(r => setTimeout(() => r(document.querySelectorAll('#dir-page #dir-tbody tr[data-dir-row]').length), 500)); });
+    check('no A to Z edge, no foot line; the All chip counts every row', !edge.az && !edge.foot && edge.all === rowsAll, JSON.stringify(Object.assign({ rowsAll }, edge)));
+    await page.evaluate(() => { const b = document.querySelector('#dir-page [data-dirn-tab="outside"]'); if (b) b.click(); });
+    await page.waitForTimeout(500);
     await page.reload({ waitUntil: 'networkidle' });
     await page.waitForTimeout(2200);
     const kept = await page.evaluate(() => ({ view: state.view, tab: (document.querySelector('#dir-page [data-dirn-tab].is-on') || { getAttribute: () => null }).getAttribute('data-dirn-tab') }));
