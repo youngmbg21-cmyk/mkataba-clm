@@ -137,6 +137,23 @@ const check = (name, pass, detail) => {
       ex2s.push((await act(() => hbSetFace('explorer'), onFace('explorer'))).max);
     }
     const ex2 = { max: mid(ex2s) };
+    /* WHERE THE RETURN'S TIME GOES (22 Nov 2026, printed only, judges nothing): one more return, under the browser's own
+       profiler, its ten heaviest functions by time spent in them, so a slow return names its cause */
+    let prof = '';
+    try {
+      const cdp = await page.context().newCDPSession(page);
+      await act(() => hbSetFace('board'), onFace('board'));
+      await cdp.send('Profiler.enable'); await cdp.send('Profiler.setSamplingInterval', { interval: 200 }); await cdp.send('Profiler.start');
+      await act(() => hbSetFace('explorer'), onFace('explorer'));
+      const { profile } = await cdp.send('Profiler.stop');
+      const self = {}, byId = new Map(profile.nodes.map(n => [n.id, n]));
+      const dt = profile.timeDeltas || [];
+      (profile.samples || []).forEach((id, i) => { const n = byId.get(id); const cf = n && n.callFrame; const k = cf ? (cf.functionName || '(anon)') + ' ' + String(cf.url || '').split('/').pop() + ':' + cf.lineNumber : '?'; self[k] = (self[k] || 0) + (dt[i] || 0) / 1000; });
+      prof = Object.entries(self).filter(([k]) => !/^\((idle|program|garbage collector)\)/.test(k)).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, v]) => k + ' ' + Math.round(v) + 'ms').join(' | ');
+      const gc = Object.entries(self).filter(([k]) => /^\((program|garbage collector)\)/.test(k)).map(([k, v]) => k.split(' ')[0] + ' ' + Math.round(v) + 'ms').join(' | ');
+      prof += gc ? ' || ' + gc : '';
+    } catch (e) { prof = 'profile failed: ' + e.message; }
+    console.log('RETURN PROFILE (self time): ' + prof);
     check('2. the second Explorer arrival freezes under half of the first (the middle of five returns)', ex2.max < Math.max(60, ex1.max / 2), `first ${ex1.max} · return ${ex2.max} (${ex2s.join(' ')}) ms`);
     /* (5, a second visit to Home, is pinned in f567 rather than timed: the
        first visit measured anywhere from 41 to 191 ms busy run to run, so a

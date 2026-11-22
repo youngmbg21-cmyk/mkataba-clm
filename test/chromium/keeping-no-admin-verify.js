@@ -51,9 +51,13 @@ const K = (id, name, end) => ({ ...H.fixtureContract(id, name, 'Board Counsel LL
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await page.waitForFunction(() => window.state && Array.isArray(state.contracts), null, { timeout: 20000 });
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe; the access check's card on the landing): the
+       landing's needs stop where the panel's room does ("N more" → the Need you chip, acNeedsRoom), and a stream's need
+       comes last; every Company need is said whole in the Company area's own panel (sddGo('company')), the same door */
     const toCompany = () => until(() => {
       if (!document.querySelector('.stn-page')) { setView('team'); return null; }
-      return document.querySelector('#ins-panel .jov5-row') ? true : null; }, null, 15000);
+      if (!document.querySelector('.stn-page[data-sdd-area="company"]')) { sddGo('company'); return null; }
+      return document.querySelector('#ins-panel .jov5-title') ? true : null; }, null, 15000);
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings is one list; what needs an admin is a row
        in Jambo's panel beside it ("Needs an admin"), the row itself the door (the need's own press: the stream's page) */
     const NEED = '#ins-panel .jov5-row[data-st-panel="stream:sales"]', READY = '#ins-panel .jov5-row[data-st-panel="stream:sales@keeping"]';
@@ -80,6 +84,7 @@ const K = (id, name, end) => ({ ...H.fixtureContract(id, name, 'Board Counsel LL
         const gone = await until(sel => { return !document.querySelector(sel) && state.keeping && !(state.keeping.unseen || []).length ? true : null; }, NEED, 10000);
         check('3a the row goes as soon as the stream names an admin', !!gone);
         await page.evaluate(() => { if (typeof stDrawerClose === 'function') stDrawerClose(); settingsGoPage(''); });
+        await toCompany();
         const after = await until(sel => { const r = document.querySelector(sel); return r ? [...r.querySelectorAll('.jov5-rt > *')].map(x => x.textContent).join(' ').replace(/\s+/g, ' ').trim() : null; }, READY, 8000);
         check('3b and the stream\'s contracts come into this admin\'s own Ready to delete', !!after && /Ready to delete · Sales/.test(after), String(after));
       }

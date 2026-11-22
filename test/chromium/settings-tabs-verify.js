@@ -126,7 +126,8 @@ const signIn = async (page, base, email, pass) => {
       bad.length === 0, bad.slice(0, 4).join(' | ') || panelKeys.join(', '));
     /* RE-POINTED 16 Nov 2026 (#762): Data & backup has no door on the one list; opened by its name, it is its page */
     await page.evaluate(() => { openSettingsAt('company'); settingsGoPage('data'); });
-    const dataPage = await page.waitForFunction(() => !!document.querySelector('[data-st-pg="data"] .st-pg-t'), null, { timeout: 5000 }).then(() => true, () => false);
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe): the page's name is its head's serif title */
+    const dataPage = await page.waitForFunction(() => !!document.querySelector('[data-st-pg="data"]') && /Data/.test((document.querySelector('#set-page[data-st-ls="data"] .st-ls-head .sdd-title') || {}).textContent || ''), null, { timeout: 5000 }).then(() => true, () => false);
     check('Data & backup, by its name, opens its page (round 26)', dataPage);
     await page.evaluate(() => settingsGoPage(''));
 
@@ -262,16 +263,23 @@ const signIn = async (page, base, email, pass) => {
     /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the drawing is
        the target): the yellow banner went; each person's row carries a Setup
        cell saying what is missing, and the People tab counts the unfinished. */
-    const people = await page.evaluate(() => ({
-      rows: document.querySelectorAll('.st-person').length,
-      chips: [...document.querySelectorAll('.st-person .st-setup')].map(c => c.textContent.trim()),
-      banner: !!document.getElementById('st-people-banner'),
-      /* since the full build (16 Oct 2026) the Team table's head counts them */
-      tabN: ((((document.querySelector('.st-people-unf') || {}).textContent || '').match(/\d+/) || ['0'])[0]),
-      warnRows: [...document.querySelectorAll('.st-person')].filter(r => r.querySelector('.st-setup.is-warn')).map(r => r.textContent.replace(/\s+/g, ' ').trim().slice(0, 40)),
-    }));
+    /* RE-POINTED 22 Nov 2026 (Settings' six pages inside, Legora + Stripe; the owner's pick: "Set up a soft amber badge",
+       chips "All · Need you · Admins · Editors"): the Setup cell is the table's last column under its head "Set up", a
+       soft badge (amber with what is missing, green when complete); the unfinished are counted on the head's Need you
+       chip ([data-st-ls-chip="team:need"]) */
+    const people = await page.evaluate(() => {
+      const ths = [...document.querySelectorAll('.st-people-table thead th')].map(t => t.textContent.trim()), at = ths.length - 1;
+      const cell = r => r.cells && r.cells[at];
+      const rows = [...document.querySelectorAll('.st-person')];
+      return {
+        rows: rows.length, head: ths[at] || '',
+        chips: rows.map(r => cell(r)).filter(c => c && c.querySelector('.apn-st')).map(c => c.textContent.trim()),
+        banner: !!document.getElementById('st-people-banner'),
+        tabN: ((((document.querySelector('[data-st-ls-chip="team:need"] span') || {}).textContent || '').match(/\d+/) || ['0'])[0]),
+        warnRows: rows.filter(r => { const c = cell(r); return c && c.querySelector('.apn-st.is-amber'); }).map(r => r.textContent.replace(/\s+/g, ' ').trim().slice(0, 40)),
+      }; });
     check('every member is a row with a Setup cell',
-      people.rows >= 4 && people.chips.length === people.rows, `${people.rows} rows · ${people.chips.join(', ')}`);
+      people.rows >= 4 && /^Set ?up$/i.test(people.head) && people.chips.length === people.rows, `${people.rows} rows · ${people.head} · ${people.chips.join(', ')}`);
     /* since 16 Oct 2026 the count is at the head of the Team table */
     check('and the unfinished are counted at the head of the table and named on their own rows, with no banner',
       !people.banner && people.tabN === String(people.warnRows.length) && people.warnRows.some(t => /Restricted Legal|No Values Legal|Unrestricted Legal/.test(t)),

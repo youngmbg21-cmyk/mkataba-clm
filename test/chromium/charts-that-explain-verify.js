@@ -117,6 +117,10 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
 
     /* 5 — dig deeper: the analyst, played back (no key in CI); the board's
        own arithmetic runs every step */
+    /* RE-POINTED 22 Nov 2026: step 4 now stands in Read down, which stays up until its way back is pressed — step 5
+       goes back to the Board first, as a person would (bounded) */
+    await page.evaluate(() => { const b = document.querySelector('[data-rd-back]'); if (b) b.click(); });
+    await until(() => !document.querySelector('.rd-brief') ? true : null);
     await page.evaluate(() => {
       const real = window.api; window._dd = [];
       const steps = [
