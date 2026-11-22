@@ -120,7 +120,9 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
     check('1a the head greets the reader, and says that it is live and when it was counted', !!hd && !!hd.greet && hd.title === hd.greet && !hd.day.trim() && hd.live && /^· counted \d{1,2}[:.]\d{2}/.test(hd.at) && hd.first, JSON.stringify(hd));
     /* RE-POINTED 29 Oct 2026 (owner: "the jambo count next to summarise my board disappears"): the cost is said in its hover, never on its face */
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
-    check('1b Summarise my board stands in the head, no cost on its face or its hover', !!hd && hd.cost === '' && (!hd.keyed || /Summarise my board/.test(hd.btn || '')), JSON.stringify(hd && { keyed: hd.keyed, cost: hd.cost, btn: hd.btn }));
+    /* RE-POINTED 22 Nov 2026 (owner: "combine summarise my board into read down"): Summarise left the Board's head; it
+       stands in Read down's brief (read-down-stripe-verify) */
+    check('1b Summarise my board is not in the Board\'s head (it lives in Read down now)', !!hd && hd.btn === null, JSON.stringify(hd && { btn: hd.btn }));
 
     /* RE-POINTED (owner, 10 Nov 2026): the saved views left the Board's head; they are blue links under Your day in
        Jambo's panel on Explorer (igSavedViewsHtml), where "+ Save this view" opens a name box */
@@ -182,8 +184,9 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
         badge: (dock.querySelector('[data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || '', tabs: dock.querySelectorAll('.igd-head .pd-tab').length, ending: hbBookData('all').figs.ending.n }; }, null, 10000);
     /* RE-POINTED 28 Oct 2026 (owner picked "Door above the box"): Overview alone, no Jambo tab */
     check('5a one tab, Overview, and no word beside it', !!jb && jb.word === '' && jb.tabs === 1, jb && JSON.stringify({ word: jb.word, tabs: jb.tabs }));
-    check('5b the Overview opens on the brain and his one line, and no greeting',
-      !!jb && jb.brain && !!jb.head && !jb.hello, jb && (jb.head + ' | brain ' + jb.brain));
+    /* RE-POINTED 22 Nov 2026 (owner: "delete this explorer feature from the board side panel"): no brain card */
+    check('5b the Overview opens on his one line, with no Explorer map, and no greeting',
+      !!jb && !jb.brain && !!jb.head && !jb.hello, jb && (jb.head + ' | brain ' + jb.brain));
     check('5c his questions under "Ask me" — "which N end in 90 days?" only while any do, "what needs me" while anything does',
       !!jb && JSON.stringify(jb.chips) === JSON.stringify([jb.ending ? `which ${jb.ending} end in 90 days?` : null, 'value by stream', 'my saved views', jb.n ? 'what needs me' : null].filter(Boolean)), jb && JSON.stringify(jb.chips));
     /* RE-POINTED 21 Nov 2026 (P-39, as drawn): the sentence goes on "; the oldest has waited N days." (owner: count every row) */

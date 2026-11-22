@@ -58,8 +58,9 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
        this check reads only that the title is there, so it stands as written */
     const up = await until(page, () => !!document.querySelector('#rd-page') && !!document.querySelector('#ig-dock .rd-five .jov5-title'), null, 15000);
     const S = up ? await page.evaluate(() => ({ eyebrow: document.querySelector('.rd-eyebrow').textContent, h: document.querySelector('.rd-h').textContent,
-      rows: [...document.querySelectorAll('.rd-row')].map(r => ({ t: r.querySelector('.rd-t').textContent, src: r.querySelector('.rd-src b').textContent, go: (r.querySelector('[data-rd-go]') || {}).dataset ? r.querySelector('[data-rd-go]').dataset.rdGo : '' })),
+      rows: [...document.querySelectorAll('.rd-tbl tbody tr')].map(r => ({ t: r.querySelector('.rd-td-t').textContent, src: r.querySelector('.rd-td-src').textContent, go: (r.querySelector('[data-rd-go]') || {}).dataset ? r.querySelector('[data-rd-go]').dataset.rdGo : '' })),
       qs: document.querySelectorAll('.rd-q').length, foot: [...document.querySelectorAll('.rd-foot [data-rd-go]')].map(b => b.dataset.rdGo), n: hbRdnBook().length })) : null;
+    /* RE-POINTED 22 Nov 2026 (owner's pick "the Stripe way"): the five sentences are a table's rows (Reading · Status · Source · Open) */
     check('2a Read down sits in the Board\'s head, with no DNA beside it', btn);
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ 
     check('2b the page as drawn: no cost said, the title, five sentences each with its source and door, the quarters, the doors at the foot', !!S && !/call|free/i.test(S.eyebrow) && S.h === 'Your book, read down.'
@@ -69,7 +70,7 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
 
   /* 3 · a door goes there; back comes back */
   try {
-    await page.click('.rd-row [data-rd-go="calendar"]');
+    await page.click('.rd-tbl [data-rd-go="calendar"]');
     const went = await until(page, () => !document.querySelector('#rd-page') && !!document.querySelector('#hb-cal'), null, 15000);
     await page.evaluate(() => caGo({ kind: 'go', place: 'board' }));
     await until(page, () => !!document.querySelector('#hb-bhead [data-hb-rdn]'), null, 15000);
