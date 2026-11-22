@@ -57,7 +57,8 @@ test('f1070 (2) each panel says the five parts in the new look, by the page\'s o
   assert.match(cu, /data-cu-pr-edit=/); assert.match(cu, /data-cun-ppl=/); assert.match(cu, /data-cun-cts=/); assert.match(cu, /data-cun-add-ct=/);
   /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way, "L+S and ring"): the panel draws a ring
      again — the share of the party's agreements signed (cunRingSvg), never money; Open party and the web search stay gone */
-  assert.match(cu, /cunRingSvg\(n\.signed, r\.items\.length, 48\)/);
+  /* RE-POINTED 21 Nov 2026 (P-25, as drawn): the ring counts the party's agreements not put away (total) */
+  assert.match(cu, /cunRingSvg\(n\.signed, total, 44\)/); /* RE-POINTED 22 Nov 2026 (P-25 review): 44, the drawing's ring, so the panel's Contacts stand in view at 1536×730 */
   assert.doesNotMatch(cu, /data-cun-web|data-cun-open/);
   /* RE-POINTED (P-11, 17 Nov 2026): Settings' panel is the Dossier card (sddCardHtml); its need rows keep their own press */
   const st = region(read('js/views/settings.js'), 'function sddCardHtml(admin, ctx){', '/* ---- presses:');

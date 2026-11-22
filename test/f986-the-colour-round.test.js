@@ -16,10 +16,12 @@ const fnBody = (src, name) => { const i = src.indexOf('function ' + name + '(');
 test('Parties: kind chips, initials in the stream\'s tone, what waits in amber', () => {
   const f = fnBody(read('js/views/customers.js'), 'cunRowHtml');
   /* RE-POINTED 19 Nov 2026 (the SAP way, revised): the streams have their own column, the first one a chip in its tone */
-  assert.match(f, /listChipHtml\(toneOf\(v\.streams\[0\]\), streamNames\[0\]\)/);
+  /* RE-POINTED 21 Nov 2026 (P-25, as drawn): the first stream a soft square badge in its own tone (no dot) */
+  assert.match(f, /class="cun-badge is-\$\{esc\(toneOf\(v\.streams\[0\]\)\)\}"/);
   assert.match(f, /class="cun-av is-\$\{avTone\}"/);
   assert.match(f, /cun-wait\$\{ws \? ' is-owed' : ''\}/);
   assert.match(CSS, /html\.lg-new td\.cun-wait\.is-owed\{color:var\(--st-amber-fg\)\}/);
+  assert.match(CSS, /html\.lg-new \.cun-badge\.is-amber\{background:var\(--st-amber-bg\);color:var\(--st-amber-fg\)\}/);
 });
 /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): the pink workload bar is gone ("no pink
    bar"); the colour is the side — initials and the role's soft badge green for our team, steel for the other side — and
@@ -29,7 +31,8 @@ test('People: the side in colour, what waits in amber', () => {
   assert.doesNotMatch(S, /dirnLoadBarHtml|_dirnMost/);
   assert.match(fnBody(S, 'dirnRowHtml'), /const tone = ours \? 'green' : 'steel';/);
   assert.match(fnBody(S, 'dirnRowHtml'), /class="cun-av is-\$\{tone\}"/);
-  assert.match(fnBody(S, 'dirnRowHtml'), /w\.length \? `<span class="apn-st is-amber">/);
+  /* RE-POINTED 22 Nov 2026 (P-26 review): the house's soft badge, the one Parties wears (.cun-badge) */
+  assert.match(fnBody(S, 'dirnRowHtml'), /w\.length \? `<span class="cun-badge is-amber">/);
   assert.doesNotMatch(CSS, /html\.lg-new \.dirn-load\{/);
   assert.match(CSS, /html\.lg-new \.cun-av\.is-green\{/);
 });

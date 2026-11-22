@@ -58,7 +58,10 @@ test('f977 (4) say it once', () => {
      the phone is the panel's "Phone them" (data-dirn-call) — so there is no column left to step out when no row has one */
   assert.doesNotMatch(strip(fnBody(read('js/views/directory.js'), 'dirnRowHtml')), /reach:/);
   assert.match(strip(fnBody(read('js/views/directory.js'), 'dirnPanelFive')), /data-dirn-call=/);
-  assert.match(strip(fnBody(read('js/views/customers.js'), 'cunRowHtml')), /const org = rec\.orgNo \? i18t\('cun_org', \{ n: rec\.orgNo \}\) : '';/);
+  /* RE-POINTED 21 Nov 2026 (P-25, as drawn): under a party's name the row says the words that name it on the paper, not its
+     org. no.; the org. no. is said once, in the panel's own facts */
+  assert.doesNotMatch(strip(fnBody(read('js/views/customers.js'), 'cunRowHtml')), /cun_org/);
+  assert.match(strip(fnBody(read('js/views/customers.js'), 'cunPanelFiveHtml')), /k: i18t\('cun_p_org'\), t: rec\.orgNo \|\| i18t\('cu_org_none'\)/);
 });
 
 test('f977 (5) one count', () => {
