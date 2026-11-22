@@ -11620,7 +11620,10 @@ function sddCardHtml(admin, ctx){
   if(!admin) groups.push({ label:i18t('stn_p_ask'), rows:[{ mark:'msg', t:i18t('st_ask_go'), s:i18t('stn_p_ask_s'), attr:'data-st-ask-head=""', wrap:true }] });
   const les=(_stLessons&&_stLessons.rows)||[];
   if(admin&&_stLessons===null&&typeof stLessonsLoad==='function'&&!sddCardHtml._asked){ sddCardHtml._asked=true; Promise.resolve(stLessonsLoad()).then(()=>{ if(document.querySelector('.stn-page')) sddRepaint(); }).catch(()=>{}); }
-  if(admin&&les.length&&(!area||area==='jambo')) groups.push({ label:i18t('stn_p_lessons'), rows:[{ mark:'sparkle', tone:'dark', t:i18tn('stn_p_lessons_s',les.length,{ n:les.length, list:les.slice(0,3).map(x=>'“'+String(x.text||'')+'”').join(', ') }), wrap:true, attr:'data-st-panel="lessons"' }] });
+  /* ONE ROW, ONE DOOR (owner, 22 Nov 2026: "The two jambo lessons links in the side panel are the same link"): where a
+     needs-you row above already opens Jambo's lessons, the lessons are not said again under it */
+  const lesShown=groups.some(g=>(g.rows||[]).some(x=>/data-st-panel="lessons"/.test(String(x.attr||''))));
+  if(admin&&les.length&&!lesShown&&(!area||area==='jambo')) groups.push({ label:i18t('stn_p_lessons'), rows:[{ mark:'sparkle', tone:'dark', t:i18tn('stn_p_lessons_s',les.length,{ n:les.length, list:les.slice(0,3).map(x=>'“'+String(x.text||'')+'”').join(', ') }), wrap:true, attr:'data-st-panel="lessons"' }] });
   /* Trail & backup: Jambo heads with the trail's own count, and offers its PDF and what sealed means (as he did before
      the Dossier card; stJbDataRepaint fills the count when it lands) */
   const onData=typeof _stPage!=='undefined'&&_stPage==='data';
