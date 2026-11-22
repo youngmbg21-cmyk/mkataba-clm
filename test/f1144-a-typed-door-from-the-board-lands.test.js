@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   f1141 — A TYPED DOOR FROM THE BOARD LANDS, EVEN ON A SLOW READ
+   f1144 — A TYPED DOOR FROM THE BOARD LANDS, EVEN ON A SLOW READ
    (BUGLOG 22 Nov 2026; door-exam-verify on GitHub, the Board's box only:
    "plain english of MK-A1", "amend MK-B1", "obligations of MK-C1", "nda
    details of MK-D1" — "page board ≠ paper", nothing moved)
@@ -62,7 +62,7 @@ function world(c, extra){
   return { ctx, calls, release };
 }
 
-describe('f1141 (1) the whole record before the door', () => {
+describe('f1144 (1) the whole record before the door', () => {
   test('a light contract: nothing opens until it is read, the landing is said meanwhile, then the door opens once', async () => {
     const c = { id: 'MK-A1', _light: true };
     const W = world(c);
@@ -102,7 +102,7 @@ describe('f1141 (1) the whole record before the door', () => {
   });
 });
 
-describe('f1141 (2) every typed door reads first', () => {
+describe('f1144 (2) every typed door reads first', () => {
   test('a place word with a contract (caGo) reads it before the door, then runs the same go', () => {
     const g = strip(fnBody(CA, 'caGo'));
     const i = g.indexOf('window.navReadFirst(c0, () => caGo(a))'), j = g.indexOf('caUseBump(a.place)');
@@ -115,7 +115,7 @@ describe('f1141 (2) every typed door reads first', () => {
   });
 });
 
-describe('f1141 (3) a contract being read for the paper is a landing on its way', () => {
+describe('f1144 (3) a contract being read for the paper is a landing on its way', () => {
   test('navLanding says so while intel.opening stands', () => {
     const W = world({ id: 'MK-D1', _loaded: true }, { intel: { opening: { id: 'MK-D1' } } });
     assert.equal(W.ctx.navLanding(), true);
