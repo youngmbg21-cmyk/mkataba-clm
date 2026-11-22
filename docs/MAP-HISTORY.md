@@ -39719,3 +39719,7 @@ Findings, Read down, Jambo's agents — photographed). Panels built apart were a
 the clause editor's (our seat `.ce-rail`). Owner: "Do not add to the alerts panel" — `#context-panel` left plain
 (panel-watermark-verify 8). Jambo's pop-out window (`#ai-panel`) left out: a window, not a side panel. The builder and
 the editor were not photographed (the sample book had no paper to open them on).
+Later the same day the owner narrowed it: "Do not add them to the clause editor page and the dossier page and its tabs
+either. This includes in the builder page. These are areas for serious work." Off: `#ig-dock` while a contract is open
+(`:has(> .igd-head[data-pd-head="paper"])` — Dossier, Clauses, Redlines and every face beside the paper), `.ce-rail`,
+`.tb-rail`; there the tab outline and the circled arrow are off too (the buttons as they were). panel-watermark-verify 9.

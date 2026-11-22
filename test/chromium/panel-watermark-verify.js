@@ -11,6 +11,7 @@
      6  no panel draws the green "‹ Back to …" link (owner, 22 Nov 2026: deleted)
      7  nothing makes a panel or the page scroll sideways
      8  the Alerts · Notes · Activity panel stays plain (owner, 22 Nov 2026)
+     9  a contract open on Home (Dossier, Clauses, Redlines) is serious work: no watermark, its buttons as they were
    AT THE PARENT every claim FAILS: no watermark, the arrow is a bare icon, the Board has none, the link is drawn.
    ============================================================ */
 /* global state, setView, hbSetFace, pdOpenOnHome */
@@ -114,6 +115,14 @@ const READ = () => {
     const id = await page.evaluate(() => state.contracts[0].id);
     await page.evaluate(i => { setView('dashboard'); pdOpenOnHome(i, 'copilot'); }, id);
     await until(page, () => !!document.getElementById('igd-input'), null, 8000);
+    await until(page, () => !!document.querySelector('#ig-dock > .igd-head[data-pd-head="paper"]'), null, 8000); await page.waitForTimeout(400);
+    for (const tab of ['copilot', 'doc', 'red']) {
+      await page.evaluate(t => { const b = document.querySelector(`#ig-dock .igd-head [data-pd-tab="${t}"]`); if (b) b.click(); }, tab);
+      await page.waitForTimeout(500);
+      const ct2 = await page.evaluate(READ);
+      ok(`9 a contract's ${tab} tab: no watermark, the arrow not dressed`, !!ct2 && !ct2.painted && !(ct2.arrow && ct2.arrow.edge && ct2.arrow.w === 30), JSON.stringify(ct2));
+    }
+    await page.evaluate(() => { const b = document.querySelector('#ig-dock .igd-head [data-pd-tab="copilot"]'); if (b) b.click(); });
     await page.evaluate(() => { const i = document.getElementById('igd-input'); i.value = 'board'; i.dispatchEvent(new Event('input', { bubbles: true })); });
     await page.press('#igd-input', 'Enter');
     await until(page, () => window.hbFace && hbFace() === 'board', null, 6000); await page.waitForTimeout(400);
