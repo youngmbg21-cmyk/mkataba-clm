@@ -1395,7 +1395,7 @@ function cuPersonDoes(p, v){
   return ids.length > 1 ? `${said} · ${i18t('cu_pp_more', { n: ids.length - 1 })}` : said;
 }
 function cuPanelPeopleHtml(list, v){
-  const ini = n => String(n || '').trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toLocaleUpperCase() || '—';
+  const ini = n => nameInitials(n, '—');
   return `<div class="cu-list">${list.map(p => {
     const sub = [p.title, cuPersonDoes(p, v)].filter(Boolean).join(' · ');
     return `<button type="button" class="cu-li cu-pp" data-cu-pp="${_cuE(p.key)}"><span class="cu-pp-av" aria-hidden="true">${_cuE(ini(p.name || p.email))}</span><span class="cu-li-b"><b>${_cuE(p.name || p.email)}</b><span title="${_cuE(sub)}">${_cuE(sub)}</span></span></button>`; }).join('')}</div>`;
@@ -1443,69 +1443,108 @@ function cunNdaFact(key){
     : nda.state === 'unconfirmed' ? i18t('cun_nda_unconf') : nda.state === 'ended' ? i18t('cun_nda_ended') : i18t('cun_nda_draft');
   return { t, id: nda.c.id };
 }
-/* P-25, THE PARTY'S PANEL THE LEGORA + STRIPE WAY (owner's pick 20 Nov 2026: "L+S and ring"): NO TILES AND NO MONEY.
-   The party's initials and name, its streams over the name; the ring with "k of n signed · m in progress"; Open on
-   Contracts (black, the register's own door, data-cun-cts) with Edit beside it (the one edit pop-up, data-cu-pr-edit);
-   what needs your attention (data-cun-attn); the party's own facts; a timeline of its agreements from the days the
-   record holds (signed, ends — nothing guessed); its contacts with + Add (partyContactsOpen). Read from the record,
-   no Jambo call. */
+/* P-25, THE PARTY'S PANEL AS DRAWN (owner's pick 20 Nov 2026: "L+S and ring"; rebuilt to the drawing 21 Nov 2026): NO
+   CARDS AND NO MONEY. Top to bottom, plain sections parted by a hairline: the party's initials in its stream's soft tone,
+   its name and streams; two figures, Agreements and Ends next ("Not signed yet" where nothing is signed); the ring with
+   "k of n signed · m in progress"; Open on Contracts (black, the register's own door, data-cun-cts) with Edit beside it
+   (the one edit pop-up, data-cu-pr-edit). Then, on All, THE PARTY'S OWN FACTS (Org. no. — amber "Not on file" where none
+   is kept — and its streams); on Waiting on you, WHAT WAITS ON YOU, each with its kind badge and its act (the row's own
+   door, cuNeedGo). A TIMELINE of its agreements from the days the record holds (signed green, in progress amber, late red,
+   an end still to come hollow — nothing guessed); its CONTACTS with + Add a contact (partyContactsOpen). Drawn by the one
+   Overview builder; Jambo's box stays at the panel's foot. Read from the record, no Jambo call. */
 function cunTimelineRows(r){
   const today = typeof todayISO === 'function' ? todayISO() : new Date().toISOString().slice(0, 10);
   const end = c => { try { return String((typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '').slice(0, 10); } catch (_){ return ''; } };
   const signedOn = c => { try { return String((typeof contractSignedAt === 'function' ? contractSignedAt(c) : c.signedAt) || '').slice(0, 10); } catch (_){ return ''; } };
-  const ev = [];
-  (r.items || []).filter(c => c && !c.archived).forEach(c => {
+  const iso = d => /^\d{4}-\d{2}-\d{2}$/.test(d);
+  const needs = (r.needs || []).filter(x => x && x.it && x.c);
+  const past = [], now = [], late = [], next = [], ahead = [], wait = _cun === 'wait';
+  (r.items || []).filter(c => c && !c.archived && c.status !== 'Declined').forEach(c => {
     const nm = c.name || ((typeof contractRef === 'function') ? contractRef(c) : c.id), at = `data-cu-ag="${_cuE(c.id)}"`;
-    const sd = /^\d{4}-\d{2}-\d{2}$/.test(signedOn(c)) ? signedOn(c) : '';
     if (c.status === 'Signed'){
-      if (sd) ev.push({ d: sd, row: { mark: 'mkTick', tone: 'green', t: i18t('cun_tl_signed', { name: nm }), s: cuDay(sd), attr: at } });
+      const sd = signedOn(c);
+      past.push({ d: iso(sd) ? sd : '', tone: 'green', t: i18t('cun_tl_signed', { name: nm }), s: iso(sd) ? cuDay(sd) : '', attr: at });
       const e = end(c);
-      if (/^\d{4}-\d{2}-\d{2}$/.test(e)) ev.push({ d: e, row: { mark: 'clock', tone: e < today ? '' : 'amber', t: i18t(e < today ? 'cun_tl_ended' : 'cun_tl_ends', { name: nm }), s: cuDay(e), attr: at } });
-    } else if (c.status !== 'Declined') ev.push({ d: today, row: { mark: 'file', t: i18t('cun_tl_progress', { name: nm }), s: (typeof statusLabel === 'function') ? statusLabel(c.status) : String(c.status || ''), attr: at } });
+      if (iso(e) && e >= today) ahead.push({ d: e, tone: 'hollow', t: i18t('cun_tl_ends_on', { name: nm, d: cuDay(e) }), attr: at, quiet: true });
+      else if (iso(e)) past.push({ d: e, tone: 'gray', t: i18t('cun_tl_ended', { name: nm }), s: cuDay(e), attr: at });
+    } else if (wait){
+      /* WAITING ON YOU, AS DRAWN (P-25 review, 22 Nov 2026): the agreement's start in green (its record's own created day
+         orders it; its standing beside it, "draft"), what is late in red below, then an empty circle for the next step —
+         the first thing still waiting on it that is not late ("Details still to fill in"); nothing waiting, no circle */
+      const cd = String(c.createdAt || '').slice(0, 10);
+      past.push({ d: iso(cd) ? cd : '', tone: 'green', t: i18t('cun_tl_started', { name: nm }), s: String(cunStatusWord(c.status) || '').toLowerCase(), attr: at });
+      const w = needs.find(x => x.c.id === c.id && !x.it.urgent);
+      if (w) next.push({ tone: 'hollow', t: w.it.kind === 'details' ? i18t('cun_tl_next_details') : (cunWaitVerb(w) || cuNeedTitle(w)), quiet: true,
+        attr: `data-cu-need="${_cuE(w.it.kind)}" data-cu-id="${_cuE(c.id)}"` });
+    } else {
+      /* in progress: what still waits on it (not late) said beside it, else where it stands */
+      const w = needs.find(x => x.c.id === c.id && !x.it.urgent);
+      now.push({ tone: 'amber', t: i18t('cun_tl_progress', { name: nm }), s: w ? cunWaitLower(w) : String(cunStatusWord(c.status) || '').toLowerCase(), attr: at });
+    }
   });
-  return ev.sort((x, y) => x.d.localeCompare(y.d)).slice(-6).map(x => x.row);
+  /* what is late, in red (red only for late) */
+  needs.filter(x => x.it.urgent).forEach(x => late.push({ tone: 'red', t: x.it.kind === 'renewal' ? i18t('cun_tl_renew_late') : (cunWaitVerb(x) || cuNeedTitle(x)), s: i18t('cun_late'), attr: `data-cu-need="${_cuE(x.it.kind)}" data-cu-id="${_cuE(x.c.id)}"` }));
+  past.sort((a, b) => String(a.d).localeCompare(String(b.d)));
+  ahead.sort((a, b) => a.d.localeCompare(b.d));
+  return past.slice(-3).concat(now.slice(0, 3), late.slice(0, 3), next.slice(0, 2), ahead.slice(0, 2));
+}
+function cunTimelineHtml(rows){
+  const E = _cuE;
+  return `<ul class="cun5-tl">${rows.map(x => `<li><i class="cun5-td is-${E(x.tone)}" aria-hidden="true"></i><button type="button" class="cun5-tt${x.quiet ? ' is-quiet' : ''}" ${x.attr || ''}>${E(x.t)}${x.s ? ` <span>· ${E(x.s)}</span>` : ''}</button></li>`).join('')}</ul>`;
+}
+/* the short words for one thing waiting, lower case, for beside an agreement on the timeline ("details to fill in") */
+function cunWaitLower(x){
+  const k = x && x.it && x.it.kind;
+  return k === 'details' ? i18t('cun_tl_details') : k === 'promises' ? i18t('cun_tl_promises') : k === 'approval' ? i18t('cun_tl_approval')
+    : String(cunWaitVerb(x) || cuNeedTitle(x) || '').toLowerCase();
 }
 function cunPanelFiveHtml(r){
-  const E = _cuE;
+  const E = _cuE, wait = _cun === 'wait';
   const rec = (typeof partyRecordOf === 'function' && partyRecordOf(r.key)) || {};
   const may = typeof partyRecordMay === 'function' && partyRecordMay();
   const people = (typeof dirPeopleOfParty === 'function') ? (dirPeopleOfParty(r.key) || []) : [];
   const roleOf = p => [...(p.roles || [])];
   const signer = people.find(p => p && roleOf(p).includes('cpsign')) || null;
   const nda = cunNdaFact(r.key);
-  const sts = (r.streams || []).map(f => (typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[f]) || (typeof cuStreamName === 'function' ? cuStreamName(f) : f)).filter(Boolean);
+  const sts = (r.streams || []).map(f => cunShortOf(f)).filter(Boolean);
+  const tone = r.streams && r.streams.length && typeof listStreamTone === 'function' ? listStreamTone(r.streams[0]) : 'gray';
+  const n = cunCounts(r), total = (r.items || []).filter(c => c && !c.archived).length;
+  const next = cunEndsNextOf(r);
   const groups = [];
-  /* what needs your attention first, where something does: the link shows only those on Contracts */
-  const ws = cunWaitSay(r.needs);
-  if (ws && ws.ids.length) groups.push({ key: 'attn', label: i18t('cun_c_wait'), rows: [{ mark: 'alert', tone: ws.late ? 'red' : 'amber', t: i18tn('cun_p_attn', ws.ids.length, { n: ws.ids.length }), s: [ws.on, ws.late ? i18t('cun_late') : ''].filter(Boolean).join(' · '), v: i18t('cun_p_on_cts'), attr: `data-cun-attn="${E(r.key)}"` }] });
-  /* THE PARTY'S OWN FACTS; Edit is the black button's link (partyRecordOpen → lgpOpen, the Legora way) */
-  {
+  if (wait){
+    /* WHAT WAITS ON YOU, each with its kind badge (the row's `k`, toned by `cls`) and its act — the worklist row's own door */
+    const list = (r.needs || []).filter(x => x && x.it && (x.c || (x.r && x.it.kind === 'request')))
+      .slice().sort((a, b) => (b.it.urgent ? 1 : 0) - (a.it.urgent ? 1 : 0));
+    if (list.length) groups.push({ key: 'waits', label: i18t('cun_p_waits'), rows: list.map(x => { const kd = cunKindOf(x), id = x.c ? x.c.id : x.r.id;
+      return { k: kd.w, cls: 'cun5-kd is-' + kd.tone, t: cunWaitVerb(x, true) || cuNeedTitle(x), title: cuNeedTitle(x),
+        link: { label: cunGoWord(x), attr: `data-cu-need="${E(x.it.kind)}" data-cu-id="${E(id)}"` } }; }) });
+  } else {
+    /* THE PARTY'S OWN FACTS (a key and its value on one line); Edit is the black button's link (partyRecordOpen → lgpOpen) */
     const facts = [];
     if (rec.city) facts.push({ k: i18t('cun_p_city'), t: rec.city });
-    facts.push({ k: i18t('cun_p_org'), t: rec.orgNo || i18t('cu_org_none') });
+    facts.push({ k: i18t('cun_p_org'), t: rec.orgNo || i18t('cu_org_none'), cls: rec.orgNo ? '' : 'is-owed' });
     if (signer) facts.push({ k: i18t('cun_p_signs_for'), t: signer.name || signer.email || '' });
     if (nda) facts.push({ k: i18t('cu_col_nda'), t: nda.t, attr: `data-cun-nda="${E(nda.id)}"` });
     if (sts.length) facts.push({ k: i18t('cun_c_streams'), t: sts.join(' · ') });
     groups.push({ key: 'facts', label: i18t('cun_p_facts'), rows: facts });
   }
   const tl = cunTimelineRows(r);
-  if (tl.length) groups.push({ key: 'timeline', label: i18t('apn5_timeline'), rows: tl });
-  /* CONTACTS: their people, counted; a press opens People narrowed to them; + Add a contact */
+  if (tl.length) groups.push({ key: 'timeline', label: i18t('apn5_timeline'), html: cunTimelineHtml(tl) });
+  /* CONTACTS: their people, counted (a press opens People narrowed to them), or "No one yet."; + Add a contact under */
   const mayAdd = typeof partyContactsMay === 'function' && partyContactsMay();
   const first = p => String(p.name || p.email || '').trim().split(/[\s@]+/)[0];
-  const ini = p => String(p.name || p.email || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '·';
   const says = people.filter(p => roleOf(p).some(k => k === 'cpsign' || k === 'negotiate')).slice(0, 2)
     .map(p => i18t(roleOf(p).includes('cpsign') ? 'cun_ct_signs' : 'cun_ct_leads', { name: first(p) })).join(' · ');
-  const short = cuShortName(r.name);
-  groups.push({ key: 'contacts', label: i18t('cun_p_contacts'), more: mayAdd ? { label: i18t('cun_p_add_ct'), attr: `data-cun-add-ct="${E(r.key)}"` } : null,
-    rows: people.length ? [{ faces: people.slice(0, 4).map(ini), t: i18tn('cun_ct_n', people.length, { n: people.length, name: short }), s: says, attr: `data-cun-ppl="${E(r.key)}"` }]
-      : [{ mark: 'users', t: i18t('cun_ct_none'), s: mayAdd ? i18t('cun_ct_none_s') : '', attr: mayAdd ? `data-cun-add-ct="${E(r.key)}"` : '' }] });
-  /* the ring: the share signed, the count inside, and the words beside it */
-  const n = cunCounts(r);
-  const mid = `<div class="cun-pring">${cunRingSvg(n.signed, r.items.length, 48)}<span>${E(i18t('cun_p_ring', { k: n.signed, n: r.items.length }))}${n.open ? ` · <span class="cun-amber">${E(i18tn('cun_split_open', n.open, { n: n.open }))}</span>` : ''}</span></div>`;
+  groups.push({ key: 'contacts', label: i18t('cun_p_contacts'), foot: mayAdd ? { label: i18t('cun_p_add_ct'), attr: `data-cun-add-ct="${E(r.key)}"` } : null,
+    rows: people.length ? [{ t: i18tn('cun_ct_n', people.length, { n: people.length, name: cuShortName(r.name) }), s: says, attr: `data-cun-ppl="${E(r.key)}"` }]
+      : [{ t: i18t('cun_ct_none_yet'), cls: 'is-none' }] });
+  /* the two figures and the ring: counts and a day, never money */
+  const endsSay = next ? next.day : n.signed ? '—' : i18t('cun_p_not_signed');
+  const mid = `<div class="cun5-figs"><div><small>${E(i18t('cun_c_ags'))}</small><b>${total}</b></div><div><small>${E(i18t('cun_c_ends'))}</small><b class="is-day"${next ? ` title="${E(next.name)}"` : ''}>${E(endsSay)}</b></div></div>`
+    + `<div class="cun-pring">${cunRingSvg(n.signed, total, 44)}<span>${E(i18t('cun_p_ring', { k: n.signed, n: total }))}${n.open ? ` · ${E(i18tn('cun_split_open', n.open, { n: n.open }))}` : ''}</span></div>`;
   const act = { label: i18t('cun_p_open_cts'), attr: `data-cun-cts="${E(r.key)}"`, links: may ? [{ label: i18t('cun_p_edit_short'), attr: `data-cu-pr-edit="${E(r.key)}"` }] : [] };
-  const ava = String(r.name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '·';
-  return `<div class="jl-words is-ov cun-five">${jamboOverviewHtml({ eyebrow: sts.join(' · '), title: r.name, avatar: ava, mid, midLabel: i18t('cun_c_ags'), act, actFirst: true,
+  const ava = nameInitials(r.name);
+  return `<div class="jl-words is-ov cun-five cun5">${jamboOverviewHtml({ title: r.name, sub: sts.join(' · '), avatar: ava, avatarTone: tone, mid, midLabel: i18t('cun_c_ags'), act, actFirst: true,
     groups: groups.filter(g => g.html || (g.rows || []).length) }, 'cun')}</div>`;
 }
 /* THE PANEL'S OWN PRESSES, delegated once: the NDA, the contacts, + Add, all the agreements on Contracts */
@@ -1577,19 +1616,68 @@ function cunCityRead(v){
   }
   return null;
 }
-/* the words the Waiting column says for one thing waiting (the column names the work; its title says the rest) */
-function cunWaitVerb(x){
-  const k = x.it.kind, n = x.it.n || 1;
-  return k === 'request' ? cuNeedShort(x) : k === 'approval' ? i18t('cun_w_approve', { name: x.c.name || '' }) : k === 'sign' ? i18t('cun_w_sign') : k === 'details' ? i18tn('cun_w_details', n, { n })
+/* the words the Waiting column says for one thing waiting (the column names the work; its title says the rest). As drawn
+   (P-25): "Fill in the details of Cleaning Services", "Decide the renewal", "Say whose job 4 duties Jambo found are";
+   `short` (the party's own panel, where the agreement is plain) leaves the agreement's name out */
+function cunWaitVerb(x, short){
+  const k = x.it.kind, n = x.it.n || 1, nm = (x.c && x.c.name) || '';
+  return k === 'request' ? cuNeedShort(x) : k === 'approval' ? i18t('cun_w_approve', { name: nm }) : k === 'sign' ? i18t('cun_w_sign')
+    : k === 'details' ? (short || !nm ? i18t('cun_w_details_all') : i18t('cun_w_details_of', { name: nm }))
+    : k === 'renewal' ? i18t('cun_w_renew')
     : k === 'move' ? i18t('cun_w_move') : k === 'look' ? i18t('cun_w_look') : k === 'note' ? i18t('cun_w_note') : k === 'review' ? i18t('cun_w_review') : k === 'refused' ? i18t('cun_w_refused')
-    : k === 'promises' ? i18tn('cun_w_promises', n, { n }) : (CUN_WORDS[k] ? i18tn(CUN_WORDS[k], n, { n }) : '');
+    : k === 'promises' ? i18tn('cun_w_whose', n, { n }) : (CUN_WORDS[k] ? i18tn(CUN_WORDS[k], n, { n }) : '');
 }
 /* THE ROW'S ONE BUTTON: the first thing waiting (urgent first), by the panel's own door (cuNeedGo) */
-const CUN_ACT = { approval: 'jl_open_approval', details: 'cun_a_fill', promises: 'cun_a_confirm', request: 'cu_need_go_request', sign: 'jl_open_signing', refused: 'jl_open_signing' };
+const CUN_ACT = { approval: 'jl_open_approval', details: 'cun_a_fill', promises: 'cun_a_decide', renewal: 'cun_a_decide', request: 'cu_need_go_request', sign: 'jl_open_signing', refused: 'jl_open_signing' };
 function cunActOf(v){
   const x = (v.needs || []).find(y => y && y.it && (y.c || (y.it.kind === 'request' && y.r)));
   if (!x) return null;
-  return { kind: x.it.kind, id: x.c ? x.c.id : x.r.id, label: i18t(CUN_ACT[x.it.kind] || CU_NEED_DOOR[x.it.kind] || 'cu_need_go_move') };
+  return { kind: x.it.kind, id: x.c ? x.c.id : x.r.id, label: cunGoWord(x) };
+}
+/* the act's word for one thing waiting (the worklist's row end and the panel's What waits on you) */
+function cunGoWord(x){
+  const k = x && x.it && x.it.kind;
+  return i18t(CUN_ACT[k] || CU_NEED_DOOR[k] || 'cu_need_go_move');
+}
+/* JAMBO'S FINDS IN THE PAPER'S OWN WORDS (P-25 as drawn): the first duty he read that nobody has placed yet, quoted, with
+   its section and how many more wait (the review desk's own list, obReviewWaiting — read, never written); none: null */
+function cunPromiseQuote(c){
+  let L = []; try { L = (typeof obReviewWaiting === 'function') ? (obReviewWaiting(c) || []) : []; } catch (_){ L = []; }
+  const o = L.find(y => y && String(y.quote || '').trim());
+  if (!o) return null;
+  const more = L.length - 1, sec = String(o.clause || '').trim();
+  return { q: String(o.quote).replace(/\s+/g, ' ').trim(), at: sec ? (more > 0 ? i18tn('cun_q_sec_more', more, { s: sec, n: more }) : i18t('cun_q_sec', { s: sec })) : (more > 0 ? i18tn('cun_q_more', more, { n: more }) : '') };
+}
+/* THE WORDS THAT NAME THE PARTY ON THE PAPER (P-25 as drawn: "between Highland Corporate Ltd and Saw Sawa LLC"): read off
+   the paper's own wording (contractPlainText — the words as drawn, never the scan's tags), from "between" to the party's
+   name, verbatim; the nearest such words win. A party whose paper never names it so shows none — never an invented line.
+   Each wording is read once a version (the list asks it on every paint) */
+const _cunWordsMemo = new Map();
+function cunWordsIn(text, name){
+  const t = String(text || ''), nm = String(name || '').trim();
+  if (!t || !nm) return '';
+  const low = t.toLowerCase(), n = nm.toLowerCase(), re = /\bbetween\b/gi;
+  let best = null, m;
+  while ((m = re.exec(t))){
+    const at = low.indexOf(n, m.index); if (at < 0) break;
+    const gap = at - m.index; if (gap > 240) continue;
+    if (!best || gap < best.gap) best = { from: m.index, to: at + n.length, gap };
+  }
+  return best ? t.slice(best.from, best.to).replace(/\s+/g, ' ').trim() : '';
+}
+function cunPaperWords(v){
+  const items = (v.items || []).filter(c => c && !c.archived).slice().sort((a, b) => (b.status === 'Signed') - (a.status === 'Signed'));
+  for (const c of items){
+    const key = `${c.id}|${c._v || c.version || ''}|${c.lastAction || ''}|${v.name}`;
+    let w = _cunWordsMemo.get(key);
+    if (w == null){
+      let t = ''; try { t = (typeof contractPlainText === 'function') ? contractPlainText(c) : ''; } catch (_){ t = ''; }
+      w = cunWordsIn(t, v.name) || cunWordsIn(t, cuShortName(v.name));
+      _cunWordsMemo.set(key, w);
+    }
+    if (w) return { w, c };
+  }
+  return null;
 }
 /* THE PARTY'S CONTRACTS, COUNTED (one reading for the row and the panel): signed, and still in progress (not signed,
    declined or put away) */
@@ -1627,71 +1715,84 @@ function cunWaitSay(needs){
   return { n: list.length, head: i18tn('cun_w_things', list.length, { n: list.length }), on: ids.size ? i18tn('cun_w_on', ids.size, { n: ids.size }) : '',
     late: list.some(x => x.it.urgent), ids: [...ids] };
 }
+/* the money a party holds on paper, in the workspace's own currency (fxHome; pay and an unrated currency add nothing),
+   SAID WITHOUT ITS CODE: the column's head carries it ("On paper (KES)"), as drawn */
+function cunPaperSay(val){
+  const cur = (typeof jxCurrency === 'function') ? jxCurrency() : '';
+  /* ONE FORM DOWN THE COLUMN (P-25 review): the house shortener keeps both decimals here ("12.00M" beside "10.50M") */
+  const s = (typeof fmtMoneyShortIn === 'function') ? fmtMoneyShortIn(val, cur || undefined, { even: true }) : String(val);
+  return cur && s.startsWith(cur + ' ') ? s.slice(cur.length + 1) : s;
+}
+/* P-25, THE ROW AS DRAWN (owner's pick 20 Nov 2026: "L+S and ring"): the party's initials in its stream's soft tone, its
+   name and, under it, the words that name it on the paper in the paper's type, one line ending in "…" (cunPaperWords;
+   none where the paper has none) · Streams, a soft badge and "+N" · Agreements, a small ring filled by the share signed,
+   the count inside, "N signed" beside · On paper, right-aligned, its currency in the head (gone, column and all, for a
+   reader without money rights) · Ends next, right-aligned, the day and the agreement under it · Waiting on you, a soft
+   badge ("1 thing", red "· late" when late), a grey "—" where nothing waits (P-25 review) */
 function cunRowHtml(v, keys){
-  const rec = (typeof partyRecordOf === 'function' && partyRecordOf(v.key)) || {};
-  /* SAY IT ONCE (the harmony review, owner's yes 9 Nov 2026): a row names its org. no. only where one is filed */
-  const org = rec.orgNo ? i18t('cun_org', { n: rec.orgNo }) : '';
-  const read = rec.city ? null : cunCityRead(v);
-  const city = rec.city ? rec.city : read ? i18t('cun_city_read', { city: read.city, ref: read.ref }) : '';
-  /* KIND CHIPS (owner's pick by name, 9 Nov 2026): each stream a soft chip in its own fixed tone (listStreamTone) */
   const shortOf = f => (typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[f]) || (typeof cuStreamName === 'function' ? cuStreamName(f) : f);
   const toneOf = f => (typeof listStreamTone === 'function') ? listStreamTone(f) : 'gray';
-  const facts = [city, org].filter(Boolean).join(' · ');
-  /* STREAMS HAVE THEIR OWN COLUMN (owner's pick "the SAP way, revised", 19 Nov 2026): the first stream, then "+N" (all of
-     them named on its hover and in the panel), so any number stays on one line */
   const streamNames = v.streams.map(f => shortOf(f)).filter(Boolean);
-  const streamCell = streamNames.length ? ((typeof listChipHtml === 'function') ? listChipHtml(toneOf(v.streams[0]), streamNames[0]) : esc(streamNames[0]))
-    + (streamNames.length > 1 ? ` <span class="cun-more" title="${esc(streamNames.join(' · '))}">+${streamNames.length - 1}</span>` : '') : '—';
-  const ini = String(v.name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '·';
+  const streamCell = streamNames.length ? `<span class="cun-badge is-${esc(toneOf(v.streams[0]))}">${esc(streamNames[0])}</span>`
+    + (streamNames.length > 1 ? ` <span class="cun-plus" title="${esc(streamNames.join(' · '))}">+${streamNames.length - 1}</span>` : '') : '<span class="apn-none-c">—</span>';
+  const ini = nameInitials(v.name);
   const avTone = v.streams.length ? toneOf(v.streams[0]) : 'gray';
   const money = !(typeof canViewValues === 'function' && !canViewValues());
-  const val = v.items.reduce((s, c) => { try { const h = (typeof fxHome === 'function') ? fxHome(c) : { v: Number(c.value) || 0 }; return s + ((typeof fxIsPay === 'function' && fxIsPay(c)) || h.missing ? 0 : (Number(h.v) || 0)); } catch (_){ return s; } }, 0);
-  /* NO ONE WORD FOR MANY CONTRACTS (Standing is gone): how many are signed and how many still in progress, and which
-     signed one ends next (cunSplitOf, cunEndsNextOf) */
+  const val = money ? cunMoney(v) : 0;
   const split = cunSplitOf(v), next = cunEndsNextOf(v);
   const needs = (v.needs || []).filter(x => x && x.it);
-  /* WAITING ON YOU IS THE LAST COLUMN, A COUNT (no row button: work on several contracts is never guessed to one) */
   const ws = cunWaitSay(needs);
-  /* P-25, THE LEGORA + STRIPE WAY (owner's pick 20 Nov 2026: "L+S and ring"): Agreements a small ring filled by the
-     share signed with the count inside and "N signed" beside; On paper right-aligned; Waiting on you a soft badge,
-     red only where something is late, empty where nothing waits */
-  const cnt = cunCounts(v);
+  const cnt = cunCounts(v), total = v.items.filter(c => c && !c.archived).length;
+  const pw = cunPaperWords(v);
   const cell = {
     streams: () => `<td class="cun-streams">${streamCell}</td>`,
-    agreements: () => `<td class="cun-num"><span class="cun-ags" title="${esc(split)}">${cunRingSvg(cnt.signed, v.items.length, 26)}<span class="cun-ags-s">${esc(i18tn('cun_split_signed', cnt.signed, { n: cnt.signed }))}</span></span></td>`,
-    paper: () => `<td class="cun-money">${money && val ? esc(typeof fmtMoneyShort === 'function' ? fmtMoneyShort(val) : String(val)) : '<span class="apn-none-c">\u2014</span>'}</td>`,
-    ends: () => `<td class="cun-ends">${next ? `${esc(next.day)}<div class="cun-sub" title="${esc(next.name)}">${esc(next.name)}</div>` : '<span class="apn-none-c">\u2014</span>'}</td>`,
-    waiting: () => `<td class="cun-wait${ws ? ' is-owed' : ''}"${needs.length ? ` title="${esc(needs.map(cuNeedTitle).filter(Boolean).join(' · '))}"` : ''}>${ws ? `<span class="apn-st is-${ws.late ? 'ruby' : 'amber'}"><i></i>${esc(ws.head)}${ws.late ? ` · ${esc(i18t('cun_late'))}` : ''}</span>` : ''}</td>`,
+    agreements: () => `<td class="cun-num"><span class="cun-ags" title="${esc(split)}">${cunRingSvg(cnt.signed, total, 26)}<span class="cun-ags-s">${esc(i18tn('cun_split_signed', cnt.signed, { n: cnt.signed }))}</span></span></td>`,
+    paper: () => `<td class="cun-money">${money && val ? esc(cunPaperSay(val)) : '<span class="apn-none-c">—</span>'}</td>`,
+    ends: () => `<td class="cun-ends">${next ? `${esc(next.day)}<div class="cun-endof"><span title="${esc(next.name)}">${esc(next.name)}</span></div>` : '<span class="apn-none-c">—</span>'}</td>`,
+    waiting: () => `<td class="cun-wait${ws ? ' is-owed' : ''}"${needs.length ? ` title="${esc(needs.map(cuNeedTitle).filter(Boolean).join(' · '))}"` : ''}>${ws ? `<span class="cun-badge is-${ws.late ? 'ruby' : 'amber'}">${esc(ws.head)}${ws.late ? ` · ${esc(i18t('cun_late'))}` : ''}</span>` : '<span class="apn-none-c">—</span>'}</td>`,
   };
   return `<tr data-cu-cust="${esc(v.key)}" tabindex="-1">
-    <td><div class="cun-who"><span class="cun-av is-${avTone}" aria-hidden="true">${esc(ini)}</span><div class="cun-who-t"><div class="cun-name">${esc(v.name)}</div>${facts ? `<div class="cun-sub"><span class="cun-facts">${esc(facts)}</span></div>` : ''}</div></div></td>
+    <td><div class="cun-who"><span class="cun-av is-${avTone}" aria-hidden="true">${esc(ini)}</span><div class="cun-who-t"><div class="cun-name">${esc(v.name)}</div>${pw ? `<div class="cun-pq" title="${esc(pw.w)}">“${esc(pw.w)}”</div>` : ''}</div></div></td>
     ${(keys || cunKeys()).map(k => cell[k] ? cell[k]() : '<td></td>').join('')}</tr>`;
 }
-/* THE COLUMNS UNDER THE ONE COLUMN RULE (listCols), as drawn ("the SAP way, revised"): Party · Streams · Agreements ·
-   On paper · Ends next · Waiting on you, which is always last and always stands; where the room is short Ends next steps
-   aside first, then Streams, then On paper */
+/* THE COLUMNS UNDER THE ONE COLUMN RULE (listCols), as drawn: Party · Streams · Agreements · On paper · Ends next ·
+   Waiting on you, which is always last and always stands; where the room is short Ends next steps aside first, then
+   Streams, then On paper */
 const CUN_KEYS = ['streams', 'agreements', 'paper', 'ends', 'waiting'];
 /* HIDDEN MONEY IS NOT DRAWN AT ALL (f259): a reader without money rights gets no On paper column, never a column of
    dashes (a dash would tell them a figure is kept from them) */
-function cunKeys(){ return CUN_KEYS.filter(k => k !== 'paper' || !(typeof canViewValues === 'function' && !canViewValues())); }
-function cunCols(){
-  const W = { streams: 124, agreements: 132, paper: 88, ends: 118, waiting: 118 }, R = { ends: 2, streams: 3, paper: 4, agreements: 5 };
-  const DEFS = [{ k: 'name' }, ...cunKeys().map(k => ({ k, w: W[k], rank: R[k] }))];
+/* NO WORK, NO WORK COLUMN (P-25 review, 22 Nov 2026): a reader for whom nothing waits on ANY party of their whole book
+   — always so for a Viewer (NO WORK FOR A VIEWER), and so for anyone with no work today — gets no "Waiting on you"
+   column, with no gap, as they get no "Waiting on you" chip: every cell would be empty for them. While anything waits
+   on any party the column stands, a grey "—" where nothing waits. */
+function cunNoWork(list){ return !(list || []).some(v => (v.needs || []).some(x => x && x.it)); }
+function cunKeys(noWork){ return CUN_KEYS.filter(k => (k !== 'paper' || !(typeof canViewValues === 'function' && !canViewValues())) && (k !== 'waiting' || !noWork)); }
+function cunCols(noWork){
+  /* the drawing's widths (P-25 review): On paper's head "On paper (KES)" on ONE line (nothing squeezed, the tidy
+     sweep), Ends next wide enough for an agreement's name on two lines; together they fit beside the name's 300 on
+     the iPad's 1366 */
+  const W = { streams: 120, agreements: 104, paper: 108, ends: 140, waiting: 112 }, R = { ends: 2, streams: 3, paper: 4, agreements: 5 };
+  const DEFS = [{ k: 'name' }, ...cunKeys(noWork).map(k => ({ k, w: W[k], rank: R[k] }))];
   const FIT = typeof listCols === 'function' ? listCols('customers', DEFS, cuRepaint) : { cols: DEFS };
+  const cur = (typeof jxCurrency === 'function') ? jxCurrency() : '';
   const T = { name: 'cun_c_party', streams: 'cun_c_streams', agreements: 'cun_c_ags', paper: 'cun_c_paper', ends: 'cun_c_ends', waiting: 'cun_c_wait' };
+  const word = k => k === 'paper' && cur ? i18t('cun_c_paper_in', { cur }) : i18t(T[k]);
   const cols = FIT.cols, keys = cols.slice(1).map(c => c.k);
   const colg = `<colgroup>${cols.map(c => typeof listColTag === 'function' ? listColTag(c, true) : `<col${c.w ? ` style="width:${Math.round(c.w)}px"` : ''}>`).join('')}</colgroup>`;
-  const th = `<thead><tr>${cols.map(c => `<th${c.k === 'paper' ? ' class="cun-money"' : ''}>${T[c.k] ? esc(i18t(T[c.k])) : ''}${T[c.k] && typeof listGripHtml === 'function' ? listGripHtml('customers', c.k) : ''}</th>`).join('')}</tr></thead>`;
+  const th = `<thead><tr>${cols.map(c => `<th${c.k === 'paper' ? ' class="cun-money"' : c.k === 'ends' ? ' class="cun-ends"' : ''}>${T[c.k] ? esc(word(c.k)) : ''}${T[c.k] && typeof listGripHtml === 'function' ? listGripHtml('customers', c.k) : ''}</th>`).join('')}</tr></thead>`;
   return { keys, colg, th, n: cols.length };
 }
-/* PARTIES, THE LEGORA + STRIPE WAY (P-25, owner's pick 20 Nov 2026: "L+S and ring"): the title alone on its line (the
-   count beside it goes: the chips say it); the ask box under it; chips All · Waiting on you (an amber dot) with their
-   counts, + Stream and + Status, each a small menu of the values that have parties (a choice with none is not listed).
-   All is one calm table; Waiting on you is a WORKLIST, one row per thing that waits — the party once, what waits, its
-   kind as a soft badge (red only when late), the agreement, and its act at the row's end (the panel's own door,
-   cuNeedGo). Both tabs pick rows only, so a tab press and a typed letter redraw only the rows (listRowsSwapHtml). */
+/* PARTIES, THE LEGORA + STRIPE WAY (P-25, owner's pick 20 Nov 2026: "L+S and ring"; rebuilt to the drawing 21 Nov 2026):
+   the title and + Add a party on one line (the count beside it goes: the chips say it); the ask box under it, Jambo's
+   mark and a question for its example (its words narrow the rows while they name a party; Enter asks Jambo, the panel's
+   own reader, jlAsk); chips All · Waiting on you (an amber dot) with their counts, + Stream and + Status, each a small
+   menu of the values that have parties (a choice with none is not listed). All is one calm table; Waiting on you is a
+   WORKLIST, one row per thing that waits — the party once, what waits (Jambo's finds with the paper's own words under
+   it), its kind as a soft badge (red only when late), the agreement and its number, and its act at the row's end (the
+   panel's own door, cuNeedGo). Both tabs pick rows only, so a tab press and a typed letter redraw only the rows
+   (listRowsSwapHtml). */
 let _cunF = { stream: '', status: '' };
-const CUN_KIND = { renewal: ['cun_k_renewal', 'amber'], details: ['cun_k_details', 'amber'], promises: ['cun_k_jambo', 'violet'],
+const CUN_KIND = { renewal: ['cun_k_renewal', 'amber'], details: ['cun_k_details', 'gray'], promises: ['cun_k_jambo', 'violet'],
   approval: ['cun_k_approval', 'steel'], refused: ['cun_k_approval', 'ruby'], sign: ['cun_k_sign', 'steel'], copies: ['cun_k_sign', 'steel'],
   request: ['cun_k_request', 'steel'], note: ['cun_k_note', 'steel'], look: ['cun_k_review', 'steel'] };
 function cunKindOf(x){
@@ -1700,18 +1801,19 @@ function cunKindOf(x){
   return { w: i18t(k[0]), tone: k[1] };
 }
 function cunWaitRowHtml(v, x, first){
-  const ini = String(v.name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '·';
+  const ini = nameInitials(v.name);
   const tone = v.streams.length && typeof listStreamTone === 'function' ? listStreamTone(v.streams[0]) : 'gray';
   const kd = cunKindOf(x), what = cunWaitVerb(x) || cuNeedTitle(x), title = cuNeedTitle(x);
-  const ag = x.c ? (x.c.name || ((typeof contractRef === 'function') ? contractRef(x.c) : x.c.id)) : String((x.r && x.r.title) || '');
+  const ref = x.c && typeof contractRef === 'function' ? contractRef(x.c) : '';
+  const ag = x.c ? [x.c.name || '', ref && ref !== x.c.name ? ref : ''].filter(Boolean).join(' · ') : String((x.r && x.r.title) || '');
   const id = x.c ? x.c.id : (x.r && x.r.id) || '';
-  const go = i18t(CUN_ACT[x.it.kind] || CU_NEED_DOOR[x.it.kind] || 'cu_need_go_move');
+  const pq = x.it.kind === 'promises' && x.c ? cunPromiseQuote(x.c) : null;
   return `<tr data-cu-cust="${esc(v.key)}" class="cun-wrow${first ? ' is-first' : ''}" tabindex="-1">
     <td>${first ? `<div class="cun-who"><span class="cun-av is-${tone}" aria-hidden="true">${esc(ini)}</span><div class="cun-who-t"><div class="cun-name">${esc(v.name)}</div></div></div>` : ''}</td>
-    <td class="cun-what"><div class="cun-name" title="${esc(title)}">${esc(what)}</div></td>
-    <td><span class="apn-st is-${kd.tone}"><i></i>${esc(kd.w)}</span></td>
+    <td class="cun-what"><div class="cun-name" title="${esc(title)}">${esc(what)}</div>${pq ? `<div class="cun-wq"><q>${esc(pq.q)}</q>${pq.at ? ` <span>${esc(pq.at)}</span>` : ''}</div>` : ''}</td>
+    <td><span class="cun-badge is-${kd.tone}">${esc(kd.w)}</span></td>
     <td class="cun-ag"><span title="${esc(ag)}">${esc(ag)}</span></td>
-    <td class="cun-do">${id ? `<button type="button" class="ui-link" data-cu-need="${esc(x.it.kind)}" data-cu-id="${esc(id)}">${esc(go)}</button>` : ''}</td></tr>`;
+    <td class="cun-do">${id ? `<button type="button" class="ui-link cun-go" data-cu-need="${esc(x.it.kind)}" data-cu-id="${esc(id)}">${esc(cunGoWord(x))}</button>` : ''}</td></tr>`;
 }
 const cunShortOf = f => (typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[f]) || (typeof cuStreamName === 'function' ? cuStreamName(f) : f);
 function cunStatusWord(st){ return (typeof statusLabel === 'function') ? statusLabel(st) : st; }
@@ -1728,10 +1830,13 @@ function cunRender(host, INS, o){
   const waiting = all.filter(v => (v.needs || []).length);
   /* the Waiting chip counts the worklist's rows, so the number on the door is the list behind it */
   const waitN = waiting.reduce((n, v) => n + (v.needs || []).filter(x => x && x.it).length, 0);
-  const list = (_cun === 'wait' ? waiting : all).filter(v => !q || v.name.toLowerCase().includes(q) || cuCityMatch(v, cuKeyOf(q)))
+  /* ONE ASK BOX: its words narrow the rows while they name a party (or a city); a question that names none leaves the
+     rows standing, and Enter hands it to Jambo (cunAskGo) */
+  const hit = v => v.name.toLowerCase().includes(q) || cuCityMatch(v, cuKeyOf(q));
+  const narrow = !!q && all.some(hit);
+  const list = (_cun === 'wait' ? waiting : all).filter(v => !narrow || hit(v))
     .sort((a, b) => b.items.length - a.items.length || a.name.localeCompare(b.name));
   const tabs = [['all', i18t('ctf_tab_all'), all.length], ['wait', i18t('cun_tab_wait'), waitN]].filter(t => t[2] || t[0] === 'all' || t[0] === _cun);
-  const agreements = all.reduce((s, v) => s + v.items.length, 0);
   const addChip = (k, label, opts, set, word) => set
     ? `<button type="button" class="apn-chip is-set" data-cun-f="${k}" data-cun-v="">${esc(word(set))} <span aria-hidden="true">×</span></button>`
     : opts.length > 1 ? `<span class="apn-rule-w"><button type="button" class="apn-chip is-add" data-cun-f-open="${k}" aria-expanded="false">+ ${esc(label)}</button><span class="apn-rule-menu" hidden>${opts.map(x => `<button type="button" data-cun-f="${k}" data-cun-v="${esc(x)}">${esc(word(x))}</button>`).join('')}</span></span>` : '';
@@ -1743,13 +1848,13 @@ function cunRender(host, INS, o){
     const rows = [];
     list.forEach(v => (v.needs || []).filter(x => x && x.it).slice().sort((a, b) => (b.it.urgent ? 1 : 0) - (a.it.urgent ? 1 : 0))
       .forEach((x, i) => rows.push(cunWaitRowHtml(v, x, i === 0))));
-    const W = [null, null, 120, 200, 150];
+    const W = [180, null, 124, 176, 96];
     const T = ['cun_c_party', 'cun_c_what', 'cun_c_kind', 'cun_c_ag', ''];
     table = `<table class="apn-table cun-table is-wait" data-list-seat="customers"><colgroup>${W.map(w => w ? `<col style="width:${w}px">` : '<col>').join('')}</colgroup>
         <thead><tr>${T.map(k => `<th>${k ? esc(i18t(k)) : ''}</th>`).join('')}</tr></thead>
         <tbody id="cu-tbody">${rows.join('') || `<tr><td colspan="5" class="apn-none">${esc(i18t('ap_wl_none_match'))}</td></tr>`}</tbody></table>`;
   } else {
-    const C = cunCols();
+    const C = cunCols(cunNoWork(all0));
     table = `<table class="apn-table cun-table" data-list-seat="customers">${C.colg}
         ${C.th}
         <tbody id="cu-tbody">${list.map(v => cunRowHtml(v, C.keys)).join('') || `<tr><td colspan="${C.n}" class="apn-none">${esc(i18t('ap_wl_none_match'))}</td></tr>`}</tbody></table>`;
@@ -1757,18 +1862,17 @@ function cunRender(host, INS, o){
   const PAGE = `<style>${CU_WHO_CSS}${CU_CSS}</style>
   <div class="view-enter sap-page ap-page is-ins apn-page cun-page" data-ins-page="customers" data-ins="${INS ? '1' : '0'}" data-cu-screen="list">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
-      <div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_customers'))}</h2></div>
-      <label class="apn-ask">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="cun-q" type="search" autocomplete="off" placeholder="${esc(i18t(_cun === 'wait' ? 'cun_ask_ph_wait' : 'cun_ask_ph'))}" value="${esc(q)}"></label>
+      <div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_customers'))}</h2>${cunAddMay() ? `<span class="ctf-sp"></span><span class="apn-acts"><button type="button" class="ui-btn cun-add" data-cun-add>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${esc(i18t('cun_add_party'))}</button></span>` : ''}</div>
+      <label class="apn-ask cun-ask">${typeof icon === 'function' ? icon('mkSpark', 'cun-spark', 0) : ''}<input id="cun-q" type="search" autocomplete="off" placeholder="${esc(cunAskPh(waiting))}" value="${esc(q)}"></label>
       <div class="apn-bar" data-lh-seat="customers-nl">${chips}</div>
       <div class="cu-scroll">${table}</div>
-      <div class="apn-foot">${esc(i18t('cun_foot', { n: all.length, m: agreements }))}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
   if (o && o.rows && INS && typeof listRowsSwapHtml === 'function'
     && listRowsSwapHtml({ page: '.cun-page[data-ins-page="customers"][data-cu-screen="list"]', html: PAGE, table: '.apn-table.cun-table',
-      tabSel: '[data-cun-tab]', tabKey: 'data-cun-tab', footSel: '.cun-page[data-cu-screen="list"] .apn-foot' })){
+      tabSel: '[data-cun-tab]', tabKey: 'data-cun-tab' })){
     const tb = host.querySelector('#cu-tbody');
     const T1 = host.querySelector('.apn-table.cun-table'); if (T1) T1.classList.toggle('is-wait', _cun === 'wait');
-    const box = host.querySelector('#cun-q'); if (box) box.placeholder = i18t(_cun === 'wait' ? 'cun_ask_ph_wait' : 'cun_ask_ph');
+    const box = host.querySelector('#cun-q'); if (box) box.placeholder = cunAskPh(waiting);
     if (tb) cuPaintCustomerPanel(tb, { rows: true });
     return;
   }
@@ -1780,10 +1884,33 @@ function cunRender(host, INS, o){
   if (INS && typeof insWatchWidth === 'function') insWatchWidth();
   if (typeof setActiveNav === 'function') setActiveNav('customers');
 }
+/* + ADD A PARTY (P-25 as drawn): a party is on this page through its agreements, so the way to add one is the one door to
+   a new agreement (openNewAgreement), where its name is the other side's; not drawn for a reader who may not create */
+function cunAddMay(){ return !(typeof canEdit === 'function' && !canEdit()) && typeof openNewAgreement === 'function'; }
+/* the ask box's example: a question, as drawn; on Waiting on you it names the party whose work is late first */
+function cunAskPh(waiting){
+  if (_cun !== 'wait') return i18t('cun_ask_ph');
+  const L = waiting || [];
+  const v = L.find(x => (x.needs || []).some(y => y && y.it && y.it.urgent)) || L[0];
+  return v ? i18t('cun_ask_ph_wait', { name: cuShortName(v.name) }) : i18t('cun_ask_ph_wait0');
+}
+/* Enter in the ask box: words that name a party have already narrowed the rows; a question is Jambo's — the panel's own
+   reader answers it there (jlAsk, a person's press) */
+function cunAskGo(box){
+  const t = String((box && box.value) || '').trim(); if (!t) return false;
+  const q = t.toLowerCase();
+  const names = (typeof cuCustomers === 'function' ? cuCustomers() : []).some(r => r.name.toLowerCase().includes(q) || cuCityMatch(r, cuKeyOf(q)));
+  if (names || typeof jlAsk !== 'function') return false;
+  const said = jlAsk(t, { typed: true });
+  if (said){ box.value = ''; state.cu = state.cu || {}; state.cu.q = ''; }
+  return !!said;
+}
 if (typeof document !== 'undefined' && !document._cunWired){ document._cunWired = true;
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
-    const tab = t.closest('[data-cun-tab]'); if (tab){ e.preventDefault(); _cun = tab.getAttribute('data-cun-tab'); renderCustomers({ rows: true }); if (typeof placeSave === 'function') placeSave(); return; }
+    /* a tab press redraws the rows AND the panel: the panel says the facts on All and what waits on Waiting on you */
+    const tab = t.closest('[data-cun-tab]'); if (tab){ e.preventDefault(); _cun = tab.getAttribute('data-cun-tab'); _cuPanelId = undefined; renderCustomers({ rows: true }); if (typeof placeSave === 'function') placeSave(); return; }
+    const add = t.closest('.cun-page [data-cun-add]'); if (add){ e.preventDefault(); if (cunAddMay()) openNewAgreement({ door: true }); return; }
     /* the "+ Stream" / "+ Status" menus: a press opens its menu, a choice narrows the rows, × lets go */
     const fo = t.closest('.cun-page [data-cun-f-open]'); if (fo){ e.preventDefault(); const m = fo.parentNode.querySelector('.apn-rule-menu');
       document.querySelectorAll('.cun-page .apn-rule-menu:not([hidden])').forEach(x => { if (x !== m) x.hidden = true; });
@@ -1793,6 +1920,7 @@ if (typeof document !== 'undefined' && !document._cunWired){ document._cunWired 
   }, true);
   /* the box is not redrawn under the caret: every letter moves the rows and leaves the box alone */
   document.addEventListener('input', e => { if (e.target && e.target.id === 'cun-q'){ state.cu = state.cu || {}; state.cu.q = e.target.value; renderCustomers({ rows: true }); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'cun-q' && !e.isComposing && cunAskGo(e.target)){ e.preventDefault(); renderCustomers({ rows: true }); } });
 }
 function renderCustomers(o){
   const host = document.getElementById('content'); if (!host) return;
@@ -1890,7 +2018,7 @@ function partyHistorySay(h){
   if (h.pushed) out.push(String(h.pushed));
   return out.join(' ');
 }
-Object.assign(window, { cunPanelHtml, cunPanelFiveHtml, cunRingSvg, cunTimelineRows, cunKindOf, cunWaitRowHtml, cunAgsOrdered, cunNdaFact, cunRowHtml, cunActOf, cunCounts, cunSplitOf, cunEndsNextOf, cunWaitSay, cunKeys, cunCityRead, partyWebOf, partyLookupMay, partyLookup, partyHistoryOf, partyHistorySay, cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNeedsHtml, CU_NEED_DOOR, CU_NEED_LINE, cuPanelAgreementsHtml, cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
+Object.assign(window, { cunPanelHtml, cunPanelFiveHtml, cunPaperWords, cunWordsIn, cunPromiseQuote, cunGoWord, cunAskGo, cunAskPh, cunAddMay, cunPaperSay, cunTimelineHtml, cunWaitLower, cunRingSvg, cunTimelineRows, cunKindOf, cunWaitRowHtml, cunAgsOrdered, cunNdaFact, cunRowHtml, cunActOf, cunCounts, cunSplitOf, cunEndsNextOf, cunWaitSay, cunKeys, cunCityRead, partyWebOf, partyLookupMay, partyLookup, partyHistoryOf, partyHistorySay, cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNeedsHtml, CU_NEED_DOOR, CU_NEED_LINE, cuPanelAgreementsHtml, cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
   cuNdaMap, cuNdaOf, cuNdaWants, cuNdaShort, cuOpenNda,
   cuPlace, cuPlacePut, cuOpenCustomer, cuOpenExplorer, cuDraftFor, renderCustomers, cuRepaint,
   /* the one filter-box builder the band's clothes dress; My notes and Requests draw their boxes with it */

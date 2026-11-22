@@ -351,14 +351,17 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
          the name and role over three numbers (agreements · waiting on them · away), Named on (most recent), Waiting on
          them (each its own door), Reach them (Email them · Show their contracts). Each claim asked of its new place. */
       const P = await until(() => { const p = document.getElementById('ins-panel'); if (!p || !/Jonas Berg/.test(p.textContent) || !p.querySelector('.jov5-title')) return null;
-        const groups = {}; p.querySelectorAll('.jov5-sec').forEach(sc => { const l = sc.querySelector('.jov5-label'); if (l) groups[l.textContent.trim()] = [...sc.querySelectorAll('.jov5-row')].map(r => r.innerText.replace(/\s+/g, ' ').trim()); });
+        /* RE-POINTED 21 Nov 2026 (P-26, as drawn): the panel's parts are lines, not cards — what waits (.dirn-w: the kind's
+           badge, what to do, Remind, then the agreement · its other side · since when), the timeline (.dirn-tl li) */
+        const groups = {}; p.querySelectorAll('.jov5-sec').forEach(sc => { const l = sc.querySelector('.jov5-label'); if (l) groups[l.textContent.trim()] = [...sc.querySelectorAll('.jov5-row, .dirn-w, .dirn-tl li, .dirn-pq')].map(r => r.innerText.replace(/\s+/g, ' ').trim()); });
         return { word: (p.querySelector('[data-jl-word]') || {}).textContent || '', groups, text: p.innerText.replace(/\s+/g, ' '),
           /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): no tiles — the panel's two plain
              numbers (.dirn-pfacts: Agreements · Waiting on them, each "<label> <n>") and the Away badge under the name (its
              title the away line); Show their contracts is the black button (.jov5-go), Email them the link beside it */
           glance: [...p.querySelectorAll('.dirn-pfacts > span')].map(g => [...g.children].map(x => x.textContent.trim()).join(' ')),
           tiles: p.querySelectorAll('.jov5-glance').length,
-          away: (() => { const b = [...p.querySelectorAll('.jov5-sub .reg-badge')].find(x => /^(Away|Not away)$/.test(x.textContent.trim())); return b ? [b.textContent.trim(), b.getAttribute('title') || ''] : null; })(),
+          /* RE-POINTED 22 Nov 2026 (P-26 review): the badge is the house's soft badge, as Parties wears it (.cun-badge); its title still the away line with the stand-in */
+          away: (() => { const b = [...p.querySelectorAll('.jov5-sub .cun-badge')].find(x => /^(Away|Not away)$/.test(x.textContent.trim())); return b ? [b.textContent.trim(), b.getAttribute('title') || ''] : null; })(),
           show: (() => { const b = p.querySelector('.jov5-go[data-dirn-contracts]'); return b ? !b.disabled : null; })(), mail: !!p.querySelector('[data-dirn-mail]'),
           more: !!p.querySelector('[data-ins-more]') }; });
       check('6a a person: Show their contracts · Email them, no word beside the tabs', picked && !!P && !P.word && P.show === true && P.mail, JSON.stringify(P && { word: P.word, groups: P.groups['Reach them'] }));
@@ -366,14 +369,17 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): no tiles; two plain numbers and an Away badge */
       check('6b the numbers: Agreements · Waiting on them, no tiles; Away a badge under the name', !!P && P.tiles === 0 && P.glance.length === 2 && /^Agreements \d+$/.test(P.glance[0]) && /^Waiting on them \d+$/.test(P.glance[1]) && !!P.away && P.away[0] === 'Away' && /^Away until /.test(P.away[1]), JSON.stringify(P && { glance: P.glance, away: P.away, tiles: P.tiles }));
       /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): the away line with its stand-in is the Away badge's title */
-      check('6c "Waiting on them": his approval with its own door; away until a day, with the stand-in', !!P && (P.groups['Waiting on them'] || []).some(r => /^Helio power purchase Approval/.test(r)) && !!P.away && /Away until \S+ · stand-in: /.test(P.away[1]), P && JSON.stringify({ away: P.away, text: P.text.slice(0, 300) }));
+      /* RE-POINTED 21 Nov 2026 (P-26, as drawn): a waiting line reads "Approval  Approve Helio power purchase", the kind a badge */
+      check('6c "Waiting on them": his approval with its own door; away until a day, with the stand-in', !!P && (P.groups['Waiting on them'] || []).some(r => /^Approval Approve Helio power purchase/.test(r)) && !!P.away && /Away until \S+ · stand-in: /.test(P.away[1]), P && JSON.stringify({ away: P.away, text: P.text.slice(0, 300) }));
       await shot('r19-person-panel-1440x780.png');
       const sg1 = await page.evaluate(() => { const j = dirBook().find(x => /Jonas Berg/.test(x.name || '')); return j ? j.roleOn('MK-SG1').join('+') : null; });
       /* was: "N contracts · N live", the list's "approver" and the asked line — Named on lists the agreements, Waiting on them says what each waits for */
       check('6d Jonas is named on what he approves and signs: Named on, what waits (Approval · Signature), a live Show their contracts, no ⋯',
         /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): the number is "Agreements N" */
-        !!P && Number((P.glance[0] || '').split(' ').pop()) >= 2 && (P.groups['Named on, most recent'] || []).some(r => /Helio power purchase/.test(r))
-        && (P.groups['Waiting on them'] || []).some(r => /Signature$/.test(r)) && /sign/.test(sg1 || '') && P.show === true && !P.more, JSON.stringify(P && { glance: P.glance, groups: P.groups, sg1 }));
+        /* RE-POINTED 21 Nov 2026 (P-26, as drawn): no "Named on, most recent" list (the drawing has none; Show their contracts
+           opens them all) — Helio is named in what waits on him; his signature waits as "Signature  Sign …" */
+        !!P && Number((P.glance[0] || '').split(' ').pop()) >= 2 && (P.groups['Waiting on them'] || []).some(r => /Helio power purchase/.test(r))
+        && (P.groups['Waiting on them'] || []).some(r => /^Signature Sign /.test(r)) && /sign/.test(sg1 || '') && P.show === true && !P.more, JSON.stringify(P && { glance: P.glance, groups: P.groups, sg1 }));
     });
 
     /* ---- 10 PASS 4: the checker's second pass ---- */
