@@ -152,6 +152,16 @@ const check = (name, pass, detail) => {
       prof = Object.entries(self).filter(([k]) => !/^\((idle|program|garbage collector)\)/.test(k)).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k, v]) => k + ' ' + Math.round(v) + 'ms').join(' | ');
       const gc = Object.entries(self).filter(([k]) => /^\((program|garbage collector)\)/.test(k)).map(([k, v]) => k.split(' ')[0] + ' ' + Math.round(v) + 'ms').join(' | ');
       prof += gc ? ' || ' + gc : '';
+      /* WHO ASKS THE PAGE FOR ITS SIZES (the layout a read forces is booked to the read): each such read's time,
+         booked to the nearest of HaTi's own functions that called it, with its line */
+      const parent = new Map(); profile.nodes.forEach(n => (n.children || []).forEach(k => parent.set(k, n.id)));
+      const READS = /^(getBoundingClientRect|getClientRects|getComputedStyle|scrollIntoView|focus|get (offset|client|scroll)\w+|(offset|client|scroll)(Width|Height|Top|Left))$/;
+      const by = {};
+      (profile.samples || []).forEach((id, i) => { const n = byId.get(id); if (!n || !READS.test(n.callFrame.functionName || '')) return;
+        let p = parent.get(id), who = '?';
+        while (p != null){ const q = byId.get(p); const u = String(q.callFrame.url || ''); if (/\/js\//.test(u)){ who = (q.callFrame.functionName || '(anon)') + ' ' + u.split('/').pop() + ':' + q.callFrame.lineNumber; break; } p = parent.get(p); }
+        const k = n.callFrame.functionName + ' < ' + who; by[k] = (by[k] || 0) + (dt[i] || 0) / 1000; });
+      prof += ' ||| READS BY CALLER: ' + Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([k, v]) => k + ' ' + Math.round(v) + 'ms').join(' | ');
     } catch (e) { prof = 'profile failed: ' + e.message; }
     console.log('RETURN PROFILE (self time): ' + prof);
     check('2. the second Explorer arrival freezes under half of the first (the middle of five returns)', ex2.max < Math.max(60, ex1.max / 2), `first ${ex1.max} · return ${ex2.max} (${ex2s.join(' ')}) ms`);
