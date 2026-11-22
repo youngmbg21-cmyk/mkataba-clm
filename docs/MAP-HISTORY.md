@@ -39911,3 +39911,13 @@ Owner: "The watermark you have built is poor in quality. It does not flow seamle
 seems like it's stuttering." Cause: the build moved the weave in STEPS (steps(264) over 70s: a one-pixel jump about four
 times a second) to spare repaints; the drawing glided. Measured over one second on Approvals: before 5 places, 1px jumps;
 after (linear) 61 places, 0.063px a frame. The repaint is the 384×200 masked corner each frame. panel-watermark-verify 1d.
+
+## THE SHELL — RAIL, BAR, PANELS (every Jambo panel has its minimise arrow, 22 Nov 2026)
+Owner: "drawdown should have a minimize button for jambo panel. review the whole hati and ensure all the jambo panels do
+have the minimize button". Surveyed in the running app: Read down, Contracts (P-31 `.ctls`), Playbook (`ld`), Our paper
+(P-34 `tpln`), New agreement (P-36 `na6`) had none — each hid its whole head row as drawn; the rules also hid it for a chosen
+obligation line (`.obs-one`), the Stripe obligation panel (`.obn-lg.is-stripe`), a chosen request (`.ikn-lg`), Import's
+panel (`mign`) and History (`#pd-glance.is-hist`). Each rule now hides the head's children but the arrow (`> :not(#igd-collapse,
+.flex-1)`, `> :not(.jl-fold, .jl-sp)`), as the Board's arrow (earlier the same day). Pressed on five: each folds to 46px and
+opens again. Left: the clause editor (the owner had "remove the collapse feature entirely" there). detail-round-verify 4 and
+our-paper-as-drawn-verify 5a re-pointed (the head row holds the arrow alone); panel-watermark-verify 10 new.
