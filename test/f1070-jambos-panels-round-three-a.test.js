@@ -87,7 +87,8 @@ test('f1070 (5) every word of the round is in both books', () => {
   for (const f of ['js/views/homeboard.js', 'js/views/register.js', 'js/paperdesk.js', 'js/views/intelligence.js', 'js/views/customers.js', 'js/views/settings.js', 'js/views/handbook.js'])
     for (const m of read(f).matchAll(/['"](jov5_(?:hb|ct|day|gd|pt|st|hbk)_[a-z0-9_]+)['"]/g)) keys.add(m[1]);
   /* RE-POINTED 21 Nov 2026 (P-39): the Board's tiles left, and with them three of the round's words */
-  assert.ok(keys.size >= 17, 'the round\'s words are found');
+  /* RE-POINTED 22 Nov 2026 (P-43 review): Settings' "Read from the settings" left its panel, as drawn */
+  assert.ok(keys.size >= 16, 'the round\'s words are found');
   const has = (b, k) => b[k] != null || b[k + '_one'] != null;
   assert.deepEqual([...keys].filter(k => !has(S.en, k) || !has(S.sv, k)), []);
 });

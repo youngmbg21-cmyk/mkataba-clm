@@ -96,7 +96,8 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way) */
       /* no black-button card on the landing: every need is a row under "Needs you" (the button stands nowhere twice);
          the black button is still counted should one be drawn */
-      const n = sddNeedList(true, null, sddRows(true)).length, drawn = (document.querySelector('#ins-panel .jov5-act .jov5-go') ? 1 : 0) + [...document.querySelectorAll('#ins-panel .jov5-sec')].filter(sec => /Needs (you|an admin)/i.test((sec.querySelector('.jov5-label') || {}).textContent || '')).reduce((k, sec) => k + sec.querySelectorAll('.jov5-row').length, 0);
+      /* RE-POINTED 22 Nov 2026 (P-43 review): the headline counts the rows the panel draws (sddPanelNeeds: the one list, going live left to its ring) */
+      const n = (typeof sddPanelNeeds === 'function' ? sddPanelNeeds(true, null, sddRows(true)) : sddNeedList(true, null, sddRows(true))).length, drawn = (document.querySelector('#ins-panel .jov5-act .jov5-go') ? 1 : 0) + [...document.querySelectorAll('#ins-panel .jov5-sec')].filter(sec => /Needs (you|an admin)/i.test((sec.querySelector('.jov5-label') || {}).textContent || '')).reduce((k, sec) => k + sec.querySelectorAll('.jov5-row').length, 0);
       const more = /\d+ more/.exec(document.getElementById('ins-panel').textContent || '');
       return { n, title: t.textContent.trim(), drawn, more: more ? more[0] : '' }; });
     check('1a his headline is the list\'s count', !!said && said.n > 0 && new RegExp('^' + said.n + '\\b').test(said.title), said && `${said.title} / ${said.n}`);

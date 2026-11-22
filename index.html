@@ -20759,9 +20759,10 @@
   html.lg-new #st-drawer .st-dsteps i.is-on{background:var(--color-text)}
   html.lg-new #st-drawer .st-dhead .rvd-head{padding:6px 56px 14px 22px}
   html.lg-new #st-drawer .st-dhead .rvd-title{font-family:var(--font-body);font-size:19px;font-weight:var(--w-label);line-height:1.3}
-  html.lg-new #st-drawer .st-dx{top:14px;right:16px;width:28px;height:28px;border:0;border-radius:50%;outline:none;box-shadow:none;color:var(--color-quiet)}
+  html.lg-new #st-drawer .st-dx{top:14px;right:16px;width:28px;height:28px;border:0;border-radius:50%;outline:none;box-shadow:none;background:none;color:var(--color-quiet);transition:none;animation:none}
   html.lg-new #st-drawer .st-dx:is(:focus,:focus-visible){outline:none;box-shadow:none}
-  html.lg-new #st-drawer .st-dx:is(:hover,:focus-visible){background:var(--surface-2);color:var(--color-text)}
+  /* a bare ✕ as drawn (P-43 review, 22 Nov 2026): no grey circle when the sheet opens with focus on it, no fade; the ink darkens */
+  html.lg-new #st-drawer .st-dx:is(:hover,:focus,:focus-visible){background:none;color:var(--color-text)}
   html.lg-new #st-drawer .st-dbody{padding:14px 22px}
   html.lg-new #st-drawer .st-dfoot{padding:12px 22px;background:var(--color-surface)}
   html.lg-new #st-drawer .st-dnext{font-size:var(--t-label);font-weight:var(--w-label)}
@@ -20783,7 +20784,7 @@
   html.lg-new .ar6-dots{display:inline-flex;border:0;background:none;padding:2px 4px;font:inherit;line-height:1;color:var(--color-quiet);cursor:pointer}
   html.lg-new .ar6-menu{top:24px;left:auto;right:0;min-width:140px}
   html.lg-new #st-drawer .ar6-add{display:inline-flex;align-items:center;gap:6px;margin:10px 0 0;padding:0;border:0;background:none;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer}
-  html.lg-new .ar6-clash{display:flex;gap:10px;align-items:flex-start;margin:14px 0 0;padding:10px 12px;border-radius:8px;background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:13px}
+  html.lg-new .ar6-clash{display:flex;gap:10px;align-items:flex-start;margin:14px 0 0;padding:10px 12px;border-radius:8px;background:color-mix(in srgb,var(--st-amber-bg) 40%,var(--color-surface));color:var(--color-text);font-size:13px} /* quiet as drawn: a pale box, dark words, the amber dot */
   html.lg-new .ar6-clash>i{flex:none;width:8px;height:8px;margin-top:5px;border-radius:50%;background:var(--st-amber-dot)}
   html.lg-new #st-drawer .ar6-foot{margin:14px 0 0;font-size:var(--t-label);color:var(--color-quiet)}
   html.lg-new .sc6-seg{display:flex;gap:2px;margin:0 0 14px;padding:3px;border-radius:10px;background:var(--surface-2)}
@@ -22570,6 +22571,41 @@
   html.lg-new .sdd-ptabs{display:flex;gap:22px;margin:0 0 10px;border-bottom:1px solid var(--color-divider)}
   html.lg-new .sdd-ptab{appearance:none;border:0;border-bottom:2px solid transparent;background:none;padding:0 0 9px;margin:0 0 -1px;font:inherit;font-size:14px;font-weight:var(--w-label);color:var(--color-neutral-400);cursor:pointer}
   html.lg-new .sdd-ptab.is-on{color:var(--color-text);border-bottom-color:var(--color-text)}
+  /* SETTINGS AGAINST THE DRAWING, THE SECOND PASS (P-43 review, 22 Nov 2026): column heads in sentence case; Jambo's
+     green spark in the ask box; a group's head quiet grey, amber with its dot only where something there needs you; an
+     explanation one line ending in "…"; the chosen row faintly green; Jambo's panel in the plain type, its headings
+     bold, its lists without lines, the ring's small word under its number, "In the trail · See it" together; the
+     signing limits' names plain and their folders never cut */
+  html.lg-new .sdd-page .sdd-colh{text-transform:none;letter-spacing:0;font-weight:400;font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new .sdd-page .sdd-find-ic{color:var(--accent-ink)}
+  /* Jambo's one four-point spark in the ask box, as on Approvals and Contracts (mkSpark) */
+  html.lg-new .sdd-page .sdd-spark-ic{flex:none;width:13px;height:13px;color:var(--accent-ink);fill:currentColor;stroke:none}
+  /* the chips as on the other rebuilt pages: unchosen dashed, the chosen one solid, no fill, the count in the same ink */
+  html.lg-new .sdd-page .sdd-chips .apn-tab.is-chip{border:1px dashed var(--color-neutral-300);background:none;color:var(--color-text)}
+  html.lg-new .sdd-page .sdd-chips .apn-tab.is-chip.is-on{border-style:solid;border-color:var(--color-neutral-400);background:none}
+  html.lg-new .sdd-page .sdd-chips .apn-tab.is-chip span{color:inherit}
+  /* the sheet's Next is a house link: green and underlined */
+  html.lg-new #st-drawer .st-dnext{text-decoration:underline;text-underline-offset:3px}
+  html.lg-new .sdd-page .sdd-gh{color:var(--color-neutral-400)}
+  html.lg-new .sdd-page .sdd-gh::before{display:none}
+  html.lg-new .sdd-page .sdd-gh.is-need{color:var(--st-amber-fg)}
+  html.lg-new .sdd-page .sdd-gh.is-need::before{display:block;background:var(--st-amber-dot)}
+  html.lg-new .sdd-page .sdd-u{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .sdd-page .sdd-row.is-chosen{background:var(--color-accent-50)}
+  html.lg-new .sdd5-p .jov5[data-jov-slot="stn"] .jov5-title{font-family:var(--font-body);font-size:16px;line-height:1.3;font-weight:var(--w-label);letter-spacing:0}
+  html.lg-new .sdd5-p .jov5[data-jov-slot="stn"] .jov5-label{font-size:13px;font-weight:var(--w-strong);color:var(--color-text);letter-spacing:0;text-transform:none}
+  html.lg-new .sdd5-p .jov5[data-jov-slot="stn"] .jov5-group > .jov5-row + .jov5-row::before{display:none}
+  html.lg-new .sdd5-p .jov5[data-jov-slot="stn"] .jov5-row .jov5-mk:not(:has(svg)){background:none}
+  html.lg-new .sdd5-p [data-jov5-sec="facts"] .jov5-row{min-height:0;padding-top:5px;padding-bottom:5px;justify-content:flex-start;align-items:baseline}
+  html.lg-new .sdd5-p [data-jov5-sec="facts"] .jov5-k{width:98px}
+  html.lg-new .sdd5-p [data-jov5-sec="facts"] .jov5-rt{flex:0 1 auto;display:block}
+  html.lg-new .sdd5-p [data-jov5-sec="facts"] .jov5-rt b{font-weight:400}
+  html.lg-new .sdd5-p [data-jov5-sec="facts"] .jov-lnk{margin-left:-6px}
+  html.lg-new .sdd5-p [data-jov5-sec="facts"] .jov-lnk::before{content:"·\00a0";display:inline-block;margin-right:2px;color:var(--color-text);text-decoration:none}
+  html.lg-new .sdd5-p .jov5[data-jov-slot="stn"] .jov5-sub{font-size:13px}
+  html.lg-new .sdd5-ring text.sdd5-rcap{font-size:6.5px;font-weight:400;fill:var(--color-quiet)}
+  html.lg-new #st-drawer .sc6-lrow .st-fname{font-weight:400}
+  html.lg-new #st-drawer .sc6-lrow .sc6-fold{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
   /* NEGOTIATIONS, THE NEW LOOK (round 7): your move lifted, settled faded, their words in the paper's type */
   html.lg-new .ngn-page .ap-card.apn-card{padding-left:40px;padding-right:40px}
   html.lg-new .ngn-table tbody tr{cursor:pointer}

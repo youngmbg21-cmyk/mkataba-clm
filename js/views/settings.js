@@ -424,8 +424,15 @@ function stWireDrawerOnce(){
   document.addEventListener('click',e=>{
     const t=e.target;
     if(!t||!t.closest) return;
-    if(t.closest('#st-scrim')){ stDrawerClose(); return; }
-    if(t.closest('[data-st-dclose]')){ stDrawerClose(); return; }
+    /* a door inside a sheet that holds edits goes on only once the leave question is answered (P-43) */
+    if(stHoldDirty() && t.closest('#st-drawer') && t.closest('[data-st-page],[data-st-view],[data-st-jump],[data-st-you]')){
+      e.preventDefault(); if(e.stopImmediatePropagation) e.stopImmediatePropagation();
+      stHoldLeaveThen(()=>{ stDrawerClose(); t.click(); }); return; }
+    if(t.closest('#st-scrim')){ stDrawerLeave(); return; }
+    /* P-43: Save lets what the sheet holds leave once; Cancel throws it away; ✕ and the veil ask while anything is held */
+    const hs=t.closest('[data-st-hsave]'); if(hs){ stHoldSave(hs); return; }
+    if(t.closest('[data-st-dcancel]')){ stHoldDrop(); stDrawerClose(); return; }
+    if(t.closest('[data-st-dclose]')){ stDrawerLeave(); return; }
     /* THE CONTROL ROOM'S DOORS (16 Oct 2026) — each one opens, shows or
        readies; none of them writes */
     const stage=t.closest('[data-st-stage]');
@@ -531,7 +538,7 @@ function stWireDrawerOnce(){
   /* Escape closes the drawer — and on a card's page goes back to Settings,
      landing on its door, as ‹ Settings does */
   document.addEventListener('keydown',e=>{ if(e.key==='Escape' && _stOpen
-    && !document.querySelector('#modal-root [role="dialog"],[data-top-overlay]')) stDrawerClose(); });
+    && !document.querySelector('#modal-root [role="dialog"],[data-top-overlay]')) stDrawerLeave(); });
   document.addEventListener('keydown',e=>{ if(e.key!=='Escape' || !_stRow || _stOpen) return;
     const host=document.getElementById('st-rform');
     if(host && e.target && host.contains(e.target) && !document.querySelector('#modal-root [role="dialog"]')){ const k=_stRow.key; stRowFormClose();
@@ -544,6 +551,9 @@ function stDrawerClose(){
   /* A FORM OPEN IN ITS ROW is closed by the same word its save already says
      (round 24 as drawn: the saves that close the drawer close the row) */
   if(_stRow && !_stOpen){ stRowFormClose(); return; }
+  /* WHAT A SHEET HELD AND NOBODY SAVED IS THROWN AWAY HERE (P-43): Save has already written and let go; any other
+     way out has asked first (stHoldLeaveThen), so nothing half-written is ever left on the screen */
+  if(_stHold) stHoldDrop();
   /* a docked drawer is a page: its Done, Cancel or Save go back to Settings */
   if(stDrawerDocked()){ stDockBack(); return; }
   _stOpen=null;
@@ -556,15 +566,132 @@ function stDrawerClose(){
   if(d){ d.classList.remove('open'); d.setAttribute('hidden',''); }
   if(s){ s.classList.remove('open'); s.setAttribute('hidden',''); }
 }
+/* ════ A SHEET HOLDS ITS EDITS UNTIL SAVE (P-43, the owner's pick 21 Nov 2026: "the foot: … Cancel and SAVE (today
+   only 'Done')"; built 22 Nov 2026) ════
+   Every sheet from the right that wrote on each press (its foot said Done) now HOLDS what the reader changes: the
+   switches, choices and rows move on the screen at once, the writes wait here, and leave ONCE, on Save, through the
+   writers and routes they always used (saveSettings → PUT /api/settings; a person's own flags → PUT /api/me/prefs; the
+   monthly report → its own route) — the server is still the wall. Cancel, ✕, Esc and a press on the veil throw the held
+   edits away with nothing written; while anything is held, every way out asks first (stHoldLeaveThen, the house's
+   leave question). A press that is an ACT of its own (Save key, Add a rate, Run it now, Send now) still goes when it is
+   pressed: it says so on its own button. While a sheet holds, its "saved" toasts are not said — nothing is saved yet;
+   the one Save says it once. */
+const ST_HOLD_ROUTES=[/^me\/prefs$/, /^reports\/monthly\/settings$/, /^settings\/folder-access$/, /^org\/jurisdiction$/, /^org\/workshape$/];
+let _stHold=null;
+const _stHoldClone=v=>{ try{ return v===undefined?undefined:JSON.parse(JSON.stringify(v)); }catch(_){ return undefined; } };
+const _stHoldSame=(a,b)=>{ try{ return JSON.stringify(a)===JSON.stringify(b); }catch(_){ return a===b; } };
+function stHoldDirty(){ return !!(_stHold && (_stHold.keys.size || _stHold.api.size)); }
+function stHoldBegin(key){
+  if(_stHold && _stHold.key===key) return;      /* the same sheet drawn again keeps what it holds */
+  if(_stHold) stHoldDrop();
+  const me=(typeof currentUser==='function')?currentUser():null;
+  /* the market and the work shape live on the company's record, not in the settings: their old values are kept too */
+  let mkt=null, ws=null; try{ mkt=(typeof jxId==='function')?jxId():null; }catch(_){ mkt=null; } try{ ws=(typeof wsCfg==='function')?_stHoldClone(wsCfg()):null; }catch(_){ ws=null; }
+  _stHold={ key, keys:new Set(), api:new Map(), snap:_stHoldClone((state&&state.settings)||{})||{}, me, prefs:me?_stHoldClone(me.prefs):undefined, mkt, ws, toast:null };
+  stHoldToastQuiet();
+}
+/* the settings keys this sheet has changed so far: those differing from the copy taken when it opened (an act's own
+   write moves that copy along with it, stHoldApi, so only the sheet's own edits are ever counted) */
+function stHoldMark(){
+  const h=_stHold; if(!h) return; const cur=(state&&state.settings)||{};
+  new Set(Object.keys(cur).concat(Object.keys(h.snap))).forEach(k=>{ if(!h.keys.has(k) && !_stHoldSame(cur[k],h.snap[k])) h.keys.add(k); });
+}
+/* core.js's saveSettings asks this first: true = held (nothing leaves now) */
+function stHoldTake(what){ if(!_stHold || what!=='settings') return false; stHoldMark(); return true; }
+/* api.js asks this before any write: a held setting's route waits (its bodies merged, the last word kept), answered
+   at once with nothing; any other write goes now, and what it changed is taken into the sheet's opening copy */
+function stHoldApi(path, method, body){
+  const h=_stHold; if(!h) return null;
+  if(ST_HOLD_ROUTES.some(re=>re.test(String(path||'')))){
+    const k=method+' '+path, was=h.api.get(k);
+    h.api.set(k,{ path, method, body:(was&&was.body&&body&&typeof body==='object'&&typeof was.body==='object')?Object.assign({},was.body,body):body });
+    return Promise.resolve({});
+  }
+  const real=api(path, method, body, { unheld:true });
+  const rebase=()=>{ if(_stHold!==h) return; const cur=(state&&state.settings)||{};
+    new Set(Object.keys(cur).concat(Object.keys(h.snap))).forEach(x=>{ if(!h.keys.has(x)){ if(cur[x]===undefined) delete h.snap[x]; else h.snap[x]=_stHoldClone(cur[x]); } }); };
+  real.then(()=>Promise.resolve().then(()=>Promise.resolve()).then(rebase), ()=>{});
+  return real;
+}
+/* a "saved" toast while the sheet holds would be untrue: only the warnings and refusals are said */
+function stHoldToastQuiet(){
+  const h=_stHold; if(!h || typeof window==='undefined') return;
+  if(!h.toast && typeof window.toast==='function'){ const real=window.toast; h.toast=real;
+    window.toast=function(m,k){ if(_stHold===h && (k==null || k==='ok' || (k&&typeof k==='object'&&k.kind==='ok'))){ if(!h.allow) return; h.allow--; } return real.apply(this, arguments); }; }
+}
+/* THROW AWAY: the settings keys the sheet changed and the reader's own flags go back to what they were; nothing written */
+function stHoldDrop(){
+  const h=_stHold; if(!h) return;
+  /* the market and the work shape go back through their own setters WHILE the sheet still holds, so the writes those
+     setters send are caught here and thrown away with the rest — nothing reaches the server */
+  const held=k=>[...h.api.keys()].some(x=>x.endsWith(' '+k));
+  try{ if(held('org/jurisdiction') && h.mkt && typeof jxSet==='function'){ jxSet(h.mkt); if(typeof setRegion==='function' && typeof regionCodeFor==='function') setRegion(regionCodeFor(h.mkt),{ silent:true }); } }catch(_){ /* the page redraws from the record */ }
+  try{ if(held('org/workshape') && h.ws && typeof wsSet==='function') wsSet(h.ws.shapes, h.ws.word); }catch(_){ /* the page redraws from the record */ }
+  stHoldMark(); _stHold=null; if(h.toast){ window.toast=h.toast; h.toast=null; }
+  if(!h.keys.size && !h.api.size) return;
+  const cur=state.settings=state.settings||{};
+  h.keys.forEach(k=>{ if(h.snap[k]===undefined) delete cur[k]; else cur[k]=_stHoldClone(h.snap[k]); });
+  if(h.me && [...h.api.keys()].some(k=>/me\/prefs$/.test(k))) h.me.prefs=h.prefs;
+  stHoldRepaint();
+}
+/* SAVE: the held writes leave, once each — the settings in one PUT, each held route once; a refusal keeps the sheet
+   open with its edits still held and says why in its foot */
+async function stHoldCommit(){
+  const h=_stHold; if(!h) return true;
+  stHoldMark(); _stHold=null; if(h.toast){ window.toast=h.toast; h.toast=null; }
+  let ok=true, why='';
+  if(h.keys.size){ let r=true; try{ r=await saveSettings(); }catch(e){ r=false; why=(e&&e.message)||''; } if(r===false) ok=false; }
+  if(ok) for(const w of h.api.values()){ try{ await api(w.path, w.method, w.body, { unheld:true }); }catch(e){ ok=false; why=(e&&e.message)||''; break; } }
+  if(!ok){ _stHold=h; stHoldToastQuiet(); stDrawerRefuse(why||i18t('co_settings_save_failed')); return false; }
+  stHoldRepaint();
+  return true;
+}
+function stHoldRepaint(){
+  try{ if(typeof document!=='undefined' && document.querySelector('.sdd-page')) sddRepaint(); }catch(_){ /* the page redraws on its next paint */ }
+}
+/* A SAVE BUTTON INSIDE A SHEET IS A SAVE (the lanes' Save, the mailroom's key, the pay days, the address book's import
+   and Clear): it writes now, everything the sheet holds with it (the settings go as one record), and the sheet's
+   opening copy moves to what was written, so a later Cancel puts back only what came after it */
+async function stSaveSettingsNow(){
+  const h=_stHold; if(!h) return saveSettings();
+  _stHold=null; let r;
+  try{ r=await saveSettings(); }
+  finally{ _stHold=h; }
+  if(r!==false){ h.snap=_stHoldClone((state&&state.settings)||{})||{}; h.keys.clear(); h.allow=1; }   /* its own "saved" is true: said */
+  return r;
+}
+/* THE HOUSE'S LEAVE QUESTION (the Send screen's, the new agreement's): only while something is held */
+function stHoldLeaveThen(go){
+  if(!stHoldDirty()){ go(); return; }
+  const ask=(typeof confirmDialog==='function')
+    ? confirmDialog({ title:i18t('st_leave_q'), message:i18t('st_leave_body'), confirmLabel:i18t('st_leave_go'), cancelLabel:i18t('st_leave_stay'), danger:true, leave:true })
+    : true;
+  Promise.resolve(ask).then(ok=>{ if(!ok) return; stHoldDrop(); go(); }).catch(()=>{});
+}
+/* the sheet's ✕, Esc and the veil: a way out, asked while something is held */
+function stDrawerLeave(){ stHoldLeaveThen(()=>stDrawerClose()); }
+/* the sheet's Save: what it holds leaves once, then it closes and says so */
+async function stHoldSave(btn){
+  if(btn) btn.disabled=true;
+  const had=stHoldDirty();
+  const ok=await stHoldCommit();
+  if(btn) btn.disabled=false;
+  if(!ok) return;
+  if(had && typeof toast==='function') toast(i18t('st_hold_saved'),'ok');
+  stDrawerClose();
+}
 /* Build the drawer from a descriptor. `foot` is the honest half of this:
-   'save' draws Save & close + Cancel and the panel writes nothing until the
-   press; 'done' draws one Done, because that panel has already written every
-   answer as it was given — which is a rule this product keeps deliberately for
-   its gates and must not be papered over with a button that does nothing. */
+   'save' draws Save + Cancel and the form writes nothing until the press (its
+   own d.save); every other sheet draws Save + Cancel too since P-43 (owner's
+   pick 21 Nov 2026), and HOLDS what its presses change until that Save
+   (stHoldBegin) — the old 'done' foot, which wrote on every press, is gone.
+   The house rule orders the foot: Save (black) first, Cancel last. */
 function stDrawerPaint(d){
   stWireDrawerOnce();
   /* one form at a time: a drawer opening closes a form open in its row */
   if(_stRow) stRowFormClose();
+  /* P-43: a sheet that wrote on each press now HOLDS until Save; a form sheet (its own Save) holds nothing here */
+  if(d.foot!=='save') stHoldBegin(String(_stOpen||_stDock||d.title||'')); else if(_stHold) stHoldDrop();
   const el=stDrawerHost(), scrim=document.getElementById('st-scrim');
   const glyph=d.glyph||'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>';
   /* A PERSON'S DRAWER WEARS THEIR INITIALS (SAP pop-ups, 10 Oct 2026, the
@@ -613,10 +740,10 @@ function stDrawerPaint(d){
      group does not close, hunt and open four times. It carries data-st-panel,
      which is the door every row already presses, so there is ONE way a panel
      is opened and this cannot drift from the list.
-     NOT DRAWN ON A PANEL THAT SAVES ON A PRESS. Twenty-three of the two dozen
-     write as the reader changes them and their foot is a Done; exactly one
-     holds typed edits until Save, and a link that quietly threw those away
-     because it sat beside the button is not a convenience. */
+     NOT DRAWN ON A FORM SHEET (its own Save): a link that quietly threw typed
+     edits away because it sat beside the button is not a convenience. On a
+     sheet that HOLDS its edits until Save (P-43) it is drawn, and pressing it
+     while anything is held asks first (stDrawerOpen → stHoldLeaveThen). */
   const nextKey=(d.foot!=='save' && place && place.next && SET_PANELS[place.next]) ? place.next : '';
   const nextBtn=nextKey
     ? `<button class="st-dnext" data-st-panel="${nextKey}">${esc(i18t('st_next',{name:SET_PANELS[nextKey].title()}))} ›</button>`
@@ -626,7 +753,8 @@ function stDrawerPaint(d){
      <div class="st-dfoot-acts">${nextBtn}${d.foot==='save'
       ? `<button class="ui-btn ui-btn-primary" id="st-dsave">${i18t('act_save')}</button>${d.footExtra||''}
          <button data-dlg-cancel class="ui-btn" data-st-dclose>${i18t('act_cancel')}</button>`
-      : `<button class="ui-btn ui-btn-primary" data-st-dclose>${i18t('st_done')}</button>`}</div>`;
+      : `<button class="ui-btn ui-btn-primary" id="st-dsave" data-st-hsave>${i18t('act_save')}</button>
+         <button data-dlg-cancel class="ui-btn" data-st-dcancel>${i18t('act_cancel')}</button>`}</div>`;
   /* DOCKED, IT IS A PAGE (round 25 as drawn, the gaps' third pass): placed
      in the page's main column, no scrim, no trap — the reader may go on to
      Jambo beside it; the panel it shows is the page's (_stDock) */
@@ -684,6 +812,8 @@ function stDrawerRefuse(msg){
 }
 function stDrawerClearRefusal(){ document.getElementById((_stRow&&!_stOpen)?'st-rform-refusal':'st-drawer-refusal')?.setAttribute('hidden',''); }
 function stDrawerOpen(key){
+  /* another sheet while this one holds edits: asked first (P-43); the same sheet drawn again keeps them */
+  if(stHoldDirty() && _stHold.key!==String(key)){ stHoldLeaveThen(()=>stDrawerOpen(key)); return; }
   if(key==='account'){ openMyAccount(); return; }
   if(String(key||'').indexOf('person:')===0){ settingsPersonDrawer(String(key).slice(7)); return; }
   /* A BUSINESS ROLE'S OWN DRAWER (piece 6) */
@@ -1586,6 +1716,7 @@ function stDockPageHtml(){
 }
 function stDockOpen(key, from){
   if(!key) return;
+  if(stHoldDirty() && _stHold.key!==String(key)){ stHoldLeaveThen(()=>stDockOpen(key, from)); return; }
   /* an overlay drawer up gives way: one drawer, one place */
   if(_stOpen && !stDrawerDocked()) stDrawerClose();
   _stDock=String(key); _stDockFrom=from||null;
@@ -1908,7 +2039,7 @@ const stArCount=()=>{ const a=stAr(); if(!a) return { done:0, total:0 }; const i
 function stArNeedRow(){
   if(!stArDue()) return null;
   const a=stAr(), n=stArCount();
-  return { key:'review', dot:'warn', text:i18t('st_ar_need',{q:stArLabel(a.quarter)}), sub:i18t('st_ar_need_sub',{n:n.done,total:n.total}),
+  return { key:'review', dot:'warn', text:i18t('st_ar_need',{q:stArLabel(a.quarter)}), sub:i18t('st_ar_need_sub',{n:n.done,total:n.total}), short:i18t('sdd5_ar_s',{n:n.done,total:n.total}),
     btn:'data-st-page="sheet" data-st-land="ar"', verb:i18t(n.done?'st_ar_continue':'st_ar_start') };
 }
 /* the trail, read once per sitting (and again after the review moves) */
@@ -6282,9 +6413,9 @@ const SET_PANELS={
         }catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
         finally{ if(btn) btn.disabled=false; }
       });
-      document.getElementById('st-company-design')?.addEventListener('click',()=>{
+      document.getElementById('st-company-design')?.addEventListener('click',()=>stHoldLeaveThen(()=>{
         stDrawerClose(); openDesignStep({ mode:'settings', onBack:()=>renderTeam() });
-      });
+      }));
       stFxPaint();
       /* WITH NOTHING ON FILE THE ROW IS ALREADY OPEN: a panel whose only
          content is a button to reveal the only thing on it is a press that
@@ -6760,7 +6891,7 @@ const SET_PANELS={
           state.settings=state.settings||{};
           const was=state.settings.mailroom||{};
           state.settings.mailroom = key ? { key, folder, ...(ownerId ? { ownerId } : {}), ...(was.savedById ? { savedById:was.savedById } : {}) } : {};
-          await saveSettings();
+          await stSaveSettingsNow();
           toast(key?i18t('set_mailroom_saved'):i18t('set_mailroom_stopped'),'ok');
           stRepaintRow('mailroom');
         }catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
@@ -6906,7 +7037,7 @@ const SET_PANELS={
         stDrawerClearRefusal();
         try{
           state.settings=state.settings||{}; state.settings.intakeLanes=all;
-          await saveSettings();
+          await stSaveSettingsNow();
           toast(i18t('set_lanes_saved'),'ok');
           stRepaintRow('lanes');
         }catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
@@ -7001,7 +7132,7 @@ const SET_PANELS={
         try{
           state.settings=state.settings||{};
           state.settings.payTargets={ customer:a.v, supplier:b.v };
-          await saveSettings();
+          await stSaveSettingsNow();
           toast(i18t('set_pay_saved'),'ok');
           /* THE ROW STATES THE PAIR WITHOUT BEING OPENED, so it is repainted
              where it stands — never renderTeam(), which rebuilds the whole
@@ -7115,8 +7246,8 @@ const SET_PANELS={
       </div>`;
     },
     /* the card opens the one page that sets the look (How our contracts look), admins only */
-    wire(){ document.getElementById('brand-edit')?.addEventListener('click',()=>{
-      stDrawerClose(); if(typeof window.clGo==='function') window.clGo(); }); },
+    wire(){ document.getElementById('brand-edit')?.addEventListener('click',()=>stHoldLeaveThen(()=>{
+      stDrawerClose(); if(typeof window.clGo==='function') window.clGo(); })); },
   },
 
   report:{
@@ -7876,8 +8007,8 @@ function stPaintLadder(){
     +(rows.length?rows.map(r=>`<div class="st-frow sc6-lrow">
       <span class="sc6-who"><span class="ar6-ini${r.role==='admin'?' is-green':''}" aria-hidden="true">${esc(ini(r.name))}</span><span class="st-fname" data-st-fixed="1">${esc(r.name)}</span></span>
       <span><span class="apn-st is-grey">${esc(roleName(r.role))}</span></span>
-      <span class="st-fmeta${owed(r)?' sc6-amber':''}">${esc(r.text)}${owed(r)&&r.id!=null?` · <button type="button" class="ui-link" data-st-panel="person:${PB_ATTR(r.id)}" data-st-focus="#tm-cap">${esc(i18t('sc6_set'))}</button>`:''}</span>
-      <span class="st-fmeta">${esc((typeof signFolderText==='function')?signFolderText((getUsers()||[]).find(u=>u.id===r.id)||{}):'')}</span>
+      <span class="st-fmeta${owed(r)?' sc6-amber':''}">${esc(r.role==='admin'?i18t('sc6_never'):owed(r)?i18t('sc6_none'):r.text)}${owed(r)&&r.id!=null?` · <button type="button" class="ui-link" data-st-panel="person:${PB_ATTR(r.id)}" data-st-focus="#tm-cap">${esc(i18t('sc6_set'))}</button>`:''}</span>
+      <span class="st-fmeta sc6-fold">${esc((typeof signFolderText==='function')?signFolderText((getUsers()||[]).find(u=>u.id===r.id)||{}):'')}</span>
     </div>`).join(''):`<p class="st-note">${esc(i18t('sc_ladder_none'))}</p>`)
     +(un.length&&!nOwed?`<p class="st-note sc6-amber">${esc(i18tn('sc_unanswered',un.length,{n:un.length}))}</p>`:'');
 }
@@ -7958,8 +8089,8 @@ function stPaintRules(){
     <div class="st-rules">${rows.filter(r=>!r.holds).map(row).join('')}</div>`;
   host.querySelectorAll('[data-st-rule-go]').forEach(b=>b.addEventListener('click',()=>{
     const [tab,panel]=String(b.getAttribute('data-st-rule-go')||'').split(':');
-    try{ stDrawerClose(); }catch(_){}
-    openSettingsAt(tab, panel||null);
+    stHoldLeaveThen(()=>{ try{ stDrawerClose(); }catch(_){}
+      openSettingsAt(tab, panel||null); });
   }));
 }
 
@@ -7995,7 +8126,7 @@ function stPaintDirectory(){
         if(k && byEmail[k]){ const p=byEmail[k]; if(r.name)p.name=r.name; if(r.title)p.title=r.title; updated++; }
         else { const p={ name:r.name||'', email:r.email||'', title:r.title||'' }; d.push(p); if(k)byEmail[k]=p; added++; } });
       state.settings.directory=d;
-      try{ await saveSettings(); }catch(err){ toast(i18t('set_t_sync_failed',{err:err.message}),'err'); }
+      try{ await stSaveSettingsNow(); }catch(err){ toast(i18t('set_t_sync_failed',{err:err.message}),'err'); }
       stDrawerClearRefusal();
       toast(i18t('set_t_dir_import',{added})+(updated?i18t('set_t_dir_updated',{n:updated}):''));
       stPaintDirectory();
@@ -8004,7 +8135,7 @@ function stPaintDirectory(){
   });
   document.getElementById('dir-clear')?.addEventListener('click',async()=>{
     if(!await confirmDialog({title:i18t('st_dir_clear_q'), message:i18t('st_dir_clear_msg'), confirmLabel:i18t('st_dir_clear_go'), danger:true})) return;
-    state.settings=state.settings||{}; state.settings.directory=[]; await saveSettings();
+    state.settings=state.settings||{}; state.settings.directory=[]; await stSaveSettingsNow();
     toast(i18t('set_t_dir_cleared')); stPaintDirectory();
   });
 }
@@ -9856,7 +9987,7 @@ function openClauseEditor(idx){
 const AR_CONDS=()=>[['value',i18t('set_cond_value',{cur:jxCurrency()})],['folder',i18t('set_cond_folder')],['kind',i18t('set_cond_kind')],['foreignLaw',i18t('set_cond_foreign')],['deviation',i18t('set_cond_deviation')]];
 function condLabel(cond){
   switch(cond.type){
-    case 'value': return i18t('set_cond_value_is',{op:cond.op||'>=',amount:fmtMoneyShort(cond.value)});
+    case 'value': return i18t('set_cond_value_is',{op:({ '>=':'≥', '<=':'≤' })[cond.op||'>=']||cond.op,amount:fmtMoneyShort(cond.value)});
     case 'folder': return i18t('set_cond_folder_is',{name:(FOLDERS[cond.value]||{}).name||cond.value});
     case 'kind': return i18t('set_cond_kind_is',{value:cond.value});
     case 'foreignLaw': return i18t('set_cond_foreign');
@@ -9875,12 +10006,35 @@ function arOpenAsks(rule){
     try{ const st=window.approvalState?approvalState(c):null; if(st&&st.required&&(st.chain||[]).some(x=>x.ruleId===rule.id&&x.status!=='approved')) n++; }catch(_){ /* not counted */ } });
   return n;
 }
+/* THE RULE IN WORDS, as drawn (P-43): "A contract of KES 10M or more needs <b>Unrestricted Legal</b>'s yes; below that,
+   <b>Amina Otieno</b>'s." — a threshold and the rule under it at the same figure said as one sentence; a stream's rule
+   by its stream; any other as "When …, a contract needs …'s yes". Names bold; every word read off the rules. */
+function arWordsHtml(rules){
+  if(!rules.length) return esc(i18t('set_no_approval_rules'));
+  const who=r=>'<b>'+esc(approverLabelOf(r.approver))+'</b>';
+  const amt=v=>esc(typeof fmtMoneyShort==='function'?fmtMoneyShort(v):String(v));
+  const val=r=>r&&r.cond&&r.cond.type==='value'?Number(r.cond.value):null;
+  const out=[], used=new Set();
+  rules.forEach((r,i)=>{ if(used.has(i)) return; used.add(i);
+    const c=r.cond||{};
+    if(c.type==='value'&&(c.op||'>=')==='>='){
+      /* the rule just under it: ≤ the same figure (or one less), said as "below that" */
+      const j=rules.findIndex((x,k)=>!used.has(k)&&x.cond&&x.cond.type==='value'&&x.cond.op==='<='&&val(x)<=val(r)&&val(x)>=val(r)-1);
+      let t=i18t('ar6_w_more',{ amount:amt(c.value), who:who(r) });
+      if(j>=0){ used.add(j); t+='; '+i18t('ar6_w_below',{ who:who(rules[j]) }); }
+      out.push(t); return; }
+    if(c.type==='value') { out.push(i18t('ar6_w_less',{ amount:amt(c.value), who:who(r) })); return; }
+    if(c.type==='folder') { out.push(i18t('ar6_w_stream',{ stream:esc((FOLDERS[c.value]||{}).name||c.value), who:who(r) })); return; }
+    out.push(i18t('ar6_w_cond',{ cond:esc(condLabel(c)), who:who(r) }));
+  });
+  return out.map(t=>t+'.').join(' ');
+}
 function renderApprovalRules(){
   const host=document.getElementById('approval-rules'); if(!host) return;
   const rules=approvalRules().slice().sort((a,b)=>(a.order||99)-(b.order||99));
   const all=approvalRules();
   const words=document.getElementById('ar6-words');
-  if(words) words.textContent=rules.length?rules.map(r=>i18t('ar6_words_rule',{ cond:condLabel(r.cond), who:approverLabelOf(r.approver) })).join(' '):i18t('set_no_approval_rules');
+  if(words) words.innerHTML=arWordsHtml(rules);
   const admin=isAdmin();
   host.innerHTML=rules.length?`<div class="ar6-row is-head"><span></span><span>${esc(i18t('ar6_h_if'))}</span><span>${esc(i18t('ar6_h_then'))}</span><span>${esc(i18t('ar6_h_open'))}</span><span></span></div>`+rules.map(r=>{
     const i=all.indexOf(r), who=approverLabelOf(r.approver), n=arOpenAsks(r);
@@ -9900,7 +10054,7 @@ function renderApprovalRules(){
   const ch=document.getElementById('ar6-clash');
   if(ch){ let cl=null; try{ cl=(typeof stClashes==='function'?stClashes():[]).find(x=>(x.kind==='self'&&!x.stream)||x.kind==='nobody')||null; }catch(_){ cl=null; }
     ch.innerHTML=cl?`<div class="ar6-clash"><i aria-hidden="true"></i><div>${esc(cl.text)}. <button type="button" class="ui-link" data-ar6-sheet>${esc(i18t('ar6_clash_go'))}</button></div></div>`:'';
-    ch.querySelector('[data-ar6-sheet]')?.addEventListener('click',()=>{ stDrawerClose(); if(typeof settingsGoPage==='function') settingsGoPage('sheet'); }); }
+    ch.querySelector('[data-ar6-sheet]')?.addEventListener('click',()=>stHoldLeaveThen(()=>{ stDrawerClose(); if(typeof settingsGoPage==='function') settingsGoPage('sheet'); })); }
 }
 function openApprovalRuleEditor(idx){
   const rules=approvalRules().slice();
@@ -10143,8 +10297,8 @@ function renderSignCheckGatePanel(){
   const seg=`<div class="sc6-seg" role="radiogroup" aria-label="${esc(i18t('sc_set_title'))}">${G.map(k=>`<label class="sc6-o${now===k?' is-on':''}${admin?'':' is-locked'}"><input type="radio" name="sc-gate" value="${k}"${now===k?' checked':''}${admin?'':' disabled'}/><span>${esc(i18t('sc_set_'+k))}</span></label>`).join('')}</div>`;
   const steps=(SC6_STEPS[now]||SC6_STEPS.off);
   const tl=`<div class="sc6-tl"><p class="sc6-h">${esc(i18t('sc6_tl_h',{ gate:i18t('sc_set_'+now) }))}</p><ol class="sc6-tline">${steps.map(([tone,k,sk])=>`<li class="is-${tone}"><i aria-hidden="true"></i><span>${esc(i18t(k))}${sk?`<small> · ${esc(i18t(sk))}</small>`:''}</span></li>`).join('')}<li class="is-sign"><i aria-hidden="true"></i><span>${esc(i18t('sdd5_signature'))}</span></li></ol></div>`;
-  const others=`<div class="sc6-others">${G.filter(k=>k!==now).map(k=>`<div><b>${esc(i18t('sc_set_'+k))}</b><span>${esc(i18t('sc_set_'+k+'_d'))}</span></div>`).join('')}</div>`;
-  host.innerHTML=seg+`<p class="st-inwords">${esc(i18t('sc_set_'+now+'_d'))}</p>`+tl+others;
+  const others=`<div class="sc6-others">${G.filter(k=>k!==now).map(k=>`<div><b>${esc(i18t('sc_set_'+k))}</b><span>${esc(i18t('sc6_other_'+k))}</span></div>`).join('')}</div>`;
+  host.innerHTML=seg+`<p class="st-inwords">${i18t('sc6_words_'+now,{ gate:'<b>'+esc(i18t('sc_set_'+now))+'</b>' })}</p>`+tl+others;
   if(!admin) return;
   host.querySelectorAll('input[name="sc-gate"]').forEach(r=>r.addEventListener('change',()=>{
     if(!r.checked) return;
@@ -10290,7 +10444,7 @@ Object.assign(window,{stNeedGo,stNeedDoorEl,stClashes,stArDue,stArLabel,stArCoun
   stRulesRows,stPaintRules,stPaintSignFolders,
   openMyAccount,openSettingsAt,settingsGoTab,stUnfinishedCount,stPeopleWire,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
   ST_FACES,stPageHeadHtml,stPushHtml,stPushPaint,stPushRefresh,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stYouHtml,stYouCardHtml,stYouSheetItems,ST_YOU_SHEET,stChipsSet,stNewLookSet,stOpensSet,stBriefSet,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stAskDirect,stAskOpenOn,stAdminsSaid,stDay,stJbAnswer,stJbAmount,stJbAsk,stJbAskJambo,stJbTalkNow,stJamboFocus,stSideSet,stSideFit,ST_SIDE_MIN,ST_BOARD_MIN,ST_SPLIT_KEY,ST_SPLIT,stSplitFit,
-  stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
+  stDrawerOpen,stDrawerClose,stDrawerRefuse,stHoldTake,stHoldApi,stHoldDirty,stHoldLeaveThen,stHoldSave,stHoldDrop,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stLoadAiCfgOnce,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stPersonSays,stPersonSumHtml,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
   stSigningSectionHtml,stSigningRead,stPaintLadder,stReviewSectionHtml,stReviewRead,stSignFolderHtml,stSignFolderRead,
@@ -10301,7 +10455,7 @@ Object.assign(window,{stNeedGo,stNeedDoorEl,stClashes,stArDue,stArLabel,stArCoun
    (PAGE_HEAD_PAINT reads it off window), a form in its row, the stream beside
    the list, Jambo's words for the page in front, your own copy and name and
    email, and the readings the checks ask */
-Object.assign(window,{stJbCardHtml,stnOn,stnPaint,stnPanelPaint,stnPanelHtml,stnAgentsSaid,sddRows,sddGo,sddCardHtml,sddNeedList,sddPickSet,stLessonsLoad,stLessonsPaint,stLessonTeach,stLessonFine,stLessonForget,stLessonPlaces,stJbBoxAsk,stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
+Object.assign(window,{stJbCardHtml,stnOn,stnPaint,stnPanelPaint,stnPanelHtml,stnAgentsSaid,sddRows,sddGo,sddCardHtml,sddNeedList,sddPanelNeeds,sddPickSet,stLessonsLoad,stLessonsPaint,stLessonTeach,stLessonFine,stLessonForget,stLessonPlaces,stJbBoxAsk,stLandHasLinks,stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbMenuDoorHtml,stMenuCount,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
   stSwPickSet,stSwPanelHtml,stSwRows,stJbFeedHtml,stJbFeedRepaint,stJbCompanyWords,stJbDataWords,stJbStreamsWords,stJbNeedPhrase,stSideFoldSet,
   stTrailLeftOut,stHouseFacts,stTrailPastHtml,stYouCardRepaint,stGovLadderHtml,stSheetCardHtml});
 
@@ -10451,8 +10605,12 @@ function sddCompanyRows(){
 }
 function sddRulesRows(){
   const rows=[], ap=stnApprovalsOpen();
-  const onoff=(k,x)=>sddPanelRow('rules',x.g,k,{ say:i18t('sdd_ru_'+k+(sddOn(k)?'_on':'_off')), sub:i18t('sdd_ru_'+k+'_sub'), now:i18t(sddOn(k)?'stn_pill_on':'stn_pill_off'), verb:i18t(sddOn(k)?'st_you_change':'sdd_turn_on') });
-  rows.push(sddPanelRow('rules','sign','rules',{ say:i18t('sdd_ru_rules_say',{ what:sddState('rules').t }), sub:i18t('sdd_ru_rules_sub') }));
+  /* the panel's one button says Change, on or off (P-43 as drawn: "Change" for Signing limits while it is off too) */
+  const onoff=(k,x)=>sddPanelRow('rules',x.g,k,{ say:i18t('sdd_ru_'+k+(sddOn(k)?'_on':'_off')), sub:i18t('sdd_ru_'+k+'_sub'), now:i18t(sddOn(k)?'stn_pill_on':'stn_pill_off'), verb:i18t('st_you_change') });
+  /* "4 of 7 on" in the Now column, "Before signing: 4 of 7 rules are on." as its sentence (P-43 as drawn; the rules
+     page's own count, stRulesRows — the rules that ever hold a signature) */
+  const hr=(typeof stRulesRows==='function'?stRulesRows():[]).filter(r=>r&&r.holds), hn=hr.filter(r=>r.on).length;
+  rows.push(sddPanelRow('rules','sign','rules',{ say:i18t('sdd_ru_rules_say',{ n:hn, of:hr.length }), now:i18t('sdd_ru_rules_now',{ n:hn, of:hr.length }), sub:i18t('sdd_ru_rules_sub') }));
   rows.push(sddPanelRow('rules','sign','approvals',{ say:i18t('sdd_ru_approvals_say',{ what:sddState('approvals').t }),
     sub:ap?i18tn('stn_ap_open',ap,{ n:ap }):i18t('sdd_ru_approvals_sub'), verb:i18t('st_you_change') }));
   rows.push(sddPanelRow('rules','sign','signcheck',{ say:i18t('sdd_ru_signcheck_say',{ what:sddState('signcheck').t }), sub:i18t('sdd_ru_signcheck_sub'), verb:i18t('st_you_change') }));
@@ -10558,10 +10716,10 @@ function sddNeedList(admin, area, rows){
   rows=rows||sddRows(admin); const out=[];
   /* every need a row carries is its own line (four clashes on People & roles are four lines, as stNeedsAll says them) */
   rows.filter(r=>r.dot==='need'&&(!area||r.area===area)).forEach(r=>{ (r.needs&&r.needs.length?r.needs:[null]).forEach(n=>{
-    out.push({ row:r.id, area:r.area, key:n?n.key:null, dot:n&&n.dot, text:n?sddTxt(n.text):r.name, sub:n?sddTxt(n.sub||n.subHtml||''):r.say,
+    out.push({ row:r.id, area:r.area, key:n?n.key:null, need:n||null, dot:n&&n.dot, text:n?sddTxt(n.text):r.name, sub:n?sddTxt(n.sub||n.subHtml||''):r.say,
       btn:n&&n.btn?n.btn:(r.door||`data-sdd-pick="${r.area}:${PB_ATTR(r.id)}"`), verb:n&&n.verb?n.verb:(r.door?r.verb:i18t('sdd_open')) }); }); });
   if(!area||area==='company') sddNeedsOf(admin).filter(n=>!n.row||!rows.some(r=>r.id===n.row))
-    .forEach(n=>out.push({ row:null, area:'company', key:n.key, dot:n.dot, text:sddTxt(n.text), sub:sddTxt(n.sub||n.subHtml||''), btn:n.btn||'', verb:n.verb||i18t('st_need_open') }));
+    .forEach(n=>out.push({ row:null, area:'company', key:n.key, need:n, dot:n.dot, text:sddTxt(n.text), sub:sddTxt(n.sub||n.subHtml||''), btn:n.btn||'', verb:n.verb||i18t('st_need_open') }));
   return out;
 }
 /* ---- the middle ---- */
@@ -10584,7 +10742,7 @@ function sddRowHtml(r, opts){
   /* the row's own door, unseen: the second press on the row (or Enter) presses it; the panel's one button carries it too */
   const door=r.door?`<span class="sdd-door" hidden data-sdd-go ${r.door}></span>`:'';
   return `<div class="sdd-row${chosen?' is-chosen':''}" id="sdd-${esc(r.id)}" data-sdd-row="${esc(r.id)}"${o.found?` data-sdd-found="${esc(r.area)}"`:''} role="button" tabindex="0" aria-pressed="${chosen?'true':'false'}">
-    ${sddMarkHtml(r)}<div class="sdd-t">${o.found?`<div class="sdd-n">${esc(r.name)} <small>${esc(i18t('sdd_in',{ area:i18t('sdd_a_'+r.area) }))}</small></div>`:`<div class="sdd-k">${esc(r.name)}</div>`}<div class="sdd-s">${esc(r.say)}</div>${r.sub?`<div class="sdd-u">${esc(r.sub)}</div>`:''}</div>
+    ${sddMarkHtml(r)}<div class="sdd-t">${o.found?`<div class="sdd-n">${esc(r.name)} <small>${esc(i18t('sdd_in',{ area:i18t('sdd_a_'+r.area) }))}</small></div>`:`<div class="sdd-k">${esc(r.name)}</div>`}<div class="sdd-s">${esc(r.say)}</div>${r.sub?`<div class="sdd-u" title="${esc(r.sub)}">${esc(r.sub)}</div>`:''}</div>
     <div class="sdd-now">${sddStateHtml(r)}</div><div class="sdd-a">${r.ctl||''}${r.ctl?'':`<span class="sdd-chev" aria-hidden="true">›</span>`}${door}</div></div>`;
 }
 function sddAreaState(a, rows){
@@ -10594,7 +10752,8 @@ function sddAreaState(a, rows){
   const r=x=>mine.find(y=>y.id===x)||{};
   if(a==='company') return { t:r('people').now||'', dot:'' };
   if(a==='rules') return { t:r('approvals').now||'', dot:'on' };
-  if(a==='jambo') return { t:r('budget').now?i18t('sdd_st_jambo',{ what:r('budget').now }):'', dot:'on' };
+  /* Jambo's badge says whether he is on, never his spending (P-43 as drawn: "On"; no money in an area's badge) */
+  if(a==='jambo'){ const on=sddOn('copilot'); return { t:i18t(on?'stn_pill_on':'stn_pill_off'), dot:on?'on':'' }; }
   if(a==='mail') return { t:r('mail').now||'', dot:r('mail').dot||'' };
   return { t:r('golive').now||'', dot:'' };
 }
@@ -10615,8 +10774,7 @@ function sddHomeHtml(admin){
       const list=mine.map(r=>r.name).join(' · ');
       return `<div class="sdd-row is-area${chosen?' is-chosen':''}" id="sdd-area-${a}" data-sdd-home="${a}" role="button" tabindex="0" aria-pressed="${chosen?'true':'false'}">
         ${mk}<div class="sdd-t"><div class="sdd-n">${esc(i18t('sdd_a_'+a))}</div><div class="sdd-s is-list" title="${esc(list)}">${esc(list)}</div></div>
-        <div class="sdd-now">${sddHomeBadge(st)}</div><div class="sdd-a sdd-num">${mine.length}<span class="sdd-door" hidden data-sdd-door="${a}"></span></div></div>`; }).join('')
-    +`<p class="sdd-foot">${esc(i18t('sdd_foot_row'))}</p>`;
+        <div class="sdd-now">${sddHomeBadge(st)}</div><div class="sdd-a sdd-num">${mine.length}<span class="sdd-door" hidden data-sdd-door="${a}"></span></div></div>`; }).join('');
 }
 function sddFoundHtml(rows){
   const toks=String(_sddQ).toLowerCase().split(/\s+/).filter(Boolean);
@@ -10632,7 +10790,8 @@ function sddAreaHtml(admin, a){
   rows.forEach(r=>{ let g=groups.find(x=>x.k===r.g); if(!g) groups.push(g={ k:r.g, rows:[] }); g.rows.push(r); });
   if(_sddQ.trim()) return sddFoundHtml(sddRows(admin));
   return `<div class="sdd-colh"><span>${esc(i18t('sdd_col_setting'))}</span><span>${esc(i18t('sdd_col_now'))}</span></div>`
-    +groups.map(g=>`<h3 class="sdd-gh a-${SDD_TONE[a]}">${esc(i18t('sdd_g_'+a+'_'+g.k))}</h3>`+g.rows.map(r=>sddRowHtml(r)).join('')).join('');
+    /* a group's head is quiet grey; amber with its dot only where something in it needs you (P-43 as drawn) */
+    +groups.map(g=>`<h3 class="sdd-gh a-${SDD_TONE[a]}${g.rows.some(r=>r.dot==='need')?' is-need':''}">${esc(i18t('sdd_g_'+a+'_'+g.k))}</h3>`+g.rows.map(r=>sddRowHtml(r)).join('')).join('');
 }
 function sddHeadHtml(admin){
   const rows=sddRows(admin), a=_sddArea, chip=sddChipNow();
@@ -10646,9 +10805,11 @@ function sddHeadHtml(admin){
   return `${a?`<button type="button" class="sdd-back" data-sdd-back>‹ ${esc(i18t('stn_title_short'))}</button>`:''}
     <div class="cun-head"><h2 class="ctf-h stn-title sdd-title">${esc(a?i18t('sdd_a_'+a):i18t('stn_title_short'))}</h2></div>
     ${a?`<p class="sdd-sub">${esc(i18t('sdd_sub_'+a))}</p>`:''}
-    <label class="apn-ask sdd-find"><span class="sdd-find-ic" aria-hidden="true">${typeof icon==='function'?icon('search','w-3.5 h-3.5'):''}</span><input id="sdd-q" type="search" autocomplete="off" placeholder="${esc(i18t(a?'sdd_ask_ph_area':'sdd_ask_ph',{ area:a?i18t('sdd_a_'+a):'' }))}" aria-label="${esc(i18t('sdd_find_ph'))}" value="${esc(_sddQ)}"></label>
+    <label class="apn-ask sdd-find"><span class="sdd-find-ic" aria-hidden="true">${typeof icon==='function'?icon('mkSpark','sdd-spark-ic',0):''}</span><input id="sdd-q" type="search" autocomplete="off" placeholder="${esc(sddAskPh(a))}" aria-label="${esc(i18t('sdd_find_ph'))}" value="${esc(_sddQ)}"></label>
     <div class="apn-bar sdd-chips">${chips.map(c=>`<button type="button" class="apn-tab is-chip${chip===c[0]?' is-on':''}" data-sdd-chip="${c[0]}">${c[0]==='need'?'<i class="apn-cd is-amber" aria-hidden="true"></i>':''}${esc(c[1])} <span>${c[2]}</span></button>`).join('')}</div>`;
 }
+/* the ask box's words: the landing's, an area's own example where it has one (P-43 as drawn), else the area's line */
+function sddAskPh(a){ if(!a) return i18t('sdd_ask_ph'); const k='sdd_ask_ph_'+a, w=i18t(k); return w!==k?w:i18t('sdd_ask_ph_area',{ area:i18t('sdd_a_'+a) }); }
 function sddMainHtml(admin){ return _sddArea?sddAreaHtml(admin,_sddArea):sddHomeHtml(admin); }
 /* the list alone (a find, a choice): the head, the box and the panel stand; the box keeps its words and its caret */
 function sddListPaint(){ const m=document.getElementById('stn-main'); if(!m) return; m.innerHTML=sddMainHtml(stIsAdmin()); }
@@ -10675,20 +10836,54 @@ function sddHomeSet(a){ _sddHome=a||null; sddListPaint(); stnPanelPaint(); }
    what it does today as a ring where the record counts it (Approval rules: the asks open), who it affects, who may
    change it, its history, and what changing it does. Nothing here writes; every press is an existing door's. */
 const sdd5Tags=list=>`<div class="sdd5-tags">${list.filter(Boolean).map(([t,tone,dot])=>`<span class="apn-st is-${tone}">${dot?'<i></i>':''}${esc(t)}</span>`).join('')}</div>`;
-function sdd5RingHtml(num, den, tone){
+function sdd5RingHtml(num, den, tone, cap){
   const R=24, L=2*Math.PI*R, off=den>0?L*(1-Math.max(0,Math.min(1,num/den))):L;
-  return `<svg class="sdd5-ring is-${tone}" viewBox="0 0 64 64" aria-hidden="true"><circle class="sdd5-rb" cx="32" cy="32" r="${R}"/><circle class="sdd5-rf" cx="32" cy="32" r="${R}" stroke-dasharray="${L.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 32 32)"/><text x="32" y="36" text-anchor="middle">${num}/${den}</text></svg>`;
+  /* the number, and under it its small word ("live", "asks open"), as drawn (P-43) */
+  return `<svg class="sdd5-ring is-${tone}" viewBox="0 0 64 64" aria-hidden="true"><circle class="sdd5-rb" cx="32" cy="32" r="${R}"/><circle class="sdd5-rf" cx="32" cy="32" r="${R}" stroke-dasharray="${L.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 32 32)"/><text x="32" y="${cap?33:36}" text-anchor="middle">${num}/${den}</text>${cap?`<text class="sdd5-rcap" x="32" y="43" text-anchor="middle">${esc(cap)}</text>`:''}</svg>`;
 }
 /* the contracts that need a yes before signing, and how many of them still wait for it (approvalState, the one reading) */
 function stnApprovalsRing(){
-  let open=0, need=0; (state.contracts||[]).forEach(c=>{ if(!c||c.status==='Signed'||c.archived) return; try{ const s=window.approvalState?approvalState(c):null; if(s&&s.required){ need++; if(!s.ok) open++; } }catch(_){ /* not counted */ } });
-  return { open, need };
+  let open=0, need=0; const on={};
+  (state.contracts||[]).forEach(c=>{ if(!c||c.status==='Signed'||c.archived) return; try{ const s=window.approvalState?approvalState(c):null; if(s&&s.required){ need++; if(!s.ok){ open++;
+    /* whose yes it waits on, where the step names a person (a role's step names nobody) */
+    const a=s.next&&s.next.approver; if(a&&a.kind==='member'){ const nm=String((typeof approverLabelOf==='function'?approverLabelOf(a):a.name)||'').trim(); if(nm) on[nm]=(on[nm]||0)+1; } } } }catch(_){ /* not counted */ } });
+  const top=Object.keys(on).sort((x,y)=>on[y]-on[x])[0]||'';
+  return { open, need, who:top?{ name:top.split(/\s+/)[0], n:on[top] }:null };
 }
 /* the road to a signature: the rules that hold a signature, in signBlockers' order (stRulesRows), then the signature */
+/* P-43 as drawn: the four settings this area sets on the way to a signature — Approval rules (its one rule named, as
+   "Value ≥ KES 10M", else how many), the check before signing, signing limits, who may sign in which stream — each on
+   (green) or off (grey) with its state, then the signature. The rules page keeps the whole list (stPaintRules). */
+const SDD_ROAD=['approval','signcheck','signcap','signfolder'];
 function sddRoadHtml(){
-  const rows=(typeof stRulesRows==='function'?stRulesRows():[]).filter(r=>r&&r.holds);
+  const all=(typeof stRulesRows==='function'?stRulesRows():[]).filter(r=>r&&r.holds);
+  const rows=SDD_ROAD.map(k=>all.find(r=>r.k===k)).filter(Boolean);
   if(!rows.length) return '';
-  return `<ol class="sdd5-road">${rows.map(r=>`<li class="${r.on?'is-on':'is-off'}"><i aria-hidden="true"></i><span>${esc(r.name)}<small> · ${esc(r.state)}</small></span></li>`).join('')}<li class="is-sign"><i aria-hidden="true"></i><span>${esc(i18t('sdd5_signature'))}</span></li></ol><p class="sdd5-small">${esc(i18t('sdd5_road_s'))}</p>`;
+  const rules=(typeof approvalRules==='function')?approvalRules():[];
+  const said=r=>r.k==='approval'&&rules.length===1&&typeof condLabel==='function'?condLabel(rules[0].cond||{}):r.state;
+  return `<ol class="sdd5-road">${rows.map(r=>`<li class="${r.on?'is-on':'is-off'}"><i aria-hidden="true"></i><span>${esc(r.name)}<small> · ${esc(said(r))}</small></span></li>`).join('')}<li class="is-sign"><i aria-hidden="true"></i><span>${esc(i18t('sdd5_signature'))}</span></li></ol><p class="sdd5-small">${esc(i18t('sdd5_road_s'))}</p>`;
+}
+/* THE ROWS JAMBO'S PANEL DRAWS UNDER "NEEDS YOU", AND SO ITS HEADLINE'S COUNT: the one list (sddNeedList), less going
+   live on the landing, which its ring says (P-43 as drawn) — unless it is the only thing left, then it is a row too */
+function sddPanelNeeds(admin, area, rows, needs){
+  needs=needs||sddNeedList(admin, area, rows||sddRows(admin));
+  const ringed=!area&&admin&&SET_PANELS.golive&&typeof stGoLive==='function';
+  const rest=ringed?needs.filter(x=>x.key!=='panel:golive'):needs;
+  return rest.length?rest:needs;
+}
+/* WHAT NEEDS YOU, SAID PROBLEM FIRST, PLACE SECOND (P-43 as drawn: "Your job title is missing / Who you are"): the need's
+   own words where they already say the problem; a setting that needs you says its state over its name */
+function sdd5NeedSay(x, rows){
+  const n=x.need||null, k=String(x.key||'');
+  if(!n && x.row==='who') return { t:i18t('sdd5_need_who'), s:x.text };
+  if(!n){ const r=(rows||[]).find(y=>y.id===x.row); return r&&r.now?{ t:r.now, s:x.text }:{ t:x.text, s:x.sub }; }
+  /* A CLASH SAYS ITSELF: its own sentence is the problem (who signs above whom, who gives whom the yes), its kind under it
+     ("a clash in who may do what · since …") — four clashes under one shared headline could not be told apart, nor
+     found by their own words (clashes-verify, 22 Nov 2026) */
+  if(k.indexOf('clash')===0) return { t:x.text, s:x.sub };
+  if(k==='review' && n.short) return { t:x.text, s:n.short };
+  if(k.indexOf('panel:')===0 && k!=='panel:company' && x.sub) return { t:x.sub, s:x.text };
+  return { t:x.text, s:x.sub };
 }
 function sddCardHtml(admin, ctx){
   if(typeof jamboOverviewHtml!=='function') return '';
@@ -10698,28 +10893,33 @@ function sddCardHtml(admin, ctx){
   const awM=(state.away||{}).mine;
   if(r){
     const who=r.who==='you'?i18t('sdd_who_you'):i18t('sdd_who_admins');
-    const after=r.ctl?i18t('sdd_after_ctl'):r.page?i18t('sdd_after_page'):i18t('sdd5_if_change');
+    const after=r.ctl?i18t('sdd_after_ctl'):r.page?i18t('sdd_after_page'):i18t(r.id==='approvals'?'sdd5_if_change_ap':'sdd5_if_change');
     const first=(r.needs||[])[0];
     const stTag=r.dot==='on'?[i18t('stn_pill_on'),'green']:r.dot==='off'?[i18t('stn_pill_off'),'grey']:r.dot==='need'?[i18t('sdd_chip_need'),'amber',true]:null;
     const gTag=r.g&&i18t('sdd_g_'+r.area+'_'+r.g)!=='sdd_g_'+r.area+'_'+r.g?[i18t('sdd_g_'+r.area+'_'+r.g),'grey']:null;
     /* what it does today, where the record counts it (Approval rules: the asks open under it), drawn after Change */
     const today=[];
     if(r.id==='approvals'){ const q=stnApprovalsRing();
-      if(q.need) today.push({ label:i18t('sdd5_today'), html:`<div class="sdd5-today">${sdd5RingHtml(q.open,q.need,q.open?'amber':'green')}<p>${esc(i18t('sdd5_asks_open',{ n:q.open, m:q.need }))}</p></div>` }); }
-    const groups=today.concat([{ label:'', rows:[{ k:i18t('sdd_f_affects'), t:i18t(r.who==='you'?'sdd_affects_you':'sdd_affects_all') }, { k:i18t('sdd_f_who'), t:who },
+      /* the ring: the asks open of the contracts that need a yes, "asks open" under the number; whose yes is waited on */
+      if(q.need) today.push({ label:i18t('sdd5_today'), html:`<div class="sdd5-today">${sdd5RingHtml(q.open,q.need,q.open?'amber':'green',i18t('sdd5_asks_cap'))}<p>${esc(i18tn('sdd5_asks_n',q.open,{ n:q.open })+(q.who?i18tn('sdd5_waits_on',q.who.n,{ n:q.who.n, name:q.who.name }):'')+'.')}</p></div>` }); }
+    const groups=today.concat([{ label:'', key:'facts', rows:[{ k:i18t('sdd_f_affects'), t:i18t(r.who==='you'?'sdd_affects_you':'sdd_affects_all') }, { k:i18t('sdd_f_who'), t:who },
         { k:i18t('sdd_f_history'), t:i18t('sdd_in_trail'), link:(admin&&typeof stTrailOn==='function'&&stTrailOn())?{ label:i18t('sdd_see_it'), attr:'data-st-panel="trail"' }:null }].map(x=>x.link?x:Object.assign(x,{ link:undefined })) },
       { label:i18t('sdd5_if_h'), rows:[{ t:after, wrap:true }] }])
       /* while you are away, Jambo says who answers for you on every You row's card too (when-youre-away 3c) */
       .concat(r.area==='you'&&awM&&awM.deputyName?[{ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('st_jb_away',{ who:awM.deputyName }), wrap:true }] }]:[]);
-    return `<div class="jl-words is-ov sdd5-p">${jamboOverviewHtml({ before:sdd5Tags([stTag,gTag]), title:r.name, sub:r.say, actFirst:true,
+    /* the rule in one sentence, its condition bold as drawn (P-43: "…when: <b>Value ≥ KES 10M</b>.") */
+    const subHtml=r.id==='approvals'?esc(i18t('sdd_ru_approvals_say',{ what:'\u0001' })).replace('\u0001','<b>'+esc(sddState('approvals').t)+'</b>'):'';
+    return `<div class="jl-words is-ov sdd5-p">${jamboOverviewHtml({ before:sdd5Tags([stTag,gTag]), title:r.name, sub:r.say, subHtml, actFirst:true,
       act:(first&&first.btn)||r.door?{ say:first?(sddTxt(first.text)+(first.sub?' · '+sddTxt(first.sub):'')):'', label:first&&first.verb?first.verb:r.verb, attr:first&&first.btn?first.btn:r.door }:null,
-      groups, src:i18t('jov5_st_src') },'stn')}</div>`;
+      groups },'stn')}</div>`;
   }
   const needs=sddNeedList(admin, area, rows);
   const mkOf=x=>sddEmojiOf(x.row||'', x.area)||'•';
   const groups=[];
   /* each need keeps its tone (red where it is outright, amber otherwise) around its emoji mark */
-  if(needs.length) groups.push({ label:i18t('sdd5_needs'), rows:needs.map(x=>({ mark:'', markText:mkOf(x), tone:x.dot==='red'?'red':'amber', t:x.text, s:x.sub, attr:x.btn||'' })) });
+  /* on the landing the ring says going live, so its row is not said again under it (P-43 as drawn) */
+  const rowsOf=sddPanelNeeds(admin, area, rows, needs);
+  if(rowsOf.length) groups.push({ label:i18t('sdd5_needs'), rows:rowsOf.map(x=>{ const w=sdd5NeedSay(x, rows); return { mark:'', markText:mkOf(x), tone:x.dot==='red'?'red':'amber', t:w.t, s:w.s, attr:x.btn||'' }; }) });
   if(awM&&awM.deputyName&&(!area||area==='you')) groups.push({ label:i18t('cn2_jambo'), rows:[{ mark:'sparkle', tone:'dark', t:i18t('st_jb_away',{ who:awM.deputyName }), wrap:true }] });
   /* ASK AN ADMIN is for a person who is not one (fault logged 21 Nov 2026: an admin's panel carried it under Jambo's links) */
   if(!admin) groups.push({ label:i18t('stn_p_ask'), rows:[{ mark:'msg', t:i18t('st_ask_go'), s:i18t('stn_p_ask_s'), attr:'data-st-ask-head=""', wrap:true }] });
@@ -10739,15 +10939,17 @@ function sddCardHtml(admin, ctx){
     let mid='';
     if(admin&&SET_PANELS.golive&&typeof stGoLive==='function'){ let gl=[]; try{ gl=stGoLive()||[]; }catch(_){ gl=[]; }
       const done=gl.filter(x=>x.ok).length;
-      if(gl.length) mid=`<div class="sdd5-today">${sdd5RingHtml(done,gl.length,done===gl.length?'green':'amber')}<div><b>${esc(sddTxt(SET_PANELS.golive.title()))}</b><span>${esc(i18t('sdd5_done_of',{ n:done, m:gl.length }))}</span>${done<gl.length?`<button type="button" class="jov-lnk" data-st-panel="golive">${esc(i18t('sdd5_see_left'))}</button>`:''}</div></div>`; }
-    o={ eyebrow:place, title:needs.length?i18tn('sdd_card_t',needs.length,{ n:needs.length }):i18t('sdd_card_clear'),
-      sub:needs.length?i18t('sdd5_areas_n',{ n:withN, m:areasN.length }):i18t('sdd_card_clear_s'), mid, groups };
+      if(gl.length) mid=`<div class="sdd5-today">${sdd5RingHtml(done,gl.length,'green',i18t('sdd5_live'))}<div><b>${esc(sddTxt(SET_PANELS.golive.title()))}</b><span>${esc(i18t('sdd5_done_of',{ n:done, m:gl.length }))}</span>${done<gl.length?`<button type="button" class="jov-lnk" data-st-panel="golive">${esc(i18t('sdd5_see_left'))}</button>`:''}</div></div>`; }
+    /* the headline counts the rows drawn under it, no more (the number on a door is the list behind it) */
+    o={ eyebrow:place, title:rowsOf.length?i18tn('sdd_card_t',rowsOf.length,{ n:rowsOf.length }):i18t('sdd_card_clear'),
+      sub:rowsOf.length?i18t('sdd5_areas_n',{ n:withN, m:areasN.length }):i18t('sdd_card_clear_s'), mid, groups };
   } else {
-    o={ before:sdd5Tags([needs.length?[i18tn('sdd_need_n',needs.length,{ n:needs.length }),'amber',true]:['✓ '+i18t('sdd_card_clear'),'green']]),
+    o={ before:sdd5Tags([needs.length?[i18tn('sdd_need_n',needs.length,{ n:needs.length }),'amber',true]:['✓ '+i18t('sdd5_clear_badge'),'green']]),
       title:onData?stJbDataWords(false):place, sub:i18t('sdd_card_clear_s'),
       mid:area==='rules'&&!onData?sddRoadHtml():'', midLabel:area==='rules'&&!onData?i18t('sdd5_road'):'', groups };
   }
-  const card=jamboOverviewHtml(Object.assign(o,{ actFirst:true, src:i18t('jov5_st_src') }),'stn');
+  /* no "Read from the settings" under it (P-43 as drawn; it ran under the links line at 1536 × 730) */
+  const card=jamboOverviewHtml(Object.assign(o,{ actFirst:true }),'stn');
   return `<div class="jl-words is-ov sdd5-p">${onData?card.replace('<h3 class="jov5-title">','<h3 class="jov5-title" data-st-jb-hello>'):card}</div>`;
 }
 /* ---- presses: a row chooses, a second press opens through its own door; Open on an area goes in; the find box ---- */
@@ -10762,7 +10964,7 @@ if(typeof document!=='undefined' && !document._sddWired){ document._sddWired=tru
     const dr=el.closest('[data-sdd-door]'); if(dr){ sddGo(dr.getAttribute('data-sdd-door')); return true; }
     const pk=el.closest('[data-sdd-pick]'); if(pk){ const [a,id]=String(pk.getAttribute('data-sdd-pick')).split(':'); sddGo(a,id); return true; }
     const hm=el.closest('[data-sdd-home]');
-    if(hm&&!el.closest('button,a,input,[role="switch"],.st-yseg')){ const a=hm.getAttribute('data-sdd-home'); if(_sddHome===a) sddGo(a); else sddHomeSet(a); return true; }
+    if(hm&&!el.closest('button,a,input,[role="switch"],.st-yseg')){ sddGo(hm.getAttribute('data-sdd-home')); return true; }
     const row=el.closest('[data-sdd-row]'); if(!row) return false;
     const id=row.getAttribute('data-sdd-row');
     if(row.hasAttribute('data-sdd-found')&&!el.closest('[data-sdd-go]')){ sddGo(row.getAttribute('data-sdd-found'), id); return true; }
@@ -10775,6 +10977,12 @@ if(typeof document!=='undefined' && !document._sddWired){ document._sddWired=tru
   document.addEventListener('keydown',e=>{ if(e.key!=='Enter'&&e.key!==' ') return; const t=e.target;
     if(!t||!t.matches||!t.matches('[data-sdd-row],[data-sdd-home]')) return; e.preventDefault(); press(t); });
   document.addEventListener('input',e=>{ const t=e.target; if(!t||t.id!=='sdd-q') return; _sddQ=t.value; if(!_sddQ.trim()) _sddHome=null; sddListPaint(); });
+  /* an area reached by the keyboard is shown beside you before Enter goes in (the press itself goes straight in) */
+  document.addEventListener('focusin',e=>{ const t=e.target; if(!t||!t.matches||!t.matches('[data-sdd-home]')) return;
+    let kb=false; try{ kb=t.matches(':focus-visible'); }catch(_){ kb=false; } if(!kb) return;
+    const a=t.getAttribute('data-sdd-home'); if(_sddHome===a) return; _sddHome=a;
+    document.querySelectorAll('#stn-main [data-sdd-home]').forEach(x=>{ const on=x===t; x.classList.toggle('is-chosen',on); x.setAttribute('aria-pressed',on?'true':'false'); });
+    stnPanelPaint(); });
 }
 /* the panel beside the six areas: the Dossier card (sddCardHtml) */
 function stnPanelHtml(admin){ return sddCardHtml(admin); }
