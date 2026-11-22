@@ -127,7 +127,9 @@ describe('F216 — the archive shelf, against a real server', () => {
 describe('F216 — the client\'s rules, pinned at the source', () => {
   test('the register: archived leaves every default list and returns under ONE view', () => {
     const reg = read('js/views/register.js');
-    assert.match(reg, /if\(R\.view==='archived'\) cs=cs\.filter\(c=>!!c\.archived\);\s*\n\s*else cs=cs\.filter\(c=>!c\.archived\);/,
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn): on the new look's Contracts place the shelf is the landing's "Ended &
+       archived" (regLsEnded: put away, declined, or signed and past its end); elsewhere it is the archived alone */
+    assert.match(reg, /if\(R\.view==='archived'\) cs=cs\.filter\(c=>regNl\(\)\?regLsEnded\(c\):!!c\.archived\);\s*\n\s*else cs=cs\.filter\(c=>!c\.archived\);/,
       'one pair of lines: the view shows the shelf, everything else excludes it');
     assert.match(reg, /\{k:'archived',\s*get label\(\)\{ return i18t\('reg_view_archived'\); \}\}/,
       'and the view is offered where the saved views live');

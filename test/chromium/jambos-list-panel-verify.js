@@ -286,8 +286,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       const A0 = await page.evaluate(() => { const on = document.querySelector('.apn-tab.is-on');
         return { pill: ((on && on.querySelector('span')) || {}).textContent || '', foot: ((document.querySelector('.apn-card .apn-foot') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
           band: !!document.querySelector('.ap-band'), rows: document.querySelectorAll('[data-ap-row]').length }; });
-      check('5a the head: the lit tab counts the rows, the foot says the same number; no band',
-        A0.rows > 0 && Number(A0.pill.trim()) === A0.rows && new RegExp('^' + A0.rows + ' for you').test(A0.foot) && !A0.band, JSON.stringify(A0));
+      /* RE-POINTED 21 Nov 2026 (P-30, as drawn): no line under the list — the lit chip's count is the one number */
+      check('5a the head: the lit tab counts the rows, no line under the list says it again; no band',
+        A0.rows > 0 && Number(A0.pill.trim()) === A0.rows && !A0.foot && !A0.band, JSON.stringify(A0));
       const ap1 = await apMark('MK-AP1');
       await apTab('others');
       const sg1 = await until(() => { const r = document.querySelector('[data-ap-row="MK-SG1"] td.apn-apc [title]'); return r ? r.getAttribute('title') : null; }, null, 4000);
@@ -302,14 +303,16 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
          stand-in is told on the row's own mark ("You for Jonas", its hover; 5b keeps it), and that stays as it is */
       await shot('r15-approvals-words-1440x780.png');
       await page.click('[data-ap-row="MK-AP1"]');
-      const A1 = await until(() => { const p = document.getElementById('ins-panel'); if (!p || !/Helio/.test(p.textContent) || !p.querySelector('.jov5-title')) return null;
+      /* RE-POINTED 21 Nov 2026 (P-30, as drawn): the chosen approval's panel is the drawn one (.apn5): its name (.apn5-t), the
+         other side · reference · rule line (.apn5-s), its section heads (.apn5-h) */
+      const A1 = await until(() => { const p = document.getElementById('ins-panel'); if (!p || !/Helio/.test(p.textContent) || !p.querySelector('.apn5-t')) return null;
         const row = document.querySelector('[data-ap-row="MK-AP1"]');
         const a = p.querySelector('[data-apn-act="approve"]'), d = p.querySelector('[data-apn-act="refuse"]');
         return { word: (p.querySelector('[data-jl-word]') || {}).textContent || '', old: p.querySelectorAll('[data-ins-act]').length,
           onRow: row ? !!row.querySelector('[data-ap-approve], [data-ap-refuse]') : null,
           approve: a ? a.textContent.trim() : null, decline: d ? d.textContent.trim() : null,
-          eb: ((p.querySelector('.jov5-eb') || {}).textContent || '').trim(),
-          labels: [...p.querySelectorAll('.jov5-label')].map(l => l.textContent.trim()), text: p.innerText.replace(/\s+/g, ' ') }; });
+          eb: ((p.querySelector('.apn5-s') || {}).textContent || '').trim(),
+          labels: [...p.querySelectorAll('.apn5-h')].map(l => l.textContent.trim()), text: p.innerText.replace(/\s+/g, ' ') }; });
       /* RE-POINTED (P-30, owner's pick 20 Nov 2026: "the row keeps ONLY See it in the paper ›"): Approve (black, "for
          Jonas" where the reader stands in) and Decline are the panel's; the row carries no decision */
       check('5d an approval: no word beside the tabs; Approve for Jonas · Decline in the panel, none on its row', !!A1 && !A1.word && A1.old === 0 && A1.onRow === false && A1.approve === 'Approve for Jonas' && A1.decline === 'Decline', JSON.stringify(A1 && { word: A1.word, old: A1.old, onRow: A1.onRow, approve: A1.approve, decline: A1.decline }));
@@ -329,7 +332,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await until(() => document.querySelector('[data-ap-row="MK-AP1"]'), null, 8000);
       if (!(await page.evaluate(() => { const r = document.querySelector('[data-ap-row="MK-AP1"]'); return !!(r && r.classList.contains('is-sel')); }))) await page.click('[data-ap-row="MK-AP1"]');
       /* RE-POINTED 16 Nov 2026 (#762): asked of the five-part panel's words (no .jl-rows in the new look) */
-      const S = await until(() => { const p = document.getElementById('ins-panel'); const t = p && p.querySelector('.jov5-title') ? p.innerText.replace(/\s+/g, ' ') : '';
+      /* RE-POINTED 21 Nov 2026 (P-30, as drawn): the drawn panel (.apn5) says it as a step of its Timeline */
+      const S = await until(() => { const p = document.getElementById('ins-panel'); const t = p && p.querySelector('.apn5-t') ? p.innerText.replace(/\s+/g, ' ') : '';
         return /The value changed since it was asked/.test(t) ? 'The value changed since it was asked' : null; }, null, 8000);
       check('5i "Since last look": the value moved after the question was put — said, read from the question\'s own stamp', S === 'The value changed since it was asked', JSON.stringify(S));
     });
@@ -398,11 +402,15 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         await page.evaluate(() => setView('approvals'));
         await until(() => document.querySelector('[data-ap-row="MK-AP1"]'), null, 8000); await page.waitForTimeout(300);
         /* RE-POINTED 21 Oct 2026 (Part 8): the foot is the list head's own */
-        const A = await page.evaluate(CARD, { card: '#content .apn-card', rows: '.apn-table tbody tr', foot: '.apn-card .apn-foot' });
+        /* RE-POINTED 21 Nov 2026 (P-30, as drawn): no line under the list — the last row is read in the foot's place, so
+           "the foot right under the rows" is asked as "no foot line at all" (noFoot) instead of footUnder; the rest of
+           ONE SHEET (no ground, the card to the panel's foot, the rules door in the head) is asked as before */
+        const A = await page.evaluate(CARD, { card: '#content .apn-card', rows: '.apn-table tbody tr', foot: '.apn-card .apn-table tbody tr:last-child' });
+        if (A) A.noFoot = await page.evaluate(() => !document.querySelector('#content .apn-card .apn-foot'));
         /* RE-POINTED 29 Oct 2026 (owner: ONE SHEET): no grey ground between the head and the card; the card reaches
            the foot of Jambo's panel; the foot still right under the rows, inside the card */
-        check(`10c Approvals ${w}×${ht}: one sheet — head and card meet with no ground, the card reaches the foot of Jambo's panel, the foot right under the rows; Approval rules inside the head`,
-          !!A && A.footUnder >= 0 && A.footUnder <= 2 && A.cardEnd >= 0 && A.sheetGap != null && Math.abs(A.sheetGap) <= 1 && A.panelFoot != null && Math.abs(A.panelFoot) <= 2 && A.rulesIn >= 0, JSON.stringify(A)); /* RE-POINTED 16 Nov 2026 (#762): the rules door sits IN the head's own row (.cun-head), so "inside" is >= 0 */
+        check(`10c Approvals ${w}×${ht}: one sheet — head and card meet with no ground, the card reaches the foot of Jambo's panel, no line under the rows (as drawn); Approval rules inside the head`,
+          !!A && A.noFoot && A.cardEnd >= 0 && A.sheetGap != null && Math.abs(A.sheetGap) <= 1 && A.panelFoot != null && Math.abs(A.panelFoot) <= 2 && A.rulesIn >= 0, JSON.stringify(A)); /* RE-POINTED 16 Nov 2026 (#762): the rules door sits IN the head's own row (.cun-head), so "inside" is >= 0 */
         const C = await page.evaluate(() => [...document.querySelectorAll('.apn-table .apn-name')].filter(e => e.scrollWidth > e.clientWidth + 1 || /…$/.test(e.textContent)).map(e => e.textContent));
         check(`10d Approvals ${w}×${ht}: every party's name reads whole`, !C.length, JSON.stringify(C));
         await shot(`r15-approvals-frame-${w}x${ht}.png`);
