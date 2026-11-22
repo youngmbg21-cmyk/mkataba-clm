@@ -77,6 +77,8 @@ const { ASK_KINDS, ASK_STATES, ASK_WHY_MAX, askLapsed, askSamePerson, askRuleTo,
 const { isWorkingId, contractRef, signRouteOf, handoverOf, handoverActive,
   handoverReminderKey, handoverStillLiveDue, handoverDays, HANDOVER_FROZEN,
   HANDOVER_LIVE_DAYS, SIGNED_VIA, outsideFileIds, outsideBlanksIn } = require('../js/outside.js');
+/* WHO DOES WHAT (owner, 22 Nov 2026): the one reading both sides tick — the same file the browser loads */
+const { dutyPayload, dutyTickRefusal, dutyTickSet, dutyReading } = require('../js/dealduties.js');
 /* Look a string up in a specific language rather than "the current" one: there
    is no current language on a server writing to five recipients at once. */
 /* WHAT LANGUAGE DOES THIS RECIPIENT READ? A member of the workspace carries
@@ -5394,6 +5396,52 @@ app.post('/api/contracts/:id/points/:key/review', auth, editor, (req, res) => {
    said in plain words. "SENT" MEANS SENT: the record (c.ruleReminds, and a line in the trail) is written only when the
    mail went or waits in the outbox (mailReport); a refused send takes back the day's turn. The list is this route's
    alone (the PUT keeps the stored one) and never travels to the other side. JSON only, never `version`. */
+/* ---- WHO DOES WHAT: OUR SIDE'S TICK (owner, 22 Nov 2026) ----
+   One answer, Agree ('yes') or Not how we read it ('no'), or 'clear' to take it back, to one line of the duty reading
+   (js/dealduties.js, both hosts), for OUR SIDE as a company. THE SERVER IS THE WALL: a member who may act (srvMayAct),
+   inside folderScopeFor; the line must be in the stored contract's reading and tickable (dutyTickRefusal: read, not
+   signed, whose said, its clause not still argued) — each refusal said in plain words. A RECORD THE SERVER WRITES: the
+   map on the contract (`dutyTicks`, this route's and the link's alone; the PUT keeps the stored copy) and a line in the
+   trail. JSON only, never `version`: agreeing a reading is not an edit of the agreement. */
+const DUTY_KEY_RE = /^d[0-9a-f]{8}$/;
+const DUTY_SAY = {
+  unread: 'Jambo has not read the duties on this contract yet.',
+  signed: 'This contract is signed. Its duties are the paper now.',
+  gone: 'That line is no longer in the reading. Open the page again.',
+  none: 'The paper does not say whose job this is. Settle it in Redlines first.',
+  open: 'This clause is still being argued in Redlines. It can be ticked once it is settled.',
+  side: 'That side cannot answer here.',
+};
+function srvDutyAnswer(c, key, side, answer, who) {
+  const why = dutyTickRefusal(c, key, side);
+  if (why) return { status: 409, error: DUTY_SAY[why] || DUTY_SAY.gone };
+  const map = dutyTickSet(c, key, side, answer, now());
+  const row = dutyReading(c).rows.find(r => r.key === key) || {};
+  const words = answer === 'yes' ? 'Agreed the reading' : answer === 'no' ? 'Said it is not how they read it' : 'Took back their answer';
+  const line = { at: now(), user: who, action: 'Who does what', detail: `${words}: ${String(row.desc || '').slice(0, 120)}${row.clause ? ` (§ ${row.clause})` : ''}` };
+  const next = { ...c, audit: (Array.isArray(c.audit) ? c.audit : []).concat([line]) };
+  if (Object.keys(map).length) next.dutyTicks = map; else delete next.dutyTicks;
+  return { next, map };
+}
+app.get('/api/contracts/:id/duties', auth, (req, res) => {
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { return res.status(409).json({ error: 'Contract not readable' }); }
+  res.json({ dutyTicks: c.dutyTicks || {} });
+});
+app.post('/api/contracts/:id/duties', auth, editor, (req, res) => {
+  if (!srvMayAct(req.user)) return res.status(403).json({ error: 'You can read this contract but not answer for your side. Ask an editor or an admin.' });
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { return res.status(409).json({ error: 'Contract not readable' }); }
+  const b = req.body || {}, key = String(b.key || ''), answer = String(b.answer || '');
+  if (!DUTY_KEY_RE.test(key) || !['yes', 'no', 'clear'].includes(answer)) return res.status(400).json({ error: 'That answer could not be read.' });
+  const r = srvDutyAnswer(c, key, 'ours', answer, req.user.name || '');
+  if (r.error) return res.status(r.status).json({ error: r.error });
+  db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(r.next), req.params.id);
+  res.json({ dutyTicks: r.map });
+});
+
 const RULE_REMIND_MAX = 50;
 app.post('/api/contracts/:id/rule-remind', auth, editor, async (req, res) => {
   if (!srvMayAct(req.user)) return res.status(403).json({ error: 'You can read this contract but not remind anybody on it. Ask an editor or an admin.' });
@@ -5685,6 +5733,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   if (prev && prev.pointReviews) c.pointReviews = prev.pointReviews; else delete c.pointReviews;
   /* `ruleReminds` is POST /api/contracts/:id/rule-remind's alone (21 Nov 2026): the stored list wins */
   if (prev && Array.isArray(prev.ruleReminds)) c.ruleReminds = prev.ruleReminds; else delete c.ruleReminds;
+  /* `dutyTicks` is POST /api/contracts/:id/duties' and POST /api/shares/:token/duties' alone (22 Nov 2026): the stored map wins */
+  if (prev && prev.dutyTicks && typeof prev.dutyTicks === 'object') c.dutyTicks = prev.dutyTicks; else delete c.dutyTicks;
   /* ---- AND WHETHER COPILOT STILL OWES IT ITS ARRIVAL READING (4 Oct 2026) ----
      `arrivalOwed` is written by a lane's mint and cleared by POST
      /api/contracts/:id/arrival, and by nothing else — the same rule as
@@ -20968,6 +21018,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     delete payload.contract.here;
     delete payload.contract.pointReviews;       // which points we marked reviewed is ours (21 Oct 2026)
     delete payload.contract.ruleReminds;        // whom we reminded to approve is ours (21 Nov 2026)
+    delete payload.contract.dutyTicks;          // who does what is read LIVE by the link (srvDutiesForShare), never a snapshot (22 Nov 2026)
     delete payload.contract.arrivalOwed;       // a lane's bookkeeping is ours (4 Oct 2026)
     delete payload.contract._readings;          // idea 7: our plain-English reading of their paper is ours
     delete payload.contract._roundPrep; }       // Copilot's answers to their round are ours alone
@@ -21955,6 +22006,9 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
        page without waiting for the link to be reshared, or a reply is as slow
        as the formal round it replaces. */
     messages: s.contract_id ? contractMessages(s.contract_id, shareIsAdvice(s) ? { adviserToken: s.token } : srvMsgScope(s.contract_id, s)) : [],
+    /* WHO DOES WHAT (22 Nov 2026), read LIVE off the stored contract like the discussion above: the overlap only
+       (dutyPayload — the paper's words, the clause, whose job by side, each side's answer and day; no amount, no person) */
+    duties: srvDutiesForShare(s),
     prior: s.durable ? priorCopyOfDurable(s) : priorCopySeenBy(s),
     superseded: s.durable ? shareRetiredBySigning(s) : shareSuperseded(s),
     /* THE DEAL IS DONE, read live rather than from the payload snapshot. The
@@ -22562,6 +22616,39 @@ app.post('/api/shares/:token/messages', rlShare, (req, res) => {
   if (!team) notifyMessage(s, m);
   res.json({ ok: true, message: m,
     messages: contractMessages(s.contract_id, adviser ? { adviserToken: s.token } : srvMsgScope(s.contract_id, s)) });
+});
+
+/* ---- WHO DOES WHAT: THEIR SIDE'S TICK (owner, 22 Nov 2026) ----
+   The other side's answer to one line, for THEIR SIDE as a company — the link's, never the body's. THE WALLS, in the
+   order every write on a link asks them: a link that exists, not a read-only kind (refuseIfViewOnly: view, status,
+   history), not withdrawn or run out, not an adviser's, the email code proved where the link asks one (the same proof
+   the page opened with, ?t / body.t), a contract still on file; then the reading's own refusal (dutyTickRefusal). The
+   record and the trail line are written here (srvDutyAnswer); the reply is the live reading their page draws. */
+function srvDutiesForShare(s) {
+  if (!s || !s.contract_id || shareIsAdvice(s)) return null;
+  const c = srvStoredContract(s.contract_id);
+  return c ? dutyPayload(c) : null;
+}
+app.post('/api/shares/:token/duties', rlShare, (req, res) => {
+  const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
+  if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
+  if (refuseIfViewOnly(s, res)) return;
+  if (s.revoked_at || shareExpired(s)) return res.status(410).json({ error: 'This share link is no longer active' });
+  if (shareIsAdvice(s)) return res.status(403).json({ error: 'An adviser\'s link cannot answer for a party.' });
+  const b = req.body || {};
+  if (shareNeedsCode(s) && !shareDoorOtpOk(s.token, b.t || (req.query && req.query.t)))
+    return res.status(401).json({ error: 'Check it is you before answering.', needsCode: true });
+  if (!s.contract_id) return res.status(409).json({ error: 'This link carries no contract to answer on' });
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(s.contract_id);
+  if (!row) return res.status(410).json({ error: 'This contract is no longer available' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { return res.status(409).json({ error: 'Contract not readable' }); }
+  const key = String(b.key || ''), answer = String(b.answer || '');
+  if (!DUTY_KEY_RE.test(key) || !['yes', 'no', 'clear'].includes(answer)) return res.status(400).json({ error: 'That answer could not be read.' });
+  const who = String(s.recipient_name || '').trim().slice(0, 120) || 'The other side';
+  const r = srvDutyAnswer(c, key, 'theirs', answer, who + ' (their side)');
+  if (r.error) return res.status(r.status).json({ error: r.error });
+  db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(r.next), s.contract_id);
+  res.json({ duties: dutyPayload(r.next) });
 });
 
 /* Every point where the counterparty spoke last, across the whole portfolio.

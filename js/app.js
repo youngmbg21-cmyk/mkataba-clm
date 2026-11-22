@@ -42,6 +42,7 @@ import './negotiation.js'; // the fingerprinted change model every intake path c
    public status link. After negotiation.js and parties.js, whose raw fields
    it reads, and before any screen that draws it. */
 import './dealstands.js';
+import './dealduties.js';
 /* Who has this contract open right now: a row of initials in its header, on a
    beat of its own, and nothing on the paper. Reads the record RAW and writes
    only through its own route — see the file. */
