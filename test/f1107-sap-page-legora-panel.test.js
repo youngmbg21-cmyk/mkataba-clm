@@ -17,28 +17,25 @@ const path = require('node:path');
 const HTML = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const stripCom = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const CSS = stripCom(HTML);
-const RULE = /html:not\(#_\):not\(#_\) :is\(([^)]*)\)\{([^}]*background-image:linear-gradient\(90deg, transparent, var\(--color-divider\)[^}]*)\}/;
+const RULE = /html:not\(#_\):not\(#_\) :is\(([^)]*)\)\{([^}]*border-bottom-color:transparent[^}]*)\}/;
+/* REVERSED 22 Nov 2026 (owner: "there is this line in the jambo pages. delete it across all jambos"): the panel head
+   draws NO line at all now; the one rule, last in the sheet, makes its border clear and paints nothing. */
 
 test('f1107 (1) one rule, last in the sheet, covers every panel head', () => {
   const m = CSS.match(RULE);
-  assert.ok(m, 'the panel-head line rule exists');
+  assert.ok(m, 'the panel-head rule exists');
   for (const head of ['.jl-head', '#ig-dock > .igd-head', '#ai-panel > header', '.st-side-head'])
     assert.ok(m[1].split(',').map(s => s.trim()).includes(head), head + ' is covered');
   const sheetEnd = CSS.indexOf('</style>', CSS.indexOf(m[0]));
   const after = CSS.slice(CSS.indexOf(m[0]) + m[0].length, sheetEnd);
   assert.equal(after.trim(), '', 'the rule is the last in its sheet, so no head\'s own border rule wins');
   assert.match(m[2], /border-bottom-color:transparent/, 'the border goes clear, keeping its pixel');
-  assert.match(m[2], /background-origin:border-box/, 'the line is painted in the border\'s own pixel row');
 });
 
-test('f1107 (2) the line is the divider, faded at both ends, 16 in from each side', () => {
+test('f1107 (2) no line is painted under a panel head (owner, 22 Nov 2026)', () => {
   const m = CSS.match(RULE); assert.ok(m);
-  assert.match(m[2], /linear-gradient\(90deg, transparent, var\(--color-divider\) \d+%, var\(--color-divider\) \d+%, transparent\)/);
-  assert.match(m[2], /background-size:calc\(100% - 32px\) 1px/);
-  assert.match(m[2], /background-position:16px 100%/);
-  assert.match(m[2], /background-repeat:no-repeat/);
+  assert.doesNotMatch(m[2], /background-image|linear-gradient|var\(--color-divider\)/, 'the rule paints nothing in the border row');
 });
-
 test('f1107 (3) the side drawer header writes no line of its own', () => {
   const head = HTML.match(/<section id="ai-panel"[^>]*>\s*<header([^>]*)>/);
   assert.ok(head, 'the side drawer header is found');

@@ -249,7 +249,7 @@ CHOSEN ROW: `apnLeadFiveHtml` (P-30: Approve/Decline · Remind · Undo in the pa
 ## ONE SHEET AND THREE BUTTONS (index.html "ONE SHEET" block)
 - Head + body = ONE white sheet: one hairline, 10px corners, to panel foot; head shadow never down or clipped. Not Board; Settings, template flat, one scroller (`scrollShowHandle`). BUILDER PAPER ON A DESK (`#tb-scroll`; f1044).
 - THREE BUTTONS: one black per area, grey pills, green links.
-- SAP PAGE, LEGORA PANEL (owner's pick, 19 Nov 2026): a side panel's head line never touches the divider or the edge — 16 in, fading at both ends; ONE closing rule (`:is(.jl-head, #ig-dock > .igd-head, #ai-panel > header, .st-side-head)`). The page's lines stay solid, ending where its words end. f1107.
+- NO LINE UNDER A SIDE PANEL'S HEAD (owner, 22 Nov 2026; reverses the 19 Nov faded line): ONE closing rule (`:is(.jl-head, #ig-dock > .igd-head, #ai-panel > header, .st-side-head)`) clears the border, paints nothing. The page's lines stay solid, ending where its words end. f1107.
 - FAULTS COUNTED IN NEW LOOK: `white-sheet-verify` (`PINS`; `WHITE_KNOWN` only shrinks), `HATI_TIDY_NEW_LOOK=1`, `HATI_DETAIL_NEW_LOOK=1`; tidy sweep AFTER MOTION.
 ## THE SAP BENCHMARK, BATCH 1 — THE LISTS
 - `.sap-page`: page head ONE white card (`.ph-card`, `.ph-top`, `.ph-foot`); lists: LIST HEAD. `hatiSearch` (GET /api/hati-search): walls at search time (folderScopeFor, cnOut, `tplVisibleTo`).
