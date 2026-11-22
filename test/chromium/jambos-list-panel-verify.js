@@ -165,28 +165,32 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
        whose move in Jambo's sentence, three numbers (unsent · asks still open · round), its facts (Their asks · Desk),
        and ONE black button, Open the redlines. Each old claim is asked of its new place. */
     await ngnChoose('MK-A2');
-    const N1 = await until(() => { const p = document.getElementById('ins-panel'); return p && p.querySelector('.ngn-panel[data-ngn-for="MK-A2"] .jov5-title') ? true : null; });
+    /* RE-POINTED 21 Nov 2026 (P-29, as drawn): the chosen deal's panel is drawn without cards (.ngn5); its name is .ngn5-t */
+    const N1 = await until(() => { const p = document.getElementById('ins-panel'); return p && p.querySelector('.ngn-panel[data-ngn-for="MK-A2"] .ngn5-t') ? true : null; });
     const N1p = await page.evaluate(PANEL);
     /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): the chosen deal's panel has NO
        tiles and NO money — a whose-move tag beside the name, the other side · reference over it, a facts block
        (.ngn-pfacts: Round, Open asks, the rounds strip), groups by their label (Their asks · Timeline) */
+    /* RE-POINTED 21 Nov 2026 (P-29, as drawn): no cards — the badge (.ngn5-tag), the other side · reference under the name (.ngn5-s), Round ·
+       Open asks · Rounds (.ngn5-figs), and each part headed by its label (.ngn5-h): their asks quoted (.ngn5-q) over
+       "§ N · what" (.ngn5-qs), then the Timeline */
     const N1r = await page.evaluate(() => { const p = document.getElementById('ins-panel'), f = p.querySelector('.ngn-panel[data-ngn-for="MK-A2"]') || p;
-      const groups = {}; f.querySelectorAll('.jov5-sec').forEach(sec => { const l = sec.querySelector('.jov5-label'); if (!l) return;
-        groups[l.textContent.trim()] = [...sec.querySelectorAll('.jov5-row')].map(r => ({ t: ((r.querySelector('.jov5-rt > b') || {}).textContent || '').trim(), s: ((r.querySelector('.jov5-rt > span') || {}).textContent || '').replace(/\s+/g, ' ').trim() })); });
-      const fx = {}; f.querySelectorAll('.ngn-pfacts > span').forEach(x => { const k = x.querySelector('small'), v = x.querySelector('b'); if (k && v) fx[k.textContent.trim()] = v.textContent.trim(); });
-      return { eb: ((f.querySelector('.jov5-eb') || {}).textContent || '').trim(), tag: ((f.querySelector('.jov5-tag') || {}).textContent || '').trim(), groups, fx,
-        strip: !!f.querySelector('.ngn-pfacts .ngn-rs'), glance: f.querySelectorAll('.jov5-glance').length,
+      const groups = {}; f.querySelectorAll('.ngn5-sec').forEach(sec => { const l = sec.querySelector('.ngn5-h'); if (!l) return;
+        groups[l.textContent.trim()] = [...sec.querySelectorAll('.ngn5-q')].map(r => ({ t: r.textContent.trim(), s: ((r.nextElementSibling && r.nextElementSibling.classList.contains('ngn5-qs') ? r.nextElementSibling : {}).textContent || '').replace(/\s+/g, ' ').trim() })); });
+      const fx = {}; f.querySelectorAll('.ngn5-figs > span').forEach(x => { const k = x.querySelector('small'), v = x.querySelector('b'); if (k && v) fx[k.textContent.trim().toLowerCase()] = v.textContent.trim(); });
+      return { eb: ((f.querySelector('.ngn5-s') || {}).textContent || '').trim(), tag: ((f.querySelector('.ngn5-tag') || {}).textContent || '').trim(), groups, fx,
+        strip: !!f.querySelector('.ngn5-figs .ngn-rs'), glance: f.querySelectorAll('.jov5-glance').length,
         money: /\b(KES|SEK|EUR|USD)\s?[\d.]+/.test(f.textContent) }; });
     check('2a no word beside his tab, no duplicate back button', !!N1 && !N1p.word && !N1p.back, JSON.stringify({ word: N1p.word, back: N1p.back }));
     /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): was Jambo's sentence under the name — whose move is the tag beside it */
     check('2b the panel says whose move it is: the tag "Your move"', N1r.tag === 'Your move', JSON.stringify(N1r.tag));
     /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): was party · reference · value and the Desk —
        now the other side · reference over the name with NO money anywhere in the panel, the Round fact, and Their asks */
-    check('2c the facts: the party · reference over the name, no money; Round; Their asks', N1r.eb === 'Nandi Dairy · MK-A2' && !N1r.money && /^\d+$/.test(N1r.fx.round || '')
+    check('2c the facts: the party · reference under the name, no money; Round; Their asks', N1r.eb === 'Nandi Dairy · MK-A2' && !N1r.money && /^\d+$/.test(N1r.fx.round || '')
       && Array.isArray(N1r.groups['Their asks']) && N1r.groups['Their asks'].length > 0, JSON.stringify(N1r));
     /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): was the tile "2 asks still open" — no tiles;
        the facts block counts Open asks and draws the rounds strip, and Their asks lists each one */
-    check('2d the asks waiting on you are counted: Open asks 2, two rows under Their asks, no tiles', N1r.glance === 0 && N1r.fx['Open asks'] === '2' && N1r.strip
+    check('2d the asks waiting on you are counted: Open asks 2, two rows under Their asks, no tiles', N1r.glance === 0 && N1r.fx['open asks'] === '2' && N1r.strip
       && (N1r.groups['Their asks'] || []).length === 2, JSON.stringify({ fx: N1r.fx, glance: N1r.glance, asks: N1r.groups['Their asks'] }));
     /* RETIRED 16 Nov 2026 (#762): 2d's second half, "What Jambo read in the drawing's order" (brief · playbook · scan ·
        oblig) — old look only: the pressed round's five parts carry no reading list; the Dossier holds the reads */
@@ -198,12 +202,15 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): the row's Open asks is a count
            (td.ngn-n) and the first ask's words + § ride the agreement cell (.ngn-ql); the panel's Their asks is a GROUP, each
            row quoting the words over "§ N · clause name" */
-        const sec = [...f.querySelectorAll('.jov5-sec')].find(x => /^Their asks$/.test(((x.querySelector('.jov5-label') || {}).textContent || '').trim()));
+        /* RE-POINTED 21 Nov 2026 (P-29, as drawn): Their asks is a part of its own (.ngn5-sec headed .ngn5-h); its lines "§ N · what" (.ngn5-qs);
+           the act in black (.ngn5-k) with Open the redlines beside it (.ngn5-acts .ngn-go) */
+        const sec = [...f.querySelectorAll('.ngn5-sec')].find(x => /^Their asks$/.test(((x.querySelector('.ngn5-h') || {}).textContent || '').trim()));
         return { n: row ? ((row.querySelector('td.ngn-n') || {}).textContent || '').trim() : null,
           ql: row ? ((row.querySelector('.ngn-ql') || {}).textContent || '').replace(/\s+/g, ' ').trim() : null,
-          subs: sec ? [...sec.querySelectorAll('.jov5-row .jov5-rt > span')].map(x => x.textContent.replace(/\s+/g, ' ').trim()) : [],
+          subs: sec ? [...sec.querySelectorAll('.ngn5-qs')].map(x => x.textContent.replace(/\s+/g, ' ').trim()) : [],
           more: !!p.querySelector('[data-ins-more]'),
-          go: [...f.querySelectorAll('.jov5-go')].map(b => ({ t: b.textContent.trim(), svg: !!b.querySelector('svg') })) }; });
+          go: [...f.querySelectorAll('.ngn5-k')].map(b => ({ t: b.textContent.trim(), svg: !!b.querySelector('svg') })),
+          link: [...f.querySelectorAll('.ngn5-acts .ngn-go')].map(b => b.textContent.trim()) }; });
       /* RE-POINTED (P-29, owner's pick 20 Nov 2026: Negotiations the Legora + Stripe way): was "2 · “…” § N · “…” § N" in one
          cell — the Open asks column counts 2 and the agreement cell quotes the first ask with its § on one line */
       check('2f "What is open": the row counts 2 asks and quotes the first with its §', N4.n === '2' && /“.+”.*§ ?\d/.test(N4.ql || ''), JSON.stringify({ n: N4.n, ql: N4.ql }));
@@ -211,22 +218,27 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
          row under Their asks names its clause by its § */
       check('2g Their asks names the clauses: each row "§ N · …"', N4.subs.length === 2 && N4.subs.every(x => /^§ ?[\dIVXLC.]+/.test(x)), JSON.stringify(N4.subs));
       /* was: the doors Negotiation · Workspace — the round's one black button opens its redlines, no ⋯, no icon */
-      check('2h one door: Open the redlines, no ⋯, no icon on it', !N4.more && N4.go.length === 1 && N4.go[0].t === 'Open the redlines' && !N4.go[0].svg, JSON.stringify(N4));
+      /* RE-POINTED 21 Nov 2026 (P-29, as drawn): the one black act is Answer (their asks wait), Open the redlines a link beside it */
+      check('2h one black act, Answer, with Open the redlines beside it; no ⋯, no icon on it', !N4.more && N4.go.length === 1 && N4.go[0].t === 'Answer' && !N4.go[0].svg
+        && N4.link.join('|') === 'Open the redlines', JSON.stringify(N4));
     });
     await part('2e ‹ Overview', async () => {
       /* RE-POINTED 16 Nov 2026 (#762): the tab "‹ Overview" is the way back from the chosen round (_jlBack) */
       await page.click('#ins-panel [data-jl-home]');
-      const N2 = await until(() => { const p = document.getElementById('ins-panel'); return p && p.querySelector('.ngn-panel[data-ngn-for=""] .jov5-title') && !document.querySelector('.ngn-table tr.is-sel') ? true : null; });
+      /* RE-POINTED 22 Nov 2026 (P-29 review): the overview is drawn unboxed as the chosen deal's panel is — its headline
+         .ngn5-t, its sentence .ngn5-say, the tabs a line of links, plain rows that choose; no tiles, no marks */
+      const N2 = await until(() => { const p = document.getElementById('ins-panel'); return p && p.querySelector('.ngn-panel[data-ngn-for=""] .ngn5-t') && !document.querySelector('.ngn-table tr.is-sel') ? true : null; });
       check('2e ‹ Overview lets the row go: the page\'s overview back, no row lit', !!N2);
       const N3 = await page.evaluate(() => { const p = document.getElementById('ins-panel'), f = p && p.querySelector('.ngn-panel[data-ngn-for=""]'); if (!f) return null;
-        return { title: ((f.querySelector('.jov5-title') || {}).textContent || '').trim(), sub: ((f.querySelector('.jov5-sub') || {}).textContent || '').trim(),
+        return { title: ((f.querySelector('.ngn5-t') || {}).textContent || '').trim(), sub: ((f.querySelector('.ngn5-say') || {}).textContent || '').trim(),
+          tiles: f.querySelectorAll('.jov5-glance, .jov5-mark').length,
           you: !!f.querySelector('[data-ngn-gotab="you"]'), picks: [...f.querySelectorAll('[data-ngn-pick]')].map(b => b.getAttribute('data-ngn-pick')),
           back: !!(p.querySelector('[data-jl-back]') && !p.querySelector('[data-jl-back]').hidden), live: document.querySelectorAll('.ngn-table tr[data-ngn-row]:not(.is-settled)').length }; });
       /* RE-POINTED 16 Nov 2026 (#762): the overview's five parts — its headline counted from the page, Jambo's sentence of
          whose answers wait, "your move" a door to that tab and each round a row that chooses it; no ‹ Jambo.
          RETIRED half: the "start a negotiation" chip (old look only: the five parts draw no such offer) */
       check('1b nothing chosen: the page in his words from its own counts, its doors, no ‹ Jambo',
-        !!N3 && /^\d+ rounds? waits? on you\.$/.test(N3.title) && /wait on your answers/.test(N3.sub) && N3.you && N3.picks.includes('MK-A2') && !N3.back,
+        !!N3 && /^\d+ rounds? waits? on you\.$/.test(N3.title) && /wait on your answers/.test(N3.sub) && N3.you && N3.picks.includes('MK-A2') && !N3.back && N3.tiles === 0,
         JSON.stringify(N3));
       await shot('r14-negotiations-words-1440x780.png');
     });
@@ -278,8 +290,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       const A0 = await page.evaluate(() => { const on = document.querySelector('.apn-tab.is-on');
         return { pill: ((on && on.querySelector('span')) || {}).textContent || '', foot: ((document.querySelector('.apn-card .apn-foot') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
           band: !!document.querySelector('.ap-band'), rows: document.querySelectorAll('[data-ap-row]').length }; });
-      check('5a the head: the lit tab counts the rows, the foot says the same number; no band',
-        A0.rows > 0 && Number(A0.pill.trim()) === A0.rows && new RegExp('^' + A0.rows + ' for you').test(A0.foot) && !A0.band, JSON.stringify(A0));
+      /* RE-POINTED 21 Nov 2026 (P-30, as drawn): no line under the list — the lit chip's count is the one number */
+      check('5a the head: the lit tab counts the rows, no line under the list says it again; no band',
+        A0.rows > 0 && Number(A0.pill.trim()) === A0.rows && !A0.foot && !A0.band, JSON.stringify(A0));
       const ap1 = await apMark('MK-AP1');
       await apTab('others');
       const sg1 = await until(() => { const r = document.querySelector('[data-ap-row="MK-SG1"] td.apn-apc [title]'); return r ? r.getAttribute('title') : null; }, null, 4000);
@@ -294,14 +307,16 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
          stand-in is told on the row's own mark ("You for Jonas", its hover; 5b keeps it), and that stays as it is */
       await shot('r15-approvals-words-1440x780.png');
       await page.click('[data-ap-row="MK-AP1"]');
-      const A1 = await until(() => { const p = document.getElementById('ins-panel'); if (!p || !/Helio/.test(p.textContent) || !p.querySelector('.jov5-title')) return null;
+      /* RE-POINTED 21 Nov 2026 (P-30, as drawn): the chosen approval's panel is the drawn one (.apn5): its name (.apn5-t), the
+         other side · reference · rule line (.apn5-s), its section heads (.apn5-h) */
+      const A1 = await until(() => { const p = document.getElementById('ins-panel'); if (!p || !/Helio/.test(p.textContent) || !p.querySelector('.apn5-t')) return null;
         const row = document.querySelector('[data-ap-row="MK-AP1"]');
         const a = p.querySelector('[data-apn-act="approve"]'), d = p.querySelector('[data-apn-act="refuse"]');
         return { word: (p.querySelector('[data-jl-word]') || {}).textContent || '', old: p.querySelectorAll('[data-ins-act]').length,
           onRow: row ? !!row.querySelector('[data-ap-approve], [data-ap-refuse]') : null,
           approve: a ? a.textContent.trim() : null, decline: d ? d.textContent.trim() : null,
-          eb: ((p.querySelector('.jov5-eb') || {}).textContent || '').trim(),
-          labels: [...p.querySelectorAll('.jov5-label')].map(l => l.textContent.trim()), text: p.innerText.replace(/\s+/g, ' ') }; });
+          eb: ((p.querySelector('.apn5-s') || {}).textContent || '').trim(),
+          labels: [...p.querySelectorAll('.apn5-h')].map(l => l.textContent.trim()), text: p.innerText.replace(/\s+/g, ' ') }; });
       /* RE-POINTED (P-30, owner's pick 20 Nov 2026: "the row keeps ONLY See it in the paper ›"): Approve (black, "for
          Jonas" where the reader stands in) and Decline are the panel's; the row carries no decision */
       check('5d an approval: no word beside the tabs; Approve for Jonas · Decline in the panel, none on its row', !!A1 && !A1.word && A1.old === 0 && A1.onRow === false && A1.approve === 'Approve for Jonas' && A1.decline === 'Decline', JSON.stringify(A1 && { word: A1.word, old: A1.old, onRow: A1.onRow, approve: A1.approve, decline: A1.decline }));
@@ -321,7 +336,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await until(() => document.querySelector('[data-ap-row="MK-AP1"]'), null, 8000);
       if (!(await page.evaluate(() => { const r = document.querySelector('[data-ap-row="MK-AP1"]'); return !!(r && r.classList.contains('is-sel')); }))) await page.click('[data-ap-row="MK-AP1"]');
       /* RE-POINTED 16 Nov 2026 (#762): asked of the five-part panel's words (no .jl-rows in the new look) */
-      const S = await until(() => { const p = document.getElementById('ins-panel'); const t = p && p.querySelector('.jov5-title') ? p.innerText.replace(/\s+/g, ' ') : '';
+      /* RE-POINTED 21 Nov 2026 (P-30, as drawn): the drawn panel (.apn5) says it as a step of its Timeline */
+      const S = await until(() => { const p = document.getElementById('ins-panel'); const t = p && p.querySelector('.apn5-t') ? p.innerText.replace(/\s+/g, ' ') : '';
         return /The value changed since it was asked/.test(t) ? 'The value changed since it was asked' : null; }, null, 8000);
       check('5i "Since last look": the value moved after the question was put — said, read from the question\'s own stamp', S === 'The value changed since it was asked', JSON.stringify(S));
     });
@@ -381,20 +397,26 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await part('10b the card ends after its rows ' + w, async () => {
         await page.evaluate(() => openNegotiations({ list: true }));
         await until(() => document.querySelector('.ngn-table tr[data-ngn-row="MK-A2"]'), null, 8000); await page.waitForTimeout(300);
-        const N = await page.evaluate(CARD, { card: '#content .ngn-page .apn-card', rows: '.ngn-table tbody tr', foot: '.apn-foot' });
+        /* RE-POINTED 21 Nov 2026 (P-29, as drawn): the drawn page has no count line under its rows ("5 negotiations · 4 live" is gone: the chips
+           carry the counts), so the table itself is what the card must hold */
+        const N = await page.evaluate(CARD, { card: '#content .ngn-page .apn-card', rows: '.ngn-table tbody tr', foot: '.ngn-page .ngn-table' });
         /* RE-POINTED 29 Oct 2026 (owner: ONE SHEET — the head and the list are one sheet, and the list card
            reaches the foot of Jambo's panel; REVERSES rounds 14–15's "the card ends after its last row") */
         check(`10b Negotiations ${w}×${ht}: one sheet — the card meets the head with no ground, reaches the foot of Jambo's panel, the foot right under the rows inside it`,
           /* RE-POINTED 16 Nov 2026 (#762): Negotiations is drawn as Approvals is (one .apn-card): its foot right under the rows, inside the card */
-          !!N && N.sheetGap != null && Math.abs(N.sheetGap) <= 1 && N.panelFoot != null && Math.abs(N.panelFoot) <= 2 && N.footUnder >= 0 && N.footUnder <= 2 && N.cardEnd >= 0, JSON.stringify(N));
+          !!N && N.sheetGap != null && Math.abs(N.sheetGap) <= 1 && N.panelFoot != null && Math.abs(N.panelFoot) <= 2 && N.cardEnd >= 0, JSON.stringify(N));
         await page.evaluate(() => setView('approvals'));
         await until(() => document.querySelector('[data-ap-row="MK-AP1"]'), null, 8000); await page.waitForTimeout(300);
         /* RE-POINTED 21 Oct 2026 (Part 8): the foot is the list head's own */
-        const A = await page.evaluate(CARD, { card: '#content .apn-card', rows: '.apn-table tbody tr', foot: '.apn-card .apn-foot' });
+        /* RE-POINTED 21 Nov 2026 (P-30, as drawn): no line under the list — the last row is read in the foot's place, so
+           "the foot right under the rows" is asked as "no foot line at all" (noFoot) instead of footUnder; the rest of
+           ONE SHEET (no ground, the card to the panel's foot, the rules door in the head) is asked as before */
+        const A = await page.evaluate(CARD, { card: '#content .apn-card', rows: '.apn-table tbody tr', foot: '.apn-card .apn-table tbody tr:last-child' });
+        if (A) A.noFoot = await page.evaluate(() => !document.querySelector('#content .apn-card .apn-foot'));
         /* RE-POINTED 29 Oct 2026 (owner: ONE SHEET): no grey ground between the head and the card; the card reaches
            the foot of Jambo's panel; the foot still right under the rows, inside the card */
-        check(`10c Approvals ${w}×${ht}: one sheet — head and card meet with no ground, the card reaches the foot of Jambo's panel, the foot right under the rows; Approval rules inside the head`,
-          !!A && A.footUnder >= 0 && A.footUnder <= 2 && A.cardEnd >= 0 && A.sheetGap != null && Math.abs(A.sheetGap) <= 1 && A.panelFoot != null && Math.abs(A.panelFoot) <= 2 && A.rulesIn >= 0, JSON.stringify(A)); /* RE-POINTED 16 Nov 2026 (#762): the rules door sits IN the head's own row (.cun-head), so "inside" is >= 0 */
+        check(`10c Approvals ${w}×${ht}: one sheet — head and card meet with no ground, the card reaches the foot of Jambo's panel, no line under the rows (as drawn); Approval rules inside the head`,
+          !!A && A.noFoot && A.cardEnd >= 0 && A.sheetGap != null && Math.abs(A.sheetGap) <= 1 && A.panelFoot != null && Math.abs(A.panelFoot) <= 2 && A.rulesIn >= 0, JSON.stringify(A)); /* RE-POINTED 16 Nov 2026 (#762): the rules door sits IN the head's own row (.cun-head), so "inside" is >= 0 */
         const C = await page.evaluate(() => [...document.querySelectorAll('.apn-table .apn-name')].filter(e => e.scrollWidth > e.clientWidth + 1 || /…$/.test(e.textContent)).map(e => e.textContent));
         check(`10d Approvals ${w}×${ht}: every party's name reads whole`, !C.length, JSON.stringify(C));
         await shot(`r15-approvals-frame-${w}x${ht}.png`);

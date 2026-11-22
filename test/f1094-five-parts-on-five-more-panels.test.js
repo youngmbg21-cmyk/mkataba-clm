@@ -70,30 +70,33 @@ test('f1094 (2a) Read down: the first decision the black button, then three thin
   assert.match(src, /needsYouGo\('renewal', f\.id\)/, 'Decide is the renewal\'s own door');
 });
 
-test('f1094 (2b) a chosen request: its title, the ask quoted, Start the draft by the row\'s own press', () => {
+/* RE-POINTED 21 Nov 2026 (P-32, as drawn): the chosen request's panel is the Legora + Stripe way, no cards and no five
+   parts — the status badge, the title, the other side · who asked · when, the acts (Take it black + Start the draft while
+   nobody holds it), the Steps drawn larger, In their words quoted, Read from the ask as label rows, a timeline */
+test('f1094 (2b) a chosen request: its badge and title, the ask quoted, Take it then Start the draft, a timeline', () => {
   const W = world();
   const r = { id: 'RQ1', title: 'NDA for a new distributor', need: 'We are meeting a distributor next week and need an NDA first.',
     counterparty: 'Coastline Distributors', by: { name: 'Grace Wanjiru' }, createdAt: new W.Date().toISOString(), status: 'new' };
-  const f = W.iknPanelFive(r, true);
-  /* RE-POINTED (P-32, owner's pick 20 Nov 2026): the title as written, a status badge, no tiles; the acts live in the panel —
-     nobody holds it, so Pick it up leads and Start the draft is its link */
-  assert.equal(f.title, 'NDA for a new distributor');
-  assert.ok(!f.glance && f.tag && f.tag.text, 'a badge, no tiles');
-  const d = draw(W, f, 'f1094rq');
-  assert.ok(d.querySelector('.jov5-row.is-quote'), 'the ask in their words, quoted');
-  assert.match(txt(d), /Coastline Distributors/, 'what was read from the ask');
-  assert.ok(d.querySelector('.jov5-go[data-ikn-pick="RQ1"]') && d.querySelector('[data-ikn-draft="RQ1"]'), 'Pick it up, then Start the draft');
-  assert.match(txt(d), /Waits for an editor/, 'who holds it, said: nobody yet');
-  /* what main brought back on 17 Nov (owner's picks) stands in the five parts: the lane, each file by name with who added
-     it (data-ikn-file), and Hand back beside Start the draft while the request is open (data-ikn-back) */
+  const html = d => { const x = W.document.createElement('div'); x.innerHTML = d; return x; };
+  const d = html(W.iknPanelLs(r, true));
+  assert.ok(d.querySelector('.ikn-lg .apn-st.ikn-st.is-amber'), 'a soft badge: Needs an editor');
+  assert.equal(txt(d.querySelector('.ikn-lg-t')), 'NDA for a new distributor');
+  assert.match(txt(d.querySelector('.ikn-lg-sub')), /Coastline Distributors · asked by Grace Wanjiru · today/);
+  assert.ok(!d.querySelector('.jov5, .jov5-tile, .card'), 'no cards, no tiles');
+  const acts = [...d.querySelectorAll('.ikn-lg-acts button')];
+  assert.ok(acts[0] && acts[0].matches('.ui-btn-primary[data-ikn-pick="RQ1"]') && acts[1] && acts[1].matches('[data-ikn-draft="RQ1"]'), 'Take it (black), then Start the draft');
+  assert.match(txt(d.querySelector('[data-ikn-sec="words"] .ikn-lg-q')), /^“We are meeting a distributor/, 'the ask in their words, quoted');
+  assert.match(txt(d.querySelector('[data-ikn-sec="read"]')), /Party\s*Coastline Distributors/, 'what was read from the ask, as label rows');
+  assert.equal(d.querySelectorAll('[data-ikn-sec="steps"] .ikn-jr-s').length, 4, 'the steps drawn larger, each with its word');
+  assert.match(txt(d.querySelector('[data-ikn-sec="tl"]')), /Grace asked · today\s*Waiting for an editor · today\s*Taken · next/);
+  /* what main brought back on 17 Nov stands: the lane, each file by name (data-ikn-file), Hand back while it is open */
   const r2 = Object.assign({}, r, { status: 'open', lane: 'NDA', files: [{ id: 'f1', name: 'pilot-brief.pdf', size: 2048 }] });
-  const f2 = W.iknPanelFive(r2, true), d2 = draw(W, f2, 'f1094rq2');
-  assert.match(f2.sub, /NDA lane/, 'the lane that sent it');
+  const d2 = html(W.iknPanelLs(r2, true));
+  assert.match(txt(d2.querySelector('[data-ikn-sec="read"]')), /Came by\s*NDA/, 'the lane that sent it');
   assert.ok(d2.querySelector('[data-ikn-file="f1"]'), 'the file by name, a door');
-  assert.match(txt(d2), /added by Grace/, 'who added it');
-  assert.ok(d2.querySelector('.jov5-acts [data-ikn-back="RQ1"]'), 'Hand back beside Start the draft');
-  const viewer = W.iknPanelFive(r, false);
-  assert.equal(viewer.act, null, 'no Start the draft for one who may not edit');
+  assert.ok(d2.querySelector('.ikn-lg-acts [data-ikn-back="RQ1"]'), 'Hand back after the two');
+  assert.ok(!html(W.iknPanelLs(r, false)).querySelector('.ikn-lg-acts'), 'no acts for one who may not edit');
+  assert.doesNotMatch(read('js/views/intake.js'), /function iknPanelFive/, 'the five parts are gone from Requests');
 });
 
 test('f1094 (2c) a chosen duty: when as the headline, the clause said or its absence, Mark done the black button', () => {
@@ -151,7 +154,8 @@ test('f1094 (2e) Their paper: the steps, what Create needs as it stands, Choose 
 
 test('f1094 (3) each panel is the five parts in the new look, as before in the old', () => {
   assert.match(region(read('js/views/homeboard.js'), 'function hbRdnPanelHtml(){', 'function hbRdnBtnHtml'), /newLookOn\(\) && typeof jamboOverviewHtml === 'function'\)\s*return `<div class="jl-words is-ov rd-five">\$\{jamboOverviewHtml\(hbRdnPanelFive\(hbRdnRead\(\)\)/);
-  assert.match(region(read('js/views/intake.js'), 'function iknPanelHtml(r, may){', 'if (typeof document'), /newLookOn\(\) && typeof jamboOverviewHtml === 'function'\)\s*return `<div class="jl-words is-ov ikn-five">\$\{jamboOverviewHtml\(iknPanelFive\(r, may\)/);
+  /* RE-POINTED 21 Nov 2026 (P-32, as drawn): Requests' panel is the Legora + Stripe way, no longer the five parts */
+  assert.match(region(read('js/views/intake.js'), 'function iknPanelHtml(r, may){', 'if (typeof document'), /newLookOn\(\)\) return iknPanelLs\(r, may\);/);
   const ob = region(read('js/obligations.js'), 'function obPaintPanel(', 'host.querySelector');
   assert.match(ob, /ctx === 'page' && typeof window\.newLookOn === 'function' && newLookOn\(\)[\s\S]*obPanelFive\(o, c, i\)/, 'the page\'s duty panel; the contract\'s tab keeps its own');
   assert.match(region(read('js/obligations.js'), 'function obPaintDecision(r){', '\n}\n'), /newLookOn\(\)[\s\S]*obDecisionFive\(r\)/);
@@ -166,7 +170,8 @@ test('f1094 (4) every word of the round is in both books', () => {
   for (const f of ['js/views/homeboard.js', 'js/views/intake.js', 'js/obligations.js', 'js/views/flowmap.js', 'js/paperdesk.js'])
     for (const m of read(f).matchAll(/['"](jov5_(?:rd|rq|obp|fmp|nat)_[a-z0-9_]+)['"]/g)) keys.add(m[1]);
   /* RE-POINTED (P-32, owner's pick 20 Nov 2026: Requests' panel carries no tiles): the request's tile words left with them */
-  assert.ok(keys.size >= 70, 'the round\'s words are found (' + keys.size + ')');
+  /* RE-POINTED 21 Nov 2026 (P-32, as drawn): the request's five-part words (jov5_rq_*) left with the five parts */
+  assert.ok(keys.size >= 60, 'the round\'s words are found (' + keys.size + ')');
   const has = (b, k) => b[k] != null || b[k + '_one'] != null;
   assert.deepEqual([...keys].filter(k => !has(S.en, k) || !has(S.sv, k)), []);
 });

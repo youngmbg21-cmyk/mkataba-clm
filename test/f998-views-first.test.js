@@ -87,6 +87,8 @@ test('f998 (3) the folders landing: figure cards, then the folders as one table'
   assert.doesNotMatch(f, /regFolderViewsHtml/, 'the views are gone');
   assert.match(f, /<div class="ctf-figs">/, 'four figure cards');
   assert.match(f, /<tbody>\$\{trs\}\$\{endTr\}\$\{newTr\}<\/tbody>/, 'the Ended shelf and New folder keep their doors');
+  /* (P-31 as drawn, 21 Nov 2026) nothing under the table */
+  assert.doesNotMatch(f, /ctf-foot/, 'no foot under the table');
   assert.doesNotMatch(f, /money\(|fmtMoney/, 'no money on the landing');
   assert.match(CSS, /html\.lg-new \.ctf-list\.is-two\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(CSS, /html\.lg-new \.ctf-row\.is-compact\{display:flex;/, 'a button row is flex, never grid');
