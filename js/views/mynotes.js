@@ -462,11 +462,9 @@ const mnnIsAsk = q => MNN_ASK_RE.test(String(q || ''));
 function mnnAskTerms(q){
   return String(q || '').toLowerCase().replace(/[“”"'‘’?!.,;:()]/g, ' ').split(/\s+/).filter(w => w && !MNN_ASK_SKIP.has(w));
 }
-function mnnAskPh(list){
-  const all = typeof mineList === 'function' ? mineList('note') : [];
-  const pick = (list || []).concat(all).map(n => _mnContract(n.contractId)).find(c => c && c.counterparty);
-  return pick ? i18t('mnn_ask_ph_about', { who: String(pick.counterparty).replace(/\s+(LLC|Ltd|Limited|PLC|Inc|AB)\.?$/i, '') }) : i18t('mnn_ask_ph');
-}
+/* AN HONEST BOX (owner, 22 Nov 2026): it narrows your notes, and Enter writes a new one; questions are Jambo's, in his box
+   (the old "or ask" words stay inert in both books) */
+function mnnAskPh(){ return i18t('mnn_filter_ph'); }
 /* MY NOTES' TABS ALL DRAW THE ONE TABLE (All · Due · Reviewed only pick which notes), so a tab press and a typed letter
    redraw only the rows (listRowsSwapHtml). P-27 as drawn: the title with a lock and "Only you see these" beside it (the
    facts line goes: the chips say it), New note (black); the ask box under it (✦, a line under it); chips All · Due (an
@@ -484,12 +482,12 @@ function mnnRender(host, list, n, o){
   const ctChip = ctOn ? `<button type="button" class="apn-chip is-set" data-mnn-ct="">${_mnE(ctOn.name || _mnRef(ctOn))} <span aria-hidden="true">×</span></button>`
     : cts.length > 1 ? `<span class="apn-rule-w"><button type="button" class="apn-chip is-add" data-mnn-ct-open aria-expanded="false">+ ${_mnE(i18t('mn_row_contract'))}</button><span class="apn-rule-menu" hidden>${cts.map(c => `<button type="button" data-mnn-ct="${_mnE(c.id)}">${_mnE(c.name || _mnRef(c))}</button>`).join('')}</span></span>` : '';
   const chips = tabs.filter(t => t[2] || t[0] === 'all' || t[0] === tab).map(t => `<button type="button" class="apn-tab is-chip${tab === t[0] ? ' is-on' : ''}" data-mnn-tab="${t[0]}">${t[0] === 'today' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${_mnE(t[1])} <span>${t[2]}</span></button>`).join('') + ctChip;
-  const spark = typeof icon === 'function' ? icon('mkSpark', 'mnn-spark', 0) : '✦';
+  const glass = typeof icon === 'function' ? icon('search', 'mnn-spark') : '';
   const PAGE = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page mnn-page${all.length ? '' : ' is-empty'}" id="mn-page" data-ins-page="mynotes" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${_mnE(i18t('nav_mynotes'))}</h2><span class="mnn-only">${_mnLock()}${_mnE(i18t('mnn_only_you'))}</span><span class="ctf-sp"></span>
         <button type="button" class="ui-btn ui-btn-primary ctf-new" id="mn-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${_mnE(i18t('mnn_new'))}</button></div>
-      <label class="apn-ask mnn-ask">${spark}<input id="mnn-q" type="search" autocomplete="off" enterkeyhint="done" placeholder="${_mnE(mnnAskPh(list))}" aria-label="${_mnE(i18t('mnn_ask_label'))}" value="${_mnE(_mn.q || '')}"></label>
+      <label class="apn-ask mnn-ask is-filter">${glass}<input id="mnn-q" type="search" autocomplete="off" enterkeyhint="done" placeholder="${_mnE(mnnAskPh(list))}" aria-label="${_mnE(mnnAskPh(list))}" value="${_mnE(_mn.q || '')}"></label>
       <div class="apn-bar" data-lh-seat="mynotes-nl">${chips}</div>
       <div class="cu-scroll"><table class="apn-table cun-table mnn-table"><colgroup><col><col style="width:19%"><col style="width:112px"><col style="width:104px"><col style="width:124px"></colgroup>
         <thead><tr><th>${_mnE(i18t('mn_col_note'))}</th><th>${_mnE(i18t('mn_row_contract'))}</th><th>${_mnE(i18t('apn_col_status'))}</th><th class="mnn-dd">${_mnE(i18t(tab === 'done' ? 'mnn_c_reviewed' : 'mnn_c_due'))}</th><th></th></tr></thead>

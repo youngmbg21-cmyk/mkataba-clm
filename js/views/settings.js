@@ -10805,11 +10805,13 @@ function sddHeadHtml(admin){
   return `${a?`<button type="button" class="sdd-back" data-sdd-back>‹ ${esc(i18t('stn_title_short'))}</button>`:''}
     <div class="cun-head"><h2 class="ctf-h stn-title sdd-title">${esc(a?i18t('sdd_a_'+a):i18t('stn_title_short'))}</h2></div>
     ${a?`<p class="sdd-sub">${esc(i18t('sdd_sub_'+a))}</p>`:''}
-    <label class="apn-ask sdd-find"><span class="sdd-find-ic" aria-hidden="true">${typeof icon==='function'?icon('mkSpark','sdd-spark-ic',0):''}</span><input id="sdd-q" type="search" autocomplete="off" placeholder="${esc(sddAskPh(a))}" aria-label="${esc(i18t('sdd_find_ph'))}" value="${esc(_sddQ)}"></label>
+    <label class="apn-ask sdd-find is-filter"><span class="sdd-find-ic" aria-hidden="true">${typeof icon==='function'?icon('search','sdd-spark-ic'):''}</span><input id="sdd-q" type="search" autocomplete="off" placeholder="${esc(sddAskPh(a))}" aria-label="${esc(i18t('sdd_find_ph'))}" value="${esc(_sddQ)}"></label>
     <div class="apn-bar sdd-chips">${chips.map(c=>`<button type="button" class="apn-tab is-chip${chip===c[0]?' is-on':''}" data-sdd-chip="${c[0]}">${c[0]==='need'?'<i class="apn-cd is-amber" aria-hidden="true"></i>':''}${esc(c[1])} <span>${c[2]}</span></button>`).join('')}</div>`;
 }
 /* the ask box's words: the landing's, an area's own example where it has one (P-43 as drawn), else the area's line */
-function sddAskPh(a){ if(!a) return i18t('sdd_ask_ph'); const k='sdd_ask_ph_'+a, w=i18t(k); return w!==k?w:i18t('sdd_ask_ph_area',{ area:i18t('sdd_a_'+a) }); }
+/* AN HONEST FINDER (owner, 22 Nov 2026): the box finds a setting and says only that; questions are Jambo's, in his box
+   (the old "or ask" words stay inert in both books) */
+function sddAskPh(a){ return a?i18t('sdd_find_in',{ area:i18t('sdd_a_'+a) }):i18t('sdd_find_ph'); }
 function sddMainHtml(admin){ return _sddArea?sddAreaHtml(admin,_sddArea):sddHomeHtml(admin); }
 /* the list alone (a find, a choice): the head, the box and the panel stand; the box keeps its words and its caret */
 function sddListPaint(){ const m=document.getElementById('stn-main'); if(!m) return; m.innerHTML=sddMainHtml(stIsAdmin()); }

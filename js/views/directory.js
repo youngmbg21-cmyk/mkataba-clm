@@ -855,7 +855,6 @@ function dirSelect(key){
    (dirBook, dirDoesFor, dirWaitingOn, dirPhoneOf); a row's press is the list's (dirWireList). Reads only. */
 let _dirn = 'all';
 /* a question, not a name: a question word or mark, or four words or more */
-const DIRN_ASK_RE = /\?|^(?:who|whom|whose|which|what|when|where|how|why|does|do|is|are|can|has|have|show|list|find|vem|vilka|vilken|vad|när|var|hur|varför)\b|(?:\S+\s+){3,}\S/i;
 /* A PERSON'S PANEL, AS DRAWN (round 6): "{name}, {role}." and what they do for you; RIGHT NOW (what waits on them,
    whether they are away); DOORS (Show their contracts, Email, each with its cost). Readings the row already makes. */
 /* THE FIVE PARTS (owner, 15 Nov 2026, round 2): the person's initials and name as the headline, what they are under
@@ -1181,9 +1180,8 @@ function dirnRender(host, INS, book, o){
   const ptyChip = atParty ? `<button type="button" class="apn-chip is-set" data-dirn-party-clear title="${_dE(i18t('dirn_party_clear'))}">${_dE(ptyName)} <span aria-hidden="true">×</span></button>`
     : parties.length ? `<span class="apn-rule-w"><button type="button" class="apn-chip is-add" data-dirn-party-open aria-expanded="false">+ ${_dE(i18t('dirn_chip_party'))}</button><span class="apn-rule-menu" hidden>${parties.map(([k, nm]) => `<button type="button" data-dirn-party="${_dE(k)}">${_dE(nm)}</button>`).join('')}</span></span>` : '';
   const chips = tabs.map(t => `<button type="button" class="apn-tab is-chip${(atParty ? 'all' : _dirn) === t[0] ? ' is-on' : ''}" data-dirn-tab="${t[0]}">${t[0] === 'wait' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${_dE(t[1])} <span>${t[2]}</span></button>`).join('') + ptyChip;
-  /* THE ASK BOX AS DRAWN ("Ask about people: “who signs for Juno?”"): the example names a party this reader really has */
-  const ex = parties.length ? ((typeof cuShortName === 'function' ? cuShortName(parties[0][1]) : '') || parties[0][1]) : '';
-  const askPh = ex ? i18t('dirn_ask_ph_party', { party: ex }) : i18t('dirn_ask_ph');
+  /* AN HONEST FILTER (owner, 22 Nov 2026): the box narrows the list and says only that; questions are Jambo's, in his box */
+  const askPh = i18t('lh_filter_ph');
   const PAGE = `<style>${(typeof window !== 'undefined' && window.CU_WHO_CSS) || ''}${DIR_CSS}</style>
   <div id="dir-page" class="view-enter sap-page ap-page is-ins apn-page dir-page dirn-page" data-ins-page="directory" data-ins="${INS ? '1' : '0'}">
     <div class="ap-body is-ins dir-body"><section class="ap-card apn-card">
@@ -1191,7 +1189,7 @@ function dirnRender(host, INS, book, o){
         /* P-26, as drawn: "+ Add a person" a grey pill at the head's right — the one door to adding a colleague (Settings ›
            People's Add member, openSettingsAt), drawn only for an admin, who alone may add one (NO BUTTON YOU CANNOT USE) */
         : (typeof isAdmin === 'function' && isAdmin() && typeof openSettingsAt === 'function') ? `<span class="ctf-sp"></span><button type="button" class="ui-btn dirn-addp" data-dirn-addp>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${_dE(i18t('dirn_add_person'))}</button>` : ''}</div>
-      <label class="apn-ask dirn-ask">${typeof icon === 'function' ? icon('mkSpark', 'w-3.5 h-3.5') : ''}<input id="dirn-q" type="search" autocomplete="off" placeholder="${_dE(askPh)}" aria-label="${_dE(askPh)}" value="${_dE(_dir.q || '')}"></label>
+      <label class="apn-ask dirn-ask is-filter">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="dirn-q" type="search" autocomplete="off" placeholder="${_dE(askPh)}" aria-label="${_dE(askPh)}" value="${_dE(_dir.q || '')}"></label>
       <div class="apn-bar" data-lh-seat="directory-nl">${chips}</div>
       <div class="cu-scroll" id="dir-scroll"><table class="apn-table cun-table dirn-table" data-list-seat="${_dE(DIR_SEAT)}">${C.colg}
         ${C.th}
@@ -1227,15 +1225,8 @@ if (typeof document !== 'undefined' && !document._dirnWired){ document._dirnWire
   }, true);
   /* the box is not redrawn under the caret: every letter moves the rows and leaves the box alone */
   document.addEventListener('input', e => { if (e.target && e.target.id === 'dirn-q'){ _dir.q = e.target.value; renderDirectory({ rows: true }); } });
-  /* AN ASK BOX, AS DRAWN: a name typed narrows the list as you type; a QUESTION ("who signs for Juno?") is Jambo's —
-     Enter hands it to the panel's one ask (jlAsk, answered in the panel), the list put back whole. Nothing is spent until
-     Enter is pressed. */
-  document.addEventListener('keydown', e => {
-    if (!e.target || e.target.id !== 'dirn-q' || e.key !== 'Enter' || e.isComposing) return;
-    const q = String(e.target.value || '').trim(); if (!q || !DIRN_ASK_RE.test(q) || typeof jlAsk !== 'function') return;
-    e.preventDefault(); _dir.q = ''; e.target.value = ''; renderDirectory({ rows: true });
-    try { jlAsk(q, { typed: true }); } catch (_){}
-  });
+  /* AN HONEST FILTER (owner, 22 Nov 2026): every word typed narrows the list; a question is Jambo's, in his box at the
+     panel's foot — the box no longer hands Enter to him */
 }
 function renderDirectory(o){
   const host = document.getElementById('content'); if (!host) return;
@@ -1373,6 +1364,6 @@ const DIR_CSS = `
   .dir-more{padding-top:8px;font-size:var(--t-meta);color:var(--color-neutral-600);}
 `;
 
-Object.assign(window, { dirnPanelFive, dirnRowHtml, dirnRoleOf, dirnInitials, dirnSignedOf, dirnDoesOf, DIRN_DO, dirnSignQuoteOf, dirnPaperLines, DIRN_SIGN_CUE, dirnActsOf, DIRN_ASK_TL, dirnAwayOf, dirnWaitLineHtml, DIRN_W_DO, DIRN_W_TONE, dirnDay, DIRN_ASK_RE, dirnPanelHtml, renderDirectory, dirRepaint, dirPeople, dirBook, dirRows, dirMatches, dirTabCount, dirPeopleOfParty, dirRoleWords,
+Object.assign(window, { dirnPanelFive, dirnRowHtml, dirnRoleOf, dirnInitials, dirnSignedOf, dirnDoesOf, DIRN_DO, dirnSignQuoteOf, dirnPaperLines, DIRN_SIGN_CUE, dirnActsOf, DIRN_ASK_TL, dirnAwayOf, dirnWaitLineHtml, DIRN_W_DO, DIRN_W_TONE, dirnDay, dirnPanelHtml, renderDirectory, dirRepaint, dirPeople, dirBook, dirRows, dirMatches, dirTabCount, dirPeopleOfParty, dirRoleWords,
   dirRowHtml, dirColDefs, dirCellHtml, dirAwayPillHtml, DIR_PAGE, dirOpenPerson, dirPlace, dirPlacePut, dirOpenParty, dirShowContracts, dirOpenContract, dirPaintPanel, dirSelect, DIR_TABS,
   dirWaitingOn, dirPhoneOf, dirDoesFor, DIR_DOES, DIR_WAIT_MAX, DIR_WAIT_KIND, DIR_WAIT_OPEN, dirWaitGo, dirSay, dirNamedRoles, DIR_ROLE_NOUN, dirRoleNoun });
