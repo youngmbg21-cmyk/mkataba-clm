@@ -39684,6 +39684,23 @@ cells are shaded by money. Kept against the drawing, asked of the owner: the hea
 board · contracts links line over the box (Jambo's box rule), and "Shade the cells by how many" in the default Grid
 (the cells are already shaded by how many there, so the row would do nothing).
 
+## THE ONE DESK — NEEDS YOU, ONE READING — ONE COUNT, ONE WAIT (review of merged pages against P-38/P-39, 22 Nov 2026)
+An independent review photographed the merged Board and side panel against the owner's picked drawings. Found: the
+panel's ring legend said "3 Jambo" and the bell's chip "Jambo 3" (late pieces dropped from Jambo's count) while Needs you
+said "Jambo prepared 5"; one approval read "134 days" on one load and "today" on the next — measured: no question was on
+record for a step that was already due when the rule was saved, so the wait fell back to `lastAction` ("10 Jul 2026" in
+the sample), until the reminders' sweep (30 s after boot) opened the question; the Company row put its sentence in the
+Agreement column with an empty Waited and named a rule by its sum ("Value >= KES 10M") in the side panel; Activity
+printed the trail's whole sentence and called an internal note "Sent"; note rows had no quote, the opened note no amber
+band, @names four inks; Redlines' Notes lost its count when chosen and sat 12 + 16 px in with a 50 px gap; the panel's
+last piece was cut at 1536×730; Explorer and Read down showed no quote for a term the paper states without a date.
+Built: ndWaitCounts (one count); hbHelloFitN with "N more, on the Board"; ndWaitedDays and apApprovalRows off the
+question's `at`, else repRaisedAt; the company row's name/line/oldest wait and `plain` clash words; actSayOf; the
+note quote, the amber band, the one green; the notes face level with its switch; hbRdnTermQuote's term-sentence
+fallback. The "All seven agents … Change · The agents" foot line was removed, then RESTORED the same day (a working control stays
+though undrawn). Kept as ruled: "Show N more",
+"‹ Back to Contracts", "Payment gap", two-line titles, Notes greyed without a contract, Done notes under Done only, nav
+counts grey unless waiting on you.
 ## CUSTOMER FOLDERS — SHELVES, THE SAP WAY — P-25 REBUILT TO THE DRAWING (21 Nov 2026)
 The first build of P-25 (PR #861) was compared, part by part, with the owner's picked drawing ("The Legora + Stripe way",
 graphic "Ring", tabs All and Waiting on you) rendered at 1440 and with photos of the running app; every gap was built.
