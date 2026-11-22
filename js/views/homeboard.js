@@ -10347,7 +10347,9 @@ function hbAsk(q){
   }
   if (r.act === 'openc'){
     const c = hbContract(r.id); const K = hbCardData(c);
-    setTimeout(() => { if (typeof regOpenContract === 'function') regOpenContract(c.id); }, 0);
+    /* a contract not read whole yet is read first, its landing said meanwhile (navReadFirst, js/navmap.js) */
+    const open = () => { if (typeof regOpenContract === 'function') regOpenContract(c.id); };
+    if (!(typeof window.navReadFirst === 'function' && window.navReadFirst(c, open))) setTimeout(open, 0);
     return say(`${_hbE(i18t('hb_opening'))} <b>${_hbRefH(K.ref)} · ${_hbE(K.name)}</b>`, { noPaint: true });
   }
   if (r.act === 'analyze'){

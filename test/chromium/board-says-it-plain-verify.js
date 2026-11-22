@@ -100,6 +100,9 @@ const OPEN = ['', 'show me ', 'give me ', 'can you draw ', 'I want to see '];
     const tw = Date.now(); let landed = null;
     if (opts && opts.moves) landed = await until(page, p0 => JSON.stringify(hbS().path || []) + '|' + (hbS().panels || []).length !== p0, p0, 20000); /* 4s → 12s, 11 Nov 2026: a busy runner drew the card later still; 12s → 20s, 17 Nov 2026 (#762, the new look the only look): on GitHub the FIRST phrase's card landed after 12s once (its "can you draw" twin, asked next, found it drawn) — still bounded, still a state */
     const waitedMs = Date.now() - tw;
+    /* A LANDING ON ITS WAY IS WAITED FOR, BOUNDED (22 Nov 2026, PR 877's run: "show me MK-BP2" was read 150 ms after the
+       answer while its paper still waited for the whole record; navLanding() now says so, navReadFirst) */
+    await until(page, () => !(typeof navLanding === 'function' && navLanding()), null, 15000);
     await page.waitForTimeout(150);
     const got = await page.evaluate(([p0, n0]) => {
       const s = hbS(); const path = s.path || []; const key = path.slice(-1)[0];
