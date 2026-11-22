@@ -187,7 +187,8 @@ describe('f325 (5) the family check is deterministic', () => {
   const O = fnBody(FAMILY, 'familyOrder'), K = fnBody(FAMILY, 'familyCheck');
   test('both readings exist and are published', () => {
     assert.ok(O && K, 'familyOrder and familyCheck are built');
-    assert.ok(/Object\.assign\(window,\{familyOrder,familyCheck,/.test(FAMILY),
+    /* RE-POINTED 22 Nov 2026 (Amend L+S published more names first): both are in the one closing publish, wherever they stand in it */
+    assert.ok(/Object\.assign\(window,\{[^}]*\bfamilyOrder,familyCheck\b/.test(FAMILY),
       'and reachable across the module boundary — f232’s own rule');
   });
   test('no route, no model, no write', () => {

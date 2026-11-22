@@ -3064,9 +3064,9 @@ function pd2AmxChipsHtml(){
     : open === 'eff' ? `<div class="pd2-amx-menu" role="menu"><button type="button" role="menuitemradio" aria-checked="${!_pdAm.eff}" data-pd2-amx-eff=""><b>${E(T('pd2_amx_eff_sign'))}</b></button><label class="pd2-amx-date"><span>${E(T('pd2_amx_eff_on'))}</span><input type="date" data-pd2-amx-effd value="${E(_pdAm.eff || '')}"></label></div>` : '';
   const reason = _pdAm.reasonOpen || _pdAm.reason
     ? `<label class="pd2-amx-reason"><span class="sr-only">${E(T('pd2_amx_reason'))}</span><input type="text" maxlength="200" data-pd2-amx-reason placeholder="${E(T('pd2_amx_reason_ph'))}" value="${E(_pdAm.reason || '')}"></label>`
-    : `<button type="button" class="pd2-amx-chip is-add" data-pd2-amx-chip="reason">+ ${E(T('pd2_amx_reason'))}</button>`;
-  return `<div class="pd2-amx-chips"><span class="pd2-amx-wrap"><button type="button" class="pd2-amx-chip" data-pd2-amx-chip="kind" aria-expanded="${open === 'kind'}"><b>${E(T('pd2_amx_kind'))}</b> ${E(kindW)} ▾</button>${open === 'kind' ? menu : ''}</span>
-    <span class="pd2-amx-wrap"><button type="button" class="pd2-amx-chip" data-pd2-amx-chip="eff" aria-expanded="${open === 'eff'}"><b>${E(T('pd2_amx_eff'))}</b> ${E(effW)} ▾</button>${open === 'eff' ? menu : ''}</span>${reason}</div>`;
+    : `<button type="button" class="pd2-amx-chip is-add" data-pd2-amx-chip="reason">${typeof icon === 'function' ? icon('plus', 'w-3 h-3') : ''}${E(T('pd2_amx_reason'))}</button>`;
+  return `<div class="pd2-amx-chips"><span class="pd2-amx-wrap"><button type="button" class="pd2-amx-chip" data-pd2-amx-chip="kind" aria-expanded="${open === 'kind'}"><b>${E(T('pd2_amx_kind'))}</b> ${E(kindW)} ${typeof icon === 'function' ? icon('chevD', 'w-3 h-3') : ''}</button>${open === 'kind' ? menu : ''}</span>
+    <span class="pd2-amx-wrap"><button type="button" class="pd2-amx-chip" data-pd2-amx-chip="eff" aria-expanded="${open === 'eff'}"><b>${E(T('pd2_amx_eff'))}</b> ${E(effW)} ${typeof icon === 'function' ? icon('chevD', 'w-3 h-3') : ''}</button>${open === 'eff' ? menu : ''}</span>${reason}</div>`;
 }
 function pd2AmxTableHtml(c){
   const E = _pdE, T = _pdT, may = (typeof canEdit !== 'function') || canEdit();
@@ -3088,7 +3088,7 @@ function pd2AmxTableHtml(c){
     return `<tr data-pd2-amx-row="${i}"><td class="pd2-amx-i">${i + 1}</td><td class="pd2-amx-cl"><b>${E(at + name)}</b><small>${E(T(it.op === 'insert' ? 'pd2_amx_new_clause' : 'pd2_amx_signed_words'))}</small></td>
       <td class="pd2-amx-was">${it.op === 'insert' ? '<span class="pd2-q">—</span>' : pd2AmxWasHtml(it, !!short)}</td><td class="pd2-amx-becw">${bec}</td>
       <td class="pd2-amx-eff" data-pd2-amx-effc="${i}">${pd2AmxEffectHtml(c, it, i)}</td>${seeMoney ? `<td class="pd2-amx-val" data-pd2-amx-val="${i}">${E(v)}</td>` : ''}
-      <td class="pd2-amx-x">${may ? `<span class="pd2-amx-more"><button type="button" class="pd2-amx-rm" data-pd2-amx-chip="row${i}" aria-expanded="${_pdAm.menu === 'row' + i}" aria-label="${E(T('pd2_amx_more'))}">⋯</button>${_pdAm.menu === 'row' + i ? `<span class="pd2-amx-menu" role="menu"><button type="button" role="menuitem" data-pd2-amx-rm="${i}"><b>${E(T('pd_am_remove'))}</b></button></span>` : ''}</span>` : ''}</td></tr>`; }).join('');
+      <td class="pd2-amx-x">${may ? `<span class="pd2-amx-more"><button type="button" class="pd2-amx-rm" data-pd2-amx-chip="row${i}" aria-expanded="${_pdAm.menu === 'row' + i}" aria-label="${E(T('pd2_amx_more'))}">${typeof icon === 'function' ? icon('more', 'w-3.5 h-3.5') : ''}</button>${_pdAm.menu === 'row' + i ? `<span class="pd2-amx-menu" role="menu"><button type="button" role="menuitem" data-pd2-amx-rm="${i}"><b>${E(T('pd_am_remove'))}</b></button></span>` : ''}</span>` : ''}</td></tr>`; }).join('');
   return `<table class="pd2-amx-t"><thead><tr><th class="pd2-amx-i">#</th><th>${E(T('pd2_amx_h_clause'))}</th><th>${E(T('pd2_amx_h_was'))}</th><th>${E(T('pd2_amx_h_becomes'))}</th><th>${E(T('pd2_amx_h_effect'))}</th>${seeMoney ? `<th class="pd2-amx-val">${E(T('pd2_amx_h_value'))}</th>` : ''}<th></th></tr></thead>
     <tbody>${rows}<tr class="pd2-amx-add"><td></td><td colspan="${seeMoney ? 6 : 5}">${may ? `<button type="button" class="ui-link" data-pd2-amx-tab="signed">+ ${E(T('pd2_amx_add'))}</button> <span class="pd2-q">${E(T('pd2_amx_add_or'))}</span>` : ''}</td></tr></tbody></table>`;
 }
