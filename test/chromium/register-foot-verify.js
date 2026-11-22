@@ -140,8 +140,10 @@ const KEYS = `(() => {
       return { kids: kids.map(k => k.className.split(' ').find(c => c.startsWith('lh-')) || k.tagName.toLowerCase()), text: foot.textContent.replace(/\s+/g, ' ').trim(),
         more: !!foot.querySelector('[data-lh-more="contracts"]'), pager: !!document.getElementById('reg-pager') };
     });
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn): no foot under the list — the chips say how many — except where the rows
+       stop at a page, which it says as the list head's own range: "1–40 of 50 · Show 10 more" */
     ok('1d the foot holds the count and "Show N more", and nothing else',
-      !!f1 && f1.kids.join(',') === 'lh-more' && /^[\d,.\s]+ contracts? · Show \d+ more$/.test(f1.text),
+      !!f1 && f1.kids.join(',') === 'lh-more' && /^1–[\d,.\s]+ of [\d,.\s]+ · Show \d+ more$/.test(f1.text),
       f1 ? f1.kids.join(',') + ' · ' + f1.text : 'no foot');
     ok('1e and it is one line, not a wall', !!c1 && c1.oneLine, c1 ? `centres ${c1.tops} · ${c1.h}px` : 'no foot');
     ok('1f CONTROL the count is still there', !!c1 && c1.showOn && /50/.test(c1.showing),

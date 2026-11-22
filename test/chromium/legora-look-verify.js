@@ -365,16 +365,19 @@ const check = (name, pass, detail) => {
     await until(() => !!document.querySelector('#reg-tbody tr[data-row]'));
     const ls = await page.evaluate(() => { const t = document.querySelector('.reg-vtab.on'), ts = t && getComputedStyle(t);
       const sg = document.querySelector('.reg-seg.ct-seg'), ss = sg && getComputedStyle(sg), on = sg && sg.querySelector('button.on, button[aria-pressed="true"]'), os = on && getComputedStyle(on);
-      return { tab: ts ? { bg: ts.backgroundColor, bb: ts.borderBottomWidth, r: ts.borderTopLeftRadius } : null, seg: ss ? { bg: ss.backgroundColor, r: ss.borderTopLeftRadius, b: ss.borderTopWidth } : null, on: os ? { bg: os.backgroundColor, r: os.borderTopLeftRadius } : null }; });
+      return { tab: ts ? { bg: ts.backgroundColor, bb: ts.borderBottomWidth, r: ts.borderTopLeftRadius, bs: ts.borderTopStyle, off: (() => { const o = document.querySelector('.reg-vtab:not(.on)'); return o ? getComputedStyle(o).borderTopStyle : ''; })() } : null, seg: ss ? { bg: ss.backgroundColor, r: ss.borderTopLeftRadius, b: ss.borderTopWidth } : null, on: os ? { bg: os.backgroundColor, r: os.borderTopLeftRadius } : null }; });
     /* RE-POINTED 19 Nov 2026 (the Contracts list as drawn, owner's "the new design for contracts lists page", the same
        spacing as Parties): Contracts' chosen tab is UNDERLINED in the ink green, on no fill — the other lists keep their pills */
-    check('12d Contracts\' chosen tab is an underline on no fill (19 Nov 2026)', !!ls.tab && NONE.test(ls.tab.bg) && ls.tab.bb === '2px' && ls.tab.r === '0px', JSON.stringify(ls.tab));
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn): Contracts' tabs are chips — the chosen one white with a solid line, the
+       rest dashed, round — Contracts only; the other lists keep theirs */
+    check('12d Contracts\' chosen tab is a white chip with a solid line, the others dashed (P-31)', !!ls.tab && /rgb\(255, 255, 255\)/.test(ls.tab.bg) && ls.tab.bb === '1px' && ls.tab.bs === 'solid' && (!ls.tab.off || ls.tab.off === 'dashed') && pill(ls.tab.r), JSON.stringify(ls.tab));
     /* RE-POINTED 16 Nov 2026 (#762): the new look's head draws List · Wall as separate grey pills (no holding pill), the
        chosen one in the strong weight (index.html "the list's head as drawn") */
     const sw = await page.evaluate(() => [...document.querySelectorAll('#ct-place .ct-head .ct-seg button')].map(b => { const c = getComputedStyle(b);
       return { on: b.getAttribute('aria-pressed') === 'true', bg: c.backgroundColor, r: c.borderTopLeftRadius, w: Number(c.fontWeight), shown: b.getClientRects().length > 0 }; }));
     const swOn = sw.find(b => b.on), swOff = sw.find(b => !b.on);
-    check('12e a switch (List | Wall) is grey pills, the chosen one in the strong weight', !!ls.seg && NONE.test(ls.seg.bg) && sw.length === 2 && sw.every(b => b.shown && b.bg === GREY && pill(b.r)) && !!swOn && !!swOff && swOn.w > swOff.w, JSON.stringify({ seg: ls.seg, sw }));
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn): on Contracts the chosen of List | Wall is the ink pill, the other grey */
+    check('12e a switch (List | Wall) is two pills, the chosen one ink, the other grey (P-31)', !!ls.seg && NONE.test(ls.seg.bg) && sw.length === 2 && sw.every(b => b.shown && pill(b.r)) && !!swOn && !!swOff && swOff.bg === GREY && swOn.bg === 'rgb(29, 29, 31)', JSON.stringify({ seg: ls.seg, sw }));
     void INK;
     await page.evaluate(() => regOpenContract('MK-B2'));
     await until(() => !!document.querySelector('#ig-paper .doc-surface') && !!document.querySelector('#ig-dock .pd-tab.on'), null, 12000);

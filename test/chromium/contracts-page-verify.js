@@ -152,8 +152,9 @@ const check = (name, ok, detail) => {
         })(),
       };
     });
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn): three words only — In review carries its dot, "✓ Signed" its tick, Ended none */
     check('2a the stage is a soft badge, and no mark leads the row',
-      !stage.err && stage.dot && stage.marks === 0 && !!stage.ground && !/rgba\(0, 0, 0, 0\)|transparent/.test(stage.ground),
+      !stage.err && (stage.dot || /Signed|Ended/.test(stage.word)) && stage.marks === 0 && !!stage.ground && !/rgba\(0, 0, 0, 0\)|transparent/.test(stage.ground),
       `${stage.err || ''} marks ${stage.marks} ground ${stage.ground} dot ${stage.dot}`);
     check('2b the word carries the meaning ink, so colour is not the only carrier',
       !!stage.word && stage.ink !== 'rgb(0, 0, 0)', `"${stage.word}" ${stage.ink}`);
@@ -184,7 +185,8 @@ const check = (name, ok, detail) => {
        KEPT the filter, so the claims now say exactly that. */
     /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the stream is a column again on the Contracts place, a soft chip */
     check('3a the stream is a column again, a soft chip in every row that has one',
-      cols.heads.some(x => /^stream$|^värdeflöde$/i.test(x)) && (await page.evaluate(() => document.querySelectorAll('tr[data-row] .ls-chip').length > 0)), cols.heads.join(' · '));
+      /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the column is called Folder */
+      cols.heads.some(x => /^stream$|^värdeflöde$|^folder$|^mapp$/i.test(x)) && (await page.evaluate(() => document.querySelectorAll('tr[data-row] .ls-chip').length > 0)), cols.heads.join(' · '));
     check('3b and no row draws its stream tick', !cols.tick);
     /* RETIRED 16 Nov 2026 (#762): 3c "the Stream filter is still offered under + Filter" — the new look's Contracts head draws no + Filter (lead's ruling) */
     check('3d the LINK column is gone from this table',
@@ -428,11 +430,15 @@ const check = (name, ok, detail) => {
         await page.waitForTimeout(900);
       }
       pages.push(await page.evaluate(`(() => { const r = ${READ}; if (r) { r.rows = document.querySelectorAll('#reg-tbody tr[data-row]').length;
-        r.last = ((document.querySelector('#reg-tbody tr[data-row]:last-child td') || {}).textContent || '').trim(); } return r; })()`));
+        r.last = ((document.querySelector('#reg-tbody tr[data-row]:last-child td') || {}).textContent || '').trim();
+        r.long = [...document.querySelectorAll('#reg-tbody tr[data-row]')].filter(x => /Naivas Supermarkets Kenya Limited/.test(x.textContent)).length; } return r; })()`));
     }
+    /* RE-POINTED 22 Nov 2026 (P-31 review, work-first order): the list's default order puts what needs you first, so the
+       long-named rows are no longer the last drawn; the claim is unchanged — the list really grows four times and, by the
+       end, long-named rows are drawn among them (more than at first), so a column that moved for them could not hide */
     check('10a the fixture really grows the list, the long names drawn by the end, so the claim can fail',
-      new Set(pages.map(p => p.rows)).size === 4 && /Naivas Supermarkets Kenya Limited/.test(pages[3].last) && !/Naivas/.test(pages[0].last),
-      pages.map(p => p.rows + ':' + p.last.slice(0, 24)).join(' · '));
+      new Set(pages.map(p => p.rows)).size === 4 && pages[3].long > 0 && pages[3].long > pages[0].long,
+      pages.map(p => p.rows + ':' + p.long + ' long · ' + p.last.slice(0, 24)).join(' · '));
     check('10b every column is the same width however many rows are drawn',
       pages.every(p => String(p.w) === String(pages[0].w)),
       pages.map(p => p.w.join(',')).join('  |  '));
@@ -546,8 +552,10 @@ const check = (name, ok, detail) => {
        should be shaded so it is easier to know there is a filter"): the chip in force is no longer
        white with the --chip-edge hairline; it is FILLED with the grey pill ground (--surface-2) and
        its edge is the same grey, so it reads as shaded beside the resting "+ Filter". */
-    check('12f and the chip is shaded: filled with the grey pill ground, its edge the same grey (not the white box\'s hairline)',
-      !!act && act.bg === pillBg && act.bc === pillBg && act.bc !== chipEdge,
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn; the owner's word: "white with a solid outline" on Contracts only — f1109's
+       shading stands on every other list): the chip in force is white with a solid line, not the grey pill ground */
+    check('12f and the chip in force is white with a solid line (Contracts, as drawn)',
+      !!act && act.bg === 'rgb(255, 255, 255)' && act.bc !== 'rgba(0, 0, 0, 0)' && act.bc !== act.bg,
       act && `bg ${act.bg} · edge ${act.bc} · pill ${pillBg} · old hairline ${chipEdge} (--rule-strong ${ruleStrong})`);
     const night = await page.evaluate(() => ({ dark: document.documentElement.classList.contains('dark'),
       fns: ['setTheme', 'setDark', 'toggleTheme', 'toggleDark'].filter(n => typeof window[n] === 'function') }));
@@ -566,7 +574,8 @@ const check = (name, ok, detail) => {
       const add = document.querySelector('[data-lh-seat="contracts"] select[data-lh-add]');
       const groups = add ? [...add.querySelectorAll('optgroup')].map(g => g.label) : [];
       /* three chosen: Stage, Stream and Category's first choices */
-      for (const k of ['Stage', 'Stream', 'Category']){
+      /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the stream filter is called Folder on Contracts */
+      for (const k of ['Stage', 'Folder', 'Category']){
         const sel = document.querySelector('[data-lh-seat="contracts"] select[data-lh-add]');
         const o = sel && sel.querySelector(`optgroup[label="${k}"] option`); if (!o) continue;
         sel.value = o.value; sel.dispatchEvent(new Event('change', { bubbles: true }));
@@ -582,7 +591,7 @@ const check = (name, ok, detail) => {
       return { groups, chips };
     });
     check('13a every filter is offered under + Filter, the stages among them, and no stage tab row',
-      ['Stage', 'Stream', 'Category'].every(k => six.groups.includes(k)) && (await page.evaluate(() => !document.querySelector('[data-reg-home] [data-reg-stage]'))),
+      ['Stage', 'Folder', 'Category'].every(k => six.groups.includes(k)) && (await page.evaluate(() => !document.querySelector('[data-reg-home] [data-reg-stage]'))),
       six.groups.join(' · '));
     check('13a2 and the search box is not among them any more',
       !(await page.evaluate(() => !!document.getElementById('reg-search'))), 'not drawn');

@@ -1297,7 +1297,9 @@ function openNewAgreement(o){
          writes nothing where nothing moved, igDockSame) */
       const tk=tp==='theirs'?[paper,theirFile?theirFile.name:'',streamPicked].join('|'):'';
       if(tk!==root._naTheirKey){ const was=root._naTheirKey; root._naTheirKey=tk; if(tk&&was!==undefined&&typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ } } }
-    ['na-create','na-skip'].forEach(id=>{ const b=document.getElementById(id); if(!b) return;
+    /* WHILE THE SERVER MAKES IT, NOTHING UN-GREYS THE PAIR (22 Nov 2026, create-lands-clean 3a): a late light() — the
+       form's debounced input, a stream box settling — ran during the wait and gave Create back mid-press */
+    if(!root._naBusy) ['na-create','na-skip'].forEach(id=>{ const b=document.getElementById(id); if(!b) return;
       b.disabled=!on; b.title=on?(b.getAttribute('data-title-on')||''):why; });
     /* their paper is created as theirs, not drafted (as drawn: "Create") — never while the press turns */
     if(one){ const cb=document.getElementById('na-create'); if(cb&&!cb.querySelector('.ob-spin')) cb.textContent=i18t(paper==='theirs'?'act_create':'tl_create_draft'); }
@@ -1615,13 +1617,13 @@ function openNewAgreement(o){
     if(_naBusy) return;
     const btn=ev&&ev.currentTarget, was=btn?btn.innerHTML:'';
     const acts=['na-create','na-skip'].map(id=>document.getElementById(id)).filter(Boolean);
-    _naClaimed=true; _naBusy=true;
+    _naClaimed=true; _naBusy=true; root._naBusy=true;
     acts.forEach(b=>{ b.disabled=true; });
     if(btn&&typeof busySet==='function') busySet(btn,i18t('na_creating'));
     /* made from the one sheet, it lands on its Dossier (pdLandOnDossier) */
     if(one&&typeof pdLandOnDossier==='function') pdLandOnDossier(true);
     try{ await fn(); }catch(_){ /* the act says its own refusal */ }
-    _naBusy=false;
+    _naBusy=false; root._naBusy=false;
     if(document.getElementById('na-root')){ _naClaimed=false; if(one&&typeof pdLandOnDossier==='function') pdLandOnDossier(false);
       if(btn) btn.innerHTML=was; acts.forEach(b=>{ b.disabled=false; }); light(); } };
   const createOurs=goCreate(()=>api.create());

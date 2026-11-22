@@ -85,7 +85,7 @@ const _lhBoxes = seat => (typeof document === 'undefined' || !document.querySele
    nothing is spent; questions go to Jambo's box at the panel's foot. No question stands in a box any more. */
 const LH_BOX_ASKS = false;
 function _lhAskingNow(seat, q){
-  if (!LH_BOX_ASKS) return null;
+  if (!LH_BOX_ASKS && !((_lhPage(seat) || {}).asks)) return null;
   if (q != null && String(q) !== '') return null;
   const boxes = _lhBoxes(seat);
   const b = boxes.find(x => x === document.activeElement) || boxes[0];
@@ -112,7 +112,7 @@ function lhBoxSet(seat, words){
     const pg = _lhPage(head.getAttribute('data-lh-seat'));
     if (!pg || typeof pg.q !== 'function') return;
     const q = qOf(pg);
-    head.querySelectorAll('input[data-lh-q]').forEach(inp => { if (LH_BOX_ASKS && !q && lhIsQuestion(inp.value)) return; put(inp, q); });
+    head.querySelectorAll('input[data-lh-q]').forEach(inp => { if ((LH_BOX_ASKS || pg.asks) && !q && lhIsQuestion(inp.value)) return; put(inp, q); });
   });
   return n;
 }
@@ -128,14 +128,17 @@ function lhBoxHtml(seat, o){
   const total = (typeof pg.total === 'function') ? pg.total() : null;
   const noun = pg.noun || seat;
   /* a filter says so, and only so (round 1): "Filter this list"; the old "Search, or ask across N …" words stay inert */
-  const ph = (LH_BOX_ASKS && typeof total === 'number' && isFinite(total)) ? _lhTn('lh_ph_' + noun, total, { n: _lhN(total) }) : _lhT('lh_filter_ph');
+  /* a page may give its box its own words (spec.ph, P-31's "Ask about your contracts: …") and mark (spec.boxIcon) */
+  const own = (typeof pg.ph === 'function') ? pg.ph() : null;
+  const ph = own ? String(own) : (LH_BOX_ASKS && typeof total === 'number' && isFinite(total)) ? _lhTn('lh_ph_' + noun, total, { n: _lhN(total) }) : _lhT('lh_filter_ph');
+  const ic = ((typeof pg.boxIcon === 'function') ? pg.boxIcon() : null) || 'search';
   const qNow = (typeof pg.q === 'function') ? pg.q() : '';
   const asking = _lhAskingNow(seat, qNow);
   const q = asking != null ? asking : qNow;
   const extra = Object.entries(Object.assign({}, pg.boxAttrs || {}, opt.attrs || {}))
     .filter(([k, v]) => /^[a-z][\w-]*$/i.test(k) && v != null && v !== false)
     .map(([k, v]) => v === true ? ` ${k}` : ` ${k}="${_lhE(v)}"`).join('');
-  return `<label class="lh-ask" title="${_lhE(_lhT(LH_BOX_ASKS ? 'lh_box_title' : 'lh_filter_title'))}">${_lhIc('search')}<input type="search" id="${_lhE(id)}" data-lh-q autocomplete="off" spellcheck="false" placeholder="${_lhE(ph)}" value="${_lhE(q == null ? '' : q)}" aria-label="${_lhE(_lhT(LH_BOX_ASKS ? 'lh_box_label' : 'lh_filter_ph'))}"${extra}></label>`;
+  return `<label class="lh-ask${ic !== 'search' ? ' is-' + _lhE(ic) : ''}" title="${_lhE(_lhT(LH_BOX_ASKS ? 'lh_box_title' : 'lh_filter_title'))}">${_lhIc(ic)}<input type="search" id="${_lhE(id)}" data-lh-q autocomplete="off" spellcheck="false" placeholder="${_lhE(ph)}" value="${_lhE(q == null ? '' : q)}" aria-label="${_lhE(_lhT(LH_BOX_ASKS ? 'lh_box_label' : 'lh_filter_ph'))}"${extra}></label>`;
 }
 
 /* ---- A PAGE'S OWN PARTS STAND ----
@@ -210,7 +213,8 @@ function lhChipHtml(f){
   const pick = (all.find(o => String(o[0]) === String(f.cur)) || [])[1];
   const label = f.label == null ? String(f.k) : f.label;
   const x = _lhT('lh_remove', { what: label });
-  return `<span class="lh-chip" data-lh-chip="${_lhE(f.k)}"><label title="${_lhE(f.title || label)}">${_lhE(label)} <b>${_lhE(pick == null ? f.cur : pick)}</b><select class="reg-chip-sel" data-lh-f="${_lhE(f.k)}" aria-label="${_lhE(label)}">${
+  /* a page may word its chip apart from + Filter's group (f.chipLabel, Contracts' "Folder:") */
+  return `<span class="lh-chip" data-lh-chip="${_lhE(f.k)}"><label title="${_lhE(f.title || label)}">${_lhE(f.chipLabel || label)} <b>${_lhE(pick == null ? f.cur : pick)}</b><select class="reg-chip-sel" data-lh-f="${_lhE(f.k)}" aria-label="${_lhE(label)}">${
     opts.map(o => `<option value="${_lhE(o[0])}"${String(o[0]) === String(f.cur) ? ' selected' : ''}>${_lhE(_lhOptWords(o))}</option>`).join('')}</select></label><button type="button" class="lh-x" data-lh-x="${_lhE(f.k)}" title="${_lhE(x)}" aria-label="${_lhE(x)}">${_lhIc('x')}</button></span>`;
 }
 /* "+ Filter": the filters NOT applied, one group each, offering only the
@@ -579,7 +583,9 @@ function _lhInput(e){
   const now = (typeof pg.q === 'function') ? String(pg.q() == null ? '' : pg.q()) : '';
   /* a question narrows nothing: the list stands whole while it is typed, and
      the box holds it (_lhAskingNow) */
-  if (LH_BOX_ASKS && lhIsQuestion(w)){ if (now && typeof pg.setQuery === 'function') pg.setQuery(''); }
+  /* A PAGE MAY LET ITS BOX ASK (spec.asks; Contracts, P-31, owner 21 Nov 2026): a question narrows nothing there and
+     Enter hands it to the one reader (lhAsk → intelAsk / jlAsk); plain words filter as everywhere */
+  if ((LH_BOX_ASKS || pg.asks) && lhIsQuestion(w)){ if (now && typeof pg.setQuery === 'function') pg.setQuery(''); }
   else if (typeof pg.setQuery === 'function') pg.setQuery(w);
   lhHeadSyncSoon(seat);
 }
@@ -589,8 +595,9 @@ function _lhKey(e){
   const head = inp.closest('[data-lh-seat]'); if (!head) return;
   const seat = head.getAttribute('data-lh-seat'), pg = _lhPage(seat); if (!pg) return;
   const w = String(inp.value || '').trim();
-  /* plain words stay a search: nothing is sent, nothing is spent — and since round 1 every word is plain */
-  if (!LH_BOX_ASKS || !lhIsQuestion(w)) return;
+  /* plain words stay a search: nothing is sent, nothing is spent — and since round 1 every word is plain, but on a
+     page whose box asks (spec.asks) */
+  if (!(LH_BOX_ASKS || pg.asks) || !lhIsQuestion(w)) return;
   e.preventDefault();
   if (!lhAsk(seat, w)) return;              /* said ('warn'); the words stay */
   inp.value = '';
