@@ -122,8 +122,14 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
     check('N-4d no brand or dark switch is left (nothing published, no Light | Dark on the Board)', gone.fns.length === 0 && !gone.screenSwitch, JSON.stringify(gone));
 
     /* ============ N-5 Summarise my board is a button ============ */
-    const sum = await page.evaluate(() => { const b = document.querySelector('.hb-bs-go'); return b ? { tag: b.tagName, cls: b.className } : null; });
-    check('N-5 "Summarise my board" is a button, dressed as one', !!sum && sum.tag === 'BUTTON' && /\bhb-btn\b/.test(sum.cls), sum ? sum.cls : 'not drawn');
+    /* RE-POINTED 22 Nov 2026 (owner: "combine summarise my board into read down"): the button left the Board's head and
+       stands in Read down's brief, "Jambo, in brief"; still a button, dressed as one */
+    const sum = await page.evaluate(async () => { const off = !document.querySelector('#hb-bhead .hb-bs-go, #hb-bhead [data-hb-why]');
+      const d = document.querySelector('#hb-bhead [data-hb-rdn]'); if (d) d.click();
+      for (let i = 0; i < 40 && !document.querySelector('.rd-brief-go'); i++) await new Promise(r => setTimeout(r, 100));
+      const b = document.querySelector('.rd-brief-go'); const r = b ? { off, tag: b.tagName, cls: b.className } : { off };
+      const back = document.querySelector('[data-rd-back]'); if (back) back.click(); return r; });
+    check('N-5 "Summarise my board" left the Board and is a button in Read down\'s brief, dressed as one', !!sum && sum.off && sum.tag === 'BUTTON' && /\bui-btn\b/.test(sum.cls || ''), JSON.stringify(sum));
 
     /* ============ N-1 Present survives a change of side ============ */
     const pres = () => page.evaluate(() => ({ fs: !!document.fullscreenElement,

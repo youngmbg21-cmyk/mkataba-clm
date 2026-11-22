@@ -166,6 +166,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - THE NUMBER LEADS THE ROW (23 Oct 2026): f925 3c2 (new; the Board's Agreement cell is number · name, the name in `.nd-deal-t` gives way, the number never cut); f803 2a–2c/5a and f925 2b re-pointed (Home's line leads with the number); counter-as-drawn 11b re-pointed.
 
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
+- NO EXPLORER MAP ON THE BOARD'S PANEL (owner, 22 Nov 2026): f1042 1a (re-pointed: no brain card, his line first); board-as-drawn-verify 5b (re-pointed).
 - THE SAME SPACE ABOVE THE FIRST CARD (owner, 14 Nov 2026): f745 7a re-pointed (red at the parent: the greeting's white band still painted over the gap). Photos at the three screens: 12px of the Board's ground under the greeting, as between Your book and Needs you. white-sheet-verify: Board · side list's grey ground ALLOWED in WHITE_KNOWN with the owner's words (red on GitHub before it, as foretold).
 - BRAIN WELCOME (13 Nov 2026): `node --test test/f1042-brain-welcome.test.js` (new, 16 checks, red at the parent: no welcome, no igMini*, no hbw_ words, no token) — the welcome as drawn, every number a door and a 0 not one, the brain the Explorer's own (shape, lobes, by party, Still at the resting rate, mouse drag only, reads only), both books, the token. RE-POINTED: f745 4a/4b (his line and the count, no head sentence or facts); needs-you-card-verify 2a/2b/7a and board-as-drawn-verify 5b/5d (read `.hbw-say`/`.hbw-sub`, the brain card is there) — NOT RUN HERE (browser checks run on GitHub). Photos and a fit check at the three screens: `node test/chromium/brain-welcome-photos.js` (FITS at all three, 13 Nov).
 - The Redlines tab's number is its head's (13 Nov 2026): f1031 (red at the parent a931117: head 5, tab 2, amber); f881 (19) re-pointed. Photographed at the three screens.
@@ -1028,3 +1029,7 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 - test/chromium/panel-watermark-verify.js 10a (the weaves are a flowing colour mix), red on main. 2, 2b, 3 (still in Settings and for less motion) were red on main and pass now.
 - f965 (tokens): the --wm-* colours live in :root and docs/design/tokens.json (node test/tokens-export.js).
 - panel-watermark-verify 11: Jambo's talk scrolled 120, the weave rises 120, and comes back at the top (red on main).
+
+## THE OVERVIEW — READ DOWN, ONE SHEET / INSIGHTS (22 Nov 2026)
+- test/chromium/read-down-stripe-verify.js — no Summarise on the Board; Read down's figures, brief, table; Your day and Findings without boxes (red at the parent).
+- test/f1068-jambos-panels-five-parts.test.js (6), test/f1070-jambos-panels-round-three-a.test.js (5) — the words in both books.
