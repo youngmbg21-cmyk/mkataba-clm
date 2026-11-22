@@ -105,7 +105,8 @@ describe('F933 — one builder, so the two tables cannot disagree', () => {
        Stream FILTER stays (f379 pins it). The two builder claims below are
        about every head and still stand. */
     /* RE-POINTED 27 Oct 2026 (THE LIST LANGUAGE): the Contracts place heads the stream again, its head sorting */
-    assert.ok(/if\(k==='stream'\) return sortableTh\('stream',i18t\('reg_col_stream'\),'',k\);/.test(reg), 'the stream head sorts, on the place that draws it');
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the new look's Contracts list calls the column "Folder" */
+    assert.ok(/if\(k==='stream'\) return sortableTh\('stream',i18t\(regNl\(\)\?'ctf_col_folder':'reg_col_stream'\),'',k\);/.test(reg), 'the stream head sorts, on the place that draws it');
     /* RE-POINTED IN PLACE 26 Sep 2026 (the list inspector): the builder takes
        the column's key as well, so the inspector's shape can hand a head its
        pixel width; the full table's heads still take theirs off the one list. */

@@ -49,7 +49,8 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
       await page.evaluate(() => { const b = [...document.querySelectorAll('.ctf-ftable tr[data-ctf-folder]')].find(x => /Procurement/.test(x.innerText)); if (b) b.click(); });
       if (await until(page, () => !!document.querySelector('.ctf-ftable tr.is-sel[data-ctf-folder]'), null, 4000))
         await page.evaluate(() => { const b = document.querySelector('.ctf-ftable tr.is-sel[data-ctf-folder]'); if (b) b.click(); });
-      await until(page, () => !!document.querySelector('#reg-tbody tr[data-row]') && !!document.querySelector('.rfp-panel.is-drawn'), null, 15000);
+      /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the folder's panel is the list's own (#ig-dock .ctls-list): a sentence of its rows, where they stand, when they end, what needs you; no money */
+      await until(page, () => !!document.querySelector('#reg-tbody tr[data-row]') && !!document.querySelector('#ig-dock .ctls-list'), null, 15000);
       await page.evaluate(() => document.fonts && document.fonts.ready);
 
       /* 1 · the top and the folder's panel */
@@ -57,7 +58,7 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
         if (!top) return { err: 'no #ct-place .ct-top: the folder\'s list was not drawn' };
         const parts = [...top.querySelectorAll('.ctf-back, .ctf-crumb, .ct-h, .ct-facts')].filter(e => e.getBoundingClientRect().width);
         const cy = parts.map(e => { const r = e.getBoundingClientRect(); return r.top + r.height / 2; }), mids = Math.max(...cy) - Math.min(...cy) <= 4 ? 1 : 2;
-        const ac = document.querySelector('#ct-place .ac-btn'), p = document.querySelector('.rfp-panel.is-drawn');
+        const ac = document.querySelector('#ct-place .ac-btn'), p = document.querySelector('#ig-dock .ctls-list');
         return { mids, big: parts.filter(e => parseFloat(getComputedStyle(e).fontSize) > 15).map(e => e.className), crumb: (top.querySelector('.ctf-crumb') || {}).textContent,
           pill: !!ac && getComputedStyle(ac).backgroundColor !== 'rgba(0, 0, 0, 0)' && getComputedStyle(ac).textDecorationLine === 'none', panel: p ? p.innerText : '' }; });
       /* RE-POINTED (owner's pick by name, 15 Nov 2026: At a Glance): the panel counts the folder, then When they end, Where
@@ -105,7 +106,7 @@ const COST = /\bcalls?\b|\bfree\b|costs? nothing|spent/i;
       await page.click('#ac-th-menu [data-ac-remove]');
       const gone = await until(page, () => !document.querySelector('th.ac-th') && /Column removed · its 50 answers are kept in Reads/.test((document.getElementById('toast-root') || {}).textContent || ''), null, 8000);
       /* RE-POINTED (owner, 14 Nov 2026: Columns you asked is deleted from the folder's panel): the removed column is NOT listed there */
-      const listed = await until(page, () => { const p = document.querySelector('.rfp-panel.is-drawn'); return !!p && !/COLUMNS YOU ASKED|Add to list|Governing law/i.test(p.innerText || ''); }, null, 8000);
+      const listed = await until(page, () => { const p = document.querySelector('#ig-dock .ctls-list'); return !!p && !/COLUMNS YOU ASKED|Add to list|Governing law/i.test(p.innerText || ''); }, null, 8000);
       await shot('6-removed');
       await page.evaluate(() => { const b = [...document.querySelectorAll('#toast-root [data-toast-act]')].pop(); if (b) b.click(); });
       const back = await until(page, () => !!document.querySelector('th.ac-th'), null, 8000);

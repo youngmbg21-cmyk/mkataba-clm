@@ -574,3 +574,33 @@ describe('f861 (14) the foot in place, a column aside, the numbers grouped', () 
     assert.equal(doc.querySelector('.n').textContent, (3000).toLocaleString(), 'grouped, never "3000"');
   });
 });
+
+/* CONTRACTS' BOX ASKS (owner, 21 Nov 2026, P-31 as drawn: "Ask about your contracts: …"): a page that lets its box ask
+   (spec.asks) hands a QUESTION to the one reader (lhAsk: the page's own, else jlAsk / intelAsk — no second door) and
+   narrows nothing with it; plain words still filter and Enter spends nothing. Every other page's box stays a filter. */
+describe('f861 (15) a box that asks: Contracts', () => {
+  test('a question goes to the one reader, emptying the box; the list is not narrowed by it', () => {
+    need(); const x = stage(); const P = page(x.sb, { spec: { asks: true } }); paint(x);
+    const inp = x.doc.querySelector('input[data-lh-q]');
+    inp.value = 'which ones end before June?'; inp.dispatchEvent(new x.win.Event('input', { bubbles: true }));
+    assert.deepEqual(P.S.queries, [], 'a question narrows nothing');
+    inp.dispatchEvent(new x.win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    assert.deepEqual(P.S.asked, ['which ones end before June?'], 'handed to the reader');
+    assert.equal(inp.value, '', 'the box empties once it is taken');
+  });
+  test('plain words still filter, and Enter sends nothing', () => {
+    need(); const x = stage(); const P = page(x.sb, { spec: { asks: true } }); paint(x);
+    const inp = x.doc.querySelector('input[data-lh-q]');
+    inp.value = 'Nandi'; inp.dispatchEvent(new x.win.Event('input', { bubbles: true }));
+    assert.deepEqual(P.S.queries, ['Nandi']);
+    inp.dispatchEvent(new x.win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    assert.deepEqual(P.S.asked, []);
+  });
+  test('Contracts\' head lets its box ask and brings no reader of its own (the one reader answers in the panel)', () => {
+    const REG = read('js/views/register.js').replace(/\/\*[\s\S]*?\*\//g, '');
+    const spec = REG.slice(REG.indexOf('lhRegister(REG_CT_SEAT, {'), REG.indexOf('lcSeat:onList'));
+    assert.match(spec, /\basks:true\b/);
+    assert.doesNotMatch(spec, /\bask:/, 'no second door: lhAsk\'s own path (intelAsk beside the place) answers');
+    assert.match(fnBody(LH, 'lhAsk'), /here === 'home' && typeof intelAsk === 'function'/);
+  });
+});

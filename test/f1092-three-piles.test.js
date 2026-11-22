@@ -26,8 +26,10 @@ describe('f1092 (1) three piles, in the order they matter', () => {
   const V = strip(R('js/views/approvalsview.js'));
   test('departures, then changes to our standards, then the contracts', () => {
     const r = fnBody(V, 'apnRender');
-    const a = r.indexOf("gTitle('apn_group_dep'"), b = r.indexOf("gTitle('apn_group_std'"), c = r.indexOf("gTitle('apn_group_yes'");
-    assert.ok(a > 0 && b > a && c > b, 'the three titles in that order');
+    /* RE-POINTED 22 Nov 2026 (P-30 review): one table as drawn — the three titles went; the ORDER stays: departures,
+       then changes to our playbook, then the contracts */
+    assert.ok(!/gTitle\(/.test(r), 'no pile headings');
+    assert.match(r, /const pileHtml=pDep\.map\(apnPileRowHtml\)\.map\(cut\)\.join\(''\)\+pStd\.map\(apnPileRowHtml\)\.map\(cut\)\.join\(''\);/, 'departures, then changes');
     /* RE-POINTED (P-30, owner's pick 20 Nov 2026): the rows pass through the one column cut before they are joined */
     assert.match(r, /\$\{pileHtml\}\$\{rowsA\.map\(cut\)\.join\(''\)\}/, 'the piles lead, the contracts follow');
     assert.match(r, /_apnTab==='mine'\?P\.dep/, 'under Mine only');

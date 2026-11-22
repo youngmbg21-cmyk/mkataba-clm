@@ -56,7 +56,9 @@ test('f1056 · the folders page: one bar split by folder, each row its folder\'s
   assert.match(g, /class="rfg-lg" data-ctf-folder=/);
   assert.match(g, /i18t\('rfg_nda'\)/); assert.match(g, /i18t\('rfg_checked'\)/);
   assert.match(g, /data-rfp-label="\$\{esc\(i18t\('rfg_label_nda'\)\)\}"/);
-  assert.match(strip(fn('regFoldersPanelHtml')), /if \(regNl\(\)\) return `<div class="apn-panel ctfp rfg">/, 'the new look draws it; the old look keeps its own');
+  /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the new look's landing panel is the drawn one (regFoldersLsPanelHtml) — no
+     money, no cards; At a Glance stays for the old look */
+  assert.match(strip(fn('regFoldersPanelHtml')), /if \(regNl\(\)\)\{[\s\S]*?return regFoldersLsPanelHtml\(rows, said\); \}/, 'the new look draws it; the old look keeps its own');
 });
 
 test('f1056 · a list shown from the panel names itself', () => {

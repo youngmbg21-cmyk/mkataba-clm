@@ -828,6 +828,19 @@ function signApprovalWithdraw(c, reqId){
 /* A deliberate nudge, with a visible result, never a silent retry. The server
    holds it to once a day for one request, so a button cannot become a way of
    flooding somebody's inbox. */
+/* REMIND A RULE'S APPROVER BY HAND (owner, 21 Nov 2026, P-30): the server sends one email, once a day, and writes the
+   record (POST /api/contracts/:id/rule-remind → c.ruleReminds); "sent" is said as the server's mailReport says it,
+   a refusal in the server's own words */
+async function ruleStepRemind(c, who){
+  if(!c||!(typeof API_MODE==='function'&&API_MODE())) return false;
+  try{
+    try{ if(typeof flushSaves==='function') await flushSaves(); }catch(_){}
+    const out=await api('contracts/'+encodeURIComponent(c.id)+'/rule-remind','POST',{},{ quiet:true });
+    if(out&&Array.isArray(out.ruleReminds)) c.ruleReminds=out.ruleReminds;
+    if(out&&out.emailSent){ toast(i18t('apn_reminded_toast',{ who }),'ok'); return true; }
+    toast(i18t('apn_reminded_outbox',{ who }),'warn'); return true;
+  }catch(e){ toast(i18t('apn_remind_not_sent',{ why:(e&&e.message)||i18t('srv_arm_failed') }),'warn'); return false; }
+}
 async function signApprovalRemind(c, reqId){
   const live=(c&&c.signApprovals||[]).find(x=>x&&x.id===reqId);
   if(!live||live.status!=='pending'){ toast(i18t('sa_gone'),'warn'); return false; }
@@ -2557,7 +2570,7 @@ Object.assign(window,{AP_YES_NOTE_MAX,approvalYesNote,AP_UNDO_MS,approvalUndoabl
   signApprovalLegacyOn,signApprovalNeeds,signApprovalStateOf,saStepName,saMoney,saDriftWords,SA_CHAIN_STATUS,saChainStep,
   signApprovalDecidable,signApprovalWaitsOn,SA_PAPER_KEYS,signApprovalPaperHolds,signApprovalRequestable,signApprovalRound,
   saFmtDay,saWhen,saShowsLine,signApprovalNotify,saNoticeOf,saDeliveryWords,signApprovalRequest,signApprovalDecide,
-  signApprovalWithdraw,signApprovalRemind,saRepaint,signApprovalRows,signApprovalBlockLabel,signApprovalSettledRows,
+  signApprovalWithdraw,signApprovalRemind,ruleStepRemind,saRepaint,signApprovalRows,signApprovalBlockLabel,signApprovalSettledRows,
   signApprovalHoldsLinks,openSignApprovalDialog,openSignApprovalRefuse,signApprovalDecideAsk,signApprovalAskCardHtml,wireSignApprovalCard});
 
 /* ============================================================

@@ -57,7 +57,8 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
        one builder (data-jov-slot="apn"), its own links still above the box */
     /* RE-POINTED (P-30, 20 Nov 2026): the panel's groups are "What you are approving" and "Timeline", and it carries the
        row's Approve and Decline */
-    const panel = up && await until(page, () => !!document.querySelector('#ins-panel [data-jov-slot="apn"]') && /What you are approving/i.test(document.getElementById('ins-panel').innerText)
+    /* RE-POINTED 21 Nov 2026 (P-30, as drawn): the panel is the drawn one (.apn5), no longer the five-part builder */
+    const panel = up && await until(page, () => !!document.querySelector('#ins-panel .apn5') && /What you are approving/i.test(document.getElementById('ins-panel').innerText)
       && !!document.querySelector('#ins-panel [data-apn-act="approve"]') && !!document.querySelector('#ins-panel [data-apn-act="refuse"]'), null, 8000);
     const tab = await txt(page, '#ins-panel [data-jl-home]');
     const links = await page.evaluate(() => [...document.querySelectorAll('#ins-panel .jb-ways.is-own [data-apn-go]')].map(b => b.getAttribute('data-apn-go')));
