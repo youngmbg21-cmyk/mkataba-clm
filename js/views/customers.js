@@ -1748,7 +1748,7 @@ function cunRowHtml(v, keys){
     streams: () => `<td class="cun-streams">${streamCell}</td>`,
     agreements: () => `<td class="cun-num"><span class="cun-ags" title="${esc(split)}">${cunRingSvg(cnt.signed, total, 26)}<span class="cun-ags-s">${esc(i18tn('cun_split_signed', cnt.signed, { n: cnt.signed }))}</span></span></td>`,
     paper: () => `<td class="cun-money">${money && val ? esc(cunPaperSay(val)) : '<span class="apn-none-c">—</span>'}</td>`,
-    ends: () => `<td class="cun-ends">${next ? `${esc(next.day)}<div class="cun-endof" title="${esc(next.name)}">${esc(next.name)}</div>` : '<span class="apn-none-c">—</span>'}</td>`,
+    ends: () => `<td class="cun-ends">${next ? `${esc(next.day)}<div class="cun-endof" title="${esc(next.name)}"><span dir="ltr">${esc(next.name)}</span></div>` : '<span class="apn-none-c">—</span>'}</td>`,
     waiting: () => `<td class="cun-wait${ws ? ' is-owed' : ''}"${needs.length ? ` title="${esc(needs.map(cuNeedTitle).filter(Boolean).join(' · '))}"` : ''}>${ws ? `<span class="cun-badge is-${ws.late ? 'ruby' : 'amber'}">${esc(ws.head)}${ws.late ? ` · ${esc(i18t('cun_late'))}` : ''}</span>` : '<span class="apn-none-c">—</span>'}</td>`,
   };
   return `<tr data-cu-cust="${esc(v.key)}" tabindex="-1">

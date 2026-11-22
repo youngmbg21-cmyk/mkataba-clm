@@ -20083,7 +20083,10 @@
   html.lg-new .cun-page .cun-table th{white-space:normal;overflow-wrap:normal;vertical-align:bottom;text-transform:none;letter-spacing:0;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-400)}
   html.lg-new .cun-page .cun-table :is(th,td).cun-ends{text-align:right}
   html.lg-new .cun-page .cun-table th.cun-money{white-space:nowrap} /* "On paper (KES)" on one line, never squeezed (P-25 review) */
-  html.lg-new .cun-page .cun-table td.cun-ends .cun-endof{margin-top:2px;font-size:var(--t-label);font-weight:400;color:var(--color-neutral-400);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+  /* TWO LINES, THEN "…", NEVER CLIPPED (P-25 review, the tidy sweep's CUT): right-aligned text in a two-line clamp puts
+     its "…" past the box's right edge, where it is cut off (Chromium); the box reads right to left and the name inside
+     it is its own left-to-right run (dir="ltr"), so the lines still sit flush right and the "…" lands inside the box */
+  html.lg-new .cun-page .cun-table td.cun-ends .cun-endof{margin-top:2px;font-size:var(--t-label);font-weight:400;color:var(--color-neutral-400);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;direction:rtl}
   html.lg-new .cun-page .cun-pq{margin-top:2px;font-family:var(--font-doc);font-size:13px;line-height:1.4;font-weight:400;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .cun-page .cun-who{align-items:center}
   html.lg-new .cun-page .cun-plus{font-size:var(--t-label);color:var(--color-neutral-400)}
