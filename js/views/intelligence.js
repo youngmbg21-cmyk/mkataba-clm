@@ -10646,7 +10646,8 @@ function renderIntelDock(){
     /* YOUR DAY (owner picked "The SAP Way", 9 Nov 2026): the day's five figures */
     :igDayShows()?`<div id="ig-day" class="flex-1 min-h-0 overflow-y-auto scroll-thin" role="tabpanel">${igDayHtml()}</div><div id="igd-feed" hidden></div>`
     :igGuideShows()?`<div id="ig-gd" class="flex-1 min-h-0 overflow-y-auto scroll-thin" role="tabpanel">${igGuideHtml()}</div><div id="igd-feed" hidden></div>`:`
-    ${(state.view==='dashboard'&&typeof window.caBackRowHtml==='function')?caBackRowHtml():''}
+    ${''/* NO GREEN "‹ Back to …" LINK ON THE PANEL (owner, 22 Nov 2026: "delete the green links that say back to the
+           page you were on"): the bar's ‹ is the way back; the trail itself stays (caBackRowHtml, a typed "back") */}
     ${''/* NEEDS YOU HERE, PINNED above the conversation (round 3: it stays at
            the top of the Jambo tab while the talk scrolls under it) */}
     ${(state.view==='dashboard'&&typeof window.pdJamboPinHtml==='function')?pdJamboPinHtml():''}

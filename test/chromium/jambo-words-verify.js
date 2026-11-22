@@ -8,8 +8,9 @@
         in the accent ink, no outline; round 3's accent outline and the amber
         before 18 Oct 2026 are gone)
      2  "/" on the Document lists the places, and nothing of the Board's
-     3  a typed word moves the reader ("board"), and the panel offers the way
-        back; Back returns to the same paper
+     3  a typed word moves the reader ("board"); the panel draws NO green "‹ Back
+        to …" link (owner, 22 Nov 2026: deleted; the bar's ‹ is the way back), and
+        a typed "back" still returns to the same paper (the trail stands)
      4  "/" on the Board is one list: the places first, then its own moves
      5  a word that is work opens its door ("redline" → the Redlines face
         beside the paper, stage 3; was Negotiate)
@@ -117,8 +118,11 @@ const DOC = 'SOFTWARE AS A SERVICE AGREEMENT\n\n1. TERM\n\nThis Agreement runs f
     await type('board', true);
     const onBoard = await page.waitForFunction(() => hbFace() === 'board', null, { timeout: 5000 }).then(() => true, () => false);
     ok('3a "board" opens the Board', onBoard);
-    const back = await page.waitForSelector('.ca-back', { timeout: 4000 }).then(e => e.textContent(), () => '');
-    ok('3b the panel offers the way back', /Back to MK-W1 on the paper/.test(back), back);
+    /* RE-POINTED 22 Nov 2026 (owner: "delete the green links that say back to the page you were on"): the panel
+       draws no way-back link; the trail stands behind a typed "back" (caActOf('back')) and the bar's ‹ */
+    await page.waitForTimeout(400);
+    const back = await page.evaluate(() => { const b = document.querySelector('#ig-dock .ca-back'); return b ? b.textContent.trim() : ''; });
+    ok('3b the panel draws no green "‹ Back to …" link', back === '', back);
     await page.screenshot({ path: path.join(OUT, '3-board-with-the-way-back.png') });
 
     /* ===== 4. "/" ON THE BOARD: ONE LIST ===== */
@@ -139,8 +143,8 @@ const DOC = 'SOFTWARE AS A SERVICE AGREEMENT\n\n1. TERM\n\nThis Agreement runs f
     await page.keyboard.press('Escape');
     await page.fill('#igd-input', '');
 
-    /* back to the paper */
-    await page.click('.ca-back');
+    /* back to the paper: typed, since the panel's link is gone (22 Nov 2026) */
+    await type('back', true);
     const backOk = await page.waitForFunction(() => hbFace() === 'paper' && intel.paper && intel.paper.id === 'MK-W1', null, { timeout: 5000 }).then(() => true, () => false);
     ok('3c Back returns to the same paper', backOk);
 
@@ -181,14 +185,16 @@ const DOC = 'SOFTWARE AS A SERVICE AGREEMENT\n\n1. TERM\n\nThis Agreement runs f
     await page.waitForSelector('[data-ig-chips] [data-ca-chip]', { timeout: 8000 }).catch(() => {});
     const c7 = await page.evaluate(() => [...document.querySelectorAll('[data-ig-chips] [data-ca-chip]')].map(b => b.textContent.trim()));
     ok('7a the chips are Swedish words', c7[0] === 'fyll i' && c7.includes('förhandla') && c7.includes('dela') /* re-pointed 15 Oct 2026: the next steps, redlines → share → sign */, JSON.stringify(c7));
-    const back7 = await page.evaluate(() => { const b = document.querySelector('.ca-back'); return b ? b.textContent.trim() : ''; });
+    const back7 = await page.evaluate(() => typeof caBackRowHtml === 'function' ? caBackRowHtml().replace(/<[^>]+>/g, '').trim() : '');
     /* the redlines are on the paper now (stage 3): the way back is to it, and the face is there */
     /* RE-WORDED 14 Oct 2026 (the one-page Home plan, stage 6): the plan's Swedish
        spells the paper as the book mostly does, "papperet" */
     /* RE-POINTED (owner, 9 Nov 2026: "fix the History panel showing the wrong contract"; f978): every move is on the trail,
        not only a typed one, so the way back is where the reader stood last — Home's Calendar (Settings, then Home, which
        opened on the Calendar, then MK-W1's paper), not MK-W2's paper two moves earlier */
+    /* RE-POINTED 22 Nov 2026: the link is not drawn on the panel any more; the trail's own words are still Swedish */
     ok('7c the way back names the page it returns to', back7 === '‹ Tillbaka till kalendern', back7);
+    ok('7d and the panel does not draw it', !(await page.evaluate(() => !!document.querySelector('#ig-dock .ca-back'))));
     await page.screenshot({ path: path.join(OUT, '7-svenska.png') });
     await type('kalender', true);
     const svCal = await page.waitForFunction(() => hbFace() === 'calendar', null, { timeout: 5000 }).then(() => true, () => false);

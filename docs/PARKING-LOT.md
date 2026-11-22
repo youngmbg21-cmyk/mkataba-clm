@@ -445,6 +445,29 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
   - **Where we are · Signing:** Legora + Stripe, as drawn; no Jambo box on their page.
   - **Check before building:** the faults logged on 21 Nov 2026 on their page are fixed in the same build — "For you: ready to sign" with nothing open; the empty Redlines panel naming a missing "Edit" button; the Signing green tick too early.
 
+### P-45 · Discover's Export: choose the kind of file, or send the results to colleagues
+- **Added:** 21 Nov 2026 · **Status:** Waiting
+- **What:** the owner's words: "Export discover results should have options to export to which type of document but also send the results to internal colleagues." On a Discover read's results, Export should offer (1) a choice of file type to download, and (2) sending the results to colleagues inside the company.
+- **Today (checked in the code, 21 Nov 2026):** Export only COPIES the results table to the clipboard (as a table that pastes into a spreadsheet, with plain text as the fallback) and says "copied". It makes no file and sends nothing.
+- **Where it came from:** the owner, 21 Nov 2026.
+- **Notes:** to settle before building: which file types (for example Excel, Word, PDF, CSV), and whether copying stays as one of the choices. Sending to colleagues: inside the company only, never the other side; walls hold (each colleague sees only the contracts their streams allow, private streams and code names stay hidden, money only for those with money rights); a send should leave a record and reach the colleague where they look (the bell), not only an email (flow rules 3, 6, 8). Built the Legora way as a pop-up (`lgpOpen`). The Handbook's Discover chapter (its picture marks Export) changes with it.
+
+### P-46 · The template builder page gets an upgrade like the Dossier page
+- **Added:** 22 Nov 2026 · **Status:** Waiting
+- **What:** the owner's words: "Give builder page and improvement similar to the dossier page." The page where a company template is written (the template builder: the paper in the middle, Jambo's panel beside it) gets the same kind of improvement the contract's Dossier page has had.
+- **Where it came from:** the owner, 22 Nov 2026.
+- **Notes:** a design question. Ask first which parts of the Dossier the owner means (for example its one card at the top with the stage and the next step, the paper centred with notes beside it, or Jambo's panel in five parts). Then follow the design rules: real photos of the builder as it is today, the four ways (SAP, Legora, Stripe, Legora + Stripe) drawn on those photos, and the owner picks one. Jambo's box stays at the foot of the panel. The builder's own rules hold: Jambo writes only on a press and nothing reaches the paper without a person accepting it; sections move whole; Publish asks the look once.
+
+### P-47 · Onboarding a person ends with a summary pop-up; every folder is marked sensitive or not
+- **Added:** 22 Nov 2026 · **Status:** Waiting
+- **What:** the owner's words: "Add a safe guard so that when you onboard a person and give them the access, before you complete the job, a summary pop up advising you of what you have done. Also add that each folder that is built should be marked as sensitive or not so that this information appears in the summary pop during the onboarding."
+  1. **A summary before you finish:** when an admin adds a person and gives them access, a pop-up shows everything they are about to give before it is saved: role, folders (streams), what they may do (signing cap, approvals, re-filing and the other grants). The admin confirms or goes back.
+  2. **Each folder marked sensitive or not:** every folder carries a yes/no mark, and the summary shows which of the person's folders are sensitive.
+- **Where it came from:** the owner, 22 Nov 2026.
+- **Open question:** HaTi already has PRIVATE STREAMS (Settings › Company › Streams › a stream's Access: "Only the people named here", every open recorded). The owner did not know about it and asked to see it (22 Nov 2026). Decide whether "sensitive" is that same setting or a new mark that changes nothing about who can see the folder.
+- **The owner's answer, 22 Nov 2026:** "These folders do not say whether it is a sensitive folder or not. That should be added when creating this folder." So: creating a folder ASKS whether it is sensitive, and the folders list shows the answer on every folder (today a folder only shows "Private" if it was made private later, from its Access page). Still to settle when building: whether answering "sensitive" also makes the folder private (named people only), or is only a label.
+- **Notes:** a design question: photos of today's add-a-person screens first, then options, then the owner picks. The pop-up is built the Legora way (`lgpOpen`). Settings, the Handbook (both languages) and the flow map change with it.
+
 ## Done
 
 ### P-20 · Remove "Workspace" from the navigation panel
