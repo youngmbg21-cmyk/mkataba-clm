@@ -39709,3 +39709,4 @@ repaint — the Board always settled on the true book:
     so a redraw writing the same number keeps the count going and a new number stops it.
 Measured at the parent: 5 of 6 runs at 4× and 3 of 3 at 1× had frames where the figures' words differed from the book;
 after: 0 of 18 (six each at 1×, 4× and 6×). Looks the same: the count still climbs from 0, from the number's start edge.
+- 22 Nov 2026, the clashes (clashes-verify red on pull request 877): the "problem first" pass had put every clash under one shared headline, "A clash in who may do what", with a short sentence under it — four clashes read alike and could not be found by their own words. A clash now says its own sentence first (the problem itself) and its kind under it, as it did; red first, each its own door (`sdd5NeedSay`).

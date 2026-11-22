@@ -1279,7 +1279,7 @@ function stClashes(){
         btn:`data-st-panel="person:${PB_ATTR(p.id)}" data-st-focus="${x.cap==null?'#tm-cap-none':'#tm-cap'}"`, verb:i18t('st_clash_open',{name:stNameOf(p)}) }; }
     if(x.kind==='each') return { key:x.key, dot:'warn', text:i18t('st_clash_each',{a:stNameOf(x.who),b:stNameOf(x.appr)}),
       btn:`data-st-panel="person:${PB_ATTR(x.who.id)}"`, verb:i18t('st_clash_open',{name:stNameOf(x.who)}) };
-    if(x.kind==='self') return { key:x.key, kind:'self', stream:x.stream||null, who:x.who, dot:'warn',
+    if(x.kind==='self') return { key:x.key, kind:'self', stream:x.stream||null, dot:'warn',
       text:x.stream?i18t('st_clash_self_stream',{who:stNameOf(x.who),stream:(FOLDERS[x.stream]||{}).name||x.stream})
         :i18t('st_clash_self_rule',{who:stNameOf(x.who),rule:condLabel((x.rule&&x.rule.cond)||{})}),
       btn:'data-st-panel="approvals"', verb:i18t('st_clash_rule') };
@@ -10862,8 +10862,10 @@ function sdd5NeedSay(x, rows){
   const n=x.need||null, k=String(x.key||'');
   if(!n && x.row==='who') return { t:i18t('sdd5_need_who'), s:x.text };
   if(!n){ const r=(rows||[]).find(y=>y.id===x.row); return r&&r.now?{ t:r.now, s:x.text }:{ t:x.text, s:x.sub }; }
-  if(k.indexOf('clash')===0 || n.kind==='self' || n.kind==='nobody')
-    return { t:i18t('sdd5_need_clash'), s:n.kind==='self'&&n.who&&!n.stream?i18t('sdd5_clash_self_s',{ who:stNameOf(n.who) }):x.text };
+  /* A CLASH SAYS ITSELF: its own sentence is the problem (who signs above whom, who gives whom the yes), its kind under it
+     ("a clash in who may do what · since …") — four clashes under one shared headline could not be told apart, nor
+     found by their own words (clashes-verify, 22 Nov 2026) */
+  if(k.indexOf('clash')===0) return { t:x.text, s:x.sub };
   if(k==='review' && n.short) return { t:x.text, s:n.short };
   if(k.indexOf('panel:')===0 && k!=='panel:company' && x.sub) return { t:x.sub, s:x.text };
   return { t:x.text, s:x.sub };
