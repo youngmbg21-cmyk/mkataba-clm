@@ -22242,7 +22242,11 @@
   .rl-chat.is-stripe .rl-np-open-h .rl-np-scope{margin-left:auto}
   .rl-chat.is-stripe .rl-np-open-h .ui-link{font-size:12.5px}
   .rl-chat.is-stripe .rl-np-ch.is-head b{font-size:13.5px}
-  .rl-chat.is-stripe .rl-np-on-q{margin:0 0 6px;font-family:var(--font-doc);font-size:12.5px;line-height:1.4;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* AS DRAWN (P-38, the Legora + Stripe way): the opened note's words on a pale amber band with an amber edge, so everyone
+     argues about the same words; a row quotes them under its clause in one quiet serif line. @names keep the owner's
+     ruling (bold, each person their own ink, 2 Sep 2026) — the drawing's one green reverses it, so it is not applied */
+  .rl-chat.is-stripe .rl-np-on-q{margin:0 0 6px;padding:4px 8px;border-left:2px solid var(--st-amber-dot);background:var(--st-amber-bg);font-family:var(--font-doc);font-size:12.5px;line-height:1.4;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rl-chat.is-stripe .rl-np-cq{display:block;font-family:var(--font-doc);font-size:12.5px;line-height:1.4;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .rl-chat.is-stripe .rl-np-tl{margin-left:9px;padding-left:14px;border-left:2px solid var(--color-neutral-300)}
   .rl-chat.is-stripe .rl-np-tl .rl-np-thread{display:flex;flex-direction:column}
   .rl-chat.is-stripe .rl-np-tl .rl-np-note{margin:0;padding:6px 0;gap:8px;background:none}
@@ -23074,6 +23078,8 @@
   @media (prefers-reduced-motion: reduce){ html.lg-new .jov5[data-jov-slot="hb"] .jov5-chev{transition:none} }
   html.lg-new .nd-q{font-family:var(--font-doc);font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .nd-q b,html.lg-new .nd-q q{font-weight:inherit}
+  /* the company row's one line under what waits (not the paper's words: the body's type, quiet, one line) */
+  html.lg-new .nd-sub{font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* ===== THE BOARD, SECOND PASS AGAINST THE DRAWING (P-39, 21 Nov 2026: "exactly what we agreed … no short cuts") =====
      The cards' heads carry no hairline under them (the drawing's white cards are one piece); Summarise is a grey pill like
      its neighbours, ink words, Jambo's spark green; "Where all N stand" sits 14 under the cards, the bar 6 under it and the
@@ -23092,7 +23098,9 @@
   html.lg-new #ig-page[data-hb-side="board"] #hm-agents .nd-bar{padding-top:2px}
   html.lg-new #ig-page[data-hb-side="board"] #hb-book .hb-figs.hb-tn.hb-tn.is-cards{padding-top:2px}
   html.lg-new .jov5[data-jov-slot="hb"] .jov5-row.is-quote .jov5-rt b{font-family:inherit}
-  html.lg-new .jov5[data-jov-slot="hb"] .jov5-row.is-quote .jov5-rt > span{display:block;font-family:var(--font-doc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* one line ending in "…", the long words WRAPPED out of sight inside the column (line-clamp), never one long line run past the
+     panel's edge under a clip — a quote the paper states at length stays inside the panel's 16px (review of merged pages, 22 Nov 2026) */
+  html.lg-new .jov5[data-jov-slot="hb"] .jov5-row.is-quote .jov5-rt > span{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;font-family:var(--font-doc);white-space:normal;overflow:hidden;overflow-wrap:anywhere}
   /* the panel's last section has no line under it (the hidden chips' section after it does not count) */
   html.lg-new .jov5[data-jov-slot="hb"] .jov5-sec:has(+ .jov5-sec .jov5-chips),html.lg-new .jov5[data-jov-slot="hb"] .jov5-sec:has(+ .jov5-src){border-bottom:0}
   /* THE BRIEF, ONE PARAGRAPH (as drawn): no dashed line, no "Jambo:"; when it was asked in the quiet ink; its numbers not
@@ -24344,6 +24352,18 @@
   /* REDLINES' NOTES ARE THE BAR'S NOTES (owner, 16 Nov 2026): the face paints the bar's own builder (rlFaceNotesWire);
      the contract's name line is left out here, the page already names it */
   html.lg-new #ig-dock .rl-fn-same .rl-chat > .rl-np-which{display:none}
+  /* …LEVEL WITH THE SWITCH ABOVE THEM (P-38 "one and the same screen"; review of the merged pages, 22 Nov 2026): the
+     Room line follows the Changes · Notes · Ladder switch as the bell's follows its chips — no empty spacer row, no empty
+     head band, and the rows start at the switch's own left edge, not 12 + 16 in from it; the chosen Notes keeps its count */
+  html.lg-new #ig-dock #rl-changes-col.is-notes-face .rl-idx-sp{display:none}
+  html.lg-new #ig-dock #rl-changes-col.is-notes-face .rl-seg{margin-bottom:4px}
+  html.lg-new #ig-dock #rl-changes-col.is-notes-face .rl-idx-head:not(:has(> :not([hidden]))){display:none}
+  html.lg-new #ig-dock #rl-changes-col.is-notes-face .rl-fn.rl-fn-same{padding-left:var(--s-4);padding-right:var(--s-4)}
+  html.lg-new #ig-dock #rl-changes-col.is-notes-face .rl-fn-same .rl-chat.is-stripe :is(.rl-np-stripe-top, .rl-np-tabs.rl-np-rooms, .rl-np-foot, .rl-np-list){padding-left:0;padding-right:0}
+  html.lg-new #ig-dock #rl-changes-col.is-notes-face .rl-fn-same .rl-chat.is-stripe > .rl-np-tabs.rl-np-rooms{padding-top:4px}
+  html.lg-new #ig-dock #rl-changes-col.is-notes-face .rl-fn-same .rl-chat.is-stripe > .rl-np-stripe-top{padding-top:4px}
+  html.lg-new #ig-dock #rl-changes-col.is-notes-face .rl-fn-same .rl-chat.is-stripe > .rl-np-stripe-top:empty{display:none}
+  html.lg-new #ig-dock #rl-changes-col.is-five .rl-seg > button b{font-weight:inherit;font-variant-numeric:tabular-nums;color:inherit;opacity:.7}
   /* ---- REQUESTS, THE LEGORA + STRIPE WAY (P-32, owner's pick 20 Nov 2026; built as drawn 21 Nov 2026) ----
      The ask box with Jambo's mark on one line under the title; the tabs as calm chips (dashed until chosen, the count in
      the same ink, Open's amber dot) and "+ Asked by"; one calm table: sentence-case heads, cells centred on the row, the

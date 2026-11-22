@@ -77,7 +77,15 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
 
 (async () => {
   const h = await H.startHati({ HATI_AGENTS_AUTO: 'off' });
-  const W = await H.seedWorkspace(h, { approvalRules: [] });
+  /* RE-POINTED 22 Nov 2026 (review of merged pages): A LATE APPROVAL, LATE BY ITS OWN RECORD. 5c's late ones used to come
+     from the default fixtures' display day `lastAction` ("10 Jul 2026"), which a wait no longer reads. MK-AP0 is seeded
+     with its rule step's question already on the stored ask record, asked 20 days ago: every reading (the Board's wait,
+     the Approvals page) counts from that `at`, and the server's reminder sweep finds an open question and opens no new
+     one — so the answer is the same whenever step 5 runs. */
+  const ap0 = Object.assign(H.fixtureContract('MK-AP0', 'Ostkust warehouse lease', 'Ostkust AB', H.FOLDER_A, 18000000, 'Under Review'), {
+    asks: [{ id: 'ar:r1:1', kind: 'rule', of: ['r1'], by: null, to: null, at: new Date(Date.now() - 20 * 864e5).toISOString(), due: null,
+      state: 'open', answeredAt: null, answeredBy: null, why: null, note: null, stamp: null }] });
+  const W = await H.seedWorkspace(h, { contracts: H.FIXTURES.concat([ap0]), approvalRules: [] });
   const jonas = W.users.unrestricted;
   await W.admin.json('/api/users/' + jonas.id, { method: 'PATCH', body: { name: 'Jonas Berg' } }).catch(() => {});
   const admin = (await W.admin.json('/api/bootstrap')).me;
@@ -538,7 +546,12 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         await until(() => document.querySelector('[data-cu-cust]'), null, 10000);
         /* the panel was left on Jambo's talk by an earlier stage's question (seen: talk true, body hidden): back to the
            panel's own words first, as ‹ Overview does, so the chosen party's panel is what is read */
-        await page.evaluate(() => { try { if (typeof jlToWords === 'function') jlToWords(); } catch (_){ } });
+        /* AS ‹ OVERVIEW DOES, BOTH HALVES (22 Nov 2026, run 44967506568: talk true, body hidden, rows in the DOM but none
+           painted): while the panel talks, ‹ Overview closes the talk first (jlTalkBack, inspector.js's [data-jl-back]); only
+           then does it let a row go (jlToWords). The one conversation follows the reader from page to page, so the talk an
+           earlier stage opened can still be up here. Then wait, bounded, for the panel's own words to show */
+        await page.evaluate(() => { try { if (typeof jlTalkShows === 'function' && jlTalkShows()) jlTalkBack(); else if (typeof jlToWords === 'function') jlToWords(); } catch (_){ } });
+        await until(() => { const p = document.getElementById('ins-panel'); return !!p && !p.classList.contains('is-talk'); }, null, 5000);
         /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the party's panel is THE FIVE PARTS (Agreements ·
            the party's own facts · More · Jambo); it draws no "waits on you" list (RETIRED half, old look only: the short
            door word with its landing on the hover). Kept: every row of the panel reads whole, at three screens, nothing sideways */
