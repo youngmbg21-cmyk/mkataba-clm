@@ -207,3 +207,39 @@ describe('f893 — repair on open (render sandbox)', () => {
     assert.ok(c.redlineText.includes('hati-field-done'), 'and keeps its key under its own class');
   });
 });
+
+/* ---- A NEGOTIATED PAPER IS NEVER REBUILT FROM ITS FORM (22 Nov 2026, bug log) ----
+   "Fill the document" writes the whole wording from the template. Once a change
+   stands or the paper has changed hands, that would quietly undo the
+   negotiation. Red at the parent: the press rewrote the wording. */
+describe('f893 — Fill the document stays off a negotiated paper', () => {
+  const { loadViews } = require('./dom');
+  const mk = over => ({ id: 'MK-N', status: 'Under Review', redlineText: 'Client: AGREED WORDING', templateForm: {
+    blocks: [{ orderIndex: 0, blockType: 'field_group', content: 'Client: {{client_name}}' }],
+    fields: [{ fieldKey: 'client_name', label: 'Client name', fieldType: 'short_text' }],
+    values: { client_name: 'Wanjiru Catering Ltd' }, filledSig: 'old' }, ...over });
+  const box = () => loadViews(['js/fieldlib.js', 'js/templateform.js', 'js/views/templatelib.js', 'js/views/templatebuilder.js'], {
+    persist() {}, renderDocHtml: h => h, canEdit: () => true,
+    api: async () => ({}), openModal() {}, closeModal() {}, confirmDialog: async () => true, toast() {},
+    navigator: {}, todayStr: () => 'today',
+  });
+  test('a change on the table: the press writes nothing and is not owed', () => {
+    const s = box();
+    const c = mk({ changes: [{ id: 'CHG-1', authorSide: 'counterparty', status: 'pending' }] });
+    assert.equal(s.tplFormApply(c), false);
+    assert.equal(c.redlineText, 'Client: AGREED WORDING');
+    assert.equal(s.tplFormPending(c), false);
+  });
+  test('the paper has changed hands (a round sent): the same', () => {
+    const s = box();
+    const c = mk({ changes: [], negotiation: { round: 2, rounds: [{ at: 'x' }] } });
+    assert.equal(s.tplFormApply(c), false);
+    assert.equal(c.redlineText, 'Client: AGREED WORDING');
+  });
+  test('a Draft nobody has argued over still fills', () => {
+    const s = box();
+    const c = mk({ status: 'Draft', changes: [], negotiation: { round: 1 } });
+    assert.equal(s.tplFormApply(c), true);
+    assert.ok(c.redlineText.includes('Wanjiru Catering Ltd'));
+  });
+});

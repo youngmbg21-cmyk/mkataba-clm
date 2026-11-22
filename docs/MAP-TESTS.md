@@ -445,6 +445,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - THE PAPER IN THE MIDDLE OF ITS ROOM (16 Nov 2026): contract-new-look-verify 4 (centred, or held left only by its notes, never nearer than 40) at the three screens plus a 2000×1000 desktop pass, 4c (centred with Jambo open, then closed); red at the parent.
 
 ## THE DOCUMENT TAB, AND THE TWO COPIES (js/pages.js)
+- f893 "Fill the document stays off a negotiated paper" (22 Nov 2026; red at the parent: 2 of 3).
 - f893, f225, f238, f277, f316, f377, f383, f458 (3), two-copies, paper-grows, readonly-copy, fill-the-document verify.
 
 ## THE THREAD — A DRAWER OVER FORM & LINKS (5 Oct)

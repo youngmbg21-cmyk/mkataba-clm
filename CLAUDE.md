@@ -335,7 +335,7 @@ ONE LOOK (720px, `--font-doc`; designed paper keeps type). ZOOM `rlSetDocZoom` 6
 PAPER CENTRED, left only as notes need, ≥40 from edge (`pd2NotesPaint`). contract-new-look-verify 4, 4c.
 HANGS LIMBS AS EDITOR (`rl-hang`, `rl-marker`, `hati-lv-N`, `.ig-redpaper`). f1027 (1).
 ## THE DOCUMENT TAB, AND THE TWO COPIES (js/pages.js)
-No Document tab: `roomGoTab(c,'docs'|'contract')` → Home's paper. PAPER NEVER EDITED; `docBody` → `uploadDocBody`/`frozenDocBody`/`redlineDocBody`. TWO COPIES (`docSheetHtml`): WORKING (`rlPaginate`), SIGNING (A4, `docCopyOf`); print `pagesPrintPages`. Form fills wording only on "Fill the document" (`tplFormApply`); owed `tplFormPending` (in `linkRefusal`, `signBlockers`).
+No Document tab: `roomGoTab(c,'docs'|'contract')` → Home's paper. PAPER NEVER EDITED; `docBody` → `uploadDocBody`/`frozenDocBody`/`redlineDocBody`. TWO COPIES (`docSheetHtml`): WORKING (`rlPaginate`), SIGNING (A4, `docCopyOf`); print `pagesPrintPages`. Form fills wording only on "Fill the document" (`tplFormApply`), never on a negotiated paper (`tplFormNegotiated` in `tplFormLocked`; f893); owed `tplFormPending` (in `linkRefusal`, `signBlockers`).
 ## THE THREAD — A DRAWER OVER FORM & LINKS
 Document → Clauses only (`docThreadPlace`), as Stakes. Row at `DOC_THREAD_LINE` (`docThreadGoTo`, `docThreadFill`); filter by WORST (`docThreadShown`). PLAIN = ONE clause (`docReadRun(c,{only:[i],out})`); `docXrayMarks`; `docReadLongSplit`, `READ_PIECES_MAX`.
 PAPER AND PANEL LINE UP (`_docThreadSyncTop`); PAPER WHITE (f1005). CLOSE HOLDS only while its clause is at the line (`docThreadShutHolds`; f1075). TRACK OPENS CLAUSES (`docThreadLandOn`), writes nothing to Jambo.

@@ -40083,3 +40083,6 @@ The owner, on the iPad: "When on my iPad and i try to enter my cursor in the fie
 
 ## THE SEAT DECIDES — A CONTRIBUTOR PROPOSES, THE LEAD ADOPTS (22 Nov 2026, auto pilot batch 1)
 - Bug log, 20 Nov 2026: "the server still lets a desk CONTRIBUTOR's save accept or reject the other side's changes (the page holds them via rlActorHeld; f1122 walls the Reader only)". The PUT guard now refuses a contributor's save that moves a counterparty change's status, naming the lead. Red at the parent: f1172 (1), (2).
+
+## THE DOCUMENT TAB, AND THE TWO COPIES (22 Nov 2026, auto pilot batch 1)
+- Bug log: "Fill the document (tplFormApply) is not locked during a negotiation … rewrites c.redlineText from the form wholesale". Confirmed by reading: the press builds the whole wording from the template, so on a negotiated paper it would undo every change on the table and every one agreed. `tplFormLocked` now also asks `tplFormNegotiated` (a change standing, a round handed over, a fold): the press writes nothing, is not owed, and a blank click opens no box. A negotiated paper's blanks go through Fill in the contract (pd2NegoFile), as before. Left alone: the repair-on-open in renderTemplateFormSection, which rewrites only a stored {{code}}.
