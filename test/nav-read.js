@@ -120,7 +120,10 @@ function navWhereSrc(){
   W.dialog = document.querySelector('#sr-say') ? 'signers' : document.querySelector('#cn-code') ? 'codename' : document.querySelector('#pd-ppl') ? 'people' : null;
   W.panel = (state.panelOpen && typeof panelFace === 'function') ? panelFace() : null;
   W.kt = !!document.querySelector('[data-pd-kt-file]');
-  W.fold = [...document.querySelectorAll('#ig-dock details[data-ds-fold][open]')].map(d => d.getAttribute('data-ds-fold')).join(',') || null;
+  /* RE-POINTED 22 Nov 2026 (Dossier L+S, #911: the family is a card above the facts, pd2FamCardHtml, not a fold): a
+     landing ON the Family card reads as the family fold */
+  W.fold = [...document.querySelectorAll('#ig-dock details[data-ds-fold][open]')].map(d => d.getAttribute('data-ds-fold'))
+    .concat(document.querySelector('#ig-dock [data-pd2-famc].is-landed') ? ['family'] : []).join(',') || null;
   { const L = document.querySelector('#ig-dock .is-landed[data-pd-ds], #ig-dock [data-pd-ds].is-landed'); W.landedDs = L ? L.getAttribute('data-pd-ds') : null;
     /* RE-POINTED 17 Nov 2026 (#762): in the new look the risk list is the Redlines face's (#rl-risks), landed on there */
     if (!W.landedDs && document.querySelector('#ig-dock #rl-risks.is-landed')) W.landedDs = 'risks'; }
