@@ -540,7 +540,12 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         await until(() => document.querySelector('[data-cu-cust]'), null, 10000);
         /* the panel was left on Jambo's talk by an earlier stage's question (seen: talk true, body hidden): back to the
            panel's own words first, as ‹ Overview does, so the chosen party's panel is what is read */
-        await page.evaluate(() => { try { if (typeof jlToWords === 'function') jlToWords(); } catch (_){ } });
+        /* AS ‹ OVERVIEW DOES, BOTH HALVES (22 Nov 2026, run 44967506568: talk true, body hidden, rows in the DOM but none
+           painted): while the panel talks, ‹ Overview closes the talk first (jlTalkBack, inspector.js's [data-jl-back]); only
+           then does it let a row go (jlToWords). The one conversation follows the reader from page to page, so the talk an
+           earlier stage opened can still be up here. Then wait, bounded, for the panel's own words to show */
+        await page.evaluate(() => { try { if (typeof jlTalkShows === 'function' && jlTalkShows()) jlTalkBack(); else if (typeof jlToWords === 'function') jlToWords(); } catch (_){ } });
+        await until(() => { const p = document.getElementById('ins-panel'); return !!p && !p.classList.contains('is-talk'); }, null, 5000);
         /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the party's panel is THE FIVE PARTS (Agreements ·
            the party's own facts · More · Jambo); it draws no "waits on you" list (RETIRED half, old look only: the short
            door word with its landing on the hover). Kept: every row of the panel reads whole, at three screens, nothing sideways */
