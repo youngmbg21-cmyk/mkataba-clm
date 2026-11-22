@@ -22870,3 +22870,8 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - Noticed, not fixed: a fix's door lands on People or Contract streams, whose "‹ Company" way back does not return to the access check (the bar's ‹ does).
 - Not written yet: a browser check for the access check (for GitHub).
 - Noticed, not fixed (22 Nov 2026, while merging the access check): on main, f148 "no Swedish value is a forgotten copy of the English" is red for `rd_th_status` and `rd_brief_jambo` (another change's words, the same in both books and not listed in SAME_IN_BOTH).
+
+### 22 Nov 2026 — the side panel's waves move in Settings too
+- Changed (the owner's word; reverses "no motion in Settings" for the watermark only): the stop that held the watermark still on Settings is removed; it stays still only for a reader who asked for less motion.
+- Checked page by page in a browser: no other page drew the watermark still.
+- Noticed, not fixed: the Brain page shows no side panel at all in this check (so no waves); not looked into.
