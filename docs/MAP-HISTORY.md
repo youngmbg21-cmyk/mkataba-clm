@@ -40108,3 +40108,6 @@ The owner, on the iPad: "When on my iPad and i try to enter my cursor in the fie
 
 ## THE POP-UPS, THE SAP WAY (22 Nov 2026, auto pilot batch 2)
 - Bug log: Import their response offered a SIGNED contract the "Choose the Word file" button and refused only after a file was picked. On open the button is now grey with co_import_executed under it; the pick keeps its own check. Left for the owner: the same note asks that a returned Word file be read first and filed only on a press (or with Undo) — it is filed the moment it is chosen; that is a change to the flow, not a fix. f1180, red at the parent.
+
+## OBLIGATIONS (22 Nov 2026, auto pilot batch 2)
+- Bug log (Oct): a duty owed to us always read "HaTi never reminds {cp} on its own. The admins are told once, the day after", while runReminders writes to our colleague who watches it (7 days before, on the day, the day after; admins four days late) and, since 19 Nov, to their side where the company and the duty ask. `obTheirsPlan` reads that plan once; the sentence (obligationReminderSay) and the one line (obligationReminderLine) both say it. New keys ob_rem_theirs_off/_on, ob_rem_admins_after (both books); ob_rem_theirs kept inert. f1181, red at the parent.
