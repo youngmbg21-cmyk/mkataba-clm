@@ -10,6 +10,7 @@
      5  the chosen tab and a tag at the top of a panel carry the thin outline
      6  no panel draws the green "‹ Back to …" link (owner, 22 Nov 2026: deleted)
      7  nothing makes a panel or the page scroll sideways
+     1d it glides, a new place nearly every frame, never a pixel jump (owner, 22 Nov 2026: no stutter)
      8  the Alerts · Notes · Activity panel stays plain (owner, 22 Nov 2026)
      9  a contract open on Home (Dossier, Clauses, Redlines) is serious work: no watermark, its buttons as they were
    AT THE PARENT every claim FAILS: no watermark, the arrow is a bare icon, the Board has none, the link is drawn.
@@ -96,6 +97,13 @@ const READ = () => {
     const tag = await page.evaluate(() => { const t = document.querySelector('#ins-panel .jov5 :is(.jov5-intro, .ld6-pb, .tpln6-pb) :is(.jov5-tag, .apn-st, .tpln6-badge, .reg-badge)'); return t ? getComputedStyle(t).boxShadow : 'no tag'; });
     ok('5b Playbook: a tag at the top of the panel wears the thin outline', !!tag && tag !== 'none' && tag !== 'no tag', tag);
     await page.screenshot({ path: path.join(OUT, '3-playbook.png') });
+
+    /* 1d — it GLIDES (owner, 22 Nov 2026: "it seems like it's stuttering"): sampled each frame for a second, the weave
+       stands in a new place nearly every frame and never jumps a whole pixel */
+    const glide = await page.evaluate(() => new Promise(res => { const p = document.querySelector('.ins-panel.is-jambo'); if (!p) return res(null); const v = []; const t0 = performance.now();
+      const tick = () => { const m = getComputedStyle(p, '::before'); v.push(parseFloat(String(m.maskPosition || m.webkitMaskPosition || '').split(',')[0])); if (performance.now() - t0 < 1000) requestAnimationFrame(tick); else res(v); }; requestAnimationFrame(tick); }));
+    const gl = glide && { frames: glide.length, places: new Set(glide).size, jump: Math.max(...glide.slice(1).map((x, i) => Math.abs(x - glide[i]))) };
+    ok('1d the watermark glides: a new place almost every frame, no pixel jumps', !!gl && gl.places >= gl.frames * 0.6 && gl.jump < 0.5, JSON.stringify(gl));
 
     /* 2 — Settings: drawn, still */
     const st = await go('team', () => !!document.querySelector('#set-page #ins-panel .jl-head'));
