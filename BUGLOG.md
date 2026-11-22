@@ -22869,3 +22869,4 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - Noticed, not fixed: no record was found of a full backup (workspace.zip) being downloaded, though Data & backup's foot says each download is written in the trail; not verified either way.
 - Noticed, not fixed: a fix's door lands on People or Contract streams, whose "‹ Company" way back does not return to the access check (the bar's ‹ does).
 - Not written yet: a browser check for the access check (for GitHub).
+- Noticed, not fixed (22 Nov 2026, while merging the access check): on main, f148 "no Swedish value is a forgotten copy of the English" is red for `rd_th_status` and `rd_brief_jambo` (another change's words, the same in both books and not listed in SAME_IN_BOTH).
