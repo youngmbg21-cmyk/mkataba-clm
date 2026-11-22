@@ -468,6 +468,18 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
 - **The owner's answer, 22 Nov 2026:** "These folders do not say whether it is a sensitive folder or not. That should be added when creating this folder." So: creating a folder ASKS whether it is sensitive, and the folders list shows the answer on every folder (today a folder only shows "Private" if it was made private later, from its Access page). Still to settle when building: whether answering "sensitive" also makes the folder private (named people only), or is only a label.
 - **Notes:** a design question: photos of today's add-a-person screens first, then options, then the owner picks. The pop-up is built the Legora way (`lgpOpen`). Settings, the Handbook (both languages) and the flow map change with it.
 
+### P-48 · A company rule: everyone must use two-step sign-in
+- **Added:** 22 Nov 2026 · **Status:** Waiting
+- **What:** today each person turns on two-step sign-in for themselves; an admin cannot require it. Add a company rule an admin can switch on so that everyone (or at least every admin) must use two-step sign-in.
+- **Where it came from:** building the access check (pull request #894), 22 Nov 2026: its first concern, "Two-step sign-in is off for everyone", can only point at who has it off. Claude suggested parking it; the owner: "park these".
+- **Notes:** when built, the access check's fix for that row becomes "Turn on two-step" as first drawn. Needs deciding: what happens to a person who has not set it up when the rule goes on (asked at next sign-in, or given some days). Settings, the Handbook (both languages) and the access check change with it.
+
+### P-49 · Keep a record of backup downloads, so the access check can report them
+- **Added:** 22 Nov 2026 · **Status:** Waiting
+- **What:** write a line in the trail each time a full backup is downloaded (who and when), and let the access check read it: "No full backup downloaded this quarter" as a guardrail in place, or a concern when a copy of everything has left HaTi.
+- **Where it came from:** building the access check (pull request #894), 22 Nov 2026: the guardrail was in the drawing but left out, because no record of backup downloads was found to read. Claude suggested parking it; the owner: "park these".
+- **Notes:** first check whether a record already exists somewhere (Data & backup's foot says each download is written in the trail; not verified).
+
 ## Done
 
 ### P-20 · Remove "Workspace" from the navigation panel
