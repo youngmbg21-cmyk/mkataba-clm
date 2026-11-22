@@ -5370,6 +5370,52 @@ app.post('/api/contracts/:id/points/:key/review', auth, editor, (req, res) => {
   res.json({ pointReviews: map, line });
 });
 
+/* ---- REMIND THE APPROVER OF A RULE STEP, BY HAND (owner, 21 Nov 2026: P-30's "Remind Joseph", built for an
+   approval a company RULE asked for, not only one named person's) ----
+   One press sends ONE reminder to whoever approves the waiting step (ruleStepPeople, through saMailTo: in the folder,
+   never a Viewer), in the automatic reminder's own words (ruleStepTell 'remind'), the plain app link landing on the
+   decision (go 'approval'; nothing secret in the mail). THE SERVER IS THE WALL: only somebody who may act
+   (srvMayAct), inside folderScopeFor, never the approver themselves, and once a day per waiting step — each refusal
+   said in plain words. "SENT" MEANS SENT: the record (c.ruleReminds, and a line in the trail) is written only when the
+   mail went or waits in the outbox (mailReport); a refused send takes back the day's turn. The list is this route's
+   alone (the PUT keeps the stored one) and never travels to the other side. JSON only, never `version`. */
+const RULE_REMIND_MAX = 50;
+app.post('/api/contracts/:id/rule-remind', auth, editor, async (req, res) => {
+  if (!srvMayAct(req.user)) return res.status(403).json({ error: 'You can read this contract but not remind anybody on it. Ask an editor or an admin.' });
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { return res.status(409).json({ error: 'Contract not readable' }); }
+  if (!c.id) c.id = req.params.id;
+  const told0 = Object.assign({}, c, { folder: row.folder });
+  const step = ruleStepDueOf(c);
+  const rule = step && srvApprovalRules().find(r => r && r.id === step.ruleId);
+  if (!step || !rule) return res.status(409).json({ error: 'No approval step is waiting on this contract, so there is nobody to remind.' });
+  const deciders = ruleStepPeople(rule, db.prepare('SELECT * FROM users').all());
+  if (deciders.some(u => String(u.id) === String(req.user.id)))
+    return res.status(403).json({ error: 'This approval waits on you. There is nobody to remind but yourself.' });
+  if (!saMailTo(deciders, row.folder).length)
+    return res.status(409).json({ error: 'Nobody who approves this step can be reached by email. Ask an admin to check who approves it.' });
+  const key = `arm:${c.id}:${step.ruleId}:${now().slice(0, 10)}`;
+  if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(key))
+    return res.status(429).json({ error: 'They have already been reminded about this approval today. You can remind them again tomorrow.' });
+  db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(key, now());
+  const told = await ruleStepTell(req, told0, step, 'remind', { go: 'approval' });
+  const rep = (told && told.first && told.first.sent) || mailReport(null);
+  if (!(rep.emailSent || rep.outbox)) {
+    db.prepare('DELETE FROM reminders WHERE rkey=?').run(key);
+    return res.status(502).json(Object.assign({ error: rep.emailError || 'The reminder could not be sent.' }, rep));
+  }
+  const names = deciders.map(u => u.name).filter(Boolean);
+  const rec = { ruleId: String(step.ruleId), step: String(rule.name || ''), at: now(), by: { id: String(req.user.id || ''), name: String(req.user.name || '') }, to: names.slice(0, 10), outbox: !rep.emailSent };
+  const line = { at: rec.at, user: req.user.name || '', action: 'Reminded', detail: `Reminded ${names.join(', ') || rule.name} of the approval step "${rule.name || ''}"${rep.emailSent ? '' : ' (the email waits in the outbox)'}` };
+  const fresh = db.prepare('SELECT json FROM contracts WHERE id=?').get(req.params.id);
+  let cur = c; try { cur = fresh ? JSON.parse(fresh.json) || c : c; } catch (_) { cur = c; }
+  const list = (Array.isArray(cur.ruleReminds) ? cur.ruleReminds : []).concat([rec]).slice(-RULE_REMIND_MAX);
+  const next = { ...cur, ruleReminds: list, audit: (Array.isArray(cur.audit) ? cur.audit : []).concat([line]) };
+  db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(next), req.params.id);
+  res.json(Object.assign({ ruleReminds: list, reminded: rec, line }, rep));
+});
+
 /* ---------- executed records are immutable ----------
    A signature is a claim about a specific document. If the document, its
    frozen copy, its value or its parties can still be changed afterwards, the
@@ -5622,6 +5668,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      `pointReviews` is written by POST /api/contracts/:id/points/:key/review
      and by nothing else — the same rule as `here`: the stored map wins. */
   if (prev && prev.pointReviews) c.pointReviews = prev.pointReviews; else delete c.pointReviews;
+  /* `ruleReminds` is POST /api/contracts/:id/rule-remind's alone (21 Nov 2026): the stored list wins */
+  if (prev && Array.isArray(prev.ruleReminds)) c.ruleReminds = prev.ruleReminds; else delete c.ruleReminds;
   /* ---- AND WHETHER COPILOT STILL OWES IT ITS ARRIVAL READING (4 Oct 2026) ----
      `arrivalOwed` is written by a lane's mint and cleared by POST
      /api/contracts/:id/arrival, and by nothing else — the same rule as
@@ -18796,7 +18844,8 @@ async function ruleStepTell(req, c, step, kind, extra) {
     if (kind === 'due') db.prepare('INSERT OR IGNORE INTO reminders (rkey,created_at) VALUES (?,?)')
       .run(`ar:${c.id}:${step.ruleId}:due:${now()}`, now());
     const cName = c.name || c.id;
-    const link = contractUrl(req, c.id, 'sign');
+    /* a hand reminder (POST /api/contracts/:id/rule-remind) lands on the decision itself, as the named person's does */
+    const link = contractUrl(req, c.id, 'sign', extra && extra.go === 'approval' ? 'approval' : undefined);
     let n = 0, first = null;
     for (const u of to) {
       const L = langForEmail(u.email);
@@ -20890,6 +20939,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
        adds a field — the discipline the brief beside it keeps. */
     delete payload.contract.here;
     delete payload.contract.pointReviews;       // which points we marked reviewed is ours (21 Oct 2026)
+    delete payload.contract.ruleReminds;        // whom we reminded to approve is ours (21 Nov 2026)
     delete payload.contract.arrivalOwed;       // a lane's bookkeeping is ours (4 Oct 2026)
     delete payload.contract._readings;          // idea 7: our plain-English reading of their paper is ours
     delete payload.contract._roundPrep; }       // Copilot's answers to their round are ours alone

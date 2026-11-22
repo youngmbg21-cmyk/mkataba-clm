@@ -83,7 +83,8 @@ const check = (name, pass, detail) => {
        party, the stage as a soft badge and the end date — and NO value */
     const endW = await page.evaluate(() => { const c = getContract('MK-W2'); let e = ''; try { e = String((typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry) || '').slice(0, 10); } catch (_) { e = String(c.expiry || '').slice(0, 10); }
       return e ? (typeof regDotDate === 'function' ? regDotDate(e) : e) : ''; });
-    check('1b under it: the party, the stage as a soft badge, the end date; no value', !!D && D.under && /Draft/.test(D.m) && !D.ref && (!val || val === '\u2014' || !D.foot.includes(val)) && D.end === endW && D.nm === 'Party 2 AB',
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the badge says one of three words; a draft is In review */
+    check('1b under it: the party, the stage as a soft badge, the end date; no value', !!D && D.under && /In review/.test(D.m) && !D.ref && (!val || val === '\u2014' || !D.foot.includes(val)) && D.end === endW && D.nm === 'Party 2 AB',
       JSON.stringify({ m: D && D.m, ref: D && D.ref, end: D && D.end, endW, nm: D && D.nm, foot: D && D.foot, val }));
 
     /* 2 private and kept to its list */

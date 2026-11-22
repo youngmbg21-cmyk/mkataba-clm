@@ -122,7 +122,8 @@ const ok = (name, good, detail) => {
        Standing after the agreement, and draws no ⋯ column — a row's one press opens it (1f) */
     /* RE-POINTED (P-31, owner's pick 20 Nov 2026: Contracts the Legora + Stripe way): Our playbook steps out of the
        List; Needs you stands before Ends */
-    ok('1b the List is the drawing\'s columns, in plain words: Agreement · Standing · Stream · Needs you · Ends · Value', shape.heads.join('|') === 'Agreement|Standing|Stream|Needs you|Ends|Value', shape.heads.join(' | '));
+    /* RE-POINTED 21 Nov 2026 (P-31, as drawn): the column is called Folder */
+    ok('1b the List is the drawing\'s columns, in plain words: Agreement · Standing · Folder · Needs you · Ends · Value', shape.heads.join('|') === 'Agreement|Standing|Folder|Needs you|Ends|Value', shape.heads.join(' | '));
     await page.screenshot({ path: path.join(OUT, '1-contracts-1440.png') });
 
     const rows = await page.$$('#reg-tbody tr[data-row]');

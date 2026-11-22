@@ -40,6 +40,8 @@ test('f1073 (2) the Redlines strip holds its pill, the parts centred', () => {
 });
 
 test('f1073 (3) Approvals: one grey band inside the row, no bar, no patch', () => {
+  /* RE-POINTED 21 Nov 2026 (P-30, as drawn; the owner's answer that day): on the Approvals page the chosen band is light green */
+  assert.match(H, /html\.lg-new \.apn-page #ap-scroll \.apn-table tbody tr\.is-sel td\{background:var\(--color-accent-50\)\}/);
   assert.match(H, /html\.lg-new #ap-scroll \.apn-table tbody tr\.is-sel td\{background:var\(--surface-2\)\}/);
   assert.match(H, /tr\[data-ap-row\]:not\(\.is-sel\):hover td\{background:var\(--surface-2\)\}/, 'the hovered row: the same band');
   assert.doesNotMatch(H, /#ap-scroll \.apn-table tbody tr[^{]*td:first-child::before\{content:""/, 'no bar and no patch in the margin');

@@ -75,13 +75,15 @@ const wait = async (page, fn, arg, ms = 5000) => {
       const of = foot.match(/of\s+([\d,]+)/) || foot.match(/^\s*([\d,]+)\s+contracts?\b/);
       const all = document.querySelector('[data-lh-seat="contracts"] [data-reg-view=""]');
       return { tt: tt ? tt.textContent.trim() : null, shown: tt ? getComputedStyle(tt).display : null,
-        n: of ? Number(of[1].replace(/,/g, '')) : -1, foot, all: all ? Number(all.textContent.replace(/[^\d]/g, '')) : null };
+        /* RE-POINTED 21 Nov 2026 (P-31, as drawn): no foot under a list that shows every row — the All chip says how
+           many — so the count is then the rows drawn; a list cut at a page still says "1–40 of N" */
+        n: of ? Number(of[1].replace(/,/g, '')) : (foot.trim() ? -1 : document.querySelectorAll('#reg-tbody tr[data-row]').length), foot, all: all ? Number(all.textContent.replace(/[^\d]/g, '')) : null };
     });
     /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): the
        list card's own head ("Contracts (N)") goes; the number it carried is
        the All tab's, and the foot says the same ("1–40 of N") */
     check('1a the list carries its count — the All tab and the foot agree, no "Contracts (N)" card head',
-      !reg.tt && reg.n > 0 && reg.all === reg.n && (/^1–\d+ of /.test(reg.foot.trim()) || /^\d+ contracts?( · \d+ live)?$/.test(reg.foot.trim())), `${reg.tt} · All ${reg.all} · ${reg.n} rows · ${reg.foot.trim()}`);
+      !reg.tt && reg.n > 0 && reg.all === reg.n && (/^1–\d+ of /.test(reg.foot.trim()) || !reg.foot.trim()), `${reg.tt} · All ${reg.all} · ${reg.n} rows · ${reg.foot.trim()}`);
     check('1b no money total in the foot', !/aggregate|totalt|KES|SEK|on paper/i.test(reg.foot), JSON.stringify(reg.foot.trim()));
 
     /* ---- 2. APPROVALS ---- */
@@ -115,7 +117,8 @@ const wait = async (page, fn, arg, ms = 5000) => {
       const drawn = document.querySelectorAll('.apn-table tbody tr[data-ap-row]').length;
       const wrong = rows.filter(r => {
         const tr = document.querySelector(`[data-ap-row="${r.c.id}"]`);
-        const red = !!(tr && tr.querySelector('.late'));
+        /* RE-POINTED 21 Nov 2026 (P-30, as drawn): red is the badge's alone (Late · N days); Asked says the day it was asked */
+        const red = !!(tr && tr.querySelector('.apn-st.is-ruby'));
         return red !== (r.idle >= 7);
       }).map(r => r.c.id + ':' + r.idle);
       /* RE-POINTED 18 Oct 2026 (round 15 as drawn): the count is a pill beside the title ("· 4 ·"), no brackets */
