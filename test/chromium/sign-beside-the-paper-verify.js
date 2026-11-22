@@ -208,8 +208,10 @@ const FACE = () => {
        (#ig-actions → #pd-acts-pop, its last row All acts) */
     /* the middle page History left open (6c) still lies over the paper's line after the reload: put away by its own
        way back, as a reader would, before More is pressed */
-    if (await page.evaluate(() => { const x = document.querySelector('.pd-mid-x'); return !!x && x.getClientRects().length > 0; })) {
-      await page.click('.pd-mid-x').catch(() => {}); await pause(300);
+    /* RE-POINTED 22 Nov 2026 (the P-44 review, the owner's picked History drawing: History's way back is "‹ Back to the
+       paper" alone, no ×): the page is put away by whichever of its ways back is drawn */
+    if (await page.evaluate(() => { const x = document.querySelector('.pd-mid-x') || document.querySelector('.pd-mid-back-btn[data-pd-mid-back]'); return !!x && x.getClientRects().length > 0; })) {
+      await page.click('.pd-mid-x, .pd-mid-back-btn[data-pd-mid-back]').catch(() => {}); await pause(300);
     }
     if (await page.$('#ig-actions')) {
       await page.click('#ig-actions').catch(() => {});

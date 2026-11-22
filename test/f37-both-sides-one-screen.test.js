@@ -407,7 +407,7 @@ describe('an action by one side shows up on the other', () => {
     const o = await negotiated();
     let v = counterpartyView(o.c);
     /* the shared sheet's facts row (4 Oct 2026) carries the round and what is settled */
-    assert.match(v.$('#pt-where-pane .ds-facts').textContent.replace(/\s+/g, ' '), /Settled\s*0 of 3/);
+    assert.match(v.$('#pt-where-pane .pol-w-chips').textContent.replace(/\s+/g, ' '), /Still open\s*3\s*Settled\s*0/);   /* RE-POINTED 22 Nov 2026 (P-44 review): the drawn chips carry the counts; no figures row */
     assert.match(o.ownerDoc().querySelector('#nego-progress').textContent, /0 of 3 resolved/);
 
     /* The owner answers every one of their asks. The bulk verb that used to do
@@ -423,7 +423,7 @@ describe('an action by one side shows up on the other', () => {
     }
     // the owner's page repainted itself; Erik's repaints from a fresh read of the link
     v = counterpartyView(o.c);
-    assert.match(v.$('#pt-where-pane .ds-facts').textContent.replace(/\s+/g, ' '), /Settled\s*3 of 3/);
+    assert.match(v.$('#pt-where-pane .pol-w-chips').textContent.replace(/\s+/g, ' '), /Still open\s*0\s*Settled\s*3/);   /* RE-POINTED 22 Nov 2026 (P-44 review) */
     assert.match(o.ownerDoc().querySelector('#nego-progress').textContent, /3 of 3 resolved/);
   });
 
@@ -815,7 +815,7 @@ describe('the durable link keeps showing current state', () => {
     assert.equal(p.win.document.querySelectorAll('[data-nego-card]').length, 3,
       'three asks are live on his table');
     /* the shared sheet's facts row (4 Oct 2026) carries the round and what is settled */
-    assert.match(p.win.document.querySelector('#pt-where-pane .ds-facts').textContent.replace(/\s+/g, ' '), /Settled\s*0 of 3/);
+    assert.match(p.win.document.querySelector('#pt-where-pane .pol-w-chips').textContent.replace(/\s+/g, ' '), /Still open\s*3\s*Settled\s*0/);   /* RE-POINTED 22 Nov 2026 (P-44 review) */
 
     // Wanjiru answers everything, then the SAME link is refreshed in place
     /* The owner answers every one of their asks. The bulk verb that used to do
@@ -839,7 +839,7 @@ describe('the durable link keeps showing current state', () => {
     assert.ok([...liveNego(p.win).querySelectorAll('#rl-cp-body .rl-cp-who')]
       .some(t => /adopted/.test(t.textContent || '')),
       'the decisions are in the clause panel now');
-    assert.match(p.win.document.querySelector('#pt-where-pane .ds-facts').textContent.replace(/\s+/g, ' '), /Settled\s*3 of 3/);
+    assert.match(p.win.document.querySelector('#pt-where-pane .pol-w-chips').textContent.replace(/\s+/g, ' '), /Still open\s*0\s*Settled\s*3/);   /* RE-POINTED 22 Nov 2026 (P-44 review) */
   });
 
   test('a superseded copy is read-only, and says why', async () => {

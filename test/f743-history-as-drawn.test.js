@@ -168,7 +168,8 @@ describe('f743 (3) the page as drawn', () => {
     assert.match(H, /<span class="hist-c hist-c-kind" role="cell">\$\{kindB\}<\/span><span class="hist-c hist-c-oc hist-oc" role="cell">\$\{ocB\}<\/span>/);
     assert.match(H, /const whenTip=\[m\.mark,\(e\.round!=null&&e\.round!==''\)\?i18t\('ct_round_n',\{n:e\.round\}\):'',fpTip\]/);
     assert.ok(!/hist-meta">\$\{also\}/.test(H) && !/rchip/.test(H), 'no fingerprint line, no round chip');
-    assert.match(H, /<div class="hist-text">\$\{whatT\}\$\{named\?'':cl\}<\/div>/);
+    /* RE-POINTED 22 Nov 2026 (P-44 review): the line wears its whole words on its hover (one line, nothing wraps) */
+    assert.match(H, /<div class="hist-text" title="\$\{esc\(said\)\}">\$\{whatT\}\$\{named\?'':cl\}<\/div>/);
   });
 });
 

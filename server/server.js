@@ -21849,8 +21849,11 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
        and the engagement timeline read to show "opened" on the page, so the
        fact is still recorded and still visible — it just no longer sends an
        email to say so. See responseIsWorthEmail for why. */
-    if (!s.first_opened_at)
-      db.prepare('UPDATE shares SET first_opened_at=? WHERE token=?').run(now(), s.token);
+    if (!s.first_opened_at){
+      const at = now();
+      db.prepare('UPDATE shares SET first_opened_at=? WHERE token=?').run(at, s.token);
+      s.first_opened_at = at;   /* this very answer says it was opened (their History's "Opened the link") */
+    }
   } catch (_) {}
   /* A durable link is never superseded — it IS the current copy, refreshed in
      place — and answering it once does not shut it: the next round comes back
@@ -21980,8 +21983,11 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
        is still the OWNER's record of what they sent — the share panel and the
        audit trail read it. This is a decision about what leaves the building
        on a public token, not about what we keep. */
+    /* WHEN THIS LINK WAS SENT AND FIRST OPENED (P-44 review, 22 Nov 2026: their History says "Shared the contract with
+       you" and "Opened the link", as drawn): two facts about THEIR OWN link — never who else opened anything, never ours */
     share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
-      expiresAt: s.expires_at || null, channel: s.channel || 'link' },
+      expiresAt: s.expires_at || null, channel: s.channel || 'link',
+      sentAt: s.created_at || null, firstOpenedAt: s.first_opened_at || null },
   });
 });
 
