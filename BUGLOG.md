@@ -22878,6 +22878,15 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - 22 Nov 2026 (noticed, not fixed — a design question for the owner): on Settings' landing, the access check's card now tops Jambo's panel and its "needs you" list stops at the room left ("N more"); at 1440×780 about three show, and "N more" only filters the areas to Need you — the quarter's review, clashes and Ready to delete sit two presses away (the Company area's panel lists them all).
 - 22 Nov 2026: brain-welcome-photos.js retired (deleted) — the Board's map welcome it photographed was removed by the owner the same day; CLAUDE.md's "NEVER BUILD FROM MEMORY" line and a comment in f1042 still name it.
 
+### 22 Nov 2026 — an alert belongs to its page (f1150)
+- FIXED: alerts stayed over the next page; the other side's news named no contract and "declined" was red and English only; one usage limit raised two red boxes; the "Scanning…" spinner ran a fixed 2.6s; "Failed to fetch" reached the reader; information shown in red and amber with no button stayed 8s; eleven refusals rode silent bare calls.
+- Noticed, not fixed: f148 "no Swedish value is a forgotten copy of the English" is red on main for `rd_th_status` and `rd_brief_jambo`.
+- Noticed, not fixed: the same kind of refusal is amber in some places and red in others across about 775 alerts; needs the owner's rule before a sweep.
+- Noticed, not fixed: the other side's arrival news shows as a pop-up as well as in the bell.
+- Noticed, not fixed: two copy-link failures show the bare web address as an amber alert (the deal's status link, a request's tracking link).
+- Noticed, not fixed: 30 visible alerts are hardcoded English; "The builder arrives in the next phase of this feature" looks like a leftover.
+- Noticed, not fixed: on the phone an alert still lives by its clock when the screen changes.
 ## 22 Nov 2026 — THE CLEAN-UP BEFORE A DEVELOPER READS THE CODE (owner's yes in the chat)
 Deleted, read by nothing: prototype/redesign-shots (268 old photos, about 35 MB), five old prototype pages (hati-redesign-reference.html kept; comments name it), findings.json, probe2.js, the "(1)" backlog download, six one-off review pages in the main folder. Moved, not deleted, to docs/archive/: every WORKORDER file (main folder and docs), the old audits, summaries, plans and DESIGN notes. No code, test or setting changed. Comments in code that name a moved note now mean docs/archive/<name>. Lint 0 errors; the nearest tests green.
 Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name browser checks that no longer exist; eslint.config.js still names probe2.js (matches nothing now).
+22 Nov 2026, the clean-up, second part (owner's yes): seven more notes moved from the main folder to docs/archive/ (HaTi-Copilot-PLAN, MEASURE-CATALOGUE, MULTITENANCY-NOTES, PLAN-bilingual, PROMPT-e2e-verification, SWEDISH-TERMS-TO-REVIEW, UI-UX-AUDIT-AND-ROADMAP). Nothing opens them; comments that name one now mean docs/archive/<name>. No code changed.

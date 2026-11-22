@@ -1111,7 +1111,7 @@ function fileCounterpartyEdit(c, text, opts={}){
   const txt=String(text==null?'':text);
   if(!txt.trim()){ toast(i18t('ve_wording_not_empty'),'err'); return null; }
   const base=docPlainText(c);
-  if(normText(txt)===normText(base)){ toast(i18t('ve_wording_identical')); return null; }
+  if(normText(txt)===normText(base)){ toast(i18t('ve_wording_identical'), 'warn'); return null; }
   const u=currentUser();
   const who=String(opts.by||c.counterparty||'The counterparty').trim();
   c.rounds=c.rounds||[];

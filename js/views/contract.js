@@ -2576,7 +2576,7 @@ function renderDiscussSection(c){
     // out loud rather than leaving to be discovered
     toast(res&&res.emailSent ? `Message sent to ${res.to}`
       : res&&res.to ? `Saved — but the email to ${res.to} could not be sent. They will see it when they open their link.`
-      : 'Saved — they will see it when they open their link');
+      : 'Saved — they will see it when they open their link', res&&!res.emailSent&&res.to?'warn':undefined);
   };
   wireDiscussPanel({ idp:'ws-discuss', topics, send:post, onSent:after });
   if(window.wireDiscussPoints) wireDiscussPoints({ send:post, onSent:after });
@@ -9970,7 +9970,7 @@ function openNegoProposeModal(c){
       toast(i18t('ct_could_not_file_changes')+err.message,'err'); return;
     }
     closeModal();
-    if(!filed.length){ toast(i18t('ct_identical_to_baseline')); return; }
+    if(!filed.length){ toast(i18t('ct_identical_to_baseline'), 'warn'); return; }
     persist(c);
     toast(`${filed.length} change${filed.length===1?'':'s'} proposed — ${filed.map(x=>'#'+x.id).join(', ')}`);
     renderWorkspace();
@@ -19005,7 +19005,7 @@ async function signDocument(c){
   // mark; the seal is applied only when the last signature lands.
   const plan=signerPlan(c), ns=nextSigner(c);
   if(plan.length && ns){
-    if(ns.party!=='internal'){ toast(i18t('sgx_next_cp',{name:ns.name}),'err'); return; }
+    if(ns.party!=='internal'){ toast(i18t('sgx_next_cp',{name:ns.name}),'warn'); return; }
     if(ns.memberId && u && u.id!==ns.memberId){ toast(i18t('sgx_reserved',{name:ns.name}),'err'); return; }
     const sig=await captureSignature(ns.name);   // free choice: draw / type / upload
     if(!sig) return;                              // signer cancelled the pad

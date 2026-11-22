@@ -1869,7 +1869,7 @@ async function negoFileChange(c, draft, opts = {}){
          counter IS the reply, and the card says so. */
       if (r.authorSide === localSide && side !== localSide && unsentHere.has(r.id)
           && typeof window !== 'undefined' && window.toast)
-        toast(i18t('ng_draft_superseded', { old: r.id, label: r.clauseLabel || r.clauseId }));
+        toast(i18t('ng_draft_superseded', { old: r.id, label: r.clauseLabel || r.clauseId }), 'warn');
     }
     if (!ch.counterOf) ch.counterOf = newest ? newest.id : null;
     if (window.logAudit && !opts.quiet) logAudit(c, 'Negotiation',
