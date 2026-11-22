@@ -25299,7 +25299,8 @@
   html:not(#_) .pw .pw-seg{border:0;background:none;gap:var(--s-2);justify-content:flex-start;overflow:visible;border-radius:0}
   html:not(#_) .pw .pw-seg .na-seg-b{flex:none;border:0;background:var(--color-neutral-100);border-radius:999px;padding:0 14px;height:var(--ctl-h-sm);color:var(--color-text);font-weight:var(--w-label)}
   html:not(#_) .pw .pw-seg .na-seg-b[aria-checked="true"]{background:var(--color-text);color:var(--color-surface)}
-  /* SAP PAGE, LEGORA PANEL (owner's pick by name, 19 Nov 2026): the line under a side panel's head never touches the
+  /* (REVERSED 22 Nov 2026: the panel head's line is gone altogether — see NO LINE UNDER A SIDE PANEL'S HEAD, last in the sheet.)
+     SAP PAGE, LEGORA PANEL (owner's pick by name, 19 Nov 2026): the line under a side panel's head never touches the
      divider or the window's edge. It is pulled 16 in from both sides (where the panel's cards start and stop) and
      fades in and out at its ends, so a panel line and the page's line at another height never read as one broken
      line. The page's own lines are not touched: they already stop where the page's words stop (the SAP way). ONE
@@ -25445,8 +25446,11 @@
     html.lg-new:not(#_) #ig-dock .na6-p .na6-tl li{padding-bottom:8px}
     html.lg-new:not(#_) #ig-dock .na6-p .na6-tl li:last-child{padding-bottom:0}
   }
-  /* the panel-head line rule stays LAST in its sheet (f1107) */
-  html:not(#_):not(#_) :is(.jl-head, #ig-dock > .igd-head, #ai-panel > header, .st-side-head){border-bottom-color:transparent;background-image:linear-gradient(90deg, transparent, var(--color-divider) 18%, var(--color-divider) 82%, transparent);background-repeat:no-repeat;background-origin:border-box;background-size:calc(100% - 32px) 1px;background-position:16px 100%}
+  /* NO LINE UNDER A SIDE PANEL'S HEAD (owner, 22 Nov 2026: "there is this line in the jambo pages. delete it across all
+     jambos"; reverses f1107's painted, faded line): every panel head — Jambo's dock, the list panel, Settings' side panel,
+     the side drawer — keeps its 1px border, made clear, so nothing moves, and paints nothing in it. LAST in its sheet, so
+     no head's own border rule wins (f1107) */
+  html:not(#_):not(#_) :is(.jl-head, #ig-dock > .igd-head, #ai-panel > header, .st-side-head){border-bottom-color:transparent}
 </style>
 
 

@@ -22861,3 +22861,4 @@ Noticed, not fixed (15 Nov 2026, while building f1062): CLAUDE.md is about 87.6 
 - Fixed: on Settings' six areas and the six pages inside, the panel's Overview tab pressed with a row chosen showed "Choose a contract to read its facts here." and left the row chosen; it now lets go of the row and shows the page's landing.
 - Fixed with it: a chosen stream's row on the new Contract streams page did not wear its chosen mark.
 - Noticed, not fixed: other pages that hand the shared panel a standing item without a `_jlBack` may fall to the same shared words; only Settings, Import and Negotiations were looked at.
+- 22 Nov 2026 — REMOVED (owner's word): the faint line under every side panel's head (Jambo's dock, list panels, Settings, the side drawer); f1107's closing rule now only clears the border.
