@@ -3,7 +3,7 @@
    Serious Side Panels artifact), WITH THE BUTTONS AS DRAWN, NO GREEN WAY-BACK LINK, AND THE BOARD'S ARROW
      1  the Board, Contracts (Home's panel) and Approvals, Playbook (a list page's panel): the woven line-work is
         painted at the head of the panel (a mask on ::before and ::after), and it moves
-     2  Settings: the same watermark, held still (owner, 21 Nov 2026: "no motion in Settings")
+     2  Settings: the same watermark, MOVING (owner, 22 Nov 2026: "the waves … are not in motion … fix it"; reverses the 21 Nov "no motion in Settings")
      3  less motion asked: still everywhere
      4  the minimise arrow is a 30px circle on every panel; the BOARD's panel has it again, its tab not drawn,
         and pressing it folds the panel
@@ -129,16 +129,16 @@ const READ = () => {
     const gl = glide && { frames: glide.length, places: new Set(glide).size, jump: Math.max(...glide.slice(1).map((x, i) => Math.abs(x - glide[i]))) };
     ok('1d the watermark glides: a new place almost every frame, no pixel jumps', !!gl && gl.places >= gl.frames * 0.6 && gl.jump < 0.5, JSON.stringify(gl));
 
-    /* 2 — Settings: drawn, still */
+    /* 2 — Settings: drawn, moving (RE-POINTED 22 Nov 2026) */
     const st = await go('team', () => !!document.querySelector('#set-page #ins-panel .jl-head'));
-    ok('2 Settings: the watermark is drawn and held still', !!st && st.painted && !st.moving, JSON.stringify(st));
+    ok('2 Settings: the watermark is drawn and moves', !!st && st.painted && st.moving, JSON.stringify(st));
 
-    /* 2b — Settings' own pages (People & roles): their panel carries it too, still */
+    /* 2b — Settings' own pages (People & roles): their panel carries it too, moving */
     await page.evaluate(() => { if (window.sddGo) sddGo('rules'); }); await page.waitForTimeout(800);
     await page.evaluate(() => { if (window.openSettingsAt) openSettingsAt('people'); });
     await until(page, () => !!document.querySelector('.st-cr .st-side:not(.is-folded)'), null, 8000);
     const sp = await page.evaluate(() => { const e = document.querySelector('.st-cr .st-side:not(.is-folded)'); if (!e) return null; const b = getComputedStyle(e, '::before'); return { painted: /data:image\/svg/.test(b.maskImage || b.webkitMaskImage || ''), moving: b.animationName !== 'none' }; });
-    ok('2b Settings\' own pages: the panel carries the watermark, still', !!sp && sp.painted && !sp.moving, JSON.stringify(sp));
+    ok('2b Settings\' own pages: the panel carries the watermark, moving', !!sp && sp.painted && sp.moving, JSON.stringify(sp));
     /* 8 — the Alerts · Notes · Activity panel stays plain (owner, 22 Nov 2026: "Do not add to the alerts panel") */
     await page.evaluate(() => { setView('dashboard'); if (window.openPanel) openPanel('alerts'); });
     await until(page, () => !!document.querySelector('#context-panel.open'), null, 6000);
