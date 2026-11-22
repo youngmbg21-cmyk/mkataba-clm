@@ -20186,6 +20186,12 @@
   html.lg-new .mign-page :is(.mign-table,.mign5-tt) .apn-st.is-green::before{content:"\2713";font-size:var(--t-micro);line-height:1}
   html.lg-new .mign-page .apn-bar .apn-tab.is-chip{height:auto;padding:3px 11px;font-size:13px;border-style:dashed;background:var(--color-surface);color:var(--color-quiet);font-weight:var(--w-label)}
   html.lg-new .mign-page .apn-ask svg{color:var(--accent-ink)}
+  /* Import carries .apn-page for its frame, not Approvals' table and badge dress: its own badge, chip and Stream head stay as drawn */
+  html.lg-new .mign-page .apn-bar .apn-chip{padding:0 10px}
+  html.lg-new .mign-page .apn-card .mign-table thead th:nth-last-child(2){text-align:left}
+  html.lg-new .mign-page .apn-st{gap:6px}
+  html.lg-new .mign-page .apn-st i{width:6px;height:6px;opacity:.8}
+  html.lg-new .mign-page .apn-st:is(.is-amber,.is-ruby,.is-steel) i{background:currentColor}
   html.lg-new .mign-page .apn-bar .apn-tab.is-chip.is-on{border-style:solid;border-color:var(--color-neutral-300);background:var(--color-surface);color:var(--color-text)}
   html.lg-new .mign-page .apn-bar .apn-tab.is-chip span{color:inherit}
   html.lg-new :is(.mign-page,.mign-start) .mign-ask .mign-spark{flex:none;width:14px;height:14px;fill:var(--accent-ink)}
