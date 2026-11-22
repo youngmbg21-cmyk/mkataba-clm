@@ -1763,16 +1763,27 @@ function hbHelloFitN(total){
     return rows >= n ? n : Math.max(1, rows - 1);
   } catch (_){ return n; }
 }
+/* the reader is in Jambo's box (the cursor in it) */
+function hbAskTyping(){ const a = typeof document !== 'undefined' ? document.activeElement : null; return !!(a && a.id === 'igd-input'); }
+let _hbRefitOwed = false;
 /* the window changes size: the Board's panel is drawn again only when what fits changed */
 if (typeof window !== 'undefined' && !window._hbHelloFitWired){
   window._hbHelloFitWired = true;
   let t = 0;
-  window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { try {
+  /* NEVER UNDER THE READER'S TYPING (owner, 22 Nov 2026, on the iPad: "it starts then kicks me out", only on the
+     Board): the iPad's keyboard rising IS a resize, the count that fits changed, and the redraw put a new box where the
+     reader was typing — the cursor fell out. While Jambo's box holds the cursor the refit waits; it runs once the
+     reader leaves the box */
+  const refit = () => { try {
     if (!hbBoardHelloOn() || typeof renderIntelDock !== 'function') return;
+    if (hbAskTyping()){ _hbRefitOwed = true; return; }
+    _hbRefitOwed = false;
     const shown = document.querySelectorAll('#igd-feed .hb-jb-hello [data-hbw-row]').length;
     const D = typeof ndRead === 'function' ? ndRead() : null, all = D && typeof ndOnBoard === 'function' ? ndOnBoard(D).jambo.length : 0;
     if (hbHelloFitN(all) !== shown) renderIntelDock();
-  } catch (_){} }, 200); });
+  } catch (_){} };
+  window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(refit, 200); });
+  document.addEventListener('focusout', e => { if (_hbRefitOwed && e.target && e.target.id === 'igd-input') setTimeout(() => { if (!hbAskTyping()) refit(); }, 400); });
 }
 /* the welcome's doors, each an existing one: the late and "show all" open the Board's Needs you on All (the late
    stand first there, ndBoardList), prepared opens it on Jambo's tab, ending soon the list behind the book's Ending
@@ -11623,8 +11634,6 @@ const HB_GALLERY = [
   { k: 'fc', recipe: { pic: 'forecast', measure: 'value' } }];
 const HB_GW_SHOW = ['status', 'folder', 'counterparty', 'owner', 'kind', 'side', 'payterms', 'valueBand', 'move', 'rounds', 'overdue', 'risks', 'standards', 'autorenew'];
 const HB_IN_WORDS = ['hb_in_l12', 'hb_in_l3', 'hb_in_ty', 'hb_in_tq', 'hb_in_n6'];
-let _hbAskPress = 'key';    // the last press: 'mouse' · 'touch' · 'pen' · 'key'
-function hbAskByFinger(){ return _hbAskPress === 'touch' || _hbAskPress === 'pen'; }
 let _hbPop = null;            // { mode, rows, on, moved, start }
 const _hbAskHist = []; let _hbHistAt = -1;
 /* THE BOX ON HOME'S DOCUMENT TOO (the one-page Home plan, stage 1): "/" there
@@ -11777,14 +11786,8 @@ function hbMyqRun(i){
 function hbMyqDel(i){ const s = hbS(); s.myq = (s.myq || []).filter((_, k) => k !== i); hbSave(); }
 if (typeof document !== 'undefined' && !document._hbAskWired){
   document._hbAskWired = true;
-  document.addEventListener('input', e => { const t = e.target; if (t && t.id === 'igd-input'){ _hbHistAt = -1; if (hbAskByFinger() && !String(t.value || '').trim()) hbAskPopClose(); else hbAskPopRead(t); } });
-  /* A FINGER'S TAP DOES NOT OPEN THE LIST (owner, 22 Nov 2026, on the iPad: "it starts then kicks me out" — only
-     on the Board): the empty box's ideas list rose over Jambo's panel in the moment the on-screen keyboard did, and the
-     iPad threw the cursor out. After a finger or a pen the list waits for typing ("/" still opens it); a mouse or a
-     key opens it as before */
-  document.addEventListener('pointerdown', e => { _hbAskPress = e.pointerType || 'mouse'; }, true);
-  document.addEventListener('keydown', () => { _hbAskPress = 'key'; }, true);
-  document.addEventListener('focusin', e => { const t = e.target; if (t && t.id === 'igd-input' && !String(t.value || '').trim() && !hbAskByFinger()) hbAskPopRead(t); });
+  document.addEventListener('input', e => { const t = e.target; if (t && t.id === 'igd-input'){ _hbHistAt = -1; hbAskPopRead(t); } });
+  document.addEventListener('focusin', e => { const t = e.target; if (t && t.id === 'igd-input' && !String(t.value || '').trim()) hbAskPopRead(t); });
   document.addEventListener('keydown', e => {
     const t = e.target; if (!t || t.id !== 'igd-input' || !hbAskBoxUp()) return;
     /* A10: what was asked is kept for ↑ (the box's own handler asks after this) */
