@@ -1857,6 +1857,8 @@ function caPlaceOf(q){
     cid = cid || c.id; return ' ';
   });
   t = t.toLowerCase().replace(/[’‘]/g, "'").replace(/[?.!]+\s*$/, '').replace(/\s+/g, ' ').trim();
+  /* …unless the words AS TYPED are a place's own ("what now", "vad nu": the next steps; bug log) */
+  const asTyped = t;
   /* "please", "now", "for me" at the end ask for nothing (19 Oct 2026: "go to explorer please") */
   t = t.replace(/(?:[\s,]+(?:please|now|for me|thanks|thank you|tack|snälla|nu))+\s*$/, '').trim();
   /* a place whose own name starts "our" or "the" ("our paper") is read before those are let go */
@@ -1870,7 +1872,7 @@ function caPlaceOf(q){
   if (!tailed && caOnBoard() && typeof hbParse === 'function'){ let r = null; try { r = hbParse(q); } catch (_){ r = null; } if (r && r.act !== 'face') return null; }
   /* a reference on its own ("MK-458", "open #MK-458") is that contract's paper */
   if (!t && cid) return { kind: 'go', place: 'document', cid, slash, state: 'ready' };
-  const p = CA_PLACES.find(x => x.w.includes(whole)) || CA_PLACES.find(x => x.w.includes(t)); if (!p) return null;
+  const p = CA_PLACES.find(x => x.w.includes(asTyped)) || CA_PLACES.find(x => x.w.includes(whole)) || CA_PLACES.find(x => x.w.includes(t)); if (!p) return null;
   return { kind: 'go', place: p.k, cid, slash, state: 'ready' };
 }
 function caOnBoard(){ try { return typeof state !== 'undefined' && !!state && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'board'; } catch (_){ return false; } }

@@ -40093,3 +40093,6 @@ The owner, on the iPad: "When on my iPad and i try to enter my cursor in the fie
 
 ## HOME — THE BOARD AND THE MAP (22 Nov 2026, auto pilot batch 2)
 - Bug log: "How many approvals are late?" was answered with the late DUTIES list — the Board's free reader (hbParse) took any "late" as the obligations question. `HB_RX.appr` now keeps a question naming approvals off the duties' reading (both the condition path and the panel word); a question about duties still opens them. f1175, red at the parent.
+
+## JAMBO'S MAP — EVERYDAY WORDS FOR THE THIRTY-ONE TASKS (22 Nov 2026, auto pilot batch 2)
+- Bug log: "what now" and "vad nu" were listed as the next steps' words, but caPlaceOf let a trailing "now"/"nu" go before matching, leaving "what"/"vad". The words as typed are now asked first (`asTyped`); "go to explorer now" still drops the "now". f1176, red at the parent.
