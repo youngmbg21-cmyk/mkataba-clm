@@ -158,7 +158,8 @@ test('f1049 (8) Our paper, the Legora way: one ask box, the streams on one line 
   assert.doesNotMatch(H, /data-tpln-new/, 'no New standard on Our paper: From scratch starts on the New agreement page');
   assert.match(L, /\$\{canManage&&!\(typeof newLookOn==='function'&&newLookOn\(\)\)\?`<button id="tpl-new"/, 'the head\'s New standard contract steps aside in the new look');
   const R = body(L, 'tplnRowHtml');
-  assert.match(R, /<span class="tpln-q">§ 1 · “/, "the first line quoted");
+  /* RE-POINTED 21 Nov 2026 (P-34, as drawn): "§ 1 ·" in the body's small grey type, then the paper's words */
+  assert.match(R, /<span class="tpln-q"><small>§ 1 ·<\/small> “/, "the first line quoted");
   assert.match(R, /<span class="tpln6-ub">/, 'drafted from it: a small bar and the number');
   /* the need is read without AI: small words dropped, a word by its stem, ANY word on the paper */
   const src = L.slice(L.indexOf('const TPLN_STOP'), L.indexOf('\n', L.indexOf('const TPLN_STOP'))) + '\n' + body(L, 'tplnMatches');

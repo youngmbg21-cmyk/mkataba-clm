@@ -152,12 +152,13 @@ const MANIFEST = [
     check('3a the three readable contracts are imported, each with its own reference',
       ['acme_supply_2024.txt', 'office_lease.txt', 'board_consultancy.txt'].every(n => row(n).status === 'saved' && row(n).id)
         && new Set(rows.filter(r => r.id).map(r => r.id)).size === 3, JSON.stringify(rows.map(r => r.name + ':' + r.status)));
+    /* RE-POINTED 21 Nov 2026 (P-33, as drawn): why it waits is said with a capital first word ("The same file as …") */
     check('3b an identical copy is skipped and names the contract it matched — never silently',
       row('acme_supply_COPY.txt').status === 'duplicate' && /identical to/.test(row('acme_supply_COPY.txt').note)
-        && /acme_supply_COPY\.txt[\s\S]{0,200}the same file as MK-\d+ · left out/.test(qtext), row('acme_supply_COPY.txt').note);
+        && /acme_supply_COPY\.txt[\s\S]{0,200}the same file as MK-\d+ · left out/i.test(qtext), row('acme_supply_COPY.txt').note);
     check('3c an empty file fails, saying why', row('empty.txt').status === 'error' && /empty file/.test(row('empty.txt').note), row('empty.txt').note);
     check('3d an old .doc Word file is refused before anything is filed', row('old_contract.doc').status === 'word' && !row('old_contract.doc').id
-      && /old_contract\.doc[\s\S]{0,200}an old Word \.doc file: save it as \.docx or PDF/.test(qtext), row('old_contract.doc').note);
+      && /old_contract\.doc[\s\S]{0,200}an old Word \.doc file: save it as \.docx or PDF/i.test(qtext), row('old_contract.doc').note);
     const files6 = await page.evaluate(() => (document.querySelector('.mign-page [data-mign-tab="all"]') || {}).innerText || '');
     check('3e the list accounts for every file of the batch: All 6, each named with its state', /All\s*6/.test(files6)
       && ['acme_supply_2024.txt', 'office_lease.txt', 'board_consultancy.txt', 'acme_supply_COPY.txt', 'empty.txt', 'old_contract.doc'].every(n => qtext.includes(n)),
@@ -181,7 +182,7 @@ const MANIFEST = [
       let expiry = null; try { const c = await api('contracts/' + encodeURIComponent(id)); expiry = c.expiry || ''; } catch (_) { expiry = null; }
       return tr ? { text: tr.innerText.replace(/\s+/g, ' '), expiry } : null; }, leaseId);
     check('4c the date it could not read stays empty on the record, and its row shows the end-date gate as missing',
-      leaseRow && leaseRow.expiry === '' && /no end date found/.test(leaseRow.text), JSON.stringify(leaseRow).slice(0, 220));
+      leaseRow && leaseRow.expiry === '' && /no end date found/i.test(leaseRow.text), JSON.stringify(leaseRow).slice(0, 220));
     const tableRows = await page.evaluate(() => document.querySelectorAll('.mign-table tbody tr[data-row]:not([data-row^="q:"])').length);
     check('4d the imported list on the page carries exactly the three imported contracts', tableRows === 3, String(tableRows));
 

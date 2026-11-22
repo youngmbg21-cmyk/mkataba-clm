@@ -48,9 +48,11 @@ test('f1091 (3) All and a shelf: one calm table, grouped by folder under All, th
   assert.match(l, /\$\{tplnFilterLineHtml\(rows, shelves\)\}/);
   assert.doesNotMatch(l, /tplnSayHtml\(/, 'no counted sentence: the numbers are said once, in the panel');
   assert.match(l, /<table class="apn-table tpln6-table tpln-lrs">/);
-  assert.match(l, /_tplPf\.ls \? '' : `<tr class="tpln6-glab" data-tpln-glab>/, 'grouped by folder under All');
+  /* RE-POINTED 21 Nov 2026 (P-34, as drawn): All is ONE calm table — the shelves keep their order, no shelf heads between the rows */
+  assert.doesNotMatch(l, /<tr class="tpln6-glab"/, 'no shelf heads between the rows under All');
+  assert.match(l, /return rs\.map\(x => tplnRowHtml/, 'the rows, shelf after shelf');
   assert.match(l, /tplnRowHtml\(x\.c, x\.last\.cs\.length, tplPfKey\(x\.c\) === pick, max\)/);
-  assert.match(body('tplnRowHtml'), /(?:\\u00a7|§) 1 (?:\\u00b7|·) (?:\\u201c|“)\$\{_tplEsc\(q\)\}(?:\\u201d|”)/, '§ 1 and the paper\'s opening words');
+  assert.match(body('tplnRowHtml'), /<small>(?:\\u00a7|§) 1 (?:\\u00b7|·)<\/small> (?:\\u201c|“)\$\{_tplEsc\(q\)\}(?:\\u201d|”)/, '§ 1 and the paper\'s opening words');
   assert.match(body('tplnFilter'), /\[data-tpln-glab\][\s\S]*g\.hidden = !any/, 'a folder\'s label steps aside when none of its rows stands');
 });
 

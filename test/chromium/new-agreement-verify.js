@@ -154,7 +154,8 @@ const READ = () => {
     const acts0 = await page.evaluate(() => ({ create: document.getElementById('na-create').disabled, skip: !document.getElementById('na-skip'),
       why: document.getElementById('na-create').title, empty: !!document.querySelector('#na-form .na-empty') }));
     check('1e nothing is picked for you: no row lit, the card waits, Create draft and Skip are grey and say why',
-      !m.err && !m.on && acts0.create && acts0.skip && /Pick a template/.test(acts0.why), m.err || JSON.stringify({ on: m.on, ...acts0 }));
+      /* RE-POINTED 21 Nov 2026 (P-36, as drawn): the one sheet says "Pick a paper first" */
+      !m.err && !m.on && acts0.create && acts0.skip && /Pick a (template|paper)/.test(acts0.why), m.err || JSON.stringify({ on: m.on, ...acts0 }));
     await page.evaluate(() => document.querySelector('#na-lists [data-wz-lib]').click()); await pause(500);
     m = await page.evaluate(READ);
     const acts1 = await page.evaluate(() => ({ create: document.getElementById('na-create').disabled }));

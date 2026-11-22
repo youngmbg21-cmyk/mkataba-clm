@@ -97,8 +97,11 @@ const ID = 'MK-DBJ1';
     /* RE-POINTED 24 Oct 2026: the one door opens on the three most used */
     await waitFor(page, () => !!document.querySelector('#na-closest .na-pick'), 6000);
     await page.click('#na-closest .na-pick');
-    await waitFor(page, () => !!document.querySelector('#na-root input[placeholder="Full registered name"]'), 6000);
-    await page.fill('#na-root input[placeholder="Full registered name"]', 'Brookside Dairy Ltd');
+    /* RE-POINTED 22 Nov 2026 (P-36, New agreement as drawn): an empty box reads "not said yet" (or "—"); the paper's own
+       example ("Full registered name") moved to the box's hover (its title), so the box is found there */
+    const CP = '#na-root input:is([placeholder="Full registered name"], [title="Full registered name"])';
+    await waitFor(page, s => !!document.querySelector(s), 6000, CP);
+    await page.fill(CP, 'Brookside Dairy Ltd');
     await page.evaluate(() => { const s = document.querySelector('#na-root select[data-na-stream], #na-root select'); const o = s && [...s.options].find(x => x.value);
       if (o){ s.value = o.value; s.dispatchEvent(new Event('change', { bubbles: true })); } });
     const n0 = await page.evaluate(() => state.contracts.length);

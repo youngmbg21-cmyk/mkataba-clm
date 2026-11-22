@@ -87,19 +87,18 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
     /* the panel has no tiles: the batch is a RING (filed of all) beside "This batch · N need you" (.mign5-batch) */
     const batch = await until(sel => { const s = document.querySelector(sel); if (!s || !s.querySelector('.mign5-batch')) return null;
       return { tiles: s.querySelectorAll('.jov5-glance').length, ring: ((s.querySelector('.mign5-batch .mign5-ring text') || {}).textContent || '').trim(),
-        say: ((s.querySelector('.mign5-batch .mign5-bh') || {}).textContent || '').replace(/\s+/g, ' ').trim() }; }, SIDE, 6000);
-    check('1a beside the list, Jambo says the batch: a ring 1/3 filed, "This batch · 2 need you", no tiles', !!batch && batch.tiles === 0 && batch.ring === '1/3' && /This batch\s*2 need you/.test(batch.say), JSON.stringify(batch));
+        say: ((s.querySelector('.mign5-batch .mign5-bt > b') || {}).textContent || '').replace(/\s+/g, ' ').trim() }; }, SIDE, 6000);
+    /* RE-POINTED 21 Nov 2026 (P-33, as drawn): "This batch · 2 need you" is one line beside the ring, the next files under it */
+    check('1a beside the list, Jambo says the batch: a ring 1/3 filed, "This batch · 2 need you", no tiles', !!batch && batch.tiles === 0 && batch.ring === '1/3' && batch.say === 'This batch · 2 need you', JSON.stringify(batch));
     /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */
-    /* "Check all · N" is the chosen FILED file's second act (a file that needs you carries Fill in · Open) */
-    { const fk = await page.evaluate(() => (migContracts().find(c => !c.migration.needsReview) || {}).id);
-      if (fk) { await page.locator(`.mign-table tbody tr[data-row="${fk}"] td:nth-child(1)`).click().catch(() => {});
-        await until(([id, sel]) => { const tr = document.querySelector(`.mign-table tr[data-row="${id}"]`); return tr && tr.classList.contains('is-picked') && document.querySelector(sel + ' [data-mign-checkall]') ? true : null; }, [fk, SIDE], 4000); } }
-    if (await page.locator(SIDE + ' [data-mign-checkall]').count()) {
-      await page.locator(SIDE + ' [data-mign-checkall]').first().click();
+    /* RE-POINTED 21 Nov 2026 (P-33, as drawn): a filed file's panel carries only Open it — "Check all · N" is the page
+       head's grey button (#mig-check-all), the one door to the files that wait */
+    if (await page.locator('.mign-page #mig-check-all').count()) {
+      await page.locator('.mign-page #mig-check-all').first().click();
       const ck = await until(() => document.getElementById('mig-ck-facts') ? migCheckIds().length : null, null, 4000);
       check('1b his "need you" door opens the check view on the two', ck === 2, String(ck));
       await page.evaluate(() => migCheckClose()); await toImport();
-    } else check('1b his "need you" door ("Check all 2")', false, 'not drawn');
+    } else check('1b the head\'s "need you" door ("Check all · 2")', false, 'not drawn');
     await shot(page, 'import-jambo-batch-1440x780');
 
     console.log('\n2 · a press chooses a file');
@@ -119,22 +118,24 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
       check('2a the row is lit (one row) and the page stays on Import', !!f && f.lit === 1 && f.view === 'migration', JSON.stringify(f && { lit: f.lit, view: f.view }));
       check('2b the panel says that file: its badge "To check", its name, and what it will be filed as, as facts', !!f && f.badge === 'To check' && !!f.name && (!f.file || f.name === f.file) && f.facts >= 3, JSON.stringify(f && { badge: f.badge, name: f.name, file: f.file, facts: f.facts }));
       check('2c a fact not found (or not sure) wears its own dot, never green', !!f && f.need >= 1, String(f && f.need));
-      check('2e the file\'s own door: Fill in', !!f && f.go === 'Fill in', JSON.stringify(f && f.go));
+      /* RE-POINTED 21 Nov 2026 (P-33, as drawn): a file to check carries Check it (black) and File it (grey) */
+      check('2e the file\'s own door: Check it', !!f && f.go === 'Check it', JSON.stringify(f && f.go));
       const filed = await page.evaluate(() => (migContracts().find(c => !c.migration.needsReview) || {}).id);
       await page.locator(`.mign-table tbody tr[data-row="${filed}"] td:nth-child(1)`).click();
       /* RE-POINTED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way) */
       const marks = await until(([id, sel]) => { const tr = document.querySelector(`.mign-table tr[data-row="${id}"]`); if (!tr || !tr.classList.contains('is-picked')) return null;
         const li = [...document.querySelectorAll(sel + ' .mign5-facts .mign5-f')].map(x => x.textContent.replace(/\s+/g, ' ').trim());
         return li.length >= 3 ? { li, badge: ((document.querySelector(sel + ' .mign5-top .apn-st') || {}).textContent || '').trim(), go: ((document.querySelector(sel + ' .jov5-go') || {}).textContent || '').trim() } : null; }, [filed, SIDE], 4000);
-      check('2d a filed file: its badge says Filed, what was read said as facts, its door Open the contract', !!marks && marks.badge === 'Filed' && marks.li.some(m => /^Party/.test(m)) && marks.go === 'Open the contract', JSON.stringify(marks));
+      /* RE-POINTED 21 Nov 2026 (P-33, as drawn): a filed file's one act is "Open it" */
+      check('2d a filed file: its badge says Filed, what was read said as facts, its door Open it', !!marks && marks.badge === 'Filed' && marks.li.some(m => /^Party/.test(m)) && marks.go === 'Open it', JSON.stringify(marks));
       await page.locator(`.mign-table tbody tr[data-row="${pick}"] td:nth-child(1)`).click();
       await until(id => { const tr = document.querySelector(`.mign-table tr[data-row="${id}"]`); return tr && tr.classList.contains('is-picked') ? true : null; }, pick, 3000);
       await shot(page, 'import-jambo-file-1440x780');
 
       console.log('\n3 · the file\'s door');
-      if (await press(SIDE + ' .jov5-go', '3a Fill in')) {
+      if (await press(SIDE + ' .jov5-go', '3a Check it')) {
         const ck = await until(() => document.getElementById('mig-ck-facts') ? migCheckId() : null, null, 6000);
-        check('3a Fill in in the panel opens the check view on that file', ck === pick, String(ck));
+        check('3a Check it in the panel opens the check view on that file', ck === pick, String(ck));
         await page.evaluate(() => migCheckClose()); await toImport();
       }
       /* RETIRED 16 Nov 2026 (#762): 3b "pressed again, the row is let go and Jambo says the batch" and 3c "‹ Jambo goes
@@ -145,9 +146,9 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
       const filedId = await page.evaluate(() => (migContracts().find(x => !x.migration.needsReview) || {}).id);
       await page.locator(`.mign-table tbody tr[data-row="${filedId}"] td:nth-child(1)`).click();
       await until(id => { const tr = document.querySelector(`.mign-table tr[data-row="${id}"]`); return tr && tr.classList.contains('is-picked') ? true : null; }, filedId, 3000);
-      if (await press(SIDE + ' .jov5-go', '4a Open the contract')) {
+      if (await press(SIDE + ' .jov5-go', '4a Open it')) {
         const opened = await until(id => document.querySelector(`#modal-root .cv-page[data-cv="${id}"]`) ? 'cover' : state.view !== 'migration' ? state.view : null, filedId, 6000);
-        check('4a the panel\'s Open the contract opens the contract', !!opened, String(opened));
+        check('4a the panel\'s Open it opens the contract', !!opened, String(opened));
       }
       await toImport();
       /* RETIRED (P-33, owner's pick 20 Nov 2026: Import the Legora + Stripe way): 4b "the row's own Open opens it" — the

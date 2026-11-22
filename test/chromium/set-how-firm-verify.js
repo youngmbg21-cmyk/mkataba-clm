@@ -59,7 +59,8 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       await page.evaluate(() => document.querySelector('[data-ld-edit]')?.click());
       return until(page, () => { const e = document.querySelector('.ld-edit'); if (!e) return null;
         const on = e.querySelector('.ld-seg.is-on'); const ask = e.querySelector('[data-ld-f="ask"]');
-        return { firm: on ? on.textContent.trim() : '', ask: ask ? ask.value : '', says: (e.querySelector('.ld-firm-says') || {}).textContent || '' }; });
+        /* RE-POINTED 21 Nov 2026 (P-35, as drawn): no sentence under the four pills; what a firmness means is the pills' own title */
+        return { firm: on ? on.textContent.trim() : '', ask: ask ? ask.value : '', says: (e.querySelector('.ld6-pills') || { getAttribute: () => '' }).getAttribute('title') || '' }; });
     };
     const cancel = page => page.evaluate(() => document.querySelector('[data-ld-cancel]')?.click());
 
@@ -80,7 +81,7 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     check('3b Confidentiality: the firmness is the strictest any book holds (Must have)', !!L && /Must have/.test(L.firm) && !!E && /Must have/.test(E.firm), JSON.stringify({ L, E }));
     console.log('\n4 · a firmness pressed');
     const said = await page.evaluate(() => { document.querySelector('.ld-edit [data-ld-firm="nice"]')?.click(); return true; })
-      && await until(page, () => { const e = document.querySelector('.ld-edit'); const on = e && e.querySelector('.ld-seg.is-on'); return on && /Nice to have/.test(on.textContent) ? (e.querySelector('.ld-firm-says') || {}).textContent : null; });
+      && await until(page, () => { const e = document.querySelector('.ld-edit'); const on = e && e.querySelector('.ld-seg.is-on'); return on && /Nice to have/.test(on.textContent) ? (e.querySelector('.ld6-pills') || { getAttribute: () => null }).getAttribute('title') : null; }); /* RE-POINTED 21 Nov 2026 (P-35, as drawn): the pills' title */
     check('4a Nice to have pressed: chosen, and its sentence says what it means', !!said && /give it up freely/i.test(said), said);
     await cancel(page);
     L = await choose(page, 'Confidentiality');

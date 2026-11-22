@@ -157,7 +157,8 @@ const pastFirstWords = async page => {
     await shoot('2-draft-card');
     const f0 = await page.evaluate(() => { const b = document.getElementById('na-create'); return { menu: window._seen.menu, dis: !!(b && b.disabled), why: b && b.title }; });
     check('2b Open the form opens the one form, never the two-door menu', form && !f0.menu, f0);
-    check('2c Create is grey with its reason until a template is picked', f0.dis && /Pick a template first/.test(f0.why || ''), f0.why);
+    /* RE-POINTED 21 Nov 2026 (P-36, as drawn): the one sheet says "Pick a paper first" */
+    check('2c Create is grey with its reason until a template is picked', f0.dis && /Pick a paper first/.test(f0.why || ''), f0.why);
     await page.evaluate(() => closeModal()); await pause(300);
 
     /* ===== 3. A SENTENCE ===== */
