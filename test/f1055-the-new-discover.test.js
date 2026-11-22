@@ -51,7 +51,10 @@ test('f1055 (2) the four screens: the list of reads, New read, while it reads, t
   const N = fnBody(RD, 'dsnNewHtml');
   const page = N.slice(N.lastIndexOf('return `'));
   assert.ok(page.indexOf('id="dsc-q"') < page.indexOf('${filters}') && page.indexOf('${filters}') < page.indexOf("${line('all'"), 'the question on top, then the filters, then the folders to tick');
-  for (const k of ["'nfolder'", "'status'", "'party'"]) assert.ok(N.includes('dsnFChip(' + k), 'New read filters by ' + k);
+  /* RE-POINTED 22 Nov 2026 (P-42 review, as drawn): the folder chip says what is chosen ("Folder: All") and opens a menu of
+     All and each folder (dsnFolderChip, its choices still data-dsn-fset="nfolder"); Status and Party stay "+ filter" chips */
+  assert.ok(N.includes('dsnFolderChip(F)') && /data-dsn-fset="nfolder"/.test(fnBody(RD, 'dsnFolderChip')), 'New read filters by folder');
+  for (const k of ["'status'", "'party'"]) assert.ok(N.includes('dsnFChip(' + k), 'New read filters by ' + k);
   assert.match(fnBody(RD, 'dsnReadingHtml'), /data-dsn-results/, 'at the end, Open the results');
   const R = fnBody(RD, 'dsnResultsHtml');
   assert.match(R, /type="search" id="dsn-q"/, 'a full-width search');

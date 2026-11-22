@@ -49,18 +49,25 @@ test('f1061 (1) the server: build, change, delete, undo; the walls and the limit
   } finally { await h.stop(); }
 });
 
-test('f1061 (2) the row: one pack at a time, the others in a dropdown with Build and Manage', () => {
+/* RE-POINTED 22 Nov 2026 (P-42 review, as drawn: "Due diligence · 5 ▾ · Renewals · 3 · Liability · 2"): each pack its own
+   chip (up to DSN_PACK_CHIPS), the last built or chosen first with ▾, which opens every pack in ONE pop-up — each with
+   its own Ask this pack, Edit · Delete on yours, + Save these questions as a pack — and the panel lists the pack's
+   questions with Ask this pack. A chip, and Ask this pack, only FILL the box. */
+test('f1061 (2) the row: each pack a chip, the first opens every pack in one pop-up', () => {
   const R = fnBody(RD, 'dsnPackRowHtml');
-  assert.match(R, /const cur = dsnPackCur\(\)/);
-  assert.match(R, /data-dsc-pack="\$\{_rdE\(cur\.id\)\}"/, 'only the current pack is a chip');
-  assert.match(R, /data-dsn-pkmenu aria-haspopup="menu" aria-expanded="\$\{open\}"/);
-  assert.match(R, /P\.map\(p => `<button type="button" role="menuitem" class="dsn-pk-i[\s\S]*data-dsn-pkpick=/);
-  assert.match(R, /data-dsn-pkbuild[\s\S]*data-dsn-pkmanage/);
+  assert.match(R, /const cur = dsnPackCur\(\), list = \[cur\]\.concat\(P\.filter\(p => p !== cur\)\)\.filter\(Boolean\)\.slice\(0, DSN_PACK_CHIPS\)/);
+  assert.match(R, /data-dsc-pack="\$\{_rdE\(p\.id\)\}"/, 'every pack shown is a chip');
+  assert.match(R, /data-dsn-pkmenu aria-haspopup="dialog" aria-expanded="\$\{open\}"/);
+  const P = fnBody(RD, 'dsnPackPopHtml');
+  assert.match(P, /data-dsn-pkask=/); assert.match(P, /data-dsn-pkbuild/); assert.match(P, /'dsn_pk_pop_foot'/);
+  assert.match(fnBody(RD, 'dsnPackPeekPanel'), /data-dsn-pkask=/, 'the panel: the pack\'s questions and Ask this pack');
   assert.match(fnBody(RD, 'dsnPackCur'), /P\.find\(p => p\.id === id\) \|\| P\.find\(p => p\.builtin\)/, 'the last built or chosen, else Due diligence');
   assert.match(fnBody(RD, 'dsnPackSave'), /dsnPackCurSet\(p\.id\)/, 'a new pack takes the row');
-  assert.match(RD, /if \(e\.key === 'Escape' && _dsn\.pkMenu\)/, 'Esc closes the dropdown');
+  assert.match(RD, /if \(e\.key === 'Escape' && _dsn\.pkMenu\)/, 'Esc closes the pop-up');
   assert.match(RD, /addEventListener\('pointerdown', e => \{ if \(!_dsn\.pkMenu/, 'a press elsewhere closes it');
   assert.match(RD, /if \(t\.closest\('\[data-dsn-pkmenu\]'\)\)\{ _dsnStop\(e\); _dsn\.pkMenu = !_dsn\.pkMenu;/, 'press it again and it closes');
+  const wire = RD.slice(RD.indexOf("closest('[data-dsn-pkask]')"), RD.indexOf("closest('[data-dsn-pkpeek]')"));
+  assert.match(wire, /_dsc\.pack = p;/); assert.doesNotMatch(wire, /askColAskHere|dsnAsk\(/, 'Ask this pack only fills the box');
 });
 
 test('f1061 (3) the builder: questions from our standards, the note re-read, the limit said; Manage edits and deletes with Undo', () => {
@@ -69,19 +76,22 @@ test('f1061 (3) the builder: questions from our standards, the note re-read, the
   assert.match(S, /What does this contract say about/, 'a standard not named still asks');
   const P = fnBody(RD, 'dsnPackPanel');
   assert.match(P, /full = n >= DSN_PACK_MAX/); assert.match(P, /'dsn_pk_full'/, 'the limit is said, never a silent stop');
-  assert.match(P, /data-dsn-pkedit=[\s\S]*data-dsn-pkdel=/); assert.match(P, /may && !p\.builtin/, 'the built-in pack has no Delete');
+  /* RE-POINTED 22 Nov 2026 (P-42 review): Edit · Delete stand in the packs' pop-up (Manage is gone) */
+  const Pop = fnBody(RD, 'dsnPackPopHtml');
+  assert.match(Pop, /data-dsn-pkedit=[\s\S]*data-dsn-pkdel=/); assert.match(Pop, /mine && !p\.builtin/, 'the built-in pack has no Delete');
   assert.match(fnBody(RD, 'dsnPackDelete'), /confirmDialog\(/); assert.match(fnBody(RD, 'dsnPackDelete'), /dsnPackRestore\(p\)/, 'Undo after a delete');
   assert.match(fnBody(RD, 'dsnPackSave'), /dsnPackDelete\(p, \{ quiet: true \}\)/, 'Undo after a save');
   assert.match(RD, /const DSN_PACK_MAX = 8/);
 });
 
-test('f1061 (4) the columns: Number and Contract lead, a shared Party or Folder steps out, Answer before the quote', () => {
-  const L = fnBody(RD, 'dsnLeadCols');
-  assert.ok(L.indexOf("k: 'no'") < L.indexOf("k: 'name'"));
-  assert.match(L, /if \(!S\.party\) out\.push\(\{ k: 'party'/); assert.match(L, /if \(!S\.folder\) out\.push\(\{ k: 'folder'/);
+/* RE-POINTED 22 Nov 2026 (P-42 review, as drawn): one Contract column — the name, and the number (always) · the party (not
+   where every row shares it: the subject, said once under the title) under it; Answer before the playbook's mark */
+test('f1061 (4) the contract column: the number always, a shared party steps out, Answer first', () => {
+  const C = (RD.match(/const dsnContractCell = [^\n]*/) || [''])[0];
+  assert.match(C, /_rdRef\(c\), S && S\.party \? '' : _dsnParty\(c\)/);
   assert.match(fnBody(RD, 'dsnSubject'), /v\.length === 1/);
   const R = fnBody(RD, 'dsnResultsHtml');
-  assert.ok(R.indexOf("k: 'ans'") < R.indexOf("k: 'says'"), 'answer first');
+  assert.ok(R.indexOf("k: 'ans'") < R.indexOf("k: 'pb'"), 'answer first');
   assert.match(R, /dsnSubjectWords\(S\.rows\.map\(x => x\.c\)\)/, 'the subject named once under the title');
 });
 

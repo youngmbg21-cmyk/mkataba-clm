@@ -151,13 +151,30 @@ const blocked = [];
       /* ---- Q3 · two lines: a person's contracts on People ---- */
       await clean(); await ev(() => setView('directory'));
       await until(() => document.querySelector('#content table tbody tr'));
-      await page.click('#content table tbody tr').catch(() => {});
-      /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the chosen person's panel is Jambo's five parts
-         (dirnPanelFive) — their contracts are the rows under "Named on, most recent", each name the row's <b> */
-      const NAMES = () => { const sec = [...document.querySelectorAll('.ins-panel .jov5-sec')].find(x => { const l = x.querySelector('.jov5-label'); return l && l.textContent.trim() === i18t('jov5_dir_named'); });
-        return sec ? [...sec.querySelectorAll('.jov5-row .jov5-rt > b')] : []; };
+      /* RE-POINTED 21 Nov 2026 (P-26, as drawn): the panel no longer lists "Named on, most recent" (Show their contracts
+         opens them all); the agreements it names are in what waits on the person (.dirn-w-t) and the timeline of what
+         they did (.dirn-tl li > button). The rule stands: each name whole in two lines or fewer. The rows are walked
+         until a person whose panel names an agreement is chosen. */
+      const NAMES = () => [...document.querySelectorAll('.ins-panel :is(.dirn-w-t, .dirn-tl li > button)')];
       await ev(`window.__q3names = ${NAMES.toString()}`);
-      const list = await until(() => window.__q3names().length > 0, undefined, 6000);
+      let list = false;
+      const nRows = await ev(() => document.querySelectorAll('#dir-tbody [data-dir-row]').length, undefined, 0);
+      for (let i = 1; i <= Math.min(nRows || 0, 12) && !list; i++){
+        await page.click(`#dir-tbody [data-dir-row]:nth-child(${i}) .cun-name`).catch(() => {});
+        list = await until(() => window.__q3names().length > 0, undefined, 1500);
+      }
+      /* RE-POINTED 22 Nov 2026 (P-26 review): the sample book's one person (the admin) has nothing in her timeline — no
+         signature, ask or proposal names her — so no panel names an agreement and the rule had nothing to measure. Where
+         the walk finds none, her signature is put on three of her agreements (the long "Regulatory" one first) in this
+         page's memory only, and her panel's timeline then names them; the rule measured is unchanged */
+      if (!list){
+        await ev(() => { const me = currentUser(); const p = (dirBook() || []).find(x => x.side === 'ours' && String(x.email || '').toLowerCase() === String(me.email || '').toLowerCase()); if (!p) return;
+          const cs = (p.contracts || []).map(id => getContract(id)).filter(Boolean).sort((a, b) => (/Regulatory/.test(b.name) ? 1 : 0) - (/Regulatory/.test(a.name) ? 1 : 0)).slice(0, 3);
+          cs.forEach((c, i) => { c.signatures = (Array.isArray(c.signatures) ? c.signatures : []).concat([{ name: me.name, email: me.email, at: new Date(Date.now() - (i + 1) * 864e5).toISOString() }]); });
+          renderDirectory(); });
+        await page.click('#dir-tbody [data-dir-row]:first-child .cun-name').catch(() => {});
+        list = await until(() => window.__q3names().length > 0, undefined, 3000);
+      }
       await settle(); await shot('q3-people');
       if (!list) check(`${at} · Q3 — People: a person's contracts are listed`, false);
       else {

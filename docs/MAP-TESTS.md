@@ -284,6 +284,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## CUSTOMER FOLDERS — SHELVES, THE SAP WAY (js/views/customers.js)
 - f399, f412, f561, f564, f720, f738, f739, f796; customers, contracts-page 12, parties-sap-way, parties-nda-column, parties-and-people verify.
+- P-25 AS DRAWN (21 Nov 2026): test/f1139-parties-as-drawn.test.js (new; 5 of 5 red at the parent) — the paper's own "between … and …" words (cunWordsIn, run for real), On paper's currency in the head (cunPaperSay), the worklist's words, quotes and badges, the panel's facts / what waits split with no money and no attention link, + Add a party and the ask box. Browser: parties-and-people 2b, 3b, 3e, 4i, 9d and parties-sap-way 1, parties-and-contracts-as-drawn 2a RE-POINTED.
+- P-25/P-26 REVIEW (22 Nov 2026): f1139 (6) (new; red at the parent) — one chip rule for My notes, Parties and People, the grey dash, no foot line, no Waiting column where nothing waits (cunNoWork), the Waiting on you timeline (started · late · the next step), People's soft badges; f1139 (2) and (4), f1108 (5), f1070 (ring 44), f986 (People's badge) RE-POINTED; browser parties-and-people 2a, 6b, 6d and people-directory roles RE-POINTED.
 
 ## ASK A COLUMN (js/views/askcolumn.js)
 - DISCOVER IS READY BEFORE IT IS OPENED (20 Nov 2026): test/f1127-discover-is-ready-before-it-is-opened.test.js (new; renumbered: main took f1125, f1126; 3 of 3 red at the parent) — the quiet fetch once a sitting (idle, not phone, not in front, from startApp), the list waits only for what it draws and asks for the answers at once, Loading… before the reads. Re-ran green with the area: 138 of 138.
@@ -997,6 +999,14 @@ f1070 (3), f989 3, f997 (1), f998 (3) re-pointed.
 - test/chromium/explorer-chips-follow-the-view-verify.js 3e, 3f: the Grid's rows, a pairing first and no money
   shading in the panel; shaded by money, "Shade the cells by how many" second.
 
+## THE ONE DESK — NEEDS YOU, ONE READING — ONE COUNT, ONE WAIT (review of merged pages, 22 Nov 2026)
+- test/f1140-one-count-one-wait.test.js: ndWaitCounts (Jambo = every piece, late too) read by the Board's chips, the
+  panel's ring and "I have N things ready", the bell's chips and its Jambo filter; hbHelloFitN + "N more" (never a cut
+  row); an approval's wait off its question's `at`, else the raised day, never `lastAction` (the Board; the Approvals page's idle column keeps its own fact); the
+  company row (name, one line, oldest wait, `plain` clash words, no sum); Activity's short lines (actSayOf, a note Asked).
+- Re-pointed: f869 2c (one line under the company row), f726 1c (clash `at`), f1032 (3)(4) ("Asks you"),
+  counter-as-drawn-verify 11a (a piece with the paper's words is a two-line row). The levels line was restored (f801 3h and
+  open-in-place-verify 2 stand as on main).
 ## THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM / THE COUNTERPARTY'S PAGE (P-44 review, 22 Nov 2026)
 f439, f143, f37, f49, f440 re-pointed to the drawn page (the band, the stops, the chips, the panels, the bell on the bar);
 f743 (3d) pins the one-line What happened with its hover. Run: f439 f143 f37 f49 f440 f743 f191 f148.
