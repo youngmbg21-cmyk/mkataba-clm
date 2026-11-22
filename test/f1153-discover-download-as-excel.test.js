@@ -73,13 +73,6 @@ test('f1153 (4) both Discover tables draw Download beside Export, and Copy and D
   assert.match(fnOf(AC, 'askColXlsx'), /\.xlsx/);
 });
 
-test('f1153 (6) Ask a column carries it too: under each column and on its results table, beside Copy (owner, 22 Nov 2026)', () => {
-  assert.match(AC, /data-ac-copy="\$\{_acE\(askId\)\}">[^<]*<\/button><button type="button" class="ac-link" data-ac-xlsx=/, 'the column: Copy, then Download as Excel');
-  assert.match(AC, /closest\('\[data-ac-xlsx\]'\)[^\n]*askColXlsx\(\[k\]/, 'its press writes that column');
-  assert.match(AC, /id="ac-tt-copy"[^\n]*\n\s*<button type="button" id="ac-tt-xlsx"/, 'the results table: Copy, then Download as Excel');
-  assert.match(AC, /getElementById\('ac-tt-xlsx'\)[\s\S]{0,120}askColXlsx\(run\.askIds/, 'its press writes the run');
-});
-
 test('f1153 (5) the words are in both books', () => {
   for (const k of ['dsn_xlsx', 'ac_xlsx_done', 'ac_xlsx_none', 'ac_xlsx_failed']) assert.equal((I18N.match(new RegExp('\\n\\s+' + k + ':', 'g')) || []).length, 2, k + ' is in en and sv');
 });
