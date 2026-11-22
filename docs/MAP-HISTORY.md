@@ -40099,3 +40099,6 @@ The owner, on the iPad: "When on my iPad and i try to enter my cursor in the fie
 
 ## THE AI'S READING RULES (22 Nov 2026, auto pilot batch 2)
 - Bug log: nine-plus AI routes answered a provider failure with 502 and no `kind`, so the browser's stand-in said "could not be reached". Every route's "Jambo provider error" reply now carries `kind: 'provider'` (22 replies), which api.js already copies onto the error and aiFailWhy/triageWhy already read. f1177, red at the parent.
+
+## THE SHELL — RAIL, BAR, PANELS (22 Nov 2026, auto pilot batch 2)
+- Bug log: caReadSend (and the draft reader) set the send screen / draft form opening from inside the READING, so a reading caActOf then dropped still opened the screen while the question went to the model, and caTakesWords (which only asks) opened it too. The opener now rides on the act, non-enumerable (`caActLater`), and runs only on a kept reading (`caActGo`, both of caActOf's returns). f1178, red at the parent.
