@@ -1699,7 +1699,9 @@ function hbBoardHelloHtml(){
   const asks = [ending ? chip(i18tn('hb_jb_ending', ending, { n: ending })) : null, chip(i18t('hb_jb_by_stream')), views ? chip(i18t('hb_jb_views')) : null,
     n ? chip(i18t('hb_jb_needs_chip')) : null,
     (typeof calHandOff === 'function') ? { label: i18t('ob_yw_chip_week'), title: i18t('cal_plan_p_week'), run: () => calHandOff('week') } : null].filter(Boolean);
-  const brain = (typeof igMiniBrainHtml === 'function') ? igMiniBrainHtml() : '';
+  /* NO EXPLORER MAP ON THE BOARD'S PANEL (owner, 22 Nov 2026: "delete this explorer feature from the board side
+     panel"; reverses the 13 Nov BRAIN WELCOME): the panel opens on Jambo's line; the map lives on Explorer */
+  const brain = '';
   /* THE FIVE PARTS (owner, 15 Nov 2026, round 3; "Build the panels in three rounds as recommended"): the brain, then the
      headline, three tiles that each open their list (needs you → the Board's Needs you; live contracts → the book's
      Live figure; days to the next end → the Calendar), the first things that need you as rows, ONE black button. The

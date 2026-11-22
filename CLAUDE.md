@@ -203,7 +203,7 @@ Ranked live (`puRead`, `PU_TICK_MS`): `puNeedsMap` off `ndRead` · `fxRankValue`
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
 - THE BOARD, P-39: Your book FIGURE CARDS, ≤4 (`HB_FIGS_MAX` 4, `HB_FIGS_DEFAULT` no value; `.is-cards`, picker `data-hb-figusual`); Needs you chips All · Late · Your move · Jambo (`ndInTab` 'late'), Status badges (`ndStatusOf`), quote (`cn2QuoteHtml`), no money; panel ring + ONE bar (`hbBoardHelloHtml` `ringBar`, `hbw2-*`) and Jambo's pieces, no tiles; ring sweeps on `jovPlay`.
 - LAND ON THE BOARD (core.js `_landBoard`): `cn2Greet` · pills · Live; Summarise = brief card (`hbBriefShut`, `hbGreetSayHtml`; f745 (7)); GREEN Draft pill (`hbDraftBtnHtml` → caGo 'draft'; f1049).
-- BRAIN WELCOME (Board): `igMiniBrainHtml`, loop `igMiniWake`, numbers are doors (`hbWelcomeGo`; 0 none) (f1042).
+- NO EXPLORER MAP ON THE BOARD'S PANEL (owner, 22 Nov 2026; reverses BRAIN WELCOME): `hbBoardHelloHtml` draws no `igMiniBrainHtml` — it opens on Jambo's line; the map lives on Explorer. Numbers are doors (`hbWelcomeGo`; 0 none) (f1042).
 - `HB_FACES` Board · Workspace (`paper`) · Calendar · Explorer (`hbRender`); numbers are doors (`hbDigData`); `hbAskReadingOf`, `hbBoardApply`, `hbFactCheck` (server `numbersOutside`); Your book = ALL Needs you (`ndBoardHtml`, `hbBookHtml`). Typed chart (`hbAnalyticAsk`) stays (`igBoardTalkAsk`, `hbResMend`; f999).
 - DOSSIER tabs (`copilot`) · Clauses · Redlines (`PD_TABS_SHOWN`); `dossierOf`; `pdTabCount` (`rlOpenCardCount`; f1031); chips `caNextSteps`.
 - WORDS: a word opens a door (`CA_PLACES`, `caGo`, "/" `caSlashRows`); sentence → the form (`caIsDraftAsk`); `hbWhyAsk`, `hbDdOn`. Hidden Board unpainted (`hbPaintBoard`, `hbSetFace`); side row → Dossier (`hbSheetGo`).
