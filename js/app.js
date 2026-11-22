@@ -4966,6 +4966,11 @@ if(state.panelOpen===undefined) state.panelOpen=false;
   window._outsideLook=!!(st&&st.outsideLook); if(typeof window.outsideLookApply==='function') outsideLookApply();
   if(st && st.mode==='api'){
     REMOTE={ org:st.orgName?{name:st.orgName}:null, me:null, users:[] };
+    /* NO DEMO BOOK ON A SERVER (21 Nov 2026): state is born holding the thirty sample contracts, which only the
+       browser-only mode keeps. On a server the book is the server's, so it is empty until loadBootstrap brings it —
+       the sample book sat in memory through sign-in, and anything painted meanwhile (the Board counted 29 live) read
+       contracts that do not exist. The setup screen's "start with sample data" builds its own set (sampleContracts). */
+    state.contracts=[];
     if(rs){ renderAuth('reset:'+rs[1]); return; }
     if(!st.setup){ renderAuth('setup'); return; }
     if(!st.authed){ renderAuth('login'); return; }

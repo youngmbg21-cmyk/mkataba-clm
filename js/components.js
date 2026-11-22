@@ -593,7 +593,11 @@ function jamboWaysHere(){
   const face = JB_WAY_FACES.has(k);
   return { k, doors: row.d.filter(d => d !== k && (face || !JB_WAY_FACES.has(d))) };
 }
-function jamboWayWord(k){ const w = _jbT('ca_w_' + k); return (w && w !== 'ca_w_' + k) ? w : k; }
+function jamboWayWord(k){
+  /* P-31 AS DRAWN (21 Nov 2026): beside the Contracts place, a paper chosen on the Wall included, the links line says them
+     in full, as the list's own line does ("upload a document · draft a new agreement · discover") */
+  try { if (window.CA_CHIP_WALL_WORD && window.CA_CHIP_WALL_WORD[k] && typeof window.regPlaceUp === 'function' && window.regPlaceUp()) return _jbT(window.CA_CHIP_WALL_WORD[k]); } catch (_){ /* the short word stands */ }
+  const w = _jbT('ca_w_' + k); return (w && w !== 'ca_w_' + k) ? w : k; }
 function jamboWaysHtml(here, cls){
   /* the new look's (owner, 31 Oct 2026: built behind the switch until each page is approved) */
   if (typeof window.newLookOn === 'function' && !window.newLookOn()) return '';
@@ -1955,16 +1959,31 @@ function jovMoves(el){
   const slot = String(el.getAttribute('data-jov-slot') || '');
   return JOV_MOVE_SLOTS.has(slot);
 }
-/* the numbers count up from nothing to what they say (a leading whole number only; "697M" counts 0…697, then M) */
+/* A COUNT-UP IS DRAWN OVER THE NUMBER, NEVER WRITTEN INTO IT (21 Nov 2026). The count used to write '0', '3', '7'…
+   into the number's own text and put the true one back at the end, so for most of a second after an arrival the page
+   SAID 0 — to a screen reader, to a copy, to anything reading the page (the Board's check read its four figures as
+   0,0,0,0 while the book said 10,1,1,1) — and a repaint landing mid-count had to guess which text was whose. Now the
+   number's text stays the true number throughout; the counting figure is painted over it (data-jov-count, its
+   ::after, index.html) and taken away at the end, by the last frame or by a timer, since frames stop while hidden.
+   A leading whole number only; "697M" counts 0…697, then M; never twice at once on one number. */
+function jovCountOver(b){
+  if (!b || b.hasAttribute('data-jov-count')) return;
+  const m = String(b.textContent || '').match(/^(\d{1,6})(\D.*)?$/); if (!m) return;
+  const to = Number(m[1]), rest = m[2] || ''; if (!to) return;
+  const t0 = performance.now(), dur = 700, delay = 160, was = b.textContent;
+  let done = false;
+  const finish = () => { if (done) return; done = true; b.removeAttribute('data-jov-count'); };
+  /* a redraw that writes a NEW number meanwhile wins: the count stops and the new number shows at once */
+  const step = now => { if (done) return; if (!b.isConnected || b.textContent !== was) { finish(); return; }
+    const k = Math.min(1, Math.max(0, (now - t0 - delay) / dur)); if (k >= 1) { finish(); return; }
+    b.setAttribute('data-jov-count', Math.round(to * (1 - Math.pow(1 - k, 3))) + rest); requestAnimationFrame(step); };
+  b.setAttribute('data-jov-count', '0' + rest); requestAnimationFrame(step);
+  setTimeout(finish, delay + dur + 120);
+}
+/* the numbers count up from nothing to what they say */
 function jovCountUp(el){
   /* the tiles' numbers, and the Board panel's ring ("4/12" counts 0…4, as drawn, P-39) */
-  el.querySelectorAll('.jov5-g b, .hbw2-ring > b').forEach(b => {
-    const m = String(b.textContent || '').match(/^(\d{1,6})(\D.*)?$/); if (!m) return;
-    const to = Number(m[1]), rest = m[2] || ''; if (!to) return;
-    const t0 = performance.now(), dur = 700, delay = 160;
-    const step = now => { const k = Math.min(1, Math.max(0, (now - t0 - delay) / dur)); b.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))) + rest; if (k < 1) requestAnimationFrame(step); };
-    b.textContent = '0' + rest; requestAnimationFrame(step);
-  });
+  el.querySelectorAll('.jov5-g b, .hbw2-ring > b').forEach(jovCountOver);
 }
 function jovPlay(el){
   [...el.children].forEach((ch, i) => ch.style.setProperty('--jov-i', String(i)));
@@ -2025,7 +2044,7 @@ if (typeof document !== 'undefined' && typeof MutationObserver !== 'undefined' &
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 }
 
-Object.assign(window, { jovArriveQuiet, jovArriveDue, jovArriveMark, jovPageKeyOf, jovArriveSweep, JOV_MOVE_SLOTS, jov5HeadHtml, jov5MarkHtml });
+Object.assign(window, { jovCountOver, jovArriveQuiet, jovArriveDue, jovArriveMark, jovPageKeyOf, jovArriveSweep, JOV_MOVE_SLOTS, jov5HeadHtml, jov5MarkHtml });
 
 /* ======================================================================================================================
    THE ONE EDIT POP-UP, THE LEGORA WAY (owner's pick by name, 19 Nov 2026: "use legora way"; drawn on today's pages)

@@ -272,7 +272,7 @@ EVERY PLACE THE ANSWERS WERE READ (owner, 19 Nov 2026): a chosen row's paper sho
 - CONTRACTS BESIDE THE BOARD: `setView('register')` → `hbOpenContracts` (not phone); `renderRegister({home:true,hostId:'ct-place'})`: `regHomeHeadHtml` (List | Wall). HEAD STACKS (reverses "one line"): ‹ Folders, serif title, tabs; NO SENTENCE OVER THE LIST (owner, 20 Nov 2026; `regCtSayHtml` STALE). Press chooses (`igWallChoose`), second opens (`igWallOpen`), Esc lets go (`igWallLetGo`).
 - HEAD = NAME + ONE GROUP (owner, 19 Nov 2026): no facts line beside the name; List · Wall · New agreement ONE `.ct-acts`, one height, one line, dropping under the name whole (`regHomeHeadHtml`). f687 2a.
 - FOLDER PANEL: sentences without AI (`regFolderSays`), each an existing door. f1053.
-- L+S, P-31: Folders landing = summary (`regFolderRowsHtml`: four cards, bar, end dots `regFolderSummaryData`, folders table; a row CHOOSES `_ctfPick`, panel `regFoldersLsPanelHtml`); list Standing badge + Needs you (`regNeedsCellHtml`); Stripe wall (`igWallCardHtml`); no money in any panel.
+- L+S, P-31 AS DRAWN (21 Nov 2026): one reading per part — `regLsStandOf` (In review · Signed · Ended), `regLsNeedWord`, `regLsBarHtml`, `regLsDotsHtml`, `regLsQuoteHtml` (the paper's end words, §); landing `regFolderRowsHtml` (row CHOOSES `_ctfPick`, panel `regFoldersLsPanelHtml`); every list's panel `regLsListPanelHtml`, Wall's chosen `pd2ChosenLsHtml`; shelf `regLsEnded`; panels `.ctls`, no cards, no money.
 - `regSetScope`/`regScope` first; `regRepaint()`; `regFiltered` + `regNarrowed()`; `regOpenContract`. Head `regCtHeadReg`. `clauseNameShown` AS ON THE PAPER; `clauseLabel` a RECORD. Answers → `regShowOnly`.
 ## CALENDAR
 HOME TAB (`setView('calendar')` → `hbOpenCalendar` → `renderCalendar` in `#hb-cal`); `calToday()` via `todayISO`; POST /api/ai/plan (`planBlocksCheck` ≤8); writer `calLevelSet`; bookings → `calHandOff`. Opens on AGENDA (`calAgendaViewHtml`); colours `calHzTone`. `{keepPanel:true}`; unchanged draws nothing (`renderCalendar({ifMoved})`). f987, f988.
@@ -304,6 +304,7 @@ OVERLAP, NOT SUM: only what all may see — no review, asks, notes, unshared mon
 ## HOW THINGS MOVE
 - No motion library: transform, opacity, WAAPI; never animate width/height/left/top. Width SNAPS (`igSyncDockWidth`); lists glide (`listGlideAround`). FACE CHANGE AT ONCE, underline glides (`faceSwap`, `_pdBodyFresh`; f1024). Swipe right shuts panel (`PANEL_SWIPE_*`). Reduced motion = instant.
 - JAMBO'S PANELS ARRIVE RARELY: first open a day, then 5 HOURS; contract = one page (`jovPageKeyOf` → 'c'); never on redraw/tab/Back/refresh. `jovArriveSweep` (`jovArriveDue`/`jovArriveMark`, `jovArriveQuiet`, `JOV_MOVE_SLOTS`). f1067, f1078. Chart fades once (`hbChartsStill`).
+- A COUNT-UP IS PAINTED OVER THE NUMBER, its words stay true (`jovCountOver`, `data-jov-count` ::after; `hbMorphSameShell` keeps it on a same-number redraw). On a server the book starts EMPTY (no demo book) and arrives WHOLE (`loadBootstrap`). f1137.
 ## THE HARMONY REVIEW (owner's picks 9 Nov 2026; docs/PLAN-harmony.md)
 index.html block "THE NEW LOOK: HARMONY": ONE HEAD (`.ctf-h`); PILL TO ACT; same-every-row column out; EVEN TILES (`regTileBig`); SAME CARD TWICE. PAPER IN PAGES (`igPaperPaginate`); typing: THIN PAGE LINES (`pagesLines`, f980). f977, f955.
 ## THE NEW LOOK IS THE ONLY LOOK

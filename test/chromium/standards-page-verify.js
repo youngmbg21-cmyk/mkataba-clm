@@ -114,10 +114,13 @@ const DRAFT = { ask: 'Each party’s liability is capped at the fees paid in the
       const pk = await page.evaluate(k => {
         const b = [...document.querySelectorAll('#content [data-apn-peek]')].find(x => x.getAttribute('data-apn-peek') === k); if (!b) return null;
         const td = b.closest('td.apn-acts'), btns = td ? [...td.querySelectorAll('button')] : [];
-        const r = { under: btns.length === 3 && btns[2] === b && b.getBoundingClientRect().top >= btns[0].getBoundingClientRect().bottom - 1,
+        /* RE-POINTED 22 Nov 2026 (P-30 review): Allow once and Refuse left the row for its panel (as Approve and Decline
+           did) — the paper link is the row's one press; the panel carries the decision */
+        const pa = document.getElementById('ins-panel');
+        const r = { under: btns.length === 1 && btns[0] === b && !!(pa && pa.querySelector('[data-apn-allow]') && pa.querySelector('[data-apn-refuse-dep]')),
           onStd: document.querySelectorAll('#content tr[data-ap-kind="stdchange"] [data-apn-peek]').length };
         b.click(); return r; }, key);
-      check(`${tag} 2c "See it in the paper ›" sits under Allow once and Refuse, on departures only`, !!pk && pk.under && pk.onStd === 0, pk);
+      check(`${tag} 2c "See it in the paper ›" is the departure row's one press, Allow once and Refuse in its panel, on departures only`, !!pk && pk.under && pk.onStd === 0, pk);
       /* the words THIS departure's check quoted, read off the record (LD-1 and LD-2 quote different words) */
       const quoteOf = await page.evaluate(k => { const m = /^dep:(.+):(\d+)$/.exec(k || ''); const c = m && getContract(m[1]); const v = c && c.playbook && c.playbook.verdicts[+m[2]]; return v ? String(v.quote || '') : ''; }, key);
       const pop = await until(q => {
