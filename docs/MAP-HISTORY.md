@@ -39712,3 +39712,10 @@ hide their heads — not asked.
 THE GREEN LINK: `caBackRowHtml()` no longer drawn in Home's panel (intelligence.js renderIntelDock) — it was the
 "‹ Back to the Board / Contracts / MK-x on the paper" row on the Board, Contracts, Explorer and a contract's Dossier.
 The trail and the function stay (a typed "back", f672 (5)); the bar's ‹ is the way back.
+Same day, after "Added only on 16 pages? Have you also added in the subsequent tabs in the pages?": the watermark rides
+the panel, so every tab inside a panel has it (a contract's Dossier · Clauses · Redlines, Explorer's Your day · Overview ·
+Findings, Read down, Jambo's agents — photographed). Panels built apart were added: Settings' own pages (`.st-cr
+.st-side`, still, arrow `.st-side-fold` circled), the template builder's (`.tb-rail.tb-jl`, given position:relative) and
+the clause editor's (our seat `.ce-rail`). Owner: "Do not add to the alerts panel" — `#context-panel` left plain
+(panel-watermark-verify 8). Jambo's pop-out window (`#ai-panel`) left out: a window, not a side panel. The builder and
+the editor were not photographed (the sample book had no paper to open them on).

@@ -10,6 +10,7 @@
      5  the chosen tab and a tag at the top of a panel carry the thin outline
      6  no panel draws the green "‹ Back to …" link (owner, 22 Nov 2026: deleted)
      7  nothing makes a panel or the page scroll sideways
+     8  the Alerts · Notes · Activity panel stays plain (owner, 22 Nov 2026)
    AT THE PARENT every claim FAILS: no watermark, the arrow is a bare icon, the Board has none, the link is drawn.
    ============================================================ */
 /* global state, setView, hbSetFace, pdOpenOnHome */
@@ -95,6 +96,19 @@ const READ = () => {
     /* 2 — Settings: drawn, still */
     const st = await go('team', () => !!document.querySelector('#set-page #ins-panel .jl-head'));
     ok('2 Settings: the watermark is drawn and held still', !!st && st.painted && !st.moving, JSON.stringify(st));
+
+    /* 2b — Settings' own pages (People & roles): their panel carries it too, still */
+    await page.evaluate(() => { if (window.sddGo) sddGo('rules'); }); await page.waitForTimeout(800);
+    await page.evaluate(() => { if (window.openSettingsAt) openSettingsAt('people'); });
+    await until(page, () => !!document.querySelector('.st-cr .st-side:not(.is-folded)'), null, 8000);
+    const sp = await page.evaluate(() => { const e = document.querySelector('.st-cr .st-side:not(.is-folded)'); if (!e) return null; const b = getComputedStyle(e, '::before'); return { painted: /data:image\/svg/.test(b.maskImage || b.webkitMaskImage || ''), moving: b.animationName !== 'none' }; });
+    ok('2b Settings\' own pages: the panel carries the watermark, still', !!sp && sp.painted && !sp.moving, JSON.stringify(sp));
+    /* 8 — the Alerts · Notes · Activity panel stays plain (owner, 22 Nov 2026: "Do not add to the alerts panel") */
+    await page.evaluate(() => { setView('dashboard'); if (window.openPanel) openPanel('alerts'); });
+    await until(page, () => !!document.querySelector('#context-panel.open'), null, 6000);
+    const al = await page.evaluate(() => { const e = document.querySelector('#context-panel.open'); if (!e) return 'not open'; return [e, ...e.querySelectorAll('*')].some(x => /data:image\/svg/.test(getComputedStyle(x, '::before').maskImage || '')); });
+    ok('8 the Alerts panel carries no watermark', al === false, String(al));
+    await page.keyboard.press('Escape');
 
     /* 6 — a typed move from a contract's paper to the Board draws no way-back link */
     const id = await page.evaluate(() => state.contracts[0].id);
