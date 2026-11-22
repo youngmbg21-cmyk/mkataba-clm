@@ -6414,19 +6414,63 @@ function hbRdnVal(c){ let h = null; try { h = typeof fxCounted === 'function' ? 
 function hbRdnDay(iso){ try { return new Date(iso + 'T00:00:00').toLocaleDateString(langLocale(), { day: 'numeric', month: 'long', year: 'numeric' }); } catch (_){ return iso; } }
 /* the short day the panel's Look closer row says (as drawn: "20 Dec 2026") */
 function hbRdnDayShort(iso){ try { return new Date(iso + 'T00:00:00').toLocaleDateString(langLocale(), { day: 'numeric', month: 'short', year: 'numeric' }).replace(/\bSept\b/, 'Sep'); } catch (_){ return iso; } }
+/* READ DOWN, THE STRIPE WAY, WITH JAMBO'S BRIEF (owner picked "the stripe way but in the jambo brief, add the highlights",
+   22 Nov 2026; folds "Summarise my board" into this page, the button and its card leave the Board): four figure cards,
+   each a door the page already has; Jambo's brief card (the counted sentence with its coloured words, the one to start
+   with quoted from the paper, then his paragraph — written only when Summarise is pressed, as before); the five readings
+   as one calm table with a soft status badge each; the quarters; the foot. No money. The same reading (hbRdnRead). */
+function hbRdnStatusOf(k, R){
+  const b = (tone, w) => `<span class="rd-st is-${tone}">${_hbE(w)}</span>`;
+  if (k === 'paper'){ const r = R.L.length - R.sig.length; return r ? b('amber', i18t('rd_st_review', { n: r })) : R.L.length ? b('green', i18t('rd_st_signed')) : b('gray', i18t('rd_st_none')); }
+  if (k === 'end') return R.ending.length ? b('ruby', i18t('rd_st_ends_first')) : b('gray', i18t('rd_st_none'));
+  if (k === 'streams') return R.streams.length ? b('violet', i18t('rd_st_streams', { n: R.streams.length })) : b('gray', i18t('rd_st_none'));
+  if (k === 'nego') return R.nego.length ? b('amber', i18t('rd_st_open', { n: R.nego.length })) : b('gray', i18t('rd_st_none'));
+  return R.late ? b('ruby', i18t('rd_st_late', { n: R.late })) : R.week ? b('amber', i18t('rd_st_week', { n: R.week })) : b('gray', i18t('rd_st_none'));
+}
+function hbRdnBriefHtml(){
+  const E = _hbE, key = HB_BOARD_KEY, src = hbBoardSrc();
+  const kept = hbWhyKept(key, src.sig), busy = _hbWhyBusy.has(key), err = _hbWhyErr.get(key);
+  const live = typeof copilotAvailable === 'function' && copilotAvailable();
+  const spark = typeof icon === 'function' ? icon('mkSpark', 'hb-spark-ic', 0) : _hbStar;
+  /* the counted sentence with its coloured, pressable words (hbGreetSayHtml), and the one to start with (hbBriefStartHtml) —
+     shown only once Summarise is pressed (owner, 11 Nov 2026: "nothing written … you should only see them once you press") */
+  let since = ''; try { since = hbGreetSayHtml(null, null); } catch (_){ since = ''; }
+  const x = `<button type="button" class="hb-ib hb-x rd-brief-x" data-hb-bs-x title="${E(i18t('hb_bs_close'))}" aria-label="${E(i18t('hb_bs_close'))}">${_hbX}</button>`;
+  const btn = `<button type="button" class="ui-btn ui-btn-sm rd-brief-go" data-hb-why="${E(key)}"${busy ? ' disabled' : ''}${live ? ` title="${E(i18tn('hb_cx_cost', src.cs.length, { n: _hbN(src.cs.length) }))}"` : ` disabled title="${E(i18t('hb_cx_nokey'))}"`}>${E(i18t(kept ? 'hb_bs_again' : 'hb_bs_btn'))}</button>`;
+  const head = (right) => `<div class="rd-brief-h"><span class="rd-brief-i" aria-hidden="true">${spark}</span><b>${E(i18t('rd_brief_t'))}</b>${kept ? `<span class="rd-brief-at">${E('· ' + i18t('hb_cx_when', { at: kept.at }))}</span>` : ''}<span class="hb-grow"></span>${right}</div>`;
+  let body;
+  if (busy) body = `${head('')}<p class="rd-brief-b hb-quiet">${E(i18t('hb_bs_busy'))}</p>`;
+  else if (err) body = `${head(x)}<p class="rd-brief-b">${E(err)}</p>`;
+  else if (kept) body = `${head(btn + x)}<div class="rd-brief-b" id="hb-gr-say">${[since, hbBriefStartHtml(), `<span class="rd-brief-jb">${spark}${E(i18t('rd_brief_jambo'))}</span> ${hbSay(kept.text)}`].filter(Boolean).join(' ')}</div>
+      <p class="rd-brief-f ${kept.dropped ? 'is-cut' : ''}">${E(kept.dropped ? i18tn('hb_cx_dropped', kept.dropped, { n: kept.dropped }) : i18t('hb_cx_ok'))}</p>`;
+  else body = `${head(btn)}<p class="rd-brief-b hb-quiet">${E(i18t('rd_brief_say'))}</p>`;
+  return `<section class="rd-brief${kept ? ' is-kept' : ''}" aria-live="polite">${body}</section>`;
+}
 function hbRdnHtml(){
   const R = hbRdnRead(), E = _hbE, S = hbRdnSentences(R);
   let when = ''; try { when = new Date().toLocaleDateString(langLocale(), { weekday: 'long', day: 'numeric', month: 'long' }); } catch (_){ when = ''; }
-  const rows = S.map((x, i) => `<div class="rd-row" data-rd-row="${i}"><span class="rd-pic-w" aria-hidden="true">${hbRdnPic(x.k, R)}</span><div class="rd-tw"><p class="rd-t">${E(x.t)}</p>${x.q ? `<p class="rd-q-w"><q>${E(x.q.w)}</q>${[x.q.sec, x.q.name].filter(Boolean).length ? ` <span>${E([x.q.sec, x.q.name].filter(Boolean).join(' \u00b7 '))}</span>` : ''}</p>` : ''}</div><div class="rd-src"><b>${E(x.src)}</b><button type="button" class="rd-go" data-rd-go="${E(x.go)}">${E(x.door)} ›</button></div></div>`).join('');
+  const needs = typeof counterNeedsCount === 'function' ? counterNeedsCount() : 0;
+  let D = null; try { D = typeof ndRead === 'function' ? ndRead() : null; } catch (_){ D = null; }
+  /* the oldest's wait, said the one way the Board says it (hbNyDays: "52 days", "today") */
+  const oldest = needs && D && D.oldest != null && typeof hbNyDays === 'function' ? hbNyDays(D.oldest) : null;
+  const f = R.ending[0];
+  let firstEnd = ''; try { firstEnd = f ? new Date(R.exp(f) + 'T00:00:00').toLocaleDateString(langLocale(), { month: 'short', year: 'numeric' }).replace(/\bSept\b/, 'Sep') : ''; } catch (_){ firstEnd = ''; }
+  const badge = (tone, w) => w ? ` <span class="rd-st is-${tone}">${E(w)}</span>` : '';
+  const fig = (go, label, n, b) => `<button type="button" class="rd-fig" data-rd-go="${E(go)}"><span class="rd-fig-k">${E(label)}</span><span class="rd-fig-v"><b>${E(String(n))}</b>${b}</span></button>`;
+  const figs = `<div class="rd-figs">${fig('needs', i18t('rd_fig_wait'), needs, oldest != null ? badge('amber', oldest) : '')}`
+    + fig('contracts', i18t('rd_fig_signed'), R.sig.length, R.L.length && R.sig.length === R.L.length ? badge('green', i18t('rd_b_all')) : badge('gray', R.L.length ? i18t('rd_b_of', { n: R.L.length }) : ''))
+    + fig('calendar', i18t('rd_fig_end'), R.ending.length, badge('ruby', firstEnd))
+    + fig('negotiations', i18t('rd_fig_nego'), R.nego.length, R.ours.length ? badge('amber', i18t('rd_b_your', { n: R.ours.length })) : '') + `</div>`;
+  const rows = S.map((x, i) => `<tr data-rd-row="${i}"><td class="rd-td-t">${E(x.t)}</td><td>${hbRdnStatusOf(x.k, R)}</td><td class="rd-td-src">${E(x.src)}</td><td class="rd-td-go"><button type="button" class="rd-go" data-rd-go="${E(x.go)}">${E(x.door)}</button></td></tr>`).join('');
+  const table = `<table class="rd-tbl"><thead><tr><th>${E(i18t('rd_th_reading'))}</th><th>${E(i18t('rd_th_status'))}</th><th>${E(i18t('rd_th_source'))}</th><th class="rd-td-go">${E(i18t('rd_th_open'))}</th></tr></thead><tbody>${rows}</tbody></table>`;
   /* ENDING, BY QUARTER · AGREEMENTS (P-41; was "value on paper"): one bar per quarter by count, the nearest red */
   const max = Math.max(1, ...R.quarters.map(q => q.n));
   const qName = q => { try { const a = new Date(Number(q.y), q.q * 3, 1), b = new Date(Number(q.y), q.q * 3 + 2, 1); const m = d => d.toLocaleDateString(langLocale(), { month: 'short' }).replace(/^Sept$/, 'Sep'); return m(a) + '–' + m(b) + ' ' + q.y; } catch (_){ return q.k; } };
   const bars = R.quarters.map((q, i) => `<div class="rd-q"><span class="rd-q-k">${E(qName(q))}</span><span class="rd-q-bar"><i class="${i === 0 ? 'is-near' : 'is-signed'}" style="width:${Math.max(2, Math.round(100 * q.n / max))}%"></i></span><span class="rd-q-v">${E(String(q.n))}</span></div>`).join('');
-  const needs = typeof counterNeedsCount === 'function' ? counterNeedsCount() : 0;
   const foot = [['needs', i18t('rd_f_needs', { n: needs })], ['contracts', i18t('rd_f_contracts', { n: R.L.length })], ['calendar', i18t('rd_f_calendar')], ['explorer', i18t('rd_f_explorer')], ['negotiations', i18t('rd_f_nego')], ['activity', i18t('rd_f_history')]]
     .map(([k, w]) => `<button type="button" class="rd-go" data-rd-go="${E(k)}">${E(w)}</button>`).join('');
-  return `<div class="rd-page apn-card is-ls" id="rd-page"><div class="rd-head"><button type="button" class="ctf-back" data-rd-back>‹ ${E(i18t('hb_face_board'))}</button><span class="rd-eyebrow">${E(i18t('rd_eyebrow', { when }))}</span><span class="hb-grow"></span><button type="button" class="rd-print" data-rd-print>${E(i18t('rd_print'))}</button></div>
-    <h1 class="rd-h">${E(i18t('rd_title'))}</h1><div class="rd-rows">${rows}</div>
+  return `<div class="rd-page apn-card is-ls is-stripe" id="rd-page"><div class="rd-head"><button type="button" class="ctf-back" data-rd-back>‹ ${E(i18t('hb_face_board'))}</button><span class="rd-eyebrow">${E(i18t('rd_eyebrow', { when }))}</span><span class="hb-grow"></span><button type="button" class="rd-print" data-rd-print>${E(i18t('rd_print'))}</button></div>
+    <h1 class="rd-h">${E(i18t('rd_title'))}</h1>${figs}${hbRdnBriefHtml()}${table}
     ${bars ? `<div class="rd-cap">${E(i18t('rd_q_cap_n'))}</div><div class="rd-qs">${bars}</div>` : ''}
     <div class="rd-foot"><span class="rd-foot-l">${foot}</span></div></div>`;
 }
@@ -6528,7 +6572,10 @@ function hbBoardHtml(){
      are late … I prepared 53 for you." left the greeting and opens "Your board, in brief", at the card's own size;
      counted with no Jambo call, every fact a door, as before (hbGreetSayHtml) */
   let since = ''; if (hbGreetOn()) try { since = hbGreetSayHtml(moved, base && base.at); } catch (_){ since = ''; }
-  const bs = hbBoardSumHtml(since);
+  /* SUMMARISE MY BOARD LIVES ON READ DOWN (owner, 22 Nov 2026: "why do we need to have both summarise my board and read
+     down … just have it all combined into read down"): no button and no brief card on the Board; Read down carries the
+     brief (hbRdnBriefHtml), its press the same (data-hb-why, HB_BOARD_KEY) */
+  void since; const bs = { btn: '', box: '' };
   /* THE BOARD: its head, Your book, then ALL of Needs you (Round A, the
      owner's yes of 22 Oct 2026: Home keeps the top three of each group and
      "Show all" lands here; it took the place of Jambo's work card), Today's

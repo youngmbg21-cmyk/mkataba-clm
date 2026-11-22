@@ -23476,6 +23476,31 @@
   html.lg-new .igo-leg i{flex:none;width:8px;height:8px;border-radius:50%}
   html.lg-new .igo-leg b{font-weight:var(--w-label)}
   html.lg-new .igo-leg small{color:var(--color-neutral-400);font-size:12.5px}
+  /* YOUR DAY, THE LEGORA + STRIPE WAY (owner's pick, 22 Nov 2026): a count is a soft badge before its words; the next
+     30 days a short timeline (a dot per row, a hairline joining them); no boxes, as the Overview tab beside it */
+  html.lg-new .jov5-row.ig-day-b .jov5-mk{width:auto;min-width:34px;height:22px;padding:0 7px;border-radius:6px;font-size:12px}
+  html.lg-new .jov5-row.ig-day-tl{position:relative}
+  html.lg-new .jov5-row.ig-day-tl .jov5-mk{width:12px;height:12px;margin:0 7px;background:var(--color-neutral-300)}
+  html.lg-new .jov5-row.ig-day-tl .jov5-mk.is-amber{background:var(--st-amber-dot)}
+  html.lg-new .jov5-row.ig-day-tl .jov5-mk.is-green{background:var(--st-green-dot)}
+  html.lg-new .jov5-row.ig-day-tl .jov5-mk.is-steel{background:var(--st-steel-dot)}
+  html.lg-new .jov5-row.ig-day-tl .jov5-mk.is-violet{background:var(--st-violet-dot)}
+  html.lg-new .jov5-row.ig-fd-q .jov5-rt b{font-family:var(--font-doc, var(--font-title));font-weight:400}
+  html.lg-new .ig-fd-ls .jov5-ava{width:40px;height:40px;min-width:40px;font-size:18px}
+  html.lg-new .ig-fd-ls .jov5-who{align-items:center;gap:12px}
+  /* NO BOXES, AS THE OVERVIEW TAB (P-40): Your day and Findings read like it — sections parted by a hairline, a heading in
+     ink, rows on the panel itself, a soft hover on a door; their headline keeps the serif, as drawn */
+  html.lg-new :is(.jov5[data-jov-slot="ig-day"],.jov5[data-jov-slot="ig-fd"]){padding-top:0;gap:12px}
+  html.lg-new :is(.jov5[data-jov-slot="ig-day"],.jov5[data-jov-slot="ig-fd"]) .jov5-intro{padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new :is(.jov5[data-jov-slot="ig-day"],.jov5[data-jov-slot="ig-fd"]) .jov5-sec{display:flex;flex-direction:column;gap:6px;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new :is(.jov5[data-jov-slot="ig-day"],.jov5[data-jov-slot="ig-fd"]) .jov5-sec:last-of-type{border-bottom:0}
+  html.lg-new :is(.jov5[data-jov-slot="ig-day"],.jov5[data-jov-slot="ig-fd"]) .jov5-label{margin:0;font-size:14px;line-height:20px;font-weight:var(--w-title);color:var(--color-text);letter-spacing:0;text-transform:none}
+  html.lg-new :is(.jov5[data-jov-slot="ig-day"],.jov5[data-jov-slot="ig-fd"]) .jov5-group{display:flex;flex-direction:column;gap:4px;border:0;background:none;box-shadow:none;padding:0}
+  html.lg-new :is(.jov5[data-jov-slot="ig-day"],.jov5[data-jov-slot="ig-fd"]) .jov5-row{gap:10px;min-height:0;padding:4px 4px;border:0;border-radius:6px;background:none}
+  html.lg-new :is(.jov5[data-jov-slot="ig-day"],.jov5[data-jov-slot="ig-fd"]) .jov5-row.is-door:hover{background:var(--surface-2)}
+  html.lg-new :is(.jov5[data-jov-slot="ig-day"],.jov5[data-jov-slot="ig-fd"]) .jov5-row + .jov5-row::before{display:none}
+  html.lg-new .jov5-row.ig-day-tl:not(:last-child)::before{content:"";position:absolute;left:12.5px;top:calc(50% + 6px);height:calc(100% - 4px);width:1px;background:var(--color-neutral-300)}
+  html.lg-new .jov5-row.ig-day-tl.is-quote .jov5-rt > span{font-family:var(--font-doc, var(--font-title));color:var(--color-quiet)}
   html.lg-new .jov-arrive .igo-ring .igo-seg{animation:igoSweep .9s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(290ms + var(--igo-k, 0) * 70ms)}
   /* OBLIGATIONS, THE STRIPE WAY (P-13): four figure tiles with tiny charts, "+ filter" chips, ONE calm table with soft badges */
   html.lg-new .obt-page .obs-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s-3);padding:var(--s-2) 0 var(--s-3)}
@@ -23752,6 +23777,43 @@
   html.lg-new .rd-pk-n0{font-family:var(--font-body);font-size:11px;fill:var(--color-neutral-400)}
   html.lg-new .rd-pk-soft{fill:var(--st-gray-bg)}
   html.lg-new .rd-pk-late{fill:var(--st-ruby-bg)}
+  /* READ DOWN, THE STRIPE WAY, WITH JAMBO'S BRIEF (owner's pick, 22 Nov 2026): four figure cards (doors), Jambo's brief
+     card carrying the summary's coloured words, the readings as one calm table with a soft status badge each */
+  html.lg-new .rd-figs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s-3);margin:0 0 var(--s-3)}
+  html.lg-new .rd-fig{all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:2px;min-width:0;padding:12px 16px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);cursor:pointer}
+  html.lg-new .rd-fig:hover{border-color:var(--color-neutral-300)}
+  html.lg-new .rd-fig:focus-visible{outline:2px solid var(--accent-solid);outline-offset:2px}
+  html.lg-new .rd-fig-k{font-size:12.5px;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .rd-fig-v{display:flex;align-items:center;gap:8px;min-width:0;white-space:nowrap}
+  html.lg-new .rd-fig-v b{font-size:24px;line-height:1.2;font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new .rd-st{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:6px;font-size:12px;font-weight:var(--w-label);white-space:nowrap}
+  html.lg-new .rd-st.is-green{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .rd-st.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new .rd-st.is-ruby{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new .rd-st.is-violet{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  html.lg-new .rd-st.is-gray{background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  html.lg-new .rd-brief{display:flex;flex-direction:column;gap:6px;margin:0 0 var(--s-2);padding:12px 16px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface)}
+  html.lg-new .rd-brief-h{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px}
+  html.lg-new .rd-brief-h b{font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-new .rd-brief-i{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--st-violet-bg);color:var(--st-violet-fg);flex:none}
+  html.lg-new .rd-brief-i svg{width:13px;height:13px}
+  html.lg-new .rd-brief-at{font-size:12px;color:var(--color-neutral-400);white-space:nowrap}
+  html.lg-new .rd-brief-b{margin:0 0 0 34px;font-size:14px;line-height:1.55;color:var(--color-text)}
+  html.lg-new .rd-brief-b.hb-quiet{color:var(--color-quiet);font-size:13px}
+  html.lg-new .rd-brief-jb{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px;border-radius:6px;background:var(--st-violet-bg);color:var(--st-violet-fg);font-size:11.5px;font-weight:var(--w-label);vertical-align:1px}
+  html.lg-new .rd-brief-jb svg{width:11px;height:11px}
+  html.lg-new .rd-brief-f{margin:0 0 0 34px;font-size:11.5px;color:var(--color-neutral-400)}
+  html.lg-new .rd-brief-f.is-cut{color:var(--st-amber-fg)}
+  html.lg-new .rd-brief-go{flex:none}
+  html.lg-new .rd-tbl{width:100%;border-collapse:collapse;margin-top:var(--s-2)}
+  html.lg-new .rd-tbl th{padding:8px 10px;border-bottom:1px solid var(--color-divider);text-align:left;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-400);white-space:nowrap}
+  html.lg-new .rd-tbl td{padding:11px 10px;border-bottom:1px solid var(--color-divider);vertical-align:middle;font-size:13.5px;line-height:1.45;color:var(--color-text)}
+  html.lg-new .rd-tbl :is(th,td):first-child{padding-left:0}
+  html.lg-new .rd-tbl :is(th,td):last-child{padding-right:0}
+  html.lg-new .rd-tbl .rd-td-t{width:52%}
+  html.lg-new .rd-tbl .rd-td-src{font-size:12.5px;color:var(--color-quiet);white-space:nowrap}
+  html.lg-new .rd-tbl .rd-td-go{text-align:right;white-space:nowrap}
+  html.lg-new .rd-tbl .rd-td-go .rd-go{font-size:12.5px}
   html.lg-new .rd-pk-n{font-family:var(--font-body);font-size:13px;font-weight:var(--w-strong);fill:var(--color-text)}
   html.lg-new .rd-pk-n.is-late{fill:var(--st-ruby-dot)}
   html.lg-new .rd-page.is-ls .rd-q-bar i.is-near{background:var(--st-ruby-dot)}

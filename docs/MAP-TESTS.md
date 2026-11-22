@@ -1028,3 +1028,7 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 - test/chromium/panel-watermark-verify.js 10a (the weaves are a flowing colour mix), red on main. 2, 2b, 3 (still in Settings and for less motion) were red on main and pass now.
 - f965 (tokens): the --wm-* colours live in :root and docs/design/tokens.json (node test/tokens-export.js).
 - panel-watermark-verify 11: Jambo's talk scrolled 120, the weave rises 120, and comes back at the top (red on main).
+
+## THE OVERVIEW — READ DOWN, ONE SHEET / INSIGHTS (22 Nov 2026)
+- test/chromium/read-down-stripe-verify.js — no Summarise on the Board; Read down's figures, brief, table; Your day and Findings without boxes (red at the parent).
+- test/f1068-jambos-panels-five-parts.test.js (6), test/f1070-jambos-panels-round-three-a.test.js (5) — the words in both books.

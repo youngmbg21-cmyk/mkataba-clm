@@ -6844,9 +6844,13 @@ function igFindingsHtml(){
   /* THE FIVE PARTS (owner, 15 Nov 2026, round 1): no findings is a headline, the three real steps a finding takes
      (ask the map · Pin this finding · colleagues open it here) and two questions to start with (intelAsk) */
   if(!L.length&&typeof window.newLookOn==='function'&&window.newLookOn()&&typeof window.jamboOverviewHtml==='function')
-    return `<div class="jl-words is-ov">${jamboOverviewHtml({ eyebrow:i18t('jov5_fd_eb'), title:i18t('jov5_fd_t'), sub:i18t('jov5_fd_s'),
-      steps:{ label:i18t('jov5_fd_how'), items:[{ b:i18t('jov5_fd_s1b'), s:i18t('jov5_fd_s1') },{ b:i18t('jov5_fd_s2b'), s:i18t('jov5_fd_s2') },{ b:i18t('jov5_fd_s3b'), s:i18t('jov5_fd_s3') }] },
-      asks:[i18t('jov5_fd_q1'),i18t('jov5_fd_q2')].map(q=>({ verb:q, run:()=>intelAsk(q) })), src:i18t('jov5_fd_src') },'ig-fd')}</div>`;
+    /* FINDINGS, THE LEGORA + STRIPE WAY (owner's pick, 22 Nov 2026; drawn like the Overview tab beside it): a small pin beside
+       the headline, the three real steps as a coloured timeline, the two questions as quoted rows that ask the map
+       (intelAsk), and Kept findings with its count. Nothing kept yet: said, never filled. */
+    return `<div class="jl-words is-ov ig-fd-ls">${jamboOverviewHtml({ eyebrow:i18t('jov5_fd_eb'), title:i18t('jov5_fd_t'), sub:i18t('jov5_fd_s'), avatar:'\u2316', avatarTone:'green',
+      groups:[{ label:i18t('jov5_fd_how'), rows:[['jov5_fd_s1b','jov5_fd_s1','green'],['jov5_fd_s2b','jov5_fd_s2','steel'],['jov5_fd_s3b','jov5_fd_s3','violet']].map(([tk,sk,tone])=>({ cls:'ig-day-tl', mark:'', markText:'', tone, t:i18t(tk), s:i18t(sk) })) },
+        { label:i18t('int_fd_ls_ask'), rows:[i18t('jov5_fd_q1'),i18t('jov5_fd_q2')].map(q=>({ cls:'ig-fd-q', mark:'sparkle', tone:'green', t:'\u201c'+q+'\u201d', run:()=>intelAsk(q) })) },
+        { label:i18t('int_fd_ls_kept'), rows:[{ t:'', s:i18t('int_fd_ls_kept_s'), v:'0' }] }] },'ig-fd')}</div>`;
   if(!L.length) return `<p class="ig-fd-empty">${igEsc(i18t('int_fd_none'))}</p>`;
   const users=(typeof getUsers==='function'?getUsers():[])||[];
   const card=f=>{ const op=intel.fdOpen&&intel.fdOpen.id===f.id, ui=(intel.fdUi||{})[f.id]||'';
@@ -7166,18 +7170,30 @@ function igDayHtml(){
      high risk · new since yesterday), the rest as rows (duties, renewals), each by the tile's own press (data-ig-day →
      igDayGo, the panel's one listener on #ig-day); Pin as my morning view the one black button (data-ig-day-pin); the
      saved views under it as they are. The same readings (igDayData); no AI. The new look only. */
+  /* YOUR DAY, THE LEGORA + STRIPE WAY (owner's pick, 22 Nov 2026; drawn like the Overview tab beside it, P-40): the day as a
+     headline and one sentence, "What needs you today" as rows each with its count in a soft badge (a door, by the tile's
+     own press, data-ig-day), "The next 30 days" as a short timeline (the first renewal's own notice words, quoted with
+     their §, hbRdnTermQuote — never guessed), the morning pin and the saved views as rows. No boxes, NO MONEY in the
+     panel (owner, 20 Nov 2026). The same readings (igDayData); no AI. The new look only. */
   if(typeof window.newLookOn==='function'&&window.newLookOn()&&typeof window.jamboOverviewHtml==='function'){
     const word=t=>t.k==='duties'?i18t('int_day_duties',{ d:IG_BRIEF_DUE_DAYS }):i18t('int_day_'+t.k);
     const may=t=>!!(t.n&&(t.go!=='onmap'||t.ids.length));
-    const pick=['needs','risk','new'], tiles=pick.map(k=>T.find(t=>t.k===k)).filter(Boolean).concat(T.filter(t=>!pick.includes(t.k))).slice(0,3);
-    const rest=T.filter(t=>!tiles.includes(t));
-    const needs=T.find(t=>t.k==='needs');
-    return `<div class="ig-day">${jamboOverviewHtml({ eyebrow:day.replace(/^./,c=>c.toUpperCase()),
-      title:needs&&needs.n?i18tn('jov5_day_t',needs.n,{ n:needs.n }):i18t('jov5_day_clear'), sub:i18t('int_day_counted',{ t:at }),
-      glance:tiles.map(t=>({ n:t.n, l:t.k==='duties'?i18t('jov5_day_duties_tl'):word(t), warn:t.tone==='ruby'||t.tone==='amber', attr:may(t)?`data-ig-day="${t.k}"`:'' })),
-      groups:rest.length?[{ label:i18t('jov5_day_next'), rows:rest.map(t=>({ mark:t.k==='renew'?'refresh':'calendar', tone:t.tone?'amber':'', t:word(t), s:t.sub||'', v:t.n?String(t.n):i18t('int_day_none'), attr:may(t)?`data-ig-day="${t.k}"`:'' })) }]:[],
-      act:{ say:i18t('jov5_day_pin_say'), label:i18t(pin?'int_brief_unpin':'int_brief_pin'), attr:`data-ig-day-pin aria-pressed="${pin}"` },
-      after:igSavedViewsHtml(), src:i18t('int_day_src') },'ig-day')}</div>`;
+    const by=k=>T.find(t=>t.k===k);
+    const needs=by('needs'), risk=by('risk'), duties=by('duties'), renew=by('renew'), since=by('since');
+    const toneOf=t=>t.tone==='ruby'?'red':t.tone==='amber'?'amber':'';
+    const sub=[risk&&risk.n?i18tn('int_day_ls_risk',risk.n,{ n:risk.n }):'', duties&&duties.n?i18tn('int_day_ls_duties',duties.n,{ n:duties.n }):''].filter(Boolean).join('; ');
+    const today=[needs,risk,duties].filter(Boolean).map(t=>({ cls:'ig-day-b', mark:'', markText:String(t.n), tone:toneOf(t), t:word(t), s:t.sub||(t.n?'':i18t('int_day_none')), attr:may(t)?`data-ig-day="${t.k}"`:'' }));
+    /* the first renewal's own notice words (the paper's, with its §), where its term is read */
+    let quote=''; try{ const ids=renew&&renew.ids||[]; const first=ids.map(id=>getContract(id)).filter(Boolean).sort((a,b)=>String(graphDecisionOf(a).date||'').localeCompare(String(graphDecisionOf(b).date||'')))[0];
+      const q=first&&typeof window.hbRdnTermQuote==='function'?window.hbRdnTermQuote(first):null; if(q&&q.w) quote='\u201c'+q.w+'\u201d'+[q.sec,first.name||''].filter(Boolean).map(x=>' '+x).join(' \u00b7'); }catch(_){ quote=''; }
+    const next=[renew&&{ cls:'ig-day-tl', mark:'', markText:'', tone:renew.n?'amber':'', t:renew.n?i18tn('int_day_ls_renew',renew.n,{ n:renew.n }):word(renew), s:(renew.n?i18t('int_day_in',{ d:IG_BRIEF_ENDING_DAYS, v:'' }):i18t('int_day_none'))+(quote?' \u00b7 '+quote:''), quote:!!quote, attr:may(renew)?`data-ig-day="renew"`:'' },
+      since&&{ cls:'ig-day-tl', mark:'', markText:'', tone:since.n?'green':'', t:since.n?word(since):i18t('int_day_ls_nothing_new'), s:since.n?(since.sub||''):'', attr:may(since)?`data-ig-day="since"`:'' }].filter(Boolean);
+    const pinRow={ mark:'target', tone:'green', t:i18t(pin?'int_brief_unpin':'int_brief_pin'), s:i18t('jov5_day_pin_say'), attr:`data-ig-day-pin aria-pressed="${pin}"` };
+    const eb=[day.replace(/^./,c=>c.toUpperCase()), i18t('int_day_counted',{ t:at }).replace(/^./,c=>c.toLowerCase())].join(' \u00b7 ');
+    return `<div class="ig-day is-ls">${jamboOverviewHtml({ eyebrow:eb,
+      title:needs&&needs.n?i18tn('jov5_day_t',needs.n,{ n:needs.n }):i18t('jov5_day_clear'), sub,
+      groups:[{ label:i18t('int_day_ls_today'), rows:today }, next.length?{ label:i18t('jov5_day_next'), rows:next }:null, { label:'', rows:[pinRow] }].filter(Boolean),
+      act:null, after:igSavedViewsHtml(), src:i18t('int_day_src') },'ig-day')}</div>`;
   }
   return `<div class="ig-day">
     <div class="ig-day-hd"><b>${igEsc(day.replace(/^./,c=>c.toUpperCase()))}</b><span class="ig-day-at">${igEsc(i18t('int_day_counted',{ t:at }))}</span></div>
