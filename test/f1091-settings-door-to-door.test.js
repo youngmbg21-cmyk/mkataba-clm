@@ -73,7 +73,8 @@ test('f1091 (5) Jambo\'s panel is the Dossier card on every Settings page', () =
   assert.match(c, /k:i18t\('sdd_f_affects'\)[\s\S]*k:i18t\('sdd_f_who'\)[\s\S]*k:i18t\('sdd_f_history'\)[\s\S]*label:i18t\('sdd5_if_h'\)/);
   /* RE-POINTED 22 Nov 2026 (P-43 review): each row says the problem first and the place second (sdd5NeedSay), and the
      landing's going-live row is not said again under its ring */
-  assert.match(c, /rows:rowsOf\.map\(x=>\{ const w=sdd5NeedSay\(x, rows\); return \{ mark:'', markText:mkOf\(x\), tone:[^,]+, t:w\.t, s:w\.s, attr:x\.btn\|\|'' \}; \}\)/, 'what needs you: rows, each its own door');
+  /* RE-POINTED 22 Nov 2026 (the access check): on the landing the list stops where the panel's room does and says how many more */
+  assert.match(c, /rows:rowsOf\.slice\(0,capN\)\.map\(x=>\{ const w=sdd5NeedSay\(x, rows\); return \{ mark:'', markText:mkOf\(x\), tone:[^,]+, t:w\.t, s:w\.s, attr:x\.btn\|\|'' \}; \}\)/, 'what needs you: rows, each its own door');
   /* RE-POINTED 22 Nov 2026 (P-43 review): the rows and the headline's count are ONE reading, sddPanelNeeds — going live left to its ring */
   assert.match(c, /const rowsOf=sddPanelNeeds\(admin, area, rows, needs\);/);
   assert.match(c, /title:rowsOf\.length\?i18tn\('sdd_card_t',rowsOf\.length/, 'the headline counts the rows drawn');

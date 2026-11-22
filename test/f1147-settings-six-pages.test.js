@@ -26,7 +26,7 @@ const region = () => {
 const fn = name => { const i = S.indexOf('function ' + name + '('); assert.ok(i >= 0, name + ' is there'); return S.slice(i, S.indexOf('\nfunction ', i + 10)); };
 
 test('f1147 (1) one switch, six pages, admins on the Company face; the page painter hands over', () => {
-  assert.match(S, /const ST_LS_PAGES=\['team','sheet','roles','streams','look','data'\];/);
+  assert.match(S, /const ST_LS_PAGES=\['team','sheet','roles','streams','look','data','guard'\];/);
   const on = fn('stLsOn');
   assert.match(on, /!ST_LS_PAGES\.includes\(_stPage\)\) return false/);
   assert.match(on, /!stIsAdmin\(\)\|\|settingsTab\(\)!=='company'\) return false/);
