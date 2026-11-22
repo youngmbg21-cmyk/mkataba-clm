@@ -65,7 +65,7 @@ const check = (name, pass, detail) => {
         const parties = [...new Set(rows.map(r => r.getAttribute('data-cu-cust')))];
         const chipN = Number(((on && on.querySelector('span')) || {}).textContent || NaN);
         return on && document.querySelector('.cun-table.is-wait') && rows.length && parties.length < n && chipN === rows.length
-          && rows.every(r => /[a-z]/i.test(((r.querySelector('td.cun-what') || {}).textContent || '')) && !!r.querySelector('.apn-st')) ? parties : null; }, S0.n);
+          && rows.every(r => /[a-z]/i.test(((r.querySelector('td.cun-what') || {}).textContent || '')) && !!r.querySelector('.cun-badge') /* RE-POINTED 21 Nov 2026 (P-25, as drawn): the kind a soft square badge (.cun-badge) */) ? parties : null; }, S0.n);
     }
     /* RE-POINTED 19 Nov 2026 (owner's yes on the Parties drawings): the Folders tab and "NDA missing" are gone — the tabs
        are All · Waiting on you, the page opening on All. RETIRED: Folders first, List second, No NDA */

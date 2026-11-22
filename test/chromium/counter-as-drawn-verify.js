@@ -177,7 +177,7 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
     const rows = await page.evaluate(() => [...document.querySelectorAll('#hm-agents .nd-br[data-hb-ag-item]')].map(r => ({ key: r.getAttribute('data-hb-ag-item'),
       title: (r.querySelector('.nd-c-what b') || {}).textContent || '', hover: (r.querySelector('.nd-c-what') || { getAttribute: () => '' }).getAttribute('title') || '',
       deal: (r.querySelector('.nd-c-deal') || {}).textContent || '', who: (r.querySelector('.nd-c-who') || {}).textContent || '', look: (r.querySelector('[data-hb-ag-look]') || {}).textContent || '',
-      body: !!r.querySelector('.nd-body'), h: Math.round(r.getBoundingClientRect().height) })));
+      body: !!r.querySelector('.nd-body'), q: !!r.querySelector('.nd-q'), h: Math.round(r.getBoundingClientRect().height) })));
     const pieces = [];
     for (const r of rows){ const L = await lookAt(r.key); pieces.push({ ...r, open: L }); }
     const lastAway = pieces.filter(p => p.open && p.open.acts.length && p.open.acts[p.open.acts.length - 1].act === 'away' && p.open.acts[p.open.acts.length - 1].t === 'Put away' && /\bui-link\b/.test(p.open.acts[p.open.acts.length - 1].cls));
@@ -192,8 +192,10 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
       JSON.stringify([lead('answer:'), lead('read:'), lead('desk:MK-0368'), lead('import:')]));
     /* RE-POINTED 24 Oct 2026 (the owner: "delete The Who or what asked column"): no who column on the row */
     check('11a each piece is ONE ROW: what it is, the agreement, Look, no "Who or what asked" column; no body until Look',
-      rows.length >= 5 && rows.every(p => p.title && p.who === '' && p.look === 'Look' && !p.body && p.h > 0 && p.h < 48),
-      JSON.stringify(rows.map(p => [p.key, p.title, p.who, p.look, p.h])).slice(0, 900));
+      /* RE-POINTED 22 Nov 2026 (review of merged pages): a piece whose paper words are read (P-39 as drawn: "§ 2 · “The
+         lease ends…”" under the title) is one row of TWO lines — up to 72 high; every other piece one line under 48 */
+      rows.length >= 5 && rows.every(p => p.title && p.who === '' && p.look === 'Look' && !p.body && p.h > 0 && p.h < (p.q ? 72 : 48)),
+      JSON.stringify(rows.map(p => [p.key, p.title, p.who, p.look, p.q, p.h])).slice(0, 900));
     const ans = rows.find(p => p.key === 'answer:MK-0382');
     check('11b their answer reads as drawn on the Board: "Nordvik Logistik\'s answer" · the agreement and its reference, no who column (24 Oct 2026), what Jambo found on the hover',
       !!ans && ans.title === 'Nordvik Logistik’s answer' && /^Master services agreement\s*·\s*MK-0382$/.test(ans.deal) /* RE-POINTED 21 Nov 2026 (P-39, as drawn: the agreement's name · its reference) */ && ans.who === '' && /^Answers to their 2 redlines, read against our playbook: /.test(ans.hover), JSON.stringify(ans));

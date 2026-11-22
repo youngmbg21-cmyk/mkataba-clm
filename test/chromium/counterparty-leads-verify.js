@@ -265,8 +265,11 @@ const check = (name, ok, detail) => {
        the PAGE'S OWN GROUND, resolved live — the thing that was missing. */
     /* RE-POINTED 29 Oct 2026 (owner: ONE SHEET — New agreement's title bar, the ask, the papers and Filed in
        are one white sheet): the sheet (.na-body) is white, and it stands on the page's own ground */
+    /* RE-POINTED 22 Nov 2026 (P-36, New agreement as drawn, the Legora + Stripe way: no cards): the paper's part of the
+       sheet (.na-card) is no longer a card — it paints nothing of its own and lies open on the white sheet. The claim
+       stands: one white sheet on the page's own ground, and the card is not a second, different colour inside it */
     check('3a the sheet is white against the page’s own ground',
-      !!P.bodyBg && P.bodyBg === P.cardBg && P.behindBg === P.pageBg && P.bodyBg !== P.pageBg,
+      !!P.bodyBg && (P.cardBg === P.bodyBg || P.cardBg === 'rgba(0, 0, 0, 0)') && P.behindBg === P.pageBg && P.bodyBg !== P.pageBg,
       `sheet ${P.bodyBg} · behind it ${P.behindBg} · page ${P.pageBg} · card ${P.cardBg}`);
     /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK, stage 2, the owner's drawn New agreement): a card has no
        outline; it stands off the grey by its lift (--shadow-sm) — still something that stays visible on it */

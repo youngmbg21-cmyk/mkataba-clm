@@ -208,7 +208,8 @@ describe('f809 (5) named on it in any role — the approver and the signer too',
       asksOf: c => c.id === 'MK-0400' ? [{ kind: 'review', state: 'open', to: { id: 'u7', name: 'Jonas Berg' } }]
         : c.id === 'MK-0420' ? [{ kind: 'rule', state: 'open', to: { role: 'admin' } }, { kind: 'rule', state: 'answered', to: { id: 'u7' } }] : [],
       signerPlan: c => c.signerPlan || [], contactsOf: () => [], participantsOf: () => [], participantsAuto: () => [], contractOwnerName: () => '', orgDirectory: () => [] };
-    ctx.window = ctx; vm.createContext(ctx); vm.runInContext(DIR, ctx); return ctx;
+    /* the person's initials come from the one shared reader (js/components.js, nameInitials; P-25 review, 22 Nov 2026) */
+    ctx.window = ctx; vm.createContext(ctx); vm.runInContext(fnOf(read('js/components.js'), 'nameInitials'), ctx); vm.runInContext(DIR, ctx); return ctx;
   };
   test('5a the rule\'s approver, a question put to them by name and our signer are read in; nothing else', () => {
     const w = world();

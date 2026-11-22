@@ -36,9 +36,12 @@ test('f1040 (2) a rows paint that would write what stands writes nothing', () =>
 
 test('f1040 (3) Discover draws again only when the rows that landed differ', () => {
   const s = read('js/views/reads.js');
-  const r = region(s, 'async function rdLoad', 1400);
+  const r = region(s, 'async function rdLoad', 2600);
   assert.match(r, /const was = rdRowsKey\(_rd\.rows\)/);
-  assert.match(r, /rdRowsKey\(_rd\.rows\) !== was\) renderReads\(\)/);
+  /* RE-POINTED 22 Nov 2026 (P-42 review, "never Loading… for ever"): the same rows are still not drawn again, with one
+     exception: a page still saying "Loading…" (data-dsn-loading) is drawn again once the load is back */
+  assert.match(r, /rdRowsKey\(_rd\.rows\) !== was \|\| waiting\)\) renderReads\(\)/);
+  assert.match(r, /const waiting = [^\n]*\[data-dsn-loading\]/);
   assert.match(s, /function rdRowsKey\(rows\)/);
 });
 

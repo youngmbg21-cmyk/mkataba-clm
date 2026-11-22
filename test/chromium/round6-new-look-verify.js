@@ -224,7 +224,8 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     const due = await txt(page, '.mnn-table tbody .apn-st.is-amber');
     /* RE-POINTED (owner, 16 Nov 2026: the chosen row's panel in the five parts; f1073): the note's panel is drawn by the
        one builder (data-jov-slot="mnn"), "This note" over its rows, Mark reviewed its button */
-    const panel = await until(page, () => { const p = document.querySelector('#ins-panel [data-jov-slot="mnn"]'); return !!p && /This note/i.test(p.innerText) && /Mark reviewed|Review again/i.test(p.innerText); }, null, 8000);
+    /* RE-POINTED 21 Nov 2026 (P-27, as drawn): no "This note" rows — the panel ends in its Timeline */
+    const panel = await until(page, () => { const p = document.querySelector('#ins-panel [data-jov-slot="mnn"]'); return !!p && /Timeline/i.test(p.innerText) && /Mark reviewed|Review again/i.test(p.innerText); }, null, 8000);
     await shot('8-my-notes');
     check('8 My notes: the ledger with Today in amber, the note\'s panel', up && /Due today/.test(due) && panel, due); /* RE-POINTED (P-27, owner's pick 20 Nov 2026: My notes the Legora + Stripe way): the badge says "Due today" */
   } catch (e) { check('8 My notes', false, String(e).slice(0, 200)); }
@@ -251,7 +252,9 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await page.evaluate(() => setView('migration'));
     const up = await until(page, () => !!document.querySelector('.mign-table tbody tr[data-row]'), null, 12000);
     const heads = await page.evaluate(() => [...document.querySelectorAll('.mign-table thead th')].map(x => x.innerText.trim().toLowerCase()).filter(Boolean));
-    const first = await txt(page, '.mign-table tbody tr[data-row]');
+    /* RE-POINTED 21 Nov 2026 (P-33, as drawn): a parked file (is it signed?, a copy?) says no sureness ("—"), so "N of 5" is
+       looked for over the rows, not only the first */
+    const first = await page.evaluate(() => [...document.querySelectorAll('.mign-table tbody tr[data-row]')].map(r => r.innerText).join(' | '));
     await shot('10-import');
     /* RE-POINTED (owner, 16 Nov 2026: the figures and "the level of confidence for each contract" are back; f1081): How sure
        stands after What Jambo read, and five figures over the list */

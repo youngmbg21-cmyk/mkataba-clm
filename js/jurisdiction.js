@@ -327,9 +327,12 @@ const fmtMoney = n => `${jxCurrency()} ` + Number(n || 0).toLocaleString(jxLocal
    MEASURED on Home at 1500x1000 before the fix: scrollWidth 118 in a 105px
    box, so the reader saw "KES 360…". One more rung answers it for every
    figure on every screen, because this is the one shortener. */
-const fmtMoneyShortIn = (n, code) => { n = Number(n || 0); const c = code || jxCurrency();
-  if (n >= 1e9) return `${c} ` + (n / 1e9).toFixed(2).replace(/\.00$/, '') + 'B';
-  if (n >= 1e6) return `${c} ` + (n / 1e6).toFixed(2).replace(/\.00$/, '') + 'M';
+/* ONE FORM DOWN A COLUMN (P-25 review, 22 Nov 2026): `{ even: true }` keeps the two decimals ("12.00M" beside
+   "10.50M"), so a column of figures reads alike; a sentence or a tile keeps the short "12M". The value is never touched. */
+const fmtMoneyShortIn = (n, code, o) => { n = Number(n || 0); const c = code || jxCurrency();
+  const d2 = x => o && o.even ? x.toFixed(2) : x.toFixed(2).replace(/\.00$/, '');
+  if (n >= 1e9) return `${c} ` + d2(n / 1e9) + 'B';
+  if (n >= 1e6) return `${c} ` + d2(n / 1e6) + 'M';
   if (n >= 1e3) return `${c} ` + (n / 1e3).toFixed(0) + 'K';
   return `${c} ` + n; };
 const fmtMoneyShort = n => fmtMoneyShortIn(n, jxCurrency());

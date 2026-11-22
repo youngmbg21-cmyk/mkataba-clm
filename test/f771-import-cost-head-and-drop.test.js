@@ -124,8 +124,10 @@ describe('f771 (2) the cost in calls, never money', () => {
   test('2b the strip says calls and the allowance in files; no money anywhere in the words', () => {
     const { api } = stage({ M:{ allowance:{ open:true, docs:200, docsUsed:41, budget:3, spent:1.2 } } });
     const line = api.migCostLine();
-    assert.match(line, /mig_cost_calls .*mig_from_allow_docs .*41.*200/);
-    assert.match(line, /mig_cost_before/);
+    /* RE-POINTED 21 Nov 2026 (P-33, as drawn): "Word, PDF or scans, up to 25 at a time. You see the total before Jambo
+       starts." — the limits, then the total said before; the allowance is the run's question (1b), never money */
+    assert.match(line, /^mig_drop_sub .* mig_cost_before$/);
+    assert.match(BOOKS.en.mig_cost_before, /before Jambo starts/);
     assert.ok(!/[$]|1\.2|spent/.test(line));
     assert.match(stage({ ai:false }).api.migCostLine(), /mig_cost_rules/, 'no key: HaTi\'s own rules, no calls');
     for (const k of ['mig_cost_calls', 'mig_run_calls_other', 'mig_from_allow_docs', 'mig_side_allow_docs']) assert.ok(!/[$£€]|\bKES\b|\bSEK\b|\bkr\b|money/i.test(BOOKS.en[k]), k);

@@ -190,12 +190,16 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
          RETIRED 17 Nov 2026 (#762): "sorted by name" on the Party column and Columns in the chip row — round 6's
          table is fixed and has neither (old look only). */
       const n = Number((/(\d+)/.exec(L.lit) || [])[1]);
-      check('2a the list\'s count is the lit tab\'s (List N), the head\'s and the foot\'s N, every row drawn',
-        /^all \d+$/.test(L.lit) && n === L.rows && L.head === '' /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way): no count beside the title */ && L.foot.startsWith(n + ' parties'), JSON.stringify({ lit: L.lit, rows: L.rows, head: L.head, foot: L.foot }));
+      /* RE-POINTED 22 Nov 2026 (P-25 review): the foot line ("11 parties · 13 agreements") is gone, as drawn — the All
+         chip's number is the one count, and it still equals the rows drawn */
+      check('2a the list\'s count is the lit All chip\'s, every row drawn; no count beside the title, no foot line',
+        /^all \d+$/.test(L.lit) && n === L.rows && L.head === '' /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way): no count beside the title */ && L.foot === '', JSON.stringify({ lit: L.lit, rows: L.rows, head: L.head, foot: L.foot }));
       /* RE-POINTED 17 Nov 2026 (#762): round 6's columns, in order */
       /* RE-POINTED 19 Nov 2026 (the Parties round): no NDA column; Deals says Agreements; the last column holds each row's one button */
       /* RE-POINTED 19 Nov 2026 (the SAP way, revised): Streams its own column; Standing and the buttons gone; Waiting on you last */
-      check('2b the columns as drawn, in order: Party · Streams · Agreements · On paper · Ends next · Waiting on you', JSON.stringify(L.cols) === JSON.stringify(['Party', 'Streams', 'Agreements', 'On paper', 'Ends next', 'Waiting on you']), JSON.stringify(L.cols));
+      /* RE-POINTED 21 Nov 2026 (P-25, as drawn): On paper carries the workspace's currency in its head ("On paper (KES)") */
+      check('2b the columns as drawn, in order: Party · Streams · Agreements · On paper (KES) · Ends next · Waiting on you', JSON.stringify(L.cols.map(c => c.replace(/^On paper \([A-Z]{3}\)$/, 'On paper'))) === JSON.stringify(['Party', 'Streams', 'Agreements', 'On paper', 'Ends next', 'Waiting on you'])
+        && L.cols.some(c => /^On paper \([A-Z]{3}\)$/.test(c)), JSON.stringify(L.cols));
       /* RE-POINTED 17 Nov 2026 (#762): a party's line is its name over its stream as a chip; its agreements are the Deals column */
       check('2c a party\'s row: its name, its stream in the Streams column, its deals counted (2)', L.name === 'Kenya Freight Ltd' && L.chips.length >= 1 && L.deals === '2', JSON.stringify({ n: L.name, c: L.chips, d: L.deals }));
       /* RETIRED 17 Nov 2026 (#762): 2d "ten at a time, 1–10 of N · Show N more; a party with nothing live is off Live"
@@ -224,12 +228,14 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await page.click('[data-cu-pr-save]');
       /* RE-POINTED 17 Nov 2026 (#762): no City column — the row's grey line says the city and the org. no., and
          the panel's own facts say both. RETIRED 17 Nov 2026 (#762): "with us since …" (round 6's panel has no such line). */
-      const S = await until(() => { const sub = document.querySelector('#cu-tbody [data-cu-cust="kenya freight ltd"] .cun-sub'); if (!sub || !/Kisumu/.test(sub.textContent) || !/PVT-AB12CD/.test(sub.textContent)) return null;
-        const p = document.getElementById('ins-panel');
-        const facts = p ? [...p.querySelectorAll('.jov5-row')].map(r => ((r.querySelector('.jov5-k') || {}).textContent || '').trim() + '=' + ((r.querySelector('.jov5-rt b') || {}).textContent || '').trim()) : [];
-        return { sub: sub.textContent.replace(/\s+/g, ' ').trim(), facts }; }, null, 10000);
-      check('3b the row and the panel say it: the row "Kisumu · … PVT-AB12CD", the panel City Kisumu and the organisation no.', !!S && /^Kisumu\b/.test(S.sub) && /PVT-AB12CD/.test(S.sub)
-        && S.facts.includes('City=Kisumu') && S.facts.some(f => /PVT-AB12CD/.test(f)), JSON.stringify(S));
+      /* RE-POINTED 21 Nov 2026 (P-25, as drawn): under the name the row says the words that name the party on the paper
+         (.cun-pq), not its city and org. no.; the panel's own facts say both */
+      const S = await until(() => { const p = document.getElementById('ins-panel');
+        const facts = p ? [...p.querySelectorAll('[data-jov5-sec="facts"] .jov5-row')].map(r => ((r.querySelector('.jov5-k') || {}).textContent || '').trim() + '=' + ((r.querySelector('.jov5-rt b') || {}).textContent || '').trim()) : [];
+        if (!facts.includes('City=Kisumu') || !facts.some(f => /PVT-AB12CD/.test(f))) return null;
+        const row = document.querySelector('#cu-tbody [data-cu-cust="kenya freight ltd"]');
+        return { facts, rowSays: row ? !/PVT-AB12CD/.test(row.textContent) : false }; }, null, 10000);
+      check('3b the panel says it: City Kisumu and the organisation no.; the row keeps the paper\'s words, not the record', !!S && S.rowSays, JSON.stringify(S));
       const srv = await W.admin.json('/api/party-records');
       check('3c the server keeps it, one home', srv && srv.records && srv.records['kenya freight ltd'] && srv.records['kenya freight ltd'].city === 'Kisumu' && srv.records['kenya freight ltd'].orgNo === 'PVT-AB12CD', JSON.stringify(srv));
       /* RE-POINTED 17 Nov 2026 (#762): the find box is the sheet's one box (#cun-q) */
@@ -240,8 +246,12 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await until(() => document.querySelectorAll('#cu-tbody [data-cu-cust]').length > 1);
       await page.reload({ waitUntil: 'networkidle' });
       await until(() => window.state && state.view === 'customers' && document.querySelector('#cu-tbody'), null, 15000);
-      const R = await until(() => { const sub = document.querySelector('#cu-tbody [data-cu-cust="kenya freight ltd"] .cun-sub'); return sub && /Kisumu/.test(sub.textContent) && /PVT-AB12CD/.test(sub.textContent) ? sub.textContent.replace(/\s+/g, ' ').trim() : null; });
-      check('3e a refresh keeps it (the bootstrap carries it), no longer "read from" a contract', !!R && /^Kisumu\b/.test(R) && !/read from/.test(R), R);
+      /* RE-POINTED 21 Nov 2026 (P-25, as drawn): the record is read back in the panel's own facts after the refresh */
+      await page.evaluate(() => cuSelectParty('kenya freight ltd'));
+      const R = await until(() => { const p = document.getElementById('ins-panel');
+        const facts = p ? [...p.querySelectorAll('[data-jov5-sec="facts"] .jov5-row')].map(r => ((r.querySelector('.jov5-k') || {}).textContent || '').trim() + '=' + ((r.querySelector('.jov5-rt b') || {}).textContent || '').trim()) : [];
+        return facts.includes('City=Kisumu') && facts.some(f => /PVT-AB12CD/.test(f)) ? facts.join(' · ') : null; });
+      check('3e a refresh keeps it (the bootstrap carries it), no longer "read from" a contract', !!R && !/read from/.test(R), R);
     });
 
     /* ---- 4 the panel as drawn ---- */
@@ -289,7 +299,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
          its hover names each thing; rows carry no button */
       const HE = await page.evaluate(() => { const r = document.querySelector('#cu-tbody [data-cu-cust="helio energy ltd"]'); if (!r) return null; const td = r.querySelector('td.cun-wait');
         return { wait: ((td || {}).textContent || '').replace(/\s+/g, ' ').trim(), title: td ? td.getAttribute('title') || '' : '', last: !!td && td === r.lastElementChild, btn: !!r.querySelector('button'),
-          badge: !!(td && td.querySelector('.apn-st.is-amber, .apn-st.is-ruby')) }; });
+          badge: !!(td && td.querySelector('.cun-badge.is-amber, .cun-badge.is-ruby')) /* RE-POINTED 21 Nov 2026 (P-25, as drawn): a soft square badge, no dot (.cun-badge) */ }; });
       /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way): the cell is a soft badge saying the count ("2 things"); "on 1 contract" left the cell (the hover still names each) */
       /* RE-POINTED 20 Nov 2026: the column counts EVERY thing waiting on the party (cunWaitSay over the row's needs, the
          same list its hover names, cuNeedTitle) — Helio's approval and its 2 details to fill on the same contract are
@@ -334,8 +344,10 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('6a2 the sides are the tabs: All · Yours · Outside, opening on All', !!D && JSON.stringify(D.tabs.slice(0, 3).map(t => t.w)) === JSON.stringify(['All', 'Yours', 'Outside']) && (D.tabs.find(t => t.on) || {}).k === 'all', JSON.stringify(D && D.tabs));
       const tn = k => ((D && D.tabs.find(t => t.k === k)) || {}).n;
       /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): the title alone (the count line beside it went: the chips say each number) */
-      check('6b the page is People: "People" alone, the chips counting All · Yours · Outside; no A to Z',
-        !!D && D.title === 'People' && D.sub === '' && tn('all') === tn('yours') + tn('outside') && D.rows === tn('all') && D.foot === `${tn('all')} people` && !D.az, JSON.stringify(D && { t: D.title, s: D.sub, rows: D.rows, foot: D.foot, az: D.az }));
+      /* RE-POINTED 22 Nov 2026 (P-25 review): People has no foot line under the table (P-26, as drawn) — the All chip's
+         number equals the rows */
+      check('6b the page is People: "People" alone, the chips counting All · Yours · Outside; no A to Z, no foot line',
+        !!D && D.title === 'People' && D.sub === '' && tn('all') === tn('yours') + tn('outside') && D.rows === tn('all') && D.foot === '' && !D.az, JSON.stringify(D && { t: D.title, s: D.sub, rows: D.rows, foot: D.foot, az: D.az }));
       /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): Name · Role (a soft badge) · Does for you · Agreements · Waiting on them; no Phone (Reach) column */
       check('6c the table as drawn: Name · Role · Does for you · Agreements · Waiting on them, no Phone; ours first — you first, wearing "you", your role in its column',
         !!D && JSON.stringify(D.cols) === JSON.stringify(['Name', 'Role', 'Does for you', 'Agreements', 'Waiting on them']) && !!D.first && /Amina Otieno/.test(D.first.name) && D.first.role === 'Admin' && /\byou\b/.test(D.first.sub),
@@ -345,7 +357,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await page.click('#dir-tbody [data-dir-row="' + (await page.evaluate(() => (dirBook().find(p => p.name === 'Jonas Berg') || {}).key)) + '"]');
       const J = await until(() => { const p = document.getElementById('ins-panel'); const t = p && p.querySelector('.jov5-title'); if (!t || !/Jonas Berg/.test(t.textContent)) return null;
         /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): no tiles — Away is a badge under the name, its title the away line with the stand-in */
-        return [...p.querySelectorAll('.jov5-sub .reg-badge')].map(g => (g.textContent.trim() + ' ' + (g.getAttribute('title') || '')).replace(/\s+/g, ' ').trim()); });
+        /* RE-POINTED 22 Nov 2026 (P-26 review): the house's soft badge (.cun-badge), as Parties wears it */
+        return [...p.querySelectorAll('.jov5-sub .cun-badge')].map(g => (g.textContent.trim() + ' ' + (g.getAttribute('title') || '')).replace(/\s+/g, ' ').trim()); });
       check('6d an away colleague\'s panel says "Away until …" and who stands in', !!J && J.some(x => /^Away Away until .+ stand-in: Amina Otieno/.test(x)), JSON.stringify(J));
       /* RETIRED 17 Nov 2026 (#762): 6e "twelve at a time, 1–12 of N · Show N more" — round 6's People is one page (old look only) */
       await shot('19-people-1440x780.png');
@@ -382,20 +395,29 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       const T = await until(() => { const p = document.getElementById('ins-panel'); const t = p && p.querySelector('.jov5-title'); if (!t || !/Henry/.test(t.textContent)) return null; return true; }, null, 8000).then(v => v ? readPanel() : null);
       /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): someone on their side — Show their contracts is the black button, Email them the link beside it,
          their party the one row under "Their party" (a phone, where known, is Phone them there too) */
-      const party = secOf(T, /^Their party$/), named = secOf(T, /^Named on/);
+      /* RE-POINTED 22 Nov 2026 (P-26 review): the drawn "Their party" section is no row list — the party's name a line
+         (.dirn-pty-n) and Open party its door ([data-dir-party]) — so it is read as drawn; "Named on" is no section any
+         more: the contract and the party they are named on stand on their row (its line under the name, and Does for you) */
+      const party = await page.evaluate(() => { const p = document.getElementById('ins-panel');
+        const sec = p && [...p.querySelectorAll('.jov5-sec')].find(s => /^Their party$/.test(((s.querySelector('.jov5-label') || {}).textContent || '').trim()));
+        const d = sec && sec.querySelector('[data-dir-party]');
+        return { rows: sec ? [{ t: ((sec.querySelector('.dirn-pty-n') || {}).textContent || '').trim(), door: d ? 'data-dir-party' : '' }] : [] }; });
+      const named = await page.evaluate(() => { const p = dirBook().find(x => /henry/i.test(x.email || '')); const r = p && document.querySelector('#dir-tbody [data-dir-row="' + p.key + '"]');
+        return { rows: r ? [{ t: ((r.querySelector('td.dirn-does') || {}).textContent || '').replace(/\s+/g, ' ').trim(), s: ((r.querySelector('.cun-sub') || {}).textContent || '').trim() }] : [] }; });
       const reach = { rows: party.rows.filter(r => /data-dir-party/.test(r.door)) };
       const ACT = await page.evaluate(() => { const p = document.getElementById('ins-panel');
         return { go: !!(p && p.querySelector('.jov5-act .jov5-go[data-dirn-contracts]')), mail: !!(p && p.querySelector('.jov5-act .jov-lnk[data-dirn-mail]')) }; });
       check('8d someone on their side: Email them · Show their contracts · their party', ACT.go && ACT.mail && reach.rows.length === 1
         && reach.rows[0].t === 'Kenya Freight Ltd', JSON.stringify({ ACT, party: party.rows }));
       /* RE-POINTED 17 Nov 2026 (#762): the contracts they are named on, with their party */
-      check('8e "Named on": the contract they are named on, with their party', named.rows.length === 1 && named.rows[0].t === 'Transport agreement' && named.rows[0].s === 'Kenya Freight Ltd', JSON.stringify(named.rows));
+      check('8e "Named on": the contract they are named on, with their party', named.rows.length === 1 && /Transport agreement$/.test(named.rows[0].t) && named.rows[0].s === 'Kenya Freight Ltd', JSON.stringify(named.rows));
       /* RE-POINTED 17 Nov 2026 (#762): what they do for their party is the line under their name */
       /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): under their name stands their role as a soft badge ("Their lead"); what they do for their party is
          their row's Does for you ("Negotiated for Transport agreement") */
       const does = await page.evaluate(() => { const p = dirBook().find(x => /henry/i.test(x.email || '')); const r = p && document.querySelector('#dir-tbody [data-dir-row="' + p.key + '"] td.dirn-does');
         return r ? r.textContent.replace(/\s+/g, ' ').trim() : null; });
-      check('8f the line under their name says their role, "Their lead", and their row says what they do: "Negotiated for Transport agreement"', !!T && T.sub.trim() === 'Their lead' && /^Negotiated for Transport agreement$/.test(does || '') && !T.secs.some(s => /^Also at/.test(s.label)), JSON.stringify({ sub: T && T.sub, does }));
+      /* RE-POINTED 22 Nov 2026 (P-26 review): the drawn wording is "Negotiated <agreement>" (as drawn: "Negotiated Warehouse Services") */
+      check('8f the line under their name says their role, "Their lead", and their row says what they do: "Negotiated Transport agreement"', !!T && T.sub.trim() === 'Their lead' && /^Negotiated Transport agreement$/.test(does || '') && !T.secs.some(s => /^Also at/.test(s.label)), JSON.stringify({ sub: T && T.sub, does }));
       if (reach.rows[0] && /data-dir-party/.test(reach.rows[0].door)){
         await page.click('#ins-panel [data-dir-party]');
         const L = await until(() => state.view === 'customers' && document.querySelector('#cu-tbody [data-cu-cust="kenya freight ltd"].is-landed, #cu-tbody [data-cu-cust="kenya freight ltd"].is-landed-held') ? 'lit' : null, null, 8000);
@@ -416,13 +438,17 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         return rs.length === 2 ? rs.map(r => r.getAttribute('data-row')).sort().join(',') : null; }, null, 8000);
       check('9b "All 2 agreements on Contracts" lands on Contracts with that party\'s two', O === 'MK-KF1,MK-KF2', String(O));
       await backToList();
-      /* RE-POINTED 19 Nov 2026 (the SAP way, revised): the panel's "1 needs your attention" opens Contracts with only it */
+      /* RE-POINTED 21 Nov 2026 (P-25, as drawn): the drawing has no "needs your attention" link — on Waiting on you the
+         panel lists WHAT WAITS ON YOU, each with its kind badge and its act (the worklist row's own door, data-cu-need),
+         where All shows the party's own facts */
+      await page.click('.cun-page [data-cun-tab="wait"]');
       await choose('helio energy ltd');
-      const at = await until(() => document.querySelector('#ins-panel [data-cun-attn="helio energy ltd"]') ? true : null);
-      if (at){ await page.click('#ins-panel [data-cun-attn="helio energy ltd"]');
-        const N = await until(() => { const rs = [...document.querySelectorAll('#ct-place #reg-tbody tr[data-row]')]; return rs.length ? rs.map(r => r.getAttribute('data-row')).sort().join(',') : null; }, null, 8000);
-        check('9d "needs your attention" lands on Contracts with only the contract waiting on you', N === 'MK-AP1', String(N)); }
-      else check('9d "needs your attention" lands on Contracts with only the contract waiting on you', false, 'no attention line');
+      const WT = await until(() => { const p = document.getElementById('ins-panel'); const sec = p && p.querySelector('[data-jov5-sec="waits"]'); if (!sec) return null;
+        return { rows: [...sec.querySelectorAll('.jov5-row')].map(r => ({ k: ((r.querySelector('.jov5-k') || {}).textContent || '').trim(), act: !!r.querySelector('[data-cu-need][data-cu-id="MK-AP1"]') })),
+          facts: !!p.querySelector('[data-jov5-sec="facts"]'), attn: !!p.querySelector('[data-cun-attn]') }; }, null, 8000);
+      check('9d on Waiting on you the panel lists what waits on Helio, each with its kind and its act on MK-AP1; no facts, no attention link', !!WT && WT.rows.length >= 1
+        && WT.rows.every(r => r.k && r.act) && !WT.facts && !WT.attn, JSON.stringify(WT));
+      await page.click('.cun-page [data-cun-tab="all"]');
       await page.evaluate(() => langSet('sv'));
       for (const v of ['customers', 'directory']){
         await page.evaluate(x => setView(x), v); await page.waitForTimeout(400);

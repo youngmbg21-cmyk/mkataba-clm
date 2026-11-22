@@ -90,9 +90,10 @@ const check = (name, ok, got) => { if (!ok) fails++; console.log(`${ok ? 'PASS' 
          answers' own groups with their dots (data-dsn-tab) — the search at the right of them; Ask another and Export in the head */
       const O = res ? await page.evaluate(() => ({ search: document.getElementById('dsn-q').type, tiles: document.querySelectorAll('#rd-page .dsn-bar .apn-tab[data-dsn-tab]').length, oldTiles: document.querySelectorAll('#rd-page .rdsc-tile').length,
         acts: !!document.querySelector('#rd-page [data-dsn-again]') && !!document.querySelector('#rd-page [data-dsn-copy]'), rows: document.querySelectorAll('#rd-page tr[data-dsn-row]').length,
-        links: [...document.querySelectorAll('#ins-panel .jb-ways.is-own .jb-way')].map(b => b.innerText.trim()), back: !!document.querySelector('#rd-page [data-dsn-back]') })) : {};
+        /* RE-POINTED 22 Nov 2026 (P-42 review, as drawn): the result's two acts are buttons under its title in the panel */
+        links: [...document.querySelectorAll('#ins-panel .dsr-acts [data-dsc-open], #ins-panel .dsr-acts [data-dsc-redline]')].map(b => b.innerText.trim()), back: !!document.querySelector('#rd-page [data-dsn-back]') })) : {};
       check(`${nm} 3a a read chosen shows its summary; Open the results: a search, answer chips that filter (no tiles), Ask another and Export, its rows, the paper with its two links`,
-        sum && res && O.search === 'search' && O.tiles >= 2 && !O.oldTiles && O.acts && O.rows >= 2 && O.links.join('|') === 'Open this contract|Start redlining this clause' && O.back, O);
+        sum && res && O.search === 'search' && O.tiles >= 2 && !O.oldTiles && O.acts && O.rows >= 2 && O.links.join('|') === 'Open the paper|Redline it' && O.back, O);
       await shot('3-results');
       if (res) await page.click('#rd-page [data-dsn-back]');
       const backed = res && await until(page, () => !!document.querySelector('#rd-page tr[data-dsn-run]') && !document.getElementById('dsn-q'), null, 8000);
@@ -113,7 +114,8 @@ const check = (name, ok, got) => { if (!ok) fails++; console.log(`${ok ? 'PASS' 
       await page.evaluate(() => { const was = window.setView; window.__dscWas = was; window.setView = function (v){ window.__dscView(String(v)); return was.apply(this, arguments); }; });
       if (four) await page.click('#dsc-go');
       /* RE-POINTED (P-42, owner's pick 20 Nov 2026): while it reads, the page is The Reading Room (.dsn-room) — the old flipbook is gone */
-      const live = four && await until(page, () => /^Reading/.test((document.querySelector('#rd-page .ctf-h') || {}).innerText || '') && !!document.getElementById('dsc-stop') && !!document.querySelector('#rd-page .dsn-room') && !document.querySelector('#rd-page .dsn-leg'), null, 15000);
+      /* RE-POINTED 22 Nov 2026 (P-42 review, as drawn): the reading title is the question itself */
+      const live = four && await until(page, q => ((document.querySelector('#rd-page .ctf-h') || {}).innerText || '').trim() === q && !!document.getElementById('dsc-stop') && !!document.querySelector('#rd-page .dsn-room') && !document.querySelector('#rd-page .dsn-leg'), Q, 15000);
       await shot('5-reading');
       /* RE-POINTED (owner, 16 Nov 2026: "once the run is over, it should immediately jump to the results page instead of
          leaving us to press to get there"; f1072): a read that finished lands on its results by itself — no press */
@@ -122,7 +124,7 @@ const check = (name, ok, got) => { if (!ok) fails++; console.log(`${ok ? 'PASS' 
       /* RE-POINTED (P-42): the line under the results' head is .dsn-sub (was .rdsc-sub) */
       const D = after ? await page.evaluate(() => ({ view: state.view, sub: (document.querySelector('#rd-page .dsn-sub') || {}).innerText || '', rows: document.querySelectorAll('#rd-page tr[data-dsn-row]').length, cols: (state.reg && state.reg.ask) || [] })) : {};
       check(`${nm} 4b the read stands on its own screen with Stop, then lands on its results by itself: the 4 of that folder, said where; the page never left; no column was brought onto Contracts`,
-        live && done && after && D.view === 'reads' && /Procurement/.test(D.sub) && /4 of 4 read/.test(D.sub) && D.rows === 4 && !views.includes('register') && !D.cols.length
+        live && done && after && D.view === 'reads' && /Procurement/.test(D.sub) && /\b4 read\b/.test(D.sub) && D.rows === 4 && !views.includes('register') && !D.cols.length
         && (!h.ai || !h.ai.calls || h.ai.calls.length > calls0), { live, done, after, D, views });
       await shot('6-after');
 
@@ -133,8 +135,9 @@ const check = (name, ok, got) => { if (!ok) fails++; console.log(`${ok ? 'PASS' 
       const live2 = after && await until(page, () => !!document.getElementById('dsc-stop'), null, 15000);
       if (live2) await page.click('#dsc-stop');
       const stopped = live2 && await until(page, () => !document.getElementById('dsc-stop') && !!document.getElementById('dsc-carry') && !(window.AC && AC.busy), null, 20000);
-      const S = stopped ? await page.evaluate(() => ({ carry: (document.getElementById('dsc-carry') || {}).innerText || '', open: !!document.querySelector('#rd-page [data-dsn-results]'), view: state.view })) : {};
-      check(`${nm} 5 Stop: the read stops on its own screen, and offers the rest ("Read the N left") beside Open the results`, live2 && stopped && S.view === 'reads' && /^Read the \d+ left$/.test(S.carry) && S.open, { live2, stopped, S });
+      /* RE-POINTED 22 Nov 2026 (P-42 review, as drawn): stopped, the head offers Ask another; the bar offers the rest */
+      const S = stopped ? await page.evaluate(() => ({ carry: (document.getElementById('dsc-carry') || {}).innerText || '', again: !!document.querySelector('#rd-page [data-dsn-again]'), view: state.view })) : {};
+      check(`${nm} 5 Stop: the read stops on its own screen, and offers the rest ("Read the N left"), Ask another in its head`, live2 && stopped && S.view === 'reads' && /^Read the \d+ left$/.test(S.carry) && S.again, { live2, stopped, S });
       if (h.ai && typeof h.ai.slow === 'function') h.ai.slow(0);
 
       /* 6 · fits */

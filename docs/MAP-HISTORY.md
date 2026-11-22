@@ -39684,6 +39684,122 @@ cells are shaded by money. Kept against the drawing, asked of the owner: the hea
 board · contracts links line over the box (Jambo's box rule), and "Shade the cells by how many" in the default Grid
 (the cells are already shaded by how many there, so the row would do nothing).
 
+## ASK A COLUMN (js/views/askcolumn.js) — DISCOVER MATCHED TO THE PICKED DRAWINGS (P-42 review, 22 Nov 2026)
+An independent review listed where Discover on main differed from the picked drawings (discover-options "mix" and
+discover-every); every state was rebuilt to them and photographed at the three screens. THE ENDLESS "LOADING…": with
+no reads at all, rdLoad's "drawn again only if the rows changed" compared none with none, so the list that had drawn
+"Loading…" was never drawn again; a page still showing the loading row (`data-dsn-loading`) is now drawn once the load
+is back, and the empty list is the drawn dashed "No reads yet" with no table head. THE LIST: the question (never the
+short name) with the chosen row's words and § under it, a faint green chosen row, Where as the first folder and "+N",
+When as a day ("today", "18 Nov"), the line "Every read your team has run · N reads · N questions", the ask box a box
+edged in Jambo's green (it HOLDS a field, `--fld-under` none). THE PANEL: the title in the body's type, hairlines between
+parts, "The one to look at" a heading, Open the results a small black button; Keep left the panel (one door: each
+question's column head on the results), Delete question stayed (no other door). NEW READ: ‹ All reads above the title;
+each pack its own chip, the first's ▾ opening ONE pop-up of every pack (Ask this pack, Edit · Delete on yours, + Save
+these questions as a pack; Manage is gone) with the pack's questions in the panel (`dsnPackPeekPanel`); the "Asked
+before" chips left the page (the panel's Asked here before is the one door, each question once); Where on one line with
+"Folder: All"; 50 | 100 a press back (`DSN_SIZES`, `_dsn.size`, 100 until chosen); the panel counts as the button does
+(`dsl_new_some` / `dsl_new_before`: "1 is read on this press. 10 were read before."). TURNED DOWN: your words kept, the
+line why in its amber band (the drawn refusal's way forward), nothing else until Read. THE READING ROOM: the question as
+the title, Stop alone in the head (askColStop's one door; Cancel read removed — leaving keeps it reading, the results
+throw a read away), a warm sheet of fixed height, the table Contract (number · party under it) · Answer in its colour ·
+Where it says so · §, "Filed so far" said once; Found so far cards white, a Yes amber, YES/NO tags. A class clash
+fixed on the way: New read's bar class `.dsn-read` was also the Reading Room's green mark (renamed `.dsn-rdb`).
+STOPPED: Ask another; the stopped panel "Stopped · N left" with the ring of read and "read them" = the stop's carry; the
+table never empties while the read's record is still being written (`_dsn.lastDone`, `dsnWaitForRun`); the stop
+sentence's "{n} left" no longer took the total (`{total}`). RESULTS: one Contract column then one whole column per
+question (heads wrap, Keep under them, "✓ kept" short past three questions), the answer's words with its mark against
+our playbook; one question: Contract with the words lit · Answer · Against our playbook · §; the row's panel
+(`dsnResultPanelHtml`): its badge, contract · answer, Open the paper · Redline it (the existing doors), where it was read
+(every place for a pack), OUR PLAYBOOK ASKS — the standard read from the clause library by the question a standard asks
+(DSN_STD_Q) or the topic it names, its ladder by `stdLadderOf`, the answer placed on the rung it says word for word, else
+by the read's own verdict (below the ladder · meets); nothing claimed without a rule (`dsnLadderFor`, `dsnPlaybookOf`) —
+and Mark checked. Kept, and why: the shared panel top line ("Overview ›", "Reading · k of n"); the filters with no values
+not drawn (filters with results only); a single question's chips by its answers (the owner's coloured tiles), not by
+verdict; each column's "kept" or "Keep" is the question's own record, shown as it stands (the drawing's mix was sample data).
+
+## THE ONE DESK — NEEDS YOU, ONE READING — ONE COUNT, ONE WAIT (review of merged pages against P-38/P-39, 22 Nov 2026)
+An independent review photographed the merged Board and side panel against the owner's picked drawings. Found: the
+panel's ring legend said "3 Jambo" and the bell's chip "Jambo 3" (late pieces dropped from Jambo's count) while Needs you
+said "Jambo prepared 5"; one approval read "134 days" on one load and "today" on the next — measured: no question was on
+record for a step that was already due when the rule was saved, so the wait fell back to `lastAction` ("10 Jul 2026" in
+the sample), until the reminders' sweep (30 s after boot) opened the question; the Company row put its sentence in the
+Agreement column with an empty Waited and named a rule by its sum ("Value >= KES 10M") in the side panel; Activity
+printed the trail's whole sentence and called an internal note "Sent"; note rows had no quote, the opened note no amber
+band, @names four inks; Redlines' Notes lost its count when chosen and sat 12 + 16 px in with a 50 px gap; the panel's
+last piece was cut at 1536×730; Explorer and Read down showed no quote for a term the paper states without a date.
+Built: ndWaitCounts (one count); hbHelloFitN with "N more, on the Board"; ndWaitedDays and apApprovalRows off the
+question's `at`, else repRaisedAt; the company row's name/line/oldest wait and `plain` clash words; actSayOf; the
+note quote, the amber band, the one green; the notes face level with its switch; hbRdnTermQuote's term-sentence
+fallback. The "All seven agents … Change · The agents" foot line was removed, then RESTORED the same day (a working control stays
+though undrawn). Kept as ruled: "Show N more",
+"‹ Back to Contracts", "Payment gap", two-line titles, Notes greyed without a contract, Done notes under Done only, nav
+counts grey unless waiting on you.
+## CUSTOMER FOLDERS — SHELVES, THE SAP WAY — P-25 REBUILT TO THE DRAWING (21 Nov 2026)
+The first build of P-25 (PR #861) was compared, part by part, with the owner's picked drawing ("The Legora + Stripe way",
+graphic "Ring", tabs All and Waiting on you) rendered at 1440 and with photos of the running app; every gap was built.
+- HEAD: + Add a party (grey pill) — a party is on this page through its agreements, so it opens the one door to a new
+  agreement (openNewAgreement, cunAddMay; not drawn for a reader who may not create). The ask box wears Jambo's mark and
+  a question for its example ("who do we owe the most to?"; on Waiting on you "what does <the late party> need from us?").
+  Its words narrow the rows only while they name a party or a city; Enter on a question asks Jambo in the panel (jlAsk).
+- ALL: heads in sentence case; under each name the paper's own "between … and …" words in the paper's type, one line
+  ending in "…" (cunPaperWords: contractPlainText, the nearest "between" before the party's name, verbatim, once a
+  version; none where the paper has none) — the city/org. no. line under the name is gone (the org. no. is said in the
+  panel). Streams a soft square badge (no dot) and "+N" in grey; the ring green (--accent-ink) on a visible grey track
+  (--color-neutral-300); On paper right-aligned, the currency in its head ("On paper (KES)"), the cells the figure alone;
+  Ends next right-aligned, the agreement under it on up to two lines; Waiting on you a soft square badge. Rows 11px top and
+  bottom; the chosen party's rows faintly green (--color-accent-50).
+- WAITING ON YOU: "Fill in the details of <agreement>", "Decide the renewal", "Say whose job N duties Jambo found are" with
+  the first duty's own words and "§ 3, and 3 more" (cunPromiseQuote, the review desk's obReviewWaiting); kinds Details
+  grey, Jambo's finds violet, Renewal amber, Late red; the agreement with its number; the act an underlined link
+  (Fill in · Decide · Open approval).
+- PANEL (jamboOverviewFiveHtml, which gained `avatarTone` and a row's `cls`): small initials in the stream's tone, the
+  name in the body type, streams under it; Agreements and Ends next as two figures ("Not signed yet" where nothing is
+  signed); the ring with "k of n signed · m in progress"; Open on Contracts with Edit beside it; plain sections parted by
+  hairlines — on All the party's own facts (Org. no. amber "Not on file"), on Waiting on you what waits with its act; a
+  dotted timeline (signed green, in progress amber with what still waits, late red, an end to come hollow); contacts with
+  + Add a contact under them. The "N need your attention" link (data-cun-attn) is REMOVED (the drawing has none; BUGLOG).
+- CHOICES MADE WITHOUT THE OWNER (asleep, "just choose"): the chips keep the shared chip look of every list page (the
+  drawing drew them outlined); the panel keeps its Overview head line, as Approvals did; the timeline is one reading on
+  both tabs (the drawing's two tabs worded it differently); a party's contacts, where it has some, stay one counted row
+  ("2 contacts at …") as before (the drawing shows only a party with none); the paper's words keep the paper's own capital.
+## MY NOTES AND MY OWN EVENTS (js/mine.js, js/views/mynotes.js)
+P-27 REBUILT AS DRAWN (21 Nov 2026, overnight; the owner was angry that the first build, PR #861, "took shortcuts and claimed complete"). Every tab (All, Due, Reviewed) photographed before and after and set beside the drawing ("The Legora + Stripe way"). Gaps closed: the ask box (Jambo's green ✦, "Write a note, or ask: “what did I note about <a party your notes sit on>?”"); a question now narrows by its own words (`mnnIsAsk`, `mnnAskTerms` in `mnHit`), anything else + Enter opens New note filled (`myNotesNew({body})`) — read in the browser only, no note leaves its owner; chips dashed, the chosen one solid; sentence-case column heads; § found on the paper shown as "§ 5"; badges square-cornered, dot only on Overdue/Due today, tick on Reviewed; "2 days overdue" red, "today" amber; the act on the row you are on (chosen or hovered, `.mnn-rowact`; a hovered row's act chooses its row first); the "7 notes" foot gone. Panel: plain 17px headline, contract line a quiet door (`data-mn-act="open"`), the day large in its tone, black button with ONE link (Snooze a week; on a reviewed note Delete note), no cards, hairlines between "From the paper · §" and Timeline; timeline dots (`mnnTimelineHtml`): Written · Your bell rings today / rang / rings · Rings each day until reviewed; reviewed: Written · Your bell rang (only where the review day came before the review — no other bell day is kept, the review day IS the day it rings) · You marked it reviewed. Removed (BUGLOG): "This note" rows (approval, ends), the panel's small print, Delete beside Mark reviewed. Kept, not drawn: the panel's "Overview" head line (as every page's). Re-pointed: my-notes-verify 5b/5c, requests-and-notes-as-drawn 6a/6b, round6-new-look 8.
+
+## CUSTOMER FOLDERS — SHELVES, THE SAP WAY — P-25 AND P-26, THE REVIEW'S DIFFERENCES (22 Nov 2026)
+The independent review (review 6) compared Parties and People with the picked drawings and listed small differences; the
+owner asked for an exact match ("Stop asking me questions. Just choose what you recommend"). Built:
+- CHIPS: My notes, Parties and People now share ONE rule (index.html, `:is(.mnn-page,.cun-page,.dirn-page) .apn-bar
+  .apn-tab.is-chip`): dashed when not chosen, the chosen one solid, never a fill, the count in the chip's ink. Negotiations
+  and Requests carry their own copies on their own branches; folding them in waits for those merges.
+- Parties: a grey "—" in Waiting on you where nothing waits; On paper in one form down the column ("12.00M" beside
+  "10.50M": the house shortener's `{ even: true }`, fmtMoneyShortIn; a sentence or a tile keeps "12M"; nothing stored
+  changes); the foot line "11 parties · 13 agreements" removed (BUGLOG); Ends next 160 wide (the drawing's: an agreement's
+  name on two lines); no Waiting on you column for a reader with nothing waiting anywhere (cunNoWork) — measured: the
+  no-money reader of the seeded world (a Legal reader with no work) sees Party · Streams · Agreements · Ends next.
+- Rows: unchanged in height (measured 63px, the drawing's 51px at its 0.82 scale = 62px); 8 parties fit at 1440×780
+  once the foot line went.
+- Panel rhythm: sections 10 above and below their line, 6 under the label, rows 2 apart, the timeline 9, the ring 44
+  (the drawing's ~45). Measured at 1536×730: + Add a contact ends at 602 (All) and 625 (Waiting on you, two-line
+  contact) under the panel's 627 — in view without a scroll. The drawing itself has no Overview head (every rebuilt
+  page keeps it), so the drawing's own rhythm alone would not have fitted.
+- Waiting on you timeline (cunTimelineRows, that tab only): "<agreement> started" green, ordered by its record's
+  createdAt, its standing beside it; what is late in red; then an empty circle for the first thing still waiting that is
+  not late ("Details still to fill in"). The All tab keeps the amber "in progress".
+- People: role, Away / Not away, Waiting on them and the panel's kinds wear the house soft badge (.cun-badge: 6px
+  corners, 12px), as Parties does.
+- Kept on purpose: "Does for you" at the row's one size (13px; one size per row), People's Edit contact (a working door),
+  the Waiting chip counting items (counts match rows), the Approval kind (from the data).
+- Not added: Remind for a rule approval on People — the Approvals branch has the route (P-30); a BUGLOG line waits for it.
+- PR #875's red browser checks (22 Nov 2026): the tidy sweep found "On paper (KES)" squeezed on two lines in a 54px box —
+  On paper is now 108 wide and its head one line (nowrap), Ends next 140 so both fit beside the name's 300 on the iPad.
+  People: a person's panel asked for their contracts' links again on every redraw when the server refused them — a
+  fetch loop that kept the page's network busy without end (people-directory's reload never idle; parties-and-contracts
+  hung 600s); now asked once a sitting (dirPhoneAsk, _dirPhoneAsked; measured: the reload idle in 1.4s). Your own row
+  says "you · <job title>" where an admin set one. Checks re-pointed only by selector or drawn wording: jambos-list-panel
+  6b/6c (.cun-badge), parties-and-people 8d/8e/8f (the drawn Their party section; Named on read from the row; "Negotiated
+  <agreement>"), four-decisions Q3 (the sample book's one person has no timeline, so her signature is put on three of her
+  agreements in the page's memory before measuring).
 ## THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM / THE COUNTERPARTY'S PAGE (P-44 review, 22 Nov 2026)
 An independent review of P-44 against the owner's picked drawings (History "mix"; the other side's page "mix") found the
 History side panel unbuilt, money (KES 22,000,000) in the Dossier panel, the kind chips and note rows missing, and on
@@ -39716,6 +39832,10 @@ repaint — the Board always settled on the true book:
     so a redraw writing the same number keeps the count going and a new number stops it.
 Measured at the parent: 5 of 6 runs at 4× and 3 of 3 at 1× had frames where the figures' words differed from the book;
 after: 0 of 18 (six each at 1×, 4× and 6×). Looks the same: the count still climbs from 0, from the number's start edge.
+- People's Remind on a waiting rule approval (22 Nov 2026, after Approvals' PR #871 merged): one door — the room's writer
+  ruleStepRemind (POST /api/contracts/:id/rule-remind, once a day, its refusals the server's); offered by
+  dirnRuleRemindAttr only to a reader who may act and is not an approver of the step; the timeline reads c.ruleReminds
+  ("Reminded <name> · today"; dirnDay now says "today" as Approvals' apnShortDay does). f1139 (8).
 
 ## THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM / THE COUNTERPARTY'S PAGE (P-44 review follow-up, 22 Nov 2026)
 GitHub's browser checks on PR 879 went red in 24 files; every one was green on main and red on the branch, measured here
