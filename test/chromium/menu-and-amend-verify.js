@@ -216,12 +216,16 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
        answered here by a stand-in) and read on the amendment beside it; Create is the paper line's [data-pd2-am-create] */
     /* RE-POINTED 22 Nov 2026 (Amend L+S as drawn, #911: ONE full page over the paper, its Changes tab a row per change,
        pd2AmxHtml; a fact said in the box is offered on its row and taken by its press, data-pd2-amx-use) */
+    await page.click('.pd2-amx [data-pd2-amx-tab="changes"]').catch(() => {});
     const listed = await until(page, () => document.querySelectorAll('.pd2-amx [data-pd2-amx-row]').length === 1, null, 5000);
     await page.route('**/api/ai/amend', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [], facts: { expiry: '2028-12-31' } }) }));
     const said = await page.$('#igd-input');
     if (said){ await said.fill('The term now ends on 31 December 2028'); await page.keyboard.press('Enter'); }
     if (await until(page, () => !!document.querySelector('.pd2-amx [data-pd2-amx-use="expiry"]'), null, 8000)) await page.click('.pd2-amx [data-pd2-amx-use="expiry"]');
     await until(page, () => /2028/.test(((document.querySelector('#pd-amendface') || {}).innerText || '') + ((document.querySelector('.pd2-amx') || {}).innerText || '')), null, 8000);
+    /* the rows are drawn on the Changes tab (a clause is pressed on the Signed paper tab) */
+    await page.click('.pd2-amx [data-pd2-amx-tab="changes"]').catch(() => {});
+    await until(page, () => document.querySelectorAll('.pd2-amx [data-pd2-amx-row]').length >= 1, null, 5000);
     const marked = await page.evaluate(() => ({ items: document.querySelectorAll('.pd2-amx [data-pd2-amx-row]').length,
       mark: (document.querySelector('#ig-canvas [data-anchor="c1"] .pd-am-mk') || {}).textContent || '',
       end: /2028/.test(((document.querySelector('#pd-amendface') || {}).innerText || '') + ((document.querySelector('.pd2-amx') || {}).innerText || '')),

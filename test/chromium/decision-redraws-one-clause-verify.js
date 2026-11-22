@@ -57,6 +57,13 @@ const BD = { head: 'Rent first', sub: '', links: [], regions: [{ name: 'Money', 
       if (r.target === dock && add.length) n.panel++; }));
     mo.observe(host, { childList: true }); mo.observe(dock, { childList: true });
     const sc0 = document.getElementById('ig-paper-scroll'); if (sc0) sc0.scrollTop = 240; const top0 = sc0 ? sc0.scrollTop : 0;
+    /* THE PLACE THE READER SEES (22 Nov 2026): the block under the top of the view and where it stands on screen. An
+       accepted change shortens a block above the view, and the browser's scroll anchoring moves scrollTop to keep the
+       words in place, so the raw number can move while the reader's place does not; the place is what is judged */
+    const seen = () => { const sc = document.getElementById('ig-paper-scroll'); const d = document.querySelector('#ig-canvas .rl-zoom > .rl-paper'); if (!sc || !d) return null;
+      const top = sc.getBoundingClientRect().top + 8; const kids = [...d.children].filter(x => !x.hasAttribute('data-pg-layer'));
+      const i = kids.findIndex(k => { const r = k.getBoundingClientRect(); return r.bottom > top; }); return i < 0 ? null : { i, y: Math.round(kids[i].getBoundingClientRect().top) }; };
+    const at0 = seen();
     const c = getContract('MK-110');
     if (kind === 'accept'){ const btn = document.querySelector('#pd-redface [data-nego-accept]'); if (!btn) return { missing: 'accept button' }; btn.click(); }
     else if (kind === 'reject'){ const ch = (c.changes || []).find(x => x.status === 'pending'); if (!ch) return { missing: 'a pending change' }; if (!negoResolve(c, ch.id, 'rejected', { side: 'owner', reply: 'No' })) return { missing: 'refused: ' + (window.negoLastRefusal || '') }; pdRedRepaint(); }
@@ -76,11 +83,12 @@ const BD = { head: 'Rent first', sub: '', links: [], regions: [{ name: 'Money', 
     const words = el => (el.textContent || '').replace(/\s+/g, ' ').trim();
     const before = live.map(words).join(' | ');
     const top1 = (document.getElementById('ig-paper-scroll') || {}).scrollTop;
+    const at1 = seen();
     /* and then drawn whole: the same words */
     delete host.dataset.for; igPaintPaper();
     const doc2 = document.querySelector('#ig-canvas .rl-zoom > .rl-paper');
     const after = [...doc2.children].filter(x => !x.hasAttribute('data-pg-layer')).map(words).join(' | ');
-    return { patch, papers: n.papers, panel: n.panel, blocks: live.length, sameSrc, sameWords: before === after && before.length > 200, kept: Math.abs(top1 - top0) < 2, top0, top1 };
+    return { patch, papers: n.papers, panel: n.panel, blocks: live.length, sameSrc, sameWords: before === after && before.length > 200, kept: (Math.abs(top1 - top0) < 2) || !!(at0 && at1 && at0.i === at1.i && Math.abs(at0.y - at1.y) < 3), top0, top1, at0, at1 };
   }, kind);
   /* (the panel's writes are printed, not judged: GitHub's measure showed the two records a decision leaves on it cost one
      drawing's time, so their count says nothing about speed) */

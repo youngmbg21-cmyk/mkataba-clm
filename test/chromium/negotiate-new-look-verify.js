@@ -165,10 +165,12 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
          paper and the panel: its headline, the Dossier's six stages, ONE count, and its way back (Open the dossier) */
       await page.evaluate(id => hbStripBring(id, 'where'), ID);
       /* RE-POINTED 20 Nov 2026 (owner: the Cover is deleted, "open the Dossier instead"): Where we are opens the Dossier */
-      await until(page, id => typeof pdContract === 'function' && pdContract() && pdContract().id === id && typeof pdTab === 'function' && pdTab() === 'copilot', ID, 10000);
-      const w6 = await page.evaluate(() => ({ tab: typeof pdTab === 'function' ? pdTab() : null, cover: !!document.querySelector('.cv-page'),
-        old: document.querySelectorAll('.pd2-stands').length, card: !!document.querySelector('#ig-dock .pd2-card') }));
-      check(`${nm} 6 Where we are opens the Dossier: its card, no Cover`, w6.tab === 'copilot' && !w6.cover && w6.old === 0 && w6.card, w6);
+      /* RE-POINTED 22 Nov 2026 (#912, "Who does what, before you sign: our Where the deal stands (L+S)"): Where we are opens
+         the deal's own page in the middle (#pd2-dl, pd2StandsOpen → pd2DealPageHtml) and the panel turns to it ([data-pd2-dlf]) */
+      await until(page, () => !!document.querySelector('#pd2-dl'), null, 10000);
+      const w6 = await page.evaluate(() => ({ page: !!document.querySelector('#pd2-dl'), cover: !!document.querySelector('.cv-page'),
+        old: document.querySelectorAll('.pd2-stands').length, panel: !!document.querySelector('[data-pd2-dlf]') }));
+      check(`${nm} 6 Where we are opens the deal's page (Who does what) with its panel, no Cover`, w6.page && !w6.cover && w6.old === 0 && w6.panel, w6);
       await page.screenshot({ path: path.join(OUT, `where-${nm}.png`) });
       await back(page);
       /* 7 · the clause editor's card */

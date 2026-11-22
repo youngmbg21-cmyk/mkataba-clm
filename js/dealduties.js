@@ -147,7 +147,29 @@ function dutyPayload(c){
       ours: r.ours ? { answer: r.ours.answer, at: r.ours.at } : null, theirs: r.theirs ? { answer: r.theirs.answer, at: r.theirs.at } : null })) };
 }
 
+/* THE ANSWERS AS THE SERVER HOLDS THEM, AND OUR ANSWER'S ONE WRITER (moved here from the paper desk, 22 Nov 2026: the
+   desk reads, it does not write, f563). Browser only: on a server the routes are the wall (GET/POST
+   /api/contracts/:id/duties); without one, the same map on the contract (dutyTickSet), its trail line and a save. */
+function dutyTicksLoad(id){
+  if (typeof API_MODE !== 'function' || !API_MODE() || typeof api !== 'function') return Promise.resolve(null);
+  return Promise.resolve(api('contracts/' + encodeURIComponent(id) + '/duties', 'GET', null, { quiet: true }))
+    .then(r => (r && r.dutyTicks && typeof r.dutyTicks === 'object') ? r.dutyTicks : null).catch(() => null);
+}
+async function dutyAnswerSave(c, key, answer){
+  if (typeof API_MODE === 'function' && API_MODE()){
+    const r = await api('contracts/' + encodeURIComponent(c.id) + '/duties', 'POST', { key, answer });
+    const live = (typeof getContract === 'function' && getContract(c.id)) || c;
+    if (r && r.dutyTicks && Object.keys(r.dutyTicks).length) live.dutyTicks = r.dutyTicks; else delete live.dutyTicks;
+    return true;
+  }
+  const map = dutyTickSet(c, key, 'ours', answer, (typeof nowISO === 'function') ? nowISO() : new Date().toISOString());
+  if (Object.keys(map).length) c.dutyTicks = map; else delete c.dutyTicks;
+  const row = dutyReading(c).rows.find(x => x.key === key) || {};
+  if (typeof logAudit === 'function') logAudit(c, 'Who does what', `${answer === 'yes' ? 'Agreed the reading' : answer === 'no' ? 'Said it is not how they read it' : 'Took back their answer'}: ${String(row.desc || '').slice(0, 120)}`);
+  if (typeof persist === 'function') persist(c);
+  return true;
+}
 const DUTY_API = { DUTY_MAX, DUTY_SIDES, DUTY_ANSWERS, DUTY_WHOSE, dutyNorm, dutyHash, dutyKeyOf, dutyTopNum, dutyFound,
-  dutyWhoseOf, dutyOpenNums, dutyExecuted, dutyTickOf, dutyReading, dutyCounts, dutyTickRefusal, dutyTickSet, dutyPayload };
+  dutyWhoseOf, dutyOpenNums, dutyExecuted, dutyTickOf, dutyReading, dutyCounts, dutyTickRefusal, dutyTickSet, dutyPayload, dutyTicksLoad, dutyAnswerSave };
 if (typeof window !== 'undefined') Object.assign(window, DUTY_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = DUTY_API;

@@ -162,7 +162,10 @@ describe('f1163 (4) where the reader looks', () => {
     assert.match(IX, /:has\(#pd-amendface \.pd2-amls, \.pd2-dossier\.is-deal\)::before/);
   });
   test('our answer goes through its one writer; theirs by the link', () => {
-    assert.match(PD, /api\('contracts\/' \+ encodeURIComponent\(c\.id\) \+ '\/duties', 'POST', \{ key, answer \}\)/);
+    /* RE-POINTED 22 Nov 2026 (the desk reads, it does not write, f563): the writer lives in the duties module (dutyAnswerSave),
+       the desk's press calls it */
+    assert.match(R('js/dealduties.js'), /api\('contracts\/' \+ encodeURIComponent\(c\.id\) \+ '\/duties', 'POST', \{ key, answer \}\)/);
+    assert.match(PD, /await window\.dutyAnswerSave\(c, key, answer\);/);
     assert.match(PO, /api\('shares\/'\+PORTAL_OPTS\.token\+'\/duties','POST',\{ key, answer, t \}\)/);
     assert.match(PO, /chip\('duties',W\.total\)/);
   });

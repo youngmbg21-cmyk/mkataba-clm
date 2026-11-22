@@ -9494,12 +9494,13 @@ function pd2StandsOpen(id){
 }
 /* the answers as the server holds them (the light list may carry an older map): drawn again when they come */
 function pd2DlLoad(c){
-  if (typeof API_MODE !== 'function' || !API_MODE() || typeof api !== 'function') return;
-  Promise.resolve(api('contracts/' + encodeURIComponent(c.id) + '/duties', 'GET', null, { quiet: true })).then(r => {
-    if (!r || typeof r.dutyTicks !== 'object') return;
+  /* THE DESK READS, IT DOES NOT WRITE (f563): the fetch is the duties module's own (dutyTicksLoad) */
+  if (typeof window === 'undefined' || typeof window.dutyTicksLoad !== 'function') return;
+  Promise.resolve(window.dutyTicksLoad(c.id)).then(ticks => {
+    if (!ticks) return;
     const live = (typeof getContract === 'function' && getContract(c.id)) || c;
-    if (JSON.stringify(live.dutyTicks || {}) === JSON.stringify(r.dutyTicks)) return;
-    if (Object.keys(r.dutyTicks).length) live.dutyTicks = r.dutyTicks; else delete live.dutyTicks;
+    if (JSON.stringify(live.dutyTicks || {}) === JSON.stringify(ticks)) return;
+    if (Object.keys(ticks).length) live.dutyTicks = ticks; else delete live.dutyTicks;
     pd2DealRepaint();
   }).catch(() => {});
 }
@@ -9527,7 +9528,7 @@ function pd2DlAnswerHtml(c, r, S, may){
   if (r.ours) return `<span class="pd2-dl-ok">✓ ${E(_pdT('pd2_dl_you_agree'))}</span>${undo}`;
   if (!may) return `<span class="pd2-q">${E(_pdT('pd2_dl_st_you'))}</span>`;
   const busy = _pdDl.busy === r.key;
-  return `<span class="pd2-dl-acts"><button type="button" class="pd2-pill" data-pd2-dl-ans="${k}" data-v="yes"${busy ? ' disabled' : ''}>${E(_pdT('pd2_dl_agree'))}</button><button type="button" class="ui-link" data-pd2-dl-ans="${k}" data-v="no"${busy ? ' disabled' : ''}>${E(_pdT('pd2_dl_not_ours'))}</button></span>`;
+  return `<span class="pd2-dl-acts"><button type="button" class="pd2-pill" data-pd2-dl-ans="${k}" data-v="yes"${busy ? ' disabled' : ''}>${E(_pdT('pd2_dl_agree'))}</button><button type="button" class="ui-link ui-link-say" data-pd2-dl-ans="${k}" data-v="no"${busy ? ' disabled' : ''}>${E(_pdT('pd2_dl_not_ours'))}</button></span>`;
 }
 const PD2_DL_CHIPS = ['all', 'us', 'them', 'both', 'none'];
 function pd2DlChipOf(r){ return r.whose; }
@@ -9614,17 +9615,9 @@ async function pd2DutyAnswer(c, key, answer){
   if (why && answer !== 'clear'){ if (typeof toast === 'function') toast(_pdT('pd2_dl_why_' + why), 'warn'); return false; }
   _pdDl.busy = key; pd2DealRepaint();
   try {
-    if (typeof API_MODE === 'function' && API_MODE()){
-      const r = await api('contracts/' + encodeURIComponent(c.id) + '/duties', 'POST', { key, answer });
-      const live = (typeof getContract === 'function' && getContract(c.id)) || c;
-      if (r && r.dutyTicks && Object.keys(r.dutyTicks).length) live.dutyTicks = r.dutyTicks; else delete live.dutyTicks;
-    } else {
-      const map = dutyTickSet(c, key, 'ours', answer, (typeof nowISO === 'function') ? nowISO() : new Date().toISOString());
-      if (Object.keys(map).length) c.dutyTicks = map; else delete c.dutyTicks;
-      const row = dutyReading(c).rows.find(x => x.key === key) || {};
-      if (typeof logAudit === 'function') logAudit(c, 'Who does what', `${answer === 'yes' ? 'Agreed the reading' : answer === 'no' ? 'Said it is not how they read it' : 'Took back their answer'}: ${String(row.desc || '').slice(0, 120)}`);
-      if (typeof persist === 'function') persist(c);
-    }
+    /* THE DESK READS, IT DOES NOT WRITE (f563): the duties module's one writer (dutyAnswerSave) sends or saves it */
+    if (typeof window === 'undefined' || typeof window.dutyAnswerSave !== 'function') throw new Error(_pdT('pd_failed'));
+    await window.dutyAnswerSave(c, key, answer);
     return true;
   } catch (e){ if (typeof toast === 'function') toast((e && e.message) || _pdT('pd_failed'), 'err'); return false; }
   finally { _pdDl.busy = ''; pd2DealRepaint(); }
