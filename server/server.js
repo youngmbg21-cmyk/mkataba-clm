@@ -767,6 +767,10 @@ addColumnIfMissing('intake_requests', 'assignee_id', 'TEXT');
 addColumnIfMissing('intake_requests', 'assignee_name', 'TEXT');
 addColumnIfMissing('intake_requests', 'promised_at', 'TEXT');
 addColumnIfMissing('intake_requests', 'lane', 'TEXT');
+/* WHEN IT WAS TAKEN (P-32 review, 22 Nov 2026): the moment an editor came to hold the request, stamped by the PATCH that
+   names them and cleared when it is put down; a request taken before this column existed has none (nothing invented).
+   Inside only: it rides intakeRow to the team and the asker, never the tracker page an outsider may open. */
+addColumnIfMissing('intake_requests', 'taken_at', 'TEXT');
 addColumnIfMissing('intake_requests', 'track_token', 'TEXT');
 /* THE ESSENTIALS THE PERSON ASKING GAVE (4 Oct 2026): our party, their email,
    the value and which side of the money, the start and the end — a JSON map
@@ -12169,6 +12173,7 @@ const intakeRow = r => ({ id: r.id, title: r.title, need: r.need, counterparty: 
      had one would make every request on file read as "answered, with nothing"
      where the honest answer is "nobody has said". */
   assignee: r.assignee_id ? { id: r.assignee_id, name: r.assignee_name || '' } : null,
+  takenAt: r.assignee_id && r.taken_at ? r.taken_at : null,
   promisedAt: r.promised_at || null, lane: r.lane || null,
   trackToken: r.track_token || null, answers: intakeAnswersOf(r), files: intakeFilesOf(r.id) });
 /* Names and sizes only — never the bytes (see intake_files). */
@@ -12362,6 +12367,7 @@ app.patch('/api/intake/:id', auth, (req, res) => {
      but the assignee is looked UP rather than taken from the body, because a
      name in a request body is a name anybody could type. */
   let asgId = r.assignee_id, asgName = r.assignee_name;
+  let takenAt = r.taken_at || null;   // the moment it was taken (P-32 review): kept unless the holder changes
   if (isEditor && b.assignee !== undefined) {
     const want = clean(b.assignee).slice(0, 60);
     if (!want) { asgId = null; asgName = null; }
@@ -12369,8 +12375,10 @@ app.patch('/api/intake/:id', auth, (req, res) => {
       const u = db.prepare('SELECT id,name,role FROM users WHERE id=?').get(want);
       if (!u) return res.status(400).json({ error: 'No such member' });
       if (!srvMayAct(u)) return res.status(400).json({ error: `${u.name} is a Viewer and cannot hold a request. Choose a member who edits.`, viewerNamed: true });
+      if (String(u.id) !== String(r.assignee_id || '')) takenAt = now();
       asgId = u.id; asgName = u.name || '';
     }
+    if (!asgId) takenAt = null;
   }
   let promised = r.promised_at;
   if (isEditor && b.promisedAt !== undefined) {
@@ -12382,9 +12390,9 @@ app.patch('/api/intake/:id', auth, (req, res) => {
   /* THE LANE IS WRITTEN ONCE AND NEVER REWRITTEN. A rule that fired is a fact
      about what happened, so a later call cannot relabel it. */
   const lane = r.lane || (isEditor ? (clean(b.lane).slice(0, 80) || null) : null);
-  db.prepare('UPDATE intake_requests SET status=?, note=?, contract_id=?, decided_by=?, decided_at=?, updated_at=?, assignee_id=?, assignee_name=?, promised_at=?, lane=? WHERE id=?')
+  db.prepare('UPDATE intake_requests SET status=?, note=?, contract_id=?, decided_by=?, decided_at=?, updated_at=?, assignee_id=?, assignee_name=?, promised_at=?, lane=?, taken_at=? WHERE id=?')
     .run(status2, clean(b.note).slice(0, 2000) || r.note, contractId || null,
-      req.user.name || '', now(), now(), asgId, asgName, promised, lane, req.params.id);
+      req.user.name || '', now(), now(), asgId, asgName, promised, lane, takenAt, req.params.id);
   const after = db.prepare('SELECT * FROM intake_requests WHERE id=?').get(req.params.id);
   /* Only where the answer actually MOVED, and never back to the person who
      moved it. Re-saving the same status is not news. */
