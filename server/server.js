@@ -27553,7 +27553,7 @@ function settingsWhyPerson(u, users){
   const pu = publicUser(u);
   const sc = pu.signCap == null ? 'not set (any amount)' : pu.signCap === 'none' ? 'no limit' : String(pu.signCap);
   const fa = pu.folderAccess;
-  return `- [${u.id}] ${u.name || u.email} (${u.role})${u.role === 'admin' ? ': admin, never capped' : `: signing limit ${sc}`}`
+  return `- [${u.id}] ${u.name || u.email} (${srvRolePlain(u.role)}: ${SRV_ROLE_MAY[SRV_ROLE_PLAIN[u.role] ? u.role : 'legal']})${u.role === 'admin' ? ': admin, never capped' : `: signing limit ${sc}`}`
     + `; approval before signing ${pu.overseerOn === 'off' ? 'off' : pu.overseerId ? `from ${nameOf(pu.overseerId) || 'a member'}${pu.overseerBackupId ? `, backup ${nameOf(pu.overseerBackupId)}` : ', no backup'}` : 'none'}`
     + `; changes checked before sending: ${pu.reviewChecked === false ? 'no' : 'yes when the rule is on'}`
     + `; streams: ${Array.isArray(fa) ? fa.length + ' named' : 'all'}`;
@@ -27610,7 +27610,7 @@ app.post('/api/ai/settings-why', auth, rlAiDeep, aiFeature('settings'), aiBudget
      book (money, exposure, a clause, a ranking) is the chat's, never answered here as "hidden from you" */
   const elsewhere = { name: 'elsewhere', description: 'The person asks for something that is NOT about the workspace\'s settings, rules, people or their rights (money, value or exposure, a counterparty, a clause, a contract\'s wording, risk, a ranking or comparison of the book). HaTi hands their words to Jambo\'s chat, who reads the whole book.',
     input_schema: { type: 'object', properties: { why: { type: 'string', description: 'A few words: what they asked for.' } } } };
-  const prompt = `You explain a contract-management workspace's settings to ${req.user.name || 'a member'} (${req.user.role}). Answer ONLY from the facts below. If they do not answer the question, say plainly what is missing — never invent a rule, a limit or a person. Write in ${lang}, plain words, short.
+  const prompt = `You explain a contract-management workspace's settings to ${req.user.name || 'a member'} (${srvRolePlain(req.user.role)}). When you describe anyone's access, use only the words Admin, Editor or Viewer, as the list below says them. Answer ONLY from the facts below. If they do not answer the question, say plainly what is missing — never invent a rule, a limit or a person. Write in ${lang}, plain words, short.
 ${AI_GOVERNANCE_RULE}
 ${admin ? `The workspace's rules (stored settings):\n${rules || '- none set'}\n` : 'This person is not an admin: the company\'s rules are not shown to them, so do not describe any rule beyond their own settings below.\n'}
 People (member id in brackets):

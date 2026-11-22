@@ -40086,3 +40086,6 @@ The owner, on the iPad: "When on my iPad and i try to enter my cursor in the fie
 
 ## THE DOCUMENT TAB, AND THE TWO COPIES (22 Nov 2026, auto pilot batch 1)
 - Bug log: "Fill the document (tplFormApply) is not locked during a negotiation … rewrites c.redlineText from the form wholesale". Confirmed by reading: the press builds the whole wording from the template, so on a negotiated paper it would undo every change on the table and every one agreed. `tplFormLocked` now also asks `tplFormNegotiated` (a change standing, a round handed over, a fold): the press writes nothing, is not owed, and a blank click opens no box. A negotiated paper's blanks go through Fill in the contract (pd2NegoFile), as before. Left alone: the repair-on-open in renderTemplateFormSection, which rewrites only a stored {{code}}.
+
+## THE ONE DESK — NEEDS YOU, ONE READING (22 Nov 2026, auto pilot batch 1)
+- Bug log, 20 Nov 2026: Jambo called an Editor "legal (viewer) permissions — cannot edit". Round A gave the chat plain levels; the Settings "why" route still handed him the raw code for each person and the asker. Now each person reads "(Editor: may edit, negotiate…)" from `SRV_ROLE_PLAIN`/`SRV_ROLE_MAY`, and the prompt tells him to use only Admin, Editor or Viewer. f1173, red at the parent.
