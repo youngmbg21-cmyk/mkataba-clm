@@ -159,7 +159,9 @@ const blocked = [];
         await clean(); await ev(() => setView('templates'));
         await until(() => document.querySelector('#ins-panel .jl-head .jl-tab, #ins-panel .jl-head .pd-tab'));
         await settle(); await shot('our-paper');
-        await tabsWhole('Our paper', '#ins-panel .jl-head');
+        /* RE-POINTED 22 Nov 2026 (P-34, Our paper as drawn, PR 881): its side panel has no head row — the page's own card
+           (slot "tpln") is the panel — so there are no head words to cut; held to the drawing instead: no head row drawn */
+        await noHeadRow('Our paper', '#ins-panel .jl-head', '#ins-panel .jov5[data-jov-slot="tpln"]');
       }
 
       /* ---- 4 + 5 + 9 · THE NEW AGREEMENT SHEET ---- */
@@ -173,15 +175,22 @@ const blocked = [];
         await settle(); await shot('new-agreement');
         if (!up) check(`${at} · 4/5 — the New agreement sheet opened`, false);
         else {
-          if (on(4)) await tabsWhole('New agreement', '#ig-dock .igd-head');
+          /* RE-POINTED 22 Nov 2026 (P-36, New agreement as drawn, PR 881): the sheet's panel has no head row — its five
+             parts (slot "na6") are the panel — so it is held to the drawing: no head row drawn */
+          if (on(4)) await noHeadRow('New agreement', '#ig-dock > .igd-head', '#ig-dock .jov5[data-jov-slot="na6"]');
           if (on(8)) await levelCheck('New agreement', '#modal-root [data-dlg-page] .dlg-pg-head');
           if (on(5)) {
             const said = await ev(() => { const f = document.querySelector('#ig-dock #igd-feed'); return f ? (f.innerText || '').replace(/\s+/g, ' ').trim() : ''; });
             check(`${at} · 5 — beside the New agreement sheet Jambo's panel says something`, !!said, said ? `"${said.slice(0, 60)}"` : 'the panel is empty');
           }
           if (on(9)) {
-            const hs = await ev(() => [...document.querySelectorAll('#na-root .na-ptab')].map(b => Math.round(b.getBoundingClientRect().height)));
-            check(`${at} · 9b — Our paper / Their paper are 30px pills`, hs && hs.length && hs.every(x => x === 30), JSON.stringify(hs));
+            /* RE-POINTED 22 Nov 2026 (P-36, New agreement as drawn, PR 881): Our paper · Their paper · From scratch are the
+               drawing's underlined tabs (.ntabs: the words, 10px under them, a 2px line) — no longer a fixed 30px; the
+               relation is pinned: every tab the same height, each its words + 10px + the 2px line */
+            const hs = await ev(() => [...document.querySelectorAll('#na-root .na-ptab')].filter(b => b.getClientRects().length).map(b => { const cs = getComputedStyle(b);
+              return { h: Math.round(b.getBoundingClientRect().height), pb: parseFloat(cs.paddingBottom), line: parseFloat(cs.borderBottomWidth), words: Math.round(b.getBoundingClientRect().height - parseFloat(cs.paddingBottom) - parseFloat(cs.borderBottomWidth) - parseFloat(cs.paddingTop)) }; }));
+            check(`${at} · 9b — Our paper / Their paper / From scratch are the drawn underlined tabs: words, 10px, a 2px line`,
+              hs && hs.length >= 2 && hs.every(x => x.h === hs[0].h && x.pb === 10 && x.line === 2 && x.words >= 14 && x.words <= 24), JSON.stringify(hs));
           }
         }
       }
@@ -340,6 +349,11 @@ const blocked = [];
         const m = await ev(s => { const hd = [...document.querySelectorAll(s)].find(x => x.getBoundingClientRect().width), pn = [...document.querySelectorAll('.ins-panel.is-jambo, #ig-dock, .cal-cop, .st-cr .st-side')].find(x => x.getBoundingClientRect().width);
           return hd && pn ? { head: Math.round(hd.getBoundingClientRect().top), panel: Math.round(pn.getBoundingClientRect().top) } : null; }, sel);
         check(`${at} · 8 — ${name}: the head starts level with Jambo's panel`, m && Math.abs(m.head - m.panel) <= 1, JSON.stringify(m));
+      }
+      async function noHeadRow(name, head, own) {
+        const m = await ev(([hs, os]) => { const h = document.querySelector(hs), o = document.querySelector(os);
+          return { head: !!h && h.getClientRects().length > 0, own: !!o && o.getClientRects().length > 0 }; }, [head, own]);
+        check(`${at} · 4 — ${name}: no head row, as drawn — the page's own panel instead, so no head words to cut`, !!m && !m.head && m.own, JSON.stringify(m));
       }
       async function tabsWhole(name, head) {
         const t = await ev(hs => { const h = document.querySelector(hs); if (!h) return null;
