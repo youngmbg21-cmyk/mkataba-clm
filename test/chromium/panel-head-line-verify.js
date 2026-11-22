@@ -1,8 +1,7 @@
 /* SAP PAGE, LEGORA PANEL (owner's pick by name, 19 Nov 2026; f1107). The line under a side panel's head never
    touches the divider or the window's edge; the page's own line is unchanged.
-     1 · at the owner's three screens, on six pages, the panel head's line is PAINTED (read off the screenshot's
-         pixels, not the style): ink in its middle, nothing in the 8px next to the divider or next to the edge
-     2 · the line fades: its first painted pixel near the start is lighter than its middle
+     1 · (RE-POINTED 22 Nov 2026, owner: delete the line across all Jambo panels) at the owner's three screens, on six
+         pages, NO line is drawn under the panel head: its border clear and nothing painted in its row
      3 · the page's list line under the filter box is still drawn solid, from the page's words to their end
      4 · nothing scrolls sideways; no page errors
    Red at the parent: 1 and 2 on every page (the line ran from the divider to the edge, solid).
@@ -61,13 +60,13 @@ async function rowInk(P, clip){
           check(none, `${w}×${hh} ${pg}: no panel head is drawn (as drawn), so no head line to measure — the page's own card is the panel`); continue; }
         if (!head){ check(false, `${w}×${hh} ${pg}: a panel head is drawn`); continue; }
         await P.waitForTimeout(600);
-        const r = await P.evaluate(() => { const e = [...document.querySelectorAll('.jl-head, #ig-dock > .igd-head')].find(x => x.getBoundingClientRect().width > 200); const b = e.getBoundingClientRect(); return { x: b.left, y: b.bottom - 1, w: b.width }; });
-        const ink = await rowInk(P, { x: Math.round(r.x), y: Math.floor(r.y), width: Math.floor(r.w), height: 1 });
-        const n = ink.length, mid = Math.max(...ink.slice(Math.floor(n * 0.35), Math.floor(n * 0.65)));
-        const nearDivider = Math.max(...ink.slice(2, 8)), nearEdge = Math.max(...ink.slice(n - 8, n));
-        const firstSeen = ink.findIndex((v, i) => i >= 8 && v > 1), early = firstSeen > 0 ? ink[firstSeen] : null;
-        check(mid >= 10 && nearDivider <= 2 && nearEdge <= 2, `1 ${w}×${hh} ${pg}: the panel line is painted in its middle and touches neither the divider nor the edge`, { mid, nearDivider, nearEdge });
-        check(early != null && early < mid, `2 ${w}×${hh} ${pg}: the line fades in at its start`, { firstSeen, early, mid });
+        /* RE-POINTED 22 Nov 2026 (owner: "there is this line in the jambo pages. delete it across all jambos"; reverses
+           1 and 2's painted, faded line): no line under the panel head — its border clear, nothing painted in its row.
+           Read off the style, not the pixels: the watermark's weave passes behind the head's bottom row */
+        const r = await P.evaluate(() => { const e = [...document.querySelectorAll('.jl-head, #ig-dock > .igd-head')].find(x => x.getBoundingClientRect().width > 200); const c = getComputedStyle(e);
+          return { border: c.borderBottomColor, width: c.borderBottomWidth, image: c.backgroundImage }; });
+        const clear = /rgba\(\d+, \d+, \d+, 0\)|transparent/.test(r.border);
+        check(clear && !/linear-gradient/.test(r.image), `1 ${w}×${hh} ${pg}: no line under the panel head (its border clear, nothing painted)`, r);
         if (pg === 'approvals'){
           /* RE-POINTED (P-30, owner's pick 20 Nov 2026: Approvals the Legora + Stripe way): the filter box is the ask box
              (label.apn-ask) under the title, and the page's line is drawn under IT; the chips' bar under it draws none */
