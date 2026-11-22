@@ -196,15 +196,17 @@ describe('f658 the analyst', () => {
     w.hbS().path = []; w.hbMyqRun(0);
     assert.deepEqual(Array.from(w.hbS().path), [key], 'run again: the view opens, read with today\'s dates');
   });
-  /* A FINGER'S TAP DOES NOT OPEN THE LIST (owner, 22 Nov 2026, iPad: "it starts then kicks me out", only on the Board):
-     the ideas list rose with the on-screen keyboard and the cursor was thrown out; after a finger it waits for typing */
-  test('A4b a finger\'s tap on the empty box opens no ideas list; a mouse still does; "/" still does', () => {
-    const w = world(); const HB = read('js/views/homeboard.js');
-    assert.match(HB, /document\.addEventListener\('focusin', e => \{ const t = e\.target; if \(t && t\.id === 'igd-input' && !String\(t\.value \|\| ''\)\.trim\(\) && !hbAskByFinger\(\)\) hbAskPopRead\(t\); \}\);/, 'focus opens the list only when not by finger');
-    assert.match(HB, /if \(hbAskByFinger\(\) && !String\(t\.value \|\| ''\)\.trim\(\)\) hbAskPopClose\(\); else hbAskPopRead\(t\);/, 'emptying the box by finger keeps it shut');
-    assert.match(HB, /function hbAskByFinger\(\)\{ return _hbAskPress === 'touch' \|\| _hbAskPress === 'pen'; \}/, 'a finger or a pen');
-    assert.match(HB, /document\.addEventListener\('pointerdown', e => \{ _hbAskPress = e\.pointerType \|\| 'mouse'; \}, true\);/, 'the last press is read at the press');
-    assert.equal(w.hbAskPopRows('/').mode, 'slash', '"/" still opens the list (typing is not a tap)');
+  /* NEVER UNDER THE READER'S TYPING (owner, 22 Nov 2026, iPad: "it starts then kicks me out", only on the Board): the
+     keyboard rising is a resize; the Board's panel refit redrew the box under the cursor. While the box holds the cursor
+     the refit waits, and runs once the reader leaves it */
+  test('A4b the Board\'s panel is not redrawn on a resize while Jambo\'s box holds the cursor', () => {
+    const HB = read('js/views/homeboard.js');
+    const at = HB.indexOf('const refit = () => { try {'); assert.ok(at > 0, 'the refit');
+    const R = HB.slice(at, at + 900);
+    assert.ok(R.indexOf('if (hbAskTyping()){ _hbRefitOwed = true; return; }') > 0 && R.indexOf('if (hbAskTyping()){') < R.indexOf('renderIntelDock()'), 'it waits while the reader types, before any redraw');
+    assert.match(R, /document\.addEventListener\('focusout', e => \{ if \(_hbRefitOwed && e\.target && e\.target\.id === 'igd-input'\)/, 'and runs once the reader leaves the box');
+    assert.match(HB, /function hbAskTyping\(\)\{ const a = [^}]*return !!\(a && a\.id === 'igd-input'\); \}/, 'typing = the cursor in Jambo\'s box');
+    const w = world(); assert.equal(w.hbAskPopRows('').mode, 'gallery', 'the empty box\'s ideas list is back, for a finger too');
   });
   test('A5 what if these do not renew: a scenario, dashed, said so, never stored', () => {
     const w = world();
