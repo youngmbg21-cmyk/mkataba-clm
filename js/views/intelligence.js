@@ -6360,12 +6360,12 @@ function igTurnFace(){
   intelRAF++; const myRAF=intelRAF;
   if(igMapUp()){
     if(typeof hbLensOnMap==='function') hbLensOnMap();
-    const key=igKeptKey(window.state&&state.contracts, intel.groupBy, intel.groups, intel.lenses);
+    let kept=false; const key=igKeptKey(window.state&&state.contracts, intel.groupBy, intel.groups, intel.lenses);
     if(!IG||_igKept.key!==key||IG.svg!==document.getElementById('ig-svg')) rebuildIntelGraph();
     /* the kept map: an arrival still draws the legend afresh (it comes in
        closed, renderIntel's own rule for an arrival) and the head line */
-    else { if(IG._model) renderIntelLegend(IG._model); updateIntelNote(); igWake(); }
-    igLoopStart(myRAF); igWakeWire();
+    else { if(IG._model) renderIntelLegend(IG._model); updateIntelNote(); igWake(); kept=true; }
+    igLoopStart(myRAF, kept); igWakeWire();
   }
   /* THE PANEL FIRST, THEN THE CONTRACTS LIST (22 Oct 2026, the Board → Paper switch): the panel's
      crossfade measures the page before it paints, so it measures it before the list's table is
@@ -6376,7 +6376,10 @@ function igTurnFace(){
 }
 let _igPlaceLater=false, _igPlaceOwed=false;
 /* THE FRAME LOOP, one per arrival (intelRAF retires the one before). */
-function igLoopStart(myRAF){
+/* `soon` (a kept map's return, igTurnFace): the first frame waits for the next frame instead of drawing inside the
+   press, so the page is laid out once, with the panel written, not once for the map and again for the panel
+   (22 Nov 2026, home-speed-verify 2: the map's furniture read cost 104 ms of the return inside the press). */
+function igLoopStart(myRAF, soon){
   let f=0;
   const step=()=>{ if(!igMapUp()||myRAF!==intelRAF||!IG) return;
     if(document.hidden){ _igKick=step; return; }
@@ -6394,7 +6397,8 @@ function igLoopStart(myRAF){
   };
   if(_igTimer){ clearTimeout(_igTimer); _igTimer=0; }
   igSetSpin(false);
-  _igKick=null; _igWokeAt=Date.now(); step();
+  _igKick=null; _igWokeAt=Date.now();
+  if(soon&&typeof requestAnimationFrame==='function') requestAnimationFrame(step); else step();
 }
 function updateIntelNote(){
   igWake();
@@ -6443,7 +6447,7 @@ function updateIntelNote(){
   document.getElementById('ig-undo')?.addEventListener('click',()=>{ igRecipeRun({ acts:[{ undo:true }] }); renderIntelDock(); updateIntelNote(); });
   document.getElementById('ig-save')?.addEventListener('click',()=>{ igSaveViewDoor(); });
   document.getElementById('ig-cliff')?.addEventListener('input',e=>{ intel.cliffDays=Number(e.target.value)||0; igApplyCliff(intel.cliffDays); });
-  igNoteMeasure();
+  igNoteMeasureSoon();
 }
 /* ---- THE RENEWAL CLIFF'S CROWD, PINS AND MONTH CARD (8 Nov 2026) ---- */
 const IG_CLIFF_MIN=3, IG_CLIFF_PIN_DAYS=120, IG_CLIFF_PINS=8;
@@ -6583,6 +6587,16 @@ document.addEventListener('click',e=>{ const b=e.target&&e.target.closest&&e.tar
   const nf=IG.noneFloor; if(typeof regShowOnly==='function') regShowOnly(nf.ids.filter(id=>getContract(id)), nf.label); });
 /* Where the head line sits on the stage, in the stage's own pixels — read once
    per repaint of the line (and on a resize), never per frame. */
+/* MEASURED ON THE NEXT FRAME (22 Nov 2026, home-speed-verify 2: read in the middle of a face turn, these two rects
+   forced the whole page's layout — 170 ms of the 351 ms return — and the panel written after them forced it again):
+   a repaint of the head line asks for ONE measure on the next frame, where the browser lays the page out anyway,
+   before the map's first frame draws (its rAF is asked after this one). A resize still measures at once. */
+let _igNoteSoon=0;
+function igNoteMeasureSoon(){
+  if(_igNoteSoon) return;
+  if(typeof requestAnimationFrame!=='function'){ igNoteMeasure(); return; }
+  _igNoteSoon=requestAnimationFrame(()=>{ _igNoteSoon=0; igNoteMeasure(); });
+}
 function igNoteMeasure(){
   const el=document.getElementById('ig-note'), st=document.getElementById('ig-gwrap'); if(!IG) return;
   if(!el||!st||!el.childNodes.length){ IG.noteBox=null; return; }
