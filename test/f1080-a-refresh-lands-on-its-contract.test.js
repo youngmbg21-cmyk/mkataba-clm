@@ -43,7 +43,7 @@ test('f1080 (3) Jambo\'s panel beside the paper says it is opening, never the Co
   const s = read('js/paperdesk.js');
   const at = s.indexOf('window.intel && intel.resuming && typeof getContract');
   /* RE-POINTED 22 Nov 2026 (Ask a column's leftovers deleted, f0b07e4d: the old look's Discover section went, so the wall is drawn with nothing passed in) */
-  const wall = s.indexOf('(ac || pdWallHtml())');
+  const wall = s.indexOf('pdWallHtml()', at); /* and again after Ask a column's panel left the wall (22 Nov 2026): the wall alone */
   assert.ok(at > 0 && wall > at && wall - at < 600, 'asked just before the overview is drawn');
   assert.match(s.slice(at, wall), /window\.igOpeningHtml\(\)/);
   assert.match(read('js/views/intelligence.js'), /Object\.assign\(window,\{[^}]*\bigOpeningHtml\b/, 'the words are published for the panel');
