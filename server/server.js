@@ -6279,6 +6279,13 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
           error: `You are not on this negotiation. ${deskLeadName(prev)} leads it — ask them to add you.`,
           desk: 'not-a-member' });
     }
+    /* A CONTRIBUTOR PROPOSES, THE LEAD ANSWERS THEM (22 Nov 2026): the page holds a contributor's hands off the
+       other side's changes (rlActorHeld → deskMaySend), so the server says the same — accepting or rejecting
+       their change is the lead's answer to the other side, never a contributor's save. */
+    if (seat === 'contributor' && theirAnswersTouched(prev, c))
+      return res.status(403).json({
+        error: `Only ${deskLeadName(prev)} answers the other side's changes on this negotiation.`,
+        desk: 'lead-answers' });
   }
   /* ---- AND A SUGGESTION IS ADOPTED BY THE LEAD, NOT BY ITS AUTHOR ----
      (4 Oct 2026.) Asked as a DIFFERENCE against the stored record, like the

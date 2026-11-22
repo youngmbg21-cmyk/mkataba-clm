@@ -55,6 +55,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE NEGOTIATION DESK (js/desk.js)
 - f165–f169.
+- f1172 a contributor does not answer the other side's changes (server; red at the parent: 1, 2).
 
 ## TAKE IT IN TURNS — THE LOCK IS A BATON
 - f455, take-it-in-turns-verify.
