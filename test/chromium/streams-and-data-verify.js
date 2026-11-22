@@ -139,7 +139,7 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
          (.st-ls-f: the label, one line under), in one row with Download the trail; the count is said as four figures
          under them (#st-tr-go .st-ls-fig: Acts · Streams · People · Period) */
       const band = await until(() => { const b = document.querySelector('.st-tr-band'); if (!b) return null;
-        const boxes = [...b.querySelectorAll('.st-ls-f')]; const tops = new Set(boxes.map(x => Math.round(x.getBoundingClientRect().top)));
+        const boxes = [...b.querySelectorAll('.st-ls-f')]; const tops = new Set(boxes.map(x => Math.round(x.getBoundingClientRect().bottom))); /* RE-POINTED 22 Nov 2026: the row aligns its fields at their foot (align-items:flex-end; a date box and a dropdown differ in height), so one row is one shared bottom line */
         const figs = [...document.querySelectorAll('#st-tr-go .st-ls-fig')].map(f => ({ k: ((f.querySelector('span') || {}).textContent || '').trim(), v: ((f.querySelector('b') || {}).textContent || '').trim() }));
         return figs.length ? { labels: boxes.map(x => x.querySelector('span').textContent.trim()).join('|'), oneRow: tops.size === 1, figs } : null; }, null, 6000);
       check('5b the trail\'s asks are labelled boxes in one row, with its count', !!band && band.labels === 'From|To|Streams|As' && band.oneRow && band.figs.length === 4 && band.figs[0].k === 'Acts' && /^\d[\d,\s\u00a0\u202f.]*$/.test(band.figs[0].v), JSON.stringify(band));

@@ -103,7 +103,7 @@ const READ = () => {
       const tab = p.querySelector('.jl-head .pd-tab.on'), fold = p.querySelector('.jl-head .jl-fold');
       const lifted = el => { if (!el) return null; const c = getComputedStyle(el); return { bg: c.backgroundColor, z: c.zIndex, rad: c.borderTopLeftRadius }; };
       return { before: stops(b.backgroundImage), after: stops(a.backgroundImage), anim: b.animationName + ' | ' + a.animationName, tab: lifted(tab), fold: lifted(fold) }; });
-    ok('10a the watermark\'s weaves are a mix of colours flowing along them (Sunset lines)', !!sun && sun.before >= 5 && sun.after >= 3 && /wmGlideA/.test(sun.anim) && /wmGlideB/.test(sun.anim), JSON.stringify(sun)); /* RE-POINTED 22 Nov 2026 ("Same glide, lighter"): the colour band travels with its weave, the whole layer sliding */
+    ok('10a the watermark\'s weaves are a mix of colours flowing along them (Sunset lines)', !!sun && sun.before >= 5 && sun.after >= 3 && /wmFlowA/.test(sun.anim) && /wmFlowB/.test(sun.anim), JSON.stringify(sun));
     /* 11 — IT SCROLLS WITH THE READING (owner, 22 Nov 2026): Jambo's talk scrolled 120 down, the weave rises 120 with it;
        back at the top, it comes back down */
     const lift = await page.evaluate(async () => { const p = document.querySelector('#ins-panel'); if (!p) return null;
@@ -125,9 +125,11 @@ const READ = () => {
     /* 1d — it GLIDES (owner, 22 Nov 2026: "it seems like it's stuttering"): sampled each frame for a second, the weave
        stands in a new place nearly every frame and never jumps a whole pixel */
     const glide = await page.evaluate(() => new Promise(res => { const p = document.querySelector('.ins-panel.is-jambo'); if (!p) return res(null); const v = []; const t0 = performance.now();
-      const tick = () => { const m = getComputedStyle(p, '::before'); v.push(parseFloat(String(m.translate || '0').split(' ')[0]) || 0); /* RE-POINTED 22 Nov 2026 (owner: "Same glide, lighter"): the layer SLIDES (translate, the graphics card's), the same smooth glide */ if (performance.now() - t0 < 1000) requestAnimationFrame(tick); else res(v); }; requestAnimationFrame(tick); }));
+      const tick = () => { const m = getComputedStyle(p, '::before'); v.push(parseFloat(String(m.maskPosition || m.webkitMaskPosition || '').split(',')[0])); if (performance.now() - t0 < 1000) requestAnimationFrame(tick); else res(v); }; requestAnimationFrame(tick); }));
     const gl = glide && { frames: glide.length, places: new Set(glide).size, jump: Math.max(...glide.slice(1).map((x, i) => Math.abs(x - glide[i]))) };
-    ok('1d the watermark glides: a new place almost every frame, no pixel jumps', !!gl && gl.places >= gl.frames * 0.6 && gl.jump < 0.5, JSON.stringify(gl));
+    /* RE-POINTED 22 Nov 2026 (owner: "Same glide, lighter"): redrawn about 15 times a second, not every frame — still a
+       glide: at least 10 new places in the second, never a step of half a pixel or more (the stutter was whole pixels) */
+    ok('1d the watermark glides: a new place at least 10 times a second, no pixel jumps', !!gl && gl.places >= 10 && gl.jump < 0.5, JSON.stringify(gl));
 
     /* 2 — Settings: drawn, moving (RE-POINTED 22 Nov 2026) */
     const st = await go('team', () => !!document.querySelector('#set-page #ins-panel .jl-head'));

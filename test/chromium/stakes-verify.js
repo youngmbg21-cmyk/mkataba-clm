@@ -383,9 +383,12 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => /^4\b/.test(((r.querySelector('.doc-th-num') || r.querySelector('.doc-th-name') || {}).textContent || '').trim()));
       if (!row) return { row: false, by };
       const red = row.classList.contains('stk-b-need'), say = (row.querySelector('.stk-n') || {}).textContent || '';
-      if (!row.classList.contains('is-open')){ row.querySelector('[data-th-go]').click(); await new Promise(r => setTimeout(r, 900)); }
-      const r2 = document.querySelector(`#pd-thread .doc-th-row[data-th-row="${row.getAttribute('data-th-row')}"]`);
-      const line = r2 && r2.querySelector('.stk-line'), vis = !!line && line.getClientRects().length > 0;
+      if (!row.classList.contains('is-open')) row.querySelector('[data-th-go]').click();
+      /* RE-POINTED 22 Nov 2026: a fixed 900 ms pause read the reason before it was shown on a slow runner — wait for the
+         opened row's reason to be shown, bounded (8 s) */
+      const key = row.getAttribute('data-th-row'), lineOf = () => { const r = document.querySelector(`#pd-thread .doc-th-row[data-th-row="${key}"]`); return r && r.querySelector('.stk-line'); };
+      for (let i = 0; i < 80 && !(lineOf() && lineOf().getClientRects().length > 0); i++) await new Promise(r => setTimeout(r, 100));
+      const line = lineOf(), vis = !!line && line.getClientRects().length > 0;
       return { row: true, by, red, say, vis, text: line ? line.innerText : '' };
     });
     /* RETIRED 17 Nov 2026 (#762): 9's "counted" ("Needs you · 1" on the row) and "Found by: Risk scan" (the Found by
