@@ -2231,11 +2231,12 @@ const portalNoteDone = () => async (_c, m, on) => {
    a highlight, by a marker on the paper, and by the Notes row in More. */
 let _ptNotes=null;   /* { c, p, who } — what the page last mounted */
 function portalNotesShellHtml(){
+  const out=portalOutOn();
   return `<div id="pt-notes-scrim" class="pt-alerts-scrim" hidden></div>
-  <aside id="pt-notes" class="pt-alerts pt-notes" role="dialog" aria-modal="false"
+  <aside id="pt-notes" class="pt-alerts pt-notes${out?' is-out':''}" role="dialog" aria-modal="false"
     aria-label="${esc(i18t('po_notes'))}" aria-hidden="true">
     <header class="pt-alerts-head">
-      <span class="pt-alerts-title">${esc(i18t('po_notes'))}</span>
+      ${out?portalPanelTabsHtml('notes'):`<span class="pt-alerts-title">${esc(i18t('po_notes'))}</span>`}
       <button id="pt-notes-close" class="pt-alerts-x" type="button"
         title="${esc(i18t('act_close'))}" aria-label="${esc(i18t('act_close'))}">${icon('x','w-3.5 h-3.5')}</button>
     </header>
@@ -2273,6 +2274,7 @@ function portalOpenNotes(o){
   _ptNotesKey=key;
   portalNotesPaint();
   panel.classList.add('open'); panel.setAttribute('aria-hidden','false');
+  if(portalOutOn()){ const bell=document.getElementById('pt-bell'); if(bell) bell.setAttribute('aria-expanded','true'); }
   /* Reading the notes is what marks them seen: the bell row and the door's
      count go with it. */
   portalNotesMarkSeen();
@@ -2288,6 +2290,7 @@ function portalNotesClose(){
   if(!panel||!panel.classList.contains('open')) return;
   panel.classList.remove('open'); panel.setAttribute('aria-hidden','true');
   if(scrim) scrim.hidden=true;
+  if(portalOutOn()){ const bell=document.getElementById('pt-bell'); const al=document.getElementById('pt-alerts'); if(bell&&!(al&&al.classList.contains('open'))) bell.setAttribute('aria-expanded','false'); }
   _ptNotesKey=null;
   /* Whatever the drawer was holding is dropped, as the shell's own does. */
   try{ if(window.rlNotesPanelClosed) rlNotesPanelClosed(); }catch(_){}
@@ -3516,7 +3519,11 @@ function portalAlerts(c, p){
         sentence, and the two cannot drift. pa_ready_to_sign is INERT in both
         books. */
   const ready = document.getElementById('pt-nego-ready');
-  if (ready && !ready.disabled && !waiting.length && !held && portalMySigns(PORTAL_OPTS.payload))
+  /* NOTHING NEGOTIATED, NOTHING OWED (P-44's logged fault, fixed in its review, 22 Nov 2026): on a first share with no
+     change on the paper the page said "For you: tell them you are ready to sign" with nothing open and no History — the
+     row now waits for a negotiated paper (a change on it, none open) */
+  const negotiated = changes.some(x => x && x.status !== 'superseded' && !x.withdrawn);
+  if (ready && !ready.disabled && negotiated && !waiting.length && !held && portalMySigns(PORTAL_OPTS.payload))
     push('sign', 'green', i18t('po_ready_tell_title'), () => ready.click());
   /* 6. WHEN THE LINK DIES. A fact, stated once, and only when it is close —
         no door, because there is nothing on this page that changes it. */
@@ -3526,7 +3533,8 @@ function portalAlerts(c, p){
     if (isFinite(days) && days <= PT_EXPIRY_SOON)
       push('expiry', days <= 2 ? 'ruby' : 'gray',
         days <= 0 ? i18t('pa_expired') : i18tn('pa_expires', days, { n:days, when:portalDayWords(exp) }),
-        null);
+        /* the new look's row asks them (P-44 review, as drawn: "Ask"): their notes, where they write to us */
+        portalOutOn() && PORTAL_OPTS.token ? () => portalOpenNotes({}) : null);
   }
   return out;
 }
@@ -3559,12 +3567,24 @@ function portalBellHtml(){
    The owner's shape: a title saying ALERTS, a dimmed backdrop, and three ways
    out — the ✕, the backdrop and Escape. Rendered once into the page (not into
    the workbench mount, which the embed rebuilds on every change). */
+/* THE PANEL'S TWO FACES, AS DRAWN (P-44 review, 22 Nov 2026): Alerts and Notes as two tabs with their counts at the
+   head of ONE right panel — the two asides stand in one place and the tab press swaps them (portalPanelTab); the x
+   shuts it. Their counts follow portalPaintAlerts. */
+function portalPanelTabsHtml(on){
+  const tab=(k,w)=>`<button type="button" class="pt-ptab${k===on?' is-on':''}" data-pt-ptab="${k}" aria-pressed="${k===on}">${esc(w)} <span class="pt-ptab-n" data-pt-ptab-n="${k}"></span></button>`;
+  return `<span class="pt-ptabs" role="group">${tab('alerts',i18t('pa_tab_alerts'))}${PORTAL_OPTS&&PORTAL_OPTS.token?tab('notes',i18t('po_notes')):''}</span>`;
+}
+function portalPanelTab(k){
+  if(k==='notes'){ portalAlertsClose(); const n=document.getElementById('pt-notes'); if(!n||!n.classList.contains('open')) portalOpenNotes({}); return; }
+  portalNotesClose(); portalAlertsOpen(true);
+}
 function portalAlertsShellHtml(){
+  const out=portalOutOn();
   return `<div id="pt-alerts-scrim" class="pt-alerts-scrim" hidden></div>
-  <aside id="pt-alerts" class="pt-alerts" role="dialog" aria-modal="false"
+  <aside id="pt-alerts" class="pt-alerts${out?' is-out':''}" role="dialog" aria-modal="false"
     aria-label="${esc(i18t('pa_title'))}" aria-hidden="true">
     <header class="pt-alerts-head">
-      <span class="pt-alerts-title">${esc(i18t('pa_title'))}</span>
+      ${out?portalPanelTabsHtml('alerts'):`<span class="pt-alerts-title">${esc(i18t('pa_title'))}</span>`}
       <button id="pt-alerts-close" class="pt-alerts-x" type="button"
         title="${esc(i18t('pa_close'))}" aria-label="${esc(i18t('pa_close'))}">${icon('x','w-3.5 h-3.5')}</button>
     </header>
@@ -3609,6 +3629,66 @@ function portalAlertsBodyHtml(rows, notices){
           <span class="pt-alert-dot" style="background:${PT_ALERT_TONE[a.tone] || PT_ALERT_TONE.gray}"></span>
           <span class="pt-alert-t">${esc(a.text)}</span></div>`).join('');
 }
+/* ---- THE ALERTS, AS DRAWN (P-44 review, 22 Nov 2026; their page's new look) ----
+   Chips All · Your move · News (a choice with no rows is not listed), one bar of the two, then a row an alert: its dot,
+   what it says in ink, where it stands under it (the contract and round; the clause and its words for an answer owed),
+   the time at the right and the row's OWN button (Answer · Send · Tell them · Compare · Read · Ask). The same rows the
+   bell counts (portalAlerts) and the same doors (a.go): nothing here is new work, and nothing internal is in them. */
+let _ptAlK='all';
+const PT_AL_MOVE=['answer','held','sign','changed'];
+const PT_AL_ACT={ closed:'po_for_you_go', answer:'pa_act_answer', held:'pa_act_send', sign:'pa_act_tell', changed:'pa_act_compare', reply:'pa_act_read', note:'pa_act_read', expiry:'pa_act_ask' };
+function portalOutAlertsHtml(rows, notices, c){
+  const n=String(notices||'');
+  const wrap=n?`<div class="pt-alerts-notices">${n}</div>`:'';
+  const live=rows.filter(r=>r&&r.kind!=='closed');
+  if(!rows.length) return wrap+`<div class="pt-alerts-empty"><div class="pt-alerts-none">${esc(i18t('pa_nothing'))}</div><div class="pt-alerts-sub">${esc(i18t('pa_nothing_sub'))}</div></div>`;
+  const isMove=r=>PT_AL_MOVE.includes(r.kind);
+  const move=live.filter(isMove).length, news=rows.length-move;
+  if(_ptAlK==='move'&&!move) _ptAlK='all'; if(_ptAlK==='news'&&!news) _ptAlK='all';
+  const chip=(k,w,cnt,dot)=>`<button type="button" class="pt-al-chip${_ptAlK===k?' is-on':''}" data-pt-al-k="${k}" aria-pressed="${_ptAlK===k}">${dot?'<i aria-hidden="true"></i>':''}${esc(w)} <span>${cnt}</span></button>`;
+  const chips=`<div class="pt-al-chips">${chip('all',i18t('ctf_tab_all'),rows.length)}${move?chip('move',i18t('pa_k_move'),move,true):''}${news?chip('news',i18t('pa_k_news'),news):''}</div>`;
+  const bar=`<div class="pt-al-bar" aria-hidden="true">${move?`<i class="is-move" style="flex:${move}"></i>`:''}${news?`<i class="is-news" style="flex:${news}"></i>`:''}</div>`;
+  const org=(PORTAL_OPTS.payload&&PORTAL_OPTS.payload.org)||i18t('pt_the_sender');
+  const round=(window.negoRound&&c)?negoRound(c):1;
+  const waiting=(c&&Array.isArray(c.changes)?c.changes:[]).filter(x=>x&&x.authorSide==='owner'&&x.status==='pending'&&!x.withdrawn&&!PORTAL_NEGO_DECISIONS[x.id]);
+  const subOf=r=>{
+    if(r.kind==='answer'&&waiting[0]){ const ch=waiting[0]; const F=portalWasNowText(ch);
+      return [esc(i18t('pa_sub_round',{ name:(c&&c.name)||'', n:round })), esc(portalOutClause(ch).replace(/^(§ \S+).*$/,'$1'))+(F?` \u00b7 \u201c${esc(F)}\u201d`:'')]; }
+    if(r.kind==='reply'||r.kind==='note') return [esc(i18t('pa_sub_from',{ org }))];
+    if(r.kind==='expiry') return [esc(i18t('pa_sub_expiry',{ org }))];
+    return [];
+  };
+  const shown=rows.map((r,i)=>({ r,i })).filter(({ r })=>_ptAlK==='all'||(_ptAlK==='move'?isMove(r):!isMove(r)));
+  return wrap+chips+bar+shown.map(({ r,i })=>{
+    const act=PT_ALERT_ROWS[i]&&PT_ALERT_ROWS[i].go&&PT_AL_ACT[r.kind]?`<button type="button" class="pt-al-act" data-pt-alert="${i}">${esc(i18t(PT_AL_ACT[r.kind]))}</button>`:'';
+    const when=r.kind==='expiry'&&PORTAL_OPTS.share&&PORTAL_OPTS.share.expiresAt?portalShortDay(PORTAL_OPTS.share.expiresAt):r.kind==='answer'?i18t('pa_today'):'';
+    return `<div class="pt-al-row" data-pt-kind="${esc(r.kind)}"><span class="pt-al-dot is-${isMove(r)?'move':'news'}" aria-hidden="true"></span>
+      <div class="pt-al-main"><b>${esc(r.text)}</b>${subOf(r).map(x=>`<small>${x}</small>`).join('')}</div>
+      <div class="pt-al-side">${when?`<span class="pt-al-when">${esc(when)}</span>`:''}${act}</div></div>`; }).join('');
+}
+function portalShortDay(iso){
+  const t=Date.parse(iso); if(!isFinite(t)) return '';
+  try{ return new Date(t).toLocaleDateString(langLocale(),{ day:'numeric', month:'short' }); }catch(_){ return String(iso).slice(0,10); }
+}
+/* a change's struck and new words, a word or two either side: "within 30 days" -> "within 45 days" (the change's own
+   marks; nothing is read that the card does not already show) */
+function portalWasNow(ch){
+  if(!ch) return null;
+  let ops=Array.isArray(ch.ops)&&ch.ops.length?ch.ops:null;
+  if(!ops&&window.redlineOps&&(ch.oldText!=null||ch.newText!=null)){ try{ ops=redlineOps(String(ch.oldText||''),String(ch.newText||'')); }catch(_){ ops=null; } }
+  if(!ops) return null;
+  const L=ops.filter(o=>o&&o.text); const first=L.findIndex(o=>o.op!=='keep'); if(first<0) return null;
+  let last=first; for(let i=L.length-1;i>=0;i--){ if(L[i].op!=='keep'){ last=i; break; } }
+  const before=first>0?String(L[first-1].text).split(/(\s+)/).filter(Boolean).slice(-2).join(''):'';
+  const after=last<L.length-1?String(L[last+1].text).split(/(\s+)/).filter(Boolean).slice(0,2).join(''):'';
+  const mid=L.slice(first,last+1);
+  const was=(before+mid.filter(o=>o.op!=='ins').map(o=>o.text).join('')+after).replace(/\s+/g,' ').trim();
+  const now=(before+mid.filter(o=>o.op!=='del').map(o=>o.text).join('')+after).replace(/\s+/g,' ').trim();
+  const cut=t=>t.length>90?t.slice(0,88).replace(/\s+\S*$/,'')+'\u2026':t;
+  return { was:cut(was), now:cut(now) };
+}
+function portalWasNowText(ch){ const W=portalWasNow(ch); return W?`${W.was} \u2192 ${W.now}`:''; }
+function portalWasNowHtml(ch){ const W=portalWasNow(ch); return W?`<span class="pol-wn"><del>${esc(W.was)}</del> \u2192 <ins>${esc(W.now)}</ins></span>`:''; }
 /* The keyboard's way out, held between the open and the close. */
 let PT_ALERTS_TRAP=null;
 function portalAlertsOpen(on){
@@ -3618,7 +3698,7 @@ function portalAlertsOpen(on){
   if(!panel) return;
   panel.classList.toggle('open', !!on);
   panel.setAttribute('aria-hidden', on?'false':'true');
-  if(scrim) scrim.hidden=!on;
+  if(scrim) scrim.hidden=!on || portalOutOn();
   if(bell) bell.setAttribute('aria-expanded', on?'true':'false');
   /* ---- AND THE KEYBOARD STAYS INSIDE IT ---- (25 Aug 2026)
      Every row here is a door, exactly as on the owner's own panel, and Tab
@@ -3654,9 +3734,11 @@ function portalPaintAlerts(c, p){
      the bell on screen without putting a number on it. Hiding the bell with a
      notice behind it would make that notice unreachable, which is the one
      thing the floating bell standing down must not cost. */
-  bell.hidden=!rows.length && !notices;
+  bell.hidden=portalOutOn() ? false : (!rows.length && !notices);
   const body=document.getElementById('pt-alerts-body');
-  if(body) body.innerHTML=portalAlertsBodyHtml(rows, notices);
+  if(body) body.innerHTML=portalOutOn() ? portalOutAlertsHtml(rows, notices, c) : portalAlertsBodyHtml(rows, notices);
+  document.querySelectorAll('[data-pt-ptab-n="alerts"]').forEach(x=>{ x.textContent=n?String(n):''; });
+  document.querySelectorAll('[data-pt-ptab-n="notes"]').forEach(x=>{ x.textContent=un?String(un):''; });
   /* "Waiting on you", and whose turn it is beside the title, are these same
      rows: they move when the bell moves. */
   const turn=document.getElementById('pt-turn');
@@ -3676,10 +3758,16 @@ function wirePortalAlerts(c, p){
     const t=ev.target;
     if(!t || !t.closest) return;
     if(t.closest('#pt-bell')){ ev.preventDefault();
+      /* the new look's one panel: the bell pressed again shuts whichever face is up (press it again and it closes) */
+      const nOpen=document.getElementById('pt-notes'); if(portalOutOn() && nOpen && nOpen.classList.contains('open')){ portalNotesClose(); return; }
       portalAlertsOpen(document.getElementById('pt-alerts')
         && !document.getElementById('pt-alerts').classList.contains('open'));
       return; }
     if(t.closest('#pt-alerts-close') || t.closest('#pt-alerts-scrim')){ portalAlertsClose(); return; }
+    const ptab=t.closest('[data-pt-ptab]');
+    if(ptab){ ev.preventDefault(); portalPanelTab(ptab.getAttribute('data-pt-ptab')); return; }
+    const pak=t.closest('[data-pt-al-k]');
+    if(pak){ ev.preventDefault(); _ptAlK=pak.getAttribute('data-pt-al-k')||'all'; if(_ptCtx) portalPaintAlerts(_ptCtx.c,_ptCtx.p); return; }
     const row=t.closest('[data-pt-alert]');
     if(row){
       const a=PT_ALERT_ROWS[Number(row.getAttribute('data-pt-alert'))];
@@ -3958,7 +4046,7 @@ function portalTabsHtml(){
   return `<span class="pw-tabs" role="tablist" aria-label="${esc(i18t('po_tabs_label'))}">${
     tab('where','pt-tab-where',i18t('po_tab_where'))}${
     tab('redlines','pt-tab-redlines',i18t('po_tab_redlines'))}${
-    portalHasHistory()?tab('history','pt-hist',i18t('po_tab_history'),i18t('po_every_change_oldest')):''}${
+    (portalHasHistory()||portalOutOn())?tab('history','pt-hist',i18t('po_tab_history'),i18t('po_every_change_oldest')):''}${
     tab('signing','pt-tab-signing',i18t('po_tab_signing'))}</span>`;
 }
 /* Notes, beside the bell (it was a row in More). Same id, same delegated
@@ -4042,6 +4130,7 @@ function portalSetTab(k, o={}){
   if(hist){ hist.hidden = k!=='history'; if(k==='history') portalPaintHistoryPane(); }
   if(sign){ sign.hidden = k!=='signing'; if(k==='signing') portalPaintSignPane(); }
   if(k==='redlines' && _polCtx && portalOutOn()) requestAnimationFrame(()=>portalOutPaintNotes(_polCtx.c, _polCtx.p));
+  { const X=_polCtx||_ptCtx; if(X && portalOutOn()) portalOutPaintSide(X.c, X.p); }
   if(o.save!==false) portalPlaceSave();
 }
 function wirePortalTabs(c, p){
@@ -4134,6 +4223,7 @@ function portalWhereMineHtml(c, p, D){
     <div class="ds-mine-t">${line} · ${contact}</div>${act}</div>`;
 }
 function portalWhereHtml(c, p){
+  if(portalOutOn() && typeof dealStands==='function') return portalOutWhereHtml(c, p);
   if(typeof standsHtml!=='function'||typeof dealStands!=='function')
     return `<div class="pw-where">${portalWhereMineHtml(c, p, null)}</div>`;
   /* THE READER'S OWN PARTY on a multi-party contract (owner's D2, 8 Oct
@@ -4145,11 +4235,162 @@ function portalWhereHtml(c, p){
   const stepSub=(started&&!executed)?{ signed:i18t('po_step_signing_under_way') }:{};
   return `<div class="pw-where">${standsHtml(c,{ data:D, you, lately:false, stepSub, mine:portalWhereMineHtml(c, p, D) })}</div>`;
 }
+/* ---- WHERE THE DEAL STANDS, AS DRAWN (P-44 review, 22 Nov 2026; their page's new look) ----
+   The serif title with "Seen by every party"; what waits on THIS reader as the one amber band with its black button
+   (work owed and its act — the band rule's two tests; nothing owed, no band, one quiet line); the four stops with their
+   days; Still open · Settled as chips over ONE table — What is open (the clause's § and name, the struck and new words)
+   · Waiting on (a soft badge) · From (the party and the day). No figures row (not a "how are we doing" page) and no
+   party chips (the panel names who is in it). Read off dealStands (the one reading every party sees) and the changes
+   this link carries — never our review, our notes, money or a person we keep inside. */
+let _polWhereK='open';
+function portalOutShort(name){
+  const n=String(name||'').trim();
+  const cut=n.replace(/(\s+(corporate|corporation|company|co\.?|ltd\.?|limited|llc|inc\.?|plc|ab|gmbh|group|holdings))+\s*$/i,'').trim();
+  return cut||n;
+}
+function portalOutStopsHtml(c, p, D){
+  const src=(p&&p.contract)||{};
+  const live=(Array.isArray(src.changes)?src.changes:(c.changes||[])).filter(x=>x&&x.status!=='superseded'&&!x.withdrawn);
+  const open=live.filter(x=>x.status==='pending').length;
+  const sent=PORTAL_OPTS&&PORTAL_OPTS.share&&PORTAL_OPTS.share.sentAt;
+  const started=portalSigningStarted(), executed=portalExecuted();
+  const at=executed?4:started?3:(D&&D.agreed)?2:1;
+  const sub=k=>k==='shared'?(sent?i18t('pol_st_sent',{ when:portalShortDay(sent) }):'')
+    :k==='negotiating'?(at===1?(open?i18tn('pol_st_round_open',open,{ n:open, r:(D&&D.round)||1 }):i18t('pol_st_round_none',{ r:(D&&D.round)||1 })):i18t('pol_st_done'))
+    :k==='agreed'?(at>2?i18t('pol_st_done'):at===2?i18t('pol_st_now'):i18t('pol_st_not_yet'))
+    :(executed?i18t('pol_st_done'):at===3?i18t('po_step_signing_under_way'):i18t('pol_st_not_yet'));
+  return `<ol class="pol-stops">${POL_ROAD.map((k,i)=>`<li class="${i<at?'is-done':i===at?'is-now':''}"><span class="pol-stop-dot" aria-hidden="true"></span><b>${esc(i18t('pol_st_'+k))}</b><small>${esc(sub(k))}</small></li>`).join('')}</ol>`;
+}
+function portalOutWhereHtml(c, p){
+  const seat=(p&&p.party&&p.party.id)||'';
+  const D=dealStands(c, seat?{ seat }:undefined);
+  const org=(p&&p.org)||i18t('pt_the_sender'), short=portalOutShort(org);
+  const rows=(PT_ALERT_ROWS||[]);
+  const changes=(c&&Array.isArray(c.changes))?c.changes:[];
+  const live=changes.filter(x=>x&&x.status!=='superseded'&&!x.withdrawn&&!x.superseded);
+  const waiting=live.filter(x=>x.authorSide==='owner'&&x.status==='pending'&&!PORTAL_NEGO_DECISIONS[x.id]);
+  const owed=rows.filter(r=>r&&(r.kind==='answer'||r.kind==='held'||r.kind==='sign'));
+  const closed=rows.find(r=>r&&r.kind==='closed');
+  let band='';
+  if(closed) band=`<p class="pol-w-line">${esc(closed.text)}${closed.go?` <button type="button" class="ui-link" data-pt-where-row="${rows.indexOf(closed)}">${esc(i18t('po_for_you_go'))}</button>`:''}</p>`;
+  else if(waiting.length){ const ans=rows.find(r=>r&&r.kind==='answer');
+    /* its door IS the bell's own row (Where we are borrows, never re-counts): Redlines, landed on the first ask */
+    band=`<div class="pol-w-band"><span class="pol-w-dot" aria-hidden="true"></span><p><b>${esc(i18t('po_for_you'))}</b> ${esc(i18tn('pol_w_wait',waiting.length,{ n:waiting.length, org:short }))}</p><button type="button" class="pol-send" ${ans&&ans.go?`data-pt-where-row="${rows.indexOf(ans)}"`:'data-pol-go="redlines"'}>${esc(i18t('pol_open_redlines'))}</button></div>`; }
+  else if(owed.length){ const r=owed[0]; band=`<div class="pol-w-band"><span class="pol-w-dot" aria-hidden="true"></span><p><b>${esc(i18t('po_for_you'))}</b> ${esc(r.text)}</p>${r.go?`<button type="button" class="pol-send" data-pt-where-row="${rows.indexOf(r)}">${esc(i18t(r.kind==='held'?'pa_act_send':r.kind==='sign'?'pa_act_tell':'po_for_you_go'))}</button>`:''}</div>`; }
+  else band=`<p class="pol-w-line">${esc(live.some(x=>x.status==='pending')?i18t('pol_w_them',{ org:short }):i18t('pol_w_none'))}</p>`;
+  const open=live.filter(x=>x.status==='pending'), settled=live.filter(x=>x.status!=='pending');
+  if(_polWhereK==='settled'&&!settled.length&&open.length) _polWhereK='open';
+  const L=_polWhereK==='settled'?settled:open;
+  const by=ch=>ch.authorSide==='owner'?short:i18t('pol_h_you');
+  const waitOn=ch=>ch.status!=='pending'?`<span class="pol-ob is-grn"><i aria-hidden="true"></i>${esc(i18t(ch.status==='accepted'?'pol_h_o_accepted':'pol_h_o_rejected'))}</span>`
+    :ch.authorSide==='owner'?`<span class="pol-ob is-amb"><i aria-hidden="true"></i>${esc(i18t(PORTAL_NEGO_DECISIONS[ch.id]?'pol_w_decided':'pol_w_your'))}</span>`
+    :`<span class="pol-ob"><i aria-hidden="true"></i>${esc(i18t('pol_w_theirs',{ org:short }))}</span>`;
+  const row=ch=>{ const cl=portalOutClause(ch)||i18t('ds_a_clause'); const m=cl.match(/^§ (\S+)\s*(.*)$/);
+    const day=ch.createdAt||ch.at||'';
+    return `<tr><td><div class="pol-w-cl">${m?`<span class="pol-sec">§ ${esc(m[1])}</span><b>${esc(m[2]||cl)}</b>`:`<b>${esc(cl)}</b>`}</div>${portalWasNowHtml(ch)}</td><td>${waitOn(ch)}</td><td class="pol-w-from">${esc(by(ch))}${day?' \u00b7 '+esc(portalShortDay(day)):''}</td></tr>`; };
+  const chip=(k,n)=>`<button type="button" class="pol-chip${_polWhereK===k?' is-on':''}" data-pol-w-k="${k}" aria-pressed="${_polWhereK===k}">${esc(i18t(k==='open'?'pol_w_k_open':'pol_w_k_settled'))} <span>${n}</span></button>`;
+  return `<div class="pw-where pol-where"><div class="pol-w-head"><h2 class="pol-w-h">${esc(i18t('ds_eyebrow'))}</h2><span class="pol-tag">${esc(i18t('ds_seen_by_all'))}</span></div>
+    ${band}${portalOutStopsHtml(c, p, D)}
+    <div class="pol-w-chips">${chip('open',open.length)}${chip('settled',settled.length)}</div>
+    <table class="pol-w-t"><thead><tr><th>${esc(i18t(_polWhereK==='settled'?'pol_w_c_settled':'pol_w_c_open'))}</th><th>${esc(i18t('pol_w_c_wait'))}</th><th>${esc(i18t('pol_w_c_from'))}</th></tr></thead>
+    <tbody>${L.length?L.map(row).join(''):`<tr><td colspan="3" class="pol-small">${esc(i18t(_polWhereK==='settled'?'pol_w_none_settled':'pol_w_none_open'))}</td></tr>`}</tbody></table></div>`;
+}
+/* ---- THE SIDE PANELS ON WHERE WE ARE AND SIGNING, AS DRAWN (P-44 review, 22 Nov 2026) ----
+   Where we are: "The deal", the round and what waits on whom, what is settled; Who is in it (the parties with what each
+   does, their contact named — the person who sent the link, whom this page already names); What has happened, a short
+   timeline from their own link (sent, what waits, what comes next). Signing: the step in hand, what it waits on, its
+   one black button (the redlines), Who signs, and what their copy will be. No Jambo box on their page; no money. */
+function portalOutWhoHtml(c, p, D){
+  const org=(p&&p.org)||'';
+  const who=String((p&&p.sharedBy)||'').trim();
+  const ini=n=>String(n||'?').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x.charAt(0).toUpperCase()).join('');
+  const parties=(D&&D.parties)||[];
+  return parties.map(x=>{ const mine=!x.ours; const does=[x.negotiates?i18t('pol_does_neg'):'', x.signs?i18t('pol_does_sign'):''].filter(Boolean);
+    if(x.ours&&who) does.push(i18t('pol_your_contact',{ who }));
+    return `<div class="pol-pp"><span class="pol-pp-ini${mine?' is-you':''}" aria-hidden="true">${esc(ini(x.name))}</span><div><b>${esc(x.name)}</b>${mine?` <small>${esc(i18t('pol_you_mark'))}</small>`:''}<span>${esc(does.join(' \u00b7 '))}</span></div></div>`; }).join('')
+    || `<p class="pol-small">${esc(org)}</p>`;
+}
+function portalOutWhereSideHtml(c, p){
+  const seat=(p&&p.party&&p.party.id)||'';
+  const D=typeof dealStands==='function'?dealStands(c, seat?{ seat }:undefined):null;
+  const org=(p&&p.org)||i18t('pt_the_sender'), short=portalOutShort(org);
+  const live=((c&&c.changes)||[]).filter(x=>x&&x.status!=='superseded'&&!x.withdrawn&&!x.superseded);
+  const waiting=live.filter(x=>x.authorSide==='owner'&&x.status==='pending');
+  const theirs=live.filter(x=>x.authorSide==='counterparty'&&x.status==='pending');
+  const settled=live.filter(x=>x.status!=='pending').length;
+  const round=(D&&D.round)||1;
+  const title=portalExecuted()?i18t('pol_ws_t_done'):waiting.length?i18tn('pol_ws_t_you',waiting.length,{ r:round, n:waiting.length }):theirs.length?i18tn('pol_ws_t_them',theirs.length,{ r:round, n:theirs.length, org:short }):i18t('pol_ws_t_none',{ r:round });
+  const sub=settled?i18tn('pol_ws_settled',live.length,{ n:settled, of:live.length }):i18t('pol_ws_settled_none');
+  const sent=PORTAL_OPTS&&PORTAL_OPTS.share&&PORTAL_OPTS.share.sentAt;
+  const tl=[{ t:i18t('pol_tl_shared',{ org:short }), at:sent?portalShortDay(sent):'', k:'done' }];
+  if(waiting.length) tl.push({ t:i18tn('pol_tl_wait',waiting.length,{ n:waiting.length }), at:i18t('pol_tl_now'), k:'now' }, { t:i18t('pol_tl_you_send'), at:'', k:'next' });
+  else if(theirs.length) tl.push({ t:i18t('pol_tl_with_them',{ org:short }), at:i18t('pol_tl_now'), k:'now' });
+  else if(!portalExecuted()) tl.push({ t:i18t('pol_tl_agree'), at:'', k:'next' });
+  return `<div class="pol-side-in pol-side-page"><div class="pol-side-body">
+    <p class="pol-ps-eb">${esc(i18t('pol_ws_eb'))}</p><h3 class="pol-ps-t">${esc(title)}</h3><p class="pol-ps-sub">${esc(sub)}</p>
+    <div class="pol-ps-sec"><h4 class="pol-ps-h">${esc(i18t('pol_ws_who'))}</h4>${portalOutWhoHtml(c, p, D)}</div>
+    <div class="pol-ps-sec"><h4 class="pol-ps-h">${esc(i18t('pol_ws_happened'))}</h4><ol class="pol-tl">${tl.map(x=>`<li class="is-${x.k}"><span class="pol-tl-dot" aria-hidden="true"></span><span class="pol-tl-t">${esc(x.t)}</span><span class="pol-tl-at">${esc(x.at)}</span></li>`).join('')}</ol></div>
+  </div></div>`;
+}
+/* the four steps before a signature, each with its own state (Open · Not yet · Done) — one reading for the page and its
+   panel; nothing here can be signed */
+function portalOutSignSteps(c, p){
+  const org=(p&&p.org)||i18t('pt_the_sender'), short=portalOutShort(org);
+  const src=(p&&p.contract)||{};
+  const changes=(Array.isArray(src.changes)?src.changes:(c.changes||[])).filter(x=>x&&x.status!=='superseded'&&!x.withdrawn);
+  const open=changes.filter(x=>x.status==='pending').length;
+  const started=portalSigningStarted(), executed=portalExecuted();
+  const agreed=executed||!!started||(changes.length>0&&!open);
+  const order=portalSigningOrderHtml(executed,{ negotiating:true });
+  const st=(done,now)=>done?'done':now?'open':'later';
+  return [
+    { k:'wording', t:i18t('pol_sg_wording'), s:agreed?i18t('pol_sg_wording_done'):open?i18tn('pol_sg_wording_open',open,{ n:open }):i18t('pol_sg_wording_none',{ org:short }), st:st(agreed,!agreed) },
+    { k:'read', t:i18t('po_stage_read'), s:i18t(started?'po_stage_read_started':'pol_sg_read',{ org:short }), st:st(executed,agreed) },
+    { k:'order', t:i18t('po_stage_order'), s:order?'':i18t('pol_sg_order',{ org:short }), html:order?order.html:'', st:st(executed||!!(order&&order.done),!!started) },
+    { k:'sign', t:i18t('po_stage_sign'), s:started?portalSignLastWords(p):i18t('pol_sg_sign',{ org:short }), st:st(executed,!!started) }];
+}
+/* the fourth step's words once signing has started — the old pane's own sentence (whose link, whose turn), one reading */
+function portalSignLastWords(p){
+  const org=(p&&p.org)||i18t('pt_the_sender');
+  const started=portalSigningStarted();
+  const rows=(Array.isArray(PORTAL_OPTS.signingOrder)?PORTAL_OPTS.signingOrder:[]).flatMap(st=>(st&&st.rows)||[]);
+  const mine=rows.find(r=>r&&r.you);
+  const theirs=rows.filter(r=>r&&r.side==='theirs').map(r=>r.name).filter(Boolean);
+  return !started ? i18t('po_stage_sign_later',{ org })
+    : mine ? i18t(mine.signed?'po_stage_sign_done_you':'po_stage_sign_started_you',
+        { when: mine.linkAt ? portalDayWords(mine.linkAt) : portalDayWords(started.at) })
+    : theirs.length ? i18t('po_stage_sign_started_theirs',{ names: theirs.join(', ') })
+    : i18t('po_stage_sign_started_none',{ org });
+}
+function portalOutSignHtml(c, p){
+  const org=(p&&p.org)||i18t('pt_the_sender'), short=portalOutShort(org);
+  const steps=portalOutSignSteps(c, p);
+  const badge=x=>`<span class="pol-ob${x.st==='open'?' is-amb':x.st==='done'?' is-grn':''}">${x.st==='open'?'<i aria-hidden="true"></i>':''}${esc(i18t(x.st==='open'?'pol_sg_open':x.st==='done'?'pol_sg_done':'pol_sg_later'))}</span>`;
+  return `<div class="pw-sign pol-sign"><h2 class="pol-w-h">${esc(i18t(portalExecuted()?'po_signed_head':'po_before_you_sign'))}</h2>
+    <p class="pol-sg-sub">${esc(i18t('pol_sg_sub',{ org:short }))}</p>
+    <ol class="pol-sg">${steps.map((x,i)=>`<li class="is-${x.st}"><span class="pol-sg-n" aria-hidden="true">${i+1}</span><div class="pol-sg-b"><b>${esc(x.t)}</b>${x.s?`<small>${esc(x.s)}</small>`:''}${x.html||''}</div>${badge(x)}</li>`).join('')}</ol></div>`;
+}
+function portalOutSignSideHtml(c, p){
+  const seat=(p&&p.party&&p.party.id)||'';
+  const D=typeof dealStands==='function'?dealStands(c, seat?{ seat }:undefined):null;
+  const steps=portalOutSignSteps(c, p);
+  const at=steps.findIndex(x=>x.st!=='done');
+  const now=at<0?null:steps[at];
+  const title=now?i18t('pol_ss_t',{ n:at+1, of:steps.length, what:i18t('pol_ss_'+now.k) }):i18t('po_signed_head');
+  const sub=!now?'':now.k==='wording'?(now.s||''):now.s;
+  const act=now&&now.k==='wording'&&!portalReadOnly()?`<button type="button" class="pol-send" data-pol-go="redlines">${esc(i18t('pol_open_redlines'))}</button>`:'';
+  return `<div class="pol-side-in pol-side-page"><div class="pol-side-body">
+    <p class="pol-ps-eb">${esc(i18t('po_tab_signing'))}</p><h3 class="pol-ps-t">${esc(title)}</h3>${sub?`<p class="pol-ps-sub is-tight">${esc(now&&now.k==='wording'&&now.st==='open'?i18t('pol_ss_sub_open',{ s:sub }):sub)}</p>`:''}${act}
+    <div class="pol-ps-sec"><h4 class="pol-ps-h">${esc(i18t('pol_ss_who'))}</h4>${portalOutWhoHtml(c, p, D)}</div>
+    <p class="pol-small pol-ps-foot">${esc(i18t('pol_ss_copy'))}</p>
+  </div></div>`;
+}
 /* ---- THE SIGNING TAB ON A NEGOTIATION LINK ----
    The signing page's own four stages (portalBeforeSignStagesHtml), said as
    what comes next: nothing can be signed on this link, so the fourth stage
    says where the signing will happen. */
 function portalSignPaneHtml(c, p){
+  if(portalOutOn()) return portalOutSignHtml(c, p);
   const org=(p&&p.org)||i18t('pt_the_sender');
   const started=portalSigningStarted();
   const rows=(Array.isArray(PORTAL_OPTS.signingOrder)?PORTAL_OPTS.signingOrder:[]).flatMap(st=>(st&&st.rows)||[]);
@@ -4226,13 +4467,37 @@ function portalPaintHistoryPane(){
    notes, the messages the server scoped to this link (srvMsgScope); our internal notes never travel). A reply or
    "Write one" opens their own notes drawer (portalOpenNotes), the one door they write in. Read off negoTimeline (names
    and parties in words, never our change codes); no review, no names we keep inside, nothing written. */
-let _polHistW = false, _polHistN = false, _polHistK = 'all';
+let _polHistW = false, _polHistN = false, _polHistK = 'all', _polHistWho = '', _polHistWhoPick = false;
+/* THEIR OWN LINK'S FACTS AND THEIR NOTES AS ROWS (P-44 review, 22 Nov 2026, as drawn): "Shared the contract with you"
+   (the day this link was sent), "Opened the link" (their first open), and a row per note in THEIR rooms — the messages
+   the server gave this link (srvMsgScope: their room with us and their own team's; ours never travel). */
+function portalOutHistExtra(c, p){
+  const out = [];
+  const org = (p && p.org) || i18t('pt_the_sender');
+  const sh = (PORTAL_OPTS && PORTAL_OPTS.share) || {};
+  if (sh.sentAt) out.push({ kind: 'shared', at: sh.sentAt, side: 'owner', actor: String((p && p.sharedBy) || org), _say: i18t('pol_h_shared') });
+  if (sh.firstOpenedAt) out.push({ kind: 'opened', at: sh.firstOpenedAt, side: 'counterparty', _say: i18t('pol_h_opened') });
+  const msgs = Array.isArray(PORTAL_OPTS && PORTAL_OPTS.messages) ? PORTAL_OPTS.messages : [];
+  const chs = (c && Array.isArray(c.changes)) ? c.changes : [];
+  const ids = new Set(msgs.map(m => String((m && m.id) || '')));
+  msgs.filter(m => m && String(m.body || m.text || '').trim() && m.at).forEach(m => {
+    const cid = (String(m.topic || '').match(/^change:(.+)$/) || [])[1];
+    const ch = cid ? chs.find(x => x && String(x.id) === cid) : null;
+    const cl = ch ? portalOutClause(ch).replace(/^(§ \S+).*$/, '$1') : (m.anchor && m.anchor.clauseLabel ? portalOutClause({ clauseLabel: m.anchor.clauseLabel }).replace(/^(§ \S+).*$/, '$1') : '');
+    const reply = !!(m.replyTo && ids.has(String(m.replyTo)));
+    const mine = m.side === 'counterparty' || m.side === 'their-team';
+    out.push({ kind: 'note', at: m.at, side: mine ? 'counterparty' : 'owner', actor: String(m.author || ''),
+      _say: i18t(reply ? (mine ? 'pol_h_note_reply_you' : 'pol_h_note_reply') : 'pol_h_note_wrote', { clause: cl || i18t('ds_a_clause') }) });
+  });
+  return out;
+}
 function portalOutHistoryHtml(c, p){
-  const ev = (typeof window.negoTimeline === 'function' ? negoTimeline(c) : []).slice().reverse();
+  const ev = (typeof window.negoTimeline === 'function' ? negoTimeline(c) : []).concat(portalOutHistExtra(c, p))
+    .sort((a, b) => String(a.at || '').localeCompare(String(b.at || ''))).reverse();
   const org = (p && p.org) || i18t('pt_the_sender');
   const mine = portalMyPartyName(p) || i18t('pol_you');
   const you = i18t('pol_h_you');
-  const whoOf = e => e.side === 'counterparty' ? you : (e.actor || org);
+  const whoOf = e => e.side === 'counterparty' ? you : e.kind === 'shared' ? (e.actor || portalOutShort(org)) : (e.actor || org);
   const clause = e => String(e.clauseLabel || '').trim();
   const sum = e => { const x = e.ch && String(e.ch.summary || '').trim(); return x && !/^#?CHG-/i.test(x) ? x : ''; };
   const what = e => {
@@ -4241,6 +4506,7 @@ function portalOutHistoryHtml(c, p){
     if (e.kind === 'decided') return i18t(e.outcome === 'accepted' ? 'pol_h_accepted' : 'pol_h_rejected', { clause: cl || i18t('ds_a_clause') }) + (e.reply ? ` — “${e.reply}”` : '');
     if (e.kind === 'withdrawn') return i18t('pol_h_withdrawn', { clause: cl || i18t('ds_a_clause') });
     if (e.kind === 'round-closed') return i18t('pol_h_round_closed', { n: e.round });
+    if (e._say) return e._say;
     return String(e.text || '').replace(/#?CHG-\d+/g, '').replace(/\s{2,}/g, ' ').trim();
   };
   /* A PARKED ASK HAS AN OUTCOME TOO (owner, 12 Nov 2026, "Fix 5"): "countered" only where the counter itself is on their
@@ -4252,13 +4518,20 @@ function portalOutHistoryHtml(c, p){
     : e.outcome === 'pending' ? ['amb', i18t('pol_h_waiting')] : e.outcome === 'accepted' ? ['grn', i18t('pol_h_o_accepted')]
     : e.outcome === 'rejected' ? ['red', i18t('pol_h_o_rejected')] : e.outcome === 'withdrawn' ? ['gry', i18t('pol_h_o_withdrawn')] : ['', ''];
   const kind = e => e.kind === 'proposed' ? ['amb', i18t('hist6_k_change')] : e.kind === 'decided' ? [e.outcome === 'rejected' ? 'red' : 'grn', i18t('hist6_k_decision')]
-    : e.kind === 'withdrawn' ? ['gry', i18t('hist6_k_withdrawn')] : e.kind === 'round-closed' ? ['stl', i18t('hist6_k_sent')] : ['gry', i18t('hist6_k_event')];
-  const K = { all: () => true, change: e => e.kind === 'proposed', decision: e => e.kind === 'decided' };
+    : e.kind === 'withdrawn' ? ['gry', i18t('hist6_k_withdrawn')] : (e.kind === 'round-closed' || e.kind === 'shared') ? ['stl', i18t('hist6_k_sent')]
+    : e.kind === 'note' ? ['vio', i18t('hist6_k_note')] : e.kind === 'opened' ? ['gry', i18t('pol_h_k_opened')] : ['gry', i18t('hist6_k_event')];
+  /* the chips, as drawn: All · Changes · Notes, and "+ Who" (You or their party) — a choice with no rows is not listed */
+  const K = { all: () => true, change: e => e.kind === 'proposed' || e.kind === 'decided' || e.kind === 'withdrawn', note: e => e.kind === 'note' };
+  const isYou = e => e.side === 'counterparty';
+  const whoOk = e => !_polHistWho || (_polHistWho === 'you' ? isYou(e) : !isYou(e));
   if (!K[_polHistK] || !ev.some(K[_polHistK])) _polHistK = 'all';
-  const shown = ev.filter(K[_polHistK]);
-  const day = at => { try { const d = new Date(at); return isNaN(d) ? '' : d.toLocaleDateString(window.langLocale ? langLocale() : undefined, { weekday: 'short', day: 'numeric', month: 'short' }); } catch (_){ return ''; } };
+  const shown = ev.filter(K[_polHistK]).filter(whoOk);
+  /* the day as ours says it (P-44 review, as drawn: "Today, Sat 21 Nov") */
+  const day = at => { try { const d = new Date(at); if (isNaN(d)) return '';
+    const said = new Intl.DateTimeFormat(window.langLocale ? langLocale() : undefined, { weekday: 'short', day: 'numeric', month: 'short' }).formatToParts(d).filter(x => x.type !== 'literal').map(x => x.value).join(' ');
+    return d.toDateString() === new Date().toDateString() ? i18t('ct_hist_day_today', { d: said }) : said; } catch (_){ return ''; } };
   const hm = at => { try { const d = new Date(at); return isNaN(d) ? '' : d.toLocaleTimeString(window.langLocale ? langLocale() : undefined, { hour: '2-digit', minute: '2-digit' }); } catch (_){ return ''; } };
-  const words = ch => (ch && typeof window.histWordingHtml === 'function') ? histWordingHtml(ch) : '';
+  const words = (ch, o) => (ch && typeof window.histWordingHtml === 'function') ? histWordingHtml(ch, o) : '';
   /* their room's notes on one change: the messages this link was given (the server's wall), on the change's own topic */
   const msgs = Array.isArray(PORTAL_OPTS.messages) ? PORTAL_OPTS.messages : [];
   const ini = n => String(n || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(x => x.charAt(0).toUpperCase()).join('');
@@ -4272,17 +4545,22 @@ function portalOutHistoryHtml(c, p){
   for (const e of shown){ const k = day(e.at); const g = groups[groups.length - 1]; if (g && g.k === k) g.rows.push(e); else groups.push({ k, rows: [e] }); }
   const body = groups.map(g => `<tr class="pol-h-day"><td colspan="5">${esc(g.k || '—')}<span>${esc(i18tn('pol_h_n_events', g.rows.length, { n: g.rows.length }))}</span></td></tr>`
     + g.rows.map(e => { const [t, w] = oc(e), [kt, kw] = kind(e); const said = what(e), hasCh = !!e.ch && (e.kind === 'proposed' || e.kind === 'decided');
-      const peek = hasCh && !_polHistW && words(e.ch) ? `<div class="hist6-peek">${words(e.ch)}</div>` : '';
+      const peek = hasCh && !_polHistW && words(e.ch) ? `<div class="hist6-peek">${words(e.ch, { keep: 4 })}</div>` : '';
       const subW = hasCh && _polHistW && words(e.ch) ? `<div class="pol-h-wd">${words(e.ch)}</div>` : '';
       const subN = hasCh && _polHistN ? notesHtml(e) : '';
       const key = esc((said + ' ' + whoOf(e)).toLowerCase());
-      return `<tr data-pol-h="${key}"${subW || subN ? ' class="has-sub"' : ''}><td>${esc(hm(e.at))}</td><td>${esc(whoOf(e))}</td><td>${esc(said)}${peek}</td><td><span class="pol-kb is-${kt}">${esc(kw)}</span></td><td>${w ? `<span class="pol-ob is-${t}"><i aria-hidden="true"></i>${esc(w)}</span>` : ''}</td></tr>`
-        + (subW || subN ? `<tr class="pol-h-sub" data-pol-h="${key}"><td></td><td colspan="4">${subW}${subN}</td></tr>` : ''); }).join('')).join('');
-  const n = k => ev.filter(K[k]).length;
-  const chips = ['all', 'change', 'decision'].filter(k => k === 'all' || n(k)).map(k => `<button type="button" class="pol-chip${_polHistK === k ? ' is-on' : ''}" data-pol-h-k="${k}" aria-pressed="${_polHistK === k}">${esc(i18t(k === 'all' ? 'ctf_tab_all' : k === 'change' ? 'pol_h_k_changes' : 'pol_h_k_decisions'))} <span>${n(k)}</span></button>`).join('');
+      return `<tr data-pol-h="${key}"${subW || subN ? ' class="has-sub"' : ''}><td>${esc(hm(e.at))}</td><td>${esc(whoOf(e))}</td><td>${esc(said)}${peek}</td><td><span class="pol-kb is-${kt}">${esc(kw)}</span></td><td>${w ? `<span class="pol-ob is-${t}"><i aria-hidden="true"></i>${esc(w)}</span>` : '<span class="pol-dash" aria-hidden="true">\u2014</span>'}</td></tr>`
+        + (subW || subN ? `<tr class="pol-h-sub" data-pol-h="${key}"><td colspan="2"></td><td colspan="3">${subW}${subN}</td></tr>` : ''); }).join('')).join('');
+  const n = k => ev.filter(K[k]).filter(whoOk).length;
+  const whoW = k => k === 'you' ? i18t('pol_h_you') : portalOutShort(org);
+  const both = ev.some(isYou) && ev.some(e => !isYou(e));
+  const who = _polHistWho ? `<button type="button" class="pol-chip is-on is-set" data-pol-h-who="">${esc(i18t('pol_h_who_is', { who: whoW(_polHistWho) }))} <span aria-hidden="true">\u00d7</span></button>`
+    : both ? `<span class="pol-who-add"><button type="button" class="pol-chip is-add" data-pol-h-whopick aria-expanded="${_polHistWhoPick}">+ ${esc(i18t('pol_h_c_who'))}</button>${_polHistWhoPick ? `<span class="hist6-side-pop pol-who-pop" role="menu"><button type="button" role="menuitem" data-pol-h-who="you">${esc(whoW('you'))}</button><button type="button" role="menuitem" data-pol-h-who="them">${esc(whoW('them'))}</button></span>` : ''}</span>` : '';
+  const chips = ['all', 'change', 'note'].filter(k => k === 'all' || n(k)).map(k => `<button type="button" class="pol-chip${_polHistK === k ? ' is-on' : ''}" data-pol-h-k="${k}" aria-pressed="${_polHistK === k}">${esc(i18t(k === 'all' ? 'ctf_tab_all' : k === 'change' ? 'pol_h_k_changes' : 'hist6_c_notes'))} <span>${n(k)}</span></button>`).join('') + who;
   const sw = (id, on, w) => `<button type="button" class="hist6-tg${on ? ' is-on' : ''}" data-pol-h-sw="${id}" aria-pressed="${on}"><i aria-hidden="true">${on ? '✓' : ''}</i>${esc(i18t(w))}</button>`;
   void mine;
-  return `<div class="pol-hist pol6"><div class="pol-hist-hd"><b>${esc(i18t('po_tab_history'))}</b><span>${esc(i18tn('pol_h_sub', ev.length, { n: ev.length }))}</span></div>
+  const openN = (c.changes || []).filter(x => x && x.status === 'pending' && !x.withdrawn && !x.superseded).length;
+  return `<div class="pol-hist pol6"><div class="pol-hist-hd"><b>${esc(i18t('po_tab_history'))}</b><span>${esc(i18t('ct_hist_reading'))} \u00b7 ${esc(i18tn('ct_hist_events', ev.length, { n: ev.length }))}${openN ? ' \u00b7 ' + esc(i18tn('ct_hist_open_n', openN, { n: openN })) : ''}</span></div>
     <div class="pol-hist-bar"><label class="pol-hist-q"><span class="sr-only">${esc(i18t('pol_h_search'))}</span><input type="search" id="pol-hist-q" placeholder="${esc(i18t('pol_h_search'))}" autocomplete="off"></label>${chips}<span class="pol-sp"></span>
       <span class="hist6-sw" role="group" aria-label="${esc(i18t('hist6_show'))}">${sw('w', _polHistW, 'hist6_wording')}${sw('n', _polHistN, 'hist6_notes')}</span></div>
     <table class="pol-hist-t"><thead><tr><th>${esc(i18t('pol_h_c_time'))}</th><th>${esc(i18t('pol_h_c_who'))}</th><th>${esc(i18t('pol_h_c_what'))}</th><th>${esc(i18t('hist6_c_kind'))}</th><th>${esc(i18t('pol_h_c_outcome'))}</th></tr></thead>
@@ -4302,6 +4580,8 @@ if(typeof document!=='undefined' && !document._polHistWired){
     let el;
     if((el=t.closest('[data-pol-h-sw]'))){ ev.preventDefault(); if(el.getAttribute('data-pol-h-sw')==='w') _polHistW=!_polHistW; else _polHistN=!_polHistN; portalPaintHistoryPane(); return; }
     if((el=t.closest('[data-pol-h-k]'))){ ev.preventDefault(); _polHistK=el.getAttribute('data-pol-h-k')||'all'; portalPaintHistoryPane(); return; }
+    if((el=t.closest('[data-pol-h-whopick]'))){ ev.preventDefault(); _polHistWhoPick=!_polHistWhoPick; portalPaintHistoryPane(); return; }
+    if((el=t.closest('[data-pol-h-who]'))){ ev.preventDefault(); _polHistWho=el.getAttribute('data-pol-h-who')||''; _polHistWhoPick=false; portalPaintHistoryPane(); return; }
     if(t.closest('[data-pol-h-note]')){ ev.preventDefault(); portalOpenNotes({}); return; }
   });
 }
@@ -4499,8 +4779,8 @@ function renderShareWorkbench(p, opts={}){
              it lives in the app shell, which this page hides completely — so
              this is its own, wearing the same shape. See portalAlerts. */}
       ${out?'<div class="pol-pop" id="pol-pop" hidden>':''}
-      ${portalBellHtml()}
-      ${portalNotesDoorHtml()}
+      ${out?'':portalBellHtml()}
+      ${out?'':portalNotesDoorHtml()}
       ${''/* ---- AND MORE COMES BACK, CARRYING THE COPIES (Young ruled 4 Oct
              2026: "for space limitations, in the home page, you will have to
              delete the export button and keep it under the more button as it
@@ -4562,7 +4842,8 @@ function renderShareWorkbench(p, opts={}){
              refill site, portalSetBusy and f180's roll call reach it exactly as
              before; only its parent changed. */}
       <div id="pt-nego-foot" class="pw-foot"></div>
-      ${out?`<span class="pol-pop-tools">${portalReadingBtnsHtml({ noHist:true })}${portalFocusBtnHtml()}</span></div>`:''}
+      ${out?`<span class="pol-pop-tools">${portalReadingBtnsHtml({ noHist:true })}${portalFocusBtnHtml()}${''/* P-44 review: History's
+             Verify integrity and Export history moved here (the drawing's History has neither; this is their door) */}<button type="button" class="ui-btn pw-id-verb" data-pol-hist-act="export">${esc(i18t('ct_export_history'))}</button><button type="button" class="ui-btn pw-id-verb" data-pol-hist-act="verify">${esc(i18t('ct_hist_verify'))}</button></span></div>`:''}
       ${''/* ---- THE SECOND ROW IS THE NEGOTIATION PAGE'S CONTROL ROW (28 Sep
              2026, Mirror) ----
              The reading switch, then the key naming whose colour is whose (it
@@ -4680,10 +4961,19 @@ function portalOutBarHtml(c, p, opts){
   const byCode = !!(t && portalTicket(t));
   return `<header class="pol-bar"><span class="pol-mark">HaTi</span>
     <span class="pol-what">${esc(i18t(mine ? 'pol_bar_what' : 'pol_bar_what_nm', { mine, name: c.name || i18t('reg_col_contract'), org }))}</span>
+    ${''/* THE BELL IN THEIR BAR, AS DRAWN (P-44 review, 22 Nov 2026): it stood inside More's pop, hidden and 0 wide; now it
+           is on the black bar beside their name, its count red, and it opens the panel with Alerts · Notes */}${portalBellHtml()}
     <span class="pol-who">${esc(who)}${who && byCode ? ' · ' : ''}${byCode ? esc(i18t('pol_by_code')) : ''}</span></header>`;
 }
+/* CLEAN · REDLINE AT THE TOP, AS DRAWN (P-44 review, 22 Nov 2026): on Redlines only, how the paper reads — Clean drops
+   the marks, the dots and the notes beside it (a reading, per sitting; nothing is written); Redline · N shows them */
+let _polClean = false;
+function portalOutReadHtml(){
+  const n = (_polCtx && portalOutAsks(_polCtx.c).length) || 0;
+  return `<span class="pol-read" role="group" aria-label="${esc(i18t('ng_read_group'))}"><button type="button" class="pol-read-b${_polClean ? ' is-on' : ''}" data-pol-read="clean" aria-pressed="${_polClean}">${esc(i18t('int_red_clean'))}</button><button type="button" class="pol-read-b${_polClean ? '' : ' is-on'}" data-pol-read="red" aria-pressed="${!_polClean}">${esc(i18t('pol_read_red'))}${n ? ` \u00b7 ${n}` : ''}</button></span>`;
+}
 function portalOutTopHtml(){
-  return `<span class="pol-top"><button type="button" class="pol-pill" data-pt-copy="word">${esc(i18t('pol_download_word'))}</button>
+  return `<span class="pol-top">${portalOutReadHtml()}<button type="button" class="pol-pill" data-pt-copy="word">${esc(i18t('pol_download_word'))}</button>
     <button type="button" class="pol-pill" id="pol-more" aria-haspopup="true" aria-expanded="false" aria-controls="pol-pop">${esc(i18t('pol_more'))}</button></span>`;
 }
 /* ONE ROAD ON THEIR SIDE (the owner, 8 Nov 2026: their pages as page views): the four stops every party may see,
@@ -4699,17 +4989,30 @@ function portalOutRoadHtml(D, mineMove){
    itself (#rl-side, the cards our own Redlines face draws, their seat), Where we are is the shared reading; Notes
    opens their notes, as the Notes chip does on our side. The face is a sitting's choice, never stored. */
 let _polFace = 'red';
-function portalOutFace(){ return _polFace === 'where' || _polFace === 'send' ? _polFace : 'red'; }
+function portalOutFace(){ return _polFace === 'where' || _polFace === 'send' || _polFace === 'notes' ? _polFace : 'red'; }
 /* THE PANEL'S HEAD (owner, 12 Nov 2026, reviewing their white page: "Fix 1 and 2"; REVERSES the 8 Nov drawing's
    "Redlines · Where we are · Notes"): ONE DOOR — Where we are is the page's own tab at the top, so the panel no longer
    repeats it (the panel still shows that summary by itself after Send back); and ONE COUNT PER PLACE — the top tab says
    how many answers are theirs ("Redlines · 1 answer for you"), the column's heading counts every card, so this tab
    carries no third number that disagreed with both. */
+/* AS DRAWN (P-44 review, 22 Nov 2026): ONE segment, Changes N · Notes N — Notes turns THIS panel to their notes (the
+   same notes panel the bell's Notes shows, rlChatPanelPaint on their seat: their rooms only, the server's wall), and
+   under it the round and when our asks came */
+function portalOutNotesN(){
+  return (Array.isArray(PORTAL_OPTS && PORTAL_OPTS.messages) ? PORTAL_OPTS.messages : []).filter(m => m && !m.replyTo && !m.done && String(m.body || m.text || '').trim()).length;
+}
 function portalOutHeadHtml(c){
   const f = portalOutFace();
-  return `<div class="pol-side-hd" role="tablist" aria-label="${esc(i18t('po_tab_redlines'))}">
-    <button type="button" role="tab" class="pol-pill${f === 'red' ? ' is-on' : ''}" aria-selected="${f === 'red'}" data-pol-face="red">${esc(i18t('po_tab_redlines'))}</button>
-    ${PORTAL_OPTS && PORTAL_OPTS.token ? `<button type="button" class="pol-pill" data-pt-where-notes>${esc(i18t('po_notes'))}</button>` : ''}</div>`;
+  const asks = portalOutAsks(c), theirs = (c && c.changes || []).filter(x => x && x.authorSide === 'counterparty' && x.status === 'pending' && !x.withdrawn && !x.superseded);
+  const nC = asks.length + theirs.length, nN = portalOutNotesN();
+  const org = (PORTAL_OPTS && PORTAL_OPTS.payload && PORTAL_OPTS.payload.org) || i18t('pt_the_sender');
+  const newest = asks.map(x => x.createdAt || x.at || '').filter(Boolean).sort().pop();
+  const day = newest ? (String(newest).slice(0, 10) === new Date().toISOString().slice(0, 10) ? i18t('pa_today') : portalShortDay(newest)) : '';
+  const round = window.negoRound ? negoRound(c) : 1;
+  const line = asks.length ? i18t('pol_rd_line', { n: round, org: portalOutShort(org), day }) : i18t('pol_rd_line_none', { n: round });
+  const seg = (k, w, n) => `<button type="button" role="tab" class="pol-seg-b${(f === k || (k === 'red' && f !== 'notes')) ? ' is-on' : ''}" aria-selected="${f === k}" data-pol-face="${k}">${esc(w)} <span>${n}</span></button>`;
+  return `<div class="pol-side-hd is-seg"><div class="pol-seg" role="tablist" aria-label="${esc(i18t('po_tab_redlines'))}">${seg('red', i18t('pol_seg_changes'), nC)}${PORTAL_OPTS && PORTAL_OPTS.token ? seg('notes', i18t('po_notes'), nN) : ''}</div></div>
+    ${f === 'notes' ? '' : `<p class="pol-rd-line">${esc(line)}</p>`}`;
 }
 /* SEND BACK, IN THE PANEL (owner, 8 Nov 2026, the drawings' step 7): the check before send stands in the panel
    instead of a pop-up — who it goes to, what goes (portalSendLines, the one reading the pop-up listed), a message
@@ -4801,18 +5104,24 @@ function portalOutPaintNotes(c, p){
     const dec = portalOutDecided(ch) ? ((PORTAL_NEGO_DECISIONS[ch.id] || {}).status || ch.status) : '';
     const live = !portalReadOnly();
     const act = (k, w) => host.querySelector(POL_VERB[k](css(ch.id))) ? `<button type="button" class="ui-link" data-pol-act="${k}" data-pol-id="${esc(ch.id)}">${esc(w)}</button>` : '';
-    const acts = !live ? '' : dec
-      ? `<span class="pol-nt-dec">${esc(i18t(dec === 'rejected' ? 'pol_dec_rejected' : 'pol_dec_accepted'))}</span>${act('undo', i18t('pol_undo')) ? ' · ' + act('undo', i18t('pol_undo')) : ''}`
-      : [act('accept', i18t('ng_accept')), act('counter', i18t('pol_counter')), act('reject', i18t('ng_reject'))].filter(Boolean).join(' · ');
+    /* AS DRAWN (P-44 review, 22 Nov 2026): "Highland asks 45 days", who wrote it and when under it; Accept · Reject ·
+       Counter are the card's, in the panel — a decision held here says so on the note, its Undo beside it */
+    const acts = !live || !dec ? ''
+      : `<span class="pol-nt-dec">${esc(i18t(dec === 'rejected' ? 'pol_dec_rejected' : 'pol_dec_accepted'))}</span>${act('undo', i18t('pol_undo')) ? ' · ' + act('undo', i18t('pol_undo')) : ''}`;
+    void why;
+    const short = portalOutShort(org);
+    const at = ch.createdAt || ch.at || '';
+    const when = at ? (String(at).slice(0, 10) === new Date().toISOString().slice(0, 10) ? i18t('pa_today') : portalShortDay(at)) : '';
+    const byLine = [String(ch.author || '').trim(), when].filter(Boolean).join(' \u00b7 ');
     const note = document.createElement('div');
     note.className = 'pol-note' + (dec ? ' is-dec' : ''); note.setAttribute('data-pol-note', ch.id);
-    note.innerHTML = `<span class="pol-nt-n">${n}</span><div class="pol-nt-b"><div class="pol-nt-t">${esc(F ? i18t('pol_note_fig', { org, now: F.now }) : i18t('pol_note_asks', { org, clause: portalOutClause(ch) || i18t('ds_a_clause') }))}</div>${
-      why ? `<div class="pol-nt-q">“${esc(why)}”</div>` : ''}${acts ? `<div class="pol-nt-a">${acts}</div>` : ''}</div>`;
+    note.innerHTML = `<span class="pol-nt-n">${n}</span><div class="pol-nt-b"><div class="pol-nt-t">${esc(F ? i18t('pol_note_asks_fig', { org: short, now: F.now }) : i18t('pol_note_asks_cl', { org: short, clause: portalOutClause(ch) || i18t('ds_a_clause') }))}</div>${
+      byLine ? `<div class="pol-nt-q">${esc(byLine)}</div>` : ''}${acts ? `<div class="pol-nt-a">${acts}</div>` : ''}</div>`;
     zoom.appendChild(note);
     const left = paper.offsetLeft + paper.offsetWidth + 24;
     note.style.left = left + 'px';
     const sc = host.querySelector('#nego-scroll-work'), room = Math.min(zoom.clientWidth, sc ? sc.clientWidth - (zoom.offsetLeft || 0) : zoom.clientWidth);
-    note.style.width = Math.max(170, Math.min(300, room - left - 16)) + 'px';
+    note.style.width = Math.max(120, Math.min(260, room - left - 16)) + 'px';
     const zr = zoom.getBoundingClientRect(), dr = dot.getBoundingClientRect();
     const top = Math.max(floor, Math.round(dr.top - zr.top - 6));
     note.style.top = top + 'px';
@@ -4844,19 +5153,49 @@ function portalOutSyncLink(){
   document.querySelectorAll('#pt-nego .pol-note').forEach(n => n.classList.toggle('is-linked', !!id && n.getAttribute('data-pol-note') === id));
 }
 let _polCtx = null;
+/* MORE ▾ ON A CARD, AS DRAWN (P-44 review, 22 Nov 2026): the card shows the clause, who and when, the words and its three
+   verbs; why we asked folds under More ▾ (the same line, our reason as it travelled) — one press opens it, again closes */
+function portalOutCardMore(){
+  document.querySelectorAll('#pt-nego #rl-side [data-nego-card]').forEach(card => {
+    const why = card.querySelector('.rl-card-whyq'), verbs = card.querySelector('.rl-card-verbs');
+    if (!why || !verbs || verbs.querySelector('.pol-more')) return;
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pol-more'; b.setAttribute('aria-expanded', 'false');
+    b.textContent = i18t('pol_card_more') + ' \u25be'; verbs.appendChild(b);
+  });
+}
+/* the side panel for the tab in front: Redlines' faces (the cards' head, Send back, Notes), Where we are's and Signing's
+   own (P-44 review); History has none, as drawn */
+function portalOutPaintSide(c, p){
+  const side = document.getElementById('pol-side'); if (!side) return;
+  const pg = document.getElementById('pw-page');
+  const tab = (pg && pg.dataset.ptTab) || _ptTab;
+  if (tab === 'where'){ side.innerHTML = portalOutWhereSideHtml(c, p); if (pg) pg.setAttribute('data-pol-shows', 'page'); return; }
+  if (tab === 'signing'){ side.innerHTML = portalOutSignSideHtml(c, p); if (pg) pg.setAttribute('data-pol-shows', 'page'); return; }
+  if (portalOutFace() === 'notes'){
+    if (!side.querySelector('#pol-notes-body')) side.innerHTML = `<div class="pol-side-in">${portalOutHeadHtml(c)}<div class="pol-side-body pol-notes-in" id="pol-notes-body"></div></div>`;
+    else { const hd = side.querySelector('.pol-side-hd'); if (hd) hd.outerHTML = portalOutHeadHtml(c); }
+    const host = side.querySelector('#pol-notes-body');
+    if (host && window.rlChatPanelPaint && !host.contains(document.activeElement)){ try { rlChatPanelPaint(host, c, portalNotesOpts()); } catch (_){} }
+    if (pg) pg.setAttribute('data-pol-shows', 'notes'); return;
+  }
+  if (!(portalOutFace() === 'send' && side.querySelector('#pol-send-msg') === document.activeElement))
+    side.innerHTML = portalOutFace() === 'send' ? portalOutSendHtml(c, p) : portalOutSideHtml(c, p);
+  if (pg) pg.setAttribute('data-pol-shows', portalOutFace());
+}
 function portalOutPaint(c, p){
   if (!portalOutOn()) return;
   _polCtx = { c, p };
-  const side = document.getElementById('pol-side'), foot = document.getElementById('pol-foot');
-  if (side && !(portalOutFace() === 'send' && side.querySelector('#pol-send-msg') === document.activeElement))
-    side.innerHTML = portalOutFace() === 'send' ? portalOutSendHtml(c, p) : portalOutSideHtml(c, p);
-  const pg = document.getElementById('pw-page'); if (pg) pg.setAttribute('data-pol-shows', portalOutFace());
+  const foot = document.getElementById('pol-foot');
+  portalOutPaintSide(c, p);
   if (foot) foot.innerHTML = portalOutFootHtml(c, p);
   portalOutPaintNotes(c, p);
+  portalOutCardMore();
   requestAnimationFrame(() => { portalOutPaintNotes(c, p); portalOutSyncLink(); });
   const red = document.getElementById('pt-tab-redlines');
   if (red){ const left = portalOutAsks(c).filter(x => !portalOutDecided(x)).length;
-    red.textContent = left ? i18tn('pol_tab_redlines', left, { n: left }) : i18t('po_tab_redlines'); }
+    red.innerHTML = `${esc(i18t('po_tab_redlines'))}${left ? ` <span class="pol-tab-n" aria-label="${esc(i18tn('pol_tab_redlines', left, { n: left }))}">${left}</span>` : ''}`; }
+  const rd = document.querySelector('.pol-top .pol-read'); if (rd) rd.outerHTML = portalOutReadHtml();
+  const ng = document.getElementById('pt-nego'); if (ng) ng.classList.toggle('pol-clean', _polClean);
 }
 /* one listener, at load: the More pop, the notes' presses (the card's own verbs), Save for later, Send back */
 if (typeof document !== 'undefined' && !document._polWired){
@@ -4876,7 +5215,18 @@ if (typeof document !== 'undefined' && !document._polWired){
     if (pr){ ev.preventDefault(); const host = document.getElementById('pt-nego'); const id = pr.getAttribute('data-pol-propose'); pr.hidden = true;
       if (host && typeof host._rlOpenEditor === 'function' && id) host._rlOpenEditor(id, { typing: true }); return; }
     const fc = t.closest('[data-pol-face]');
-    if (fc){ ev.preventDefault(); _polFace = fc.dataset.polFace === 'where' ? 'where' : 'red'; if (_polCtx) portalOutPaint(_polCtx.c, _polCtx.p); return; }
+    if (fc){ ev.preventDefault(); const k = fc.dataset.polFace; _polFace = k === 'where' || k === 'notes' ? k : 'red'; if (_polCtx) portalOutPaint(_polCtx.c, _polCtx.p); return; }
+    const ha = t.closest('[data-pol-hist-act]');
+    if (ha){ ev.preventDefault(); const k = ha.getAttribute('data-pol-hist-act'); const pop2 = document.getElementById('pol-pop'); if (pop2) pop2.hidden = true;
+      portalSetTab('history'); setTimeout(() => { const b = document.querySelector('#pt-hist-pane #ht-' + (k === 'verify' ? 'verify' : 'export')); if (b) b.click(); }, 0); return; }
+    const mo = t.closest('#pt-nego .pol-more');
+    if (mo){ ev.preventDefault(); ev.stopPropagation(); const card = mo.closest('[data-nego-card]'); const on = !card.classList.contains('pol-more-open'); card.classList.toggle('pol-more-open', on); mo.setAttribute('aria-expanded', String(on)); return; }
+    const rdb = t.closest('[data-pol-read]');
+    if (rdb){ ev.preventDefault(); _polClean = rdb.getAttribute('data-pol-read') === 'clean'; if (_polCtx) portalOutPaint(_polCtx.c, _polCtx.p); return; }
+    const pg = t.closest('[data-pol-go]');
+    if (pg){ ev.preventDefault(); _polFace = 'red'; portalSetTab(pg.getAttribute('data-pol-go')); return; }
+    const wk = t.closest('[data-pol-w-k]');
+    if (wk){ ev.preventDefault(); _polWhereK = wk.getAttribute('data-pol-w-k') === 'settled' ? 'settled' : 'open'; portalPaintWhere(); return; }
     const nt = t.closest('.pol-note');
     if (nt && !t.closest('button, a')){ const id = nt.getAttribute('data-pol-note');
       const css = v => (window.CSS && CSS.escape) ? CSS.escape(v) : v;
@@ -6693,6 +7043,6 @@ function portalGoneNlWire(opts){
       if (typeof toast === 'function') toast(i18t('pnl_asked_toast'), 'ok'); }
     catch(e){ b.disabled = false; if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); } });
 }
-Object.assign(window,{portalGoneNlHtml,portalGoneNlWire,portalOutOn,portalOutAsks,portalOutBarHtml,portalOutSideHtml,portalOutFootHtml,portalOutPaintNotes,portalOutPaint,portalOutFace,portalOutHeadHtml,portalOutSyncLink,portalOutPropose,portalOutSendHtml,portalOutHistoryHtml,portalWriteFootHtml,portalWriteSend,portalAskDiffers,portalOpenAsks,portalMyPartyName,portalWithNames,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
+Object.assign(window,{portalOutShort,portalOutWhereHtml,portalOutWhereSideHtml,portalOutSignHtml,portalOutSignSideHtml,portalOutSignSteps,portalOutAlertsHtml,portalOutPaintSide,portalOutHistExtra,portalOutReadHtml,portalOutCardMore,portalOutNotesN,portalWasNow,portalWasNowHtml,portalPanelTabsHtml,portalPanelTab,portalShortDay,portalGoneNlHtml,portalGoneNlWire,portalOutOn,portalOutAsks,portalOutBarHtml,portalOutSideHtml,portalOutFootHtml,portalOutPaintNotes,portalOutPaint,portalOutFace,portalOutHeadHtml,portalOutSyncLink,portalOutPropose,portalOutSendHtml,portalOutHistoryHtml,portalWriteFootHtml,portalWriteSend,portalAskDiffers,portalOpenAsks,portalMyPartyName,portalWithNames,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
   portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,exportSignPagesHtml,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName,portalEditHtml,portalOpenEditor});

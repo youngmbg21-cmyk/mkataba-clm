@@ -8655,11 +8655,80 @@ function histKindOf(e){
   if(k==='round-closed'||k==='link'||k==='copies'||k==='handover') return { w:i18t('hist6_k_sent'), t:'steel' };
   if(k==='signature'||k==='sealed') return { w:i18t('hist6_k_signed'), t:'green' };
   if(k==='opened'||k==='access') return { w:i18t('hist6_k_inside'), t:'gray' };
+  /* P-44 review (22 Nov 2026), as drawn: a note is a row of the trail with its own badge; the upload that made the
+     contract says Created */
+  if(k==='note') return { w:i18t('hist6_k_note'), t:'violet' };
+  if(k==='system'&&/^(uploaded|created)$/i.test(String((e._audit&&e._audit.action)||'').trim())) return { w:i18t('hist6_k_created'), t:'gray' };
   return { w:i18t('hist6_k_event'), t:'gray' };
+}
+/* the group a kind badge counts in (the chips and the panel's bar, as drawn: All · Changes · Notes; By kind) */
+function histKindGroup(e){
+  const k=e&&e._k;
+  if(k==='proposed'||k==='decided'||k==='withdrawn') return 'change';
+  if(k==='note') return 'note';
+  if(k==='round-closed'||k==='link'||k==='copies'||k==='handover') return 'sent';
+  if(k==='signature'||k==='sealed') return 'signed';
+  if(k==='system'&&/^(uploaded|created)$/i.test(String((e._audit&&e._audit.action)||'').trim())) return 'created';
+  return 'event';
+}
+const HIST_KIND_GROUPS=['change','note','sent','signed','created','event'];
+/* the new look's trail narrowed (oldest first): the folded entries under every filter but the kind, the notes under the
+   same side, clause and person, then the kind — the list, its chips' counts and the panel read this one function */
+function histRowsOf(c,f){
+  f=f||{};
+  const fT=Object.assign({},f,{ kind:'', quick:'' });
+  let L=histNlFold(roomHistoryEvents(c,fT),c);
+  const notes=histNoteEvents(c).filter(e=>(!f.side||e.side===f.side)&&(!f.clauseId||String(e.clauseId||'')===String(f.clauseId))&&(!f.actor||e.actor===String(f.actor))&&!f.round&&!f.outcome);
+  L=L.concat(notes).sort((a,b)=>String(a.at||'').localeCompare(String(b.at||'')));
+  return f.kind?L.filter(e=>histKindGroup(e)===f.kind):L;
+}
+/* the new look's whole trail as drawn, oldest first: the folded entries and the notes (the head's count, the chips' and
+   the panel's — one reading, so the numbers on the chips match the list behind them) */
+function histAllOf(c){
+  if(!c) return [];
+  const f=typeof histNlFold==='function'?histNlFold(roomHistoryEvents(c,{}),c):roomHistoryEvents(c,{});
+  return f.concat(histNoteEvents(c)).sort((a,b)=>String(a.at||'').localeCompare(String(b.at||'')));
+}
+/* ---- THE NOTES ARE ROWS OF THE TRAIL (P-44 review, 22 Nov 2026, as drawn: "Wrote a note on clause 2", "Replied on
+   clause 2, Price & Contract Value", a Note badge) ----
+   Read RAW off the record: each change's thread (ch.thread, never initialised) and the contract's own (c.thread), every
+   change the record holds (the live list and the rounds' archives, once each). Our seat only: our internal notes and the
+   shared ones are both ours to read; the other side's page draws its own (portalOutHistoryHtml, their room only). */
+function histNoteEvents(c){
+  if(!c) return [];
+  const seen=new Set(), chs=[];
+  const add=ch=>{ if(!ch||!ch.id||seen.has(String(ch.id))) return; seen.add(String(ch.id)); chs.push(ch); };
+  (Array.isArray(c.changes)?c.changes:[]).forEach(add);
+  ((c.negotiation&&Array.isArray(c.negotiation.rounds))?c.negotiation.rounds:[]).forEach(r=>((r&&Array.isArray(r.changes))?r.changes:[]).forEach(add));
+  const out=[];
+  const rows=(list,ch)=>{
+    const L=(Array.isArray(list)?list:[]).filter(m=>m&&String(m.text||m.body||'').trim());
+    const ids=new Set(L.map(m=>String(m.id||'')));
+    L.forEach(m=>{
+      const reply=!!(m.replyTo&&ids.has(String(m.replyTo)));
+      let label=String((ch&&ch.clauseLabel)||(m.anchor&&m.anchor.clauseLabel)||'').trim();
+      try{ if(label&&typeof window.negoClauseName==='function') label=String(negoClauseName(label)||label); }catch(_){ /* the stored label stands */ }
+      const num=(label.match(/^(\d+(?:\.\d+)*)/)||[])[1]||'';
+      const cl=reply||!num?histClauseWords(label):i18t('hist6_clause_n',{ n:num });
+      out.push({ _k:'note', at:String(m.at||''), actor:String(m.who||m.author||'').trim(), side:m.side==='counterparty'?'counterparty':'owner',
+        clauseId:(ch&&ch.clauseId)||(m.anchor&&m.anchor.clauseId)||null, clauseLabel:label, round:null, outcome:'', ch:null, _note:m,
+        text:String(m.text||m.body||''), _say:i18t(reply?'hist6_note_replied':(label?'hist6_note_wrote':'hist6_note_wrote_c'),{ clause:cl }) });
+    });
+  };
+  chs.forEach(ch=>rows(ch.thread,ch));
+  rows(c.thread,null);
+  return out.sort((a,b)=>String(a.at||'').localeCompare(String(b.at||'')));
 }
 /* a change's discussion, under its row: its notes as a thread (replies stepped in under the note they answer), read RAW
    (ch.thread, never initialised); the reply box is the notes drawer's own door on that change (openNotesPanel — ONE
    way to write a note); none: "No notes on this change · Write one" through the same door */
+/* a clause as the reply box says it (as drawn: "Reply on clause 2…"): its number where it has one, else its name */
+function histClauseShort(label){
+  let l=String(label||'').trim();
+  try{ if(l&&typeof window.negoClauseName==='function') l=String(negoClauseName(l)||l); }catch(_){ /* the stored label stands */ }
+  const n=(l.match(/^(?:clause\s+)?(\d+(?:\.\d+)*)/i)||[])[1];
+  return n?i18t('hist6_clause_n',{ n }):(l||i18t('ds_a_clause'));
+}
 function histNotesHtml(c,ch){
   const list=Array.isArray(ch&&ch.thread)?ch.thread.filter(m=>m&&String(m.text||m.body||'').trim()):[];
   const T=list.length&&typeof window.negoNoteThreads==='function'?negoNoteThreads(list):list.map(m=>({ root:m, replies:[] }));
@@ -8668,7 +8737,7 @@ function histNotesHtml(c,ch){
     return `<div class="hist6-msg${sub?' is-reply':''}"><span class="hist6-ini${theirs?'':' is-us'}" aria-hidden="true">${esc(ini(m.who||m.author))}</span><div><b>${esc(m.who||m.author||'')}</b> <small>${esc(histWhen(m.at).time||histWhen(m.at).day||'')}</small><p>${esc(String(m.text||m.body||''))}</p></div></div>`; };
   const door=`data-hist-note="${esc(ch.id)}"`;
   const body=T.length?T.map(t=>msg(t.root,false)+(t.replies||[]).map(r=>msg(r,true)).join('')).join('')
-    +`<button type="button" class="hist6-reply" ${door}>${esc(i18t('hist6_reply',{ clause:String(ch.clauseLabel||'').trim()||i18t('ds_a_clause') }))}</button>`
+    +`<button type="button" class="hist6-reply" ${door}>${esc(i18t('hist6_reply',{ clause:histClauseShort(ch.clauseLabel) }))}</button>`
     :`<p class="hist6-none">${esc(i18t('hist6_no_notes'))} · <button type="button" class="hist6-a" ${door}>${esc(i18t('hist6_writeone'))}</button></p>`;
   return `<div class="hist-wfull hist6-notes" role="row"><div class="hist6-nt" role="cell">${body}</div></div>`;
 }
@@ -9094,8 +9163,8 @@ function histSaysOf(e){
    redline's way), with the unchanged words kept to a few either side of each
    edit; a cut is said with "…". The record is not touched: this draws it. */
 const HIST_WORDING_KEEP=8;
-function histWordingCut(ops){
-  const W=t=>String(t||'').split(/(\s+)/), K=HIST_WORDING_KEEP;
+function histWordingCut(ops,keep){
+  const W=t=>String(t||'').split(/(\s+)/), K=(keep>0?keep:HIST_WORDING_KEEP);
   const words=t=>W(t).filter(x=>x&&!/^\s+$/.test(x)).length;
   const head=(t,n)=>{ const p=W(t); let c=0, i=0; for(;i<p.length;i++){ if(p[i]&&!/^\s+$/.test(p[i])){ if(c===n) break; c++; } } return p.slice(0,i).join(''); };
   const tail=(t,n)=>{ const p=W(t); let c=0, i=p.length-1; for(;i>=0;i--){ if(p[i]&&!/^\s+$/.test(p[i])){ if(c===n) break; c++; } } return p.slice(i+1).join(''); };
@@ -9109,12 +9178,15 @@ function histWordingCut(ops){
     return n>2*K+2?{ op:'keep', text:head(o.text,K).replace(/\s+$/,'')+' \u2026 '+tail(o.text,K).replace(/^\s+/,'') }:o;
   });
 }
-function histWordingHtml(ch){
+function histWordingHtml(ch,o){
   if(!ch) return '';
+  /* THE ONE-LINE PEEK SHOWS THE CHANGE (P-44 review, 22 Nov 2026: at 1366 "within 3…" was cut before the change):
+     with The wording off a change keeps only a few words either side of its edit (o.keep) */
+  const keep=o&&o.keep;
   let ops=Array.isArray(ch.ops)&&ch.ops.length?ch.ops:null;
   if(!ops&&window.redlineOps&&(ch.oldText!=null||ch.newText!=null)){ try{ ops=redlineOps(String(ch.oldText||''),String(ch.newText||'')); }catch(_){ ops=null; } }
   if(!ops||!window.redlineOpsHtml) return window.negoChangeHtml?negoChangeHtml(ch):esc(String(ch.newText||''));
-  return redlineOpsHtml(histWordingCut(ops));
+  return redlineOpsHtml(histWordingCut(ops,keep));
 }
 /* ---- WHERE THE NEGOTIATION STANDS, FOR HISTORY'S HEAD AND JAMBO (round 12)
    ---- ONE reading: what is still open (their asks and ours, dsOpen's own
@@ -9210,12 +9282,15 @@ function roomHistoryHtml(c,f={},opts={}){
      they were written, latest first, which is what newest first means. */
   const q=String(_histQ||'').trim().toLowerCase();
   const nlH=typeof window.newLookOn==='function'&&newLookOn();
-  const evs=(nlH?histNlFold(roomHistoryEvents(c,f),c):roomHistoryEvents(c,f)).slice().reverse()
+  /* P-44 REVIEW (22 Nov 2026), AS DRAWN: the new look's trail carries the notes as rows (histNoteEvents) and is
+     narrowed by kind (All · Changes · Notes, f.kind) and side (+ Side, f.side); the quick links went with the drawing */
+  const evs0=nlH?histRowsOf(c,f):roomHistoryEvents(c,f);
+  const evs=evs0.slice().reverse()
     .filter(e=>!q||[e.text,histSaysOf(e),e.actor,e.clauseLabel].some(x=>String(x||'').toLowerCase().includes(q)));
   /* The total is the UNFILTERED list, counted the same way — merged twins are
      one event in both, so "7 of 11" can never appear over a page that is
      hiding nothing. */
-  const all=roomHistoryEvents(c,{}).length;
+  const all=nlH?histAllOf(c).length:roomHistoryEvents(c,{}).length;
   /* how many of them are opens, and how many older ones the server left out
      (a cap is a fact, said where the count is) */
   const opensN=Array.isArray(c._opens)?c._opens.length:0, cutN=Number(c._opensCut)||0;
@@ -9225,7 +9300,7 @@ function roomHistoryHtml(c,f={},opts={}){
      is still ONE handle on f.side — the Side dropdown left the fold with it.
      The Filter button counts the four it holds. */
   const onF=HIST_FOLD_FILTERS.filter(k=>f&&f[k]).length;
-  const on=onF+((f&&f.side)?1:0)+((f&&f.quick)?1:0)+(q?1:0);
+  const on=onF+((f&&f.side)?1:0)+((f&&f.quick)?1:0)+((f&&f.kind)?1:0)+(q?1:0);
   const row=e=>{
     const m=HIST_KIND[e._k]||HIST_KIND.system;
     /* ---- THE TIME LEADS THE ROW (owner-approved render, 24 Aug 2026) ----
@@ -9265,7 +9340,8 @@ function roomHistoryHtml(c,f={},opts={}){
       :(_histDetail&&e._chs&&e._chs.length)?`<div class="hist-wfull" role="row"><div class="hist-redline" role="cell">${e._chs.map(x=>`<div>… ${histWordingHtml(x)} …</div>`).join('')}${cap}</div></div>`:'';
     const body=(_histDetail&&(e._k==='proposed'||e._k==='decided')&&e.ch)
       ? `<div class="hist-wfull" role="row"><div class="hist-redline" role="cell">${histWordingHtml(e.ch)}</div></div>` : '';
-    const why=e.note?`<div class="hist-note">${esc(i18t('ct_hist_why_asked',{text:e.note}))}</div>`:'';
+    /* the new look draws no "Why they asked" under the row (P-44 review, as drawn): the reason stays on the change's card */
+    const why=e.note&&!nlH?`<div class="hist-note">${esc(i18t('ct_hist_why_asked',{text:e.note}))}</div>`:'';
     const reply=(e._k==='decided'&&e.reply)?`<div class="hist-note">${i18t('ct_reply_prefix',{text:esc(e.reply)})}</div>`:'';
     /* The system twin this row absorbed — its fingerprint and its actor kept on
        the row rather than printed as a second event. */
@@ -9331,13 +9407,13 @@ function roomHistoryHtml(c,f={},opts={}){
        it; The notes opens the change's discussion under its row (histNotesHtml) */
     const K=histKindOf(e);
     const kindB=K?`<span class="hist6-kb is-${K.t}">${esc(K.w)}</span>`:'';
-    const ocB=oc&&(lane!=='mid'||e._oc)?`<span class="hist6-ob is-${oc.t}"><i aria-hidden="true"></i>${esc(oc.w)}</span>`:'';
-    const peek=!_histDetail&&(e._k==='proposed'||e._k==='decided')&&e.ch?`<div class="hist6-peek">${histWordingHtml(e.ch)}</div>`:'';
+    const ocB=oc&&e._k!=='note'&&(lane!=='mid'||e._oc)?`<span class="hist6-ob is-${oc.t}"><i aria-hidden="true"></i>${esc(oc.w)}</span>`:'<span class="hist6-none-oc" aria-hidden="true">\u2014</span>';
+    const peek=!_histDetail&&(e._k==='proposed'||e._k==='decided')&&e.ch?`<div class="hist6-peek">${histWordingHtml(e.ch,{ keep:4 })}</div>`:'';
     const notes=_histNotes&&e.ch&&(e._k==='proposed'||e._k==='decided')?histNotesHtml(c,e.ch):'';
     void sideW; void ocW;
     return `<div class="hist-ev hist-tr is-${lane}${inside?' is-inside':''}${e._k==='opened'?' is-open':''}" data-hist-at="${esc(e.at||'')}" data-hist-lane="${lane}" role="row">
       <span class="hist-c hist-c-time" role="cell">${when}</span><span class="hist-c hist-c-who" role="cell">${whoCell}</span>
-      <div class="hist-c hist-c-what hist-body" role="cell"><div class="hist-text">${whatT}${named?'':cl}</div>${peek}${why}${reply}</div>
+      <div class="hist-c hist-c-what hist-body" role="cell"><div class="hist-text" title="${esc(said)}">${whatT}${named?'':cl}</div>${peek}${why}${reply}</div>
       <span class="hist-c hist-c-kind" role="cell">${kindB}</span><span class="hist-c hist-c-oc hist-oc" role="cell">${ocB}</span></div>${bodyNl||body}${notes}`;
   };
   const ours=_histOurPeople();
@@ -9411,7 +9487,7 @@ function roomHistoryHtml(c,f={},opts={}){
       <span class="hist6-sw" role="group" aria-label="${esc(i18t('hist6_show'))}"><button id="hist-detail" type="button" class="hist6-tg${_histDetail?' is-on':''}" aria-pressed="${_histDetail?'true':'false'}"
         title="${esc(_histDetail?i18t('ct_hist_back_short'):i18t('ct_hist_print_wording'))}"><i aria-hidden="true">${_histDetail?'✓':''}</i>${esc(i18t('hist6_wording'))}</button><button id="hist-notes" type="button" class="hist6-tg${_histNotes?' is-on':''}" aria-pressed="${_histNotes?'true':'false'}"
         title="${esc(i18t('hist6_notes_tip'))}"><i aria-hidden="true">${_histNotes?'✓':''}</i>${esc(i18t('hist6_notes'))}</button></span>
-      <div style="position:relative">
+      ${nlH?'':`<div style="position:relative">
         <button id="hist-more" class="ui-btn ui-btn-icon hist-more-btn" aria-haspopup="true" aria-expanded="false"
           aria-label="${esc(i18t('ct_more'))}" title="${esc(i18t('ct_hist_more_title'))}">
           ${icon('more')}</button>
@@ -9423,7 +9499,7 @@ function roomHistoryHtml(c,f={},opts={}){
           ${histTrailDoorOn()?`<div class="hist-mg">${esc(i18t('ct_hist_trail_group'))}</div>
           <button type="button" id="ht-trail"><b>${esc(i18t('ct_hist_trail_door'))}</b><small>${esc(i18t('ct_hist_trail_note'))}</small></button>`:''}
         </div>
-      </div>
+      </div>`}
       <div class="hist-tools">
       <label class="hist-q"><span class="sr-only">${esc(i18t('ct_hist_search'))}</span>${icon('search','w-3.5 h-3.5')}<input id="hist-q" type="search" value="${esc(_histQ)}" placeholder="${esc(i18t('ct_hist_search'))}" autocomplete="off"></label>
       ${roomHistoryFiltersHtml(c,f)}
@@ -9488,8 +9564,24 @@ function histQuickHtml(c,f){
     <span class="hist-f-sp"></span>
     <button id="ht-clear" type="button" class="hist-clear"${any?'':` disabled title="${esc(i18t('ct_hist_clear_none'))}"`}>${i18t('ct_clear2')}</button></div>`;
 }
+/* THE CHIPS, AS DRAWN (P-44 review, 22 Nov 2026; replaces the quick links in the new look): All · Changes · Notes with
+   their counts — each count the rows its press leaves (histAllOf, the one reading) — and "+ Side", the Stripe way's
+   "+ filter" chip: pressed, it offers the sides the trail holds; chosen, it is a shaded chip naming the side, its × lets
+   go. A kind with no rows is not listed; Side only where both sides wrote. No Clear link: each chip lets go itself. */
+let _histSidePick=false;
+function histKindChipsHtml(c,f){
+  const all=histAllOf(c);
+  const n=k=>histRowsOf(c,Object.assign({},f,{ kind:k })).length;
+  const chip=(k,w)=>{ const on=(f.kind||'')===k; return `<button type="button" class="hist6-chip${on?' is-on':''}" data-ht-kind="${k}" aria-pressed="${on}">${esc(w)} <span>${n(k)}</span></button>`; };
+  const kinds=[['change','hist6_c_changes'],['note','hist6_c_notes']].filter(([k])=>n(k)>0);
+  const sides=['owner','counterparty'].filter(sd=>all.some(e=>e.side===sd));
+  const sideW=sd=>i18t(sd==='owner'?'hist6_side_ours':'hist6_side_theirs');
+  const side=f.side?`<button type="button" class="hist6-chip is-on is-set" data-ht-side-x aria-label="${esc(i18t('hist6_side_clear'))}">${esc(i18t('hist6_side_is',{ side:sideW(f.side) }))} <span aria-hidden="true">\u00d7</span></button>`
+    :sides.length>1?`<span class="hist6-side"><button type="button" class="hist6-chip is-add" data-ht-side-pick aria-expanded="${_histSidePick}">+ ${esc(i18t('hist6_c_side'))}</button>${_histSidePick?`<span class="hist6-side-pop" role="menu">${sides.map(sd=>`<button type="button" role="menuitem" data-ht-side-set="${sd}">${esc(sideW(sd))}</button>`).join('')}</span>`:''}</span>`:'';
+  return `<div class="hist6-chips hist6-kinds">${chip('',i18t('ctf_tab_all'))}${kinds.map(([k,w])=>chip(k,i18t(w))).join('')}${side}</div>`;
+}
 function roomHistoryFiltersHtml(c,f){
-  if(typeof newLookOn==='function'&&newLookOn()) return histQuickHtml(c,f);
+  if(typeof newLookOn==='function'&&newLookOn()) return histKindChipsHtml(c,f);
   const C=histFilterChoices(c);
   /* THE SAP WAY (21 Oct 2026): each filter a labelled box in the band — its name inside it, then
      what it holds — in the drawing's order: Person · Clause · Outcome · Round · Opens */
@@ -9540,7 +9632,14 @@ function roomPaintHistory(c,f={},at){
   const read=()=>{ const g=k=>{ const el=host.querySelector(`[data-ht-filter="${k}"]`); return el&&el.value?el.value:''; };
     const sd=host.querySelector('[data-ht-side][aria-pressed="true"]');
     const qk=host.querySelector('[data-ht-quick][aria-pressed="true"]');
-    return {clauseId:g('clauseId'),actor:g('actor'),side:sd?sd.getAttribute('data-ht-side'):'',round:g('round'),outcome:g('outcome'),opens:g('opens'),quick:qk?qk.getAttribute('data-ht-quick'):''}; };
+    const kept=f||{};
+    const has=k=>!!host.querySelector(`[data-ht-filter="${k}"]`);
+    return {clauseId:has('clauseId')?g('clauseId'):(kept.clauseId||''),actor:has('actor')?g('actor'):(kept.actor||''),side:sd?sd.getAttribute('data-ht-side'):(kept.side||''),round:g('round'),outcome:g('outcome'),opens:g('opens'),quick:qk?qk.getAttribute('data-ht-quick'):'',kind:kept.kind||''}; };
+  /* the kind chips and + Side (the new look, as drawn): one press narrows, All lets go; + Side offers the sides */
+  host.querySelectorAll('[data-ht-kind]').forEach(b=>b.addEventListener('click',()=>{ _histSidePick=false; roomPaintHistory(c,Object.assign({},f,{ kind:b.getAttribute('data-ht-kind')||'' }),at); }));
+  host.querySelector('[data-ht-side-pick]')?.addEventListener('click',()=>{ _histSidePick=!_histSidePick; roomPaintHistory(c,f,at); });
+  host.querySelectorAll('[data-ht-side-set]').forEach(b=>b.addEventListener('click',()=>{ _histSidePick=false; roomPaintHistory(c,Object.assign({},f,{ side:b.getAttribute('data-ht-side-set')||'' }),at); }));
+  host.querySelector('[data-ht-side-x]')?.addEventListener('click',()=>{ roomPaintHistory(c,Object.assign({},f,{ side:'' }),at); });
   /* a quick link: one press narrows, the same press again lets go */
   host.querySelectorAll('[data-ht-quick]').forEach(b=>
     b.addEventListener('click',()=>{ const k=b.getAttribute('data-ht-quick'); roomPaintHistory(c,Object.assign(read(),{ quick:b.getAttribute('aria-pressed')==='true'?'':k }),at); }));
@@ -19480,7 +19579,7 @@ Object.assign(window,{histWordingShown,histNlFold,signApprovalRowWhy,docReadLong
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,roomChatDoorHtml,ROOM_TABS_HOME,roomTabHome,roomOpenAt,roomMoreMenuHtml,roomMenuWire,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,uploadReadFile,uploadReadMeta,uploadFromDrop,uploadDropBusy,uploadDropFolder,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,docWorkPreviewOf,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomArrivesOnHome,roomHomeLand,ROOM_ARRIVE_MS,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,ovPeopleRestHtml,ovPeopleRestPaint,ovFilingRestHtml,ovFilingRestPaint,histLaneOf,_histOurPeople,histTheirPerson,histTrailSaysOf,histSendOf,HIST_SEND_GAP_MS,histOutcomeKey,histWordingCut,histWordingHtml,histFilterChoices,histClauseWords,histSaysOf,histMoveOf,histClausesSay,HIST_SAY_CLAUSES_MAX,HIST_RECENT_DAYS,histSummaryOf,histNewestWords,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,detTintEmpties,detBasicsHtml,detNdaRows,detPaintBasics,detMarkOpen,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,docWorkPreviewOf,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomArrivesOnHome,roomHomeLand,ROOM_ARRIVE_MS,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,ovPeopleRestHtml,ovPeopleRestPaint,ovFilingRestHtml,ovFilingRestPaint,histLaneOf,_histOurPeople,histTheirPerson,histTrailSaysOf,histSendOf,HIST_SEND_GAP_MS,histOutcomeKey,histWordingCut,histWordingHtml,histKindOf,histKindGroup,HIST_KIND_GROUPS,histNoteEvents,histAllOf,histRowsOf,histKindChipsHtml,histFilterChoices,histClauseWords,histSaysOf,histMoveOf,histClausesSay,HIST_SAY_CLAUSES_MAX,HIST_RECENT_DAYS,histSummaryOf,histNewestWords,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,detTintEmpties,detBasicsHtml,detNdaRows,detPaintBasics,detMarkOpen,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is

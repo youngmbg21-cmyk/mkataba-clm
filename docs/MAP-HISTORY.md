@@ -39683,3 +39683,21 @@ panel (`igViewSuggestions({ noMoney:true })`); "Shade the cells by how many" (`i
 cells are shaded by money. Kept against the drawing, asked of the owner: the head's fading line (f1107), the
 board · contracts links line over the box (Jambo's box rule), and "Shade the cells by how many" in the default Grid
 (the cells are already shaded by how many there, so the row would do nothing).
+
+## THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM / THE COUNTERPARTY'S PAGE (P-44 review, 22 Nov 2026)
+An independent review of P-44 against the owner's picked drawings (History "mix"; the other side's page "mix") found the
+History side panel unbuilt, money (KES 22,000,000) in the Dossier panel, the kind chips and note rows missing, and on
+their page a bell hidden inside More (0×0), no side panels on Where we are or Signing, notes behind the panel at 1366,
+no Clean · Redline switch, a figures row the drawing does not have, and the logged fault "For you: tell them you are ready
+to sign" on a first share with nothing open and no History tab (P-44 had not fixed it). Built as drawn on 22 Nov 2026:
+our History's panel (`pd2HistFaceHtml`: N things happened since, By kind bar, Export — The trail as PDF = the verified
+print report, Word with tracked changes = the paper's Word door), the Value fact out of the new look's Dossier panel,
+notes as trail rows (`histNoteEvents`), chips with counts from ONE reading (`histRowsOf`), no × and ⋯ on History
+(Verify rides inside the PDF report; the full trail stays Settings'), a page arrives with no ring (trapFocus quiet for
+`data-dlg-page`). Their page: the bell on the bar opening Alerts · Notes (`portalPanelTabsHtml`), each alert row with its
+own button, Where we are as drawn (amber band whose button is the bell's own row; stops with days; Still open · Settled
+over one table) and Signing as drawn with side panels, Clean · Redline, Changes · Notes in the Redlines panel, the
+paper giving way so margin notes never run under the panel, History with Shared / Opened / note rows (server now sends
+the link's own `sentAt` and `firstOpenedAt`), Verify integrity and Export history moved to More. KEPT: their notes still
+land on their own team's room (the 3 Oct 2026 "the quiet room is where you land" ruling), though the drawing shows the
+other side's room chosen; the "Why we asked" line folds under the card's More ▾ rather than disappearing.
