@@ -40096,3 +40096,6 @@ The owner, on the iPad: "When on my iPad and i try to enter my cursor in the fie
 
 ## JAMBO'S MAP — EVERYDAY WORDS FOR THE THIRTY-ONE TASKS (22 Nov 2026, auto pilot batch 2)
 - Bug log: "what now" and "vad nu" were listed as the next steps' words, but caPlaceOf let a trailing "now"/"nu" go before matching, leaving "what"/"vad". The words as typed are now asked first (`asTyped`); "go to explorer now" still drops the "now". f1176, red at the parent.
+
+## THE AI'S READING RULES (22 Nov 2026, auto pilot batch 2)
+- Bug log: nine-plus AI routes answered a provider failure with 502 and no `kind`, so the browser's stand-in said "could not be reached". Every route's "Jambo provider error" reply now carries `kind: 'provider'` (22 replies), which api.js already copies onto the error and aiFailWhy/triageWhy already read. f1177, red at the parent.

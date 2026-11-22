@@ -412,7 +412,7 @@ INSTRUCTION IS NOT WORDING: "Amend Section N to add: '…'" read at the producer
 NOTES SAY HOW THEY ENDED: risks AND deviations (`pd2RedStdAnswers`, `pd2RedAnswers`): answered = green tick + new words, NO LINK; open = amber + door; not on Their view (f1037).
 HIDE NOTES ONE BUTTON (`pd2NotesTgHtml`, `PD2_NOTES_HIDDEN_KEY`); All notes · Outstanding · Resolved; NO BUTTON BEHIND ZOOM (`pd2RedFloor`; f1042).
 ## THE AI'S READING RULES
-`aiDocChars` (200,000) the ceiling, cap said; `truncated` ≠ empty; `anthropicMessages` retries ONCE on a thrown connection. COPILOT READS EVERY CHANGE WHOLE (`negoCopilotRecord`, f47). `AI_QUOTE_RULE`, `AI_REDLINE_RULE`; commentary not wording (`AI_MODEL_VOICE`); `metaUnleak` before filing; `AI_LIST_RULE`. Tool names, `graphWhereHit` same both hosts.
+`aiDocChars` (200,000) the ceiling, cap said; `truncated` ≠ empty; `anthropicMessages` retries ONCE on a thrown connection. A provider's refusal says `kind: 'provider'` on every route (f1177). COPILOT READS EVERY CHANGE WHOLE (`negoCopilotRecord`, f47). `AI_QUOTE_RULE`, `AI_REDLINE_RULE`; commentary not wording (`AI_MODEL_VOICE`); `metaUnleak` before filing; `AI_LIST_RULE`. Tool names, `graphWhereHit` same both hosts.
 ASKED ONCE MORE, NEVER FAKED: cut-short proposal `unfinished`, NO card (`aiProposalCutShort`, f1019); cut step retried (`copilotStepCall`, f1026); no JSON (`copilotProposalMissing`, f1030), no note (`copilotNoteMissing`, f1042), then the answer IS the note (`aiSendNoteFrom`, f1043, f1083).
 SMALL JAMBO HANDS ON (`elsewhere`; `stJbWhyRun`), never "hidden from you" (f1007). JUDGEMENT ON STRONGER MODEL (`copilotNeedsJudgement`); `aiRateFor`.
 ## THE POP-UPS, THE SAP WAY
