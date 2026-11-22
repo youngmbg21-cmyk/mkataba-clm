@@ -24698,6 +24698,10 @@
   @media (min-width:768px){
     html.lg-new :is(#ig-dock:not(:has(> .igd-door)):not(:has(> .igd-head[data-pd-head="paper"])), .ins-panel.is-jambo:not(.is-folded), .st-cr .st-side:not(.is-folded)){background-image:linear-gradient(180deg, var(--wm-wash) 0, transparent 160px)}
     html.lg-new #ig-dock .cal-cop{background:transparent}
+    /* …AND IT SCROLLS WITH THE READING (owner, 22 Nov 2026): what scrolls inside the panel lends it --wm-y (wmFollow,
+       js/components.js); the weave and its wash rise by it, the panel's own clip hiding what has left the top */
+    html.lg-new :is(#ig-dock:not(:has(> .igd-door)):not(:has(> .igd-head[data-pd-head="paper"])), .ins-panel.is-jambo:not(.is-folded), .st-cr .st-side:not(.is-folded)){background-repeat:no-repeat;background-position:0 calc(-1 * var(--wm-y, 0px))}
+    html.lg-new :is(#ig-dock:not(:has(> .igd-door)):not(:has(> .igd-head[data-pd-head="paper"])), .ins-panel.is-jambo:not(.is-folded), .st-cr .st-side:not(.is-folded))::before,html.lg-new :is(#ig-dock:not(:has(> .igd-door)):not(:has(> .igd-head[data-pd-head="paper"])), .ins-panel.is-jambo:not(.is-folded), .st-cr .st-side:not(.is-folded))::after{transform:translateY(calc(-1 * var(--wm-y, 0px)))}
     html.lg-new :is(#ig-dock:not(:has(> .igd-door)):not(:has(> .igd-head[data-pd-head="paper"])), .ins-panel.is-jambo:not(.is-folded), .st-cr .st-side:not(.is-folded))::before,
     html.lg-new :is(#ig-dock:not(:has(> .igd-door)):not(:has(> .igd-head[data-pd-head="paper"])), .ins-panel.is-jambo:not(.is-folded), .st-cr .st-side:not(.is-folded))::after{content:"";position:absolute;left:0;right:0;top:0;height:200px;z-index:4;pointer-events:none;mix-blend-mode:multiply;
       -webkit-mask-repeat:repeat-x,no-repeat;mask-repeat:repeat-x,no-repeat;-webkit-mask-composite:source-in;mask-composite:intersect}
@@ -24728,18 +24732,6 @@
   html.lg-new #app-shell .ins-panel.is-jambo .jl-head .jl-fold:hover{background:color-mix(in srgb, var(--color-text) 8%, var(--surface-2))}
   html.lg-new #app-shell #ig-page #ig-dock:not(:has(> .igd-head[data-pd-head="paper"])) #igd-collapse svg,
   html.lg-new #app-shell .ins-panel.is-jambo .jl-head .jl-fold svg{width:14px;height:14px;stroke-width:2.6}
-  /* SOLID ON THE WATERMARK (owner's pick with Sunset lines, 22 Nov 2026, as drawn): the chosen tab is a white pill and the
-     minimise arrow a white circle, both raised above the weave by a soft shadow, so the lines never run across them */
-  @media (min-width:768px){
-    html.lg-new #app-shell :is(#ig-dock:not(:has(> .igd-head[data-pd-head="paper"])), .ins-panel.is-jambo) :is(.igd-head, .jl-head, .cal-plan-head) .pd-tab.on,
-    html.lg-new #app-shell .st-cr .st-side-head .st-side-tab[aria-selected="true"]{position:relative;z-index:5;background:var(--color-surface);border-radius:999px;box-shadow:0 0 0 1px rgba(64,68,82,.14),0 2px 6px rgba(64,68,82,.16),0 1px 1px rgba(0,0,0,.06)}
-    html.lg-new #app-shell #ig-page #ig-dock:not(:has(> .igd-head[data-pd-head="paper"])) #igd-collapse,
-    html.lg-new #app-shell .ins-panel.is-jambo .jl-head .jl-fold,
-    html.lg-new #app-shell .st-cr .st-side-head .st-side-fold{position:relative;z-index:5;background:var(--color-surface);box-shadow:0 0 0 1px rgba(64,68,82,.14),0 2px 6px rgba(64,68,82,.16),0 1px 1px rgba(0,0,0,.06)}
-    html.lg-new #app-shell #ig-page #ig-dock:not(:has(> .igd-head[data-pd-head="paper"])) #igd-collapse:hover,
-    html.lg-new #app-shell .ins-panel.is-jambo .jl-head .jl-fold:hover,
-    html.lg-new #app-shell .st-cr .st-side-head .st-side-fold:hover{background:var(--surface-2)}
-  }
   /* …LEVEL WITH THE SWITCH ABOVE THEM (P-38 "one and the same screen"; review of the merged pages, 22 Nov 2026): the
      Room line follows the Changes · Notes · Ladder switch as the bell's follows its chips — no empty spacer row, no empty
      head band, and the rows start at the switch's own left edge, not 12 + 16 in from it; the chosen Notes keeps its count */

@@ -1022,5 +1022,6 @@ counterparty-reading-and-more 1c, paper-grows (counterparty gives way only for i
 sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 
 ## HOW THINGS MOVE — the watermark in Sunset lines (22 Nov 2026)
-- test/chromium/panel-watermark-verify.js 10a (the weaves are a flowing colour mix), 10b (the chosen tab a white pill above the weave), 10c (the arrow a white circle above it); all three red on main. 2, 2b, 3 (still in Settings and for less motion) were red on main and pass now.
+- test/chromium/panel-watermark-verify.js 10a (the weaves are a flowing colour mix), red on main. 2, 2b, 3 (still in Settings and for less motion) were red on main and pass now.
 - f965 (tokens): the --wm-* colours live in :root and docs/design/tokens.json (node test/tokens-export.js).
+- panel-watermark-verify 11: Jambo's talk scrolled 120, the weave rises 120, and comes back at the top (red on main).

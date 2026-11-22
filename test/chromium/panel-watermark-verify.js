@@ -95,7 +95,7 @@ const READ = () => {
     const ap = await go('approvals', () => !!document.querySelector('#ins-panel .jl-head'));
     ok('5a Approvals: the chosen tab wears the thin outline', !!ap && ap.tabEdge === true, JSON.stringify(ap));
     /* 10 — SUNSET LINES (owner's pick, 22 Nov 2026): the two weaves are a flowing mix of colours, not one ink; the
-       chosen tab is a white pill and the arrow a white circle, both lifted above the weave */
+       buttons on it stay as they were, see-through (owner, 22 Nov 2026: "keep the translucent buttons") */
     await page.mouse.move(2, 400); await page.waitForTimeout(300);   /* away from the arrow, so its own colour is read, not its hover */
     const sun = await page.evaluate(() => { const p = document.querySelector('#ins-panel'); if (!p) return null;
       const b = getComputedStyle(p, '::before'), a = getComputedStyle(p, '::after');
@@ -104,8 +104,19 @@ const READ = () => {
       const lifted = el => { if (!el) return null; const c = getComputedStyle(el); return { bg: c.backgroundColor, z: c.zIndex, rad: c.borderTopLeftRadius }; };
       return { before: stops(b.backgroundImage), after: stops(a.backgroundImage), anim: b.animationName + ' | ' + a.animationName, tab: lifted(tab), fold: lifted(fold) }; });
     ok('10a the watermark\'s weaves are a mix of colours flowing along them (Sunset lines)', !!sun && sun.before >= 5 && sun.after >= 3 && /wmFlowA/.test(sun.anim) && /wmFlowB/.test(sun.anim), JSON.stringify(sun));
-    ok('10b the chosen tab is a solid white pill above the weave', !!sun && !!sun.tab && sun.tab.bg === 'rgb(255, 255, 255)' && Number(sun.tab.z) > 4 && parseFloat(sun.tab.rad) >= 14, JSON.stringify(sun && sun.tab));
-    ok('10c the minimise arrow is a solid white circle above the weave', !!sun && !!sun.fold && sun.fold.bg === 'rgb(255, 255, 255)' && Number(sun.fold.z) > 4, JSON.stringify(sun && sun.fold));
+    /* 11 — IT SCROLLS WITH THE READING (owner, 22 Nov 2026): Jambo's talk scrolled 120 down, the weave rises 120 with it;
+       back at the top, it comes back down */
+    const lift = await page.evaluate(async () => { const p = document.querySelector('#ins-panel'); if (!p) return null;
+      try { ai.history.push({ role: 'user', text: 'What is due this week?' }, { role: 'assistant', text: 'Two duties are due this week. '.repeat(120) }); jlTalkPress(); } catch (_){ }
+      await new Promise(r => setTimeout(r, 600));
+      const sc = p.querySelector('#jl-talk-sc'); if (!sc) return { missing: 'the talk scroller' };
+      const ty = () => { const m = getComputedStyle(p, '::before').transform; const v = /matrix\(([^)]+)\)/.exec(m); return v ? Math.round(parseFloat(v[1].split(',')[5])) : 0; };
+      sc.scrollTop = 0; await new Promise(r => setTimeout(r, 150)); const at0 = ty();
+      sc.scrollTop = 120; await new Promise(r => setTimeout(r, 150)); const at120 = ty();
+      sc.scrollTop = 0; await new Promise(r => setTimeout(r, 150)); const back = ty();
+      try { jlTalkBack(); } catch (_){ }
+      return { at0, at120, back, room: sc.scrollHeight - sc.clientHeight }; });
+    ok('11 the watermark scrolls up with Jambo\'s talk and comes back down at the top', !!lift && lift.at0 === 0 && lift.at120 === -120 && lift.back === 0, JSON.stringify(lift));
     await go('playbook', () => !!document.querySelector('#ins-panel .jov5'));
     const tag = await page.evaluate(() => { const t = document.querySelector('#ins-panel .jov5 :is(.jov5-intro, .ld6-pb, .tpln6-pb) :is(.jov5-tag, .apn-st, .tpln6-badge, .reg-badge)'); return t ? getComputedStyle(t).boxShadow : 'no tag'; });
     ok('5b Playbook: a tag at the top of the panel wears the thin outline', !!tag && tag !== 'none' && tag !== 'no tag', tag);
