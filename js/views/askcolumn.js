@@ -1151,7 +1151,7 @@ function askColColumnHtml(askId){
      stand on the list, where it compares them; under More… while one does */
   const many = askColIdsUp().length > 1;
   const report = run ? `<button type="button" class="ac-link" data-ac-table>${_acE(_acT('ac_tt_open'))}</button>` : '';
-  const links = s.total ? `<div class="ac-col-links"><button type="button" class="ac-link" data-ac-draw="${_acE(askId)}" aria-pressed="${drawn ? 'true' : 'false'}">${_acE(_acT(drawn ? 'ac_chip_undraw' : 'ac_chip_draw'))}</button><button type="button" class="ac-link" data-ac-copy="${_acE(askId)}">${_acE(_acT('ac_chip_copy'))}</button>${keep}${many ? report : ''}<button type="button" class="ac-link" data-ac-more="${_acE(askId)}" aria-expanded="${AC.moreOpen === askId ? 'true' : 'false'}">${_acE(_acT('ac_col_more'))}</button></div>` : '';
+  const links = s.total ? `<div class="ac-col-links"><button type="button" class="ac-link" data-ac-draw="${_acE(askId)}" aria-pressed="${drawn ? 'true' : 'false'}">${_acE(_acT(drawn ? 'ac_chip_undraw' : 'ac_chip_draw'))}</button><button type="button" class="ac-link" data-ac-copy="${_acE(askId)}">${_acE(_acT('ac_chip_copy'))}</button><button type="button" class="ac-link" data-ac-xlsx="${_acE(askId)}">${_acE(_acT('dsn_xlsx'))}</button>${keep}${many ? report : ''}<button type="button" class="ac-link" data-ac-more="${_acE(askId)}" aria-expanded="${AC.moreOpen === askId ? 'true' : 'false'}">${_acE(_acT('ac_col_more'))}</button></div>` : '';
   const fact = !a.fact && askColIsAdmin() ? `<button type="button" class="ac-link" data-ac-fact="${_acE(askId)}">${_acE(_acT('ac_fact_keep'))}</button>` : '';
   const watch = askColWatchChipHtml(askId).replace(/class="jb-chip"/, 'class="ac-link"');
   const more = AC.moreOpen === askId ? `<div class="ac-col-more" role="menu">${fact}${watch}${many ? '' : report}<button type="button" class="ac-link" data-ac-reads="${_acE(askId)}">${_acE(_acT('ac_th_every_read'))}</button><button type="button" class="ac-link" data-ac-save="${_acE(askId)}">${_acE(_acT('ac_save_view'))}</button>${w || st ? `<button type="button" class="ac-link" data-ac-again="${_acE(askId)}"${may ? '' : ' disabled'}>${_acE(_acT('ac_again'))}</button>` : ''}<button type="button" class="ac-link is-danger" data-ac-remove="${_acE(askId)}">${_acE(_acT('ac_remove'))}</button></div>` : '';
@@ -1790,11 +1790,14 @@ function askColTableOpen(){
   const html = `<div id="ac-table-page" class="ac-tt">
     <div class="ac-tt-pacts">${risky ? `<button type="button" id="ac-tt-risk" class="ui-btn ui-btn-sm" aria-pressed="false">${_acE(_acTn('ac_tt_only_risk', risky))}</button>` : ''}
       <button type="button" id="ac-tt-copy" class="ui-btn ui-btn-sm">${_acE(_acT('ac_chip_copy'))}</button>
+      <button type="button" id="ac-tt-xlsx" class="ui-btn ui-btn-sm">${_acE(_acT('dsn_xlsx'))}</button>
       <button type="button" id="ac-tt-back" class="ui-btn ui-btn-sm" data-dlg-cancel>${_acE(_acT('ac_table_back'))}</button></div>
     <div id="ac-tt-body">${askColTableInner()}</div></div>`;
-  openModal(html, { page: { acts: ['ac-tt-risk', 'ac-tt-copy', 'ac-tt-back'], crumb: title }, label: title });
+  openModal(html, { page: { acts: ['ac-tt-risk', 'ac-tt-copy', 'ac-tt-xlsx', 'ac-tt-back'], crumb: title }, label: title });
   const cp = document.getElementById('ac-tt-copy');
   if (cp) cp.addEventListener('click', () => askColCopyMany(run.askIds));
+  const xl = document.getElementById('ac-tt-xlsx');
+  if (xl) xl.addEventListener('click', () => askColXlsx(run.askIds, undefined, run.name || ''));
   const rk = document.getElementById('ac-tt-risk');
   if (rk) rk.addEventListener('click', () => { AC.tableRisk = !AC.tableRisk; askColTablePaint(); });
   const back = document.getElementById('ac-tt-back');
@@ -2029,6 +2032,7 @@ if (typeof document !== 'undefined' && !document._acWired){
       if (ids.length && typeof regShowOnly === 'function') regShowOnly(ids, _acT('ac_risk_label', { name: q.name || '' })); return; }
     const dr = t.closest('[data-ac-draw]'); if (dr){ e.preventDefault(); const id = dr.getAttribute('data-ac-draw'); AC.drawn[id] = !AC.drawn[id]; askColPaintPanel(); return; }
     const cp = t.closest('[data-ac-copy]'); if (cp){ e.preventDefault(); askColCopy(cp.getAttribute('data-ac-copy')); return; }
+    const xl = t.closest('[data-ac-xlsx]'); if (xl){ e.preventDefault(); const k = xl.getAttribute('data-ac-xlsx'); askColXlsx([k], undefined, (AC.asks[k] || {}).name || ''); return; }
     const br = t.closest('[data-ac-bring]'); if (br){ e.preventDefault(); AC.form = null; askColBring(br.getAttribute('data-ac-bring')); return; }
     const bp = t.closest('[data-ac-bring-pack]'); if (bp){ e.preventDefault(); AC.form = null; askColBringMany(bp.getAttribute('data-ac-bring-pack').split(',')); return; }
     /* THE THREAD (28 Oct 2026): the choice in the sentence, the next batch from its link, every read on its page */
