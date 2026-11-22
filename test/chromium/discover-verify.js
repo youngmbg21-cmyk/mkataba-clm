@@ -57,7 +57,6 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++; console.log(`${ok ? 
 const until = async (page, fn, arg, ms = 8000) => { try { await page.waitForFunction(fn, arg, { timeout: ms }); return true; } catch (_) { return false; } };
 /* the column card's More… list, opened if it is shut (the column card, the Legora way, 29 Oct 2026) */
 let page = null;
-const openMore = async () => { if (page && !await page.$('#ig-dock .ac-col-more')){ const m = await page.$('#ig-dock [data-ac-more]'); if (m) await m.click(); await page.waitForTimeout(150); } };
 const CAP_Q = 'Is our liability capped, and at what?';
 
 async function signIn(page, base){
@@ -99,90 +98,10 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
     const k = await W.admin.json('/api/ai/column', { method: 'POST', body: { question: CAP_Q, name: 'Liability cap', ids: ['DV-11'] } });
     await W.admin.json('/api/columns/' + k.ask.id, { method: 'PUT', body: { rule: 'Capped at no more than one year of fees' } });
 
-    if (stage(2)){
-      /* 2a RE-POINTED 29 Oct 2026 (round 1 "The Legora way", owner's yes): the list's own box is a quiet filter and hands
-         nothing on; the form's door is "Ask a column" — opened, the question typed, nothing read */
-      const calls0 = h.ai.calls.length;
-      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the list's head carries no "Ask a column" (owner,
-         15 Nov 2026: no Discover button on Contracts); the form is the one the Reads and Discover doors open on Contracts
-         (rdOnContracts → askColOpen), drawn in Jambo's panel (askColFormDrawnHtml) */
-      await page.evaluate(() => askColOpen());
-      await until(page, () => !!document.querySelector('#ig-dock #ac-form #ac-q'));
-      await page.fill('#ig-dock #ac-form #ac-q', CAP_Q);
-      const filled = await until(page, () => { const q = document.querySelector('#ig-dock #ac-form #ac-q'); return !!q && /liability capped/.test(q.value) && !!document.querySelector('#ac-named, #ac-name'); });
-      check('2a Ask a column opens the form; the question typed there, nothing read', filled && h.ai.calls.length === calls0);
-      /* 2b the name, said */ /* RE-POINTED 28 Oct 2026 (round 2 of the review): the form has one box; the name is said under it, with Change */
-      /* RE-POINTED 16 Nov 2026 (#762): the drawn form gives the column's name its own box under the question, filled from it */
-      await until(page, () => /Liability capped/.test((document.querySelector('#ac-name') || {}).value || ''), null, 3000);
-      const hint = await page.evaluate(() => (document.querySelector('#ac-name') || {}).value || '');
-      check('2b the form says the column\'s name under the question, where it can be changed', hint === 'Liability capped', hint);
-      await page.click('[data-ac-ask]');
-      /* RE-POINTED 28 Oct 2026 (EACH ANSWER THE MOMENT IT IS READ): the cells fill while the desk still stands,
-         so the card is read once the read has ended */
-      const read = await until(page, () => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length >= 11 && !document.querySelector('[data-ac-stop]') && !!document.querySelector('#ig-dock [data-ac-col]'), null, 25000);
-      const col = await page.evaluate(() => ({
-        heads: [...document.querySelectorAll('.reg-table thead th')].map(th => th.textContent.trim()),
-        cells: Object.fromEntries([...document.querySelectorAll('td.ac-cell')].map(td => [td.getAttribute('data-ac-cid'), { t: td.innerText.replace(/\s+/g, ' ').trim(), red: !!td.querySelector('.ac-ans.tone-ruby'), green: !!td.querySelector('.ac-ans.tone-green') }]))
-      }));
-      check('2b′ the column is named from the question', read && col.heads.some(x => /Liability cap/.test(x)), JSON.stringify(col.heads));
-      const oneLine = ['DV-01', 'DV-03', 'DV-07'].every(id => col.cells[id] && !/“/.test(col.cells[id].t) && !/\n/.test(col.cells[id].t) && col.cells[id].t.length < 40);
-      /* RE-POINTED (owner picked "Lights", 26 Oct 2026): one line per cell —
-         the light and the short answer. The words it was read from are in the
-         panel's reading of the chosen row, checked at 2h. */
-      check('2c each cell is one line: a light and the answer, no quote fighting it', oneLine, JSON.stringify(col.cells['DV-01']));
-      check('2d the dot reads the rule first: the two outside it are red, the rest green',
-        col.cells['DV-04'].red && col.cells['DV-05'].red && col.cells['DV-01'].green && Object.values(col.cells).filter(c => c.red).length === 2,
-        JSON.stringify(Object.fromEntries(Object.entries(col.cells).map(([i, c]) => [i, c.red ? 'red' : c.green ? 'green' : '-']))));
-      /* RETIRED 17 Nov 2026 (#762, owner's ruling, round 3: the Contracts column colour key stays gone): 2e the list's foot
-         saying what each dot means (usual · a risk · not found) was drawn only in the old list's foot */
-      await page.screenshot({ path: path.join(OUT, '2-column.png') });
-      /* 2f show the ones at risk */
-      /* RE-POINTED 16 Nov 2026 (#762): a finished read lands on the column's short drawn card; its "‹ Overview" is the step
-         to the column card with Show · Draw it · Copy the table */
-      if (await page.$('#ig-dock [data-ac-colback]')) { await page.click('#ig-dock [data-ac-colback]').catch(() => {}); await until(page, () => !document.querySelector('#ig-dock [data-ac-colback]'), null, 4000); }
-      const card = await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-col]') || {}).innerText || '');
-      check('2f′ the card offers Show the 2 at risk · Draw it · Copy the table', /Show the 2 at risk/.test(card) && /Draw it/.test(card) && /Copy the table/.test(card), card.slice(0, 300));
-      const callsDraw = h.ai.calls.length;
-      await page.click('[data-ac-draw]');
-      /* RE-POINTED 29 Oct 2026 (the column card, the Legora way): Draw it draws one bar per answer, in its colour */
-      const bars = await until(page, () => document.querySelectorAll('#ig-dock .ac-draw .ac-bar').length === 2);
-      const drawn = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .ac-draw .ac-bar')].map(b => b.innerText.replace(/\s+/g, ' ').trim()));
-      check('2g Draw it draws the counts in the card (9 inside, 2 outside: DV-11 has its template paper from its template), no call spent', bars && drawn.some(t => /^Not capped 2$/.test(t)) && drawn.some(t => /^30 days 9$/.test(t)) && h.ai.calls.length === callsDraw, JSON.stringify(drawn));
-      await page.screenshot({ path: path.join(OUT, '2-drawn.png') });
-      await page.click('[data-ac-draw]');
-      check('2g′ pressed again, the drawing goes', await until(page, () => !document.querySelector('#ig-dock .ac-draw')));
-      await page.click('[data-ac-risk]');
-      const two = await until(page, () => document.querySelectorAll('#reg-tbody tr[data-row]').length === 2);
-      const rows = await page.evaluate(() => [...document.querySelectorAll('#reg-tbody tr[data-row]')].map(tr => tr.getAttribute('data-row')).sort());
-      check('2f Show the 2 at risk narrows the list to those two', two && rows.join() === 'DV-04,DV-05', JSON.stringify(rows));
-      /* 2h the why card says the rule */
-      await page.click('td.ac-cell[data-ac-cid="DV-04"] .ac-a');
-      await until(page, () => !!document.querySelector('#ig-dock .ac-why-card'));
-      const why = await page.evaluate(() => (document.querySelector('#ig-dock .ac-why-card') || {}).innerText || '');
-      check('2h the why card says the rule: outside, in the rule\'s own words', /Our rule/.test(why) && /Outside our rule: Capped at no more than one year of fees/.test(why), why.replace(/\s+/g, ' ').slice(0, 300));
-      await page.screenshot({ path: path.join(OUT, '2-why.png') });
-      await page.click('td.ac-cell[data-ac-cid="DV-04"] .ac-a');
-      await page.evaluate(() => { regState().only = null; regRepaint(); });
-    }
-
-    if (stage(3)){
-      /* no column up: the panel greets, Discover under it */
-      if (ONLY === '3'){ /* the column up, as stage 2 would have left it */
-        const k = await page.evaluate(q => api('ai/column', 'POST', { question: q, name: '', ids: state.contracts.map(c => c.id) }), CAP_Q);
-        await page.evaluate(id => { regState().ask = [id]; regRepaint(); return askColBring(id); }, k.ask.id);
-      }
-      /* ONLY WHAT YOU KEEP (the owner picked it, 26 Oct 2026): a question joins
-         the team's list by ONE press on its card; until then it is answered,
-         free to bring back, and out of the way behind the folded line. */
-      const keepable = await until(page, () => !!document.querySelector('#ig-dock [data-ac-keep]'));
-      await page.click('#ig-dock [data-ac-keep]');
-      const keptNow = await until(page, () => !document.querySelector('#ig-dock [data-ac-col] [data-ac-keep]'));
-      check('3a′ "Keep in Discover" puts the question on the team\'s list', keepable && keptNow);
-      /* RETIRED 16 Nov 2026 (#762): 3a, 3a″, 3a‴, 3a⁗, 3b–3f — "Discover beside the list" (#ac-disc, its kept questions,
-         packs and the whole-table page opened from it) is the old look's only: askColDiscoverHtml returns nothing in the new
-         look, which has its Discover page (dsnRender), pinned by discover-page-verify, read-table-verify,
-         reads-and-columns-as-drawn-verify and reads-new-look-fixes-verify */
-    }
+    /* RETIRED 22 Nov 2026 (owner, 22 Nov 2026: "There is not asking a column again only the features related to discovery"): stage 2 (2a–2h: Ask a column's form, the answer column on Contracts, its card's Draw it,
+       Show the N at risk and the why card) and stage 3 (3a′: "Keep in Discover" on the column's card). The form, the
+       column and the card are deleted; a question is asked, read, kept and shown on Discover (discover-page-verify,
+       reads-and-columns-as-drawn-verify 6) */
 
     if (stage(4)){
       await fresh(page);
@@ -190,18 +109,11 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       /* a column of the law question, up on the list (kept by asking it of the empty contract: free) */
       /* asked of every contract but DV-07, which is left to arrive in 4d */
       const lk = await page.evaluate(q => api('ai/column', 'POST', { question: q, name: 'Governing law', ids: state.contracts.map(c => c.id).filter(id => id !== 'DV-07') }), LAW);
-      await page.evaluate(id => { regState().ask = [id]; regState().only = null; regRepaint(); }, lk.ask.id);
-      await page.evaluate(id => askColBring(id), lk.ask.id);
-      /* RE-POINTED 29 Oct 2026 (the column card, the Legora way): Keep as a company fact and the watch stand under More… */
-      await until(page, () => !!document.querySelector('#ig-dock [data-ac-fact], #ig-dock [data-ac-more]'));
-      await openMore();
-      await until(page, () => !!document.querySelector('#ig-dock [data-ac-fact]'));
-      const chip = await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-fact]') || {}).textContent || '');
-      check('4a′ an admin\'s column card offers "Keep as a company fact"', /Keep as a company fact/.test(chip), chip);
-      await page.click('#ig-dock [data-ac-fact]');
-      const kept = await until(page, () => !document.querySelector('#ig-dock [data-ac-fact]'));
+      /* RE-POINTED 22 Nov 2026 (owner, 22 Nov 2026: "There is not asking a column again only the features related to discovery"): 4a′ ("Keep as a company fact" on the column's card) RETIRED with the card; the fact
+         is made as the card made it, by the server's own route */
+      await page.evaluate(id => api('columns/' + id, 'PUT', { fact: true }), lk.ask.id);
       const isFact = (await W.admin.json('/api/columns/summary')).asks.find(a => a.id === lk.ask.id).fact;
-      check('4a pressed, the question is a company fact', kept && isFact === true);
+      check('4a the question is a company fact', isFact === true);
       /* a second question, kept but not a fact: it belongs under "Add a fact",
          never in the table of facts (the owner's note 5) */
       const nk = await page.evaluate(() => api('ai/column', 'POST', { question: 'How much notice does each side need to end the contract early?', name: 'Notice to end', ids: ['DV-01'] }));
@@ -236,7 +148,7 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
         only.rows >= 2 && only.tog === only.rows && only.onSw === 'true' && only.offSw === 'false'
         && /Governing law/.test(only.txt) && /Notice to end/.test(only.txt)
         && /Read on arrival/.test(only.txt), JSON.stringify(only));
-      check('4b″ a new one is added through the one door, the Contracts list — no second way in',
+      check('4b″ a new one is added through the one door, Discover — no second way in',
         only.go === 1 && /Add a fact/.test(only.txt) && /kept in Discover/.test(only.txt), JSON.stringify(only));
       await page.screenshot({ path: path.join(OUT, '4-settings.png') });
       /* 4c a rule */
@@ -261,10 +173,8 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       check('4e its Key terms carry the company\'s facts, with where on the paper', kt && /Governing law/.test(kx) && /§ 9/.test(kx), kx.replace(/\s+/g, ' ').slice(0, 200));
       /* 4f a counting question is nobody's column: the list's box hands it to
          Jambo, and the server refuses it even when asked outright */
-      const took = await page.evaluate(() => askColTakes('contracts', 'How many contracts have 30 day payment terms?'));
-      const wording = await page.evaluate(() => askColTakes('contracts', 'How much notice does each side need to end the contract early?'));
-      check('4f the list\'s box: a counting question is not a column, a wording question is', took === false && wording === true, JSON.stringify({ took, wording }));
-      await page.evaluate(() => askColClose());   /* the wording question above OPENED the form: shut it behind us */
+      /* RETIRED 22 Nov 2026 (owner, 22 Nov 2026: "There is not asking a column again only the features related to discovery"): 4f (the Contracts list's box handing a wording question to Ask a column's form,
+         askColTakes) — the form is deleted; a counting question turned down on Discover is f1064 */
       const refused = await page.evaluate(() => api('ai/column', 'POST', { question: 'How many contracts have risks', ids: ['DV-01'] }).then(() => null, e => String(e && e.message)));
       const facts2 = await W.admin.json('/api/columns/summary?all=1');
       check('4g asked outright, the server turns it away, so it is never kept and can never be a fact',
@@ -282,19 +192,10 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
       await W.admin.json('/api/columns/' + k5.ask.id, { method: 'PUT', body: { fact: true, rule: 'Capped at no more than one year of fees' } });
       const ck = await page.evaluate(q => api('ai/column', 'POST', { question: q, name: 'Liability cap', ids: state.contracts.map(c => c.id).filter(id => id !== 'DV-05'),
         texts: { 'DV-11': contractPlainText(getContract('DV-11')) } }), Q5);
-      await page.evaluate(id => { regState().ask = [id]; regState().only = null; regRepaint(); return askColSummary(true).then(() => askColBring(id)); }, ck.ask.id);
-      await until(page, () => /are read/.test((document.querySelector('#ig-dock [data-ac-col]') || {}).innerText || ''), null, 10000);
-      await until(page, () => !!document.querySelector('#ig-dock [data-ac-watch], #ig-dock [data-ac-more]'), null, 10000);
-      await openMore();
-      await until(page, () => !!document.querySelector('#ig-dock [data-ac-watch]'), null, 10000);
-      const wc = await page.evaluate(() => (document.querySelector('#ig-dock [data-ac-watch]') || {}).textContent || '');
-      check('5a′ a company fact\'s card offers the watch', /Tell me when a new contract answers at risk/.test(wc),
-        wc || await page.evaluate(() => (document.querySelector('#ig-dock') || {}).innerText.replace(/\s+/g, ' ').slice(0, 400)));
-      await page.click('#ig-dock [data-ac-watch]');
-      const set = await until(page, () => !!document.querySelector('#ig-dock [data-ac-unwatch]'));
-      /* RE-POINTED 16 Nov 2026 (#762): the "watched" tag stood in Discover beside the list (#ac-disc), which the new look does
-         not draw (askColDiscoverHtml returns nothing); the watch itself is asked as before: set, and Unwatch offered */
-      check('5a pressed, the watch is set', set);
+      /* RE-POINTED 22 Nov 2026 (owner, 22 Nov 2026: "There is not asking a column again only the features related to discovery"): 5a′ (the watch offered on a company fact's column card) RETIRED with the card; the
+         watch is set as the card set it (watchCreate), and what it does when it fires is still checked (5b, 5c) */
+      const set = await page.evaluate(id => askColSummary(true).then(() => watchCreate({ kind: 'answer', params: { askId: id } })).then(() => true, () => false), ck.ask.id);
+      check('5a the watch is set', set);
       /* DV-05 arrives and answers outside the rule; the sweep runs */
       await page.evaluate(() => askColFactsArrive(getContract('DV-05')));
       for (let i = 0; i < 40; i++){ const f = await W.admin.json('/api/columns/facts/DV-05'); if (f.facts.some(x => x.answer)) break; await new Promise(r => setTimeout(r, 100)); }
@@ -345,47 +246,9 @@ async function fresh(page){ await page.evaluate(() => { try { if (document.query
     /* RETIRED 17 Nov 2026 (#762, owner's ruling 4): stage 9 (9a, 9b, 9b′) — the party's panel "Before the call" with its
        two-minute brief ([data-cu-brief]); the new look's Parties panel has no Before the call brief, and the owner ruled
        it stays gone */
-    /* ============ 11. STOP WHILE HE READS (the owner's note 1, 26 Oct 2026) ============ */
-    if (stage(11)){
-      await fresh(page);
-      /* every contract shown: an earlier stage may have narrowed the list, and
-         Stop can only be pressed where there is a batch still to come */
-      await page.evaluate(() => { regState().only = null; regState().ask = []; regState().page = 1; regRepaint(); });
-      await until(page, () => document.querySelectorAll('#reg-tbody tr[data-row]').length >= 11);
-      const shownN = await page.evaluate(() => document.querySelectorAll('#reg-tbody tr[data-row]').length);
-      h.ai.slow(500);                      /* so the read lasts long enough to stop */
-      const c0 = h.ai.calls.length;
-      /* a question nobody has asked yet: a kept answer costs no call, so a
-         cached question would be read before the check could press Stop */
-      await page.evaluate(() => askColOpen({ question: 'Does this agreement name a court or an arbitrator for disputes?', name: 'Disputes' }));
-      await until(page, () => !!document.querySelector('#ac-q'));
-      await page.click('#ig-dock [data-ac-ask]');
-      /* RE-POINTED 28 Oct 2026 (THE READING DESK): the foot line counts done · at risk so far · calls */
-      const counting = await until(page, () => /\d+ done/.test((document.querySelector('#ig-dock .ac-busy') || {}).innerText || ''), null, 20000);
-      const line = await page.evaluate(() => (document.querySelector('#ig-dock .ac-busy') || {}).innerText || '');
-      const bar = await page.evaluate(() => { const i = document.querySelector('#ig-dock .ac-prog>i'); return i ? i.style.width : ''; });
-      /* RE-POINTED 28 Oct 2026 (round 2 of the review): one box, the name said; the button says what it spends; the card a read leaves heads the column's card, with no bar */
-      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ check('11a while he reads, the line counts what has landed (no bar: the counts say how far), no cost', counting && line.includes(`Reading ${shownN} contracts`) && /\d+ done/.test(line) && !/\bJambo calls?\b|\b\d+ calls?\b|\bone call\b|\bfree\b|costs? nothing|\bcosts about\b/i.test(line) && bar === '', JSON.stringify({ line: line.replace(/\s+/g, ' '), bar, shownN }));
-      await page.screenshot({ path: path.join(OUT, '11-reading.png') });
-      await page.click('#ig-dock [data-ac-stop]');
-      /* RE-POINTED 29 Oct 2026 (the column card, the Legora way): the stop is said in the question's own card, whose one button carries on */
-      const stopped = await until(page, () => /You stopped at/.test((document.querySelector('#ig-dock .ac-col.is-open') || {}).innerText || ''), null, 20000);
-      const st = await page.evaluate(() => (document.querySelector('#ig-dock .ac-col.is-open') || {}).innerText || '');
-      const spent = h.ai.calls.length - c0;
-      const kept = await page.evaluate(() => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length);
-      /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */ check('11b Stop: it says what was read and kept, what was not, and offers the rest, no cost',
-        stopped && /You stopped at \d+ of \d+\. \d+ of \d+ are read, \d+ to go\./.test(st) && /Carry on · \d+ contracts?/.test(st) && !/\bJambo calls?\b|\b\d+ calls?\b|\bone call\b|\bfree\b|costs? nothing|\bcosts about\b/i.test(st), st.replace(/\s+/g, ' ').slice(0, 220));
-      /* RE-POINTED 28 Oct 2026 (STOP MEANS STOP): Stop ends the stream at once, so a batch can be cut midway; the
-         reads already with Jambo finish on the server and are kept, so what is shown is at most what was spent */
-      check('11c nothing already read is lost, and no more was read after the press', kept <= spent && spent < shownN, JSON.stringify({ kept, spent, shownN }));
-      await page.screenshot({ path: path.join(OUT, '11-stopped.png') });
-      h.ai.slow(0);
-      await page.click('#ig-dock [data-ac-carry]');
-      const done = await until(page, n => !AC.busy && !document.querySelector('#ig-dock #ac-stopped') && document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length >= n - 1, shownN, 30000);
-      const all = h.ai.calls.length - c0;
-      const cells = await page.evaluate(() => document.querySelectorAll('td.ac-cell .ac-ans:not(.is-wait)').length);
-      check('11d Carry on reads only the rest: every contract answered, each read once', done && all === cells, JSON.stringify({ calls: all, cells, shownN }));
-    }
+    /* RETIRED 22 Nov 2026 (owner, 22 Nov 2026: "There is not asking a column again only the features related to discovery"): stage 11 (11a–11d) — Stop and Carry on in Ask a column's reading card on Contracts. The
+       card is deleted; Stop and "Read the N left" on Discover's own screen are pinned by stop-and-reads-verify and
+       discover-page-verify 5 */
   } catch (e){ check('the run itself', false, String(e && e.stack || e)); }
   finally {
     check('no page errors', !errors.length, errors.slice(0, 3).join(' | '));

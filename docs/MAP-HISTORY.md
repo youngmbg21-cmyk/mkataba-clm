@@ -40006,8 +40006,19 @@ The owner asked what format Discover's Export gives (it copies a table to the cl
 ## SETTINGS & RULES — THE CONTROL ROOM — ONE ROW, ONE DOOR (22 Nov 2026)
 The owner, 22 Nov 2026, with a photo of Settings › Jambo: "The two jambo lessons links in the side panel are the same link." Under "Needs you" the row "5 waiting · Jambo's lessons" opened Jambo's lessons, and the group "Jambo's lessons" under it (the phrases people typed) opened the same. Now the group is drawn only where no needs-you row above already opens the lessons (on the landing, where the needs list stops early with "N more", the lessons may still show as their own group). Checked in a browser with five lessons waiting: the landing and all six areas, no door drawn twice in any panel. The phrases themselves show once the row is pressed.
 
+## AN AMENDMENT IS WRITTEN HERE (js/family.js) — DOSSIER L+S AND AMEND L+S (22 Nov 2026)
+
+The owner, over the design pages (Amend the L+S way · Where Amend lives · Contracts list families · Dossier the L+S way): "Build Dossier L+S and Amend L+S". Mid-build, over a photo of the first build: "it seems you are building a card. it should be a full page like the drawing attached. Listen to instructions" — the page then filled the paper's whole place, edge to edge, the zoom hidden, the new words shown as words (a press opens the clause), the effects of one clause both shown, two soft badges on the line.
+
+BUILT. Amend: one page with three tabs over the paper; chips Kind (kept as `c.amendKind`) · Takes effect (`amendFacts.effectiveDate`) · + Reason (the link's audit note); the changes table; the paper preview from `amendmentSkeletonBody`, a date not held a ruled line (a box once created, ownBlanks); the panel with waves (the owner: "You need to add the waves", reversing for this panel the 22 Nov "no waves beside an open contract"). The figures fault of 17 Nov fixed at its one reader (`amendBoxesAsWords`). Dossier: the family's one reading, its tag on the line, the Family card above the facts, Amend on the card of a signed agreement (Continue while one drafts), the facts with where they were read and Approve/Fill in in their rows; "amend" off the links on the new look's Dossier.
+
+NOT BUILT, SAID: "Move 'Pay invoice' to 45 days" (a change's days are shown, the obligation does not move — round 2, as the practical page said); the Admin fix kind skipping approval (needs the owner's yes); starting from the deal as already amended (round 2). The waves on the Amend panel are a reversal for that one panel only.
+
 ## ASK A COLUMN — THE EXCEL BUTTON UNDONE (22 Nov 2026)
 The owner: "What has been added to ask a column because ask a column was to be retired" — its door left the list head on 15 Nov and its check was retired on 21 Nov, so its panel paints nowhere. PR 905 had put "Download as Excel" under each column and on its results table, places no reader can reach, and a Handbook line describing them. Owner: "yes undo it and merge". Reverted; Discover's Download as Excel (PR 904) and the shared writer (`askColXlsx`, `xlBook`) stay. The test keeps the number f1153 (f1152 is "one row, one door").
+
+## DESIGN OPTIONS — EVERY NEW PAGE: L+S OFFERED, WAVES ON JAMBO'S PANEL (22 Nov 2026)
+The owner, 22 Nov 2026, on the first drawing of "Agree who does what, before you sign" (drawn only for the other side's Where we are, with The SAP way, The Legora way and Side by side): "I need an L+S version plus you have not added the waves. Add a rule that for all pages being added apart from the other sides page, the L+S should be an option plus the waves above the jambo panel are to be added as unless stated otherwise." And: "Where the deal stands should be for both the other side and for the owner side. What you built is for the other side so keep it as it is." The drawing was redone with a second side (ours: SAP, Legora, Stripe, Legora + Stripe; the waves over Jambo's panel), the other side's left as drawn. Claude's reading, not the owner's words: the same day's watermark rule keeps the waves off an open contract's panel; the new rule does not lift that by itself, so a new page beside an open contract is drawn with the waves and the owner is asked in the round whether that page is an exception.
 
 ## ASK A COLUMN (js/views/askcolumn.js) — THE LEFTOVERS DELETED, AND WHAT COULD NOT BE (22 Nov 2026)
 The owner: "delete ask a column's leftover code and merge". The work order said the panel, the form and the results table
@@ -40024,3 +40035,27 @@ card go), `askColRowTagsHtml`, and the uncalled `askColLastRead`, `askColInitial
 `askColTableFor`, `askColMoreChipsHtml`; the presses only those drew (data-ac-discover, data-ac-open, data-ac-open-new,
 data-ac-del, data-ac-disc-all, data-ac-pack); their CSS (.ac-btn, .ac-disc-*, .ac-tag); 20 keys × both books; Brain part
 'askcoldisc'. Engine, Discover, columns on Contracts, company facts, Unusual for you: untouched.
+
+## ASK A COLUMN (js/views/askcolumn.js) — ASK A COLUMN IS GONE; EVERY QUESTION IS ASKED IN DISCOVER (22 Nov 2026)
+The first deletion (PR 907) stopped short: Discover's read table "Ask again", a read's next batch and the narrow list's
+"+ Ask a column" still opened Ask a column's form on Contracts (measured at main: reads-and-columns-as-drawn-verify 2–5
+passed). The owner decided: "There is not asking a column again only the features related to discovery."
+REROUTED (js/views/reads.js): `readsAgain`, `readsNext` and `readsAskNew` all go through one helper, `rdNewRead(r)`, onto
+Discover's own New read: `dsnFill(r)` puts the read's question in the box (a pack: the pack chosen, as its chip does), every
+folder chosen; New read's button reads the first not yet read, so a "next batch" press lands on its remaining contracts.
+`_dsn.resumed` keeps the screen when the press comes from the old read table or the narrow list, and New read now draws at
+any width (`renderReadsDraw`: `wide || _dsn.screen === 'new'`). The narrow list's `#rd-ask` says `dsn_new` ("New read").
+"Bring the column onto the list" (`readsBring`) went; Show the N at risk stays (it loads with `askColLoad`, then
+`regShowOnly`). Jambo's "ask a column" words (JM_TASKS 'askcol') go to Discover (`to: { place: 'reads' }`).
+DELETED: the form, pack form, count turn, reading/stopped cards, the column card and its links, the results table pop-up
+(`askColTableOpen` and its painters), the question columns on Contracts (head, cell, legend, sort, widths, the ⋯ menu with
+Sort · Read the other N · Rename · Remove), `askColTakes`, `askColSync`, `askColBring`, `askColNext`, `askColOpen`,
+`acSizeSet`; 77 top-level declarations in askcolumn.js; register.js draws no 'ask:' key (`regCtAskKeys` gone; `R.ask` kept
+in state and saved views, never drawn), no Owner-aside, no column-card panel (`regLsPanelPick`); paperdesk no column panel;
+listhead hands nothing to the form; 156 CSS rules; ~160 keys × both books (`ac_desk_spent` stays: f975's retired-cost list
+needs it empty); Brain parts askcol, askcolcells; Handbook 5.5 now says Discover, 5.5.7 Watches says no door sets a new one.
+KEPT, the engine Discover runs on: AC, askColAskHere/askColReadRun, askColLoad(Many), askColSummary, askColReads,
+askColPlan, askColStop/CarryOn, askColTexts, askColTableOf/CopyMany/Xlsx and the xl* writer, askColClauseNo, askColNameOf,
+askColMay, askColDelete, keep, packs, company facts (Settings, Key terms, arrival), Unusual for you; server routes untouched.
+SAID TO THE OWNER: setting a NEW watch on a company fact had its only door on the deleted column card; watches already set
+still fire. "+ Add a fact" in Settings now opens Discover (it opened Contracts).

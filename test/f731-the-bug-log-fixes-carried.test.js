@@ -185,7 +185,10 @@ describe('f731 (8) a copy that leaves the live paper carries no scan mark', () =
     assert.match(strip(fnOf(R('js/adviserlink.js'), 'adviserClauses')), /docBody\(c,\{ marks:false \}\)/, 'an adviser\'s link');
     assert.match(strip(fnOf(R('js/views/intelligence.js'), 'contractPlainText')), /docBody\(c,\(opts&&opts\.marks\)\?undefined:\{ marks:false \}\)/, 'what Jambo is sent');
     assert.match(strip(fnOf(R('js/triage.js'), 'triageWordingHash')), /contractPlainText\(c, \{ marks: true \}\)/, 'the wording hash keeps the text its stamps were taken over');
-    assert.match(strip(fnOf(R('js/family.js'), 'amendParentHtml')), /docBody\(parent,\{ marks:false \}\)/, 'the amendment\'s parent');
+    /* RE-POINTED IN PLACE (Amend L+S, 22 Nov 2026): amendParentHtml reads the boxes as their words over the raw reading,
+       which is where the paper is drawn without marks */
+    assert.match(strip(fnOf(R('js/family.js'), 'amendParentHtml')), /amendBoxesAsWords\(_amendParentHtmlRaw\(parent\)\)/, 'the amendment\'s parent reads its boxes');
+    assert.match(strip(fnOf(R('js/family.js'), '_amendParentHtmlRaw')), /docBody\(parent,\{ marks:false \}\)/, 'the amendment\'s parent');
     assert.match(strip(fnOf(R('js/views/contract.js'), 'signCopySheetHtml')), /const body0=docBody\(c,\{ marks:false \}\);/, 'the signing copy, printed and signed');
     assert.match(strip(R('js/views/portal.js')), /holder\.innerHTML=docBody\(c,\{ marks:false \}\);/, 'the PDF\'s long sheet');
   });

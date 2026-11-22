@@ -134,7 +134,8 @@ describe('f705 (1) the map: thirty-one tasks, both languages, each on an existin
     assert.ok(T.some(x => x.k === 'jambopts' && x.jambo === true && x.to.st === 'you:points'));
     assert.ok(T.some(x => x.k === 'standards' && x.to.place === 'standards' && x.to.std === true));   // its own page since 17 Nov 2026
     assert.ok(T.some(x => x.k === 'brief' && x.to.place === 'brief'));
-    assert.ok(T.some(x => x.k === 'askcol' && x.to.reg && x.to.reg.askOpen === true));
+    /* RE-POINTED 22 Nov 2026 (owner: "There is not asking a column again only the features related to discovery"): Ask a column's words go to Discover */
+    assert.ok(T.some(x => x.k === 'askcol' && x.to.place === 'reads'));
   });
   test('1b every task has at least three ways of asking in each language, and each way has a word the map can read', () => {
     for (const t of T){
@@ -153,8 +154,8 @@ describe('f705 (1) the map: thirty-one tasks, both languages, each on an existin
       if (to.menu) assert.ok(menu.includes(to.menu), t.k + ' → menu ' + to.menu);
       if (to.door || to.menu) assert.ok(places.includes(to.home), t.k + ' asks which contract on ' + to.home);
       if (to.reg && to.reg.view) assert.match(REG, new RegExp(`k:'${to.reg.view}'`), t.k + ' → narrowed ' + to.reg.view);
-      /* Ask a column (20 Oct 2026): the list, its question opened by the column's own reader */
-      if (to.reg && to.reg.askOpen) assert.match(R('js/views/askcolumn.js'), /if \(R0\.askOpen\)\{ delete R0\.askOpen;[\s\S]{0,700}?if \(!AC\.form\) askColOpen\(\);/, t.k + ' → the question opens');
+      /* RE-POINTED 22 Nov 2026: Ask a column's opener (askColSync's askOpen) is deleted; no task may ask for it */
+      assert.ok(!(to.reg && to.reg.askOpen), t.k + ' → no task opens the deleted Ask a column form');
       if (to.st){
         const [kind, key] = to.st.split(':');
         if (kind === 'panel') assert.match(SET, new RegExp(`^  ${key}:\\{`, 'm'), t.k + ' → Settings panel ' + key);
