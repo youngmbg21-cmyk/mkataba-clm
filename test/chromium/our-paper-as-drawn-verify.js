@@ -203,7 +203,9 @@ async function SEED(){
     const B2 = salesChip ? await until(n => { const k = [...document.querySelectorAll('.tpln-lrs [data-tpl-pf]')].filter(b => !b.hidden); const set = document.querySelector('[data-tpl-sec="book"] .apn-tab.is-chip.is-shelf.is-on');
       return k.length && k.length < n && set && /^Sales\b/.test(set.textContent.trim()) && k.every(b => /Sales/.test(b.textContent)) ? k.length : null; }, B.rows.length) : 0;
     /* RE-POINTED 21 Nov 2026 (P-34, as drawn): on a shelf the chips are the shelves alone; the way back is "‹ Our paper" over the name */
-    await press('[data-tpl-sec="book"] [data-tpln-back]');
+    /* RE-POINTED 22 Nov 2026 (P-34 as drawn, PR 881): the page's head — "‹ Our paper" over the shelf's name — stands above
+       the book now, not inside its section, so the way back is pressed where it is drawn */
+    await press('[data-tpln-back]');
     await until(() => tplPlace().view === 'shelves');
     await press('[data-tpl-sec="book"] [data-tpln-view="list"]');
     const B3 = await until(n => [...document.querySelectorAll('.tpln-lrs [data-tpl-pf]')].filter(b => !b.hidden).length === n ? n : null, B.rows.length);
@@ -259,7 +261,11 @@ async function SEED(){
     /* RE-POINTED 26 Oct 2026 (owner: "we will have an overview tab side panel in each page followed by the jambo tab",
        answered "Yes, every page"; REVERSES the 25 Oct "this page does not need an overview page"): the template is
        named under the Overview tab, his greeting the Jambo tab's; still no name tab and no back button */
-    check('5a two tabs: the template under Overview, no greeting there, no name tab, no back button', !E0.solo && !E0.word && E0.home && !E.back
+    /* RE-POINTED 22 Nov 2026 (P-34, Our paper as drawn, PR 881): the panel draws no head row — the paper's own card (slot
+       "tpln") is the panel, so no Overview tab is drawn; the rest stands: no greeting on it, no name word, no back button */
+    E0.head = await page.evaluate(() => { const h = document.querySelector('#ins-panel .jl-head'), f = document.querySelector('#ins-panel .jov5[data-jov-slot="tpln"]');
+      return { drawn: !!h && h.getClientRects().length > 0, own: !!f && f.getClientRects().length > 0 }; });
+    check('5a the panel as drawn: the template\'s own card, no head row, no greeting there, no name tab, no back button', !E0.solo && !E0.word && !E0.home && !E0.head.drawn && E0.head.own && !E.back
       && !E0.landHello, JSON.stringify({ ...E0, b: E.back }));
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; JAMBO'S PANELS — THE FIVE PARTS): his words from the
        record are the panel's title, sub and tiles (made 5 · signed · 2 came back changed, the last a door) and the

@@ -51,6 +51,9 @@ const check = (name, pass, detail) => {
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + JSON.stringify(detail) : ''}`);
 };
 const pause = ms => new Promise(r => setTimeout(r, ms));
+/* RE-POINTED 22 Nov 2026 (P-34, Our paper as drawn, PR 881): the All list draws no "‹ Our paper" — All and Shelves are the
+   two chips in its bar, so the way back from All is the Shelves chip; a shelf's list and a paper keep their "‹" */
+const allBackToShelves = page => page.click('[data-tpl-sec="book"] .apn-bar [data-tpln-view="shelves"]');
 
 /* The seeded portfolio is stamped `seeded`, and builtinUsageRows excludes it
    on purpose — HaTi's own sample book is not this workspace's usage. So the
@@ -290,7 +293,7 @@ const BOX = sel => {
     check('4a · pressing All puts the list on screen and takes the shelves off',
       flipped.view === 'list' && !flipped.shelves && flipped.rows > 1, flipped);
     await page.screenshot({ path: path.join(OUT, '02-list.png'), fullPage: true });
-    await page.click('[data-tpln-back]');
+    await allBackToShelves(page);
     await pause(400);
     /* RE-POINTED 18 Nov 2026 (main: Folder Cards replace Cover flow): a folder is a card (.tpln5-fc), its count of papers
        said on it ("N papers · …"); pressing the card opens the folder's list */
@@ -321,7 +324,7 @@ const BOX = sel => {
     await pause(500);
     const cleared = await page.evaluate(() => [...document.querySelectorAll('[data-tpl-sec="book"] .tpln-lrs [data-tpl-pf]')].filter(r => !r.hidden).length);
     check('4d · and All really does widen it again', cleared > ((target && target.n) || 0) && cleared > 2, cleared);
-    await page.click('[data-tpln-back]');
+    await allBackToShelves(page);
     await pause(400);
 
     /* THE PROBE STAYS UP for the rest of the run: section 6 reads the same
@@ -591,7 +594,7 @@ const BOX = sel => {
     /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way) */ /* the list's chips: Shelves · All with their counts, "+ Shelf" a small menu of every shelf (the stream chips went) */
     const chips = await page.evaluate(() => ({ tabs: [...document.querySelectorAll('[data-tpl-sec="book"] .apn-bar .apn-tab.is-chip[data-tpln-view]')].map(g => g.textContent.trim()),
       shelves: document.querySelectorAll('[data-tpl-sec="book"] .apn-rule-menu [data-tpln-shelfchip]').length }));
-    await page.click('[data-tpln-back]');
+    await allBackToShelves(page);
     await pause(400);
     check('9b · every template on the shelves; the list\u2019s chips Shelves · All, every shelf under + Shelf',
       !!bk && bk.n >= 12 && chips.tabs.length === 2 && /^Shelves\b/.test(chips.tabs[0] || '') && /^All\b/.test(chips.tabs[1] || '') && chips.shelves >= 2, bk && { n: bk.n, chips });

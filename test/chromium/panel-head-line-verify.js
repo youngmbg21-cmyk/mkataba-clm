@@ -54,6 +54,11 @@ async function rowInk(P, clip){
            the panel), so there is no head line to measure there; every other page keeps its head and its line */
         if (!head && pg === 'register'){ const none = await P.evaluate(() => !!document.querySelector('#ig-dock .ctls') && ![...document.querySelectorAll('#ig-dock > .igd-head')].some(e => e.getBoundingClientRect().width > 0));
           check(none, `${w}×${hh} ${pg}: no panel head is drawn (as drawn), the summary is the panel`); continue; }
+        /* RE-POINTED 22 Nov 2026 (P-34, Our paper as drawn, PR 881): its panel draws no head row either (the page's own
+           card, slot "tpln", is the panel), so there is no head line to measure there and the page is skipped, saying so;
+           every page that draws a head keeps the line (f1107) */
+        if (!head && pg === 'templates'){ const none = await P.evaluate(() => !!document.querySelector('#ins-panel .jov5[data-jov-slot="tpln"]') && ![...document.querySelectorAll('#ins-panel .jl-head')].some(e => e.getBoundingClientRect().width > 0));
+          check(none, `${w}×${hh} ${pg}: no panel head is drawn (as drawn), so no head line to measure — the page's own card is the panel`); continue; }
         if (!head){ check(false, `${w}×${hh} ${pg}: a panel head is drawn`); continue; }
         await P.waitForTimeout(600);
         const r = await P.evaluate(() => { const e = [...document.querySelectorAll('.jl-head, #ig-dock > .igd-head')].find(x => x.getBoundingClientRect().width > 200); const b = e.getBoundingClientRect(); return { x: b.left, y: b.bottom - 1, w: b.width }; });
