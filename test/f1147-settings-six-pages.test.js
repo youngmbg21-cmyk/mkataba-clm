@@ -1,5 +1,5 @@
 'use strict';
-/* f1146 — THE SIX PAGES INSIDE SETTINGS, THE LEGORA + STRIPE WAY (owner's pick 22 Nov 2026)
+/* f1147 — THE SIX PAGES INSIDE SETTINGS, THE LEGORA + STRIPE WAY (owner's pick 22 Nov 2026)
    People · Who holds what · Roles · Contract streams · How our contracts look · Data & backup.
    (1) one switch stLsOn, six pages, admins on the Company face only; stPagePaint hands them over
    (2) one head builder for all six: the way back to the area, the title, the ask box, chips that hide a nought
@@ -25,7 +25,7 @@ const region = () => {
 };
 const fn = name => { const i = S.indexOf('function ' + name + '('); assert.ok(i >= 0, name + ' is there'); return S.slice(i, S.indexOf('\nfunction ', i + 10)); };
 
-test('f1146 (1) one switch, six pages, admins on the Company face; the page painter hands over', () => {
+test('f1147 (1) one switch, six pages, admins on the Company face; the page painter hands over', () => {
   assert.match(S, /const ST_LS_PAGES=\['team','sheet','roles','streams','look','data'\];/);
   const on = fn('stLsOn');
   assert.match(on, /!ST_LS_PAGES\.includes\(_stPage\)\) return false/);
@@ -36,7 +36,7 @@ test('f1146 (1) one switch, six pages, admins on the Company face; the page pain
     assert.match(S, new RegExp('Object\\.assign\\(window,\\{[^\\n]*\\b' + n + '\\b'), n + ' is published');
 });
 
-test('f1146 (2) one head for all six: way back, title, ask box, chips that hide a nought', () => {
+test('f1147 (2) one head for all six: way back, title, ask box, chips that hide a nought', () => {
   const h = fn('stLsHeadHtml');
   assert.match(h, /class="sdd-back st-ls-back" data-st-page="" data-sdd-to=/);
   assert.match(h, /filter\(c=>c&&\(c\.k==='all'\|\|c\.n\|\|c\.k===o\.chip\)\)/, 'a chip with nothing behind it is not listed, unless it is the one in front');
@@ -44,7 +44,7 @@ test('f1146 (2) one head for all six: way back, title, ask box, chips that hide 
   assert.match(D, /window\.stLsHeadHtml\(\{ page: 'look'/, 'the look page wears the same head');
 });
 
-test('f1146 (3) no button on a row; the review\'s acts are the panel\'s', () => {
+test('f1147 (3) no button on a row; the review\'s acts are the panel\'s', () => {
   for (const t of ['stLsTeamTableHtml', 'stLsSheetTableHtml', 'stLsRolesTableHtml', 'stLsSwTableHtml'])
     assert.doesNotMatch(fn(t), /<button/, t + ' draws no button');
   const p = fn('stLsSheetPanel');
@@ -54,13 +54,13 @@ test('f1146 (3) no button on a row; the review\'s acts are the panel\'s', () => 
   assert.match(fn('stLsSheetTableHtml'), /st-ls-ticks/);
 });
 
-test('f1146 (4) nothing here writes', () => {
+test('f1147 (4) nothing here writes', () => {
   const R = region();
   assert.doesNotMatch(R, /\bapi\(\s*['"`](?:PUT|POST|DELETE|PATCH)/i, 'no write to the server');
   assert.doesNotMatch(R, /\bsaveSettings\(|\bpersist\(|\bsaveState\(/, 'no local save');
 });
 
-test('f1146 (5) the old painters hand over while the new page stands', () => {
+test('f1147 (5) the old painters hand over while the new page stands', () => {
   assert.match(fn('stSwRepaint'), /^function stSwRepaint\(\)\{\s*if\(stLsOn\(\)&&document\.querySelector\('#set-page\.st-ls-page'\)\)\{ stLsRepaint\(\); return; \}/);
   assert.match(fn('stArRepaint'), /stLsOn\(\)&&document\.querySelector\('#set-page\.st-ls-page'\)\) stLsRepaint\(\); else renderTeam\(\)/);
   assert.match(fn('stJbFeedRepaint'), /stLsPanelPaint\(\); return;/);
@@ -69,7 +69,7 @@ test('f1146 (5) the old painters hand over while the new page stands', () => {
   assert.match(fn('stTrailPaint'), /getElementById\('st-ls-trbtn'\)/);
 });
 
-test('f1146 (6) How our contracts look keeps its editing', () => {
+test('f1147 (6) How our contracts look keeps its editing', () => {
   const i = D.indexOf('function clPageHtml()'), f = D.slice(i, D.indexOf('\nfunction clRepaint', i));
   const ls = f.slice(f.indexOf('window.stLsOn()'), f.indexOf('const acts = admin'));
   for (const part of ['clSheetHtml()', "clNotesHtml('l')", "clNotesHtml('r')", 'clPickHtml()', 'clOthersHtml()', 'clChipsHtml()', 'id="cl-save"', 'id="cl-say"'])
@@ -78,7 +78,7 @@ test('f1146 (6) How our contracts look keeps its editing', () => {
   assert.match(D, /Object\.assign\(window, \{[^\n]*clFacts, clModeGo/);
 });
 
-test('f1146 (7) every word in both books; the styles stay inside the page and the panel', () => {
+test('f1147 (7) every word in both books; the styles stay inside the page and the panel', () => {
   const R = region() + D;
   const keys = new Set([...R.matchAll(/i18tn?\('(st_ls_[a-z_]+|bz_page_sub_line)'/g)].map(m => m[1]));
   assert.ok(keys.size > 40, 'the words are read (' + keys.size + ')');
