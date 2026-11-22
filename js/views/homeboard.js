@@ -11623,6 +11623,8 @@ const HB_GALLERY = [
   { k: 'fc', recipe: { pic: 'forecast', measure: 'value' } }];
 const HB_GW_SHOW = ['status', 'folder', 'counterparty', 'owner', 'kind', 'side', 'payterms', 'valueBand', 'move', 'rounds', 'overdue', 'risks', 'standards', 'autorenew'];
 const HB_IN_WORDS = ['hb_in_l12', 'hb_in_l3', 'hb_in_ty', 'hb_in_tq', 'hb_in_n6'];
+let _hbAskPress = 'key';    // the last press: 'mouse' · 'touch' · 'pen' · 'key'
+function hbAskByFinger(){ return _hbAskPress === 'touch' || _hbAskPress === 'pen'; }
 let _hbPop = null;            // { mode, rows, on, moved, start }
 const _hbAskHist = []; let _hbHistAt = -1;
 /* THE BOX ON HOME'S DOCUMENT TOO (the one-page Home plan, stage 1): "/" there
@@ -11775,8 +11777,14 @@ function hbMyqRun(i){
 function hbMyqDel(i){ const s = hbS(); s.myq = (s.myq || []).filter((_, k) => k !== i); hbSave(); }
 if (typeof document !== 'undefined' && !document._hbAskWired){
   document._hbAskWired = true;
-  document.addEventListener('input', e => { const t = e.target; if (t && t.id === 'igd-input'){ _hbHistAt = -1; hbAskPopRead(t); } });
-  document.addEventListener('focusin', e => { const t = e.target; if (t && t.id === 'igd-input' && !String(t.value || '').trim()) hbAskPopRead(t); });
+  document.addEventListener('input', e => { const t = e.target; if (t && t.id === 'igd-input'){ _hbHistAt = -1; if (hbAskByFinger() && !String(t.value || '').trim()) hbAskPopClose(); else hbAskPopRead(t); } });
+  /* A FINGER'S TAP DOES NOT OPEN THE LIST (owner, 22 Nov 2026, on the iPad: "it starts then kicks me out" — only
+     on the Board): the empty box's ideas list rose over Jambo's panel in the moment the on-screen keyboard did, and the
+     iPad threw the cursor out. After a finger or a pen the list waits for typing ("/" still opens it); a mouse or a
+     key opens it as before */
+  document.addEventListener('pointerdown', e => { _hbAskPress = e.pointerType || 'mouse'; }, true);
+  document.addEventListener('keydown', () => { _hbAskPress = 'key'; }, true);
+  document.addEventListener('focusin', e => { const t = e.target; if (t && t.id === 'igd-input' && !String(t.value || '').trim() && !hbAskByFinger()) hbAskPopRead(t); });
   document.addEventListener('keydown', e => {
     const t = e.target; if (!t || t.id !== 'igd-input' || !hbAskBoxUp()) return;
     /* A10: what was asked is kept for ↑ (the box's own handler asks after this) */

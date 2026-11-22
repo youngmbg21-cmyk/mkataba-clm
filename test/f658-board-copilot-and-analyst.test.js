@@ -196,6 +196,16 @@ describe('f658 the analyst', () => {
     w.hbS().path = []; w.hbMyqRun(0);
     assert.deepEqual(Array.from(w.hbS().path), [key], 'run again: the view opens, read with today\'s dates');
   });
+  /* A FINGER'S TAP DOES NOT OPEN THE LIST (owner, 22 Nov 2026, iPad: "it starts then kicks me out", only on the Board):
+     the ideas list rose with the on-screen keyboard and the cursor was thrown out; after a finger it waits for typing */
+  test('A4b a finger\'s tap on the empty box opens no ideas list; a mouse still does; "/" still does', () => {
+    const w = world(); const HB = read('js/views/homeboard.js');
+    assert.match(HB, /document\.addEventListener\('focusin', e => \{ const t = e\.target; if \(t && t\.id === 'igd-input' && !String\(t\.value \|\| ''\)\.trim\(\) && !hbAskByFinger\(\)\) hbAskPopRead\(t\); \}\);/, 'focus opens the list only when not by finger');
+    assert.match(HB, /if \(hbAskByFinger\(\) && !String\(t\.value \|\| ''\)\.trim\(\)\) hbAskPopClose\(\); else hbAskPopRead\(t\);/, 'emptying the box by finger keeps it shut');
+    assert.match(HB, /function hbAskByFinger\(\)\{ return _hbAskPress === 'touch' \|\| _hbAskPress === 'pen'; \}/, 'a finger or a pen');
+    assert.match(HB, /document\.addEventListener\('pointerdown', e => \{ _hbAskPress = e\.pointerType \|\| 'mouse'; \}, true\);/, 'the last press is read at the press');
+    assert.equal(w.hbAskPopRows('/').mode, 'slash', '"/" still opens the list (typing is not a tap)');
+  });
   test('A5 what if these do not renew: a scenario, dashed, said so, never stored', () => {
     const w = world();
     const { key, D, P, cs } = card(w, { split: { by: 'folder' }, pic: 'bars' }, 'contracts ending in the next 6 months');
