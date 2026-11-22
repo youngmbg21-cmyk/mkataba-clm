@@ -1038,3 +1038,6 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 
 ## THE POP-UPS, THE SAP WAY (22 Nov 2026, an alert belongs to its page)
 - test/f1150-an-alert-belongs-to-its-page.test.js: leaves with the page, rides a move, button stays; names its contract; one limit once; a wait ends on its result; plain words for a dropped connection; amber's time; the silent refusals speak. Beside it: f209, f1023, f942, f242, f273, f472, f624.
+
+## ASK A COLUMN — Download as Excel (22 Nov 2026)
+- test/f1152-discover-download-as-excel.test.js: the CRC check value, the zip's parts each stored with its CRC right, the bold header and escaped cells, both Discover tables draw Download beside Export, Copy and Download read one table, the words in both books.

@@ -245,7 +245,7 @@ function rdScHeadHtml(r, S, sub){
   };
   return `<div class="rdsc-head"><div class="rdsc-top"><button type="button" class="ac-link rdt-back" data-rdt-back>${_rdE(_rdT('rd_sc_back'))}</button><h1 class="rdsc-nm" title="${_rdE(r.name)}">${_rdE(r.name)}</h1><span class="rdt-sp"></span>
       <label class="lh-ask rdt-ask rdsc-ask"><input type="search" id="rdt-q" autocomplete="off" spellcheck="false" placeholder="${_rdE(_rdTn('rd_tt_search', S.rows.length))}" value="${_rdE(t.q)}" aria-label="${_rdE(_rdTn('rd_tt_search', S.rows.length))}"></label>
-      <button type="button" class="ui-btn ui-btn-sm" data-rdt-copy>${_rdE(_rdT('ac_chip_copy'))}</button><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-rdt-again>${_rdE(_rdT('ac_again'))}</button></div>
+      <button type="button" class="ui-btn ui-btn-sm" data-rdt-copy>${_rdE(_rdT('ac_chip_copy'))}</button><button type="button" class="ui-btn ui-btn-sm" data-rdt-xlsx>${_rdE(_rdT('dsn_xlsx'))}</button><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-rdt-again>${_rdE(_rdT('ac_again'))}</button></div>
     <div class="rdsc-sub" title="${_rdE(sub)}">${_rdE(sub)}</div>
     <div class="rdsc-tiles" role="group" aria-label="${_rdE(_rdT('rd_filter'))}">${S.tabs.map(tile).join('')}</div></div>`;
 }
@@ -1597,7 +1597,7 @@ function dsnResultsHtml(r){
     .concat(S.G.map(g => `<button type="button" class="apn-tab is-chip${_dsn.tab === g.k ? ' is-on' : ''}" data-dsn-tab="${_rdE(g.k)}" aria-pressed="${_dsn.tab === g.k}" title="${_rdE(g.l)}"><i class="dsl-dot is-${_rdE(g.c || 'gray')}" aria-hidden="true"></i><b class="dsn-cl">${_rdE(g.l)}</b> <span>${g.n}</span></button>`)).join('') : '';
   const q = dsnRunQuestion(r), title = r.packId ? dsnRunName(r) : (q || dsnRunName(r));
   const head = `<div class="cun-head rdn-head dsn-rhead"><div class="dsn-rh-t"><button type="button" class="dsl-a dsn-back" data-dsn-back>${_rdE(_rdT('dsn_back'))}</button><h2 class="ctf-h" title="${_rdE(title)}">${_rdE(title)}</h2></div><span class="apn-sp"></span><span class="dsn-racts">
-      ${may ? `<button type="button" class="rfp-pill" data-dsn-again="${_rdE(r.id)}">${_rdE(_rdT('dsn_ask_another'))}</button>` : ''}<button type="button" class="rfp-pill" data-dsn-copy>${_rdE(_rdT('dsn_export'))}</button>${left && may ? `<button type="button" class="ui-btn ui-btn-primary" data-dsn-more="${_rdE(r.id)}">${_rdE(_rdT('dsn_read_left', { n: left }))}</button>` : ''}</span></div>
+      ${may ? `<button type="button" class="rfp-pill" data-dsn-again="${_rdE(r.id)}">${_rdE(_rdT('dsn_ask_another'))}</button>` : ''}<button type="button" class="rfp-pill" data-dsn-copy>${_rdE(_rdT('dsn_export'))}</button><button type="button" class="rfp-pill" data-dsn-xlsx>${_rdE(_rdT('dsn_xlsx'))}</button>${left && may ? `<button type="button" class="ui-btn ui-btn-primary" data-dsn-more="${_rdE(r.id)}">${_rdE(_rdT('dsn_read_left', { n: left }))}</button>` : ''}</span></div>
     ${dsnSteps(3)}<p class="dsn-sub">${_rdE([dsnRunWhere(r), S ? dsnSubjectWords(S.rows.map(x => x.c)) : '', _rdT('dsn_n_read', { n: r.n }), String(r.by || '').split(/\s+/)[0], dsnDay(r.last || r.at)].filter(Boolean).join(' · '))}</p>
     <div class="apn-bar dsn-bar">${chips}<span class="apn-sp"></span><label class="dsn-search">${typeof icon === 'function' ? icon('search', 'w-4 h-4') : ''}<input type="search" id="dsn-q" autocomplete="off" spellcheck="false" placeholder="${_rdE(_rdTn('dsn_search', r.askIds.length))}" aria-label="${_rdE(_rdTn('dsn_search', r.askIds.length))}" value="${_rdE(_dsn.q)}"></label></div>`;
   if (!S) return head + rdnWaitHtml(r.askIds, 'dsc-quiet dsc-pad');
@@ -1950,6 +1950,7 @@ if (typeof document !== 'undefined' && !document._dsnWired){ document._dsnWired 
       /* an answer pressed lands on its own place on the paper; the row elsewhere shows them all from the top */
       const q = t.closest('[data-dsn-q]'), f = q ? q.getAttribute('data-dsn-q') : null;
       if (_dsn.cid !== id || (_dsn.focusAsk || null) !== f){ _dsn.cid = id; _dsn.focusAsk = f; renderReads(); } return; }
+    if (t.closest('[data-dsn-xlsx]')){ stop(e); const r = dsnRun(_dsn.run), S = r && dsnResultsShown(r); if (S && typeof askColXlsx === 'function') askColXlsx(r.askIds, S.list.map(x => x.id), r.packId ? dsnRunName(r) : (dsnRunQuestion(r) || dsnRunName(r))); return; }
     if (t.closest('[data-dsn-copy]')){ stop(e); const r = dsnRun(_dsn.run), S = r && dsnResultsShown(r); if (S && typeof askColCopyMany === 'function') askColCopyMany(r.askIds, S.list.map(x => x.id)); return; }
     /* Delete question asks first (askColDelete's own confirm) and cannot be undone; the list of reads is read again after */
     if ((el = t.closest('[data-dsn-del]'))){ stop(e); const r = dsnRun(el.getAttribute('data-dsn-del'));
@@ -2102,6 +2103,7 @@ function readsWire(){
       const tr = rdFind(_rd.table.key);
       if ((el = t.closest('[data-rdt-back]'))){ readsTableBack(); return; }
       if ((el = t.closest('[data-rdt-tab]'))){ _rd.table.tab = el.getAttribute('data-rdt-tab'); rdKeep(); rdTablePaint(); return; }
+      if ((el = t.closest('[data-rdt-xlsx]')) && tr){ if (typeof askColXlsx === 'function') askColXlsx(tr.askIds, rdTableRows(tr).map(x => x.id), tr.name || ''); return; }
       if ((el = t.closest('[data-rdt-copy]')) && tr){ if (typeof askColCopyMany === 'function') askColCopyMany(tr.askIds, rdTableRows(tr).map(x => x.id)); return; }
       if ((el = t.closest('[data-rdt-again]')) && tr){ readsAgain(tr.key); return; }
       if ((el = t.closest('[data-rdt-go]')) && _rd.table.cid){ if (typeof AC !== 'undefined') AC.chosen = { askId: el.getAttribute('data-rdt-go'), cid: _rd.table.cid }; if (typeof askColGo === 'function') askColGo(); return; }
