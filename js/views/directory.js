@@ -882,7 +882,9 @@ function dirnInitials(p){ return nameInitials(p.name || p.email || '', '?'); }
 function dirnDay(iso){
   const s = String(iso || '').slice(0, 10), d = new Date(s + 'T00:00:00');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s) || isNaN(d.getTime())) return s;
-  const y = (typeof todayISO === 'function' ? String(todayISO()) : new Date().toISOString()).slice(0, 4);
+  const t = (typeof todayISO === 'function' ? String(todayISO()) : new Date().toISOString()).slice(0, 10), y = t.slice(0, 4);
+  /* today is said "today", as Approvals' timeline says it (apnShortDay): "Reminded Joseph · today" */
+  if (s === t) return i18t('home_today');
   return d.toLocaleDateString(_dLoc() || 'en-GB', s.slice(0, 4) === y ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
 }
 /* the signatures the record holds for this person (by email, else by name), newest last */
@@ -970,6 +972,10 @@ function dirnActsOf(p){
       (cachedShares(c) || []).forEach(sh => { if (sh && sh.firstOpenedAt && _dFold(sh.recipientEmail) === em) out.push({ c, at: day(sh.firstOpenedAt), k: 'dirn_tl_opened', tone: 'green' }); });
     }
   });
+  /* a hand reminder on a rule's step that names them (c.ruleReminds, written by the server): "Reminded <name> · today" */
+  if (p.side === 'ours' && nm) (p.contracts || []).forEach(id => { const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return;
+    (Array.isArray(c.ruleReminds) ? c.ruleReminds : []).forEach(rm => { if (rm && Array.isArray(rm.to) && rm.to.some(n => _dFold(n) === nm))
+      out.push({ c, at: day(rm.at), k: 'apn_tl_reminded', v: { who: String(p.name || '').split(/\s+/)[0] }, tone: 'green' }); }); });
   /* one line per act per agreement, its newest day */
   const best = new Map();
   out.filter(x => /^\d{4}-\d{2}-\d{2}$/.test(x.at)).forEach(x => { const k = x.k + '|' + x.c.id; const h = best.get(k); if (!h || x.at > h.at || (x.at === h.at && x.tone === 'amber')) best.set(k, x); });
@@ -1003,6 +1009,10 @@ function dirnWaitLineHtml(p, x){
   if (may && x.kind === 'approval' && typeof window.signApprovalRows === 'function'){
     try { const r = window.signApprovalRows(c).find(y => y && y.status === 'pending' && y.req); if (r) remind = `data-apn-act="remind" data-id="${E(c.id)}" data-req="${E(r.req.id)}"`; } catch (_){ remind = ''; }
   }
+  /* A RULE'S STEP THAT WAITS ON THEM (P-26 review, 22 Nov 2026; Approvals' own door, PR #871): Remind sends ONE email a
+     day through the room's one writer (ruleStepRemind → POST /api/contracts/:id/rule-remind; its refusals are the
+     server's), offered only to a reader who may act and is not an approver of that step */
+  if (!remind && may && x.kind === 'approval' && !p.you) remind = dirnRuleRemindAttr(p, c);
   if (may && x.kind === 'move' && p.email && typeof cachedShares === 'function'){
     const last = (cachedShares(c) || []).filter(s => s && !s.revokedAt).sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))[0];
     if (last && _dFold(last.recipientEmail) === _dFold(p.email)) remind = `data-dirn-remind="${E(c.id)}"`;
@@ -1016,6 +1026,20 @@ function dirnWaitLineHtml(p, x){
   return `<div class="dirn-w"><div class="dirn-w-top"><span class="cun-badge is-${DIRN_W_TONE[x.kind] || 'amber'}">${E(i18t(DIR_WAIT_KIND[x.kind] || 'ap_wl_kind_appr'))}</span>`
     + `<button type="button" class="dirn-w-t" data-dir-wait="${E(x.kind)}" data-dir-wait-id="${E(c.id)}" title="${E(i18t(DIR_WAIT_OPEN[x.kind] || 'jl_open_approval'))}">${E(i18t(DIRN_W_DO[x.kind] || 'dirn_w_approval', { name: c.name || c.id }))}</button>`
     + `${remind ? `<button type="button" class="dirn-lnk" ${remind}>${E(i18t('dirn_p_remind'))}</button>` : ''}</div><div class="dirn-w-s">${E(sub)}</div></div>`;
+}
+function dirnRuleRemindAttr(p, c){
+  try {
+    if (typeof window.ruleStepRemind !== 'function') return '';
+    const st = (typeof window.approvalState === 'function') ? window.approvalState(c) : null, nx = st && st.next;
+    if (!nx || nx.sa || !nx.ruleId || !nx.approver) return '';
+    const u = { id: p.id, name: p.name, email: p.email };
+    const theirs = (nx.approver.kind === 'member' && String(nx.approver.id) === String(p.id))
+      || (typeof asksOf === 'function' ? (asksOf(c) || []) : []).some(a => a && a.state === 'open' && a.kind === 'rule' && a.to && !a.to.role && typeof askSamePerson === 'function' && askSamePerson(a.to, u));
+    if (!theirs) return '';
+    const me = (typeof currentUser === 'function' && currentUser()) || null;
+    if (!me || (typeof userCanApprove === 'function' && userCanApprove(nx.approver, me))) return '';
+    return `data-dirn-ruleremind="${_dE(c.id)}" data-who="${_dE(String(p.name || '').split(/\s+/)[0])}"`;
+  } catch (_){ return ''; }
 }
 /* THE PANEL, AS DRAWN (P-26), through the one Overview builder: large initials (green ours, steel theirs), the name and
    under it the role badge and — for one of ours, where it is known — Away or Not away; Agreements and Waiting on them as
@@ -1034,7 +1058,7 @@ function dirnPanelFive(p, sub, w, away){
     html: `<button type="button" class="dirn-pq" data-dir-ct="${E(sq.c.id)}" title="${E(i18t('ins_door_doc'))}"><span class="dirn-pq-t">“${E(sq.text)}”</span><span class="dirn-pq-s">${E(i18t('dirn_p_named_s', { name: sq.c.name || sq.c.id }))}</span></button>` });
   const acts = dirnActsOf(p).slice(-5);
   groups.push({ key: 'tl', label: i18t('apn5_timeline'),
-    html: acts.length ? `<ol class="dirn-tl">${acts.map(x => `<li class="is-${E(x.tone)}"><i aria-hidden="true"></i><button type="button" data-dir-ct="${E(x.c.id)}">${E(i18t(x.k, { name: x.c.name || x.c.id }))}</button><span>· ${E(dirnDay(x.at))}</span></li>`).join('')}</ol>`
+    html: acts.length ? `<ol class="dirn-tl">${acts.map(x => `<li class="is-${E(x.tone)}"><i aria-hidden="true"></i><button type="button" data-dir-ct="${E(x.c.id)}">${E(i18t(x.k, Object.assign({ name: x.c.name || x.c.id }, x.v || {})))}</button><span>· ${E(dirnDay(x.at))}</span></li>`).join('')}</ol>`
       : `<p class="dirn-quiet">${E(i18t('dirn_tl_none'))}</p>` });
   let ph = null; try { ph = dirPhoneOf(p); } catch (_){ ph = null; }
   /* an outside person's party is a door onto that party (MAP: Party → cuSelectParty); EDIT CONTACT (owner, 19 Nov 2026):
@@ -1085,6 +1109,15 @@ if (typeof document !== 'undefined' && !document._dirnPanelWired){ document._dir
   document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('[data-dirn-remind]') : null; if (!b) return; e.preventDefault(); e.stopPropagation();
     const c = (typeof getContract === 'function') ? getContract(b.getAttribute('data-dirn-remind')) : null;
     if (c && typeof shareSendAgainRun === 'function') shareSendAgainRun(c, b); });
+  /* Remind on a rule's step: the room's one writer sends it and says what happened (a toast: sent, waiting in the outbox,
+     or the server's refusal); the panel is drawn again so its timeline says "Reminded <name> · today" */
+  document.addEventListener('click', async e => { const b = e.target && e.target.closest ? e.target.closest('[data-dirn-ruleremind]') : null; if (!b) return; e.preventDefault(); e.stopPropagation();
+    const c = (typeof getContract === 'function') ? getContract(b.getAttribute('data-dirn-ruleremind')) : null;
+    if (!c || typeof window.ruleStepRemind !== 'function' || b.disabled) return;
+    b.disabled = true;
+    try { await window.ruleStepRemind(c, b.getAttribute('data-who') || ''); } finally { b.disabled = false; }
+    const sel = (typeof insSelected === 'function') ? insSelected(DIR_SEAT) : null;
+    if (state.view === 'directory' && sel){ const q = dirBook().find(x => x.key === sel); if (q) dirPaintPanel(q, dirBook()); } });
 }
 /* P-26, PEOPLE THE LEGORA + STRIPE WAY, AS DRAWN: one calm table — Name (initials, green for our team, steel for the
    other side; the name; "you", a job title or their party under) · Role (a soft badge) · Does for you (one line, "…";

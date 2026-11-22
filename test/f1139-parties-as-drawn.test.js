@@ -147,3 +147,21 @@ test('f1139 (7) initials take letters only; the Ends next name ends in "…" ins
   assert.match(strip(fnBody(CU, 'cunRowHtml')), /<div class="cun-endof"><span title="\$\{esc\(next\.name\)\}">/);
   assert.match(CSS, /td\.cun-ends \.cun-endof > span\{display:-webkit-inline-box;max-width:100%;text-align:left;[^}]*-webkit-line-clamp:2/);
 });
+
+/* (8) PEOPLE'S REMIND ON A RULE'S STEP IS APPROVALS' OWN DOOR (P-26 review, 22 Nov 2026), red at the parent: the press
+   calls the room's one writer (ruleStepRemind → POST /api/contracts/:id/rule-remind), offered only to a reader who may act
+   and is not an approver of the step; the timeline reads the server's record (c.ruleReminds) */
+test('f1139 (8) People: Remind on a waiting rule approval goes through the one rule-remind door', () => {
+  const D = read('js/views/directory.js');
+  const at = strip(fnBody(D, 'dirnRuleRemindAttr'));
+  assert.match(at, /typeof window\.ruleStepRemind !== 'function'/);
+  assert.match(at, /userCanApprove\(nx\.approver, me\)\)\) return ''/, 'not offered to an approver of the step');
+  assert.match(at, /data-dirn-ruleremind=/);
+  const line = strip(fnBody(D, 'dirnWaitLineHtml'));
+  assert.match(line, /if \(!remind && may && x\.kind === 'approval' && !p\.you\) remind = dirnRuleRemindAttr\(p, c\);/);
+  assert.match(D, /closest\('\[data-dirn-ruleremind\]'\)[\s\S]{0,400}await window\.ruleStepRemind\(c, b\.getAttribute\('data-who'\) \|\| ''\)/);
+  assert.doesNotMatch(D, /rule-remind'/, 'no second route call: the one writer sends it');
+  assert.match(read('js/approvals.js'), /api\('contracts\/'\+encodeURIComponent\(c\.id\)\+'\/rule-remind','POST'/);
+  const acts = strip(fnBody(D, 'dirnActsOf'));
+  assert.match(acts, /c\.ruleReminds[\s\S]*k: 'apn_tl_reminded', v: \{ who:/);
+});

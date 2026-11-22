@@ -39764,3 +39764,7 @@ repaint — the Board always settled on the true book:
     so a redraw writing the same number keeps the count going and a new number stops it.
 Measured at the parent: 5 of 6 runs at 4× and 3 of 3 at 1× had frames where the figures' words differed from the book;
 after: 0 of 18 (six each at 1×, 4× and 6×). Looks the same: the count still climbs from 0, from the number's start edge.
+- People's Remind on a waiting rule approval (22 Nov 2026, after Approvals' PR #871 merged): one door — the room's writer
+  ruleStepRemind (POST /api/contracts/:id/rule-remind, once a day, its refusals the server's); offered by
+  dirnRuleRemindAttr only to a reader who may act and is not an approver of the step; the timeline reads c.ruleReminds
+  ("Reminded <name> · today"; dirnDay now says "today" as Approvals' apnShortDay does). f1139 (8).
