@@ -6218,6 +6218,17 @@ function hbGreetSince(iso){
    past their end date, value come under contract), then the one desk's own count (ndRead: late, the oldest, what
    Jambo prepared). A fact at nought is not said; a link presses the figure's own door (mv:<figure>) or opens Needs
    you on its tab (ndOpenBoard). */
+/* the contracts a set of Needs-you rows stand for (ndRead's rows: a piece, a row, a bundle, an alert), each once, only
+   contracts this reader holds */
+function hbRowsCids(L){
+  const out = new Set(), add = id => { if (id && typeof getContract === 'function' && getContract(id)) out.add(String(id)); };
+  (L || []).forEach(r => { if (!r) return;
+    if (r.it) add(r.it.cid || (r.it.c && r.it.c.id));
+    if (r.y && r.y.x && r.y.x.c) add(r.y.x.c.id);
+    if (r.al) add(r.al.id);
+    if (Array.isArray(r.bundle)) r.bundle.forEach(d => { if (d && d.x && d.x.c) add(d.x.c.id); }); });
+  return [...out];
+}
 function hbGreetSayHtml(moved, since){
   const cap = w => String(w || '').replace(/^./, c => c.toUpperCase());
   const link = (words, attr, tone) => `<button type="button" class="hb-gr-a${tone ? ' is-' + tone : ''}" ${attr}>${_hbE(words)}</button>`;
@@ -6233,10 +6244,15 @@ function hbGreetSayHtml(moved, since){
   }
   let D = null; try { D = (typeof window.ndRead === 'function') ? ndRead() : null; } catch (_){ D = null; }
   const late = D ? Number(D.late) || 0 : 0, jam = D && Array.isArray(D.jambo) ? D.jambo.length : 0;
+  /* THE HIGHLIGHTS ARE DOORS TO THEIR CONTRACTS (owner, 22 Nov 2026: "make those 2 highlights be doors to those
+     contracts"): "N things are late" and "I prepared N for you" open Contracts on just the contracts they count
+     (data-rd-show → regShowOnly, the door Read down's rows already use); a count no contract stands behind keeps the
+     old door, the Board's list */
+  const door = (L, label, fall) => { const ids = hbRowsCids(L); return ids.length ? `data-rd-show="${_hbE(ids.join(','))}" data-rd-label="${_hbE(label)}"` : fall; };
   const N = [];
-  if (late) N.push(link(cap(i18tn('cn2_s_late', late, { n: late })), 'data-hb-gr="all"', 'late')
+  if (late) N.push(link(cap(i18tn('cn2_s_late', late, { n: late })), door(D.jambo.concat(D.you).filter(r => r.late), cap(i18tn('cn2_s_late', late, { n: late })), 'data-hb-gr="all"'), 'late')
     + (D.oldest ? ', ' + _hbE(i18t('nd_oldest', { days: hbNyDays(D.oldest) })) : ''));
-  if (jam) N.push(link(N.length ? i18tn('cn2_s_jambo', jam, { n: jam }) : cap(i18tn('cn2_s_jambo', jam, { n: jam })), 'data-hb-gr="jambo"'));
+  if (jam) N.push(link(N.length ? i18tn('cn2_s_jambo', jam, { n: jam }) : cap(i18tn('cn2_s_jambo', jam, { n: jam })), door(D.jambo, cap(i18tn('cn2_s_jambo', jam, { n: jam })), 'data-hb-gr="jambo"')));
   const s1 = A.length ? _hbE(i18t('hb_gr_since', { day: hbGreetSince(since) })) + ' ' + and(A) + '.' : '';
   /* neither late nor prepared, yet things wait: the sentence says how many (the card's own count), never "nothing" */
   let you = 0; try { you = D && typeof window.ndOnBoard === 'function' ? ndOnBoard(D).n : 0; } catch (_){ you = 0; }
