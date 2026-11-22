@@ -24901,6 +24901,10 @@
   html.lg-new .ctls .ctls-tl small{font-size:12.5px;color:var(--color-neutral-400)}
   /* OUR PAPER, AS DRAWN (P-34): the side panel has no head row (no Overview tab), as the other rebuilt list pages */
   html.lg-new :is(#ins-panel,#mig-side):has(.jov5:is([data-jov-slot="tpln"],[data-jov-slot="ld"],[data-jov-slot="mign"])) .jl-head{display:none}
+  /* AN HONEST FILTER (owner, 22 Nov 2026): the list pages' top box only narrows its list, so it wears the magnifying glass,
+     quiet and drawn in line as Obligations' "Filter" box, never Jambo's green filled spark (his box at the panel's foot
+     asks). One closing rule, scoped above every page's own spark rule (the #ct-place one included), never !important */
+  html.lg-new :is(#ct-place, body) .apn-ask.is-filter svg, html.lg-new :is(#ct-place, body) .apn-ask.is-filter svg path{color:var(--color-quiet);fill:none;stroke:currentColor}
 </style>
 <style>
   /* ==== STANDARDS — THE LADDER (owner's pick, 17 Nov 2026; js/views/ladder.js) ====

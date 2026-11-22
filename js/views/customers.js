@@ -1784,8 +1784,8 @@ function cunCols(noWork){
 }
 /* PARTIES, THE LEGORA + STRIPE WAY (P-25, owner's pick 20 Nov 2026: "L+S and ring"; rebuilt to the drawing 21 Nov 2026):
    the title and + Add a party on one line (the count beside it goes: the chips say it); the ask box under it, Jambo's
-   mark and a question for its example (its words narrow the rows while they name a party; Enter asks Jambo, the panel's
-   own reader, jlAsk); chips All · Waiting on you (an amber dot) with their counts, + Stream and + Status, each a small
+   magnifying glass and "Filter this list" (an honest filter, owner 22 Nov 2026: its words narrow the rows; questions
+   are Jambo's, in his box at the panel's foot); chips All · Waiting on you (an amber dot) with their counts, + Stream and + Status, each a small
    menu of the values that have parties (a choice with none is not listed). All is one calm table; Waiting on you is a
    WORKLIST, one row per thing that waits — the party once, what waits (Jambo's finds with the paper's own words under
    it), its kind as a soft badge (red only when late), the agreement and its number, and its act at the row's end (the
@@ -1830,10 +1830,10 @@ function cunRender(host, INS, o){
   const waiting = all.filter(v => (v.needs || []).length);
   /* the Waiting chip counts the worklist's rows, so the number on the door is the list behind it */
   const waitN = waiting.reduce((n, v) => n + (v.needs || []).filter(x => x && x.it).length, 0);
-  /* ONE ASK BOX: its words narrow the rows while they name a party (or a city); a question that names none leaves the
-     rows standing, and Enter hands it to Jambo (cunAskGo) */
+  /* AN HONEST FILTER (owner, 22 Nov 2026): its words narrow the rows to the parties (or cities) they name, and say "no
+     match" where none does — never the whole list for words it could not place; questions are Jambo's, in his box */
   const hit = v => v.name.toLowerCase().includes(q) || cuCityMatch(v, cuKeyOf(q));
-  const narrow = !!q && all.some(hit);
+  const narrow = !!q;
   const list = (_cun === 'wait' ? waiting : all).filter(v => !narrow || hit(v))
     .sort((a, b) => b.items.length - a.items.length || a.name.localeCompare(b.name));
   const tabs = [['all', i18t('ctf_tab_all'), all.length], ['wait', i18t('cun_tab_wait'), waitN]].filter(t => t[2] || t[0] === 'all' || t[0] === _cun);
@@ -1863,7 +1863,7 @@ function cunRender(host, INS, o){
   <div class="view-enter sap-page ap-page is-ins apn-page cun-page" data-ins-page="customers" data-ins="${INS ? '1' : '0'}" data-cu-screen="list">
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_customers'))}</h2>${cunAddMay() ? `<span class="ctf-sp"></span><span class="apn-acts"><button type="button" class="ui-btn cun-add" data-cun-add>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${esc(i18t('cun_add_party'))}</button></span>` : ''}</div>
-      <label class="apn-ask cun-ask">${typeof icon === 'function' ? icon('mkSpark', 'cun-spark', 0) : ''}<input id="cun-q" type="search" autocomplete="off" placeholder="${esc(cunAskPh(waiting))}" value="${esc(q)}"></label>
+      <label class="apn-ask cun-ask is-filter">${typeof icon === 'function' ? icon('search', 'cun-spark') : ''}<input id="cun-q" type="search" autocomplete="off" placeholder="${esc(cunAskPh(waiting))}" aria-label="${esc(cunAskPh(waiting))}" value="${esc(q)}"></label>
       <div class="apn-bar" data-lh-seat="customers-nl">${chips}</div>
       <div class="cu-scroll">${table}</div>
     </section><aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div></div>`;
@@ -1888,23 +1888,9 @@ function cunRender(host, INS, o){
    a new agreement (openNewAgreement), where its name is the other side's; not drawn for a reader who may not create */
 function cunAddMay(){ return !(typeof canEdit === 'function' && !canEdit()) && typeof openNewAgreement === 'function'; }
 /* the ask box's example: a question, as drawn; on Waiting on you it names the party whose work is late first */
-function cunAskPh(waiting){
-  if (_cun !== 'wait') return i18t('cun_ask_ph');
-  const L = waiting || [];
-  const v = L.find(x => (x.needs || []).some(y => y && y.it && y.it.urgent)) || L[0];
-  return v ? i18t('cun_ask_ph_wait', { name: cuShortName(v.name) }) : i18t('cun_ask_ph_wait0');
-}
-/* Enter in the ask box: words that name a party have already narrowed the rows; a question is Jambo's — the panel's own
-   reader answers it there (jlAsk, a person's press) */
-function cunAskGo(box){
-  const t = String((box && box.value) || '').trim(); if (!t) return false;
-  const q = t.toLowerCase();
-  const names = (typeof cuCustomers === 'function' ? cuCustomers() : []).some(r => r.name.toLowerCase().includes(q) || cuCityMatch(r, cuKeyOf(q)));
-  if (names || typeof jlAsk !== 'function') return false;
-  const said = jlAsk(t, { typed: true });
-  if (said){ box.value = ''; state.cu = state.cu || {}; state.cu.q = ''; }
-  return !!said;
-}
+/* AN HONEST FILTER (owner, 22 Nov 2026): the box narrows the list and says only that; questions are Jambo's, in his box
+   (the old "Ask about a party" words stay inert in both books) */
+function cunAskPh(){ return i18t('lh_filter_ph'); }
 if (typeof document !== 'undefined' && !document._cunWired){ document._cunWired = true;
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
@@ -1920,7 +1906,6 @@ if (typeof document !== 'undefined' && !document._cunWired){ document._cunWired 
   }, true);
   /* the box is not redrawn under the caret: every letter moves the rows and leaves the box alone */
   document.addEventListener('input', e => { if (e.target && e.target.id === 'cun-q'){ state.cu = state.cu || {}; state.cu.q = e.target.value; renderCustomers({ rows: true }); } });
-  document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'cun-q' && !e.isComposing && cunAskGo(e.target)){ e.preventDefault(); renderCustomers({ rows: true }); } });
 }
 function renderCustomers(o){
   const host = document.getElementById('content'); if (!host) return;
@@ -2018,7 +2003,7 @@ function partyHistorySay(h){
   if (h.pushed) out.push(String(h.pushed));
   return out.join(' ');
 }
-Object.assign(window, { cunPanelHtml, cunPanelFiveHtml, cunPaperWords, cunWordsIn, cunPromiseQuote, cunGoWord, cunAskGo, cunAskPh, cunAddMay, cunPaperSay, cunTimelineHtml, cunWaitLower, cunRingSvg, cunTimelineRows, cunKindOf, cunWaitRowHtml, cunAgsOrdered, cunNdaFact, cunRowHtml, cunActOf, cunCounts, cunSplitOf, cunEndsNextOf, cunWaitSay, cunKeys, cunCityRead, partyWebOf, partyLookupMay, partyLookup, partyHistoryOf, partyHistorySay, cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNeedsHtml, CU_NEED_DOOR, CU_NEED_LINE, cuPanelAgreementsHtml, cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
+Object.assign(window, { cunPanelHtml, cunPanelFiveHtml, cunPaperWords, cunWordsIn, cunPromiseQuote, cunGoWord, cunAskPh, cunAddMay, cunPaperSay, cunTimelineHtml, cunWaitLower, cunRingSvg, cunTimelineRows, cunKindOf, cunWaitRowHtml, cunAgsOrdered, cunNdaFact, cunRowHtml, cunActOf, cunCounts, cunSplitOf, cunEndsNextOf, cunWaitSay, cunKeys, cunCityRead, partyWebOf, partyLookupMay, partyLookup, partyHistoryOf, partyHistorySay, cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNeedsHtml, CU_NEED_DOOR, CU_NEED_LINE, cuPanelAgreementsHtml, cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
   cuNdaMap, cuNdaOf, cuNdaWants, cuNdaShort, cuOpenNda,
   cuPlace, cuPlacePut, cuOpenCustomer, cuOpenExplorer, cuDraftFor, renderCustomers, cuRepaint,
   /* the one filter-box builder the band's clothes dress; My notes and Requests draw their boxes with it */

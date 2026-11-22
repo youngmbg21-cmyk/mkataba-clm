@@ -3097,7 +3097,7 @@ function tplnFilterLineHtml(rows, shelves){
   }
   const kOn = _tplPf.lk ? `<button type="button" class="apn-chip is-set" data-tpln-kind="">${_tplEsc(tplnKindName(_tplPf.lk))} <span aria-hidden="true">×</span></button>`
     : kinds.length && (v !== 'list' || !_tplPf.ls) ? menu('data-tpln-menu', i18t('tpln6_kind'), kinds.map(k => `<button type="button" data-tpln-kind="${_tplEsc(k)}">${_tplEsc(tplnKindName(k))}</button>`).join('')) : '';
-  return `<label class="apn-ask tpln6-ask">${typeof icon === 'function' ? icon('mkSpark', 'w-3.5 h-3.5') : ''}<input type="search" data-tpln-q value="${_tplEsc(_tplPf.lq)}" placeholder="${_tplEsc(i18t('tpln6_ask_ph'))}" aria-label="${_tplEsc(i18t('tpln6_ask_ph'))}" autocomplete="off"></label>
+  return `<label class="apn-ask tpln6-ask is-filter">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input type="search" data-tpln-q value="${_tplEsc(_tplPf.lq)}" placeholder="${_tplEsc(i18t('lh_filter_ph'))}" aria-label="${_tplEsc(i18t('lh_filter_ph'))}" autocomplete="off"></label>
     <div class="apn-bar tpln6-bar">${chips}${kOn}</div>`;
 }
 /* SHELVES: calm cards — a dot in the shelf's own colour, the name (never cut where it fits), "N papers · N drafted", at

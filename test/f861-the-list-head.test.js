@@ -596,11 +596,17 @@ describe('f861 (15) a box that asks: Contracts', () => {
     inp.dispatchEvent(new x.win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     assert.deepEqual(P.S.asked, []);
   });
-  test('Contracts\' head lets its box ask and brings no reader of its own (the one reader answers in the panel)', () => {
+  /* RE-POINTED 22 Nov 2026 (owner: "make them honest labels but jambo should have the ability to answer those questions";
+     reverses P-31's asking box of 21 Nov): Contracts' box is an honest filter — the list head's "Filter this list" and
+     magnifying glass, every word narrows, Enter hands nothing on; the landing's box alike. Questions are Jambo's, in his
+     box at the panel's foot. The asking machinery above stays, used by no page. */
+  test('Contracts\' head and landing boxes only filter: no asks, no spark, no Enter hand-off', () => {
     const REG = read('js/views/register.js').replace(/\/\*[\s\S]*?\*\//g, '');
     const spec = REG.slice(REG.indexOf('lhRegister(REG_CT_SEAT, {'), REG.indexOf('lcSeat:onList'));
-    assert.match(spec, /\basks:true\b/);
-    assert.doesNotMatch(spec, /\bask:/, 'no second door: lhAsk\'s own path (intelAsk beside the place) answers');
-    assert.match(fnBody(LH, 'lhAsk'), /here === 'home' && typeof intelAsk === 'function'/);
+    assert.doesNotMatch(spec, /\basks:true\b/, 'the box does not ask');
+    assert.doesNotMatch(spec, /mkSpark|ctls_ask_ph/, 'no spark, no "Ask about" words');
+    assert.doesNotMatch(REG, /e\.target\.id === 'ctf-q' \? e\.target : null; if \(!q \|\| e\.key !== 'Enter'/, 'the landing hands nothing on at Enter');
+    assert.doesNotMatch(REG, /lhIsQuestion\(q\.value\)\) return;/, 'the landing narrows on every word');
+    assert.match(REG, /<label class="apn-ask ctf-ask is-filter">[^\n]*icon\('search'[^\n]*placeholder="\$\{esc\(i18t\('lh_filter_ph'\)\)\}"/);
   });
 });

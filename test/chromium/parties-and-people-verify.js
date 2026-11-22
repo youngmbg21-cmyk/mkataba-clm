@@ -162,7 +162,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         && JSON.stringify(B.tabs.map(t => t.k)) === JSON.stringify(['all', 'wait']) && (B.tabs.find(t => t.on) || {}).k === 'all' && B.chips /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way): the tabs are chips */, JSON.stringify(B && B.tabs));
       /* RETIRED 17 Nov 2026 (#762): "a hairline under the title row" — the new look's head and list are ONE white sheet (old look only) */
       /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way): the box asks — "Ask about a party: …" */
-      check('1b the box says "Ask about a party: …"', !!B && /^Ask about a party: /.test(B.ph || ''), JSON.stringify(B && { ph: B.ph }));
+      /* RE-POINTED 22 Nov 2026 (owner: "make them honest labels"): the box is an honest filter — "Filter this list" */
+      check('1b the box says "Filter this list"', !!B && /^Filter this list$/.test(B.ph || ''), JSON.stringify(B && { ph: B.ph }));
       /* RETIRED 17 Nov 2026 (#762): "… on paper with live parties" and the head's "+ Draft new agreement" — round 6's head
          says only the count; drafting with a party is its own page's New agreement (4f) (old look only) */
       /* RE-POINTED (P-25, owner's pick 20 Nov 2026: Parties the Legora + Stripe way): the title alone — the count beside it went (the chips say it) */
@@ -340,7 +341,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
           foot: ((pg.querySelector('.apn-foot') || {}).textContent || '').trim() };
       });
       /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): the box asks — "Ask about people: …" */
-      check('6a one box to ask or filter in, "Ask about people: …", over the chips; no labelled band', !!D && D.box && !D.old && /^Ask about people: /.test(D.ph || ''), JSON.stringify(D && { box: D.box, old: D.old, ph: D.ph }));
+      /* RE-POINTED 22 Nov 2026 (owner: "make them honest labels"): the box is an honest filter — "Filter this list" */
+      check('6a one box to filter in, "Filter this list", over the chips; no labelled band', !!D && D.box && !D.old && /^Filter this list$/.test(D.ph || ''), JSON.stringify(D && { box: D.box, old: D.old, ph: D.ph }));
       check('6a2 the sides are the tabs: All · Yours · Outside, opening on All', !!D && JSON.stringify(D.tabs.slice(0, 3).map(t => t.w)) === JSON.stringify(['All', 'Yours', 'Outside']) && (D.tabs.find(t => t.on) || {}).k === 'all', JSON.stringify(D && D.tabs));
       const tn = k => ((D && D.tabs.find(t => t.k === k)) || {}).n;
       /* RE-POINTED (P-26, owner's pick 20 Nov 2026: People the Legora + Stripe way): the title alone (the count line beside it went: the chips say each number) */
