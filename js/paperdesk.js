@@ -7606,7 +7606,10 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     /* the Redlines switch's Changes (round of the remaining eight): back from Notes or the Ladder by their own
        presses — the one that stands is pressed again, as every opener in HaTi closes */
     if (t.closest('[data-rl-head-changes]')){ e.preventDefault(); const dk = document.getElementById('ig-dock'); if (!dk) return;
-      const on = dk.querySelector('[data-rl-notes-all][aria-pressed="true"]') || dk.querySelector('[data-rl-ladder][aria-expanded="true"]');
+      /* ONE OF THREE: Changes puts BOTH the notes and the Ladder away (it pressed only the first it found, so with both up
+         one stayed lit) */
+      if (typeof rlFaceLadderSet === 'function' && typeof rlFaceLadderOpen === 'function' && rlFaceLadderOpen()){ rlFaceLadderSet(null); try { pdRedRepaint(); } catch (_){} }
+      const on = dk.querySelector('[data-rl-notes-all][aria-pressed="true"]');
       if (on) on.click(); return; }
     /* their view's way back: the paper's own Redline press */
     if (t.closest('[data-rl-tv-back]')){ e.preventDefault(); const r = document.querySelector('[data-ig-red="1"]'); if (r) r.click(); return; }

@@ -4682,6 +4682,10 @@ function ceRenderFoot(){
   const label = (_ceSpellList.length && _ceSpellFor === ceSpellKey()) ? _cet('spl_save_as_written')
     : (_cePrep && _cePrep.inBox) ? _cet('ce_save_counter')
     : _ceLead ? _cet('ce_save_to', { id: _ceLead.id }) : _cet('ce_file_as_change');
+  /* FILE · NEXT › (the Dossier L+S, step 4, as drawn): on a walk with another clause after this one, the black button says
+     that filing moves on — ceSaveAndOn already files, then opens the next; the words now say so */
+  const wNext = (typeof w !== 'undefined' && w && w.k && w.k < w.n) ? w : null;
+  const labelNext = wNext && !(_ceSpellList.length && _ceSpellFor === ceSpellKey()) ? label + ' \u00b7 ' + _cet('ce_then_next') : label;
   /* ---- THE TWO BUTTONS ANSWER TWO DIFFERENT QUESTIONS ----
      DISCARD asks "has the wording moved from what STANDS in the contract" —
      that is what it puts back, so that is what it is live for.
@@ -4697,7 +4701,7 @@ function ceRenderFoot(){
      same two questions: Discard is live where the words differ from what
      STANDS; File where they also differ from what the record holds. */
   const anyToFile = ceCanFile(now);
-  [[save, label, anyToFile]].forEach(([b, word, on]) => {
+  [[save, labelNext, anyToFile]].forEach(([b, word, on]) => {
     if (!b) return;
     b.disabled = !(on && live);
     /* THE NOTE COMES AT SAVE, and the control says so (round four, item 7,

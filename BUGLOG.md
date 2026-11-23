@@ -22972,3 +22972,4 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - New CSS from #929/#932/#935/#941 (`.pd2-amk-*`, `.teach-*`, `.hbkn-walk`, `.lgp .amw-*`) is not under html.lg-new; `dutyWatchOf` checks role 'viewer' by hand instead of mayActOn.
 - The access check's area chip uses a typed "+" and "×" (copies My notes' chip).
 - `ca_go_draft_can_h` (both books) is left with no reader since New agreement's old panel was deleted (7982954e); `.tpl-rail:hover` still paints a grey row hover.
+- Fixed (23 Nov 2026, Dossier L+S step 4): the Redlines switch could light two buttons at once (Notes and Ladder); now one of three (f1197).

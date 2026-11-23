@@ -21826,6 +21826,9 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
       const faceRow = lad.closest('#pd-redface') ? lad.getAttribute('data-rl-ladder-ch') : null;
       if (faceRow){
         rlFaceLadderSet(rlFaceLadderOpen() === faceRow ? null : faceRow);
+        /* ONE OF THREE (the Dossier L+S, step 4; BUGLOG: "the Redlines switch can light two buttons"): the Ladder opening
+           puts the notes away, so Changes · Notes · Ladder never light two at once */
+        if (rlFaceLadderOpen() && typeof rlFaceNotesSet === 'function') rlFaceNotesSet(null);
         if (window.pdRedRepaint) window.pdRedRepaint();
         const open = rlFaceLadderOpen();
         if (open) requestAnimationFrame(() => {
@@ -22688,7 +22691,7 @@ function rlHeadNotesHtml(c, opts = {}){
   const n = rlNotesTotal(c, opts);
   /* PRESSED WHILE THE NOTES ARE OPEN IN THE COLUMN (round 9's gaps, second
      pass): the same press shuts them, as every opener in HaTi does */
-  const on = rlFaceNotesOn(c, opts);
+  const on = rlFaceNotesOn(c, opts) && !(opts.dealDoor && rlFaceLadderOpen());
   return `<button type="button" class="rl-head-notes${on ? ' is-on' : ''}" data-rl-notes-all="${_nea(c.id)}" aria-pressed="${on ? 'true' : 'false'}" title="${_nea(i18t(on ? 'ng_fn_notes_on' : 'ng_chat_title'))}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true" focusable="false"><use href="#i-chat"/></svg><span>${_ne(i18t('ig_line_notes'))}</span>${n ? `<b>${n}</b>` : ''}</button>`;
 }
 /* THE LADDER AT THE HEAD (new look): drawn only where the host asks (Jambo's face, opts.dealDoor), our seat only,
@@ -22893,6 +22896,8 @@ if (typeof document !== 'undefined') document.addEventListener('click', e => {
     e.preventDefault();
     const id = nb.getAttribute('data-rl-notes-all');
     rlFaceNotesSet(_rlFnFor === String(id) ? null : id);
+    /* ONE OF THREE: the notes opening fold the Ladder away (and the face is drawn again for it) */
+    if (_rlFnFor && rlFaceLadderOpen()){ rlFaceLadderSet(null); if (window.pdRedRepaint) window.pdRedRepaint(); }
     rlHeadRepaint();
     return;
   }
