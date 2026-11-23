@@ -15907,26 +15907,53 @@ function docThreadStep(d){
   if (next == null || next === _docThreadOn) return false;
   docThreadGoTo(c, next); return true;
 }
+/* ONE CLAUSE AT A TIME, A PAGE (Round C, as drawn — the drawing's clause page): the open clause alone fills the list,
+   its name large; above it ‹ Dossier · k of n · "Scroll or press ›" · ‹ ›; under it "Keep scrolling for <next>" and
+   Next ›. "All N clauses" turns back to the whole list (and back). Only the look and the stepping: the open clause's own
+   reading, doors and marks are the list's (docThreadFill), nothing redrawn of its own. */
+let _thPage = true;
 function docThreadNavSync(){
   const card = thEl('card'); if (!card) return;
   let nav = card.querySelector('.doc-th-nav');
-  if (!docThreadNavOn()){ if (nav) nav.remove(); return; }
+  card.classList.toggle('is-page', !!(_thPage && docThreadNavOn()));
+  let foot = card.querySelector('.doc-th-nx');
+  if (!docThreadNavOn()){ if (nav) nav.remove(); if (foot) foot.remove(); return; }
   const rows = (_docThreadCache && _docThreadCache.rows) || [], shown = docThreadVisible(rows);
   if (shown.length < 2){ if (nav) nav.remove(); return; }
   const k = shown.indexOf(_docThreadOn) + 1;
   if (!nav){ nav = document.createElement('div'); nav.className = 'doc-th-nav'; const list = card.querySelector('.doc-th-rows'); if (!list) return; card.insertBefore(nav, list); }
-  nav.innerHTML = `<button type="button" class="doc-th-step" data-th-step="-1" aria-label="${esc(i18t('th_step_prev'))}"${k <= 1 ? ' disabled' : ''}>\u2039</button><span class="doc-th-k">${esc(i18t('th_step_of', { k: Math.max(1, k), n: shown.length }))}</span><button type="button" class="doc-th-step" data-th-step="1" aria-label="${esc(i18t('th_step_next'))}"${k >= shown.length ? ' disabled' : ''}>\u203a</button>`;
+  nav.innerHTML = `<button type="button" class="doc-th-back" data-pd-tab="copilot">\u2039 ${esc(i18t('pd_tab_dossier'))}</button><button type="button" class="doc-th-step" data-th-nav-step="-1" aria-label="${esc(i18t('th_step_prev'))}"${k <= 1 ? ' disabled' : ''}>\u2039</button><span class="doc-th-k">${esc(i18t('th_step_of', { k: Math.max(1, k), n: shown.length }))}</span><button type="button" class="doc-th-step" data-th-nav-step="1" aria-label="${esc(i18t('th_step_next'))}"${k >= shown.length ? ' disabled' : ''}>\u203a</button><span class="doc-th-hint">${esc(i18t('th_page_hint'))}</span><button type="button" class="doc-th-all" data-th-page-toggle>${esc(_thPage ? i18tn('th_page_all', shown.length, { n: shown.length }) : i18t('th_page_single'))}</button>`;
+  /* the drawn clause page's line under the name: one soft badge per kind of open point (the Dossier's four), and the words
+     the first point rests on, quoted — read off the Clauses tab's own points (stkLivePoints), nothing new */
+  card.querySelectorAll('.doc-th-pg').forEach(x => x.remove());
+  if (_thPage){ const row = card.querySelector(`.doc-th-rows [data-th-row="${_docThreadOn}"]`), go = row && row.querySelector('.doc-th-head');
+    let pts = []; try { pts = (typeof window.stkLivePoints === 'function') ? (window.stkLivePoints(thLiveContract()) || []).filter(p => p && !p.done && !p.blank && p.at === _docThreadOn) : []; } catch (_){ pts = []; }
+    if (go && pts.length){ const kinds = [...new Set(pts.map(p => typeof window.pd2PointKind === 'function' ? window.pd2PointKind(p) : p.status))];
+      const word = k => k === 'pb' ? i18t('pd2_fd_k_pb') : k === 'plan' ? i18t('pd2_fd_k_plan') : i18t('bd_st_' + k);
+      const q = (pts.find(p => p.quote) || {}).quote || '';
+      const el = document.createElement('div'); el.className = 'doc-th-pg';
+      el.innerHTML = `<span class="doc-th-pg-b">${kinds.map(k => `<span class="pd2-badge k-${esc(k)}"><i aria-hidden="true"></i>${esc(word(k))}</span>`).join('')}</span>${q ? `<q class="doc-th-pg-q">${esc(String(q).replace(/\s+/g, ' ').trim().slice(0, 160))}</q>` : ''}`;
+      go.insertAdjacentElement('afterend', el); } }
+  const nextAt = shown[shown.indexOf(_docThreadOn) + 1];
+  if (_thPage){ if (!foot){ foot = document.createElement('div'); foot.className = 'doc-th-nx'; card.appendChild(foot); }
+    const nm = nextAt != null && rows[nextAt] && typeof docXrayLabel === 'function' ? docXrayLabel(rows[nextAt]) : '';
+    foot.innerHTML = `<i aria-hidden="true"></i><span>${esc(nm ? i18t('th_page_next', { what: nm }) : i18t('th_page_last'))}</span>${nm ? `<button type="button" class="ui-btn doc-th-nx-go" data-th-nav-step="1">${esc(i18t('th_page_next_go'))}</button>` : ''}`; }
+  else if (foot) foot.remove();
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._thStepWired){ document._thStepWired = true;
-  document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('#pd-thread [data-th-step]') : null; if (!b || b.disabled) return;
-    e.preventDefault(); docThreadStep(Number(b.getAttribute('data-th-step')) || 1); });
+  document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('#pd-thread [data-th-page-toggle]') : null; if (!b) return;
+    e.preventDefault(); _thPage = !_thPage; docThreadNavSync(); });
+  /* the head's own arrows only (a row's own ‹ › keep their own handler): one press, one step */
+  document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('#pd-thread [data-th-nav-step]') : null; if (!b || b.disabled) return;
+    e.preventDefault(); docThreadStep(Number(b.getAttribute('data-th-nav-step')) || 1); });
   document.addEventListener('wheel', e => {
-    const list = e.target && e.target.closest ? e.target.closest('#pd-thread .doc-th-rows') : null;
+    const inCard = e.target && e.target.closest ? e.target.closest('#pd-thread') : null;
+    const list = e.target && e.target.closest ? (e.target.closest('#pd-thread .doc-th-rows') || (inCard && _thPage ? inCard.querySelector('.doc-th-rows') : null)) : null;
     if (!list || !docThreadNavOn() || e.ctrlKey) return;
     const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? list.clientHeight : 1); if (!dy) return;
     /* a clause taller than the list is read first: the wheel scrolls it until its edge is in view */
     const open = list.querySelector(`[data-th-row="${_docThreadOn}"]`);
-    if (open && open.offsetHeight > list.clientHeight - 8){
+    if (open && list.scrollHeight > list.clientHeight + 4 && open.offsetHeight > list.clientHeight - 8){
       const lr = list.getBoundingClientRect(), r = open.getBoundingClientRect();
       if ((dy > 0 && r.bottom > lr.bottom + 2) || (dy < 0 && r.top < lr.top - 2)) return;
     }

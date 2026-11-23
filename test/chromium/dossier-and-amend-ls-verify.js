@@ -88,9 +88,9 @@ const until = async (page, fn, arg, ms = 8000) => { try { await page.waitForFunc
     } else check('1i a paper not read yet is in the seeded book', false, 'none found');
     /* 1l THE CLAUSES TAB STEPS ONE CLAUSE (the Dossier L+S, step 3; f1196): › under the list's head opens the next clause */
     await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-pd-tab="doc"]'); if (b) b.click(); });
-    const navOk = await until(page, () => !!document.querySelector('#pd-thread .doc-th-nav [data-th-step="1"]'));
+    const navOk = await until(page, () => !!document.querySelector('#pd-thread .doc-th-nav [data-th-nav-step="1"]'));
     const k0 = await page.evaluate(() => (document.querySelector('#pd-thread .doc-th-k') || {}).textContent || '');
-    if (navOk) await page.evaluate(() => { const b = document.querySelector('#pd-thread [data-th-step="1"]'); if (b && !b.disabled) b.click(); });
+    if (navOk) await page.evaluate(() => { const b = document.querySelector('#pd-thread [data-th-nav-step="1"]'); if (b && !b.disabled) b.click(); });
     const moved = navOk && await until(page, k => ((document.querySelector('#pd-thread .doc-th-k') || {}).textContent || '') !== k, k0, 4000);
     check('1l the Clauses tab says which clause of how many, and › opens the next', navOk && moved, k0);
 
