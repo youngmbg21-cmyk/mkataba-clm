@@ -1882,6 +1882,16 @@ function naSheetFive(){
     /* AS DRAWN: "Start from nothing" and the start's own sentence; the other side's paper says its own name */
     title=st?(k==='cp'?st:i18t('na6_t_start',{ what:st.charAt(0).toLowerCase()+st.slice(1) })):i18t('na6_t_scratch');
     sub=k==='scratch'?i18t('na6_s_start_scratch'):((N.desc&&N.desc())||i18t('na6_s_scratch')); }
+  /* A NEW TEMPLATE'S PANEL SAYS THE WHOLE JOURNEY (owner: "Build as drawn", 23 Nov 2026): on Create a template, no
+     "Needed before Create / After Create" (that is a contract's road) but "How it goes" as one timeline — choose how it
+     starts, describe it, write it in the Builder, publish to Our paper — the stop you stand at lit */
+  if(N){ const say=typeof window.nsSayUp==='function'&&window.nsSayUp();
+    const stops=say?[[i18t('na6_j_describe1'),true],[i18t('na6_j_keep')],[i18t('na6_j_write')],[i18t('na6_j_publish')],[i18t('na6_j_draft')]]
+      :[[i18t('na6_j_choose'),true],[i18t('na6_j_describe')],[i18t('na6_j_write')],[i18t('na6_j_publish')]];
+    const st=N.start(); const ok=!!st&&!say;
+    return { before:ok?`<div class="na6-pb"><span class="na6-badge is-green">${E('\u2713 '+i18t('na6_ready'))}</span></div>`:'',
+      title:say?i18t('na6_t_scratch'):title, sub:say?i18t('na6_s_say'):sub,
+      groups:[{ key:'how', label:i18t('na6_how_h'), html:`<ol class="na6-tl">${stops.map(([t,now])=>`<li${now?' class="is-now"':''}><i aria-hidden="true"></i><span>${now?`<b>${E(t)}</b> <small>\u00b7 ${E(i18t('na6_j_here'))}</small>`:E(t)}</span></li>`).join('')}</ol>` }] }; }
   const done=need.filter(x=>x.done).length, all=need.length, ready=done===all&&all>0;
   /* THE SAME WORDS AND THE SAME TIMELINE ON EVERY TAB, From scratch too, as drawn (RE-POINTED 22 Nov 2026, batch 7 review):
      "Ready to create", "Needed before Create", "After Create" with its three stops */
