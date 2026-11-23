@@ -8425,7 +8425,8 @@ function pd2Facts(c, D){
     let blanks = []; try { blanks = (typeof contractBlanks === 'function') ? contractBlanks(c) : []; } catch (_){ blanks = []; }
     const may = (typeof window.mayActOn !== 'function') || window.mayActOn(c);
     const sealed = pd2Sealed(c);
-    blanks.filter(b => b && !String(b.value || '').trim()).slice(0, 3).forEach(b => out.push(sealed
+    /* SAID ONCE (Round B): an unsigned paper's blanks are the Details section's (pd2DetailsHtml), not the facts' */
+    blanks.filter(b => b && !String(b.value || '').trim() && sealed).slice(0, 3).forEach(b => out.push(sealed
       ? { k: 'blank', l: String(b.label || b.key), v: `<span class="pd2-badge"><i aria-hidden="true"></i>${E(_pdT('pd2_f_blank_signed'))}</span>`, s: '' }
       : { k: 'blank', l: String(b.label || b.key), v: `<span class="pd2-badge is-amber"><i aria-hidden="true"></i>${E(_pdT('pd2_f_blank'))}</span>`, s: '',
         owed: true, go: may ? `data-pd-fill-key="${E(b.key)}"` : '', word: _pdT('pd2_fill') }));
@@ -8535,7 +8536,7 @@ function pd2Html(c){
      "Change" link, never a small grey word that is secretly a button */
   const nl = typeof window.newLookOn === 'function' && newLookOn();
   const facts = pd2Facts(c, D).map(f => nl ? pd2FactRowLs(f) : `<div class="pd2-fact${f.cls ? ' ' + f.cls : ''}" data-pd2-fact="${f.k}"><span class="pd2-l">${E(f.l)}</span><span class="pd2-v"${f.k === 'people' ? ` title="${String(f.v).replace(/<[^>]*>/g, '')}"` : ''}>${f.v}</span><span class="pd2-s">${f.go ? `<button type="button" class="pd2-sgo${nl ? ' is-link' : ''}" ${f.go}>${E(nl && (f.k === 'signer' || f.k === 'stream' || f.k === 'people') ? _pdT('pd2_go_change') : (f.s || _pdT('dos_go_open')))}</button>` : E(f.s || '')}</span></div>`).join('');
-  return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2CardHtml(c, D)}${nl ? pd2SignedNeedsHtml(c, D) + pd2ComingUpHtml(c) : ''}${nl ? pd2FoundHtml(c, D) : ''}${nl ? pd2FamCardHtml(c) : ''}${nl ? pd2DealCardHtml(c) : ''}${nl ? pd2DutiesCardHtml(c) : ''}${nl && facts ? `<div class="pd2-eye">${E(_pdT((!(D.read && D.read.read) && !pd2Sealed(c) && (c.upload || c.source === 'upload')) ? 'pd2_facts_off_paper' : 'jov5_pd_facts'))}</div>` : ''}<div class="pd2-facts">${facts}</div>${nl ? '' : pd2FamilyHtml(c)}${pdDocFillRowHtml(c)}${pd2TurnHtml(c)}</div>`;
+  return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2CardHtml(c, D)}${nl ? pd2SignedNeedsHtml(c, D) + pd2ComingUpHtml(c) + pd2SentNextHtml(c, D) + pd2DetailsHtml(c, D) + pd2CheckedHtml(c, D) : ''}${nl ? pd2FoundHtml(c, D) : ''}${nl ? pd2FamCardHtml(c) : ''}${nl ? pd2DealCardHtml(c) : ''}${nl ? pd2DutiesCardHtml(c) : ''}${nl && facts ? `<div class="pd2-eye">${E(_pdT((!(D.read && D.read.read) && !pd2Sealed(c) && (c.upload || c.source === 'upload')) ? 'pd2_facts_off_paper' : 'jov5_pd_facts'))}</div>` : ''}<div class="pd2-facts">${facts}</div>${nl ? '' : pd2FamilyHtml(c)}${pdDocFillRowHtml(c)}${pd2TurnHtml(c)}</div>`;
 }
 /* ---- THE DOSSIER'S TOP IS ONE CARD (owner picked "One card", 8 Nov 2026: "I want 1 card but the read it, watch the
    read and the brief need to be better designed … 'Read it | Watch the read | The brief' in green and underlined") ----
@@ -9089,7 +9090,8 @@ function pd2StdNotes(c){
   const say = v => (typeof pbVerdictWords === 'function') ? String(pbVerdictWords(v) || '') : String(v.position || '');
   V.filter(v => v && v.status === 'deviation' && v.category).forEach(v => {
     const q = String(v.quote || '').replace(/\s+/g, ' ').trim();
-    out.push({ tone: 'owe', std: true, word: _pdT('pd2_std_differs'), k: String(v.category), w: say(v), acts: go('pd2_std_redline'),
+    /* NEEDS LEGAL, SAID ON THE CLAUSE (Round B, as drawn): a departure the Playbook escalates says so, and what waits on it */
+    out.push({ tone: 'owe', std: true, word: _pdT(v.escalate ? 'pd2_std_needs_legal' : 'pd2_std_differs'), k: String(v.category), w: say(v) + (v.escalate ? ' ' + _pdT('pd2_std_legal_waits') : ''), acts: go('pd2_std_redline'),
       /* the quote whole, else its words up to the first figure (a filled box splits the line on the paper) */
       at: { text: [q.slice(0, 60), (q.split(/\d/)[0] || '').trim()].filter(t => t.length >= 12) }, orOwn: _pdT('pd2_std_own') });
   });
@@ -10187,6 +10189,62 @@ function pd2ComingUpHtml(c){
     + item('now', T('pd2_life_today'), _pdTn('pd2_cu_left', months, { n: months }))
     + item('next', T('pd2_cu_ends', { d: day(end) }), [q && q.quote ? `${pd2Cap(q.sec)} · “${q.quote}”` : '', renews ? T('pd2_cu_renews') : ''].filter(Boolean).join(' — '))
     + `</ol></section>`;
+}
+/* ---- ROUND B, AS DRAWN ----
+   WHAT HAPPENS NEXT (fSent): once it is with them (pd2WaitOf, the card's own reading) — sent · they open it · their reply
+   · read again, the steps done lit; then Kept: the record (a door to History) and who it waits on, for how many days.
+   DETAILS (oFill): each blank the paper still asks for, with the paper's words round it (pd2BlankQuote) and Fill in —
+   filled on the paper (owner's pick), never typed in the panel. WHAT WAS CHECKED (oReady): our paper, nothing left to
+   fill, nothing sent yet — the wording (as our template, or how many clauses we redlined), the Playbook (met of total, a
+   departure that needs Legal said with its wait), each detail filled. All read off the record; nothing written. */
+function pd2SentNextHtml(c, D){
+  let W = null; try { W = pd2WaitOf(c, D); } catch (_){ W = null; }
+  if (!W) return '';
+  const E = _pdE, T = _pdT, S = W.seen || {};
+  const sentAt = S.share && (S.share.createdAt || S.share.at) || S.at || '';
+  const days = sentAt ? Math.max(0, Math.floor((Date.now() - new Date(sentAt).getTime()) / 864e5)) : 0;
+  const opened = S.kind === 'opened' || S.kind === 'responded', replied = S.kind === 'responded';
+  const item = (k, b, small) => `<li class="pd2-tl-i is-${k}"><b>${E(b)}</b>${small ? `<small>${E(small)}</small>` : ''}</li>`;
+  const tl = `<ol class="pd2-tl">${item('done', T('pd2_sx_sent'), sentAt ? pd2DlDay(sentAt) : '')}${item(opened ? 'done' : 'next', T('pd2_sx_open'), opened ? T('pd2_sx_opened') : T('pd2_sx_told'))}${item(replied ? 'done' : 'later', T('pd2_sx_reply'), T('pd2_sx_lands'))}${item('later', T('pd2_sx_reread'), T('pd2_sx_what'))}</ol>`;
+  const kept = `<div class="pd2-fd-row"><span class="pd2-fd-w"><b>${E(T('pd2_sx_record'))}</b><span class="pd2-fd-q pd2-plain">${E(T('pd2_sx_record_s'))}</span></span><button type="button" class="ui-link" data-pd2-sg-hist="${E(c.id)}">${E(T('pd2_sx_see'))}</button></div>`
+    + `<div class="pd2-fd-row"><span class="pd2-fd-w"><b>${E(T('pd2_sx_waiting'))}</b><span class="pd2-fd-q pd2-plain">${E(W.party || '')}</span></span><span class="pd2-badge"><i aria-hidden="true"></i>${E(_pdTn('pd2_sx_day', days, { n: days }))}</span></div>`;
+  return `<section class="pd2-fd is-next" data-pd2-next-steps><div class="pd2-fd-h"><b>${E(T('pd2_sx_head'))}</b></div>${tl}</section><section class="pd2-fd is-kept" data-pd2-kept><div class="pd2-fd-h"><b>${E(T('pd2_sx_kept'))}</b></div>${kept}</section>`;
+}
+function pd2DetailsHtml(c, D){
+  if (!c || pd2Sealed(c) || !D) return '';
+  const E = _pdE, T = _pdT, may = (typeof window.mayActOn !== 'function') || window.mayActOn(c);
+  /* the ONE reading of what is owed (detailsOf): the record's own details and the paper's blanks alike */
+  let d = null; try { d = (typeof detailsOf === 'function') ? detailsOf(c) : null; } catch (_){ d = null; }
+  const open = d && d.live ? d.items.filter(x => x && x.open) : [];
+  if (!open.length) return '';
+  const rows = open.slice(0, 6).map(b => { let q = null; try { q = b.kind === 'blank' || b.kind === 'tplf' ? pd2BlankQuote(c, b.key) : null; } catch (_){ q = null; }
+    const said = q ? `${q.n ? '§ ' + q.n + ' · ' : ''}“${q.cutA ? '…' : ''}${q.a} ___ ${q.b}${q.cutB ? '…' : ''}”` : '';
+    return `<div class="pd2-fd-row"><span class="pd2-fd-w"><b>${E(String(b.label || b.key))}</b>${said ? `<span class="pd2-fd-q">${E(said)}</span>` : ''}</span>${may ? `<button type="button" class="ui-link" data-pd-fill-key="${E(b.key)}">${E(T('pd2_fill'))}</button>` : ''}</div>`; }).join('');
+  const more = open.length > 6 ? `<p class="pd2-fd-all">${E(_pdTn('pd2_dx_more', open.length - 6, { n: open.length - 6 }))}</p>` : '';
+  return `<section class="pd2-fd is-details" data-pd2-details><div class="pd2-fd-h"><b>${E(T('pd2_dx_head'))}</b><span class="pd2-badge is-amber"><i aria-hidden="true"></i>${E(_pdTn('pd2_dx_left', open.length, { n: open.length }))}</span></div>${rows}${more}</section>`;
+}
+function pd2CheckedHtml(c, D){
+  if (!c || !D || pd2Sealed(c) || c.upload || c.source === 'upload' || !c.template) return '';
+  if (D.owed.some(r => r && r.kind === 'fill')) return '';
+  let sentOnce = false; try { sentOnce = !!(c.negotiation && (c.negotiation.turn === 'counterparty' || (Array.isArray(c.rounds) && c.rounds.length))); } catch (_){ sentOnce = false; }
+  if (sentOnce) return '';
+  const E = _pdE, T = _pdT;
+  let cls = []; try { cls = pd2Clauses(c).filter(x => x && x.kind !== 'section' && String(x.text || '').trim()); } catch (_){ cls = []; }
+  const ours = (Array.isArray(c.changes) ? c.changes : []).filter(x => x && !x.withdrawn && x.authorSide !== 'counterparty');
+  const red = new Set(ours.map(x => String(x.clauseId || x.id))).size;
+  const badge = (tone, w) => `<span class="pd2-badge ${tone}"><i aria-hidden="true"></i>${E(w)}</span>`;
+  const row = (k, v, b) => `<div class="pd2-fact is-ls"><span class="pd2-l">${E(k)}</span><span class="pd2-v">${E(v)}</span><span class="pd2-s">${b}</span></div>`;
+  let h = row(T('pd2_ck_wording'), red ? T('pd2_ck_red', { n: cls.length - red, m: red }) : T('pd2_ck_same', { n: cls.length }), red ? badge('is-steel', T('pd2_ck_redlined')) : badge('is-green', T('pd2_ck_unchanged')));
+  const sd = D.read && D.read.std;
+  if (sd){ const off = sd.dev + sd.miss, met = Math.max(0, sd.total - off);
+    const V = (c.playbook && Array.isArray(c.playbook.verdicts)) ? c.playbook.verdicts : [];
+    const legal = V.filter(v => v && v.escalate && (v.status === 'deviation' || v.status === 'missing') && !(v.accepted && v.accepted.at));
+    let tplOk = false; try { tplOk = legal.length > 0 && legal.every(v => typeof sgTplApproval === 'function' && sgTplApproval(c, v, (typeof state !== 'undefined' && state && state.tplApprovals) || [])); } catch (_){ tplOk = false; }
+    h += row(T('pd2_ck_pb'), legal.length && !tplOk ? T('pd2_ck_pb_legal', { met, total: sd.total, what: String(legal[0].category || '') }) : T('pd2_std_met', { met, total: sd.total }),
+      legal.length && !tplOk ? badge('is-amber', T('pd2_ck_needs_legal')) : off ? badge('is-amber', _pdTn('pd2_std_dev', off, { n: off })) : badge('is-green', T('pd2_ck_met'))); }
+  let blanks = []; try { blanks = (typeof contractBlanks === 'function') ? contractBlanks(c) : []; } catch (_){ blanks = []; }
+  blanks.slice(0, 4).forEach(b => { h += row(String(b.label || b.key), String(b.value || ''), badge('is-green', T('pd2_ck_filled'))); });
+  return `<section class="pd2-fd is-checked" data-pd2-checked><div class="pd2-fd-h"><b>${E(T('pd2_ck_head'))}</b></div>${h}</section>`;
 }
 /* THE DATES AHEAD (the drawing's duties timeline): today, the next open duties that carry a day (PD2_DT_DATES at most, the
    rest said as a count), and the day the agreement ends — each read off the duty list and the record, nothing guessed */
