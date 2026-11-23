@@ -122,55 +122,39 @@ const weekOf = () => {
     await page.evaluate(() => (setView('calendar'), calSetView('week')));
 
     /* ---- 4 the Calendar as drawn ---- */
-    await until(() => !!document.querySelector('#cal-wk-more'), null, 10000);
+    /* RE-POINTED 23 Nov 2026 (P-14, the Calendar the Legora + Stripe way, owner: "Build P-14"): the Week is no longer six
+       weeks of hour columns with a key under them. It is ONE head (Calendar · Agenda | Month | Week | Horizon · + New
+       event · ⋯), the ask box, chips, then THIS week as one calm table — a row per date, the paper's words and the party
+       under its title, a soft badge for its kind (Late red, We owe amber, They owe steel, Decide violet), its act in the
+       row — and the coming five weeks folded into ONE line ("Then · range · N dates", the first of them, Show them).
+       The panel beside it follows the chosen row: the row's own badge and title, "The next seven days", and the plan
+       with the calendar setting's three buttons. The same rules are asked of the new drawing: late work said Late, their
+       duty named by its party, the decision in the weeks ahead, the coming weeks counted, the panel read from the list. */
+    const weekReady = () => !!document.querySelector('#hb-cal .cal-page.is-ls[data-cal-ls="week"] .cls-then-h');
+    await until(weekReady, null, 10000);
     await page.waitForTimeout(500);
-    const C = await page.evaluate(lateDay => {
-      const chips = [...document.querySelectorAll('#cal-week .cal-chip')].map(c => ({ t: c.textContent.trim(), k: (c.className.match(/is-ck-(\w+)/) || [])[1] || '' }));
-      /* LATE WORK STANDS ON TODAY (on a weekend, this week's Monday): the
-         column under the head marked today, else the first — reading only
-         the first made this check red Tuesday to Friday */
-      const heads = [...document.querySelectorAll('.cal-wk-h')];
-      /* …AND ONLY WHEN ITS OWN DAY IS NOT IN THIS WEEK (calWeekHtml's own
-         rule): a late day inside the week stands on that day. The fixture's
-         late day is three days back, so on a Wednesday to Friday it falls in
-         the week — reading only today made this check red those days (CI,
-         Thursday 22 Oct 2026, on main too) */
-      const days = Array.from({ length: heads.length }, (_, i) => { const d = new Date(calWeekStart()); d.setDate(d.getDate() + i); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; });
-      const own = days.indexOf(lateDay), at = own >= 0 ? own : heads.findIndex(x => x.classList.contains('is-today'));
-      const first = document.querySelectorAll('.cal-wk-alls .cal-wk-all')[at > 0 ? at : 0];
-      return { facts: (document.getElementById('cal-head-sub') || {}).textContent || '', more: !!document.querySelector('.cal-head #cal-more'),
-        title: (document.getElementById('cal-title') || {}).textContent || '', key: [...document.querySelectorAll('.cal-key span')].map(s => s.textContent.trim()),
-        firstDay: first ? [...first.querySelectorAll('.cal-chip')].map(c => c.textContent.trim()) : [], chips,
-        labels: [...document.querySelectorAll('#cal-wk-more .cal-wkm-lab span')].map(s => s.textContent.trim()),
-        hours: [...document.querySelectorAll('.cal-wk-t')].map(t => t.textContent.trim()).slice(0, 3),
-        panel: (document.querySelector('#cal-plan .jl-word') || {}).textContent || '', bub: ((document.querySelector('#cal-plan .jl-bub, #cal-plan .jov-head') || {}).textContent || '').trim(),
-        lv: document.querySelectorAll('#cal-plan [data-cal-lv]').length,
-        five: (() => { const j = document.querySelector('#cal-plan .jov5'); return j ? { eb: (j.querySelector('.jov5-eb') || {}).textContent || '', t: (j.querySelector('.jov5-title') || {}).textContent || '',
-          sub: (j.querySelector('.jov5-sub') || {}).textContent || '' } : null; })() };
-    }, D.b3);
-    check('4a the head: the six weeks, the ⋯ in it; the card: "This week, then five more" and the key as drawn',
-      /· six weeks$/.test(C.facts) && C.more && C.title === 'This week, then five more' && JSON.stringify(C.key) === JSON.stringify(['Ours', 'Theirs', 'Contract date', 'Mine', 'Jambo’s plan']), C);
-    check('4b late work stands on today (a weekend: this week\'s first day), or on its own day where that is this week; their chips carry their name first; a decision in its week',
-      C.firstDay.some(t => /^Late: Check the September invoice/.test(t)) && C.chips.some(c => c.k === 'theirs' && /^Nandi: /.test(c.t)) && C.chips.some(c => c.k === 'decide' && /^Decide: Office Lease/.test(c.t)), { firstDay: C.firstDay, chips: C.chips.slice(0, 8) });
-    check('4c a later week says "N due"; the hours read "09"', C.labels.some(l => /^\d+ due$/.test(l)) && C.hours.every(h => /^\d\d$/.test(h)), { labels: C.labels, hours: C.hours });
-    /* RE-PINNED (owner, 24 Oct 2026, ONE WINDOW): the panel draws no "Your week" word beside tabs; his words are the same */
-    /* RE-POINTED 17 Nov 2026 (#762): the Calendar's panel is Jambo's Five panel (round 3b, "Build as drawn"): "The next
-       seven days", the headline counting this week's things, the late duty said under it — counted from the same list
-       (this stage: our one late duty and the two due from the other side today, at least three things), still under its
-       Overview, the calendar setting's three buttons in it */
-    check('4d Jambo\'s panel beside the Calendar says the week, counted from the list, under its Overview', C.panel === '' && !!C.five
-      && /^The next seven days$/.test(C.five.eb) && (m => !!m && Number(m[1]) >= 3)(/^(\d+) things? this week\.$/.exec(C.five.t)) && /^1 duty is late\.$/.test(C.five.sub) && C.lv === 3,
-      { panel: C.panel, five: C.five, lv: C.lv });
-    /* ASK FOR THE STATE (22 Oct 2026): the week may be drawn again after it first shows, which took a
-       held handle off the page ("Element is not attached to the DOM"); a locator finds the hour afresh
-       at each act, and the hover is tried again (bounded) if a repaint came between it and the read */
-    const slot = page.locator('#cal-wk-body .cal-wk-col:nth-of-type(3) .cal-wk-slot:nth-child(4)');
-    let hint = '';
-    for (let i = 0; i < 3 && !/\+ Add your own/.test(hint) && await slot.count(); i++){
-      await slot.hover({ timeout: 3000 }).catch(() => {});
-      hint = await slot.evaluate(s => getComputedStyle(s, '::after').content, null, { timeout: 3000 }).catch(() => '');
-    }
-    check('4e an empty hour says "+ Add your own" under the hand', /\+ Add your own/.test(hint), hint);
+    const C = await page.evaluate(() => {
+      const pg = document.querySelector('#hb-cal .cal-page.is-ls[data-cal-ls="week"]'); if (!pg) return { rows: [] };
+      const txt = el => (el ? el.textContent : '').replace(/\s+/g, ' ').trim();
+      const rows = [...pg.querySelectorAll('#cal-ls-body tr.cls-r')].map(r => ({ t: txt(r.querySelector('.cls-what .cls-t')), what: txt(r.querySelector('.cls-what')),
+        k: ((r.querySelector('.cls-k .cls-b') || {}).className || '').replace(/^.*\bis-(\w+).*$/, '$1'), chosen: r.classList.contains('is-chosen') }));
+      const side = document.querySelector('#cal-plan .cal-ls-side');
+      return { on: txt(pg.querySelector('.cls-head .cls-seg a.on')), more: !!pg.querySelector('.cls-head #cal-more'), add: txt(pg.querySelector('.cls-head #cal-new')),
+        then: txt(pg.querySelector('.cls-then-h')), thenS: txt(pg.querySelector('.cls-then-s')), show: !!pg.querySelector('.cls-then-s [data-cal-view="agenda"]'),
+        rows, side: { title: txt(side && side.querySelector('.cls-pt')), heads: side ? [...side.querySelectorAll('h4')].map(txt) : [] },
+        lv: document.querySelectorAll('#cal-plan [data-cal-lv]').length };
+    });
+    check('4a the head: Week lit in the one switch, + New event and the ⋯ in it; the coming weeks one line, "Then · …" with their count',
+      C.on === 'Week' && C.more && /New event/.test(C.add || '') && /^Then · .+ · \d+ dates?$/.test(C.then || ''), { on: C.on, more: C.more, add: C.add, then: C.then });
+    const late = C.rows.find(r => /^Check the September invoice/.test(r.t)), theirs = C.rows.find(r => /^Send a current insurance certificate/.test(r.t));
+    check('4b late work stands first in this week\'s table, said Late (red); their duty says They owe (steel) and names its party; the decision waits in the weeks ahead',
+      !!late && late.k === 'ruby' && C.rows[0] === late && !!theirs && theirs.k === 'steel' && /Nandi/.test(theirs.what) && /Decide: renew Office Lease\?/.test(C.thenS || ''),
+      { rows: C.rows.slice(0, 6).map(r => `${r.k}:${r.t}`), thenS: C.thenS });
+    check('4c the coming weeks are counted — at least the decision and our later duties — with Show them to the Agenda', (m => !!m && Number(m[1]) >= 3)(/· (\d+) dates?$/.exec(C.then || '')) && C.show,
+      { then: C.then, show: C.show });
+    check('4d Jambo\'s panel beside the Calendar says the chosen row of the list, the next seven days, and the calendar setting\'s three buttons',
+      !!late && late.chosen && C.side.title === late.t && C.side.heads.includes('The next seven days') && C.lv === 3, { side: C.side, lv: C.lv });
+    check('4e a person adds their own from the head\'s + New event, in sight', /New event/.test(C.add || ''), C.add);
     if (OUT) await page.screenshot({ path: path.join(OUT, '16-calendar-1440x780.png') });
 
     /* ---- 6 the checks' differences, built (lane A4's second pass, 19 Oct 2026) ---- */
@@ -178,14 +162,18 @@ const weekOf = () => {
       A1.obligations.push({ id: 'o9', desc: 'Pay the second instalment', due: D.a13, party: 'us', assignee: currentUser().email, recurring: 'none', status: 'open', after: 'o3' });
       persist(A1); }, D);
     await page.waitForTimeout(400);
+    /* RE-POINTED 23 Nov 2026 (P-14): the step lies in the weeks ahead, so it is read on the Agenda's table (the Week's
+       "Show them"): a step held back by an earlier one is never said Late and offers no Mark done — it is not owed yet */
+    await page.evaluate(() => calSetView('agenda'));
     const wt = await until(() => { if (!calOnScreen()) return null;
-      const c = [...document.querySelectorAll('#cal-stage .cal-chip')].find(x => /Pay the second instalment/.test(x.textContent));
-      return c ? { t: c.textContent.trim(), k: (c.className.match(/is-ck-(\w+)/) || [])[1] || '' } : null; }, null, 8000);
-    check('6a the Calendar draws a step held back by an earlier one as "Waiting: …", never due or late', !!wt && wt.k === 'wait' && /^Waiting: /.test(wt.t), wt);
-    const decChip = await page.$('#cal-stage .cal-chip.is-ck-decide');
-    if (decChip) await decChip.click();
+      const r = [...document.querySelectorAll('#hb-cal .cal-page.is-ls[data-cal-ls="agenda"] tr.cls-r')].find(x => /Pay the second instalment/.test(x.textContent));
+      return r ? { t: (r.querySelector('.cls-what .cls-t') || {}).textContent || '', k: ((r.querySelector('.cls-k .cls-b') || {}).className || ''),
+        late: !!r.querySelector('.cls-w.is-late'), done: !!r.querySelector('[data-cal-done]') } : null; }, null, 8000);
+    check('6a the Calendar draws a step held back by an earlier one never late, never to be marked done', !!wt && !/is-ruby/.test(wt.k) && !wt.late && !wt.done, wt);
+    const decChip = page.locator('#hb-cal .cal-page.is-ls [data-cal-act="decide"][data-cal-ct="MK-C1"]').first();
+    if (await decChip.count()) await decChip.click();
     const decC = await until(() => { const h = document.querySelector('#renewal-host'); return h && state.view === 'dashboard' && (h.classList.contains('is-landed') || h.classList.contains('is-landed-held')) ? true : null; }, null, 12000);
-    check('6b the Calendar\'s Decide chip lands on the renewal card, lit (the list\'s own door)', !!decC);
+    check('6b the Calendar\'s Decide lands on the renewal card, lit (the list\'s own door)', !!decC);
     /* RETIRED 17 Nov 2026 (#762): 6c (Outstanding / Waiting on a step — the week page's views), 6d (Late's "3 days late"
        on the week row) and 6e (a folded week opened and kept over a refresh) — round 16's week page, gone with sections
        1–3 above; the project list's own pills and rows are pinned by the obligations checks of the new look */
@@ -213,32 +201,24 @@ const weekOf = () => {
          with round 16's week page */
       if (OUT) await page.screenshot({ path: path.join(OUT, `16-obligations-${w}x${ht}.png`) });
       await page.evaluate(() => (setView('calendar'), calSetView('week')));
-      await until(() => !!document.querySelector('#cal-wk-more'));
+      /* RE-POINTED 23 Nov 2026 (P-14): the Week is one table that scrolls inside its own body (.cls-body), the coming
+         weeks one line under it; whole means: the page's head and chips end inside the page, the table and the line
+         inside it too (nothing under the panel), the body scrolls rather than the page, Jambo's box in view */
+      await until(weekReady);
       await page.waitForTimeout(400);
       const fitC = await page.evaluate(() => {
         const vw = document.documentElement.clientWidth, side = document.documentElement.scrollWidth <= vw + 1;
-        const stage = document.getElementById('cal-stage').getBoundingClientRect();
-        const rows = [...document.querySelectorAll('#cal-wk-more .cal-wkm-row')];
-        /* THE FIVE WEEKS GIVE WAY (the owner's 21 Oct ruling, the check re-pointed 26 Oct 2026): every row stands
-           in view, or, where a busy week leaves too little room (a laptop's 730px on a Monday with three things
-           due), the five weeks scroll inside their own band — its top in view, its foot in the window, every row
-           reachable inside it, none squeezed under 38px. Not a day's luck either way: the old "every row in view"
-           went red on busy days only. */
-        const band = document.querySelector('#cal-wk-more .cal-wkm') || document.querySelector('.cal-wkm');
-        const bandR = band ? band.getBoundingClientRect() : null, H = window.innerHeight;
-        const inView = rows.every(r => r.getBoundingClientRect().bottom <= H + 1);
-        const scrolls = !!band && /auto|scroll/.test(getComputedStyle(band).overflowY) && band.scrollHeight > band.clientHeight
-          && bandR.bottom <= H + 1 && bandR.top + 38 <= H
-          /* measured from the band's INSIDE (below its 1px top line, band.clientTop): from its outer edge every
-             Monday came out 1px short and the scrolling branch could never pass (fixed 16 Nov 2026) */
-          && rows.every(r => r.getBoundingClientRect().bottom - (bandR.top + band.clientTop) + band.scrollTop <= band.scrollHeight + 1);
-        const whole = rows.length === 5 && rows.every(r => r.getBoundingClientRect().height >= 37) && (inView || scrolls);
-        const head = [...document.querySelectorAll('.cal-head-r > *')].every(b => b.getBoundingClientRect().right <= stage.right + 1);
-        const key = document.querySelector('.cal-key').getBoundingClientRect();
+        const pg = document.querySelector('#hb-cal .cal-page.is-ls'), stage = pg.getBoundingClientRect();
+        const inside = el => !el || el.getBoundingClientRect().right <= stage.right + 1;
+        const body = document.getElementById('cal-ls-body'), bodyR = body.getBoundingClientRect();
+        const whole = inside(pg.querySelector('.cls-t')) && inside(pg.querySelector('.cls-then')) && /auto|scroll/.test(getComputedStyle(body).overflowY)
+          && bodyR.bottom <= window.innerHeight + 1 && bodyR.height >= 38;
+        const head = [...pg.querySelectorAll('.cls-head > *, .cls-chips > *')].every(b => b.getBoundingClientRect().right <= stage.right + 1);
+        const ask = inside(pg.querySelector('.cls-ask'));
         const box = document.querySelector('#cal-plan-in').getBoundingClientRect();
-        return { side, whole, head, key: key.right <= stage.right + 1, box: box.bottom <= window.innerHeight && box.top > 0 };
+        return { side, whole, head, key: ask, box: box.bottom <= window.innerHeight && box.top > 0 };
       });
-      check(`5 ${w}×${ht}: the Calendar whole — six weeks in view or the five later weeks scrolling inside their own band, the head and the key not cut, Jambo's box in view, nothing sideways`,
+      check(`5 ${w}×${ht}: the Calendar whole — this week's table scrolling inside its own body, the coming weeks' line, the head, the chips and the ask box not cut, Jambo's box in view, nothing sideways`,
         fitC.side && fitC.whole && fitC.head && fitC.key && fitC.box, fitC);
       if (OUT) await page.screenshot({ path: path.join(OUT, `16-calendar-${w}x${ht}.png`) });
     }

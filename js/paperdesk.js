@@ -90,7 +90,7 @@ function pdLandHasPress(){
 function pdSetTab(t){ t = PD_TAB_ALIAS[t] || t;
   /* THE HIDDEN OBLIGATIONS PANEL IS GONE (owner, 23 Nov 2026, "Duties, end to end"): every way that turned the panel to it
      opens the contract's Duties page in the middle instead (dutiesOpen, the one door) */
-  if (t === 'oblig'){ try { const c = pdContract(); if (c && typeof window.dutiesOpen === 'function' && window.dutiesOpen(getContract(c.id) || c, { tab: 'on' })) return; } catch (_){} return; }
+  if (t === 'oblig'){ try { const c = pdContract(); if (c && typeof window.dutiesOpen === 'function' && window.dutiesOpen(getContract(c.id) || c, pdObOpenWith(c))) return; } catch (_){} return; }
   if (!PD_TABS.includes(t)) return; const was = _pdTab; _pdTab = t;
   /* the new look's notes beside the paper follow the tab (the Dossier's own), after the panel is drawn */
   if (was !== t && typeof pd2On === 'function' && pd2On()) setTimeout(() => { try { const c = pdContract(); if (c) pd2NotesPaint(getContract(c.id) || c); } catch (_){} }, 0); }
@@ -327,6 +327,14 @@ function pdObOpen(){ pdSetTab('oblig'); }
 function pdObClose(){ pdSetTab('copilot'); if (typeof renderIntelDock === 'function') renderIntelDock(); }
 /* the one row opened on the Obligations face (the list's press carries its key) */
 function pdObOpenRow(cid, key){ _pdObOpen = key ? { id: String(cid), key: String(key) } : null; pdObOpen(); }
+/* LAND ON IT (the Duties page, one door since 23 Nov 2026): a door that carried one duty (pdObOpenRow: a list's row, the
+   bell, Open the paper) opens the page on On the contract with THAT duty chosen — its key `cid::id`, or `cid::#i` for a
+   duty with no id; the key is used once */
+function pdObOpenWith(c){
+  const k = (_pdObOpen && c && _pdObOpen.id === String(c.id)) ? String(_pdObOpen.key || '') : '', cut = k.indexOf('::'), tail = cut < 0 ? '' : k.slice(cut + 2);
+  const rec = tail.charAt(0) === '#' ? tail.slice(1) : tail; _pdObOpen = null;
+  return rec ? { tab: 'on', rec } : { tab: 'on' };
+}
 /* AN OBLIGATION OPENS ON ITS CONTRACT'S PAPER IN THE NEW LOOK (the platform review, 6 Nov 2026: the Obligations list's
    open landed on the old narrowed page with no Jambo panel): the paper with its Dossier first (roomHomeLand), then the
    Obligations face with the pressed row open. False = not this look or no room: the narrowed page answers as before. */

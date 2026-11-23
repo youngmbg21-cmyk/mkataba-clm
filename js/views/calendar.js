@@ -3171,7 +3171,7 @@ function calLsCss(){ return `
   html.lg-new .cal-page.is-ls{display:flex;flex-direction:column;min-height:0;background:var(--color-surface);padding:24px 40px 0;box-sizing:border-box;--cls-line:var(--color-divider)}
   html.lg-new .cal-page.is-ls.is-solo{display:grid;grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:auto auto auto minmax(0,1fr);column-gap:24px}
   html.lg-new .cal-page.is-ls.is-solo > #cal-plan{grid-column:2;grid-row:1 / span 4}
-  html.lg-new .cal-page.is-ls .cls-head{flex:none;display:flex;align-items:center;gap:12px;min-width:0}
+  html.lg-new .cal-page.is-ls .cls-head{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:12px;min-width:0}
   html.lg-new .cal-page.is-ls .cls-ttl{flex:none}
   html.lg-new .cal-page.is-ls .cls-sp{flex:1;min-width:0}
   html.lg-new .cal-page.is-ls .cls-seg{display:inline-flex;flex:none;background:var(--surface-2);border-radius:999px;padding:3px}
@@ -3183,7 +3183,7 @@ function calLsCss(){ return `
   html.lg-new .cal-page.is-ls .cls-spark{display:inline-flex;color:var(--accent-ink);flex:none}
   html.lg-new .cal-page.is-ls .cls-ask input{flex:1;min-width:0;border:0;outline:0;box-shadow:none;background:none;padding:0;font:400 14px/1.4 var(--font-body);color:var(--color-text)}
   html.lg-new .cal-page.is-ls .cls-ask input::placeholder{color:var(--color-neutral-400)}
-  html.lg-new .cal-page.is-ls .cls-chips{flex:none;display:flex;align-items:center;gap:8px;margin-top:16px;min-width:0;flex-wrap:nowrap}
+  html.lg-new .cal-page.is-ls .cls-chips{flex:none;display:flex;align-items:center;gap:8px;margin-top:16px;min-width:0;flex-wrap:wrap}
   html.lg-new .cal-page.is-ls .cls-chips .obs-chip{flex:none;display:inline-flex;align-items:center;gap:5px}
   html.lg-new .cal-page.is-ls .cls-chips .obs-chip.cls-chip{border-style:solid;border-color:var(--color-neutral-300)}
   html.lg-new .cal-page.is-ls .cls-chips .obs-chip b{font-weight:var(--w-label)}

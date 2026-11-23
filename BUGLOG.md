@@ -22973,3 +22973,5 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - The access check's area chip uses a typed "+" and "×" (copies My notes' chip).
 - `ca_go_draft_can_h` (both books) is left with no reader since New agreement's old panel was deleted (7982954e); `.tpl-rail:hover` still paints a grey row hover.
 - Fixed (23 Nov 2026, Dossier L+S step 4): the Redlines switch could light two buttons at once (Notes and Ladder); now one of three (f1197).
+- Noticed, not fixed (23 Nov 2026, fix-br-4): node test f1194 (3) "the old sheet panel's words left both books" is red on claude/great-bardeen-ockvtr before this branch's change (js/i18n.js untouched here).
+- Noticed, not fixed (23 Nov 2026, fix-br-4): the new Calendar's Week draws no "Waiting: …" word for a duty held back by an earlier one (it is only never late and offers no Mark done); week-as-drawn-verify 6a was re-pointed to that.

@@ -121,11 +121,14 @@ const geist = f => /^"?Geist Mono"?/.test(f || '');
        at 1024. A Horizon that prints none REPORTS. */
     /* RE-POINTED 29 Oct 2026 (round 12, owner's yes): the calendar opens on the Agenda; Week is pressed */ 
     try { await page.evaluate(() => { setView('calendar'); calSetView('week'); }); } catch (e) { check(false, 'Calendar opens', e.message); }
-    const calChips = await until(page, () => { const xs = [...document.querySelectorAll('#content .cal-chip')].filter(x => /MK-RF1/.test(x.title || ''));
-      return xs.length ? xs.map(x => ({ t: x.textContent.trim(), title: x.title })) : null; }, null, 10000);
+    /* RE-POINTED 23 Nov 2026 (P-14, the Calendar the Legora + Stripe way, owner: Build P-14): the Week is one calm table,
+       a row per date (tr.cls-r, keyed by its contract in data-cal-pick); MK-RF1's rows are said in words — the duty or
+       "Ends: …" — and never print the reference on their face */
+    const calChips = await until(page, () => { const xs = [...document.querySelectorAll('#content tr.cls-r')].filter(x => /^MK-RF1\|/.test(x.dataset.calPick || ''));
+      return xs.length ? xs.map(x => ({ t: ((x.querySelector('.cls-what .cls-t') || {}).textContent || '').trim(), face: x.textContent.replace(/\s+/g, ' ').trim() })) : null; }, null, 10000);
     await shot('calendar.png');
-    check(!!calChips && calChips.every(x => x.t && !/MK-RF1/.test(x.t)), 'Calendar: MK-RF1\'s chips are drawn in words, the reference in their hover, not on their face',
-      calChips ? JSON.stringify(calChips.slice(0, 2)) : 'no chip for MK-RF1');
+    check(!!calChips && calChips.every(x => x.t && !/MK-RF1/.test(x.face)), 'Calendar: MK-RF1\'s rows are drawn in words, the reference not on their face',
+      calChips ? JSON.stringify(calChips.slice(0, 2)) : 'no row for MK-RF1');
     const RC = await refsOn(page, '#content');
     const badC = (RC || []).filter(x => !geist(x.face) || !x.oneLine || x.cut);
     check(!!RC && !badC.length, `Calendar (Week): any reference it prints wears Geist Mono, on one line (${(RC || []).length})`,
@@ -133,12 +136,16 @@ const geist = f => /^"?Geist Mono"?/.test(f || '');
     let hzOpen = true;
     try { await page.evaluate(() => calSetView('horizon')); } catch (e) { hzOpen = false; check(false, 'Calendar: Horizon opens', e.message); }
     if (hzOpen){
-      const hzRows = await until(page, () => document.querySelectorAll('#content .cal-hz-row').length || null, null, 10000);
-      check(!!hzRows, 'Calendar: Horizon draws its rows', hzRows ? String(hzRows) : 'no .cal-hz-row');
+      /* RE-POINTED 23 Nov 2026 (P-14): the Horizon is one table, a row per agreement (tr.cls-r in .cls-t.is-hz), named by
+         its name and counterparty as drawn — the reference is no longer printed there. MK-RF1's row must be drawn, in
+         words; any reference the Horizon does print is still measured below */
+      const hzRows = await until(page, () => document.querySelectorAll('#content .cls-t.is-hz tr.cls-r').length || null, null, 10000);
+      check(!!hzRows, 'Calendar: Horizon draws its rows', hzRows ? String(hzRows) : 'no .cls-t.is-hz row');
       await shot('calendar-horizon.png');
       const RH = await refsOn(page, '#content');
-      check(!!RH && RH.some(x => x.ref === 'MK-RF1'), `Calendar (Horizon) prints references to measure, MK-RF1 among them (${(RH || []).length})`,
-        RH && RH.length ? RH.map(x => x.ref).join(' ') : 'none found');
+      const hzRf = await page.evaluate(() => { const r = document.querySelector('#content .cls-t.is-hz tr.cls-r[data-cal-pick="MK-RF1"]'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : null; });
+      check(!!hzRf && /Rail freight/.test(hzRf) && !/MK-RF1/.test(hzRf), 'Calendar (Horizon): MK-RF1\'s row is drawn by its name, the reference not on its face',
+        hzRf || 'no row for MK-RF1');
       if (RH && RH.length){
         const badF = RH.filter(x => !geist(x.face));
         check(!badF.length, `Calendar (Horizon): every printed reference wears Geist Mono (${RH.length})`, badF.length ? JSON.stringify(badF.slice(0, 3)) : RH[0].face.slice(0, 30));

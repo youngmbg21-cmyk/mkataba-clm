@@ -103,46 +103,53 @@ function world(){
   await page.screenshot({ path: path.join(OUT, '2-proposals.png') });
 
   /* 6–9 RE-POINTED 19 Nov 2026 (owner, with a picture: "the obligations are redundant as they are already in the side
-     panel. Delete them"; f1102): the duties no longer open under the row; a press chooses the agreement and its duties are
-     answered in Jambo's panel — Undecided · Us · Theirs · Both sides, Undecided lit */
+     panel. Delete them"; f1102): the duties no longer open under the row; a press chooses the agreement and its duties
+     stand in Jambo's panel */
+  /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end": PROPOSALS BY AGREEMENT are read only — each agreement's one door
+     is "Decide its duties" (data-obn-decide → dutiesGo), its Duties page decides each duty on its own; NO MASS ADD, no
+     answers in the panel): the panel reads the duties in their own words with nothing to answer there, and one door */
   await page.evaluate(() => { const r = document.querySelector('.obn-pr[data-obn-pick] td.obn-c1'); if (r) r.click(); });
   await until(page, () => !!document.querySelector('#ins-panel .obn-lg .obn-lg-it'));
   const open = await page.evaluate(() => { const its = [...document.querySelectorAll('#ins-panel .obn-lg .obn-lg-it:not(.is-next)')];
-    return { duties: its.length, whose: its.reduce((n, i) => n + i.querySelectorAll('[data-obn-whose]').length, 0),
-      undecided: its.every(i => ((i.querySelector('.obn-lg-w.is-on') || {}).textContent || '') === 'Undecided'),
-      quote: its.every(i => !!i.querySelector('.obn-lg-q')), skip: its.every(i => !!i.querySelector('[data-obn-skip]')),
+    const dc = document.querySelector('#ins-panel .obn-lg [data-obn-decide]');
+    return { duties: its.length, answers: document.querySelectorAll('#ins-panel [data-obn-whose], #ins-panel [data-obn-skip], [data-obn-addall]').length,
+      quote: its.every(i => !!i.querySelector('.obn-lg-q')), decide: dc ? dc.getAttribute('data-obn-decide') : null,
+      chosen: (document.querySelector('.obn-pr.is-sel[data-obn-pick]') || { getAttribute: () => null }).getAttribute('data-obn-pick'),
       under: document.querySelectorAll('.obn-table [data-obn-whose], [data-obn-open]').length, modal: !!document.querySelector('#modal-root #obd') }; });
-  check('6 · a row pressed: its duties stand in Jambo\'s panel, four answers each with Undecided lit, the words they rest on, nothing under the row, no pop-up',
-    open.duties === 3 && open.whose === 12 && open.undecided && open.quote && open.skip && open.under === 0 && !open.modal, open);
+  check('6 · a row pressed: its duties stand in Jambo\'s panel in the words they rest on, nothing to answer there or under the row, no Add all, one door "Decide its duties" for that agreement, no pop-up',
+    open.duties === 3 && open.answers === 0 && open.quote && !!open.decide && open.decide === open.chosen && open.under === 0 && !open.modal, open);
   await page.screenshot({ path: path.join(OUT, '3-open.png') });
 
-  /* 7 · an answer paints the row's ring in its side's colour, and Add takes only what was decided */
-  const cid = await page.evaluate(() => { const b = document.querySelector('#ins-panel .obn-lg [data-obn-whose="them"]'); const id = b && b.getAttribute('data-cid'); if (b) b.click(); return id; });
-  await page.waitForTimeout(300);
-  /* RE-POINTED 21 Nov 2026 (P-13, as drawn): no ring on the row — its progress counts the answer ("1 of N") */
-  const ring = await page.evaluate(id => ((document.querySelector(`.obn-pr[data-obn-pick="${id}"] .obn-pgs small`) || {}).textContent || '').trim(), cid);
-  await page.evaluate(id => { const b = document.querySelector(`#ins-panel [data-obn-addall="${id}"]`); if (b) b.click(); }, cid);
-  await page.waitForTimeout(900);
-  const added = await page.evaluate(id => { const c = getContract(id); return { n: (c.obligations || []).length, parties: (c.obligations || []).map(o => o.party),
-    left: obReviewWaiting(c).length, rows: document.querySelectorAll('.obn-pr').length }; }, cid);
-  check('7 · "Theirs" counts on the row\'s progress; Add adds only what the reader decided; the undecided stay',
-    /^1 of \d+/.test(ring) && added.n === 1 && added.parties.join() === 'theirs' && added.left === 2 && added.rows === 3, { ring, added });
+  /* 7 · Decide its duties lands on that agreement's Duties page, To decide, its duties listed; reading wrote nothing */
+  const cid = open.decide;
+  const before = cid ? await page.evaluate(id => ((getContract(id) || {}).obligations || []).length, cid) : null;
+  if (cid) await page.evaluate(id => { const b = document.querySelector(`#ins-panel [data-obn-decide="${id}"]`); if (b) b.click(); }, cid);
+  const landed = cid ? await until(page, () => !!(window.intel && intel.paper && document.querySelector('#dtp [data-dtp-tab="left"][aria-selected="true"]')), 10000) : false;
+  const dtp = landed ? await page.evaluate(id => ({ paper: intel.paper && intel.paper.id, rows: document.querySelectorAll('#dtp [data-dtp-decide]').length,
+    n: ((getContract(id) || {}).obligations || []).length }), cid) : null;
+  check('7 · "Decide its duties" lands on that agreement\'s Duties page, To decide, each duty there to decide on its own; nothing was added by the press',
+    !!dtp && dtp.paper === cid && dtp.rows >= 1 && dtp.n === before, { cid, landed, dtp, before });
 
-  /* 8 · a Skip is kept as the desk keeps it, and can be undone */
-  const sid = await page.evaluate(() => { const b = document.querySelector('#ins-panel .obn-lg [data-obn-skip]'); const id = b && b.getAttribute('data-cid'); if (b) b.click(); return id; });
-  await page.waitForTimeout(700);
-  await page.evaluate(() => { const t = document.querySelector('#ins-panel [data-obn-lgtab="done"]'); if (t) t.click(); });
-  await page.waitForTimeout(300);
-  const skipped = await page.evaluate(id => ({ skipped: ((getContract(id) || {}).obReview || {}).skipped || [], undo: !!document.querySelector('#ins-panel [data-obn-unskip]') }), sid);
-  check('8 · a Skip is kept on the record and offers its undo', skipped.skipped.length === 1 && skipped.undo, skipped);
-  await page.evaluate(() => { const t = document.querySelector('#ins-panel [data-obn-lgtab="todo"]'); if (t) t.click(); });
-  await page.waitForTimeout(300);
+  /* 8 · a duty skipped on its Duties page is said Skipped in the panel, and its undo there brings it back to decide */
+  await page.evaluate(() => { try { if (typeof closeModal === 'function') closeModal(); } catch (_){} setView('obligations'); });
+  await until(page, () => !!document.querySelector('.obn-page'), 8000);
+  await page.evaluate(() => { const b = document.querySelector('[data-obn-tab="prop"]'); if (b) b.click(); });
+  await until(page, () => !!document.querySelector('.obn-table.is-proj .obn-pr'), 8000);
+  const sid = await page.evaluate(done => { const tr = [...document.querySelectorAll('.obn-pr[data-obn-pick]')].find(x => x.getAttribute('data-obn-pick') !== done);
+    const id = tr && tr.getAttribute('data-obn-pick'), c = id && getContract(id), x = c && (dutiesFound(c) || [])[0];
+    if (!x) return null; obReviewMark(c, x, 'skipped'); persist(c); obnRepaint();
+    const r = document.querySelector(`.obn-pr[data-obn-pick="${id}"] td.obn-c1`); if (r) r.click(); return id; }, cid);
+  const said = sid ? await until(page, () => !!document.querySelector('#ins-panel .obn-lg [data-obn-unskip]'), 5000) : false;
+  if (said) await page.evaluate(() => { const b = document.querySelector('#ins-panel .obn-lg [data-obn-unskip]'); if (b) b.click(); });
+  await page.waitForTimeout(500);
+  const skipped = sid ? await page.evaluate(id => ({ skipped: ((getContract(id) || {}).obReview || {}).skipped || [], undo: !!document.querySelector('#ins-panel [data-obn-unskip]') }), sid) : null;
+  check('8 · a Skip is said in the panel with its undo, and the undo takes it off the record', said && !!skipped && skipped.skipped.length === 0 && !skipped.undo, { sid, said, skipped });
 
-  /* 9 · nothing is saved until Add: the answers alone write no obligation */
-  const quiet = await page.evaluate(id => { const c = getContract(id); const before = (c.obligations || []).length;
-    const b = document.querySelector('#ins-panel .obn-lg [data-obn-whose="us"]'); if (b) b.click();
-    return { before, after: ((getContract(id) || {}).obligations || []).length }; }, sid);
-  check('9 · pressing an answer saves nothing until Add is pressed', quiet.before === quiet.after, quiet);
+  /* 9 · reading the proposals writes nothing: choosing agreements adds no duty anywhere */
+  const quiet = await page.evaluate(() => { const n = () => (state.contracts || []).reduce((t, c) => t + ((c.obligations || []).length), 0); const before = n();
+    document.querySelectorAll('.obn-pr[data-obn-pick] td.obn-c1').forEach(r => r.click());
+    return { before, after: n(), addall: document.querySelectorAll('[data-obn-addall]').length }; });
+  check('9 · choosing agreements saves nothing, and no Add all stands anywhere', quiet.before === quiet.after && quiet.addall === 0, quiet);
 
   /* 10 · the three screens: the head, the first row and the foot all stand inside the window */
   for (const [w, hgt] of [[1440, 780], [1536, 730], [1366, 950]]){
@@ -181,25 +188,26 @@ function world(){
   const cid2 = await page.evaluate(done => { const tr = [...document.querySelectorAll('.obn-pr[data-obn-pick]')].find(x => ![done.a, done.b].includes(x.getAttribute('data-obn-pick')));
     const r = tr && tr.querySelector('td.obn-c1'); const id = r && tr.getAttribute('data-obn-pick'); if (r) r.click(); return id; }, { a: cid, b: sid });
   const chose = cid2 ? await until(page, () => !!document.querySelector('#ins-panel .obn-lg'), 5000) : false;
+  /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end"): each duty read in its own quoted words, nothing to answer in the
+     panel, one Decide door for the chosen agreement */
   const lg = chose ? await page.evaluate(id => { const p = document.getElementById('ins-panel'), L = p.querySelector('.obn-lg');
     const its = [...L.querySelectorAll('.obn-lg-it:not(.is-next)')];
     return { for: L.getAttribute('data-obn-lg'), sel: !!document.querySelector(`.obn-pr.is-sel[data-obn-pick="${id}"]`), items: its.length,
-      quoted: its.every(i => !!i.querySelector('.obn-lg-q')), answers: its.every(i => i.querySelectorAll('[data-obn-whose]').length === 4 && /* RE-POINTED 19 Nov 2026 (f1102): Undecided first */ !!i.querySelector('[data-obn-skip]')),
+      quoted: its.every(i => !!i.querySelector('.obn-lg-q')), answers: L.querySelectorAll('[data-obn-whose], [data-obn-skip]').length === 0,
+      decide: !!L.querySelector(`[data-obn-decide="${id}"]`),
       mark: !!L.querySelector('.obn-lg-q mark'), boxed: !!L.querySelector('.jov5-group, .jov5-g'), tab: ((p.querySelector('[data-jl-home] .pd-tab-w') || {}).textContent || '').trim(),
       open: !!document.querySelector('.obn-dr') }; }, cid2) : null;
-  check('13 · a row pressed is chosen, and the panel turns the Legora way: its duties in their own quoted words, each answered in its row, nothing boxed, "‹ Overview" the way back',
-    !!lg && lg.for === cid2 && lg.sel && lg.items >= 1 && lg.quoted && lg.answers && lg.mark && !lg.boxed && /^\u2039/.test(lg.tab) && !lg.open, lg);
+  check('13 · a row pressed is chosen, and the panel turns the Legora way: its duties in their own quoted words, read only, one Decide door, nothing boxed, "‹ Overview" the way back',
+    !!lg && lg.for === cid2 && lg.sel && lg.items >= 1 && lg.quoted && lg.answers && lg.decide && lg.mark && !lg.boxed && /^‹/.test(lg.tab) && !lg.open, lg);
   await page.screenshot({ path: path.join(OUT, '6-chosen.png') });
 
-  /* 14 RE-POINTED 19 Nov 2026 (f1102): an answer in the panel is the list's own answer — the row's ring takes its side's
-     colour (the duties no longer open under the row) */
-  if (lg) await page.evaluate(() => { const b = document.querySelector('#ins-panel .obn-lg [data-obn-whose="them"]'); if (b) b.click(); });
-  await page.waitForTimeout(300);
-  /* RE-POINTED 21 Nov 2026 (P-13, as drawn): the row has no ring — its progress counts the answer */
-  const same = lg ? await page.evaluate(id => { const r = document.querySelector(`.obn-pr[data-obn-pick="${id}"] .obn-pgs small`), pa = document.querySelector('#ins-panel .obn-lg .obn-lg-w.is-on');
-    return { ring: /^[1-9]\d* of \d+/.test(((r && r.textContent) || '').trim()), panel: pa && pa.getAttribute('data-obn-whose'), under: !!document.querySelector('.obn-table [data-obn-whose]') }; }, cid2) : null;
-  check('14 · answered in the panel, the list says the same: the row\'s progress counts it, nothing unfolds under it',
-    !!same && same.ring && same.panel === 'them' && !same.under, same);
+  /* 14 RE-POINTED 23 Nov 2026 (Duties, end to end): the panel and the list say the same — the row's "N of M" is the panel's
+     "N of M decided", and nothing unfolds under the row */
+  const same = lg ? await page.evaluate(id => { const r = document.querySelector(`.obn-pr[data-obn-pick="${id}"] .obn-pgs small`), f = document.querySelector('#ins-panel .obn-lg .obn-lg-foot span');
+    const nm = t => ((String(t || '').match(/(\d+)\D+(\d+)/) || []).slice(1, 3).join('/'));
+    return { row: nm(r && r.textContent), panel: nm(f && f.textContent), under: !!document.querySelector('.obn-table [data-obn-whose]') }; }, cid2) : null;
+  check('14 · the list says what the panel says: the row\'s progress is the panel\'s decided count, nothing unfolds under it',
+    !!same && !!same.row && same.row === same.panel && !same.under, same);
 
   /* 15 · "‹ Overview" lets the row go and the five parts come back */
   await page.evaluate(() => { const b = document.querySelector('#ins-panel [data-jl-home]'); if (b) b.click(); });

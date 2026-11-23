@@ -165,7 +165,7 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         const r2 = document.querySelector(`#pd-thread [data-th-row="${row.getAttribute('data-th-row')}"]`);
         const bead = getComputedStyle(r2.querySelector('.doc-th-bead')).backgroundColor;
         const tok = n => { const p = document.createElement('span'); p.style.color = `var(${n})`; document.body.appendChild(p); const v = getComputedStyle(p).color; p.remove(); return v; };
-        return { row: true, before, after: { open: r2.classList.contains('is-open'), box: vis(r2.querySelector('.stk-line')) }, bead, need: tok('--st-amber-dot') };
+        return { row: true, before, after: { open: r2.classList.contains('is-open'), box: vis(r2.querySelector('.stk-line')) }, bead, need: tok('--st-ruby-dot') };
       });
       /* RE-POINTED 21 Oct 2026: the row says the verdict's word and the count */
       /* RETIRED 17 Nov 2026 (#762): 3f's "says Needs you · 1" half — the new-look Clauses (the Legora way, f1073, f1081)
@@ -174,6 +174,9 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       /* RE-POINTED 17 Nov 2026 (#762): the new look's sheet gives a clause whose worst point needs you the amber dot
          (index.html, THE NEW LOOK: .stk-b-need .doc-th-bead → --st-amber-dot; there is no red on that list) — the dot still
          wears its clause's worst point: the need tone, never the grey of nothing or the green of done */
+      /* RE-POINTED 23 Nov 2026 (owner, Dossier L+S step 3: FOUR KINDS, one colour each — needs you RED, worth a look amber,
+         Playbook blue, your plan ink; pd2PointKind): the list's bead for a clause whose worst point needs you is the red the
+         point's own dot wears (3e) */
       ok('3g the dot wears its clause\'s worst point: the need tone where a point needs you', f5.row && f5.bead === f5.need, JSON.stringify({ bead: f5.bead, need: f5.need }));
       /* 3h RE-POINTED 21 Oct 2026 ("the Legora way"): a point not in the
          contract is no longer a fold at the bottom — its dashed row stands in
