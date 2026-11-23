@@ -184,6 +184,8 @@ async function openTemplateBuilder(tid, vid, opts = {}) {
   if (arrive) { arrive(); if (window.tplLibCancelPending) tplLibCancelPending(); /* the page arrive drew starts no list that paints over this */ }
   _tb = {
     tid, vid, template: t.template, versionNumber: v.version.versionNumber,
+    /* Delete draft (More ▾) reads these: the server's own "may manage", and whether any version ever left draft */
+    canManage: !!t.canManage, everPublished: (t.versions || []).some(x => x && x.status && x.status !== 'draft'),
     /* `_k` IS A CLIENT KEY AND NEVER TRAVELS. A section's ask box, its answer
        and its busy state are held against the HEADING BLOCK it belongs to, and
        an index moves the moment somebody presses an arrow. tbSave maps every
@@ -2561,6 +2563,75 @@ function tbGutter(on) { const sc = document.getElementById('content-scroll'); if
    `tb-publish-bottom` are STALE. The note lives HERE rather than in the
    markup: a comment inside the emitted page would put those names back on it,
    which is what the net reads. */
+/* ════════ THE BUILDER, LEGORA + STRIPE (owner: "Build as drawn", 23 Nov 2026) ════════
+   THE ZOOM: the one control every paper carries (rlPaperZoomHtml, the one remembered value rlDocZoom), first in the
+   paper's scroller; the paper reads it as a zoom on its slot, as Home's paper does (igApplyZoom). */
+function tbApplyZoom() {
+  const slot = document.getElementById('tb-paperslot'); if (!slot) return;
+  slot.style.zoom = typeof window.rlDocZoomFactor === 'function' ? window.rlDocZoomFactor() : '1';
+}
+/* MORE ▾, BEFORE SAVE DRAFT (owner, 23 Nov 2026: "Just call the button more so delete is in the dropdown and have to
+   come before save draft"): drawn only while the template has NEVER been published — a published one is cited by
+   contracts and is archived on its own page, never deleted here. Its one line, Delete draft, asks once (tbDeleteAsk)
+   and goes through the server's own DELETE /api/templates/:id; who may is the server's (admin or Legal, t.canManage),
+   anyone else sees the line grey with the reason. */
+function tbEverPublished() { return !!(_tb && (_tb.everPublished || (_tb.template && (_tb.template.publishedVersion || _tb.template.publishedAt)))); }
+function tbMayDelete() { return !!(_tb && _tb.canManage); }
+function tbMoreBtnHtml() {
+  if (!_tb || tbEverPublished()) return '';
+  return `<button id="tb-more" type="button" class="ui-btn tb-act" aria-haspopup="menu" aria-expanded="false">${esc(i18t('tb_more'))} ${icon('chevD', 'w-3 h-3')}</button>`;
+}
+function tbMoreClose() { const el = document.getElementById('tb-more-pop'); if (el) el.remove();
+  const b = document.getElementById('tb-more'); if (b) b.setAttribute('aria-expanded', 'false'); return !!el; }
+function tbMoreToggle() {
+  if (tbMoreClose()) return;
+  const a = document.getElementById('tb-more'); if (!a || !_tb) return;
+  const may = tbMayDelete();
+  const el = document.createElement('div');
+  el.id = 'tb-more-pop'; el.className = 'pd-acts-pop tb-more-pop'; el.setAttribute('role', 'menu');
+  el.innerHTML = `<button type="button" role="menuitem" class="pd-acts-r is-danger tb-more-r" data-tb-more="delete"${may ? '' : ` disabled title="${esc(i18t('tb_del_who'))}"`}>
+      <span><span class="tb-more-t">${esc(i18t('tb_del'))}</span><span class="tb-more-s">${esc(may ? i18t('tb_del_sub') : i18t('tb_del_who'))}</span></span></button>`;
+  document.body.appendChild(el);
+  const r = a.getBoundingClientRect();
+  el.style.top = Math.round(r.bottom + 6) + 'px';
+  el.style.right = Math.max(8, Math.round(window.innerWidth - r.right)) + 'px';
+  a.setAttribute('aria-expanded', 'true');
+  try { if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) el.animate([{ opacity: 0, transform: 'translateY(-4px)' }, { opacity: 1, transform: 'none' }], { duration: 120, easing: 'ease-out' }); } catch (_) { /* no motion */ }
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', e => {
+    const t = e.target; if (!t || !t.closest) return;
+    if (t.closest('#tb-more')) { e.preventDefault(); tbMoreToggle(); return; }
+    const r = t.closest('#tb-more-pop [data-tb-more]');
+    if (r) { e.preventDefault(); if (r.disabled) return; tbMoreClose(); if (r.getAttribute('data-tb-more') === 'delete') tbDeleteAsk(); return; }
+    if (!t.closest('#tb-more-pop')) tbMoreClose();
+  }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && tbMoreClose()) { e.stopPropagation(); document.getElementById('tb-more')?.focus({ preventScroll: true }); } }, true);
+}
+/* THE ONE QUESTION: what goes (its sections, Jambo's unsaved drafts here), and that no contract used it */
+function tbDeleteAsk() {
+  if (!_tb || tbEverPublished() || !tbMayDelete()) return;
+  const secs = tbSections(), w = secs.filter(x => !tbSectionOwes(x)).length;
+  const name = tbHeadFacts().name, tid = _tb.tid, vid = _tb.vid;
+  const line = (tone, words) => `<div class="tb-del-l"><i style="background:var(--st-${tone}-dot)"></i><span>${esc(words)}</span></div>`;
+  lgpOpen({ id: 'tb-del', title: i18t('tb_del_title', { name }), sub: i18t('tb_del_lead'),
+    html: `<div class="tb-del-ls">${secs.length ? line('amber', i18t('tb_del_secs', { n: secs.length, w })) : ''}${line('amber', i18t('tb_del_drafts'))}${line('green', i18t('tb_del_never'))}</div>`,
+    primary: { label: i18t('tb_del'), attr: 'id="tb-del-go"', danger: true }, cancelAttr: 'data-dlg-cancel id="tb-del-x"', focus: false });
+  document.getElementById('tb-del-x')?.addEventListener('click', () => closeModal());
+  const go = document.getElementById('tb-del-go');
+  go?.addEventListener('click', async e => {
+    e.preventDefault();
+    if (typeof busySet === 'function') busySet(go, i18t('tb_del')); else go.disabled = true;
+    try { await api('templates/' + tid, 'DELETE'); }
+    catch (err) { go.disabled = false; go.textContent = i18t('tb_del'); toast(err.message, 'err'); return; }
+    /* nothing of it is kept: its drafts in this browser, the save timer, the page */
+    tbKeepCancel(); tbDraftDrop(tid, vid); _tb = null;
+    closeModal();
+    if (typeof tplLibRefresh === 'function') { try { await tplLibRefresh(); } catch (_) { /* the shelves still open */ } }
+    if (typeof setView === 'function') setView('templates');
+    toast(i18t('tb_del_done', { name }), 'ok');
+  });
+}
 function tbPaint(opts = {}) {
   const held = opts.fresh ? null : tbHoldScroll();
   document.getElementById('content').innerHTML = `${tbStyleHtml()}
@@ -2575,6 +2646,7 @@ function tbPaint(opts = {}) {
                owner's list, 27 Sep 2026). The same act, in the strip, only while
                the rail is away — one door on screen at a time. */}
         ${tbRailFits() ? '' : `<button id="tb-addfield-strip" type="button" class="ui-btn tb-act">${icon('plus', 'w-3 h-3')}<span class="w"> ${i18t('tl_add_field')}</span></button>`}
+        ${tbMoreBtnHtml()}
         <button id="tb-save" class="ui-btn tb-act" title="${esc(i18t('tb_save_draft'))}" aria-label="${esc(i18t('tb_save_draft'))}">${icon('check2', 'w-3.5 h-3.5')}<span class="w"> ${i18t('tb_save_draft')}</span></button>
         <button id="tb-publish" class="ui-btn ui-btn-primary tb-act">Publish v${_tb.versionNumber}</button>
       </div>
@@ -2582,6 +2654,7 @@ function tbPaint(opts = {}) {
            strip lives in this one scroller, so the strip above and the rail
            beside it never move. -->
       <div class="tb-scroll scroll-thin" id="tb-scroll">
+        ${typeof window.rlPaperZoomHtml === 'function' ? window.rlPaperZoomHtml() : ''}
         <div id="tb-paperslot"></div>
       </div>
     </div>
@@ -2589,7 +2662,7 @@ function tbPaint(opts = {}) {
     <div id="tb-resizer" class="tb-resizer" role="separator" aria-orientation="vertical" tabindex="0"
       aria-label="${esc(i18t('ng_drag_width'))}" title="${esc(i18t('ng_drag_width'))}"><span></span></div>
   </div>`;
-  tbPaintPaper(); tbPaintRail(); tbWire(); tbPaintBranding();
+  tbPaintPaper(); tbPaintRail(); tbWire(); tbPaintBranding(); tbApplyZoom();
   if (typeof window.deskBarPaint === 'function') window.deskBarPaint();
   document.getElementById('tb-addfield-strip')?.addEventListener('click', () => tbFieldModal(null));
   tbRestoreScroll(held);
@@ -3493,7 +3566,7 @@ async function tbPaintBranding() {
 
 /* The readings are published and the screen is not: a check drives tbSections
    and tbCoverage over a block list it wrote itself, with no builder open. */
-Object.assign(window, { tbLookAsk, tbPublishedLand, tbDesignStepGo, openTemplateBuilder, tbCardWording, TB_BLOCK_META, TB_PB_KEY, TB_ASK_MAX, TB_BLANK_TYPE, TB_RAIL_MIN, TB_CHIP_ASK,
+Object.assign(window, { tbApplyZoom, tbMoreBtnHtml, tbMoreToggle, tbMoreClose, tbDeleteAsk, tbEverPublished, tbMayDelete, tbLookAsk, tbPublishedLand, tbDesignStepGo, openTemplateBuilder, tbCardWording, TB_BLOCK_META, TB_PB_KEY, TB_ASK_MAX, TB_BLANK_TYPE, TB_RAIL_MIN, TB_CHIP_ASK,
   tbSplit, tbFitSplit, tbWireSplit, TB_SPLIT_KEY, TB_FMIN, TB_FMAX, TB_LEFT_MIN, TB_RIGHT_MIN, TB_GAP,
   tbSections, tbSectionText, tbDropExtraBody, tbKindOf, tbLibraryFor, tbLibraryOffers, tbCoverage, tbCoverageOf, tbFinderOf, tbSectionFor, tbMarksOf, tbMarksHtml, tbPbKey, tbStandardFor, tbPrecedentFor,
   tbFocus, tbSetTab, tbRailFits, tbNextEmpty, tbQuestionFor, tbChipsHtml, tbReadEditable, tbPaint, tbPaintRail, tbSend, tbAccept, tbOutlineAdd, tbTurn, tbSetWalk,

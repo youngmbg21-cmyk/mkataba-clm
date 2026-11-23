@@ -25421,6 +25421,27 @@
   html.lg-new #tb-page.tb-page #tb-railslot{margin:calc(-1 * var(--page-pad-t)) calc(-1 * var(--page-pad-x)) calc(-1 * var(--page-pad-b)) 0}
   html.lg-new #tb-page.tb-page:not(.no-rail) > .tb-left{margin-bottom:0}
   html.lg-new #tb-page.tb-page:not(.no-rail):not(.is-railfold){grid-template-columns:minmax(0,1fr) calc(384px - var(--page-pad-x))}
+  /* THE BUILDER, LEGORA + STRIPE (owner: "Build as drawn", 23 Nov 2026; reverses the 13 Nov "backdrop of the clause
+     editor"): the paper lies on the DOSSIER'S desk, the warm --desk-ground, without an outline, lifted as the Dossier's
+     paper is; "Draft · v1" a soft grey badge; Category and Stream chips, an unchosen stream amber and dashed; More ▾
+     before Save draft holds Delete draft (tbMoreBtnHtml), its one question lines with a dot each (tbDeleteAsk) */
+  html.lg-new #tb-page #tb-scroll{background:var(--desk-ground);border-top-color:transparent}
+  html.lg-new #tb-page #tb-paper{border-color:transparent;box-shadow:var(--n-shadow-card,0 1px 2px rgba(38,55,74,.06),0 4px 14px rgba(38,55,74,.07))}
+  html.lg-new #tb-page .tb-head .tb-chipv{height:22px;padding:0 9px;border-radius:999px;background:var(--st-gray-bg);color:var(--st-gray-fg);font-size:var(--t-label)}
+  html.lg-new #tb-page .tb-head .tb-fchip{height:28px;padding:0 10px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface)}
+  html.lg-new #tb-page .tb-head .tb-fchip.empty{border:1px dashed var(--st-amber-line);background:var(--st-amber-bg)}
+  html.lg-new #tb-page .tb-head .tb-fchip:hover{border-color:var(--accent-ink)}
+  html.lg-new #tb-page .tb-strip #tb-more svg{display:inline-block;margin-left:4px}
+  .tb-more-pop .tb-more-r{white-space:normal;align-items:flex-start}
+  .tb-more-pop .tb-more-t{display:block}
+  .tb-more-pop .tb-more-s{display:block;margin-top:2px;font-size:12px;color:var(--color-neutral-600)}
+  .tb-more-pop .tb-more-r:disabled .tb-more-t{color:var(--color-neutral-400)}
+  .tb-del-ls{display:flex;flex-direction:column}
+  .tb-del-l{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--color-divider);font-size:var(--t-body)}
+  .tb-del-l:last-child{border-bottom:0}
+  .tb-del-l i{width:7px;height:7px;border-radius:50%;flex:none}
+  html.lg-new .lgp .lgp-go.is-danger, .lgp .lgp-go.is-danger{background:var(--danger);border-color:var(--danger);color:var(--color-surface)}
+  html.lg-new .lgp .lgp-go.is-danger:hover, .lgp .lgp-go.is-danger:hover{background:var(--danger-hover);border-color:var(--danger-hover)}
   /* SETTINGS' OTHER PAGES (owner, 9 Nov 2026, the Settings menu's fix: People & roles, Contract streams, Data & backup
      and every page in the older Settings frame, .st-cr): one white sheet like Settings itself — no well, no corner, no
      lift; its parts are rows, a hairline under each */

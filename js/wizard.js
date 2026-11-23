@@ -1309,7 +1309,7 @@ function openNewAgreement(o){
     let why=!api?i18t(one?'na6_pick_paper':'na_pick_first'):i18t('na_stream_first');
     /* THEIR PAPER: Create needs their file and a stream (the drop's own two) */
     if(one&&paper==='theirs'){ on=!!theirFile&&!!streamPicked; why=!theirFile?i18t('na_theirs_need'):i18t('na_stream_first'); }
-    if(one){ root.setAttribute('data-paper',paper); const tp=paper==='kept'?'theirs':paper; root.querySelectorAll('[data-na-paper]').forEach(b=>b.setAttribute('aria-selected',String(b.getAttribute('data-na-paper')===tp)));
+    if(one){ root.setAttribute('data-paper',paper); const tp=paper==='kept'?'theirs':paper; /* while Create a template is up (a door opened it), no paper tab is lit */ const np=root.classList.contains('is-newpaper'); root.querySelectorAll('[data-na-paper]').forEach(b=>b.setAttribute('aria-selected',String(!np&&b.getAttribute('data-na-paper')===tp)));
       const th=document.getElementById('na-theirs'); if(th) th.hidden=tp!=='theirs';
       /* Their paper's panel says the file and the stream as they stand: a change to either draws it again (the dock
          writes nothing where nothing moved, igDockSame) */
