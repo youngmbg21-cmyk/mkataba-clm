@@ -16826,6 +16826,9 @@
   @media (max-width:767px){ .dk-nav-b{display:none} }
   #cmd-palette .lp-sheet{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto minmax(0,1fr) auto}
   #cmd-palette .lp-top{grid-column:1;grid-row:1;position:relative;padding:22px var(--s-8) 6px}
+  /* the × in the top right corner (owner, 23 Nov 2026): over the waiting column, quiet until the hand is on it */
+  #cmd-palette .lp-x{position:absolute;top:var(--s-3);right:var(--s-3);z-index:2;width:var(--ctl-h-sm);height:var(--ctl-h-sm);display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:999px;background:transparent;color:var(--color-neutral-400);cursor:pointer}
+  #cmd-palette .lp-x:hover{background:var(--color-neutral-200);color:var(--color-text)}
   #cmd-palette .lp-in{width:100%;border:0;outline:0;background:transparent;font-family:var(--font-title);font-size:22px;line-height:1.2;color:var(--color-text)}
   #cmd-palette .lp-in::placeholder{color:transparent}
   #cmd-palette .lp-ph{position:absolute;left:var(--s-8);right:var(--s-8);top:22px;pointer-events:none;font-family:var(--font-title);font-size:22px;line-height:1.2;color:var(--color-neutral-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

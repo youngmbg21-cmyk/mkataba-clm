@@ -40116,3 +40116,6 @@ The owner, on the iPad: "When on my iPad and i try to enter my cursor in the fie
 ## STANDARDS — THE LADDER (23 Nov 2026)
 - Owner, with four photos: on Approvals & signing, a departure's panel link "open the clause" landed in the clause editor; it should land where the row's "See it in the paper ›" lands. The link now carries `data-apn-pile-peek` and opens `apnPeekOpen` — the read-only paper at the departing words, with Open the Dossier ›. Left as they were (not asked): the panel's quoted words ("What the paper says") and a row's second press still open the clause through ldDepRun. f1182, red at the parent.
 - (same day) Owner: "change those two as well" — the departure panel's quoted words and a departure row's second press now open the same paper look (apnPeekOpen); a standard change's row and its link keep the Playbook's door. f1182 (2), red at the parent.
+
+## THE SHELL — RAIL, BAR, PANELS (23 Nov 2026)
+- Owner, with a photo of the jump window and its top right corner circled: "Add an (x) exit button on the top right corner." `#lp-x` (`.lp-x`, quiet grey, a soft circle on hover) sits over the waiting column's corner and presses the window's own close, as Esc and a press outside do. f1183, red at the parent. Not photographed at the three screens before the merge (the owner asked to merge at once).

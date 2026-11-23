@@ -2094,6 +2094,7 @@ function openCommandPalette(prefill){
   ov.innerHTML=`
     <div class="lp-veil" style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 42%,transparent)"></div>
     <div class="modal-in lp-sheet" style="position:relative;width:100%;max-width:1300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);overflow:hidden;max-height:calc(100vh - 2 * var(--s-4))">
+      <button type="button" class="lp-x" id="lp-x" aria-label="${esc(i18t('act_close'))}" title="${esc(i18t('act_close'))}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
       <div class="lp-top">
         <input id="cp-input" class="lp-in" placeholder="${esc(i18t('lp_where'))}" autocomplete="off"
           role="combobox" aria-expanded="true" aria-controls="cp-list" aria-autocomplete="list"
@@ -2128,6 +2129,8 @@ function openCommandPalette(prefill){
     ov.remove(); document.removeEventListener('keydown',onKey,true); lpDoorSay(false);
     try{ if(opener&&opener.focus&&document.contains(opener)) opener.focus({preventScroll:true}); }catch(_){}
   };
+  /* AN × IN THE TOP RIGHT CORNER (owner, 23 Nov 2026): the same close as Esc and a press outside */
+  { const x=ov.querySelector('#lp-x'); if(x) x.addEventListener('click',e=>{ e.preventDefault(); close(); }); }
   const openItem=it=>{
     if(it.kind==='ask'){
       close();
