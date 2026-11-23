@@ -82,10 +82,11 @@ const deliver = (answer, chapter) => [{ type: 'tool_use', id: 'tu_d', name: 'del
     await askPanel('what can I do here?');
     await waitCalls(2);
     /* RE-POINTED 19 Nov 2026 (f1099): chapter 5.1 is now "Obligations: what we owe, what they owe" */
-    check('B1 the model is told this page\'s chapters, the owner first', /The Handbook chapters that cover this page: 5\.1 Obligations: what we owe, what they owe; 5\.2/.test(sent(0)), (sent(0).match(/The Handbook chapters that cover this page:[^.]*\./) || [''])[0]);
+    /* RE-POINTED 23 Nov 2026 (owner: "say duty everywhere in English", 5f6a4732): chapter 5.1 is "Duties: what we owe, what they owe" */
+    check('B1 the model is told this page\'s chapters, the owner first', /The Handbook chapters that cover this page: 5\.1 Duties: what we owe, what they owe; 5\.2/.test(sent(0)), (sent(0).match(/The Handbook chapters that cover this page:.{0,120}/) || [''])[0]);
     const bB = await until(() => [...document.querySelectorAll('#ins-panel button, #jl-feed button')].some(x => /^Handbook › 5\.1 /.test(x.textContent.trim())) ? true : null);
     const mB = bB ? await button('#ins-panel button, #jl-feed button') : null;
-    check('B2 "Handbook › 5.1 …" under the answer, painted, inside the panel', !!mB && /^Handbook › 5\.1 Obligations/.test(mB.text) && mB.inside && mB.painted, JSON.stringify(mB));
+    check('B2 "Handbook › 5.1 …" under the answer, painted, inside the panel', !!mB && /^Handbook › 5\.1 Duties/.test(mB.text) && mB.inside && mB.painted, JSON.stringify(mB));
     await page.screenshot({ path: path.join(OUT, 'B-obligations-1440x780.png') });
     await page.evaluate(() => { const b = [...document.querySelectorAll('#ins-panel button, #jl-feed button')].filter(x => /^Handbook › 5\.1/.test(x.textContent.trim())).pop(); if (b) b.click(); });
     const B3 = await until(() => state.view === 'handbook' && hbkPlace().chapter === '5.1' ? true : null);

@@ -271,9 +271,13 @@ const MARK = cid => {
       setView('calendar');
     });
     await pause(1200);
-    await page.click('[data-cal-view="horizon"]').catch(() => {}); await pause(1400);
+    await page.click('[data-cal-view="horizon"]').catch(() => {});
+    /* RE-POINTED 23 Nov 2026 (P-14, the Calendar the Legora + Stripe way, owner: "Build P-14"; the picked drawing is the
+       agreement): the Horizon is one table, each agreement's time left a slim bar (.cls-bk) — the drawing's bar is
+       7px tall (.bk{height:7px}), the old artifact's 8px bar went with the old Horizon. A wait that asks for the state */
+    await page.waitForFunction(() => !!document.querySelector('.cal-page.is-ls[data-cal-ls="horizon"] .cls-bk'), null, { timeout: 8000 }).catch(() => {});
     const bar = await page.evaluate(() => {
-      const b = document.querySelector('.cal-hz-bar'); if (!b) return null;
+      const b = document.querySelector('.cal-page.is-ls .cls-bk'); if (!b) return null;
       const r = b.getBoundingClientRect();
       const e = document.querySelector('.cal-hz-end');
       const er = e ? e.getBoundingClientRect() : null;
@@ -281,7 +285,7 @@ const MARK = cid => {
         endMid: er ? Math.round(er.top + er.height / 2) : null };
     });
     await page.screenshot({ path: path.join(OUT, '04-horizon.png') });
-    check('4a the bar is the artifact\'s eight pixels', !!bar && bar.h === 8, bar && `${bar.h}px`);
+    check('4a the bar is the drawing\'s seven pixels', !!bar && bar.h === 7, bar && `${bar.h}px`);
     /* [RELATION] the tick marks the exact expiry day and sits on the bar's
        own centre line — the reason the top moved with the height. */
     /* RETIRED 16 Nov 2026 (#762): 4b "it shares its centre line with the expiry tick" — the new look's Horizon (the SAP
