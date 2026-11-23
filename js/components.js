@@ -393,6 +393,26 @@ function wmLiftSet(p, y){
   y = Math.max(0, Math.min(WM_LIFT_MAX, Math.round(y || 0)));
   if (p._wmY === y) return;
   p._wmY = y; p.style.setProperty('--wm-y', y + 'px');
+  const st = wmStageOf(p); if (st) st.style.setProperty('--wm-y', y + 'px');
+}
+/* THE WAVES SLIDE AS ONE PICTURE (owner, 23 Nov 2026): each panel kind's weave lives on a stage of its own, outside the
+   panel (index.html, THE WAVES SLIDE AS ONE PICTURE), placed on it by anchor; mounted once, never redrawn, so a panel's
+   own repaints never touch it. aria-hidden: nothing to read or press. */
+const WM_STAGES = [['wm-dock', '#ig-dock'], ['wm-ins', '.ins-panel.is-jambo'], ['wm-st', '.st-cr .st-side']];
+function wmStageOf(p){
+  if (typeof document === 'undefined' || !p || typeof p.matches !== 'function') return null;
+  const hit = WM_STAGES.find(([, sel]) => { try { return p.matches(sel); } catch (_){ return false; } });
+  return hit ? document.getElementById(hit[0]) : null;
+}
+function wmStagesMount(){
+  if (typeof document === 'undefined' || !document.body || typeof document.createElement !== 'function') return;
+  for (const [id] of WM_STAGES){
+    if (document.getElementById(id)) continue;
+    const st = document.createElement('div');
+    st.id = id; st.className = 'wm-stage'; st.setAttribute('aria-hidden', 'true');
+    st.innerHTML = '<i class="wm-a"></i><i class="wm-b"></i>';
+    document.body.appendChild(st);
+  }
 }
 function wmFollow(p, sc){
   p._wmSc = sc; wmLiftSet(p, sc.scrollTop);
@@ -404,13 +424,14 @@ function wmFollow(p, sc){
 }
 /* listened for only where a page can listen (a bare stand-in document, as the composer tests use, has no listener) */
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function'){
+  if (document.body) wmStagesMount(); else document.addEventListener('DOMContentLoaded', wmStagesMount, { once: true });
   document.addEventListener('scroll', e => {
     const t = e.target; if (!t || t.nodeType !== 1 || typeof t.closest !== 'function') return;
     const p = t.closest(WM_PANELS); if (!p || p === t) return;
     wmFollow(p, t);
   }, { capture: true, passive: true });
 }
-Object.assign(window, { WM_PANELS, WM_LIFT_MAX, wmLiftSet, wmFollow });
+Object.assign(window, { WM_PANELS, WM_LIFT_MAX, wmLiftSet, wmFollow, WM_STAGES, wmStageOf, wmStagesMount });
 /* ============================================================
    SHARED: contract row (compact list item, used everywhere)
    ============================================================ */

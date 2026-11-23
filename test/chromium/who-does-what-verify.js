@@ -76,7 +76,9 @@ const FOUND = [
       const t = document.querySelector('#pd2-dl .pd2-dl-t'), dock = document.getElementById('ig-dock');
       return { tabs: [...document.querySelectorAll('#pd2-dl [data-pd2-dl-tab]')].map(b => b.getAttribute('data-pd2-dl-tab')).join(','),
         rows: document.querySelectorAll('#pd2-dl [data-pd2-dl-row]').length, sideways: t.scrollWidth > t.clientWidth + 1,
-        waves: getComputedStyle(dock, '::before').content !== 'none' && getComputedStyle(dock, '::before').maskImage !== 'none',
+        /* RE-POINTED 23 Nov 2026 (THE WAVES SLIDE AS ONE PICTURE): the weave is the anchored stage lying on the panel */
+        waves: (() => { const pr = dock.getBoundingClientRect(), st = document.getElementById('wm-dock'); if (!st) return false; const r = st.getBoundingClientRect();
+          return Math.abs(r.left - pr.left) < 2 && Math.abs(r.top - pr.top) < 2 && r.width > 0 && /data:image\/svg/.test(getComputedStyle(st.querySelector('.wm-a')).maskImage || ''); })(),
         head: (document.querySelector('#ig-dock .pd2-dl-ft') || {}).textContent || '' };
     }) : {};
     check('2b tabs Still open · Settled · Who does what', p2b.tabs === 'open,settled,duties', p2b.tabs);
