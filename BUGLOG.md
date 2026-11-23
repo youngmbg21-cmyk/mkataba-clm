@@ -22973,3 +22973,4 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - The access check's area chip uses a typed "+" and "×" (copies My notes' chip).
 - `ca_go_draft_can_h` (both books) is left with no reader since New agreement's old panel was deleted (7982954e); `.tpl-rail:hover` still paints a grey row hover.
 - Fixed (23 Nov 2026, Dossier L+S step 4): the Redlines switch could light two buttons at once (Notes and Ladder); now one of three (f1197).
+- test/f1194-no-old-layout-for-a-signed-in-reader.test.js is red on claude/great-bardeen-ockvtr (90dc2d6b) before any change: "the old sheet panel's words left both books". my-calendar-verify waits on an owner decision: P-14's Week and Month draw no own events, notes or Jambo's planned blocks (calLsBase leaves out `e.own`), so its checks 2–6 have nothing to find.

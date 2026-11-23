@@ -392,9 +392,20 @@ const VISIBLE = `(el) => {
        Run line sits on the Clauses tab's open row. */
     const obTab = async () => {
       await page.evaluate(id => pdOpenOnHome(id, 'oblig'), cid);
-      /* RE-POINTED 23 Oct 2026 (Spine): Obligations is its own panel, no tab — the trail over it names it */
-      await page.waitForFunction(() => window.pdTab && pdTab() === 'oblig' && !!document.querySelector('#ig-dock .pd-trail'),
-        null, { timeout: 8000 }).catch(() => {});
+      /* RE-POINTED 23 Nov 2026 (Duties ONE DOOR, "Duties, end to end"): the hidden Obligations panel is gone; the door opens
+         the contract's Duties page in the middle (#dtp), whose sweep is its own "Read the duties again" (data-dtp-again →
+         dutiesReadAgain, one duties-only reading on a press) and whose head names Duties */
+      await page.waitForFunction(() => !!document.querySelector('#dtp [data-dtp-again]'), null, { timeout: 8000 }).catch(() => {});
+      if (await page.evaluate(() => !!document.querySelector('#dtp'))){ const r = await page.evaluate(`(() => {
+        const vis = ${VISIBLE};
+        const b = document.querySelector('#dtp [data-dtp-again]');
+        const tab = document.querySelector('#dtp .obd-title');
+        return { find: vis(b), live: !!(b && !b.disabled), tab: tab ? tab.textContent.replace(/\\s+/g, ' ').trim() : '' };
+      })()`);
+        /* the page is put away again, so the Clauses tab below is asked of the paper, not under the page */
+        await page.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
+        await page.waitForFunction(() => !document.querySelector('#dtp'), null, { timeout: 4000 }).catch(() => {});
+        return r; }
       return page.evaluate(`(() => {
         const vis = ${VISIBLE};
         /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the link says "Find more in the wording" */

@@ -102,14 +102,17 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     /* ===== 3. THE PAPER'S DESK — HEADER ICONS (8 Oct 2026) ===== */
     await page.waitForSelector('#ig-dock [data-pd-tab="doc"]', { timeout: 5000 }).catch(() => {});
     const head = await page.evaluate(() => ({ title: /Intelligence panel/.test((document.querySelector('#ig-dock .igd-head') || {}).textContent || ''), desk: !!document.getElementById('ig-desk'),
-      tabs: [...document.querySelectorAll('#ig-dock .igd-head [data-pd-tab]')].map(b => b.getAttribute('data-pd-tab')) }));
+      tabs: [...document.querySelectorAll('#ig-dock .igd-head [data-pd-tab]')].map(b => b.getAttribute('data-pd-tab')),
+      plan: !!(window.pdContract && pdContract() && typeof pd2PlanTabOn === 'function' && pd2PlanTabOn(getContract(pdContract().id) || pdContract())) }));
     /* RE-POINTED 10 Oct 2026 (owner: "delete signing tab"), and 11 Oct 2026
        ("delete the deal tab ... and also delete history"; Document is Clauses), and
        13 Oct 2026 ("delete the overview tab from document page") */
     /* RE-POINTED 21 Oct 2026 (owner picked "The Dossier", 20 Oct 2026: it reverses the Menu tab, folded into the Dossier's All acts; the first tab beside a paper is "Dossier"): */
     ok('3a0 the title row is the tabs: the Dossier then two; no Overview, Signing, Deal, History or Menu, no "Intelligence panel", no column beside the paper',
       /* RE-POINTED 23 Oct 2026 (Spine): Redlines after Clauses; Obligations left the row for its line under Sign */
-      !head.title && !head.desk && head.tabs.join(',') === 'copilot,doc,red', JSON.stringify(head));
+      /* RE-POINTED 23 Nov 2026 (Dossier L+S step 2, PLAN THE READ): a Plan tab stands beside the Dossier while a plan
+         stands or nothing is read (pd2PlanTabOn) — then the row is Dossier · Plan · Clauses · Redlines */
+      !head.title && !head.desk && head.tabs.join(',') === (head.plan ? 'copilot,plan,doc,red' : 'copilot,doc,red'), JSON.stringify(head));
     const tabs = {};
     /* Redlines first, then Clauses, so the panel ends on a tab's body as it did (the face put away) */
     for (const t of ['red', 'doc']) {
@@ -135,7 +138,9 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
        you want to chat with jambo it takes you to a new jambo tab but you can go back to the landing side
        panel"; "Jambo" names only the conversation. The face stays its mark.
        RE-POINTED 19 Oct 2026 (owner: his face belongs on "its one tab that says Jambo"): Overview wears ▦. */
-    ok('3a2 symbols — the artifact\'s marks — each with its word under it, whole; one lit', sym.length === 3 && sym.map(s => s.glyph.replace('\uFE0E', '')).join('') === '\u25A6\u25A2\u21C4' && sym.map(s => s.txt).join('|') === 'Dossier|Clauses|Redlines' && sym.every(s => s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.glyph + ' ' + s.txt + (s.whole ? '' : ' (cut)'))));
+    /* RE-POINTED 23 Nov 2026 (Dossier L+S step 2): with the Plan tab standing, its mark ☷ and its word Plan sit second */
+    const P = head.plan;
+    ok('3a2 symbols — the artifact\'s marks — each with its word under it, whole; one lit', sym.length === (P ? 4 : 3) && sym.map(s => s.glyph.replace('\uFE0E', '')).join('') === (P ? '\u25A6\u2637\u25A2\u21C4' : '\u25A6\u25A2\u21C4') && sym.map(s => s.txt).join('|') === (P ? 'Dossier|Plan|Clauses|Redlines' : 'Dossier|Clauses|Redlines') && sym.every(s => s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.glyph + ' ' + s.txt + (s.whole ? '' : ' (cut)'))));
     /* WHITE, UNDER THE GREETING ROW (owner, 10 Oct 2026; reverses Lifted) */
     /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): pressing Clauses plays THE READ quickly over the paper
        (pd2WalkWithRead), and while it walks the paper's strip steps aside (#ig-page.is-pd2-walk); a quick read closes itself
@@ -206,8 +211,10 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     /* the act's own door (agRunAct 'oblig' → agGo): the Obligations worklist, where the late promise is a row with its chase */
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): one contract's obligations asked for land on its paper's
        Obligations face (renderObligationsList → pd2ObGo; "the new look has no narrowed page"), the late promise among its rows */
+    /* RE-POINTED 23 Nov 2026 (Duties ONE DOOR, "Duties, end to end"): the paper's Obligations face is gone; the contract's
+       duties are its Duties page in the middle (#dtp), On the contract, its own rows */
     const ON = () => (state.view === 'obligations' && /MK-HF4/.test((document.getElementById('content') || {}).innerText || ''))
-      || (typeof pdContract === 'function' && pdContract() && pdContract().id === 'MK-HF4' && pdTab() === 'oblig' && document.querySelectorAll('#ig-dock .pd-ob[data-pd-ob-key]').length > 0);
+      || (typeof pdContract === 'function' && pdContract() && pdContract().id === 'MK-HF4' && document.querySelectorAll('#dtp tr.dtp-r[data-dtp-rec]').length > 0);
     await page.waitForFunction(ON, null, { timeout: 8000 }).catch(() => {});
     const l = await page.evaluate(`(() => ({ view: state.view, at: ((window.pdContract && pdContract()) || {}).id || null, tab: window.pdTab ? pdTab() : null, ok: (${ON.toString()})() }))()`);
     ok('5b it lands on the late promise\'s obligations, its contract\'s own rows', l.ok, JSON.stringify(l));
