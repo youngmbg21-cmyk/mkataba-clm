@@ -62,3 +62,29 @@ test('f1195 (4) wired where the paper is painted, standing aside where it must',
   assert.match(PD, /function pd2FillSigPaint\(c, cv\)\{\s*if \(typeof pagesSignNamesOff === 'function'\) pagesSignNamesOff\(cv\);/);
   assert.match(R('index.html'), /@media print\{ \.rl-sn-badge, \.rl-sn-owed\{display:none\} \}/);
 });
+
+test('f1195 (5) their page: names and titles only, every link, read live; never an address', () => {
+  const SRV = strip(R('server/server.js'));
+  const i = SRV.indexOf('function shareSignerNames('), fn = SRV.slice(i, SRV.indexOf('function shareSigningOrder(', i));
+  assert.ok(i > 0, 'the server reads the route for their page');
+  assert.doesNotMatch(fn, /email|memberId|image|\.id\b|\bat:/, 'no address, member, row id, mark or date travels');
+  assert.match(fn, /name: String\(r\.name \|\| ''\)\.trim\(\), title:/);
+  assert.equal((SRV.match(/signerNames: shareSignerNames\(s\)/g) || []).length, 2, 'both of their page\'s answers carry it');
+  assert.doesNotMatch(fn, /purpose|isSign/, 'every link, not only a signing one');
+  assert.match(strip(R('js/views/portal.js')), /signerNames:Array\.isArray\(d\.signerNames\)\?d\.signerNames:null,/);
+});
+
+test('f1195 (6) the bench paints it on our Redlines page and theirs; their unnamed line stays plain', () => {
+  const NG = strip(R('js/views/negotiation.js'));
+  assert.match(NG, /function negoAfterPaint\(c, opts, host\)\{[\s\S]{0,300}rlSignNamesPaint\(host, c\)/);
+  const i = NG.indexOf('function rlSignNamesPaint('), fn = NG.slice(i, i + 1400);
+  assert.match(fn, /window\.PORTAL_OPTS\.signerNames/);
+  assert.match(fn, /let cc = c, owed = false;/, 'their page owes nothing on our route');
+  assert.match(fn, /p\.closest\('\.pg-sign, \.ig-signpaper'\) \|\| p\.querySelector\('\.pd2-ps'\)/);
+});
+
+test('f1195 (7) the phone prints them too, no amber space', () => {
+  const M = strip(R('js/mobile-contract.js'));
+  const i = M.indexOf('function mDocHtml('), fn = M.slice(i, i + 900);
+  assert.match(fn, /window\.pagesSignNames\(d, c, \{ owed:false \}\)/);
+});

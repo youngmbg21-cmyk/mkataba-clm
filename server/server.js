@@ -21624,6 +21624,22 @@ function shareHandoverFact(contractId) {
    stored address against the route's (the address never leaves), and each of
    their side's rows carries the day its signing link went out (`linkAt`) —
    the date only. A sign link's order is unchanged. */
+/* ---- WHO SIGNS, ON THEIR PAPER TOO (owner, 23 Nov 2026: "Names and titles only") ----
+   Their working paper prints under each signature line the person our route names for that party (pagesSignNames),
+   as ours does. So every link of theirs carries this, read LIVE from the stored route: NAME, TITLE, which SIDE, the
+   party id their line is matched by, the STEP and whether signed. Never an email, member id, row id, image or date;
+   the rest of the route stays ours. Kept apart from `signingOrder`, whose presence their page reads as "signing has
+   started". */
+function shareSignerNames(s) {
+  if (!s) return null;
+  const rt = signerRouteFor(s.contract_id);
+  if (!rt) return null;
+  return rt.plan.filter(r => r && String(r.name || '').trim()).map(r => ({
+    side: r.party === 'counterparty' ? 'theirs' : 'ours',
+    partyId: r.party === 'counterparty' && r.partyId ? String(r.partyId) : '',
+    name: String(r.name || '').trim(), title: String(r.role || '').trim() || null,
+    step: srvSignStep(r), signed: !!rt.signedRow(r) }));
+}
 function shareSigningOrder(s) {
   if (!s) return null;
   const isSign = (s.purpose || '') === 'sign';
@@ -21959,7 +21975,7 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
          held with its reason ("X signs first"). The same facts a sign link
          serves once its turn comes, minus nothing the reader could act on —
          the respond route still refuses a signature out of turn. */
-      payload: srvPartiesOnPayload(p, s), purpose: s.purpose || null, signingOrder: shareSigningOrder(s),
+      payload: srvPartiesOnPayload(p, s), purpose: s.purpose || null, signingOrder: shareSigningOrder(s), signerNames: shareSignerNames(s),
       signatures: shareLiveSignatures(s, null), emailConfigured: EMAIL_ON(),
       share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
         expiresAt: s.expires_at || null, channel: s.channel || 'link' } });
@@ -22084,6 +22100,7 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
        goes on inviting redlines on a sealed contract. */
     executed: contractExecution(s.contract_id),
     signingOrder: shareSigningOrder(s),
+    signerNames: shareSignerNames(s),   // names and titles only, every link (owner, 23 Nov 2026)
     /* THE SIGNATURES SO FAR, read live (7 Oct 2026, work order O-1). Their
        page draws the contract from the copy frozen when the link went out, so
        a signature made since never reached their paper, not even their own.

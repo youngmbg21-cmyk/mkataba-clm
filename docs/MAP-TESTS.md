@@ -1122,3 +1122,4 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 - f1194: the paper fill writes the amendment's wording; an answer only on the record is still owed; "made on" fills the effective date; no value and no second Effective box owed.
 ## WHO SIGNS, ON THE WORKING PAPER
 - f1195: named signer with order badge and "title, for company"; amber space when nobody is named (none for a Viewer or a sealed paper); painted once, taken off whole; wired from pdPaint, stepping aside on the signing copy and in Fill in.
+- f1195 (5)–(7): their page gets names and titles only on every link (no address); the bench paints our Redlines page and theirs; the phone prints them with no amber space.
