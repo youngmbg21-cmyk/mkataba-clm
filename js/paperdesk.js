@@ -87,7 +87,11 @@ function pdSolo(){
 function pdLandHasPress(){
   try { const top = (typeof pdJamboTopHtml === 'function') ? pdJamboTopHtml() : ''; return /<(?:a|button)\b/i.test(String(top || '')); } catch (_){ return false; }
 }
-function pdSetTab(t){ t = PD_TAB_ALIAS[t] || t; if (!PD_TABS.includes(t)) return; const was = _pdTab; _pdTab = t;
+function pdSetTab(t){ t = PD_TAB_ALIAS[t] || t;
+  /* THE HIDDEN OBLIGATIONS PANEL IS GONE (owner, 23 Nov 2026, "Duties, end to end"): every way that turned the panel to it
+     opens the contract's Duties page in the middle instead (dutiesOpen, the one door) */
+  if (t === 'oblig'){ try { const c = pdContract(); if (c && typeof window.dutiesOpen === 'function' && window.dutiesOpen(getContract(c.id) || c, { tab: 'on' })) return; } catch (_){} return; }
+  if (!PD_TABS.includes(t)) return; const was = _pdTab; _pdTab = t;
   /* the new look's notes beside the paper follow the tab (the Dossier's own), after the panel is drawn */
   if (was !== t && typeof pd2On === 'function' && pd2On()) setTimeout(() => { try { const c = pdContract(); if (c) pd2NotesPaint(getContract(c.id) || c); } catch (_){} }, 0); }
 function pdTab(){ return _pdTab; }
@@ -317,7 +321,7 @@ function pdObSidesHtml(c, obs){
 }
 /* THE OBLIGATIONS LIST'S OWN PANEL (owner, 23 Oct 2026): its door is the Dossier's line under Sign; it turns
    the panel to the list, with ONE TRAIL back to the Dossier and Jambo's box at its foot as every tab has */
-function pdObOpen(){ pdSetTab('oblig'); if (typeof renderIntelDock === 'function') renderIntelDock(); }
+function pdObOpen(){ pdSetTab('oblig'); }
 function pdObClose(){ pdSetTab('copilot'); if (typeof renderIntelDock === 'function') renderIntelDock(); }
 /* the one row opened on the Obligations face (the list's press carries its key) */
 function pdObOpenRow(cid, key){ _pdObOpen = key ? { id: String(cid), key: String(key) } : null; pdObOpen(); }
@@ -475,6 +479,8 @@ function pdOpenOnHome(id, tab, o){
     pdOpenOnHome._in = true; try { return window.igDockBatch(() => pdOpenOnHome(id, tab, o)); } finally { pdOpenOnHome._in = false; } }
   /* A CONTRACT NEVER CHECKED AGAINST THE PLAYBOOK IS CHECKED ON ITS FIRST OPEN (owner picked "B", 19 Nov 2026; pbCheckOnOpen) */
   if (typeof window !== 'undefined' && typeof window.pbCheckOnOpen === 'function') try { window.pbCheckOnOpen(id); } catch (_){}
+  /* JAMBO THE INSTRUCTOR: a contract opened ticks a new person's first step (js/teach.js; nothing while teaching is off) */
+  if (typeof window !== 'undefined' && typeof window.teachDid === 'function') try { window.teachDid('open'); } catch (_){}
   /* NO COVER (owner, 20 Nov 2026: "Delete it, open the Dossier instead"): 'open' — a list row, a typed number, a Board
      row — lands on the paper with the face this reader opens contracts on, the Dossier unless they chose another */
   if (typeof pdArriveNote === 'function') pdArriveNote(id);
@@ -3958,7 +3964,8 @@ function pdActsPopClose(){
    grey with its reason; its last row, "All acts (N)", turns the same card into every act (the Dossier's "All N ›"
    keeps opening the whole card at once). Nothing leaves the Dossier's list: the short card only chooses. */
 const PD_ACTS_SHORT = [
-  ['pd_menu_work', ['[data-rl-edit-clause]', '#ws-import', '#ws-compare', '[data-ig-memo]']],
+  /* DELETE THIS DRAFT IN SIGHT (owner, 23 Nov 2026): right after Negotiation memo, on a draft that may be deleted */
+  ['pd_menu_work', ['[data-rl-edit-clause]', '#ws-import', '#ws-compare', '[data-ig-memo]', '#ws-delete']],
   ['ct_export', ['#ws-pdf', '#ws-word']],
   ['pd_menu_contract', ['#ws-m-their-way', '#ws-end', '#ws-filing']]
 ];
@@ -3968,8 +3975,8 @@ function pdActsShortHtml(c){
   const box = document.createElement('div');
   box.innerHTML = groups.map(g => g.rows.join('')).join('');
   const all = [...box.querySelectorAll('button')].filter(b => dossierRowKey(b)).length;
-  const row = b => { const key = dossierRowKey(b); const x2 = b.cloneNode(true);
-    return `<button type="button" role="menuitem" class="pd-acts-r" data-pd-acts-go="${_pdE(key)}"${b.disabled ? ' disabled aria-disabled="true"' : ''}${b.title ? ` title="${_pdE(b.title)}"` : ''}>${x2.innerHTML}</button>`; };
+  const row = b => { const key = dossierRowKey(b); const x2 = b.cloneNode(true); const danger = b.id === 'ws-delete' || b.classList.contains('danger');
+    return `<button type="button" role="menuitem" class="pd-acts-r${danger ? ' is-danger' : ''}" data-pd-acts-go="${_pdE(key)}"${b.disabled ? ' disabled aria-disabled="true"' : ''}${b.title ? ` title="${_pdE(b.title)}"` : ''}>${x2.innerHTML}</button>`; };
   const g = PD_ACTS_SHORT.map(([title, keys]) => {
     const rows = keys.map(k => box.querySelector(k)).filter(Boolean).map(row).join('');
     return rows ? `<div class="pd-acts-g" role="group" aria-label="${_pdE(_pdT(title))}"><div class="pd-acts-h">${_pdE(_pdT(title))}</div>${rows}</div>` : '';
@@ -5924,6 +5931,7 @@ function pdFormSave(){
   /* what is said is every detail the form now holds an answer for (stored as typed, by Enter, or by this Save) */
   const held = () => [...fm.querySelectorAll('tr.pd-fm-row')].filter(r => r.classList.contains('is-saved') || r.classList.contains('is-typed') || pdFormBoxHas(r)).length;
   if (!held()){ pdOgSay(_pdT('og_form_nothing')); pdFormNext(null); return 0; }
+  if (typeof window.teachDid === 'function') try { window.teachDid('fill'); } catch (_){}
   pdOgSaveIn(fm, c);
   const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
   const all = held();
@@ -7630,9 +7638,9 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     const dsf = t.closest('[data-pd-ds-fill]');
     if (dsf){ e.preventDefault(); const cc = full(); const key = dsf.getAttribute('data-pd-ds-fill') || '';
       if (cc) pdFillGo(cc.id, key); return; }
+    /* THE ONE DOOR TO A CONTRACT'S DUTIES (owner, 23 Nov 2026, "Duties, end to end"): always the Duties page */
     if (t.closest('[data-pd-ds-obl]')){ e.preventDefault(); const cc = full();
-      let found = []; try { found = (cc && typeof triageHeldObligations === 'function') ? triageHeldObligations(cc) : []; } catch (_){ found = []; }
-      if (cc && found.length && typeof openObligationsReview === 'function') openObligationsReview(cc, found, () => { try { pdGlanceRepaint(); } catch (_){} });
+      if (cc && typeof window.dutiesOpen === 'function') window.dutiesOpen(cc);
       return; }
     const scE = t.closest('.pd2-sg [data-pd2-sc-esc]');
     if (scE){ e.preventDefault(); const cc = full(); if (cc && typeof window.signCheckEscalate === 'function') window.signCheckEscalate(cc, Number(scE.getAttribute('data-pd2-sc-esc')), () => { try { pdGlanceRepaint(); } catch (_){} try { pdSignCounts(cc); } catch (_){} }); return; }
@@ -7696,7 +7704,7 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
    The panel's head names what it holds (pdHeadWord); the ask box says which
    contract it asks about (pdAskPlaceholder) and a question asked there goes
    with that contract's wording (intelAsk → igPaperAsk(q, id)). */
-const PD_HELD_CHIPS = { open: ['redline', 'history', 'oblig'] };
+const PD_HELD_CHIPS = { open: ['redline', 'history', 'share'] };
 /* what Jambo's tab holds: 'chosen' (a paper chosen on the wall) or ''. A contract brought up as a page on the Board,
    and its History page there, are gone with the strip (owner, 9 Nov 2026): History and Where we are open in the
    middle beside the paper (pd2HistOpen, pd2StandsOpen). */
@@ -9724,15 +9732,16 @@ function pd2DealCardHtml(c){
 function pd2DutiesCardOf(c){
   const t = c && c.triage && typeof c.triage === 'object' ? c.triage : null, st = t && t.steps && t.steps.oblig;
   let waiting = []; try { waiting = (typeof window.obReviewWaiting === 'function') ? (window.obReviewWaiting(c) || []) : []; } catch (_){ waiting = []; }
-  const found = (st && st.ok && Array.isArray(st.found)) ? st.found.length : 0;
+  let held = []; try { held = (typeof window.dutiesFound === 'function') ? window.dutiesFound(c) : []; } catch (_){ held = []; }
+  const found = held.length + (Array.isArray(c && c.obligations) ? c.obligations.filter(Boolean).length : 0);
   const obs = (Array.isArray(c && c.obligations) ? c.obligations : []).filter(Boolean);
   const open = obs.filter(o => o.status !== 'done');
   const next = open.map(o => String(o.due || '').slice(0, 10)).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort()[0] || '';
   if (c && c._triaging) return { k: 'reading', found, n: obs.length };
   if (waiting.length) return { k: 'review', found, left: waiting.length, n: obs.length };
   if (obs.length) return { k: 'list', n: obs.length, open: open.length, next };
-  if (!st) return { k: 'unread' };
-  if (!st.ok) return { k: 'failed', why: String(st.why || '') };
+  if (!st && !found) return { k: 'unread' };
+  if (st && !st.ok) return { k: 'failed', why: String(st.why || '') };
   return { k: 'none' };
 }
 function pd2DutiesCardHtml(c){
@@ -9740,12 +9749,13 @@ function pd2DutiesCardHtml(c){
   const E = _pdE, T = _pdT, Tn = _pdTn, S = pd2DutiesCardOf(c);
   const may = (typeof window.mayActOn !== 'function') || window.mayActOn(c);
   const day = iso => iso ? ((typeof regDotDate === 'function') ? regDotDate(iso) : iso) : '';
-  let right = '', line = '', go = '', attr = '', amber = false;
-  if (S.k === 'reading'){ right = ''; line = T('pd2_dt_reading'); }
-  else if (S.k === 'review'){ right = Tn('pd2_dt_found', S.found, { n: S.found }); amber = true;
-    line = S.n ? Tn('pd2_dt_left', S.left, { n: S.left, m: S.n }) : T('pd2_dt_none_added'); go = T('pd2_dt_review'); attr = 'data-pd-ds-obl'; }
+  /* ONE DOOR (owner, 23 Nov 2026, "Duties, end to end"): whatever the state, Open › goes to the contract's Duties page
+     (data-pd-ds-obl → dutiesOpen); only a contract Jambo has not read offers the read first */
+  let right = '', line = '', go = T('pd2_dl_c_open_go'), attr = 'data-pd-ds-obl', amber = false;
+  if (S.k === 'reading'){ line = T('pd2_dt_reading'); attr = ''; }
+  else if (S.k === 'review'){ amber = true; line = Tn('pd2_dt_left_on', S.left, { n: S.left, m: S.n }); }
   else if (S.k === 'list'){ right = Tn('pd2_dt_n', S.n, { n: S.n });
-    line = S.next ? T('pd2_dt_next', { d: day(S.next) }) : S.open ? T('pd2_dt_no_dates') : T('pd2_dt_all_done'); go = T('pd2_dl_c_open_go'); attr = 'data-pd-glance-tab="oblig"'; }
+    line = S.next ? T('pd2_dt_next', { d: day(S.next) }) : S.open ? T('pd2_dt_no_dates') : T('pd2_dt_all_done'); }
   else if (S.k === 'unread'){ line = T('pd2_dt_unread'); go = T('pd2_dt_read'); attr = 'data-pd-ds-read'; amber = true; }
   else if (S.k === 'failed'){ line = S.why || T('pd2_dt_failed'); go = T('pd2_dt_read_again'); attr = 'data-pd-ds-read'; }
   else { line = T('pd2_dt_found_none'); }
@@ -10571,6 +10581,7 @@ async function pd2FillSaveNego(c, nego, rest){
 }
 function pd2FillSave(){
   if (!_pd2Fill) return 0;
+  if (typeof window.teachDid === 'function') try { window.teachDid('fill'); } catch (_){}
   const c = getContract(_pd2Fill.id); if (!c) return 0;
   const tplf = !!c.templateForm;
   if (tplf ? (typeof tplFormCommit !== 'function' || typeof tplFormApply !== 'function') : typeof contractBlankSet !== 'function') return 0;

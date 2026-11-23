@@ -69,7 +69,7 @@ test('f1153 (4) one door: Amend, Continue, the family rows and the tag', () => {
   assert.match(card, /data-fam-go=/, 'Continue presses the row\'s own door');
   assert.match(fnOf(PD, 'pd2FamCardHtml'), /data-pd-ds-fam=/, 'each family row is its paper\'s door');
   assert.match(fnOf(PD, 'pd2FamCardHtml'), /a\.k !== 'create'/, 'Create is the card\'s, not a second door in the family card');
-  assert.match(R('js/copilotacts.js'), /amendHere \? \['oblig', 'amend', 'history'\] : \['oblig', 'history'\]/, 'amend leaves the links on the new look\'s Dossier');
+  assert.match(R('js/copilotacts.js'), /amendHere \? \['amend', 'history'\] : \['history'\]/ /* RE-POINTED 23 Nov 2026 ("Duties, end to end"): obligations left the links */, 'amend leaves the links on the new look\'s Dossier');
   assert.match(R('js/views/intelligence.js'), /famTagHtml\(c\)/, 'the paper\'s line carries the family\'s tag');
   assert.match(fnOf(FAM, 'famTagHtml'), /famStateOf\(c\)/, 'from the one reading');
 });

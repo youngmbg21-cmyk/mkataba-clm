@@ -1738,7 +1738,8 @@ function hbBoardHelloHtml(){
       .concat(more > 0 ? [{ mark: '', markText: '', tone: '', t: i18tn('hbw2_more', more, { n: more }), s: '', attr: 'data-hbw="jambo" data-hbw-more' }] : []);
     return `<div class="jl-words is-ov hb-jb-hello is-welcome is-five is-ls">${jamboOverviewHtml({ before: brain, title: say, sub,
       mid: ringBar, midLabel: tot ? i18t('hbw2_wait') : '',
-      groups: prep.length ? [{ label: i18t('hbw2_prepared'), rows: prep }] : [],
+      /* JAMBO THE INSTRUCTOR (js/teach.js): while teaching, "Your first steps" stands first, each row its walk */
+      groups: [typeof window.teachTasksGroup === 'function' ? teachTasksGroup() : null].filter(Boolean).concat(prep.length ? [{ label: i18t('hbw2_prepared'), rows: prep }] : []),
       act: null,
       asks, src: i18t('jov5_hb_src') }, 'hb')}</div>`;
   }
@@ -7970,6 +7971,7 @@ function hbOpenExplorer(){
    tab — its one way in since the menu row went (owner, 11 Oct 2026) */
 function hbOpenCalendar(){
   if (typeof hbPageLeaveThen === 'function' && hbPageLeaveThen(hbOpenCalendar)) return;
+  if (typeof window.teachDid === 'function') try { window.teachDid('week'); } catch (_){}
   const s = hbS(); s.face = 'calendar'; hbSave();
   if (typeof setView === 'function') setView('dashboard'); else hbMount();
 }

@@ -94,6 +94,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f841, f842 (the Guide's row), f561, f564 (the brain's three parts), f232 (the published names).
 
 ## THE SHELL — RAIL, BAR, PANELS
+- Delete this draft in sight (23 Nov 2026): f1188; f582 unchanged.
 - f1183 the jump window's × in the top right corner (23 Nov 2026; red at the parent).
 - f1178 a reading opens nothing until caActOf keeps it (caActLater/caActGo; 22 Nov 2026; red at the parent).
 - THE WATERMARK MOVES IN SETTINGS TOO (22 Nov 2026): test/chromium/panel-watermark-verify.js 2 and 2b RE-POINTED (drawn and moving; was "held still"), for GitHub; 3 (less motion: still) stands. Checked here in a browser page by page: every page that draws it has it moving. Re-ran green: f965, f1107, f236, f1147, f1149.
@@ -345,6 +346,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - DISCOVER, HOW A CELL IS READ (the live run's eight misses): f887 3f (a number of days with its unit run on), f888 1c (`COLUMN_READ_RULE` on every read); both red at the parent a701f17. Then the live measure with a key.
 
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
+- f1190 the Contracts door lands on the Folders every time (23 Nov 2026; red at the parent).
 - f687 2a (test/f687-contracts-opens-home.test.js): no facts line beside the name; List | Wall inside the one `.ct-acts` group.
 - NO DISCOVER BUTTON ON CONTRACTS (owner, 15 Nov 2026): f1016 (1) (9) re-pointed; browser: discover-page-verify 1 (the "discover" chip opens the page), reads-and-columns-as-drawn-verify 1.
 - AT A GLANCE (owner's pick by name, 15 Nov 2026): f1056 (test/f1056-folder-at-a-glance.test.js; red at the parent) — when they end (twelve months, a month a door, later/passed/no date counted), where the money is (fxHome, pay and no-rate add nothing), not done yet off regFolderSays; the folders page split by folder; both books; tokens only. Re-pointed: f1053 (panel and chips), f983 (3), f998 (4); browser (GitHub only): round6-new-look-verify 2b and 2, reads-and-columns-as-drawn-verify 1.
@@ -1074,6 +1076,11 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 - RE-POINTED: f954 1 and 4 (no acSizeSet; Reads lands on dsnFill/rdNewRead, never askColOpen/Next/Bring), f956 1 (slice end), f1064 (slice end), f1016 (8) (no askColPanelHtml), f705 1a/1c ('askcol' goes to place 'reads'; no task opens the form), f861 (14) (no Owner aside), f977 fix 8 (no question column head), f148 (SAME_IN_BOTH lost ac_nl_team_sub), round6-new-look-verify 2 (no question column), stop-and-reads-verify, handbook-verify (no askColClose).
 - test/f658-board-copilot-and-analyst.test.js A4b — the Board's panel is not redrawn on a resize while Jambo's box holds the cursor (22 Nov 2026).
 
+## JAMBO THE INSTRUCTOR (js/teach.js)
+- test/f1189-im-new.test.js (new, red at the parent: no file, no key, no words, no email line): the whole sentence read (on, off, none, both languages); the turn free with chapters that exist, by seat; the server keeps `teach` (on · off · null; else 400; never on a colleague's row); every box reads it first (source regions); the hint's days; the welcome email's line. Also run f938 (the chapter door), f811, f561, f564, f937, f232.
+- f1189 (6)–(8) (rounds 2, 3, 4, 6): the walk's steps, its picture-box marks and opener, Take me there; plain words read whole; "What can I do here?" only while teaching; first steps by seat, the moments that tick them, nothing written while off, all done asks once; the server keeps teachDone and hides it. Photos: a journey script drives I'm new → walk → Take me there → the card → the Board's list → here → a word → the book's button → off.
+- f1189 (9)(10): the stray closing quote (both hosts' trims, every answer path); Start the lessons — the rule word for word on both hosts, in the instructions, `teach` on the answer form and carried back, nothing on an ordinary answer, offered only while off, the press = "I'm new". With the rules touched also run f938, f305, f868, f1026.
+- f1189 (11): the practice contract — the one door refuses it (said), first in api(); persist, saveContract, delete and the book's load keep it home; the sample's made-up parties; joins once and only for its owner; offered to those who may act, typed or pressed; stopping the lessons deletes it. Also run f1106, f1137, f1188, f1005. The journey script watches every request for PRACTICE- (0 at the three screens).
 ## THE HANDBOOK — HOW TO DO EACH THING (23 Nov 2026)
 - test/f1184-the-handbook-legora-stripe.test.js — the book's one table, its filters, a row chooses then opens, numbered steps with each picture under its step (red at the parent). Browser: handbook-verify 2a/2b/4′a–d, round7b 3.
 
@@ -1089,3 +1096,9 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 - NEW test/chromium/alert-me-when-verify.js (red at the parent: no Alert me when): the results head (Export ▾, no separate Download, Alert me when beside it), the Export menu (Esc, a second press), the window (with · in · tell me, none chosen, folders change), Start alerting → "Alerting · Not capped", a new contract through the API + the sweep, the bell's "Your alerts" row with its tag, the tag opens the alert's page with the hit, Reads · Alerts; nothing spills at the three screens. Photos with ALERT_SHOTS=<dir>.
 - RE-POINTED: f1153 (4) (the menu holds Copy and Download, both read one table; no separate Download button); f1016 (10) (the read table's head: Export ▾ before Ask again); f1097 (1) NAMES (the Alerts page); f954 4 (the Guide's keep row carries 'alertme').
 - Re-ran green: f148, f232, f48, f561, f564, f705, f842, f937, f938, f964, f965, f1097, f1184, f860, f891, f843, f888–f893, f1016, f1055–f1064, f1074, f1113, f1124, f1127, f1145, f1153, f954, f926, f927, f1129, f1144, f962. Browser (here, allowed for this job): discover-page-verify, discover-verify, handbook-verify (5.5.5, 5.5.7), alert-me-when-verify.
+## OBLIGATIONS — Duties, end to end (23 Nov 2026)
+- test/f1187-duties-end-to-end.test.js — one page (To decide · On the contract · Skipped, no ticks or Add all); the sheet over the page (own top layer, whose unchosen, Add duty · Skip, the next by itself, Both kept as ours); one door (hidden panel never shown, "obligations" left the chips); no mass add on the Obligations page; template duties proposed, never minted; no money in the panel; both books; the Handbook (red at the parent).
+- RE-POINTED to the owner's reversal: f554 (2)–(6), (T) (the desk is the Duties page, decided in the sheet); f1184 (2), (4); f1185 (now only "the morning's desk is gone"); f308 (7) (template duties proposed); f707 9b; f1098 (4); f1102 (1), (2); f672 4e, 4g; f748 5a; f1153 (4). Browser (GitHub): review-desk-verify, duties-card-verify, found-promises-verify, amount-and-window-verify, seven-fixes-verify 5f.
+
+## OBLIGATIONS — Jambo fills in the duty, a person decides (23 Nov 2026)
+- test/f1188-jambo-fills-in-the-duty.test.js — the due day from the contract's own end date with its line, none guessed; Jambo's reading under the choices, Use presses the chip, nothing pre-chosen; past choices (added as / with proof / skipped); the readings read only; both books; the Handbook (red at the parent).

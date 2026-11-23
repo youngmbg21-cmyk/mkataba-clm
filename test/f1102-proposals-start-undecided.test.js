@@ -31,10 +31,10 @@ test('f1102 (1) every duty starts Undecided, whatever Jambo guessed; Undecided i
   assert.deepEqual(FOUND.map(o => W.obnWhoseNow(c, o)), ['unsure', 'unsure']);
   const rows = W.obnProjects();
   const d = W.document.createElement('div'); d.innerHTML = W.obnLgHtml(rows[0], rows);
+  /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end"): whose duty is asked in the sheet on the agreement's Duties page,
+     where it starts unchosen (f1187 (2)); this panel names no side and offers no button to answer it */
   for (const it of d.querySelectorAll('.obn-lg-it:not(.is-next)')){
-    const b = [...it.querySelectorAll('[data-obn-whose]')];
-    assert.deepEqual(b.map(x => x.textContent), ['Undecided', 'Us', 'Theirs', 'Both'] /* RE-POINTED 21 Nov 2026 (P-13, as drawn: "Both") */);
-    assert.deepEqual(b.filter(x => x.classList.contains('is-on')).map(x => x.textContent), ['Undecided']);
+    assert.equal(it.querySelectorAll('[data-obn-whose]').length, 0);
     assert.equal(it.querySelector('.obn-lg-now'), null, 'no side named beside the duty until the reader picks one');
   }
 });
@@ -46,8 +46,9 @@ test('f1102 (2) nothing decided, nothing to add; Add takes only what the reader 
   assert.equal(W.obnReadyOf(c, FOUND), 0);
   const d = W.document.createElement('div'); d.innerHTML = W.obnLgHtml(rows[0], rows);
   assert.equal(d.querySelector('[data-obn-addall]'), null);
+  /* RE-POINTED 23 Nov 2026: no mass add at all — the Add all handler is gone; each duty goes through the sheet */
   const src = strip(read('js/obligations.js'));
-  assert.match(src, /const w = obnWhoseNow\(c, o\); if\(w === 'unsure'\) return; if\(obAddFound\(c, o, w\)\) n\+\+;/, 'Add skips an undecided duty');
+  assert.doesNotMatch(src, /closest\('\[data-obn-addall\]'\)/, 'no Add all');
 });
 
 test('f1102 (3) both books carry the words', () => {

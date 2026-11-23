@@ -22928,6 +22928,9 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 ## Noticed, not fixed (23 Nov 2026, Proposed obligations L+S)
 - The older review-desk styles (.obd-title, .obd-tb, .obd-foot, .obd-switch…) use `var(--color-ink)` and `var(--color-line)`, which no token in index.html defines, so those colours/lines silently fall back. The new L+S styles use `--color-text` / `--color-divider`.
 
+## Noticed, not fixed (23 Nov 2026, Jambo the instructor)
+- On the Contracts place, with Jambo's conversation open, the links beside "‹ Overview" are cut off at 1440×780: "draft a new agreement" and "discover" run past the panel's edge (CA_CHIP_WALL_WORD's long words on the in-door row; measured the same on unmodified main 4c770d2).
+- (owner's screenshot, 23 Nov 2026) Jambo's how-to answers in a page's panel end with a stray closing quote mark (`."`), and an answer built from the Handbook is labelled "Read from Contracts and your book" (the page's source line, aiReadFrom) instead of the Handbook.
 ## Noticed, not fixed (23 Nov 2026, Amend in three steps)
 - Amend's "Make the changes" row box keeps only the first 4,000 characters of a clause's new words (`.slice(0, 4000)` on input in paperdesk.js), with nothing said — a very long clause could lose its end silently; a cap must be said, never a silent trim. The box is also at most 6 lines tall, awkward for a long clause.
 - Amendment approval gap: Create leaves the amendment's `value` empty (the new value sits only in `amendFacts` as a suggestion), so a value rule (e.g. "Value ≥ KES 5M") does not apply to it — `saNeeds` is empty and "Before you sign" lists no approval, though the Amend page's panel says "Approval: needed · 1 approval rule applies".
@@ -22937,3 +22940,5 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - 23 Nov 2026 (Alert me when) Noticed, not fixed: on Discover, a company rule set on a question AFTER its answers were read makes the results show "All 0 · Read the N left" until read again — the answers stand stale with no word on the page saying why.
 - 23 Nov 2026 (Alert me when) Noticed, not fixed: the Handbook pictures for chapters 5.5.5 and 5.5.7 (now Alert me when) are not re-taken; the recipes are true (handbook-verify green) and wait for the owner's one batch.
 - 23 Nov 2026 (Alert me when) Noticed, not fixed: door-exam-verify is red at origin/main too — "amend MK-B1" typed lands beside the Dossier, not on Amend (3 MISS: board, list, settings).
+- (23 Nov 2026) FIXED at the owner's word: the stray closing quote at the end of Jambo's answers (answerTrim/aiAnswerTrim, f1186 (9)). The "Read from Contracts and your book" label on a Handbook answer is still open.
+- 23 Nov 2026 · Noticed, not fixed: f804 3a and 6b fail at unmodified main (the panel's ask order and the Brain's ask step list), seen while fixing the Contracts door.

@@ -3347,6 +3347,11 @@ async function intelAsk(qRaw, opts){
   if(intel.busy){ if(typeof jamboAskLater==='function') jamboAskLater(q, ()=>intel.busy, w=>intelAsk(w, opts)); return; }
   /* "add … as the contact" opens the one contact sheet filled in from the words (cuContactAsk, owner 19 Nov 2026) */
   if(typeof cuContactAsk==='function'){ let pc=false; try{ pc=cuContactAsk(q); }catch(_){ pc=false; } if(pc) return; }
+  /* "I'M NEW" (owner, 23 Nov 2026; js/teach.js): the person says so, Jambo answers in HaTi's own words, free,
+     with the first steps as chips — read before the brain and before any reader that takes "new" for a draft */
+  if(typeof window.teachSay==='function'){ const tt=teachSay(q);
+    if(tt){ intel.history.push({role:'user', text:q}, Object.assign({role:'assistant', host:'ai', text:tt.html, read:tt.read}, tt.choices?{ choices:tt.choices }:{})); renderIntelDock(); return; }
+    if(typeof window.teachDid==='function') teachDid('ask'); }
   intel.fdTab=false; intel.dayTab=false;
   if(!(opts&&opts.guide)) intel.gdTab=false;
   /* A QUESTION KEEPS THE FACE (owner, 19 Oct 2026: "you can go back to the
@@ -10899,7 +10904,10 @@ function renderIntelDock(){
     intel.mrOpen=null; renderIntelDock(); updateIntelNote(); }));
   dock.querySelectorAll('[data-ig-choice]').forEach(b=>igOnce(b,'click','[data-ig-choice]',e=>{ e.stopPropagation();
     const [t,k]=String(b.getAttribute('data-ig-choice')||'').split(':').map(Number); const m=intel.history[t], c=m&&m.choices&&m.choices[k];
-    if(!c) return; intel.history.push({ role:'user', text:c.label });
+    if(!c) return;
+    /* JAMBO THE INSTRUCTOR (js/teach.js): a walk's own presses draw their next turn themselves */
+    if(c.teach&&typeof window.teachChoicePress==='function'){ m.choices=null; teachChoicePress(c); renderIntelDock(); return; }
+    intel.history.push({ role:'user', text:c.label });
     /* JAMBO'S FIRST WORDS: each answer is an existing door (firstReadPress, js/triage.js) */
     if(c.fr&&typeof window.firstReadPress==='function'){ firstReadPress(c,m); renderIntelDock(); return; }
     /* "WHICH DID YOU MEAN?" (js/navmap.js): the choice is pressed through the one mover, and the question is spent */
@@ -11312,6 +11320,8 @@ function igAskPlaceholder(){
   /* amend, as drawn: the box takes the change in words (one call) */
   if(window.newLookOn&&newLookOn()&&window.pdAmendShows&&pdAmendShows()) return i18t('pd2_am_ph');
   const c=igPaperInFront()?getContract(intel.paper.id):null;
+  /* A NEW PERSON'S FIRST DAYS (owner, 23 Nov 2026; js/teach.js): the box's own example words say how to ask for help */
+  if(!c && window.teachHintOn&&teachHintOn()) return i18t('teach_hint_ph');
   if(!c && state.view==='dashboard' && typeof window.hbPlaceholder==='function'){ const h=hbPlaceholder(); if(h) return h; }
   return c?i18t('int_ask_contract',{ref:(window.contractRef?contractRef(c):c.id)}):i18t('int_ask_portfolio');
 }

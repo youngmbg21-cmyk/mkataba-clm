@@ -1531,13 +1531,15 @@ function caNextSteps(c){
   /* DOSSIER L+S (22 Nov 2026): on the new look Amend is the Dossier card's own button on a signed agreement, so it leaves
      the links above Jambo's box (one door, where the eye lands) */
   const amendHere = !(typeof window.newLookOn === 'function' && newLookOn() && !face);
-  const ladder = executed ? (amendHere ? ['oblig', 'amend', 'history'] : ['oblig', 'history'])
+  /* ONE DOOR TO DUTIES (owner, 23 Nov 2026, "Duties, end to end"): a contract's duties open from the Dossier's Duties card
+     alone, so "obligations" leaves the links above Jambo's box */
+  const ladder = executed ? (amendHere ? ['amend', 'history'] : ['history'])
     : face === 'red' ? ['edit', 'sign', 'share']
     : ['redline', 'share', 'sign'];
   const owed = executed ? [] : caOwedSteps(c);
   const covered = new Set(owed.map(k => CA_OWED_FOR[k]).filter(Boolean));
   if (!executed && caSignerOwed(c)) covered.add('sign');
-  return owed.concat(ladder, ['history', 'oblig', 'share'])
+  return owed.concat(ladder, ['history', 'share'])
     .filter((k, i, all) => all.indexOf(k) === i && k !== here && CA_OWED_FOR[k] !== here && !covered.has(k) && !caChipShut(c, k))
     .slice(0, CA_NEXT_MAX);
 }
@@ -1678,7 +1680,9 @@ async function caSelPick(c, act, text, clauseId){
   }
   if (act.id === 'oblig'){
     if (typeof canEdit === 'function' && !canEdit()){ if (typeof toast === 'function') toast(_caT('ca_send_viewer'), 'err'); return; }
-    if (typeof openObligationForm === 'function') openObligationForm(c, { desc: quote, due: '', recurring: 'none', assignee: '', quote, amount: '' });
+    /* the selected words become a duty of your own, in the one sheet over the contract's Duties page (owner, 23 Nov 2026) */
+    if (typeof window.dutiesOpen === 'function') window.dutiesOpen(c, { own: { desc: quote, quote } });
+    else if (typeof openObligationForm === 'function') openObligationForm(c, { desc: quote, due: '', recurring: 'none', assignee: '', quote, amount: '' });
     return;
   }
   /* a private note is anybody's to write, a viewer's too */
@@ -2162,7 +2166,10 @@ const CA_GO = {
      so are the tab, the filters and the search, as any door lands on fresh
      filters (regGoFiltered's rule; the checkers of step 7 caught him saying
      "every" over a remembered Executed tab); Wall or List stays */
+  /* ONE DOOR, FOLDERS FIRST (owner, 23 Nov 2026: the green Contracts link skipped the folders): the named door always
+     lands on the Folders; a folder, a tab or List is the reader's next press there */
   contracts: () => {
+    if (typeof regFoldersSet === 'function') regFoldersSet(true);
     if (typeof regPlaceSet === 'function'){ const R = regPlaceSet({ only: null });
       if (typeof regFiltersAtRest === 'function') regFiltersAtRest(R);
       if (typeof regSearchBoxClear === 'function') regSearchBoxClear(); }
@@ -3085,6 +3092,15 @@ function caAskAnywhere(text, opts = {}){
   /* "ADD GRACE WAMBUI, HEAD OF BUYING, … AS THE CONTACT FOR NAIVAS" (owner, 19 Nov 2026): the one contact sheet opens
      filled in from the words (cuContactAsk, js/views/customers.js); nothing is saved until the person presses Add */
   if (typeof cuContactAsk === 'function'){ let pc = false; try { pc = cuContactAsk(t, opts.say); } catch (_){ pc = false; } if (pc) return pc; }
+  /* "I'M NEW" (owner, 23 Nov 2026; js/teach.js) is the conversation's, ahead of every reader below that could
+     take "new" for a new agreement: Home's box answers it on Home, every other box in the one conversation */
+  /* (the window and a list's panel fall through to their own conversation, aiAskWords, which reads it first) */
+  if (typeof teachTakes === 'function' && teachTakes(t)){
+    if (!win && typeof document !== 'undefined' && document.getElementById('igd-input') && typeof intelAsk === 'function'
+      && typeof state !== 'undefined' && state && state.view === 'dashboard'){ intelAsk(t); return true; }
+    if (opts.box === 'settings' && typeof stJbAskJambo === 'function'){ stJbAskJambo(t); return true; }
+    return false;
+  }
   /* the Calendar's own box keeps its booking and planning words (opts.cal) */
   if (opts.cal){ let b = false; try { b = typeof igBookAsk === 'function' && !!igBookAsk(t); } catch (_){ b = false; } if (b) return false; }
   /* THE ONE READER (owner, 19 Oct 2026: "do what the user asks in plain

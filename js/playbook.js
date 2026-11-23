@@ -1090,6 +1090,8 @@ const _pbOpenTried = new Set();
 const _pbOpenState = new Map();
 function pbOpenCheckMay(c){
   if (!c || !c.id || c.playbook) return false;
+  /* a practice contract never reaches the server, so nothing is read on it by itself (js/teach.js) */
+  if (c.practice === true) return false;
   if (typeof window !== 'undefined' && window.PORTAL_MODE === true) return false;
   if (!(typeof API_MODE === 'function' && API_MODE() && typeof state === 'object' && state && state.aiConfigured)) return false;
   if (typeof canEdit === 'function' && !canEdit()) return false;

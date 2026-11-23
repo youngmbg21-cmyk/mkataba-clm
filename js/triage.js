@@ -898,6 +898,8 @@ function triageMovedRun(id){
    own contract appears. */
 function contractArrived(c, opts){
   const o = opts || {};
+  /* JAMBO THE INSTRUCTOR: a contract added ticks a new person's first step (js/teach.js; nothing while teaching is off) */
+  if (typeof window !== 'undefined' && typeof window.teachDid === 'function') try { window.teachDid('add'); } catch (_){}
   /* ---- WHO WAS NAMED WHILE THE PAPER WAS BEING CHOSEN (21 Sep 2026) ----
      The drafting screen collects people before the record exists, so they are
      held in memory and claimed HERE — the one funnel every creation site
@@ -1004,9 +1006,13 @@ function triageBriefLine(b){
    once they are ticked this empties by itself and the ordinary scan comes back.
    RULING 4 IS UNTOUCHED: nothing here files anything. */
 function triageHeldObligations(c){
-  const t = triageOf(c); if (!t) return [];
-  const o = (t.steps || {}).oblig;
-  const found = (o && o.ok && Array.isArray(o.found)) ? o.found : [];
+  const t = triageOf(c);
+  const o = t ? (t.steps || {}).oblig : null;
+  const read = (o && o.ok && Array.isArray(o.found)) ? o.found : [];
+  /* AND WHAT OUR OWN TEMPLATE PROMISES (owner, 23 Nov 2026): proposals beside Jambo's, decided one at a time the same way */
+  let tpl = []; try { tpl = (typeof window !== 'undefined' && typeof window.templateDutyProposals === 'function') ? (window.templateDutyProposals(c) || []) : []; } catch (_){ tpl = []; }
+  const seen = new Set(read.map(x => String((x && x.desc) || '').replace(/\s+/g, ' ').trim().toLowerCase()));
+  const found = read.concat(tpl.filter(x => !seen.has(String(x.desc || '').replace(/\s+/g, ' ').trim().toLowerCase())));
   if (!found.length) return [];
   if (typeof obligationAlreadyOn !== 'function') return found;
   return found.filter(x => x && !obligationAlreadyOn(c, x));
