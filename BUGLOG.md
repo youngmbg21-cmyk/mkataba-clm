@@ -22951,3 +22951,5 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - f1081-six-fixes-as-agreed fails on main already: it pins `.ngn-table tr.is-sel td{background:var(--color-accent-50)}`, which the light-green rows change (f1186) replaced. The test needs re-pointing to `--row-chosen`.
 - f387 (5b) fails on main: it pins Approvals' old `onOpen` (dep|std → apnPileOpen); f1182 (23 Nov) sends a departure to `apnPeekOpen`. The check needs re-pointing to the new line.
 - FIXED 23 Nov 2026: f387 (5b) re-pointed to f1182's onOpen (dep: → apnPeekOpen).
+- 23 Nov 2026 — FIXED (owner's photos, MK-481): filling an amendment's spaces on the paper saved the dates on the record only; the wording kept its blank lines (signing refused for a placeholder), Save stayed grey on the next Fill, and the form still asked for a value and an effective date. f1194.
+- Noticed, not fixed (23 Nov 2026): test f754 "2a an owed blank amber, an answer not yet in the wording underlined" already fails on main.

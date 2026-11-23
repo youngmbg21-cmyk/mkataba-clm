@@ -10166,8 +10166,15 @@ function detailsOf(c){
   /* HIDDEN MONEY IS NOT ASKED FOR (f259): a reader without money rights is never shown, nor owed, a box they may not
      see — the server would put the stored figure back over anything typed there */
   const seeMoney = !(typeof canViewValues === 'function' && !canViewValues());
-  if(seeMoney && (money || pay)) add(recSec, 'value', i18t(pay ? 'ov_f_pay' : 'ov_f_value'), !(Number(c.value) > 0), 'kt');
-  add(recSec, 'effDate', i18t('ov_f_effective'), !String((c.fields && c.fields.effDate) || '').trim(), 'kt');
+  /* AN AMENDMENT WE WROTE OWES NO VALUE AND READS ITS DATE OFF ITS PAPER (owner, 23 Nov 2026: "filling in should only
+     be on paper unless other requirements not on paper are needed"): it carries no value of its own (its new value is a
+     suggestion, amendFacts, which approval and the signing limit read: approvalValueView), and its "made on" line is
+     its effective date (ownMadeOnOf; filling it fills the record, ownBlankSet) */
+  const ownPaper = c.source === 'amendment' && !!c.parentId;
+  if(seeMoney && (money || pay) && !ownPaper) add(recSec, 'value', i18t(pay ? 'ov_f_pay' : 'ov_f_value'), !(Number(c.value) > 0), 'kt');
+  /* the "made on" line IS the ask: no second Effective box beside it */
+  const madeOn = ownPaper && typeof window.ownMadeOnOf === 'function' ? window.ownMadeOnOf(c) : null;
+  if(madeOn == null) add(recSec, 'effDate', i18t('ov_f_effective'), !String((c.fields && c.fields.effDate) || '').trim(), 'kt');
   /* AN NDA'S TWO FACTS COUNT UNTIL A PERSON CONFIRMS THEM (round 8, owner's
      yes): who keeps it secret and until when — what the wording says is a
      suggestion until it is confirmed (ndaClean of the stored c.nda, the one

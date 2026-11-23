@@ -1118,3 +1118,5 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 
 ## THE PULSE BOARD — DELETED (23 Nov 2026)
 - No tests of its own remain. The deletion is kept by: f1097 (launchpad), f841 (Guide), f964 (map), f937 (Handbook), f561 (Brain).
+## AN AMENDMENT IS WRITTEN HERE — filled on its paper
+- f1194: the paper fill writes the amendment's wording; an answer only on the record is still owed; "made on" fills the effective date; no value and no second Effective box owed.

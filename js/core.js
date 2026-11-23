@@ -4976,7 +4976,9 @@ function contractReadiness(c){
   /* ONE FACT, SAID ONCE: where the empty box IS the start date, the block below
      already names it, and a second line under "also worth knowing" repeating it
      is the same fact printed twice. */
-  if(!c.effectiveDate && !(c.fields&&c.fields.effDate) && !boxes.some(b=>b.key==='effDate'))
+  /* an amendment's "made on" line is its effective date (ownMadeOnOf) */
+  const madeOn=(typeof window!=='undefined'&&typeof window.ownMadeOnOf==='function')?window.ownMadeOnOf(c):'';
+  if(!c.effectiveDate && !(c.fields&&c.fields.effDate) && !madeOn && !boxes.some(b=>b.key==='effDate'))
     add('warn','effective',i18t('sgx_rd_effective'));
   const ph=contractPlaceholders(c);
   if(ph.length) add('block','placeholders',

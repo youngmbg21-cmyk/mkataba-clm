@@ -45,7 +45,7 @@ test('f1112 (2) the row, the card and the Calendar\'s ladder draw no figure', ()
 
 test('f1112 (3) Details neither asks for nor owes a Value; Key terms has no Value cell', () => {
   const CT = read('js/views/contract.js');
-  assert.match(strip(fnBody(CT, 'detailsOf')), /if\(seeMoney && \(money \|\| pay\)\) add\(recSec, 'value'/);
+  assert.match(strip(fnBody(CT, 'detailsOf')), /if\(seeMoney && \(money \|\| pay\)( && !ownPaper)?\) add\(recSec, 'value'/); /* f1194: an amendment we wrote owes no value */
   assert.match(strip(fnBody(CT, 'ktFieldCell')).slice(0, 300), /if\(k==='value'&&typeof canViewValues==='function'&&!canViewValues\(\)\) return null;/);
 });
 
