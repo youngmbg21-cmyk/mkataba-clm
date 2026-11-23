@@ -14919,8 +14919,22 @@ function rlEmptyColumnActsHtml(c, opts = {}, side = 'owner'){
      .rl-empty-acts as before; nothing new is pressed. In Jambo's panel, the new look only. */
   if (window.newLookOn && newLookOn() && !preview){
     const add = executed ? '' : rlAddClauseBtnHtml(c, opts, side, 'rl-empty-edit');
-    return `${send}<div class="rl-empty-acts is-five"><div class="rl-ea-card${sendBtn ? ' has-send' : ''}"><span class="rl-empty-lead">${i18t('ng_empty_lead')}</span>${sendBtn}${prepare}</div>`
-      + `<p class="rl-ea-l">${_ne(i18t('jov5_rl_yourself'))}</p><div class="rl-ea-g">${edit}${add}</div></div>`;
+    /* AS DRAWN (Round D, owner 24 Nov 2026: "you have to build as drawn"): no box — Send to mark up and what it promises; then
+       DRAFT FROM OUR PLAYBOOK: each gap the last check found (c.playbook, read only), its § and the paper's words, a soft
+       badge (Must have · missing), the row landing on its words (igQuoteGo); the one drafting door (data-rl-prepare) as
+       "Draft all N" in the head; then Or yourself as open rows; then the hint to highlight wording. */
+    const V = (c && c.playbook && Array.isArray(c.playbook.verdicts)) ? c.playbook.verdicts : [];
+    const gaps = V.filter(v => v && (v.status === 'deviation' || v.status === 'missing') && !(v.accepted && v.accepted.at));
+    const quoteSec = v => { let q = null; try { q = (v.quote && typeof window.pd2QuoteOf === 'function') ? window.pd2QuoteOf(c, [String(v.quote).replace(/\s+/g, ' ').trim().slice(0, 60)]) : null; } catch (_){ q = null; } return q; };
+    const gapRow = v => { const q = quoteSec(v), words = String(v.quote || '').replace(/\s+/g, ' ').trim();
+      const inner = `<span class="rl-ed-n">${_ne(q && q.sec ? String(q.sec).replace(/^(\d)/, '§ $1') : '+')}</span><span class="rl-ed-v"><b>${_ne(String(v.category || ''))}</b><span class="rl-ed-q">${words ? '“' + _ne(words.length > 70 ? words.slice(0, 68) + '…' : words) + '”' : _ne(i18t('pd2_std_missing_w'))}</span></span><span class="rl-ed-b ${v.status === 'missing' ? 'is-miss' : ''}">${_ne(i18t(v.status === 'missing' ? 'rl_ed_missing' : 'rl_ed_must'))}</span>`;
+      return words ? `<button type="button" class="rl-ed-row" data-rl-gap-quote="${_nea(words.slice(0, 80))}">${inner}</button>` : `<div class="rl-ed-row">${inner}</div>`; };
+    const prepAll = gaps.length ? prepare.replace(/>([^<>]*)<\/button>$/, `>${_ne(i18tn('rl_ed_draft_all', gaps.length, { n: gaps.length }))}</button>`) : '';
+    const pbHead = `<h4 class="rl-ed-h">${_ne(i18t('rl_ed_pb'))}${gaps.length ? ` <span class="rl-ed-gaps">${_ne(i18tn('rl_ed_gaps', gaps.length, { n: gaps.length }))}</span>` : ''}${prepAll ? `<span class="rl-ed-all">${prepAll}</span>` : ''}</h4>`;
+    const pbBody = gaps.length ? gaps.slice(0, 6).map(gapRow).join('') : `<p class="rl-ed-none">${_ne(i18t(c && c.playbook ? 'rl_ed_none' : 'rl_ed_read_first'))}</p>${c && c.playbook ? '' : prepare}`;
+    return `${send}<div class="rl-empty-acts is-five is-drawn">${sendBtn ? `<div class="rl-ed-send">${sendBtn}<span class="rl-ed-qt">${_ne(i18t('rl_ed_nothing_sent'))}</span></div>` : ''}`
+      + `<section class="rl-ed-sec">${pbHead}${pbBody}</section>`
+      + `<section class="rl-ed-sec"><h4 class="rl-ed-h">${_ne(i18t('jov5_rl_yourself'))}</h4><div class="rl-ea-g">${edit}${add}</div></section><p class="rl-ed-hint">${_ne(i18t('rl_ed_hint'))}</p></div>`;
   }
   return `${send}<div class="rl-empty-acts">${sendBtn}${prepare}${edit}${executed ? '' : rlAddClauseBtnHtml(c, opts, side, 'rl-empty-edit')}</div>
     <span class="rl-empty-lead">${i18t('ng_empty_lead')}</span>`;
@@ -22901,6 +22915,8 @@ if (typeof document !== 'undefined') document.addEventListener('click', e => {
     rlHeadRepaint();
     return;
   }
+  const gq = t.closest('[data-rl-gap-quote]');
+  if (gq){ e.preventDefault(); if (typeof window.igQuoteGo === 'function') window.igQuoteGo(gq.getAttribute('data-rl-gap-quote') || ''); return; }
   if (t.closest('[data-rl-fn-back]')){ e.preventDefault(); rlFaceNotesSet(null); rlHeadRepaint(); return; }
   if (t.closest('[data-rl-fn-all]')){ e.preventDefault(); rlFaceNotesSet(_rlFnFor, null); rlHeadRepaint(); return; }
   const rt = t.closest('[data-rl-fn-room]');

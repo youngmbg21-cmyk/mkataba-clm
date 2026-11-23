@@ -19244,6 +19244,31 @@
   html.lg-new #pd2-notes > .pd2-rn-chips.is-ctl-pinned,html.lg-new #pd2-notes-tg.is-ctl-pinned{filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))}
   @media (prefers-reduced-motion:no-preference){ html.lg-new .is-ctl-pinned{animation:pd2CtlFade .24s ease-out both} }
   html.lg-new .pd2-ctl-pill{position:absolute;left:50%;bottom:18px;z-index:7;transform:translateX(-50%);height:var(--ctl-h-sm);padding:0 14px;border:0;border-radius:999px;background:var(--bar-black);color:var(--color-surface);font:inherit;font-size:12.5px;font-weight:var(--w-label);white-space:nowrap;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+  /* REDLINES, NOTHING ON THE TABLE, AS DRAWN (Round D): open sections, the gaps as rows, no box */
+  html.lg-new #ig-dock .rl-empty-acts.is-drawn{display:flex;flex-direction:column;gap:0;margin-top:6px}
+  html.lg-new #ig-dock .rl-ed-send{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:4px 0 6px}
+  html.lg-new #ig-dock .rl-ed-send .rl-empty-send{width:auto;padding:0 18px}
+  html.lg-new #ig-dock .rl-ed-qt,html.lg-new #ig-dock .rl-ed-hint{font-size:12px;color:var(--color-quiet)}
+  html.lg-new #ig-dock .rl-ed-sec{padding:14px 0 6px;border-top:1px solid var(--color-divider);margin-top:12px}
+  html.lg-new #ig-dock .rl-ed-h{display:flex;align-items:center;gap:8px;margin:0 0 6px;font-size:12px;letter-spacing:.05em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #ig-dock .rl-ed-gaps{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--st-steel-bg);color:var(--st-steel-fg);font-size:11.5px;letter-spacing:0;text-transform:none}
+  html.lg-new #ig-dock .rl-ed-all{margin-left:auto;letter-spacing:0;text-transform:none}
+  html.lg-new #ig-dock .rl-ed-all [data-rl-prepare]{height:auto;padding:0;border:0;background:none;color:var(--accent-ink);font:inherit;font-size:12.5px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  html.lg-new #ig-dock .rl-ed-all [data-rl-prepare] > span{display:none}
+  html.lg-new #ig-dock .rl-ed-row{display:flex;align-items:flex-start;gap:10px;width:calc(100% + 16px);margin:0 -8px;padding:8px;border:0;border-radius:8px;background:none;font:inherit;text-align:left;color:inherit;cursor:pointer}
+  html.lg-new #ig-dock button.rl-ed-row:hover{background:var(--row-hover)}
+  html.lg-new #ig-dock .rl-ed-n{flex:0 0 34px;font-size:12px;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new #ig-dock .rl-ed-v{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  html.lg-new #ig-dock .rl-ed-v b{font-weight:var(--w-label)}
+  html.lg-new #ig-dock .rl-ed-q{font-family:var(--font-doc);font-size:12.5px;line-height:1.4;color:var(--color-quiet)}
+  html.lg-new #ig-dock .rl-ed-b{flex:none;display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:var(--st-steel-bg);color:var(--st-steel-fg);font-size:12px;font-weight:var(--w-label);white-space:nowrap}
+  html.lg-new #ig-dock .rl-ed-b.is-miss{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new #ig-dock .rl-ed-none{margin:0 0 8px;font-size:13px;color:var(--color-quiet)}
+  html.lg-new #ig-dock .rl-empty-acts.is-drawn .rl-ea-g{background:none;padding:0;border-radius:0}
+  html.lg-new #ig-dock .rl-empty-acts.is-drawn .rl-ed-row{height:auto;min-height:0;line-height:1.4;box-shadow:none}
+  html.lg-new #ig-dock .rl-empty-acts.is-drawn .rl-ea-g .rl-empty-edit{width:100%;height:auto;min-height:0;padding:9px 0;border:0;border-bottom:1px solid var(--color-divider);border-radius:0;background:none;box-shadow:none;justify-content:flex-start;gap:10px}
+  html.lg-new #ig-dock .rl-empty-acts.is-drawn .rl-ea-g .rl-empty-edit:last-child{border-bottom:0}
+  html.lg-new #ig-dock .rl-empty-acts.is-drawn .rl-ea-g .rl-empty-edit:hover{background:var(--row-hover)}
   /* THE READING LINE (Round C): a hairline across the paper's window, moved by pd2ReadLinePlay (transform only) */
   html.lg-new #ig-paper-scroll > .pd2-readline{position:absolute;left:0;right:0;top:0;height:2px;z-index:8;pointer-events:none;background:linear-gradient(90deg,transparent,var(--accent-ink) 18%,var(--accent-ink) 82%,transparent);box-shadow:0 0 10px 1px color-mix(in srgb,var(--accent-ink) 35%,transparent)}
   /* THE CLAUSE PAGE (Round C, as drawn): the open clause alone, its name large; the head's back · count · hint · arrows; the
