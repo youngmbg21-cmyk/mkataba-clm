@@ -14921,7 +14921,7 @@ function rlEmptyColumnActsHtml(c, opts = {}, side = 'owner'){
     const add = executed ? '' : rlAddClauseBtnHtml(c, opts, side, 'rl-empty-edit');
     /* AS DRAWN (Round D, owner 24 Nov 2026: "you have to build as drawn"): no box — Send to mark up and what it promises; then
        DRAFT FROM OUR PLAYBOOK: each gap the last check found (c.playbook, read only), its § and the paper's words, a soft
-       badge (Must have · missing), the row landing on its words (igQuoteGo); the one drafting door (data-rl-prepare) as
+       badge (Must have · missing), the row landing on its words (igQuoteGo); the one drafting door (rlPrepareRowHtml's) as
        "Draft all N" in the head; then Or yourself as open rows; then the hint to highlight wording. */
     const V = (c && c.playbook && Array.isArray(c.playbook.verdicts)) ? c.playbook.verdicts : [];
     const gaps = V.filter(v => v && (v.status === 'deviation' || v.status === 'missing') && !(v.accepted && v.accepted.at));
