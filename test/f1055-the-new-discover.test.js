@@ -58,7 +58,8 @@ test('f1055 (2) the four screens: the list of reads, New read, while it reads, t
   assert.match(fnBody(RD, 'dsnReadingHtml'), /data-dsn-results/, 'at the end, Open the results');
   const R = fnBody(RD, 'dsnResultsHtml');
   assert.match(R, /type="search" id="dsn-q"/, 'a full-width search');
-  assert.match(R, /data-dsn-tab=/, 'the tiles filter');
+  /* RE-POINTED 23 Nov 2026 (owner: the answers in a dropdown next to All): the filter is drawn by dsnAnsBarHtml */
+  assert.ok(/dsnAnsBarHtml\('dsn'/.test(R) && /\$\{attr\}="all"/.test(fnBody(RD, 'dsnAnsBarHtml')), 'the tiles filter');
   assert.match(R, /data-dsn-back/, '‹ All reads goes back');
 });
 
