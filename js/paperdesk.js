@@ -90,7 +90,7 @@ function pdLandHasPress(){
 function pdSetTab(t){ t = PD_TAB_ALIAS[t] || t;
   /* THE HIDDEN OBLIGATIONS PANEL IS GONE (owner, 23 Nov 2026, "Duties, end to end"): every way that turned the panel to it
      opens the contract's Duties page in the middle instead (dutiesOpen, the one door) */
-  if (t === 'oblig'){ try { const c = pdContract(); if (c && typeof window.dutiesOpen === 'function' && window.dutiesOpen(getContract(c.id) || c, { tab: 'on' })) return; } catch (_){} return; }
+  if (t === 'oblig'){ try { const c = pdContract(); if (c && typeof window.dutiesOpen === 'function' && window.dutiesOpen(getContract(c.id) || c, { tab: 'on', rec: pdObRecOf(getContract(c.id) || c) })) return; } catch (_){} return; }
   if (!PD_TABS.includes(t)) return; const was = _pdTab; _pdTab = t;
   /* the new look's notes beside the paper follow the tab (the Dossier's own), after the panel is drawn */
   if (was !== t && typeof pd2On === 'function' && pd2On()) setTimeout(() => { try { const c = pdContract(); if (c) pd2NotesPaint(getContract(c.id) || c); } catch (_){} }, 0); }
@@ -327,6 +327,14 @@ function pdObOpen(){ pdSetTab('oblig'); }
 function pdObClose(){ pdSetTab('copilot'); if (typeof renderIntelDock === 'function') renderIntelDock(); }
 /* the one row opened on the Obligations face (the list's press carries its key) */
 function pdObOpenRow(cid, key){ _pdObOpen = key ? { id: String(cid), key: String(key) } : null; pdObOpen(); }
+/* THE PRESSED DUTY STAYS CHOSEN ON THE DUTIES PAGE: the row a door opened (_pdObOpen, an obKeyOf key) is handed to the page
+   as its chosen record (the page's own key: the duty's id, else its place); undefined when none was pressed */
+function pdObRecOf(c){
+  if (!c || !_pdObOpen || _pdObOpen.id !== String(c.id) || typeof obKeyOf !== 'function') return undefined;
+  const R = (Array.isArray(c.obligations) ? c.obligations : []).filter(Boolean);
+  const i = R.findIndex((o, j) => { try { return String(obKeyOf(c.id, o, (c.obligations || []).indexOf(o))) === _pdObOpen.key || String(obKeyOf(c.id, o, j)) === _pdObOpen.key; } catch (_){ return false; } });
+  return i >= 0 ? String(R[i].id || i) : undefined;
+}
 /* AN OBLIGATION OPENS ON ITS CONTRACT'S PAPER IN THE NEW LOOK (the platform review, 6 Nov 2026: the Obligations list's
    open landed on the old narrowed page with no Jambo panel): the paper with its Dossier first (roomHomeLand), then the
    Obligations face with the pressed row open. False = not this look or no room: the narrowed page answers as before. */
@@ -9475,7 +9483,8 @@ function pd2NotesPaint(c, seat){
      own way. Filling in on Clauses keeps what it had. */
   const red = !!(zoom && zoom.querySelector('.ig-redpaper')) && !(zoom.querySelector('.ig-redpaper.is-clean'));
   const onClauses = _pdTab === 'doc' && !(c && !walking && pd2FillOn(c.id));
-  if (_pdTab !== 'copilot' && !red && !onClauses){ pd2NotesOff(); pd2ClauseTint(); return; }
+  /* the Plan tab (step 2) sits beside the Dossier and keeps its notes: turning to it must not move the paper (page-jumps C) */
+  if (_pdTab !== 'copilot' && _pdTab !== 'plan' && !red && !onClauses){ pd2NotesOff(); pd2ClauseTint(); return; }
   if (c && !walking && pd2FillOn(c.id)){ pd2NotesOff(); pd2FillPaint(c); return; }
   /* a negotiated contract's CLEAN paper is the paper: its notes stand beside it like any other (owner-reported 6 Nov 2026,
      MK-469: "There are no side notes even when in the dossier tab"); only the signing copy has none */

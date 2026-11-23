@@ -350,6 +350,13 @@ const SEED = async () => {
       pressed.pressed && (pressed.review ? pressed.desk : pressed.tab === 'oblig'),
       `review ${pressed.review} · desk ${pressed.desk} · tab ${pressed.tab}`);
     await drive(page, async () => { if (window.closeModal) closeModal(); }, undefined, null);
+    /* RE-POINTED 23 Nov 2026 (Duties ONE DOOR: the obligations tile opens the contract's Duties page in the MIDDLE of Home,
+       which brings the contract to Home's paper; the strip's room is left behind). Back to the strip the brief tile is on,
+       asked for, bounded. */
+    await drive(page, async id => {
+      const c = getContract(id); openWorkspace(id, { room: true }); roomGoTab(c, 'terms');
+      for (let i = 0; i < 40 && !document.querySelector('[data-kt-tri-go="brief"]'); i++) await new Promise(r => setTimeout(r, 100));
+    }, cid, null);
 
     /* AND THE BRIEF TILE PULLS THE BRIEF PANEL (Young reported it 20 Sep 2026:
        "Brief Witten is supposed to pull the brief side Panel but it does not").
