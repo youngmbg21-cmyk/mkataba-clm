@@ -4099,7 +4099,7 @@ const GUIDE_STAGES = [
   { k: 'draft', rows: ['ourpaper', 'standards', 'draft'] },
   { k: 'agree', rows: ['negotiations', 'parties', 'people'] },
   { k: 'sign', rows: ['approvals'] },
-  { k: 'keep', rows: ['contracts', 'reads', 'oblig', 'calendar', 'mynotes'] },
+  { k: 'keep', rows: ['contracts', 'reads', 'alertme', 'oblig', 'calendar', 'mynotes'] },
   { k: 'see', rows: ['pulse', 'explorer', 'house'] },
 ];
 /* each page's count and its words, off the door's own reading (null = none) */
@@ -4113,6 +4113,8 @@ function guideCountOf(k){
     approvals:()=>typeof approvalsDoorCount==='function'?approvalsDoorCount():0,
     oblig:()=>typeof obligationsDoorCount==='function'?obligationsDoorCount():0,
     mynotes:()=>typeof mineNotesDue==='function'?mineNotesDue().length:0,
+    /* Alert me when: the new contracts your alerts caught, not yet opened (the bell's "Your alerts" rows) */
+    alertme:()=>typeof watchHitsUnseen==='function'?watchHitsUnseen().length:0,
     house:()=>typeof agentsDoorCount==='function'?agentsDoorCount():0,
     /* open departures from the standards (the Ladder, 17 Nov 2026), the number its head prints */
     standards:()=>typeof window.ldStandards==='function'?window.ldStandards().reduce((t,r)=>t+r.open.length,0):0 };
@@ -4128,7 +4130,7 @@ function guideHereKey(){
       if(f==='paper') return 'contracts';
       return ({ board:'board', calendar:'calendar', explorer:'explorer' })[f]||'board'; }
     return ({ intake:'requests', migration:'import', templates:'ourpaper', playbook:'standards', redline:'negotiations', customers:'parties',
-      directory:'people', approvals:'approvals', register:'contracts', obligations:'oblig', mynotes:'mynotes', reads:'reads', pulse:'pulse', jambo:'house',
+      directory:'people', approvals:'approvals', register:'contracts', obligations:'oblig', mynotes:'mynotes', reads:(typeof window.amwOnAlerts==='function'&&window.amwOnAlerts())?'alertme':'reads', pulse:'pulse', jambo:'house',
       team:'settings', workspace:'contracts', doc:'contracts', handbook:'handbook', flowmap:'flowmap' })[v]||null;
   }catch(_){ return null; }
 }
@@ -4158,7 +4160,7 @@ const GUIDE_NL=[
   { k:'arrive', tone:'green', rows:[['contracts'],['requests'],['import'],['ourpaper'],['standards'],['draft']] },
   { k:'negsign', tone:'amber', rows:[['negotiations'],['approvals']] },
   { k:'live', tone:'steel', rows:[['oblig'],['calendar'],['parties','people'],['mynotes']] },
-  { k:'book', tone:'violet', rows:[['board','explorer','reads'],['pulse','house'],['flowmap'],['handbook'],['settings']] },
+  { k:'book', tone:'violet', rows:[['board','explorer','reads'],['alertme'],['pulse','house'],['flowmap'],['handbook'],['settings']] },
 ];
 function guideSizeOf(k){
   try{
@@ -4177,7 +4179,7 @@ function guideNlCount(k){
    pages wears its first page's symbol. */
 const GUIDE_NL_ICON={ board:'grid', contracts:'file', requests:'chat', import:'download', ourpaper:'copy', standards:'shield', draft:'filenew',
   negotiations:'refresh', approvals:'check2', document:'readpaper', oblig:'list', calendar:'calendar', parties:'users', people:'users',
-  mynotes:'pencil', explorer:'network', reads:'search', pulse:'trend', house:'sparkle', flowmap:'lane', handbook:'scroll', settings:'cog' };
+  mynotes:'pencil', explorer:'network', reads:'search', alertme:'alert', pulse:'trend', house:'sparkle', flowmap:'lane', handbook:'scroll', settings:'cog' };
 function guideNlMarkHtml(k, tone){
   const n=GUIDE_NL_ICON[k]; if(!n||typeof icon!=='function') return '';
   return `<span class="gdn-mk t-${tone||'gray'}" aria-hidden="true">${icon(n,'gdn-ic',1.8)}</span>`;
@@ -4216,7 +4218,7 @@ const LP_CHIPS=['all','need','arrive','negsign','live','book'];
    else the emoji of the symbol the panel drew before (GUIDE_NL_ICON), since added to the book as SDD_EMOJI.page (f1097 (8) keeps
    the two the same). A mark beside the name, never the name itself. */
 const LP_EMOJI={ contracts:'📄', requests:'💬', import:'📦', ourpaper:'📋', standards:'⚖️', draft:'📝', negotiations:'🔁', approvals:'✅',
-  oblig:'📃', calendar:'📅', parties:'🏢', people:'👥', mynotes:'📌', board:'📊', explorer:'🧭', reads:'🔍', pulse:'📈', house:'✨', flowmap:'🛤️', handbook:'📖', settings:'⚙️' };
+  oblig:'📃', calendar:'📅', parties:'🏢', people:'👥', mynotes:'📌', board:'📊', explorer:'🧭', reads:'🔍', alertme:'🔔', pulse:'📈', house:'✨', flowmap:'🛤️', handbook:'📖', settings:'⚙️' };
 function lpEmoHtml(k){ const e=LP_EMOJI[k]; return e?`<span class="lp-em" aria-hidden="true">${e}</span>`:''; }
 let _lpChip='all';
 /* the Guide's pages, Board first and Settings last, the order FIXED (as the strip had it) */

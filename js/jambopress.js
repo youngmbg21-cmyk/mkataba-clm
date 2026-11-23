@@ -184,7 +184,7 @@ function jpPress(btn){
 }
 
 /* ---------------------------------------------------------------- watches */
-const WT_KINDS = ['reply', 'renewal', 'remind', 'obligation', 'answer'];
+const WT_KINDS = ['reply', 'renewal', 'remind', 'obligation', 'answer', 'question'];
 let _wt = { list: [], loaded: false, loading: null, max: 50, at: 0 };
 const wtServer = () => typeof API_MODE === 'function' && API_MODE();
 function watchLoad(force){
@@ -206,8 +206,84 @@ function watchLoad(force){
 const watchesAll = () => _wt.list.slice();
 const watchesLoaded = () => !!_wt.loaded;
 const watchGet = id => _wt.list.find(w => String(w.id) === String(id)) || null;
-/* FIRED AND NOT YET PRESSED: the bell's rows and Home's Needs you, one reading */
-const watchesFired = () => _wt.list.filter(w => w && w.unseen && w.fired);
+/* FIRED AND NOT YET PRESSED: the bell's rows and Home's Needs you, one reading. An alert on a question (Alert me when)
+   is told per HIT, below (watchHitsUnseen), never as one row for the whole alert. */
+const watchesFired = () => _wt.list.filter(w => w && w.unseen && w.fired && w.kind !== 'question');
+/* ---- ALERT ME WHEN (owner's pick by name, 23 Nov 2026): a watch of kind 'question', the server's sweep reading every
+   NEW contract for a Discover question and keeping each contract that answered as chosen (its hits) ---- */
+const watchAlerts = () => _wt.list.filter(w => w && w.kind === 'question' && !w.endedAt);
+const watchAlertOf = askId => watchAlerts().find(w => String((w.params || {}).askId || '') === String(askId || '')) || null;
+/* ONE ROW PER HIT not yet opened: the bell's "Your alerts" and Needs you count each, newest first */
+const watchHitsUnseen = () => watchAlerts().flatMap(w => (Array.isArray(w.hits) ? w.hits : []).filter(h => h && !h.seen).map(h => ({ w, h })));
+async function watchAlertGet(id){
+  const r = await api('me/watches/' + encodeURIComponent(id));
+  if (r && r.watch) watchPut(r.watch);
+  return r && r.watch;
+}
+async function watchAlertWhen(id, when){
+  const r = await api('me/watches/' + encodeURIComponent(id), 'PATCH', { when });
+  if (r && r.watch) watchPut(r.watch);
+  watchChanged();
+  return r && r.watch;
+}
+async function watchAlertStop(id, stopped){
+  const r = await api('me/watches/' + encodeURIComponent(id), 'PATCH', { stopped: !!stopped });
+  if (r && r.watch) watchPut(r.watch);
+  watchChanged();
+  return r && r.watch;
+}
+/* A HIT OPENED IS ANSWERED: it leaves the bell and Needs you at once, and the server keeps the "seen" */
+async function watchHitSeen(id, cid){
+  const w = watchGet(id), h = w && (w.hits || []).find(x => String(x.cid) === String(cid));
+  if (h && !h.seen){ h.seen = new Date().toISOString(); w.unseen = (w.hits || []).some(x => !x.seen); watchChanged(); }
+  try { const r = await api('me/watches/' + encodeURIComponent(id), 'PATCH', { seenHit: String(cid) }); if (r && r.watch) watchPut(r.watch); } catch (_){}
+  watchChanged();
+}
+/* ---- AN ALERT IN WORDS, ONE BUILDER (the button, the bell's row, the alert's page and its list all read these) ---- */
+/* an answer inside a sentence: its first letter lowered ("Not capped" → "not capped"), an acronym or a number kept */
+const amwInWords = a => { const t = String(a || '').trim(); return /^\p{Lu}\p{Ll}/u.test(t) ? t.charAt(0).toLowerCase() + t.slice(1) : t; };
+/* what an alert tells on, as the sentence after "a new contract": "is not capped", "is 30 days or 60 days, or does not say" */
+function amwWhatWords(p){
+  const o = p || {}, parts = [];
+  const ans = (o.answers || []).map(amwInWords).filter(Boolean);
+  if (ans.length) parts.push(_jpT('amw_is', { a: ans.join(_jpT('amw_or')) }));
+  if (o.outside) parts.push(_jpT('amw_is_out'));
+  if (o.notFound) parts.push(_jpT('amw_says_none'));
+  return parts.join(_jpT('amw_or_list'));
+}
+/* the alert's own name, as its page's title says it: "Alert: a new contract is not capped" */
+const amwTitle = w => _jpT('amw_title', { what: amwWhatWords((w && w.params) || {}) });
+/* the answers chosen, as a short list (the button "Alerting · Not capped", the list's column) */
+const amwChosenWords = p => { const o = p || {}; return (o.answers || []).concat(o.outside ? [_jpT('amw_ch_out')] : [], o.notFound ? [_jpT('amw_ch_none')] : []).join(' · '); };
+/* one hit, as the bell's line says it: what this contract answered */
+function amwHitTitle(h){
+  if (!h) return '';
+  if (h.found && h.answer) return _jpT('amw_title', { what: _jpT('amw_is', { a: amwInWords(h.answer) }) });
+  if (h.found && h.verdict === 'out') return _jpT('amw_title', { what: _jpT('amw_is_out') });
+  return _jpT('amw_title', { what: _jpT('amw_says_none') });
+}
+/* the question, short, for the tag: up to its first comma ("Is our liability capped?") */
+function amwQuestionShort(w){
+  const q = String((w && w.ask && (w.ask.question || w.ask.name)) || '').trim();
+  const cut = q.split(/,\s/)[0].replace(/[?.!\s]+$/, '');
+  return cut ? cut + (/\?$/.test(q) || cut !== q ? '?' : '') : '';
+}
+const amwTagWords = w => _jpT('amw_tag', { q: amwQuestionShort(w) });
+/* "arrived today", "arrived 20 Nov" — the day the alert caught it, in the reader's own language */
+function amwDay(at){
+  const d = new Date(at || ''); if (!Number.isFinite(d.getTime())) return '';
+  const iso = x => `${x.getFullYear()}-${x.getMonth()}-${x.getDate()}`;
+  if (iso(d) === iso(new Date())) return _jpT('dsn_today');
+  try { return d.toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { day: 'numeric', month: 'short' }); } catch (_){ return String(at).slice(0, 10); }
+}
+const amwArrived = at => { const d = amwDay(at); return d ? _jpT('amw_arrived', { day: d }) : ''; };
+/* THE BELL'S OPEN ON A HIT LANDS ON THE CONTRACT, on the words it was read from (Discover's own lander) */
+function watchHitGo(id, cid){
+  const w = watchGet(id), h = w && (w.hits || []).find(x => String(x.cid) === String(cid));
+  watchHitSeen(id, cid);
+  const c = _jpC(cid); if (!c) return false;
+  return (typeof askColLandOn === 'function') ? askColLandOn(c.id, (h && h.quote) || '') : jpShowContract(c.id);
+}
 function watchPut(w){ const i = _wt.list.findIndex(x => String(x.id) === String(w.id)); if (i >= 0) _wt.list[i] = w; else _wt.list.unshift(w); }
 async function watchCreate(spec){
   if (!wtServer()) throw new Error(_jpT('wt_no_server'));
@@ -328,6 +404,7 @@ function watchWords(w){
   const c = _jpC(w.contractId), ref = c ? _jpRef(c) : '', who = c ? (String(c.counterparty || '').trim() || _jpT('wt_them')) : '';
   const p = w.params || {};
   if (w.kind === 'answer') return _jpT('wt_say_answer', { fact: p.name || '' });
+  if (w.kind === 'question') return _jpT('amw_say', { q: (w.ask && w.ask.question) || '', what: amwWhatWords(p) });
   if (w.kind === 'reply') return _jpT('wt_say_reply', { who, ref });
   if (w.kind === 'renewal') return c ? _jpT('wt_say_renewal_on', { ref, n: p.days }) : _jpT('wt_say_renewal', { n: p.days });
   if (w.kind === 'obligation') return c ? _jpT('wt_say_oblig_on', { ref, n: p.days }) : _jpT('wt_say_oblig', { n: p.days });
@@ -337,6 +414,7 @@ function watchWords(w){
 function watchFiredWords(w){
   const f = w.fired || {}, c = _jpC(f.cid || w.contractId), ref = c ? _jpRef(c) : '', who = c ? (String(c.counterparty || '').trim() || _jpT('wt_them')) : '';
   if (f.what === 'answer') return _jpT('wt_fired_answer', { ref, fact: f.fact || '', answer: f.answer || '' });
+  if (w.kind === 'question') return amwTitle(w);
   if (f.what === 'reply') return _jpT(f.how === 'note' ? 'wt_fired_note' : 'wt_fired_reply', { who, ref });
   if (f.what === 'renewal') return _jpT(f.said === 'notice' ? 'wt_fired_notice' : 'wt_fired_ends', { ref, day: _wtDay(f.day), n: f.days });
   if (f.what === 'obligation') return _jpT(f.late ? 'wt_fired_oblig_late' : 'wt_fired_oblig', { ref, day: _wtDay(f.due) });
@@ -347,6 +425,8 @@ function watchFiredWords(w){
 function watchGo(id){
   const w = watchGet(id); if (!w) return false;
   watchSeen(w.id);
+  /* an alert on a question opens its own page (Discover › Alerts) */
+  if (w.kind === 'question' && typeof amwPageOpen === 'function') return amwPageOpen(w.id);
   const f = w.fired || {}, cid = f.cid || w.contractId, c = _jpC(cid);
   /* a new answer at risk lands on its clause, the sentence lit (Ask a column's own lander) */
   if (f.what === 'answer' && c) return (typeof askColLandOn === 'function') ? askColLandOn(c.id, f.quote || '') : jpShowContract(c.id);
@@ -701,5 +781,5 @@ function partyWebOpen(id){
 Object.assign(window, { PW_SAFE_URL, partyWebMayFor, partyWebKept, partyWebChoice, partyWebHtml, partyWebErrSay, partyWebPress, partyWebOpen });
 Object.assign(window, { SIGNED_TURN_DAYS, SIGNED_TURN_SHOW, signedTurnOf, signedTurnTurns, signedTurnDue, signedTurnPress, signedTurnDates, signedTurnLearn });
 Object.assign(window, { jpIdsOf, jpPressOf, jpShowOf, jpActOf, jpChaseOf, jpClauseIn, jpHtml, jpTurnOf, jpShowRun, jpActRun, jpShowContract, jpPress, jpWire, JP_PAPER_LINE,
-  WT_KINDS, watchLoad, watchesAll, watchesLoaded, watchGet, watchesFired, watchCreate, watchPause, watchSeen, watchDelete, watchChanged,
+  WT_KINDS, watchLoad, watchesAll, watchesLoaded, watchGet, watchesFired, watchAlerts, watchAlertOf, watchHitsUnseen, watchAlertGet, watchAlertWhen, watchAlertStop, watchHitSeen, watchHitGo, amwInWords, amwWhatWords, amwTitle, amwChosenWords, amwHitTitle, amwQuestionShort, amwTagWords, amwDay, amwArrived, watchCreate, watchPause, watchSeen, watchDelete, watchChanged,
   watchAsks, watchRead, watchDayOf, watchContractOf, watchWords, watchFiredWords, watchGo, watchAskHtml, watchListHtml, watchListOpen, watchTurnFor, watchAskHere, watchStart });

@@ -140,7 +140,8 @@ test('f1016 (9) no Discover pill on Contracts, and none of its styles left behin
 test('f1016 (10) THE SCORECARD: the read table on Discover wears its own head with coloured tiles that filter', () => {
   /* the owner picked "Scorecard" by name, 12 Nov 2026 (drawn first, artifact NN39v3eXJCf9y28T3DWN6o) */
   const head = fnBody(RD, 'rdScHeadHtml');
-  assert.match(head, /data-rdt-back[\s\S]*id="rdt-q"[\s\S]*data-rdt-copy[\s\S]*ui-btn-primary ui-btn-sm" data-rdt-again/, 'back, the search box in the head, Copy, then the one black Ask again');
+  /* Alert me when (23 Nov 2026): Copy lives in the ONE Export menu (dsnExportHtml('rdt')) */
+  assert.match(head, /data-rdt-back[\s\S]*id="rdt-q"[\s\S]*dsnExportHtml\('rdt'\)[\s\S]*ui-btn-primary ui-btn-sm" data-rdt-again/, 'back, the search box in the head, Export (Copy), then the one black Ask again');
   assert.match(head, /class="rdsc-tile[^`]*data-rdt-tab="\$\{k\}"/, 'every tile is a filter, the tabs\' own door');
   assert.match(head, /if \(!n && k !== 'all' && !on\) return '';/, 'a tile with nothing behind it is not listed');
   assert.match(fnBody(RD, 'rdTableHtml'), /const head = _rdScOn\(\) \? rdScHeadHtml\(r, S, sub\) :/, 'the new look only');
