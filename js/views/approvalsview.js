@@ -833,7 +833,8 @@ function apInsPaint(rows){
   if(!same) paint(id);
   if(tb) insListWire(tb,{ rowSel:'[data-ap-row]', idOf,
     onSelect:pid=>{ insSelect(seat,pid); insMarkRow(tb,'[data-ap-row]',idOf,pid); paint(pid); },
-    onOpen:pid=>(/^(dep|std):/.test(String(pid))?apnPileOpen(pid):apOpenSigning(pid)) });
+    /* a departure's second press opens the paper where it departs, as its "See it in the paper ›" (owner, 23 Nov 2026) */
+    onOpen:pid=>(/^dep:/.test(String(pid))?apnPeekOpen(pid):/^std:/.test(String(pid))?apnPileOpen(pid):apOpenSigning(pid)) });
 }
 /* BEFORE YOU DECIDE, AS DRAWN (the new look): one sentence, what the paper says in rows (each with where it was read),
    Jambo's remark and what happens after — every word a reading this page already makes, no call; the acts are the panel's own */
@@ -1668,7 +1669,7 @@ function apnDepPanelHtml(r){
   const may=typeof window.signCheckMayAccept!=='function'||window.signCheckMayAccept(c, r.v);
   const acts=may?`<button type="button" class="ui-btn apn5-b is-k" data-apn-allow="${id}" title="${esc(i18t('apn_allow_s'))}">${esc(i18t('apn_allow_once'))}</button><button type="button" class="ui-btn apn5-b" data-apn-refuse-dep="${id}" title="${esc(i18t('apn_refuse_dep_s'))}">${esc(i18t('ld_refuse'))}</button>`:'';
   const w=apnDepWords(r);
-  const says=w.quote?`<button type="button" class="apn5-q" data-apn-pile-open="${id}">“${esc(w.quote)}”</button>`:`<div class="apn5-q is-none">${esc(i18t('apn_dep_missing_l'))}</div>`;
+  const says=w.quote?`<button type="button" class="apn5-q" data-apn-pile-peek="${id}">“${esc(w.quote)}”</button>`:`<div class="apn5-q is-none">${esc(i18t('apn_dep_missing_l'))}</div>`;
   const rung=(tone,t,s)=>`<li class="${tone?'is-'+tone:'is-next'}"><i aria-hidden="true"></i><span>${esc(t)}${s?` <small>· ${esc(s)}</small>`:''}</span></li>`;
   const ladder=[rung('green', L.ask||i18t('ld_rung_none'), i18t('apn_r_ask'))]
     .concat(fbs.map((f,k)=>rung('amber', f.text, i18t('ld_rung_fb',{ n:k+1 })+(typeof ldWho==='function'&&f.who?' · '+ldWho(f.who):''))))

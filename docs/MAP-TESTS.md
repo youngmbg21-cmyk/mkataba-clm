@@ -93,6 +93,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f841, f842 (the Guide's row), f561, f564 (the brain's three parts), f232 (the published names).
 
 ## THE SHELL — RAIL, BAR, PANELS
+- f1183 the jump window's × in the top right corner (23 Nov 2026; red at the parent).
 - f1178 a reading opens nothing until caActOf keeps it (caActLater/caActGo; 22 Nov 2026; red at the parent).
 - THE WATERMARK MOVES IN SETTINGS TOO (22 Nov 2026): test/chromium/panel-watermark-verify.js 2 and 2b RE-POINTED (drawn and moving; was "held still"), for GitHub; 3 (less motion: still) stands. Checked here in a browser page by page: every page that draws it has it moving. Re-ran green: f965, f1107, f236, f1147, f1149.
 - EVERY JAMBO PANEL HAS ITS MINIMISE ARROW (owner, 22 Nov 2026): panel-watermark-verify 10 (new; red at the parent: Read down, Contracts, Playbook, Our paper, New agreement had none) — the arrow alone in its head row, and it folds; detail-round-verify 4, our-paper-as-drawn-verify 5a re-pointed.
