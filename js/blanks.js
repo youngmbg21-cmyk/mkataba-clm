@@ -191,6 +191,16 @@ function ownBlankLead(hit){
   return t ? t.charAt(0).toUpperCase() + t.slice(1) : '';
 }
 const ownBlankIsDate = lead => /\b(?:on|dated|date)$/i.test(String(lead || '').trim());
+/* AN AMENDMENT'S DATE IS ON ITS PAPER (owner, 23 Nov 2026: "filling in should only be on paper unless other
+   requirements not on paper are needed"): the "made on" line is the day it is made and takes effect, so filling it
+   fills the record's effective date, as the term and notice fill theirs (docTermFill). ownMadeOnOf reads it. */
+const OWN_MADE_ON_RE = /^made on$/i;
+const ownIsMadeOn = b => !!(b && b.type === 'date' && OWN_MADE_ON_RE.test(String(b.label || '').trim()));
+function ownMadeOnOf(c){
+  if(!c || c.source !== 'amendment') return null;
+  const b = ownBlanksRead(c).find(ownIsMadeOn);
+  return b ? String(b.value || '').trim() : null;   // null: no "made on" line on this paper
+}
 function ownBlankHost(c){
   if(typeof document === 'undefined') return null;
   const host = document.createElement('div');
@@ -205,9 +215,12 @@ function ownBlanksRead(c){
   return ownBlanksWalk(host).slice(0, BLANK_MAX).map(h => {
     const lead = ownBlankLead(h);
     const stored = fields[h.key];
-    const shown = h.el && h.el.classList.contains('hati-field-done') ? String(h.el.textContent || '').trim() : '';
+    /* FILLED MEANS FILLED ON THE PAPER (23 Nov 2026): an answer kept on the record while the wording still shows the
+       ruled line (the paper fill wrote only c.fields before contractBlankSet handed these here) is still owed */
+    const done = !!(h.el && h.el.classList.contains('hati-field-done'));
+    const shown = done ? String(h.el.textContent || '').trim() : '';
     return { key: h.key, kind: 'own', type: ownBlankIsDate(lead) ? 'date' : 'text', money: false,
-      label: lead, ph: h.raw || OWN_GAP, value: String(stored == null ? shown : stored),
+      label: lead, ph: h.raw || OWN_GAP, value: done ? String(stored == null ? shown : stored) : '',
       section: '', declared: false };
   });
 }
@@ -247,6 +260,11 @@ function ownBlankSet(c, key, value){
   c.redlineText = host.innerHTML;
   c.fields = c.fields || {};
   if(v) c.fields[key] = v; else delete c.fields[key];
+  if(c.source === 'amendment' && ownIsMadeOn(b)){
+    /* the effective date follows the paper's "made on" unless a person set another one */
+    const eff = String(c.fields.effDate || '').trim(), was = String(b.value || '').trim();
+    if(!eff || eff === was){ if(/^\d{4}-\d{2}-\d{2}$/.test(v)) c.fields.effDate = v; else if(!v) delete c.fields.effDate; }
+  }
   if(typeof todayStr === 'function') c.lastAction = todayStr();
   if(typeof logAudit === 'function') logAudit(c, 'Edited', `Filled in "${b.label || key}" on the paper`);
   if(typeof persist === 'function') persist(c);
@@ -561,6 +579,15 @@ function contractBlankSet(c, key, value, opts){
   if(key === 'counterparty' || key === 'value') return false;
   const stale = c;
   c = blankLiveOf(c);
+  /* OUR OWN AMENDMENT'S SPACES GO INTO ITS WORDING (23 Nov 2026): the paper fill, Jambo's fill and the panel all
+     come here, and an answer kept only on c.fields left the ruled line on the paper the other side reads and signs */
+  if(OWN_KEY_RE.test(String(key)) && ownBlanksLive(c)){
+    const b = ownBlanksRead(c).find(x => x.key === key);
+    if(o.quiet && String(value == null ? '' : value).trim() && b && String(b.value || '').trim()) return false;
+    const ok = ownBlankSet(c, key, value);
+    if(ok && stale !== c){ stale.redlineText = c.redlineText; stale.fields = Object.assign({}, c.fields); }
+    return ok;
+  }
   c.fields = c.fields || {};
   const was = c.fields[key];
   const now = value == null ? '' : String(value);
@@ -699,6 +726,6 @@ if(typeof window !== 'undefined') Object.assign(window, {
   contractHasBlanks, contractBlanks, contractBlanksOpen, contractBoxesOpen, blankLabel,
   BLANK_NONE_REASONS, contractBlanksNone, contractOpenFieldNames,
   contractBlankSet, blankLiveOf, contractBlankUsual, fillBlanksFromRecord, blanksAskPayload,
-  OWN_RULE_RE, OWN_KEY_RE, ownBlanksOn, ownBlanksTouched, ownBlanksLive, ownBlanksWalk, ownBlanksRead,
+  OWN_RULE_RE, OWN_KEY_RE, ownBlanksOn, ownBlanksTouched, ownBlanksLive, ownBlanksWalk, ownBlanksRead, ownMadeOnOf,
   ownBlankSet, ownBlanksPaint, ownBlankPaint,
 });
