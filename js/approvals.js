@@ -26,6 +26,18 @@ function contractForeignLaw(c){
 }
 function contractHasDeviation(c){ const sm=window.deviationSummary?deviationSummary(c):null; return !!(sm&&(sm.dev>0||sm.miss>0)); }
 
+/* AN AMENDMENT IS APPROVED ON THE VALUE IT BRINGS (owner, 23 Nov 2026: "fix the approval gap for amendments"): Create
+   files no value of its own (the new figure is the amendment's suggestion, c.amendFacts.value, with the agreement's
+   currency beside it), so a value rule measures that figure until a person sets one. A reading only: nothing is written,
+   and an amendment that moves no money keeps no value, as before. Twin: server srvApprovalValueView. */
+function approvalValueView(c){
+  if(!c || !c.parentId || Number(c.value) > 0) return c;
+  const F = c.amendFacts || {}, v = Number(F.value) || 0;
+  if(!(v > 0)) return c;
+  const cur = String(F.currency || '').toUpperCase();
+  const meta = (/^[A-Z]{3}$/.test(cur) && !(c.metadata && c.metadata.currency)) ? Object.assign({}, c.metadata || {}, { currency: cur }) : c.metadata;
+  return Object.assign({}, c, { value: v, metadata: meta });
+}
 function ruleMatches(rule, c){
   const cond=rule.cond||{};
   switch(cond.type){
@@ -34,7 +46,8 @@ function ruleMatches(rule, c){
        cannot be compared — and an approval rule is a SAFETY net, so the
        unknown case ENGAGES the rule (a human looks) rather than skipping it. */
     case 'value': {
-      const h=(typeof fxHome==='function')?fxHome(c):{v:Number(c.value||0),missing:false};
+      const cv=approvalValueView(c);
+      const h=(typeof fxHome==='function')?fxHome(cv):{v:Number(cv.value||0),missing:false};
       if(h.missing) return true;
       const v=h.v; return cond.op==='>='? v>=Number(cond.value) : v<=Number(cond.value); }
     case 'folder': return c.folder===cond.value;
@@ -2566,7 +2579,7 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{AP_YES_NOTE_MAX,approvalYesNote,AP_UNDO_MS,approvalUndoable,approvalUndo,approvalRulesCleared,approvalDecidableNow,approvalRefuseWhy,approvalDecideAsk,signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,approverForOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,signerRouteWindow,signerPlanWhy,signerPlanRefusal,signerIsCompany,signerHasEmail,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel,
+Object.assign(window,{AP_YES_NOTE_MAX,approvalYesNote,AP_UNDO_MS,approvalUndoable,approvalUndo,approvalRulesCleared,approvalDecidableNow,approvalRefuseWhy,approvalDecideAsk,signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,approvalValueView,ruleMatches,approverLabelOf,approverForOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,signerRouteWindow,signerPlanWhy,signerPlanRefusal,signerIsCompany,signerHasEmail,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel,
   signApprovalLegacyOn,signApprovalNeeds,signApprovalStateOf,saStepName,saMoney,saDriftWords,SA_CHAIN_STATUS,saChainStep,
   signApprovalDecidable,signApprovalWaitsOn,SA_PAPER_KEYS,signApprovalPaperHolds,signApprovalRequestable,signApprovalRound,
   saFmtDay,saWhen,saShowsLine,signApprovalNotify,saNoticeOf,saDeliveryWords,signApprovalRequest,signApprovalDecide,
