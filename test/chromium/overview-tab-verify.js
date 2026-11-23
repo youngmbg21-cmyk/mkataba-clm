@@ -106,7 +106,8 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
         const press = [...root.querySelectorAll('button, a[href], [role="button"]')].filter(e => vis(e) && inBody(e))
           .map(e => (e.getAttribute('aria-label') && !e.textContent.trim() ? e.getAttribute('aria-label') : e.textContent).replace(/\s+/g, ' ').trim()).filter(Boolean);
         const helloIn = [...root.querySelectorAll('[data-jb-hello]')].filter(vis).length;
-        const jov = [...root.querySelectorAll('.jov')].filter(vis).length, apn5 = [...root.querySelectorAll('.apn5')].filter(vis).length;
+        const jov = [...root.querySelectorAll('.jov')].filter(vis).length, apn5 = [...root.querySelectorAll('.apn5')].filter(vis).length,
+          calLs = [...root.querySelectorAll('.cal-ls-side .cls-side')].filter(vis).length;
         /* RE-POINTED 28 Oct 2026 (owner: "keep them as is but keep them below the discover features. Also remove the
            Ask me details"; the drop card is a pop-up): Discover first, the list's facts under it, no drop card, no Ask me */
         const disc = root.querySelector('.ac-disc, [data-ac-disc], .ac-discover'), facts = root.querySelector('.pd-wall-facts');
@@ -115,7 +116,7 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
         const menuFirst = (() => { const d = root.querySelector('[data-st-jb-menu-door]'); if (!d || !vis(d)) return null; const first = press[0] || ''; return d.textContent.includes(first); })();
         /* the box's + (Add a file, the one upload door) stands in the panel's foot in the new look */
         const plus = [...root.querySelectorAll('[data-jb-file]')].some(vis);
-        return { tabWords, lit: lit ? lit.textContent.replace(/\d+/g, '').replace(/[^\p{L} ]/gu, '').trim() : '', press, helloIn, jov, apn5, order, menuFirst, plus };
+        return { tabWords, lit: lit ? lit.textContent.replace(/\d+/g, '').replace(/[^\p{L} ]/gu, '').trim() : '', press, helloIn, jov, apn5, calLs, order, menuFirst, plus };
       }, host);
       if (!read){ check(`${key}: the panel is drawn`, false, host); continue; }
       if (WRITE){ inv[key] = read.press; console.log(`INVENTORY ${key}: ${read.press.length} — ${JSON.stringify(read.press)}`); continue; }
@@ -132,7 +133,9 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
       else check(`1 ${key}: Overview first, no Jambo tab, landing on Overview`, /Overview/.test(ov) && !read.tabWords.some(w => /Jambo/.test(w)) && /Overview/.test(read.lit), JSON.stringify({ tabs: read.tabWords, lit: read.lit, jb }));
       check(`2 ${key}: no greeting on the Overview`, !read.helloIn, String(read.helloIn));
       /* RE-POINTED 21 Nov 2026 (P-30, as drawn): a chosen approval's panel is the drawn panel (.apn5), not the Overview builder */
-      check(`3 ${key}: drawn by the one Overview builder`, read.jov >= 1 || (key === 'approvals' && read.apn5 >= 1), String(read.jov));
+      /* RE-POINTED 23 Nov 2026 (P-14, the Calendar the Legora + Stripe way, owner's "Build P-14"): the Calendar's panel follows
+         the tab in plain sections (calLsSideHtml), no cards — the drawn panel, as Approvals' is */
+      check(`3 ${key}: drawn by the one Overview builder`, read.jov >= 1 || (key === 'approvals' && read.apn5 >= 1) || (key === 'calendar' && read.calLs >= 1), String(read.jov) + (key === 'calendar' ? ' · calendar side ' + read.calLs : ''));
       /* nothing lost: each pressable of the old panel is still pressable here, by its words (case, cost and spacing aside) */
       const norm = s => String(s || '').toLowerCase().replace(/·.*$/, '').replace(/[^\p{L}\p{N}]+/gu, '');
       const now = read.press.map(norm).join('|');
@@ -159,7 +162,10 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
         customers: ['all parties'], contracts: ['Due diligence · 5 questions', 'Ask a new question', 'calendar'], approvals: ['approval rules'],
         obligations: ['find time for what is due · 1 call'], negotiations: ['our move', 'start a negotiation'],
         /* RETIRED 21 Nov 2026 (P-39, the Board's panel as drawn: no suggestion chips under Jambo's pieces) */
-        board: ['which 2 end in 90 days?', 'value by stream', 'what needs me'] };
+        board: ['which 2 end in 90 days?', 'value by stream', 'what needs me'],
+        /* RETIRED 23 Nov 2026 (P-14, the Calendar's panel as drawn: plain sections, its one plan act "Plan my week"; the
+           planner's other ask is still asked in Jambo's box at the panel's foot) */
+        calendar: ['find time for what is due · 1 call'] };
       /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): "Add a file" is the box's + (data-jb-file) in the
          panel's foot, outside the body read above — still offered, so asked there */
       const viaFoot = w => w === 'Add a file' && read.plus;

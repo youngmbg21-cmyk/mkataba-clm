@@ -53,7 +53,9 @@ const check = (name, pass, detail) => {
       const c = getContract('MK-A2'); if (c._light) await ensureFull(c);
       const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const t = new Date(todayISO() + 'T00:00:00');
-      const mon = new Date(t); if (t.getDay() === 6) mon.setDate(t.getDate() + 2); else if (t.getDay() === 0) mon.setDate(t.getDate() + 1); else mon.setDate(t.getDate() - ((t.getDay() + 6) % 7));
+      /* RE-POINTED 23 Nov 2026 (P-14, the Calendar the Legora + Stripe way): the Week tab is this week Monday to Sunday
+         (calLsWeek), a weekend included — so "this week" is always today's own Monday */
+      const mon = new Date(t); mon.setDate(t.getDate() - ((t.getDay() + 6) % 7));
       const at = (w, d) => { const x = new Date(mon); x.setDate(x.getDate() + 7 * w + d); return iso(x); };
       const late = new Date(t); late.setDate(t.getDate() - 3);
       const rows = [[iso(late), 'Check the September invoice'], [at(0, 4), 'Send a current insurance certificate'], [at(0, 5), 'A Saturday promise'],
@@ -62,7 +64,8 @@ const check = (name, pass, detail) => {
       c.obligations = rows.map(([due, desc], i) => ({ id: 'wk' + i, desc, due, party: 'us', recurring: 'none' }));
       persist(c);
       return { sat: at(0, 5), satWord: `${new Date(at(0, 5) + 'T00:00:00').toLocaleDateString(langLocale(), { weekday: 'short' })} ${new Date(at(0, 5) + 'T00:00:00').getDate()}`,
-        fri0: at(0, 4), wk2: at(2, 0), mon1: at(1, 0) };
+        fri0: at(0, 4), wk2: at(2, 0), mon1: at(1, 0), from: at(0, 0), to: at(0, 6), thenTo: at(5, 6),
+        seeded: c.obligations.map(o => ({ id: o.id, due: o.due, desc: o.desc })) };
     });
 
     /* RETIRED 16 Nov 2026 (#762): sections 1 and 2 (Obligations grouped by week — Late, This week, Next week, the later
@@ -70,55 +73,67 @@ const check = (name, pass, detail) => {
        pills Late · Tracked · Proposals, twenty a page), which draws no week groups; obligations-project-list-verify and
        round5-new-look-verify pin it */
 
-    /* ---- 3 the Calendar's Week holds this week and five more ----
-       RE-POINTED 29 Oct 2026 (round 12, owner's yes): the calendar opens on the Agenda; Week is its own tab */
+    /* ---- 3 the Calendar's Week: this week as one calm table, the coming weeks folded into one line ----
+       RE-POINTED 29 Oct 2026 (round 12, owner's yes): the calendar opens on the Agenda; Week is its own tab
+       RE-POINTED 23 Nov 2026 (P-14, owner's "Build P-14": Calendar the Legora + Stripe way on all four tabs): Week is this
+       week (Monday to Sunday) as the Agenda's calm table, what is late leading, then the next five weeks folded into ONE
+       line counting their dates with "Show them" (the Agenda); the hours grid and the five week rows are gone. The Month is
+       a soft SEVEN-day grid (reverses round 16's Monday to Friday there), a weekend's date on its own day. */
     await page.evaluate(() => setView('calendar'));
     await until(() => document.querySelectorAll('[data-cal-view]').length >= 4, null, 10000);
-    await page.evaluate(() => calSetView('week'));
-    await until(() => !!document.querySelector('#cal-week #cal-wk-more'), null, 10000);
+    /* the Agreement chip narrows the page to the contract this stage seeded, so every count below is this stage's own */
+    await page.evaluate(() => { const F = calLsF(); F.cid = 'MK-A2'; F.kind = 'all'; F.whose = 'all'; F.show = 'all'; calSetView('week'); });
+    await until(() => calView() === 'week' && !!document.querySelector('.cal-page.is-ls #cal-ag .cls-then'), null, 10000);
     const C = await page.evaluate(d => {
-      const rows = [...document.querySelectorAll('#cal-wk-more .cal-wkm-row')];
-      const fri = [...document.querySelectorAll('.cal-wk-alls .cal-wk-all')][4];
-      return { view: calView(), hours: !!document.querySelector('#cal-wk-body .cal-wk-slot'), rows: rows.length,
-        labels: rows.map(r => (r.querySelector('.cal-wkm-lab span') || {}).textContent || ''),
-        days: rows[0] ? rows[0].querySelectorAll('.cal-wkm-d').length : 0,
-        sat: fri ? [...fri.querySelectorAll('.cal-chip')].map(x => x.textContent) : [], satWord: d.satWord,
-        wk2: rows[1] ? rows[1].getAttribute('data-cal-wkm') : '' };
+      const today = todayISO();
+      const rows = [...document.querySelectorAll('.cal-page.is-ls #cal-ag tr.cls-r[data-cal-pick]')].map(r => {
+        const k = r.getAttribute('data-cal-pick').split('|'); return { cid: k[0], type: k[1], date: k[2], ob: k[3] || '', day: (r.querySelector('.cls-dt') || {}).textContent || '' }; });
+      const ours = rows.filter(r => r.cid === 'MK-A2' && r.type === 'obligation').map(r => r.ob).sort();
+      const want = d.seeded.filter(o => o.due < today || (o.due >= d.from && o.due <= d.to)).map(o => o.id).sort();
+      /* the coming five weeks: the seeded duties, and this contract's own dates, that fall in them */
+      const after = x => x > d.to && x <= d.thenTo;
+      const thenWant = d.seeded.filter(o => after(o.due)).length
+        + (calEventsOnce() || []).filter(e => e && e.cid === 'MK-A2' && !e.own && !e.done && e.type !== 'obligation' && after(e.date)).length;
+      const then = (document.querySelector('.cal-page.is-ls #cal-ag .cls-then-h') || {}).textContent || '';
+      const sat = rows.find(r => r.ob === 'wk2');
+      return { view: calView(), ours, want, others: rows.filter(r => r.cid !== 'MK-A2').length, then, thenWant,
+        satDay: sat ? sat.day : null, satWord: calDateWords(d.sat, { weekday: 'short' }),
+        hours: !!document.querySelector('#cal-wk-body .cal-wk-slot'), show: !!document.querySelector('.cal-page.is-ls .cls-then [data-cal-view="agenda"]') };
     }, D);
-    check('3a Week holds this week by the hour, five more weeks under it, Monday to Friday',
-      C.view === 'week' && C.hours && C.rows === 5 && C.days === 5, JSON.stringify({ view: C.view, hours: C.hours, rows: C.rows, days: C.days }));
-    /* RE-POINTED 18 Oct 2026 (lane A4, round 16 as drawn: "26–30 Oct · 3 due"):
-       a week whose dates are all work owed says "N due", else "N dates" */
-    check('3b each later week says how many dates it holds', C.labels[1] === '3 due' && C.labels[0] === '1 due' && C.labels[2] === 'nothing due', JSON.stringify(C.labels));
-    check('3c this week\'s Saturday promise stands on the Friday, saying its own day', C.sat.some(t => t.startsWith(C.satWord + ' · ')), JSON.stringify(C.sat));
+    check('3a Week is this week as one calm table: what is late, then Monday to Sunday, only the chosen agreement',
+      C.view === 'week' && !C.hours && C.ours.join() === C.want.join() && C.others === 0, JSON.stringify({ view: C.view, hours: C.hours, ours: C.ours, want: C.want, others: C.others }));
+    check('3b the coming five weeks fold into one line counting their dates',
+      new RegExp('· ' + C.thenWant + ' dates?\\b').test(C.then) && C.thenWant >= 4, JSON.stringify({ then: C.then, want: C.thenWant }));
+    check('3c this week\'s Saturday promise stands on its own day, saying it', !!C.satDay && C.satDay.startsWith(C.satWord + ' '), JSON.stringify({ day: C.satDay, word: C.satWord }));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'week-by-week-calendar-1440x780.png') });
-    await page.click(`#cal-wk-more .cal-wkm-d[data-cal-week="${D.wk2}"]`);
-    const up = await until(d => { const a = calWeekStart(); const iso = `${a.getFullYear()}-${String(a.getMonth() + 1).padStart(2, '0')}-${String(a.getDate()).padStart(2, '0')}`;
-      return calView() === 'week' && iso === d && !!document.querySelector('#cal-wk-body .cal-wk-slot') ? iso : null; }, D.wk2);
-    check('3d a press on a later week\'s day brings that week up by the hour', up === D.wk2, String(up));
+    if (C.show) await page.click('.cal-page.is-ls .cls-then [data-cal-view="agenda"]');
+    const up = await until(() => calView() === 'agenda' && !!document.querySelector('.cal-page.is-ls #cal-ag tr.cls-r[data-cal-pick$="|wk3"]') ? 'agenda' : null);
+    check('3d "Show them" on the folded weeks opens the Agenda, the next week\'s date in it', C.show && up === 'agenda', String(up));
 
-    /* ---- 4 Monday to Friday on the month ---- */
-    /* the month that holds the Saturday: its Friday before carries it (a
-       greyed Friday where that Saturday is the 1st) */
+    /* ---- 4 the month: seven columns, a weekend's date on its own day ---- */
     await page.evaluate(d => { calState.wk = null; const x = new Date(d.sat + 'T00:00:00'); calState.ym = { y: x.getFullYear(), m: x.getMonth() }; calSetView('month'); }, D);
-    await until(() => !!document.getElementById('cal-grid'), null, 8000);
+    await until(() => !!document.querySelector('.cal-page.is-ls #cal-grid .cls-d'), null, 8000);
     const M = await page.evaluate(d => {
-      const dow = [...document.querySelectorAll('.cal-grid .cal-dow span')].map(s => s.textContent.trim());
-      const cells = document.querySelectorAll('#cal-grid .cal-day').length;
-      const fri = document.querySelector(`#cal-grid .cal-day[data-cal-week="${d.fri0}"]`);
-      return { dow, cells, fri: fri ? [...fri.querySelectorAll('.cal-chip')].map(x => x.textContent) : null };
+      const dow = [...document.querySelectorAll('.cal-page.is-ls #cal-grid .cls-mh')].map(s => s.textContent.trim());
+      const cells = document.querySelectorAll('.cal-page.is-ls #cal-grid .cls-d').length;
+      const sat = document.querySelector(`.cal-page.is-ls #cal-grid .cls-d[data-cal-pick="${d.sat}"]`);
+      return { dow, cells, we: !!sat && sat.classList.contains('is-we'), satHas: !!sat && ([...sat.querySelectorAll('.cls-ev')].some(x => x.getAttribute('title') === 'A Saturday promise') || !!sat.querySelector('.cls-more')) };
     }, D);
-    check('4a the month draws Monday to Friday, six weeks of five', M.dow.length === 5 && /^M/.test(M.dow[0]) && /^F/.test(M.dow[4]) && M.cells === 30, JSON.stringify({ dow: M.dow, cells: M.cells }));
-    check('4b a Saturday\'s date stands on the Friday before, saying its own day', !!M.fri && M.fri.some(t => t.startsWith(D.satWord + ' · ')), JSON.stringify(M.fri));
+    check('4a the month draws seven columns, six weeks of seven, Monday first', M.dow.length === 7 && /^M/.test(M.dow[0]) && /^S/.test(M.dow[6]) && M.cells === 42, JSON.stringify({ dow: M.dow, cells: M.cells }));
+    if (M.cells) await page.click(`.cal-page.is-ls #cal-grid .cls-d[data-cal-pick="${D.sat}"]`).catch(() => {});
+    const side = await until(() => { const p = document.querySelector('#cal-plan .cls-side'); return p && /A Saturday promise/.test(p.textContent) ? true : null; }, null, 4000);
+    check('4b a Saturday\'s date stands on the Saturday itself (a weekend column), and choosing it the panel says it', M.we && M.satHas && !!side, JSON.stringify({ we: M.we, has: M.satHas, side: !!side }));
     await page.evaluate(() => calSetView('week'));
+    await until(() => !!document.querySelector('.cal-page.is-ls #cal-ag .cls-then'), null, 6000);
 
     /* ---- 5 the owner's three screens ---- */
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(400);
-      const F = await page.evaluate(() => { const r = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; };
-        const more = r('#cal-wk-more'), body = r('#cal-wk-body');
-        return { weeks: !!more && more.bottom <= innerHeight + 1, hours: !!body && body.height >= 100, side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
-      check(`5 ${w}×${ht}: the calendar's six weeks whole, the hours room to read, nothing sideways`, F.weeks && F.hours && F.side, JSON.stringify(F));
+      const F = await page.evaluate(() => { const b = document.getElementById('cal-ls-body'), r = b ? b.getBoundingClientRect() : null;
+        const then = document.querySelector('#cal-ls-body .cls-then');
+        return { body: !!r && r.bottom <= innerHeight + 1 && r.height >= 100, then: !!then && b.contains(then) && then.getBoundingClientRect().height > 0,
+          side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
+      check(`5 ${w}×${ht}: the week's table and its folded weeks inside the page, room to read, nothing sideways`, F.body && F.then && F.side, JSON.stringify(F));
       if (OUT) await page.screenshot({ path: path.join(OUT, `week-by-week-calendar-${w}x${ht}.png`) });
     }
     /* RETIRED 16 Nov 2026 (#762): the three screens on Obligations' "this week" group — no week groups in the new look */

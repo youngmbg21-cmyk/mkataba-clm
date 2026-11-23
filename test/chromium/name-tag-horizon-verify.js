@@ -97,64 +97,56 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     await page.waitForTimeout(1500);
     await page.screenshot({ path: path.join(OUT, '02-horizon.png'), fullPage: true });
 
+    /* RE-POINTED 23 Nov 2026 (P-14, owner's "Build P-14": the Calendar the Legora + Stripe way on all four tabs): the
+       Horizon is ONE calm table — Agreement (its name, then "· who") · Time left (a slim bar and its days) · Decision (a
+       soft badge) · Ends — led by its chips (All · Notice passed · Renews on its own, + Stream, the sort); the five band
+       boxes, the caption and the twelve months are gone. The owner's own words still stand: the rows scroll UNDER the
+       head line (Agreement …), inside the page's one scroller (#cal-ls-body). */
+    await page.waitForFunction(() => !!document.querySelector('.cal-page.is-ls .cls-t.is-hz tr.cls-r'), null, { timeout: 8000 }).catch(() => {});
     const hz = await page.evaluate(() => {
-      const lad = document.querySelector('.cal-ladder'), sc = document.querySelector('.cal-hz');
-      const ruler = document.querySelector('.cal-hz-ruler');
-      if (!lad || !sc || !ruler) return null;
-      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): as drawn (round 5) the months stand over
-         each row's own bar (.cal-hz-rm), not in the ruler; they are still read as a ruler, not column heads */
-      const m = document.querySelector('.cal-hz-row .cal-hz-rm span');
-      return { ladFirst: lad.compareDocumentPosition(sc) === 4,
-        caption: !!document.querySelector('.cal-hz-t'),
-        scrollable: sc.scrollHeight > sc.clientHeight + 4,
-        ruler0: Math.round(ruler.getBoundingClientRect().top),
-        sub: (document.querySelector('.cal-hz-lab .m') || {}).textContent,
-        monthCase: m ? getComputedStyle(m).textTransform : null,
-        monthFace: m ? getComputedStyle(m).fontFamily.split(',')[0] : null,
-        /* The figures face is a token (--font-mono), which the type ruling made
-           Geist with tabular digits; the ruler follows the token, not a name. */
-        monoFace: getComputedStyle(document.documentElement).getPropertyValue('--font-mono').split(',')[0].trim(),
-        ladEdge: getComputedStyle(document.querySelector('.cal-lad')).borderTopWidth,
-        /* the five boxes, each soft-filled in its band's tone (THE SAP WAY, f987) */
-        lads: [...document.querySelectorAll('.cal-lad')].map(el => ({ k: (el.className.match(/cal-lad-(d\d+)/) || [])[1], bg: getComputedStyle(el).backgroundColor, edge: getComputedStyle(el).borderTopWidth })) };
+      const t = document.querySelector('.cal-page.is-ls .cls-t.is-hz'), sc = document.getElementById('cal-ls-body');
+      const chips = document.querySelector('.cal-page.is-ls .cls-chips'), head = t && t.querySelector('thead th');
+      if (!t || !sc || !chips || !head) return null;
+      const rows = [...t.querySelectorAll('tr.cls-r')];
+      const fills = rows.map(r => { const i = r.querySelector('.cls-bk i'); return i ? getComputedStyle(i).backgroundColor : null; });
+      return { chipsFirst: chips.compareDocumentPosition(t) === 4 && !document.querySelector('.cal-ladder, .cal-lad'),
+        caption: !!document.querySelector('.cal-hz-t, .cal-hz-months'),
+        heads: [...t.querySelectorAll('thead th')].map(x => x.textContent.trim()),
+        left: rows.map(r => ((r.querySelector('.cls-left .cls-ts') || {}).textContent || '').trim()),
+        bars: rows.filter(r => r.querySelector('.cls-left .cls-bk i')).length, n: rows.length,
+        sub: ((rows[0] && rows[0].querySelector('.cls-what .cls-ts')) || {}).textContent || '',
+        fills, scrollable: sc.scrollHeight > sc.clientHeight + 4,
+        head0: Math.round(head.getBoundingClientRect().top) };
     });
-    ok('3 the five bands lead the table', !!hz && hz.ladFirst, hz && String(hz.ladFirst));
-    ok('3b the caption bar is gone', !!hz && !hz.caption);
-    ok('3c the months read as a ruler, not twelve column heads',
-      !!hz && hz.monthCase === 'none' && !!hz.monthFace && hz.monthFace.replace(/["']/g, '') === (hz.monoFace || '').replace(/["']/g, ''),
-      hz && hz.monthCase + ' / ' + hz.monthFace + ' vs ' + hz.monoFace);
-    ok('3d the agreement line is the artifact\'s order — who, then the reference',
-      !!hz && /^[^·]+ · \w+-/.test(hz.sub || ''), hz && hz.sub);
-    /* RE-POINTED 16 Nov 2026 (#762): THE SAP WAY (owner's pick, 10 Nov 2026, f987) — the five boxes are soft-filled
-       by band, their top rule gone; still each band a card wearing its own tone (red ≤30, amber ≤90, green beyond) */
-    const ladBg = k => ((hz && hz.lads || []).find(l => l.k === k) || {}).bg;
+    ok('3 the chips lead the table, no band boxes', !!hz && hz.chipsFirst, hz && JSON.stringify({ first: hz.chipsFirst }));
+    ok('3b the caption bar and the twelve month heads are gone', !!hz && !hz.caption);
+    ok('3c the time left reads as a bar and its days on every row, the heads in plain words',
+      !!hz && hz.n > 0 && hz.bars === hz.n && hz.left.every(x => /\d+ days?|beyond a year/.test(x)) && /^Agreement/.test(hz.heads[0] || '') && hz.heads[1] === 'Time left',
+      hz && JSON.stringify({ heads: hz.heads, left: hz.left.slice(0, 3), bars: hz.bars, n: hz.n }));
+    ok('3d the agreement line is its name, then who it is with', !!hz && /^· \S/.test(hz.sub.trim()), hz && hz.sub);
+    /* each bar wears its tone from the time left (steel within half a year, grey beyond; amber and red where the notice
+       nears or has passed): painted, never clear, and the book's spread draws more than one tone */
     const clear = v => !v || v === 'rgba(0, 0, 0, 0)' || v === 'transparent';
-    ok('3e each band is a card filled in its tone (red, amber, green), no top rule',
-      !!hz && hz.lads.length === 5 && hz.lads.every(l => !clear(l.bg) && parseFloat(l.edge) === 0)
-        && ladBg('d30') !== ladBg('d60') && ladBg('d60') === ladBg('d90') && ladBg('d90') !== ladBg('d180') && ladBg('d180') === ladBg('d365'),
-      hz && JSON.stringify(hz.lads));
+    ok('3e each bar is filled in its tone, and the spread draws more than one',
+      !!hz && hz.fills.length > 0 && hz.fills.every(f => !clear(f)) && new Set(hz.fills).size >= 2, hz && JSON.stringify([...new Set(hz.fills || [])]));
 
     /* THE OWNER'S OWN WORDS: the contracts and dates scroll UNDER the first
        line. Measured by really scrolling the table. */
     ok('3-stage there are more rows than the card', !!hz && hz.scrollable, hz && String(hz.scrollable));
-    await page.evaluate(() => { document.querySelector('.cal-hz').scrollTop = 260; });
+    await page.evaluate(() => { const sc = document.getElementById('cal-ls-body'); if (sc) sc.scrollTop = 260; });
     await page.waitForTimeout(400);
     const after = await page.evaluate(() => {
-      const sc = document.querySelector('.cal-hz'), r = document.querySelector('.cal-hz-ruler');
-      const row = document.querySelector('.cal-hz-row');
+      const sc = document.getElementById('cal-ls-body'), r = document.querySelector('.cal-page.is-ls .cls-t.is-hz thead th');
+      const row = document.querySelector('.cal-page.is-ls .cls-t.is-hz tr.cls-r');
+      if (!sc || !r || !row) return { top: 0, ruler: null, row: null };
       return { top: sc.scrollTop, ruler: Math.round(r.getBoundingClientRect().top),
         row: Math.round(row.getBoundingClientRect().top),
         scTop: Math.round(sc.getBoundingClientRect().top) };
     });
     ok('3f the table really scrolled', after.top > 100, String(after.top));
-    /* A NAMED CONTROL: measured at the parent too, the ruler already held in a
-       seeded browser — sticky was set and the card happened to be bounded.
-       What changed is that the TABLE now owns the scroll (f348 (4b)), so the
-       header cannot travel with the page at a height where the card would
-       otherwise grow past it. This holds the behaviour still either way. */
-    ok('3g [control] the ruler held its place while the rows moved under it',
-      !!hz && after.ruler === hz.ruler0 && after.row < after.ruler,
-      `ruler ${hz && hz.ruler0} → ${after.ruler} · first row now ${after.row}`);
+    ok('3g [control] the head line held its place while the rows moved under it',
+      !!hz && after.ruler != null && Math.abs(after.ruler - after.scTop) <= 1 && after.row < after.ruler,
+      `head ${hz && hz.head0} → ${after.ruler} (scroller top ${after.scTop}) · first row now ${after.row}`);
     await page.screenshot({ path: path.join(OUT, '03-horizon-scrolled.png') });
 
     /* ════ 4. THE BAR'S OWN ENDS ════
@@ -175,8 +167,10 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     await page.waitForTimeout(1200);
     await page.click('[data-cal-view="horizon"]').catch(() => {});
     await page.waitForTimeout(1400);
+    /* RE-POINTED 23 Nov 2026 (P-14): the time left is a slim track (.cls-bk) with its fill; a row past a year fills
+       the track in the quiet grey and says "beyond a year" */
+    await page.waitForFunction(() => !!document.querySelector('.cal-page.is-ls .cls-t.is-hz tr.cls-r[data-cal-pick="HZ-FAR"]'), null, { timeout: 8000 }).catch(() => {});
     const bars = await page.evaluate(() => {
-      const all = [...document.querySelectorAll('.cal-hz-bar')];
       const read = el => {
         if (!el) return null;
         const cs = getComputedStyle(el), r = el.getBoundingClientRect();
@@ -184,29 +178,24 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
           tl: cs.borderTopLeftRadius, bl: cs.borderBottomLeftRadius,
           tr: cs.borderTopRightRadius, br: cs.borderBottomRightRadius };
       };
-      const beyond = all.find(b => b.classList.contains('is-beyond'));
-      const plain = all.find(b => !b.classList.contains('is-beyond') && b.getBoundingClientRect().width > 30);
-      /* the row beyond the year, as drawn (round 5): a quiet row with no bar, its note saying so */
-      const far = document.querySelector('.cal-hz-row[data-sel="HZ-FAR"]');
-      return { n: all.length, plain: read(plain), beyond: read(beyond),
-        far: far ? { isFar: far.classList.contains('is-far'), bars: far.querySelectorAll('.cal-hz-bar').length,
-          note: ((far.querySelector('.cal-hz-note') || {}).textContent || '').trim(), beyondWord: i18t('cal_hz_beyond') } : null };
+      const rows = [...document.querySelectorAll('.cal-page.is-ls .cls-t.is-hz tr.cls-r')];
+      const plainRow = rows.find(r => r.getAttribute('data-cal-pick') !== 'HZ-FAR' && r.querySelector('.cls-bk i') && r.querySelector('.cls-bk i').getBoundingClientRect().width > 30);
+      const far = document.querySelector('.cal-page.is-ls .cls-t.is-hz tr.cls-r[data-cal-pick="HZ-FAR"]');
+      const fi = far && far.querySelector('.cls-bk i');
+      return { n: rows.length, track: read(plainRow && plainRow.querySelector('.cls-bk')), plain: read(plainRow && plainRow.querySelector('.cls-bk i')),
+        far: far ? { gray: !!fi && fi.classList.contains('is-gray'), full: !!fi && Math.abs(fi.getBoundingClientRect().width - far.querySelector('.cls-bk').getBoundingClientRect().width) <= 1,
+          note: ((far.querySelector('.cls-left .cls-ts') || {}).textContent || '').trim(), beyondWord: i18t('cal_hz_beyond') } : null };
     });
     /* A PAINTED radius is a pill when it is at least half the box's height:
        the browser resolves 999px down to what the box can take. */
     const pill = (v, h) => v != null && parseFloat(v) >= h / 2 - 0.5;
-    /* RE-POINTED 16 Nov 2026 (#762): as drawn (round 5) a row beyond the year draws NO bar — so the stage asks for
-       the plain bar and the far row, not a cut bar */
     ok('4-stage a plain bar and the row beyond the year are on the page',
       !!bars && !!bars.plain && !!bars.far, bars && JSON.stringify({ n: bars.n, far: bars.far }));
-    ok('4 a bar that ends on the ruler is a pill at BOTH ends',
-      !!bars && !!bars.plain && pill(bars.plain.tl, bars.plain.h) && pill(bars.plain.bl, bars.plain.h)
-        && pill(bars.plain.tr, bars.plain.h) && pill(bars.plain.br, bars.plain.h),
-      bars && JSON.stringify(bars.plain));
-    /* RE-POINTED 16 Nov 2026 (#762): the cut bar was the old look's; the new look's far row is a quiet row,
-       no bar at all (none half-drawn), its note saying it runs beyond the horizon */
-    ok('4b a row running past the ruler is a quiet row with no bar, its note saying it runs beyond',
-      !!bars && !!bars.far && bars.far.isFar && bars.far.bars === 0 && !bars.beyond && bars.far.note.includes(bars.far.beyondWord),
+    ok('4 a bar and its track are pills at BOTH ends',
+      !!bars && !!bars.plain && !!bars.track && [bars.plain, bars.track].every(b => pill(b.tl, b.h) && pill(b.bl, b.h) && pill(b.tr, b.h) && pill(b.br, b.h)),
+      bars && JSON.stringify({ plain: bars.plain, track: bars.track }));
+    ok('4b a row running past a year is quiet: its track filled grey, its words saying it runs beyond',
+      !!bars && !!bars.far && bars.far.gray && bars.far.full && bars.far.note.includes(bars.far.beyondWord),
       bars && JSON.stringify(bars.far));
     await page.screenshot({ path: path.join(OUT, '04-horizon-bars.png'), fullPage: true });
 

@@ -151,11 +151,13 @@ const MID = () => {
     console.log('\n3 · the obligations found: the review comes to the middle');
     await seeIt();
     await click('#modal-root [data-pd-mid] [data-ag-act="obs"]');
-    const r3 = await waitFor(page, () => { const p = document.querySelector('#modal-root [data-pd-mid]'); return p && p.querySelector('#obd') ? true : null; }, 10000);
+    /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end": ONE DOOR — the review is the contract's Duties page (#dtp),
+       To decide listing what Jambo found, each decided in its own sheet; the old tick list (#obd, data-ob-pick) is deleted) */
+    const r3 = await waitFor(page, () => { const p = document.querySelector('#modal-root [data-pd-mid]'); return p && p.querySelector('#dtp') ? true : null; }, 10000);
     const m3 = await page.evaluate(MID);
     check('3a the review stands in the middle, not a pop-up', !!r3 && /^obs:/.test(m3.key || '') && !!m3.back, JSON.stringify(m3));
     check('3b the Dossier stays beside it; the page ends at its edge', m3.dockShown && m3.right <= m3.dockLeft + 1, JSON.stringify(m3));
-    const n3 = await page.evaluate(() => document.querySelectorAll('#obd [data-ob-pick]').length);
+    const n3 = await page.evaluate(() => document.querySelectorAll('#dtp #dtp-list [data-dtp-decide]').length);
     check('3c it lists the three obligations Jambo found', n3 === 3, String(n3));
     await pause(500); await page.screenshot({ path: path.join(OUT, 'obligations-1440x780.png') });
     await click('#ig-dock [data-pd-mid-back]');
@@ -204,7 +206,7 @@ const MID = () => {
       check(`6 ${w}x${hh} Jambo's work in the middle, the Dossier beside it, nothing sideways`, a.up && a.dockShown && a.right <= a.dockLeft + 1 && !a.sideways, JSON.stringify(a));
       await page.screenshot({ path: path.join(OUT, `jambos-work-${w}x${hh}.png`) });
       await click('#modal-root [data-pd-mid] [data-ag-act="obs"]');
-      await waitFor(page, () => !!document.querySelector('#modal-root [data-pd-mid] #obd'), 8000); await pause(500);
+      await waitFor(page, () => !!document.querySelector('#modal-root [data-pd-mid] #dtp'), 8000); await pause(500);
       const o = await page.evaluate(MID);
       check(`6 ${w}x${hh} the obligations review in the middle, nothing sideways`, o.up && /^obs:/.test(o.key || '') && o.dockShown && !o.sideways, JSON.stringify(o));
       await page.screenshot({ path: path.join(OUT, `obligations-${w}x${hh}.png`) });

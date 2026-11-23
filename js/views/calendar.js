@@ -3221,6 +3221,9 @@ function calLsCss(){ return `
   html.lg-new .cal-page.is-ls .cls-t col.c-left{width:150px} html.lg-new .cal-page.is-ls .cls-t col.c-dec{width:168px} html.lg-new .cal-page.is-ls .cls-t col.c-end{width:132px}
   html.lg-new .cal-page.is-ls .cls-t th{font:var(--w-label) 12px/1.4 var(--font-body);color:var(--color-neutral-400);text-align:left;padding:8px 10px;border-bottom:1px solid var(--cls-line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .cal-page.is-ls .cls-t th.r{text-align:right}
+  /* THE HORIZON'S HEAD LINE STAYS (owner, 21 Sep 2026: "the contracts and dates scroll under the first line that has
+     Agreement"): its rows scroll under it inside the page's own scroller (.cls-body) */
+  html.lg-new .cal-page.is-ls .cls-t.is-hz thead th{position:sticky;top:0;z-index:1;background:var(--color-surface)}
   html.lg-new .cal-page.is-ls .cls-t td{padding:11px 10px;border-bottom:1px solid var(--color-neutral-100);vertical-align:top;min-width:0;overflow:hidden}
   html.lg-new .cal-page.is-ls .cls-r{cursor:pointer}
   html.lg-new .cal-page.is-ls .cls-r:hover td{background:color-mix(in srgb,var(--surface-2) 45%,var(--color-surface))}

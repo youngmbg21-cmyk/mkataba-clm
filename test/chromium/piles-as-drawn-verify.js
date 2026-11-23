@@ -160,12 +160,15 @@ async function login(b, base, email, pass, errs){
          the face's own links as drawn (CA_RED_LINKS) — no Jambo chip that is not one of the face's own doors */
       const chipKeys = [...document.querySelectorAll('#ig-dock [data-ig-chips] [data-ca-chip]')].filter(b => b.getClientRects().length).map(b => b.getAttribute('data-ca-chip'));
       const chips = document.querySelector('#ig-dock [data-ig-chips]');
-      return { tabs, word: word ? word.textContent.trim() : null, back: back ? back.textContent.trim() : null, backFace: back && back.getAttribute('data-pd-back'),
+      /* RE-POINTED 23 Nov 2026 (Dossier L+S step 2, PLAN THE READ): the Plan tab stands beside the Dossier while the paper
+         may be planned (pd2PlanTabOn); the rule decides it, so the row expected is the rule's own */
+      const planOn = typeof pd2PlanTabOn === 'function' && !!pd2PlanTabOn(getContract('MK-0382'));
+      return { tabs, planOn, word: word ? word.textContent.trim() : null, back: back ? back.textContent.trim() : null, backFace: back && back.getAttribute('data-pd-back'),
         x, chips: chips ? getComputedStyle(chips).display : 'none', chipKeys };
     });
     /* RE-POINTED 21 Oct 2026 (owner picked "The Dossier", 20 Oct 2026: it reverses the Menu tab, folded into the Dossier's All acts; the first tab beside a paper is "Dossier"): */
     /* RE-POINTED 23 Oct 2026 (Spine): the row is Dossier · Clauses · Redlines */
-    check('1a the tabs stay; the trail line names the face "Redlines"', row.tabs.join() === 'copilot,doc,red' && row.word === 'Redlines', JSON.stringify(row));
+    check('1a the tabs stay; the trail line names the face "Redlines"', row.tabs.join() === (row.planOn ? 'copilot,plan,doc,red' : 'copilot,doc,red') && row.word === 'Redlines', JSON.stringify(row));
     /* RE-POINTED 19 Oct 2026 — JAMBO AS A TAB YOU FLIP TO (owner: "the first tab
        beside a contract is renamed Overview"): the faces' back says "‹ Overview" */
     check('1b "‹ Dossier" opens the trail line, for this face', /Dossier/.test(row.back || '') && row.backFace === 'red', row.back);
