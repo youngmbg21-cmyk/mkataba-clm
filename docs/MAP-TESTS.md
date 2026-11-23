@@ -346,6 +346,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - DISCOVER, HOW A CELL IS READ (the live run's eight misses): f887 3f (a number of days with its unit run on), f888 1c (`COLUMN_READ_RULE` on every read); both red at the parent a701f17. Then the live measure with a key.
 
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
+- f1191 a press on the Contracts place puts Home on its paper face first (23 Nov 2026; red at the parent).
 - f1190 the Contracts door lands on the Folders every time (23 Nov 2026; red at the parent).
 - f687 2a (test/f687-contracts-opens-home.test.js): no facts line beside the name; List | Wall inside the one `.ct-acts` group.
 - NO DISCOVER BUTTON ON CONTRACTS (owner, 15 Nov 2026): f1016 (1) (9) re-pointed; browser: discover-page-verify 1 (the "discover" chip opens the page), reads-and-columns-as-drawn-verify 1.
