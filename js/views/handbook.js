@@ -433,6 +433,7 @@ function hbknChapterHtml(c){
   return `<article class="hbkn-chapter" id="hbk-${_hbkE(c.k)}" data-hbk-ch="${_hbkE(c.k)}">
     <div class="hbkn-eye">${_hbkE(c.k)} · ${hbkText(c.eyebrow)} ${hbknPartBadge(c.part)}</div><h2 class="hbkn-t">${_hbkE(_hbkW(c.title))}</h2>
     <p class="hbkn-what">${hbkText(c.what)}</p>
+    ${how.length ? `<p class="hbkn-walk"><button type="button" class="ui-btn ui-btn-sm" data-teach-walk="${_hbkE(c.k)}">${_hbkE(_hbkT('teach_walk'))}</button></p>` : ''}
     <ol class="hbkn-steps">${steps}</ol>
     ${!how.length && shots.length ? `<div class="hbkn-pics">${shots.map((s, i) => pic(i)).join('')}</div>` : ''}
     ${c.tip ? `<p class="hbkn-tip"><b>${_hbkE(_hbkT('hbkn_tip'))}</b> ${hbkText(c.tip)}</p>` : ''}

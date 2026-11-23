@@ -1617,6 +1617,8 @@ if(typeof document!=='undefined'&&!document._aiChoiceWired){
     const [t,k]=String(b.getAttribute('data-ai-choice')||'').split(':').map(Number);
     const m=ai.history[t], c=m&&Array.isArray(m.choices)&&m.choices[k]; if(!c) return;
     m.choices=null;
+    /* JAMBO THE INSTRUCTOR (js/teach.js): a walk's own presses draw their next turn themselves */
+    if(c.teach&&typeof window.teachChoicePress==='function'){ teachChoicePress(c); return; }
     if(c.retry){ if(typeof aiAskWords==='function') aiAskWords(c.retry); return; }
     aiPush('user',{ text:_aiEsc(c.label), raw:c.label });
     if(c.nav&&typeof window.navChoicePress==='function') navChoicePress(c);
@@ -2605,7 +2607,10 @@ function aiWayChoicesOf(res, q){
   const out=[];
   for(const c of (res&&Array.isArray(res.choices)?res.choices:[])){
     let a=null; try{ a=(typeof window.navDoorOf==='function')?navDoorOf(c&&c.door):null; }catch(_){ a=null; }
-    if(a&&a.kind==='go'&&a.nav&&c.label) out.push({ label:String(c.label).slice(0,80), nav:a.nav });
+    if(a&&a.kind==='go'&&a.nav&&c.label){ out.push({ label:String(c.label).slice(0,80), nav:a.nav });
+      /* JAMBO THE INSTRUCTOR (js/teach.js): while teaching, a chapter is also walked through, a step at a time */
+      if(a.nav.k==='chapter'&&typeof window.teachOn==='function'&&teachOn()&&typeof window.teachWalkSteps==='function'&&teachWalkSteps(teachChapter(a.nav.chapter)).length)
+        out.unshift({ label:i18t('teach_walk'), teach:'walk', k:String(a.nav.chapter), lead:true }); }
   }
   if(res&&res.retry&&q) out.push({ label:i18t('ai_ask_again'), retry:String(q) });
   return out.slice(0,5);
@@ -5301,7 +5306,8 @@ async function aiAskWords(qRaw, opts){
   /* "I'M NEW" (owner, 23 Nov 2026; js/teach.js): every box that reaches the conversation (a page's panel, the
      window, Settings, the Calendar) is answered in HaTi's own words, free, with the first steps as chips */
   if(typeof window.teachSay==='function'){ const tt=teachSay(q);
-    if(tt){ if(!noEcho) aiPush('user',{text:esc(q), raw:q}); aiPush('assistant',Object.assign({text:tt.html, read:tt.read}, tt.choices?{ choices:tt.choices }:{})); renderAIFeed(); return; } }
+    if(tt){ if(!noEcho) aiPush('user',{text:esc(q), raw:q}); aiPush('assistant',Object.assign({text:tt.html, read:tt.read}, tt.choices?{ choices:tt.choices }:{})); renderAIFeed(); return; }
+    if(typeof window.teachDid==='function') teachDid('ask'); }
   /* the same reading aiSubmit makes: an open rewrite owns the sentence only
      when it is not a question or a booking (aiAsksPastCard) */
   const cardOwns=!!(aiActiveProposal()||aiActiveRephrase()) && !aiAsksPastCard(q);

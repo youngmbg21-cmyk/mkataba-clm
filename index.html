@@ -15174,6 +15174,14 @@
   .jb-ways.is-in-door{flex:0 1 auto;flex-wrap:nowrap;overflow:hidden;gap:12px;margin-right:4px;align-items:center}
   .jb-ways.is-in-door .jb-way{font-size:13px}
   .jb-ways.is-in-door .jb-way:nth-of-type(n+4){display:none}
+  /* "What can I do here?" (js/teach.js): beside "Jambo ›" it stands alone, the page's links giving way; beside
+     "‹ Overview" (the conversation, where the person can simply ask) there is no room for it, the links keep theirs */
+  .jb-door:not(.jb-door-fwd-line) .jb-ways.is-in-door [data-teach-here]{display:none}
+  .jb-door-fwd-line .jb-ways.is-in-door:has(> [data-teach-here]) .jb-way:nth-of-type(n+2){display:none}
+  /* JAMBO THE INSTRUCTOR (js/teach.js; owner, 23 Nov 2026): while walking someone through a chapter, the thing the
+     step is about is outlined — the one exception to "a page you land on shows no light"; gone when pressed */
+  .teach-mark:not(#_):not(#_){outline:2px solid var(--accent-ink);outline-offset:3px;border-radius:var(--radius)}
+  .hbkn-walk{margin:0 0 12px}
   .jb-way{background:none;border:0;padding:0;font:inherit;font-size:var(--t-meta);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer;white-space:nowrap}
   @media (hover:hover){ .jb-way:hover{color:var(--accent-ink-700)} }
   .jb-card{display:flex;flex-direction:row;align-items:center;gap:4px;min-width:0;text-align:left;border:1px solid var(--rule-strong);border-radius:var(--radius);background:var(--color-surface);padding:4px 5px 4px 6px;transition:border-color .15s,box-shadow .15s}  /* Chambers: a hairline box with square-ish corners (20 Oct 2026; was a 20px pill) */
@@ -24520,6 +24528,7 @@
   html.lg-new :is(#ig-page:not(:has(#ig-canvas)) #ig-dock [data-ig-chips], .jb-ways.is-above-foot){flex-wrap:nowrap;overflow:hidden}
   /* three at most where the doors are long words (a page's own); beside a contract its own short links stay whole */
   html.lg-new :is(#ig-page:not(:has(#ig-canvas)) #ig-dock [data-ig-chips] .jb-chip, .jb-ways.is-above-foot .jb-way):nth-of-type(n+4){display:none}
+  html.lg-new .jb-ways.is-above-foot:has(> [data-teach-here]) .jb-way:nth-of-type(n+3){display:none}
   /* ==== ROUND 2, THE LISTS ====
      EVEN TILES (the folders, owner's pick by name): every tile one height, the name one line ending in "…", what needs
      you the biggest thing, one bar of signed · in review · drafting with its key above the grid, four across a laptop */

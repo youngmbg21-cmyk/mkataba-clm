@@ -1743,7 +1743,7 @@ function jlAsk(text, opts){
   /* ONE PANEL, TWO FACES (owner, 28 Oct 2026, "Door above the box"): no Jambo tab to be on — a page's one name
      moves you free (jamboPageGo), every other word TYPED is the brain's, on the landing too */
   /* "I'M NEW" (owner, 23 Nov 2026; js/teach.js): answered in the one conversation, free (aiAskWords reads it first) */
-  if (typeof teachRead === 'function' && teachRead(t) && typeof aiAskWords === 'function'){ jlTalkOpen(); aiAskWords(t); return 'model'; }
+  if (typeof teachTakes === 'function' && teachTakes(t) && typeof aiAskWords === 'function'){ jlTalkOpen(); aiAskWords(t); return 'model'; }
   if (opts && opts.typed && typeof jamboPageGo === 'function' && jamboPageGo(t)) return 'go';
   /* "ADD GRACE WAMBUI, … AS THE CONTACT" opens the one contact sheet filled in from the words, before the brain is
      asked (cuContactAsk, owner 19 Nov 2026); nothing is saved until the person presses Add */

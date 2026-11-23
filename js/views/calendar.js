@@ -2645,7 +2645,7 @@ function calEventDialog(item, seed){
 function calBoxAsk(v, opts){
   v=String(v||'').trim(); if(!v) return;
   /* "I'M NEW" (owner, 23 Nov 2026; js/teach.js) is never a plan: the one conversation answers it, free */
-  if(typeof window.teachRead==='function'&&teachRead(v)&&typeof window.aiAskWords==='function'){
+  if(typeof window.teachTakes==='function'&&teachTakes(v)&&typeof window.aiAskWords==='function'){
     if(typeof window.jamboTalkOpen==='function') jamboTalkOpen(CAL_TALK_KEY, document.getElementById('cal-plan-body'));
     aiAskWords(v,{ controls:true }); calPlanRepaint(); return; }
   /* ONE PANEL, TWO FACES (owner, 28 Oct 2026, "Door above the box"): a page's one name moves you free; every other

@@ -634,7 +634,9 @@ function jamboWaysHere(){
   const row = (k && typeof window.flowMapRow === 'function') ? window.flowMapRow(k) : null;
   if (!row) return { k: k || '', doors: [] };
   const face = JB_WAY_FACES.has(k);
-  return { k, doors: row.d.filter(d => d !== k && (face || !JB_WAY_FACES.has(d))) };
+  /* JAMBO THE INSTRUCTOR (js/teach.js): while teaching, "What can I do here?" leads the row */
+  const teach = typeof window.teachOn === 'function' && window.teachOn();
+  return { k, doors: (teach ? ['teachhere'] : []).concat(row.d.filter(d => d !== k && (face || !JB_WAY_FACES.has(d)))) };
 }
 function jamboWayWord(k){
   /* P-31 AS DRAWN (21 Nov 2026): beside the Contracts place, a paper chosen on the Wall included, the links line says them
@@ -645,7 +647,7 @@ function jamboWaysHtml(here, cls){
   /* the new look's (owner, 31 Oct 2026: built behind the switch until each page is approved) */
   if (typeof window.newLookOn === 'function' && !window.newLookOn()) return '';
   if (!here.doors.length) return '';
-  return `<nav class="jb-ways${cls ? ' ' + cls : ''}" data-jb-ways="${esc(here.k)}" aria-label="${esc(_jbT('jb_doors_label'))}">${here.doors.map(d => `<button type="button" class="jb-way" data-jb-way="${esc(d)}">${esc(jamboWayWord(d))}</button>`).join('')}</nav>`;
+  return `<nav class="jb-ways${cls ? ' ' + cls : ''}" data-jb-ways="${esc(here.k)}" aria-label="${esc(_jbT('jb_doors_label'))}">${here.doors.map(d => d === 'teachhere' ? `<button type="button" class="jb-way" data-teach-here>${esc(_jbT('teach_here_chip'))}</button>` : `<button type="button" class="jb-way" data-jb-way="${esc(d)}">${esc(jamboWayWord(d))}</button>`).join('')}</nav>`;
 }
 function jamboWaysSync(){
   if (typeof document === 'undefined') return;

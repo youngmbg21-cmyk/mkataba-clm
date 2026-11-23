@@ -4439,7 +4439,7 @@ app.get('/api/bootstrap', auth, (req, res) => {
       const p = publicUser(u);
       /* A PERSON'S SAVED VIEWS ARE THEIRS ALONE (10 Nov 2026): nobody else's row carries them, an admin's list included */
       /* …and so is "I'm new" (js/teach.js, 23 Nov 2026): only the person who said it */
-      if (u.id !== req.user.id && p.prefs) { delete p.prefs.igViews; delete p.prefs.teach; }
+      if (u.id !== req.user.id && p.prefs) { delete p.prefs.igViews; delete p.prefs.teach; delete p.prefs.teachDone; }
       if (req.user.role !== 'admin' && u.id !== req.user.id) {
         for (const k of ADMIN_ONLY_USER_FIELDS) delete p[k];
         /* A COLLEAGUE'S PREFERENCES ARE THEIRS (bug log, 27 Oct 2026): what they put away, their Jambo levels,
@@ -23716,6 +23716,13 @@ app.put('/api/me/prefs', auth, (req, res) => {
     else if (TEACH_STATES_SRV.includes(v)) prefs.teach = v;
     else return res.status(400).json({ error: 'teach must be one of: ' + TEACH_STATES_SRV.join(', ') });
   }
+  /* A NEW PERSON'S FIRST STEPS, TICKED AS THEY GO (js/teach.js TEACH_DONE_KEYS): a list of known keys only, else REFUSED */
+  if ('teachDone' in (req.body || {})) {
+    const v = req.body.teachDone;
+    if (v === null) delete prefs.teachDone;
+    else if (Array.isArray(v) && v.length <= TEACH_DONE_SRV.length && v.every(x => TEACH_DONE_SRV.includes(x))) prefs.teachDone = [...new Set(v)];
+    else return res.status(400).json({ error: 'teachDone must be a list of: ' + TEACH_DONE_SRV.join(', ') });
+  }
   if ('agentsLook' in (req.body || {})) {
     const v = req.body.agentsLook;
     if (v === null) delete prefs.agentsLook;
@@ -23741,6 +23748,7 @@ app.put('/api/me/prefs', auth, (req, res) => {
 const AGENTS_LOOKS = ['plan', 'drawing'];
 /* the two answers a person gives Jambo about being new (js/teach.js TEACH_STATES) */
 const TEACH_STATES_SRV = ['on', 'off'];
+const TEACH_DONE_SRV = ['open', 'add', 'fill', 'ask', 'week', 'team', 'grad'];
 /* Explorer's saved views, as js/views/intelligence.js keeps them: at most IG_VIEWS_MAX, each a name, the map's
    recipe and the day it was saved; the whole list small enough to ride a person's preferences. */
 const IG_VIEWS_MAX = 12, IG_VIEW_NAME_MAX = 60, IG_VIEWS_BYTES_MAX = 64000;

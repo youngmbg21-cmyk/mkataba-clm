@@ -22927,3 +22927,6 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 
 ## Noticed, not fixed (23 Nov 2026, Proposed obligations L+S)
 - The older review-desk styles (.obd-title, .obd-tb, .obd-foot, .obd-switch…) use `var(--color-ink)` and `var(--color-line)`, which no token in index.html defines, so those colours/lines silently fall back. The new L+S styles use `--color-text` / `--color-divider`.
+
+## Noticed, not fixed (23 Nov 2026, Jambo the instructor)
+- On the Contracts place, with Jambo's conversation open, the links beside "‹ Overview" are cut off at 1440×780: "draft a new agreement" and "discover" run past the panel's edge (CA_CHIP_WALL_WORD's long words on the in-door row; measured the same on unmodified main 4c770d2).

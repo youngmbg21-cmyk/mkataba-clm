@@ -78,84 +78,46 @@ tests and its Handbook lines in the same change.
   Jambo's empty box read: New here? Say "I'm new".
 - The welcome email an admin's invitation sends ends with: New to HaTi? Once
   you are in, tell Jambo "I'm new" and he will show you around.
-- Handbook: the Ask Jambo chapter says how. Test: f1182.
+- Handbook: the Ask Jambo chapter says how. Test: f1186.
 
-### Round 2 — "Walk me through it"
+### Rounds 2, 3, 4 and 6 — BUILT 23 Nov 2026 (owner: "Do what is necessary for a user to have a seamless transition into using Hati so do what it takes. No need for admin switch")
 
-What the person sees: under each first step, and under any how-to answer while
-teaching is on, a button **Walk me through it**. Jambo then gives ONE step at a
-time in his panel: "Step 2 of 5 — press Upload on the Board." He takes you to
-where that step happens. When HaTi sees the step is done (the page opened, the
-file read, the contract created), he moves on by himself. **Back**, **Skip**
-and **Stop** at any time. At the end: "Done — that's how you upload. What next?"
+The owner's "do what it takes" answered decisions 1 and 2 below (the outline; the list in Jambo's panel).
 
-How it is built:
-- The steps are the chapter's own numbered "how" steps — no new text.
-- Each step gains a small "done when" note in the chapter (a page is showing,
-  a thing exists): written once, checked by a test so a step whose check can no
-  longer be met fails.
-- The place each step happens is already known: the Handbook's picture recipes
-  name the exact thing on the screen for each numbered step.
+- **Walk me through it (round 2).** From the welcome's first steps, from the Board's first-steps list, from every
+  Handbook chapter (a button under its opening paragraph) and, while teaching is on, from any answer that names a
+  chapter. One step at a time in Jambo's panel, the chapter's OWN numbered steps. The thing the step is about is
+  the thing the chapter's own picture boxes on that step: found on the screen, it is outlined (a thin teal ring),
+  and pressing it moves the walk on by itself. A step inside a card that is not open yet outlines the button that
+  opens it first ("upload a document" → the card → "Choose a file"). Not on the screen: **Take me there** moves to
+  the page the picture was taken on; a step that needs a contract open says so. **Next · Back · Stop** at any time;
+  **Done** ticks its first step and offers the next. Free; Jambo never presses anything.
+- **What can I do here? (round 3).** While teaching is on, it leads the links beside "Jambo ›" above his box (beside
+  "‹ Overview" there is no room, and the person can simply ask). Typed or pressed, it is answered free from the
+  chapters that cover the page in front — the same reading Jambo is given — each one walk away.
+- **Your first steps (round 4).** While teaching is on, the Board's panel opens with "Your first steps · N of M
+  done": an editor's are open a contract · add one · fill in its details · ask Jambo; a Viewer's open · ask · look
+  at the week; an admin's open · add · add a colleague · ask. Each ticks itself from what HaTi already sees the
+  person do (opening, adding, saving details, asking, opening the Calendar, adding a person); each row is its walk.
+  All done: Jambo asks once, "Shall I stop the lessons?". Kept on the person's own preferences (`teachDone`),
+  never on a colleague's row.
+- **Plain words (round 6).** "What is a dossier?", "what does stream mean?", "vad betyder markeringar?" — 17 of
+  HaTi's own words answered in one sentence, free, for everyone, with the chapter one press away (and its walk
+  while teaching). A sentence about a contract ("what is the stream of MK-4") is not one of them.
 
-Decision for the owner: **may Jambo gently mark the button a step is about?**
-Today's rule is "a page you land on shows no light". A soft outline only while
-walking someone through, gone on the press, would be the one exception. If
-not, he names the button by its words and its place ("top right, Upload").
+### Round 5 — A practice contract — NOT BUILT (left for the owner)
 
-### Round 3 — "What can I do here?" on every page
+A private, practice-only contract changes what HaTi counts (Board figures, reports, reminders, the daily brief,
+sending and signing) in every place a contract is read. It is the one round that could make the real book wrong
+if a wall were missed, so it waits for the owner's word. Newcomers in a company that already has contracts
+practise on the real ones safely: the walks never press anything.
 
-While teaching is on, the row of doors above Jambo's box (which already exists
-on every page) starts with **What can I do here?**. Pressed, he answers free
-from the Handbook chapters that cover the page and the flow map: what the page
-is for, the two or three things people do here, and where work goes next. After
-a person's third visit to a page it drops out of that page's row.
+### Round 7 — Keep the book true — WAITS FOR THE OWNER'S "retake the Handbook pictures"
 
-### Round 4 — Your first steps, ticked as you go
+The Handbook's text was brought up to date with every round. Retaking its pictures runs a browser over the whole
+app, which the house rules allow only when the owner asks by name.
 
-While teaching is on, Jambo's Overview on the Board shows a short list of first
-tasks for the person's role (for an editor: upload a contract · find it again ·
-fill in its details · send it for review · see what you owe). Each ticks itself
-from what HaTi already records (the trail of what the person did) — never asked,
-never typed. When all are ticked, Jambo asks once: "You know your way — shall I
-stop the lessons?"
-
-Decision for the owner: this list sits inside Jambo's panel (no band), but it
-is a new part of the panel. Yes or no.
-
-### Round 5 — A practice contract
-
-A sample agreement only the new person can see, clearly marked **Practice**:
-it can be uploaded, redlined, filled in and "sent" to a pretend other side, but
-it can never be sent to a real address, signed for real, counted on the Board,
-in reports, or seen by anyone else. Deleted in one press, and removed by itself
-when teaching is turned off.
-
-Decision for the owner: today a new company starts with an empty book on
-purpose. Is a private practice contract allowed?
-
-### Round 6 — Plain words for HaTi's own words
-
-New people trip on HaTi's names: Dossier, Redlines, Playbook, stream, Board.
-While teaching is on, the first time one of these appears in Jambo's answer it
-carries a one-line meaning, and "what is a stream?" is answered free from a
-short word list in the Handbook (a new "HaTi's words" page, both languages).
-Grey buttons already say why they are grey; while teaching is on, Jambo adds
-who can lift it and the proper step (his existing "Ask an admin" door).
-
-### Round 7 — Keep the book true
-
-A teacher with an old book misleads. Before rounds 2–4 go live: retake every
-Handbook picture (only when the owner asks — this plan asks), re-read the
-chapters for the pages redesigned in the week of 20 Nov (side panels, the
-Stripe-way pages, Settings), and add the first-steps chapters to the browser
-check that already proves each picture's boxes still find their targets.
-
-### Round 8 — The admin's side
-
-- Settings › People never shows who said "I'm new" (it is the person's own).
-- A company switch, admins only: "Show new people how to ask Jambo for help"
-  (the 14-day hint). On by default.
-- The invitation and Resend welcome carry the "I'm new" line (built in round 1).
+### Round 8 — The admin's switch — DROPPED (owner, 23 Nov 2026: "No need for admin switch to have this feature")
 
 ## 5. How we know it works
 
@@ -168,19 +130,14 @@ check that already proves each picture's boxes still find their targets.
 
 ## 6. The owner's decisions, in one place
 
-| # | Question | Needed for |
+| # | Question | Answer |
 |---|---|---|
-| 1 | May Jambo gently mark the button a step is about, while walking someone through? | Round 2 |
-| 2 | May a "Your first steps" list sit in Jambo's panel on the Board while teaching is on? | Round 4 |
-| 3 | Is a private practice contract allowed? | Round 5 |
-| 4 | Retake all Handbook pictures now? | Round 7 |
-| 5 | Should admins have a switch for the 14-day hint? | Round 8 |
+| 1 | May Jambo gently mark the button a step is about, while walking someone through? | Yes ("do what it takes", 23 Nov 2026) |
+| 2 | May a "Your first steps" list sit in Jambo's panel on the Board while teaching is on? | Yes (same) |
+| 3 | Is a private practice contract allowed? | Open |
+| 4 | Retake all Handbook pictures now? | Open — say "retake the Handbook pictures" |
+| 5 | Should admins have a switch? | No (owner, 23 Nov 2026) |
 
-Already decided (23 Nov 2026): the person says "I'm new" (no guessing); the
-hint in the box AND a line in the welcome email; build round 1 now.
+## 7. What is left
 
-## 7. Suggested order
-
-Round 1 (built) → Round 7 (true book) → Round 2 (walk me through) → Round 3
-(what can I do here) → Round 4 (first steps) → Round 6 (plain words) →
-Round 5 (practice contract) → Round 8 (admin switch).
+Round 5 (practice contract) and round 7 (the pictures), each on the owner's word.
