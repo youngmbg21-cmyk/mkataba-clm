@@ -22937,3 +22937,4 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - "As amended" view (`asAmendedHtml`, `docAsAmendedSet`) has its switch only on the old look's document tab row; on the new look's Home paper there is no button to open it.
 - After an amendment raising the value is signed, the agreement's paper note still reads "Value KES 85,000,000" (read from the signed paper); the end date does follow the amendment.
 - (23 Nov 2026) FIXED at the owner's word: the stray closing quote at the end of Jambo's answers (answerTrim/aiAnswerTrim, f1186 (9)). The "Read from Contracts and your book" label on a Handbook answer is still open.
+- 23 Nov 2026 · Noticed, not fixed: f804 3a and 6b fail at unmodified main (the panel's ask order and the Brain's ask step list), seen while fixing the Contracts door.
