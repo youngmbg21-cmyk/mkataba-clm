@@ -554,8 +554,11 @@ const check = (name, ok, detail) => {
        its edge is the same grey, so it reads as shaded beside the resting "+ Filter". */
     /* RE-POINTED 21 Nov 2026 (P-31, as drawn; the owner's word: "white with a solid outline" on Contracts only — f1109's
        shading stands on every other list): the chip in force is white with a solid line, not the grey pill ground */
-    check('12f and the chip in force is white with a solid line (Contracts, as drawn)',
-      !!act && act.bg === 'rgb(255, 255, 255)' && act.bc !== 'rgba(0, 0, 0, 0)' && act.bc !== act.bg,
+    /* RE-POINTED 23 Nov 2026 (the owner: "the filtered thing needs to be in color so it stands out … now that it is
+       white it is easy to miss it"): the chip in force wears the filter colour (--filter-on-bg), never white */
+    const filterBg = await page.evaluate(() => { const d = document.createElement('div'); d.style.background = 'var(--filter-on-bg)'; document.body.appendChild(d); const v = getComputedStyle(d).backgroundColor; d.remove(); return v; });
+    check('12f and the chip in force is in the filter colour (Contracts)',
+      !!act && act.bg === filterBg && act.bg !== 'rgb(255, 255, 255)' && act.bc !== 'rgba(0, 0, 0, 0)' && act.bc !== act.bg,
       act && `bg ${act.bg} · edge ${act.bc} · pill ${pillBg} · old hairline ${chipEdge} (--rule-strong ${ruleStrong})`);
     const night = await page.evaluate(() => ({ dark: document.documentElement.classList.contains('dark'),
       fns: ['setTheme', 'setDark', 'toggleTheme', 'toggleDark'].filter(n => typeof window[n] === 'function') }));
