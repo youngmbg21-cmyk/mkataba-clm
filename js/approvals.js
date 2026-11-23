@@ -2682,14 +2682,16 @@ function signCapBlocker(c, u){
      at all, which is a refusal in words rather than a guess: on a signature,
      erring toward asking a human is the only safe direction. */
   const money=n=>(typeof fmtMoneyShort==='function')?fmtMoneyShort(n):String(n);
-  const h=(typeof fxHome==='function')?fxHome(c):{v:Number(c.value||0),missing:false,code:''};
+  /* AN AMENDMENT IS MEASURED ON THE VALUE IT BRINGS (owner, 23 Nov 2026: "fix both"): the same reading as the value rules */
+  const cv=approvalValueView(c);
+  const h=(typeof fxHome==='function')?fxHome(cv):{v:Number(cv.value||0),missing:false,code:''};
   if(h.missing) return { key:'signcap',
     label:i18t('sc_block_norate',{code:h.code}), short:i18t('sc_block_norate_short',{code:h.code}) };
   const v=h.v;
   if(!(v>cap.limit)) return null;
   return { key:'signcap',
     label:i18t(h.converted?'sc_block_fx':'sc_block',
-      {amount:money(v),cap:money(cap.limit),code:h.code,raw:`${h.code} ${Number(c.value||0).toLocaleString()}`}),
+      {amount:money(v),cap:money(cap.limit),code:h.code,raw:`${h.code} ${Number(cv.value||0).toLocaleString()}`}),
     short:i18t('sc_block_short',{cap:money(cap.limit)}) };
 }
 /* WHO CAN SIGN WHAT TODAY — a read-only ladder, ordered by how much authority

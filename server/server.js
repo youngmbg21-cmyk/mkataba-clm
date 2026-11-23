@@ -6483,7 +6483,10 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
          The larger of the two rather than the stored one alone, because a save
          may legitimately RAISE the value in the same breath as signing, and a
          cap that only ever looked backwards would miss it. */
-      const raw = Math.max(Number((prev && prev.value) || 0), Number(c.value || 0));
+      /* AN AMENDMENT IS MEASURED ON THE VALUE IT BRINGS (owner, 23 Nov 2026: "fix both"): the stored and the asked record
+         are each read as the value rules read them (srvApprovalValueView: an amendment's suggested figure and currency) */
+      const pv = prev ? srvApprovalValueView(prev) : prev, cv = srvApprovalValueView(c);
+      const raw = Math.max(Number((pv && pv.value) || 0), Number((cv && cv.value) || 0));
       /* ---- MONEY ONLY WHERE MONEY PASSES, WHICH THIS GUARD SAID AND DID NOT DO ----
          The comment above already states the rule — "a contract carrying no
          value cannot be over anybody's limit, so an unvalued or non-monetary
@@ -6528,8 +6531,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
          contract is measured at its face value, exactly as every other screen in
          the product reads it. */
       const convOf = m => fxHome({ value: raw, metadata: m || {} });
-      const convStored = convOf(prev && prev.metadata);
-      const convAsked = convOf(c && c.metadata);
+      const convStored = convOf(pv && pv.metadata);
+      const convAsked = convOf(cv && cv.metadata);
       /* AN UNANSWERABLE QUESTION IS REFUSED, NEVER WAVED THROUGH — and it is
          refused if EITHER reading cannot be made, because a rate missing on the
          currency being claimed is exactly the state that must not become a pass. */

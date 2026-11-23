@@ -31,3 +31,17 @@ test('f1192 both rule readers measure through it, and Create keeps the currency'
   assert.match(fnOf(SRV, 'srvRuleMatches'), /fxHome\(srvApprovalValueView\(c\)\)/);
   assert.match(FAM, /if\(\/\^\[A-Z\]\{3\}\$\/\.test\(cur\)\) out\.currency = cur;/);
 });
+
+test('f1192 the signing limit measures it too, on the page and the server', () => {
+  assert.match(fnOf(AP, 'signCapBlocker'), /const cv=approvalValueView\(c\);[\s\S]*fxHome\(cv\)/);
+  const i = SRV.indexOf('const cap = signCapOfRow(req.user);'), cut = SRV.slice(i, i + 6000);
+  assert.match(cut, /const pv = prev \? srvApprovalValueView\(prev\) : prev, cv = srvApprovalValueView\(c\);/);
+  assert.match(cut, /convOf\(pv && pv\.metadata\)/);
+  assert.match(cut, /convOf\(cv && cv\.metadata\)/);
+});
+
+test('f1192 a new figure typed in the wording becomes the suggestion when nobody pressed Use', () => {
+  const create = fnOf(R('js/paperdesk.js'), 'pdAmendCreate');
+  assert.match(create, /if \(!facts\.value\)\{ for \(const it of _pdAm\.items\)\{ const F = \(pd2AmxEffectsOf\(c, it\)/);
+  assert.match(create, /x\.k === 'value'/);
+});

@@ -1109,3 +1109,4 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 ## OBLIGATIONS — helps 4 and 5, and the word duty (23 Nov 2026)
 - `node --test test/f1191-who-watches-and-why-proof.test.js test/f1188-jambo-fills-in-the-duty.test.js test/f1187-duties-end-to-end.test.js`
 - Re-pointed to "duty": f399 (6e, 6f), f554 (5), f614, f693 (4b), f752 (3a), f754 (9f reverses "the receipt says obligations"), f791 (1b), f800 (8b), f804 (10c); browser: explorer-lenses, explorer-stage-two, obligations-renewal-legora-way, one-sheet-as-drawn, overview-and-obligations-polish, auto-triage, amendment-journey, five-screenshots.
+- f1192 (4)(5): the signing limit reads the same view on both hosts; Create carries a figure from the changed wording when nobody pressed Use.
