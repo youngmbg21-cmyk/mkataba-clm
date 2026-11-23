@@ -4198,10 +4198,22 @@ function pdHtml(c){ return `<div class="pd-tabs" role="tablist">${pdHeadHtml('')
    the open tab's body is redrawn in place (the panel itself is not rebuilt),
    and the title row follows the paper coming and going. */
 let _pdBodyFresh = false;   // true only while a tab's press paints the paper right after drawing the panel
+/* WHO SIGNS, UNDER THE WORKING PAPER'S LINES (owner's pick, 23 Nov 2026; pagesSignNames): every paint of the paper, so
+   a name set in the signing route shows at once; never on the signing copy (pagesSignMarks prints its own there), never
+   while Fill in holds the lines (its boxes stand there); no amber space for a Viewer or on a sealed paper */
+function pdSignNamesPaint(c){
+  const cv = document.getElementById('ig-canvas'); if (!cv || typeof pagesSignNames !== 'function') return;
+  if (!c || (typeof igSignOn === 'function' && igSignOn(c)) || pd2FillOn(c.id) || cv.querySelector('.ig-signpaper')){ pagesSignNamesOff(cv); return; }
+  const sealed = typeof docSealedCopy === 'function' && docSealedCopy(c);
+  const may = typeof mayActOn !== 'function' || mayActOn(c);
+  pagesSignNames(cv, c, { owed: !sealed && may });
+}
 function pdPaint(c){
   const dock = document.getElementById('ig-dock'); if (!dock) return;
   /* the paper was drawn again: Fill in's marks on it follow (pdFillPaperMarks) */
   try { pdFillPaperMarks(c || pdContract()); } catch (_){}
+  /* who signs, under the working paper's signature lines (the Legora + Stripe way, 23 Nov 2026) */
+  try { pdSignNamesPaint(c || pdContract()); } catch (_){}
   /* KEY TERMS IN THE MIDDLE FOLLOWS THE RECORD (the Details page's promise, kept when it retired, 22 Oct
      2026): a paint of the paper redraws it from the record, never under the reader's hand */
   try { pdKtMidRepaint(false); } catch (_){}
@@ -10470,6 +10482,7 @@ function pd2FillPaint(c){
 /* THE SIGNATURE LINES TAKE A NAME: on each line nobody is named on, a name to type (our members, or the people this
    contract and the directory know, offered as you type), their email where the link goes, "+ Another signer" */
 function pd2FillSigPaint(c, cv){
+  if (typeof pagesSignNamesOff === 'function') pagesSignNamesOff(cv);   // the names step aside for the boxes
   const E = _pdE, lines = pd2FillSigLines(c), els = [...cv.querySelectorAll('.rl-paper-foot .rl-sigline')];
   const foot = cv.querySelector('.rl-paper-foot'); if (foot) foot.removeAttribute('aria-hidden');
   const plan = (Array.isArray(c.signerPlan) ? c.signerPlan : []).filter(s => s && s.name);
@@ -11063,7 +11076,7 @@ Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkWithRead, pd2WalkClos
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormMidRedraw, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf, pd2FormNameShown, pd2FormSecShown, pd2BlankQuote, pd2FormGapSync });
 Object.assign(window, { pdActKnown, pd2Find, pd2SeatPaint, naTheirsFive });
 Object.assign(window, { PD2_NB_ATTR, pd2BlOff, pd2NegoFillOn, pd2NegoArgued, pd2NegoSeq, pd2NegoMark, pd2NegoRead, pd2NegoFile, pd2FillSaveNego });
-Object.assign(window, { pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
+Object.assign(window, { pdSignNamesPaint, pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 /* THE ARRIVAL VEIL: a page in the middle that opens only once its paper stands (History, pay, Key terms; pdMidArriving)
    has the page's own ground stand over the paper meanwhile, so the paper is never seen on the way; bounded (CV_LAND_MS).
    (The Cover page these were first built for was deleted, owner, 20 Nov 2026: "Delete it, open the Dossier instead".) */

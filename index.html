@@ -14180,6 +14180,18 @@
   .rl-sigby b{color:#1B2A28;font-weight:600}
   /* a planned signer printed under the line on the signing copy (every look, both sides' copies) */
   .rl-sigplan{display:block}
+  /* WHO SIGNS ON THE WORKING PAPER (pagesSignNames; owner's pick, 23 Nov 2026): the name in the paper's type with a
+     small soft badge, then "title, for company" in grey; a line nobody is named on an amber space like every owed blank.
+     Screen only: a print keeps the name and title, never the badge or the space. */
+  .rl-signames{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 8px;margin-top:var(--s-2);font-size:calc(14px * var(--doc-scale,1));line-height:1.4}
+  .rl-signames + .rl-sigfor{margin-top:2px}
+  .rl-sn-name{color:inherit;overflow-wrap:anywhere}
+  .rl-sn-badge{font-family:var(--font-body);font-size:calc(11px * var(--doc-scale,1));font-weight:500;line-height:1.6;padding:0 7px;
+    border-radius:999px;background:var(--st-gray-bg);color:var(--st-gray-fg);white-space:nowrap}
+  .rl-sn-badge.is-signed{background:var(--st-green-bg);color:var(--st-green-fg)}
+  .rl-sn-owed{display:inline-block;padding:1px 10px;border:1px dashed var(--st-amber-fg);border-radius:var(--radius);
+    background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:calc(13.5px * var(--doc-scale,1))}
+  @media print{ .rl-sn-badge, .rl-sn-owed{display:none} }
   @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important;}}
 
   /* ============ document designs — body typography ============
