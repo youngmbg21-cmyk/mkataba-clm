@@ -55,6 +55,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE NEGOTIATION DESK (js/desk.js)
 - f165–f169.
+- f1172 a contributor does not answer the other side's changes (server; red at the parent: 1, 2).
 
 ## TAKE IT IN TURNS — THE LOCK IS A BATON
 - f455, take-it-in-turns-verify.
@@ -92,6 +93,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f841, f842 (the Guide's row), f561, f564 (the brain's three parts), f232 (the published names).
 
 ## THE SHELL — RAIL, BAR, PANELS
+- f1178 a reading opens nothing until caActOf keeps it (caActLater/caActGo; 22 Nov 2026; red at the parent).
 - THE WATERMARK MOVES IN SETTINGS TOO (22 Nov 2026): test/chromium/panel-watermark-verify.js 2 and 2b RE-POINTED (drawn and moving; was "held still"), for GitHub; 3 (less motion: still) stands. Checked here in a browser page by page: every page that draws it has it moving. Re-ran green: f965, f1107, f236, f1147, f1149.
 - EVERY JAMBO PANEL HAS ITS MINIMISE ARROW (owner, 22 Nov 2026): panel-watermark-verify 10 (new; red at the parent: Read down, Contracts, Playbook, Our paper, New agreement had none) — the arrow alone in its head row, and it folds; detail-round-verify 4, our-paper-as-drawn-verify 5a re-pointed.
 - THE WATERMARK ON EVERY SIDE PANEL, THE CIRCLED ARROW, NO GREEN WAY-BACK LINK (owner, 22 Nov 2026): panel-watermark-verify (new; red at the parent: no watermark, a bare arrow, none on the Board, the link drawn) — drawn and moving on the Board, Contracts, Approvals, Playbook; still in Settings and with less motion asked; the 30px arrow on every panel and on the Board (folds it); outlines on the chosen tab and a top tag; no `.ca-back`; nothing sideways; 1d it glides (≥60% of frames a new place, no jump ≥0.5px; red at the parent: steps); 8 the Alerts panel plain; 9 a contract's tabs plain, buttons as they were. jambo-words-verify 3b/3c/7c/7d re-pointed (no link; a typed "back" still returns). f977 (6, 7) keeps the slides' @keyframes outside the HARMONY block.
@@ -157,6 +159,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - phone-verify, f630, f631, phone-fits-verify.
 
 ## THE ONE DESK — NEEDS YOU, ONE READING
+- f1174 no Answer chip nor Dossier ask rows for who may not answer (22 Nov 2026; red at the parent).
+- f1173 Settings' Jambo reads the levels in plain words (22 Nov 2026; red at the parent).
 - THE NEW LOOK'S HOME TAKES ITS PRESSES (owner-reported 6 Nov 2026): home-new-look-buttons-verify 2–4 (new, red at the parent: Approve…, Fill in and "Company needs you · Open" did nothing on #cn2-page); 1 and 5 keep Look, the counts, the week, the panel's Open links and its ways moving.
 - THE BOX PREDICTS (round 5, 29 Oct 2026): f803 1a/1a2 (new, red at the parent 64b84ca1: the four places only) — "Likely next:", board, up to three tasks in Needs you's order, each with its row's door; names keep their capital. RE-POINTED f803 8b (the held approval leads the tasks too), counter-as-drawn 1b/1d (+1e new: the first task lands on the Board's card, its piece in view), every-jambo-tab H2 (presses board, not contracts). Handbook 0.1 (a step, the caption, picture 0.1-2 retaken).
 - THE CARD FOLDS TO ITS HEAD (owner, 25 Oct 2026): f925 3e (new, red at the parent 0c1acc9) — Hide/Show on the head, the count kept, kept in the Board's state, a door opens it. RE-POINTED f925 3d ("never folds" → "never closes"). Browser: both-halves-and-fold-verify D0–D9 at the three screens.
@@ -168,6 +172,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - THE NUMBER LEADS THE ROW (23 Oct 2026): f925 3c2 (new; the Board's Agreement cell is number · name, the name in `.nd-deal-t` gives way, the number never cut); f803 2a–2c/5a and f925 2b re-pointed (Home's line leads with the number); counter-as-drawn 11b re-pointed.
 
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
+- f1175 "which approvals are late" is not read as late duties (22 Nov 2026; red at the parent).
 - NO EXPLORER MAP ON THE BOARD'S PANEL (owner, 22 Nov 2026): f1042 1a (re-pointed: no brain card, his line first); board-as-drawn-verify 5b (re-pointed).
 - THE SAME SPACE ABOVE THE FIRST CARD (owner, 14 Nov 2026): f745 7a re-pointed (red at the parent: the greeting's white band still painted over the gap). Photos at the three screens: 12px of the Board's ground under the greeting, as between Your book and Needs you. white-sheet-verify: Board · side list's grey ground ALLOWED in WHITE_KNOWN with the owner's words (red on GitHub before it, as foretold).
 - BRAIN WELCOME (13 Nov 2026): `node --test test/f1042-brain-welcome.test.js` (new, 16 checks, red at the parent: no welcome, no igMini*, no hbw_ words, no token) — the welcome as drawn, every number a door and a 0 not one, the brain the Explorer's own (shape, lobes, by party, Still at the resting rate, mouse drag only, reads only), both books, the token. RE-POINTED: f745 4a/4b (his line and the count, no head sentence or facts); needs-you-card-verify 2a/2b/7a and board-as-drawn-verify 5b/5d (read `.hbw-say`/`.hbw-sub`, the brain card is there) — NOT RUN HERE (browser checks run on GitHub). Photos and a fit check at the three screens: `node test/chromium/brain-welcome-photos.js` (FITS at all three, 13 Nov).
@@ -192,6 +197,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f447, f448, f482, f483, f496–f504, f511–f521, f524–f543, f549–f552, f560, f562–f567, f657, f658, f660, f672, f675, f679, f690, f705, f708, f719; board-*/chart-*/home-*/copilot-*, document-wall, jambo-words, board-views, draft-upload-glance, one-page-home-walk, next-step-chips, needs-you-card, paper-line, board-walkthrough-fixes, late-open-stays-put, jambo-alive, jambos-panel, then-and-now verify.
 
 ## JAMBO'S MAP — EVERYDAY WORDS FOR THE THIRTY-ONE TASKS (js/jambomap.js)
+- f1176 "what now" / "vad nu" open the next steps (22 Nov 2026; red at the parent).
 - "CONTACTS" IS PEOPLE (27 Oct 2026): f946 (new; red at the parent cd53a16) — the name search drops a page's own word, "take me to contacts" reads as People; the AI's task list carries each place's words with the rule against reading one as a slip. Browser: board-talk-first-verify G1–G3 (G2 red at the parent; G1 and G3 pass there with the seeded book and a scripted model, so f946 is the proof for those). Unchanged and green: door-exam, home-board, jambo-finds-the-way, nav-exam; handbook-exam 61/63 both sides.
 - f705, jambo-map-verify.
 
@@ -235,6 +241,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f151, f183, f247, f267, f290–f299, f305, f321, f338, f392, f394, f424–f438, f441, f457, f459 (A), f539, f919; insights-*, portfolio-frame, obligations-report, friction-fits-the-screen, explorer-*, imported-on-the-map, analyze-on-the-graph, map-asked-bubbles, owners-fifteen, fold-every-view verify.
 
 ## OBLIGATIONS
+- f1181 a duty owed to us says who is reminded, as runReminders sends it (obTheirsPlan; 22 Nov 2026; red at the parent).
 - WE OWE · THEY OWE (19 Nov 2026, round 1 of the owner's pick): f1099-we-owe-they-owe (new; 5 of 5 red at the parent). Browser re-pointed to the two columns: obligations-project-list-verify 1–4 and 10, round5-new-look-verify 3, four-inspectors-verify 1a–1h, sap-lists-verify 3b (3c–3e retired by the pick), every-door-lands-on-home-verify (the obligation rows), board-as-drawn-verify 12 (the overdue door lands on Next 30 days), rows-only-on-a-press-verify (obligations), week-as-drawn-verify 5. f148 SAME_IN_BOTH gained obt_n_one/other, obt_nb_t.
 - SPEED AND PROPOSALS' PANEL (19 Nov 2026): f1098-obligations-speed-and-proposals-panel (new; 5 of 5 red at the parent) — the wording not read per duty, Found gone, the five parts on landing, the Legora way on a row, Us · Theirs · Both sides. Browser: obligations-project-list-verify 12–16 (new: landed five parts, a row chosen the Legora way, the panel's answer is the list's, ‹ Overview, fits beside the panel at the three screens); re-pointed 5 there and round5-new-look-verify 4 (four heads, Found removed).
 - RENEWS BY ITSELF (18 Nov 2026): f1095-renews-by-itself-and-from-scratch-panel (new; 3 of 3 red at the parent) — the one reading, Read down and the contract panels on it, From scratch's panel.
@@ -444,6 +451,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - THE PAPER IN THE MIDDLE OF ITS ROOM (16 Nov 2026): contract-new-look-verify 4 (centred, or held left only by its notes, never nearer than 40) at the three screens plus a 2000×1000 desktop pass, 4c (centred with Jambo open, then closed); red at the parent.
 
 ## THE DOCUMENT TAB, AND THE TWO COPIES (js/pages.js)
+- f893 "Fill the document stays off a negotiated paper" (22 Nov 2026; red at the parent: 2 of 3).
 - f893, f225, f238, f277, f316, f377, f383, f458 (3), two-copies, paper-grows, readonly-copy, fill-the-document verify.
 
 ## THE THREAD — A DRAWER OVER FORM & LINKS (5 Oct)
@@ -481,6 +489,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - deal-in-the-middle-verify 8 (23 Oct 2026: a stray renderRedline paints no Negotiate page over Home; at the parent it did). Re-pointed to the face (they relied on that stray repaint): one-copilot-editor, one-copilot-editor-plain, a-risk-finds-its-clause, panel-tidy-and-risk-footer, one-door-for-edits, selected-card-and-advice; tracked-changes-scroll opens the page by name.
 
 ## THE TRACKED-CHANGES COLUMN
+- f1179 the settled pile is named for the rounds it was settled in (22 Nov 2026; red at the parent: 1).
 - f37, f929, f246, f570 (2), f674, f711, f734, f756, f759, redline, flat-rows-and-alerts, send-after-refusal, copilot-answer-on-paper, redlines-beside-the-paper, piles, piles-as-drawn verify.
 
 ## THE CLAUSE PANEL AND THE LADDER
@@ -585,6 +594,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Risks to look at › Open lands on the face's list (23 Oct 2026): deal-in-the-middle-verify 9; draft-upload-glance-verify 6g and every-door-lands-on-home-verify (the glance's redline door) re-pointed from the clause editor's Risks tab.
 
 ## THE AI'S READING RULES
+- f1177 every "Jambo provider error" reply carries kind: 'provider' (22 Nov 2026; red at the parent).
 - HIS WORDS ARE THE NOTE WHEN THE SLOT IS EMPTY (owner, 13 Nov 2026): f1043 (new; 4 of 4 red at the parent) — after a press, an empty note slot takes the written answer (lead-in and markup off), never on an unpressed ask, a failed answer or a few words; both hosts through aiSendNoteFrom; f1035 re-pointed.
 - A NOTE ASKED FOR IS A NOTE SENT (owner's screenshot, 13 Nov 2026): f1042 (new; 3 of 3 red at the parent) — a send-screen press is marked `noteAsk`, an answer with no note asked once more on both server chat loops (all three answer shapes) and the browser-only path, the nudge word for word on both hosts; f1041 and f1038 re-pointed at `{ note:true }`.
 - A DRAFT ASKED FOR IS A DRAFT SENT (owner, 13 Nov 2026): f1030 (new; 3 of 5 red at the parent; a real server and the provider stand-in) — a drafting ask answered without the object is asked once more and the object is the answer; an answer with it is not asked again; twice without, the second stands; an ordinary question is never asked for an object; every drafting door sends `proposal: true`, both routes and the browser-only path carry the ask, the two nudges are the same words.
@@ -596,6 +606,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f871 (the meter prices a dated model id as its model: a fast call booked at Haiku's price, an admin's exact row still wins, the import estimate the same; 2 of 3 red at the parent).
 
 ## THE POP-UPS, THE SAP WAY
+- f1180 Import on a signed contract says no before the Word file is picked (22 Nov 2026; red at the parent).
 - sap-popups, negotiate-as-drawn, new-agreement, end-or-pause verify, f390 1h, f358 (6).
 - Alerts bottom centre: f1023 (node); photos by hand at the three screens.
 - No outlines on paper entry fields: f1028 (node; red at the parent).

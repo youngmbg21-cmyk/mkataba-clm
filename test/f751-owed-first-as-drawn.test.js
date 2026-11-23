@@ -112,7 +112,7 @@ describe('f751 (3) the document\'s card, the fold, the count line', () => {
   const ctx = { JSON, Map, Set, String, window: {} };
   ctx.window.templateFormDocHtml = f => 'DOC:' + JSON.stringify(f.values || {});
   vm.createContext(ctx);
-  vm.runInContext([body('tplFormSig'), body('tplFormLocked'), body('tplFormPending'), body('tplFormPendingKeys')].join('\n') + '\nthis.templateFormDocHtml = window.templateFormDocHtml;', ctx);
+  vm.runInContext([body('tplFormSig'), body('tplFormNegotiated'), body('tplFormLocked'), body('tplFormPending'), body('tplFormPendingKeys')].join('\n') + '\nthis.templateFormDocHtml = window.templateFormDocHtml;', ctx);
   test('3a the answers that moved since the wording was filled, counted', () => {
     const c = { status: 'Draft', redlineText: 'DOC:{}', templateForm: { values: { carrier: 'Baltic', route: 'SE-FI', lane: 'Road' }, filledSig: JSON.stringify([]) } };
     assert.deepEqual([...ctx.tplFormPendingKeys(c)].sort(), ['carrier', 'lane', 'route']);

@@ -3148,7 +3148,13 @@ function obligationReminderSay(o, c){
   }
   if(!due) return _obEsc(i18t('ob_rem_nodate'));
   if(obligationIsTheirs(o)){
-    return _obEsc(i18t('ob_rem_theirs', { cp: o.counterparty || (c && c.counterparty) || i18t('ob_side_theirs') })) + next([[1, admins]])
+    /* SAID AS THE SERVER SENDS IT (22 Nov 2026, bug log: "HaTi never reminds them; the admins are told the day after"
+       was said whatever was set): runReminders writes to their side 7 days before and on the day where the company and
+       this duty both ask (remindTheirsCfg, o.remindTheirs); our colleague who watches it (o.assignee) 7 days before, on
+       the day and the day after, the admins four days late; with nobody named, the admins the day after. */
+    const { cp, theirOn, m, first, steps } = obTheirsPlan(o, c);
+    return _obEsc(i18t(theirOn ? 'ob_rem_theirs_on' : 'ob_rem_theirs_off', { cp }))
+      + ' ' + _obEsc(m ? i18t('ob_rem_owned', { who: m.name || first }) : i18t('ob_rem_admins_after')) + next(steps)
       + ` <span class="x">${_obEsc(i18t('ob_rem_chase_hint'))}</span>`;
   }
   /* OUR SIDE IS OUR PROMISES' (runOurPromises, 27 Sep 2026): the assignee,
@@ -3160,6 +3166,18 @@ function obligationReminderSay(o, c){
   const who = m || ow;
   const first = String(who.name || '').trim().split(/\s+/)[0] || who.name || '';
   return _obEsc(i18t(m ? 'ob_rem_ours' : 'ob_rem_ours_owner', { who: who.name || first })) + next([[-7, first], [0, first], [1, first]]);
+}
+/* WHO IS WRITTEN TO ABOUT A DUTY OWED TO US, AND WHEN — the server's runReminders, read once for the sentence and the
+   one line: [days from the due day, who] in order */
+function obTheirsPlan(o, c){
+  const cp = o.counterparty || (c && c.counterparty) || i18t('ob_side_theirs');
+  let theirOn = false; try { theirOn = !!(remindTheirsCfg().on && o.remindTheirs === true); } catch (_){ theirOn = false; }
+  const m = obligationReachable(obligationReminderTo(o), c);
+  const first = m ? (String(m.name || '').trim().split(/\s+/)[0] || m.name || '') : '';
+  const admins = i18t('ob_rem_admins');
+  const steps = (theirOn ? [[-7, cp], [0, cp]] : []).concat(m ? [[-7, first], [0, first], [1, first], [4, admins]] : [[1, admins]])
+    .sort((a, b) => a[0] - b[0]);
+  return { cp, theirOn, m, first, steps };
 }
 /* ---- THE REMINDERS IN ONE LINE (SAP benchmark, owner-approved 9 Oct 2026) ----
    The panel says what happens next in one line; "How reminders work" opens
@@ -3173,7 +3191,12 @@ function obligationReminderLine(o, c){
     return _obEsc(i18t('ob_rem_l_held', { n: s ? s.n - 1 : '' }));
   }
   if(!due) return _obEsc(i18t('ob_rem_l_nodate'));
-  if(obligationIsTheirs(o)) return _obEsc(i18t('ob_rem_l_theirs', { cp: o.counterparty || (c && c.counterparty) || i18t('ob_side_theirs') }));
+  if(obligationIsTheirs(o)){
+    const P = obTheirsPlan(o, c);
+    if(!P.theirOn && !P.m) return _obEsc(i18t('ob_rem_l_theirs', { cp: P.cp }));
+    const dd = daysUntil(due), hit = P.steps.find(([k]) => dd + k >= 0);
+    return hit ? _obEsc(i18t('ob_rem_next', { date: obDay(_obPlusDays(due, hit[0])), who: hit[1] })) : _obEsc(i18t('ob_rem_none_left'));
+  }
   const m = obligationReachable(obligationReminderTo(o), c);
   const ow = m ? null : obligationOwnerTo(c);
   if(!m && !ow) return _obEsc(i18t('ob_rem_l_nobody'));

@@ -22612,7 +22612,14 @@ function rlSettledPileLabel(c, list){
   const L = list || [];
   const earlier = L.filter(ch => since && rlSettledAt(ch) && rlSettledAt(ch) < since).length;
   if (!earlier || round < 2) return i18t('ng_band_accepted');
-  if (earlier === L.length) return round === 2 ? i18t('ng_band_settled_in', { n: 1 }) : i18t('ng_band_settled_upto', { n: round - 1 });
+  /* ALL OF THEM EARLIER: named for the rounds they were really settled in (bug log: everything settled in round 1 read
+     "rounds 1–2" in round 3) — a change belongs to the first closed round whose close came at or after its settling */
+  if (earlier === L.length){
+    const shut = (Array.isArray(n && n.rounds) ? n.rounds : []).filter(r => r && r.at).map(r => ({ n: Number(r.n) || 0, at: String(r.at) }));
+    const roundOf = ch => { const t = rlSettledAt(ch); const r = shut.find(x => x.at >= t); return r && r.n > 0 ? r.n : round - 1; };
+    const last = Math.min(round - 1, Math.max(1, ...L.map(roundOf)));
+    return last === 1 ? i18t('ng_band_settled_in', { n: 1 }) : i18t('ng_band_settled_upto', { n: last });
+  }
   return i18t('ng_band_settled_upto', { n: round });
 }
 /* ---- THE COLUMN'S HEAD, AS DRAWN (round 9's gaps, 18 Oct 2026) ----

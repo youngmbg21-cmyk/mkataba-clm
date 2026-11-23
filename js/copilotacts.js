@@ -351,16 +351,25 @@ function caReadSend(q){
   if (!person) a.self = caNamesMe(q);
   if (CA_SUMMARY_RE.test(q) && !a.note){
     a.screen = true; a.note = caSummaryText();
-    if (person && person.kind === 'colleague' && c && a.note && !caSendBlock(a)) setTimeout(() => caSummaryOpen(a), 0);
+    if (person && person.kind === 'colleague' && c && a.note && !caSendBlock(a)) caActLater(a, () => caSummaryOpen(a));
   } else if (person && person.kind === 'colleague' && c && caChosenForScreen(q, c) && !caSendBlock(a)){
     /* SHARE INSIDE THE COMPANY ends on the send screen, as the other side's send does: the colleague
        in To, "a colleague" as Sent as, the typed note (if any) as the note */
     a.screen = true; a.share = true;
     /* the words are read more than once in one ask; only the last reading (the one kept) opens it */
     _caShareRead = a;
-    setTimeout(() => { if (_caShareRead !== a) return; _caShareRead = null; _caShareIn = null; caSummaryOpen(a); }, 0);
+    caActLater(a, () => { if (_caShareRead !== a) return; _caShareRead = null; _caShareIn = null; caSummaryOpen(a); });
   }
   return a;
+}
+/* A READING OPENS NOTHING UNTIL IT IS KEPT (22 Nov 2026, bug log): a reader only READS; what its act opens (the send
+   screen, the draft) is held on the act, out of sight of any copy, and runs once caActOf has decided to keep it. A
+   reading caActOf drops (a question answered by Jambo, another contract named) and a check that only asks whether the
+   words are taken (caTakesWords) open nothing. */
+function caActLater(a, fn){ try { Object.defineProperty(a, '_open', { value: fn, enumerable: false, configurable: true, writable: true }); } catch (_){ /* kept bare */ } return a; }
+function caActGo(r){
+  if (r && typeof r._open === 'function'){ const fn = r._open; r._open = null; setTimeout(fn, 0); }
+  return r;
 }
 /* the contract the share card's "Share inside the company" put in the box (kept apart from
    _caChosen, which the box clears as it sends); let go once the screen opens */
@@ -420,7 +429,7 @@ function caActOf(q){
   const r = caActRead(t);
   /* "the drafts in distribution" are contracts at the draft stage, never a new one to write */
   if (r && r.kind === 'go' && r.place === 'draft' && /\b(drafts|utkasten)\b/i.test(t)) return null;
-  if (!r || !caAiFirst()) return r;
+  if (!r || !caAiFirst()) return caActGo(r);
   /* "the big one", "the draft": too little to act on — Jambo asks which (stage 3c) */
   if (CA_VAGUE_RE.test(t)) return null;
   /* AI FIRST (stage 3b): a question ("which…", "how many…", "vilka…") is answered, not met with a door or a
@@ -439,7 +448,7 @@ function caActOf(q){
     const pn = (r.person && r.person.name) ? String(r.person.name) : '';
     const tw = pn ? t.replace(new RegExp('@?' + pn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), ' ') : t;
     try { other = igAsksOtherThan(tw, r.cid); } catch (_){ other = false; } if (other) return null; }
-  return r;
+  return caActGo(r);
 }
 /* a question whose answer IS a worklist ("what is waiting for my approval") still opens it: answered where the list is */
 const CA_VAGUE_RE = /^\s*(?:the|that|this)\s+(?:(?:big|biggest|small|new|old|latest|last|first|other|main|usual)\s+)?(?:one|draft|thing|deal|contract|agreement)\s*$/i;
@@ -455,7 +464,7 @@ function caActRead(t){
   /* THE MAP OVERRULES ONE WORD (owner, 22 Oct 2026): a Menu row read off a
      single word gives way where the map is sure of another task */
   const menu = caReadMenu(t); if (menu) return (CA_MENU_LOOSE.includes(menu.menu) && typeof jmOverrules === 'function' && jmOverrules(t, menu)) || menu;
-  if (typeof caReadDraft === 'function'){ const d = caReadDraft(t); if (d){ setTimeout(() => { caDraftRun(d); }, 0); return d; } }
+  if (typeof caReadDraft === 'function'){ const d = caReadDraft(t); if (d) return caActLater(d, () => { caDraftRun(d); }); }
   /* JAMBO'S MAP (18 Oct 2026, js/jambomap.js): last of all, a sentence in
      everyday words ("where are the contracts ending soon?") reaches the same
      doors as the exact words; what it does not know goes on to the model */
@@ -1494,6 +1503,8 @@ function caOwedSteps(c){
   const out = []; if (!c) return out;
   const lead = caChipLead(c);
   let asks = 0; try { asks = (typeof negoNeedsYouIds === 'function') ? negoNeedsYouIds(c).length : 0; } catch (_){ asks = 0; }
+  /* a Viewer or a desk Reader answers nothing (negoMayAnswer, 22 Nov 2026): no "Answer the redlines" chip */
+  try { if (asks && typeof negoMayAnswer === 'function' && !negoMayAnswer(c)) asks = 0; } catch (_){ /* kept */ }
   if (lead && !(lead === 'redline' && asks)) out.push(lead);
   if (asks) out.push('answer');
   return out;
@@ -1855,6 +1866,8 @@ function caPlaceOf(q){
     cid = cid || c.id; return ' ';
   });
   t = t.toLowerCase().replace(/[’‘]/g, "'").replace(/[?.!]+\s*$/, '').replace(/\s+/g, ' ').trim();
+  /* …unless the words AS TYPED are a place's own ("what now", "vad nu": the next steps; bug log) */
+  const asTyped = t;
   /* "please", "now", "for me" at the end ask for nothing (19 Oct 2026: "go to explorer please") */
   t = t.replace(/(?:[\s,]+(?:please|now|for me|thanks|thank you|tack|snälla|nu))+\s*$/, '').trim();
   /* a place whose own name starts "our" or "the" ("our paper") is read before those are let go */
@@ -1868,7 +1881,7 @@ function caPlaceOf(q){
   if (!tailed && caOnBoard() && typeof hbParse === 'function'){ let r = null; try { r = hbParse(q); } catch (_){ r = null; } if (r && r.act !== 'face') return null; }
   /* a reference on its own ("MK-458", "open #MK-458") is that contract's paper */
   if (!t && cid) return { kind: 'go', place: 'document', cid, slash, state: 'ready' };
-  const p = CA_PLACES.find(x => x.w.includes(whole)) || CA_PLACES.find(x => x.w.includes(t)); if (!p) return null;
+  const p = CA_PLACES.find(x => x.w.includes(asTyped)) || CA_PLACES.find(x => x.w.includes(whole)) || CA_PLACES.find(x => x.w.includes(t)); if (!p) return null;
   return { kind: 'go', place: p.k, cid, slash, state: 'ready' };
 }
 function caOnBoard(){ try { return typeof state !== 'undefined' && !!state && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'board'; } catch (_){ return false; } }

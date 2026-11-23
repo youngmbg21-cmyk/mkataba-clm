@@ -4917,7 +4917,7 @@ app.post('/api/ai/search', auth, rlAiLight, aiFeature('search'), aiBudgetGuard, 
   const prompt = `Answer the question about this contract portfolio using ONLY the provided contracts. Cite each contract that supports the answer with a short verbatim quote. Question: "${question}"\n\nCONTRACTS (JSON):\n${JSON.stringify(body)}\n\nReturn via answer_portfolio.`;
   try {
     const out = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'answer_portfolio' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'search', who: aiWho(req) });
-    if (!out.ok) return res.status(502).json({ error: 'Jambo provider error (' + out.status + '): ' + String(out.error).slice(0, 300) });
+    if (!out.ok) return res.status(502).json({ error: 'Jambo provider error (' + out.status + '): ' + String(out.error).slice(0, 300), kind: 'provider' });
     const data = out.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
@@ -6279,6 +6279,13 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
           error: `You are not on this negotiation. ${deskLeadName(prev)} leads it — ask them to add you.`,
           desk: 'not-a-member' });
     }
+    /* A CONTRIBUTOR PROPOSES, THE LEAD ANSWERS THEM (22 Nov 2026): the page holds a contributor's hands off the
+       other side's changes (rlActorHeld → deskMaySend), so the server says the same — accepting or rejecting
+       their change is the lead's answer to the other side, never a contributor's save. */
+    if (seat === 'contributor' && theirAnswersTouched(prev, c))
+      return res.status(403).json({
+        error: `Only ${deskLeadName(prev)} answers the other side's changes on this negotiation.`,
+        desk: 'lead-answers' });
   }
   /* ---- AND A SUGGESTION IS ADOPTED BY THE LEAD, NOT BY ITS AUTHOR ----
      (4 Oct 2026.) Asked as a DIFFERENCE against the stored record, like the
@@ -8840,7 +8847,7 @@ const boardAnalystHandler = async (req, res) => {
   if (must) messages[messages.length - 1].content.push({ type: 'text', text: 'That was the last step: call finish now.' });
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: story ? 3000 : 1800, tools, tool_choice: must ? { type: 'tool', name: 'finish' } : { type: 'any' }, messages }, { feature: 'graph', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
     const block = (resp.data.content || []).find(x => x.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     let name = block.name, input = boardAnalystClean(name, block.input);
@@ -8912,7 +8919,7 @@ app.post('/api/ai/ocr', auth, editor, rlAiOcr, aiFeature('ocr'), aiBudgetGuard, 
       max_tokens: 8000, tools: [tool], tool_choice: { type: 'tool', name: 'transcribe_page' },
       messages: [{ role: 'user', content: [...blocks, { type: 'text', text: OCR_PROMPT }] }],
     }, { feature: 'ocr', countRequest: !!first, allowance: req.aiAllowance, who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no transcription' });
     const out = block.input || {};
@@ -8993,7 +9000,7 @@ app.post('/api/ai/template', auth, editor, rlAiLight, aiFeature('template'), aiB
   const prompt = `You advise which existing contract to use as the TEMPLATE for a new one.\n\nToday's date: ${today}\n\nUser request: "${query}"\n\nCandidate contracts, each with full clause text (JSON):\n${JSON.stringify(body)}\n\nJudge fit on: clause structure and completeness for the requested deal type, quality of terms, whether it was executed (Signed is battle-tested), and how close the counterparty/commercial shape is to the request. Rank the top 3 via the recommend_template tool with a one-line reason each.`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'recommend_template' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'template', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
@@ -9102,7 +9109,7 @@ app.post('/api/ai/draft', auth, editor, rlAiLight, aiFeature('draft'), aiBudgetG
   const prompt = `You help somebody start a contract in their own contract system.\n\nToday's date: ${today}\n\nWhat they typed:\n"""\n${said}\n"""\n\nThe templates this workspace has, each with the questions it asks (JSON):\n${JSON.stringify(cands)}\n\nDo two things with the draft_from_sentence tool.\n\nFIRST, pick the ONE template that fits what they described, by the kind of agreement it is. Return its id exactly as written above.\n\nWHICH SHELF TO TAKE IT OFF, when more than one fits. Each template says where it came from in \`from\`:\n- "company standard" is paper this company has approved and published. PREFER IT. If a company standard covers the kind of agreement they described, pick that one even where a saved or HaTi template looks like a closer match on wording — approved paper is the point of having it.\n- "saved template" is paper somebody in this workspace saved. Take one only when no company standard covers what they asked for.\n- "HaTi template" is the paper this product ships. Take one only when neither of the others covers it.\n- A template with no \`from\` is ranked last.\nTHEY CAN OVERRIDE THIS BY SAYING SO. If their sentence asks for a particular shelf — "use the HaTi template", "one of our saved ones", "not the company standard" — that wins over the order above, and \`why\` says you did as they asked. Only an explicit ask counts; do not read a preference into the kind of agreement they named.\nWhen you take something other than a company standard while one exists, \`why\` says in its one sentence why the standard did not cover it. If none of them is a reasonable fit, return an empty templateId — do not stretch to the nearest one. Then, and only then, NAME the nearest in \`closest\` and use \`why\` to say in one sentence what it does not cover. Naming it is not picking it: it is how the person is told why they got nothing, and nothing in this system will draft from it.\n\nSECOND, answer that template's own questions from their sentence, by key. Rules that matter more than filling boxes:\n- ONLY what they actually said, or what plainly follows from it. "Two-year agreement starting 1 March 2027" gives you both dates; "a two-year agreement" gives you neither, because you do not know when it starts.\n- LEAVE A QUESTION OUT rather than guess. An empty box a person fills in is right; a plausible wrong figure they do not notice is the one thing you must not produce.\n- Never invent a counterparty, a value, a date or a term that is not in what they typed.\n- Answer only the CHOSEN template's keys. Ignore every other template's fields.\n\n${AI_GOVERNANCE_RULE}`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'draft_from_sentence' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'draft', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
     const block = ((resp.data || {}).content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const out = block.input || {};
@@ -9222,7 +9229,7 @@ app.post('/api/ai/fill', auth, editor, rlAiLight, aiFeature('fill'), aiBudgetGua
     + RULES;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'fill_blanks' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'fill', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
     const block = ((resp.data || {}).content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const out = block.input || {};
@@ -9414,7 +9421,7 @@ app.post('/api/ai/extract', auth, editor, rlAiLight, aiFeature('extract'), aiBud
   try {
     const r = await aiExtractCall(key, { text, thorough, part, parts }, { allowance: req.aiAllowance, who: aiWho(req) });
     if (!r.ok && r.noResult) return res.status(502).json({ error: 'Jambo returned no structured result' });
-    if (!r.ok) return res.status(502).json({ error: 'Jambo provider error (' + r.resp.status + '): ' + String(r.resp.error).slice(0, 300) });
+    if (!r.ok) return res.status(502).json({ error: 'Jambo provider error (' + r.resp.status + '): ' + String(r.resp.error).slice(0, 300), kind: 'provider' });
     res.json({ metadata: r.metadata, sourceSpans: r.sourceSpans, source: 'ai', tier: r.tier, ...aiNotice(req, r.resp) });
   } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
@@ -9471,7 +9478,7 @@ async function aiLabelCandidates(req, res, key) {
     + `\n\nReturn via the label_candidates tool.`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 2400, tools: [tool], tool_choice: { type: 'tool', name: 'label_candidates' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'blanks', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
     const block = (resp.data.content || []).find(x => x.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const out = block.input || {};
@@ -9535,7 +9542,7 @@ TEMPLATE:
 ${String(text)}`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 3000, tools: [tool], tool_choice: { type: 'tool', name: 'propose_blanks' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'blanks', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const out = block.input || {};
@@ -9586,7 +9593,7 @@ app.post('/api/ai/section', auth, editor, rlAiLight, aiFeature('draft'), aiBudge
     + `\nReturn via the write_section tool.`;
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'write_section' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'draft', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
     const block = (resp.data.content || []).find(x => x.type === 'tool_use');
     const out = (block && block.input) || {};
     const text = String(out.text || '').trim().slice(0, SECTION_TEXT_MAX);
@@ -9633,7 +9640,7 @@ app.post('/api/ai/standard', auth, editor, rlAiLight, aiFeature('draft'), aiBudg
     + `\nRules:\n- Contract wording only in "ask" and the fallbacks: third person, no heading, no number, no commentary.\n- A figure (days, months, an amount) comes from what you were given above; where nothing gives it, use a common market position and say so in "said".\n- Fallbacks go from best for us to least good, each a real step down. A "Must have" standard usually has none; a "Never accept" standard puts the forbidden words in "never".\n- Keep each part short.\n\nReturn via the write_standard tool.`;
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 1400, tools: [tool], tool_choice: { type: 'tool', name: 'write_standard' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'draft', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
     const block = (resp.data.content || []).find(x => x.type === 'tool_use');
     const out = (block && block.input) || {};
     const ask = String(out.ask || '').trim().slice(0, STD_AI_FIELD_MAX);
@@ -9719,7 +9726,7 @@ app.post('/api/ai/outline', auth, editor, rlAiLight, aiFeature('outline'), aiBud
     + `\nReturn via the propose_sections tool.`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 1600, tools: [tool], tool_choice: { type: 'tool', name: 'propose_sections' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'outline', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const out = block.input || {};
@@ -9836,7 +9843,7 @@ Quote the clause each came from. For each, say its kind (dated, on an event, or 
        replaced. Output is billed as used, so headroom that is not needed
        costs nothing; an answer cut off costs the whole answer. */
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 8000, tools: [tool], tool_choice: { type: 'tool', name: 'list_obligations' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'obligations', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
@@ -9888,7 +9895,7 @@ app.post('/api/ai/windows', auth, editor, rlAiDeep, aiFeature('windows'), aiBudg
   const prompt = `List the dated periods this contract sets: prices fixed, an exit fee or early-termination fee, a lock-in or minimum term, probation, no-hire or non-solicit, confidentiality that continues after the end, and any similar window with a start and an end.${day(start) ? ` The contract starts on ${day(start)}.` : ''}${day(end) ? ` It ends on ${day(end)}.` : ''} Give real calendar dates; leave a window out rather than guess its dates. Quote the words that set each one. Return via list_windows.\n\nDOCUMENT:\n${aiDocText(req, text)}`;
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 4000, tools: [tool], tool_choice: { type: 'tool', name: 'list_windows' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'windows', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const hay = amendNorm(text);
@@ -9978,7 +9985,7 @@ app.post('/api/ai/breakdown', auth, editor, rlAiDeep, aiFeature('breakdown'), ai
   const prompt = `Read this whole contract from ${mine} and cut it into at most ten sections — groups of clauses that do one job (price, payment, term and exit, service levels, data, liability, law and general…). Every clause and schedule must sit in exactly one section; list each one's clause numbers. Say whether each section NEEDS the reader, is WORTH A LOOK, or is FINE. Then, as ONE company view (the legal risk and the money together, never split by department), list the points that matter most, worst first: where this wording leaves us exposed or hands the other side an edge, and anything a careful company would expect that is MISSING. Where a NUMBERED CLAUSE IS IN THE CONTRACT BUT LEFT EMPTY, give its number in clause and set blank — it is not a missing point. For each point give only its title, one line on what is at stake, its section and the key words verbatim — keep it short; the detail is asked for separately. Do not invent facts or numbers the text does not state. Return via break_down.\n\n${stakesWriteRule(req)}\n\nCONTRACT:\n${aiDocText(req, text)}`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 6000, tools: [tool], tool_choice: { type: 'tool', name: 'break_down' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'breakdown', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const hay = amendNorm(text);
@@ -10057,7 +10064,7 @@ app.post('/api/ai/breakdown/point', auth, editor, rlAiDeep, aiFeature('breakdown
   const prompt = `Read this contract from ${mine} and give the deep dive on ONE point, as one company view (the legal risk and the money together). Say what could happen, what this contract says, what a careful company would normally get, the money at stake (only from figures the wording states), where the other side will push back, our edge, what we could trade, and the wording we would ask for. Keep each part short. Do not invent facts or numbers the text does not state. Return via dive_point.\n\n${stakesWriteRule(req)}\n\n${about}\n\nCONTRACT:\n${aiDocText(req, text)}`;
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'dive_point' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'breakdown', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block || !block.input) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const d = block.input;
@@ -10114,7 +10121,7 @@ Current record facts: end date ${String(f.expiry || 'unknown')}, value ${Number(
 Return via draft_amendment.\n\n${AI_GOVERNANCE_RULE}\n\nAGREEMENT:\n${aiDocText(req, text)}`;
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 6000, tools: [tool], tool_choice: { type: 'tool', name: 'draft_amendment' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'amend', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const inp = block.input || {};
@@ -10275,7 +10282,7 @@ app.post('/api/ai/brief', auth, briefAsker, rlAiDeep, aiFeature('brief'), aiBudg
        reason — see f280, which pins this one to the two maxItems above rather
        than to the number, so the two cannot drift. */
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 6000, tools: [tool], tool_choice: { type: 'tool', name: 'contract_brief' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'brief', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     /* ---- A CUT-SHORT BRIEF IS KEPT, MARKED — REVERSED IN PLACE 10 Sep 2026 ----
@@ -13218,7 +13225,7 @@ app.post('/api/ai/renewal', auth, editor, rlAiDeep, aiFeature('renewal'), aiBudg
     const r = await aiRenewalAdvice(key, { id: String(id), signals, doc: aiDocText(req, contractFullBody(full)),
       by: (req.user && req.user.name) || '' }, { who: aiWho(req) });
     if (!r.ok && r.noResult) return res.status(502).json({ error: 'Jambo returned no structured result' });
-    if (!r.ok) return res.status(502).json({ error: 'Jambo provider error (' + r.resp.status + '): ' + String(r.resp.error).slice(0, 300) });
+    if (!r.ok) return res.status(502).json({ error: 'Jambo provider error (' + r.resp.status + '): ' + String(r.resp.error).slice(0, 300), kind: 'provider' });
     res.json({ advice: r.advice, ...aiNotice(req, r.resp) });
   } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
@@ -13304,7 +13311,7 @@ app.post('/api/ai/playbook', auth, editor, rlAiDeep, aiFeature('playbook'), aiBu
     const r = await aiPlaybookVerdicts(key, { text, playbook, kind }, { feature: 'playbook', who: aiWho(req) });
     if (!r.ok) {
       if (r.noResult) return res.status(502).json({ error: 'Jambo returned no structured result' });
-      return res.status(502).json({ error: 'Jambo provider error (' + r.resp.status + '): ' + String(r.resp.error).slice(0, 300) });
+      return res.status(502).json({ error: 'Jambo provider error (' + r.resp.status + '): ' + String(r.resp.error).slice(0, 300), kind: 'provider' });
     }
     /* `truncated` is the FACT beside the notice's sentence: the browser saves
        no check that was cut short (fix 3), so it has to be told, not left to
@@ -16302,7 +16309,7 @@ app.post('/api/party-records/lookup', auth, editor, rlAiDeep, aiFeature('lookup'
     for (let i = 0; i < 3; i++) {
       out = await anthropicMessages(k, 'deep', { max_tokens: 2000, system, messages, tools: [plSearchTool(model)] },
         { feature: 'lookup', model, who: aiWho(req) });
-      if (!out.ok) return res.status(502).json({ error: 'Jambo provider error (' + out.status + '): ' + String(out.error).slice(0, 300) });
+      if (!out.ok) return res.status(502).json({ error: 'Jambo provider error (' + out.status + '): ' + String(out.error).slice(0, 300), kind: 'provider' });
       content = content.concat(out.data.content || []);
       if (out.data.stop_reason !== 'pause_turn') break;
       messages.push({ role: 'assistant', content: out.data.content });
@@ -27546,7 +27553,7 @@ function settingsWhyPerson(u, users){
   const pu = publicUser(u);
   const sc = pu.signCap == null ? 'not set (any amount)' : pu.signCap === 'none' ? 'no limit' : String(pu.signCap);
   const fa = pu.folderAccess;
-  return `- [${u.id}] ${u.name || u.email} (${u.role})${u.role === 'admin' ? ': admin, never capped' : `: signing limit ${sc}`}`
+  return `- [${u.id}] ${u.name || u.email} (${srvRolePlain(u.role)}: ${SRV_ROLE_MAY[SRV_ROLE_PLAIN[u.role] ? u.role : 'legal']})${u.role === 'admin' ? ': admin, never capped' : `: signing limit ${sc}`}`
     + `; approval before signing ${pu.overseerOn === 'off' ? 'off' : pu.overseerId ? `from ${nameOf(pu.overseerId) || 'a member'}${pu.overseerBackupId ? `, backup ${nameOf(pu.overseerBackupId)}` : ', no backup'}` : 'none'}`
     + `; changes checked before sending: ${pu.reviewChecked === false ? 'no' : 'yes when the rule is on'}`
     + `; streams: ${Array.isArray(fa) ? fa.length + ' named' : 'all'}`;
@@ -27603,7 +27610,7 @@ app.post('/api/ai/settings-why', auth, rlAiDeep, aiFeature('settings'), aiBudget
      book (money, exposure, a clause, a ranking) is the chat's, never answered here as "hidden from you" */
   const elsewhere = { name: 'elsewhere', description: 'The person asks for something that is NOT about the workspace\'s settings, rules, people or their rights (money, value or exposure, a counterparty, a clause, a contract\'s wording, risk, a ranking or comparison of the book). HaTi hands their words to Jambo\'s chat, who reads the whole book.',
     input_schema: { type: 'object', properties: { why: { type: 'string', description: 'A few words: what they asked for.' } } } };
-  const prompt = `You explain a contract-management workspace's settings to ${req.user.name || 'a member'} (${req.user.role}). Answer ONLY from the facts below. If they do not answer the question, say plainly what is missing — never invent a rule, a limit or a person. Write in ${lang}, plain words, short.
+  const prompt = `You explain a contract-management workspace's settings to ${req.user.name || 'a member'} (${srvRolePlain(req.user.role)}). When you describe anyone's access, use only the words Admin, Editor or Viewer, as the list below says them. Answer ONLY from the facts below. If they do not answer the question, say plainly what is missing — never invent a rule, a limit or a person. Write in ${lang}, plain words, short.
 ${AI_GOVERNANCE_RULE}
 ${admin ? `The workspace's rules (stored settings):\n${rules || '- none set'}\n` : 'This person is not an admin: the company\'s rules are not shown to them, so do not describe any rule beyond their own settings below.\n'}
 People (member id in brackets):
@@ -27613,7 +27620,7 @@ You were given settings, rules and people ONLY. A question that is not about the
 The person asks: ${q}`;
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 900, tools: [tool, elsewhere], tool_choice: { type: 'any' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'settings', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
     const block = (resp.data.content || []).find(x => x.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no answer' });
     if (block.name === 'elsewhere') return res.json({ kind: 'elsewhere', say: '', points: [], doors: [], read: [], ...aiNotice(req, resp) });
@@ -27717,7 +27724,7 @@ DO WHAT THEY ASK, NOTHING ELSE:
 - Dates after ${until}: you cannot see them. Say so.`;
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 2000, tools: useTools, tool_choice: { type: 'any' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'plan', who: aiWho(req) });
-    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
     const block = (resp.data.content || []).find(x => x.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
     const inp = block.input || {};

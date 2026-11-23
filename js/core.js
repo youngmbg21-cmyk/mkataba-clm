@@ -10408,6 +10408,12 @@ function openImportModal(c){
     const go=document.getElementById('imp-go'); if(go) go.hidden=k!=='code';
   }));
   document.getElementById('imp-cancel').addEventListener('click',closeModal);
+  /* A SIGNED CONTRACT TAKES NO RETURNED FILE, SAID BEFORE A FILE IS CHOSEN (22 Nov 2026, bug log): the refusal was read
+     only after the pick; the button is grey with the reason under it (a dead button says why). The pick keeps its own check. */
+  { let shut=false; try{ shut=!!(c&&((c.execution&&c.execution.at)||(typeof isExternallyExecuted==='function'&&isExternallyExecuted(c)))); }catch(_){ shut=false; }
+    if(shut){ const b=document.getElementById('imp-docx-go'), note=document.getElementById('imp-docx-note');
+      if(b){ b.disabled=true; b.setAttribute('aria-disabled','true'); }
+      if(note) note.textContent=i18t('co_import_executed',{id:(window.contractRef?contractRef(c):c.id)}); } }
   document.getElementById('imp-docx-go')?.addEventListener('click',()=>document.getElementById('imp-docx')?.click());
   document.getElementById('imp-go').addEventListener('click',async()=>{
     const ok=await applyResponse(c, b64d(fval('imp-code')));

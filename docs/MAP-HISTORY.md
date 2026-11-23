@@ -40080,3 +40080,35 @@ The owner, on the iPad: "When on my iPad and i try to enter my cursor in the fie
 
 ## Scope rules — AUTO PILOT (22 Nov 2026)
 - The owner's words: "whenever I say auto pilot I mean you have my permission to push to GitHub, continue to fix and push again until green and then merge to main without needing my intervention." Added beside the push rule as a standing yes for that task only; the usual guards stay (no skipped tests, no rewritten history, outside faults to BUGLOG.md).
+
+## THE SEAT DECIDES — A CONTRIBUTOR PROPOSES, THE LEAD ADOPTS (22 Nov 2026, auto pilot batch 1)
+- Bug log, 20 Nov 2026: "the server still lets a desk CONTRIBUTOR's save accept or reject the other side's changes (the page holds them via rlActorHeld; f1122 walls the Reader only)". The PUT guard now refuses a contributor's save that moves a counterparty change's status, naming the lead. Red at the parent: f1172 (1), (2).
+
+## THE DOCUMENT TAB, AND THE TWO COPIES (22 Nov 2026, auto pilot batch 1)
+- Bug log: "Fill the document (tplFormApply) is not locked during a negotiation … rewrites c.redlineText from the form wholesale". Confirmed by reading: the press builds the whole wording from the template, so on a negotiated paper it would undo every change on the table and every one agreed. `tplFormLocked` now also asks `tplFormNegotiated` (a change standing, a round handed over, a fold): the press writes nothing, is not owed, and a blank click opens no box. A negotiated paper's blanks go through Fill in the contract (pd2NegoFile), as before. Left alone: the repair-on-open in renderTemplateFormSection, which rewrites only a stored {{code}}.
+
+## THE ONE DESK — NEEDS YOU, ONE READING (22 Nov 2026, auto pilot batch 1)
+- Bug log, 20 Nov 2026: Jambo called an Editor "legal (viewer) permissions — cannot edit". Round A gave the chat plain levels; the Settings "why" route still handed him the raw code for each person and the asker. Now each person reads "(Editor: may edit, negotiate…)" from `SRV_ROLE_PLAIN`/`SRV_ROLE_MAY`, and the prompt tells him to use only Admin, Editor or Viewer. f1173, red at the parent.
+- (22 Nov 2026, auto pilot batch 2) Bug log, 20 Nov: a Viewer was still offered the "Answer the redlines" chip (caOwedSteps) and the Dossier's "their ask · Go to it" rows (pdTheirAsks) — leading to Redlines they can only read. Both now ask negoMayAnswer, as Needs you does. f1174, red at the parent.
+
+## HOME — THE BOARD AND THE MAP (22 Nov 2026, auto pilot batch 2)
+- Bug log: "How many approvals are late?" was answered with the late DUTIES list — the Board's free reader (hbParse) took any "late" as the obligations question. `HB_RX.appr` now keeps a question naming approvals off the duties' reading (both the condition path and the panel word); a question about duties still opens them. f1175, red at the parent.
+
+## JAMBO'S MAP — EVERYDAY WORDS FOR THE THIRTY-ONE TASKS (22 Nov 2026, auto pilot batch 2)
+- Bug log: "what now" and "vad nu" were listed as the next steps' words, but caPlaceOf let a trailing "now"/"nu" go before matching, leaving "what"/"vad". The words as typed are now asked first (`asTyped`); "go to explorer now" still drops the "now". f1176, red at the parent.
+
+## THE AI'S READING RULES (22 Nov 2026, auto pilot batch 2)
+- Bug log: nine-plus AI routes answered a provider failure with 502 and no `kind`, so the browser's stand-in said "could not be reached". Every route's "Jambo provider error" reply now carries `kind: 'provider'` (22 replies), which api.js already copies onto the error and aiFailWhy/triageWhy already read. f1177, red at the parent.
+
+## THE SHELL — RAIL, BAR, PANELS (22 Nov 2026, auto pilot batch 2)
+- Bug log: caReadSend (and the draft reader) set the send screen / draft form opening from inside the READING, so a reading caActOf then dropped still opened the screen while the question went to the model, and caTakesWords (which only asks) opened it too. The opener now rides on the act, non-enumerable (`caActLater`), and runs only on a kept reading (`caActGo`, both of caActOf's returns). f1178, red at the parent.
+
+## THE TRACKED-CHANGES COLUMN (22 Nov 2026, auto pilot batch 2)
+- Bug log: the settled pile's name came from the CURRENT round, so changes all settled in round 1 read "Settled in rounds 1–2" in round 3. `rlSettledPileLabel` now places each change in the closed round it was settled in (the first `negotiation.rounds` close at or after its settling) and names the latest. f1179, red at the parent.
+
+## THE POP-UPS, THE SAP WAY (22 Nov 2026, auto pilot batch 2)
+- Bug log: Import their response offered a SIGNED contract the "Choose the Word file" button and refused only after a file was picked. On open the button is now grey with co_import_executed under it; the pick keeps its own check. Left for the owner: the same note asks that a returned Word file be read first and filed only on a press (or with Undo) — it is filed the moment it is chosen; that is a change to the flow, not a fix. f1180, red at the parent.
+
+## OBLIGATIONS (22 Nov 2026, auto pilot batch 2)
+- Bug log (Oct): a duty owed to us always read "HaTi never reminds {cp} on its own. The admins are told once, the day after", while runReminders writes to our colleague who watches it (7 days before, on the day, the day after; admins four days late) and, since 19 Nov, to their side where the company and the duty ask. `obTheirsPlan` reads that plan once; the sentence (obligationReminderSay) and the one line (obligationReminderLine) both say it. New keys ob_rem_theirs_off/_on, ob_rem_admins_after (both books); ob_rem_theirs kept inert. f1181, red at the parent.
+- (same day) f731 (7) re-pointed: the count of `obligationReachable(obligationReminderTo(o), c)` reads is three now (the sentence, the one line, obTheirsPlan), and obTheirsPlan is asked to carry it.

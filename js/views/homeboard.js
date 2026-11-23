@@ -1058,6 +1058,8 @@ const HB_RX = {
      because the new name holds the word */
   rename:    /\b(rename|retitle|byt namn på)\b/i,
   obl:       /overdue|past due|obligation|\bdut(y|ies)\b|\blate\b|promise|förfall|åtagande|\bsena?\b/i,
+  /* a question that names approvals is never the duties' "late" (bug log: "how many approvals are late?" opened late duties) */
+  appr:      /\bapprov\w*|godkänn\w*/i,
   fric:      /slow|friction|negotiat|delay|stuck|förhandl|trög|fastnat|friktion/i,
   ren:       /renew|expir|\bending\b|end date|förny|löper ut|slutdatum|upphör/i,
   pay:       /payment term|\bpay\b|days to pay|invoice|betalningsvillkor|\bbetal|faktur/i,
@@ -1198,7 +1200,7 @@ function hbParse(qRaw){
         const c0 = cq[0];
         if (c0.field === 'expired') return { act: 'dig', key: 'f:past' };
         if (c0.field === 'move' && c0.label === 'waiting on us') return { act: 'dig', key: 'f:us' };
-        if (c0.field === 'overdue') return { act: 'dig', key: 'f:overdue' };
+        if (c0.field === 'overdue' && !HB_RX.appr.test(s)) return { act: 'dig', key: 'f:overdue' };
         if (c0.field === 'expiryWindow' && /\b90 (?:days|dagar)\b/.test(c0.hit || '')) return { act: 'dig', key: 'f:ending' };
         if (c0.field === 'side') return { act: 'lens', lens: c0.fn({ metadata: { category: 'supplier' } }) ? 'suppliers' : 'customers' };
       }
@@ -1206,7 +1208,7 @@ function hbParse(qRaw){
     }
   }
   const pastAsk = HB_RX.fig.past.test(s) && !HB_RX.renewWord.test(s);
-  const kind = HB_RX.obl.test(s) ? 'obl' : HB_RX.fric.test(s) ? 'fric' : (HB_RX.ren.test(s) && !pastAsk) ? 'ren'
+  const kind = (HB_RX.obl.test(s) && !HB_RX.appr.test(s)) ? 'obl' : HB_RX.fric.test(s) ? 'fric' : (HB_RX.ren.test(s) && !pastAsk) ? 'ren'
     : HB_RX.pay.test(s) ? 'pay' : HB_RX.exp.test(s) ? 'exp' : HB_RX.val.test(s) ? 'val' : null;
   const sup = HB_RX.suppliers.test(s), cus = HB_RX.customers.test(s);
   if (HB_RX.watch.test(s)){

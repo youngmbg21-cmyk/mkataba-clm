@@ -1215,7 +1215,19 @@ function tplFormSig(form) {
   return JSON.stringify(Object.keys(v).sort().map(k => [k, v[k]]));
 }
 function tplFormLocked(c) {
-  return c.status === 'Signed' || !!(c.execution && c.execution.at) || !!c.hash;
+  return c.status === 'Signed' || !!(c.execution && c.execution.at) || !!c.hash || tplFormNegotiated(c);
+}
+/* A NEGOTIATED PAPER IS NEVER REBUILT FROM ITS FORM (22 Nov 2026, bug log): "Fill the document" writes the whole
+   wording from the template, which would quietly undo every change on the table and every one agreed. Once a change
+   stands or the paper has changed hands, its blanks are filed as our change (Fill in the contract, pd2NegoFile).
+   Read RAW: reading must not write. */
+function tplFormNegotiated(c) {
+  if (!c) return false;
+  if ((Array.isArray(c.changes) ? c.changes : []).some(x => x && !x.withdrawn)) return true;
+  const n = c.negotiation;
+  if (!n) return false;
+  return !!(n.turnAt || (Array.isArray(n.rounds) && n.rounds.length) || (Number(n.round) || 1) > 1
+    || (Array.isArray(n.folded) && n.folded.length));
 }
 function tplFormPending(c) {
   const form = c && c.templateForm;
@@ -1323,7 +1335,7 @@ function tplFormApply(c) {
 function tplFormBlankClick(c, span) {
   const form = c.templateForm;
   if (!form) return;
-  const locked = c.status === 'Signed' || (c.execution && c.execution.at) || !!c.hash;
+  const locked = tplFormLocked(c);
   if (locked || !(typeof canEdit === 'function' && canEdit())) return;
   const key = span.getAttribute('data-field-key');
   const idx = (form.fields || []).findIndex(f => f.fieldKey === key);
