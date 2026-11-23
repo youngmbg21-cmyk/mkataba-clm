@@ -53,7 +53,6 @@ const PAGES = [
   ['templates', "setView('templates')", '#ins-panel'],
   ['mynotes', "setView('mynotes')", '#ins-panel'],
   ['reads', "setView('reads')", '#ins-panel'],
-  ['pulse', "setView('pulse')", '#ins-panel'],   /* THE PULSE BOARD (29 Oct 2026) */
   ['handbook', "setView('handbook')", '#ins-panel'],
   ['migration', "setView('migration')", '#mig-side'],
   /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Settings' Jambo is the list pages' panel (#ins-panel, box #jl-q), no longer its own #st-side */

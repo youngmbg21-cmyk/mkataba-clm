@@ -201,7 +201,7 @@ async function measure(p, cdp, label, act, arg){
     const p = await signIn(b, h, 1440, 780);
     await until(p, () => !!getContract('MK-110'), null, 40000);
     await p.evaluate(async () => { try { await stPrefSet('newLook', true); newLookApply(); } catch (_){} });
-    const PAGES = ['counter', 'register', 'approvals', 'obligations', 'directory', 'customers', 'intake', 'reads', 'mynotes', 'templates', 'playbook', 'team', 'settings', 'calendar', 'pulse', 'migration'];
+    const PAGES = ['counter', 'register', 'approvals', 'obligations', 'directory', 'customers', 'intake', 'reads', 'mynotes', 'templates', 'playbook', 'team', 'settings', 'calendar', 'migration'];
     const micro = () => p.evaluate(() => { const host = document.querySelector('#content') || document.body; const probe = document.createElement('i'); host.appendChild(probe); host.offsetHeight;
       const best = w => { let m = 1e9; for (let k = 0; k < 5; k++){ const t = performance.now(); w(); host.offsetHeight; document.body.getBoundingClientRect(); m = Math.min(m, performance.now() - t); } return Math.round(m * 10) / 10; };
       const out = { els: document.getElementsByTagName('*').length, cls: best(() => probe.classList.toggle('zz-sm')), add: best(() => probe.appendChild(document.createElement('b'))), attr: best(() => probe.setAttribute('data-zz', String(Math.random()))) };

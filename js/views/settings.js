@@ -11199,7 +11199,7 @@ const SDD_EMOJI={ area:{ you:'👤', company:'🏢', rules:'⚖️', jambo:'✨'
     golive:'🚀', samples:'🧪', pilot:'👣', trail:'🧾', integrity:'🔏', env:'🖥️' },
   /* THE PAGES' OWN (owner, 21 Nov 2026: "add the new emojis to the emoji rule book"): the seven the launchpad took from the old
      panel's symbols because the book had none for them (LP_EMOJI, js/app.js). The book now holds every emoji HaTi draws. */
-  page:{ contracts:'📄', draft:'📝', negotiations:'🔁', oblig:'📃', calendar:'📅', reads:'🔍', pulse:'📈' } };
+  page:{ contracts:'📄', draft:'📝', negotiations:'🔁', oblig:'📃', calendar:'📅', reads:'🔍' } };
 function sddEmojiOf(id, area){ const R=SDD_EMOJI.row; return R[id]||R[String(id||'').replace(/\d+$/,'')]||SDD_EMOJI.area[area]||'•'; }
 function sddMkHtml(emo, area, need){ return `<span class="sdd-mk is-emo a-${SDD_TONE[area]||'you'}${need?' is-need':''}" aria-hidden="true">${emo}</span>`; }
 let _sddArea=null, _sddPick=null, _sddHome=null, _sddQ='';

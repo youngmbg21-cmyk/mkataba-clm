@@ -1115,3 +1115,6 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 
 ## THE LIST HEAD — an applied filter is in colour (23 Nov 2026)
 - `node --test test/f1193-an-applied-filter-is-in-colour.test.js test/f1109-an-applied-filter-is-shaded.test.js test/f965-the-tokens-are-the-law.test.js`; browser: contracts-page-verify 12f (GitHub).
+
+## THE PULSE BOARD — DELETED (23 Nov 2026)
+- No tests of its own remain. The deletion is kept by: f1097 (launchpad), f841 (Guide), f964 (map), f937 (Handbook), f561 (Brain).

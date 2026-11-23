@@ -2337,7 +2337,7 @@ const AI_PAGE_NAMES = {
   /* THE NAMES THE BAR SHOWS TODAY (BUGLOG 21371): Home is the Board since 10 Nov 2026; Customers is Parties; Directory is People */
   dashboard: 'the Board', register: 'Contracts', folder: 'Contracts',
   redline: 'Negotiations', workspace: 'a contract',
-  obligations: 'Obligations', approvals: 'Approvals & signing', customers: 'Parties', agents: "Jambo's work", jambo: "Jambo's agents", brain: 'the Brain', calendar: 'Calendar', mynotes: 'My notes', reads: 'Discover', pulse: 'the Pulse board', handbook: 'Handbook', flowmap: 'the Flow map', templates: 'Templates',
+  obligations: 'Obligations', approvals: 'Approvals & signing', customers: 'Parties', agents: "Jambo's work", jambo: "Jambo's agents", brain: 'the Brain', calendar: 'Calendar', mynotes: 'My notes', reads: 'Discover', handbook: 'Handbook', flowmap: 'the Flow map', templates: 'Templates',
   playbook: 'Our playbook', pipeline: 'Approvals', intake: 'Requests',
   directory: 'People', team: 'Settings & rules', reports: 'Reports',
   migration: 'Import contracts', advice: 'Advice desk',

@@ -414,7 +414,6 @@ const PLACES = [
   /* READS (The thread, 28 Oct 2026) */
   { k: 'reads', name: 'Reads', go: `setView('reads')`, wait: `document.querySelector('.rd-page, .rdn-page')` },
   /* THE PULSE BOARD (29 Oct 2026) */
-  { k: 'pulse', name: 'Pulse board', go: `setView('pulse')`, wait: `document.querySelector('#pu-tbody tr')` },
   { k: 'jambo', name: "Jambo's house", go: `setView('jambo'); setTimeout(() => { const t = document.querySelector('[data-jh-tab="house"]'); if (t && t.getAttribute('aria-selected') !== 'true') t.click(); }, 400)`, wait: `document.querySelector('#jh-log, #jh-office, .jhn-card .jh-housecard, .jh-panel')` },
   /* RE-POINTED 22 Oct 2026 (Round A, the one desk): Jambo's work is the Board's Needs you card, its rows .nd-br */
   { k: 'agents', name: "Jambo's work", go: `hbOpenAgent()`, wait: `document.querySelector('#hm-agents .nd-br')` },

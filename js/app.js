@@ -79,7 +79,6 @@ import './teach.js';           // Jambo the instructor: "I'm new" said by the pe
 import './views/calendar.js';
 import './views/mynotes.js';
 import './views/reads.js';   // READS (The thread, 28 Oct 2026): every read of the wording, and the next batch
-import './views/pulse.js';   // THE PULSE BOARD (owner, 29 Oct 2026): every contract ranked live, each drawn as a strand
 import './views/flowmap.js';      // the flow map's page: how every page reaches the next (owner, 31 Oct 2026)
 import './views/handbook.js';     // the Handbook's page: the book drawn one part at a time, every door live (26 Oct 2026)
 import './views/breakdown.js';   // Home's Breakdown face: the whole contract in regions (11 Oct 2026)     // My notes: the private ledger (10 Oct 2026)
@@ -335,7 +334,6 @@ function commandMeta(view){
     case 'calendar':  return [i18t('nav_calendar'), ''];
     case 'mynotes':   return [i18t('nav_mynotes'), ''];
     case 'reads':     return [i18t('nav_reads'), ''];     // READS (The thread, 28 Oct 2026)
-    case 'pulse':     return [i18t('nav_pulse'), ''];     // THE PULSE BOARD (29 Oct 2026)
     case 'flowmap':   return [i18t('nav_flowmap'), ''];    // THE FLOW MAP (owner, 31 Oct 2026)
     case 'handbook':  return [i18t('nav_handbook'), ''];   // THE HANDBOOK (owner, 26 Oct 2026)   // the drawing's bar says "Calendar", the rail's word (SAP batch 2)
     case 'migration': return [i18t('nav_import'), i18t('pg_import_sub')];
@@ -465,7 +463,7 @@ function pageActionHtml(kind){
    view, so the page title was the one row between the brain and the screen. */
 /* 'customers' draws its own head in its white band (its name, figures and Draft new agreement, 10 Oct 2026);
    'directory' the same since it became the wall of faces (13 Oct 2026). */
-const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'calendar', 'mynotes', 'reads', 'pulse', 'brain', 'customers', 'jambo', 'directory', 'handbook', 'flowmap'];
+const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'calendar', 'mynotes', 'reads', 'brain', 'customers', 'jambo', 'directory', 'handbook', 'flowmap'];
 /* ---- WHOSE PAGE OWNS ITS OWN HEIGHT, AND THEREFORE NEEDS NO SCROLLBAR
    RESERVED (owner-reported 25 Aug 2026, off three screenshots of the top-right
    corner: "the top card on the right corner … is leaving space in the corner.
@@ -497,7 +495,7 @@ const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'cal
    an agent is pressed): Copilot's work is --view-h tall above 900px, its right
    side scrolls inside itself and the list beside it stays put. */
 /* 'intake' and 'advice' joined 9 Oct 2026 (SAP benchmark, batch 2): Requests and its Advice tab draw the white band to the screen's edge, as Approvals and Obligations do; 'directory' (People) and 'templates' (Our paper) the same day, each scrolling inside its own page. */
-const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'mynotes', 'reads', 'pulse', 'intel', 'register', 'brain', 'approvals', 'obligations', 'intake', 'advice', 'directory', 'templates', 'customers', 'handbook', 'flowmap', 'agents'];
+const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'mynotes', 'reads', 'intel', 'register', 'brain', 'approvals', 'obligations', 'intake', 'advice', 'directory', 'templates', 'customers', 'handbook', 'flowmap', 'agents'];
 /* The class carries the fact; index.html carries the rule. Painted from
    renderPageHeader, which runs on EVERY view change — including onto a view
    that is not on the list, which is what takes the class back off again. */
@@ -1506,7 +1504,6 @@ function setView(view){
     else if(view==='calendar') renderCalendar();
     else if(view==='mynotes') renderMyNotes();
     else if(view==='reads') renderReads();
-    else if(view==='pulse') renderPulse();
     else if(view==='handbook') renderHandbook();
     else if(view==='flowmap') renderFlowMap();
     else if(view==='reports') renderReports();
@@ -1738,8 +1735,6 @@ const PLACE_PARTS={
   mynotes:['mnPlace','mnPlacePut'],
   /* Reads keeps its tab, box and chosen row (The thread, 28 Oct 2026) */
   reads:['rdPlace','rdPlacePut'],
-  /* the Pulse board keeps its rule and the chosen row (29 Oct 2026) */
-  pulse:['puPlace','puPlacePut'],
   /* the Handbook keeps its part and chapter (26 Oct 2026) */
   handbook:['hbkPlace','hbkPlacePut'],
   /* the flow map keeps the place chosen (31 Oct 2026) */
@@ -4101,7 +4096,7 @@ const GUIDE_STAGES = [
   { k: 'agree', rows: ['negotiations', 'parties', 'people'] },
   { k: 'sign', rows: ['approvals'] },
   { k: 'keep', rows: ['contracts', 'reads', 'alertme', 'oblig', 'calendar', 'mynotes'] },
-  { k: 'see', rows: ['pulse', 'explorer', 'house'] },
+  { k: 'see', rows: ['explorer', 'house'] },
 ];
 /* each page's count and its words, off the door's own reading (null = none) */
 function guideCountOf(k){
@@ -4131,7 +4126,7 @@ function guideHereKey(){
       if(f==='paper') return 'contracts';
       return ({ board:'board', calendar:'calendar', explorer:'explorer' })[f]||'board'; }
     return ({ intake:'requests', migration:'import', templates:'ourpaper', playbook:'standards', redline:'negotiations', customers:'parties',
-      directory:'people', approvals:'approvals', register:'contracts', obligations:'oblig', mynotes:'mynotes', reads:(typeof window.amwOnAlerts==='function'&&window.amwOnAlerts())?'alertme':'reads', pulse:'pulse', jambo:'house',
+      directory:'people', approvals:'approvals', register:'contracts', obligations:'oblig', mynotes:'mynotes', reads:(typeof window.amwOnAlerts==='function'&&window.amwOnAlerts())?'alertme':'reads', jambo:'house',
       team:'settings', workspace:'contracts', doc:'contracts', handbook:'handbook', flowmap:'flowmap' })[v]||null;
   }catch(_){ return null; }
 }
@@ -4161,7 +4156,7 @@ const GUIDE_NL=[
   { k:'arrive', tone:'green', rows:[['contracts'],['requests'],['import'],['ourpaper'],['standards'],['draft']] },
   { k:'negsign', tone:'amber', rows:[['negotiations'],['approvals']] },
   { k:'live', tone:'steel', rows:[['oblig'],['calendar'],['parties','people'],['mynotes']] },
-  { k:'book', tone:'violet', rows:[['board','explorer','reads'],['alertme'],['pulse','house'],['flowmap'],['handbook'],['settings']] },
+  { k:'book', tone:'violet', rows:[['board','explorer','reads'],['alertme'],['house'],['flowmap'],['handbook'],['settings']] },
 ];
 function guideSizeOf(k){
   try{
@@ -4180,7 +4175,7 @@ function guideNlCount(k){
    pages wears its first page's symbol. */
 const GUIDE_NL_ICON={ board:'grid', contracts:'file', requests:'chat', import:'download', ourpaper:'copy', standards:'shield', draft:'filenew',
   negotiations:'refresh', approvals:'check2', document:'readpaper', oblig:'list', calendar:'calendar', parties:'users', people:'users',
-  mynotes:'pencil', explorer:'network', reads:'search', alertme:'alert', pulse:'trend', house:'sparkle', flowmap:'lane', handbook:'scroll', settings:'cog' };
+  mynotes:'pencil', explorer:'network', reads:'search', alertme:'alert', house:'sparkle', flowmap:'lane', handbook:'scroll', settings:'cog' };
 function guideNlMarkHtml(k, tone){
   const n=GUIDE_NL_ICON[k]; if(!n||typeof icon!=='function') return '';
   return `<span class="gdn-mk t-${tone||'gray'}" aria-hidden="true">${icon(n,'gdn-ic',1.8)}</span>`;
@@ -4219,7 +4214,7 @@ const LP_CHIPS=['all','need','arrive','negsign','live','book'];
    else the emoji of the symbol the panel drew before (GUIDE_NL_ICON), since added to the book as SDD_EMOJI.page (f1097 (8) keeps
    the two the same). A mark beside the name, never the name itself. */
 const LP_EMOJI={ contracts:'📄', requests:'💬', import:'📦', ourpaper:'📋', standards:'⚖️', draft:'📝', negotiations:'🔁', approvals:'✅',
-  oblig:'📃', calendar:'📅', parties:'🏢', people:'👥', mynotes:'📌', board:'📊', explorer:'🧭', reads:'🔍', alertme:'🔔', pulse:'📈', house:'✨', flowmap:'🛤️', handbook:'📖', settings:'⚙️' };
+  oblig:'📃', calendar:'📅', parties:'🏢', people:'👥', mynotes:'📌', board:'📊', explorer:'🧭', reads:'🔍', alertme:'🔔', house:'✨', flowmap:'🛤️', handbook:'📖', settings:'⚙️' };
 function lpEmoHtml(k){ const e=LP_EMOJI[k]; return e?`<span class="lp-em" aria-hidden="true">${e}</span>`:''; }
 let _lpChip='all';
 /* the Guide's pages, Board first and Settings last, the order FIXED (as the strip had it) */

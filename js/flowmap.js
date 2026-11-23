@@ -119,8 +119,6 @@ const FLOW_MAP = [
   /* ALERT ME WHEN (owner's pick, 23 Nov 2026): every alert on a question; a hit lands on its contract */
   { k: 'alertme', st: 'book', s: _w('Discover\'s alerts: a new contract that answers your way', 'Upptäcks larm: ett nytt avtal som svarar som du valt'),
     a: [['document', _w('a hit → its words on the contract', 'en träff → dess ord i avtalet')]], d: ['reads', 'contracts'], p: [['document', _w('the newest hit not yet opened', 'den nyaste träffen som inte öppnats')]] },
-  { k: 'pulse', st: 'book', s: _w('the pulse board', 'pulstavlan'),
-    a: [], d: ['board', 'contracts'], p: [] },
   /* ---- THE HOUSE ---- */
   { k: 'settings', st: 'house', s: _w('the control room', 'kontrollrummet'),
     a: [], d: ['people', 'ourpaper', 'handbook'], p: [] },

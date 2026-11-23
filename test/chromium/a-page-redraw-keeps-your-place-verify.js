@@ -51,14 +51,7 @@ function book(){ const out = []; const st = ['Under Review', 'Signed', 'Draft'];
       if (!c) return null; c.scrollTop = 180; return { id: c.id, top: c.scrollTop }; });
     const topOf = id => page.evaluate(id => { const el = document.getElementById(id); return el ? el.scrollTop : null; }, id);
 
-    console.log('\n1 · the Pulse board, ranked another way');
-    await go('pulse');
-    const s1 = await scrollDown();
-    const crit = await page.evaluate(() => { const b = [...document.querySelectorAll('[data-pu-crit]')].find(x => x.getAttribute('aria-pressed') !== 'true' && !x.classList.contains('on') && !x.disabled); if (!b) return false; b.click(); return true; });
-    await page.waitForTimeout(700);
-    if (!s1 || s1.top < 100) skip('1', 'the Pulse board has nothing to scroll in this book');
-    else if (!crit) skip('1', 'no other ranking to press');
-    else check('1. the reader is where they were', Math.abs((await topOf(s1.id)) - s1.top) <= 4, `${s1.id}: ${s1.top} -> ${await topOf(s1.id)}`);
+    /* 1 RETIRED 23 Nov 2026: the Pulse board was deleted (owner: "delete the pulse board from hati all across") */
 
     console.log('\n2 · a list page, chosen again');
     await go('oblig');
