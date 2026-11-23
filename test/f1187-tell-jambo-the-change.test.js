@@ -89,3 +89,26 @@ test('f1187 (7) the check step: the amendment or the agreement as amended, Befor
   assert.doesNotMatch(chk, /fmtMoney/, 'no money in the check');
   assert.match(chk, /id="pd2-amc-left"/, 'the paper scrolls in its own box, the check list and what happens next stay in view');
 });
+
+test('f1187 (8) the chips come from this paper: only where their clause is, its §, its own words', () => {
+  const pd = R('js/paperdesk.js');
+  const head = pd.slice(pd.indexOf('const PD2_AMK_HEAD ='), pd.indexOf('};', pd.indexOf('const PD2_AMK_HEAD =')) + 2);
+  const pay = pd.slice(pd.indexOf('const PD2_AMK_PAY_RE ='), pd.indexOf(';\n', pd.indexOf('const PD2_AMK_PAY_RE =')) + 1);
+  const T = (k, v) => k + (v ? ' ' + JSON.stringify(v) : '');
+  const make = (cls, money) => new Function('_pdT', 'amendParentClauses', 'isMonetary', `${head}\n${pay}\n${fnOf(pd, 'pd2AmkChipsOf')}\nreturn pd2AmkChipsOf;`)(T, () => cls, () => money);
+  const supply = [
+    { num: '2', title: 'Price & Contract Value', text: 'The estimated annual contract value is KES 85,000,000, based on pricing. Invoices fall due within 30 days of receipt.' },
+    { num: '4', title: 'Term and Renewal', text: 'The term is three (3) years from the effective date.' },
+    { num: '5', title: 'Termination', text: 'Either party may terminate on ninety (90) days notice.' },
+    { num: '10', title: 'Notices', text: 'Notices go to the addresses above.' }];
+  const got = make(supply, true)({});
+  assert.deepEqual(got.map(x => x.k), ['term', 'price', 'pay', 'notice', 'add']);
+  assert.equal(got[0].at, '§ 4', 'the term chip names its clause, never Termination');
+  assert.match(got[0].say, /three \(3\) years/, 'the sentence starts from the paper\'s own words');
+  assert.match(got[1].say, /KES 85,000,000/);
+  assert.match(got[2].say, /30 days/);
+  /* an NDA: no money, no payment days, no notices clause, no term heading → only Add a clause */
+  const nda = make([{ num: '1', title: 'Confidential Information', text: 'Each party keeps the other\'s information secret.' }], false)({});
+  assert.deepEqual(nda.map(x => x.k), ['add'], 'a chip never shows where its clause is not');
+  assert.match(fnOf(pd, 'pd2AmAskOpen'), /pd2AmkChipsOf\(c\)/, 'the pop-up draws them');
+});

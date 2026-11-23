@@ -3139,11 +3139,41 @@ function pd2AmxHtml(c){
    invented; a new clause is written only on a press. Nothing enters the amendment until a person approves it (Create waits
    for every change: pdAmendReady). "or choose the clauses yourself" keeps the signed paper's way in. */
 const PD2_AMK_CHIPS = ['term', 'price', 'pay', 'notice', 'add'];
+/* THE CHIPS COME FROM THIS PAPER (owner, 23 Nov 2026: "are these choices based on what jambo has seen from the contract or
+   just generic?" → "build it"): read off today's clauses by heading and words, no AI, nothing guessed — a chip shows only
+   where its clause is (price only where money passes), names its § and starts the sentence from the paper's own words;
+   "Add a clause" always stands */
+const PD2_AMK_HEAD = {
+  term: /\b(term|duration|renewal|commencement)\b/i,
+  price: /\b(price|pricing|fees?|charges?|consideration|remuneration|contract value|rent)\b/i,
+  notice: /\bnotices?\b/i,
+};
+const PD2_AMK_PAY_RE = /\b(?:within|net)\s+((?:[a-z-]+\s+)?\(?\d{1,3}\)?)\s*days?\b[^.]{0,40}?\b(?:receipt|invoice|of the date)/i;
+function pd2AmkChipsOf(c){
+  const T = _pdT; let cls = [];
+  try { cls = (typeof amendParentClauses === 'function') ? amendParentClauses(c) : []; } catch (_){ cls = []; }
+  const at = x => x && x.num ? '§ ' + String(x.num).replace(/\.$/, '') : '';
+  const head = x => String((x && (x.title || x.label)) || '').replace(/^\s*\d+(?:\.\d+)*\.?\s*/, '');
+  const find = re => cls.find(x => re.test(head(x)) && !(re === PD2_AMK_HEAD.term && /terminat/i.test(head(x))));
+  const say = (k, x, was) => T(was ? 'pd2_amk_f_' + k : 'pd2_amk_f_' + k + '0', { at: at(x) || T('pd2_amk_f_here'), was: was || '' });
+  const out = [];
+  const tm = find(PD2_AMK_HEAD.term);
+  if (tm){ const m = String(tm.text || '').match(/\b((?:[a-z-]+\s+)?\(\d{1,3}\)|\d{1,3})\s*(years?|months?)\b/i); out.push({ k: 'term', at: at(tm), say: say('term', tm, m ? m[0] : '') }); }
+  const money = (typeof isMonetary !== 'function') || isMonetary(c);
+  const pr = money ? (find(PD2_AMK_HEAD.price) || cls.find(x => /\b[A-Z]{3}\s?\d{1,3}(?:,\d{3})+/.test(String(x.text || '')))) : null;
+  if (pr){ const m = String(pr.text || '').match(/\b[A-Z]{3}\s?\d{1,3}(?:,\d{3})+(?:\.\d+)?/); out.push({ k: 'price', at: at(pr), say: say('price', pr, m ? m[0] : '') }); }
+  const py = cls.find(x => PD2_AMK_PAY_RE.test(String(x.text || '')));
+  if (py){ const m = String(py.text || '').match(PD2_AMK_PAY_RE); out.push({ k: 'pay', at: at(py), say: say('pay', py, m ? m[1].trim() + ' days' : '') }); }
+  const nt = find(PD2_AMK_HEAD.notice);
+  if (nt) out.push({ k: 'notice', at: at(nt), say: say('notice', nt, '') });
+  out.push({ k: 'add', at: '', say: T('pd2_amk_s_add') });
+  return out;
+}
 function pd2AmAskOpen(id, text, err){
   const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return false;
   if (typeof lgpOpen !== 'function') return pdOpenOnHome(id, 'amend');
   const E = _pdE, T = _pdT;
-  const chips = PD2_AMK_CHIPS.map(k => `<button type="button" class="lgp-chip" data-pd2-amk-chip="${k}">${E(T('pd2_amk_c_' + k))}</button>`).join('');
+  const chips = pd2AmkChipsOf(c).map(x => `<button type="button" class="lgp-chip" data-pd2-amk-chip="${x.k}" data-pd2-amk-say="${E(x.say)}">${E(x.at ? T('pd2_amk_c_at', { w: T('pd2_amk_c_' + x.k), at: x.at }) : T('pd2_amk_c_' + x.k))}</button>`).join('');
   const form = lgpOpen({ id: 'pd2-amk', title: T('pd2_amk_t'), sub: T('pd2_amk_sub', { name: c.name || '', ref: (typeof contractRef === 'function') ? contractRef(c) : c.id }),
     html: `<label class="pd2-amk-box"><span class="pd2-amk-sp" aria-hidden="true">✦</span><textarea class="lgp-in is-area" id="pd2-amk-q" rows="3" maxlength="2000" placeholder="${E(T('pd2_amk_ph'))}" aria-label="${E(T('pd2_amk_t'))}">${E(text || '')}</textarea></label><div class="lgp-chips pd2-amk-chips">${chips}</div>`,
     err: err || '', left: { label: T('pd2_amk_manual'), attr: 'data-pd2-amk-manual' },
@@ -3155,7 +3185,7 @@ function pd2AmAskOpen(id, text, err){
   form.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && e.target === q()){ e.preventDefault(); form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit', { cancelable: true })); } });
   form.addEventListener('click', e => { const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     const ch = t.closest('[data-pd2-amk-chip]');
-    if (ch){ e.preventDefault(); const box = q(); if (!box) return; const add = T('pd2_amk_s_' + ch.getAttribute('data-pd2-amk-chip'));
+    if (ch){ e.preventDefault(); const box = q(); if (!box) return; const add = ch.getAttribute('data-pd2-amk-say') || T('pd2_amk_s_' + ch.getAttribute('data-pd2-amk-chip'));
       box.value = String(box.value || '').trim() ? String(box.value).replace(/[\s,.]*$/, '') + ', ' + add : add;
       if (typeof fieldFocus === 'function') fieldFocus(box, { focusVisible: false }); else box.focus(); try { box.setSelectionRange(box.value.length, box.value.length); } catch (_){} return; }
     if (t.closest('[data-pd2-amk-manual]')){ e.preventDefault(); if (typeof closeModal === 'function') closeModal(); pdAmendOpen(id, { manual: true }); } });
@@ -11068,7 +11098,7 @@ Object.assign(window, { pdArriveNote, pdMidArriving, pdArriveEnd, pdMidFrom, pdM
 Object.assign(window, { pd2DutiesCardOf, pd2DutiesCardHtml, pd2StandsOpen, pd2StandsUp, pd2DealCardHtml, pd2DealPageHtml, pd2DealFaceHtml, pd2DutyAnswer, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2AmendCardOf, pd2FactRowLs, pd2FamCardHtml, pd2StepsHtml, pd2CardFiveHtml, pd2CardWho, pd2FormAskTakes, pd2FormAsk, pd2FormFaceHtml, pd2FormChipsPaint, pd2On, pd2Html, pd2HistFaceHtml, PD2_HK_TONE, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
 Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2NotesHiddenGet, pd2NotesHiddenSet, pd2NotesTgHtml, pd2NotesTgSolo, PD2_NOTES_HIDDEN_KEY, pd2RedAnswers, pd2RedStdAnswers, pd2RedBlocks, pd2RedGroupHtml, pd2RedChipsHtml, pd2RedAskHtml, pd2RedFloor, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
-  pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendReady, pd2AmNo, pd2AmSay, pd2AmAskOpen, pd2AmAskRun, pd2AmFoundOpen, pd2AmTake, pd2AmWriteNew, pd2AmxMarksHtml, pd2AmxSentenceHtml, pd2AmxReviewHtml, pd2AmxCheckHtml, pd2AmxTodayHtml, pd2AmRules, PD2_AMK_CHIPS, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
+  pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendReady, pd2AmNo, pd2AmSay, pd2AmAskOpen, pd2AmkChipsOf, PD2_AMK_HEAD, PD2_AMK_PAY_RE, pd2AmAskRun, pd2AmFoundOpen, pd2AmTake, pd2AmWriteNew, pd2AmxMarksHtml, pd2AmxSentenceHtml, pd2AmxReviewHtml, pd2AmxCheckHtml, pd2AmxTodayHtml, pd2AmRules, PD2_AMK_CHIPS, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
