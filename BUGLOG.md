@@ -22930,3 +22930,4 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 
 ## Noticed, not fixed (23 Nov 2026, Jambo the instructor)
 - On the Contracts place, with Jambo's conversation open, the links beside "‹ Overview" are cut off at 1440×780: "draft a new agreement" and "discover" run past the panel's edge (CA_CHIP_WALL_WORD's long words on the in-door row; measured the same on unmodified main 4c770d2).
+- (owner's screenshot, 23 Nov 2026) Jambo's how-to answers in a page's panel end with a stray closing quote mark (`."`), and an answer built from the Handbook is labelled "Read from Contracts and your book" (the page's source line, aiReadFrom) instead of the Handbook.
