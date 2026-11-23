@@ -190,7 +190,7 @@ const TEACH_WORDS = [
   { k: 'needs', ch: '0.3', n: { en: ['needs you', 'needs me'], sv: ['behöver dig', 'behöver mig'] },
     say: { en: 'Needs you is the list of work waiting on you: something to approve, answer, fill in or sign. The number on it always matches the list.', sv: 'Behöver dig är listan över arbete som väntar på dig: något att godkänna, besvara, fylla i eller signera. Siffran stämmer alltid med listan.' } },
   { k: 'oblig', ch: '5.1', n: { en: ['obligations', 'obligation', 'duties', 'duty'], sv: ['åtaganden', 'åtagande'] },
-    say: { en: 'Obligations are what each side promised to do under a contract, with their due dates. HaTi reminds the right person before each one is due.', sv: 'Åtaganden är det varje sida lovat att göra enligt ett avtal, med förfallodagar. HaTi påminner rätt person innan något förfaller.' } },
+    say: { en: 'Duties are what each side promised to do under a contract, with their due dates. HaTi reminds the right person before each one is due.', sv: 'Åtaganden är det varje sida lovat att göra enligt ett avtal, med förfallodagar. HaTi påminner rätt person innan något förfaller.' } },
   { k: 'ourpaper', ch: '2.4', n: { en: ['our paper', 'template', 'templates'], sv: ['vårt papper', 'mall', 'mallar'] },
     say: { en: "Our paper means your company's own templates. A new agreement started from one already has your wording.", sv: 'Vårt papper är företagets egna mallar. Ett nytt avtal som startas från en mall har redan er text.' } },
   { k: 'theirpaper', ch: '2.1', n: { en: ['their paper'], sv: ['deras papper'] },

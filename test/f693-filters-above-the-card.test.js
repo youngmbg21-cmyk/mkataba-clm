@@ -177,7 +177,7 @@ describe('f693 (4) exactly the five drawn tabs; the four old Quick filters under
   test('4b + Filter offers ONE "Quick filters" group: only the four\'s choices that hold rows, each counted', () => {
     const { win, doc } = quickWorld();
     assert.ok(J4(win.REG_CT_FILTERS).includes('view'), 'the catalogue names it');
-    assert.deepEqual(addOpts(doc, 'Quick filters'), ['Term already ended (1)', 'Overdue obligations (1)', 'Details to fill (1)'],
+    assert.deepEqual(addOpts(doc, 'Quick filters'), ['Term already ended (1)', 'Overdue duties (1)', 'Details to fill (1)'],
       'Auto-renewing soon holds nothing here, so it is not listed; the tabs\' views are not offered twice');
   });
   test('4c a choice narrows to its rows, stands as ONE chip with its ×, and All is lit counting the rows on screen', () => {
