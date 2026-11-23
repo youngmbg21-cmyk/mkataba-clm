@@ -237,7 +237,8 @@ describe('f748 (5) the chips lead with what is owed', () => {
     const L = J(ctx.caPaperChips());
     assert.ok(!L.some(x => x.k === 'signer'), 'the bottom chip is gone: the Signer row asks it');
     assert.ok(!L.some(x => x.k === 'sign'), 'nor is signing offered while nobody is named');
-    assert.deepEqual(L.map(x => x.k), ['answer', 'share', 'history', 'oblig']);
+    /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end"): a contract's duties open from the Dossier's Duties card alone; "obligations" left the chips */ 
+    assert.deepEqual(L.map(x => x.k), ['answer', 'share', 'history']);
     assert.equal(L[0].label, 'answer the redlines');
     assert.ok(L[0].owed && !L[1].owed, 'the first owed leads, at the strong weight');
     /* RE-POINTED 20 Oct 2026 (Chambers: a suggestion is a link, not a chip):

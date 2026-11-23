@@ -344,7 +344,7 @@ const SEED = async () => {
       b.click();
       await new Promise(r => setTimeout(r, 900));
       return { pressed: true, review, tab: (window.roomCurrentTab ? roomCurrentTab() : null),
-        desk: !!document.getElementById('obd-list') };
+        desk: !!(document.getElementById('obd-list') || document.getElementById('dtp')) };
     }, undefined, { pressed: false });
     check('5f pressing the obligations tile lands where it says — the found list while the tab is empty, else the tab',
       pressed.pressed && (pressed.review ? pressed.desk : pressed.tab === 'oblig'),

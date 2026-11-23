@@ -433,13 +433,19 @@ describe('f308 (7) — a template’s own promises are written, not read', () =>
       obligations: [], ...over };
     return { win, c };
   }
-  test('it derives the date from the contract’s own fields', () => {
+  /* RE-POINTED 23 Nov 2026 (owner: template duties "wait in To decide like Jambo's finds, so a person adds or skips each
+     one" — "Yes"): the template's promises are PROPOSED (templateDutyProposals), never minted onto the contract; the
+     reading below is the same, and nothing is written */
+  test('it derives the date from the contract’s own fields — as a proposal, nothing written', () => {
     const { win, c } = tplBench();
-    assert.equal(win.mintTemplateObligations(c), 1);
-    const o = c.obligations[0];
+    assert.equal(win.mintTemplateObligations(c), 0, 'nothing minted on its own');
+    assert.equal(c.obligations.length, 0);
+    const P = win.templateDutyProposals(c);
+    assert.equal(P.length, 1);
+    const o = P[0];
     assert.equal(o.due, '2026-02-15', '1 January plus the template’s own 45 days');
     assert.match(o.desc, /45 days/, 'and the number is in the words');
-    assert.equal(o.party, 'ours', 'we are the Buyer on this paper');
+    assert.equal(o.party, 'us', 'we are the Buyer on this paper');
     assert.equal(o.origin, 'template', 'and the reader can see where it came from');
   });
 
@@ -464,18 +470,20 @@ describe('f308 (7) — a template’s own promises are written, not read', () =>
 
   /* ONCE, NEVER TWICE — through the same duplicate test every other door asks,
      so a duty typed by hand and one written from the template cannot both land. */
-  test('it mints once however often it is asked', () => {
+  test('it is proposed until decided, and never again once added (RE-POINTED 23 Nov 2026)', () => {
     const { win, c } = tplBench();
-    assert.equal(win.mintTemplateObligations(c), 1);
-    assert.equal(win.mintTemplateObligations(c), 0);
-    assert.equal(win.mintTemplateObligations(c), 0);
-    assert.equal(c.obligations.length, 1);
+    assert.equal(win.templateDutyProposals(c).length, 1);
+    assert.equal(win.templateDutyProposals(c).length, 1, 'asking again writes nothing');
+    const o = win.templateDutyProposals(c)[0];
+    c.obligations.push({ id: 'ob_x', desc: o.desc, due: o.due, status: 'open', party: 'ours', origin: 'template' });
+    c.tplObMinted = ['pay'];
+    assert.equal(win.templateDutyProposals(c).length, 0, 'added: never proposed again');
   });
 
   test('a distribution agreement’s credit terms run the other way', () => {
     const { win, c } = tplBench({ template: 'DA', fields: { effDate: '2026-01-01', creditDays: '30' } });
-    assert.equal(win.mintTemplateObligations(c), 1);
-    assert.equal(c.obligations[0].party, 'theirs', 'they owe us');
+    assert.equal(win.templateDutyProposals(c).length, 1);
+    assert.equal(win.templateDutyProposals(c)[0].party, 'them', 'they owe us (RE-POINTED 23 Nov 2026: proposed, not minted)');
   });
 
   /* AND NO MODEL IS INVOLVED, which is the point of the whole phase. */

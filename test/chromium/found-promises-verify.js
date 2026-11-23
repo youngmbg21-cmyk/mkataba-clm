@@ -109,20 +109,19 @@ const SIGNED = 'MK-A1', LIVE = 'MK-A2';
 
     /* ---- 3 · Review opens the desk on the two, nothing ticked ---- */
     if (homeRow) await page.click(`${sel} button`);
-    const desk = await until(page, () => document.querySelectorAll('.obd-row').length >= 2, null, 8000);
-    const d = await page.evaluate(() => ({ rows: [...document.querySelectorAll('.obd-row')].map(r => r.querySelector('.obd-desc') && r.querySelector('.obd-desc').textContent),
-      ticked: [...document.querySelectorAll('.obd-row .obd-tick')].filter(x => x.checked).length }));
-    check('3 Review opens the review desk on the two found, nothing ticked', desk && d.rows.length === 2 && d.ticked === 0, d);
+    /* RE-POINTED 23 Nov 2026 ("Duties, end to end"): Review opens the contract's Duties page; each duty is skipped in the
+       sheet over the page, one at a time */
+    const desk = await until(page, () => document.querySelectorAll('#dtp tr.dtp-r').length >= 2, null, 8000);
+    const d = await page.evaluate(() => ({ rows: [...document.querySelectorAll('#dtp tr.dtp-r')].map(r => r.querySelector('.obd-desc') && r.querySelector('.obd-desc').textContent),
+      ticked: document.querySelectorAll('#dtp input[type=checkbox]').length }));
+    check('3 Review opens the Duties page on the two found, nothing to tick', desk && d.rows.length === 2 && d.ticked === 0, d);
     if (OUT) await page.screenshot({ path: path.join(OUT, 'found-promises-desk.png') });
 
-    /* ---- 4 · each decided at the desk: the row goes ---- */
+    /* ---- 4 · each decided in the sheet: the row goes ---- */
     let decided = false;
     if (desk){
-      await page.click('.obd-row[data-obd-sel="0"]');
-      if (await until(page, () => !!document.querySelector('[data-obd-skip]'), null, 4000)) await page.click('[data-obd-skip]');
-      await until(page, () => !!document.querySelector('.obd-row[data-obd-sel="0"].is-done'), null, 4000);
-      await page.click('.obd-row[data-obd-sel="1"]');
-      if (await until(page, () => !!document.querySelector('[data-obd-skip]'), null, 4000)) await page.click('[data-obd-skip]');
+      await page.click('[data-dtp-first]');
+      for (let k = 0; k < 2; k++){ if (await until(page, () => !!document.querySelector('.dts-ov #of-skip'), null, 4000)) await page.click('.dts-ov #of-skip'); }
       decided = await until(page, id => obReviewWaiting(getContract(id)).length === 0, SIGNED, 6000);
     }
     const gone = await page.evaluate(id => !needsYouOf(getContract(id)).some(x => x.kind === 'promises') && !ndRead().you.some(r => r.key === 'c:' + id + ':promises'), SIGNED);
