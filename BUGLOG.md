@@ -22953,3 +22953,8 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - FIXED 23 Nov 2026: f387 (5b) re-pointed to f1182's onOpen (dep: → apnPeekOpen).
 - 23 Nov 2026 — FIXED (owner's photos, MK-481): filling an amendment's spaces on the paper saved the dates on the record only; the wording kept its blank lines (signing refused for a placeholder), Save stayed grey on the next Fill, and the form still asked for a value and an effective date. f1194.
 - Noticed, not fixed (23 Nov 2026): test f754 "2a an owed blank amber, an answer not yet in the wording underlined" already fails on main.
+
+## Noticed, not fixed — 23 Nov 2026
+- f804 (3), (6) and its subtest "3a a word for one contract takes the held row…" are red on main before the old-layouts round (the list panel's ask / Brain naming); not touched.
+- f977 (6, 7) "the foot follows, one thing when empty — every HARMONY rule waits on the switch" is red on main before the old-layouts round; not touched.
+- Old-layouts round: below INS_NARROW_MIN (720 wide, short of the phone's 768 break) the pages still draw their old narrow layout, and Settings, Negotiations and Jambo's agents have no INS_PAGE_REPAINT entry, so crossing 720 does not redraw them.

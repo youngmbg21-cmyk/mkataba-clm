@@ -27,9 +27,11 @@ test('f1193 (2) both list painters mend once they have painted', () => {
 test('f1193 (3) the old whole-book panel is deleted; the wall says Loading a moment, then stands empty', () => {
   const PD = strip(fs.readFileSync(path.join(__dirname, '..', 'js/paperdesk.js'), 'utf8'));
   assert.ok(!/pdWallOverview/.test(PD), 'no trace of the old builder');
-  const W = fnBody(PD, 'pdWallHtml');
+  /* RE-POINTED 23 Nov 2026 (the sheet's old panel went the same way): the stand-in is one builder, pdWaitHtml */
+  assert.match(fnBody(PD, 'pdWallHtml'), /return pdWaitHtml\('pd-wall'\);/);
+  const W = fnBody(PD, 'pdWaitHtml');
   assert.match(W, /aria-busy="true"/);
-  assert.match(W, /now - _pdWallWait\.since > PD_WALL_WAIT_MS\) return '<div class="pd-wall"><\/div>'/, 'it stops promising');
+  assert.match(W, /now - _pdWallWait\.since > PD_WALL_WAIT_MS\) return `<div class="\$\{cls\}"><\/div>`/, 'it stops promising');
   const I = fs.readFileSync(path.join(__dirname, '..', 'js/i18n.js'), 'utf8');
   assert.ok(!/jov_ct_head_b|jov_ct_head_s|jov5_ct_all_signed/.test(I), 'its words left both books');
 });
