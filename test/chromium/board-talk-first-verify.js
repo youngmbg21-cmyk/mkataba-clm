@@ -93,7 +93,9 @@ const deliver = (answer, goto) => [{ type: 'tool_use', id: 'tu_t', name: 'delive
 
     console.log('\nL · the AI lands on one spot in Settings');
     ai.reset(); ai.script(deliver('Your language is in Settings, under You. Taking you there.', { task: 'lang', door: { kind: 'you', key: 'lang' } }));
-    await ask('where do i change the language hati speaks to me in');
+    /* RE-POINTED 23 Nov 2026 (Jambo the instructor, "HOW DO I …? IN STEPS, EVERY BOX": a "where do I …" the Handbook answers
+       is the instructor's, free, never the AI — teachHowOf): the same ask, not worded as a how-to, is still the chat's */
+    await ask('the language hati speaks to me in, i want it changed');
     const LG = await stayThenGo(() => state.view !== 'dashboard' ? { view: state.view, lang: !!document.querySelector('[data-st-card="lang"], #st-lang, [data-st-row="lang"], select[name="lang"], #st-you-lang') } : null), L = LG.moved;
     check('L1 one chat call, the answer stays with its link, and the reader is taken to Settings', chatCalls().length === 1 && LG.stayed && !!L && /team|settings/i.test(L.view), JSON.stringify(LG));
     await toBoard(); await toTalk();

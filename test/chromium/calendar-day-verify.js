@@ -138,73 +138,76 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => { setView('calendar'); calSetView('month'); });
     await page.waitForTimeout(1200);
 
-    /* ---- every day box is the door to its week ---- */
+    /* RE-POINTED 23 Nov 2026 (P-14, Calendar the Legora + Stripe way on all four tabs, owner: "Build P-14"): the Month
+       is one soft grid whose day boxes CHOOSE (data-cal-pick) — a press lights the day and the side panel says it,
+       every date of it a row with its own act (calLsDaySide → calLsAct, the existing doors); the dates in a box are
+       quiet marks, not doors. What the 11 Aug ask protected still stands and is asked here: a press on a busy day
+       lands somewhere that names EVERY contract of the day, each one its own door, nothing hidden; a day says which
+       day it is before you press it; the keyboard reaches it. The "opens its week" reading (11 Oct) is STALE. */
+    const onMonth = async () => {
+      await page.evaluate(() => { setView('calendar'); calSetView('month'); });
+      return page.waitForFunction(() => !!document.querySelector('.cal-page.is-ls #cal-grid .cls-d[data-cal-pick]'), null, { timeout: 10000 }).then(() => true, () => false);
+    };
+    const sideFor = iso => page.waitForFunction(k => { const s = document.querySelector('#cal-plan .cal-ls-side'); const d = document.querySelector(`#cal-grid [data-cal-pick="${k}"]`);
+      return !!s && !!d && d.classList.contains('is-chosen') && !!s.querySelector('.cls-big'); }, iso, { timeout: 8000 }).then(() => true, () => false);
+    await onMonth();
+    /* ---- every day box is a door: a button, a tab stop ---- */
     const cells = await page.evaluate(d => {
-      const at = iso => document.querySelector(`.cal-day[data-cal-week="${iso}"]`);
-      const all = Array.from(document.querySelectorAll('#cal-grid .cal-day:not(.is-mute)'));
+      const at = iso => document.querySelector(`#cal-grid .cls-d[data-cal-pick="${iso}"]`);
+      const all = Array.from(document.querySelectorAll('#cal-grid .cls-d:not(.is-out)'));
       const many = at(d.many);
       return {
-        /* Monday to Friday since round 16 (owner's yes, 17 Oct 2026): a month
-           has 20 to 23 working days, each one a door */
-        allDoors: all.length >= 20 && all.length <= 23 && all.every(el => el.hasAttribute('data-cal-week') && el.getAttribute('role') === 'button' && el.getAttribute('tabindex') === '0'),
+        allDoors: all.length >= 28 && all.length <= 31 && all.every(el => el.hasAttribute('data-cal-pick') && el.getAttribute('role') === 'gridcell' && el.getAttribute('tabindex') === '0'),
         n: all.length,
         title: many ? many.getAttribute('title') : '',
-        chips: many ? many.querySelectorAll('.cal-chip').length : 0,
-        more: many ? ((many.querySelector('.cal-more') || {}).textContent || '') : '',
+        day: new Date(d.many + 'T00:00:00').getDate(),
+        evs: many ? many.querySelectorAll('.cls-ev').length : 0,
+        more: many ? ((many.querySelector('.cls-more') || {}).textContent || '') : '',
         focusable: many ? many.querySelectorAll('button,[tabindex],a[href],input').length : -1,
-        chipCt: many ? Array.from(many.querySelectorAll('.cal-chip')).every(c => c.hasAttribute('data-cal-ct')) : false,
       };
     }, days);
-    check('every working day of the month is a door: a button, a tab stop', cells.allDoors, `${cells.n} days`);
-    check('and it says which door it is before you press it — its week', /week/i.test(cells.title || ''), cells.title);
+    check('every day of the month is a door: a cell of the month grid, a tab stop', cells.allDoors, `${cells.n} days`);
+    check('and it says which day it is before you press it', new RegExp('\\b' + cells.day + '\\b').test(cells.title || ''), cells.title);
     check('a busy day shows what fits and says how many more',
-      cells.chips >= 1 && cells.chips <= 2 && /\+\s*\d+/.test(cells.more), `${cells.chips} chip(s), ${JSON.stringify(cells.more)}`);
-    check('each chip is its own contract’s door, and no keyboard stop inside the box leads anywhere else',
-      cells.chipCt && cells.focusable === 0, `${cells.focusable} focusable inside`);
+      cells.evs >= 1 && cells.evs <= 2 && /\+\s*\d+/.test(cells.more), `${cells.evs} mark(s), ${JSON.stringify(cells.more)}`);
+    check('no keyboard stop inside the box leads anywhere else', cells.focusable === 0, `${cells.focusable} focusable inside`);
 
-    /* ---- pressing the day opens its week, with every contract of the day on it ---- */
-    await page.click(`#cal-grid .cal-day[data-cal-week="${days.many}"] .cal-dn`);
-    await page.waitForTimeout(900);
-    const wk = await page.evaluate(d => {
-      const day = new Date(d.many + 'T00:00:00');
-      const col = Array.from(document.querySelectorAll('#cal-week .cal-wk-h')).findIndex(h => h.querySelector('b') && Number(h.querySelector('b').textContent) === day.getDate());
-      const alls = Array.from(document.querySelectorAll('#cal-week .cal-wk-all'));
-      const cell = alls[col];
-      return { view: calView(), col,
-        ids: cell ? Array.from(cell.querySelectorAll('[data-sel]')).map(b => b.getAttribute('data-sel')).filter((v, i, a) => a.indexOf(v) === i).sort() : [] };
-    }, days);
-    check('pressing a day opens its week', wk.view === 'week' && wk.col > -1, `${wk.view} · column ${wk.col}`);
-    check('and that day’s All-day row names every contract it carried — nothing hidden',
-      JSON.stringify(wk.ids) === JSON.stringify(['CAL1', 'CAL2', 'CAL3']), wk.ids.join(', '));
-    await page.evaluate(d => document.querySelector(`#cal-week [data-sel="CAL2"]`).click(), days);
-    await page.waitForTimeout(1200);
-    check('each of them opens its own contract', await page.evaluate(() => state.activeId) === 'CAL2');
+    /* ---- pressing the day chooses it: the panel names every contract it carried, each its own door ---- */
+    await page.click(`#cal-grid .cls-d[data-cal-pick="${days.many}"] .cls-n`);
+    const chose = await sideFor(days.many);
+    const side = await page.evaluate(() => {
+      const s = document.querySelector('#cal-plan .cal-ls-side');
+      const acts = s ? Array.from(s.querySelectorAll('button[data-cal-ct]')) : [];
+      return { view: calView(), ids: acts.map(b => b.getAttribute('data-cal-ct')).filter((v, i, a) => a.indexOf(v) === i).sort() };
+    });
+    check('pressing a day chooses it and opens nothing', chose && side.view === 'month', `${side.view} · chosen ${chose}`);
+    check('and the panel names every contract the day carried — nothing hidden, each its own door',
+      JSON.stringify(side.ids) === JSON.stringify(['CAL1', 'CAL2', 'CAL3']), side.ids.join(', '));
+    if (side.ids.includes('CAL2')) await page.evaluate(() => document.querySelector('#cal-plan .cal-ls-side button[data-cal-ct="CAL2"]').click());
+    const opened2 = await page.waitForFunction(() => state.activeId === 'CAL2', null, { timeout: 8000 }).then(() => true, () => false);
+    check('each of them opens its own contract', opened2, String(await page.evaluate(() => state.activeId)));
 
-    /* ---- the keyboard opens the week too ---- */
-    await page.evaluate(() => { setView('calendar'); calSetView('month'); });
-    await page.waitForTimeout(900);
-    await page.focus(`#cal-grid .cal-day[data-cal-week="${days.one}"]`);
+    /* ---- the keyboard chooses a day too ---- */
+    await onMonth();
+    await page.focus(`#cal-grid .cls-d[data-cal-pick="${days.one}"]`);
     await page.keyboard.press('Enter');
-    await page.waitForTimeout(800);
-    check('Enter on a day opens its week as well', await page.evaluate(() => calView()) === 'week');
+    check('Enter on a day chooses it as well', await sideFor(days.one));
 
-    /* ---- a chip in the month opens its contract ---- */
-    await page.evaluate(() => calSetView('month'));
-    await page.waitForTimeout(800);
-    await page.click(`#cal-grid .cal-day[data-cal-week="${days.one}"] .cal-chip`);
-    await page.waitForTimeout(1200);
-    const single = await page.evaluate(() => ({ view: state.view, id: state.activeId }));
-    check('a contract chip in the month opens that contract', single.id === 'CAL4', `${single.view} · ${single.id}`);
+    /* ---- the one contract of a day opens from the panel ---- */
+    const one = await page.evaluate(() => Array.from(document.querySelectorAll('#cal-plan .cal-ls-side button[data-cal-ct]')).map(c => c.getAttribute('data-cal-ct')));
+    if (one.length) await page.evaluate(() => document.querySelector('#cal-plan .cal-ls-side button[data-cal-ct]').click());
+    const single = one.length ? await page.waitForFunction(() => state.activeId === 'CAL4', null, { timeout: 8000 }).then(() => true, () => false) : false;
+    check('a contract of a one-contract day opens that contract', single && one.every(x => x === 'CAL4'), one.join(', '));
 
-    /* THE COUNT IS OF CONTRACTS, NOT MARKS — two marks of one agreement, one door. */
-    await page.evaluate(() => { setView('calendar'); calSetView('month'); });
-    await page.waitForTimeout(900);
-    const twice = await page.evaluate(d => Array.from(document.querySelectorAll(`#cal-grid .cal-day[data-cal-week="${d.twice}"] .cal-chip`)).map(c => c.getAttribute('data-cal-ct')), days);
-    await page.click(`#cal-grid .cal-day[data-cal-week="${days.twice}"] .cal-chip`);
-    await page.waitForTimeout(1200);
-    check('a day marked twice by one contract: every chip is that one contract’s door',
-      twice.length >= 1 && twice.every(x => x === 'CAL5') && await page.evaluate(() => state.activeId) === 'CAL5', twice.join(', '));
-
+    /* THE COUNT IS OF CONTRACTS, NOT MARKS — two marks of one agreement, every door the one contract. */
+    await onMonth();
+    await page.click(`#cal-grid .cls-d[data-cal-pick="${days.twice}"] .cls-n`);
+    await sideFor(days.twice);
+    const twice = await page.evaluate(() => Array.from(document.querySelectorAll('#cal-plan .cal-ls-side button[data-cal-ct]')).map(c => c.getAttribute('data-cal-ct')));
+    if (twice.length) await page.evaluate(() => document.querySelector('#cal-plan .cal-ls-side button[data-cal-ct]').click());
+    const opened5 = twice.length ? await page.waitForFunction(() => state.activeId === 'CAL5', null, { timeout: 8000 }).then(() => true, () => false) : false;
+    check('a day marked twice by one contract: every door is that one contract’s',
+      twice.length >= 1 && twice.every(x => x === 'CAL5') && opened5, twice.join(', '));
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
     await browser.close();

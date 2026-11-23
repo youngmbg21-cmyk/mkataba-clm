@@ -35,7 +35,8 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   await page.waitForTimeout(500);
   const C = await page.evaluate(() => ({ amber: [...document.querySelectorAll('#pd-thread .doc-th-row')].filter(r => /stk-b-(need|look)/.test(r.className)).map(r => r.getAttribute('data-th-row')),
     tabN: Number(((document.querySelector('#ig-dock [data-pd-tab="doc"] .pd-tab-n') || {}).textContent || '').trim()) || (typeof stkNeedCount === 'function' ? stkNeedCount(pdContract()) : null),
-    listAmber: getComputedStyle(document.querySelector('#pd-thread .doc-th-row.stk-b-look .doc-th-bead') || document.body).backgroundColor }));
+    listAmber: getComputedStyle(document.querySelector('#pd-thread .doc-th-row.stk-b-look .doc-th-bead') || document.body).backgroundColor,
+    listNeed: getComputedStyle(document.querySelector('#pd-thread .doc-th-row.stk-b-need .doc-th-bead') || document.body).backgroundColor }));
   await page.evaluate(() => { const t = document.querySelector('#ig-dock [data-pd-tab="copilot"]'); if (t) t.click(); });
   await until(page, () => document.querySelectorAll('#pd2-notes .pd2-mg').length >= 6, null, 15000);
   await page.waitForTimeout(600);
@@ -50,8 +51,15 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
 
   check('1 every clause Clauses marks has its group, and only those carry a Clauses point; the needs-you lines are the tab\'s number',
     C.amber.length === 6 && withPoint.join() === C.amber.join() && needs === C.tabN && needs === 2, { amber: C.amber, withPoint, needs, tab: C.tabN });
+  /* RE-POINTED 23 Nov 2026 (Dossier L+S step 3, FOUR KINDS one colour each, pd2PointKind: need red · look amber, in the
+     notes and the list marks alike): every Clauses point wears ITS kind's colour of the Clauses list — Needs you the list's
+     need mark, Worth a look its look mark — and the two kinds are told apart */
   const pointDots = [...new Set(G.flatMap(g => g.items.filter(i => i.word).map(i => i.dot)))];
-  check('2 the same colour: every Clauses point is the amber of the Clauses list', pointDots.length === 1 && pointDots[0] === C.listAmber, { pointDots, list: C.listAmber });
+  const dotsOf = w => [...new Set(G.flatMap(g => g.items.filter(i => i.word === w).map(i => i.dot)))];
+  const needDots = dotsOf('Needs you'), lookDots = dotsOf('Worth a look');
+  check('2 the same colour: every Clauses point is its kind\'s colour in the Clauses list',
+    needDots.length === 1 && needDots[0] === C.listNeed && lookDots.length === 1 && lookDots[0] === C.listAmber && C.listNeed !== C.listAmber,
+    { pointDots, need: needDots, look: lookDots, listNeed: C.listNeed, listLook: C.listAmber });
   check('3 each point one line with its word; its clause\'s group has Open in Clauses', G.some(g => g.items.some(i => i.word)) && G.filter(g => g.items.some(i => i.word)).every(g => g.open && g.items.filter(i => i.word).every(i => /^(Needs you|Worth a look|Not in the contract)$/.test(i.word) && i.line.length > i.word.length + 4)),
     G.map(g => [g.h, g.open, g.items.map(i => i.word)]));
   const liab = G.find(g => /Liability/.test(g.h));

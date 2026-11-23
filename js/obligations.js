@@ -1572,7 +1572,8 @@ function openDutiesPage(c, found, o){
   const todo = () => list().filter(x => !dec(x));
   const skipped = () => list().filter(x => dec(x) === 'skipped');
   const recs = () => (Array.isArray(c.obligations) ? c.obligations : []).filter(Boolean);
-  if(!S.tab) S.tab = todo().length ? 'left' : 'on';
+  /* a kept To decide with nothing left to decide is not where a door lands: the page opens on what is on the contract */
+  if(!S.tab || (S.tab === 'left' && !o.tab && !todo().length)) S.tab = todo().length ? 'left' : 'on';
   /* WHAT JAMBO PROPOSED GOES ON THE RECORD (idea 22), once a sitting per wording: taken on Add duty, refused on Skip */
   const traces = new Map();
   try{

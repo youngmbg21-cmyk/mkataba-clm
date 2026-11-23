@@ -166,7 +166,8 @@ const PROBE = () => {
     const cal = await page.evaluate(() => {
       const g = document.getElementById('cal-grid');
       if (!g) return null;
-      const cells = Array.from(g.children);
+      /* RE-POINTED 23 Nov 2026 (P-14 month grid): a week is a row (role="row", display:contents), the cells sit inside it */
+      const cells = Array.from(g.querySelectorAll('[role="columnheader"], [role="gridcell"]')).length ? Array.from(g.querySelectorAll('[role="columnheader"], [role="gridcell"]')) : Array.from(g.children);
       const last = cells[cells.length - 1];
       const gr = g.getBoundingClientRect();
       // every cell fully inside the grid's own box, and the grid not scrolling
