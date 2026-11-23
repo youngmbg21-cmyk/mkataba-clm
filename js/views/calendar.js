@@ -3174,9 +3174,11 @@ function calLsCss(){ return `
   html.lg-new .cal-page.is-ls .cls-head{flex:none;display:flex;align-items:center;gap:12px;min-width:0}
   html.lg-new .cal-page.is-ls .cls-ttl{flex:none}
   html.lg-new .cal-page.is-ls .cls-sp{flex:1;min-width:0}
-  html.lg-new .cal-page.is-ls .cls-seg{display:inline-flex;flex:none;background:var(--surface-2);border-radius:999px;padding:3px}
-  html.lg-new .cal-page.is-ls .cls-seg a{padding:4px 12px;border-radius:999px;font:var(--w-label) 13px/1.4 var(--font-body);color:var(--color-quiet);cursor:pointer;white-space:nowrap;text-decoration:none}
-  html.lg-new .cal-page.is-ls .cls-seg a.on{background:var(--color-surface);color:var(--color-text);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  /* HaTi's own pills, flat (owner, 23 Nov 2026: "match hati and not 3d"): as Contracts' List · Wall — separate grey
+     pills, the chosen one filled ink; no track, no shadow, no underline */
+  html.lg-new .cal-page.is-ls .cls-seg{display:inline-flex;flex:none;gap:10px;align-self:center;padding:0;background:transparent;border:0}
+  html.lg-new .cal-page.is-ls .cls-seg a{display:inline-flex;align-items:center;height:var(--ctl-h-lg);padding:0 16px;border:0;border-radius:999px;background:var(--surface-2);font:var(--w-label) 13.5px/1 var(--font-body);color:var(--color-text);cursor:pointer;white-space:nowrap;text-decoration:none;box-shadow:none}
+  html.lg-new .cal-page.is-ls .cls-seg a.on{background:var(--color-text);color:var(--color-surface);border-bottom:0;box-shadow:none}
   html.lg-new .cal-page.is-ls .cls-new{flex:none;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);font:var(--w-label) 14px/1 var(--font-body);cursor:pointer;white-space:nowrap}
   html.lg-new .cal-page.is-ls .cal-acts{flex:none;position:relative}
   html.lg-new .cal-page.is-ls .cls-ask{flex:none;display:flex;align-items:center;gap:8px;margin-top:14px;padding:8px 0;border-bottom:1px solid var(--color-neutral-300);color:var(--color-neutral-400);cursor:text}
