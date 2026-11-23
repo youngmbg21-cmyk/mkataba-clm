@@ -259,7 +259,7 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
       await pause(500);
       after = await own.evaluate(() => { const c = getContract('MK-R9');
         const st = document.querySelector('#bs-strips > .bs-strip');
-        return { view: state.view, id: state.activeId, paper: (window.intel && intel.paper) ? String(intel.paper.id) : null, ptab: (typeof pdTab === 'function') ? pdTab() : null, tab: (typeof roomCurrentTab === 'function') ? roomCurrentTab() : null,
+        return { view: state.view, id: state.activeId, paper: (window.intel && intel.paper) ? String(intel.paper.id) : null, ptab: (typeof pdTab === 'function') ? pdTab() : null, duties: !!document.getElementById('dtp'), tab: (typeof roomCurrentTab === 'function') ? roomCurrentTab() : null,
           strip: st ? st.getAttribute('data-bs-id') + ':' + st.getAttribute('data-bs-on') : null,
           busy: !!(c && c._triaging), triageAt: c && c.triage ? c.triage.at : null,
           steps: c && c.triage ? Object.keys(c.triage.steps || {}) : [], briefAt: c && c._brief ? c._brief.at : null }; });
@@ -269,7 +269,9 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
        retired): the Overview's sheet, renewal card and all, is the contract
        strip's Details page on Home's Board — Decide lands there */
     /* RE-POINTED 22 Oct 2026 (the strip's Details page RETIRED): Decide opens the contract's Obligations tab beside its paper, where the renewal is decided now */
-    ok('3c [control] it lands on the contract\'s Obligations tab, where the renewal stands', !!after && after.view === 'dashboard' && after.paper === 'MK-R9' && after.ptab === 'oblig', JSON.stringify(after));
+    /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end": ONE DOOR — the old Obligations panel tab never shows; pdOpenOnHome
+       'oblig' opens the contract's Duties page in the middle, #dtp, beside its paper) */
+    ok('3c [control] it lands on the contract\'s paper with its Duties page up, where the renewal stands', !!after && after.view === 'dashboard' && after.paper === 'MK-R9' && after.duties, JSON.stringify(after));
     ok('3d and the whole arrival read runs again — all five readings, stamped after the press',
       !!after && !!after.triageAt && Date.parse(after.triageAt) >= pressAt - 1000 && !after.busy
         && ['risk', 'brief', 'playbook', 'oblig', 'fill'].every(k => after.steps.includes(k)),

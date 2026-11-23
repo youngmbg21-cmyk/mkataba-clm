@@ -184,32 +184,45 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     const selCid = sel ? sel.split('::')[0] : null;
     await page.focus('.obt-cols .obt-li.is-sel').catch(() => {});
     await page.keyboard.press('Enter');
-    await page.waitForFunction(k => !!k && !!document.querySelector(`#ig-dock .pd-ob.is-open[data-pd-ob-key="${k}"]`), sel, { timeout: 8000 }).catch(() => {});
-    const onHome = await page.evaluate(() => { const r = document.querySelector('#ig-dock .pd-ob.is-open[data-pd-ob-key]');
-      return { view: state.view, id: (window.intel && intel.paper) ? String(intel.paper.id) : null, row: r ? r.getAttribute('data-pd-ob-key') : null }; });
-    ok('1h Enter opens the duty on its contract\'s paper, the Obligations face, that row open', !!sel && onHome.view === 'dashboard'
-      && onHome.id === selCid && onHome.row === sel, { ...onHome, sel });
+    /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end": ONE DOOR — pdSetTab('oblig')/pdObOpen open the contract's
+       Duties page in the middle, #dtp; the hidden Obligations panel never shows): Enter lands on the contract's paper with
+       its Duties page up, on "On the contract", that duty's row chosen (data-dtp-rec = the duty's id, or its place) */
+    const recOf = k => { const r = String(k || '').split('::').slice(1).join('::'); return r.replace(/^#/, ''); };
+    await page.waitForFunction(r => !!r && !!document.querySelector(`#dtp tr.dtp-r.is-sel[data-dtp-rec="${r}"]`), recOf(sel), { timeout: 8000 }).catch(() => {});
+    const onHome = await page.evaluate(() => { const r = document.querySelector('#dtp tr.dtp-r.is-sel[data-dtp-rec]');
+      return { view: state.view, id: (window.intel && intel.paper) ? String(intel.paper.id) : null, row: r ? r.getAttribute('data-dtp-rec') : null }; });
+    ok('1h Enter opens the duty on its contract\'s paper, its Duties page, that row chosen', !!sel && onHome.view === 'dashboard'
+      && onHome.id === selCid && onHome.row === recOf(sel), { ...onHome, sel });
+    await page.evaluate(() => { try { closeModal(); } catch (e) {} });
+    await page.waitForFunction(() => !document.getElementById('dtp'), null, { timeout: 4000 }).catch(() => {});
 
-    /* ================= 2 · THE CONTRACT'S OBLIGATIONS TAB ================= */
+    /* ================= 2 · THE CONTRACT'S DUTIES ================= */
     /* RE-POINTED 16 Nov 2026 (#762): the contract's Obligations tab is its paper's Obligations face (pdObligHtml, THE
        FIVE PARTS): every duty a row (.pd-ob) in groups by when, Completed among them; a press on a row opens its acts */
+    /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end"): the old tab is the contract's Duties page (#dtp): "On the
+       contract" is ONE table, every duty a row (tr[data-dtp-rec]) under the page's title, a completed one among them
+       with its Done badge; a press on a row chooses it and the panel beside carries its acts, Remove among them (its
+       toast's Undo puts it back) */
     await page.evaluate(id => roomGoTab(getContract(id), 'oblig'), staged.c1);
-    await page.waitForFunction(id => window.intel && intel.paper && String(intel.paper.id) === id && !!document.querySelector('#ig-dock .pd-obm-tab .pd-ob[data-pd-ob-key]'), staged.c1, { timeout: 8000 }).catch(() => {});
+    await page.waitForFunction(id => window.intel && intel.paper && String(intel.paper.id) === id && !!document.querySelector('#dtp tr.dtp-r[data-dtp-rec]'), staged.c1, { timeout: 8000 }).catch(() => {});
     await page.screenshot({ path: path.join(OUT, '2-tab.png') });
-    const tab = await page.evaluate(() => ({ rows: document.querySelectorAll('#ig-dock .pd-obm-tab .pd-ob[data-pd-ob-key]').length,
-      title: ((document.querySelector('#ig-dock .pd-obm-tab .jov5-title, #ig-dock .pd-obm-tab .pd-obm-t') || {}).textContent || '').trim(),
-      done: document.querySelectorAll('#ig-dock .pd-obm-tab [data-pd-obg="done"] .pd-ob').length }));
-    ok('2a the tab lists every duty as a row under its headline', tab.rows >= 3 && !!tab.title, tab);
-    ok('2b what is completed is shown too, in its own group', tab.done === 1 && tab.rows === 4, tab);
+    const tab = await page.evaluate(() => { const done = i18t('dtp_st_done');
+      return { rows: document.querySelectorAll('#dtp tr.dtp-r[data-dtp-rec]').length,
+        title: ((document.querySelector('#dtp .obd-title') || {}).textContent || '').trim(),
+        done: [...document.querySelectorAll('#dtp tr.dtp-r[data-dtp-rec] .dtp-c-st')].filter(td => td.textContent.trim() === done).length }; });
+    ok('2a the page lists every duty as a row under its title', tab.rows >= 3 && !!tab.title, tab);
+    ok('2b what is completed is shown too, with its Done badge', tab.done === 1 && tab.rows === 4, tab);
     const before = await page.evaluate(id => getContract(id).obligations.length, staged.c1);
-    await page.click('#ig-dock .pd-obm-tab .pd-ob[data-pd-ob-key] .pd-ob-hd').catch(() => {}); await page.waitForTimeout(400);
-    const rm = await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .pd-ob.is-open .pd-ob-acts button')].find(x => /^Remove$/.test(x.textContent.trim())); if (b) { b.click(); return true; } return false; });
-    await page.waitForTimeout(500);
+    await page.click('#dtp tr.dtp-r[data-dtp-rec]').catch(() => {});
+    await page.waitForFunction(() => !!document.querySelector('[data-dtp-remove]'), null, { timeout: 4000 }).catch(() => {});
+    const rm = await page.evaluate(() => { const b = document.querySelector('[data-dtp-remove]'); if (b) { b.click(); return true; } return false; });
+    await page.waitForFunction(([id, n]) => getContract(id).obligations.length !== n, [staged.c1, before], { timeout: 4000 }).catch(() => {});
     const gone = await page.evaluate(id => getContract(id).obligations.length, staged.c1);
     const undone = await page.evaluate(() => { const b = [...document.querySelectorAll('#toast-root [data-toast-act]')].pop(); if (b) { b.click(); return true; } return false; });
-    await page.waitForTimeout(400);
+    await page.waitForFunction(([id, n]) => getContract(id).obligations.length === n, [staged.c1, before], { timeout: 4000 }).catch(() => {});
     const after = await page.evaluate(id => getContract(id).obligations.length, staged.c1);
     ok('2c Remove goes at once, and its Undo puts it back', rm && gone === before - 1 && undone && after === before, { rm, before, gone, undone, after });
+    await page.evaluate(() => { try { closeModal(); } catch (e) {} });
 
     /* ================= 3 · OUR STANDARDS ================= */
     /* RE-POINTED 17 Nov 2026 (the owner picked The Ladder): Our standards is no longer three lists in an Inspector but a
@@ -264,11 +277,15 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
 
     /* ================= 5 · BELOW THE WIDTH LINE, NOTHING CHANGED ================= */
     await page.setViewportSize({ width: 1000, height: 900 }); await page.waitForTimeout(900);
-    for (const [k, view, sel, classic] of [['5a', 'obligations', '.obw-ins', '.obw-page'], ['5b', 'intake', '.ik-ins', '#ik-new'],
+    /* RE-POINTED 23 Nov 2026 (owner, "No old layout for a signed-in reader": from INS_NARROW_MIN 720 up to INS_MIN_W a
+       narrow window keeps TODAY's page, Jambo's panel folded to its strip): at 1000 wide Obligations draws its We owe ·
+       They owe page beside the panel, never the classic .obw-page nor the old .obw-ins */
+    for (const [k, view, sel, classic, say] of [['5a', 'obligations', '.obw-ins, .obw-page', '.obt-cols, .obn-table', "draws today's page, not the classic one"],
+      ['5b', 'intake', '.ik-ins', '#ik-new', 'draws its classic page'],
       /* Our standards left this list 17 Nov 2026: the Ladder has one shape at every width */]) {
       await page.evaluate(v => setView(v), view); await page.waitForTimeout(1000);
       const r = await page.evaluate(([s, c]) => ({ ins: !!document.querySelector(s), classic: !!document.querySelector(c) }), [sel, classic]);
-      ok(`${k} [control] ${view} below the line draws its classic page`, !r.ins && r.classic, r);
+      ok(`${k} [control] ${view} below the line ${say}`, !r.ins && r.classic, r);
     }
     await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(1000);
     ok('5d and widening the window puts the Inspector back without a navigation',

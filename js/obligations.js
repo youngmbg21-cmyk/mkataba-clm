@@ -1683,8 +1683,6 @@ function openDutiesPage(c, found, o){
        #renewal-host, NEEDS_LAND): the one decision card, drawn into its holder once the panel stands; empty, it hides */
     const rnHost = Rn && (Rn.end || Rn.by) ? '<div id="renewal-host" class="empty:hidden pd-rn-decide" data-bare="1" data-compact="1"></div>' : '';
     if (rnHost && typeof window.renderRenewalSection === 'function') setTimeout(() => { try { if (document.querySelector('[data-obdf] #renewal-host')) window.renderRenewalSection(getContract(c.id) || c); } catch (_){} }, 0);
-    /* a renewal's Decide asked for every reading again (roomReadOnArrival): spent here, where it is decided */
-    if (rnHost && typeof window.roomReadAgainSpend === 'function') setTimeout(() => { try { window.roomReadAgainSpend(getContract(c.id) || c); } catch (_){} }, 0);
     const acts = may() ? `<div class="obdf-acts">${n ? `<button type="button" class="ui-btn ui-btn-primary" data-dtp-first>${E(i18t('dtp_first'))} ›</button>` : ''}<button type="button" class="ui-btn" data-dtp-own>+ ${E(i18t('dtp_own'))}</button></div>` : '';
     return `<div class="obdf" data-obdf><p class="obdf-eye">${E(i18t('dtp_title') + ' · ' + ref)}</p><h3 class="obdf-t">${E(head)}</h3>
       ${Rn && Rn.end ? fact(i18t('dtp_ends'), day(Rn.end)) : ''}${Rn && Rn.by ? fact(i18t('dtp_notice'), day(Rn.by)) : ''}
@@ -1766,6 +1764,9 @@ function openDutiesPage(c, found, o){
   if (mid && typeof pdMidOn === 'function' && document.querySelector('#modal-root [data-dlg-page]')) pdMidOn('obs:' + c.id);
   _obdNow = { c, face: faceHtml, press, input: q => { S.q = q; const el = document.getElementById('dtp-list'); if(el) el.innerHTML = tableHtml(); } };
   panel();
+  /* a renewal's Decide asked for every reading again (roomReadOnArrival): spent HERE, where its door lands now — the hidden
+     Obligations panel that spent it is gone, and an ask left unspent was spent by the next ordinary door instead */
+  if(typeof window.roomReadAgainSpend === 'function') setTimeout(() => { try { window.roomReadAgainSpend((typeof getContract === 'function' && getContract(c.id)) || c); } catch (_){} }, 0);
   if(o.decide != null) decide(Number(o.decide));
   else if(o.own) own(typeof o.own === 'object' ? o.own : null);
   return true;
