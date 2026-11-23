@@ -103,15 +103,18 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
     }, OFFSETS);
     await pause(900);
 
+    /* RE-POINTED 23 Nov 2026 (P-14, owner's "Build P-14": the Calendar the Legora + Stripe way on all four tabs): the
+       month is ONE soft seven-day frame (#cal-grid.cls-mg, day cells .cls-d, weekday heads .cls-mh) in the page's one
+       scroller (#cal-ls-body); the three layer switches are gone (chips narrow instead) and a press on a day CHOOSES it,
+       the panel saying that day. The owner's rule is unchanged and is what 1b/1c ask: the month keeps one height whatever
+       is pressed beside it — a day chosen, a chip, Copilot answering in his own panel. */
     const measure = () => page.evaluate(() => {
       const r = el => el ? +el.getBoundingClientRect().height.toFixed(2) : null;
-      /* the month sits in its own column beside the agenda since 9 Oct 2026
-         (SAP benchmark, batch 2), so it is found inside the stack, not on it */
-      const grid = document.querySelector('.cal-view .cal-grid');
+      const grid = document.querySelector('.cal-page.is-ls #cal-grid.cls-mg');
       const panel = document.getElementById('cal-plan');   /* Copilot, beside every view since 11 Oct 2026 */
       const pg = document.querySelector('.cal-page');
-      const body = document.querySelector('.cal-body');
-      return { grid: r(grid), panel: r(panel), day: r(document.querySelector('.cal-day')),
+      const body = document.getElementById('cal-ls-body');
+      return { grid: r(grid), panel: r(panel), day: r(document.querySelector('.cal-page.is-ls #cal-grid .cls-d')),
         page: r(pg), rows: document.querySelectorAll('#cal-plan .cal-prop').length,
         over: body ? Math.max(0, body.scrollHeight - body.clientHeight) : null };
     });
@@ -122,14 +125,19 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
 
     /* ===== 1. IT HOLDS STILL ===== */
     const seen = [{ at: 'at rest', ...base }];
-    for (const k of ['ct', 'me', 'cp']){
-      const there = await page.$(`[data-cal-lay="${k}"]`);
-      if (!there){ ok(`1 the ${k} layer is a control on the page`, false, 'not drawn'); continue; }
-      await there.click(); await pause(400); seen.push({ at: 'layer ' + k + ' off', ...(await measure()) });
-      await page.click(`[data-cal-lay="${k}"]`); await pause(400);
+    /* three days chosen, one after another (the press a reader makes on the month) */
+    const picks = await page.evaluate(() => [...document.querySelectorAll('.cal-page.is-ls #cal-grid .cls-d:not(.is-out)')].filter((_, i) => i % 9 === 4).slice(0, 3).map(d => d.getAttribute('data-cal-pick')));
+    if (picks.length < 3) ok('1 three days of the month to choose', false, JSON.stringify(picks));
+    for (const k of picks){
+      await page.click(`.cal-page.is-ls #cal-grid .cls-d[data-cal-pick="${k}"]`).catch(() => {});
+      await page.waitForFunction(k => !!document.querySelector(`.cal-page.is-ls #cal-grid .cls-d.is-chosen[data-cal-pick="${k}"]`), k, { timeout: 3000 }).catch(() => {});
+      seen.push({ at: 'day ' + k, ...(await measure()) });
     }
+    const allChip = await page.$('.cal-page.is-ls [data-cal-ls-show="all"]');
+    if (!allChip) ok('1 the All chip is a control on the page', false, 'not drawn');
+    else { await allChip.click(); await pause(400); seen.push({ at: 'All chip', ...(await measure()) }); }
     /* Copilot answers (the route stubbed in the page): eight suggestions, so
-       its conversation is longer than its panel. */
+       its conversation is longer than its panel. Asked in his box at the panel's foot, the month's own way in. */
     await page.evaluate(() => {
       const iso = o => { const t = new Date(); t.setDate(t.getDate() + o);
         return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; };
@@ -137,21 +145,17 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
       window.api = async (p, m, b) => p === 'ai/plan' ? { say: 'Eight blocks before your dates.', dropped: 0,
         blocks: Array.from({ length: 8 }, (_, i) => ({ date: iso(3 + i), start: '10:00', end: '11:00', title: 'Prepare CH-' + i, why: 'Its date is close and you are free.' })) } : real(p, m, b);
     });
-    const q = await page.$('[data-cal-plan-q="week"]');
-    if (q){ await q.click(); await pause(900); seen.push({ at: 'Jambo answered', ...(await measure()) }); }
-    else ok('1 Copilot\'s prepared question is on the page', false, 'not drawn');
-    for (const id of ['cal-prev', 'cal-next']){
-      const b = await page.$('#' + id);
-      if (!b){ ok(`1 #${id} is a control on the page`, false, 'not drawn'); continue; }
-      await b.click(); await pause(500);
-      seen.push({ at: '#' + id, ...(await measure()) });
-    }
+    const box = await page.$('#cal-plan-in');
+    if (box){ await box.fill('Plan my week'); await box.press('Enter');
+      await page.waitForFunction(() => document.querySelectorAll('#cal-plan .cal-prop').length >= 8, null, { timeout: 6000 }).catch(() => {});
+      seen.push({ at: 'Jambo answered', ...(await measure()) }); }
+    else ok('1 Copilot\'s box is on the page', false, 'not drawn');
     /* Horizon and back: a different card draws, and the month must come back
        the height it left at. */
     await page.evaluate(() => { if (typeof calSetView === 'function') calSetView('horizon'); });
     await pause(700);
     await page.evaluate(() => { if (typeof calSetView === 'function') calSetView('month'); });
-    await pause(900);
+    await page.waitForFunction(() => !!document.querySelector('.cal-page.is-ls #cal-grid .cls-d'), null, { timeout: 4000 }).catch(() => {});
     seen.push({ at: 'back from Horizon', ...(await measure()) });
 
     const counts = [...new Set(seen.map(s => s.rows))];
@@ -159,10 +163,10 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
       counts.length >= 2 && Math.max(...counts) === 8, 'cards seen: ' + counts.join(', '));
     const heights = [...new Set(seen.map(s => s.grid))];
     ok('1b the month card is the SAME height throughout',
-      heights.length === 1, seen.map(s => `${s.at}=${s.grid}`).join('  '));
+      heights.length === 1 && heights[0] != null, seen.map(s => `${s.at}=${s.grid}`).join('  '));
     const days = [...new Set(seen.map(s => s.day))];
     ok('1c and so is a single day box',
-      days.length === 1, seen.map(s => `${s.at}=${s.day}`).join('  '));
+      days.length === 1 && days[0] != null, seen.map(s => `${s.at}=${s.day}`).join('  '));
     const tallest = seen.filter(s => s.panel != null && s.grid != null && s.panel > s.page);
     ok('1d because Copilot is its own column, never taller than the page it sits on',
       tallest.length === 0, seen.map(s => `${s.at}=${s.panel}/${s.page}`).join('  '));
@@ -180,30 +184,27 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
     ok('2b a long answer is reachable inside Copilot\'s own panel',
       !!scroller && scroller.oy === 'auto' && scroller.can, JSON.stringify(scroller));
 
-    /* ===== 3. THE DATE BOXES ARE TILES ===== */
+    /* ===== 3. THE MONTH IS ONE SOFT FRAME =====
+       RE-POINTED 23 Nov 2026 (P-14, as drawn: "the month in one soft frame", reverses the tiles of 4 Oct 2026): the frame
+       wears a rounded corner and an edge really drawn, no grey backing behind its days, and the weekday heads stand over
+       their seven columns */
     const tile = await page.evaluate(() => {
-      const d = document.querySelector('.cal-day');
-      const wk = document.querySelector('.cal-weeks');
-      const dow = document.querySelector('.cal-dow');
-      if (!d || !wk || !dow) return null;
-      const cs = getComputedStyle(d), ws = getComputedStyle(wk), ds = getComputedStyle(dow);
-      const col = n => { const e = document.querySelectorAll('.cal-day')[n], l = dow.children[n];
-        return e && l ? +(e.getBoundingClientRect().left - l.getBoundingClientRect().left).toFixed(1) : null; };
-      return { radius: parseFloat(cs.borderTopLeftRadius),
-        card: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--radius-lg')), edge: cs.borderTopWidth + ' ' + cs.borderTopStyle,
-        wkBg: ws.backgroundColor, gap: ws.columnGap,
-        /* a line is painted only where its style draws one */
-        edgeDrawn: cs.borderTopStyle !== 'none' && parseFloat(cs.borderTopWidth) > 0,
-        align: [col(0), col(2), col(4)], dowGap: ds.columnGap };
+      const g = document.querySelector('.cal-page.is-ls #cal-grid.cls-mg');
+      const heads = [...document.querySelectorAll('.cal-page.is-ls #cal-grid .cls-mh')];
+      const cells = [...document.querySelectorAll('.cal-page.is-ls #cal-grid .cls-d')];
+      if (!g || heads.length !== 7 || cells.length < 7) return null;
+      const cs = getComputedStyle(g);
+      const col = n => +(cells[n].getBoundingClientRect().left - heads[n].getBoundingClientRect().left).toFixed(1);
+      return { radius: parseFloat(cs.borderTopLeftRadius), edge: cs.borderTopWidth + ' ' + cs.borderTopStyle + ' ' + cs.borderTopColor,
+        edgeDrawn: cs.borderTopStyle !== 'none' && parseFloat(cs.borderTopWidth) > 0 && !/rgba\([^)]*,\s*0\s*\)|transparent/.test(cs.borderTopColor),
+        clip: cs.overflow, gridBg: cs.backgroundColor, align: [col(0), col(2), col(4), col(6)] };
     });
-    /* RE-POINTED 21 Oct 2026 (Chambers): the card corner is --radius-lg, RESOLVED
-       (Chambers set it to 3px); the claim is "the card's corner, not square". */
-    ok('3a a day box has the card radius', !!tile && tile.radius > 0 && tile.radius === tile.card,
-      tile && tile.radius + ' (card ' + tile.card + ')');
+    ok('3a the month is one frame with a rounded corner that clips its days', !!tile && tile.radius > 0 && /hidden|clip/.test(tile.clip),
+      tile && tile.radius + ' · ' + tile.clip);
     ok('3b and an edge that is really drawn', !!tile && tile.edgeDrawn, tile && tile.edge);
-    ok('3c the grey backing behind the old grid lines is gone',
-      !!tile && /rgba\(0, 0, 0, 0\)|transparent/.test(tile.wkBg), tile && tile.wkBg);
-    ok('3d the day-name band still stands over its five columns (Monday to Friday since round 16)',
+    ok('3c no grey backing behind the days',
+      !!tile && /rgba\(0, 0, 0, 0\)|transparent|rgb\(255, 255, 255\)/.test(tile.gridBg), tile && tile.gridBg);
+    ok('3d the day-name band stands over its seven columns, Monday to Sunday',
       !!tile && tile.align.every(x => x != null && Math.abs(x) <= 1), tile && JSON.stringify(tile.align));
 
     /* ===== 4. MORE WEARS THE ROW'S OUTLINE ===== */
