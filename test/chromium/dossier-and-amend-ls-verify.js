@@ -69,6 +69,23 @@ const until = async (page, fn, arg, ms = 8000) => { try { await page.waitForFunc
     check('1f no Fill in on a signed paper — not in the facts, not in the notes beside the paper', !d1d.fill && !d1d.noteFill, JSON.stringify(d1d));
     check('1g the Family card draws the original (and its amendments when there are some)', d1d.fam);
     check('1h the life line stands where the record holds a start and an end, and only there', d1d.life === d1d.hasDays, JSON.stringify({ life: d1d.life, hasDays: d1d.hasDays }));
+    /* 1i–1k PLAN THE READ (the Dossier L+S, step 2; f1195): a paper not yet read carries the Plan tab between Dossier and
+       Clauses; it opens the one Legora sheet asking what you want; Cancel writes nothing */
+    const pid = await page.evaluate(() => { const c = state.contracts.find(x => x && x.status !== 'Signed' && typeof pd2PlanTabOn === 'function' && !x.hash && !(x.breakdown && x.breakdown.ok)); return c ? c.id : ''; });
+    if (pid){
+      await page.evaluate(id => roomHomeLand(id), pid);
+      const tabs = await until(page, () => !!document.querySelector('#ig-dock [data-pd-tab="plan"]'));
+      const order = await page.evaluate(() => [...document.querySelectorAll('#ig-dock [data-pd-tab]')].map(b => b.getAttribute('data-pd-tab')).join(','));
+      check('1i a paper not read yet carries the Plan tab, after the Dossier and before Clauses', tabs && /copilot,plan,doc/.test(order), order);
+      await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-pd-tab="plan"]'); if (b) b.click(); });
+      const op = await until(page, () => !!document.querySelector('#ig-dock [data-pd2-plan-open]'));
+      if (op) await page.evaluate(() => document.querySelector('#ig-dock [data-pd2-plan-open]').click());
+      const sheet = await until(page, () => !!document.querySelector('#pd2-plan-sheet #pd2-plan-ask'));
+      check('1j Plan the read opens the one sheet asking what you want', op && sheet);
+      if (sheet) await page.evaluate(() => { const x = document.querySelector('#pd2-plan-sheet [data-lgp-close]'); if (x) x.click(); });
+      const none = await page.evaluate(id => !(getContract(id) || {}).readPlan, pid);
+      check('1k closing the sheet writes no plan', none);
+    } else check('1i a paper not read yet is in the seeded book', false, 'none found');
 
     /* 2 — one full page */
     await page.click('#ig-dock .pd2-card [data-pd-ds-famact="create"]').catch(() => {});

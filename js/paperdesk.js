@@ -43,7 +43,7 @@
    chips). Its key stays 'copilot'; "Jambo" now names only the conversation
    the panel flips to (pdTalkKey, jamboTalkShows). */
 /* the Menu tab is retired into the dossier's All acts fold (owner, 20 Oct 2026) */
-const PD_TABS = ['copilot', 'doc', 'oblig', 'form'];
+const PD_TABS = ['copilot', 'plan', 'doc', 'oblig', 'form'];
 /* THE TABS DRAWN BESIDE A PAPER (owner, 23 Oct 2026: "after clauses, please bring the redline panel there";
    Obligations left the row for its line under Sign): Dossier · Clauses · Redlines. Redlines is not a tab
    of its own body — its press is the Redlines face's one door (pdRedOpen), and it is lit while that face
@@ -53,12 +53,12 @@ const PD_TAB_ALIAS = { deal: 'doc', hist: 'copilot', facts: 'copilot', menu: 'co
 /* THE ARTIFACT'S SYMBOLS, EXACTLY (owner, 10 Oct 2026: "use the Symbols that
    were in the artifact before not the ones in hati"): typed marks, each held
    to its text face (U+FE0E), never the left menu's drawings. */
-const PD_TAB_GLYPH = { red: '\u21C4', copilot: '\u2726', facts: '\u25A6', doc: '\u25A2', oblig: '\u2691', hist: '\u25F7', deal: '\u21C4', menu: '\u2630', findings: '\u25C7', guide: '\u25A4', day: '\u25D4' };
+const PD_TAB_GLYPH = { red: '\u21C4', copilot: '\u2726', facts: '\u25A6', doc: '\u25A2', oblig: '\u2691', hist: '\u25F7', deal: '\u21C4', menu: '\u2630', findings: '\u25C7', guide: '\u25A4', day: '\u25D4', plan: '\u2637' };
 const PD_TAB_ICON = PD_TAB_GLYPH;
 /* the room's own words for its tabs; Copilot and Deal have no room tab */
 /* THE DOCUMENT TAB IS CALLED CLAUSES (owner, 11 Oct 2026): Home's face is
    "Document" now, and this tab holds the clause list. */
-const PD_TAB_NAME = { red: 'pd_face_w_red', copilot: 'pd_tab_overview', facts: 'tab_overview', doc: 'pd_tab_clauses', oblig: 'tab_obligations', hist: 'tab_history', deal: 'pd_tab_deal', menu: 'pd_tab_menu', findings: 'pd_tab_findings', guide: 'pd_tab_guide', day: 'pd_tab_day' };
+const PD_TAB_NAME = { plan: 'pd_tab_plan', red: 'pd_face_w_red', copilot: 'pd_tab_overview', facts: 'tab_overview', doc: 'pd_tab_clauses', oblig: 'tab_obligations', hist: 'tab_history', deal: 'pd_tab_deal', menu: 'pd_tab_menu', findings: 'pd_tab_findings', guide: 'pd_tab_guide', day: 'pd_tab_day' };
 const PD_HIST_MAX = 40;          // trail rows drawn; the rest are counted and one press away
 let _pdTab = 'copilot';
 const _pdActs = new Map();       // act id -> function, refilled at every paint (resolved at press time)
@@ -154,6 +154,8 @@ function pdEmpty(title, ic){
    the duties recorded, Deal = their changes still open. Nothing is counted
    that the tab does not draw. */
 function pdTabCount(t, c){
+  /* THE PLAN TAB counts the things the plan looks for (the Dossier L+S, step 2) */
+  if (t === 'plan'){ const n = c ? pd2PlanItems(c).length : 0; return n ? { n, tone: 'quiet' } : null; }
   /* the Findings tab counts the hand-offs owed this reader, never the list */
   if (t === 'findings') return typeof igFindingsCount === 'function' ? igFindingsCount() : null;
   /* HIS TAB CARRIES THE COUNT while no paper is up (Jambo's note, 15 Oct
@@ -4089,7 +4091,7 @@ if (typeof document !== 'undefined'){
 }
 function _pdActsFocusBack(){ const a = document.getElementById('ig-actions'); if (a) a.focus({ preventScroll: true }); }
 
-const PD_BODY = { facts: pdFactsHtml, doc: pdDocHtml, oblig: pdObligHtml, menu: pdMenuHtml, form: c => pdFormHtml(c) };
+const PD_BODY = { plan: c => pd2PlanTabHtml(c), facts: pdFactsHtml, doc: pdDocHtml, oblig: pdObligHtml, menu: pdMenuHtml, form: c => pdFormHtml(c) };
 /* THE TITLE ROW: one button per tab, the lit one carrying its name. `brain`
    is the engine's own words (copilotBrainInfo), said on Copilot's hover. */
 /* JAMBO'S OWN TAB WEARS HIS FACE (owner, 12 Oct 2026: "replace where there
@@ -4134,7 +4136,7 @@ function pdHeadHtml(brain){
     return `<button type="button" role="tab" class="pd-tab${dayOn ? ' on' : ''}" data-pd-tab="day" aria-selected="${dayOn}" title="${_pdE(name)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${pdTabGlyphHtml('day')}</span></span><span class="pd-tab-w">${_pdE(name)}</span></button>`; })() : '';
   /* THE TABS STAY WHILE A FACE IS UP (ONE TRAIL, owner 19 Oct 2026): the
      face lives under Jambo's tab; Clauses and back to Jambo brings it back */
-  const tabs = (pdOnPaper() && !pdSheetOwns()) ? PD_TABS_SHOWN : ['copilot'].concat(fd ? ['findings'] : [], gd ? ['guide'] : []);
+  const tabs = (pdOnPaper() && !pdSheetOwns()) ? pd2TabsShownFor(pdContract()) : ['copilot'].concat(fd ? ['findings'] : [], gd ? ['guide'] : []);
   /* ONE WINDOW (pdSolo): his conversation is the panel, under its one tab "Jambo" — his sign and his name (owner,
      24 Oct 2026: "bring them back") — beside the map's own Findings and Guide where they stand */
   if (pdSolo()){
@@ -8682,6 +8684,160 @@ function pd2CardFiveHtml(c, cls, at, head, sayHtml, steps, act){
   return `<div class="pd2-card is-five${cls ? ' ' + cls : ''}" data-pd2-card>
     <p class="pd2-next" data-pd2-next>${E(head)}</p>${sayHtml}${steps}${act ? `<div class="pd2-card-act">${act}</div>` : ''}</div>`;
 }
+/* ---- PLAN THE READ (the Dossier L+S, step 2; owner, 23 Nov 2026: "adding a plan should be a pop up where you add a summary
+   of what you would like to get out of the contract in the read then jambo can then break that down to a plan"; "the read
+   should change to apply"; plans "Offer it again") ----
+   ONE RECORD `c.readPlan` { ask, items[], at, by, kind } — kept with the contract (persist), never travelling (the share
+   payload is an allow-list); written ONLY by Apply. The pop-up is the one Legora sheet (lgpOpen/lgpRepaint): the reader's
+   words → Break it down (POST /api/ai/readplan, a press, nothing written) → the list, each line theirs to change or clear →
+   Apply. A plan kept on another contract of the same kind is OFFERED (Use it fills the list), never applied by itself.
+   The PLAN TAB (Dossier · Plan · Clauses · Redlines) shows while a plan stands or nothing has been read yet: no plan → Plan
+   the read · Read without a plan; a plan → its lines and Read (the Clauses read, stkRun, which carries the plan to the
+   server; the reading line on the paper runs with it, pd2WalkWithRead); read → each line answered by the read's own point
+   (plan = its number), quoted from the paper and landing there (igQuoteGo), "Not in the contract" where the read said so,
+   "Nothing found" where it returned nothing — never guessed. A plan changed after the read says Read again. */
+const PD2_PLAN_MAX = 8;
+function pd2PlanItems(c){ const p = c && c.readPlan; return p && Array.isArray(p.items) ? p.items.map(t => String(t || '').trim()).filter(Boolean).slice(0, PD2_PLAN_MAX) : []; }
+function pd2PlanKind(c){
+  let k = ''; try { k = (typeof contractTypeRead === 'function') ? String(contractTypeRead(c) || '') : ''; } catch (_){ k = ''; }
+  return k || String((c && c.template) || '');
+}
+/* the plan kept on the last other contract of the same kind (light list: readPlan travels in it), or null */
+function pd2PlanOffer(c){
+  const kind = pd2PlanKind(c); if (!kind || typeof state === 'undefined' || !Array.isArray(state.contracts)) return null;
+  const L = state.contracts.filter(x => x && x.id !== c.id && pd2PlanItems(x).length && String((x.readPlan && x.readPlan.kind) || pd2PlanKind(x)) === kind)
+    .sort((a, b) => String((b.readPlan && b.readPlan.at) || '').localeCompare(String((a.readPlan && a.readPlan.at) || '')));
+  return L[0] ? { from: L[0], items: pd2PlanItems(L[0]), ask: String(L[0].readPlan.ask || '') } : null;
+}
+function pd2PlanMay(c){ return !!c && ((typeof window.mayActOn !== 'function') || window.mayActOn(c)) && !pd2Sealed(c); }
+/* the Plan tab stands beside a paper with a plan, or one not read yet that the reader may plan */
+function pd2PlanTabOn(c){
+  if (!c || !(typeof window.newLookOn === 'function' && newLookOn())) return false;
+  if (pd2PlanItems(c).length) return true;
+  const read = typeof window.stkOf === 'function' && !!window.stkOf(c);
+  return !read && pd2PlanMay(c);
+}
+function pd2TabsShownFor(c){ return pd2PlanTabOn(c) ? ['copilot', 'plan'].concat(PD_TABS_SHOWN.filter(t => t !== 'copilot')) : PD_TABS_SHOWN; }
+/* what the last read said of each line: the read's own point carrying its number; the plan it read with */
+function pd2PlanAnswers(c){
+  const b = (typeof window.stkOf === 'function') ? window.stkOf(c) : null, items = pd2PlanItems(c);
+  if (!b) return { read: false, items: items.map(t => ({ t })) };
+  const used = Array.isArray(b.plan) ? b.plan : [];
+  const same = used.length === items.length && used.every((t, i) => t === items[i]);
+  const pts = Array.isArray(b.points) ? b.points : [];
+  return { read: true, same, items: items.map((t, i) => { const at = same ? used.indexOf(t) + 1 : 0;
+    const p = at ? pts.find(x => x && Number(x.plan) === at) : null;
+    return { t, p, state: !same ? 'unread' : !p ? 'none' : p.missing ? 'missing' : 'found' }; }) };
+}
+function pd2PlanTabHtml(c){
+  const E = _pdE, T = _pdT, items = pd2PlanItems(c), may = pd2PlanMay(c);
+  const busy = typeof window._bdBusyFor === 'function' && window._bdBusyFor(c.id);
+  const readBtn = (word, prim) => may ? `<button type="button" class="ui-btn${prim ? ' ui-btn-primary' : ''} pd2-plan-go" data-pd2-plan-read${busy ? ' disabled' : ''}>${E(T(word))}</button>` : '';
+  if (!items.length){
+    const offer = may ? pd2PlanOffer(c) : null;
+    return `<div class="pd2-plan" data-pd2-plan="none"><p class="pd2-next">${E(T('pd2_plan_none_h'))}</p><p class="pd2-plan-sub">${E(T('pd2_plan_none_s'))}</p>
+      ${offer ? `<p class="pd2-plan-offer">${E(T('pd2_plan_offer', { ref: (typeof contractRef === 'function') ? contractRef(offer.from) : offer.from.id, n: offer.items.length }))}</p>` : ''}
+      ${may ? `<div class="pd2-plan-acts"><button type="button" class="ui-btn ui-btn-primary pd2-plan-go" data-pd2-plan-open>${E(T('pd2_plan_open'))}</button>${readBtn('pd2_plan_noplan', false).replace('ui-btn pd2-plan-go', 'ui-link pd2-plan-go')}</div>` : ''}</div>`;
+  }
+  const A = pd2PlanAnswers(c), ask = String((c.readPlan && c.readPlan.ask) || '');
+  const found = A.items.filter(x => x.state === 'found').length;
+  const head = !A.read || !A.same ? Tn2('pd2_plan_h', items.length) : T('pd2_plan_read_h', { f: found, n: items.length });
+  function Tn2(k, n){ return _pdTn(k, n, { n }); }
+  const badge = x => x.state === 'found' ? `<span class="pd2-badge is-green"><i aria-hidden="true"></i>${E(T('pd2_plan_found'))}</span>`
+    : x.state === 'missing' ? `<span class="pd2-badge is-amber"><i aria-hidden="true"></i>${E(T('pd2_plan_missing'))}</span>`
+    : x.state === 'none' ? `<span class="pd2-badge"><i aria-hidden="true"></i>${E(T('pd2_plan_nothing'))}</span>` : '';
+  const row = (x, i) => { const q = x.p && x.p.quote ? String(x.p.quote).replace(/\s+/g, ' ').trim() : '', cl = x.p && x.p.clause ? String(x.p.clause) : '';
+    const inner = `<span class="pd2-fd-n">${i + 1}</span><span class="pd2-fd-w"><b>${E(x.t)}</b>${x.p ? `<span class="pd2-plan-say">${E(String(x.p.title || ''))}</span>` : ''}${q ? `<span class="pd2-fd-q">${cl ? E((/^\d/.test(cl) ? '§ ' : '') + cl) + ' · ' : ''}“${E(q.length > 90 ? q.slice(0, 88).replace(/\s\S*$/, '') + '…' : q)}”</span>` : ''}</span>${badge(x)}`;
+    return q ? `<button type="button" class="pd2-fd-row" data-pd2-fd-quote="${E(q.slice(0, 80))}">${inner}</button>` : `<div class="pd2-fd-row">${inner}</div>`; };
+  const act = !may ? '' : (!A.read ? readBtn('pd2_plan_read', true) : !A.same ? readBtn('pd2_plan_read_again', true) : '')
+    + `<button type="button" class="ui-link" data-pd2-plan-open>${E(T('pd2_plan_change'))}</button>`;
+  const say = busy ? (typeof busyHtml === 'function' ? busyHtml(T('bd_reading')) : E(T('bd_reading'))) : (A.read && !A.same ? E(T('pd2_plan_changed')) : '');
+  return `<div class="pd2-plan" data-pd2-plan="${A.read ? (A.same ? 'read' : 'changed') : 'set'}"><p class="pd2-next">${E(head)}</p>${ask ? `<p class="pd2-plan-sub">${E(T('pd2_plan_you_asked', { ask }))}</p>` : ''}
+    <div class="pd2-plan-acts">${act}</div>${say ? `<p class="pd2-plan-sub">${say}</p>` : ''}
+    <section class="pd2-fd is-plan"><div class="pd2-fd-h"><b>${E(T('pd2_plan_list_h'))}</b><span>${E(_pdTn('pd2_plan_n', items.length, { n: items.length }))}</span></div>${A.items.map(row).join('')}</section>
+    <p class="pd2-plan-sub">${E(T('pd2_plan_also'))}</p></div>`;
+}
+/* THE POP-UP: two screens of one sheet, each redrawn in place (lgpRepaint) */
+let _pd2Plan = null;
+function pd2PlanSheet(){
+  const P = _pd2Plan, T = _pdT; if (!P) return null;
+  if (P.at === 'ask') return { id: 'pd2-plan-sheet', title: T('pd2_plan_open'), sub: T('pd2_plan_ask_s'), err: P.err || '',
+    rows: [{ k: T('pd2_plan_ask_k'), id: 'pd2-plan-ask', type: 'area', value: P.ask, ph: T('pd2_plan_ask_ph'), max: 1200,
+      quote: P.offer ? { cite: T('pd2_plan_offer_cite', { ref: (typeof contractRef === 'function') ? contractRef(P.offer.from) : P.offer.from.id }), words: P.offer.items.join(' · '), use: { label: T('pd2_plan_use'), attr: 'data-pd2-plan-reuse' } } : null }],
+    primary: { label: P.busy ? T('pd2_plan_busy') : T('pd2_plan_break'), attr: 'data-pd2-plan-break' + (P.busy ? ' disabled' : '') } };
+  const rows = P.items.map((t, i) => ({ k: String(i + 1), id: 'pd2-plan-i' + i, value: t, max: 160 }));
+  if (P.items.length < PD2_PLAN_MAX) rows.push({ k: '+', id: 'pd2-plan-i' + P.items.length, value: '', ph: T('pd2_plan_add_ph'), max: 160 });
+  return { id: 'pd2-plan-sheet', title: T('pd2_plan_yours'), sub: P.ask ? T('pd2_plan_you_asked', { ask: P.ask }) : '', jambo: P.byJambo ? T('pd2_plan_broke') : '',
+    rows, err: P.err || '', note: T('pd2_plan_clear_note'), back: { label: T('pd2_plan_back'), attr: 'data-pd2-plan-back' },
+    primary: { label: T('pd2_plan_apply'), attr: 'data-pd2-plan-apply' } };
+}
+function pd2PlanOpen(id){
+  const c = (typeof getContract === 'function' && getContract(id)) || null; if (!c) return false;
+  if (!pd2PlanMay(c)){ if (typeof toast === 'function') toast(_pdT('viewer_reads_only'), 'warn'); return false; }
+  const items = pd2PlanItems(c);
+  _pd2Plan = { id: String(c.id), at: items.length ? 'list' : 'ask', ask: String((c.readPlan && c.readPlan.ask) || ''), items: items.slice(), byJambo: false, busy: false, err: '',
+    offer: items.length ? null : pd2PlanOffer(c) };
+  lgpOpen(Object.assign(pd2PlanSheet(), { onClose: () => { _pd2Plan = null; } }));
+  return true;
+}
+function pd2PlanRedraw(){ const o = pd2PlanSheet(); if (o) lgpRepaint(o); }
+function pd2PlanReadList(form){
+  const P = _pd2Plan; if (!P || !form) return;
+  P.items = [...form.querySelectorAll('[id^="pd2-plan-i"]')].map(x => String(x.value || '').replace(/\s+/g, ' ').trim()).filter(Boolean).slice(0, PD2_PLAN_MAX);
+}
+async function pd2PlanBreak(form){
+  const P = _pd2Plan; if (!P || P.busy) return;
+  const box = form && form.querySelector('#pd2-plan-ask'); P.ask = String((box && box.value) || '').replace(/\s+/g, ' ').trim();
+  if (P.ask.length < 4){ P.err = _pdT('pd2_plan_ask_short'); pd2PlanRedraw(); return; }
+  const c = getContract(P.id); P.busy = true; P.err = ''; pd2PlanRedraw();
+  let r = null, err = '';
+  try { r = (typeof window.readPlanFetch === 'function') ? await window.readPlanFetch(P.ask, c ? pd2PlanKind(c) : '') : null; }
+  catch (e){ err = (e && e.message) || _pdT('pd2_plan_failed'); }
+  if (!_pd2Plan || _pd2Plan !== P) return;
+  P.busy = false;
+  if (!err && !(r && Array.isArray(r.items) && r.items.length)) err = (r && r.error) || _pdT('pd2_plan_failed');
+  if (err){ P.err = err; pd2PlanRedraw(); return; }
+  P.items = r.items.map(t => String(t)).slice(0, PD2_PLAN_MAX); P.byJambo = true; P.at = 'list';
+  if (r.truncated) P.err = _pdT('pd2_plan_cut');
+  pd2PlanRedraw();
+}
+function pd2PlanApply(form){
+  const P = _pd2Plan; if (!P) return; pd2PlanReadList(form);
+  const c = getContract(P.id); if (!c) return;
+  if (!P.items.length){ P.err = _pdT('pd2_plan_empty'); pd2PlanRedraw(); return; }
+  /* THE DESK READS, IT DOES NOT WRITE (f563): the plan's one writer is the read's own module (readPlanSet) */
+  if (!(typeof window.readPlanSet === 'function' && window.readPlanSet(c, { ask: P.ask, items: P.items.slice(), kind: pd2PlanKind(c) }))){ P.err = _pdT('pd2_plan_failed'); pd2PlanRedraw(); return; }
+  _pd2Plan = null;
+  if (typeof closeModal === 'function') closeModal();
+  if (typeof toast === 'function') toast(_pdT('pd2_plan_applied'), 'ok');
+  try { pdSetTab('plan'); if (typeof renderIntelDock === 'function') renderIntelDock(); } catch (_){}
+}
+/* READ WITH THE PLAN: the Clauses read (stkRun → bdRun carries c.readPlan); the Plan tab redraws when it lands */
+async function pd2PlanRead(id){
+  const c = getContract(id); if (!c || typeof window.stkRun !== 'function') return;
+  const p = window.stkRun(c);
+  try { pdGlanceRepaint(); } catch (_){}
+  try { if (_pdTab === 'plan' && typeof renderIntelDock === 'function') renderIntelDock(); } catch (_){}
+  await p;
+  try { if (_pdTab === 'plan' && typeof renderIntelDock === 'function') renderIntelDock(); else pdGlanceRepaint(); } catch (_){}
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._pd2PlanWired){ document._pd2PlanWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    const op = t.closest('[data-pd2-plan-open]');
+    if (op){ e.preventDefault(); const c = pdContract(); if (c) pd2PlanOpen(c.id); return; }
+    const rd = t.closest('[data-pd2-plan-read]');
+    if (rd){ e.preventDefault(); if (rd.disabled) return; const c = pdContract(); if (c) pd2PlanRead(c.id); return; }
+    const form = t.closest('#pd2-plan-sheet'); if (!form || !_pd2Plan) return;
+    if (t.closest('[data-pd2-plan-reuse]')){ e.preventDefault(); const P = _pd2Plan; if (!P.offer) return; P.items = P.offer.items.slice(); P.ask = P.ask || P.offer.ask; P.byJambo = false; P.at = 'list'; P.err = ''; pd2PlanRedraw(); return; }
+    if (t.closest('[data-pd2-plan-break]')){ e.preventDefault(); pd2PlanBreak(form); return; }
+    if (t.closest('[data-pd2-plan-back]')){ e.preventDefault(); pd2PlanReadList(form); _pd2Plan.at = 'ask'; _pd2Plan.err = ''; pd2PlanRedraw(); return; }
+    if (t.closest('[data-pd2-plan-apply]')){ e.preventDefault(); pd2PlanApply(form); }
+  });
+  /* Enter in the sheet presses its black button, never submits a page */
+  document.addEventListener('submit', e => { const f = e.target; if (!f || f.id !== 'pd2-plan-sheet' || !_pd2Plan) return; e.preventDefault();
+    if (_pd2Plan.at === 'ask') pd2PlanBreak(f); else pd2PlanApply(f); }, true);
+}
 /* ---- THE CARD ON A SIGNED AGREEMENT (Dossier L+S, the owner's "Build", 22 Nov 2026) ----
    Nothing owed and the agreement signed: the card says how it stands (Live · ends in N months, read from the end date),
    quotes where the paper says it, and its one black button is Amend — the family's own act (familyActRun 'create', the
@@ -8704,7 +8860,7 @@ function pd2LifeOf(c){
   if (!c) return null;
   const day = v => { const t = String(v || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : ''; };
   const sigs = (Array.isArray(c.signatures) ? c.signatures : []).map(x => day(x && (x.at || x.signedAt || x.date))).filter(Boolean).sort();
-  let from = day(c.signedAt) || sigs[sigs.length - 1] || '', word = 'pd2_life_signed';
+  let from = day(c.signedAt) || sigs[sigs.length - 1] || day(c._signedAt) || '', word = 'pd2_life_signed';
   if (!from){ from = day(c.fields && c.fields.effDate); word = 'pd2_life_started'; }
   const end = day((typeof effectiveExpiry === 'function') ? effectiveExpiry(c) : c.expiry);
   if (!from || !end || end <= from) return null;
@@ -8765,7 +8921,9 @@ function pd2CardHtml(c, D){
   const hasBrief = !!(R.brief || (c._brief && c._brief.data && c._brief.data.overview));
   /* nothing is said about Jambo calls (owner, 8 Nov 2026: "remove all information related to jambo calls") */
   const sayRead = R.read ? _pdT((c.triage && c.triage.agreed) ? 'pd2_read_agreed' : 'pd2_read_once') : _pdT('pd2_read_not');
-  const links = [readHere ? `<button type="button" class="ui-link" data-pd-ds-read>${E(_pdT('pd2_card_read_it'))}</button>` : '',
+  const planHere = !R.read && pd2PlanMay(c) && !pd2PlanItems(c).length && typeof window.newLookOn === 'function' && newLookOn();
+  const links = [planHere ? `<button type="button" class="ui-link" data-pd2-plan-open>${E(_pdT('pd2_plan_open'))}</button>` : '',
+    readHere ? `<button type="button" class="ui-link" data-pd-ds-read>${E(_pdT('pd2_card_read_it'))}</button>` : '',
     `<button type="button" class="ui-link" data-pd2-wk-open>${E(_pdT('pd2_wk_watch'))}</button>`,
     hasBrief ? `<button type="button" class="ui-link" data-pd-gl-brief>${E(_pdT('pd2_brief'))}</button>` : ''].filter(Boolean).join('<span class="pd2-card-sep" aria-hidden="true">|</span>');
   const foot = `<div class="pd2-card-foot"><p class="pd2-read">${E(sayRead)}</p><p class="pd2-card-links">${links}</p></div>`;
@@ -11194,7 +11352,7 @@ function pdMidVeil(on){
 }
 Object.assign(window, { pdArriveNote, pdMidArriving, pdArriveEnd, pdMidFrom, pdMidVeil, CV_LAND_MS });
 Object.assign(window, { pd2DutiesCardOf, pd2DutiesCardHtml, pd2StandsOpen, pd2StandsUp, pd2DealCardHtml, pd2DealPageHtml, pd2DealFaceHtml, pd2DutyAnswer, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
-Object.assign(window, { pd2Sealed, pd2AmendCardOf, pd2FactRowLs, pd2FamCardHtml, pd2StepsHtml, pd2CardFiveHtml, pd2CardWho, pd2FormAskTakes, pd2FormAsk, pd2FormFaceHtml, pd2FormChipsPaint, pd2On, pd2Html, pd2HistFaceHtml, PD2_HK_TONE, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
+Object.assign(window, { pd2PlanOpen, pd2PlanItems, pd2PlanTabOn, pd2PlanAnswers, pd2Sealed, pd2AmendCardOf, pd2FactRowLs, pd2FamCardHtml, pd2StepsHtml, pd2CardFiveHtml, pd2CardWho, pd2FormAskTakes, pd2FormAsk, pd2FormFaceHtml, pd2FormChipsPaint, pd2On, pd2Html, pd2HistFaceHtml, PD2_HK_TONE, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
 Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2NotesHiddenGet, pd2NotesHiddenSet, pd2NotesTgHtml, pd2NotesTgSolo, PD2_NOTES_HIDDEN_KEY, pd2RedAnswers, pd2RedStdAnswers, pd2RedBlocks, pd2RedGroupHtml, pd2RedChipsHtml, pd2RedAskHtml, pd2RedFloor, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendReady, pd2AmNo, pd2AmSay, pd2AmAskOpen, pd2AmkChipsOf, PD2_AMK_HEAD, PD2_AMK_PAY_RE, pd2AmAskRun, pd2AmFoundOpen, pd2AmTake, pd2AmWriteNew, pd2AmxMarksHtml, pd2AmxSentenceHtml, pd2AmxReviewHtml, pd2AmxCheckHtml, pd2AmxTodayHtml, pd2AmRules, PD2_AMK_CHIPS, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,

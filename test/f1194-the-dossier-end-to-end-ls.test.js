@@ -56,7 +56,7 @@ describe('f1194 (1) a signed paper\'s blank is a fact, never work', () => {
   test('the Clauses tab\'s Fill it in (point and preamble) is grey with the reason on a signed paper', () => {
     const B = R('js/views/breakdown.js');
     assert.equal((B.match(/window\.pd2Sealed\(c\)\) \? (` disabled aria-disabled="true" title="\$\{_bdE\(i18t\('pd2_n_blank_signed_w'\)\)\}"`|i18t\('pd2_n_blank_signed_w'\))/g) || []).length, 2);
-    assert.match(PD, /Object\.assign\(window, \{ pd2Sealed,/);
+    assert.match(PD, /Object\.assign\(window, \{[^}]*\bpd2Sealed,/);
   });
 });
 
