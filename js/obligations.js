@@ -530,8 +530,10 @@ async function extractObligations(c,opts={}){
     /* THE TOAST IS WHAT IS SUPPRESSED, never the fallback: the loud path
        falls through to the heuristic below and so does this one, or a quiet
        caller would be handed "unavailable" where a person gets a real list. */
-    catch(e){ if(!opts.quiet) toast(i18t('ob_scan_unavailable'),'warn'); }
+    catch(e){ if(opts.strict) throw e; if(!opts.quiet) toast(i18t('ob_scan_unavailable'),'warn'); }
   }
+  /* A READ-AGAIN NEVER SWAPS JAMBO'S READING FOR THE BASIC SCAN (dutiesReadAgain): it says why instead */
+  if(opts.strict) throw new Error(i18t('dtp_again_nokey'));
   return heuristicObligations(text, c);
 }
 
@@ -1515,6 +1517,39 @@ function dutiesOpen(c, o){
   if(!live) return false;
   return openDutiesPage(live, dutiesFound(live), o || {});
 }
+/* READ THE DUTIES AGAIN (owner, 23 Nov 2026: "build both"): ONE Jambo reading of the duties alone, on a press, for a
+   contract read before Jambo knew the paper's short names. It replaces only the stored list of found duties
+   (c.triage.steps.oblig); what is on the contract and every Add / Skip already made stay. A failure is SAID and the
+   old list kept; it never falls back to the basic scan. */
+let _dtpReading = '';
+async function dutiesReadAgain(c){
+  if(!c || _dtpReading === String(c.id)) return false;
+  if(typeof window.mayActOn === 'function' && !window.mayActOn(c)) return false;
+  _dtpReading = String(c.id); _dtpRepaint();
+  try{
+    if(c._light && !c._loaded && typeof ensureFull === 'function') await ensureFull(c);
+    const live = (typeof getContract === 'function' && getContract(c.id)) || c;
+    const o = { quiet: true, strict: true };
+    const found = await extractObligations(live, o);
+    if(o.error) throw new Error(o.error);
+    live.triage = (live.triage && typeof live.triage === 'object') ? live.triage : { at: new Date().toISOString(), steps: {} };
+    live.triage.steps = live.triage.steps || {};
+    live.triage.steps.oblig = { ok: true, found: Array.isArray(found) ? found : [], cut: o.notice || '', again: new Date().toISOString() };
+    try { const txt = obligationsText(live); if(txt && txt.length >= OBLIG_TEXT_MIN) obligationsReadStamp(live, txt); } catch (_){}
+    if(typeof logAudit === 'function') logAudit(live, 'Obligation', `Duties read again: ${live.triage.steps.oblig.found.length} found`);
+    persist(live); obligationSurfacesChanged();
+    _dtpReading = '';
+    if(typeof toast === 'function') toast(i18tn('dtp_again_done', live.triage.steps.oblig.found.length, { n: live.triage.steps.oblig.found.length }), 'ok');
+    openDutiesPage(live, null, { tab: 'left' });
+    return true;
+  }catch(e){
+    _dtpReading = ''; _dtpRepaint();
+    if(typeof toast === 'function') toast(i18t('dtp_again_failed', { why: String((e && e.message) || '').slice(0, 160) || i18t('dtp_again_nokey') }), 'err');
+    return false;
+  }
+}
+function _dtpRepaint(){ try { const b = document.querySelector('#dtp [data-dtp-again]'); if(!b) return; const on = !!_dtpReading;
+  b.disabled = on; if(typeof busySet === 'function') busySet(b, on); } catch (_){} }
 function openDutiesPage(c, found, o){
   o = (o && typeof o === 'object') ? o : {};
   const E = _obEsc;
@@ -1604,7 +1639,7 @@ function openDutiesPage(c, found, o){
       <div class="obd-top is-ls"><h3 class="obd-title">${E(i18t('dtp_title'))}</h3><p class="obd-sub">${E(i18t('dtp_sub'))}</p>
         <div class="obd-tabs" role="tablist" data-dtp-part="tabs">${tabsHtml()}</div></div>
       <div class="obd-tools"><input type="search" id="dtp-q" class="obd-find" placeholder="${E(i18t('dtp_find_ph'))}" aria-label="${E(i18t('dtp_find_ph'))}" value="${E(S.q)}"/><span class="obd-chips" data-dtp-part="chips">${chipsHtml()}</span>
-        <span class="obd-ready">${may() ? `<button type="button" class="ui-btn ui-btn-sm" data-dtp-own>+ ${E(i18t('dtp_own'))}</button>` : ''}</span></div>
+        <span class="obd-ready">${may() ? `<button type="button" class="ui-link" data-dtp-again${_dtpReading === S.cid ? ' disabled' : ''}>${E(i18t('dtp_again'))}</button><button type="button" class="ui-btn ui-btn-sm" data-dtp-own>+ ${E(i18t('dtp_own'))}</button>` : ''}</span></div>
       <div class="obd-list is-ls scroll-thin" id="dtp-list" data-dtp-part="list">${tableHtml()}</div>
       <div class="obd-foot" data-dtp-part="foot">${footHtml()}</div></div>`;
   /* THE PANEL: the chosen duty on the contract, else the contract's dates and its life */
@@ -1702,6 +1737,7 @@ function openDutiesPage(c, found, o){
     if((b = at('[data-dtp-decide]'))){ ev.preventDefault(); decide(Number(b.getAttribute('data-dtp-decide'))); return; }
     if(at('[data-dtp-first]')){ ev.preventDefault(); S.tab = 'left'; paint(); const j = L().findIndex(y => !dec(y)); if(j >= 0) decide(j); return; }
     if(at('[data-dtp-own]')){ ev.preventDefault(); own(null); return; }
+    if((b = at('[data-dtp-again]'))){ ev.preventDefault(); if(!b.disabled && may()) dutiesReadAgain(c); return; }
     if((b = at('[data-dtp-back]'))){ const x = L()[Number(b.getAttribute('data-dtp-back'))]; if(x && may()){ obReviewMark(c, x, null); persist(c); obligationSurfacesChanged(); } paint(); return; }
     if((b = at('[data-dtp-rec]'))){ S.rec = b.getAttribute('data-dtp-rec'); paint(); return; }
     if(at('[data-dtp-letgo]')){ S.rec = ''; paint(); return; }
@@ -6427,7 +6463,7 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
     obOpenContract(cid, go.getAttribute('data-key'));
   }, true);
 }
-Object.assign(window,{dutyDateHint,dutyReadOf,dutyPastSay,dutyTopicOf,dutyWatchOf,dutyProofSay,obdFaceFor,obdFaceHtml,dutiesOpen,dutiesGo,dutiesFound,openDutiesPage,contractRenewsItself,obligationReminderDay,obPanelFive,obDecisionFive, obligationIsDoc,obligationDocUntil,obligationDocFile,obligationDocState,
+Object.assign(window,{dutyDateHint,dutyReadOf,dutyPastSay,dutyTopicOf,dutyWatchOf,dutyProofSay,dutiesReadAgain,obdFaceFor,obdFaceHtml,dutiesOpen,dutiesGo,dutiesFound,openDutiesPage,contractRenewsItself,obligationReminderDay,obPanelFive,obDecisionFive, obligationIsDoc,obligationDocUntil,obligationDocFile,obligationDocState,
   OB_DOC_SOON_DAYS,contractDocuments,contractDocsLapsed,contractDocsMissing,
   obligationAfter,obligationPrev,obligationBlocked,obligationChain,obligationChains,obligationStepNo,obligationRoll,
   obligationAlreadyOn,obligationRequireDoc,obFindBusy,obFinding,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
