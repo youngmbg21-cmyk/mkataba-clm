@@ -62,7 +62,6 @@ const PAGES = [
   ['templates', "setView('templates')", 'list'],
   ['mynotes', "setView('mynotes')", 'list'],
   ['reads', "setView('reads')", 'list'],
-  ['pulse', "setView('pulse')", 'list'],   /* THE PULSE BOARD (29 Oct 2026): a new page, nothing was on its panel before */
   ['handbook', "setView('handbook')", 'list'],
   ['migration', "setView('migration')", 'mig'],
   ['settings-you', "setView('team')", 'st'],

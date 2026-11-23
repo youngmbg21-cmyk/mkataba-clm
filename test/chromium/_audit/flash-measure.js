@@ -115,7 +115,7 @@ const FILM = async ([label, how, arg]) => {
     await p.evaluate(async () => { try { await stPrefSet('newLook', true); } catch (_){ } try { newLookApply(); } catch (_){ } });
     await p.waitForTimeout(1500);
     say(`\n================ ${W}x${H} · ${BOOK + 1} contracts ================`);
-    const PLACES = ['contracts', 'negotiations', 'approvals', 'oblig', 'requests', 'parties', 'people', 'ourpaper', 'import', 'mynotes', 'reads', 'pulse', 'calendar', 'explorer', 'handbook', 'house', 'settings'];
+    const PLACES = ['contracts', 'negotiations', 'approvals', 'oblig', 'requests', 'parties', 'people', 'ourpaper', 'import', 'mynotes', 'reads', 'calendar', 'explorer', 'handbook', 'house', 'settings'];
     const moves = [];
     for (const k of PLACES){ moves.push(['board -> ' + k, 'place', k]); moves.push([k + ' -> board', 'place', 'board']); }
     /* page to page without the Board between */

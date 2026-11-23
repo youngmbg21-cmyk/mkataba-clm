@@ -68,7 +68,7 @@ test('f964 (4) the map is a page: opened, kept, guided, typed, in the book and t
   assert.match(APP, /else if\(view==='flowmap'\) renderFlowMap\(\);/);
   assert.match(APP, /flowmap:\['fmPlace','fmPlacePut'\]/, 'a refresh lands at the same spot');
   assert.match(APP, /guideRowHtml\('flowmap',here,'is-foot'\)/, 'the Guide row');
-  assert.match(CORE, /'pulse','flowmap'/, 'setView knows it at start');
+  assert.match(CORE, /'handbook','flowmap'/, 'setView knows it at start');
   assert.match(CA, /\{ k: 'flowmap', w: \['flowmap', 'flow map'/, 'its words');
   assert.match(CA, /'handbook', 'flowmap', 'house'/, 'its name typed moves there free');
   assert.match(CA, /flowmap: \(\) => setView\('flowmap'\)/, 'Jambo\'s one mover opens it');

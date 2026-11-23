@@ -35,7 +35,7 @@ function constSrc(name){
 }
 const NAMES = { board:'Board', contracts:'Contracts', requests:'Requests', import:'Import', ourpaper:'Our paper', standards:'Playbook', draft:'New agreement',
   negotiations:'Negotiations', approvals:'Approvals & signing', oblig:'Obligations', calendar:'Calendar', parties:'Parties',
-  people:'People', mynotes:'My notes', explorer:'Explorer', reads:'Discover', alertme:'Alerts', pulse:'Pulse board', house:'Jambo’s agents', flowmap:'Flow map',
+  people:'People', mynotes:'My notes', explorer:'Explorer', reads:'Discover', alertme:'Alerts', house:'Jambo’s agents', flowmap:'Flow map',
   handbook:'Handbook', settings:'Settings & rules' };
 function world(opts = {}){
   const dom = new JSDOM('<!doctype html><html><body><header id="top-header"><button id="dk-nav" type="button"></button></header><main id="page"></main></body></html>',
@@ -207,7 +207,7 @@ test('f1097 (8) the emoji book holds every emoji the launchpad draws (owner, 21 
   const ST = R('js/views/settings.js'), i = ST.indexOf('const SDD_EMOJI='); assert.ok(i >= 0, 'the emoji book is there');
   const book = new Function('return ' + ST.slice(i + 'const SDD_EMOJI='.length, ST.indexOf('};', i) + 1))();
   const E = plain(world().__api.LP_EMOJI);
-  assert.deepEqual(Object.keys(book.page).sort(), ['calendar', 'contracts', 'draft', 'negotiations', 'oblig', 'pulse', 'reads'], 'the seven pages the book had nothing for');
+  assert.deepEqual(Object.keys(book.page).sort(), ['calendar', 'contracts', 'draft', 'negotiations', 'oblig', 'reads'], 'the pages the book had nothing for (the Pulse board deleted 23 Nov 2026)');
   for (const [k, e] of Object.entries(book.page)) assert.equal(E[k], e, k + ': the launchpad draws the book\'s emoji');
   const all = new Set([...Object.values(book.area), ...Object.values(book.row), ...Object.values(book.page)]);
   for (const [k, e] of Object.entries(E)) assert.ok(all.has(e), k + ' ' + e + ' is in the emoji book');

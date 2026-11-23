@@ -16,7 +16,7 @@ const EXEC = process.env.CHROMIUM_BIN || (fs.existsSync('/opt/pw-browsers/chromi
 let fails = 0;
 const check = (name, ok, more) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${more ? ' — ' + (typeof more === 'string' ? more : JSON.stringify(more)) : ''}`); if (!ok) fails++; };
 const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFunction(fn, arg, { timeout: ms }); return true; } catch (_) { return false; } };
-const PLACES = ['counter', 'board', 'needs', 'contracts', 'wall', 'list', 'calendar', 'explorer', 'work', 'negotiations', 'approvals', 'oblig', 'requests', 'parties', 'people', 'ourpaper', 'import', 'mynotes', 'reads', 'pulse', 'handbook', 'house', 'settings', 'guide', 'alerts', 'activity'];
+const PLACES = ['counter', 'board', 'needs', 'contracts', 'wall', 'list', 'calendar', 'explorer', 'work', 'negotiations', 'approvals', 'oblig', 'requests', 'parties', 'people', 'ourpaper', 'import', 'mynotes', 'reads', 'handbook', 'house', 'settings', 'guide', 'alerts', 'activity'];
 const FACES = ['document', 'fill', 'redline', 'sign', 'share', 'history', 'brief', 'next', 'oblig'];
 /* every Jambo box on the page: the link rows standing above it (a doors row, or a chips row that carries doors) */
 const MEASURE = () => {

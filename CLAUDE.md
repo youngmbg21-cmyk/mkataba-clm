@@ -208,8 +208,8 @@ THE ONE QUESTION (ground rules, owner 20 Nov 2026; Viewer account-wide): `mayAct
 "YOU" MEANS YOU (Round B): a phrase claiming work names its "our side" twin `<key>_us` (both books, listed in `YOU_TWINS`); `youTwin` in the ONE lookup `t` reads it for who may not act. Work counts nought for them: `GUIDE_WORK_COUNTS` (jump window, Guide), `DOOR_WORK_COUNTS` + `navCounts` (badges, phone), `calendarDoorCount`, `apSignatureRows`. f1131.
 NO BUTTON YOU CANNOT USE (Round C): inside a contract a Viewer owes nothing (`dossierOwed`), notes lose buttons (`pd2ActsFor`); Send, Amend, editor, risk Edit refuse with `viewer_reads_only`; `userCanApprove`/`saMayDecide`/`briefReadSave`/`calChipAct`/`CA_SEL_WRITES`/`jhnMayHtml` shut; phone `M_ROW_WRITES`. f1132.
 ROW GOES TO ITS WORK: `ndRowGo(key)` (contract, Calendar, else Board list; f1077). COMPANY ROW → THE JOB: `cnCompanyGo` → `stNeedGo`; admins (f1079).
-## THE PULSE BOARD (js/views/pulse.js)
-Ranked live (`puRead`, `PU_TICK_MS`): `puNeedsMap` off `ndRead` · `fxRankValue` · `effectiveExpiry` · `puJamboWrote` (RAW). Strands `puEventsOf`; why `puSayOf`; existing doors. f963.
+## THE PULSE BOARD — DELETED (owner, 23 Nov 2026: "delete the pulse board from hati all across")
+No page, button, place word, Guide/jump-window row, map step, Handbook chapter or words; the Board's head draws Read down itself (`hbRdnBtnHtml`). `GET /api/pulse` is the Mapper's count endpoint, not this page, and stays.
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
 - THE BOARD, P-39: Your book FIGURE CARDS, ≤4 (`HB_FIGS_MAX` 4, `HB_FIGS_DEFAULT` no value; `.is-cards`, picker `data-hb-figusual`); Needs you chips All · Late · Your move · Jambo (`ndInTab` 'late'), Status badges (`ndStatusOf`), quote (`cn2QuoteHtml`), no money; panel ring + ONE bar (`hbBoardHelloHtml` `ringBar`, `hbw2-*`) and Jambo's pieces, no tiles; ring sweeps on `jovPlay`.
 - LAND ON THE BOARD (core.js `_landBoard`): `cn2Greet` · pills · Live; NO SUMMARISE ON THE BOARD (owner, 22 Nov 2026: it lives in Read down's brief; `hbBoardSumHtml` not drawn); GREEN Draft pill (`hbDraftBtnHtml` → caGo 'draft'; f1049).
