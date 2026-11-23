@@ -22931,3 +22931,8 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 ## Noticed, not fixed (23 Nov 2026, Jambo the instructor)
 - On the Contracts place, with Jambo's conversation open, the links beside "‹ Overview" are cut off at 1440×780: "draft a new agreement" and "discover" run past the panel's edge (CA_CHIP_WALL_WORD's long words on the in-door row; measured the same on unmodified main 4c770d2).
 - (owner's screenshot, 23 Nov 2026) Jambo's how-to answers in a page's panel end with a stray closing quote mark (`."`), and an answer built from the Handbook is labelled "Read from Contracts and your book" (the page's source line, aiReadFrom) instead of the Handbook.
+## Noticed, not fixed (23 Nov 2026, Amend in three steps)
+- Amend's "Make the changes" row box keeps only the first 4,000 characters of a clause's new words (`.slice(0, 4000)` on input in paperdesk.js), with nothing said — a very long clause could lose its end silently; a cap must be said, never a silent trim. The box is also at most 6 lines tall, awkward for a long clause.
+- Amendment approval gap: Create leaves the amendment's `value` empty (the new value sits only in `amendFacts` as a suggestion), so a value rule (e.g. "Value ≥ KES 5M") does not apply to it — `saNeeds` is empty and "Before you sign" lists no approval, though the Amend page's panel says "Approval: needed · 1 approval rule applies".
+- "As amended" view (`asAmendedHtml`, `docAsAmendedSet`) has its switch only on the old look's document tab row; on the new look's Home paper there is no button to open it.
+- After an amendment raising the value is signed, the agreement's paper note still reads "Value KES 85,000,000" (read from the signed paper); the end date does follow the amendment.

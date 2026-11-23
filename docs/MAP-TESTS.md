@@ -25,6 +25,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## AN AMENDMENT IS WRITTEN HERE (js/family.js)
 - f170, f176, f901, f544, amendment-journey, amendment-blanks-and-clauses, menu-and-amend verify.
 - Amend L+S and Dossier L+S (22 Nov 2026): f1153 (6 = start from today's deal, 23 Nov), dossier-and-amend-ls-verify (7); re-pointed in place f1065 (2), f1088 (1), f731 (8).
+- Tell Jambo the change (23 Nov 2026): f1187 (1–7); dossier-and-amend-ls-verify 2 (the pop-up first), 2b (steps in order), 8a–8f (the Jambo way, a stand-in answer); re-pointed in place menu-and-amend 5b (the manual link), round5-new-look 7 (`pdAmendOpen(id,{manual:true})`).
 
 ## THE UPLOAD
 - f257, f286, f233, f366, f370, f679, f707, upload-party, upload-structure, pdf-structure, draft-upload-glance verify.
@@ -1082,3 +1083,6 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 ## OBLIGATIONS — Proposed obligations, the Legora + Stripe way (23 Nov 2026)
 - test/f1185-proposed-obligations-ls.test.js — one calm table (words with §, whose in the row, badge, Add), tabs with counts, chips; the chosen duty in Jambo's panel, no amount; no whose = no tick, no Add, the writer refuses; both books, the Handbook (red at the parent).
 - Browser (GitHub): review-desk-verify RE-POINTED (kinds are the "+ Kind" chip's choices; counts are the tabs'; Undo from the Skipped tab; two row ticks); amount-and-window-verify RE-POINTED (its proposals carry a side). Still green as they were: f554, f260, f475 (the pop-up keeps its table).
+
+## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS — rows light green (23 Nov 2026)
+- test/f1186-rows-are-light-green.test.js — the two tokens (--row-hover, --row-chosen) and their export; no list row's hover or chosen state painted grey anywhere in the sheet (ROW_GREY_KNOWN only shrinks); the main lists read the tokens (red at the parent). Browser: approvals-head-and-chosen-row-verify 3 RE-POINTED to --row-chosen.

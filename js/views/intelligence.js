@@ -11627,7 +11627,7 @@ function igStripActsHtml(c){
   if(window.newLookOn&&newLookOn()&&window.pdFaceNow&&pdFaceNow()==='amend'){
     const ready=!!(window.pdAmendReady&&pdAmendReady());
     /* AMEND L+S, AS DRAWN (22 Nov 2026): no hint on the line — the page's tabs say how ("Press a clause to add it as a change") */
-    return `<span class="ig-acts"><button type="button" class="ui-btn ui-btn-sm" data-pd2-am-discard>${igEsc(i18t('pd2_am_discard'))}</button><button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-pd2-am-create${ready?'':` disabled title="${igEsc(i18t('pd_am_go_why'))}"`}>${igEsc(i18t('pd2_am_create'))}</button></span>`;
+    return `<span class="ig-acts"><button type="button" class="ui-btn ui-btn-sm" data-pd2-am-discard>${igEsc(i18t('pd2_am_discard'))}</button>${/* THE STEPS END IN CREATE (owner, 23 Nov 2026): Create is step 3's button, not the line's */''}<button type="button" hidden class="ui-btn ui-btn-sm ui-btn-primary" data-pd2-am-create${ready?'':` disabled title="${igEsc(i18t('pd_am_go_why'))}"`}>${igEsc(i18t('pd2_am_create'))}</button></span>`;
   }
   /* before you sign, as drawn: Sign is the area's one filled button, so Share stands grey */
   const signUp=!!(window.newLookOn&&newLookOn()&&window.pdFaceNow&&pdFaceNow()==='signing');

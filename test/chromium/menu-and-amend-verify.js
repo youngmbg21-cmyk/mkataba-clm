@@ -205,6 +205,9 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await until(page, () => !!document.querySelector('#pd-acts-pop [data-pd-acts-go]'), null, 4000);
     if (!await page.$('#pd-acts-pop [data-pd-acts-go="#ws-m-amend"]') && await page.$('#pd-acts-pop [data-pd-acts-every]')) await page.click('#pd-acts-pop [data-pd-acts-every]');
     if (await page.$('#pd-acts-pop [data-pd-acts-go="#ws-m-amend"]')) await page.click('#pd-acts-pop [data-pd-acts-go="#ws-m-amend"]');
+    /* RE-POINTED 23 Nov 2026 (Tell Jambo the change, as drawn): Amend asks what should change first, in a pop-up; "or choose
+       the clauses yourself" goes to the signed paper as before */
+    if (await until(page, () => !!document.querySelector('#pd2-amk [data-pd2-amk-manual]'), null, 5000)) await page.click('#pd2-amk [data-pd2-amk-manual]');
     ok('5b the More menu\'s Amend row opens Amend beside the paper', await until(page, () => !!document.querySelector('#pd-amendface'), null, 5000));
     await page.waitForTimeout(400);
     const signedBefore = await page.evaluate(() => JSON.stringify([getContract('MK-B1').redlineText || '', getContract('MK-B1').status, (getContract('MK-B1').signatures || []).length]));
@@ -216,6 +219,8 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
        answered here by a stand-in) and read on the amendment beside it; Create is the paper line's [data-pd2-am-create] */
     /* RE-POINTED 22 Nov 2026 (Amend L+S as drawn, #911: ONE full page over the paper, its Changes tab a row per change,
        pd2AmxHtml; a fact said in the box is offered on its row and taken by its press, data-pd2-amx-use) */
+    /* RE-POINTED 23 Nov 2026 (Tell Jambo the change): what is said in the box goes the pop-up's way, onto Approve the changes,
+       where the clause pressed by hand stays a change of the person's own */
     await page.click('.pd2-amx [data-pd2-amx-tab="changes"]').catch(() => {});
     const listed = await until(page, () => document.querySelectorAll('.pd2-amx [data-pd2-amx-row]').length === 1, null, 5000);
     await page.route('**/api/ai/amend', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [], facts: { expiry: '2028-12-31' } }) }));
