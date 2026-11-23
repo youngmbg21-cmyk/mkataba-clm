@@ -12100,6 +12100,11 @@ function roomMoreMenuHtml(c,opts={}){
                  all three. It is passed in and placed, exactly as `primary`
                  already is. */}
           ${opts.menuRow || ''}
+          ${''/* DELETE THIS DRAFT IN SIGHT (owner, 23 Nov 2026: "make delete this draft to be after negotiation memo. It should
+                 not be hidden"): right after the work rows handed in (… Negotiation memo), not at the foot of a long list;
+                 still red, still only where the draft may be deleted, still asking before it deletes (#ws-delete) */}
+          ${(may&&(window.contractDeletable?contractDeletable(c):(c.status==='Draft'||c.status==='Under Review')))?`
+          <button type="button" id="ws-delete" class="danger" title="${i18t('ct_delete_draft')}">${icon('trash','w-3.5 h-3.5')}${i18t('ct_delete_this_draft')}</button>`:''}
           ${''/* NAMED FOR THE THING THE READER IS HOLDING (owner-asked, 13 Aug
                  2026). It read "Import their response", which says nothing
                  about a Word document the other side marked up and emailed
@@ -12161,8 +12166,6 @@ function roomMoreMenuHtml(c,opts={}){
           <button type="button" id="ws-advice" title="${i18t('asl_title')}">${icon('users','w-3.5 h-3.5')}${i18t('asl_menu_row')}</button>
           ${(window.contractMayReopen&&contractMayReopen(c))?`<button type="button" id="ws-reopen" title="${esc(i18t('end_reopen_says'))}">${icon('history','w-3.5 h-3.5')}${i18t('end_reopen')}</button>`:''}
           ${(window.contractOnHold&&contractOnHold(c)&&(typeof mayHoldContract!=='function'||mayHoldContract()))?`<button type="button" id="ws-hold" title="${esc(i18t('hd_release_title'))}">${icon('history','w-3.5 h-3.5')}${i18t('hd_release')}</button>`:''}`:''}
-          ${(may&&(window.contractDeletable?contractDeletable(c):(c.status==='Draft'||c.status==='Under Review')))?`<hr>
-          <button type="button" id="ws-delete" class="danger" title="${i18t('ct_delete_draft')}">${icon('trash','w-3.5 h-3.5')}${i18t('ct_delete_this_draft')}</button>`:''}
           ${''/* ws-new keeps its id and its data-page-new: it is a real button
                  on the Document tab now, so it is not repeated here. */}
         </div>
