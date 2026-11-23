@@ -22422,6 +22422,77 @@
   html.lg-new .hbkn-tip{font-size:14px;font-weight:var(--w-label);line-height:1.5;margin:0 0 16px}
   html.lg-new .hbkn-more h3{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-label);margin:16px 0 6px}
   html.lg-new .hbkn-more ul{margin:0;padding-left:18px;font-size:13.5px;line-height:1.5;list-style:disc}
+  /* THE HANDBOOK, THE LEGORA + STRIPE WAY (owner: "build it and merge", 23 Nov 2026, as drawn): the book one calm
+     table grouped by part, a soft badge for pictures, "+" chips; reading, each step its own line with the buttons it
+     names shaded and each picture under its step; the panel's bar, legend and step timeline. Tokens only. */
+  html.lg-new .hbkn-page.is-book .hbkn-card,html.lg-new .hbkn-page.is-reading .hbkn-card{gap:0}
+  html.lg-new .hbkn-flt{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:16px 0 4px}
+  html.lg-new .hbkn-fbox{display:flex;align-items:center;gap:8px;width:260px;max-width:100%;border-bottom:1px solid var(--color-divider);padding:4px 2px;color:var(--color-neutral-400)}
+  html.lg-new .hbkn-fbox input{border:0;outline:0;background:none;font:inherit;font-size:14px;color:var(--color-text);flex:1;min-width:0;padding:2px 0}
+  html.lg-new .hbkn-chipw{position:relative}
+  html.lg-new .hbkn-chip{border:1px dashed var(--color-neutral-300);border-radius:999px;background:none;font:inherit;font-size:13px;color:var(--color-quiet);padding:4px 11px;cursor:pointer;white-space:nowrap;display:inline-flex;gap:6px;align-items:center}
+  html.lg-new .hbkn-chip.is-set{border-style:solid;border-color:transparent;background:var(--surface-2);color:var(--color-text)}
+  html.lg-new .hbkn-x{color:var(--color-quiet)}
+  html.lg-new .hbkn-menu{position:absolute;left:0;top:calc(100% + 6px);z-index:20;min-width:220px;max-height:320px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.08);padding:6px;display:flex;flex-direction:column}
+  html.lg-new .hbkn-opt{border:0;background:none;font:inherit;font-size:13.5px;text-align:left;padding:7px 10px;border-radius:6px;cursor:pointer;color:var(--color-text)}
+  html.lg-new .hbkn-opt:hover,html.lg-new .hbkn-opt.is-on{background:var(--surface-2)}
+  html.lg-new .hbkn-cnt{font-size:13px;color:var(--color-quiet);font-variant-numeric:tabular-nums;white-space:nowrap}
+  html.lg-new .hbkn-list{flex:1;min-height:0;overflow-y:auto}
+  html.lg-new .hbkn-tbl{width:100%;border-collapse:collapse;table-layout:fixed}
+  html.lg-new .hbkn-tbl th{font-weight:var(--w-label);color:var(--color-quiet);font-size:12.5px;text-align:left;padding:8px 10px;border-bottom:1px solid var(--color-divider);position:sticky;top:0;background:var(--color-surface);z-index:1}
+  html.lg-new .hbkn-tbl th:nth-child(1){width:46px}html.lg-new .hbkn-tbl th:nth-child(3){width:30%}html.lg-new .hbkn-tbl th:nth-child(4){width:58px}html.lg-new .hbkn-tbl th:nth-child(5){width:112px}
+  html.lg-new .hbkn-tbl td{padding:8px 10px;border-bottom:1px solid var(--color-divider);vertical-align:top;font-size:13.5px}
+  html.lg-new .hbkn-tbl .hbkn-n{text-align:right;font-variant-numeric:tabular-nums}
+  html.lg-new .hbkn-row{cursor:pointer}html.lg-new .hbkn-row:hover td,html.lg-new .hbkn-row.is-on td{background:var(--surface-2)}
+  html.lg-new .hbkn-row:focus-visible{outline:2px solid var(--accent-ink);outline-offset:-2px}
+  html.lg-new .hbkn-k{color:var(--color-neutral-400);font-variant-numeric:tabular-nums}
+  html.lg-new .hbkn-tt b{display:block;font-weight:var(--w-strong);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .hbkn-tt span{display:block;color:var(--color-quiet);font-size:12.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .hbkn-wh{color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .hbkn-wh i,html.lg-new .hbkn-pwhere i{font-style:normal;color:var(--color-neutral-400);margin:0 5px}
+  html.lg-new .hbkn-door{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);cursor:pointer}
+  html.lg-new .hbkn-door:hover{text-decoration:underline}html.lg-new .hbkn-door:disabled{color:var(--color-quiet);cursor:default;text-decoration:none}
+  html.lg-new .hbkn-mu{color:var(--color-neutral-400)}
+  html.lg-new .hbkn-grp td{font-weight:var(--w-strong);font-size:13px;padding:16px 10px 6px}
+  html.lg-new .hbkn-grp em{font-style:normal;color:var(--color-quiet);font-weight:var(--w-label);margin-left:6px}
+  html.lg-new .hbkn-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:1px}
+  html.lg-new .hbkn-none{color:var(--color-quiet);font-size:14px;padding:24px 10px}
+  html.lg-new .hbkn-bd{display:inline-block;border-radius:6px;padding:2px 8px;font-size:12px;font-weight:var(--w-strong);white-space:nowrap;letter-spacing:0;text-transform:none;vertical-align:1px}
+  html.lg-new :is(.hbkn-bd,.hbkn-bar i,.hbkn-dot).is-gray{--hb-bg:var(--st-gray-bg);--hb-fg:var(--st-gray-fg);--hb-dot:var(--st-gray-dot)}
+  html.lg-new :is(.hbkn-bd,.hbkn-bar i,.hbkn-dot).is-steel{--hb-bg:var(--st-steel-bg);--hb-fg:var(--st-steel-fg);--hb-dot:var(--st-steel-dot)}
+  html.lg-new :is(.hbkn-bd,.hbkn-bar i,.hbkn-dot).is-violet{--hb-bg:var(--st-violet-bg);--hb-fg:var(--st-violet-fg);--hb-dot:var(--st-violet-dot)}
+  html.lg-new :is(.hbkn-bd,.hbkn-bar i,.hbkn-dot).is-amber{--hb-bg:var(--st-amber-bg);--hb-fg:var(--st-amber-fg);--hb-dot:var(--st-amber-dot)}
+  html.lg-new :is(.hbkn-bd,.hbkn-bar i,.hbkn-dot).is-green{--hb-bg:var(--st-green-bg);--hb-fg:var(--st-green-fg);--hb-dot:var(--st-green-dot)}
+  html.lg-new :is(.hbkn-bd,.hbkn-bar i,.hbkn-dot).is-pink{--hb-bg:var(--st-pink-bg);--hb-fg:var(--st-pink-fg);--hb-dot:var(--st-pink-dot)}
+  html.lg-new :is(.hbkn-bd,.hbkn-bar i,.hbkn-dot).is-ruby{--hb-bg:var(--st-ruby-bg);--hb-fg:var(--st-ruby-fg);--hb-dot:var(--st-ruby-dot)}
+  html.lg-new .hbkn-bd{background:var(--hb-bg);color:var(--hb-fg)}
+  html.lg-new :is(.hbkn-dot,.hbkn-bar i){background:var(--hb-dot)}
+  html.lg-new .hbkn-crumb{gap:8px}html.lg-new .hbkn-cpart{color:var(--color-quiet);font-size:14px}
+  html.lg-new .hbkn-page.is-reading .hbkn-body{max-width:720px;width:100%;margin:12px auto 0;flex:1}
+  html.lg-new .hbkn-eye .hbkn-bd{margin-left:8px}
+  html.lg-new .hbkn-page .hbkn-steps{padding:0;margin:0 0 16px}
+  html.lg-new .hbkn-page .hbkn-steps li{list-style:none;display:grid;grid-template-columns:26px minmax(0,1fr);gap:12px;padding:10px 0;margin:0;border-top:1px solid var(--color-divider)}
+  html.lg-new .hbkn-sn{width:22px;height:22px;border-radius:50%;background:var(--st-green-bg);color:var(--st-green-fg);font-size:12px;font-weight:var(--w-strong);display:inline-grid;place-items:center;font-variant-numeric:tabular-nums}
+  html.lg-new .hbkn-page .hbk-ui{background:var(--surface-2);border-radius:5px;padding:1px 6px;font-weight:var(--w-strong);white-space:nowrap}
+  html.lg-new .hbkn-pic{margin:10px 0 2px;max-width:460px}
+  html.lg-new .hbkn-pic figcaption{font-size:13px;color:var(--color-quiet);margin-top:6px;line-height:1.4}
+  html.lg-new .hbkn-pn{display:inline-block;background:var(--st-green-bg);color:var(--st-green-fg);border-radius:6px;padding:1px 7px;font-size:12px;font-weight:var(--w-strong);margin-right:6px}
+  html.lg-new .hbkn-tip b{font-weight:var(--w-strong)}
+  html.lg-new .hbkn-bar{display:flex;gap:2px;height:10px;border-radius:5px;overflow:hidden}
+  html.lg-new .hbkn-lg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--color-quiet);margin-top:8px}
+  html.lg-new .hbkn-lg b{color:var(--color-text);font-weight:var(--w-strong)}html.lg-new .hbkn-lg .hbkn-dot{width:7px;height:7px;margin-right:5px}
+  html.lg-new .hbkn-peb{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  html.lg-new .hbkn-tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;position:relative}
+  html.lg-new .hbkn-tl::before{content:"";position:absolute;left:5px;top:8px;bottom:8px;width:1px;background:var(--color-divider)}
+  html.lg-new .hbkn-tl li{display:grid;grid-template-columns:12px minmax(0,1fr);gap:10px;align-items:baseline;padding:3px 0;font-size:13px;color:var(--color-quiet)}
+  html.lg-new .hbkn-tl li i{width:11px;height:11px;border-radius:50%;background:var(--color-surface);border:2px solid var(--color-neutral-300);position:relative;top:1px;box-sizing:border-box}
+  html.lg-new .hbkn-tl li.is-cur{color:var(--color-text);font-weight:var(--w-strong)}html.lg-new .hbkn-tl li.is-cur i{border-color:var(--st-green-fg);background:var(--st-green-fg)}
+  html.lg-new .hbkn-pwhere{font-size:13.5px;color:var(--color-quiet)}
+  /* the Handbook's panels draw no boxes, as drawn: groups on the panel itself, the black button under its words */
+  html.lg-new .jov5:is([data-jov-slot="hbkn"],[data-jov-slot="hbkn-ch"],[data-jov-slot="hbkn-rd"]) .jov5-group{background:none;border:0;border-radius:0;box-shadow:none;padding:0}
+  html.lg-new .jov5:is([data-jov-slot="hbkn"],[data-jov-slot="hbkn-ch"],[data-jov-slot="hbkn-rd"]) .jov5-row{background:none;border-radius:6px}
+  html.lg-new .jov5:is([data-jov-slot="hbkn"],[data-jov-slot="hbkn-ch"],[data-jov-slot="hbkn-rd"]) .jov5-row.is-door:hover{background:var(--surface-2)}
+  html.lg-new .jov5[data-jov-slot="hbkn-ch"] .jov5-act{background:none;padding:0;border-radius:0}
   /* THE SIDE PANEL, THE NEW LOOK (round 7): the tabs are its head (no title line), the × at their end; the bell is
      one list with one Open each, News under it; the Guide is the pages by stage with the word that opens each */
   html.lg-new #panel-title{display:none}

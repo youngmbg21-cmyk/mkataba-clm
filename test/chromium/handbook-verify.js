@@ -190,11 +190,13 @@ async function reset(P, base){
          the parts down the left (.hbkn-part), the part in front opened to its chapters (.hbkn-ch), the chapter beside them
          (.hbkn-chapter), the day it was checked in the head (.ctf-hf), Jambo's panel beside with his box. RETIRED: the old
          page's "Which one do I need?" table and its chips (2b's first half) — the old look's part page */
-      const page = await P.evaluate(() => ({ parts: [...document.querySelectorAll('.hbkn-part[data-hbk-part]')].map(b => b.getAttribute('data-hbk-part')), on: (document.querySelector('.hbkn-part.is-on') || { getAttribute: () => null }).getAttribute('data-hbk-part'),
-        chapters: [...document.querySelectorAll('.hbkn-ch[data-hbkn-ch]')].map(s => s.getAttribute('data-hbkn-ch')), shown: !!document.querySelector('.hbkn-chapter'),
+      /* RE-POINTED 23 Nov 2026 (the Legora + Stripe way, as drawn): the book is ONE table, every chapter in the book's order,
+         grouped by part (a quiet row a part); nothing open until a row is pressed twice */
+      const page = await P.evaluate(() => ({ parts: [...document.querySelectorAll('.hbkn-grp[data-hbkn-grp]')].map(g => g.getAttribute('data-hbkn-grp')), on: (document.querySelector('.hbkn-grp[data-hbkn-grp]') || { getAttribute: () => null }).getAttribute('data-hbkn-grp'),
+        chapters: [...document.querySelectorAll('[data-hbkn-row]')].map(s => s.getAttribute('data-hbkn-row')), shown: !document.querySelector('.hbkn-chapter') && !!document.querySelector('.hbkn-page.is-book'),
         panel: !!document.querySelector('#ins-panel.is-jambo'), ask: !!document.getElementById('jl-q'), checked: (document.querySelector('#hbk-page .ctf-hf') || {}).textContent }));
-      check('2a the contents list the eight parts, Getting around first, the first part in front', page.parts.join() === book.parts.join() && page.on === 'around', JSON.stringify(page.parts));
-      check('2b the part in front lists every chapter of the part, one chapter in front', page.shown && page.chapters.join() === book.chapters.filter(c => c.part === 'around').map(c => c.k).join(), JSON.stringify(page.chapters));
+      check('2a the book groups its chapters under the eight parts, Getting around first', page.parts.join() === book.parts.join() && page.on === 'around', JSON.stringify(page.parts));
+      check('2b the book lists every chapter, in the book\'s order, none open yet', page.shown && page.chapters.join() === book.chapters.map(c => c.k).join(), JSON.stringify(page.chapters.slice(0, 8)));
       check('2c Jambo\'s panel beside it, his box at the foot; the head says the day it was last checked', page.panel && page.ask && /checked against the app .*\d/.test(page.checked || ''), page.checked);
       /* every chapter, in both languages: the format's blocks, no marker left, no bare key printed */
       const FORMAT = ['.hbkn-eye', 'h2', '.hbkn-what', 'ol.hbkn-steps > li'];
@@ -222,7 +224,8 @@ async function reset(P, base){
       await P.click('#hbk-5\\.1 [data-hbk-door="oblig"]'); await settle(P);
       check('3b a door chip takes you there through Jambo\'s one mover (Obligations)', await P.evaluate(() => state.view === 'obligations'), await P.evaluate(() => state.view));
       await P.evaluate(() => setView('handbook')); await settle(P);
-      const back = await P.evaluate(() => ({ place: hbkPlace(), cur: (document.querySelector('.hbkn-ch[aria-current="true"]') || {}).getAttribute ? document.querySelector('.hbkn-ch[aria-current="true"]').getAttribute('data-hbkn-ch') : null }));
+      /* RE-POINTED 23 Nov 2026 (L+S): no contents list; the chapter being read is the one in front */
+      const back = await P.evaluate(() => ({ place: hbkPlace(), cur: (document.querySelector('.hbkn-chapter') || {}).getAttribute ? document.querySelector('.hbkn-chapter').getAttribute('data-hbk-ch') : null }));
       check('3c coming back, the page stands where it was left (the part and the chapter)', back.place.part === 'keep' && back.place.chapter === '5.1' && back.cur === '5.1', JSON.stringify(back));
       await P.evaluate(() => hbkOpen('3.3')); await settle(P); await P.waitForTimeout(400);
       await P.reload({ waitUntil: 'networkidle' });
@@ -235,44 +238,53 @@ async function reset(P, base){
         .map(([q, want]) => { let a = null; try { a = caUnderstand(q, { box: 'list' }); } catch (e){ a = { err: String(e) }; } return [q, want, a && a.place === 'handbook' ? a.chapter : (a ? (a.kind + ':' + (a.place || a.act || '')) : null)]; }));
       check('4a a how-to question lands on its chapter in both languages; a contract named stays its own reader\'s', asks.every(([, want, got]) => want ? got === want : !/^\d/.test(String(got))), JSON.stringify(asks));
       await P.evaluate(() => caGo(caUnderstand('how do I send this for review', { box: 'list' }))); await settle(P);
-      check('4b …and the press opens the Handbook on that chapter', await P.evaluate(() => state.view === 'handbook' && hbkPlace().chapter === '3.3' && !!document.querySelector('.hbkn-ch[aria-current="true"][data-hbkn-ch="3.3"]') && !!document.querySelector('.hbkn-chapter[data-hbk-ch="3.3"]')));
+      check('4b …and the press opens the Handbook on that chapter', await P.evaluate(() => state.view === 'handbook' && hbkPlace().chapter === '3.3' && !!document.querySelector('.hbkn-page.is-reading') && !!document.querySelector('.hbkn-chapter[data-hbk-ch="3.3"]')));
 
       /* ---- 4′ THE PAGE STANDS STILL (owner, 26 Oct 2026: "stop the Handbook jumping"; numbered steps; the
          contents fully visible) ---- */
       /* RE-POINTED 16 Nov 2026 (#762): one chapter in front — a chapter pressed in the contents is the one shown, at
          its top, the contents kept; a part pressed opens at its first chapter, at its top */
-      await P.evaluate(() => hbkOpen('3.1')); await settle(P);
+      /* RE-POINTED 23 Nov 2026 (the Legora + Stripe way, as drawn): the book's row CHOOSES (the list stays where it was,
+         the panel shows the chapter), pressed again it OPENS at its top; ‹ Handbook comes back to the book with that row
+         still chosen; the Part chip narrows the book to one part */
+      await P.evaluate(() => { hbkOpen('3.1'); }); await settle(P);
+      await P.click('[data-hbkn-back]'); await settle(P);
       const still = await P.evaluate(async () => {
-        const body0 = document.getElementById('hbk-body'); if (body0) body0.scrollTop = 400;
-        const nav0 = document.querySelector('#hbk-page .hbkn-nav');
-        const ch = [...document.querySelectorAll('.hbkn-ch[data-hbkn-ch]')].filter(b => b.getAttribute('aria-current') !== 'true').pop(); const k = ch && ch.getAttribute('data-hbkn-ch');
-        if (ch) ch.click(); await new Promise(r => setTimeout(r, 300));
+        const list = document.getElementById('hbkn-list'); const kept0 = !!document.querySelector('[data-hbkn-row="3.1"].is-on');
+        if (list) list.scrollTop = 600; const top0 = list ? list.scrollTop : -1;
+        const row = [...document.querySelectorAll('[data-hbkn-row]')].find(r => r.getBoundingClientRect().top > list.getBoundingClientRect().top + 60 && r.getAttribute('data-hbkn-row') !== '3.1'); const k = row && row.getAttribute('data-hbkn-row');
+        if (row) row.querySelector('.hbkn-tt').click(); await new Promise(r => setTimeout(r, 300));
+        const l1 = document.getElementById('hbkn-list');
+        const chosen = { same: l1 === list, top1: l1 ? l1.scrollTop : -1, on: !!document.querySelector(`[data-hbkn-row="${k}"].is-on`), panel: ((document.querySelector('#ins-panel .jov5[data-jov-slot="hbkn-ch"]') || {}).innerText || '').slice(0, 80), read: !!document.querySelector('[data-hbkn-read]') };
+        if (row) document.querySelector(`[data-hbkn-row="${k}"] .hbkn-tt`).click(); await new Promise(r => setTimeout(r, 300));
         const body = document.getElementById('hbk-body');
-        const shown = (document.querySelector('.hbkn-chapter') || { getAttribute: () => null }).getAttribute('data-hbk-ch');
-        const out = { k, shown, top1: body ? body.scrollTop : -1, navKept: !!document.querySelector('#hbk-page .hbkn-nav'), sameNav: document.querySelector('#hbk-page .hbkn-nav') === nav0, behavior: body ? getComputedStyle(body).scrollBehavior : '' };
-        if (body) body.scrollTop = 400;
-        const part = [...document.querySelectorAll('.hbkn-part[data-hbk-part]')].find(r => r.getAttribute('data-hbk-part') !== hbkPlace().part); const pk = part && part.getAttribute('data-hbk-part');
-        if (part) part.click(); await new Promise(r => setTimeout(r, 300));
-        const b2 = document.getElementById('hbk-body'); const first = (HANDBOOK_CHAPTERS.find(c => c.part === pk) || {}).k;
-        return Object.assign(out, { pk, partShown: (document.querySelector('.hbkn-chapter') || { getAttribute: () => null }).getAttribute('data-hbk-ch'), first, top2: b2 ? b2.scrollTop : -1 });
+        const opened = { shown: (document.querySelector('.hbkn-chapter') || { getAttribute: () => null }).getAttribute('data-hbk-ch'), top: body ? body.scrollTop : -1, behavior: body ? getComputedStyle(body).scrollBehavior : '' };
+        return { kept0, top0, k, chosen, opened };
       });
-      check('4′a a chapter pressed in the contents is the one in front, at its top, the contents kept', !!still.k && still.shown === still.k && still.top1 === 0 && still.navKept && still.behavior === 'auto', JSON.stringify(still));
-      check('4′b a part opens at its first chapter, at its top, the contents kept', !!still.pk && still.partShown === still.first && still.top2 === 0, JSON.stringify(still));
+      check('4′a ‹ Handbook comes back to the book with the chapter still chosen; a row\'s first press chooses it, the list kept where it was', still.kept0 && !!still.k && still.chosen.on && still.chosen.same && Math.abs(still.chosen.top1 - still.top0) <= 2 && still.chosen.read, JSON.stringify(still));
+      check('4′b pressed again it opens, at its top', still.opened.shown === still.k && still.opened.top === 0 && still.opened.behavior === 'auto', JSON.stringify(still.opened));
+      await P.click('[data-hbkn-back]'); await settle(P);
+      await P.click('[data-hbkn-f="part"]'); await P.click('[data-hbkn-pick-f="part:sign"]'); await settle(P);
+      const one = await P.evaluate(() => ({ rows: [...document.querySelectorAll('[data-hbkn-row]')].map(r => r.getAttribute('data-hbkn-row')), want: HANDBOOK_CHAPTERS.filter(c => c.part === 'sign').map(c => c.k), chip: (document.querySelector('[data-hbkn-f="part"]') || {}).textContent }));
+      check('4′b2 the Part chip narrows the book to that part, and says so', one.rows.join() === one.want.join() && /Sign/.test(one.chip || ''), JSON.stringify(one));
+      await P.click('[data-hbkn-f="part"] .hbkn-x'); await settle(P);
       const steps = [];
       for (const ck of book.chapters.map(c => c.k)){
         await P.evaluate(k => hbkOpen(k), ck);
         steps.push(await P.evaluate(k => { const ch = document.querySelector(`.hbkn-chapter[data-hbk-ch="${k}"]`); const ol = ch && ch.querySelector('ol.hbkn-steps'); const ul = ch && ch.querySelector('.hbkn-more ul');
-          return { k, li: ol ? ol.children.length : 0, num: ol ? getComputedStyle(ol.children[0] || ol).listStyleType + '|' + getComputedStyle(ol).listStyleType : '', dot: ul ? getComputedStyle(ul).listStyleType : 'disc' }; }, ck));
+          /* RE-POINTED 23 Nov 2026 (L+S): each step carries its number as a badge (1, 2, 3 …) */
+          return { k, li: ol ? ol.children.length : 0, num: ol ? [...ol.children].every((li, i) => ((li.querySelector('.hbkn-sn') || {}).textContent || '') === String(i + 1)) : false, dot: ul ? getComputedStyle(ul).listStyleType : 'disc' }; }, ck));
       }
-      const numbered = x => /decimal/.test(x.num);
+      const numbered = x => x.num === true;
       check('4′c every chapter\'s steps are numbered 1, 2, 3 …, its "when" lines bulleted', steps.length && steps.every(x => x.li && numbered(x) && x.dot === 'disc'), JSON.stringify(steps.filter(x => !(x.li && numbered(x) && x.dot === 'disc')).slice(0, 4)));
+      /* RE-POINTED 23 Nov 2026 (L+S): no contents column; the book's table never scrolls sideways at the three screens */
+      await P.evaluate(() => { hbkOpen(null, { part: 'around' }); }); await settle(P);
       for (const [w, hgt] of SCREENS){
         await P.setViewportSize({ width: w, height: hgt }); await settle(P);
-        const toc = await P.evaluate(() => { const t = document.querySelector('#hbk-page .hbkn-nav');
-          const cut = [...t.querySelectorAll('.hbkn-part, .hbkn-ch')].filter(e => e.scrollWidth > e.clientWidth + 1 || getComputedStyle(e).textOverflow === 'ellipsis').length;
-          const out = [...t.querySelectorAll('.hbkn-part, .hbkn-ch')].filter(r => r.getBoundingClientRect().right > t.getBoundingClientRect().right + 1).length;
-          return { side: t.scrollWidth > t.clientWidth + 1, cut, out }; });
-        check(`4′d at ${w}×${hgt}: the contents never scroll sideways, every part's words whole`, !toc.side && !toc.cut && !toc.out, JSON.stringify(toc));
+        const toc = await P.evaluate(() => { const t = document.getElementById('hbkn-list'); if (!t) return { none: true };
+          const out = [...t.querySelectorAll('[data-hbkn-row]')].filter(r => r.getBoundingClientRect().right > t.getBoundingClientRect().right + 1).length;
+          return { side: t.scrollWidth > t.clientWidth + 1, out }; });
+        check(`4′d at ${w}×${hgt}: the book's table never scrolls sideways, every row inside it`, !toc.none && !toc.side && !toc.out, JSON.stringify(toc));
       }
       await P.setViewportSize({ width: 1440, height: 780 });
 

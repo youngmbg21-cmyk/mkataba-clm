@@ -1071,3 +1071,6 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 - RETIRED parts: discover-verify stages 2, 3, 11 and 4a′, 4f, 5a′ (form, column, card, card's watch/fact chips; re-pointed 4a and 5a to the server route and watchCreate); reads-and-columns-as-drawn-verify 2–5b (form, reading card, column card, ⋯ menu, rename); f954 2 (the form's sentence); f956 2 (form and cards); f957 4 (the counting card).
 - RE-POINTED: f954 1 and 4 (no acSizeSet; Reads lands on dsnFill/rdNewRead, never askColOpen/Next/Bring), f956 1 (slice end), f1064 (slice end), f1016 (8) (no askColPanelHtml), f705 1a/1c ('askcol' goes to place 'reads'; no task opens the form), f861 (14) (no Owner aside), f977 fix 8 (no question column head), f148 (SAME_IN_BOTH lost ac_nl_team_sub), round6-new-look-verify 2 (no question column), stop-and-reads-verify, handbook-verify (no askColClose).
 - test/f658-board-copilot-and-analyst.test.js A4b — the Board's panel is not redrawn on a resize while Jambo's box holds the cursor (22 Nov 2026).
+
+## THE HANDBOOK — HOW TO DO EACH THING (23 Nov 2026)
+- test/f1184-the-handbook-legora-stripe.test.js — the book's one table, its filters, a row chooses then opens, numbered steps with each picture under its step (red at the parent). Browser: handbook-verify 2a/2b/4′a–d, round7b 3.

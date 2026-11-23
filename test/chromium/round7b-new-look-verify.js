@@ -70,15 +70,17 @@ const signIn = async (page, base) => {
   /* 3 · the Handbook */
   try {
     await page.evaluate(() => caGo({ kind: 'go', place: 'handbook' }));
-    const up = await until(page, () => document.querySelectorAll('.hbkn-page .hbkn-chapter').length === 1 && !!document.querySelector('.hbkn-ch.is-on'), null, 15000);
-    const B = up ? await page.evaluate(() => ({ one: document.querySelectorAll('.hbkn-chapter').length, chs: document.querySelectorAll('.hbkn-ch').length, parts: document.querySelectorAll('.hbkn-part').length,
-      pills: [...document.querySelectorAll('.hbkn-pill')].map(b => b.textContent.trim()), panel: (document.querySelector('#ins-panel .jov5[data-jov-slot="hbkn"]') || {}).innerText || '' /* re-pointed 15 Nov 2026: the five-part panel */,
-      nParts: HANDBOOK_PARTS.length, second: (document.querySelectorAll('.hbkn-ch')[1] || {}).getAttribute ? document.querySelectorAll('.hbkn-ch')[1].getAttribute('data-hbkn-ch') : '' })) : null;
-    check('3a the Handbook: one chapter, its part\'s chapters on the left, Svenska and Print, often asked in the panel', !!B && B.one === 1 && B.chs >= 2 && B.parts === B.nParts
+    /* RE-POINTED 23 Nov 2026 (the Handbook, the Legora + Stripe way, as drawn): the book is one table of every chapter
+       grouped by part; a row's first press chooses it, the second opens it */
+    const up = await until(page, () => !!document.querySelector('.hbkn-page.is-book [data-hbkn-row]'), null, 15000);
+    const B = up ? await page.evaluate(() => ({ rows: document.querySelectorAll('[data-hbkn-row]').length, groups: document.querySelectorAll('.hbkn-grp').length,
+      pills: [...document.querySelectorAll('.hbkn-pill')].map(b => b.textContent.trim()), panel: (document.querySelector('#ins-panel .jov5[data-jov-slot="hbkn"]') || {}).innerText || '',
+      n: HANDBOOK_CHAPTERS.length, nParts: HANDBOOK_PARTS.length, second: (document.querySelectorAll('[data-hbkn-row]')[1] || {}).getAttribute ? document.querySelectorAll('[data-hbkn-row]')[1].getAttribute('data-hbkn-row') : '' })) : null;
+    check('3a the Handbook: every chapter in one table grouped by part, Svenska and Print, often asked in the panel', !!B && B.rows === B.n && B.groups === B.nParts
       && B.pills.join('|') === 'Svenska|Print' && /Often asked/i.test(B.panel), B && Object.assign({}, B, { panel: B.panel.slice(0, 160) }));
-    if (B && B.second){ await page.click(`.hbkn-ch[data-hbkn-ch="${B.second}"]`);
+    if (B && B.second){ await page.click(`[data-hbkn-row="${B.second}"] .hbkn-tt`); await page.click(`[data-hbkn-row="${B.second}"] .hbkn-tt`);
       const moved = await until(page, k => (document.querySelector('.hbkn-chapter') || {}).getAttribute && document.querySelector('.hbkn-chapter').getAttribute('data-hbk-ch') === k, B.second, 8000);
-      check('3b a chapter pressed shows that chapter', moved, B.second); }
+      check('3b a row pressed twice opens that chapter', moved, B.second); }
   } catch (e) { check('3 the Handbook', false, String(e).slice(0, 200)); }
 
   /* RETIRED 16 Nov 2026 (#762): 5 "the switch off: as before" — there is no switch; the new look is the only look */
