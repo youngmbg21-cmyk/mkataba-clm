@@ -170,7 +170,8 @@ describe('f756 (4) the column\'s head, and the face that hosts it', () => {
     /* RE-POINTED 18 Oct 2026 (round 9's gaps, second pass: "The notes open in
        the same panel"): Notes turns the column's body to the notes, and the
        same press turns it back */
-    assert.match(NV, /rlFaceNotesSet\(_rlFnFor === String\(id\) \? null : id\);\s*rlHeadRepaint\(\);/, 'the notes open in the column');
+    /* RE-POINTED 23 Nov 2026 (f1197): the notes open in the column and fold the Ladder away, one of three */
+    assert.match(NV, /rlFaceNotesSet\(_rlFnFor === String\(id\) \? null : id\);[\s\S]{0,260}rlHeadRepaint\(\);/, 'the notes open in the column');
   });
   test('4b "their asks came 4 days ago": the newest ask still on the table, read raw', () => {
     const lab = fnBody(NV, 'rlRoundLabelHtml');
@@ -210,7 +211,7 @@ const CM = R('js/clausemodel.js');
 describe('f756 (5) the notes open in the same panel', () => {
   test('5a the head\'s Notes turns the column\'s body to the notes, and the same press turns it back', () => {
     assert.match(fnBody(NV, 'rlFaceNotesOn'), /_rlFnFor && String\(c\.id\) === _rlFnFor && rlHeadOurs\(opts\)/, 'our seat, one contract, per sitting');
-    assert.match(NV, /rlFaceNotesSet\(_rlFnFor === String\(id\) \? null : id\);\s*rlHeadRepaint\(\);/, 'press again and it closes');
+    assert.match(NV, /rlFaceNotesSet\(_rlFnFor === String\(id\) \? null : id\);[\s\S]{0,260}rlHeadRepaint\(\);/, 'press again and it closes');  /* re-pointed 23 Nov 2026, f1197 */
     assert.match(NV, /closest\('\[data-rl-fn-back\]'\)\)\{ e\.preventDefault\(\); rlFaceNotesSet\(null\); rlHeadRepaint\(\); return; \}/, '‹ Redlines goes back');
     const head = fnBody(NV, 'rlHeadNotesHtml');
     assert.match(head, /aria-pressed="\$\{on \? 'true' : 'false'\}"/, 'pressed while open');
