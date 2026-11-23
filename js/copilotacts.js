@@ -1832,6 +1832,8 @@ const CA_PLACES = [
   { k: 'mynotes', w: ['my notes', 'notes', 'mina anteckningar', 'anteckningar'] },
   /* READS (The thread, 28 Oct 2026): every read of the wording, and the next batch */
   { k: 'reads', w: ['reads', 'every read', 'all reads', 'past reads', 'previous reads', 'earlier reads', 'read history', 'läsningar', 'läsningarna', 'alla läsningar', 'tidigare läsningar', 'varje läsning', 'discover', 'the discover page', 'discover page', 'upptäck'] },
+  /* ALERT ME WHEN (owner's pick, 23 Nov 2026): every alert on a question, Discover's Alerts tab ('my alerts' stays the bell's) */
+  { k: 'alertme', w: ['alertme', 'alerting', 'alert me when', 'all alerts', 'question alerts', 'my question alerts', 'discover alerts', 'answer alerts', 'alerts on answers', 'larma mig när', 'alla larm', 'frågelarm', 'mina frågelarm', 'larm på svar'] },
   /* THE PULSE BOARD (owner, 29 Oct 2026): every contract ranked live, each drawn as a strand */
   { k: 'pulse', w: ['pulse', 'pulse board', 'the pulse board', 'pulse page', 'ranking', 'rankings', 'the ranking', 'puls', 'pulstavla', 'pulstavlan', 'rankning', 'rankningen'] },
   /* THE HANDBOOK (owner, 26 Oct 2026): the instruction book, one chapter per thing; "how do I …" lands on its chapter (navReadHandbook) */
@@ -1927,7 +1929,7 @@ function caReadPlace(q){
    "history"). It moves through the one door (caGo), no AI. Anything else — another single word, a sentence, "take me
    to settings" — is the brain's. */
 const JB_PAGE_PLACES = ['board', 'document', 'calendar', 'explorer', 'contracts', 'oblig', 'work', 'negotiations', 'approvals',
-  'requests', 'parties', 'people', 'ourpaper', 'standards', 'import', 'mynotes', 'reads', 'pulse', 'handbook', 'flowmap', 'house', 'settings', 'brain', 'guide', 'alerts', 'activity',
+  'requests', 'parties', 'people', 'ourpaper', 'standards', 'import', 'mynotes', 'reads', 'alertme', 'pulse', 'handbook', 'flowmap', 'house', 'settings', 'brain', 'guide', 'alerts', 'activity',
   /* THE ONE ACT WORD (owner, 28 Oct 2026: "You simply type upload … and it shows up as a pop up card"): "upload"
      typed in any box opens the drop card's pop-up free, like a page's name (caGo → pdDropDoor) */
   'upload'];
@@ -2032,7 +2034,7 @@ function caUseBump(k){
    these rows first, and on the Board its chart moves after them. Ties keep
    this order, which is the plan's order of a working day. */
 const CA_SLASH = ['redline', 'needs', 'sign', 'board', 'document', 'share', 'oblig', 'history', 'fill', 'calendar', 'explorer', 'draft', 'upload',
-  'work', 'negotiations', 'approvals', 'requests', 'parties', 'people', 'ourpaper', 'standards', 'mynotes', 'reads', 'pulse', 'import', 'house', 'settings', 'brain', 'flowmap', 'guide', 'handbook', 'alerts', 'activity'];
+  'work', 'negotiations', 'approvals', 'requests', 'parties', 'people', 'ourpaper', 'standards', 'mynotes', 'reads', 'alertme', 'pulse', 'import', 'house', 'settings', 'brain', 'flowmap', 'guide', 'handbook', 'alerts', 'activity'];
 const CA_SLASH_MAX = 8;
 function caSlashWord(k){ return String(_caT('ca_w_' + k)).trim().replace(/\s+/g, '-'); }
 function caSlashRows(w, opts = {}){
@@ -2216,6 +2218,8 @@ const CA_GO = {
   mynotes: () => setView('mynotes'),
   /* Reads, on a question where one was named (The thread, 28 Oct 2026) */
   reads: (c, a) => (typeof readsOpen === 'function') ? (readsOpen(a && a.ask), true) : setView('reads'),
+  /* Alert me when: Discover's Alerts tab, every alert this person runs */
+  alertme: () => (typeof amwListOpen === 'function') ? (amwListOpen(), true) : setView('reads'),
   /* the Pulse board (29 Oct 2026) */
   pulse: () => (typeof pulseOpen === 'function') ? (pulseOpen(), true) : setView('pulse'),
   /* the Handbook, on a chapter when a "how do I …" read one (26 Oct 2026) */

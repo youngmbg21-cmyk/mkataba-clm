@@ -22936,5 +22936,9 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - Amendment approval gap: Create leaves the amendment's `value` empty (the new value sits only in `amendFacts` as a suggestion), so a value rule (e.g. "Value ≥ KES 5M") does not apply to it — `saNeeds` is empty and "Before you sign" lists no approval, though the Amend page's panel says "Approval: needed · 1 approval rule applies".
 - "As amended" view (`asAmendedHtml`, `docAsAmendedSet`) has its switch only on the old look's document tab row; on the new look's Home paper there is no button to open it.
 - After an amendment raising the value is signed, the agreement's paper note still reads "Value KES 85,000,000" (read from the signed paper); the end date does follow the amendment.
+- 23 Nov 2026 (Alert me when) Noticed, not fixed: CLAUDE.md is about 102 KB, past its own "keep it under about 80 KB" — a trim needs the owner's yes.
+- 23 Nov 2026 (Alert me when) Noticed, not fixed: on Discover, a company rule set on a question AFTER its answers were read makes the results show "All 0 · Read the N left" until read again — the answers stand stale with no word on the page saying why.
+- 23 Nov 2026 (Alert me when) Noticed, not fixed: the Handbook pictures for chapters 5.5.5 and 5.5.7 (now Alert me when) are not re-taken; the recipes are true (handbook-verify green) and wait for the owner's one batch.
+- 23 Nov 2026 (Alert me when) Noticed, not fixed: door-exam-verify is red at origin/main too — "amend MK-B1" typed lands beside the Dossier, not on Amend (3 MISS: board, list, settings).
 - (23 Nov 2026) FIXED at the owner's word: the stray closing quote at the end of Jambo's answers (answerTrim/aiAnswerTrim, f1186 (9)). The "Read from Contracts and your book" label on a Handbook answer is still open.
 - 23 Nov 2026 · Noticed, not fixed: f804 3a and 6b fail at unmodified main (the panel's ask order and the Brain's ask step list), seen while fixing the Contracts door.

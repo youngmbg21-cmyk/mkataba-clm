@@ -482,6 +482,10 @@ function cnRows(){
   /* a watch Jambo kept for you that has fired (the bell's 'watch' rows, js/jambopress.js) */
   let wts = []; try { wts = (typeof watchesFired === 'function') ? (watchesFired() || []) : []; } catch (_){ wts = []; }
   wts.forEach(w => out.push({ k: 'watch', kind: 'watch', urgent: false, w }));
+  /* ALERT ME WHEN (owner's pick, 23 Nov 2026): ONE ROW PER HIT not yet opened — a new contract that answered a question
+     the way the person asked to be told; it closes when opened (watchHitSeen) */
+  let hits = []; try { hits = (typeof watchHitsUnseen === 'function') ? (watchHitsUnseen() || []) : []; } catch (_){ hits = []; }
+  hits.forEach(x => out.push({ k: 'watch', kind: 'watch', urgent: false, w: x.w, hit: x.h }));
   /* your own signature leads Your move, under only a colleague's approval held while they are away
      (the bell's own order, owner-reported: "your own signature ranks first of all") */
   const sig = y => Number(y.k === 'c' && y.kind === 'sign');
@@ -573,7 +577,7 @@ function cnNeedShort(y){
 function cnNeedDoorAttrs(y){
   if (y.k === 'note') return `data-cn-note="${_cnE(y.n.id)}"`;
   if (y.k === 'req') return `data-cn-req="${_cnE(String((y.r && y.r.id) || ''))}"`;
-  if (y.k === 'watch') return `data-cn-watch="${_cnE(String((y.w && y.w.id) || ''))}"`;
+  if (y.k === 'watch') return `data-cn-watch="${_cnE(String((y.w && y.w.id) || ''))}"${y.hit ? ` data-cn-hit="${_cnE(String(y.hit.cid))}"` : ''}`;
   return `data-cn-need="${_cnE(y.x.it.kind)}" data-cn-id="${_cnE(y.x.c.id)}"`;
 }
 /* ============================================================
@@ -748,7 +752,7 @@ function ndRead(){
       you.push({ g: 'you', key: 'b:details', kind: 'details', bundle: det, n: det.length, late: det.filter(d => d.urgent).length, age: a.length ? Math.max(...a) : null });
       return;
     }
-    const id = y.k === 'c' ? y.x.c.id + ':' + y.x.it.kind : y.k === 'note' ? y.n.id : y.k === 'req' ? (y.r && y.r.id) : (y.w && y.w.id);
+    const id = y.k === 'c' ? y.x.c.id + ':' + y.x.it.kind : y.k === 'note' ? y.n.id : y.k === 'req' ? (y.r && y.r.id) : (y.w && y.w.id) + (y.hit ? ':' + y.hit.cid : '');
     you.push({ g: 'you', key: y.k + ':' + id, kind: ndKindOf(y), y, n: 1, late: y.urgent ? 1 : 0, age: ndAgeOf(y) });
   });
   const S = cnSetup(), R0 = cnCompany();
@@ -894,6 +898,17 @@ function ndParts(r){
     P.who = who;
     P.when = r.age != null ? days(r.age) : '';
     P.btn = 'answer';
+    return P;
+  }
+  if (y.k === 'watch' && y.hit){
+    /* a hit of an alert on a question: what happened, the contract and its party, when it arrived; its words ride as the
+       row's quote (cn2QuoteOf); Open lands on the contract (watchHitGo) */
+    const w = y.w || {}, h = y.hit, c = (typeof getContract === 'function') ? getContract(h.cid) : null;
+    P.title = (typeof amwHitTitle === 'function') ? amwHitTitle(h) : '';
+    P.deal = [c ? _ndName(c) : '', c ? String(c.counterparty || '').trim() : '', typeof amwArrived === 'function' ? amwArrived(h.at) : ''].filter(Boolean).join(' · ');
+    P.tag = (typeof amwTagWords === 'function') ? amwTagWords(w) : '';
+    P.btn = 'open';
+    if (c){ P.name = _ndName(c); P.party = String(c.counterparty || '').trim(); P.ref = (typeof refHtml === 'function') ? refHtml(c) : ''; }
     return P;
   }
   if (y.k === 'watch'){
@@ -1048,13 +1063,23 @@ function ndBellNlHtml(D){
     return `<div class="ndb-r${tint || (P.good ? ' nd-good' : '')}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}" data-ndb-g="${g}"><i class="ndb-dot is-${P.good ? 'good' : g}" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(title)}</b>${sub ? `<span>${_cnE(sub)}</span>` : ''}${quote ? `<span class="ndb-q">${quote}</span>` : ''}${why ? `<span class="ndb-note">${_cnE(why)}</span>` : ''}</div>`
       + `<div class="ndb-e">${P.when ? `<span class="ndb-when${P.late || g === 'late' ? ' is-late' : ''}">${_cnE(P.when)}</span>` : ''}<button type="button" class="ui-btn ui-btn-sm ndb-open" ${P.attrs}${P.tip ? ` title="${_cnE(P.tip)}"` : ''}>${_cnE(_cnT('nd_btn_' + ndbBtnOf(P.btn, g)))}</button></div></div>`; };
   const newsRow = (a, i) => `<button type="button" class="ndb-r is-news${ndTintOf(a)}" data-alert-i="${i}" data-alert-kind="${_cnE(a.kind || '')}"><i class="ndb-dot is-news" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(a.text || '')}</b>${(a.sub || a.name) ? `<span>${_cnE([a.name, a.sub].filter(Boolean).join(' \u00b7 '))}</span>` : ''}</div></button>`;
+  /* YOUR ALERTS (Alert me when, as drawn): each hit of an alert on a question, first, under its own head — a red dot,
+     what happened, the contract and its party, the paper's words with their §, the tag that opens the alert's page and
+     Open that lands on the contract. Counted in All (the one desk's count), never in Your move. */
+  const isHit = x => !!(x.r.y && x.r.y.k === 'watch' && x.r.y.hit);
+  const hitRows = L.filter(isHit);
+  if (hitRows.length){ n.you = Math.max(0, n.you - hitRows.length); }
+  const hitRow = x => { const r = x.r, P = ndParts(r), quote = cn2QuoteHtml(r).replace(/^ · /, ''), w = r.y.w;
+    return `<div class="ndb-r ndb-amw" data-nd-row="${_cnE(r.key)}" data-ndb-g="alerts"><i class="ndb-dot is-late" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(P.title)}</b>${P.deal ? `<span>${_cnE(P.deal)}</span>` : ''}${quote ? `<span class="ndb-q">${quote}</span>` : ''}${P.tag ? `<button type="button" class="ndb-amw-tag" data-cn-amw="${_cnE(String(w.id))}">${_cnE(P.tag)}</button>` : ''}</div>`
+      + `<div class="ndb-e"><button type="button" class="ui-link ndb-amw-open" ${P.attrs}>${_cnE(_cnT('nd_btn_open'))}</button></div></div>`; };
+  const alertsHtml = hitRows.length && _ndbChip === 'all' ? `<div class="ndb-h" data-ndb-head="alerts">${_cnE(_cnT('amw_bell_head'))}</div>${hitRows.map(hitRow).join('')}` : '';
   const all = L.length;
   const chip = (k, m) => `<button type="button" class="ndb-chip" data-ndb-chip="${k}" aria-pressed="${_ndbChip === k}">${_cnE(_cnT('ndb_chip_' + k))} <span>${m}</span></button>`;
   const head = all ? `<div class="ndb-chips" role="group" aria-label="${_cnE(_cnT('ap_scope_you'))}">${chip('all', all)}${['late', 'you', 'jambo'].filter(k => n[k]).map(k => chip(k, n[k])).join('')}</div>`
     + `<div class="ndb-bar" aria-hidden="true">${['late', 'you', 'jambo'].filter(k => n[k]).map(k => `<i class="is-${k}" style="flex:${n[k]}"></i>`).join('')}</div>`
     + `<div class="ndb-legend">${['late', 'you', 'jambo'].filter(k => n[k]).map(k => `<span><i class="is-${k}" aria-hidden="true"></i>${_cnE(_cnTn('ndb_leg_' + k, n[k], { n: n[k] }))}</span>`).join('')}</div>` : '';
   /* on All each row stands once, in its group; the Jambo chip lists every piece he prepared, as its count says */
-  const groups = NDB_GROUPS.filter(([g]) => _ndbChip === 'all' || _ndbChip === g).map(([g, ks]) => { const G = L.filter(x => (_ndbChip === 'jambo' && g === 'jambo') ? x.r.g === 'jambo' : ks.includes(x.k));
+  const groups = alertsHtml + NDB_GROUPS.filter(([g]) => _ndbChip === 'all' || _ndbChip === g).map(([g, ks]) => { const G = L.filter(x => !isHit(x) && ((_ndbChip === 'jambo' && g === 'jambo') ? x.r.g === 'jambo' : ks.includes(x.k)));
     return G.length ? `<div class="ndb-h" data-ndb-head="${g}">${_cnE(_cnT('ndb_g_' + g))}</div>${G.map(row).join('')}` : ''; }).join('');
   return `<div class="ndb">${all ? head + groups : `<p class="ndb-none">${_cnE(_cnT('ap_nothing_needs_you'))}</p>`}`
     + (news.length && _ndbChip === 'all' ? `<div class="ndb-h">${_cnE(_cnT('ndb_news'))}</div>${news.map(newsRow).join('')}` : '') + `</div>`;
@@ -1252,6 +1277,7 @@ function cn2QuoteOf(r){
     if (a.kind === 'renewal' && !a.ends) return term(c);
     return [];
   }
+  if (r && r.y && r.y.k === 'watch' && r.y.hit){ const h = r.y.hit; return h.quote ? [{ sec: secOf(h.clause), w: clean(h.quote) }] : []; }
   const y = r && r.y, x = y && y.x, c = x && x.c, it = x && x.it; if (!c || !it) return [];
   if (it.kind === 'quiet'){
     return (Array.isArray(c.changes) ? c.changes : []).filter(ch => ch && ch.authorSide === 'counterparty' && ch.status === 'pending' && ch.newText).slice(0, 2)
@@ -1313,6 +1339,7 @@ function ndRowGo(key){
   const y = r.y;
   if (!y) return ndOpenBoard('all', key);
   if (y.k === 'note'){ if (typeof myNotesOpen === 'function') myNotesOpen(y.n.id); cnLand('[data-mn-row="' + cnSel(y.n.id) + '"]', 'cn_land_note_gone'); return true; }
+  if (y.k === 'watch' && y.hit){ if (typeof watchHitGo === 'function') watchHitGo(String((y.w && y.w.id) || ''), String(y.hit.cid)); return true; }
   if (y.k === 'watch'){ if (typeof watchGo === 'function') watchGo(String((y.w && y.w.id) || '')); return true; }
   if (y.k === 'req'){ const id = String((y.r && y.r.id) || ''); if (typeof intakeGoTo === 'function') intakeGoTo(id); cnLand('[data-ik-row="' + cnSel(id) + '"]', 'cn_land_req_gone'); return true; }
   if (y.x && y.x.c && typeof hbNeedsPress === 'function') return hbNeedsPress(y.x.it.kind, y.x.c.id);
@@ -1362,10 +1389,13 @@ if (typeof document !== 'undefined' && !window._cnWired){
     if ((el = t.closest('[data-nd-more]'))){ _nd = { ..._nd, more: (_nd.more || 0) + 1 }; ndRowsRepaint(); return; }
     /* a row of your move on the Board's card or in the bell's panel presses its own door (Home is gone, 10 Nov 2026) */
     if (!t.closest('#hm-agents.nd-card') && !inPanel) return;
-    if (inPanel && t.closest('[data-cn-note],[data-cn-watch],[data-cn-req],[data-cn-need],[data-cn-setup],[data-cn-co]')) step();
+    if (inPanel && t.closest('[data-cn-note],[data-cn-watch],[data-cn-req],[data-cn-need],[data-cn-setup],[data-cn-co]') && !t.closest('[data-cn-amw]')) step();
     /* a note of yours and a request nobody holds: their own pages, landing ON
        the row (LAND ON IT — My notes' row, Requests' row), lit */
     if ((el = t.closest('[data-cn-note]'))){ const id = el.getAttribute('data-cn-note'); if (typeof myNotesOpen === 'function') myNotesOpen(id); cnLand('[data-mn-row="' + cnSel(id) + '"]', 'cn_land_note_gone'); return; }
+    /* an alert's own tag opens the alert's page; its Open lands on the contract that set it off */
+    if ((el = t.closest('[data-cn-amw]'))){ if (inPanel) step(); if (typeof amwPageOpen === 'function') amwPageOpen(el.getAttribute('data-cn-amw')); return; }
+    if ((el = t.closest('[data-cn-watch][data-cn-hit]'))){ if (typeof watchHitGo === 'function') watchHitGo(el.getAttribute('data-cn-watch'), el.getAttribute('data-cn-hit')); return; }
     if ((el = t.closest('[data-cn-watch]'))){ if (typeof watchGo === 'function') watchGo(el.getAttribute('data-cn-watch')); return; }
     if ((el = t.closest('[data-cn-req]'))){ const id = el.getAttribute('data-cn-req'); if (typeof intakeGoTo === 'function') intakeGoTo(id); cnLand('[data-ik-row="' + cnSel(id) + '"]', 'cn_land_req_gone'); return; }
     if ((el = t.closest('[data-cn-need]'))){ if (typeof hbNeedsPress === 'function') hbNeedsPress(el.getAttribute('data-cn-need'), el.getAttribute('data-cn-id')); return; }

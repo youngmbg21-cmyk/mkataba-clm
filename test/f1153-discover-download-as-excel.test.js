@@ -64,9 +64,14 @@ test('f1153 (2)+(3) the book holds the parts Excel needs, the header in bold and
   assert.match(parts['xl/styles.xml'], /<font><b\/>/);
 });
 
-test('f1153 (4) both Discover tables draw Download beside Export, and Copy and Download read one table', () => {
-  assert.match(RD, /data-dsn-copy>[^<]*<\/button><button type="button" class="rfp-pill" data-dsn-xlsx>/, 'the results head: Export, then Download as Excel');
-  assert.match(RD, /data-rdt-copy>[^]*?<\/button><button type="button" class="ui-btn ui-btn-sm" data-rdt-xlsx>/, 'the read table: Copy, then Download as Excel');
+test('f1153 (4) both Discover tables draw ONE Export menu holding Copy and Download, and both read one table (Alert me when, 23 Nov 2026)', () => {
+  const xm = fnOf(RD, 'dsnExportHtml');
+  assert.match(xm, /data-\$\{k\}-copy/, 'the menu holds Copy the table');
+  assert.match(xm, /data-\$\{k\}-xlsx/, 'the menu holds Download as Excel');
+  assert.match(xm, /role="menu"/);
+  assert.match(RD, /\$\{dsnExportHtml\('dsn'\)\}\$\{dsnAlertBtnHtml\(r\.askIds\)\}/, 'the results head: Export ▾, then Alert me when where Download stood');
+  assert.match(RD, /\$\{dsnExportHtml\('rdt'\)\}\$\{dsnAlertBtnHtml\(r\.askIds, 'rdt'\)\}/, 'the read table: the same menu');
+  assert.doesNotMatch(RD, /class="(rfp-pill|ui-btn ui-btn-sm)" data-(dsn|rdt)-xlsx>/, 'no separate Download as Excel button stands anywhere');
   assert.match(RD, /closest\('\[data-dsn-xlsx\]'\)[^\n]*askColXlsx\(r\.askIds, S\.list\.map/, 'the results press writes the rows shown');
   assert.match(fnOf(AC, 'askColCopyMany'), /askColTableOf\(askIds, only\)/, 'Copy reads the one table');
   assert.match(fnOf(AC, 'askColXlsx'), /askColTableOf\(askIds, only\)/, 'Download reads the same table');
