@@ -9801,7 +9801,7 @@ app.post('/api/ai/obligations', auth, editor, rlAiDeep, aiFeature('obligations')
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { text, ours, theirs } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
-  const side = (typeof ours === 'string' && ours.trim()) ? `\n\n"Us" is ${ours.trim().slice(0, 120)}${typeof theirs === 'string' && theirs.trim() ? '; "them" is ' + theirs.trim().slice(0, 120) : ''}.` : '';
+  const side = (typeof ours === 'string' && ours.trim()) ? `\n\n"Us" is ${ours.trim().slice(0, 120)}${typeof theirs === 'string' && theirs.trim() ? '; "them" is ' + theirs.trim().slice(0, 120) : ''}. A contract often gives a party a SHORT NAME near its start (for example "AIT", "the Supplier", "the Customer") and uses it from then on: that short name IS the same party, so a duty on it is that party's, and is said as us or them, never unsure.` : '';
   const tool = {
     name: 'list_obligations',
     description: 'List the ongoing obligations the contract places on either party.',
