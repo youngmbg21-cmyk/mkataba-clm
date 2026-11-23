@@ -25442,6 +25442,71 @@
   .tb-del-l i{width:7px;height:7px;border-radius:50%;flex:none}
   html.lg-new .lgp .lgp-go.is-danger, .lgp .lgp-go.is-danger{background:var(--danger);border-color:var(--danger);color:var(--color-surface)}
   html.lg-new .lgp .lgp-go.is-danger:hover, .lgp .lgp-go.is-danger:hover{background:var(--danger-hover);border-color:var(--danger-hover)}
+  /* JAMBO'S PANEL IN THE BUILDER, LEGORA + STRIPE (as drawn, 23 Nov 2026): soft badges, a progress bar, chips with their
+     counts over one calm table, a ring on Playbook, no grey box anywhere; Jambo's draft a quoted run on a thin green line */
+  #tb-page .tb-bdg{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:var(--w-label);white-space:nowrap}
+  #tb-page .tb-bdg i{width:6px;height:6px;border-radius:50%;flex:none}
+  #tb-page .tb-bdg.is-green{background:var(--st-green-bg);color:var(--st-green-fg)} #tb-page .tb-bdg.is-green i{background:var(--st-green-dot)}
+  #tb-page .tb-bdg.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)} #tb-page .tb-bdg.is-amber i{background:var(--st-amber-dot)}
+  #tb-page .tb-bdg.is-violet{background:var(--st-violet-bg);color:var(--st-violet-fg)} #tb-page .tb-bdg.is-violet i{background:var(--st-violet-dot)}
+  #tb-page .tb-bdg.is-gray{background:var(--st-gray-bg);color:var(--st-gray-fg)} #tb-page .tb-bdg.is-gray i{background:var(--st-gray-dot)}
+  #tb-page .tb-prog{display:flex;flex-direction:column;gap:6px;margin:4px var(--s-4) var(--s-3)}
+  #tb-page .tb-olist .tb-prog{margin:var(--s-3) 0}
+  #tb-page .tb-prog-b{height:6px;border-radius:3px;background:var(--color-divider);display:flex;overflow:hidden}
+  #tb-page .tb-prog-b i{display:block;height:100%;background:var(--st-green-dot)}
+  #tb-page .tb-prog-b i.is-w{background:var(--st-gray-dot)} #tb-page .tb-prog-b i.is-d{background:var(--st-violet-dot)}
+  #tb-page .tb-prog-l{display:flex;justify-content:space-between;gap:var(--s-3);font-size:12px;color:var(--color-quiet)}
+  #tb-page .tb-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  #tb-page .tb-dot.is-w{background:var(--st-gray-dot)} #tb-page .tb-dot.is-d{background:var(--st-violet-dot)}
+  #tb-page .tb-olist{border-left:0;padding-left:0}
+  #tb-page .tb-again{margin-left:4px;font-size:var(--t-label)}
+  #tb-page .tb-olt{width:100%;border-collapse:collapse;font-size:var(--t-label)}
+  #tb-page .tb-olt th{font-weight:var(--w-label);color:var(--color-quiet);font-size:12px;text-align:left;padding:6px 8px;border-bottom:1px solid var(--color-divider);white-space:nowrap}
+  #tb-page .tb-olt th.r{text-align:right}
+  #tb-page .tb-olt td{padding:8px;border-bottom:1px solid var(--color-divider);vertical-align:top}
+  #tb-page .tb-olt tr[data-tb-ol], #tb-page .tb-olt tr[data-tb-ol-prop], #tb-page .tb-olt tr.is-press{cursor:pointer}
+  #tb-page .tb-olt tbody tr:hover > td{background:var(--row-hover)}
+  #tb-page .tb-olt tr.is-sel > td{background:var(--row-chosen)}
+  #tb-page .tb-olt tr.is-off .tb-olt-h{color:var(--color-neutral-400);text-decoration:line-through}
+  #tb-page .tb-olt-k{width:22px} #tb-page .tb-olt-k input{margin-top:2px;accent-color:var(--accent-fill)}
+  #tb-page .tb-olt-n{width:26px;color:var(--color-quiet);font-variant-numeric:tabular-nums}
+  #tb-page .tb-olt-s{text-align:right;width:1%;white-space:nowrap}
+  #tb-page .tb-olt-h{border:0;background:none;padding:0;font:inherit;color:var(--color-text);text-align:left;cursor:pointer}
+  #tb-page .tb-olt-o{color:var(--color-quiet)}
+  #tb-page .tb-olt-i{display:block;margin-top:2px;color:var(--color-quiet);font-size:12.5px;font-style:italic}
+  #tb-page .tb-olt-r{display:block;margin-top:2px;color:var(--color-quiet);font-size:12.5px}
+  #tb-page .tb-olt-act{margin-top:6px}
+  #tb-page .tb-chiprow{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 var(--s-3)}
+  #tb-page .tb-chip{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--color-divider);background:var(--color-surface);font:inherit;font-size:13px;color:var(--color-quiet);cursor:pointer;white-space:nowrap}
+  #tb-page .tb-chip b{font-weight:var(--w-label);color:var(--color-text)}
+  #tb-page .tb-chip.is-on{background:var(--filter-on-bg);border-color:var(--filter-on-edge);color:var(--filter-on-ink)} #tb-page .tb-chip.is-on b{color:var(--filter-on-ink)}
+  #tb-page .tb-ol-line{display:flex;gap:8px;flex-wrap:wrap;margin:var(--s-3) 0 0;font-size:var(--t-label)}
+  #tb-page .tb-ol-line .q{color:var(--color-quiet)} #tb-page .tb-ol-line .q + .q, #tb-page .tb-ol-line .q:nth-of-type(2){margin-left:10px}
+  #tb-page .tb-ringrow{display:flex;align-items:center;gap:var(--s-3);margin:0 0 var(--s-3)}
+  #tb-page .tb-ringrow b{display:block;font-weight:var(--w-strong)} #tb-page .tb-ringrow .q{display:block;font-size:12.5px;color:var(--color-quiet)}
+  #tb-page .tb-ring text{font-family:var(--font-body)}
+  #tb-page .tb-small{margin:var(--s-3) 0 0;font-size:12.5px;color:var(--color-quiet);line-height:1.5}
+  #tb-page .tb-olfoot{display:flex;align-items:center;gap:var(--s-2);padding:var(--s-3) var(--s-4);border-top:1px solid var(--color-divider)}
+  #tb-page .tb-olfoot .sp{flex:1}
+  html.lg-new #tb-page .tb-railfoot{flex-wrap:wrap;row-gap:6px}
+  #tb-page .tb-skipl{border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
+  #tb-page .tb-ghost{display:flex;flex-direction:column;gap:var(--s-4)}
+  #tb-page .tb-ghost .tb-empty-line{margin:0 0 var(--s-2)}
+  #tb-page .tb-ghost-s b{display:block;font-weight:var(--w-strong);color:var(--color-neutral-400)}
+  #tb-page .tb-ghost-s span{display:block;font-style:italic;color:var(--color-neutral-400);opacity:.8}
+  #tb-page .tb-blacts{display:inline-flex;gap:4px} #tb-page .tb-blacts button{border:0;background:none;padding:2px 4px;font:inherit;font-size:12.5px;color:var(--accent-ink);cursor:pointer}
+  #tb-page .tb-blacts button.x{color:var(--color-quiet)}
+  #tb-page .tb-bladd{margin-top:var(--s-3)}
+  #tb-page .tb-bladd .ui-link, #tb-page .tb-again.ui-link{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);cursor:pointer}
+  html.lg-new #tb-page .tb-secpick.is-named .sp{flex:1}
+  html.lg-new #tb-page .tb-secpick.is-named{align-items:center}
+  /* what it must settle: three label-beside lines, no grey box */
+  html.lg-new #tb-page .tb-ctx{background:none;padding:0 0 var(--s-3);border-radius:0;border-bottom:1px solid var(--color-divider);grid-template-columns:118px minmax(0,1fr)}
+  html.lg-new #tb-page .tb-ctx dt{font-weight:var(--w-body);color:var(--color-quiet)}
+  /* Jambo's draft: his words quoted on a thin green line, the badge violet, no read count said */
+  html.lg-new #tb-page .tb-card.tb-sug{border-left-color:var(--st-green-line)}
+  html.lg-new #tb-page .tb-card.tb-sug .chip.ai{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  html.lg-new #tb-page .tb-card .av .cost{display:none}
   /* SETTINGS' OTHER PAGES (owner, 9 Nov 2026, the Settings menu's fix: People & roles, Contract streams, Data & backup
      and every page in the older Settings frame, .st-cr): one white sheet like Settings itself — no well, no corner, no
      lift; its parts are rows, a hairline under each */
