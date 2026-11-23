@@ -53,8 +53,23 @@ const INS_LATEST = 3;
    layout). null means "measure". Never stored. */
 let _insForce = null;
 function insForce(v){ _insForce = (v === true || v === false) ? v : null; }
+/* A NARROW WINDOW KEEPS TODAY'S DESIGN (owner, 23 Nov 2026, on photos of Settings, Negotiations, Jambo's agents and Our
+   paper falling back to their old pages at 980 wide: "do all three and merge"): from INS_NARROW_MIN up to INS_MIN_W the
+   page is drawn as on a wide window and Jambo's panel stands FOLDED to its strip (jlFolded, never stored); pressed, it
+   opens OVER the page (is-narrow-over, the slider's own is-split-over with --jl-room the strip's width) and Esc or a
+   press outside folds it again. Below INS_NARROW_MIN the page is the phone's or the old narrow one, as before. */
+const INS_NARROW_MIN = 720;
+function insRoom(){
+  const el = (typeof document !== 'undefined') ? document.getElementById('content') : null;
+  return el ? el.clientWidth + jlReserved() : 0;
+}
+function insNarrow(){
+  if (_insForce !== null) return false;
+  const w = insRoom(); return w >= INS_NARROW_MIN && w < INS_MIN_W;
+}
 function insFits(){
   if (_insForce !== null) return _insForce;
+  if (insNarrow()) return true;
   const el = (typeof document !== 'undefined') ? document.getElementById('content') : null;
   /* JAMBO'S PANEL STANDS OUTSIDE THE PAGE (18 Oct 2026): at the window's right
      edge, the page beside it narrowed by its width — so the room the list and
@@ -1103,11 +1118,30 @@ function insWatchWidth(){
 const JL_W = 384, JL_FOLDED = 46;   /* THE BRIEF (21 Oct 2026): 48 x 8; was 380 */
 const JL_FOLD_KEY = 'hati.v1.jlFold';
 let _jlFold = null;
+let _jlNarrowOpen = false;   /* opened over the page on a narrow window, this sitting only */
 function jlFolded(){
   if (_jlFold === null){ try { _jlFold = localStorage.getItem(JL_FOLD_KEY) === '1'; } catch (_){ _jlFold = false; } }
+  if (insNarrow()) return !_jlNarrowOpen;
   return !!_jlFold;
 }
+/* THE ONE WRITER of the narrow window's panel: folded to its strip, or open over the page; on a wide window it lets go
+   of both and the reader's own fold stands */
+function jlNarrowApply(h){
+  const host = h || jlHost(), sh = jlShell(); if (!host || !sh) return;
+  const over = !!host.classList.contains('is-narrow-over');
+  if (insNarrow()){
+    host.classList.toggle('is-folded', !_jlNarrowOpen);
+    host.classList.toggle('is-narrow-over', _jlNarrowOpen);
+    host.classList.toggle('is-split-over', _jlNarrowOpen);
+    if (_jlNarrowOpen) sh.style.setProperty('--jl-room', JL_FOLDED + 'px'); else sh.style.removeProperty('--jl-room');
+    const door = host.querySelector('[data-jl-door]'); if (door) door.setAttribute('aria-expanded', String(_jlNarrowOpen));
+  } else if (over || host.classList.contains('is-folded') !== !!_jlFold){
+    host.classList.remove('is-narrow-over', 'is-split-over'); sh.style.removeProperty('--jl-room');
+    host.classList.toggle('is-folded', !!_jlFold);
+  }
+}
 function jlFoldSet(on){
+  if (insNarrow()){ _jlNarrowOpen = !on; jlNarrowApply(); jlLayout(); return; }
   _jlFold = !!on;
   try { if (on) localStorage.setItem(JL_FOLD_KEY, '1'); else localStorage.removeItem(JL_FOLD_KEY); } catch (_){}
   const host = jlHost(); if (host) host.classList.toggle('is-folded', !!on);
@@ -1214,7 +1248,7 @@ const JL_SPLIT = {
   edge: () => { const h = jlHost(); return h ? h.getBoundingClientRect().right : 0; },
   /* THE ONE WRITER of the width: folded, the strip is the stylesheet's 46 and the open width is kept */
   apply: (w, over) => { const sh = jlShell(); const h = jlHost();
-    if (!sh || !h || h.classList.contains('is-folded')) return;
+    if (!sh || !h || h.classList.contains('is-folded') || h.classList.contains('is-narrow-over')) return;
     sh.style.setProperty('--jl-w', Math.round(w) + 'px');
     /* past the mark the page's room stops at the panel's seam less what lies over it (splitOver) */
     sh.style.setProperty('--jl-room', Math.round(w - (over || 0)) + 'px'); h.classList.toggle('is-split-over', !!over);
@@ -1226,6 +1260,7 @@ const JL_SPLIT = {
    and the divider's one pass (the width, the grip at the seam or stood down) */
 function jlLayout(){
   const h = jlHost(); if (!h) return;
+  jlNarrowApply();
   const ph = document.getElementById('page-head');
   let top = 0; try { top = ph ? Math.round(ph.getBoundingClientRect().top) : 0; } catch (_){ top = 0; }
   if (top > 0) h.style.setProperty('--jl-top', top + 'px');
@@ -1312,7 +1347,10 @@ function jlPagePh(opt){
 }
 function jlFrame(host, opt){
   host.classList.add('is-jambo');
+  /* a page arrives with the narrow window's panel folded: opening it over one page does not open it over the next */
+  if (!host.querySelector(':scope > .jl-body')) _jlNarrowOpen = false;
   host.classList.toggle('is-folded', jlFolded());
+  jlNarrowApply(host);
   let body = host.querySelector(':scope > .jl-body');
   if (!body){
     /* THE SLIDER's grip (splitHtml, the one builder, 19 Oct 2026) stands in
@@ -1931,6 +1969,13 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined' && !window.
     if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); jlPopClose(); }
   });
   window.addEventListener('resize', () => { try { jlLayout(); } catch (_){} });
+  /* open over the page on a narrow window: Esc, or a press on the page outside it, folds it again */
+  document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; const h = jlHost(); if (!h || !h.classList.contains('is-narrow-over')) return;
+    /* a pop-up open over it answers its own Esc first */
+    if (typeof document.querySelector === 'function' && document.querySelector('#modal-root > *, .lgp, [aria-modal="true"]')) return;
+    e.preventDefault(); e.stopPropagation(); jlFoldSet(true); }, true);
+  document.addEventListener('pointerdown', e => { const h = jlHost(); if (!h || !h.classList.contains('is-narrow-over')) return;
+    const t = e.target && e.target.closest ? e.target : null; if (!t || h.contains(t) || !t.closest('#content')) return; jlFoldSet(true); }, true);
 }
 
 Object.assign(window, { jlPagePh, JL_PAGE_ASKS, INS_MIN_W, INS_ASKS_MAX, INS_LATEST, INS_READ_TONE,
@@ -1939,5 +1984,5 @@ Object.assign(window, { jlPagePh, JL_PAGE_ASKS, INS_MIN_W, INS_ASKS_MAX, INS_LAT
   insHeadHtml, insParties, insPartiesHtml, insNeedsHtml, insNeedsLineHtml, insNeedWords, INS_NEED_VERB, INS_NEED_GO, insPanelHtml, insPanelEmptyHtml, insPaintPanel, insCloseMenu, insMarkRow, insListWire,
   insListOff, insWatchWidth, insActsHtml, insMoreHtml, insDoorActs, insNegoDoorState, insMenuItemHtml, insItemHeadHtml, INS_TONE, insKvHtml, insChipHtml, insViewTabsHtml,
   INS_PAGE_REPAINT, insLetGo, insLetGone, insActBtnHtml, insRowsHtml, JL_READ_ORDER, jlReadsHtml, jlReadSaid,
-  JL_W, JL_FOLDED, JL_MIN, JL_LIST_MIN, JL_FLEX_MIN, JL_SPLIT_KEY, JL_SPLIT, jlListMin, jlWidthNow, jlFolded, jlFoldSet, jlHost, jlOnScreen, jlReserved, jlLayout, jlCount, jlAskHtml, jlFrame, jlHeadPaint, jlWordsHtml, jlNeedsHtml,
+  INS_NARROW_MIN, insRoom, insNarrow, jlNarrowApply, JL_W, JL_FOLDED, JL_MIN, JL_LIST_MIN, JL_FLEX_MIN, JL_SPLIT_KEY, JL_SPLIT, jlListMin, jlWidthNow, jlFolded, jlFoldSet, jlHost, jlOnScreen, jlReserved, jlLayout, jlCount, jlAskHtml, jlFrame, jlHeadPaint, jlWordsHtml, jlNeedsHtml,
   JL_LAND, jlLand, jlPageWord, jlToWords, jlTalkKey, jlTalkLand, jlGreetPut, jlTalkShows, jlTalkHtml, jlTalkPaint, jlTalkOpen, jlTalkPress, jlTalkSync, jlTalkBack, jlHeldContract, jlBoardReads, jlIsQuestion, jlBusySay, jlSayFound, jlSayBoard, jlAsk, jlMapCard, jlFocus, jlPopRead, jlPopClose, jlPopTake, jlDayWord, jlDayRange, jlAwayOf });

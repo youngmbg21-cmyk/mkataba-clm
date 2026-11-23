@@ -1552,6 +1552,11 @@ function _dtpRepaint(){ try { const b = document.querySelector('#dtp [data-dtp-a
   b.disabled = on; if(typeof busySet === 'function') busySet(b, on); } catch (_){} }
 function openDutiesPage(c, found, o){
   o = (o && typeof o === 'object') ? o : {};
+  /* the Dossier still being drawn: the page waits a moment for the middle rather than open as the older pop-up
+     (pdMidSoon, owner 23 Nov 2026); o.midWaited says it has waited once */
+  if (!o.midWaited && typeof window.pdMidSoon === 'function' && typeof window.pdMidMay === 'function' && !window.pdMidMay()
+    && typeof window.pd2On === 'function' && window.pd2On())
+    return window.pdMidSoon(() => openDutiesPage(c, found, Object.assign({}, o, { midWaited: true })));
   const E = _obEsc;
   const may = () => (typeof window.mayActOn !== 'function') || window.mayActOn(c);
   const keep = _dtp && _dtp.cid === String(c.id) ? _dtp : null;

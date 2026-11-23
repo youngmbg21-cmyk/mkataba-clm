@@ -4360,6 +4360,9 @@ function pdWallHelloHtml(){
       const head = O.asked() ? [_pdTn('nao_p_fit', cl.length, { n: cl.length, best: ch || cl[0] || '' }), n ? _pdTn('nao_p_filled', n, { n }) : ''].filter(Boolean).join(' ') : _pdT('nao_p_say');
       return `<div class="pd2-chosen cun-panel nsc-panel"><p class="pd2-ch-head nsc-p-head">${E(head)}</p><p class="nao-src">${E(_pdT('nao_p_src'))}</p><div class="pd2-ch-cap">${E(_pdT('nao_p_after_h'))}</div><p class="nao-after">${E(_pdT('nao_p_after'))}</p></div>`; }
   }
+  /* the sheet is up but none of its hands is set yet (naSheetFive, a moment after openModal): Loading, never the old
+     "what I can do here" panel (owner, 23 Nov 2026: "do all three and merge") */
+  if (typeof naSheetUp === 'function' && naSheetUp() && pd2On()) return pdWaitHtml('pd-sheet-hello');
   if (typeof naSheetUp === 'function' && naSheetUp())
     return ov({ head: { html: _pdE(_pdT('ca_go_draft')) },
       facts: ['ca_go_draft_can1', 'ca_go_draft_can2', 'ca_go_draft_can3'].map(k => ({ html: _pdE(_pdT(k)) })) }, 'pd-sheet-hello');
@@ -4475,18 +4478,22 @@ function pdDropPaint(){
    discover features. Also remove the Ask me details" and "the card no longer sits on a panel"): his one line first,
    Discover under it, the list's facts under Discover, no "Ask me"; the drop card is a pop-up (pdDropDoor) */
 let _pdWallWait = { since: 0, last: 0 };
-function pdWallHtml(disc){
-  if (typeof naSheetUp === 'function' && naSheetUp()) return `<div class="pd-wall">${pdWallHelloHtml()}${disc || ''}</div>`;
-  /* NOTHING ELSE TO SAY YET (the old whole-book panel deleted, 23 Nov 2026): the list or folders it waits for are a moment
-     away, so it says Loading and looks again shortly (WHEN SOMETHING LOADS, SOMETHING MOVES); after PD_WALL_WAIT_MS with
-     nothing come, it stops saying so and stands empty, the ask box below it — never a promise it cannot keep */
+/* WHAT STANDS IN WHILE THE RIGHT PANEL IS A MOMENT AWAY (the old whole-book panel deleted, 23 Nov 2026; then the sheet's
+   old "what I can do here" panel, the same day): it says Loading and asks the panel to draw again shortly (WHEN SOMETHING
+   LOADS, SOMETHING MOVES); after PD_WALL_WAIT_MS with nothing come, it stops saying so and stands empty, the ask box
+   below it — never a promise it cannot keep, never an older design */
+function pdWaitHtml(cls){
   const now = Date.now();
   if (now - _pdWallWait.last > PD_WALL_WAIT_MS * 2) _pdWallWait.since = now;
   _pdWallWait.last = now;
-  if (now - _pdWallWait.since > PD_WALL_WAIT_MS) return '<div class="pd-wall"></div>';
+  if (now - _pdWallWait.since > PD_WALL_WAIT_MS) return `<div class="${cls}"></div>`;
   if (typeof setTimeout === 'function') setTimeout(() => { try { if (typeof window.renderIntelDock === 'function') window.renderIntelDock(); } catch (_){ /* the next paint draws it */ } }, 300);
   const w = _pdT('loading');
-  return `<div class="pd-wall is-wait" aria-busy="true">${(typeof busyHtml === 'function') ? busyHtml(w) : _pdE(w)}</div>`;
+  return `<div class="${cls} is-wait" aria-busy="true">${(typeof busyHtml === 'function') ? busyHtml(w) : _pdE(w)}</div>`;
+}
+function pdWallHtml(disc){
+  if (typeof naSheetUp === 'function' && naSheetUp()) return `<div class="pd-wall">${pdWallHelloHtml()}${disc || ''}</div>`;
+  return pdWaitHtml('pd-wall');
 }
 const PD_WALL_WAIT_MS = 4000;
 /* THE FILE PICKER: one input, kept outside the panel (the panel is redrawn
@@ -5545,6 +5552,8 @@ function pdFormOpen(id){
   /* THE NEW LOOK (the contract round, part 3b, as drawn): the form stands IN THE MIDDLE where the paper was, laid flat;
      the Dossier stays beside it and says what is typed. Same rows, same boxes, same one Save (#pd-og.is-form). */
   if (pd2On() && pdMidMay()) return pd2FormMidOpen(c);
+  /* the Dossier still being drawn: wait for the middle a moment rather than open the form in the panel's tab */
+  if (pd2On() && !pdFormOpen._waited){ return pdMidSoon(ok => { pdFormOpen._waited = !ok; try { pdFormOpen(id); } finally { pdFormOpen._waited = false; } }); }
   /* the rows it opened with stay until it is put away (pdFormClose): a spot pressed on the paper, which opens the
      paper again on its way here, keeps the form as it stands */
   if (_pdTab !== 'form') pdSetTab('form');
@@ -7234,6 +7243,21 @@ function pdJwSay(c, r){
    the line that opened it pressed again. Nothing here stores anything. A
    phone, or no Dossier in sight, keeps every door as it was. */
 let _pdMid = null;              // { key } while a page stands in the middle beside the Dossier
+/* THE MIDDLE, A MOMENT AWAY (owner, 23 Nov 2026: "do all three and merge"): a door that opens a page in the middle
+   (Fill in the contract, the Duties page) while the Dossier beside it is still being drawn waits for it — a few short
+   looks, PD_MID_SOON_MS in all — instead of opening the older place (the panel's tab, a pop-up). Where there is no
+   Dossier on the way at all it goes at once (its own place is then the right one). go(true) once the middle stands,
+   go(false) when it never came. */
+const PD_MID_SOON_MS = 1200;
+function pdMidSoon(go){
+  if (pdMidMay()) return go(true);
+  const d = (typeof document !== 'undefined') ? document.querySelector('#ig-dock') : null;
+  if (!d || typeof setTimeout !== 'function' || (typeof deskShellOn === 'function' && !deskShellOn())) return go(false);
+  const t0 = Date.now();
+  const look = () => { if (pdMidMay()) { go(true); return; } if (Date.now() - t0 >= PD_MID_SOON_MS){ go(false); return; } setTimeout(look, 80); };
+  setTimeout(look, 80);
+  return true;
+}
 function pdMidMay(){
   if (typeof document === 'undefined' || typeof openModal !== 'function') return false;
   if (typeof deskShellOn === 'function' && !deskShellOn()) return false;
@@ -7934,6 +7958,13 @@ function pdChosenHtml(c){
   const sub = c._codeNamed ? [ref, stream].filter(Boolean).join(' · ') : [ref, c.counterparty].filter(Boolean).join(' · ');
   /* A DEAL KEPT TO ITS LIST says its rule in the stop's own words, and no
      door it would refuse (codeNameStop) */
+  /* IN TODAY'S FRAME (owner, 23 Nov 2026: "do all three and merge", on a photo of this card beside P-31's): the same
+     frame as every paper chosen on the Wall (regLsFrame), holding ONLY what the wall card already says — its standing
+     badge, its code name, number · stream, and the rule under "Kept to its list"; no Open it, no stages, no dates, no
+     timeline (none of it is the reader's to see); the old card below stays for a reader without the frame */
+  if (c._codeNamed && typeof pd2On === 'function' && pd2On() && typeof regLsFrame === 'function' && typeof regLsBadgeHtml === 'function')
+    return regLsFrame('pd-chosen ctls-chosen is-coded', `id="pd-chosen" data-pd-chosen-for="${id}"`, { badge: regLsBadgeHtml(c), head: c.name || ref, sub: sub,
+      secs: [[_pdT('igw_kept_list'), `<p class="ctls-rule">${_pdE(_pdT('cn_stop', { code: c.name || ref }))}</p>`]] });
   if (c._codeNamed) return `<div id="pd-chosen" class="pd-chosen" data-pd-chosen-for="${id}"><h3 class="pd-ch-name">${_pdE(c.name || ref)}</h3><p class="pd-ch-ref">${_pdE(sub)}</p><dl class="pd-ch-facts">${rows}</dl><p class="pd-ch-rule">${_pdE(_pdT('cn_stop', { code: c.name || ref }))}</p></div>`;
   /* NEEDS YOU: Needs you here's own rows (Jambo's work on it first, then the
      checklist), the details owed among them — no glance stands beside it here */
@@ -11060,7 +11091,7 @@ Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
   PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillMark, pdFillGroupsPaint, pdFillRows, pdFillRowKey, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh,
   pdFillStreamMay, pdFillStreamHtml, pdFillStreamAsk, PD_FF_BOX, pdFillBoxOf, pdFillLabelOf, PD_FF_UNIT, pdFillStdOf, PD_FF_CLAUSE_NUM, pdFillSpotClause, pdFillSpotOf, pdFillExtrasPaint, pdFillStreamRepaint, pdFillStreamPick,
-  PD_DROP_ACCEPT, pdDropMay, pdWallHelloHtml, pdDropInner, pdDropStreams, pdDropStreamNow, pdDropStreamHtml, pdDropHtml, pdDropPaint, pdWallHtml, PD_WALL_WAIT_MS, pdDropInput, pdDropBusyNow, pdDropPick, PD_DROP_TOAST_MS, pdDropToastOff, pdDropTake,
+  PD_DROP_ACCEPT, pdDropMay, pdWallHelloHtml, pdDropInner, pdDropStreams, pdDropStreamNow, pdDropStreamHtml, pdDropHtml, pdDropPaint, pdWallHtml, pdWaitHtml, PD_WALL_WAIT_MS, pdMidSoon, PD_MID_SOON_MS, pdDropInput, pdDropBusyNow, pdDropPick, PD_DROP_TOAST_MS, pdDropToastOff, pdDropTake,
   PD_GLANCE, PD_GL_SUB_MAX, pdGlanceSub, pdGlanceBriefHtml, pdGlanceFootHtml, pdDropImportHtml, pdDropDoor, pdGlanceRows, pdSignAhead, signerOwed, PD_GL_ASKS_MAX, pdTheirAsks, pdAskHeading, pdAskClause, PD_GL_CONTEXT, PD_GL_DAYS_FOR, pdAskParts, pdAskSay, pdGlAgo, pdGlMoveSay, pdGlGoTo, pdNoteRows, pdPartyShort, pdPreparedWhen, pdJwSay, pdAskClausesSay, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, pdJamboPinHtml, pdNeedsRows, pdNeedRowHtml, pdNeedsHtml, pdNeedsRepaint, pdBackHtml, PD_BACK_CLOSE, PD_GL_DONE_MS, pdGlanceDone,
   PD_HELD_CHIPS, pdHolds, pdHeldContract, pdHeadWord, pdAskPlaceholder, pdAskContractId, pdDaysSince, pdAgoWords, pdShortDay, pdStageWords, pdLastMove,
   pdClauseSaid, PD_CH_CLAUSES_MAX, pdTheirAsksRow, pdTheirAsksRowHtml, pdChosenFacts, pdChosenHtml, pdHistGlanceHtml, pdHistChanges, pdHistQuestions, pdNeverShared, pdHistAlso, pdListSay, PD_CG_NAMES_MAX, PD_CG_DET_WORD, pdDetWord, PD_HELD_CHIPS_MAX, PD_HELD_CHIP_WORD, pdHeldOwes, PD_CHIP_CLS, pdHeldChips, pdPanelChipsHtml, pdHeldChipsHtml, pdHeldGo, pdHeldOpen, PD_HELD_LAND, PD_HELD_LAND_TRIES, PD_HELD_LAND_STILL, pdHeldLand, pdHeldSig, pdHeldTopHtml });
