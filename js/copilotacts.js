@@ -1531,13 +1531,15 @@ function caNextSteps(c){
   /* DOSSIER L+S (22 Nov 2026): on the new look Amend is the Dossier card's own button on a signed agreement, so it leaves
      the links above Jambo's box (one door, where the eye lands) */
   const amendHere = !(typeof window.newLookOn === 'function' && newLookOn() && !face);
-  const ladder = executed ? (amendHere ? ['oblig', 'amend', 'history'] : ['oblig', 'history'])
+  /* ONE DOOR TO DUTIES (owner, 23 Nov 2026, "Duties, end to end"): a contract's duties open from the Dossier's Duties card
+     alone, so "obligations" leaves the links above Jambo's box */
+  const ladder = executed ? (amendHere ? ['amend', 'history'] : ['history'])
     : face === 'red' ? ['edit', 'sign', 'share']
     : ['redline', 'share', 'sign'];
   const owed = executed ? [] : caOwedSteps(c);
   const covered = new Set(owed.map(k => CA_OWED_FOR[k]).filter(Boolean));
   if (!executed && caSignerOwed(c)) covered.add('sign');
-  return owed.concat(ladder, ['history', 'oblig', 'share'])
+  return owed.concat(ladder, ['history', 'share'])
     .filter((k, i, all) => all.indexOf(k) === i && k !== here && CA_OWED_FOR[k] !== here && !covered.has(k) && !caChipShut(c, k))
     .slice(0, CA_NEXT_MAX);
 }
@@ -1678,7 +1680,9 @@ async function caSelPick(c, act, text, clauseId){
   }
   if (act.id === 'oblig'){
     if (typeof canEdit === 'function' && !canEdit()){ if (typeof toast === 'function') toast(_caT('ca_send_viewer'), 'err'); return; }
-    if (typeof openObligationForm === 'function') openObligationForm(c, { desc: quote, due: '', recurring: 'none', assignee: '', quote, amount: '' });
+    /* the selected words become a duty of your own, in the one sheet over the contract's Duties page (owner, 23 Nov 2026) */
+    if (typeof window.dutiesOpen === 'function') window.dutiesOpen(c, { own: { desc: quote, quote } });
+    else if (typeof openObligationForm === 'function') openObligationForm(c, { desc: quote, due: '', recurring: 'none', assignee: '', quote, amount: '' });
     return;
   }
   /* a private note is anybody's to write, a viewer's too */

@@ -159,14 +159,14 @@ describe('f707 (9) Spine: the Redlines tab and the Obligations panel', () => {
     assert.ok(!/aria-disabled/.test(live), 'live where the door is open');
     assert.deepEqual([...live.matchAll(/data-pd-tab="(\w+)"/g)].map(m => m[1]), ['copilot', 'doc', 'red'], 'no Obligations tab');
   });
-  test('9b the Obligations list: its own panel, the Dossier tab lit, one back to the Dossier', () => {
+  /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end"): the hidden Obligations panel is gone — pdObOpen opens the
+     contract's Duties page in the middle (dutiesOpen) and the panel stays on the Dossier */
+  test('9b the Obligations door opens the Duties page; the panel never turns to a hidden list', () => {
     const { ctx } = pdStage({ obligations: OBS });
+    const asked = []; ctx.window.dutiesOpen = (c, o) => { asked.push(o && o.tab); return true; };
     ctx.pdObOpen();
-    assert.equal(ctx.pdTab(), 'oblig');
+    assert.notEqual(ctx.pdTab(), 'oblig');
     assert.match(ctx.pdHeadHtml(''), /class="pd-tab on" data-pd-tab="copilot"/);
-    const t = ctx.pdTrail();
-    assert.equal(t.back, 'oblig'); assert.deepEqual([...t.path], ['pd_tab_dossier', 'tab_obligations']);
-    assert.equal(ctx.pdTrailBack(), true);
-    assert.equal(ctx.pdTab(), 'copilot');
+    assert.deepEqual(asked, ['on'], 'the Duties page, on the contract\'s own list');
   });
 });

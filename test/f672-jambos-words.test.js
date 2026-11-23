@@ -242,7 +242,8 @@ describe('f672 (4) the chips lead with the checklist', () => {
     const s = stage(); const asked = [];
     s.ctx.negoMayStart = c => { asked.push(c && c.id); return { ok: false, why: 'sealed' }; };
     const L = s.ctx.caPaperChips();
-    assert.deepEqual(J(L.map(x => x.k)), ['share', 'sign', 'history', 'oblig']);
+    /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end"): a contract's duties open from the Dossier's Duties card alone; "obligations" left the chips */ 
+    assert.deepEqual(J(L.map(x => x.k)), ['share', 'sign', 'history']);
     assert.ok(asked.every(id => id === 'MK-9') && asked.length >= 1, 'asked of the contract on the paper');
     const t = stage({ need: ['quiet'] }); t.ctx.negoMayStart = () => ({ ok: false, why: 'held' });
     assert.ok(!t.ctx.caPaperChips().some(x => x.k === 'redline'), 'not even as the lead');
@@ -270,7 +271,8 @@ describe('f672 (4) the chips lead with the checklist', () => {
   test('4g a signed or expired agreement offers no sign chip; signed, the steps are obligations, amend, history', () => {
     const s = stage(); s.ctx.negoExecuted = () => true; s.ctx.negoMayStart = () => ({ ok: false });
     s.ctx.pdAmendMay = () => true;
-    assert.deepEqual(J(s.ctx.caPaperChips().map(x => x.k)), ['oblig', 'amend', 'history', 'share']);
+    /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end"): a contract's duties open from the Dossier's Duties card alone; "obligations" left the chips */ 
+    assert.deepEqual(J(s.ctx.caPaperChips().map(x => x.k)), ['amend', 'history', 'share']);
     s.ctx.pdAmendMay = () => false; s.ctx.contractExpired = () => true;
     const L = J(s.ctx.caPaperChips().map(x => x.k));
     assert.ok(!L.includes('sign') && !L.includes('amend'), JSON.stringify(L));

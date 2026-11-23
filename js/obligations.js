@@ -829,17 +829,31 @@ function openObligationForm(c, seed, opts){
      the form — the second hidden — so Save reads every field wherever the reader stands. */
   const E=_obEsc, line=(k,ctl,o)=>`<label class="lgp-row${o&&o.tall?' is-tall':''}"${o&&o.id?` id="${o.id}"`:''}${o&&o.hide?' hidden':''}><span class="lgp-k">${k}</span><span class="lgp-v">${ctl}</span></label>`;
   const who=(c.counterparty||'').replace(/</g,'&lt;');
-  openModal(`<form class="lgp" id="of-form" novalidate>
-    <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${E(seed._i!=null?(seed.desc||i18t('ob_edit_cap')):i18t('ob_add_go'))}</h3>
+  /* ---- OVER THE DUTIES PAGE, ONE DUTY AT A TIME (owner, 23 Nov 2026: "it should be mandatory to go through adding or
+     skipping the pop up as you add a duty therefore no mass additions"; the drawing "Duties, end to end") ----
+     opts.over: the same form, its every field and rule, drawn on ONE screen in its own layer OVER the Duties page (the
+     page stays behind it: openModal would replace it, which is why "Edit before adding…" used to land on the paper).
+     Whose duty starts unchosen (Us · Theirs · Both) and Add duty waits for it; Skip (opts.onSkip) and Cancel. Both is
+     kept as ours, as it always was (obd_both_line). */
+  const over=!!opts.over;
+  const ofHead=over
+    ? `<div class="dts-prog" aria-hidden="true"><b style="width:${Math.round(100*Math.max(0,Math.min(1,Number(opts.frac)||0)))}%"></b></div>
+      <div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${E(opts.title||i18t('dts_title'))}</h3>
+      <p class="lgp-sub dts-meta"><span>${E(opts.meta||((window.contractRef?contractRef(c):c.id)+' · '+(c.name||'')))}</span>${opts.count?`<span>${E(opts.count)}</span>`:''}</p></div>`
+    : `<div class="lgp-hd"><div class="lgp-ht"><h3 class="lgp-h">${E(seed._i!=null?(seed.desc||i18t('ob_edit_cap')):i18t('ob_add_go'))}</h3>
       <p class="lgp-sub lgp-steps" id="of-steps"><b>${E(i18t('of_step_duty'))}</b> · ${E(i18t('of_step_money'))}</p>
-      <p class="lgp-sub">${E((window.contractRef?contractRef(c):c.id)+' · '+(c.name||''))}</p></div>
+      <p class="lgp-sub">${E((window.contractRef?contractRef(c):c.id)+' · '+(c.name||''))}</p></div>`;
+  const ofHtml=`<form class="lgp" id="of-form" novalidate>
+    ${ofHead}
       <button type="button" class="lgp-x" id="of-x" tabindex="-1" aria-label="${E(i18t('lgp_close'))}">${typeof icon==='function'?icon('x','w-4 h-4'):''}</button></div>
     <div class="lgp-bd">
     <div id="of-step-1">
       ${''/* WHOSE JOB, ASKED BEFORE WHO ON OUR SIDE: the field that decides it comes first, and the one it governs is
               hidden when it does not apply. */}
-      <div class="lgp-row"><span class="lgp-k">${i18t('ob_whose')}</span><span class="lgp-v"><span id="of-party" class="lgp-chips">
-          ${OBLIG_PARTY.map(([k,l])=>{ const on=(seed.party==='theirs'?'theirs':'ours')===k;
+      ${over&&seed.quote?`<blockquote class="dts-q">\u201c${E(seed.quote)}\u201d</blockquote>`:''}
+      <div class="lgp-row"><span class="lgp-k">${over?E(i18t('dts_whose')):i18t('ob_whose')}</span><span class="lgp-v"><span id="of-party" class="lgp-chips">
+          ${over?['ours','theirs','both'].map(k=>{ const on=seed.party===k;
+            return `<button type="button" class="lgp-chip${on?' is-on':''}" data-of-party="${k}" aria-pressed="${on?'true':'false'}">${E(obWhoseBtn(k==='ours'?'us':k==='theirs'?'them':'both'))}</button>`; }).join(''):OBLIG_PARTY.map(([k,l])=>{ const on=(seed.party==='theirs'?'theirs':'ours')===k;
             return `<button type="button" class="lgp-chip${on?' is-on':''}" data-of-party="${k}" aria-pressed="${on?'true':'false'}">${k==='theirs'?((c.counterparty||'').replace(/</g,'&lt;')||l):l}</button>`; }).join('')}
         </span></span></div>
       ${''/* THE DESCRIPTION WRAPS (Young, 10 Aug 2026): an obligation read out of a clause is a sentence, so it is a
@@ -872,11 +886,29 @@ function openObligationForm(c, seed, opts){
     </div>
     <p id="of-theirs-note" class="lgp-small ${seed.party==='theirs'?'':'hidden'}">${E(i18t('of_theirs_note',{ who:c.counterparty||i18t('of_the_other_side') }))}</p>
     </div>
-    <div class="lgp-ft"><button type="button" class="ui-btn lgp-back" id="of-back" hidden>‹ ${E(i18t('lgp_back'))}</button><span class="lgp-sp"></span>
+    ${over?`<p class="dts-need" id="of-need"${seed.party?' hidden':''}>${E(i18t('dts_need_whose'))}</p>`:''}
+    <div class="lgp-ft">${over?`<button type="button" id="of-save" class="ui-btn ui-btn-primary lgp-go"${seed.party?'':' disabled'}>${E(opts.saveLabel||i18t('dts_add'))}</button>${typeof opts.onSkip==='function'?`<button type="button" id="of-skip" class="ui-btn">${E(i18t('obd_skip'))}</button>`:''}<span class="lgp-sp"></span>`
+      :`<button type="button" class="ui-btn lgp-back" id="of-back" hidden>‹ ${E(i18t('lgp_back'))}</button><span class="lgp-sp"></span>
       <button type="button" id="of-next" class="ui-btn ui-btn-primary lgp-go">${E(i18t('of_next'))}</button>
-      <button type="button" id="of-save" class="ui-btn ui-btn-primary lgp-go" hidden>${E(opts.saveLabel||i18t(seed._i!=null?'act_save':'ob_add_go'))}</button>
+      <button type="button" id="of-save" class="ui-btn ui-btn-primary lgp-go" hidden>${E(opts.saveLabel||i18t(seed._i!=null?'act_save':'ob_add_go'))}</button>`}
       <button type="button" data-dlg-cancel id="of-cancel" class="ui-btn">${E(opts.cancelLabel||i18t('act_cancel'))}</button>
-    </div></form>`, { maxWidth: window.LGP_W || '480px', ownFrame: true, label: i18t(seed._i!=null?'ob_edit_cap':'ob_add_go') });
+    </div></form>`;
+  /* the layer over the page: its own scrim and card, said to be the top layer (data-top-overlay), so Escape and a press
+     outside answer it, never the page under it */
+  let ofLayer=null;
+  if(over){
+    document.querySelectorAll('.dts-ov').forEach(x=>x.remove());
+    ofLayer=document.createElement('div'); ofLayer.className='dts-ov'; ofLayer.setAttribute('data-top-overlay','');
+    ofLayer.innerHTML=`<div class="dts-scrim" data-dts-out></div><div class="dts-card" role="dialog" aria-modal="true" aria-label="${E(opts.title||i18t('dts_title'))}">${ofHtml}</div>`;
+    document.body.appendChild(ofLayer);
+  } else openModal(ofHtml, { maxWidth: window.LGP_W || '480px', ownFrame: true, label: i18t(seed._i!=null?'ob_edit_cap':'ob_add_go') });
+  const ofEsc=e=>{ if(e.key==='Escape' && ofLayer && document.body.contains(ofLayer) && !document.querySelector('.dp-pop')){ e.preventDefault(); document.getElementById('of-cancel')?.click(); } };
+  const done=()=>{ if(ofLayer){ document.removeEventListener('keydown',ofEsc,true); ofLayer.remove(); ofLayer=null; } else closeModal(); };
+  /* the sheet over the page is ONE screen: money and proof shown with the duty, no Next ›/‹ Back */
+  if(over) document.getElementById('of-step-2')?.removeAttribute('hidden');
+  if(ofLayer){ document.addEventListener('keydown',ofEsc,true);
+    ofLayer.querySelector('[data-dts-out]')?.addEventListener('click',()=>document.getElementById('of-cancel')?.click());
+    document.getElementById('of-skip')?.addEventListener('click',()=>{ done(); opts.onSkip(); }); }
   /* the two steps: Next checks the one field the first step must have, then shows Money and proof; Back returns */
   const ofStep=n=>{ const one=n===1;
     document.getElementById('of-step-1')?.toggleAttribute('hidden', !one); document.getElementById('of-step-2')?.toggleAttribute('hidden', one);
@@ -890,7 +922,7 @@ function openObligationForm(c, seed, opts){
   document.getElementById('of-form')?.addEventListener('submit',e=>{ e.preventDefault();
     if(!document.getElementById('of-step-2')?.hasAttribute('hidden')) document.getElementById('of-save')?.click(); else document.getElementById('of-next')?.click(); });
   setTimeout(()=>{ const f=document.getElementById('of-desc'); if(f){ try{ (typeof fieldFocus==='function')?fieldFocus(f,{ focusVisible:false }):f.focus({ preventScroll:true }); }catch(_){} } },0);
-  let party=(seed.party==='theirs')?'theirs':'ours';
+  let party=over?(['ours','theirs','both'].includes(seed.party)?seed.party:''):((seed.party==='theirs')?'theirs':'ours');
   const paintParty=()=>{
     document.querySelectorAll('[data-of-party]').forEach(b=>{
       const on=b.getAttribute('data-of-party')===party;
@@ -898,13 +930,17 @@ function openObligationForm(c, seed, opts){
     });
     document.getElementById('of-assignee-wrap')?.classList.toggle('hidden', party==='theirs');
     document.getElementById('of-theirs-note')?.classList.toggle('hidden', party!=='theirs');
+    if(over){ const sv=document.getElementById('of-save'); if(sv) sv.disabled=!party; document.getElementById('of-need')?.toggleAttribute('hidden', !!party); }
   };
   document.querySelectorAll('[data-of-party]').forEach(b=>b.addEventListener('click',()=>{
-    party=b.getAttribute('data-of-party')==='theirs'?'theirs':'ours'; paintParty(); }));
+    const k=b.getAttribute('data-of-party'); party=k==='theirs'?'theirs':(over&&k==='both')?'both':'ours'; paintParty(); }));
   document.getElementById('of-isdoc')?.addEventListener('change',e=>{
     document.getElementById('of-doc-wrap')?.classList.toggle('hidden', !e.target.checked); });
-  document.getElementById('of-cancel').addEventListener('click',()=>{ if(typeof opts.onCancel==='function') opts.onCancel(); else closeModal(); });
+  document.getElementById('of-cancel').addEventListener('click',()=>{ if(over){ done(); if(typeof opts.onCancel==='function') opts.onCancel(); return; } if(typeof opts.onCancel==='function') opts.onCancel(); else closeModal(); });
   document.getElementById('of-save').addEventListener('click',()=>{
+    if(over && !party){ toast(i18t('dts_need_whose'),'warn'); return; }
+    /* Both sides owe it: kept as ours, as it always was (obd_both_line) */
+    const side=party==='both'?'ours':party;
     /* ---- AN EDIT KEEPS WHAT THE FORM DOES NOT OWN (26 Sep 2026, the
        overnight clean-up) ----
        This built a FRESH object and put it in the old one's place, so editing
@@ -919,7 +955,7 @@ function openObligationForm(c, seed, opts){
     const o={ ...kept, id:seed.id||('ob_'+Math.abs((Date.parse(nowISO())+(c.obligations||[]).length)).toString(36)),
       desc:document.getElementById('of-desc').value.trim(), due:document.getElementById('of-due').value,
       recurring:document.getElementById('of-recur').value,
-      party,
+      party: side,
       /* An obligation that is theirs carries no assignee of ours. Leaving a
          stale colleague's name on it would put their job in our queue. */
       assignee: party==='theirs' ? '' : document.getElementById('of-assignee').value.trim(),
@@ -1010,7 +1046,7 @@ function openObligationForm(c, seed, opts){
     logAudit(c,'Obligation',`${editing?'Updated':'Added'}: ${o.desc}${o.due?` (due ${o.due})`:''}`
       +` — ${party==='theirs'?`${c.counterparty||'the counterparty'}'s to deliver`:`ours${o.assignee?`, assigned to ${o.assignee}`:''}`}`
       +(afterOb?` — comes after "${afterOb.desc||afterOb.id}"`:''));
-    persist(c); closeModal(); renderObligationsSection(c); obligationSurfacesChanged();
+    persist(c); done(); renderObligationsSection(c); obligationSurfacesChanged();
     if(typeof opts.onSaved==='function') opts.onSaved(o);
   });
 }
@@ -1325,6 +1361,247 @@ function obWhoseWord(c, w){
   if (w === 'us') return i18t('obd_us');
   return i18t('obd_not_sure');
 }
+/* ============================================================
+   THE CONTRACT'S DUTIES PAGE — ONE DOOR, ONE PAGE, ONE AT A TIME
+   (owner, 23 Nov 2026: "something is not right with the obligations … there is no one end to end process that makes
+   sense … Draw a one end to end process for duties that is seamless … it should be mandatory to go through adding or
+   skipping the pop up as you add a duty therefore no mass additions"; the drawing "Duties, end to end"; "build it")
+   ============================================================
+   THE ONE PAGE. In the middle where the paper was (pdMidPage, key 'obs:'): To decide · On the contract · Skipped.
+     To decide   what Jambo read off the paper and what our own template promises (triageHeldObligations), each with
+                 the paper's words and its §, one press: Decide ›. NO TICKS, NO "ADD ALL", NO ADD IN THE ROW.
+     On the contract   the contract's own list (c.obligations): whose, next due, who watches it, a soft badge; a row
+                 chooses, Jambo's panel shows it with Mark done · Change · Remove (Chase on theirs).
+     Skipped     what a person skipped, each with Bring back.
+   EVERY DUTY GOES THROUGH THE SHEET. Decide › opens "Add this duty?" OVER this page (openObligationForm {over}: the
+   one form, its every rule — no duplicate, no loop, no Viewer named), whose duty unchosen until a person chooses, then
+   Add duty or Skip; the next one opens by itself ("2 of 5"). Cancel stops and leaves the page as it was.
+   THE PANEL BESIDE IT (obdFaceFor / obdFaceHtml, drawn by the Dossier while the page is up): nothing chosen, the
+   contract's dates and its life (ovMapRenewal) with Decide the first ›; a duty chosen, that duty. No money in it.
+   A Viewer reads: no Decide, no acts (mayActOn). */
+let _dtp = null;
+function dutiesFound(c){
+  try { return (typeof window.triageHeldObligations === 'function') ? (window.triageHeldObligations(c) || []).filter(o => o && o.desc) : []; } catch (_){ return []; }
+}
+/* from another page: the contract's paper with its Dossier first (roomHomeLand), then its Duties page */
+function dutiesGo(cid){
+  const c = (typeof window.getContract === 'function') ? getContract(cid) : null; if(!c) return false;
+  const here = () => { try { const pc = (typeof pdContract === 'function') ? pdContract() : null; return !!(pc && String(pc.id) === String(cid) && typeof pdOnPaper === 'function' && pdOnPaper()); } catch (_){ return false; } };
+  if(here() || typeof roomHomeLand !== 'function') return dutiesOpen(c);
+  try { if(typeof closeModal === 'function' && document.querySelector('#modal-root [role="dialog"]')) closeModal(); } catch (_){}
+  try { if(roomHomeLand(cid) === false) return dutiesOpen(c); } catch (_){ return dutiesOpen(c); }
+  let n = 0; const tick = () => { if(here()){ dutiesOpen(getContract(cid) || c); return; } if(++n < 40) setTimeout(tick, 100); else dutiesOpen(getContract(cid) || c); };
+  setTimeout(tick, 50);
+  return true;
+}
+/* THE ONE DOOR: every way in (the Duties card, the old Obligations doors, Jambo, the Board) lands here */
+function dutiesOpen(c, o){
+  const live = c && ((typeof window.getContract === 'function' && getContract(c.id)) || c);
+  if(!live) return false;
+  return openDutiesPage(live, dutiesFound(live), o || {});
+}
+function openDutiesPage(c, found, o){
+  o = (o && typeof o === 'object') ? o : {};
+  const E = _obEsc;
+  const may = () => (typeof window.mayActOn !== 'function') || window.mayActOn(c);
+  const keep = _dtp && _dtp.cid === String(c.id) ? _dtp : null;
+  const S = _dtp = { cid: String(c.id), tab: o.tab || (keep && keep.tab) || '', rec: o.rec != null ? String(o.rec) : (keep ? keep.rec : ''),
+    q: keep ? keep.q : '', kind: keep ? keep.kind : '', whose: keep ? keep.whose : '', status: keep ? keep.status : '', menu: '', run: null };
+  /* what to decide: Jambo's reading and our template's (dutiesFound); a list handed in by a door with no reading stored
+     (a fresh find) is that list, less what is already on the contract */
+  const handed = Array.isArray(found) ? found.filter(x => x && x.desc) : [];
+  const list = () => { const h = dutiesFound(c); if(!handed.length) return h;
+    const k = x => String(x.desc || '').replace(/\s+/g, ' ').trim().toLowerCase(), have = new Set(handed.map(k));
+    return handed.filter(x => !(typeof obligationAlreadyOn === 'function' && obligationAlreadyOn(c, x))).concat(h.filter(x => !have.has(k(x)))); };
+  const dec = x => obReviewDecision(c, x);
+  const todo = () => list().filter(x => !dec(x));
+  const skipped = () => list().filter(x => dec(x) === 'skipped');
+  const recs = () => (Array.isArray(c.obligations) ? c.obligations : []).filter(Boolean);
+  if(!S.tab) S.tab = todo().length ? 'left' : 'on';
+  /* WHAT JAMBO PROPOSED GOES ON THE RECORD (idea 22), once a sitting per wording: taken on Add duty, refused on Skip */
+  const traces = new Map();
+  try{
+    todo().forEach(x => { if(window.aiTraceNote) traces.set(_obKey(x.desc), aiTraceNote(c, { feature: 'obligations', kind: 'wording', what: x.desc, rested: x.quote || '' })); });
+    if(traces.size && window.aiTraceSave) aiTraceSave(c);
+  }catch(_){}
+  const whoseOfFound = x => { const w = obWhoseOf(x); return w === 'unsure' ? 'none' : w; };
+  const whoseOfRec = r => obligationIsTheirs(r) ? 'them' : 'us';
+  const statusOfRec = r => {
+    if(r.status === 'done') return ['green', i18t('dtp_st_done'), 'done'];
+    const due = obligationDue(r);
+    if(!due) return ['gray', i18t('dtp_st_nodate'), 'nodate'];
+    const d = daysUntil(due);
+    if(d < 0) return ['ruby', i18tn('dtp_st_late', -d, { n: -d }), 'late'];
+    if(d <= 30) return ['amber', i18tn('dtp_st_due', d, { n: d }), 'soon'];
+    return ['green', i18t('dtp_st_ok'), 'ok'];
+  };
+  const matchQ = x => { const q = String(S.q || '').trim().toLowerCase(); return !q || q.split(/\s+/).every(w => [x.desc, x.quote, x.clause].join(' ').toLowerCase().includes(w)); };
+  const quoteHtml = x => (x.quote || x.clause) ? `<span class="obd-lsq">${x.clause ? `<b class="obd-sec">§${E(x.clause)}</b>` : ''}${x.quote ? `&ldquo;${E(x.quote)}&rdquo;` : ''}</span>` : '';
+  const badge = (tone, w) => `<span class="obd-bd is-${tone}"><i aria-hidden="true"></i>${E(w)}</span>`;
+  const shownFound = arr => arr.filter(x => matchQ(x) && (!S.kind || obKindOf(x) === S.kind) && (!S.whose || whoseOfFound(x) === S.whose));
+  const shownRecs = () => recs().map((r, i) => ({ r, i })).filter(({ r }) => matchQ(r) && (!S.whose || whoseOfRec(r) === S.whose) && (!S.status || statusOfRec(r)[2] === S.status));
+  const tabsHtml = () => [['left', 'dtp_t_left', todo().length], ['on', 'dtp_t_on', recs().length], ['skipped', 'dtp_t_skipped', skipped().length]]
+    .map(([k, w, n]) => `<button type="button" role="tab" data-dtp-tab="${k}" aria-selected="${S.tab === k}">${E(i18t(w))}<span>${n}</span></button>`).join('');
+  const CHIPS = () => {
+    const pool = S.tab === 'on' ? null : (S.tab === 'left' ? todo() : skipped());
+    const out = [];
+    if(pool) out.push(['kind', 'obd_ls_c_kind', ['dated', 'event', 'standing', 'unsure'].filter(k => pool.some(x => obKindOf(x) === k)).map(k => [k, k === 'unsure' ? i18t('obd_not_sure') : i18t('obd_f_' + k)])]);
+    const ws = pool ? [...new Set(pool.map(whoseOfFound))] : [...new Set(recs().map(whoseOfRec))];
+    out.push(['whose', 'obd_ls_c_whose', ['us', 'them', 'both', 'none'].filter(k => ws.includes(k)).map(k => [k, k === 'none' ? i18t('obd_ls_w_none') : obWhoseBtn(k)])]);
+    if(!pool) out.push(['status', 'obd_ls_c_status', ['late', 'soon', 'ok', 'nodate', 'done'].filter(k => recs().some(r => statusOfRec(r)[2] === k)).map(k => [k, i18t('dtp_sf_' + k)])]);
+    return out;
+  };
+  const chipsHtml = () => CHIPS().map(([k, w, opts]) => {
+    const v = S[k];
+    if(v){ const hit = opts.find(x => x[0] === v); return `<span class="obd-chip is-set"><button type="button" data-dtp-chip="${k}">${E(i18t(w))}: ${E(hit ? hit[1] : v)}</button><button type="button" class="obd-chip-x" data-dtp-fx="${k}" aria-label="${E(i18t('obd_ls_clear'))}">×</button></span>`; }
+    if(!opts.length) return '';
+    const menu = S.menu === k ? `<span class="obd-menu" role="menu">${opts.map(([ov, ow]) => `<button type="button" role="menuitem" data-dtp-fv="${k}" data-v="${ov}">${E(ow)}</button>`).join('')}</span>` : '';
+    return `<span class="obd-chip"><button type="button" data-dtp-chip="${k}" aria-expanded="${S.menu === k}">+ ${E(i18t(w))}</button>${menu}</span>`;
+  }).join('');
+  const L = () => list();
+  const idxOf = x => L().findIndex(y => _obKey(y.desc) === _obKey(x.desc));
+  const tableHtml = () => {
+    if(S.tab === 'on'){
+      const rows = shownRecs();
+      if(!rows.length) return `<p class="obd-empty">${E(i18t(recs().length ? 'obd_none_here' : 'dtp_on_none'))}</p>`;
+      return `<table class="obd-tb is-ls dtp-tb"><thead><tr><th class="dtp-c-what">${E(i18t('obd_ls_col_duty'))}</th><th class="dtp-c-who">${E(i18t('dtp_col_whose'))}</th><th class="dtp-c-due">${E(i18t('dtp_col_due'))}</th><th class="dtp-c-by">${E(i18t('dtp_col_by'))}</th><th class="dtp-c-st">${E(i18t('obd_ls_col_st'))}</th></tr></thead><tbody>${rows.map(({ r, i }) => {
+        const [tone, w] = statusOfRec(r), due = obligationDue(r);
+        return `<tr class="obd-row is-ls dtp-r${String(r.id || i) === S.rec ? ' is-sel' : ''}" data-dtp-rec="${E(r.id || String(i))}"><td class="dtp-c-what"><span class="obd-desc">${E(r.desc || '')}</span>${quoteHtml(r)}</td>
+          <td class="dtp-c-who">${E(obWhoseBtn(whoseOfRec(r)))}</td><td class="dtp-c-due">${E(due ? obDay(due) : '—')}</td>
+          <td class="dtp-c-by">${E(obligationIsTheirs(r) ? '—' : (r.assignee || i18t('ob_nobody')))}</td><td class="dtp-c-st">${badge(tone, w)}</td></tr>`; }).join('')}</tbody></table>`;
+    }
+    const pool = S.tab === 'left' ? todo() : skipped(), rows = shownFound(pool);
+    if(!rows.length) return `<p class="obd-empty">${E(i18t(pool.length ? 'obd_none_here' : S.tab === 'left' ? 'dtp_left_none' : 'dtp_skip_none'))}</p>`;
+    return `<table class="obd-tb is-ls dtp-tb"><thead><tr><th class="dtp-c-what">${E(i18t('obd_ls_col_duty'))}</th><th class="dtp-c-when">${E(i18t('obd_col_when'))}</th><th class="dtp-c-st">${E(i18t('obd_ls_col_st'))}</th><th class="dtp-c-go"><span class="sr-only">${E(i18t('dtp_decide'))}</span></th></tr></thead><tbody>${rows.map(x => {
+      const k = idxOf(x), left = S.tab === 'left';
+      return `<tr class="obd-row is-ls dtp-r"${left && may() ? ` data-dtp-decide="${k}"` : ''}><td class="dtp-c-what"><span class="obd-desc">${E(x.desc || '')}</span>${quoteHtml(x)}</td>
+        <td class="dtp-c-when">${E(obWhenChip(x))}</td><td class="dtp-c-st">${left ? badge('amber', i18t('obd_ls_s_decide')) : badge('gray', i18t('obd_skipped'))}</td>
+        <td class="dtp-c-go">${may() ? (left ? `<button type="button" class="ui-btn ui-btn-sm" data-dtp-decide="${k}">${E(i18t('dtp_decide'))} ›</button>` : `<button type="button" class="ui-link" data-dtp-back="${k}">${E(i18t('dtp_bring_back'))}</button>`) : ''}</td></tr>`; }).join('')}</tbody></table>`;
+  };
+  const footHtml = () => {
+    const n = todo().length, R = recs(), them = R.filter(obligationIsTheirs).length;
+    const say = S.tab === 'left' ? (n ? i18tn('dtp_foot_left', n, { n }) : i18t('dtp_left_none'))
+      : S.tab === 'on' ? i18tn('dtp_foot_on', R.length, { n: R.length, us: R.length - them, them }) : i18tn('dtp_foot_skip', skipped().length, { n: skipped().length });
+    return `<span class="obd-count">${E(say)}</span><span class="obd-sp"></span><button type="button" class="ui-btn" data-dtp-close>${E(i18t('obd_close'))}</button>`
+      + (n && may() ? `<button type="button" class="ui-btn ui-btn-primary" data-dtp-first>${E(i18t('dtp_first'))} ›</button>` : '');
+  };
+  const bodyHtml = () => `<div class="obd is-ls dtp" id="dtp">
+      <div class="obd-top is-ls"><h3 class="obd-title">${E(i18t('dtp_title'))}</h3><p class="obd-sub">${E(i18t('dtp_sub'))}</p>
+        <div class="obd-tabs" role="tablist" data-dtp-part="tabs">${tabsHtml()}</div></div>
+      <div class="obd-tools"><input type="search" id="dtp-q" class="obd-find" placeholder="${E(i18t('dtp_find_ph'))}" aria-label="${E(i18t('dtp_find_ph'))}" value="${E(S.q)}"/><span class="obd-chips" data-dtp-part="chips">${chipsHtml()}</span>
+        <span class="obd-ready">${may() ? `<button type="button" class="ui-btn ui-btn-sm" data-dtp-own>+ ${E(i18t('dtp_own'))}</button>` : ''}</span></div>
+      <div class="obd-list is-ls scroll-thin" id="dtp-list" data-dtp-part="list">${tableHtml()}</div>
+      <div class="obd-foot" data-dtp-part="foot">${footHtml()}</div></div>`;
+  /* THE PANEL: the chosen duty on the contract, else the contract's dates and its life */
+  const faceHtml = () => {
+    const R = recs(), at = S.tab === 'on' && S.rec ? R.findIndex((r, i) => String(r.id || i) === S.rec) : -1;
+    const ref = window.contractRef ? contractRef(c) : c.id;
+    const fact = (l, v) => `<div class="obdf-fact"><span>${E(l)}</span><span>${E(v)}</span></div>`;
+    if(at >= 0){
+      const r = R[at], due = obligationDue(r), theirs = obligationIsTheirs(r), [tone, w] = statusOfRec(r);
+      const eye = [r.clause ? '§' + r.clause : '', r.recurring && r.recurring !== 'none' ? obRecurLabel(r.recurring) : '', obWhoseBtn(whoseOfRec(r))].filter(Boolean).join(' · ');
+      const rem = theirs ? (r.remindTheirs ? i18t('dtp_rem_theirs') : i18t('dtp_rem_none')) : (due ? i18t('dtp_rem_ours') : i18t('dtp_rem_nodate'));
+      const acts = may() ? `<div class="obdf-acts">${r.status !== 'done' ? `<button type="button" class="ui-btn ui-btn-primary" data-dtp-done="${at}">${E(i18t('ob_mark_done'))}</button>` : `<button type="button" class="ui-btn" data-dtp-done="${at}">${E(i18t('ob_reopen_cap'))}</button>`}`
+        + `${theirs && r.status !== 'done' ? `<button type="button" class="ui-btn" data-dtp-chase="${E(r.id || '')}">${E(i18t('ob_chase'))}</button>` : ''}<button type="button" class="ui-btn" data-dtp-change="${at}">${E(i18t('dtp_change'))}</button><button type="button" class="ui-btn" data-dtp-remove="${at}">${E(i18t('dtp_remove'))}</button></div>` : '';
+      const tl = [r.readAt ? [i18t('dtp_tl_added', { s: r.clause ? '§' + r.clause : i18t('dtp_tl_paper') }), obDay(r.readAt), 'd'] : null,
+        r.status === 'done' ? [i18t('dtp_tl_done'), r.completedAt ? obDay(r.completedAt) : '', 'd'] : due ? [i18t('dtp_tl_due'), obDay(due), tone === 'ruby' ? 'r' : 'n'] : null].filter(Boolean);
+      return `<div class="obdf" data-obdf><p class="obdf-eye">${E(eye)}</p><h3 class="obdf-t">${E(r.desc || '')}</h3>
+        ${r.quote ? `<blockquote class="obdf-q">&ldquo;${E(r.quote)}&rdquo;</blockquote>` : ''}
+        ${fact(i18t('dtp_col_due'), due ? obDay(due) : '—')}${fact(i18t('dtp_col_by'), theirs ? (c.counterparty || i18t('obd_theirs_btn')) : (r.assignee || i18t('ob_nobody')))}${fact(i18t('dtp_reminded'), rem)}${fact(i18t('obd_ls_col_st'), w)}
+        ${acts}${tl.length ? `<p class="obdf-h">${E(i18t('dtp_tl'))}</p><ol class="obdf-tl">${tl.map(([t, d, k]) => `<li class="is-${k}"><span>${E(t)}</span><small>${E(d)}</small></li>`).join('')}</ol>` : ''}
+        <p class="obdf-back"><button type="button" class="ui-link" data-dtp-letgo>‹ ${E(i18t('dtp_overview'))}</button></p></div>`;
+    }
+    let Rn = null; try { Rn = (typeof window.ovMapRenewal === 'function') ? window.ovMapRenewal(c) : null; } catch (_){ Rn = null; }
+    const n = todo().length, them = R.filter(obligationIsTheirs).length;
+    const head = n ? i18tn('dtp_ov_wait', n, { n }) : R.length ? i18tn('dtp_ov_on', R.length, { n: R.length }) : i18t('dtp_ov_none');
+    const day = d => d ? obDay(d) : '—';
+    const next = R.filter(r => r.status !== 'done' && obligationDue(r)).sort((a, b) => String(obligationDue(a)).localeCompare(String(obligationDue(b))))[0];
+    const tl = [];
+    if(c.triage && c.triage.at && list().length + R.length) tl.push([i18t('dtp_tl_read'), obDay(c.triage.at), 'd']);
+    if(R.length) tl.push([i18tn('dtp_tl_on', R.length, { n: R.length }), '', 'd']);
+    if(n) tl.push([i18tn('dtp_tl_left', n, { n }), i18t('dtp_now'), 'n']);
+    if(next) tl.push([i18t('dtp_tl_next', { d: next.desc || '' }), obDay(obligationDue(next)), '']);
+    if(Rn && Rn.by) tl.push([i18t('dtp_tl_notice'), day(Rn.by), '']);
+    if(Rn && Rn.end) tl.push([i18t('dtp_tl_ends'), day(Rn.end), '']);
+    const acts = may() ? `<div class="obdf-acts">${n ? `<button type="button" class="ui-btn ui-btn-primary" data-dtp-first>${E(i18t('dtp_first'))} ›</button>` : ''}<button type="button" class="ui-btn" data-dtp-own>+ ${E(i18t('dtp_own'))}</button></div>` : '';
+    return `<div class="obdf" data-obdf><p class="obdf-eye">${E(i18t('dtp_title') + ' · ' + ref)}</p><h3 class="obdf-t">${E(head)}</h3>
+      ${Rn && Rn.end ? fact(i18t('dtp_ends'), day(Rn.end)) : ''}${Rn && Rn.by ? fact(i18t('dtp_notice'), day(Rn.by)) : ''}
+      ${fact(i18t('dtp_t_on'), i18t('dtp_on_split', { n: R.length, us: R.length - them, them }))}
+      ${tl.length ? `<p class="obdf-h">${E(i18t('dtp_life'))}</p><ol class="obdf-tl">${tl.map(([t, d, k]) => `<li class="is-${k || 'x'}"><span>${E(t)}</span><small>${E(d)}</small></li>`).join('')}</ol>` : ''}
+      ${acts}</div>`;
+  };
+  const panel = () => { try { if (typeof pdGlanceRepaint === 'function') pdGlanceRepaint(); } catch (_){} };
+  const paint = () => {
+    const host = document.getElementById('dtp'); if(!host) return;
+    const put = (k, h) => { const el = host.querySelector(`[data-dtp-part="${k}"]`); if(el) el.innerHTML = h; };
+    const Ls = document.getElementById('dtp-list'), top = Ls ? Ls.scrollTop : 0;
+    put('tabs', tabsHtml()); put('chips', chipsHtml()); put('list', tableHtml()); put('foot', footHtml());
+    if(Ls) Ls.scrollTop = top;
+    panel();
+  };
+  /* ---- ONE DUTY AT A TIME, IN THE SHEET OVER THIS PAGE ---- */
+  const decide = k => {
+    const x = L()[k]; if(!x || dec(x) || !may()) return;
+    if(!S.run) S.run = { total: todo().length, done: 0 };
+    const meta = [x.clause ? '§' + x.clause : '', i18t(x.origin === 'template' ? 'dts_from_tpl' : 'dts_from_jambo')].filter(Boolean).join(' · ');
+    const seed = { desc: x.desc || '', due: x.due || '', recurring: x.recurring || 'none', assignee: '', quote: x.quote || '', amount: Number(x.amount) > 0 ? Number(x.amount) : '', party: '' };
+    if(x.doc === true) seed.doc = {};
+    const tr = traces.get(_obKey(x.desc));
+    const onward = () => { S.run.done++; paint();
+      const j = L().findIndex(y => !dec(y));
+      if(j >= 0) decide(j);
+      else { S.run = null; if(typeof toast === 'function') toast(i18t('dtp_all_done'), 'ok'); } };
+    openObligationForm(c, seed, { over: true, title: i18t('dts_title'), meta, count: i18t('dts_count', { n: S.run.done + 1, m: S.run.total }), frac: S.run.done / Math.max(1, S.run.total),
+      onSaved: rec => {
+        if(rec){ if(x.clause) rec.clause = String(x.clause).slice(0, 20); rec.readAt = String((c.triage && c.triage.at) || new Date().toISOString()).slice(0, 10);
+          if(x.origin === 'template'){ rec.origin = 'template'; if(x.tplKey){ const m = new Set(Array.isArray(c.tplObMinted) ? c.tplObMinted.map(String) : []); m.add(String(x.tplKey)); c.tplObMinted = [...m]; } } }
+        obReviewMark(c, x, 'added'); if(tr && window.aiTraceTaken) try { aiTraceTaken(c, tr); } catch (_){}
+        persist(c); onward(); },
+      onSkip: () => { obReviewMark(c, x, 'skipped'); if(tr && window.aiTraceRefuse) try { aiTraceRefuse(c, tr, i18t('ob_trace_untick')); } catch (_){}
+        if(typeof logAudit === 'function') logAudit(c, 'Obligation', `Skipped: ${x.desc}`);
+        persist(c); obligationSurfacesChanged(); onward(); },
+      onCancel: () => { S.run = null; paint(); } });
+  };
+  const own = seed => { if(!may()) return;
+    openObligationForm(c, Object.assign({ desc: '', due: '', recurring: 'none', assignee: '', quote: '', amount: '', party: '' }, seed || {}),
+      { over: true, title: i18t('dts_own_title'), meta: (window.contractRef ? contractRef(c) : c.id) + ' · ' + (c.name || ''),
+        onSaved: rec => { S.tab = 'on'; if(rec && rec.id) S.rec = String(rec.id); paint(); }, onCancel: paint }); };
+  const change = i => { const r = recs()[i]; if(!r || !may()) return;
+    openObligationForm(c, Object.assign({}, r, { _i: (c.obligations || []).indexOf(r) }),
+      { over: true, title: i18t('dts_change_title'), saveLabel: i18t('act_save'), meta: [r.clause ? '§' + r.clause : '', (window.contractRef ? contractRef(c) : c.id)].filter(Boolean).join(' · '), onSaved: paint, onCancel: paint }); };
+  const press = ev => {
+    const t = ev.target && ev.target.closest ? ev.target : null; if(!t) return;
+    const at = sel => t.closest(sel);
+    let b;
+    if((b = at('[data-dtp-tab]'))){ S.tab = b.getAttribute('data-dtp-tab'); S.kind = S.whose = S.status = S.menu = ''; if(S.tab !== 'on') S.rec = ''; paint(); return; }
+    if((b = at('[data-dtp-chip]'))){ const k = b.getAttribute('data-dtp-chip'); S.menu = S.menu === k ? '' : k; paint(); return; }
+    if((b = at('[data-dtp-fv]'))){ S[b.getAttribute('data-dtp-fv')] = b.getAttribute('data-v'); S.menu = ''; paint(); return; }
+    if((b = at('[data-dtp-fx]'))){ S[b.getAttribute('data-dtp-fx')] = ''; S.menu = ''; paint(); return; }
+    if(S.menu && !at('.obd-menu')){ S.menu = ''; paint(); }
+    if((b = at('[data-dtp-decide]'))){ ev.preventDefault(); decide(Number(b.getAttribute('data-dtp-decide'))); return; }
+    if(at('[data-dtp-first]')){ ev.preventDefault(); S.tab = 'left'; paint(); const j = L().findIndex(y => !dec(y)); if(j >= 0) decide(j); return; }
+    if(at('[data-dtp-own]')){ ev.preventDefault(); own(null); return; }
+    if((b = at('[data-dtp-back]'))){ const x = L()[Number(b.getAttribute('data-dtp-back'))]; if(x && may()){ obReviewMark(c, x, null); persist(c); obligationSurfacesChanged(); } paint(); return; }
+    if((b = at('[data-dtp-rec]'))){ S.rec = b.getAttribute('data-dtp-rec'); paint(); return; }
+    if(at('[data-dtp-letgo]')){ S.rec = ''; paint(); return; }
+    if((b = at('[data-dtp-done]'))){ const i = Number(b.getAttribute('data-dtp-done')), r = recs()[i]; if(r && may()) toggleObligation(c, (c.obligations || []).indexOf(r), { from: 'duties' }); paint(); return; }
+    if((b = at('[data-dtp-change]'))){ change(Number(b.getAttribute('data-dtp-change'))); return; }
+    if((b = at('[data-dtp-remove]'))){ const r = recs()[Number(b.getAttribute('data-dtp-remove'))]; if(r && may()){ S.rec = ''; Promise.resolve(obligationRemove(c, (c.obligations || []).indexOf(r))).then(paint, paint); } return; }
+    if((b = at('[data-dtp-chase]'))){ if(typeof obligationChase === 'function') obligationChase(c.id, b.getAttribute('data-dtp-chase')); return; }
+    if(at('[data-dtp-close]')){ if(typeof closeModal === 'function') closeModal(); return; }
+  };
+  const mid = typeof pdMidMay === 'function' && pdMidMay();
+  openModal(bodyHtml(), mid ? { maxWidth: 'none', label: i18t('dtp_title'), page: pdMidPage(i18t('dtp_title')),
+      onClose: () => { if (typeof pdMidOff === 'function') pdMidOff(); document.querySelectorAll('.dts-ov').forEach(x => x.remove());
+        if (_obdNow && _obdNow.c === c){ _obdNow = null; panel(); } if (typeof paintKtTriage === 'function' && document.getElementById('kt-triage-slot')) try { paintKtTriage(c); } catch (_){} } }
+    : { maxWidth: '920px', label: i18t('dtp_title'), onClose: () => { document.querySelectorAll('.dts-ov').forEach(x => x.remove()); if (_obdNow && _obdNow.c === c) _obdNow = null; } });
+  if (mid && typeof pdMidOn === 'function' && document.querySelector('#modal-root [data-dlg-page]')) pdMidOn('obs:' + c.id);
+  _obdNow = { c, face: faceHtml, press, input: q => { S.q = q; const el = document.getElementById('dtp-list'); if(el) el.innerHTML = tableHtml(); } };
+  panel();
+  if(o.decide != null) decide(Number(o.decide));
+  else if(o.own) own(typeof o.own === 'object' ? o.own : null);
+  return true;
+}
 /* THE DESK'S PANEL (L+S, 23 Nov 2026): the review standing in the middle hands the Dossier its chosen duty to draw
    (obdFaceFor / obdFaceHtml); a press in that panel is the desk's own press (one handler) */
 let _obdNow = null;
@@ -1332,9 +1609,13 @@ function obdFaceFor(id){ return !!(_obdNow && _obdNow.c && String(_obdNow.c.id) 
 function obdFaceHtml(){ return _obdNow ? _obdNow.face() : ''; }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._obdFaceWired){ document._obdFaceWired = true;
   document.addEventListener('click', ev => { const t = ev.target && ev.target.closest ? ev.target : null;
-    if (t && _obdNow && t.closest('[data-obdf]')) _obdNow.press(ev); }); }
+    if (t && _obdNow && (t.closest('[data-obdf]') || t.closest('#dtp'))) _obdNow.press(ev); });
+  document.addEventListener('input', ev => { const t = ev.target; if (t && t.id === 'dtp-q' && _obdNow && _obdNow.input) _obdNow.input(t.value); }); }
 function openObligationsReview(c, found, back, place){
   place = place || (back && back.place) || null;
+  /* ONE PAGE (owner, 23 Nov 2026, "Duties, end to end"): every door into the review lands on the contract's Duties page,
+     where each duty is decided one at a time; the desk below answers only the old Obligations page's own place */
+  if(!place) return openDutiesPage(c, found, (back && typeof back === 'object') ? back : {});
   const dupe = found.map(o => obligationAlreadyOn(c, o));
   const fresh = dupe.filter(d => !d).length;
   /* ---- WHAT COPILOT PROPOSED HERE GOES ON THE RECORD (idea 22) ----
@@ -1350,19 +1631,8 @@ function openObligationsReview(c, found, back, place){
     }catch(_){ return null; }
   });
   try{ if (trace.some(Boolean) && window.aiTraceSave) aiTraceSave(c); }catch(_){}
-  /* THE LEGORA + STRIPE WAY (owner, 23 Nov 2026: "now on the main page, not side panel, it needs L+S facelift", built as
-     drawn): where the desk stands in the middle beside the Dossier, it is ONE calm table — each duty with the paper's own
-     words and its §, whose job answered IN THE ROW (Us · Theirs · Both), a soft badge (Ready · To decide · Added · Skipped),
-     Add in the row; tabs carry their counts (To decide · Added · Skipped), a filter box and "+ Kind · + Whose · + Status"
-     chips. The chosen duty's details and its Add · Edit before adding… · Skip go to Jambo's side panel (obdFaceHtml, drawn
-     by the Dossier while this page is up; no amount there — money never sits in a side panel, it stays in Edit before
-     adding…). A duty whose job is not said cannot be added until a person says whose (nothing guessed). The pop-up
-     (no middle) keeps the table it had. The same writer adds (addOne); nothing is saved until a press. */
-  const lsMid = !place && typeof pdMidMay === 'function' && pdMidMay();
-  const ls = !!(lsMid && typeof window.newLookOn === 'function' && newLookOn());
   /* the reader's own changes to an item before it is added: whose job */
-  const whoseNow = found.map(o => { const w = obWhoseOf(o); return w === 'them' ? 'them' : w === 'unsure' ? 'unsure' : (w === 'both' && ls) ? 'both' : 'us'; });
-  const F = { tab: (back && back.tab) || 'left', kind: (back && back.kind) || '', whose: (back && back.whose) || '', status: (back && back.status) || '', q: (back && back.q) || '', menu: '' };
+  const whoseNow = found.map(o => { const w = obWhoseOf(o); return w === 'them' ? 'them' : w === 'unsure' ? 'unsure' : 'us'; });
   /* `back` is the desk as the reader left it (Edit before adding → Back to
      the list): the same item, the same filter, the list's scroll */
   let filter = (back && back.filter) || 'all', sel = back && back.sel != null ? back.sel : found.findIndex((o, i) => !dupe[i] && !obReviewDecision(c, o));
@@ -1435,103 +1705,12 @@ function openObligationsReview(c, found, back, place){
       ${o.why ? `<p class="obd-why">${_obEsc(i18t('obd_why', { g: i18t(GROUPS.find(g => g[0] === k)[1]).toLowerCase(), why: o.why }))}</p>` : ''}
       ${acts}`;
   };
-  /* ---- THE L+S TABLE ---- */
-  /* a count over the proposals, never a filtered list (f260: nothing is filtered out of the list) */
-  const lsCount = pred => found.reduce((n, o, i) => n + (pred(o, i) ? 1 : 0), 0);
-  const lsTabOf = i => { const d = decision(i); return d === 'already' ? 'already' : d || 'left'; };
-  const lsReady = i => whoseNow[i] !== 'unsure';
-  const lsWhoseOf = i => whoseNow[i] === 'unsure' ? 'none' : whoseNow[i];
-  const lsTabN = k => lsCount((_, i) => lsTabOf(i) === k);
-  const lsReadyLeft = () => found.map((_, i) => i).filter(i => lsTabOf(i) === 'left' && lsReady(i));
-  const lsNeedWhose = () => lsCount((_, i) => lsTabOf(i) === 'left' && !lsReady(i));
-  /* a duty already on the contract sits at the foot of To decide, nothing to decide (as before: never hidden) */
-  const lsShown = i => {
-    if (lsTabOf(i) !== F.tab && !(F.tab === 'left' && lsTabOf(i) === 'already')) return false;
-    const o = found[i];
-    if (F.kind && obKindOf(o) !== F.kind) return false;
-    if (F.whose && lsWhoseOf(i) !== F.whose) return false;
-    if (F.status && F.tab === 'left' && (F.status === 'ready') !== lsReady(i)) return false;
-    const q = String(F.q || '').trim().toLowerCase();
-    if (q && !q.split(/\s+/).every(w => [o.desc, o.quote, o.clause].join(' ').toLowerCase().includes(w))) return false;
-    return true;
-  };
-  const LS_CHIPS = {
-    kind: { w: 'obd_ls_c_kind', opts: () => ['dated', 'event', 'standing', 'unsure'].filter(k => found.some((o, i) => lsTabOf(i) === F.tab && obKindOf(o) === k)).map(k => [k, k === 'unsure' ? i18t('obd_not_sure') : i18t('obd_f_' + k)]) },
-    whose: { w: 'obd_ls_c_whose', opts: () => ['us', 'them', 'both', 'none'].filter(k => found.some((_, i) => lsTabOf(i) === F.tab && lsWhoseOf(i) === k)).map(k => [k, k === 'none' ? i18t('obd_ls_w_none') : obWhoseBtn(k)]) },
-    status: { w: 'obd_ls_c_status', opts: () => F.tab !== 'left' ? [] : [['ready', i18t('obd_ls_s_ready')], ['decide', i18t('obd_ls_s_decide')]].filter(([k]) => found.some((_, i) => lsTabOf(i) === 'left' && (k === 'ready') === lsReady(i))) } };
-  const lsBadge = i => { const d = decision(i);
-    const [tone, w] = d === 'added' ? ['green', i18t('obd_added')] : d === 'skipped' ? ['gray', i18t('obd_skipped')] : d === 'already' ? ['gray', i18t('obd_ls_s_already')]
-      : lsReady(i) ? ['green', i18t('obd_ls_s_ready')] : ['amber', i18t('obd_ls_s_decide')];
-    return `<span class="obd-bd is-${tone}"><i aria-hidden="true"></i>${_obEsc(w)}</span>`; };
-  const lsRowHtml = i => {
-    const o = found[i], d = decision(i), ready = lsReady(i);
-    const who = d ? `<span class="obd-lsw">${_obEsc(whoseNow[i] === 'unsure' ? i18t('obd_ls_w_none') : obWhoseBtn(whoseNow[i]))}</span>`
-      : `<span class="obd-pills" role="group" aria-label="${_obEsc(i18t('obd_whose'))}">${['us', 'them', 'both'].map(x => `<button type="button" data-obd-rw="${i}" data-w="${x}" aria-pressed="${whoseNow[i] === x}">${_obEsc(obWhoseBtn(x))}</button>`).join('')}</span>${ready ? '' : `<span class="obd-ns-say">${_obEsc(i18t('obd_ls_say_whose'))}</span>`}`;
-    const quote = o.quote ? `<span class="obd-lsq">${o.clause ? `<b class="obd-sec">§${_obEsc(o.clause)}</b>` : ''}&ldquo;${_obEsc(o.quote)}&rdquo;</span>` : (o.clause ? `<span class="obd-lsq"><b class="obd-sec">§${_obEsc(o.clause)}</b></span>` : '');
-    return `<tr class="obd-row is-ls${i === sel ? ' is-sel' : ''}${d ? ' is-done' : ''}${d === 'already' ? ' is-already' : ''}" data-obd-sel="${i}">
-      <td class="obd-c-tk">${d ? '<span class="obd-tick-gap"></span>' : `<input type="checkbox" data-ob-pick="${i}" class="obd-tick" aria-label="${_obEsc(o.desc || '')}"${ready ? '' : ' disabled'}/>`}</td>
-      <td class="obd-c-what"><span class="obd-desc">${_obEsc(o.desc || '')}</span>${quote}</td>
-      <td class="obd-c-who">${who}</td>
-      <td class="obd-c-when"><span class="${whenUnsure(o) ? 'obd-ns' : ''}">${_obEsc(obWhenChip(o))}</span></td>
-      <td class="obd-c-st">${lsBadge(i)}</td>
-      <td class="obd-c-go">${!d && ready ? `<button type="button" class="ui-link" data-obd-radd="${i}">${_obEsc(i18t('obd_ls_add_row'))}</button>` : ''}</td></tr>`;
-  };
-  const lsListHtml = () => {
-    const ids = found.map((_, i) => i).filter(lsShown).sort((a, b) => (lsTabOf(a) === 'already') - (lsTabOf(b) === 'already'));
-    if (!ids.length) return `<p class="obd-empty">${_obEsc(i18t('obd_none_here'))}</p>`;
-    return `<table class="obd-tb is-ls"><thead><tr><th class="obd-c-tk"><span class="sr-only">${_obEsc(i18t('obd_pick_col'))}</span></th><th class="obd-c-what">${_obEsc(i18t('obd_ls_col_duty'))}</th><th class="obd-c-who">${_obEsc(i18t('obd_whose'))}</th><th class="obd-c-when">${_obEsc(i18t('obd_col_when'))}</th><th class="obd-c-st">${_obEsc(i18t('obd_ls_col_st'))}</th><th class="obd-c-go"><span class="sr-only">${_obEsc(i18t('obd_ls_add_row'))}</span></th></tr></thead><tbody>${ids.map(lsRowHtml).join('')}</tbody></table>`;
-  };
-  const lsTabsHtml = () => [['left', 'obd_ls_t_left'], ['added', 'obd_ls_t_added'], ['skipped', 'obd_ls_t_skipped']].map(([k, w]) => `<button type="button" role="tab" data-obd-tab="${k}" aria-selected="${F.tab === k}">${_obEsc(i18t(w))}<span>${lsTabN(k)}</span></button>`).join('');
-  const lsChipsHtml = () => Object.keys(LS_CHIPS).map(k => {
-    const C = LS_CHIPS[k], opts = C.opts(), v = F[k];
-    if (v){ const o = opts.find(x => x[0] === v); return `<span class="obd-chip is-set"><button type="button" data-obd-chip="${k}">${_obEsc(i18t(C.w))}: ${_obEsc(o ? o[1] : v)}</button><button type="button" class="obd-chip-x" data-obd-fx="${k}" aria-label="${_obEsc(i18t('obd_ls_clear'))}">×</button></span>`; }
-    if (!opts.length) return '';
-    const menu = F.menu === k ? `<span class="obd-menu" role="menu">${opts.map(([ov, ow]) => `<button type="button" role="menuitem" data-obd-fv="${k}" data-v="${ov}">${_obEsc(ow)}</button>`).join('')}</span>` : '';
-    return `<span class="obd-chip"><button type="button" data-obd-chip="${k}" aria-expanded="${F.menu === k}">+ ${_obEsc(i18t(C.w))}</button>${menu}</span>`;
-  }).join('');
-  const lsReadySay = () => { const n = F.tab === 'left' ? lsReadyLeft().length : 0; return n ? i18tn('obd_ls_ready_n', n, { n }) : ''; };
-  const lsFootCount = () => { const t = obPicks().filter(cb => cb.checked).length, r = lsReadyLeft().length, w = lsNeedWhose();
-    return [t ? i18t('obd_ls_f_ticked', { n: t }) : '', i18t('obd_ls_f_ready', { n: r }), w ? i18tn('obd_ls_f_whose', w, { n: w }) : ''].filter(Boolean).join(' · '); };
-  /* THE PANEL BESIDE IT: the chosen duty, read off the same state (the Dossier draws it while this page is up) */
-  const lsFaceHtml = () => {
-    const o = found[sel]; if (!o) return '';
-    const d = decision(sel), k = obKindOf(o), w = whoseNow[sel], ready = lsReady(sel);
-    const total = lsCount((_, i) => decision(i) !== 'already'), added = lsTabN('added');
-    const C = 2 * Math.PI * 19, len = total ? C * added / total : 0;
-    const subs = [i18t('obd_ls_f_ready', { n: lsReadyLeft().length }), lsNeedWhose() ? i18tn('obd_ls_f_whose', lsNeedWhose(), { n: lsNeedWhose() }) : ''].filter(Boolean).join(' · ');
-    const eye = [o.clause ? '§' + o.clause : '', i18t(GROUPS.find(g => g[0] === k)[1]), w === 'unsure' ? i18t('obd_ls_w_none') : obWhoseBtn(w)].filter(Boolean).join(' · ');
-    const due = o.due ? obDeskDay(o.due) : k === 'event' ? i18t('obd_when_event') : k === 'standing' ? i18t('obd_when_always') : i18t('obd_ls_not_paper');
-    const row = (l, v) => `<div class="obdf-fact"><span>${_obEsc(l)}</span><span>${_obEsc(v)}</span></div>`;
-    const acts = d === 'already' ? `<p class="obd-note">${_obEsc(i18t('ob_already_on'))}</p>`
-      : d === 'added' ? `<p class="obd-note is-ok">${_obEsc(i18t('obd_added'))} · <button type="button" class="ui-link" data-obd-go-tab>${_obEsc(i18t('obd_see_tab'))}</button></p>`
-      : d === 'skipped' ? `<p class="obd-note">${_obEsc(i18t('obd_skipped'))} · <button type="button" class="ui-link" data-obd-undo>${_obEsc(i18t('obd_undo'))}</button></p>`
-      : `<div class="obdf-acts"><button type="button" class="ui-btn ui-btn-primary" data-obd-add${ready ? '' : ' disabled'}>${_obEsc(i18t('obd_add'))}</button><button type="button" class="ui-btn" data-obd-edit>${_obEsc(i18t('obd_edit'))}</button><button type="button" class="ui-btn" data-obd-skip>${_obEsc(i18t('obd_skip'))}</button></div>${ready ? '' : `<p class="obd-note obd-ns">${_obEsc(i18t('obd_ls_whose_first'))}</p>`}`;
-    const dated = !!(o.due || (o.recurring && o.recurring !== 'none'));
-    const once = d ? '' : `<p class="obdf-h">${_obEsc(i18t('obd_ls_once'))}</p><ol class="obdf-tl"><li class="is-now">${_obEsc(i18t(w === 'them' ? 'obd_ls_once_list_them' : 'obd_ls_once_list_us'))}</li>${dated && w !== 'them' ? `<li>${_obEsc(i18t('obd_ls_once_remind'))}</li>` : ''}${o.due ? `<li>${_obEsc(i18t('obd_ls_once_cal'))}</li>` : ''}</ol>`;
-    return `<div class="obdf" data-obdf><p class="obdf-eye">${_obEsc(eye)}</p><h3 class="obdf-t">${_obEsc(o.desc || '')}</h3>
-      <div class="obdf-ring"><svg width="46" height="46" viewBox="0 0 46 46" role="img" aria-label="${_obEsc(i18t('obd_ls_ring', { n: added, m: total }))}"><circle cx="23" cy="23" r="19" fill="none" stroke="var(--color-neutral-200)" stroke-width="5"/>${len ? `<circle cx="23" cy="23" r="19" fill="none" stroke="var(--st-green-dot)" stroke-width="5" stroke-dasharray="${len.toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 23 23)"/>` : ''}</svg><div><b>${_obEsc(i18t('obd_ls_ring', { n: added, m: total }))}</b><small>${_obEsc(subs)}</small></div></div>
-      ${o.quote ? `<blockquote class="obdf-q">&ldquo;${_obEsc(o.quote)}&rdquo;</blockquote>` : ''}
-      ${row(i18t('ob_due_date'), due)}${row(i18t('obd_ls_repeats'), o.recurring && o.recurring !== 'none' ? obRecurLabel(o.recurring) : '—')}${row(i18t('obd_document'), o.doc === true ? i18t('obd_doc_yes') : o.doc === false ? i18t('obd_doc_no') : '—')}
-      ${acts}${once}</div>`;
-  };
-  const footCount = () => { if (ls) return lsFootCount(); const t = obReviewTally(c, found); return i18t('obd_foot', { left: t.left, added: t.added, skipped: t.skipped }); };
+  const footCount = () => { const t = obReviewTally(c, found); return i18t('obd_foot', { left: t.left, added: t.added, skipped: t.skipped }); };
   const filtersHtml = () => { const n = counts();
     return [['all', 'obd_f_all'], ['dated', 'obd_f_dated'], ['event', 'obd_f_event'], ['standing', 'obd_f_standing'], ['already', 'obd_f_already']]
       .filter(([k]) => k === 'all' || n[k]).map(([k, w]) => `<button type="button" data-obd-filter="${k}" aria-pressed="${filter === k}">${_obEsc(i18t(w))} <span>${n[k]}</span></button>`).join(''); };
   const leftN = () => obReviewTally(c, found).left;
-  const lsBody = () => `
-    <div class="obd is-ls" id="obd">
-      <div class="obd-top is-ls"><h3 class="obd-title">${i18t('ob_proposed')}</h3><p class="obd-sub">${_obEsc(i18tn('obd_ls_sub', found.length, { n: found.length }))}</p>
-        <div class="obd-tabs" role="tablist" id="obd-tabs">${lsTabsHtml()}</div></div>
-      <div class="obd-tools"><input type="search" id="obd-q" class="obd-find" placeholder="${_obEsc(i18t('obd_ls_find_ph'))}" aria-label="${_obEsc(i18t('obd_ls_find_ph'))}" value="${_obEsc(F.q)}"/><span class="obd-chips" id="obd-chips">${lsChipsHtml()}</span><span class="obd-ready" id="obd-ready">${_obEsc(lsReadySay())}</span></div>
-      <div class="obd-list is-ls scroll-thin" id="obd-list">${lsListHtml()}</div>
-      <div class="obd-foot"><span class="obd-count" id="obd-count"></span><span class="obd-sp"></span>
-        <button id="or-cancel" class="ui-btn">${i18t('obd_close')}</button>
-        <button id="obd-all" class="ui-btn ui-btn-primary"></button>
-        <button id="or-add" class="ui-btn ui-btn-primary"></button>
-      </div>
-    </div>`;
-  openModal(ls ? lsBody() : `
+  openModal(`
     <div class="obd" id="obd">
       ${place ? `<div class="obd-top is-nl"><span class="obd-jdot" aria-hidden="true"></span><p class="obd-sub">${_obEsc(i18tn('obn_found', found.length, { n: found.length, name: c.name || '' }))}</p></div>` : `<div class="obd-top"><div class="flex items-center gap-2"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
         <h3 class="obd-title">${i18t('ob_proposed')}</h3></div>
@@ -1551,13 +1730,10 @@ function openObligationsReview(c, found, back, place){
       /* the new look's Obligations page (round 5): the desk stands where the list stands, under its tabs, the panel beside */
       if (place) return { maxWidth: 'none', label: i18t('ob_proposed'), page: { below: place.below, beside: place.beside, bare: true },
         onClose: () => { if (typeof place.onClose === 'function') place.onClose(); } };
-      return mid ? { maxWidth: 'none', label: i18t('ob_proposed'), page: pdMidPage(i18t('ob_proposed')), onClose: () => { if (typeof pdMidOff === 'function') pdMidOff();
-        if (_obdNow && _obdNow.c === c){ _obdNow = null; try { if (typeof pdGlanceRepaint === 'function') pdGlanceRepaint(); } catch (_){} } } }
+      return mid ? { maxWidth: 'none', label: i18t('ob_proposed'), page: pdMidPage(i18t('ob_proposed')), onClose: () => { if (typeof pdMidOff === 'function') pdMidOff(); } }
         : { maxWidth: '920px', label: i18t('ob_proposed') };
     })());
   if (typeof pdMidMay === 'function' && typeof pdMidOn === 'function' && document.querySelector('#modal-root [data-dlg-page]')) pdMidOn('obs:' + c.id);
-  _obdNow = ls ? { c, face: () => lsFaceHtml(), press: ev => press(ev) } : null;
-  const lsPanel = () => { if (ls) try { if (typeof pdGlanceRepaint === 'function') pdGlanceRepaint(); } catch (_){} };
   const modal = document.getElementById('modal-root');
   const obPicks = () => Array.prototype.slice.call(
     document.querySelectorAll('#modal-root [data-ob-pick]'));
@@ -1569,13 +1745,6 @@ function openObligationsReview(c, found, back, place){
     const btn = document.getElementById('or-add');
     if (!btn) return;
     const n = obPicks().filter(cb => cb.checked).length;
-    if (ls){
-      const all = document.getElementById('obd-all'), r = lsReadyLeft().length;
-      btn.textContent = n ? i18tn('ob_add_n', n, { n }) : i18t('ob_add_pick'); btn.hidden = !n; btn.disabled = !n;
-      if (all){ all.hidden = !!n; all.textContent = r ? i18tn('obd_ls_add_ready', r, { n: r }) : i18t('obd_ls_add_none'); all.disabled = !r; }
-      const cnt = document.getElementById('obd-count'); if (cnt) cnt.textContent = footCount();
-      return;
-    }
     btn.textContent = n
       ? i18tn('ob_add_n', n, { n })
       : i18t(fresh && leftN() ? 'ob_add_pick' : 'ob_add_none');
@@ -1588,14 +1757,7 @@ function openObligationsReview(c, found, back, place){
   const repaint = () => {
     const ticked = new Set(obPicks().filter(cb => cb.checked).map(cb => cb.getAttribute('data-ob-pick')));
     const L = document.getElementById('obd-list'), top = L ? L.scrollTop : 0;
-    if (L){ L.innerHTML = ls ? lsListHtml() : listHtml(); L.scrollTop = top; }
-    if (ls){
-      const T = document.getElementById('obd-tabs'); if (T) T.innerHTML = lsTabsHtml();
-      const H = document.getElementById('obd-chips'); if (H) H.innerHTML = lsChipsHtml();
-      const R = document.getElementById('obd-ready'); if (R) R.textContent = lsReadySay();
-      obPicks().forEach(cb => { if (ticked.has(cb.getAttribute('data-ob-pick')) && !cb.disabled) cb.checked = true; });
-      obPaintAdd(); lsPanel(); return;
-    }
+    if (L){ L.innerHTML = listHtml(); L.scrollTop = top; }
     obPicks().forEach(cb => { if (ticked.has(cb.getAttribute('data-ob-pick')) && !cb.disabled) cb.checked = true; });
     const I = document.getElementById('obd-item'); if (I) I.innerHTML = itemHtml();
     const F = document.getElementById('obd-filters'); if (F) F.innerHTML = filtersHtml();
@@ -1607,7 +1769,6 @@ function openObligationsReview(c, found, back, place){
   const addOne = i => {
     const o = found[i];
     if (!o || obligationAlreadyOn(c, o)) return false;
-    if (ls && whoseNow[i] === 'unsure') return false;
     c.obligations = c.obligations || [];
     const w = whoseNow[i];
     const rec = { id: 'ob_' + Math.random().toString(36).slice(2, 8), desc: o.desc, due: o.due || '', recurring: o.recurring || 'none',
@@ -1635,19 +1796,7 @@ function openObligationsReview(c, found, back, place){
     if (t && t.closest && t.closest('[data-ob-pick]')) obPaintAdd();
   });
   function press(ev){
-    const t = ev.target && ev.target.closest ? ev.target : null; if (!t || !(t.closest('#obd') || (ls && t.closest('[data-obdf]')))) return;
-    if (ls){
-      const tb = t.closest('[data-obd-tab]'); if (tb){ F.tab = tb.getAttribute('data-obd-tab'); F.status = F.tab === 'left' ? F.status : ''; F.menu = '';
-        const first = found.findIndex((_, i) => lsShown(i)); if (first >= 0) sel = first; repaint(); return; }
-      const ch = t.closest('[data-obd-chip]'); if (ch){ const k = ch.getAttribute('data-obd-chip'); F.menu = F.menu === k ? '' : k; repaint(); return; }
-      const fv = t.closest('[data-obd-fv]'); if (fv){ F[fv.getAttribute('data-obd-fv')] = fv.getAttribute('data-v'); F.menu = ''; repaint(); return; }
-      const fx = t.closest('[data-obd-fx]'); if (fx){ F[fx.getAttribute('data-obd-fx')] = ''; F.menu = ''; repaint(); return; }
-      if (F.menu && !t.closest('.obd-menu')){ F.menu = ''; repaint(); }
-      const rw = t.closest('[data-obd-rw]'); if (rw){ const i = Number(rw.getAttribute('data-obd-rw')); whoseNow[i] = rw.getAttribute('data-w'); sel = i; repaint(); return; }
-      const ra = t.closest('[data-obd-radd]'); if (ra){ const i = Number(ra.getAttribute('data-obd-radd')); sel = i;
-        if (addOne(i)){ settled(1, 0); toast(i18tn('ob_added_n', 1, { n: 1 }), 'ok'); const next = found.findIndex((o, j) => !decision(j)); if (next >= 0) sel = next; }
-        repaint(); return; }
-    }
+    const t = ev.target && ev.target.closest ? ev.target : null; if (!t || !t.closest('#obd')) return;
     const f = t.closest('[data-obd-filter]'); if (f){ filter = f.getAttribute('data-obd-filter'); repaint(); return; }
     const row = t.closest('[data-obd-sel]');
     if (row && !t.closest('[data-ob-pick]')){ sel = Number(row.getAttribute('data-obd-sel')); repaint(); return; }
@@ -1667,7 +1816,7 @@ function openObligationsReview(c, found, back, place){
          form, filled from Copilot's reading; "Back to the list" returns here
          on the same item. No second form. */
       const o = found[sel], at = sel, L0 = document.getElementById('obd-list');
-      const back = { sel: at, filter, top: L0 ? L0.scrollTop : 0, place, tab: F.tab, kind: F.kind, whose: F.whose, status: F.status, q: F.q };
+      const back = { sel: at, filter, top: L0 ? L0.scrollTop : 0, place };
       openObligationForm(c, { desc: o.desc || '', due: o.due || '', recurring: o.recurring || 'none', assignee: '', quote: o.quote || '',
         amount: Number(o.amount) > 0 ? Number(o.amount) : '', party: whoseNow[at] === 'them' ? 'theirs' : 'ours', doc: o.doc === true ? {} : undefined },
         { saveLabel: i18t('obd_add_ob'), cancelLabel: i18t('obd_back'),
@@ -1682,9 +1831,6 @@ function openObligationsReview(c, found, back, place){
     }
   }
   if (modal) modal.addEventListener('click', press);
-  if (ls){ const Q = document.getElementById('obd-q'); if (Q) Q.addEventListener('input', () => { F.q = Q.value;
-    const L = document.getElementById('obd-list'); if (L) L.innerHTML = lsListHtml(); obPaintAdd(); }); }
-  lsPanel();
   document.getElementById('or-cancel').addEventListener('click', () => {
     if (window.paintKtTriage && document.getElementById('kt-triage-slot')) try { paintKtTriage(c); } catch (_){}
     closeModal(); });
@@ -5243,7 +5389,9 @@ function obnProjRowHtml(x){
   const may = (typeof canEdit !== 'function') || canEdit();
   const ref = window.refHtml ? refHtml(c) : _obEsc(c.id);
   const lateb = x.late ? `<span class="obn-ch is-ruby obn-lt">${_obEsc(i18tn('obn_n_late', x.late, { n: x.late }))}</span>` : '';
-  const acts = (may && x.ready ? `<button type="button" class="cal-nl-go obn-open" data-obn-addall="${_obEsc(c.id)}">${_obEsc(i18tn('obn_add_ready', x.ready, { n: x.ready }))}</button>` : '');
+  /* NO MASS ADD (owner, 23 Nov 2026, "Duties, end to end"): the agreement's duties are decided one at a time on its own
+     Duties page (data-obn-decide → dutiesGo) */
+  const acts = (may && x.tally.left ? `<button type="button" class="cal-nl-go obn-open" data-obn-decide="${_obEsc(c.id)}">${_obEsc(i18t('obn_decide'))} ›</button>` : '');
   /* A PRESS CHOOSES (19 Nov 2026): the row is Jambo's panel's subject (obnLgHtml), where its duties are answered. THE
      DUTIES NO LONGER OPEN UNDER THE ROW (owner, 19 Nov 2026: "the obligations are redundant as they are already in the side
      panel. Delete them"): no Open pill, no duty lines in the list */
@@ -5303,17 +5451,16 @@ function obnLgStripe(x){
   const f = x.tally.total ? x.decided / x.tally.total : 0;
   const ref = window.contractRef ? contractRef(c) : c.id;
   const item = y => {
-    const o = y.o, i = y.i, w = obnWhoseNow(c, o), when = obWhenChip(o);
-    const whose = k => `<button type="button" class="obn-lg-w${w === k ? ' is-on' : ''}" data-obn-whose="${k}" data-cid="${E(c.id)}" data-i="${i}" aria-pressed="${w === k}">${E(obWhoseBtn(k))}</button>`;
+    const o = y.o, i = y.i, when = obWhenChip(o);
     const said = y.d === 'added' ? `<span class="obn-lg-said is-ok">${E(i18t('obd_added'))}</span>`
       : y.d === 'skipped' ? `<span class="obn-lg-said">${E(i18t('obd_skipped'))}</span><button type="button" class="obn-lg-link" data-obn-unskip data-cid="${E(c.id)}" data-i="${i}">${E(i18t('obd_undo'))}</button>`
       : y.d === 'already' ? `<span class="obn-lg-said">${E(i18t('ob_already_on'))}</span>` : '';
-    const line = said || (may ? `${whose('unsure')}${whose('us')}${whose('them')}${whose('both')}<button type="button" class="obn-lg-link is-skip" data-obn-skip data-cid="${E(c.id)}" data-i="${i}">${E(i18t('obd_skip'))}</button>` : '');
+    /* read here, decided on the agreement's own Duties page, one at a time (owner, 23 Nov 2026) */
+    const line = said;
     return `<div class="obn-lg-it"><div class="obn-lg-l"><b>${E(o.desc || '')}</b>${when ? `<span class="obs-b">${E(when)}</span>` : ''}</div>`
       + `${o.quote ? `<p class="obn-lg-q">\u201c${obnQuoteHtml(o.quote)}\u201d</p>` : ''}${line ? `<div class="obn-lg-ans">${line}</div>` : ''}</div>`;
   };
-  const add = may ? (x.ready ? `<button type="button" class="obn-lg-addall" data-obn-addall="${E(c.id)}">${E(i18t('obn_add_decided'))}</button>`
-    : `<button type="button" class="obn-lg-addall" disabled title="${E(i18t('obn_add_none_why'))}">${E(i18t('obn_add_decided'))}</button>`) : '';
+  const add = may && x.tally.left ? `<button type="button" class="obn-lg-addall" data-obn-decide="${E(c.id)}">${E(i18t('obn_decide'))} ›</button>` : '';
   return `<div class="obn-lg jl-words is-stripe" data-obn-lg="${E(c.id)}">
     <div class="obn-lg-top is-ring"><span class="obs-rring" aria-hidden="true"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15"/><circle cx="18" cy="18" r="15" class="is-f is-violet" style="${obnArcDash(15, f)}"/></svg><b>${x.decided}/${x.tally.total}</b></span>
       <span class="obn-lg-tw"><b>${E(c.name || c.id)}</b><span>${[c.counterparty ? E(c.counterparty) : '', window.refHtml ? refHtml(c) : E(ref), x.days == null ? '' : E(i18t('obn5_found', { when: obnAgeWord(x) }))].filter(Boolean).join(' \u00b7 ')}</span></span></div>
@@ -5332,11 +5479,10 @@ function obnLgHtml(x, rows){
   const item = y => {
     const o = y.o, i = y.i, w = obnWhoseNow(c, o), sec = o.clause ? '\u00a7 ' + String(o.clause) : '';
     const when = obWhenChip(o);
-    const whose = k => `<button type="button" class="obn-lg-w${w === k ? ' is-on' : ''}" data-obn-whose="${k}" data-cid="${E(c.id)}" data-i="${i}"${w === k ? ' aria-pressed="true"' : ' aria-pressed="false"'}>${E(obWhoseBtn(k))}</button>`;
     const said = y.d === 'added' ? `<span class="obn-lg-said is-ok">${E(i18t('obd_added'))}</span>`
       : y.d === 'skipped' ? `<span class="obn-lg-said">${E(i18t('obd_skipped'))}</span><button type="button" class="obn-lg-link" data-obn-unskip data-cid="${E(c.id)}" data-i="${i}">${E(i18t('obd_undo'))}</button>`
       : y.d === 'already' ? `<span class="obn-lg-said">${E(i18t('ob_already_on'))}</span>` : '';
-    const line = said || (may ? `${whose('unsure')}${whose('us')}${whose('them')}${whose('both')}<button type="button" class="obn-lg-link is-skip" data-obn-skip data-cid="${E(c.id)}" data-i="${i}">${E(i18t('obd_skip'))}</button>` : '');
+    const line = said;
     return `<div class="obn-lg-it"><div class="obn-lg-l"><b>${E(o.desc || '')}</b>${!y.d && w !== 'unsure' ? `<span class="obn-lg-now is-${E(w)}">${E(obWhoseBtn(w))}</span>` : ''}</div>`
       + `${o.quote ? `<p class="obn-lg-q">\u201c${obnQuoteHtml(o.quote)}\u201d</p>` : ''}`
       + `${sec || when ? `<p class="obn-lg-src">${E([sec, when].filter(Boolean).join(' \u00b7 '))}</p>` : ''}`
@@ -5346,7 +5492,7 @@ function obnLgHtml(x, rows){
   const nextHtml = next && left > 0 ? `<div class="obn-lg-it is-next"><div class="obn-lg-l"><b>${E(i18tn('obn_lg_more', left, { n: left }))}</b>`
     + `<button type="button" class="obn-lg-next" data-obn-pick="${E(next.c.id)}">${E(i18t('obn_lg_next'))}</button></div>`
     + `<p class="obn-lg-src">${E(i18tn('obn_lg_next_s', next.tally.left, { name: next.c.name || next.c.id, n: next.tally.left }))}</p></div>` : '';
-  const chips = [may && x.ready ? `<button type="button" class="obn-lg-chip" data-obn-addall="${E(c.id)}">${E(i18tn('obn_add_ready', x.ready, { n: x.ready }))}</button>` : '',
+  const chips = [may && x.tally.left ? `<button type="button" class="obn-lg-chip" data-obn-decide="${E(c.id)}">${E(i18t('obn_decide'))} ›</button>` : '',
     `<button type="button" class="obn-lg-chip" data-obn-ask="${E(c.id)}">${E(i18t('obn_lg_ask'))}</button>`].filter(Boolean).join('');
   return `<div class="obn-lg jl-words" data-obn-lg="${E(c.id)}">
     <div class="obn-lg-top"><b>${E(c.name || c.id)}</b><span>${E([c.counterparty || '', x.days == null ? '' : i18t('obn5_found', { when: obnAgeWord(x) }), i18tn('obn5_duties', x.tally.total, { n: x.tally.total })].filter(Boolean).join(' \u00b7 '))}</span></div>
@@ -6119,17 +6265,9 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
     if(sk || un){ e.preventDefault(); const b = sk || un; const hit = obnFindOf(b.getAttribute('data-cid'), b.getAttribute('data-i'));
       if(hit){ obReviewMark(hit.c, hit.o, sk ? 'skipped' : null); persist(hit.c); obligationSurfacesChanged(); }
       obnRepaint(); return; }
-    const aa = t.closest('[data-obn-addall]');
-    if(aa){ e.preventDefault(); const cid = aa.getAttribute('data-obn-addall');
-      const c = window.getContract ? getContract(cid) : null; if(!c) return;
-      const held = (typeof window.triageHeldObligations === 'function') ? window.triageHeldObligations(c) : [];
-      let n = 0;
-      held.forEach(o => { if(obReviewDecision(c, o)) return; const w = obnWhoseNow(c, o); if(w === 'unsure') return; if(obAddFound(c, o, w)) n++; });
-      if(n){ if(typeof logAudit === 'function') logAudit(c, 'Obligation', `Added ${n} obligation${n === 1 ? '' : 's'} from Jambo scan`);
-        persist(c); if(typeof renderObligationsSection === 'function') renderObligationsSection(c); obligationSurfacesChanged();
-        if(window.roomPaintObligations) roomPaintObligations(c);
-        if(typeof toast === 'function') toast(i18tn('obn_added_n', n, { n }), 'ok'); }
-      obnRepaint(); return; }
+    /* NO MASS ADD (owner, 23 Nov 2026): the agreement's Duties page, where each duty is added or skipped on its own */
+    const dc = t.closest('[data-obn-decide]');
+    if(dc){ e.preventDefault(); dutiesGo(dc.getAttribute('data-obn-decide')); return; }
     const om = t.closest('[data-obt-more]');
     if(om){ e.preventDefault(); const k = om.getAttribute('data-obt-more'); _obnColAll[k] = true; obnRepaint(); return; }
     const opk = t.closest('[data-obt-pick]');
@@ -6168,7 +6306,7 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
     obOpenContract(cid, go.getAttribute('data-key'));
   }, true);
 }
-Object.assign(window,{obdFaceFor,obdFaceHtml,contractRenewsItself,obligationReminderDay,obPanelFive,obDecisionFive, obligationIsDoc,obligationDocUntil,obligationDocFile,obligationDocState,
+Object.assign(window,{obdFaceFor,obdFaceHtml,dutiesOpen,dutiesGo,dutiesFound,openDutiesPage,contractRenewsItself,obligationReminderDay,obPanelFive,obDecisionFive, obligationIsDoc,obligationDocUntil,obligationDocFile,obligationDocState,
   OB_DOC_SOON_DAYS,contractDocuments,contractDocsLapsed,contractDocsMissing,
   obligationAfter,obligationPrev,obligationBlocked,obligationChain,obligationChains,obligationStepNo,obligationRoll,
   obligationAlreadyOn,obligationRequireDoc,obFindBusy,obFinding,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,

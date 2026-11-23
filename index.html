@@ -5796,6 +5796,32 @@
   .obdf-tl li{position:relative;padding:4px 0 4px 18px;font-size:13px;color:var(--color-text)}
   .obdf-tl li::before{content:"";position:absolute;left:0;top:10px;width:8px;height:8px;border-radius:50%;background:var(--color-neutral-300)}
   .obdf-tl li.is-now::before{background:var(--st-amber-dot)}
+  /* THE DUTIES PAGE AND ITS SHEET (owner, 23 Nov 2026, "Duties, end to end"): the page's columns; the sheet a layer OVER the
+     page (the page stays behind it), one screen, its progress line, the paper's words, Add duty · Skip · Cancel */
+  .obd-tb.is-ls.dtp-tb .dtp-c-when{width:118px;font-size:13px;color:var(--color-quiet)}
+  .obd-tb.is-ls.dtp-tb .dtp-c-st{width:132px}
+  .obd-tb.is-ls.dtp-tb .dtp-c-go{width:104px;text-align:right}
+  .obd-tb.is-ls.dtp-tb .dtp-c-who{width:84px;font-size:13px;color:var(--color-quiet)}
+  .obd-tb.is-ls.dtp-tb .dtp-c-due{width:96px;font-size:13px}
+  .obd-tb.is-ls.dtp-tb .dtp-c-by{width:118px;font-size:13px;color:var(--color-quiet);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .obd-tb.is-ls.dtp-tb tr.dtp-r{cursor:pointer}
+  @container (max-width: 760px){ .obd-tb.is-ls.dtp-tb :is(.dtp-c-when,.dtp-c-by){display:none} }
+  .dtp .obd-ready{margin-left:auto}
+  .obdf-tl li{display:flex;gap:10px;justify-content:space-between}
+  .obdf-tl li small{flex:none;color:var(--color-neutral-400)}
+  .obdf-tl li.is-n::before{background:var(--st-amber-dot)}
+  .obdf-tl li.is-d::before{background:var(--st-green-dot)}
+  .obdf-tl li.is-r::before{background:var(--st-ruby-dot)}
+  .obdf-back{margin:14px 0 0;font-size:13px}
+  .dts-ov{position:fixed;inset:0;z-index:84;display:grid;place-items:center;padding:var(--s-4)}
+  .dts-scrim{position:absolute;inset:0;background:color-mix(in srgb,var(--color-text) 28%,transparent)}
+  .dts-card{position:relative;width:min(540px,100%);max-height:calc(100vh - 48px);overflow:auto;background:var(--color-surface);border-radius:14px;box-shadow:0 18px 50px color-mix(in srgb,var(--color-text) 25%,transparent)}
+  .dts-card > .lgp{padding-top:20px}
+  .dts-prog{height:3px;margin:0 24px 14px;border-radius:3px;background:var(--color-divider);overflow:hidden}
+  .dts-prog b{display:block;height:3px;background:var(--accent-ink);border-radius:3px}
+  .dts-meta{display:flex;justify-content:space-between;gap:12px}
+  .dts-q{margin:0 0 6px;padding:10px 12px;border-left:2px solid var(--accent-ink);background:var(--surface-2);font:italic 13.5px/1.45 var(--font-doc);color:var(--color-quiet)}
+  .dts-need{margin:8px 24px 0;font-size:12.5px;color:var(--st-amber-fg)}
   .obd-count{font-size:12.5px;color:var(--color-ink-2,#475467);font-variant-numeric:tabular-nums}
   .obd-sp{flex:1}
   @media (max-width:900px){ .obd-grid{grid-template-columns:1fr} .obd-list{border-right:0;border-bottom:1px solid var(--color-line);max-height:34vh} .obd-item{max-height:none} }

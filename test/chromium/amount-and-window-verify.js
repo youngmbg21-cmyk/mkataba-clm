@@ -222,47 +222,20 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off); return 
     });
     await page.waitForTimeout(600);
     await page.screenshot({ path: path.join(OUT, '04-review.png') });
-    const rev = await page.evaluate(() => {
-      /* RE-POINTED 7 Oct 2026 (work order O-32, the Review desk): every
-         proposal is a ROW; a duplicate sits under "Already on this contract"
-         with nothing to decide (no box), so only the fresh one has a box. */
-      const boxes = [...document.querySelectorAll('[data-ob-pick]')];
-      return { n: document.querySelectorAll('#obd [data-obd-sel]').length, checked: boxes.map(b => b.checked),
-        reasons: [...document.querySelectorAll('#obd .obd-row.is-already')].map(() => 'Already on this contract'),
-        button: (document.getElementById('or-add') || {}).textContent };
-    });
-    check('every proposal is DRAWN, including the ones already on the contract',
-      rev.n === 3, String(rev.n));
-    /* REVERSED 4 Oct 2026 (process review, f475): every proposal arrives
-       UNTICKED, the fresh one too — the reader ticks what they add. */
-    check('A DUPLICATE ARRIVES UNTICKED, and so does a fresh one',
-      JSON.stringify(rev.checked) === JSON.stringify([false]),
-      JSON.stringify(rev.checked));
-    check('and it says why, on the row it is true of',
-      rev.reasons.filter(t => /already on this contract/i.test(t)).length === 2,
-      JSON.stringify(rev.reasons.map(t => t.slice(0, 42))));
-    check('nothing ticked: the button asks for a tick and is grey',
-      /tick/i.test(String(rev.button)) && !/\d/.test(String(rev.button)), String(rev.button).trim());
-    const ticked = await page.evaluate(() => {
-      const box = document.querySelectorAll('[data-ob-pick]')[0];
-      box.click();
-      return (document.getElementById('or-add') || {}).textContent;
-    });
-    check('THE BUTTON COUNTS WHAT WILL ACTUALLY BE ADDED',
-      /\b1\b/.test(String(ticked)), String(ticked).trim());
-
+    /* RE-POINTED 23 Nov 2026 ("Duties, end to end"): the review is the contract's Duties page. The two already on the
+       contract are not offered again under To decide — they stand under On the contract — and the one fresh proposal is
+       decided on its own in the sheet: no ticks, no Add N ticked, so the list cannot be doubled by a press. */
+    const rev = await page.evaluate(() => ({ left: document.querySelectorAll('#dtp tr.dtp-r').length, ticks: document.querySelectorAll('#dtp input[type=checkbox]').length,
+      onTab: (document.querySelector('#dtp [data-dtp-tab="on"] span') || {}).textContent }));
+    check('every fresh proposal is drawn to decide; the two already on the contract are not offered again', rev.left === 1, JSON.stringify(rev));
+    check('nothing to tick: each duty is decided on its own', rev.ticks === 0, JSON.stringify(rev));
     const beforeN = await page.evaluate(id => getContract(id).obligations.length, cid);
-    await page.evaluate(() => document.getElementById('or-add').click());
+    await page.evaluate(() => document.querySelector('[data-dtp-first]').click());
+    await page.waitForTimeout(400);
+    await page.evaluate(() => { document.querySelector('.dts-ov [data-of-party="ours"]').click(); document.getElementById('of-save').click(); });
     await page.waitForTimeout(900);
     const afterN = await page.evaluate(id => getContract(id).obligations.length, cid);
-    check('PRESSING IT ADDS ONE, NOT THREE — the list is not doubled',
-      afterN - beforeN === 1, `${beforeN} → ${afterN}`);
-    const toastText = await page.evaluate(() => {
-      const r = document.getElementById('toast-root');
-      return r ? r.textContent.trim() : '';
-    });
-    check('AND THE CONFIRMATION IS NOT SILENT — it says what happened',
-      /\d/.test(toastText) && /already/i.test(toastText), toastText.slice(0, 90));
+    check('ADDING IT ADDS ONE — the list is not doubled', afterN - beforeN === 1, `${beforeN} → ${afterN}`);
 
     /* ============ 5. THE CALENDAR'S AGENDA WINDOW — RETIRED ============
        11 Oct 2026: Next 14 days and its 14 · 30 · 60 · 90 window left the
