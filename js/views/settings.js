@@ -2322,7 +2322,7 @@ function stLsHeadHtml(o){
     ${o.tabs||''}
     ${o.ask?`<label class="apn-ask sdd-find st-ls-find is-filter"><span class="sdd-find-ic" aria-hidden="true">${typeof icon==='function'?icon('search','sdd-spark-ic'):''}</span><input id="${o.ask.id}" type="search" autocomplete="off" placeholder="${esc(o.ask.ph)}" aria-label="${esc(o.ask.ph)}" value="${esc(o.ask.value||'')}"${o.ask.attr?' '+o.ask.attr:''}></label>`:''}
     ${o.askHtml||''}
-    ${chips.length?`<div class="apn-bar sdd-chips st-ls-chips">${chips.map(c=>`<button type="button" class="apn-tab is-chip${o.chip===c.k?' is-on':''}" data-st-ls-chip="${esc(o.page)}:${esc(c.k)}">${c.amber?'<i class="apn-cd is-amber" aria-hidden="true"></i>':''}${esc(c.label)} <span>${c.n}</span></button>`).join('')}</div>`:''}
+    ${chips.length?`<div class="apn-bar sdd-chips st-ls-chips">${chips.map(c=>`<button type="button" class="apn-tab is-chip${o.chip===c.k?' is-on':''}${o.chip===c.k&&c.k!==chips[0].k?' is-narrow':''}" data-st-ls-chip="${esc(o.page)}:${esc(c.k)}">${c.amber?'<i class="apn-cd is-amber" aria-hidden="true"></i>':''}${esc(c.label)} <span>${c.n}</span></button>`).join('')}</div>`:''}
   </div>`;
 }
 /* People · Who holds what · Roles: one page with three tabs, as today (sddPeopleTabsHtml's three doors) */
@@ -2878,7 +2878,7 @@ function acPageHtml(){
     <button type="button" class="sdd-back st-ls-back" data-st-page="">‹ ${esc(i18t('stn_title_short'))}</button>
     <div class="cun-head st-ls-hrow"><h2 class="ctf-h stn-title sdd-title">${esc(i18t('ac_page_title'))}</h2><span class="st-ls-acts"><button type="button" class="ui-btn" data-ac-run>${esc(i18t('ac_run_again'))}</button></span></div>
     <p class="sdd-sub st-ls-sub">${esc(i18t('ac_sub'))}</p>
-    <div class="apn-bar sdd-chips st-ls-chips">${chips.map(c=>`<button type="button" class="apn-tab is-chip${chip===c.k?' is-on':''}" data-st-ls-chip="guard:${c.k}">${c.amber?'<i class="apn-cd is-amber" aria-hidden="true"></i>':''}${esc(c.label)} <span>${c.n}</span></button>`).join('')}${areaChip}</div>
+    <div class="apn-bar sdd-chips st-ls-chips">${chips.map(c=>`<button type="button" class="apn-tab is-chip${chip===c.k?' is-on':''}${chip===c.k&&c.k!==chips[0].k?' is-narrow':''}" data-st-ls-chip="guard:${c.k}">${c.amber?'<i class="apn-cd is-amber" aria-hidden="true"></i>':''}${esc(c.label)} <span>${c.n}</span></button>`).join('')}${areaChip}</div>
   </div><div class="st-ls-body" data-st-pg="guard" id="st-ls-list">${acTableHtml()}</div>`;
 }
 /* when it was checked, as the server recorded it; where it could not be recorded, that is said, never "written" */
@@ -11499,7 +11499,7 @@ function sddHeadHtml(admin){
     <div class="cun-head"><h2 class="ctf-h stn-title sdd-title">${esc(a?i18t('sdd_a_'+a):i18t('stn_title_short'))}</h2></div>
     ${a?`<p class="sdd-sub">${esc(i18t('sdd_sub_'+a))}</p>`:''}
     <label class="apn-ask sdd-find is-filter"><span class="sdd-find-ic" aria-hidden="true">${typeof icon==='function'?icon('search','sdd-spark-ic'):''}</span><input id="sdd-q" type="search" autocomplete="off" placeholder="${esc(sddAskPh(a))}" aria-label="${esc(i18t('sdd_find_ph'))}" value="${esc(_sddQ)}"></label>
-    <div class="apn-bar sdd-chips">${chips.map(c=>`<button type="button" class="apn-tab is-chip${chip===c[0]?' is-on':''}" data-sdd-chip="${c[0]}">${c[0]==='need'?'<i class="apn-cd is-amber" aria-hidden="true"></i>':''}${esc(c[1])} <span>${c[2]}</span></button>`).join('')}</div>`;
+    <div class="apn-bar sdd-chips">${chips.map(c=>`<button type="button" class="apn-tab is-chip${chip===c[0]?' is-on':''}${chip===c[0]&&c[0]!=='all'?' is-narrow':''}" data-sdd-chip="${c[0]}">${c[0]==='need'?'<i class="apn-cd is-amber" aria-hidden="true"></i>':''}${esc(c[1])} <span>${c[2]}</span></button>`).join('')}</div>`;
 }
 /* the ask box's words: the landing's, an area's own example where it has one (P-43 as drawn), else the area's line */
 /* AN HONEST FINDER (owner, 22 Nov 2026): the box finds a setting and says only that; questions are Jambo's, in his box

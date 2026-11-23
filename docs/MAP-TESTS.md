@@ -25,6 +25,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## AN AMENDMENT IS WRITTEN HERE (js/family.js)
 - f170, f176, f901, f544, amendment-journey, amendment-blanks-and-clauses, menu-and-amend verify.
 - Amend L+S and Dossier L+S (22 Nov 2026): f1153 (6 = start from today's deal, 23 Nov), dossier-and-amend-ls-verify (7); re-pointed in place f1065 (2), f1088 (1), f731 (8).
+- An amendment is approved on its value (23 Nov 2026): f1192 (page + server readers).
 - Tell Jambo the change (23 Nov 2026): f1187 (1–7); dossier-and-amend-ls-verify 2 (the pop-up first), 2b (steps in order), 8a–8f (the Jambo way, a stand-in answer); re-pointed in place menu-and-amend 5b (the manual link), round5-new-look 7 (`pdAmendOpen(id,{manual:true})`).
 
 ## THE UPLOAD
@@ -1109,3 +1110,7 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 ## OBLIGATIONS — helps 4 and 5, and the word duty (23 Nov 2026)
 - `node --test test/f1191-who-watches-and-why-proof.test.js test/f1188-jambo-fills-in-the-duty.test.js test/f1187-duties-end-to-end.test.js`
 - Re-pointed to "duty": f399 (6e, 6f), f554 (5), f614, f693 (4b), f752 (3a), f754 (9f reverses "the receipt says obligations"), f791 (1b), f800 (8b), f804 (10c); browser: explorer-lenses, explorer-stage-two, obligations-renewal-legora-way, one-sheet-as-drawn, overview-and-obligations-polish, auto-triage, amendment-journey, five-screenshots.
+- f1192 (4)(5): the signing limit reads the same view on both hosts; Create carries a figure from the changed wording when nobody pressed Use.
+
+## THE LIST HEAD — an applied filter is in colour (23 Nov 2026)
+- `node --test test/f1193-an-applied-filter-is-in-colour.test.js test/f1109-an-applied-filter-is-shaded.test.js test/f965-the-tokens-are-the-law.test.js`; browser: contracts-page-verify 12f (GitHub).

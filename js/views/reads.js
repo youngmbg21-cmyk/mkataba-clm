@@ -1122,7 +1122,7 @@ function dsnListHtml(){
   const kept = runs.filter(_dsnKeptOf).length;
   const qs = new Set(runs.flatMap(r => r.askIds)).size;
   const tabs = [['all', _rdT('ctf_tab_all'), runs.length], ['kept', _rdT('rdn_tab_kept'), kept]];
-  const chips = tabs.map(t => `<button type="button" class="apn-tab is-chip${(_dsn.ltab || 'all') === t[0] ? ' is-on' : ''}" data-dsn-ltab="${t[0]}">${_rdE(t[1])} <span>${t[2]}</span></button>`).join('')
+  const chips = tabs.map(t => `<button type="button" class="apn-tab is-chip${(_dsn.ltab || 'all') === t[0] ? ' is-on' : ''}${(_dsn.ltab || 'all') === t[0] && t[0] !== 'all' ? ' is-narrow' : ''}" data-dsn-ltab="${t[0]}">${_rdE(t[1])} <span>${t[2]}</span></button>`).join('')
     + dsnFChip('folder', _rdT('dsn_f_folder'), dsnFolders().map(x => [x.fid, x.name]), _dsn.f.folder)
     + dsnFChip('ask', _rdT('dsn_f_question'), asks, _dsn.f.ask)
     + dsnFChip('by', _rdT('dsn_f_by'), people, _dsn.f.by)
@@ -2278,7 +2278,7 @@ function dsnAnsBarHtml(kind, S, tab, input){
   const on = S.G.find(g => g.k === tab);
   const face = on ? `${dot(on)}<b class="dsn-cl">${_rdE(on.l)}</b> <span>${on.n}</span>` : `${_rdE(_rdT('dsn_answers'))} <span>${S.G.length}</span>`;
   const items = S.G.map(g => `<button type="button" role="menuitemradio" aria-checked="${tab === g.k}" class="${tab === g.k ? 'is-on' : ''}" ${attr}="${_rdE(g.k)}" title="${_rdE(g.l)}">${dot(g)}<b class="dsn-cl">${_rdE(g.l)}</b><span>${g.n}</span></button>`).join('');
-  const menu = S.G.length ? `<span class="apn-rule-w dsn-aw"><button type="button" class="apn-tab is-chip dsn-abtn${on ? ' is-on' : ''}" data-dsn-aopen="${k}" aria-haspopup="menu" aria-expanded="${open}">${face}<i class="dsn-xv" aria-hidden="true"></i></button>`
+  const menu = S.G.length ? `<span class="apn-rule-w dsn-aw"><button type="button" class="apn-tab is-chip dsn-abtn${on ? ' is-on is-narrow' : ''}" data-dsn-aopen="${k}" aria-haspopup="menu" aria-expanded="${open}">${face}<i class="dsn-xv" aria-hidden="true"></i></button>`
     + `<span class="apn-rule-menu dsn-amenu" role="menu"${open ? '' : ' hidden'}>${items}</span></span>` : '';
   return `<div class="apn-bar dsn-bar dsn-abar">${search}${all}${menu}</div>`;
 }

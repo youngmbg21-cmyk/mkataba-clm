@@ -3090,7 +3090,7 @@ function tplnFilterLineHtml(rows, shelves){
   let chips;
   if (v === 'list' && _tplPf.ls){
     /* on a shelf: the shelves as chips, the chosen one set */
-    chips = shelves.map(sh => `<button type="button" class="apn-tab is-chip is-shelf${sh.fid === _tplPf.ls ? ' is-on' : ''}" data-tpln-shelfchip="${_tplEsc(sh.fid)}" aria-pressed="${sh.fid === _tplPf.ls ? 'true' : 'false'}" title="${_tplEsc(sh.name)}" style="--sd:var(--st-${tplnTone(sh.fid)}-dot)"><i aria-hidden="true"></i>${_tplEsc(tplnShort(sh.fid))} <span>${sh.rows.length}</span></button>`).join('');
+    chips = shelves.map(sh => `<button type="button" class="apn-tab is-chip is-shelf${sh.fid === _tplPf.ls ? ' is-on is-narrow' : ''}" data-tpln-shelfchip="${_tplEsc(sh.fid)}" aria-pressed="${sh.fid === _tplPf.ls ? 'true' : 'false'}" title="${_tplEsc(sh.name)}" style="--sd:var(--st-${tplnTone(sh.fid)}-dot)"><i aria-hidden="true"></i>${_tplEsc(tplnShort(sh.fid))} <span>${sh.rows.length}</span></button>`).join('');
   } else {
     chips = chip('data-tpln-view="shelves"', v === 'shelves', i18t('tpln5_shelves'), shelves.length) + chip('data-tpln-view="list"', allOn, i18t('tpln5_all'), rows.length)
       + (shelves.length > 1 ? menu('data-tpln-menu', i18t('tpln6_shelf'), shelves.map(sh => `<button type="button" data-tpln-shelfchip="${_tplEsc(sh.fid)}">${_tplEsc(sh.name)}</button>`).join('')) : '');
