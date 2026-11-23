@@ -356,7 +356,7 @@ const drive = async (page, fn, arg, fallback) => {
     check('5e no clause is marked by a promise alone', amber.watch === 0,
       `${amber.watch} marked`);
     check('5f and nothing on the page says a mark is about an obligation',
-      !(amber.shot || []).some(s => /promise|Obligations/i.test(s.marks.join(' '))),
+      !(amber.shot || []).some(s => /promise|Obligations|Duties/i.test(s.marks.join(' '))),
       (amber.shot || []).map(s => s.title).join(' | ').slice(0, 140));
     await page.screenshot({ path: path.join(OUT, '05-plain-english-amber.png') });
 

@@ -409,10 +409,11 @@ describe('f754 (9) the road, the third pass', () => {
     const st = J(on.ctx.pdRoadStops(on.c)).stops.find(x => x.k === 'rule');
     assert.ok(st && st.done); assert.equal(st.sub, 'Approved by Amina Otieno, 15 Oct');
   });
-  test('9f the receipt says obligations, as drawn: "6 obligations, the first on 31 Jan 2027"', () => {
-    assert.equal(Tn('pd_sf_next_n', 6, { when: '31 Jan 2027' }), '6 obligations, the first on 31 Jan 2027');
-    assert.equal(T('pd_sf_next_none'), 'No obligations are recorded on this contract.');
-    for (const k of Object.keys(BOOKS.en).filter(k => k.startsWith('pd_sf_next'))) assert.doesNotMatch(BOOKS.en[k], /\bdut(y|ies)\b/i, k);
+  /* RE-POINTED 23 Nov 2026 (owner: "renaming obligations to duties everywhere"; reverses "the receipt says obligations") */
+  test('9f the receipt says duties: "6 duties, the first on 31 Jan 2027"', () => {
+    assert.equal(Tn('pd_sf_next_n', 6, { when: '31 Jan 2027' }), '6 duties, the first on 31 Jan 2027');
+    assert.equal(T('pd_sf_next_none'), 'No duties are recorded on this contract.');
+    for (const k of Object.keys(BOOKS.en).filter(k => k.startsWith('pd_sf_next'))) assert.doesNotMatch(BOOKS.en[k], /\bobligations?\b/i, k);
   });
   test('9g the receipt draws who approved and who signed once: the column\'s own record folds away when sealed', () => {
     const f = strip(PD.slice(PD.indexOf('function pdRoadPaint('), PD.indexOf('function pdSignFaceHtml(')));

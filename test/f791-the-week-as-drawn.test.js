@@ -69,7 +69,7 @@ describe('f791 (1) the words, both books', () => {
     assert.equal(BOOKS.en.ob_finds_go, 'Review {n}');
     assert.equal(BOOKS.en.ob_head_out_other, '{n} outstanding');
     assert.equal(BOOKS.en.ob_head_over_one, '{n} overdue');
-    assert.equal(BOOKS.en.ob_add_btn, 'Add an obligation');
+    assert.equal(BOOKS.en.ob_add_btn, 'Add a duty');
   });
 });
 

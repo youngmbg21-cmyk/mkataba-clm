@@ -30,10 +30,10 @@ test('f614 the retry door says "Run this reading again"; the obligations door ke
   assert.equal(retry.getAttribute('title'), 'Run this reading again');
   const oblig = box.querySelector('[data-kt-tri-go="oblig"]');
   assert.ok(oblig, 'the obligations door is drawn too');
-  assert.equal(oblig.getAttribute('title'), 'Open the obligations');
+  assert.equal(oblig.getAttribute('title'), 'Open the duties');
   for (const b of box.querySelectorAll('[data-kt-tri-go]')){
     const kind = b.getAttribute('data-kt-tri-go'), t = b.getAttribute('title');
-    if (kind !== 'oblig') assert.notEqual(t, 'Open the obligations', kind + ' does not borrow the obligations door\'s words');
+    if (kind !== 'oblig') assert.notEqual(t, 'Open the duties', kind + ' does not borrow the obligations door\'s words');
     if (kind === 'retry') assert.equal(t, 'Run this reading again');
   }
 });

@@ -3872,7 +3872,19 @@ function regLsDockSoon(){ if(!regLsListUp()||typeof setTimeout!=='function') ret
    row Folders · All · Needs you is the page's views. Reads only. */
 let _ctFolders = true;
 /* Jambo's panel follows the page's face (the folders' reading, or the list's) */
-function ctfDockAgain(){ if (typeof window.renderIntelDock === 'function') setTimeout(() => { try { renderIntelDock(); } catch (_){} }, 0); }
+/* A PRESS ON THE CONTRACTS PLACE PUTS HOME ON ITS FACE FIRST (owner, 23 Nov 2026, with a photo: the bar said "Board" over
+   the Folders and Jambo's panel stayed the Board's, so a folder's row changed nothing beside it): the place is the paper
+   face's, so a press on it while Home believes another face is in front sets the face back, the bar and panel following */
+function ctfFaceSync(){
+  try {
+    const host = document.getElementById('ct-place');
+    if (!host || !host.getClientRects().length || typeof window.hbS !== 'function') return;
+    const s = hbS(); if (s.face === 'paper') return;
+    s.face = 'paper'; if (typeof window.hbSave === 'function') hbSave();
+    if (typeof window.deskBarPaint === 'function') deskBarPaint();
+  } catch (_){ /* the place stays as drawn */ }
+}
+function ctfDockAgain(){ ctfFaceSync(); if (typeof window.renderIntelDock === 'function') setTimeout(() => { try { renderIntelDock(); } catch (_){} }, 0); }
 const CTF_WORDS = { sign:'ctf_n_sign', approval:'ctf_n_approval', details:'ctf_n_details', review:'ctf_n_review', note:'ctf_n_note', suggest:'ctf_n_suggest', look:'ctf_n_look', refused:'ctf_n_refused', quiet:'ctf_n_quiet', join:'ctf_n_join' };
 /* a door asking for a stage (regGoFiltered({stage})) shows that list, never the Folders with the stage out of sight (#762) */
 function regFoldersOn(R){ return regHome() && typeof window.newLookOn === 'function' && newLookOn() && _ctFolders && (!R.type || R.type === 'all') && !R.only && !(R.stage && R.stage !== 'all') && R.view !== 'archived' && !String((state.reg && state.reg.query) || '').trim(); }

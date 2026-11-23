@@ -153,7 +153,7 @@ test('f554 (5) the door and the tile count only what is left', () => {
   assert.equal(tile.headKey, 'tri_t_oblig_review');
   assert.match(tile.detail, /^1 on an event · 1 standing · 1 not sure/);
   d.getElementById('of-skip').click(); d.getElementById('of-skip').click(); d.getElementById('of-skip').click();
-  assert.equal(win.obFindWord(c), 'Find obligations', 'all decided: the door reads anew');
+  assert.equal(win.obFindWord(c), 'Find duties', 'all decided: the door reads anew');
   const t2 = win.triageTiles(c).find(t => t.key === 'oblig');
   assert.equal(t2.headKey, 'tri_t_oblig_sorted');
   assert.match(t2.detail, /0 added · 5 skipped/);

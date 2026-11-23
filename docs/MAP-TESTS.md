@@ -347,6 +347,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - DISCOVER, HOW A CELL IS READ (the live run's eight misses): f887 3f (a number of days with its unit run on), f888 1c (`COLUMN_READ_RULE` on every read); both red at the parent a701f17. Then the live measure with a key.
 
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
+- f1192 a press on the Contracts place puts Home on its paper face first (23 Nov 2026; red at the parent).
 - f1190 the Contracts door lands on the Folders every time (23 Nov 2026; red at the parent).
 - f687 2a (test/f687-contracts-opens-home.test.js): no facts line beside the name; List | Wall inside the one `.ct-acts` group.
 - NO DISCOVER BUTTON ON CONTRACTS (owner, 15 Nov 2026): f1016 (1) (9) re-pointed; browser: discover-page-verify 1 (the "discover" chip opens the page), reads-and-columns-as-drawn-verify 1.
@@ -1081,7 +1082,8 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 - test/f1189-im-new.test.js (new, red at the parent: no file, no key, no words, no email line): the whole sentence read (on, off, none, both languages); the turn free with chapters that exist, by seat; the server keeps `teach` (on · off · null; else 400; never on a colleague's row); every box reads it first (source regions); the hint's days; the welcome email's line. Also run f938 (the chapter door), f811, f561, f564, f937, f232.
 - f1189 (6)–(8) (rounds 2, 3, 4, 6): the walk's steps, its picture-box marks and opener, Take me there; plain words read whole; "What can I do here?" only while teaching; first steps by seat, the moments that tick them, nothing written while off, all done asks once; the server keeps teachDone and hides it. Photos: a journey script drives I'm new → walk → Take me there → the card → the Board's list → here → a word → the book's button → off.
 - f1189 (9)(10): the stray closing quote (both hosts' trims, every answer path); Start the lessons — the rule word for word on both hosts, in the instructions, `teach` on the answer form and carried back, nothing on an ordinary answer, offered only while off, the press = "I'm new". With the rules touched also run f938, f305, f868, f1026.
-- f1189 (11): the practice contract — the one door refuses it (said), first in api(); persist, saveContract, delete and the book's load keep it home; the sample's made-up parties; joins once and only for its owner; offered to those who may act, typed or pressed; stopping the lessons deletes it. Also run f1106, f1137, f1188, f1005. The journey script watches every request for PRACTICE- (0 at the three screens).
+- f1189 (11): a walk step is drawn with its highlights — badge, green button marks, amber, bold place, the timeline (all steps, ticks, one lit), escaped words, no grey bubble.
+
 ## THE HANDBOOK — HOW TO DO EACH THING (23 Nov 2026)
 - test/f1184-the-handbook-legora-stripe.test.js — the book's one table, its filters, a row chooses then opens, numbered steps with each picture under its step (red at the parent). Browser: handbook-verify 2a/2b/4′a–d, round7b 3.
 
@@ -1103,3 +1105,7 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 
 ## OBLIGATIONS — Jambo fills in the duty, a person decides (23 Nov 2026)
 - test/f1188-jambo-fills-in-the-duty.test.js — the due day from the contract's own end date with its line, none guessed; Jambo's reading under the choices, Use presses the chip, nothing pre-chosen; past choices (added as / with proof / skipped); the readings read only; both books; the Handbook (red at the parent).
+
+## OBLIGATIONS — helps 4 and 5, and the word duty (23 Nov 2026)
+- `node --test test/f1191-who-watches-and-why-proof.test.js test/f1188-jambo-fills-in-the-duty.test.js test/f1187-duties-end-to-end.test.js`
+- Re-pointed to "duty": f399 (6e, 6f), f554 (5), f614, f693 (4b), f752 (3a), f754 (9f reverses "the receipt says obligations"), f791 (1b), f800 (8b), f804 (10c); browser: explorer-lenses, explorer-stage-two, obligations-renewal-legora-way, one-sheet-as-drawn, overview-and-obligations-polish, auto-triage, amendment-journey, five-screenshots.

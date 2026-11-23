@@ -15218,6 +15218,27 @@
      step is about is outlined — the one exception to "a page you land on shows no light"; gone when pressed */
   .teach-mark:not(#_):not(#_){outline:2px solid var(--accent-ink);outline-offset:3px;border-radius:var(--radius)}
   .hbkn-walk{margin:0 0 12px}
+  /* JAMBO'S STEP, THE LEGORA + STRIPE WAY (owner's pick, 23 Nov 2026): no grey bubble round a step; a soft badge,
+     the button to press highlighted green and bold, amber words in amber, places bold, a pin line, a small timeline */
+  .ai-bub:has(> .teach-step):not(#_){background:transparent;padding:0;border-radius:0}
+  .teach-step{display:flex;flex-direction:column;gap:10px;padding-top:8px;color:var(--color-text);line-height:1.65}
+  .teach-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .teach-badge{font-size:12px;font-weight:var(--w-strong);border-radius:999px;padding:2px 9px;background:var(--st-green-bg);color:var(--st-green-fg);white-space:nowrap}
+  .teach-title{font-weight:var(--w-strong);min-width:0}
+  .teach-say{margin:0}
+  .teach-step b{font-weight:var(--w-strong)}
+  .teach-btn{background:var(--st-green-bg);color:var(--st-green-fg);font-weight:var(--w-strong);border-radius:4px;padding:1px 4px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+  .teach-amb{background:var(--st-amber-bg);color:var(--st-amber-fg);font-weight:var(--w-strong);border-radius:4px;padding:1px 4px}
+  .teach-where{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.5}
+  .teach-where svg{flex:none;margin-top:2px;color:var(--accent-ink)}
+  .teach-tl{list-style:none;margin:2px 0 0;padding:0;display:flex;flex-direction:column}
+  .teach-tl-i{display:flex;gap:10px;align-items:flex-start;font-size:12.5px;line-height:1.45;color:var(--color-quiet);padding:3px 0;position:relative;min-width:0}
+  .teach-tl-i:not(:last-child)::before{content:"";position:absolute;left:8.5px;top:21px;bottom:-4px;width:1px;background:var(--color-neutral-300)}
+  .teach-tl-i i{flex:none;width:18px;height:18px;border-radius:50%;border:1px solid var(--color-neutral-300);background:var(--surface-3);display:grid;place-items:center;font-style:normal;font-size:10.5px;font-weight:var(--w-strong);position:relative}
+  .teach-tl-i span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .teach-tl-i.is-done i{background:var(--st-green-bg);border-color:var(--st-green-line);color:var(--st-green-fg)}
+  .teach-tl-i.is-cur{color:var(--color-text);font-weight:var(--w-strong)}
+  .teach-tl-i.is-cur i{background:var(--accent-ink);border-color:var(--accent-ink);color:var(--surface-3)}
   .jb-way{background:none;border:0;padding:0;font:inherit;font-size:var(--t-meta);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer;white-space:nowrap}
   @media (hover:hover){ .jb-way:hover{color:var(--accent-ink-700)} }
   .jb-card{display:flex;flex-direction:row;align-items:center;gap:4px;min-width:0;text-align:left;border:1px solid var(--rule-strong);border-radius:var(--radius);background:var(--color-surface);padding:4px 5px 4px 6px;transition:border-color .15s,box-shadow .15s}  /* Chambers: a hairline box with square-ish corners (20 Oct 2026; was a 20px pill) */
