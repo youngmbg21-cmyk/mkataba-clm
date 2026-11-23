@@ -23365,6 +23365,15 @@
   html.lg-new .dsn-rhead .dsn-rh-t{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px}
   html.lg-new .dsn-rhead .ctf-h{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .dsn-rhead{align-items:flex-end;gap:8px}
+  /* THE BUTTONS STAY AT THE TOP (owner, 23 Nov 2026: "why did you move the highlighted features? move them back to the
+     top"): a long question pushed Ask another · Export · … onto a line of their own under it. Now the head is two rows:
+     "‹ All reads" with the buttons at its right, then the question across the whole width (it wraps, never cut) */
+  html.lg-new .dsn-page .dsn-rhead{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"back acts" "title title";align-items:center;column-gap:16px;row-gap:6px}
+  html.lg-new .dsn-page .dsn-rhead > .dsn-rh-t{display:contents}
+  html.lg-new .dsn-page .dsn-rhead > .dsn-rh-t > .dsn-back{grid-area:back;justify-self:start}
+  html.lg-new .dsn-page .dsn-rhead > .dsn-rh-t > .ctf-h{grid-area:title;white-space:normal;overflow:visible;text-overflow:clip;text-wrap:balance}
+  html.lg-new .dsn-page .dsn-rhead > .apn-sp{display:none}
+  html.lg-new .dsn-page .dsn-rhead > .dsn-racts{grid-area:acts;justify-self:end}
   html.lg-new .dsn-page .dsn-quote{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .dsn-page .dsn-bar .dsn-search{flex:0 1 260px;min-width:160px}
   html.lg-new .dsn-page .apn-tab.is-chip .dsn-cl{max-width:180px;font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
