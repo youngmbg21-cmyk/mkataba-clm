@@ -2644,6 +2644,10 @@ function calEventDialog(item, seed){
 /* THE CALENDAR BOX'S ONE READER (made a function 28 Oct 2026 so a chip-like ask reads as the box does) */
 function calBoxAsk(v, opts){
   v=String(v||'').trim(); if(!v) return;
+  /* "I'M NEW" (owner, 23 Nov 2026; js/teach.js) is never a plan: the one conversation answers it, free */
+  if(typeof window.teachRead==='function'&&teachRead(v)&&typeof window.aiAskWords==='function'){
+    if(typeof window.jamboTalkOpen==='function') jamboTalkOpen(CAL_TALK_KEY, document.getElementById('cal-plan-body'));
+    aiAskWords(v,{ controls:true }); calPlanRepaint(); return; }
   /* ONE PANEL, TWO FACES (owner, 28 Oct 2026, "Door above the box"): a page's one name moves you free; every other
      word TYPED is the planner's brain, on the landing too (words not about time it hands to the chat) */
   if(opts&&opts.typed&&typeof window.jamboPageGo==='function'&&jamboPageGo(v)) return;

@@ -63,6 +63,7 @@ const MODULES = [
   'js/parties.js',
   'js/dealstands.js',   // where the deal stands: one reading, three surfaces
   'js/dealduties.js',   // who does what: the one duty reading both sides tick
+  'js/teach.js',        // Jambo the instructor: "I'm new" (owner, 23 Nov 2026)
   'js/presence.js',     // who has this contract open right now (idea 5)
   'js/docx.js',
   'js/docxwrite.js',

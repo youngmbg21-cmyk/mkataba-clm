@@ -75,6 +75,7 @@ import './push.js';            // alerts on your phone: the switch's one reading
 import './flowmap.js';         // THE FLOW MAP as data: every page, its stage, its step, doors and likely next (owner, 31 Oct 2026)
 import './handbook.js';        // THE HANDBOOK: the instruction book as data, one chapter per thing a person can do (owner, 26 Oct 2026)
 import './navmap.js';          // navigable by typing: the things inside the places, read and landed (22 Oct 2026)
+import './teach.js';           // Jambo the instructor: "I'm new" said by the person turns teaching on (owner, 23 Nov 2026)
 import './views/calendar.js';
 import './views/mynotes.js';
 import './views/reads.js';   // READS (The thread, 28 Oct 2026): every read of the wording, and the next batch
@@ -3879,7 +3880,7 @@ function panelAskPaint(face){
   f.hidden=false;
   if(!f.dataset.built){
     f.dataset.built='1';
-    const ph=i18t('jl_ph_any');
+    const ph=(typeof window.teachPh==='function')?window.teachPh(i18t('jl_ph_any')):i18t('jl_ph_any');
     const card=(typeof window.jamboCardHtml==='function')?window.jamboCardHtml.bind(window):(o=>`${o.field||''}${o.send||''}`);
     const send=(typeof window.jamboSendHtml==='function')?window.jamboSendHtml('data-panel-ask-go',i18t('int_ask'),{submit:true}):`<button type="submit" data-panel-ask-go>${esc(i18t('int_ask'))}</button>`;
     f.innerHTML=card({ field:`<textarea id="panel-ask-in" rows="1" maxlength="600" spellcheck="false" data-jb-enter placeholder="${esc(ph)}" aria-label="${esc(ph)}"></textarea>`, send });

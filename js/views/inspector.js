@@ -1306,6 +1306,8 @@ const JL_PAGE_ASKS = { approvals: 'jl_ph_pg_approvals', standards: 'jl_ph_pg_sta
 function jlPagePh(opt){
   const o = opt || {}, plain = [i18t('jl_ph_any'), i18t('jl_ph_list')];
   if (o.jlPh && !plain.includes(o.jlPh)) return o.jlPh;
+  /* a new person's first days (owner, 23 Nov 2026; js/teach.js): how to ask for help, in place of the page's example */
+  if (typeof teachHintOn === 'function' && teachHintOn()) return i18t('teach_hint_ph');
   let k = null;
   try { k = o.seat === 'negotiations' ? 'negotiations' : (typeof window.guideHereKey === 'function' ? window.guideHereKey() : null); } catch (_){ k = null; }
   return (k && Object.prototype.hasOwnProperty.call(JL_PAGE_ASKS, k)) ? i18t(JL_PAGE_ASKS[k]) : (o.jlPh || i18t('jl_ph_any'));
@@ -1740,6 +1742,8 @@ function jlAsk(text, opts){
      tabs, filters, saved views) for him to press; Overview's box keeps every reader below */
   /* ONE PANEL, TWO FACES (owner, 28 Oct 2026, "Door above the box"): no Jambo tab to be on — a page's one name
      moves you free (jamboPageGo), every other word TYPED is the brain's, on the landing too */
+  /* "I'M NEW" (owner, 23 Nov 2026; js/teach.js): answered in the one conversation, free (aiAskWords reads it first) */
+  if (typeof teachRead === 'function' && teachRead(t) && typeof aiAskWords === 'function'){ jlTalkOpen(); aiAskWords(t); return 'model'; }
   if (opts && opts.typed && typeof jamboPageGo === 'function' && jamboPageGo(t)) return 'go';
   /* "ADD GRACE WAMBUI, … AS THE CONTACT" opens the one contact sheet filled in from the words, before the brain is
      asked (cuContactAsk, owner 19 Nov 2026); nothing is saved until the person presses Add */

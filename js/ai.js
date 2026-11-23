@@ -5298,6 +5298,10 @@ async function aiAskWords(qRaw, opts){
   const q=String(qRaw||'').trim(); if(!q) return;
   if(ai.busy){ if(typeof jamboAskLater==='function') jamboAskLater(q, ()=>ai.busy, w=>aiAskWords(w, opts)); return; }
   const noEcho=_aiNoEchoOnce; _aiNoEchoOnce=false;
+  /* "I'M NEW" (owner, 23 Nov 2026; js/teach.js): every box that reaches the conversation (a page's panel, the
+     window, Settings, the Calendar) is answered in HaTi's own words, free, with the first steps as chips */
+  if(typeof window.teachSay==='function'){ const tt=teachSay(q);
+    if(tt){ if(!noEcho) aiPush('user',{text:esc(q), raw:q}); aiPush('assistant',Object.assign({text:tt.html, read:tt.read}, tt.choices?{ choices:tt.choices }:{})); renderAIFeed(); return; } }
   /* the same reading aiSubmit makes: an open rewrite owns the sentence only
      when it is not a question or a booking (aiAsksPastCard) */
   const cardOwns=!!(aiActiveProposal()||aiActiveRephrase()) && !aiAsksPastCard(q);

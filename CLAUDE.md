@@ -213,6 +213,9 @@ Ranked live (`puRead`, `PU_TICK_MS`): `puNeedsMap` off `ndRead` · `fxRankValue`
 - `HB_FACES` Board · Workspace (`paper`) · Calendar · Explorer (`hbRender`); numbers are doors (`hbDigData`); `hbAskReadingOf`, `hbBoardApply`, `hbFactCheck` (server `numbersOutside`); Your book = ALL Needs you (`ndBoardHtml`, `hbBookHtml`). Typed chart (`hbAnalyticAsk`) stays (`igBoardTalkAsk`, `hbResMend`; f999).
 - DOSSIER tabs (`copilot`) · Clauses · Redlines (`PD_TABS_SHOWN`); `dossierOf`; `pdTabCount` (`rlOpenCardCount`; f1031); chips `caNextSteps`.
 - WORDS: a word opens a door (`CA_PLACES`, `caGo`, "/" `caSlashRows`); sentence → the form (`caIsDraftAsk`); `hbWhyAsk`, `hbDdOn`. Hidden Board unpainted (`hbPaintBoard`, `hbSetFace`); side row → Dossier (`hbSheetGo`).
+## JAMBO THE INSTRUCTOR (js/teach.js; docs/PLAN-jambo-instructor.md — read it first)
+THE PERSON SAYS "I'M NEW", NEVER GUESSED (owner, 23 Nov 2026): `teachRead` reads the WHOLE sentence (on · off · null); `teachSay` keeps `prefs.teach` (PUT /api/me/prefs, never on a colleague's row) and gives ONE free turn, first steps = Handbook chapters by seat (`TEACH_STEPS`, nav `chapter`). Every box asks it FIRST (intelAsk, aiAskWords, caAskAnywhere, jlAsk, calBoxAsk).
+Hint: first `TEACH_HINT_DAYS` until said (`teachHintOn`, `teachPh`); welcome email's last line. f1182.
 ## JAMBO'S MAP — EVERYDAY WORDS FOR THE THIRTY-ONE TASKS (js/jambomap.js)
 `JM_TASKS` (both books) → existing doors; `jmRead` LAST in `caActOf`; new phrasing = `JM_TASKS` line + f705 line. AI TAKES YOU THERE: `goto` (`aiGotoOf`, `aiGotoRun`); place word never in a contract's name (`caPlaceWordSet`, f946); twin js/ai.js.
 ## WHAT JAMBO COULD NOT PLACE BECOMES A LESSON (round 8, owner's yes 29 Oct 2026: no names, 90 days)
