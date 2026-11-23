@@ -471,6 +471,10 @@ function mDocHtml(c){
   let body = '', open = 0;
   try{ body = (typeof docBody==='function') ? docBody(c) : ''; ({ html:body, open } = mDocReadOnly(body)); }
   catch(e){ body = `<div class="m-note">${i18t('mc_could_not_draw')}</div>`; }
+  /* WHO SIGNS, on the phone's paper too (owner, 23 Nov 2026): the computer's own painter, pagesSignNames, on the
+     drawn markup; the phone files nothing, so a line nobody is named on keeps "For company" (no amber space) */
+  try{ if(typeof window.pagesSignNames==='function' && c){ const d = document.createElement('div'); d.innerHTML = body;
+    if(window.pagesSignNames(d, c, { owed:false })) body = d.innerHTML; } }catch(_){ }
   const owed = open && c && c.status==='Draft' && (typeof canEdit!=='function' || canEdit());
   return `
     <div class="m-scroll" style="padding:var(--s-3)">

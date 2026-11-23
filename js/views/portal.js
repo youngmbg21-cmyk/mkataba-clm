@@ -2976,6 +2976,8 @@ function portalRenderOpts(token, d){
     /* Read live like `executed`: the signing order, sign links only — see
        shareSigningOrder on the server for what it carries and what it never does. */
     signingOrder:Array.isArray(d.signingOrder)?d.signingOrder:null,
+    /* who signs, names and titles only, every link (shareSignerNames): printed under their paper's lines */
+    signerNames:Array.isArray(d.signerNames)?d.signerNames:null,
     /* Read live like the order: every signature made so far, for the paper
        (work order O-1). Null where the route serves none. */
     signatures:Array.isArray(d.signatures)?d.signatures:null,
