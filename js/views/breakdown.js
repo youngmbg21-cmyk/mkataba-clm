@@ -34,6 +34,19 @@ function bdText(c){
   return (typeof contractPlainText === 'function') ? contractPlainText(c) : '';
 }
 /* THE ONE READ: kept against the wording; started by opening Clauses (stkAutoRun) or Try again */
+/* PLAN THE READ'S TWO WRITERS (the Dossier L+S, step 2): the pop-up's Break it down asks the server (a press, nothing
+   written), and Apply keeps the plan on the contract — the ONE writer of c.readPlan, its line in the trail */
+async function readPlanFetch(ask, kind){ return api('ai/readplan', 'POST', { ask: String(ask || ''), kind: String(kind || '') }, { quiet: true }); }
+function readPlanSet(c, plan){
+  if (!c || !plan || !Array.isArray(plan.items) || !plan.items.length) return false;
+  const me = (typeof currentUser === 'function' && currentUser()) || {};
+  c.readPlan = { ask: String(plan.ask || ''), items: plan.items.map(t => String(t)).slice(0, 8), at: (typeof nowISO === 'function') ? nowISO() : new Date().toISOString(), by: me.name || '', kind: String(plan.kind || '') };
+  if (typeof logAudit === 'function') logAudit(c, 'Edited', 'Planned the read');
+  if (typeof persist === 'function') persist(c);
+  return true;
+}
+/* is a read running for this contract now (the Plan tab says so) */
+function _bdBusyFor(id){ return !!(_bd.busy && String(_bd.runFor || '') === String(id)); }
 async function bdRun(c){
   if (!c || _bd.busy) return;
   _bd.busy = true; _bd.err = '';
@@ -43,11 +56,13 @@ async function bdRun(c){
     const text = bdText(live);
     if (!text || text.length < 200) throw new Error(i18t('bd_too_short'));
     if (!(typeof API_MODE === 'function' && API_MODE() && state.aiConfigured)) throw new Error(i18t('bd_no_key'));
-    const r = await api('ai/breakdown', 'POST', { text }, { quiet: true });
+    /* THE READER'S PLAN goes with the read (the Dossier L+S, step 2): each line answered by a point carrying its number */
+    const plan = (typeof window.pd2PlanItems === 'function') ? window.pd2PlanItems(live) : [];
+    const r = await api('ai/breakdown', 'POST', plan.length ? { text, plan } : { text }, { quiet: true });
     if (!r || !Array.isArray(r.regions) || !r.regions.length) throw new Error((r && r.error) || i18t('bd_failed'));
     live.breakdown = { ok: true, hash: bdHash(live), lang: r.lang || 'en', at: (typeof nowISO === 'function') ? nowISO() : new Date().toISOString(),
       head: r.head || '', sub: r.sub || '', regions: r.regions, links: Array.isArray(r.links) ? r.links : [],
-      points: Array.isArray(r.points) ? r.points : [],
+      points: Array.isArray(r.points) ? r.points : [], plan: Array.isArray(r.plan) ? r.plan : [],
       dropped: Number(r.dropped) || 0, truncated: !!r.truncated };
     if (typeof persist === 'function') persist(live);
     /* the reading in one language replaced the other's: that language may read
@@ -283,7 +298,12 @@ function stkCounts(list){
    matches the list behind it"): the points that need you, or null while there
    is no reading — the paper's own marks are then what the list shows */
 function stkNeedCount(c){
-  const b = stkOf(c); if (!b) return null;
+  const L = stkLivePoints(c); return L ? stkCounts(L).need : null;
+}
+/* THE CLAUSES TAB'S POINTS, read where the tab reads them (the paper on screen, else the tab's own rows): the one list the
+   tab's number and the Dossier's "What was found" both count — null while there is no reading */
+function stkLivePoints(c){
+  const b = c ? stkOf(c) : null; if (!b) return null;
   let ctx = null;
   if (_stk.id === String(c.id) && _stk.rows) ctx = { rows: _stk.rows, nums: _stk.nums };
   else {
@@ -291,7 +311,7 @@ function stkNeedCount(c){
     const rows = (cv && typeof docXrayRows === 'function') ? (docXrayRows(c, cv) || []) : [];
     ctx = { rows, nums: stkNumsOf(rows) };
   }
-  return stkCounts(stkReview(c, b, ctx)).need;
+  return stkReview(c, b, ctx);
 }
 const stkKeep = (p, f) => (!f.reg || String(p.region || 0) === f.reg) && (!f.sev || (f.sev !== 'fine' && p.status === f.sev)) && (!f.by || (p.bys || [p.by]).includes(f.by));
 const stkFiltering = () => !!(_stk.f.reg || _stk.f.sev || _stk.f.by);
@@ -470,7 +490,7 @@ function stkCardHtml(c, p, i, redWhy){
     ${stake && stake !== p.title ? `<p class="stk-st">${_bdE(stake)}</p>` : ''}
     ${p.stdPos && p.by !== 'std' ? `<div class="stk-std" title="${_bdE(p.stdPos)}">${_bdE(i18t('stk_our_std', { pos: p.stdPos }))}</div>` : ''}
     <div class="stk-cacts">${p.blank
-      ? `<button type="button" class="stk-a is-go is-link" data-stk-fill="${i}"${dis(typeof canEdit === 'function' && !canEdit() ? i18t('stk_review_viewer') : '')}>${_bdE(i18t('stk_fill_it'))}</button>`
+      ? `<button type="button" class="stk-a is-go is-link" data-stk-fill="${i}"${dis(typeof canEdit === 'function' && !canEdit() ? i18t('stk_review_viewer') : (typeof window.pd2Sealed === 'function' && window.pd2Sealed(c)) ? i18t('pd2_n_blank_signed_w') : '')}>${_bdE(i18t('stk_fill_it'))}</button>`
       : `<button type="button" class="stk-a is-go is-link" data-stk-redline="${i}"${dis(redWhy)}>${_bdE(i18t('stk_start_red'))}</button><button type="button" class="stk-a is-link" data-stk-dive="${i}">${_bdE(i18t('stk_deep'))}</button>`}<span class="stk-mks">${mark}</span></div></div>`;
 }
 /* ---- ONE "WHAT TO WATCH" PER CLAUSE (owner picked "One list", 11 Nov 2026) ----
@@ -653,7 +673,7 @@ function stkDecorate(c, card, rows){
     const rv = (c.pointReviews || {})[STK_PRE_KEY], why = stkReviewWhy(), busy = !!_stk.marking[STK_PRE_KEY];
     const mark = rv ? `<span class="stk-pre-done">${_bdE(i18t('stk_pre_reviewed', { who: String(rv.name || '').split(' ')[0] || '' }))}</span> <button type="button" class="stk-a is-link" data-stk-pre-review="undo"${busy ? ' disabled' : ''}>${_bdE(i18t('stk_undo'))}</button>`
       : `<button type="button" class="stk-a is-link" data-stk-pre-review=""${why ? ` disabled aria-disabled="true" title="${_bdE(why)}"` : ''}${busy ? ' disabled' : ''}>${_bdE(i18t('stk_mark_reviewed'))}</button>`;
-    if (bl.length) list.insertAdjacentHTML('afterbegin', `<div class="stk-pre${rv ? ' is-reviewed' : ''}" role="listitem"><div class="stk-pre-h"><i class="stk-pre-ring" aria-hidden="true"></i><b>${_bdE(i18t('pd2_fp_preamble').replace(/^./, ch => ch.toUpperCase()))}</b><span class="stk-pre-v">${_bdE(bl.map(x => String(x.label || x.key).toLowerCase()).join(' \u00b7 '))}</span></div><div class="stk-pre-a"><button type="button" class="stk-a is-link" data-stk-pre-fill="${_bdE(bl[0].key)}">${_bdE(i18t('stk_fill_it'))}</button>${mark}<span>${_bdE(i18t('stk_pre_never'))}</span></div></div>`);
+    if (bl.length) list.insertAdjacentHTML('afterbegin', `<div class="stk-pre${rv ? ' is-reviewed' : ''}" role="listitem"><div class="stk-pre-h"><i class="stk-pre-ring" aria-hidden="true"></i><b>${_bdE(i18t('pd2_fp_preamble').replace(/^./, ch => ch.toUpperCase()))}</b><span class="stk-pre-v">${_bdE(bl.map(x => String(x.label || x.key).toLowerCase()).join(' \u00b7 '))}</span></div><div class="stk-pre-a"><button type="button" class="stk-a is-link" data-stk-pre-fill="${_bdE(bl[0].key)}"${(typeof window.pd2Sealed === 'function' && window.pd2Sealed(c)) ? ` disabled aria-disabled="true" title="${_bdE(i18t('pd2_n_blank_signed_w'))}"` : ''}>${_bdE(i18t('stk_fill_it'))}</button>${mark}<span>${_bdE(i18t('stk_pre_never'))}</span></div></div>`);
   }
   stkSpineEnds(card);
   if (stkNewLookOn()) stkAllPaint(c, card);
@@ -986,7 +1006,7 @@ if (typeof document !== 'undefined' && !document._stkWired){
   });
 }
 
-Object.assign(window, { stkNumsOf, stkRedlineGo, stkResume, stkDecorate, stkOf, stkRun, stkDiveOpen, stkDiveClose, bdOf, bdStale, bdRun, stkReview, stkNeedCount, stkMarkReviewed, stkPointKey });
+Object.assign(window, { stkNumsOf, stkRedlineGo, stkResume, stkDecorate, stkOf, stkRun, stkDiveOpen, stkDiveClose, bdOf, bdStale, bdRun, _bdBusyFor, readPlanFetch, readPlanSet, stkReview, stkNeedCount, stkLivePoints, stkCounts, stkMarkReviewed, stkPointKey });
 /* the Preamble row's Fill it in: the paper's blanks filled where they stand (the new look's one door for them) */
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
   const b = e.target && e.target.closest ? e.target.closest('[data-stk-pre-fill]') : null; if (!b) return;
