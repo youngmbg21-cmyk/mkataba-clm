@@ -1206,6 +1206,8 @@ const dirty=new Map(); window.saveTimer=null;
 const uiPlaceKept=()=>{ const u=lsGet(LS.ui); return (u&&u.place)||null; };
 Object.assign(window,{uiPlaceKept});
 function persist(c){
+  /* a practice contract is kept in this browser only (js/teach.js), never sent to the server */
+  if(c&&c.practice===true&&typeof window.practiceStore==='function'){ window.practiceStore(c); if(API_MODE()) return; }
   if(API_MODE()){
     lsSet(LS.ui,{ view:state.view, activeId:state.activeId, folderId:state.folderId, place:uiPlaceKept() });
     if(!canEdit()) return;              // server rejects viewer writes
@@ -1240,7 +1242,8 @@ async function deleteContract(id){
   if(!await confirmDialog({ title:i18t('co_del_q'),
       message:i18t('co_del_msg',{ name:c.name||c.id, ref:(window.contractRef?contractRef(c):c.id) }),
       confirmLabel:i18t('co_del_go'), danger:true })) return false;
-  if(API_MODE()){ try{ await api('contracts/'+id,'DELETE'); }catch(e){ toast(i18t('co_delete_failed')+e.message,'err'); return false; } }
+  if(c.practice===true){ if(typeof window.practiceForget==='function') window.practiceForget(); }
+  else if(API_MODE()){ try{ await api('contracts/'+id,'DELETE'); }catch(e){ toast(i18t('co_delete_failed')+e.message,'err'); return false; } }
   const idx=state.contracts.findIndex(x=>x.id===id);
   if(idx>=0) state.contracts.splice(idx,1);
   if(state.activeId===id) state.activeId=null;
@@ -1560,6 +1563,7 @@ async function flushSaves(){
   finally { refreshStats(); }  // keep portfolio KPIs current after status/value changes
 }
 async function saveContract(c){
+  if(c&&c.practice===true&&typeof window.practiceStore==='function'){ window.practiceStore(c); return; }
   // A light row is a register summary, not a contract: the server strips audit,
   // comments, execution.html and the upload's extracted text out of every list
   // response. Saving one back writes those holes over the stored record and
