@@ -468,7 +468,9 @@ describe('f387 (5) the Approvals & signing page', () => {
     const c = code(AP);
     assert.match(c, /run:c=>apOpenSigning\(c\.id\)/, 'the Signing tab, where the gate and the Sign button are');
     /* RE-POINTED 17 Nov 2026 (the three piles): a pile row (dep:/std:) opens its own door, every other row the Signing tab */
-    assert.match(c, /onOpen:pid=>\(\/\^\(dep\|std\):\/\.test\(String\(pid\)\)\?apnPileOpen\(pid\):apOpenSigning\(pid\)\)/);
+    /* RE-POINTED 23 Nov 2026 (f1182, the owner: a departure's second press opens the paper peek, as "See it in the
+       paper ›" does): dep: → apnPeekOpen, std: → its own door, every other row the Signing tab */
+    assert.match(c, /onOpen:pid=>\(\/\^dep:\/\.test\(String\(pid\)\)\?apnPeekOpen\(pid\):\/\^std:\/\.test\(String\(pid\)\)\?apnPileOpen\(pid\):apOpenSigning\(pid\)\)/);
     /* Re-pointed 9 Oct 2026 (SAP benchmark, owner-approved): "Open contract"
        is a link on the head's sub line — the same act, the same open. */
     /* RE-POINTED 11 Oct 2026 (owner): Open contract lands on Home's Document, the room as the fallback */
