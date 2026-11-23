@@ -1,5 +1,5 @@
 /* ============================================================
-   f1191 — a press on the Contracts place puts Home on its face first
+   f1192 — a press on the Contracts place puts Home on its face first
    ============================================================
    Owner, 23 Nov 2026, with a photo: the bar said "Board" over the Folders and
    Jambo's panel stayed the Board's, so pressing a folder's row changed nothing
@@ -28,7 +28,7 @@ function run(drawn){
   ctx.go();
   return { face: hb.face, bar, saved, dock };
 }
-test('f1191 — a press on the drawn place sets the face, the bar and the panel follow; a hidden place changes nothing', () => {
+test('f1192 — a press on the drawn place sets the face, the bar and the panel follow; a hidden place changes nothing', () => {
   const on = run(true);
   assert.equal(on.face, 'paper'); assert.equal(on.bar, 1); assert.equal(on.saved, 1); assert.equal(on.dock, 1);
   const off = run(false);
