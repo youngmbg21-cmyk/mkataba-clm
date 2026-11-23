@@ -22924,3 +22924,6 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - 22 Nov 2026 · FIXED (auto pilot batch 2): Import on a signed contract says it takes no returned file before a file is picked, the button grey (f1180). Still open, for the owner: a returned Word file is filed the moment it is chosen, with no confirm and no Undo.
 - 22 Nov 2026 · FIXED (auto pilot batch 2): a duty owed to us now says who is reminded and when, as the server sends it — our colleague watching it, the admins, and their side where switched on (obTheirsPlan; f1181).
 - 22 Nov 2026 · Noticed, not fixed: Settings' new-member password box (#tm-pass) has no autocomplete="new-password", so a browser may fill in the admin's own password there (the Copilot key box was fixed this way). Also for the owner: Explorer's group counts include Declined contracts (12402, asked of the owner then); ADMIN_RUNGS is one set for both renewal ladders (correct today, breaks if a rung is added).
+
+## Noticed, not fixed (23 Nov 2026, Proposed obligations L+S)
+- The older review-desk styles (.obd-title, .obd-tb, .obd-foot, .obd-switch…) use `var(--color-ink)` and `var(--color-line)`, which no token in index.html defines, so those colours/lines silently fall back. The new L+S styles use `--color-text` / `--color-divider`.

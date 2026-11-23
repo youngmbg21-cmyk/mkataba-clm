@@ -123,12 +123,15 @@ function book(){ const out = []; const st = ['Under Review', 'Signed', 'Draft'];
 
     console.log('\n6 · the Handbook\'s chapter list');
     await go('handbook'); await page.waitForTimeout(500);
-    const h6 = await scrollAndPick('#hbk-page', '[data-hbkn-ch], [data-hbk-part]');
+    /* RE-POINTED 23 Nov 2026 (the Handbook L+S): the book's rows */
+    const h6 = await scrollAndPick('#hbk-page', '[data-hbkn-row] .hbkn-tt, [data-hbkn-ch], [data-hbk-part]');
     if (!h6 || h6.why) skip('6', (h6 && h6.why) || 'no Handbook');
     else { await page.waitForTimeout(700); const now = await scrollAfter('#hbk-page');
       say('handbook-list', `6. pressing "${h6.label}" keeps the chapter list where it was`, kept(h6.top, now), said(h6.top, now)); }
 
     console.log('\n6b · the Handbook\'s chapter, drawn again');
+    /* RE-POINTED 23 Nov 2026 (L+S): the book opens on its table; a chapter is opened first */
+    await page.evaluate(() => { try { hbkOpen('5.1'); } catch (_){ } }); await page.waitForTimeout(600);
     { const was = await page.evaluate(() => { const sc = document.getElementById('hbk-body'); if (!sc) return { why: 'no chapter on screen' };
         if (sc.scrollHeight - sc.clientHeight < 120) return { why: 'the chapter is too short to scroll' };
         sc.scrollTop = Math.min(300, sc.scrollHeight - sc.clientHeight); return { top: sc.scrollTop }; });

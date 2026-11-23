@@ -24,7 +24,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## AN AMENDMENT IS WRITTEN HERE (js/family.js)
 - f170, f176, f901, f544, amendment-journey, amendment-blanks-and-clauses, menu-and-amend verify.
-- Amend L+S and Dossier L+S (22 Nov 2026): f1153, dossier-and-amend-ls-verify; re-pointed in place f1065 (2), f1088 (1), f731 (8).
+- Amend L+S and Dossier L+S (22 Nov 2026): f1153 (6 = start from today's deal, 23 Nov), dossier-and-amend-ls-verify (7); re-pointed in place f1065 (2), f1088 (1), f731 (8).
 
 ## THE UPLOAD
 - f257, f286, f233, f366, f370, f679, f707, upload-party, upload-structure, pdf-structure, draft-upload-glance verify.
@@ -93,6 +93,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f841, f842 (the Guide's row), f561, f564 (the brain's three parts), f232 (the published names).
 
 ## THE SHELL — RAIL, BAR, PANELS
+- f1183 the jump window's × in the top right corner (23 Nov 2026; red at the parent).
 - f1178 a reading opens nothing until caActOf keeps it (caActLater/caActGo; 22 Nov 2026; red at the parent).
 - THE WATERMARK MOVES IN SETTINGS TOO (22 Nov 2026): test/chromium/panel-watermark-verify.js 2 and 2b RE-POINTED (drawn and moving; was "held still"), for GitHub; 3 (less motion: still) stands. Checked here in a browser page by page: every page that draws it has it moving. Re-ran green: f965, f1107, f236, f1147, f1149.
 - EVERY JAMBO PANEL HAS ITS MINIMISE ARROW (owner, 22 Nov 2026): panel-watermark-verify 10 (new; red at the parent: Read down, Contracts, Playbook, Our paper, New agreement had none) — the arrow alone in its head row, and it folds; detail-round-verify 4, our-paper-as-drawn-verify 5a re-pointed.
@@ -241,6 +242,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f151, f183, f247, f267, f290–f299, f305, f321, f338, f392, f394, f424–f438, f441, f457, f459 (A), f539, f919; insights-*, portfolio-frame, obligations-report, friction-fits-the-screen, explorer-*, imported-on-the-map, analyze-on-the-graph, map-asked-bubbles, owners-fifteen, fold-every-view verify.
 
 ## OBLIGATIONS
+- THE DUTIES CARD (23 Nov 2026): f1184-the-duties-card; test/chromium/duties-card-verify.js (GitHub). f1163 (4) loosened to let the card sit between Where the deal stands and the facts.
 - f1181 a duty owed to us says who is reminded, as runReminders sends it (obTheirsPlan; 22 Nov 2026; red at the parent).
 - WE OWE · THEY OWE (19 Nov 2026, round 1 of the owner's pick): f1099-we-owe-they-owe (new; 5 of 5 red at the parent). Browser re-pointed to the two columns: obligations-project-list-verify 1–4 and 10, round5-new-look-verify 3, four-inspectors-verify 1a–1h, sap-lists-verify 3b (3c–3e retired by the pick), every-door-lands-on-home-verify (the obligation rows), board-as-drawn-verify 12 (the overdue door lands on Next 30 days), rows-only-on-a-press-verify (obligations), week-as-drawn-verify 5. f148 SAME_IN_BOTH gained obt_n_one/other, obt_nb_t.
 - SPEED AND PROPOSALS' PANEL (19 Nov 2026): f1098-obligations-speed-and-proposals-panel (new; 5 of 5 red at the parent) — the wording not read per duty, Found gone, the five parts on landing, the Legora way on a row, Us · Theirs · Both sides. Browser: obligations-project-list-verify 12–16 (new: landed five parts, a row chosen the Legora way, the panel's answer is the list's, ‹ Overview, fits beside the panel at the three screens); re-pointed 5 there and round5-new-look-verify 4 (four heads, Found removed).
@@ -568,6 +570,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f558.
 
 ## STANDARDS — THE LADDER
+- f1182 Approvals: "open the clause" opens the paper look, not the editor (23 Nov 2026; red at the parent).
 - f1091 (new; red at the parent: js/stdladder.js and the routes did not exist) — (1) firmness and the strictest book, the ladder off the clause, a draft cleaned, an approved change applied into copies (version, review, books in and out, the old readers' fields), a new standard; (2) propose / the proposer may not decide / Legal proposes, not decides / a colleague's waiting change said / another admin's yes applies / only the proposer withdraws; (3) once governed a settings save keeps the stored standards; (4) Jambo's route writes the ladder with AI_GOVERNANCE_RULE and the signed quotes; (5) page wiring and both books.
 - RE-POINTED 17 Nov 2026 (Our standards left Our paper): f390 5a, f481 (2), f760 5b, f705 1a, f841 2a, f920 (4), f1055 (1).
 - Platform: f561, f564, f842, f937 (chapter 2.5), f964, f965.
@@ -1072,3 +1075,9 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 
 ## JAMBO THE INSTRUCTOR (js/teach.js)
 - test/f1182-im-new.test.js (new, red at the parent: no file, no key, no words, no email line): the whole sentence read (on, off, none, both languages); the turn free with chapters that exist, by seat; the server keeps `teach` (on · off · null; else 400; never on a colleague's row); every box reads it first (source regions); the hint's days; the welcome email's line. Also run f938 (the chapter door), f811, f561, f564, f937, f232.
+## THE HANDBOOK — HOW TO DO EACH THING (23 Nov 2026)
+- test/f1184-the-handbook-legora-stripe.test.js — the book's one table, its filters, a row chooses then opens, numbered steps with each picture under its step (red at the parent). Browser: handbook-verify 2a/2b/4′a–d, round7b 3.
+
+## OBLIGATIONS — Proposed obligations, the Legora + Stripe way (23 Nov 2026)
+- test/f1185-proposed-obligations-ls.test.js — one calm table (words with §, whose in the row, badge, Add), tabs with counts, chips; the chosen duty in Jambo's panel, no amount; no whose = no tick, no Add, the writer refuses; both books, the Handbook (red at the parent).
+- Browser (GitHub): review-desk-verify RE-POINTED (kinds are the "+ Kind" chip's choices; counts are the tabs'; Undo from the Skipped tab; two row ticks); amount-and-window-verify RE-POINTED (its proposals carry a side). Still green as they were: f554, f260, f475 (the pop-up keeps its table).

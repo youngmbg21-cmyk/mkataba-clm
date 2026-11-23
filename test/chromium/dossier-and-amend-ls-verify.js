@@ -100,6 +100,19 @@ const until = async (page, fn, arg, ms = 8000) => { try { await page.waitForFunc
       const back = await until(page, id => { const t = document.querySelector('#ig-strip .fam-tag'); return !!(t && t.getAttribute('data-fam-go') === 'MK-B1'); }, k.id);
       check('6e the draft\'s line says which agreement it amends, a door back', back); }
 
+    /* 7 — start from today's deal: Amendment 1 signed (its record marked here), a second amendment quotes today's words */
+    if (k){
+      await page.evaluate(id => { const x = getContract(id); x.status = 'Signed'; x.signedAt = new Date().toISOString(); if (typeof familyIndexDirty === 'function') familyIndexDirty(); }, k.id);
+      await page.evaluate(() => roomHomeLand('MK-B1'));
+      const amend2 = await until(page, () => !!document.querySelector('#ig-dock .pd2-card [data-pd-ds-famact="create"]'));
+      if (amend2) await page.click('#ig-dock .pd2-card [data-pd-ds-famact="create"]');
+      const today = await until(page, () => !!document.querySelector('#ig-canvas .pd-am-today'));
+      check('7a the signed paper shows a changed clause as it stands today', today);
+      await page.click('.pd2-amx [data-pd2-amx-tab="paper"]').catch(() => {});
+      const p7 = await page.evaluate(() => (document.querySelector('.pd2-amx-sheet') || {}).innerText || '');
+      check('7b the second amendment says it amends the agreement as amended', /as amended by Amendment No\. 1/.test(p7), p7.replace(/\s+/g, ' ').slice(0, 160));
+    }
+
     check('no page errors', errors.length === 0, errors.join(' | '));
   } catch (e) { check('the run completed', false, e.message); }
   finally { await browser.close(); await h.stop(); }

@@ -89,7 +89,8 @@ test('f1070 (5) every word of the round is in both books', () => {
   /* RE-POINTED 21 Nov 2026 (P-39): the Board's tiles left, and with them three of the round's words */
   /* RE-POINTED 22 Nov 2026 (P-43 review): Settings' "Read from the settings" left its panel, as drawn */
   /* RE-POINTED 22 Nov 2026 (Your day, L+S): the tiles' Clear and duties-timeline words left with the tiles, as drawn */
-  assert.ok(keys.size >= 14, 'the round\'s words are found');
+  /* RE-POINTED 23 Nov 2026 (the Handbook, L+S as drawn): its panel's old sub line and source line left */
+  assert.ok(keys.size >= 12, 'the round\'s words are found');
   const has = (b, k) => b[k] != null || b[k + '_one'] != null;
   assert.deepEqual([...keys].filter(k => !has(S.en, k) || !has(S.sv, k)), []);
 });

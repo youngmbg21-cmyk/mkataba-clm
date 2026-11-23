@@ -833,7 +833,8 @@ function apInsPaint(rows){
   if(!same) paint(id);
   if(tb) insListWire(tb,{ rowSel:'[data-ap-row]', idOf,
     onSelect:pid=>{ insSelect(seat,pid); insMarkRow(tb,'[data-ap-row]',idOf,pid); paint(pid); },
-    onOpen:pid=>(/^(dep|std):/.test(String(pid))?apnPileOpen(pid):apOpenSigning(pid)) });
+    /* a departure's second press opens the paper where it departs, as its "See it in the paper ›" (owner, 23 Nov 2026) */
+    onOpen:pid=>(/^dep:/.test(String(pid))?apnPeekOpen(pid):/^std:/.test(String(pid))?apnPileOpen(pid):apOpenSigning(pid)) });
 }
 /* BEFORE YOU DECIDE, AS DRAWN (the new look): one sentence, what the paper says in rows (each with where it was read),
    Jambo's remark and what happens after — every word a reading this page already makes, no call; the acts are the panel's own */
@@ -1668,7 +1669,7 @@ function apnDepPanelHtml(r){
   const may=typeof window.signCheckMayAccept!=='function'||window.signCheckMayAccept(c, r.v);
   const acts=may?`<button type="button" class="ui-btn apn5-b is-k" data-apn-allow="${id}" title="${esc(i18t('apn_allow_s'))}">${esc(i18t('apn_allow_once'))}</button><button type="button" class="ui-btn apn5-b" data-apn-refuse-dep="${id}" title="${esc(i18t('apn_refuse_dep_s'))}">${esc(i18t('ld_refuse'))}</button>`:'';
   const w=apnDepWords(r);
-  const says=w.quote?`<button type="button" class="apn5-q" data-apn-pile-open="${id}">“${esc(w.quote)}”</button>`:`<div class="apn5-q is-none">${esc(i18t('apn_dep_missing_l'))}</div>`;
+  const says=w.quote?`<button type="button" class="apn5-q" data-apn-pile-peek="${id}">“${esc(w.quote)}”</button>`:`<div class="apn5-q is-none">${esc(i18t('apn_dep_missing_l'))}</div>`;
   const rung=(tone,t,s)=>`<li class="${tone?'is-'+tone:'is-next'}"><i aria-hidden="true"></i><span>${esc(t)}${s?` <small>· ${esc(s)}</small>`:''}</span></li>`;
   const ladder=[rung('green', L.ask||i18t('ld_rung_none'), i18t('apn_r_ask'))]
     .concat(fbs.map((f,k)=>rung('amber', f.text, i18t('ld_rung_fb',{ n:k+1 })+(typeof ldWho==='function'&&f.who?' · '+ldWho(f.who):''))))
@@ -1706,13 +1707,16 @@ function apnPilePanel(r){
   insPaintPanel({ seat:'approvals', item:{ id:r.key }, head:false, body:r.type==='departure'?apnDepPanelHtml(r):apnStdPanelHtml(r),
     jlTabWord:i18t('apn_p_tab'), noHead:true, noNeeds:true, moveSuffix:false,
     jlTab2:r.type==='departure'?{ label:i18t('pd_tab_dossier'), run:()=>roomHomeLand(r.c.id) }:null,
-    jlLinks:r.type==='departure'?`<button type="button" class="jb-way" data-apn-pile-open="${esc(r.key)}">${esc(i18t('apn_l_clause'))}</button><button type="button" class="jb-way" data-apn-go="hist" data-id="${esc(r.c.id)}">${esc(i18t('apn_l_hist'))}</button>`
+    /* "open the clause" OPENS THE PAPER WHERE IT DEPARTS (owner, 23 Nov 2026): the same look as the row's "See it in the
+       paper ›" (apnPeekOpen), never the clause editor */
+    jlLinks:r.type==='departure'?`<button type="button" class="jb-way" data-apn-pile-peek="${esc(r.key)}">${esc(i18t('apn_l_clause'))}</button><button type="button" class="jb-way" data-apn-go="hist" data-id="${esc(r.c.id)}">${esc(i18t('apn_l_hist'))}</button>`
       :`<button type="button" class="jb-way" data-apn-pile-open="${esc(r.key)}">${esc(i18t('apn_l_std'))}</button>`,
     jlPh:i18t('jl_ph_list'), jlWord:i18t('jl_w_approval'), jlHome:i18t('nav_approvals'), empty:i18t('ap_wl_none') });
 }
 if(typeof document!=='undefined'&&document.addEventListener&&!document._apnPileOpenWired){
   document._apnPileOpenWired=true;
   document.addEventListener('click',e=>{ const b=e.target&&e.target.closest?e.target.closest('[data-apn-pile-open]'):null; if(!b) return; e.preventDefault(); apnPileOpen(b.getAttribute('data-apn-pile-open')); });
+  document.addEventListener('click',e=>{ const b=e.target&&e.target.closest?e.target.closest('[data-apn-pile-peek]'):null; if(!b) return; e.preventDefault(); e.stopPropagation(); apnPeekOpen(b.getAttribute('data-apn-pile-peek')); });
 }
 /* ---- A PRESS THAT ONLY CHANGES WHICH ROWS SHOW REDRAWS ONLY THE ROWS ----
    (10 Nov 2026, off the owner's "why is the app slow" review; the same change
