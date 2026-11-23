@@ -98,7 +98,8 @@ const SAY = () => { ai.history.length = 0; ai.history.push({ role: 'user', text:
       /* 1 THE OVERVIEW'S ROOM: where its words actually stand, against the panel's own box */
       const room = await P.evaluate(s => {
         /* RE-POINTED 21 Nov 2026 (P-31, as drawn): beside Contracts the Overview is the drawn panel (.ctls), the same 16px rule */
-        const root = document.querySelector(s); const jov = [...root.querySelectorAll('.jov, .ctls')].find(e => e.getBoundingClientRect().height > 0);
+        /* RE-POINTED 23 Nov 2026 (P-14, Calendar the Legora + Stripe way): the Calendar's Overview is its plain-sections panel (.cls-side), the same 16px rule */
+        const root = document.querySelector(s); const jov = [...root.querySelectorAll('.jov, .ctls, .cls-side')].find(e => e.getBoundingClientRect().height > 0);
         if (!jov) return null;
         const c = root.getBoundingClientRect(), cs = getComputedStyle(root);
         const l0 = c.left + parseFloat(cs.borderLeftWidth), r0 = c.right - parseFloat(cs.borderRightWidth);

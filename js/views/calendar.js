@@ -2937,15 +2937,19 @@ function calLsMonthHtml(R){
   const inMonth=keys.filter(k=>Number(k.slice(5,7))-1===m&&Number(k.slice(0,4))===y);
   const F=calLsF();
   const chosen=keys.includes(F.pick.month)?F.pick.month:(inMonth.includes(today)?today:inMonth[0]);
-  const heads=[...Array(7)].map((_,i)=>`<div class="cls-mh">${E(calDateWords(_isoLocal(new Date(2024,0,1+i)),{ weekday:'short' }))}</div>`).join('');
+  const heads=[...Array(7)].map((_,i)=>`<div class="cls-mh" role="columnheader">${E(calDateWords(_isoLocal(new Date(2024,0,1+i)),{ weekday:'short' }))}</div>`).join('');
   const cells=keys.map((k,i)=>{ const L=byDay.get(k)||[], out=!inMonth.includes(k), we=i%7>=5;
     const show=L.length>2?L.slice(0,1):L.slice(0,2), more=L.length-show.length;
     const n=Number(k.slice(8,10));
-    return `<div class="cls-d${out?' is-out':''}${we?' is-we':''}${k===chosen?' is-chosen':''}" data-cal-pick="${k}" role="button" tabindex="0" aria-pressed="${k===chosen?'true':'false'}" title="${E(calDateWords(k,{ weekday:'long', day:'numeric', month:'long' }))}">`
+    return `<div class="cls-d${out?' is-out':''}${we?' is-we':''}${k===chosen?' is-chosen':''}" data-cal-pick="${k}" role="gridcell" tabindex="0" aria-selected="${k===chosen?'true':'false'}" title="${E(calDateWords(k,{ weekday:'long', day:'numeric', month:'long' }))}">`
       +`<span class="cls-n">${k===today?`<span class="cls-today">${n}</span>`:n}</span>`
       +show.map(r=>`<span class="cls-ev is-${CAL_LS_TONE[r.kind]||'gray'}" title="${E(r.title)}">${E(r.title)}</span>`).join('')
-      +(more>0?`<span class="cls-more">${E(i18t('cal_n_more',{ n:more }))}</span>`:'')+`</div>`; }).join('');
-  return `<section class="cls-list is-month"><div class="cls-mg" id="cal-grid">${heads}${cells}</div></section>`;
+      +(more>0?`<span class="cls-more">${E(i18t('cal_n_more',{ n:more }))}</span>`:'')+`</div>`; });
+  /* A MONTH IS A GRID (grid · row · columnheader · gridcell): a week is one row (display:contents, so the frame's
+     seven columns stand); the frame is a table's, its cells run edge to edge like the page's other lists */
+  const row=h=>`<div class="cls-mr" role="row">${h}</div>`;
+  const weeks=[...Array(6)].map((_,w)=>row(cells.slice(w*7,w*7+7).join(''))).join('');
+  return `<section class="cls-list is-month" role="grid" aria-label="${E(calMonthName(y,m))}"><div class="cls-mg" id="cal-grid">${row(heads)}${weeks}</div></section>`;
 }
 /* ---- THE HORIZON: each agreement with its renewal words, the time left as a slim bar, the decision as a soft badge ---- */
 function calLsHzStatus(r, today){
@@ -3125,7 +3129,7 @@ function calLsPick(key){
   const F=calLsF(), v=calView(); if(!key) return;
   F.pick=Object.assign({},F.pick,{ [v]:key });
   document.querySelectorAll('.cal-page.is-ls [data-cal-pick]').forEach(el=>{ const on=el.getAttribute('data-cal-pick')===key;
-    el.classList.toggle('is-chosen',on); el.setAttribute(el.tagName==='TR'?'aria-selected':'aria-pressed',on?'true':'false'); });
+    el.classList.toggle('is-chosen',on); el.setAttribute(el.tagName==='TR'||el.getAttribute('role')==='gridcell'?'aria-selected':'aria-pressed',on?'true':'false'); });
   if(typeof window.jamboTalkShows==='function'&&jamboTalkShows(CAL_TALK_KEY)){ calTalkBack(); return; }
   if(!calLsSidePaint()&&typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ }
   if(typeof window.placeSave==='function') try{ placeSave(); }catch(_){ }
@@ -3204,7 +3208,7 @@ function calLsCss(){ return `
   html.lg-new .cal-page.is-ls .cls-r{cursor:pointer}
   html.lg-new .cal-page.is-ls .cls-r:hover td{background:color-mix(in srgb,var(--surface-2) 45%,var(--color-surface))}
   html.lg-new .cal-page.is-ls .cls-r.is-chosen td{background:var(--color-accent-50)}
-  html.lg-new .cal-page.is-ls .cls-dt{font-size:12.5px;white-space:nowrap;padding-top:13px}
+  html.lg-new .cal-page.is-ls .cls-dt{font-size:12.5px;white-space:normal;overflow-wrap:normal;padding-top:13px}
   html.lg-new .cal-page.is-ls .cls-what{min-width:0}
   html.lg-new .cal-page.is-ls .cls-t .cls-t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-weight:var(--w-label);font-size:14px;line-height:1.4;overflow-wrap:anywhere}
   html.lg-new .cal-page.is-ls .cls-ts{font-weight:400;font-size:12.5px;color:var(--color-neutral-400)}
@@ -3238,6 +3242,7 @@ function calLsCss(){ return `
   html.lg-new .cal-page.is-ls .cls-then-s{margin:0;padding:8px 0;font-size:12.5px;color:var(--color-quiet);overflow-wrap:anywhere}
   html.lg-new .cal-page.is-ls .cls-then-s .cls-link{font-size:12.5px}
   html.lg-new .cal-page.is-ls .cls-mg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) minmax(0,.62fr) minmax(0,.62fr);border:1px solid var(--cls-line);border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  html.lg-new .cal-page.is-ls .cls-mr{display:contents}
   html.lg-new .cal-page.is-ls .cls-mh{font:var(--w-label) 12px/1.4 var(--font-body);color:var(--color-neutral-400);padding:6px 8px;border-bottom:1px solid var(--color-neutral-100);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .cal-page.is-ls .cls-d{min-width:0;min-height:64px;overflow:hidden;padding:6px 8px;display:flex;flex-direction:column;gap:3px;font-size:12px;border-right:1px solid var(--color-neutral-100);border-bottom:1px solid var(--color-neutral-100);cursor:pointer;box-sizing:border-box}
   html.lg-new .cal-page.is-ls .cls-d:nth-child(7n){border-right:0}

@@ -22973,3 +22973,4 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - The access check's area chip uses a typed "+" and "×" (copies My notes' chip).
 - `ca_go_draft_can_h` (both books) is left with no reader since New agreement's old panel was deleted (7982954e); `.tpl-rail:hover` still paints a grey row hover.
 - Fixed (23 Nov 2026, Dossier L+S step 4): the Redlines switch could light two buttons at once (Notes and Ladder); now one of three (f1197).
+- 23 Nov 2026 (fix-br-6, noticed, not fixed): test/f1194-no-old-layout-for-a-signed-in-reader.test.js fails on "the old sheet panel's words left both books" — ca_go_draft keys are still in js/i18n.js. Also stakes-verify 3g still pins a need clause's list mark to amber, while the Dossier L+S step 3 (four kinds) makes it red.
