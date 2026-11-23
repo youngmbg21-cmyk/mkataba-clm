@@ -36,13 +36,13 @@ test('f1049 (2) New agreement: From scratch is the third tab, only with the righ
   assert.match(body(W, 'naNewPaperDoorHtml'), /if\(!naNewPaperOk\(\)\) return '';/);
   assert.match(W, /\$\{naNewPaperDoorHtml\(\)\}<\/div>/, 'the third tab beside Our paper and Their paper');
   assert.match(body(W, 'naNewPaperPaneHtml'), /window\.NS_STARTS\.map/, 'the same four starts the new-standard question offers');
-  assert.match(body(W, 'naNewPaperGo'), /openNewStandard\(\{ start:k\|\|'scratch', back, host(?:, pick:\(x&&x\.pick\)\|\|null)? \}\)/); /* RE-POINTED 17 Nov 2026 (f1091 (8)): a door may name the paper */
+  assert.match(body(W, 'naNewPaperGo'), /openNewStandard\(\{ start:k\|\|'scratch', back, host(?:, pick:\(x&&x\.pick\)\|\|null)?(?:, said:\(x&&x\.said\)\|\|'', tab:\(x&&x\.tab\)\|\|null)? \}\)/); /* RE-POINTED 17 Nov 2026 (f1091 (8)): a door may name the paper; 23 Nov 2026 (one door): the sentence and the tab ride along */
   assert.match(body(W, 'naNewPaperGo'), /openNewAgreement\(\{ newPaper:true \}\)/, 'Back comes to this tab');
   assert.match(W, /if\(o&&o\.newPaper\)(?:\{ )?naNewPaperShow\(root,true\);/);
   const NS = read('js/views/newstandard.js');
   assert.match(NS, /_nsFrom = typeof opts\.back === 'function' \? opts\.back : null;/);
   assert.match(NS, /const nsBack = \(\) => \{[^}]*if \(typeof _nsFrom === 'function'\) return _nsFrom\(\);/);
-  assert.equal(EN.ns_scratch, 'From nothing'); assert.equal(EN.na_tab_newpaper, 'From scratch');
+  assert.equal(EN.ns_scratch, 'From nothing'); assert.equal(EN.na_tab_newpaper, 'Create a template'); /* RE-POINTED 23 Nov 2026: the owner named the tab */
   assert.ok(SV.ns_scratch && SV.na_tab_newpaper, 'both books');
 });
 

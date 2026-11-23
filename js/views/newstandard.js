@@ -121,6 +121,16 @@ function nsHostBack() {
   return true;
 }
 function openNewStandard(opts = {}) {
+  /* ONE DOOR (owner, 23 Nov 2026: "how can we build it so we have one door"): every way to make a new paper of our own
+     from OUTSIDE the New agreement page (Our paper's Create a template, Upload, a paper's Make it ours, Jambo's "build a
+     new one") opens that page on its Create a template tab, the start a door named already open inside it. The
+     pop-up below asked the same question as the tab; it stays only for the phone and where nobody is signed in. */
+  if (!opts.host && nsOneDoorOn()) {
+    const blocked = typeof newPaperBlocked === 'function' && newPaperBlocked();
+    if (!blocked) return openNewAgreement({ newPaper: true, start: opts.start || null, pick: opts.pick || null, said: opts.said || '', tab: opts.tab || null });
+    /* without the new-paper grant the tab is not drawn: the wall says why, with its Ask (the other side's paper needs no grant) */
+    if (opts.start !== 'cp' && typeof newPaperBlock === 'function') { newPaperBlock(); return; }
+  }
   _nsFrom = typeof opts.back === 'function' ? opts.back : null;
   nsHostSet(opts.host || null);
   if (opts.start && NS_STARTS.some(s => s.k === opts.start)) return nsGo(opts.start, opts);
@@ -153,6 +163,8 @@ function openNewStandard(opts = {}) {
     nsGo(k, opts);
   });
 }
+const nsOneDoorOn = () => typeof openNewAgreement === 'function' && typeof newLookOn === 'function' && !!newLookOn()
+  && !(typeof mPhone === 'function' && mPhone());
 function nsGo(k, opts = {}) {
   /* WHERE THERE IS NO SERVER there is no company library, so each start
      presses the door the local product has always had for it — nothing that

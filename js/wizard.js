@@ -886,7 +886,7 @@ function naNewPaperGo(k,x){
     if(typeof nsLgOn==='function'&&nsLgOn()&&typeof nsOpenTheirs==='function') return nsOpenTheirs();
     if(typeof openCreateTemplateModal==='function') openCreateTemplateModal('paste'); return; }
   /* a door that names a paper (Our paper's "Make our own", tplnOursGo) lands on that paper in its start */
-  openNewStandard({ start:k||'scratch', back, host, pick:(x&&x.pick)||null });
+  openNewStandard({ start:k||'scratch', back, host, pick:(x&&x.pick)||null, said:(x&&x.said)||'', tab:(x&&x.tab)||null });
 }
 function openNewAgreement(o){
   if(o===undefined) return openNewDoors();
@@ -901,7 +901,7 @@ function openNewAgreement(o){
   const allMine=()=>(mayEdit && typeof customTemplates==='function')?customTemplates():[];
   const mineOf=()=>allMine().filter(t=>!t.theirs);
   const keptOf=()=>allMine().filter(t=>t.theirs);
-  if(!tmpls.length && !libOf().length && !mineOf().length){ toast(i18t('wz_no_templates_role'),'err'); return; }
+  if(!(o&&o.newPaper) && !tmpls.length && !libOf().length && !mineOf().length){ toast(i18t('wz_no_templates_role'),'err'); return; }
   /* the page it was started on names the crumb, read before the form goes Home */
   const fromView=(typeof state==='object'&&state)?state.view:'';
   const naFrom=naHomeFirst();
@@ -1728,7 +1728,7 @@ function openNewAgreement(o){
     /* FROM SCRATCH'S CONTINUE: the chosen start, through the one door to new paper */
     /* delegated: Back from a start puts the four starts back, a fresh Continue with them */
     root.addEventListener('click',e=>{ if(!e.target.closest||!e.target.closest('#na-np-go')) return; const k=(root.querySelector('input[name="na-np"]:checked')||{}).value; naNewPaperGo(k); });
-    if(o&&o.newPaper){ naNewPaperShow(root,true); if(o.start) naNewPaperGo(o.start,{ pick:o.pick }); }
+    if(o&&o.newPaper){ naNewPaperShow(root,true); if(o.start) naNewPaperGo(o.start,{ pick:o.pick, said:o.said, tab:o.tab }); }
     /* THEIR PAPERS YOU KEPT: a press chooses one (the card asks what any paper asks, the company filled in from it);
        "Or drop a new file from them" lets it go for the drop below */
     root.addEventListener('click',e=>{

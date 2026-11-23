@@ -122,8 +122,9 @@ test('f1091 (8) the paper fills its room; Make it ours is a door to New agreemen
   assert.match(body('tplnOursGo'), /naNewPaperOk\(\)[\s\S]*newPaperBlock\(\)/, 'without the grant, the grant\'s refusal');
   assert.match(L, /a\.kind === 'link' \? 'tpln5-door'/, 'drawn as a green link, a way somewhere');
   const W = strip(read('js/wizard.js'));
-  assert.match(W, /if\(o&&o\.newPaper\)\{ naNewPaperShow\(root,true\); if\(o\.start\) naNewPaperGo\(o\.start,\{ pick:o\.pick \}\); \}/, 'From scratch, then the start');
-  assert.match(W, /openNewStandard\(\{ start:k\|\|'scratch', back, host, pick:\(x&&x\.pick\)\|\|null \}\)/);
+  /* RE-POINTED 23 Nov 2026 (one door, the Builder L+S round): the sentence and the upload tab ride along too */
+  assert.match(W, /if\(o&&o\.newPaper\)\{ naNewPaperShow\(root,true\); if\(o\.start\) naNewPaperGo\(o\.start,\{ pick:o\.pick, said:o\.said, tab:o\.tab \}\); \}/, 'Create a template, then the start');
+  assert.match(W, /openNewStandard\(\{ start:k\|\|'scratch', back, host, pick:\(x&&x\.pick\)\|\|null, said:\(x&&x\.said\)\|\|'', tab:\(x&&x\.tab\)\|\|null \}\)/);
   const N = strip(read('js/views/newstandard.js'));
   assert.match(N, /function nsLgTemplate\(o = \{\}\) \{\s*nsStyle\(\);\s*const st = \{ q: '', ls: '', more: false, pick: \(typeof TEMPLATES === 'object' && o\.pick && TEMPLATES\[o\.pick\]\) \? o\.pick : null,/, 'the paper arrives chosen');
   assert.match(N, /if \(st\.pick\) \{ const r = host\.querySelector[\s\S]{0,160}landOn\(r, \{ block: 'nearest' \}\)/, 'and in view, nothing pressed');
