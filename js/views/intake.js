@@ -954,7 +954,7 @@ function rqKindTabsHtml(lit){
   const sig = tabs.map(t=>t.k+':'+t.n).join(',');
   return `<div class="reg-views rq-kinds" role="tablist" aria-label="${esc(i18t('rq_kinds_label'))}" data-rq-lit="${esc(lit||'contracts')}" data-rq-sig="${esc(sig)}">${tabs.map(t=>{
     const on = t.k===cur;
-    return `<button type="button" role="tab" class="reg-vtab${on?' on':''}${!t.n&&!on?' is-zero':''}" data-rq-kind="${t.kind}"${
+    return `<button type="button" role="tab" class="reg-vtab${on?' on':''}${on&&t.k!=='all'&&tabs.indexOf(t)>0?' is-narrow':''}${!t.n&&!on?' is-zero':''}" data-rq-kind="${t.kind}"${
       t.kind==='contracts'?` data-ik-view="${esc(t.k)}"`:''} aria-selected="${on?'true':'false'}"${t.title?` title="${esc(t.title)}"`:''}>${esc(t.label)}<span class="n"${
       t.k==='advice'?' data-rq-n="advice"':''}${t.n?'':' hidden'}>${t.n}</span></button>`; }).join('')}</div>`;
 }
@@ -1978,7 +1978,7 @@ function iknRender(host, o){
       <div class="cun-head"><h2 class="ctf-h">${esc(i18t('nav_intake'))}</h2><span class="ctf-sp"></span>
         <button type="button" id="ik-new" class="ui-btn ui-btn-primary ctf-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''}${esc(i18t('ik_ask_btn'))}</button></div>
       <label class="apn-ask ikn-ask is-filter">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ikn-q" type="search" autocomplete="off" placeholder="${esc(i18t('lh_filter_ph'))}" aria-label="${esc(i18t('lh_filter_ph'))}" value="${esc(ikFilters().q || '')}"></label>
-      <div class="apn-bar ikn-bar" data-lh-seat="intake-nl">${tabs.filter(t => t[2] || t[0] === 'open' || t[0] === _ikn).map(t => `<button type="button" class="apn-tab is-chip${_ikn === t[0] ? ' is-on' : ''}" data-ikn-tab="${t[0]}">${t[0] === 'open' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${esc(t[1])} <span>${t[2]}</span></button>`).join('')}<span class="ikn-by-w">${iknByChipHtml(iknAskers(R.tabAll))}</span></div>
+      <div class="apn-bar ikn-bar" data-lh-seat="intake-nl">${tabs.filter(t => t[2] || t[0] === 'open' || t[0] === _ikn).map(t => `<button type="button" class="apn-tab is-chip${_ikn === t[0] ? ' is-on' : ''}${_ikn === t[0] && t[0] !== 'open' ? ' is-narrow' : ''}" data-ikn-tab="${t[0]}">${t[0] === 'open' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${esc(t[1])} <span>${t[2]}</span></button>`).join('')}<span class="ikn-by-w">${iknByChipHtml(iknAskers(R.tabAll))}</span></div>
       <div class="cu-scroll"><table class="apn-table cun-table ikn-table" data-list-seat="${esc(IK_SEAT)}">${C.colg}
         ${C.th}
         <tbody>${R.list.map(r => iknRowHtml(r, may, C.keys)).join('') || `<tr><td colspan="${C.n}" class="apn-none">${esc(i18t('ik_queue_empty'))}</td></tr>`}</tbody></table></div>

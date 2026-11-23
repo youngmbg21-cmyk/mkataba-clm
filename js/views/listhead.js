@@ -178,7 +178,7 @@ function lhSavedHtml(seat){
   const list = (typeof pg.saved === 'function') ? (pg.saved() || []) : [];
   const views = list.map(v => {
     const on = !!v.on, id = String(v.id == null ? v.label : v.id);
-    return `<span class="reg-vtab reg-vtab-saved${on ? ' on' : ''}" role="tab" aria-selected="${on ? 'true' : 'false'}"><button type="button" data-lh-saved="${_lhE(id)}" title="${_lhE(_lhT('reg_saved_view_title'))}">${_lhE(v.label == null ? id : v.label)}</button>${
+    return `<span class="reg-vtab reg-vtab-saved${on ? ' on is-narrow' : ''}" role="tab" aria-selected="${on ? 'true' : 'false'}"><button type="button" data-lh-saved="${_lhE(id)}" title="${_lhE(_lhT('reg_saved_view_title'))}">${_lhE(v.label == null ? id : v.label)}</button>${
       typeof pg.unsave === 'function' ? `<button type="button" class="x" data-lh-saved-x="${_lhE(id)}" title="${_lhE(_lhT('reg_forget_view_title'))}" aria-label="${_lhE(_lhT('reg_forget_view_title'))}">${_lhIc('x')}</button>` : ''}</span>`;
   }).join('');
   const save = (typeof pg.save === 'function')

@@ -9574,7 +9574,7 @@ let _histSidePick=false;
 function histKindChipsHtml(c,f){
   const all=histAllOf(c);
   const n=k=>histRowsOf(c,Object.assign({},f,{ kind:k })).length;
-  const chip=(k,w)=>{ const on=(f.kind||'')===k; return `<button type="button" class="hist6-chip${on?' is-on':''}" data-ht-kind="${k}" aria-pressed="${on}">${esc(w)} <span>${n(k)}</span></button>`; };
+  const chip=(k,w)=>{ const on=(f.kind||'')===k; return `<button type="button" class="hist6-chip${on?' is-on':''}${on&&k?' is-narrow':''}" data-ht-kind="${k}" aria-pressed="${on}">${esc(w)} <span>${n(k)}</span></button>`; };
   const kinds=[['change','hist6_c_changes'],['note','hist6_c_notes']].filter(([k])=>n(k)>0);
   const sides=['owner','counterparty'].filter(sd=>all.some(e=>e.side===sd));
   const sideW=sd=>i18t(sd==='owner'?'hist6_side_ours':'hist6_side_theirs');
