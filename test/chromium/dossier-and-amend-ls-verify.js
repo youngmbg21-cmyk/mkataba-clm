@@ -15,6 +15,9 @@
       answer (a stand-in here) lands on Approve the changes, each change WAITING with why its clause was chosen; Next and
       Create stay grey until each is approved; what no clause covers says Not found; the check step shows Before you
       create and, on a press, the agreement as amended
+   1d–1h THE DOSSIER END TO END, STEP 1 (owner, 23 Nov 2026; f1194): on the signed agreement the headline never says
+      "Nothing is owed on this contract"; Where the deal stands ticks both sides; no Fill in on a signed paper, in the
+      facts or the notes beside it; the Family card draws its first node; the life line only where the record has days
    Each half guarded: a missing feature reports, it does not time out. */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -49,6 +52,23 @@ const until = async (page, fn, arg, ms = 8000) => { try { await page.waitForFunc
     });
     check('1b the Family card stands open above the facts', d1b.fam && d1b.above, JSON.stringify(d1b));
     check('1c "amend" is not among the links above Jambo\'s box', !d1b.amendLink);
+    /* 1d–1h — THE DOSSIER END TO END, STEP 1 (f1194): the signed card's headline, the two sides ticked, no Fill in on a
+       signed paper (facts and notes), the family's first node, the life line where the record holds both days */
+    const d1d = await page.evaluate(() => {
+      const g = document.querySelector('#ig-dock #pd-glance'), c = pdContract();
+      const head = (document.querySelector('#ig-dock .pd2-card [data-pd2-next]') || {}).textContent || '';
+      const sides = [...document.querySelectorAll('#ig-dock .pd2-two-s')].map(x => x.className);
+      const day = v => /^\d{4}-\d{2}-\d{2}/.test(String(v || ''));
+      const hasDays = !!(c && (day(c.signedAt) || day(c.fields && c.fields.effDate)) && day(typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry));
+      return { head, sides, fill: !!(g && g.querySelector('[data-pd-fill-key]')), noteFill: !!document.querySelector('[data-pd2-go="fill"]'),
+        fam: !!document.querySelector('#ig-dock .pd2-fam-chain, #ig-dock .pd2-fam-row'), life: !!document.querySelector('#ig-dock .pd2-life'), hasDays,
+        sealed: typeof pd2Sealed === 'function' && pd2Sealed(c) };
+    });
+    check('1d a signed agreement\'s headline never says "Nothing is owed on this contract"', d1d.sealed && !/Nothing is owed on this contract/.test(d1d.head), JSON.stringify({ head: d1d.head, sealed: d1d.sealed }));
+    check('1e Where the deal stands shows the two sides, both ticked once signed', d1d.sides.length === 2 && d1d.sides.every(x => /is-ok/.test(x)), d1d.sides.join(' | '));
+    check('1f no Fill in on a signed paper — not in the facts, not in the notes beside the paper', !d1d.fill && !d1d.noteFill, JSON.stringify(d1d));
+    check('1g the Family card draws the original (and its amendments when there are some)', d1d.fam);
+    check('1h the life line stands where the record holds a start and an end, and only there', d1d.life === d1d.hasDays, JSON.stringify({ life: d1d.life, hasDays: d1d.hasDays }));
 
     /* 2 — one full page */
     await page.click('#ig-dock .pd2-card [data-pd-ds-famact="create"]').catch(() => {});
