@@ -25441,7 +25441,8 @@
   .nsk-chip{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--color-divider);background:var(--color-surface);font:inherit;font-size:13px;color:var(--color-quiet);cursor:pointer;white-space:nowrap}
   .nsk-chip b{font-weight:var(--w-label);color:var(--color-text)}
   .nsk-chip.is-on{background:var(--filter-on-bg);border-color:var(--filter-on-edge);color:var(--filter-on-ink)} .nsk-chip.is-on b{color:var(--filter-on-ink)}
-  .nsk-wrap{max-height:220px;overflow:auto;margin-bottom:var(--s-3)}
+  .nsk-wrap{max-height:200px;overflow:auto;margin-bottom:var(--s-3)}
+  .nss-foot:has([data-nss-open]){flex-wrap:wrap;row-gap:var(--s-2)} .nss-foot [data-nss-open]{margin-left:auto}
   .nsk-t{width:100%;border-collapse:collapse;font-size:var(--t-label)}
   .nsk-t th{font-weight:var(--w-label);color:var(--color-quiet);font-size:12px;text-align:left;padding:6px 8px;border-bottom:1px solid var(--color-divider);position:sticky;top:0;background:var(--color-surface)}
   .nsk-t th.r{text-align:right}
@@ -25524,6 +25525,11 @@
   #tb-page .tb-olfoot{display:flex;align-items:center;gap:var(--s-2);padding:var(--s-3) var(--s-4);border-top:1px solid var(--color-divider)}
   #tb-page .tb-olfoot .sp{flex:1}
   html.lg-new #tb-page .tb-railfoot{flex-wrap:wrap;row-gap:6px}
+  /* the tabs carry their counts now: a little tighter, so the fold stays inside the panel (NOTHING SPILLS) */
+  html.lg-new #tb-page .tb-rail .jl-head .tb-tabs{gap:8px} html.lg-new #tb-page .tb-rail .jl-head > .jl-sp{display:none} html.lg-new #tb-page .tb-rail .jl-head .tb-tabs{margin-left:auto} html.lg-new #tb-page .tb-rail .jl-head{padding-right:8px} html.lg-new #tb-page .tb-rail .tb-tabs .n{margin-left:3px}
+  html.lg-new #tb-page .tb-rail .jl-head{min-width:0}
+  /* as drawn: his pill and the four tabs; "‹ Jambo" stood off the panel's edge (his pill and "‹ All clauses" are the same way back) */
+  html.lg-new #tb-page .tb-rail .jl-head .pd-back{display:none}
   #tb-page .tb-skipl{border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
   #tb-page .tb-ghost{display:flex;flex-direction:column;gap:var(--s-4)}
   #tb-page .tb-ghost .tb-empty-line{margin:0 0 var(--s-2)}

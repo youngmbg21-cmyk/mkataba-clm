@@ -782,8 +782,8 @@ function nsLgScratch(o = {}) {
       const n = kept();
       return `<label class="nss-fld"><span>${nsEsc(i18t('ns_what_for'))}</span><textarea id="nss-say" rows="3" maxlength="${NS_SAY_MAX}">${nsEsc(st.said)}</textarea></label>
         ${nsKeepTableHtml(st)}
-        <div class="nss-foot"><button type="button" class="ui-btn" data-nsl-back>${nsEsc(i18t('act_back'))}</button><button type="button" class="ui-btn" data-nss-again>${nsEsc(i18t('tb_pb_start_again'))}</button><span class="sp"></span><button type="button" class="ui-btn" data-nss-mine>${nsEsc(i18t('tb_walk_mine'))}</button></div>
-        <div class="nss-foot"><span class="sp"></span><button type="button" class="ui-btn ui-btn-primary" data-nss-open${n ? '' : ' disabled'}>${nsEsc(i18tn('nsl_open_n', n, { n }))}</button></div>`;
+        <div class="nss-foot"><button type="button" class="ui-btn" data-nsl-back>${nsEsc(i18t('act_back'))}</button><button type="button" class="ui-btn" data-nss-again>${nsEsc(i18t('tb_pb_start_again'))}</button><span class="sp"></span><button type="button" class="ui-btn" data-nss-mine>${nsEsc(i18t('tb_walk_mine'))}</button>
+        <button type="button" class="ui-btn ui-btn-primary" data-nss-open${n ? '' : ' disabled'}>${nsEsc(i18tn('nsl_open_n', n, { n }))}</button></div>`;
     }
     return `<label class="nss-fld"><span>${nsEsc(i18t('ns_what_for'))}</span><textarea id="nss-say" rows="5" maxlength="${NS_SAY_MAX}" placeholder="${nsEsc(i18t('ns_what_for_ph'))}">${nsEsc(st.said)}</textarea></label>
       <div class="nss-ex">${nsEsc(i18t('nsl_try'))} <button type="button" class="nsl-or" data-nss-ex="1">${nsEsc(i18t('nsl_ex1_t'))}</button><button type="button" class="nsl-or" data-nss-ex="2">${nsEsc(i18t('nsl_ex2_t'))}</button><button type="button" class="nsl-or" data-nss-ex="3">${nsEsc(i18t('nsl_ex3_t'))}</button></div>
