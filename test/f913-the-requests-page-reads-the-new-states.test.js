@@ -154,7 +154,10 @@ describe('f913 (4) the form asks what Create asks, and Draft it opens the drafti
     assert.equal(await win.intakeClaimDraft(c2), false, 'a hold is spent once');
     assert.equal(c2.intakeRequestId, undefined);
     const tri = read('js/triage.js');
-    assert.match(tri.slice(tri.indexOf('function contractArrived('), tri.indexOf('function contractArrived(') + 2000),
+    /* RE-POINTED 23 Nov 2026 (JAMBO THE INSTRUCTOR, owner 23 Nov 2026: contractArrived first ticks a new person's step, teachDid('add'),
+       which pushed the claim past a fixed 2,000 characters; the slice is now the whole function, ending at the next one) */
+    const ca = tri.indexOf('function contractArrived(');
+    assert.match(tri.slice(ca, tri.indexOf('\nfunction ', ca + 10)),
       /intakeClaimDraft\(c\)/, 'claimed where every creation site registers');
   });
   test('4d the request\'s answers become the drafting screen\'s prefill', () => {

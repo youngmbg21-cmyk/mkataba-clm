@@ -18600,6 +18600,11 @@
   @keyframes jovRingFill{from{stroke-dashoffset:213.6}}
   @keyframes jovTickDraw{from{stroke-dashoffset:40}to{stroke-dashoffset:0}}
   @keyframes jovPulse{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+  /* TELL JAMBO THE CHANGE's bar and finds (the Amend pop-up, 23 Nov 2026): kept out of the new-look blocks, as keyframes take no html.lg-new */
+  @keyframes pd2AmkGlide{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+  @keyframes pd2AmkIn{to{opacity:1;transform:none}}
+  /* the paper's pinned controls fade in (Dossier L+S, step 3): out of the new-look blocks for the same reason */
+  @keyframes pd2CtlFade{from{opacity:0}to{opacity:1}}
   /* ==== THE NEW LOOK: THE FRAME (round 1 of the Legora way rebuilt page by page; owner, 31 Oct 2026: "start with the frame";
      Jambo's box 44; the contract's wording may sit lower as the Page frame draws it; a light grey stays behind a page still
      made of cards until its own round) ====
@@ -18913,24 +18918,22 @@
   html.lg-new .pd2-amx-nav .pd2-amx-next{background:var(--color-text);color:var(--color-surface)}
   html.lg-new .pd2-amx-nav .pd2-amx-next:disabled{background:var(--surface-2);color:var(--color-quiet);cursor:default}
   /* TELL JAMBO THE CHANGE (the owner's pick, 23 Nov 2026): the pop-up's box and chips; step 2's approval rows; step 3's check */
-  .pd2-amk-box{display:flex;gap:10px;align-items:flex-start;padding:6px 0 10px;border-bottom:1px solid var(--color-neutral-300)}
-  .pd2-amk-sp{color:var(--accent-ink);font-size:15px;line-height:24px}
-  .pd2-amk-box{--fld-under:var(--fld-under-none)} /* ONE LINE under the box (owner, 23 Nov 2026: "delete one of the lines"): the box's own, not the field's too */
-  .pd2-amk-box .lgp-in{flex:1;min-height:72px;border:0;padding:0;font-size:15px;line-height:1.55;resize:vertical;background:none}
-  .pd2-amk-chips{margin-top:12px}
-  .pd2-amk-busy{padding:14px 0 6px;font-size:14px;color:var(--color-quiet)}
-  .pd2-amk-bar{height:4px;margin:16px 0 4px;border-radius:2px;background:var(--surface-2);overflow:hidden}
-  .pd2-amk-bar i{display:block;width:40%;height:100%;border-radius:2px;background:var(--accent-ink);animation:pd2AmkGlide 1.4s ease-in-out infinite}
-  .pd2-amk-bar.is-done i{width:100%;animation:none}
-  @keyframes pd2AmkGlide{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
-  .pd2-amk-finds{list-style:none;margin:14px 0 0;padding:0;font-size:14px;line-height:1.5}
-  .pd2-amk-finds li{display:flex;gap:10px;padding:5px 0;opacity:0;transform:translateY(4px);animation:pd2AmkIn .3s ease-out forwards}
-  .pd2-amk-finds li:nth-child(2){animation-delay:.35s} .pd2-amk-finds li:nth-child(3){animation-delay:.7s} .pd2-amk-finds li:nth-child(4){animation-delay:1.05s} .pd2-amk-finds li:nth-child(n+5){animation-delay:1.4s}
-  .pd2-amk-finds b{font-weight:var(--w-label)}
-  .pd2-amk-tk{flex:none;width:16px;text-align:center} .pd2-amk-tk.is-ok{color:var(--st-green-fg)} .pd2-amk-tk.is-nf{color:var(--st-amber-dot)}
-  .pd2-amk-cut{margin:8px 0 0;font-size:13px;color:var(--st-amber-fg)}
-  @keyframes pd2AmkIn{to{opacity:1;transform:none}}
-  @media (prefers-reduced-motion: reduce){.pd2-amk-bar i{animation:none;width:100%}.pd2-amk-finds li{animation:none;opacity:1;transform:none}}
+  html.lg-new .pd2-amk-box{display:flex;gap:10px;align-items:flex-start;padding:6px 0 10px;border-bottom:1px solid var(--color-neutral-300)}
+  html.lg-new .pd2-amk-sp{color:var(--accent-ink);font-size:15px;line-height:24px}
+  html.lg-new .pd2-amk-box{--fld-under:var(--fld-under-none)} /* ONE LINE under the box (owner, 23 Nov 2026: "delete one of the lines"): the box's own, not the field's too */
+  html.lg-new .pd2-amk-box .lgp-in{flex:1;min-height:72px;border:0;padding:0;font-size:15px;line-height:1.55;resize:vertical;background:none}
+  html.lg-new .pd2-amk-chips{margin-top:12px}
+  html.lg-new .pd2-amk-busy{padding:14px 0 6px;font-size:14px;color:var(--color-quiet)}
+  html.lg-new .pd2-amk-bar{height:4px;margin:16px 0 4px;border-radius:2px;background:var(--surface-2);overflow:hidden}
+  html.lg-new .pd2-amk-bar i{display:block;width:40%;height:100%;border-radius:2px;background:var(--accent-ink);animation:pd2AmkGlide 1.4s ease-in-out infinite}
+  html.lg-new .pd2-amk-bar.is-done i{width:100%;animation:none}
+  html.lg-new .pd2-amk-finds{list-style:none;margin:14px 0 0;padding:0;font-size:14px;line-height:1.5}
+  html.lg-new .pd2-amk-finds li{display:flex;gap:10px;padding:5px 0;opacity:0;transform:translateY(4px);animation:pd2AmkIn .3s ease-out forwards}
+  html.lg-new .pd2-amk-finds li:nth-child(2){animation-delay:.35s} html.lg-new .pd2-amk-finds li:nth-child(3){animation-delay:.7s} html.lg-new .pd2-amk-finds li:nth-child(4){animation-delay:1.05s} html.lg-new .pd2-amk-finds li:nth-child(n+5){animation-delay:1.4s}
+  html.lg-new .pd2-amk-finds b{font-weight:var(--w-label)}
+  html.lg-new .pd2-amk-tk{flex:none;width:16px;text-align:center} html.lg-new .pd2-amk-tk.is-ok{color:var(--st-green-fg)} html.lg-new .pd2-amk-tk.is-nf{color:var(--st-amber-dot)}
+  html.lg-new .pd2-amk-cut{margin:8px 0 0;font-size:13px;color:var(--st-amber-fg)}
+  @media (prefers-reduced-motion: reduce){html.lg-new .pd2-amk-bar i{animation:none;width:100%}html.lg-new .pd2-amk-finds li{animation:none;opacity:1;transform:none}}
   html.lg-new .pd2-amr{max-width:1100px;padding:4px 0 24px}
   html.lg-new .pd2-amr-asked{display:flex;align-items:baseline;gap:10px;padding:0 0 14px;border-bottom:1px solid var(--color-divider);font-size:14px}
   html.lg-new .pd2-amr-said{flex:1;min-width:0} html.lg-new .pd2-amr-said b{font-weight:var(--w-label)}
@@ -19237,7 +19240,6 @@
   /* THE PAPER'S CONTROLS COME BACK (step 3): pinned on the way up, a soft card under them; the pill at the paper's foot */
   html.lg-new .is-ctl-pinned{z-index:6}
   html.lg-new #pd2-notes > .pd2-rn-chips.is-ctl-pinned,html.lg-new #pd2-notes-tg.is-ctl-pinned{filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))}
-  @keyframes pd2CtlFade{from{opacity:0}to{opacity:1}}
   @media (prefers-reduced-motion:no-preference){ html.lg-new .is-ctl-pinned{animation:pd2CtlFade .24s ease-out both} }
   html.lg-new .pd2-ctl-pill{position:absolute;left:50%;bottom:18px;z-index:7;transform:translateX(-50%);height:var(--ctl-h-sm);padding:0 14px;border:0;border-radius:999px;background:var(--bar-black);color:var(--color-surface);font:inherit;font-size:12.5px;font-weight:var(--w-label);white-space:nowrap;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18)}
   /* ONE CLAUSE AT A TIME (the Dossier L+S, step 3): ‹ k of n › under the Clauses list's head */
