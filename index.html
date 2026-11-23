@@ -23748,6 +23748,11 @@
   html.lg-new .dsr-ladder li.is-answer.is-ruby{color:var(--st-ruby-fg)}
   html.lg-new .dsr-ladder li.is-answer.is-green{color:var(--st-green-fg)}
   html.lg-new .dsr-ladder li.is-answer.is-amber{color:var(--st-amber-fg)}
+  /* THE WAVES' STAGE AND ITS SLIDE (f1196) sit before HARMONY, whose rules all wait on html.lg-new: the stage is
+     hidden by default everywhere, and a keyframes block is no rule to scope (review of 23 Nov 2026) */
+  .wm-stage{display:none}
+  @keyframes wmSlideA{from{transform:translateX(0)}to{transform:translateX(792px)}}
+  @keyframes wmSlideB{from{transform:translateX(0)}to{transform:translateX(-704px)}}
   /* ==== THE NEW LOOK: HARMONY (the visual review, owner's picks saved 9 Nov 2026; the overnight run) ====
      docs/PLAN-harmony.md. Every rule waits on html.lg-new. ONE HEAD: every page title is the serif 26 the lists already
      wear (.ctf-h), 40 from the window's edge, its facts beside it; the pages still drawn on their own ph-card head
@@ -25449,7 +25454,6 @@
      panel itself is never wider. Where the browser cannot anchor, the old stepped weave stays (@supports). The colours
      now ride with the weave (one slide), a period of whole tiles (792 = 3 x 264, 704 = 4 x 176) so the loop is seamless;
      the same speeds as the weave before (264 px / 70 s, 176 px / 52 s) and the same directions. */
-  .wm-stage{display:none}
   @supports (anchor-name:--a) and (position-visibility:anchors-visible){
     @media (min-width:768px){
       html.lg-new :is(#ig-dock:not(:has(> .igd-door)):not(:has(> .igd-head[data-pd-head="paper"])), #ig-dock:not(:has(> .igd-door)):has(#pd-amendface .pd2-amls, .pd2-dossier.is-deal)){anchor-name:--wm-dock}
@@ -25470,8 +25474,6 @@
     }
     @media (prefers-reduced-motion: reduce){ html.lg-new .wm-stage > i{animation:none} }
   }
-  @keyframes wmSlideA{from{transform:translateX(0)}to{transform:translateX(792px)}}
-  @keyframes wmSlideB{from{transform:translateX(0)}to{transform:translateX(-704px)}}
   /* STILL ON EXPLORER (owner's pick, 22 Nov 2026: "Still on Explorer"): the weave stays on Explorer's panel but holds
      still there, so coming back to the map is as quick as before (home-speed-verify 2: 379 ms against a 357 bar while it
      moved, under it while still). Every other panel keeps the glide. */
@@ -25614,8 +25616,8 @@
   /* A TAB THAT NARROWS THE LIST IS IN COLOUR TOO (owner, 23 Nov 2026, picked "Green when it narrows"): a chosen tab chip that is not
      the list's whole view (All, or the page's first tab) carries .is-narrow and wears the filter colour; All stays plain. One closing rule,
      scoped above every page's own chosen-chip rule. f1193 (5). */
-  html:not(#_):not(#_):not(#_) :is(.apn-tab.is-chip.is-on, .reg-vtab.on, .nd-tab.is-chip.on, .ndb-chip, .act-chip, .hist6-chip, .rl-np-chip.on).is-narrow{border-style:solid;border-color:var(--filter-on-edge);background:var(--filter-on-bg);color:var(--filter-on-ink)}
-  html:not(#_):not(#_):not(#_) :is(.apn-tab.is-chip.is-on, .reg-vtab.on, .nd-tab.is-chip.on, .ndb-chip, .act-chip, .hist6-chip, .rl-np-chip.on).is-narrow :is(span, em, b, .n){color:inherit}
+  html.lg-new:not(#_):not(#_):not(#_) :is(.apn-tab.is-chip.is-on, .reg-vtab.on, .nd-tab.is-chip.on, .ndb-chip, .act-chip, .hist6-chip, .rl-np-chip.on).is-narrow{border-style:solid;border-color:var(--filter-on-edge);background:var(--filter-on-bg);color:var(--filter-on-ink)}
+  html.lg-new:not(#_):not(#_):not(#_) :is(.apn-tab.is-chip.is-on, .reg-vtab.on, .nd-tab.is-chip.on, .ndb-chip, .act-chip, .hist6-chip, .rl-np-chip.on).is-narrow :is(span, em, b, .n){color:inherit}
   /* THE CHOSEN CHIP IS WHITE WITH A SOLID LINE ON CONTRACTS (owner, 21 Nov 2026, as drawn; reverses f1109's shading here only) */
   html.lg-new #ig-page #ct-place .ct-page .ct-head .reg-vtab .n{padding:0 0 0 2px;color:inherit;font-weight:var(--w-label)}
   html.lg-new #ig-page #ct-place .ct-page .ct-head .reg-vtab[data-reg-view="needs"]::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--st-amber-dot)}

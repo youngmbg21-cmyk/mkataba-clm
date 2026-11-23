@@ -22962,3 +22962,11 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - Owner-reported, not fixed (22 Nov 2026, Dossier drawing session): on the Redlines face the switch Changes · Notes · Ladder can show two buttons black at once. Each button decides its own light separately (Notes from rlFaceNotesOn, Ladder from _rlFaceLad, Changes only when neither, in rlFiveHead / rlHeadNotesHtml / rlHeadLadderHtml), so with the notes open and a Ladder chosen both Notes and Ladder are lit. One choice should light one button.
 - Noticed, not fixed (23 Nov 2026, Dossier L+S step 1): on a signed agreement the Dossier's facts still offer Change on the Signer and Who else lines; whether the server accepts a new signer after execution was not measured.
 - Noticed, not fixed (23 Nov 2026): CLAUDE.md is about 108 KB, past its own 80 KB limit; a trim needs the owner's yes.
+
+## Noticed, not fixed — the review of 23 Nov 2026's untested merges
+- Who does what: the server's refusal sentences on the duties routes (DUTY_SAY.*, "That answer could not be read." …) are not in SRV_MSG, so a Swedish reader on their page sees an English alert when an answer is refused.
+- negoMayAnswer still says yes to an admin with no seat on a claimed desk, where the server reads them as a Reader and refuses their answer (older than this review; "admin always" is the written rule, so asked, not changed).
+- Amend's ask box: `.pd2-amk-box .lgp-in` (15px, padding 0, resize) loses to the later `.lgp .lgp-in` and `.lgp textarea.lgp-in.is-area`; wants a browser measure before a fix.
+- CLAUDE.md's MONEY line does not yet say the owner's 23 Nov pick lifts it for the Dossier's arrival Value fact; the comment in pd2 arrival facts says the panel draws no Value.
+- New CSS from #929/#932/#935/#941 (`.pd2-amk-*`, `.teach-*`, `.hbkn-walk`, `.lgp .amw-*`) is not under html.lg-new; `dutyWatchOf` checks role 'viewer' by hand instead of mayActOn.
+- The access check's area chip uses a typed "+" and "×" (copies My notes' chip).

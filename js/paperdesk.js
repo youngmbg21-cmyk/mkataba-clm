@@ -3114,7 +3114,7 @@ function pd2AmxTableHtml(c){
       <td class="pd2-amx-eff" data-pd2-amx-effc="${i}">${pd2AmxEffectHtml(c, it, i)}</td>${seeMoney ? `<td class="pd2-amx-val" data-pd2-amx-val="${i}">${E(v)}</td>` : ''}
       <td class="pd2-amx-x">${may ? `<span class="pd2-amx-more"><button type="button" class="pd2-amx-rm" data-pd2-amx-chip="row${i}" aria-expanded="${_pdAm.menu === 'row' + i}" aria-label="${E(T('pd2_amx_more'))}">${typeof icon === 'function' ? icon('more', 'w-3.5 h-3.5') : ''}</button>${_pdAm.menu === 'row' + i ? `<span class="pd2-amx-menu" role="menu"><button type="button" role="menuitem" data-pd2-amx-rm="${i}"><b>${E(T('pd_am_remove'))}</b></button></span>` : ''}</span>` : ''}</td></tr>`; }).join('');
   return `<table class="pd2-amx-t"><thead><tr><th class="pd2-amx-i">#</th><th>${E(T('pd2_amx_h_clause'))}</th><th>${E(T('pd2_amx_h_was'))}</th><th>${E(T('pd2_amx_h_becomes'))}</th><th>${E(T('pd2_amx_h_effect'))}</th>${seeMoney ? `<th class="pd2-amx-val">${E(T('pd2_amx_h_value'))}</th>` : ''}<th></th></tr></thead>
-    <tbody>${rows}<tr class="pd2-amx-add"><td></td><td colspan="${seeMoney ? 6 : 5}">${may ? `<button type="button" class="ui-link" data-pd2-amx-tab="signed">+ ${E(T('pd2_amx_add'))}</button> <span class="pd2-q">${E(T('pd2_amx_add_or'))}</span>` : ''}</td></tr></tbody></table>`;
+    <tbody>${rows}<tr class="pd2-amx-add"><td></td><td colspan="${seeMoney ? 6 : 5}">${may ? `<button type="button" class="ui-link" data-pd2-amx-tab="signed">${typeof icon === 'function' ? icon('plus', 'w-3 h-3') : ''}${E(T('pd2_amx_add'))}</button> <span class="pd2-q">${E(T('pd2_amx_add_or'))}</span>` : ''}</td></tr></tbody></table>`;
 }
 /* the amendment's paper: what Create will write, from the one writer, the missing date drawn as a box to fill */
 function pd2AmxPaperHtml(c){
@@ -3163,7 +3163,7 @@ function pd2AmkChipsOf(c){
   const pr = money ? (find(PD2_AMK_HEAD.price) || cls.find(x => /\b[A-Z]{3}\s?\d{1,3}(?:,\d{3})+/.test(String(x.text || '')))) : null;
   if (pr){ const m = String(pr.text || '').match(/\b[A-Z]{3}\s?\d{1,3}(?:,\d{3})+(?:\.\d+)?/); out.push({ k: 'price', at: at(pr), say: say('price', pr, m ? m[0] : '') }); }
   const py = cls.find(x => PD2_AMK_PAY_RE.test(String(x.text || '')));
-  if (py){ const m = String(py.text || '').match(PD2_AMK_PAY_RE); out.push({ k: 'pay', at: at(py), say: say('pay', py, m ? m[1].trim() + ' days' : '') }); }
+  if (py){ const m = String(py.text || '').match(PD2_AMK_PAY_RE); out.push({ k: 'pay', at: at(py), say: say('pay', py, m ? ((String(m[0]).match(/\(?\d{1,3}\)?\s*days?/i) || [m[1].trim()])[0]) : '') }); }
   const nt = find(PD2_AMK_HEAD.notice);
   if (nt) out.push({ k: 'notice', at: at(nt), say: say('notice', nt, '') });
   out.push({ k: 'add', at: '', say: T('pd2_amk_s_add') });
@@ -3313,7 +3313,7 @@ function pd2AmxReviewHtml(c){
       ${box}<p class="pd2-amr-goes"><span class="pd2-q">${E(T('pd2_amr_goes'))} · </span>${pd2AmxSentenceHtml(it)}</p>${acts}</div></div>`; }).join('');
   const miss = _pdAm.missing.map((w, j) => `<div class="pd2-amr-miss"><div class="pd2-amr-h">${badge('amber', T('pd2_amr_nf'))}<b>${E(w)}</b><span class="pd2-q">— ${E(T('pd2_amr_nf_t'))}</span></div>
     ${may ? `<div class="pd2-amr-acts">${_pdAm.writing === j ? (typeof busyHtml === 'function' ? busyHtml(T('pd2_amr_writing')) : E(T('pd2_amr_writing'))) : `<button type="button" class="pill-btn" data-pd2-amk-write="${j}">${E(T('pd2_amr_write'))}</button><button type="button" class="pill-btn" data-pd2-amk-leave="${j}">${E(T('pd2_amr_leave'))}</button>`}</div>` : ''}</div>`).join('');
-  const add = may ? `<p class="pd2-amr-more"><button type="button" class="ui-link" data-pd2-amx-tab="signed">+ ${E(T('pd2_amr_add'))}</button></p>` : '';
+  const add = may ? `<p class="pd2-amr-more"><button type="button" class="ui-link" data-pd2-amx-tab="signed">${typeof icon === 'function' ? icon('plus', 'w-3 h-3') : ''}${E(T('pd2_amr_add'))}</button></p>` : '';
   return `<div class="pd2-amr">${head}${rows}${miss}${add}</div>`;
 }
 /* the approval rules the amended deal meets (the panel's own reading) */

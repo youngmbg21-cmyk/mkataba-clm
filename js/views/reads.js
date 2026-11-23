@@ -540,6 +540,9 @@ function rdnAnswers(askId){
           ks.forEach(k => {
             _rdnLoading.delete(k);
             if (A.ans && A.ans[k]) { _rdnTries.delete(k); return; }
+            /* NOTHING ASKED IS NOT A FAILURE (review of 23 Nov 2026): with no contracts known yet nothing was fetched,
+               so the try is not counted, and the page asks again a little later */
+            if (!ids.length) { again = Math.max(again, 1); return; }
             const n = (_rdnTries.get(k) || 0) + 1; _rdnTries.set(k, n);
             if (n >= RDN_TRIES) _rdnFailed.add(k); else again = Math.max(again, n);
           });
