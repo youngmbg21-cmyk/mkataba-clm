@@ -22936,3 +22936,4 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - 23 Nov 2026 (Alert me when) Noticed, not fixed: CLAUDE.md is about 102 KB, past its own "keep it under about 80 KB" — a trim needs the owner's yes.
 - 23 Nov 2026 (Alert me when) Noticed, not fixed: on Discover, a company rule set on a question AFTER its answers were read makes the results show "All 0 · Read the N left" until read again — the answers stand stale with no word on the page saying why.
 - 23 Nov 2026 (Alert me when) Noticed, not fixed: the Handbook pictures for chapters 5.5.5 and 5.5.7 (now Alert me when) are not re-taken; the recipes are true (handbook-verify green) and wait for the owner's one batch.
+- 23 Nov 2026 (Alert me when) Noticed, not fixed: door-exam-verify is red at origin/main too — "amend MK-B1" typed lands beside the Dossier, not on Amend (3 MISS: board, list, settings).
