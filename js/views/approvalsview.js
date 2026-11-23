@@ -1648,10 +1648,11 @@ if(typeof document!=='undefined'&&document.addEventListener&&!document._apnPileW
   document._apnPileWired=true;
   document.addEventListener('click',e=>{
     const t=e.target&&e.target.closest?e.target:null; if(!t) return;
-    const b=t.closest('.apn-table [data-apn-peek], #ins-panel [data-apn-allow], #ins-panel [data-apn-refuse-dep], #ins-panel [data-apn-std]'); if(!b) return;
+    const b=t.closest('.apn-table [data-apn-peek], #ins-panel [data-apn-allow], #ins-panel [data-apn-tpl], #ins-panel [data-apn-refuse-dep], #ins-panel [data-apn-std]'); if(!b) return;
     e.preventDefault(); e.stopPropagation();
     if(b.hasAttribute('data-apn-peek')) apnPeekOpen(b.getAttribute('data-apn-peek'));
     else if(b.hasAttribute('data-apn-allow')) apnPileAct('allow', b.getAttribute('data-apn-allow'));
+    else if(b.hasAttribute('data-apn-tpl')) apnPileAct('tpl', b.getAttribute('data-apn-tpl'));
     else if(b.hasAttribute('data-apn-refuse-dep')) apnPileAct('refuse', b.getAttribute('data-apn-refuse-dep'));
     else apnPileAct('std', b.getAttribute('data-apn-std'));
   });
@@ -1667,7 +1668,9 @@ function apnDepPanelHtml(r){
   const ref=typeof contractRef==='function'?contractRef(c):c.id, st=apnPileStatusOf(r);
   const firm=typeof ldFirmWord==='function'?ldFirmWord(r.s.firm):r.s.firm;
   const may=typeof window.signCheckMayAccept!=='function'||window.signCheckMayAccept(c, r.v);
-  const acts=may?`<button type="button" class="ui-btn apn5-b is-k" data-apn-allow="${id}" title="${esc(i18t('apn_allow_s'))}">${esc(i18t('apn_allow_once'))}</button><button type="button" class="ui-btn apn5-b" data-apn-refuse-dep="${id}" title="${esc(i18t('apn_refuse_dep_s'))}">${esc(i18t('ld_refuse'))}</button>`:'';
+  /* APPROVE FOR THE WHOLE TEMPLATE (step 3): only on a contract drawn from our template, only for who decides the Playbook */
+  const tplMay=may&&typeof window.sgTplKey==='function'&&!!window.sgTplKey(c, r.v)&&typeof window.mayDecideStandards==='function'&&window.mayDecideStandards((typeof currentUser==='function'&&currentUser())||{});
+  const acts=may?`<button type="button" class="ui-btn apn5-b is-k" data-apn-allow="${id}" title="${esc(i18t('apn_allow_s'))}">${esc(i18t('apn_allow_once'))}</button>${tplMay?`<button type="button" class="ui-btn apn5-b" data-apn-tpl="${id}" title="${esc(i18t('apn_tpl_s'))}">${esc(i18t('apn_tpl_go'))}</button>`:''}<button type="button" class="ui-btn apn5-b" data-apn-refuse-dep="${id}" title="${esc(i18t('apn_refuse_dep_s'))}">${esc(i18t('ld_refuse'))}</button>`:'';
   const w=apnDepWords(r);
   const says=w.quote?`<button type="button" class="apn5-q" data-apn-pile-peek="${id}">“${esc(w.quote)}”</button>`:`<div class="apn5-q is-none">${esc(i18t('apn_dep_missing_l'))}</div>`;
   const rung=(tone,t,s)=>`<li class="${tone?'is-'+tone:'is-next'}"><i aria-hidden="true"></i><span>${esc(t)}${s?` <small>· ${esc(s)}</small>`:''}</span></li>`;

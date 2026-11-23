@@ -15888,6 +15888,56 @@ function docThreadOpen(c,i,opts){
   if(follow) card.classList.add('th-still');
   docThreadFill(c,cache.rows,i,{plain:cache.plain,sheet:cache.sheet,instant:follow});
   if(follow){ clearTimeout(_docThreadStillT); _docThreadStillT=setTimeout(()=>card.classList.remove('th-still'),DOC_THREAD_SETTLE_MS*2); }
+  docThreadNavSync();
+}
+/* ---- ONE CLAUSE AT A TIME, BY SCROLL OR ARROW (the Dossier L+S, step 3; owner, 23 Nov 2026: "on top of pressing the next
+   arrow to see the next clauses under clauses, you should just be able to scroll and it brings you to next clause") ----
+   On Home's Clauses list in the new look: ‹ k of n › under the list's head steps to the shown clause before or after the
+   open one, and ONE scroll gesture over the list does the same, the paper gliding with it (docThreadGoTo, the press's own
+   glide). A clause taller than the list reads first: the wheel scrolls it until its end is in view, then steps. At the
+   first or last clause the wheel does nothing more; less motion asked = the paper jumps (docThreadGoTo's own rule). */
+const TH_STEP_DELTA = 40;        /* how far a gesture must go before it steps */
+const TH_STEP_QUIET_MS = 220;    /* a pause this long ends a gesture; the next scroll may step again */
+let _thStepAcc = 0, _thStepLocked = false, _thStepT = null;
+function docThreadNavOn(){ return thOnHome() && typeof window.newLookOn === 'function' && newLookOn(); }
+function docThreadStep(d){
+  const c = thLiveContract(), rows = (_docThreadCache && _docThreadCache.rows) || []; if (!c || !rows.length) return false;
+  const shown = docThreadVisible(rows); if (!shown.length) return false;
+  const at = shown.indexOf(_docThreadOn), next = at < 0 ? shown[0] : shown[at + (d > 0 ? 1 : -1)];
+  if (next == null || next === _docThreadOn) return false;
+  docThreadGoTo(c, next); return true;
+}
+function docThreadNavSync(){
+  const card = thEl('card'); if (!card) return;
+  let nav = card.querySelector('.doc-th-nav');
+  if (!docThreadNavOn()){ if (nav) nav.remove(); return; }
+  const rows = (_docThreadCache && _docThreadCache.rows) || [], shown = docThreadVisible(rows);
+  if (shown.length < 2){ if (nav) nav.remove(); return; }
+  const k = shown.indexOf(_docThreadOn) + 1;
+  if (!nav){ nav = document.createElement('div'); nav.className = 'doc-th-nav'; const list = card.querySelector('.doc-th-rows'); if (!list) return; card.insertBefore(nav, list); }
+  nav.innerHTML = `<button type="button" class="doc-th-step" data-th-step="-1" aria-label="${esc(i18t('th_step_prev'))}"${k <= 1 ? ' disabled' : ''}>\u2039</button><span class="doc-th-k">${esc(i18t('th_step_of', { k: Math.max(1, k), n: shown.length }))}</span><button type="button" class="doc-th-step" data-th-step="1" aria-label="${esc(i18t('th_step_next'))}"${k >= shown.length ? ' disabled' : ''}>\u203a</button>`;
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._thStepWired){ document._thStepWired = true;
+  document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('#pd-thread [data-th-step]') : null; if (!b || b.disabled) return;
+    e.preventDefault(); docThreadStep(Number(b.getAttribute('data-th-step')) || 1); });
+  document.addEventListener('wheel', e => {
+    const list = e.target && e.target.closest ? e.target.closest('#pd-thread .doc-th-rows') : null;
+    if (!list || !docThreadNavOn() || e.ctrlKey) return;
+    const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? list.clientHeight : 1); if (!dy) return;
+    /* a clause taller than the list is read first: the wheel scrolls it until its edge is in view */
+    const open = list.querySelector(`[data-th-row="${_docThreadOn}"]`);
+    if (open && open.offsetHeight > list.clientHeight - 8){
+      const lr = list.getBoundingClientRect(), r = open.getBoundingClientRect();
+      if ((dy > 0 && r.bottom > lr.bottom + 2) || (dy < 0 && r.top < lr.top - 2)) return;
+    }
+    e.preventDefault();
+    clearTimeout(_thStepT); _thStepT = setTimeout(() => { _thStepAcc = 0; _thStepLocked = false; }, TH_STEP_QUIET_MS);
+    if (_thStepLocked) return;
+    _thStepAcc += dy;
+    if (Math.abs(_thStepAcc) < TH_STEP_DELTA) return;
+    _thStepLocked = true; const d = _thStepAcc > 0 ? 1 : -1; _thStepAcc = 0;
+    docThreadStep(d);
+  }, { passive: false });
 }
 let _docThreadStillT=null;
 /* ---- A CLAUSE YOU CLOSED STAYS CLOSED WHILE YOU SCROLL (the owner decided
@@ -16169,6 +16219,7 @@ function docThreadPaint(c){
     _docThreadRevealed=-1;
   }
   const top=card.querySelector('[data-th-top]');
+  setTimeout(docThreadNavSync,0);
   const topHtml=docThreadTopHtml(c,rows,has);
   if(top&&top.getAttribute('data-th-was')!==topHtml){ top.innerHTML=topHtml; top.setAttribute('data-th-was',topHtml); }
   const plain=docThreadPlain(c,sheet);
@@ -19553,7 +19604,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{histWordingShown,histNlFold,signApprovalRowWhy,docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docThreadHomeMarks,TH_HOSTS,thHomeLive,ovRenewTermDoorHtml,ovRenewTermAsk,ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
+Object.assign(window,{docThreadStep,docThreadNavSync,histWordingShown,histNlFold,signApprovalRowWhy,docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docThreadHomeMarks,TH_HOSTS,thHomeLive,ovRenewTermDoorHtml,ovRenewTermAsk,ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
   /* TWO COPIES OF ONE CONTRACT (25 Sep 2026): the sheet's builders and the
      signing copy's controls. The other side's signing link draws the signing
      copy through signCopySheetHtml, so it must be on this list — a name read
