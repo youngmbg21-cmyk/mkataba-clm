@@ -6,8 +6,10 @@
      1. the views are Month · Week · Horizon
      2. + New event writes an event to MY calendar; it shows in the Week at its
         day and hour, and in the Month as a chip
-     3. a day in the Month opens that week (the whole box, 11 Oct 2026)
-     4. the layers hide and show: My calendar off takes the event away
+     3. a day in the Month is chosen and the panel says its dates, the event
+        among them (P-14, 23 Nov 2026; it opened that week before)
+     4. + Whose: Mine keeps the event, another side takes it away, All
+        brings it back (P-14 draws no layer switches)
      5. Copilot's plan (the route stubbed): suggestions are dashed with
         Add · Discard; Add puts the block in the calendar (stored), Undo takes
         it out, Discard leaves a line with Undo
@@ -47,10 +49,10 @@ const check = (name, pass, detail) => {
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 2, null, { timeout: 20000 });
-    /* a day two days ahead on a weekday, and its Monday */
+    /* RE-POINTED 23 Nov 2026 (P-14: the new look's Week is THIS week, Monday to Sunday, as one table): the day is
+       tomorrow, or today on a Sunday, so it is always inside the week drawn */
     const D = await page.evaluate(() => {
-      const t = new Date(todayISO() + 'T00:00:00'); t.setDate(t.getDate() + 2);
-      while (t.getDay() === 0 || t.getDay() === 6) t.setDate(t.getDate() + 1);
+      const t = new Date(todayISO() + 'T00:00:00'); if (t.getDay() !== 0) t.setDate(t.getDate() + 1);
       const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       return { day: iso(t) };
     });
@@ -78,7 +80,10 @@ const check = (name, pass, detail) => {
       const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); } }, D.day);
     await page.click('#cal-ev-save');
     const stored = await until(() => (mineList('event') || []).find(e => e.title === 'Prep the AIT renewal call') || null);
-    const blk = await until(id => { const b = document.querySelector(`#cal-week .cal-wk-blk[data-cal-mine="${id}"]`); return b ? { top: Math.round(parseFloat(b.style.top)), text: b.textContent.trim() } : null; }, stored && stored.id);
+    /* RE-POINTED 23 Nov 2026 (P-14: the Week is one table): the event is a row of its own, its act opening it
+       (data-cal-mine), its badge "Mine", its hour said under its title */
+    const blk = await until(id => { const b = document.querySelector(`#cal-week tr.cls-r.is-mine [data-cal-mine="${id}"]`); const r = b && b.closest('tr');
+      return r && /10:00/.test(r.textContent) && /Prep the AIT renewal call/.test(r.textContent) ? { text: r.textContent.replace(/\s+/g, ' ').trim() } : null; }, stored && stored.id);
     check('2. + New event stores it in my calendar and the Week draws it at its hour', !!stored && stored.start === '10:00' && !!blk, JSON.stringify({ stored: !!stored, blk }));
     await page.screenshot({ path: path.join(OUT, '1-week.png') });
     const theirs = await W.unrestricted.json('/api/me/items');
@@ -86,19 +91,28 @@ const check = (name, pass, detail) => {
 
     /* the Month carries it as a chip; the day's number opens the week */
     await page.evaluate(day => { const d = new Date(day + 'T00:00:00'); calState.ym = { y: d.getFullYear(), m: d.getMonth() }; calSetView('month'); }, D.day);
-    const chip = await until(id => !!document.querySelector(`#cal-grid .cal-chip[data-cal-mine="${id}"]`), stored && stored.id);
+    /* RE-POINTED 23 Nov 2026 (P-14: the month's chips are .cls-ev in their day) */
+    const chip = await until(([id, day]) => !!document.querySelector(`#cal-grid .cls-d[data-cal-pick="${day}"] .cls-ev[data-cal-mine="${id}"]`), [stored && stored.id, D.day]);
     check('2c. the Month shows it as a chip of my calendar', !!chip);
-    /* the whole day box opens its week since 11 Oct 2026 (the design) */
-    await page.click(`#cal-grid .cal-day[data-cal-week="${D.day}"] .cal-dn`);
-    const wk = await until(() => calView() === 'week' && !!document.getElementById('cal-week'));
-    check('3. a day in the Month opens that week', !!wk);
+    /* RE-POINTED 23 Nov 2026 (P-14: a day press chooses, the panel follows) */
+    await page.click(`#cal-grid .cls-d[data-cal-pick="${D.day}"] .cls-n`);
+    const chosen = await until(day => { const d = document.querySelector(`#cal-grid .cls-d[data-cal-pick="${day}"]`); const p = document.getElementById('cal-plan');
+      return d && d.classList.contains('is-chosen') && calView() === 'month' && p && /Prep the AIT renewal call/.test(p.textContent) ? true : null; }, D.day);
+    check('3. a day in the Month is chosen and the panel says its dates, my event among them', !!chosen);
+    await page.click('[data-cal-view="week"]');
+    await until(() => calView() === 'week' && !!document.getElementById('cal-week'));
 
-    /* 4. the layers */
-    await page.click('[data-cal-lay="me"]');
-    const gone = await until(id => !document.querySelector(`.cal-wk-blk[data-cal-mine="${id}"]`), stored && stored.id);
-    await page.click('[data-cal-lay="me"]');
-    const back = await until(id => !!document.querySelector(`.cal-wk-blk[data-cal-mine="${id}"]`), stored && stored.id);
-    check('4. My calendar off takes the event away, and on brings it back', !!gone && !!back);
+    /* 4. RE-POINTED 23 Nov 2026 (P-14 draws no layer switches; + Whose is the one way to narrow): pressed, Whose
+       steps to Mine and the event stays (it is mine); another side takes it away and All brings it back. A choice
+       with no rows behind it is not offered as a chip (this world has no contract dates this week), so the other
+       side is set as the chip's own step sets it */
+    const mineKept = await (async () => { const b = await page.$('[data-cal-ls-chip="whose"]'); if (!b) return null; await b.click();
+      return until(id => calLsF().whose === 'mine' && !!document.querySelector(`#cal-week [data-cal-mine="${id}"]`), stored && stored.id); })();
+    await page.evaluate(() => { calLsF().whose = 'theirs'; calState.scope = 'all'; calLsRepaint(); });
+    const gone = await until(id => !!document.getElementById('cal-week') && !document.querySelector(`#cal-week [data-cal-mine="${id}"]`), stored && stored.id);
+    await page.evaluate(() => { calLsF().whose = 'all'; calState.scope = 'all'; calLsRepaint(); });
+    const back = await until(id => !!document.querySelector(`#cal-week [data-cal-mine="${id}"]`), stored && stored.id);
+    check('4. Whose: Mine keeps the event, another side takes it away, All brings it back', !!mineKept && !!gone && !!back, JSON.stringify({ mineKept: !!mineKept, gone: !!gone, back: !!back }));
 
     /* 5. Copilot's plan, the route stubbed in the page */
     await page.evaluate(day => {
@@ -112,13 +126,16 @@ const check = (name, pass, detail) => {
     }, D.day);
     await page.click('[data-cal-plan-q="week"]');
     const props = await until(() => { const p = [...document.querySelectorAll('.cal-prop')]; return p.length === 2 ? p.map(x => x.textContent.replace(/\s+/g, ' ').trim()) : null; });
-    const dashed = await page.evaluate(() => { const b = document.querySelector('.cal-wk-blk.is-plan'); return b ? getComputedStyle(b).borderTopStyle : ''; });
+    /* RE-POINTED 23 Nov 2026 (P-14: an offered block is a row on the Week, its badge dashed) */
+    const dashed = await until(() => { const b = document.querySelector('#cal-week tr.cls-r.is-plan .cls-b'); return b ? getComputedStyle(b).borderTopStyle : null; });
     check('5. Copilot\'s suggestions come with Add · Discard and show dashed on the week', !!props && props.every(t => /Add/.test(t) && /Discard/.test(t)) && dashed === 'dashed', JSON.stringify({ props, dashed }));
     check('5b. what did not fit is said', await page.evaluate(() => /did not fit/.test(document.getElementById('cal-plan').textContent)));
     await page.click('.cal-prop [data-cal-plan-add]');
     const added = await until(() => (mineList('event') || []).find(e => e.title === 'Decide MK-A1 notice' && e.source === 'copilot') ? document.querySelector('.cal-prop.is-added [data-cal-plan-undo]') && true : null);
-    const solid = await page.evaluate(() => { const ev = mineList('event').find(e => e.title === 'Decide MK-A1 notice'); const b = ev && document.querySelector(`.cal-wk-blk[data-cal-mine="${ev.id}"]`); return b ? getComputedStyle(b).borderLeftStyle + '/' + getComputedStyle(b).borderTopStyle : ''; });
-    check('5c. Add stores the block in my calendar and it draws solid (no dashes), with Undo', !!added && solid === 'solid/none', solid);
+    /* RE-POINTED 23 Nov 2026 (P-14): the added block is a row of my calendar, its badge without dashes */
+    const solid = await until(() => { const ev = mineList('event').find(e => e.title === 'Decide MK-A1 notice'); const a = ev && document.querySelector(`#cal-week tr.cls-r.is-mine [data-cal-mine="${ev.id}"]`);
+      const b = a && a.closest('tr').querySelector('.cls-b'); return b ? getComputedStyle(b).borderTopStyle : null; });
+    check('5c. Add stores the block in my calendar and it draws solid (no dashes), with Undo', !!added && solid === 'none', solid);
     await page.screenshot({ path: path.join(OUT, '2-plan.png') });
     await page.click('.cal-prop.is-added [data-cal-plan-undo]');
     const undone = await until(() => !(mineList('event') || []).some(e => e.title === 'Decide MK-A1 notice') ? true : null);
@@ -131,7 +148,8 @@ const check = (name, pass, detail) => {
     /* 6. a note's review day is on my calendar */
     await W.admin.json('/api/me/items', { method: 'POST', body: { kind: 'note', item: { body: 'Check the liability cap', reviewBy: D.day } } });
     await page.evaluate(() => mineLoad(true).then(() => renderCalendar()));
-    const note = await until(() => { const n = document.querySelector('#cal-week [data-cal-note]'); return n ? n.textContent.trim() : null; });
+    /* RE-POINTED 23 Nov 2026 (P-14): the note's row carries its act (data-cal-note); its words are the row's */
+    const note = await until(() => { const n = document.querySelector('#cal-week tr.cls-r.is-note [data-cal-note]'); return n ? n.closest('tr').textContent.replace(/\s+/g, ' ').trim() : null; });
     check('6. a note\'s review day shows in My calendar', !!note && /liability cap/.test(note), note);
     check('7. no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {
