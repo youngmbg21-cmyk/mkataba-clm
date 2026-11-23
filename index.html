@@ -15239,6 +15239,11 @@
   .teach-tl-i.is-done i{background:var(--st-green-bg);border-color:var(--st-green-line);color:var(--st-green-fg)}
   .teach-tl-i.is-cur{color:var(--color-text);font-weight:var(--w-strong)}
   .teach-tl-i.is-cur i{background:var(--accent-ink);border-color:var(--accent-ink);color:var(--surface-3)}
+  /* "how do I …?" answered in steps (owner, 23 Nov 2026): every step of the chapter, numbered, in the same marks */
+  .teach-how-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+  .teach-how-i{display:flex;gap:10px;align-items:flex-start;min-width:0}
+  .teach-how-i > i{flex:none;width:20px;height:20px;margin-top:2px;border-radius:50%;background:var(--st-green-bg);color:var(--st-green-fg);display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:var(--w-strong)}
+  .teach-how-i > div{min-width:0;overflow-wrap:anywhere}
   .jb-way{background:none;border:0;padding:0;font:inherit;font-size:var(--t-meta);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;cursor:pointer;white-space:nowrap}
   @media (hover:hover){ .jb-way:hover{color:var(--accent-ink-700)} }
   .jb-card{display:flex;flex-direction:row;align-items:center;gap:4px;min-width:0;text-align:left;border:1px solid var(--rule-strong);border-radius:var(--radius);background:var(--color-surface);padding:4px 5px 4px 6px;transition:border-color .15s,box-shadow .15s}  /* Chambers: a hairline box with square-ish corners (20 Oct 2026; was a 20px pill) */

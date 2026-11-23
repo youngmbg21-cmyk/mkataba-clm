@@ -131,12 +131,12 @@ function teachSay(q){
   const turn = teachTurn(q);
   if (turn){ try { teachSet(turn.ask); } catch (_){} return turn; }
   /* HaTi's own words ("what is a dossier?"), free for everyone; "what can I do here?" while teaching is on */
-  const w = teachWordTurn(q) || (teachOn() && teachHereAsked(q) ? teachHereTurn() : null);
+  const w = teachWordTurn(q) || (teachOn() && teachHereAsked(q) ? teachHereTurn() : null) || teachHowTurn(teachHowOf(q));
   if (w){ try { teachDid('ask'); } catch (_){} }
   return w;
 }
 /* does the sentence belong to the instructor? (the boxes ask this before any other reader) */
-function teachTakes(q){ return !!(teachRead(q) || teachWordOf(q) || (teachOn() && teachHereAsked(q))); }
+function teachTakes(q){ return !!(teachRead(q) || teachWordOf(q) || (teachOn() && teachHereAsked(q)) || teachHowOf(q)); }
 
 /* THE HINT: a person's first days, while they have said neither */
 function teachHintOn(u){
@@ -326,6 +326,30 @@ function teachStepHtml(c, i, steps, where){
     + (where ? `<div class="teach-where">${TEACH_PIN}<span>${_thE(where).split(_thE(_thT('teach_go'))).join(`<b>${_thE(_thT('teach_go'))}</b>`)}</span></div>` : '')
     + `<ol class="teach-tl">${tl}</ol></div>`;
 }
+/* ---------- "HOW DO I …?" ANSWERED IN STEPS, IN EVERY BOX (owner, 23 Nov 2026: "build both") ----------
+   A how-to the Handbook answers (the same reader as the Board's: navReadHandbook — a how-to about USING HaTi, no
+   contract named, no task of Jambo's map) is answered right where it was asked, free, in the chapter's own numbered
+   steps drawn the Legora + Stripe way, with Walk me through it and the chapter one press away. The Contracts page's
+   box used to send it to the AI, which wrote its own steps. A move ("how do I get to the calendar") stays a move. */
+const TEACH_HOW_MOVE = / (get to|go to|get back to|komma till|gå till|ta mig till) /;
+function teachHowOf(q){
+  try {
+    if (typeof navReadHandbook !== 'function' || typeof navNorm !== 'function') return null;
+    const t = navNorm(q); if (TEACH_HOW_MOVE.test(t)) return null;
+    const r = navReadHandbook(q, t); const k = r && r.chapter;
+    return k && teachWalkSteps(teachChapter(k)).length ? k : null;
+  } catch (_){ return null; }
+}
+function teachHowTurn(k){
+  const c = k ? teachChapter(k) : null, steps = teachWalkSteps(c); if (!steps.length) return null;
+  const list = steps.map((st, j) => `<li class="teach-how-i"><i>${j + 1}</i><div>${teachRich(st)}</div></li>`).join('');
+  const html = `<div class="teach-step teach-how" data-teach-how="${_thE(c.k)}">`
+    + `<div class="teach-top"><span class="teach-badge">${_thE(_thT('teach_how_badge', { n: steps.length }))}</span><span class="teach-title">${_thE(teachPlain(c.title))}</span></div>`
+    + `<ol class="teach-how-list">${list}</ol></div>`;
+  return { ask: 'how', html, read: _thRead(), choices: [
+    { label: _thT('teach_walk'), teach: 'walk', k: c.k, lead: true },
+    { label: _thT('teach_read'), nav: { k: 'chapter', chapter: c.k } }] };
+}
 function teachStepTurn(k, i, o){
   const c = teachChapter(k), steps = teachWalkSteps(c), n = steps.length; if (!n) return null;
   i = Math.max(1, Math.min(n, i | 0 || 1));
@@ -459,7 +483,7 @@ function teachTasksGroup(){
 
 const TEACH_API = { TEACH_HINT_DAYS, TEACH_STATES, TEACH_STEPS, teachNorm, teachRead, teachState, teachOn, teachSeat, teachChoices, teachTurn, teachSet, teachSay, teachTakes, teachHintOn, teachPh, teachHintSweep,
   TEACH_WORDS, teachWordOf, teachWordTurn, TEACH_HERE_RE, teachHereAsked, teachHereChapters, teachHereTurn,
-  TEACH_FN_DOORS, TEACH_PLACES, teachRich, teachStepShort, teachStepHtml, teachChapter, teachPlain, teachWalkSteps, teachMarksOf, teachFind, teachMarkOn, teachMarkOff, teachStepTurn, teachDoneTurn, teachPush, teachMarkKeep, teachShow, teachChoicePress,
+  TEACH_FN_DOORS, TEACH_HOW_MOVE, teachHowOf, teachHowTurn, TEACH_PLACES, teachRich, teachStepShort, teachStepHtml, teachChapter, teachPlain, teachWalkSteps, teachMarksOf, teachFind, teachMarkOn, teachMarkOff, teachStepTurn, teachDoneTurn, teachPush, teachMarkKeep, teachShow, teachChoicePress,
   TEACH_TASKS, TEACH_DONE_KEYS, teachDoneSet, teachTasks, teachDid, teachTasksGroup };
 if (typeof window !== 'undefined') Object.assign(window, TEACH_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = TEACH_API;

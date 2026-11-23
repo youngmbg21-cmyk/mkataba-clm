@@ -40201,3 +40201,13 @@ Owner: "build these: Round 2: renaming "obligations" to "duties" everywhere. Jam
 - Reverses f754 9f's "the receipt says obligations, as drawn".
 - Help 4 `dutyWatchOf`: the non-Viewer who watches the same kind of duty (DUTY_TOPICS) on most other contracts, else the contract's owner; filled in, with why. Help 5 `dutyProofSay`: only when the reading set `doc`, naming the clause; insurance names the certificate. Both lines hide when no longer true. No AI call, nothing written.
 - (same day) Owner, two photos: on the Folders the bar said "Board", Jambo's panel stayed the Board's ("I have 56 things ready for you", Your first steps), a folder's row changed nothing beside it and a second press went elsewhere. Measured: with Home's face left on 'board' while the Contracts place stays drawn, every press repaints the Board's panel. `ctfFaceSync` (in `ctfDockAgain`, which every row, tab and back press on the place calls) sets the face back to paper and repaints the bar first. The path that leaves the face on 'board' was NOT found (the jump window, ‹ back, the bar's Recent and the lessons all landed right in a fresh browser); this mends the state at the first press. f1192, red at the parent.
+
+## JAMBO THE INSTRUCTOR (23 Nov 2026, "how do I …?" in steps in every box; the stray backslash)
+
+The owner, with a photo of the Contracts page's box: "how do i search in discover?" got an AI answer in a grey bubble,
+with \"discover\" showing its backslashes — "why is it not working?". The coloured steps were only the walk's; on a
+list page every typed word went to the AI, skipping the Handbook reader the Board uses. Owner: "build both". Now the
+shared first reader every box asks (teachTakes/teachSay) takes a how-to navReadHandbook reads and answers with the
+whole chapter's steps in the Legora + Stripe marks, Walk me through it first and Read the chapter beside it, free.
+On the Board this replaces moving to the Handbook page. "how do I get to …" stays a move. answerTrim/aiAnswerTrim
+now drop a backslash before a quote. Photographed on the Board at the three screens and on Approvals' own box.

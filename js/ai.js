@@ -2716,7 +2716,8 @@ const AI_WAY_RE=/\b(how (do|can|would|should) (i|we) (get|go|reach|find)|get to|
 /* A STRAY CLOSING QUOTE (owner's screenshot, 23 Nov 2026): one quote mark at the very end that opens nothing is
    taken off; a real quotation keeps both marks. The server's twin is answerTrim. */
 function aiAnswerTrim(s){
-  let t=String(s==null?'':s).trim();
+  /* a backslash before a quote is a leftover escape, never prose (the server's twin, answerTrim) */
+  let t=String(s==null?'':s).replace(/\\+(["'\u201c\u201d])/g,'$1').trim();
   for(let i=0;i<2;i++){
     if(/"$/.test(t)&&((t.match(/"/g)||[]).length%2===1)){ t=t.slice(0,-1).trimEnd(); continue; }
     if(/\u201d$/.test(t)&&(t.match(/\u201d/g)||[]).length>(t.match(/\u201c/g)||[]).length){ t=t.slice(0,-1).trimEnd(); continue; }

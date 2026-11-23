@@ -15109,7 +15109,8 @@ function copilotParamsSalvage(inp) {
    the closing quote of the answer it was writing at the end of the words. One quote mark at the very end that
    opens nothing is taken off; a real quotation ("…") keeps both of its marks. The browser's twin is aiAnswerTrim. */
 function answerTrim(s) {
-  let t = String(s == null ? '' : s).trim();
+  /* a backslash before a quote is a leftover escape (the owner saw \\"discover\\" in an answer, 23 Nov 2026): never prose */
+  let t = String(s == null ? '' : s).replace(/\\+(["'\u201c\u201d])/g, '$1').trim();
   for (let i = 0; i < 2; i++) {
     if (/"$/.test(t) && ((t.match(/"/g) || []).length % 2 === 1)) { t = t.slice(0, -1).trimEnd(); continue; }
     if (/\u201d$/.test(t) && (t.match(/\u201d/g) || []).length > (t.match(/\u201c/g) || []).length) { t = t.slice(0, -1).trimEnd(); continue; }

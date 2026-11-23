@@ -74,7 +74,7 @@ const HANDBOOK_CHAPTERS = [
       sv: 'En ruta, på varje sida, med en text: "{ui:jl_ph_any}". En sidas namn, ett ord, tar dig dit. Allt annat du skriver går till Jambo, och panelen blir hans samtal. På Tavlan ritas det som kan ritas först, sedan förklaras det.' },
     when: [{ en: '"obligations", "approvals", "the Kabras contract": to get somewhere.', sv: '"åtaganden", "godkännanden", "Kabras-avtalet": för att komma någonstans.' },
       { en: '"which contracts end this year?": to get an answer with a chart.', sv: '"vilka avtal löper ut i år?": för ett svar med ett diagram.' },
-      { en: '"how do I send this for review?": to get the Handbook\'s chapter.', sv: '"hur skickar jag det här på granskning?": för Handbokens kapitel.' },
+      { en: '"how do I send this for review?": the Handbook chapter\'s steps, right in Jambo\'s panel, with Walk me through it.', sv: '"hur skickar jag det här på granskning?": Handbokskapitlets steg, direkt i Jambos panel, med Visa mig steg för steg.' },
       { en: '"I\'m new": when you have just arrived and want Jambo to show you where to start.', sv: '"jag är ny": när du precis har kommit och vill att Jambo visar var du börjar.' }],
     path: [{ en: 'Jambo\'s box on the Board, or at the foot of Jambo\'s panel on every page', sv: 'Jambos ruta på tavlan, eller längst ned i Jambos panel på varje sida' }],
     how: [{ en: 'Above the box, the page\'s doors: the places work most often goes next from here, as the words that open them. A press moves you; they change with the page.', sv: 'Ovanför rutan, sidans dörrar: platserna arbetet oftast går till härifrån, som orden som öppnar dem. Ett tryck flyttar dig; de ändras med sidan.' },
