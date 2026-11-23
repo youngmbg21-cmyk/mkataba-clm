@@ -1706,13 +1706,16 @@ function apnPilePanel(r){
   insPaintPanel({ seat:'approvals', item:{ id:r.key }, head:false, body:r.type==='departure'?apnDepPanelHtml(r):apnStdPanelHtml(r),
     jlTabWord:i18t('apn_p_tab'), noHead:true, noNeeds:true, moveSuffix:false,
     jlTab2:r.type==='departure'?{ label:i18t('pd_tab_dossier'), run:()=>roomHomeLand(r.c.id) }:null,
-    jlLinks:r.type==='departure'?`<button type="button" class="jb-way" data-apn-pile-open="${esc(r.key)}">${esc(i18t('apn_l_clause'))}</button><button type="button" class="jb-way" data-apn-go="hist" data-id="${esc(r.c.id)}">${esc(i18t('apn_l_hist'))}</button>`
+    /* "open the clause" OPENS THE PAPER WHERE IT DEPARTS (owner, 23 Nov 2026): the same look as the row's "See it in the
+       paper ›" (apnPeekOpen), never the clause editor */
+    jlLinks:r.type==='departure'?`<button type="button" class="jb-way" data-apn-pile-peek="${esc(r.key)}">${esc(i18t('apn_l_clause'))}</button><button type="button" class="jb-way" data-apn-go="hist" data-id="${esc(r.c.id)}">${esc(i18t('apn_l_hist'))}</button>`
       :`<button type="button" class="jb-way" data-apn-pile-open="${esc(r.key)}">${esc(i18t('apn_l_std'))}</button>`,
     jlPh:i18t('jl_ph_list'), jlWord:i18t('jl_w_approval'), jlHome:i18t('nav_approvals'), empty:i18t('ap_wl_none') });
 }
 if(typeof document!=='undefined'&&document.addEventListener&&!document._apnPileOpenWired){
   document._apnPileOpenWired=true;
   document.addEventListener('click',e=>{ const b=e.target&&e.target.closest?e.target.closest('[data-apn-pile-open]'):null; if(!b) return; e.preventDefault(); apnPileOpen(b.getAttribute('data-apn-pile-open')); });
+  document.addEventListener('click',e=>{ const b=e.target&&e.target.closest?e.target.closest('[data-apn-pile-peek]'):null; if(!b) return; e.preventDefault(); e.stopPropagation(); apnPeekOpen(b.getAttribute('data-apn-pile-peek')); });
 }
 /* ---- A PRESS THAT ONLY CHANGES WHICH ROWS SHOW REDRAWS ONLY THE ROWS ----
    (10 Nov 2026, off the owner's "why is the app slow" review; the same change
