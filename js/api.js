@@ -18,8 +18,6 @@ const API_MODE=()=>!!REMOTE;
    presence withdraws a reader's asks for a clause on pagehide, and only a
    keepalive request outlives the page that sent it. Off for everybody else. */
 async function api(path, method='GET', body, opts){
-  /* A PRACTICE CONTRACT NEVER REACHES THE SERVER (js/teach.js, owner 23 Nov 2026): anything about it stops here, said */
-  if(typeof window!=='undefined'&&typeof window.practiceBlocks==='function'){ const why=window.practiceBlocks(path, method, body); if(why) throw Object.assign(new Error(why),{ practice:true }); }
   /* A SETTINGS SHEET HOLDS ITS EDITS UNTIL SAVE (P-43): a held setting's write waits in the open sheet and leaves on
      its Save (js/views/settings.js, stHoldApi); everything else goes now, as it always did */
   if(method!=='GET' && !(opts&&opts.unheld) && typeof window!=='undefined' && typeof window.stHoldApi==='function'){
@@ -158,8 +156,7 @@ async function loadBootstrap(){
     if(!pg.rows.length) break;
     offset+=pg.rows.length;
   }
-  /* this person's practice contract, kept in this browser only, joins their book (js/teach.js) */
-  state.contracts=(typeof window!=='undefined'&&typeof window.practiceJoin==='function')?window.practiceJoin(book):book;
+  state.contracts=book;
   state.truncated = total>state.contracts.length;
   // screen position is per-device, not shared with teammates
   const ui=lsGet(LS.ui)||{};

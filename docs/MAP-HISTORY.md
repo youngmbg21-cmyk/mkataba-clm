@@ -40176,16 +40176,25 @@ The owner picked the drawing "Alert Me When" by name (six steps drawn on Discove
 ## THE SHELL — RAIL, BAR, PANELS — Delete this draft in sight (23 Nov 2026)
 The owner, with a photo of the paper's More list: "in more, make delete this draft to be after negotiation memo. It should not be hidden unless you have a better idea. And this applies to all more dropdowns that are similar." Every contract More list is drawn from one source (roomMoreMenuHtml: the paper line's More, the Dossier's hidden fold, the room's ⋯), so the row moved there, right after the work rows handed in (Add a clause … Negotiation memo). No other More menu in HaTi carries a delete row (the Board chart's ⋯ lost "Remove" on 27 Oct).
 
-## JAMBO THE INSTRUCTOR (23 Nov 2026, the practice contract)
-- The owner asked what a private practice contract meant (answered: a sample only the new person has, never sent, signed or counted for real, deleted in one press), then: "build it".
-- Built so the server never knows it: the browser keeps it (per person), the book's load re-joins it, every save and delete stays home, and the ONE door to the server (api) refuses it first, saying why (a send: "nothing was sent"). Chosen over a private stream on the server, which would have meant a company stream per newcomer in Settings and walls in every server count. Cost said to the owner: it shows in the person's OWN lists and Board figures, marked Practice.
-- Measured in the browser at the three screens: a practice contract asked for, saved, sent, reloaded, a colleague's book read, the lessons stopped — 0 requests carried it; the colleague's book and the server's own list never held it; it survived the reload and went with the lessons. Found while photographing: its long id printed in the bar and Jambo's box; it now carries the printed reference PRACTICE.
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (23 Nov 2026)
 - Owner: "when i press contracts on the green links above the jambo entry field i am sent to the contracts list by passing the folders. Make it so that if you want to get to the list of contracts you have one door which is the folders first." The Folders-or-list choice (`_ctFolders`) was remembered, so once a reader had gone into a list the named door skipped the Folders. `CA_GO.contracts` now sets the Folders on first (the green links, the jump window's row and the typed word all take this door). Doors that ask for a particular list (a number's list, a folder, a tab, "list") still land on that list. f1190, red at the parent.
 
 ## AN AMENDMENT IS WRITTEN HERE (js/family.js) — the pop-up's chips come from the paper (23 Nov 2026)
 The owner, with a photo of MK-209's pop-up: "are these choices based on what jambo has seen from the contract or just generic information that sometimes may not apply?" They were generic (a fixed five). Built on "build it": `pd2AmkChipsOf` reads today's clauses by heading and words, without AI — Extend the term only where a term clause is (never Termination), Change the price only where money passes, payment days only where a clause sets days to pay, a notice address only where a Notices clause is; each names its § and starts the sentence from the paper's own words ("change the term in § 4 from three (3) years to "); Add a clause always stands.
 
+## JAMBO THE INSTRUCTOR (23 Nov 2026, the practice contract removed)
+- The owner, the same day, with a screenshot of the walk's turns: "remove the practice contract as jambo does not show you much on how to fill it in. What you should do is when someone asks for guidance, show them in steps like in this guidance from the handdbook attached but make it with the highlights in color and bold letters accordingly … draw this." Removed by undoing #934 whole (one revert; the Brain map's flow line kept the night flow's later 'alertsweep' and 'colread'). Nothing of it was ever on the server, so nothing there to clean; a copy left in a browser's storage is never read again.
+
+## JAMBO THE INSTRUCTOR (23 Nov 2026, the step drawn the Legora + Stripe way)
+
+The owner, with a photo of plain grey walk turns: "show them in steps like in this guidance from the handdbook attached
+but make it with the highlights in color and bold letters accordingly … draw this." Four ways were drawn on a photo of
+today's Board (artifact "Jambo's Steps, Drawn"); the owner picked "Build the Legora + Stripe way". Built as drawn: no
+grey bubble, a soft badge, the book's own {ui:}/{door:} words as green highlighter marks (`teachRich`), amber in amber,
+places bold (`TEACH_PLACES`), the pin line ("Take me there" in bold), and a timeline of every step with the ones behind
+ticked (`teachStepHtml`, `teachStepShort`). The words are unchanged; only how they are drawn. Photographed at the three
+screens: nothing spills, the bubble is clear, the highlight paints. The drawing's "the timeline folds on a short panel"
+was not built: at 730px the turn simply scrolls with the conversation, as every turn does.
 ## OBLIGATIONS — "duties everywhere", and Jambo's helps 4 and 5 (23 Nov 2026)
 Owner: "build these: Round 2: renaming "obligations" to "duties" everywhere. Jambo's helps 4 and 5: suggesting who watches each duty, and saying why the proof box is ticked."
 - Every English sentence in the word book (255 values), the Handbook's English text, Jambo's teaching word and one hard-coded message now say duty/duties ("an obligation" → "a duty"). Swedish already said "åtagande" and is unchanged. Code names, page keys, AI instructions, comments and the legal notice wording ("obligations that survive") keep "obligation". Typed "obligations" still finds the page.
