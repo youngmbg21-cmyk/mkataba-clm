@@ -1182,7 +1182,7 @@ function createAmendment(parent, opts={}){
     if(Number(f.value) > 0) out.value = Number(f.value);
     if(Object.keys(out).length) c.amendFacts = out;
   }
-  if(opts.byCopilot && c.audit && c.audit[0]) c.audit[0].detail += ` — ${items.length} item${items.length===1?'':'s'} drafted by Jambo from: “${String(opts.note||'').slice(0,300)}”`;
+  if(opts.byCopilot && c.audit && c.audit[0]) c.audit[0].detail += ` — ${items.length} item${items.length===1?'':'s'} drafted by Jambo from: “${String(opts.asked||opts.note||'').slice(0,300)}”`;
   else if(items.length && c.audit && c.audit[0]) c.audit[0].detail += ` — ${items.length} clause${items.length===1?'':'s'} picked to change`;
   /* FILED AGAINST THE PARENT IN THE SAME BREATH — there is no second step and
      no window in which this exists as a loose contract. applyParentLink writes

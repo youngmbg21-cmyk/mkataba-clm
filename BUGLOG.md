@@ -22927,3 +22927,9 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 
 ## Noticed, not fixed (23 Nov 2026, Proposed obligations L+S)
 - The older review-desk styles (.obd-title, .obd-tb, .obd-foot, .obd-switch…) use `var(--color-ink)` and `var(--color-line)`, which no token in index.html defines, so those colours/lines silently fall back. The new L+S styles use `--color-text` / `--color-divider`.
+
+## Noticed, not fixed (23 Nov 2026, Amend in three steps)
+- Amend's "Make the changes" row box keeps only the first 4,000 characters of a clause's new words (`.slice(0, 4000)` on input in paperdesk.js), with nothing said — a very long clause could lose its end silently; a cap must be said, never a silent trim. The box is also at most 6 lines tall, awkward for a long clause.
+- Amendment approval gap: Create leaves the amendment's `value` empty (the new value sits only in `amendFacts` as a suggestion), so a value rule (e.g. "Value ≥ KES 5M") does not apply to it — `saNeeds` is empty and "Before you sign" lists no approval, though the Amend page's panel says "Approval: needed · 1 approval rule applies".
+- "As amended" view (`asAmendedHtml`, `docAsAmendedSet`) has its switch only on the old look's document tab row; on the new look's Home paper there is no button to open it.
+- After an amendment raising the value is signed, the agreement's paper note still reads "Value KES 85,000,000" (read from the signed paper); the end date does follow the amendment.

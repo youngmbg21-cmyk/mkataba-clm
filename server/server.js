@@ -10096,8 +10096,11 @@ app.post('/api/ai/amend', auth, editor, rlAiDeep, aiFeature('amend'), aiBudgetGu
         op: { type: 'string', enum: ['replace', 'insert', 'delete'] },
         signed: { type: 'string', description: 'For replace or delete: the CURRENT wording of that clause, quoted verbatim from the document.' + AI_QUOTE_RULE },
         amended: { type: 'string', description: 'For replace or insert: the full new wording of the clause, in the same style as the agreement.' },
-        why: { type: 'string', description: 'One short plain sentence: what this item changes.' },
+        why: { type: 'string', description: 'One short plain sentence saying why THIS clause is the one to change, e.g. "it sets the term" or "it states the contract value".' },
       }, required: ['op'] } },
+      notFound: { type: 'array', maxItems: 6, items: { type: 'object', properties: {
+        what: { type: 'string', description: 'In a few plain words, the part of what the person asked that no clause of the agreement covers, e.g. "Interest on late payments".' },
+      }, required: ['what'] }, description: 'Each part of the request that no existing clause covers. Do NOT write a new clause for these unless the person explicitly asked to add a clause.' },
       facts: { type: 'object', description: 'Record facts the amendment would change once signed; leave a field empty when it does not change.', properties: {
         expiry: { type: 'string', description: 'New end date, ISO yyyy-mm-dd, or empty.' },
         value: { type: 'number', description: 'New annual value as a number in the contract currency, or 0.' },
@@ -10114,7 +10117,7 @@ app.post('/api/ai/amend', auth, editor, rlAiDeep, aiFeature('amend'), aiBudgetGu
 
 "${String(ask).slice(0, 2000)}"
 
-Read the WHOLE agreement below and propose the smallest set of clause changes that does exactly that and nothing more. For each changed clause quote its CURRENT wording verbatim and give the full new wording in the agreement's own style. Use a new clause only where no existing clause covers the change. Do not change anything the person did not ask for. Name any other clause or schedule that mentions the same thing (a price list, a defined term) so they can check it. Fill the record facts only where the change moves them.
+Read the WHOLE agreement below and propose the smallest set of clause changes that does exactly that and nothing more. For each changed clause quote its CURRENT wording verbatim, give the full new wording in the agreement's own style, and say in one short sentence why that clause is the one to change. Write a new clause (op insert) only where the person explicitly asked to ADD a clause; any other part of the request that no existing clause covers goes in notFound, never into an invented clause. Do not change anything the person did not ask for. Name any other clause or schedule that mentions the same thing (a price list, a defined term) so they can check it. Fill the record facts only where the change moves them.
 
 Current record facts: end date ${String(f.expiry || 'unknown')}, value ${Number(f.value) || 'unknown'}${f.currency ? ' ' + String(f.currency).slice(0, 5) : ''}.
 
@@ -10136,12 +10139,14 @@ Return via draft_amendment.\n\n${AI_GOVERNANCE_RULE}\n\nAGREEMENT:\n${aiDocText(
       return true;
     }).map(it => ({ clauseNumber: String(it.clauseNumber || '').slice(0, 20), clauseLabel: String(it.clauseLabel || '').slice(0, 200),
       op: it.op, signed: String(it.signed || '').slice(0, 4000), amended: String(it.amended || '').slice(0, 4000), why: String(it.why || '').slice(0, 300) }));
-    if (!items.length && resp.truncated) return res.status(502).json({ error: 'Jambo ran out of room before it could draft the amendment. Try again.' });
+    if (!items.length && resp.truncated && !(Array.isArray(inp.notFound) && inp.notFound.length)) return res.status(502).json({ error: 'Jambo ran out of room before it could draft the amendment. Try again.' });
     const fx = inp.facts && typeof inp.facts === 'object' ? inp.facts : {};
     const isoOk = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : '';
     res.json({ kind: inp.kind || null, items, dropped, truncated: !!resp.truncated,
       facts: { expiry: isoOk(fx.expiry), value: Number(fx.value) > 0 ? Number(fx.value) : 0, effectiveDate: isoOk(fx.effectiveDate) },
       mentions: (Array.isArray(inp.mentions) ? inp.mentions : []).slice(0, 5).map(m => ({ clause: String((m && m.clause) || '').slice(0, 120), why: String((m && m.why) || '').slice(0, 160) })),
+      /* WHAT NO CLAUSE COVERS IS SAID, NEVER INVENTED (the owner's "Tell Jambo the change", 23 Nov 2026) */
+      notFound: (Array.isArray(inp.notFound) ? inp.notFound : []).slice(0, 6).map(m => ({ what: String((m && m.what) || '').replace(/\s+/g, ' ').trim().slice(0, 160) })).filter(m => m.what),
       ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
