@@ -153,7 +153,8 @@ describe('f1163 (3) the server is the wall', () => {
 describe('f1163 (4) where the reader looks', () => {
   const PD = strip(R('js/paperdesk.js')), PO = strip(R('js/views/portal.js')), IX = R('index.html');
   test('the Dossier\'s card sits above the facts and opens our page in the middle', () => {
-    assert.match(PD, /pd2FamCardHtml\(c\) : ''\}\$\{nl \? pd2DealCardHtml\(c\) : ''\}\$\{nl && facts \?/);
+    /* under Family; the Duties card (f1184, 23 Nov 2026) sits between it and the facts */
+    assert.match(PD, /pd2FamCardHtml\(c\) : ''\}\$\{nl \? pd2DealCardHtml\(c\) : ''\}\$\{nl \? pd2DutiesCardHtml\(c\) : ''\}\$\{nl && facts \?/);
     assert.match(PD, /data-pd2-dl-open=/);
     assert.match(PD, /pdMidOn\('where:' \+ String\(c\.id\)\)/);
     assert.match(PD, /pd2StandsUp\(c\.id\) && typeof window\.newLookOn === 'function' && newLookOn\(\)\) return `<div id="pd-glance" class="pd2-dossier is-deal"/);
