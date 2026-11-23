@@ -18856,8 +18856,81 @@
   html.lg-new .pd2-amx{position:relative;z-index:2;margin:0 0 16px;background:var(--color-surface);font-size:14px;color:var(--color-text)}
   html.lg-new .pd2-amx.is-signed{position:sticky;top:0;margin:0;box-shadow:0 -24px 0 var(--color-surface)}
   html.lg-new .pd2-amx-tabs{display:flex;align-items:center;gap:24px;height:46px;padding:0 24px;border-bottom:1px solid var(--color-divider)}
-  html.lg-new .pd2-amx-tab{display:inline-flex;align-items:center;gap:6px;height:46px;margin:0;padding:0;border:0;border-bottom:2px solid transparent;background:none;font:inherit;color:var(--color-quiet);cursor:pointer}
+  html.lg-new .pd2-amx-tab{flex:none;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;height:46px;margin:0;padding:0;border:0;border-bottom:2px solid transparent;background:none;font:inherit;color:var(--color-quiet);cursor:pointer}
   html.lg-new .pd2-amx-tab.is-on{color:var(--color-text);font-weight:var(--w-label);border-bottom-color:var(--color-text)}
+  /* THE STEPS: a number in a circle, Back and Next at the row's right, the hint between, quiet, shortening first */
+  html.lg-new .pd2-amx-num{display:inline-grid;place-items:center;width:20px;height:20px;margin-right:2px;border-radius:50%;background:var(--st-gray-bg);color:var(--st-gray-fg);font:600 11.5px/1 var(--font-body);font-style:normal}
+  html.lg-new .pd2-amx-tab.is-on .pd2-amx-num{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new .pd2-amx-nav{display:flex;flex:none;gap:8px;align-items:center}
+  html.lg-new .pd2-amx-nav .pill-btn{height:var(--ctl-h-sm);padding:0 14px;border:0;border-radius:999px;font:inherit;font-size:13px;font-weight:var(--w-label);white-space:nowrap;cursor:pointer;background:var(--surface-2);color:var(--color-text)}
+  html.lg-new .pd2-amx-nav .pd2-amx-next{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new .pd2-amx-nav .pd2-amx-next:disabled{background:var(--surface-2);color:var(--color-quiet);cursor:default}
+  /* TELL JAMBO THE CHANGE (the owner's pick, 23 Nov 2026): the pop-up's box and chips; step 2's approval rows; step 3's check */
+  .pd2-amk-box{display:flex;gap:10px;align-items:flex-start;padding:6px 0 10px;border-bottom:1px solid var(--color-neutral-300)}
+  .pd2-amk-sp{color:var(--accent-ink);font-size:15px;line-height:24px}
+  .pd2-amk-box .lgp-in{flex:1;min-height:72px;border:0;padding:0;font-size:15px;line-height:1.55;resize:vertical;background:none}
+  .pd2-amk-chips{margin-top:12px}
+  .pd2-amk-busy{padding:14px 0 6px;font-size:14px;color:var(--color-quiet)}
+  .pd2-amk-bar{height:4px;margin:16px 0 4px;border-radius:2px;background:var(--surface-2);overflow:hidden}
+  .pd2-amk-bar i{display:block;width:40%;height:100%;border-radius:2px;background:var(--accent-ink);animation:pd2AmkGlide 1.4s ease-in-out infinite}
+  .pd2-amk-bar.is-done i{width:100%;animation:none}
+  @keyframes pd2AmkGlide{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+  .pd2-amk-finds{list-style:none;margin:14px 0 0;padding:0;font-size:14px;line-height:1.5}
+  .pd2-amk-finds li{display:flex;gap:10px;padding:5px 0;opacity:0;transform:translateY(4px);animation:pd2AmkIn .3s ease-out forwards}
+  .pd2-amk-finds li:nth-child(2){animation-delay:.35s} .pd2-amk-finds li:nth-child(3){animation-delay:.7s} .pd2-amk-finds li:nth-child(4){animation-delay:1.05s} .pd2-amk-finds li:nth-child(n+5){animation-delay:1.4s}
+  .pd2-amk-finds b{font-weight:var(--w-label)}
+  .pd2-amk-tk{flex:none;width:16px;text-align:center} .pd2-amk-tk.is-ok{color:var(--st-green-fg)} .pd2-amk-tk.is-nf{color:var(--st-amber-dot)}
+  .pd2-amk-cut{margin:8px 0 0;font-size:13px;color:var(--st-amber-fg)}
+  @keyframes pd2AmkIn{to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion: reduce){.pd2-amk-bar i{animation:none;width:100%}.pd2-amk-finds li{animation:none;opacity:1;transform:none}}
+  html.lg-new .pd2-amr{max-width:1100px;padding:4px 0 24px}
+  html.lg-new .pd2-amr-asked{display:flex;align-items:baseline;gap:10px;padding:0 0 14px;border-bottom:1px solid var(--color-divider);font-size:14px}
+  html.lg-new .pd2-amr-said{flex:1;min-width:0} html.lg-new .pd2-amr-said b{font-weight:var(--w-label)}
+  html.lg-new .pd2-amr-asked .ui-link{flex:none;white-space:nowrap;font-size:13px}
+  html.lg-new .pd2-amr-sp{color:var(--accent-ink)}
+  html.lg-new .pd2-amr-row{display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;padding:16px 0 18px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .pd2-amr-i{color:var(--color-quiet);font-size:14px;line-height:24px}
+  html.lg-new .pd2-amr-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:15px} html.lg-new .pd2-amr-h b{font-weight:var(--w-strong)}
+  html.lg-new .pd2-amr-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 0;font-size:13px;color:var(--color-quiet)}
+  html.lg-new .pd2-amr-eff{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+  html.lg-new .pd2-amr-eff .pd2-amx-e1{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+  html.lg-new .pd2-amr-eff :is(.pd2-amx-ans, .pd2-amx-e1 > :not(.pd2-badge)){display:inline;margin:0}
+  html.lg-new .pd2-amr-para{margin:10px 0 8px;font-family:var(--font-doc);font-size:16px;line-height:1.7;color:var(--color-text)}
+  html.lg-new .pd2-amr-add{color:var(--st-green-fg);background:var(--st-green-bg);text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:3px}
+  html.lg-new .pd2-amr-del{color:var(--st-ruby-fg);background:var(--st-ruby-bg);text-decoration:line-through;text-decoration-thickness:1.5px}
+  html.lg-new .pd2-amr-ed{display:block;width:100%;margin:10px 0 8px;font-family:var(--font-doc);font-size:15px;line-height:1.6}
+  html.lg-new .pd2-amr-goes{margin:0;font-size:13.5px;line-height:1.55}
+  html.lg-new .pd2-amr-acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+  html.lg-new .pd2-amr-acts.is-done{gap:6px;font-size:13px}
+  html.lg-new :is(.pd2-amr, .pd2-amc) .pill-btn{height:var(--ctl-h-sm);padding:0 14px;border:0;border-radius:999px;font:inherit;font-size:13px;font-weight:var(--w-label);white-space:nowrap;cursor:pointer;background:var(--surface-2);color:var(--color-text)}
+  html.lg-new .pd2-amr .pill-btn.is-go{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new .pd2-amr-miss{padding:14px 0 16px 40px;border-bottom:1px solid var(--color-divider);font-size:14px}
+  html.lg-new .pd2-amr-miss b{font-weight:var(--w-label)}
+  html.lg-new .pd2-amr-more{margin:12px 0 0 40px;font-size:13.5px}
+  html.lg-new :is(.pd2-amr, .pd2-amc) .pd2-badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:var(--w-label);white-space:nowrap;background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  html.lg-new :is(.pd2-amr, .pd2-amc) .pd2-badge i{width:7px;height:7px;border-radius:50%;background:var(--st-gray-dot)}
+  html.lg-new :is(.pd2-amr, .pd2-amc) .pd2-badge.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)} html.lg-new :is(.pd2-amr, .pd2-amc) .pd2-badge.is-amber i{background:var(--st-amber-dot)}
+  html.lg-new :is(.pd2-amr, .pd2-amc) .pd2-badge.is-green{background:var(--st-green-bg);color:var(--st-green-fg)} html.lg-new :is(.pd2-amr, .pd2-amc) .pd2-badge.is-green i{background:var(--st-green-dot)}
+  html.lg-new .pd2-amc{padding:16px 24px 28px}
+  html.lg-new .pd2-amc-view{display:flex;justify-content:center;gap:8px;margin:0 0 16px}
+  html.lg-new .pd2-amc-chip{height:30px;padding:0 13px;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);font:inherit;font-size:13.5px;cursor:pointer;white-space:nowrap}
+  html.lg-new .pd2-amc-chip.is-on{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new .pd2-amc-two{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(260px,1fr);gap:24px;align-items:start}
+  html.lg-new .pd2-amc .pd2-amx-paper{padding:0;background:none}
+  html.lg-new .pd2-amc-left{max-height:calc(100vh - 330px);min-height:260px;overflow-y:auto;overscroll-behavior:contain}
+  html.lg-new .pd2-amc .pd2-amx-sheet{max-width:none;padding:28px 32px;border:1px solid var(--color-divider);box-shadow:none}
+  html.lg-new .pd2-amc-cl{margin:0 0 10px} html.lg-new .pd2-amc-cl b{font-weight:var(--w-strong)}
+  html.lg-new .pd2-amc-cl .pd2-amr-add,html.lg-new .pd2-amc-cl .pd2-amr-del{font:inherit}
+  html.lg-new .pd2-amc-side h4{margin:0 0 6px;font-size:15px;font-weight:var(--w-strong)}
+  html.lg-new .pd2-amc-checks{list-style:none;margin:0;padding:0}
+  html.lg-new .pd2-amc-checks li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--color-divider);font-size:14px}
+  html.lg-new .pd2-amc-k{min-width:0}
+  html.lg-new .pd2-amc-tl{display:flex;list-style:none;margin:22px 0 0;padding:0;font-size:13px}
+  html.lg-new .pd2-amc-tl li{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;padding:0 6px}
+  html.lg-new .pd2-amc-tl li::before{content:'';position:absolute;top:6px;right:50%;width:100%;height:2px;background:var(--color-divider)} html.lg-new .pd2-amc-tl li:first-child::before{display:none}
+  html.lg-new .pd2-amc-tl i{position:relative;width:14px;height:14px;border-radius:50%;background:var(--color-surface);border:2px solid var(--color-neutral-300)}
+  html.lg-new .pd2-amc-tl li.is-now i{background:var(--st-amber-dot);border-color:var(--st-amber-dot)}
+  html.lg-new .pd2-amc-tl b{font-weight:var(--w-label)} html.lg-new .pd2-amc-tl span{color:var(--color-quiet)}
   html.lg-new .pd2-amx-n{display:inline-block;min-width:18px;height:18px;padding:0 6px;border-radius:999px;background:var(--st-gray-bg);color:var(--st-gray-fg);font-size:12px;line-height:18px;text-align:center}
   html.lg-new .pd2-amx-hint{margin-left:auto;font-size:12.5px;color:var(--color-quiet)}
   /* on the signed paper the zoom stands at the row's right: the hint keeps clear of it, ending in "…" */

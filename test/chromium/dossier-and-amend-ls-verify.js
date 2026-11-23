@@ -11,6 +11,10 @@
    5  the Amendment paper is what Create writes ("In clause 4, … is replaced by …")
    6  Create: the draft carries the figures; back on the agreement the card says Continue, the line carries the tag,
       the family row is a door; the draft's line says Amends MK-B1
+   8  TELL JAMBO THE CHANGE (the owner's pick, 23 Nov 2026): the door asks "What do you want to change?" in a pop-up; Jambo's
+      answer (a stand-in here) lands on Approve the changes, each change WAITING with why its clause was chosen; Next and
+      Create stay grey until each is approved; what no clause covers says Not found; the check step shows Before you
+      create and, on a press, the agreement as amended
    Each half guarded: a missing feature reports, it does not time out. */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -48,6 +52,10 @@ const until = async (page, fn, arg, ms = 8000) => { try { await page.waitForFunc
 
     /* 2 — one full page */
     await page.click('#ig-dock .pd2-card [data-pd-ds-famact="create"]').catch(() => {});
+    /* RE-POINTED 23 Nov 2026 (Tell Jambo the change): the door asks first; "or choose the clauses yourself" is the page */
+    const ask = await until(page, () => !!document.querySelector('#pd2-amk #pd2-amk-q'));
+    check('2 the Amend door asks what should change, in a pop-up', ask);
+    if (ask) await page.click('#pd2-amk [data-pd2-amk-manual]');
     const p2 = await until(page, () => !!document.querySelector('#ig-paper-scroll.is-amx > .pd2-amx'));
     check('2a Amend opens one page over the paper', p2);
     const p2b = await page.evaluate(() => {
@@ -56,7 +64,8 @@ const until = async (page, fn, arg, ms = 8000) => { try { await page.waitForFunc
       return { tabs: [...document.querySelectorAll('.pd2-amx [data-pd2-amx-tab]')].map(b => b.getAttribute('data-pd2-amx-tab')).join(','),
         edge: r && s ? Math.round(Math.abs(r.left - s.left) + Math.abs(r.right - s.right)) : -1 };
     });
-    check('2b its tabs are Changes · Signed paper · Amendment paper', p2b.tabs.startsWith('changes,signed,paper'), p2b.tabs);
+    /* RE-POINTED 23 Nov 2026 (the steps in their order): 1 the signed paper · 2 the changes · 3 the amendment */
+    check('2b its steps are the signed paper · the changes · the amendment', p2b.tabs.startsWith('signed,changes,paper'), p2b.tabs);
     check('2c the page runs edge to edge (no card inside a desk)', p2b.edge >= 0 && p2b.edge <= 2, `${p2b.edge}px off the edges`);
 
     /* 3 — a pressed clause keeps its figures */
@@ -86,7 +95,7 @@ const until = async (page, fn, arg, ms = 8000) => { try { await page.waitForFunc
     check('5 the Amendment paper says exactly what is replaced', /In clause 4, .*three \(3\).* is replaced by .*four \(4\)/.test(paper), paper.replace(/\s+/g, ' ').slice(0, 160));
 
     /* 6 — Create, and the doors back */
-    await page.click('[data-pd2-am-create]').catch(() => {});
+    await page.click('.pd2-amx-next[data-pd2-am-create]').catch(() => {});
     const kid = await until(page, () => state.contracts.some(x => x.parentId === 'MK-B1'));
     const k = await page.evaluate(() => { const x = state.contracts.find(y => y.parentId === 'MK-B1'); return x ? { id: x.id, body: String(x.redlineText || '') } : null; });
     check('6a Create makes the draft, filed against the agreement', kid && !!k);
@@ -106,12 +115,45 @@ const until = async (page, fn, arg, ms = 8000) => { try { await page.waitForFunc
       await page.evaluate(() => roomHomeLand('MK-B1'));
       const amend2 = await until(page, () => !!document.querySelector('#ig-dock .pd2-card [data-pd-ds-famact="create"]'));
       if (amend2) await page.click('#ig-dock .pd2-card [data-pd-ds-famact="create"]');
+      if (await until(page, () => !!document.querySelector('#pd2-amk [data-pd2-amk-manual]'))) await page.click('#pd2-amk [data-pd2-amk-manual]');
       const today = await until(page, () => !!document.querySelector('#ig-canvas .pd-am-today'));
       check('7a the signed paper shows a changed clause as it stands today', today);
       await page.click('.pd2-amx [data-pd2-amx-tab="paper"]').catch(() => {});
       const p7 = await page.evaluate(() => (document.querySelector('.pd2-amx-sheet') || {}).innerText || '');
       check('7b the second amendment says it amends the agreement as amended', /as amended by Amendment No\. 1/.test(p7), p7.replace(/\s+/g, ' ').slice(0, 160));
     }
+
+    /* 8 — Tell Jambo the change, on another signed agreement (MK-A1) */
+    await page.route('**/api/ai/amend', async r => { const c = await page.evaluate(() => amendParentClauses(getContract('MK-A1')).filter(x => x.text).slice(0, 1));
+      const x = c[0] || { num: '1', label: '1. Term', text: 'The term is one year.' };
+      r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [{ clauseNumber: x.num, clauseLabel: x.label, op: 'replace', signed: x.text, amended: x.text + ' This clause is amended.', why: 'it is the clause asked about' }],
+        notFound: [{ what: 'Interest on late payments' }], facts: {} }) }); });
+    await page.evaluate(() => roomHomeLand('MK-A1'));
+    const d8 = await until(page, () => !!document.querySelector('#ig-dock .pd2-card [data-pd-ds-famact="create"]'));
+    if (d8) await page.click('#ig-dock .pd2-card [data-pd-ds-famact="create"]');
+    const q8 = await until(page, () => !!document.querySelector('#pd2-amk #pd2-amk-q'));
+    check('8a the question pop-up opens on the door', q8);
+    if (q8){ await page.click('#pd2-amk [data-pd2-amk-go]');
+      check('8b nothing said is refused, and said where the reader looks', await until(page, () => !!document.querySelector('#pd2-amk .lgp-err')));
+      await page.fill('#pd2-amk #pd2-amk-q', 'make it longer and add interest on late payments'); await page.click('#pd2-amk [data-pd2-amk-go]'); }
+    /* what he found, ticked in from his answer, then one button (the owner's pick "Real finds, then a button") */
+    const f8 = await until(page, () => !!document.querySelector('#pd2-amk [data-pd2-amk-see]'), null, 12000);
+    const fl = f8 ? await page.evaluate(() => [...document.querySelectorAll('#pd2-amk .pd2-amk-finds li')].map(li => li.textContent.replace(/\s+/g, ' ').trim())) : [];
+    check('8b2 the pop-up lists what he found, and what no clause covers', fl.length === 2 && /Found in/.test(fl[0]) && /Interest on late payments/.test(fl[1]), JSON.stringify(fl));
+    if (f8) await page.click('#pd2-amk [data-pd2-amk-see]');
+    const r8 = await until(page, () => !!document.querySelector('.pd2-amr .pd2-amr-row'), null, 12000);
+    const w8 = r8 ? await page.evaluate(() => ({ wait: !!document.querySelector('.pd2-amr-row .pd2-badge.is-amber'), why: /chose this clause/i.test((document.querySelector('.pd2-amr-why') || {}).textContent || ''),
+      nf: /Interest on late payments/.test((document.querySelector('.pd2-amr-miss') || {}).textContent || ''), next: !!(document.querySelector('.pd2-amx-next') || {}).disabled })) : {};
+    check('8c Jambo\'s change waits for a person, says why its clause, and the Next stays grey', r8 && w8.wait && w8.why && w8.next, JSON.stringify(w8));
+    check('8d what no clause covers says Not found, never invented', !!w8.nf);
+    if (r8){ await page.click('.pd2-amr [data-pd2-amx-ok="0"]'); }
+    const ok8 = await until(page, () => { const n = document.querySelector('.pd2-amx-next'); return !!(n && !n.disabled); });
+    check('8e Use it approves the change and the Next opens', ok8);
+    if (ok8) await page.click('.pd2-amx-next');
+    const c8 = await until(page, () => !!document.querySelector('.pd2-amc .pd2-amc-checks li'));
+    if (c8) await page.click('.pd2-amc [data-pd2-amx-view="today"]');
+    const t8 = await until(page, () => !!document.querySelector('.pd2-amc .pd2-amc-cl.is-changed'));
+    check('8f the check step lists Before you create, and shows the agreement as amended on a press', c8 && t8);
 
     check('no page errors', errors.length === 0, errors.join(' | '));
   } catch (e) { check('the run completed', false, e.message); }

@@ -25,6 +25,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## AN AMENDMENT IS WRITTEN HERE (js/family.js)
 - f170, f176, f901, f544, amendment-journey, amendment-blanks-and-clauses, menu-and-amend verify.
 - Amend L+S and Dossier L+S (22 Nov 2026): f1153 (6 = start from today's deal, 23 Nov), dossier-and-amend-ls-verify (7); re-pointed in place f1065 (2), f1088 (1), f731 (8).
+- Tell Jambo the change (23 Nov 2026): f1187 (1–7); dossier-and-amend-ls-verify 2 (the pop-up first), 2b (steps in order), 8a–8f (the Jambo way, a stand-in answer); re-pointed in place menu-and-amend 5b (the manual link), round5-new-look 7 (`pdAmendOpen(id,{manual:true})`).
 
 ## THE UPLOAD
 - f257, f286, f233, f366, f370, f679, f707, upload-party, upload-structure, pdf-structure, draft-upload-glance verify.
@@ -93,6 +94,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f841, f842 (the Guide's row), f561, f564 (the brain's three parts), f232 (the published names).
 
 ## THE SHELL — RAIL, BAR, PANELS
+- Delete this draft in sight (23 Nov 2026): f1188; f582 unchanged.
 - f1183 the jump window's × in the top right corner (23 Nov 2026; red at the parent).
 - f1178 a reading opens nothing until caActOf keeps it (caActLater/caActGo; 22 Nov 2026; red at the parent).
 - THE WATERMARK MOVES IN SETTINGS TOO (22 Nov 2026): test/chromium/panel-watermark-verify.js 2 and 2b RE-POINTED (drawn and moving; was "held still"), for GitHub; 3 (less motion: still) stands. Checked here in a browser page by page: every page that draws it has it moving. Re-ran green: f965, f1107, f236, f1147, f1149.
