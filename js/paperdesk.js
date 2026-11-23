@@ -8374,7 +8374,9 @@ function pd2Facts(c, D){
         const row = S && S.kids ? S.kids.find(r => String(r.c.id) === String(from.from.id)) : null;
         const label = row ? row.label : ((typeof contractRef === 'function') ? contractRef(from.from) : from.from.id);
         by = ` <button type="button" class="ui-link pd2-setby" data-fam-go="${E(from.from.id)}">${E(_pdT('pd2_set_by', { label }))} ›</button>`; } }
-    out.push({ k: 'ends', l: _pdT('pd2_f_ends'), v: R.expiry + (renews ? ', ' + E(_pdT('pd2_renews')) : '') + by, s: src }); }
+    out.push({ k: 'ends', l: _pdT('pd2_f_ends'), v: R.expiry + (renews && !nlF ? ', ' + E(_pdT('pd2_renews')) : '') + by, s: src });
+    /* RENEWS, ITS OWN ROW (Round A, as drawn): a soft badge, where the paper says it */
+    if (renews && nlF) out.push({ k: 'renews', l: _pdT('pd2_f_renews'), v: `<span class="pd2-badge is-steel"><i aria-hidden="true"></i>${E(_pdT('pd2_renews_badge'))}</span>`, s: src }); }
   let signer = ''; try { signer = pdCkSignerSay(c); } catch (_){ signer = ''; }
   out.push({ k: 'signer', l: _pdT('pd2_f_signer'), v: signer ? E(signer) : `<span class="pd2-amb">${E(_pdT('pd2_none_yet'))}</span>`, s: _pdT('pd2_src_route'),
     /* A VIEWER CANNOT SAVE A SIGNER (BUGLOG 22086): no Change drawn for them, the fact stands alone */
@@ -8515,7 +8517,8 @@ function pd2FamCardHtml(c){
   const links = acts.filter(a => a && a.k !== 'create' && !a.shut).map(a => `<button type="button" class="ui-link" data-pd-ds-famact="${E(a.k)}">${E(a.label)}</button>`).join('<span class="pd2-card-sep" aria-hidden="true">·</span>');
   /* NO AMENDMENT YET, DRAWN (the Dossier L+S drawing): this paper as the first node, the place an amendment would stand as a
      dashed one beside it — the same words the head said, nothing pressed */
-  const chain = rows.length ? '' : `<p class="pd2-fam-chain" aria-hidden="true"><span class="pd2-fam-node">${E(ref(c))} · ${E(_pdT('pd2_fam_original'))}</span><i></i><span class="pd2-fam-node is-ghost">${E(_pdT('pd2_fam_none_yet'))}</span></p>`;
+  const stageWord = (() => { try { const D0 = dossierOf(c); return D0 ? _pdT('dos_st_' + D0.now) : ''; } catch (_){ return ''; } })();
+  const chain = rows.length ? '' : `<p class="pd2-fam-chain" aria-hidden="true"><span class="pd2-fam-node"><b>${E(String(c.name || ref(c)))}</b><small>${E(_pdT('pd2_fam_here', {}))}${stageWord ? ' · ' + E(stageWord.toLowerCase()) : ''}</small></span><i></i><span class="pd2-fam-node is-ghost"><b>${E(_pdT('pd2_fam_amends'))}</b><small>${E(_pdT('pd2_fam_none_yet'))}</small></span></p>`;
   return `<section class="pd2-famc" data-pd2-famc><div class="pd2-famc-h"><b>${E(_pdT('dos_mq_family'))}</b>${rows.length ? '' : `<span>${E(_pdT('pd2_fam_none'))}</span>`}</div>${body}${chain}${links ? `<p class="pd2-famc-acts">${links}</p>` : ''}</section>`;
 }
 function pd2Html(c){
@@ -8532,7 +8535,7 @@ function pd2Html(c){
      "Change" link, never a small grey word that is secretly a button */
   const nl = typeof window.newLookOn === 'function' && newLookOn();
   const facts = pd2Facts(c, D).map(f => nl ? pd2FactRowLs(f) : `<div class="pd2-fact${f.cls ? ' ' + f.cls : ''}" data-pd2-fact="${f.k}"><span class="pd2-l">${E(f.l)}</span><span class="pd2-v"${f.k === 'people' ? ` title="${String(f.v).replace(/<[^>]*>/g, '')}"` : ''}>${f.v}</span><span class="pd2-s">${f.go ? `<button type="button" class="pd2-sgo${nl ? ' is-link' : ''}" ${f.go}>${E(nl && (f.k === 'signer' || f.k === 'stream' || f.k === 'people') ? _pdT('pd2_go_change') : (f.s || _pdT('dos_go_open')))}</button>` : E(f.s || '')}</span></div>`).join('');
-  return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2CardHtml(c, D)}${nl ? pd2FoundHtml(c, D) : ''}${nl ? pd2FamCardHtml(c) : ''}${nl ? pd2DealCardHtml(c) : ''}${nl ? pd2DutiesCardHtml(c) : ''}${nl && facts ? `<div class="pd2-eye">${E(_pdT('jov5_pd_facts'))}</div>` : ''}<div class="pd2-facts">${facts}</div>${nl ? '' : pd2FamilyHtml(c)}${pdDocFillRowHtml(c)}${pd2TurnHtml(c)}</div>`;
+  return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2CardHtml(c, D)}${nl ? pd2SignedNeedsHtml(c, D) + pd2ComingUpHtml(c) : ''}${nl ? pd2FoundHtml(c, D) : ''}${nl ? pd2FamCardHtml(c) : ''}${nl ? pd2DealCardHtml(c) : ''}${nl ? pd2DutiesCardHtml(c) : ''}${nl && facts ? `<div class="pd2-eye">${E(_pdT((!(D.read && D.read.read) && !pd2Sealed(c) && (c.upload || c.source === 'upload')) ? 'pd2_facts_off_paper' : 'jov5_pd_facts'))}</div>` : ''}<div class="pd2-facts">${facts}</div>${nl ? '' : pd2FamilyHtml(c)}${pdDocFillRowHtml(c)}${pd2TurnHtml(c)}</div>`;
 }
 /* ---- THE DOSSIER'S TOP IS ONE CARD (owner picked "One card", 8 Nov 2026: "I want 1 card but the read it, watch the
    read and the brief need to be better designed … 'Read it | Watch the read | The brief' in green and underlined") ----
@@ -8860,6 +8863,48 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   document.addEventListener('submit', e => { const f = e.target; if (!f || f.id !== 'pd2-plan-sheet' || !_pd2Plan) return; e.preventDefault();
     if (_pd2Plan.at === 'ask') pd2PlanBreak(f); else pd2PlanApply(f); }, true);
 }
+/* ---- THE DRAWN FACES OF THE TOP CARD (Round A; the Dossier L+S drawing's fArrive and fRead) ----
+   ARRIVED: their paper (an upload), not read by Jambo, not sealed, the reader may act — "<name> has arrived." · "From
+   <them> · N clauses. Not read by Jambo yet." · Plan the read (or Read, with a plan applied) black · Read without a plan.
+   READ: the Clauses tab's own points (stkLivePoints) still open on N clauses, at the stages before negotiation — "N clauses
+   need a look before this goes to <them>." · Open the first clause black (the Clauses tab, the paper at its words) · Edit
+   the paper yourself (the Redlines face, the one editing door) · "Jambo read all N clauses and checked for what is missing
+   · K had nothing to find" · Watch the read. What the card owed before (a blank to fill) is said under it, never lost. */
+function pd2DrawnFaceOf(c, D, R, focus, N){
+  if (!c || pd2Sealed(c) || !['arrive', 'read', 'fill'].includes(focus)) return null;
+  const E = _pdE, T = _pdT, may = (typeof window.mayActOn !== 'function') || window.mayActOn(c);
+  const them = String(c.counterparty || '').trim(), theirs = !!(c.upload || c.source === 'upload');
+  let cls = []; try { cls = pd2Clauses(c).filter(x => x && x.kind !== 'section' && String(x.text || '').trim()); } catch (_){ cls = []; }
+  const then = N && N.head && N.btns && N.btns.length ? T('pd2_df_then', { what: String(N.head).replace(/\.$/, '') }) : '';
+  if (!R.read && theirs){
+    if (!may) return null;
+    const plan = pd2PlanItems(c).length;
+    const acts = `<div class="pd2-df-acts">${plan ? `<button type="button" class="ui-btn ui-btn-primary pd2-card-go" data-pd2-plan-read>${E(T('pd2_plan_read'))}</button><button type="button" class="ui-link" data-pd2-plan-open>${E(T('pd2_plan_change'))}</button>`
+      : `<button type="button" class="ui-btn ui-btn-primary pd2-card-go" data-pd2-plan-open>${E(T('pd2_plan_open'))}</button><button type="button" class="ui-link" data-pd2-plan-read>${E(T('pd2_plan_noplan'))}</button>`}</div>`;
+    const sub = [them ? T('pd2_df_from', { who: them }) : '', cls.length ? _pdTn('pd2_df_clauses', cls.length, { n: cls.length }) : ''].filter(Boolean).join(' · ');
+    return { head: T('pd2_df_arrived', { name: String(c.name || (typeof contractRef === 'function' ? contractRef(c) : c.id)) }), sub: (sub ? sub + '. ' : '') + T('pd2_df_not_read'), acts: acts + (then ? `<p class="pd2-df-then">${E(then)}</p>` : '') };
+  }
+  if (!R.read || typeof window.stkLivePoints !== 'function') return null;
+  let L = null; try { L = window.stkLivePoints(c); } catch (_){ L = null; }
+  if (!L) return null;
+  const open = L.filter(p => p && !p.done && !p.blank && (p.status === 'need' || p.status === 'look'));
+  const keyOf = p => String(p.clause || (p.missing ? '+' + (p.after || '') : p.title || '')).trim();
+  const clausesOpen = [...new Set(open.map(keyOf))];
+  if (!clausesOpen.length) return null;
+  const withPts = new Set(L.filter(p => p && !p.blank && p.clause).map(p => String(p.clause).split('.')[0]));
+  const clean = Math.max(0, cls.length - withPts.size);
+  const first = open.find(p => p.quote) || open[0];
+  const acts = may ? `<div class="pd2-df-acts"><button type="button" class="ui-btn ui-btn-primary pd2-card-go" data-pd2-first-clause="${E(String((first && first.quote) || '').slice(0, 80))}">${E(T('pd2_df_first'))}</button><button type="button" class="ui-link" data-pd-glance="redline">${E(T('pd2_df_edit'))}</button></div>` : '';
+  const foot = `<div class="pd2-card-foot"><p class="pd2-read">${E(cls.length ? _pdTn('pd2_df_read_all', cls.length, { n: cls.length, k: clean }) : T('pd2_read_once'))}</p><p class="pd2-card-links"><button type="button" class="ui-link" data-pd2-wk-open>${E(T('pd2_wk_watch'))}</button></p></div>`;
+  return { head: them ? _pdTn('pd2_df_need', clausesOpen.length, { n: clausesOpen.length, who: them }) : _pdTn('pd2_df_need_x', clausesOpen.length, { n: clausesOpen.length }), sub: then, acts, foot };
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._pd2DfWired){ document._pd2DfWired = true;
+  document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('#ig-dock [data-pd2-first-clause]') : null; if (!b) return;
+    e.preventDefault(); const q = b.getAttribute('data-pd2-first-clause') || '';
+    /* OPEN THE FIRST CLAUSE: the Clauses tab, and the paper at its words (the list follows the paper, docThreadFollowArm) */
+    try { pdSetTab('doc'); if (typeof renderIntelDock === 'function') renderIntelDock(); } catch (_){}
+    if (q && typeof window.igQuoteGo === 'function') setTimeout(() => { try { window.igQuoteGo(q); } catch (_){} }, 120); });
+}
 /* ---- THE CARD ON A SIGNED AGREEMENT (Dossier L+S, the owner's "Build", 22 Nov 2026) ----
    Nothing owed and the agreement signed: the card says how it stands (Live · ends in N months, read from the end date),
    quotes where the paper says it, and its one black button is Amend — the family's own act (familyActRun 'create', the
@@ -8952,7 +8997,18 @@ function pd2CardHtml(c, D){
   if (typeof window.newLookOn === 'function' && newLookOn()){
     /* no sentence under the headline (owner, 16 Nov 2026): who it goes to is the bar's, what waits after is the steps';
        on a signed agreement with nothing owed, the card carries Amend (pd2AmendCardOf) */
+    /* THE DRAWN FACES (Round A, "build as drawn", owner 24 Nov 2026): their paper arrived and not read; read with
+       clauses to look at — each the drawing's headline, its one black act and its link (pd2DrawnFaceOf) */
+    const DF = pd2DrawnFaceOf(c, D, R, focus, N);
+    if (DF) return pd2CardFiveHtml(c, 'is-drawn', at, DF.head, DF.sub ? `<p class="pd2-card-sub">${E(DF.sub)}</p>` : '', pd2StepsHtml(D, focus, words), DF.acts + (DF.foot || ''));
     const AM = b ? null : pd2AmendCardOf(c);
+    /* A SIGNED AGREEMENT THAT STILL ASKS SOMETHING (as drawn): the headline says how many, the black button is the first
+       one's act and Amend stands beside it, grey */
+    const SN = AM ? pd2SignedNeedsOf(c, D) : [];
+    if (AM && SN.length && SN[0].attr){
+      const two = `<div class="pd2-df-acts"><button type="button" class="ui-btn ui-btn-primary pd2-card-go" ${SN[0].attr}>${E(SN[0].go || SN[0].word)}</button>${AM.btn.replace('ui-btn ui-btn-primary pd2-card-go', 'ui-btn pd2-card-go is-grey')}</div>`;
+      return pd2CardFiveHtml(c, 'is-amend', at, _pdTn('pd2_live_needs', SN.length, { n: SN.length }), '', pd2StepsHtml(D, focus, words), AM.say + two + foot);
+    }
     return pd2CardFiveHtml(c, AM ? 'is-amend' : '', at, String(N.head || '').replace(/\.$/, ''), '', pd2StepsHtml(D, focus, words), (AM ? AM.say + AM.btn : btn) + foot);
   }
   return `<div class="pd2-card" data-pd2-card><div class="pd2-card-top"><span>${E(at)}</span><span class="pd2-spine" data-pd2-spine role="img" aria-label="${E(words)}">${dots}</span></div>
@@ -10049,17 +10105,22 @@ function pd2DlTwoHtml(c, D){
   if (!D) return '';
   const E = _pdE, S = pd2DlSides(c), mv = D.move, who = mv && mv.party ? String(mv.party) : '';
   const themName = String(c.counterparty || ''), theirs = !!(who && themName && who === themName), ours = !!(who && !theirs);
-  const side = (name, on, k) => `<span class="pd2-two-s is-${k}${D.executed ? ' is-ok' : on ? ' is-on' : ''}"><i aria-hidden="true"></i><span>${E(name)}</span></span>`;
-  /* the head already says the stage and the round: the line says only whose move it is, where it is someone's */
-  const mid = D.executed ? '' : ours ? _pdT('pd2_two_ours') : theirs ? _pdT('pd2_two_theirs') : '';
-  return `<span class="pd2-two" aria-hidden="true">${side(S.us, ours, 'us')}<span class="pd2-two-l">${mid ? `<em>${E(mid)}</em>` : ''}</span>${side(S.them, theirs, 'them')}</span>`;
+  /* AS DRAWN (Round A): once signed, each side says so under its name, ours with who signed (the route's own reading) */
+  let signer = ''; try { signer = D.executed ? String(pdCkSignerSay(c) || '') : ''; } catch (_){ signer = ''; }
+  const under = k => D.executed ? `<small>${E(k === 'us' && signer ? _pdT('pd2_two_signed_by', { who: signer }) : _pdT('pd2_two_signed'))}</small>` : '';
+  const side = (name, on, k) => `<span class="pd2-two-s is-${k}${D.executed ? ' is-ok' : on ? ' is-on' : ''}"><i aria-hidden="true"></i><span class="pd2-two-n"><span>${E(name)}</span>${under(k)}</span></span>`;
+  /* the middle, as drawn: the round and what went (nothing sent yet · sent <day> · N not sent); whose move lights a side */
+  let sent = ''; try { const N = (typeof rlUnsentCount === 'function' && c.negotiation) ? rlUnsentCount(c, {}) : 0; const last = (Array.isArray(c.rounds) ? c.rounds : []).filter(r => r && (r.sentAt || r.at)).map(r => String(r.sentAt || r.at)).sort().pop();
+    sent = N ? _pdTn('pd2_two_unsent', N, { n: N }) : last ? _pdT('pd2_two_sent', { d: pd2DlDay(last) }) : _pdT('pd2_two_none_sent'); } catch (_){ sent = ''; }
+  const mid = D.executed ? '' : `<em><b>${E(_pdT('pd2_dl_round', { n: D.round || 1 }))}</b>${sent ? ' · ' + E(sent) : ''}</em>`;
+  return `<span class="pd2-two" aria-hidden="true">${side(S.us, ours, 'us')}<span class="pd2-two-l">${mid}</span>${side(S.them, theirs, 'them')}</span>`;
 }
 /* the door above the facts: the page's name, where it stands, and what waits for us — the whole card is the press */
 function pd2DealCardHtml(c){
   if (!c || (typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768)) return '';
   const E = _pdE, R = pd2DlRead(c), n = (R.counts && R.counts.waitsOurs) || 0;
   const D = (typeof dealStands === 'function') ? dealStands(c) : null;
-  const line = n ? _pdTn('pd2_dl_c_wait', n, { n }) : (D && D.open) ? _pdTn('pd2_dl_c_open', D.open, { n: D.open }) : _pdT('pd2_dl_c_none');
+  const line = n ? _pdTn('pd2_dl_c_wait', n, { n }) : (D && D.open) ? _pdTn('pd2_dl_c_open', D.open, { n: D.open }) : _pdT(D && D.executed ? 'pd2_dl_c_none_both' : 'pd2_dl_c_none');
   return `<button type="button" class="pd2-dlc" data-pd2-dl-open="${E(c.id)}"><span class="pd2-dlc-h"><b>${E(_pdT('ds_eyebrow'))}</b><span>${E(pd2DlStage(c))}</span></span>
     ${pd2DlTwoHtml(c, D)}<span class="pd2-dlc-l">${n ? '<i class="pd2-dlc-dot" aria-hidden="true"></i>' : ''}<span class="pd2-dlc-w">${E(line)}</span><span class="pd2-dlc-go">${E(_pdT('pd2_dl_c_open_go'))} ›</span></span></button>`;
 }
@@ -10084,6 +10145,48 @@ function pd2DutiesCardOf(c){
   if (!st && !found) return { k: 'unread' };
   if (st && !st.ok) return { k: 'failed', why: String(st.why || '') };
   return { k: 'none' };
+}
+/* ---- A SIGNED AGREEMENT, AS DRAWN (Round A) ----
+   WHAT NEEDS YOU: the Dossier's own owed list (dossierOwed via D.owed) as rows, each its door, plus the Playbook where it
+   could not be checked (its Check is the fact's own door) — nothing owed, nothing drawn. COMING UP: signed by both sides ·
+   today (time left) · the day the term ends, renewing where the record says so, with the paper's words. */
+/* ONE READING of what a signed agreement still asks of the reader: [{ title, sub, attr, word }] — the headline counts it,
+   the black button is the first one's act, the section draws them (never three lists) */
+function pd2SignedNeedsOf(c, D){
+  const out = []; if (!c || !pd2Sealed(c) || !D) return out;
+  const T = _pdT, may = (typeof window.mayActOn !== 'function') || window.mayActOn(c);
+  if (!may) return out;
+  (D.owed || []).filter(r => r && r.kind !== 'fill').slice(0, 4).forEach(r => {
+    let w = null; try { w = (r.need && r.need.it && typeof insNeedWords === 'function') ? insNeedWords(c, r.need.it) : null; } catch (_){ w = null; }
+    const title = (w && w.title) || (r.kind === 'late' ? T('pd2_sn_late', { what: r.what || '' }) : r.kind === 'signer' ? T('dos_nx_signer') : '');
+    if (title) out.push({ title, sub: '', attr: r.kind === 'late' ? 'data-pd-ds-obl' : '', word: r.kind === 'late' ? T('dos_go_open') : '' });
+  });
+  let os = null; try { os = (typeof window.pbOpenCheckState === 'function') ? window.pbOpenCheckState(c) : null; } catch (_){ os = null; }
+  if (!(D.read && D.read.std) && !(os && os.run)) out.push({ title: T('pd2_sn_pb'), sub: os && os.why ? String(os.why) : '', attr: 'data-pd-ds-std', word: T('pd2_check'), go: T('pd2_sn_pb_go') });
+  return out;
+}
+function pd2SignedNeedsHtml(c, D){
+  const E = _pdE, T = _pdT, L = pd2SignedNeedsOf(c, D); if (!L.length) return '';
+  const rows = L.map(x => `<div class="pd2-fd-row"><span class="pd2-fd-w"><b>${E(x.title)}</b>${x.sub ? `<span class="pd2-fd-q">${E(x.sub)}</span>` : ''}</span>${x.attr ? `<button type="button" class="ui-link" ${x.attr}>${E(x.word)}</button>` : ''}</div>`);
+  return `<section class="pd2-fd is-needs" data-pd2-needs><div class="pd2-fd-h"><b>${E(T('pd2_sn_head'))}</b><span class="pd2-badge is-amber"><i aria-hidden="true"></i>${rows.length}</span></div>${rows.join('')}</section>`;
+}
+function pd2ComingUpHtml(c){
+  if (!c || !pd2Sealed(c)) return '';
+  const L = pd2LifeOf(c), E = _pdE, T = _pdT;
+  const end = String(((typeof effectiveExpiry === 'function') ? effectiveExpiry(c) : c.expiry) || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(end)) return '';
+  const day = iso => (typeof regDotDate === 'function') ? regDotDate(iso) : iso;
+  const today = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
+  const t = d => new Date(d + 'T12:00:00Z').getTime();
+  const months = Math.max(0, Math.round((t(end) - t(today)) / (30.44 * 864e5)));
+  let q = null; try { q = (typeof pd2QuoteOf === 'function') ? pd2QuoteOf(c, pd2Needles(c, 'expiry')) : null; } catch (_){ q = null; }
+  const renews = !!(L ? L.renews : (typeof contractRenewsItself === 'function' && contractRenewsItself(c)));
+  const item = (k, b, small) => `<li class="pd2-tl-i is-${k}"><b>${E(b)}</b>${small ? `<small>${E(small)}</small>` : ''}</li>`;
+  return `<section class="pd2-fd is-coming" data-pd2-coming><div class="pd2-fd-h"><b>${E(T('pd2_cu_head'))}</b></div><ol class="pd2-tl">`
+    + item('done', L && L.word === 'pd2_life_signed' ? T('pd2_cu_signed_on', { d: day(L.from) }) : T('pd2_cu_signed'), T('pd2_cu_locked'))
+    + item('now', T('pd2_life_today'), _pdTn('pd2_cu_left', months, { n: months }))
+    + item('next', T('pd2_cu_ends', { d: day(end) }), [q && q.quote ? `${pd2Cap(q.sec)} · “${q.quote}”` : '', renews ? T('pd2_cu_renews') : ''].filter(Boolean).join(' — '))
+    + `</ol></section>`;
 }
 /* THE DATES AHEAD (the drawing's duties timeline): today, the next open duties that carry a day (PD2_DT_DATES at most, the
    rest said as a count), and the day the agreement ends — each read off the duty list and the record, nothing guessed */
@@ -10111,7 +10214,7 @@ function pd2DutiesCardHtml(c){
      (data-pd-ds-obl → dutiesOpen); only a contract Jambo has not read offers the read first */
   let right = '', line = '', go = T('pd2_dl_c_open_go'), attr = 'data-pd-ds-obl', amber = false;
   if (S.k === 'reading'){ line = T('pd2_dt_reading'); attr = ''; }
-  else if (S.k === 'review'){ amber = true; line = Tn('pd2_dt_left_on', S.left, { n: S.left, m: S.n }); }
+  else if (S.k === 'review'){ amber = true; line = Tn('pd2_dt_left_on', S.left, { n: S.left, m: S.n }); right = S.found ? Tn('pd2_dt_found', S.found, { n: S.found }) : ''; go = T('pd2_dt_review'); }
   else if (S.k === 'list'){ right = Tn('pd2_dt_n', S.n, { n: S.n });
     line = S.next ? T('pd2_dt_next', { d: day(S.next) }) : S.open ? T('pd2_dt_no_dates') : T('pd2_dt_all_done'); }
   else if (S.k === 'unread'){ line = T('pd2_dt_unread'); go = T('pd2_dt_read'); attr = 'data-pd-ds-read'; amber = true; }

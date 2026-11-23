@@ -19249,6 +19249,31 @@
   html.lg-new #pd-thread .doc-th-step{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;border:1px solid var(--btn-edge);background:var(--color-surface);color:var(--color-text);font-size:15px;line-height:1;cursor:pointer}
   html.lg-new #pd-thread .doc-th-step:disabled{opacity:.4;cursor:default}
   html.lg-new #pd-thread .doc-th-k{min-width:52px;text-align:center;font-variant-numeric:tabular-nums}
+  /* THE DOSSIER AS DRAWN (Round A, owner 24 Nov 2026: "you have to build as drawn"): no boxes — the top card's act sits on
+     white, every section is an open line with a hairline above and its head as a small eyebrow */
+  html.lg-new #ig-dock .pd2-dossier .pd2-card.is-five .pd2-card-act{margin:14px 0 0;padding:0;border-radius:0;background:none}
+  html.lg-new #ig-dock .pd2-dossier > :is(.pd2-fd, .pd2-famc, .pd2-dlc){margin:0;padding:14px 0;border:0;border-top:1px solid var(--color-divider);border-radius:0;background:none;box-shadow:none}
+  html.lg-new #ig-dock .pd2-dossier > .pd2-dlc:hover{border-color:var(--color-divider);background:none}
+  html.lg-new #ig-dock .pd2-dossier > :is(.pd2-fd, .pd2-dlc) :is(.pd2-fd-h, .pd2-dlc-h) > b,html.lg-new #ig-dock .pd2-dossier > .pd2-famc .pd2-famc-h > b{font-size:12px;letter-spacing:.05em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-card-sub{margin:4px 0 0;font-size:13px;line-height:1.45;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-df-acts{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  html.lg-new #ig-dock .pd2-df-acts .pd2-card-go{flex:0 1 auto;width:auto;padding:0 18px}
+  html.lg-new #ig-dock .pd2-df-acts .pd2-card-go.is-grey{background:var(--surface-2);color:var(--color-text);border-color:transparent}
+  html.lg-new #ig-dock .pd2-df-then{margin:8px 0 0;font-size:13px;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-two-n{display:flex;flex-direction:column;min-width:0}
+  html.lg-new #ig-dock .pd2-two-n > span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new #ig-dock .pd2-two-n small{font-size:11.5px;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new #ig-dock .pd2-two-l em b{font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-new #ig-dock .pd2-badge.is-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)} html.lg-new #ig-dock .pd2-badge.is-steel i{background:var(--st-steel-dot)}
+  html.lg-new #ig-dock .pd2-tl{list-style:none;margin:2px 0 0 6px;padding:0 0 0 16px;border-left:1px solid var(--color-divider);display:flex;flex-direction:column;gap:12px}
+  html.lg-new #ig-dock .pd2-tl-i{position:relative;display:flex;flex-direction:column;gap:2px;font-size:13px}
+  html.lg-new #ig-dock .pd2-tl-i::before{content:"";position:absolute;left:-21px;top:4px;width:9px;height:9px;border-radius:50%;box-sizing:border-box;border:1.5px solid var(--color-neutral-400);background:var(--color-surface)}
+  html.lg-new #ig-dock .pd2-tl-i.is-done::before{background:var(--st-green-dot);border-color:var(--st-green-dot)}
+  html.lg-new #ig-dock .pd2-tl-i.is-now::before{background:var(--color-text);border-color:var(--color-text)}
+  html.lg-new #ig-dock .pd2-tl-i.is-next::before{border-color:var(--st-amber-dot)}
+  html.lg-new #ig-dock .pd2-tl-i b{font-weight:var(--w-label)} html.lg-new #ig-dock .pd2-tl-i small{font-size:12px;color:var(--color-quiet)}
+  html.lg-new #ig-dock .pd2-fam-node{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px}
+  html.lg-new #ig-dock .pd2-fam-node b{font-weight:var(--w-label)} html.lg-new #ig-dock .pd2-fam-node small{font-size:11.5px;color:var(--color-quiet);font-weight:400}
   /* THE PLAN TAB (the Dossier L+S, step 2): headline, the reader's words, one black act and a link, then the lines answered */
   html.lg-new #ig-dock .pd2-plan{display:flex;flex-direction:column;gap:10px;padding:4px 0 8px}
   html.lg-new #ig-dock .pd2-plan > .pd2-next{margin:0;font-family:var(--font-title);font-size:20px;line-height:1.25;font-weight:500;color:var(--color-text)}
