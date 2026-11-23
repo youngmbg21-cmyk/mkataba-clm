@@ -1079,3 +1079,6 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 ## OBLIGATIONS — Proposed obligations, the Legora + Stripe way (23 Nov 2026)
 - test/f1185-proposed-obligations-ls.test.js — one calm table (words with §, whose in the row, badge, Add), tabs with counts, chips; the chosen duty in Jambo's panel, no amount; no whose = no tick, no Add, the writer refuses; both books, the Handbook (red at the parent).
 - Browser (GitHub): review-desk-verify RE-POINTED (kinds are the "+ Kind" chip's choices; counts are the tabs'; Undo from the Skipped tab; two row ticks); amount-and-window-verify RE-POINTED (its proposals carry a side). Still green as they were: f554, f260, f475 (the pop-up keeps its table).
+
+## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS — rows light green (23 Nov 2026)
+- test/f1186-rows-are-light-green.test.js — the two tokens (--row-hover, --row-chosen) and their export; no list row's hover or chosen state painted grey anywhere in the sheet (ROW_GREY_KNOWN only shrinks); the main lists read the tokens (red at the parent). Browser: approvals-head-and-chosen-row-verify 3 RE-POINTED to --row-chosen.

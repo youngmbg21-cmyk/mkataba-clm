@@ -54,14 +54,17 @@ const NAMES = [['E-commerce Distribution Agreement', 'Copia Global'], ['Digital 
         const first = document.querySelector('#ap-scroll .apn-table tbody tr[data-ap-row]:not(.is-sel) td');
         const fm = (first.querySelector('.ls-mk') || first.firstElementChild).getBoundingClientRect();
         return { has: b.content !== 'none' && b.position === 'absolute', barW, gap: Math.round(m.left - (barX + barW)), inside: barX >= sc.left, same: Math.abs(fm.left - m.left) < 0.6,
-          fill: b.backgroundColor, rowFill: getComputedStyle(td).backgroundColor };
+          fill: b.backgroundColor, rowFill: getComputedStyle(td).backgroundColor,
+          want: (() => { const d = document.createElement('div'); d.style.background = 'var(--row-chosen)'; document.body.appendChild(d); const v = getComputedStyle(d).backgroundColor; d.remove(); return v; })() };
       }) : null;
       /* RE-POINTED (owner, 16 Nov 2026: Negotiations' grey "is what this should look like … as if a patch was applied";
          f1073): the chosen row is one grey band inside its own edges — no bar, no patch into the sheet's margin; the mark
          where the others are */
       /* RE-POINTED 21 Nov 2026 (P-30, as drawn; owner's answer that day): on Approvals the chosen row is LIGHT GREEN
          (--color-accent-50), still one band inside the row with no bar or patch */
-      check(`${at} 3 the chosen row is one light-green band inside the row, no bar or patch, the mark where the others are`, !!row && !row.has && row.same && row.rowFill === 'rgb(238, 243, 240)', row);
+      /* RE-POINTED 23 Nov 2026 (owner: every row pointed at or chosen is Discover's light green, f1186): the chosen row
+         reads --row-chosen */
+      check(`${at} 3 the chosen row is one light-green band inside the row, no bar or patch, the mark where the others are`, !!row && !row.has && row.same && row.rowFill === row.want, row);
       /* 1, 2 · scrolled */
       const moved = await page.evaluate(() => { const s = document.getElementById('ap-scroll'); s.scrollTop = 170; return s.scrollTop; });
       await until(page, () => document.getElementById('ap-scroll').scrollTop > 100, null, 4000);
