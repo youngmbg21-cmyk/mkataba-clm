@@ -214,8 +214,12 @@ describe('F273 — auto-triage on upload', () => {
          be quieter AND worse. */
       const OB = strip(fs.readFileSync('js/obligations.js', 'utf8'));
       const PB = strip(fs.readFileSync('js/playbook.js', 'utf8'));
-      assert.match(OB, /catch\(e\)\{ if\(!opts\.quiet\) toast\(i18t\('ob_scan_unavailable'\),'warn'\); \}/,
+      /* RE-POINTED 23 Nov 2026 (owner: "Read the duties again" never swaps Jambo's reading for the basic scan —
+         only a caller passing `strict` throws; quiet alone still falls through). */
+      assert.match(OB, /catch\(e\)\{ if\(opts\.strict\) throw e; if\(!opts\.quiet\) toast\(i18t\('ob_scan_unavailable'\),'warn'\); \}/,
         'the obligations scan still falls through to the heuristic');
+      assert.match(OB, /if\(opts\.strict\) throw new Error\(i18t\('dtp_again_nokey'\)\);\s*return heuristicObligations\(text, c\);/,
+        'and only a strict read-again is refused the heuristic, never a quiet caller');
       assert.match(PB, /catch\(e\)\{ if\(!opts\.quiet\) toast\(i18t\('pb_review_unavailable'\),'warn'\); \}/,
         'and so does the standards check');
       for (const [f, src] of [['obligations', OB], ['playbook', PB]])
@@ -251,8 +255,10 @@ describe('F273 — auto-triage on upload', () => {
       const OB = strip(fs.readFileSync('js/obligations.js', 'utf8'));
       assert.match(OB, /const OBLIG_TEXT_MIN\s*=\s*\d+/, 'the floor is declared once');
       assert.ok(/OBLIG_TEXT_MIN[,}]/.test(OB), 'and published, or nothing else can read it');
-      assert.equal((OB.match(/OBLIG_TEXT_MIN/g) || []).length, 4,
-        'declared, published, and read by the reader and the stamp — no fourth copy');
+      /* RE-POINTED 23 Nov 2026 (owner: "Read the duties again" stamps after its own reading, through the same
+         named floor — a second stamp site, still no copy of the number). */
+      assert.equal((OB.match(/OBLIG_TEXT_MIN/g) || []).length, 5,
+        'declared, published, and read by the reader and the two stamps — no further copy');
       assert.ok(/length\s*<\s*OBLIG_TEXT_MIN/.test(OB), 'the reader reads the name');
       assert.ok(/length\s*>=\s*OBLIG_TEXT_MIN/.test(OB), 'the stamp reads the name');
 
