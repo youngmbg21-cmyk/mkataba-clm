@@ -1083,6 +1083,7 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 - f1189 (6)–(8) (rounds 2, 3, 4, 6): the walk's steps, its picture-box marks and opener, Take me there; plain words read whole; "What can I do here?" only while teaching; first steps by seat, the moments that tick them, nothing written while off, all done asks once; the server keeps teachDone and hides it. Photos: a journey script drives I'm new → walk → Take me there → the card → the Board's list → here → a word → the book's button → off.
 - f1189 (9)(10): the stray closing quote (both hosts' trims, every answer path); Start the lessons — the rule word for word on both hosts, in the instructions, `teach` on the answer form and carried back, nothing on an ordinary answer, offered only while off, the press = "I'm new". With the rules touched also run f938, f305, f868, f1026.
 - f1189 (11): a walk step is drawn with its highlights — badge, green button marks, amber, bold place, the timeline (all steps, ticks, one lit), escaped words, no grey bubble.
+- f1189 (12): a Handbook how-to in any box is answered in the chapter's steps with the walk, free; a move stays a move; no backslash before a quote in an answer, both hosts.
 
 ## THE HANDBOOK — HOW TO DO EACH THING (23 Nov 2026)
 - test/f1184-the-handbook-legora-stripe.test.js — the book's one table, its filters, a row chooses then opens, numbered steps with each picture under its step (red at the parent). Browser: handbook-verify 2a/2b/4′a–d, round7b 3.

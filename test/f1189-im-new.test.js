@@ -337,3 +337,34 @@ describe('f1189 (11) a step is drawn with its highlights: badge, green button, a
     assert.ok(/\.teach-btn\{background:var\(--st-green-bg\);color:var\(--st-green-fg\)/.test(css));
   });
 });
+
+/* ---- "HOW DO I …?" IN STEPS, IN EVERY BOX; NO STRAY BACKSLASH (owner, 23 Nov 2026: "build both") ---- */
+describe('f1189 (12) a how-to the Handbook answers is answered in its steps, free, in every box', () => {
+  global.hbkChapterOf = require('../js/handbook.js').hbkChapterOf;
+  global.hbkPlainOf = require('../js/handbook.js').hbkPlainOf;
+  test('the shared first reader takes it, and draws every step with its marks and the walk', () => {
+    const src = strip(R('js/teach.js'));
+    assert.ok(/function teachTakes\(q\)\{[^\n]*teachHowOf\(q\)/.test(src), 'every box asks teachTakes/teachSay first');
+    assert.ok(/teachHowTurn\(teachHowOf\(q\)\)/.test(src), 'teachSay answers it');
+    const t = T.teachHowTurn('2.3'), n = global.hbkChapterOf('2.3').how.length;
+    assert.equal((t.html.match(/class="teach-how-i"/g) || []).length, n, 'every step');
+    assert.ok(/<span class="teach-btn">/.test(t.html) && /teach-amb/.test(t.html), 'with its marks');
+    assert.ok(t.choices[0].teach === 'walk' && t.choices[0].k === '2.3' && t.choices[0].lead, 'Walk me through it leads');
+    assert.ok(t.choices.some(c => c.nav && c.nav.k === 'chapter' && c.nav.chapter === '2.3'), 'the chapter one press away');
+  });
+  test('the same reader as the Board\'s; a move stays a move', () => {
+    const was = [global.navReadHandbook, global.navNorm];
+    global.navNorm = q => ' ' + String(q).toLowerCase().replace(/[^a-z ]+/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+    global.navReadHandbook = (raw, t) => / discover /.test(t) ? { chapter: '5.5' } : / calendar /.test(t) ? { chapter: '0.5' } : null;
+    try {
+      assert.equal(T.teachHowOf('how do i search in discover?'), '5.5');
+      assert.equal(T.teachHowOf('how do I get to the calendar'), null, 'a move is the mover\'s');
+      assert.equal(T.teachHowOf('what is our liability cap'), null);
+    } finally { [global.navReadHandbook, global.navNorm] = was; }
+  });
+  test('a backslash before a quote never reaches the reader, both hosts', () => {
+    const fn = (src, name) => { const m = new RegExp('function ' + name + '\\(s\\)\\s*\\{[\\s\\S]*?\\n\\}').exec(src); return new Function('return ' + m[0])(); };
+    const a = fn(R('server/server.js'), 'answerTrim'), b = fn(R('js/ai.js'), 'aiAnswerTrim');
+    for (const f of [a, b]) assert.equal(f('Type \\"discover\\" on the Board'), 'Type "discover" on the Board');
+  });
+});
