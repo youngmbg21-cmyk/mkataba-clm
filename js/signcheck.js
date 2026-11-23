@@ -605,6 +605,13 @@ function signCheckRows(c, r){
     const v = c.playbook && Array.isArray(c.playbook.verdicts) ? c.playbook.verdicts[f.i] : null;
     const properly = signCheckAcceptedProperly(v);
     const stale = signCheckAcceptStale(v);
+    /* APPROVED ONCE FOR THE WHOLE TEMPLATE (step 3): settled by the template's approval, said as its own acceptance */
+    const T = (typeof sgTplApproval === 'function' && typeof state !== 'undefined' && state) ? sgTplApproval(c, v, state.tplApprovals) : null;
+    if (T && !(f.accepted && properly && !stale)){
+      rows.push({ kind: 'standard', key: 'std:' + f.i, i: f.i, category: f.category, status: f.status, position: f.position, quote: f.quote, escalate: f.escalate,
+        escalation: v && v.escalation ? v.escalation : null, accepted: { by: T.by, at: T.at, why: T.reason, tpl: true }, settled: true, badAccept: false, staleAccept: false });
+      return;
+    }
     rows.push({ kind: 'standard', key: 'std:' + f.i, i: f.i, category: f.category, status: f.status,
       position: f.position, quote: f.quote, escalate: f.escalate,
       escalation: v && v.escalation ? v.escalation : null,

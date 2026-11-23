@@ -115,7 +115,8 @@ describe('f463 (2) both hosts give the same answer', () => {
   });
   test('2c the server asks the shared file, not a copy of it', () => {
     assert.match(SERVER, /require\('\.\.\/js\/signgate\.js'\)/);
-    assert.match(SERVER, /function srvSignCheckOpen\(c, opts\)\{[\s\S]{0,700}sgDepartures\(c, \{ gate, isAdmin: scIsAdminId \}\)/);
+    /* RE-POINTED 23 Nov 2026 (the Dossier L+S, step 3): the shared reading also takes the template approvals (f1196) */
+    assert.match(SERVER, /function srvSignCheckOpen\(c, opts\)\{[\s\S]{0,700}sgDepartures\(c, \{ gate, isAdmin: scIsAdminId, tplApprovals: getSetting\('tplApprovals'\) \|\| \[\] \}\)/);
     assert.ok(!/function scAcceptedProperly/.test(SERVER), 'the server\'s own acceptance arithmetic is gone');
     assert.match(read('js/app.js'), /import '\.\/signgate\.js';[^\n]*\n(?:[^\n]*\n)?import '\.\/signcheck\.js';/, 'loaded before the card');
   });

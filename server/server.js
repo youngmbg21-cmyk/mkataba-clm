@@ -57,7 +57,7 @@ const { saNeeds, saState, saStamp, saShows, saDrift, saStarted, saMayDecide, saW
 /* The check before signing as a wall (4 Oct 2026): which departures hold on
    each gate, and whether OUR signer has read the brief that stands for this
    wording. ONE reading for both hosts — js/signcheck.js asks the same file. */
-const { sgDepartures, sgBriefReadOwed } = require('../js/signgate.js');
+const { sgDepartures, sgBriefReadOwed, sgTplKey } = require('../js/signgate.js');
 /* clashes in who may do what: the page's own reading, so the server finds the
    same clashes and keeps the day each was first seen (owner's answer 12) */
 const { clashFind } = require('../js/clashkeys.js');
@@ -1854,7 +1854,7 @@ function srvSignCheckOpen(c, opts){
   if (gate === 'off' || !c) return out;
   const pb = c && c.playbook;
   if (gate === 'require' && (!pb || !Array.isArray(pb.verdicts))) out.push('no standards review on file');
-  for (const r of sgDepartures(c, { gate, isAdmin: scIsAdminId })) {
+  for (const r of sgDepartures(c, { gate, isAdmin: scIsAdminId, tplApprovals: getSetting('tplApprovals') || [] })) {
     if (!r.holds) continue;
     out.push((SC_WHY_WORDS[r.why] || SC_WHY_WORDS.unaccepted)(r.category || 'a standard'));
   }
@@ -4406,6 +4406,31 @@ app.post('/api/logout', auth, (req, res) => {
 /* ---------- bootstrap & contract data ---------- */
 // Bootstrap no longer ships every full contract — just the workspace shell.
 // The contract list loads separately (paginated / summary), full bodies on open.
+/* ---- APPROVE A DEPARTURE FOR THE WHOLE TEMPLATE (step 3; owner's pick "Yes, once per template") ----
+   The one writer of the 'tplApprovals' list: an admin or someone an admin named to decide on the Playbook (stdDecides),
+   on a contract they may reach, drawn from OUR template (sgTplKey refuses an upload), for a departure on its stored
+   check; a reason is required. The contract's trail says so (the server writes the record). `undo` takes it back. */
+app.post('/api/templates/departure-approvals', auth, editor, (req, res) => {
+  if (!stdDecides(req.user)) return res.status(403).json({ error: 'Only an admin, or someone an admin named to decide on the Playbook, may approve this for a whole template.' });
+  const { contractId, index, reason, undo } = req.body || {};
+  const scope = folderScopeFor(req.user);
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(String(contractId || ''));
+  if (!row || !inScope(scope, row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  const c = JSON.parse(row.json), v = c.playbook && Array.isArray(c.playbook.verdicts) ? c.playbook.verdicts[Number(index)] : null;
+  if (!v || (v.status !== 'deviation' && v.status !== 'missing')) return res.status(409).json({ error: 'That departure is no longer on the check.' });
+  const key = sgTplKey(c, v);
+  if (!key) return res.status(409).json({ error: 'Only a contract drawn from one of our templates can be approved for the whole template.' });
+  const why = String(reason || '').replace(/\s+/g, ' ').trim().slice(0, 400);
+  if (!undo && !why) return res.status(400).json({ error: 'Say why this is acceptable for every contract from this template.' });
+  const list = (getSetting('tplApprovals') || []).filter(a => a && a.key !== key);
+  if (!undo) list.push({ key, template: String(c.template), category: String(v.category || ''), by: req.user.name || '', byId: req.user.id, reason: why, at: now(), from: c.id });
+  setSetting('tplApprovals', list);
+  const tpl = String(c.template);
+  c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{ at: now(), user: req.user.name || '', action: 'Playbook',
+    detail: undo ? `Template approval taken back for "${v.category || 'a standard'}" (${tpl})` : `Departure on "${v.category || 'a standard'}" approved for every contract from ${tpl} — “${why}”` }]);
+  db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(c), c.id);
+  res.json({ tplApprovals: list });
+});
 app.get('/api/bootstrap', auth, (req, res) => {
   const scope = folderScopeFor(req.user);
   const f = scopeFrag(scope);
@@ -4434,6 +4459,8 @@ app.get('/api/bootstrap', auth, (req, res) => {
   })();
   res.json({
     org: getSetting('org'),
+    /* the departures approved once for a whole template (sgTplApproval reads it on both hosts) */
+    tplApprovals: getSetting('tplApprovals') || [],
     /* streamNews: who named themself on a private stream that names this
        person, since they last looked (psNewsFor) — the bell's to say */
     /* their own business role's name and who last set their role (You, round

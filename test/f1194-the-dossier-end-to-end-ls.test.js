@@ -27,7 +27,7 @@ function ctxWith(extra){
   const ctx = Object.assign({ _pdE: s => String(s), _pdT: (k, o) => k + (o ? JSON.stringify(o) : ''), _pdTn: (k, n, o) => k + ':' + n + (o ? JSON.stringify(o) : ''),
     todayISO: () => '2026-01-01', regDotDate: s => s }, extra || {});
   ctx.window = ctx; vm.createContext(ctx);
-  ['pd2Sealed', 'pd2LifeOf', 'pd2FoundHtml'].forEach(n => vm.runInContext(fnSrc(PD, n), ctx));
+  ['pd2Sealed', 'pd2LifeOf', 'pd2PointKind', 'pd2FoundHtml'].forEach(n => vm.runInContext(fnSrc(PD, n), ctx));
   vm.runInContext('this.PD2_FD_ROWS = 3;', ctx);
   return ctx;
 }

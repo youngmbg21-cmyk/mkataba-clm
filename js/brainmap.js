@@ -522,6 +522,8 @@ const BRAIN_PARTS = [
   ['stdapply', 'stdChangeApply', 'ai', 1],
   ['stdpropose', 'POST /api/standards/changes', 'wall', 2],
   ['stddecide', 'POST /api/standards/changes/:id/decide', 'wall', 2],
+  /* a departure of our template approved once for every contract drawn from it (the Dossier L+S, step 3) */
+  ['tplapprove', 'POST /api/templates/departure-approvals', 'wall', 2],
   ['stdwithdraw', 'POST /api/standards/changes/:id/withdraw', 'wall', 2],
   ['stdwrite', 'POST /api/ai/standard', 'ai', 2],
   ['privwall', 'folderScopeFor', 'wall', 2],
@@ -667,7 +669,7 @@ const BRAIN_FLOWS = [
      the other side's signature, an amendment, the end of a contract, and the
      ways a step can go wrong — none of which the six flows above walked. */
   { id: 'draft', steps: [['newagr', 'draftform', 'essentials', 'tplskip', 'tpllook', 'scratchsection'], ['putguard', 'db'], ['details', 'fillface', 'tplform', 'blanks'], ['triage'], ['letter', 'shares', 'linkcheck'], ['email', 'sharemail', 'outbyhand', 'wordfile'], ['whosemove', 'bell']] },
-  { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom', 'reqfiles', 'askadmin', 'settingsask', 'settingsanswer', 'privpage', 'privlist', 'privsave', 'rolespage', 'bzsection', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arsheet', 'arread', 'armark', 'ardone', 'arrec', 'accheck', 'acget', 'acrun', 'clashseen', 'clashfind', 'handon'], ['bell', 'settingsasks', 'privnews', 'privseen'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr'], ['stdpage', 'stdwrite', 'stdpropose', 'stddecide', 'stdwithdraw', 'stdapply']] },
+  { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom', 'reqfiles', 'askadmin', 'settingsask', 'settingsanswer', 'privpage', 'privlist', 'privsave', 'rolespage', 'bzsection', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arsheet', 'arread', 'armark', 'ardone', 'arrec', 'accheck', 'acget', 'acrun', 'clashseen', 'clashfind', 'handon'], ['bell', 'settingsasks', 'privnews', 'privseen'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr'], ['stdpage', 'stdwrite', 'stdpropose', 'stddecide', 'tplapprove', 'stdwithdraw', 'stdapply']] },
   { id: 'theysign', steps: [['theirsign', 'issuelinks'], ['cplink', 'guestcode', 'totpcount', 'totpnew'], ['respond', 'filesig'], ['srvseal', 'sealtext', 'frozen'], ['copies', 'email'], ['obligations', 'renewal', 'calendar']] },
   { id: 'amend', steps: [['amendface', 'amend'], ['blanks'], ['readiness', 'approvals'], ['srvseal'], ['renewal', 'overview']] },
   { id: 'end', steps: [['served', 'renewact'], ['autorenew'], ['obdone'], ['endpause', 'decline', 'reopen'], ['archive', 'hold', 'trailpage', 'trailsum', 'traillist', 'trailexport', 'trailrec', 'streamside', 'youform', 'myemail', 'mycopy', 'acctrec']] },
@@ -688,7 +690,7 @@ const BRAIN_LANE_OF = {
   /* a colleague: the requester, the reviewer, the contributor, the approver */
   req: ['request', 'kinds', 'reqfiles', 'askadmin', 'ruledoor', 'privpage', 'trailpage', 'rolespage', 'bzsection', 'arsheet', 'accheck', 'settingsask', 'settingsanswer', 'review', 'suggest', 'rules', 'namedyes', 'decide', 'undoyes', 'approvalpaper', 'lookask'],
   /* the person working the contract: what they see and press */
-  own: ['exportmenu', 'alertme', 'alertpage', 'alertlist', 'alerthits', 'handon', 'stdpage', 'stdwrite', 'stdpropose', 'stddecide', 'stdwithdraw', 'lessonspanel', 'listlang', 'awaycard', 'keeptab', 'cnrow', 'putaway', 'chaseletter', 'pieceline', 'upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'histlanes', 'paysec', 'ndatail', 'glance', 'needshere', 'paperline', 'letter', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'desktabs', 'negpage', 'redface', 'boardviews', 'strip', 'chosenpaper', 'histsays', 'startnego', 'here', 'follow', 'glanceasks', 'notehere', 'followhome', 'boardhead',
+  own: ['exportmenu', 'alertme', 'alertpage', 'alertlist', 'alerthits', 'handon', 'stdpage', 'stdwrite', 'stdpropose', 'stddecide', 'tplapprove', 'stdwithdraw', 'lessonspanel', 'listlang', 'awaycard', 'keeptab', 'cnrow', 'putaway', 'chaseletter', 'pieceline', 'upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'histlanes', 'paysec', 'ndatail', 'glance', 'needshere', 'paperline', 'letter', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'desktabs', 'negpage', 'redface', 'boardviews', 'strip', 'chosenpaper', 'histsays', 'startnego', 'here', 'follow', 'glanceasks', 'notehere', 'followhome', 'boardhead',
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dutypage', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'signface', 'pad', 'calendar', 'desknight', 'insights', 'readings',
     'chasemany', 'youform', 'streamside', 'navread', 'teach', 'teachwalk', 'teachsteps', 'handbook', 'hbkask', 'flowmap', 'flowtable', 'hswords', 'navdoor', 'aifirst', 'copilotask', 'jambomap', 'menuask', 'nextsteps', 'reflink', 'menutab', 'amendface', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'askcolnext', 'reads', 'dsnpacks', 'discover', 'discoverask', 'contractsplace', 'customers', 'directory', 'partyrec', 'cellfold',
