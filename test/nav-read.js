@@ -58,6 +58,10 @@ function navWhereSrc(){
     const one = !ca && document.getElementById('cmp-close') && /compare versions|jämför versioner/i.test(((document.getElementById('cmp-close').closest('[role="dialog"], .modal, #modal-root') || document.body).textContent) || '');
     if (one) W.pane = 'compare-one';   // the screen's own "only one version so far"
     else if (ca && cb) W.pane = (ca.value === '0' && /current|aktuell/i.test((cb.options[cb.selectedIndex] || {}).textContent || '')) ? 'compare' : 'compare-other';
+    /* RE-POINTED 23 Nov 2026 (Amend "Tell Jambo the change": a fresh Amend first asks ONE question in a pop-up,
+       pd2AmAskOpen; Duties ONE DOOR: every Obligations door opens the contract's Duties page in the middle, #dtp) */
+    else if (document.querySelector('#modal-root .lgp#pd2-amk')) W.pane = 'amend';
+    else if (document.querySelector('#modal-root #dtp')) W.pane = 'oblig';
     /* the new look's brief is ONE page in the middle ([data-pd2-brief]; #762) */
     else if (document.querySelector('#brief-section, [data-pd2-brief]')) W.pane = 'brief';
     /* HISTORY IN THE MIDDLE (the strip is gone, owner, 9 Nov 2026): pd2HistOpen stands it where the paper was */
