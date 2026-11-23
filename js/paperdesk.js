@@ -3566,6 +3566,10 @@ async function pdAmendCreate(){
   const c = pdContract(); if (!c || !pdAmendMay(c) || !pdAmendReady() || typeof createAmendment !== 'function') return;
   const items = _pdAm.items.map(it => ({ clauseId: it.clauseId || '', clauseLabel: it.clauseLabel || '', clauseNumber: it.clauseNumber || '', op: it.op, signed: it.signed || '', amended: it.amended || '', manual: true }));
   const facts = {}; if (_pdAm.expiry) facts.expiry = _pdAm.expiry; if (Number(_pdAm.value) > 0) facts.value = Number(_pdAm.value);
+  /* A NEW FIGURE IN THE WORDING IS THE AMENDMENT'S SUGGESTION TOO (owner, 23 Nov 2026: "fix both"): where nobody pressed
+     "Use as the new value", the figure read off the changed words goes on as the suggestion, so the approval rules and the
+     signing limit can measure it; still a suggestion (amendFacts), never the agreement's value */
+  if (!facts.value){ for (const it of _pdAm.items){ const F = (pd2AmxEffectsOf(c, it) || []).find(x => x && x.k === 'value' && Number(x.v) > 0); if (F){ facts.value = Number(F.v); break; } } }
   /* AMEND L+S: when it takes effect (a date, else on signing) is the amendment's own suggested fact; the kind is kept on it;
      the reason rides the link's own audit line (applyParentLink's note) */
   if (_pdAm.eff) facts.effectiveDate = _pdAm.eff;

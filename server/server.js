@@ -2286,12 +2286,24 @@ function srvHasDeviation(c) {
   const vs = c && c.playbook && Array.isArray(c.playbook.verdicts) ? c.playbook.verdicts : null;
   return !!(vs && vs.some(v => v && (v.status === 'deviation' || v.status === 'missing')));
 }
+/* AN AMENDMENT IS APPROVED ON THE VALUE IT BRINGS (owner, 23 Nov 2026: "fix the approval gap for amendments"): Create
+   files no value of its own (the new figure is the amendment's suggestion, c.amendFacts.value, with the agreement's
+   currency beside it), so a value rule measures that figure until a person sets one. A reading only: nothing is written,
+   and an amendment that moves no money keeps no value, as before. Twin: the browser's approvalValueView. */
+function srvApprovalValueView(c) {
+  if (!c || !c.parentId || Number(c.value) > 0) return c;
+  const F = c.amendFacts || {}, v = Number(F.value) || 0;
+  if (!(v > 0)) return c;
+  const cur = String(F.currency || '').toUpperCase();
+  const meta = (/^[A-Z]{3}$/.test(cur) && !(c.metadata && c.metadata.currency)) ? Object.assign({}, c.metadata || {}, { currency: cur }) : c.metadata;
+  return Object.assign({}, c, { value: v, metadata: meta });
+}
 function srvRuleMatches(rule, c) {
   const cond = (rule && rule.cond) || {};
   switch (cond.type) {
     /* the unknown case ENGAGES the rule, as in the browser: an approval rule
        is a safety net, so a currency with no rate on file means a human looks */
-    case 'value': { const h = fxHome(c); if (h.missing) return true;
+    case 'value': { const h = fxHome(srvApprovalValueView(c)); if (h.missing) return true;
       return cond.op === '>=' ? h.v >= Number(cond.value) : h.v <= Number(cond.value); }
     case 'folder': return c.folder === cond.value;
     /* the browser's twin: the type the record holds (copilotContractType), so
@@ -6471,7 +6483,10 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
          The larger of the two rather than the stored one alone, because a save
          may legitimately RAISE the value in the same breath as signing, and a
          cap that only ever looked backwards would miss it. */
-      const raw = Math.max(Number((prev && prev.value) || 0), Number(c.value || 0));
+      /* AN AMENDMENT IS MEASURED ON THE VALUE IT BRINGS (owner, 23 Nov 2026: "fix both"): the stored and the asked record
+         are each read as the value rules read them (srvApprovalValueView: an amendment's suggested figure and currency) */
+      const pv = prev ? srvApprovalValueView(prev) : prev, cv = srvApprovalValueView(c);
+      const raw = Math.max(Number((pv && pv.value) || 0), Number((cv && cv.value) || 0));
       /* ---- MONEY ONLY WHERE MONEY PASSES, WHICH THIS GUARD SAID AND DID NOT DO ----
          The comment above already states the rule — "a contract carrying no
          value cannot be over anybody's limit, so an unvalued or non-monetary
@@ -6516,8 +6531,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
          contract is measured at its face value, exactly as every other screen in
          the product reads it. */
       const convOf = m => fxHome({ value: raw, metadata: m || {} });
-      const convStored = convOf(prev && prev.metadata);
-      const convAsked = convOf(c && c.metadata);
+      const convStored = convOf(pv && pv.metadata);
+      const convAsked = convOf(cv && cv.metadata);
       /* AN UNANSWERABLE QUESTION IS REFUSED, NEVER WAVED THROUGH — and it is
          refused if EITHER reading cannot be made, because a rate missing on the
          currency being claimed is exactly the state that must not become a pass. */

@@ -1179,7 +1179,10 @@ function createAmendment(parent, opts={}){
     const f = opts.facts, out = {};
     if(f.expiry && /^\d{4}-\d{2}-\d{2}$/.test(String(f.expiry))) out.expiry = String(f.expiry);
     if(f.effectiveDate && /^\d{4}-\d{2}-\d{2}$/.test(String(f.effectiveDate))) out.effectiveDate = String(f.effectiveDate);
-    if(Number(f.value) > 0) out.value = Number(f.value);
+    if(Number(f.value) > 0){ out.value = Number(f.value);
+      /* the figure's currency is the agreement's (the paper it was read from), kept beside it so a value rule measures it
+         right on both hosts (approvalValueView / srvApprovalValueView) */
+      const cur = String((parent.metadata && parent.metadata.currency) || '').trim().toUpperCase(); if(/^[A-Z]{3}$/.test(cur)) out.currency = cur; }
     if(Object.keys(out).length) c.amendFacts = out;
   }
   if(opts.byCopilot && c.audit && c.audit[0]) c.audit[0].detail += ` — ${items.length} item${items.length===1?'':'s'} drafted by Jambo from: “${String(opts.asked||opts.note||'').slice(0,300)}”`;

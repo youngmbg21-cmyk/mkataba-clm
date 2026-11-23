@@ -4462,7 +4462,7 @@ function activityPanelHtml(){
   const n={}; feed.forEach(a=>{ n[a.kind]=(n[a.kind]||0)+1; });
   if(_actChip!=='all'&&!n[_actChip]) _actChip='all';
   const shown=feed.filter(a=>_actChip==='all'||a.kind===_actChip);
-  const chip=(k,word)=>`<button type="button" class="act-chip" data-act-chip="${k}" aria-pressed="${_actChip===k}">${esc(word)}</button>`;
+  const chip=(k,word)=>`<button type="button" class="act-chip${_actChip===k&&k!=='all'?' is-narrow':''}" data-act-chip="${k}" aria-pressed="${_actChip===k}">${esc(word)}</button>`;
   const time=a=>{ const d=new Date(a.at||0); return actDayOf(a.at)==='today'&&!isNaN(d)?d.toLocaleTimeString(typeof langLocale==='function'?langLocale():undefined,{hour:'2-digit',minute:'2-digit'}):a.when; };
   /* THE TRAIL IS STORED TEXT AND IS PRINTED AS TEXT (26 Sep 2026): a line's detail carries whatever a colleague typed */
   const row=a=>{ const q=actQuoteOf(a);

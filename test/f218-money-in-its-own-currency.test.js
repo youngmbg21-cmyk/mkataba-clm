@@ -278,7 +278,8 @@ describe('F218 — the guards compare like with like', () => {
   test('the signing cap converts, and refuses rather than guesses', () => {
     const src = read('js/approvals.js');
     const fn = src.slice(src.indexOf('function signCapBlocker'), src.indexOf('function signCapLadder'));
-    assert.match(fn, /fxHome\(c\)/, 'the contract is converted before it is measured');
+    /* f1192: measured through approvalValueView(c), which is the contract itself unless it is an unvalued amendment */
+    assert.match(fn, /const cv=approvalValueView\(c\);[\s\S]*fxHome\(cv\)/, 'the contract is converted before it is measured');
     assert.match(fn, /if\(h\.missing\) return \{ key:'signcap'/,
       'no rate = a refusal in words, never a silent pass');
     const rule = src.slice(src.indexOf("case 'value':"), src.indexOf("case 'value':") + 420);
@@ -311,9 +312,11 @@ describe('F218 — the guards compare like with like', () => {
        stands and the pin now describes a guard that honours it. */
     assert.ok(!/const meta = \(prev && prev\.metadata\) \|\| \(c && c\.metadata\) \|\| \{\};/.test(guard),
       'the request\'s own currency must never be the sole source — that is the bypass');
-    assert.match(guard, /convStored = convOf\(prev && prev\.metadata\)/,
+    /* f1192: pv/cv are srvApprovalValueView of the stored and the asked record */
+    assert.match(guard, /pv = prev \? srvApprovalValueView\(prev\) : prev/);
+    assert.match(guard, /convStored = convOf\(pv && pv\.metadata\)/,
       'the stored record is read, like the value beside it');
-    assert.match(guard, /convAsked = convOf\(c && c\.metadata\)/,
+    assert.match(guard, /convAsked = convOf\(cv && cv\.metadata\)/,
       'and the incoming one too, so a dearer currency declared in this save is not under-counted');
     assert.match(guard, /find\(x => x\.missing\)/,
       'either reading missing a rate is a refusal — the claimed currency must not become a pass');
