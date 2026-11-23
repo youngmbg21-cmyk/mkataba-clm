@@ -94,6 +94,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f841, f842 (the Guide's row), f561, f564 (the brain's three parts), f232 (the published names).
 
 ## THE SHELL — RAIL, BAR, PANELS
+- Delete this draft in sight (23 Nov 2026): f1188; f582 unchanged.
 - f1183 the jump window's × in the top right corner (23 Nov 2026; red at the parent).
 - f1178 a reading opens nothing until caActOf keeps it (caActLater/caActGo; 22 Nov 2026; red at the parent).
 - THE WATERMARK MOVES IN SETTINGS TOO (22 Nov 2026): test/chromium/panel-watermark-verify.js 2 and 2b RE-POINTED (drawn and moving; was "held still"), for GitHub; 3 (less motion: still) stands. Checked here in a browser page by page: every page that draws it has it moving. Re-ran green: f965, f1107, f236, f1147, f1149.

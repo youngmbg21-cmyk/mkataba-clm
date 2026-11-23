@@ -3958,7 +3958,8 @@ function pdActsPopClose(){
    grey with its reason; its last row, "All acts (N)", turns the same card into every act (the Dossier's "All N ›"
    keeps opening the whole card at once). Nothing leaves the Dossier's list: the short card only chooses. */
 const PD_ACTS_SHORT = [
-  ['pd_menu_work', ['[data-rl-edit-clause]', '#ws-import', '#ws-compare', '[data-ig-memo]']],
+  /* DELETE THIS DRAFT IN SIGHT (owner, 23 Nov 2026): right after Negotiation memo, on a draft that may be deleted */
+  ['pd_menu_work', ['[data-rl-edit-clause]', '#ws-import', '#ws-compare', '[data-ig-memo]', '#ws-delete']],
   ['ct_export', ['#ws-pdf', '#ws-word']],
   ['pd_menu_contract', ['#ws-m-their-way', '#ws-end', '#ws-filing']]
 ];
@@ -3968,8 +3969,8 @@ function pdActsShortHtml(c){
   const box = document.createElement('div');
   box.innerHTML = groups.map(g => g.rows.join('')).join('');
   const all = [...box.querySelectorAll('button')].filter(b => dossierRowKey(b)).length;
-  const row = b => { const key = dossierRowKey(b); const x2 = b.cloneNode(true);
-    return `<button type="button" role="menuitem" class="pd-acts-r" data-pd-acts-go="${_pdE(key)}"${b.disabled ? ' disabled aria-disabled="true"' : ''}${b.title ? ` title="${_pdE(b.title)}"` : ''}>${x2.innerHTML}</button>`; };
+  const row = b => { const key = dossierRowKey(b); const x2 = b.cloneNode(true); const danger = b.id === 'ws-delete' || b.classList.contains('danger');
+    return `<button type="button" role="menuitem" class="pd-acts-r${danger ? ' is-danger' : ''}" data-pd-acts-go="${_pdE(key)}"${b.disabled ? ' disabled aria-disabled="true"' : ''}${b.title ? ` title="${_pdE(b.title)}"` : ''}>${x2.innerHTML}</button>`; };
   const g = PD_ACTS_SHORT.map(([title, keys]) => {
     const rows = keys.map(k => box.querySelector(k)).filter(Boolean).map(row).join('');
     return rows ? `<div class="pd-acts-g" role="group" aria-label="${_pdE(_pdT(title))}"><div class="pd-acts-h">${_pdE(_pdT(title))}</div>${rows}</div>` : '';
