@@ -2040,7 +2040,7 @@ function tbPlaybookLaneHtml(cov) {
      one keeps its way forward in its row (Draft it · Add the section). The small print stays. */
   const r0 = 22, C = 2 * Math.PI * r0, f = cov.total ? cov.met / cov.total : 0;
   const ring = `<svg class="tb-ring" width="54" height="54" viewBox="0 0 54 54" aria-hidden="true"><circle cx="27" cy="27" r="${r0}" fill="none" stroke="var(--color-divider)" stroke-width="6"/><circle cx="27" cy="27" r="${r0}" fill="none" stroke="var(--st-${cov.deviations ? 'amber' : 'green'}-dot)" stroke-width="6" stroke-dasharray="${(C * f).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 27 27)"/><text x="27" y="31" text-anchor="middle" font-size="12" font-weight="600" fill="var(--color-text)">${cov.met}/${cov.total}</text></svg>`;
-  const head = `<div class="tb-ringrow">${ring}<div><b>${esc(cov.met === cov.total ? i18t('tb_pb_ring_all') : i18t('tb_pb_ring_some', { met: cov.met, n: cov.total }))}</b><span class="q">${esc(cov.label)}</span></div></div>`;
+  const head = `<div class="tb-ringrow">${ring}<div><b>${esc(cov.met === cov.total ? i18t('tb_ring_all') : i18t('tb_ring_some', { met: cov.met, n: cov.total }))}</b><span class="q">${esc(cov.label)}</span></div></div>`;
   const rows = cov.rows.map(r => {
     const why = r.state === 'dev' ? i18t('tb_pb_dev_note', { n: r.figure, want: r.want, note: r.note || '' }) : (r.note || '');
     let door = '', where = '';
@@ -2056,7 +2056,7 @@ function tbPlaybookLaneHtml(cov) {
     const badge = r.state === 'hit' ? tbBadgeHtml('green', i18t('tb_st_met')) : r.state === 'dev' ? tbBadgeHtml('amber', i18t('tb_st_dev')) : tbBadgeHtml('amber', i18t('tb_st_missing'));
     return `<tr${r.where ? ` data-tb-show="${r.where.k}" class="is-press"` : ''}><td><span class="tb-olt-hh">${esc(r.category)}</span>${r.escalate ? ` <span class="q">· ${i18t('tb_pb_legal')}</span>` : ''}${why ? `<span class="tb-olt-r">${esc(why)}</span>` : ''}${where}${door ? `<div class="tb-olt-act">${door}</div>` : ''}</td><td class="tb-olt-s">${badge}</td></tr>`;
   }).join('');
-  return `${head}<table class="tb-olt is-tab"><thead><tr><th>${esc(i18t('tb_pb_pos'))}</th><th class="r">${esc(i18t('tb_ol_status'))}</th></tr></thead><tbody>${rows}</tbody></table>
+  return `${head}<table class="tb-olt is-tab"><thead><tr><th>${esc(i18t('tb_pos_h'))}</th><th class="r">${esc(i18t('tb_ol_status'))}</th></tr></thead><tbody>${rows}</tbody></table>
     <p class="tb-small">${i18t('tb_pb_dev_rides')}</p>`;
 }
 /* ---- THE LIKELY BLANKS, as Copilot's first move on a copied document ----
@@ -2377,6 +2377,7 @@ function tbChipRowHtml(attr, cur, list) {
   return `<div class="tb-chiprow">${list.filter(([k, , n]) => k === 'all' || n > 0).map(([k, label, n]) =>
     `<button type="button" class="tb-chip${cur === k ? ' is-on' : ''}" ${attr}="${k}">${esc(label)} <b>${n}</b></button>`).join('')}</div>`;
 }
+function tbOlFilter(k) { if (!_tb) return; _tb.olF = k; tbPaintRail({ keep: true }); }
 function tbOutlineTabHtml(cov) {
   const secs = tbSections();
   if (!secs.length) return tbAiHtml(i18t('tb_ol_none'));
@@ -3135,7 +3136,7 @@ function tbWire() {
     /* the Legora + Stripe rail (23 Nov 2026): a name in Jambo's list chooses its row; the chips narrow their table;
        a wording blank's "Make it a field" opens today's field form holding its name */
     if ((b = hit('[data-tb-olpick]'))) { if (_tb.outline) { const n = Number(b.getAttribute('data-tb-olpick')); _tb.outline.pick = _tb.outline.pick === n ? null : n; tbPaintRail({ keep: true }); } return; }
-    if ((b = hit('[data-tb-olf]'))) { _tb.olF = b.getAttribute('data-tb-olf'); tbPaintRail({ keep: true }); return; }
+    if ((b = hit('[data-tb-olf]'))) { tbOlFilter(b.getAttribute('data-tb-olf')); return; }
     if ((b = hit('[data-tb-blf]'))) { _tb.blF = b.getAttribute('data-tb-blf'); tbPaintRail({ keep: true }); return; }
     if ((b = hit('[data-tb-bl-make]'))) { tbFieldModal(null, b.getAttribute('data-tb-bl-make')); return; }
     /* JAMBO'S PANEL (round 21): ‹ Jambo / his tab — his own words, nothing in
@@ -3452,7 +3453,10 @@ async function tbSave(quiet) {
 function tbPublish() {
   /* THE QUESTION COMES BEFORE THE SAVE (24 Sep 2026): "Keep writing" leaves the draft exactly as it was. One pop-up
      for the whole publish (23 Nov 2026): it opens on Check, which says what is open and what is fine. */
-  tbPublishAsk(tbOpenItems());
+  const open = tbOpenItems();
+  /* nothing open, no question about it: the one pop-up opens on its second step, How it looks (Back shows the check) */
+  if (!open.length) { if (_tb) _tb._pub = { items: [], name: tbHeadFacts().name, note: '' }; return tbPublishGo(); }
+  tbPublishAsk(open);
 }
 async function tbPublishGo() {
   if (!await tbSave(true)) return;
@@ -3689,7 +3693,7 @@ async function tbPaintBranding() {
 
 /* The readings are published and the screen is not: a check drives tbSections
    and tbCoverage over a block list it wrote itself, with no builder open. */
-Object.assign(window, { tbApplyZoom, tbMoreBtnHtml, tbMoreToggle, tbMoreClose, tbDeleteAsk, tbEverPublished, tbMayDelete, tbLookAsk, tbPublishedLand, tbDesignStepGo, openTemplateBuilder, tbCardWording, TB_BLOCK_META, TB_PB_KEY, TB_ASK_MAX, TB_BLANK_TYPE, TB_RAIL_MIN, TB_CHIP_ASK,
+Object.assign(window, { tbOlFilter, tbApplyZoom, tbMoreBtnHtml, tbMoreToggle, tbMoreClose, tbDeleteAsk, tbEverPublished, tbMayDelete, tbLookAsk, tbPublishedLand, tbDesignStepGo, openTemplateBuilder, tbCardWording, TB_BLOCK_META, TB_PB_KEY, TB_ASK_MAX, TB_BLANK_TYPE, TB_RAIL_MIN, TB_CHIP_ASK,
   tbSplit, tbFitSplit, tbWireSplit, TB_SPLIT_KEY, TB_FMIN, TB_FMAX, TB_LEFT_MIN, TB_RIGHT_MIN, TB_GAP,
   tbSections, tbSectionText, tbDropExtraBody, tbKindOf, tbLibraryFor, tbLibraryOffers, tbCoverage, tbCoverageOf, tbFinderOf, tbSectionFor, tbMarksOf, tbMarksHtml, tbPbKey, tbStandardFor, tbPrecedentFor,
   tbFocus, tbSetTab, tbRailFits, tbNextEmpty, tbQuestionFor, tbChipsHtml, tbReadEditable, tbPaint, tbPaintRail, tbSend, tbAccept, tbOutlineAdd, tbTurn, tbSetWalk,

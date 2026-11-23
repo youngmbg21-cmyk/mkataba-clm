@@ -211,7 +211,7 @@ const check = (name, pass, detail) => {
     return out;
   });
   const asAdmin = await tabsNow();
-  check('4a an admin still has the door', !!asAdmin.door && asAdmin.door.off === false && asAdmin.door.words === 'From scratch',
+  check('4a an admin still has the door', !!asAdmin.door && asAdmin.door.off === false && asAdmin.door.words === 'Create a template', /* RE-POINTED 23 Nov 2026: the owner named the tab */
     JSON.stringify(asAdmin));
 
   /* An Editor WITHOUT the grant. The reading is the product's own, so this
@@ -226,7 +226,7 @@ const check = (name, pass, detail) => {
   const asEditor = await tabsNow();
   await page.evaluate(() => { const me = window.REMOTE && window.REMOTE.me, w = window._pbqWas; if (me && w) { me.role = w.role; me.newPaper = w.paper; } window.setView('templates'); });
   check('4b without the grant the sheet offers two choices — the From scratch tab is not drawn',
-    !asEditor.door && asEditor.tabs.length === 2 && !asEditor.tabs.includes('From scratch'), JSON.stringify(asEditor));
+    !asEditor.door && asEditor.tabs.length === 2 && !asEditor.tabs.includes('Create a template'), JSON.stringify(asEditor));
 
   /* ============================================================
      5  UNDER 1000px IT IS ONE COLUMN AGAIN
