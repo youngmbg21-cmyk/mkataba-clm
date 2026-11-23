@@ -34,6 +34,19 @@ function bdText(c){
   return (typeof contractPlainText === 'function') ? contractPlainText(c) : '';
 }
 /* THE ONE READ: kept against the wording; started by opening Clauses (stkAutoRun) or Try again */
+/* PLAN THE READ'S TWO WRITERS (the Dossier L+S, step 2): the pop-up's Break it down asks the server (a press, nothing
+   written), and Apply keeps the plan on the contract — the ONE writer of c.readPlan, its line in the trail */
+async function readPlanFetch(ask, kind){ return api('ai/readplan', 'POST', { ask: String(ask || ''), kind: String(kind || '') }, { quiet: true }); }
+function readPlanSet(c, plan){
+  if (!c || !plan || !Array.isArray(plan.items) || !plan.items.length) return false;
+  const me = (typeof currentUser === 'function' && currentUser()) || {};
+  c.readPlan = { ask: String(plan.ask || ''), items: plan.items.map(t => String(t)).slice(0, 8), at: (typeof nowISO === 'function') ? nowISO() : new Date().toISOString(), by: me.name || '', kind: String(plan.kind || '') };
+  if (typeof logAudit === 'function') logAudit(c, 'Edited', 'Planned the read');
+  if (typeof persist === 'function') persist(c);
+  return true;
+}
+/* is a read running for this contract now (the Plan tab says so) */
+function _bdBusyFor(id){ return !!(_bd.busy && String(_bd.runFor || '') === String(id)); }
 async function bdRun(c){
   if (!c || _bd.busy) return;
   _bd.busy = true; _bd.err = '';
@@ -43,11 +56,13 @@ async function bdRun(c){
     const text = bdText(live);
     if (!text || text.length < 200) throw new Error(i18t('bd_too_short'));
     if (!(typeof API_MODE === 'function' && API_MODE() && state.aiConfigured)) throw new Error(i18t('bd_no_key'));
-    const r = await api('ai/breakdown', 'POST', { text }, { quiet: true });
+    /* THE READER'S PLAN goes with the read (the Dossier L+S, step 2): each line answered by a point carrying its number */
+    const plan = (typeof window.pd2PlanItems === 'function') ? window.pd2PlanItems(live) : [];
+    const r = await api('ai/breakdown', 'POST', plan.length ? { text, plan } : { text }, { quiet: true });
     if (!r || !Array.isArray(r.regions) || !r.regions.length) throw new Error((r && r.error) || i18t('bd_failed'));
     live.breakdown = { ok: true, hash: bdHash(live), lang: r.lang || 'en', at: (typeof nowISO === 'function') ? nowISO() : new Date().toISOString(),
       head: r.head || '', sub: r.sub || '', regions: r.regions, links: Array.isArray(r.links) ? r.links : [],
-      points: Array.isArray(r.points) ? r.points : [],
+      points: Array.isArray(r.points) ? r.points : [], plan: Array.isArray(r.plan) ? r.plan : [],
       dropped: Number(r.dropped) || 0, truncated: !!r.truncated };
     if (typeof persist === 'function') persist(live);
     /* the reading in one language replaced the other's: that language may read
@@ -991,7 +1006,7 @@ if (typeof document !== 'undefined' && !document._stkWired){
   });
 }
 
-Object.assign(window, { stkNumsOf, stkRedlineGo, stkResume, stkDecorate, stkOf, stkRun, stkDiveOpen, stkDiveClose, bdOf, bdStale, bdRun, stkReview, stkNeedCount, stkLivePoints, stkCounts, stkMarkReviewed, stkPointKey });
+Object.assign(window, { stkNumsOf, stkRedlineGo, stkResume, stkDecorate, stkOf, stkRun, stkDiveOpen, stkDiveClose, bdOf, bdStale, bdRun, _bdBusyFor, readPlanFetch, readPlanSet, stkReview, stkNeedCount, stkLivePoints, stkCounts, stkMarkReviewed, stkPointKey });
 /* the Preamble row's Fill it in: the paper's blanks filled where they stand (the new look's one door for them) */
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
   const b = e.target && e.target.closest ? e.target.closest('[data-stk-pre-fill]') : null; if (!b) return;

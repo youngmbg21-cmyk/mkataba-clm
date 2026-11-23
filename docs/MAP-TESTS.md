@@ -1129,3 +1129,5 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 
 ## THE DOSSIER END TO END, L+S — step 1, the Dossier tab (23 Nov 2026)
 - `node --test test/f1194-the-dossier-end-to-end-ls.test.js test/f1103-the-playbook-score-ring.test.js test/f1078-panels-arrive-once-and-the-book-answers.test.js test/f937-every-change-updates-the-handbook.test.js test/f965-the-tokens-are-the-law.test.js test/f1186-rows-are-light-green.test.js`; browser: dossier-and-amend-ls-verify 1d–1h, duties-card-verify (GitHub).
+- Step 2, Plan the read: `node --test test/f1195-plan-the-read.test.js test/f563-home-first.test.js test/f561-the-brain-keeps-up.test.js test/f564-the-lanes-say-the-same.test.js`; browser: dossier-and-amend-ls-verify 1i–1k (GitHub).
+- Step 3, the Clauses tab: `node --test test/f1196-the-clauses-tab-ls.test.js test/f335-thirteen-off-the-screenshots.test.js test/f463-one-check-before-a-signing-link.test.js`; browser: dossier-and-amend-ls-verify 1l (GitHub).

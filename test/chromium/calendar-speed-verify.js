@@ -59,8 +59,10 @@ const settled = P => P.evaluate(() => new Promise(res => { const host = document
     });
     check(m0.sheets === 1 && m0.id === 'cal-css', '1a the calendar\'s stylesheet is in the page once', m0);
 
+    /* RE-POINTED 23 Nov 2026 (P-14, the Legora + Stripe way, owner: Build P-14): All dates | Mine is the + Whose chip
+       now; a press steps it on, four presses bring it back to All */
     const presses = ['[data-cal-view="month"]', '[data-cal-view="week"]', '[data-cal-view="horizon"]', '[data-cal-view="agenda"]',
-      '[data-cal-scope="mine"]', '[data-cal-scope="all"]'];
+      '[data-cal-ls-chip="whose"]', '[data-cal-ls-chip="whose"]', '[data-cal-ls-chip="whose"]', '[data-cal-ls-chip="whose"]'];
     const pressed = [];
     for (const sel of presses) {
       const el = await P.$(sel); if (!el) { pressed.push(sel + ' missing'); continue; }
@@ -82,7 +84,7 @@ const settled = P => P.evaluate(() => new Promise(res => { const host = document
 
     /* 5 · still drawn and still styled */
     const s5 = await P.evaluate(() => {
-      const rows = document.querySelectorAll('#cal-ag .cal-nl-r, #cal-ag .cal-ag-day').length;
+      const rows = document.querySelectorAll('#cal-ag .cls-r').length;   /* RE-POINTED 23 Nov 2026 (P-14): the Agenda's table rows */
       const pg = document.querySelector('.cal-page');
       return { view: calView(), rows, pageFlex: pg ? getComputedStyle(pg).display : '' };
     });

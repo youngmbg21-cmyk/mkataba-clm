@@ -27,7 +27,7 @@ function ctxWith(extra){
   const ctx = Object.assign({ _pdE: s => String(s), _pdT: (k, o) => k + (o ? JSON.stringify(o) : ''), _pdTn: (k, n, o) => k + ':' + n + (o ? JSON.stringify(o) : ''),
     todayISO: () => '2026-01-01', regDotDate: s => s }, extra || {});
   ctx.window = ctx; vm.createContext(ctx);
-  ['pd2Sealed', 'pd2LifeOf', 'pd2FoundHtml'].forEach(n => vm.runInContext(fnSrc(PD, n), ctx));
+  ['pd2Sealed', 'pd2LifeOf', 'pd2PointKind', 'pd2FoundHtml'].forEach(n => vm.runInContext(fnSrc(PD, n), ctx));
   vm.runInContext('this.PD2_FD_ROWS = 3;', ctx);
   return ctx;
 }
@@ -56,7 +56,7 @@ describe('f1194 (1) a signed paper\'s blank is a fact, never work', () => {
   test('the Clauses tab\'s Fill it in (point and preamble) is grey with the reason on a signed paper', () => {
     const B = R('js/views/breakdown.js');
     assert.equal((B.match(/window\.pd2Sealed\(c\)\) \? (` disabled aria-disabled="true" title="\$\{_bdE\(i18t\('pd2_n_blank_signed_w'\)\)\}"`|i18t\('pd2_n_blank_signed_w'\))/g) || []).length, 2);
-    assert.match(PD, /Object\.assign\(window, \{ pd2Sealed,/);
+    assert.match(PD, /Object\.assign\(window, \{[^}]*\bpd2Sealed,/);
   });
 });
 

@@ -50,7 +50,8 @@ describe('f563 (2) — no Signing tab; an approval opens where it is decided', (
     /* the Menu tab, drawn as "Next up", stands beside Obligations (owner, 15 Oct 2026) */
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab is retired into the dossier's All acts fold */
     /* RE-POINTED 28 Oct 2026 (Fill in the contract): the form of every owed detail is a tab state of its own, drawn with its trail back */
-    assert.deepEqual([...v('PD_TABS')], ['copilot', 'doc', 'oblig', 'form']);
+    /* RE-POINTED 23 Nov 2026 (the Dossier L+S, step 2, owner's yes to "A Plan tab"): Plan stands after the Dossier (f1195) */
+    assert.deepEqual([...v('PD_TABS')], ['copilot', 'plan', 'doc', 'oblig', 'form']);
     /* RE-POINTED 23 Oct 2026 (Spine): the row drawn beside a paper is Dossier · Clauses · Redlines; Obligations is its line under Sign */
     assert.deepEqual([...v('PD_TABS_SHOWN')], ['copilot', 'doc', 'red']);
     assert.equal(v('PD_TAB_ALIAS').menu, 'copilot', 'an old Menu door lands on the dossier');
@@ -60,7 +61,7 @@ describe('f563 (2) — no Signing tab; an approval opens where it is decided', (
     /* RE-POINTED 19 Oct 2026: the Guide stands after Findings (owner picked "On this view"), a typed mark like its neighbours */
     /* RE-POINTED 23 Oct 2026 (Spine): Redlines' tab wears the Deal's old mark, first in the map */
     /* RE-POINTED 9 Nov 2026 (owner picked "The SAP Way"): Your day, first on Explorer's map, a typed mark like its neighbours */
-    assert.deepEqual(Object.values(v('PD_TAB_GLYPH')), ['\u21C4', '\u2726', '\u25A6', '\u25A2', '\u2691', '\u25F7', '\u21C4', '\u2630', '\u25C7', '\u25A4', '\u25D4']);
+    assert.deepEqual(Object.values(v('PD_TAB_GLYPH')), ['\u21C4', '\u2726', '\u25A6', '\u25A2', '\u2691', '\u25F7', '\u21C4', '\u2630', '\u25C7', '\u25A4', '\u25D4', '\u2637']);  /* + Plan (23 Nov 2026, f1195) */
   });
   test('2b an approval opens the Approvals page with its row chosen', () => {
     const seen = [];

@@ -120,7 +120,7 @@ async function apiStream(path, body, onEvent, opts){
 async function loadBootstrap(){
   const b=await api('bootstrap');
   REMOTE={ org:b.org, me:b.me, users:b.users };
-  uid=b.uid||uid; rlUid=Number(b.rlUid)||rlUid; state.settings=b.settings||{}; state.totalCount=b.count||0; state.aiConfigured=!!b.aiConfigured;
+  uid=b.uid||uid; rlUid=Number(b.rlUid)||rlUid; state.settings=b.settings||{}; state.tplApprovals=Array.isArray(b.tplApprovals)?b.tplApprovals:[]; state.totalCount=b.count||0; state.aiConfigured=!!b.aiConfigured;
   /* the business roles and who holds which: an admin's only (piece 6) */
   state.bizRoles=b.bizRoles||null;
   /* the quarter's access review, as far as it has got: an admin's only (piece 8) */

@@ -681,6 +681,19 @@ async function ldDepRun(id, i0, kind){
   if (i < 0){ toast(i18t('sc_gone'), 'err'); return; }
   if (kind === 'open'){ signCheckOpenClause(c, i); return; }
   if (kind === 'allow'){ await signCheckAccept(c, i, ldAfterDecide); return; }
+  /* APPROVE FOR THE WHOLE TEMPLATE (step 3): a reason, then the server's one writer; the list comes back whole */
+  if (kind === 'tpl'){
+    const v0 = vs[i];
+    const said = typeof window.promptDialog === 'function' ? await window.promptDialog({ title: i18t('apn_tpl_t', { what: v0.category || '' }), message: i18t('apn_tpl_msg', { tpl: String(c.template || '') }),
+      label: i18t('ld_refuse_l'), placeholder: i18t('apn_tpl_ph'), confirmLabel: i18t('apn_tpl_go'), multiline: true }) : null;
+    if (said == null) return;
+    const why = String(said).trim(); if (!why){ toast(i18t('ld_note_needed'), 'warn'); return; }
+    try { const out = await api('templates/departure-approvals', 'POST', { contractId: c.id, index: i, reason: why });
+      state.tplApprovals = (out && Array.isArray(out.tplApprovals)) ? out.tplApprovals : state.tplApprovals;
+      toast(i18t('apn_tpl_done', { tpl: String(c.template || '') }), 'ok'); ldAfterDecide(); }
+    catch (err){ toast((err && err.message) || i18t('ld_send_failed'), 'err'); }
+    return;
+  }
   /* REFUSE: a record that the departure was refused, WITH ITS REASON (owner, 17 Nov 2026: the owner reads it on the
      bell), then the paper to change it (every step starts the next) */
   const v = vs[i];
