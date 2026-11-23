@@ -40,14 +40,15 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     ok('2 the menu has no Calendar row', await page.evaluate(() => !document.querySelector('#side-nav [data-view="calendar"]')));
 
     await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'calendar');
-    const up = await until(page, () => !!document.querySelector('#hb-cal .cal-stage'));
+    /* RE-POINTED 23 Nov 2026 (P-14, the Legora + Stripe way, owner: Build P-14): the new look's calendar is one page (.cal-page.is-ls), its head .cls-head with the ⋯ in it */
+    const up = await until(page, () => !!document.querySelector('#hb-cal .cal-page.is-ls'));
     const at = await page.evaluate(() => {
       const vis = el => { if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
       return { view: state.view, inStage: !!document.querySelector('#cal-stage #cal-plan'),
         inDock: vis(document.querySelector('#ig-dock #cal-plan')), panels: document.querySelectorAll('#cal-plan').length,
         homeCopilot: vis(document.getElementById('igd-feed')), cal: vis(document.getElementById('hb-cal')),
-        board: vis(document.getElementById('hb-board')), head: !!document.querySelector('#hb-cal .cal-head'),
-        more: !!document.querySelector('#hb-cal .cal-bar1 #cal-more'), moreHead: !!document.querySelector('#hb-cal .cal-head #cal-more'),
+        board: vis(document.getElementById('hb-board')), head: !!document.querySelector('#hb-cal .cls-head'),
+        more: !!document.querySelector('#hb-cal .cal-bar1 #cal-more'), moreHead: !!document.querySelector('#hb-cal .cls-head #cal-more'),
         nav: (document.querySelector('#side-nav .nav-item.active, #side-nav [aria-current="page"]') || {}).getAttribute?.('data-view') || null };
     });
     ok('3 the Calendar tab draws the calendar on Home', up && at.view === 'dashboard' && at.cal && !at.board, JSON.stringify(at));
@@ -66,9 +67,9 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
       document.querySelectorAll('#ig-dock [data-cal-lv]').length === 3 && !!document.querySelector('#ig-dock [data-cal-plan-q="week"]') && !!document.querySelector('#ig-dock #cal-plan-in')));
 
     await page.click('[data-cal-view="week"]');
-    ok('7 Week works on the tab', await until(page, () => !!document.querySelector('#hb-cal .cal-wk-card')));
+    ok('7 Week works on the tab', await until(page, () => !!document.querySelector('#hb-cal .cal-page.is-ls[data-cal-ls="week"]')));
     await page.click('[data-cal-view="horizon"]');
-    ok('8 Horizon works on the tab', await until(page, () => !!document.querySelector('#hb-cal .cal-stage.is-hz')));
+    ok('8 Horizon works on the tab', await until(page, () => !!document.querySelector('#hb-cal .cal-page.is-ls[data-cal-ls="horizon"]')));
     await page.click('[data-cal-view="month"]');
 
     /* every door that still names the page lands on the tab */
@@ -77,7 +78,7 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.evaluate(() => setView('obligations'));
     await until(page, () => state.view === 'obligations');
     await page.evaluate(() => setView('calendar'));
-    ok('9 setView(\'calendar\') lands on Home\'s Calendar tab', await until(page, () => state.view === 'dashboard' && hbFace() === 'calendar' && !!document.querySelector('#hb-cal .cal-stage')));
+    ok('9 setView(\'calendar\') lands on Home\'s Calendar tab', await until(page, () => state.view === 'dashboard' && hbFace() === 'calendar' && !!document.querySelector('#hb-cal .cal-page.is-ls')));
 
     /* the other tabs are untouched, and leave the calendar's panel behind */
     await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'board');
@@ -86,20 +87,21 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
 
     /* a refresh lands where it was */
     await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'calendar');
-    await until(page, () => !!document.querySelector('#hb-cal .cal-stage'));
+    await until(page, () => !!document.querySelector('#hb-cal .cal-page.is-ls'));
     await page.click('[data-cal-view="week"]');
-    await until(page, () => !!document.querySelector('#hb-cal .cal-wk-card'));
+    await until(page, () => !!document.querySelector('#hb-cal .cal-page.is-ls[data-cal-ls="week"]'));
     await page.waitForTimeout(400);
     await page.reload({ waitUntil: 'networkidle' });
     ok('11 a refresh comes back to the Calendar tab, on the view it was on', await until(page, () =>
-      window.state && state.view === 'dashboard' && window.hbFace && hbFace() === 'calendar' && !!document.querySelector('#hb-cal .cal-wk-card'), null, 15000));
+      window.state && state.view === 'dashboard' && window.hbFace && hbFace() === 'calendar' && !!document.querySelector('#hb-cal .cal-page.is-ls[data-cal-ls="week"]'), null, 15000));
     /* 11b THE HOURS STAY WHOLE on the owner's shortest screen (21 Oct 2026: at 1536×730 the last hour was a sliver) */
     for (const [w, hh] of [[1536, 730], [1440, 780], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(400);
-      const fit = await page.evaluate(() => { const b = document.getElementById('cal-wk-body'); if (!b) return null;
-        const last = [...b.querySelectorAll('.cal-wk-t')].pop(); const br = b.getBoundingClientRect(), lr = last && last.getBoundingClientRect();
-        return { cut: b.scrollHeight - b.clientHeight, lastIn: !!lr && lr.bottom <= br.bottom + 1 && lr.height > 20, side: document.documentElement.scrollWidth > innerWidth + 1 }; });
-      ok(`11b ${w}x${hh}: this week's hours are whole, the last one in view, nothing sideways`, !!fit && fit.cut <= 1 && fit.lastIn && !fit.side, JSON.stringify(fit));
+      /* RE-POINTED 23 Nov 2026 (P-14, the Legora + Stripe way, owner: Build P-14): the picked Week is a table of this week's dates (no hour grid): its scroller holds it, nothing sideways */
+      const fit = await page.evaluate(() => { const b = document.getElementById('cal-ls-body'); if (!b) return null;
+        const br = b.getBoundingClientRect();
+        return { inside: br.bottom <= innerHeight + 1 && br.height > 40, side: document.documentElement.scrollWidth > innerWidth + 1 || b.scrollWidth > b.clientWidth + 1 }; });
+      ok(`11b ${w}x${hh}: this week's table sits in its scroller, nothing sideways`, !!fit && fit.inside && !fit.side, JSON.stringify(fit));
     }
     ok('12 no page errors', errs.length === 0, errs.slice(0, 2).join(' | ') || null);
   } catch (e) { fail++; console.log('FAIL  the check threw — ' + e.message); }

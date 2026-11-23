@@ -102,7 +102,9 @@ describe('f261 (2) — the heading IS the control', () => {
        week and the layers join the per-sitting state, still unstored. */
     /* the calendar opens on this week and five more since round 16 (17 Oct 2026) */
     /* RE-POINTED 29 Oct 2026 (round 12, owner's yes): the calendar opens on the Agenda */
-    assert.match(CAL_CODE, /let calState = \{ ym:null, view:'agenda', scope:'all', days:null, wk:null, lay:\{ ct:true, me:true, cp:true \} \};/);
+    /* RE-POINTED 23 Nov 2026 (P-14, the Legora + Stripe way, owner: Build P-14): the chips and the chosen rows join it
+       (ls), kept per sitting like the rest */
+    assert.match(CAL_CODE, /let calState = \{ ym:null, view:'agenda', scope:'all', days:null, wk:null, lay:\{ ct:true, me:true, cp:true \}, ls:null \};/);
     assert.ok(!/regColSetWidths|localStorage[^)]*calState\.days/.test(CAL_CODE), 'nothing stores it');
     /* AND IT IS NOT IN ITS OWN TEMPORAL DEAD ZONE: calState is built at load
        and CAL_AGENDA_DAYS is a const declared below it. */

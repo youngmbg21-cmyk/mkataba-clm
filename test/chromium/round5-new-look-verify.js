@@ -139,17 +139,20 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await page.evaluate(() => { caGo({ kind: 'go', place: 'calendar' }); });
     await until(page, () => typeof calSetView === 'function' && !!document.querySelector('.cal-page'), null, 15000);
     await page.evaluate(() => { if (calView() !== 'agenda') calSetView('agenda'); });
-    const up = await until(page, () => !!document.querySelector('.cal-nl .cal-nl-r'), null, 10000);
-    const rows = up ? await page.evaluate(() => [...document.querySelectorAll('.cal-nl .cal-nl-r')].slice(0, 6).map(r => r.innerText.replace(/\s+/g, ' ').trim())) : [];
-    const tabs = await page.evaluate(() => [...document.querySelectorAll('.cal-head.is-nl .cal-nl-tabs a')].map(a => a.innerText.trim()));
+    /* RE-POINTED 23 Nov 2026 (P-14, the Legora + Stripe way, owner: Build P-14): the Agenda is one calm table (late
+       first, a soft badge each; no approvals row, no quiet-week lines — the drawing has neither), the views one switch,
+       and Horizon a table whose rows carry their renewal words and a time-left bar */
+    const up = await until(page, () => !!document.querySelector('#cal-ag .cls-r'), null, 10000);
+    const rows = up ? await page.evaluate(() => [...document.querySelectorAll('#cal-ag .cls-r')].slice(0, 6).map(r => r.innerText.replace(/\s+/g, ' ').trim())) : [];
+    const late = up ? await page.evaluate(() => { const b = document.querySelector('#cal-ag .cls-r .cls-k .cls-b'); return !!b && b.classList.contains('is-ruby'); }) : false;
+    const tabs = await page.evaluate(() => [...document.querySelectorAll('.cal-page.is-ls .cls-seg a')].map(a => a.innerText.trim()));
     await shot('5-agenda');
     await page.evaluate(() => calSetView('horizon'));
-    const hz = await until(page, () => !!document.querySelector('.cal-hz-row.is-nl .cal-hz-rm'), null, 10000);
-    const foot = await txt(page, '.cal-hz-foot');
+    const hz = await until(page, () => !!document.querySelector('.cls-t.is-hz .cls-r .cls-bk'), null, 10000);
     await shot('5-horizon');
-    check('5 Calendar: the views as words; the agenda leads with the late duty, then today\'s approval, an empty week one line; Horizon rows carry their own months',
-      up && tabs.join('|') === 'Agenda|Month|Week|Horizon' && /^late/i.test(rows[0] || '') && /approve/i.test(rows[1] || '') && rows.some(r => /^week of .* nothing due/i.test(r) || /quiet weeks?$/i.test(r)) /* RE-POINTED (the harmony review, FOLD THE QUIET, 9 Nov 2026): a run of empty weeks is one line, "16 Nov – 3 Jan 7 quiet weeks" */ && hz && /soonest first/i.test(foot),
-      { tabs, rows: rows.map(r => r.slice(0, 50)), hz, foot });
+    check('5 Calendar: the views as one switch; the agenda leads with the late duty, a red badge; Horizon rows carry their time left',
+      up && tabs.join('|') === 'Agenda|Month|Week|Horizon' && late && hz,
+      { tabs, rows: rows.map(r => r.slice(0, 50)), late, hz });
   } catch (e) { check('5 Calendar', false, String(e).slice(0, 200)); }
 
   /* 6 · History with the wording */
