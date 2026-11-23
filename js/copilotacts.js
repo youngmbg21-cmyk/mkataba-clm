@@ -3085,6 +3085,15 @@ function caAskAnywhere(text, opts = {}){
   /* "ADD GRACE WAMBUI, HEAD OF BUYING, … AS THE CONTACT FOR NAIVAS" (owner, 19 Nov 2026): the one contact sheet opens
      filled in from the words (cuContactAsk, js/views/customers.js); nothing is saved until the person presses Add */
   if (typeof cuContactAsk === 'function'){ let pc = false; try { pc = cuContactAsk(t, opts.say); } catch (_){ pc = false; } if (pc) return pc; }
+  /* "I'M NEW" (owner, 23 Nov 2026; js/teach.js) is the conversation's, ahead of every reader below that could
+     take "new" for a new agreement: Home's box answers it on Home, every other box in the one conversation */
+  /* (the window and a list's panel fall through to their own conversation, aiAskWords, which reads it first) */
+  if (typeof teachTakes === 'function' && teachTakes(t)){
+    if (!win && typeof document !== 'undefined' && document.getElementById('igd-input') && typeof intelAsk === 'function'
+      && typeof state !== 'undefined' && state && state.view === 'dashboard'){ intelAsk(t); return true; }
+    if (opts.box === 'settings' && typeof stJbAskJambo === 'function'){ stJbAskJambo(t); return true; }
+    return false;
+  }
   /* the Calendar's own box keeps its booking and planning words (opts.cal) */
   if (opts.cal){ let b = false; try { b = typeof igBookAsk === 'function' && !!igBookAsk(t); } catch (_){ b = false; } if (b) return false; }
   /* THE ONE READER (owner, 19 Oct 2026: "do what the user asks in plain

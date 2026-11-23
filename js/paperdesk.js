@@ -479,6 +479,8 @@ function pdOpenOnHome(id, tab, o){
     pdOpenOnHome._in = true; try { return window.igDockBatch(() => pdOpenOnHome(id, tab, o)); } finally { pdOpenOnHome._in = false; } }
   /* A CONTRACT NEVER CHECKED AGAINST THE PLAYBOOK IS CHECKED ON ITS FIRST OPEN (owner picked "B", 19 Nov 2026; pbCheckOnOpen) */
   if (typeof window !== 'undefined' && typeof window.pbCheckOnOpen === 'function') try { window.pbCheckOnOpen(id); } catch (_){}
+  /* JAMBO THE INSTRUCTOR: a contract opened ticks a new person's first step (js/teach.js; nothing while teaching is off) */
+  if (typeof window !== 'undefined' && typeof window.teachDid === 'function') try { window.teachDid('open'); } catch (_){}
   /* NO COVER (owner, 20 Nov 2026: "Delete it, open the Dossier instead"): 'open' — a list row, a typed number, a Board
      row — lands on the paper with the face this reader opens contracts on, the Dossier unless they chose another */
   if (typeof pdArriveNote === 'function') pdArriveNote(id);
@@ -5929,6 +5931,7 @@ function pdFormSave(){
   /* what is said is every detail the form now holds an answer for (stored as typed, by Enter, or by this Save) */
   const held = () => [...fm.querySelectorAll('tr.pd-fm-row')].filter(r => r.classList.contains('is-saved') || r.classList.contains('is-typed') || pdFormBoxHas(r)).length;
   if (!held()){ pdOgSay(_pdT('og_form_nothing')); pdFormNext(null); return 0; }
+  if (typeof window.teachDid === 'function') try { window.teachDid('fill'); } catch (_){}
   pdOgSaveIn(fm, c);
   const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
   const all = held();
@@ -10578,6 +10581,7 @@ async function pd2FillSaveNego(c, nego, rest){
 }
 function pd2FillSave(){
   if (!_pd2Fill) return 0;
+  if (typeof window.teachDid === 'function') try { window.teachDid('fill'); } catch (_){}
   const c = getContract(_pd2Fill.id); if (!c) return 0;
   const tplf = !!c.templateForm;
   if (tplf ? (typeof tplFormCommit !== 'function' || typeof tplFormApply !== 'function') : typeof contractBlankSet !== 'function') return 0;

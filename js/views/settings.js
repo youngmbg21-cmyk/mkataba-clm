@@ -6019,6 +6019,8 @@ async function settingsSavePerson(existing){
       newId='u'+(Date.now().toString(36));
       saveUsers([...getUsers(),{ id:newId, name, email, role, title, salt, hash:await hashPassword(pass,salt), createdAt:nowISO() }]);
     }
+    /* JAMBO THE INSTRUCTOR: a person added ticks a new admin's first step (js/teach.js; nothing while teaching is off) */
+    if(newId&&typeof window.teachDid==='function'){ try{ teachDid('team'); }catch(_){} }
     if(folderIds && newId){
       try{ await settingsWriteFolderAccess(newId, folderIds); }
       catch(e){ toast(i18t('set_could_not_save_access')+e.message,'err'); }

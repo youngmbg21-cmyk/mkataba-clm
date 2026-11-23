@@ -898,6 +898,8 @@ function triageMovedRun(id){
    own contract appears. */
 function contractArrived(c, opts){
   const o = opts || {};
+  /* JAMBO THE INSTRUCTOR: a contract added ticks a new person's first step (js/teach.js; nothing while teaching is off) */
+  if (typeof window !== 'undefined' && typeof window.teachDid === 'function') try { window.teachDid('add'); } catch (_){}
   /* ---- WHO WAS NAMED WHILE THE PAPER WAS BEING CHOSEN (21 Sep 2026) ----
      The drafting screen collects people before the record exists, so they are
      held in memory and claimed HERE — the one funnel every creation site

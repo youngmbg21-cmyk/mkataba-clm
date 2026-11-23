@@ -1,0 +1,311 @@
+'use strict';
+/* f1189 — "I'M NEW": JAMBO THE INSTRUCTOR, ROUND 1 (owner, 23 Nov 2026: "someone should simply say I am new and that
+   how jambo knows"; "Both, build it now"; the plan: docs/PLAN-jambo-instructor.md)
+
+   (1) THE WHOLE SENTENCE IS READ: "I'm new", "teach me", "show me around", "jag är ny" turn teaching on; "I know my way
+       now" turns it off; a sentence with work in it ("I'm new to this NDA with Volvo", "new agreement") is not his.
+   (2) THE TURN IS FREE AND FITS THE PERSON: HaTi's own words, then first steps as chips that open Handbook chapters
+       that exist; a Viewer is offered reading, an admin also the team; the words in both books.
+   (3) THE SERVER KEEPS THE ANSWER: PUT /api/me/prefs takes teach 'on' | 'off' | null, refuses anything else, and the
+       answer comes back with the person on the next sign-in, never on a colleague's row.
+   (4) EVERY BOX READS IT FIRST: Home's box, the shared door, the conversation, a list's panel and the Calendar ask
+       teachRead before the readers that could take "new" for a draft; a chip opens its chapter (navGo 'chapter').
+   (5) THE HINT: a person's first TEACH_HINT_DAYS days, until they say either, the box's own example words; the welcome
+       email ends with the same sentence.
+   At the parent every part fails (the file, the key, the words and the email line are new). */
+const { test, describe, before, after } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const { startHatiWithMail, seedWorkspace } = require('./helpers');
+
+const R = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
+const T = require('../js/teach.js');
+
+describe('f1189 (1) the whole sentence is read', () => {
+  test('on, in both languages, with greetings and courtesy set aside', () => {
+    for (const q of ["I'm new", 'I am new here', 'Hi Jambo, I’m new!', 'im new to hati', 'teach me', 'Show me around please',
+      'where do I start?', 'How do I get started', 'jag är ny', 'Hej Jambo, jag är ny här', 'visa mig runt'])
+      assert.equal(T.teachRead(q), 'on', q);
+  });
+  test('off, in both languages', () => {
+    for (const q of ['I know my way now', "I'm not new anymore", 'stop teaching me', 'jag hittar nu', 'jag är inte ny längre'])
+      assert.equal(T.teachRead(q), 'off', q);
+  });
+  test('a sentence with work in it is not his', () => {
+    for (const q of ["I'm new to this NDA with Volvo", 'new agreement', 'new contract with Volvo', 'teach me about the liability cap in MK-3',
+      'show me the board', 'how do I upload a contract', 'where do I start the signing for MK-4', ''])
+      assert.equal(T.teachRead(q), null, q);
+  });
+});
+
+describe('f1189 (2) the turn is free and fits the person', () => {
+  const H = require('../js/handbook.js');
+  const chapters = new Set((H.HANDBOOK_CHAPTERS || []).map(c => c.k));
+  test('every first step opens a chapter that exists, one lead each', () => {
+    for (const [seat, steps] of Object.entries(T.TEACH_STEPS)){
+      assert.ok(steps.length >= 3 && steps.length <= 4, seat + ': three or four steps');
+      for (const [, ch] of steps) assert.ok(chapters.has(ch), `${seat}: chapter ${ch} is in the Handbook`);
+    }
+  });
+  test('a Viewer is offered reading, an admin the team, an editor upload and draft', () => {
+    const seat = u => T.teachChoices(u).map(c => (assert.equal(c.teach, 'walk', 'a first step walks you through it'), c.k));
+    assert.deepEqual(seat({ role: 'viewer' }), T.TEACH_STEPS.viewer.map(s => s[1]));
+    assert.deepEqual(seat({ role: 'admin' }), T.TEACH_STEPS.admin.map(s => s[1]));
+    assert.deepEqual(seat({ role: 'legal' }), T.TEACH_STEPS.editor.map(s => s[1]));
+    assert.ok(!T.TEACH_STEPS.viewer.some(s => ['2.1', '2.2'].includes(s[1])), 'a Viewer is never offered to upload or draft');
+    assert.equal(T.teachChoices({ role: 'legal' }).filter(c => c.lead).length, 1);
+  });
+  test('the turn: on carries the chips, off carries none, a stranger sentence none at all', () => {
+    const on = T.teachTurn("I'm new", { role: 'legal' });
+    assert.equal(on.ask, 'on'); assert.ok(on.choices.length >= 3); assert.ok(/teach_hello|Welcome/.test(on.html));
+    const off = T.teachTurn('I know my way now', { role: 'legal' });
+    assert.equal(off.ask, 'off'); assert.ok(!off.choices);
+    assert.equal(T.teachTurn('which contracts end this year?'), null);
+  });
+  test('no model is asked: the file calls no AI route', () => {
+    const src = strip(R('js/teach.js'));
+    assert.ok(!/api\(|fetch\(|aiAsk|\/api\/ai/.test(src), 'teach.js reads and writes its preference only');
+  });
+  test('the words, in both books', () => {
+    const I = R('js/i18n.js');
+    for (const k of ['teach_hint_ph', 'teach_hello', 'teach_what', 'teach_what_viewer', 'teach_pick', 'teach_how_off', 'teach_off',
+      'teach_c_upload', 'teach_c_new', 'teach_c_find', 'teach_c_board', 'teach_c_read', 'teach_c_team', 'brn_p_teach', 'brn_pd_teach'])
+      assert.equal((I.match(new RegExp('\\n\\s+' + k + ':', 'g')) || []).length, 2, k + ' in English and Swedish');
+  });
+});
+
+describe('f1189 (3) the server keeps the answer', () => {
+  let h, W;
+  before(async () => { h = await startHatiWithMail(); W = await seedWorkspace(h); });
+  after(async () => { try { await h.stop(); } catch (_){} });
+
+  test('on, off and forgotten; anything else refused in words', async () => {
+    let r = await W.admin.json('/api/me/prefs', { method: 'PUT', body: { teach: 'on' } });
+    assert.equal(r.prefs.teach, 'on');
+    let b = await W.admin.json('/api/bootstrap');
+    assert.equal(b.me.prefs.teach, 'on', 'read back with the person');
+    const bad = await W.admin.raw('/api/me/prefs', { method: 'PUT', body: { teach: 'maybe' } });
+    assert.equal(bad.status, 400);
+    b = await W.admin.json('/api/bootstrap');
+    assert.equal(b.me.prefs.teach, 'on', 'a refused value changes nothing');
+    r = await W.admin.json('/api/me/prefs', { method: 'PUT', body: { teach: 'off' } });
+    assert.equal(r.prefs.teach, 'off');
+    r = await W.admin.json('/api/me/prefs', { method: 'PUT', body: { teach: null } });
+    assert.ok(!('teach' in r.prefs));
+  });
+  test('only theirs: a colleague never sees it', async () => {
+    await W.restricted.json('/api/me/prefs', { method: 'PUT', body: { teach: 'on' } });
+    const a = await W.admin.json('/api/bootstrap');
+    const row = (a.users || []).find(u => u.email === 'restricted@example.co.ke');
+    assert.ok(row && !(row.prefs || {}).teach, 'an admin\'s list does not carry it');
+  });
+  test('(5) the welcome email tells them how to ask', async () => {
+    h.mail.sent.length = 0;
+    await W.admin.json('/api/users', { method: 'POST', body: { name: 'Wanjiru Newcomer', email: 'wanjiru.new@example.co.ke', role: 'legal', password: 'temporary-pass-1' } });
+    const m = h.mail.sent.find(x => /wanjiru\.new@/.test(String(x.to)));
+    assert.ok(m, 'the welcome was sent');
+    assert.ok(/tell Jambo "I'm new"/.test(String(m.text || m.html || '')), 'the welcome ends with how to ask');
+  });
+});
+
+describe('f1189 (4) every box reads it first', () => {
+  const region = (src, start, len) => { const i = src.indexOf(start); assert.ok(i >= 0, start); return strip(src.slice(i, i + len)); };
+  test("Home's box: before the brain and before the one reader", () => {
+    const r = region(R('js/views/intelligence.js'), 'async function intelAsk(', 12000);
+    assert.ok(r.indexOf('teachSay(') > 0 && r.indexOf('teachSay(') < r.indexOf('igBoardTalkFirst()'), 'before the brain');
+    assert.ok(r.indexOf('teachSay(') > 0 && r.indexOf('caUnderstand(') > r.indexOf('teachSay('), 'before the one reader');
+  });
+  test('the conversation: before anything is echoed or asked', () => {
+    const r = region(R('js/ai.js'), 'async function aiAskWords(', 3000);
+    assert.ok(r.indexOf('teachSay(') > 0 && r.indexOf('teachSay(') < r.indexOf('ai.busy=true'));
+  });
+  test('the shared door, a list panel and the Calendar hand it on before their readers', () => {
+    const ca = region(R('js/copilotacts.js'), 'function caAskAnywhere(', 4000);
+    assert.ok(ca.indexOf('teachTakes(') > 0 && ca.indexOf('teachTakes(') < ca.indexOf('caUnderstand('));
+    const jl = region(R('js/views/inspector.js'), 'function jlAsk(', 1500);
+    assert.ok(jl.indexOf('teachTakes(') > 0 && jl.indexOf('teachTakes(') < jl.indexOf('jamboPageGo('));
+    const cal = region(R('js/views/calendar.js'), 'function calBoxAsk(', 1200);
+    assert.ok(cal.indexOf('teachTakes(') > 0 && cal.indexOf('teachTakes(') < cal.indexOf('calPlanAsk('));
+  });
+  test("a chip opens its chapter through the one mover", () => {
+    const nv = region(R('js/navmap.js'), 'function navGo(a)', 3000);
+    assert.ok(/n\.k === 'chapter'[\s\S]{0,240}hbkOpen\(n\.chapter\)/.test(nv), 'the Handbook door Jambo\'s answers already use');
+  });
+  test('the file is loaded by the app and named on the Brain map', () => {
+    assert.ok(/import '\.\/teach\.js'/.test(R('js/app.js')));
+    const B = require('../js/brainmap.js');
+    assert.ok(B.BRAIN_PARTS.some(p => p.id === 'teach' || (Array.isArray(p) && p[0] === 'teach')));
+  });
+});
+
+describe('f1189 (5) the hint', () => {
+  const day = 86400000;
+  test('first days, until they say either', () => {
+    const fresh = { createdAt: new Date(Date.now() - 2 * day).toISOString(), prefs: {} };
+    assert.equal(T.teachHintOn(fresh), true);
+    assert.equal(T.teachHintOn({ ...fresh, prefs: { teach: 'on' } }), false, 'said "I\'m new": the hint has done its job');
+    assert.equal(T.teachHintOn({ ...fresh, prefs: { teach: 'off' } }), false);
+    assert.equal(T.teachHintOn({ createdAt: new Date(Date.now() - (T.TEACH_HINT_DAYS + 1) * day).toISOString(), prefs: {} }), false, 'past the first days');
+    assert.equal(T.teachHintOn({ prefs: {} }), false, 'no join day: no guess');
+  });
+  test("the boxes' example words read it", () => {
+    assert.ok(/teachHintOn\(\)\) return i18t\('teach_hint_ph'\)/.test(strip(R('js/views/intelligence.js'))), "Home's box");
+    assert.ok(/teachHintOn\(\)\) return i18t\('teach_hint_ph'\)/.test(strip(R('js/views/inspector.js'))), "a page's panel");
+    assert.ok(/teachPh\(i18t\('jl_ph_any'\)\)/.test(strip(R('js/app.js'))), "the side panel's box");
+  });
+});
+
+/* ---- ROUNDS 2–6 (owner, 23 Nov 2026: "do what it takes … No need for admin switch") ---- */
+describe('f1189 (6) the walk: one step at a time, from the chapter itself', () => {
+  global.hbkChapterOf = require('../js/handbook.js').hbkChapterOf;
+  global.hbkPlainOf = require('../js/handbook.js').hbkPlainOf;
+  test('every step is the chapter\'s own, numbered, with Next until Done', () => {
+    const c = global.hbkChapterOf('2.2'), n = c.how.length;
+    const first = T.teachStepTurn('2.2', 1);
+    assert.ok(first.choices.some(x => x.teach === 'step' && x.i === 2 && x.lead), 'Next leads');
+    assert.ok(first.choices.some(x => x.teach === 'stop'), 'Stop is always there');
+    assert.ok(!first.choices.some(x => x.teach === 'step' && x.i === 0), 'no Back on the first step');
+    const last = T.teachStepTurn('2.2', n);
+    assert.ok(last.choices.some(x => x.teach === 'done' && x.lead), 'the last step ends in Done');
+    assert.ok(last.choices.some(x => x.teach === 'step' && x.i === n - 1), 'Back');
+  });
+  test('the thing a step is about is the one the chapter\'s own picture boxes on that step', () => {
+    const M = T.teachMarksOf(global.hbkChapterOf('2.2'), 1);
+    assert.ok(M.sels.includes('#pd-drop [data-pd-drop-pick]'), 'the picture\'s box');
+    assert.equal(M.place, 'contracts', 'and the page that picture was taken on');
+    assert.deepEqual(T.teachMarksOf(global.hbkChapterOf('2.2'), 99).sels, []);
+  });
+  test('not on the screen: Take me there, never a press', () => {
+    const t = T.teachStepTurn('2.2', 1);
+    assert.ok(t.choices.some(x => x.teach === 'go' && x.place === 'contracts'));
+  });
+  test('the walk is offered from the Handbook chapter, an answer\'s chapter button and the first steps', () => {
+    assert.ok(/data-teach-walk="\$\{_hbkE\(c\.k\)\}"/.test(R('js/views/handbook.js')), 'the chapter page');
+    assert.ok(/a\.nav\.k==='chapter'[\s\S]{0,200}teach:'walk'/.test(strip(R('js/ai.js'))), 'an answer\'s chapter button');
+    for (const f of ['js/views/intelligence.js', 'js/ai.js']) assert.ok(/c\.teach&&typeof window\.teachChoicePress==='function'/.test(strip(R(f))), f + ' hands the press over');
+  });
+  test('the outline is the one exception, scoped and tokened', () => {
+    assert.ok(/\.teach-mark:not\(#_\):not\(#_\)\{outline:2px solid var\(--accent-ink\)/.test(R('index.html')));
+  });
+});
+
+describe('f1189 (7) plain words and "What can I do here?"', () => {
+  test('HaTi\'s own words, read whole, in both languages', () => {
+    assert.equal(T.teachWordOf('What is a dossier?').k, 'dossier');
+    assert.equal(T.teachWordOf("what's the playbook").k, 'playbook');
+    assert.equal(T.teachWordOf('vad betyder markeringar').k, 'redlines');
+    assert.equal(T.teachWordOf('What does stream mean?').k, 'stream');
+    assert.equal(T.teachWordOf('what is the stream of MK-4'), null, 'a sentence about a contract is not one');
+    assert.equal(T.teachWordOf('what is our liability cap'), null);
+    for (const W of T.TEACH_WORDS){ assert.ok(W.say.en && W.say.sv, W.k + ' in both languages');
+      assert.ok(W.ch === 'about' || require('../js/handbook.js').hbkChapterOf(W.ch), W.k + ': its chapter exists'); }
+  });
+  test('the meaning is free and carries its chapter', () => {
+    const t = T.teachWordTurn('what is a dossier');
+    assert.ok(t.choices.some(c => c.nav && c.nav.chapter === '0.4'));
+  });
+  test('"What can I do here?" is the instructor\'s only while teaching', () => {
+    assert.equal(T.teachHereAsked('What can I do here?'), true);
+    assert.equal(T.teachHereAsked('vad kan jag göra här'), true);
+    assert.equal(T.teachTakes('What can I do here?'), false, 'teaching off: the brain answers as before');
+  });
+  test('the row above Jambo\'s box leads with it while teaching', () => {
+    const src = strip(R('js/components.js'));
+    assert.ok(/teach \? \['teachhere'\] : \[\]/.test(src) && /data-teach-here/.test(src));
+  });
+});
+
+describe('f1189 (8) your first steps tick themselves', () => {
+  test('a list by seat, every step a chapter that exists, keys the server knows', () => {
+    const H = require('../js/handbook.js');
+    for (const [seat, list] of Object.entries(T.TEACH_TASKS)) for (const [key, , ch] of list){
+      assert.ok(T.TEACH_DONE_KEYS.includes(key), seat + ' ' + key); assert.ok(H.hbkChapterOf(ch), seat + ' ' + ch); }
+    assert.ok(!T.TEACH_TASKS.viewer.some(t => ['add', 'fill', 'team'].includes(t[0])), 'a Viewer is never set work they cannot do');
+    const S = R('server/server.js');
+    assert.ok(/const TEACH_DONE_SRV = \['open', 'add', 'fill', 'ask', 'week', 'team', 'grad'\]/.test(S), 'the server\'s list is the same');
+  });
+  test('the moments that tick them are the ones HaTi already has', () => {
+    const at = (f, fn, key) => assert.ok(new RegExp(fn + '[\\s\\S]{0,900}teachDid\\(\'' + key + '\'\\)').test(strip(R(f))), `${fn} ticks ${key}`);
+    at('js/paperdesk.js', 'function pdOpenOnHome', 'open'); at('js/triage.js', 'function contractArrived', 'add');
+    at('js/paperdesk.js', 'function pdFormSave', 'fill'); at('js/paperdesk.js', 'function pd2FillSave', 'fill');
+    at('js/views/homeboard.js', 'function hbOpenCalendar', 'week');
+  });
+  test('nothing is written while teaching is off', () => {
+    global.currentUser = () => ({ role: 'legal', prefs: {} });
+    try { assert.equal(T.teachDid('open'), false); assert.equal(T.teachTasksGroup(), null); } finally { delete global.currentUser; }
+  });
+  test('while teaching, the Board panel shows them, and all done asks once to stop', () => {
+    const u = { role: 'legal', prefs: { teach: 'on', teachDone: ['open'] } };
+    global.currentUser = () => u;
+    try {
+      const g = T.teachTasksGroup(); assert.equal(g.rows.length, 4); assert.equal(g.rows.filter(r => r.tone === 'green').length, 1);
+      assert.ok(g.rows.every(r => /data-teach-task=/.test(r.attr)), 'each row walks you through it');
+      for (const k of ['add', 'fill', 'ask']) T.teachDid(k);
+      assert.ok(u.prefs.teachDone.includes('grad'), 'asked once, never again');
+    } finally { delete global.currentUser; }
+    assert.ok(/teachTasksGroup\(\)/.test(strip(R('js/views/homeboard.js'))), 'the Board panel draws the group');
+  });
+  test('the server keeps the list, refuses a key it does not know, and hides it from colleagues', async () => {
+    const { startHati, seedWorkspace } = require('./helpers');
+    const h = await startHati(); try {
+      const W = await seedWorkspace(h);
+      const r = await W.admin.json('/api/me/prefs', { method: 'PUT', body: { teachDone: ['open', 'ask'] } });
+      assert.deepEqual(r.prefs.teachDone, ['open', 'ask']);
+      assert.equal((await W.admin.raw('/api/me/prefs', { method: 'PUT', body: { teachDone: ['hack'] } })).status, 400);
+      await W.restricted.json('/api/me/prefs', { method: 'PUT', body: { teachDone: ['open'] } });
+      const a = await W.admin.json('/api/bootstrap');
+      const row = (a.users || []).find(x => x.email === 'restricted@example.co.ke');
+      assert.ok(row && !(row.prefs || {}).teachDone);
+    } finally { await h.stop(); }
+  });
+});
+
+/* ---- THE STRAY QUOTE, AND "START THE LESSONS" (owner, 23 Nov 2026: "clean the stray quote mark and the build your
+   recommendation") ---- */
+describe('f1189 (9) a stray closing quote is taken off, a real quotation kept', () => {
+  const fnOf = (src, name, next) => { const i = src.indexOf('function ' + name); const j = src.indexOf(next, i); assert.ok(i >= 0 && j > i, name); return src.slice(i, j); };
+  const srv = new Function(fnOf(R('server/server.js'), 'answerTrim', '\nfunction normalizeDeliver') + 'return answerTrim;')();
+  const web = new Function(fnOf(R('js/ai.js'), 'aiAnswerTrim', '/* A CHAPTER IS A BUTTON') + 'return aiAnswerTrim;')();
+  const cases = [['…all from the Redlines tab."', '…all from the Redlines tab.'], ['Send all to send it." ', 'Send all to send it.'],
+    ['He said "yes".', 'He said "yes".'], ['A quote: "the Supplier shall"', 'A quote: "the Supplier shall"'],
+    ['Ends “so”.”', 'Ends “so”.'], ['Plain answer.', 'Plain answer.'], ['"Whole quote."', '"Whole quote."']];
+  test('both hosts, one reading', () => { for (const [a, b] of cases){ assert.equal(srv(a), b, a); assert.equal(web(a), b, a); } });
+  test('every answer passes it: the deliver call, the text answer, the browser\'s own', () => {
+    const S = strip(R('server/server.js'));
+    assert.ok(/answerTrim\(inp\.answer\)/.test(S) && /return answerTrim\(s\.replace/.test(S));
+    assert.ok(/answer:aiAnswerTrim\(inp\.answer\)/.test(strip(R('js/ai.js'))));
+  });
+});
+
+describe('f1189 (10) "Start the lessons" under any answer that hears someone new', () => {
+  const { startHati, startScriptedAi, seedWorkspace } = require('./helpers');
+  let ai, h, W;
+  before(async () => { ai = await startScriptedAi(); h = await startHati({ ANTHROPIC_BASE_URL: ai.base, HATI_AGENTS_AUTO: 'off' }); W = await seedWorkspace(h); });
+  after(async () => { try { await h.stop(); } catch (_){} try { await ai.stop(); } catch (_){} });
+  const ask = q => W.admin.json('/api/ai/chat', { method: 'POST', body: { messages: [{ role: 'user', content: q }], context: {} } });
+  test('the rule is told, word for word on both hosts, at no extra call', async () => {
+    ai.reset(); ai.script([{ type: 'tool_use', id: 'tu_a', name: 'deliver_answer', input: { answer: 'Welcome. Start on the Board."', teach: true } }]);
+    const r = await ask('first day here, no clue what I am doing');
+    assert.equal(ai.calls.length, 1, 'one call, as any question');
+    const sys = JSON.stringify(ai.calls[0].body.system || '');
+    assert.ok(/A PERSON NEW TO HaTi/.test(sys), 'the rule is in the instructions');
+    const tool = (ai.calls[0].body.tools || []).find(t => t.name === 'deliver_answer');
+    assert.ok(tool && tool.input_schema.properties.teach, 'the answer form has teach');
+    assert.equal(r.teach, true, 'the answer carries it to the browser');
+    assert.equal(r.answer, 'Welcome. Start on the Board.', 'and no stray quote');
+    const x = eval(/const AI_TEACH_RULE = ("[^\n]*");/.exec(R('server/server.js'))[1]), y = eval(/const AI_TEACH_RULE=("[^\n]*");/.exec(R('js/ai.js'))[1]);
+    assert.equal(x, y, 'the browser\'s twin, word for word');
+  });
+  test('an ordinary answer carries nothing', async () => {
+    ai.reset(); ai.script([{ type: 'tool_use', id: 'tu_a', name: 'deliver_answer', input: { answer: 'Four contracts.' } }]);
+    const r = await ask('How many contracts do we have?');
+    assert.equal(r.teach, undefined);
+  });
+  test('the browser offers it first, only while the lessons are off; the press is "I\'m new"', () => {
+    assert.ok(/res\.teach===true&&typeof window\.teachOn==='function'&&!teachOn\(\)\) out\.unshift\(\{ label:i18t\('teach_start'\), teach:'start', lead:true \}\)/.test(strip(R('js/ai.js'))));
+    const u = { role: 'legal', prefs: {} }; global.currentUser = () => u;
+    try { T.teachChoicePress({ teach: 'start' }); assert.equal(u.prefs.teach, 'on', 'the same as typing "I\'m new"'); } finally { delete global.currentUser; }
+  });
+});
