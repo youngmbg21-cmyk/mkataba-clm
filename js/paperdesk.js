@@ -3159,8 +3159,12 @@ function pd2AmAskOpen(id, text, err){
 function pd2AmBusyOpen(id, text){
   if (typeof lgpOpen !== 'function') return;
   const E = _pdE, T = _pdT;
+  /* AS DRAWN (the owner's pick "Real finds, then a button", 23 Nov 2026): a moving bar and the clauses being read; the
+     finds are never faked while he reads — they tick in from his answer (pd2AmFoundOpen) */
+  const c = (typeof getContract === 'function') ? getContract(id) : null;
+  let n = 0; try { n = (c && typeof amendParentClauses === 'function') ? amendParentClauses(c).length : 0; } catch (_){ n = 0; }
   const o = { id: 'pd2-amk', title: T('pd2_amk_busy_t'), subHtml: `${E(T('pd2_amr_asked'))} “${E(text)}”`,
-    html: `<div class="pd2-amk-busy">${typeof busyHtml === 'function' ? busyHtml(T('pd2_amk_busy')) : E(T('pd2_amk_busy'))}</div>`,
+    html: `<div class="pd2-amk-bar" aria-hidden="true"><i></i></div><div class="pd2-amk-busy">${typeof busyHtml === 'function' ? busyHtml(n ? _pdTn('pd2_amk_looking', n, { n }) : T('pd2_amk_busy')) : E(T('pd2_amk_busy'))}</div>`,
     note: T('pd2_amk_busy_n'), cancelLabel: T('pd2_amk_stop'), cancelAttr: 'data-pd2-amk-stop', focus: false };
   const f = (typeof lgpRepaint === 'function' && document.querySelector('#modal-root .lgp#pd2-amk')) ? lgpRepaint(o) : lgpOpen(o);
   if (f) f.addEventListener('click', e => { if (e.target && e.target.closest && e.target.closest('[data-pd2-amk-stop]')){ e.preventDefault(); _pdAm.seq++; if (typeof closeModal === 'function') closeModal(); } });
@@ -3177,12 +3181,28 @@ async function pd2AmAskRun(id, text, fromPop){
   if (!err && !items.length && !missing.length && !(r && r.facts && (r.facts.expiry || Number(r.facts.value) > 0))) err = T('fa_ai_nothing');
   /* NO SILENT FAILURE: no key, a refusal, nothing found — said in the pop-up, the words kept to try again */
   if (err){ pd2AmAskOpen(id, text, err); return; }
-  if (typeof closeModal === 'function') closeModal();
   if (_pdAm.id !== String(id)){ _pdAm.id = String(id); _pdAm.items = []; _pdAm.expiry = ''; _pdAm.value = ''; _pdAm.kind = 'terms'; _pdAm.eff = ''; _pdAm.reason = ''; }
   pd2AmTake(c, r, text);
   _pdAm.tab = 'changes'; _pdAm.edit = null; _pdAm.menu = '';
-  if (pdAmendShows()) pdAmendRepaint(); else pdOpenOnHome(id, 'amend');
-  if (r && r.truncated && typeof toast === 'function') toast(T('fa_cut_short'), 'warn');
+  if (pdAmendShows()) pdAmendRepaint();
+  pd2AmFoundOpen(id, text, !!(r && r.truncated));
+}
+/* WHAT HE FOUND, then one button (the owner's pick, 23 Nov 2026): each clause he chose and why, what no clause covers;
+   Approve the changes opens step 2; nothing is in the amendment yet */
+function pd2AmFoundOpen(id, text, cut){
+  if (typeof lgpOpen !== 'function'){ if (!pdAmendShows()) pdOpenOnHome(id, 'amend'); return; }
+  const E = _pdE, T = _pdT;
+  const mine = _pdAm.items.filter(x => x.by === 'jambo');
+  const rows = mine.map(it => `<li><span class="pd2-amk-tk is-ok" aria-hidden="true">✓</span><span><b>${E(T('pd2_amk_found', { clause: (it.clauseNumber ? '§ ' + it.clauseNumber + ' ' : '') + String(it.clauseLabel || T('fa_new_clause')).replace(/^\s*\d+(?:\.\d+)*\.?\s*/, '') }))}</b>${it.why ? ` <span class="pd2-q">— ${E(String(it.why).replace(/[.\s]+$/, ''))}</span>` : ''}</span></li>`)
+    .concat(_pdAm.missing.map(w => `<li><span class="pd2-amk-tk is-nf" aria-hidden="true">•</span><span><b>${E(w)}</b> <span class="pd2-q">— ${E(T('pd2_amk_nf'))}</span></span></li>`)).join('');
+  const o = { id: 'pd2-amk', title: T('pd2_amk_done_t'), subHtml: `${E(T('pd2_amr_asked'))} “${E(text)}”`,
+    html: `<div class="pd2-amk-bar is-done" aria-hidden="true"><i></i></div><ul class="pd2-amk-finds">${rows}</ul>${cut ? `<p class="pd2-amk-cut">${E(T('fa_cut_short'))}</p>` : ''}`,
+    note: T('pd2_amk_busy_n'), primary: { label: T('pd2_amk_see') + ' ›', attr: 'data-pd2-amk-see' }, focus: false };
+  const f = document.querySelector('#modal-root .lgp#pd2-amk') && typeof lgpRepaint === 'function' ? lgpRepaint(o) : lgpOpen(o);
+  if (!f) return;
+  const go = () => { if (typeof closeModal === 'function') closeModal(); if (pdAmendShows()) pdAmendRepaint(); else pdOpenOnHome(id, 'amend'); };
+  f.addEventListener('submit', e => { e.preventDefault(); go(); });
+  f.addEventListener('click', e => { if (e.target && e.target.closest && e.target.closest('[data-pd2-amk-see]')){ e.preventDefault(); go(); } });
 }
 /* Jambo's answer onto the list: his changes replace his earlier ones (a person's own stay), each WAITING for a person */
 function pd2AmTake(c, r, text){
@@ -3290,7 +3310,7 @@ function pd2AmxCheckHtml(c){
     [[T('pd2_amc_tl_sent', { who: c.counterparty || T('pd2_amc_tl_them') }), ''], [T('pd2_amc_tl_signed'), ''], [T('pd2_amc_tl_force'), T('pd2_amc_tl_force_s')]]);
   const tl = `<ol class="pd2-amc-tl">${stops.map(s => `<li class="${s[2] ? 'is-now' : ''}"><i aria-hidden="true"></i><b>${E(s[0])}</b>${s[1] ? `<span>${E(s[1])}</span>` : ''}</li>`).join('')}</ol>`;
   return `<div class="pd2-amc"><div class="pd2-amc-view" role="tablist"><button type="button" role="tab" class="pd2-amc-chip${view === 'amend' ? ' is-on' : ''}" aria-selected="${view === 'amend'}" data-pd2-amx-view="amend">${E(T('pd2_amc_v_amend'))}</button><button type="button" role="tab" class="pd2-amc-chip${view === 'today' ? ' is-on' : ''}" aria-selected="${view === 'today'}" data-pd2-amx-view="today">${E(T('pd2_amc_v_today'))}</button></div>
-    <div class="pd2-amc-two"><div class="pd2-amc-left">${view === 'today' ? pd2AmxTodayHtml(c) : paper}</div><aside class="pd2-amc-side"><h4>${E(T('pd2_amc_before'))}</h4><ul class="pd2-amc-checks">${checks}</ul></aside></div>${tl}</div>`;
+    <div class="pd2-amc-two"><div class="pd2-amc-left" id="pd2-amc-left">${view === 'today' ? pd2AmxTodayHtml(c) : paper}</div><aside class="pd2-amc-side"><h4>${E(T('pd2_amc_before'))}</h4><ul class="pd2-amc-checks">${checks}</ul></aside></div>${tl}</div>`;
 }
 /* the page over the paper: drawn after every paint of the paper and every change of the list; a box being typed in is never
    redrawn under the reader (the row's own cells follow it, pd2AmxRowSync) */
@@ -3354,7 +3374,10 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     if (t.closest('[data-pd2-amk-again]')){ e.preventDefault(); const c = pdContract(); if (c) pd2AmAskOpen(String(c.id), _pdAm.asked); return; }
     const lv = t.closest('[data-pd2-amk-leave]'); if (lv){ e.preventDefault(); _pdAm.missing.splice(Number(lv.getAttribute('data-pd2-amk-leave')), 1); again(); return; }
     const wr = t.closest('[data-pd2-amk-write]'); if (wr){ e.preventDefault(); pd2AmWriteNew(Number(wr.getAttribute('data-pd2-amk-write'))); return; }
-    const vw = t.closest('[data-pd2-amx-view]'); if (vw){ e.preventDefault(); _pdAm.view = vw.getAttribute('data-pd2-amx-view') === 'today' ? 'today' : 'amend'; again(); return; }
+    const vw = t.closest('[data-pd2-amx-view]'); if (vw){ e.preventDefault(); _pdAm.view = vw.getAttribute('data-pd2-amx-view') === 'today' ? 'today' : 'amend'; again();
+      /* the agreement as amended opens at its first change, inside its own box (the check list and what happens next stay in view) */
+      const l = document.getElementById('pd2-amc-left'), ch = l && l.querySelector('.pd2-amc-cl.is-changed');
+      if (l){ l.scrollTop = 0; if (ch && _pdAm.view === 'today') l.scrollTop = Math.max(0, ch.getBoundingClientRect().top - l.getBoundingClientRect().top - 16); } return; }
   });
   document.addEventListener('input', e => {
     const t = e.target; if (!t || !t.closest || !t.closest('.pd2-amx')) return;
@@ -11034,7 +11057,7 @@ Object.assign(window, { pdArriveNote, pdMidArriving, pdArriveEnd, pdMidFrom, pdM
 Object.assign(window, { pd2DutiesCardOf, pd2DutiesCardHtml, pd2StandsOpen, pd2StandsUp, pd2DealCardHtml, pd2DealPageHtml, pd2DealFaceHtml, pd2DutyAnswer, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2AmendCardOf, pd2FactRowLs, pd2FamCardHtml, pd2StepsHtml, pd2CardFiveHtml, pd2CardWho, pd2FormAskTakes, pd2FormAsk, pd2FormFaceHtml, pd2FormChipsPaint, pd2On, pd2Html, pd2HistFaceHtml, PD2_HK_TONE, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
 Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2NotesHiddenGet, pd2NotesHiddenSet, pd2NotesTgHtml, pd2NotesTgSolo, PD2_NOTES_HIDDEN_KEY, pd2RedAnswers, pd2RedStdAnswers, pd2RedBlocks, pd2RedGroupHtml, pd2RedChipsHtml, pd2RedAskHtml, pd2RedFloor, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
-  pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendReady, pd2AmNo, pd2AmSay, pd2AmAskOpen, pd2AmAskRun, pd2AmTake, pd2AmWriteNew, pd2AmxMarksHtml, pd2AmxSentenceHtml, pd2AmxReviewHtml, pd2AmxCheckHtml, pd2AmxTodayHtml, pd2AmRules, PD2_AMK_CHIPS, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
+  pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendReady, pd2AmNo, pd2AmSay, pd2AmAskOpen, pd2AmAskRun, pd2AmFoundOpen, pd2AmTake, pd2AmWriteNew, pd2AmxMarksHtml, pd2AmxSentenceHtml, pd2AmxReviewHtml, pd2AmxCheckHtml, pd2AmxTodayHtml, pd2AmRules, PD2_AMK_CHIPS, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,

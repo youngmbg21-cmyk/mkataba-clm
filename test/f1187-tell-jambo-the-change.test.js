@@ -66,6 +66,13 @@ test('f1187 (5) no silent failure', () => {
   assert.match(run, /if \(err\)\{ pd2AmAskOpen\(id, text, err\); return; \}/, 'said in the pop-up, the words kept');
   assert.match(run, /if \(seq !== _pdAm\.seq\) return;/, 'Stop, or a later question, drops a late answer');
   assert.match(fnOf(PD, 'pd2AmBusyOpen'), /busyHtml/, 'something moves while he reads');
+  assert.match(fnOf(PD, 'pd2AmBusyOpen'), /pd2-amk-bar/, 'a moving bar, as drawn');
+  /* what he found is shown from his answer, never faked while he reads; then one button */
+  assert.match(run, /pd2AmFoundOpen\(id, text,/);
+  const found = fnOf(PD, 'pd2AmFoundOpen');
+  assert.match(found, /_pdAm\.items\.filter\(x => x\.by === 'jambo'\)/);
+  assert.match(found, /_pdAm\.missing\.map/);
+  assert.match(found, /data-pd2-amk-see/);
 });
 
 test('f1187 (6) the record says Jambo drafted it', () => {
@@ -80,4 +87,5 @@ test('f1187 (7) the check step: the amendment or the agreement as amended, Befor
   assert.match(chk, /pd2_amc_before/);
   assert.match(chk, /pd2-amc-tl/);
   assert.doesNotMatch(chk, /fmtMoney/, 'no money in the check');
+  assert.match(chk, /id="pd2-amc-left"/, 'the paper scrolls in its own box, the check list and what happens next stay in view');
 });

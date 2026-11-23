@@ -136,6 +136,11 @@ const until = async (page, fn, arg, ms = 8000) => { try { await page.waitForFunc
     if (q8){ await page.click('#pd2-amk [data-pd2-amk-go]');
       check('8b nothing said is refused, and said where the reader looks', await until(page, () => !!document.querySelector('#pd2-amk .lgp-err')));
       await page.fill('#pd2-amk #pd2-amk-q', 'make it longer and add interest on late payments'); await page.click('#pd2-amk [data-pd2-amk-go]'); }
+    /* what he found, ticked in from his answer, then one button (the owner's pick "Real finds, then a button") */
+    const f8 = await until(page, () => !!document.querySelector('#pd2-amk [data-pd2-amk-see]'), null, 12000);
+    const fl = f8 ? await page.evaluate(() => [...document.querySelectorAll('#pd2-amk .pd2-amk-finds li')].map(li => li.textContent.replace(/\s+/g, ' ').trim())) : [];
+    check('8b2 the pop-up lists what he found, and what no clause covers', fl.length === 2 && /Found in/.test(fl[0]) && /Interest on late payments/.test(fl[1]), JSON.stringify(fl));
+    if (f8) await page.click('#pd2-amk [data-pd2-amk-see]');
     const r8 = await until(page, () => !!document.querySelector('.pd2-amr .pd2-amr-row'), null, 12000);
     const w8 = r8 ? await page.evaluate(() => ({ wait: !!document.querySelector('.pd2-amr-row .pd2-badge.is-amber'), why: /chose this clause/i.test((document.querySelector('.pd2-amr-why') || {}).textContent || ''),
       nf: /Interest on late payments/.test((document.querySelector('.pd2-amr-miss') || {}).textContent || ''), next: !!(document.querySelector('.pd2-amx-next') || {}).disabled })) : {};

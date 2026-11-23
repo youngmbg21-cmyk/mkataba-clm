@@ -18835,6 +18835,18 @@
   .pd2-amk-box .lgp-in{flex:1;min-height:72px;border:0;padding:0;font-size:15px;line-height:1.55;resize:vertical;background:none}
   .pd2-amk-chips{margin-top:12px}
   .pd2-amk-busy{padding:14px 0 6px;font-size:14px;color:var(--color-quiet)}
+  .pd2-amk-bar{height:4px;margin:16px 0 4px;border-radius:2px;background:var(--surface-2);overflow:hidden}
+  .pd2-amk-bar i{display:block;width:40%;height:100%;border-radius:2px;background:var(--accent-ink);animation:pd2AmkGlide 1.4s ease-in-out infinite}
+  .pd2-amk-bar.is-done i{width:100%;animation:none}
+  @keyframes pd2AmkGlide{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+  .pd2-amk-finds{list-style:none;margin:14px 0 0;padding:0;font-size:14px;line-height:1.5}
+  .pd2-amk-finds li{display:flex;gap:10px;padding:5px 0;opacity:0;transform:translateY(4px);animation:pd2AmkIn .3s ease-out forwards}
+  .pd2-amk-finds li:nth-child(2){animation-delay:.35s} .pd2-amk-finds li:nth-child(3){animation-delay:.7s} .pd2-amk-finds li:nth-child(4){animation-delay:1.05s} .pd2-amk-finds li:nth-child(n+5){animation-delay:1.4s}
+  .pd2-amk-finds b{font-weight:var(--w-label)}
+  .pd2-amk-tk{flex:none;width:16px;text-align:center} .pd2-amk-tk.is-ok{color:var(--st-green-fg)} .pd2-amk-tk.is-nf{color:var(--st-amber-dot)}
+  .pd2-amk-cut{margin:8px 0 0;font-size:13px;color:var(--st-amber-fg)}
+  @keyframes pd2AmkIn{to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion: reduce){.pd2-amk-bar i{animation:none;width:100%}.pd2-amk-finds li{animation:none;opacity:1;transform:none}}
   html.lg-new .pd2-amr{max-width:1100px;padding:4px 0 24px}
   html.lg-new .pd2-amr-asked{display:flex;align-items:baseline;gap:10px;padding:0 0 14px;border-bottom:1px solid var(--color-divider);font-size:14px}
   html.lg-new .pd2-amr-said{flex:1;min-width:0} html.lg-new .pd2-amr-said b{font-weight:var(--w-label)}
@@ -18869,6 +18881,7 @@
   html.lg-new .pd2-amc-chip.is-on{background:var(--color-text);color:var(--color-surface)}
   html.lg-new .pd2-amc-two{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(260px,1fr);gap:24px;align-items:start}
   html.lg-new .pd2-amc .pd2-amx-paper{padding:0;background:none}
+  html.lg-new .pd2-amc-left{max-height:calc(100vh - 330px);min-height:260px;overflow-y:auto;overscroll-behavior:contain}
   html.lg-new .pd2-amc .pd2-amx-sheet{max-width:none;padding:28px 32px;border:1px solid var(--color-divider);box-shadow:none}
   html.lg-new .pd2-amc-cl{margin:0 0 10px} html.lg-new .pd2-amc-cl b{font-weight:var(--w-strong)}
   html.lg-new .pd2-amc-cl .pd2-amr-add,html.lg-new .pd2-amc-cl .pd2-amr-del{font:inherit}
