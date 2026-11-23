@@ -2,10 +2,9 @@
 /* duties-card-verify — THE DUTIES CARD ON THE DOSSIER (owner's pick "Its own card", 23 Nov 2026; f1184 pins the source).
    Driven where the reader looks, on the practice SaaS paper (MK-IT, round 7's world):
    1  unread: the card says Jambo has not read the paper, and offers Read the paper
-   2  Jambo's three duties found: "3 found by Jambo · None added to your duties yet · Review", under Where the deal stands,
-      above the facts
-   3  Review opens the existing review page (Proposed obligations)
-   4  once added: "3 duties", and its press opens the contract's duty list
+   2  Jambo's three duties found: "3 to decide · 0 on the contract · Open", under Where the deal stands, above the facts
+   3  Open opens the contract's Duties page (RE-POINTED 23 Nov 2026, "Duties, end to end": one door, no ticks)
+   4  once added: "3 duties", and its press opens the same Duties page on "On the contract"
    Each half guarded: a missing feature reports, it does not time out. */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -36,21 +35,22 @@ const FOUND = [
     await us.evaluate(async F => { const c = getContract('MK-IT'); if (window.ensureFull) await ensureFull(c);
       c.triage = { at: new Date().toISOString(), by: 'Amina', steps: { oblig: { ok: true, found: F } } }; if (window.persist) await persist(c); if (window.flushSaves) await flushSaves(); }, FOUND);
     await open(); const c2 = await cardText();
-    check('2a found: "3 found by Jambo · None added to your duties yet · Review"', !!(c2 && c2.k === 'review' && /3 found by Jambo/.test(c2.t) && /None added/.test(c2.t) && /Review/.test(c2.t)), JSON.stringify(c2));
+    /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end"): one door whatever the state — "3 to decide · 0 on the contract · Open" */
+    check('2a found: "3 to decide · 0 on the contract · Open"', !!(c2 && c2.k === 'review' && /3 to decide/.test(c2.t) && /0 on the contract/.test(c2.t) && /Open/.test(c2.t)), JSON.stringify(c2));
     const order = await us.evaluate(() => { const d = document.querySelector('#ig-dock [data-pd2-dl-open]'), k = document.querySelector('#ig-dock [data-pd2-dtc]'), f = document.querySelector('#ig-dock .pd2-facts');
       return !!(d && k && f && (d.compareDocumentPosition(k) & Node.DOCUMENT_POSITION_FOLLOWING) && (k.compareDocumentPosition(f) & Node.DOCUMENT_POSITION_FOLLOWING)); });
     check('2b it sits under Where the deal stands and above the facts', order);
     if (c2) await us.click('#ig-dock [data-pd2-dtc]');
-    const p3 = await until(us, () => /Proposed obligations/.test(document.body.innerText), null, 8000);
-    check('3 Review opens the existing review page', p3);
+    const p3 = await until(us, () => !!document.getElementById('dtp') && !document.querySelector('#dtp input[type=checkbox]'), null, 8000);
+    check('3 Open opens the contract\'s Duties page (no ticks)', p3);
     await us.evaluate(async () => { const c = getContract('MK-IT'); if (typeof closeModal === 'function') closeModal();
       for (const o of triageHeldObligations(c)) obAddFound(c, o, o.party === 'them' ? 'them' : 'us');
       if (window.persist) await persist(c); if (window.flushSaves) await flushSaves(); });
     await open(); const c4 = await cardText();
     check('4a added: the card says 3 duties', !!(c4 && c4.k === 'list' && /3 duties/.test(c4.t)), JSON.stringify(c4));
     if (c4) await us.click('#ig-dock [data-pd2-dtc]');
-    const p4 = await until(us, () => typeof pdTab === 'function' && pdTab() === 'oblig', null, 6000);
-    check('4b its press opens the contract\'s duty list', p4);
+    const p4 = await until(us, () => { const t = document.querySelector('#dtp [data-dtp-tab="on"]'); return !!(t && t.getAttribute('aria-selected') === 'true'); }, null, 6000);
+    check('4b its press opens the same Duties page, on "On the contract"', p4);
     check('no page errors', errors.length === 0, errors.join(' | '));
   } catch (e) { check('the run completed', false, e.message); }
   finally { await browser.close(); await h.stop(); }

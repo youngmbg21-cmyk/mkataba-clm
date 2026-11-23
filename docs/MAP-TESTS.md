@@ -94,6 +94,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f841, f842 (the Guide's row), f561, f564 (the brain's three parts), f232 (the published names).
 
 ## THE SHELL — RAIL, BAR, PANELS
+- Delete this draft in sight (23 Nov 2026): f1188; f582 unchanged.
 - f1183 the jump window's × in the top right corner (23 Nov 2026; red at the parent).
 - f1178 a reading opens nothing until caActOf keeps it (caActLater/caActGo; 22 Nov 2026; red at the parent).
 - THE WATERMARK MOVES IN SETTINGS TOO (22 Nov 2026): test/chromium/panel-watermark-verify.js 2 and 2b RE-POINTED (drawn and moving; was "held still"), for GitHub; 3 (less motion: still) stands. Checked here in a browser page by page: every page that draws it has it moving. Re-ran green: f965, f1107, f236, f1147, f1149.
@@ -1087,3 +1088,10 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS — rows light green (23 Nov 2026)
 - test/f1186-rows-are-light-green.test.js — the two tokens (--row-hover, --row-chosen) and their export; no list row's hover or chosen state painted grey anywhere in the sheet (ROW_GREY_KNOWN only shrinks); the main lists read the tokens (red at the parent). Browser: approvals-head-and-chosen-row-verify 3 RE-POINTED to --row-chosen.
+
+## OBLIGATIONS — Duties, end to end (23 Nov 2026)
+- test/f1187-duties-end-to-end.test.js — one page (To decide · On the contract · Skipped, no ticks or Add all); the sheet over the page (own top layer, whose unchosen, Add duty · Skip, the next by itself, Both kept as ours); one door (hidden panel never shown, "obligations" left the chips); no mass add on the Obligations page; template duties proposed, never minted; no money in the panel; both books; the Handbook (red at the parent).
+- RE-POINTED to the owner's reversal: f554 (2)–(6), (T) (the desk is the Duties page, decided in the sheet); f1184 (2), (4); f1185 (now only "the morning's desk is gone"); f308 (7) (template duties proposed); f707 9b; f1098 (4); f1102 (1), (2); f672 4e, 4g; f748 5a; f1153 (4). Browser (GitHub): review-desk-verify, duties-card-verify, found-promises-verify, amount-and-window-verify, seven-fixes-verify 5f.
+
+## OBLIGATIONS — Jambo fills in the duty, a person decides (23 Nov 2026)
+- test/f1188-jambo-fills-in-the-duty.test.js — the due day from the contract's own end date with its line, none guessed; Jambo's reading under the choices, Use presses the chip, nothing pre-chosen; past choices (added as / with proof / skipped); the readings read only; both books; the Handbook (red at the parent).

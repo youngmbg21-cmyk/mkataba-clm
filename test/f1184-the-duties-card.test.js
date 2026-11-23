@@ -23,10 +23,12 @@ test('f1184 (1) the card sits under Where the deal stands, above the facts', () 
 });
 test('f1184 (2) every press is an existing door; the card writes nothing', () => {
   const h = fn('pd2DutiesCardHtml'), of = fn('pd2DutiesCardOf');
+  /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end"): ONE door whatever the state — the contract's Duties page
+     (data-pd-ds-obl → dutiesOpen); only an unread contract offers the read first */
   assert.match(h, /attr = 'data-pd-ds-obl'/);
-  assert.match(h, /attr = 'data-pd-glance-tab="oblig"'/);
+  assert.doesNotMatch(h, /data-pd-glance-tab="oblig"/, 'no second door to a hidden panel');
   assert.match(h, /attr = 'data-pd-ds-read'/);
-  assert.match(PD, /t\.closest\('\[data-pd-ds-obl\]'\)[\s\S]{0,400}openObligationsReview\(cc, found/, 'the review door already opens the review page');
+  assert.match(PD, /t\.closest\('\[data-pd-ds-obl\]'\)[\s\S]{0,300}window\.dutiesOpen\(cc\)/, 'the door opens the Duties page');
   for (const body of [h, of]) assert.doesNotMatch(body, /persist\(|api\(|\.obligations\s*=|\.push\(/, 'reading never writes');
 });
 test('f1184 (3) the states, and a Viewer gets no press', () => {
@@ -39,5 +41,6 @@ test('f1184 (4) both books carry the words; the Handbook names the card', () => 
   const I = R('js/i18n.js');
   for (const k of ['pd2_dt_head', 'pd2_dt_review', 'pd2_dt_none_added', 'pd2_dt_next', 'pd2_dt_unread', 'pd2_dt_read', 'pd2_dt_found_none', 'pd2_dt_found_one', 'pd2_dt_n_other'])
     assert.equal((I.match(new RegExp('^\\s+' + k + ':', 'mg')) || []).length, 2, k + ' in both books');
-  assert.match(R('js/handbook.js'), /Duties card, under Where the deal stands/);
+  /* RE-POINTED 23 Nov 2026 ("Duties, end to end"): the Handbook names the card as the one way to a contract's duties */
+  assert.match(R('js/handbook.js'), /the Duties card in its Dossier is the one way to its duties/);
 });

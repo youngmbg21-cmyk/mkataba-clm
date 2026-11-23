@@ -500,30 +500,27 @@ function templateObligationDue(c, spec){
    template cannot both end up on the list. Each carries origin:'template', so
    a reader can see where it came from — and edits or deletes it like any
    other obligation. */
-function mintTemplateObligations(c){
-  if(!c||!c.template) return 0;
+/* ---- A TEMPLATE'S DUTIES WAIT TO BE DECIDED, LIKE JAMBO'S (owner, 23 Nov 2026: "should these also wait in 'To decide'
+   like Jambo's finds, so a person adds or skips each one?" — "Yes") ----
+   They were minted straight onto the contract with no one deciding. Now they are PROPOSALS: the same specs, the same
+   filled-in days and dates, offered on the contract's Duties page under To decide (triageHeldObligations reads them
+   beside Jambo's), each added or skipped in the one sheet. Added, it carries origin 'template' and its key joins
+   c.tplObMinted, so it is never offered twice; skipped, the review's own mark keeps it skipped. Nothing is written
+   here. */
+function templateDutyProposals(c){
+  if(!c||!c.template) return [];
   const specs=TEMPLATE_OBLIGATIONS[c.template];
-  if(!Array.isArray(specs)||!specs.length) return 0;
-  c.obligations=Array.isArray(c.obligations)?c.obligations:[];
-  /* ---- A TEMPLATE'S PROMISE IS MINTED ONCE (26 Sep 2026, the overnight
-     clean-up) ----
-     This runs on every Overview edit and asked only "is this wording already
-     on the list" — so an obligation a person REMOVED came back with the next
-     keystroke, and one whose wording they EDITED was added a second time
-     beside it (measured). `c.tplObMinted` names the promises already minted,
-     and a person's removal or rewording is final. A contract minted before the
-     mark existed is recognised by the template's own sentence with any number
-     in it, so it is not minted twice either. */
+  if(!Array.isArray(specs)||!specs.length) return [];
   const minted=new Set(Array.isArray(c.tplObMinted)?c.tplObMinted.map(String):[]);
-  const before=minted.size;
+  const obs=Array.isArray(c.obligations)?c.obligations:[];
   const reEsc=x=>String(x).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  let n=0;
+  const out=[];
   for(const spec of specs){
     const key=String(spec.key||'');
     if(key && minted.has(key)) continue;
     if(key){
       const was=new RegExp('^'+reEsc(spec.desc||'').replace(reEsc('{n}'),'\\d+')+'$');
-      if(c.obligations.some(x=>x&&x.origin==='template'&&was.test(String(x.desc||'')))){ minted.add(key); continue; }
+      if(obs.some(x=>x&&x.origin==='template'&&was.test(String(x.desc||'')))) continue;
     }
     const due=templateObligationDue(c,spec);
     if(!due) continue;
@@ -531,16 +528,15 @@ function mintTemplateObligations(c){
     const days=spec.field?String(f[spec.field]||'').trim():String(spec.offset||'');
     const desc=String(spec.desc||'').replace('{n}',days);
     if(!desc||desc.includes('{n}')) continue;
-    const o={ id:'ob_t'+Math.random().toString(36).slice(2,8), desc, due,
-      recurring:spec.recurring||'none', party:spec.party==='theirs'?'theirs':'ours',
-      assignee:'', status:'open', quote:'', origin:'template' };
-    if(window.obligationAlreadyOn&&obligationAlreadyOn(c,o)){ if(key) minted.add(key); continue; }
-    c.obligations.push(o); n++;
-    if(key) minted.add(key);
+    const o={ desc, due, recurring:spec.recurring||'none', party:spec.party==='theirs'?'them':'us', quote:'', kind:'dated', origin:'template', tplKey:key };
+    if(window.obligationAlreadyOn&&obligationAlreadyOn(c,o)) continue;
+    out.push(o);
   }
-  if(minted.size!==before) c.tplObMinted=[...minted];
-  return n;
+  return out;
 }
+/* RETIRED AS A WRITER (owner, 23 Nov 2026): a template's duties are proposals now (templateDutyProposals); this answers
+   0 and writes nothing, so the two callers that used to mint on an edit add nothing on their own */
+function mintTemplateObligations(c){ return 0; }
 
 /* Copied by DESCRIPTOR, not spread. `value`'s label is a getter that names the
    workspace's currency, and `{...f}` reads it once and freezes the answer — so
@@ -583,4 +579,4 @@ Object.values(TEMPLATES).forEach(t=>{
   Object.defineProperty(t,'fields',{ get(){ return builtinTemplateFields(t.id); }, enumerable:false, configurable:true });
 });
 
-Object.assign(window,{TEMPLATE_BASE_FIELDS,TEMPLATE_PAY,TEMPLATE_NOTICE,TEMPLATE_OBLIGATIONS,templateObligationDue,mintTemplateObligations,builtinTemplateFields,FOLDERS,TEMPLATES,addCustomFolder,folderColor,visibleFolders,folderLegendHtml,folderOptionsHtml,rebuildFolderSelect,promptNewFolder,promptNewName,bindFolderSelect,saveCustomFolders,foldersFromSettings,valueStreamsSaved,saveValueStreams,saveFilingSettings,renameCustomFolder,removeCustomFolder,shareCustomFolder});
+Object.assign(window,{TEMPLATE_BASE_FIELDS,TEMPLATE_PAY,TEMPLATE_NOTICE,TEMPLATE_OBLIGATIONS,templateObligationDue,mintTemplateObligations,templateDutyProposals,builtinTemplateFields,FOLDERS,TEMPLATES,addCustomFolder,folderColor,visibleFolders,folderLegendHtml,folderOptionsHtml,rebuildFolderSelect,promptNewFolder,promptNewName,bindFolderSelect,saveCustomFolders,foldersFromSettings,valueStreamsSaved,saveValueStreams,saveFilingSettings,renameCustomFolder,removeCustomFolder,shareCustomFolder});
