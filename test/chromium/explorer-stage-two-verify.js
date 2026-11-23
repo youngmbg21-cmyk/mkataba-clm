@@ -169,7 +169,7 @@ const check = (name, pass, detail) => {
     const s2 = await said();
     check('2a "what depends on Kipande" opens Wiring, where the links are drawn, on Kipande and what links to it', r2.view === 1 && r2.lens === r2.n && r2.l >= 1, JSON.stringify(r2));
     check('2b it says what hangs on the party — with them, through a link, the streams, the open obligations — each counted from the record',
-      s2.includes(`Tied to Kipande Logistics: ${r2.n} contracts — ${r2.k} with them, ${r2.l} through a link — across ${r2.s} value streams, ${r2.o} obligations open`), s2 + ' | ' + JSON.stringify(r2));
+      s2.includes(`Tied to Kipande Logistics: ${r2.n} contracts — ${r2.k} with them, ${r2.l} through a link — across ${r2.s} value streams, ${r2.o} duties open`), s2 + ' | ' + JSON.stringify(r2));
     await page.screenshot({ path: path.join(OUT, '2-party-reach.png') });
     await ask('show everything');
 

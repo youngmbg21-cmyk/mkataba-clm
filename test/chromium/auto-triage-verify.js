@@ -138,7 +138,7 @@ const SEED = t => {
       !!(box && box.checked), box && { checked: box.checked });
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
     check('1d · the sentence names what the read does, no cost',
-      !!(box && /brief/i.test(box.txt) && /obligations/i.test(box.txt) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(box.txt)),
+      !!(box && /brief/i.test(box.txt) && /obligations|duties/i.test(box.txt) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(box.txt)),
       box && box.txt.slice(0, 150));
     await page.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
     await pause(400);
@@ -416,7 +416,7 @@ const SEED = t => {
       return m ? m.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) : '';
     }, undefined, '');
     check('8m · pressing Find on the Obligations tab opens the list to tick, not a scan',
-      /Proposed obligations|Föreslagna/i.test(dlg), { dlg });
+      /Proposed (obligations|duties)|Föreslagna/i.test(dlg), { dlg });
     check('8n · and it costs NOTHING — the reading is not made a second time',
       obligCalls - callsBefore === 0, { calls: obligCalls - callsBefore });
     const ticked = await drive(() => {

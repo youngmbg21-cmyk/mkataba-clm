@@ -40185,3 +40185,9 @@ The owner, with a photo of the paper's More list: "in more, make delete this dra
 
 ## AN AMENDMENT IS WRITTEN HERE (js/family.js) — the pop-up's chips come from the paper (23 Nov 2026)
 The owner, with a photo of MK-209's pop-up: "are these choices based on what jambo has seen from the contract or just generic information that sometimes may not apply?" They were generic (a fixed five). Built on "build it": `pd2AmkChipsOf` reads today's clauses by heading and words, without AI — Extend the term only where a term clause is (never Termination), Change the price only where money passes, payment days only where a clause sets days to pay, a notice address only where a Notices clause is; each names its § and starts the sentence from the paper's own words ("change the term in § 4 from three (3) years to "); Add a clause always stands.
+
+## OBLIGATIONS — "duties everywhere", and Jambo's helps 4 and 5 (23 Nov 2026)
+Owner: "build these: Round 2: renaming "obligations" to "duties" everywhere. Jambo's helps 4 and 5: suggesting who watches each duty, and saying why the proof box is ticked."
+- Every English sentence in the word book (255 values), the Handbook's English text, Jambo's teaching word and one hard-coded message now say duty/duties ("an obligation" → "a duty"). Swedish already said "åtagande" and is unchanged. Code names, page keys, AI instructions, comments and the legal notice wording ("obligations that survive") keep "obligation". Typed "obligations" still finds the page.
+- Reverses f754 9f's "the receipt says obligations, as drawn".
+- Help 4 `dutyWatchOf`: the non-Viewer who watches the same kind of duty (DUTY_TOPICS) on most other contracts, else the contract's owner; filled in, with why. Help 5 `dutyProofSay`: only when the reading set `doc`, naming the clause; insurance names the certificate. Both lines hide when no longer true. No AI call, nothing written.

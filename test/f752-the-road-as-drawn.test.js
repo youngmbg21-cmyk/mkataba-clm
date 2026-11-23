@@ -130,7 +130,7 @@ describe('f752 (3) each signer\'s stop says what it waits for', () => {
     const st = J(ctx.pdRoadStops(c)).stops;
     assert.equal(st[2].t, 'Helio Energy AB signs'); assert.equal(st[2].sub, 'Henrik Dahl · their link opens after the yes');
     assert.equal(st[3].t, 'Lindqvist & Co AB signs'); assert.equal(st[3].sub, 'Jonas Berg · back 26 Oct · only they can sign', 'away until Friday the 23rd: back the Monday after, a week ahead, so its date');
-    assert.equal(st[4].sub, 'Copies to both sides · 2 obligations start');
+    assert.equal(st[4].sub, 'Copies to both sides · 2 duties start');
   });
   test('3b a day as a person says it', () => {
     const { ctx } = stage();

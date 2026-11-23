@@ -230,7 +230,7 @@ describe('f800 (8) each piece folded to one line (the owner\'s answer (18), 19 O
     win.detailsOf = () => ({ left: 3, all: 5, live: true });
     const html = boardWork(win)({ key: 'ag:paper', items: [{ key: of('read').key }] });
     assert.match(html, /<span class="hb-pc-name">Arrival check: Baltic Freight<\/span>/);
-    assert.match(html, />Read on arrival: a brief, 2 obligations found, 3 details to fill and 1 departure from our playbook \(notice period\)\.</);
+    assert.match(html, />Read on arrival: a brief, 2 duties found, 3 details to fill and 1 departure from our playbook \(notice period\)\.</);
     assert.match(html, /data-ag-act="fill">Fill in 3 details</);
   });
   test('8c the dress: one list, a hairline between rows, the line cut at its end until it is opened', () => {

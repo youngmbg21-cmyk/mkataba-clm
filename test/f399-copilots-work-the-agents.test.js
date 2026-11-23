@@ -472,7 +472,7 @@ describe('f399 (6) — the cards and panels are as full as the drawing, off the 
     assert.match(body, /1 other position is met\./, 'a met standard is counted, never listed');
     assert.match(body, /Deliver the audit plan[\s\S]*Theirs/, 'the obligations found, whose each is');
     const acts = win.agPanelActs(it);
-    assert.match(acts, /data-ag-act="obs"[^>]*>Review 2 obligations</, 'with the one door onto adding them');
+    assert.match(acts, /data-ag-act="obs"[^>]*>Review 2 duties</, 'with the one door onto adding them');
     assert.match(acts, /^<button type="button" class="ui-btn ui-btn-primary" data-ag-act="brief">Read the brief</, 'Read the brief is the lead act');
     assert.match(CODE, /if \(act === 'obs'\)[\s\S]*?runFindObligations\(c\)/, 'which is runFindObligations — the review dialog, where each is ticked');
   });
@@ -492,8 +492,8 @@ describe('f399 (6) — the cards and panels are as full as the drawing, off the 
     assert.ok(it, 'the stage: the renewal is ready');
     const body = win.agPanelBody(it);
     assert.match(body, /Renews by itself/);
-    assert.match(body, /1 of 2 obligations were met on their date\./, 'how it went, off the obligations\' own readings');
-    assert.match(body, /1 obligation is overdue now\./);
+    assert.match(body, /1 of 2 duties were met on their date\./, 'how it went, off the obligations\' own readings');
+    assert.match(body, /1 duty is overdue now\./);
     assert.match(body, /Renew, and ask for faster repairs\./, 'the memo\'s headline');
     assert.match(body, /Three breakdowns this year\./, 'its reasons');
     assert.match(body, /A repair time of 24 hours\./, 'what to push on');

@@ -481,7 +481,7 @@ describe('f804 (10) the head says what it holds on every page', () => {
   });
   test('10c the words, both books', () => {
     const books = I18N.split(/\n  sv: \{/);
-    for (const [k, en, sv] of [['jl_w_week', 'Your week', 'Din vecka'], ['jl_w_obligation', 'Obligation', 'Åtagande'], ['jl_w_request', 'Request', 'Förfrågan']]){
+    for (const [k, en, sv] of [['jl_w_week', 'Your week', 'Din vecka'], ['jl_w_obligation', 'Duty', 'Åtagande'], ['jl_w_request', 'Request', 'Förfrågan']]){
       assert.ok(books[0].includes(`${k}: '${en}',`), k + ' en');
       assert.ok(books[1].includes(`${k}: '${sv}',`), k + ' sv');
     }
