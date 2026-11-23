@@ -22948,3 +22948,4 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 
 ## Noticed, not fixed — 23 Nov 2026 (filter chips in colour)
 - f1081-six-fixes-as-agreed fails on main already: it pins `.ngn-table tr.is-sel td{background:var(--color-accent-50)}`, which the light-green rows change (f1186) replaced. The test needs re-pointing to `--row-chosen`.
+- f387 (5b) fails on main: it pins Approvals' old `onOpen` (dep|std → apnPileOpen); f1182 (23 Nov) sends a departure to `apnPeekOpen`. The check needs re-pointing to the new line.

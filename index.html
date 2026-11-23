@@ -25504,6 +25504,11 @@
   html.lg-new #ig-page #ct-place .ct-page .ct-head :is(.reg-vtab,.lh-chip){display:inline-flex;align-items:center;gap:5px;height:26px;margin:0;padding:0 11px;border:1px dashed var(--color-neutral-300);border-radius:999px;background:transparent;color:var(--color-quiet);font-size:13px;font-weight:var(--w-label);box-shadow:none}
   html.lg-new #ig-page #ct-place .ct-page .ct-head .lh-chip{border-style:solid;border-color:var(--filter-on-edge);background:var(--filter-on-bg);color:var(--filter-on-ink)}
   html.lg-new #ig-page #ct-place .ct-page .ct-head .reg-vtab.on{border-style:solid;border-color:var(--color-neutral-300);color:var(--color-text);background:var(--color-surface)}
+  /* A TAB THAT NARROWS THE LIST IS IN COLOUR TOO (owner, 23 Nov 2026, picked "Green when it narrows"): a chosen tab chip that is not
+     the list's whole view (All, or the page's first tab) carries .is-narrow and wears the filter colour; All stays plain. One closing rule,
+     scoped above every page's own chosen-chip rule. f1193 (5). */
+  html:not(#_):not(#_):not(#_) :is(.apn-tab.is-chip.is-on, .reg-vtab.on, .nd-tab.is-chip.on, .ndb-chip, .act-chip, .hist6-chip, .rl-np-chip.on).is-narrow{border-style:solid;border-color:var(--filter-on-edge);background:var(--filter-on-bg);color:var(--filter-on-ink)}
+  html:not(#_):not(#_):not(#_) :is(.apn-tab.is-chip.is-on, .reg-vtab.on, .nd-tab.is-chip.on, .ndb-chip, .act-chip, .hist6-chip, .rl-np-chip.on).is-narrow :is(span, em, b, .n){color:inherit}
   /* THE CHOSEN CHIP IS WHITE WITH A SOLID LINE ON CONTRACTS (owner, 21 Nov 2026, as drawn; reverses f1109's shading here only) */
   html.lg-new #ig-page #ct-place .ct-page .ct-head .reg-vtab .n{padding:0 0 0 2px;color:inherit;font-weight:var(--w-label)}
   html.lg-new #ig-page #ct-place .ct-page .ct-head .reg-vtab[data-reg-view="needs"]::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--st-amber-dot)}

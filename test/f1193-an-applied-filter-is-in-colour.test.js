@@ -43,3 +43,37 @@ test('f1193 (3) the Contracts chosen tab stays white: only the filter chip chang
 test('f1193 (4) Import\'s first-screen choices are settings, not filters: they stay white', () => {
   assert.match(rule('html.lg-new .mign-start .mign-opts .apn-chip.is-set'), /background:var\(--color-surface\)/);
 });
+
+/* (5) A TAB THAT NARROWS (owner's pick "Green when it narrows", 23 Nov 2026): a chosen tab chip that is not the list's
+   whole view carries .is-narrow; one closing rule colours it; All stays plain. Red at the parent: no tab carried it. */
+const J = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+test('f1193 (5a) one closing rule colours every narrowing tab', () => {
+  const i = H.indexOf(':is(.apn-tab.is-chip.is-on, .reg-vtab.on, .nd-tab.is-chip.on, .ndb-chip, .act-chip, .hist6-chip, .rl-np-chip.on).is-narrow{');
+  assert.ok(i > 0);
+  assert.match(H.slice(i, H.indexOf('}', i)), /background:var\(--filter-on-bg\)/);
+});
+const NARROW = [
+  ['js/views/register.js', /on&&k!=='all'\?' is-narrow'/],
+  ['js/views/register.js', /t\[0\] !== 'live' \? ' is-narrow'/],
+  ['js/views/approvalsview.js', /t\[0\]!=='mine'\?' is-narrow'/],
+  ['js/views/directory.js', /t\[0\] !== 'all' \? ' is-narrow'/],
+  ['js/views/mynotes.js', /t\[0\] !== 'all' \? ' is-narrow'/],
+  ['js/views/reads.js', /t\[0\] !== 'all' \? ' is-narrow'/],
+  ['js/views/intake.js', /t\[0\] !== 'open' \? ' is-narrow'/],
+  ['js/views/customers.js', /t\[0\] !== 'all' \? ' is-narrow'/],
+  ['js/views/migration.js', /k !== 'all' \? ' is-narrow'/],
+  ['js/views/library.js', /is-shelf\$\{sh\.fid === _tplPf\.ls \? ' is-on is-narrow'/],
+  ['js/views/settings.js', /c\[0\]!=='all'\?' is-narrow'/],
+  ['js/views/counter.js', /_nd\.tab === k && k !== 'all' \? ' is-narrow'/],
+  ['js/views/counter.js', /_ndbChip === k && k !== 'all' \? ' is-narrow'/],
+  ['js/app.js', /_actChip===k&&k!=='all'\?' is-narrow'/],
+  ['js/views/contract.js', /on&&k\?' is-narrow'/],
+  ['js/views/negotiation.js', /k !== 'open' \? ' is-narrow'/],
+];
+for (const [f, re] of NARROW) test('f1193 (5b) ' + f + ' marks a narrowing tab', () => assert.match(J(f), re));
+test('f1193 (5c) the shared list tabs (insViewTabsHtml), saved views, Duties and Requests kinds mark it too', () => {
+  assert.match(J('js/views/inspector.js'), /on && !v\.keep && String\(v\.k\) !== 'all' && \(o\.views \|\| \[\]\)\.indexOf\(v\) > 0 \? ' is-narrow'/);
+  assert.match(J('js/views/listhead.js'), /reg-vtab-saved\$\{on \? ' on is-narrow'/);
+  assert.match(J('js/obligations.js'), /k !== OBT_VIEWS\[0\]\[0\] \? ' is-narrow'/);
+  assert.match(J('js/views/intake.js'), /tabs\.indexOf\(t\)>0\?' is-narrow'/);
+});

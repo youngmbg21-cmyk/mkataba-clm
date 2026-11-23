@@ -2363,7 +2363,7 @@ function regStageTabsHtml(R){
   const { whole, count }=regStageCounter();
   return `<div class="reg-views reg-stage-tabs" role="tablist" aria-label="${esc(i18t('reg_chip_stage'))}">${REG_STAGE_TABS.map(k=>{
     const on=(R.stage||'all')===k, n=count(k);
-    return `<button type="button" role="tab" class="reg-vtab${on?' on':''}${whole&&!n&&!on?' is-zero':''}" data-reg-stage="${esc(k)}" aria-selected="${on?'true':'false'}">${esc(regStageWord(k))}${n?`<span class="n">${n}</span>`:''}</button>`;
+    return `<button type="button" role="tab" class="reg-vtab${on?' on':''}${on&&k!=='all'?' is-narrow':''}${whole&&!n&&!on?' is-zero':''}" data-reg-stage="${esc(k)}" aria-selected="${on?'true':'false'}">${esc(regStageWord(k))}${n?`<span class="n">${n}</span>`:''}</button>`;
   }).join('')}</div>`;
 }
 /* ---- ON THE CONTRACTS PLACE THE STAGES ARE A BOX (owner, 16 Oct 2026:
@@ -5967,7 +5967,7 @@ function ngnRender(host){
     <div class="ap-body is-ins"><section class="ap-card apn-card">
       <div class="cun-head"><h2 class="ctf-h">${esc(i18t('ng_door_title'))}</h2><span class="ctf-sp"></span>${(typeof canEdit !== 'function' || canEdit()) ? `<button type="button" class="ui-btn ngn-start" data-ngn-start>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5', 2) : ''}${esc(i18t('ngn_start'))}</button>` : ''}</div>
       <label class="apn-ask is-filter">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input id="ngn-q" type="search" autocomplete="off" placeholder="${esc(askPh)}" aria-label="${esc(askPh)}" value="${esc(_ngnQ)}"></label>
-      <div class="apn-bar" data-lh-seat="negotiations-nl">${tabs.filter(t => t[2] || t[0] === 'live' || t[0] === _ngn).map(t => `<button type="button" class="apn-tab is-chip${_ngn === t[0] ? ' is-on' : ''}" data-ngn-tab="${t[0]}">${t[0] === 'you' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${esc(t[1])} <span>${t[2]}</span></button>`).join('')}${ngnLeadChipHtml(all)}</div>
+      <div class="apn-bar" data-lh-seat="negotiations-nl">${tabs.filter(t => t[2] || t[0] === 'live' || t[0] === _ngn).map(t => `<button type="button" class="apn-tab is-chip${_ngn === t[0] ? ' is-on' : ''}${_ngn === t[0] && t[0] !== 'live' ? ' is-narrow' : ''}" data-ngn-tab="${t[0]}">${t[0] === 'you' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${esc(t[1])} <span>${t[2]}</span></button>`).join('')}${ngnLeadChipHtml(all)}</div>
       <div class="cu-scroll"><table class="apn-table cun-table ngn-table" data-list-seat="${esc(REG_NEGO_SEAT)}">${C.colg}
         ${C.th}
         <tbody>${rows.map(r => ngnRowHtml(r, String(r.c.id) === String(_ngnSel), C.keys)).join('')}</tbody></table>${rows.length ? '' : `<p class="apn-none">${esc(i18t('ng_door_none'))}</p>`}</div>

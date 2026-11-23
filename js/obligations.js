@@ -4981,7 +4981,7 @@ function roomObligationsInspector(c, host){
      Outstanding · Overdue · Completed · All, Add and Find on the card's head.
      The facts sentence left with the button group (the tabs say the counts). */
   const seg = `<span class="reg-views obt-tabs" role="tablist" aria-label="${_obEsc(i18t('ob_views_label'))}">${OBT_VIEWS.map(([k, key]) => { const n = all.filter(r => pass(r, k)).length;
-    return `<button type="button" role="tab" class="reg-vtab${view === k ? ' on' : ''}${!n && view !== k ? ' is-zero' : ''}${k === 'overdue' && n ? ' is-late' : ''}" data-obt-view="${k}" aria-selected="${view === k ? 'true' : 'false'}">${_obEsc(i18t(key))}<span class="n">${n}</span></button>`; }).join('')}</span>`;
+    return `<button type="button" role="tab" class="reg-vtab${view === k ? ' on' : ''}${view === k && k !== 'all' && k !== OBT_VIEWS[0][0] ? ' is-narrow' : ''}${!n && view !== k ? ' is-zero' : ''}${k === 'overdue' && n ? ' is-late' : ''}" data-obt-view="${k}" aria-selected="${view === k ? 'true' : 'false'}">${_obEsc(i18t(key))}<span class="n">${n}</span></button>`; }).join('')}</span>`;
   const plus = typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '';
   const find = typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : '';
   const { cols, body } = obListHtml(rows, 'tab', c);

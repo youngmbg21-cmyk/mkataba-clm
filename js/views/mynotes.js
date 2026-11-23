@@ -481,7 +481,7 @@ function mnnRender(host, list, n, o){
   const ctOn = _mn.ct && _mn.ct !== '-' ? _mnContract(_mn.ct) : null;
   const ctChip = ctOn ? `<button type="button" class="apn-chip is-set" data-mnn-ct="">${_mnE(ctOn.name || _mnRef(ctOn))} <span aria-hidden="true">×</span></button>`
     : cts.length > 1 ? `<span class="apn-rule-w"><button type="button" class="apn-chip is-add" data-mnn-ct-open aria-expanded="false">+ ${_mnE(i18t('mn_row_contract'))}</button><span class="apn-rule-menu" hidden>${cts.map(c => `<button type="button" data-mnn-ct="${_mnE(c.id)}">${_mnE(c.name || _mnRef(c))}</button>`).join('')}</span></span>` : '';
-  const chips = tabs.filter(t => t[2] || t[0] === 'all' || t[0] === tab).map(t => `<button type="button" class="apn-tab is-chip${tab === t[0] ? ' is-on' : ''}" data-mnn-tab="${t[0]}">${t[0] === 'today' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${_mnE(t[1])} <span>${t[2]}</span></button>`).join('') + ctChip;
+  const chips = tabs.filter(t => t[2] || t[0] === 'all' || t[0] === tab).map(t => `<button type="button" class="apn-tab is-chip${tab === t[0] ? ' is-on' : ''}${tab === t[0] && t[0] !== 'all' ? ' is-narrow' : ''}" data-mnn-tab="${t[0]}">${t[0] === 'today' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${_mnE(t[1])} <span>${t[2]}</span></button>`).join('') + ctChip;
   const glass = typeof icon === 'function' ? icon('search', 'mnn-spark') : '';
   const PAGE = `<div class="view-enter sap-page ap-page is-ins apn-page cun-page mnn-page${all.length ? '' : ' is-empty'}" id="mn-page" data-ins-page="mynotes" data-ins="1">
     <div class="ap-body is-ins"><section class="ap-card apn-card">

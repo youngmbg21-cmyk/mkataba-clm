@@ -1740,7 +1740,7 @@ function migNlListHtml(rows){
 const MIGN_SPARK = '<svg class="mign-spark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z"/></svg>';
 function migNlPageHtml(rows){
   const need = rows.filter(r => MIG_NEEDS.includes(r.st.k)).length, read = rows.length - need;
-  const chip = (k, w, n, dot) => `<button type="button" class="apn-tab is-chip${_mign === k ? ' is-on' : ''}" data-mign-tab="${k}">${dot ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${esc(w)} <span>${n}</span></button>`;
+  const chip = (k, w, n, dot) => `<button type="button" class="apn-tab is-chip${_mign === k ? ' is-on' : ''}${_mign === k && k !== 'all' ? ' is-narrow' : ''}" data-mign-tab="${k}">${dot ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${esc(w)} <span>${n}</span></button>`;
   const may = typeof canEdit !== 'function' || canEdit();
   const streams = [...new Set(rows.map(r => (migNlPaperOf(r) || {}).folder).filter(f => f && window.FOLDERS && FOLDERS[f]))];
   const sName = f => (typeof STREAM_SHORT === 'object' && STREAM_SHORT && STREAM_SHORT[f]) || FOLDERS[f].name;
