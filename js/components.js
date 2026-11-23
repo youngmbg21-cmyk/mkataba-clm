@@ -1916,7 +1916,7 @@ function boxDraftJoin(box, seat){
    - Only boxes named here. Jambo's house's contract picker is NOT: it writes the chosen contract's name back into
      itself, and a kept half-word would fight it. */
 /* a `var`, not a `const`: this file is loaded twice into one test world (f830), where a second const is a crash */
-var BOX_DRAFT_SEATS = { 'jl-q': 'list', 'st-jb-q': 'settings', 'cal-plan-in': 'calendar' };
+var BOX_DRAFT_SEATS = { 'jl-q': 'list', 'st-jb-q': 'settings', 'cal-plan-in': 'calendar', 'cal-ls-ask': 'calendar-ask' };
 function boxDraftOf(id){ return id === 'igd-input' ? jamboDraft() : (BOX_DRAFT_SEATS[id] ? boxDraft(BOX_DRAFT_SEATS[id]) : ''); }
 function boxDraftSweep(){
   boxDraftSweep._due = false;

@@ -22958,3 +22958,4 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - f804 (3), (6) and its subtest "3a a word for one contract takes the held row…" are red on main before the old-layouts round (the list panel's ask / Brain naming); not touched.
 - f977 (6, 7) "the foot follows, one thing when empty — every HARMONY rule waits on the switch" is red on main before the old-layouts round; not touched.
 - Old-layouts round: below INS_NARROW_MIN (720 wide, short of the phone's 768 break) the pages still draw their old narrow layout, and Settings, Negotiations and Jambo's agents have no INS_PAGE_REPAINT entry, so crossing 720 does not redraw them.
+- P-14 build (Calendar, the Legora + Stripe way): run here at unmodified origin/main 9df4ca58, these node checks are already red, identically before and after the build — f672 (2), f678 (3f), f690 (1), f705 (8), f735 (3), f754 (2), f841 (2), f966 (1) and the subtests they hold; not touched.
