@@ -68,12 +68,14 @@ describe('f880 — one Jambo window for an item said in his words', () => {
   test('the empty New agreement panel: his greeting, then what he can do there', () => {
     const h = fnBody(PD, 'pdWallHelloHtml');
     /* RE-POINTED 26 Oct 2026 (owner: "Build Jambo's Overview tab The Legora Way"; "we will have an overview tab side panel in each page followed by the jambo tab", answered "Yes, every page"): no panel is one window any more and his greeting is the Jambo tab's first words, never the Overview's */
-    assert.match(h, /naSheetUp\(\)\)\s*\n\s*return ov\(\{ head: \{ html: _pdE\(_pdT\('ca_go_draft'\)\) \}/);
+    /* RE-POINTED 23 Nov 2026 (owner: "delete the old versions and merge"): the sheet's old "what I can do here" panel is
+       deleted; while none of the sheet's own panels is ready the panel says Loading (pdWaitHtml) */
+    assert.match(h, /naSheetUp\(\)\) return pdWaitHtml\('pd-sheet-hello'\);/);
     assert.doesNotMatch(h.replace(/\/\*[\s\S]*?\*\//g, ''), /jamboHelloHtml/, 'no greeting on the Overview');
-    assert.match(h, /\['ca_go_draft_can1', 'ca_go_draft_can2', 'ca_go_draft_can3'\]/);
+    assert.doesNotMatch(h, /ca_go_draft/, 'its words left with it');
   });
   test('both books carry the words', () => {
-    ['tl_dt_library', 'tl_dt_rename', 'tl_dt_new_version', 'tl_dt_archive', 'tl_dt_delete', 'ca_go_draft_can_h', 'ca_go_draft_can1', 'ca_go_draft_can2', 'ca_go_draft_can3']
+    ['tl_dt_library', 'tl_dt_rename', 'tl_dt_new_version', 'tl_dt_archive', 'tl_dt_delete', 'ca_go_draft_can_h']
       .forEach(k => assert.equal((I18N.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k));
   });
 });
