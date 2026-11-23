@@ -22951,3 +22951,8 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - f1081-six-fixes-as-agreed fails on main already: it pins `.ngn-table tr.is-sel td{background:var(--color-accent-50)}`, which the light-green rows change (f1186) replaced. The test needs re-pointing to `--row-chosen`.
 - f387 (5b) fails on main: it pins Approvals' old `onOpen` (dep|std → apnPileOpen); f1182 (23 Nov) sends a departure to `apnPeekOpen`. The check needs re-pointing to the new line.
 - FIXED 23 Nov 2026: f387 (5b) re-pointed to f1182's onOpen (dep: → apnPeekOpen).
+
+## Noticed, not fixed — 23 Nov 2026
+- f804 (3), (6) and its subtest "3a a word for one contract takes the held row…" are red on main before the old-layouts round (the list panel's ask / Brain naming); not touched.
+- f977 (6, 7) "the foot follows, one thing when empty — every HARMONY rule waits on the switch" is red on main before the old-layouts round; not touched.
+- Old-layouts round: below INS_NARROW_MIN (720 wide, short of the phone's 768 break) the pages still draw their old narrow layout, and Settings, Negotiations and Jambo's agents have no INS_PAGE_REPAINT entry, so crossing 720 does not redraw them.
