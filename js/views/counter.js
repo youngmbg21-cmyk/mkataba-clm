@@ -1074,7 +1074,7 @@ function ndBellNlHtml(D){
       + `<div class="ndb-e"><button type="button" class="ui-link ndb-amw-open" ${P.attrs}>${_cnE(_cnT('nd_btn_open'))}</button></div></div>`; };
   const alertsHtml = hitRows.length && _ndbChip === 'all' ? `<div class="ndb-h" data-ndb-head="alerts">${_cnE(_cnT('amw_bell_head'))}</div>${hitRows.map(hitRow).join('')}` : '';
   const all = L.length;
-  const chip = (k, m) => `<button type="button" class="ndb-chip" data-ndb-chip="${k}" aria-pressed="${_ndbChip === k}">${_cnE(_cnT('ndb_chip_' + k))} <span>${m}</span></button>`;
+  const chip = (k, m) => `<button type="button" class="ndb-chip${_ndbChip === k && k !== 'all' ? ' is-narrow' : ''}" data-ndb-chip="${k}" aria-pressed="${_ndbChip === k}">${_cnE(_cnT('ndb_chip_' + k))} <span>${m}</span></button>`;
   const head = all ? `<div class="ndb-chips" role="group" aria-label="${_cnE(_cnT('ap_scope_you'))}">${chip('all', all)}${['late', 'you', 'jambo'].filter(k => n[k]).map(k => chip(k, n[k])).join('')}</div>`
     + `<div class="ndb-bar" aria-hidden="true">${['late', 'you', 'jambo'].filter(k => n[k]).map(k => `<i class="is-${k}" style="flex:${n[k]}"></i>`).join('')}</div>`
     + `<div class="ndb-legend">${['late', 'you', 'jambo'].filter(k => n[k]).map(k => `<span><i class="is-${k}" aria-hidden="true"></i>${_cnE(_cnTn('ndb_leg_' + k, n[k], { n: n[k] }))}</span>`).join('')}</div>` : '';
@@ -1164,7 +1164,7 @@ function ndBoardHtml(opts){
   const sum = [_cnTn('nd_things', B.n, { n: B.n }), ndSumWords(D)].filter(Boolean).join(' · ');
   /* ("Home shows the top N · this is all of it" went with Home, 10 Nov 2026: the card is the whole list, said once) */
   /* chips with their counts, a soft dot of their colour (P-39); a chip with nothing in it is not drawn (but All) */
-  const tab = (k, n) => (k !== 'all' && !n && _nd.tab !== k) ? '' : `<button type="button" class="nd-tab is-chip${_nd.tab === k ? ' on' : ''}" data-nd-tab="${k}" aria-pressed="${_nd.tab === k}">${k === 'late' ? `<i class="nd-st-dot is-${k}" aria-hidden="true"></i>` : ''}${_cnE(_cnT(k === 'late' ? 'ndb_chip_late' : 'nd_tab_' + k))} <span class="nd-tab-n">${n}</span></button>`;
+  const tab = (k, n) => (k !== 'all' && !n && _nd.tab !== k) ? '' : `<button type="button" class="nd-tab is-chip${_nd.tab === k ? ' on' : ''}${_nd.tab === k && k !== 'all' ? ' is-narrow' : ''}" data-nd-tab="${k}" aria-pressed="${_nd.tab === k}">${k === 'late' ? `<i class="nd-st-dot is-${k}" aria-hidden="true"></i>` : ''}${_cnE(_cnT(k === 'late' ? 'ndb_chip_late' : 'nd_tab_' + k))} <span class="nd-tab-n">${n}</span></button>`;
   const W = ndWaitCounts(D);
   const chip = (k, n) => `<button type="button" class="nd-chip${_nd.kind === k ? ' on' : ''}" data-nd-kind="${k}" aria-pressed="${_nd.kind === k}">${_cnE(_cnT('nd_k_' + k))}${n != null ? ' ' + n : ''}</button>`;
   const jamboOn = _nd.tab === 'jambo' || _nd.kind === 'jambo';

@@ -266,7 +266,7 @@ CHOSEN ROW: `apnLeadFiveHtml` (P-30: Approve/Decline · Remind · Undo in the pa
 ## THE LIST HEAD (js/views/listhead.js)
 - ONE head, ten lists (`lhRegister`, `lhHtml`, `lhHeadSync`), Columns `LC_*`; 0 tab hidden unless lit; Filter only values with rows. Box a quiet FILTER (`LH_BOX_ASKS` false).
 - THE TOP BOX FILTERS, JAMBO'S BOX ASKS (owner, 22 Nov 2026; reverses P-31's asking box): eleven list pages' top box = `is-filter`, magnifying glass, `lh_filter_ph` (Settings `sdd_find_ph`, My notes `mnn_filter_ph`, batch `mign_filter_ph`), every word narrows, Enter hands nothing to Jambo; the page's example question sits in Jambo's box (`jlPagePh`/`JL_PAGE_ASKS`; Contracts `hbPlaceholder`). Discover and Import's first screen still ask. f1146.
-- AN APPLIED FILTER IS SHADED (owner, 19 Nov 2026): `.lh-chip` filled `--surface-2`, its x darker on hover. f1109.
+- AN APPLIED FILTER IS IN COLOUR (owner, 23 Nov 2026; reverses 19 Nov's grey and Contracts' white): every filter-in-force chip reads `--filter-on-bg`/`-edge`/`-ink` (green) — `.lh-chip`, `.apn-chip.is-set`, `.obs-chip.is-on`, `.obd-chip`, History, Handbook, Requests, their page; Import's setting chips (`.mign-opts`) stay white. A chosen TAB that narrows (not All, not the page's first) carries `.is-narrow` and wears it too; All stays plain (owner's pick "Green when it narrows"); one closing rule. f1109, f1193.
 - LIST LANGUAGE (js/listlang.js): `listMarkHtml`, `listWordHtml`, `listChipHtml`; standards a SCORECARD (`stdRowWordsHtml`; f989).
 - COLUMN RULE `listCols(seat, cols, repaint)`: step aside by `rank`; name 300…480 (`SPREAD_NAME_MIN`, `LIST_NAME_MAX`); drag per list (`LIST_COLW_KEY`); Contracts own (`regHomeWide`). list-columns-verify.
 ## ONE SHEET AND THREE BUTTONS (index.html "ONE SHEET" block)

@@ -1840,7 +1840,7 @@ function cunRender(host, INS, o){
   const addChip = (k, label, opts, set, word) => set
     ? `<button type="button" class="apn-chip is-set" data-cun-f="${k}" data-cun-v="">${esc(word(set))} <span aria-hidden="true">×</span></button>`
     : opts.length > 1 ? `<span class="apn-rule-w"><button type="button" class="apn-chip is-add" data-cun-f-open="${k}" aria-expanded="false">+ ${esc(label)}</button><span class="apn-rule-menu" hidden>${opts.map(x => `<button type="button" data-cun-f="${k}" data-cun-v="${esc(x)}">${esc(word(x))}</button>`).join('')}</span></span>` : '';
-  const chips = tabs.map(t => `<button type="button" class="apn-tab is-chip${_cun === t[0] ? ' is-on' : ''}" data-cun-tab="${t[0]}">${t[0] === 'wait' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${esc(t[1])} <span>${t[2]}</span></button>`).join('')
+  const chips = tabs.map(t => `<button type="button" class="apn-tab is-chip${_cun === t[0] ? ' is-on' : ''}${_cun === t[0] && t[0] !== 'all' ? ' is-narrow' : ''}" data-cun-tab="${t[0]}">${t[0] === 'wait' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${esc(t[1])} <span>${t[2]}</span></button>`).join('')
     + addChip('stream', i18t('reg_chip_stream'), streams, _cunF.stream, cunShortOf) + addChip('status', i18t('apn_col_status'), statuses, _cunF.status, cunStatusWord);
   let table;
   if (_cun === 'wait'){

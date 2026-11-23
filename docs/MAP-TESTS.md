@@ -1111,3 +1111,6 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 - Re-pointed to "duty": f399 (6e, 6f), f554 (5), f614, f693 (4b), f752 (3a), f754 (9f reverses "the receipt says obligations"), f791 (1b), f800 (8b), f804 (10c); browser: explorer-lenses, explorer-stage-two, obligations-renewal-legora-way, one-sheet-as-drawn, overview-and-obligations-polish, auto-triage, amendment-journey, five-screenshots.
 - f1192 (4)(5): the signing limit reads the same view on both hosts; Create carries a figure from the changed wording when nobody pressed Use.
 - Short names and read again (23 Nov 2026): `node --test test/f1193-duties-read-again-and-short-names.test.js` (with f1187, f1188, f1191).
+
+## THE LIST HEAD — an applied filter is in colour (23 Nov 2026)
+- `node --test test/f1193-an-applied-filter-is-in-colour.test.js test/f1109-an-applied-filter-is-shaded.test.js test/f965-the-tokens-are-the-law.test.js`; browser: contracts-page-verify 12f (GitHub).

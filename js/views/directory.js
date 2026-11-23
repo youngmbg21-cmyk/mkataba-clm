@@ -1179,7 +1179,7 @@ function dirnRender(host, INS, book, o){
   const parties = [...new Map(outside.filter(p => p.partyKey && p.partyName).map(p => [p.partyKey, p.partyName])).entries()].sort((x, y) => String(x[1]).localeCompare(String(y[1])));
   const ptyChip = atParty ? `<button type="button" class="apn-chip is-set" data-dirn-party-clear title="${_dE(i18t('dirn_party_clear'))}">${_dE(ptyName)} <span aria-hidden="true">×</span></button>`
     : parties.length ? `<span class="apn-rule-w"><button type="button" class="apn-chip is-add" data-dirn-party-open aria-expanded="false">+ ${_dE(i18t('dirn_chip_party'))}</button><span class="apn-rule-menu" hidden>${parties.map(([k, nm]) => `<button type="button" data-dirn-party="${_dE(k)}">${_dE(nm)}</button>`).join('')}</span></span>` : '';
-  const chips = tabs.map(t => `<button type="button" class="apn-tab is-chip${(atParty ? 'all' : _dirn) === t[0] ? ' is-on' : ''}" data-dirn-tab="${t[0]}">${t[0] === 'wait' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${_dE(t[1])} <span>${t[2]}</span></button>`).join('') + ptyChip;
+  const chips = tabs.map(t => `<button type="button" class="apn-tab is-chip${(atParty ? 'all' : _dirn) === t[0] ? ' is-on' : ''}${(atParty ? 'all' : _dirn) === t[0] && t[0] !== 'all' ? ' is-narrow' : ''}" data-dirn-tab="${t[0]}">${t[0] === 'wait' ? '<i class="apn-cd is-amber" aria-hidden="true"></i>' : ''}${_dE(t[1])} <span>${t[2]}</span></button>`).join('') + ptyChip;
   /* AN HONEST FILTER (owner, 22 Nov 2026): the box narrows the list and says only that; questions are Jambo's, in his box */
   const askPh = i18t('lh_filter_ph');
   const PAGE = `<style>${(typeof window !== 'undefined' && window.CU_WHO_CSS) || ''}${DIR_CSS}</style>

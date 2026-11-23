@@ -733,7 +733,7 @@ function insViewTabsHtml(o){
     try { return n.toLocaleString((typeof jxLocale === 'function') ? jxLocale() : undefined); } catch (_){ return String(n); } };
   return `<div class="reg-views" role="tablist"${o.label ? ` aria-label="${esc(o.label)}"` : ''}>${(o.views || []).filter(v => v && (v.n !== 0 || v.keep || String(v.k) === String(o.cur))).map(v => {
     const on = String(v.k) === String(o.cur);
-    return `<button type="button" role="tab" class="reg-vtab${on ? ' on' : ''}${!v.n && !on ? ' is-zero' : ''}" ${o.attr}="${esc(v.k)}" aria-selected="${on ? 'true' : 'false'}"${v.title ? ` title="${esc(v.title)}"` : ''}>${
+    return `<button type="button" role="tab" class="reg-vtab${on ? ' on' : ''}${on && !v.keep && String(v.k) !== 'all' && (o.views || []).indexOf(v) > 0 ? ' is-narrow' : ''}${!v.n && !on ? ' is-zero' : ''}" ${o.attr}="${esc(v.k)}" aria-selected="${on ? 'true' : 'false'}"${v.title ? ` title="${esc(v.title)}"` : ''}>${
       esc(v.label)}${v.n ? `<span class="n">${esc(num(v.n))}</span>` : ''}</button>`; }).join('')}${o.after || ''}</div>`;
 }
 /* A FACTS GRID FOR ANYTHING: label over value, an em-dash for silence, a

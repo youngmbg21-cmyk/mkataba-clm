@@ -2337,6 +2337,7 @@
      second token for a second job, not a redefinition of the first. */
   :root{ --accent-fill:var(--accent-solid); } /* CHAMBERS (20 Oct 2026): a filled control is the ink, black (18.3:1 under white); was accent-600 (7 Oct). See .ui-btn-primary */
   :root{ --morning-warm:#FBF7EE; --jb-card-fill-new:#F3F2F8; }  /* MORNING LIGHT (round 2 of the Legora way, owner picked it 31 Oct 2026): the warm top behind Home's greeting */
+  :root{ --filter-on-bg:var(--st-green-bg); --filter-on-edge:var(--st-green-line); --filter-on-ink:var(--st-green-fg); }  /* AN APPLIED FILTER IS IN COLOUR (owner, 23 Nov 2026: "the filtered thing needs to be in color so it stands out"; reverses f1109's grey): every list's filter-in-force chip reads these three */
   :root{ --accent-ink:#087363; --accent-ink-700:#065A4D; --row-hover:color-mix(in srgb,var(--accent-ink) 4%,var(--color-surface)); --row-chosen:color-mix(in srgb,var(--accent-ink) 6%,var(--color-surface)); }  /* A ROW POINTED AT OR CHOSEN IS LIGHT GREEN, NEVER GREY (owner, 23 Nov 2026: "hovering or highlighting rows are not in grey but should be in light green like in the discovery page"): every list row on every page and panel reads these two */  /* the Legora look: a link is the drawing's teal one step deeper (#0A7C6B measured 4.49:1 on the grey pill): 5.8:1 on white, 5.1 on the pill (23 Oct 2026; Chambers' was the deep green) */
 
   /* ═══ AND THE TWO PALE RUNGS, WHICH CARRY A SURFACE ══════════════════════
@@ -5742,7 +5743,7 @@
   .obd-chips{display:flex;gap:6px;flex-wrap:wrap}
   .obd-chip{position:relative;display:inline-flex;align-items:center;border:1px dashed var(--color-neutral-300);border-radius:999px;font-size:12.5px;color:var(--color-quiet);white-space:nowrap}
   .obd-chip > button{padding:3px 10px;background:none;border:0;border-radius:999px;color:inherit}
-  .obd-chip.is-set{border-style:solid;background:var(--surface-2);color:var(--color-text)}
+  .obd-chip.is-set{border-style:solid;border-color:var(--filter-on-edge);background:var(--filter-on-bg);color:var(--filter-on-ink)}
   .obd-chip.is-set > button:first-child{padding-right:2px}
   .obd-chip .obd-chip-x{padding:3px 9px 3px 4px;color:var(--color-neutral-400)}
   .obd-chip .obd-chip-x:hover{color:var(--color-text)}
@@ -16134,12 +16135,12 @@
   .sap-page .lh-chips{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s-2);min-height:var(--ctl-h);}
   /* AN APPLIED FILTER IS SHADED (owner, 19 Nov 2026: "the selected stream in the search should be shaded so it is easier to know there is a filter"): every list head's chip is a filled grey, its x darker on hover */
   .sap-page .lh-chips > .lh-sp{flex:1 1 auto;}
-  .sap-page .lh-chip{position:relative;display:inline-flex;align-items:center;height:var(--ctl-h);border:1px solid var(--surface-2);border-radius:var(--radius);background:var(--surface-2);font-size:var(--t-body);white-space:nowrap;}
-  .sap-page .lh-chip > label{position:relative;display:inline-flex;align-items:center;gap:6px;height:100%;padding:0 4px 0 var(--pad-ctl-x);color:var(--color-neutral-500);font-weight:var(--w-label);cursor:pointer;}
-  .sap-page .lh-chip > label b{color:var(--color-neutral-900);font-weight:var(--w-strong);}
+  .sap-page .lh-chip{position:relative;display:inline-flex;align-items:center;height:var(--ctl-h);border:1px solid var(--filter-on-edge);border-radius:var(--radius);background:var(--filter-on-bg);font-size:var(--t-body);white-space:nowrap;}
+  .sap-page .lh-chip > label{position:relative;display:inline-flex;align-items:center;gap:6px;height:100%;padding:0 4px 0 var(--pad-ctl-x);color:var(--filter-on-ink);font-weight:var(--w-label);cursor:pointer;}
+  .sap-page .lh-chip > label b{color:var(--filter-on-ink);font-weight:var(--w-strong);}
   .sap-page :is(.lh-chip,.lh-add) .reg-chip-sel{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
   .sap-page .lh-chip .lh-x{display:inline-flex;align-items:center;justify-content:center;width:var(--ctl-h-sm);height:var(--ctl-h-sm);margin-right:3px;padding:0;border:0;border-radius:var(--radius);background:none;color:var(--color-neutral-500);cursor:pointer;}
-  .sap-page .lh-chip .lh-x:hover,.sap-page .lh-chip .lh-x:focus-visible{background:var(--color-neutral-200);color:var(--color-neutral-900);}
+  .sap-page .lh-chip .lh-x:hover,.sap-page .lh-chip .lh-x:focus-visible{background:var(--filter-on-edge);color:var(--filter-on-ink);}
   .sap-page .lh-add{position:relative;display:inline-flex;align-items:center;gap:4px;height:var(--ctl-h);padding:0 var(--pad-ctl-x);border:1px dashed var(--rule-strong);border-radius:var(--radius);background:none;color:var(--accent-ink);font-size:var(--t-body);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;}
   .sap-page .lh-add:hover,.sap-page .lh-add:focus-within{border-color:var(--accent-ink);}
   .sap-page .lh-chips .lc-wrap{flex:none;}
@@ -20177,7 +20178,7 @@
   html.lg-new .apn-cd.is-steel{background:var(--st-steel-dot)}
   html.lg-new .apn-cd.is-green{background:var(--st-green-dot)}
   html.lg-new .apn-chip{height:26px;padding:0 10px;border-radius:999px;border:1px dashed var(--color-neutral-300);background:none;font:inherit;font-size:var(--t-label);color:var(--color-quiet);cursor:pointer}
-  html.lg-new .apn-chip.is-set{border-style:solid;background:var(--surface-2);color:var(--color-text)}
+  html.lg-new .apn-chip.is-set{border-style:solid;border-color:var(--filter-on-edge);background:var(--filter-on-bg);color:var(--filter-on-ink)}
   html.lg-new .apn-rule-w{position:relative}
   html.lg-new .apn-rule-menu{position:absolute;top:30px;left:0;z-index:5;display:flex;flex-direction:column;min-width:200px;padding:6px;border:1px solid var(--color-neutral-200);border-radius:var(--radius);background:var(--color-surface);box-shadow:0 8px 24px rgba(0,0,0,.08)}
   html.lg-new .apn-rule-menu[hidden]{display:none}
@@ -21201,7 +21202,7 @@
      choice under it, a chosen side shaded with its x; a note's badge violet; an outcome nobody has is a dash; the
      columns give What happened the room (nothing wraps at 1366); the panel while History is open */
   html.lg-new .hist6-chips .hist6-chip:not(.is-on){border-style:dashed}
-  html.lg-new .hist6-chips .hist6-chip.is-set{background:var(--surface-2);border-style:solid}
+  html.lg-new .hist6-chips .hist6-chip.is-set{border-style:solid;border-color:var(--filter-on-edge);background:var(--filter-on-bg);color:var(--filter-on-ink)}
   html.lg-new .hist6-side{position:relative;display:inline-flex}
   html.lg-new .hist6-side-pop{position:absolute;left:0;top:calc(100% + 4px);z-index:5;display:flex;flex-direction:column;min-width:150px;padding:4px;border-radius:var(--radius);background:var(--color-surface);box-shadow:var(--shadow-lg)}
   html.lg-new .hist6-side-pop button{border:0;background:none;padding:7px 10px;border-radius:6px;font:inherit;font-size:13px;text-align:left;color:var(--color-text);cursor:pointer}
@@ -22451,7 +22452,7 @@
   html.lg-out .pol-wd-btn{height:26px;padding:0 12px;border:0;border-radius:999px;background:var(--surface-2);font:inherit;font-size:12.5px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;white-space:nowrap}
   html.lg-out .pol-wd-ok{color:var(--st-green-fg);font-weight:var(--w-label);white-space:nowrap} html.lg-out .pol-wd-no{color:var(--st-ruby-fg);white-space:nowrap} html.lg-out .pol-wd-wait{color:var(--st-amber-fg);font-weight:var(--w-label);white-space:nowrap}
   html.lg-out .pol-chip:not(.is-on){border-style:dashed}
-  html.lg-out .pol-chip.is-set{background:var(--surface-2);border-style:solid}
+  html.lg-out .pol-chip.is-set{border-style:solid;border-color:var(--filter-on-edge);background:var(--filter-on-bg);color:var(--filter-on-ink)}
   html.lg-out .pol-w-t{width:100%;border-collapse:collapse;table-layout:fixed;font-size:13.5px}
   html.lg-out .pol-w-t th{text-align:left;padding:9px 12px 9px 8px;border-bottom:1px solid var(--color-divider);font-size:12px;font-weight:var(--w-label);color:var(--color-quiet)}
   html.lg-out .pol-w-t th:nth-child(2){width:180px}
@@ -22646,7 +22647,7 @@
   html.lg-new .hbkn-fbox input{border:0;outline:0;background:none;font:inherit;font-size:14px;color:var(--color-text);flex:1;min-width:0;padding:2px 0}
   html.lg-new .hbkn-chipw{position:relative}
   html.lg-new .hbkn-chip{border:1px dashed var(--color-neutral-300);border-radius:999px;background:none;font:inherit;font-size:13px;color:var(--color-quiet);padding:4px 11px;cursor:pointer;white-space:nowrap;display:inline-flex;gap:6px;align-items:center}
-  html.lg-new .hbkn-chip.is-set{border-style:solid;border-color:transparent;background:var(--surface-2);color:var(--color-text)}
+  html.lg-new .hbkn-chip.is-set{border-style:solid;border-color:var(--filter-on-edge);background:var(--filter-on-bg);color:var(--filter-on-ink)}
   html.lg-new .hbkn-x{color:var(--color-quiet)}
   html.lg-new .hbkn-menu{position:absolute;left:0;top:calc(100% + 6px);z-index:20;min-width:220px;max-height:320px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.08);padding:6px;display:flex;flex-direction:column}
   html.lg-new .hbkn-opt{border:0;background:none;font:inherit;font-size:13.5px;text-align:left;padding:7px 10px;border-radius:6px;cursor:pointer;color:var(--color-text)}
@@ -24024,7 +24025,7 @@
   html.lg-new .obs-ring circle.is-f{stroke:var(--st-violet-dot)}
   html.lg-new .obs-chips{display:flex;flex-wrap:wrap;gap:6px}
   html.lg-new .obs-chip{height:26px;padding:0 10px;border-radius:999px;border:1px dashed var(--color-neutral-300);background:var(--color-surface);color:var(--color-text);font:var(--w-label) var(--t-label)/1 var(--font-body);cursor:pointer;white-space:nowrap}
-  html.lg-new .obs-chip.is-on{border-style:solid;background:var(--surface-2)}
+  html.lg-new .obs-chip.is-on{border-style:solid;border-color:var(--filter-on-edge);background:var(--filter-on-bg);color:var(--filter-on-ink)}
   html.lg-new .obt-page .obt-cols.obs-table{display:block;grid-template-columns:none;column-gap:0}
   html.lg-new .obt-page .obn-bar2r{flex-wrap:wrap;row-gap:var(--s-2)}
   html.lg-new .obs-th,html.lg-new .obs-r{display:grid;grid-template-columns:minmax(0,2.4fr) 90px 104px minmax(0,1fr) 96px 84px;gap:var(--s-3);align-items:center}
@@ -25413,8 +25414,8 @@
   html.lg-new .ikn-page .ikn-by-w{display:contents}
   html.lg-new .ikn-page .ikn-by{position:relative;display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px;border:1px dashed var(--rule-strong);border-radius:999px;background:none;color:var(--color-quiet);font:inherit;font-size:13px;font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
   html.lg-new .ikn-page .ikn-by:hover{border-color:var(--color-neutral-400)}
-  html.lg-new .ikn-page .ikn-by.is-set{border-style:solid;background:var(--surface-2);color:var(--color-text)}
-  html.lg-new .ikn-page .ikn-by.is-set span{color:var(--color-quiet)}
+  html.lg-new .ikn-page .ikn-by.is-set{border-style:solid;border-color:var(--filter-on-edge);background:var(--filter-on-bg);color:var(--filter-on-ink)}
+  html.lg-new .ikn-page .ikn-by.is-set span{color:inherit}
   html.lg-new .ikn-page .ikn-by .reg-chip-sel{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;opacity:0;cursor:pointer}
   html.lg-new .ikn-page .apn-card .ikn-table th{text-transform:none;letter-spacing:0;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-400);padding:8px 10px;border-bottom:1px solid var(--color-divider)}
   html.lg-new .ikn-page .apn-card .ikn-table th.ikn-wait-h, html.lg-new .ikn-page .apn-card .ikn-table td.ikn-wait{text-align:right}
@@ -25501,7 +25502,13 @@
   html.lg-new #ig-page #ct-place .ct-page .ct-head .lh-ask input::placeholder{color:var(--color-neutral-400)}
   html.lg-new #ig-page #ct-place .ct-page .ct-head .reg-views{order:2;border-bottom:0;align-self:center;align-items:center;gap:8px}
   html.lg-new #ig-page #ct-place .ct-page .ct-head :is(.reg-vtab,.lh-chip){display:inline-flex;align-items:center;gap:5px;height:26px;margin:0;padding:0 11px;border:1px dashed var(--color-neutral-300);border-radius:999px;background:transparent;color:var(--color-quiet);font-size:13px;font-weight:var(--w-label);box-shadow:none}
-  html.lg-new #ig-page #ct-place .ct-page .ct-head .reg-vtab.on,html.lg-new #ig-page #ct-place .ct-page .ct-head .lh-chip{border-style:solid;border-color:var(--color-neutral-300);color:var(--color-text);background:var(--color-surface)}
+  html.lg-new #ig-page #ct-place .ct-page .ct-head .lh-chip{border-style:solid;border-color:var(--filter-on-edge);background:var(--filter-on-bg);color:var(--filter-on-ink)}
+  html.lg-new #ig-page #ct-place .ct-page .ct-head .reg-vtab.on{border-style:solid;border-color:var(--color-neutral-300);color:var(--color-text);background:var(--color-surface)}
+  /* A TAB THAT NARROWS THE LIST IS IN COLOUR TOO (owner, 23 Nov 2026, picked "Green when it narrows"): a chosen tab chip that is not
+     the list's whole view (All, or the page's first tab) carries .is-narrow and wears the filter colour; All stays plain. One closing rule,
+     scoped above every page's own chosen-chip rule. f1193 (5). */
+  html:not(#_):not(#_):not(#_) :is(.apn-tab.is-chip.is-on, .reg-vtab.on, .nd-tab.is-chip.on, .ndb-chip, .act-chip, .hist6-chip, .rl-np-chip.on).is-narrow{border-style:solid;border-color:var(--filter-on-edge);background:var(--filter-on-bg);color:var(--filter-on-ink)}
+  html:not(#_):not(#_):not(#_) :is(.apn-tab.is-chip.is-on, .reg-vtab.on, .nd-tab.is-chip.on, .ndb-chip, .act-chip, .hist6-chip, .rl-np-chip.on).is-narrow :is(span, em, b, .n){color:inherit}
   /* THE CHOSEN CHIP IS WHITE WITH A SOLID LINE ON CONTRACTS (owner, 21 Nov 2026, as drawn; reverses f1109's shading here only) */
   html.lg-new #ig-page #ct-place .ct-page .ct-head .reg-vtab .n{padding:0 0 0 2px;color:inherit;font-weight:var(--w-label)}
   html.lg-new #ig-page #ct-place .ct-page .ct-head .reg-vtab[data-reg-view="needs"]::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--st-amber-dot)}

@@ -17133,11 +17133,11 @@ function rlNpScopeHtml(n, show, stripe){
      is not listed) */
   if (stripe){
     if (!(n.mine || n.done || show !== 'open')) return '';
-    const sc = (k, label) => (k === 'open' || n[k] || k === show) ? `<button type="button" class="rl-np-chip${k === show ? ' on' : ''}"
+    const sc = (k, label) => (k === 'open' || n[k] || k === show) ? `<button type="button" class="rl-np-chip${k === show ? ' on' : ''}${k === show && k !== 'open' ? ' is-narrow' : ''}"
       data-rl-np-show="${k}" aria-pressed="${k === show ? 'true' : 'false'}">${label} <em>${n[k] || 0}</em></button>` : '';
     return `<div class="rl-np-scope is-stripe">${sc('open', i18t('ng_np_show_open')) + sc('mine', i18t('ng_np_show_mine')) + sc('done', i18t('ng_np_show_done'))}</div>`;
   }
-  const chip = (k, label) => (n[k] || k === show) ? `<button type="button" class="rl-np-chip${k === show ? ' on' : ''}"
+  const chip = (k, label) => (n[k] || k === show) ? `<button type="button" class="rl-np-chip${k === show ? ' on' : ''}${k === show && k !== 'open' ? ' is-narrow' : ''}"
       data-rl-np-show="${k}" aria-pressed="${k === show ? 'true' : 'false'}">${label} <em>${n[k]}</em></button>` : '';
   const chips = (n.mine || n.done || show !== 'open')
     ? chip('open', i18t('ng_np_show_open')) + chip('mine', i18t('ng_np_show_mine')) + chip('done', i18t('ng_np_show_done')) : '';
