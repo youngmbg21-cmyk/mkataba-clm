@@ -112,3 +112,10 @@ test('f1187 (8) the chips come from this paper: only where their clause is, its 
   assert.deepEqual(nda.map(x => x.k), ['add'], 'a chip never shows where its clause is not');
   assert.match(fnOf(pd, 'pd2AmAskOpen'), /pd2AmkChipsOf\(c\)/, 'the pop-up draws them');
 });
+
+test('f1187 (9) one chip at a time, one line under the box', () => {
+  const ask = fnOf(R('js/paperdesk.js'), 'pd2AmAskOpen');
+  assert.match(ask, /box\.value = add;/, 'a chip replaces the box');
+  assert.doesNotMatch(ask, /\+ ', ' \+ add/, 'never piles on');
+  assert.match(R('index.html'), /\.pd2-amk-box\{--fld-under:var\(--fld-under-none\)\}/, 'the field draws no second line');
+});

@@ -18897,6 +18897,7 @@
   /* TELL JAMBO THE CHANGE (the owner's pick, 23 Nov 2026): the pop-up's box and chips; step 2's approval rows; step 3's check */
   .pd2-amk-box{display:flex;gap:10px;align-items:flex-start;padding:6px 0 10px;border-bottom:1px solid var(--color-neutral-300)}
   .pd2-amk-sp{color:var(--accent-ink);font-size:15px;line-height:24px}
+  .pd2-amk-box{--fld-under:var(--fld-under-none)} /* ONE LINE under the box (owner, 23 Nov 2026: "delete one of the lines"): the box's own, not the field's too */
   .pd2-amk-box .lgp-in{flex:1;min-height:72px;border:0;padding:0;font-size:15px;line-height:1.55;resize:vertical;background:none}
   .pd2-amk-chips{margin-top:12px}
   .pd2-amk-busy{padding:14px 0 6px;font-size:14px;color:var(--color-quiet)}
@@ -23449,6 +23450,19 @@
      Discover's Reads · Alerts; the bell's "Your alerts" row with its tag */
   html.lg-new .dsn-xw{display:inline-flex}
   html.lg-new .dsn-xbtn{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  /* THE ANSWERS' LINE: search, All, Answers ▾ on ONE line; the menu lists each answer with its dot, words and count */
+  html.lg-new .dsn-page .dsn-abar{flex-wrap:nowrap;min-width:0}
+  html.lg-new .dsn-page .dsn-abar > .apn-tab,html.lg-new .dsn-page .dsn-aw{flex:none}
+  html.lg-new .dsn-aw{display:inline-flex;min-width:0}
+  html.lg-new .dsn-abtn{display:inline-flex;align-items:center;gap:6px;max-width:300px}
+  html.lg-new .dsn-amenu{top:calc(var(--ctl-h) + 6px);min-width:260px;max-width:min(380px,90vw);max-height:min(360px,60vh);overflow-y:auto;z-index:30}
+  html.lg-new .dsn-amenu button{display:flex;align-items:center;gap:8px;padding:8px 10px}
+  html.lg-new .dsn-amenu button .dsn-cl{flex:1;min-width:0;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .dsn-amenu button > span{flex:none;color:var(--color-quiet);font-variant-numeric:tabular-nums}
+  html.lg-new .dsn-amenu button.is-on{background:var(--surface-2)}
+  html.lg-new .dsn-page .apn-bar.dsn-bar.dsn-abar{margin-top:10px}
+  html.lg-new .dsn-page .dsn-abtn .dsn-xv{display:block;width:0;height:0;background:none;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid currentColor;border-bottom:0;border-radius:0;margin:0;position:static}
+  html.lg-new .dsn-page .dsn-abtn .dsl-dot,html.lg-new .dsn-page .dsn-amenu .dsl-dot{display:inline-block;flex:none;width:8px;height:8px;border-radius:50%;position:static}
   html.lg-new .dsn-xv{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid currentColor;flex:none}
   html.lg-new .dsn-xmenu{top:calc(var(--ctl-h) + 6px);left:auto;right:0;min-width:300px;max-width:min(340px,90vw);z-index:30}
   html.lg-new .dsn-xmenu button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:9px 12px}

@@ -695,7 +695,7 @@ function toggleObligation(c, i, opts={}){
    can report what happened; null when the record has moved on underneath. */
 function toggleObligationById(cid, obId, opts={}){
   const hit=findObligation(cid, obId);
-  if(!hit){ toast('That obligation is no longer on the contract','err'); return null; }
+  if(!hit){ toast(i18t('ob_gone_err'),'err'); return null; }
   return toggleObligation(hit.c, hit.i, opts);
 }
 
@@ -873,6 +873,7 @@ function openObligationForm(c, seed, opts){
           </select></span></label><p class="lgp-small">${E(i18t('ob_after_hint'))}</p>`;
       })()}
       ${line(i18t('ob_assign_to'),`<input id="of-assignee" class="lgp-in" list="of-members" autocomplete="off" value="${(seed.assignee||'').replace(/"/g,'&quot;')}" placeholder="${E(i18t('of_assign_ph'))}"/><datalist id="of-members">${members.map(m=>`<option value="${E(m)}">`).join('')}</datalist>`,{ id:'of-assignee-wrap', hide:seed.party==='theirs' })}
+      ${over&&opts.watchFrom?`<p class="dts-from" id="of-watch-from"${seed.party==='theirs'?' hidden':''}>${E(opts.watchFrom)}</p>`:''}
     </div>
     <div id="of-step-2" hidden>
       ${''/* THE AMOUNT (J-5.2): the CONTRACT'S currency beside it; drawn on both sides of the toggle (money they owe us
@@ -880,6 +881,7 @@ function openObligationForm(c, seed, opts){
       ${obligationMoneyVisible() ? line(i18t('ob_amount'),`<span class="of-amt"><i>${E(typeof window.contractCurrency==='function'?contractCurrency(c):'')}</i><input id="of-amount" class="lgp-in" type="number" min="0" step="any" inputmode="decimal" value="${seed.amount!=null&&seed.amount!==''?String(seed.amount).replace(/"/g,'&quot;'):''}" placeholder="${E(i18t('ob_amount_ph'))}"/></span>`) : ''}
       ${''/* IS THIS A DOCUMENT THEY MUST HOLD? (S8): ONE DOOR, this one; its two lines only once the tick is on. */}
       <label class="lgp-tick"><input id="of-isdoc" type="checkbox" ${obligationIsDoc(seed)?'checked':''}/><span class="lgp-tl">${E(i18t('ob_is_doc'))}</span></label>
+      ${over&&opts.proofFrom?`<p class="dts-from" id="of-proof-from"${obligationIsDoc(seed)?'':' hidden'}>${E(opts.proofFrom)}</p>`:''}
       <div id="of-doc-wrap" class="${obligationIsDoc(seed)?'':'hidden'}">
         ${line(i18t('ob_doc_file'),`<input id="of-doc-file" type="text" class="lgp-in" value="${((seed.doc&&seed.doc.file)||'').replace(/"/g,'&quot;')}" placeholder="${E(i18t('ob_doc_file_ph'))}"/>`)}
         ${line(i18t('ob_doc_until'),`<input id="of-doc-until" type="date" class="lgp-in" value="${(seed.doc&&seed.doc.until)||''}"/>`)}
@@ -925,12 +927,19 @@ function openObligationForm(c, seed, opts){
     if(!document.getElementById('of-step-2')?.hasAttribute('hidden')) document.getElementById('of-save')?.click(); else document.getElementById('of-next')?.click(); });
   setTimeout(()=>{ const f=document.getElementById('of-desc'); if(f){ try{ (typeof fieldFocus==='function')?fieldFocus(f,{ focusVisible:false }):f.focus({ preventScroll:true }); }catch(_){} } },0);
   let party=over?(['ours','theirs','both'].includes(seed.party)?seed.party:''):((seed.party==='theirs')?'theirs':'ours');
+  /* THE WHY UNDER A SUGGESTION STAYS TRUE: the line under "Watched by" goes when the name is changed or the duty is
+     theirs; the line under the proof tick goes when the tick is taken off */
+  const watchSync=()=>{ const w=document.getElementById('of-watch-from'); if(!w) return;
+    const v=(document.getElementById('of-assignee')?.value||'').trim();
+    w.toggleAttribute('hidden', party==='theirs' || v!==String(seed.assignee||'').trim()); };
+  document.getElementById('of-assignee')?.addEventListener('input', watchSync);
   const paintParty=()=>{
     document.querySelectorAll('[data-of-party]').forEach(b=>{
       const on=b.getAttribute('data-of-party')===party;
       b.setAttribute('aria-pressed', on?'true':'false'); b.classList.toggle('is-on', on);
     });
     document.getElementById('of-assignee-wrap')?.classList.toggle('hidden', party==='theirs');
+    watchSync();
     document.getElementById('of-theirs-note')?.classList.toggle('hidden', party!=='theirs');
     if(over){ const sv=document.getElementById('of-save'); if(sv) sv.disabled=!party; document.getElementById('of-need')?.toggleAttribute('hidden', !!party); }
   };
@@ -939,7 +948,8 @@ function openObligationForm(c, seed, opts){
   document.querySelectorAll('[data-of-party]').forEach(b=>b.addEventListener('click',()=>{
     const k=b.getAttribute('data-of-party'); party=k==='theirs'?'theirs':(over&&k==='both')?'both':'ours'; paintParty(); }));
   document.getElementById('of-isdoc')?.addEventListener('change',e=>{
-    document.getElementById('of-doc-wrap')?.classList.toggle('hidden', !e.target.checked); });
+    document.getElementById('of-doc-wrap')?.classList.toggle('hidden', !e.target.checked);
+    document.getElementById('of-proof-from')?.toggleAttribute('hidden', !e.target.checked); });
   document.getElementById('of-cancel').addEventListener('click',()=>{ if(over){ done(); if(typeof opts.onCancel==='function') opts.onCancel(); return; } if(typeof opts.onCancel==='function') opts.onCancel(); else closeModal(); });
   document.getElementById('of-save').addEventListener('click',()=>{
     if(over && !party){ toast(i18t('dts_need_whose'),'warn'); return; }
@@ -1467,6 +1477,38 @@ function dutyPastSay(c, x){
   const side = theirs > ours ? obWhoseBtn('them') : obWhoseBtn('us'), n = Math.max(ours, theirs);
   return i18tn(proof && proof >= n ? 'dts_past_added_proof' : 'dts_past_added', n, { n, w: side });
 }
+/* 4 WHO WATCHES IT (dutyWatchOf, owner 23 Nov 2026): the person who watches the same kind of duty on most of the
+   OTHER contracts, else this contract's owner — never a Viewer (they may do no duty); the name is filled in, the line
+   under it says why, and the person may change it before pressing Add. Nobody found = nothing filled, nothing said. */
+function dutyWatchOf(c, x){
+  const ok = new Map(((typeof getUsers === 'function' && getUsers()) || []).filter(u => u && u.name && u.role !== 'viewer').map(u => [String(u.name), u]));
+  const topic = dutyTopicOf(x);
+  if (topic){
+    const tally = new Map();
+    ((typeof state !== 'undefined' && state && Array.isArray(state.contracts)) ? state.contracts : []).forEach(o => {
+      if (!o || (c && String(o.id) === String(c.id))) return;
+      const seen = new Set();
+      (Array.isArray(o.obligations) ? o.obligations : []).forEach(r => {
+        const a = r && String(r.assignee || '').trim();
+        if (a && ok.has(a) && !obligationIsTheirs(r) && dutyTopicOf(r) === topic) seen.add(a);
+      });
+      seen.forEach(a => tally.set(a, (tally.get(a) || 0) + 1));
+    });
+    const best = [...tally.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0];
+    if (best) return { name: best[0], say: i18tn('dts_watch_past', best[1], { n: best[1] }) };
+  }
+  const own = typeof contractOwnerName === 'function' ? contractOwnerName(c) : (c && c.owner && c.owner.name);
+  if (own && ok.has(String(own))) return { name: String(own), say: i18t('dts_watch_owner') };
+  return null;
+}
+/* 5 WHY THE PROOF BOX IS TICKED (dutyProofSay): only where the reading itself said it is a document they must hold
+   (x.doc), naming the clause; insurance says what the document is. A tick the reader set says nothing. */
+function dutyProofSay(x){
+  if (!x || x.doc !== true) return '';
+  const s = x.clause ? '§' + x.clause : i18t('dtp_tl_paper');
+  const who = x.origin === 'template' ? 'tpl' : 'jb';
+  return i18t(dutyTopicOf(x) === 'insurance' ? 'dts_proof_' + who + '_ins' : 'dts_proof_' + who, { s });
+}
 /* THE ONE DOOR: every way in (the Duties card, the old Obligations doors, Jambo, the Board) lands here */
 function dutiesOpen(c, o){
   const live = c && ((typeof window.getContract === 'function' && getContract(c.id)) || c);
@@ -1624,11 +1666,13 @@ function openDutiesPage(c, found, o){
       const j = L().findIndex(y => !dec(y));
       if(j >= 0) decide(j);
       else { S.run = null; if(typeof toast === 'function') toast(i18t('dtp_all_done'), 'ok'); } };
-    const hint = dutyDateHint(c, x), rd = dutyReadOf(x);
+    const hint = dutyDateHint(c, x), rd = dutyReadOf(x), watch = dutyWatchOf(c, x);
+    if (watch) seed.assignee = watch.name;
     if (!seed.due && hint.due) seed.due = hint.due;
     if ((!seed.recurring || seed.recurring === 'none') && hint.recurring) seed.recurring = hint.recurring;
     openObligationForm(c, seed, { over: true, title: i18t('dts_title'), meta, count: i18t('dts_count', { n: S.run.done + 1, m: S.run.total }), frac: S.run.done / Math.max(1, S.run.total),
       dueFrom: hint.from, read: rd ? rd.read : '', readSay: rd ? rd.say : '', past: dutyPastSay(c, x),
+      watchFrom: watch ? watch.say : '', proofFrom: dutyProofSay(x),
       onSaved: rec => {
         if(rec){ if(x.clause) rec.clause = String(x.clause).slice(0, 20); rec.readAt = String((c.triage && c.triage.at) || new Date().toISOString()).slice(0, 10);
           if(x.origin === 'template'){ rec.origin = 'template'; if(x.tplKey){ const m = new Set(Array.isArray(c.tplObMinted) ? c.tplObMinted.map(String) : []); m.add(String(x.tplKey)); c.tplObMinted = [...m]; } } }
@@ -6383,7 +6427,7 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
     obOpenContract(cid, go.getAttribute('data-key'));
   }, true);
 }
-Object.assign(window,{dutyDateHint,dutyReadOf,dutyPastSay,dutyTopicOf,obdFaceFor,obdFaceHtml,dutiesOpen,dutiesGo,dutiesFound,openDutiesPage,contractRenewsItself,obligationReminderDay,obPanelFive,obDecisionFive, obligationIsDoc,obligationDocUntil,obligationDocFile,obligationDocState,
+Object.assign(window,{dutyDateHint,dutyReadOf,dutyPastSay,dutyTopicOf,dutyWatchOf,dutyProofSay,obdFaceFor,obdFaceHtml,dutiesOpen,dutiesGo,dutiesFound,openDutiesPage,contractRenewsItself,obligationReminderDay,obPanelFive,obDecisionFive, obligationIsDoc,obligationDocUntil,obligationDocFile,obligationDocState,
   OB_DOC_SOON_DAYS,contractDocuments,contractDocsLapsed,contractDocsMissing,
   obligationAfter,obligationPrev,obligationBlocked,obligationChain,obligationChains,obligationStepNo,obligationRoll,
   obligationAlreadyOn,obligationRequireDoc,obFindBusy,obFinding,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,

@@ -3186,7 +3186,9 @@ function pd2AmAskOpen(id, text, err){
   form.addEventListener('click', e => { const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     const ch = t.closest('[data-pd2-amk-chip]');
     if (ch){ e.preventDefault(); const box = q(); if (!box) return; const add = ch.getAttribute('data-pd2-amk-say') || T('pd2_amk_s_' + ch.getAttribute('data-pd2-amk-chip'));
-      box.value = String(box.value || '').trim() ? String(box.value).replace(/[\s,.]*$/, '') + ', ' + add : add;
+      /* ONE CHIP AT A TIME (owner, 23 Nov 2026: "if you press another, it should replace the one before"): a chip's
+         sentence replaces what the box holds, never piles on top of it */
+      box.value = add;
       if (typeof fieldFocus === 'function') fieldFocus(box, { focusVisible: false }); else box.focus(); try { box.setSelectionRange(box.value.length, box.value.length); } catch (_){} return; }
     if (t.closest('[data-pd2-amk-manual]')){ e.preventDefault(); if (typeof closeModal === 'function') closeModal(); pdAmendOpen(id, { manual: true }); } });
   return true;

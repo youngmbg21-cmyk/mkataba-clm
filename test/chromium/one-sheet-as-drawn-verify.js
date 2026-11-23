@@ -186,7 +186,7 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said — and no lone "·" is left where it stood */
     check('10a Let Jambo fill the form says no cost beside it, and no separator is left hanging', C10.f.trim() === '', JSON.stringify(C10));
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
-    check('10b creating says what Jambo reads, no cost: "When it is created, Jambo reads it: the brief, our standards, risks and obligations."', C10.r === 'When it is created, Jambo reads it: the brief, our playbook, risks and obligations.', JSON.stringify(C10));
+    check('10b creating says what Jambo reads, no cost: "When it is created, Jambo reads it: the brief, our standards, risks and obligations."', C10.r === 'When it is created, Jambo reads it: the brief, our playbook, risks and duties.', JSON.stringify(C10));
     /* 4 Start from */
     /* RE-POINTED 24 Oct 2026 (the Legora way): one quiet list headed "Closest on our paper"; the picked one checked */
     /* RE-POINTED 21 Nov 2026 (P-36, as drawn): "Search all our paper (N) · none fits? Ask Legal" */
@@ -226,7 +226,7 @@ const SAY = 'NDA with Volvo Cars for a pilot';
       panel: ((document.querySelector('#ig-dock .na6-tl') || {}).innerText || '').replace(/\s+/g, ' ').trim() }));
     await page.evaluate(() => { const f = document.querySelector('#ig-dock [data-jb-fwd-door]:not([hidden]) [data-jb-fwd]'); if (f) f.click(); });
     await until(() => !!document.querySelector('#ig-dock.is-talk'), null, 4000);
-    check('5e what Jambo reads at Create is said once, in the panel\'s "After Create" (not under the stream\'s line)', cost5.sheet === '' && /Jambo reads it once · the brief, our playbook, risks, obligations/.test(cost5.panel), JSON.stringify(cost5));
+    check('5e what Jambo reads at Create is said once, in the panel\'s "After Create" (not under the stream\'s line)', cost5.sheet === '' && /Jambo reads it once · the brief, our playbook, risks, duties/.test(cost5.panel), JSON.stringify(cost5));
     check('5f the reason is now the stream\'s', S5.acts.join('|') === 'Choose a stream first|Create draft|Cancel', JSON.stringify(S5.acts));
     /* 11 step 2 in three columns, two rows; who else straight under */
     /* RE-POINTED 22 Oct 2026 (round 3 of the first-timer rounds): Who pays whom? is a group of presses, not a label */

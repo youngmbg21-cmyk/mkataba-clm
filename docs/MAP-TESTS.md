@@ -346,6 +346,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - DISCOVER, HOW A CELL IS READ (the live run's eight misses): f887 3f (a number of days with its unit run on), f888 1c (`COLUMN_READ_RULE` on every read); both red at the parent a701f17. Then the live measure with a key.
 
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
+- f1192 a press on the Contracts place puts Home on its paper face first (23 Nov 2026; red at the parent).
 - f1190 the Contracts door lands on the Folders every time (23 Nov 2026; red at the parent).
 - f687 2a (test/f687-contracts-opens-home.test.js): no facts line beside the name; List | Wall inside the one `.ct-acts` group.
 - NO DISCOVER BUTTON ON CONTRACTS (owner, 15 Nov 2026): f1016 (1) (9) re-pointed; browser: discover-page-verify 1 (the "discover" chip opens the page), reads-and-columns-as-drawn-verify 1.
@@ -1103,3 +1104,7 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 
 ## OBLIGATIONS — Jambo fills in the duty, a person decides (23 Nov 2026)
 - test/f1188-jambo-fills-in-the-duty.test.js — the due day from the contract's own end date with its line, none guessed; Jambo's reading under the choices, Use presses the chip, nothing pre-chosen; past choices (added as / with proof / skipped); the readings read only; both books; the Handbook (red at the parent).
+
+## OBLIGATIONS — helps 4 and 5, and the word duty (23 Nov 2026)
+- `node --test test/f1191-who-watches-and-why-proof.test.js test/f1188-jambo-fills-in-the-duty.test.js test/f1187-duties-end-to-end.test.js`
+- Re-pointed to "duty": f399 (6e, 6f), f554 (5), f614, f693 (4b), f752 (3a), f754 (9f reverses "the receipt says obligations"), f791 (1b), f800 (8b), f804 (10c); browser: explorer-lenses, explorer-stage-two, obligations-renewal-legora-way, one-sheet-as-drawn, overview-and-obligations-polish, auto-triage, amendment-journey, five-screenshots.

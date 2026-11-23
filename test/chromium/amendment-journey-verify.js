@@ -417,7 +417,7 @@ const VISIBLE = `(el) => {
       card: !!document.getElementById('checks-card') }));
     check('the obligations sweep is offered on Home\'s Obligations tab, and no Run line the page cannot answer sits on the open clause (the Checks card is gone)',
       ob6.find.on && ob6.live && rows.open && rows.runs === 0 && !rows.card, JSON.stringify({ ob6, rows }));
-    check('it stands under Obligations, and is visible', ob6.find.on && /Obligation/i.test(ob6.tab), ob6.tab);
+    check('it stands under Obligations, and is visible', ob6.find.on && /Obligation|Dut(y|ies)/i.test(ob6.tab), ob6.tab);
 
     /* Track one, so there is a verdict to say and a panel to open. */
     await page.evaluate(id => {
@@ -453,7 +453,7 @@ const VISIBLE = `(el) => {
         spills: list ? Math.round(list.scrollWidth - list.clientWidth) : 0 };
     })()`);
     check('the findings open in a panel over the document, at the right edge (openCheckPanel, the negotiate head\'s door)',
-      panel.panel.on && /Obligation/i.test(panel.title || ''),
+      panel.panel.on && /Obligation|Dut(y|ies)/i.test(panel.title || ''),
       panel.panel.on ? `${panel.panel.w}x${panel.panel.h}` : panel.panel.why);
     check('and it is the SAME card moved whole — both rows, both buttons',
       panel.hostInPanel && panel.rows === 2 && panel.add.on && panel.find.on,

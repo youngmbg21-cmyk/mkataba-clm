@@ -107,7 +107,7 @@ const check = (name, pass, detail) => {
     /* ================= 1. THE LENS GROUP ================= */
     const bar = await page.evaluate(() => [...document.querySelectorAll('.ig-viewbar [data-ig-lens]')].map(b => [b.getAttribute('data-ig-lens'), b.textContent.trim(), b.getAttribute('aria-pressed')]));
     check('1a the view bar carries the Lens group: Off · Risk · Obligations · Money · Promises · People, Off pressed at rest',
-      JSON.stringify(bar) === JSON.stringify([['off', 'Off', 'true'], ['risk', 'Risk', 'false'], ['obligations', 'Obligations', 'false'], ['money', 'Money', 'false'], ['promises', 'Promises', 'false'], ['people', 'People', 'false']]), JSON.stringify(bar));
+      JSON.stringify(bar) === JSON.stringify([['off', 'Off', 'true'], ['risk', 'Risk', 'false'], ['obligations', 'Duties', 'false'], ['money', 'Money', 'false'], ['promises', 'Promises', 'false'], ['people', 'People', 'false']]), JSON.stringify(bar));
     const quiet = await lensStrokes();
     check('1b with no lens, no dot wears a lens mark', quiet === 0, String(quiet));
 
@@ -138,7 +138,7 @@ const check = (name, pass, detail) => {
     const late = BOOK.find(lateOf);
     await page.evaluate(id => { igExplain(id); renderIntelDock(); }, late.id); await page.waitForTimeout(500);
     const card = await page.evaluate(() => { const c = document.querySelector('#ig-dock [data-ig-hoverid]'); return c ? { next: (c.querySelector('[data-ig-fact="lens_next"]') || {}).textContent || '', door: (c.querySelector('[data-ig-lens-door]') || {}).textContent || '' } : null; });
-    check('4a the card says the duty that is late, and carries the Obligations door', !!card && /late/.test(card.next) && /Quarterly price review/.test(card.next) && /Obligations/.test(card.door), JSON.stringify(card));
+    check('4a the card says the duty that is late, and carries the Obligations door', !!card && /late/.test(card.next) && /Quarterly price review/.test(card.next) && /Duties/.test(card.door), JSON.stringify(card));
     await press('#ig-dock [data-ig-lens-door="obligations"]'); await page.waitForTimeout(900);
     const landedOb = await page.evaluate(() => ({ face: hbFace(), tab: typeof pdTab === 'function' ? pdTab() : null, paper: intel.paper && intel.paper.id }));
     check('4b the Obligations door lands on that contract, on its Obligations tab', landedOb.face === 'paper' && landedOb.tab === 'oblig' && landedOb.paper === late.id, JSON.stringify(landedOb));
