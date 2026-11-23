@@ -9971,6 +9971,9 @@ app.post('/api/ai/breakdown', auth, editor, rlAiDeep, aiFeature('breakdown'), ai
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { text, side } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
+  /* THE READER'S PLAN (the Dossier L+S, step 2, owner 23 Nov 2026): what the reader asked this read to look for, each
+     answered with a point carrying its number (plan), or none — never invented; at most READ_PLAN_MAX, plain lines */
+  const plan = readPlanClean(req.body && req.body.plan);
   /* TWO STEPS (owner, 13 Oct 2026: "the loading is taking too long and ruining
      the user experience"): opening Clauses asks only for the LIST — the
      sections and, per point, its title, severity, section and one line — on
@@ -10004,10 +10007,11 @@ app.post('/api/ai/breakdown', auth, editor, rlAiDeep, aiFeature('breakdown'), ai
         stake: { type: 'string', description: 'ONE plain line, at most 16 words, saying what is at stake for the company: the risk and, where the wording supports it, the money together.' },
         quote: { type: 'string', description: 'The key words in the contract that carry the point, verbatim, at most 25 words. Empty for a missing point.' + AI_QUOTE_RULE },
         links: { type: 'array', maxItems: 3, items: { type: 'number' }, description: '1-based numbers of other points this one connects to.' },
+        plan: { type: 'number', description: 'Only when this point answers one of the reader\'s own questions listed under THE READER ASKED: its 1-based number there. Leave it out otherwise.' },
       }, required: ['title', 'stake', 'status'] } },
     }, required: ['regions'] } };
   const mine = side === 'theirs' ? 'the other party' : 'our side (the party using this system)';
-  const prompt = `Read this whole contract from ${mine} and cut it into at most ten sections — groups of clauses that do one job (price, payment, term and exit, service levels, data, liability, law and general…). Every clause and schedule must sit in exactly one section; list each one's clause numbers. Say whether each section NEEDS the reader, is WORTH A LOOK, or is FINE. Then, as ONE company view (the legal risk and the money together, never split by department), list the points that matter most, worst first: where this wording leaves us exposed or hands the other side an edge, and anything a careful company would expect that is MISSING. Where a NUMBERED CLAUSE IS IN THE CONTRACT BUT LEFT EMPTY, give its number in clause and set blank — it is not a missing point. For each point give only its title, one line on what is at stake, its section and the key words verbatim — keep it short; the detail is asked for separately. Do not invent facts or numbers the text does not state. Return via break_down.\n\n${stakesWriteRule(req)}\n\nCONTRACT:\n${aiDocText(req, text)}`;
+  const prompt = `Read this whole contract from ${mine} and cut it into at most ten sections — groups of clauses that do one job (price, payment, term and exit, service levels, data, liability, law and general…). Every clause and schedule must sit in exactly one section; list each one's clause numbers. Say whether each section NEEDS the reader, is WORTH A LOOK, or is FINE. Then, as ONE company view (the legal risk and the money together, never split by department), list the points that matter most, worst first: where this wording leaves us exposed or hands the other side an edge, and anything a careful company would expect that is MISSING. Where a NUMBERED CLAUSE IS IN THE CONTRACT BUT LEFT EMPTY, give its number in clause and set blank — it is not a missing point. For each point give only its title, one line on what is at stake, its section and the key words verbatim — keep it short; the detail is asked for separately. Do not invent facts or numbers the text does not state.${plan.length ? `\n\nTHE READER ASKED this read to look for the following, numbered. For EACH one the contract speaks to, add a point that answers it and set plan to its number (it may also be one of the points above); where the contract says nothing about it, add a missing point with that plan number. Never answer one from outside the text.\n${plan.map((t, i) => (i + 1) + '. ' + t).join('\n')}` : ''} Return via break_down.\n\n${stakesWriteRule(req)}\n\nCONTRACT:\n${aiDocText(req, text)}`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 6000, tools: [tool], tool_choice: { type: 'tool', name: 'break_down' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'breakdown', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
@@ -10048,10 +10052,40 @@ app.post('/api/ai/breakdown', auth, editor, rlAiDeep, aiFeature('breakdown'), ai
         edge: (Array.isArray(p.edge) ? p.edge : []).map(e => str(e, 300)).filter(Boolean).slice(0, 3),
         trade: (Array.isArray(p.trade) ? p.trade : []).filter(t => t && t.give && t.get).slice(0, 3).map(t => ({ give: str(t.give, 160), get: str(t.get, 160) })),
         ask: str(p.ask, 900), quote,
+        ...(Math.round(Number(p.plan)) >= 1 && Math.round(Number(p.plan)) <= plan.length ? { plan: Math.round(Number(p.plan)) } : {}),
         links: (Array.isArray(p.links) ? p.links : []).map(n => Math.round(Number(n))).filter(n => n >= 1 && n <= rawPts.length).slice(0, 3) };
     });
     /* `lang`: the language it was written in, kept on the reading so a reader in another language is not served it (js/views/breakdown.js bdOf) */
-    res.json({ head: str(block.input.head, 60), sub: str(block.input.sub, 240), regions, links, points, dropped, truncated: !!resp.truncated, lang: readLangOf(req), ...aiNotice(req, resp) });
+    res.json({ head: str(block.input.head, 60), sub: str(block.input.sub, 240), regions, links, points, dropped, truncated: !!resp.truncated, lang: readLangOf(req), plan, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
+});
+
+/* ---- PLAN THE READ (the Dossier L+S, step 2; owner 23 Nov 2026: "adding a plan should be a pop up where you add a summary of
+   what you would like to get out of the contract in the read then jambo can then break that down to a plan") ----
+   The reader's own words in, a short list of plain things to look for out — on a press only, the fast model, nothing
+   written to the contract (the page keeps what the reader applies). The contract's wording is not sent: the plan is the
+   reader's ask, read against the paper later by the read itself. */
+const READ_PLAN_MAX = 8;
+function readPlanClean(v){
+  return (Array.isArray(v) ? v : []).map(t => String(t == null ? '' : t).replace(/\s+/g, ' ').trim().slice(0, 160)).filter(Boolean).slice(0, READ_PLAN_MAX);
+}
+app.post('/api/ai/readplan', auth, editor, rlAiLight, aiFeature('breakdown'), aiBudgetGuard, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
+  const ask = String((req.body && req.body.ask) || '').replace(/\s+/g, ' ').trim().slice(0, 1200);
+  if (ask.length < 4) return res.status(400).json({ error: 'Say what you want from this read' });
+  const kind = String((req.body && req.body.kind) || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  const tool = { name: 'plan_read', description: 'Turn what the reader wants from a contract into a short list of things to look for.',
+    input_schema: { type: 'object', properties: { items: { type: 'array', maxItems: READ_PLAN_MAX, items: { type: 'string',
+      description: 'One thing to look for, as a short plain line the reader would recognise, at most 14 words, e.g. "Can we leave early, and at what cost?"' } } }, required: ['items'] } };
+  const prompt = `A person is about to have a contract${kind ? ' (' + kind + ')' : ''} read for them. In their own words they want this from the read:\n<their_words>${ask}</their_words>\n\nBreak what they said into at most ${READ_PLAN_MAX} separate things to look for in the contract, each one short and plain, in the order they matter to them. Keep only what they asked for; add nothing of your own and no legal advice. Return via plan_read.\n\n${stakesWriteRule(req)}`;
+  try {
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 800, tools: [tool], tool_choice: { type: 'tool', name: 'plan_read' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'breakdown', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
+    const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+    const items = readPlanClean(block && block.input && block.input.items);
+    if (!items.length) return res.status(502).json({ error: resp.truncated ? 'Jambo ran out of room before the plan was finished. Try again.' : 'Jambo could not make a plan from those words this time.' });
+    res.json({ items, truncated: !!resp.truncated, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
