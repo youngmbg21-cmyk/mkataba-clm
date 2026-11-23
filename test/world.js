@@ -530,6 +530,8 @@ function buildWorld(opts = {}) {
   /* js/intakelanes.js first (4 Oct 2026): the lane rule and the two patterns
      the queue reads are shared with the server's sweep and published there. */
   if (opts.intakeView) files.push('js/intakelanes.js', INTAKE_VIEW);
+  /* the Handbook (buildWorld({handbookView:true})): the book's chapters and its page, loaded on request (f1184) */
+  if (opts.handbookView) files.push('js/handbook.js', 'js/views/handbook.js');
   if (opts.notice){
     /* THE SAME BARE READING THE DESK OPTION HAS TO STAND IN FOR: renewalWindow
        calls daysUntil, which is declared in a VIEW file, so on a stage without
