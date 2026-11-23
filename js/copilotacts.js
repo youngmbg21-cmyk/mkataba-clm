@@ -2164,7 +2164,10 @@ const CA_GO = {
      so are the tab, the filters and the search, as any door lands on fresh
      filters (regGoFiltered's rule; the checkers of step 7 caught him saying
      "every" over a remembered Executed tab); Wall or List stays */
+  /* ONE DOOR, FOLDERS FIRST (owner, 23 Nov 2026: the green Contracts link skipped the folders): the named door always
+     lands on the Folders; a folder, a tab or List is the reader's next press there */
   contracts: () => {
+    if (typeof regFoldersSet === 'function') regFoldersSet(true);
     if (typeof regPlaceSet === 'function'){ const R = regPlaceSet({ only: null });
       if (typeof regFiltersAtRest === 'function') regFiltersAtRest(R);
       if (typeof regSearchBoxClear === 'function') regSearchBoxClear(); }
