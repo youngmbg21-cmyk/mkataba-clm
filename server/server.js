@@ -576,6 +576,8 @@ function syncFts(c) {
   } catch (_) {}
 }
 function upsertContract(c, version) {
+  /* a contract stored for the first time: the alerts on a question read it soon (Alert me when) */
+  if (version === 1 && typeof questionAlertsSoon === 'function') { try { questionAlertsSoon(); } catch (_) {} }
   const j = JSON.stringify(c);
   const u = c.upload || {};
   db.prepare(`INSERT INTO contracts (id,json,name,counterparty,folder,status,value,expiry,is_upload,seq,version,updated_at,text_fingerprint,simhash,parent_id,template_id,template_version_id,contract_no)
@@ -3623,28 +3625,35 @@ function aiBudgetGuard(req, res, next) {
     }
     // no allowance open at all — fall through to the normal daily ceilings
   }
+  const cap = aiCeilingNow();
+  if (cap) {
+    console.warn(cap.log);
+    res.setHeader('Retry-After', 3600);
+    const { log, ...out } = cap;
+    return res.status(429).json(out);
+  }
+  next();
+}
+/* THE TWO DAILY CEILINGS, ONE READING: the guard above refuses a press with it, and a read HaTi makes by itself (an
+   alert's sweep, runQuestionAlerts) asks it before every call and SAYS the stop where its reader looks — never a silent
+   skip. null = under both ceilings. */
+function aiCeilingNow() {
   const spendCeiling = aiDailySpendLimit();
   if (spendCeiling > 0) {
     const s = aiSpendToday();
-    if (s.cost >= spendCeiling) {
-      console.warn(`[ai] daily SPEND ceiling reached: ${s.cost.toFixed(4)}/${spendCeiling} on ${s.date} — blocking further Jambo calls.`);
-      res.setHeader('Retry-After', 3600);
-      return res.status(429).json({
-        error: `Daily Jambo budget reached (${money(s.cost)} of ${money(spendCeiling)} spent today). Waiting will not help — an admin needs to raise the budget in Team & Settings, or open an onboarding allowance for a migration.`,
-        kind: 'spendCap',
-        spendLimit: true, dailySpend: s.cost, dailySpendLimit: spendCeiling, retryAfter: 3600 });
-    }
+    if (s.cost >= spendCeiling) return {
+      log: `[ai] daily SPEND ceiling reached: ${s.cost.toFixed(4)}/${spendCeiling} on ${s.date} — blocking further Jambo calls.`,
+      error: `Daily Jambo budget reached (${money(s.cost)} of ${money(spendCeiling)} spent today). Waiting will not help — an admin needs to raise the budget in Team & Settings, or open an onboarding allowance for a migration.`,
+      kind: 'spendCap', spendLimit: true, dailySpend: s.cost, dailySpendLimit: spendCeiling, retryAfter: 3600 };
   }
   const ceiling = aiDailyLimit();
   if (ceiling > 0) {
     const u = aiUsageToday();
-    if (u.count >= ceiling) {
-      console.warn(`[ai] daily request ceiling reached: ${u.count}/${ceiling} on ${u.date} — blocking further Jambo calls.`);
-      res.setHeader('Retry-After', 3600);
-      return res.status(429).json({ error: `Daily Jambo limit reached (${u.count}/${ceiling} requests today). An admin can raise or disable this in Team & Settings.`, dailyLimit: true, retryAfter: 3600 });
-    }
+    if (u.count >= ceiling) return {
+      log: `[ai] daily request ceiling reached: ${u.count}/${ceiling} on ${u.date} — blocking further Jambo calls.`,
+      error: `Daily Jambo limit reached (${u.count}/${ceiling} requests today). An admin can raise or disable this in Team & Settings.`, dailyLimit: true, retryAfter: 3600 };
   }
-  next();
+  return null;
 }
 // Tag a route with the feature its spend belongs to. Must run before the guard.
 const aiFeature = name => (req, res, next) => { req.aiFeature = name; next(); };
@@ -10699,6 +10708,50 @@ app.post('/api/ai/column-turn', auth, editor, rlAiDeep, aiFeature('column'), aiB
   res.json({ typed, question, says: question ? says : '', calls: 1 });
 });
 
+/* ONE CONTRACT READ FOR ITS QUESTIONS, ONE READING (Alert me when, owner's pick 23 Nov 2026): the column's own read,
+   shared by Discover's press (POST /api/ai/column) and an alert's sweep (runQuestionAlerts), so an answer an alert read
+   is the very answer Discover shows. t = { id, full, sent, hash, capped, asks }; each answer is kept per wording in
+   column_answers as before. Returns { resp, answers: { askId: answer }, failed: [{ askId, why, error }] }. */
+async function colReadContract(t, key, who, J) {
+  const failed = [], answers = {}, out = { resp: null, answers, failed };
+  const ours = t.full.party || (t.full.execution && t.full.execution.firstParty) || 'our company';
+  const one = t.asks.length === 1;
+  const qs = one
+    ? `QUESTION: ${t.asks[0].question}${t.asks[0].rule ? `\nOUR RULE: ${t.asks[0].rule}` : ''}`
+    : 'QUESTIONS (answer every one, by its number):\n' + t.asks.map((a, i) => `${i + 1}. ${a.question}${a.rule ? `\n   OUR RULE: ${a.rule}` : ''}`).join('\n');
+  const prompt = `You are reading ONE contract for a contract manager at ${ours} (OUR SIDE), under ${J.adjective} law, to fill cells of a table. Each question is asked of every contract in their list. Answer ${one ? 'it' : 'each one'} for this DOCUMENT only, via column_answers${one ? ' (q is 1)' : ''}. Say only what the wording says: never invent, never guess, never propose new wording. If the document does not answer a question, set found to false and leave its answer empty. Where a question gives OUR RULE, say whether the answer keeps it ("in") or breaks it ("out"); where it gives none, leave the verdict empty.\n\n${COLUMN_READ_RULE}\n\n${qs}\n\nDOCUMENT:\n${t.sent}`;
+  const resp = out.resp = await anthropicMessages(key, 'deep', { max_tokens: 500 + 400 * t.asks.length, tools: [COLUMN_TOOL], tool_choice: { type: 'tool', name: 'column_answers' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'column', who });
+  if (!resp.ok) { for (const a of t.asks) failed.push({ askId: a.id, why: 'provider', error: String(resp.error || resp.status).slice(0, 200) }); return out; }
+  const block = (resp.data.content || []).find(x => x.type === 'tool_use');
+  const list = block && block.input && Array.isArray(block.input.answers) ? block.input.answers : null;
+  if (!list) { for (const a of t.asks) failed.push({ askId: a.id, why: 'empty' }); return out; }
+  const s = v => String(v == null ? '' : v).trim();
+  t.asks.forEach((ask, i) => {
+    const d = list.find(x => x && Number(x.q) === i + 1) || (list.length === t.asks.length ? list[i] : null);
+    if (!d) { failed.push({ askId: ask.id, why: 'empty' }); return; }
+    const found = d.found === true && !!s(d.answer);
+    /* THE SENTENCE IS CHECKED AGAINST THE WORDING: a quote that is not in the
+       document is not shown as if it were — an absence is stated, never guessed */
+    let quote = s(d.quote).slice(0, 600);
+    const quoteMissing = !!quote && !colFlat(t.sent).includes(colFlat(quote));
+    if (quoteMissing) quote = '';
+    /* THE VERDICT IS THE RULE'S, NEVER INVENTED: no rule, 'norule'; nothing found, none */
+    const verdict = !ask.rule ? 'norule' : found && COLUMN_VERDICTS.includes(d.verdict) ? d.verdict : '';
+    const a = { found, answer: found ? s(d.answer).slice(0, 60) : '', detail: s(d.detail).slice(0, 80),
+      tone: found && COLUMN_TONES.includes(d.tone) ? d.tone : 'none', why: s(d.why).slice(0, 400),
+      quote, quoteMissing, clause: s(d.clause).slice(0, 80), verdict, rule: ask.rule || '', yes: typeof d.yes === 'boolean' ? (found && d.yes) : null,
+      /* THE WORDS THAT SAY YES (owner, 15 Nov 2026: "only words that say yes"), kept only where they stand in the quote
+         as given — words not in the quote are dropped, never guessed */
+      yesWords: (found && d.yes === true && quote && s(d.yes_words) && colFlat(quote).includes(colFlat(s(d.yes_words)))) ? s(d.yes_words).slice(0, 300) : '',
+      truncated: !!resp.truncated, inputCapped: t.capped, at: now(), by: 'jambo', calls: 1, with: t.asks.length };
+    db.prepare(`INSERT INTO column_answers (ask_id,contract_id,input_hash,json,checked_by,checked_name,checked_at,created_at)
+      VALUES (?,?,?,?,NULL,NULL,NULL,?) ON CONFLICT(ask_id,contract_id) DO UPDATE SET input_hash=excluded.input_hash, json=excluded.json,
+      checked_by=NULL, checked_name=NULL, checked_at=NULL, created_at=excluded.created_at`)
+      .run(ask.id, t.id, t.hash, JSON.stringify(a), a.at);
+    answers[ask.id] = a;
+  });
+  return out;
+}
 app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudgetGuard, async (req, res) => {
   const b = req.body || {};
   const runStart = now();
@@ -10773,43 +10826,10 @@ app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudget
     try { await p; } finally { COLUMN_INFLIGHT.delete(k); }
   };
   const readFresh = async t => {
-    const ours = t.full.party || (t.full.execution && t.full.execution.firstParty) || 'our company';
-    const one = t.asks.length === 1;
-    const qs = one
-      ? `QUESTION: ${t.asks[0].question}${t.asks[0].rule ? `\nOUR RULE: ${t.asks[0].rule}` : ''}`
-      : 'QUESTIONS (answer every one, by its number):\n' + t.asks.map((a, i) => `${i + 1}. ${a.question}${a.rule ? `\n   OUR RULE: ${a.rule}` : ''}`).join('\n');
-    const prompt = `You are reading ONE contract for a contract manager at ${ours} (OUR SIDE), under ${J.adjective} law, to fill cells of a table. Each question is asked of every contract in their list. Answer ${one ? 'it' : 'each one'} for this DOCUMENT only, via column_answers${one ? ' (q is 1)' : ''}. Say only what the wording says: never invent, never guess, never propose new wording. If the document does not answer a question, set found to false and leave its answer empty. Where a question gives OUR RULE, say whether the answer keeps it ("in") or breaks it ("out"); where it gives none, leave the verdict empty.\n\n${COLUMN_READ_RULE}\n\n${qs}\n\nDOCUMENT:\n${t.sent}`;
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 500 + 400 * t.asks.length, tools: [COLUMN_TOOL], tool_choice: { type: 'tool', name: 'column_answers' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'column', who: aiWho(req) });
-    calls++; lastResp = resp; t.called = true;
-    if (!resp.ok) { for (const a of t.asks) failed.push({ id: t.id, askId: a.id, why: 'provider', error: String(resp.error || resp.status).slice(0, 200) }); return; }
-    const block = (resp.data.content || []).find(x => x.type === 'tool_use');
-    const list = block && block.input && Array.isArray(block.input.answers) ? block.input.answers : null;
-    if (!list) { for (const a of t.asks) failed.push({ id: t.id, askId: a.id, why: 'empty' }); return; }
-    const s = v => String(v == null ? '' : v).trim();
-    t.asks.forEach((ask, i) => {
-      const d = list.find(x => x && Number(x.q) === i + 1) || (list.length === t.asks.length ? list[i] : null);
-      if (!d) { failed.push({ id: t.id, askId: ask.id, why: 'empty' }); return; }
-      const found = d.found === true && !!s(d.answer);
-      /* THE SENTENCE IS CHECKED AGAINST THE WORDING: a quote that is not in the
-         document is not shown as if it were — an absence is stated, never guessed */
-      let quote = s(d.quote).slice(0, 600);
-      const quoteMissing = !!quote && !colFlat(t.sent).includes(colFlat(quote));
-      if (quoteMissing) quote = '';
-      /* THE VERDICT IS THE RULE'S, NEVER INVENTED: no rule, 'norule'; nothing found, none */
-      const verdict = !ask.rule ? 'norule' : found && COLUMN_VERDICTS.includes(d.verdict) ? d.verdict : '';
-      const a = { found, answer: found ? s(d.answer).slice(0, 60) : '', detail: s(d.detail).slice(0, 80),
-        tone: found && COLUMN_TONES.includes(d.tone) ? d.tone : 'none', why: s(d.why).slice(0, 400),
-        quote, quoteMissing, clause: s(d.clause).slice(0, 80), verdict, rule: ask.rule || '', yes: typeof d.yes === 'boolean' ? (found && d.yes) : null,
-        /* THE WORDS THAT SAY YES (owner, 15 Nov 2026: "only words that say yes"), kept only where they stand in the quote
-           as given — words not in the quote are dropped, never guessed */
-        yesWords: (found && d.yes === true && quote && s(d.yes_words) && colFlat(quote).includes(colFlat(s(d.yes_words)))) ? s(d.yes_words).slice(0, 300) : '',
-        truncated: !!resp.truncated, inputCapped: t.capped, at: now(), by: 'jambo', calls: 1, with: t.asks.length };
-      db.prepare(`INSERT INTO column_answers (ask_id,contract_id,input_hash,json,checked_by,checked_name,checked_at,created_at)
-        VALUES (?,?,?,?,NULL,NULL,NULL,?) ON CONFLICT(ask_id,contract_id) DO UPDATE SET input_hash=excluded.input_hash, json=excluded.json,
-        checked_by=NULL, checked_name=NULL, checked_at=NULL, created_at=excluded.created_at`)
-        .run(ask.id, t.id, t.hash, JSON.stringify(a), a.at);
-      byAsk[ask.id][t.id] = { ...a, checked: null };
-    });
+    const R = await colReadContract(t, key, aiWho(req), J);
+    calls++; lastResp = R.resp; t.called = true;
+    for (const f of R.failed) failed.push({ id: t.id, ...f });
+    for (const [askId, a] of Object.entries(R.answers)) byAsk[askId][t.id] = { ...a, checked: null };
   };
   try {
     const queue = todo.slice();
@@ -27378,7 +27398,9 @@ db.exec(`
 `);
 /* 'answer' (Discover stage 5, owner 25 Oct 2026: on company facts only): a new answer to a
    company fact that is at risk — outside its rule, or Jambo's concern where it has none */
-const WATCH_KINDS = ['reply', 'renewal', 'remind', 'obligation', 'answer'];
+/* 'question' (ALERT ME WHEN, owner's pick by name 23 Nov 2026): a NEW contract answering a Discover question with one of
+   the answers the person chose (or Not found, or Outside our playbook) — read by HaTi as it arrives, below */
+const WATCH_KINDS = ['reply', 'renewal', 'remind', 'obligation', 'answer', 'question'];
 const WATCH_MAX = 50;                 // per person — a cap is a fact: the refusal says it
 const WATCH_DAYS_MAX = 365;
 const WATCH_HITS_MAX = 400;           // the standing kinds remember what they already told, bounded
@@ -27411,20 +27433,32 @@ function watchClean(b, user) {
     if (!ask.fact) return { error: 'A watch on an answer is set on a company fact. An admin can keep this question as one.' };
     return { kind, cid: '', params: { askId: ask.id, name: ask.name } };
   }
+  if (kind === 'question') {
+    /* A VIEWER READS ONLY (mayActOn / srvMayAct): an alert spends a Jambo read on every new contract, an act */
+    if (!srvMayAct(user)) return { error: 'A viewer reads only: ask an admin if you need an alert.', status: 403 };
+    const ask = db.prepare('SELECT * FROM column_asks WHERE id=?').get(String(p.askId || ''));
+    if (!ask) return { error: 'That question is not kept any more.', status: 404 };
+    const wh = watchQuestionWhen(p, user);
+    if (wh.error) return wh;
+    const top = db.prepare('SELECT MAX(seq) AS m FROM contracts').get();
+    return { kind, cid: '', params: { askId: ask.id, ...wh.when, upto: Number((top && top.m) || 0), found: [], unread: [], dropped: 0 } };
+  }
   if (kind === 'renewal') return { kind, cid, params: { days: days(p.days, 60) || 60 } };
   if (kind === 'obligation') return { kind, cid, params: { days: days(p.days, 7) } };
   const on = myDay(p.on);
   if (!on) return { error: 'A reminder needs a day (yyyy-mm-dd).' };
   return { kind, cid, params: { on, what: myText(p.what, 200) } };
 }
-function watchRow(r) {
+function watchRow(r, user) {
   const f = r.fired ? watchJson(r.fired) : null;
-  return { id: r.id, kind: r.kind, params: watchJson(r.params), contractId: r.contract_id || null, createdAt: r.created_at,
+  const out = { id: r.id, kind: r.kind, params: watchJson(r.params), contractId: r.contract_id || null, createdAt: r.created_at,
     paused: !!r.paused, lastFiredAt: r.last_fired_at || null, fired: f, seenAt: r.seen_at || null, endedAt: r.ended_at || null,
     unseen: !!(r.last_fired_at && (!r.seen_at || r.seen_at < r.last_fired_at)) };
+  return r.kind === 'question' ? watchQuestionOut(out, user) : out;
 }
 /* the words the trail keeps: the kind and its day or window, never a contract's name */
-const watchTrailWords = w => w.kind === 'answer' ? `a new contract at risk on the company fact "${w.params.name || ''}"`
+const watchTrailWords = w => w.kind === 'question' ? `a new contract answering the question "${((db.prepare('SELECT name FROM column_asks WHERE id=?').get(String((w.params || {}).askId || '')) || {}).name) || ''}"`
+  : w.kind === 'answer' ? `a new contract at risk on the company fact "${w.params.name || ''}"`
   : w.kind === 'reply' ? 'their reply on a contract'
   : w.kind === 'renewal' ? `a renewal within ${w.params.days} days`
   : w.kind === 'obligation' ? `an obligation due within ${w.params.days} days or late`
@@ -27433,7 +27467,7 @@ const watchTrailWords = w => w.kind === 'answer' ? `a new contract at risk on th
 function watchesOf(user) {
   const scope = folderScopeFor(user);
   return db.prepare('SELECT * FROM watches WHERE user_id=? ORDER BY created_at DESC').all(String(user.id))
-    .filter(r => !r.contract_id || idInScope(scope, r.contract_id)).map(watchRow);
+    .filter(r => !r.contract_id || idInScope(scope, r.contract_id)).map(r => watchRow(r, user));
 }
 app.get('/api/me/watches', auth, (req, res) => res.json({ watches: watchesOf(req.user), max: WATCH_MAX }));
 app.post('/api/me/watches', auth, (req, res) => {
@@ -27441,11 +27475,17 @@ app.post('/api/me/watches', auth, (req, res) => {
   if (cl.error) return res.status(cl.status || 400).json({ error: cl.error });
   const n = db.prepare('SELECT COUNT(*) AS n FROM watches WHERE user_id=? AND ended_at IS NULL').get(String(req.user.id)).n;
   if (n >= WATCH_MAX) return res.status(409).json({ error: `You already have ${WATCH_MAX} watches — stop one first.`, max: WATCH_MAX });
+  /* ONE ALERT PER QUESTION PER PERSON: a second asks to change the first (Change when), never stands beside it */
+  if (cl.kind === 'question') {
+    const had = db.prepare("SELECT id, params FROM watches WHERE user_id=? AND kind='question' AND ended_at IS NULL").all(String(req.user.id))
+      .find(r => watchJson(r.params).askId === cl.params.askId);
+    if (had) return res.status(409).json({ error: 'You already have an alert on this question: change when it tells you instead.', id: had.id });
+  }
   const id = 'wt_' + crypto.randomBytes(8).toString('hex'), at = now();
   db.prepare('INSERT INTO watches (id,user_id,kind,params,contract_id,created_at) VALUES (?,?,?,?,?,?)')
     .run(id, String(req.user.id), cl.kind, JSON.stringify(cl.params), cl.cid || null, at);
   acctRecord(req.user, req.user, 'watch_on', watchTrailWords({ kind: cl.kind, params: cl.params }));
-  res.json({ watch: watchRow(db.prepare('SELECT * FROM watches WHERE id=?').get(id)) });
+  res.json({ watch: watchRow(db.prepare('SELECT * FROM watches WHERE id=?').get(id), req.user) });
 });
 /* pause, resume, or "I have seen it" (the bell's press) — nothing else changes here */
 app.patch('/api/me/watches/:id', auth, (req, res) => {
@@ -27456,8 +27496,33 @@ app.patch('/api/me/watches/:id', auth, (req, res) => {
     if (typeof b.paused !== 'boolean') return res.status(400).json({ error: 'paused must be true or false' });
     db.prepare('UPDATE watches SET paused=? WHERE id=?').run(b.paused ? 1 : 0, r.id);
   }
-  if (b.seen === true) db.prepare('UPDATE watches SET seen_at=? WHERE id=?').run(now(), r.id);
-  res.json({ watch: watchRow(db.prepare('SELECT * FROM watches WHERE id=?').get(r.id)) });
+  /* ALERT ME WHEN: change when it tells (the window again), stop it and take the stop back (Undo), one hit opened */
+  if (r.kind === 'question' && ('when' in b || 'stopped' in b || 'seenHit' in b || b.seen === true)) {
+    const p = watchJson(r.params);
+    if ('when' in b) {
+      if (!srvMayAct(req.user)) return res.status(403).json({ error: 'A viewer reads only: ask an admin if you need an alert.' });
+      const wh = watchQuestionWhen(b.when, req.user);
+      if (wh.error) return res.status(wh.status || 400).json({ error: wh.error });
+      Object.assign(p, wh.when);
+      acctRecord(req.user, req.user, 'watch_on', 'changed: ' + watchTrailWords({ kind: r.kind, params: p }));
+    }
+    if ('stopped' in b) {
+      if (typeof b.stopped !== 'boolean') return res.status(400).json({ error: 'stopped must be true or false' });
+      db.prepare('UPDATE watches SET ended_at=? WHERE id=?').run(b.stopped ? now() : null, r.id);
+      acctRecord(req.user, req.user, b.stopped ? 'watch_off' : 'watch_on', watchTrailWords({ kind: r.kind, params: p }));
+    }
+    const at = now();
+    if (b.seen === true || 'seenHit' in b) for (const h of (Array.isArray(p.found) ? p.found : []))
+      if (!h.seen && (b.seen === true || String(h.cid) === String(b.seenHit))) h.seen = at;
+    db.prepare('UPDATE watches SET params=? WHERE id=?').run(JSON.stringify(p), r.id);
+  } else if (b.seen === true) db.prepare('UPDATE watches SET seen_at=? WHERE id=?').run(now(), r.id);
+  res.json({ watch: watchRow(db.prepare('SELECT * FROM watches WHERE id=?').get(r.id), req.user) });
+});
+/* ONE ALERT WITH ITS HITS (the alert's own page): the person's own, its hits only where they may still read them */
+app.get('/api/me/watches/:id', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM watches WHERE id=? AND user_id=?').get(String(req.params.id), String(req.user.id));
+  if (!r || (r.contract_id && !idInScope(folderScopeFor(req.user), r.contract_id))) return res.status(404).json({ error: 'Not found' });
+  res.json({ watch: watchRow(r, req.user), max: WATCH_MAX });
 });
 app.delete('/api/me/watches/:id', auth, (req, res) => {
   const r = db.prepare('SELECT * FROM watches WHERE id=? AND user_id=?').get(String(req.params.id), String(req.user.id));
@@ -27466,12 +27531,169 @@ app.delete('/api/me/watches/:id', auth, (req, res) => {
   acctRecord(req.user, req.user, 'watch_off', watchTrailWords(watchRow(r)));
   res.json({ ok: true });
 });
+/* ============================================================
+   ALERT ME WHEN — A NEW CONTRACT ANSWERS A QUESTION (owner's pick by
+   name, 23 Nov 2026: the drawing "Alert Me When", built as drawn)
+   ============================================================
+   A watch of kind 'question' holds: the Discover question (askId), the
+   answers it tells on (answers — Discover's own groups, as their words —
+   notFound, outside our playbook), the folders ([] = every folder the person
+   may see), where the book stood when it began (upto, the contracts' seq),
+   and what it caught: found [{ cid, answer, found, verdict, quote, clause,
+   at, seen }] newest last, and unread [{ cid, why, at }] — a contract it
+   could not read, SAID on the alert's page, never skipped in silence.
+   THE COST (the owner agreed "Every question" pressing Start alerting): one
+   Jambo read per NEW contract per running alert, through the column's own
+   reading (colReadContract), kept in column_answers so Discover shows it too;
+   an answer already kept for that wording is used free. Before every call the
+   two daily ceilings are asked (aiCeilingNow): a stop is recorded as unread
+   ('ceiling') and read again on a later sweep. THE WALLS: a contract outside
+   the owner's streams today (folderScopeFor), or of a confidential deal they
+   are outside of, is never read nor reported; a private stream's contract is
+   never read by HaTi by itself (psFolderPrivate: one of its people presses
+   Read it now) and is said as such; a Viewer's alert reads nothing. */
+const WATCH_Q_ANSWERS_MAX = 12;
+const WATCH_Q_FOUND_MAX = 200;      // hits kept per alert; older ones go and are COUNTED (dropped), never silently
+const WATCH_Q_UNREAD_MAX = 100;     // contracts it could not read, kept to read again; past this the oldest are counted
+const WATCH_Q_FOLDER = /^[A-Za-z0-9_-]{1,40}$/;
+function watchQuestionWhen(p, user) {
+  const o = (p && typeof p === 'object') ? p : {};
+  const seen = new Set(), answers = [];
+  for (const x of (Array.isArray(o.answers) ? o.answers : [])) {
+    const w = String(x == null ? '' : x).replace(/\s+/g, ' ').trim().slice(0, 60);
+    if (!w || seen.has(w.toLowerCase())) continue;
+    seen.add(w.toLowerCase()); answers.push(w);
+  }
+  if (answers.length > WATCH_Q_ANSWERS_MAX) return { error: `At most ${WATCH_Q_ANSWERS_MAX} answers can be watched in one alert.` };
+  const notFound = o.notFound === true, outside = o.outside === true;
+  if (!answers.length && !notFound && !outside) return { error: 'Choose at least one answer to be told about.' };
+  const scope = folderScopeFor(user);
+  const folders = [...new Set((Array.isArray(o.folders) ? o.folders : []).map(String))];
+  if (folders.some(f => !WATCH_Q_FOLDER.test(f) || !inScope(scope, f))) return { error: 'Not found', status: 404 };
+  if (folders.length > 40) return { error: 'At most 40 folders can be watched in one alert.' };
+  return { when: { answers, notFound, outside, folders } };
+}
+/* what the person may read of their alert today: hits on contracts still in their streams, newest first */
+function watchQuestionOut(w, user) {
+  const p = w.params || {};
+  const ask = db.prepare('SELECT * FROM column_asks WHERE id=?').get(String(p.askId || ''));
+  let scope = null, outside = new Set();
+  try { scope = user ? folderScopeFor(user) : null; outside = user ? cnOutsideFor(user) : new Set(); } catch (_) { outside = new Set(); }
+  const may = cid => !!scope && idInScope(scope, cid) && !outside.has(String(cid));
+  const found = (Array.isArray(p.found) ? p.found : []).filter(h => h && may(h.cid)).slice().reverse();
+  const unread = (Array.isArray(p.unread) ? p.unread : []).filter(x => x && may(x.cid));
+  const rest = { ...p }; delete rest.found; delete rest.unread; delete rest.upto;
+  return { ...w, params: rest, ask: ask ? { id: ask.id, question: ask.question, name: ask.name, rule: !!ask.rule } : null,
+    hits: found, unread, dropped: Number(p.dropped) || 0, unseen: found.some(h => !h.seen) };
+}
+/* an answer the alert tells on: one of the chosen answers, word for word as Discover groups them, or Not found, or
+   outside our playbook (the read's own verdict against the question's rule) */
+function watchQuestionHits(p, a) {
+  if (!a || a.noWording) return false;
+  const said = String(a.answer || '').trim().toLowerCase();
+  if (a.found && said && (p.answers || []).some(x => String(x).toLowerCase() === said)) return true;
+  if (p.notFound && !a.found) return true;
+  return !!(p.outside && a.found && a.verdict === 'out');
+}
+let _wqRun = null, _wqAgain = false, _wqSoon = null;
+function runQuestionAlerts() {
+  if (_wqRun) { _wqAgain = true; return _wqRun; }
+  _wqRun = (async () => {
+    let out;
+    try { out = await questionAlertsOnce(); } finally { _wqRun = null; }
+    if (_wqAgain) { _wqAgain = false; return runQuestionAlerts(); }
+    return out;
+  })();
+  return _wqRun;
+}
+/* a new contract stored: the alerts read it within seconds, not at the next five-minute sweep */
+function questionAlertsSoon() {
+  if (_wqSoon) return;
+  _wqSoon = setTimeout(() => { _wqSoon = null; runQuestionAlerts().catch(e => console.warn('[alerts] sweep failed:', (e && e.message) || e)); }, 2000);
+  if (typeof _wqSoon.unref === 'function') _wqSoon.unref();
+}
+async function questionAlertsOnce() {
+  const rows = db.prepare("SELECT * FROM watches WHERE kind='question' AND paused=0 AND ended_at IS NULL").all();
+  const res = { checked: rows.length, read: 0, cached: 0, alerted: 0, unread: 0 };
+  if (!rows.length) return res;
+  const users = new Map(db.prepare('SELECT * FROM users').all().map(u => [String(u.id), u]));
+  let stop = null;            // a daily ceiling reached in this sweep: nothing more is read, each contract left is SAID
+  for (const w of rows) {
+    const u = users.get(String(w.user_id));
+    if (!u || !srvMayAct(u)) continue;
+    const p = watchJson(w.params);
+    const ask = db.prepare('SELECT * FROM column_asks WHERE id=?').get(String(p.askId || ''));
+    if (!ask) continue;
+    const scope = folderScopeFor(u);
+    let outside = new Set(); try { outside = cnOutsideFor(u); } catch (_) { outside = new Set(); }
+    const upto = Number(p.upto) || 0;
+    const again = [...new Set((Array.isArray(p.unread) ? p.unread : []).map(x => String(x.cid)))];
+    const fresh = db.prepare('SELECT id, folder, seq, json FROM contracts WHERE seq > ? ORDER BY seq').all(upto);
+    const retry = again.length ? db.prepare(`SELECT id, folder, seq, json FROM contracts WHERE id IN (${again.map(() => '?').join(',')})`).all(...again) : [];
+    const found = Array.isArray(p.found) ? p.found : [];
+    const unread = [];
+    let top = upto, hits = 0;
+    const changed = retry.length + fresh.length > 0 || again.length > 0;
+    for (const row of retry.concat(fresh.filter(r => !again.includes(String(r.id))))) {
+      if (row.seq > top) top = row.seq;
+      /* THE WALLS: outside their streams today, a confidential deal they are outside of, or a folder the alert does not watch */
+      if (!inScope(scope, row.folder) || outside.has(String(row.id))) continue;
+      if (p.folders && p.folders.length && !p.folders.includes(String(row.folder || ''))) continue;
+      if (found.some(h => String(h.cid) === String(row.id))) continue;
+      let full = {}; try { full = JSON.parse(row.json) || {}; } catch (_) { full = {}; }
+      if (full.archived || full.status === 'Declined') continue;
+      const miss = why => { unread.push({ cid: row.id, why, at: now() }); res.unread++; };
+      if (psFolderPrivate(row.folder)) { miss('private'); continue; }
+      const wd = colWording(null, full, null);
+      if (!wd.has) { miss('noWording'); continue; }
+      const hash = sha(wd.text);
+      const prev = db.prepare('SELECT * FROM column_answers WHERE ask_id=? AND contract_id=?').get(ask.id, row.id);
+      let a = null;
+      if (prev && prev.input_hash === hash) { a = colAnswerOut(prev); res.cached++; }
+      else {
+        if (stop || (stop = aiCeilingNow())) { miss('ceiling'); continue; }
+        const key = aiKey();
+        if (!key) { miss('noKey'); continue; }
+        const at = now();
+        let R = null;
+        try { R = await colReadContract({ id: row.id, full, sent: wd.text, hash, capped: wd.capped, asks: [ask] }, key, { id: String(u.id), name: u.name || u.email || String(u.id) }, orgJx()); }
+        catch (_) { R = null; }
+        res.read++;
+        a = R && R.answers[ask.id];
+        if (!a) { miss('provider'); continue; }
+        /* the read is on Discover's own record of reads, as a contract read on arrival */
+        try { colRunRecord({ user: u }, null, [ask], null, [row.id], 1, 0, at); } catch (_) {}
+      }
+      if (!watchQuestionHits(p, a)) continue;
+      found.push({ cid: row.id, answer: a.found ? String(a.answer || '').slice(0, 60) : '', found: !!a.found, verdict: a.verdict || '',
+        quote: String(a.quote || '').slice(0, 300), clause: String(a.clause || '').slice(0, 80), at: now(), seen: null });
+      hits++;
+    }
+    if (!changed) continue;
+    /* the stored row is read again: a change of when, or a stop, made while this sweep read keeps its word */
+    const cur = db.prepare('SELECT params, ended_at FROM watches WHERE id=?').get(w.id);
+    if (!cur) continue;
+    const now0 = watchJson(cur.params);
+    let dropped = Number(now0.dropped) || 0;
+    if (found.length > WATCH_Q_FOUND_MAX) { dropped += found.length - WATCH_Q_FOUND_MAX; found.splice(0, found.length - WATCH_Q_FOUND_MAX); }
+    if (unread.length > WATCH_Q_UNREAD_MAX) { dropped += unread.length - WATCH_Q_UNREAD_MAX; unread.splice(0, unread.length - WATCH_Q_UNREAD_MAX); }
+    /* a hit opened while this sweep read keeps its "seen" */
+    const seenAt = new Map((Array.isArray(now0.found) ? now0.found : []).filter(h => h && h.seen).map(h => [String(h.cid), h.seen]));
+    found.forEach(h => { if (!h.seen && seenAt.has(String(h.cid))) h.seen = seenAt.get(String(h.cid)); });
+    const next = { ...now0, upto: top, found, unread, dropped };
+    const last = hits ? found[found.length - 1] : null;
+    db.prepare('UPDATE watches SET params=?, fired=COALESCE(?, fired), last_fired_at=COALESCE(?, last_fired_at) WHERE id=?')
+      .run(JSON.stringify(next), last ? JSON.stringify({ what: 'question', cid: last.cid }) : null, last ? last.at : null, w.id);
+    res.alerted += hits;
+  }
+  return res;
+}
 /* THE SWEEP: each live watch read against the STORED records, as its owner
    may see them today. A hit is fired once (the standing kinds remember it in
    params.hits); a one-shot watch (their reply, a reminder) ends when it fires. */
 function runWatches(opts) {
   const o = opts || {};
-  const rows = db.prepare(`SELECT * FROM watches WHERE paused=0 AND ended_at IS NULL${o.userId ? ' AND user_id=?' : ''}`).all(...(o.userId ? [String(o.userId)] : []));
+  const rows = db.prepare(`SELECT * FROM watches WHERE paused=0 AND ended_at IS NULL AND kind!='question'${o.userId ? ' AND user_id=?' : ''}`).all(...(o.userId ? [String(o.userId)] : []));
   if (!rows.length) return { checked: 0, fired: 0, mailed: 0 };
   const day = aiToday();
   const dayNum = iso => Math.round((Date.parse(iso + 'T00:00:00Z') - Date.parse(day + 'T00:00:00Z')) / 86400000);
@@ -27571,8 +27793,16 @@ function runWatches(opts) {
   }
   return { checked: rows.length, fired, mailed };
 }
-app.post('/api/watches/run', auth, admin, (req, res) => res.json(runWatches()));
-setInterval(() => { try { runWatches(); } catch (e) { console.warn('[watches] sweep failed:', (e && e.message) || e); } }, WATCH_SWEEP_MS).unref?.();
+app.post('/api/watches/run', auth, admin, async (req, res) => {
+  const out = runWatches();
+  /* the alerts on a question read the new contracts too (Alert me when); their own counts ride beside */
+  let questions = null; try { questions = await runQuestionAlerts(); } catch (e) { questions = { error: String((e && e.message) || e).slice(0, 200) }; }
+  res.json({ ...out, questions });
+});
+setInterval(() => {
+  try { runWatches(); } catch (e) { console.warn('[watches] sweep failed:', (e && e.message) || e); }
+  runQuestionAlerts().catch(e => console.warn('[alerts] sweep failed:', (e && e.message) || e));
+}, WATCH_SWEEP_MS).unref?.();
 /* COPILOT PLANS YOUR TIME: it reads the dates and events the person's own
    calendar shows and proposes blocks; nothing is stored here — each block
    lands only when the person presses Add (or, at "Just do it", is added by

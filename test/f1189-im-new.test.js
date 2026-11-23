@@ -309,3 +309,63 @@ describe('f1189 (10) "Start the lessons" under any answer that hears someone new
     try { T.teachChoicePress({ teach: 'start' }); assert.equal(u.prefs.teach, 'on', 'the same as typing "I\'m new"'); } finally { delete global.currentUser; }
   });
 });
+
+/* ---- ROUND 5 · A PRACTICE CONTRACT (owner, 23 Nov 2026: "build it") ---- */
+describe('f1189 (11) a practice contract never reaches the server', () => {
+  test('the one door refuses anything about it, and says so', () => {
+    global.i18t = k => k;
+    try {
+      assert.equal(T.practiceBlocks('contracts/PRACTICE-u1', 'PUT', {}), 'practice_local');
+      assert.equal(T.practiceBlocks('contracts/PRACTICE-u1/here', 'POST', {}), 'practice_local');
+      assert.equal(T.practiceBlocks('shares', 'POST', { contractId: 'PRACTICE-u1' }), 'practice_not_sent', 'a send says nothing was sent');
+      assert.equal(T.practiceBlocks('ai/triage', 'POST', { id: 'PRACTICE-u1' }), 'practice_local');
+      assert.equal(T.practiceBlocks('contracts/MK-1', 'GET'), '', 'a real contract passes');
+      assert.equal(T.practiceBlocks('ai/chat', 'POST', { messages: [] }), '', 'Jambo\'s chat passes');
+    } finally { delete global.i18t; }
+  });
+  test('the guard is the first thing api() does; saving, deleting and the book\'s load keep it at home', () => {
+    const A = strip(R('js/api.js')), C = strip(R('js/core.js'));
+    const api = A.slice(A.indexOf('async function api('), A.indexOf('async function api(') + 400);
+    assert.ok(/practiceBlocks\(path, method, body\)/.test(api) && api.indexOf('practiceBlocks') < api.indexOf('stHoldApi'), 'before anything else');
+    assert.ok(/state\.contracts=\(typeof window!=='undefined'&&typeof window\.practiceJoin==='function'\)\?window\.practiceJoin\(book\):book/.test(A), 'it joins the book after every load');
+    const persist = C.slice(C.indexOf('function persist(c){'), C.indexOf('function persist(c){') + 300);
+    assert.ok(/c\.practice===true[\s\S]{0,120}practiceStore\(c\); if\(API_MODE\(\)\) return;/.test(persist), 'persist keeps it here');
+    assert.ok(/async function saveContract\(c\)\{\s*if\(c&&c\.practice===true[\s\S]{0,80}practiceStore\(c\); return; \}/.test(C), 'saveContract never sends it');
+    assert.ok(/if\(c\.practice===true\)\{[\s\S]{0,90}practiceForget\(\); \}\s*else if\(API_MODE\(\)\)\{ try\{ await api\('contracts\/'\+id,'DELETE'\)/.test(C), 'deleting it asks no server');
+    assert.ok(/if \(c\.practice === true\) return false;/.test(strip(R('js/playbook.js'))), 'no check spends on it by itself');
+  });
+  test('the sample: made-up parties, a draft, marked Practice, one per person', () => {
+    global.i18t = k => k;
+    try {
+      const c = T.practiceBuild({ id: 'u_1', name: 'Wanjiru' });
+      assert.ok(c.id.startsWith('PRACTICE-') && c.practice === true && T.isPractice(c));
+      assert.equal(c.status, 'Draft'); assert.equal(c.counterparty, 'Example Supplies Ltd'); assert.equal(c.contractNo, 'practice_ref');
+      assert.equal(c.name, 'practice_name'); assert.equal(c._loaded, true, 'never fetched from the server');
+      assert.equal(T.isPractice({ id: 'MK-1', practice: true }), false, 'the flag alone is not enough');
+    } finally { delete global.i18t; }
+  });
+  test('it joins the book once, only its owner\'s copy', () => {
+    const store = {}; global.localStorage = { getItem: k => store[k] ?? null, setItem: (k, v) => { store[k] = v; }, removeItem: k => { delete store[k]; } };
+    const u = { id: 'u_9', role: 'legal', prefs: {} }; global.currentUser = () => u;
+    try {
+      assert.deepEqual(T.practiceJoin([{ id: 'MK-1' }]).map(c => c.id), ['MK-1'], 'nothing kept, nothing joins');
+      T.practiceStore(Object.assign(T.practiceBuild(u), { value: 5, _light: true }));
+      const book = T.practiceJoin([{ id: 'MK-1' }]);
+      assert.deepEqual(book.map(c => c.id), ['MK-1', 'PRACTICE-u_9']); assert.equal(book[1].value, 5); assert.equal(book[1]._light, false);
+      assert.equal(T.practiceJoin(book).length, 2, 'never twice');
+      global.currentUser = () => ({ id: 'u_other', prefs: {} });
+      assert.deepEqual(T.practiceJoin([{ id: 'MK-1' }]).map(c => c.id), ['MK-1'], 'a colleague on the same computer never gets it');
+    } finally { delete global.localStorage; delete global.currentUser; }
+  });
+  test('offered to people who may act, typed or pressed; stopping the lessons throws it away', () => {
+    global.i18t = k => k;
+    try {
+      const w = T.teachTurn("I'm new", { role: 'legal' }); assert.ok(w.choices.some(c => c.teach === 'practice'));
+      const v = T.teachTurn("I'm new", { role: 'viewer' }); assert.ok(!v.choices.some(c => c.teach === 'practice'), 'a Viewer is never offered work they cannot do');
+      assert.ok(T.TEACH_PRACTICE_RE.test(T.teachNorm('Give me a practice contract')) && T.TEACH_PRACTICE_RE.test(T.teachNorm('övningsavtal')));
+      assert.ok(T.TEACH_PRACTICE_DEL_RE.test(T.teachNorm('delete my practice contract')));
+      assert.ok(!T.TEACH_PRACTICE_RE.test(T.teachNorm('practice contract for Volvo')), 'a sentence about something else is not it');
+    } finally { delete global.i18t; }
+    assert.ok(/if \(v === 'off'\)\{ try \{ practiceDelete\(\{ quiet: true \}\)/.test(strip(R('js/teach.js'))));
+  });
+});

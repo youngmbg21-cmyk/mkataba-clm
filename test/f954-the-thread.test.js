@@ -124,7 +124,7 @@ test('4 · the Reads page is on every list a page must be on', () => {
   assert.match(APP, /else if\(view==='reads'\) renderReads\(\);/);
   assert.match(APP, /case 'reads':\s*return \[i18t\('nav_reads'\), ''\];/);
   assert.match(APP, /reads:\['rdPlace','rdPlacePut'\]/, 'a refresh lands at the same spot');
-  assert.match(APP, /\{ k: 'keep', rows: \['contracts', 'reads', 'oblig', 'calendar', 'mynotes'\] \}/, 'the Guide row (flow rule 9c)');
+  assert.match(APP, /\{ k: 'keep', rows: \['contracts', 'reads', 'alertme', 'oblig', 'calendar', 'mynotes'\] \}/, 'the Guide row (flow rule 9c)');
   assert.match(CORE, /'mynotes','reads','handbook'/, 'setView knows it');
   assert.match(CA, /\{ k: 'reads', w: \['reads', 'every read'/, 'the "/" word');
   assert.match(CA, /reads: \(c, a\) => \(typeof readsOpen === 'function'\)/, 'the door opens on the question named');

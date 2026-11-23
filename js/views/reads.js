@@ -24,7 +24,7 @@ const _rdTn = (k, n, v) => (typeof i18tn === 'function') ? i18tn(k, n, { n, ...(
 const _dsn = { screen: 'list', run: null, sel: null, cid: null, tab: 'all', q: '', f: { folder: '', ask: '', by: '', when: 'all' }, pick: new Set(['all']), status: 'all', party: '', done: null };
 /* A REFRESH LANDS AT THE SAME SPOT (PLACE_PARTS.reads): the tab, the box and the chosen row */
 function rdPlace(){ return { filter: _rd.filter, q: _rd.q, sel: _rd.sel, table: _rd.table ? { key: _rd.table.key, tab: _rd.table.tab, q: _rd.table.q, cid: _rd.table.cid } : null,
-  dsn: { screen: _dsn.screen === 'reading' ? (_dsn.run ? 'results' : 'list') : _dsn.screen, run: _dsn.run, sel: _dsn.sel, f: _dsn.f } }; }
+  dsn: { screen: _dsn.screen === 'reading' ? (_dsn.run ? 'results' : 'list') : _dsn.screen, run: _dsn.run, sel: _dsn.sel, f: _dsn.f, lview: _dsn.lview || 'reads', alert: _dsn.alert || null } }; }
 function rdPlacePut(p){
   if (!p || typeof p !== 'object') return;
   _rd.filter = RD_TABS.some(t => t[0] === p.filter) ? p.filter : 'all';
@@ -32,7 +32,8 @@ function rdPlacePut(p){
   _rdBack = p.sel ? String(p.sel) : null;
   _rd.table = p.table && p.table.key ? { key: String(p.table.key), tab: String(p.table.tab || 'all'), q: String(p.table.q || ''), cid: p.table.cid ? String(p.table.cid) : null, loaded: false } : null;
   const d = p.dsn && typeof p.dsn === 'object' ? p.dsn : null;
-  if (d){ _dsn.resumed = true; _dsn.screen = ['list', 'new', 'results'].includes(d.screen) ? d.screen : 'list'; _dsn.run = d.run ? String(d.run) : null; _dsn.sel = d.sel ? String(d.sel) : null;
+  if (d){ _dsn.resumed = true; _dsn.screen = ['list', 'new', 'results', 'alert'].includes(d.screen) ? d.screen : 'list'; _dsn.run = d.run ? String(d.run) : null; _dsn.sel = d.sel ? String(d.sel) : null;
+    _dsn.lview = d.lview === 'alerts' ? 'alerts' : 'reads'; _dsn.alert = d.alert ? String(d.alert) : null;
     if (d.f && typeof d.f === 'object') ['folder', 'ask', 'by', 'when'].forEach(k => { if (typeof d.f[k] === 'string') _dsn.f[k] = d.f[k]; }); }
 }
 /* THE CONTRACTS THIS PERSON MAY SEE, counted once: "of 500" on every row */
@@ -245,7 +246,7 @@ function rdScHeadHtml(r, S, sub){
   };
   return `<div class="rdsc-head"><div class="rdsc-top"><button type="button" class="ac-link rdt-back" data-rdt-back>${_rdE(_rdT('rd_sc_back'))}</button><h1 class="rdsc-nm" title="${_rdE(r.name)}">${_rdE(r.name)}</h1><span class="rdt-sp"></span>
       <label class="lh-ask rdt-ask rdsc-ask"><input type="search" id="rdt-q" autocomplete="off" spellcheck="false" placeholder="${_rdE(_rdTn('rd_tt_search', S.rows.length))}" value="${_rdE(t.q)}" aria-label="${_rdE(_rdTn('rd_tt_search', S.rows.length))}"></label>
-      <button type="button" class="ui-btn ui-btn-sm" data-rdt-copy>${_rdE(_rdT('ac_chip_copy'))}</button><button type="button" class="ui-btn ui-btn-sm" data-rdt-xlsx>${_rdE(_rdT('dsn_xlsx'))}</button><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-rdt-again>${_rdE(_rdT('ac_again'))}</button></div>
+      ${dsnExportHtml('rdt')}${dsnAlertBtnHtml(r.askIds, 'rdt')}<button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-rdt-again>${_rdE(_rdT('ac_again'))}</button></div>
     <div class="rdsc-sub" title="${_rdE(sub)}">${_rdE(sub)}</div>
     <div class="rdsc-tiles" role="group" aria-label="${_rdE(_rdT('rd_filter'))}">${S.tabs.map(tile).join('')}</div></div>`;
 }
@@ -1144,10 +1145,12 @@ function dsnListHtml(){
   const loading = !(typeof AC !== 'undefined' && AC.reads) && !_rd.at;
   const may = _dscMay();
   const facts = [_rdT('dsn_line'), _rdTn('dsn_n_reads', runs.length), _rdTn('dsn_questions', qs)].join(' · ');
-  const top = `<div class="cun-head rdn-head dsn-lhead"><h2 class="ctf-h">${_rdE(_rdT('nav_reads'))}</h2><span class="dsn-facts">${_rdE(loading ? _rdT('dsn_line') : facts)}</span><span class="apn-sp"></span>
+  const alerts = _dsn.lview === 'alerts';
+  const top = `<div class="cun-head rdn-head dsn-lhead"><h2 class="ctf-h">${_rdE(_rdT('nav_reads'))}</h2>${dsnLTabsHtml(runs.length)}<span class="dsn-facts">${_rdE(loading ? _rdT('dsn_line') : alerts ? _rdT('amw_line_list') : facts)}</span><span class="apn-sp"></span>
       <button type="button" class="ui-btn ui-btn-primary dsn-newb" id="dsn-new"><span aria-hidden="true">+</span> ${_rdE(_rdT('dsn_new'))}</button></div>
     <label class="apn-ask dsn-lask">${typeof icon === 'function' ? icon('sparkle', 'w-4 h-4') : ''}<input id="dsn-ask" type="text" autocomplete="off" spellcheck="true" placeholder="${_rdE(_rdT('dsc_ph'))}" value="${_rdE(_dsn.ask || '')}"${may ? '' : ' readonly'}><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-dsn-askgo${may ? '' : ` disabled title="${_rdE(_rdT('ac_btn_viewer'))}"`}>${_rdE(_rdT('dsn_ask_go'))}</button></label>
-    <div class="apn-bar dsn-bar">${chips}</div>`;
+    ${alerts ? '' : `<div class="apn-bar dsn-bar">${chips}</div>`}`;
+  if (alerts) return top + amwListHtml();
   /* NO READS AT ALL (as drawn): no table head over nothing, one quiet dashed box that says so */
   if (!loading && !runs.length) return top + `<div class="dsn-empty" data-dsn-empty><b>${_rdE(_rdT('dsn_none_t'))}</b><span>${_rdE(_rdT('dsn_none_s'))}</span></div>`;
   const body = shown.length ? shown.map(row).join('') : loading
@@ -1599,7 +1602,7 @@ function dsnResultsHtml(r){
     .concat(S.G.map(g => `<button type="button" class="apn-tab is-chip${_dsn.tab === g.k ? ' is-on' : ''}" data-dsn-tab="${_rdE(g.k)}" aria-pressed="${_dsn.tab === g.k}" title="${_rdE(g.l)}"><i class="dsl-dot is-${_rdE(g.c || 'gray')}" aria-hidden="true"></i><b class="dsn-cl">${_rdE(g.l)}</b> <span>${g.n}</span></button>`)).join('') : '';
   const q = dsnRunQuestion(r), title = r.packId ? dsnRunName(r) : (q || dsnRunName(r));
   const head = `<div class="cun-head rdn-head dsn-rhead"><div class="dsn-rh-t"><button type="button" class="dsl-a dsn-back" data-dsn-back>${_rdE(_rdT('dsn_back'))}</button><h2 class="ctf-h" title="${_rdE(title)}">${_rdE(title)}</h2></div><span class="apn-sp"></span><span class="dsn-racts">
-      ${may ? `<button type="button" class="rfp-pill" data-dsn-again="${_rdE(r.id)}">${_rdE(_rdT('dsn_ask_another'))}</button>` : ''}<button type="button" class="rfp-pill" data-dsn-copy>${_rdE(_rdT('dsn_export'))}</button><button type="button" class="rfp-pill" data-dsn-xlsx>${_rdE(_rdT('dsn_xlsx'))}</button>${left && may ? `<button type="button" class="ui-btn ui-btn-primary" data-dsn-more="${_rdE(r.id)}">${_rdE(_rdT('dsn_read_left', { n: left }))}</button>` : ''}</span></div>
+      ${may ? `<button type="button" class="rfp-pill" data-dsn-again="${_rdE(r.id)}">${_rdE(_rdT('dsn_ask_another'))}</button>` : ''}${dsnExportHtml('dsn')}${dsnAlertBtnHtml(r.askIds)}${left && may ? `<button type="button" class="ui-btn ui-btn-primary" data-dsn-more="${_rdE(r.id)}">${_rdE(_rdT('dsn_read_left', { n: left }))}</button>` : ''}</span></div>
     ${dsnSteps(3)}<p class="dsn-sub">${_rdE([dsnRunWhere(r), S ? dsnSubjectWords(S.rows.map(x => x.c)) : '', _rdT('dsn_n_read', { n: r.n }), String(r.by || '').split(/\s+/)[0], dsnDay(r.last || r.at)].filter(Boolean).join(' · '))}</p>
     <div class="apn-bar dsn-bar">${chips}<span class="apn-sp"></span><label class="dsn-search">${typeof icon === 'function' ? icon('search', 'w-4 h-4') : ''}<input type="search" id="dsn-q" autocomplete="off" spellcheck="false" placeholder="${_rdE(_rdTn('dsn_search', r.askIds.length))}" aria-label="${_rdE(_rdTn('dsn_search', r.askIds.length))}" value="${_rdE(_dsn.q)}"></label></div>`;
   if (!S) return head + rdnWaitHtml(r.askIds, 'dsc-quiet dsc-pad');
@@ -1654,10 +1657,11 @@ function dsnRender(host, o){
   /* ARRIVING FROM ANOTHER PAGE LANDS ON THE LIST OF READS, however you came (a press inside Discover keeps its screen; a
      refresh puts back the place it kept, rdPlacePut; a read in flight is always its own screen) */
   if (!document.querySelector('#rd-page.dsn-page') && !busy){
-    if (_dsn.resumed) _dsn.resumed = false; else { _dsn.screen = 'list'; _dsn.cid = null; _dsn.picked = false; }
+    if (_dsn.resumed) _dsn.resumed = false; else { _dsn.screen = 'list'; _dsn.cid = null; _dsn.picked = false; _dsn.lview = 'reads'; }
   }
   if (busy) _dsn.screen = 'reading';
   if (_dsn.screen === 'results' && !(_dsn.run && dsnRun(_dsn.run))) _dsn.screen = _dsn.run ? 'results' : 'list';
+  if (_dsn.screen === 'alert' && !_dsn.alert) _dsn.screen = 'list';
   dscLiveTurn();
   let inner, panel = '', head = false;
   const r = _dsn.screen === 'results' ? dsnRun(_dsn.run) : null;
@@ -1665,8 +1669,10 @@ function dsnRender(host, o){
   if (_dsn.screen === 'new'){ AC.scope = { ids: dsnChosen().ids }; inner = dsnNewHtml(); panel = _dsn.pk ? dsnPackPanel() : dsnNewPanel(); }
   else if (_dsn.screen === 'reading'){ inner = dsnReadingHtml(); }
   else if (r){ inner = dsnResultsHtml(r); }
+  /* ALERT ME WHEN: an alert's own page, laid out as the results are */
+  else if (_dsn.screen === 'alert'){ inner = amwPageHtml(); }
   else if (_dsn.screen === 'results'){ inner = `<div class="cun-head rdn-head"><button type="button" class="ac-link dsn-back" data-dsn-back>${_rdE(_rdT('dsn_back'))}</button></div><p class="dsc-quiet dsc-pad">${_rdE(_rdT('dsc_loading'))}</p>`; }
-  else { _dsn.screen = 'list'; inner = dsnListHtml(); panel = dsnListPanel(); }
+  else { _dsn.screen = 'list'; inner = dsnListHtml(); panel = _dsn.lview === 'alerts' ? amwListPanel() : dsnListPanel(); }
   void head;
   /* the choice stands from New read until the read ends; the list of reads and the results let it go */
   if ((_dsn.screen === 'list' || _dsn.screen === 'results') && !busy && !_dsc.starting && typeof AC !== 'undefined') AC.scope = null;
@@ -1702,6 +1708,12 @@ function dsnPanelPaint(body, r){
     const runIds = ((_dsn.run && dsnRun(_dsn.run)) || {}).ids || [], cid = _dsc.liveCid || runIds[runIds.length - 1] || null, askId = b ? (b.askId || (b.asks || [])[0]) : (_dsn.done && _dsn.done.askId);
     insPaintPanel(Object.assign(base, { item: { id: 'live:' + (cid || '') }, body: cid && askId ? `<div class="rfp-cap">${_rdE(_rdT('dsc_just_read'))}</div>${dscPaperHtml(askId, cid)}` : `<div class="rfp-panel is-drawn rdn-panel"><p class="ac-nl-hint">${_rdE(_rdT('dsc_live_first'))}</p></div>`,
       jlTabWord: _rdT(b ? 'dsc_tab_reading' : 'dsn_tab_done', { k: b ? b.done : 0, n: b ? b.total : 0 }), jlPh: _rdT('dsc_ph_clause'), jlLinks: cid && askId ? dscPaperLinksHtml(askId, cid) : '' }));
+    return;
+  }
+  if (_dsn.screen === 'alert'){
+    const w = _amwGet(_dsn.alert);
+    if (w && _dsn.acid && _dsnGc(_dsn.acid)){ insPaintPanel(Object.assign(base, { item: { id: 'amw:' + w.id + ':' + _dsn.acid }, body: amwPanelHtml(w, _dsn.acid), jlPh: _rdT('dsc_ph_clause') })); return; }
+    insPaintPanel(Object.assign(base, { item: { id: 'amw:' + _dsn.alert }, body: amwListPanelFor(w), jlPh: _rdT('jl_ph_any') }));
     return;
   }
   if (r && _dsn.cid){
@@ -1952,8 +1964,8 @@ if (typeof document !== 'undefined' && !document._dsnWired){ document._dsnWired 
       /* an answer pressed lands on its own place on the paper; the row elsewhere shows them all from the top */
       const q = t.closest('[data-dsn-q]'), f = q ? q.getAttribute('data-dsn-q') : null;
       if (_dsn.cid !== id || (_dsn.focusAsk || null) !== f){ _dsn.cid = id; _dsn.focusAsk = f; renderReads(); } return; }
-    if (t.closest('[data-dsn-xlsx]')){ stop(e); const r = dsnRun(_dsn.run), S = r && dsnResultsShown(r); if (S && typeof askColXlsx === 'function') askColXlsx(r.askIds, S.list.map(x => x.id), r.packId ? dsnRunName(r) : (dsnRunQuestion(r) || dsnRunName(r))); return; }
-    if (t.closest('[data-dsn-copy]')){ stop(e); const r = dsnRun(_dsn.run), S = r && dsnResultsShown(r); if (S && typeof askColCopyMany === 'function') askColCopyMany(r.askIds, S.list.map(x => x.id)); return; }
+    if (t.closest('[data-dsn-xlsx]')){ stop(e); dsnExportShut(); const r = dsnRun(_dsn.run), S = r && dsnResultsShown(r); if (S && typeof askColXlsx === 'function') askColXlsx(r.askIds, S.list.map(x => x.id), r.packId ? dsnRunName(r) : (dsnRunQuestion(r) || dsnRunName(r))); return; }
+    if (t.closest('[data-dsn-copy]')){ stop(e); dsnExportShut(); const r = dsnRun(_dsn.run), S = r && dsnResultsShown(r); if (S && typeof askColCopyMany === 'function') askColCopyMany(r.askIds, S.list.map(x => x.id)); return; }
     /* Delete question asks first (askColDelete's own confirm) and cannot be undone; the list of reads is read again after */
     if ((el = t.closest('[data-dsn-del]'))){ stop(e); const r = dsnRun(el.getAttribute('data-dsn-del'));
       if (r && typeof askColDelete === 'function') Promise.resolve(askColDelete(r.askIds[0])).catch(() => {}).then(() => { _dsn.sel = null; rdLoad(true); }); return; }
@@ -2104,8 +2116,8 @@ function readsWire(){
       const tr = rdFind(_rd.table.key);
       if ((el = t.closest('[data-rdt-back]'))){ readsTableBack(); return; }
       if ((el = t.closest('[data-rdt-tab]'))){ _rd.table.tab = el.getAttribute('data-rdt-tab'); rdKeep(); rdTablePaint(); return; }
-      if ((el = t.closest('[data-rdt-xlsx]')) && tr){ if (typeof askColXlsx === 'function') askColXlsx(tr.askIds, rdTableRows(tr).map(x => x.id), tr.name || ''); return; }
-      if ((el = t.closest('[data-rdt-copy]')) && tr){ if (typeof askColCopyMany === 'function') askColCopyMany(tr.askIds, rdTableRows(tr).map(x => x.id)); return; }
+      if ((el = t.closest('[data-rdt-xlsx]')) && tr){ dsnExportShut(); if (typeof askColXlsx === 'function') askColXlsx(tr.askIds, rdTableRows(tr).map(x => x.id), tr.name || ''); return; }
+      if ((el = t.closest('[data-rdt-copy]')) && tr){ dsnExportShut(); if (typeof askColCopyMany === 'function') askColCopyMany(tr.askIds, rdTableRows(tr).map(x => x.id)); return; }
       if ((el = t.closest('[data-rdt-again]')) && tr){ readsAgain(tr.key); return; }
       if ((el = t.closest('[data-rdt-go]')) && _rd.table.cid){ if (typeof AC !== 'undefined') AC.chosen = { askId: el.getAttribute('data-rdt-go'), cid: _rd.table.cid }; if (typeof askColGo === 'function') askColGo(); return; }
       if ((el = t.closest('[data-rdt-ck]')) && _rd.table.cid && !el.disabled){ const cid = _rd.table.cid; if (typeof askColCheck === 'function') askColCheck(el.getAttribute('data-rdt-ck'), cid).then(() => rdTablePaint()); return; }
@@ -2227,4 +2239,277 @@ function readsCss(){ return `
   #ins-panel .rdt-acts{display:flex;gap:8px;flex-wrap:wrap;margin:0}
 `; }
 
-Object.assign(window, { dsnWarm, rdnAnswersAll, dscLocate, dscPaperAllHtml, dsnRunLeft, dsnEndsOnResults, dslReadHtml, dslEmptyHtml, dslNewHtml, dsnRunRows, dsnCarry, dsnCancelOpen, dsnCancelGo, dsnRender, dsnChosen, dsnRuns, dsnGroups, dsnRunWhere, dsnAsk, discoverOpen, discoverLive, dscSlice, readsTableOpen, readsTableBack, rdTableRows, rdPlace, rdPlacePut, renderReads, readsOpen, readsShown, readParts, rdRows, readsFacts, readsNext, readsAskNew });
+/* ============================================================================
+   ALERT ME WHEN (owner's pick by name, 23 Nov 2026: the drawing "Alert Me When", built as drawn)
+   ----------------------------------------------------------------------------
+   Discover's results head: Export ▾ is ONE button opening a small menu (Copy the table · Download as Excel, the one
+   table askColTableOf reads), and "🔔 Alert me when" stands where Download as Excel stood. Its window (THE ONE EDIT
+   POP-UP, lgpOpen) asks WITH which answers (this read's own groups, as its chips show them, plus Not found and Outside
+   our playbook), IN which folders (all I can see, or Discover's own folder list), and says where it TELLS. Start
+   alerting keeps a watch of kind 'question' on the server (watchCreate → POST /api/me/watches): the server's sweep
+   reads every NEW contract for the question (one Jambo read each, the daily ceilings asked first) and keeps each one
+   that answered as chosen. Once running the button reads "Alerting · Not capped", soft green, and opens the alert's
+   own page: laid out as the results are — ‹ All alerts, its name, what it watches, Change when · Stop alerting, chips,
+   a search, the table newest first, a row press shows the paper's place beside it (Discover's own panel). Discover's
+   list carries Reads · Alerts. A Viewer is never offered it (mayActOn); the server refuses one all the same.
+   ========================================================================== */
+const AMW_LAST_KEY = 'hati.v1.amwLast';
+const _amwBell = '<svg class="dsn-amw-ic" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-bell"/></svg>';
+function amwMay(){
+  const me = (typeof currentUser === 'function') ? currentUser() : null;
+  if (me && typeof window.mayActOn === 'function') return !!window.mayActOn(null, me);
+  return !me || me.role !== 'viewer';
+}
+const amwServer = () => typeof API_MODE === 'function' && API_MODE();
+const _amwList = () => (typeof watchAlerts === 'function') ? (watchAlerts() || []) : [];
+const _amwGet = id => _amwList().find(w => String(w.id) === String(id)) || null;
+/* the last choice made in the window, per question: the one thing pre-chosen (a per-viewer convenience, browser storage) */
+function amwLastOf(askId){ try { const j = JSON.parse(localStorage.getItem(AMW_LAST_KEY) || '{}'); return (j && j[askId]) || null; } catch (_){ return null; } }
+function amwLastPut(askId, when){ try { const j = JSON.parse(localStorage.getItem(AMW_LAST_KEY) || '{}') || {}; j[askId] = when; localStorage.setItem(AMW_LAST_KEY, JSON.stringify(j)); } catch (_){} }
+/* EXPORT ▾ — one button, its small menu (HaTi's own .apn-rule-menu): `kind` 'dsn' on the results, 'rdt' on the older table */
+function dsnExportHtml(kind){
+  const k = kind === 'rdt' ? 'rdt' : 'dsn', open = _dsn.xmenu === k;
+  const item = (attr, t, s) => `<button type="button" role="menuitem" ${attr}><b>${_rdE(_rdT(t))}</b><span>${_rdE(_rdT(s))}</span></button>`;
+  return `<span class="apn-rule-w dsn-xw"><button type="button" class="${k === 'rdt' ? 'ui-btn ui-btn-sm' : 'rfp-pill'} dsn-xbtn" data-dsn-xopen="${k}" aria-haspopup="menu" aria-expanded="${open}">${_rdE(_rdT('dsn_export'))}<i class="dsn-xv" aria-hidden="true"></i></button>`
+    + `<span class="apn-rule-menu dsn-xmenu" role="menu"${open ? '' : ' hidden'}>${item(`data-${k}-copy`, 'ac_chip_copy', 'dsn_x_copy_s')}${item(`data-${k}-xlsx`, 'dsn_xlsx', 'dsn_x_xlsx_s')}</span></span>`;
+}
+function dsnExportShut(){
+  _dsn.xmenu = null;
+  document.querySelectorAll('.dsn-xmenu:not([hidden])').forEach(m => { m.hidden = true; const b = m.parentNode && m.parentNode.querySelector('[data-dsn-xopen]'); if (b) b.setAttribute('aria-expanded', 'false'); });
+}
+/* 🔔 ALERT ME WHEN, or once running "Alerting · Not capped" (soft green) which opens the alert's page; one question only,
+   never for a reader who may not act, never without HaTi's server (watches are kept there) */
+function dsnAlertBtnHtml(askIds, kind){
+  if (!amwServer() || !amwMay() || !Array.isArray(askIds) || askIds.length !== 1) return '';
+  const w = (typeof watchAlertOf === 'function') ? watchAlertOf(askIds[0]) : null, cls = kind === 'rdt' ? 'ui-btn ui-btn-sm' : 'rfp-pill';
+  if (w) return `<button type="button" class="${cls} dsn-amw is-on" data-amw-page="${_rdE(w.id)}" title="${_rdE(typeof amwTitle === 'function' ? amwTitle(w) : '')}">${_amwBell}<span>${_rdE(_rdT('amw_alerting', { what: typeof amwChosenWords === 'function' ? amwChosenWords(w.params) : '' }))}</span></button>`;
+  return `<button type="button" class="${cls} dsn-amw" data-amw-open="${_rdE(askIds[0])}">${_amwBell}<span>${_rdE(_rdT('amw_btn'))}</span></button>`;
+}
+/* THE ANSWERS A QUESTION HAS GIVEN, as Discover's chips group them (dsnGroups over every kept answer it has here) */
+function amwGroupsOf(askId){
+  const A = _dscAC(), got = (A && A.ans && A.ans[askId]) || {};
+  const rows = Object.keys(got).map(id => ({ id, c: _dsnGc(id), a: [got[id]] })).filter(x => x.c && x.a[0]);
+  return dsnGroups(rows).filter(g => g.k !== 'g:none');
+}
+/* THE WINDOW (THE ONE EDIT POP-UP, lgpOpen): with · in · tell me; Start alerting, then Cancel */
+let _amw = null;
+function amwOpen(askId, o){
+  if (!amwServer()){ if (typeof toast === 'function') toast(_rdT('wt_no_server'), 'warn'); return; }
+  const edit = o && o.w ? o.w : null, ask = (typeof AC !== 'undefined' && AC.asks) ? AC.asks[askId] : null;
+  const p = edit ? edit.params || {} : (amwLastOf(askId) || {});
+  const G = amwGroupsOf(askId);
+  /* an answer chosen before that this read no longer groups stays offered, chosen */
+  (p.answers || []).forEach(a => { if (!G.some(g => g.l.toLowerCase() === String(a).toLowerCase())) G.push({ k: 'g:' + String(a).toLowerCase(), l: String(a), c: 'gray', n: 0 }); });
+  _amw = { askId, edit: edit ? edit.id : null, q: String((edit && edit.ask && edit.ask.question) || (ask && ask.question) || ''), G,
+    pick: new Set((p.answers || []).map(a => String(a).toLowerCase())), none: !!p.notFound, out: !!p.outside,
+    folders: new Set(edit ? (p.folders || []) : []), fopen: false, err: '' };
+  amwPaint(true);
+}
+function amwSheet(){
+  const S = _amw, may = amwMay();
+  const chip = (attr, on, l, dot) => `<button type="button" class="lgp-chip amw-chip${on ? ' is-on' : ''}" ${attr} aria-pressed="${on}">${dot ? `<i class="dsl-dot is-${_rdE(dot)}" aria-hidden="true"></i>` : ''}${_rdE(l)}</button>`;
+  const withHtml = `<div class="amw-chips">${S.G.map(g => chip(`data-amw-ans="${_rdE(g.l.toLowerCase())}"`, S.pick.has(g.l.toLowerCase()), g.l, g.c || 'gray')).join('')}`
+    + chip('data-amw-none', S.none, _rdT('ac_not_found')) + chip('data-amw-out', S.out, _rdT('amw_ch_out')) + '</div>';
+  const F = dsnFolders(), all = !S.folders.size;
+  const inWords = all ? _rdT('amw_in_all') : [...S.folders].map(_dsnFolderName).join(', ');
+  const inHtml = `<span class="amw-in"><span>${_rdE(inWords)}</span> <button type="button" class="ui-link amw-change" data-amw-fchange aria-expanded="${S.fopen}">${_rdE(_rdT(S.fopen ? 'amw_in_done' : 'amw_in_change'))}</button></span>`
+    + (S.fopen ? (typeof lgpListHtml === 'function' ? lgpListHtml({ items: [{ id: '', label: _rdT('amw_in_all'), on: all }].concat(F.map(f => ({ id: f.fid, label: f.name, on: S.folders.has(f.fid) }))), tickAttr: 'data-amw-folder', page: S.fpage || 1, pageAttr: 'data-amw-fpage', per: 6 }) : '') : '');
+  const row = (k, html, cls) => `<div class="lgp-row is-read amw-row${cls ? ' ' + cls : ''}"><span class="lgp-k">${_rdE(_rdT(k))}</span><span class="lgp-v">${html}</span></div>`;
+  return { id: 'amw-form', title: _rdT('amw_btn'), sub: _rdT('amw_sub', { q: S.q }),
+    html: row('amw_with', withHtml, 'is-with') + row('amw_in', inHtml) + row('amw_tell', `<span class="amw-tell">${_rdE(_rdT('amw_tell_where'))}</span>`),
+    err: S.err, primary: may ? { label: _rdT(S.edit ? 'amw_save' : 'amw_start'), attr: 'data-amw-go' } : null,
+    note: may ? '' : _rdT('amw_viewer'), cancelAttr: 'data-lgp-close data-amw-cancel', focus: false };
+}
+function amwPaint(first){
+  if (!_amw) return;
+  const o = amwSheet();
+  if (first && typeof lgpOpen === 'function') lgpOpen(o); else if (typeof lgpRepaint === 'function') lgpRepaint(o);
+}
+async function amwGo(){
+  const S = _amw; if (!S || S.busy) return;
+  if (!amwMay()){ S.err = _rdT('amw_viewer'); amwPaint(); return; }
+  const answers = S.G.filter(g => S.pick.has(g.l.toLowerCase())).map(g => g.l);
+  if (!answers.length && !S.none && !S.out){ S.err = _rdT('amw_need'); amwPaint(); return; }
+  const when = { answers, notFound: S.none, outside: S.out, folders: [...S.folders] };
+  S.busy = true;
+  const btn = document.querySelector('[data-amw-go]'); if (btn) btn.disabled = true;
+  try {
+    let w;
+    if (S.edit) w = await watchAlertWhen(S.edit, when);
+    else {
+      try { w = await watchCreate({ kind: 'question', params: Object.assign({ askId: S.askId }, when) }); }
+      catch (e){ if (e && e.status === 409 && e.data && e.data.id) w = await watchAlertWhen(e.data.id, when); else throw e; }
+    }
+    amwLastPut(S.askId, when);
+    _amw = null;
+    if (typeof closeModal === 'function') closeModal();
+    if (typeof toast === 'function') toast(_rdT(S.edit ? 'amw_changed' : 'amw_started', { what: typeof amwChosenWords === 'function' ? amwChosenWords(w && w.params) : '' }), 'ok');
+    renderReads();
+  } catch (e){
+    S.busy = false; S.err = (e && e.message) || _rdT('wt_not_saved'); amwPaint();
+  }
+}
+/* ---- THE ALERT'S OWN PAGE (as drawn, d-page): laid out as Discover's results ---- */
+function amwPageOpen(id){
+  if (!id) return false;
+  _dsn.screen = 'alert'; _dsn.alert = String(id); _dsn.acid = null; _dsn.atab = 'all'; _dsn.aq = ''; _dsn.resumed = true;
+  if (typeof watchAlertGet === 'function') Promise.resolve(watchAlertGet(id)).then(() => { if (state.view === 'reads' && _dsn.screen === 'alert') renderReads(); }).catch(() => {});
+  if (state.view !== 'reads' && typeof setView === 'function') setView('reads'); else renderReads({ top: true });
+  return true;
+}
+/* the hits as rows Discover's table and panel read: each its contract and its answer (the alert's own, the kept answer
+   where it is loaded) */
+function amwRows(w){
+  const A = _dscAC(), askId = w.params && w.params.askId;
+  if (A && askId){ const into = A.ans[askId] || (A.ans[askId] = {});
+    (w.hits || []).forEach(h => { if (!into[h.cid]) into[h.cid] = { found: h.found, answer: h.answer, quote: h.quote, clause: h.clause, verdict: h.verdict }; }); }
+  return (w.hits || []).map(h => ({ id: String(h.cid), c: _dsnGc(h.cid), h, a: [(A && askId && A.ans[askId] && A.ans[askId][h.cid]) || h] })).filter(x => x.c);
+}
+const _amwAnsLabel = h => h.found && h.answer ? String(h.answer) : h.found && h.verdict === 'out' ? _rdT('amw_ch_out') : _rdT('ac_not_found');
+function amwShown(w){
+  const rows = amwRows(w), by = new Map();
+  rows.forEach(x => { const l = _amwAnsLabel(x.h), k = 'a:' + l.toLowerCase(); const g = by.get(k) || { k, l, n: 0, c: x.h.found ? _rdTone(x.a[0]) : 'gray', ids: [] }; g.n++; g.ids.push(x.id); by.set(k, g); });
+  const G = [...by.values()];
+  if (_dsn.atab !== 'all' && !G.some(g => g.k === _dsn.atab)) _dsn.atab = 'all';
+  const inTab = _dsn.atab === 'all' ? null : new Set(G.find(g => g.k === _dsn.atab).ids);
+  const q = String(_dsn.aq || '').trim().toLowerCase();
+  const hay = x => [_rdName(x.c), x.c.counterparty, _rdRef(x.c), x.h.answer, x.h.quote].join(' ').toLowerCase();
+  const list = rows.filter(x => (!inTab || inTab.has(x.id)) && (!q || q.split(/\s+/).every(t => hay(x).includes(t))));
+  return { rows, G, list };
+}
+const _amwWhy = u => _rdT('amw_unread_' + (['ceiling', 'noKey', 'private', 'noWording', 'provider'].includes(u.why) ? u.why : 'provider'));
+function amwPageHtml(){
+  const w = _amwGet(_dsn.alert);
+  const back = `<button type="button" class="dsl-a dsn-back" data-amw-all>${_rdE(_rdT('amw_back'))}</button>`;
+  if (!w) return `<div class="cun-head rdn-head dsn-rhead"><div class="dsn-rh-t">${back}<h2 class="ctf-h">${_rdE(_rdT('amw_gone_t'))}</h2></div></div><p class="dsc-quiet dsc-pad">${_rdE(_rdT(typeof watchesLoaded === 'function' && watchesLoaded() ? 'amw_gone' : 'dsc_loading'))}</p>`;
+  const S = amwShown(w), may = amwMay(), title = amwTitle(w);
+  if (S.list.length && !S.list.some(x => x.id === _dsn.acid)) _dsn.acid = S.list[0].id;
+  const folders = (w.params.folders || []).length ? w.params.folders.map(_dsnFolderName).join(', ') : _rdT('amw_in_all_short');
+  const sub = [_rdT('amw_line', { q: (w.ask && w.ask.question) || '', what: amwChosenWords(w.params) }), folders, _rdT('amw_since', { day: dsnDay(w.createdAt) }), _rdT('amw_by_you'), _rdTn('amw_caught', S.rows.length)].join(' · ');
+  const acts = may ? `<button type="button" class="rfp-pill" data-amw-change>${_rdE(_rdT('amw_change'))}</button><button type="button" class="rfp-pill" data-amw-stop>${_rdE(_rdT('amw_stop'))}</button>` : '';
+  const chips = [`<button type="button" class="apn-tab is-chip${_dsn.atab === 'all' ? ' is-on' : ''}" data-amw-tab="all" aria-pressed="${_dsn.atab === 'all'}">${_rdE(_rdT('ctf_tab_all'))} <span>${S.rows.length}</span></button>`]
+    .concat(S.G.map(g => `<button type="button" class="apn-tab is-chip${_dsn.atab === g.k ? ' is-on' : ''}" data-amw-tab="${_rdE(g.k)}" aria-pressed="${_dsn.atab === g.k}" title="${_rdE(g.l)}"><i class="dsl-dot is-${_rdE(g.c || 'gray')}" aria-hidden="true"></i><b class="dsn-cl">${_rdE(g.l)}</b> <span>${g.n}</span></button>`)).join('');
+  const ph = _rdT('amw_search');
+  const head = `<div class="cun-head rdn-head dsn-rhead"><div class="dsn-rh-t">${back}<h2 class="ctf-h" title="${_rdE(title)}">${_rdE(title)}</h2></div><span class="apn-sp"></span><span class="dsn-racts">${acts}</span></div>
+    <p class="dsn-sub amw-sub" title="${_rdE(sub)}">${_rdE(sub)}</p>
+    <div class="apn-bar dsn-bar">${chips}<span class="apn-sp"></span><label class="dsn-search">${typeof icon === 'function' ? icon('search', 'w-4 h-4') : ''}<input type="search" id="amw-q" autocomplete="off" spellcheck="false" placeholder="${_rdE(ph)}" aria-label="${_rdE(ph)}" value="${_rdE(_dsn.aq || '')}"></label></div>`;
+  /* A CAP IS A FACT: a contract the alert could not read is said, with why; hits it no longer keeps are counted */
+  const unread = (w.unread || []).length ? `<p class="amw-unread" data-amw-unread>${_rdE(_rdTn('amw_unread', w.unread.length))} ${_rdE([...new Set(w.unread.map(_amwWhy))].join(' '))}</p>` : '';
+  const dropped = w.dropped ? `<p class="amw-unread">${_rdE(_rdTn('amw_dropped', w.dropped))}</p>` : '';
+  const W = [{ k: 'name', w: 40, floor: 220, th: _rdT('dsn_c_contract') }, { k: 'ans', w: 24, floor: 130, th: _rdT('dsn_c_answer') }, { k: 'pb', w: 24, floor: 150, th: _rdT('dsn_c_playbook') }, { k: 'sec', w: 8, floor: 50, th: '§' }];
+  const askId = w.params.askId;
+  const tr = x => { const a = x.a[0], num = typeof askColClauseNo === 'function' ? askColClauseNo(a) : '', quote = a.found ? String(a.quote || '').trim() : '';
+    const badge = `<div class="amw-new"><span class="apn-st is-amber">${_rdE(_rdT('amw_new_badge', { day: dsnDay(x.h.at) }))}</span></div>`;
+    const P = dsnPlaybookOf(a, askId);
+    return `<tr class="dsn-row${x.id === _dsn.acid ? ' is-sel' : ''}" data-amw-row="${_rdE(x.id)}" tabindex="0">${dsnContractCell(x.c, x.id, null, (quote ? `<div class="dsn-cc-q">“${dsnQuoteLit(a)}”</div>` : '') + badge)}`
+      + `<td class="dsn-qc"><span class="dsn-qa">${_rdE(_amwAnsLabel(x.h))}</span></td><td>${P.tone ? dsnBadge(P.tone, (P.k === 'meets' ? '✓ ' : '') + P.word) : '<span class="apn-none-c">—</span>'}</td><td class="rdn-c dsn-sec">${num ? _rdE(num) : '—'}</td></tr>`; };
+  const body = S.list.length ? S.list.map(tr).join('')
+    : `<tr><td colspan="4" class="apn-none">${_rdE(_rdT(S.rows.length ? 'rd_none_here' : 'amw_none_yet'))}</td></tr>`;
+  return head + `<div class="cu-scroll">${unread}${dropped}<table class="apn-table cun-table rdn-table dsn-table dsn-restable amw-table is-ls">${dsnColgroup(W)}<thead><tr>${W.map(x => x.k === 'sec' ? '<th class="dsn-sec">§</th>' : `<th>${_rdE(x.th)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+/* the row chosen: Discover's own result panel (its badge, the contract and the answer, Open the paper · Redline it,
+   where it was read, our playbook's ladder) — the alert's question as a run of one */
+function amwPanelHtml(w, cid){
+  const r = { id: '', askIds: [w.params.askId], ids: (w.hits || []).map(h => String(h.cid)) };
+  return dsnResultPanelHtml(r, cid, null);
+}
+/* ---- READS · ALERTS: every alert this person runs, a row each ---- */
+function amwListHtml(){
+  const L = _amwList();
+  if (_dsn.asel && !L.some(w => w.id === _dsn.asel)) _dsn.asel = null;
+  if (!_dsn.asel && L[0]) _dsn.asel = L[0].id;
+  const row = w => { const hits = w.hits || [], last = hits[0], sel = w.id === _dsn.asel, title = amwTitle(w);
+    const folders = (w.params.folders || []).length ? w.params.folders.map(_dsnFolderName).join(', ') : _rdT('amw_in_all_short');
+    const unseen = hits.filter(h => !h.seen).length;
+    return `<tr class="dsn-row${sel ? ' is-sel' : ''}" data-amw-lrow="${_rdE(w.id)}" tabindex="0"><td><div class="dsn-qline"><span class="cun-name" title="${_rdE(title)}">${_rdE((w.ask && w.ask.question) || title)}</span>${unseen ? dsnBadge('amber', _rdTn('amw_n_new', unseen)) : ''}</div></td>`
+      + `<td class="rdn-c" title="${_rdE(amwChosenWords(w.params))}">${_rdE(amwChosenWords(w.params))}</td><td class="rdn-c" title="${_rdE(folders)}">${_rdE(folders)}</td><td class="rdn-c">${hits.length}</td><td class="rdn-c dsn-when">${_rdE(last ? dsnDay(last.at) : '—')}</td></tr>`; };
+  const body = L.length ? L.map(row).join('') : `<tr><td colspan="5" class="apn-none">${_rdE(_rdT(amwServer() ? 'amw_list_none' : 'wt_no_server'))}</td></tr>`;
+  return `<div class="cu-scroll"><table class="apn-table cun-table rdn-table dsn-table amw-ltable is-ls"><colgroup><col style="width:40%" data-floor="200"><col style="width:20%" data-floor="110"><col style="width:20%" data-floor="110"><col style="width:9%" data-floor="64"><col style="width:11%" data-floor="76"></colgroup>
+    <thead><tr><th>${_rdE(_rdT('rdn_c_q'))}</th><th>${_rdE(_rdT('amw_c_answers'))}</th><th>${_rdE(_rdT('dsn_c_where'))}</th><th class="rdn-c">${_rdE(_rdT('amw_c_caught'))}</th><th class="dsn-when">${_rdE(_rdT('amw_c_last'))}</th></tr></thead><tbody>${body}</tbody></table></div>`;
+}
+/* the chosen alert's panel: what it watches, what it caught and its door */
+function amwListPanel(){ return amwListPanelFor(_amwGet(_dsn.asel)); }
+function amwListPanelFor(w){
+  if (!w) return `<div class="dsl"><p class="dsl-eb">${_rdE(_rdT('amw_tab'))}</p><h3 class="dsl-title is-sans">${_rdE(_rdT('amw_list_none'))}</h3><p class="dsl-say is-small">${_rdE(_rdT('amw_list_how'))}</p></div>`;
+  const hits = w.hits || [], last = hits[0], c = last ? _dsnGc(last.cid) : null;
+  const lastHtml = last && c ? `<div class="dsl-sec is-rule"><p class="dsl-h">${_rdE(_rdT('amw_last_caught'))}</p><button type="button" class="dsl-look1" data-amw-page="${_rdE(w.id)}"><b>${_rdE(_rdName(c))}</b> · <span class="dsl-lq">“${_rdE(String(last.quote || _amwAnsLabel(last)))}”</span></button></div>` : '';
+  return `<div class="dsl dsl6"><div class="dsl-hd"><div class="dsl-tags">${dsnBadge('green', _rdT('amw_running'), true)}</div><h3 class="dsl-title">${_rdE(amwTitle(w))}</h3><p class="dsl-eb">${_rdE((w.ask && w.ask.question) || '')}</p></div>`
+    + `<div class="dsl-sec is-rule"><p class="dsl-say is-small">${_rdE(_rdTn('amw_caught', hits.length))} · ${_rdE(_rdT('amw_since', { day: dsnDay(w.createdAt) }))}</p></div>${lastHtml}`
+    + `<div class="dsl-sec is-rule"><button type="button" class="dsl-go is-small" data-amw-page="${_rdE(w.id)}">${_rdE(_rdT('amw_open_page'))}</button></div></div>`;
+}
+/* the list's two tabs, beside its name: Reads · Alerts, each its count */
+function dsnLTabsHtml(nReads){
+  const n = _amwList().length, on = _dsn.lview === 'alerts' ? 'alerts' : 'reads';
+  const tab = (k, w, m) => `<button type="button" role="tab" class="jhn-tab" data-dsn-lview="${k}" aria-selected="${on === k}">${_rdE(w)} <span>${m}</span></button>`;
+  return `<div class="jhn-tabs dsn-ltabs" role="tablist" aria-label="${_rdE(_rdT('nav_reads'))}">${tab('reads', _rdT('amw_tab_reads'), nReads)}${tab('alerts', _rdT('amw_tab'), n)}</div>`;
+}
+/* THE ONE WAY IN TO EVERY ALERT ("alertme" typed, "/", the Guide, the jump window): Discover's list on its Alerts tab */
+function amwListOpen(){
+  _dsn.screen = 'list'; _dsn.lview = 'alerts'; _dsn.resumed = true; _rd.table = null;
+  if (typeof watchLoad === 'function') Promise.resolve(watchLoad(true)).then(() => { if (state.view === 'reads') renderReads(); }).catch(() => {});
+  if (state.view !== 'reads' && typeof setView === 'function') setView('reads'); else renderReads({ top: true });
+  return true;
+}
+/* the page in front is an alert (its list or its own page): the Guide's "you are here" */
+const amwOnAlerts = () => typeof state !== 'undefined' && state.view === 'reads' && !_rd.table && (_dsn.screen === 'alert' || (_dsn.screen === 'list' && _dsn.lview === 'alerts'));
+/* Stop alerting asks, then says it with Undo */
+async function amwStop(id){
+  const w = _amwGet(id); if (!w) return;
+  if (typeof confirmDialog === 'function' && !await confirmDialog({ title: _rdT('amw_stop_q'), message: _rdT('amw_stop_m', { what: amwTitle(w) }), confirmLabel: _rdT('amw_stop'), danger: true })) return;
+  try { await watchAlertStop(id, true); }
+  catch (e){ if (typeof toast === 'function') toast((e && e.message) || _rdT('wt_not_saved'), 'err'); return; }
+  _dsn.screen = 'list'; _dsn.lview = 'alerts'; _dsn.asel = null; renderReads({ top: true });
+  if (typeof toast === 'function') toast(_rdT('amw_stopped'), 'ok', { action: { label: _rdT('act_undo'), onClick: async () => {
+    try { await watchAlertStop(id, false); if (typeof watchLoad === 'function') await watchLoad(true); } catch (_){}
+    if (state.view === 'reads') renderReads(); } } });
+}
+if (typeof document !== 'undefined' && !document._amwWired){ document._amwWired = true;
+  const stop = e => { e.preventDefault(); e.stopPropagation(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); };
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    let el;
+    /* EXPORT ▾: a press opens its menu, the same press again closes it, another opener moves it */
+    if ((el = t.closest('[data-dsn-xopen]'))){ stop(e); const m = el.parentNode && el.parentNode.querySelector('.dsn-xmenu'); const open = !!(m && m.hidden);
+      dsnExportShut(); if (m && open){ m.hidden = false; el.setAttribute('aria-expanded', 'true'); _dsn.xmenu = el.getAttribute('data-dsn-xopen'); } return; }
+    if (t.closest('.dsn-xmenu [role="menuitem"]')) setTimeout(dsnExportShut, 0);
+    /* the window's own presses */
+    if (t.closest('#amw-form')){
+      const S = _amw; if (!S) return;
+      if ((el = t.closest('[data-amw-ans]'))){ stop(e); const k = el.getAttribute('data-amw-ans'); if (S.pick.has(k)) S.pick.delete(k); else S.pick.add(k); S.err = ''; amwPaint(); return; }
+      if (t.closest('[data-amw-none]')){ stop(e); S.none = !S.none; S.err = ''; amwPaint(); return; }
+      if (t.closest('[data-amw-out]')){ stop(e); S.out = !S.out; S.err = ''; amwPaint(); return; }
+      if (t.closest('[data-amw-fchange]')){ stop(e); S.fopen = !S.fopen; amwPaint(); return; }
+      if ((el = t.closest('[data-amw-fpage]'))){ stop(e); S.fpage = Number(el.getAttribute('data-amw-fpage')) || 1; amwPaint(); return; }
+      if ((el = t.closest('[data-amw-folder]'))){ e.preventDefault(); const f = el.getAttribute('data-amw-folder');
+        if (!f) S.folders.clear(); else if (S.folders.has(f)) S.folders.delete(f); else S.folders.add(f);
+        amwPaint(); return; }
+      if (t.closest('[data-amw-go]')){ stop(e); amwGo(); return; }
+      if (t.closest('[data-amw-cancel]')){ _amw = null; return; }
+      return;
+    }
+    if (typeof state === 'undefined' || state.view !== 'reads') return;
+    if (!t.closest('#rd-page') && !t.closest('#ins-panel')) return;
+    if ((el = t.closest('[data-amw-open]'))){ stop(e); amwOpen(el.getAttribute('data-amw-open')); return; }
+    if ((el = t.closest('[data-amw-page]'))){ stop(e); amwPageOpen(el.getAttribute('data-amw-page')); return; }
+    if (t.closest('[data-amw-all]')){ stop(e); _dsn.screen = 'list'; _dsn.lview = 'alerts'; renderReads({ top: true }); return; }
+    if ((el = t.closest('[data-dsn-lview]'))){ stop(e); _dsn.lview = el.getAttribute('data-dsn-lview') === 'alerts' ? 'alerts' : 'reads'; if (_dsn.lview === 'alerts' && typeof watchLoad === 'function') Promise.resolve(watchLoad(true)).then(() => { if (state.view === 'reads') renderReads(); }).catch(() => {}); renderReads({ top: true }); return; }
+    if ((el = t.closest('[data-amw-lrow]'))){ stop(e); const id = el.getAttribute('data-amw-lrow');
+      /* A PRESS CHOOSES, A SECOND OPENS (the list inspector's rule) */
+      if (_dsn.asel === id && _dsn.apicked){ amwPageOpen(id); return; }
+      _dsn.asel = id; _dsn.apicked = true; renderReads(); return; }
+    if ((el = t.closest('[data-amw-tab]'))){ stop(e); _dsn.atab = el.getAttribute('data-amw-tab'); _dsn.acid = null; renderReads(); return; }
+    if ((el = t.closest('[data-amw-row]'))){ stop(e); const id = el.getAttribute('data-amw-row'); if (_dsn.acid !== id){ _dsn.acid = id; renderReads(); }
+      const w = _amwGet(_dsn.alert), h = w && (w.hits || []).find(x => String(x.cid) === id); if (h && !h.seen && typeof watchHitSeen === 'function') watchHitSeen(w.id, id); return; }
+    if (t.closest('[data-amw-change]')){ stop(e); const w = _amwGet(_dsn.alert); if (w) amwOpen(w.params.askId, { w }); return; }
+    if (t.closest('[data-amw-stop]')){ stop(e); amwStop(_dsn.alert); return; }
+  }, true);
+  /* Esc and a press outside close the Export menu */
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.querySelector('.dsn-xmenu:not([hidden])')){ e.preventDefault(); e.stopPropagation(); dsnExportShut(); } }, true);
+  document.addEventListener('pointerdown', e => { if (e.target && e.target.closest && e.target.closest('.dsn-xw')) return; if (document.querySelector('.dsn-xmenu:not([hidden])')) dsnExportShut(); }, true);
+  document.addEventListener('input', e => { if (e.target && e.target.id === 'amw-q' && typeof state !== 'undefined' && state.view === 'reads'){ _dsn.aq = e.target.value; _dsn.acid = null; renderReads(); } });
+  document.addEventListener('keydown', e => { const row = e.target && e.target.closest ? e.target.closest('#rd-page [data-amw-row], #rd-page [data-amw-lrow]') : null;
+    if (row && e.target === row && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); row.click(); } });
+}
+
+Object.assign(window, { dsnWarm, rdnAnswersAll, dscLocate, dscPaperAllHtml, dsnRunLeft, dsnEndsOnResults, dslReadHtml, dslEmptyHtml, dslNewHtml, dsnRunRows, dsnCarry, dsnCancelOpen, dsnCancelGo, dsnRender, dsnChosen, dsnRuns, dsnGroups, dsnRunWhere, dsnAsk, discoverOpen, discoverLive, dscSlice, readsTableOpen, readsTableBack, rdTableRows, rdPlace, rdPlacePut, renderReads, readsOpen, readsShown, readParts, rdRows, readsFacts, readsNext, readsAskNew,
+  dsnExportHtml, dsnExportShut, dsnAlertBtnHtml, amwOpen, amwGo, amwPageOpen, amwPageHtml, amwPanelHtml, amwListHtml, amwListPanel, amwListPanelFor, amwShown, amwStop, amwMay, dsnLTabsHtml, amwListOpen, amwOnAlerts });

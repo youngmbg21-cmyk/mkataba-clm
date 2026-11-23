@@ -115,7 +115,10 @@ const FLOW_MAP = [
   { k: 'mynotes', st: 'book', s: _w('your private notes', 'dina privata anteckningar'),
     a: [], d: ['calendar', 'approvals'], p: [] },
   { k: 'reads', st: 'book', s: _w('Discover: ask every contract a question, the answers kept', 'Upptäck: ställ en fråga till varje avtal, svaren sparas'),
-    a: [['contracts', _w('an answer → its words on the contract', 'ett svar → dess ord i avtalet')]], d: ['contracts', 'board'], p: [] },
+    a: [['contracts', _w('an answer → its words on the contract', 'ett svar → dess ord i avtalet')]], d: ['contracts', 'board', 'alertme'], p: [] },
+  /* ALERT ME WHEN (owner's pick, 23 Nov 2026): every alert on a question; a hit lands on its contract */
+  { k: 'alertme', st: 'book', s: _w('Discover\'s alerts: a new contract that answers your way', 'Upptäcks larm: ett nytt avtal som svarar som du valt'),
+    a: [['document', _w('a hit → its words on the contract', 'en träff → dess ord i avtalet')]], d: ['reads', 'contracts'], p: [['document', _w('the newest hit not yet opened', 'den nyaste träffen som inte öppnats')]] },
   { k: 'pulse', st: 'book', s: _w('the pulse board', 'pulstavlan'),
     a: [], d: ['board', 'contracts'], p: [] },
   /* ---- THE HOUSE ---- */

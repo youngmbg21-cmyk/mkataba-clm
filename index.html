@@ -23409,11 +23409,56 @@
   html.lg-new .dsn-rhead .dsn-rh-t{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px}
   html.lg-new .dsn-rhead .ctf-h{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .dsn-rhead{align-items:flex-end;gap:8px}
+  /* THE BUTTONS STAY AT THE TOP (owner, 23 Nov 2026: "why did you move the highlighted features? move them back to the
+     top"): a long question pushed Ask another · Export · … onto a line of their own under it. Now the head is two rows:
+     "‹ All reads" with the buttons at its right, then the question across the whole width (it wraps, never cut) */
+  html.lg-new .dsn-page .dsn-rhead{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"back acts" "title title";align-items:center;column-gap:16px;row-gap:6px}
+  html.lg-new .dsn-page .dsn-rhead > .dsn-rh-t{display:contents}
+  html.lg-new .dsn-page .dsn-rhead > .dsn-rh-t > .dsn-back{grid-area:back;justify-self:start}
+  html.lg-new .dsn-page .dsn-rhead > .dsn-rh-t > .ctf-h{grid-area:title;white-space:normal;overflow:visible;text-overflow:clip;text-wrap:balance}
+  html.lg-new .dsn-page .dsn-rhead > .apn-sp{display:none}
+  html.lg-new .dsn-page .dsn-rhead > .dsn-racts{grid-area:acts;justify-self:end}
   html.lg-new .dsn-page .dsn-quote{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .dsn-page .dsn-bar .dsn-search{flex:0 1 260px;min-width:160px}
   html.lg-new .dsn-page .apn-tab.is-chip .dsn-cl{max-width:180px;font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .dsn-page .apn-foot.dsn-throw{display:flex;align-items:center;justify-content:flex-start;gap:6px}
   html.lg-new .dsl-a.is-ruby{color:var(--st-ruby-fg)}
+  /* ALERT ME WHEN (owner's pick by name, 23 Nov 2026, as drawn): Export ▾ one button and its small menu; the bell button,
+     soft green once alerting; the window's chips; the alert's page (its "New · arrived" badge, what it could not read);
+     Discover's Reads · Alerts; the bell's "Your alerts" row with its tag */
+  html.lg-new .dsn-xw{display:inline-flex}
+  html.lg-new .dsn-xbtn{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  html.lg-new .dsn-xv{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid currentColor;flex:none}
+  html.lg-new .dsn-xmenu{top:calc(var(--ctl-h) + 6px);left:auto;right:0;min-width:300px;max-width:min(340px,90vw);z-index:30}
+  html.lg-new .dsn-xmenu button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:9px 12px}
+  html.lg-new .dsn-xmenu button b{font-weight:var(--w-label);font-size:var(--t-body);color:var(--color-text)}
+  html.lg-new .dsn-xmenu button span{font-size:var(--t-label);color:var(--color-quiet);white-space:normal;line-height:1.35}
+  html.lg-new .dsn-amw{display:inline-flex;align-items:center;gap:6px;max-width:280px;white-space:nowrap;overflow:hidden}
+  html.lg-new .dsn-amw > span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .dsn-amw .dsn-amw-ic{flex:none}
+  html.lg-new .dsn-amw.is-on{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .dsn-ltabs{margin:0 4px 0 8px;flex:none}
+  html.lg-new .amw-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  html.lg-new .amw-new{margin-top:6px}
+  html.lg-new .amw-new .apn-st{height:22px;border-radius:6px}
+  html.lg-new .amw-unread{margin:0 0 10px;padding:10px 12px;border-radius:var(--radius);background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:var(--t-label);line-height:1.45}
+  .lgp .amw-row{cursor:default;align-items:start;padding:10px 0}
+  .lgp .amw-row .lgp-k{padding-top:5px}
+  .lgp .amw-row .lgp-v{flex-direction:column;align-items:stretch;gap:6px}
+  .lgp .amw-chips{display:flex;gap:6px;flex-wrap:wrap}
+  .lgp .amw-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--color-neutral-300);background:var(--color-surface);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lgp .amw-chip.is-on{border-color:var(--color-text)}
+  .lgp .amw-chip .dsl-dot{flex:none;display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--st-gray-dot)}
+  .lgp .amw-chip .dsl-dot.is-ruby{background:var(--st-ruby-dot)}
+  .lgp .amw-chip .dsl-dot.is-amber{background:var(--st-amber-dot)}
+  .lgp .amw-chip .dsl-dot.is-green{background:var(--st-green-dot)}
+  .lgp .amw-chip .dsl-dot.is-violet{background:var(--st-violet-dot)}
+  .lgp .amw-chip .dsl-dot.is-pink{background:var(--st-pink-dot)}
+  .lgp .amw-chip .dsl-dot.is-steel{background:var(--st-steel-dot)}
+  .lgp .amw-in{display:block;line-height:1.5}
+  .lgp .amw-tell{line-height:1.5}
+  html.lg-new .ndb-amw .ndb-amw-tag{align-self:flex-start;max-width:100%;margin-top:4px;padding:2px 8px;border:0;border-radius:6px;background:var(--st-amber-bg);color:var(--st-amber-fg);font:var(--w-label) 12px/1.4 var(--font-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+  html.lg-new .ndb-amw .ndb-amw-open{font-size:var(--t-label)}
   @keyframes dsn-turn{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:none}}
   @keyframes dsn-roomscan{0%{transform:translateY(0)}100%{transform:translateY(180px)}}
   @keyframes dsn-fade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
