@@ -3,7 +3,7 @@
    stands folded to its strip, opening OVER the page (is-narrow-over) and folding on Esc or a press outside; each page
    arrives folded. (2) A code-named contract chosen on the Wall wears today's frame (regLsFrame) with only what the wall
    card says. (3) The split-second fallbacks wait instead: the sheet's panel says Loading (pdWaitHtml), Fill in the
-   contract and the Duties page wait for the middle (pdMidSoon). Fails at the parent. */
+   contract and the Duties page wait for the middle (pdMidWait; their older places deleted). Fails at the parent. */
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
@@ -37,9 +37,18 @@ test('f1194 (2) a code-named contract on the Wall wears today\'s frame, saying o
 });
 
 test('f1194 (3) the split-second fallbacks wait instead of drawing an older version', () => {
-  assert.match(fnBody(PD, 'pdWallHelloHtml'), /naSheetUp\(\) && pd2On\(\)\) return pdWaitHtml\('pd-sheet-hello'\);/);
+  assert.match(fnBody(PD, 'pdWallHelloHtml'), /naSheetUp\(\)\) return pdWaitHtml\('pd-sheet-hello'\);/);
   assert.match(fnBody(PD, 'pdWaitHtml'), /aria-busy="true"/);
-  assert.match(fnBody(PD, 'pdMidSoon'), /Date\.now\(\) - t0 >= PD_MID_SOON_MS\)\{ go\(false\)/);
-  assert.match(fnBody(PD, 'pdFormOpen'), /if \(pd2On\(\) && !pdFormOpen\._waited\)\{ return pdMidSoon\(/);
-  assert.match(fnBody(OB, 'openDutiesPage'), /return window\.pdMidSoon\(\(\) => openDutiesPage\(c, found, Object\.assign\(\{\}, o, \{ midWaited: true \}\)\)\);/);
+  /* RE-POINTED 23 Nov 2026 (owner: "delete the old versions and merge"): no older place to fall back to — the page waits
+     for its contract's middle, bringing the contract to Home first, and says so if it never comes */
+  const W = fnBody(PD, 'pdMidWait');
+  assert.match(W, /roomHomeLand\(cid, \{ open: true \}\)/);
+  assert.match(W, /Date\.now\(\) - t0 >= PD_MID_WAIT_MS\)\{ if \(typeof toast === 'function'\) toast\(_pdT\('pd_mid_never'\), 'warn'\)/);
+  const F = fnBody(PD, 'pdFormOpen');
+  assert.match(F, /return pdMidWait\(/); assert.doesNotMatch(F, /pdSetTab\('form'\)/, 'the panel\'s form tab is no place for it');
+  const D = fnBody(OB, 'openDutiesPage');
+  assert.match(D, /return window\.pdMidWait\(\(\) => openDutiesPage\(c, found, Object\.assign\(\{\}, o, \{ midReady: true \}\)\), c\.id\);/);
+  assert.doesNotMatch(D, /maxWidth: '920px'/, 'the old pop-up is deleted');
+  assert.ok(!/ca_go_draft:|ca_go_draft_can1/.test(read('js/i18n.js')), 'the old sheet panel\'s words left both books');
+  assert.equal((read('js/i18n.js').match(/\bpd_mid_never:/g) || []).length, 2);
 });

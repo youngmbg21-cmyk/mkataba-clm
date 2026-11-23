@@ -13227,6 +13227,7 @@ const STRINGS = {
     err_offline: 'You appear to be offline.',
     empty_nothing_here: 'Nothing here yet.',
     loading: 'Loading…',
+    pd_mid_never: 'This page could not open beside its contract. Open the contract and try again.',
 
     // ---- the Copilot panel's own controls ----
     ai_answers_caption: 'Answers',
@@ -16389,11 +16390,7 @@ const STRINGS = {
     ca_go_list: 'Your contracts as a list.',
     ca_go_contracts: 'Every contract is here. Press one to open it.',
     ca_go_upload: 'Choose the file to bring in.',
-    ca_go_draft: 'I’ve opened New agreement beside me. Say what it is in one sentence, or pick a paper.',
     ca_go_draft_can_h: 'What I can do here',
-    ca_go_draft_can1: 'Read your sentence and pick the paper that fits',
-    ca_go_draft_can2: 'Fill the form from your words',
-    ca_go_draft_can3: 'Read their paper when you drop it under Their paper',
     ca_go_help: 'Here are the words I know.',
     ca_go_next: 'Here is what comes next for {ref}.',
     ca_go_need: 'Which contract? Press one in Contracts, or add its reference, as in “{word} MK-458”.',
@@ -40463,6 +40460,7 @@ const STRINGS = {
     err_offline: 'Du verkar vara offline.',
     empty_nothing_here: 'Inget här ännu.',
     loading: 'Laddar…',
+    pd_mid_never: 'Sidan kunde inte öppnas bredvid sitt avtal. Öppna avtalet och försök igen.',
 
     // ---- the Copilot panel's own controls ----
     ai_answers_caption: 'Svar',
@@ -43514,11 +43512,7 @@ const STRINGS = {
     ca_go_list: 'Dina avtal som en lista.',
     ca_go_contracts: 'Alla avtal finns här. Tryck på ett för att öppna det.',
     ca_go_upload: 'Välj filen som ska hämtas in.',
-    ca_go_draft: 'Jag har öppnat Nytt avtal bredvid mig. Säg vad det är i en mening, eller välj ett papper.',
     ca_go_draft_can_h: 'Det här kan jag göra här',
-    ca_go_draft_can1: 'Läsa din mening och välja papperet som passar',
-    ca_go_draft_can2: 'Fylla i formuläret utifrån dina ord',
-    ca_go_draft_can3: 'Läsa deras papper när du släpper det under Deras papper',
     ca_go_help: 'Här är orden jag kan.',
     ca_go_next: 'Det här är nästa steg för {ref}.',
     ca_go_need: 'Vilket avtal? Tryck på ett under Avtal, eller lägg till dess referens, som i ”{word} MK-458”.',

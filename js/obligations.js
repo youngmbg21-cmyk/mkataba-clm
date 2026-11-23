@@ -1552,11 +1552,11 @@ function _dtpRepaint(){ try { const b = document.querySelector('#dtp [data-dtp-a
   b.disabled = on; if(typeof busySet === 'function') busySet(b, on); } catch (_){} }
 function openDutiesPage(c, found, o){
   o = (o && typeof o === 'object') ? o : {};
-  /* the Dossier still being drawn: the page waits a moment for the middle rather than open as the older pop-up
-     (pdMidSoon, owner 23 Nov 2026); o.midWaited says it has waited once */
-  if (!o.midWaited && typeof window.pdMidSoon === 'function' && typeof window.pdMidMay === 'function' && !window.pdMidMay()
-    && typeof window.pd2On === 'function' && window.pd2On())
-    return window.pdMidSoon(() => openDutiesPage(c, found, Object.assign({}, o, { midWaited: true })));
+  /* THE DUTIES PAGE STANDS IN THE MIDDLE, beside its contract's Dossier; the older 920px pop-up is deleted (owner,
+     23 Nov 2026: "delete the old versions and merge"). Not there yet: it brings the contract to Home and waits for the
+     middle (pdMidWait); o.midReady says it stands */
+  if (!o.midReady && typeof window.pdMidWait === 'function')
+    return window.pdMidWait(() => openDutiesPage(c, found, Object.assign({}, o, { midReady: true })), c.id);
   const E = _obEsc;
   const may = () => (typeof window.mayActOn !== 'function') || window.mayActOn(c);
   const keep = _dtp && _dtp.cid === String(c.id) ? _dtp : null;
@@ -1752,11 +1752,10 @@ function openDutiesPage(c, found, o){
     if((b = at('[data-dtp-chase]'))){ if(typeof obligationChase === 'function') obligationChase(c.id, b.getAttribute('data-dtp-chase')); return; }
     if(at('[data-dtp-close]')){ if(typeof closeModal === 'function') closeModal(); return; }
   };
-  const mid = typeof pdMidMay === 'function' && pdMidMay();
-  openModal(bodyHtml(), mid ? { maxWidth: 'none', label: i18t('dtp_title'), page: pdMidPage(i18t('dtp_title')),
+  const mid = true;
+  openModal(bodyHtml(), { maxWidth: 'none', label: i18t('dtp_title'), page: typeof pdMidPage === 'function' ? pdMidPage(i18t('dtp_title')) : undefined,
       onClose: () => { if (typeof pdMidOff === 'function') pdMidOff(); document.querySelectorAll('.dts-ov').forEach(x => x.remove());
-        if (_obdNow && _obdNow.c === c){ _obdNow = null; panel(); } if (typeof paintKtTriage === 'function' && document.getElementById('kt-triage-slot')) try { paintKtTriage(c); } catch (_){} } }
-    : { maxWidth: '920px', label: i18t('dtp_title'), onClose: () => { document.querySelectorAll('.dts-ov').forEach(x => x.remove()); if (_obdNow && _obdNow.c === c) _obdNow = null; } });
+        if (_obdNow && _obdNow.c === c){ _obdNow = null; panel(); } if (typeof paintKtTriage === 'function' && document.getElementById('kt-triage-slot')) try { paintKtTriage(c); } catch (_){} } });
   if (mid && typeof pdMidOn === 'function' && document.querySelector('#modal-root [data-dlg-page]')) pdMidOn('obs:' + c.id);
   _obdNow = { c, face: faceHtml, press, input: q => { S.q = q; const el = document.getElementById('dtp-list'); if(el) el.innerHTML = tableHtml(); } };
   panel();

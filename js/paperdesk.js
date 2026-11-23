@@ -4327,7 +4327,6 @@ function pdWallHelloHtml(){
   /* THE OVERVIEW, THE LEGORA WAY (owner picked it, 26 Oct 2026; jamboOverviewHtml): no greeting here — "Good
      morning" is the Jambo tab's (jamboHelloHtml); the landing says what the page in front holds */
   /* .pd-hello is the wall's own (it stands down while the sheet is up); the sheet's is .pd-sheet-hello */
-  const ov = (o, cls) => (typeof jamboOverviewHtml === 'function') ? `<div class="jl-words is-ov ${cls || 'pd-hello'}">${jamboOverviewHtml(o, 'pd')}</div>` : '';
   /* THE ONE SHEET IS UP (one door, 24 Oct 2026): beside it he says what it is for and what he can do there */
   /* the new look (round 6, as drawn): beside Our paper the papers that fit, what he filled, and what happens after
      Create (From scratch left this sheet for Our paper, 14 Nov 2026) */
@@ -4360,12 +4359,9 @@ function pdWallHelloHtml(){
       const head = O.asked() ? [_pdTn('nao_p_fit', cl.length, { n: cl.length, best: ch || cl[0] || '' }), n ? _pdTn('nao_p_filled', n, { n }) : ''].filter(Boolean).join(' ') : _pdT('nao_p_say');
       return `<div class="pd2-chosen cun-panel nsc-panel"><p class="pd2-ch-head nsc-p-head">${E(head)}</p><p class="nao-src">${E(_pdT('nao_p_src'))}</p><div class="pd2-ch-cap">${E(_pdT('nao_p_after_h'))}</div><p class="nao-after">${E(_pdT('nao_p_after'))}</p></div>`; }
   }
-  /* the sheet is up but none of its hands is set yet (naSheetFive, a moment after openModal): Loading, never the old
-     "what I can do here" panel (owner, 23 Nov 2026: "do all three and merge") */
-  if (typeof naSheetUp === 'function' && naSheetUp() && pd2On()) return pdWaitHtml('pd-sheet-hello');
-  if (typeof naSheetUp === 'function' && naSheetUp())
-    return ov({ head: { html: _pdE(_pdT('ca_go_draft')) },
-      facts: ['ca_go_draft_can1', 'ca_go_draft_can2', 'ca_go_draft_can3'].map(k => ({ html: _pdE(_pdT(k)) })) }, 'pd-sheet-hello');
+  /* the sheet is up but none of its hands is set yet (naSheetFive, a moment after openModal): Loading. The old "what
+     I can do here" panel is deleted (owner, 23 Nov 2026: "delete the old versions and merge") */
+  if (typeof naSheetUp === 'function' && naSheetUp()) return pdWaitHtml('pd-sheet-hello');
   return pdWallHtml();
 }
 /* THEIR PAPER, IN THE FIVE PARTS: what it is for as the headline, the three steps, the two things Create needs (their
@@ -5549,19 +5545,11 @@ function pdFormNext(after){
 function pdFormOpen(id){
   const c = pdContract(); if (!c || String(c.id) !== String(id) || !pdOnPaper()) return false;
   if (!pdFormRows(c).length) return false;
-  /* THE NEW LOOK (the contract round, part 3b, as drawn): the form stands IN THE MIDDLE where the paper was, laid flat;
-     the Dossier stays beside it and says what is typed. Same rows, same boxes, same one Save (#pd-og.is-form). */
-  if (pd2On() && pdMidMay()) return pd2FormMidOpen(c);
-  /* the Dossier still being drawn: wait for the middle a moment rather than open the form in the panel's tab */
-  if (pd2On() && !pdFormOpen._waited){ return pdMidSoon(ok => { pdFormOpen._waited = !ok; try { pdFormOpen(id); } finally { pdFormOpen._waited = false; } }); }
-  /* the rows it opened with stay until it is put away (pdFormClose): a spot pressed on the paper, which opens the
-     paper again on its way here, keeps the form as it stands */
-  if (_pdTab !== 'form') pdSetTab('form');
-  /* already standing for this contract: nothing is drawn again (what is typed or picked stays) */
-  const fm = document.querySelector(':is(#ig-dock, [data-pd-mid]) #pd-og.is-form');
-  if (fm && fm.getAttribute('data-pd-og-for') === String(id)) return true;
-  if (typeof renderIntelDock === 'function') renderIntelDock();
-  return true;
+  /* THE FORM STANDS IN THE MIDDLE where the paper was, laid flat (the contract round, part 3b); the Dossier stays beside
+     it and says what is typed. The older place, the panel's form tab, is deleted (owner, 23 Nov 2026): while the
+     middle is a moment away it waits for it (pdMidWait) */
+  if (pdMidMay()) return pd2FormMidOpen(c);
+  return pdMidWait(() => { const cc = pdContract(); if (cc && String(cc.id) === String(id) && pdFormRows(cc).length) pd2FormMidOpen(cc); }, id);
 }
 function pdFormClose(){
   if (pdFormMidUp()){ pdMidClose(); return; }
@@ -7243,18 +7231,26 @@ function pdJwSay(c, r){
    the line that opened it pressed again. Nothing here stores anything. A
    phone, or no Dossier in sight, keeps every door as it was. */
 let _pdMid = null;              // { key } while a page stands in the middle beside the Dossier
-/* THE MIDDLE, A MOMENT AWAY (owner, 23 Nov 2026: "do all three and merge"): a door that opens a page in the middle
-   (Fill in the contract, the Duties page) while the Dossier beside it is still being drawn waits for it — a few short
-   looks, PD_MID_SOON_MS in all — instead of opening the older place (the panel's tab, a pop-up). Where there is no
-   Dossier on the way at all it goes at once (its own place is then the right one). go(true) once the middle stands,
-   go(false) when it never came. */
-const PD_MID_SOON_MS = 1200;
-function pdMidSoon(go){
-  if (pdMidMay()) return go(true);
-  const d = (typeof document !== 'undefined') ? document.querySelector('#ig-dock') : null;
-  if (!d || typeof setTimeout !== 'function' || (typeof deskShellOn === 'function' && !deskShellOn())) return go(false);
+/* THE MIDDLE, OR NOTHING (owner, 23 Nov 2026: "delete the old versions and merge"): a door that opens a page in the
+   middle (Fill in the contract, the Duties page) waits for its contract's paper and Dossier to stand — bringing that
+   contract to Home first when another is in front (roomHomeLand) — and opens there; the older places (the panel's
+   form tab, the 920px pop-up) are deleted. Never come after PD_MID_WAIT_MS: it says so, with the way forward. */
+const PD_MID_WAIT_MS = 6000;
+function pdMidReadyFor(cid){
+  if (!pdMidMay()) return false;
+  if (cid == null) return true;
+  const pc = pdContract(); return !!(pc && String(pc.id) === String(cid) && pdOnPaper());
+}
+function pdMidWait(go, cid){
+  if (pdMidReadyFor(cid)) return go();
+  if (cid != null){ const pc = pdContract();
+    if (!(pc && String(pc.id) === String(cid) && pdOnPaper()) && typeof roomHomeLand === 'function'){
+      try { if (typeof closeModal === 'function' && document.querySelector('#modal-root [role="dialog"]')) closeModal(); roomHomeLand(cid, { open: true }); } catch (_){ /* the wait below says it */ } } }
+  if (typeof setTimeout !== 'function') return false;
   const t0 = Date.now();
-  const look = () => { if (pdMidMay()) { go(true); return; } if (Date.now() - t0 >= PD_MID_SOON_MS){ go(false); return; } setTimeout(look, 80); };
+  const look = () => { if (pdMidReadyFor(cid)){ go(); return; }
+    if (Date.now() - t0 >= PD_MID_WAIT_MS){ if (typeof toast === 'function') toast(_pdT('pd_mid_never'), 'warn'); return; }
+    setTimeout(look, 100); };
   setTimeout(look, 80);
   return true;
 }
@@ -11091,7 +11087,7 @@ Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
   PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillMark, pdFillGroupsPaint, pdFillRows, pdFillRowKey, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh,
   pdFillStreamMay, pdFillStreamHtml, pdFillStreamAsk, PD_FF_BOX, pdFillBoxOf, pdFillLabelOf, PD_FF_UNIT, pdFillStdOf, PD_FF_CLAUSE_NUM, pdFillSpotClause, pdFillSpotOf, pdFillExtrasPaint, pdFillStreamRepaint, pdFillStreamPick,
-  PD_DROP_ACCEPT, pdDropMay, pdWallHelloHtml, pdDropInner, pdDropStreams, pdDropStreamNow, pdDropStreamHtml, pdDropHtml, pdDropPaint, pdWallHtml, pdWaitHtml, PD_WALL_WAIT_MS, pdMidSoon, PD_MID_SOON_MS, pdDropInput, pdDropBusyNow, pdDropPick, PD_DROP_TOAST_MS, pdDropToastOff, pdDropTake,
+  PD_DROP_ACCEPT, pdDropMay, pdWallHelloHtml, pdDropInner, pdDropStreams, pdDropStreamNow, pdDropStreamHtml, pdDropHtml, pdDropPaint, pdWallHtml, pdWaitHtml, PD_WALL_WAIT_MS, pdMidWait, pdMidReadyFor, PD_MID_WAIT_MS, pdDropInput, pdDropBusyNow, pdDropPick, PD_DROP_TOAST_MS, pdDropToastOff, pdDropTake,
   PD_GLANCE, PD_GL_SUB_MAX, pdGlanceSub, pdGlanceBriefHtml, pdGlanceFootHtml, pdDropImportHtml, pdDropDoor, pdGlanceRows, pdSignAhead, signerOwed, PD_GL_ASKS_MAX, pdTheirAsks, pdAskHeading, pdAskClause, PD_GL_CONTEXT, PD_GL_DAYS_FOR, pdAskParts, pdAskSay, pdGlAgo, pdGlMoveSay, pdGlGoTo, pdNoteRows, pdPartyShort, pdPreparedWhen, pdJwSay, pdAskClausesSay, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, pdJamboPinHtml, pdNeedsRows, pdNeedRowHtml, pdNeedsHtml, pdNeedsRepaint, pdBackHtml, PD_BACK_CLOSE, PD_GL_DONE_MS, pdGlanceDone,
   PD_HELD_CHIPS, pdHolds, pdHeldContract, pdHeadWord, pdAskPlaceholder, pdAskContractId, pdDaysSince, pdAgoWords, pdShortDay, pdStageWords, pdLastMove,
   pdClauseSaid, PD_CH_CLAUSES_MAX, pdTheirAsksRow, pdTheirAsksRowHtml, pdChosenFacts, pdChosenHtml, pdHistGlanceHtml, pdHistChanges, pdHistQuestions, pdNeverShared, pdHistAlso, pdListSay, PD_CG_NAMES_MAX, PD_CG_DET_WORD, pdDetWord, PD_HELD_CHIPS_MAX, PD_HELD_CHIP_WORD, pdHeldOwes, PD_CHIP_CLS, pdHeldChips, pdPanelChipsHtml, pdHeldChipsHtml, pdHeldGo, pdHeldOpen, PD_HELD_LAND, PD_HELD_LAND_TRIES, PD_HELD_LAND_STILL, pdHeldLand, pdHeldSig, pdHeldTopHtml });
