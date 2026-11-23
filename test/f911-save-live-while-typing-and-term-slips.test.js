@@ -46,7 +46,8 @@ test('f911 (1) the foot asks the one reading of the box as typed, and typing rep
   assert.match(foot, /const anyToFile = ceCanFile\(now\);/);
   /* RE-POINTED 10 Oct 2026 (one Copilot panel): the foot's Discard is gone;
      Save still asks the box as typed. */
-  assert.match(foot, /\[\[save, label, anyToFile\]\]/);
+  /* RE-POINTED 23 Nov 2026 (Dossier L+S step 4: on a walk the black button says "then next", labelNext) */
+  assert.match(foot, /\[\[save, labelNext, anyToFile\]\]/);
   const box = code(region(CE, 'ceBoxNow'));
   assert.match(box, /if \(!ceIsTyping\(\)\) return null;/, 'nothing typed, nothing read');
   assert.doesNotMatch(box, /_ceText =|ceApply\(/, 'reading the box writes nothing');

@@ -49,6 +49,8 @@ test('f1194 (3) the split-second fallbacks wait instead of drawing an older vers
   const D = fnBody(OB, 'openDutiesPage');
   assert.match(D, /return window\.pdMidWait\(\(\) => openDutiesPage\(c, found, Object\.assign\(\{\}, o, \{ midReady: true \}\)\), c\.id\);/);
   assert.doesNotMatch(D, /maxWidth: '920px'/, 'the old pop-up is deleted');
-  assert.ok(!/ca_go_draft:|ca_go_draft_can1/.test(read('js/i18n.js')), 'the old sheet panel\'s words left both books');
+  /* RE-POINTED 23 Nov 2026 (review): ca_go_draft is Jambo's sentence when he takes you to New agreement (caGoSay builds
+     'ca_go_' + place), not the old sheet panel's, so it stays; the panel's own words are gone */
+  assert.ok(!/ca_go_draft_can1/.test(read('js/i18n.js')), 'the old sheet panel\'s words left both books');
   assert.equal((read('js/i18n.js').match(/\bpd_mid_never:/g) || []).length, 2);
 });
