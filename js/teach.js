@@ -339,6 +339,8 @@ function teachShow(){
 /* a press on one of the instructor's chips (both hosts' choice handlers hand it here) */
 function teachChoicePress(c){
   if (!c || !c.teach) return false;
+  /* "Start the lessons" under an answer (AI_TEACH_RULE): the same as typing "I'm new" */
+  if (c.teach === 'start'){ const t = teachSay("I'm new"); return teachPush(t); }
   if (c.teach === 'walk') return teachPush(teachStepTurn(c.k, 1));
   if (c.teach === 'step') return teachPush(teachStepTurn(c.k, c.i));
   if (c.teach === 'done') return teachPush(teachDoneTurn(c.k));

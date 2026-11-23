@@ -14297,6 +14297,7 @@ const COPILOT_TOOLS = [
         columns: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, label: { type: 'string' } }, required: ['id', 'label'] }, description: 'One column per contract, in display order.' },
         rows: { type: 'array', items: { type: 'object', properties: { label: { type: 'string', description: 'Row label, e.g. "Value", "Payment terms", "Governing law".' }, cells: { type: 'array', items: { type: 'string' }, description: 'One cell per column, same order as columns.' } }, required: ['label', 'cells'] } },
         verdict: { type: 'string', description: 'One or two sentences: which is more favorable and why.' } }, required: ['columns', 'rows'] },
+      teach: { type: 'boolean', description: 'OPTIONAL: true only when the person says or shows they are new to HaTi or lost in it (AI_TEACH_RULE); HaTi then offers them its lessons.' },
       wholeBook: { type: 'boolean', description: 'true when the answer is about the WHOLE workspace (a listing of everything, a total count): HaTi then draws a door onto the full Contracts page instead of a narrowed set.' },
       note: { type: 'string', description: 'OPTIONAL — only when the CURRENT VIEW says the send screen is open and the person asks you to draft or word the email, message or note for that send: the note ALONE, as the person would type it in their note box. Plain text, two to five sentences, no subject, no greeting, no sign-off, no [placeholders], at most 1000 characters. HaTi shows it under your answer with a button that puts it in the note box; nothing is sent.' },
       ruleDoor: { type: 'object', description: 'OPTIONAL — only when a company rule stops the person and your answer explains it. The ONE HaTi door that takes them THROUGH the rule, never around it: ask_admin = a company rule only an admin decides (name it in rule); ask_review = their changes must be checked before they are sent (name the contract); send_for_approval = a named person must say yes before anyone signs (name the contract). Leave it out when no rule is in the way.',
@@ -14543,6 +14544,10 @@ function chatTodayLine(day) {
    across HaTi"). The browser's twin, word for word, is js/ai.js AI_HANDBOOK_RULE (f938). */
 /* THE SEND SCREEN WRITES THE EMAIL (owner, 29 Oct 2026): word for word on both hosts (js/ai.js) */
 const AI_SEND_NOTE_RULE = 'THE SEND SCREEN WRITES THE EMAIL: when the CURRENT VIEW says the send screen is open and the person asks you to draft, write or word an email, message or note for that send, or to change a note you drafted for it (shorter, warmer, firmer, leaving a point out, adding something), do not write a whole email: HaTi already writes its subject, greeting, the list of what this send carries, the link and the sign-off. Write ONLY the note the person would type in their note box (plain text, two to five sentences, no subject, no greeting, no sign-off, no [placeholders]) and put it in deliver_answer\'s note; in answer, say in one short sentence what the note covers: HaTi shows the note beside the letter, where the person puts it in. Name only the changes the CURRENT VIEW lists as carried by this send, never promise one that is not on that list; when something they seem to want is not on it, say so in answer, outside the note, and that it has to be filed in Redlines before it can travel.';
+/* A PERSON NEW TO HaTi (owner, 23 Nov 2026: "build your recommendation"): however they say they are new or lost, the
+   answer carries teach and the browser offers "Start the lessons" (js/teach.js). The browser's twin, word for word,
+   is js/ai.js AI_TEACH_RULE (f1186). No extra call: it rides on the answer already being written. */
+const AI_TEACH_RULE = "A PERSON NEW TO HaTi: when the person says or shows that they are new to HaTi or do not know how to use it (a first day, no idea where to start, lost, never used it before), answer their question as usual and ALSO set deliver_answer's teach to true: HaTi then offers them its lessons, a free walk through the app one step at a time. Never set teach for a question about a contract or about the law.";
 const AI_HANDBOOK_RULE = "HaTi ITSELF IS ANSWERED FROM THE HANDBOOK. A question about HaTi — what a page, tab, panel, button, word, setting or rule in HaTi is or does, how to do something in HaTi, where something is, who may do it, what it costs, or what the person can do on the page in front of them — is answered from the Handbook, HaTi's own instruction book, never from the contracts: call search_hati with kinds [\"guide\"] and the person's words plus the words the app uses, answer from the chapter's own steps in plain words (number the steps), name the chapter, and set goto's door to {kind:\"chapter\", chapter} with its number (\"about\" for the book itself). The page in front names the chapters that cover it: read those first. \"The Handbook\", \"the manual\" and \"the instructions\" are that book; \"your book\" and \"the book\" mean the contracts. When no chapter covers the question, say so plainly and say what you can tell from the screen, never a guess.";
 const AI_CALENDAR_RULE = "You cannot see the person's own calendar, events or notes, and you cannot book, add, move or delete anything in it. When they ask to book, schedule or find time, or whether they are free, say so in one sentence and point them to the Calendar, where Jambo reads their events and plans time with them.";
 /* A REWRITE CARD OPEN IN THE JAMBO WINDOW, as clamped fields (owner, 18 Oct
@@ -14660,6 +14665,7 @@ SCOPE & SAFETY:
 - ${AI_CLARIFY_RULE}
 - ${AI_SEND_NOTE_RULE}
 - ${AI_CALENDAR_RULE}
+- ${AI_TEACH_RULE}
 - ${AI_HANDBOOK_RULE}`;
   /* ONE FIGURE, EVERY BRAIN (12 Sep 2026): the sentence the graph route
      carries, in the chat brain too — the same rows, the same conversion, the
@@ -14696,7 +14702,7 @@ function copilotTextAnswer(txt) {
   const a = s.search(/"answer"\s*:\s*"/);
   if (a >= 0) s = s.slice(s.indexOf('"', s.indexOf(':', a)) + 1);
   s = s.replace(/"\s*,\s*"(?:citations|compare|chart|cards)"\s*:[\s\S]*$/, '').replace(/"\s*\}?\s*$/, '');
-  return s.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\').trim();
+  return answerTrim(s.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\'));
 }
 /* A TOOL CALL WRITTEN AS PLAIN TEXT (owner's screenshot, 23 Oct 2026): the model sometimes types the whole
    deliver_answer call as words — `<deliver_answer> <parameter name="answer">… </parameter> <parameter name="citations">[…]`
@@ -15079,9 +15085,21 @@ function copilotParamsSalvage(inp) {
   }
   return out;
 }
+/* A STRAY CLOSING QUOTE (owner's screenshot, 23 Nov 2026: how-to answers ended `."`): the model sometimes leaves
+   the closing quote of the answer it was writing at the end of the words. One quote mark at the very end that
+   opens nothing is taken off; a real quotation ("…") keeps both of its marks. The browser's twin is aiAnswerTrim. */
+function answerTrim(s) {
+  let t = String(s == null ? '' : s).trim();
+  for (let i = 0; i < 2; i++) {
+    if (/"$/.test(t) && ((t.match(/"/g) || []).length % 2 === 1)) { t = t.slice(0, -1).trimEnd(); continue; }
+    if (/\u201d$/.test(t) && (t.match(/\u201d/g) || []).length > (t.match(/\u201c/g) || []).length) { t = t.slice(0, -1).trimEnd(); continue; }
+    break;
+  }
+  return t;
+}
 function normalizeDeliver(input, cx) {
   const inp = copilotParamsSalvage(input || {});
-  const answer = typeof inp.answer === 'string' && inp.answer.trim() ? inp.answer.trim() : COPILOT_EMPTY_ANSWER;
+  const answer = typeof inp.answer === 'string' && answerTrim(inp.answer) ? answerTrim(inp.answer) : COPILOT_EMPTY_ANSWER;
   const wholeBook = inp.wholeBook === true;
   /* the door through a rule, re-checked like a citation: a contract it names
      must be one this person can open */
@@ -15137,7 +15155,7 @@ function normalizeDeliver(input, cx) {
   /* the Board's buttons, cleaned as the map route's are (graphBoardActionsClean); how many were asked is kept so a
      cut is said (hbBoardTakes, hb_act_cap) */
   const board = graphBoardActionsClean(inp.board);
-  return { answer, citations, compare, quoteDrops, wholeBook, ruleDoor, goto, ...(note ? { note } : {}), ...(choices.length >= 2 ? { choices } : {}), ...(board ? { board, boardTotal: inp.board.length } : {}), ...(Array.isArray(inp.page) ? { pageAsked: inp.page } : {}) };
+  return { answer, citations, compare, quoteDrops, wholeBook, ruleDoor, goto, ...(inp.teach === true ? { teach: true } : {}), ...(note ? { note } : {}), ...(choices.length >= 2 ? { choices } : {}), ...(board ? { board, boardTotal: inp.board.length } : {}), ...(Array.isArray(inp.page) ? { pageAsked: inp.page } : {}) };
 }
 
 /* One row per completed Copilot chat turn — including the failure paths, so
@@ -15303,7 +15321,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
     }
     logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
-    res.json({ answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.note && context && context.page && context.page.sending ? { note: final.note } : {}), ...(final.board && copilotDrawsBoard(context) ? { board: final.board, boardTotal: final.boardTotal } : {}), ...(() => { const pg = pageActionsClean(final.pageAsked, pageControlsClean(context && context.controls)); return pg ? { page: pg } : {}; })(), ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(truncated ? { truncated: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
+    res.json({ answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.note && context && context.page && context.page.sending ? { note: final.note } : {}), ...(final.board && copilotDrawsBoard(context) ? { board: final.board, boardTotal: final.boardTotal } : {}), ...(() => { const pg = pageActionsClean(final.pageAsked, pageControlsClean(context && context.controls)); return pg ? { page: pg } : {}; })(), ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.teach ? { teach: true } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(truncated ? { truncated: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
   } catch (e) {
     logCopilotTurn(req, { question, answer: 'Jambo request failed: ' + e.message, toolsUsed, model: usedModel, steps });
     res.status(502).json({ error: 'Jambo request failed: ' + e.message });
@@ -15672,7 +15690,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
     }
     logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
-    send('final', { answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.note && context && context.page && context.page.sending ? { note: final.note } : {}), ...(final.board && copilotDrawsBoard(context) ? { board: final.board, boardTotal: final.boardTotal } : {}), ...(() => { const pg = pageActionsClean(final.pageAsked, pageControlsClean(context && context.controls)); return pg ? { page: pg } : {}; })(), ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(truncated ? { truncated: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
+    send('final', { answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.note && context && context.page && context.page.sending ? { note: final.note } : {}), ...(final.board && copilotDrawsBoard(context) ? { board: final.board, boardTotal: final.boardTotal } : {}), ...(() => { const pg = pageActionsClean(final.pageAsked, pageControlsClean(context && context.controls)); return pg ? { page: pg } : {}; })(), ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.teach ? { teach: true } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(truncated ? { truncated: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
     res.end();
   } catch (e) {
     if (clientGone || e.name === 'AbortError') {

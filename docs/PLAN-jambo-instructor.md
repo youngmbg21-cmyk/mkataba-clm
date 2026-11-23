@@ -105,6 +105,12 @@ The owner's "do what it takes" answered decisions 1 and 2 below (the outline; th
   HaTi's own words answered in one sentence, free, for everyone, with the chapter one press away (and its walk
   while teaching). A sentence about a contract ("what is the stream of MK-4") is not one of them.
 
+### Start the lessons, said any way — BUILT 23 Nov 2026 (owner: "build your recommendation")
+
+The fixed phrases stay the free path. Anything else a new person types already goes to Jambo's AI; it is now told
+to notice someone new or lost and say so, and the answer then ends with **Start the lessons**, which does what
+"I'm new" does. No extra AI call. Built with it: a stray quote mark at the end of Jambo's answers is taken off.
+
 ### Round 5 — A practice contract — NOT BUILT (left for the owner)
 
 A private, practice-only contract changes what HaTi counts (Board figures, reports, reminders, the daily brief,

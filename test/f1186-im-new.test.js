@@ -261,3 +261,51 @@ describe('f1186 (8) your first steps tick themselves', () => {
     } finally { await h.stop(); }
   });
 });
+
+/* ---- THE STRAY QUOTE, AND "START THE LESSONS" (owner, 23 Nov 2026: "clean the stray quote mark and the build your
+   recommendation") ---- */
+describe('f1186 (9) a stray closing quote is taken off, a real quotation kept', () => {
+  const fnOf = (src, name, next) => { const i = src.indexOf('function ' + name); const j = src.indexOf(next, i); assert.ok(i >= 0 && j > i, name); return src.slice(i, j); };
+  const srv = new Function(fnOf(R('server/server.js'), 'answerTrim', '\nfunction normalizeDeliver') + 'return answerTrim;')();
+  const web = new Function(fnOf(R('js/ai.js'), 'aiAnswerTrim', '/* A CHAPTER IS A BUTTON') + 'return aiAnswerTrim;')();
+  const cases = [['…all from the Redlines tab."', '…all from the Redlines tab.'], ['Send all to send it." ', 'Send all to send it.'],
+    ['He said "yes".', 'He said "yes".'], ['A quote: "the Supplier shall"', 'A quote: "the Supplier shall"'],
+    ['Ends “so”.”', 'Ends “so”.'], ['Plain answer.', 'Plain answer.'], ['"Whole quote."', '"Whole quote."']];
+  test('both hosts, one reading', () => { for (const [a, b] of cases){ assert.equal(srv(a), b, a); assert.equal(web(a), b, a); } });
+  test('every answer passes it: the deliver call, the text answer, the browser\'s own', () => {
+    const S = strip(R('server/server.js'));
+    assert.ok(/answerTrim\(inp\.answer\)/.test(S) && /return answerTrim\(s\.replace/.test(S));
+    assert.ok(/answer:aiAnswerTrim\(inp\.answer\)/.test(strip(R('js/ai.js'))));
+  });
+});
+
+describe('f1186 (10) "Start the lessons" under any answer that hears someone new', () => {
+  const { startHati, startScriptedAi, seedWorkspace } = require('./helpers');
+  let ai, h, W;
+  before(async () => { ai = await startScriptedAi(); h = await startHati({ ANTHROPIC_BASE_URL: ai.base, HATI_AGENTS_AUTO: 'off' }); W = await seedWorkspace(h); });
+  after(async () => { try { await h.stop(); } catch (_){} try { await ai.stop(); } catch (_){} });
+  const ask = q => W.admin.json('/api/ai/chat', { method: 'POST', body: { messages: [{ role: 'user', content: q }], context: {} } });
+  test('the rule is told, word for word on both hosts, at no extra call', async () => {
+    ai.reset(); ai.script([{ type: 'tool_use', id: 'tu_a', name: 'deliver_answer', input: { answer: 'Welcome. Start on the Board."', teach: true } }]);
+    const r = await ask('first day here, no clue what I am doing');
+    assert.equal(ai.calls.length, 1, 'one call, as any question');
+    const sys = JSON.stringify(ai.calls[0].body.system || '');
+    assert.ok(/A PERSON NEW TO HaTi/.test(sys), 'the rule is in the instructions');
+    const tool = (ai.calls[0].body.tools || []).find(t => t.name === 'deliver_answer');
+    assert.ok(tool && tool.input_schema.properties.teach, 'the answer form has teach');
+    assert.equal(r.teach, true, 'the answer carries it to the browser');
+    assert.equal(r.answer, 'Welcome. Start on the Board.', 'and no stray quote');
+    const x = eval(/const AI_TEACH_RULE = ("[^\n]*");/.exec(R('server/server.js'))[1]), y = eval(/const AI_TEACH_RULE=("[^\n]*");/.exec(R('js/ai.js'))[1]);
+    assert.equal(x, y, 'the browser\'s twin, word for word');
+  });
+  test('an ordinary answer carries nothing', async () => {
+    ai.reset(); ai.script([{ type: 'tool_use', id: 'tu_a', name: 'deliver_answer', input: { answer: 'Four contracts.' } }]);
+    const r = await ask('How many contracts do we have?');
+    assert.equal(r.teach, undefined);
+  });
+  test('the browser offers it first, only while the lessons are off; the press is "I\'m new"', () => {
+    assert.ok(/res\.teach===true&&typeof window\.teachOn==='function'&&!teachOn\(\)\) out\.unshift\(\{ label:i18t\('teach_start'\), teach:'start', lead:true \}\)/.test(strip(R('js/ai.js'))));
+    const u = { role: 'legal', prefs: {} }; global.currentUser = () => u;
+    try { T.teachChoicePress({ teach: 'start' }); assert.equal(u.prefs.teach, 'on', 'the same as typing "I\'m new"'); } finally { delete global.currentUser; }
+  });
+});
