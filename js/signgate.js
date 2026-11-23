@@ -71,6 +71,18 @@ function sgAcceptedProperly(v, isAdmin){
   }
   return false;
 }
+/* ---- APPROVED ONCE FOR THE WHOLE TEMPLATE (the Dossier L+S, step 3; owner's pick "Yes, once per template", 23 Nov 2026) ----
+   An admin, or someone an admin named to decide on the Playbook, may approve a departure of OUR template once: every
+   contract drawn from that template, at that template version, departing from that same position, is settled by it.
+   The key carries the template, its version and the position's own words, so a new template version or a changed
+   Playbook position LAPSES it (the key no longer matches). The list lives on the server (settings 'tplApprovals'),
+   written by POST /api/templates/departure-approvals only; both hosts read it through this one key. */
+function sgHash(s){ let h = 5381; const t = String(s || ''); for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
+function sgTplKey(c, v){
+  if (!c || !c.template || !v || c.source === 'upload' || c.upload) return '';
+  return [String(c.template), String(c.templateVersion || ''), String(v.category || '').trim().toLowerCase(), sgHash(String(v.position || '').replace(/\s+/g, ' ').trim())].join('|');
+}
+function sgTplApproval(c, v, list){ const k = sgTplKey(c, v); return k ? ((Array.isArray(list) ? list : []).find(a => a && a.key === k) || null) : null; }
 function sgDepartureSettled(v, isAdmin){
   const a = v && v.accepted;
   return !!(a && a.at) && sgAcceptedProperly(v, isAdmin) && !a.staleQuote;
@@ -91,6 +103,7 @@ function sgDepartures(c, opts){
   pb.verdicts.forEach((v, i) => {
     if (!v || (v.status !== 'deviation' && v.status !== 'missing')) return;
     if (sgDepartureSettled(v, o.isAdmin)) return;
+    if (o.tplApprovals && sgTplApproval(c, v, o.tplApprovals)) return;
     const a = v.accepted;
     const why = (a && a.at)
       ? (sgAcceptedProperly(v, o.isAdmin) ? 'stale' : 'wrong-person')
@@ -152,6 +165,6 @@ function sgHolds(c, opts){
 }
 
 const SG_API = { SG_GATES, SG_PROPOSED_AT_KEYS, sgGateOf, sgLastProposedAt, sgAcceptedProperly,
-  sgDepartureSettled, sgDepartures, sgBriefKey, sgBriefStands, sgBriefReadBy, sgBriefReadOwed, sgHolds };
+  sgDepartureSettled, sgDepartures, sgHash, sgTplKey, sgTplApproval, sgBriefKey, sgBriefStands, sgBriefReadBy, sgBriefReadOwed, sgHolds };
 if (typeof window !== 'undefined') Object.assign(window, SG_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = SG_API;

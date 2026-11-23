@@ -1120,9 +1120,22 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 - No tests of its own remain. The deletion is kept by: f1097 (launchpad), f841 (Guide), f964 (map), f937 (Handbook), f561 (Brain).
 ## AN AMENDMENT IS WRITTEN HERE — filled on its paper
 - f1194: the paper fill writes the amendment's wording; an answer only on the record is still owed; "made on" fills the effective date; no value and no second Effective box owed.
+## WHO SIGNS, ON THE WORKING PAPER
+- f1195: named signer with order badge and "title, for company"; amber space when nobody is named (none for a Viewer or a sealed paper); painted once, taken off whole; wired from pdPaint, stepping aside on the signing copy and in Fill in.
+- f1195 (5)–(7): their page gets names and titles only on every link (no address); the bench paints our Redlines page and theirs; the phone prints them with no amber space.
+
+## THE SHELL — the waves slide as one picture (23 Nov 2026)
+- `node --test test/f1196-the-waves-slide-as-one-picture.test.js test/f1160-the-watermark-holds-still-on-explorer.test.js`; browser (GitHub): panel-watermark-verify, who-does-what-verify 2d, home-speed-verify.
+
+## THE DOSSIER END TO END, L+S — step 1, the Dossier tab (23 Nov 2026)
+- `node --test test/f1194-the-dossier-end-to-end-ls.test.js test/f1103-the-playbook-score-ring.test.js test/f1078-panels-arrive-once-and-the-book-answers.test.js test/f937-every-change-updates-the-handbook.test.js test/f965-the-tokens-are-the-law.test.js test/f1186-rows-are-light-green.test.js`; browser: dossier-and-amend-ls-verify 1d–1h, duties-card-verify (GitHub).
+- Step 2, Plan the read: `node --test test/f1195-plan-the-read.test.js test/f563-home-first.test.js test/f561-the-brain-keeps-up.test.js test/f564-the-lanes-say-the-same.test.js`; browser: dossier-and-amend-ls-verify 1i–1k (GitHub).
+- Step 3, the Clauses tab: `node --test test/f1196-the-clauses-tab-ls.test.js test/f335-thirteen-off-the-screenshots.test.js test/f463-one-check-before-a-signing-link.test.js`; browser: dossier-and-amend-ls-verify 1l (GitHub).
+- Step 4, Redlines: `node --test test/f1197-redlines-one-of-three.test.js test/f1066-jambos-panels-remaining-eight.test.js test/f245-the-clause-editor.test.js test/f756-piles-as-drawn.test.js`.
+
 
 ## THE NOTEBOOK — DOCUMENTS JAMBO MAY QUOTE (23 Nov 2026)
-- NEW test/f1195-the-notebook.test.js (red at the parent: no js/notebook.js, no route, no kind, no rule): the cutter (Art. 28(3) inside its Article, § 4.2, s. 48, pages), the status (12 months to the day), the wall (Company an admin's, Mine its writer's, Undo of a check), the one search (hit carries document, number, words; another's Mine never found), Jambo's rule both hosts and the quote counted only when number and document are named.
+- NEW test/f1198-the-notebook.test.js (red at the parent: no js/notebook.js, no route, no kind, no rule): the cutter (Art. 28(3) inside its Article, § 4.2, s. 48, pages), the status (12 months to the day), the wall (Company an admin's, Mine its writer's, Undo of a check), the one search (hit carries document, number, words; another's Mine never found), Jambo's rule both hosts and the quote counted only when number and document are named.
 - NEW test/chromium/notebook-verify.js (GitHub; red at the parent: no page): tabs with counts, a row's quote and badges, choose then open, back, Check due → Mark checked → Undo, the Add pop-up's lines.
 - RE-POINTED: f1097 (1) NAMES (Notebook added to the test's page names).
 - Re-ran green: f232, f48, f561, f564, f672, f842, f937, f938, f946, f954, f955, f964, f965, f997, f1068, f1097, f1131, f1146, f1186, f1193, f866, f305.

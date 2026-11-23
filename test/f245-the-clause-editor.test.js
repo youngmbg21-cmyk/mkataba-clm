@@ -444,7 +444,8 @@ describe('f245 (7) — it files through the funnel and nothing else', () => {
        Discard is gone — Undo and the leave question cover the reader's own
        typing — so the foot is the walk and Save. */
     assert.doesNotMatch(foot, /data-ce-act="discard"/, 'no Discard in the foot');
-    assert.match(foot, /\[\[save, label, anyToFile\]\]/, 'Save keeps its own question');
+    /* RE-POINTED 23 Nov 2026 (f1197): Save keeps its own question, and on a walk says it moves on (· next ›) */
+    assert.match(foot, /\[\[save, labelNext, anyToFile\]\]/, 'Save keeps its own question');
   });
 });
 

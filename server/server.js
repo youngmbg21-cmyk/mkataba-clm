@@ -57,7 +57,7 @@ const { saNeeds, saState, saStamp, saShows, saDrift, saStarted, saMayDecide, saW
 /* The check before signing as a wall (4 Oct 2026): which departures hold on
    each gate, and whether OUR signer has read the brief that stands for this
    wording. ONE reading for both hosts — js/signcheck.js asks the same file. */
-const { sgDepartures, sgBriefReadOwed } = require('../js/signgate.js');
+const { sgDepartures, sgBriefReadOwed, sgTplKey } = require('../js/signgate.js');
 /* clashes in who may do what: the page's own reading, so the server finds the
    same clashes and keeps the day each was first seen (owner's answer 12) */
 const { clashFind } = require('../js/clashkeys.js');
@@ -1855,7 +1855,7 @@ function srvSignCheckOpen(c, opts){
   if (gate === 'off' || !c) return out;
   const pb = c && c.playbook;
   if (gate === 'require' && (!pb || !Array.isArray(pb.verdicts))) out.push('no standards review on file');
-  for (const r of sgDepartures(c, { gate, isAdmin: scIsAdminId })) {
+  for (const r of sgDepartures(c, { gate, isAdmin: scIsAdminId, tplApprovals: getSetting('tplApprovals') || [] })) {
     if (!r.holds) continue;
     out.push((SC_WHY_WORDS[r.why] || SC_WHY_WORDS.unaccepted)(r.category || 'a standard'));
   }
@@ -4407,6 +4407,31 @@ app.post('/api/logout', auth, (req, res) => {
 /* ---------- bootstrap & contract data ---------- */
 // Bootstrap no longer ships every full contract — just the workspace shell.
 // The contract list loads separately (paginated / summary), full bodies on open.
+/* ---- APPROVE A DEPARTURE FOR THE WHOLE TEMPLATE (step 3; owner's pick "Yes, once per template") ----
+   The one writer of the 'tplApprovals' list: an admin or someone an admin named to decide on the Playbook (stdDecides),
+   on a contract they may reach, drawn from OUR template (sgTplKey refuses an upload), for a departure on its stored
+   check; a reason is required. The contract's trail says so (the server writes the record). `undo` takes it back. */
+app.post('/api/templates/departure-approvals', auth, editor, (req, res) => {
+  if (!stdDecides(req.user)) return res.status(403).json({ error: 'Only an admin, or someone an admin named to decide on the Playbook, may approve this for a whole template.' });
+  const { contractId, index, reason, undo } = req.body || {};
+  const scope = folderScopeFor(req.user);
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(String(contractId || ''));
+  if (!row || !inScope(scope, row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  const c = JSON.parse(row.json), v = c.playbook && Array.isArray(c.playbook.verdicts) ? c.playbook.verdicts[Number(index)] : null;
+  if (!v || (v.status !== 'deviation' && v.status !== 'missing')) return res.status(409).json({ error: 'That departure is no longer on the check.' });
+  const key = sgTplKey(c, v);
+  if (!key) return res.status(409).json({ error: 'Only a contract drawn from one of our templates can be approved for the whole template.' });
+  const why = String(reason || '').replace(/\s+/g, ' ').trim().slice(0, 400);
+  if (!undo && !why) return res.status(400).json({ error: 'Say why this is acceptable for every contract from this template.' });
+  const list = (getSetting('tplApprovals') || []).filter(a => a && a.key !== key);
+  if (!undo) list.push({ key, template: String(c.template), category: String(v.category || ''), by: req.user.name || '', byId: req.user.id, reason: why, at: now(), from: c.id });
+  setSetting('tplApprovals', list);
+  const tpl = String(c.template);
+  c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{ at: now(), user: req.user.name || '', action: 'Playbook',
+    detail: undo ? `Template approval taken back for "${v.category || 'a standard'}" (${tpl})` : `Departure on "${v.category || 'a standard'}" approved for every contract from ${tpl} — “${why}”` }]);
+  db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(c), c.id);
+  res.json({ tplApprovals: list });
+});
 app.get('/api/bootstrap', auth, (req, res) => {
   const scope = folderScopeFor(req.user);
   const f = scopeFrag(scope);
@@ -4435,6 +4460,8 @@ app.get('/api/bootstrap', auth, (req, res) => {
   })();
   res.json({
     org: getSetting('org'),
+    /* the departures approved once for a whole template (sgTplApproval reads it on both hosts) */
+    tplApprovals: getSetting('tplApprovals') || [],
     /* streamNews: who named themself on a private stream that names this
        person, since they last looked (psNewsFor) — the bell's to say */
     /* their own business role's name and who last set their role (You, round
@@ -9972,6 +9999,9 @@ app.post('/api/ai/breakdown', auth, editor, rlAiDeep, aiFeature('breakdown'), ai
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const { text, side } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
+  /* THE READER'S PLAN (the Dossier L+S, step 2, owner 23 Nov 2026): what the reader asked this read to look for, each
+     answered with a point carrying its number (plan), or none — never invented; at most READ_PLAN_MAX, plain lines */
+  const plan = readPlanClean(req.body && req.body.plan);
   /* TWO STEPS (owner, 13 Oct 2026: "the loading is taking too long and ruining
      the user experience"): opening Clauses asks only for the LIST — the
      sections and, per point, its title, severity, section and one line — on
@@ -10005,10 +10035,11 @@ app.post('/api/ai/breakdown', auth, editor, rlAiDeep, aiFeature('breakdown'), ai
         stake: { type: 'string', description: 'ONE plain line, at most 16 words, saying what is at stake for the company: the risk and, where the wording supports it, the money together.' },
         quote: { type: 'string', description: 'The key words in the contract that carry the point, verbatim, at most 25 words. Empty for a missing point.' + AI_QUOTE_RULE },
         links: { type: 'array', maxItems: 3, items: { type: 'number' }, description: '1-based numbers of other points this one connects to.' },
+        plan: { type: 'number', description: 'Only when this point answers one of the reader\'s own questions listed under THE READER ASKED: its 1-based number there. Leave it out otherwise.' },
       }, required: ['title', 'stake', 'status'] } },
     }, required: ['regions'] } };
   const mine = side === 'theirs' ? 'the other party' : 'our side (the party using this system)';
-  const prompt = `Read this whole contract from ${mine} and cut it into at most ten sections — groups of clauses that do one job (price, payment, term and exit, service levels, data, liability, law and general…). Every clause and schedule must sit in exactly one section; list each one's clause numbers. Say whether each section NEEDS the reader, is WORTH A LOOK, or is FINE. Then, as ONE company view (the legal risk and the money together, never split by department), list the points that matter most, worst first: where this wording leaves us exposed or hands the other side an edge, and anything a careful company would expect that is MISSING. Where a NUMBERED CLAUSE IS IN THE CONTRACT BUT LEFT EMPTY, give its number in clause and set blank — it is not a missing point. For each point give only its title, one line on what is at stake, its section and the key words verbatim — keep it short; the detail is asked for separately. Do not invent facts or numbers the text does not state. Return via break_down.\n\n${stakesWriteRule(req)}\n\nCONTRACT:\n${aiDocText(req, text)}`;
+  const prompt = `Read this whole contract from ${mine} and cut it into at most ten sections — groups of clauses that do one job (price, payment, term and exit, service levels, data, liability, law and general…). Every clause and schedule must sit in exactly one section; list each one's clause numbers. Say whether each section NEEDS the reader, is WORTH A LOOK, or is FINE. Then, as ONE company view (the legal risk and the money together, never split by department), list the points that matter most, worst first: where this wording leaves us exposed or hands the other side an edge, and anything a careful company would expect that is MISSING. Where a NUMBERED CLAUSE IS IN THE CONTRACT BUT LEFT EMPTY, give its number in clause and set blank — it is not a missing point. For each point give only its title, one line on what is at stake, its section and the key words verbatim — keep it short; the detail is asked for separately. Do not invent facts or numbers the text does not state.${plan.length ? `\n\nTHE READER ASKED this read to look for the following, numbered. For EACH one the contract speaks to, add a point that answers it and set plan to its number (it may also be one of the points above); where the contract says nothing about it, add a missing point with that plan number. Never answer one from outside the text.\n${plan.map((t, i) => (i + 1) + '. ' + t).join('\n')}` : ''} Return via break_down.\n\n${stakesWriteRule(req)}\n\nCONTRACT:\n${aiDocText(req, text)}`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 6000, tools: [tool], tool_choice: { type: 'tool', name: 'break_down' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'breakdown', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
@@ -10049,10 +10080,40 @@ app.post('/api/ai/breakdown', auth, editor, rlAiDeep, aiFeature('breakdown'), ai
         edge: (Array.isArray(p.edge) ? p.edge : []).map(e => str(e, 300)).filter(Boolean).slice(0, 3),
         trade: (Array.isArray(p.trade) ? p.trade : []).filter(t => t && t.give && t.get).slice(0, 3).map(t => ({ give: str(t.give, 160), get: str(t.get, 160) })),
         ask: str(p.ask, 900), quote,
+        ...(Math.round(Number(p.plan)) >= 1 && Math.round(Number(p.plan)) <= plan.length ? { plan: Math.round(Number(p.plan)) } : {}),
         links: (Array.isArray(p.links) ? p.links : []).map(n => Math.round(Number(n))).filter(n => n >= 1 && n <= rawPts.length).slice(0, 3) };
     });
     /* `lang`: the language it was written in, kept on the reading so a reader in another language is not served it (js/views/breakdown.js bdOf) */
-    res.json({ head: str(block.input.head, 60), sub: str(block.input.sub, 240), regions, links, points, dropped, truncated: !!resp.truncated, lang: readLangOf(req), ...aiNotice(req, resp) });
+    res.json({ head: str(block.input.head, 60), sub: str(block.input.sub, 240), regions, links, points, dropped, truncated: !!resp.truncated, lang: readLangOf(req), plan, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
+});
+
+/* ---- PLAN THE READ (the Dossier L+S, step 2; owner 23 Nov 2026: "adding a plan should be a pop up where you add a summary of
+   what you would like to get out of the contract in the read then jambo can then break that down to a plan") ----
+   The reader's own words in, a short list of plain things to look for out — on a press only, the fast model, nothing
+   written to the contract (the page keeps what the reader applies). The contract's wording is not sent: the plan is the
+   reader's ask, read against the paper later by the read itself. */
+const READ_PLAN_MAX = 8;
+function readPlanClean(v){
+  return (Array.isArray(v) ? v : []).map(t => String(t == null ? '' : t).replace(/\s+/g, ' ').trim().slice(0, 160)).filter(Boolean).slice(0, READ_PLAN_MAX);
+}
+app.post('/api/ai/readplan', auth, editor, rlAiLight, aiFeature('breakdown'), aiBudgetGuard, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
+  const ask = String((req.body && req.body.ask) || '').replace(/\s+/g, ' ').trim().slice(0, 1200);
+  if (ask.length < 4) return res.status(400).json({ error: 'Say what you want from this read' });
+  const kind = String((req.body && req.body.kind) || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  const tool = { name: 'plan_read', description: 'Turn what the reader wants from a contract into a short list of things to look for.',
+    input_schema: { type: 'object', properties: { items: { type: 'array', maxItems: READ_PLAN_MAX, items: { type: 'string',
+      description: 'One thing to look for, as a short plain line the reader would recognise, at most 14 words, e.g. "Can we leave early, and at what cost?"' } } }, required: ['items'] } };
+  const prompt = `A person is about to have a contract${kind ? ' (' + kind + ')' : ''} read for them. In their own words they want this from the read:\n<their_words>${ask}</their_words>\n\nBreak what they said into at most ${READ_PLAN_MAX} separate things to look for in the contract, each one short and plain, in the order they matter to them. Keep only what they asked for; add nothing of your own and no legal advice. Return via plan_read.\n\n${stakesWriteRule(req)}`;
+  try {
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 800, tools: [tool], tool_choice: { type: 'tool', name: 'plan_read' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'breakdown', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
+    const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+    const items = readPlanClean(block && block.input && block.input.items);
+    if (!items.length) return res.status(502).json({ error: resp.truncated ? 'Jambo ran out of room before the plan was finished. Try again.' : 'Jambo could not make a plan from those words this time.' });
+    res.json({ items, truncated: !!resp.truncated, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
@@ -21635,6 +21696,22 @@ function shareHandoverFact(contractId) {
    stored address against the route's (the address never leaves), and each of
    their side's rows carries the day its signing link went out (`linkAt`) —
    the date only. A sign link's order is unchanged. */
+/* ---- WHO SIGNS, ON THEIR PAPER TOO (owner, 23 Nov 2026: "Names and titles only") ----
+   Their working paper prints under each signature line the person our route names for that party (pagesSignNames),
+   as ours does. So every link of theirs carries this, read LIVE from the stored route: NAME, TITLE, which SIDE, the
+   party id their line is matched by, the STEP and whether signed. Never an email, member id, row id, image or date;
+   the rest of the route stays ours. Kept apart from `signingOrder`, whose presence their page reads as "signing has
+   started". */
+function shareSignerNames(s) {
+  if (!s) return null;
+  const rt = signerRouteFor(s.contract_id);
+  if (!rt) return null;
+  return rt.plan.filter(r => r && String(r.name || '').trim()).map(r => ({
+    side: r.party === 'counterparty' ? 'theirs' : 'ours',
+    partyId: r.party === 'counterparty' && r.partyId ? String(r.partyId) : '',
+    name: String(r.name || '').trim(), title: String(r.role || '').trim() || null,
+    step: srvSignStep(r), signed: !!rt.signedRow(r) }));
+}
 function shareSigningOrder(s) {
   if (!s) return null;
   const isSign = (s.purpose || '') === 'sign';
@@ -21970,7 +22047,7 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
          held with its reason ("X signs first"). The same facts a sign link
          serves once its turn comes, minus nothing the reader could act on —
          the respond route still refuses a signature out of turn. */
-      payload: srvPartiesOnPayload(p, s), purpose: s.purpose || null, signingOrder: shareSigningOrder(s),
+      payload: srvPartiesOnPayload(p, s), purpose: s.purpose || null, signingOrder: shareSigningOrder(s), signerNames: shareSignerNames(s),
       signatures: shareLiveSignatures(s, null), emailConfigured: EMAIL_ON(),
       share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
         expiresAt: s.expires_at || null, channel: s.channel || 'link' } });
@@ -22095,6 +22172,7 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
        goes on inviting redlines on a sealed contract. */
     executed: contractExecution(s.contract_id),
     signingOrder: shareSigningOrder(s),
+    signerNames: shareSignerNames(s),   // names and titles only, every link (owner, 23 Nov 2026)
     /* THE SIGNATURES SO FAR, read live (7 Oct 2026, work order O-1). Their
        page draws the contract from the copy frozen when the link went out, so
        a signature made since never reached their paper, not even their own.

@@ -1,5 +1,5 @@
 'use strict';
-/* notebook-verify — THE NOTEBOOK, THE LEGORA + STRIPE WAY (owner's pick, 23 Nov 2026; f1195 pins the server and the words).
+/* notebook-verify — THE NOTEBOOK, THE LEGORA + STRIPE WAY (owner's pick, 23 Nov 2026; f1198 pins the server and the words).
    Driven where the reader looks, on the round 7 world as its admin:
    1  "notebook" typed into the one door opens the page: tabs with their counts, one calm table
    2  a row says the words Jambo last quoted and their section, its kind and status as soft badges

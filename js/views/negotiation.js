@@ -1873,8 +1873,30 @@ function negoVerifyPill(c, ch){
    it once the chain has actually been walked. Showing "Verified" first and
    correcting it afterwards would be the same lie the pill was fixed for,
    briefly. */
+/* WHO SIGNS, ON EVERY PAPER THIS BENCH DRAWS (owner, 23 Nov 2026: "add them to the other side's page and phone too"):
+   pagesSignNames under each line. On OUR seat it reads our route (an amber space where nobody is named, never for a
+   Viewer or a sealed paper). On THEIR page it reads the names and titles the server sends every link
+   (`PORTAL_OPTS.signerNames`, shareSignerNames: no address ever), and a line nobody is named on stays "For company" —
+   they do not fill our route. Never the signing copy (pagesSignMarks prints its own), never over Fill in's boxes. */
+function rlSignNamesPaint(host, c){
+  if (!host || !c || typeof window.pagesSignNames !== 'function') return;
+  const theirs = typeof PORTAL_MODE !== 'undefined' && !!PORTAL_MODE;
+  let cc = c, owed = false;
+  if (theirs){
+    const L = (window.PORTAL_OPTS && Array.isArray(window.PORTAL_OPTS.signerNames)) ? window.PORTAL_OPTS.signerNames : [];
+    cc = Object.assign({}, c, { signerPlan: L.slice().sort((a, b) => (Number(a.step) || 0) - (Number(b.step) || 0)).map(r => ({
+      party: r.side === 'theirs' ? 'counterparty' : 'internal', partyId: r.partyId || '', name: String(r.name || ''),
+      role: String(r.title || ''), signed: !!r.signed })) });
+  } else owed = !(typeof window.docSealedCopy === 'function' && window.docSealedCopy(c)) && !(typeof window.mayActOn === 'function' && !window.mayActOn(c));
+  host.querySelectorAll('.rl-paper').forEach(p => {
+    if (p.closest('.pg-sign, .ig-signpaper') || p.querySelector('.pd2-ps')) return;
+    window.pagesSignNames(p, cc, { owed });
+  });
+}
 function negoAfterPaint(c, opts, host){
   try { if (host && c) rlPaintNoteMarks(host, c, opts || {}); } catch (e){}
+  /* who signs, under the paper's signature lines, our Redlines page and their page alike (rlSignNamesPaint) */
+  try { if (host && c) rlSignNamesPaint(host, c); } catch (e){}
   /* the column's own notes view, wired after its paint (round 9's gaps) */
   try { if (host && c && typeof rlFaceNotesWire === 'function') rlFaceNotesWire(host, c, opts || {}); } catch (e){}
   try { if (host && c) rlPaintCopilotAnswers(host, c, opts || {}); } catch (e){}
@@ -21798,6 +21820,9 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
       const faceRow = lad.closest('#pd-redface') ? lad.getAttribute('data-rl-ladder-ch') : null;
       if (faceRow){
         rlFaceLadderSet(rlFaceLadderOpen() === faceRow ? null : faceRow);
+        /* ONE OF THREE (the Dossier L+S, step 4; BUGLOG: "the Redlines switch can light two buttons"): the Ladder opening
+           puts the notes away, so Changes · Notes · Ladder never light two at once */
+        if (rlFaceLadderOpen() && typeof rlFaceNotesSet === 'function') rlFaceNotesSet(null);
         if (window.pdRedRepaint) window.pdRedRepaint();
         const open = rlFaceLadderOpen();
         if (open) requestAnimationFrame(() => {
@@ -22660,7 +22685,7 @@ function rlHeadNotesHtml(c, opts = {}){
   const n = rlNotesTotal(c, opts);
   /* PRESSED WHILE THE NOTES ARE OPEN IN THE COLUMN (round 9's gaps, second
      pass): the same press shuts them, as every opener in HaTi does */
-  const on = rlFaceNotesOn(c, opts);
+  const on = rlFaceNotesOn(c, opts) && !(opts.dealDoor && rlFaceLadderOpen());
   return `<button type="button" class="rl-head-notes${on ? ' is-on' : ''}" data-rl-notes-all="${_nea(c.id)}" aria-pressed="${on ? 'true' : 'false'}" title="${_nea(i18t(on ? 'ng_fn_notes_on' : 'ng_chat_title'))}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true" focusable="false"><use href="#i-chat"/></svg><span>${_ne(i18t('ig_line_notes'))}</span>${n ? `<b>${n}</b>` : ''}</button>`;
 }
 /* THE LADDER AT THE HEAD (new look): drawn only where the host asks (Jambo's face, opts.dealDoor), our seat only,
@@ -22865,6 +22890,8 @@ if (typeof document !== 'undefined') document.addEventListener('click', e => {
     e.preventDefault();
     const id = nb.getAttribute('data-rl-notes-all');
     rlFaceNotesSet(_rlFnFor === String(id) ? null : id);
+    /* ONE OF THREE: the notes opening fold the Ladder away (and the face is drawn again for it) */
+    if (_rlFnFor && rlFaceLadderOpen()){ rlFaceLadderSet(null); if (window.pdRedRepaint) window.pdRedRepaint(); }
     rlHeadRepaint();
     return;
   }
@@ -23344,7 +23371,7 @@ function redlineSyncProxies(host){
 
 if (typeof window !== 'undefined') Object.assign(window, { rlLinkedIs, rlLinkForget, rlOnePressOf, rlOnePressCounter, rlFigureSwap, rlNumWords });
 if (typeof window !== 'undefined') Object.assign(window, { RL_PLAIN_FIG, rlPlainFigs, rlPlainFigureOf, rlPlainReasonOf, rlAskColleague });
-if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoTurnBannerHtml, rlLiveHere, rlLiveRepaint, rlStartLivePoll, rlHomeTakesIt, rlReviewDoor, rlReviewDoorState, rlLandWhenReady, RL_LAND_TRIES, RL_LAND_MS, paperZcFit, rlCameFrom, rlCameFromSet, rlBackToClauses, rlLandOn, rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
+if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoTurnBannerHtml, rlSignNamesPaint, rlLiveHere, rlLiveRepaint, rlStartLivePoll, rlHomeTakesIt, rlReviewDoor, rlReviewDoorState, rlLandWhenReady, RL_LAND_TRIES, RL_LAND_MS, paperZcFit, rlCameFrom, rlCameFromSet, rlBackToClauses, rlLandOn, rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
   rlInlineClick, rlInlineSave, rlInlineDirty, rlInlineOn, rlInlineEnd,
   renderRedline, redlineRoundLabel, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,

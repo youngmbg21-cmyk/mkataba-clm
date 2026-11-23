@@ -15,6 +15,9 @@
      9  a contract open on Home (Dossier, Clauses, Redlines) is serious work: no watermark, its buttons as they were
     10  every Jambo panel has its minimise arrow — the ones drawn without a head row keep the row for the arrow alone
    AT THE PARENT every claim FAILS: no watermark, the arrow is a bare icon, the Board has none, the link is drawn.
+   RE-POINTED 23 Nov 2026 (owner: "the wave is not waving smoothly anymore … I simply want a permanent solution"): the
+   weave is no longer the panel's ::before/::after but a stage of its own placed on the panel by anchor (.wm-stage, two
+   layers .wm-a/.wm-b slid by transform). The checks read that stage (WMOF); 1d now asks for a new place EVERY frame.
    ============================================================ */
 /* global state, setView, hbSetFace, pdOpenOnHome, openNewAgreement */
 const fs = require('node:fs');
@@ -30,10 +33,19 @@ const ok = (name, good, detail) => { good ? pass++ : fail++; console.log(`${good
 const until = (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, { timeout: ms }).then(() => true, () => false);
 
 /* what the panel on the right shows: its watermark, its arrow, its back link, its sideways room */
+/* the weave on a panel: the anchored stage lying on it (THE WAVES SLIDE AS ONE PICTURE), else the old ::before/::after */
+const WM_INSTALL = () => { window.__wmOf = pan => {
+  const pr = pan.getBoundingClientRect();
+  const st = [...document.querySelectorAll('.wm-stage')].find(x => { const r = x.getBoundingClientRect(); const cs = getComputedStyle(x);
+    return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0 && Math.abs(r.left - pr.left) < 2 && Math.abs(r.top - pr.top) < 2 && Math.abs(r.width - pr.width) < 2; });
+  if (st) { const a = getComputedStyle(st.querySelector('.wm-a')), b = getComputedStyle(st.querySelector('.wm-b'));
+    return { st, a, b, layers: [st.querySelector('.wm-a'), st.querySelector('.wm-b')] }; }
+  return { st: null, a: getComputedStyle(pan, '::before'), b: getComputedStyle(pan, '::after'), layers: null };
+}; };
 const READ = () => {
   const pan = [...document.querySelectorAll('#ig-dock, .ins-panel.is-jambo')].find(e => { const r = e.getBoundingClientRect(); return r.width > 250 && r.left > innerWidth / 2; });
   if (!pan) return null;
-  const b = getComputedStyle(pan, '::before'), a = getComputedStyle(pan, '::after');
+  const W = window.__wmOf(pan), b = W.a, a = W.b;
   const mask = s => /data:image\/svg/.test(s.maskImage || s.webkitMaskImage || '');
   const arrow = pan.querySelector('#igd-collapse, .jl-fold'); const ar = arrow && arrow.getBoundingClientRect(); const acs = arrow && getComputedStyle(arrow);
   const tab = pan.querySelector(':is(.igd-head, .jl-head, .cal-plan-head) .pd-tab.on');
@@ -58,6 +70,7 @@ const READ = () => {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await until(page, () => window.state && Array.isArray(state.contracts) && state.contracts.length >= 11 && typeof window.hbSetFace === 'function', null, 20000);
+    await page.evaluate(WM_INSTALL);
     const go = async (v, ready) => {
       await page.evaluate(v => { if (v === 'board') { setView('dashboard'); hbSetFace('board'); } else setView(v); }, v);
       await until(page, ready || (() => true), null, 8000); await page.waitForTimeout(500);
@@ -73,7 +86,7 @@ const READ = () => {
     if (board && board.arrow) {
       await page.click('#igd-collapse');
       const folded = await until(page, () => !!document.querySelector('#ig-dock > .igd-door'), null, 4000);
-      const still = await page.evaluate(() => { const d = document.getElementById('ig-dock'); return d ? getComputedStyle(d, '::before').maskImage || getComputedStyle(d, '::before').webkitMaskImage : ''; });
+      const still = await page.evaluate(() => { const d = document.getElementById('ig-dock'); if (!d) return ''; const W = window.__wmOf(d); return W.a.maskImage || W.a.webkitMaskImage || ''; });
       ok('4c the arrow folds the Board\'s panel, and the folded strip carries no watermark', folded && !/data:image/.test(still || ''), String(still).slice(0, 30));
       await page.evaluate(() => { const d = document.querySelector('#ig-dock > .igd-door'); if (d) d.click(); });
       await until(page, () => !!document.querySelector('#ig-dock #igd-collapse'), null, 4000);
@@ -98,19 +111,20 @@ const READ = () => {
        buttons on it stay as they were, see-through (owner, 22 Nov 2026: "keep the translucent buttons") */
     await page.mouse.move(2, 400); await page.waitForTimeout(300);   /* away from the arrow, so its own colour is read, not its hover */
     const sun = await page.evaluate(() => { const p = document.querySelector('#ins-panel'); if (!p) return null;
-      const b = getComputedStyle(p, '::before'), a = getComputedStyle(p, '::after');
+      const W = window.__wmOf(p), b = W.a, a = W.b;
       const stops = s => (String(s).match(/rgb\(/g) || []).length;
       const tab = p.querySelector('.jl-head .pd-tab.on'), fold = p.querySelector('.jl-head .jl-fold');
       const lifted = el => { if (!el) return null; const c = getComputedStyle(el); return { bg: c.backgroundColor, z: c.zIndex, rad: c.borderTopLeftRadius }; };
       return { before: stops(b.backgroundImage), after: stops(a.backgroundImage), anim: b.animationName + ' | ' + a.animationName, tab: lifted(tab), fold: lifted(fold) }; });
-    ok('10a the watermark\'s weaves are a mix of colours flowing along them (Sunset lines)', !!sun && sun.before >= 5 && sun.after >= 3 && /wmFlowA/.test(sun.anim) && /wmFlowB/.test(sun.anim), JSON.stringify(sun));
+    ok('10a the watermark\'s weaves are a mix of colours flowing along them (Sunset lines)', !!sun && sun.before >= 5 && sun.after >= 3 && /wm(FlowA|SlideA)/.test(sun.anim) && /wm(FlowB|SlideB)/.test(sun.anim), JSON.stringify(sun));
     /* 11 — IT SCROLLS WITH THE READING (owner, 22 Nov 2026): Jambo's talk scrolled 120 down, the weave rises 120 with it;
        back at the top, it comes back down */
     const lift = await page.evaluate(async () => { const p = document.querySelector('#ins-panel'); if (!p) return null;
       try { ai.history.push({ role: 'user', text: 'What is due this week?' }, { role: 'assistant', text: 'Two duties are due this week. '.repeat(120) }); jlTalkPress(); } catch (_){ }
       await new Promise(r => setTimeout(r, 600));
       const sc = p.querySelector('#jl-talk-sc'); if (!sc) return { missing: 'the talk scroller' };
-      const ty = () => { const m = getComputedStyle(p, '::before').transform; const v = /matrix\(([^)]+)\)/.exec(m); return v ? Math.round(parseFloat(v[1].split(',')[5])) : 0; };
+      const ty = () => { const W = window.__wmOf(p); if (W.layers) { const t = String(W.a.translate || '').split(' '); return Math.round(parseFloat(t[1] || '0') || 0); }
+        const m = W.a.transform; const v = /matrix\(([^)]+)\)/.exec(m); return v ? Math.round(parseFloat(v[1].split(',')[5])) : 0; };
       sc.scrollTop = 0; await new Promise(r => setTimeout(r, 150)); const at0 = ty();
       sc.scrollTop = 120; await new Promise(r => setTimeout(r, 150)); const at120 = ty();
       sc.scrollTop = 0; await new Promise(r => setTimeout(r, 150)); const back = ty();
@@ -125,11 +139,12 @@ const READ = () => {
     /* 1d — it GLIDES (owner, 22 Nov 2026: "it seems like it's stuttering"): sampled each frame for a second, the weave
        stands in a new place nearly every frame and never jumps a whole pixel */
     const glide = await page.evaluate(() => new Promise(res => { const p = document.querySelector('.ins-panel.is-jambo'); if (!p) return res(null); const v = []; const t0 = performance.now();
-      const tick = () => { const m = getComputedStyle(p, '::before'); v.push(parseFloat(String(m.maskPosition || m.webkitMaskPosition || '').split(',')[0])); if (performance.now() - t0 < 1000) requestAnimationFrame(tick); else res(v); }; requestAnimationFrame(tick); }));
+      const tick = () => { const W = window.__wmOf(p); const m = W.a; const tf = /matrix\(([^)]+)\)/.exec(m.transform || '');
+        v.push(W.layers ? (tf ? parseFloat(tf[1].split(',')[4]) : 0) : parseFloat(String(m.maskPosition || m.webkitMaskPosition || '').split(',')[0])); if (performance.now() - t0 < 1000) requestAnimationFrame(tick); else res(v); }; requestAnimationFrame(tick); }));
     const gl = glide && { frames: glide.length, places: new Set(glide).size, jump: Math.max(...glide.slice(1).map((x, i) => Math.abs(x - glide[i]))) };
-    /* RE-POINTED 22 Nov 2026 (owner: "Same glide, lighter"): redrawn about 15 times a second, not every frame — still a
-       glide: at least 10 new places in the second, never a step of half a pixel or more (the stutter was whole pixels) */
-    ok('1d the watermark glides: a new place at least 10 times a second, no pixel jumps', !!gl && gl.places >= 10 && gl.jump < 0.5, JSON.stringify(gl));
+    /* RE-POINTED 23 Nov 2026 (owner: "the wave is not waving smoothly anymore"): slid by the browser every frame — a new
+       place in nearly every frame of the second (at least 80 in a hundred), never a step of half a pixel or more */
+    ok('1d the watermark glides: a new place nearly every frame, no pixel jumps', !!gl && gl.frames >= 20 && gl.places >= gl.frames * 0.8 && gl.jump < 0.5, JSON.stringify(gl));
 
     /* 2 — Settings: drawn, moving (RE-POINTED 22 Nov 2026) */
     const st = await go('team', () => !!document.querySelector('#set-page #ins-panel .jl-head'));
@@ -142,7 +157,7 @@ const READ = () => {
        frame (stLsPaint), its side panel Jambo's list panel (#ins-panel.is-jambo), no longer the old .st-cr .st-side */
     const SP = '#set-page.st-ls-page[data-st-ls="team"] #ins-panel.ins-panel.is-jambo:not(.is-folded)';
     await until(page, sel => !!document.querySelector(sel), SP, 8000);
-    const sp = await page.evaluate(sel => { const e = document.querySelector(sel); if (!e) return null; const b = getComputedStyle(e, '::before'); return { painted: /data:image\/svg/.test(b.maskImage || b.webkitMaskImage || ''), moving: b.animationName !== 'none' }; }, SP);
+    const sp = await page.evaluate(sel => { const e = document.querySelector(sel); if (!e) return null; const b = window.__wmOf(e).a; return { painted: /data:image\/svg/.test(b.maskImage || b.webkitMaskImage || ''), moving: b.animationName !== 'none' }; }, SP);
     ok('2b Settings\' own pages: the panel carries the watermark, moving', !!sp && sp.painted && sp.moving, JSON.stringify(sp));
     /* 8 — the Alerts · Notes · Activity panel stays plain (owner, 22 Nov 2026: "Do not add to the alerts panel") */
     await page.evaluate(() => { setView('dashboard'); if (window.openPanel) openPanel('alerts'); });

@@ -1,4 +1,4 @@
-/* f1195 — THE NOTEBOOK: DOCUMENTS JAMBO MAY QUOTE (owner's pick "The Legora + Stripe way", 23 Nov 2026)
+/* f1198 — THE NOTEBOOK: DOCUMENTS JAMBO MAY QUOTE (owner's pick "The Legora + Stripe way", 23 Nov 2026)
 
    The owner: "a notebook in HaTi where you can save documents and jambo can reference them when needed … the company
    saves documents that are company requirements and then you can add your own as an individual." Asked and answered
@@ -25,7 +25,7 @@ const GDPR = ['GENERAL DATA PROTECTION REGULATION', 'Article 1', 'Subject-matter
   '3. Processing by a processor shall be governed by a contract that is binding on the processor with regard to the controller.',
   'Article 33', 'Notification of a personal data breach', '1. The controller shall without undue delay and, where feasible, not later than 72 hours after having become aware of it, notify the breach.'].join('\n');
 
-describe('f1195 (1) one cutter: the paper\'s own numbers', () => {
+describe('f1198 (1) one cutter: the paper\'s own numbers', () => {
   test('articles, their numbered paragraphs inside them, a policy\'s §, pages when it has no headings', () => {
     assert.ok(NB, 'js/notebook.js exists');
     const g = NB.nbSections(GDPR).map(s => s.n);
@@ -38,7 +38,7 @@ describe('f1195 (1) one cutter: the paper\'s own numbers', () => {
   });
 });
 
-describe('f1195 (2) one status, never Jambo\'s', () => {
+describe('f1198 (2) one status, never Jambo\'s', () => {
   test('Check due past twelve months; Not quoted yet; Up to date', () => {
     assert.equal(NB.NB_CHECK_MONTHS, 12);
     assert.equal(NB.nbStatusOf({ checkedAt: '2025-10-14T09:00:00Z', quoted: 9 }, '2026-11-23'), 'due');
@@ -58,7 +58,7 @@ before(async () => {
 after(async () => { if (h) await h.stop(); if (ai) await ai.stop(); });
 const status = async (client, p, opts) => (await client.raw(p, opts)).status;
 
-describe('f1195 (3) the wall', () => {
+describe('f1198 (3) the wall', () => {
   let gdpr, mine;
   test('an admin adds to the Company shelf; a member may not, and is told how', async () => {
     const r = await W.admin.json('/api/notebook', { method: 'POST', body: { shelf: 'company', name: 'GDPR', kind: 'law', inForce: '2018-05-25', text: GDPR, fileName: 'gdpr.txt' } });
@@ -89,7 +89,7 @@ describe('f1195 (3) the wall', () => {
   });
 });
 
-describe('f1195 (4) the one search holds every section, behind the same wall', () => {
+describe('f1198 (4) the one search holds every section, behind the same wall', () => {
   test('a notebook hit carries its document, number, words and status', async () => {
     const r = await W.restricted.json('/api/hati-search?kinds=notebook&q=' + encodeURIComponent('processor contract binding'));
     const hit = r.hits.find(x => x.notebook && x.notebook.n === 'Art. 28(3)');
@@ -102,7 +102,7 @@ describe('f1195 (4) the one search holds every section, behind the same wall', (
   });
 });
 
-describe('f1195 (5) Jambo quotes it, and the quote is counted', () => {
+describe('f1198 (5) Jambo quotes it, and the quote is counted', () => {
   const SRV = R('server/server.js'), AIJS = R('js/ai.js');
   test('the rule, word for word on both hosts, in both system prompts, before the Handbook\'s', () => {
     const srv = (SRV.match(/\nconst AI_NOTEBOOK_RULE = (".*?");\n/) || [])[1], web = (AIJS.match(/\nconst AI_NOTEBOOK_RULE=(".*?");\n/) || [])[1];

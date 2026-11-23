@@ -39,7 +39,9 @@
    and CAL_AGENDA_DAYS is a const declared below it, so naming it here is a read
    inside its own temporal dead zone — the getter trap this codebase records,
    one keyword along. calAgendaDays() supplies the default. */
-let calState = { ym:null, view:'agenda', scope:'all', days:null, wk:null, lay:{ ct:true, me:true, cp:true } };
+let calState = { ym:null, view:'agenda', scope:'all', days:null, wk:null, lay:{ ct:true, me:true, cp:true }, ls:null };
+/* `ls` (P-14, the Legora + Stripe way): the chips, the Horizon's chips and sort, and the row, day or agreement chosen on
+   each tab — kept across a reload with the rest of calState (calPlace) */
 /* ---- THREE TABS, THE DESIGN'S OWN (owner-ruled 24 Aug 2026) ----
    Month · Horizon · Obligations. 'quarter' and 'list' are RETIRED: Quarter drew
    three compact months of the same grid, which is the Month view three times
@@ -194,7 +196,7 @@ function calEventsOnce(){
    #content, where the old copy inside the page stood in the cascade, so every rule wins and loses exactly as before. */
 function calStyleEnsure(){
   if(typeof document==='undefined'||document.getElementById('cal-css')) return;
-  const st=document.createElement('style'); st.id='cal-css'; st.textContent=calStyleCss();
+  const st=document.createElement('style'); st.id='cal-css'; st.textContent=calStyleCss()+calLsCss();
   const content=document.getElementById('content');
   if(content&&content.parentNode) content.parentNode.insertBefore(st,content);
   else (document.head||document.body).appendChild(st);
@@ -266,6 +268,8 @@ function calendarEvents(){
            owner, only the contract's name. A row reading "Nandi Dairy ·
            Obligation · MK-2 · 12d" does not tell anybody what to do. */
         assignee:o.assignee||'', done:o.status==='done', clause:o.clause||'', recur:o.recurring||'', cparty:c.counterparty||'',
+        /* the paper's own words for this duty, where they were kept (P-14: the table quotes them under the title) */
+        quote:String(o.quote||''),
         /* A STEP HELD BACK BY AN EARLIER ONE is waiting, never late, never due
            (round 16: "Waiting on a step is never counted as late or chased") —
            the Obligations page's own reading */
@@ -1132,7 +1136,10 @@ function renderCalendar(opts){
 
   let main='', legendEvs=[];
   const nl=typeof window.newLookOn==='function'&&newLookOn();
-  if(view==='month'){
+  /* P-14 (the Legora + Stripe way): the new look draws its own page (calLsPageHtml); the old look's views below are
+     kept and drawn only without it */
+  if(nl){ /* drawn below */ }
+  else if(view==='month'){
     /* ---- THE GRID IS THE WIDTH OF THE PAGE, AND THE KEY READS UNDER IT
        (Young ruled 21 Sep 2026: the calendar must look exactly like the
        artifact) ---- the reference draws the month across the whole page, a
@@ -1188,7 +1195,10 @@ function renderCalendar(opts){
      parts are still the layers' switches (calKeyHtml). */
   const cardTitle=view==='week'?calWeekCardTitle():title;
   calStyleEnsure();
-  const html=`
+  /* P-14: ONE page in the new look — the head (Calendar · the one switch · + New event · ⋯), the ask box, the chips and
+     the tab's table or month; Jambo's panel beside it is Home's one panel (calPlanHtml, painted by renderIntelDock) */
+  const html=nl?`
+  <div class="view-enter cal-page is-nl is-ls${onHome?' is-home':' is-solo'}" data-cal-ls="${view}">${calLsPageHtml(view, moreHtml)}${onHome?'':calPlanHtml()}</div>`:`
   <div class="view-enter cal-page${onHome?' is-home':''}${nl?' is-nl':''}">
     ${nl?`<div class="cal-head is-nl">
       <span class="ttl">${_esc(i18t('nav_calendar'))}</span>
@@ -1237,7 +1247,9 @@ function renderCalendar(opts){
   /* on Home its Copilot is Home's one panel, painted (and wired) there */
   if(onHome){
     /* the panel stands as it is when only the view changed, or when Home's opening painted it a moment ago */
-    if((keepPanel||(fromFace&&_calPanelFresh))&&document.getElementById('cal-plan')) calWireOwn();
+    if((keepPanel||(fromFace&&_calPanelFresh))&&document.getElementById('cal-plan')){ calWireOwn();
+      /* P-14: the panel stands, but what it says follows the tab and the chips (written in place, never a new paint) */
+      if(nl&&keepPanel) calLsSidePaint(); }
     else if(typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ }
     else calWireOwn();
   }
@@ -2475,13 +2487,16 @@ function calPlanHtml(){
       ${''/* THE OVERVIEW, THE LEGORA WAY (owner, 26 Oct 2026; jamboOverviewHtml, the one builder): Your week as one head
              sentence, its named facts (obYourWeekFacts, the Obligations page's own), the offer, "Ask me" with the
              planner's two asks (their cost said) and the Calendar's own setting under them — nothing boxed */}
+      ${''/* P-14 (the Legora + Stripe way): the panel follows the tab — the chosen date, day or agreement in plain sections
+             (calLsSideHtml), no cards, no money; the old landing stays for the old look */}
+      ${calLsOn()?`<div class="jl-words is-ov cal-yw cal-ls-side" data-jt-land${talk?' hidden':''}>${calLsSideHtml(off)}</div>`:`
       <div class="jl-words is-ov cal-yw" data-jt-land${talk?' hidden':''}>${typeof window.jamboOverviewHtml==='function'?jamboOverviewHtml((typeof window.newLookOn==='function'&&newLookOn())?calOverviewFive(off):{
         head:week?{ html:week }:null,
         /* as drawn (the new look, round 5): the sentence, where it was counted from, then Ask me — the list itself carries the late and the due */
         facts:(typeof window.newLookOn==='function'&&newLookOn())?[]:((typeof window.obYourWeekFacts==='function')?obYourWeekFacts():[]).concat(offer?[{ html:_esc(offer) }]:[]),
         src:week?i18t((typeof window.newLookOn==='function'&&newLookOn())?'cal_nl_src':'ob_yw_src'):'',
         asks:[{ label:i18t('ob_yw_chip_week'), title:i18t('cal_plan_p_week'), attr:`data-cal-plan-q="week"${off}` }, { label:i18t('ob_yw_chip_due'), title:i18t('cal_plan_p_due'), attr:`data-cal-plan-q="due"${off}` }],
-        after:calLevelSegHtml() },'cal'):''}</div>
+        after:calLevelSegHtml() },'cal'):''}</div>`}
       ${''/* ONE CONVERSATION EVERYWHERE (owner, 21 Oct 2026; found missing here 27 Oct 2026): the Jambo tab draws what
              was said on any page (jamboTurnHtml, Home's turns: this panel stands in Home's dock), then the planner's
              own exchange; one copy on the page at a time (jamboTurnsTake, after the paint) */}
@@ -2720,7 +2735,571 @@ if(typeof document!=='undefined'&&typeof window!=='undefined'&&!window._calLvWir
   },true);
 }
 
-Object.assign(window,{calOverviewFive,calLevelLight,calEventsOnce,calStyleEnsure,calDateWords,calMineBrought,CAL_TALK_KEY,calTalkBack,calTalkOpen,calBoxAsk,calConvo,calConvoHtml,calTurnsAfter,calPlanRepaint,calendarDoorCount,calOnScreen,calWireOwn,calState,calPlace,calPlacePut,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
+/* ============================================================================
+   P-14 · THE CALENDAR, THE LEGORA + STRIPE WAY (owner's pick by name; "Build P-14", 23 Nov 2026)
+   ----------------------------------------------------------------------------
+   Stripe's frame with Legora's reading, on all four tabs: a serif "Calendar", ONE switch Agenda · Month · Week · Horizon
+   and + New event; ONE ask box under it (the calendar's own reader, calBoxAsk — never a second door); chips that
+   narrow (All · Late, then + Kind · + Whose · + Agreement; Horizon: All · Notice passed · Renews on its own · + Stream
+   and its sort); then ONE calm table (Agenda, Week, Horizon) or a soft month. Under each date the paper's own words
+   with their §, its act at the end of the row. NO FIGURE CARDS on any tab.
+   A press on a row, a day or an agreement CHOOSES it; Jambo's panel follows the tab in plain sections (no cards),
+   his box at its foot as on every page. MONEY IS NEVER IN THE PANEL (the drawing's "KES 9,600,000" is left out by the
+   house rule); in the Horizon's table it shows only to a reader with money rights, with no gap left behind.
+   THE COLOUR KEY: red only for late; amber what we owe; steel what they owe; violet the contract's own dates.
+   Reads only: every act is an existing door (Mark done openObligationDone, Chase/Decide calChipGo, Open the paper
+   selectContract, Plan my week calPlanAsk). The new look only; the old look's builders above are kept.
+   ========================================================================== */
+const CAL_LS_TONE = { late:'ruby', ours:'amber', theirs:'steel', ends:'violet', decide:'violet', round:'gray' };
+const CAL_LS_KIND_WORD = { late:'obs_st_late', ours:'obt_we_owe', theirs:'obt_they_owe', ends:'cal_kind_ends', decide:'cal_kind_decide', round:'cal_kind_round' };
+const CAL_LS_DEF = { show:'all', kind:'all', whose:'all', cid:'all', hz:'all', stream:'all', sort:'soon' };
+const CAL_LS_SORTS = ['soon','late','name'];
+const CAL_LS_THEN_WEEKS = 5;
+/* the chips and the choices, one home (calState.ls); a stored place missing a part takes the default */
+function calLsF(){
+  const s=(calState.ls&&typeof calState.ls==='object')?calState.ls:{};
+  if(!s._ok){ calState.ls=Object.assign({},CAL_LS_DEF,s,{ pick:Object.assign({},s.pick||{}), _ok:true }); }
+  return calState.ls;
+}
+function calLsOn(){ return typeof window.newLookOn==='function'&&!!newLookOn(); }
+const calLsDays=(a,b)=>Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/864e5);
+function calLsKindOf(e, today){
+  if(e.type==='obligation') return (!e.done&&!e.waiting&&e.date<today)?'late':(e.theirs?'theirs':'ours');
+  if(e.type==='renewal') return 'decide';
+  if(e.type==='expiry') return 'ends';
+  return 'round';
+}
+function calLsKey(e){ return [e.cid,e.type,e.date,e.obId||e.round||''].join('|'); }
+/* THE PAPER'S WORDS FOR A CONTRACT DATE: the Read down's own reader of the term sentence (hbRdnTermQuote) — none found,
+   none said; read once per wording of the contract */
+const _calLsQ=new Map();
+function calLsTermQuote(c){
+  if(!c||c._codeNamed) return null;
+  const k=String(c.id)+'|'+(c.version||c.updated_at||c.updatedAt||'');
+  if(_calLsQ.has(k)) return _calLsQ.get(k);
+  let q=null; try{ q=typeof window.hbRdnTermQuote==='function'?hbRdnTermQuote(c):null; }catch(_){ q=null; }
+  _calLsQ.set(k,q); return q;
+}
+const calLsSecNo=s=>String(s||'').replace(/^\s*§\s*/,'').trim();
+function calLsQuoteOf(e, c){
+  if(e.type==='obligation') return { q:String(e.quote||'').replace(/\s+/g,' ').trim(), sec:calLsSecNo(e.clause) };
+  if(e.type==='expiry'||e.type==='renewal'){ const t=calLsTermQuote(c); return t?{ q:String(t.w||'').trim(), sec:calLsSecNo(t.sec) }:{ q:'', sec:'' }; }
+  return { q:'', sec:'' };
+}
+function calLsRow(e, ctx){
+  const c=ctx.byId.get(e.cid)||null, kind=calLsKindOf(e, ctx.today);
+  const name=e.cname||e.cref||e.cid;
+  const title=e.type==='obligation'?String(e.note||CAL_EVENT.obligation.label)
+    :e.type==='renewal'?i18t('calls_t_decide',{ name }):e.type==='expiry'?i18t('calls_t_ends',{ name })
+    :[e.note,e.cname].filter(Boolean).join(' · ');
+  const Q=calLsQuoteOf(e,c);
+  return { e, c, key:calLsKey(e), kind, date:e.date, title, q:Q.q, sec:Q.sec, party:e.cparty||(c&&c.counterparty)||'', cname:e.cname||'', cid:e.cid };
+}
+/* WHOSE: all · mine (the old "Mine", calEventMine) · ours · theirs — the old All dates | Mine scope follows it */
+function calLsWhosePass(r, w, me){
+  if(w==='all') return true;
+  if(w==='mine') return calEventMine(r.e, me);
+  if(w==='ours') return r.e.type==='obligation'&&!r.e.theirs;
+  if(w==='theirs') return r.e.type==='obligation'&&!!r.e.theirs;
+  return true;
+}
+/* the dates each tab may draw, before its chips */
+function calLsWeek(){ return calWeekBounds(new Date(calToday()+'T12:00:00')); }
+function calLsMonthRange(){
+  const {y,m}=calMonth(), first=new Date(y,m,1), start=calAddDays(first,-((first.getDay()+6)%7));
+  return { start, from:_isoLocal(start), to:_isoLocal(calAddDays(start,41)) };
+}
+function calLsBase(view){
+  const today=calToday(), all=(calEventsOnce()||[]).filter(e=>e&&e.date&&!e.own);
+  const ctx={ today, byId:new Map((state.contracts||[]).map(c=>[c.id,c])) };
+  const late=all.filter(e=>e.type==='obligation'&&!e.done&&!e.waiting&&e.date<today);
+  let evs;
+  if(view==='month'){ const R=calLsMonthRange(); evs=all.filter(e=>!e.done&&e.date>=R.from&&e.date<=R.to); }
+  else if(view==='week'){ const W=calLsWeek(); evs=all.filter(e=>!e.done&&e.date>=W.from&&e.date<=W.to&&!(e.date<today&&e.type!=='obligation')).concat(late.filter(e=>e.date<W.from)); }
+  else evs=late.concat(calUpcoming(all, CAL_AGENDA_VIEW_DAYS));
+  const seen=new Set();
+  return evs.filter(e=>{ const k=calLsKey(e); if(seen.has(k)) return false; seen.add(k); return true; })
+    .map(e=>calLsRow(e,ctx))
+    .sort((a,b)=>(a.kind==='late'?0:1)-(b.kind==='late'?0:1)||a.date.localeCompare(b.date));
+}
+/* THE CHIPS, ONE READING: All N counts what the three + chips leave, Late N the late among them; "Late" chosen shows those */
+function calLsRead(view){
+  const F=calLsF(), base=calLsBase(view);
+  const me=window.currentUser?currentUser():null;
+  const narrowed=base.filter(r=>(F.kind==='all'||r.kind===F.kind)&&(F.cid==='all'||r.cid===F.cid)&&calLsWhosePass(r,F.whose,me));
+  const late=narrowed.filter(r=>r.kind==='late');
+  const show=(F.show==='late'&&late.length)?'late':'all';
+  return { base, narrowed, late, show, rows:show==='late'?late:narrowed };
+}
+function calLsChoices(k, base){
+  const me=window.currentUser?currentUser():null;
+  if(k==='kind') return ['all'].concat(['late','ours','theirs','decide','ends','round'].filter(v=>base.some(r=>r.kind===v)));
+  if(k==='whose') return ['all'].concat(['mine','ours','theirs'].filter(v=>base.some(r=>calLsWhosePass(r,v,me))));
+  return ['all'].concat([...new Set(base.map(r=>r.cid))]);
+}
+function calLsChipWord(k, v, base){
+  if(v==='all') return '+ '+i18t('calls_chip_'+k);
+  if(k==='kind') return i18t(CAL_LS_KIND_WORD[v]||'cal_kind_round');
+  if(k==='whose') return i18t('calls_whose_'+v);
+  const r=base.find(x=>x.cid===v); return (r&&(r.cname||r.cid))||v;
+}
+function calLsChipsHtml(view, R){
+  const F=calLsF(), E=_esc;
+  const chip=(attr, on, inner, title)=>`<button type="button" class="obs-chip cls-chip${on?' is-on':''}" ${attr} aria-pressed="${on?'true':'false'}"${title?` title="${E(title)}"`:''}>${inner}</button>`;
+  let h=chip('data-cal-ls-show="all"', R.show==='all', `${E(i18t('calls_all'))} <b>${R.narrowed.length}</b>`);
+  /* a chip with no rows is not listed */
+  if(R.late.length) h+=chip('data-cal-ls-show="late"', R.show==='late', `<i class="cls-dot is-ruby" aria-hidden="true"></i>${E(i18t('obs_st_late'))} <b>${R.late.length}</b>`);
+  ['kind','whose','cid'].forEach(k=>{ const ch=calLsChoices(k,R.base); const on=F[k]!=='all';
+    if(!on&&ch.length<2) return;
+    h+=`<button type="button" class="obs-chip cls-add${on?' is-on':''}" data-cal-ls-chip="${k}" aria-pressed="${on?'true':'false'}">${E(calLsChipWord(k,F[k],R.base))}${on?' <span aria-hidden="true">×</span>':''}</button>`; });
+  /* MONTH: which month the grid is (its ‹ Today › and name, the ids every handler already reaches) — the one thing the
+     drawing leaves unsaid that the month cannot be read without */
+  const nav=view==='month'?`<span class="cls-nav"><button type="button" class="cls-nb" id="cal-prev" title="${E(i18t('cal_prev_month'))}" aria-label="${E(i18t('cal_prev_month'))}">${typeof icon==='function'?icon('chevL','w-3.5 h-3.5'):'‹'}</button><button type="button" class="cls-nb is-w" id="cal-today">${E(i18t('cal_today'))}</button><button type="button" class="cls-nb" id="cal-next" title="${E(i18t('cal_next_month'))}" aria-label="${E(i18t('cal_next_month'))}">${typeof icon==='function'?icon('chevR','w-3.5 h-3.5'):'›'}</button><b class="cls-mname" id="cal-title">${E(calMonthName(calMonth().y,calMonth().m))}</b></span>`:'';
+  return `<div class="cls-chips" role="group" aria-label="${E(i18t('calls_chips'))}">${h}<span class="cls-sp"></span>${nav}</div>`;
+}
+/* "Tue 17 Nov" — the year only when it is not this year's */
+function calLsDayW(iso){
+  const f=calDateWords, yr=calToday().slice(0,4);
+  return [f(iso,{ weekday:'short' }), f(iso,{ day:'numeric', month:'short' }), iso.slice(0,4)!==yr?iso.slice(0,4):''].filter(Boolean).join(' ');
+}
+function calLsWhen(r, today){
+  const d=calLsDays(today, r.date);
+  if(r.kind==='late') return { t:i18tn('calls_late_d',-d,{ n:-d }), late:true };
+  if(d<0) return { t:i18tn('calls_ago_d',-d,{ n:-d }), late:false };
+  return { t:d===0?i18t('calls_today'):i18tn('calls_in_d',d,{ n:d }), late:false };
+}
+function calLsBadge(kind){ return `<span class="cls-b is-${CAL_LS_TONE[kind]||'gray'}">${kind==='late'?'<i class="cls-dot is-ruby" aria-hidden="true"></i>':''}${_esc(i18t(CAL_LS_KIND_WORD[kind]||'cal_kind_round'))}</span>`; }
+/* THE ROW'S OWN ACT, an existing door each; who may not act gets Open only (mayActOn) */
+function calLsAct(r){
+  const e=r.e, c=r.c, E=_esc;
+  const may=((typeof canEdit!=='function')||canEdit())&&((typeof window.mayActOn!=='function')||window.mayActOn(c||null));
+  const a=may?calChipAct(e,calChipLook(e)):'';
+  if(a==='chase') return { k:'chase', label:i18t('cal_ag_chase'), attr:`data-cal-ct="${E(e.cid)}" data-cal-act="chase" data-cal-ob="${E(e.obId||'')}"` };
+  if(a==='decide') return { k:'decide', label:i18t('cal_ag_decide'), attr:`data-cal-ct="${E(e.cid)}" data-cal-act="decide"` };
+  if(may&&e.type==='obligation'&&!e.theirs&&!e.done&&!e.waiting&&e.obId) return { k:'done', label:i18t('cal_nl_done'), attr:`data-cal-done="${E(e.cid)}" data-cal-ob="${E(e.obId)}"` };
+  return { k:'open', label:i18t('cal_ag_open'), attr:`data-cal-ct="${E(e.cid)}"` };
+}
+function calLsQuoteHtml(r, withSub){
+  const E=_esc;
+  const sub=[r.sec?'§ '+r.sec:'', r.party].filter(Boolean).join(' · ');
+  if(r.q) return `<span class="cls-q">“${E(r.q)}”${sub?` <span class="cls-qs">${E(sub)}</span>`:''}</span>`;
+  const plain=[withSub?r.cname:'', sub].filter(Boolean).join(' · ');
+  return plain?`<span class="cls-q is-plain"><span class="cls-qs">${E(plain)}</span></span>`:'';
+}
+/* the chosen key of this tab: the one kept, if it is still drawn, else the first */
+function calLsPicked(view, keys){
+  const F=calLsF(), k=F.pick[view];
+  return keys.includes(k)?k:(keys[0]||null);
+}
+function calLsTableHtml(rows, chosen){
+  const E=_esc, today=calToday();
+  const body=rows.map(r=>{ const w=calLsWhen(r,today), a=calLsAct(r);
+    return `<tr class="cls-r${r.key===chosen?' is-chosen':''}" data-cal-pick="${E(r.key)}" data-cal-ag-day="${E(r.date)}" tabindex="0" aria-selected="${r.key===chosen?'true':'false'}">`
+      +`<td class="cls-dt">${E(calLsDayW(r.date))}</td>`
+      +`<td class="cls-what"><b class="cls-t" title="${E(r.title)}">${E(r.title)}</b>${calLsQuoteHtml(r,true)}</td>`
+      +`<td class="cls-k">${calLsBadge(r.kind)}</td>`
+      +`<td class="cls-w${w.late?' is-late':''}">${E(w.t)}</td>`
+      +`<td class="cls-a"><button type="button" class="cls-link" ${a.attr}>${E(a.label)}</button></td></tr>`; }).join('');
+  return `<table class="cls-t"><colgroup><col class="c-dt"><col><col class="c-k"><col class="c-w"><col class="c-a"></colgroup>`
+    +`<thead><tr><th>${E(i18t('calls_col_date'))}</th><th>${E(i18t('calls_col_what'))}</th><th>${E(i18t('calls_col_kind'))}</th><th class="r">${E(i18t('calls_col_when'))}</th><th></th></tr></thead>`
+    +`<tbody>${body}</tbody></table>`;
+}
+function calLsAgendaHtml(R){
+  const E=_esc, rows=R.rows.slice(0,CAL_AGENDA_VIEW_ROWS);
+  const chosen=calLsPicked('agenda', rows.map(r=>r.key));
+  if(!rows.length) return `<section class="cls-list" id="cal-ag"><p class="cls-none">${E(i18t('calls_none_ag',{ n:CAL_AGENDA_VIEW_DAYS }))}</p></section>`;
+  /* A CAP IS A FACT */
+  const cap=R.rows.length>rows.length?`<p class="cls-foot">${E(i18t('cal_showing_of',{ shown:rows.length, total:R.rows.length }))}</p>`:'';
+  return `<section class="cls-list" id="cal-ag">${calLsTableHtml(rows, chosen)}${cap}</section>`;
+}
+/* THIS WEEK AS THE SAME TABLE, then the coming weeks folded into one line (Show them → the Agenda, its own tab) */
+function calLsWeekHtml(R){
+  const E=_esc, W=calLsWeek(), rows=R.rows, chosen=calLsPicked('week', rows.map(r=>r.key));
+  const a=_isoLocal(calAddDays(new Date(W.to+'T12:00:00'),1)), z=_isoLocal(calAddDays(new Date(W.to+'T12:00:00'),7*CAL_LS_THEN_WEEKS));
+  /* the coming weeks counted through the same chips, so the line and the table never disagree */
+  const F=calLsF(), me=window.currentUser?currentUser():null, today=calToday();
+  const ctx={ today, byId:new Map((state.contracts||[]).map(c=>[c.id,c])) };
+  const then=(calEventsOnce()||[]).filter(e=>e&&!e.own&&!e.done&&e.date>=a&&e.date<=z).map(e=>calLsRow(e,ctx))
+    .filter(r=>(F.kind==='all'||r.kind===F.kind)&&(F.cid==='all'||r.cid===F.cid)&&calLsWhosePass(r,F.whose,me)&&(R.show!=='late'))
+    .sort((x,y)=>x.date.localeCompare(y.date));
+  const range=`${calDateWords(a,{ day:'numeric', month:'short' })} – ${calDateWords(z,{ day:'numeric', month:'short' })}`;
+  const thenHtml=`<div class="cls-then"><p class="cls-then-h">${E(i18t('calls_then',{ range }))} · ${E(i18tn('calls_n_dates',then.length,{ n:then.length }))}</p>`
+    +(then.length?`<p class="cls-then-s">${E(calLsDayW(then[0].date)+' · '+then[0].title)}${then.length>1?E(i18tn('calls_then_more',then.length-1,{ n:then.length-1 })):''} <a class="cls-link" data-cal-view="agenda" role="button" tabindex="0">${E(i18t('calls_show_them'))}</a></p>`:'')+`</div>`;
+  const table=rows.length?calLsTableHtml(rows, chosen):`<p class="cls-none">${E(i18t('calls_none_wk'))}</p>`;
+  return `<section class="cls-list" id="cal-ag">${table}${thenHtml}</section>`;
+}
+/* THE MONTH IN ONE SOFT FRAME: seven columns, the weekend narrower and lightly shaded, another month's days light;
+   each date a soft chip in the key's colour, today a green circle, the chosen day tinted; a press on a day chooses it */
+function calLsMonthHtml(R){
+  const E=_esc, {y,m}=calMonth(), M=calLsMonthRange(), today=calToday();
+  const byDay=new Map(); R.rows.forEach(r=>{ if(!byDay.has(r.date)) byDay.set(r.date,[]); byDay.get(r.date).push(r); });
+  const keys=[...Array(42)].map((_,i)=>_isoLocal(calAddDays(M.start,i)));
+  const inMonth=keys.filter(k=>Number(k.slice(5,7))-1===m&&Number(k.slice(0,4))===y);
+  const F=calLsF();
+  const chosen=keys.includes(F.pick.month)?F.pick.month:(inMonth.includes(today)?today:inMonth[0]);
+  const heads=[...Array(7)].map((_,i)=>`<div class="cls-mh">${E(calDateWords(_isoLocal(new Date(2024,0,1+i)),{ weekday:'short' }))}</div>`).join('');
+  const cells=keys.map((k,i)=>{ const L=byDay.get(k)||[], out=!inMonth.includes(k), we=i%7>=5;
+    const show=L.length>2?L.slice(0,1):L.slice(0,2), more=L.length-show.length;
+    const n=Number(k.slice(8,10));
+    return `<div class="cls-d${out?' is-out':''}${we?' is-we':''}${k===chosen?' is-chosen':''}" data-cal-pick="${k}" role="button" tabindex="0" aria-pressed="${k===chosen?'true':'false'}" title="${E(calDateWords(k,{ weekday:'long', day:'numeric', month:'long' }))}">`
+      +`<span class="cls-n">${k===today?`<span class="cls-today">${n}</span>`:n}</span>`
+      +show.map(r=>`<span class="cls-ev is-${CAL_LS_TONE[r.kind]||'gray'}" title="${E(r.title)}">${E(r.title)}</span>`).join('')
+      +(more>0?`<span class="cls-more">${E(i18t('cal_n_more',{ n:more }))}</span>`:'')+`</div>`; }).join('');
+  return `<section class="cls-list is-month"><div class="cls-mg" id="cal-grid">${heads}${cells}</div></section>`;
+}
+/* ---- THE HORIZON: each agreement with its renewal words, the time left as a slim bar, the decision as a soft badge ---- */
+function calLsHzStatus(r, today){
+  const d=(typeof renewalDecisionOf==='function')?renewalDecisionOf(r.c):null;
+  if(d) return { k:'done', tone:'green', text:calHorizonDecision(r).text };
+  if(r.notice&&r.notice<today) return { k:'passed', tone:'ruby', text:i18t('calls_hz_passed') };
+  if(r.notice){ const n=calLsDays(today,r.notice); if(n<=30) return { k:'soon', tone:'amber', text:i18tn('calls_hz_soon',n,{ n }) }; return { k:'open', tone:'gray', text:i18t('calls_hz_open') }; }
+  return { k:'none', tone:'gray', text:i18t('calls_hz_none') };
+}
+function calLsHzTone(r, st){ return st.k==='passed'?'ruby':st.k==='soon'?'amber':r.days<=180?'steel':'gray'; }
+function calLsHzRead(){
+  const F=calLsF(), today=calToday();
+  const auto=c=>(typeof window.contractRenewsItself==='function')?!!contractRenewsItself(c):((c.metadata&&c.metadata.renewalType)==='auto-renew');
+  const stream=c=>(window.FOLDERS&&c&&FOLDERS[c.folder]&&FOLDERS[c.folder].name)||'';
+  const base=calHorizonRows().map(r=>Object.assign(r,{ st:calLsHzStatus(r,today), auto:auto(r.c), stream:stream(r.c) }));
+  const narrowed=base.filter(r=>F.stream==='all'||r.stream===F.stream);
+  const passed=narrowed.filter(r=>r.st.k==='passed'), autos=narrowed.filter(r=>r.auto);
+  const show=(F.hz==='passed'&&passed.length)?'passed':(F.hz==='auto'&&autos.length)?'auto':'all';
+  let rows=show==='passed'?passed:show==='auto'?autos:narrowed;
+  const sort=CAL_LS_SORTS.includes(F.sort)?F.sort:'soon';
+  const loc=(typeof langLocale==='function')?langLocale():undefined;
+  rows=rows.slice().sort(sort==='late'?(a,b)=>b.days-a.days:sort==='name'?(a,b)=>String(a.c.name||'').localeCompare(String(b.c.name||''),loc,{ sensitivity:'base' }):(a,b)=>a.days-b.days);
+  return { base, narrowed, passed, autos, show, rows, sort };
+}
+function calLsHzChipsHtml(H){
+  const F=calLsF(), E=_esc;
+  const chip=(v,on,inner)=>`<button type="button" class="obs-chip cls-chip${on?' is-on':''}" data-cal-ls-hz="${v}" aria-pressed="${on?'true':'false'}">${inner}</button>`;
+  let h=chip('all',H.show==='all',`${E(i18t('calls_all'))} <b>${H.narrowed.length}</b>`);
+  if(H.passed.length) h+=chip('passed',H.show==='passed',`<i class="cls-dot is-ruby" aria-hidden="true"></i>${E(i18t('calls_hz_chip_passed'))} <b>${H.passed.length}</b>`);
+  if(H.autos.length) h+=chip('auto',H.show==='auto',`${E(i18t('calls_hz_chip_auto'))} <b>${H.autos.length}</b>`);
+  const streams=['all'].concat([...new Set(H.base.map(r=>r.stream).filter(Boolean))]);
+  if(F.stream!=='all'||streams.length>1) h+=`<button type="button" class="obs-chip cls-add${F.stream!=='all'?' is-on':''}" data-cal-ls-chip="stream" aria-pressed="${F.stream!=='all'?'true':'false'}">${E(F.stream==='all'?'+ '+i18t('calls_chip_stream'):F.stream)}${F.stream!=='all'?' <span aria-hidden="true">×</span>':''}</button>`;
+  const sort=`<label class="obs-sort cls-sort" title="${E(i18t('obs_sort_label'))}"><select data-cal-ls-sort aria-label="${E(i18t('obs_sort_label'))}">${CAL_LS_SORTS.map(k=>`<option value="${k}"${k===H.sort?' selected':''}>${E(i18t('calls_sort_'+k))}</option>`).join('')}</select>${typeof icon==='function'?icon('chevD','obs-sort-ic',2):''}</label>`;
+  return `<div class="cls-chips" role="group" aria-label="${E(i18t('calls_chips'))}">${h}<span class="cls-sp"></span>${sort}</div>`;
+}
+function calLsMayMoney(){ return (typeof canViewValues!=='function')||!!canViewValues(); }
+function calLsHzHtml(H){
+  const E=_esc, today=calToday(), day=x=>calDateWords(x,{ day:'numeric', month:'short', year:'numeric' });
+  const chosen=calLsPicked('horizon', H.rows.map(r=>r.c.id));
+  const money=calLsMayMoney();
+  const body=H.rows.map(r=>{ const c=r.c, q=calLsTermQuote(c), st=r.st;
+    const val=money&&Number(c.value)>0&&!(typeof window.fxIsPay==='function'&&fxIsPay(c))?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):(window.fmtMoneyShort?fmtMoneyShort(c.value):'')):'';
+    const sub=[c.counterparty||'', val].filter(Boolean).map(E).join(' · ');
+    const may=((typeof window.mayActOn!=='function')||window.mayActOn(c))&&st.k!=='done'&&st.k!=='none';
+    const w=Math.max(2,Math.min(100,r.days/365*100));
+    return `<tr class="cls-r${c.id===chosen?' is-chosen':''}" data-cal-pick="${E(c.id)}" tabindex="0" aria-selected="${c.id===chosen?'true':'false'}">`
+      +`<td class="cls-what"><b class="cls-t" title="${E(c.name||'')}">${E(c.name||c.id)}${sub?` <span class="cls-ts">· ${sub}</span>`:''}</b>`
+      +(q&&q.w?`<span class="cls-q">“${E(q.w)}”${q.sec?` <span class="cls-qs">${E(q.sec)}</span>`:''}</span>`:'')+`</td>`
+      +`<td class="cls-left"><span class="cls-bk"><i class="is-${calLsHzTone(r,st)}" style="width:${w.toFixed(1)}%"></i></span><span class="cls-ts">${E(r.days>365?i18t('cal_hz_beyond'):i18tn('calls_days',r.days,{ n:r.days }))}</span></td>`
+      +`<td class="cls-dec"><span class="cls-b is-${st.tone}">${E(st.text)}</span>${may?`<button type="button" class="cls-link" data-cal-ct="${E(c.id)}" data-cal-act="decide">${E(i18t('cal_ag_decide'))}</button>`:''}</td>`
+      +`<td class="cls-end">${E(day(r.exp))}${r.notice?`<span class="cls-ts">${E(i18t('calls_notice_on',{ d:day(r.notice) }))}</span>`:''}</td></tr>`; }).join('');
+  void today;
+  if(!H.rows.length) return `<section class="cls-list is-hz"><p class="cls-none">${E(i18t('cal_hz_none'))}</p></section>`;
+  return `<section class="cls-list is-hz"><table class="cls-t is-hz"><colgroup><col><col class="c-left"><col class="c-dec"><col class="c-end"></colgroup>`
+    +`<thead><tr><th>${E(i18t('calls_col_ag'))}</th><th>${E(i18t('calls_col_left'))}</th><th>${E(i18t('cal_hz_decision'))}</th><th class="r">${E(i18t('calls_col_ends'))}</th></tr></thead><tbody>${body}</tbody></table></section>`;
+}
+/* ---- THE PAGE ---- */
+function calLsPageHtml(view, moreHtml){
+  const E=_esc;
+  const seg=`<nav class="cls-seg cal-nl-tabs" role="group" aria-label="${E(i18t('cal_v_group'))}">${CAL_VIEWS.map(k=>`<a class="${view===k?'on':''}" data-cal-view="${k}" role="button" tabindex="0" aria-pressed="${view===k?'true':'false'}">${E(i18t('cal_v_'+k))}</a>`).join('')}</nav>`;
+  const head=`<div class="cls-head"><h2 class="ctf-h cls-ttl">${E(i18t('nav_calendar'))}</h2><span class="cls-sp"></span>${seg}`
+    +`<button type="button" class="cls-new" id="cal-new">${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):'+'}${E(i18t('cal_new_event_drawn'))}</button>${moreHtml}</div>`;
+  const ph=i18t(view==='horizon'?'calls_ask_hz':'calls_ask');
+  const ask=`<label class="cls-ask"><span class="cls-spark" aria-hidden="true">${typeof icon==='function'?icon('sparkle','w-3.5 h-3.5'):'✦'}</span><input id="cal-ls-ask" type="text" maxlength="600" autocomplete="off" enterkeyhint="send" data-ca-slash placeholder="${E(ph)}" aria-label="${E(ph)}"></label>`;
+  let chips, main;
+  if(view==='horizon'){ const H=calLsHzRead(); chips=calLsHzChipsHtml(H); main=calLsHzHtml(H); }
+  else { const R=calLsRead(view); chips=calLsChipsHtml(view,R); main=view==='month'?calLsMonthHtml(R):view==='week'?calLsWeekHtml(R):calLsAgendaHtml(R); }
+  return `${head}${ask}${chips}<div class="cls-body scroll-thin" id="cal-ls-body">${main}</div>`;
+}
+/* ---- THE SIDE PANEL FOLLOWS THE TAB: plain sections, hairlines between, NO cards, NO money; Jambo's box stays at the
+   panel's foot (calPlanHtml draws it) ---- */
+function calLsSec(h, body, cls){ return `<section class="cls-ps${cls?' '+cls:''}">${h?`<h4>${_esc(h)}</h4>`:''}${body}</section>`; }
+function calLsPaperBtn(cid, black){ return `<button type="button" class="${black?'cls-black':'cls-link'}" data-cal-ct="${_esc(cid)}">${_esc(i18t('obt_open_paper'))}</button>`; }
+function calLsActsHtml(r){
+  const a=calLsAct(r);
+  if(a.k==='open') return `<div class="cls-pacts">${calLsPaperBtn(r.cid,true)}</div>`;
+  return `<div class="cls-pacts"><button type="button" class="cls-black" ${a.attr}>${_esc(a.label)}</button>${calLsPaperBtn(r.cid,false)}</div>`;
+}
+/* the next seven days, a small bar each (the dates the tab may draw, before the chips) */
+function calLsSevenHtml(){
+  const today=calToday(), base=calLsBase('agenda');
+  const days=[...Array(7)].map((_,i)=>_isoLocal(calAddDays(new Date(today+'T12:00:00'),i)));
+  const n=days.map(d=>base.filter(r=>r.date===d).length), max=Math.max(1,...n), W=300, H=40, bw=W/7;
+  const bars=n.map((v,i)=>{ const h=Math.max(2,v/max*(H-2)); return `<rect x="${(i*bw+2).toFixed(1)}" y="${(H-h).toFixed(1)}" width="${(bw-4).toFixed(1)}" height="${h.toFixed(1)}" rx="2" class="${v?'is-on':''}"/>`; }).join('');
+  const lab=i=>_esc(calDateWords(days[i],{ weekday:'short' })+' '+Number(days[i].slice(8,10)));
+  return `<svg class="cls-bars" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">${bars}</svg><div class="cls-blab"><span>${lab(0)}</span><span>${lab(3)}</span><span>${lab(6)}</span></div>`;
+}
+function calLsPlanSec(off){
+  const offer=(typeof window.obYourWeekOffer==='function')?obYourWeekOffer():'';
+  return calLsSec(i18t('jov5_ob_plan'), `${offer?`<p class="cls-ps-p">${_esc(offer)}</p>`:''}<button type="button" class="cls-link" data-cal-plan-q="week"${off}>${_esc(i18t('jov5_ob_plan'))}</button>${calLevelSegHtml()}`);
+}
+function calLsItemSide(r, off){
+  const E=_esc, today=calToday(), w=calLsWhen(r,today);
+  const big=calDateWords(r.date,{ day:'numeric', month:'short' });
+  const top=calLsSec('', `<span class="cls-pb">${calLsBadge(r.kind)}</span><b class="cls-pt">${E(r.title)}</b><span class="cls-pm">${E([r.cname,r.party].filter(Boolean).join(' · '))}</span>`
+    +`<div class="cls-due"><span><small>${E(i18t(r.date<today?'obs_was_due':'obs_col_due'))}</small><b class="cls-big${w.late?' is-late':''}">${E(big)}</b></span><span class="cls-rel${w.late?' is-late':''}">${E(w.t)}</span></div>${calLsActsHtml(r)}`, 'is-top');
+  const quote=r.q?calLsSec(i18t('calls_from_paper',{ s:r.sec?' · § '+r.sec:'' }), `<p class="cls-pq">“${E(r.q)}”</p>`):'';
+  return top+quote+calLsSec(i18t('calls_seven'), calLsSevenHtml())+calLsPlanSec(off);
+}
+function calLsTimeHtml(iso){
+  if(typeof window.minePref!=='function'||typeof window.mineList!=='function') return '';
+  if(typeof window.mineLoaded==='function'&&!mineLoaded()) return '';
+  const p=minePref()||{}, a=Number(p.dayStart)||8, b=Number(p.dayEnd)||17; if(!(b>a)) return '';
+  const span=(b-a)*60, hm=x=>String(Math.floor(x/60)).padStart(2,'0')+':'+String(x%60).padStart(2,'0');
+  const busy=(mineList('event')||[]).filter(e=>e&&e.date===iso&&e.start&&e.end).map(e=>[Math.max(a*60,calMins(e.start)),Math.min(b*60,calMins(e.end))]).filter(x=>x[1]>x[0]).sort((x,y)=>x[0]-y[0]);
+  let used=0, last=a*60; busy.forEach(([s,e])=>{ const s2=Math.max(s,last); if(e>s2){ used+=e-s2; last=e; } });
+  const free=span-used, h=Math.floor(free/60), m=free%60;
+  const words=!busy.length?i18t('calls_free_all',{ a:hm(a*60), b:hm(b*60) })
+    :i18t('calls_free_some',{ t:m?i18t('calls_hm',{ h, m }):i18t('calls_h',{ h }), a:hm(a*60), b:hm(b*60) });
+  const segs=busy.map(([s,e])=>`<i style="left:${((s-a*60)/span*100).toFixed(1)}%;width:${((e-s)/span*100).toFixed(1)}%"></i>`).join('');
+  return calLsSec(i18t('calls_time'), `<span class="cls-free">${segs}</span><p class="cls-ps-p">${_esc(words)}</p>`);
+}
+function calLsDaySide(iso, R){
+  const E=_esc, L=R.rows.filter(r=>r.date===iso);
+  const names=[...new Set(L.map(r=>r.cname).filter(Boolean))];
+  const say=L.length?i18tn('calls_day_n',L.length,{ n:L.length, names:names.length>1?names.slice(0,-1).join(', ')+i18t('calls_and')+names[names.length-1]:(names[0]||'') }):i18t('calls_day_none');
+  const top=calLsSec('', `<small class="cls-pw">${E(calDateWords(iso,{ weekday:'long' }))}</small><b class="cls-big">${E(calDateWords(iso,{ day:'numeric', month:'long' }))}</b><p class="cls-ps-p">${E(say)}</p>`, 'is-top');
+  const items=L.map(r=>{ const a=calLsAct(r);
+    return calLsSec('', `<span class="cls-pb">${calLsBadge(r.kind)}</span><b class="cls-pt is-sm">${E(r.title)}</b>${r.q?`<p class="cls-pq is-sm">“${E(r.q)}”</p>`:''}<span class="cls-pm">${E([r.sec?'§ '+r.sec:'', r.party||r.cname].filter(Boolean).join(' · '))}</span><button type="button" class="cls-link" ${a.attr}>${E(a.label)}</button>`); }).join('');
+  return top+items+calLsTimeHtml(iso);
+}
+function calLsHzSide(r){
+  const E=_esc, c=r.c, today=calToday(), st=r.st, q=calLsTermQuote(c);
+  const ref=window.contractRef?contractRef(c):c.id;
+  const short=x=>calDateWords(x,{ day:'numeric', month:'short' }), day=x=>calDateWords(x,{ day:'numeric', month:'short', year:'numeric' });
+  /* the notice day · today · the end day on one line, from the record; no notice day, the line carries today and the end */
+  const lo=r.notice&&r.notice<today?r.notice:today, span=Math.max(1,calLsDays(lo,r.exp));
+  const X=iso=>(16+268*Math.max(0,Math.min(1,calLsDays(lo,iso)/span))).toFixed(1);
+  const nx=r.notice?X(r.notice):null, tx=X(today), ex=X(r.exp);
+  const passed=st.k==='passed';
+  /* the labels stay inside the line's own width: at an edge they hang inwards; two close together lean apart */
+  const close=nx!=null&&Math.abs(ex-nx)<110;
+  const anc=(x,lean)=>x<60?'start':x>240?'end':lean||'middle';
+  const svg=`<svg class="cls-line" viewBox="0 0 300 48" aria-hidden="true"><line x1="10" y1="24" x2="290" y2="24" class="cls-ln-track"/>`
+    +(passed?`<rect x="${nx}" y="22" width="${Math.max(0,tx-nx).toFixed(1)}" height="4" rx="2" class="cls-ln-late"/>`:'')
+    +(nx?`<circle cx="${nx}" cy="24" r="6" class="cls-ln-notice${passed?' is-late':''}"/><text x="${nx}" y="46" text-anchor="${anc(nx,close?'end':'')}" class="cls-ln-t">${E(i18t('calls_ln_notice',{ d:short(r.notice) }))}</text>`:'')
+    +`<line x1="${tx}" y1="12" x2="${tx}" y2="36" class="cls-ln-today"/><text x="${tx}" y="9" text-anchor="${anc(tx)}" class="cls-ln-t is-ink">${E(i18t('cal_today'))}</text>`
+    +`<circle cx="${ex}" cy="24" r="6" class="cls-ln-end"/><text x="${ex}" y="46" text-anchor="${anc(ex,close?'start':'')}" class="cls-ln-t">${E(i18t('calls_ln_ends',{ d:short(r.exp) }))}</text></svg>`;
+  const may=((typeof window.mayActOn!=='function')||window.mayActOn(c))&&st.k!=='done'&&st.k!=='none';
+  const acts=may?`<div class="cls-pacts"><button type="button" class="cls-black" data-cal-ct="${E(c.id)}" data-cal-act="decide">${E(i18t('cal_ag_decide'))}</button>${calLsPaperBtn(c.id,false)}</div>`
+    :`<div class="cls-pacts">${calLsPaperBtn(c.id,true)}</div>`;
+  const top=calLsSec('', `<span class="cls-pb"><span class="cls-b is-${st.tone}">${E(st.text)}</span></span><b class="cls-pt">${E(c.name||c.id)}</b><span class="cls-pm">${E([c.counterparty||'', ref].filter(Boolean).join(' · '))}</span>`
+    +`<div class="cls-two"><span><small>${E(i18t('calls_col_ends'))}</small><b class="cls-big">${E(short(r.exp))}</b></span><span><small>${E(i18t('calls_days_left'))}</small><b class="cls-big">${r.days}</b></span></div>${svg}${acts}`, 'is-top');
+  const quote=q&&q.w?calLsSec(i18t('calls_from_paper',{ s:q.sec?' · '+q.sec:'' }), `<p class="cls-pq">“${E(q.w)}”</p>`):'';
+  /* the timeline, from the record only: signed, the notice day, how it ends */
+  const tl=[];
+  const signed=window.dateOnly?dateOnly(c.signedAt||c.executedAt||''):String(c.signedAt||'').slice(0,10);
+  if(signed) tl.push({ k:'signed', t:i18t('calls_tl_signed',{ d:day(signed) }) });
+  if(st.k==='done') tl.push({ k:'done', t:st.text });
+  else if(r.notice) tl.push({ k:passed?'late':'notice', t:i18t(passed?'calls_tl_passed':'calls_tl_notice',{ d:day(r.notice) }) });
+  tl.push({ k:'end', t:i18t(r.auto?'calls_tl_renews':'calls_tl_ends',{ d:day(r.exp) }) });
+  const tlHtml=calLsSec(i18t('obs_timeline'), `<ol class="cls-tl">${tl.map(x=>`<li class="is-${x.k}"><i></i>${E(x.t)}</li>`).join('')}</ol>`);
+  return top+quote+tlHtml;
+}
+function calLsSideHtml(off){
+  const view=calView(), E=_esc;
+  let inner='';
+  if(view==='horizon'){ const H=calLsHzRead(); const id=calLsPicked('horizon',H.rows.map(r=>r.c.id)); const r=H.rows.find(x=>x.c.id===id);
+    inner=r?calLsHzSide(r):calLsSec('', `<p class="cls-ps-p">${E(i18t('cal_hz_none'))}</p>`, 'is-top'); }
+  else if(view==='month'){ const R=calLsRead('month'), M=calLsMonthRange(), {y,m}=calMonth(), today=calToday(), F=calLsF();
+    const keys=[...Array(42)].map((_,i)=>_isoLocal(calAddDays(M.start,i)));
+    const inM=keys.filter(k=>Number(k.slice(5,7))-1===m&&Number(k.slice(0,4))===y);
+    inner=calLsDaySide(keys.includes(F.pick.month)?F.pick.month:(inM.includes(today)?today:inM[0]), R); }
+  else { const R=calLsRead(view); const rows=view==='agenda'?R.rows.slice(0,CAL_AGENDA_VIEW_ROWS):R.rows;
+    const k=calLsPicked(view,rows.map(r=>r.key)), r=rows.find(x=>x.key===k);
+    inner=r?calLsItemSide(r,off):calLsSec('', `<p class="cls-ps-p">${E(i18t(view==='week'?'calls_none_wk':'calls_none_ag',{ n:CAL_AGENDA_VIEW_DAYS }))}</p>`, 'is-top')+calLsSec(i18t('calls_seven'), calLsSevenHtml())+calLsPlanSec(off); }
+  return `<div class="cls-side">${inner}</div>`;
+}
+/* the panel's landing painted again in place (a choice changes only what the panel says) */
+function calLsSidePaint(){
+  const el=document.querySelector('#cal-plan .cal-ls-side'); if(!el) return false;
+  el.innerHTML=calLsSideHtml(_calPlan.busy?' disabled':'');
+  return true;
+}
+/* A PRESS CHOOSES: the row, the day or the agreement is lit and the panel says it; nothing is opened, nothing written */
+function calLsPick(key){
+  const F=calLsF(), v=calView(); if(!key) return;
+  F.pick=Object.assign({},F.pick,{ [v]:key });
+  document.querySelectorAll('.cal-page.is-ls [data-cal-pick]').forEach(el=>{ const on=el.getAttribute('data-cal-pick')===key;
+    el.classList.toggle('is-chosen',on); el.setAttribute(el.tagName==='TR'?'aria-selected':'aria-pressed',on?'true':'false'); });
+  if(typeof window.jamboTalkShows==='function'&&jamboTalkShows(CAL_TALK_KEY)){ calTalkBack(); return; }
+  if(!calLsSidePaint()&&typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ }
+  if(typeof window.placeSave==='function') try{ placeSave(); }catch(_){ }
+}
+/* a chip pressed: the page is drawn again where it stood; the panel stands and says the tab's chosen row again (its
+   chosen row may have gone) */
+function calLsRepaint(){
+  const host=document.getElementById('hb-cal')||document.getElementById('content');
+  if(host&&typeof window.keepScrollIn==='function') keepScrollIn(host, ()=>renderCalendar({ keepPanel:true })); else renderCalendar({ keepPanel:true });
+  if(typeof window.placeSave==='function') try{ placeSave(); }catch(_){ }
+}
+function calLsStep(k){
+  const F=calLsF();
+  if(k==='stream'){ const H=calLsHzRead(); const ch=['all'].concat([...new Set(H.base.map(r=>r.stream).filter(Boolean))]); F.stream=ch[(ch.indexOf(F.stream)+1)%ch.length]||'all'; return; }
+  const ch=calLsChoices(k, calLsBase(calView())); F[k]=ch[(ch.indexOf(F[k])+1)%ch.length]||'all';
+  /* WHOSE COVERS THE OLD All dates | Mine: the scope follows it (Jambo's plan reads calVisible) */
+  if(k==='whose') calState.scope=F.whose==='mine'?'mine':'all';
+}
+if(typeof document!=='undefined'&&!document._calLsWired){ document._calLsWired=true;
+  document.addEventListener('click',e=>{
+    const t=e.target&&e.target.closest?e.target:null; if(!t||!t.closest('.cal-page.is-ls')) return;
+    let el;
+    if((el=t.closest('[data-cal-ls-show]'))){ e.preventDefault(); calLsF().show=el.getAttribute('data-cal-ls-show'); calLsRepaint(); return; }
+    if((el=t.closest('[data-cal-ls-hz]'))){ e.preventDefault(); calLsF().hz=el.getAttribute('data-cal-ls-hz'); calLsRepaint(); return; }
+    if((el=t.closest('[data-cal-ls-chip]'))){ e.preventDefault(); calLsStep(el.getAttribute('data-cal-ls-chip')); calLsRepaint(); return; }
+    /* a press on the row's own act or link is that act's (calWireOwn), never a choice */
+    if(t.closest('button,a,input,select,label')) return;
+    if((el=t.closest('[data-cal-pick]'))){ e.preventDefault(); calLsPick(el.getAttribute('data-cal-pick')); }
+  });
+  document.addEventListener('keydown',e=>{
+    const t=e.target; if(!t||!t.closest) return;
+    if(t.id==='cal-ls-ask'&&e.key==='Enter'){ e.preventDefault(); const v=String(t.value||''); if(!v.trim()) return; t.value='';
+      if(typeof window.boxDraftClear==='function') boxDraftClear('calendar-ask'); calBoxAsk(v,{ typed:true }); return; }
+    if((e.key==='Enter'||e.key===' ')&&t.matches&&t.matches('.cal-page.is-ls [data-cal-pick]')){ e.preventDefault(); calLsPick(t.getAttribute('data-cal-pick')); }
+  });
+  document.addEventListener('change',e=>{
+    const s=e.target&&e.target.closest?e.target.closest('[data-cal-ls-sort]'):null; if(!s) return;
+    if(!CAL_LS_SORTS.includes(s.value)) return; calLsF().sort=s.value; calLsRepaint();
+  });
+}
+/* ---- THE STYLESHEET (the new look only; tokens only) ---- */
+function calLsCss(){ return `
+  html.lg-new .cal-page.is-ls{display:flex;flex-direction:column;min-height:0;background:var(--color-surface);padding:24px 40px 0;box-sizing:border-box;--cls-line:var(--color-divider)}
+  html.lg-new .cal-page.is-ls.is-solo{display:grid;grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:auto auto auto minmax(0,1fr);column-gap:24px}
+  html.lg-new .cal-page.is-ls.is-solo > #cal-plan{grid-column:2;grid-row:1 / span 4}
+  html.lg-new .cal-page.is-ls .cls-head{flex:none;display:flex;align-items:center;gap:12px;min-width:0}
+  html.lg-new .cal-page.is-ls .cls-ttl{flex:none}
+  html.lg-new .cal-page.is-ls .cls-sp{flex:1;min-width:0}
+  html.lg-new .cal-page.is-ls .cls-seg{display:inline-flex;flex:none;background:var(--surface-2);border-radius:999px;padding:3px}
+  html.lg-new .cal-page.is-ls .cls-seg a{padding:4px 12px;border-radius:999px;font:var(--w-label) 13px/1.4 var(--font-body);color:var(--color-quiet);cursor:pointer;white-space:nowrap;text-decoration:none}
+  html.lg-new .cal-page.is-ls .cls-seg a.on{background:var(--color-surface);color:var(--color-text);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  html.lg-new .cal-page.is-ls .cls-new{flex:none;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);font:var(--w-label) 14px/1 var(--font-body);cursor:pointer;white-space:nowrap}
+  html.lg-new .cal-page.is-ls .cal-acts{flex:none;position:relative}
+  html.lg-new .cal-page.is-ls .cls-ask{flex:none;display:flex;align-items:center;gap:8px;margin-top:14px;padding:8px 0;border-bottom:1px solid var(--color-neutral-300);color:var(--color-neutral-400);cursor:text}
+  html.lg-new .cal-page.is-ls .cls-spark{display:inline-flex;color:var(--accent-ink);flex:none}
+  html.lg-new .cal-page.is-ls .cls-ask input{flex:1;min-width:0;border:0;outline:0;box-shadow:none;background:none;padding:0;font:400 14px/1.4 var(--font-body);color:var(--color-text)}
+  html.lg-new .cal-page.is-ls .cls-ask input::placeholder{color:var(--color-neutral-400)}
+  html.lg-new .cal-page.is-ls .cls-chips{flex:none;display:flex;align-items:center;gap:8px;margin-top:16px;min-width:0;flex-wrap:nowrap}
+  html.lg-new .cal-page.is-ls .cls-chips .obs-chip{flex:none;display:inline-flex;align-items:center;gap:5px}
+  html.lg-new .cal-page.is-ls .cls-chips .obs-chip.cls-chip{border-style:solid;border-color:var(--color-neutral-300)}
+  html.lg-new .cal-page.is-ls .cls-chips .obs-chip b{font-weight:var(--w-label)}
+  html.lg-new .cal-page.is-ls .cls-chips .obs-chip.cls-add{max-width:200px;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .cal-page.is-ls .cls-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none;background:var(--st-ruby-dot)}
+  html.lg-new .cal-page.is-ls .cls-nav{display:inline-flex;align-items:center;gap:6px;flex:none}
+  html.lg-new .cal-page.is-ls .cls-nb{height:26px;min-width:26px;padding:0 6px;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-quiet);font:var(--w-label) 13px/1 var(--font-body);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+  html.lg-new .cal-page.is-ls .cls-nb.is-w{padding:0 10px}
+  html.lg-new .cal-page.is-ls .cls-mname{font-weight:var(--w-label);margin-left:4px;white-space:nowrap}
+  html.lg-new .cal-page.is-ls .cls-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;margin-top:12px;padding-bottom:16px}
+  html.lg-new .cal-page.is-ls .cls-t{width:100%;border-collapse:collapse;table-layout:fixed;font-variant-numeric:tabular-nums}
+  html.lg-new .cal-page.is-ls .cls-t col.c-dt{width:96px} html.lg-new .cal-page.is-ls .cls-t col.c-k{width:104px}
+  html.lg-new .cal-page.is-ls .cls-t col.c-w{width:96px} html.lg-new .cal-page.is-ls .cls-t col.c-a{width:96px}
+  html.lg-new .cal-page.is-ls .cls-t col.c-left{width:150px} html.lg-new .cal-page.is-ls .cls-t col.c-dec{width:168px} html.lg-new .cal-page.is-ls .cls-t col.c-end{width:132px}
+  html.lg-new .cal-page.is-ls .cls-t th{font:var(--w-label) 12px/1.4 var(--font-body);color:var(--color-neutral-400);text-align:left;padding:8px 10px;border-bottom:1px solid var(--cls-line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .cal-page.is-ls .cls-t th.r{text-align:right}
+  html.lg-new .cal-page.is-ls .cls-t td{padding:11px 10px;border-bottom:1px solid var(--color-neutral-100);vertical-align:top;min-width:0;overflow:hidden}
+  html.lg-new .cal-page.is-ls .cls-r{cursor:pointer}
+  html.lg-new .cal-page.is-ls .cls-r:hover td{background:color-mix(in srgb,var(--surface-2) 45%,var(--color-surface))}
+  html.lg-new .cal-page.is-ls .cls-r.is-chosen td{background:var(--color-accent-50)}
+  html.lg-new .cal-page.is-ls .cls-dt{font-size:12.5px;white-space:nowrap;padding-top:13px}
+  html.lg-new .cal-page.is-ls .cls-what{min-width:0}
+  html.lg-new .cal-page.is-ls .cls-t .cls-t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-weight:var(--w-label);font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+  html.lg-new .cal-page.is-ls .cls-ts{font-weight:400;font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new .cal-page.is-ls .cls-q{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:2px;font:400 13.5px/1.4 var(--font-title);color:var(--color-quiet);overflow-wrap:anywhere}
+  html.lg-new .cal-page.is-ls .cls-qs{font:400 12.5px/1.4 var(--font-body);color:var(--color-neutral-400)}
+  html.lg-new .cal-page.is-ls .cls-k,html.lg-new .cal-page.is-ls .cls-dec{padding-top:12px}
+  html.lg-new .cal-page.is-ls .cls-w{text-align:right;font-size:12.5px;color:var(--color-neutral-400);white-space:nowrap;padding-top:13px}
+  html.lg-new .cal-page.is-ls .cls-w.is-late{color:var(--st-ruby-fg)}
+  html.lg-new .cal-page.is-ls .cls-a{text-align:right;padding-top:11px;white-space:nowrap}
+  html.lg-new :is(.cal-page.is-ls,.cls-side) .cls-link{border:0;background:none;padding:0;font:var(--w-label) 12.5px/1.4 var(--font-body);color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
+  html.lg-new :is(.cal-page.is-ls,.cls-side) .cls-b{display:inline-flex;align-items:center;gap:5px;max-width:100%;border-radius:6px;padding:1px 7px;font:var(--w-label) 12px/1.6 var(--font-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
+  html.lg-new :is(.cal-page.is-ls,.cls-side) .cls-b.is-ruby{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new :is(.cal-page.is-ls,.cls-side) .cls-b.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new :is(.cal-page.is-ls,.cls-side) .cls-b.is-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-new :is(.cal-page.is-ls,.cls-side) .cls-b.is-violet{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  html.lg-new :is(.cal-page.is-ls,.cls-side) .cls-b.is-green{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new :is(.cal-page.is-ls,.cls-side) .cls-b.is-gray{background:var(--surface-2);color:var(--color-quiet)}
+  html.lg-new :is(.cal-page.is-ls,.cls-side) .cls-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none;background:var(--st-ruby-dot)}
+  html.lg-new .cal-page.is-ls .cls-dec .cls-link{display:block;margin-top:6px}
+  html.lg-new .cal-page.is-ls .cls-left{padding-top:15px}
+  html.lg-new .cal-page.is-ls .cls-bk{display:block;height:7px;border-radius:4px;background:var(--color-neutral-100);position:relative;overflow:hidden;margin-bottom:4px}
+  html.lg-new .cal-page.is-ls .cls-bk i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;opacity:.85}
+  html.lg-new .cal-page.is-ls .cls-bk i.is-ruby{background:var(--st-ruby-dot)} html.lg-new .cal-page.is-ls .cls-bk i.is-amber{background:var(--st-amber-dot)}
+  html.lg-new .cal-page.is-ls .cls-bk i.is-steel{background:var(--st-steel-dot)} html.lg-new .cal-page.is-ls .cls-bk i.is-gray{background:var(--color-neutral-300)}
+  html.lg-new .cal-page.is-ls .cls-end{text-align:right;white-space:nowrap;font-size:13px;padding-top:13px}
+  html.lg-new .cal-page.is-ls .cls-end .cls-ts{display:block}
+  html.lg-new .cal-page.is-ls .cls-none{margin:16px 0;color:var(--color-quiet)}
+  html.lg-new .cal-page.is-ls .cls-foot{margin:10px 0 0;font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new .cal-page.is-ls .cls-then{margin-top:6px}
+  html.lg-new .cal-page.is-ls .cls-then-h{margin:0;padding:16px 0 4px;border-bottom:1px solid var(--cls-line);font:600 12px/1.4 var(--font-body);color:var(--color-neutral-400);letter-spacing:.04em;text-transform:uppercase}
+  html.lg-new .cal-page.is-ls .cls-then-s{margin:0;padding:8px 0;font-size:12.5px;color:var(--color-quiet);overflow-wrap:anywhere}
+  html.lg-new .cal-page.is-ls .cls-then-s .cls-link{font-size:12.5px}
+  html.lg-new .cal-page.is-ls .cls-mg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) minmax(0,.62fr) minmax(0,.62fr);border:1px solid var(--cls-line);border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  html.lg-new .cal-page.is-ls .cls-mh{font:var(--w-label) 12px/1.4 var(--font-body);color:var(--color-neutral-400);padding:6px 8px;border-bottom:1px solid var(--color-neutral-100);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .cal-page.is-ls .cls-d{min-width:0;min-height:64px;overflow:hidden;padding:6px 8px;display:flex;flex-direction:column;gap:3px;font-size:12px;border-right:1px solid var(--color-neutral-100);border-bottom:1px solid var(--color-neutral-100);cursor:pointer;box-sizing:border-box}
+  html.lg-new .cal-page.is-ls .cls-d:nth-child(7n){border-right:0}
+  html.lg-new .cal-page.is-ls .cls-d.is-we{background:color-mix(in srgb,var(--surface-2) 30%,var(--color-surface))}
+  html.lg-new .cal-page.is-ls .cls-d.is-chosen{background:var(--color-accent-50)}
+  html.lg-new .cal-page.is-ls .cls-n{font:var(--w-label) 12.5px/22px var(--font-body);height:22px}
+  html.lg-new .cal-page.is-ls .cls-d.is-out .cls-n{color:var(--color-neutral-300)}
+  html.lg-new .cal-page.is-ls .cls-today{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent-ink);color:var(--color-surface)}
+  html.lg-new .cal-page.is-ls .cls-ev{display:block;border-radius:4px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:var(--w-label) 11.5px/1.6 var(--font-body);min-width:0}
+  html.lg-new .cal-page.is-ls .cls-ev.is-ruby{background:var(--st-ruby-bg);color:var(--st-ruby-fg)} html.lg-new .cal-page.is-ls .cls-ev.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new .cal-page.is-ls .cls-ev.is-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)} html.lg-new .cal-page.is-ls .cls-ev.is-violet{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  html.lg-new .cal-page.is-ls .cls-ev.is-gray{background:var(--surface-2);color:var(--color-quiet)}
+  html.lg-new .cal-page.is-ls .cls-d.is-out .cls-ev{opacity:.7}
+  html.lg-new .cal-page.is-ls .cls-more{font-size:11.5px;color:var(--color-neutral-400);white-space:nowrap}
+  html.lg-new .cls-side{display:flex;flex-direction:column;padding:0 4px;min-width:0}
+  html.lg-new .cls-side .cls-ps{display:flex;flex-direction:column;gap:8px;padding:16px 0;border-bottom:1px solid var(--color-divider);min-width:0}
+  html.lg-new .cls-side .cls-ps:first-child{padding-top:4px}
+  html.lg-new .cls-side .cls-ps:last-child{border-bottom:0}
+  html.lg-new .cls-side .cls-ps h4{margin:0;font:var(--w-label) 12px/1.4 var(--font-body);color:var(--color-neutral-400);letter-spacing:.02em}
+  html.lg-new .cls-side .cls-pb{display:flex;gap:6px;min-width:0}
+  html.lg-new .cls-side .cls-pt{font:var(--w-label) 17px/1.3 var(--font-body);color:var(--color-text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+  html.lg-new .cls-side .cls-pt.is-sm{font-size:14px}
+  html.lg-new .cls-side .cls-pm{font-size:12.5px;color:var(--color-neutral-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .cls-side .cls-pw{font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new .cls-side .cls-due,html.lg-new .cls-side .cls-two{display:flex;justify-content:space-between;align-items:flex-end;gap:16px}
+  html.lg-new .cls-side .cls-two{justify-content:flex-start;gap:28px}
+  html.lg-new .cls-side .cls-due small,html.lg-new .cls-side .cls-two small{display:block;font-size:12.5px;color:var(--color-neutral-400)}
+  html.lg-new .cls-side .cls-big{display:block;font:var(--w-label) 26px/1.1 var(--font-body);color:var(--color-text);white-space:nowrap}
+  html.lg-new .cls-side .cls-big.is-late,html.lg-new .cls-side .cls-rel.is-late{color:var(--st-ruby-fg)}
+  html.lg-new .cls-side .cls-rel{font:var(--w-label) 12.5px/1.4 var(--font-body);color:var(--color-quiet);white-space:nowrap}
+  html.lg-new .cls-side .cls-pacts{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  html.lg-new .cls-side .cls-black{height:30px;padding:0 16px;border:0;border-radius:999px;background:var(--bar-black,var(--color-text));color:var(--color-surface);font:var(--w-label) 13px/1 var(--font-body);cursor:pointer;white-space:nowrap}
+  html.lg-new .cls-side .cls-link{align-self:flex-start}
+  html.lg-new .cls-side .cls-pq{margin:0;font:400 14px/1.45 var(--font-title);color:var(--color-text);overflow-wrap:anywhere}
+  html.lg-new .cls-side .cls-pq.is-sm{font-size:13.5px}
+  html.lg-new .cls-side .cls-ps-p{margin:0;font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new .cls-side .cls-bars{display:block;width:100%;height:40px}
+  html.lg-new .cls-side .cls-bars rect{fill:var(--color-neutral-100)} html.lg-new .cls-side .cls-bars rect.is-on{fill:var(--accent-ink)}
+  html.lg-new .cls-side .cls-blab{display:flex;justify-content:space-between;font-size:12px;color:var(--color-neutral-400)}
+  html.lg-new .cls-side .cls-free{display:block;position:relative;height:10px;border-radius:5px;background:var(--st-green-bg);overflow:hidden}
+  html.lg-new .cls-side .cls-free i{position:absolute;top:0;bottom:0;background:var(--st-steel-dot);opacity:.55}
+  html.lg-new .cls-side .cls-line{display:block;width:100%;height:auto;overflow:visible}
+  html.lg-new .cls-side .cls-ln-track{stroke:var(--color-neutral-300);stroke-width:2}
+  html.lg-new .cls-side .cls-ln-late{fill:var(--st-ruby-bg)}
+  html.lg-new .cls-side .cls-ln-notice{fill:var(--st-amber-dot);stroke:var(--color-surface);stroke-width:2}
+  html.lg-new .cls-side .cls-ln-notice.is-late{fill:var(--st-ruby-dot)}
+  html.lg-new .cls-side .cls-ln-end{fill:var(--st-violet-dot);stroke:var(--color-surface);stroke-width:2}
+  html.lg-new .cls-side .cls-ln-today{stroke:var(--color-text);stroke-width:1.5}
+  html.lg-new .cls-side .cls-ln-t{font:400 10px var(--font-body);fill:var(--color-neutral-400)}
+  html.lg-new .cls-side .cls-ln-t.is-ink{fill:var(--color-quiet)}
+  html.lg-new .cls-side .cls-tl{list-style:none;margin:2px 0 0;padding:0;display:flex;flex-direction:column}
+  html.lg-new .cls-side .cls-tl li{position:relative;padding:0 0 12px 22px;font-size:13px;color:var(--color-text);overflow-wrap:anywhere}
+  html.lg-new .cls-side .cls-tl li:last-child{padding-bottom:0}
+  html.lg-new .cls-side .cls-tl li::before{content:"";position:absolute;left:7px;top:14px;bottom:0;width:1px;background:var(--color-neutral-300)}
+  html.lg-new .cls-side .cls-tl li:last-child::before{display:none}
+  html.lg-new .cls-side .cls-tl li i{position:absolute;left:3px;top:4px;width:9px;height:9px;border-radius:50%;box-sizing:border-box;border:2px solid var(--color-surface);box-shadow:0 0 0 1px var(--color-neutral-300);background:var(--color-surface)}
+  html.lg-new .cls-side .cls-tl li.is-signed i{background:var(--accent-ink)} html.lg-new .cls-side .cls-tl li.is-late i{background:var(--st-ruby-dot)}
+  html.lg-new .cls-side .cls-tl li.is-notice i{background:var(--st-amber-dot)} html.lg-new .cls-side .cls-tl li.is-done i{background:var(--st-green-dot)}
+  html.lg-new .cls-side .cls-tl li.is-end{color:var(--color-quiet)}
+`; }
+
+Object.assign(window,{calOverviewFive,CAL_LS_TONE,CAL_LS_DEF,calLsF,calLsOn,calLsKindOf,calLsBase,calLsRead,calLsChoices,calLsChipsHtml,calLsAct,calLsTableHtml,calLsAgendaHtml,calLsWeekHtml,calLsMonthHtml,calLsHzRead,calLsHzStatus,calLsHzHtml,calLsHzChipsHtml,calLsPageHtml,calLsSideHtml,calLsSidePaint,calLsPick,calLsRepaint,calLsTermQuote,calLsCss,calLevelLight,calEventsOnce,calStyleEnsure,calDateWords,calMineBrought,CAL_TALK_KEY,calTalkBack,calTalkOpen,calBoxAsk,calConvo,calConvoHtml,calTurnsAfter,calPlanRepaint,calendarDoorCount,calOnScreen,calWireOwn,calState,calPlace,calPlacePut,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
   calendarEvents,calEventMine,calPeriod,calInPeriod,calLegendHtml,calFitDays,CAL_DAY_MIN,CAL_DAY_MAX,calVisible,calDecisionsThisWeek,calWeekBounds,
   calToday,calChipText,calIcsFor,calUpcoming,calSummaryLines,calMonthGridHtml,calPanelHtml,
   CAL_AGENDA_DAYS,CAL_AGENDA_WINDOWS,CAL_AGENDA_ROWS,calAgendaDays,calSetAgendaDays,CAL_AGENDA_VIEW_DAYS,CAL_AGENDA_VIEW_ROWS,calAgendaViewHtml,

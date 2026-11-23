@@ -264,7 +264,11 @@ describe('f335 (7) — a finger scrolls the Plain English column', () => {
   test('nothing forwards a wheel or a finger any more', () => {
     assert.ok(!CONTRACT.includes("docReadWheel"), 'the forwarding latch is gone');
     const th = CONTRACT.slice(CONTRACT.indexOf('const DOC_THREAD_LINE'), CONTRACT.indexOf('function wireDocCanvas'));
-    assert.ok(!/touchmove|touchstart|'wheel'/.test(th), 'the Thread listens to no gesture of the paper\'s');
+    /* RE-POINTED 23 Nov 2026 (owner: "you should just be able to scroll and it brings you to next clause"; f1196): ONE wheel
+       listener, over the clause LIST only, which steps one clause; still none on the paper, and no finger forwarded */
+    assert.ok(!/touchmove|touchstart/.test(th), 'the Thread listens to no finger of the paper\'s');
+    assert.equal((th.match(/'wheel'/g) || []).length, 1, 'one wheel listener');
+    assert.match(th, /addEventListener\('wheel', e => \{\s*const list = e\.target && e\.target\.closest \? e\.target\.closest\('#pd-thread \.doc-th-rows'\) : null;/, 'over the list only');
   });
   /* REVERSED 5 Oct 2026 (the Drawer: "one scroll bar in the clause list; the
      open clause grows instead of scrolling inside itself"). The bounded

@@ -81,7 +81,9 @@ const PROBE = () => {
      shows the chosen template's own paper beside the index, and the paper
      scrolls inside its own box as every paper does (doc-scroll); its one
      child is the whole paper, not a row. */
-  const SCROLLERS = /content-scroll|doc-scroll|nego-scroll|cal-grid|cal-body|reg-scroll|cal-wk-body|tpl-pf-scroll/;
+  /* RE-POINTED 23 Nov 2026 (P-14, the Legora + Stripe way, owner: Build P-14): cal-ls-body JOINS — the new look's
+     calendar holds its table or month in one scroller under the head, the ask box and the chips */
+  const SCROLLERS = /content-scroll|doc-scroll|nego-scroll|cal-grid|cal-body|cal-ls-body|reg-scroll|cal-wk-body|tpl-pf-scroll/;
   const seen = new Set();
   document.querySelectorAll('#app-shell *').forEach(el => {
     const r = el.getBoundingClientRect();

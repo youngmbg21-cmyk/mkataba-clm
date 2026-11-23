@@ -31,7 +31,8 @@ test('f1066 (1) the Redlines face: one switch, a headline, Send all in a card, t
   /* RE-POINTED (owner's pick, 16 Nov 2026, "Cards first"): Send all ends the head's one line, no card and no headline on Changes */
   assert.match(NEGO, /five && sendH && !five\.lad && !notesOn \? `<div class="rl-five-act is-line">\$\{sendH\}<\/div>`/, 'Send all on the head\'s line, not on Notes or the Ladder');
   assert.match(NEGO, /\$\{five && five\.lad \? ' is-ladder-face' : ''\}/);
-  assert.match(PD, /if \(t\.closest\('\[data-rl-head-changes\]'\)\)\{[^\n]*\n[^\n]*\[data-rl-notes-all\]\[aria-pressed="true"\][^\n]*\[data-rl-ladder\]\[aria-expanded="true"\]/, 'Changes presses back the one that stands');
+  /* RE-POINTED 23 Nov 2026 (Dossier L+S step 4, f1197): Changes puts BOTH the Ladder and the notes away, one of three */
+  assert.match(PD, /if \(t\.closest\('\[data-rl-head-changes\]'\)\)\{[\s\S]{0,600}rlFaceLadderSet\(null\)[\s\S]{0,300}\[data-rl-notes-all\]\[aria-pressed="true"\]/, 'Changes puts both away');
   assert.match(read('index.html'), /#rl-changes-col\.is-ladder-face #nego-cards, html\.lg-new #ig-dock #rl-changes-col\.is-ladder-face #rl-risks\{display:none\}/, 'the Ladder face drawn whole by its own block');
   const lad = region(NEGO, 'function rlLadderFiveHtml(', '/* their view, the five parts');
   assert.match(lad, /ladderRungs|rungs\.map\(r =>/); assert.match(lad, /ladderStand\(c, id, side\)/, 'the steps as rows, then the playbook (owner: the card-in-card ladder was too cluttered)');
