@@ -9027,7 +9027,7 @@ function pd2CardHtml(c, D){
        one's act and Amend stands beside it, grey */
     const SN = AM ? pd2SignedNeedsOf(c, D) : [];
     if (AM && SN.length && SN[0].attr){
-      const two = `<div class="pd2-df-acts"><button type="button" class="ui-btn ui-btn-primary pd2-card-go" ${SN[0].attr}>${E(SN[0].go || SN[0].word)}</button>${AM.btn.replace('ui-btn ui-btn-primary pd2-card-go', 'ui-btn pd2-card-go is-grey')}</div>`;
+      const two = `<div class="pd2-df-acts"><button type="button" class="ui-btn ui-btn-primary pd2-card-go" ${SN[0].attr}>${E(SN[0].go || SN[0].word)}</button>${AM.btn.replace('ui-btn ui-btn-primary pd2-card-go', 'ui-btn pd2-card-go is-grey').replace(/>[^<>]*<\/button>$/, `>${E(_pdT('pd2_amend_short'))}</button>`)}</div>`;
       return pd2CardFiveHtml(c, 'is-amend', at, _pdTn('pd2_live_needs', SN.length, { n: SN.length }), '', pd2StepsHtml(D, focus, words), AM.say + two + foot);
     }
     return pd2CardFiveHtml(c, AM ? 'is-amend' : '', at, String(N.head || '').replace(/\.$/, ''), '', pd2StepsHtml(D, focus, words), (AM ? AM.say + AM.btn : btn) + foot);
