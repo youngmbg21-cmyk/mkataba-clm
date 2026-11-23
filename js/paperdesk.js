@@ -4363,7 +4363,7 @@ function pdWallHelloHtml(){
   if (typeof naSheetUp === 'function' && naSheetUp())
     return ov({ head: { html: _pdE(_pdT('ca_go_draft')) },
       facts: ['ca_go_draft_can1', 'ca_go_draft_can2', 'ca_go_draft_can3'].map(k => ({ html: _pdE(_pdT(k)) })) }, 'pd-sheet-hello');
-  return ov(pdWallOverview());
+  return pdWallHtml();
 }
 /* THEIR PAPER, IN THE FIVE PARTS: what it is for as the headline, the three steps, the two things Create needs (their
    file — or a paper of theirs kept from before — and the stream) said as they stand, amber while missing, and Choose a
@@ -4381,65 +4381,9 @@ function naTheirsFive(T){
     act: ready ? { say: _pdT('jov5_nat_act_ready') } : paper ? { say: _pdT('jov5_nat_act') } : { say: _pdT('jov5_nat_act'), label: _pdT('jov5_nat_act_b'), run: () => T.pick() },
     src: _pdT('jov5_nat_src') };
 }
-/* THE CONTRACTS PLACE, NOTHING CHOSEN: its facts, each a reading the book already makes, no AI — how many and how
-   many signed, what ends inside 90 days (effectiveExpiry), what still owes a detail (detailsOf), the value in the
-   home currency with what could not be added (fxCounted, fxMissing). "Unusual for you" is a reading per contract
-   only, so it is left out here. */
-function pdWallOverview(){
-  const book = (state.contracts || []).filter(c => c && !c.archived && c.status !== 'Declined' && (!window.canAccessFolder || canAccessFolder(c.folder)));
-  const signed = book.filter(c => c.status === 'Signed');
-  const ref = c => (typeof contractRef === 'function') ? contractRef(c) : c.id;
-  const today = (typeof todayISO === 'function') ? todayISO() : '';
-  const in90 = (() => { const d = new Date(); d.setDate(d.getDate() + 90); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
-  const end = c => { try { return String((typeof effectiveExpiry === 'function') ? (effectiveExpiry(c) || '') : (c.expiry || '')).slice(0, 10); } catch (_){ return ''; } };
-  const ending = signed.filter(c => { const e = end(c); return e && today && e >= today && e <= in90; }).sort((x, y) => end(x).localeCompare(end(y)));
-  const owes = book.filter(c => { try { return (typeof detailsOf === 'function') && detailsOf(c).left > 0; } catch (_){ return false; } });
-  const show = (L, label) => () => { if (typeof regShowOnly === 'function') regShowOnly(L.map(c => c.id), label); };
-  const facts = [{ k: _pdT('jov_ct_list'), v: _pdTn('jov_ct_list_v', book.length, { n: book.length, s: signed.length, w: book.length - signed.length }) }];
-  if (ending.length){ const f = ending[0], day = (typeof regDotDate === 'function') ? regDotDate(end(f)) : end(f);
-    facts.push({ k: _pdT('jov_ct_ending'), v: _pdTn('jov_ct_ending_v', ending.length, { n: ending.length, name: f.name || ref(f), day }), need: true,
-      link: _pdT('jov_ln_show'), run: show(ending, _pdT('jov_ct_ending')) }); }
-  if (owes.length) facts.push({ k: _pdT('jov_ct_owes'), v: _pdTn('jov_ct_owes_v', owes.length, { n: owes.length }), need: true, link: _pdT('jov_ln_show'), run: show(owes, _pdT('jov_ct_owes')) });
-  let money = true; try { money = (typeof canViewValues !== 'function') || canViewValues(); } catch (_){ money = true; }
-  if (money && typeof fxCounted === 'function' && typeof fmtMoneyShortIn === 'function'){
-    let sum = 0; signed.forEach(c => { try { const h = fxCounted(c); if (h && !h.missing) sum += Number(h.v) || 0; } catch (_){} });
-    let miss = ''; try { miss = (typeof fxMissingLine === 'function') ? fxMissingLine(signed) : ''; } catch (_){ miss = ''; }
-    const code = (typeof fxHomeCode === 'function') ? fxHomeCode() : undefined;
-    if (sum > 0) facts.push({ k: _pdT('jov_ct_value'), v: _pdT('jov_ct_value_v', { sum: fmtMoneyShortIn(sum, code) }) + (miss ? ' · ' + _pdT('jov_ct_value_miss', { list: miss }) : '') });
-  }
-  /* THE FIVE PARTS (owner, 15 Nov 2026, round 3): the count as the headline, money · signed · in the works as tiles,
-     the next date contracts end and what still owes a detail as rows, each its own Show (regShowOnly). Still no "Ask
-     me" (owner, 28 Oct 2026). The new look only. */
-  if (typeof newLookOn === 'function' && newLookOn()){
-    const live = signed.filter(c => { const e = end(c); return e && today && e >= today; }).sort((x, y) => end(x).localeCompare(end(y)));
-    const first = live[0] ? end(live[0]) : '', onFirst = first ? live.filter(c => end(c) === first) : [];
-    const names = [...new Set(onFirst.map(c => c.counterparty || c.name).filter(Boolean))];
-    const day = first ? ((typeof regDotDate === 'function') ? regDotDate(first) : first) : '';
-    let sumTxt = ''; const vf = facts.find(f => f.k === _pdT('jov_ct_value')); if (vf) { const m = /([A-Z]{3})?\s*([\d.,]+\s*[BMK]?)/.exec(String(vf.v)); sumTxt = m ? m[2] : ''; }
-    const groups = [];
-    if (onFirst.length) groups.push({ label: _pdT('jov5_ct_next'), rows: [{ mark: 'calendar', t: _pdTn('jov5_cal_end', onFirst.length, { n: onFirst.length }), s: names.slice(0, 3).join(', ') + (names.length > 3 ? ' ' + _pdTn('jov_more', names.length - 3, { n: names.length - 3 }) : ''), v: day, run: show(onFirst, _pdT('jov5_ct_next')) }] });
-    if (owes.length) groups.push({ label: _pdT('rfg_todo'), rows: [{ mark: 'pencil', tone: 'amber', t: _pdT('jov_ct_owes'), v: String(owes.length), run: show(owes, _pdT('jov_ct_owes')) }] });
-    /* CONTRACTS, THE LEGORA + STRIPE WAY (P-31, owner's pick 20 Nov 2026): the list's panel carries NO CARDS AND NO
-       MONEY — a sentence, where they stand (one bar), when they end (dots by month), what needs you (name and why) */
-    void sumTxt;
-    const D = (typeof window.regFolderSummaryData === 'function') ? window.regFolderSummaryData(book, []) : null;
-    let mid = '';
-    if (D){ const tot = Math.max(1, book.length), pc = x => (Math.round(x / tot * 1000) / 10) + '%';
-      mid = `<div class="ctf-stand"><i class="is-r" style="width:${pc(D.review.length)}"></i><i class="is-s" style="width:${pc(D.signed.length)}"></i></div>`
-        + `<div class="ctf-key"><span><i class="is-r"></i>${_pdE(_pdT('ctf_k_review'))} ${D.review.length}</span><span><i class="is-s"></i>${_pdE(_pdT('ctf_k_signed'))} ${D.signed.length}</span></div>`
-        + (D.months.some(m => m.dots.length) ? `<div class="ctf-months is-mini">${D.months.map(m => `<div class="ctf-mo"><div class="ctf-mo-d">${m.dots.slice(0, 4).map(x => `<i class="is-${x.tone}" title="${_pdE(x.name)}"></i>`).join('')}</div><small>${_pdE(m.label.slice(0, 1))}</small></div>`).join('')}</div>` : '');
-      const need = book.filter(c => D.needIds.has(c.id)).slice(0, 3);
-      if (need.length) groups.unshift({ label: _pdT('ctf_fig_need'), rows: need.map(c => { let w = ''; try { const it = (needsYouOf(c) || [])[0]; const x = it && typeof insNeedWords === 'function' ? insNeedWords(c, it) : null; w = x && x.title || ''; } catch (_){ w = ''; }
-        return { mark: 'file', tone: 'amber', t: c.name || ref(c), s: [c.counterparty || '', w].filter(Boolean).join(' \u00b7 '), run: show([c], c.name || ref(c)) }; }) }); }
-    return { title: book.length && signed.length === book.length ? _pdTn('jov5_ct_all_signed', book.length, { n: book.length }) : _pdTn('jov_ct_head_b', book.length, { n: book.length, k: signed.length }),
-      sub: _pdT(pdDropMay() ? 'jov_ct_head_s' : 'jov_ct_head_s_view'),
-      mid, midLabel: mid ? _pdT('ctf_where_all', { n: book.length }) : '',
-      groups, src: _pdT('jl_src_list'), asks: [] };
-  }
-  /* no "Ask me" here (owner, 28 Oct 2026: "remove the Ask me details"): each fact keeps its own Show */
-  return { head: { b: _pdTn('jov_ct_head_b', book.length, { n: book.length, k: signed.length }), s: _pdT(pdDropMay() ? 'jov_ct_head_s' : 'jov_ct_head_s_view') },
-    facts, src: _pdT('jl_src_list'), asks: [] };
-}
+/* THE OLD CONTRACTS PANEL IS DELETED (owner, 23 Nov 2026: "delete the old Contracts panel"): pdWallOverview, the whole
+   book's summary ("191 contracts, 48 signed") that stood in whenever the drawn panel could not yet be chosen, is gone.
+   The list's own panel (regLsListPanelHtml) and the folders' (regFoldersPanelHtml) are the only ones beside Contracts. */
 function pdDropInner(){
   const d = _pdDrop;
   if (d && d.state === 'reading'){
@@ -4530,15 +4474,21 @@ function pdDropPaint(){
    ask jambo for. Also the upload contract feature is not needed"; then "keep them as is but keep them below the
    discover features. Also remove the Ask me details" and "the card no longer sits on a panel"): his one line first,
    Discover under it, the list's facts under Discover, no "Ask me"; the drop card is a pop-up (pdDropDoor) */
+let _pdWallWait = { since: 0, last: 0 };
 function pdWallHtml(disc){
   if (typeof naSheetUp === 'function' && naSheetUp()) return `<div class="pd-wall">${pdWallHelloHtml()}${disc || ''}</div>`;
-  if (typeof jamboOverviewHtml !== 'function') return `<div class="pd-wall">${disc || ''}</div>`;
-  const o = pdWallOverview();
-  const ov = (x, cls, slot) => `<div class="jl-words is-ov ${cls}">${jamboOverviewHtml(x, slot)}</div>`;
-  /* THE FIVE PARTS (15 Nov 2026): one panel, Discover in its middle — under the tiles, above the rows (the facts stay below Discover) */
-  if (o.title) return `<div class="pd-wall">${ov(Object.assign({}, o, { mid: (o.mid || '') + (disc || '') }), 'pd-hello', 'pd')}</div>`;
-  return `<div class="pd-wall">${ov({ head: o.head }, 'pd-hello', 'pd')}${disc || ''}${ov({ facts: o.facts, src: o.src }, 'pd-wall-facts', 'pdf')}</div>`;
+  /* NOTHING ELSE TO SAY YET (the old whole-book panel deleted, 23 Nov 2026): the list or folders it waits for are a moment
+     away, so it says Loading and looks again shortly (WHEN SOMETHING LOADS, SOMETHING MOVES); after PD_WALL_WAIT_MS with
+     nothing come, it stops saying so and stands empty, the ask box below it — never a promise it cannot keep */
+  const now = Date.now();
+  if (now - _pdWallWait.last > PD_WALL_WAIT_MS * 2) _pdWallWait.since = now;
+  _pdWallWait.last = now;
+  if (now - _pdWallWait.since > PD_WALL_WAIT_MS) return '<div class="pd-wall"></div>';
+  if (typeof setTimeout === 'function') setTimeout(() => { try { if (typeof window.renderIntelDock === 'function') window.renderIntelDock(); } catch (_){ /* the next paint draws it */ } }, 300);
+  const w = _pdT('loading');
+  return `<div class="pd-wall is-wait" aria-busy="true">${(typeof busyHtml === 'function') ? busyHtml(w) : _pdE(w)}</div>`;
 }
+const PD_WALL_WAIT_MS = 4000;
 /* THE FILE PICKER: one input, kept outside the panel (the panel is redrawn
    under it), found at press time, so a chip's press opens it in the press */
 function pdDropInput(){
@@ -11110,7 +11060,7 @@ Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
   PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillMark, pdFillGroupsPaint, pdFillRows, pdFillRowKey, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh,
   pdFillStreamMay, pdFillStreamHtml, pdFillStreamAsk, PD_FF_BOX, pdFillBoxOf, pdFillLabelOf, PD_FF_UNIT, pdFillStdOf, PD_FF_CLAUSE_NUM, pdFillSpotClause, pdFillSpotOf, pdFillExtrasPaint, pdFillStreamRepaint, pdFillStreamPick,
-  PD_DROP_ACCEPT, pdDropMay, pdWallHelloHtml, pdDropInner, pdDropStreams, pdDropStreamNow, pdDropStreamHtml, pdDropHtml, pdDropPaint, pdWallHtml, pdDropInput, pdDropBusyNow, pdDropPick, PD_DROP_TOAST_MS, pdDropToastOff, pdDropTake,
+  PD_DROP_ACCEPT, pdDropMay, pdWallHelloHtml, pdDropInner, pdDropStreams, pdDropStreamNow, pdDropStreamHtml, pdDropHtml, pdDropPaint, pdWallHtml, PD_WALL_WAIT_MS, pdDropInput, pdDropBusyNow, pdDropPick, PD_DROP_TOAST_MS, pdDropToastOff, pdDropTake,
   PD_GLANCE, PD_GL_SUB_MAX, pdGlanceSub, pdGlanceBriefHtml, pdGlanceFootHtml, pdDropImportHtml, pdDropDoor, pdGlanceRows, pdSignAhead, signerOwed, PD_GL_ASKS_MAX, pdTheirAsks, pdAskHeading, pdAskClause, PD_GL_CONTEXT, PD_GL_DAYS_FOR, pdAskParts, pdAskSay, pdGlAgo, pdGlMoveSay, pdGlGoTo, pdNoteRows, pdPartyShort, pdPreparedWhen, pdJwSay, pdAskClausesSay, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, pdJamboPinHtml, pdNeedsRows, pdNeedRowHtml, pdNeedsHtml, pdNeedsRepaint, pdBackHtml, PD_BACK_CLOSE, PD_GL_DONE_MS, pdGlanceDone,
   PD_HELD_CHIPS, pdHolds, pdHeldContract, pdHeadWord, pdAskPlaceholder, pdAskContractId, pdDaysSince, pdAgoWords, pdShortDay, pdStageWords, pdLastMove,
   pdClauseSaid, PD_CH_CLAUSES_MAX, pdTheirAsksRow, pdTheirAsksRowHtml, pdChosenFacts, pdChosenHtml, pdHistGlanceHtml, pdHistChanges, pdHistQuestions, pdNeverShared, pdHistAlso, pdListSay, PD_CG_NAMES_MAX, PD_CG_DET_WORD, pdDetWord, PD_HELD_CHIPS_MAX, PD_HELD_CHIP_WORD, pdHeldOwes, PD_CHIP_CLS, pdHeldChips, pdPanelChipsHtml, pdHeldChipsHtml, pdHeldGo, pdHeldOpen, PD_HELD_LAND, PD_HELD_LAND_TRIES, PD_HELD_LAND_STILL, pdHeldLand, pdHeldSig, pdHeldTopHtml });

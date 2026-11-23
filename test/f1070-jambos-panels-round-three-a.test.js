@@ -69,9 +69,10 @@ test('f1070 (2) each panel says the five parts in the new look, by the page\'s o
 
 test('f1070 (3) the Contracts list keeps no "Ask me", and Discover above its rows', () => {
   const pd = read('js/paperdesk.js');
-  const ov = region(pd, 'function pdWallOverview(){', 'function pdDropInner(){');
-  assert.match(ov, /groups, src: _pdT\('jl_src_list'\), asks: \[\] \};/, 'no Ask me in the new look either');
-  assert.match(region(pd, 'function pdWallHtml(disc){', 'function pdDropInput('), /if \(o\.title\) return `<div class="pd-wall">\$\{ov\(Object\.assign\(\{\}, o, \{ mid: \(o\.mid \|\| ''\) \+ \(disc \|\| ''\) \}\)/);   /* RE-POINTED (P-31): the list's own bar and dots, then Discover */
+  /* RE-POINTED 23 Nov 2026 (owner: "delete the old Contracts panel"): the whole book's summary is gone; beside the list
+     only the list's own panel stands (no Ask me in it either), and the wall says Loading until it comes */
+  assert.ok(!/function pdWallOverview\(/.test(pd), 'the old Contracts panel is deleted');
+  assert.doesNotMatch(read('js/views/register.js').slice(read('js/views/register.js').indexOf('function regLsListPanelHtml(')).slice(0, 4000), /jov-asks|asks: \[[^\]]/);
 });
 
 test('f1070 (4) the side panel\'s Guide keeps its own rows, in soft groups', () => {
@@ -90,7 +91,8 @@ test('f1070 (5) every word of the round is in both books', () => {
   /* RE-POINTED 22 Nov 2026 (P-43 review): Settings' "Read from the settings" left its panel, as drawn */
   /* RE-POINTED 22 Nov 2026 (Your day, L+S): the tiles' Clear and duties-timeline words left with the tiles, as drawn */
   /* RE-POINTED 23 Nov 2026 (the Handbook, L+S as drawn): its panel's old sub line and source line left */
-  assert.ok(keys.size >= 12, 'the round\'s words are found');
+  /* RE-POINTED 23 Nov 2026 (owner: "delete the old Contracts panel"): its "all signed" and "next to end" words left with it */
+  assert.ok(keys.size >= 10, 'the round\'s words are found');
   const has = (b, k) => b[k] != null || b[k + '_one'] != null;
   assert.deepEqual([...keys].filter(k => !has(S.en, k) || !has(S.sv, k)), []);
 });

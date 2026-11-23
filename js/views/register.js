@@ -3404,6 +3404,7 @@ function renderRegisterBody(){
   /* A body repaint can take the chosen contract off the page (a search, a page
      turn): the panel follows the list, never the other way round. */
   regInsPaint();
+  regLsDockMend();
 }
 /* THE WALL ALONE, DRAWN AGAIN (Part 8): its count line, its papers and its
    foot from the rows as narrowed — never the head above it */
@@ -3863,6 +3864,16 @@ let _regOpts={};
 function regRepaint(){ renderRegister(_regOpts); if((typeof regFolderPanelOn==='function'&&regFolderPanelOn())||regLsListUp()) ctfDockAgain(); }
 /* …and words typed in the box, once the typing pauses (the head's own pause, LH_SYNC_QUIET_MS) */
 let _regLsDockT=null;
+/* THE OLD PANEL NEVER STAYS BESIDE THE LIST (owner, 23 Nov 2026, on two photos: "once in a while image one pops up" —
+   the whole book's "191 contracts, 48 signed" beside a list of 78): the panel picks the drawn one only once the list is
+   on screen (regLsListUp needs [data-reg-home]); a panel painted a moment BEFORE the list fell through to the old
+   whole-book summary (pdWallOverview, drawn as .pd-wall) and nothing drew it again. So the list, once painted, mends it. */
+function regLsDockMend(){
+  if(typeof document==='undefined') return false;
+  let up=false; try{ up=regLsListUp()||regFoldersUp(); }catch(_){ up=false; }
+  if(!up||!document.querySelector('#ig-dock .pd-wall')) return false;
+  ctfDockAgain(); return true;
+}
 function regLsDockSoon(){ if(!regLsListUp()||typeof setTimeout!=='function') return; if(_regLsDockT) clearTimeout(_regLsDockT); _regLsDockT=setTimeout(()=>{ _regLsDockT=null; ctfDockAgain(); },160); }
 /* ---- CONTRACTS BY FOLDER, AS DRAWN (the new look, round 6) ----
    The place opens on the company's own folders (streams): a card each says how many, the money on paper and how many
@@ -5514,7 +5525,8 @@ function renderRegister(opts){
        refresh too, where the query came back with the place and nothing put
        it in the bar — unless the reader is typing in it */
     const bar=document.getElementById('cmd-search'), w=String(R.query||'');
-    if(bar&&document.activeElement!==bar&&bar.value!==w) bar.value=w; }
+    if(bar&&document.activeElement!==bar&&bar.value!==w) bar.value=w;
+    regLsDockMend(); }
 }
 
 /* ---- THE TOOLS BESIDE A LIST, BOUND ONCE EACH (Part 8) ----
@@ -5619,7 +5631,7 @@ Object.assign(window,{regTileBig,regTileBar,regTileKeyHtml,regFolderCount,regFol
   REG_CT_FIXED,REG_CT_COL_WORD,regCtShapeKeys,regCtColDefs,regCtHeadReg,regCtFootHtml,regHomeColW,regToolsWire,regToolsHtml,regWallRepaint,
   /* the Contracts place on Home (the overnight work order, step 7) */
   REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,regStageTone,regStageMarkHtml,regSapMarkHtml,regSapMarkOf,regStageLineHtml,regNegoMarkHtml,regNegoLineHtml,regNegoClauseChips, regNegoClauseNames,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,REG_HOME_SPREAD,REG_COL_KEYS_HOME_WIDE,REG_COL_W_HOME_WIDE,REG_HOME_WIDE_W,regHomeWide,regHomeWatch,regPlaceSet,regPlaceUp,regFoldersNow,regFoldersSet,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale,regFolderSummaryData,
-  regLsSigned,regLsEnded,regLsStandOf,REG_LS_TONE,regLsFrame,regLsPanelPick,regLsWorkFirst,regLsSecs,regLsToneOfStatus,regLsBadgeHtml,regLsNeedWord,regLsEndOf,regLsEndsHtml,regLsQuoteHtml,regLsOwes,regLsOwesWords,regLsBarHtml,regLsDotsHtml,regLsNeedRowsHtml,regLsNextEnd,regLsListUp,regLsListPanelHtml,regLsWaitsOn,regLsDayMonth,regLsFolderShort,regCtLeadHtml,regSayEndQuote});
+  regLsDockMend,regLsSigned,regLsEnded,regLsStandOf,REG_LS_TONE,regLsFrame,regLsPanelPick,regLsWorkFirst,regLsSecs,regLsToneOfStatus,regLsBadgeHtml,regLsNeedWord,regLsEndOf,regLsEndsHtml,regLsQuoteHtml,regLsOwes,regLsOwesWords,regLsBarHtml,regLsDotsHtml,regLsNeedRowsHtml,regLsNextEnd,regLsListUp,regLsListPanelHtml,regLsWaitsOn,regLsDayMonth,regLsFolderShort,regCtLeadHtml,regSayEndQuote});
 
 /* ═══ NEGOTIATIONS, THE NEW LOOK (round 7, as drawn; behind the admin's "Try the new look") ═══
    One quiet list: whose move, the open asks quoted from the paper with their §, the lead, the last thing that

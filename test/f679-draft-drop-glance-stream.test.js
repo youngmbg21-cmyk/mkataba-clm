@@ -403,7 +403,8 @@ describe('f679 (5) a contract at a glance', () => {
     const { ctx } = pdStage({ paper: null });
     /* RE-POINTED 28 Oct 2026 (owner: "the card no longer sits on a panel"): the wall is his line, Discover, the facts;
        the drop card is the pop-up's (pdDropDoor) */
-    assert.match(ctx.pdJamboTopHtml(), /class="pd-wall"/);
+    /* RE-POINTED 23 Nov 2026 (owner: "delete the old Contracts panel"): the wall says Loading until the list's own panel comes */
+    assert.match(ctx.pdJamboTopHtml(), /class="pd-wall[ "]/);
     assert.doesNotMatch(ctx.pdJamboTopHtml(), /id="pd-drop"/);
     const p = pdStage();
     assert.match(p.ctx.pdJamboTopHtml(), /id="pd-glance"/);
