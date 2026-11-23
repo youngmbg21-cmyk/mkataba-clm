@@ -8208,6 +8208,8 @@ function pd2Html(c){
   if (pd2BriefUp(c.id)) return `<div id="pd-glance" class="pd2-dossier is-brief" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2BriefFaceHtml(c, D)}</div>`;
   if (pd2HistUp(c.id) && typeof window.newLookOn === 'function' && newLookOn()) return `<div id="pd-glance" class="pd2-dossier is-hist" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2HistFaceHtml(c)}</div>`;
   if (pd2StandsUp(c.id) && typeof window.newLookOn === 'function' && newLookOn()) return `<div id="pd-glance" class="pd2-dossier is-deal" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2DealFaceHtml(c)}</div>`;
+  /* the duties review in the middle, the Legora + Stripe way: the Dossier draws the chosen duty (js/obligations.js) */
+  if (typeof window.obdFaceFor === 'function' && window.obdFaceFor(c.id) && typeof window.newLookOn === 'function' && newLookOn()) return `<div id="pd-glance" class="pd2-dossier is-obs" data-pd-glance-for="${E(c.id)}" data-pd2>${window.obdFaceHtml()}</div>`;
   /* PAPER LINE HOLDS ALL (the harmony review, owner's yes 9 Nov 2026): a fact that can be changed ends in a green
      "Change" link, never a small grey word that is secretly a button */
   const nl = typeof window.newLookOn === 'function' && newLookOn();

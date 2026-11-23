@@ -87,30 +87,38 @@ const check = (name, pass, detail) => {
       /* RE-POINTED 10 Oct 2026 (owner picked "Table", the SAP way): a kind
          is a band row of the table, an item already on the contract a row
          marked is-already */
-      return { groups: [...d.querySelectorAll('.obd-band:not([data-obd-band="already"]) .obd-band-w')].map(x => x.textContent.trim()),
+      /* RE-POINTED 23 Nov 2026 (owner: "it needs L+S facelift", built as drawn): no kind bands — one calm table, the kinds
+         are the "+ Kind" chip's choices, the counts are the tabs' (To decide · Added · Skipped) */
+      return { left: (d.querySelector('[data-obd-tab="left"] span') || {}).textContent,
         ticked: [...d.querySelectorAll('[data-ob-pick]')].filter(b => b.checked).length,
         already: d.querySelectorAll('.obd-row.is-already').length, alreadyBoxes: d.querySelectorAll('.obd-row.is-already [data-ob-pick]').length,
         w: Math.round(d.getBoundingClientRect().width), bottom: Math.round(r.bottom), vh: innerHeight, vw: innerWidth, dlg: !!d.closest('[role="dialog"]'), foot: d.querySelector('#obd-count').textContent }; });
-    check('2a. the desk opens with its three groups', desk && desk.groups.join('|') === 'Dated or repeating|Only when something happens|Standing promises', desk && desk.groups.join('|'));
+    await page.click('[data-obd-chip="kind"]');
+    const kinds = await until(() => { const b = [...document.querySelectorAll('[data-obd-fv="kind"]')]; return b.length ? b.map(x => x.textContent.trim()) : null; });
+    await page.click('[data-obd-chip="kind"]');
+    check('2a. the desk offers its three kinds', kinds && kinds.join('|') === 'Dated|On an event|Standing', kinds && kinds.join('|'));
     check('2b. nothing arrives ticked', desk && desk.ticked === 0);
     /* RE-POINTED 16 Nov 2026 (#762): in the new look big work is a PAGE (openModal {page} → dlgPageAdopt), so the desk
        takes the page's width, no longer a 920 dialog; it must still be wide enough for its table and inside the screen */
     check('2c. a page at least 860 wide, inside the screen', desk && desk.w >= 860 && desk.w <= desk.vw && desk.bottom <= desk.vh, desk && `${desk.w} wide of ${desk.vw}, bottom ${desk.bottom} of ${desk.vh}`);
     check('5. the one already on the contract is not offered again', desk && desk.already === 0);
-    check('2d. the foot counts what is left', desk && /4 to decide · 0 added · 0 skipped/.test(desk.foot), desk && desk.foot);
+    check('2d. the tab and the foot count what is left', desk && desk.left === '4' && /4 ready/.test(desk.foot), desk && `${desk.left} · ${desk.foot}`);
     await page.screenshot({ path: path.join(OUT, '1-desk.png') });
     await page.click('[data-obd-sel="1"]');
     await page.screenshot({ path: path.join(OUT, '2-desk-theirs.png') });
     await page.click('[data-obd-sel="2"]');
     await page.click('[data-obd-skip]');
-    check('4a. Skip marks it', !!(await until(() => /1 skipped/.test(document.getElementById('obd-count').textContent))));
+    check('4a. Skip marks it', !!(await until(() => (document.querySelector('[data-obd-tab="skipped"] span') || {}).textContent === '1')));
+    await page.click('[data-obd-tab="skipped"]');
     await page.click('[data-obd-sel="2"]');
     await page.click('[data-obd-undo]');
-    check('4b. Undo brings it back', !!(await until(() => /0 skipped/.test(document.getElementById('obd-count').textContent))));
+    check('4b. Undo brings it back', !!(await until(() => (document.querySelector('[data-obd-tab="skipped"] span') || {}).textContent === '0')));
     await page.click('[data-obd-skip]');
-    await page.click('[data-obd-group="dated"]');
+    await page.click('[data-obd-tab="left"]');
+    await page.click('[data-ob-pick="0"]');
+    await page.click('[data-ob-pick="1"]');
     const lab = await page.evaluate(() => document.getElementById('or-add').textContent);
-    check('3a. a group tick counts on the button', /Add 2 ticked/.test(lab), lab);
+    check('3a. two ticks count on the button', /Add 2 ticked/.test(lab), lab);
     await page.click('#or-add');
     const after = await until(id => { const c = getContract(id); return !document.getElementById('obd') && c.obligations.length === 3 ? c.obligations.map(o => o.desc + ':' + (o.party || '')) : null; }, cid);
     check('3b. exactly the ticked two are added', !!after, JSON.stringify(after));
