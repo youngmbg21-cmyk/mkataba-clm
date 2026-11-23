@@ -19,7 +19,7 @@ test('f1076 (1) dkLeavePageThen is published, so the doors can reach it', () => 
 });
 
 test('f1076 (2) each of the four doors asks the published helper and goes on when nothing was in front', () => {
-  const want = { 'js/views/pulse.js': 2, 'js/views/reads.js': 1, 'js/views/askcolumn.js': 1 };
+  const want = { 'js/views/reads.js': 1, 'js/views/askcolumn.js': 1 };
   for (const [f, n] of Object.entries(want)){
     const s = read(f);
     assert.equal(s.split(DOOR).length - 1, n, f + ': ' + n + ' door(s) in the one form');

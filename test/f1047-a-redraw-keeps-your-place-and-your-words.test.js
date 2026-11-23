@@ -23,14 +23,7 @@ test('f1047 (1) a same-page redraw keeps the scrollers INSIDE the page, not only
   assert.match(v, /else sc\.scrollTo\(\{top:0\}\)/, 'a different page still starts at the top');
 });
 
-test('f1047 (2) the Pulse board is ranked again where the reader stands, redrawing its table and head only', () => {
-  const s = read('js/views/pulse.js');
-  assert.match(region(s, 'function puCritSet', 500), /puRedrawInPlace\(\)/);
-  assert.match(region(s, 'function puHold', 300), /puRedrawInPlace\(\)/);
-  const r = region(s, 'function puRedrawInPlace', 500);
-  assert.match(r, /_pu\.sig = null; puRepaint\(\)/, 'the ticker\'s own redraw, its "nothing moved" lifted so the lit chip moves');
-  assert.match(r, /keepScroll\(\(\) => renderPulse\(\)\)/, 'the whole page only where the table is not drawn yet');
-});
+/* f1047 (2) RETIRED 23 Nov 2026: the Pulse board was deleted (owner: "delete the pulse board from hati all across") */
 
 test('f1047 (3) the other ask boxes have a draft of their own, by seat', () => {
   const s = read('js/components.js');

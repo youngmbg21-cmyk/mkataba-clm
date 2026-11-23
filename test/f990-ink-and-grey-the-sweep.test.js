@@ -15,7 +15,6 @@ const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const has = (sel, what) => assert.match(CSS, new RegExp(esc(sel) + '[^{]*' + G), what);
 
 test('the sweep: each page\'s detail grey, scoped to win', () => {
-  has('html.lg-new #pu-page :is(.pu-sub,.pu-facts,.pu-rk small,.pu-meta,.pu-meta .pu-pty,.pu-sc small,.pu-cap)', 'Pulse board');
   has('html.lg-new .hist-trail.is-table .hist-c-time .hist-time,html.lg-new .hist-sd:is(.is-ours,.is-theirs,.is-none)', 'History: time and side');
   has('html.lg-new [data-share-sap] .sh-lt.is-sap .sh-lt-say2', 'Send: hints');
   /* Before you send's card heads are bold and black (owner's pick, 19 Nov 2026; f1104), no longer grey */

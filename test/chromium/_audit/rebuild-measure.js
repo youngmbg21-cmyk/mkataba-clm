@@ -198,7 +198,7 @@ const INIT = () => {
 };
 
 /* ---------------- on the runner ---------------- */
-const PLACES = ['contracts', 'negotiations', 'approvals', 'oblig', 'requests', 'parties', 'people', 'ourpaper', 'import', 'mynotes', 'reads', 'pulse', 'calendar', 'explorer', 'handbook', 'house', 'settings'];
+const PLACES = ['contracts', 'negotiations', 'approvals', 'oblig', 'requests', 'parties', 'people', 'ourpaper', 'import', 'mynotes', 'reads', 'calendar', 'explorer', 'handbook', 'house', 'settings'];
 const BASES = [
   { k: 'send', name: 'The Send screen', go: "pdOpenOnHome('MK-110','copilot'); setTimeout(()=>{ try{ openShareModal(getContract('MK-110')); }catch(_){ } }, 500)", wait: 2200 },
   { k: 'dossier', name: 'A paper: the Dossier', go: "pdOpenOnHome('MK-110','copilot')", wait: 1200 },
