@@ -632,7 +632,8 @@ function pdOpenOnHome(id, tab, o){
      to the hidden tab and did nothing): the paper with its Dossier first, then the one door (pdSetTab('oblig') → dutiesOpen) */
   const toDuties = tab === 'oblig';
   igWalk([id], 0, { tab: toDuties ? 'copilot' : (tab || 'copilot') });
-  if (toDuties) pdSetTab('oblig');
+  /* named by its own contract, not by whichever paper the walk has reached yet (the page waits for its middle, pdMidWait) */
+  if (toDuties){ try { const dc = getContract(id); if (dc && typeof window.dutiesOpen === 'function') window.dutiesOpen(dc, pdObOpenWith(dc)); } catch (_){} }
   if (_pdFill === String(id)) pdFillLand();
   return true;
 }
