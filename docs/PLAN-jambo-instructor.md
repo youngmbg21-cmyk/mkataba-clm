@@ -111,15 +111,12 @@ The fixed phrases stay the free path. Anything else a new person types already g
 to notice someone new or lost and say so, and the answer then ends with **Start the lessons**, which does what
 "I'm new" does. No extra AI call. Built with it: a stray quote mark at the end of Jambo's answers is taken off.
 
-### Round 5 — A practice contract — BUILT 23 Nov 2026 (owner: "build it")
+### Round 5 — A practice contract — NOT BUILT (left for the owner)
 
-"Try a practice contract" in the welcome (anyone who may act), or say "practice contract": a made-up draft
-supply agreement with Example Supplies Ltd opens, named Practice. It is kept in the person's own browser and
-NEVER reaches the server, so nobody else sees it, no reminder, brief or report knows it, and nothing about it is
-saved, sent or signed for real: the send and the signature say so where they are pressed. Jambo's automatic
-reads skip it, so it costs nothing. It shows in the person's own lists, marked Practice, so finding it is part of
-the practice. "Delete the practice contract", or stopping the lessons, throws it away. Measured in the browser at
-the three screens: not one request to the server carried it.
+A private, practice-only contract changes what HaTi counts (Board figures, reports, reminders, the daily brief,
+sending and signing) in every place a contract is read. It is the one round that could make the real book wrong
+if a wall were missed, so it waits for the owner's word. Newcomers in a company that already has contracts
+practise on the real ones safely: the walks never press anything.
 
 ### Round 7 — Keep the book true — WAITS FOR THE OWNER'S "retake the Handbook pictures"
 
@@ -143,10 +140,10 @@ app, which the house rules allow only when the owner asks by name.
 |---|---|---|
 | 1 | May Jambo gently mark the button a step is about, while walking someone through? | Yes ("do what it takes", 23 Nov 2026) |
 | 2 | May a "Your first steps" list sit in Jambo's panel on the Board while teaching is on? | Yes (same) |
-| 3 | Is a private practice contract allowed? | Yes, built (23 Nov 2026) |
+| 3 | Is a private practice contract allowed? | Open |
 | 4 | Retake all Handbook pictures now? | Open — say "retake the Handbook pictures" |
 | 5 | Should admins have a switch? | No (owner, 23 Nov 2026) |
 
 ## 7. What is left
 
-Round 7, the pictures: waits for the owner's words "retake the Handbook pictures".
+Round 5 (practice contract) and round 7 (the pictures), each on the owner's word.

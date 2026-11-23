@@ -116,15 +116,12 @@ function teachTurn(q, u){
   const seat = teachSeat(u);
   const lines = [_thT('teach_hello'), _thT(seat === 'viewer' ? 'teach_what_viewer' : 'teach_what'), _thT('teach_pick'), _thT('teach_how_off')];
   /* the line under it says where it came from: the Handbook, never "Read from the Board" (jamboReadStamp keeps a read it finds) */
-  /* a practice contract to try it all on, for anyone who may act (round 5) */
-  const ch = teachChoices(u).concat(seat !== 'viewer' ? [{ label: _thT('practice_offer'), teach: 'practice' }] : []);
-  return { ask, html: lines.map(l => `<div style="margin-bottom:8px">${_thE(l)}</div>`).join(''), choices: ch, read: { cid: null, page: '', text: _thT('jov5_hbk_src') } };
+  return { ask, html: lines.map(l => `<div style="margin-bottom:8px">${_thE(l)}</div>`).join(''), choices: teachChoices(u), read: { cid: null, page: '', text: _thT('jov5_hbk_src') } };
 }
 /* the person's answer kept on their own preferences (stPrefSet: the server when there is one, else this browser) */
 function teachSet(v){
   if (!TEACH_STATES.includes(v)) return Promise.resolve(false);
   const u = _thUser(); if (!u || teachState(u) === v) return Promise.resolve(true);
-  if (v === 'off'){ try { practiceDelete({ quiet: true }); } catch (_){} }
   if (typeof stPrefSet === 'function') return Promise.resolve(stPrefSet('teach', v)).then(ok => { teachHintSweep(); return ok; });
   u.prefs = Object.assign({}, u.prefs || {}, { teach: v }); teachHintSweep();
   return Promise.resolve(true);
@@ -134,15 +131,12 @@ function teachSay(q){
   const turn = teachTurn(q);
   if (turn){ try { teachSet(turn.ask); } catch (_){} return turn; }
   /* HaTi's own words ("what is a dossier?"), free for everyone; "what can I do here?" while teaching is on */
-  const n = teachNorm(q);
-  if (TEACH_PRACTICE_DEL_RE.test(n)){ const had = practiceDelete(); return { ask: 'practice', html: _thLines([_thT(had ? 'practice_deleted' : 'practice_none')]), read: _thRead() }; }
-  if (TEACH_PRACTICE_RE.test(n) && teachSeat() !== 'viewer') return practiceTurn();
   const w = teachWordTurn(q) || (teachOn() && teachHereAsked(q) ? teachHereTurn() : null);
   if (w){ try { teachDid('ask'); } catch (_){} }
   return w;
 }
 /* does the sentence belong to the instructor? (the boxes ask this before any other reader) */
-function teachTakes(q){ const n = teachNorm(q); return !!(teachRead(q) || teachWordOf(q) || (teachOn() && teachHereAsked(q)) || TEACH_PRACTICE_DEL_RE.test(n) || (TEACH_PRACTICE_RE.test(n) && teachSeat() !== 'viewer')); }
+function teachTakes(q){ return !!(teachRead(q) || teachWordOf(q) || (teachOn() && teachHereAsked(q))); }
 
 /* THE HINT: a person's first days, while they have said neither */
 function teachHintOn(u){
@@ -347,8 +341,6 @@ function teachChoicePress(c){
   if (!c || !c.teach) return false;
   /* "Start the lessons" under an answer (AI_TEACH_RULE): the same as typing "I'm new" */
   if (c.teach === 'start'){ const t = teachSay("I'm new"); return teachPush(t); }
-  if (c.teach === 'practice') return teachPush(practiceTurn());
-  if (c.teach === 'practice-del'){ const had = practiceDelete(); return teachPush({ html: _thLines([_thT(had ? 'practice_deleted' : 'practice_none')]), read: _thRead() }); }
   if (c.teach === 'walk') return teachPush(teachStepTurn(c.k, 1));
   if (c.teach === 'step') return teachPush(teachStepTurn(c.k, c.i));
   if (c.teach === 'done') return teachPush(teachDoneTurn(c.k));
@@ -422,94 +414,9 @@ function teachTasksGroup(){
   return { label: _thT('teach_tasks_h', { a: T.filter(t => t.done).length, b: T.length }), rows };
 }
 
-/* ---------- ROUND 5 · A PRACTICE CONTRACT (owner, 23 Nov 2026: "build it") ----------
-   A sample agreement only this person has, marked Practice in its name, to try everything on without risk. IT
-   NEVER REACHES THE SERVER: it lives in this browser's own storage (per person), joins their book after every
-   load (practiceJoin), saves there (persist / saveContract → practiceStore), and the ONE door to the server, api(),
-   refuses anything about it (practiceBlocks) — so nobody else can see it, no reminder, brief, report or count on
-   the server knows it, and nothing about it is ever sent or signed for real: the send and the signature say so
-   where they are pressed. Jambo's automatic reads are walled off too (no AI spent). One press deletes it; stopping
-   the lessons deletes it. In this person's own lists it shows, marked Practice, so finding it is practice too. */
-const PRACTICE_PREFIX = 'PRACTICE-';
-function isPractice(c){ return !!(c && c.practice === true && String(c.id || '').startsWith(PRACTICE_PREFIX)); }
-function _thUid(){ const u = _thUser(); return u && u.id ? String(u.id) : 'me'; }
-function practiceKey(){ return 'hati.v1.practice.' + _thUid(); }
-function practiceLoad(){
-  try { const v = JSON.parse(localStorage.getItem(practiceKey()) || 'null'); return v && isPractice(v) ? v : null; } catch (_){ return null; }
-}
-function practiceStore(c){
-  if (!isPractice(c)) return false;
-  try {
-    const keep = {}; for (const [k, v] of Object.entries(c)) if (!k.startsWith('_') || k === '_loaded') keep[k] = v;
-    localStorage.setItem(practiceKey(), JSON.stringify(keep)); return true;
-  } catch (_){ return false; }
-}
-function practiceForget(){ try { localStorage.removeItem(practiceKey()); } catch (_){} }
-/* after every load of the book from the server: this person's practice contract joins it (theirs only) */
-function practiceJoin(book){
-  const list = Array.isArray(book) ? book : [];
-  const p = practiceLoad(); if (!p || list.some(c => c && c.id === p.id)) return list;
-  return list.concat([Object.assign(p, { _loaded: true, _light: false })]);
-}
-function practiceOf(){ try { return ((typeof state !== 'undefined' && state && state.contracts) || []).find(isPractice) || null; } catch (_){ return null; } }
-/* THE ONE DOOR REFUSES IT: a path that names it, or a body that carries it as the contract it is about */
-function practiceBlocks(path, method, body){
-  const p = String(path || '');
-  const named = p.includes(PRACTICE_PREFIX) || (body && typeof body === 'object' && ['contractId', 'id', 'cid', 'contract'].some(k => String(body[k] || '').startsWith(PRACTICE_PREFIX)));
-  if (!named) return '';
-  return /^shares\b/.test(p) ? _thT('practice_not_sent') : _thT('practice_local');
-}
-/* the sample: fictional parties, a draft on the company's own supply paper, in a stream this person can open */
-function practiceBuild(u){
-  const me = u || _thUser() || {};
-  let folder = (typeof TEMPLATES !== 'undefined' && TEMPLATES.RM && TEMPLATES.RM.folder) || '';
-  try {
-    if (typeof FOLDERS === 'object' && FOLDERS && typeof canAccessFolder === 'function' && !canAccessFolder(folder, me)){
-      const ok = Object.keys(FOLDERS).find(f => canAccessFolder(f, me)); if (ok) folder = ok; }
-  } catch (_){}
-  const now = new Date().toISOString();
-  return { id: PRACTICE_PREFIX + String(me.id || 'me').replace(/[^\w-]/g, ''), practice: true, _loaded: true,
-    contractNo: _thT('practice_ref'), name: _thT('practice_name'), counterparty: 'Example Supplies Ltd', value: 1200000, status: 'Draft', template: 'RM',
-    folder, valueType: (typeof TEMPLATES !== 'undefined' && TEMPLATES.RM && TEMPLATES.RM.valueType) || 'estimated',
-    lastAction: (typeof todayStr === 'function' ? todayStr() : now.slice(0, 10)), expiry: null, hash: null, signedAt: null,
-    signatory: '', compliance: { iprs: false, pki: false }, comments: [], fields: {}, scan: null, signatures: [],
-    owner: me.id ? { id: me.id, name: me.name || '' } : undefined, createdAt: now,
-    audit: [{ at: now, user: me.name || 'You', action: 'Created', detail: _thT('practice_audit') }] };
-}
-function practiceCreate(){
-  if (typeof state === 'undefined' || !state) return null;
-  let c = practiceOf();
-  if (!c){ c = practiceBuild(); state.contracts = (state.contracts || []).concat([c]); practiceStore(c);
-    try { if (typeof familyIndexDirty === 'function') familyIndexDirty(); } catch (_){}
-    try { if (typeof updateSidebarCounts === 'function') updateSidebarCounts(); } catch (_){} }
-  try { if (typeof pdOpenOnHome === 'function') pdOpenOnHome(c.id, 'open'); } catch (_){}
-  return c;
-}
-function practiceDelete(o){
-  const c = practiceOf(); practiceForget(); if (!c || typeof state === 'undefined') return false;
-  /* open on screen when it goes: the reader is taken to the Board, never left on a paper that is gone */
-  let open = state.activeId === c.id; try { open = open || (typeof pdContract === 'function' && (pdContract() || {}).id === c.id); } catch (_){}
-  state.contracts = (state.contracts || []).filter(x => x.id !== c.id);
-  if (state.activeId === c.id) state.activeId = null;
-  try { if (typeof familyIndexDirty === 'function') familyIndexDirty(); } catch (_){}
-  try { if ((open || !(o && o.quiet)) && typeof setView === 'function') setView('dashboard'); } catch (_){}
-  try { if (typeof updateSidebarCounts === 'function') updateSidebarCounts(); } catch (_){}
-  return true;
-}
-/* the turn that hands it over: what to try on it, each a walk; and the way to throw it away */
-function practiceTurn(){
-  const has = !!practiceOf(); const c = practiceCreate(); if (!c) return null;
-  return { ask: 'practice', html: _thLines([has ? _thT('practice_again') : _thT('practice_here'), _thT('practice_safe'), _thT('practice_try')]),
-    choices: [{ label: _thT('teach_c_fill'), teach: 'walk', k: '2.3', lead: true }, { label: _thT('teach_c_change'), teach: 'walk', k: '3.2' },
-      { label: _thT('teach_c_send'), teach: 'walk', k: '3.3' }, { label: _thT('practice_delete'), teach: 'practice-del' }], read: _thRead() };
-}
-const TEACH_PRACTICE_RE = /^(?:(?:give me|make me|make|open|start|create|try|show me|i want|can i have|can i try)\s+)?(?:a |an |my |the )?practice(?: contract| agreement| one)?$|^(?:ge mig |öppna |skapa )?(?:ett |mitt )?övningsavtal(?:et)?$/;
-const TEACH_PRACTICE_DEL_RE = /^(?:delete|remove|throw away|bin|get rid of)\s+(?:the |my )?practice(?: contract| agreement| one)?$|^(?:radera|ta bort)\s+(?:mitt )?övningsavtal(?:et)?$/;
-
 const TEACH_API = { TEACH_HINT_DAYS, TEACH_STATES, TEACH_STEPS, teachNorm, teachRead, teachState, teachOn, teachSeat, teachChoices, teachTurn, teachSet, teachSay, teachTakes, teachHintOn, teachPh, teachHintSweep,
   TEACH_WORDS, teachWordOf, teachWordTurn, TEACH_HERE_RE, teachHereAsked, teachHereChapters, teachHereTurn,
   TEACH_FN_DOORS, teachChapter, teachPlain, teachWalkSteps, teachMarksOf, teachFind, teachMarkOn, teachMarkOff, teachStepTurn, teachDoneTurn, teachPush, teachMarkKeep, teachShow, teachChoicePress,
-  TEACH_TASKS, TEACH_DONE_KEYS, teachDoneSet, teachTasks, teachDid, teachTasksGroup,
-  PRACTICE_PREFIX, isPractice, practiceKey, practiceLoad, practiceStore, practiceForget, practiceJoin, practiceOf, practiceBlocks, practiceBuild, practiceCreate, practiceDelete, practiceTurn, TEACH_PRACTICE_RE, TEACH_PRACTICE_DEL_RE };
+  TEACH_TASKS, TEACH_DONE_KEYS, teachDoneSet, teachTasks, teachDid, teachTasksGroup };
 if (typeof window !== 'undefined') Object.assign(window, TEACH_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = TEACH_API;
