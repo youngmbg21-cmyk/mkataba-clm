@@ -2556,6 +2556,9 @@ function tbOpenItems() {
   if (empty.length) out.push({ kind: 'empty', tone: 'amb', n: empty.length, k: empty[0].k, head: empty[0].head || '' });
   const C = _tb.cands;
   if (C && !C.busy && C.rows.length) out.push({ kind: 'cands', tone: 'amb', n: C.rows.length });
+  /* a blank the wording carries that is no field asks nobody (the Blanks tab's "Not yet a field", 23 Nov 2026) */
+  const nf = tbWordingBlanks().filter(x => !_tb.fields.some(f => f.fieldKey === x.key) && !(_tb.proposed || []).some(q => q.key === x.key)).length;
+  if (nf) out.push({ kind: 'blanks', tone: 'amb', n: nf });
   const cov = tbCoverage();
   if (cov) {
     const D = _tb.decided || {};
@@ -2573,39 +2576,69 @@ function tbOpenItemLine(it) {
   if (it.kind === 'stream') return i18t('tb_pq_stream');
   if (it.kind === 'empty') return it.n === 1 ? i18t('tb_pq_empty_one', { head: it.head || i18t('tb_untitled') }) : i18t('tb_pq_empty_other', { n: it.n, head: it.head || i18t('tb_untitled') });
   if (it.kind === 'cands') return i18tn('tb_pq_cands', it.n, { n: it.n });
+  if (it.kind === 'blanks') return i18tn('tb_pq_blanks', it.n, { n: it.n });
   if (it.kind === 'dev') return i18t(it.kept ? 'tb_pq_dev_kept' : 'tb_pq_dev', { head: it.head });
   if (it.kind === 'missing') return i18tn('tb_pq_missing', it.n, { n: it.n, list: it.list.slice(0, TB_PQ_NAMED).join(', ') + (it.n > TB_PQ_NAMED ? '…' : '') });
   return '';
 }
+/* ════ PUBLISH IS ONE POP-UP IN THREE STEPS (owner: "Build as drawn", 23 Nov 2026; replaces three separate pop-ups) ════
+   Check · How it looks · On the shelf, the one Legora pop-up (lgpHtml, lines, no boxes). CHECK says the whole check:
+   each open thing a line with its own way forward in the row (tbOpenItems, the ONE reading), what is fine in green;
+   Publish anyway still publishes with things open (nothing here blocks). HOW IT LOOKS is the 14 Nov choice, unchanged,
+   with Back to the check. ON THE SHELF says it went, a short timeline, then Draft a contract from it. */
+function tbPubLines(items) {
+  const h = tbHeadFacts(), secs = tbSections(), cov = tbCoverage();
+  const line = (tone, words, act) => `<div class="tb-del-l"><i style="background:var(--st-${tone}-dot)"></i><span>${esc(words)}</span>${act || ''}</div>`;
+  const out = items.map((it, i) => line(it.tone === 'gry' ? 'gray' : 'amber', tbOpenItemLine(it),
+    `<span class="sp"></span><button type="button" class="ui-link tb-pq-go" data-tb-pq="${i}">${esc(i18t(it.kind === 'stream' ? 'tb_pq_choose' : 'tb_pq_show'))}</button>`));
+  const has = k => items.some(it => it.kind === k);
+  if (!has('stream') && h.streamName) out.push(line('green', i18t('tb_pq_ok_stream', { name: h.streamName })));
+  if (!has('empty') && secs.length) out.push(line('green', i18t('tb_pq_ok_written')));
+  if (cov && cov.total && !has('dev') && !has('missing')) out.push(line('green', i18t('tb_pq_ok_pb', { met: cov.met, n: cov.total })));
+  if (!has('blanks') && !has('cands')) out.push(line('green', _tb.fields.length ? i18t('tb_pq_ok_blanks', { n: _tb.fields.length }) : i18t('tb_pq_ok_noblanks')));
+  return `<div class="tb-del-ls">${out.join('')}</div>`;
+}
 function tbPublishAskHtml(items) {
   const h = tbHeadFacts();
-  const rows = items.map((it, i) => `<div class="tb-pq-o"><span class="tb-pq-dot ${it.tone}"></span><span class="tb-pq-t">${esc(tbOpenItemLine(it))}</span>
-      <button type="button" class="ui-btn" data-tb-pq="${i}">${i18t(it.kind === 'stream' ? 'tb_pq_choose' : 'tb_pq_show')}</button></div>`).join('');
-  return `<div style="padding:24px">
-    <h3 style="margin:0 0 6px;font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${esc(i18t('tb_pq_title', { name: h.name, n: _tb.versionNumber }))}</h3>
-    <p style="margin:0 0 12px;font-size:var(--t-body);color:var(--color-neutral-600)">${esc(i18tn('tb_pq_lead', items.length, { n: items.length }))}</p>
-    <div class="tb-pq">${rows}</div>
-    <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
-      <button type="button" class="ui-btn" id="tb-pq-keep">${i18t('tb_pq_keep')}</button>
-      <button type="button" class="ui-btn ui-btn-primary" id="tb-pq-go">${i18t('tb_pq_go')}</button>
-    </div></div>`;
+  return lgpHtml(tbPubOpts(1, { items, name: h.name }));
+}
+function tbPubNames() { return [i18t('tb_ps_check'), i18t('tb_ps_look'), i18t('tb_ps_shelf')]; }
+function tbPubOpts(step, st) {
+  const steps = { names: tbPubNames(), at: step };
+  if (step === 1) return { id: 'tb-pub', steps, title: i18t('tb_pq_title', { name: st.name, n: _tb.versionNumber }),
+    sub: st.items.length ? i18tn('tb_pq_lead', st.items.length, { n: st.items.length }) : i18t('tb_pq_lead_none'),
+    html: tbPubLines(st.items), primary: { label: st.items.length ? i18t('tb_pq_go') : i18t('of_next'), attr: 'id="tb-pq-go"' },
+    cancelAttr: 'id="tb-pq-keep"', cancelLabel: i18t('tb_pq_keep') };
+  if (step === 2) {
+    const has = !!(st.org && st.org.designId), v = _tb.versionNumber;
+    const row = (k, t, d, on, dead) => `<label class="lgp-tick is-radio${dead ? ' is-off' : ''}"${dead ? ' style="cursor:not-allowed"' : ''}>
+      <input type="radio" name="tb-look" value="${k}"${on ? ' checked' : ''}${dead ? ' disabled' : ''}>
+      <span class="lgp-tl">${esc(t)}<span class="lgp-tsub">${esc(d)}</span></span></label>`;
+    const pick = st.look || (has ? 'company' : 'design');
+    const note = v > 1 ? lgpRowHtml({ k: i18t('tb_look_note'), id: 'tb-look-note', type: 'area', max: 500, value: st.note || '' }) : '';
+    return { id: 'tb-pub', steps, title: i18t('tb_look_title', { name: st.name }), sub: i18t('tb_look_lead'),
+      html: `<div class="lgp-list">${row('company', i18t('tb_look_company'), has ? i18t('tb_look_company_d') : i18t('tb_look_company_none'), pick === 'company', !has)}
+        ${row('design', i18t('tb_look_design'), i18t('tb_look_design_d'), pick === 'design', false)}</div>${note}`,
+      back: { attr: 'id="tb-look-back"' },
+      primary: { label: i18t(pick === 'company' ? 'tb_look_publish' : 'tb_look_next'), attr: 'id="tb-look-go"' }, cancelAttr: 'data-dlg-cancel id="tb-look-x"' };
+  }
+  const when = new Date().toLocaleTimeString(typeof langLocale === 'function' ? langLocale() : undefined, { hour: '2-digit', minute: '2-digit' });
+  const tl = (cls, words) => `<div class="tb-tl-r${cls ? ' ' + cls : ''}"><span>${words}</span></div>`;
+  return { id: 'tb-pub', steps, title: i18t('tb_pub_ready', { name: st.name }), noCancel: true,
+    html: `<p class="tb-pub-badge"><span class="tb-bdg is-green"><i></i>${esc(i18t('tb_pub_on_shelf', { n: st.vn || '' }))}</span></p>
+      <p class="lgp-sub" style="margin:0 0 var(--s-3)">${esc(i18t('tb_pub_ready_d'))}</p>
+      <div class="tb-tl">${tl('d', esc(i18t('tb_ps_tl_secs', { n: st.secs, w: st.written })))}${tl('d', esc(i18t('tb_ps_tl_pub', { n: st.vn || '', when })))}${tl('n', `<b>${esc(i18t('tb_ps_tl_next'))}</b>`)}</div>`,
+    primary: { label: i18t('tb_pub_draft'), attr: 'id="tb-pub-draft"' }, alt: { label: i18t('tb_pub_shelf'), attr: 'id="tb-pub-shelf"' } };
 }
 /* Each door closes the question FIRST and then acts, so the reader lands on
    the thing it named rather than behind a dialog. Keep writing changes
    nothing — the draft is exactly as it was before Publish was pressed. */
 function tbPublishAsk(items) {
-  openModal(tbPublishAskHtml(items), { maxWidth: (window.DLG_W && DLG_W.m) || '520px', label: i18t('tb_pq_title', { name: tbHeadFacts().name, n: _tb.versionNumber }) });
-  const root = document.getElementById('modal-root');
-  root?.querySelectorAll('[data-tb-pq]').forEach(b => b.addEventListener('click', () => {
-    const it = items[Number(b.getAttribute('data-tb-pq'))]; closeModal(); if (!it) return;
-    if (it.kind === 'stream') tbMetaOpen('stream');
-    else if (it.kind === 'empty' || it.kind === 'dev') tbFocus(it.k, { scroll: true });
-    else if (it.kind === 'cands') tbSetTab('blanks');
-    else if (it.kind === 'missing') tbSetTab('playbook');
-  }));
-  document.getElementById('tb-pq-keep')?.addEventListener('click', () => closeModal());
-  /* the look question takes this one's place (one pop-up replacing another arrives once) */
-  document.getElementById('tb-pq-go')?.addEventListener('click', () => { tbPublishGo(); });
+  if (!_tb) return;
+  const st = { items, name: tbHeadFacts().name, org: null, look: null, note: '' };
+  _tb._pub = st;
+  lgpOpen(Object.assign(tbPubOpts(1, st), { focus: false }));
+  tbPubWire(1);
 }
 
 /* ---- PAINTING. The page once; the paper and the rail into their own slots,
@@ -3417,11 +3450,9 @@ async function tbSave(quiet) {
    the publish call; with a company default already saved it opens
    pre-dressed and Publish is one click. */
 function tbPublish() {
-  /* THE QUESTION COMES BEFORE THE SAVE (24 Sep 2026): "Keep writing" must
-     leave the draft exactly as it was, strip line included. */
-  const open = tbOpenItems();
-  if (open.length) { tbPublishAsk(open); return; }
-  return tbPublishGo();
+  /* THE QUESTION COMES BEFORE THE SAVE (24 Sep 2026): "Keep writing" leaves the draft exactly as it was. One pop-up
+     for the whole publish (23 Nov 2026): it opens on Check, which says what is open and what is fine. */
+  tbPublishAsk(tbOpenItems());
 }
 async function tbPublishGo() {
   if (!await tbSave(true)) return;
@@ -3434,57 +3465,70 @@ async function tbPublishGo() {
    look set yet, the first choice says so and Design it now is chosen. */
 async function tbLookAsk() {
   if (typeof refreshOrgBranding === 'function') { try { await refreshOrgBranding(); } catch (_) { /* the choice still opens */ } }
-  const org = window.ORG_BRANDING || null, has = !!(org && org.designId);
-  const name = tbHeadFacts().name, v = _tb.versionNumber;
-  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1118): the two answers as quiet choice lines (a ring, the name, its one
-     line), the change note a line of its own, the one black button whose words follow the choice, Cancel last */
-  const row = (k, t, d, on, dead) => `<label class="lgp-tick is-radio${dead ? ' is-off' : ''}"${dead ? ' style="cursor:not-allowed"' : ''}>
-      <input type="radio" name="tb-look" value="${k}"${on ? ' checked' : ''}${dead ? ' disabled' : ''}>
-      <span class="lgp-tl">${esc(t)}<span class="lgp-tsub">${esc(d)}</span></span></label>`;
-  const note = v > 1 ? lgpRowHtml({ k: i18t('tb_look_note'), id: 'tb-look-note', type: 'area', max: 500 }) : '';
-  lgpOpen({ id: 'tb-look', title: i18t('tb_look_title', { name }), sub: i18t('tb_look_lead'),
-    html: `<div class="lgp-list">
-      ${row('company', i18t('tb_look_company'), has ? i18t('tb_look_company_d') : i18t('tb_look_company_none'), has, !has)}
-      ${row('design', i18t('tb_look_design'), i18t('tb_look_design_d'), !has, false)}
-    </div>${note}`,
-    primary: { label: i18t(has ? 'tb_look_publish' : 'tb_look_next'), attr: 'id="tb-look-go"' },
-    cancelAttr: 'data-dlg-cancel id="tb-look-x"', focus: 'input[name="tb-look"]:checked' });
-  const pick = () => (document.querySelector('input[name="tb-look"]:checked') || {}).value || 'design';
-  const go = document.getElementById('tb-look-go');
-  document.querySelectorAll('input[name="tb-look"]').forEach(r => r.addEventListener('change', () => {
-    if (go) go.textContent = i18t(pick() === 'company' ? 'tb_look_publish' : 'tb_look_next'); }));
-  document.getElementById('tb-look-x')?.addEventListener('click', () => closeModal());
-  go?.addEventListener('click', async () => {
-    const changeNote = String((document.getElementById('tb-look-note') || {}).value || '').trim();
-    if (pick() === 'design') { closeModal(); return tbDesignStepGo(changeNote); }
-    if (typeof busySet === 'function') busySet(go, i18t('ds_publishing'));
-    try {
-      /* design: null = this paper wears no look of its own: its stream's, else the company's */
-      const r = await api(`templates/${_tb.tid}/versions/${_tb.vid}/publish`, 'POST', { changeNote, design: null });
-      (r.warnings || []).forEach(w => toast(w, 'warn'));
-      if (typeof tplLibRefresh === 'function') { try { await tplLibRefresh(); } catch (_) { /* the landing still opens */ } }
-      tbPublishedLand(_tb.tid, name, r.versionNumber);
-    } catch (e) {
-      go.disabled = false; go.textContent = i18t('tb_look_publish');
-      ((e.data && e.data.problems) || [e.message]).forEach(p => toast(p, 'err'));
-    }
-  });
+  if (!_tb) return;
+  const st = _tb._pub || (_tb._pub = { items: [], name: tbHeadFacts().name, note: '' });
+  st.name = tbHeadFacts().name; st.org = window.ORG_BRANDING || null;
+  const o = Object.assign(tbPubOpts(2, st), { focus: 'input[name="tb-look"]:checked' });
+  if (document.querySelector('#modal-root #tb-pub')) lgpRepaint(o); else lgpOpen(o);
+  tbPubWire(2);
 }
 /* PUBLISHED: DRAFT A CONTRACT FROM IT (owner, 14 Nov 2026, part 11): the new paper is on the shelf; the one black button
    goes back to the New agreement page with it already chosen, the other to Our paper where it is kept. */
 function tbPublishedLand(tid, name, vn) {
-  openModal(`<div style="padding:18px 20px">
-    <p style="margin:0 0 6px;display:flex;align-items:center;gap:8px;color:var(--st-green-fg);font-size:var(--t-label);font-weight:var(--w-strong)"><span style="width:8px;height:8px;border-radius:50%;background:var(--st-green-dot)"></span>${esc(i18t('tb_pub_on_shelf', { n: vn || '' }))}</p>
-    <h3 style="margin:0 0 6px">${esc(i18t('tb_pub_ready', { name }))}</h3>
-    <p class="sap-m" style="margin:0 0 var(--s-4)">${esc(i18t('tb_pub_ready_d'))}</p>
-    <div style="display:flex;gap:var(--s-2);flex-wrap:wrap">
-      <button type="button" id="tb-pub-draft" class="ui-btn ui-btn-primary">${esc(i18t('tb_pub_draft'))}</button>
-      <button type="button" id="tb-pub-shelf" class="ui-btn">${esc(i18t('tb_pub_shelf'))}</button></div>
-  </div>`, { maxWidth: (window.DLG_W && DLG_W.m) || '520px', label: i18t('tb_pub_ready', { name }) });
-  document.getElementById('tb-pub-draft')?.addEventListener('click', () => {
-    if (typeof openNewAgreement === 'function') openNewAgreement({ pick: { kind: 'lib', id: tid } }); });
-  document.getElementById('tb-pub-shelf')?.addEventListener('click', () => {
-    closeModal(); if (typeof openTemplateLibDetail === 'function') openTemplateLibDetail(tid); });
+  const st = (_tb && _tb._pub) || { name };
+  const secs = _tb ? tbSections() : [];
+  Object.assign(st, { name, vn, secs: secs.length, written: secs.filter(x => !tbSectionOwes(x)).length, tid });
+  const o = tbPubOpts(3, st);
+  if (document.querySelector('#modal-root #tb-pub')) lgpRepaint(o); else lgpOpen(o);
+  tbPubWire(3, { tid });
+}
+function tbPubWire(step, x = {}) {
+  const st = _tb && _tb._pub;
+  const on = (id, fn) => document.getElementById(id)?.addEventListener('click', e => { e.preventDefault(); fn(e); });
+  if (step === 1 && st) {
+    document.querySelectorAll('#tb-pub [data-tb-pq]').forEach(b => b.addEventListener('click', e => {
+      e.preventDefault();
+      const it = st.items[Number(b.getAttribute('data-tb-pq'))]; closeModal(); if (!it) return;
+      if (it.kind === 'stream') tbMetaOpen('stream');
+      else if (it.kind === 'empty' || it.kind === 'dev') tbFocus(it.k, { scroll: true });
+      else if (it.kind === 'cands' || it.kind === 'blanks') tbSetTab('blanks');
+      else if (it.kind === 'missing') tbSetTab('playbook');
+    }));
+    on('tb-pq-keep', () => closeModal());
+    on('tb-pq-go', () => { tbPublishGo(); });
+    return;
+  }
+  if (step === 2 && st) {
+    const pick = () => (document.querySelector('input[name="tb-look"]:checked') || {}).value || 'design';
+    const go = document.getElementById('tb-look-go');
+    document.querySelectorAll('input[name="tb-look"]').forEach(r => r.addEventListener('change', () => {
+      st.look = pick(); if (go) go.textContent = i18t(pick() === 'company' ? 'tb_look_publish' : 'tb_look_next'); }));
+    on('tb-look-x', () => closeModal());
+    on('tb-look-back', () => { st.note = String((document.getElementById('tb-look-note') || {}).value || ''); st.look = pick();
+      lgpRepaint(tbPubOpts(1, Object.assign(st, { items: tbOpenItems() }))); tbPubWire(1); });
+    go?.addEventListener('click', async e => {
+      e.preventDefault();
+      const changeNote = String((document.getElementById('tb-look-note') || {}).value || '').trim();
+      if (pick() === 'design') { closeModal(); return tbDesignStepGo(changeNote); }
+      if (typeof busySet === 'function') busySet(go, i18t('ds_publishing'));
+      try {
+        /* design: null = this paper wears no look of its own: its stream's, else the company's */
+        const r = await api(`templates/${_tb.tid}/versions/${_tb.vid}/publish`, 'POST', { changeNote, design: null });
+        (r.warnings || []).forEach(w => toast(w, 'warn'));
+        if (typeof tplLibRefresh === 'function') { try { await tplLibRefresh(); } catch (_) { /* the landing still opens */ } }
+        tbPublishedLand(_tb.tid, st.name, r.versionNumber);
+      } catch (err) {
+        go.disabled = false; go.textContent = i18t('tb_look_publish');
+        ((err.data && err.data.problems) || [err.message]).forEach(p => toast(p, 'err'));
+      }
+    });
+    return;
+  }
+  if (step === 3) {
+    const tid = x.tid || (st && st.tid);
+    on('tb-pub-draft', () => { if (typeof openNewAgreement === 'function') openNewAgreement({ pick: { kind: 'lib', id: tid } }); });
+    on('tb-pub-shelf', () => { closeModal(); if (typeof openTemplateLibDetail === 'function') openTemplateLibDetail(tid); });
+  }
 }
 /* DESIGN IT NOW: the design step, for this paper alone */
 function tbDesignStepGo(changeNote) {
