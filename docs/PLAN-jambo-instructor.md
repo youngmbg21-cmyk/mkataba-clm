@@ -78,7 +78,7 @@ tests and its Handbook lines in the same change.
   Jambo's empty box read: New here? Say "I'm new".
 - The welcome email an admin's invitation sends ends with: New to HaTi? Once
   you are in, tell Jambo "I'm new" and he will show you around.
-- Handbook: the Ask Jambo chapter says how. Test: f1186.
+- Handbook: the Ask Jambo chapter says how. Test: f1189.
 
 ### Rounds 2, 3, 4 and 6 — BUILT 23 Nov 2026 (owner: "Do what is necessary for a user to have a seamless transition into using Hati so do what it takes. No need for admin switch")
 

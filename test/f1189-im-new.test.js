@@ -1,5 +1,5 @@
 'use strict';
-/* f1186 — "I'M NEW": JAMBO THE INSTRUCTOR, ROUND 1 (owner, 23 Nov 2026: "someone should simply say I am new and that
+/* f1189 — "I'M NEW": JAMBO THE INSTRUCTOR, ROUND 1 (owner, 23 Nov 2026: "someone should simply say I am new and that
    how jambo knows"; "Both, build it now"; the plan: docs/PLAN-jambo-instructor.md)
 
    (1) THE WHOLE SENTENCE IS READ: "I'm new", "teach me", "show me around", "jag är ny" turn teaching on; "I know my way
@@ -23,7 +23,7 @@ const R = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const T = require('../js/teach.js');
 
-describe('f1186 (1) the whole sentence is read', () => {
+describe('f1189 (1) the whole sentence is read', () => {
   test('on, in both languages, with greetings and courtesy set aside', () => {
     for (const q of ["I'm new", 'I am new here', 'Hi Jambo, I’m new!', 'im new to hati', 'teach me', 'Show me around please',
       'where do I start?', 'How do I get started', 'jag är ny', 'Hej Jambo, jag är ny här', 'visa mig runt'])
@@ -40,7 +40,7 @@ describe('f1186 (1) the whole sentence is read', () => {
   });
 });
 
-describe('f1186 (2) the turn is free and fits the person', () => {
+describe('f1189 (2) the turn is free and fits the person', () => {
   const H = require('../js/handbook.js');
   const chapters = new Set((H.HANDBOOK_CHAPTERS || []).map(c => c.k));
   test('every first step opens a chapter that exists, one lead each', () => {
@@ -76,7 +76,7 @@ describe('f1186 (2) the turn is free and fits the person', () => {
   });
 });
 
-describe('f1186 (3) the server keeps the answer', () => {
+describe('f1189 (3) the server keeps the answer', () => {
   let h, W;
   before(async () => { h = await startHatiWithMail(); W = await seedWorkspace(h); });
   after(async () => { try { await h.stop(); } catch (_){} });
@@ -110,7 +110,7 @@ describe('f1186 (3) the server keeps the answer', () => {
   });
 });
 
-describe('f1186 (4) every box reads it first', () => {
+describe('f1189 (4) every box reads it first', () => {
   const region = (src, start, len) => { const i = src.indexOf(start); assert.ok(i >= 0, start); return strip(src.slice(i, i + len)); };
   test("Home's box: before the brain and before the one reader", () => {
     const r = region(R('js/views/intelligence.js'), 'async function intelAsk(', 12000);
@@ -140,7 +140,7 @@ describe('f1186 (4) every box reads it first', () => {
   });
 });
 
-describe('f1186 (5) the hint', () => {
+describe('f1189 (5) the hint', () => {
   const day = 86400000;
   test('first days, until they say either', () => {
     const fresh = { createdAt: new Date(Date.now() - 2 * day).toISOString(), prefs: {} };
@@ -158,7 +158,7 @@ describe('f1186 (5) the hint', () => {
 });
 
 /* ---- ROUNDS 2–6 (owner, 23 Nov 2026: "do what it takes … No need for admin switch") ---- */
-describe('f1186 (6) the walk: one step at a time, from the chapter itself', () => {
+describe('f1189 (6) the walk: one step at a time, from the chapter itself', () => {
   global.hbkChapterOf = require('../js/handbook.js').hbkChapterOf;
   global.hbkPlainOf = require('../js/handbook.js').hbkPlainOf;
   test('every step is the chapter\'s own, numbered, with Next until Done', () => {
@@ -191,7 +191,7 @@ describe('f1186 (6) the walk: one step at a time, from the chapter itself', () =
   });
 });
 
-describe('f1186 (7) plain words and "What can I do here?"', () => {
+describe('f1189 (7) plain words and "What can I do here?"', () => {
   test('HaTi\'s own words, read whole, in both languages', () => {
     assert.equal(T.teachWordOf('What is a dossier?').k, 'dossier');
     assert.equal(T.teachWordOf("what's the playbook").k, 'playbook');
@@ -217,7 +217,7 @@ describe('f1186 (7) plain words and "What can I do here?"', () => {
   });
 });
 
-describe('f1186 (8) your first steps tick themselves', () => {
+describe('f1189 (8) your first steps tick themselves', () => {
   test('a list by seat, every step a chapter that exists, keys the server knows', () => {
     const H = require('../js/handbook.js');
     for (const [seat, list] of Object.entries(T.TEACH_TASKS)) for (const [key, , ch] of list){
@@ -264,7 +264,7 @@ describe('f1186 (8) your first steps tick themselves', () => {
 
 /* ---- THE STRAY QUOTE, AND "START THE LESSONS" (owner, 23 Nov 2026: "clean the stray quote mark and the build your
    recommendation") ---- */
-describe('f1186 (9) a stray closing quote is taken off, a real quotation kept', () => {
+describe('f1189 (9) a stray closing quote is taken off, a real quotation kept', () => {
   const fnOf = (src, name, next) => { const i = src.indexOf('function ' + name); const j = src.indexOf(next, i); assert.ok(i >= 0 && j > i, name); return src.slice(i, j); };
   const srv = new Function(fnOf(R('server/server.js'), 'answerTrim', '\nfunction normalizeDeliver') + 'return answerTrim;')();
   const web = new Function(fnOf(R('js/ai.js'), 'aiAnswerTrim', '/* A CHAPTER IS A BUTTON') + 'return aiAnswerTrim;')();
@@ -279,7 +279,7 @@ describe('f1186 (9) a stray closing quote is taken off, a real quotation kept', 
   });
 });
 
-describe('f1186 (10) "Start the lessons" under any answer that hears someone new', () => {
+describe('f1189 (10) "Start the lessons" under any answer that hears someone new', () => {
   const { startHati, startScriptedAi, seedWorkspace } = require('./helpers');
   let ai, h, W;
   before(async () => { ai = await startScriptedAi(); h = await startHati({ ANTHROPIC_BASE_URL: ai.base, HATI_AGENTS_AUTO: 'off' }); W = await seedWorkspace(h); });
