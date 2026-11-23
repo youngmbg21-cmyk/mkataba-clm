@@ -2987,7 +2987,7 @@ function calLsHzHtml(H){
   const chosen=calLsPicked('horizon', H.rows.map(r=>r.c.id));
   const money=calLsMayMoney();
   const body=H.rows.map(r=>{ const c=r.c, q=calLsTermQuote(c), st=r.st;
-    const val=money&&Number(c.value)>0&&!(typeof window.fxIsPay==='function'&&fxIsPay(c))?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):(window.fmtMoneyShort?fmtMoneyShort(c.value):'')):'';
+    const val=money&&Number(c.value)>0&&!(typeof window.fxIsPay==='function'&&fxIsPay(c))?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'';
     const sub=[c.counterparty||'', val].filter(Boolean).map(E).join(' · ');
     const may=((typeof window.mayActOn!=='function')||window.mayActOn(c))&&st.k!=='done'&&st.k!=='none';
     const w=Math.max(2,Math.min(100,r.days/365*100));
