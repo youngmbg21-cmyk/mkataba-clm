@@ -1,5 +1,5 @@
 /* ============================================================
-   f1184 — the Contracts door lands on the Folders, every time
+   f1190 — the Contracts door lands on the Folders, every time
    ============================================================
    Owner, 23 Nov 2026: "when i press contracts on the green links above the
    jambo entry field i am sent to the contracts list by passing the folders.
@@ -16,7 +16,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const CA = fs.readFileSync(path.join(__dirname, '..', 'js/copilotacts.js'), 'utf8');
 
-test('f1184 — the named Contracts door puts the Folders on, then lands', () => {
+test('f1190 — the named Contracts door puts the Folders on, then lands', () => {
   const i = CA.indexOf('  contracts: () => {'); assert.ok(i > 0, 'the door');
   const body = CA.slice(i, CA.indexOf('return caHomeWall(); },', i) + 'return caHomeWall(); },'.length);
   const seen = [];
