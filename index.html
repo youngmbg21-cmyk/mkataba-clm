@@ -22709,6 +22709,42 @@
   html.lg-new .hbkn-tl li i{width:11px;height:11px;border-radius:50%;background:var(--color-surface);border:2px solid var(--color-neutral-300);position:relative;top:1px;box-sizing:border-box}
   html.lg-new .hbkn-tl li.is-cur{color:var(--color-text);font-weight:var(--w-strong)}html.lg-new .hbkn-tl li.is-cur i{border-color:var(--st-green-fg);background:var(--st-green-fg)}
   html.lg-new .hbkn-pwhere{font-size:13.5px;color:var(--color-quiet)}
+  /* THE NOTEBOOK, THE LEGORA + STRIPE WAY (owner's pick, 23 Nov 2026, as drawn on the Handbook's frame): the Handbook's
+     calm table, chips and badges, with each row carrying the words Jambo last quoted and their section; the panel's
+     quote, "Where I quote it" bars and timeline; reading, the document by its sections, the quoted ones marked. Tokens only. */
+  html.lg-new .nb-page .hbkn-card{gap:0}
+  html.lg-new .nb-tabs{margin:14px 0 0}
+  html.lg-new .hbkn-tbl.nb-tbl th:nth-child(1){width:auto}html.lg-new .hbkn-tbl.nb-tbl th:nth-child(2){width:108px}
+  html.lg-new .hbkn-tbl.nb-tbl th:nth-child(3){width:92px}html.lg-new .hbkn-tbl.nb-tbl th:nth-child(4){width:138px}
+  html.lg-new .hbkn-tbl.nb-tbl th:nth-child(5){width:72px}html.lg-new .hbkn-tbl.nb-tbl th:nth-child(6){width:116px}html.lg-new .hbkn-tbl.nb-tbl th:nth-child(7){width:132px}
+  html.lg-new .nb-tbl td{vertical-align:middle}
+  html.lg-new .nb-rq{display:block;color:var(--color-quiet);font-size:12.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--font-doc)}
+  html.lg-new .nb-rq.is-none{font-family:inherit;color:var(--color-neutral-400)}
+  html.lg-new .hbkn-tt .nb-rq .nb-sec{display:inline}
+  html.lg-new .nb-sec{font-family:var(--font-ref);font-size:11.5px;color:var(--color-neutral-400);margin-right:2px;white-space:nowrap}
+  html.lg-new .nb-shelf{color:var(--color-quiet)}html.lg-new .nb-day{white-space:nowrap}
+  html.lg-new .nb-act{text-align:right}html.lg-new .nb-act .ui-btn{white-space:nowrap}
+  html.lg-new .nb-wait{padding:24px 10px}html.lg-new .nb-empty{max-width:560px}
+  html.lg-new .nb-page.is-reading .nb-read{max-width:720px;width:100%;margin:12px auto 0;flex:1;overflow-y:auto;min-height:0}
+  html.lg-new .nb-paper p{font-family:var(--font-doc);font-size:15px;line-height:1.6;margin:0 0 8px;color:var(--color-doc-text)}
+  html.lg-new .nb-s{padding:10px 12px;margin:0 -12px;border-radius:var(--radius-sm)}
+  html.lg-new .nb-s.is-quoted{background:var(--row-chosen);box-shadow:inset 2px 0 0 var(--st-green-dot)}
+  html.lg-new .nb-sn{display:flex;align-items:center;gap:8px;margin:0 0 4px}
+  html.lg-new .nb-cut{color:var(--st-amber-fg);font-size:13px;margin:0 0 12px}
+  html.lg-new .nb-pq{margin:0;border-left:2px solid var(--color-neutral-300);padding-left:10px;font-family:var(--font-doc);font-size:15px;line-height:1.45;color:var(--color-text)}
+  html.lg-new .nb-pqs{margin:6px 0 0;font-size:12px;color:var(--color-quiet)}
+  html.lg-new .nb-bars{display:flex;flex-direction:column;gap:6px}
+  html.lg-new .nb-bar{display:grid;grid-template-columns:76px minmax(0,1fr) 24px;align-items:center;gap:8px;border:0;background:none;padding:2px 0;font:inherit;font-size:12px;color:var(--color-quiet);cursor:pointer;text-align:left;border-radius:6px}
+  html.lg-new .nb-bar:hover{background:var(--row-hover)}
+  html.lg-new .nb-bar span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .nb-bar i{display:block;height:8px;border-radius:4px;background:var(--st-steel-dot);width:var(--nb-w)}
+  html.lg-new .nb-bar b{font-weight:var(--w-label);text-align:right;font-variant-numeric:tabular-nums}
+  html.lg-new .nb-tl b{font-weight:var(--w-label);color:var(--color-text)}html.lg-new .nb-tl li{font-size:12.5px}
+  html.lg-new .nb-acts{display:flex;flex-wrap:wrap;gap:8px}
+  html.lg-new .nb-file{display:flex;align-items:center;gap:10px;min-width:0}html.lg-new .nb-fname{color:var(--color-quiet);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .jov5:is([data-jov-slot="nb"],[data-jov-slot="nb-ch"]) .jov5-group{background:none;border:0;border-radius:0;box-shadow:none;padding:0}
+  html.lg-new .jov5:is([data-jov-slot="nb"],[data-jov-slot="nb-ch"]) .jov5-row{background:none;border-radius:6px}
+  html.lg-new .jov5:is([data-jov-slot="nb"],[data-jov-slot="nb-ch"]) .jov5-row.is-door:hover{background:var(--row-hover)}
   /* the Handbook's panels draw no boxes, as drawn: groups on the panel itself, the black button under its words */
   html.lg-new .jov5:is([data-jov-slot="hbkn"],[data-jov-slot="hbkn-ch"],[data-jov-slot="hbkn-rd"]) .jov5-group{background:none;border:0;border-radius:0;box-shadow:none;padding:0}
   html.lg-new .jov5:is([data-jov-slot="hbkn"],[data-jov-slot="hbkn-ch"],[data-jov-slot="hbkn-rd"]) .jov5-row{background:none;border-radius:6px}

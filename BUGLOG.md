@@ -22958,3 +22958,7 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - f804 (3), (6) and its subtest "3a a word for one contract takes the held row…" are red on main before the old-layouts round (the list panel's ask / Brain naming); not touched.
 - f977 (6, 7) "the foot follows, one thing when empty — every HARMONY rule waits on the switch" is red on main before the old-layouts round; not touched.
 - Old-layouts round: below INS_NARROW_MIN (720 wide, short of the phone's 768 break) the pages still draw their old narrow layout, and Settings, Negotiations and Jambo's agents have no INS_PAGE_REPAINT entry, so crossing 720 does not redraw them.
+
+## Noticed, not fixed — 23 Nov 2026 (the Notebook round)
+- Red on main before the Notebook was built, not touched: f735 (3) "a booking goes to the Calendar's Jambo from every box"; f1073 (3) "Approvals: one grey band inside the row"; f705 (8) "the wiring"; f841 (2) "the journey" with its "2a six stages…"; the Brain's "8e the Brain knows the map" subtest.
+- CLAUDE.md is about 109 KB, past its own "under about 80 KB" line; a trim needs the owner's yes.

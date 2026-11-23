@@ -79,6 +79,7 @@ const { isWorkingId, contractRef, signRouteOf, handoverOf, handoverActive,
   HANDOVER_LIVE_DAYS, SIGNED_VIA, outsideFileIds, outsideBlanksIn } = require('../js/outside.js');
 /* WHO DOES WHAT (owner, 22 Nov 2026): the one reading both sides tick — the same file the browser loads */
 const { dutyPayload, dutyTickRefusal, dutyTickSet, dutyReading } = require('../js/dealduties.js');
+const NB = require('../js/notebook.js');   // the notebook's cutter and status, both hosts
 /* Look a string up in a specific language rather than "the current" one: there
    is no current language on a server writing to five recipients at once. */
 /* WHAT LANGUAGE DOES THIS RECIPIENT READ? A member of the workspace carries
@@ -14283,7 +14284,7 @@ function ruleDoorOf(d, scope) {
 }
 
 /* THE ONE SEARCH, AS A TOOL (stage 1): what the reader may see, found by words */
-const HS_TOOL_DESC = 'Search EVERYTHING in HaTi this reader may see, by words: contracts, the passages of their wording (a clause), obligations, notes, history, parties, requests (what a colleague or a party has asked legal for), people (each colleague\'s name, job title and HaTi role: admin, editor or viewer), templates, our standards, and the Handbook (kind guide: HaTi\'s own instruction book, one chapter per thing a person can do in HaTi — what it is, when, where, how step by step, who may, what it costs; a guide hit carries its chapter number and its steps). Each hit says its kind, where it sits (contract id, a passage\'s first words in "quote") and a snippet with the matched words in [brackets]. "fixed" lists a misspelt word and the words read for it. "total" is the TRUE number of hits; "truncated" when cut at "limit". Use it to FIND anything a person names in their own words — a clause by what it means, a note, a request, a person, who holds a role — before saying something does not exist or that you have no tool for it; kinds with empty words lists every one of those kinds (e.g. ["person"] for every colleague). Search by meaning by passing the likely words the book uses as well as theirs.';
+const HS_TOOL_DESC = 'Search EVERYTHING in HaTi this reader may see, by words: contracts, the passages of their wording (a clause), obligations, notes, history, parties, requests (what a colleague or a party has asked legal for), people (each colleague\'s name, job title and HaTi role: admin, editor or viewer), templates, our standards, the notebook (kind notebook: laws, our policies and research kept for you to quote; a hit carries notebook.name, its section number notebook.n, its words in quote, and notebook.status "due" when nobody has checked the document for a year), and the Handbook (kind guide: HaTi\'s own instruction book, one chapter per thing a person can do in HaTi — what it is, when, where, how step by step, who may, what it costs; a guide hit carries its chapter number and its steps). Each hit says its kind, where it sits (contract id, a passage\'s first words in "quote") and a snippet with the matched words in [brackets]. "fixed" lists a misspelt word and the words read for it. "total" is the TRUE number of hits; "truncated" when cut at "limit". Use it to FIND anything a person names in their own words — a clause by what it means, a note, a request, a person, who holds a role — before saying something does not exist or that you have no tool for it; kinds with empty words lists every one of those kinds (e.g. ["person"] for every colleague). Search by meaning by passing the likely words the book uses as well as theirs.';
 const COPILOT_TOOLS = [
   { name: 'search_contracts', description: 'Full-text search the workspace by keyword, counterparty, or clause content. Returns matching contracts with a snippet, plus "total" — the TRUE number of matches in this reader\'s scope — and "truncated" when the list was cut at "limit". Use when the user names a party or topic rather than an exact id; raise "limit" (up to 40) when they ask for all of them.',
     input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Keywords, counterparty name, or clause topic.' }, limit: { type: 'number', description: 'How many results to return, 1-40 (default 8).' } }, required: ['query'] } },
@@ -14444,10 +14445,15 @@ async function runCopilotTool(ctx, name, input, aux) {
       } catch (_) { /* the contract hits stand alone */ }
       return r;
     }
-    if (name === 'search_hati') return hatiSearch(ctx, a.words, { kinds: a.kinds, limit: a.limit });
+    if (name === 'search_hati') {
+      const o = hatiSearch(ctx, a.words, { kinds: a.kinds, limit: a.limit });
+      /* the notebook passages found this turn, so the answer's quotes of them are counted (nbCitedRecord) */
+      if (ctx && o && Array.isArray(o.hits)) for (const h of o.hits) if (h && h.notebook) (ctx._nbHits || (ctx._nbHits = new Map())).set(h.notebook.doc + '#' + h.notebook.n, h);
+      return o;
+    }
     if (name === 'get_obligations') return copilotObligations(ctx, a);
     if (name === 'get_contract_history') return copilotHistory(ctx, a.id);
-    if (name === 'get_contract') return copilotDetail(ctx, a.id);
+    if (name === 'get_contract') { if (ctx && a.id) ctx._nbCid = String(a.id); return copilotDetail(ctx, a.id); }
     if (name === 'get_scan_findings') { const d = copilotDetail(ctx, a.id); return d.found ? { id: d.id, name: d.name, openFindings: d.openFindings } : { id: a.id, found: false }; }
     if (name === 'list_portfolio') return copilotList(ctx, a);
     if (name === 'compare_contracts') return { contracts: (Array.isArray(a.ids) ? a.ids : []).slice(0, 4).map(id => copilotDetail(ctx, id)) };
@@ -14583,6 +14589,8 @@ const AI_SEND_NOTE_RULE = 'THE SEND SCREEN WRITES THE EMAIL: when the CURRENT VI
    answer carries teach and the browser offers "Start the lessons" (js/teach.js). The browser's twin, word for word,
    is js/ai.js AI_TEACH_RULE (f1189). No extra call: it rides on the answer already being written. */
 const AI_TEACH_RULE = "A PERSON NEW TO HaTi: when the person says or shows that they are new to HaTi or do not know how to use it (a first day, no idea where to start, lost, never used it before), answer their question as usual and ALSO set deliver_answer's teach to true: HaTi then offers them its lessons, a free walk through the app one step at a time. Never set teach for a question about a contract or about the law.";
+/* THE NOTEBOOK IS QUOTED, NEVER GUESSED (owner's pick, 23 Nov 2026): the browser's twin, word for word, is js/ai.js AI_NOTEBOOK_RULE */
+const AI_NOTEBOOK_RULE = "THE NOTEBOOK IS QUOTED, NEVER GUESSED. The notebook holds documents kept for you to quote: laws (GDPR, a data protection act), the company's own policies, and this person's own research. When a question turns on what a law, a regulation or one of our policies requires, call search_hati with kinds [\"notebook\"] and the person's words plus the words such a document uses; answer from the passage, quote its words exactly in quotation marks, and name the document and the section number the hit gives (for example: GDPR, Art. 28(3)). When a hit's status is \"due\", say nobody has checked that document for over a year, so it may be out of date. When the notebook has nothing on it, say the notebook does not cover it; never invent a section, an article or a quote. A notebook passage is what a stored document says, not legal advice.";
 const AI_HANDBOOK_RULE = "HaTi ITSELF IS ANSWERED FROM THE HANDBOOK. A question about HaTi — what a page, tab, panel, button, word, setting or rule in HaTi is or does, how to do something in HaTi, where something is, who may do it, what it costs, or what the person can do on the page in front of them — is answered from the Handbook, HaTi's own instruction book, never from the contracts: call search_hati with kinds [\"guide\"] and the person's words plus the words the app uses, answer from the chapter's own steps in plain words (number the steps), name the chapter, and set goto's door to {kind:\"chapter\", chapter} with its number (\"about\" for the book itself). The page in front names the chapters that cover it: read those first. \"The Handbook\", \"the manual\" and \"the instructions\" are that book; \"your book\" and \"the book\" mean the contracts. When no chapter covers the question, say so plainly and say what you can tell from the screen, never a guess.";
 const AI_CALENDAR_RULE = "You cannot see the person's own calendar, events or notes, and you cannot book, add, move or delete anything in it. When they ask to book, schedule or find time, or whether they are free, say so in one sentence and point them to the Calendar, where Jambo reads their events and plans time with them.";
 /* A REWRITE CARD OPEN IN THE JAMBO WINDOW, as clamped fields (owner, 18 Oct
@@ -14701,6 +14709,7 @@ SCOPE & SAFETY:
 - ${AI_SEND_NOTE_RULE}
 - ${AI_CALENDAR_RULE}
 - ${AI_TEACH_RULE}
+- ${AI_NOTEBOOK_RULE}
 - ${AI_HANDBOOK_RULE}`;
   /* ONE FIGURE, EVERY BRAIN (12 Sep 2026): the sentence the graph route
      carries, in the chat brain too — the same rows, the same conversion, the
@@ -15355,6 +15364,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
         : final.quoteDrops + ' quoted excerpts could not be matched to the contract text and were removed — treat those points with care.';
       notice = { notice: (notice.notice ? notice.notice + ' ' : '') + drop };
     }
+    nbCitedRecord(cx, final.answer);
     logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
     res.json({ answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.note && context && context.page && context.page.sending ? { note: final.note } : {}), ...(final.board && copilotDrawsBoard(context) ? { board: final.board, boardTotal: final.boardTotal } : {}), ...(() => { const pg = pageActionsClean(final.pageAsked, pageControlsClean(context && context.controls)); return pg ? { page: pg } : {}; })(), ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.teach ? { teach: true } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(truncated ? { truncated: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
@@ -15724,6 +15734,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
         : final.quoteDrops + ' quoted excerpts could not be matched to the contract text and were removed — treat those points with care.';
       notice = { notice: (notice.notice ? notice.notice + ' ' : '') + drop };
     }
+    nbCitedRecord(cx, final.answer);
     logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
     send('final', { answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.note && context && context.page && context.page.sending ? { note: final.note } : {}), ...(final.board && copilotDrawsBoard(context) ? { board: final.board, boardTotal: final.boardTotal } : {}), ...(() => { const pg = pageActionsClean(final.pageAsked, pageControlsClean(context && context.controls)); return pg ? { page: pg } : {}; })(), ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.teach ? { teach: true } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(truncated ? { truncated: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
@@ -27387,6 +27398,151 @@ app.delete('/api/me/items/:id', auth, (req, res) => {
   res.json({ ok: true });
 });
 /* ============================================================
+   THE NOTEBOOK — DOCUMENTS JAMBO MAY QUOTE (owner's pick "The Legora + Stripe way", 23 Nov 2026)
+   ============================================================
+   js/notebook.js holds the pure parts both hosts read (the cutter nbSections, the status nbStatusOf).
+   THE SERVER IS THE WALL: a COMPANY document is added, checked and replaced by an ADMIN only and read by
+   everyone signed in; a MINE document is its writer's alone, every read and write scoped to req.user.id
+   (as my_items). A document is cut into sections WITHOUT AI when it is stored, and the sections go into the
+   one search (hatiSearch, kind 'notebook') with the same wall, so Jambo finds and quotes them through
+   search_hati. Nothing here sends anything, and nothing here spends AI. */
+db.exec(`
+  CREATE TABLE IF NOT EXISTS notebook_docs (
+    id TEXT PRIMARY KEY, shelf TEXT NOT NULL, owner_id TEXT, json TEXT NOT NULL, updated_at TEXT);
+  CREATE INDEX IF NOT EXISTS idx_notebook_owner ON notebook_docs(shelf, owner_id);
+`);
+const nbDocOf = r => { let j = {}; try { j = JSON.parse(r.json) || {}; } catch (_) { j = {}; } return { ...j, id: r.id, shelf: r.shelf, ownerId: r.owner_id || null, updatedAt: r.updated_at }; };
+/* may this reader see this row (the wall) */
+const nbSees = (u, r) => !!u && (r.shelf === 'company' || String(r.owner_id) === String(u.id));
+/* may this reader change it: the company's by an admin, theirs by its writer */
+const nbMayWrite = (u, r) => !!u && (r.shelf === 'company' ? u.role === 'admin' : String(r.owner_id) === String(u.id));
+const nbToday = () => new Date().toISOString().slice(0, 10);
+/* where it was quoted last, said only as far as the reader may see that contract */
+function nbLastFor(user, last) {
+  if (!last) return null;
+  const out = { n: last.n, words: last.words, at: last.at };
+  if (last.cid) {
+    const row = db.prepare('SELECT folder, name, contract_no FROM contracts WHERE id=?').get(String(last.cid));
+    if (row && inScope(folderScopeFor(user), row.folder)) { out.cid = String(last.cid); out.cname = row.name || ''; out.cno = row.contract_no || ''; }
+  }
+  return out;
+}
+/* the light row the list draws: no wording */
+function nbLight(user, d) {
+  return { id: d.id, shelf: d.shelf, mine: d.shelf === 'mine', name: d.name, kind: d.kind, inForce: d.inForce || '',
+    fileName: d.fileName || '', addedBy: d.addedBy || '', addedAt: d.addedAt || '', checkedBy: d.checkedBy || '', checkedAt: d.checkedAt || '',
+    sections: Array.isArray(d.sections) ? d.sections.length : 0, chars: d.chars || 0, cut: !!d.cut, quoted: Number(d.quoted) || 0,
+    bySec: d.bySec && typeof d.bySec === 'object' ? d.bySec : {}, last: nbLastFor(user, d.last), status: NB.nbStatusOf(d, nbToday()) };
+}
+/* THE ONE CLEANER: what is stored is only these fields; the wording is cut here and nowhere else */
+function nbClean(b, prev, user) {
+  const o = b || {};
+  const name = myText(o.name, 160) || (prev && prev.name) || '';
+  if (!name) return { error: 'A document needs a name.' };
+  const kind = NB.NB_KINDS.includes(o.kind) ? o.kind : ((prev && prev.kind) || '');
+  if (!kind) return { error: 'Say what it is: a law, a policy or research.' };
+  const inForce = o.inForce === undefined && prev ? (prev.inForce || '') : myDay(o.inForce);
+  let text = prev ? prev.text : '', fileName = prev ? (prev.fileName || '') : '', cut = prev ? !!prev.cut : false;
+  if (typeof o.text === 'string') {
+    const raw = o.text.replace(/\u0000/g, '');
+    if (!raw.trim()) return { error: 'HaTi could not read any words in that file.' };
+    cut = raw.length > NB.NB_TEXT_MAX || o.cut === true;
+    text = raw.slice(0, NB.NB_TEXT_MAX); fileName = myText(o.fileName, 200);
+  }
+  if (!text) return { error: 'A document needs its words: choose a file.' };
+  const sections = NB.nbSections(text).map(s => ({ n: s.n, head: s.head, text: s.text, part: s.part }));
+  const at = now(), me = (user && user.name) || '';
+  const fresh = typeof o.text === 'string';
+  return { doc: { name, kind, inForce, text, fileName, cut, chars: text.length, sections,
+    addedBy: (prev && prev.addedBy) || me, addedAt: (prev && prev.addedAt) || at,
+    /* adding or replacing the words is a check by the person who did it */
+    checkedBy: fresh ? me : (prev.checkedBy || ''), checkedAt: fresh ? at : (prev.checkedAt || ''),
+    /* what Jambo quoted stays with the document across a newer version: it is history, not wording */
+    quoted: prev ? (Number(prev.quoted) || 0) : 0, bySec: (prev && prev.bySec) || {}, last: (prev && prev.last) || null,
+    ...(prev && fresh ? { replacedAt: at, replacedBy: me } : {}) } };
+}
+const nbRowOf = (id) => db.prepare('SELECT * FROM notebook_docs WHERE id=?').get(String(id));
+app.get('/api/notebook', auth, (req, res) => {
+  const rows = db.prepare("SELECT * FROM notebook_docs WHERE shelf='company' OR owner_id=? ORDER BY updated_at DESC").all(String(req.user.id));
+  res.json({ docs: rows.filter(r => nbSees(req.user, r)).map(r => nbLight(req.user, nbDocOf(r))),
+    mayAddCompany: req.user.role === 'admin', checkMonths: NB.NB_CHECK_MONTHS });
+});
+app.get('/api/notebook/:id', auth, (req, res) => {
+  const r = nbRowOf(req.params.id);
+  if (!r || !nbSees(req.user, r)) return res.status(404).json({ error: 'Not found' });
+  const d = nbDocOf(r);
+  res.json({ doc: { ...nbLight(req.user, d), sections: d.sections || [], mayWrite: nbMayWrite(req.user, r) } });
+});
+app.post('/api/notebook', auth, (req, res) => {
+  const b = req.body || {};
+  const shelf = NB.NB_SHELVES.includes(b.shelf) ? b.shelf : '';
+  if (!shelf) return res.status(400).json({ error: 'Choose a shelf: Company or Mine.' });
+  if (shelf === 'company' && req.user.role !== 'admin') return res.status(403).json({ error: 'Only an admin adds to the Company shelf. Add it to Mine, or ask an admin.' });
+  const cl = nbClean(b, null, req.user);
+  if (cl.error) return res.status(400).json({ error: cl.error });
+  const id = 'nb_' + crypto.randomBytes(8).toString('hex'), at = now();
+  db.prepare('INSERT INTO notebook_docs (id, shelf, owner_id, json, updated_at) VALUES (?,?,?,?,?)')
+    .run(id, shelf, shelf === 'mine' ? String(req.user.id) : null, JSON.stringify(cl.doc), at);
+  res.json({ doc: nbLight(req.user, nbDocOf(nbRowOf(id))) });
+});
+/* Replace: new words (a newer version), or a new name, kind or day in force */
+app.put('/api/notebook/:id', auth, (req, res) => {
+  const r = nbRowOf(req.params.id);
+  if (!r || !nbSees(req.user, r)) return res.status(404).json({ error: 'Not found' });
+  if (!nbMayWrite(req.user, r)) return res.status(403).json({ error: 'Only an admin changes a Company document.' });
+  const cl = nbClean(req.body || {}, nbDocOf(r), req.user);
+  if (cl.error) return res.status(400).json({ error: cl.error });
+  db.prepare('UPDATE notebook_docs SET json=?, updated_at=? WHERE id=?').run(JSON.stringify(cl.doc), now(), r.id);
+  res.json({ doc: nbLight(req.user, nbDocOf(nbRowOf(r.id))) });
+});
+/* Mark checked: a person says it is still current; never Jambo */
+app.post('/api/notebook/:id/checked', auth, (req, res) => {
+  const r = nbRowOf(req.params.id);
+  if (!r || !nbSees(req.user, r)) return res.status(404).json({ error: 'Not found' });
+  if (!nbMayWrite(req.user, r)) return res.status(403).json({ error: 'Only an admin marks a Company document checked.' });
+  const d = nbDocOf(r), at = now();
+  const prev = { checkedAt: d.checkedAt || '', checkedBy: d.checkedBy || '' };
+  const { id, shelf, ownerId, updatedAt, ...keep } = d;
+  db.prepare('UPDATE notebook_docs SET json=? WHERE id=?').run(JSON.stringify({ ...keep, checkedAt: at, checkedBy: req.user.name || '' }), r.id);
+  res.json({ doc: nbLight(req.user, nbDocOf(nbRowOf(r.id))), was: prev });
+});
+/* Undo a Mark checked: the check before it put back, by the same hands */
+app.post('/api/notebook/:id/unchecked', auth, (req, res) => {
+  const r = nbRowOf(req.params.id);
+  if (!r || !nbSees(req.user, r)) return res.status(404).json({ error: 'Not found' });
+  if (!nbMayWrite(req.user, r)) return res.status(403).json({ error: 'Only an admin marks a Company document checked.' });
+  const w = (req.body || {}).was || {};
+  const d = nbDocOf(r); const { id, shelf, ownerId, updatedAt, ...keep } = d;
+  db.prepare('UPDATE notebook_docs SET json=? WHERE id=?').run(JSON.stringify({ ...keep, checkedAt: myText(w.checkedAt, 40), checkedBy: myText(w.checkedBy, 120) }), r.id);
+  res.json({ doc: nbLight(req.user, nbDocOf(nbRowOf(r.id))) });
+});
+/* WHAT JAMBO QUOTED: after an answer, each notebook section his search found this turn that the answer
+   names (its number AND its document) is counted, and the last such quote kept. Read off the answer the
+   reader got; nothing is guessed. The contract is the one he read this turn (get_contract), if any. */
+function nbCitedRecord(cx, answer) {
+  try {
+    const hits = cx && cx._nbHits; if (!hits || !hits.size || !answer) return;
+    const a = String(answer).replace(/\s+/g, ' ');
+    const lc = a.toLowerCase();
+    const done = new Set();
+    for (const h of hits.values()) {
+      const nb = h.notebook; if (!nb || !nb.n || done.has(nb.doc + '#' + nb.n)) continue;
+      const num = nb.n.replace(/\s+/g, ' ');
+      /* its number exactly: "Art. 28" is not said by "Art. 28(3)" */
+      const exact = w => new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?!\\d|\\(|\\.\\d)', 'i').test(a);
+      const said = exact(num) || (/^Art\. /.test(num) && exact('Article ' + num.slice(5))) || (/^s\. /.test(num) && exact('section ' + num.slice(3)));
+      const word = String(nb.name || '').split(/[\s,()]+/).find(w => w.length >= 4) || nb.name;
+      if (!said || !word || !lc.includes(String(word).toLowerCase())) continue;
+      done.add(nb.doc + '#' + nb.n);
+      const r = nbRowOf(nb.doc); if (!r) continue;
+      const d = nbDocOf(r); const { id, shelf, ownerId, updatedAt, ...keep } = d;
+      const bySec = { ...(keep.bySec || {}) }; bySec[nb.n] = (Number(bySec[nb.n]) || 0) + 1;
+      db.prepare('UPDATE notebook_docs SET json=? WHERE id=?').run(JSON.stringify({ ...keep, quoted: (Number(keep.quoted) || 0) + 1, bySec,
+        last: { n: nb.n, words: h.quote || '', cid: cx._nbCid || null, at: now() } }), r.id);
+    }
+  } catch (_) { /* counting never fails an answer */ }
+}
+/* ============================================================
    JAMBO'S STANDING WATCHES (owner, 21 Oct 2026: "build the chatbot as
    recommended" — "tell me when Siginon replies", "warn me if any contract
    renews within 60 days", "remind me Friday about the NDA")
@@ -28364,6 +28520,7 @@ try {
   mark('users', 'users', '', "'k:person'");
   mark('parties', 'party_records', '', "'k:party'");
   mark('mine', 'my_items', '', "'k:mine'");
+  mark('notebook', 'notebook_docs', '', "'k:notebook'");
   mark('settings', 'settings', "@.key = 'appSettings'", "'k:standard'");
   for (const t of ['templates', 'template_versions', 'template_blocks']) mark(t, t, '', "'k:template'");
   /* HaTi's own templates ride with the code, not a table: read again once each start (stage 3d) */
@@ -28379,7 +28536,8 @@ const HS_KIND_WORDS = { contract: 'contract agreement deal avtal', clause: 'clau
   note: 'note notes anteckning', mine: 'note notes my anteckning', request: 'request requests intake förfrågan', person: 'person people colleague user kollega',
   party: 'party counterparty customer supplier part motpart', partyrec: 'party counterparty part motpart', history: 'history trail audit historik',
   template: 'template templates mall', standard: 'standard standards playbook standard',
-  guide: 'handbook guide how instructions steps help manual where who may handbok guide instruktion hjälp hur' };
+  guide: 'handbook guide how instructions steps help manual where who may handbok guide instruktion hjälp hur',
+  notebook: 'notebook law laws act regulation policy policies rule research gdpr article section anteckningsbok lag förordning policy forskning' };
 function hsPut(kind, ref, cid, owner, title, body, meta, extra) {
   const tags = [HS_KIND_WORDS[kind] || kind, extra || ''].join(' ').trim();
   const r = db.prepare('INSERT INTO hs_docs (kind, ref, cid, owner, title, body, meta, tags) VALUES (?,?,?,?,?,?,?,?)')
@@ -28465,6 +28623,14 @@ function hsIndexKind(k) {
     /* THE HANDBOOK: the book itself and every chapter, both languages in one document (js/handbook.js hbkSearchDocs) */
     hsDrop("kind = 'guide'");
     for (const d of HBK.hbkSearchDocs(srvHbkWord)) hsPut('guide', d.k, null, null, d.title, d.body, { part: d.part }, d.tags);
+  } else if (k === 'notebook') {
+    /* THE NOTEBOOK: each section a passage of its own, a Mine document under its writer (owner), a Company one under nobody */
+    hsDrop("kind = 'notebook'");
+    for (const r of db.prepare('SELECT * FROM notebook_docs').all()) {
+      const d = nbDocOf(r);
+      (Array.isArray(d.sections) ? d.sections : []).forEach((x, i) => x && x.text && hsPut('notebook', r.id + '#' + i, null, r.shelf === 'mine' ? r.owner_id : null,
+        (d.name || '') + (x.n ? ' ' + x.n : ''), x.text, { doc: r.id, n: x.n || '', i, quote: NB.nbQuoteOf(NB.nbWordsOf(x.text), 200) }, [d.kind, d.name].join(' ')));
+    }
   } else if (k === 'standard') {
     hsDrop("kind = 'standard'");
     for (const [book, b] of Object.entries(workspacePlaybook() || {})) {
@@ -28482,7 +28648,7 @@ function hsRefresh() {
   if (!getSetting('hsBuilt')) {
     txn(() => {
       for (const r of db.prepare('SELECT id FROM contracts').all()) db.prepare('INSERT OR IGNORE INTO hs_dirty(what) VALUES (?)').run('c:' + r.id);
-      for (const k of ['request', 'person', 'party', 'mine', 'template', 'standard', 'guide']) db.prepare('INSERT OR IGNORE INTO hs_dirty(what) VALUES (?)').run('k:' + k);
+      for (const k of ['request', 'person', 'party', 'mine', 'template', 'standard', 'guide', 'notebook']) db.prepare('INSERT OR IGNORE INTO hs_dirty(what) VALUES (?)').run('k:' + k);
     });
     setSetting('hsBuilt', { at: now() });
   }
@@ -28531,6 +28697,8 @@ function hatiSearch(ctx, q, opts) {
   const folders = new Map(db.prepare('SELECT id, folder, contract_no, name FROM contracts WHERE org_id=?').all(ctx.org).map(r => [r.id, r]));
   const reqs = new Map(db.prepare('SELECT id, by_id, folder, status FROM intake_requests').all().map(r => [r.id, r]));
   let tplOf = new Map(); try { tplOf = new Map(db.prepare('SELECT id, status FROM templates').all().map(t => [t.id, t])); } catch (_) {}
+  let nbMemo = null;
+  const nbDocs = () => nbMemo || (nbMemo = new Map(db.prepare('SELECT * FROM notebook_docs').all().map(r => [r.id, nbDocOf(r)])));
   const partyKeys = (kinds.length === 0 || kinds.includes('party')) && user ? prVisibleKeys(user) : new Set();
   const editor = !!user && user.role !== 'viewer';
   /* may this reader see this row (the wall, off the live record) */
@@ -28538,6 +28706,7 @@ function hatiSearch(ctx, q, opts) {
     if (r.cid) { const f = folders.get(r.cid); return !!f && inScope(ctx.scope, f.folder) && !out.has(String(r.cid)); }
     if (r.kind === 'request') { const x = reqs.get(r.ref); return !!x && !!user && (x.by_id === user.id || (editor && (!x.folder || inScope(ctx.scope, x.folder)))); }
     if (r.kind === 'mine') return !!user && r.owner === user.id;
+    if (r.kind === 'notebook') return !!user && (!r.owner || String(r.owner) === String(user.id));
     if (r.kind === 'template') return String(r.ref).startsWith('builtin:') ? !!SRV_TEMPLATES[String(r.ref).slice(8)] : tplVisibleTo(tplOf.get(r.ref), user);
     if (r.kind === 'partyrec') return partyKeys.has(r.ref);
     return r.kind === 'person' || r.kind === 'standard' || r.kind === 'guide';
@@ -28587,6 +28756,12 @@ function hatiSearch(ctx, q, opts) {
     if (kind === 'clause' && !hidden) { h.quote = meta.quote || ''; h.at = meta.at; }
     if (kind === 'obligation' && meta.due) h.due = meta.due;
     if (kind === 'standard') h.book = meta.book;
+    /* a notebook passage comes with its document, its number, its quoted words and whether a person's check is due */
+    if (kind === 'notebook') {
+      const d = nbDocs().get(meta.doc);
+      if (d) { h.quote = meta.quote || ''; h.notebook = { doc: meta.doc, n: meta.n || '', name: d.name || '', kind: d.kind || '', shelf: d.shelf,
+        status: NB.nbStatusOf(d, nbToday()), checkedAt: String(d.checkedAt || '').slice(0, 10), inForce: d.inForce || '' }; }
+    }
     if (r.kind === 'mine') { h.mine = true; if (meta.contractId) h.contractId = meta.contractId; }
     if (kind === 'request') h.status = reqs.get(r.ref).status;
     /* a Handbook chapter comes with its own steps, in the reader's language, so the answer rests on the chapter's
