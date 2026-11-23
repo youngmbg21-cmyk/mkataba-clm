@@ -1325,6 +1325,14 @@ function obWhoseWord(c, w){
   if (w === 'us') return i18t('obd_us');
   return i18t('obd_not_sure');
 }
+/* THE DESK'S PANEL (L+S, 23 Nov 2026): the review standing in the middle hands the Dossier its chosen duty to draw
+   (obdFaceFor / obdFaceHtml); a press in that panel is the desk's own press (one handler) */
+let _obdNow = null;
+function obdFaceFor(id){ return !!(_obdNow && _obdNow.c && String(_obdNow.c.id) === String(id) && typeof pdMidUp === 'function' && pdMidUp('obs:' + String(id))); }
+function obdFaceHtml(){ return _obdNow ? _obdNow.face() : ''; }
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._obdFaceWired){ document._obdFaceWired = true;
+  document.addEventListener('click', ev => { const t = ev.target && ev.target.closest ? ev.target : null;
+    if (t && _obdNow && t.closest('[data-obdf]')) _obdNow.press(ev); }); }
 function openObligationsReview(c, found, back, place){
   place = place || (back && back.place) || null;
   const dupe = found.map(o => obligationAlreadyOn(c, o));
@@ -1342,8 +1350,19 @@ function openObligationsReview(c, found, back, place){
     }catch(_){ return null; }
   });
   try{ if (trace.some(Boolean) && window.aiTraceSave) aiTraceSave(c); }catch(_){}
+  /* THE LEGORA + STRIPE WAY (owner, 23 Nov 2026: "now on the main page, not side panel, it needs L+S facelift", built as
+     drawn): where the desk stands in the middle beside the Dossier, it is ONE calm table — each duty with the paper's own
+     words and its §, whose job answered IN THE ROW (Us · Theirs · Both), a soft badge (Ready · To decide · Added · Skipped),
+     Add in the row; tabs carry their counts (To decide · Added · Skipped), a filter box and "+ Kind · + Whose · + Status"
+     chips. The chosen duty's details and its Add · Edit before adding… · Skip go to Jambo's side panel (obdFaceHtml, drawn
+     by the Dossier while this page is up; no amount there — money never sits in a side panel, it stays in Edit before
+     adding…). A duty whose job is not said cannot be added until a person says whose (nothing guessed). The pop-up
+     (no middle) keeps the table it had. The same writer adds (addOne); nothing is saved until a press. */
+  const lsMid = !place && typeof pdMidMay === 'function' && pdMidMay();
+  const ls = !!(lsMid && typeof window.newLookOn === 'function' && newLookOn());
   /* the reader's own changes to an item before it is added: whose job */
-  const whoseNow = found.map(o => { const w = obWhoseOf(o); return w === 'them' ? 'them' : w === 'unsure' ? 'unsure' : 'us'; });
+  const whoseNow = found.map(o => { const w = obWhoseOf(o); return w === 'them' ? 'them' : w === 'unsure' ? 'unsure' : (w === 'both' && ls) ? 'both' : 'us'; });
+  const F = { tab: (back && back.tab) || 'left', kind: (back && back.kind) || '', whose: (back && back.whose) || '', status: (back && back.status) || '', q: (back && back.q) || '', menu: '' };
   /* `back` is the desk as the reader left it (Edit before adding → Back to
      the list): the same item, the same filter, the list's scroll */
   let filter = (back && back.filter) || 'all', sel = back && back.sel != null ? back.sel : found.findIndex((o, i) => !dupe[i] && !obReviewDecision(c, o));
@@ -1416,12 +1435,103 @@ function openObligationsReview(c, found, back, place){
       ${o.why ? `<p class="obd-why">${_obEsc(i18t('obd_why', { g: i18t(GROUPS.find(g => g[0] === k)[1]).toLowerCase(), why: o.why }))}</p>` : ''}
       ${acts}`;
   };
-  const footCount = () => { const t = obReviewTally(c, found); return i18t('obd_foot', { left: t.left, added: t.added, skipped: t.skipped }); };
+  /* ---- THE L+S TABLE ---- */
+  /* a count over the proposals, never a filtered list (f260: nothing is filtered out of the list) */
+  const lsCount = pred => found.reduce((n, o, i) => n + (pred(o, i) ? 1 : 0), 0);
+  const lsTabOf = i => { const d = decision(i); return d === 'already' ? 'already' : d || 'left'; };
+  const lsReady = i => whoseNow[i] !== 'unsure';
+  const lsWhoseOf = i => whoseNow[i] === 'unsure' ? 'none' : whoseNow[i];
+  const lsTabN = k => lsCount((_, i) => lsTabOf(i) === k);
+  const lsReadyLeft = () => found.map((_, i) => i).filter(i => lsTabOf(i) === 'left' && lsReady(i));
+  const lsNeedWhose = () => lsCount((_, i) => lsTabOf(i) === 'left' && !lsReady(i));
+  /* a duty already on the contract sits at the foot of To decide, nothing to decide (as before: never hidden) */
+  const lsShown = i => {
+    if (lsTabOf(i) !== F.tab && !(F.tab === 'left' && lsTabOf(i) === 'already')) return false;
+    const o = found[i];
+    if (F.kind && obKindOf(o) !== F.kind) return false;
+    if (F.whose && lsWhoseOf(i) !== F.whose) return false;
+    if (F.status && F.tab === 'left' && (F.status === 'ready') !== lsReady(i)) return false;
+    const q = String(F.q || '').trim().toLowerCase();
+    if (q && !q.split(/\s+/).every(w => [o.desc, o.quote, o.clause].join(' ').toLowerCase().includes(w))) return false;
+    return true;
+  };
+  const LS_CHIPS = {
+    kind: { w: 'obd_ls_c_kind', opts: () => ['dated', 'event', 'standing', 'unsure'].filter(k => found.some((o, i) => lsTabOf(i) === F.tab && obKindOf(o) === k)).map(k => [k, k === 'unsure' ? i18t('obd_not_sure') : i18t('obd_f_' + k)]) },
+    whose: { w: 'obd_ls_c_whose', opts: () => ['us', 'them', 'both', 'none'].filter(k => found.some((_, i) => lsTabOf(i) === F.tab && lsWhoseOf(i) === k)).map(k => [k, k === 'none' ? i18t('obd_ls_w_none') : obWhoseBtn(k)]) },
+    status: { w: 'obd_ls_c_status', opts: () => F.tab !== 'left' ? [] : [['ready', i18t('obd_ls_s_ready')], ['decide', i18t('obd_ls_s_decide')]].filter(([k]) => found.some((_, i) => lsTabOf(i) === 'left' && (k === 'ready') === lsReady(i))) } };
+  const lsBadge = i => { const d = decision(i);
+    const [tone, w] = d === 'added' ? ['green', i18t('obd_added')] : d === 'skipped' ? ['gray', i18t('obd_skipped')] : d === 'already' ? ['gray', i18t('obd_ls_s_already')]
+      : lsReady(i) ? ['green', i18t('obd_ls_s_ready')] : ['amber', i18t('obd_ls_s_decide')];
+    return `<span class="obd-bd is-${tone}"><i aria-hidden="true"></i>${_obEsc(w)}</span>`; };
+  const lsRowHtml = i => {
+    const o = found[i], d = decision(i), ready = lsReady(i);
+    const who = d ? `<span class="obd-lsw">${_obEsc(whoseNow[i] === 'unsure' ? i18t('obd_ls_w_none') : obWhoseBtn(whoseNow[i]))}</span>`
+      : `<span class="obd-pills" role="group" aria-label="${_obEsc(i18t('obd_whose'))}">${['us', 'them', 'both'].map(x => `<button type="button" data-obd-rw="${i}" data-w="${x}" aria-pressed="${whoseNow[i] === x}">${_obEsc(obWhoseBtn(x))}</button>`).join('')}</span>${ready ? '' : `<span class="obd-ns-say">${_obEsc(i18t('obd_ls_say_whose'))}</span>`}`;
+    const quote = o.quote ? `<span class="obd-lsq">${o.clause ? `<b class="obd-sec">§${_obEsc(o.clause)}</b>` : ''}&ldquo;${_obEsc(o.quote)}&rdquo;</span>` : (o.clause ? `<span class="obd-lsq"><b class="obd-sec">§${_obEsc(o.clause)}</b></span>` : '');
+    return `<tr class="obd-row is-ls${i === sel ? ' is-sel' : ''}${d ? ' is-done' : ''}${d === 'already' ? ' is-already' : ''}" data-obd-sel="${i}">
+      <td class="obd-c-tk">${d ? '<span class="obd-tick-gap"></span>' : `<input type="checkbox" data-ob-pick="${i}" class="obd-tick" aria-label="${_obEsc(o.desc || '')}"${ready ? '' : ' disabled'}/>`}</td>
+      <td class="obd-c-what"><span class="obd-desc">${_obEsc(o.desc || '')}</span>${quote}</td>
+      <td class="obd-c-who">${who}</td>
+      <td class="obd-c-when"><span class="${whenUnsure(o) ? 'obd-ns' : ''}">${_obEsc(obWhenChip(o))}</span></td>
+      <td class="obd-c-st">${lsBadge(i)}</td>
+      <td class="obd-c-go">${!d && ready ? `<button type="button" class="ui-link" data-obd-radd="${i}">${_obEsc(i18t('obd_ls_add_row'))}</button>` : ''}</td></tr>`;
+  };
+  const lsListHtml = () => {
+    const ids = found.map((_, i) => i).filter(lsShown).sort((a, b) => (lsTabOf(a) === 'already') - (lsTabOf(b) === 'already'));
+    if (!ids.length) return `<p class="obd-empty">${_obEsc(i18t('obd_none_here'))}</p>`;
+    return `<table class="obd-tb is-ls"><thead><tr><th class="obd-c-tk"><span class="sr-only">${_obEsc(i18t('obd_pick_col'))}</span></th><th class="obd-c-what">${_obEsc(i18t('obd_ls_col_duty'))}</th><th class="obd-c-who">${_obEsc(i18t('obd_whose'))}</th><th class="obd-c-when">${_obEsc(i18t('obd_col_when'))}</th><th class="obd-c-st">${_obEsc(i18t('obd_ls_col_st'))}</th><th class="obd-c-go"><span class="sr-only">${_obEsc(i18t('obd_ls_add_row'))}</span></th></tr></thead><tbody>${ids.map(lsRowHtml).join('')}</tbody></table>`;
+  };
+  const lsTabsHtml = () => [['left', 'obd_ls_t_left'], ['added', 'obd_ls_t_added'], ['skipped', 'obd_ls_t_skipped']].map(([k, w]) => `<button type="button" role="tab" data-obd-tab="${k}" aria-selected="${F.tab === k}">${_obEsc(i18t(w))}<span>${lsTabN(k)}</span></button>`).join('');
+  const lsChipsHtml = () => Object.keys(LS_CHIPS).map(k => {
+    const C = LS_CHIPS[k], opts = C.opts(), v = F[k];
+    if (v){ const o = opts.find(x => x[0] === v); return `<span class="obd-chip is-set"><button type="button" data-obd-chip="${k}">${_obEsc(i18t(C.w))}: ${_obEsc(o ? o[1] : v)}</button><button type="button" class="obd-chip-x" data-obd-fx="${k}" aria-label="${_obEsc(i18t('obd_ls_clear'))}">×</button></span>`; }
+    if (!opts.length) return '';
+    const menu = F.menu === k ? `<span class="obd-menu" role="menu">${opts.map(([ov, ow]) => `<button type="button" role="menuitem" data-obd-fv="${k}" data-v="${ov}">${_obEsc(ow)}</button>`).join('')}</span>` : '';
+    return `<span class="obd-chip"><button type="button" data-obd-chip="${k}" aria-expanded="${F.menu === k}">+ ${_obEsc(i18t(C.w))}</button>${menu}</span>`;
+  }).join('');
+  const lsReadySay = () => { const n = F.tab === 'left' ? lsReadyLeft().length : 0; return n ? i18tn('obd_ls_ready_n', n, { n }) : ''; };
+  const lsFootCount = () => { const t = obPicks().filter(cb => cb.checked).length, r = lsReadyLeft().length, w = lsNeedWhose();
+    return [t ? i18t('obd_ls_f_ticked', { n: t }) : '', i18t('obd_ls_f_ready', { n: r }), w ? i18tn('obd_ls_f_whose', w, { n: w }) : ''].filter(Boolean).join(' · '); };
+  /* THE PANEL BESIDE IT: the chosen duty, read off the same state (the Dossier draws it while this page is up) */
+  const lsFaceHtml = () => {
+    const o = found[sel]; if (!o) return '';
+    const d = decision(sel), k = obKindOf(o), w = whoseNow[sel], ready = lsReady(sel);
+    const total = lsCount((_, i) => decision(i) !== 'already'), added = lsTabN('added');
+    const C = 2 * Math.PI * 19, len = total ? C * added / total : 0;
+    const subs = [i18t('obd_ls_f_ready', { n: lsReadyLeft().length }), lsNeedWhose() ? i18tn('obd_ls_f_whose', lsNeedWhose(), { n: lsNeedWhose() }) : ''].filter(Boolean).join(' · ');
+    const eye = [o.clause ? '§' + o.clause : '', i18t(GROUPS.find(g => g[0] === k)[1]), w === 'unsure' ? i18t('obd_ls_w_none') : obWhoseBtn(w)].filter(Boolean).join(' · ');
+    const due = o.due ? obDeskDay(o.due) : k === 'event' ? i18t('obd_when_event') : k === 'standing' ? i18t('obd_when_always') : i18t('obd_ls_not_paper');
+    const row = (l, v) => `<div class="obdf-fact"><span>${_obEsc(l)}</span><span>${_obEsc(v)}</span></div>`;
+    const acts = d === 'already' ? `<p class="obd-note">${_obEsc(i18t('ob_already_on'))}</p>`
+      : d === 'added' ? `<p class="obd-note is-ok">${_obEsc(i18t('obd_added'))} · <button type="button" class="ui-link" data-obd-go-tab>${_obEsc(i18t('obd_see_tab'))}</button></p>`
+      : d === 'skipped' ? `<p class="obd-note">${_obEsc(i18t('obd_skipped'))} · <button type="button" class="ui-link" data-obd-undo>${_obEsc(i18t('obd_undo'))}</button></p>`
+      : `<div class="obdf-acts"><button type="button" class="ui-btn ui-btn-primary" data-obd-add${ready ? '' : ' disabled'}>${_obEsc(i18t('obd_add'))}</button><button type="button" class="ui-btn" data-obd-edit>${_obEsc(i18t('obd_edit'))}</button><button type="button" class="ui-btn" data-obd-skip>${_obEsc(i18t('obd_skip'))}</button></div>${ready ? '' : `<p class="obd-note obd-ns">${_obEsc(i18t('obd_ls_whose_first'))}</p>`}`;
+    const dated = !!(o.due || (o.recurring && o.recurring !== 'none'));
+    const once = d ? '' : `<p class="obdf-h">${_obEsc(i18t('obd_ls_once'))}</p><ol class="obdf-tl"><li class="is-now">${_obEsc(i18t(w === 'them' ? 'obd_ls_once_list_them' : 'obd_ls_once_list_us'))}</li>${dated && w !== 'them' ? `<li>${_obEsc(i18t('obd_ls_once_remind'))}</li>` : ''}${o.due ? `<li>${_obEsc(i18t('obd_ls_once_cal'))}</li>` : ''}</ol>`;
+    return `<div class="obdf" data-obdf><p class="obdf-eye">${_obEsc(eye)}</p><h3 class="obdf-t">${_obEsc(o.desc || '')}</h3>
+      <div class="obdf-ring"><svg width="46" height="46" viewBox="0 0 46 46" role="img" aria-label="${_obEsc(i18t('obd_ls_ring', { n: added, m: total }))}"><circle cx="23" cy="23" r="19" fill="none" stroke="var(--color-neutral-200)" stroke-width="5"/>${len ? `<circle cx="23" cy="23" r="19" fill="none" stroke="var(--st-green-dot)" stroke-width="5" stroke-dasharray="${len.toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 23 23)"/>` : ''}</svg><div><b>${_obEsc(i18t('obd_ls_ring', { n: added, m: total }))}</b><small>${_obEsc(subs)}</small></div></div>
+      ${o.quote ? `<blockquote class="obdf-q">&ldquo;${_obEsc(o.quote)}&rdquo;</blockquote>` : ''}
+      ${row(i18t('ob_due_date'), due)}${row(i18t('obd_ls_repeats'), o.recurring && o.recurring !== 'none' ? obRecurLabel(o.recurring) : '—')}${row(i18t('obd_document'), o.doc === true ? i18t('obd_doc_yes') : o.doc === false ? i18t('obd_doc_no') : '—')}
+      ${acts}${once}</div>`;
+  };
+  const footCount = () => { if (ls) return lsFootCount(); const t = obReviewTally(c, found); return i18t('obd_foot', { left: t.left, added: t.added, skipped: t.skipped }); };
   const filtersHtml = () => { const n = counts();
     return [['all', 'obd_f_all'], ['dated', 'obd_f_dated'], ['event', 'obd_f_event'], ['standing', 'obd_f_standing'], ['already', 'obd_f_already']]
       .filter(([k]) => k === 'all' || n[k]).map(([k, w]) => `<button type="button" data-obd-filter="${k}" aria-pressed="${filter === k}">${_obEsc(i18t(w))} <span>${n[k]}</span></button>`).join(''); };
   const leftN = () => obReviewTally(c, found).left;
-  openModal(`
+  const lsBody = () => `
+    <div class="obd is-ls" id="obd">
+      <div class="obd-top is-ls"><h3 class="obd-title">${i18t('ob_proposed')}</h3><p class="obd-sub">${_obEsc(i18tn('obd_ls_sub', found.length, { n: found.length }))}</p>
+        <div class="obd-tabs" role="tablist" id="obd-tabs">${lsTabsHtml()}</div></div>
+      <div class="obd-tools"><input type="search" id="obd-q" class="obd-find" placeholder="${_obEsc(i18t('obd_ls_find_ph'))}" aria-label="${_obEsc(i18t('obd_ls_find_ph'))}" value="${_obEsc(F.q)}"/><span class="obd-chips" id="obd-chips">${lsChipsHtml()}</span><span class="obd-ready" id="obd-ready">${_obEsc(lsReadySay())}</span></div>
+      <div class="obd-list is-ls scroll-thin" id="obd-list">${lsListHtml()}</div>
+      <div class="obd-foot"><span class="obd-count" id="obd-count"></span><span class="obd-sp"></span>
+        <button id="or-cancel" class="ui-btn">${i18t('obd_close')}</button>
+        <button id="obd-all" class="ui-btn ui-btn-primary"></button>
+        <button id="or-add" class="ui-btn ui-btn-primary"></button>
+      </div>
+    </div>`;
+  openModal(ls ? lsBody() : `
     <div class="obd" id="obd">
       ${place ? `<div class="obd-top is-nl"><span class="obd-jdot" aria-hidden="true"></span><p class="obd-sub">${_obEsc(i18tn('obn_found', found.length, { n: found.length, name: c.name || '' }))}</p></div>` : `<div class="obd-top"><div class="flex items-center gap-2"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
         <h3 class="obd-title">${i18t('ob_proposed')}</h3></div>
@@ -1441,10 +1551,13 @@ function openObligationsReview(c, found, back, place){
       /* the new look's Obligations page (round 5): the desk stands where the list stands, under its tabs, the panel beside */
       if (place) return { maxWidth: 'none', label: i18t('ob_proposed'), page: { below: place.below, beside: place.beside, bare: true },
         onClose: () => { if (typeof place.onClose === 'function') place.onClose(); } };
-      return mid ? { maxWidth: 'none', label: i18t('ob_proposed'), page: pdMidPage(i18t('ob_proposed')), onClose: () => { if (typeof pdMidOff === 'function') pdMidOff(); } }
+      return mid ? { maxWidth: 'none', label: i18t('ob_proposed'), page: pdMidPage(i18t('ob_proposed')), onClose: () => { if (typeof pdMidOff === 'function') pdMidOff();
+        if (_obdNow && _obdNow.c === c){ _obdNow = null; try { if (typeof pdGlanceRepaint === 'function') pdGlanceRepaint(); } catch (_){} } } }
         : { maxWidth: '920px', label: i18t('ob_proposed') };
     })());
   if (typeof pdMidMay === 'function' && typeof pdMidOn === 'function' && document.querySelector('#modal-root [data-dlg-page]')) pdMidOn('obs:' + c.id);
+  _obdNow = ls ? { c, face: () => lsFaceHtml(), press: ev => press(ev) } : null;
+  const lsPanel = () => { if (ls) try { if (typeof pdGlanceRepaint === 'function') pdGlanceRepaint(); } catch (_){} };
   const modal = document.getElementById('modal-root');
   const obPicks = () => Array.prototype.slice.call(
     document.querySelectorAll('#modal-root [data-ob-pick]'));
@@ -1456,6 +1569,13 @@ function openObligationsReview(c, found, back, place){
     const btn = document.getElementById('or-add');
     if (!btn) return;
     const n = obPicks().filter(cb => cb.checked).length;
+    if (ls){
+      const all = document.getElementById('obd-all'), r = lsReadyLeft().length;
+      btn.textContent = n ? i18tn('ob_add_n', n, { n }) : i18t('ob_add_pick'); btn.hidden = !n; btn.disabled = !n;
+      if (all){ all.hidden = !!n; all.textContent = r ? i18tn('obd_ls_add_ready', r, { n: r }) : i18t('obd_ls_add_none'); all.disabled = !r; }
+      const cnt = document.getElementById('obd-count'); if (cnt) cnt.textContent = footCount();
+      return;
+    }
     btn.textContent = n
       ? i18tn('ob_add_n', n, { n })
       : i18t(fresh && leftN() ? 'ob_add_pick' : 'ob_add_none');
@@ -1468,7 +1588,14 @@ function openObligationsReview(c, found, back, place){
   const repaint = () => {
     const ticked = new Set(obPicks().filter(cb => cb.checked).map(cb => cb.getAttribute('data-ob-pick')));
     const L = document.getElementById('obd-list'), top = L ? L.scrollTop : 0;
-    if (L){ L.innerHTML = listHtml(); L.scrollTop = top; }
+    if (L){ L.innerHTML = ls ? lsListHtml() : listHtml(); L.scrollTop = top; }
+    if (ls){
+      const T = document.getElementById('obd-tabs'); if (T) T.innerHTML = lsTabsHtml();
+      const H = document.getElementById('obd-chips'); if (H) H.innerHTML = lsChipsHtml();
+      const R = document.getElementById('obd-ready'); if (R) R.textContent = lsReadySay();
+      obPicks().forEach(cb => { if (ticked.has(cb.getAttribute('data-ob-pick')) && !cb.disabled) cb.checked = true; });
+      obPaintAdd(); lsPanel(); return;
+    }
     obPicks().forEach(cb => { if (ticked.has(cb.getAttribute('data-ob-pick')) && !cb.disabled) cb.checked = true; });
     const I = document.getElementById('obd-item'); if (I) I.innerHTML = itemHtml();
     const F = document.getElementById('obd-filters'); if (F) F.innerHTML = filtersHtml();
@@ -1480,6 +1607,7 @@ function openObligationsReview(c, found, back, place){
   const addOne = i => {
     const o = found[i];
     if (!o || obligationAlreadyOn(c, o)) return false;
+    if (ls && whoseNow[i] === 'unsure') return false;
     c.obligations = c.obligations || [];
     const w = whoseNow[i];
     const rec = { id: 'ob_' + Math.random().toString(36).slice(2, 8), desc: o.desc, due: o.due || '', recurring: o.recurring || 'none',
@@ -1506,8 +1634,20 @@ function openObligationsReview(c, found, back, place){
     }
     if (t && t.closest && t.closest('[data-ob-pick]')) obPaintAdd();
   });
-  if (modal) modal.addEventListener('click', ev => {
-    const t = ev.target && ev.target.closest ? ev.target : null; if (!t || !t.closest('#obd')) return;
+  function press(ev){
+    const t = ev.target && ev.target.closest ? ev.target : null; if (!t || !(t.closest('#obd') || (ls && t.closest('[data-obdf]')))) return;
+    if (ls){
+      const tb = t.closest('[data-obd-tab]'); if (tb){ F.tab = tb.getAttribute('data-obd-tab'); F.status = F.tab === 'left' ? F.status : ''; F.menu = '';
+        const first = found.findIndex((_, i) => lsShown(i)); if (first >= 0) sel = first; repaint(); return; }
+      const ch = t.closest('[data-obd-chip]'); if (ch){ const k = ch.getAttribute('data-obd-chip'); F.menu = F.menu === k ? '' : k; repaint(); return; }
+      const fv = t.closest('[data-obd-fv]'); if (fv){ F[fv.getAttribute('data-obd-fv')] = fv.getAttribute('data-v'); F.menu = ''; repaint(); return; }
+      const fx = t.closest('[data-obd-fx]'); if (fx){ F[fx.getAttribute('data-obd-fx')] = ''; F.menu = ''; repaint(); return; }
+      if (F.menu && !t.closest('.obd-menu')){ F.menu = ''; repaint(); }
+      const rw = t.closest('[data-obd-rw]'); if (rw){ const i = Number(rw.getAttribute('data-obd-rw')); whoseNow[i] = rw.getAttribute('data-w'); sel = i; repaint(); return; }
+      const ra = t.closest('[data-obd-radd]'); if (ra){ const i = Number(ra.getAttribute('data-obd-radd')); sel = i;
+        if (addOne(i)){ settled(1, 0); toast(i18tn('ob_added_n', 1, { n: 1 }), 'ok'); const next = found.findIndex((o, j) => !decision(j)); if (next >= 0) sel = next; }
+        repaint(); return; }
+    }
     const f = t.closest('[data-obd-filter]'); if (f){ filter = f.getAttribute('data-obd-filter'); repaint(); return; }
     const row = t.closest('[data-obd-sel]');
     if (row && !t.closest('[data-ob-pick]')){ sel = Number(row.getAttribute('data-obd-sel')); repaint(); return; }
@@ -1527,7 +1667,7 @@ function openObligationsReview(c, found, back, place){
          form, filled from Copilot's reading; "Back to the list" returns here
          on the same item. No second form. */
       const o = found[sel], at = sel, L0 = document.getElementById('obd-list');
-      const back = { sel: at, filter, top: L0 ? L0.scrollTop : 0, place };
+      const back = { sel: at, filter, top: L0 ? L0.scrollTop : 0, place, tab: F.tab, kind: F.kind, whose: F.whose, status: F.status, q: F.q };
       openObligationForm(c, { desc: o.desc || '', due: o.due || '', recurring: o.recurring || 'none', assignee: '', quote: o.quote || '',
         amount: Number(o.amount) > 0 ? Number(o.amount) : '', party: whoseNow[at] === 'them' ? 'theirs' : 'ours', doc: o.doc === true ? {} : undefined },
         { saveLabel: i18t('obd_add_ob'), cancelLabel: i18t('obd_back'),
@@ -1540,7 +1680,11 @@ function openObligationsReview(c, found, back, place){
       obPicks().forEach(cb => { if (!cb.disabled) cb.checked = true; });
       document.getElementById('or-add').click(); return;
     }
-  });
+  }
+  if (modal) modal.addEventListener('click', press);
+  if (ls){ const Q = document.getElementById('obd-q'); if (Q) Q.addEventListener('input', () => { F.q = Q.value;
+    const L = document.getElementById('obd-list'); if (L) L.innerHTML = lsListHtml(); obPaintAdd(); }); }
+  lsPanel();
   document.getElementById('or-cancel').addEventListener('click', () => {
     if (window.paintKtTriage && document.getElementById('kt-triage-slot')) try { paintKtTriage(c); } catch (_){}
     closeModal(); });
@@ -6024,7 +6168,7 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
     obOpenContract(cid, go.getAttribute('data-key'));
   }, true);
 }
-Object.assign(window,{contractRenewsItself,obligationReminderDay,obPanelFive,obDecisionFive, obligationIsDoc,obligationDocUntil,obligationDocFile,obligationDocState,
+Object.assign(window,{obdFaceFor,obdFaceHtml,contractRenewsItself,obligationReminderDay,obPanelFive,obDecisionFive, obligationIsDoc,obligationDocUntil,obligationDocFile,obligationDocState,
   OB_DOC_SOON_DAYS,contractDocuments,contractDocsLapsed,contractDocsMissing,
   obligationAfter,obligationPrev,obligationBlocked,obligationChain,obligationChains,obligationStepNo,obligationRoll,
   obligationAlreadyOn,obligationRequireDoc,obFindBusy,obFinding,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,

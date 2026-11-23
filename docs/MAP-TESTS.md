@@ -1075,3 +1075,7 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 
 ## THE HANDBOOK — HOW TO DO EACH THING (23 Nov 2026)
 - test/f1184-the-handbook-legora-stripe.test.js — the book's one table, its filters, a row chooses then opens, numbered steps with each picture under its step (red at the parent). Browser: handbook-verify 2a/2b/4′a–d, round7b 3.
+
+## OBLIGATIONS — Proposed obligations, the Legora + Stripe way (23 Nov 2026)
+- test/f1185-proposed-obligations-ls.test.js — one calm table (words with §, whose in the row, badge, Add), tabs with counts, chips; the chosen duty in Jambo's panel, no amount; no whose = no tick, no Add, the writer refuses; both books, the Handbook (red at the parent).
+- Browser (GitHub): review-desk-verify RE-POINTED (kinds are the "+ Kind" chip's choices; counts are the tabs'; Undo from the Skipped tab; two row ticks); amount-and-window-verify RE-POINTED (its proposals carry a side). Still green as they were: f554, f260, f475 (the pop-up keeps its table).

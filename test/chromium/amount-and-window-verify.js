@@ -213,9 +213,11 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off); return 
        this claim is about. */
     await page.evaluate(() => {
       openObligationsReview(getContract(state.activeId), [
-        { desc: 'Second tranche on commissioning', quote: '…the second instalment…' },
-        { desc: 'Quarterly volume report', quote: '…within thirty (30) days…' },
-        { desc: 'Give 90 days notice of non-renewal', quote: '…ninety (90) days…' },
+        /* RE-POINTED 23 Nov 2026 (Proposed obligations the Legora + Stripe way): a duty whose job is not said cannot be
+           ticked until a person says whose, so each proposal here carries its side — the claim is about duplicates */
+        { desc: 'Second tranche on commissioning', quote: '…the second instalment…', party: 'us' },
+        { desc: 'Quarterly volume report', quote: '…within thirty (30) days…', party: 'us' },
+        { desc: 'Give 90 days notice of non-renewal', quote: '…ninety (90) days…', party: 'us' },
       ]);
     });
     await page.waitForTimeout(600);

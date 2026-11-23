@@ -5728,6 +5728,74 @@
   .obd-acts{display:flex;gap:8px;flex-wrap:wrap}
   .obd-empty{padding:16px;font-size:13px;color:var(--cap-ink,#98A2B3)}
   .obd-foot{display:flex;align-items:center;gap:8px;padding:12px 24px;border-top:1px solid var(--color-line)}
+  /* PROPOSED OBLIGATIONS, THE LEGORA + STRIPE WAY (owner, 23 Nov 2026, as drawn): one calm table, the paper's words with
+     their §, whose job in the row, soft badges, tabs with counts, "+ filter" chips; the chosen duty in the side panel */
+  .obd.is-ls{max-height:none;height:100%;min-height:0;container-type:inline-size}
+  .obd-top.is-ls{padding:0 24px}
+  .obd-top.is-ls .obd-sub{margin:0;color:var(--color-neutral-400)}
+  .obd-tabs{display:flex;gap:22px;margin-top:12px;border-bottom:1px solid var(--color-divider)}
+  .obd-tabs button{padding:8px 0;font-size:13.5px;color:var(--color-quiet);background:none;border:0;border-radius:0}
+  .obd-tabs button span{margin-left:5px;color:var(--color-neutral-400);font-variant-numeric:tabular-nums}
+  .obd-tabs button[aria-selected="true"]{color:var(--color-text);font-weight:var(--w-label);box-shadow:inset 0 -2px 0 var(--color-text)}
+  .obd-tools{display:flex;align-items:center;gap:8px;padding:12px 24px;flex-wrap:wrap}
+  .obd-find{flex:0 1 220px;min-width:140px;border:0;border-bottom:1px solid var(--color-neutral-300);border-radius:0;background:transparent;padding:4px 0;font-size:13px;color:var(--color-text);outline:none;box-shadow:none}
+  .obd-chips{display:flex;gap:6px;flex-wrap:wrap}
+  .obd-chip{position:relative;display:inline-flex;align-items:center;border:1px dashed var(--color-neutral-300);border-radius:999px;font-size:12.5px;color:var(--color-quiet);white-space:nowrap}
+  .obd-chip > button{padding:3px 10px;background:none;border:0;border-radius:999px;color:inherit}
+  .obd-chip.is-set{border-style:solid;background:var(--surface-2);color:var(--color-text)}
+  .obd-chip.is-set > button:first-child{padding-right:2px}
+  .obd-chip .obd-chip-x{padding:3px 9px 3px 4px;color:var(--color-neutral-400)}
+  .obd-chip .obd-chip-x:hover{color:var(--color-text)}
+  .obd-menu{position:absolute;top:calc(100% + 4px);left:0;z-index:5;display:flex;flex-direction:column;min-width:150px;padding:4px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:0 6px 20px color-mix(in srgb, var(--color-text) 12%, transparent)}
+  .obd-menu button{text-align:left;padding:6px 10px;border-radius:6px;background:none;border:0;font-size:13px;color:var(--color-text)}
+  .obd-menu button:hover{background:var(--surface-2)}
+  .obd-ready{margin-left:auto;font-size:12.5px;color:var(--color-neutral-400);white-space:nowrap}
+  .obd-list.is-ls{flex:1 1 auto;min-height:0;max-height:none;overflow:auto;border-right:0;padding:0 24px}
+  .obd-tb.is-ls{table-layout:fixed}
+  .obd-tb.is-ls td{padding:11px 8px;font-size:13.5px}
+  .obd-tb.is-ls th{padding:8px}
+  .obd-tb.is-ls .obd-c-tk{width:34px;padding-left:8px;padding-right:4px}
+  .obd-tb.is-ls .obd-c-who{width:156px}
+  .obd-tb.is-ls .obd-c-when{width:112px;font-size:13px;color:var(--color-quiet)}
+  .obd-tb.is-ls .obd-c-st{width:106px}
+  .obd-tb.is-ls .obd-c-go{width:54px;text-align:right}
+  .obd-row.is-ls:hover td{background:var(--surface-2)}
+  .obd-row.is-ls.is-sel td{background:var(--surface-2)}
+  .obd-row.is-ls.is-sel td.obd-c-tk{box-shadow:inset 2px 0 0 var(--color-text)}
+  .obd-row.is-ls .obd-desc{font-weight:var(--w-label)}
+  .obd-lsq{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:3px;font:italic 13px/1.4 var(--font-doc);color:var(--color-quiet)}
+  .obd-sec{font:normal var(--w-label) 11.5px/1 var(--font-body);color:var(--accent-ink);margin-right:6px}
+  .obd-pills{display:inline-flex;background:var(--surface-2);border-radius:999px;padding:2px}
+  .obd-pills button{font-size:12px;padding:2px 9px;border-radius:999px;background:none;border:0;color:var(--color-quiet)}
+  #obd .obd-pills button[aria-pressed="true"]{background:var(--color-text);color:var(--color-surface)}
+  .obd-ns-say{display:block;margin-top:3px;font-size:12px;color:var(--st-amber-fg)}
+  .obd-lsw{font-size:13px;color:var(--color-quiet)}
+  .obd-bd{display:inline-flex;align-items:center;gap:5px;font-size:12px;line-height:20px;padding:0 8px;border-radius:999px;white-space:nowrap}
+  .obd-bd i{width:6px;height:6px;border-radius:50%;background:currentColor}
+  .obd-bd.is-green{background:var(--st-green-bg);color:var(--st-green-fg)}
+  .obd-bd.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .obd-bd.is-gray{background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  .obd-c-go .ui-link{font-size:13px;font-weight:var(--w-label)}
+  .obd.is-ls .obd-foot{margin-top:auto}
+  .obd.is-ls .obd-count{font-size:13px;color:var(--color-quiet)}
+  @container (max-width: 760px){ .obd-tb.is-ls .obd-c-when{display:none} .obd-tb.is-ls .obd-c-st{width:92px} }
+  .obdf{padding:2px 0 8px}
+  .obdf-eye{margin:0;font-size:12px;color:var(--color-neutral-400)}
+  .obdf-t{margin:4px 0 10px;font:400 19px/1.25 var(--font-doc);color:var(--color-text)}
+  .obdf-ring{display:flex;gap:14px;align-items:center;padding:6px 0 14px;border-bottom:1px solid var(--color-divider)}
+  .obdf-ring b{display:block;font-weight:var(--w-strong);font-size:14px}
+  .obdf-ring small{display:block;font-size:12.5px;color:var(--color-neutral-400)}
+  .obdf-q{margin:0;padding:10px 0 12px;border-bottom:1px solid var(--color-divider);font:italic 13.5px/1.45 var(--font-doc);color:var(--color-quiet)}
+  .obdf-fact{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--color-divider);font-size:13.5px}
+  .obdf-fact span:first-child{color:var(--color-neutral-400)}
+  .obdf-fact span:last-child{text-align:right;color:var(--color-text)}
+  .obdf-acts{display:flex;gap:8px;flex-wrap:wrap;padding:14px 0 6px}
+  .obdf .obd-note{margin:12px 0 6px}
+  .obdf-h{margin:12px 0 6px;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-400)}
+  .obdf-tl{list-style:none;margin:0;padding:0}
+  .obdf-tl li{position:relative;padding:4px 0 4px 18px;font-size:13px;color:var(--color-text)}
+  .obdf-tl li::before{content:"";position:absolute;left:0;top:10px;width:8px;height:8px;border-radius:50%;background:var(--color-neutral-300)}
+  .obdf-tl li.is-now::before{background:var(--st-amber-dot)}
   .obd-count{font-size:12.5px;color:var(--color-ink-2,#475467);font-variant-numeric:tabular-nums}
   .obd-sp{flex:1}
   @media (max-width:900px){ .obd-grid{grid-template-columns:1fr} .obd-list{border-right:0;border-bottom:1px solid var(--color-line);max-height:34vh} .obd-item{max-height:none} }
