@@ -40184,3 +40184,14 @@ The owner, with a photo of MK-209's pop-up: "are these choices based on what jam
 
 ## JAMBO THE INSTRUCTOR (23 Nov 2026, the practice contract removed)
 - The owner, the same day, with a screenshot of the walk's turns: "remove the practice contract as jambo does not show you much on how to fill it in. What you should do is when someone asks for guidance, show them in steps like in this guidance from the handdbook attached but make it with the highlights in color and bold letters accordingly … draw this." Removed by undoing #934 whole (one revert; the Brain map's flow line kept the night flow's later 'alertsweep' and 'colread'). Nothing of it was ever on the server, so nothing there to clean; a copy left in a browser's storage is never read again.
+
+## JAMBO THE INSTRUCTOR (23 Nov 2026, the step drawn the Legora + Stripe way)
+
+The owner, with a photo of plain grey walk turns: "show them in steps like in this guidance from the handdbook attached
+but make it with the highlights in color and bold letters accordingly … draw this." Four ways were drawn on a photo of
+today's Board (artifact "Jambo's Steps, Drawn"); the owner picked "Build the Legora + Stripe way". Built as drawn: no
+grey bubble, a soft badge, the book's own {ui:}/{door:} words as green highlighter marks (`teachRich`), amber in amber,
+places bold (`TEACH_PLACES`), the pin line ("Take me there" in bold), and a timeline of every step with the ones behind
+ticked (`teachStepHtml`, `teachStepShort`). The words are unchanged; only how they are drawn. Photographed at the three
+screens: nothing spills, the bubble is clear, the highlight paints. The drawing's "the timeline folds on a short panel"
+was not built: at 730px the turn simply scrolls with the conversation, as every turn does.

@@ -282,6 +282,50 @@ function teachFind(sels){
 }
 function teachMarkOff(){ if (typeof document !== 'undefined') document.querySelectorAll('.teach-mark').forEach(e => e.classList.remove('teach-mark')); }
 function teachMarkOn(el){ teachMarkOff(); if (!el) return; el.classList.add('teach-mark'); try { el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (_){} }
+/* ---------- THE STEP, DRAWN THE LEGORA + STRIPE WAY (owner's pick by name, 23 Nov 2026) ----------
+   "show them in steps like in this guidance from the handbook … with the highlights in colour and bold letters".
+   No grey bubble: a soft "Step i of n" badge and the chapter's title; the step in the chapter's OWN words, where
+   the button to press (a {ui:…} or {door:…} in the book) is marked like a highlighter in green and bold, a status
+   word keeps its own colour (amber in amber), and a place is in bold; a pin line says where it is; under the
+   presses, a small timeline of every step of the chapter, the ones behind ticked, this one lit. Only HaTi's words
+   are escaped and marked — nothing is read from the person, nothing invented. */
+const TEACH_PLACES = {
+  en: ['Dossier', 'Redlines', 'Board', 'Calendar', 'Handbook', 'Settings', 'Contracts', 'Explorer', 'Discover', 'Obligations', 'Approvals', 'Needs you', 'Our paper', 'Their paper', 'Requests', 'Import', 'People', 'Playbook', 'Overview'],
+  sv: ['Dossier', 'Redlines', 'Tavlan', 'Kalendern', 'Handboken', 'Inställningar', 'Utforskaren', 'Behöver dig', 'Godkännanden', 'Åtaganden', 'Vårt papper', 'Deras papper', 'Förfrågningar', 'Personer', 'Översikt'],
+};
+const TEACH_AMBER = { en: /(?<![\p{L}])(amber)(?![\p{L}])/giu, sv: /(?<![\p{L}])(bärnstensfärgade?)(?![\p{L}])/giu };
+function _thPlaceRe(lang){
+  const L = TEACH_PLACES[lang] || TEACH_PLACES.en;
+  return new RegExp('(?<![\\p{L}])(' + L.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')(\\p{L}*)', 'gu');
+}
+/* one of HaTi's sentences, with its marks: buttons highlighted green, amber in amber, places in bold */
+function teachRich(v){
+  const lang = _thLang(), s = _thW(v), out = [];
+  const plain = t => _thE(t).replace(_thPlaceRe(lang), '<b>$1$2</b>').replace(TEACH_AMBER[lang] || TEACH_AMBER.en, '<span class="teach-amb">$1</span>');
+  let at = 0; const re = new RegExp(HBK_MARK_SRC, 'g'); let m;
+  while ((m = re.exec(s))){ out.push(plain(s.slice(at, m.index))); out.push(`<span class="teach-btn">${_thE(_thUiWord(m[1], m[2]))}</span>`); at = m.index + m[0].length; }
+  out.push(plain(s.slice(at)));
+  return out.join('').replace(/\s+/g, ' ').trim();
+}
+const HBK_MARK_SRC = '\\{(ui|door):([a-z0-9_]+)\\}';
+/* a step's short name for the timeline: its own first clause */
+function teachStepShort(v){
+  const t = teachPlain(v); const cut = t.split(/(?<=[.:;])\s/)[0].replace(/[.:;]$/, '');
+  return cut.length > 64 ? cut.slice(0, 62).replace(/\s+\S*$/, '') + '…' : cut;
+}
+const TEACH_PIN = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 14s5-4.6 5-8.5A5 5 0 0 0 3 5.5C3 9.4 8 14 8 14Z"/><circle cx="8" cy="5.5" r="1.8"/></svg>';
+function teachStepHtml(c, i, steps, where){
+  const n = steps.length;
+  const tl = steps.map((st, j) => {
+    const at = j + 1, cls = at === i ? ' is-cur' : at < i ? ' is-done' : '';
+    return `<li class="teach-tl-i${cls}"${at === i ? ' aria-current="step"' : ''}><i>${at < i ? '✓' : at}</i><span>${_thE(teachStepShort(st))}</span></li>`;
+  }).join('');
+  return `<div class="teach-step" data-teach-step="${_thE(c.k)}:${i}">`
+    + `<div class="teach-top"><span class="teach-badge">${_thE(_thT('teach_step_of', { i, n }))}</span><span class="teach-title">${_thE(teachPlain(c.title))}</span></div>`
+    + `<p class="teach-say">${teachRich(steps[i - 1])}</p>`
+    + (where ? `<div class="teach-where">${TEACH_PIN}<span>${_thE(where).split(_thE(_thT('teach_go'))).join(`<b>${_thE(_thT('teach_go'))}</b>`)}</span></div>` : '')
+    + `<ol class="teach-tl">${tl}</ol></div>`;
+}
 function teachStepTurn(k, i, o){
   const c = teachChapter(k), steps = teachWalkSteps(c), n = steps.length; if (!n) return null;
   i = Math.max(1, Math.min(n, i | 0 || 1));
@@ -291,14 +335,13 @@ function teachStepTurn(k, i, o){
   _walk = { k, i, n, sels: M.sels, pre: M.pre || [], opener: !!opener };
   /* `short`: the same step said again after "Take me there" — only where it is now, never the whole step twice */
   const where = el ? _thT('teach_marked') : opener ? _thT('teach_opener') : M.place ? _thT('teach_go_hint') : M.sels.length ? _thT('teach_not_here') : '';
-  const lines = o && o.short ? [where || _thT('teach_not_here')]
-    : [{ b: _thT('teach_step_of', { i, n }), t: teachPlain(c.title) }, teachPlain(steps[i - 1]), where];
+  const html = o && o.short ? _thLines([where || _thT('teach_not_here')]) : teachStepHtml(c, i, steps, where);
   const choices = [];
   if (!el && !opener && M.place && !(o && o.short)) choices.push({ label: _thT('teach_go'), teach: 'go', k, i, place: M.place });
   choices.push(i < n ? { label: _thT('teach_next'), teach: 'step', k, i: i + 1, lead: true } : { label: _thT('teach_done'), teach: 'done', k, lead: true });
   if (i > 1) choices.push({ label: _thT('teach_back'), teach: 'step', k, i: i - 1 });
   choices.push({ label: _thT('teach_stop'), teach: 'stop' });
-  return { ask: 'walk', html: _thLines(lines), choices, read: _thRead() };
+  return { ask: 'walk', html, choices, read: _thRead() };
 }
 /* the walk's end: what was learnt ticks its first step, and the next untried ones are offered */
 function teachDoneTurn(k){
@@ -416,7 +459,7 @@ function teachTasksGroup(){
 
 const TEACH_API = { TEACH_HINT_DAYS, TEACH_STATES, TEACH_STEPS, teachNorm, teachRead, teachState, teachOn, teachSeat, teachChoices, teachTurn, teachSet, teachSay, teachTakes, teachHintOn, teachPh, teachHintSweep,
   TEACH_WORDS, teachWordOf, teachWordTurn, TEACH_HERE_RE, teachHereAsked, teachHereChapters, teachHereTurn,
-  TEACH_FN_DOORS, teachChapter, teachPlain, teachWalkSteps, teachMarksOf, teachFind, teachMarkOn, teachMarkOff, teachStepTurn, teachDoneTurn, teachPush, teachMarkKeep, teachShow, teachChoicePress,
+  TEACH_FN_DOORS, TEACH_PLACES, teachRich, teachStepShort, teachStepHtml, teachChapter, teachPlain, teachWalkSteps, teachMarksOf, teachFind, teachMarkOn, teachMarkOff, teachStepTurn, teachDoneTurn, teachPush, teachMarkKeep, teachShow, teachChoicePress,
   TEACH_TASKS, TEACH_DONE_KEYS, teachDoneSet, teachTasks, teachDid, teachTasksGroup };
 if (typeof window !== 'undefined') Object.assign(window, TEACH_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = TEACH_API;

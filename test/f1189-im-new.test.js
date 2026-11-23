@@ -309,3 +309,31 @@ describe('f1189 (10) "Start the lessons" under any answer that hears someone new
     try { T.teachChoicePress({ teach: 'start' }); assert.equal(u.prefs.teach, 'on', 'the same as typing "I\'m new"'); } finally { delete global.currentUser; }
   });
 });
+
+/* ---- THE STEP, THE LEGORA + STRIPE WAY (owner's pick by name, 23 Nov 2026) ---- */
+describe('f1189 (11) a step is drawn with its highlights: badge, green button, amber, bold place, timeline', () => {
+  global.hbkChapterOf = require('../js/handbook.js').hbkChapterOf;
+  global.hbkPlainOf = require('../js/handbook.js').hbkPlainOf;
+  test('the button to press is highlighted, amber stays amber, the place is bold', () => {
+    const h = T.teachStepTurn('2.3', 1).html;
+    assert.ok(/class="teach-badge"/.test(h), 'the step badge');
+    assert.ok(/<span class="teach-btn">[^<]+<\/span>/.test(h), 'the button marked');
+    assert.ok(/<span class="teach-amb">amber<\/span>/.test(h), 'amber in amber');
+    assert.ok(/<b>Dossier<\/b>/.test(h), 'the place in bold');
+    assert.ok(!/\{ui:/.test(h), 'no raw marker left');
+  });
+  test('every step of the chapter in the timeline, the ones behind ticked, this one lit', () => {
+    const n = global.hbkChapterOf('2.3').how.length, h = T.teachStepTurn('2.3', 3).html;
+    assert.equal((h.match(/class="teach-tl-i/g) || []).length, n);
+    assert.equal((h.match(/is-done/g) || []).length, 2);
+    assert.equal((h.match(/aria-current="step"/g) || []).length, 1);
+  });
+  test('the words are escaped; only HaTi\'s own marks are drawn', () => {
+    assert.ok(!/<script/i.test(T.teachRich({ en: '<script>x</script> on the Board' })));
+  });
+  test('no grey bubble round a step, and every colour a token', () => {
+    const css = R('index.html');
+    assert.ok(/\.ai-bub:has\(> \.teach-step\):not\(#_\)\{background:transparent/.test(css));
+    assert.ok(/\.teach-btn\{background:var\(--st-green-bg\);color:var\(--st-green-fg\)/.test(css));
+  });
+});

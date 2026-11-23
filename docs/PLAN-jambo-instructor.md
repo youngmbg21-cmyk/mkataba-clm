@@ -117,6 +117,12 @@ Built and merged (#934), then removed at the owner's word the same day: "remove 
 does not show you much on how to fill it in". The guidance itself is to show more instead: steps drawn like the
 Handbook's, with highlights in colour and bold (a drawing, asked for next).
 
+### The step, drawn the Legora + Stripe way — BUILT 23 Nov 2026 (owner's pick by name)
+
+Each step of a walk now shows: a soft "Step 1 of 7" badge and the chapter's title; the chapter's own sentence with
+the button to press marked in green and bold, amber words in amber, places in bold; a pin line saying where it is;
+and a small list of every step, the ones done ticked, this one lit. No grey bubble round it. Same words as before.
+
 ### Round 7 — Keep the book true — WAITS FOR THE OWNER'S "retake the Handbook pictures"
 
 The Handbook's text was brought up to date with every round. Retaking its pictures runs a browser over the whole
