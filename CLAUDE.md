@@ -371,6 +371,8 @@ NOTHING SECRET to staff mail (app URL, no token). `contractUrl(req, id, tab, go)
 Per person (`overseerOn`, approver, backup). `saRuleOf`, `saNeeds`, `saState` (unasked · pending · approved · refused · lapsed), `saMayDecide` (not the asker). `c.signApprovals` lapse on drift or `SA_UNUSED_DAYS`. SIGNING only; server `srvSignApprovalMerge`, 409 neutral (they never learn); `/sign-approval-notify`.
 ## SIGN LINKS, SIGNERS AND THE SIGNING ROUTE
 Review link cannot sign (403); Sign link bound to stored route. Signer on EACH side opens it (`signingRouteOpen`); first signature shuts route (`signingLocked`, `signingRestart`). `saveSignerPlan` the authority; link tests need `nameASigner`. `notifyInternalSignerTurn` (app URL). Editor a TIMELINE (`signerRouteWindow`); `signerPlanRefusal` in `#sr-say`.
+## WHO SIGNS, ON THE WORKING PAPER (owner's pick, the Legora + Stripe way, 23 Nov 2026)
+Every contract's working paper prints the route's signer under each line, "signs 1st" badge, "title, for company"; nobody named = amber "name · title" (no press, like every blank); off a Viewer/sealed paper (`pagesSignNames`/`pagesSignNamesOff`, painted from `pdPaint` → `pdSignNamesPaint`; never the signing copy (`pagesSignMarks`), never while Fill in holds the lines). Screen only. f1195.
 ## SIGNING ON THE PAPER
 A MARK IS NOT SIGNING: `c.signSpots` touches no signature/status/seal, never travels; on a CLAUSE ID; "spots still to fill" in `signBlockers` (mine); painted after canvas (`wireDocCanvas`), not sealed in (f256); in EXECUTED_IMMUTABLE.
 ## REDLINE HERE, SIGN THERE — A FILE THEY SIGN (js/outside.js, both hosts)

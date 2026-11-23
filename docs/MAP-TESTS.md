@@ -1120,3 +1120,5 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 - No tests of its own remain. The deletion is kept by: f1097 (launchpad), f841 (Guide), f964 (map), f937 (Handbook), f561 (Brain).
 ## AN AMENDMENT IS WRITTEN HERE — filled on its paper
 - f1194: the paper fill writes the amendment's wording; an answer only on the record is still owed; "made on" fills the effective date; no value and no second Effective box owed.
+## WHO SIGNS, ON THE WORKING PAPER
+- f1195: named signer with order badge and "title, for company"; amber space when nobody is named (none for a Viewer or a sealed paper); painted once, taken off whole; wired from pdPaint, stepping aside on the signing copy and in Fill in.

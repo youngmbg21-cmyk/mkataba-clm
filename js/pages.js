@@ -758,5 +758,59 @@ function pagesSignMarks(root, rows){
   });
   return n;
 }
-if(typeof window !== 'undefined') Object.assign(window, { pagesLetterheadName, pagesSignFoot, pagesSignFlags, pagesSignRows, pagesSignMarks });
+/* WHO SIGNS, ON THE WORKING PAPER (owner's pick by name, "the Legora + Stripe way", 23 Nov 2026; on every contract, not
+   only amendments): under each signature line of the paper being worked on, the person the signing route names for that
+   party, in the paper's own type, with a small "signs 1st" badge (a signature already given: "signed"), then "title, for
+   company" in grey. A line the route names nobody on is an amber "name · title" space, the same look as every blank
+   still owed (a press on it does nothing, as on every blank: owner, 13 Nov 2026). Read off pagesSignRows, the signing
+   copy's own reading, so the panel's Signer line, this paper and the signing copy always agree. ON SCREEN ONLY: painted
+   after the paper (never stored, never on the paper sent, printed or signed); the signing copy keeps pagesSignMarks.
+   `opts.owed` false: no amber space (a Viewer, a sealed paper). Returns the lines painted. */
+function pagesSignNamesOff(root){
+  if(!root) return;
+  root.querySelectorAll('.rl-paper-foot .rl-signames').forEach(x => x.remove());
+  root.querySelectorAll('.rl-paper-foot .rl-sigfor[data-sn-was]').forEach(x => { x.innerHTML = x.getAttribute('data-sn-was'); x.removeAttribute('data-sn-was'); });
+}
+function pagesSignNames(root, c, opts){
+  if(!root || !c) return 0;
+  const o = opts || {};
+  pagesSignNamesOff(root);
+  const T = (k, v) => (window.i18t ? window.i18t(k, v) : k);
+  const rows = pagesSignRows(c, c.signatures || []);
+  const plan = (Array.isArray(c.signerPlan) ? c.signerPlan : []).filter(s => s && s.name);
+  /* the company under each line, as the foot prints it */
+  let names = null;
+  try{
+    if(typeof window.contractParties === 'function'){
+      const OURS = window.PARTY_SIDE_OURS || 'ours';
+      const ps = window.contractParties(c).filter(p => p.name && (p.side === OURS || p.involvement !== 'none'));
+      if(ps.length > 2) names = ps.map(p => String(p.name));
+    }
+  }catch(_){ names = null; }
+  if(!names){
+    let us = '';
+    try{ us = (typeof window.contractParty === 'function' ? window.contractParty(c) : '') || window.FIRST_PARTY || ''; }catch(_){ us = ''; }
+    names = [String(us || ''), String(c.counterparty || '')];
+  }
+  const nth = k => (typeof window.i18ord === 'function') ? window.i18ord(k) : String(k);
+  let n = 0;
+  root.querySelectorAll('.rl-paper-foot .rl-sigline').forEach((el, i) => {
+    const r = rows && rows[i], forEl = el.querySelector('.rl-sigfor'), who = names[i] || '';
+    let html = '';
+    if(r && r.name){
+      const first = String(r.name).split(' · ')[0];
+      const at = plan.findIndex(s => String(s.name) === first);
+      const badge = r.planned ? (at >= 0 ? T('pd2_ps_signs', { nth: nth(at + 1) }) : '') : T('pg_sn_signed');
+      html = `<span class="rl-signames"><span class="rl-sn-name">${_pgAttr(r.name)}</span>${badge ? `<span class="rl-sn-badge${r.planned ? '' : ' is-signed'}">${_pgAttr(badge)}</span>` : ''}</span>`;
+      if(forEl && r.title && who){ forEl.setAttribute('data-sn-was', forEl.innerHTML); forEl.textContent = T('pg_sn_title_for', { title: r.title, who }); }
+    } else if(o.owed !== false){
+      html = `<span class="rl-signames"><span class="rl-sn-owed">${_pgAttr(T('pg_sn_owed'))}</span></span>`;
+    }
+    if(!html) return;
+    if(forEl) forEl.insertAdjacentHTML('beforebegin', html); else el.insertAdjacentHTML('beforeend', html);
+    n++;
+  });
+  return n;
+}
+if(typeof window !== 'undefined') Object.assign(window, { pagesLetterheadName, pagesSignFoot, pagesSignFlags, pagesSignRows, pagesSignMarks, pagesSignNames, pagesSignNamesOff });
 if(typeof module !== 'undefined' && module.exports) Object.assign(module.exports, { pagesSignFoot, pagesLetterheadName });
