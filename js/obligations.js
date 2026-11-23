@@ -1608,7 +1608,7 @@ function openDutiesPage(c, found, o){
   };
   const chipsHtml = () => CHIPS().map(([k, w, opts]) => {
     const v = S[k];
-    if(v){ const hit = opts.find(x => x[0] === v); return `<span class="obd-chip is-set"><button type="button" data-dtp-chip="${k}">${E(i18t(w))}: ${E(hit ? hit[1] : v)}</button><button type="button" class="obd-chip-x" data-dtp-fx="${k}" aria-label="${E(i18t('obd_ls_clear'))}">×</button></span>`; }
+    if(v){ const hit = opts.find(x => x[0] === v); return `<span class="obd-chip is-set"><button type="button" data-dtp-chip="${k}">${E(i18t(w))}: ${E(hit ? hit[1] : v)}</button><button type="button" class="obd-chip-x" data-dtp-fx="${k}" aria-label="${E(i18t('obd_ls_clear'))}">${icon('x','w-3 h-3')}</button></span>`; }
     if(!opts.length) return '';
     const menu = S.menu === k ? `<span class="obd-menu" role="menu">${opts.map(([ov, ow]) => `<button type="button" role="menuitem" data-dtp-fv="${k}" data-v="${ov}">${E(ow)}</button>`).join('')}</span>` : '';
     return `<span class="obd-chip"><button type="button" data-dtp-chip="${k}" aria-expanded="${S.menu === k}">+ ${E(i18t(w))}</button>${menu}</span>`;
