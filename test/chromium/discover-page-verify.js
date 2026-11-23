@@ -87,8 +87,9 @@ const check = (name, ok, got) => { if (!ok) fails++; console.log(`${ok ? 'PASS' 
       if (sum) await page.click('#ins-panel [data-dsn-open]');
       const res = sum && await until(page, () => !!document.getElementById('dsn-q') && document.querySelectorAll('#rd-page tr[data-dsn-row]').length >= 2 && !!document.querySelector('#ins-panel .dsc-paper'), null, 15000);
       /* RE-POINTED (P-42, owner's pick 20 Nov 2026: Discover the Legora + Stripe way): the tiles are chips — All N and the
-         answers' own groups with their dots (data-dsn-tab) — the search at the right of them; Ask another and Export in the head */
-      const O = res ? await page.evaluate(() => ({ search: document.getElementById('dsn-q').type, tiles: document.querySelectorAll('#rd-page .dsn-bar .apn-tab[data-dsn-tab]').length, oldTiles: document.querySelectorAll('#rd-page .rdsc-tile').length,
+         answers' own groups with their dots (data-dsn-tab) — the search at the right of them; Ask another and Export in the head.
+         RE-POINTED 23 Nov 2026 (owner): search, All, then Answers ▾ whose menu items carry data-dsn-tab */
+      const O = res ? await page.evaluate(() => ({ search: document.getElementById('dsn-q').type, tiles: document.querySelectorAll('#rd-page .dsn-bar [data-dsn-tab]').length, oldTiles: document.querySelectorAll('#rd-page .rdsc-tile').length,
         acts: !!document.querySelector('#rd-page [data-dsn-again]') && !!document.querySelector('#rd-page [data-dsn-copy]'), rows: document.querySelectorAll('#rd-page tr[data-dsn-row]').length,
         /* RE-POINTED 22 Nov 2026 (P-42 review, as drawn): the result's two acts are buttons under its title in the panel */
         links: [...document.querySelectorAll('#ins-panel .dsr-acts [data-dsc-open], #ins-panel .dsr-acts [data-dsc-redline]')].map(b => b.innerText.trim()), back: !!document.querySelector('#rd-page [data-dsn-back]') })) : {};
