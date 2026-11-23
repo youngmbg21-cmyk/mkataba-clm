@@ -23,7 +23,10 @@ test('f1058 (2) tiles are coloured; plain facts take quiet colours; the chip wea
   assert.match(RD, /const DSN_FACT_TONES = \['violet', 'pink', 'steel'\]/);
   /* RE-POINTED (P-42, owner's pick 20 Nov 2026: Discover the Legora + Stripe way): the tiles are chips now, each with its
      tile's colour as a dot */
-  assert.match(fnBody(RD, 'dsnResultsHtml'), /data-dsn-tab="\$\{_rdE\(g\.k\)\}"[^`]*<i class="dsl-dot is-\$\{_rdE\(g\.c \|\| 'gray'\)\}"/);
+  /* RE-POINTED 23 Nov 2026 (owner: "put All next to the search field and the questions in a dropdown next to All"): the
+     answers sit in the Answers ▾ menu (dsnAnsBarHtml), each item still wearing its tile's colour as a dot */
+  assert.match(fnBody(RD, 'dsnResultsHtml'), /dsnAnsBarHtml\('dsn', S, _dsn\.tab/);
+  assert.match(fnBody(RD, 'dsnAnsBarHtml'), /const dot = g => `<i class="dsl-dot is-\$\{_rdE\(g\.c \|\| 'gray'\)\}"/);
   assert.match(fnBody(RD, 'dsnChipTone'), /G\.toneOf\.get\(k\)/);
   /* RE-POINTED 22 Nov 2026 (P-42 review, as drawn): the chips keep their tiles' colours; an answer in the table is its plain
      words with its mark against our playbook (dsnPlaybookOf), the risky in the ruby ink */

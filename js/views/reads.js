@@ -1540,7 +1540,8 @@ function dsnResultsShown(r){
 }
 /* (4) THE RESULTS, THE LEGORA + STRIPE WAY (P-42): "‹ All reads", the read's name, Ask another (fills New read with the
    same question, dsnFill) and Export (the copy, data-dsn-copy), Read the N left where some are; the line under it; chips
-   All N and the answers' own groups with their dots (each the tile it replaces: data-dsn-tab), the search at the right;
+   then ONE line: the search, All N beside it, and Answers ▾ listing the answers' own groups with their dots and counts
+   (owner, 23 Nov 2026: the row of answer chips ran on and on; dsnAnsBarHtml, menu items keep data-dsn-tab);
    one calm table — number and contract first, each answer as a soft badge in its tone with a small mark of the rule
    where the question has one (meets · below · not found), the paper's words with their §; each question's column can
    be KEPT as a column on Contracts (data-dsn-keepq); under the table "Throw away this read" (only this read). */
@@ -1598,13 +1599,11 @@ function dsnKeepHtml(askId, short){
    clause are in the chosen row's panel. */
 function dsnResultsHtml(r){
   const S = dsnResultsShown(r), may = _dscMay(), left = dsnRunLeft(r) || 0, pack = r.askIds.length > 1;
-  const chips = S ? [`<button type="button" class="apn-tab is-chip${_dsn.tab === 'all' ? ' is-on' : ''}" data-dsn-tab="all" aria-pressed="${_dsn.tab === 'all'}">${_rdE(_rdT('ctf_tab_all'))} <span>${S.rows.length}</span></button>`]
-    .concat(S.G.map(g => `<button type="button" class="apn-tab is-chip${_dsn.tab === g.k ? ' is-on' : ''}" data-dsn-tab="${_rdE(g.k)}" aria-pressed="${_dsn.tab === g.k}" title="${_rdE(g.l)}"><i class="dsl-dot is-${_rdE(g.c || 'gray')}" aria-hidden="true"></i><b class="dsn-cl">${_rdE(g.l)}</b> <span>${g.n}</span></button>`)).join('') : '';
   const q = dsnRunQuestion(r), title = r.packId ? dsnRunName(r) : (q || dsnRunName(r));
   const head = `<div class="cun-head rdn-head dsn-rhead"><div class="dsn-rh-t"><button type="button" class="dsl-a dsn-back" data-dsn-back>${_rdE(_rdT('dsn_back'))}</button><h2 class="ctf-h" title="${_rdE(title)}">${_rdE(title)}</h2></div><span class="apn-sp"></span><span class="dsn-racts">
       ${may ? `<button type="button" class="rfp-pill" data-dsn-again="${_rdE(r.id)}">${_rdE(_rdT('dsn_ask_another'))}</button>` : ''}${dsnExportHtml('dsn')}${dsnAlertBtnHtml(r.askIds)}${left && may ? `<button type="button" class="ui-btn ui-btn-primary" data-dsn-more="${_rdE(r.id)}">${_rdE(_rdT('dsn_read_left', { n: left }))}</button>` : ''}</span></div>
     ${dsnSteps(3)}<p class="dsn-sub">${_rdE([dsnRunWhere(r), S ? dsnSubjectWords(S.rows.map(x => x.c)) : '', _rdT('dsn_n_read', { n: r.n }), String(r.by || '').split(/\s+/)[0], dsnDay(r.last || r.at)].filter(Boolean).join(' · '))}</p>
-    <div class="apn-bar dsn-bar">${chips}<span class="apn-sp"></span><label class="dsn-search">${typeof icon === 'function' ? icon('search', 'w-4 h-4') : ''}<input type="search" id="dsn-q" autocomplete="off" spellcheck="false" placeholder="${_rdE(_rdTn('dsn_search', r.askIds.length))}" aria-label="${_rdE(_rdTn('dsn_search', r.askIds.length))}" value="${_rdE(_dsn.q)}"></label></div>`;
+    ${dsnAnsBarHtml('dsn', S, _dsn.tab, `<input type="search" id="dsn-q" autocomplete="off" spellcheck="false" placeholder="${_rdE(_rdTn('dsn_search', r.askIds.length))}" aria-label="${_rdE(_rdTn('dsn_search', r.askIds.length))}" value="${_rdE(_dsn.q)}">`)}`;
   if (!S) return head + rdnWaitHtml(r.askIds, 'dsc-quiet dsc-pad');
   if (S.list.length && !S.list.some(x => x.id === _dsn.cid)) _dsn.cid = S.list[0].id;
   const names = r.askIds.map(k => ((typeof AC !== 'undefined' && AC.asks && AC.asks[k]) || {}).name || '');
@@ -1956,7 +1955,7 @@ if (typeof document !== 'undefined' && !document._dsnWired){ document._dsnWired 
     if (t.closest('[data-dsn-clear]')){ stop(e); _dsn.pick = new Set(['all']); _dsn.party = ''; renderReads(); return; }
     if ((el = t.closest('[data-dsn-sort]'))){ stop(e); const k = el.getAttribute('data-dsn-sort');
       _dsn.sort = (_dsn.sort && _dsn.sort.k === k) ? { k, dir: -_dsn.sort.dir } : { k, dir: 1 }; renderReads(); return; }
-    if ((el = t.closest('[data-dsn-tab]'))){ stop(e); _dsn.tab = el.getAttribute('data-dsn-tab'); _dsn.cid = null; renderReads(); return; }
+    if ((el = t.closest('[data-dsn-tab]'))){ stop(e); _dsn.tab = el.getAttribute('data-dsn-tab'); _dsn.cid = null; _dsn.amenu = null; renderReads(); return; }
     if ((el = t.closest('[data-dsn-clause]'))){ stop(e); const r = dsnRun(_dsn.run); if (r) dscLand(r.askIds[0], el.getAttribute('data-dsn-clause'), false); return; }
     if ((el = t.closest('[data-dsn-ck]'))){ stop(e); const r = dsnRun(_dsn.run);
       if (r && !el.disabled && typeof askColCheck === 'function') Promise.resolve(askColCheck(r.askIds[0], el.getAttribute('data-dsn-ck'))).catch(() => {}).then(() => renderReads()); return; }
@@ -2266,6 +2265,27 @@ const _amwGet = id => _amwList().find(w => String(w.id) === String(id)) || null;
 /* the last choice made in the window, per question: the one thing pre-chosen (a per-viewer convenience, browser storage) */
 function amwLastOf(askId){ try { const j = JSON.parse(localStorage.getItem(AMW_LAST_KEY) || '{}'); return (j && j[askId]) || null; } catch (_){ return null; } }
 function amwLastPut(askId, when){ try { const j = JSON.parse(localStorage.getItem(AMW_LAST_KEY) || '{}') || {}; j[askId] = when; localStorage.setItem(AMW_LAST_KEY, JSON.stringify(j)); } catch (_){} }
+/* THE ANSWERS' LINE (owner, 23 Nov 2026: "put All next to the search field and the questions in a dropdown next to All"):
+   the search, All N, then Answers ▾ — one button whose small menu lists each answer with its dot and count (HaTi's own
+   .apn-rule-menu, as Export ▾). A chosen answer is said ON the button (its dot, words, count) and the button is filled;
+   All lets go. `kind` 'dsn' = the results (data-dsn-tab), 'amw' = an alert's page (data-amw-tab); one opener per page. */
+function dsnAnsBarHtml(kind, S, tab, input){
+  const k = kind === 'amw' ? 'amw' : 'dsn', attr = `data-${k}-tab`, open = _dsn.amenu === k;
+  const search = `<label class="dsn-search">${typeof icon === 'function' ? icon('search', 'w-4 h-4') : ''}${input}</label>`;
+  if (!S) return `<div class="apn-bar dsn-bar">${search}</div>`;
+  const all = `<button type="button" class="apn-tab is-chip${tab === 'all' ? ' is-on' : ''}" ${attr}="all" aria-pressed="${tab === 'all'}">${_rdE(_rdT('ctf_tab_all'))} <span>${S.rows.length}</span></button>`;
+  const dot = g => `<i class="dsl-dot is-${_rdE(g.c || 'gray')}" aria-hidden="true"></i>`;
+  const on = S.G.find(g => g.k === tab);
+  const face = on ? `${dot(on)}<b class="dsn-cl">${_rdE(on.l)}</b> <span>${on.n}</span>` : `${_rdE(_rdT('dsn_answers'))} <span>${S.G.length}</span>`;
+  const items = S.G.map(g => `<button type="button" role="menuitemradio" aria-checked="${tab === g.k}" class="${tab === g.k ? 'is-on' : ''}" ${attr}="${_rdE(g.k)}" title="${_rdE(g.l)}">${dot(g)}<b class="dsn-cl">${_rdE(g.l)}</b><span>${g.n}</span></button>`).join('');
+  const menu = S.G.length ? `<span class="apn-rule-w dsn-aw"><button type="button" class="apn-tab is-chip dsn-abtn${on ? ' is-on' : ''}" data-dsn-aopen="${k}" aria-haspopup="menu" aria-expanded="${open}">${face}<i class="dsn-xv" aria-hidden="true"></i></button>`
+    + `<span class="apn-rule-menu dsn-amenu" role="menu"${open ? '' : ' hidden'}>${items}</span></span>` : '';
+  return `<div class="apn-bar dsn-bar dsn-abar">${search}${all}${menu}</div>`;
+}
+function dsnAnsShut(){
+  _dsn.amenu = null;
+  document.querySelectorAll('.dsn-amenu:not([hidden])').forEach(m => { m.hidden = true; const b = m.parentNode && m.parentNode.querySelector('[data-dsn-aopen]'); if (b) b.setAttribute('aria-expanded', 'false'); });
+}
 /* EXPORT ▾ — one button, its small menu (HaTi's own .apn-rule-menu): `kind` 'dsn' on the results, 'rdt' on the older table */
 function dsnExportHtml(kind){
   const k = kind === 'rdt' ? 'rdt' : 'dsn', open = _dsn.xmenu === k;
@@ -2387,12 +2407,10 @@ function amwPageHtml(){
   const folders = (w.params.folders || []).length ? w.params.folders.map(_dsnFolderName).join(', ') : _rdT('amw_in_all_short');
   const sub = [_rdT('amw_line', { q: (w.ask && w.ask.question) || '', what: amwChosenWords(w.params) }), folders, _rdT('amw_since', { day: dsnDay(w.createdAt) }), _rdT('amw_by_you'), _rdTn('amw_caught', S.rows.length)].join(' · ');
   const acts = may ? `<button type="button" class="rfp-pill" data-amw-change>${_rdE(_rdT('amw_change'))}</button><button type="button" class="rfp-pill" data-amw-stop>${_rdE(_rdT('amw_stop'))}</button>` : '';
-  const chips = [`<button type="button" class="apn-tab is-chip${_dsn.atab === 'all' ? ' is-on' : ''}" data-amw-tab="all" aria-pressed="${_dsn.atab === 'all'}">${_rdE(_rdT('ctf_tab_all'))} <span>${S.rows.length}</span></button>`]
-    .concat(S.G.map(g => `<button type="button" class="apn-tab is-chip${_dsn.atab === g.k ? ' is-on' : ''}" data-amw-tab="${_rdE(g.k)}" aria-pressed="${_dsn.atab === g.k}" title="${_rdE(g.l)}"><i class="dsl-dot is-${_rdE(g.c || 'gray')}" aria-hidden="true"></i><b class="dsn-cl">${_rdE(g.l)}</b> <span>${g.n}</span></button>`)).join('');
   const ph = _rdT('amw_search');
   const head = `<div class="cun-head rdn-head dsn-rhead"><div class="dsn-rh-t">${back}<h2 class="ctf-h" title="${_rdE(title)}">${_rdE(title)}</h2></div><span class="apn-sp"></span><span class="dsn-racts">${acts}</span></div>
     <p class="dsn-sub amw-sub" title="${_rdE(sub)}">${_rdE(sub)}</p>
-    <div class="apn-bar dsn-bar">${chips}<span class="apn-sp"></span><label class="dsn-search">${typeof icon === 'function' ? icon('search', 'w-4 h-4') : ''}<input type="search" id="amw-q" autocomplete="off" spellcheck="false" placeholder="${_rdE(ph)}" aria-label="${_rdE(ph)}" value="${_rdE(_dsn.aq || '')}"></label></div>`;
+    ${dsnAnsBarHtml('amw', S, _dsn.atab, `<input type="search" id="amw-q" autocomplete="off" spellcheck="false" placeholder="${_rdE(ph)}" aria-label="${_rdE(ph)}" value="${_rdE(_dsn.aq || '')}">`)}`;
   /* A CAP IS A FACT: a contract the alert could not read is said, with why; hits it no longer keeps are counted */
   const unread = (w.unread || []).length ? `<p class="amw-unread" data-amw-unread>${_rdE(_rdTn('amw_unread', w.unread.length))} ${_rdE([...new Set(w.unread.map(_amwWhy))].join(' '))}</p>` : '';
   const dropped = w.dropped ? `<p class="amw-unread">${_rdE(_rdTn('amw_dropped', w.dropped))}</p>` : '';
@@ -2468,9 +2486,13 @@ if (typeof document !== 'undefined' && !document._amwWired){ document._amwWired 
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     let el;
+    /* ANSWERS ▾: a press opens its menu, the same press again closes it; choosing an answer (data-dsn-tab / data-amw-tab) shuts it */
+    if ((el = t.closest('[data-dsn-aopen]'))){ stop(e); const m = el.parentNode && el.parentNode.querySelector('.dsn-amenu'); const open = !!(m && m.hidden);
+      dsnExportShut(); dsnAnsShut(); if (m && open){ m.hidden = false; el.setAttribute('aria-expanded', 'true'); _dsn.amenu = el.getAttribute('data-dsn-aopen'); } return; }
+    if (t.closest('.dsn-amenu [role="menuitemradio"]')) _dsn.amenu = null;
     /* EXPORT ▾: a press opens its menu, the same press again closes it, another opener moves it */
     if ((el = t.closest('[data-dsn-xopen]'))){ stop(e); const m = el.parentNode && el.parentNode.querySelector('.dsn-xmenu'); const open = !!(m && m.hidden);
-      dsnExportShut(); if (m && open){ m.hidden = false; el.setAttribute('aria-expanded', 'true'); _dsn.xmenu = el.getAttribute('data-dsn-xopen'); } return; }
+      dsnExportShut(); dsnAnsShut(); if (m && open){ m.hidden = false; el.setAttribute('aria-expanded', 'true'); _dsn.xmenu = el.getAttribute('data-dsn-xopen'); } return; }
     if (t.closest('.dsn-xmenu [role="menuitem"]')) setTimeout(dsnExportShut, 0);
     /* the window's own presses */
     if (t.closest('#amw-form')){
@@ -2497,19 +2519,21 @@ if (typeof document !== 'undefined' && !document._amwWired){ document._amwWired 
       /* A PRESS CHOOSES, A SECOND OPENS (the list inspector's rule) */
       if (_dsn.asel === id && _dsn.apicked){ amwPageOpen(id); return; }
       _dsn.asel = id; _dsn.apicked = true; renderReads(); return; }
-    if ((el = t.closest('[data-amw-tab]'))){ stop(e); _dsn.atab = el.getAttribute('data-amw-tab'); _dsn.acid = null; renderReads(); return; }
+    if ((el = t.closest('[data-amw-tab]'))){ stop(e); _dsn.atab = el.getAttribute('data-amw-tab'); _dsn.acid = null; _dsn.amenu = null; renderReads(); return; }
     if ((el = t.closest('[data-amw-row]'))){ stop(e); const id = el.getAttribute('data-amw-row'); if (_dsn.acid !== id){ _dsn.acid = id; renderReads(); }
       const w = _amwGet(_dsn.alert), h = w && (w.hits || []).find(x => String(x.cid) === id); if (h && !h.seen && typeof watchHitSeen === 'function') watchHitSeen(w.id, id); return; }
     if (t.closest('[data-amw-change]')){ stop(e); const w = _amwGet(_dsn.alert); if (w) amwOpen(w.params.askId, { w }); return; }
     if (t.closest('[data-amw-stop]')){ stop(e); amwStop(_dsn.alert); return; }
   }, true);
-  /* Esc and a press outside close the Export menu */
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.querySelector('.dsn-xmenu:not([hidden])')){ e.preventDefault(); e.stopPropagation(); dsnExportShut(); } }, true);
-  document.addEventListener('pointerdown', e => { if (e.target && e.target.closest && e.target.closest('.dsn-xw')) return; if (document.querySelector('.dsn-xmenu:not([hidden])')) dsnExportShut(); }, true);
+  /* Esc and a press outside close the Export menu and the Answers menu */
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.querySelector('.dsn-xmenu:not([hidden]), .dsn-amenu:not([hidden])')){ e.preventDefault(); e.stopPropagation(); dsnExportShut(); dsnAnsShut(); } }, true);
+  document.addEventListener('pointerdown', e => { const at = e.target && e.target.closest ? e.target : null;
+    if (!(at && at.closest('.dsn-xw')) && document.querySelector('.dsn-xmenu:not([hidden])')) dsnExportShut();
+    if (!(at && at.closest('.dsn-aw')) && document.querySelector('.dsn-amenu:not([hidden])')) dsnAnsShut(); }, true);
   document.addEventListener('input', e => { if (e.target && e.target.id === 'amw-q' && typeof state !== 'undefined' && state.view === 'reads'){ _dsn.aq = e.target.value; _dsn.acid = null; renderReads(); } });
   document.addEventListener('keydown', e => { const row = e.target && e.target.closest ? e.target.closest('#rd-page [data-amw-row], #rd-page [data-amw-lrow]') : null;
     if (row && e.target === row && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); row.click(); } });
 }
 
 Object.assign(window, { dsnWarm, rdnAnswersAll, dscLocate, dscPaperAllHtml, dsnRunLeft, dsnEndsOnResults, dslReadHtml, dslEmptyHtml, dslNewHtml, dsnRunRows, dsnCarry, dsnCancelOpen, dsnCancelGo, dsnRender, dsnChosen, dsnRuns, dsnGroups, dsnRunWhere, dsnAsk, discoverOpen, discoverLive, dscSlice, readsTableOpen, readsTableBack, rdTableRows, rdPlace, rdPlacePut, renderReads, readsOpen, readsShown, readParts, rdRows, readsFacts, readsNext, readsAskNew,
-  dsnExportHtml, dsnExportShut, dsnAlertBtnHtml, amwOpen, amwGo, amwPageOpen, amwPageHtml, amwPanelHtml, amwListHtml, amwListPanel, amwListPanelFor, amwShown, amwStop, amwMay, dsnLTabsHtml, amwListOpen, amwOnAlerts });
+  dsnExportHtml, dsnExportShut, dsnAnsBarHtml, dsnAnsShut, dsnAlertBtnHtml, amwOpen, amwGo, amwPageOpen, amwPageHtml, amwPanelHtml, amwListHtml, amwListPanel, amwListPanelFor, amwShown, amwStop, amwMay, dsnLTabsHtml, amwListOpen, amwOnAlerts });
