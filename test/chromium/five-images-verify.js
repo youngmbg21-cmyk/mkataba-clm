@@ -159,44 +159,49 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     await page.waitForTimeout(1200);
     await page.screenshot({ path: path.join(OUT, '04-horizon.png'), fullPage: true });
 
+    /* RE-POINTED 23 Nov 2026 (P-14, the Legora + Stripe way, owner: Build P-14): the Horizon is one calm table
+       (.cls-t.is-hz) whose third column is the Decision; each row's decision is a SOFT BADGE (.cls-b): decided green,
+       a notice day passed ruby, one inside 30 days amber, the rest grey; an open question carries its act, Decide, in
+       the cell (work answered in its row); a decided row and a row with nothing to say carry none. The kinds come from
+       the page's own reading (calLsHzRead), the inks and the acts from what is painted. */
+    await page.waitForFunction(() => !!document.querySelector('.cal-page.is-ls .cls-t.is-hz tbody tr.cls-r'), null, { timeout: 6000 }).catch(() => {});
     const hz = await page.evaluate(() => {
-      const head = document.querySelector('.cal-hz-col-dec');
-      const rows = [...document.querySelectorAll('.cal-hz-row')].map(r => {
-        const d = r.querySelector('.cal-hz-dec');
-        if (!d) return null;
-        const rr = r.getBoundingClientRect(), dr = d.getBoundingClientRect();
-        const cs = getComputedStyle(d);
-        return { text: d.textContent.trim(), kind: d.className.replace('cal-hz-dec ', ''),
-          ink: cs.color, align: cs.textAlign, weight: cs.fontWeight,
-          pill: d.querySelector('b') ? getComputedStyle(d.querySelector('b')).color : cs.color,
-          atRight: Math.round(rr.right - dr.right) <= 2 };
-      });
-      return { head: head ? head.textContent.trim() : null,
-        headRight: head ? getComputedStyle(head).textAlign : null, rows };
+      const tbl = document.querySelector('.cal-page.is-ls .cls-t.is-hz');
+      const th = tbl ? tbl.querySelectorAll('thead th')[2] : null;
+      let kindOf = {};
+      try { (calLsHzRead().rows || []).forEach(r => { kindOf[r.c.id] = r.st.k; }); } catch (e) { kindOf = {}; }
+      const rows = tbl ? [...tbl.querySelectorAll('tbody tr.cls-r')].map(r => {
+        const d = r.querySelector('td.cls-dec'), b = d && d.querySelector('.cls-b');
+        if (!d || !b) return null;
+        const k = kindOf[r.getAttribute('data-cal-pick')] || '';
+        return { kind: k === 'done' ? 'is-done' : k === 'none' ? 'is-none' : k ? 'is-open' : '',
+          k, text: b.textContent.trim(), ink: getComputedStyle(b).color, bg: getComputedStyle(b).backgroundColor,
+          act: !!d.querySelector('[data-cal-act="decide"]') };
+      }) : [];
+      return { head: th ? th.textContent.trim() : null, want: i18t('cal_hz_decision'), rows };
     });
-    ok('3 the ruler names a Decision column', !!hz.head, hz.head);
-    ok('3b every row carries a decision cell, right-aligned',
-      hz.rows.length > 0 && hz.rows.every(r => r && r.align === 'right' && r.atRight),
+    ok('3 the table names a Decision column', !!hz.head && hz.head === hz.want, hz.head);
+    ok('3b every row carries a decision cell with its badge',
+      hz.rows.length > 0 && hz.rows.every(r => r && r.kind),
       hz.rows.length + ' rows');
     const kinds = hz.rows.filter(Boolean).map(r => r.kind);
     ok('3c a decision already taken reads as a fact', kinds.includes('is-done'),
       (hz.rows.find(r => r && r.kind === 'is-done') || {}).text);
-    ok('3d an open question reads as work', kinds.includes('is-open'),
+    ok('3d an open question reads as work: it carries Decide in its cell', hz.rows.some(r => r && r.kind === 'is-open' && r.act),
       (hz.rows.find(r => r && r.kind === 'is-open') || {}).text);
-    ok('3e nothing to say reads faintest of the three', kinds.includes('is-none'));
+    ok('3e a decided row, and a row with nothing to say, carry no act',
+      hz.rows.filter(r => r && (r.kind === 'is-done' || r.kind === 'is-none')).length > 0
+        && hz.rows.filter(r => r && (r.kind === 'is-done' || r.kind === 'is-none')).every(r => !r.act),
+      JSON.stringify(hz.rows.filter(Boolean).map(r => [r.k, r.act])));
     const open = hz.rows.find(r => r && r.kind === 'is-open');
     const done = hz.rows.find(r => r && r.kind === 'is-done');
     const none = hz.rows.find(r => r && r.kind === 'is-none');
-    ok('3f the open one carries the strong weight and the others do not',
-      open && done && Number(open.weight) > Number(done.weight),
-      open && done ? `${open.weight} vs ${done.weight}` : 'not both drawn');
-    /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the Horizon the SAP way (owner's pick, 10 Nov 2026)
-       says a decision as a PILL inside the cell (<b>): decided green, open amber, and an undecided row wears the tone of its
-       time left — so "nothing to say" may share the open amber on a short row, but never the decided green. The inks
-       are the pills', the cell's own text colour is the one ink. */
+    ok('3f the open one carries the act and the decided one does not',
+      !!(open && done && open.act && !done.act),
+      open && done ? `${open.act} vs ${done.act}` : 'not both drawn');
     ok('3g and the inks really differ — decided is never the open nor the nothing-to-say ink',
-      open && done && none && open.pill !== done.pill && none.pill !== done.pill,
-      open && done && none ? [open.pill, done.pill, none.pill].join(' · ') : '');
+      !!(open && done) && open.ink !== done.ink && (!none || none.ink !== done.ink),
+      open && done ? [open.ink, done.ink, none ? none.ink : '-'].join(' · ') : '');
     /* A DATE, NOT A RAW ISO STRING — a screen that prints 2026-09-21 is a
        screen that reached for a formatter that is not on the stage. */
     ok('3h the decided day is printed the way this page prints days',
@@ -212,7 +217,7 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
       await page.waitForTimeout(700);
       const got = await page.evaluate(vv => {
         const groups = new Set();
-        document.querySelectorAll('.cal-seg,.sh-grp,.rl-segwrap,.ui-seg,.doc-read-seg,.reg-seg')
+        document.querySelectorAll('.cal-seg,.cls-seg,.sh-grp,.rl-segwrap,.ui-seg,.doc-read-seg,.reg-seg')
           .forEach(e => groups.add(e));
         document.querySelectorAll('[data-reg-density],[data-reg-mode],[data-cal-days],[data-cal-view]')
           .forEach(e => { if (e.tagName === 'BUTTON' && e.parentElement) groups.add(e.parentElement); });
@@ -241,8 +246,11 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     /* RE-POINTED 21 Oct 2026 (Chambers): the bar's two groups (.sh-grp — the
        Blue/Green and theme switch, and the language switch) were twelve of the
        fifteen measured on main; both left the bar, so three remain to sweep. */
+    /* RE-POINTED 23 Nov 2026 (P-14 and the new look as the only look): the list's density and mode switches and the old
+       calendar's seg left the pages; the calendar's tab pill (.cls-seg, its lit tab 3px inside) is the one still drawn on
+       these six pages, so at least one is measured and none may leak */
     ok('4 every segmented control’s lit half sits evenly inside its pill',
-      segSweep.length >= 3 && bad.length === 0,
+      segSweep.length >= 1 && bad.length === 0,
       bad.length ? bad.map(b => `${b.v}/${b.cls} ${b.gap}/${b.gapB}`).join(' · ')
                  : segSweep.length + ' measured, none leaking');
 

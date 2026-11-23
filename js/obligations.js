@@ -1759,6 +1759,9 @@ function openDutiesPage(c, found, o){
   if (mid && typeof pdMidOn === 'function' && document.querySelector('#modal-root [data-dlg-page]')) pdMidOn('obs:' + c.id);
   _obdNow = { c, face: faceHtml, press, input: q => { S.q = q; const el = document.getElementById('dtp-list'); if(el) el.innerHTML = tableHtml(); } };
   panel();
+  /* a renewal's Decide asked for every reading again (roomReadOnArrival): spent HERE, where its door lands now — the hidden
+     Obligations panel that spent it is gone, and an ask left unspent was spent by the next ordinary door instead */
+  if(typeof window.roomReadAgainSpend === 'function') setTimeout(() => { try { window.roomReadAgainSpend((typeof getContract === 'function' && getContract(c.id)) || c); } catch (_){} }, 0);
   if(o.decide != null) decide(Number(o.decide));
   else if(o.own) own(typeof o.own === 'object' ? o.own : null);
   return true;

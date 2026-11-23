@@ -111,7 +111,8 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     const c3 = await chips();
     /* RE-POINTED 18 Oct 2026 (round 3 as drawn: four chips, "answer the redlines · name a signer · share · history"): a signed one's fourth is share */
     /* RE-POINTED 22 Nov 2026 (Dossier L+S, as drawn: a signed agreement's Amend is its card's own button, pd2AmendCardOf, so "amend" left the links) */
-    ok('3 a signed agreement: no "sign" chip, no "amend" chip (Amend is the card\'s button); obligations · history · share', JSON.stringify(c3) === JSON.stringify(['oblig', 'history', 'share']), JSON.stringify(c3));
+    /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end": a contract's duties open from the Dossier's Duties card alone; "obligations" left the chips) */
+    ok('3 a signed agreement: no "sign" chip, no "amend" chip (Amend is the card\'s button), no "obligations" (the Duties card is the door); history · share', JSON.stringify(c3) === JSON.stringify(['history', 'share']), JSON.stringify(c3));
 
     /* 4 expired (in this browser only: the end date moved into the past) */
     await page.evaluate(() => { const c = getContract('MK-B1'); c.expiry = '2020-01-31'; c.metadata = Object.assign({}, c.metadata, { expiryDate: '2020-01-31' }); renderIntelDock(); });

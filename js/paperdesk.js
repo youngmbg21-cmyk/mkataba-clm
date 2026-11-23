@@ -87,10 +87,18 @@ function pdSolo(){
 function pdLandHasPress(){
   try { const top = (typeof pdJamboTopHtml === 'function') ? pdJamboTopHtml() : ''; return /<(?:a|button)\b/i.test(String(top || '')); } catch (_){ return false; }
 }
+/* a duty asked for by name (pdObOpenRow, the Obligations page's Enter) arrives CHOSEN on the Duties page's On the contract
+   tab: its key `cid::id` (or `cid::#i`) is the page's own row (r.id, or its place); spent once */
+function pdObWant(c){
+  const k = (_pdObOpen && c && _pdObOpen.id === String(c.id)) ? String(_pdObOpen.key).split('::').slice(1).join('::') : '';
+  if (!k) return { tab: 'on' };
+  _pdObOpen = null;
+  return { tab: 'on', rec: k.replace(/^#/, '') };
+}
 function pdSetTab(t){ t = PD_TAB_ALIAS[t] || t;
   /* THE HIDDEN OBLIGATIONS PANEL IS GONE (owner, 23 Nov 2026, "Duties, end to end"): every way that turned the panel to it
      opens the contract's Duties page in the middle instead (dutiesOpen, the one door) */
-  if (t === 'oblig'){ try { const c = pdContract(); if (c && typeof window.dutiesOpen === 'function' && window.dutiesOpen(getContract(c.id) || c, { tab: 'on' })) return; } catch (_){} return; }
+  if (t === 'oblig'){ try { const c = pdContract(); if (c && typeof window.dutiesOpen === 'function' && window.dutiesOpen(getContract(c.id) || c, pdObWant(c))) return; } catch (_){} return; }
   if (!PD_TABS.includes(t)) return; const was = _pdTab; _pdTab = t;
   /* the new look's notes beside the paper follow the tab (the Dossier's own), after the panel is drawn */
   if (was !== t && typeof pd2On === 'function' && pd2On()) setTimeout(() => { try { const c = pdContract(); if (c) pd2NotesPaint(getContract(c.id) || c); } catch (_){} }, 0); }
