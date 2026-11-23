@@ -14990,8 +14990,28 @@ function rlLadderFiveHtml(c, lad, rungs, name, steps){
       { k: i18t('ng_pb_std'), t: std }, { k: i18t('ng_pb_fb'), t: fb ? (fb.figure != null ? fig(fb.figure) : fb.text) : i18t('jov5_lad_not_set') },
       { k: i18t('ng_pb_walk'), t: i18t('jov5_lad_not_set') }] });
   }
-  return jamboOverviewHtml({ eyebrow: [i18t('ng_row_ladder'), name].filter(Boolean).join(' \u00b7 '), title: steps ? i18tn('jov5_lad_t', steps, { n: steps }) : i18t('jov5_lad_t0'),
-    sub: i18t('jov5_lad_sub'), groups, src: i18t('jov5_lad_src') }, 'rllad');
+  /* THE TRACK, AS DRAWN (Round D, owner 24 Nov 2026): our position · fallback · walk-away, a cut line, their wording — each
+     with its words or figure, "You are here" on the rung our last standing ask sits at (ladderStand's own figures; none
+     guessed), the steps so far kept under it. Read only: nothing here files a change. */
+  let ltrack = '', title = steps ? i18tn('jov5_lad_t', steps, { n: steps }) : i18t('jov5_lad_t0'), sub = i18t('jov5_lad_sub');
+  if (st){
+    const u = st.unit || '', fig = n => n == null ? '' : `${n}${u ? ' ' + u : ''}`;
+    let fb = null; try { fb = (typeof window.ladderFallback === 'function') ? ladderFallback(st.topic) : null; } catch (_){ fb = null; }
+    const never = st.topic && st.topic.never ? String(st.topic.never) : '';
+    /* where we stand, never guessed: with no Playbook position for this clause our ask is on the table, no rung lit */
+    const at = !st.standard ? (st.ours ? 'mine' : 'theirs') : st.ourFig != null && st.ourFig === st.standard.value ? 'pos' : (fb && fb.figure != null && st.ourFig === fb.figure) ? 'fb' : st.ours ? 'fb' : 'theirs';
+    const left = at === 'pos' ? 2 : at === 'fb' ? 1 : 0;
+    title = i18t(at === 'pos' ? 'rl_lt_pos' : at === 'fb' ? 'rl_lt_fb' : at === 'mine' ? 'rl_lt_mine' : 'rl_lt_none');
+    sub = at === 'mine' ? i18t('rl_lt_mine_s') : at === 'theirs' ? i18t('rl_lt_theirs_s', { who: String(c.counterparty || '').trim() || i18t('ng_the_counterparty') }) : i18tn('rl_lt_left', left, { n: left });
+    const rung = (k, lab, badge, txt) => `<div class="rl-lt-r t-${k}${at === k ? ' is-here' : ''}"><i class="rl-lt-dot" aria-hidden="true"></i><div class="rl-lt-b"><div class="rl-lt-h"><b>${_ne(lab)}</b><span class="rl-lt-bd t-${k}">${_ne(badge)}</span>${at === k ? `<span class="rl-lt-you">${_ne(i18t('rl_lt_here'))}</span>` : ''}</div><div class="rl-lt-q">${_ne(txt || i18t('jov5_lad_not_set'))}</div></div></div>`;
+    const stdTxt = st.standard ? `${st.standard.op === '<=' ? '\u2264 ' : st.standard.op === '>=' ? '\u2265 ' : ''}${fig(st.standard.value)}` : '';
+    let baseTxt = ''; try { baseTxt = (typeof window.ladderBaseText === 'function') ? String(ladderBaseText(rungs) || '') : ''; } catch (_){ baseTxt = ''; }
+    const theirTxt = String((st.theirs ? st.theirs.text : baseTxt) || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, 160);
+    ltrack = `<div class="rl-lt">${rung('pos', i18t('rl_lt_pos_l'), i18t('rl_ed_must'), stdTxt)}${rung('fb', i18t('rl_lt_fb_l'), i18t('rl_lt_if_pushed'), fb ? (fb.figure != null ? fig(fb.figure) : String(fb.text || '')) : '')}${rung('walk', i18t('rl_lt_walk_l'), i18t('rl_lt_never'), never)}<div class="rl-lt-cut"><span>${_ne(i18t('rl_lt_cut'))}</span></div>${rung('theirs', i18t('rl_lt_theirs_l', { who: String(c.counterparty || '').trim() || i18t('ng_the_counterparty') }), i18t('rl_lt_beyond'), theirTxt)}</div>`;
+    /* the Playbook's three lines are now the track itself: their small-print group is not said twice */
+    if (groups.length > 1) groups.pop();
+  }
+  return jamboOverviewHtml({ eyebrow: [i18t('ng_row_ladder'), name].filter(Boolean).join(' \u00b7 '), title, sub, mid: ltrack, groups, src: i18t('jov5_lad_src') }, 'rllad');
 }
 /* their view, the five parts: whose eyes these are, what is on their copy now, and the way back to ours (the paper's own
    Redline press, data-ig-red="1", pressed through data-rl-tv-back) */
