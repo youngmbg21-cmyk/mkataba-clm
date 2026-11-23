@@ -340,45 +340,119 @@ function hbkZoom(src, alt){
   page.appendChild(z);
 }
 
-/* ═══ THE HANDBOOK, THE NEW LOOK (round 7, second half, as drawn; behind the admin's "Try the new look") ═══
-   One chapter at a time: the parts down the left with the open part's chapters under it, the chapter in the middle
-   (its number and where, its title, what it is, the steps numbered, its pictures two by two with their captions, the
-   tip and its cost; when to use it and where it is follow, so nothing the book says is lost), Svenska and Print at
-   the top. Jambo's panel: he answers from this book (no call) and the chapters people ask about most, each a door. */
+/* ═══ THE HANDBOOK, THE LEGORA + STRIPE WAY (owner: "build it and merge", 23 Nov 2026, as drawn) ═══
+   TWO FACES OF ONE PAGE. THE BOOK (nothing open): every chapter in ONE calm table grouped by part — §, the title and
+   the chapter's own first sentence, where it is in HaTi (its door a link), how many steps, its pictures as a soft
+   badge — a quiet filter box and "+ Part · + Where · With pictures" chips. A row's first press CHOOSES it (Jambo's
+   panel shows it: what it is, its steps as a timeline, where it is, Read the chapter); the second press, or the
+   button, OPENS it. READING (a chapter open, every door in: the Guide, "how do I…", a chip): one column, each step
+   its own line with its number, every button it names shaded as it reads on screen, each picture under the step it
+   shows; the panel follows the step being read and offers the next chapter of the part. Nothing here writes. */
+let _hbkn = { pick: null, q: '', fPart: '', fWhere: '', fPics: false, menu: null };
+/* seven status tones for eight parts (the only --st-* with a dot): steel serves two parts that never stand together */
+const HBKN_TONES = ['gray', 'steel', 'violet', 'amber', 'green', 'pink', 'steel', 'ruby'];
 function hbknChapter(){
   const chs = hbkChaptersOf(_hbk.part);
   return (_hbk.chapter && hbkChapterOf(_hbk.chapter)) || chs[0] || HANDBOOK_CHAPTERS[0];
 }
-function hbknNavHtml(){
-  const cur = hbknChapter();
-  return `<nav class="hbkn-nav" aria-label="${_hbkE(_hbkT('hbk_contents'))}">${HANDBOOK_PARTS.map((p, i) => { const w = hbkPartWords(p), on = p.k === _hbk.part;
-    return `<button type="button" class="hbkn-part${on ? ' is-on' : ''}" data-hbk-part="${p.k}">${_hbkE(i + ' \u00b7 ' + w.w)}</button>`
-      + (on ? hbkChaptersOf(p.k).map(c => `<button type="button" class="hbkn-ch${c.k === cur.k ? ' is-on' : ''}" data-hbkn-ch="${_hbkE(c.k)}"${c.k === cur.k ? ' aria-current="true"' : ''}>${_hbkE(_hbkW(c.title))}</button>`).join('') : ''); }).join('')}</nav>`;
+const hbknReading = () => !!(_hbk.chapter && hbkChapterOf(_hbk.chapter));
+function hbknPartTone(k){ return HBKN_TONES[hbkPartIndex(k) % HBKN_TONES.length]; }
+function hbknPartLabel(k){ const p = hbkPartOf(k); return p ? hbkPartIndex(k) + ' · ' + hbkPartWords(p).w : ''; }
+function hbknPartBadge(k){ return `<span class="hbkn-bd is-${hbknPartTone(k)}">${_hbkE(hbknPartLabel(k))}</span>`; }
+/* a chapter's words as plain text (its markers read as the screen prints them) */
+function hbknPlain(v){ return String(_hbkW(v)).replace(HBK_MARK_RE, (m, kind, key) => kind === 'ui' ? hbkLabel(key) : hbkDoorInfo(key).word); }
+/* the chapter's own first sentence: what it is, in its own words (never a summary) */
+function hbknFirst(c){ const w = hbknPlain(c.what).trim(); const m = /^(.+?[.!?])(\s|$)/.exec(w); return m ? m[1] : w; }
+/* a step's own opening words, for the panel's timeline: up to its first stop, never a word invented */
+function hbknStepShort(h){
+  const w = hbknPlain(h).trim(); const m = /^(.{6,}?)(?::\s|;\s|\.\s|\s\(|\.$)/.exec(w);
+  const t = m ? m[1] : w; return t.length > 70 ? t.slice(0, 68).replace(/\s+\S*$/, '') + '…' : t;
 }
+/* the door a chapter lives behind (its path's first door) and the rest of its path in its own words */
+function hbknWhereOf(c){
+  const path = c.path || []; const at = path.findIndex(x => typeof x === 'string' && x.startsWith('door:'));
+  const door = at >= 0 ? path[at].slice(5) : null;
+  const rest = path.filter((x, i) => i !== at).map(x => typeof x === 'string' ? (x.startsWith('door:') ? hbkDoorInfo(x.slice(5)).word : x) : hbknPlain(x)).filter(Boolean);
+  return { door, rest };
+}
+function hbknWhereHtml(c){
+  const W = hbknWhereOf(c); if (!W.door && !W.rest.length) return `<span class="hbkn-mu">—</span>`;
+  const d = W.door ? hbkDoorInfo(W.door) : null;
+  const dHtml = d ? (d.here ? `<span>${_hbkE(d.word)}</span>` : `<button type="button" class="hbkn-door" data-hbk-door="${_hbkE(d.k)}"${d.why ? ` disabled aria-disabled="true" title="${_hbkE(d.why)}"` : ''}>${_hbkE(d.word)}</button>`) : '';
+  return dHtml + W.rest.map((r, i) => `${i || dHtml ? '<i aria-hidden="true">›</i>' : ''}${_hbkE(r)}`).join(' ');
+}
+/* which step a picture shows: the first step its numbered boxes mark (the book's own recipe), else after the last */
+function hbknShotStep(sh, n){ const b = (sh && Array.isArray(sh.boxes) ? sh.boxes : []).map(x => Number(x && x.step)).filter(x => x >= 1 && x <= n); return b.length ? Math.min(...b) : n; }
+function hbknPicsN(c){ return hbkShotsOf(c).length; }
+function hbknPicsBadge(c){ const n = hbknPicsN(c);
+  return n ? `<span class="hbkn-bd is-green">${_hbkE(i18tn('hbkn_pics', n, { n }))}</span>` : `<span class="hbkn-bd is-gray">${_hbkE(_hbkT('hbkn_pics_none'))}</span>`; }
+/* ---- THE BOOK: filters, one table ---- */
+function hbknShown(){
+  const q = String(_hbkn.q || '').trim().toLowerCase(); const words = q ? q.split(/\s+/) : [];
+  return HANDBOOK_CHAPTERS.filter(c => (!_hbkn.fPart || c.part === _hbkn.fPart)
+    && (!_hbkn.fWhere || hbknWhereOf(c).door === _hbkn.fWhere)
+    && (!_hbkn.fPics || hbknPicsN(c) > 0)
+    && (!words.length || words.every(w => (c.k + ' ' + hbknPlain(c.title) + ' ' + hbknPlain(c.what) + ' ' + hbknPlain(c.eyebrow)).toLowerCase().includes(w))));
+}
+function hbknWhereChoices(){
+  const seen = new Map(); HANDBOOK_CHAPTERS.forEach(c => { const d = hbknWhereOf(c).door; if (d && !seen.has(d)) seen.set(d, hbkDoorInfo(d).word); });
+  return [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+}
+function hbknChipHtml(kind){
+  const E = _hbkE;
+  if (kind === 'pics') return `<button type="button" class="hbkn-chip${_hbkn.fPics ? ' is-set' : ''}" data-hbkn-f="pics" aria-pressed="${_hbkn.fPics}">${E(_hbkT('hbkn_f_pics'))}${_hbkn.fPics ? '<span class="hbkn-x" aria-hidden="true">×</span>' : ''}</button>`;
+  const set = kind === 'part' ? _hbkn.fPart : _hbkn.fWhere;
+  const word = set ? (kind === 'part' ? hbknPartLabel(set) : hbkDoorInfo(set).word) : '';
+  const label = _hbkT(kind === 'part' ? 'hbkn_f_part' : 'hbkn_f_where');
+  const menu = _hbkn.menu === kind ? `<div class="hbkn-menu" role="listbox">${(kind === 'part' ? HANDBOOK_PARTS.map(p => [p.k, hbknPartLabel(p.k)]) : hbknWhereChoices())
+    .map(([k, w]) => `<button type="button" role="option" class="hbkn-opt${k === set ? ' is-on' : ''}" data-hbkn-pick-f="${kind}:${E(k)}">${E(w)}</button>`).join('')}</div>` : '';
+  return `<span class="hbkn-chipw"><button type="button" class="hbkn-chip${set ? ' is-set' : ''}" data-hbkn-f="${kind}" aria-expanded="${_hbkn.menu === kind}">${set ? E(label + ': ' + word) + '<span class="hbkn-x" aria-hidden="true">×</span>' : '+ ' + E(label)}</button>${menu}</span>`;
+}
+function hbknBookHtml(){
+  const E = _hbkE, L = hbknShown(), all = HANDBOOK_CHAPTERS.length;
+  const head = `<div class="hbkn-flt"><label class="hbkn-fbox"><span aria-hidden="true">⌕</span><input type="search" id="hbkn-q" autocomplete="off" placeholder="${E(_hbkT('hbkn_filter_ph'))}" value="${E(_hbkn.q)}" aria-label="${E(_hbkT('hbkn_filter_ph'))}"></label>`
+    + `${hbknChipHtml('part')}${hbknChipHtml('where')}${hbknChipHtml('pics')}<span class="ctf-sp"></span><span class="hbkn-cnt">${E(L.length === all ? i18tn('hbkn_n', all, { n: all }) : _hbkT('hbkn_n_of', { n: L.length, all }))}</span></div>`;
+  const rows = HANDBOOK_PARTS.map(p => { const cs = L.filter(c => c.part === p.k); if (!cs.length) return '';
+    return `<tr class="hbkn-grp" data-hbkn-grp="${E(p.k)}"><td colspan="5"><i class="hbkn-dot is-${hbknPartTone(p.k)}" aria-hidden="true"></i>${E(hbknPartLabel(p.k))}<em>${E(i18tn('hbkn_part_n', hbkChaptersOf(p.k).length, { n: hbkChaptersOf(p.k).length }))}</em></td></tr>`
+      + cs.map(c => `<tr class="hbkn-row${_hbkn.pick === c.k ? ' is-on' : ''}" data-hbkn-row="${E(c.k)}" tabindex="0"${_hbkn.pick === c.k ? ' aria-selected="true"' : ''}>`
+        + `<td class="hbkn-k">${E(c.k)}</td><td class="hbkn-tt"><b>${E(_hbkW(c.title))}</b><span>${E(hbknFirst(c))}</span></td>`
+        + `<td class="hbkn-wh">${hbknWhereHtml(c)}</td><td class="hbkn-n">${(c.how || []).length}</td><td class="hbkn-p">${hbknPicsBadge(c)}</td></tr>`).join(''); }).join('');
+  const table = L.length ? `<table class="hbkn-tbl"><thead><tr><th>§</th><th>${E(_hbkT('hbkn_th_ch'))}</th><th>${E(_hbkT('hbkn_th_where'))}</th><th class="hbkn-n">${E(_hbkT('hbkn_th_steps'))}</th><th>${E(_hbkT('hbkn_th_pics'))}</th></tr></thead><tbody>${rows}</tbody></table>`
+    : `<p class="hbkn-none">${E(_hbkT('hbkn_none', { n: all }))}</p>`;
+  return head + `<div class="hbkn-list scroll-thin" id="hbkn-list">${table}</div>`;
+}
+/* ---- READING: one chapter, each step its own line, each picture under its step ---- */
 function hbknChapterHtml(c){
-  const shots = hbkShotsOf(c);
-  const pics = shots.length ? `<div class="hbkn-pics">${shots.map((sh, i) => { const cap = sh.cap ? _hbkW(sh.cap) : '';
-    return `<figure class="hbk-fig"><div class="hbk-pic-wrap"><img class="hbk-pic" src="${_hbkE(hbkPicFile(c, i))}" alt="${_hbkE(cap)}" loading="lazy" data-hbk-pic="${_hbkE(c.k)}-${i + 1}" tabindex="0"><div class="hbk-ph" hidden>${_hbkE(_hbkT('hbk_pic_soon'))}</div></div>${cap ? `<figcaption>${_hbkE(cap)}</figcaption>` : ''}</figure>`; }).join('')}</div>` : '';
+  const shots = hbkShotsOf(c), how = c.how || [];
+  const picAt = new Map(); shots.forEach((sh, i) => { const at = hbknShotStep(sh, how.length || 1); if (!picAt.has(at)) picAt.set(at, []); picAt.get(at).push(i); });
+  const pic = i => { const sh = shots[i]; const cap = sh && sh.cap ? _hbkW(sh.cap) : '';
+    return `<figure class="hbk-fig hbkn-pic"><div class="hbk-pic-wrap"><img class="hbk-pic" src="${_hbkE(hbkPicFile(c, i))}" alt="${_hbkE(cap)}" loading="lazy" data-hbk-pic="${_hbkE(c.k)}-${i + 1}" tabindex="0"><div class="hbk-ph" hidden>${_hbkE(_hbkT('hbk_pic_soon'))}</div></div>`
+      + `<figcaption><span class="hbkn-pn">${_hbkE(_hbkT('hbkn_pic_n', { n: i + 1 }))}</span>${_hbkE(cap)}</figcaption></figure>`; };
+  const steps = how.map((h, i) => `<li data-hbkn-step="${i}"><span class="hbkn-sn">${i + 1}</span><div class="hbkn-st">${hbkText(h)}${(picAt.get(i + 1) || []).map(pic).join('')}</div></li>`).join('');
   const path = (c.path || []).map(p => typeof p === 'string' && p.startsWith('door:') ? hbkDoorChip(p.slice(5)) : `<span class="hbk-chip">${hbkText(p)}</span>`).join('<i>›</i>');
   return `<article class="hbkn-chapter" id="hbk-${_hbkE(c.k)}" data-hbk-ch="${_hbkE(c.k)}">
-    <div class="hbkn-eye">${_hbkE(c.k)} \u00b7 ${hbkText(c.eyebrow)}</div><h2 class="hbkn-t">${_hbkE(_hbkW(c.title))}</h2>
+    <div class="hbkn-eye">${_hbkE(c.k)} · ${hbkText(c.eyebrow)} ${hbknPartBadge(c.part)}</div><h2 class="hbkn-t">${_hbkE(_hbkW(c.title))}</h2>
     <p class="hbkn-what">${hbkText(c.what)}</p>
-    <ol class="hbkn-steps">${(c.how || []).map(h => `<li>${hbkText(h)}</li>`).join('')}</ol>
-    ${pics}
-    ${c.tip ? `<p class="hbkn-tip">${hbkText(c.tip)}</p>` : ''}
+    <ol class="hbkn-steps">${steps}</ol>
+    ${!how.length && shots.length ? `<div class="hbkn-pics">${shots.map((s, i) => pic(i)).join('')}</div>` : ''}
+    ${c.tip ? `<p class="hbkn-tip"><b>${_hbkE(_hbkT('hbkn_tip'))}</b> ${hbkText(c.tip)}</p>` : ''}
     ${(c.when || []).length ? `<div class="hbkn-more"><h3>${_hbkE(_hbkT('hbk_sec_when'))}</h3><ul>${c.when.map(w => `<li>${hbkText(w)}</li>`).join('')}</ul></div>` : ''}
     ${path ? `<div class="hbkn-more"><h3>${_hbkE(_hbkT('hbk_sec_where'))}</h3><div class="hbk-path">${path}</div></div>` : ''}
   </article>`;
 }
+/* ---- JAMBO'S PANEL: the book · a chapter chosen · the chapter being read ---- */
 /* the chapters people ask about most, as doors (no call): one per later part, its own title */
 function hbknOftenAsked(){
   return ['negotiate', 'sign', 'keep', 'settings'].map(k => (HANDBOOK_PARTS.find(p => p.k === k) ? hbkChaptersOf(k)[0] : null)).filter(Boolean).slice(0, 3);
 }
+function hbknTimelineHtml(c, cur){
+  return `<ol class="hbkn-tl">${(c.how || []).map((h, i) => `<li data-hbkn-tl="${i}"${i === cur ? ' class="is-cur"' : ''}><i aria-hidden="true"></i><span>${_hbkE(hbknStepShort(h))}</span></li>`).join('')}</ol>`;
+}
+function hbknWherePanelHtml(c){ return `<div class="hbkn-pwhere">${hbknWhereHtml(c)}</div>`; }
 function hbknPanelHtml(){
   const E = _hbkE;
   /* THE FIVE PARTS (owner, 15 Nov 2026, round 3): "How do I…?" as the headline, the book's size under it, the often
-     asked chapters as rows by their own press (data-hbkn-ch), Jambo's note as a row, two questions to ask him. The
-     new look only. */
+     asked chapters as rows by their own press (data-hbkn-ch), two questions to ask him. The new look only. */
   if (typeof newLookOn === 'function' && newLookOn() && typeof jamboOverviewHtml === 'function'){
     /* A "HOW DO I…?" ASKED IN THE BOOK OPENS ITS CHAPTER (owner, 16 Nov 2026: the panel's buttons work "using common
        sense"): pressed, "How do I send for signing?" took the reader off the Handbook to the Contracts page. The chapter
@@ -386,15 +460,56 @@ function hbknPanelHtml(){
     const ask = q => ({ verb: q, run: () => { const f = (typeof hbkFind === 'function') ? hbkFind(q, _hbkLang()) : null;
       if (f && f.k && typeof hbkOpen === 'function'){ hbkOpen(f.k); return; }
       if (typeof jlAsk === 'function') jlAsk(q); else if (typeof caAskAnywhere === 'function') caAskAnywhere(q); } });
+    /* WHERE THE CHAPTERS ARE (as drawn): one bar, a part a segment in its own tone, its count in the legend */
+    const all = HANDBOOK_CHAPTERS.length;
+    const bar = `<div class="hbkn-bar" aria-hidden="true">${HANDBOOK_PARTS.map(p => `<i class="is-${hbknPartTone(p.k)}" style="flex:${hbkChaptersOf(p.k).length || 0}"></i>`).join('')}</div>`
+      + `<div class="hbkn-lg">${HANDBOOK_PARTS.map(p => `<span><i class="hbkn-dot is-${hbknPartTone(p.k)}" aria-hidden="true"></i>${E(hbkPartWords(p).w)} <b>${hbkChaptersOf(p.k).length}</b></span>`).join('')}</div>`;
     return `<div class="jl-words is-ov">${jamboOverviewHtml({ eyebrow: _hbkT('nav_handbook'), title: _hbkT('jov5_hbk_t'),
-      sub: _hbkT('jov5_hbk_s', { n: HANDBOOK_CHAPTERS.length, p: HANDBOOK_PARTS.length }),
-      groups: [{ label: _hbkT('hbkn_p_often'), rows: hbknOftenAsked().map(c => ({ mark: 'scroll', t: _hbkW(c.title), s: _hbkT('hbkn_free_ch', { k: c.k }), attr: `data-hbkn-ch="${E(c.k)}"` })) },
-        { label: _hbkT('cn2_jambo'), rows: [{ mark: 'sparkle', tone: 'dark', t: _hbkT('hbkn_p_turn'), wrap: true }] }],
-      asks: [ask(_hbkT('jov5_hbk_q1')), ask(_hbkT('jov5_hbk_q2'))], src: _hbkT('jov5_hbk_src') }, 'hbkn')}</div>`;
+      sub: _hbkT('hbkn_p_sub', { n: all, p: HANDBOOK_PARTS.length, d: (typeof regDotDate === 'function' ? regDotDate(HANDBOOK_CHECKED) : HANDBOOK_CHECKED) }),
+      mid: bar, midLabel: _hbkT('hbkn_p_where'),
+      groups: [{ label: _hbkT('hbkn_p_often'), rows: hbknOftenAsked().map(c => ({ mark: 'scroll', t: _hbkW(c.title), s: _hbkT('hbkn_free_ch', { k: c.k }), attr: `data-hbkn-ch="${E(c.k)}"` })) }],
+      asks: [ask(_hbkT('jov5_hbk_q1')), ask(_hbkT('jov5_hbk_q2'))] }, 'hbkn')}</div>`;
   }
   const rows = hbknOftenAsked().map(c => `<div class="pd2-ch-door"><button type="button" class="rfp-a" data-hbkn-ch="${E(c.k)}">${E(_hbkW(c.title))}</button><span>${E(_hbkT('hbkn_free_ch', { k: c.k }))}</span></div>`).join('');
   return `<div class="pd2-chosen cun-panel hbkn-panel"><p class="pd2-ch-head">${E(_hbkT('hbkn_p_head'))}</p>${rows ? `<div class="pd2-ch-cap">${E(_hbkT('hbkn_p_often'))}</div>${rows}` : ''}`
     + `<div class="pd2-turn"><i class="pd2-jface" aria-hidden="true"></i><div><b>${E(_hbkT('cn2_jambo'))}</b><p>${E(_hbkT('hbkn_p_turn'))}</p></div></div></div>`;
+}
+/* a chapter chosen in the book: what it is, its steps, where it is, Read the chapter */
+function hbknChosenPanelHtml(c){
+  const E = _hbkE;
+  return `<div class="jl-words is-ov">${jamboOverviewHtml({ before: `<p class="jov5-eb hbkn-peb">${E(c.k + ' · ' + hbknPlain(c.eyebrow))} ${hbknPartBadge(c.part)}</p>`,
+    title: _hbkW(c.title), sub: hbknFirst(c), mid: hbknTimelineHtml(c, -1), midLabel: _hbkT('hbkn_p_steps'),
+    groups: [{ label: _hbkT('hbkn_p_where_is'), html: hbknWherePanelHtml(c) }],
+    act: { label: _hbkT('hbkn_read'), attr: `data-hbkn-read="${E(c.k)}"` } }, 'hbkn-ch')}</div>`;
+}
+/* the chapter being read: its steps (the one in view lit), where it is, the next chapter of its part */
+function hbknReadPanelHtml(c){
+  const E = _hbkE, chs = hbkChaptersOf(c.part), at = chs.findIndex(x => x.k === c.k), next = at >= 0 ? chs[at + 1] : null;
+  const n = (c.how || []).length, p = hbknPicsN(c);
+  return `<div class="jl-words is-ov">${jamboOverviewHtml({ eyebrow: _hbkT('hbkn_on_ch'),
+    title: [i18tn('hbkn_steps', n, { n }), p ? i18tn('hbkn_pics', p, { n: p }) : _hbkT('hbkn_pics_none_lc')].join(', '),
+    mid: n ? hbknTimelineHtml(c, 0) : '',
+    groups: [{ label: _hbkT('hbkn_p_where_is'), html: hbknWherePanelHtml(c) },
+      next ? { label: _hbkT('hbkn_next_in', { part: hbkPartWords(hbkPartOf(c.part)).w }), rows: [{ mark: 'scroll', t: _hbkW(next.title), s: _hbkT('hbkn_free_ch', { k: next.k }), attr: `data-hbkn-ch="${E(next.k)}"` }] } : null] }, 'hbkn-rd')}</div>`;
+}
+function hbknPanelPaint(){
+  if (typeof insPaintPanel !== 'function') return;
+  const reading = hbknReading(), c = reading ? hbknChapter() : (_hbkn.pick ? hbkChapterOf(_hbkn.pick) : null);
+  if (!c) insPaintPanel({ seat: HBK_SEAT, jlWord: _hbkT('nav_handbook'), item: { id: 'handbook' }, head: false, tabCount: 0, body: hbknPanelHtml() });
+  else insPaintPanel({ seat: HBK_SEAT, jlWord: c.k, item: { id: 'hbk:' + c.k }, head: false, tabCount: 0, jlTab2: { label: c.k, run: () => {} }, body: reading ? hbknReadPanelHtml(c) : hbknChosenPanelHtml(c) });
+  /* AS DRAWN: Overview · 4.1, the chapter's own tab lit; Overview lets the chapter go (_jlBack below) */
+  { const hp = document.getElementById('ins-panel'); const t2 = hp && hp.querySelector('[data-jl-tab2]'), home = hp && hp.querySelector('[data-jl-home]');
+    if (t2 && home){ t2.classList.add('on'); home.classList.remove('on'); } else if (home) home.classList.add('on'); }
+  /* THE PANEL'S OVERVIEW LETS GO (as every list page's): the chosen row goes; while reading, it stays on the chapter */
+  const h = document.getElementById('ins-panel'); if (h) h._jlBack = () => { if (!hbknReading() && _hbkn.pick){ _hbkn.pick = null; renderHandbook(); return true; } if (hbknReading()){ hbknPanelPaintBook(); return true; } return false; };
+}
+function hbknPanelPaintBook(){ if (typeof insPaintPanel === 'function') insPaintPanel({ seat: HBK_SEAT, jlWord: _hbkT('nav_handbook'), item: { id: 'handbook' }, head: false, tabCount: 0, body: hbknPanelHtml() }); }
+/* THE PANEL FOLLOWS THE STEP BEING READ: the step nearest the top of the chapter lights its line (no redraw) */
+function hbknFollowStep(){
+  const sc = document.getElementById('hbk-body'); if (!sc) return;
+  const top = sc.getBoundingClientRect().top + 40; let cur = 0;
+  sc.querySelectorAll('[data-hbkn-step]').forEach(li => { if (li.getBoundingClientRect().top <= top) cur = Number(li.getAttribute('data-hbkn-step')); });
+  document.querySelectorAll('#ins-panel [data-hbkn-tl]').forEach(li => li.classList.toggle('is-cur', Number(li.getAttribute('data-hbkn-tl')) === cur));
 }
 function hbknRender(host){
   /* THE CHAPTER LIST KEEPS ITS PLACE (14 Nov 2026, the flash survey): a chapter pressed low in the list redrew the
@@ -406,28 +521,60 @@ function hbknRender(host){
   if (typeof keepScrollIn === 'function' && !hbknRender._in){ hbknRender._in = true;
     const same = !!document.getElementById('hbk-body') && hbknRender._drawn === hbknChapter().k;
     try { return keepScrollIn(host, () => hbknRender(host), same ? null : '#hbk-body, #hbk-body *'); } finally { hbknRender._in = false; } }
-  const c = hbknChapter(); _hbk.part = c.part || _hbk.part; hbknRender._drawn = c.k;
+  const reading = hbknReading();
+  const c = hbknChapter(); if (reading){ _hbk.part = c.part || _hbk.part; hbknRender._drawn = c.k; } else hbknRender._drawn = null;
   const sv = _hbkLang() === 'sv';
-  host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page hbkn-page" id="hbk-page" data-ins-page="${HBK_SEAT}" data-ins="1"><style>${hbkCss()}</style>
-    <div class="ap-body is-ins"><section class="ap-card apn-card hbkn-card" aria-label="${_hbkE(_hbkT('nav_handbook'))}">
-      <div class="cun-head"><h2 class="ctf-h">${_hbkE(_hbkT('nav_handbook'))}</h2><span class="ctf-hf">${_hbkE(_hbkT('hbkn_checked', { d: (typeof regDotDate === 'function' ? regDotDate(HANDBOOK_CHECKED) : HANDBOOK_CHECKED) }))}</span><span class="ctf-sp"></span>
-        <button type="button" class="ui-btn hbkn-pill" data-hbkn-lang="${sv ? 'en' : 'sv'}">${_hbkE(sv ? 'English' : 'Svenska')}</button><button type="button" class="ui-btn hbkn-pill" data-hbkn-print>${_hbkE(_hbkT('hbkn_print'))}</button></div>
-      <div class="hbkn-cols">${hbknNavHtml()}<div class="hbkn-body hbk-body scroll-thin" id="hbk-body">${hbknChapterHtml(c)}</div></div>
-    </section><aside id="ins-panel" class="ins-panel" aria-label="${_hbkE(_hbkT('hbk_panel_label'))}"></aside></div></div>`;
-  insPaintPanel({ seat: HBK_SEAT, jlWord: _hbkT('nav_handbook'), item: { id: 'handbook' }, head: false, tabCount: 0, body: hbknPanelHtml() });
+  const pills = `<button type="button" class="ui-btn hbkn-pill" data-hbkn-lang="${sv ? 'en' : 'sv'}">${_hbkE(sv ? 'English' : 'Svenska')}</button><button type="button" class="ui-btn hbkn-pill" data-hbkn-print>${_hbkE(_hbkT('hbkn_print'))}</button>`;
+  const head = reading
+    ? `<div class="cun-head hbkn-crumb"><button type="button" class="ctf-back" data-hbkn-back>‹ ${_hbkE(_hbkT('nav_handbook'))}</button><span class="hbkn-cpart">· ${_hbkE(hbknPartLabel(c.part))}</span><span class="ctf-sp"></span>${pills}</div>`
+    : `<div class="cun-head"><h2 class="ctf-h">${_hbkE(_hbkT('nav_handbook'))}</h2><span class="ctf-hf">${_hbkE(_hbkT('hbkn_checked', { d: (typeof regDotDate === 'function' ? regDotDate(HANDBOOK_CHECKED) : HANDBOOK_CHECKED) }))}</span><span class="ctf-sp"></span>${pills}</div>`;
+  const body = reading ? `<div class="hbkn-body hbk-body scroll-thin" id="hbk-body">${hbknChapterHtml(c)}</div>` : hbknBookHtml();
+  host.innerHTML = `<div class="view-enter sap-page ap-page is-ins apn-page hbkn-page${reading ? ' is-reading' : ' is-book'}" id="hbk-page" data-ins-page="${HBK_SEAT}" data-ins="1"><style>${hbkCss()}</style>
+    <div class="ap-body is-ins"><section class="ap-card apn-card hbkn-card" aria-label="${_hbkE(_hbkT('nav_handbook'))}">${head}${body}</section>
+    <aside id="ins-panel" class="ins-panel" aria-label="${_hbkE(_hbkT('hbk_panel_label'))}"></aside></div></div>`;
+  hbknPanelPaint();
   hbkWire(host);
   const page = document.getElementById('hbk-page');
   if (page && !page.dataset.hbknBound){ page.dataset.hbknBound = '1';
     page.addEventListener('click', e => { const t = e.target && e.target.closest ? e.target : null; if (!t) return; let el;
       if ((el = t.closest('[data-hbkn-lang]'))){ if (typeof langSet === 'function') langSet(el.getAttribute('data-hbkn-lang')); return; }
-      if (t.closest('[data-hbkn-print]')){ if (typeof window.print === 'function') window.print(); } }); }
+      if (t.closest('[data-hbkn-print]')){ if (typeof window.print === 'function') window.print(); return; }
+      if (t.closest('[data-hbkn-back]')){ _hbkn.pick = _hbk.chapter; _hbk.chapter = null; _hbkKeep(); renderHandbook(); return; }
+      if ((el = t.closest('[data-hbkn-pick-f]'))){ const [kind, k] = el.getAttribute('data-hbkn-pick-f').split(':');
+        if (kind === 'part') _hbkn.fPart = _hbkn.fPart === k ? '' : k; else _hbkn.fWhere = _hbkn.fWhere === k ? '' : k; _hbkn.menu = null; renderHandbook(); return; }
+      if ((el = t.closest('[data-hbkn-f]'))){ const kind = el.getAttribute('data-hbkn-f');
+        /* a set chip's × lets go of it; a chip pressed again closes its menu */
+        if (kind === 'pics') _hbkn.fPics = !_hbkn.fPics;
+        else if (t.closest('.hbkn-x')){ if (kind === 'part') _hbkn.fPart = ''; else _hbkn.fWhere = ''; _hbkn.menu = null; }
+        else _hbkn.menu = _hbkn.menu === kind ? null : kind;
+        renderHandbook(); return; }
+      if (t.closest('[data-hbk-door], .hbkn-door')) return;
+      if ((el = t.closest('[data-hbkn-row]'))){ hbknRowPress(el.getAttribute('data-hbkn-row')); } });
+    page.addEventListener('keydown', e => { const r = e.target && e.target.closest && e.target.closest('[data-hbkn-row]');
+      if (r && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); hbknRowPress(r.getAttribute('data-hbkn-row')); }
+      if (e.key === 'Escape' && _hbkn.menu){ _hbkn.menu = null; renderHandbook(); } });
+    page.addEventListener('input', e => { if (!e.target || e.target.id !== 'hbkn-q') return; _hbkn.q = e.target.value;
+      const at = e.target.selectionStart; renderHandbook(); const q = document.getElementById('hbkn-q'); if (q){ q.focus({ preventScroll: true }); try { q.setSelectionRange(at, at); } catch (_){} } }); }
+  const sc = document.getElementById('hbk-body'); if (sc && !sc.dataset.hbknFollow){ sc.dataset.hbknFollow = '1'; sc.addEventListener('scroll', hbknFollowStep, { passive: true }); }
+  if (reading) hbknFollowStep();
   if (typeof setActiveNav === 'function') setActiveNav('handbook');
   if (typeof insWatchWidth === 'function') insWatchWidth();
 }
-/* a chapter pressed in the list or the panel: the middle shows it, at its top (the panel lives outside the page) */
-if (typeof document !== 'undefined' && !document._hbknWired){ document._hbknWired = true;
-  document.addEventListener('click', e => { const el = e.target && e.target.closest && e.target.closest('[data-hbkn-ch]'); if (!el || typeof state === 'undefined' || state.view !== 'handbook') return;
-    e.preventDefault(); const c = hbkChapterOf(el.getAttribute('data-hbkn-ch')); if (!c) return; _hbk.part = c.part; _hbk.chapter = c.k; _hbkKeep(); renderHandbook(); });
+/* A ROW CHOOSES; PRESSED AGAIN IT OPENS (the list pages' rule): the first press shows it in the panel, the second reads it */
+function hbknRowPress(k){
+  const c = hbkChapterOf(k); if (!c) return;
+  if (_hbkn.pick === k){ _hbk.part = c.part; _hbk.chapter = c.k; _hbkKeep(); renderHandbook(); return; }
+  _hbkn.pick = k;
+  document.querySelectorAll('#hbk-page [data-hbkn-row]').forEach(r => { const on = r.getAttribute('data-hbkn-row') === k; r.classList.toggle('is-on', on); if (on) r.setAttribute('aria-selected', 'true'); else r.removeAttribute('aria-selected'); });
+  hbknPanelPaint();
 }
-Object.assign(window, { hbknRender, hbknChapter, hbknChapterHtml, hbknPanelHtml, hbknOftenAsked });
+/* a press outside an open filter menu closes it */
+if (typeof document !== 'undefined' && !document._hbknMenuWired){ document._hbknMenuWired = true;
+  document.addEventListener('pointerdown', e => { if (!_hbkn.menu) return; if (e.target && e.target.closest && e.target.closest('.hbkn-chipw')) return; _hbkn.menu = null; if (typeof state !== 'undefined' && state.view === 'handbook') renderHandbook(); }, true); }
+/* a chapter pressed in the panel, or Read the chapter: it opens, at its top (the panel lives outside the page) */
+if (typeof document !== 'undefined' && !document._hbknWired){ document._hbknWired = true;
+  document.addEventListener('click', e => { const el = e.target && e.target.closest && e.target.closest('[data-hbkn-ch], [data-hbkn-read]'); if (!el || typeof state === 'undefined' || state.view !== 'handbook') return;
+    e.preventDefault(); const c = hbkChapterOf(el.getAttribute('data-hbkn-ch') || el.getAttribute('data-hbkn-read')); if (!c) return; _hbk.part = c.part; _hbk.chapter = c.k; _hbkKeep(); renderHandbook(); });
+}
+Object.assign(window, { hbknRender, hbknChapter, hbknChapterHtml, hbknPanelHtml, hbknOftenAsked, hbknRowPress, hbknShown, hbknBookHtml, hbknStepShort, hbknShotStep, hbknFirst, hbknPanelPaint, hbknChosenPanelHtml, hbknFilters: _hbkn });
 Object.assign(window, { hbkShotsOf, hbkPicFile, hbkShowPart, hbkMarkChapter, hbkPlace, hbkPlacePut, renderHandbook, hbkOpen, hbkGoDoor, hbkDoorInfo, hbkLabel, hbkText, hbkChapterHtml, hbkPanelPaint, hbkJlSay });
