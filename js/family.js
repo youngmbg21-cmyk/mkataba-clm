@@ -323,7 +323,7 @@ function asAmendedItems(c){
 function asAmendedHtml(c){
   const items = asAmendedItems(c);
   if(!items.length) return null;
-  const cls = amendParentClauses(c);
+  const cls = amendOriginalClauses(c);
   const esc = _famEsc;
   const diff = (a, b) => (window.wordDiff ? wordDiff(a, b) : [{ t:'del', text:a }, { t:'add', text:b }]).map(p =>
     p.t === 'eq' ? esc(p.text) : p.t === 'add' ? `<ins class="am-ins">${esc(p.text)}</ins>` : `<del class="am-del">${esc(p.text)}</del>`).join('');
@@ -1037,9 +1037,15 @@ function amendmentSkeletonBody(parent, opts={}){
      and the close. Each is an ordinary paragraph on the record, so the
      pencil, the clause editor, Send and signing all work on it unchanged. */
   const items = (Array.isArray(opts.items) ? opts.items : []).filter(Boolean);
+  /* START FROM TODAY'S DEAL: an agreement already amended is named as amended — "as amended by Amendment No. 1" — the
+     words this paper's items quote are today's (amendParentClauses) */
+  let prior=[]; try{ prior=(parent&&parent.id)?familyChildren(parent.id).filter(k=>k&&k.status!=='Declined'&&amendmentExecuted(k)&&SHAPE[k.relation||'amendment']==='change')
+    .sort((a,b)=>String(amendmentDate(a)).localeCompare(String(amendmentDate(b)))):[]; }catch(_){ prior=[]; }
+  const priorWords=prior.map((k,i)=>`${RELATION_DOC_WORD[k.relation||'amendment']||'Amendment'} No. ${prior.filter((x,j)=>j<=i&&(x.relation||'amendment')===(k.relation||'amendment')).length}`);
+  const amendedBy=priorWords.length?`, as amended by ${priorWords.length>1?priorWords.slice(0,-1).join(', ')+' and '+priorWords[priorWords.length-1]:priorWords[0]}`:'';
   return [
     `<p>This ${word} No. ${ord} is made on ____________${between}.</p>`,
-    `<p>The parties entered into the ${pname?`<strong>${pname}</strong>`:'agreement'}${dated} (the &ldquo;Agreement&rdquo;). The parties ${W.wish}.</p>`,
+    `<p>The parties entered into the ${pname?`<strong>${pname}</strong>`:'agreement'}${dated}${amendedBy} (the &ldquo;Agreement&rdquo;). The parties ${W.wish}.</p>`,
     `<p>${W.lead}</p>`,
     says ? `<p>${_famEsc(says)}</p>` : '',
     ...items.map((it, i) => amendmentItemHtml(it, i + 1)),
@@ -1448,7 +1454,8 @@ async function amendSayAsk(parent, text){
   return api('ai/amend','POST',{ text:amendParentText(parent), ask:String(text||'').trim(), ref, facts:{ expiry:ownExpiry(parent)||'', value:Number(parent.value)||0,
     currency:(window.contractCurrency?contractCurrency(parent):'') } });
 }
-function amendParentClauses(parent){
+/* THE SIGNED PAPER AS SIGNED, clause by clause: the As amended view's own base (it draws each signed amendment over it) */
+function amendOriginalClauses(parent){
   const html=amendParentHtml(parent);
   if(!html||!window.clauseSegment) return [];
   let cl=[]; try{ cl=clauseSegment(html)||[]; }catch(_){ cl=[]; }
@@ -1456,7 +1463,34 @@ function amendParentClauses(parent){
     label:String(x.headingText||'').replace(/\s+/g,' ').trim(), text:String(x.text||'').replace(/\s+/g,' ').trim() }))
     .filter(x=>x.label||x.text);
 }
+/* START FROM TODAY'S DEAL (the owner's "Build", 23 Nov 2026): every Amend path — the Amend page's pressed clauses, Jambo's
+   reading of a said change, the dialog — reads the agreement AS IT STANDS TODAY: the signed paper with every signed
+   amendment folded in, in the order they were signed (asAmendedItems, the As amended view's own list). A clause a
+   signed amendment changed carries its new words and who changed it (`amendedBy`); one it deleted is gone; one it added
+   is there. Nothing is written: the signed paper and every amendment stay as they were signed. */
+function amendParentClauses(parent){
+  const orig=amendOriginalClauses(parent);
+  let items=[]; try{ items=asAmendedItems(parent); }catch(_){ items=[]; }
+  if(!items.length) return orig;
+  const cls=orig.map(x=>({ ...x, amendedBy:[] }));
+  const label=k=>{ const R=(typeof RELATION_DOC_WORD==='object'&&RELATION_DOC_WORD)||{}; const word=R[k.relation||'amendment']||'Amendment';
+    const sibs=familyChildren(parent.id).filter(x=>(x.relation||'amendment')===(k.relation||'amendment')&&amendmentExecuted(x)).sort((a,b)=>String(amendmentDate(a)).localeCompare(String(amendmentDate(b))));
+    const n=sibs.findIndex(x=>String(x.id)===String(k.id))+1; return `${word} No. ${n||1}`; };
+  items.forEach(it=>{
+    const by={ id:String(it.from.id), label:label(it.from), anchor:String(it.clauseId||'') };
+    if(it.op==='insert'){ cls.push({ id:'', num:String(it.clauseNumber||''), title:'', label:String(it.clauseLabel||''), text:String(it.amended||'').replace(/\s+/g,' ').trim(), amendedBy:[by] }); return; }
+    const i=cls.findIndex(cl=>!cl.gone&&((it.clauseId&&cl.id&&it.clauseId===cl.id)||(it.clauseNumber&&cl.num&&String(it.clauseNumber)===String(cl.num))
+      ||(!it.clauseId&&!it.clauseNumber&&it.clauseLabel&&it.clauseLabel===cl.label)));
+    if(i<0) return;
+    if(it.op==='delete'){ cls[i].gone=true; return; }
+    cls[i].text=String(it.amended||cls[i].text).replace(/\s+/g,' ').trim(); cls[i].amendedBy.push(by);
+  });
+  return cls.filter(x=>!x.gone);
+}
+/* the same reading as words, for Jambo (POST /api/ai/amend reads today's deal, not last year's) */
 function amendParentText(parent){
+  let items=[]; try{ items=asAmendedItems(parent); }catch(_){ items=[]; }
+  if(items.length) return amendParentClauses(parent).map(x=>[x.label,x.text].filter(Boolean).join('\n')).join('\n\n');
   const html=amendParentHtml(parent);
   try{ return window.richToText?richToText(html):html.replace(/<[^>]+>/g,' '); }catch(_){ return ''; }
 }
@@ -1525,7 +1559,7 @@ function famGo(id){
 if(typeof document!=='undefined'&&typeof document.addEventListener==='function'&&!document._famTagWired){ document._famTagWired=true;
   document.addEventListener('click',e=>{ const b=e.target&&e.target.closest?e.target.closest('[data-fam-go]'):null; if(!b) return;
     e.preventDefault(); famGo(b.getAttribute('data-fam-go')); }); }
-Object.assign(window,{amendPinpoint,amendBoxesAsWords,famStateOf,famChangesLine,famTagHtml,famGo,familyOrder,familyCheck,amendmentShutWhy,amendSetsValue,effectiveExpiryFrom,asAmendedItems,asAmendedHtml,effectiveTerm,effectiveValueView,EFFECTIVE_TERMS,amendSuggestions,amendChangesHtml,amendmentItemHtml,amendParentClauses,amendParentText,amendSayAsk,amendParentHtml,FAMILY_TERMS,familyAgreement,familyAgreeLine,
+Object.assign(window,{amendOriginalClauses,amendPinpoint,amendBoxesAsWords,famStateOf,famChangesLine,famTagHtml,famGo,familyOrder,familyCheck,amendmentShutWhy,amendSetsValue,effectiveExpiryFrom,asAmendedItems,asAmendedHtml,effectiveTerm,effectiveValueView,EFFECTIVE_TERMS,amendSuggestions,amendChangesHtml,amendmentItemHtml,amendParentClauses,amendParentText,amendSayAsk,amendParentHtml,FAMILY_TERMS,familyAgreement,familyAgreeLine,
   openLinkModal,unlinkContract,renderFamilySection,familyActs,familyActRun,familyDrawnRowsHtml,
   openCreateAmendmentModal,createAmendment,amendmentDefaultName,amendmentOrdinal,
   amendmentSkeletonBody,RELATION_DOC_WORD,FAMILY_BLANK_BODY,

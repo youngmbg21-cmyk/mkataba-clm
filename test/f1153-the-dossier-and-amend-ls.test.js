@@ -79,3 +79,19 @@ test('f1153 (5) no money in the Amend panel; the value is the table\'s own colum
   assert.doesNotMatch(panel, /fmtMoney/, 'the panel draws no figure');
   assert.match(fnOf(PD, 'pd2AmxTableHtml'), /canViewValues/, 'the column is gone without money rights');
 });
+
+test('f1153 (6) start from today\'s deal: the Amend paths read the agreement as already amended', () => {
+  /* the Amend page, Jambo and the dialog read amendParentClauses / amendParentText, which fold every signed amendment in */
+  const today = fnOf(FAM, 'amendParentClauses');
+  assert.match(today, /asAmendedItems\(parent\)/, 'the signed amendments, in signed order');
+  assert.match(today, /amendOriginalClauses\(parent\)/, 'over the paper as signed');
+  assert.match(today, /amendedBy/, 'each changed clause says who changed it');
+  assert.match(fnOf(FAM, 'amendParentText'), /amendParentClauses\(parent\)/, 'Jambo reads today\'s words');
+  /* the As amended view still draws each amendment over the paper AS SIGNED (never twice) */
+  assert.match(fnOf(FAM, 'asAmendedHtml'), /amendOriginalClauses\(c\)/);
+  /* the new paper names what it builds on */
+  assert.match(FAM, /const amendedBy=priorWords\.length\?`, as amended by /);
+  assert.match(FAM, /\$\{dated\}\$\{amendedBy\} \(the &ldquo;Agreement&rdquo;\)/);
+  /* the signed paper shows today's words under a clause an earlier amendment changed — painted, never stored */
+  assert.match(fnOf(PD, 'pdAmendPaperPaint'), /pd-am-today/);
+});

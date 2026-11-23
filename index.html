@@ -18756,6 +18756,8 @@
   html.lg-new .pd2-amx-tab.is-on{color:var(--color-text);font-weight:var(--w-label);border-bottom-color:var(--color-text)}
   html.lg-new .pd2-amx-n{display:inline-block;min-width:18px;height:18px;padding:0 6px;border-radius:999px;background:var(--st-gray-bg);color:var(--st-gray-fg);font-size:12px;line-height:18px;text-align:center}
   html.lg-new .pd2-amx-hint{margin-left:auto;font-size:12.5px;color:var(--color-quiet)}
+  /* on the signed paper the zoom stands at the row's right: the hint keeps clear of it, ending in "…" */
+  html.lg-new .pd2-amx.is-signed .pd2-amx-tabs{padding-right:170px} html.lg-new .pd2-amx-hint{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
   html.lg-new .pd2-amx-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:14px 24px 6px}
   html.lg-new .pd2-amx-wrap{position:relative}
   html.lg-new .pd2-amx-chip{display:inline-flex;align-items:center;gap:6px;height:28px;margin:0;padding:0 12px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);font:inherit;font-size:12.5px;white-space:nowrap;cursor:pointer;color:var(--color-text)}
@@ -18779,6 +18781,10 @@
   html.lg-new .pd2-amx-ed{display:block;width:100%;min-height:0;margin:0;padding:1px 4px;border:0;border-bottom:1.5px solid var(--accent-ink);border-radius:0;background:var(--st-green-bg);font-family:var(--font-doc);font-size:14px;line-height:1.45;color:var(--st-green-fg);resize:none;field-sizing:content;overflow:hidden}
   html.lg-new .pd2-amx-ed:focus{padding:6px 10px;border:1px solid var(--color-divider);border-radius:8px;background:var(--color-surface);color:var(--color-text);outline:0;resize:vertical}
   html.lg-new .pd2-amx-more{position:relative}
+  /* START FROM TODAY'S DEAL: a clause an earlier amendment changed — the signed words quiet and struck, today's under them */
+  html.lg-new #ig-canvas .pd-am-was{color:var(--color-quiet);text-decoration:line-through;text-decoration-color:var(--st-gray-dot)}
+  html.lg-new #ig-canvas .pd-am-today{margin:6px 0 14px;padding:8px 12px;border-left:2px solid var(--st-green-dot);background:var(--st-green-bg);font-family:var(--font-doc);color:var(--color-text)}
+  html.lg-new #ig-canvas .pd-am-today-by{display:block;margin-bottom:4px;font-family:var(--font-body);font-size:12px;font-weight:var(--w-label);color:var(--st-green-fg)}
   html.lg-new .pd2-amx-bec.is-go{display:inline;margin:0;padding:1px 4px;border:0;border-bottom:1.5px solid var(--accent-ink);background:var(--st-green-bg);font-family:var(--font-doc);font-size:14px;line-height:1.45;text-align:left;color:var(--st-green-fg);cursor:text}
   html.lg-new .pd2-amx-e1 + .pd2-amx-e1{margin-top:10px}
   html.lg-new #ig-strip .ig-line-bdg{display:inline-flex;align-items:center;gap:6px;height:24px;margin:0 0 0 8px;padding:0 10px;border-radius:999px;font-size:12.5px;font-weight:var(--w-label);white-space:nowrap}

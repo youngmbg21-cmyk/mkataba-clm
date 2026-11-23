@@ -40130,3 +40130,9 @@ The owner: "draw an L+S version of the handbook", then "where are the pictures i
 - Eight parts, seven status tones with a dot (`--st-*-dot`): steel serves Someone asks and See the whole book, never side by side ("emerald" and "brown" have no tokens).
 - Kept: every chapter's words in both books, Svenska and Print, "checked against the app", "How do I…?" opening its chapter, the old look's page untouched.
 - Re-pointed browser checks: round7b 3a/3b, handbook-verify 2a/2b/3c/4b/4′a–d (the contents column is gone), nothing-is-thrown-away 6/6b; f1070 (5) floor 14 → 12 (the panel's old sub and source lines left). test/world.js gains `handbookView`.
+
+## AN AMENDMENT IS WRITTEN HERE (js/family.js) — START FROM TODAY'S DEAL (23 Nov 2026)
+
+The owner: "build the whole amendment process", then, asked which pieces: "start from when i press 'amend this agreement' door, Start from today's deal"; and on whether an Admin fix skips approval: "Keep approval" (so it is recorded as a kind only; approval rules apply as to any amendment).
+
+BUILT. The Amend paths read the agreement AS IT STANDS TODAY: `amendParentClauses`/`amendParentText` fold every signed amendment's items (`asAmendedItems`, in signed order) over the paper as signed (`amendOriginalClauses`, which the As amended view keeps, so nothing is drawn twice). A pressed clause quotes today's words; Jambo reads today's words; the new paper's recital says "as amended by Amendment No. 1"; the Signed paper tab paints, under a clause an earlier amendment changed, its words as they are now (painted, never stored) and the tab's hint counts the amendments folded in. Seen in a browser: Amendment No. 1 (85,000,000 → 92,000,000) signed, a second amendment quoted 92,000,000 and wrote "In clause 2, “KES 92,000,000, based” is replaced by “KES 95,000,000, based”". NOT BUILT, SAID: obligations moving on a signed amendment; a clean "as amended" copy to send (both asked as separate pieces, not picked).

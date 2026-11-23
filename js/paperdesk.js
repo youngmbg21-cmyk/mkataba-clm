@@ -3053,7 +3053,8 @@ function pd2AmxWasHtml(it, tight){
 function pd2AmxTabsHtml(c){
   const E = _pdE, T = _pdT, n = _pdAm.items.length, t = _pdAm.tab;
   const tab = (k, w, cnt) => `<button type="button" role="tab" class="pd2-amx-tab${t === k ? ' is-on' : ''}" aria-selected="${t === k}" data-pd2-amx-tab="${k}">${E(w)}${cnt != null ? ` <span class="pd2-amx-n">${cnt}</span>` : ''}</button>`;
-  const hint = t === 'signed' ? T('pd2_amx_hint_signed') : t === 'paper' ? T('pd2_amx_hint_paper') : '';
+  let prior = 0; try { prior = (typeof asAmendedItems === 'function') ? new Set(asAmendedItems(c).map(x => String(x.from.id))).size : 0; } catch (_){ prior = 0; }
+  const hint = t === 'signed' ? (prior ? _pdTn('pd2_amx_hint_today', prior, { n: prior }) : T('pd2_amx_hint_signed')) : t === 'paper' ? T('pd2_amx_hint_paper') : '';
   return `<div class="pd2-amx-tabs" role="tablist">${tab('changes', T('pd2_amx_t_changes'), n)}${tab('signed', T('pd2_amx_t_signed'))}${tab('paper', T('pd2_amx_t_paper'))}${hint ? `<span class="pd2-amx-hint">${E(hint)}</span>` : ''}</div>`;
 }
 function pd2AmxChipsHtml(){
@@ -3274,11 +3275,21 @@ function pdAmendRepaint(){
    is never kept with them */
 function pdAmendPaperPaint(){
   const cv = (typeof document !== 'undefined') ? document.getElementById('ig-canvas') : null; if (!cv) return;
-  cv.querySelectorAll('.pd-am-mk, .pd-am-insert').forEach(n => n.remove());
-  cv.querySelectorAll('.pd-am-on').forEach(n => n.classList.remove('pd-am-on', 'pd-am-struck'));
+  cv.querySelectorAll('.pd-am-mk, .pd-am-insert, .pd-am-today').forEach(n => n.remove());
+  cv.querySelectorAll('.pd-am-on, .pd-am-was').forEach(n => n.classList.remove('pd-am-on', 'pd-am-struck', 'pd-am-was'));
   cv.classList.toggle('pd-am-picking', pdAmendShows());
   try { pd2AmPaperPaint(pdContract()); } catch (_){}
   if (!pdAmendShows()) return;
+  /* START FROM TODAY'S DEAL (23 Nov 2026): a clause an earlier signed amendment changed shows its words as they stand
+     today under the signed ones, and who changed them — painted, never stored; a press reads today's words */
+  try { (typeof amendParentClauses === 'function' ? amendParentClauses(pdContract()) : []).filter(cl => cl.amendedBy && cl.amendedBy.length).forEach(cl => {
+    /* the clause on the paper by its own id, else by the id the amendment recorded when it was pressed */
+    const ids = [cl.id].concat(cl.amendedBy.map(b => b.anchor)).filter(Boolean);
+    const el = ids.map(x => cv.querySelector(`[data-anchor="${CSS.escape(x)}"]`)).find(Boolean); if (!el) return;
+    el.classList.add('pd-am-was');
+    const t = document.createElement('div'); t.className = 'pd-am-today';
+    t.innerHTML = `<span class="pd-am-today-by">${_pdE(_pdT('pd2_amx_today_by', { label: cl.amendedBy.map(b => b.label).join(', ') }))}</span>${_pdE(cl.text)}`;
+    el.insertAdjacentElement('afterend', t); }); } catch (_){ /* the signed paper stands alone */ }
   _pdAm.items.forEach((it, i) => {
     if (!it.clauseId) return;
     const el = cv.querySelector(`[data-anchor="${CSS.escape(it.clauseId)}"]`); if (!el) return;
