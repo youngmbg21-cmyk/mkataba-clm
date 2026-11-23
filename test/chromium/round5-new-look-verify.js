@@ -172,7 +172,8 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
   try {
     await page.evaluate(() => { roomHomeLand('MK-A1'); });
     await until(page, () => !!document.querySelector('#ig-canvas'), null, 15000);
-    await page.evaluate(() => pdAmendOpen('MK-A1'));
+    /* RE-POINTED 23 Nov 2026 (Tell Jambo the change): the door asks first; the manual way opens the page as before */
+    await page.evaluate(() => pdAmendOpen('MK-A1', { manual: true }));
     /* RE-POINTED 22 Nov 2026 (Amend L+S as drawn, #911): no longer the sealed paper and the amendment side by side —
        ONE full page over the paper (pd2AmxHtml) whose tabs are Changes · Signed paper · Amendment paper; the panel says
        what this amendment will change once (pd2AmFaceHtml) */

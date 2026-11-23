@@ -2857,7 +2857,7 @@ function pdSignPaperPaint(c){
    changes are this sitting's; Jambo's drafting stays the dialog's ("Ask Jambo
    to draft the changes" opens it). */
 let _pdAmend = null;                 // the signed agreement the face is open for
-const _pdAm = { id: null, items: [], expiry: '', value: '', tab: '', kind: 'terms', eff: '', reason: '', reasonOpen: false, menu: '', edit: null };
+const _pdAm = { id: null, items: [], expiry: '', value: '', tab: '', kind: 'terms', eff: '', reason: '', reasonOpen: false, menu: '', edit: null, asked: '', missing: [], view: 'amend', seq: 0, writing: null };
 const PD_AMEND_ITEMS_MAX = 20;
 function pdAmendFor(){ return _pdAmend; }
 function pdAmendShows(){
@@ -2867,12 +2867,16 @@ function pdAmendShows(){
 function pdAmendMay(c){ return !!(c && typeof amendmentShutWhy === 'function' && !amendmentShutWhy(c)); }
 /* the one door: false where Home has no paper (the phone) or the agreement is
    not signed — the caller keeps the dialog */
-function pdAmendOpen(id){
+function pdAmendOpen(id, opts){
   if (typeof window.mayActOn === 'function' && !window.mayActOn(null)){ if (typeof toast === 'function') toast(i18t('viewer_reads_only'), 'warn'); return false; }
   const c = (typeof getContract === 'function') ? getContract(id) : null;
   if (!pdAmendMay(c)) return false;
   if (typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768) return false;
-  if (_pdAm.id !== String(id)){ _pdAm.id = String(id); _pdAm.items = []; _pdAm.expiry = ''; _pdAm.value = ''; _pdAm.tab = ''; _pdAm.kind = 'terms'; _pdAm.eff = ''; _pdAm.reason = ''; _pdAm.reasonOpen = false; _pdAm.menu = ''; }
+  if (_pdAm.id !== String(id)){ _pdAm.id = String(id); _pdAm.items = []; _pdAm.expiry = ''; _pdAm.value = ''; _pdAm.tab = ''; _pdAm.kind = 'terms'; _pdAm.eff = ''; _pdAm.reason = ''; _pdAm.reasonOpen = false; _pdAm.menu = ''; _pdAm.asked = ''; _pdAm.missing = []; _pdAm.view = 'amend'; }
+  /* TELL JAMBO THE CHANGE (the owner's pick, 23 Nov 2026, as drawn): a fresh Amend asks one question first, in a pop-up
+     (pd2AmAskOpen); "or choose the clauses yourself" (opts.manual) goes straight to the signed paper; an amendment already
+     under way opens where it stands */
+  if (pd2On() && !(opts && opts.manual) && !_pdAm.items.length && !_pdAm.asked && !pdAmendShows()){ pd2AmAskOpen(String(id)); return true; }
   return pdOpenOnHome(id, 'amend');
 }
 function pdAmendSeen(id){ if (_pdAmend && String(id) !== _pdAmend) _pdAmend = null; }
@@ -2909,7 +2913,7 @@ function pdAmendAdd(el){
   const id = String(el.getAttribute('data-anchor') || '');
   if (!id || _pdAm.items.some(x => x.clauseId === id)) return;
   if (_pdAm.items.length >= PD_AMEND_ITEMS_MAX){ if (typeof toast === 'function') toast(_pdT('pd_am_max', { n: PD_AMEND_ITEMS_MAX }), 'warn'); return; }
-  _pdAm.items.push(pdAmendClauseOf(c, el));
+  _pdAm.items.push(Object.assign(pdAmendClauseOf(c, el), { ok: true }));
   pdAmendRepaint();
 }
 function pdAmendHeadHtml(c){
@@ -2936,7 +2940,7 @@ function pdAmendFactsHtml(c){
     ${money ? `<label class="pd-am-f"><span>${_pdE(_pdT('pd_am_value'))}${now ? `<small>${_pdE(_pdT('pd_am_now', { v: now }))}</small>` : ''}</span><input type="number" min="0" step="any" inputmode="decimal" data-pd-am-fact="value" value="${_pdE(_pdAm.value)}"></label>` : ''}
   </section>`;
 }
-function pdAmendReady(){ return _pdAm.items.length > 0 || !!_pdAm.expiry || Number(_pdAm.value) > 0; }
+function pdAmendReady(){ return (_pdAm.items.length > 0 || !!_pdAm.expiry || Number(_pdAm.value) > 0) && !_pdAm.items.some(x => !x.ok); }
 /* ---- AMEND, AS DRAWN (the new look, round 5; the owner's answer "as drawn": no boxes) ----
    The sealed paper and the amendment beside it, each under its own label; the panel says what an amendment is, lists
    the changes and reads the deal as amended (effectiveExpiry, the value, the route, the approval rules) — a reading,
@@ -3052,10 +3056,23 @@ function pd2AmxWasHtml(it, tight){
 }
 function pd2AmxTabsHtml(c){
   const E = _pdE, T = _pdT, n = _pdAm.items.length, t = _pdAm.tab;
-  const tab = (k, w, cnt) => `<button type="button" role="tab" class="pd2-amx-tab${t === k ? ' is-on' : ''}" aria-selected="${t === k}" data-pd2-amx-tab="${k}">${E(w)}${cnt != null ? ` <span class="pd2-amx-n">${cnt}</span>` : ''}</button>`;
   let prior = 0; try { prior = (typeof asAmendedItems === 'function') ? new Set(asAmendedItems(c).map(x => String(x.from.id))).size : 0; } catch (_){ prior = 0; }
   const hint = t === 'signed' ? (prior ? _pdTn('pd2_amx_hint_today', prior, { n: prior }) : T('pd2_amx_hint_signed')) : t === 'paper' ? T('pd2_amx_hint_paper') : '';
-  return `<div class="pd2-amx-tabs" role="tablist">${tab('changes', T('pd2_amx_t_changes'), n)}${tab('signed', T('pd2_amx_t_signed'))}${tab('paper', T('pd2_amx_t_paper'))}${hint ? `<span class="pd2-amx-hint">${E(hint)}</span>` : ''}</div>`;
+  /* THREE STEPS IN THEIR ORDER (owner, 23 Nov 2026: "start at signed paper, choose the clause … then next to changes … a
+     button that says next"): 1 Choose clauses · 2 Make the changes · 3 Check the amendment; Back and Next at the row's
+     right, step 3's black button is Create (the one creator, pdAmendCreate); a tab still jumps straight to its step */
+  const step = (k, i, w, cnt) => `<button type="button" role="tab" class="pd2-amx-tab${t === k ? ' is-on' : ''}" aria-selected="${t === k}" ${k === 'signed' && _pdAm.asked ? 'data-pd2-amk-again' : `data-pd2-amx-tab="${k}"`}><i class="pd2-amx-num" aria-hidden="true">${i}</i>${E(w)}${cnt ? ` <span class="pd2-amx-n">${E(cnt)}</span>` : ''}</button>`;
+  /* SAID TO JAMBO (as drawn): 1 Say the change (a press asks again) · 2 Approve the changes, the count of what waits */
+  const asked = !!_pdAm.asked, wait = _pdAm.items.filter(x => !x.ok).length;
+  const s1 = T(asked ? 'pd2_amx_s1j' : 'pd2_amx_s1'), s2 = T(asked ? 'pd2_amx_s2j' : 'pd2_amx_s2');
+  const c1 = asked ? '' : (n ? `${n} ${T('pd2_amx_chosen')}` : ''), c2 = asked && n ? (wait ? _pdTn('pd2_amx_to_ok', wait, { n: wait }) : _pdTn('pd2_amx_oked', n, { n })) : '';
+  const ready = typeof pdAmendReady === 'function' && pdAmendReady();
+  const back = t === 'changes' ? 'signed' : t === 'paper' ? 'changes' : '';
+  const next = t === 'signed'
+    ? `<button type="button" class="pill-btn pd2-amx-next" data-pd2-amx-tab="changes"${n ? '' : ` disabled aria-disabled="true" title="${E(T('pd2_amx_need'))}"`}>${E(T('pd2_amx_next1'))} \u203a</button>`
+    : t === 'changes' ? `<button type="button" class="pill-btn pd2-amx-next" data-pd2-amx-tab="paper"${n && !wait ? '' : ` disabled aria-disabled="true"${wait ? ` title="${E(T('pd2_amx_need_ok'))}"` : ''}`}>${E(T(asked ? 'pd2_amx_next2j' : 'pd2_amx_next2'))} \u203a</button>`
+    : `<button type="button" class="pill-btn pd2-amx-next" data-pd2-am-create${ready ? '' : ` disabled aria-disabled="true" title="${E(T('pd_am_go_why'))}"`}>${E(T('pd2_am_create'))}</button>`;
+  return `<div class="pd2-amx-tabs" role="tablist">${step('signed', 1, s1, c1)}${step('changes', 2, s2, c2)}${step('paper', 3, T(asked ? 'pd2_amx_s3j' : 'pd2_amx_s3'))}${hint ? `<span class="pd2-amx-hint">${E(hint)}</span>` : '<span class="pd2-amx-hint"></span>'}<span class="pd2-amx-nav">${back ? `<button type="button" class="pill-btn pd2-amx-back" ${back === 'signed' && asked ? 'data-pd2-amk-again' : `data-pd2-amx-tab="${back}"`}>\u2039 ${E(T('pd2_amx_back'))}</button>` : ''}${next}</span></div>`;
 }
 function pd2AmxChipsHtml(){
   const E = _pdE, T = _pdT, open = _pdAm.menu || '';
@@ -3104,7 +3121,196 @@ function pd2AmxPaperHtml(c){
 }
 function pd2AmxHtml(c){
   const t = _pdAm.tab;
-  return `<div class="pd2-amx is-${t}" data-pd2-amx>${pd2AmxTabsHtml(c)}${t === 'changes' ? pd2AmxChipsHtml() + `<div class="pd2-amx-body">${pd2AmxTableHtml(c)}</div>` : t === 'paper' ? pd2AmxPaperHtml(c) : ''}</div>`;
+  const body = t === 'changes' ? (_pdAm.asked ? `<div class="pd2-amx-body">${pd2AmxReviewHtml(c)}</div>` : pd2AmxChipsHtml() + `<div class="pd2-amx-body">${pd2AmxTableHtml(c)}</div>`)
+    : t === 'paper' ? pd2AmxCheckHtml(c) : '';
+  return `<div class="pd2-amx is-${t}" data-pd2-amx>${pd2AmxTabsHtml(c)}${body}</div>`;
+}
+/* ---- TELL JAMBO THE CHANGE (the owner's pick, 23 Nov 2026, "draw it" → "build it") ----
+   Amend this agreement asks ONE question in a pop-up (the Legora pop-up, lgpOpen): what do you want to change? Jambo reads
+   today's deal (the amendment reader, POST /api/ai/amend, amendSayAsk), finds the clauses and writes the changes; each lands
+   WAITING (ok:false) on step 2, Approve the changes: the clause he chose and why, the new words in red and green, what it
+   does, the amendment's own sentence, and Use it · Edit it · Remove. What no clause covers comes back NOT FOUND — said, never
+   invented; a new clause is written only on a press. Nothing enters the amendment until a person approves it (Create waits
+   for every change: pdAmendReady). "or choose the clauses yourself" keeps the signed paper's way in. */
+const PD2_AMK_CHIPS = ['term', 'price', 'pay', 'notice', 'add'];
+function pd2AmAskOpen(id, text, err){
+  const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return false;
+  if (typeof lgpOpen !== 'function') return pdOpenOnHome(id, 'amend');
+  const E = _pdE, T = _pdT;
+  const chips = PD2_AMK_CHIPS.map(k => `<button type="button" class="lgp-chip" data-pd2-amk-chip="${k}">${E(T('pd2_amk_c_' + k))}</button>`).join('');
+  const form = lgpOpen({ id: 'pd2-amk', title: T('pd2_amk_t'), sub: T('pd2_amk_sub', { name: c.name || '', ref: (typeof contractRef === 'function') ? contractRef(c) : c.id }),
+    html: `<label class="pd2-amk-box"><span class="pd2-amk-sp" aria-hidden="true">✦</span><textarea class="lgp-in is-area" id="pd2-amk-q" rows="3" maxlength="2000" placeholder="${E(T('pd2_amk_ph'))}" aria-label="${E(T('pd2_amk_t'))}">${E(text || '')}</textarea></label><div class="lgp-chips pd2-amk-chips">${chips}</div>`,
+    err: err || '', left: { label: T('pd2_amk_manual'), attr: 'data-pd2-amk-manual' },
+    primary: { label: T('pd2_amk_go'), attr: 'data-pd2-amk-go' }, focus: '#pd2-amk-q' });
+  if (!form) return false;
+  const q = () => form.querySelector('#pd2-amk-q');
+  form.addEventListener('submit', e => { e.preventDefault(); const v = String((q() || {}).value || '').trim();
+    if (!v){ pd2AmAskOpen(id, '', T('pd2_amk_need')); return; } pd2AmAskRun(id, v, true); });
+  form.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && e.target === q()){ e.preventDefault(); form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit', { cancelable: true })); } });
+  form.addEventListener('click', e => { const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    const ch = t.closest('[data-pd2-amk-chip]');
+    if (ch){ e.preventDefault(); const box = q(); if (!box) return; const add = T('pd2_amk_s_' + ch.getAttribute('data-pd2-amk-chip'));
+      box.value = String(box.value || '').trim() ? String(box.value).replace(/[\s,.]*$/, '') + ', ' + add : add;
+      if (typeof fieldFocus === 'function') fieldFocus(box, { focusVisible: false }); else box.focus(); try { box.setSelectionRange(box.value.length, box.value.length); } catch (_){} return; }
+    if (t.closest('[data-pd2-amk-manual]')){ e.preventDefault(); if (typeof closeModal === 'function') closeModal(); pdAmendOpen(id, { manual: true }); } });
+  return true;
+}
+/* the pop-up while Jambo reads: something moves, Stop is always there; a later answer than the one waited for is dropped */
+function pd2AmBusyOpen(id, text){
+  if (typeof lgpOpen !== 'function') return;
+  const E = _pdE, T = _pdT;
+  /* AS DRAWN (the owner's pick "Real finds, then a button", 23 Nov 2026): a moving bar and the clauses being read; the
+     finds are never faked while he reads — they tick in from his answer (pd2AmFoundOpen) */
+  const c = (typeof getContract === 'function') ? getContract(id) : null;
+  let n = 0; try { n = (c && typeof amendParentClauses === 'function') ? amendParentClauses(c).length : 0; } catch (_){ n = 0; }
+  const o = { id: 'pd2-amk', title: T('pd2_amk_busy_t'), subHtml: `${E(T('pd2_amr_asked'))} “${E(text)}”`,
+    html: `<div class="pd2-amk-bar" aria-hidden="true"><i></i></div><div class="pd2-amk-busy">${typeof busyHtml === 'function' ? busyHtml(n ? _pdTn('pd2_amk_looking', n, { n }) : T('pd2_amk_busy')) : E(T('pd2_amk_busy'))}</div>`,
+    note: T('pd2_amk_busy_n'), cancelLabel: T('pd2_amk_stop'), cancelAttr: 'data-pd2-amk-stop', focus: false };
+  const f = (typeof lgpRepaint === 'function' && document.querySelector('#modal-root .lgp#pd2-amk')) ? lgpRepaint(o) : lgpOpen(o);
+  if (f) f.addEventListener('click', e => { if (e.target && e.target.closest && e.target.closest('[data-pd2-amk-stop]')){ e.preventDefault(); _pdAm.seq++; if (typeof closeModal === 'function') closeModal(); } });
+}
+async function pd2AmAskRun(id, text, fromPop){
+  const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c || !String(text || '').trim()) return;
+  const T = _pdT, seq = ++_pdAm.seq;
+  pd2AmBusyOpen(id, text);
+  let r = null, err = '';
+  try { r = (typeof amendSayAsk === 'function') ? await amendSayAsk(c, text) : null; if (!r) err = T('fa_ai_failed'); }
+  catch (e){ err = (e && e.message) || T('fa_ai_failed'); }
+  if (seq !== _pdAm.seq) return;
+  const items = (r && Array.isArray(r.items)) ? r.items : [], missing = (r && Array.isArray(r.notFound)) ? r.notFound.map(m => String((m && m.what) || '').trim()).filter(Boolean) : [];
+  if (!err && !items.length && !missing.length && !(r && r.facts && (r.facts.expiry || Number(r.facts.value) > 0))) err = T('fa_ai_nothing');
+  /* NO SILENT FAILURE: no key, a refusal, nothing found — said in the pop-up, the words kept to try again */
+  if (err){ pd2AmAskOpen(id, text, err); return; }
+  if (_pdAm.id !== String(id)){ _pdAm.id = String(id); _pdAm.items = []; _pdAm.expiry = ''; _pdAm.value = ''; _pdAm.kind = 'terms'; _pdAm.eff = ''; _pdAm.reason = ''; }
+  pd2AmTake(c, r, text);
+  _pdAm.tab = 'changes'; _pdAm.edit = null; _pdAm.menu = '';
+  if (pdAmendShows()) pdAmendRepaint();
+  pd2AmFoundOpen(id, text, !!(r && r.truncated));
+}
+/* WHAT HE FOUND, then one button (the owner's pick, 23 Nov 2026): each clause he chose and why, what no clause covers;
+   Approve the changes opens step 2; nothing is in the amendment yet */
+function pd2AmFoundOpen(id, text, cut){
+  if (typeof lgpOpen !== 'function'){ if (!pdAmendShows()) pdOpenOnHome(id, 'amend'); return; }
+  const E = _pdE, T = _pdT;
+  const mine = _pdAm.items.filter(x => x.by === 'jambo');
+  const rows = mine.map(it => `<li><span class="pd2-amk-tk is-ok" aria-hidden="true">✓</span><span><b>${E(T('pd2_amk_found', { clause: (it.clauseNumber ? '§ ' + it.clauseNumber + ' ' : '') + String(it.clauseLabel || T('fa_new_clause')).replace(/^\s*\d+(?:\.\d+)*\.?\s*/, '') }))}</b>${it.why ? ` <span class="pd2-q">— ${E(String(it.why).replace(/[.\s]+$/, ''))}</span>` : ''}</span></li>`)
+    .concat(_pdAm.missing.map(w => `<li><span class="pd2-amk-tk is-nf" aria-hidden="true">•</span><span><b>${E(w)}</b> <span class="pd2-q">— ${E(T('pd2_amk_nf'))}</span></span></li>`)).join('');
+  const o = { id: 'pd2-amk', title: T('pd2_amk_done_t'), subHtml: `${E(T('pd2_amr_asked'))} “${E(text)}”`,
+    html: `<div class="pd2-amk-bar is-done" aria-hidden="true"><i></i></div><ul class="pd2-amk-finds">${rows}</ul>${cut ? `<p class="pd2-amk-cut">${E(T('fa_cut_short'))}</p>` : ''}`,
+    note: T('pd2_amk_busy_n'), primary: { label: T('pd2_amk_see') + ' ›', attr: 'data-pd2-amk-see' }, focus: false };
+  const f = document.querySelector('#modal-root .lgp#pd2-amk') && typeof lgpRepaint === 'function' ? lgpRepaint(o) : lgpOpen(o);
+  if (!f) return;
+  const go = () => { if (typeof closeModal === 'function') closeModal(); if (pdAmendShows()) pdAmendRepaint(); else pdOpenOnHome(id, 'amend'); };
+  f.addEventListener('submit', e => { e.preventDefault(); go(); });
+  f.addEventListener('click', e => { if (e.target && e.target.closest && e.target.closest('[data-pd2-amk-see]')){ e.preventDefault(); go(); } });
+}
+/* Jambo's answer onto the list: his changes replace his earlier ones (a person's own stay), each WAITING for a person */
+function pd2AmTake(c, r, text){
+  let cls = []; try { cls = (typeof amendParentClauses === 'function') ? amendParentClauses(c) : []; } catch (_){ cls = []; }
+  _pdAm.items = _pdAm.items.filter(x => x.by !== 'jambo');
+  pd2AmPutJambo(c, cls, (r && Array.isArray(r.items)) ? r.items : []);
+  _pdAm.missing = (r && Array.isArray(r.notFound)) ? r.notFound.map(m => String((m && m.what) || '').trim()).filter(Boolean).slice(0, 6) : [];
+  _pdAm.asked = String(text || '').trim().slice(0, 2000);
+  const f = (r && r.facts) || {};
+  if (f.expiry) _pdAm.expiry = String(f.expiry).slice(0, 10);
+  if (Number(f.value) > 0) _pdAm.value = String(f.value);
+  if (f.effectiveDate && !_pdAm.eff) _pdAm.eff = String(f.effectiveDate).slice(0, 10);
+}
+function pd2AmPutJambo(c, cls, items){
+  items.forEach(it => { if (!it || _pdAm.items.length >= PD_AMEND_ITEMS_MAX) return;
+    const hit = cls.find(x => x.num && it.clauseNumber && String(x.num) === String(it.clauseNumber)) || cls.find(x => it.clauseLabel && x.label === it.clauseLabel) || null;
+    const amended = String(it.amended || '');
+    _pdAm.items.push({ clauseId: hit ? hit.id : '', clauseLabel: it.clauseLabel || (hit && hit.label) || '', clauseNumber: it.clauseNumber || (hit && hit.num) || '', op: it.op || 'replace',
+      signed: it.signed || (hit && hit.text) || '', amended, jambo: amended, why: String(it.why || '').slice(0, 300), by: 'jambo', ok: false }); });
+}
+/* "Write it as a new clause": one press, one call; the new clause waits for approval like the rest */
+async function pd2AmWriteNew(j){
+  const c = pdContract(), what = _pdAm.missing[j]; if (!c || !what || _pdAm.writing != null) return;
+  _pdAm.writing = j; pdAmendRepaint();
+  let r = null, err = '';
+  try { r = (typeof amendSayAsk === 'function') ? await amendSayAsk(c, _pdT('pd2_amk_new_ask', { what })) : null; } catch (e){ err = (e && e.message) || _pdT('fa_ai_failed'); }
+  _pdAm.writing = null;
+  const items = (r && Array.isArray(r.items)) ? r.items.filter(x => x && x.op === 'insert') : [];
+  if (!err && !items.length) err = _pdT('fa_ai_nothing');
+  if (err){ pdAmendRepaint(); if (typeof toast === 'function') toast(err, 'err'); return; }
+  let cls = []; try { cls = (typeof amendParentClauses === 'function') ? amendParentClauses(c) : []; } catch (_){ cls = []; }
+  pd2AmPutJambo(c, cls, items.slice(0, 1));
+  _pdAm.missing.splice(j, 1);
+  pdAmendRepaint();
+}
+/* the change in red and green over the clause's words today (wordDiff, the one word diff) */
+function pd2AmxMarksHtml(it){
+  const E = _pdE, n = t => String(t || '').replace(/\s+/g, ' ').trim();
+  if (it.op === 'insert') return `<ins class="pd2-amr-add">${E(n(it.amended))}</ins>`;
+  if (it.op === 'delete') return `<del class="pd2-amr-del">${E(n(it.signed))}</del>`;
+  let parts = []; try { parts = (typeof wordDiff === 'function') ? wordDiff(n(it.signed), n(it.amended)) : []; } catch (_){ parts = []; }
+  if (!parts.length) return E(n(it.amended));
+  return parts.map(p => p.t === 'add' ? `<ins class="pd2-amr-add">${E(p.text)}</ins>` : p.t === 'del' ? `<del class="pd2-amr-del">${E(p.text)}</del>` : E(p.text)).join('');
+}
+/* the amendment's own sentence for one change (the one writer, amendmentItemHtml), without its heading */
+function pd2AmxSentenceHtml(it){
+  let h = ''; try { h = (typeof amendmentItemHtml === 'function') ? amendmentItemHtml(it, 1) : ''; } catch (_){ h = ''; }
+  return String(h).replace(/^<p><strong>[\s\S]*?<\/strong>\s*/, '').replace(/<\/p>\s*$/, '');
+}
+/* STEP 2, APPROVE THE CHANGES (as drawn) */
+function pd2AmxReviewHtml(c){
+  const E = _pdE, T = _pdT, may = (typeof canEdit !== 'function') || canEdit();
+  const badge = (tone, w) => `<span class="pd2-badge is-${tone}"><i aria-hidden="true"></i>${E(w)}</span>`;
+  const head = `<div class="pd2-amr-asked"><span class="pd2-amr-sp" aria-hidden="true">✦</span><span class="pd2-amr-said"><span class="pd2-q">${E(T('pd2_amr_asked'))}</span> <b>“${E(_pdAm.asked)}”</b></span>${may ? `<button type="button" class="ui-link" data-pd2-amk-again>${E(T('pd2_amr_again'))}</button>` : ''}</div>`;
+  const rows = _pdAm.items.map((it, i) => {
+    const at = it.clauseNumber ? `§ ${it.clauseNumber} ` : '';
+    const name = String(it.clauseLabel || T('fa_new_clause')).replace(/^\s*\d+(?:\.\d+)*\.?\s*/, '');
+    const b = it.ok ? badge('green', T(it.by === 'jambo' ? 'pd2_amr_ok' : 'pd2_amr_yours')) : badge('amber', T('pd2_amr_wait'));
+    const why = it.by === 'jambo' && it.why ? `<span class="pd2-amr-why"><span class="pd2-amr-sp" aria-hidden="true">✦</span> ${E(T('pd2_amr_why', { why: String(it.why).replace(/[.\s]+$/, '') }))}</span>` : '';
+    const box = may && _pdAm.edit === i
+      ? `<textarea class="pd2-amx-ed pd2-amr-ed" rows="${Math.min(14, Math.max(3, Math.ceil(String(it.amended || '').length / 90) + 1))}" data-pd2-amx-txt="${i}" aria-label="${E(T('pd2_amx_becomes'))}">${E(it.amended || '')}</textarea>`
+      : `<p class="pd2-amr-para">${pd2AmxMarksHtml(it)}</p>`;
+    const acts = !may ? '' : !it.ok
+      ? `<div class="pd2-amr-acts"><button type="button" class="pill-btn is-go" data-pd2-amx-ok="${i}">${E(T('pd2_amr_use'))}</button><button type="button" class="pill-btn" data-pd2-amx-edit="${i}">${E(T('pd2_amr_edit'))}</button><button type="button" class="pill-btn" data-pd2-amx-rm="${i}">${E(T('pd2_amr_rm'))}</button></div>`
+      : `<div class="pd2-amr-acts is-done"><button type="button" class="ui-link" data-pd2-amx-edit="${i}">${E(T('pd2_amr_edit_s'))}</button><span class="pd2-q">·</span>${it.by === 'jambo'
+        ? `<button type="button" class="ui-link" data-pd2-amx-undo="${i}">${E(T('pd2_amr_undo'))}</button>` : `<button type="button" class="ui-link" data-pd2-amx-rm="${i}">${E(T('pd_am_remove'))}</button>`}</div>`;
+    return `<div class="pd2-amr-row" data-pd2-amx-row="${i}"><span class="pd2-amr-i">${i + 1}</span><div class="pd2-amr-main">
+      <div class="pd2-amr-h"><b>${E(at + name)}</b>${b}</div>
+      <div class="pd2-amr-line">${why}<span class="pd2-amx-eff pd2-amr-eff" data-pd2-amx-effc="${i}">${pd2AmxEffectHtml(c, it, i)}</span></div>
+      ${box}<p class="pd2-amr-goes"><span class="pd2-q">${E(T('pd2_amr_goes'))} · </span>${pd2AmxSentenceHtml(it)}</p>${acts}</div></div>`; }).join('');
+  const miss = _pdAm.missing.map((w, j) => `<div class="pd2-amr-miss"><div class="pd2-amr-h">${badge('amber', T('pd2_amr_nf'))}<b>${E(w)}</b><span class="pd2-q">— ${E(T('pd2_amr_nf_t'))}</span></div>
+    ${may ? `<div class="pd2-amr-acts">${_pdAm.writing === j ? (typeof busyHtml === 'function' ? busyHtml(T('pd2_amr_writing')) : E(T('pd2_amr_writing'))) : `<button type="button" class="pill-btn" data-pd2-amk-write="${j}">${E(T('pd2_amr_write'))}</button><button type="button" class="pill-btn" data-pd2-amk-leave="${j}">${E(T('pd2_amr_leave'))}</button>`}</div>` : ''}</div>`).join('');
+  const add = may ? `<p class="pd2-amr-more"><button type="button" class="ui-link" data-pd2-amx-tab="signed">+ ${E(T('pd2_amr_add'))}</button></p>` : '';
+  return `<div class="pd2-amr">${head}${rows}${miss}${add}</div>`;
+}
+/* the approval rules the amended deal meets (the panel's own reading) */
+function pd2AmRules(c){
+  try { const probe = Object.assign({}, c, { value: Number(_pdAm.value) > 0 ? Number(_pdAm.value) : Number(c.value) || 0, status: 'Under Review' });
+    return (typeof approvalRules === 'function' ? approvalRules() : []).filter(r => typeof ruleMatches === 'function' && ruleMatches(r, probe)); } catch (_){ return []; }
+}
+/* the agreement as it would read once signed: today's deal with these changes marked in it (a reading, nothing stored) */
+function pd2AmxTodayHtml(c){
+  const E = _pdE, T = _pdT;
+  let cls = []; try { cls = (typeof amendParentClauses === 'function') ? amendParentClauses(c) : []; } catch (_){ cls = []; }
+  const used = new Set();
+  const body = cls.map(x => { const k = _pdAm.items.findIndex(y => y.op !== 'insert' && ((y.clauseId && y.clauseId === x.id) || (y.clauseNumber && x.num && String(y.clauseNumber) === String(x.num))));
+    if (k >= 0) used.add(k); const it = k >= 0 ? _pdAm.items[k] : null;
+    return `<p class="pd2-amc-cl${it ? ' is-changed' : ''}">${x.label ? `<b>${E(x.label)}</b> ` : ''}${it ? pd2AmxMarksHtml(Object.assign({}, it, { signed: x.text })) : E(x.text)}</p>`; }).join('');
+  const ins = _pdAm.items.filter((y, k) => y.op === 'insert' && !used.has(k)).map(y => `<p class="pd2-amc-cl is-changed">${y.clauseLabel ? `<b>${E(y.clauseLabel)}</b> ` : ''}${pd2AmxMarksHtml(y)}</p>`).join('');
+  return `<div class="pd2-amx-paper"><article class="pd2-amx-sheet"><p class="pd2-amx-kick">${E(String(T('pd2_amc_today_k')).toUpperCase())}</p><h2>${E(c.name || '')}</h2><p class="pd2-amx-sub">${E(T('pd2_amc_today_sub'))}</p>${body}${ins}</article></div>`;
+}
+/* STEP 3, CHECK AND CREATE (as drawn): the amendment or the agreement as amended, Before you create, what happens next */
+function pd2AmxCheckHtml(c){
+  const E = _pdE, T = _pdT, view = _pdAm.view === 'today' ? 'today' : 'amend';
+  const paper = pd2AmxPaperHtml(c), blanks = (paper.match(/pd2-amx-blank/g) || []).length, rules = pd2AmRules(c);
+  const badge = (tone, w) => `<span class="pd2-badge is-${tone}"><i aria-hidden="true"></i>${E(w)}</span>`;
+  const row = (k, v, b) => `<li><span class="pd2-amc-k">${E(k)} <span class="pd2-q">· ${E(v)}</span></span>${b}</li>`;
+  const day = iso => (typeof regDotDate === 'function') ? regDotDate(String(iso).slice(0, 10)) : String(iso).slice(0, 10);
+  const checks = [row(T('pd2_amc_parties'), T('pd2_amc_parties_v'), badge('green', T('pd2_amc_checked'))),
+    row(T('pd2_am_signers'), T('pd2_am_signers_v'), badge('green', T('pd2_amc_checked'))),
+    rules.length ? row(T('pd2_am_approval'), _pdTn('pd2_am_appr_n', rules.length, { n: rules.length }), badge('amber', T('pd2_amc_needed'))) : row(T('pd2_am_approval'), T('pd2_am_appr_none'), badge('gray', T('pd2_amc_none'))),
+    row(T('pd2_amx_eff'), _pdAm.eff ? day(_pdAm.eff) : T('pd2_amx_eff_sign'), badge('gray', T('pd2_amc_set'))),
+    blanks ? row(T('pd2_amc_dates'), _pdTn('pd2_amc_dates_n', blanks, { n: blanks }), badge('amber', T('pd2_amc_tofill'))) : row(T('pd2_amc_dates'), T('pd2_amc_dates_0'), badge('green', T('pd2_amc_checked')))].join('');
+  const stops = [[T('pd2_amc_tl_draft'), T('pd2_amc_tl_today'), true]].concat(rules.length ? [[T('pd2_amc_tl_appr'), '']] : [],
+    [[T('pd2_amc_tl_sent', { who: c.counterparty || T('pd2_amc_tl_them') }), ''], [T('pd2_amc_tl_signed'), ''], [T('pd2_amc_tl_force'), T('pd2_amc_tl_force_s')]]);
+  const tl = `<ol class="pd2-amc-tl">${stops.map(s => `<li class="${s[2] ? 'is-now' : ''}"><i aria-hidden="true"></i><b>${E(s[0])}</b>${s[1] ? `<span>${E(s[1])}</span>` : ''}</li>`).join('')}</ol>`;
+  return `<div class="pd2-amc"><div class="pd2-amc-view" role="tablist"><button type="button" role="tab" class="pd2-amc-chip${view === 'amend' ? ' is-on' : ''}" aria-selected="${view === 'amend'}" data-pd2-amx-view="amend">${E(T('pd2_amc_v_amend'))}</button><button type="button" role="tab" class="pd2-amc-chip${view === 'today' ? ' is-on' : ''}" aria-selected="${view === 'today'}" data-pd2-amx-view="today">${E(T('pd2_amc_v_today'))}</button></div>
+    <div class="pd2-amc-two"><div class="pd2-amc-left" id="pd2-amc-left">${view === 'today' ? pd2AmxTodayHtml(c) : paper}</div><aside class="pd2-amc-side"><h4>${E(T('pd2_amc_before'))}</h4><ul class="pd2-amc-checks">${checks}</ul></aside></div>${tl}</div>`;
 }
 /* the page over the paper: drawn after every paint of the paper and every change of the list; a box being typed in is never
    redrawn under the reader (the row's own cells follow it, pd2AmxRowSync) */
@@ -3117,7 +3323,7 @@ function pd2AmPaperPaint(c){
   const old = wrap ? wrap.querySelector(':scope > .pd2-amx') : null;
   if (wrap) wrap.querySelectorAll(':scope > .pd2-am-foot').forEach(n => n.remove());
   if (!on){ if (old) old.remove(); zoom.classList.remove('is-amx-hide'); if (wrap) wrap.classList.remove('is-amx'); return; }
-  if (!PD2_AMX_TABS.includes(_pdAm.tab)) _pdAm.tab = _pdAm.items.length ? 'changes' : 'signed';
+  if (!PD2_AMX_TABS.includes(_pdAm.tab)) _pdAm.tab = 'signed';      /* it always opens on step 1, the signed paper */
   const typing = old && document.activeElement && old.contains(document.activeElement) && /^(TEXTAREA|INPUT)$/.test(document.activeElement.tagName) && old.classList.contains('is-' + _pdAm.tab);
   zoom.classList.toggle('is-amx-hide', _pdAm.tab !== 'signed');
   if (wrap) wrap.classList.add('is-amx');
@@ -3161,10 +3367,21 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
       if (k === 'expiry') _pdAm.expiry = v; else if (k === 'value') _pdAm.value = v; again(); return; }
     const rm = t.closest('[data-pd2-amx-rm]');
     if (rm){ e.preventDefault(); _pdAm.items.splice(Number(rm.getAttribute('data-pd2-amx-rm')), 1); again(); return; }
+    /* APPROVE THE CHANGES (as drawn): Use it approves Jambo's wording; Undo takes the approval back and his words with it */
+    const ok = t.closest('[data-pd2-amx-ok]'); if (ok){ e.preventDefault(); const it = _pdAm.items[Number(ok.getAttribute('data-pd2-amx-ok'))]; if (it) it.ok = true; again(); return; }
+    const un = t.closest('[data-pd2-amx-undo]'); if (un){ e.preventDefault(); const it = _pdAm.items[Number(un.getAttribute('data-pd2-amx-undo'))];
+      if (it){ if (it.by === 'jambo'){ it.ok = false; if (it.jambo != null) it.amended = it.jambo; } } again(); return; }
+    if (t.closest('[data-pd2-amk-again]')){ e.preventDefault(); const c = pdContract(); if (c) pd2AmAskOpen(String(c.id), _pdAm.asked); return; }
+    const lv = t.closest('[data-pd2-amk-leave]'); if (lv){ e.preventDefault(); _pdAm.missing.splice(Number(lv.getAttribute('data-pd2-amk-leave')), 1); again(); return; }
+    const wr = t.closest('[data-pd2-amk-write]'); if (wr){ e.preventDefault(); pd2AmWriteNew(Number(wr.getAttribute('data-pd2-amk-write'))); return; }
+    const vw = t.closest('[data-pd2-amx-view]'); if (vw){ e.preventDefault(); _pdAm.view = vw.getAttribute('data-pd2-amx-view') === 'today' ? 'today' : 'amend'; again();
+      /* the agreement as amended opens at its first change, inside its own box (the check list and what happens next stay in view) */
+      const l = document.getElementById('pd2-amc-left'), ch = l && l.querySelector('.pd2-amc-cl.is-changed');
+      if (l){ l.scrollTop = 0; if (ch && _pdAm.view === 'today') l.scrollTop = Math.max(0, ch.getBoundingClientRect().top - l.getBoundingClientRect().top - 16); } return; }
   });
   document.addEventListener('input', e => {
     const t = e.target; if (!t || !t.closest || !t.closest('.pd2-amx')) return;
-    if (t.hasAttribute('data-pd2-amx-txt')){ const i = Number(t.getAttribute('data-pd2-amx-txt')), it = _pdAm.items[i]; if (it){ it.amended = String(t.value || '').slice(0, 4000); pd2AmxRowSync(i); } return; }
+    if (t.hasAttribute('data-pd2-amx-txt')){ const i = Number(t.getAttribute('data-pd2-amx-txt')), it = _pdAm.items[i]; if (it){ it.amended = String(t.value || '').slice(0, 4000); it.ok = true; pd2AmxRowSync(i); } return; }
     if (t.hasAttribute('data-pd2-amx-reason')){ _pdAm.reason = String(t.value || '').slice(0, 200); return; }
   });
   document.addEventListener('change', e => {
@@ -3214,6 +3431,9 @@ function pd2AmFaceHtml(c){
 /* SAY THE CHANGE (as drawn): Jambo's box, while Amend is up, sends the words to the amendment reader — one call */
 async function pd2AmSay(text){
   const c = pdContract(); if (!c || !String(text || '').trim()) return;
+  /* ONE DOOR (the owner's pick, 23 Nov 2026): Jambo's box beside Amend says the change the pop-up's way — the same
+     reading, the same approval step; a person's own changes stay on the list */
+  if (typeof pd2AmAskRun === 'function'){ pd2AmAskRun(String(c.id), String(text).trim(), false); return; }
   const host = document.querySelector('#pd-amendface [data-pd2-am-say]');
   const say = (m, tone) => { if (host){ host.hidden = false; host.className = 'pd2-am-say' + (tone ? ' is-' + tone : ''); host.textContent = m; } };
   say(_pdT('fa_reading'));
@@ -3311,11 +3531,11 @@ async function pdAmendCreate(){
   /* AMEND L+S: when it takes effect (a date, else on signing) is the amendment's own suggested fact; the kind is kept on it;
      the reason rides the link's own audit line (applyParentLink's note) */
   if (_pdAm.eff) facts.effectiveDate = _pdAm.eff;
-  const made = createAmendment(c, { relation: 'amendment', expiry: _pdAm.expiry || null, items, facts, skeleton: true, kind: _pdAm.kind || 'terms', note: _pdAm.reason || '' });
+  const made = createAmendment(c, { relation: 'amendment', expiry: _pdAm.expiry || null, items, facts, skeleton: true, kind: _pdAm.kind || 'terms', note: _pdAm.reason || '', byCopilot: !!_pdAm.asked && _pdAm.items.some(x => x.by === 'jambo'), asked: _pdAm.asked || '' });
   if (!made || made.error){ if (typeof toast === 'function') toast((made && made.error) || _pdT('pd_failed'), 'err'); return; }
   const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
   if (typeof toast === 'function') toast(_pdT('fa_created', { id: (typeof contractRef === 'function') ? contractRef(made.contract) : made.contract.id, pid: ref, rel: _pdT('pd_am_rel') }), 'ok');
-  _pdAm.id = null; _pdAm.items = []; _pdAm.expiry = ''; _pdAm.value = ''; _pdAm.tab = ''; _pdAm.kind = 'terms'; _pdAm.eff = ''; _pdAm.reason = ''; _pdAm.reasonOpen = false; _pdAm.menu = ''; _pdAmend = null;
+  _pdAm.id = null; _pdAm.items = []; _pdAm.expiry = ''; _pdAm.value = ''; _pdAm.tab = ''; _pdAm.kind = 'terms'; _pdAm.eff = ''; _pdAm.reason = ''; _pdAm.reasonOpen = false; _pdAm.menu = ''; _pdAm.asked = ''; _pdAm.missing = []; _pdAm.view = 'amend'; _pdAmend = null;
   if (typeof updateSidebarCounts === 'function') updateSidebarCounts();
   /* the draft lands where it is written: Home's paper (the dialog's own landing) */
   if (typeof regOpenContract === 'function') regOpenContract(made.contract.id);
@@ -10837,7 +11057,7 @@ Object.assign(window, { pdArriveNote, pdMidArriving, pdArriveEnd, pdMidFrom, pdM
 Object.assign(window, { pd2DutiesCardOf, pd2DutiesCardHtml, pd2StandsOpen, pd2StandsUp, pd2DealCardHtml, pd2DealPageHtml, pd2DealFaceHtml, pd2DutyAnswer, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2AmendCardOf, pd2FactRowLs, pd2FamCardHtml, pd2StepsHtml, pd2CardFiveHtml, pd2CardWho, pd2FormAskTakes, pd2FormAsk, pd2FormFaceHtml, pd2FormChipsPaint, pd2On, pd2Html, pd2HistFaceHtml, PD2_HK_TONE, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
 Object.assign(window, { pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2NotesHiddenGet, pd2NotesHiddenSet, pd2NotesTgHtml, pd2NotesTgSolo, PD2_NOTES_HIDDEN_KEY, pd2RedAnswers, pd2RedStdAnswers, pd2RedBlocks, pd2RedGroupHtml, pd2RedChipsHtml, pd2RedAskHtml, pd2RedFloor, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
-  pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendReady, pd2AmNo, pd2AmSay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
+  pdHandIn, pdHandLanded, pdLandHasPress, pdHasUnsent, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdSolo, pdTalkKey, pdTalkScope, pdTalkShows, pdLandOnDossier, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkSeenAll, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendReady, pd2AmNo, pd2AmSay, pd2AmAskOpen, pd2AmAskRun, pd2AmFoundOpen, pd2AmTake, pd2AmWriteNew, pd2AmxMarksHtml, pd2AmxSentenceHtml, pd2AmxReviewHtml, pd2AmxCheckHtml, pd2AmxTodayHtml, pd2AmRules, PD2_AMK_CHIPS, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdSheetOwns, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, pdObOpen, pdObClose, PD_TABS_SHOWN, dossierStagesHtml, dossierObLineHtml, DOSSIER_SP_WORD, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendLive, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
