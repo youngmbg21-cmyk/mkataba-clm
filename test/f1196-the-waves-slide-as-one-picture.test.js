@@ -39,8 +39,8 @@ test('f1196 (4) where the browser anchors, the old stepped weave is not drawn; e
   assert.match(H.slice(i, i + 3000), /::after\{content:none;animation:none\}/);
   assert.match(H, /animation:wmWeaveA 70s steps\(1056\) infinite/, 'the fallback for a browser without anchors');
 });
-test('f1196 (5) still on Explorer and for less motion', () => {
-  assert.match(H, /html\.lg-new body:has\(#ig-page\[data-hb-side="explorer"\]\) #wm-dock > i\{animation:none\}/);
+test('f1196 (5) moving on Explorer again (owner, 23 Nov 2026); still for less motion', () => {
+  assert.doesNotMatch(H, /#wm-dock > i\{animation:none\}/);
   assert.match(H, /@media \(prefers-reduced-motion: reduce\)\{ html\.lg-new \.wm-stage > i\{animation:none\} \}/);
 });
 test('f1196 (6) the stages are mounted once, outside the panels, and rise with the reading', () => {
