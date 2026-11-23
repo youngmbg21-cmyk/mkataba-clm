@@ -1086,3 +1086,6 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 ## OBLIGATIONS — Duties, end to end (23 Nov 2026)
 - test/f1187-duties-end-to-end.test.js — one page (To decide · On the contract · Skipped, no ticks or Add all); the sheet over the page (own top layer, whose unchosen, Add duty · Skip, the next by itself, Both kept as ours); one door (hidden panel never shown, "obligations" left the chips); no mass add on the Obligations page; template duties proposed, never minted; no money in the panel; both books; the Handbook (red at the parent).
 - RE-POINTED to the owner's reversal: f554 (2)–(6), (T) (the desk is the Duties page, decided in the sheet); f1184 (2), (4); f1185 (now only "the morning's desk is gone"); f308 (7) (template duties proposed); f707 9b; f1098 (4); f1102 (1), (2); f672 4e, 4g; f748 5a; f1153 (4). Browser (GitHub): review-desk-verify, duties-card-verify, found-promises-verify, amount-and-window-verify, seven-fixes-verify 5f.
+
+## OBLIGATIONS — Jambo fills in the duty, a person decides (23 Nov 2026)
+- test/f1188-jambo-fills-in-the-duty.test.js — the due day from the contract's own end date with its line, none guessed; Jambo's reading under the choices, Use presses the chip, nothing pre-chosen; past choices (added as / with proof / skipped); the readings read only; both books; the Handbook (red at the parent).

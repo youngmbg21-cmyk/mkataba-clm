@@ -855,11 +855,12 @@ function openObligationForm(c, seed, opts){
           ${over?['ours','theirs','both'].map(k=>{ const on=seed.party===k;
             return `<button type="button" class="lgp-chip${on?' is-on':''}" data-of-party="${k}" aria-pressed="${on?'true':'false'}">${E(obWhoseBtn(k==='ours'?'us':k==='theirs'?'them':'both'))}</button>`; }).join(''):OBLIG_PARTY.map(([k,l])=>{ const on=(seed.party==='theirs'?'theirs':'ours')===k;
             return `<button type="button" class="lgp-chip${on?' is-on':''}" data-of-party="${k}" aria-pressed="${on?'true':'false'}">${k==='theirs'?((c.counterparty||'').replace(/</g,'&lt;')||l):l}</button>`; }).join('')}
-        </span></span></div>
+        </span>${over&&opts.read?`<span class="dts-jb"><i class="dts-spark" aria-hidden="true"></i><span>${E(opts.readSay||'')}</span><button type="button" class="dts-use" data-of-use="${E(opts.read)}">${E(i18t('dts_use',{ w:obWhoseBtn(opts.read==='ours'?'us':opts.read==='theirs'?'them':'both') }))}</button></span>`:''}</span></div>
       ${''/* THE DESCRIPTION WRAPS (Young, 10 Aug 2026): an obligation read out of a clause is a sentence, so it is a
               text area. Ampersand FIRST, then the angle bracket. */}
       ${line(i18t('ob_what_done'),`<textarea id="of-desc" rows="3" class="lgp-in is-area of-desc">${(seed.desc||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</textarea>`,{ tall:true })}
       ${line(i18t('ob_due_date'),`<input id="of-due" type="date" class="lgp-in" value="${seed.due||''}"/>`)}
+      ${over&&opts.dueFrom?`<p class="dts-from" id="of-due-from">${E(opts.dueFrom)}</p>`:''}
       ${line(i18t('ob_recurring'),`<select id="of-recur" class="lgp-in">${OBLIG_RECUR.map(([k])=>`<option value="${k}" ${seed.recurring===k?'selected':''}>${E(obRecurLabel(k))}</option>`).join('')}</select>`)}
       ${''/* COMES AFTER: THE ONE DOOR ONTO THE ORDER (L-5). It offers its siblings and never itself; drawn only where
               there is a sibling to point at. */}
@@ -886,6 +887,7 @@ function openObligationForm(c, seed, opts){
     </div>
     <p id="of-theirs-note" class="lgp-small ${seed.party==='theirs'?'':'hidden'}">${E(i18t('of_theirs_note',{ who:c.counterparty||i18t('of_the_other_side') }))}</p>
     </div>
+    ${over&&opts.past?`<p class="dts-past"><i class="dts-spark" aria-hidden="true"></i><span>${E(opts.past)}</span></p>`:''}
     ${over?`<p class="dts-need" id="of-need"${seed.party?' hidden':''}>${E(i18t('dts_need_whose'))}</p>`:''}
     <div class="lgp-ft">${over?`<button type="button" id="of-save" class="ui-btn ui-btn-primary lgp-go"${seed.party?'':' disabled'}>${E(opts.saveLabel||i18t('dts_add'))}</button>${typeof opts.onSkip==='function'?`<button type="button" id="of-skip" class="ui-btn">${E(i18t('obd_skip'))}</button>`:''}<span class="lgp-sp"></span>`
       :`<button type="button" class="ui-btn lgp-back" id="of-back" hidden>‹ ${E(i18t('lgp_back'))}</button><span class="lgp-sp"></span>
@@ -932,6 +934,8 @@ function openObligationForm(c, seed, opts){
     document.getElementById('of-theirs-note')?.classList.toggle('hidden', party!=='theirs');
     if(over){ const sv=document.getElementById('of-save'); if(sv) sv.disabled=!party; document.getElementById('of-need')?.toggleAttribute('hidden', !!party); }
   };
+  document.querySelector('[data-of-use]')?.addEventListener('click',e=>{ const k=e.currentTarget.getAttribute('data-of-use');
+    document.querySelector(`[data-of-party="${k}"]`)?.click(); });
   document.querySelectorAll('[data-of-party]').forEach(b=>b.addEventListener('click',()=>{
     const k=b.getAttribute('data-of-party'); party=k==='theirs'?'theirs':(over&&k==='both')?'both':'ours'; paintParty(); }));
   document.getElementById('of-isdoc')?.addEventListener('change',e=>{
@@ -1394,6 +1398,75 @@ function dutiesGo(cid){
   setTimeout(tick, 50);
   return true;
 }
+/* ---- JAMBO FILLS IN, A PERSON DECIDES (owner, 23 Nov 2026: "build 1, 2 and 3", the drawing "Jambo fills in the duty,
+   you decide") ----
+   Three readings handed to the sheet; none of them writes, none chooses whose duty, none spends.
+   1 DATES (dutyDateHint): the due day and its repeat from the duty's own words and the dates the contract already
+     carries (its end, effectiveExpiry) — "three (3) months before expiry" → that many months before the end date —
+     each with the line saying how it was worked out. A duty the paper ties to no date says so; nothing is guessed.
+   2 WHOSE (dutyReadOf): Jambo's reading on arrival (or our template's own word), shown under the three choices with
+     "Use …", which presses the chip for the reader. Nothing is chosen until a person presses.
+   3 YOUR PAST CHOICES (dutyPastSay): the same kind of duty (DUTY_TOPICS, by its words) on the reader's OTHER contracts
+     — added as ours or theirs, with proof, or skipped — counted off what is already in the book. */
+const DUTY_TOPICS = [['insurance', /insur/i], ['payment', /\b(pay|payment|invoice|invoic)/i], ['renewal', /renew/i], ['audit', /audit/i],
+  ['report', /report/i], ['quotation', /quot(e|ation)/i], ['records', /record/i], ['data', /\b(data|breach|privacy)\b/i],
+  ['confidential', /confiden/i], ['notice', /\bnotice|notif/i], ['delivery', /deliver|provide .*services/i]];
+const DUTY_WORD_NUM = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12,
+  fourteen: 14, thirty: 30, sixty: 60, ninety: 90 };
+function dutyTopicOf(x){ const t = [x && x.desc, x && x.quote].join(' '); const hit = DUTY_TOPICS.find(([, re]) => re.test(t)); return hit ? hit[0] : ''; }
+function dutyIsoShift(iso, n, unit){
+  const d = new Date(String(iso).slice(0, 10) + 'T00:00:00'); if (isNaN(d.getTime())) return '';
+  if (unit === 'm') d.setMonth(d.getMonth() - n); else d.setDate(d.getDate() - n);
+  return isNaN(d.getTime()) ? '' : isoDay(d);
+}
+function dutyDateHint(c, x){
+  const out = { due: '', recurring: '', from: '' };
+  if (!x) return out;
+  const sec = x.clause ? '§' + x.clause : '';
+  const words = [x.desc, x.quote].join(' ');
+  /* the repeat, from the paper's own word */
+  if (x.recurring && x.recurring !== 'none') out.recurring = x.recurring;
+  else if (/\bmonthly|each month|every month|per month\b/i.test(words)) out.recurring = 'monthly';
+  else if (/\bquarterly|each quarter|every quarter\b/i.test(words)) out.recurring = 'quarterly';
+  else if (/\bannual(ly)?|each year|every year|yearly\b/i.test(words)) out.recurring = 'annual';
+  if (x.due){ out.due = String(x.due).slice(0, 10); out.from = i18t('dts_from_read', { s: sec || i18t('dtp_tl_paper') }); return out; }
+  /* N months / days before the end: the end date the contract already carries */
+  const m = words.match(/(?:\((\d+)\)|\b(\d+)\b|\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fourteen|thirty|sixty|ninety)\b)(?:\s*\(\d+\))?\s*(months?|days?)\s+(?:before|prior to)\s+(?:the\s+)?(?:expiry|expiration|end|termination)/i);
+  const end = dateOnly((typeof window !== 'undefined' && typeof window.effectiveExpiry === 'function' ? window.effectiveExpiry(c) : null)
+    || (c && c.metadata && c.metadata.expiryDate) || (c && c.expiry));
+  if (m && end){
+    const n = Number(m[1] || m[2]) || DUTY_WORD_NUM[String(m[3] || '').toLowerCase()] || 0, unit = /^m/i.test(m[4]) ? 'm' : 'd';
+    const due = n ? dutyIsoShift(end, n, unit) : '';
+    if (due){ out.due = due; out.from = i18tn(unit === 'm' ? 'dts_from_months' : 'dts_from_days', n, { n, d: obDay(end), s: sec || i18t('dtp_tl_paper') }); return out; }
+  }
+  const k = obKindOf(x);
+  if (k === 'standing') out.from = i18t('dts_from_always', { s: sec || i18t('dtp_tl_paper') });
+  else if (k === 'event') out.from = i18t('dts_from_event', { s: sec || i18t('dtp_tl_paper') });
+  else if (out.recurring) out.from = i18t('dts_from_repeat', { s: sec || i18t('dtp_tl_paper') });
+  return out;
+}
+function dutyReadOf(x){
+  const w = x ? obWhoseOf(x) : 'unsure';
+  if (w === 'unsure') return null;
+  const read = w === 'them' ? 'theirs' : w === 'both' ? 'both' : 'ours';
+  const sec = x.clause ? ' (§' + x.clause + ')' : '';
+  return { read, say: i18t(x.origin === 'template' ? 'dts_tpl_reads' : 'dts_jb_reads', { w: obWhoseBtn(w), s: sec }) };
+}
+function dutyPastSay(c, x){
+  const topic = dutyTopicOf(x); if (!topic) return '';
+  const others = ((typeof state !== 'undefined' && state && Array.isArray(state.contracts)) ? state.contracts : []).filter(o => o && c && String(o.id) !== String(c.id));
+  let ours = 0, theirs = 0, proof = 0, skipped = 0;
+  others.forEach(o => {
+    const hit = (Array.isArray(o.obligations) ? o.obligations : []).filter(r => r && dutyTopicOf(r) === topic);
+    if (hit.length){ if (hit.some(obligationIsTheirs)) theirs++; else ours++; if (hit.some(obligationIsDoc)) proof++; }
+    else if (o.obReview && Array.isArray(o.obReview.skipped) && o.obReview.skipped.some(k => dutyTopicOf({ desc: k }) === topic)) skipped++;
+  });
+  const added = ours + theirs;
+  if (!added && !skipped) return '';
+  if (skipped > added) return i18tn('dts_past_skipped', skipped, { n: skipped });
+  const side = theirs > ours ? obWhoseBtn('them') : obWhoseBtn('us'), n = Math.max(ours, theirs);
+  return i18tn(proof && proof >= n ? 'dts_past_added_proof' : 'dts_past_added', n, { n, w: side });
+}
 /* THE ONE DOOR: every way in (the Duties card, the old Obligations doors, Jambo, the Board) lands here */
 function dutiesOpen(c, o){
   const live = c && ((typeof window.getContract === 'function' && getContract(c.id)) || c);
@@ -1551,7 +1624,11 @@ function openDutiesPage(c, found, o){
       const j = L().findIndex(y => !dec(y));
       if(j >= 0) decide(j);
       else { S.run = null; if(typeof toast === 'function') toast(i18t('dtp_all_done'), 'ok'); } };
+    const hint = dutyDateHint(c, x), rd = dutyReadOf(x);
+    if (!seed.due && hint.due) seed.due = hint.due;
+    if ((!seed.recurring || seed.recurring === 'none') && hint.recurring) seed.recurring = hint.recurring;
     openObligationForm(c, seed, { over: true, title: i18t('dts_title'), meta, count: i18t('dts_count', { n: S.run.done + 1, m: S.run.total }), frac: S.run.done / Math.max(1, S.run.total),
+      dueFrom: hint.from, read: rd ? rd.read : '', readSay: rd ? rd.say : '', past: dutyPastSay(c, x),
       onSaved: rec => {
         if(rec){ if(x.clause) rec.clause = String(x.clause).slice(0, 20); rec.readAt = String((c.triage && c.triage.at) || new Date().toISOString()).slice(0, 10);
           if(x.origin === 'template'){ rec.origin = 'template'; if(x.tplKey){ const m = new Set(Array.isArray(c.tplObMinted) ? c.tplObMinted.map(String) : []); m.add(String(x.tplKey)); c.tplObMinted = [...m]; } } }
@@ -6306,7 +6383,7 @@ if(typeof document !== 'undefined' && !document._obnWired){ document._obnWired =
     obOpenContract(cid, go.getAttribute('data-key'));
   }, true);
 }
-Object.assign(window,{obdFaceFor,obdFaceHtml,dutiesOpen,dutiesGo,dutiesFound,openDutiesPage,contractRenewsItself,obligationReminderDay,obPanelFive,obDecisionFive, obligationIsDoc,obligationDocUntil,obligationDocFile,obligationDocState,
+Object.assign(window,{dutyDateHint,dutyReadOf,dutyPastSay,dutyTopicOf,obdFaceFor,obdFaceHtml,dutiesOpen,dutiesGo,dutiesFound,openDutiesPage,contractRenewsItself,obligationReminderDay,obPanelFive,obDecisionFive, obligationIsDoc,obligationDocUntil,obligationDocFile,obligationDocState,
   OB_DOC_SOON_DAYS,contractDocuments,contractDocsLapsed,contractDocsMissing,
   obligationAfter,obligationPrev,obligationBlocked,obligationChain,obligationChains,obligationStepNo,obligationRoll,
   obligationAlreadyOn,obligationRequireDoc,obFindBusy,obFinding,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
