@@ -190,8 +190,8 @@ test('f1204 (7) the page: two rows, their edit places and pins, "Cover" in the t
   const D = read('js/views/designstep.js');
   assert.match(D, /if \(k === 'sigblock'\) return root\.querySelector\('\.rl-paper-foot'\);/);
   assert.match(D, /if \(k === 'cover'\) return root\.querySelector\('\.pg-cover \.pg-cover-title, \.pg-cover'\);/);
-  /* RE-POINTED 24 Nov 2026 (paper alone, pages scroll, owner): no page buttons; the chooser line says Cover while it is in view */
-  assert.match(D, /say\.textContent = cov && p === 1 \? i18t\('cl_ls_pv_cover'\)/, 'the preview\'s first page is the Cover');
+  /* RE-POINTED 24 Nov 2026 (one page, waves kept, owner): the panel shows the first page of wording, after the cover */
+  assert.match(D, /return cov && n > 1 \? 2 : 1;/, 'with a cover on, the page shown is the first after it');
   const r = s => J(vm.runInContext(`clReadLook(${JSON.stringify(s)}).got`, W));
   assert.deepEqual(r('cover page on'), { pageMarks: { coverOn: true } });
   assert.deepEqual(r('no cover page'), { pageMarks: { coverOn: false } });
