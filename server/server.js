@@ -14766,11 +14766,11 @@ SCOPE & SAFETY:
 - ${AI_GOVERNANCE_RULE} When a rule stops them and the proper next step is one of HaTi's own doors, name it in deliver_answer's ruleDoor.
 - ${aiNavigateOn() ? AI_GOTO_RULE : AI_GOTO_OFF_RULE}
 - ${aiNavigateOn() ? AI_BRIEF_RULE : AI_BRIEF_OFF_RULE}
+- ${AI_NOTEBOOK_RULE}
 - ${AI_CLARIFY_RULE}
 - ${AI_SEND_NOTE_RULE}
 - ${AI_CALENDAR_RULE}
 - ${AI_TEACH_RULE}
-- ${AI_NOTEBOOK_RULE}
 - ${AI_HANDBOOK_RULE}`;
   /* ONE FIGURE, EVERY BRAIN (12 Sep 2026): the sentence the graph route
      carries, in the chat brain too — the same rows, the same conversion, the

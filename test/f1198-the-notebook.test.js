@@ -109,8 +109,9 @@ describe('f1198 (5) Jambo quotes it, and the quote is counted', () => {
     assert.ok(srv && web); assert.equal(srv, web);
     assert.match(srv, /call search_hati with kinds \[\\"notebook\\"\]/);
     assert.match(srv, /never invent a section, an article or a quote/);
-    assert.ok(SRV.includes('- ${AI_NOTEBOOK_RULE}\n- ${AI_HANDBOOK_RULE}`;'));
-    assert.ok(AIJS.includes('${AI_NOTEBOOK_RULE} ${AI_CALENDAR_RULE} ${AI_HANDBOOK_RULE}'));
+    const sb = SRV.slice(SRV.indexOf('function buildCopilotSystem('));
+    assert.ok(sb.indexOf('- ${AI_NOTEBOOK_RULE}\n') > 0 && sb.indexOf('- ${AI_NOTEBOOK_RULE}\n') < sb.indexOf('- ${AI_HANDBOOK_RULE}`;'), 'the server prompt carries it, before the Handbook\'s');
+    assert.ok(AIJS.includes('${AI_NOTEBOOK_RULE} ${AI_CLARIFY_RULE}') && AIJS.indexOf('${AI_NOTEBOOK_RULE} ${AI_CLARIFY_RULE}') < AIJS.indexOf('${AI_CALENDAR_RULE} ${AI_HANDBOOK_RULE}'), 'the browser prompt too, before the Handbook\'s');
   });
   test('an answer naming GDPR Art. 28(3) counts one quote there; one that names nothing counts none', async () => {
     const ask = async (answer) => {
