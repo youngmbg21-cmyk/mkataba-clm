@@ -3687,7 +3687,7 @@ function ceRenderPaper(){
   const headBox = !ceHeadEditable() ? null
     : (typing && ceHeadTypable())
       ? `<h4 class="rl-clause-h ce-typing ce-headbox" id="ce-clausehead" contenteditable="true"
-          role="textbox" spellcheck="true">${_cee(_ceHead)}</h4>`
+          role="textbox" spellcheck="true">${(window.rlHeadNumHtml ? rlHeadNumHtml(_cee(_ceHead)) : _cee(_ceHead)).replace('<span class="rl-hnum">', '<span class="rl-hnum" contenteditable="false">')}</h4>`
       : ceHeadReadHtml();
   /* The reader's place on the page is the one thing they are holding on to, so
      a repaint on every keystroke's worth of Apply must not throw it away. */
@@ -4503,10 +4503,11 @@ function ceLinesHtml(text){
    struck heading over an identical one would be the page inventing a change. */
 function ceHeadReadHtml(){
   const from = _ceHeadBase, to = _ceHead;
-  if (!to || to === from) return `<h4 class="rl-clause-h">${_cee(from)}</h4>`;
+  const hn = (window.rlHeadNumHtml ? rlHeadNumHtml : (x => x));
+  if (!to || to === from) return `<h4 class="rl-clause-h">${hn(_cee(from))}</h4>`;
   const mode = (window.rlReadMode ? rlReadMode() : 'marks');
-  if (mode === 'agreed') return `<h4 class="rl-clause-h">${_cee(from)}</h4>`;
-  if (mode === 'proposed') return `<h4 class="rl-clause-h">${_cee(to)}</h4>`;
+  if (mode === 'agreed') return `<h4 class="rl-clause-h">${hn(_cee(from))}</h4>`;
+  if (mode === 'proposed') return `<h4 class="rl-clause-h">${hn(_cee(to))}</h4>`;
   return `<h4 class="rl-clause-h">${from
     ? `<span class="nego-del">${_cee(from)}</span> ` : ''}<span class="nego-ins">${_cee(to)}</span></h4>`;
 }
