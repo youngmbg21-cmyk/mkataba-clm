@@ -19,7 +19,9 @@ const PD = strip(R('js/paperdesk.js'));
 const fn = name => { const i = PD.indexOf('function ' + name + '('); assert.ok(i >= 0, name + ' exists'); const j = PD.indexOf('\nfunction ', i + 9); return PD.slice(i, j < 0 ? undefined : j); };
 
 test('f1184 (1) the card sits under Where the deal stands, above the facts', () => {
-  assert.match(PD, /\$\{nl \? pd2DealCardHtml\(c\) : ''\}\$\{nl \? pd2DutiesCardHtml\(c\) : ''\}\$\{nl && facts \?/);
+  /* RE-POINTED 24 Nov 2026 (What stands, L+S, f1204): the duties are the row under the deal's, above the facts */
+  assert.match(PD, /\$\{nl \? pd2WsHtml\(c\) : ''\}\$\{nl && facts \?/);
+  assert.match(PD, /pd2DealCardHtml\(c\) \+ pd2DutiesCardHtml\(c\)/);
 });
 test('f1184 (2) every press is an existing door; the card writes nothing', () => {
   const h = fn('pd2DutiesCardHtml'), of = fn('pd2DutiesCardOf');
@@ -42,5 +44,5 @@ test('f1184 (4) both books carry the words; the Handbook names the card', () => 
   for (const k of ['pd2_dt_head', 'pd2_dt_review', 'pd2_dt_none_added', 'pd2_dt_next', 'pd2_dt_unread', 'pd2_dt_read', 'pd2_dt_found_none', 'pd2_dt_found_one', 'pd2_dt_n_other'])
     assert.equal((I.match(new RegExp('^\\s+' + k + ':', 'mg')) || []).length, 2, k + ' in both books');
   /* RE-POINTED 23 Nov 2026 ("Duties, end to end"): the Handbook names the card as the one way to a contract's duties */
-  assert.match(R('js/handbook.js'), /the Duties card in its Dossier is the one way to its duties/);
+  assert.match(R('js/handbook.js'), /the duties\\' row of \{ui:pd2_ws_head\} in its Dossier is the one way to its duties/);
 });

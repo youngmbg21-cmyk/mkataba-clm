@@ -64,7 +64,7 @@ const check = (name, pass, detail) => {
     await until(id => window.pdContract && pdContract() && pdContract().id === id, cid);
     const CARD = () => { const b = document.querySelector('#ig-dock [data-pd2-dtc]'); return b ? b.innerText.replace(/\s+/g, ' ').trim() : null; };
     const card = await until(CARD);
-    check('1. the card says what waits: 4 to decide', card && /4 to decide/.test(card), card);
+    check('1. the card says what waits: 4 to decide', card && /4 dut(?:y|ies) to decide/.test(card), card);
     if (!card) throw new Error('no Duties card on the Dossier');
     await until(id => { const c = getContract(id); const s = (typeof pbOpenCheckState === 'function') ? pbOpenCheckState(c) : null; return !(s && s.run); }, cid, 15000);
     await page.click('#ig-dock [data-pd2-dtc]');
@@ -110,7 +110,7 @@ const check = (name, pass, detail) => {
       if (d){ const n = (d.querySelector('[data-dtp-tab="left"] span') || {}).textContent; return n != null ? 'page: ' + n + ' to decide' : null; }
       const b = document.querySelector('#ig-dock [data-pd2-dtc]'); return b ? b.innerText.replace(/\s+/g, ' ').trim() : null; });
     const dbg = await page.evaluate(id => { const c = getContract(id); return JSON.stringify({ r: c.obReview, light: !!c._light }); }, cid);
-    check('4c. after a reload the skip is kept: one left to decide', card2 && /(^|\D)1 to decide/.test(card2), card2 + ' ' + dbg);
+    check('4c. after a reload the skip is kept: one left to decide', card2 && /(^|\D)1 (?:dut(?:y|ies) )?to decide/.test(card2), card2 + ' ' + dbg);
     await page.screenshot({ path: path.join(OUT, '3-tab-after.png') });
     check('6. no page errors', errors.length === 0, errors.join(' | '));
   } catch (e) {
