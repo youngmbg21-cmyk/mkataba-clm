@@ -2603,14 +2603,16 @@ function stLsLookPanel(){
     return { eyebrow:i18t('cl_hist_tab'), title:h.title, tag:{ text:h.tagText, tone:h.tagTone }, sub:h.sub, act,
       groups:[{ label:i18t('cl_hist_g_ba'), rows:[], html:ba }, { label:i18t('cl_hist_g_reach'), rows:[], html:reach }, { label:i18t('cl_hist_g_trail'), rows:[], html:trail }] };
   }
+  /* PAPER ONLY (owner, 24 Nov 2026, on a photo of the headline under the paper: "in both pages, just remove the other
+     content in the panel and just have the paper"): on The page and Brand kit the panel is the paper alone — no headline,
+     ring or quality check under it (the table's own badges say what is missing or too faint); Jambo's box stays at the foot */
+  if(f.pv) return { pin:f.pv, paperOnly:true };
+  /* elsewhere (Who wears it or History with nothing chosen) the panel stays as it was: the look, its ring, its check */
   const tone={ amber:'amber', ruby:'ruby', green:'green' };
   const qc=`<div class="cl-qc-list">${f.quality.map(q=>`<div class="cl-qc"><i class="cl-qc-dot is-${tone[q.tone]||'grey'}" aria-hidden="true"></i><span>${esc(q.t)}</span>${q.go?`<button type="button" class="jov-lnk cl-qc-go" ${q.go.attr}>${esc(q.go.label)}</button>`:'<span class="cl-qc-ok" aria-hidden="true">✓</span>'}</div>`).join('')}</div>`;
   const ringSay=f.owed.length?i18t('cl_ls_p_ring_owed',{ n:f.set, m:f.of, what:f.owed.join(', ') }):i18t('cl_ls_p_ring_all',{ m:f.of });
-  /* PREVIEW IN THE PANEL (owner, 24 Nov 2026): on The page and Brand kit the paper is pinned at the panel's top
-     (`pin`); its headline, ring and quality check below it, in the panel's own scroller */
-  return { eyebrow:i18t('cl_title'), pin:f.pv||'',
-    /* round 4: on the Brand kit tab the headline says the kit */
-    title:f.tab==='kit'?i18t('cl_kit_p_t',{ n:f.kitSet, m:f.kitOf }):f.editing?i18t('cl_ls_p_t_stream',{ style:f.style, name:f.editing }):i18t('cl_ls_p_t',{ style:f.style, n:f.follow, m:f.streams }),
+  return { eyebrow:i18t('cl_title'),
+    title:f.editing?i18t('cl_ls_p_t_stream',{ style:f.style, name:f.editing }):i18t('cl_ls_p_t',{ style:f.style, n:f.follow, m:f.streams }),
     /* round 6: a change waiting is said in the panel's head line */
     sub:f.waiting?i18t('cl_ap_waiting_line',{ who:f.waiting.by, day:f.waiting.day }):'',
     mid:`<div class="sdd5-today">${sdd5RingHtml(f.set,f.of,f.owed.length?'amber':'green',i18t('cl_ls_p_ring_cap'))}<p>${esc(ringSay)}</p></div>`,
@@ -2713,18 +2715,21 @@ function stLsPanelO(){
 }
 function stLsPanelHtml(){
   const o=stLsPanelO(); if(!o||typeof jamboOverviewHtml!=='function') return '';
+  /* PAPER ALONE (owner, 24 Nov 2026): How our contracts look's paper fills the panel, its pages in its own scroller */
+  if(o.paperOnly) return `<div class="jl-words is-ov sdd5-p st-ls-p is-paper-only">${o.pin}</div>`;
   const card0=jamboOverviewHtml(Object.assign({ actFirst:true }, o),'stn');
   const card=o.titleAttr?card0.replace('<h3 class="jov5-title">',`<h3 class="jov5-title" ${o.titleAttr}>`):card0;
-  /* a pinned part (How our contracts look's paper): it stays at the top, the panel's words scroll under it */
-  if(o.pin) return `<div class="jl-words is-ov sdd5-p st-ls-p is-pin">${o.pin}<div class="st-ls-rest scroll-thin" id="st-ls-rest">${card}</div></div>`;
   return `<div class="jl-words is-ov sdd5-p st-ls-p">${card}</div>`;
 }
+const ST_LOOK_PANEL_W=560;
 function stLsPanelPaint(){
   if(!document.getElementById('ins-panel')) return;
-  const rest=document.getElementById('st-ls-rest'), keep=rest?rest.scrollTop:0;
   insPaintPanel({ seat:'team', jlWord:i18t('stn_title'), item:{ id:'settings' }, head:false, tabCount:0, body:stLsPanelHtml() });
   stLsBackWire();
-  const r2=document.getElementById('st-ls-rest'); if(r2&&keep) r2.scrollTop=keep;
+  /* PAPER ALONE, A WIDER PANEL (owner, 24 Nov 2026): while the look's paper stands in the panel it opens at
+     ST_LOOK_PANEL_W through the slider's own writer (jlPageWideSet → JL_SPLIT), never over the reader's saved width;
+     anywhere else the reader's own width */
+  if(typeof window.jlPageWideSet==='function') window.jlPageWideSet(_stPage==='look'&&document.getElementById('cl-pv-dock')?ST_LOOK_PANEL_W:0,'#cl-pv-dock');
   /* the look's paper, drawn where the panel now stands (it reads, it never writes) */
   if(_stPage==='look'&&typeof window.clAfterPaint==='function') window.clAfterPaint();
 }
