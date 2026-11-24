@@ -56,7 +56,13 @@ const BD = { head: 'Rent first', sub: '', links: [], regions: [{ name: 'Money', 
       if (r.target === host && add.some(x => x.classList.contains('ig-paper-wrap'))) n.papers++;
       if (r.target === dock && add.length) n.panel++; }));
     mo.observe(host, { childList: true }); mo.observe(dock, { childList: true });
-    const sc0 = document.getElementById('ig-paper-scroll'); if (sc0) sc0.scrollTop = 240; const top0 = sc0 ? sc0.scrollTop : 0;
+    /* THE PLACE IS SET ON A STILL PAPER (24 Nov 2026, red on GitHub on one run in two: top 240 -> 113 with the block under
+       the view moved from the third to the first): the paper may still be putting a place back after it opened, so 240 is
+       set and must hold for ten frames running before the press; bounded at 120 frames, then measured as it stands */
+    const sc0 = document.getElementById('ig-paper-scroll');
+    const still = () => new Promise(r => requestAnimationFrame(() => r()));
+    if (sc0){ let held = 0; for (let k = 0; k < 120 && held < 10; k++){ if (Math.abs(sc0.scrollTop - 240) >= 1){ sc0.scrollTop = 240; held = 0; } else held++; await still(); } }
+    const top0 = sc0 ? sc0.scrollTop : 0;
     /* THE PLACE THE READER SEES (22 Nov 2026): the block under the top of the view and where it stands on screen. An
        accepted change shortens a block above the view, and the browser's scroll anchoring moves scrollTop to keep the
        words in place, so the raw number can move while the reader's place does not; the place is what is judged */

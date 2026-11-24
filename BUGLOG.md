@@ -22988,3 +22988,4 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 ## Noticed, not fixed (24 Nov 2026, the wave on every edit pop-up)
 - CLAUDE.md is about 87.5 KB, over its own "under about 80 KB" limit before this change (this change added one sentence); a trim needs the owner's yes.
 - Browser checks shard 3/6 failed differently on two runs of the same code (pull request 970, wave on edit pop-ups): first dossier-and-amend-ls-verify 3b (a press by screen position landed on the preamble), then on the re-run decision-redraws-one-clause-verify 1 (place not kept after Accept: top 240 → 113); each passed on the other run. Both measure scroll position; neither page is in that change. Not fixed.
+- (24 Nov 2026) The two scroll-position checks above were mended by the owner's ask: each now waits for a still paper before it measures or presses.
