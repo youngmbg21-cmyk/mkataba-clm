@@ -1934,8 +1934,10 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
        lands" from a Redlines row): two more doors out of a draft, and both
        ask — "‹ Redlines" (ceRowBack) and the walk over their asks on to
        another ask (ceRowGo). */
-    assert.equal((CODE.match(/ceLeaveGuard\(/g) || []).length, 10,
-      'nine callers and the declaration \u2014 no tenth door written past it');
+    /* RE-POINTED 24 Nov 2026 (owner, the Editor as a tab): another Dossier tab on the editor's panel leaves through it too */
+    assert.equal((CODE.match(/ceLeaveGuard\(/g) || []).length, 11,
+      'ten callers and the declaration \u2014 no eleventh door written past it');
+    assert.match(CODE, /if \(k === 'ed'\) return;[\s\S]{0,300}?ceLeaveGuard\(\(\) => \{ rlCloseClauseEditor\(\);/, 'the tab row asks first');
     /* RE-POINTED 11 Nov 2026 (owner: back from the editor goes to Clauses where the trip began there): a trip
        from Clauses leaves through rlBackToClauses, which asks the same guard before it shuts the page */
     assert.match(CODE, /function ceRowBack\(\)\{[\s\S]{0,200}?if \(ceFromClauses\(\) && window\.rlBackToClauses && window\.rlBackToClauses\(\)\) return;\s*ceLeaveGuard\(\(\) => \{/, '‹ Redlines asks first');

@@ -19319,6 +19319,57 @@
   html.lg-new #ig-dock .pd2-dossier > :is(.pd2-fd, .pd2-dlc) :is(.pd2-fd-h, .pd2-dlc-h) > b,html.lg-new #ig-dock .pd2-dossier > .pd2-famc .pd2-famc-h > b{font-size:12px;letter-spacing:.05em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
   html.lg-new #ig-dock .pd2-card-sub{margin:4px 0 0;font-size:13px;line-height:1.45;color:var(--color-quiet)}
   html.lg-new #ig-dock .pd2-df-acts{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  /* ---- THE EDITOR AS A TAB (owner, 24 Nov 2026: "build it", the drawing "Editor as a Tab") ---- the same editor wearing
+     the Dossier's tabs with Editor lit; its own head row, the reading bar, the exit, the walk and the foot's undo stand down
+     (the tabs are the way out, Undo sits under File); the writing bar rides just above the clause (ceTabBarPlace) */
+  #clause-editor.is-tabbed .ce-rowhead,#clause-editor.is-tabbed .ce-readbar,#clause-editor.is-tabbed .ce-exit,#clause-editor.is-tabbed .ce-rail > .ce-ah,
+  #clause-editor.is-tabbed #ce-railfoot .ce-walk,#clause-editor.is-tabbed .ce-foot .undo,#clause-editor.is-tabbed .ce-foot .draft{display:none}
+  #clause-editor.is-tabbed .ce-col{position:relative}
+  #clause-editor.is-tabbed .ce-left{padding-top:52px}
+  #clause-editor.is-tabbed .ce-foot:not(:has(#ce-waiting:not(:empty))){display:none}
+  #clause-editor.is-tabbed .ce-rail > .ce-pick{display:none}
+  #clause-editor.is-tabbed #ce-railfoot{justify-content:flex-start;flex-wrap:wrap;gap:14px}
+  #clause-editor.is-tabbed #ce-railfoot > .g{display:none}
+  /* the panel's order, as drawn: tabs and the clause on top, Jambo's points, File · next ›, the foot, then his box */
+  #clause-editor.is-tabbed .ce-rail > .ce-tabtop{order:0}#clause-editor.is-tabbed .ce-rail > .ce-pick{order:1}#clause-editor.is-tabbed .ce-rail > .ce-lane{order:2}
+  #clause-editor.is-tabbed .ce-rail > .ce-spell{order:3}#clause-editor.is-tabbed .ce-rail > .ce-feet{order:4}#clause-editor.is-tabbed .ce-rail > .ce-tabfoot{order:5}
+  #clause-editor.is-tabbed .ce-rail > .ce-chips{order:6}#clause-editor.is-tabbed .ce-rail > .ce-askwrap{order:7}
+  #clause-editor.is-tabbed .ce-head{position:absolute;left:0;top:0;z-index:6;width:auto;max-width:calc(100% - 32px);border:1px solid var(--color-neutral-200);
+    border-radius:var(--radius);background:var(--color-surface);box-shadow:var(--shadow-sm);padding:0 6px;will-change:transform}
+  #clause-editor.is-tabbed .ce-head .ce-barrow{min-height:var(--ctl-h);gap:6px;flex-wrap:nowrap}
+  #clause-editor.is-tabbed .ce-ttag{display:inline-flex;align-items:center;height:var(--ctl-h-sm);padding:0 10px;border-radius:999px;background:var(--color-text);
+    color:var(--color-surface);font-size:12px;font-weight:var(--w-label);white-space:nowrap}
+  #clause-editor:not(.is-tabbed) .ce-ttag{display:none}
+  #clause-editor.is-tabbed #ce-doc .rl-clause-live{position:relative}
+  #clause-editor.is-tabbed #ce-doc .rl-clause-live::before{content:"";position:absolute;left:-14px;top:0;bottom:0;width:2px;background:var(--color-text)}
+  #clause-editor.is-tabbed .ce-tabtop{display:flex;flex-direction:column;gap:12px;padding:8px 16px 4px}
+  #clause-editor.is-tabbed .ce-dtabs{display:flex;align-items:center;justify-content:flex-start;gap:4px;min-height:40px;flex-wrap:nowrap;overflow:hidden}
+  #clause-editor.is-tabbed .ce-dtabs .pd-tab{display:inline-flex;align-items:center;flex:none;width:auto;min-width:0;border:0;background:none;border-radius:999px;padding:6px 8px;font:inherit;font-size:14px;color:var(--color-text);cursor:pointer;white-space:nowrap}
+  #clause-editor.is-tabbed .ce-dtabs .pd-tab{flex-direction:row}
+  #clause-editor.is-tabbed .ce-dtabs .pd-tab-w{display:inline;position:static;font-size:inherit}
+  #clause-editor.is-tabbed .ce-dtabs .pd-tab.on{background:var(--color-neutral-100);font-weight:var(--w-label)}
+  #clause-editor.is-tabbed .ce-dtabs .pd-tab-n{position:static;display:inline;width:auto;height:auto;min-width:0;padding:0;margin-left:4px;border:0;border-radius:0;background:none;box-shadow:none;font-size:inherit;color:var(--accent-ink)}
+  #clause-editor.is-tabbed .ce-tpick{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--color-quiet)}
+  #clause-editor.is-tabbed .ce-tar{width:26px;height:26px;border-radius:50%;border:1px solid var(--color-neutral-300);background:var(--color-surface);color:var(--color-text);cursor:pointer;flex:none}
+  #clause-editor.is-tabbed .ce-tar:disabled{color:var(--color-neutral-400);cursor:default}
+  #clause-editor.is-tabbed .ce-tnm{flex:1;min-width:0;text-align:left;border:0;border-bottom:1px solid var(--color-neutral-200);background:none;padding:0 0 4px;font:inherit;
+    font-size:13px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #clause-editor.is-tabbed .ce-tlist{display:flex;flex-direction:column;max-height:240px;overflow:auto;border:1px solid var(--color-neutral-200);border-radius:var(--radius);background:var(--color-surface);box-shadow:var(--shadow-md)}
+  #clause-editor.is-tabbed .ce-tlist[hidden]{display:none}
+  #clause-editor.is-tabbed .ce-tlist button{border:0;background:none;text-align:left;padding:7px 12px;font:inherit;font-size:13px;color:var(--color-text);cursor:pointer}
+  #clause-editor.is-tabbed .ce-tlist button:hover{background:var(--row-hover)}
+  #clause-editor.is-tabbed .ce-tlist button.on{font-weight:var(--w-label)}
+  #clause-editor.is-tabbed .ce-th{margin:0;font-family:var(--font-doc);font-size:22px;font-weight:var(--w-strong);color:var(--color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #clause-editor.is-tabbed .ce-tsub{margin:-6px 0 0;font-size:13px;line-height:1.45;color:var(--color-quiet)}
+  #clause-editor.is-tabbed .ce-tacts{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  #clause-editor.is-tabbed .ce-tacts:has(> .ce-twhy){flex-basis:100%}
+  #clause-editor.is-tabbed .ce-tundo{border:0;background:none;padding:0;font:inherit;font-size:14px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  #clause-editor.is-tabbed .ce-twhy{flex-basis:100%;margin:0;font-size:12px;color:var(--color-quiet)}
+  #clause-editor.is-tabbed .ce-tabfoot{display:flex;align-items:center;gap:10px;margin:0 16px;padding:10px 0;border-top:1px solid var(--color-neutral-200);font-size:13px;color:var(--color-quiet)}
+  #clause-editor.is-tabbed .ce-tabfoot:empty{display:none}
+  #clause-editor.is-tabbed .ce-tabfoot .dash{width:18px;height:1px;background:var(--color-neutral-300);flex:none}
+  #clause-editor.is-tabbed .ce-tabfoot .w{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #clause-editor.is-tabbed .ce-tnext{border:0;border-radius:999px;background:var(--color-neutral-100);color:var(--color-text);padding:6px 12px;font:inherit;font-size:13px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
   html.lg-new #ig-dock .pd2-df-acts .pd2-card-go{flex:0 1 auto;width:auto;padding:0 18px}
   html.lg-new #ig-dock .pd2-df-acts .pd2-card-go.is-grey{background:var(--surface-2);color:var(--color-text);border-color:transparent}
   html.lg-new #ig-dock .pd2-fd-q.pd2-plain{font-family:var(--font-body);font-size:12px}
