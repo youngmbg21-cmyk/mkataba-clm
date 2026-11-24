@@ -8344,7 +8344,7 @@ function ceTabPaint(){
     <div class="ce-tchips"><button type="button" class="ce-tchip" data-ce-act="ladder-accept" data-id="${_ceea(theirs.id)}">${_cee(_cet('ng_accept'))}</button><button type="button" class="ce-tchip" data-ce-act="theirs-reject" data-id="${_ceea(theirs.id)}">${_cee(_cet('ng_reject'))}</button></div>`
     /* YOUR ANSWER: once a counter is typed, the paper's words marked against what they asked */
     + (liveNow ? (() => { let now = null; try { now = ceBoxNow(); } catch (_){ now = null; } const words = ceWords(now ? now.text : _ceText);
-      return `<div class="ce-sh ce-tans-h"><span>${_cee(_cet('ce_tab_answer'))}</span></div><div class="ce-tquote is-ours">${ceRedlineHtml(theirs.newText != null ? theirs.newText : ceWords(theirs.text), words)}</div>`; })() : '') : '';
+      return `<div class="ce-tansb"><div class="ce-sh ce-tans-h"><span>${_cee(_cet('ce_tab_answer'))}</span></div><div class="ce-tquote is-ours">${ceRedlineHtml(theirs.newText != null ? theirs.newText : ceWords(theirs.text), words)}</div></div>`; })() : '') : '';
   if (ask.getAttribute('data-k') !== ah){ ask.setAttribute('data-k', ah); ask.innerHTML = ah; }
   ask.hidden = !ah;
   let foot = rail.querySelector('#ce-tabfoot');
