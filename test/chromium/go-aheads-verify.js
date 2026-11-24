@@ -293,6 +293,10 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
        each was wrong the first time a signed contract was read again. */
     /* the open-fields tile stands on the strip's Details page (read first);
        the strip's own band is drawn on its Overview page: turn the strip back to it */
+    /* RE-POINTED 24 Nov 2026 (Duties ONE DOOR: the renewal's Decide now opens the Duties page in the middle): the page is
+       put away first (its way back), so the Dossier read below is the Dossier's, not the Duties page standing over it */
+    await own.evaluate(() => { if (typeof pdMidClose === 'function') try { pdMidClose(); } catch (_){} });
+    await own.waitForFunction(() => !document.getElementById('dtp'), null, { timeout: 4000 }).catch(() => {});
     await own.evaluate(() => { if (window.hbStripBring) hbStripBring('MK-R9'); });
     /* RE-POINTED 9 Nov 2026 (the Board's contract card is gone): "bring up" lands on the paper, and its Dossier
        says what Jambo read */
