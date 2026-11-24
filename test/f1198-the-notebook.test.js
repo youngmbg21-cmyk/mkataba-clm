@@ -186,3 +186,9 @@ describe('f1198 (6) the answer\'s button, delete with undo, move between shelves
     assert.match(R('js/core.js'), /nbLoadForAlerts\(\)/);
   });
 });
+
+test('f1198 (7) arriving on the page reads the list again (the start-up copy for the bell may be older)', () => {
+  const V = R('js/views/notebook.js');
+  assert.match(V, /const arriving = !document\.getElementById\('nb-page'\);/);
+  assert.match(V, /if \(\(_nb\.docs == null \|\| arriving\) && !_nb\.busy\)\{ _nb\.busy = true; nbLoad\(_nb\.docs != null\)/);
+});

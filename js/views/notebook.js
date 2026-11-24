@@ -175,7 +175,10 @@ function renderNotebook(){
     const same = renderNotebook._drawn === (_nb.open || null);
     try { return keepScrollIn(host, () => renderNotebook(), same ? null : '#nb-read, #nb-read *'); } finally { renderNotebook._in = false; } }
   renderNotebook._drawn = _nb.open || null;
-  if (_nb.docs == null && !_nb.busy){ _nb.busy = true; nbLoad().then(() => { _nb.busy = false; if (typeof state !== 'undefined' && state.view === 'notebook') renderNotebook(); }); }
+  /* ARRIVING ON THE PAGE READS THE LIST AGAIN: the copy loaded at the start (for the bell) may be older than a
+     document added since; a redraw while on the page reads nothing */
+  const arriving = !document.getElementById('nb-page');
+  if ((_nb.docs == null || arriving) && !_nb.busy){ _nb.busy = true; nbLoad(_nb.docs != null).then(() => { _nb.busy = false; nbAlertsRepaint(); if (typeof state !== 'undefined' && state.view === 'notebook') renderNotebook(); }); }
   const wide = typeof window.insFits === 'function' && insFits();
   const d = _nb.open ? nbDocOf(_nb.open) : null;
   if (_nb.open && !d && _nb.docs != null) _nb.open = null;
