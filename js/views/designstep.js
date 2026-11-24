@@ -744,7 +744,9 @@ function clInit() {
     tab: (_cl && _cl.tab) || 'page', chip: 'all', whoChip: 'all', row: null, whoPick: (_cl && _cl.whoPick) || null, pv: (_cl && _cl.pv) || null, pvPage: 1,
     /* round 4: the brand kit's black logo and named colours (the company's; the first colour IS the accent) */
     logoBlackUrl: org.logoBlackUrl || null,
-    palette: clPaletteFrom(org) };
+    palette: clPaletteFrom(org),
+    /* round 6: History's chips and the change chosen */
+    histChip: 'all', histWho: null, histPart: null, histPick: (_cl && _cl.histPick) || null };
 }
 /* the named colours as the page edits them: the stored list, else one entry for the accent the look already has */
 function clPaletteFrom(org) {
@@ -1039,8 +1041,8 @@ function clChev() { return typeof icon === 'function' ? icon('chevD', 'cl-ls-che
 function clTabsHtml(parts) {
   const nS = clStreamIds().length, nP = (window.ORG_PAPER_LOOKS || []).length;
   const tab = (k, w, n) => `<button type="button" role="tab" class="st-ls-tab${_cl.tab === k ? ' is-on' : ''}" aria-selected="${_cl.tab === k ? 'true' : 'false'}" data-cl-tab="${k}">${clE(w)}<i>${clE(n)}</i></button>`;
-  const kit = clKitParts().filter(x => x.set).length;
-  return `<div class="st-ls-tabs cl-ls-tabs" id="cl-tabs" role="tablist">${tab('page', i18t('cl_ls_tab_page'), i18tn('cl_ls_n_parts', parts.length, { n: parts.length }))}${tab('kit', i18t('cl_ls_tab_kit'), String(kit))}${tab('who', i18t('cl_ls_tab_who'), i18tn('cl_ls_n_streams', nS, { n: nS }) + (nP ? ' · ' + i18tn('cl_ls_n_papers', nP, { n: nP }) : ''))}</div>`;
+  const kit = clKitParts().filter(x => x.set).length, hist = clLookChanges().length;
+  return `<div class="st-ls-tabs cl-ls-tabs" id="cl-tabs" role="tablist">${tab('page', i18t('cl_ls_tab_page'), i18tn('cl_ls_n_parts', parts.length, { n: parts.length }))}${tab('kit', i18t('cl_ls_tab_kit'), String(kit))}${tab('history', i18t('cl_hist_tab'), String(hist))}${tab('who', i18t('cl_ls_tab_who'), i18tn('cl_ls_n_streams', nS, { n: nS }) + (nP ? ' · ' + i18tn('cl_ls_n_papers', nP, { n: nP }) : ''))}</div>`;
 }
 function clChipHtml(k, label, n, on, dot) {
   return `<button type="button" class="apn-tab is-chip${on ? ' is-on' : ''}" data-cl-chip="${k}">${dot ? `<i class="apn-cd is-${dot}" aria-hidden="true"></i>` : ''}${clE(label)} <span>${n}</span></button>`;
@@ -1165,17 +1167,169 @@ function clKitHtml() {
     <table class="st-ls-t cl-ls-t" id="cl-kit-used"><thead><tr><th>${clE(i18t('cl_kit_u_where'))}</th><th>${clE(i18t('cl_kit_u_what'))}</th><th>${clE(i18t('cl_ls_c_status'))}</th></tr></thead><tbody>
     ${used.map(([w, sh, tone, b]) => `<tr><td>${clE(i18t(w))}</td><td><span class="cl-ls-quote">${clE(i18t(sh))}</span></td><td><span class="apn-st is-${tone}">${clE(i18t(b))}</span></td></tr>`).join('')}</tbody></table>`;
 }
+/* ---- ROUND 6 (owner, 24 Nov 2026): A SECOND ADMIN'S YES, AND THE HISTORY (the Ladder's way: POST /api/look/changes,
+   …/:id/decide, …/:id/withdraw, …/:id/revert) ----
+   While another admin exists the black button reads Send for approval: the change waits, the live look does not move,
+   any OTHER admin approves it or sends it back, and its author may withdraw it. With one admin, Save applies at once and
+   is recorded as theirs. History lists every change since this round (nothing before it is invented). */
+function clMe() { return (typeof currentUser === 'function' && currentUser()) || {}; }
+function clAdminsN() { try { return (typeof getUsers === 'function' ? getUsers() : []).filter(u => u && u.role === 'admin').length || 1; } catch (_) { return 1; } }
+function clLookChanges() { const st = (typeof state === 'object' && state && state.settings) || {}; return Array.isArray(st.lookChanges) ? st.lookChanges.slice().reverse() : []; }
+function clWaitingChange() { return clLookChanges().find(c => c && c.state === 'waiting') || null; }
+const clMayDecide = ch => !!ch && ch.state === 'waiting' && clMe().role === 'admin' && String(ch.byId) !== String(clMe().id);
+function clLookChangesSet(list) { if (typeof state === 'object' && state) { state.settings = state.settings || {}; state.settings.lookChanges = Array.isArray(list) ? list : []; } }
+function clLookChangesLoad() {
+  if (typeof api !== 'function' || (typeof API_MODE === 'function' && !API_MODE())) return Promise.resolve();
+  return api('look/changes').then(r => { clLookChangesSet(r && r.lookChanges); }).catch(() => {});
+}
+function clDay(iso) {
+  const d = new Date(String(iso || '')); if (isNaN(d)) return '';
+  if (d.toDateString() === new Date().toDateString()) return i18t('cl_hist_today');
+  try { return d.toLocaleDateString(typeof langLocale === 'function' ? langLocale() : undefined, { day: 'numeric', month: 'short' }); } catch (_) { return d.toISOString().slice(0, 10); }
+}
+/* THE PARTS A CHANGE MOVES, each with how the paper reads after it (and before it) */
+const CL_HIST_KEY_PART = { logoUrl: 'cl_n_logo', logoBlackUrl: 'cl_kit_need_black', defaultFooterText: 'cl_n_footer', designId: 'cl_n_style', structureId: 'cl_n_layout',
+  logoPosition: 'cl_n_logo', accentColor: 'cl_n_colour', streamLooks: 'cl_hist_p_streams', palette: 'cl_kit_colours' };
+const CL_HIST_PM_PART = [[['headerText', 'headerPos'], 'cl_n_header'], [['pageNumPos', 'pageNumFmt'], 'cl_n_pagenum'], [['sigLayout', 'sigLines'], 'cl_n_sigblock'],
+  [['coverOn', 'coverCounts'], 'cl_n_cover'], [['fontTitle', 'fontBody'], 'cl_kit_fonts'], [['furnLang'], 'cl_n_lang']];
+function clPmSay(part, pm) {
+  const m = pm || {};
+  if (part === 'cl_n_header') return m.headerPos && m.headerText ? clFilledOn(m.headerText) + ' · ' + i18t(CL_POS_SAY[m.headerPos]) : i18t('cl_ls_none');
+  if (part === 'cl_n_pagenum') return m.pageNumPos === 'off' ? i18t('cl_ls_off') : (typeof brPageNumberSay === 'function' ? brPageNumberSay(m.pageNumFmt, 2, 6, m.furnLang || null) : '') + ' · ' + i18t(m.pageNumPos ? CL_POS_SAY[m.pageNumPos] : 'cl_ls_pn_inline');
+  if (part === 'cl_n_sigblock') return i18t(m.sigLayout === 'stacked' ? 'cl_ls_sg_stacked' : 'cl_ls_sg_columns') + ((m.sigLines || []).length ? ' · ' + m.sigLines.map(x => i18t('sig_ln_' + x)).join(', ') : '');
+  if (part === 'cl_n_cover') return i18t(m.coverOn ? 'cl_ls_on' : 'cl_ls_off');
+  if (part === 'cl_kit_fonts') { const F = (typeof BR_FONTS === 'object' && BR_FONTS) || {}; return [m.fontTitle, m.fontBody].map(x => x && F[x] ? F[x].name : i18t('cl_kit_f_style')).join(' / '); }
+  if (part === 'cl_n_lang') return clLangName(m.furnLang || null);
+  return '';
+}
+function clValSay(k, v) {
+  if (k === 'logoUrl' || k === 'logoBlackUrl') return i18t(v ? 'cl_hist_logo_set' : 'cl_ls_none');
+  if (k === 'designId') return (docDesignById(v) || {}).name || i18t('cl_ls_none');
+  if (k === 'structureId') return (docStructureById(v || DEFAULT_STRUCTURE) || {}).name || '';
+  if (k === 'logoPosition') return v ? i18t(CL_POS_WORD[v] || 'cl_pos_left') : i18t('cl_kit_f_style');
+  if (k === 'accentColor') return v ? clColourName(v) : i18t('cl_ls_none');
+  if (k === 'defaultFooterText') return v ? clFilledOn(v) : i18t('cl_no_footer');
+  if (k === 'palette') return Array.isArray(v) && v.length ? v.map(x => x.name || x.hex).join(', ') : i18t('cl_ls_none');
+  if (k === 'streamLooks') { const ids = Object.keys(v || {}); return ids.length ? ids.map(clStreamName).join(', ') : i18t('cl_ls_company_look'); }
+  return String(v == null ? '' : v);
+}
+function clChangeParts(ch) {
+  const out = [], seen = new Set();
+  (ch.keys || []).forEach(k => {
+    if (k === 'accentSource') return;
+    if (k === 'pageMarks') {
+      const a = (ch.before || {}).pageMarks || {}, b = (ch.after || {}).pageMarks || {};
+      const nz = v => (v == null || v === '' || (Array.isArray(v) && !v.length)) ? null : v;
+      CL_HIST_PM_PART.forEach(([ks, part]) => { if (ks.some(x => JSON.stringify(nz(a[x])) !== JSON.stringify(nz(b[x]))) && !seen.has(part)) {
+        seen.add(part); out.push({ k, part, name: i18t(part), before: clPmSay(part, a), after: clPmSay(part, b) }); } });
+      return;
+    }
+    const part = CL_HIST_KEY_PART[k] || k; if (seen.has(part)) return; seen.add(part);
+    out.push({ k, part, name: i18t(part), before: clValSay(k, (ch.before || {})[k]), after: clValSay(k, (ch.after || {})[k]) });
+  });
+  return out;
+}
+const CL_HIST_TONE = { waiting: 'amber', approved: 'green', saved: 'green', 'sent-back': 'ruby', withdrawn: 'grey' };
+function clHistBadge(ch) {
+  const w = ch.state === 'waiting' ? i18t('cl_hist_st_waiting') : ch.state === 'approved' ? i18t('cl_hist_st_approved', { who: ch.decidedBy || '' })
+    : ch.state === 'saved' ? i18t('cl_hist_st_saved', { who: ch.by || '' }) : ch.state === 'sent-back' ? i18t('cl_hist_st_back') : i18t('cl_hist_st_withdrawn');
+  return `<span class="apn-st is-${CL_HIST_TONE[ch.state] || 'grey'}">${clE(w)}</span>`;
+}
+/* how many streams and contracts a change reaches: a change to streams' own looks reaches those streams; the rest
+   reaches every stream that wears the company look. Unsigned contracts on our paper take it; signed ones keep theirs. */
+function clChangeReach(ch) {
+  const all = (typeof state === 'object' && state && Array.isArray(state.contracts)) ? state.contracts : [];
+  const ours = all.filter(c => c && c.source !== 'upload' && !c._codeNamed);
+  let fids;
+  if ((ch.keys || []).length === 1 && ch.keys[0] === 'streamLooks') {
+    const a = (ch.before || {}).streamLooks || {}, b = (ch.after || {}).streamLooks || {};
+    fids = [...new Set(Object.keys(a).concat(Object.keys(b)))].filter(f => JSON.stringify(a[f] || null) !== JSON.stringify(b[f] || null));
+  } else fids = clStreamIds().filter(f => !_cl.streams[f]);
+  const inF = c => fids.includes(String(c.folder));
+  return { streams: fids.length, unsigned: ours.filter(c => clUnsigned(c) && inF(c)).length, signed: ours.filter(c => (c.status === 'Signed' || c.execution) && inF(c)).length };
+}
+function clHistRows() {
+  let rows = clLookChanges();
+  if (_cl.histChip === 'wait') rows = rows.filter(c => c.state === 'waiting');
+  if (_cl.histWho) rows = rows.filter(c => String(c.byId) === String(_cl.histWho));
+  if (_cl.histPart) rows = rows.filter(c => clChangeParts(c).some(p => p.part === _cl.histPart));
+  return rows;
+}
+function clHistActHtml(ch) {
+  const me = clMe();
+  if (clMayDecide(ch)) return `<button type="button" class="cl-lnk" data-cl-ap="yes:${clE(ch.id)}">${clE(i18t('cl_hist_approve'))}</button>`;
+  if (ch.state === 'waiting' && String(ch.byId) === String(me.id)) return `<button type="button" class="cl-lnk" data-cl-ap="withdraw:${clE(ch.id)}">${clE(i18t('cl_hist_withdraw'))}</button>`;
+  if ((ch.state === 'approved' || ch.state === 'saved') && me.role === 'admin' && (ch.keys || []).some(k => k !== 'logoUrl' && k !== 'logoBlackUrl' && k !== 'accentSource'))
+    return `<button type="button" class="cl-lnk" data-cl-ap="revert:${clE(ch.id)}">${clE(i18t('cl_hist_go_back'))}</button>`;
+  return `<button type="button" class="cl-lnk" data-cl-hist-pick="${clE(ch.id)}">${clE(i18t('cl_hist_see'))}</button>`;
+}
+function clHistHtml() {
+  const all = clLookChanges(), wait = all.filter(c => c.state === 'waiting').length, rows = clHistRows();
+  const people = [...new Map(all.map(c => [String(c.byId), c.by || ''])).entries()];
+  const parts = [...new Map(all.flatMap(c => clChangeParts(c)).map(p => [p.part, p.name])).entries()];
+  const menu = (k, opts, cur, label) => `<span class="cl-ls-chipw"><button type="button" class="apn-tab is-chip cl-ls-add${cur ? ' is-on' : ''}" data-cl-menu="${k}" aria-haspopup="menu" aria-expanded="false">${clE(label)}</button><div class="cl-menu" role="menu" data-cl-menu-of="${k}" hidden>`
+    + `<button type="button" role="menuitem" class="cl-menu-i${cur ? '' : ' is-on'}" data-cl-hist-${k}="">${clE(i18t('ctf_tab_all'))}</button>`
+    + opts.map(([v, w]) => `<button type="button" role="menuitem" class="cl-menu-i${String(cur) === String(v) ? ' is-on' : ''}" data-cl-hist-${k}="${clE(v)}"><span>${clE(w)}</span></button>`).join('') + '</div></span>';
+  const whoName = _cl.histWho ? ((people.find(([v]) => v === String(_cl.histWho)) || [])[1] || '') : '';
+  const partName = _cl.histPart ? ((parts.find(([v]) => v === _cl.histPart) || [])[1] || '') : '';
+  const chips = `<div class="apn-bar sdd-chips st-ls-chips cl-ls-chips">${clChipHtml('h-all', i18t('ctf_tab_all'), all.length, _cl.histChip !== 'wait')}${wait ? clChipHtml('h-wait', i18t('cl_hist_chip_wait'), wait, _cl.histChip === 'wait', 'amber') : ''}`
+    + `${people.length > 1 || _cl.histWho ? menu('who', people, _cl.histWho, whoName ? i18t('cl_hist_who_on', { who: whoName }) : i18t('cl_hist_who')) : ''}${parts.length > 1 || _cl.histPart ? menu('part', parts, _cl.histPart, partName ? i18t('cl_hist_part_on', { part: partName }) : i18t('cl_hist_part')) : ''}`
+    + `<span class="cl-sp"></span><span class="cl-ls-quiet cl-hist-order">${clE(i18t('cl_hist_newest'))}</span></div>`;
+  if (!all.length) return chips + `<p class="cl-ls-rule">${clE(i18t('cl_hist_starts'))}</p>`;
+  const body = rows.map(ch => { const ps = clChangeParts(ch);
+    return `<tr class="st-ls-row cl-ls-row${_cl.histPick === ch.id ? ' is-chosen' : ''}" data-cl-hist="${clE(ch.id)}" tabindex="0">
+      <td class="cl-hist-when">${clE(clDay(ch.at))}</td>
+      <td class="cl-ls-val"><span><b class="cl-ls-name">${clE(ps.map(p => p.name).join(', ') || i18t('cl_hist_p_look'))}</b></span>${ps[0] ? `<span class="cl-ls-quote">“${clE(ps[0].after)}”</span>` : ''}</td>
+      <td class="cl-hist-by">${clE(ch.by || '')}</td><td>${clHistBadge(ch)}</td><td class="r">${clHistActHtml(ch)}</td></tr>`; }).join('');
+  return chips + `<table class="st-ls-t cl-ls-t" id="cl-hist"><thead><tr><th>${clE(i18t('cl_hist_c_when'))}</th><th>${clE(i18t('cl_hist_c_what'))}</th><th>${clE(i18t('cl_hist_c_by'))}</th><th>${clE(i18t('cl_ls_c_status'))}</th><th></th></tr></thead><tbody>${body || `<tr><td colspan="5" class="st-ls-none">${clE(i18t('st_ls_none'))}</td></tr>`}</tbody></table>
+    <p class="cl-ls-rule">${clE(i18t(clAdminsN() > 1 ? 'cl_hist_rule' : 'cl_hist_rule_solo'))} ${clE(i18t('cl_hist_starts'))}</p>`;
+}
+/* the note asked with a send or a send-back, in the one edit pop-up (lgpOpen) */
+function clApNoteOpen(kind, id) {
+  if (typeof lgpOpen !== 'function') return clApDo(kind, id, '');
+  lgpOpen({ id: 'cl-ap-form', title: i18t(kind === 'send' ? 'cl_ap_send_t' : 'cl_ap_back_t'), sub: i18t(kind === 'send' ? 'cl_ap_send_s' : 'cl_ap_back_s'),
+    rows: [{ k: i18t('cl_ap_note'), id: 'cl-ap-note', type: 'area', max: 280, ph: i18t('cl_ap_note_ph') }],
+    primary: { label: i18t(kind === 'send' ? 'cl_ap_send' : 'cl_hist_send_back'), attr: `data-cl-ap-go="${clE(kind)}:${clE(id || '')}"` } });
+}
+function clProposeOpen() { clApNoteOpen('send', ''); }
+async function clApDo(kind, id, note) {
+  try {
+    let r;
+    if (kind === 'send') r = await api('look/changes', 'POST', Object.assign(clPayload(), { note }));
+    else if (kind === 'yes' || kind === 'back') r = await api(`look/changes/${encodeURIComponent(id)}/decide`, 'POST', { yes: kind === 'yes', why: note });
+    else if (kind === 'withdraw') r = await api(`look/changes/${encodeURIComponent(id)}/withdraw`, 'POST', {});
+    else if (kind === 'revert') r = await api(`look/changes/${encodeURIComponent(id)}/revert`, 'POST', { note });
+    clLookChangesSet(r && r.lookChanges);
+    if (r && r.change) _cl.histPick = r.change.id;
+    if (kind === 'yes' && typeof refreshOrgBranding === 'function') await refreshOrgBranding();
+    toast(i18t('cl_ap_done_' + kind), 'ok');
+    if (typeof closeModal === 'function' && document.querySelector('#modal-root #cl-ap-form')) closeModal();
+    const keep = { tab: kind === 'send' || kind === 'revert' ? 'history' : _cl.tab, pick: _cl.histPick };
+    clInit(); _cl.tab = keep.tab; _cl.histPick = keep.pick; clRepaint();
+  } catch (e) { toast((e && e.message) || i18t('cl_save_failed'), 'err'); }
+}
+/* the door every Needs-you row and bell row presses: History, that change chosen */
+function clHistGo(id) {
+  if (!_cl) clInit();
+  _cl.tab = 'history'; _cl.histPick = id || null; _cl.mode = 'page';
+  if (typeof setView === 'function' && typeof state === 'object' && state && state.view !== 'team') setView('team');
+  if (typeof settingsGoPage === 'function') settingsGoPage('look'); else clRepaint();
+}
 function clLsPageHtml() {
   const admin = clAdmin(), parts = clParts();
-  if (_cl.tab !== 'who' && _cl.tab !== 'kit') _cl.tab = 'page';
+  if (!['who', 'kit', 'history'].includes(_cl.tab)) _cl.tab = 'page';
   const spark = (typeof icon === 'function') ? icon('mkSpark', 'sdd-spark-ic', 0) : '';
-  const acts = admin ? `<button type="button" id="cl-save" class="ui-btn ui-btn-primary"${_cl.dirty ? '' : ' disabled'}>${clE(i18t('act_save'))}</button>` : '';
+  /* round 6: with another admin, the one black button sends the change for approval */
+  const acts = admin ? `<button type="button" id="cl-save" class="ui-btn ui-btn-primary"${_cl.dirty ? '' : ' disabled'}>${clE(i18t(clAdminsN() > 1 ? 'cl_ap_send' : 'act_save'))}</button>` : '';
   const ask = admin ? `<form class="apn-ask sdd-find st-ls-find cl-ask" id="cl-ask" autocomplete="off"><span class="sdd-find-ic" aria-hidden="true">${spark}</span><input type="text" id="cl-say" maxlength="300" autocomplete="off" placeholder="${clE(i18t('cl_ask_ph'))}" aria-label="${clE(i18t('cl_ask_ph'))}" value="${clE(_cl.said)}"></form><p class="cl-said" id="cl-said" aria-live="polite"></p>`
     : `<p class="st-ls-small">${clE(i18t('cl_read_only'))}</p>`;
-  const sub = _cl.editing ? i18t('cl_editing_stream', { name: clStreamName(_cl.editing) }) : '';
+  /* round 6, the SAP way (inline, no band): one admin's Save applies at once; a change waiting is said where the look is */
+  const wch = clWaitingChange();
+  const sub = _cl.editing ? i18t('cl_editing_stream', { name: clStreamName(_cl.editing) })
+    : wch ? i18t('cl_ap_waiting_line', { who: wch.by || '', day: clDay(wch.at) }) : (admin && clAdminsN() < 2 && _cl.dirty ? i18t('cl_ap_only') : '');
   const picking = _cl.mode !== 'page';
-  const left = picking ? `<div class="cl-pick cl-ls-pick">${clPickHtml()}</div>` : _cl.tab === 'who' ? clWhoHtml() : _cl.tab === 'kit' ? clKitHtml() : clPartsTableHtml(parts);
-  const wide = (_cl.tab === 'who' || _cl.tab === 'kit') && !picking;
+  const left = picking ? `<div class="cl-pick cl-ls-pick">${clPickHtml()}</div>` : _cl.tab === 'who' ? clWhoHtml() : _cl.tab === 'kit' ? clKitHtml() : _cl.tab === 'history' ? clHistHtml() : clPartsTableHtml(parts);
+  const wide = (_cl.tab === 'who' || _cl.tab === 'kit' || _cl.tab === 'history') && !picking;
   return `<div class="st-pg cl-pg is-ls is-r1" data-st-pg="look">${window.stLsHeadHtml({ page: 'look', title: i18t('cl_title'), sub,
       badge: `<span class="apn-st is-grey cl-ls-badge">${clE(i18t('cl_admins_only'))}</span>`, acts, askHtml: ask + clTabsHtml(parts) })}
     <div class="cl-ls-grid${wide ? ' is-who' : ''}">
@@ -1333,7 +1487,24 @@ function clPanelFacts() {
     set: parts.filter(r => !clPartNeeds(r)).length + clKitParts().filter(x => !x.need).length, of: parts.length + clKitParts().length,
     owed: parts.filter(clPartNeeds).map(r => r.name).concat(clKitParts().filter(x => x.need && x.k !== 'logo').map(x => x.name)), quality: clQuality(), who: null,
     /* round 4: the brand kit's own count, for its tab's panel */
-    kitSet: clKitParts().filter(x => x.set).length, kitOf: clKitParts().length };
+    kitSet: clKitParts().filter(x => x.set).length, kitOf: clKitParts().length,
+    /* round 6: the change waiting (said on the page's panel) and, on History, the change chosen */
+    waiting: (w => w ? { by: w.by || '', day: clDay(w.at) } : null)(clWaitingChange()), hist: null };
+  if (_cl.tab === 'history') {
+    const ch = clLookChanges().find(c => c.id === _cl.histPick) || clWaitingChange() || clLookChanges()[0] || null;
+    if (ch) { const ps = clChangeParts(ch), reach = clChangeReach(ch), me = clMe();
+      const deciders = (typeof getUsers === 'function' ? getUsers() : []).filter(u => u && u.role === 'admin' && String(u.id) !== String(ch.byId)).map(u => u.name || u.email);
+      const trail = [{ tone: 'amber', t: i18t('cl_hist_tr_proposed', { who: ch.by || '', day: clDay(ch.at) }) }]
+        .concat(ch.note ? [{ tone: 'grey', t: '“' + ch.note + '”' }] : [])
+        .concat(ch.state === 'approved' ? [{ tone: 'green', t: i18t('cl_hist_tr_approved', { who: ch.decidedBy || '', day: clDay(ch.decidedAt) }) }]
+          : ch.state === 'sent-back' ? [{ tone: 'ruby', t: i18t('cl_hist_tr_back', { who: ch.decidedBy || '', day: clDay(ch.decidedAt) }) }].concat(ch.decidedWhy ? [{ tone: 'grey', t: '“' + ch.decidedWhy + '”' }] : [])
+          : ch.state === 'withdrawn' ? [{ tone: 'grey', t: i18t('cl_hist_tr_withdrawn', { day: clDay(ch.decidedAt) }) }]
+          : ch.state === 'saved' ? [{ tone: 'green', t: i18t('cl_hist_tr_saved', { who: ch.by || '' }) }] : [{ tone: 'amber', t: i18t('cl_hist_tr_waiting') }]);
+      const tagT = { waiting: 'amber', approved: 'green', saved: 'green', 'sent-back': 'red', withdrawn: 'gray' };
+      out.hist = { id: ch.id, state: ch.state, badge: clHistBadge(ch), tagText: clHistBadge(ch).replace(/<[^>]+>/g, '').replace(/&amp;/g, '&'), tagTone: tagT[ch.state] || 'gray', title: ps.map(p => p.name).join(', ') || i18t('cl_hist_p_look'),
+        sub: i18t('cl_hist_p_sub', { who: ch.by || '', day: clDay(ch.at), n: reach.streams }), mayDecide: clMayDecide(ch),
+        mine: ch.state === 'waiting' && String(ch.byId) === String(me.id), deciders, parts: ps, reach, trail };
+      out.tab = 'history'; } }
   if (_cl.tab === 'who' && _cl.whoPick) {
     const r = clWhoRows().find(x => x.key === _cl.whoPick);
     if (r) out.who = { key: r.key, kind: r.kind, fid: r.fid || '', id: r.id || '', name: r.name, own: r.own, unsigned: r.unsigned,
@@ -1391,6 +1562,9 @@ function clModeGo(m) { if (!_cl) clInit(); if (!clAdmin()) return;
   const s = String(m || 'page');
   if (s === 'company') { if (typeof openSettingsAt === 'function') openSettingsAt('platform', 'company'); return; }
   if (s === 'kit') { _cl.tab = 'kit'; _cl.mode = 'page'; return clRepaint(); }
+  /* round 6: the panel's Approve, Send back, Withdraw and Go back to it */
+  const ap = /^ap-(yes|back|withdraw|revert):(.+)$/.exec(s);
+  if (ap) return ap[1] === 'back' ? clApNoteOpen('back', ap[2]) : clApDo(ap[1], ap[2], '');
   if (s.indexOf('stream:') === 0) return clEditAs(s.slice(7));
   if (s.indexOf('stream-x:') === 0) { const fid = s.slice(9); return clSet(() => { delete _cl.streams[fid]; }); }
   _cl.mode = s; clRepaint(); }
@@ -1438,11 +1612,8 @@ function clReadLook(text) {
   if (/\bnumbering\b|\bclause\s+numbers?\b|\b\d\.\d\b/.test(t)) notes.push(i18t('cl_said_numbering'));
   return { got, said, notes };
 }
-async function clSave() {
-  if (!_cl || _cl.busy || !clAdmin()) return;
-  const btn = document.getElementById('cl-save'); _cl.busy = true;
-  if (btn && typeof busySet === 'function') busySet(btn, i18t('cl_saving'));
-  try {
+/* THE LOOK AS THE PAGE WOULD SAVE IT, one builder for Save and Send for approval (round 6) */
+function clPayload() {
     /* round 2: the header and page numbers go with the look (the server cleans them, js/branding.js pageMarksClean) */
     const look = { designId: _cl.look.designId, structureId: _cl.look.structureId, logoPosition: _cl.look.logoPosition, accentColor: _cl.look.accentColor,
       pageMarks: _cl.look.pageMarks || null };
@@ -1455,18 +1626,40 @@ async function clSave() {
       _cl.pick.forEach(fid => { streams[fid] = Object.assign({}, look); });
     } else Object.assign(payload, look, { accentSource: 'manual' });
     payload.streamLooks = streams;
+    return payload;
+}
+async function clSave() {
+  if (!_cl || _cl.busy || !clAdmin()) return;
+  /* ROUND 6: while another admin exists, the button sends the change for approval instead (clPropose) */
+  if (clAdminsN() > 1) return clProposeOpen();
+  const btn = document.getElementById('cl-save'); _cl.busy = true;
+  if (btn && typeof busySet === 'function') busySet(btn, i18t('cl_saving'));
+  try {
+    const payload = clPayload();
     await saveOrgBranding(payload);
+    clLookChangesLoad().then(() => clRepaint());
     toast(i18t(_cl.applies === 'some' ? 'cl_saved_streams' : 'cl_saved'), 'ok');
     clInit(); clRepaint();
   } catch (e) { toast((e && e.message) || i18t('cl_save_failed'), 'err'); _cl.busy = false; if (btn) { btn.disabled = false; btn.textContent = i18t('act_save'); } }
 }
-function clGo() { if (typeof refreshOrgBranding === 'function') refreshOrgBranding().then(() => { clInit(); clRepaint(); }).catch(() => {}); clInit(); if (typeof settingsGoPage === 'function') settingsGoPage('look'); }
+function clGo() { if (typeof refreshOrgBranding === 'function') Promise.all([refreshOrgBranding(), clLookChangesLoad()]).then(() => { clInit(); clRepaint(); }).catch(() => {}); clInit(); if (typeof settingsGoPage === 'function') settingsGoPage('look'); }
 if (typeof document !== 'undefined' && !window._clWired) {
   window._clWired = true;
+  /* round 6: the note's sheet: its black act sends (the form lives in the dialog, outside the page) */
+  document.addEventListener('submit', e => {
+    const f = e.target; if (!f || f.id !== 'cl-ap-form') return; e.preventDefault();
+    const go = f.querySelector('[data-cl-ap-go]'); if (!go) return;
+    const [k, id] = String(go.getAttribute('data-cl-ap-go')).split(':'); const n = f.querySelector('#cl-ap-note');
+    clApDo(k, id, n ? n.value : '');
+  });
   document.addEventListener('click', e => {
-    const t = e.target; if (!_cl || !t || !t.closest) return;
+    const t = e.target; if (!t || !t.closest) return;
+    if (!_cl && t.closest('[data-cl-hist-go]')) { clHistGo(t.closest('[data-cl-hist-go]').getAttribute('data-cl-hist-go')); return; }
+    if (!_cl) return;
     /* a menu (the preview's contract, the stream being edited) closes on a press anywhere but inside it */
     if (!t.closest('.cl-ls-chipw')) clMenuClose();
+    /* round 6: a Needs-you or Settings row onto a waiting look change (stNeedsAll's door) */
+    const hg = t.closest('[data-cl-hist-go]'); if (hg) { clHistGo(hg.getAttribute('data-cl-hist-go')); return; }
     if (!t.closest('[data-st-pg="look"]')) return;
     const at = sel => t.closest(sel);
     let x;
@@ -1474,7 +1667,18 @@ if (typeof document !== 'undefined' && !window._clWired) {
       const m = document.querySelector(`[data-st-pg="look"] [data-cl-menu-of="${x.getAttribute('data-cl-menu')}"]`); if (!m) return;
       const open = m.hidden; clMenuClose(); m.hidden = !open; x.setAttribute('aria-expanded', open ? 'true' : 'false'); return;
     }
-    if ((x = at('[data-cl-tab]'))) { const k = x.getAttribute('data-cl-tab'); _cl.tab = k === 'who' || k === 'kit' ? k : 'page'; _cl.mode = 'page'; return clRepaint(); }
+    if ((x = at('[data-cl-tab]'))) { const k = x.getAttribute('data-cl-tab'); _cl.tab = ['who', 'kit', 'history'].includes(k) ? k : 'page'; _cl.mode = 'page'; return clRepaint(); }
+    /* round 6: History's chips, menus, rows and acts */
+    if ((x = at('[data-cl-chip="h-all"]'))) { _cl.histChip = 'all'; _cl.histWho = null; _cl.histPart = null; return clRepaint(); }
+    if ((x = at('[data-cl-chip="h-wait"]'))) { _cl.histChip = 'wait'; return clRepaint(); }
+    if ((x = at('[data-cl-hist-who]'))) { _cl.histWho = x.getAttribute('data-cl-hist-who') || null; clMenuClose(); return clRepaint(); }
+    if ((x = at('[data-cl-hist-part]'))) { _cl.histPart = x.getAttribute('data-cl-hist-part') || null; clMenuClose(); return clRepaint(); }
+    if ((x = at('[data-cl-ap]'))) { const [k, id] = String(x.getAttribute('data-cl-ap')).split(':'); return k === 'back' ? clApNoteOpen('back', id) : clApDo(k, id, ''); }
+    if ((x = at('[data-cl-hist-pick]')) || ((x = at('tr[data-cl-hist]')) && !at('button,a,input'))) {
+      const id = x.getAttribute('data-cl-hist-pick') || x.getAttribute('data-cl-hist'); _cl.histPick = _cl.histPick === id && !x.hasAttribute('data-cl-hist-pick') ? null : id;
+      document.querySelectorAll('#cl-hist tr[data-cl-hist]').forEach(tr => tr.classList.toggle('is-chosen', tr.getAttribute('data-cl-hist') === _cl.histPick));
+      if (typeof window.stLsPanelPaint === 'function') window.stLsPanelPaint(); return;
+    }
     if ((x = at('[data-cl-chip]'))) { const k = x.getAttribute('data-cl-chip'); if (_cl.tab === 'who') { _cl.whoChip = k; _cl.whoPick = null; } else _cl.chip = k; return clRepaint(); }
     if ((x = at('[data-cl-pv]'))) { _cl.pv = x.getAttribute('data-cl-pv'); _cl.pvPage = 1; _cl.row = null; return clRepaint(); }
     if ((x = at('[data-cl-pv-page]'))) { _cl.pvPage = Number(x.getAttribute('data-cl-pv-page')) || 1; return clPvShow(); }
@@ -1571,4 +1775,4 @@ if (typeof document !== 'undefined' && !window._clWired) {
 }
 
 Object.assign(window, { openDesignStep, dsApplyZoom, designStepOpen, designStepDirty, designStepClose, CL_ACCENTS, clPageHtml, clReadLook, clGo, clSave, clInit, clFacts, clModeGo,
-  clAfterPaint, clPanelFacts, clLetGo, clParts, clQuality, clContrastOnWhite, clWhoRows });
+  clAfterPaint, clPanelFacts, clLetGo, clParts, clQuality, clContrastOnWhite, clWhoRows, clHistGo, clLookChanges, clChangeParts, clLookChangesLoad });

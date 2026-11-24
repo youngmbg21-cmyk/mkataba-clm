@@ -179,7 +179,9 @@ describe('f201 — saving from the new home writes what the old one wrote', () =
 
   test('no new storage and no migration — the same columns as before', () => {
     const src = read('server/server.js');
-    const route = src.slice(src.indexOf("app.put('/api/org/branding'"), src.indexOf("app.get('/api/org/profile-values'"));
+    /* RE-POINTED 24 Nov 2026 (contract look round 6): the save is srvBrandingSave, the route's one writer, so an approved
+       look change is written by the same code; still no new column in it */
+    const route = src.slice(src.indexOf('function srvBrandingSave('), src.indexOf("app.get('/api/org/profile-values'"));
     assert.match(route, /INSERT INTO org_branding/, 'the same table');
     assert.ok(!/ALTER TABLE/.test(route) && !/addColumnIfMissing/.test(route), 'no new column');
   });
@@ -248,9 +250,15 @@ describe('f201 — D-1: the legal identity is an admin\'s', () => {
       logoPosition: was === 'top-center' ? 'top-right' : 'top-center' } });
     assert.equal(r.status, 403);
     assert.equal((await brand()).logoPosition, was, 'nothing changed');
-    const a = await W.admin.raw('/api/org/branding', { method: 'PUT', body: { logoPosition: 'top-center' } });
-    assert.equal(a.status, 200);
-    assert.equal((await brand()).logoPosition, 'top-center');
+    /* RE-POINTED 24 Nov 2026 (contract look round 6): this world has a second admin (Fresh Admin, above), so an admin's
+       move of the look waits for that admin's yes — a direct save is refused with the way forward, and the proposal
+       is taken; with one admin it would apply at once (f1207) */
+    const target = was === 'top-center' ? 'top-right' : 'top-center';
+    const a = await W.admin.raw('/api/org/branding', { method: 'PUT', body: { logoPosition: target } });
+    assert.equal(a.status, 409); assert.equal(a.json.needsApproval, true);
+    assert.equal((await brand()).logoPosition, was, 'the live look waits');
+    const p = await W.admin.raw('/api/look/changes', { method: 'POST', body: { logoPosition: target } });
+    assert.equal(p.status, 200); assert.equal(p.json.change.state, 'waiting');
   });
 
   test('ASKED AS A DIFFERENCE — carrying the identity along unchanged passes', async () => {

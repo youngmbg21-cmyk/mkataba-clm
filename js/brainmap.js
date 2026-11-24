@@ -540,6 +540,13 @@ const BRAIN_PARTS = [
   /* a departure of our template approved once for every contract drawn from it (the Dossier L+S, step 3) */
   ['tplapprove', 'POST /api/templates/departure-approvals', 'wall', 2],
   ['stdwithdraw', 'POST /api/standards/changes/:id/withdraw', 'wall', 2],
+  /* HOW OUR CONTRACTS LOOK, ROUND 6 (owner, 24 Nov 2026): a look change waits for a second admin, the Ladder's way;
+     its history is read from the same record */
+  ['lookchanges', 'GET /api/look/changes', 'see', 2],
+  ['lookpropose', 'POST /api/look/changes', 'wall', 2],
+  ['lookdecide', 'POST /api/look/changes/:id/decide', 'wall', 2],
+  ['lookwithdraw', 'POST /api/look/changes/:id/withdraw', 'wall', 2],
+  ['lookrevert', 'POST /api/look/changes/:id/revert', 'wall', 2],
   ['stdwrite', 'POST /api/ai/standard', 'ai', 2],
   ['privwall', 'folderScopeFor', 'wall', 2],
   ['privsave', 'PUT /api/private-streams/:fid', 'wall', 2],
@@ -684,7 +691,7 @@ const BRAIN_FLOWS = [
      the other side's signature, an amendment, the end of a contract, and the
      ways a step can go wrong — none of which the six flows above walked. */
   { id: 'draft', steps: [['newagr', 'draftform', 'essentials', 'tplskip', 'tpllook', 'scratchsection'], ['putguard', 'db'], ['details', 'fillface', 'tplform', 'blanks'], ['triage'], ['letter', 'shares', 'linkcheck'], ['email', 'sharemail', 'outbyhand', 'wordfile'], ['whosemove', 'bell']] },
-  { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom', 'reqfiles', 'askadmin', 'settingsask', 'settingsanswer', 'privpage', 'privlist', 'privsave', 'rolespage', 'bzsection', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arsheet', 'arread', 'armark', 'ardone', 'arrec', 'accheck', 'acget', 'acrun', 'clashseen', 'clashfind', 'handon'], ['bell', 'settingsasks', 'privnews', 'privseen'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr'], ['stdpage', 'stdwrite', 'stdpropose', 'stddecide', 'tplapprove', 'stdwithdraw', 'stdapply']] },
+  { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom', 'reqfiles', 'askadmin', 'settingsask', 'settingsanswer', 'privpage', 'privlist', 'privsave', 'rolespage', 'bzsection', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arsheet', 'arread', 'armark', 'ardone', 'arrec', 'accheck', 'acget', 'acrun', 'clashseen', 'clashfind', 'handon'], ['bell', 'settingsasks', 'privnews', 'privseen'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr'], ['stdpage', 'stdwrite', 'stdpropose', 'stddecide', 'tplapprove', 'stdwithdraw', 'stdapply'], ['lookpropose', 'lookdecide', 'lookwithdraw', 'lookrevert', 'lookchanges']] },
   { id: 'theysign', steps: [['theirsign', 'issuelinks'], ['cplink', 'guestcode', 'totpcount', 'totpnew'], ['respond', 'filesig'], ['srvseal', 'sealtext', 'frozen'], ['copies', 'email'], ['obligations', 'renewal', 'calendar']] },
   { id: 'amend', steps: [['amendface', 'amend'], ['blanks'], ['readiness', 'approvals'], ['srvseal'], ['renewal', 'overview']] },
   { id: 'end', steps: [['served', 'renewact'], ['autorenew'], ['obdone'], ['endpause', 'decline', 'reopen'], ['archive', 'hold', 'trailpage', 'trailsum', 'traillist', 'trailexport', 'trailrec', 'streamside', 'youform', 'myemail', 'mycopy', 'acctrec']] },
@@ -705,7 +712,7 @@ const BRAIN_LANE_OF = {
   /* a colleague: the requester, the reviewer, the contributor, the approver */
   req: ['request', 'kinds', 'reqfiles', 'askadmin', 'ruledoor', 'privpage', 'trailpage', 'rolespage', 'bzsection', 'arsheet', 'accheck', 'settingsask', 'settingsanswer', 'review', 'suggest', 'rules', 'namedyes', 'decide', 'undoyes', 'approvalpaper', 'lookask'],
   /* the person working the contract: what they see and press */
-  own: ['notebook', 'exportmenu', 'alertme', 'alertpage', 'alertlist', 'alerthits', 'handon', 'stdpage', 'stdwrite', 'stdpropose', 'stddecide', 'tplapprove', 'stdwithdraw', 'lessonspanel', 'listlang', 'awaycard', 'keeptab', 'cnrow', 'putaway', 'chaseletter', 'pieceline', 'upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'histlanes', 'paysec', 'ndatail', 'glance', 'needshere', 'paperline', 'letter', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'desktabs', 'negpage', 'redface', 'boardviews', 'strip', 'chosenpaper', 'histsays', 'startnego', 'here', 'follow', 'glanceasks', 'notehere', 'followhome', 'boardhead',
+  own: ['notebook', 'exportmenu', 'alertme', 'alertpage', 'alertlist', 'alerthits', 'handon', 'stdpage', 'stdwrite', 'stdpropose', 'stddecide', 'tplapprove', 'stdwithdraw', 'lookpropose', 'lookdecide', 'lookwithdraw', 'lookrevert', 'lookchanges', 'lessonspanel', 'listlang', 'awaycard', 'keeptab', 'cnrow', 'putaway', 'chaseletter', 'pieceline', 'upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'histlanes', 'paysec', 'ndatail', 'glance', 'needshere', 'paperline', 'letter', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'desktabs', 'negpage', 'redface', 'boardviews', 'strip', 'chosenpaper', 'histsays', 'startnego', 'here', 'follow', 'glanceasks', 'notehere', 'followhome', 'boardhead',
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dutypage', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'signface', 'pad', 'calendar', 'desknight', 'insights', 'readings',
     'chasemany', 'youform', 'streamside', 'navread', 'teach', 'teachwalk', 'teachsteps', 'handbook', 'hbkask', 'flowmap', 'flowtable', 'hswords', 'navdoor', 'aifirst', 'copilotask', 'jambomap', 'menuask', 'nextsteps', 'reflink', 'menutab', 'amendface', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'askcolnext', 'reads', 'dsnpacks', 'discover', 'discoverask', 'contractsplace', 'customers', 'directory', 'partyrec', 'cellfold',
@@ -729,7 +736,7 @@ const BRAIN_FLOW_STAGES = {
   night: ['keep', 'keep', 'keep', 'keep', 'keep', 'keep', 'keep', 'keep'],
   ask: ['ask', 'ask', 'ask', 'ask', 'ask', 'ask'],
   draft: ['create', 'create', 'prepare', 'prepare', 'nego', 'nego', 'nego'],
-  request: ['ask', 'ask', 'create', 'prepare', 'create', 'prepare'],
+  request: ['ask', 'ask', 'create', 'prepare', 'create', 'prepare', 'prepare'],
   theysign: ['sign', 'sign', 'sign', 'sign', 'keep', 'keep'],
   amend: ['create', 'prepare', 'approve', 'sign', 'keep'],
   end: ['keep', 'keep', 'keep', 'keep', 'keep'],
