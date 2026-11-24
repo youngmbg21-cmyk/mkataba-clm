@@ -13772,9 +13772,17 @@ function rlPaperFootHtml(c){
   const us = String(_ngOurParty(c) || '').trim();
   const them = String((c && c.counterparty) || '').trim();
   if (!us && !them) return '';
+  /* THE LOOK'S SIGNATURE BLOCK (contract look round 3, 24 Nov 2026): side by side or stacked, and the labelled lines
+     under each party's rule (name, title, date, place) in the reader's words. Our paper only (pagesMarksFor answers
+     null on their paper); no look set = byte-identical to what it always drew. The rules, their order and the anchor
+     stay as they are, so a signature's box (pagesSignRows, pagesSignMarks) is the same box. */
+  const mk = (typeof window !== 'undefined' && typeof window.pagesMarksFor === 'function') ? window.pagesMarksFor(c) : null;
+  const rows = mk && mk.sigLines && mk.sigLines.length
+    ? `<div class="rl-siglines">${mk.sigLines.map(k => `<div class="rl-sigrow">${_ne(i18t('sig_ln_' + k))}: <span class="rl-sigblank">________________________</span></div>`).join('')}</div>` : '';
+  const stacked = !!(mk && mk.sigLayout === 'stacked');
   const line = who => `<div class="rl-sigline">
       <span class="rl-sigrule"></span>
-      <span class="rl-sigfor">${who ? i18t('ng_signed_for', { who: _ne(who) }) : '&mdash;'}</span>
+      <span class="rl-sigfor">${who ? i18t('ng_signed_for', { who: _ne(who) }) : '&mdash;'}</span>${rows}
     </div>`;
   /* ---- ONE RULED LINE PER PARTY (22 Sep 2026) ----
      Paper ends with a place for every party to sign, not for two. A contract
@@ -13789,12 +13797,12 @@ function rlPaperFootHtml(c){
       const rows = contractParties(c)
         .filter(p => p.name && (p.side === PARTY_SIDE_OURS || p.involvement !== 'none'));
       if(rows.length > 2){
-        return `<div class="rl-paper-foot rl-foot-many" aria-hidden="true">${
+        return `<div class="rl-paper-foot rl-foot-many${stacked ? ' is-stacked' : ''}" aria-hidden="true">${
           rows.map(p => line(p.name)).join('')}</div>`;
       }
     }
   }catch(_){}
-  return `<div class="rl-paper-foot" aria-hidden="true">${line(us)}${line(them)}</div>`;
+  return `<div class="rl-paper-foot${stacked ? ' is-stacked' : ''}" aria-hidden="true">${line(us)}${line(them)}</div>`;
 }
 
 /* ---------- THE TRACKED CHANGES COLUMN ----------

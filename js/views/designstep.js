@@ -808,6 +808,15 @@ function clPickHtml() {
       + pills('data-cl-hpos', [['', i18t('cl_ls_none')], ['left', i18t('cl_ls_pos_left')], ['center', i18t('cl_ls_pos_center')], ['right', i18t('cl_ls_pos_right')]], mk.headerPos || '')
       + `<input type="text" id="cl-head-words" class="cl-in" maxlength="${typeof PAGE_HEAD_MAX === 'number' ? PAGE_HEAD_MAX : 120}" value="${clE(hs.words)}" placeholder="${clE(i18t('cl_ls_head_ph'))}">`
       + fieldChips('data-cl-hfield', ['company', 'ref', 'title'], hs.fields) + (mk.headerPos && mk.headerText ? onPaper(mk.headerText) : ''); }
+  if (m === 'sg') { const mk = clMarks(), on = mk.sigLines || [];
+    return head(i18t('cl_n_sigblock')) + `<p class="cl-pk-q">${clE(i18t('cl_ls_sg_lay'))}</p>`
+      + pills('data-cl-sglay', [['columns', i18t('cl_ls_sg_columns')], ['stacked', i18t('cl_ls_sg_stacked')]], mk.sigLayout || 'columns')
+      + `<div class="cl-pk-row cl-ls-fields"><span class="cl-pk-k">${clE(i18t('cl_ls_sg_lines'))}</span>${(typeof SIG_LINES === 'object' ? SIG_LINES : ['name', 'title', 'date', 'place']).map(k => `<button type="button" class="cl-pill${on.includes(k) ? ' is-on' : ''}" data-cl-sgline="${k}" aria-pressed="${on.includes(k) ? 'true' : 'false'}">${clE(i18t('sig_ln_' + k))}</button>`).join('')}</div>`
+      + `<p class="cl-pk-q">${clE(i18t('cl_ls_sg_note'))}</p>`; }
+  if (m === 'cv') { const mk = clMarks();
+    return head(i18t('cl_n_cover')) + pills('data-cl-cvon', [['off', i18t('cl_ls_off')], ['on', i18t('cl_ls_on')]], mk.coverOn ? 'on' : 'off')
+      + (mk.coverOn ? `<p class="cl-pk-q">${clE(i18t('cl_ls_cv_count_q'))}</p>` + pills('data-cl-cvcount', [['no', i18t('cl_ls_cv_no')], ['yes', i18t('cl_ls_cv_yes')]], mk.coverCounts ? 'yes' : 'no') : '')
+      + `<p class="cl-pk-q">${clE(i18t('cl_ls_cv_note'))}</p>`; }
   if (m === 'n') { const mk = clMarks();
     return head(i18t('cl_n_pagenum')) + `<p class="cl-pk-q">${clE(i18t('cl_ls_pn_place'))}</p>`
       + pills('data-cl-npos', [['off', i18t('cl_ls_off')], ['', i18t('cl_ls_pn_inline')], ['left', i18t('cl_ls_pos_left')], ['center', i18t('cl_ls_pos_center')], ['right', i18t('cl_ls_pos_right')]], mk.pageNumPos || '')
@@ -852,7 +861,7 @@ function clChipsHtml() {
    company and language, a second admin's yes and the History) draw nothing here yet. */
 const CL_AA = 4.5;
 const CL_PV_W = 306;
-const CL_PIN_SIDE = { logo: 'l', header: 'r', letterhead: 'r', style: 'l', layout: 'l', colour: 'r', type: 'r', footer: 'l', pagenum: 'r' };
+const CL_PIN_SIDE = { logo: 'l', header: 'r', letterhead: 'r', style: 'l', layout: 'l', colour: 'r', type: 'r', footer: 'l', pagenum: 'r', sigblock: 'l', cover: 'l' };
 const CL_ST_TONE = { set: 'green', missing: 'amber', faint: 'ruby', optional: 'grey' };
 /* WCAG's relative luminance and contrast against white paper */
 function clHexLum(hex) {
@@ -899,7 +908,9 @@ function clFilledOn(text) {
   const c = clPvContract() || { name: i18t('cl_sample_name') };
   return typeof brFieldsFill === 'function' ? brFieldsFill(text, c, window.ORG_BRANDING || {}) : String(text || '');
 }
-function clNumSay(fmt) { const m = Math.max(1, _cl.pvPages || 1); return typeof brPageNumberSay === 'function' ? brPageNumberSay(fmt, 1, m) : ''; }
+/* the title the cover page will carry: the previewed contract's own */
+function clCoverTitle() { const c = clPvContract(); return c ? String(c.name || '').trim() : i18t('cl_sample_name'); }
+function clNumSay(fmt) { const mk = clMarks(), cv = mk.coverOn && !mk.coverCounts && (_cl.pvPages || 1) > 1 ? 1 : 0, m = Math.max(1, (_cl.pvPages || 1) - cv); return typeof brPageNumberSay === 'function' ? brPageNumberSay(fmt, 1, m) : ''; }
 function clParts() {
   const d = clDesign(), st = clStructure(), admin = clAdmin(), lh = clLetterheadFacts();
   const mk = clMarks(), headOn = !!(mk.headerPos && mk.headerText);
@@ -931,6 +942,11 @@ function clParts() {
     { k: 'pagenum', name: i18t('cl_n_pagenum'), html: mk.pageNumPos === 'off' ? quiet(i18t('cl_ls_off'))
       : `${q(clNumSay(mk.pageNumFmt))}${quiet('· ' + i18t(mk.pageNumPos ? CL_POS_SAY[mk.pageNumPos] : 'cl_ls_pn_inline'))}`,
       st: mk.pageNumPos === 'off' ? 'optional' : 'set', act: act('cl_change', 'data-cl-mode="n"') },
+    /* round 3: the signature block (side by side or stacked, the labelled lines) and the cover page, our paper only */
+    { k: 'sigblock', name: i18t('cl_n_sigblock'), html: `<span>${clE(i18t(mk.sigLayout === 'stacked' ? 'cl_ls_sg_stacked' : 'cl_ls_sg_columns'))}</span>${quiet('· ' + ((mk.sigLines || []).length ? mk.sigLines.map(x => i18t('sig_ln_' + x)).join(', ') : i18t('cl_ls_sg_noline')))}`,
+      st: 'set', act: act('cl_change', 'data-cl-mode="sg"') },
+    { k: 'cover', name: i18t('cl_n_cover'), html: mk.coverOn ? `${q(clCoverTitle() || '—')}${quiet('· ' + i18t(mk.coverCounts ? 'cl_ls_cv_counted' : 'cl_ls_cv_not_counted'))}` : quiet(i18t('cl_ls_off')),
+      st: mk.coverOn ? (clCoverTitle() ? 'set' : 'missing') : 'optional', act: act(mk.coverOn ? 'cl_change' : 'cl_ls_add', 'data-cl-mode="cv"') },
   ];
   rows.forEach((r, i) => { r.n = i + 1; });
   return rows;
@@ -950,6 +966,7 @@ function clQuality() {
     else out.push({ tone: 'green', t: i18t('cl_ls_q_reads', { c: clColourName(_cl.look.accentColor || shown), r: clRatioSay(r) }) });
   }
   if (clMarks().pageNumPos === 'off') out.push({ tone: 'amber', t: i18t('cl_ls_q_nonum'), go: go('cl_change', 'n') });
+  if (clMarks().coverOn && !clCoverTitle()) out.push({ tone: 'amber', t: i18t('cl_ls_q_cover_notitle'), go: go('cl_change', 'cv') });
   if (_cl.logoUrl) out.push({ tone: 'green', t: i18t('cl_ls_q_logo') });
   if (String(_cl.footer || '').trim()) out.push({ tone: 'green', t: i18t('cl_ls_q_footer') });
   if (!lhMiss.length) out.push({ tone: 'green', t: i18t('cl_ls_q_lh_ok') });
@@ -1127,8 +1144,12 @@ function clPvShow() {
 function clPvPagesPaint(n) {
   const host = document.getElementById('cl-pv-pages'), say = document.getElementById('cl-pv-n');
   const p = Math.min(Math.max(1, _cl.pvPage || 1), n);
-  if (say) say.textContent = i18t('cl_ls_pv_page', { n: p, m: n });
-  if (host) host.innerHTML = n > 1 ? Array.from({ length: Math.min(n, 12) }, (_, i) => `<button type="button" class="cl-pv-thumb${i + 1 === p ? ' is-on' : ''}" data-cl-pv-page="${i + 1}" aria-label="${clE(i18t('cl_ls_pv_page', { n: i + 1, m: n }))}">${i + 1}</button>`).join('') : '';
+  /* round 3: a cover page is "Cover", and the pages after it count from 1 unless the look counts it */
+  const cov = !!(document.querySelector('#cl-pv-view .pg-cover')), counts = !!clMarks().coverCounts;
+  const num = i => cov && !counts ? i - 1 : i, of = cov && !counts ? n - 1 : n;
+  const word = i => cov && i === 1 ? i18t('cl_ls_pv_cover') : i18t('cl_ls_pv_page', { n: num(i), m: of });
+  if (say) say.textContent = word(p);
+  if (host) host.innerHTML = n > 1 ? Array.from({ length: Math.min(n, 12) }, (_, i) => `<button type="button" class="cl-pv-thumb${i + 1 === p ? ' is-on' : ''}${cov && i === 0 ? ' is-cover' : ''}" data-cl-pv-page="${i + 1}" aria-label="${clE(word(i + 1))}">${cov && i === 0 ? clE(i18t('cl_ls_pv_cover_short')) : num(i + 1)}</button>`).join('') : '';
 }
 /* where each part sits on the painted page; null where the page carries none of it */
 function clPinTarget(k, root) {
@@ -1145,6 +1166,8 @@ function clPinTarget(k, root) {
   if (k === 'colour') { const hex = clShownColour(); return hex ? root.querySelector(`[style*="${hex}"]`) : null; }
   if (k === 'type') return [...art.querySelectorAll('p')].find(e => String(e.textContent || '').trim().length > 20) || null;
   if (k === 'footer' || k === 'header' || k === 'pagenum') return null;
+  if (k === 'sigblock') return root.querySelector('.rl-paper-foot');
+  if (k === 'cover') return root.querySelector('.pg-cover .pg-cover-title, .pg-cover');
   return null;
 }
 /* where the WORDS of a part sit (a centred title is not as wide as its line), else the element's own box */
@@ -1273,7 +1296,7 @@ function clModeGo(m) { if (!_cl) clInit(); if (!clAdmin()) return;
 function clSet(fn) { fn(); _cl.dirty = true; clRepaint(); }
 /* A LOOK TYPED IN A SENTENCE, READ WITHOUT AI: colours, the logo's place, a style or a layout named; what is not read is said */
 function clReadLook(text) {
-  const t = ' ' + String(text || '').toLowerCase() + ' ', got = {}, said = [];
+  const t = ' ' + String(text || '').toLowerCase() + ' ', got = {}, said = [], notes = [];
   const hex = t.match(/#[0-9a-f]{6}\b/);
   const col = hex ? [hex[0], hex[0]] : CL_ACCENTS.find(([, w]) => new RegExp('\\b' + w + '\\b').test(t))
     || (/\b(grey|gray)\b/.test(t) ? CL_ACCENTS[7] : null) || (/\bred\b|\bmaroon\b/.test(t) ? CL_ACCENTS[4] : null) || (/\borange\b/.test(t) ? CL_ACCENTS[5] : null);
@@ -1299,8 +1322,15 @@ function clReadLook(text) {
       pm.headerText = words; pm.headerPos = p; said.push(i18t('cl_said_head', { h: words, p: i18t(CL_POS_SAY[p]) }));
     }
   }
+  /* round 3: "cover page on", "no cover page", "signatures stacked", "signatures side by side" */
+  if (/\b(no|without)\s+(a\s+)?cover(\s+page)?\b|\bcover(\s+page)?\s+off\b/.test(t)) { pm.coverOn = false; said.push(i18t('cl_said_nocover')); }
+  else if (/\bcover\s+page\b|\bcover\s+on\b/.test(t)) { pm.coverOn = true; said.push(i18t('cl_said_cover')); }
+  if (/\bsignatures?\b[^,;.]*\bstack(ed)?\b|\bstacked\s+signatures?\b/.test(t)) { pm.sigLayout = 'stacked'; said.push(i18t('cl_said_sig_stacked')); }
+  else if (/\bsignatures?\b[^,;.]*\bside\s+by\s+side\b/.test(t)) { pm.sigLayout = 'columns'; said.push(i18t('cl_said_sig_columns')); }
   if (Object.keys(pm).length) got.pageMarks = pm;
-  return { got, said };
+  /* THE CLAUSE NUMBERS ARE THE WORDING'S OWN (round 3): asked for, they are said honestly and nothing is changed */
+  if (/\bnumbering\b|\bclause\s+numbers?\b|\b\d\.\d\b/.test(t)) notes.push(i18t('cl_said_numbering'));
+  return { got, said, notes };
 }
 async function clSave() {
   if (!_cl || _cl.busy || !clAdmin()) return;
@@ -1356,6 +1386,12 @@ if (typeof document !== 'undefined' && !window._clWired) {
     if ((x = at('[data-cl-pos]'))) return clSet(() => { _cl.look.logoPosition = x.getAttribute('data-cl-pos'); });
     if ((x = at('[data-cl-accent]'))) return clSet(() => { _cl.look.accentColor = x.getAttribute('data-cl-accent'); });
     /* round 2: the header's place and fields, the page numbers' place and words, the footer's fields */
+    /* round 3: the signature block's layout and lines, the cover page on or off and whether it is counted */
+    if ((x = at('[data-cl-sglay]'))) return clSet(() => { clMarksSet({ sigLayout: x.getAttribute('data-cl-sglay') }); });
+    if ((x = at('[data-cl-sgline]'))) return clSet(() => { const k = x.getAttribute('data-cl-sgline'), on = clMarks().sigLines || [];
+      clMarksSet({ sigLines: on.includes(k) ? on.filter(y => y !== k) : on.concat(k) }); });
+    if ((x = at('[data-cl-cvon]'))) return clSet(() => { clMarksSet({ coverOn: x.getAttribute('data-cl-cvon') === 'on' }); _cl.pvPage = 1; });
+    if ((x = at('[data-cl-cvcount]'))) return clSet(() => { clMarksSet({ coverCounts: x.getAttribute('data-cl-cvcount') === 'yes' }); });
     if ((x = at('[data-cl-hpos]'))) return clSet(() => { clMarksSet({ headerPos: x.getAttribute('data-cl-hpos') || null }); });
     if ((x = at('[data-cl-npos]'))) return clSet(() => { clMarksSet({ pageNumPos: x.getAttribute('data-cl-npos') || null }); });
     if ((x = at('[data-cl-nfmt]'))) return clSet(() => { clMarksSet({ pageNumFmt: x.getAttribute('data-cl-nfmt') }); });
@@ -1398,10 +1434,11 @@ if (typeof document !== 'undefined' && !window._clWired) {
   document.addEventListener('submit', e => {
     const f = e.target; if (!_cl || !f || f.id !== 'cl-ask') return; e.preventDefault(); if (!clAdmin()) return;
     const inp = document.getElementById('cl-say'); const text = inp ? inp.value : '';
-    const { got, said } = clReadLook(text);
-    if (!said.length) { const s = document.getElementById('cl-said'); if (s) s.textContent = i18t('cl_said_none'); return; }
+    const { got, said, notes } = clReadLook(text);
+    const more = (notes || []).length ? ' ' + notes.join(' ') : '';
+    if (!said.length) { const s = document.getElementById('cl-said'); if (s) s.textContent = more ? more.trim() : i18t('cl_said_none'); return; }
     clSet(() => { const pm = got.pageMarks; delete got.pageMarks; Object.assign(_cl.look, got); if (pm) clMarksSet(pm); _cl.said = ''; });
-    const s = document.getElementById('cl-said'); if (s) s.textContent = i18t('cl_said_done', { what: said.join(', ') });
+    const s = document.getElementById('cl-said'); if (s) s.textContent = i18t('cl_said_done', { what: said.join(', ') }) + more;
   });
 }
 

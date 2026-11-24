@@ -274,17 +274,22 @@ function _pgFurniture(o, k, n, top, h, d){
   /* THE LOOK'S OWN HEADER AND PAGE NUMBERS (contract look round 2, 24 Nov 2026): `o.marks` (pagesMarksFor) — a header
      line on EVERY page in its place, the number in the reader's words and place, or none; no marks = as it always was */
   const mk = o.marks || null;
-  const label = mk && mk.fmt ? pagesNumberSay(mk.fmt, k + 1, n) : pagesNumberLabel(k + 1, n);
+  /* THE COVER PAGE (round 3, 24 Nov 2026): page one of the signing copy is the cover — no header, no footer, no number
+     on it — and the numbering starts after it unless the look counts it */
+  const cov = !!(o.mode === 'sign' && mk && mk.cover);
+  if(cov && k === 0) return parts;
+  const kk = cov && !mk.coverCounts ? k : k + 1, nn = cov && !mk.coverCounts ? n - 1 : n;
+  const label = mk && mk.fmt ? pagesNumberSay(mk.fmt, kk, nn) : pagesNumberLabel(kk, nn);
   const numOff = !!(mk && mk.num === 'off');
   if(o.mode === 'sign'){
     if(mk && mk.head) parts.push(`<div class="pg-run is-mark" data-al="${_pgAttr(mk.headAl || 'left')}" style="left:${d.pL}px;right:${d.pR}px;top:${top + Math.max(10, Math.round(d.mT * 0.42))}px" data-l="${_pgAttr(mk.head)}"></div>`);
-    else if((k > 0 || o.runningFirst) && o.running) parts.push(`<div class="pg-run" style="left:${d.pL}px;right:${d.pR}px;top:${top + Math.max(10, Math.round(d.mT * 0.42))}px" data-l="${_pgAttr(o.running)}"></div>`);
+    else if((k > (cov ? 1 : 0) || o.runningFirst) && o.running) parts.push(`<div class="pg-run" style="left:${d.pL}px;right:${d.pR}px;top:${top + Math.max(10, Math.round(d.mT * 0.42))}px" data-l="${_pgAttr(o.running)}"></div>`);
     const footTop = top + h - d.mB + Math.max(14, Math.round(d.mB * 0.28));
     /* THE DESIGN'S OWN FOOTER ON EVERY PAGE, carrying the page number — the
        caller builds it (it knows the design); a page with no footer says the
        number alone. */
     let fh = '';
-    try{ fh = typeof o.foot === 'function' ? String(o.foot(label, k, n) || '') : ''; }catch(_){ fh = ''; }
+    try{ fh = typeof o.foot === 'function' ? String(o.foot(label, kk - 1, nn) || '') : ''; }catch(_){ fh = ''; }
     /* A page added after somebody else's pages (their PDF's signature page)
        is not "Page 1 of 1" of anything, so it carries no number. */
     if(!fh && (o.noNumber || numOff)){ /* nothing */ } else parts.push(fh
@@ -642,7 +647,44 @@ function pagesMarksFor(c){
   if(!pm) return null;
   const fill = t => window.brFieldsFill ? window.brFieldsFill(t, c, db) : String(t || '');
   return { head: pm.headerPos && pm.headerText ? fill(pm.headerText) : '', headAl: pm.headerPos || null,
-    num: pm.pageNumPos || null, fmt: pm.pageNumFmt || null, foot: fill(db.footerText), company: String(db.companyName || '').trim() };
+    num: pm.pageNumPos || null, fmt: pm.pageNumFmt || null, foot: fill(db.footerText), company: String(db.companyName || '').trim(),
+    /* round 3: the signature block's layout and lines, the cover page */
+    sigLayout: pm.sigLayout || null, sigLines: Array.isArray(pm.sigLines) ? pm.sigLines.slice() : [],
+    cover: pm.coverOn === true, coverCounts: pm.coverCounts === true, logoUrl: db.logoUrl || null };
+}
+/* THE COVER PAGE'S WORDS (round 3), read off the record: the agreement's title, its parties, its reference and its date
+   (the effective date, else a line to write one on). Page furniture: never wording, never sealed into the text. */
+function pagesCoverFacts(c){
+  const T = (k, v, en) => { const t = window.i18t ? window.i18t(k, v) : ''; return t && t !== k ? t : en; };
+  let parties = [];
+  try{
+    if(typeof window.contractParties === 'function') parties = window.contractParties(c).filter(p => p && p.name).map(p => String(p.name));
+  }catch(_){ parties = []; }
+  if(!parties.length){
+    let us = ''; try{ us = (typeof window.contractParty === 'function' ? window.contractParty(c) : '') || window.FIRST_PARTY || ''; }catch(_){ us = ''; }
+    parties = [String(us || ''), String(c.counterparty || '')].filter(Boolean);
+  }
+  const eff = String(c.effectiveDate || (c.fields && c.fields.effDate) || '').trim();
+  const ref = String(c.contractNo || c.id || '').trim();
+  return { title: String(c.name || '').trim(), parties, ref,
+    between: parties.length ? T('cv_between', { list: parties.join(T('cv_and', null, ' and ')) }, 'Between ' + parties.join(' and ')) : '',
+    refLine: ref ? T('cv_ref', { ref }, 'Reference ' + ref) : '',
+    date: eff ? T('cv_date', { d: eff }, 'Date: ' + eff) : T('cv_date_blank', null, 'Date: ______________') };
+}
+function pagesCoverHtml(c){
+  const mk = pagesMarksFor(c); if(!mk || !mk.cover) return '';
+  const f = pagesCoverFacts(c);
+  const logo = mk.logoUrl && /^data:image\//.test(mk.logoUrl) ? `<img class="pg-cover-logo" src="${_pgAttr(mk.logoUrl)}" alt="">` : '';
+  return `<section class="pg-cover" data-pg-keep data-pg-cover aria-label="${_pgAttr(f.title)}">${logo}`
+    + `<div class="pg-cover-title">${_pgAttr(f.title)}</div>${f.between ? `<div class="pg-cover-between">${_pgAttr(f.between)}</div>` : ''}`
+    + `${f.refLine ? `<div class="pg-cover-ref">${_pgAttr(f.refLine)}</div>` : ''}<div class="pg-cover-date">${_pgAttr(f.date)}</div></section>`;
+}
+/* the same cover in the Word file we write: the paper's own lines (read back as paper, never as wording), then a page break */
+function pagesWordCoverHtml(c){
+  const mk = pagesMarksFor(c); if(!mk || !mk.cover) return '';
+  const f = pagesCoverFacts(c);
+  return [f.title, f.between, f.refLine, f.date].filter(Boolean).map(t => `<div class="rl-paper-sub">${_pgAttr(t)}</div>`).join('')
+    + '<div class="rl-paper-sub hati-pb"></div>';
 }
 /* THE SAME MARKS FOR THE WORD FILE WE WRITE (docxHeadFootXml): the header line, the footer line as the design prints
    it (the company's name, then the footer's words) and the number as Word's own fields in the reader's words */
@@ -650,7 +692,8 @@ function pagesWordHeadFoot(c){
   const mk = pagesMarksFor(c); if(!mk) return null;
   return { head: mk.head ? { text: mk.head, al: mk.headAl } : null,
     foot: { text: [mk.company, mk.foot].filter(Boolean).join(' · ') },
-    num: mk.num === 'off' ? null : { al: mk.num || null, words: pagesNumberSay(mk.fmt, '\u0001', '\u0002') } };
+    num: mk.num === 'off' ? null : { al: mk.num || null, words: pagesNumberSay(mk.fmt, '\u0001', '\u0002') },
+    cover: mk.cover ? { counts: !!mk.coverCounts } : null };
 }
 function pagesSignFoot(c, label, k, n){
   if(!c || typeof window === 'undefined') return '';
@@ -855,5 +898,5 @@ function pagesSignNames(root, c, opts){
   });
   return n;
 }
-if(typeof window !== 'undefined') Object.assign(window, { pagesLetterheadName, pagesMarksFor, pagesWordHeadFoot, pagesSignFoot, pagesSignFlags, pagesSignRows, pagesSignMarks, pagesSignNames, pagesSignNamesOff });
+if(typeof window !== 'undefined') Object.assign(window, { pagesLetterheadName, pagesMarksFor, pagesWordHeadFoot, pagesCoverFacts, pagesCoverHtml, pagesWordCoverHtml, pagesSignFoot, pagesSignFlags, pagesSignRows, pagesSignMarks, pagesSignNames, pagesSignNamesOff });
 if(typeof module !== 'undefined' && module.exports) Object.assign(module.exports, { pagesSignFoot, pagesLetterheadName });

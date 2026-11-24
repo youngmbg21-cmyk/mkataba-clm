@@ -3317,6 +3317,7 @@ function signCopySheetHtml(c, o){
     ? `${lay.font?`--font-doc:'${String(lay.font).replace(/['"<>;]/g,'')}','Source Serif 4',Georgia,serif;font-family:var(--font-doc);`:''}${lay.sizePt?`--doc-scale:${(lay.sizePt*96/72/14).toFixed(3)};`:''}` : '';
   return `<div class="pg-zoomwrap" id="${wrapId}">
     <div class="blueprint pg-sheet pg-sign" data-copy="sign"${attr}${ph?` data-pg-h="${ph}"`:''} style="padding:${pad};${size}${parts.sheet}"${parts.frame?` data-pg-frame="${esc(parts.frame)}"`:''}>
+      ${(!theirs&&window.pagesCoverHtml)?pagesCoverHtml(c):''}
       ${head}
       <article${artId} class="doc-surface${face?' sc-their-face':''}" style="background:transparent;${face}">${docSignBodyHtml(structured)}</article>
     </div>
@@ -11453,7 +11454,8 @@ function wordTrackedFile(c,opts){
   const side=(opts&&opts.side)==='counterparty'?'counterparty':'owner';
   /* what stays home stays out of the file too (shareHeldBackIds, the link payload's own list): the send passes it */
   const hidden=Array.isArray(opts&&opts.hiddenIds)?opts.hiddenIds:null;
-  const html=redlineDocHtml(c,hidden?{side,hiddenIds:hidden}:{side});
+  /* the cover page, where the look asks for one: the paper's own lines before the agreement (round 3), never wording */
+  const html=((window.pagesWordCoverHtml?pagesWordCoverHtml(c):'')||'')+redlineDocHtml(c,hidden?{side,hiddenIds:hidden}:{side});
   const me=(window.currentUser&&currentUser())||null;
   /* ---- THE EXTERNAL NOTES GO WITH IT, AS WORD COMMENTS (Young asked 11 Sep
      2026) ---- Every note in the EXTERNAL room, on a change or pinned to

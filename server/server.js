@@ -17358,6 +17358,20 @@ function executedPdf(c) {
   const hr = (color = '888888', wpt = 0.7, x1 = PDF_ML, x2 = PDF_PAGE_W - PDF_MR) =>
     ops.push(`q ${pdfRgb(color)} RG ${wpt} w ${x1} ${y.toFixed(1)} m ${x2} ${y.toFixed(1)} l S Q`);
   newPage();
+  /* THE COVER PAGE THE LOOK WAS SIGNED IN (round 3, 24 Nov 2026): the title, the parties, the reference and the date on
+     a page of its own before page one; never part of the sealed text, and not counted unless the look counts it */
+  const cvm = (b && b.pageMarks && b.pageMarks.coverOn === true) ? b.pageMarks : null;
+  if (cvm) {
+    const eff = String(c.effectiveDate || (c.fields && c.fields.effDate) || '').trim();
+    const us = (b && b.companyName) || (c.execution && c.execution.firstParty) || '';
+    const between = [us, c.counterparty].filter(Boolean).join(' and ');
+    y = PDF_PAGE_H / 2 + 60;
+    para(String(c.name || ''), { size: 22, font: F.bold, align: 'center', after: 14 });
+    if (between) para('Between ' + between, { size: 11, color: '43524f', align: 'center', after: 8 });
+    para('Reference ' + contractRef(c), { size: 9.5, color: '43524f', align: 'center', after: 24 });
+    para(eff ? 'Date: ' + eff : 'Date: ______________', { size: 9.5, color: '43524f', align: 'center', after: 0 });
+    newPage();
+  }
 
   // ---- header, per design family: logo, name, identity line, the band ----
   const company = (b && b.companyName) || (c.execution && c.execution.firstParty) || '';
@@ -17501,11 +17515,14 @@ function executedPdf(c) {
   const pm = (b && b.pageMarks) || null;
   const xAt = (w, al) => al === 'center' ? PDF_ML + (CW - w) / 2 : al === 'right' ? PDF_PAGE_W - PDF_MR - w : PDF_ML;
   const head = pm && pm.headerPos && pm.headerText ? brFieldsFill(pm.headerText, c, b) : '';
-  pages.forEach((pOps, i) => {
+  const cvSkip = cvm ? 1 : 0, cvCount = !!(cvm && cvm.coverCounts);
+  pages.forEach((pOps, i0) => {
+    if (cvSkip && i0 === 0) return;
+    const i = cvSkip && !cvCount ? i0 - 1 : i0;
     pOps.push(`BT /F4 7.5 Tf ${pdfRgb('8a949b')} rg 1 0 0 1 ${PDF_ML} ${(PDF_MB - 26).toFixed(1)} Tm (${pdfEsc([company, b && brFieldsFill(b.footerText, c, b)].filter(Boolean).join(' · '))}) Tj ET`);
     if (head) pOps.push(`BT /F4 7.5 Tf ${pdfRgb('8a949b')} rg 1 0 0 1 ${xAt(pdfTextW(head, 7.5, 'F4'), pm.headerPos).toFixed(1)} ${(PDF_PAGE_H - PDF_MT + 24).toFixed(1)} Tm (${pdfEsc(head)}) Tj ET`);
     if (pm && pm.pageNumPos === 'off') return;
-    const pn = brPageNumberSay(pm && pm.pageNumFmt, i + 1, pages.length);
+    const pn = brPageNumberSay(pm && pm.pageNumFmt, i + 1, pages.length - (cvSkip && !cvCount ? 1 : 0));
     const at = pm && pm.pageNumPos && pm.pageNumPos !== 'right' ? pm.pageNumPos : null;
     pOps.push(`BT /F4 7.5 Tf ${pdfRgb('8a949b')} rg 1 0 0 1 ${(at ? xAt(pdfTextW(pn, 7.5, 'F4'), at) : PDF_PAGE_W - PDF_MR - pdfTextW(pn, 7.5, 'F4')).toFixed(1)} ${(PDF_MB - 26 - (at ? 11 : 0)).toFixed(1)} Tm (${pdfEsc(pn)}) Tj ET`);
   });
