@@ -268,6 +268,8 @@ const PAGE_NUM_PLACES = ['left', 'center', 'right', 'off'];
 const PAGE_NUM_FORMATS = ['page-of', 'of', 'slash'];
 const PAGE_HEAD_MAX = 120;
 const PAGE_FIELDS = ['company', 'ref', 'title'];
+const SIG_LAYOUTS = ['columns', 'stacked'];
+const SIG_LINES = ['name', 'title', 'date', 'place'];
 function pageMarksClean(v) {
   if (v == null || v === '') return { marks: null, error: null };
   if (typeof v !== 'object' || Array.isArray(v)) return { marks: null, error: 'pageMarks must be an object' };
@@ -280,7 +282,22 @@ function pageMarksClean(v) {
   const pageNumFmt = v.pageNumFmt == null || v.pageNumFmt === '' ? null : String(v.pageNumFmt);
   if (pageNumFmt && !PAGE_NUM_FORMATS.includes(pageNumFmt)) return { marks: null, error: 'Unknown page number format' };
   const marks = { headerText: headerText && headerPos ? headerText : '', headerPos: headerText && headerPos ? headerPos : null, pageNumPos, pageNumFmt };
-  return { marks: (marks.headerPos || marks.pageNumPos || marks.pageNumFmt) ? marks : null, error: null };
+  /* ROUND 3 (24 Nov 2026): the signature block's layout and its labelled lines, and the cover page — said only where
+     set, so a look from before carries exactly the keys it had */
+  if (v.sigLayout != null && v.sigLayout !== '') {
+    if (!SIG_LAYOUTS.includes(String(v.sigLayout))) return { marks: null, error: 'Unknown layout for the signature block' };
+    marks.sigLayout = String(v.sigLayout);
+  }
+  if (v.sigLines != null) {
+    if (!Array.isArray(v.sigLines)) return { marks: null, error: 'sigLines must be a list' };
+    const bad = v.sigLines.find(x => !SIG_LINES.includes(String(x)));
+    if (bad != null) return { marks: null, error: 'Unknown line for the signature block' };
+    marks.sigLines = SIG_LINES.filter(x => v.sigLines.map(String).includes(x));
+  }
+  if (v.coverOn != null) marks.coverOn = v.coverOn === true;
+  if (v.coverCounts != null) marks.coverCounts = v.coverCounts === true;
+  const any = marks.headerPos || marks.pageNumPos || marks.pageNumFmt || marks.sigLayout || (marks.sigLines && marks.sigLines.length) || marks.coverOn;
+  return { marks: any ? marks : null, error: null };
 }
 /* A FIELD IS FILLED FROM THE CONTRACT, AND A FIELD WITH NO VALUE SAYS NOTHING — never "{ref}": the company's name, the
    contract's printed reference (contractRef: its number, else its id) and its title; the separators a gone field
@@ -756,10 +773,10 @@ if (typeof module !== 'undefined' && module.exports)
     accentLegible, pickAccentFromPixels, docDesignHeaderHtml, docDesignFooterHtml,
     docDesignPaperStyle, docDesignPaperAttr, docDesignBodyAttr, docDesignCoverPageHtml,
     DOC_STRUCTURES, DEFAULT_STRUCTURE, docStructureById, structureBlockedReason, docStructureBodyHtml,
-    PAGE_MARK_PLACES, PAGE_NUM_PLACES, PAGE_NUM_FORMATS, PAGE_HEAD_MAX, PAGE_FIELDS, pageMarksClean, brFieldsFill, brPageNumberSay };
+    PAGE_MARK_PLACES, PAGE_NUM_PLACES, PAGE_NUM_FORMATS, PAGE_HEAD_MAX, PAGE_FIELDS, pageMarksClean, brFieldsFill, brPageNumberSay, SIG_LAYOUTS, SIG_LINES };
 if (typeof window !== 'undefined')
   Object.assign(window, { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, docDesignById, normalizeDesignBranding,
     accentLegible, pickAccentFromPixels, extractAccentFromLogo, resolveDocBranding, orgBrandingSnapshot,
     docDesignHeaderHtml, docDesignFooterHtml, docDesignPaperStyle, docDesignPaperAttr, docDesignBodyAttr, docDesignCoverPageHtml,
     DOC_STRUCTURES, DEFAULT_STRUCTURE, docStructureById, structureBlockedReason, docStructureBodyHtml,
-    PAGE_MARK_PLACES, PAGE_NUM_PLACES, PAGE_NUM_FORMATS, PAGE_HEAD_MAX, PAGE_FIELDS, pageMarksClean, brFieldsFill, brPageNumberSay });
+    PAGE_MARK_PLACES, PAGE_NUM_PLACES, PAGE_NUM_FORMATS, PAGE_HEAD_MAX, PAGE_FIELDS, pageMarksClean, brFieldsFill, brPageNumberSay, SIG_LAYOUTS, SIG_LINES });

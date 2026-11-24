@@ -2454,7 +2454,12 @@ function docxHeadFootXml(hf){
   const run = t => t ? `<w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:t xml:space="preserve">${esc(t)}</w:t></w:r>` : '';
   const fld = f => `<w:fldSimple w:instr=" ${f} "><w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:t>1</w:t></w:r></w:fldSimple>`;
   const para = (al, inner) => `<w:p><w:pPr><w:jc w:val="${DOCX_HF_JC[al] || 'center'}"/></w:pPr>${inner}</w:p>`;
-  const numRuns = w => String(w || '').split(/(\u0001|\u0002)/).map(x => x === '\u0001' ? fld('PAGE') : x === '\u0002' ? fld('NUMPAGES') : run(x)).join('');
+  /* a cover that is not counted: Word starts at 0 on the cover (pgNumType) and hides its foot (titlePg), and the
+     count is NUMPAGES less one, a formula field around the NUMPAGES field */
+  const less = !!(hf.cover && !hf.cover.counts);
+  const fc = t => `<w:r><w:fldChar w:fldCharType="${t}"/></w:r>`, it = t => `<w:r><w:instrText xml:space="preserve">${t}</w:instrText></w:r>`;
+  const total = less ? fc('begin') + it(' = ') + fc('begin') + it(' NUMPAGES ') + fc('separate') + run('2') + fc('end') + it(' - 1 ') + fc('separate') + run('1') + fc('end') : fld('NUMPAGES');
+  const numRuns = w => String(w || '').split(/(\u0001|\u0002)/).map(x => x === '\u0001' ? fld('PAGE') : x === '\u0002' ? total : run(x)).join('');
   const head = hf.head && hf.head.text ? para(hf.head.al, run(hf.head.text)) : '';
   const ft = hf.foot && hf.foot.text ? String(hf.foot.text) : '';
   const num = hf.num && hf.num.words ? hf.num : null;
@@ -2464,7 +2469,8 @@ function docxHeadFootXml(hf){
   const NS = `${DOCX_NS} xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"`;
   return {
     header: head ? `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr ${NS}>${head}</w:hdr>` : null,
-    footer: foot ? `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr ${NS}>${foot}</w:ftr>` : null };
+    footer: foot ? `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr ${NS}>${foot}</w:ftr>` : null,
+    sect: hf.cover ? (less ? '<w:pgNumType w:start="0"/><w:titlePg/>' : '<w:titlePg/>') : '' };
 }
 
 /* The export, end to end: redline HTML in, .docx bytes out.
@@ -2489,6 +2495,7 @@ function docxExportTracked(html, opts = {}){
       + '<Relationship Id="rId4" Type="http://schemas.microsoft.com/office/2011/relationships/commentsExtended" Target="commentsExtended.xml"/></Relationships>')
     : DOCX_DOC_RELS;
   let typesHf = types, relsHf = rels, docHf = built.document;
+  if (hfx && hfx.sect) docHf = docHf.replace(/<\/w:sectPr>(?![\s\S]*<\/w:sectPr>)/, hfx.sect + '</w:sectPr>');
   if (hfx && (hfx.header || hfx.footer)){
     let refs = '';
     if (hfx.header){

@@ -14125,6 +14125,20 @@
   .pg-pnum{margin-top:4px;font-size:11px;line-height:14px;color:var(--color-doc-muted);text-align:center}
   .pg-pnum[data-al="left"]{text-align:left}
   .pg-pnum[data-al="right"]{text-align:right}
+  /* ROUND 3 (24 Nov 2026): the cover page, page one of the signing copy, never wording — and the signature block's
+     stacked layout and labelled lines (rlPaperFootHtml); a line with a signature given shows the signature, not blanks */
+  .pg-cover{height:950px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;break-after:page;color:var(--color-doc-text)}
+  .pg-cover-logo{max-height:64px;max-width:220px;object-fit:contain;margin-bottom:18px}
+  .pg-cover-title{font-family:var(--font-doc);font-size:30px;line-height:1.25;font-weight:var(--w-strong);max-width:80%}
+  .pg-cover-between{font-size:15px;color:var(--color-doc-muted);max-width:80%}
+  .pg-cover-ref,.pg-cover-date{font-size:13px;color:var(--color-doc-muted)}
+  .pg-cover-date{margin-top:28px}
+  .rl-paper-foot.is-stacked{flex-direction:column;gap:30px}
+  .rl-paper-foot.is-stacked .rl-sigline{max-width:60%}
+  .rl-siglines{display:block;margin-top:6px;font-size:calc(12px * var(--doc-scale,1));line-height:2;color:var(--color-doc-muted)}
+  .rl-sigrow{white-space:nowrap;overflow:hidden;text-overflow:clip}
+  .rl-sigblank{letter-spacing:-.05em;opacity:.7}
+  .rl-sigline.pg-signed .rl-siglines{display:none}
   .pg-theirfoot::before{content:attr(data-l)}
   /* THEIR PAPER AS IT CAME: their own file in the browser's viewer, then the
      page they sign on (js/views/contract.js signCopyTheirs). */
@@ -23524,6 +23538,7 @@
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-pv-pages{display:flex;gap:6px;flex-wrap:wrap}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-pv-pages:empty{display:none}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-pv-thumb{width:26px;height:34px;border:0;border-radius:3px;background:var(--color-surface);box-shadow:var(--shadow-sm);font-size:10px;color:var(--color-quiet);cursor:pointer;padding:0}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-pv-thumb.is-cover{width:auto;padding:0 6px}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-pv-thumb.is-on{outline:2px solid var(--accent-ink);color:var(--color-text)}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-pv-none{margin:0;font-size:12.5px;color:var(--color-quiet)}
   /* the panel's quality check: a soft dot, the finding, its door — plain lines, no cards */
