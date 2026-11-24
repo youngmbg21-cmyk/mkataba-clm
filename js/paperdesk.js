@@ -9593,9 +9593,26 @@ function pd2CtlPill(show){
   pill.textContent = _pdTn('pd2_ctl_pill', n, { n });
   pill.hidden = false;
 }
+/* NO SKID MARKS (owner, 24 Nov 2026: "when I scroll up while in the redline paper page, it looks like the all notes button
+   is leaving skid marks"): the pinned controls were moved by a transform set a frame after the scroll had already carried
+   them, so each frame they were drawn twice. Pinned, each is now HELD where the window shows it — fixed to its place at the
+   top of the paper's window, measured once as it pins — so the scroll never carries it and nothing is redrawn per frame;
+   unpinned, its own place in the paper comes back. (No ancestor of these is transformed, so fixed is the window's.) */
+function pd2CtlHold(el, sc, st){
+  if (el.dataset.pd2Held) return;
+  el.style.transform = '';
+  const r = el.getBoundingClientRect();
+  el.dataset.pd2Held = '1';
+  Object.assign(el.style, { position: 'fixed', top: Math.round(r.top + st) + 'px', left: Math.round(r.left) + 'px', right: 'auto', width: Math.round(r.width) + 'px' });
+}
+function pd2CtlLetGo(el){
+  if (!el.dataset.pd2Held) return;
+  delete el.dataset.pd2Held;
+  Object.assign(el.style, { position: '', top: '', left: '', right: '', width: '' });
+}
 function pd2CtlApply(sc){
   const st = sc.scrollTop, pin = _pd2Ctl.pinned && st > PD2_CTL_TOP;
-  pd2CtlEls().forEach(el => { el.style.transform = pin ? `translateY(${st}px)` : ''; el.classList.toggle('is-ctl-pinned', pin); });
+  pd2CtlEls().forEach(el => { if (pin) pd2CtlHold(el, sc, st); else pd2CtlLetGo(el); el.classList.toggle('is-ctl-pinned', pin); });
   pd2CtlPill(!pin && st > PD2_CTL_TOP && !!document.getElementById('pd2-notes'));
 }
 function pd2CtlArm(){
@@ -9613,6 +9630,9 @@ function pd2CtlArm(){
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._pd2CtlWired){ document._pd2CtlWired = true;
   document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('[data-pd2-ctl-back]') : null; if (!b) return;
     e.preventDefault(); const sc = document.getElementById('ig-paper-scroll'); if (!sc) return; _pd2Ctl.pinned = true; pd2CtlApply(sc); });
+  /* a held control is measured again when the window changes size */
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('resize', () => {
+    const sc = document.getElementById('ig-paper-scroll'); pd2CtlEls().forEach(pd2CtlLetGo); if (sc) pd2CtlApply(sc); });
 }
 function pd2NotesPaint(c, seat){
   try { pd2CtlArm(); } catch (_){}

@@ -29,7 +29,7 @@ const fnSrc = (src, name) => {
 };
 
 function sandbox(pts, tab){
-  const ctx = { _cePts: pts, _ceTab: tab || 'chat', ceClause: () => ({}), ceClauseLabel: () => '3. Pricing and Payment',
+  const ctx = { _cePts: pts, _ceTab: tab || 'chat', ceTabbed: () => false /* f1219: the tab's own section is drawn there */, ceClause: () => ({}), ceClauseLabel: () => '3. Pricing and Payment',
     _cee: s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'), _ceea: s => String(s),
     _cet: k => ({ stk_watch_h: 'What to watch', ce_pts_tick: 'Include', ce_pts_none: 'Tick a point to draft a fix', ce_pts_off: 'Not now', ce_pts_prompt: 'PROMPT:' }[k] || k),
     _cetn: (k, n, v) => k === 'ce_pts_say' ? 'You came from ' + v.what + ' on ' + v.clause + ' · ' + n + ' points.' : k + '|' + n + '|' + JSON.stringify(v || {}) };

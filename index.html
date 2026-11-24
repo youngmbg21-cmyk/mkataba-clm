@@ -26442,6 +26442,58 @@
      quiet and drawn in line as Obligations' "Filter" box, never Jambo's green filled spark (his box at the panel's foot
      asks). One closing rule, scoped above every page's own spark rule (the #ct-place one included), with no importance flag (scope wins the fight) */
   html.lg-new :is(#ct-place, body) .apn-ask.is-filter svg, html.lg-new :is(#ct-place, body) .apn-ask.is-filter svg path{color:var(--color-quiet);fill:none;stroke:currentColor}
+  /* THE EDITOR TAB, AS DRAWN (owner, 24 Nov 2026: "the panel is not consistent … the content of the tab as well is very very
+     poor"; "put the whole strip of the buttons at the center of the panel"): the same frame as the Dossier, Clauses and
+     Redlines — the tab strip in the middle with the fold arrow at the end, the Clauses tab's own row, the clause as one line
+     with its badge, sections with quiet capital heads and lines under each row, the bottom row and the links line */
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]{justify-content:center;position:relative}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .flex-1{display:none}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > #igd-collapse#igd-collapse{position:absolute;right:16px;top:50%;margin:0;transform:translateY(-50%)}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .pd-tab:not(:has(+ .pd-tab)){margin-right:0}
+  html.lg-new #clause-editor.is-tabbed .ce-tabtop{padding:12px 18px 0;gap:12px}
+  html.lg-new #clause-editor.is-tabbed .ce-drow{position:relative;display:flex;justify-content:center;align-items:center;margin:0 -18px;min-height:32px}
+  html.lg-new #clause-editor.is-tabbed .ce-drow > .ce-dtabs{align-self:center}
+  html.lg-new #clause-editor.is-tabbed .ce-dfold{position:absolute;right:16px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:999px;background:none;color:var(--color-quiet);font:inherit;font-size:18px;line-height:1;cursor:pointer}
+  html.lg-new #clause-editor.is-tabbed .ce-dfold:hover{background:var(--surface-2);color:var(--color-text)}
+  html.lg-new #clause-editor.is-tabbed .ce-tnav{display:flex;align-items:center;gap:8px;margin:4px 0 0;font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new #clause-editor.is-tabbed .ce-tnav .sp{flex:1}
+  html.lg-new #clause-editor.is-tabbed :is(.ce-tback, .ce-tall, .ce-shgo, .ce-tlinks button, .ce-tundo){border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
+  html.lg-new #clause-editor.is-tabbed .ce-tnav .ce-tar{display:grid;place-items:center;width:26px;height:26px;padding:0;border-radius:50%;border:1px solid var(--btn-edge);background:var(--color-surface);color:var(--color-text);font-size:15px;line-height:1}
+  html.lg-new #clause-editor.is-tabbed .ce-tnav .ce-tar:disabled{opacity:.4;cursor:default}
+  html.lg-new #clause-editor.is-tabbed .ce-tnav .ce-tk{font-variant-numeric:tabular-nums}
+  html.lg-new #clause-editor.is-tabbed .ce-thd{display:flex;align-items:flex-start;gap:10px;padding:2px 0 12px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new #clause-editor.is-tabbed .ce-thn{flex:none;width:22px;padding-top:3px;font-size:13px;color:var(--color-quiet)}
+  html.lg-new #clause-editor.is-tabbed .ce-thw{flex:1;min-width:0}
+  html.lg-new #clause-editor.is-tabbed .ce-thd .ce-th{margin:0;font-family:inherit;font-size:17px;line-height:24px;font-weight:var(--w-strong);color:var(--color-text)}
+  html.lg-new #clause-editor.is-tabbed .ce-thd .ce-tsub{margin:2px 0 0;font-size:12.5px;line-height:18px;color:var(--color-quiet)}
+  html.lg-new #clause-editor.is-tabbed .ce-tbadge{flex:none;display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:var(--w-label);white-space:nowrap}
+  html.lg-new #clause-editor.is-tabbed .ce-tbadge > i{width:6px;height:6px;border-radius:50%}
+  html.lg-new #clause-editor.is-tabbed .ce-tbadge.k-need{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new #clause-editor.is-tabbed .ce-tbadge.k-need > i{background:var(--st-ruby-dot)}
+  html.lg-new #clause-editor.is-tabbed .ce-tbadge.k-look{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new #clause-editor.is-tabbed .ce-tbadge.k-look > i{background:var(--st-amber-dot)}
+  html.lg-new #clause-editor.is-tabbed #ce-lane{flex:0 1 auto;min-height:0;padding:0 18px}
+  html.lg-new #clause-editor.is-tabbed .ce-rail > .ce-tabfoot{margin-top:auto}
+  html.lg-new #clause-editor.is-tabbed .ce-sec{margin:16px 0 0}
+  html.lg-new #clause-editor.is-tabbed .ce-sh{display:flex;align-items:center;justify-content:space-between;margin:0 0 4px;font-size:12px;letter-spacing:.05em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new #clause-editor.is-tabbed .ce-sh .ce-shgo{font-size:12.5px;letter-spacing:0;text-transform:none}
+  html.lg-new #clause-editor.is-tabbed .ce-pts.is-tab .ce-pts-list{margin:0;padding:0;list-style:none}
+  html.lg-new #clause-editor.is-tabbed .ce-pts.is-tab .ce-pt{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;padding:10px 0;border-bottom:1px solid var(--color-divider);font-size:13px;line-height:19px}
+  html.lg-new #clause-editor.is-tabbed .ce-pts.is-tab .ce-pt-tick{display:grid;place-items:center;width:16px;height:16px;margin-top:2px;padding:0;border:1px solid var(--color-neutral-400);border-radius:4px;background:var(--color-surface);color:var(--color-surface);cursor:pointer}
+  html.lg-new #clause-editor.is-tabbed .ce-pts.is-tab .ce-pt.is-on .ce-pt-tick{border-color:var(--color-text);background:var(--color-text)}
+  html.lg-new #clause-editor.is-tabbed .ce-pts.is-tab .ce-pt-q{display:block;margin-top:4px;font-family:var(--font-doc);font-style:italic;color:var(--color-quiet)}
+  html.lg-new #clause-editor.is-tabbed .ce-pts.is-tab .ce-pt-q q{quotes:"\201C" "\201D"}
+  html.lg-new #clause-editor.is-tabbed .ce-tdraft{display:block;width:100%;height:36px;margin:14px 0 0;border:0;border-radius:999px;background:var(--color-text);color:var(--color-surface);font:inherit;font-size:13px;font-weight:var(--w-strong);cursor:pointer}
+  html.lg-new #clause-editor.is-tabbed .ce-tdraft:disabled{background:var(--surface-2);color:var(--color-quiet);cursor:default}
+  html.lg-new #clause-editor.is-tabbed .ce-tlad .ce-lcard{margin:0}
+  html.lg-new #clause-editor.is-tabbed .ce-tchg{order:2;margin:0;padding:22px 18px 0}
+  html.lg-new #clause-editor.is-tabbed .ce-tchg .ce-trow{margin:0;padding:10px 0;border-bottom:1px solid var(--color-divider);font-size:13px;color:var(--color-quiet)}
+  html.lg-new #clause-editor.is-tabbed .ce-tchg .ce-tundo{margin-left:6px;font-size:13px}
+  html.lg-new #clause-editor.is-tabbed .ce-tabfoot{display:block;margin:0 18px;padding:0;border-top:1px solid var(--color-divider)}
+  html.lg-new #clause-editor.is-tabbed .ce-tfrow{display:flex;align-items:center;gap:10px;padding:10px 0;font-size:13px;color:var(--color-quiet)}
+  html.lg-new #clause-editor.is-tabbed .ce-tfrow .w{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new #clause-editor.is-tabbed .ce-tlinks{display:flex;gap:16px;padding:2px 0 10px;font-size:13px}
+  html.lg-new #clause-editor.is-tabbed :is(#ce-chips, #ce-railfoot){display:none}
   /* THE EDITOR TAB'S SAVE IN THE BOTTOM ROW (owner's pick, 24 Nov 2026): the File button over the panel's foot is not drawn
      (its press is the bottom row's, data-ce-tsave); the row's button is the same grey pill, its words saying it files (Jambo's own act keeps the
      panel's one filled button); a foot with nothing left in it (no Undo) takes no room */
