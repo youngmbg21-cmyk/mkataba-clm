@@ -9616,12 +9616,44 @@ ${String(text)}`;
    company's market; a fact the sentence does not give is left as a bracketed blank for a person to fill, never
    invented. The company's standards that touch the section ride in as positions it must keep. Nothing is filed:
    the browser assembles the paper and a person presses Create (the one creator, the upload's own). Editors only. */
-const SECTION_SENTENCE_MAX = 2000, SECTION_TEXT_MAX = 2400;
+const SECTION_SENTENCE_MAX = 2000, SECTION_TEXT_MAX = 2400, SECTION_ASK_MAX = 3;
 app.post('/api/ai/section', auth, editor, rlAiLight, aiFeature('draft'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
   const b = req.body || {};
   const said = String(b.sentence || '').trim().slice(0, SECTION_SENTENCE_MAX);
+  /* JAMBO ASKS FIRST (the Builder's Contract switch, owner's yes 24 Nov 2026: "Jambo can initially ask me questions if
+     clarity is needed"): `ask: true` writes nothing — it returns at most SECTION_ASK_MAX short questions, each with two
+     to four answers and his usual pick, ONLY for what the person's words and the paper's own headings do not already
+     settle; none needed is an empty list, never an invented question. The browser asks them one at a time and sends
+     the answers with each section it then writes (below), one call each. */
+  if (b.ask === true) {
+    if (!said) return res.status(400).json({ error: 'A sentence is required' });
+    const secs = (Array.isArray(b.sections) ? b.sections : []).slice(0, 40)
+      .map(x => x && typeof x === 'object' ? `${clean(x.heading).slice(0, 120)}${x.written ? ' (already written)' : ' (empty)'}` : '').filter(Boolean);
+    const Ja = orgJx();
+    const askTool = { name: 'ask_first', description: 'The few questions a drafter must answer before the empty sections of a contract can be written.',
+      input_schema: { type: 'object', properties: { questions: { type: 'array', maxItems: SECTION_ASK_MAX, items: { type: 'object', properties: {
+        question: { type: 'string', description: 'One short plain question, under 100 characters.' },
+        options: { type: 'array', minItems: 2, maxItems: 4, items: { type: 'string' }, description: 'Two to four short answers a person would pick from, each under 50 characters.' },
+        usual: { type: 'integer', description: 'The index of the answer most contracts of this kind use, or -1 if none is usual.' } },
+        required: ['question', 'options'] } } }, required: ['questions'] } };
+    const askPrompt = `A drafter is about to have the empty sections of a contract written, governed by ${Ja.adjective} law. They said: "${said}"\n\n`
+      + (secs.length ? `The contract's sections: ${secs.join('; ')}.\n\n` : '')
+      + `Ask AT MOST ${SECTION_ASK_MAX} short questions whose answers change the wording of the EMPTY sections, and ONLY where their words do not already answer it. `
+      + `Never ask for a name, an address or a figure (those stay blanks). If nothing needs asking, return an empty list.\n\nReturn via the ask_first tool.`;
+    try {
+      const resp = await anthropicMessages(key, 'fast', { max_tokens: 900, tools: [askTool], tool_choice: { type: 'tool', name: 'ask_first' }, messages: [{ role: 'user', content: askPrompt }] }, { feature: 'draft', who: aiWho(req) });
+      if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
+      const block = (resp.data.content || []).find(x => x.type === 'tool_use');
+      const qs = (Array.isArray(block && block.input && block.input.questions) ? block.input.questions : []).slice(0, SECTION_ASK_MAX)
+        .map(q => { const options = (Array.isArray(q && q.options) ? q.options : []).map(o => clean(o).slice(0, 80)).filter(Boolean).slice(0, 4);
+          const u = Number.isInteger(q && q.usual) && q.usual >= 0 && q.usual < options.length ? q.usual : -1;
+          return { question: clean(q && q.question).slice(0, 200), options, usual: u }; })
+        .filter(q => q.question && q.options.length >= 2);
+      return res.json({ questions: qs, ...(resp.truncated ? { truncated: true } : {}), ...aiNotice(req, resp) });
+    } catch (e) { return res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
+  }
   const heading = clean(b.heading).slice(0, 120);
   if (!said || !heading) return res.status(400).json({ error: 'A sentence and a heading are required' });
   const intent = clean(b.intent).slice(0, 300);

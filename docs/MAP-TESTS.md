@@ -546,6 +546,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - A colleague: f921, f562, send-to-a-colleague verify, a-pass-is-a-hand-off verify.
 
 ## THE TEMPLATES PAGE, THE BUILDER, AND NEW STANDARDS
+- THE TOP BAR, A TEMPLATE'S PAGE, CLAUSE N ⇄ CONTRACT (24 Nov 2026): `test/f1202-builder-bar-template-page-whole-contract.test.js` (8, red at the parent; presses the tag, answers, Apply all and Discard all in a built page); browser `test/chromium/builder-ls-verify.js` 6a–6e (GitHub). Re-pointed: f907 (the strip's words), f880 (the line's order), f148 (two Swedish-same keys).
 - 17 Nov 2026: Our paper, Shelves then the Legora way — f1091; f1049 (8), f977 (20, 22, 23) and f1069 (2) re-pointed.
 - 17 Nov 2026: Our paper's folders as Cover flow — f1091 (2), (6) re-pointed, (7) added.
 - 17 Nov 2026: the paper at full size, Make it ours a door to New agreement — f1091 (8) added (red at the parent), (6) re-pointed; f1049 (2) and browser `paper-first-verify` 3 re-pointed. Run with f376, f334, f368, f937.
