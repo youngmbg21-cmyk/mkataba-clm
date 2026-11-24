@@ -46,3 +46,11 @@ test('f1220 (5) the words, both books', () => {
   for (const k of ['ce_tab_unfiled', 'ce_tab_asked', 'ce_tab_asked_x', 'ce_tab_before', 'ce_tab_answer'])
     assert.equal((I.match(new RegExp('^    ' + k + ': ', 'gm')) || []).length, 2, k);
 });
+
+test('f1220 (6) Your answer is its own block, a line above it, so Accept and Reject sit with what they asked', () => {
+  const fs = require('node:fs'), path = require('node:path');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js/views/clauseeditor.js'), 'utf8');
+  assert.match(src, /<div class="ce-tansb"><div class="ce-sh ce-tans-h">/, 'the answer wrapped in its own block');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  assert.match(css, /#clause-editor\.is-tabbed \.ce-tasked \.ce-tansb\{[^}]*border-top:1px solid var\(--color-divider\)/, 'a line above it, as every other block');
+});
