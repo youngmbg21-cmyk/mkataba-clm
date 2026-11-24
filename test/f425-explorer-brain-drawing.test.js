@@ -61,7 +61,8 @@ test('f425 (1) the drawing: a canvas under the nodes, the views and Fold all on 
   assert.match(r, /<div id="ig-gwrap" class="ig-brain"/);
   assert.match(r, /<canvas id="ig-cv" aria-hidden="true"><\/canvas>/);
   assert.ok(r.indexOf('id="ig-cv"') < r.indexOf('<svg id="ig-svg"'), 'the canvas is under the SVG');
-  assert.match(r, /IGB_VIEWS\.map\(\(v,i\)=>`<button type="button" data-ig-view="\$\{i\}"/);
+  /* RE-POINTED 24 Nov 2026 (owner: Brain and Wiring hidden for now): a hidden view draws no button (igbViewShown) */
+  assert.match(r, /IGB_VIEWS\.map\(\(v,i\)=>igbViewShown\(i\)\?`<button type="button" data-ig-view="\$\{i\}"/);
   assert.match(r, /id="ig-foldall"/);
   assert.match(r, /data-ig-zoom="out"/);
   assert.match(IG, /const IGB_VIEWS=\['brain','wiring','floors','grid','timeline'\];/, 'five views since the view recipe (f426)');
