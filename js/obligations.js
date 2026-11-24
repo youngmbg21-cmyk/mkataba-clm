@@ -1684,9 +1684,12 @@ function openDutiesPage(c, found, o){
        #renewal-host, NEEDS_LAND): the one decision card, drawn into its holder once the panel stands; empty, it hides */
     const rnHost = Rn && (Rn.end || Rn.by) ? '<div id="renewal-host" class="empty:hidden pd-rn-decide" data-bare="1" data-compact="1"></div>' : '';
     if (rnHost && typeof window.renderRenewalSection === 'function') setTimeout(() => { try { if (document.querySelector('[data-obdf] #renewal-host')) window.renderRenewalSection(getContract(c.id) || c); } catch (_){} }, 0);
+    /* …and the words the renewal was read from, quoted with the clause they stand under, as the old tab's renewal lines
+       said them (owner, 22 Oct 2026, the Legora way): the one reader, pdObRenewQuoteHtml; nothing when none was read */
+    let rnQ = ''; try { rnQ = (Rn && Rn.quote && typeof window.pdObRenewQuoteHtml === 'function') ? window.pdObRenewQuoteHtml(c, Rn) : ''; } catch (_){ rnQ = ''; }
     const acts = may() ? `<div class="obdf-acts">${n ? `<button type="button" class="ui-btn ui-btn-primary" data-dtp-first>${E(i18t('dtp_first'))} ›</button>` : ''}<button type="button" class="ui-btn" data-dtp-own>+ ${E(i18t('dtp_own'))}</button></div>` : '';
     return `<div class="obdf" data-obdf><p class="obdf-eye">${E(i18t('dtp_title') + ' · ' + ref)}</p><h3 class="obdf-t">${E(head)}</h3>
-      ${Rn && Rn.end ? fact(i18t('dtp_ends'), day(Rn.end)) : ''}${Rn && Rn.by ? fact(i18t('dtp_notice'), day(Rn.by)) : ''}
+      ${Rn && Rn.end ? fact(i18t('dtp_ends'), day(Rn.end)) : ''}${Rn && Rn.by ? fact(i18t('dtp_notice'), day(Rn.by)) : ''}${rnQ ? `<div class="pd-rn-q obdf-rnq">${rnQ}</div>` : ''}
       ${fact(i18t('dtp_t_on'), i18t('dtp_on_split', { n: R.length, us: R.length - them, them }))}
       ${tl.length ? `<p class="obdf-h">${E(i18t('dtp_life'))}</p><ol class="obdf-tl">${tl.map(([t, d, k]) => `<li class="is-${k || 'x'}"><span>${E(t)}</span><small>${E(d)}</small></li>`).join('')}</ol>` : ''}
       ${acts}${rnHost}</div>`;

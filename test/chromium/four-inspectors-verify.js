@@ -206,9 +206,12 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     await page.evaluate(id => roomGoTab(getContract(id), 'oblig'), staged.c1);
     await page.waitForFunction(id => window.intel && intel.paper && String(intel.paper.id) === id && !!document.querySelector('#dtp tr.dtp-r[data-dtp-rec]'), staged.c1, { timeout: 8000 }).catch(() => {});
     await page.screenshot({ path: path.join(OUT, '2-tab.png') });
+    /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end": the Duties page stands in the middle as a PAGE, and a page's
+       title is lifted into its white head band, dlgPageAdopt): the title is asked of the page holding #dtp, not inside it */
     const tab = await page.evaluate(() => { const done = i18t('dtp_st_done');
+      const pg = (document.getElementById('dtp') || { closest: () => null }).closest('[data-dlg-page]');
       return { rows: document.querySelectorAll('#dtp tr.dtp-r[data-dtp-rec]').length,
-        title: ((document.querySelector('#dtp .obd-title') || {}).textContent || '').trim(),
+        title: (((pg || document).querySelector('.dlg-pg-title .obd-title, #dtp .obd-title') || {}).textContent || '').trim(),
         done: [...document.querySelectorAll('#dtp tr.dtp-r[data-dtp-rec] .dtp-c-st')].filter(td => td.textContent.trim() === done).length }; });
     ok('2a the page lists every duty as a row under its title', tab.rows >= 3 && !!tab.title, tab);
     ok('2b what is completed is shown too, with its Done badge', tab.done === 1 && tab.rows === 4, tab);
