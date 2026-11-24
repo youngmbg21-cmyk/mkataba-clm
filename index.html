@@ -19377,7 +19377,8 @@
   html.lg-new #pd-thread .doc-th-menu > button:hover{background:var(--row-hover)}
   html.lg-new #pd-thread .doc-th-prog{flex:1 0 100%;display:block;height:3px;margin-top:8px;border-radius:2px;background:var(--color-neutral-200);overflow:hidden}
   html.lg-new #pd-thread .doc-th-prog > i{display:block;height:100%;width:var(--p);background:var(--st-green-dot)}
-  html.lg-new #pd-thread .doc-th-pgx .doc-th-pgbtn{height:var(--ctl-h-sm);padding:0 12px;font-size:12.5px}
+  /* the small rung reaches the floor too (.ui-btn's min-height is the everyday rung) and the word is the one label weight */
+  html.lg-new #pd-thread .doc-th-pgx .doc-th-pgbtn{height:var(--ctl-h-sm);min-height:var(--ctl-h-sm);padding:0 12px;font-size:12.5px;font-weight:var(--w-label)}
   html.lg-new #pd-thread .doc-th-found{padding-top:12px}
   html.lg-new #pd-thread .doc-th-found .h{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--color-quiet)}
   html.lg-new #pd-thread .doc-th-found .h b{font-weight:var(--w-label)}
@@ -19387,7 +19388,7 @@
   html.lg-new #pd-thread .doc-th-fi > .pd2-badge{flex:none}
   html.lg-new #pd-thread .doc-th-fi > .doc-th-pgl{flex:none}
   html.lg-new #pd-thread .doc-th-pgl.is-link{font-size:13px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
-  html.lg-new #pd-thread .doc-th-pga .doc-th-nx-go{height:var(--ctl-h-sm);padding:0 12px;font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new #pd-thread .doc-th-pga .doc-th-nx-go{height:var(--ctl-h-sm);min-height:var(--ctl-h-sm);padding:0 12px;font-weight:var(--w-label);font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   html.lg-new #clause-editor.is-tabbed .ce-col{position:relative}
   html.lg-new #clause-editor.is-tabbed .ce-left{padding-top:52px}
   /* the ground behind the paper is the paper pages' own warm grey (owner, 24 Nov 2026: "like the other pages with paper") */
