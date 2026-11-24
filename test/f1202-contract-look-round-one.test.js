@@ -61,7 +61,8 @@ test('f1202 (1) two tabs carrying their counts, and nothing of a later round', (
   assert.match(page, /<form class="apn-ask sdd-find st-ls-find cl-ask" id="cl-ask"/, 'one ask box, the same sentence reader');
   const all = strip(D.slice(D.indexOf('const CL_AA'), D.indexOf('function clPageHtml()')));
   /* RE-POINTED 24 Nov 2026 (contract look round 4): the Brand kit is built now; History and the second admin are still a later round */
-  assert.doesNotMatch(all, /cl_ls_tab_hist|History|Send for approval|coming soon|data-cl-hist/i, 'no tab or control of a later round');
+  /* RE-POINTED 24 Nov 2026 (contract look round 6): the last round built History and Send for approval; still no dead "coming soon" */
+  assert.doesNotMatch(all, /coming soon/i, 'no dead control');
   const ctx = world({ designId: 'classic-letterhead' });
   const h = vm.runInContext('clTabsHtml(clParts())', ctx);
   /* RE-POINTED 24 Nov 2026 (contract look round 2): two more parts, Header and Page numbers */
@@ -168,7 +169,8 @@ test('f1202 (6) the panel: no money, no History; Jambo\'s box stays at its foot'
   const p = fn(S, 'stLsLookPanel');
   assert.match(p, /window\.clPanelFacts\(\)/, 'the panel reads the page\'s own facts');
   assert.match(p, /groups:\[\{ label:i18t\('cl_ls_p_quality'\), rows:\[\], html:qc \}\]/, 'plain sections: the quality check is the last one; no History');
-  assert.doesNotMatch(p, /value|fmtMoney|money|currency|hist/i);
+  /* RE-POINTED 24 Nov 2026 (contract look round 6): the panel now has a History branch (cl_hist_*); still no money */
+  assert.doesNotMatch(p, /value|fmtMoney|money|currency/i);
   assert.match(fn(S, 'stLsPanelPaint'), /insPaintPanel\(\{ seat:'team'/, 'the shared panel painter, which keeps Jambo\'s box at the foot');
   assert.doesNotMatch(strip(D.slice(D.indexOf('const CL_AA'), D.indexOf('function clPageHtml()'))), /fmtMoney|canViewValues|\.value\b/);
 });

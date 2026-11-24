@@ -634,14 +634,15 @@ function ndPieces(){
    or the piece Jambo prepared for it, ND_AL_PIECES), and the rest joins the
    one desk as a row of its own ('al'), so nothing the bell rang about is lost
    now that it counts what Home counts. */
-const ND_NEWS = ['review-out', 'ap-cleared', 'dep-allowed', 'std-approved', 'std-refused', 'gift', 'settings-answer', 'finding-sent', 'finding-answer', 'stream-self', 'nego-news'];
+const ND_NEWS = ['review-out', 'ap-cleared', 'dep-allowed', 'std-approved', 'std-refused', 'look-approved', 'look-sent-back', 'gift', 'settings-answer', 'finding-sent', 'finding-answer', 'stream-self', 'nego-news'];
 const ND_AL_ROWS = { 'review-mine': ['review'], suggest: ['suggest'], look: ['look'], details: ['details'], 'note-mine': ['note'], approval: ['approval', 'refused'], 'ap-refused': ['refused'], 'desk-quiet': ['quiet'], 'desk-join': ['join'], negotiation: ['quiet'], renewal: ['renewal'], signature: ['sign'] };
 const ND_AL_PIECES = { negotiation: ['answer'], 'desk-quiet': ['answer'], renewal: ['renewal', 'notice'], details: ['read'] };
 /* the admin's own list (stNeedsAll) already holds these: the setup or company row stands for them, last of
    Your move. The mail warning (the owner moved it off the page onto the bell) leads that row's line */
 const ND_AL_ADMIN = ['settings-ask', 'access-review', 'email-off'];
-const ND_AL_KIND = { negotiation: 'review', 'review-back': 'review', 'suggest-back': 'review', 'cp-ready': 'sign', 'cp-accepted': 'sign', handover: 'sign', signature: 'sign', link: 'sign', mailroom: 'details', renewal: 'renewal', obligation: 'duty', 'cert-lapsed': 'duty', approval: 'approval', 'ap-refused': 'approval', 'dep-refused': 'approval', 'desk-quiet': 'review', 'review-mine': 'review', details: 'details' };
-const ND_AL_BTN = { negotiation: 'review', 'review-back': 'review', 'suggest-back': 'review', 'desk-quiet': 'review', 'review-mine': 'review', 'cp-ready': 'sign', 'cp-accepted': 'sign', signature: 'sign', approval: 'decide', 'ap-refused': 'decide', renewal: 'decide', mailroom: 'look', details: 'fill', 'finding-ask': 'answer', 'settings-ask': 'answer', 'desk-join': 'answer' };
+/* a look change waiting for a second admin (round 6) is its OWN row, from the bell's look-wait (a decision): never folded into the company row */
+const ND_AL_KIND = { 'look-wait': 'approval', negotiation: 'review', 'review-back': 'review', 'suggest-back': 'review', 'cp-ready': 'sign', 'cp-accepted': 'sign', handover: 'sign', signature: 'sign', link: 'sign', mailroom: 'details', renewal: 'renewal', obligation: 'duty', 'cert-lapsed': 'duty', approval: 'approval', 'ap-refused': 'approval', 'dep-refused': 'approval', 'desk-quiet': 'review', 'review-mine': 'review', details: 'details' };
+const ND_AL_BTN = { 'look-wait': 'decide', negotiation: 'review', 'review-back': 'review', 'suggest-back': 'review', 'desk-quiet': 'review', 'review-mine': 'review', 'cp-ready': 'sign', 'cp-accepted': 'sign', signature: 'sign', approval: 'decide', 'ap-refused': 'decide', renewal: 'decide', mailroom: 'look', details: 'fill', 'finding-ask': 'answer', 'settings-ask': 'answer', 'desk-join': 'answer' };
 function ndIsNews(a){ return !!a && (ND_NEWS.includes(a.kind) || (a.kind === 'watch' && !a.fired)); }
 /* WORK GOES ONLY TO WHO CAN DO IT (owner, 20 Nov 2026): for a company Viewer every alert that asks for an act is told
    as NEWS — under the bell's News tab, never counted — but their own note falling due and a watch of theirs that

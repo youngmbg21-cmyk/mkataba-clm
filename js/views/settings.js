@@ -1373,6 +1373,7 @@ function stNeedsAll(){
   /* the quarter's access review, until it is done (piece 8) */
   const arRow=stArNeedRow(); if(arRow){ const m=/^(\d{4})-Q(\d)$/.exec(String((stAr()||{}).quarter||'')); out.push(m?{ ...arRow, at:new Date(+m[1],(+m[2]-1)*3,1).toISOString() }:arRow); }
   /* (a change to a standard waiting for a yes is on Approvals & signing's second pile, owner 17 Nov 2026 — not here) */
+  /* (a look change waiting for a second admin is its own row on the Board, the bell and the phone — the bell's look-wait, round 6 — not here) */
   /* contracts past their keeping period, waiting for an admin's yes (piece 10) */
   stKpNeedRows().forEach(r=>out.push(r));
   const unset=stCapUnset();
@@ -2589,12 +2590,27 @@ function stLsLookPanel(){
       groups:[{ label:i18t(w.own?'cl_ls_p_differs':'cl_ls_p_wears'), rows:[], html:rows, foot:link,
         more:w.own&&w.kind==='stream'?{ label:i18t('cl_use_company'), attr:`data-st-ls-cl="stream-x:${PB_ATTR(w.fid)}"` }:null }] };
   }
+  /* ROUND 6: on History, the change chosen — its badge, title, who proposed it, Approve and Send back for an admin who
+     may decide (else who can), before and after, who it reaches, its trail */
+  if(f.hist){
+    const h=f.hist, line=(tn,t)=>`<div class="cl-qc"><i class="cl-qc-dot is-${tn}" aria-hidden="true"></i><span>${esc(t)}</span></div>`;
+    const ba=`<div class="cl-qc-list">${h.parts.map(p=>`<div class="cl-ba"><b>${esc(p.name)}</b><span class="cl-ba-v"><i>${esc(i18t('cl_hist_before'))}</i> “${esc(p.before)}”</span><span class="cl-ba-v"><i>${esc(i18t('cl_hist_after'))}</i> “${esc(p.after)}”</span></div>`).join('')}</div>`;
+    const reach=`<p class="st-ls-small">${esc(i18t('cl_hist_reach',{ u:h.reach.unsigned, s:h.reach.signed, n:h.reach.streams }))}</p>`;
+    const trail=`<div class="cl-qc-list">${h.trail.map(x=>line(x.tone,x.t)).join('')}</div>`;
+    const act=h.mayDecide?{ label:i18t('cl_hist_approve'), attr:`data-st-ls-cl="ap-yes:${PB_ATTR(h.id)}"`, links:[{ label:i18t('cl_hist_send_back'), attr:`data-st-ls-cl="ap-back:${PB_ATTR(h.id)}"` }] }
+      :h.mine?{ say:i18t('cl_hist_who_decides',{ names:h.deciders.join(', ')||i18t('cl_hist_another') }), links:[{ label:i18t('cl_hist_withdraw'), attr:`data-st-ls-cl="ap-withdraw:${PB_ATTR(h.id)}"` }] }
+      :h.state==='waiting'?{ say:i18t('cl_hist_admin_decides') }:null;
+    return { eyebrow:i18t('cl_hist_tab'), title:h.title, tag:{ text:h.tagText, tone:h.tagTone }, sub:h.sub, act,
+      groups:[{ label:i18t('cl_hist_g_ba'), rows:[], html:ba }, { label:i18t('cl_hist_g_reach'), rows:[], html:reach }, { label:i18t('cl_hist_g_trail'), rows:[], html:trail }] };
+  }
   const tone={ amber:'amber', ruby:'ruby', green:'green' };
   const qc=`<div class="cl-qc-list">${f.quality.map(q=>`<div class="cl-qc"><i class="cl-qc-dot is-${tone[q.tone]||'grey'}" aria-hidden="true"></i><span>${esc(q.t)}</span>${q.go?`<button type="button" class="jov-lnk cl-qc-go" ${q.go.attr}>${esc(q.go.label)}</button>`:'<span class="cl-qc-ok" aria-hidden="true">✓</span>'}</div>`).join('')}</div>`;
   const ringSay=f.owed.length?i18t('cl_ls_p_ring_owed',{ n:f.set, m:f.of, what:f.owed.join(', ') }):i18t('cl_ls_p_ring_all',{ m:f.of });
   return { eyebrow:i18t('cl_title'),
     /* round 4: on the Brand kit tab the headline says the kit */
     title:f.tab==='kit'?i18t('cl_kit_p_t',{ n:f.kitSet, m:f.kitOf }):f.editing?i18t('cl_ls_p_t_stream',{ style:f.style, name:f.editing }):i18t('cl_ls_p_t',{ style:f.style, n:f.follow, m:f.streams }),
+    /* round 6: a change waiting is said in the panel's head line */
+    sub:f.waiting?i18t('cl_ap_waiting_line',{ who:f.waiting.by, day:f.waiting.day }):'',
     mid:`<div class="sdd5-today">${sdd5RingHtml(f.set,f.of,f.owed.length?'amber':'green',i18t('cl_ls_p_ring_cap'))}<p>${esc(ringSay)}</p></div>`,
     groups:[{ label:i18t('cl_ls_p_quality'), rows:[], html:qc }] };
 }

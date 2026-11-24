@@ -2473,6 +2473,11 @@ const ALERT_KINDS = [
   { k:'dep-allowed', tone:'green', ic:'&#9989;'  },
   { k:'std-approved',tone:'green', ic:'&#9989;'  },
   { k:'std-refused', tone:'amber', ic:'&#8617;'  },
+  /* HOW OUR CONTRACTS LOOK, ROUND 6 (owner, 24 Nov 2026): a look change waiting for a second admin, on every OTHER
+     admin's bell until it is decided (the company row on the Board stands for it too); the proposer told the answer */
+  { k:'look-wait',   tone:'amber', ic:'🎨' },
+  { k:'look-approved', tone:'green', ic:'✅' },
+  { k:'look-sent-back', tone:'amber', ic:'↩' },
   /* ---- DETAILS STILL TO FILL IN (owner, 12 Oct 2026) ----
      A contract this reader owns with boxes still empty on its Details tab
      (detailsOf, the tab's own count); the press opens that tab. Amber: work
@@ -2616,6 +2621,24 @@ function alStandardsAnswers(me, cs){
     const go=()=>{ if(typeof caOpenStandards==='function') caOpenStandards(); else if(typeof setView==='function') setView('playbook'); };
     out.push({ kind:yes?'std-approved':'std-refused', c:null, go, text:i18t(yes?'al_std_approved':'al_std_refused',{ name, who:ch.decidedBy||'' }),
       extra:Object.assign({ tint:yes?'yes':'no', name }, q(ch.decidedWhy)) });
+  });
+  return out;
+}
+/* THE LOOK'S WAITING CHANGE AND ITS ANSWER (round 6), read off what the browser holds (state.settings.lookChanges, the
+   server's own record): the wait for every admin but its author, the answer for its author for ALERT_STD_DAYS */
+function alLookRows(me){
+  const out=[], since=Date.now()-ALERT_STD_DAYS*864e5, mine=id=>me&&String(id||'')===String(me.id);
+  const chs=(state.settings&&Array.isArray(state.settings.lookChanges))?state.settings.lookChanges:[];
+  const go=id=>()=>{ if(typeof window.clHistGo==='function') window.clHistGo(id); };
+  chs.forEach(ch=>{
+    if(!ch) return;
+    if(ch.state==='waiting'&&me&&me.role==='admin'&&!mine(ch.byId))
+      out.push({ kind:'look-wait', c:null, go:go(ch.id), text:i18t('al_look_wait',{ who:ch.by||'' }), extra:ch.note?{ sub:'“'+String(ch.note).slice(0,140)+'”' }:{} });
+    else if(mine(ch.byId)&&['approved','sent-back'].includes(ch.state)&&Date.parse(ch.decidedAt||'')>=since&&!mine(ch.decidedById)){
+      const yes=ch.state==='approved';
+      out.push({ kind:yes?'look-approved':'look-sent-back', c:null, go:go(ch.id), text:i18t(yes?'al_look_approved':'al_look_sent_back',{ who:ch.decidedBy||'' }),
+        extra:Object.assign({ tint:yes?'yes':'no' }, ch.decidedWhy?{ sub:'“'+String(ch.decidedWhy).slice(0,140)+'”' }:{}) });
+    }
   });
   return out;
 }
@@ -2914,6 +2937,7 @@ function buildAlerts(){
     });
     /* ---- A DECISION ON A STANDARD (owner, 17 Nov 2026) ---- */
     if(meNow&&typeof alStandardsAnswers==='function') alStandardsAnswers(meNow, cs).forEach(x=>push(x.kind, x.c, x.text, x.go, x.extra));
+    if(meNow&&typeof alLookRows==='function') alLookRows(meNow).forEach(x=>push(x.kind, x.c, x.text, x.go, x.extra));
     /* ---- A NEGOTIATION GONE QUIET, AND A COLLEAGUE ASKING TO JOIN ----
        (24 Sep 2026.) Read off the same slices the approvals above ride on —
        myStaleDesks and myJoinAsks, which were "Needs your decision"'s own two
@@ -5125,6 +5149,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{alStandardsAnswers,ALERT_STD_DAYS,GUIDE_NL,guidePanelNlHtml,LP_WAIT_MAX,LP_CHIPS,LP_EMOJI,lpRows,lpItems,lpQuoteOf,lpWaits,lpBodyHtml,lpSideHtml,lpSideOn,lpFootHtml,lpChipsHtml,lpIsOpen,lpToggle,lpWire,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,placeBackOn,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
+Object.assign(window,{alStandardsAnswers,alLookRows,ALERT_STD_DAYS,GUIDE_NL,guidePanelNlHtml,LP_WAIT_MAX,LP_CHIPS,LP_EMOJI,lpRows,lpItems,lpQuoteOf,lpWaits,lpBodyHtml,lpSideHtml,lpSideOn,lpFootHtml,lpChipsHtml,lpIsOpen,lpToggle,lpWire,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,placeBackOn,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
   buildAlerts,alertCount,updateAlertBadge,jamboBoxFocus,JB_BOX_SEL,JB_BOX_TRIES,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,alertsShowTab,activityPanelHtml,actSayOf,ACT_SAYS,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,activityFeedState,relTime});
 Object.assign(window,{BP});

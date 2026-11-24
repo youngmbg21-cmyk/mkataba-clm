@@ -7216,6 +7216,8 @@ app.put('/api/settings', auth, admin, (req, res) => {
     if ('playbook' in stored) incoming.playbook = stored.playbook; else delete incoming.playbook;
   }
   if ('standardChanges' in stored) incoming.standardChanges = stored.standardChanges; else delete incoming.standardChanges;
+  /* the look's history and its waiting change are their own routes' (round 6), never a settings blob's */
+  if ('lookChanges' in stored) incoming.lookChanges = stored.lookChanges; else delete incoming.lookChanges;
   if (((incoming.linkCode || {}).on) && !((stored.linkCode || {}).on) && !EMAIL_ON())
     return res.status(409).json({ error: 'Email is not set up, so a guest could never receive the code. Set up email first, then switch this on.', linkCodeNeedsEmail: true });
   setSetting('appSettings', incoming);
@@ -30513,7 +30515,105 @@ app.put('/api/templates/:id/look', auth, admin, passwordCurrent, (req, res) => {
     .run(now(), t.id);
   res.json({ ok: true });
 });
-app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) => {
+/* ---- ROUND 6 (owner, 24 Nov 2026): HOW OUR CONTRACTS LOOK — A SECOND ADMIN'S YES, AND THE HISTORY ----
+   THE LADDER'S WAY, ONE WAY (POST /api/standards/changes … /decide … /withdraw): an admin PROPOSES a look change — the
+   before and after of exactly the look columns it moves, read off the stored row and the row a dry save would write —
+   and ANY OTHER ADMIN approves it (applied here by srvBrandingSave, every check a direct save runs) or sends it back
+   with a note; the proposer may withdraw it. One change waits at a time: your own is replaced, a colleague's is said.
+   If the stored look moved since the proposal the yes is refused (a conflict), with the way forward. With ONE admin the
+   save applies at once, recorded as theirs. The record is appSettings.lookChanges (its own routes only, as
+   standardChanges is); a logo is kept as a fingerprint once decided, never re-shipped to every browser. History starts
+   with this round: nothing before it is invented. */
+const LOOK_COLS = { logo_url: 'logoUrl', default_footer_text: 'defaultFooterText', design_id: 'designId', logo_position: 'logoPosition',
+  accent_color: 'accentColor', accent_source: 'accentSource', structure_id: 'structureId', stream_looks: 'streamLooks', page_marks: 'pageMarks',
+  logo_black_url: 'logoBlackUrl', brand_palette: 'palette' };
+const LOOK_KEYS = Object.values(LOOK_COLS);
+const LOOK_LOGO_KEYS = ['logoUrl', 'logoBlackUrl'];
+const LOOK_CHANGES_KEEP = 60, LOOK_NOTE_MAX = 280;
+const lkNorm = (col, v) => (v == null || v === '' || (col === 'stream_looks' && v === '{}')) ? '' : String(v);
+function lkMoved(stored, next){ return Object.keys(LOOK_COLS).filter(col => lkNorm(col, (stored || {})[col]) !== lkNorm(col, (next || {})[col])); }
+function lkAdminCount(){ return db.prepare("SELECT COUNT(*) AS n FROM users WHERE role='admin'").get().n; }
+const lkHash = v => v ? 'sha256:' + crypto.createHash('sha256').update(String(v)).digest('hex').slice(0, 16) : null;
+/* a row's look, in the route's own words (orgBrandingView), for the keys named */
+function lkViewOf(row, keys){ const v = orgBrandingView(Object.assign({}, row || {})) || {}; const o = {}; keys.forEach(k => { o[k] = v[k] === undefined ? null : v[k]; }); return o; }
+function lkChangeOf(stored, next, cols, user, x){
+  const keys = cols.map(c => LOOK_COLS[c]);
+  const before = lkViewOf(stored, keys), after = lkViewOf(next, keys);
+  LOOK_LOGO_KEYS.forEach(k => { if (k in before) before[k] = lkHash(before[k]); });
+  if (x.state !== 'waiting') LOOK_LOGO_KEYS.forEach(k => { if (k in after) after[k] = lkHash(after[k]); });
+  return { id: 'lc-' + crypto.randomBytes(6).toString('hex'), keys, before, after, note: String(x.note || '').replace(/\s+/g, ' ').trim().slice(0, LOOK_NOTE_MAX),
+    byId: String(user.id), by: user.name || user.email || '', at: new Date().toISOString(), state: x.state, ...(x.revert ? { revertOf: x.revert } : {}) };
+}
+function lkChangesOf(st){ return Array.isArray(st && st.lookChanges) ? st.lookChanges : []; }
+function lkRecord(ch){ const st = getSetting('appSettings') || {}; setSetting('appSettings', { ...st, lookChanges: [...lkChangesOf(st), ch].slice(-LOOK_CHANGES_KEEP) }); }
+function lkSave(list){ const st = getSetting('appSettings') || {}; setSetting('appSettings', { ...st, lookChanges: list.slice(-LOOK_CHANGES_KEEP) }); return list; }
+/* a proposal: the look keys only, cleaned by a dry save; nothing that does not move is kept */
+function lkPropose(body, user, opts = {}){
+  if (user.role !== 'admin') return { status: 403, body: { error: 'Only an admin may change how our contracts look.' } };
+  if (lkAdminCount() < 2) return { status: 409, body: { error: 'You are the only admin, so Save applies the look at once.', onlyAdmin: true } };
+  const set = {}; LOOK_KEYS.forEach(k => { if (body && Object.prototype.hasOwnProperty.call(body, k)) set[k] = body[k]; });
+  const dry = srvBrandingSave(set, user, { dry: true });
+  if (dry.status !== 200) return dry;
+  const cols = lkMoved(dry.stored, dry.next);
+  if (!cols.length) return { status: 400, body: { error: 'Nothing in the look would change.' } };
+  const all = lkChangesOf(getSetting('appSettings') || {});
+  const other = all.find(c => c.state === 'waiting' && String(c.byId) !== String(user.id));
+  if (other) return { status: 409, body: { error: `A change by ${other.by || 'a colleague'} is already waiting for a second admin. It must be decided first.`, waitingBy: other.by || '' } };
+  const ch = lkChangeOf(dry.stored, dry.next, cols, user, { state: 'waiting', note: body && body.note, revert: opts.revert });
+  const list = lkSave([...all.filter(c => !(c.state === 'waiting' && String(c.byId) === String(user.id))), ch]);
+  return { status: 200, body: { ok: true, change: ch, lookChanges: list } };
+}
+app.get('/api/look/changes', auth, (req, res) => res.json({ lookChanges: lkChangesOf(getSetting('appSettings') || {}) }));
+app.post('/api/look/changes', auth, (req, res) => { const r = lkPropose(req.body || {}, req.user); res.status(r.status).json(r.body); });
+app.post('/api/look/changes/:id/decide', auth, (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Only an admin may decide a change to how our contracts look.' });
+  const all = lkChangesOf(getSetting('appSettings') || {});
+  const ch = all.find(c => c.id === req.params.id);
+  if (!ch || ch.state !== 'waiting') return res.status(404).json({ error: 'This change has already been decided or withdrawn.' });
+  if (String(ch.byId) === String(req.user.id)) return res.status(409).json({ error: 'You proposed this change, so another admin must decide it.', own: true });
+  const yes = !!(req.body || {}).yes, at = new Date().toISOString();
+  const why = String((req.body || {}).why || '').replace(/\s+/g, ' ').trim().slice(0, LOOK_NOTE_MAX);
+  if (yes) {
+    /* A CONFLICT: the stored look moved since the proposal — refused, with the way forward */
+    const stored = db.prepare('SELECT * FROM org_branding WHERE org_id=?').get(WORKSPACE_ID) || {};
+    const now0 = lkViewOf(stored, ch.keys); LOOK_LOGO_KEYS.forEach(k => { if (k in now0) now0[k] = lkHash(now0[k]); });
+    if (JSON.stringify(now0) !== JSON.stringify(ch.before))
+      return res.status(409).json({ error: 'The look changed since this was proposed. Send it back, and propose it again on the look as it is now.', conflict: true });
+    const r = srvBrandingSave(ch.after, Object.assign({}, req.user), {});
+    if (r.status !== 200) return res.status(r.status).json(r.body);
+  }
+  const done = { ...ch, state: yes ? 'approved' : 'sent-back', decidedById: String(req.user.id), decidedBy: req.user.name || req.user.email || '', decidedAt: at, decidedWhy: why };
+  LOOK_LOGO_KEYS.forEach(k => { if (done.after && k in done.after) done.after = { ...done.after, [k]: lkHash(done.after[k]) }; });
+  const list = lkSave(all.map(c => c.id === ch.id ? done : c));
+  res.json({ ok: true, change: done, lookChanges: list });
+});
+app.post('/api/look/changes/:id/withdraw', auth, (req, res) => {
+  const all = lkChangesOf(getSetting('appSettings') || {});
+  const ch = all.find(c => c.id === req.params.id);
+  if (!ch || ch.state !== 'waiting') return res.status(404).json({ error: 'This change has already been decided or withdrawn.' });
+  if (String(ch.byId) !== String(req.user.id)) return res.status(403).json({ error: 'Only the admin who proposed a change may withdraw it.' });
+  const list = lkSave(all.map(c => c.id === ch.id ? { ...c, state: 'withdrawn', decidedAt: new Date().toISOString() } : c));
+  res.json({ ok: true, lookChanges: list });
+});
+/* GO BACK TO IT: the old values of a decided change, proposed again as a new change that waits the same way (a logo
+   kept only as its fingerprint cannot be brought back, and says so) */
+app.post('/api/look/changes/:id/revert', auth, (req, res) => {
+  const all = lkChangesOf(getSetting('appSettings') || {});
+  const ch = all.find(c => c.id === req.params.id);
+  if (!ch || !['approved', 'saved'].includes(ch.state)) return res.status(404).json({ error: 'Only an applied change can be gone back to.' });
+  const back = {}; let logo = false;
+  (ch.keys || []).forEach(k => { const v = (ch.before || {})[k]; if (LOOK_LOGO_KEYS.includes(k) && v) { logo = true; return; } back[k] = v; });
+  if (logo && !Object.keys(back).length) return res.status(409).json({ error: 'A logo is kept only as its fingerprint once decided, so it cannot be brought back here. Upload it again.', logo: true });
+  const r = lkPropose(Object.assign(back, { note: (req.body || {}).note || '' }), req.user, { revert: ch.id });
+  res.status(r.status).json(r.body);
+});
+/* ONE SAVE OF THE ORG BRANDING ROW (round 6 made it a function so a proposed look change is applied, when another admin
+   approves it, by EXACTLY the checks a direct save runs): returns { status, body } and, unless `opts.dry`, writes. A
+   dry run also hands back the row it would write (`next`), so a caller can ask which look columns would move. */
+function srvBrandingSave(b0, user, opts = {}) {
+  const out = { status: 200, body: { ok: true } };
+  const res = { status(code) { out.status = code; return { json(x) { out.body = x; return out; } }; }, json(x) { out.body = x; return out; } };
+  const req = { body: b0 || {}, user };
   const b = req.body || {};
   /* ---------- A KEY THIS SAVE DOES NOT CARRY IS A KEY IT DOES NOT TOUCH ----------
      This route writes one row with ON CONFLICT DO UPDATE, so every field it did
@@ -30644,6 +30744,12 @@ app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) 
   let structureId = _struct == null || _struct === '' ? null : String(_struct);
   if (structureId && !DOC_STRUCTURES.some(x => x.id === structureId)) return res.status(400).json({ error: 'Unknown document structure' });
   if (structureId === DEFAULT_STRUCTURE) structureId = null;
+  const nextRow = Object.assign({}, stored, { logo_url: logo, company_name: clean(keep('companyName', 'company_name')).slice(0, 200),
+    registration_number: clean(keep('registrationNumber', 'registration_number')).slice(0, 100), address: clean(keep('address', 'address')).slice(0, 500),
+    default_footer_text: clean(keep('defaultFooterText', 'default_footer_text')).slice(0, 500), design_id: designId, logo_position: logoPosition,
+    accent_color: accentKept, accent_source: accentSource, structure_id: structureId, stream_looks: JSON.stringify(streamLooks),
+    page_marks: pageMarks ? JSON.stringify(pageMarks) : null, logo_black_url: logoBlack, brand_palette: palette ? JSON.stringify(palette) : null });
+  if (opts.dry) { out.next = nextRow; out.stored = stored; return out; }
   db.prepare(`INSERT INTO org_branding (org_id,logo_url,company_name,registration_number,address,default_footer_text,
       design_id,logo_position,accent_color,accent_source,structure_id,stream_looks,page_marks,logo_black_url,brand_palette,set_by,set_at,updated_at)
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
@@ -30662,7 +30768,21 @@ app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) 
       clean(keep('defaultFooterText', 'default_footer_text')).slice(0, 500),
       designId, logoPosition, accentKept, accentSource, structureId, JSON.stringify(streamLooks), pageMarks ? JSON.stringify(pageMarks) : null,
       logoBlack, palette ? JSON.stringify(palette) : null, req.user.name, now(), now());
-  res.json({ ok: true });
+  return out;
+}
+app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) => {
+  /* ROUND 6 (owner, 24 Nov 2026): A LOOK CHANGE WAITS FOR A SECOND ADMIN. Asked as a DIFFERENCE against the stored row
+     after every check has run (a dry save): moving any look column while another admin exists is refused with the way
+     forward (send it for approval); with ONE admin the save applies at once and is recorded in the look's history.
+     Company & market's identity (name, number, address) is not the look and saves as it always did. */
+  const dry = srvBrandingSave(req.body, req.user, { dry: true });
+  if (dry.status !== 200) return res.status(dry.status).json(dry.body);
+  const moved = lkMoved(dry.stored, dry.next);
+  if (moved.length && req.user.role === 'admin' && lkAdminCount() > 1)
+    return res.status(409).json({ error: 'With more than one admin, a change to how our contracts look waits for a second admin. Send it for approval from Settings → How our contracts look.', needsApproval: true, keys: moved.map(c => LOOK_COLS[c]) });
+  const r = srvBrandingSave(req.body, req.user);
+  if (r.status === 200 && moved.length) lkRecord(lkChangeOf(dry.stored, dry.next, moved, req.user, { state: 'saved', note: '' }));
+  res.status(r.status).json(r.body);
 });
 app.get('/api/org/profile-values', auth, (req, res) => {
   const rows = db.prepare('SELECT field_key, value FROM org_profile_values WHERE org_id=?').all(WORKSPACE_ID);
