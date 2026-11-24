@@ -26443,6 +26443,11 @@
   html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]{column-gap:0}
   html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .pd-tab{position:relative;isolation:isolate;height:32px;margin:0;padding:0 9px;border-radius:0;background:var(--surface-2);color:var(--color-neutral-600)}
   html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab:nth-of-type(5)) > .pd-tab{padding:0 7px}
+  /* six tabs (Dossier · Email · Plan · Clauses · Redlines · Editor) at the owner's 1440 screen: the switch draws tighter so
+     the fold arrow stays inside the panel (four-decisions Q2), every word still whole */
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab:nth-of-type(6)) > .pd-tab{padding:0 5px}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab:nth-of-type(6)) > .pd-tab:first-child{padding-left:8px}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab:nth-of-type(6)) > .pd-tab:not(:has(+ .pd-tab)){padding-right:8px;margin-right:4px}
   html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .pd-tab:first-child{margin-left:0;padding-left:11px;border-radius:999px 0 0 999px}
   html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .pd-tab:not(:has(+ .pd-tab)){margin-right:8px;padding-right:11px;border-radius:0 999px 999px 0}
   html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .pd-tab:first-child:not(:has(+ .pd-tab)){border-radius:999px}
