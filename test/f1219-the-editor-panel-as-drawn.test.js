@@ -19,7 +19,7 @@ const fn = (S, name) => { const i = S.indexOf('function ' + name + '('); assert.
 const E = 'html.lg-new #clause-editor.is-tabbed';
 
 test('f1219 (1) the strip in the middle, the fold arrow at the end', () => {
-  assert.ok(H.includes('html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]{justify-content:center;position:relative}'));
+  assert.ok(H.includes('html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab){justify-content:center;position:relative}'));
   assert.ok(H.includes('#igd-collapse#igd-collapse{position:absolute;right:16px;'));
   const p = fn(CE, 'ceTabPaint');
   assert.match(p, /<div class="ce-drow"><div class="ce-dtabs" role="tablist">\$\{tabs\}<\/div><button type="button" class="ce-dfold" data-ce-dfold/);
