@@ -192,3 +192,10 @@ test('f1198 (7) arriving on the page reads the list again (the start-up copy for
   assert.match(V, /const arriving = !document\.getElementById\('nb-page'\);/);
   assert.match(V, /if \(\(_nb\.docs == null \|\| arriving\) && !_nb\.busy\)\{ _nb\.busy = true; nbLoad\(_nb\.docs != null\)/);
 });
+
+test('f1198 (8) an empty notebook asks nothing: no example questions, its one press is Add a document', () => {
+  const V = R('js/views/notebook.js');
+  const i = V.indexOf('function nbOverviewPanelHtml'); const body = V.slice(i, V.indexOf('\nfunction ', i + 10)).replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.match(body, /asks: L\.length \? \[ask\(_nbT\('nb_ov_q1'\)\), ask\(_nbT\('nb_ov_q2'\)\)\] : \[\]/);
+  assert.match(body, /act: L\.length \|\| _nb\.docs == null \|\| _nb\.err \? null : \{ label: '\+ ' \+ _nbT\('nb_add'\), run: \(\) => nbAddOpen\(\) \}/);
+});
