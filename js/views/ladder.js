@@ -31,6 +31,8 @@
    logAudit, persist, renderAIFeed, ai, landOn, diffHtml, todayISO, jlTalkOpen, regDotDate, langLocale, copilotAvailable */
 
 const _ld = { pick: null, mode: 'ladder', edit: null, jbBusy: false, moreOpen: null, book: null, q: '', depPick: null, hPick: null };
+/* Jambo still writing a position (aiThinkingNow keeps the conversation's dots through a redraw) */
+const ldJbThinking = () => !!_ld.jbBusy;
 const LD_FIRM_ORDER = ['must', 'push', 'nice', 'never'];
 const LD_DEPS_SHOWN = 3;
 const LD_REVIEW_SOON_DAYS = 30;
@@ -862,4 +864,4 @@ if (typeof document !== 'undefined' && !document._ldInputWired){
   /* the edit panel's "still to fill" follows the words as they are typed */
   document.addEventListener('input', ev => { const t = ev.target; if (!t || !t.closest || !t.closest('.ld-edit') || !_ld.edit) return; clearTimeout(document._ldPanT); document._ldPanT = setTimeout(() => { if (_ld.edit && state.view === 'playbook') ldPaintPanel(ldStandards(), null); }, 300); });
 }
-Object.assign(window, { ld6Badge, ld6FirmBadge, ld6DepRows, ld6HistRows, ld6DepFive, ld6HistFive, ld6EditFive, ld6StripHtml, ldGoApprovals, ldDepKeysMine, ldFirmWord, ldWho, ldBookLabel, ldPickSet, ldDepRun, ldAfterDecide, ldBookNow, ldBookSet, renderStandardsPage, ldPaintHead, ldStandards, ldPicked, ldChanges, ldMayDecide, ldStartEdit, ldSendOpen, ldDecideOpen, ldWithdraw, ldWrite, ldJbDraftHtml, ldJbPut, ldJbUndo, ldPanelFive });
+Object.assign(window, { ldJbThinking, ld6Badge, ld6FirmBadge, ld6DepRows, ld6HistRows, ld6DepFive, ld6HistFive, ld6EditFive, ld6StripHtml, ldGoApprovals, ldDepKeysMine, ldFirmWord, ldWho, ldBookLabel, ldPickSet, ldDepRun, ldAfterDecide, ldBookNow, ldBookSet, renderStandardsPage, ldPaintHead, ldStandards, ldPicked, ldChanges, ldMayDecide, ldStartEdit, ldSendOpen, ldDecideOpen, ldWithdraw, ldWrite, ldJbDraftHtml, ldJbPut, ldJbUndo, ldPanelFive });

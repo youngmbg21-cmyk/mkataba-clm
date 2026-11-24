@@ -126,6 +126,7 @@ describe('the line under the answer, one builder', () => {
   });
   test('both books carry its words', () => {
     assert.equal((I18N_SRC.match(/ai_deep_line: '/g) || []).length, 2);
-    assert.equal((I18N_SRC.match(/ai_deep_line_cost: '[^']*\{cost\}/g) || []).length, 2);
+    /* RE-POINTED 24 Nov 2026 (owner: "you do not quote the costs for the AI work"; f1210): the cost words are retired */
+    assert.equal((I18N_SRC.match(/ai_deep_line_cost: '',/g) || []).length, 2);
   });
 });
