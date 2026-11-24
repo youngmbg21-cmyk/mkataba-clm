@@ -68,7 +68,8 @@ const lineOnce = (page, host) => page.evaluate(h => {
       check(L.found, `${tag} · window: the line is drawn under a judgement answer`, JSON.stringify(L));
       check(L.painted, `${tag} · window: it is a painted pixel, not hidden`);
       check(L.oneLine && L.inside, `${tag} · window: one line, inside its answer`);
-      check(/stronger model/.test(L.text || '') && /\$/.test(L.text || ''), `${tag} · window: says the stronger model and, to an admin, the cost`, L.text);
+      /* RE-POINTED 24 Nov 2026 (owner: "you do not quote the costs for the AI work"; f1210): the stronger model, no cost */
+      check(/stronger model/.test(L.text || '') && !/\$/.test(L.text || ''), `${tag} · window: says the stronger model, never what it cost`, L.text);
       await page.screenshot({ path: path.join(OUT, `${tag}-window.png`) });
 
       ai.reset(); ai.script(answer('Three agreements expire this year.'));
