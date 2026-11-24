@@ -11467,7 +11467,8 @@ function wordTrackedFile(c,opts){
   /* the look's header and page numbers as Word's own header and footer (contract look round 2) */
   const out=docxExportTracked(html,{author:(opts&&opts.author)||(me&&me.name)||'HaTi',
     comments:wordCommentsOf(c,side,hidden?{hiddenIds:hidden}:undefined),
-    headFoot:window.pagesWordHeadFoot?pagesWordHeadFoot(c):null});
+    headFoot:window.pagesWordHeadFoot?pagesWordHeadFoot(c):null,
+    fonts:window.pagesWordFonts?pagesWordFonts(c):null});
   return { bytes:out.bytes, tracked:out.tracked, comments:out.comments,
     name:`${(window.contractRef?contractRef(c):c.id)}-redline.docx` };
 }

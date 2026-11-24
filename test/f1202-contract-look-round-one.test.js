@@ -60,7 +60,8 @@ test('f1202 (1) two tabs carrying their counts, and nothing of a later round', (
   assert.match(page, /id="cl-save" class="ui-btn ui-btn-primary"/, 'the one black button is today\'s Save');
   assert.match(page, /<form class="apn-ask sdd-find st-ls-find cl-ask" id="cl-ask"/, 'one ask box, the same sentence reader');
   const all = strip(D.slice(D.indexOf('const CL_AA'), D.indexOf('function clPageHtml()')));
-  assert.doesNotMatch(all, /cl_ls_tab_(kit|hist)|Brand kit|History|Send for approval|coming soon|data-cl-kit|data-cl-hist/i, 'no tab or control of a later round');
+  /* RE-POINTED 24 Nov 2026 (contract look round 4): the Brand kit is built now; History and the second admin are still a later round */
+  assert.doesNotMatch(all, /cl_ls_tab_hist|History|Send for approval|coming soon|data-cl-hist/i, 'no tab or control of a later round');
   const ctx = world({ designId: 'classic-letterhead' });
   const h = vm.runInContext('clTabsHtml(clParts())', ctx);
   /* RE-POINTED 24 Nov 2026 (contract look round 2): two more parts, Header and Page numbers */

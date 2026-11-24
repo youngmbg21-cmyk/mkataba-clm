@@ -741,7 +741,18 @@ function clInit() {
     streams: JSON.parse(JSON.stringify(window.ORG_STREAM_LOOKS || {})), applies: 'all', pick: new Set(), editing: null,
     mode: 'page', said: '', dirty: false, busy: false,
     /* round 1: the tab, each tab's chip, the part chosen (its pin lit), the stream chosen, the preview's contract and page */
-    tab: (_cl && _cl.tab) || 'page', chip: 'all', whoChip: 'all', row: null, whoPick: (_cl && _cl.whoPick) || null, pv: (_cl && _cl.pv) || null, pvPage: 1 };
+    tab: (_cl && _cl.tab) || 'page', chip: 'all', whoChip: 'all', row: null, whoPick: (_cl && _cl.whoPick) || null, pv: (_cl && _cl.pv) || null, pvPage: 1,
+    /* round 4: the brand kit's black logo and named colours (the company's; the first colour IS the accent) */
+    logoBlackUrl: org.logoBlackUrl || null,
+    palette: clPaletteFrom(org) };
+}
+/* the named colours as the page edits them: the stored list, else one entry for the accent the look already has */
+function clPaletteFrom(org) {
+  const p = Array.isArray(org.palette) && org.palette.length ? org.palette.map(x => Object.assign({}, x)) : [];
+  const acc = org.accentColor || null;
+  if (!p.length && acc) p.push({ name: '', hex: String(acc).toLowerCase(), use: '' });
+  if (p.length && acc) p[0].hex = String(acc).toLowerCase();
+  return p;
 }
 function clDesign() { return docDesignById(_cl.look.designId) || DOC_DESIGNS[0]; }
 function clStructure() { return docStructureById(_cl.look.structureId) || DOC_STRUCTURES[0]; }
@@ -966,6 +977,9 @@ function clQuality() {
     else out.push({ tone: 'green', t: i18t('cl_ls_q_reads', { c: clColourName(_cl.look.accentColor || shown), r: clRatioSay(r) }) });
   }
   if (clMarks().pageNumPos === 'off') out.push({ tone: 'amber', t: i18t('cl_ls_q_nonum'), go: go('cl_change', 'n') });
+  /* round 4: the brand kit — a black-and-white style with only a colour logo; a named colour too faint to read */
+  if (clMono() && _cl.logoUrl && !_cl.logoBlackUrl) out.push({ tone: 'amber', t: i18t('cl_kit_q_noblack'), go: go('cl_ls_upload', 'kit') });
+  (_cl.palette || []).slice(1).forEach(x => { const r = clContrastOnWhite(x.hex); if (r != null && r < CL_AA) out.push({ tone: 'ruby', t: i18t('cl_kit_q_faint', { c: x.name || x.hex, r: clRatioSay(r) }), go: go('cl_ls_fix', 'kit') }); });
   if (clMarks().coverOn && !clCoverTitle()) out.push({ tone: 'amber', t: i18t('cl_ls_q_cover_notitle'), go: go('cl_change', 'cv') });
   if (_cl.logoUrl) out.push({ tone: 'green', t: i18t('cl_ls_q_logo') });
   if (String(_cl.footer || '').trim()) out.push({ tone: 'green', t: i18t('cl_ls_q_footer') });
@@ -1013,7 +1027,8 @@ function clChev() { return typeof icon === 'function' ? icon('chevD', 'cl-ls-che
 function clTabsHtml(parts) {
   const nS = clStreamIds().length, nP = (window.ORG_PAPER_LOOKS || []).length;
   const tab = (k, w, n) => `<button type="button" role="tab" class="st-ls-tab${_cl.tab === k ? ' is-on' : ''}" aria-selected="${_cl.tab === k ? 'true' : 'false'}" data-cl-tab="${k}">${clE(w)}<i>${clE(n)}</i></button>`;
-  return `<div class="st-ls-tabs cl-ls-tabs" id="cl-tabs" role="tablist">${tab('page', i18t('cl_ls_tab_page'), i18tn('cl_ls_n_parts', parts.length, { n: parts.length }))}${tab('who', i18t('cl_ls_tab_who'), i18tn('cl_ls_n_streams', nS, { n: nS }) + (nP ? ' · ' + i18tn('cl_ls_n_papers', nP, { n: nP }) : ''))}</div>`;
+  const kit = clKitParts().filter(x => x.set).length;
+  return `<div class="st-ls-tabs cl-ls-tabs" id="cl-tabs" role="tablist">${tab('page', i18t('cl_ls_tab_page'), i18tn('cl_ls_n_parts', parts.length, { n: parts.length }))}${tab('kit', i18t('cl_ls_tab_kit'), String(kit))}${tab('who', i18t('cl_ls_tab_who'), i18tn('cl_ls_n_streams', nS, { n: nS }) + (nP ? ' · ' + i18tn('cl_ls_n_papers', nP, { n: nP }) : ''))}</div>`;
 }
 function clChipHtml(k, label, n, on, dot) {
   return `<button type="button" class="apn-tab is-chip${on ? ' is-on' : ''}" data-cl-chip="${k}">${dot ? `<i class="apn-cd is-${dot}" aria-hidden="true"></i>` : ''}${clE(label)} <span>${n}</span></button>`;
@@ -1072,21 +1087,79 @@ function clWhoHtml() {
   return chips + `<table class="st-ls-t cl-ls-t" id="cl-who"><thead><tr><th>${clE(i18t('cl_ls_c_stream'))}</th><th>${clE(i18t('cl_ls_c_which'))}</th><th>${clE(i18t('cl_ls_c_wears'))}</th><th class="r">${clE(i18t('cl_ls_c_unsigned'))}</th><th></th></tr></thead><tbody>${body || `<tr><td colspan="5" class="st-ls-none">${clE(i18t('cl_others_none'))}</td></tr>`}</tbody></table>
     <p class="cl-ls-rule">${clE(i18t('cl_ls_wins'))}</p>`;
 }
+/* ---- ROUND 4 (owner, 24 Nov 2026): THE BRAND KIT, as drawn (kit()): logo versions, faces, colours, where it is used ----
+   Only what is true: the colour logo (today's) and a black one a black-and-white style wears; the two faces HaTi serves
+   itself, each saying what the sealed PDF and Word set instead; up to four named colours, the first the accent, each
+   with its contrast on white and, below 4.5 : 1, one press to the nearest colour that reads. */
+function clKitParts() {
+  const mk = clMarks(), pal = _cl.palette || [];
+  /* `need`: owed or unreadable, as the quality check says it (a face is never owed: the style's own stands) */
+  const faint = pal.some(x => { const r = clContrastOnWhite(x.hex); return r != null && r < CL_AA; });
+  return [{ k: 'logo', set: !!_cl.logoUrl, need: !_cl.logoUrl, name: i18t('cl_kit_logo_colour') },
+    { k: 'logoBlack', set: !!_cl.logoBlackUrl, need: clMono() && !!_cl.logoUrl && !_cl.logoBlackUrl, name: i18t('cl_kit_need_black') },
+    { k: 'fontTitle', set: !!mk.fontTitle, need: false }, { k: 'fontBody', set: !!mk.fontBody, need: false },
+    { k: 'colours', set: pal.length > 0, need: faint, name: i18t('cl_kit_colours') }];
+}
+const clMono = () => clDesign().usesAccent === false;
+/* the nearest colour that reads on white: the same hue, darker, a step at a time, until 4.5 : 1 */
+function clNearestPassing(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '')); if (!m) return null;
+  const rgb = [0, 2, 4].map(i => parseInt(m[1].slice(i, i + 2), 16));
+  for (let k = 1; k >= 0; k -= 0.01) {
+    const h = '#' + rgb.map(v => Math.round(v * k).toString(16).padStart(2, '0')).join('');
+    if (clContrastOnWhite(h) >= CL_AA) return h;
+  }
+  return '#' + '000000';
+}
+function clKitHtml() {
+  const admin = clAdmin(), mk = clMarks(), F = (typeof BR_FONTS === 'object' && BR_FONTS) || {};
+  const badge = st => `<span class="apn-st is-${CL_ST_TONE[st]}">${clE(i18t('cl_ls_st_' + st))}</span>`;
+  const logoRow = (k, url, st, fileId, word) => `<div class="cl-kit-logo" data-cl-kit-logo="${k}"><span class="cl-kit-thumb${url ? '' : ' is-empty'}">${url ? `<img src="${clE(url)}" alt="">` : clE(word)}</span>${badge(st)}
+      ${admin ? `<input type="file" id="${fileId}" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden><button type="button" class="cl-lnk" data-cl-kit-up="${k}">${clE(i18t(url ? 'cl_logo_replace' : 'cl_ls_upload'))}</button>${url ? `<button type="button" class="cl-lnk" data-cl-kit-x="${k}">${clE(i18t('cl_logo_remove'))}</button>` : ''}` : ''}</div>`;
+  const logos = `<section class="cl-kit-col" id="cl-kit-logos"><h4>${clE(i18t('cl_kit_logos'))}</h4>
+    <p class="cl-kit-k">${clE(i18t('cl_kit_logo_colour'))}</p>${logoRow('colour', _cl.logoUrl, _cl.logoUrl ? 'set' : 'missing', 'cl-kit-colour-file', i18t('cl_kit_w_colour'))}
+    <p class="cl-kit-k">${clE(i18t('cl_kit_logo_black'))}</p>${logoRow('black', _cl.logoBlackUrl, _cl.logoBlackUrl ? 'set' : (clMono() && _cl.logoUrl ? 'missing' : 'optional'), 'cl-kit-black-file', i18t('cl_kit_w_black'))}
+    <p class="cl-kit-q">${clE(i18t('cl_kit_logo_note', { style: clDesign().name }))}</p></section>`;
+  const facePills = (k, cur) => `<div class="cl-pk-row">${[['', i18t('cl_kit_f_style')]].concat(Object.keys(F).map(id => [id, F[id].name])).map(([v, w]) =>
+    `<button type="button" class="cl-pill${(cur || '') === v ? ' is-on' : ''}" data-cl-kit-font="${k}:${v}"${v ? ` style="font-family:${clE(F[v].css)}"` : ''}>${clE(w)}</button>`).join('')}</div>`;
+  const faceSay = id => id && F[id] ? i18t('cl_kit_f_where', { screen: F[id].name, pdf: i18t(F[id].pdf === 'serif' ? 'cl_kit_pdf_serif' : 'cl_kit_pdf_sans'), word: F[id].word }) : i18t('cl_kit_f_default');
+  const fonts = `<section class="cl-kit-col" id="cl-kit-fonts"><h4>${clE(i18t('cl_kit_fonts'))}</h4>
+    <p class="cl-kit-k">${clE(i18t('cl_kit_f_title'))}</p>${admin ? facePills('fontTitle', mk.fontTitle) : ''}<p class="cl-kit-q">${clE(faceSay(mk.fontTitle))}</p>
+    <p class="cl-kit-k">${clE(i18t('cl_kit_f_body'))}</p>${admin ? facePills('fontBody', mk.fontBody) : ''}<p class="cl-kit-q">${clE(faceSay(mk.fontBody))}</p></section>`;
+  const pal = _cl.palette || [];
+  const colRow = (x, i) => {
+    const r = clContrastOnWhite(x.hex), ok = r != null && r >= CL_AA, near = ok ? null : clNearestPassing(x.hex);
+    return `<div class="cl-kit-colour" data-cl-kit-col="${i}"><i class="cl-kit-sw" style="background:${clE(x.hex)}"></i>
+      <span class="cl-kit-cw"><input type="text" class="cl-in cl-kit-name" data-cl-kit-name="${i}" maxlength="40" value="${clE(x.name)}" placeholder="${clE(i18t(i ? 'cl_kit_c_name_ph' : 'cl_kit_c_accent_ph'))}"${admin ? '' : ' disabled'}>
+      <span class="cl-kit-meta"><input type="text" class="cl-in cl-kit-hex" data-cl-kit-hex="${i}" maxlength="7" value="${clE(x.hex)}" aria-label="${clE(i18t('cl_kit_c_hex'))}"${admin ? '' : ' disabled'}><span class="${ok ? 'cl-kit-ok' : 'cl-kit-bad'}">${r == null ? '' : clE(clRatioSay(r) + ' : 1')}</span>${i === 0 ? `<span class="apn-st is-green">${clE(i18t('cl_kit_c_on_paper'))}</span>` : ''}</span>
+      <input type="text" class="cl-in cl-kit-use" data-cl-kit-use="${i}" maxlength="60" value="${clE(x.use)}" placeholder="${clE(i18t(i ? 'cl_kit_c_use_ph' : 'cl_kit_c_use0'))}"${admin ? '' : ' disabled'}>
+      ${ok ? '' : `<span class="cl-kit-note">${clE(i18t('cl_kit_c_faint', { r: clRatioSay(r) }))} ${admin ? `<button type="button" class="cl-lnk" data-cl-kit-fix="${i}">${clE(i18t('cl_kit_c_use', { hex: near }))}</button>` : ''}</span>`}</span>
+      ${admin && i ? `<button type="button" class="cl-lnk cl-kit-x" data-cl-kit-del="${i}" aria-label="${clE(i18t('cl_logo_remove'))}">${clE(i18t('cl_logo_remove'))}</button>` : ''}</div>`;
+  };
+  const colours = `<section class="cl-kit-col" id="cl-kit-colours"><h4>${clE(i18t('cl_kit_colours'))}</h4>${pal.map(colRow).join('') || `<p class="cl-kit-q">${clE(i18t('cl_kit_c_none'))}</p>`}
+    ${admin && pal.length < 4 ? `<button type="button" class="ui-btn cl-ls-pill" data-cl-kit-add>${typeof icon === 'function' ? icon('plus', 'w-3 h-3') : ''}${clE(i18t('cl_kit_c_add'))}</button>` : ''}
+    <p class="cl-kit-q">${clE(i18t(clMono() ? 'cl_kit_c_mono' : 'cl_kit_c_note'))}</p></section>`;
+  const used = [['cl_kit_u_ours', 'cl_kit_u_ours_s', 'green', 'cl_kit_b_uses'], ['cl_kit_u_signed', 'cl_kit_u_signed_s', 'grey', 'cl_kit_b_locked'], ['cl_kit_u_theirs', 'cl_kit_u_theirs_s', 'grey', 'cl_kit_b_never']];
+  return `<div class="cl-kit" id="cl-kit">${logos}${fonts}${colours}</div>
+    <table class="st-ls-t cl-ls-t" id="cl-kit-used"><thead><tr><th>${clE(i18t('cl_kit_u_where'))}</th><th>${clE(i18t('cl_kit_u_what'))}</th><th>${clE(i18t('cl_ls_c_status'))}</th></tr></thead><tbody>
+    ${used.map(([w, sh, tone, b]) => `<tr><td>${clE(i18t(w))}</td><td><span class="cl-ls-quote">${clE(i18t(sh))}</span></td><td><span class="apn-st is-${tone}">${clE(i18t(b))}</span></td></tr>`).join('')}</tbody></table>`;
+}
 function clLsPageHtml() {
   const admin = clAdmin(), parts = clParts();
-  if (_cl.tab !== 'who') _cl.tab = 'page';
+  if (_cl.tab !== 'who' && _cl.tab !== 'kit') _cl.tab = 'page';
   const spark = (typeof icon === 'function') ? icon('mkSpark', 'sdd-spark-ic', 0) : '';
   const acts = admin ? `<button type="button" id="cl-save" class="ui-btn ui-btn-primary"${_cl.dirty ? '' : ' disabled'}>${clE(i18t('act_save'))}</button>` : '';
   const ask = admin ? `<form class="apn-ask sdd-find st-ls-find cl-ask" id="cl-ask" autocomplete="off"><span class="sdd-find-ic" aria-hidden="true">${spark}</span><input type="text" id="cl-say" maxlength="300" autocomplete="off" placeholder="${clE(i18t('cl_ask_ph'))}" aria-label="${clE(i18t('cl_ask_ph'))}" value="${clE(_cl.said)}"></form><p class="cl-said" id="cl-said" aria-live="polite"></p>`
     : `<p class="st-ls-small">${clE(i18t('cl_read_only'))}</p>`;
   const sub = _cl.editing ? i18t('cl_editing_stream', { name: clStreamName(_cl.editing) }) : '';
   const picking = _cl.mode !== 'page';
-  const left = picking ? `<div class="cl-pick cl-ls-pick">${clPickHtml()}</div>` : _cl.tab === 'who' ? clWhoHtml() : clPartsTableHtml(parts);
+  const left = picking ? `<div class="cl-pick cl-ls-pick">${clPickHtml()}</div>` : _cl.tab === 'who' ? clWhoHtml() : _cl.tab === 'kit' ? clKitHtml() : clPartsTableHtml(parts);
+  const wide = (_cl.tab === 'who' || _cl.tab === 'kit') && !picking;
   return `<div class="st-pg cl-pg is-ls is-r1" data-st-pg="look">${window.stLsHeadHtml({ page: 'look', title: i18t('cl_title'), sub,
       badge: `<span class="apn-st is-grey cl-ls-badge">${clE(i18t('cl_admins_only'))}</span>`, acts, askHtml: ask + clTabsHtml(parts) })}
-    <div class="cl-ls-grid${_cl.tab === 'who' && !picking ? ' is-who' : ''}">
+    <div class="cl-ls-grid${wide ? ' is-who' : ''}">
       <div class="cl-ls-left">${left}</div>
-      ${_cl.tab === 'who' && !picking ? '' : clPreviewHtml()}
+      ${wide ? '' : clPreviewHtml()}
     </div></div>`;
 }
 /* ---- THE PREVIEW, drawn after the page stands: the signing copy, a page at a time, shrunk to fit; pins measured off
@@ -1236,7 +1309,10 @@ function clPanelFacts() {
   const parts = clParts();
   const ids = clStreamIds(), own = ids.filter(f => _cl.streams[f]).length;
   const out = { tab: _cl.tab, style: clDesign().name, editing: _cl.editing ? clStreamName(_cl.editing) : '', streams: ids.length, follow: ids.length - own,
-    set: parts.filter(r => !clPartNeeds(r)).length, of: parts.length, owed: parts.filter(clPartNeeds).map(r => r.name), quality: clQuality(), who: null };
+    set: parts.filter(r => !clPartNeeds(r)).length + clKitParts().filter(x => !x.need).length, of: parts.length + clKitParts().length,
+    owed: parts.filter(clPartNeeds).map(r => r.name).concat(clKitParts().filter(x => x.need && x.k !== 'logo').map(x => x.name)), quality: clQuality(), who: null,
+    /* round 4: the brand kit's own count, for its tab's panel */
+    kitSet: clKitParts().filter(x => x.set).length, kitOf: clKitParts().length };
   if (_cl.tab === 'who' && _cl.whoPick) {
     const r = clWhoRows().find(x => x.key === _cl.whoPick);
     if (r) out.who = { key: r.key, kind: r.kind, fid: r.fid || '', id: r.id || '', name: r.name, own: r.own, unsigned: r.unsigned,
@@ -1290,6 +1366,7 @@ function clModeGo(m) { if (!_cl) clInit(); if (!clAdmin()) return;
   /* the panel's doors (round 1): a part's picker, Company & market, a stream's own look or the company's again */
   const s = String(m || 'page');
   if (s === 'company') { if (typeof openSettingsAt === 'function') openSettingsAt('platform', 'company'); return; }
+  if (s === 'kit') { _cl.tab = 'kit'; _cl.mode = 'page'; return clRepaint(); }
   if (s.indexOf('stream:') === 0) return clEditAs(s.slice(7));
   if (s.indexOf('stream-x:') === 0) { const fid = s.slice(9); return clSet(() => { delete _cl.streams[fid]; }); }
   _cl.mode = s; clRepaint(); }
@@ -1341,7 +1418,9 @@ async function clSave() {
     const look = { designId: _cl.look.designId, structureId: _cl.look.structureId, logoPosition: _cl.look.logoPosition, accentColor: _cl.look.accentColor,
       pageMarks: _cl.look.pageMarks || null };
     const streams = JSON.parse(JSON.stringify(_cl.streams));
-    const payload = { logoUrl: _cl.logoUrl, defaultFooterText: _cl.footer };
+    const payload = { logoUrl: _cl.logoUrl, defaultFooterText: _cl.footer, logoBlackUrl: _cl.logoBlackUrl || null };
+    /* round 4: the company's named colours, the first in step with the accent (a stream's look keeps its own accent) */
+    if (_cl.applies !== 'some') { const pal = (_cl.palette || []).map(x => Object.assign({}, x)); if (pal[0] && _cl.look.accentColor) pal[0].hex = String(_cl.look.accentColor).toLowerCase(); payload.palette = pal.length ? pal : null; }
     if (_cl.applies === 'some') {
       if (_cl.editing && !_cl.pick.has(_cl.editing)) delete streams[_cl.editing];
       _cl.pick.forEach(fid => { streams[fid] = Object.assign({}, look); });
@@ -1366,7 +1445,7 @@ if (typeof document !== 'undefined' && !window._clWired) {
       const m = document.querySelector(`[data-st-pg="look"] [data-cl-menu-of="${x.getAttribute('data-cl-menu')}"]`); if (!m) return;
       const open = m.hidden; clMenuClose(); m.hidden = !open; x.setAttribute('aria-expanded', open ? 'true' : 'false'); return;
     }
-    if ((x = at('[data-cl-tab]'))) { _cl.tab = x.getAttribute('data-cl-tab') === 'who' ? 'who' : 'page'; _cl.mode = 'page'; return clRepaint(); }
+    if ((x = at('[data-cl-tab]'))) { const k = x.getAttribute('data-cl-tab'); _cl.tab = k === 'who' || k === 'kit' ? k : 'page'; _cl.mode = 'page'; return clRepaint(); }
     if ((x = at('[data-cl-chip]'))) { const k = x.getAttribute('data-cl-chip'); if (_cl.tab === 'who') { _cl.whoChip = k; _cl.whoPick = null; } else _cl.chip = k; return clRepaint(); }
     if ((x = at('[data-cl-pv]'))) { _cl.pv = x.getAttribute('data-cl-pv'); _cl.pvPage = 1; _cl.row = null; return clRepaint(); }
     if ((x = at('[data-cl-pv-page]'))) { _cl.pvPage = Number(x.getAttribute('data-cl-pv-page')) || 1; return clPvShow(); }
@@ -1384,8 +1463,15 @@ if (typeof document !== 'undefined' && !window._clWired) {
       if (typeof structureBlockedReason === 'function' && structureBlockedReason(d.id, _cl.look.structureId)) _cl.look.structureId = DEFAULT_STRUCTURE; });
     if ((x = at('[data-cl-structure]'))) return clSet(() => { _cl.look.structureId = x.getAttribute('data-cl-structure'); });
     if ((x = at('[data-cl-pos]'))) return clSet(() => { _cl.look.logoPosition = x.getAttribute('data-cl-pos'); });
-    if ((x = at('[data-cl-accent]'))) return clSet(() => { _cl.look.accentColor = x.getAttribute('data-cl-accent'); });
+    if ((x = at('[data-cl-accent]'))) return clSet(() => { _cl.look.accentColor = x.getAttribute('data-cl-accent'); if (!_cl.editing && _cl.palette && _cl.palette[0]) _cl.palette[0].hex = _cl.look.accentColor.toLowerCase(); });
     /* round 2: the header's place and fields, the page numbers' place and words, the footer's fields */
+    /* round 4: the brand kit's presses */
+    if ((x = at('[data-cl-kit-up]'))) { const f = document.getElementById(x.getAttribute('data-cl-kit-up') === 'black' ? 'cl-kit-black-file' : 'cl-kit-colour-file'); if (f) f.click(); return; }
+    if ((x = at('[data-cl-kit-x]'))) return clSet(() => { if (x.getAttribute('data-cl-kit-x') === 'black') _cl.logoBlackUrl = null; else _cl.logoUrl = null; });
+    if ((x = at('[data-cl-kit-font]'))) return clSet(() => { const [k, v] = x.getAttribute('data-cl-kit-font').split(':'); clMarksSet({ [k]: v || null }); });
+    if ((x = at('[data-cl-kit-fix]'))) return clSet(() => { const i = Number(x.getAttribute('data-cl-kit-fix')), c = _cl.palette[i]; if (!c) return; c.hex = clNearestPassing(c.hex); if (i === 0) _cl.look.accentColor = c.hex; });
+    if ((x = at('[data-cl-kit-del]'))) return clSet(() => { _cl.palette.splice(Number(x.getAttribute('data-cl-kit-del')), 1); });
+    if (at('[data-cl-kit-add]')) return clSet(() => { if ((_cl.palette || []).length < 4) { if (!_cl.palette.length) _cl.palette.push({ name: '', hex: (_cl.look.accentColor || CL_ACCENTS[7][0]).toLowerCase(), use: '' }); else _cl.palette.push({ name: '', hex: CL_ACCENTS[7][0], use: '' }); } });
     /* round 3: the signature block's layout and lines, the cover page on or off and whether it is counted */
     if ((x = at('[data-cl-sglay]'))) return clSet(() => { clMarksSet({ sigLayout: x.getAttribute('data-cl-sglay') }); });
     if ((x = at('[data-cl-sgline]'))) return clSet(() => { const k = x.getAttribute('data-cl-sgline'), on = clMarks().sigLines || [];
@@ -1418,6 +1504,18 @@ if (typeof document !== 'undefined' && !window._clWired) {
     const t = e.target; if (!_cl || !t || !t.closest || !t.closest('[data-st-pg="look"]') || !clAdmin()) return;
     if (t.name === 'cl-applies') return clSet(() => { _cl.applies = t.value; if (t.value === 'all') { _cl.pick = new Set(); } });
     if (t.hasAttribute('data-cl-stream')) return clSet(() => { const fid = t.getAttribute('data-cl-stream'); if (t.checked) _cl.pick.add(fid); else _cl.pick.delete(fid); });
+    /* round 4: a colour's name, hex and use; the two logo files */
+    if (t.hasAttribute('data-cl-kit-name') || t.hasAttribute('data-cl-kit-use') || t.hasAttribute('data-cl-kit-hex')) return clSet(() => {
+      const i = Number(t.getAttribute('data-cl-kit-name') || t.getAttribute('data-cl-kit-use') || t.getAttribute('data-cl-kit-hex')), c = _cl.palette[i]; if (!c) return;
+      if (t.hasAttribute('data-cl-kit-name')) c.name = String(t.value || '').slice(0, 40);
+      else if (t.hasAttribute('data-cl-kit-use')) c.use = String(t.value || '').slice(0, 60);
+      else { const v = String(t.value || '').trim().toLowerCase(), h = v.startsWith('#') ? v : '#' + v; if (/^#[0-9a-f]{6}$/.test(h)) { c.hex = h; if (i === 0) _cl.look.accentColor = h; } }
+    });
+    if ((t.id === 'cl-kit-colour-file' || t.id === 'cl-kit-black-file') && t.files && t.files[0]) {
+      const f = t.files[0]; if (f.size > 500 * 1024) { toast(i18t('cl_logo_big'), 'warn'); return; }
+      const black = t.id === 'cl-kit-black-file', r = new FileReader();
+      r.onload = () => clSet(() => { if (black) _cl.logoBlackUrl = String(r.result || ''); else _cl.logoUrl = String(r.result || ''); }); r.readAsDataURL(f); return;
+    }
     if (t.id === 'cl-footer') return clSet(() => { _cl.footer = clFieldsJoin(clFieldsSplit(_cl.footer).fields, String(t.value || '').replace(/[{}]/g, '')).slice(0, 500); });
     if (t.id === 'cl-head-words') return clSet(() => { const mk = clMarks(), hs = clFieldsSplit(mk.headerText), w = String(t.value || '').replace(/[{}]/g, '');
       clMarksSet({ headerText: clFieldsJoin(hs.fields, w), headerPos: mk.headerPos || (w.trim() ? 'left' : null) }); });
@@ -1437,7 +1535,7 @@ if (typeof document !== 'undefined' && !window._clWired) {
     const { got, said, notes } = clReadLook(text);
     const more = (notes || []).length ? ' ' + notes.join(' ') : '';
     if (!said.length) { const s = document.getElementById('cl-said'); if (s) s.textContent = more ? more.trim() : i18t('cl_said_none'); return; }
-    clSet(() => { const pm = got.pageMarks; delete got.pageMarks; Object.assign(_cl.look, got); if (pm) clMarksSet(pm); _cl.said = ''; });
+    clSet(() => { const pm = got.pageMarks; delete got.pageMarks; Object.assign(_cl.look, got); if (pm) clMarksSet(pm); if (got.accentColor && !_cl.editing && _cl.palette && _cl.palette[0]) _cl.palette[0].hex = String(got.accentColor).toLowerCase(); _cl.said = ''; });
     const s = document.getElementById('cl-said'); if (s) s.textContent = i18t('cl_said_done', { what: said.join(', ') }) + more;
   });
 }

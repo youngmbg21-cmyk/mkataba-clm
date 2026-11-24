@@ -2447,6 +2447,18 @@ async function docxComments(bytes){
    `num.words` is the reader's own words with \u0001 for the page and \u0002 for the count ("Page \u0001 of \u0002");
    `num.al` null puts the number at the end of the footer line, as the paper does when no place is set. Never the
    wording: these are parts of their own. No `hf` = no part, the file byte-identical to what it was. */
+/* THE BRAND KIT'S FACES IN THE WORD FILE (contract look round 4): the face is NAMED, as Word files do; a Word without
+   it installed falls back to one of its own, which the page's row says. `fonts` = { body, title } face names; none =
+   the styles byte-identical to what they were. */
+function docxStylesWithFonts(fonts){
+  if(!fonts || (!fonts.body && !fonts.title)) return DOCX_STYLES;
+  const esc = t => String(t).replace(/[&<>"]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch]));
+  const rf = f => `<w:rFonts w:ascii="${esc(f)}" w:hAnsi="${esc(f)}" w:cs="${esc(f)}"/>`;
+  let st = DOCX_STYLES;
+  if(fonts.body) st = st.replace('<w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/>', rf(fonts.body));
+  if(fonts.title) st = st.replace(/(<w:style w:type="paragraph"[^>]*w:styleId="(?:Heading[1-6]|HatiPaperTitle)"[^>]*>[\s\S]*?<w:rPr>)/g, '$1' + rf(fonts.title));
+  return st;
+}
 const DOCX_HF_JC = { left: 'left', center: 'center', right: 'right' };
 function docxHeadFootXml(hf){
   if(!hf) return null;
@@ -2516,7 +2528,7 @@ function docxExportTracked(html, opts = {}){
     { name: '_rels/.rels', data: DOCX_ROOT_RELS },
     { name: 'word/document.xml', data: docHf },
     { name: 'word/_rels/document.xml.rels', data: relsHf },
-    { name: 'word/styles.xml', data: DOCX_STYLES },
+    { name: 'word/styles.xml', data: docxStylesWithFonts(opts.fonts) },
     { name: 'word/numbering.xml', data: DOCX_NUMBERING },
   ];
   if (placed.length){
@@ -2532,13 +2544,13 @@ function docxExportTracked(html, opts = {}){
 
 if(typeof window!=='undefined') Object.assign(window,{docxStyledIsWording,docxStyleTable,docxStyleChain,docxAbsOf,docxLevelForStyle,DOCX_MIME,isWordDoc,docxExtract,docxExtractRich,docxXmlToRich,docxXmlToText,docxNumbering,docxNumberWalker,docxStartOverrides,docxHeadingStyles,docxStyleNums,docxTopBlocks,docxRunsHtml,docxTableHtml,docxNumFormat,docxBulletMark,docxHtmlBlocks,docxHtmlTableRows,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,DOC_FURNITURE,DOC_BULLET,DOC_LABEL,DOC_NUMBERED,
-  docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxHeadFootXml,docxZip,docxCrc32,
+  docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxHeadFootXml,docxStylesWithFonts,docxZip,docxCrc32,
   docxComments,docxCommentQuote,docxCommentsXml,docxCommentsExtendedXml,docxCommentsPrepare,
   DOCX_UI_CLASSES,DOCX_UI_ID,
   docxLayoutOf,docxBandText,docxReadLayout,docxTwipsPx,DOCX_LAYOUT_CAP_KB});
 if(typeof module!=='undefined'&&module.exports) module.exports={docxStyledIsWording,docxStyleTable,docxStyleChain,docxAbsOf,docxLevelForStyle,DOCX_HEAD_MAX_WORDS,DOCX_HEAD_PUNCT_MIN,zipEntries,zipEntryBytes,inflateRawBytes,decodeXmlEntities,docxXmlToText,docxXmlToRich,docxExtract,docxExtractRich,docxNumbering,docxNumberWalker,docxStartOverrides,docxHeadingStyles,docxStyleNums,docxTopBlocks,docxRunsHtml,docxTableHtml,docxNumFormat,docxBulletMark,docxHtmlBlocks,docxHtmlTableRows,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,
-  docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxHeadFootXml,docxZip,docxCrc32,
+  docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxHeadFootXml,docxStylesWithFonts,docxZip,docxCrc32,
   docxComments,docxCommentQuote,docxCommentsXml,docxCommentsExtendedXml,docxCommentsPrepare,
   DOCX_UI_CLASSES,DOCX_UI_ID,
   docxLayoutOf,docxBandText,docxReadLayout,docxTwipsPx,DOCX_LAYOUT_CAP_KB};
