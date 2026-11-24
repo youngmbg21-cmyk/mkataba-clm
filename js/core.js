@@ -2697,6 +2697,8 @@ function startApp(){
   if(window.mineLoad) mineLoad(true).then(()=>{ if(window.paintMyNotesCount) paintMyNotesCount(); });
   /* JAMBO'S WATCHES (21 Oct 2026): what fired reaches the bell and Needs you from the start */
   if(window.watchLoad) watchLoad(true);
+  /* THE NOTEBOOK (24 Nov 2026): what is due a check reaches the bell from the start */
+  if(window.nbLoadForAlerts&&API_MODE()) nbLoadForAlerts();
   if(API_MODE()){ refreshStats(); refreshShareOverview(); refreshWaitingQuestions(); pollPendingResponses(); refreshAiUsage(); sealCatchUpPage();
     /* asks to an admin, and their answers, reach the bell from the start */
     if(window.stAsksLoad){ _asksAt=Date.now(); try{ stAsksLoad(); }catch(_){} }

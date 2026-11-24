@@ -14205,14 +14205,14 @@ const aiNavigateOn = () => getSetting('aiNavigate') !== false;
    never a final act: it opens, chooses and lands; it sends, signs, approves and deletes
    nothing. Every id is checked here against what this reader may see (aiDoorOf) before
    the browser is handed it, and the browser asks its own book again. */
-const AI_DOOR_KINDS = ['contract', 'clause', 'contracts', 'party', 'you', 'company', 'person', 'stream', 'standard', 'template', 'obligation', 'request', 'duties', 'mynote', 'chapter'];
+const AI_DOOR_KINDS = ['contract', 'clause', 'contracts', 'party', 'you', 'company', 'person', 'stream', 'standard', 'template', 'obligation', 'request', 'duties', 'mynote', 'chapter', 'notebook'];
 const AI_DOOR_TABS = ['open', 'dossier', 'fill', 'send', 'sign', 'redlines', 'brief', 'clauses', 'amend', 'oblig', 'hist', 'compare'];
 const AI_DOOR_YOU = ['lang', 'told', 'safety', 'away', 'who', 'data', 'work', 'password'];
 const AI_DOOR_COMPANY_PAGES = ['team', 'streams', 'sheet', 'roles'];
 const AI_DOOR_COMPANY = [...new Set(Object.keys((I18N_STRINGS && I18N_STRINGS.en) || {}).filter(k => /^st_syn_[a-z]+$/.test(k)).map(k => k.slice(7)))].filter(k => !AI_DOOR_COMPANY_PAGES.includes(k));
 const AI_DOOR_STAGES = ['Draft', 'Under Review', 'Signed', 'Declined'];
 const AI_DOOR_ENDINGS = ['month', 'quarter', 'year'];
-const AI_DOOR_SCHEMA = { type: 'object', description: 'OPTIONAL, and BEST when you know it: the EXACT thing to open, named by the ids your tools returned. HaTi lands on it through its own doors (it opens and chooses, it never sends, signs, approves or deletes). kind and its fields: contract {contractId, tab: open|dossier|fill|send|sign|redlines|brief|clauses|amend|oblig|hist|compare (send and sign only open the letter and the signing column; nothing is sent or signed)} · clause {contractId, num (its number, when known), quote (the first words of the passage, from search_hati), head (its heading)} · contracts {stage, stream (stream id), party (counterparty name), ending (month|quarter|year: ending this one), ids (when a list is exactly these)} · party {name} · you {key: ' + AI_DOOR_YOU.join('|') + '} (the person\'s own settings) · company {key} (an admin\'s company setting or page: ' + AI_DOOR_COMPANY.concat(AI_DOOR_COMPANY_PAGES).join('|') + ') · person {userId, row: profile|cap|access} · stream {streamId, keep} · standard {book, row (the standard\'s words)} · template {templateId} · obligation {contractId, obligationId} · request {requestId} · duties {due: "7" for this week} · mynote {noteId} (the person\'s own private note, from search_hati; no noteId = My notes) · chapter {chapter} (a Handbook chapter, its number from search_hati kind guide, e.g. "4.2"; "about" opens the Handbook\'s front page).',
+const AI_DOOR_SCHEMA = { type: 'object', description: 'OPTIONAL, and BEST when you know it: the EXACT thing to open, named by the ids your tools returned. HaTi lands on it through its own doors (it opens and chooses, it never sends, signs, approves or deletes). kind and its fields: contract {contractId, tab: open|dossier|fill|send|sign|redlines|brief|clauses|amend|oblig|hist|compare (send and sign only open the letter and the signing column; nothing is sent or signed)} · clause {contractId, num (its number, when known), quote (the first words of the passage, from search_hati), head (its heading)} · contracts {stage, stream (stream id), party (counterparty name), ending (month|quarter|year: ending this one), ids (when a list is exactly these)} · party {name} · you {key: ' + AI_DOOR_YOU.join('|') + '} (the person\'s own settings) · company {key} (an admin\'s company setting or page: ' + AI_DOOR_COMPANY.concat(AI_DOOR_COMPANY_PAGES).join('|') + ') · person {userId, row: profile|cap|access} · stream {streamId, keep} · standard {book, row (the standard\'s words)} · template {templateId} · obligation {contractId, obligationId} · request {requestId} · duties {due: "7" for this week} · mynote {noteId} (the person\'s own private note, from search_hati; no noteId = My notes) · notebook {doc, n} (a notebook document, at the section n search_hati gave) · chapter {chapter} (a Handbook chapter, its number from search_hati kind guide, e.g. "4.2"; "about" opens the Handbook\'s front page).',
   properties: { kind: { type: 'string', enum: AI_DOOR_KINDS }, contractId: { type: 'string' }, tab: { type: 'string', enum: AI_DOOR_TABS },
     num: { type: 'string' }, quote: { type: 'string' }, head: { type: 'string' },
     stage: { type: 'string', enum: AI_DOOR_STAGES }, stream: { type: 'string' }, party: { type: 'string' }, ending: { type: 'string', enum: AI_DOOR_ENDINGS },
@@ -14288,6 +14288,8 @@ function aiDoorOf(d, cx) {
     return t && tplVisibleTo(t, cx && cx.user) ? { kind: k, templateId: String(t.id) } : null;
   }
   if (k === 'obligation') { const cid = cidOf(d.contractId), oid = txt(d.obligationId, 60); return cid && oid ? { kind: k, contractId: cid, obligationId: oid } : null; }
+  /* a notebook document, at a section: only one this reader may see (the notebook's own wall) */
+  if (k === 'notebook') { const r = nbRowOf(txt(d.doc, 40)); return r && nbSees(cx && cx.user, r) ? Object.assign({ kind: k, doc: r.id }, txt(d.n, 40) ? { n: txt(d.n, 40) } : {}) : null; }
   if (k === 'request') {
     const r = db.prepare('SELECT id, by_id, folder FROM intake_requests WHERE id=?').get(txt(d.requestId, 60));
     const u = cx && cx.user;
@@ -14935,6 +14937,7 @@ function hsDoorOf(h) {
   if (h.kind === 'template') return { kind: 'template', templateId: h.ref };
   if (h.kind === 'standard') return { kind: 'standard', book: h.book, row: h.title };
   if (h.kind === 'guide') return { kind: 'chapter', chapter: h.ref };
+  if (h.kind === 'notebook' && h.notebook) return { kind: 'notebook', doc: h.notebook.doc, n: h.notebook.n };
   return null;
 }
 /* THE QUOTE OPENS ITS CLAUSE (stage 3): an answer that rests on ONE contract's verified quote, asked as a
@@ -15425,7 +15428,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
         : final.quoteDrops + ' quoted excerpts could not be matched to the contract text and were removed — treat those points with care.';
       notice = { notice: (notice.notice ? notice.notice + ' ' : '') + drop };
     }
-    nbCitedRecord(cx, final.answer);
+    nbCitedRecord(cx, final.answer); copilotNotebookButton(cx, final);
     logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
     res.json({ answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.note && context && context.page && context.page.sending ? { note: final.note } : {}), ...(final.board && copilotDrawsBoard(context) ? { board: final.board, boardTotal: final.boardTotal } : {}), ...(() => { const pg = pageActionsClean(final.pageAsked, pageControlsClean(context && context.controls)); return pg ? { page: pg } : {}; })(), ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.teach ? { teach: true } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(truncated ? { truncated: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
@@ -15795,7 +15798,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
         : final.quoteDrops + ' quoted excerpts could not be matched to the contract text and were removed — treat those points with care.';
       notice = { notice: (notice.notice ? notice.notice + ' ' : '') + drop };
     }
-    nbCitedRecord(cx, final.answer);
+    nbCitedRecord(cx, final.answer); copilotNotebookButton(cx, final);
     logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
     send('final', { answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.note && context && context.page && context.page.sending ? { note: final.note } : {}), ...(final.board && copilotDrawsBoard(context) ? { board: final.board, boardTotal: final.boardTotal } : {}), ...(() => { const pg = pageActionsClean(final.pageAsked, pageControlsClean(context && context.controls)); return pg ? { page: pg } : {}; })(), ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.teach ? { teach: true } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(truncated ? { truncated: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
@@ -27491,7 +27494,8 @@ db.exec(`
 `);
 const nbDocOf = r => { let j = {}; try { j = JSON.parse(r.json) || {}; } catch (_) { j = {}; } return { ...j, id: r.id, shelf: r.shelf, ownerId: r.owner_id || null, updatedAt: r.updated_at }; };
 /* may this reader see this row (the wall) */
-const nbSees = (u, r) => !!u && (r.shelf === 'company' || String(r.owner_id) === String(u.id));
+const nbGone = r => { try { return !!(JSON.parse(r.json) || {}).deletedAt; } catch (_) { return false; } };
+const nbSees = (u, r) => !!u && !nbGone(r) && (r.shelf === 'company' || String(r.owner_id) === String(u.id));
 /* may this reader change it: the company's by an admin, theirs by its writer */
 const nbMayWrite = (u, r) => !!u && (r.shelf === 'company' ? u.role === 'admin' : String(r.owner_id) === String(u.id));
 const nbToday = () => new Date().toISOString().slice(0, 10);
@@ -27597,21 +27601,61 @@ app.post('/api/notebook/:id/unchecked', auth, (req, res) => {
 /* WHAT JAMBO QUOTED: after an answer, each notebook section his search found this turn that the answer
    names (its number AND its document) is counted, and the last such quote kept. Read off the answer the
    reader got; nothing is guessed. The contract is the one he read this turn (get_contract), if any. */
+/* DELETE, WITH UNDO (owner, 24 Nov 2026, "build all three"): the document leaves every list and search at once, kept
+   so Undo brings it back; the same hands that may change it may delete it */
+app.delete('/api/notebook/:id', auth, (req, res) => {
+  const r = nbRowOf(req.params.id);
+  if (!r || !nbSees(req.user, r)) return res.status(404).json({ error: 'Not found' });
+  if (!nbMayWrite(req.user, r)) return res.status(403).json({ error: 'Only an admin deletes a Company document.' });
+  const d = nbDocOf(r); const { id, shelf, ownerId, updatedAt, ...keep } = d;
+  db.prepare('UPDATE notebook_docs SET json=?, updated_at=? WHERE id=?').run(JSON.stringify({ ...keep, deletedAt: now(), deletedBy: req.user.name || '' }), now(), r.id);
+  res.json({ ok: true });
+});
+app.post('/api/notebook/:id/restore', auth, (req, res) => {
+  const r = nbRowOf(req.params.id);
+  if (!r || !nbGone(r) || !(r.shelf === 'company' || String(r.owner_id) === String(req.user.id))) return res.status(404).json({ error: 'Not found' });
+  if (!nbMayWrite(req.user, r)) return res.status(403).json({ error: 'Only an admin restores a Company document.' });
+  const d = nbDocOf(r); const { id, shelf, ownerId, updatedAt, deletedAt, deletedBy, ...keep } = d;
+  db.prepare('UPDATE notebook_docs SET json=?, updated_at=? WHERE id=?').run(JSON.stringify(keep), now(), r.id);
+  res.json({ doc: nbLight(req.user, nbDocOf(nbRowOf(r.id))) });
+});
+/* MOVE BETWEEN SHELVES: onto the Company shelf only an admin, and only their own document; off it only an admin,
+   and it becomes theirs */
+app.post('/api/notebook/:id/shelf', auth, (req, res) => {
+  const r = nbRowOf(req.params.id);
+  if (!r || !nbSees(req.user, r)) return res.status(404).json({ error: 'Not found' });
+  const to = NB.NB_SHELVES.includes((req.body || {}).shelf) ? req.body.shelf : '';
+  if (!to) return res.status(400).json({ error: 'Choose a shelf: Company or Mine.' });
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Only an admin moves a document onto or off the Company shelf.' });
+  if (to === r.shelf) return res.json({ doc: nbLight(req.user, nbDocOf(r)) });
+  if (r.shelf === 'mine' && String(r.owner_id) !== String(req.user.id)) return res.status(404).json({ error: 'Not found' });
+  db.prepare('UPDATE notebook_docs SET shelf=?, owner_id=?, updated_at=? WHERE id=?').run(to, to === 'mine' ? String(req.user.id) : null, now(), r.id);
+  res.json({ doc: nbLight(req.user, nbDocOf(nbRowOf(r.id))) });
+});
+/* the notebook sections an answer QUOTED: found by its search this turn, named by their exact number AND their
+   document. "Art. 28" is not said by "Art. 28(3)". Read off the answer the reader got; nothing guessed. */
+function nbCitedOf(cx, answer) {
+  const out = [];
+  const hits = cx && cx._nbHits; if (!hits || !hits.size || !answer) return out;
+  const a = String(answer).replace(/\s+/g, ' ');
+  const lc = a.toLowerCase();
+  const done = new Set();
+  for (const h of hits.values()) {
+    const nb = h.notebook; if (!nb || !nb.n || done.has(nb.doc + '#' + nb.n)) continue;
+    const num = nb.n.replace(/\s+/g, ' ');
+    const exact = w => new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?!\\d|\\(|\\.\\d)', 'i').test(a);
+    const said = exact(num) || (/^Art\. /.test(num) && exact('Article ' + num.slice(5))) || (/^s\. /.test(num) && exact('section ' + num.slice(3)));
+    const word = String(nb.name || '').split(/[\s,()]+/).find(w => w.length >= 4) || nb.name;
+    if (!said || !word || !lc.includes(String(word).toLowerCase())) continue;
+    done.add(nb.doc + '#' + nb.n);
+    out.push(h);
+  }
+  return out;
+}
 function nbCitedRecord(cx, answer) {
   try {
-    const hits = cx && cx._nbHits; if (!hits || !hits.size || !answer) return;
-    const a = String(answer).replace(/\s+/g, ' ');
-    const lc = a.toLowerCase();
-    const done = new Set();
-    for (const h of hits.values()) {
-      const nb = h.notebook; if (!nb || !nb.n || done.has(nb.doc + '#' + nb.n)) continue;
-      const num = nb.n.replace(/\s+/g, ' ');
-      /* its number exactly: "Art. 28" is not said by "Art. 28(3)" */
-      const exact = w => new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?!\\d|\\(|\\.\\d)', 'i').test(a);
-      const said = exact(num) || (/^Art\. /.test(num) && exact('Article ' + num.slice(5))) || (/^s\. /.test(num) && exact('section ' + num.slice(3)));
-      const word = String(nb.name || '').split(/[\s,()]+/).find(w => w.length >= 4) || nb.name;
-      if (!said || !word || !lc.includes(String(word).toLowerCase())) continue;
-      done.add(nb.doc + '#' + nb.n);
+    for (const h of nbCitedOf(cx, answer)) {
+      const nb = h.notebook;
       const r = nbRowOf(nb.doc); if (!r) continue;
       const d = nbDocOf(r); const { id, shelf, ownerId, updatedAt, ...keep } = d;
       const bySec = { ...(keep.bySec || {}) }; bySec[nb.n] = (Number(bySec[nb.n]) || 0) + 1;
@@ -27619,6 +27663,18 @@ function nbCitedRecord(cx, answer) {
         last: { n: nb.n, words: h.quote || '', cid: cx._nbCid || null, at: now() } }), r.id);
     }
   } catch (_) { /* counting never fails an answer */ }
+}
+/* "OPEN s. 48" UNDER THE ANSWER (owner, 24 Nov 2026, "build all three"): each section the answer quoted waits under
+   it as one press that opens the document at that section, through the same door buttons a chapter uses
+   (final.choices → navDoorOf); never a move; at most three */
+function copilotNotebookButton(cx, final) {
+  try {
+    const cited = nbCitedOf(cx, final && final.answer).slice(0, 3); if (!cited.length) return;
+    const lang = cx && cx.user && cx.user.lang === 'sv' ? 'sv' : 'en';
+    const add = cited.map(h => ({ label: ((lang === 'sv' ? 'Öppna ' : 'Open ') + h.notebook.n + ' · ' + (h.notebook.name || '')).slice(0, 80),
+      door: { kind: 'notebook', doc: h.notebook.doc, n: h.notebook.n } }));
+    final.choices = (Array.isArray(final.choices) ? final.choices : []).concat(add);
+  } catch (_) { /* a button never fails an answer */ }
 }
 /* ============================================================
    JAMBO'S STANDING WATCHES (owner, 21 Oct 2026: "build the chatbot as
@@ -28705,6 +28761,7 @@ function hsIndexKind(k) {
     /* THE NOTEBOOK: each section a passage of its own, a Mine document under its writer (owner), a Company one under nobody */
     hsDrop("kind = 'notebook'");
     for (const r of db.prepare('SELECT * FROM notebook_docs').all()) {
+      if (nbGone(r)) continue;
       const d = nbDocOf(r);
       (Array.isArray(d.sections) ? d.sections : []).forEach((x, i) => x && x.text && hsPut('notebook', r.id + '#' + i, null, r.shelf === 'mine' ? r.owner_id : null,
         (d.name || '') + (x.n ? ' ' + x.n : ''), x.text, { doc: r.id, n: x.n || '', i, quote: NB.nbQuoteOf(NB.nbWordsOf(x.text), 200) }, [d.kind, d.name].join(' ')));
