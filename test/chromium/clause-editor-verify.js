@@ -854,8 +854,9 @@ const dismissNote = async pg => {
      + 'that means done, means done',
      typed.n === nBefore + 1 && typed.editableAfter !== 'true',
      `${nBefore} changes before, ${typed.n} after; typeable ${typed.editableAfter}`);
-  ck('12c3 …and it asks for a note on the change it just created',
-     askedForNote === true, askedForNote ? 'the dialog came up and was skipped' : 'no dialog');
+  /* RE-POINTED 24 Nov 2026 (owner: "Just file and move on") — filing asks for no note */
+  ck('12c3 …and it asks for NO note on the change it just created (filing never asks)',
+     askedForNote !== true, askedForNote ? 'a note was asked' : 'no dialog');
 
   /* ---- THE THREE READINGS ---- */
   const segs = await p.evaluate(() => {
@@ -3506,7 +3507,8 @@ const dismissNote = async pg => {
     n: (window.CONTRACT.changes || []).length,
     note: !!(window.state && state.panelOpen && document.querySelector('#context-panel .rl-np-pin')) }));
   ck('31a ONE real press on the pencil files the redline — the reported gesture',
-     !!box31 && after31.n === n31 + 1 && after31.note,
+     /* RE-POINTED 24 Nov 2026: filed, and no note drawer pinned */
+     !!box31 && after31.n === n31 + 1 && !after31.note,
      `changes ${n31} → ${after31.n} · drawer pinned ${after31.note}`);
   ck('31b and the pencil did not move while the button was held',
      !!box31 && !!held31 && Math.abs(held31.top - box31.y) < 1,
@@ -3732,8 +3734,8 @@ const dismissNote = async pg => {
     ck('32e ONE REAL PRESS ON THE PENCIL FILES — and the counter STACKS on their ask instead of superseding it',
        !!pb && !!filed32.ours && filed32.oursOld && filed32.theirsStatus === 'countered' && filed32.counteredBy === filed32.ours,
        JSON.stringify(filed32));
-    ck('32f …asks for the note, ends the typing, and the paper draws BOTH layers',
-       filed32.note && filed32.typing === false && filed32.them > 0 && filed32.us > 0,
+    ck('32f …asks for NO note (filing never asks, 24 Nov 2026), ends the typing, and the paper draws BOTH layers',
+       !filed32.note && filed32.typing === false && filed32.them > 0 && filed32.us > 0,
        `note ${filed32.note} · typing ${filed32.typing} · them ${filed32.them} · us ${filed32.us}`);
     /* THE REFUSAL IS SPOKEN: a colleague holds the clause. The lock sign stands
        at rest where the pencil is not; the click lands and says why; no caret. */
