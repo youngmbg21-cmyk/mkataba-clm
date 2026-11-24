@@ -63,6 +63,14 @@ const waitFor = (page, fn, ms = 8000, arg) => page.waitForFunction(fn, arg, { ti
     /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end": ONE DOOR — pdSetTab('oblig') and every old Obligations door
        open the contract's Duties page in the middle; the paper's old Obligations face never shows): its On the contract
        tab lists the contract's own duties */
+    /* RE-POINTED 24 Nov 2026 (owner, "Duties, end to end": the page opens on To decide while any found duty waits, else
+       On the contract): the tab it opened on must match that; then On the contract lists the contract's own duties */
+    const opened = await waitFor(page, id => { const pc = typeof pdContract === 'function' ? pdContract() : null;
+      return !!pc && pc.id === id && !!document.querySelector('#dtp [data-dtp-tab][aria-selected="true"]'); }, 8000, ID);
+    const first = opened && await page.evaluate(() => ({ tab: document.querySelector('#dtp [data-dtp-tab][aria-selected="true"]').getAttribute('data-dtp-tab'),
+      waiting: Number(((document.querySelector('#dtp [data-dtp-tab="left"] span') || {}).textContent || '0').trim()) || 0 }));
+    check('2- the Duties page opens on To decide only while something waits there', !!first && (first.tab === 'left') === (first.waiting > 0), JSON.stringify(first));
+    if (first && first.tab !== 'on') await page.click('#dtp [data-dtp-tab="on"]').catch(() => {});
     const ob = await waitFor(page, id => { const pc = typeof pdContract === 'function' ? pdContract() : null;
       return !!pc && pc.id === id && document.querySelectorAll('#dtp #dtp-list [data-dtp-rec]').length > 0; }, 8000, ID);
     const obd = await page.evaluate(() => ({ view: state.view, tab: (document.querySelector('#dtp [data-dtp-tab][aria-selected="true"]') || { getAttribute: () => null }).getAttribute('data-dtp-tab'),
