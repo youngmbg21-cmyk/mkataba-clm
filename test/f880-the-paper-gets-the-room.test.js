@@ -22,10 +22,12 @@ const CNT = read('js/views/counter.js'), PD = read('js/paperdesk.js'), I18N = re
 
 describe('f880 — the template\'s page: one thin line, the paper, Jambo beside it', () => {
   const page = fnBody(TL, 'openTemplateLibDetail');
-  test('one line: ‹ Library · name · ● status vN · facts · Edit · ⋯ · + New contract', () => {
+  /* RE-POINTED 24 Nov 2026 (owner's yes to the drawing, Legora + Stripe): the facts come before More ▾, then the ONE
+     black button — Edit in the builder for a draft, + New contract once published (Edit then inside More) */
+  test('one line: ‹ Library · name · ● status vN · facts · More ▾ · the one black button', () => {
     assert.match(page, /class="ph-card tpl-dt-line"/);
-    const line = page.slice(page.indexOf('tpl-dt-line'), page.indexOf('</div>', page.indexOf('tpl-dt-line')));
-    ['tpllib-back', 'tpl-dt-name', 'tpl-dt-st', 'tpl-dt-facts', 'tpllib-edit-wording', 'tpl-dt-more', 'tpllib-use']
+    const line = page.slice(page.indexOf('tpl-dt-line'), page.indexOf("t.status === 'archived' ? `<p class=\"tpl-dt-arch\"", page.indexOf('tpl-dt-line')));
+    ['tpllib-back', 'tpl-dt-name', 'tpl-dt-st', 'tpl-dt-facts', 'tpl-dt-more', 'tpllib-edit-wording', 'tpllib-use']
       .reduce((at, k) => { const i = line.indexOf(k, at); assert.ok(i > at, k + ' in order on the line'); return i; }, -1);
   });
   test('Rename, New draft version, Archive or Restore and Delete are in the ⋯, not on the page', () => {
@@ -35,7 +37,7 @@ describe('f880 — the template\'s page: one thin line, the paper, Jambo beside 
   test('the second head over the wording is gone; the description goes to Jambo', () => {
     assert.ok(!page.includes("i18t('tl_the_wording')"), 'no "The wording" head');
     assert.ok(!page.includes('tl_no_description'), 'no description line on the page');
-    assert.match(fnBody(TL, 'tplDtPanelPaint'), /tplPfJamboHtml\(card, read, \{ desc: t\.description \|\| '' \}\)/);
+    assert.match(fnBody(TL, 'tplDtOverviewHtml'), /title: t\.name, sub: t\.description \|\| ''/, 'the description is the Overview\'s sentence');
     assert.match(fnBody(LIB, 'tplPfJamboHtml'), /if \(o && o\.desc\) lines\.splice\(1, 0, _tplEsc\(o\.desc\)\)/);
   });
   test('Jambo beside it, drawn only where the panel fits, as one window', () => {

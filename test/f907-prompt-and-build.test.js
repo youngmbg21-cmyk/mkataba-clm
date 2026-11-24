@@ -893,7 +893,7 @@ describe('f907 (12) — the draft is kept when you press anything else', () => {
       'the first touch writes at once — the strip the caller repaints is already true');
     assert.ok(!m['tpl_1:tv_1'].blocks.some(b => '_k' in b), 'the client key is left behind, exactly as tbSave strips it');
     assert.equal(w.tbKeepNow(), true, 'and the page knows it landed');
-    assert.equal(w.tbDirtyLine(), 'Draft kept in this browser', 'which is what the strip says');
+    assert.equal(w.tbDirtyLine(), 'kept in this browser', 'which is what the strip says (under the name: Draft · v1 · kept in this browser)');
   });
 
   test('it comes back on the next open, and the strip never calls it saved', async () => {
@@ -955,7 +955,7 @@ describe('f907 (12) — the draft is kept when you press anything else', () => {
     const w = await open([['heading', 'Confidentiality'], ['field_group', '']], { store: deafBrowser(), asked });
     await w.write('Nowhere to put this.');       /* must not throw its way out of a press */
     assert.equal(w.tbKeepNow(), false, 'it says so rather than promising');
-    assert.equal(w.tbDirtyLine(), 'Unsaved changes', 'the honest sentence for a draft nobody kept');
+    assert.equal(w.tbDirtyLine(), 'unsaved changes', 'the honest sentence for a draft nobody kept');
     w.tbLeave();
     assert.equal(asked.length, 1, 'the blocking guard is spent where it is still true');
     assert.ok(/could not keep the draft/i.test(asked[0].message), asked[0].message);

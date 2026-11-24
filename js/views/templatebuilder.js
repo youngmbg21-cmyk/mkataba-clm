@@ -1339,6 +1339,7 @@ function tbStyleHtml() {
   .tb-strip .tb-back{flex:none;width:30px;padding:0}
   .tb-strip .tb-act{flex:none;white-space:nowrap}
   .tb-head{display:flex;align-items:center;gap:8px;min-width:0;flex:0 1 auto}
+  .tb-dirty{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .tb-tname{display:inline-flex;align-items:center;gap:6px;min-width:0;flex:0 1 auto;background:none;border:0;border-bottom:1px dashed transparent;border-radius:0;padding:0 0 1px;cursor:pointer;
     font:inherit;font-size:14px;font-weight:var(--w-title);color:var(--color-text)}
   .tb-tname .v{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
@@ -2510,8 +2511,12 @@ function tbHeadHtml() {
   const caret = icon('chevD', 'tb-fchip-c');
   const chip = (what, key, val, sw, whole) => `<button type="button" class="tb-fchip${val ? '' : ' empty'}" data-tb-meta="${what}"
       title="${esc(val ? i18t('tb_h_chip_title', { k: key, v: whole || val }) : i18t('tb_h_stream_none'))}"><span class="k">${esc(key)}</span>${sw || ''}<span class="v">${esc(val || i18t('tb_h_choose'))}</span>${caret}</button>`;
-  return `<button type="button" class="tb-tname" data-tb-meta="name" title="${esc(i18t('tb_h_rename', { name: h.name }))}"><span class="v">${esc(h.name)}</span></button>`
-    + `<span class="tb-chipv">${i18t('tb_v_draft', { n: _tb.versionNumber })}</span>`
+  /* THE TOP BAR, LEGORA + STRIPE (owner's pick, 24 Nov 2026): ONE ROW — the name on one line with ONE small grey line
+     under it (the draft and where it is kept: the one slot, #tb-dirtyslot), a thin divider, then Category and Stream as
+     quiet words (an unchosen stream an amber dot), the three acts even on the right */
+  return `<span class="tb-hname"><button type="button" class="tb-tname" data-tb-meta="name" title="${esc(i18t('tb_h_rename', { name: h.name }))}"><span class="v">${esc(h.name)}</span></button>`
+    + `<span class="tb-hsub"><span class="tb-chipv">${i18t('tb_v_draft', { n: _tb.versionNumber })}</span><span id="tb-dirtyslot" class="tb-hdirty">${tbDirtyHtml()}</span></span></span>`
+    + `<span class="tb-hdiv" aria-hidden="true"></span>`
     + chip('category', i18t('tb_h_category'), h.categoryName)
     /* the stream's short name, as Our paper's book says it ("Sales"); its
        whole name on the hover (check #2, 19 Oct 2026) */
@@ -2747,7 +2752,6 @@ function tbPaint(opts = {}) {
       <div class="tb-strip">
         <button id="tb-back" type="button" class="ui-btn tb-back" title="${esc(i18t('tb_h_back'))}" aria-label="${esc(i18t('tb_h_back'))}">${icon('arrowLeft', 'w-3.5 h-3.5')}</button>
         <span id="tb-head" class="tb-head">${tbHeadHtml()}</span>
-        <span id="tb-dirtyslot" style="display:flex;align-items:center;gap:var(--s-2);min-width:0">${tbDirtyHtml()}</span>
         <span style="flex:1"></span>
         ${''/* BELOW 1024 THE RAIL IS NOT DRAWN, AND ITS ADD FIELD WENT WITH IT (the
                owner's list, 27 Sep 2026). The same act, in the strip, only while
@@ -2943,7 +2947,7 @@ function tbDirtyHtml() {
   const line = tbDirtyLine();
   const drop = (_tb && _tb.restoredAt)
     ? `<button id="tb-drop" class="ui-btn ui-btn-sm">${esc(i18t('tb_kept_discard'))}</button>` : '';
-  return `<span id="tb-dirty" style="font-size:var(--t-label);color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(line)}</span>${drop}`;
+  return `<span id="tb-dirty" class="tb-dirty">${esc(line)}</span>${drop}`;
 }
 function tbPatchDirty() {
   const d = document.getElementById('tb-dirtyslot'); if (d) d.innerHTML = tbDirtyHtml();

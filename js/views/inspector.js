@@ -1406,6 +1406,18 @@ function jlOwnPaint(host, opt){
     if (at){ at.insertAdjacentHTML('afterend', `<button type="button" class="pd-tab jl-tab" data-jl-tab2><span class="pd-tab-w">${esc(opt.jlTab2.label)}</span></button>`);
       const b = host.querySelector('[data-jl-tab2]'); const run = opt.jlTab2.run; b.addEventListener('click', () => { if (typeof run === 'function') run(); }); }
   }
+  /* A PAGE'S OWN TABS AFTER OVERVIEW (a template's page, owner's yes 24 Nov 2026: Overview · Blanks 6 · Versions 1):
+     `jlTabs` [{k, label, n}], the lit one `jlTabOn` (none = Overview), a press runs `jlTabRun(k)`; gone the moment a
+     face without them is painted */
+  host.querySelectorAll('[data-jl-tabx]').forEach(b => b.remove());
+  const homeT = host.querySelector('[data-jl-home]');
+  if (homeT) homeT.classList.toggle('is-off', !!(Array.isArray(opt.jlTabs) && opt.jlTabOn));
+  if (Array.isArray(opt.jlTabs) && opt.jlTabs.length && homeT){
+    const on = opt.jlTabOn || '';
+    homeT.insertAdjacentHTML('afterend', opt.jlTabs.map(x => `<button type="button" class="pd-tab jl-tab jl-tabx${x.k === on ? ' on' : ''}" data-jl-tabx="${esc(x.k)}"${x.k === on ? ' aria-current="true"' : ''}><span class="pd-tab-w">${esc(x.label)}</span>${x.n != null ? `<em class="jl-tabx-n">${esc(String(x.n))}</em>` : ''}</button>`).join(''));
+    const runX = opt.jlTabRun;
+    host.querySelectorAll('[data-jl-tabx]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); if (typeof runX === 'function') runX(b.getAttribute('data-jl-tabx')); }));
+  }
   const foot = host.querySelector(':scope > .jl-foot');
   host.querySelectorAll(':scope > .jb-ways.is-own').forEach(w => w.remove());
   if (opt.jlLinks && foot){

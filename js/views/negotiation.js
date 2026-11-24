@@ -12682,6 +12682,7 @@ function rlSetDocZoom(z){
   if (window.dsApplyZoom) dsApplyZoom();
   if (window.igApplyZoom) igApplyZoom();
   if (window.tbApplyZoom) tbApplyZoom();   /* the Builder's paper too (owner, 23 Nov 2026) */
+  if (window.tplDtApplyZoom) tplDtApplyZoom();   /* a template's own page too (owner, 24 Nov 2026) */
   /* the Document tab's Track measures the paper, whose length just moved */
   try { if (window.igTrackPlace && window.docTrackHost) igTrackPlace(docTrackHost()); } catch (_) {}
   document.querySelectorAll('.rl-type-out').forEach(el => { el.textContent = v + '%'; });

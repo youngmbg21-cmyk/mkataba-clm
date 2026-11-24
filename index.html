@@ -25201,6 +25201,75 @@
   html.lg-new #content-scroll:has(#tb-page){background:var(--color-surface)}
   /* a template's page: the back pill stands as tall as Edit and New contract beside it (Round 0, 9 Nov 2026: 22 beside 28) */
   html.lg-new #tpl-dt .tpl-dt-line .tpl-dt-back{min-height:var(--ctl-h);height:var(--ctl-h);font-size:var(--t-body)}
+  /* A TEMPLATE'S PAGE, LEGORA + STRIPE (owner's yes to the drawing, 24 Nov 2026): ONE ROW at the top — the name on one
+     line with one small grey line under it, a thin divider, the facts as quiet words, More ▾ and the one black button;
+     under it the DOSSIER'S DESK (--desk-ground) edge to edge with the white paper on it and the paper's zoom; the version
+     history went into Jambo's panel (Overview · Blanks · Versions, tplDtPanelPaint) */
+  html.lg-new #tpl-dt .tpl-dt-line{min-height:64px;padding-top:var(--s-2);padding-bottom:var(--s-2);gap:var(--s-3)}
+  html.lg-new #tpl-dt .tpl-dt-nm{display:flex;flex-direction:column;gap:1px;min-width:0;flex:0 1 auto;max-width:380px}
+  html.lg-new #tpl-dt .tpl-dt-nm .tpl-dt-name{max-width:100%;font-family:var(--font-body);font-size:var(--t-body);font-weight:var(--w-strong);line-height:1.3}
+  html.lg-new #tpl-dt .tpl-dt-sub{display:flex;align-items:baseline;min-width:0;font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap;overflow:hidden}
+  html.lg-new #tpl-dt .tpl-dt-sub .tpl-dt-st{font-size:inherit;font-weight:var(--w-label)}
+  html.lg-new #tpl-dt .tpl-dt-div{flex:none;width:1px;height:var(--ctl-h-sm);background:var(--color-divider)}
+  html.lg-new #tpl-dt .tpl-dt-facts{display:inline-flex;align-items:baseline;gap:var(--s-4);color:var(--color-quiet)}
+  html.lg-new #tpl-dt .tpl-dt-f{white-space:nowrap}
+  html.lg-new #tpl-dt .tpl-dt-f b{font-weight:var(--w-label);color:var(--color-text)}
+  html.lg-new #tpl-dt .tpl-dt-morebtn{height:var(--ctl-h);border-radius:999px;gap:4px}
+  html.lg-new #tpl-dt .tpl-dt-line > .ui-btn-primary{height:var(--ctl-h);border-radius:999px}
+  html.lg-new #content #tpl-dt > .tpl-dt-paper#tpl-dt-desk{background:var(--desk-ground);border-color:transparent;padding:var(--s-4) var(--s-4) var(--s-6)}
+  html.lg-new #tpl-dt #tpl-dt-desk .tpl-dt-sheet{padding:0}
+  html.lg-new #tpl-dt #tpl-dt-desk .tpl-dt-sheet > .blueprint{background:var(--color-surface);border-color:transparent;box-shadow:var(--n-shadow-card,0 1px 2px rgba(38,55,74,.06),0 4px 14px rgba(38,55,74,.07))}
+  html.lg-new #tpl-dt #tpl-dt-desk > .paper-zc-row{--zc-room:0px}
+  /* the desk is its own scroller, as the Builder's: the row above stands still, the zoom finds the desk's top */
+  html.lg-new #content-scroll:has(> #content > #tpl-dt){overflow:hidden}
+  html.lg-new #content-scroll:has(> #content > #tpl-dt) > #content{height:100%;min-height:0}
+  html.lg-new #content #tpl-dt.tpl-dt{height:100%;min-height:0;flex:1 1 auto}
+  html.lg-new #content #tpl-dt > .tpl-dt-paper#tpl-dt-desk{flex:1 1 0;min-height:0;overflow-y:auto}
+  html.lg-new #tpl-dt .tpl-dt-sheet .hati-field.is-dtlit{border-bottom-style:solid;box-shadow:0 0 0 2px var(--st-amber-dot)}
+  /* the panel's own tabs after Overview, the Builder's way: words, the lit one green-underlined, its count in grey */
+  html.lg-new #app-shell #ins-panel .jl-head.jl-head > .jl-tabx.jl-tabx{box-shadow:none;outline:0;flex:none;width:auto;background:none;border:0;border-bottom:2px solid transparent;border-radius:0;padding:var(--s-2) 1px;font:inherit;font-size:var(--t-meta);color:var(--color-text);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:baseline;gap:5px;margin-left:var(--s-3)}
+  html.lg-new #app-shell #ins-panel .jl-head.jl-head > .jl-tabx.jl-tabx.on{box-shadow:none;background:none;font-weight:var(--w-title);color:var(--accent-ink);border-bottom-color:var(--accent-solid)}
+  html.lg-new #ins-panel .jl-head .jl-tabx-n{order:2;font-style:italic;font-size:var(--t-label);color:var(--color-neutral-600)}
+  html.lg-new #app-shell #ins-panel .jl-head.jl-head > [data-jl-home].jl-tab.is-off{background:none;box-shadow:none;border-color:transparent;color:var(--color-text);font-weight:var(--w-body)}
+  html.lg-new .tpl-dt-badges{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:var(--s-2)}
+  html.lg-new .tpl-dt-badge{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:999px;font-size:var(--t-label);font-weight:var(--w-label);white-space:nowrap}
+  html.lg-new .tpl-dt-badge i{width:6px;height:6px;border-radius:50%}
+  html.lg-new .tpl-dt-badge.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)} html.lg-new .tpl-dt-badge.is-amber i{background:var(--st-amber-dot)}
+  html.lg-new .tpl-dt-badge.is-green{background:var(--st-green-bg);color:var(--st-green-fg)} html.lg-new .tpl-dt-badge.is-green i{background:var(--st-green-dot)}
+  html.lg-new .tpl-dt-badge.is-gray{background:var(--st-gray-bg);color:var(--st-gray-fg)} html.lg-new .tpl-dt-badge.is-gray i{background:var(--st-gray-dot)}
+  html.lg-new .tpl-dt-ring{display:flex;align-items:center;gap:var(--s-3);position:relative}
+  html.lg-new .tpl-dt-ring svg{width:56px;height:56px;flex:none;transform:rotate(-90deg)}
+  html.lg-new .tpl-dt-ring circle{fill:none;stroke-width:6}
+  html.lg-new .tpl-dt-ring .b{stroke:var(--color-neutral-200)}
+  html.lg-new .tpl-dt-ring .f{stroke:var(--st-green-dot);stroke-dasharray:138.2;stroke-linecap:round}
+  html.lg-new .tpl-dt-ring > b{position:absolute;left:0;width:56px;text-align:center;font-size:var(--t-label);font-weight:var(--w-title)}
+  html.lg-new .tpl-dt-ring > span{display:flex;flex-direction:column;gap:2px;min-width:0}
+  html.lg-new .tpl-dt-rt{font-weight:var(--w-label)} html.lg-new .tpl-dt-rs{font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .tpl-dt-pane{display:flex;flex-direction:column;gap:var(--s-3);padding:var(--s-4)}
+  html.lg-new .tpl-dt-hrow{display:flex;align-items:baseline;gap:var(--s-3)}
+  html.lg-new .tpl-dt-hrow .tpl-dt-q{margin-left:auto;white-space:nowrap}
+  html.lg-new .tpl-dt-h{margin:0;font-size:var(--t-card);font-weight:var(--w-title)}
+  html.lg-new .tpl-dt-q{margin:0;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .tpl-dt-tbl{width:100%;border-collapse:collapse;font-size:var(--t-meta)}
+  html.lg-new .tpl-dt-tbl th{text-align:left;font-weight:var(--w-label);font-size:var(--t-label);color:var(--color-quiet);padding:6px 8px;border-bottom:1px solid var(--color-divider);white-space:nowrap}
+  html.lg-new .tpl-dt-tbl td{padding:8px;border-bottom:1px solid var(--color-divider);vertical-align:top}
+  html.lg-new .tpl-dt-tbl .r{text-align:right}
+  html.lg-new .tpl-dt-tbl tbody tr{cursor:pointer}
+  html.lg-new .tpl-dt-tbl tbody tr:hover td{background:var(--row-hover)}
+  html.lg-new .tpl-dt-tbl tbody tr.is-on td{background:var(--row-chosen)}
+  html.lg-new .tpl-dt-bn{display:block}
+  html.lg-new .tpl-dt-bq{display:block;margin-top:2px;font-size:var(--t-label);font-style:italic;color:var(--color-quiet)}
+  html.lg-new .tpl-dt-tls{display:flex;flex-direction:column}
+  html.lg-new .tpl-dt-tl{display:flex;gap:10px;padding-bottom:12px;position:relative;font-size:var(--t-meta)}
+  html.lg-new .tpl-dt-tl::before{content:"";width:9px;height:9px;border-radius:50%;border:1.5px solid var(--color-neutral-300);background:var(--color-surface);flex:none;margin-top:4px;position:relative;z-index:1}
+  html.lg-new .tpl-dt-tl::after{content:"";position:absolute;left:4px;top:13px;bottom:0;width:1px;background:var(--color-divider)}
+  html.lg-new .tpl-dt-tl:last-child::after{display:none}
+  html.lg-new .tpl-dt-tl.is-done::before{background:var(--st-green-dot);border-color:var(--st-green-dot)}
+  html.lg-new .tpl-dt-tl.is-now::before{background:var(--st-amber-dot);border-color:var(--st-amber-dot)}
+  html.lg-new .tpl-dt-tl > span{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+  html.lg-new .tpl-dt-tl b{font-weight:var(--w-label)}
+  html.lg-new .tpl-dt-err{font-size:var(--t-label);color:var(--st-ruby-fg)}
+  html.lg-new .tpl-dt-vbtn{border-radius:999px}
   html.lg-new #tb-page #tb-paper{box-shadow:none}
   /* ONE WHOLE PAPER (owner, 14 Nov 2026): the sheet is a page tall from the start, A4 in proportion, and grows with its wording */
   html.lg-new #tb-page #tb-paper{aspect-ratio:1 / 1.4142}
@@ -25475,10 +25544,24 @@
   /* the zoom stands in the desk beside the centred paper, as on the Dossier: it takes no room above the sheet (refusal 3) */
   html.lg-new #tb-page #tb-scroll > .paper-zc-row{--zc-room:0px}
   html.lg-new #tb-page #tb-paper{border-color:transparent;box-shadow:var(--n-shadow-card,0 1px 2px rgba(38,55,74,.06),0 4px 14px rgba(38,55,74,.07))}
-  html.lg-new #tb-page .tb-head .tb-chipv{height:22px;padding:0 9px;border-radius:999px;background:var(--st-gray-bg);color:var(--st-gray-fg);font-size:var(--t-label)}
-  html.lg-new #tb-page .tb-head .tb-fchip{height:28px;padding:0 10px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface)}
-  html.lg-new #tb-page .tb-head .tb-fchip.empty{border:1px dashed var(--st-amber-line);background:var(--st-amber-bg)}
-  html.lg-new #tb-page .tb-head .tb-fchip:hover{border-color:var(--accent-ink)}
+  /* THE TOP BAR, LEGORA + STRIPE (owner's pick, 24 Nov 2026; reverses the 23 Nov badge and boxed chips): ONE ROW — the
+     name on ONE line ("…" when long, whole on its hover), one small grey line under it (Draft · v1 · where it is kept),
+     a thin divider, Category and Stream as quiet words with no box (an unchosen stream an amber dot and amber word),
+     More · Save draft · Publish the same height (tbHeadHtml) */
+  html.lg-new #tb-page .tb-head{gap:var(--s-3)}
+  html.lg-new #tb-page .tb-hname{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;flex:0 1 auto;max-width:380px}
+  html.lg-new #tb-page .tb-head .tb-tname{flex:none;max-width:100%;min-width:0}
+  html.lg-new #tb-page .tb-head .tb-tname .v{display:block;-webkit-line-clamp:unset;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:var(--t-body);line-height:1.3}
+  html.lg-new #tb-page .tb-hsub{display:flex;align-items:baseline;max-width:100%;min-width:0;font-size:var(--t-label);color:var(--color-quiet);white-space:nowrap}
+  html.lg-new #tb-page .tb-head .tb-chipv{flex:none;height:auto;padding:0;border:0;border-radius:0;background:none;color:inherit;font:inherit}
+  html.lg-new #tb-page .tb-head .tb-chipv::before{display:none}
+  html.lg-new #tb-page .tb-hdirty{display:inline-flex;align-items:baseline;gap:var(--s-2);min-width:0}
+  html.lg-new #tb-page .tb-hdirty .tb-dirty:not(:empty)::before{content:"\00a0·\00a0"}
+  html.lg-new #tb-page .tb-hdirty #tb-drop{height:auto;min-height:0;padding:0;border:0;background:none;box-shadow:none;font:inherit;color:var(--accent-ink)}
+  html.lg-new #tb-page .tb-hdiv{flex:none;width:1px;height:var(--ctl-h-sm);background:var(--color-divider)}
+  html.lg-new #tb-page .tb-head .tb-fchip,html.lg-new #tb-page .tb-head .tb-fchip.empty{height:var(--ctl-h-sm);padding:0 var(--s-1);border:0;border-radius:0;background:none;box-shadow:none}
+  html.lg-new #tb-page .tb-head .tb-fchip.empty::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--st-amber-dot)}
+  html.lg-new #tb-page .tb-head .tb-fchip .v{font-weight:var(--w-label)}
   html.lg-new #tb-page .tb-strip #tb-more svg{display:inline-block;margin-left:4px}
   html.lg-new .tb-more-pop .tb-more-r{white-space:normal;align-items:flex-start}
   html.lg-new .tb-more-pop .tb-more-t{display:block}
