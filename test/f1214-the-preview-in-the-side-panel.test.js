@@ -70,14 +70,15 @@ test('f1214 (2) the table takes the page\'s whole width: no preview column', () 
 test('f1214 (3) a whole A4 page, fitted to the panel, never cropped to the words', () => {
   /* RE-POINTED 24 Nov 2026 (paper alone, pages scroll, owner): every page stacked, each whole; one page fits the scroller */
   const frame = fn(D, 'clPvFrame');
-  assert.match(frame, /const h = last \? last\.top \+ \(info\.pageH \|\| clPvPageH\(\)\) : clPvPageH\(\);/, 'whole pages, the last one whole too');
+  /* RE-POINTED 24 Nov 2026 (one page, waves kept, owner): one whole page, fitted to the panel's room */
+  assert.match(frame, /view\.style\.height = Math\.round\(W \* clPvPageH\(\) \/ clPvPageW\(\)\) \+ 'px';/, 'one whole page high');
   const show = fn(D, 'clPvShow');
-  assert.match(show, /clPvFrame\(view, W, info\)/); assert.doesNotMatch(show, /pg\.h/, 'never the height of the words on the page');
+  assert.match(show, /clPvFrame\(view, W\)/); assert.doesNotMatch(show, /pg\.h/, 'never the height of the words on the page');
   const fit = fn(D, 'clPvFitW');
-  assert.match(fit, /ah = sc\.clientHeight - 2 \* CL_PV_EDGE/, 'one whole page fits the panel\'s scroller');
+  assert.match(fit, /ah = st\.clientHeight - 2 \* CL_PV_EDGE/, 'one whole page fits between the chooser line and Jambo\'s box');
   assert.match(fit, /Math\.min\(aw, ah \* clPvPageW\(\) \/ clPvPageH\(\)\)/, 'A4 proportions kept');
   const draw = fn(D, 'clPvDraw');
-  assert.equal((draw.match(/clPvFrame\(view, W, null\)/g) || []).length, 2, 'the sample page and the contract\'s page alike');
+  assert.equal((draw.match(/clPvFrame\(view, W\)/g) || []).length, 2, 'the sample page and the contract\'s page alike');
 });
 
 test('f1214 (4) the preview opens on the contract whose first page is fullest', () => {

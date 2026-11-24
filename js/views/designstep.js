@@ -742,7 +742,7 @@ function clInit() {
     streams: JSON.parse(JSON.stringify(window.ORG_STREAM_LOOKS || {})), applies: 'all', pick: new Set(), editing: null,
     mode: 'page', said: '', dirty: false, busy: false,
     /* round 1: the tab, each tab's chip, the part chosen (its pin lit), the stream chosen, the preview's contract and page */
-    tab: (_cl && _cl.tab) || 'page', chip: 'all', whoChip: 'all', row: null, whoPick: (_cl && _cl.whoPick) || null, pv: (_cl && _cl.pv) || null, pvPage: 1, pvTop: (_cl && _cl.pvTop) || 0,
+    tab: (_cl && _cl.tab) || 'page', chip: 'all', whoChip: 'all', row: null, whoPick: (_cl && _cl.whoPick) || null, pv: (_cl && _cl.pv) || null, pvPage: 1,
     /* round 4: the brand kit's black logo and named colours (the company's; the first colour IS the accent) */
     logoBlackUrl: org.logoBlackUrl || null,
     palette: clPaletteFrom(org),
@@ -878,30 +878,39 @@ function clChipsHtml() {
    company and language, a second admin's yes and the History) draw nothing here yet. */
 const CL_AA = 4.5;
 const CL_PV_W = 306;
-/* PREVIEW IN THE PANEL (owner, 24 Nov 2026): the paper alone in the side panel, every page of it stacked one under
-   another in the panel's own scroller, each a WHOLE A4 page at the width that lets one whole page stand in view
-   ("the pages should just be scrollable as opposed to adding the 1, 2, 3"); a long contract is drawn to CL_PV_MAX_PAGES
-   and the cap is said under the last page, never a silent trim */
-const CL_PV_MIN_W = 160, CL_PV_EDGE = 6, CL_PV_MAX_PAGES = 12;
+/* ONE PAGE IN THE PANEL (owner, 24 Nov 2026: "No! I want the waves and simply put one page of paper on the panel";
+   reverses the stacked, scrolling pages): the panel shows ONE whole A4 page, the first page of wording (after a cover),
+   fitted whole between the chooser line and Jambo's box; nothing in the panel scrolls, so the waves stay put. The panel
+   is sized to the page (clPvPanelW), never the page to the panel */
+const CL_PV_MIN_W = 160, CL_PV_EDGE = 6, CL_PV_SIDE = 12;
 const clPvPageH = () => (typeof window !== 'undefined' && window.PG_SIGN_H) || 1122.5;
 const clPvPageW = () => (typeof window !== 'undefined' && window.PG_SIGN_W) || 794;
 function clPvFitW() {
-  const sc = document.getElementById('cl-pv-scroll'); if (!sc) return CL_PV_W;
-  const aw = sc.clientWidth - 2 * CL_PV_EDGE, ah = sc.clientHeight - 2 * CL_PV_EDGE;
+  const st = document.getElementById('cl-pv-stage'); if (!st) return CL_PV_W;
+  const aw = st.clientWidth - 2 * CL_PV_EDGE, ah = st.clientHeight - 2 * CL_PV_EDGE;
   if (!(ah > 0)) return Math.max(CL_PV_MIN_W, Math.floor(aw > 0 ? aw : CL_PV_W));
   return Math.max(CL_PV_MIN_W, Math.floor(Math.min(aw, ah * clPvPageW() / clPvPageH())));
 }
-/* the pages drawn: all of them, up to the cap (a sheet not yet in pages is one) */
-function clPvShownPages(info) { const n = (info && info.n) || 1; return Math.min(n, CL_PV_MAX_PAGES); }
-/* the paper's frame at width W: the drawn pages, each a whole page high, the gap between them as on the working copy */
-function clPvFrame(view, W, info) {
-  const paper = document.getElementById('cl-pv-paper'), k = W / clPvPageW();
+/* the panel's width for the page: the page as tall as the room allows, plus a modest margin each side and the panel's
+   own padding — no wider than `max` (the page then fits by width), never under the panel's floor */
+function clPvPanelW(max) {
+  const st = document.getElementById('cl-pv-stage'), body = st && st.closest('.jl-body');
+  const top = Number(max) || 560, floor = (typeof window !== 'undefined' && window.JL_MIN) || 340;
+  if (!st || !body || !(st.clientHeight > 0)) return top;
+  const W = (st.clientHeight - 2 * CL_PV_EDGE) * clPvPageW() / clPvPageH();
+  const pad = Math.max(0, body.clientWidth - st.clientWidth);
+  return Math.max(floor, Math.min(top, Math.ceil(W + 2 * (CL_PV_EDGE + CL_PV_SIDE) + pad)));
+}
+/* the page drawn: the first page of wording (after a cover, if one is on) */
+function clPvShownPage(info, root) {
+  const n = (info && info.n) || 1, cov = !!(root && root.querySelector && root.querySelector('.pg-cover'));
+  return cov && n > 1 ? 2 : 1;
+}
+/* the paper's frame at width W: one whole page high */
+function clPvFrame(view, W) {
+  const paper = document.getElementById('cl-pv-paper');
   view.style.width = W + 'px'; if (paper) paper.style.width = W + 'px';
-  const shown = clPvShownPages(info), last = info && info.pages && info.pages[shown - 1];
-  const h = last ? last.top + (info.pageH || clPvPageH()) : clPvPageH();
-  view.style.height = Math.round(h * k) + 'px';
-  const cap = document.getElementById('cl-pv-cap'), n = (info && info.n) || 1;
-  if (cap) { cap.hidden = n <= shown; cap.textContent = n > shown ? i18t('cl_ls_pv_capped', { n: shown, m: n }) : ''; }
+  view.style.height = Math.round(W * clPvPageH() / clPvPageW()) + 'px';
 }
 const CL_PIN_SIDE = { logo: 'l', header: 'r', letterhead: 'r', style: 'l', layout: 'l', colour: 'r', type: 'r', footer: 'l', pagenum: 'r', sigblock: 'l', cover: 'l' };
 const CL_ST_TONE = { set: 'green', missing: 'amber', faint: 'ruby', optional: 'grey' };
@@ -1112,8 +1121,8 @@ function clPreviewHtml() {
   /* the panel's pinned paper (stLsLookPanel): the page's own dress, outside the page */
   return `<div class="cl-pg is-r1 cl-pv-dock" id="cl-pv-dock"><section class="cl-pv" id="cl-pv" aria-label="${clE(i18t('cl_ls_pv_label'))}">
     <div class="cl-pv-h"><span class="cl-ls-chipw cl-pv-w">${pick}${menu}</span><span class="cl-pv-n" id="cl-pv-n"></span></div>
-    <div class="cl-pv-scroll scroll-thin" id="cl-pv-scroll"><div class="cl-pv-view" id="cl-pv-view"><div class="cl-pv-paper" id="cl-pv-paper">${typeof busyHtml === 'function' ? busyHtml('') : ''}</div><div class="cl-pins" id="cl-pins"></div></div>
-    <p class="cl-pv-cap" id="cl-pv-cap" hidden></p></div>
+    <div class="cl-pv-stage" id="cl-pv-stage"><div class="cl-pv-view" id="cl-pv-view"><div class="cl-pv-paper" id="cl-pv-paper">${typeof busyHtml === 'function' ? busyHtml('') : ''}</div><div class="cl-pins" id="cl-pins"></div></div>
+    </div>
     ${c ? '' : `<p class="cl-pv-none">${clE(i18t('cl_ls_pv_none'))}</p>`}
   </section></div>`;
 }
@@ -1404,6 +1413,8 @@ function clPvWatch() {
     clearTimeout(body._clPvT);
     body._clPvT = setTimeout(() => {
       if (!_cl || !document.getElementById('cl-pv-view')) return;
+      /* a taller or shorter room: the panel is sized to the page again (the reader's own width untouched) */
+      if (typeof window.jlPageWideSet === 'function') window.jlPageWideSet(clPvPanelW(), '#cl-pv-dock');
       const sh = document.querySelector('#cl-pv-view .pg-sheet');
       if (sh && sh._pgInfo) clPvShow(); else clAfterPaint();
     }, 120);
@@ -1435,7 +1446,7 @@ function clPvDraw(sampleOnly) {
     const foot = sh.lastElementChild; if (foot && !foot.matches('article')) foot.setAttribute('data-cl-foot', '');
     const W = clPvFitW(), k = W / (sh.offsetWidth || 680);
     sh.style.transformOrigin = '0 0'; sh.style.transform = `scale(${k})`;
-    clPvFrame(view, W, null); clPvSayPage(1, 1); clPinsPaint();
+    clPvFrame(view, W); clPvHole(); clPvSayPage(1, 1); clPinsPaint();
     return;
   }
   paper.innerHTML = html;
@@ -1445,46 +1456,37 @@ function clPvDraw(sampleOnly) {
   sheet.style.transformOrigin = '0 0';
   const done = info => { _cl.pvPages = (info && info.n) || 1; clPvShow(); };
   if (typeof signCopyWatch === 'function') signCopyWatch(sheet, Object.assign({}, c, { branding: Object.assign({}, clBranding()) }), done);
-  if (!sheet._pgInfo) { const W = clPvFitW(); sheet.style.transform = `scale(${W / clPvPageW()})`; clPvFrame(view, W, null); clPinsPaint(); }
+  if (!sheet._pgInfo) { const W = clPvFitW(); sheet.style.transform = `scale(${W / clPvPageW()})`; clPvFrame(view, W); clPvHole(); clPinsPaint(); }
 }
-/* every page stacked at the fitted width; the reader's place in the pages kept across a redraw of the same contract */
+/* one whole page at the fitted width: the first page of wording */
 function clPvShow() {
   const view = document.getElementById('cl-pv-view'), sheet = view && view.querySelector('.pg-sheet'); if (!sheet) return;
-  const info = sheet._pgInfo, sc = document.getElementById('cl-pv-scroll');
+  const info = sheet._pgInfo, p = clPvShownPage(info, sheet), pg = info && info.pages[p - 1];
   const W = clPvFitW(), k = W / (sheet.offsetWidth || clPvPageW());
-  sheet.style.transform = `scale(${k})`;
-  clPvFrame(view, W, info);
-  if (sc) sc.scrollTop = _cl.pvTop || 0;
-  clPvSayPage(); clPinsPaint();
+  sheet.style.transform = `translateY(${-(pg ? pg.top : 0) * k}px) scale(${k})`;
+  clPvFrame(view, W); clPvHole();
+  clPvSayPage(p, (info && info.n) || 1); clPinsPaint();
   /* the Page numbers row says what the paper says, with the previewed contract's own page count */
   const pq = document.querySelector('#cl-parts tr[data-cl-part="pagenum"] .cl-ls-quote');
   if (pq) pq.textContent = '“' + clNumSay(clMarks().pageNumFmt) + '”';
 }
-/* the page in view (the one at the top of the panel's scroller) */
-function clPvPageAt() {
-  const sheet = document.querySelector('#cl-pv-view .pg-sheet'), sc = document.getElementById('cl-pv-scroll');
-  if (!sheet || !sheet._pgInfo || !sc || typeof pagesAtView !== 'function') return 1;
-  return Math.min(pagesAtView(sheet, sc), clPvShownPages(sheet._pgInfo));
+/* the panel's waves never over the page: where the page stands, written for the weave's mask (the CSS cuts it out) */
+function clPvHole() {
+  const st = document.getElementById('wm-ins'), panel = document.getElementById('ins-panel'), view = document.getElementById('cl-pv-view');
+  if (!st || !panel || !view) return;
+  const p = panel.getBoundingClientRect(), v = view.getBoundingClientRect();
+  st.style.setProperty('--wm-hole-x', Math.round(v.left - p.left) + 'px'); st.style.setProperty('--wm-hole-y', Math.round(v.top - p.top) + 'px');
+  st.style.setProperty('--wm-hole-w', Math.round(v.width) + 'px'); st.style.setProperty('--wm-hole-h', Math.round(v.height) + 'px');
 }
-/* "page N of M" in the chooser line follows the page in view */
+/* "page 1 of M" in the chooser line: the one page shown, and how long the contract is (a cover is not counted unless
+   the look counts it) */
 function clPvSayPage(p0, n0) {
   const say = document.getElementById('cl-pv-n'); if (!say) return;
-  const sheet = document.querySelector('#cl-pv-view .pg-sheet');
-  const n = n0 || (sheet && sheet._pgInfo && sheet._pgInfo.n) || 1, p = Math.min(Math.max(1, p0 || clPvPageAt()), n);
-  /* round 3: a cover page is "Cover", and the pages after it count from 1 unless the look counts it */
+  const n = n0 || 1, p = Math.min(Math.max(1, p0 || 1), n);
   const cov = !!(document.querySelector('#cl-pv-view .pg-cover')), counts = !!clMarks().coverCounts;
   const num = i => cov && !counts ? i - 1 : i, of = cov && !counts ? n - 1 : n;
   _cl.pvPage = p;
-  say.textContent = cov && p === 1 ? i18t('cl_ls_pv_cover') : i18t('cl_ls_pv_page', { n: num(p), m: of });
-}
-/* the scroller moved: its place kept, the page said, the page-wide pins (header, footer, number) on the page in view */
-function clPvScrolled() {
-  const sc = document.getElementById('cl-pv-scroll'); if (!sc || !_cl) return;
-  _cl.pvTop = sc.scrollTop;
-  if (clPvScrolled._f) return;
-  clPvScrolled._f = (typeof requestAnimationFrame === 'function' ? requestAnimationFrame : setTimeout)(() => {
-    clPvScrolled._f = 0; const was = _cl.pvPage; clPvSayPage(); if (_cl.pvPage !== was) clPinsPaint();
-  });
+  say.textContent = i18t('cl_ls_pv_page', { n: num(p), m: of });
 }
 /* where each part sits on the painted page; null where the page carries none of it */
 function clPinTarget(k, root) {
@@ -1524,11 +1526,10 @@ function clMarkRect(el, k) {
 function clPinsPaint() {
   const view = document.getElementById('cl-pv-view'), pins = document.getElementById('cl-pins'); if (!view || !pins || !_cl) return;
   const root = view.querySelector('.pg-sheet, .cl-sheet'); if (!root) { pins.innerHTML = ''; return; }
-  const vr = view.getBoundingClientRect(), parts = clParts(), out = [];
-  /* the pages are stacked: what is on every page (the header, the footer, the number) is pinned on the page in view */
-  const info = root._pgInfo, k = info ? root.getBoundingClientRect().height / (root.offsetHeight || 1) : 1;
-  const pg = info && info.pages[Math.min(clPvPageAt(), info.n) - 1];
-  const band = pg ? { top: root.getBoundingClientRect().top + pg.top * k, bottom: root.getBoundingClientRect().top + (pg.top + (info.pageH || clPvPageH())) * k } : vr;
+  const vr = view.getBoundingClientRect(), parts = clParts(), out = [], off = {};
+  /* ONE PAGE: only what is on the page shown is pinned; a part on a later page says so, quietly, in its own row */
+  const band = vr, info = root._pgInfo, sk = info ? root.getBoundingClientRect().height / (root.offsetHeight || 1) : 1;
+  const pageOf = el => { if (!info) return 0; const y = (el.getBoundingClientRect().top - root.getBoundingClientRect().top) / (sk || 1); let at = 1; info.pages.forEach((p, i) => { if (y >= p.top - 1) at = i + 1; }); return at; };
   parts.forEach(r => {
     let el = clPinTarget(r.k, root);
     const inView = sel => [...root.querySelectorAll(sel)].find(e => { const b = e.getBoundingClientRect(); return b.top >= band.top - 1 && b.top < band.bottom; }) || null;
@@ -1537,28 +1538,26 @@ function clPinsPaint() {
     if (r.k === 'header') el = inView('.pg-run.is-mark');
     if (r.k === 'pagenum') el = r.st === 'optional' ? null : (inView('.pg-pnum') || inView('.pg-dfoot, .pg-sfoot'));
     if (!el) return;
-    const b = (r.k === 'logo' || r.k === 'colour' || r.k === 'header' || r.k === 'pagenum') ? clMarkRect(el, r.k) : clTextRect(el); if (b.bottom < vr.top || b.top > vr.bottom - 4) return;
+    const b = (r.k === 'logo' || r.k === 'colour' || r.k === 'header' || r.k === 'pagenum') ? clMarkRect(el, r.k) : clTextRect(el);
+    if (b.bottom < vr.top || b.top > vr.bottom - 4) { const at = pageOf(el); if (at > 1) off[r.k] = at; return; }
     const x = Math.max(2, Math.min(vr.width - 18, (CL_PIN_SIDE[r.k] === 'r' ? b.right + 5 : b.left - 21) - vr.left));
     const y = Math.max(2, Math.min(vr.height - 18, b.top - vr.top - 4));
     out.push(`<button type="button" class="cl-pin is-${r.st}${_cl.row === r.k ? ' is-lit' : ''}" data-cl-pin="${r.k}" style="left:${Math.round(x)}px;top:${Math.round(y)}px" title="${clE(r.name)}" aria-label="${clE(r.n + ' · ' + r.name)}">${r.n}</button>`);
   });
   pins.innerHTML = out.join('');
+  /* the row of a part on a later page: "on page 3", under its name (no band) */
+  document.querySelectorAll('#cl-parts tr[data-cl-part]').forEach(tr => {
+    const k = tr.getAttribute('data-cl-part'), cell = tr.querySelector('.cl-ls-part'); if (!cell) return;
+    let note = cell.querySelector('.cl-ls-onpage');
+    if (!off[k]) { if (note) note.remove(); return; }
+    if (!note) { note = document.createElement('span'); note.className = 'cl-ls-onpage'; cell.appendChild(note); }
+    note.textContent = i18t('cl_ls_pv_on_page', { n: off[k] });
+  });
 }
-/* a row or a pin chosen: the row lights, its pin lights; a part out of view is scrolled into the panel's view (the
-   panel's own scroller only: the page itself never moves); what is on every page is lit on the page in view */
+/* a row or a pin chosen: the row lights, its pin lights (a part on a later page has no pin: its row says where it is) */
 function clRowChoose(k) {
   _cl.row = _cl.row === k ? null : k;
   document.querySelectorAll('#cl-parts tr[data-cl-part]').forEach(tr => tr.classList.toggle('is-chosen', tr.getAttribute('data-cl-part') === _cl.row));
-  const view = document.getElementById('cl-pv-view'), sc = document.getElementById('cl-pv-scroll');
-  const root = view && view.querySelector('.pg-sheet, .cl-sheet');
-  if (_cl.row && root && sc && !['header', 'footer', 'pagenum'].includes(_cl.row)) {
-    const el = clPinTarget(_cl.row, root), vr = view.getBoundingClientRect();
-    if (el) {
-      const b = el.getBoundingClientRect(), sr = sc.getBoundingClientRect();
-      const y = Math.min(b.top, vr.bottom) - sr.top + sc.scrollTop;
-      if (y < sc.scrollTop + 8 || y > sc.scrollTop + sc.clientHeight - 32) { sc.scrollTop = Math.max(0, y - 40); _cl.pvTop = sc.scrollTop; clPvSayPage(); }
-    }
-  }
   clPinsPaint();
 }
 function clMenuClose() {
@@ -1570,7 +1569,7 @@ function clEditAs(fid) {
   if (!_cl || !clAdmin()) return;
   if (!fid) { _cl.look = clLookOf(window.ORG_BRANDING || {}); _cl.applies = 'all'; _cl.pick = new Set(); _cl.editing = null; }
   else { _cl.look = clLookOf(_cl.streams[fid] || window.ORG_BRANDING || {}); _cl.applies = 'some'; _cl.pick = new Set([fid]); _cl.editing = fid; }
-  _cl.mode = 'page'; _cl.tab = 'page'; _cl.pv = null; _cl.pvPage = 1; _cl.pvTop = 0; clRepaint();
+  _cl.mode = 'page'; _cl.tab = 'page'; _cl.pv = null; _cl.pvPage = 1; clRepaint();
 }
 /* the panel beside the page (Settings' stLsLookPanel draws it): the look as it stands, the ring of parts set, the
    quality check; on Who wears it with a stream chosen, that stream */
@@ -1779,7 +1778,7 @@ if (typeof document !== 'undefined' && !window._clWired) {
       if (typeof window.stLsPanelPaint === 'function') window.stLsPanelPaint(); return;
     }
     if ((x = at('[data-cl-chip]'))) { const k = x.getAttribute('data-cl-chip'); if (_cl.tab === 'who') { _cl.whoChip = k; _cl.whoPick = null; } else _cl.chip = k; return clRepaint(); }
-    if ((x = at('[data-cl-pv]'))) { _cl.pv = x.getAttribute('data-cl-pv'); _cl.pvPage = 1; _cl.pvTop = 0; _cl.row = null; return clRepaint(); }
+    if ((x = at('[data-cl-pv]'))) { _cl.pv = x.getAttribute('data-cl-pv'); _cl.pvPage = 1; _cl.row = null; return clRepaint(); }
     if ((x = at('[data-cl-pin]'))) return clRowChoose(x.getAttribute('data-cl-pin'));
     if ((x = at('[data-cl-mode]'))) { _cl.mode = x.getAttribute('data-cl-mode'); return clRepaint(); }
     if ((x = at('tr[data-cl-part]')) && !at('button,a,input')) return clRowChoose(x.getAttribute('data-cl-part'));
@@ -1832,8 +1831,6 @@ if (typeof document !== 'undefined' && !window._clWired) {
     }
     if (at('#cl-save')) return clSave();
   });
-  /* the panel's pages scrolled (a scroll does not bubble: caught on its way down) */
-  document.addEventListener('scroll', e => { if (_cl && e.target && e.target.id === 'cl-pv-scroll') clPvScrolled(); }, true);
   document.addEventListener('change', e => {
     const t = e.target; if (!_cl || !t || !t.closest || !t.closest('[data-st-pg="look"]') || !clAdmin()) return;
     if (t.name === 'cl-applies') return clSet(() => { _cl.applies = t.value; if (t.value === 'all') { _cl.pick = new Set(); } });
@@ -1875,5 +1872,5 @@ if (typeof document !== 'undefined' && !window._clWired) {
 }
 
 Object.assign(window, { openDesignStep, dsApplyZoom, designStepOpen, designStepDirty, designStepClose, CL_ACCENTS, clPageHtml, clReadLook, clGo, clSave, clInit, clFacts, clModeGo,
-  clAfterPaint, clPanelFacts, clLetGo, clParts, clQuality, clContrastOnWhite, clWhoRows, clHistGo, clLookChanges, clChangeParts, clLookChangesLoad,
+  clAfterPaint, clPvPanelW, clPanelFacts, clLetGo, clParts, clQuality, clContrastOnWhite, clWhoRows, clHistGo, clLookChanges, clChangeParts, clLookChangesLoad,
   lookSaveOrSend });
