@@ -1011,7 +1011,9 @@ function tplDtKindWord(type) {
   return type || '';
 }
 function tplDtOverviewHtml(t, ver, o) {
-  if (typeof jamboOverviewHtml !== 'function') return '';
+  /* AS DRAWN (owner, 24 Nov 2026: "built here is not right"): no boxes — the badges, the name in the page's own type with
+     its description under it, our positions as a ring, WHAT WAITS as plain rows with a hairline each and the way forward
+     at the row's end, then the facts as a quiet two-column list */
   const st = TPLLIB_STATUS[t.status] || TPLLIB_STATUS.draft, blanks = o.blanks || [];
   let read = null;
   try {
@@ -1022,22 +1024,23 @@ function tplDtOverviewHtml(t, ver, o) {
   } catch (_) { read = null; }
   const cov = read && read.cov && read.cov.total ? read.cov : null;
   const badge = (tone, w) => `<span class="tpl-dt-badge is-${tone}"><i aria-hidden="true"></i>${esc(w)}</span>`;
-  const before = `<div class="tpl-dt-badges">${badge(t.status === 'published' ? 'green' : t.status === 'archived' ? 'gray' : 'amber', t.status === 'draft' ? i18t('tl_dt_not_published') : st.label)}${badge('gray', i18tn('tl_dt_made_n', t.contractsCreated, { n: t.contractsCreated }))}</div>`;
+  const badges = `<div class="tpl-dt-badges">${badge(t.status === 'published' ? 'green' : t.status === 'archived' ? 'gray' : 'amber', t.status === 'draft' ? i18t('tl_dt_not_published') : st.label)}${badge('gray', i18tn('tl_dt_made_n', t.contractsCreated, { n: t.contractsCreated }))}</div>`;
   const pct = cov ? Math.round(cov.met / cov.total * 100) : 0;
-  const mid = cov ? `<div class="tpl-dt-ring"><svg viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="22" class="b"/><circle cx="28" cy="28" r="22" class="f" style="stroke-dashoffset:${(138.2 * (1 - pct / 100)).toFixed(1)}"/></svg><b>${cov.met}/${cov.total}</b><span><span class="tpl-dt-rt">${esc(cov.met === cov.total ? i18t('tl_dt_pos_all', { n: cov.total }) : i18t('tl_dt_pos_some', { met: cov.met, n: cov.total }))}</span><span class="tpl-dt-rs">${esc(i18t('tl_dt_pos_s'))}</span></span></div>` : '';
+  const ring = cov ? `<div class="tpl-dt-ring"><svg viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="22" class="b"/><circle cx="28" cy="28" r="22" class="f" style="stroke-dashoffset:${(138.2 * (1 - pct / 100)).toFixed(1)}"/></svg><b>${cov.met}/${cov.total}</b><span><span class="tpl-dt-rt">${esc(cov.met === cov.total ? i18t('tl_dt_pos_all', { n: cov.total }) : i18t('tl_dt_pos_some', { met: cov.met, n: cov.total }))}</span><span class="tpl-dt-rs">${esc(i18t('tl_dt_pos_s'))}</span></span></div>` : '';
   const waits = [];
   const draftVer = (o.versions || []).find(v => v.status === 'draft');
-  if (o.canManage && t.status !== 'archived' && draftVer) waits.push({ t: i18t('tl_dt_w_publish'), s: i18t('tl_dt_w_publish_s'), link: { label: i18t('tl_dt_open_builder') + ' ›', run: () => tplDtBuild(t.id, draftVer.id) } });
-  if (blanks.length) waits.push({ t: i18tn('tl_dt_w_blanks', blanks.length, { n: blanks.length }), s: i18t('tl_dt_w_blanks_s'), link: { label: i18t('tl_dt_see_blanks') + ' ›', run: () => tplDtTab('bl') } });
-  if (t.status === 'published' && typeof canEdit === 'function' && canEdit()) waits.push({ t: i18t('tl_dt_w_draft'), s: i18t('tl_dt_w_draft_s'), link: { label: i18t('tl_new_contract') + ' ›', run: () => (window.tplDraftFrom || tplLibNewContract)(t.id) } });
+  if (o.canManage && t.status !== 'archived' && draftVer) waits.push({ t: i18t('tl_dt_w_publish'), s: i18t('tl_dt_w_publish_s'), go: 'build:' + draftVer.id, label: i18t('tl_dt_open_builder') });
+  if (blanks.length) waits.push({ t: i18tn('tl_dt_w_blanks', blanks.length, { n: blanks.length }), s: i18t('tl_dt_w_blanks_s'), go: 'blanks', label: i18t('tl_dt_see_blanks') });
+  if (t.status === 'published' && typeof canEdit === 'function' && canEdit()) waits.push({ t: i18t('tl_dt_w_draft'), s: i18t('tl_dt_w_draft_s'), go: 'draft', label: i18t('tl_new_contract') });
   const srcC = t.sourceContractId ? (state.contracts || []).find(x => x.id === t.sourceContractId) : null;
-  const facts = [{ k: i18t('tl_dt_cat'), t: tplCategoryName(t.category) },
-    TPLLIB_ORIGIN[t.origin] ? { k: i18t('tl_dt_from'), t: TPLLIB_ORIGIN[t.origin] + (t.sourceContractId ? ' (' + (window.contractRef && srcC ? contractRef(srcC) : t.sourceContractId) + ')' : '') } : null,
-    { k: i18t('tl_dt_last'), t: t.lastUsedAt ? fmtDT(t.lastUsedAt) : i18t('tl_dt_never') }].filter(Boolean);
-  const groups = [];
-  if (waits.length) groups.push({ key: 'waits', label: i18t('tl_dt_waits'), rows: waits });
-  groups.push({ key: 'facts', label: i18t('tl_dt_about'), rows: facts });
-  return `<div class="jl-words is-ov tpl-dt-ov">${jamboOverviewHtml({ before, title: t.name, sub: t.description || '', mid, groups }, 'tpldt')}</div>`;
+  const facts = [[i18t('tl_dt_cat'), tplCategoryName(t.category)],
+    TPLLIB_ORIGIN[t.origin] ? [i18t('tl_dt_from'), TPLLIB_ORIGIN[t.origin] + (t.sourceContractId ? ' (' + (window.contractRef && srcC ? contractRef(srcC) : t.sourceContractId) + ')' : '')] : null,
+    [i18t('tl_dt_last'), t.lastUsedAt ? fmtDT(t.lastUsedAt) : i18t('tl_dt_never')]].filter(Boolean);
+  return `<div class="tpl-dt-pane tpl-dt-ov">${badges}
+    <div class="tpl-dt-hl"><p class="tpl-dt-ttl">${esc(t.name)}</p>${t.description ? `<p class="tpl-dt-q">${esc(t.description)}</p>` : ''}</div>
+    ${ring}
+    ${waits.length ? `<div><p class="tpl-dt-lbl">${esc(i18t('tl_dt_waits'))}</p><table class="tpl-dt-tbl is-plain"><tbody>${waits.map(w => `<tr><td><span class="tpl-dt-wt">${esc(w.t)}</span><span class="tpl-dt-ws">${esc(w.s)}</span></td><td class="r"><button type="button" class="tpl-dt-go" data-tpl-dt-go="${esc(w.go)}">${esc(w.label)} ›</button></td></tr>`).join('')}</tbody></table></div>` : ''}
+    <dl class="tpl-dt-kv">${facts.map(f => `<dt>${esc(f[0])}</dt><dd>${esc(f[1])}</dd>`).join('')}</dl></div>`;
 }
 function tplDtBlanksHtml(blanks) {
   if (!blanks.length) return `<div class="tpl-dt-pane"><p class="tpl-dt-h">${esc(i18tn('tl_dt_blanks_n', 0, { n: 0 }))}</p><p class="tpl-dt-q">${esc(i18t('tl_dt_blanks_none'))}</p></div>`;
@@ -1093,6 +1096,8 @@ function tplDtPanelPaint(t, ver, o) {
     r.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tplDtBlankPick(r.getAttribute('data-tpl-dt-blank')); } });
   });
   host.querySelectorAll('[data-tpllib-build]').forEach(b => b.addEventListener('click', () => tplDtBuild(t.id, b.getAttribute('data-tpllib-build'))));
+  host.querySelectorAll('[data-tpl-dt-go]').forEach(b => b.addEventListener('click', () => { const g = b.getAttribute('data-tpl-dt-go');
+    if (g.startsWith('build:')) tplDtBuild(t.id, g.slice(6)); else if (g === 'blanks') tplDtTab('bl'); else if (g === 'draft') (window.tplDraftFrom || tplLibNewContract)(t.id); }));
 }
 /* the paper's zoom, as every paper's (rlSetDocZoom calls it) */
 function tplDtApplyZoom() {

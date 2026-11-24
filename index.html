@@ -25374,6 +25374,26 @@
   html.lg-new #app-shell #ins-panel .jl-head.jl-head > .jl-tabx.jl-tabx.on{box-shadow:none;background:none;font-weight:var(--w-title);color:var(--accent-ink);border-bottom-color:var(--accent-solid)}
   html.lg-new #ins-panel .jl-head .jl-tabx-n{order:2;font-style:italic;font-size:var(--t-label);color:var(--color-neutral-600)}
   html.lg-new #app-shell #ins-panel .jl-head.jl-head > [data-jl-home].jl-tab.is-off{background:none;box-shadow:none;border-color:transparent;color:var(--color-text);font-weight:var(--w-body)}
+  /* AS DRAWN (24 Nov 2026, "built here is not right"): ✦ Jambo a pill first, then Overview · Blanks · Versions as words,
+     the lit one green-underlined; the Overview's parts unboxed — plain rows, one hairline each */
+  html.lg-new #app-shell #ins-panel .jl-head.jl-head > .jl-tabjb{flex:none;display:inline-flex;align-items:center;gap:6px;height:var(--ctl-h-lg);padding:0 12px;border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
+  html.lg-new #app-shell #ins-panel .jl-head.jl-head > .jl-tabjb > span{color:var(--accent-ink)}
+  html.lg-new #app-shell #ins-panel .jl-head.jl-head:has(> .jl-tabx) > [data-jl-home].jl-tab{width:auto;background:none;box-shadow:none;border:0;border-bottom:2px solid transparent;border-radius:0;padding:var(--s-2) 1px;margin-left:var(--s-3);font-size:var(--t-meta);color:var(--color-text);font-weight:var(--w-body)}
+  html.lg-new #app-shell #ins-panel .jl-head.jl-head:has(> .jl-tabx) > [data-jl-home].jl-tab .pd-tab-i{display:none}
+  html.lg-new #app-shell #ins-panel .jl-head.jl-head:has(> .jl-tabx) > [data-jl-home].jl-tab:not(.is-off){font-weight:var(--w-title);color:var(--accent-ink);border-bottom-color:var(--accent-solid)}
+  html.lg-new .tpl-dt-ov{gap:var(--s-4)}
+  html.lg-new .tpl-dt-ttl{margin:0;font-size:var(--t-card);font-weight:var(--w-title);line-height:1.35}
+  html.lg-new .tpl-dt-hl{display:flex;flex-direction:column;gap:2px}
+  html.lg-new .tpl-dt-lbl{margin:0 0 var(--s-1);font-size:var(--t-label);font-weight:var(--w-label);letter-spacing:.04em;text-transform:uppercase;color:var(--color-quiet)}
+  html.lg-new .tpl-dt-tbl.is-plain tbody tr{cursor:default}
+  html.lg-new .tpl-dt-tbl.is-plain tbody tr:hover td{background:none}
+  html.lg-new .tpl-dt-tbl.is-plain td{padding:var(--s-2) 0}
+  html.lg-new .tpl-dt-tbl.is-plain td.r{padding-left:var(--s-3);white-space:nowrap}
+  html.lg-new .tpl-dt-wt{display:block;font-weight:var(--w-label)}
+  html.lg-new .tpl-dt-ws{display:block;margin-top:2px;font-size:var(--t-label);color:var(--color-quiet)}
+  html.lg-new .tpl-dt-go{border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer}
+  html.lg-new .tpl-dt-kv{display:grid;grid-template-columns:110px 1fr;gap:6px var(--s-3);margin:0;font-size:var(--t-meta)}
+  html.lg-new .tpl-dt-kv dt{color:var(--color-quiet)} html.lg-new .tpl-dt-kv dd{margin:0}
   html.lg-new .tpl-dt-badges{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:var(--s-2)}
   html.lg-new .tpl-dt-badge{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:999px;font-size:var(--t-label);font-weight:var(--w-label);white-space:nowrap}
   html.lg-new .tpl-dt-badge i{width:6px;height:6px;border-radius:50%}

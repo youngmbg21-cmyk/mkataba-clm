@@ -37,7 +37,7 @@ describe('f880 — the template\'s page: one thin line, the paper, Jambo beside 
   test('the second head over the wording is gone; the description goes to Jambo', () => {
     assert.ok(!page.includes("i18t('tl_the_wording')"), 'no "The wording" head');
     assert.ok(!page.includes('tl_no_description'), 'no description line on the page');
-    assert.match(fnBody(TL, 'tplDtOverviewHtml'), /title: t\.name, sub: t\.description \|\| ''/, 'the description is the Overview\'s sentence');
+    assert.match(fnBody(TL, 'tplDtOverviewHtml'), /<p class="tpl-dt-ttl">\$\{esc\(t\.name\)\}<\/p>\$\{t\.description \? `<p class="tpl-dt-q">\$\{esc\(t\.description\)\}<\/p>` : ''\}/, 'the description is the Overview\'s sentence, under the name');
     assert.match(fnBody(LIB, 'tplPfJamboHtml'), /if \(o && o\.desc\) lines\.splice\(1, 0, _tplEsc\(o\.desc\)\)/);
   });
   test('Jambo beside it, drawn only where the panel fits, as one window', () => {

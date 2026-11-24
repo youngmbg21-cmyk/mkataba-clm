@@ -1415,8 +1415,11 @@ function jlOwnPaint(host, opt){
   if (Array.isArray(opt.jlTabs) && opt.jlTabs.length && homeT){
     const on = opt.jlTabOn || '';
     homeT.insertAdjacentHTML('afterend', opt.jlTabs.map(x => `<button type="button" class="pd-tab jl-tab jl-tabx${x.k === on ? ' on' : ''}" data-jl-tabx="${esc(x.k)}"${x.k === on ? ' aria-current="true"' : ''}><span class="pd-tab-w">${esc(x.label)}</span>${x.n != null ? `<em class="jl-tabx-n">${esc(String(x.n))}</em>` : ''}</button>`).join(''));
+    /* as drawn: ✦ Jambo first, a pill that opens his conversation, then the page's tabs as words */
+    homeT.insertAdjacentHTML('beforebegin', `<button type="button" class="jl-tabjb" data-jl-tabx="_jb"><span aria-hidden="true">✦</span> ${esc(i18t('tb_copilot'))}</button>`);
     const runX = opt.jlTabRun;
-    host.querySelectorAll('[data-jl-tabx]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); if (typeof runX === 'function') runX(b.getAttribute('data-jl-tabx')); }));
+    host.querySelectorAll('[data-jl-tabx]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); const k = b.getAttribute('data-jl-tabx');
+      if (k === '_jb') { if (typeof jlTalkPress === 'function') jlTalkPress(); return; } if (typeof runX === 'function') runX(k); }));
   }
   const foot = host.querySelector(':scope > .jl-foot');
   host.querySelectorAll(':scope > .jb-ways.is-own').forEach(w => w.remove());
