@@ -105,7 +105,7 @@ describe('f763 (4) proposals before the closing clauses', () => {
     assert.match(fnBody(TB, 'tbProposalSpot'), /return law >= 0 \? law : sig;/);
     assert.match(fnBody(TB, 'tbAddStandard'), /const at = tbProposalSpot\(\);[\s\S]*_tb\.blocks\.splice\(at, 0, h, w\);/);
     assert.match(fnBody(TB, 'tbPaperHtml'), /if \(i === propsAt\) putProps\(\);/);
-    assert.match(fnBody(TB, 'tbOutlineTabHtml'), /const spot = props\.length \? tbProposalSpot\(\) : -1;/);
+    assert.match(fnBody(TB, 'tbOutlineTabHtml'), /if \(f === 'all' && props\.length\) \{\s*const spot = tbProposalSpot\(\);/); /* RE-POINTED 23 Nov 2026 (the Outline a calm table with chips) */
   });
   test('4b the closing words, both languages', () => {
     const re = new RegExp(/const TB_CLOSING_RE = \/(.+)\/i;/.exec(TB)[1], 'i');

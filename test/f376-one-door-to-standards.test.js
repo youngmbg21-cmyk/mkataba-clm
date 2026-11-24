@@ -416,7 +416,9 @@ describe('f376 (4) Copilot’s first move, one per start', () => {
     const a = builderPage();
     await a.openTemplateBuilder('tpl_1', 'tv_1', { start: { kind: 'scratch', said: 'A carrier agreement', outline: { sections: [{ heading: 'Parties', intent: '' }] } } });
     assert.equal(a.__run('_tb.reads'), 1, 'one read spent before the builder opened');
-    assert.match(a.document.getElementById('tb-lane').textContent, /read 1\b/);
+    /* RE-POINTED 23 Nov 2026 (the Builder L+S): the read is still COUNTED, but no Jambo call is said on the page
+       (THE SIX QUESTIONS, 4: only the admin's spending pages say it) */
+    assert.doesNotMatch(a.document.getElementById('tb-lane').textContent, /\bread \d/);
     const b = builderPage();
     await b.openTemplateBuilder('tpl_1', 'tv_1', { start: { kind: 'scratch', said: 'Supply of fresh produce', outline: null } });
     assert.equal(b.document.getElementById('tb-ask').value, 'Supply of fresh produce', 'the sentence is where a press asks again');
@@ -534,7 +536,9 @@ describe('f376 (5) the name, category and value stream are at the top of the bui
     const root = win.document.getElementById('modal-root');
     assert.ok(root.querySelector('#tb-pq-go'), 'the question is up');
     assert.equal(win.__log.design, 0, 'and the design step did not open under it');
-    const rows = [...root.querySelectorAll('.tb-pq-o')].map(r => r.textContent.replace(/\s+/g, ' ').trim());
+    /* RE-POINTED 23 Nov 2026 (Publish is one pop-up in three steps): the open things are the Check's amber lines,
+       each with its door; what is fine stands under them in green, without one */
+    const rows = [...root.querySelectorAll('#tb-pub .tb-del-l')].filter(r => r.querySelector('[data-tb-pq]')).map(r => r.textContent.replace(/\s+/g, ' ').trim());
     assert.ok(rows.some(r => r.startsWith(win.i18t('tb_pq_stream'))), 'the empty stream is named');
     assert.ok(rows.some(r => /Parties/.test(r)), 'so is the section still to write');
     assert.equal(root.querySelectorAll('[data-tb-pq]').length, rows.length, 'every row is a door');

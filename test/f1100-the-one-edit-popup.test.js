@@ -22,7 +22,7 @@ const COMP = read('js/components.js'), CU = read('js/views/customers.js'), PT = 
 
 test('f1100 (1) one builder: serif head, lines without boxes, a list paged by six, one black button, Cancel last', () => {
   const H = strip(fnBody(COMP, 'lgpHtml'));
-  assert.match(H, /class="lgp-h"/); assert.match(H, /type="submit" class="ui-btn ui-btn-primary lgp-go"/);
+  assert.match(H, /class="lgp-h"/); assert.match(H, /type="submit" class="ui-btn ui-btn-primary lgp-go/); /* RE-POINTED 23 Nov 2026: a danger act adds is-danger (Delete draft) */
   assert.ok(H.indexOf('${prim}${alt}${cancel}') > 0, 'the black button, the grey act, then Cancel');
   assert.match(COMP, /(?:const|var) LGP_PAGE = 6;/);
   assert.match(strip(fnBody(COMP, 'lgpOpen')), /maxWidth: LGP_W, ownFrame: true/);

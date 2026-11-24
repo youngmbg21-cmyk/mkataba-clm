@@ -2173,7 +2173,7 @@ function lgpHtml(o){
   const left = o.back ? `<button type="button" class="ui-btn lgp-back" ${o.back.attr || ''}>‹ ${E(o.back.label || _lgpT('lgp_back'))}</button>`
     : o.left ? `<button type="button" class="lgp-left${o.left.danger ? ' is-danger' : ''}" ${o.left.attr || ''}>${E(o.left.label)}</button>` : '';
   const note = o.note ? `<span class="lgp-note">${E(o.note)}</span>` : '';
-  const prim = o.primary ? `<button type="submit" class="ui-btn ui-btn-primary lgp-go" ${o.primary.attr || ''}>${E(o.primary.label)}</button>` : '';
+  const prim = o.primary ? `<button type="submit" class="ui-btn ui-btn-primary lgp-go${o.primary.danger ? ' is-danger' : ''}" ${o.primary.attr || ''}>${E(o.primary.label)}</button>` : '';
   const alt = o.alt ? `<button type="button" class="ui-btn" ${o.alt.attr || ''}>${E(o.alt.label)}</button>` : '';
   const cancel = o.noCancel ? '' : `<button type="button" class="ui-btn" ${o.cancelAttr || 'data-lgp-close'}>${E(o.cancelLabel || _lgpT('lgp_cancel'))}</button>`;
   return `<form class="lgp" ${o.id ? `id="${E(o.id)}"` : ''} ${o.attr || ''} novalidate>${head}${body}<div class="lgp-ft">${left}${note}<span class="lgp-sp"></span>${prim}${alt}${cancel}</div></form>`;

@@ -521,7 +521,8 @@ describe('f907 (11) — what the screen prints', () => {
     assert.ok(s.rail.includes('not the wording'), 'and it says no wording is written at this step');
     assert.ok(s.rail.includes('id="tb-ask"'), 'a real box, not a picture of one');
     assert.ok(s.rail.includes('e.g. Two-year distributor agreement'), 'with the sentence box’s own placeholder');
-    assert.ok(s.rail.includes('No sections yet'), 'and the foot says where things stand');
+    /* RE-POINTED 23 Nov 2026 (the Builder L+S, as drawn): the duplicate "No sections yet" foot left the panel */
+    assert.ok(!s.rail.includes('No sections yet'), 'the question above already says where things stand');
     assert.ok(s.paper.includes('Distributor Agreement'), 'the paper carries the template’s name as its title');
   });
 
@@ -544,7 +545,7 @@ describe('f907 (11) — what the screen prints', () => {
        on the Outline tab of Jambo's panel, the section in hand lit there; the
        Build tab still names it on its focus card */
     const s0 = await stage([['heading', 'Parties'], ['field_group', 'This Agreement is made between…'], ['heading', 'Confidentiality']]);
-    assert.match(s0.rail, /class="tb-ol-r is-sel" data-tb-ol="3"[\s\S]{0,200}Confidentiality/, 'the Outline lights the empty one');
+    assert.match(s0.rail, /<tr class="is-sel" data-tb-ol="3">[\s\S]{0,200}Confidentiality/, 'the Outline lights the empty one'); /* RE-POINTED 23 Nov 2026: a calm table's row */
     s0.w.tbSetTab('build'); const s = s0.read();
     /* RE-POINTED (lane D check #2, 19 Oct 2026): the panel says the number
        the PAPER prints — the first section is unnumbered, so this is 1 */
@@ -589,7 +590,7 @@ describe('f907 (11) — what the screen prints', () => {
     const s = await stage([['heading', 'Confidentiality']]);
     s.w.tbSetTab('playbook');
     const rail = s.read().rail;
-    assert.ok(rail.includes('Against your playbook'), 'the card is on the tab');
+    assert.ok(/class="tb-ring"/.test(rail) && /positions? met|Every position is met/.test(rail), 'the ring and its words are on the tab'); /* RE-POINTED 23 Nov 2026 (as drawn): a ring, no card */
     assert.ok(rail.includes('All contracts (baseline)'), 'and names which book answered');
     assert.ok(rail.includes('data-tb-cover-add') || rail.includes('data-tb-cover-draft'), 'a missing position is a door');
     assert.ok(rail.includes('Counted from the playbook'), 'and says where the count comes from');
@@ -599,7 +600,7 @@ describe('f907 (11) — what the screen prints', () => {
     const s = await stage([['heading', 'Confidentiality']]);
     s.w.tbSetTab('playbook');
     const rail = s.read().rail;
-    assert.match(rail, /class="chip [a-z]+">\d+ of \d+</, 'n of m in the card head');
+    assert.match(rail, /<text[^>]*>\d+\/\d+<\/text>/, 'n/m in the ring'); /* RE-POINTED 23 Nov 2026 (as drawn): the ring says it */
     const strip = s.page.slice(0, s.page.indexOf('tb-paperslot'));
     assert.ok(!strip.includes('Playbook'), 'the strip above the paper says nothing about the playbook — one place says it');
   });
