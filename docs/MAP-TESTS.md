@@ -1227,3 +1227,4 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 ## THE SHELL — P-18 one row, and Jambo's chat "Soft" (25 Nov 2026)
 - test/f1224-links-share-the-press-line.test.js (new; red at the parent): the row above the box carried onto the press's line, carried presses press the row's own, one row fitted (short forms, then left out from the end), refit on repaint, resize and width change, P-18 Done.
 - test/f1225-jambos-chat-soft.test.js (new; red at the parent): the two bubbles, the answer holding all, errors rose, one Read-from · ✓ ✕ line, grouping, below the waves, both books.
+- f1224 (1–4): pd2ParaNums wraps only a two-level leading number, text unchanged, never .pg-sign; the notes row with Hide at its end, never wrapping; controls stay put on a solid strip (PD2_CTL_TOP 0, pd2CtlStrip); the badge on a redline note's head. f1042, f1037, f1196, f1222 re-pointed.

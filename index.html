@@ -19437,7 +19437,7 @@
     border-radius:var(--radius);background:var(--color-surface);box-shadow:var(--shadow-sm);padding:0 6px;will-change:transform}
   html.lg-new #clause-editor.is-tabbed .ce-head .ce-barrow{min-height:var(--ctl-h);gap:6px;flex-wrap:nowrap}
   html.lg-new #clause-editor.is-tabbed #ce-doc .rl-clause-live{position:relative}
-  html.lg-new #clause-editor.is-tabbed #ce-doc .rl-clause-live::before{content:"";position:absolute;left:-40px;top:0;bottom:0;width:2px;background:var(--color-text)}
+  html.lg-new #clause-editor.is-tabbed #ce-doc .rl-clause-live::before{content:"";position:absolute;left:-52px;top:0;bottom:0;width:2px;background:var(--color-text)}
   html.lg-new #clause-editor.is-tabbed .ce-tabtop{display:flex;flex-direction:column;gap:12px;padding:8px 16px 4px}
   html.lg-new #clause-editor.is-tabbed .ce-dtabs{display:flex;align-items:center;justify-content:flex-start;gap:4px;min-height:40px;flex-wrap:nowrap;overflow:hidden}
   html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab{display:inline-flex;align-items:center;flex:none;width:auto;min-width:0;border:0;background:none;border-radius:999px;padding:6px 8px;font:inherit;font-size:14px;color:var(--color-text);cursor:pointer;white-space:nowrap}
@@ -27784,23 +27784,48 @@
      is the plain sans in detail grey, figures lined up. Tables line their figures up. NEVER the signing copy
      (`.pg-sign`), the printed or exported copies: those keep the Contract Look. Scoped by html.lg-new and the
      paper's own classes so it wins without !important. */
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign){font-size:15.5px;line-height:1.7;padding-left:64px;padding-right:56px}
+  html.lg-new article.nego-doc.rl-paper:not(.pg-sign){font-size:15px;line-height:1.7;padding-left:76px;padding-right:56px}
   html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .nego-body p,
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .nego-body li{font-size:15.5px;line-height:1.7}
+  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .nego-body li{font-size:15px;line-height:1.7}
   html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .nego-clause.rl-clause{margin:0;padding-top:9px;padding-bottom:9px}
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .rl-clause-h{font-size:15.5px;line-height:1.7;font-weight:var(--w-strong);letter-spacing:0;margin:0 0 2px}
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .rl-hnum{display:inline-block;width:40px;margin-left:-40px;font-family:var(--font-body);font-size:13px;font-weight:var(--w-label);font-variant-numeric:tabular-nums;color:var(--color-neutral-400);white-space:pre}
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .rl-paper-title{font-size:calc(22px * var(--doc-scale,1));font-weight:var(--w-strong);letter-spacing:0}
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .rl-paper-sub{font-family:var(--font-body);font-size:11.5px;font-weight:var(--w-label);letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-400)}
+  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .rl-clause-h{font-size:15px;line-height:1.7;font-weight:var(--w-strong);letter-spacing:0;margin:0 0 2px}
+  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) :is(.rl-hnum, .rl-pnum, p.rl-line:not(.rl-hang) > .rl-marker:first-child){display:inline-block;width:52px;margin-left:-52px;font-weight:400;font-variant-numeric:tabular-nums;color:var(--color-neutral-400);white-space:pre}
+  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .rl-paper-title{font-size:calc(23px * var(--doc-scale,1));font-weight:var(--w-strong);letter-spacing:0}
+  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .rl-paper-sub{font-size:14px;font-style:italic;color:var(--color-quiet)}
   html.lg-new article.nego-doc.rl-paper:not(.pg-sign) :is(table, .hati-doc table){font-variant-numeric:tabular-nums}
   html.lg-new :is(.rl-sigfor, .rl-sigrow):not(.pg-sign *){font-family:var(--font-body);font-size:12px;color:var(--color-neutral-400)}
   /* the editor dresses every span in its box in the paper's font (#ce-doc :is(p,li,div,span)): the number column,
      the sub-line and the signature labels are not wording, so they keep the sans there too */
-  html.lg-new #ce-doc article.nego-doc :is(.rl-hnum, .rl-paper-sub, .rl-sigfor, .rl-sigrow){font-family:var(--font-body)}
+  html.lg-new #ce-doc article.nego-doc :is(.rl-sigfor, .rl-sigrow){font-family:var(--font-body)}
   /* the heading being typed keeps its box's 4px padding for the caret, and steps back 4px so its words and its
      number stand in line with every other clause's */
   html.lg-new #ce-doc article.nego-doc #ce-clausehead{margin-left:-4px}
   html.lg-new #ce-doc article.nego-doc #ce-clausehead .rl-hnum{user-select:none}
+
+  /* ==== THE PAPER'S NOTES, THE LEGORA + STRIPE WAY (owner's pick, 24 Nov 2026) ====
+     ONE ROW that never wraps: All · Outstanding · Resolved as quiet tabs with counts, Hide at its end. Held while the
+     paper scrolls (pd2CtlHold) on a SOLID strip in the desk's own colour, so the notes passing behind never show
+     through. A redline note: a thin rule in its state's colour, its clause and a soft badge, the paper's words in the
+     paper's font. Scoped at the id so it wins over the chips' older pills without !important. */
+  html.lg-new #pd2-notes > .pd2-rn-chips.pd2-rn-chips{flex-wrap:nowrap;align-items:center;gap:12px;right:auto;min-width:100%;width:max-content;box-sizing:border-box;border-bottom:1px solid var(--color-divider);isolation:isolate}
+  html.lg-new #pd2-notes > .pd2-rn-chips.pd2-tg{border-bottom:0;justify-content:flex-end}
+  html.lg-new #pd2-notes > .pd2-rn-chips > .pd2-rn-chip.pd2-rn-chip{height:28px;padding:0;border-radius:0;background:none;box-shadow:none;color:var(--color-neutral-400);font-size:12.5px;font-weight:400}
+  html.lg-new #pd2-notes > .pd2-rn-chips > .pd2-rn-chip.pd2-rn-chip[aria-pressed="true"]{background:none;color:var(--color-text);font-weight:var(--w-strong);box-shadow:0 1.5px 0 var(--color-text)}
+  html.lg-new #pd2-notes > .pd2-rn-chips > .pd2-rn-chip > span{color:var(--color-neutral-400);font-weight:400}
+  html.lg-new #pd2-notes > .pd2-rn-chips > .pd2-rn-hide{margin-left:auto;padding:0;border:0;background:none;font:inherit;font-size:12.5px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
+  html.lg-new #pd2-notes > .pd2-rn-chips.is-ctl-pinned{filter:none;animation:none;min-width:0}
+  html.lg-new .pd2-ctl-strip{position:fixed;z-index:3;background:var(--desk-ground);pointer-events:none}
+  html.lg-new #ig-paper-scroll .paper-zc.is-ctl-pinned{z-index:7;animation:none}
+  html.lg-new #pd2-notes .pd2-mn.pd2-rn{border-left:2px solid var(--st-amber-dot, var(--st-amber-fg));padding-left:10px}
+  html.lg-new #pd2-notes .pd2-mn.pd2-rn.is-done{border-left-color:var(--st-green-dot)}
+  html.lg-new #pd2-notes .pd2-mn.pd2-rn::before,html.lg-new #pd2-notes .pd2-mn.pd2-rn::after{display:none}
+  html.lg-new #pd2-notes .pd2-rn .pd2-mg-h{display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:0;font-size:12px;font-weight:400;color:var(--color-neutral-400)}
+  html.lg-new #pd2-notes .pd2-rn .pd2-mg-ht{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new #pd2-notes .pd2-rn-bd{flex:none;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:var(--w-label);background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new #pd2-notes .pd2-rn-bd.is-done{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new #pd2-notes .pd2-rn .pd2-mg-i .pd2-mg-l{color:var(--color-text);font-weight:var(--w-strong);font-size:13px}
+  html.lg-new #pd2-notes .pd2-rn .pd2-mg-q{margin-left:0;font-size:13px;line-height:1.5;color:var(--color-text)}
+  html.lg-new #pd2-notes .pd2-rn .pd2-mn-w,html.lg-new #pd2-notes .pd2-rn .pd2-mn-a{margin-left:0}
 </style>
 
 <script type="module" src="js/app.js"></script>
