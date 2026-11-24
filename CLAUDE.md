@@ -237,7 +237,7 @@ Paper's own numbers and titles: mark = cite (`docThreadRowHtml`; `_xrLead`, `XR_
 - COUNTING IS NOT DRAWING: `*Data` + renderer; `pfPanelData`; `.igx-fig`; doors → `regShowOnly`.
 - YOUR DAY AND FINDINGS L+S, may scroll (slots `ig-day`/`ig-fd`; `ig-day-b`, `ig-day-tl`, `ig-fd-q`).
 - EXPLORER'S PANEL: no tiles; ring of the drawn contracts (`igOverviewFive`, `.igo-*`), reads the drawn model (`igDrawnModel`); `JOV_MOVE_SLOTS` 'ig'.
-- BRAIN AND WIRING HIDDEN FOR NOW (owner, 24 Nov 2026): no button for them (`IGB_VIEWS_HIDDEN`, `igbViewShown`, bar and panel rows); the map opens on Floors (`IGB_VIEW_FIRST`); a remembered hidden view is not put back (`hbPlacePut`); their drawing kept, `igSetView(0|1)` still turns to them. f1211.
+- BRAIN AND WIRING HIDDEN FOR NOW (owner, 24 Nov 2026): no button for them (`IGB_VIEWS_HIDDEN`, `igbViewShown`, bar and panel rows); the map opens on Floors (`IGB_VIEW_FIRST`); a remembered hidden view is not put back (`hbPlacePut`); their drawing kept; `igSetView` turns a hidden view to Floors (24 Nov 2026 review: no view without a lit button). f1211.
 - EXPLORER: `GRAPH_GROUPINGS`, `intelGraphApply`, `INTEL_CAP` said; `igRecipeNow`/`igRecipeSet`; `igCountsDrawn`; `igDateRead`; `igTourSteps`; FINDINGS `map_findings`; `igViewSave`/`igViews`; `igLensSet`; `igDayData`; `igWhatIfData`; new feature = Guide row (`igGuideRows`).
 - TYPED, AI READS, HaTi CHECKS: `render_graph` `steps` (`GRAPH_STEP_DOS` = `IG_STEP_DOS`); `igFreeReading` first, gap sent back ONCE (`igGapNote`); nothing undrawn said (`igMapSentenceHonest`).
 ## OBLIGATIONS
