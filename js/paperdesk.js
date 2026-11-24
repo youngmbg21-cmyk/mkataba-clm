@@ -7526,15 +7526,40 @@ let _pd2Place = null;
 function pd2PlainFace(el){ return !!(el && el.id === 'pd-glance' && el.classList.contains('pd2-dossier') && !/(^|\s)is-/.test(el.className)); }
 function pd2PlaceScroller(el){ let sc = el ? el.parentElement : null;
   while (sc && sc.id !== 'igd-feed' && sc.id !== 'pd-body') sc = sc.parentElement; return sc; }
+/* THE PLACE IS A ROW, NOT A NUMBER: while another face stands, parts above the Dossier can grow or shrink and the
+   browser moves the scroller to hold what is on screen, so a bare scrollTop kept then lands the reader too low on the
+   way back. The place kept is the row at the panel's top and how far down it stood (pd2PlaceAnchor); the bare number
+   is the fallback when that row is not drawn again. */
+const PD2_PLACE_ROWS = 'section, [data-pd2-ws], .pd2-ws-r, .pd2-fd, .pd-gl-row';
+function pd2PlaceSig(el){
+  let s = el.tagName + '.' + String(el.className || '');
+  for (const a of Array.from(el.attributes || [])) if (/^data-/.test(a.name)) s += '|' + a.name + '=' + a.value;
+  return s;
+}
+function pd2PlaceAnchor(g, sc){
+  const top = sc.getBoundingClientRect().top;
+  const all = Array.from(g.querySelectorAll(PD2_PLACE_ROWS));
+  const el = all.find(x => { const r = x.getBoundingClientRect(); return r.height > 0 && r.bottom > top + 1; });
+  if (!el) return null;
+  const sig = pd2PlaceSig(el);
+  return { sig, nth: all.filter(x => pd2PlaceSig(x) === sig).indexOf(el), y: el.getBoundingClientRect().top - top };
+}
 function pd2PlaceKeep(e){
   const g = document.getElementById('pd-glance'); if (!pd2PlainFace(g)) return;
   const sc = pd2PlaceScroller(g); if (!sc || (e && e.target !== sc)) return;
-  _pd2Place = { id: String(g.getAttribute('data-pd-glance-for') || ''), top: sc.scrollTop };
+  let at = null; try { at = pd2PlaceAnchor(g, sc); } catch (_){ at = null; }
+  _pd2Place = { id: String(g.getAttribute('data-pd-glance-for') || ''), top: sc.scrollTop, at };
 }
 function pd2PlaceBack(was, nu){
   if (pd2PlainFace(was) || !pd2PlainFace(nu) || !_pd2Place) return;
   if (String(nu.getAttribute('data-pd-glance-for')) !== _pd2Place.id) return;
-  const sc = pd2PlaceScroller(nu); if (sc) sc.scrollTop = _pd2Place.top;
+  const sc = pd2PlaceScroller(nu); if (!sc) return;
+  sc.scrollTop = _pd2Place.top;
+  const at = _pd2Place.at; if (!at) return;
+  try {
+    const el = Array.from(nu.querySelectorAll(PD2_PLACE_ROWS)).filter(x => pd2PlaceSig(x) === at.sig)[at.nth];
+    if (el) sc.scrollTop += (el.getBoundingClientRect().top - sc.getBoundingClientRect().top) - at.y;
+  } catch (_){ /* the bare number stands */ }
 }
 if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('scroll', pd2PlaceKeep, true);
 function pdGlanceRepaint(){
@@ -7543,7 +7568,17 @@ function pdGlanceRepaint(){
   /* a hand in the grid keeps its box: drawn again once it leaves */
   if (pdOgHolds()){ _pdOgPending = true; return; }
   const t = document.createElement('div'); t.innerHTML = pd2On() ? pd2Html(c) : pdGlanceHtml(c, { noKt: true });
-  const nu = t.firstElementChild; if (nu && nu.outerHTML !== el.outerHTML){ el.replaceWith(nu); pd2PlaceBack(el, nu); }
+  const nu = t.firstElementChild; if (nu && nu.outerHTML !== el.outerHTML){
+    /* the same plain face drawn again holds the reader's row where it stood (pd2PlaceAnchor): the browser cannot, its
+       row having been swapped out */
+    let held = null, sc0 = null;
+    try { if (pd2PlainFace(el) && pd2PlainFace(nu)){ sc0 = pd2PlaceScroller(el); held = sc0 ? pd2PlaceAnchor(el, sc0) : null; } } catch (_){ held = null; }
+    el.replaceWith(nu); pd2PlaceBack(el, nu);
+    if (held && sc0 && sc0.contains(nu)) try {
+      const row = Array.from(nu.querySelectorAll(PD2_PLACE_ROWS)).filter(x => pd2PlaceSig(x) === held.sig)[held.nth];
+      if (row) sc0.scrollTop += (row.getBoundingClientRect().top - sc0.getBoundingClientRect().top) - held.y;
+    } catch (_){ /* where the browser left it */ }
+  }
   if (pd2On()){ pdOgPaint(); return; }
   /* Key terms stands under Next acts now (the Checklist): drawn again in its own place */
   const kt = document.querySelector('#ig-dock .pd-nx #pd-kt, #ig-dock .pd-nx [data-pd-kt-mid]');

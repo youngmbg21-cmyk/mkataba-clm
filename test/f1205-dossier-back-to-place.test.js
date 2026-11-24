@@ -28,3 +28,9 @@ test('f1205 (3) the browser check drives it where the reader looks', () => {
   assert.match(v, /the panel stands where it stood/);
   assert.match(v, /\[data-pd2-dl-open\]/); assert.match(v, /\[data-pd2-dtc\]/);
 });
+test('f1205 (4) the place is a ROW, not a bare number: the row at the top and how far down it stood, put back after a redraw too', () => {
+  assert.match(fn('pd2PlaceKeep'), /at = pd2PlaceAnchor\(g, sc\)/, 'the row at the panel\'s top is kept');
+  assert.match(fn('pd2PlaceBack'), /pd2PlaceSig\(x\) === at\.sig\)\[at\.nth\]/, 'the same row found again');
+  assert.match(fn('pd2PlaceBack'), /sc\.scrollTop \+= \(el\.getBoundingClientRect\(\)\.top - sc\.getBoundingClientRect\(\)\.top\) - at\.y/, 'and stood where it stood');
+  assert.match(fn('pdGlanceRepaint'), /held = sc0 \? pd2PlaceAnchor\(el, sc0\) : null/, 'the same face drawn again holds the row');
+});
