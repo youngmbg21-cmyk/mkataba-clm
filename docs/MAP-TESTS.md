@@ -546,6 +546,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - A colleague: f921, f562, send-to-a-colleague verify, a-pass-is-a-hand-off verify.
 
 ## THE TEMPLATES PAGE, THE BUILDER, AND NEW STANDARDS
+- THE TOP BAR, A TEMPLATE'S PAGE, CLAUSE N ⇄ CONTRACT (24 Nov 2026): `test/f1202-builder-bar-template-page-whole-contract.test.js` (8, red at the parent; presses the tag, answers, Apply all and Discard all in a built page); browser `test/chromium/builder-ls-verify.js` 6a–6e (GitHub). Re-pointed: f907 (the strip's words), f880 (the line's order), f148 (two Swedish-same keys).
 - 17 Nov 2026: Our paper, Shelves then the Legora way — f1091; f1049 (8), f977 (20, 22, 23) and f1069 (2) re-pointed.
 - 17 Nov 2026: Our paper's folders as Cover flow — f1091 (2), (6) re-pointed, (7) added.
 - 17 Nov 2026: the paper at full size, Make it ours a door to New agreement — f1091 (8) added (red at the parent), (6) re-pointed; f1049 (2) and browser `paper-first-verify` 3 re-pointed. Run with f376, f334, f368, f937.
@@ -621,6 +622,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - No outlines on paper entry fields: f1028 (node; red at the parent).
 
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
+- A BLANK IS AMBER ON EVERY PAPER (24 Nov 2026): `test/f893-template-hygiene.test.js` "the stylesheet paints blanks AMBER" (red at the parent); `test/f1042-blanks-amber-and-only-fill-in-fills.test.js` for the Dossier.
 - NO GREEN RING ON A FIELD, ANYWHERE (16 Nov 2026): `test/f1086-no-green-ring-clause-marks.test.js` (1)(2) — one closing rule over every typed field, every look; green edges darken to the ink; red at the parent.
 - THE WALL WEARS THE SHARED MARK (10 Nov 2026): `test/f997-the-wall-wears-the-shared-mark.test.js` (3 checks, red at the parent) — the wall's paper and a party's agreements draw `regSapMarkHtml`; it is published once.
 - A SEARCH BOX WEARS NO RING (10 Nov 2026): `test/f996-search-boxes-no-ring-folders-scroll.test.js` (1) — one rule for the field, one for the line that holds it, every search box named, after the house ring (red at the parent).

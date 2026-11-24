@@ -1106,6 +1106,204 @@ async function tbDraft(k, said, o = {}) {
   tbPaintRail();
 }
 
+/* ════ CLAUSE N ⇄ CONTRACT: JAMBO WRITES THE WHOLE CONTRACT (owner's yes to the drawing, 24 Nov 2026: "when i press
+   the highlighted button it should change to entire contract so that when i ask jambo, jambo builds the entire contract
+   for me. Jambo can initially ask me questions if clarity is needed") ════
+   The tag in Jambo's box names the clause in hand by the paper's own number ("Clause 4"); pressed, it says "Contract"
+   and a sentence then goes to the WHOLE contract: (1) a few questions first, one at a time, a choice each and his usual
+   pick marked, "Something else" typed — the first, when sections are already written, always "keep them or rewrite
+   them too" (no AI for that one); the rest at most SECTION_ASK_MAX from POST /api/ai/section {ask:true}, only what the
+   words and the paper do not settle; (2) each section still to write drafted by the same route, one call each, its
+   draft a CARD on that section's own thread (the card one section's ask makes, so Apply is tbAccept, Discard tbDiscard,
+   Undo as today) and shown in place on the paper, in green, NOT written; Stop keeps what is drafted; a failure is said
+   on its row and where he stopped; (3) the person decides: Apply all, one by one, or Discard all. Nothing reaches the
+   paper but a person's press (rule 7). */
+const TB_WHOLE_Q_MAX = 4;
+function tbScopeAll() { return !!(_tb && _tb.scope === 'all' && _tb.blocks.length && !_tb.outline); }
+/* the tag's words: the paper's own number, else the heading shortened; "Contract" for the whole */
+function tbScopeLabel() {
+  if (tbScopeAll()) return i18t('tb_tag_contract');
+  const sec = _tb && _tb.focus != null ? tbSectionAt(_tb.focus) : null;
+  if (!sec) return i18t('tb_tag_contract');
+  const n = tbPaperNo(sec);
+  if (n) return i18t('tb_tag_clause', { n: String(n).replace(/\.$/, '') });
+  const h = String(sec.head || i18t('tb_untitled')).trim();
+  return h.length > 22 ? h.slice(0, 21).trim() + '…' : h;
+}
+function tbScopeToggle() {
+  if (!_tb || !_tb.blocks.length || _tb.outline) return;
+  _tb.scope = tbScopeAll() ? 'sec' : 'all';
+  _tb.tab = 'build';
+  /* back to one clause with none in hand: the first still to write is taken, through the one writer of it */
+  if (_tb.scope === 'sec' && _tb.focus == null) { const first = tbNextEmpty(null) || tbSections()[0]; if (first) { tbFocus(first.k); return; } }
+  tbPaintRail(); tbPaintPaper();
+  const box = document.getElementById('tb-ask'); if (box && typeof fieldFocus === 'function') fieldFocus(box, { focusVisible: false });
+}
+function tbWholePending(k) {
+  const th = (_tb.thread && _tb.thread[k]) || [];
+  for (let i = th.length - 1; i >= 0; i--) { const a = th[i] && th[i].card; if (a && a.whole && !a.applied && !a.discarded) return { i, a }; }
+  return null;
+}
+function tbWholeAnswersText(w) {
+  const lines = (w.qs || []).map((q, i) => { const a = w.ans[i]; if (!a || a.skip) return ''; return `- ${q.question}: ${a.text}`; }).filter(Boolean);
+  return lines.length ? '\n\nTheir answers:\n' + lines.join('\n') : '';
+}
+async function tbWholeStart(said) {
+  said = String(said || '').trim().slice(0, TB_ASK_MAX);
+  if (!said) { toast(i18t('tb_pb_say_first'), 'err'); return; }
+  const box = document.getElementById('tb-ask'); if (box) box.value = ''; _tb.ask._all = '';
+  const me = _tb;
+  /* asked again once his drafts wait: the change goes to the whole draft, with the answers already given */
+  if (_tb.whole && _tb.whole.phase === 'ready' && _tb.whole.items.some(x => x.st === 'done' && tbWholePending(x.k))) {
+    _tb.whole.change = said; return tbWholeWrite({ again: true });
+  }
+  if (!(typeof copilotAvailable === 'function' && copilotAvailable())) { _tb.whole = { said, phase: 'nokey', qs: [], ans: [], items: [] }; tbPaintRail(); return; }
+  const secs = tbSections();
+  const written = secs.filter(s => tbSectionText(s));
+  const qs = [];
+  if (written.length) qs.push({ own: 'keep', question: i18tn('tb_wq_keep', written.length, { n: written.length }), options: [i18t('tb_wq_keep_a'), i18t('tb_wq_keep_b')], usual: 0 });
+  _tb.whole = { said, phase: 'loading', qs, ans: [], at: 0, items: [] };
+  tbPaintRail();
+  try {
+    const d = await api('ai/section', 'POST', { ask: true, sentence: said, sections: secs.map(s => ({ heading: s.head, written: !!tbSectionText(s) })) }, { quiet: true });
+    if (_tb !== me || !_tb.whole || _tb.whole.said !== said) return;
+    for (const q of (d && d.questions) || []) if (_tb.whole.qs.length < TB_WHOLE_Q_MAX) _tb.whole.qs.push(q);
+  } catch (e) {
+    if (_tb !== me || !_tb.whole) return;
+    /* the questions are a help, not a gate: unasked, he writes from the words, and says so */
+    _tb.whole.askFail = tbSay(e);
+    if (e && (e.needsKey || e.kind === 'noKey')) { _tb.whole.phase = 'nokey'; tbPaintRail(); return; }
+  }
+  _tb.reads++;
+  if (!_tb.whole.qs.length) return tbWholeWrite();
+  _tb.whole.phase = 'asking'; tbPaintRail();
+}
+function tbWholeAnswer(o) {
+  const w = _tb && _tb.whole; if (!w || w.phase !== 'asking') return;
+  const q = w.qs[w.at]; if (!q) return;
+  if (o.back) { w.at = Math.max(0, w.at - 1); tbPaintRail(); return; }
+  if (o.skip) w.ans[w.at] = { skip: true };
+  else if (o.opt != null) w.ans[w.at] = { opt: o.opt, text: q.options[o.opt] };
+  else if (o.text) w.ans[w.at] = { text: String(o.text).trim().slice(0, 200) };
+  else if (o.next) { if (!w.ans[w.at]) w.ans[w.at] = q.usual >= 0 ? { opt: q.usual, text: q.options[q.usual] } : { skip: true }; }
+  else return;
+  w.at++;
+  if (w.at >= w.qs.length) { tbWholeWrite(); return; }
+  tbPaintRail();
+}
+async function tbWholeWrite(o = {}) {
+  const w = _tb && _tb.whole; if (!w) return;
+  const me = _tb;
+  const keep = w.qs.findIndex(q => q.own === 'keep');
+  const rewrite = keep >= 0 && w.ans[keep] && w.ans[keep].opt === 1;
+  let targets;
+  if (o.again) {
+    targets = w.items.filter(x => x.st === 'done' && tbWholePending(x.k)).map(x => tbSectionAt(x.k)).filter(Boolean);
+    targets.forEach(s => { const p = tbWholePending(s.k); if (p) p.a.discarded = true; });
+  } else targets = tbSections().filter(s => rewrite ? !tbRich(_tb.blocks[s.headIndex]) : tbSectionOwes(s));
+  if (!targets.length) { w.phase = 'none'; tbPaintRail(); return; }
+  const kept = o.again ? w.kept : tbSections().length - targets.length;
+  w.kept = kept;
+  w.items = targets.map(s => ({ k: s.k, st: 'wait' })); w.phase = 'writing'; w.stop = false; w.why = '';
+  const sentence = (w.said + tbWholeAnswersText(w) + (w.change ? `\n\nNow change the whole draft: ${w.change}` : '')).slice(0, 2000);
+  tbPaintRail(); tbPaintPaper();
+  for (const it of w.items) {
+    if (_tb !== me || _tb.whole !== w) return;
+    if (w.stop) { it.st = 'stopped'; continue; }
+    const sec = tbSectionAt(it.k); if (!sec) { it.st = 'fail'; it.why = i18t('tb_w_gone'); continue; }
+    it.st = 'busy'; tbPaintRail();
+    const std = tbStandardFor(sec.head);
+    try {
+      const d = await api('ai/section', 'POST', { sentence, heading: sec.head || i18t('tb_untitled'), intent: (_tb.intent && _tb.intent[sec.k]) || '',
+        standards: std ? [{ category: sec.head || '', rule: std }] : [] }, { quiet: true });
+      if (_tb !== me || _tb.whole !== w) return;
+      _tb.reads++;
+      const text = String((d && d.text) || '').trim();
+      if (!text || !tbCardWording({ text })) { it.st = 'fail'; it.why = i18t('tb_kept_off'); }
+      else {
+        it.idx = tbThread(sec.k).length;
+        tbTurn(sec.k, { who: 'ai', text: String((d && d.note) || '').trim(), card: { src: i18t('tb_pb_src_ai'), tone: 'ai', whole: true,
+          text, asked: w.said, read: _tb.reads, before: tbSectionText(sec), rests: tbRestsLine(sec, null) } });
+        it.st = 'done';
+        if (d && d.truncated) it.cut = true;
+      }
+    } catch (e) {
+      if (_tb !== me || _tb.whole !== w) return;
+      it.st = 'fail'; it.why = tbSay(e);
+      /* no key, a ceiling or a refusal stops the rest: said once, where he stopped */
+      if (e && (e.needsKey || e.kind === 'noKey' || e.spendLimit || e.dailyLimit || e.allowanceExhausted || e.status === 429 || e.status === 402)) { w.stop = true; w.why = it.why; }
+    }
+    tbPaintRail({ keep: true }); tbPaintPaper();
+  }
+  if (_tb !== me || _tb.whole !== w) return;
+  w.phase = 'ready'; w.change = '';
+  tbPaintRail(); tbPaintPaper();
+}
+function tbWholeStop() { const w = _tb && _tb.whole; if (w && w.phase === 'writing') { w.stop = true; tbPaintRail({ keep: true }); } }
+async function tbWholeApplyAll() {
+  const w = _tb && _tb.whole; if (!w) return;
+  for (const it of w.items) { const p = tbWholePending(it.k); if (p) await tbAccept(it.k, p.i); }
+  tbPaintRail(); tbPaintPaper();
+}
+function tbWholeDiscardAll() {
+  const w = _tb && _tb.whole; if (!w) return;
+  for (const it of w.items) { const p = tbWholePending(it.k); if (p) p.a.discarded = true; }
+  tbPaintRail(); tbPaintPaper();
+}
+/* One by one: the first draft still waiting is taken in hand, its own card (Apply · Discard · Refine) as today */
+function tbWholeOneByOne() {
+  const w = _tb && _tb.whole; if (!w) return;
+  const it = w.items.find(x => tbWholePending(x.k)); if (!it) return;
+  _tb.scope = 'sec'; tbFocus(it.k, { scroll: true });
+}
+function tbWholeLaneHtml() {
+  const w = _tb.whole, E = esc;
+  const secs = tbSections(), written = secs.filter(s => !tbSectionOwes(s)).length, toWrite = secs.length - written;
+  const head = (title, badge) => `<div class="tb-w-head"><b>${E(title)}</b>${badge || ''}</div>`;
+  const bdg = (tone, w2, spin) => `<span class="tb-w-bdg is-${tone}">${spin ? '<span class="tb-w-spin" aria-hidden="true"></span>' : '<i aria-hidden="true"></i>'}${E(w2)}</span>`;
+  const bar = (n, m, tone) => `<div class="tb-w-prog"><div class="b"><i style="width:${m ? Math.round(n / m * 100) : 0}%" class="is-${tone}"></i></div></div>`;
+  if (!w || w.phase === 'none') {
+    return `<div class="tb-w">${head(i18t('tb_w_title'), toWrite ? bdg('amber', i18tn('tb_w_to_write', toWrite, { n: toWrite })) : bdg('green', i18t('tb_w_all_written')))}
+      ${bar(written, secs.length, 'green')}<div class="tb-w-leg"><span>${E(i18t('tb_w_written_of', { n: written, m: secs.length }))}</span></div>
+      <p class="tb-w-say">${E(w && w.phase === 'none' ? i18t('tb_w_nothing') : i18t('tb_w_say'))}</p>
+      <p class="tb-w-lbl">${E(i18t('tb_w_try'))}</p><div class="tb-w-chips">${['tb_w_try1', 'tb_w_try2', 'tb_w_try3'].map(k => `<button type="button" class="tb-w-chip" data-tb-wtry="${k}">${E(i18t(k))}</button>`).join('')}</div></div>`;
+  }
+  const said = `<div class="tb-w-you">${E(w.said)}</div>`;
+  if (w.phase === 'nokey') return `<div class="tb-w">${said}<p class="tb-w-say is-amber">${E(i18t('tb_pb_nokey'))}</p></div>`;
+  if (w.phase === 'loading') return `<div class="tb-w">${said}<p class="tb-w-say">${typeof busyHtml === 'function' ? busyHtml(i18t('tb_w_thinking')) : E(i18t('tb_w_thinking'))}</p></div>`;
+  const done = w.qs.map((q, i) => { const a = w.ans[i]; return i < w.at && a ? `<div class="tb-w-ans"><span class="ok">✓</span><span>${E(q.question)}</span><b>${E(a.skip ? i18t('tb_w_skipped') : a.text)}</b></div>` : ''; }).join('');
+  if (w.phase === 'asking') {
+    const q = w.qs[w.at], a = w.ans[w.at];
+    const dots = w.qs.map((x, i) => `<i class="${i < w.at ? 'd' : i === w.at ? 'n' : ''}"></i>`).join('');
+    return `<div class="tb-w">${said}${done}<div class="tb-wq" data-tb-wq="${w.at}">
+      <div class="tb-wq-h"><span>${E(i18t('tb_w_before'))}</span><span class="dots" aria-hidden="true">${dots}</span><span>${E(i18t('tb_w_q_of', { k: w.at + 1, n: w.qs.length }))}</span></div>
+      <p class="tb-wq-q">${E(q.question)}</p>
+      ${q.options.map((o, i) => `<button type="button" class="tb-wq-o${a && a.opt === i ? ' is-on' : ''}" data-tb-wopt="${i}"><span class="k">${i + 1}</span><span class="t">${E(o)}</span>${q.usual === i ? `<span class="s">${E(i18t('tb_w_usual'))}</span>` : ''}</button>`).join('')}
+      <div class="tb-wq-o is-other"><span class="k">${q.options.length + 1}</span><input type="text" id="tb-wother" maxlength="200" placeholder="${E(i18t('tb_w_other'))}" aria-label="${E(i18t('tb_w_other'))}" value="${a && a.opt == null && !a.skip ? E(a.text || '') : ''}"></div>
+      <div class="tb-wq-f">${w.at > 0 ? `<button type="button" class="tb-w-link" data-tb-wback>‹ ${E(i18t('tb_w_back'))}</button>` : ''}<button type="button" class="tb-w-link" data-tb-wskip>${E(i18t('tb_w_skip'))}</button><span class="sp"></span><button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-tb-wnext>${E(i18t('tb_w_next'))}</button></div>
+    </div></div>`;
+  }
+  const n = w.items.length, drafted = w.items.filter(x => x.st === 'done').length;
+  const row = it => { const sec = tbSectionAt(it.k); const no = sec ? tbPaperNo(sec) : ''; const p = tbWholePending(it.k);
+    const th = (_tb.thread[it.k] || [])[it.idx]; const a = th && th.card;
+    const st = it.st === 'busy' ? bdg('violet', i18t('tb_w_writing'), true) : it.st === 'wait' ? bdg('gray', i18t('tb_w_waiting'))
+      : it.st === 'fail' ? bdg('red', i18t('tb_w_failed')) : it.st === 'stopped' ? bdg('gray', i18t('tb_w_stopped'))
+      : a && a.applied ? bdg('green', i18t('tb_applied')) : a && a.discarded ? bdg('gray', i18t('tb_w_discarded')) : bdg('violet', i18t('tb_w_drafted'));
+    const acts = w.phase === 'ready' && p ? `<span class="tb-w-acts"><button type="button" class="tb-w-link" data-tb-use="${it.k}:${p.i}">${E(i18t('tb_pb_apply'))}</button><button type="button" class="tb-w-link is-q" data-tb-discard="${it.k}:${p.i}">${E(i18t('tb_discard'))}</button></span>` : st;
+    return `<tr data-tb-wrow="${it.k}"${it.st === 'busy' ? ' class="is-sel"' : ''}><td class="n">${E(no || '·')}</td><td><span class="h">${E((sec && sec.head) || i18t('tb_untitled'))}</span>${it.why ? `<span class="w">${E(it.why)}</span>` : it.cut ? `<span class="w">${E(i18t('tb_w_cut'))}</span>` : ''}</td><td class="r">${acts}</td></tr>`; };
+  const table = `<table class="tb-w-tbl"><tbody>${w.items.map(row).join('')}</tbody></table>`;
+  if (w.phase === 'writing') {
+    return `<div class="tb-w">${said}${done}${head(i18t('tb_w_writing_t'), bdg('violet', i18t('tb_w_n_of', { n: drafted, m: n })))}
+      ${bar(drafted, n, 'violet')}<div class="tb-w-leg"><span>${E(i18tn('tb_w_kept', w.kept || 0, { n: w.kept || 0 }))}</span></div>${table}
+      <div class="tb-w-f"><button type="button" class="ui-btn ui-btn-sm" data-tb-wstop ${w.stop ? 'disabled' : ''}>${E(i18t('tb_w_stop'))}</button><span class="tb-w-q">${E(w.stop ? i18t('tb_w_stopping') : i18t('tb_w_stop_s'))}</span></div></div>`;
+  }
+  const waiting = w.items.filter(x => tbWholePending(x.k)).length;
+  return `<div class="tb-w">${said}${done}${head(i18tn('tb_w_ready', drafted, { n: drafted }), waiting ? bdg('amber', i18t('tb_w_not_on')) : bdg('green', i18t('tb_w_settled')))}
+    ${w.why ? `<p class="tb-w-say is-amber">${E(i18t('tb_w_stopped_why', { why: w.why }))}</p>` : `<p class="tb-w-say">${E(waiting ? i18t('tb_w_ready_say') : i18t('tb_w_settled_say'))}</p>`}
+    ${table}
+    ${waiting ? `<div class="tb-w-f"><button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-tb-wall>${E(i18tn('tb_w_apply_all', waiting, { n: waiting }))}</button><button type="button" class="ui-btn ui-btn-sm" data-tb-wone>${E(i18t('tb_w_one'))}</button><span class="sp"></span><button type="button" class="tb-w-link is-q" data-tb-wdrop>${E(i18t('tb_w_discard_all'))}</button></div>
+    <p class="tb-w-q">${E(i18t('tb_w_undo_s'))}</p>` : ''}</div>`;
+}
 /* ---- IS THIS CARD CARRYING WORDING, OR A REMARK ABOUT THE JOB? ----
    (Young reported it 17 Sep 2026, over a screenshot of section 3 of a
    Transportation Management template reading "Without seeing HaTi's own
@@ -1339,6 +1537,7 @@ function tbStyleHtml() {
   .tb-strip .tb-back{flex:none;width:30px;padding:0}
   .tb-strip .tb-act{flex:none;white-space:nowrap}
   .tb-head{display:flex;align-items:center;gap:8px;min-width:0;flex:0 1 auto}
+  .tb-dirty{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .tb-tname{display:inline-flex;align-items:center;gap:6px;min-width:0;flex:0 1 auto;background:none;border:0;border-bottom:1px dashed transparent;border-radius:0;padding:0 0 1px;cursor:pointer;
     font:inherit;font-size:14px;font-weight:var(--w-title);color:var(--color-text)}
   .tb-tname .v{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
@@ -1643,6 +1842,66 @@ function tbStyleHtml() {
   .tb-tag .w{overflow:hidden;text-overflow:ellipsis;min-width:0}
   .tb-tag button{flex:none;display:inline-grid;place-items:center;width:18px;height:18px;border:0;border-radius:999px;background:none;color:inherit;font:inherit;cursor:pointer;padding:0}
   .tb-tag button:hover{background:rgba(255,255,255,.22)}
+  /* CLAUSE N ⇄ CONTRACT (owner, 24 Nov 2026): the tag is the switch — one line, never broken; Contract in green */
+  button.tb-tag{flex:none;border:0;cursor:pointer;gap:6px;padding:0 10px;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong)}
+  button.tb-tag .sw{flex:none;opacity:.75}
+  button.tb-tag.is-all{background:var(--st-green-fg)}
+  button.tb-tag.is-off{background:var(--surface-2);color:var(--color-text)}
+  .tb-sec:has(.tb-wprop) .tb-row:not(.tb-row-h) .tb-ed:empty{display:none}
+  .tb-wprop{margin:0;padding:4px 6px;border-radius:var(--radius);background:var(--st-green-bg);color:var(--color-doc-text,var(--color-text));text-decoration:underline;text-decoration-color:var(--st-green-dot);text-underline-offset:3px;white-space:pre-wrap}
+  .tb-w{display:flex;flex-direction:column;gap:12px;padding:14px 16px}
+  .tb-w-head{display:flex;align-items:center;gap:8px}
+  .tb-w-head b{font-weight:var(--w-title)}
+  .tb-w-head > span{margin-left:auto}
+  .tb-w-bdg{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:999px;font-size:var(--t-label);font-weight:var(--w-label);white-space:nowrap}
+  .tb-w-bdg i{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.7}
+  .tb-w-bdg.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .tb-w-bdg.is-green{background:var(--st-green-bg);color:var(--st-green-fg)}
+  .tb-w-bdg.is-violet{background:var(--st-violet-bg,var(--st-steel-bg));color:var(--st-violet-fg,var(--st-steel-fg))}
+  .tb-w-bdg.is-gray{background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  .tb-w-bdg.is-red{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  .tb-w-spin{width:9px;height:9px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:tbwspin .9s linear infinite}
+  @keyframes tbwspin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){ .tb-w-spin{animation:none} }
+  .tb-w-prog .b{height:6px;border-radius:3px;background:var(--color-neutral-200);overflow:hidden}
+  .tb-w-prog .b i{display:block;height:100%}
+  .tb-w-prog .is-green{background:var(--st-green-dot)} .tb-w-prog .is-violet{background:var(--st-violet-dot,var(--st-steel-dot))}
+  .tb-w-leg{font-size:var(--t-label);color:var(--color-quiet);margin-top:-6px}
+  .tb-w-say{margin:0;font-size:var(--t-meta);line-height:1.55}
+  .tb-w-say.is-amber{color:var(--st-amber-fg)}
+  .tb-w-lbl{margin:0;font-size:var(--t-label);color:var(--color-quiet)}
+  .tb-w-chips{display:flex;flex-wrap:wrap;gap:6px}
+  .tb-w-chip{height:28px;padding:0 10px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);font:inherit;font-size:var(--t-label);color:var(--color-text);cursor:pointer}
+  .tb-w-chip:hover{background:var(--row-hover)}
+  .tb-w-you{align-self:flex-end;max-width:90%;padding:6px 12px;border-radius:var(--radius);background:var(--surface-2);font-size:var(--t-meta)}
+  .tb-w-ans{display:flex;align-items:baseline;gap:6px;font-size:var(--t-label);color:var(--color-quiet)}
+  .tb-w-ans .ok{color:var(--st-green-fg)} .tb-w-ans b{font-weight:var(--w-label);color:var(--color-text)}
+  .tb-wq{display:flex;flex-direction:column;gap:8px;border-left:2px solid var(--st-green-line,var(--color-divider));padding:2px 0 2px 12px}
+  .tb-wq-h{display:flex;align-items:center;gap:8px;font-size:var(--t-label);color:var(--color-quiet)}
+  .tb-wq-h .dots{display:inline-flex;gap:4px}
+  .tb-wq-h .dots i{width:7px;height:7px;border-radius:50%;background:var(--color-neutral-200)}
+  .tb-wq-h .dots i.d{background:var(--st-green-dot)} .tb-wq-h .dots i.n{background:var(--color-text)}
+  .tb-wq-q{margin:0;font-weight:var(--w-title)}
+  .tb-wq-o{display:flex;align-items:center;gap:10px;min-height:36px;padding:6px 10px;border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);font:inherit;font-size:var(--t-meta);color:var(--color-text);text-align:left;cursor:pointer}
+  .tb-wq-o:hover{background:var(--row-hover)}
+  .tb-wq-o.is-on{border-color:var(--st-green-line,var(--st-green-dot));background:var(--row-chosen)}
+  .tb-wq-o .k{flex:none;display:grid;place-items:center;width:20px;height:20px;border-radius:6px;background:var(--surface-2);font-size:var(--t-label);color:var(--color-quiet)}
+  .tb-wq-o .t{flex:1;min-width:0}
+  .tb-wq-o .s{flex:none;font-size:var(--t-label);color:var(--color-quiet)}
+  .tb-wq-o.is-other{cursor:text}
+  .tb-wq-o.is-other input{flex:1;min-width:0;border:0;background:none;font:inherit;color:var(--color-text);outline:none;padding:0}
+  .tb-wq-f,.tb-w-f{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tb-wq-f .sp,.tb-w-f .sp{flex:1}
+  .tb-w-link{border:0;background:none;padding:0;font:inherit;font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
+  .tb-w-link.is-q{color:var(--color-quiet)}
+  .tb-w-q{margin:0;font-size:var(--t-label);color:var(--color-quiet)}
+  .tb-w-tbl{width:100%;border-collapse:collapse;font-size:var(--t-meta)}
+  .tb-w-tbl td{padding:8px 6px;border-bottom:1px solid var(--color-divider);vertical-align:top}
+  .tb-w-tbl tr{cursor:pointer} .tb-w-tbl tr:hover td{background:var(--row-hover)} .tb-w-tbl tr.is-sel td{background:var(--row-chosen)}
+  .tb-w-tbl .n{width:24px;color:var(--color-quiet);font-variant-numeric:tabular-nums}
+  .tb-w-tbl .h{display:block} .tb-w-tbl .w{display:block;margin-top:2px;font-size:var(--t-label);color:var(--st-amber-fg)}
+  .tb-w-tbl .r{text-align:right;white-space:nowrap}
+  .tb-w-acts{display:inline-flex;gap:10px}
   .tb-railfoot{flex-wrap:nowrap}
   .tb-pg{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
   .tb-pg button{display:inline-grid;place-items:center;width:26px;height:26px;border:0;border-radius:999px;background:var(--surface-2,#EDEDF0);color:var(--color-text);font:inherit;cursor:pointer;padding:0}
@@ -1842,7 +2101,8 @@ function tbPaperHtml() {
             <button type="button" data-tb-sec-up="${b._k}" ${mvAt.get(i) === 0 ? 'disabled' : ''} title="${i18t('tb_sec_up_tip')}">${icon('chevU')}${i18t('tb_sec_up')}</button>
             <button type="button" data-tb-sec-down="${b._k}" ${mvAt.get(i) === movable.length - 1 ? 'disabled' : ''} title="${i18t('tb_sec_down_tip')}">${icon('chevD')}${i18t('tb_sec_down')}</button>` : ''}
             ${DEL(i).replace('<button ', '<button class="tb-smv-x" ')}</span></div>
-        ${sec && !sec.body.length && tbSectionOwes(sec) ? `<p class="tb-p tb-ph" data-tb-ph="${b._k}">${i18t('tb_ph_empty')}</p>` : ''}`;
+        ${(() => { const wp = sec ? tbWholePending(sec.k) : null; return wp ? `<p class="tb-p tb-wprop" data-tb-wprop="${b._k}" title="${esc(i18t('tb_w_prop_t'))}">${esc(wp.a.text)}</p>` : ''; })()}
+        ${sec && !sec.body.length && tbSectionOwes(sec) && !tbWholePending(sec.k) ? `<p class="tb-p tb-ph" data-tb-ph="${b._k}">${i18t('tb_ph_empty')}</p>` : ''}`;
       open = true; openK = sec ? sec.k : null; return;
     }
     /* A PARAGRAPH CARRIES NO BUTTONS (owner, 25 Oct 2026, over the paragraph's up · down · ×: "delete the
@@ -2217,15 +2477,17 @@ function tbAskHtml() {
   const sec = _tb.focus != null ? tbSectionAt(_tb.focus) : null;
   const on = typeof copilotAvailable === 'function' && copilotAvailable();
   const opening = !_tb.blocks.length || !!_tb.outline;
-  const ph = opening ? i18t('tb_pb_ph_brief') : !sec ? i18t('tb_ph_pick') : _tb.refine ? i18t('tb_ph_refine')
+  const ph = opening ? i18t('tb_pb_ph_brief') : tbScopeAll() ? (_tb.whole && _tb.whole.phase === 'asking' ? i18t('tb_w_ph_answer') : _tb.whole && _tb.whole.phase === 'ready' ? i18t('tb_w_ph_change') : i18t('tb_w_ph')) : !sec ? i18t('tb_ph_pick') : _tb.refine ? i18t('tb_ph_refine')
     : tbSectionText(sec) ? i18t('tb_ph_change') : _tb.walk ? i18t('tb_ph_answer') : i18t('tb_pb_ask_ph');
-  const draft = sec ? (_tb.ask[sec.k] || '') : (_tb.ask._ || '');
+  const draft = tbScopeAll() ? (_tb.ask._all || '') : sec ? (_tb.ask[sec.k] || '') : (_tb.ask._ || '');
   /* ROUND 21 AS DRAWN: the box every Jambo panel carries — one line that
      grows, "Ask for anything, or type /" (the opening brief keeps its own
      question), the word Ask on its button, "/" the places (data-ca-slash,
      leaving through tbLeave so nothing typed is lost) */
-  const ph2 = opening || _tb.refine ? ph : i18t('jl_ph_any');
-  const tag = sec && !opening ? `<div class="tb-tagline"><span class="tb-tag"><span class="w">${esc(i18t('tb_this_section'))}</span><button type="button" data-tb-untag title="${esc(i18t('tb_untag'))}" aria-label="${esc(i18t('tb_untag'))}">${typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : '×'}</button></span></div>` : '';
+  const ph2 = opening || _tb.refine || tbScopeAll() ? ph : i18t('jl_ph_any');
+  /* CLAUSE N ⇄ CONTRACT (owner, 24 Nov 2026): the tag names the clause by the paper's number; pressed, the whole contract */
+  const all = tbScopeAll();
+  const tag = !opening && _tb.blocks.length ? `<div class="tb-tagline"><button type="button" class="tb-tag${all ? ' is-all' : ''}${!sec && !all ? ' is-off' : ''}" data-tb-scope aria-pressed="${all}" title="${esc(i18t(all ? 'tb_tag_to_clause' : 'tb_tag_to_contract'))}"><span class="w">${esc(tbScopeLabel())}</span><span class="sw" aria-hidden="true">⇄</span></button></div>` : '';
   /* THE TWO-ROW CARD (owner picked it, 20 Oct 2026): the one builder */
   return `<div class="tb-foot">${_tbJbCard({ id: 'tb-askrow', field: `<textarea id="tb-ask" rows="1" maxlength="${TB_ASK_MAX}" data-ca-slash placeholder="${esc(ph2)}" title="${esc(ph)}" aria-label="${i18t('tb_ask_label')}" ${on ? '' : 'disabled'}>${esc(draft)}</textarea>`,
     ctx: tag,
@@ -2316,11 +2578,11 @@ function tbRailHtml() {
       <button type="button" class="pd-back" data-tb-jambo title="${esc(i18t('pd_back_jambo'))}"${showBack ? '' : ' hidden'}><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${esc(name)}</button>
       <button type="button" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon jl-fold" data-tb-fold aria-expanded="true" title="${esc(i18t('int_collapse_panel'))}" aria-label="${esc(i18t('int_collapse_panel'))}">${typeof icon === 'function' ? icon('chevR') : '›'}</button>
     </div>
-    ${tab === 'build' ? tbSecPickHtml() + (_tb.focus != null && _tb.blocks.length && !_tb.outline ? tbProgHtml() : '') : ''}
-    ${tab === 'build' || tab === 'playbook' ? `<div class="tb-disc"><b>✦</b><span>${i18t(tab === 'playbook' ? 'tb_pb_cover_foot' : 'tb_disc')}</span></div>` : ''}
-    <div class="tb-lane" id="tb-lane">${tab === 'build' ? tbBuildLaneHtml() : tab === 'outline' ? tbOutlineTabHtml(cov) : tab === 'playbook' ? tbPlaybookLaneHtml(cov) : tbBlanksLaneHtml()}</div>
+    ${tab === 'build' && !tbScopeAll() ? tbSecPickHtml() + (_tb.focus != null && _tb.blocks.length && !_tb.outline ? tbProgHtml() : '') : ''}
+    ${(tab === 'build' && !tbScopeAll()) || tab === 'playbook' ? `<div class="tb-disc"><b>✦</b><span>${i18t(tab === 'playbook' ? 'tb_pb_cover_foot' : 'tb_disc')}</span></div>` : ''}
+    <div class="tb-lane" id="tb-lane">${tab === 'build' && tbScopeAll() ? tbWholeLaneHtml() : tab === 'build' ? tbBuildLaneHtml() : tab === 'outline' ? tbOutlineTabHtml(cov) : tab === 'playbook' ? tbPlaybookLaneHtml(cov) : tbBlanksLaneHtml()}</div>
     ${tab === 'build' && (!_tb.blocks.length || _tb.outline) ? tbOutlineFootHtml() : ''}
-    ${tab === 'build' ? tbScopeHtml() + tbChipsRowHtml() + (tbSections().length ? `<div class="tb-railfoot" id="tb-railfoot">${tbFootHtml()}</div>` : '') : ''}
+    ${tab === 'build' && !tbScopeAll() ? tbScopeHtml() + tbChipsRowHtml() + (tbSections().length ? `<div class="tb-railfoot" id="tb-railfoot">${tbFootHtml()}</div>` : '') : ''}
     ${tbAskHtml()}
   </aside>`;
 }
@@ -2510,8 +2772,12 @@ function tbHeadHtml() {
   const caret = icon('chevD', 'tb-fchip-c');
   const chip = (what, key, val, sw, whole) => `<button type="button" class="tb-fchip${val ? '' : ' empty'}" data-tb-meta="${what}"
       title="${esc(val ? i18t('tb_h_chip_title', { k: key, v: whole || val }) : i18t('tb_h_stream_none'))}"><span class="k">${esc(key)}</span>${sw || ''}<span class="v">${esc(val || i18t('tb_h_choose'))}</span>${caret}</button>`;
-  return `<button type="button" class="tb-tname" data-tb-meta="name" title="${esc(i18t('tb_h_rename', { name: h.name }))}"><span class="v">${esc(h.name)}</span></button>`
-    + `<span class="tb-chipv">${i18t('tb_v_draft', { n: _tb.versionNumber })}</span>`
+  /* THE TOP BAR, LEGORA + STRIPE (owner's pick, 24 Nov 2026): ONE ROW — the name on one line with ONE small grey line
+     under it (the draft and where it is kept: the one slot, #tb-dirtyslot), a thin divider, then Category and Stream as
+     quiet words (an unchosen stream an amber dot), the three acts even on the right */
+  return `<span class="tb-hname"><button type="button" class="tb-tname" data-tb-meta="name" title="${esc(i18t('tb_h_rename', { name: h.name }))}"><span class="v">${esc(h.name)}</span></button>`
+    + `<span class="tb-hsub"><span class="tb-chipv">${i18t('tb_v_draft', { n: _tb.versionNumber })}</span><span id="tb-dirtyslot" class="tb-hdirty">${tbDirtyHtml()}</span></span></span>`
+    + `<span class="tb-hdiv" aria-hidden="true"></span>`
     + chip('category', i18t('tb_h_category'), h.categoryName)
     /* the stream's short name, as Our paper's book says it ("Sales"); its
        whole name on the hover (check #2, 19 Oct 2026) */
@@ -2747,7 +3013,6 @@ function tbPaint(opts = {}) {
       <div class="tb-strip">
         <button id="tb-back" type="button" class="ui-btn tb-back" title="${esc(i18t('tb_h_back'))}" aria-label="${esc(i18t('tb_h_back'))}">${icon('arrowLeft', 'w-3.5 h-3.5')}</button>
         <span id="tb-head" class="tb-head">${tbHeadHtml()}</span>
-        <span id="tb-dirtyslot" style="display:flex;align-items:center;gap:var(--s-2);min-width:0">${tbDirtyHtml()}</span>
         <span style="flex:1"></span>
         ${''/* BELOW 1024 THE RAIL IS NOT DRAWN, AND ITS ADD FIELD WENT WITH IT (the
                owner's list, 27 Sep 2026). The same act, in the strip, only while
@@ -2943,7 +3208,7 @@ function tbDirtyHtml() {
   const line = tbDirtyLine();
   const drop = (_tb && _tb.restoredAt)
     ? `<button id="tb-drop" class="ui-btn ui-btn-sm">${esc(i18t('tb_kept_discard'))}</button>` : '';
-  return `<span id="tb-dirty" style="font-size:var(--t-label);color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(line)}</span>${drop}`;
+  return `<span id="tb-dirty" class="tb-dirty">${esc(line)}</span>${drop}`;
 }
 function tbPatchDirty() {
   const d = document.getElementById('tb-dirtyslot'); if (d) d.innerHTML = tbDirtyHtml();
@@ -2995,6 +3260,11 @@ function tbSend() {
      conversation is (round 21: the box stands at the foot on every tab) */
   if (_tb.tab !== 'build') { _tb.tab = 'build'; tbPaintRail(); }
   if (!_tb.blocks.length || _tb.outline) { tbOutlineRun(said); return; }
+  if (tbScopeAll()) {
+    if (_tb.whole && _tb.whole.phase === 'asking') { if (box) box.value = ''; _tb.ask._all = ''; if (said) tbWholeAnswer({ text: said }); return; }
+    if (_tb.whole && (_tb.whole.phase === 'loading' || _tb.whole.phase === 'writing')) return;
+    tbWholeStart(said); return;
+  }
   if (_tb.focus == null) { toast(i18t('tb_ph_pick'), 'err'); return; }
   tbDraft(_tb.focus, said);
 }
@@ -3153,6 +3423,17 @@ function tbWire() {
     if (hit('[data-tb-send]')) { tbSend(); return; }
     if ((b = hit('[data-tb-step]'))) { tbStep(Number(b.getAttribute('data-tb-step'))); return; }
     if (hit('[data-tb-untag]')) { tbFocus(null); return; }
+    if (hit('[data-tb-scope]')) { tbScopeToggle(); return; }
+    if ((b = hit('[data-tb-wopt]'))) { tbWholeAnswer({ opt: Number(b.getAttribute('data-tb-wopt')) }); return; }
+    if (hit('[data-tb-wback]')) { tbWholeAnswer({ back: true }); return; }
+    if (hit('[data-tb-wskip]')) { tbWholeAnswer({ skip: true }); return; }
+    if (hit('[data-tb-wnext]')) { const o = document.getElementById('tb-wother'); const v = o ? o.value.trim() : ''; tbWholeAnswer(v ? { text: v } : { next: true }); return; }
+    if (hit('[data-tb-wstop]')) { tbWholeStop(); return; }
+    if (hit('[data-tb-wall]')) { tbWholeApplyAll(); return; }
+    if (hit('[data-tb-wone]')) { tbWholeOneByOne(); return; }
+    if (hit('[data-tb-wdrop]')) { tbWholeDiscardAll(); return; }
+    if ((b = hit('[data-tb-wtry]'))) { const box = document.getElementById('tb-ask'); if (box) { box.value = i18t(b.getAttribute('data-tb-wtry')); if (typeof fieldFocus === 'function') fieldFocus(box, { focusVisible: false }); } return; }
+    if ((b = hit('[data-tb-wrow]'))) { const k = Number(b.getAttribute('data-tb-wrow')); if (typeof landOn === 'function') landOn(`[data-tb-sec="${k}"]`, { block: 'center', focus: false }); return; }
     if ((b = hit('[data-tb-unctx]'))) { _tb.ctx = (_tb.ctx || []).filter(k => k !== Number(b.getAttribute('data-tb-unctx'))); tbPaintScope(); return; }
     if ((b = hit('[data-tb-pick]'))) {
       const k = Number(b.getAttribute('data-tb-pick')); const box = document.getElementById('tb-ask');
@@ -3235,10 +3516,14 @@ function tbWire() {
     const c = e.target.closest ? e.target.closest('[data-tb-cand]') : null;
     if (c && _tb.cands) { const r = _tb.cands.rows.find(x => x.id === c.getAttribute('data-tb-cand')); if (r) { r.on = c.checked; tbPaintRail({ keep: true }); } }
   });
+  /* the question card's "Something else": Enter answers with the typed words */
+  rail?.addEventListener('keydown', e => {
+    if (e.target && e.target.id === 'tb-wother' && e.key === 'Enter') { e.preventDefault(); const v = e.target.value.trim(); if (v) tbWholeAnswer({ text: v }); }
+  });
   rail?.addEventListener('input', e => {
     if (e.target.id !== 'tb-ask') return;
     const box = e.target; const sec = _tb.focus != null ? tbSectionAt(_tb.focus) : null;
-    _tb.ask[sec ? sec.k : '_'] = box.value;
+    _tb.ask[tbScopeAll() ? '_all' : sec ? sec.k : '_'] = box.value;
     /* @ opens the section picker: the word after @ narrows it, a pick puts the
        section's name in the box and tags it as context. */
     const pick = document.getElementById('tb-pick'); if (!pick) return;
@@ -3693,7 +3978,7 @@ async function tbPaintBranding() {
 
 /* The readings are published and the screen is not: a check drives tbSections
    and tbCoverage over a block list it wrote itself, with no builder open. */
-Object.assign(window, { tbOlFilter, tbApplyZoom, tbMoreBtnHtml, tbMoreToggle, tbMoreClose, tbDeleteAsk, tbEverPublished, tbMayDelete, tbLookAsk, tbPublishedLand, tbDesignStepGo, openTemplateBuilder, tbCardWording, TB_BLOCK_META, TB_PB_KEY, TB_ASK_MAX, TB_BLANK_TYPE, TB_RAIL_MIN, TB_CHIP_ASK,
+Object.assign(window, { tbScopeAll, tbScopeLabel, tbScopeToggle, tbWholeStart, tbWholeAnswer, tbWholeWrite, tbWholeStop, tbWholeApplyAll, tbWholeDiscardAll, tbWholeOneByOne, tbWholePending, tbWholeLaneHtml, TB_WHOLE_Q_MAX, tbOlFilter, tbApplyZoom, tbMoreBtnHtml, tbMoreToggle, tbMoreClose, tbDeleteAsk, tbEverPublished, tbMayDelete, tbLookAsk, tbPublishedLand, tbDesignStepGo, openTemplateBuilder, tbCardWording, TB_BLOCK_META, TB_PB_KEY, TB_ASK_MAX, TB_BLANK_TYPE, TB_RAIL_MIN, TB_CHIP_ASK,
   tbSplit, tbFitSplit, tbWireSplit, TB_SPLIT_KEY, TB_FMIN, TB_FMAX, TB_LEFT_MIN, TB_RIGHT_MIN, TB_GAP,
   tbSections, tbSectionText, tbDropExtraBody, tbKindOf, tbLibraryFor, tbLibraryOffers, tbCoverage, tbCoverageOf, tbFinderOf, tbSectionFor, tbMarksOf, tbMarksHtml, tbPbKey, tbStandardFor, tbPrecedentFor,
   tbFocus, tbSetTab, tbRailFits, tbNextEmpty, tbQuestionFor, tbChipsHtml, tbReadEditable, tbPaint, tbPaintRail, tbSend, tbAccept, tbOutlineAdd, tbTurn, tbSetWalk,

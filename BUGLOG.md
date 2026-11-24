@@ -22992,3 +22992,7 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 
 ## Noticed, not fixed (24 Nov 2026, the empty Notebook panel)
 - every-door-lands-on-home-verify "D Jambo · the glance's "redline" button (on the dropped contract) — the door is not on screen" failed on pull request 971 (shard 4/6, run 45367320882), whose change touches only the Notebook's panel; the same check passed on pull request 970 an hour earlier with the same other code. Not this change's; one run, cause not found.
+
+## Noticed, not fixed (24 Nov 2026, the Builder's Contract switch)
+- CLAUDE.md is 88.6 KB on main, over its own "keep it under about 80 KB" line; a trim needs the owner's yes (the Builder round added about 1 KB of MAP lines).
+- Said to the owner: a template's page no longer shows its version history card under the paper; it is the panel's Versions tab, as drawn (the card stays only where the panel cannot fit).

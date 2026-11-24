@@ -98,6 +98,34 @@ const until = async (page, fn, arg, ms = 6000) => { const t = Date.now(); while 
     const S = await until(page, () => { const t = document.querySelector('[data-na-newpaper]'); return t && t.getAttribute('aria-selected') === 'true' ? { pop: !!document.getElementById('ns-form'), lit: [...document.querySelectorAll('.na-ptab[aria-selected="true"]')].map(x => x.textContent.trim()) } : null; }, null, 8000);
     check('5 Our paper\'s Create a template opens the sheet on its tab, no pop-up, one tab lit', !!S && !S.pop && S.lit.join() === 'Create a template', S);
 
+    /* 6 · CLAUSE N ⇄ CONTRACT (owner, 24 Nov 2026): the tag names the clause; pressed, Contract; he asks first, drafts
+       every empty section as a card shown on the paper, writes nothing until Apply all. The model is stood in for. */
+    await page.evaluate(() => { try { closeModal(); } catch (_) {} });
+    await page.route('**/api/ai/section', r => { const b = JSON.parse(r.request().postData() || '{}');
+      return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(b.ask ? { questions: [{ question: 'How is the rent paid?', options: ['Monthly, in advance', 'Quarterly'], usual: 0 }] } : { text: 'The ' + b.heading + ' wording.', note: '' }) }); });
+    const C = await mk('Office Lease');
+    await page.evaluate(i => { window.copilotAvailable = () => true; openTemplateBuilder(i.tid, i.vid); }, C);
+    const tagUp = await until(page, () => { const b = document.querySelector('[data-tb-scope]'); return b ? b.textContent.trim() : null; });
+    check('6a the tag in Jambo\'s box is a switch naming the clause in hand', !!tagUp && /⇄/.test(tagUp), tagUp);
+    if (tagUp) {
+      await page.click('[data-tb-scope]');
+      const all = await until(page, () => { const b = document.querySelector('[data-tb-scope]'); return b && b.getAttribute('aria-pressed') === 'true' ? b.textContent.trim() : null; });
+      check('6b pressed, it says Contract', !!all && /^Contract/.test(all), all);
+      await page.fill('#tb-ask', 'Write the whole lease.'); await page.click('[data-tb-send]');
+      const q = await until(page, () => { const x = document.querySelector('.tb-wq-q'); return x ? x.textContent : null; });
+      check('6c he asks first, one question at a time', !!q, q);
+      if (q) {
+        for (let i = 0; i < 3; i++) { const more = await page.evaluate(() => !!document.querySelector('[data-tb-wopt="0"]')); if (!more) break; await page.click('[data-tb-wopt="0"]'); await page.waitForTimeout(150); }
+        const ready = await until(page, () => document.querySelector('[data-tb-wall]') ? { props: document.querySelectorAll('.tb-wprop').length, paper: document.getElementById('tb-paper').textContent } : null, null, 10000);
+        check('6d every empty section drafted, shown on the paper, nothing written', !!ready && ready.props >= 1, ready && { props: ready.props });
+        if (ready) {
+          await page.click('[data-tb-wall]');
+          const put = await until(page, () => !document.querySelector('.tb-wprop') && /Term wording/.test(document.getElementById('tb-paper').textContent) ? true : null, null, 8000);
+          check('6e Apply all puts them on the paper', !!put);
+        }
+      }
+    }
+
     check('no page errors', errors.length === 0, errors.slice(0, 3));
   } catch (e) { check('ran to the end', false, String(e && e.message || e).slice(0, 300)); }
   await browser.close(); await h.stop();

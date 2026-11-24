@@ -585,7 +585,7 @@ function tplLibSheetHtml(wording) {
   try { b = window.resolveDocBranding ? resolveDocBranding(null) : null; } catch (_) { b = null; }
   const paperAttr = (() => { try { return window.docDesignPaperAttr ? docDesignPaperAttr(b) : ''; } catch (_) { return ''; } })();
   const paperStyle = (() => { try { return window.docDesignPaperStyle ? docDesignPaperStyle(b) : ''; } catch (_) { return ''; } })();
-  return `<div class="blueprint"${paperAttr} style="background:var(--color-doc-warm);border-color:var(--color-doc-warm-line);box-shadow:var(--shadow-paper);padding:34px var(--s-10) 44px;max-width:var(--doc-sheet-max,860px);margin:0 auto;border-radius:0;${paperStyle}">
+  return `<div class="blueprint"${paperAttr} style="background:var(--color-surface);border-color:transparent;box-shadow:var(--shadow-paper);padding:34px var(--s-10) 44px;max-width:var(--doc-sheet-max,860px);margin:0 auto;border-radius:0;${paperStyle}">
     <article class="doc-surface" style="background:transparent"><div class="hati-doc">${wording}</div></article>
   </div>`;
 }
@@ -818,10 +818,11 @@ async function openTemplateLibDetail(id) {
      preview and the contract cannot disagree about what the template says.
      A failure here is a missing preview, never a missing page. */
   const showVer = versions.find(v => v.status === 'published') || versions.find(v => v.status === 'draft') || null;
-  let wording = null;
+  let wording = null, verRead = null;
   if (showVer && typeof templateFormDocHtml === 'function') {
     try {
       const v = await api(`templates/${t.id}/versions/${showVer.id}`, 'GET', null, { quiet: true });
+      verRead = v;
       wording = templateFormDocHtml({ blocks: v.blocks || [], fields: (v.fields || []).map(f => ({
         fieldKey: f.field_key, label: f.label, fieldType: f.field_type,
         control: f.control, options: f.options, required: f.required,
@@ -855,7 +856,12 @@ async function openTemplateLibDetail(id) {
      overview page"). Measured at 1440: the first line of wording 422px → 236px. */
   const st = TPLLIB_STATUS[t.status] || TPLLIB_STATUS.draft;
   const facts = `${esc(tplCategoryName(t.category))} · ${esc(TPLLIB_ORIGIN[t.origin] || '')}${t.sourceContractId ? ` (${esc(window.contractRef && srcC ? contractRef(srcC) : t.sourceContractId)})` : ''} · ${t.contractsCreated} contract${t.contractsCreated === 1 ? '' : 's'} created${t.lastUsedAt ? ` · last used ${fmtAt(t.lastUsedAt)}` : ''}`;
+  /* THE ONE BLACK BUTTON (owner's yes to the drawing, 24 Nov 2026): a draft's is Edit in the builder; a published
+     template's is + New contract, and Edit steps into More ▾ */
+  const blackNew = t.status === 'published' && typeof canEdit === 'function' && canEdit();
+  const editShown = canManage && t.status !== 'archived';
   const menu = [
+    editShown && blackNew ? { k: 'edit', label: i18t('tl_dt_edit_builder'), icon: 'pencil' } : null,
     canManage ? { k: 'meta', label: i18t('tl_dt_rename'), icon: 'pencil' } : null,
     canManage && t.status === 'published' && !openDraft ? { k: 'newversion', label: i18t('tl_dt_new_version'), icon: 'plus' } : null,
     canManage && t.status !== 'archived' ? { k: 'archive', label: i18t('tl_dt_archive'), icon: 'box' } : null,
@@ -867,40 +873,48 @@ async function openTemplateLibDetail(id) {
   <div class="view-enter tpl-dt" id="tpl-dt" style="padding:var(--page-pad);padding-bottom:var(--tpl-dt-pb,var(--page-pad))">
     <div class="ph-card tpl-dt-line">
       <button id="tpllib-back" type="button" class="ui-btn ui-btn-sm tpl-dt-back">‹ ${i18t('tl_dt_library')}</button>
-      <h1 class="tpl-dt-name" title="${esc(t.name)}">${esc(t.name)}</h1>
-      <span class="tpl-dt-st" style="color:${st.fg}"><span class="dot" style="background:${st.dot}"></span>${esc(st.label)}${showVer ? ' v' + showVer.versionNumber : ''}</span>
-      <span class="tpl-dt-facts" title="${esc(facts.replace(/&amp;/g, '&'))}">${facts}</span>
+      ${''/* A TEMPLATE'S PAGE, LEGORA + STRIPE (owner's yes to the drawing, 24 Nov 2026): ONE ROW — the name on one
+          line with one small grey line under it (status · version · where it came from), a thin divider, the facts as
+          quiet words, then More ▾ and the one black button */}
+      <span class="tpl-dt-nm">
+        <h1 class="tpl-dt-name" title="${esc(t.name)}">${esc(t.name)}</h1>
+        <span class="tpl-dt-sub"><span class="tpl-dt-st" style="color:${st.fg}"><span class="dot" style="background:${st.dot}"></span>${esc(st.label)}</span>${showVer ? `<span>&nbsp;· ${esc(i18t('tl_dt_version', { n: showVer.versionNumber }))}</span>` : ''}${TPLLIB_ORIGIN[t.origin] ? `<span>&nbsp;· ${esc(TPLLIB_ORIGIN[t.origin])}</span>` : ''}</span>
+      </span>
+      <span class="tpl-dt-div" aria-hidden="true"></span>
+      <span class="tpl-dt-facts" title="${esc(facts.replace(/&amp;/g, '&'))}"><span class="tpl-dt-f">${esc(i18t('tl_dt_cat'))} <b>${esc(tplCategoryName(t.category))}</b></span><span class="tpl-dt-f">${esc(i18t('tl_dt_made'))} <b>${t.contractsCreated}</b></span>${t.lastUsedAt ? `<span class="tpl-dt-f">${esc(i18t('tl_dt_last'))} <b>${esc(fmtAt(t.lastUsedAt))}</b></span>` : ''}</span>
       <span class="tpl-dt-sp"></span>
-      ${canManage && t.status !== 'archived' ? `<button id="tpllib-edit-wording" type="button" class="ui-btn">${i18t('act_edit')}</button>` : ''}
-      ${menu.length && typeof insMoreHtml === 'function' ? `<span class="tpl-dt-more">${insMoreHtml(menu.map(insMenuItemHtml).join(''))}</span>` : ''}
-      ${t.status === 'published' && typeof canEdit === 'function' && canEdit() ? `<button id="tpllib-use" type="button" class="ui-btn ui-btn-primary">${icon('plus', 'w-3 h-3')} ${i18t('tl_new_contract')}</button>` : ''}
+      ${menu.length ? `<span class="tpl-dt-more"><span class="ins-more-wrap"><button type="button" class="ui-btn tpl-dt-morebtn" data-ins-more aria-haspopup="true" aria-expanded="false">${esc(i18t('tb_more'))} ${icon('chevD', 'w-3 h-3')}</button><div class="ins-menu" data-ins-menu hidden>${typeof insMenuItemHtml === 'function' ? menu.map(insMenuItemHtml).join('') : ''}</div></span></span>` : ''}
+      ${editShown && !blackNew ? `<button id="tpllib-edit-wording" type="button" class="ui-btn ui-btn-primary">${esc(i18t('tl_dt_edit_builder'))}</button>` : ''}
+      ${blackNew ? `<button id="tpllib-use" type="button" class="ui-btn ui-btn-primary">${icon('plus', 'w-3 h-3')} ${i18t('tl_new_contract')}</button>` : ''}
     </div>
     ${t.status === 'archived' ? `<p class="tpl-dt-arch">
       Archived — no new contracts can be created from it, but it stays here because ${t.contractsCreated ? 'its contracts permanently cite it' : 'its history matters'}.</p>` : ''}
-    <section class="tpl-dt-paper">
+    <section class="tpl-dt-paper" id="tpl-dt-desk">
       ${wording
-        ? `<div class="tpl-dt-sheet">${tplLibSheetHtml(wording)}</div>`
+        ? `${typeof window.rlPaperZoomHtml === 'function' ? window.rlPaperZoomHtml() : ''}<div class="tpl-dt-sheet" id="tpl-dt-zoom">${tplLibSheetHtml(wording)}</div>`
         : `<div style="padding:22px var(--s-4);font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.6">${
              showVer ? i18t('tl_wording_unreadable') : i18t('tl_wording_none')}</div>`}
     </section>
-    <section class="tpl-dt-card">
+    ${INS ? '' : `<section class="tpl-dt-card">
       <div style="padding:16px;border-bottom:1px solid var(--color-divider)">
         <h4 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:0">${i18t('tl_version_history')}</h4>
       </div>
       ${vRows || `<div style="padding:22px;text-align:center;color:var(--color-neutral-500);font-size:var(--t-meta)">${i18t('tl_no_versions')}</div>`}
-    </section>
+    </section>`}
     ${INS ? `<aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('lib_panel_label'))}"></aside>` : ''}
   </div>`;
   tplDtStyle();
   /* EVERY PAPER IN PAGES (owner, 9 Nov 2026): a template's wording is cut into the working copy's pages, as a contract's */
   try { const sh = document.querySelector('#tpl-dt .tpl-dt-sheet > .blueprint'); if (sh && typeof window.pagesWatch === 'function') pagesWatch(sh, { mode: 'work', gap: window.PG_GAP, name: '', ref: '' }); } catch (_) {}
-  if (INS && typeof tplDtPanelPaint === 'function') tplDtPanelPaint(t, showVer);
+  tplDtApplyZoom();
+  if (INS && typeof tplDtPanelPaint === 'function') tplDtPanelPaint(t, showVer, { versions, verRead, canManage });
 
   document.getElementById('tpllib-back')?.addEventListener('click', () => setView('templates'));
   document.getElementById('tpllib-use')?.addEventListener('click', () => (window.tplDraftFrom || tplLibNewContract)(t.id));
   document.getElementById('tpllib-edit-wording')?.addEventListener('click', () => tplLibEdit(t.id));
   /* THE ⋯'S ACTS — each the page's one door for it */
   const acts = {
+    edit: () => tplLibEdit(t.id),
     meta: () => tplLibMetaModal(t),
     archive: async () => {
       try {
@@ -940,7 +954,7 @@ async function openTemplateLibDetail(id) {
       const run = acts[b.getAttribute('data-act')]; if (run) run();
     });
   }
-  document.querySelectorAll('[data-tpllib-build]').forEach(el =>
+  document.querySelectorAll('#tpl-dt > .tpl-dt-card [data-tpllib-build]').forEach(el =>
     el.addEventListener('click', () => {
       const vid = el.getAttribute('data-tpllib-build');
       if(newPaperBlock()) return;
@@ -958,22 +972,137 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined' && !window.
   window._tplDtWired = true;
   document.addEventListener('click', e => { const more = document.querySelector('.tpl-dt-more'); if (more && !(e.target.closest && more.contains(e.target))) tplDtMenuShut(); });
 }
-/* JAMBO BESIDE THE TEMPLATE'S PAGE: one window — his greeting, then the
-   template said from the record (Our paper's own reading, tplPfJamboHtml, so
-   the two pages cannot say different things of one template), its
-   description, and the next steps. Nothing spent. */
-function tplDtPanelPaint(t, ver) {
-  if (typeof insPaintPanel !== 'function' || !document.getElementById('ins-panel')) return;
-  let body = '';
+/* JAMBO BESIDE THE TEMPLATE'S PAGE, LEGORA + STRIPE (owner's yes to the drawing, 24 Nov 2026; was one window):
+   three tabs — Overview (the five parts: the name and its description, the status as soft badges, our positions as a
+   ring, what waits as rows each with its own door, the facts), Blanks (the paper's blanks as one calm table, a row
+   marks its blank on the paper) and Versions (the history as a timeline; a draft's own Edit in the builder). Counted
+   from the record and the paper, nothing spent, nothing written. */
+let _tplDt = { id: '', tab: 'ov', pick: '' };
+const TPL_DT_TABS = ['ov', 'bl', 'vs'];
+/* the paper's blanks, in the paper's order, each with where it stands: before the first numbered heading is the
+   opening, else the heading's own number (§ 2), else its words — read off the stored blocks, never guessed */
+function tplDtBlanksOf(ver) {
+  const fields = (ver && ver.fields) || [], blocks = ((ver && ver.blocks) || []).slice().sort((a, b) => (a.order_index || a.orderIndex || 0) - (b.order_index || b.orderIndex || 0));
+  const out = [], seen = new Set();
+  let where = '', first = true, clause = 0;
+  for (const b of blocks) {
+    const kind = b.block_type || b.blockType, text = String(b.content || '');
+    if (kind === 'heading') {
+      if (first) { first = false; continue; }
+      clause++;
+      const m = /^\s*(\d+(?:\.\d+)*)\.?\s/.exec(text.replace(/<[^>]+>/g, ''));
+      where = m ? '§ ' + m[1] : '§ ' + clause;
+      continue;
+    }
+    first = false;
+    const plain = text.replace(/<[^>]+>/g, ' ');
+    const re = /\{\{([a-z0-9_.]+)\}\}/gi; let m;
+    while ((m = re.exec(plain))) {
+      const key = m[1]; if (seen.has(key)) continue; seen.add(key);
+      const f = fields.find(x => (x.field_key || x.fieldKey) === key); if (!f) continue;
+      const before = plain.slice(0, m.index).replace(/\{\{[^}]+\}\}/g, '…').trim().split(/\s+/).slice(-7).join(' ');
+      out.push({ key, label: f.label || key, type: f.field_type || f.fieldType || '', where, quote: before ? before + ' …' : '' });
+    }
+  }
+  return out;
+}
+function tplDtKindWord(type) {
+  try { const L = window.FIELD_LIB && FIELD_LIB[type]; if (L && L.label) return L.label; } catch (_) {}
+  return type || '';
+}
+function tplDtOverviewHtml(t, ver, o) {
+  /* AS DRAWN (owner, 24 Nov 2026: "built here is not right"): no boxes — the badges, the name in the page's own type with
+     its description under it, our positions as a ring, WHAT WAITS as plain rows with a hairline each and the way forward
+     at the row's end, then the facts as a quiet two-column list */
+  const st = TPLLIB_STATUS[t.status] || TPLLIB_STATUS.draft, blanks = o.blanks || [];
+  let read = null;
   try {
     const d = typeof tplOverviewData === 'function' ? tplOverviewData() : null;
     const card = d && (d.cards || []).find(c => String(c.id) === String(t.id));
     const sheet = document.querySelector('#tpl-dt .tpl-dt-sheet');
-    const read = card && typeof tplPfReadOf === 'function' ? tplPfReadOf(card, sheet) : null;
-    if (card && typeof tplPfJamboHtml === 'function') body = tplPfJamboHtml(card, read, { desc: t.description || '' });
-  } catch (_) { body = ''; }
-  if (!body) body = `<div class="jl-words"><div class="jl-say"><div class="jl-bub"><p><b>${esc(t.name)}${ver ? ' v' + ver.versionNumber : ''}</b></p>${t.description ? `<p>${esc(t.description)}</p>` : ''}</div></div></div>`;
-  insPaintPanel({ seat: 'tpl-detail', jlPh: i18t('jl_ph_any'), jlHome: i18t('nav_tpl_std'), item: { id: 'tpl:' + t.id }, head: false, solo: true, jlWord: t.name, body, acts: [] });
+    read = card && typeof tplPfReadOf === 'function' ? tplPfReadOf(card, sheet) : null;
+  } catch (_) { read = null; }
+  const cov = read && read.cov && read.cov.total ? read.cov : null;
+  const badge = (tone, w) => `<span class="tpl-dt-badge is-${tone}"><i aria-hidden="true"></i>${esc(w)}</span>`;
+  const badges = `<div class="tpl-dt-badges">${badge(t.status === 'published' ? 'green' : t.status === 'archived' ? 'gray' : 'amber', t.status === 'draft' ? i18t('tl_dt_not_published') : st.label)}${badge('gray', i18tn('tl_dt_made_n', t.contractsCreated, { n: t.contractsCreated }))}</div>`;
+  const pct = cov ? Math.round(cov.met / cov.total * 100) : 0;
+  const ring = cov ? `<div class="tpl-dt-ring"><svg viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="22" class="b"/><circle cx="28" cy="28" r="22" class="f" style="stroke-dashoffset:${(138.2 * (1 - pct / 100)).toFixed(1)}"/></svg><b>${cov.met}/${cov.total}</b><span><span class="tpl-dt-rt">${esc(cov.met === cov.total ? i18t('tl_dt_pos_all', { n: cov.total }) : i18t('tl_dt_pos_some', { met: cov.met, n: cov.total }))}</span><span class="tpl-dt-rs">${esc(i18t('tl_dt_pos_s'))}</span></span></div>` : '';
+  const waits = [];
+  const draftVer = (o.versions || []).find(v => v.status === 'draft');
+  if (o.canManage && t.status !== 'archived' && draftVer) waits.push({ t: i18t('tl_dt_w_publish'), s: i18t('tl_dt_w_publish_s'), go: 'build:' + draftVer.id, label: i18t('tl_dt_open_builder') });
+  if (blanks.length) waits.push({ t: i18tn('tl_dt_w_blanks', blanks.length, { n: blanks.length }), s: i18t('tl_dt_w_blanks_s'), go: 'blanks', label: i18t('tl_dt_see_blanks') });
+  if (t.status === 'published' && typeof canEdit === 'function' && canEdit()) waits.push({ t: i18t('tl_dt_w_draft'), s: i18t('tl_dt_w_draft_s'), go: 'draft', label: i18t('tl_new_contract') });
+  const srcC = t.sourceContractId ? (state.contracts || []).find(x => x.id === t.sourceContractId) : null;
+  const facts = [[i18t('tl_dt_cat'), tplCategoryName(t.category)],
+    TPLLIB_ORIGIN[t.origin] ? [i18t('tl_dt_from'), TPLLIB_ORIGIN[t.origin] + (t.sourceContractId ? ' (' + (window.contractRef && srcC ? contractRef(srcC) : t.sourceContractId) + ')' : '')] : null,
+    [i18t('tl_dt_last'), t.lastUsedAt ? fmtDT(t.lastUsedAt) : i18t('tl_dt_never')]].filter(Boolean);
+  return `<div class="tpl-dt-pane tpl-dt-ov">${badges}
+    <div class="tpl-dt-hl"><p class="tpl-dt-ttl">${esc(t.name)}</p>${t.description ? `<p class="tpl-dt-q">${esc(t.description)}</p>` : ''}</div>
+    ${ring}
+    ${waits.length ? `<div><p class="tpl-dt-lbl">${esc(i18t('tl_dt_waits'))}</p><table class="tpl-dt-tbl is-plain"><tbody>${waits.map(w => `<tr><td><span class="tpl-dt-wt">${esc(w.t)}</span><span class="tpl-dt-ws">${esc(w.s)}</span></td><td class="r"><button type="button" class="tpl-dt-go" data-tpl-dt-go="${esc(w.go)}">${esc(w.label)} ›</button></td></tr>`).join('')}</tbody></table></div>` : ''}
+    <dl class="tpl-dt-kv">${facts.map(f => `<dt>${esc(f[0])}</dt><dd>${esc(f[1])}</dd>`).join('')}</dl></div>`;
+}
+function tplDtBlanksHtml(blanks) {
+  if (!blanks.length) return `<div class="tpl-dt-pane"><p class="tpl-dt-h">${esc(i18tn('tl_dt_blanks_n', 0, { n: 0 }))}</p><p class="tpl-dt-q">${esc(i18t('tl_dt_blanks_none'))}</p></div>`;
+  return `<div class="tpl-dt-pane"><div class="tpl-dt-hrow"><p class="tpl-dt-h">${esc(i18tn('tl_dt_blanks_n', blanks.length, { n: blanks.length }))}</p><span class="tpl-dt-q">${esc(i18t('tl_dt_blanks_s'))}</span></div>
+    <table class="tpl-dt-tbl"><thead><tr><th>${esc(i18t('tl_dt_th_blank'))}</th><th>${esc(i18t('tl_dt_th_kind'))}</th><th class="r">${esc(i18t('tl_dt_th_where'))}</th></tr></thead><tbody>${blanks.map(b =>
+      `<tr data-tpl-dt-blank="${esc(b.key)}"${_tplDt.pick === b.key ? ' class="is-on"' : ''} tabindex="0"><td><span class="tpl-dt-bn">${esc(b.label)}</span>${_tplDt.pick === b.key && b.quote ? `<span class="tpl-dt-bq">“${esc(b.quote)}”</span>` : ''}</td><td><span class="tpl-dt-badge is-gray"><i aria-hidden="true"></i>${esc(tplDtKindWord(b.type))}</span></td><td class="r tpl-dt-q">${esc(b.where || i18t('tl_dt_opening'))}</td></tr>`).join('')}</tbody></table>
+    <p class="tpl-dt-q">${esc(i18t('tl_dt_blanks_foot'))}</p></div>`;
+}
+function tplDtVersionsHtml(versions, canManage) {
+  const at = iso => iso ? fmtDT(iso) : '—';
+  const rows = versions.slice().reverse().map(v => {
+    const tone = v.status === 'published' ? 'is-done' : v.status === 'draft' ? 'is-now' : '';
+    const what = v.status === 'published' ? i18t('tl_dt_v_pub', { n: v.versionNumber, at: at(v.publishedAt) }) + (v.publishedBy ? ' · ' + v.publishedBy : '')
+      : v.status === 'superseded' ? i18t('tl_dt_v_sup', { n: v.versionNumber, at: at(v.publishedAt) }) : i18t('tl_dt_v_draft', { n: v.versionNumber });
+    return `<div class="tpl-dt-tl ${tone}"><span><b>${esc(what)}</b>${v.changeNote ? `<span class="tpl-dt-q">“${esc(v.changeNote)}”</span>` : ''}${v.errorNote ? `<span class="tpl-dt-err">${esc(v.errorNote)}</span>` : ''}${canManage && v.status === 'draft' ? `<button type="button" class="ui-btn ui-btn-sm tpl-dt-vbtn" data-tpllib-build="${esc(v.id)}">${esc(i18t('tl_dt_edit_builder'))}</button>` : ''}</span></div>`;
+  }).join('');
+  return `<div class="tpl-dt-pane"><div class="tpl-dt-hrow"><p class="tpl-dt-h">${esc(i18t('tl_dt_tab_vs'))}</p><span class="tpl-dt-q">${esc(i18tn('tl_dt_vs_n', versions.length, { n: versions.length }))}</span></div>${rows ? `<div class="tpl-dt-tls">${rows}</div>` : `<p class="tpl-dt-q">${esc(i18t('tl_no_versions'))}</p>`}</div>`;
+}
+function tplDtBuild(tid, vid) {
+  if (typeof newPaperBlock === 'function' && newPaperBlock()) return;
+  if (window.openTemplateBuilder) openTemplateBuilder(tid, vid);
+  else toast(i18t('tl_builder_next_phase'), 'err');
+}
+function tplDtTab(k) { if (!TPL_DT_TABS.includes(k)) return; _tplDt.tab = k;
+  if (k !== 'bl' && _tplDt.pick) { _tplDt.pick = ''; document.querySelectorAll('#tpl-dt .tpl-dt-sheet .hati-field.is-dtlit').forEach(x => x.classList.remove('is-dtlit')); } if (_tplDt.t) tplDtPanelPaint(_tplDt.t, _tplDt.ver, _tplDt.o); }
+/* a row of Blanks pressed: the blank is marked on the paper (amber, a firmer edge) and brought into view; a second
+   press on the same row lets it go. Writes nothing. */
+function tplDtBlankPick(key) {
+  _tplDt.pick = _tplDt.pick === key ? '' : key;
+  document.querySelectorAll('#tpl-dt .tpl-dt-sheet .hati-field.is-dtlit').forEach(x => x.classList.remove('is-dtlit'));
+  if (_tplDt.pick) {
+    const el = document.querySelector(`#tpl-dt .tpl-dt-sheet .hati-field[data-field-key="${CSS.escape(_tplDt.pick)}"]`);
+    if (el) { el.classList.add('is-dtlit'); try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) {} }
+  }
+  if (_tplDt.t) tplDtPanelPaint(_tplDt.t, _tplDt.ver, _tplDt.o);
+}
+function tplDtPanelPaint(t, ver, o) {
+  if (typeof insPaintPanel !== 'function' || !document.getElementById('ins-panel')) return;
+  o = o || {};
+  if (_tplDt.id !== t.id) _tplDt = { id: t.id, tab: 'ov', pick: '' };
+  _tplDt.t = t; _tplDt.ver = ver; _tplDt.o = o;
+  const blanks = tplDtBlanksOf(o.verRead), versions = o.versions || [];
+  const tab = _tplDt.tab;
+  const body = tab === 'bl' ? tplDtBlanksHtml(blanks) : tab === 'vs' ? tplDtVersionsHtml(versions, !!o.canManage) : tplDtOverviewHtml(t, ver, Object.assign({}, o, { blanks }));
+  insPaintPanel({ seat: 'tpl-detail', jlPh: i18t('tl_dt_ask_ph'), jlHome: i18t('nav_tpl_std'), item: { id: 'tpl:' + t.id }, head: false, solo: true, jlWord: t.name, body, acts: [],
+    jlTabs: [{ k: 'bl', label: i18t('tb_tab_blanks'), n: blanks.length }, { k: 'vs', label: i18t('tl_dt_tab_vs'), n: versions.length }],
+    jlTabOn: tab === 'ov' ? '' : tab, jlTabRun: k => tplDtTab(k) });
+  const host = document.getElementById('ins-panel'); if (!host) return;
+  /* the Overview tab is the panel's home: pressed while another tab shows, it comes back here, not to the page's words */
+  host._jlBack = () => { if (_tplDt.tab === 'ov') return false; tplDtTab('ov'); return true; };
+  host.querySelectorAll('[data-tpl-dt-blank]').forEach(r => {
+    r.addEventListener('click', () => tplDtBlankPick(r.getAttribute('data-tpl-dt-blank')));
+    r.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tplDtBlankPick(r.getAttribute('data-tpl-dt-blank')); } });
+  });
+  host.querySelectorAll('[data-tpllib-build]').forEach(b => b.addEventListener('click', () => tplDtBuild(t.id, b.getAttribute('data-tpllib-build'))));
+  host.querySelectorAll('[data-tpl-dt-go]').forEach(b => b.addEventListener('click', () => { const g = b.getAttribute('data-tpl-dt-go');
+    if (g.startsWith('build:')) tplDtBuild(t.id, g.slice(6)); else if (g === 'blanks') tplDtTab('bl'); else if (g === 'draft') (window.tplDraftFrom || tplLibNewContract)(t.id); }));
+}
+/* the paper's zoom, as every paper's (rlSetDocZoom calls it) */
+function tplDtApplyZoom() {
+  const slot = document.getElementById('tpl-dt-zoom'); if (!slot) return;
+  slot.style.zoom = typeof window.rlDocZoomFactor === 'function' ? window.rlDocZoomFactor() : '1';
 }
 /* the page's own look: the line is one control tall, nothing wraps; the name
    gives way with "…" before the status, facts give way before the buttons */
@@ -1401,7 +1530,7 @@ function tplFormPopover(c, idx, anchor) {
   try { input?.focus(); } catch (_) {}
 }
 
-Object.assign(window, { tplDtPanelPaint, tplDtStyle, tplDtMenuShut, tplFormInputHtml, newPaperBlocked, newPaperBlockLine, newPaperBlock, tplLibCategoryOptions, tplLibCatStreamRowHtml,
+Object.assign(window, { tplDtPanelPaint, tplDtApplyZoom, tplDtTab, tplDtBlanksOf, tplDtBlankPick, TPL_DT_TABS, tplDtStyle, tplDtMenuShut, tplFormInputHtml, newPaperBlocked, newPaperBlockLine, newPaperBlock, tplLibCategoryOptions, tplLibCatStreamRowHtml,
   /* The whole cached list, drafts included, for surfaces that render company
      templates as rows of their own (the Templates page's library table)
      rather than through renderCompanyTemplatesSection's card grid. */
