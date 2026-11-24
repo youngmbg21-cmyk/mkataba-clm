@@ -1137,5 +1137,5 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 ## THE NOTEBOOK — DOCUMENTS JAMBO MAY QUOTE (23 Nov 2026)
 - NEW test/f1198-the-notebook.test.js (red at the parent: no js/notebook.js, no route, no kind, no rule): the cutter (Art. 28(3) inside its Article, § 4.2, s. 48, pages), the status (12 months to the day), the wall (Company an admin's, Mine its writer's, Undo of a check), the one search (hit carries document, number, words; another's Mine never found), Jambo's rule both hosts and the quote counted only when number and document are named.
 - NEW test/chromium/notebook-verify.js (GitHub; red at the parent: no page): tabs with counts, a row's quote and badges, choose then open, back, Check due → Mark checked → Undo, the Add pop-up's lines.
-- RE-POINTED: f1097 (1) NAMES (Notebook added to the test's page names).
+- RE-POINTED: f1097 (1) NAMES (Notebook added to the test's page names); f841 (2a) the "see" stage holds the Notebook.
 - Re-ran green: f232, f48, f561, f564, f672, f842, f937, f938, f946, f954, f955, f964, f965, f997, f1068, f1097, f1131, f1146, f1186, f1193, f866, f305.
