@@ -971,7 +971,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      Notes drawer with the change PINNED, the box ready for the why. Same promise:
      the save asks them why; answered here by shutting the drawer (Not now). */
   const asked = await p.evaluate(async () => {
-    for (let i = 0; i < 20; i++){
+    for (let i = 0; i < 6; i++){
       const d = document.getElementById('pt-notes');
       if (d && d.classList.contains('open') && d.querySelector('.rl-np-pin')) break;
       await new Promise(r => setTimeout(r, 150));
@@ -983,8 +983,9 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     try { if (window.portalNotesClose) portalNotesClose(); } catch (_){}
     return { pinned, box, words };
   });
-  ck('8g …and the save asks them why, as their page does since 29 Sep — their Notes drawer opens with the change pinned (answered here with "Not now")',
-     asked.pinned && asked.box, JSON.stringify(asked).slice(0, 160));
+  /* RE-POINTED 24 Nov 2026 (owner: "Just file and move on") — their save asks nothing: no drawer pinned */
+  ck('8g …and the save asks them nothing — filing never asks for a note',
+     !asked.pinned, JSON.stringify(asked).slice(0, 160));
   await p.waitForFunction(() => !document.getElementById('prompt-overlay'), null, { timeout: 3000 }).catch(() => {});
   await p.evaluate(()=>rlCpSetShown(document,null)); await pause(300);
 

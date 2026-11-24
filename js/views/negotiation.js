@@ -14920,8 +14920,22 @@ function rlEmptyColumnActsHtml(c, opts = {}, side = 'owner'){
      .rl-empty-acts as before; nothing new is pressed. In Jambo's panel, the new look only. */
   if (window.newLookOn && newLookOn() && !preview){
     const add = executed ? '' : rlAddClauseBtnHtml(c, opts, side, 'rl-empty-edit');
-    return `${send}<div class="rl-empty-acts is-five"><div class="rl-ea-card${sendBtn ? ' has-send' : ''}"><span class="rl-empty-lead">${i18t('ng_empty_lead')}</span>${sendBtn}${prepare}</div>`
-      + `<p class="rl-ea-l">${_ne(i18t('jov5_rl_yourself'))}</p><div class="rl-ea-g">${edit}${add}</div></div>`;
+    /* AS DRAWN (Round D, owner 24 Nov 2026: "you have to build as drawn"): no box — Send to mark up and what it promises; then
+       DRAFT FROM OUR PLAYBOOK: each gap the last check found (c.playbook, read only), its § and the paper's words, a soft
+       badge (Must have · missing), the row landing on its words (igQuoteGo); the one drafting door (rlPrepareRowHtml's) as
+       "Draft all N" in the head; then Or yourself as open rows; then the hint to highlight wording. */
+    const V = (c && c.playbook && Array.isArray(c.playbook.verdicts)) ? c.playbook.verdicts : [];
+    const gaps = V.filter(v => v && (v.status === 'deviation' || v.status === 'missing') && !(v.accepted && v.accepted.at));
+    const quoteSec = v => { let q = null; try { q = (v.quote && typeof window.pd2QuoteOf === 'function') ? window.pd2QuoteOf(c, [String(v.quote).replace(/\s+/g, ' ').trim().slice(0, 60)]) : null; } catch (_){ q = null; } return q; };
+    const gapRow = v => { const q = quoteSec(v), words = String(v.quote || '').replace(/\s+/g, ' ').trim();
+      const inner = `<span class="rl-ed-n">${_ne(q && q.sec ? String(q.sec).replace(/^(\d)/, '§ $1') : '+')}</span><span class="rl-ed-v"><b>${_ne(String(v.category || ''))}</b><span class="rl-ed-q">${words ? '“' + _ne(words.length > 70 ? words.slice(0, 68) + '…' : words) + '”' : _ne(i18t('pd2_std_missing_w'))}</span></span><span class="rl-ed-b ${v.status === 'missing' ? 'is-miss' : ''}">${_ne(i18t(v.status === 'missing' ? 'rl_ed_missing' : 'rl_ed_must'))}</span>`;
+      return words ? `<button type="button" class="rl-ed-row" data-rl-gap-quote="${_nea(words.slice(0, 80))}">${inner}</button>` : `<div class="rl-ed-row">${inner}</div>`; };
+    const prepAll = gaps.length ? prepare.replace(/>([^<>]*)<\/button>$/, `>${_ne(i18tn('rl_ed_draft_all', gaps.length, { n: gaps.length }))}</button>`) : '';
+    const pbHead = `<h4 class="rl-ed-h">${_ne(i18t('rl_ed_pb'))}${gaps.length ? ` <span class="rl-ed-gaps">${_ne(i18tn('rl_ed_gaps', gaps.length, { n: gaps.length }))}</span>` : ''}${prepAll ? `<span class="rl-ed-all">${prepAll}</span>` : ''}</h4>`;
+    const pbBody = gaps.length ? gaps.slice(0, 6).map(gapRow).join('') : `<p class="rl-ed-none">${_ne(i18t(c && c.playbook ? 'rl_ed_none' : 'rl_ed_read_first'))}</p>${c && c.playbook ? '' : prepare}`;
+    return `${send}<div class="rl-empty-acts is-five is-drawn">${sendBtn ? `<div class="rl-ed-send">${sendBtn}<span class="rl-ed-qt">${_ne(i18t('rl_ed_nothing_sent'))}</span></div>` : ''}`
+      + `<section class="rl-ed-sec">${pbHead}${pbBody}</section>`
+      + `<section class="rl-ed-sec"><h4 class="rl-ed-h">${_ne(i18t('jov5_rl_yourself'))}</h4><div class="rl-ea-g">${edit}${add}</div></section><p class="rl-ed-hint">${_ne(i18t('rl_ed_hint'))}</p></div>`;
   }
   return `${send}<div class="rl-empty-acts">${sendBtn}${prepare}${edit}${executed ? '' : rlAddClauseBtnHtml(c, opts, side, 'rl-empty-edit')}</div>
     <span class="rl-empty-lead">${i18t('ng_empty_lead')}</span>`;
@@ -14977,8 +14991,28 @@ function rlLadderFiveHtml(c, lad, rungs, name, steps){
       { k: i18t('ng_pb_std'), t: std }, { k: i18t('ng_pb_fb'), t: fb ? (fb.figure != null ? fig(fb.figure) : fb.text) : i18t('jov5_lad_not_set') },
       { k: i18t('ng_pb_walk'), t: i18t('jov5_lad_not_set') }] });
   }
-  return jamboOverviewHtml({ eyebrow: [i18t('ng_row_ladder'), name].filter(Boolean).join(' \u00b7 '), title: steps ? i18tn('jov5_lad_t', steps, { n: steps }) : i18t('jov5_lad_t0'),
-    sub: i18t('jov5_lad_sub'), groups, src: i18t('jov5_lad_src') }, 'rllad');
+  /* THE TRACK, AS DRAWN (Round D, owner 24 Nov 2026): our position · fallback · walk-away, a cut line, their wording — each
+     with its words or figure, "You are here" on the rung our last standing ask sits at (ladderStand's own figures; none
+     guessed), the steps so far kept under it. Read only: nothing here files a change. */
+  let ltrack = '', title = steps ? i18tn('jov5_lad_t', steps, { n: steps }) : i18t('jov5_lad_t0'), sub = i18t('jov5_lad_sub');
+  if (st){
+    const u = st.unit || '', fig = n => n == null ? '' : `${n}${u ? ' ' + u : ''}`;
+    let fb = null; try { fb = (typeof window.ladderFallback === 'function') ? ladderFallback(st.topic) : null; } catch (_){ fb = null; }
+    const never = st.topic && st.topic.never ? String(st.topic.never) : '';
+    /* where we stand, never guessed: with no Playbook position for this clause our ask is on the table, no rung lit */
+    const at = !st.standard ? (st.ours ? 'mine' : 'theirs') : st.ourFig != null && st.ourFig === st.standard.value ? 'pos' : (fb && fb.figure != null && st.ourFig === fb.figure) ? 'fb' : st.ours ? 'fb' : 'theirs';
+    const left = at === 'pos' ? 2 : at === 'fb' ? 1 : 0;
+    title = i18t(at === 'pos' ? 'rl_lt_pos' : at === 'fb' ? 'rl_lt_fb' : at === 'mine' ? 'rl_lt_mine' : 'rl_lt_none');
+    sub = at === 'mine' ? i18t('rl_lt_mine_s') : at === 'theirs' ? i18t('rl_lt_theirs_s', { who: String(c.counterparty || '').trim() || i18t('ng_the_counterparty') }) : i18tn('rl_lt_left', left, { n: left });
+    const rung = (k, lab, badge, txt) => `<div class="rl-lt-r t-${k}${at === k ? ' is-here' : ''}"><i class="rl-lt-dot" aria-hidden="true"></i><div class="rl-lt-b"><div class="rl-lt-h"><b>${_ne(lab)}</b><span class="rl-lt-bd t-${k}">${_ne(badge)}</span>${at === k ? `<span class="rl-lt-you">${_ne(i18t('rl_lt_here'))}</span>` : ''}</div><div class="rl-lt-q">${_ne(txt || i18t('jov5_lad_not_set'))}</div></div></div>`;
+    const stdTxt = st.standard ? `${st.standard.op === '<=' ? '\u2264 ' : st.standard.op === '>=' ? '\u2265 ' : ''}${fig(st.standard.value)}` : '';
+    let baseTxt = ''; try { baseTxt = (typeof window.ladderBaseText === 'function') ? String(ladderBaseText(rungs) || '') : ''; } catch (_){ baseTxt = ''; }
+    const theirTxt = String((st.theirs ? st.theirs.text : baseTxt) || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, 160);
+    ltrack = `<div class="rl-lt">${rung('pos', i18t('rl_lt_pos_l'), i18t('rl_ed_must'), stdTxt)}${rung('fb', i18t('rl_lt_fb_l'), i18t('rl_lt_if_pushed'), fb ? (fb.figure != null ? fig(fb.figure) : String(fb.text || '')) : '')}${rung('walk', i18t('rl_lt_walk_l'), i18t('rl_lt_never'), never)}<div class="rl-lt-cut"><span>${_ne(i18t('rl_lt_cut'))}</span></div>${rung('theirs', i18t('rl_lt_theirs_l', { who: String(c.counterparty || '').trim() || i18t('ng_the_counterparty') }), i18t('rl_lt_beyond'), theirTxt)}</div>`;
+    /* the Playbook's three lines are now the track itself: their small-print group is not said twice */
+    if (groups.length > 1) groups.pop();
+  }
+  return jamboOverviewHtml({ eyebrow: [i18t('ng_row_ladder'), name].filter(Boolean).join(' \u00b7 '), title, sub, mid: ltrack, groups, src: i18t('jov5_lad_src') }, 'rllad');
 }
 /* their view, the five parts: whose eyes these are, what is on their copy now, and the way back to ours (the paper's own
    Redline press, data-ig-red="1", pressed through data-rl-tv-back) */
@@ -18545,29 +18579,14 @@ const RL_NOTE_TICK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
    The promise resolves 'added' when a note lands under the pin and null when
    the pin is dropped, so the column behind the drawer repaints once and only
    where something changed. */
-function rlNoteAskAfterFile(c, ch, opts = {}){
-  if (!c || !ch) return Promise.resolve(null);
-  /* THEIR SEAT ASKS TOO (Young, 29 Sep 2026): on their page the question is
-     the change's own reason, held with it until Send — see portalAskReason. */
-  if (opts.side === 'counterparty'){
-    /* THE OUTSIDE LOOK ASKS AS WE DO (owner, 8 Nov 2026: "mimic what is in the owner side"): the Notes drawer with
-       the change pinned and the room switch on Internal, their team's room; the old "Why this change?" pop-up
-       stays for the old look. */
-    if (rlOnTheirPage() && typeof window.portalOutOn === 'function' && window.portalOutOn()
-      && typeof window.portalOpenNotes === 'function' && window.PORTAL_OPTS && PORTAL_OPTS.token)
-      return new Promise(resolve => {
-        rlNotesPin({ contractId: c.id, changeId: ch.id, clauseId: ch.clauseId || '', quote: '',
-          room: 'internal', filed: true, revised: (ch.revisions || []).length > 0, resolve });
-        if (typeof window.portalNotesClose === 'function') window.portalNotesClose();
-        window.portalOpenNotes({ pin: true });
-      });
-    return (rlOnTheirPage() && typeof window.portalAskReason === 'function')
-      ? window.portalAskReason(c, ch) : Promise.resolve(null);
-  }
-  if ((opts.side || 'owner') !== 'owner') return Promise.resolve(null);
-  if (!notesMayWrite(c, opts)) return Promise.resolve(null);
-  if (typeof openChangeNoteDialog !== 'function') return Promise.resolve(null);
-  return openChangeNoteDialog(c, ch, { ...opts, filed: true });
+/* ---- FILING NEVER ASKS FOR A NOTE (owner, 24 Nov 2026: "Forget the whole concept of having to put a note before
+   filing. Just file and move on and the notes will be a separate matter."; reverses 31 Aug's drawer on every
+   filing and 29 Sep's "Why this change?" on their seat) ----
+   Every filing door still calls this one reading (the editor, the pencil, their page), so nothing can ask on its
+   own: it answers null at once, on every seat. A note is written where notes live — the top bar's Notes, Redlines'
+   Notes, or a change's own Notes on its card (openChangeNoteDialog below, a door a person presses). */
+function rlNoteAskAfterFile(){
+  return Promise.resolve(null);
 }
 /* THE DOOR. Kept under its old name so every caller — the two filing doors and
    the card's own Notes row — presses exactly the control it always pressed.
@@ -22902,6 +22921,8 @@ if (typeof document !== 'undefined') document.addEventListener('click', e => {
     rlHeadRepaint();
     return;
   }
+  const gq = t.closest('[data-rl-gap-quote]');
+  if (gq){ e.preventDefault(); if (typeof window.igQuoteGo === 'function') window.igQuoteGo(gq.getAttribute('data-rl-gap-quote') || ''); return; }
   if (t.closest('[data-rl-fn-back]')){ e.preventDefault(); rlFaceNotesSet(null); rlHeadRepaint(); return; }
   if (t.closest('[data-rl-fn-all]')){ e.preventDefault(); rlFaceNotesSet(_rlFnFor, null); rlHeadRepaint(); return; }
   const rt = t.closest('[data-rl-fn-room]');

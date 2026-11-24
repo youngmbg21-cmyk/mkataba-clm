@@ -380,31 +380,22 @@ describe('f303 (4) — the pin, the reply as its own act, Done, and the clock', 
    5 — THREE DOORS, ONE DRAWER
    ============================================================ */
 describe('f303 (5) — three doors and the retired window', () => {
-  test('the pencil: rlNoteAskAfterFile opens the drawer pinned to the change just filed, Internal at rest', async () => {
+  test('the pencil: FILING NEVER ASKS FOR A NOTE (owner, 24 Nov 2026): every seat, new or revised, opens nothing and pins nothing', async () => {
     const p = await bench();
-    const done = p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'owner' });
-    await tick();
-    same(p.opened[0], { cid: p.c.id, chId: p.ch.id, force: true });
-    const pin = p.w.win.rlNotesPinned();
-    assert.equal(pin.changeId, p.ch.id);
-    assert.equal(pin.filed, true);
-    assert.equal(pin.room, 'internal');
-    /* RE-POINTED 11 Sep 2026 (round three): no lead line; the pin quotes the change. */
-    assert.equal(p.host.querySelector('.rl-np-pin .lead'), null);
-    assert.ok(p.host.querySelector('.rl-np-pin q'), 'the change\'s wording is quoted');
-    /* Skip with nothing typed drops the pin and tells the caller nothing happened. */
-    p.host.querySelector('[data-rl-np-unpin]').click();
-    await tick();
-    assert.equal(await done, null);
-    assert.equal(p.w.win.rlNotesPinned(), null);
+    let opened = 0;
+    p.w.win.openChangeNoteDialog = () => { opened++; return Promise.resolve(null); };
+    assert.equal(await p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'owner' }), null);
+    assert.equal(await p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'counterparty' }), null);
+    assert.equal(opened, 0, 'no drawer opens on a filing');
+    assert.equal(p.w.win.rlNotesPinned ? p.w.win.rlNotesPinned() : null, null, 'and nothing is pinned');
   });
-
   test('a revision says so on the pin; a note typed under it lands on the change and resolves "added"', async () => {
     const p = await bench();
     await p.w.win.negoEditClause(p.c, p.cl6.clauseId,
       '<p>Pay each invoice within sixty (60) days of receipt.</p>', { side: 'owner' });
     assert.ok((p.ch.revisions || []).length, 'the fold happened');
-    const done = p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'owner' });
+    /* the pin itself still works where a door delivers one (openChangeNoteDialog's filed branch); no filing does since 24 Nov 2026 */
+    const done = p.w.win.openChangeNoteDialog(p.c, p.ch, { side: 'owner', filed: true });
     await tick();
     assert.equal(p.host.querySelector('.rl-np-pin .lead'), null, 'no lead (round three)');
     assert.match(p.host.querySelector('.rl-np-pin q').textContent, /sixty/i, 'the revised wording is quoted');
@@ -421,7 +412,7 @@ describe('f303 (5) — three doors and the retired window', () => {
     const p = await bench();
     let asked = 0;
     p.w.win.confirmDialog = async () => { asked++; return false; };
-    p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'owner' });
+    p.w.win.openChangeNoteDialog(p.c, p.ch, { side: 'owner', filed: true });
     await tick();
     const box = p.host.querySelector('.rl-np-in');
     box.value = 'For us.'; box.dispatchEvent(new p.w.win.Event('input', { bubbles: true }));
@@ -440,7 +431,7 @@ describe('f303 (5) — three doors and the retired window', () => {
     assert.equal(p.opened.length, 0);
     const v = await bench(VIEWER);
     assert.equal(await v.w.win.rlNoteAskAfterFile(v.c, v.ch, { side: 'owner' }), null);
-    const done = p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'owner' });
+    const done = p.w.win.openChangeNoteDialog(p.c, p.ch, { side: 'owner', filed: true });
     p.w.win.rlNotesPanelClosed();
     assert.equal(await done, null);
   });
@@ -463,8 +454,8 @@ describe('f303 (5) — three doors and the retired window', () => {
       assert.ok(hits <= 1, `${stale} is stale: ${hits} mentions`);
     }
     assert.equal(/id="rl-note-overlay"|rl-note-overlay'/.test(VIEW), false);
-    assert.equal(/openChangeNoteDialog\(c, ch, \{ \.\.\.opts, filed: true \}\)/.test(VIEW), true,
-      'the one reading of the ask is kept');
+    assert.equal(/openChangeNoteDialog\(c, ch, \{ \.\.\.opts, filed: true \}\)/.test(VIEW), false,
+      'no filing opens the drawer any more (owner, 24 Nov 2026)');
   });
 
   test('the clause editor offers Ask Copilot, Edit with Copilot and Comment, and its confirmation is brief and always', () => {

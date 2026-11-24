@@ -237,14 +237,15 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
       const v = document.querySelector('#pd-og tr[data-pd-og-row="value"]');
       /* RE-POINTED 17 Nov 2026 (#762): the new Dossier says it among its facts ("Who may open", data-pd2-fact="private") */
       return { priv: t(document.querySelector('#pd-glance [data-pd-ds-card="private"], #pd-glance [data-pd2-fact="private"]')), pay: !!(v && v.querySelector('[data-pd-og-pay]')), payWord: t(v && v.querySelector('.pd-og-f b')),
-        wait: t(document.querySelector('#pd-glance [data-pd-ds-card="read"] .pd-gl-h')), cost: (document.querySelector('#pd-glance [data-pd-ds-read]') || {}).title || '', door: ((document.querySelector('#pd-glance [data-pd-ds-read]') || {}).textContent || '').trim() }; });
+        wait: t(document.querySelector('#pd-glance [data-pd-ds-card="read"] .pd-gl-h')), cost: (document.querySelector('#pd-glance [data-pd-ds-read]') || {}).title || '', door: ((document.querySelector('#pd-glance [data-pd2-plan-read]') || document.querySelector('#pd-glance [data-pd-ds-read]') || {}).textContent || '').trim() }; });
     const P9 = Object.assign(P9raw, pay9);
     check('9a a private stream: the Dossier says who may open it', P9.priv.length > 0 && /Private|private/.test(P9.priv), P9.priv);
     check('9b base pay owed: its row reads as pay, its door Edit pay', P9.pay && /pay/i.test(P9.payWord), JSON.stringify(P9));
     /* RE-POINTED 22 Oct 2026 (the Checklist): the brief's own row carries the press, "Read" */
     /* RE-POINTED (owner, 8 Nov 2026: "remove all information related to jambo calls"): no cost is said */
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the press is the Dossier card's "Read it" link */
-    check('9c What Jambo read waits for the press, no cost said', /^Read( it)?$/.test(P9.door) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(P9.cost + ' ' + P9.wait), JSON.stringify(P9));
+    /* RE-POINTED 24 Nov 2026 (owner, "build as drawn": the arrived card's read is "Read without a plan", or "Read" once a plan stands) */
+    check('9c What Jambo read waits for the press, no cost said', /^Read( it| without a plan)?$/.test(P9.door) && !/\bcalls?\b|\bfree\b|costs? nothing/i.test(P9.cost + ' ' + P9.wait), JSON.stringify(P9));
     /* 10 nothing of Jambo sits over the grid.
        RE-POINTED 21 Oct 2026 (Chambers, the owner picked it by name; it
        reverses "JAMBO, ALIVE", 16 Oct): the perch is gone (jamboPerchMount,

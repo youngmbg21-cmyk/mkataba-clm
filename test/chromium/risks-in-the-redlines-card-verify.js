@@ -201,8 +201,7 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   /* ============ 3. SAVE — UNSENT, THROUGH THE FUNNEL ============ */
   const before = await page.evaluate(id => { const c = getContract(id); return { n: (c.changes || []).length, turnAt: (c.negotiation || {}).turnAt || null }; }, ID);
   await press(page, '#ce-railfoot [data-ce-act="save"]');
-  await until(page, () => !!document.querySelector('#context-panel [data-rl-np-unpin]'));
-  await press(page, '#context-panel [data-rl-np-unpin]');
+  /* RE-POINTED 24 Nov 2026 (owner: filing never asks for a note) — no drawer to dismiss */
   /* the walk goes on to the next open risk — the missing clause (section 4) */
   const nw = await until(page, () => {
     const pg = document.getElementById('clause-editor'); if (!pg) return null;
@@ -247,8 +246,7 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
     return { type: ch.changeType, heading: ch.headingText || ch.clauseLabel || '' };
   }, { id: ID, n: n2 }, 8000);
   check(!!ins && ins.type === 'insertClause' && /Injunctive relief/i.test(ins.heading), '4c and files as an inserted clause', ins && JSON.stringify(ins));
-  await until(page, () => !!document.querySelector('#context-panel [data-rl-np-unpin]'));
-  await press(page, '#context-panel [data-rl-np-unpin]');
+  /* RE-POINTED 24 Nov 2026 (owner: filing never asks for a note) — no drawer to dismiss */
   await until(page, () => !!document.querySelector('[data-ce-rk="back"]'));
   await press(page, '[data-ce-rk="back"]');
   await until(page, () => !document.getElementById('clause-editor') && !!document.getElementById('rl-risks'));

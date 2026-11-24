@@ -268,7 +268,7 @@ describe('f335 (7) — a finger scrolls the Plain English column', () => {
        listener, over the clause LIST only, which steps one clause; still none on the paper, and no finger forwarded */
     assert.ok(!/touchmove|touchstart/.test(th), 'the Thread listens to no finger of the paper\'s');
     assert.equal((th.match(/'wheel'/g) || []).length, 1, 'one wheel listener');
-    assert.match(th, /addEventListener\('wheel', e => \{\s*const list = e\.target && e\.target\.closest \? e\.target\.closest\('#pd-thread \.doc-th-rows'\) : null;/, 'over the list only');
+    assert.match(th, /addEventListener\('wheel', e => \{\s*const inCard = e\.target && e\.target\.closest \? e\.target\.closest\('#pd-thread'\) : null;/, 'over the clause list (or its page) only');
   });
   /* REVERSED 5 Oct 2026 (the Drawer: "one scroll bar in the clause list; the
      open clause grows instead of scrolling inside itself"). The bounded

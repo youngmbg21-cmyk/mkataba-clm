@@ -307,20 +307,15 @@ describe('f264 (4) — the ask is one reading of the record', () => {
      note. This should not be the case." The window comes up on EVERY filing
      on our seat now; the revisions reading survives as what tells the window
      to say it is a revision (f302). */
-  test('a brand-new change is asked; a revision of it is asked AGAIN', async () => {
+  test('FILING NEVER ASKS FOR A NOTE (owner, 24 Nov 2026): every seat, new or revised, opens nothing and pins nothing', async () => {
     const p = await bench();
     let opened = 0;
     p.w.win.openChangeNoteDialog = () => { opened++; return Promise.resolve(null); };
-    await p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'owner' });
-    assert.equal(opened, 1, 'revisions[] is empty, so this press created it');
-    const cl = p.w.win.negoClauseList(p.c).find(x => x.num === '6');
-    await p.w.win.negoEditClause(p.c, cl.clauseId,
-      '<p>Pay each invoice within sixty (60) days.</p>', { side: 'owner' });
-    assert.ok((p.ch.revisions || []).length, 'the fold really happened');
-    await p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'owner' });
-    assert.equal(opened, 2, 'and a revision is asked too (reversed 11 Sep 2026)');
+    assert.equal(await p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'owner' }), null);
+    assert.equal(await p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'counterparty' }), null);
+    assert.equal(opened, 0, 'no drawer opens on a filing');
+    assert.equal(p.w.win.rlNotesPinned ? p.w.win.rlNotesPinned() : null, null, 'and nothing is pinned');
   });
-
   test('their seat is never asked, and that is where the note would live', async () => {
     const p = await bench();
     let opened = 0;
@@ -348,9 +343,8 @@ describe('f264 (4) — the ask is one reading of the record', () => {
        asks only our seat (rlNoteAskAfterFile answers null for theirs) */
     assert.match(CE, /rlNoteAskAfterFile\(c, ch, \{ side: ceSide\(\)/,
       'and the clause editor page');
-    assert.equal((VIEW.match(/openChangeNoteDialog\(c, ch, \{ \.\.\.opts, filed: true \}\)/g) || []).length, 1,
-      'ONE place decides whether to ask, so two doors cannot come to disagree '
-      + 'about when the question is put');
+    assert.match(VIEW, /function rlNoteAskAfterFile\(\)\{\s*return Promise\.resolve\(null\);\s*\}/,
+      'ONE place answers, and since 24 Nov 2026 it answers: never ask (owner)');
   });
 
   test('the ask comes AFTER the filing, the persist and the repaint', () => {

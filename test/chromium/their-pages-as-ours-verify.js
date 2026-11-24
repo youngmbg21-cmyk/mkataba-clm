@@ -104,14 +104,19 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
     const boxId = box ? await box.evaluate(e => e.id) : null;
     if (box){ await box.click(); await p.keyboard.press('Control+End'); await p.keyboard.type(' Seven months is our limit.'); }
     await p.click('#ce-railfoot button.p').catch(() => {});
-    const open = await until(p, () => { const d = document.getElementById('pt-notes'); return d && d.classList.contains('open') && !!d.querySelector('.rl-np-pin'); }, null, 10000);
+    /* RE-POINTED 24 Nov 2026 (owner: "Just file and move on"): Save files and asks nothing — no drawer pinned; their
+       team's notes are opened from their own Notes, as any time */
+    await p.waitForTimeout(1500);
+    const asked = await p.evaluate(() => !!document.querySelector('#pt-notes .rl-np-pin'));
+    await p.evaluate(() => { try { window.portalOpenNotes(); } catch (_){} });
+    const open = !asked && await until(p, () => { const d = document.getElementById('pt-notes'); return !!(d && d.classList.contains('open')); }, null, 10000);
     const D = await p.evaluate(() => ({ tabs: [...document.querySelectorAll('#pt-notes :is(.rl-np-tab, .rl-np-room)')].map(t => t.textContent.replace(/\s+/g, ' ').trim()),
       pinRooms: [...document.querySelectorAll('#pt-notes [data-rl-np-pin-room]')].map(b => b.textContent.trim()),
       codes: /\bCHG-\d+/.test((document.getElementById('pt-notes') || {}).innerText + ' ' + (document.getElementById('toast-root') || {}).innerText) }));
-    check('3 · Counter opens our clause page with our trail and no Jambo; Save opens our Notes drawer with two rooms and the pin\'s switch; no change code',
+    check('3 · Counter opens our clause page with our trail and no Jambo; Save asks nothing, and their Notes has two rooms; no change code',
       /* RE-POINTED 22 Nov 2026 (P-44 review, as drawn: the rooms read "With Highland · Your team", the other side's first;
          the drawer still lands on their own team's room, the 3 Oct ruling — 4 below writes there) */
-      up && /Redlines/.test(trail) && !/Jambo/.test(trail) && open && D.tabs.length === 2 && D.tabs.some(t => /your team/i.test(t)) && D.pinRooms.length === 2 && !D.codes, { trail, D });
+      up && /Redlines/.test(trail) && !/Jambo/.test(trail) && open && D.tabs.length === 2 && D.tabs.some(t => /your team/i.test(t)) && !D.codes, { trail, D });
     /* 4 · their team's note */
     const ta = await p.$('#pt-notes .rl-np-in');
     if (ta){ await ta.fill('Sofia, I have countered at seven.'); await p.click('#pt-notes .rl-np-send, #pt-notes [data-rl-chat-send]'); await p.waitForTimeout(1500); }

@@ -47,6 +47,8 @@ const ok = (name, good, detail) => {
   const errors = [];
   try {
     const page = await browser.newPage({ viewport: { width: 1500, height: 950 } });
+    /* RE-POINTED 24 Nov 2026 (the Clauses tab opens on one clause, as drawn): this check reads the whole list, the reader's own kept choice */
+    await page.addInitScript(() => { try { localStorage.setItem('hati.v1.thList', '1'); } catch (_){} });
     page.on('pageerror', e => errors.push(String(e).slice(0, 160)));
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke');

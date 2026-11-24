@@ -889,6 +889,8 @@ async function stkRun(c){
   stkRepaint(c);
   await p;
   stkRepaint((typeof getContract === 'function' && getContract(c.id)) || c);
+  /* THE READING LINE (Round C): once per read, when it lands with something to show */
+  if (!_bd.err && typeof window.pd2ReadLinePlay === 'function') setTimeout(() => { try { window.pd2ReadLinePlay(); } catch (_){} }, 260);
 }
 function stkDiveOpen(c, i){
   const b = stkOf(c), shown = stkShown(c, b); if (!b || !shown[i]) return;

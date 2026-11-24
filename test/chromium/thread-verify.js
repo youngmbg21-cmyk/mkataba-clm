@@ -99,6 +99,8 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
   try {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await ctx.newPage();
+    /* RE-POINTED 24 Nov 2026 (the Clauses tab opens on one clause, as drawn): this check reads the whole list, the reader's own kept choice */
+    await page.addInitScript(() => { try { localStorage.setItem('hati.v1.thList', '1'); } catch (_){} });
     page.on('pageerror', e => errors.push(e.message));
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.waitForTimeout(600);
@@ -238,7 +240,7 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
        ‹ k of n › above it, and k is the clause open (bounded wait for it) */
     await page.waitForFunction(() => !!document.querySelector('#pd-thread .doc-th-nav .doc-th-k'), null, { timeout: 3000 }).catch(() => {});
     const stepsGone = await page.evaluate(() => { const nav = document.querySelector('#pd-thread .doc-th-nav');
-      return { inRow: document.querySelectorAll('#pd-thread .doc-th-row [data-th-step]').length, nav: nav ? nav.querySelectorAll('[data-th-step]').length : 0,
+      return { inRow: document.querySelectorAll('#pd-thread .doc-th-row [data-th-step]').length, nav: nav ? nav.querySelectorAll('[data-th-nav-step]').length : 0, /* RE-POINTED 24 Nov 2026: the list's arrows are data-th-nav-step, the rows' own steps stay data-th-step */
         k: nav ? ((nav.querySelector('.doc-th-k') || {}).textContent || '').trim() : '' }; });
     check('3-stage Home\'s open row draws no ‹ › of its own; the list carries one ‹ k of n ›, k the clause open (Dossier L+S, step 3)',
       stepsGone.inRow === 0 && stepsGone.nav === 2 && new RegExp('^' + (s3.openIdx + 1) + ' of ' + s3.rows.length + '$').test(stepsGone.k), JSON.stringify(stepsGone));
