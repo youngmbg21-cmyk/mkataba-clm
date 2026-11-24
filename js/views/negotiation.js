@@ -12659,6 +12659,16 @@ const RL_TYPE_KEY = 'hati.v1.rlDocType';
    each page already carries (#doc-zoom, .rl-zoom, #ds-zoom, .ig-zoom) does
    the enlarging. A size somebody chose before is carried over once, as the
    nearest zoom step. */
+/* ---- THE CLAUSE'S NUMBER STANDS IN ITS OWN QUIET COLUMN (owner's pick, 24 Nov 2026: the Legora + Stripe way) ----
+   A heading that opens with the paper's own number ("4.", "4.2", "IV.", "B.") wears that number in a span the screen
+   hangs in the margin (`.rl-hnum`), in the plain sans, grey, figures lined up. PAINT ONLY: the words are the
+   heading's own, the space after the number is kept inside the span, so textContent reads exactly as before
+   ("4. Governing law") for every reader, finder and test. Takes ESCAPED html; anything else returns unchanged. */
+const RL_HNUM_RE = /^((?:\d{1,3}(?:\.\d{1,3}){0,4}\.?)|(?:[IVXLC]{1,6}\.)|(?:[A-Z]\.))(\s+)(?=\S)/;
+function rlHeadNumHtml(h){
+  const s = String(h == null ? '' : h), m = s.match(RL_HNUM_RE);
+  return m ? `<span class="rl-hnum">${m[1]}${m[2]}</span>${s.slice(m[0].length)}` : s;
+}
 function rlDocType(){ return RL_TYPE_DEF; }
 const RL_ZOOM_KEY = 'hati.v1.docZoom', RL_DZ_MIN = 60, RL_DZ_MAX = 200, RL_DZ_STEP = 10, RL_DZ_DEF = 100;
 function rlDzClamp(z){ return Math.max(RL_DZ_MIN, Math.min(RL_DZ_MAX, Math.round((Number(z) || RL_DZ_DEF) / RL_DZ_STEP) * RL_DZ_STEP)); }
@@ -13280,11 +13290,11 @@ function redlineDocHtml(c, opts = {}){
       return chs.length ? negoLeadChange(c, cl, chs) : null;
     })();
     const ask = negoHeadingAsk(cl, lead);
-    if (!ask) return raw ? `<h4 class="rl-clause-h">${_ne(raw)}</h4>` : '';
+    if (!ask) return raw ? `<h4 class="rl-clause-h">${rlHeadNumHtml(_ne(raw))}</h4>` : '';
     const settled = lead.status !== 'pending' || lead.withdrawn;
     const which = settled ? 'marks' : rlReadSideOf(lead, readMode);
-    if (which === 'del') return raw ? `<h4 class="rl-clause-h">${_ne(ask.from)}</h4>` : '';
-    if (which === 'ins') return `<h4 class="rl-clause-h">${_ne(ask.to)}</h4>`;
+    if (which === 'del') return raw ? `<h4 class="rl-clause-h">${rlHeadNumHtml(_ne(ask.from))}</h4>` : '';
+    if (which === 'ins') return `<h4 class="rl-clause-h">${rlHeadNumHtml(_ne(ask.to))}</h4>`;
     return `<h4 class="rl-clause-h">${ask.from
       ? `<span class="nego-del">${_ne(ask.from)}</span> ` : ''}<span class="nego-ins">${_ne(ask.to)}</span></h4>`;
   };
@@ -13403,7 +13413,7 @@ function redlineDocHtml(c, opts = {}){
       return `<section class="nego-clause rl-clause${liveChanged([ch])} rl-clause-new rl-clause-live" data-clause="${_ne(ch.clauseId)}" data-nego-working="${_ne(ch.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
         <div class="rl-clause-top">
           ${liveHead != null ? liveHead
-            : liveLabel ? `<h4 class="rl-clause-h">${_ne(liveLabel)}</h4>` : ''}
+            : liveLabel ? `<h4 class="rl-clause-h">${rlHeadNumHtml(_ne(liveLabel))}</h4>` : ''}
           ${pillFor({ clauseId: ch.clauseId })}
         </div>
         ${liveHtml}
@@ -13427,7 +13437,7 @@ function redlineDocHtml(c, opts = {}){
       const cleanText = String(ch.proposedText || ch.newText || '');
       const cleanLabel = String(ch.headingText || '').trim();
       return `<section class="nego-clause rl-clause" data-clause="${_ne(ch.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
-        ${cleanLabel ? `<h4 class="rl-clause-h">${_ne(cleanLabel)}</h4>` : ''}
+        ${cleanLabel ? `<h4 class="rl-clause-h">${rlHeadNumHtml(_ne(cleanLabel))}</h4>` : ''}
         <div class="nego-body"><p>${_ne(cleanText)}</p></div>
       </section>`;
     }
@@ -13461,7 +13471,7 @@ function redlineDocHtml(c, opts = {}){
       text, bodyHtml: ch.bodyHtml || `<p>${_ne(text)}</p>` } : null;
     return `<section class="nego-clause rl-clause is-changed rl-clause-new" data-clause="${_ne(ch.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
       <div class="rl-clause-top">
-        ${label ? `<h4 class="rl-clause-h">${_ne(label)}</h4>` : ''}
+        ${label ? `<h4 class="rl-clause-h">${rlHeadNumHtml(_ne(label))}</h4>` : ''}
         ${asClause ? pillFor(asClause) : ''}
       </div>
       <div class="nego-body">${inner}</div>
@@ -23409,7 +23419,7 @@ function redlineSyncProxies(host){
   });
 }
 
-if (typeof window !== 'undefined') Object.assign(window, { rlLinkedIs, rlLinkForget, rlOnePressOf, rlOnePressCounter, rlFigureSwap, rlNumWords });
+if (typeof window !== 'undefined') Object.assign(window, { rlHeadNumHtml, rlLinkedIs, rlLinkForget, rlOnePressOf, rlOnePressCounter, rlFigureSwap, rlNumWords });
 if (typeof window !== 'undefined') Object.assign(window, { RL_PLAIN_FIG, rlPlainFigs, rlPlainFigureOf, rlPlainReasonOf, rlAskColleague });
 if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoTurnBannerHtml, rlSignNamesPaint, rlLiveHere, rlLiveRepaint, rlStartLivePoll, rlHomeTakesIt, rlReviewDoor, rlReviewDoorState, rlLandWhenReady, RL_LAND_TRIES, RL_LAND_MS, paperZcFit, rlCameFrom, rlCameFromSet, rlBackToClauses, rlLandOn, rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
   rlInlineClick, rlInlineSave, rlInlineDirty, rlInlineOn, rlInlineEnd,

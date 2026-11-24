@@ -19435,7 +19435,7 @@
     border-radius:var(--radius);background:var(--color-surface);box-shadow:var(--shadow-sm);padding:0 6px;will-change:transform}
   html.lg-new #clause-editor.is-tabbed .ce-head .ce-barrow{min-height:var(--ctl-h);gap:6px;flex-wrap:nowrap}
   html.lg-new #clause-editor.is-tabbed #ce-doc .rl-clause-live{position:relative}
-  html.lg-new #clause-editor.is-tabbed #ce-doc .rl-clause-live::before{content:"";position:absolute;left:-14px;top:0;bottom:0;width:2px;background:var(--color-text)}
+  html.lg-new #clause-editor.is-tabbed #ce-doc .rl-clause-live::before{content:"";position:absolute;left:-40px;top:0;bottom:0;width:2px;background:var(--color-text)}
   html.lg-new #clause-editor.is-tabbed .ce-tabtop{display:flex;flex-direction:column;gap:12px;padding:8px 16px 4px}
   html.lg-new #clause-editor.is-tabbed .ce-dtabs{display:flex;align-items:center;justify-content:flex-start;gap:4px;min-height:40px;flex-wrap:nowrap;overflow:hidden}
   html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab{display:inline-flex;align-items:center;flex:none;width:auto;min-width:0;border:0;background:none;border-radius:999px;padding:6px 8px;font:inherit;font-size:14px;color:var(--color-text);cursor:pointer;white-space:nowrap}
@@ -26505,7 +26505,7 @@
      mark; the foot a small black Save counter with Undo beside it — no links line, no grey words */
   html.lg-new #clause-editor.is-tabbed .ce-thd.is-ls{display:block;padding:2px 0 12px}
   html.lg-new #clause-editor.is-tabbed .ce-thd.is-ls .ce-teb{margin:0;font-size:12.5px;color:var(--color-quiet)}
-  html.lg-new #clause-editor.is-tabbed .ce-thd.is-ls .ce-th{margin:2px 0 8px;font-family:var(--font-doc);font-weight:400;font-size:21px;line-height:28px}
+  html.lg-new #clause-editor.is-tabbed .ce-thd.is-ls .ce-th{margin:2px 0 8px;font-family:var(--font-body);font-weight:var(--w-strong);font-size:18px;line-height:24px}
   html.lg-new #clause-editor.is-tabbed .ce-thd.is-ls .ce-tbadge{display:inline-flex}
   html.lg-new #clause-editor.is-tabbed .ce-tbadge.k-unfiled{background:var(--st-amber-bg);color:var(--st-amber-fg)}
   html.lg-new #clause-editor.is-tabbed .ce-tasked{margin:0;padding:12px 18px;border-bottom:1px solid var(--color-divider)}
@@ -27741,6 +27741,32 @@
     scrollbar-width:thin}
   textarea.chat-field::-webkit-scrollbar{width:6px}
   textarea.chat-field::-webkit-scrollbar-thumb{background:var(--color-divider);border-radius:var(--radius)}
+
+  /* ==== ONE PAPER TYPE, THE LEGORA + STRIPE WAY (owner's pick, 24 Nov 2026: "Build all rounds in one go") ====
+     Two fonts, two jobs. The WORDING is one font at one size on every working paper on screen (Home, the editor,
+     Redlines, their page): the company's paper font (--font-doc, or the Contract Look's choice), headings the
+     wording's size, only bolder; the same gap after every clause. Everything that is NOT wording, the clause's
+     number (`.rl-hnum`, hung in its own column by rlHeadNumHtml), the paper's sub-line and the signature labels,
+     is the plain sans in detail grey, figures lined up. Tables line their figures up. NEVER the signing copy
+     (`.pg-sign`), the printed or exported copies: those keep the Contract Look. Scoped by html.lg-new and the
+     paper's own classes so it wins without !important. */
+  html.lg-new article.nego-doc.rl-paper:not(.pg-sign){font-size:15.5px;line-height:1.7;padding-left:64px;padding-right:56px}
+  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .nego-body p,
+  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .nego-body li{font-size:15.5px;line-height:1.7}
+  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .nego-clause.rl-clause{margin:0;padding-top:9px;padding-bottom:9px}
+  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .rl-clause-h{font-size:15.5px;line-height:1.7;font-weight:var(--w-strong);letter-spacing:0;margin:0 0 2px}
+  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .rl-hnum{display:inline-block;width:40px;margin-left:-40px;font-family:var(--font-body);font-size:13px;font-weight:var(--w-label);font-variant-numeric:tabular-nums;color:var(--color-neutral-400);white-space:pre}
+  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .rl-paper-title{font-size:calc(22px * var(--doc-scale,1));font-weight:var(--w-strong);letter-spacing:0}
+  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .rl-paper-sub{font-family:var(--font-body);font-size:11.5px;font-weight:var(--w-label);letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-400)}
+  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) :is(table, .hati-doc table){font-variant-numeric:tabular-nums}
+  html.lg-new :is(.rl-sigfor, .rl-sigrow):not(.pg-sign *){font-family:var(--font-body);font-size:12px;color:var(--color-neutral-400)}
+  /* the editor dresses every span in its box in the paper's font (#ce-doc :is(p,li,div,span)): the number column,
+     the sub-line and the signature labels are not wording, so they keep the sans there too */
+  html.lg-new #ce-doc article.nego-doc :is(.rl-hnum, .rl-paper-sub, .rl-sigfor, .rl-sigrow){font-family:var(--font-body)}
+  /* the heading being typed keeps its box's 4px padding for the caret, and steps back 4px so its words and its
+     number stand in line with every other clause's */
+  html.lg-new #ce-doc article.nego-doc #ce-clausehead{margin-left:-4px}
+  html.lg-new #ce-doc article.nego-doc #ce-clausehead .rl-hnum{user-select:none}
 </style>
 
 <script type="module" src="js/app.js"></script>

@@ -168,8 +168,11 @@ describe('f371 (6) — the negotiate page draws the banner as a section title', 
     assert.equal((html.match(/PAGE 1 OF 2/g) || []).length, 1, 'drawn once');
     assert.ok(sects.every(s => !/data-clause|data-rl-cp|rl-cp-pill/.test(s)), 'not a door');
     assert.ok(sects.every(s => /data-nego-chrome/.test(s)), 'marked chrome, so a highlight never reads it as wording');
-    assert.ok(html.indexOf('PAGE 2 OF 2') < html.indexOf('4. CHARGES')
-      && html.indexOf('PAGE 2 OF 2') > html.indexOf('3. RECEIPT'), 'between clause 3 and clause 4');
+    /* RE-POINTED 24 Nov 2026 (one paper type, L+S): a heading's number now stands in its own span
+       (rlHeadNumHtml), so "4. CHARGES" is read across that span; the words are unchanged. */
+    const at = w => html.search(new RegExp(w.replace('. ', '\\. (?:</span>)?')));
+    assert.ok(html.indexOf('PAGE 2 OF 2') < at('4. CHARGES')
+      && html.indexOf('PAGE 2 OF 2') > at('3. RECEIPT'), 'between clause 3 and clause 4');
     assert.equal((html.match(/<section class="nego-clause rl-clause/g) || []).length, 6);
   });
   test('the room canvas and the clean reading draw it too', () => {
