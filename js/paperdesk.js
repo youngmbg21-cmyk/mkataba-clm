@@ -4204,7 +4204,7 @@ function pdHeadHtml(brain){
        Dossier's own tabs keep their row and his comes last, as it was */
     const after = t === 'copilot' ? sendBack : '';
     return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}${shut ? ' is-shut' : ''}" data-pd-tab="${t}" aria-selected="${on}"${shut ? ' aria-disabled="true"' : ''} aria-label="${_pdE(cnt ? _pdT('pd_tab_n', { name, n: cnt.n }) : name)}" title="${_pdE(shut || tip)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${pdTabGlyphHtml(t)}</span>${cnt ? `<span class="pd-tab-n is-${cnt.tone}">${cnt.n > 99 ? '99+' : cnt.n}</span>` : ''}</span><span class="pd-tab-w">${_pdE(name)}</span></button>${after}`;
-  }).join('') + word;
+  }).join('') + (c && tabs.includes('red') && pdEdTabOn(c) ? pdEdTabBtnHtml(false) : '') + word;
 }
 function pdBodyHtml(c){
   _pdActs.clear();
@@ -11608,7 +11608,50 @@ function pdMidVeil(on){
   v = document.createElement('div'); v.id = 'mid-veil'; v.setAttribute('aria-hidden', 'true'); v.style.top = top + 'px';
   document.body.appendChild(v);
 }
-Object.assign(window, { pdArriveNote, pdMidArriving, pdArriveEnd, pdMidFrom, pdMidVeil, CV_LAND_MS });
+/* ---- THE EDITOR AS A TAB (owner, 24 Nov 2026: "build it", the drawing "Editor as a Tab") ----
+   The Dossier's fifth tab opens the one clause editor (openRedlineWorkbench → the editor's own door) on the first
+   clause the Clauses tab found something in, its points with it, else on the paper's first clause; the editor then
+   wears these same tabs with Editor lit (pdEdTabsHtml), and another tab leaves it (pdEdTabLeave). Our seat, the new
+   look, a wide window, a paper someone may still redline. Reads only; the press is the editor's. */
+function pdEdTabOn(c){
+  if (!c || typeof window.newLookOn !== 'function' || !window.newLookOn()) return false;
+  if (typeof window.innerWidth === 'number' && window.innerWidth < 1024) return false;
+  if (pd2Sealed(c)) return false;
+  if (typeof window.mayActOn === 'function' && !window.mayActOn(c)) return false;
+  try { if (typeof window.negoMayStart === 'function' && !window.negoMayStart(c).ok) return false; } catch (_){ return false; }
+  return true;
+}
+function pdEdTabBtnHtml(on){
+  const name = _pdT('pd_tab_editor');
+  return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}" ${on ? 'data-ce-dtab="ed"' : 'data-pd-ed-tab'} aria-selected="${!!on}" title="${_pdE(name)}"><span class="pd-tab-w">${_pdE(name)}</span></button>`;
+}
+function pdEdTabsHtml(c){
+  return pd2TabsShownFor(c).map(t => {
+    const name = t === 'copilot' ? pdLandName() : _pdT(PD_TAB_NAME[t]); const cnt = pdTabCount(t, c);
+    return `<button type="button" role="tab" class="pd-tab" data-ce-dtab="${t}" aria-selected="false" title="${_pdE(name)}"><span class="pd-tab-w">${_pdE(name)}</span>${cnt ? `<span class="pd-tab-n is-${cnt.tone}">${cnt.n}</span>` : ''}</button>`;
+  }).join('') + pdEdTabBtnHtml(true);
+}
+function pdEdPointOf(c){
+  let L = []; try { L = typeof window.stkLivePoints === 'function' ? (window.stkLivePoints(c) || []) : []; } catch (_){ L = []; }
+  const open = L.filter(x => x && !x.done && !x.blank && !x.missing && x.quote && (x.status === 'need' || x.status === 'look'));
+  const p = open[0]; if (!p) return null;
+  const same = open.filter(x => String(x.clause || '') === String(p.clause || ''));
+  return { quote: String(p.quote), num: String(p.clause || ''), points: same.map(x => ({ t: String(x.stake || x.title || ''), q: String(x.quote || ''), s: x.status === 'need' ? 'need' : 'look' })) };
+}
+function pdEdOpen(c){
+  if (!c || typeof window.ceTabOpenFor !== 'function') return;
+  window.ceTabOpenFor(c, pdEdPointOf(c));
+}
+/* another tab pressed on the editor's panel: once the editor has closed, that tab's own press, as ever */
+function pdEdTabLeave(k){
+  setTimeout(() => { try { const b = document.querySelector(`#ig-dock [data-pd-tab="${k}"]`); if (b) b.click(); } catch (_){} }, 80);
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._pdEdWired){ document._pdEdWired = true;
+  document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('#ig-dock [data-pd-ed-tab]') : null; if (!b) return;
+    e.preventDefault(); const c = pdContract(); if (c) pdEdOpen(c); });
+}
+
+Object.assign(window, { pdEdTabOn, pdEdTabBtnHtml, pdEdTabsHtml, pdEdPointOf, pdEdOpen, pdEdTabLeave, pdArriveNote, pdMidArriving, pdArriveEnd, pdMidFrom, pdMidVeil, CV_LAND_MS });
 Object.assign(window, { pd2DutiesCardOf, pd2DutiesCardHtml, pd2StandsOpen, pd2StandsUp, pd2DealCardHtml, pd2DealPageHtml, pd2DealFaceHtml, pd2DutyAnswer, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2ReadLinePlay, pd2PointKind, pd2PlanOpen, pd2PlanItems, pd2PlanTabOn, pd2PlanAnswers, pd2Sealed, pd2AmendCardOf, pd2FactRowLs, pd2FamCardHtml, pd2StepsHtml, pd2CardFiveHtml, pd2CardWho, pd2FormAskTakes, pd2FormAsk, pd2FormFaceHtml, pd2FormChipsPaint, pd2On, pd2Html, pd2HistFaceHtml, PD2_HK_TONE, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
 Object.assign(window, { pdObRenewQuoteHtml, pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2NotesHiddenGet, pd2NotesHiddenSet, pd2NotesTgHtml, pd2NotesTgSolo, PD2_NOTES_HIDDEN_KEY, pd2RedAnswers, pd2RedStdAnswers, pd2RedBlocks, pd2RedGroupHtml, pd2RedChipsHtml, pd2RedAskHtml, pd2RedFloor, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
