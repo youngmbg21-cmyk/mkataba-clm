@@ -15962,7 +15962,17 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
       press('[data-stk-review-all]') || press('[data-stk-review]'); return; }
     const c = thLiveContract(); if (!c) return;
     const rows = (_docThreadCache && _docThreadCache.rows) || [], x = rows[_docThreadOn];
-    const clauseId = x && typeof docXrayClauseId === 'function' ? (docXrayClauseId(x) || '') : '';
+    /* THE CLAUSE BY ITS NUMBER WHEN THE PAPER CARRIES NO ADDRESS (owner, 24 Nov 2026: "I am unable to redline the clause
+       even if it is not worth a look"): Home's clean paper marks no clause id, so a clause with no finding (no row press
+       to borrow) went to the Redlines cards, not the editor. The clause is found by the paper's own number
+       (negoClauseByRef), else by its heading's words, and the editor opens on it */
+    let clauseId = x && typeof docXrayClauseId === 'function' ? (docXrayClauseId(x) || '') : '';
+    if (!clauseId && x){ const lab = String((typeof docXrayLabel === 'function' ? docXrayLabel(x) : '') || '').replace(/\s+/g, ' ').trim();
+      const m = /^\(?(\d+(?:\.\d+)*)/.exec(lab);
+      try { const cl = m && typeof window.negoClauseByRef === 'function' ? window.negoClauseByRef(c, m[1], { init: true }) : null; if (cl && cl.clauseId) clauseId = String(cl.clauseId); } catch (_){}
+      if (!clauseId && lab){ const norm = t => String(t || '').replace(/^\s*\(?\d+(?:\.\d+)*\.?\)?\s*/, '').replace(/\s+/g, ' ').trim().toLowerCase();
+        let L = []; try { L = typeof window.negoClauseList === 'function' ? window.negoClauseList(c) : []; } catch (_){ L = []; }
+        const hit = L.find(cl => cl && cl.clauseId && norm(cl.headingText || cl.heading || '') === norm(lab)); if (hit) clauseId = String(hit.clauseId); } }
     if (k === 'redline'){ if (press('[data-stk-redline]')) return;
       if (typeof window.openRedlineWorkbench === 'function') window.openRedlineWorkbench(c.id, { from: 'clauses', land: clauseId ? { clauseId } : null }); return; }
     if (k === 'ask' && typeof window.rlNoteFromSelection === 'function' && clauseId){
