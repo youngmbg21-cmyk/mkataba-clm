@@ -48,6 +48,7 @@ test('f1046 (3) only the SAME screen keeps its place; any doubt starts from the 
   const key = region(s, 'function modalScreenKey', 400);
   assert.match(key, /aria-label/, 'the screen is its label');
   assert.match(key, /first&&first\.id/, 'and its first part');
+  assert.match(key, /contains\('lgp-wave'\)\) first=first\.nextElementSibling/, "the pop-up's wave, put first in the frame, is never the first part (24 Nov 2026)");
 });
 
 test('f1046 (4) the pop-ups that rebuilt themselves no longer close first', () => {

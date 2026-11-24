@@ -4322,7 +4322,9 @@ function dlgPinFoot(panel){
    in it (the panel's own scroll, and any scroller inside it that carries an id). Read before the old one goes. */
 function modalScreenKey(panel){
   if(!panel) return '';
-  const first=panel.firstElementChild;
+  /* the pop-up's wave (lgpWaveSweep, .lgp-wave) is furniture put first in the frame: never the screen's first part */
+  let first=panel.firstElementChild;
+  while(first&&first.classList&&first.classList.contains('lgp-wave')) first=first.nextElementSibling;
   return String(panel.getAttribute('aria-label')||'')+'|'+String((first&&first.id)||'');
 }
 function modalKeptOf(root){
