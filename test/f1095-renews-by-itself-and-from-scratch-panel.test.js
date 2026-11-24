@@ -37,7 +37,8 @@ test('f1095 (1b) read down and every contract panel read it, and no unwritten fi
   const pd = strip(read('js/paperdesk.js'));
   /* RE-POINTED 20 Nov 2026 (#819, the Cover page deleted: a contract opens on its paper with the Dossier) — the four lines remain */
   /* RE-POINTED 23 Nov 2026 (owner, the Dossier end to end L+S: the signed card draws the deal's life line, pd2LifeOf, which reads the same answer) — the four renewal lines plus the life line */
-  assert.equal((pd.match(/contractRenewsItself\(c\)/g) || []).length, 5, 'the four renewal lines and the life line');
+  /* RE-POINTED 24 Nov 2026 (owner, "build as drawn": the Dossier's facts draw a Renews row off the same answer) — six */
+  assert.equal((pd.match(/contractRenewsItself\(c\)/g) || []).length, 6, 'the four renewal lines, the life line and the facts\' Renews row');
   assert.match(pd, /renews: !!\(typeof contractRenewsItself === 'function' && contractRenewsItself\(c\)\)/, 'the life line reads the one answer');
   assert.doesNotMatch(pd, /metadata \|\| \{\}\)\.autoRenew/, 'no panel reads the unwritten flag');
   assert.match(region(read('js/obligations.js'), 'function renewalWindow', 'A DEADLINE OLDER'), /const auto = contractRenewsItself\(c\);/, 'the renewal window too');
