@@ -88,7 +88,7 @@ describe('f762 (1) Jambo\'s panel beside the paper', () => {
     assert.match(s.rail, /data-tb-door/, 'the folded strip is drawn to open it again');
     const tabs = [...s.rail.matchAll(/data-tb-tab="(\w+)"[^>]*>([^<]+)(?:<span class="n[^"]*">([^<]+)<\/span>)?/g)].map(m => [m[1], m[2], m[3] || '']);
     assert.deepEqual(tabs.map(t => t[0]), ['build', 'outline', 'playbook', 'blanks']);
-    assert.match(tabs[2][2], /^\d+\/\d+$/, 'Playbook says met of total');
+    assert.match(tabs[2][2], /^\d+ of \d+$/, 'Playbook says met of total'); /* RE-POINTED 23 Nov 2026: "4 of 4", as drawn */
     assert.equal(tabs[3][2], '2');
   });
   test('1b it opens on the Outline where the paper has sections; on Build where it is empty', async () => {
@@ -112,19 +112,21 @@ describe('f762 (1) Jambo\'s panel beside the paper', () => {
 describe('f762 (2) the Outline', () => {
   test('2a every section in paper order, "·" first, numbers, "1 blank", ✓ where met, "+ … proposed"', async () => {
     const s = await stage(RESELLER, FIELDS);
-    const rows = [...s.rail.matchAll(/<button type="button" class="tb-ol-r[^"]*" data-tb-ol(?:-prop)?="[^"]*"><span class="tb-ol-n">([^<]*)<\/span><span class="tb-ol-h">([^<]*)<\/span>([\s\S]*?)<\/button>/g)]
-      .map(m => [m[1], m[2], /1 blank/.test(m[3]) ? 'blank' : /tb-ol-ok/.test(m[3]) ? 'ok' : /proposed/.test(m[3]) ? 'proposed' : '']);
+    /* RE-POINTED 23 Nov 2026 (the Builder L+S, as drawn): one calm table, § · name · a soft status badge; the per-row
+       "1 blank" and ✓ left the row (Blanks and Playbook have their own tabs) */
+    const rows = [...s.rail.matchAll(/<tr class="[^"]*" data-tb-ol(?:-prop)?="[^"]*"><td class="tb-olt-n">([^<]*)<\/td><td><span class="tb-olt-hh">([^<]*)<\/span>[\s\S]*?<td class="tb-olt-s">([\s\S]*?)<\/td><\/tr>/g)]
+      .map(m => [m[1], m[2], /proposed/.test(m[3]) ? 'proposed' : /Written/.test(m[3]) ? 'written' : /To write/.test(m[3]) ? 'todo' : '']);
     /* RE-POINTED (check #1, 19 Oct 2026): the proposed rows stand where the
        paper draws them — before Governing law, as round 21 draws them */
-    assert.deepEqual(rows.slice(0, 4), [['·', 'Parties', 'blank'], ['1', 'Territory', 'blank'], ['2', 'Prices and payment', 'ok'], ['3', 'Liability', 'ok']]);
-    assert.deepEqual(rows[rows.length - 1], ['4', 'Governing law', 'ok']);
+    assert.deepEqual(rows.slice(0, 4), [['·', 'Parties', 'written'], ['1', 'Territory', 'written'], ['2', 'Prices and payment', 'written'], ['3', 'Liability', 'written']]);
+    assert.deepEqual(rows[rows.length - 1], ['4', 'Governing law', 'written']);
     const mid = rows.slice(4, -1);
     assert.ok(mid.length >= 1 && mid.every(r => r[0] === '+' && r[2] === 'proposed'), JSON.stringify(rows));
   });
   test('2b what the blanks ask, and how many of Our standards it meets', async () => {
     const s = await stage(RESELLER, FIELDS);
-    assert.match(s.rail, /<p class="tb-ol-sh">Blanks <span class="tb-ol-cnt">2<\/span><\/p><p class="tb-ol-p">Reseller name · Territory: asked of whoever drafts from it\.<\/p>/);
-    assert.match(s.rail, /<p class="tb-ol-sh">Our playbook<\/p><p class="tb-ol-p">\d+ of \d+ met\. .+ (is|are) proposed on the paper\.<\/p>/);
+    /* RE-POINTED 23 Nov 2026 (as drawn): one quiet line under the table, "Blanks 2 asked · Playbook n of m met" */
+    assert.match(s.rail, /<p class="tb-ol-line"><span class="q">Blanks<\/span> 2 asked<span class="q">Playbook<\/span> \d+ of \d+ met<\/p>/);
   });
   test('2c a row lands on its section (landOn) and keeps the Outline open', () => {
     assert.match(TB, /hit\('\[data-tb-ol\]'\)\)\) \{ const k = Number\(b\.getAttribute\('data-tb-ol'\)\); tbFocus\(k, \{ keepTab: true \}\);\s*if \(typeof landOn === 'function'\) landOn\(`\[data-tb-sec="\$\{k\}"\]`/);

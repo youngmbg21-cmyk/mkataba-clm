@@ -76,8 +76,10 @@ test('f1118 (4) the builder: the field editor in two steps, the look question as
   assert.match(f, /if \(!label\) \{ step\(1\);/);
   assert.match(f, /maxWidth: window\.LGP_W \|\| '480px', ownFrame: true/);
   noBoxes(f, 'the field editor');
-  const l = strip(fnBody(TB, 'tbLookAsk'));
-  assert.match(l, /lgpOpen\(\{ id: 'tb-look'/);
+  /* RE-POINTED 23 Nov 2026 (Publish is one pop-up in three steps): the look question is step 2 of the one lgp sheet */
+  assert.match(strip(fnBody(TB, 'tbLookAsk')), /lgpRepaint\(o\); else lgpOpen\(o\)/);
+  const l = strip(fnBody(TB, 'tbPubOpts'));
+  assert.match(l, /id: 'tb-pub', steps, title: i18t\('tb_look_title'/);
   assert.match(l, /<label class="lgp-tick is-radio/); assert.doesNotMatch(l, /sap-li|sap-list/);
   assert.match(l, /attr: 'id="tb-look-go"'/);
 });

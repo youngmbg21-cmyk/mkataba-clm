@@ -373,7 +373,9 @@ const SEED = () => {
        copy is made by the press a reader makes there, not by the shortcut. */
     await page.evaluate(() => { if (typeof tplMakeItOurs === 'function') tplMakeItOurs('PS'); });
     await pause(700);
-    await page.evaluate(() => { const b = document.getElementById('ns-go'); if (b && !b.disabled) b.click(); });
+    /* RE-POINTED 23 Nov 2026 (one door to a new template): "Make it ours" opens New agreement's Create a template tab,
+       the paper already chosen; its button there is the Legora start's own (data-nsl-go), the old page's #ns-go else */
+    await page.evaluate(() => { const b = document.getElementById('ns-go') || (document.querySelector('[data-nsl-go="PS"]') || document.querySelector('[data-nsl-go]:not([data-nsl-go="__file"])')); if (b && !b.disabled) b.click(); });
     await pause(3500);
     await page.evaluate(() => { try { closeModal(); } catch (e) {} });
     await pause(400);

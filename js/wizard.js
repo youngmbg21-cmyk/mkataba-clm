@@ -886,7 +886,7 @@ function naNewPaperGo(k,x){
     if(typeof nsLgOn==='function'&&nsLgOn()&&typeof nsOpenTheirs==='function') return nsOpenTheirs();
     if(typeof openCreateTemplateModal==='function') openCreateTemplateModal('paste'); return; }
   /* a door that names a paper (Our paper's "Make our own", tplnOursGo) lands on that paper in its start */
-  openNewStandard({ start:k||'scratch', back, host, pick:(x&&x.pick)||null });
+  openNewStandard({ start:k||'scratch', back, host, pick:(x&&x.pick)||null, said:(x&&x.said)||'', tab:(x&&x.tab)||null });
 }
 function openNewAgreement(o){
   if(o===undefined) return openNewDoors();
@@ -901,7 +901,7 @@ function openNewAgreement(o){
   const allMine=()=>(mayEdit && typeof customTemplates==='function')?customTemplates():[];
   const mineOf=()=>allMine().filter(t=>!t.theirs);
   const keptOf=()=>allMine().filter(t=>t.theirs);
-  if(!tmpls.length && !libOf().length && !mineOf().length){ toast(i18t('wz_no_templates_role'),'err'); return; }
+  if(!(o&&o.newPaper) && !tmpls.length && !libOf().length && !mineOf().length){ toast(i18t('wz_no_templates_role'),'err'); return; }
   /* the page it was started on names the crumb, read before the form goes Home */
   const fromView=(typeof state==='object'&&state)?state.view:'';
   const naFrom=naHomeFirst();
@@ -1309,7 +1309,7 @@ function openNewAgreement(o){
     let why=!api?i18t(one?'na6_pick_paper':'na_pick_first'):i18t('na_stream_first');
     /* THEIR PAPER: Create needs their file and a stream (the drop's own two) */
     if(one&&paper==='theirs'){ on=!!theirFile&&!!streamPicked; why=!theirFile?i18t('na_theirs_need'):i18t('na_stream_first'); }
-    if(one){ root.setAttribute('data-paper',paper); const tp=paper==='kept'?'theirs':paper; root.querySelectorAll('[data-na-paper]').forEach(b=>b.setAttribute('aria-selected',String(b.getAttribute('data-na-paper')===tp)));
+    if(one){ root.setAttribute('data-paper',paper); const tp=paper==='kept'?'theirs':paper; /* while Create a template is up (a door opened it), no paper tab is lit */ const np=root.classList.contains('is-newpaper'); root.querySelectorAll('[data-na-paper]').forEach(b=>b.setAttribute('aria-selected',String(!np&&b.getAttribute('data-na-paper')===tp)));
       const th=document.getElementById('na-theirs'); if(th) th.hidden=tp!=='theirs';
       /* Their paper's panel says the file and the stream as they stand: a change to either draws it again (the dock
          writes nothing where nothing moved, igDockSame) */
@@ -1728,7 +1728,7 @@ function openNewAgreement(o){
     /* FROM SCRATCH'S CONTINUE: the chosen start, through the one door to new paper */
     /* delegated: Back from a start puts the four starts back, a fresh Continue with them */
     root.addEventListener('click',e=>{ if(!e.target.closest||!e.target.closest('#na-np-go')) return; const k=(root.querySelector('input[name="na-np"]:checked')||{}).value; naNewPaperGo(k); });
-    if(o&&o.newPaper){ naNewPaperShow(root,true); if(o.start) naNewPaperGo(o.start,{ pick:o.pick }); }
+    if(o&&o.newPaper){ naNewPaperShow(root,true); if(o.start) naNewPaperGo(o.start,{ pick:o.pick, said:o.said, tab:o.tab }); }
     /* THEIR PAPERS YOU KEPT: a press chooses one (the card asks what any paper asks, the company filled in from it);
        "Or drop a new file from them" lets it go for the drop below */
     root.addEventListener('click',e=>{
@@ -1882,6 +1882,16 @@ function naSheetFive(){
     /* AS DRAWN: "Start from nothing" and the start's own sentence; the other side's paper says its own name */
     title=st?(k==='cp'?st:i18t('na6_t_start',{ what:st.charAt(0).toLowerCase()+st.slice(1) })):i18t('na6_t_scratch');
     sub=k==='scratch'?i18t('na6_s_start_scratch'):((N.desc&&N.desc())||i18t('na6_s_scratch')); }
+  /* A NEW TEMPLATE'S PANEL SAYS THE WHOLE JOURNEY (owner: "Build as drawn", 23 Nov 2026): on Create a template, no
+     "Needed before Create / After Create" (that is a contract's road) but "How it goes" as one timeline — choose how it
+     starts, describe it, write it in the Builder, publish to Our paper — the stop you stand at lit */
+  if(N){ const say=typeof window.nsSayUp==='function'&&window.nsSayUp();
+    const stops=say?[[i18t('na6_j_describe1'),true],[i18t('na6_j_keep')],[i18t('na6_j_write')],[i18t('na6_j_publish')],[i18t('na6_j_draft')]]
+      :[[i18t('na6_j_choose'),true],[i18t('na6_j_describe')],[i18t('na6_j_write')],[i18t('na6_j_publish')]];
+    const st=N.start(); const ok=!!st&&!say;
+    return { before:ok?`<div class="na6-pb"><span class="na6-badge is-green">${E('\u2713 '+i18t('na6_ready'))}</span></div>`:'',
+      title:say?i18t('na6_t_scratch'):title, sub:say?i18t('na6_s_say'):sub,
+      groups:[{ key:'how', label:i18t('na6_how_h'), html:`<ol class="na6-tl">${stops.map(([t,now])=>`<li${now?' class="is-now"':''}><i aria-hidden="true"></i><span>${now?`<b>${E(t)}</b> <small>\u00b7 ${E(i18t('na6_j_here'))}</small>`:E(t)}</span></li>`).join('')}</ol>` }] }; }
   const done=need.filter(x=>x.done).length, all=need.length, ready=done===all&&all>0;
   /* THE SAME WORDS AND THE SAME TIMELINE ON EVERY TAB, From scratch too, as drawn (RE-POINTED 22 Nov 2026, batch 7 review):
      "Ready to create", "Needed before Create", "After Create" with its three stops */
