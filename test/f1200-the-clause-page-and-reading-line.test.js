@@ -14,17 +14,12 @@ const CT = strip(R('js/views/contract.js')), PD = strip(R('js/paperdesk.js')), H
 const fn = (src, name) => { const i = src.indexOf('function ' + name + '('); assert.ok(i >= 0, name); return src.slice(i, src.indexOf('\n}', i) + 2); };
 
 test('f1200 (1) the clause page', () => {
-  const N = fn(CT, 'docThreadNavSync');
-  assert.match(N, /card\.classList\.toggle\('is-page', !!\(_thPage && docThreadNavOn\(\)\)\)/);
-  /* RE-POINTED 24 Nov 2026 (the list L+S, f1214): the list's row is the page's — no hint; ‹ Dossier · ‹ k of n › · One at a time */
-  assert.match(N, /data-pd-tab="copilot"[\s\S]*th_step_of[\s\S]*data-th-page-toggle>\$\{esc\(i18t\('th_page_single'\)\)\}/);
-  /* RE-POINTED 24 Nov 2026 (Round E, as drawn): Next › stands in the page's act row, the foot keeps "Keep scrolling for …"
-     RE-POINTED 24 Nov 2026 (owner, f1207): no foot line at all — Next › says where the next step goes */
-  assert.doesNotMatch(N, /th_page_next/); assert.match(N, /if \(foot\) foot\.remove\(\);/);
-  assert.match(R('js/views/contract.js'), /data-th-pg="ask"[\s\S]{0,200}data-th-nav-step="1"/);
-  assert.match(N, /window\.stkLivePoints\(thLiveContract\(\)\)/);
-  assert.match(H, /#pd-thread\.is-page \.doc-th-rows > :not\(\.is-open\)\{display:none\}/);
-  assert.match(CT, /closest\('#pd-thread \[data-th-nav-step\]'\)/);
+  /* RETIRED 24 Nov 2026 (f1217; owner: "delete the one at a time feature and only leave the list version"): the one-clause
+     page is deleted, its parts with it; the list alone stands */
+  const S = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js/views/contract.js'), 'utf8');
+  assert.ok(!S.includes('function docThreadPageHtml('), 'the clause page is gone');
+  assert.ok(S.includes('const _thPage = false;'), 'the list alone');
+
 });
 test('f1200 (2) the reading line, once per read', () => {
   const L = fn(PD, 'pd2ReadLinePlay');

@@ -8288,7 +8288,15 @@ function ceTabPaint(){
   if (top.getAttribute('data-k') !== html){ top.setAttribute('data-k', html); top.innerHTML = html; }
   let foot = rail.querySelector('#ce-tabfoot');
   if (!foot){ foot = document.createElement('div'); foot.id = 'ce-tabfoot'; foot.className = 'ce-tabfoot'; const feet = rail.querySelector('#ce-feet'); rail.insertBefore(foot, feet ? feet.nextSibling : null); }
-  const fh = nx ? `<span class="dash" aria-hidden="true"></span><span class="w">${_cee(_cet('ce_tab_keep', { clause: ceTabName(nx) }))}</span><button type="button" class="ce-tnext" data-ce-tstep="1">${_cee(_cet('ce_tab_next'))}</button>` : '';
+  /* SAVE IN THE BOTTOM ROW (owner's pick, 24 Nov 2026: "remove the 'nothing changed yet' and move the save button lower" —
+     "In the bottom row"): the row's one button IS the File button while there is something to file (its own words, "File
+     as a change · next ›"; the press is the File button's, so filing then moves on, ceSaveAndOn); with nothing to file it
+     is Next ›, the plain step. The File button over it is not drawn in the tab, and "Nothing changed yet" is gone */
+  const sv = rail.querySelector('#ce-railfoot [data-ce-act="save"]'), live = !!(sv && !sv.disabled);
+  const btn = live ? `<button type="button" class="ce-tnext is-save" data-ce-tsave title="${_ceea(sv.getAttribute('title') || '')}">${_cee(sv.textContent.trim())}</button>`
+    : nx ? `<button type="button" class="ce-tnext" data-ce-tstep="1">${_cee(_cet('ce_tab_next'))}</button>` : '';
+  const fh = nx ? `<span class="dash" aria-hidden="true"></span><span class="w">${_cee(_cet('ce_tab_keep', { clause: ceTabName(nx) }))}</span>${btn}`
+    : btn ? `<span class="w"></span>${btn}` : '';
   if (foot.getAttribute('data-k') !== fh){ foot.setAttribute('data-k', fh); foot.innerHTML = fh; }
   /* the File button's reason when grey, and Undo the change beside it */
   const rf = rail.querySelector('#ce-railfoot');
@@ -8297,7 +8305,7 @@ function ceTabPaint(){
     let extra = rf.querySelector('.ce-tacts');
     if (!extra){ extra = document.createElement('div'); extra.className = 'ce-tacts'; rf.appendChild(extra); }
     const dead = !!(save && save.disabled);
-    const eh = dead ? `<p class="ce-twhy">${_cee(_cet('ce_tab_nothing'))}</p>` : `<button type="button" class="ce-tundo" data-ce-act="undo">${_cee(_cet('ce_tab_undo'))}</button>`;
+    const eh = dead ? '' : `<button type="button" class="ce-tundo" data-ce-act="undo">${_cee(_cet('ce_tab_undo'))}</button>`;
     if (extra.getAttribute('data-k') !== eh){ extra.setAttribute('data-k', eh); extra.innerHTML = eh; }
   }
   /* NO TAG ON THE WRITING BAR (owner, 24 Nov 2026: "delete the highlighted item" — the black "Editing <clause>" pill): the
@@ -8332,6 +8340,7 @@ let _ceTabWheelAt = 0;
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._ceTabWired){ document._ceTabWired = true;
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#clause-editor.is-tabbed')) return;
+    const sb = t.closest('[data-ce-tsave]'); if (sb){ e.preventDefault(); const f = document.querySelector('#clause-editor #ce-railfoot [data-ce-act="save"]'); if (f && !f.disabled) f.click(); return; }
     const st = t.closest('[data-ce-tstep]'); if (st){ e.preventDefault(); ceTabStep(Number(st.getAttribute('data-ce-tstep')) || 1); return; }
     const ls = t.closest('[data-ce-tlist]');
     if (ls){ e.preventDefault(); const l = document.getElementById('ce-tlist'); if (l) l.hidden = !l.hidden; return; }
