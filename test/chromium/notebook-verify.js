@@ -80,8 +80,9 @@ const DPA = ['THE DATA PROTECTION ACT, 2019', 'Section 48', 'A data controller m
       if (del) await us.click('#ins-panel [data-nb-delete]');
       const gone = del && await until(us, i => !document.querySelector(`[data-nb-row="${i}"]`), g.id);
       check('6a Delete takes it off the list', gone);
-      const u = gone && await until(us, () => [...document.querySelectorAll('#toast-root button')].some(b => /Undo/.test(b.textContent)), null, 4000);
-      if (u) await us.evaluate(() => [...document.querySelectorAll('#toast-root button')].find(b => /Undo/.test(b.textContent)).click());
+      /* the Undo on the "deleted" alert itself: an older alert (Mark checked's Undo) may still be on screen */
+      const u = gone && await until(us, () => [...document.querySelectorAll('#toast-root button')].some(b => /Undo/.test(b.textContent) && /deleted/.test((b.closest('#toast-root > *') || b).textContent)), null, 4000);
+      if (u) await us.evaluate(() => { const L = [...document.querySelectorAll('#toast-root button')].filter(b => /Undo/.test(b.textContent) && /deleted/.test((b.closest('#toast-root > *') || b).textContent)); L[L.length - 1].click(); });
       check('6b Undo brings it back', u && await until(us, i => !!document.querySelector(`[data-nb-row="${i}"]`), g.id));
     }
     const add = await us.$('#nb-add');
