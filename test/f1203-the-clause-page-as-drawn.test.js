@@ -30,7 +30,7 @@ describe('f1203 (1)-(3) the page body', () => {
   });
   test('every press is an existing door', () => {
     const i = CT.indexOf("closest('#pd-thread [data-th-pg]')"); assert.ok(i >= 0);
-    const h = CT.slice(i, i + 1800);
+    const h = CT.slice(i, i + 4000); /* RE-POINTED 24 Nov 2026 (f1213 finds the clause by its number first) */
     assert.match(h, /press\('\[data-th-explain\]'\)/); assert.match(h, /press\('\[data-stk-dive\]'\)/);
     assert.match(h, /press\('\[data-stk-review-all\]'\) \|\| press\('\[data-stk-review\]'\)/);
     assert.match(h, /press\('\[data-stk-redline\]'\)/); assert.match(h, /openRedlineWorkbench\(c\.id, \{ from: 'clauses'/);

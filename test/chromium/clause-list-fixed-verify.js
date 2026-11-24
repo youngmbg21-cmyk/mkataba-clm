@@ -267,10 +267,11 @@ const READING = {
     /* RE-POINTED 16 Nov 2026 (#762): the Legora way draws no card dot — the verdict's colour is the ROW's own mark
        (.doc-th-bead, amber for a clause that needs you, never the resting grey), and still no edge */
     const dot = await page.evaluate(() => { const row = document.querySelector('#pd-thread .doc-th-row.stk-b-need, #pd-thread .doc-th-row.stk-b-look');
-      const d = row && row.querySelector('.doc-th-bead'); const s = d && getComputedStyle(d);
-      const rest = document.querySelector('#pd-thread .doc-th-row.stk-b-none .doc-th-bead');
+      /* RE-POINTED 24 Nov 2026 (the list L+S, f1214): the verdict is the row's soft badge; a row with nothing found has none */
+      const d = row && row.querySelector('.doc-th-lbadge'); const s = d && getComputedStyle(d);
+      const rest = document.querySelector('#pd-thread .doc-th-row.stk-b-none .doc-th-lbadge:not(.k-read)');
       return s ? { bg: s.backgroundColor, rest: rest ? getComputedStyle(rest).backgroundColor : null, shown: d.getClientRects().length > 0 } : null; });
-    ok('5c the point\'s verdict shows as its row\'s coloured mark, and no edge',
+    ok('5c the point\'s verdict shows as its row\'s soft badge, and no edge',
       !!dot && dot.shown && dot.bg !== 'rgba(0, 0, 0, 0)' && dot.bg !== dot.rest && !!lines.edge && lines.edge.c === 'none', JSON.stringify({ dot, edge: lines.edge }));
 
     /* ===== 6 no count line; the tabs do the filters' work =====
@@ -287,7 +288,8 @@ const READING = {
     /* RE-POINTED 16 Nov 2026 (#762; the owner's "Legora way" for Clauses, 16 Nov 2026): no count line, no headline, no
        tabs — ONE line, "Clause review · the contract · where to start" (stkMarqueeHtml, .stk-lg-top), no boxes */
     ok('6a the three-count line is gone; the one top line stands, no headline, no tabs, no boxes',
-      !head.tally && head.title === '' && head.tabs === '' && head.boxes === 0 && !!head.top && /^Clause review\b/.test(head.top.words), JSON.stringify(head));
+      /* RE-POINTED 24 Nov 2026 (owner: "delete this as well", the list L+S, f1214): no "Clause review" line over the list at all */
+      !head.tally && head.title === '' && head.tabs === '' && head.boxes === 0 && (!head.top || head.top.h === 0), JSON.stringify(head));
     /* RETIRED 16 Nov 2026 (#762): 6b "the Needs you tab narrows to the same points" — the new look's Clauses draw no tabs */
     await page.screenshot({ path: path.join(OUT, '6-head-without-the-count-line.png') });
 

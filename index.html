@@ -19363,7 +19363,32 @@
   #pd-thread .doc-th-pga .doc-th-nx-go{margin-left:auto}
   /* THE CLAUSE PAGE, L+S (owner's pick, 24 Nov 2026): no head line over the page (the bar names the contract), one nav row
      with its menu and a thin read line, the name at 17px with its badge, the buttons small, each finding answered in its row */
-  html.lg-new #ig-dock #pd-thread.is-page :is(.stk-lg-top, .stk-all){display:none}
+  html.lg-new #ig-dock #pd-thread:is(.is-page, .is-list) :is(.stk-lg-top, .stk-all){display:none}
+  /* THE LIST, L+S (owner's pick, 24 Nov 2026): the page's one nav row and read line, tabs with counts, one calm table —
+     the number in one column, the name, what was found in a grey line, a soft badge on the right; the opening as one row */
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-ltabs{flex:1 0 100%;display:flex;gap:4px;margin-top:10px;flex-wrap:nowrap;min-width:0}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-ltab{flex:none;height:var(--ctl-h-sm);padding:0 9px;border:0;border-radius:999px;background:var(--color-neutral-100);font:inherit;font-size:12px;color:var(--color-text);white-space:nowrap;cursor:pointer}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-ltab b{font-weight:var(--w-label)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-ltab.on{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows :is(.th-out, .th-opart){display:none}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row{padding-left:0;box-shadow:none}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row > .doc-th-head{display:flex;align-items:center;gap:8px}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row .doc-th-go{display:grid;grid-template-columns:40px minmax(0,1fr);column-gap:8px;row-gap:2px;align-items:center;padding:9px 0}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row .doc-th-bead{position:static;grid-column:1;grid-row:1;width:auto;height:auto;min-width:0;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--color-quiet);text-align:left}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row .doc-th-name{grid-column:2;grid-row:1;font-size:13px}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row .doc-th-lsay{grid-column:2;grid-row:2;font-size:12px;line-height:1.4;color:var(--color-quiet)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row.is-open{background:var(--row-chosen)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row:not(.is-open):hover{background:var(--row-hover)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge{flex:none;display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:var(--w-label);white-space:nowrap}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge i{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.8}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.k-need{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.k-look{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.k-read{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.is-grey{background:var(--color-neutral-100);color:var(--color-quiet)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-opgo{display:grid;grid-template-columns:40px minmax(0,1fr) auto;column-gap:8px;align-items:center;width:100%;padding:9px 0;border:0;border-bottom:1px solid var(--color-divider);background:none;font:inherit;font-size:13px;color:var(--color-text);text-align:left;cursor:pointer}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-opgo:hover{background:var(--row-hover)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-opn{color:var(--color-quiet)}
+  #pd-thread .doc-th-fi p .doc-th-pgl.is-link{font-size:12px}
   html.lg-new #ig-dock #pd-thread.is-page .doc-th-row.is-open .doc-th-name{font-size:17px;line-height:1.3}
   html.lg-new #ig-dock #pd-thread.is-page .doc-th-row.is-open .doc-th-head{display:flex;align-items:center;gap:8px}
   html.lg-new #ig-dock #pd-thread.is-page .doc-th-row.is-open .doc-th-head > .doc-th-go{flex:1 1 auto;min-width:0}

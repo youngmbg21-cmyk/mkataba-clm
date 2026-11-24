@@ -118,7 +118,7 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
          counts, no tabs, no filter boxes; still no summary, ribbon or key */
       const lg = await page.evaluate(() => { const t = [...document.querySelectorAll('#pd-thread .stk-lg-top')].filter(e => e.getClientRects().length); return { n: t.length, t: t[0] ? t[0].textContent.trim() : '' }; });
       ok('2 the head is one line, no headline, tabs, filter boxes, summary, ribbon or key',
-        lg.n === 1 && /^Clause review\b/.test(lg.t) && !e2m.t && !e2m.tabs.length && e2m.boxes === 0 && e2.tally === false && e2.gone, JSON.stringify({ lg, e2m, e2 }));
+        /* RE-POINTED 24 Nov 2026 (owner: "delete this as well", f1214): no "Clause review" line on Home's Clauses */ lg.n === 0 && !e2m.t && !e2m.tabs.length && e2m.boxes === 0 && e2.tally === false && e2.gone, JSON.stringify({ lg, e2m, e2 }));
 
       const e3 = await page.evaluate(() => {
         const rows = [...document.querySelectorAll('#pd-thread .doc-th-row')];
@@ -166,9 +166,10 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         const before = { open: row.classList.contains('is-open'), box: vis(row.querySelector('.stk-line')), say: (row.querySelector('.stk-n') || {}).textContent || '' };
         row.querySelector('[data-th-go]').click(); await new Promise(r => setTimeout(r, 900));
         const r2 = document.querySelector(`#pd-thread [data-th-row="${row.getAttribute('data-th-row')}"]`);
-        const bead = getComputedStyle(r2.querySelector('.doc-th-bead')).backgroundColor;
+        /* RE-POINTED 24 Nov 2026 (the list L+S, f1214): the clause's worst point is its row's soft badge, the number plain */
+        const bead = getComputedStyle(r2.querySelector('.doc-th-lbadge') || r2.querySelector('.doc-th-bead')).color;
         const tok = n => { const p = document.createElement('span'); p.style.color = `var(${n})`; document.body.appendChild(p); const v = getComputedStyle(p).color; p.remove(); return v; };
-        return { row: true, before, after: { open: r2.classList.contains('is-open'), box: vis(r2.querySelector('.stk-line')) }, bead, need: tok('--st-ruby-dot') };
+        return { row: true, before, after: { open: r2.classList.contains('is-open'), box: vis(r2.querySelector('.stk-line')) }, bead, need: tok('--st-ruby-fg') };
       });
       /* RE-POINTED 21 Oct 2026: the row says the verdict's word and the count */
       /* RETIRED 17 Nov 2026 (#762): 3f's "says Needs you · 1" half — the new-look Clauses (the Legora way, f1073, f1081)
@@ -180,7 +181,7 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       /* RE-POINTED 23 Nov 2026 (owner, Dossier L+S step 3: FOUR KINDS, one colour each — needs you RED, worth a look amber,
          Playbook blue, your plan ink; pd2PointKind): the list's bead for a clause whose worst point needs you is the red the
          point's own dot wears (3e) */
-      ok('3g the dot wears its clause\'s worst point: the need tone where a point needs you', f5.row && f5.bead === f5.need, JSON.stringify({ bead: f5.bead, need: f5.need }));
+      ok('3g the row\'s badge wears its clause\'s worst point: the need tone where a point needs you', f5.row && f5.bead === f5.need, JSON.stringify({ bead: f5.bead, need: f5.need }));
       /* 3h RE-POINTED 21 Oct 2026 ("the Legora way"): a point not in the
          contract is no longer a fold at the bottom — its dashed row stands in
          place with its card open, and its Deep dive is there to press */
