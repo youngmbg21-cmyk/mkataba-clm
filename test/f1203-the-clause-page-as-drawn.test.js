@@ -30,7 +30,9 @@ describe('f1203 (1)-(3) the page body', () => {
   });
   test('every press is an existing door', () => {
     const i = CT.indexOf("closest('#pd-thread [data-th-pg]')"); assert.ok(i >= 0);
-    const h = CT.slice(i, i + 1800);
+    /* RE-POINTED 24 Nov 2026 (the handler grew — Redline any clause, Mark reviewed by Jambo's point): the whole handler,
+       to its closing `});`, not a fixed 1800 characters */
+    const h = CT.slice(i, CT.indexOf('\n  });', i) + 6);
     assert.match(h, /press\('\[data-th-explain\]'\)/); assert.match(h, /press\('\[data-stk-dive\]'\)/);
     assert.match(h, /press\('\[data-stk-review-all\]'\) \|\| press\('\[data-stk-review\]'\)/);
     assert.match(h, /press\('\[data-stk-redline\]'\)/); assert.match(h, /openRedlineWorkbench\(c\.id, \{ from: 'clauses'/);
