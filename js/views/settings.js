@@ -2317,7 +2317,7 @@ function stLsHeadHtml(o){
   const chips=(o.chips||[]).filter(c=>c&&(c.k==='all'||c.n||c.k===o.chip));
   return `<div class="sdd-head st-ls-head">
     <button type="button" class="sdd-back st-ls-back" data-st-page="" data-sdd-to="${esc(ar)}"${row?` data-sdd-to-row="${PB_ATTR(row)}"`:''}>‹ ${esc(i18t('sdd_a_'+ar))}</button>
-    <div class="cun-head st-ls-hrow"><h2 class="ctf-h stn-title sdd-title">${esc(o.title)}</h2>${o.acts?`<span class="st-ls-acts">${o.acts}</span>`:''}</div>
+    <div class="cun-head st-ls-hrow"><h2 class="ctf-h stn-title sdd-title">${esc(o.title)}</h2>${o.badge||''}${o.acts?`<span class="st-ls-acts">${o.acts}</span>`:''}</div>
     ${o.sub?`<p class="sdd-sub st-ls-sub">${esc(o.sub)}</p>`:''}
     ${o.tabs||''}
     ${o.ask?`<label class="apn-ask sdd-find st-ls-find is-filter"><span class="sdd-find-ic" aria-hidden="true">${typeof icon==='function'?icon('search','sdd-spark-ic'):''}</span><input id="${o.ask.id}" type="search" autocomplete="off" placeholder="${esc(o.ask.ph)}" aria-label="${esc(o.ask.ph)}" value="${esc(o.ask.value||'')}"${o.ask.attr?' '+o.ask.attr:''}></label>`:''}
@@ -2573,15 +2573,27 @@ function stLsStreamsPanel(){
 }
 
 /* ---- 5 · HOW OUR CONTRACTS LOOK: the page is designstep's (clPageHtml), its head and panel are drawn here ---- */
+/* ROUND 1 (owner's pick 24 Nov 2026, the Legora + Stripe way): plain sections, no cards, no money — the look as it
+   stands, a ring of the parts set with its sentence, and the quality check, each finding with its own door (a part's
+   picker, or Company & market); on Who wears it with a stream chosen, that stream. No History yet. */
 function stLsLookPanel(){
-  const f=(typeof window.clFacts==='function')?window.clFacts():null; if(!f) return { title:i18t('cl_title') };
-  const need=[];
-  if(f.admin&&!f.logo) need.push({ mark:'', markText:'🎨', tone:'amber', t:i18t('st_ls_cl_logo'), attr:'data-st-ls-cl="g"' });
-  if(f.admin&&!f.footer) need.push({ mark:'', markText:'🎨', tone:'amber', t:i18t('st_ls_cl_footer'), attr:'data-st-ls-cl="f"' });
-  return { eyebrow:i18t('cl_title'), title:i18t(f.own?'st_ls_cl_t_some':'st_ls_cl_t_all',{ style:f.style }),
-    sub:[f.logo?'':i18t('cl_no_logo'), f.footer?'':i18t('cl_no_footer'), f.company?i18t('st_ls_cl_lh',{ name:f.company }):''].filter(Boolean).join(' · '),
-    mid:`<div class="sdd5-today">${sdd5RingHtml(f.own,f.streams,'green',i18t('st_ls_cl_own_cap'))}<p>${esc(f.own?i18tn('st_ls_cl_own',f.own,{ n:f.own, m:f.streams }):i18t('st_ls_cl_own_none',{ m:f.streams }))}</p></div>`,
-    groups:need.length?[{ label:i18t('sdd5_needs'), rows:need }]:[] };
+  const f=(typeof window.clPanelFacts==='function')?window.clPanelFacts():null; if(!f) return { title:i18t('cl_title') };
+  if(f.who){
+    const w=f.who, line=(tn,t)=>`<div class="cl-qc"><i class="cl-qc-dot is-${tn}" aria-hidden="true"></i><span>${esc(t)}</span></div>`;
+    const rows=`<div class="cl-qc-list">${w.differs.length?w.differs.map(t=>line('steel',t)).join(''):line('green',i18t('cl_ls_p_same'))}</div>`;
+    const link=w.kind==='paper'?null:w.own?{ label:i18t('cl_ls_p_edit'), attr:`data-st-ls-cl="stream:${PB_ATTR(w.fid)}"` }:{ label:i18t('cl_ls_give_own'), attr:`data-st-ls-cl="stream:${PB_ATTR(w.fid)}"` };
+    return { eyebrow:i18t('cl_title'), title:w.name, tag:{ text:i18t(w.own?'cl_ls_wears_own':'cl_ls_wears_follows'), tone:w.own?'violet':'green' },
+      sub:[w.kind==='paper'?i18t('cl_tag_paper'):w.company, w.style, w.unsigned==null?'':i18tn('cl_ls_p_unsigned',w.unsigned,{ n:w.unsigned })].filter(Boolean).join(' · '),
+      groups:[{ label:i18t(w.own?'cl_ls_p_differs':'cl_ls_p_wears'), rows:[], html:rows, foot:link,
+        more:w.own&&w.kind==='stream'?{ label:i18t('cl_use_company'), attr:`data-st-ls-cl="stream-x:${PB_ATTR(w.fid)}"` }:null }] };
+  }
+  const tone={ amber:'amber', ruby:'ruby', green:'green' };
+  const qc=`<div class="cl-qc-list">${f.quality.map(q=>`<div class="cl-qc"><i class="cl-qc-dot is-${tone[q.tone]||'grey'}" aria-hidden="true"></i><span>${esc(q.t)}</span>${q.go?`<button type="button" class="jov-lnk cl-qc-go" ${q.go.attr}>${esc(q.go.label)}</button>`:'<span class="cl-qc-ok" aria-hidden="true">✓</span>'}</div>`).join('')}</div>`;
+  const ringSay=f.owed.length?i18t('cl_ls_p_ring_owed',{ n:f.set, m:f.of, what:f.owed.join(', ') }):i18t('cl_ls_p_ring_all',{ m:f.of });
+  return { eyebrow:i18t('cl_title'),
+    title:f.editing?i18t('cl_ls_p_t_stream',{ style:f.style, name:f.editing }):i18t('cl_ls_p_t',{ style:f.style, n:f.follow, m:f.streams }),
+    mid:`<div class="sdd5-today">${sdd5RingHtml(f.set,f.of,f.owed.length?'amber':'green',i18t('cl_ls_p_ring_cap'))}<p>${esc(ringSay)}</p></div>`,
+    groups:[{ label:i18t('cl_ls_p_quality'), rows:[], html:qc }] };
 }
 
 /* ---- 6 · DATA & BACKUP ---- */
@@ -2694,6 +2706,7 @@ function stLsPanelPaint(){
 function stLsLetGo(){
   if(!document.querySelector('#set-page.st-ls-page')||!stLsOn()) return false;
   if(_stPage==='streams'){ if(_stSwPick) stSwPickSet(null); else stLsPanelPaint(); return true; }
+  if(_stPage==='look'&&typeof window.clLetGo==='function'&&window.clLetGo()) return true;
   if(stLsPick(_stPage)) stLsPickSet(_stPage,null); else stLsPanelPaint();
   return true;
 }
@@ -2711,6 +2724,7 @@ function stLsPaint(admin){
   if(_stPage==='streams') stSwLoad();
   if(_stPage==='guard') acLoad();
   stDressPage();
+  if(_stPage==='look'&&typeof window.clAfterPaint==='function') window.clAfterPaint();
   if(_stAsks===null&&typeof stAsksLoad==='function') stAsksLoad();
   if(typeof insWatchWidth==='function') insWatchWidth();
   if(typeof setActiveNav==='function') setActiveNav('team');
@@ -2733,6 +2747,7 @@ function stLsRepaint(){
   stDressPage();
   if(id){ const n=document.getElementById(id); if(n){ n.focus({ preventScroll:true }); try{ n.setSelectionRange(pos,pos); }catch(_){ /* a date */ } } }
   stLsPanelPaint();
+  if(_stPage==='look'&&typeof window.clAfterPaint==='function') window.clAfterPaint();
 }
 function stLsChipSet(pg, k){ if(!pg) return; _stLs.chip[pg]=k||'all'; if(pg==='streams') _stSwPick=null; else _stLs.pick[pg]=null; stLsRepaint(); }
 function stLsPickSet(pg, id){ _stLs.pick[pg]=id?String(id):null; stLsListPaint(); stLsPanelPaint(); }

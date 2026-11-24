@@ -72,10 +72,15 @@ test('f1147 (5) the old painters hand over while the new page stands', () => {
 });
 
 test('f1147 (6) How our contracts look keeps its editing', () => {
+  /* RE-POINTED 24 Nov 2026 (contract look round 1, owner: build it in L+S, in rounds): the page beside Settings' head is
+     now clLsPageHtml — the table of parts with each part's own picker, Who wears it (the other looks folded in), the
+     preview; Save and the sentence box stand */
   const i = D.indexOf('function clPageHtml()'), f = D.slice(i, D.indexOf('\nfunction clRepaint', i));
   const ls = f.slice(f.indexOf('window.stLsOn()'), f.indexOf('const acts = admin'));
-  for (const part of ['clSheetHtml()', "clNotesHtml('l')", "clNotesHtml('r')", 'clPickHtml()', 'clOthersHtml()', 'clChipsHtml()', 'id="cl-save"', 'id="cl-say"'])
-    assert.ok(ls.includes(part), part + ' is still drawn');
+  assert.ok(ls.includes('return clLsPageHtml();'), 'the Legora + Stripe page is drawn beside Settings\' head');
+  const j = D.indexOf('function clLsPageHtml()'), page = D.slice(j, D.indexOf('\nfunction ', j + 10));
+  for (const part of ['clPickHtml()', 'clWhoHtml()', 'clPartsTableHtml(parts)', 'clPreviewHtml()', 'id="cl-save"', 'id="cl-say"'])
+    assert.ok(page.includes(part), part + ' is still drawn');
   assert.match(D, /function clModeGo\(m\) \{ if \(!_cl\) clInit\(\); if \(!clAdmin\(\)\) return;/, 'the panel\'s rows open a setting only for an admin');
   assert.match(D, /Object\.assign\(window, \{[^\n]*clFacts, clModeGo/);
 });
