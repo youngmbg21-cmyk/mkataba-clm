@@ -16,7 +16,8 @@ const fn = (src, name) => { const i = src.indexOf('function ' + name + '('); ass
 test('f1200 (1) the clause page', () => {
   const N = fn(CT, 'docThreadNavSync');
   assert.match(N, /card\.classList\.toggle\('is-page', !!\(_thPage && docThreadNavOn\(\)\)\)/);
-  assert.match(N, /data-pd-tab="copilot"[\s\S]*th_step_of[\s\S]*th_page_hint[\s\S]*data-th-page-toggle/);
+  /* RE-POINTED 24 Nov 2026 (the list L+S, f1214): the list's row is the page's — no hint; ‹ Dossier · ‹ k of n › · One at a time */
+  assert.match(N, /data-pd-tab="copilot"[\s\S]*th_step_of[\s\S]*data-th-page-toggle>\$\{esc\(i18t\('th_page_single'\)\)\}/);
   /* RE-POINTED 24 Nov 2026 (Round E, as drawn): Next › stands in the page's act row, the foot keeps "Keep scrolling for …"
      RE-POINTED 24 Nov 2026 (owner, f1207): no foot line at all — Next › says where the next step goes */
   assert.doesNotMatch(N, /th_page_next/); assert.match(N, /if \(foot\) foot\.remove\(\);/);
