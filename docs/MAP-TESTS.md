@@ -1145,3 +1145,6 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 
 ## THE SHELL — the wave on every edit pop-up (24 Nov 2026)
 - NEW: test/f1200-the-wave-on-every-edit-popup.test.js (the helper run in jsdom: once per sheet, again after a redraw; the one watcher on #modal-root; the duties sheet's own call; the look by token, behind the words, still for less motion). Red at the parent: all three.
+
+## PERFORMANCE — two scroll checks wait for a still paper (24 Nov 2026)
+- RE-POINTED: decision-redraws-one-clause-verify 1 (240 set and held ten frames before Accept, bounded 120); dossier-and-amend-ls-verify 3a/3b (the press waits six still frames, bounded 90, and lands only where elementFromPoint is the clause).
