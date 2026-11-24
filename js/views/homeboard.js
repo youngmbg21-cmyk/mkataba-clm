@@ -11017,7 +11017,8 @@ function hbPlacePut(p){
   if (Array.isArray(p.path)) s.path = p.path.filter(k => typeof k === 'string').slice(-HB_PATH_MAX);
   hbSave();
   if (p.recipe && typeof igRecipeSet === 'function'){ try { igRecipeSet(p.recipe); } catch (_){} }
-  if (p.cam && Array.isArray(p.cam.w) && window.intel && typeof IGB_NV !== 'undefined' && p.cam.w.length === IGB_NV) intel.cam = { ...p.cam, w: p.cam.w.slice() };
+  /* a view hidden for now (Brain, Wiring) is not put back: the map opens on its first shown view */
+  if (p.cam && Array.isArray(p.cam.w) && window.intel && typeof IGB_NV !== 'undefined' && p.cam.w.length === IGB_NV && !(typeof window.igbViewShown === 'function' && !igbViewShown(p.cam.view))) intel.cam = { ...p.cam, w: p.cam.w.slice() };
   if (p.cal && typeof window.calPlacePut === 'function'){ try { calPlacePut(p.cal); } catch (_){} }
   if (p.nd && typeof window.ndPlacePut === 'function'){ try { ndPlacePut(p.nd); } catch (_){} }
   if (p.wall && typeof window.igWallPlacePut === 'function'){ try { igWallPlacePut(p.wall); } catch (_){} }

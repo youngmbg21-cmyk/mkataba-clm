@@ -114,7 +114,8 @@ const check = (name, pass, detail) => {
     check('6 Open all brings every dot back and draws no bubble', !!open);
     await page.screenshot({ path: path.join(OUT, 'timeline-open-1500.png') });
     /* Brain still folds into its groups' bubbles */
-    await page.click('[data-ig-view="0"]'); await until(() => intel.cam.w[0] > 0.98);
+    /* RE-POINTED 24 Nov 2026: Brain's button hidden for now; its drawing kept, turned to by its own door */
+    await page.evaluate(() => igSetView(0)); await until(() => intel.cam.w[0] > 0.98);
     await page.click('#ig-foldall');
     const brain = await until(() => window.IG && IG.hubs.filter(h => h._bubR > 2).length);
     check('7 Brain still folds into one bubble per group', brain >= 3, String(brain));

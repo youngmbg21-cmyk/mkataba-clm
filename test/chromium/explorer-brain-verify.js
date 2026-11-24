@@ -63,6 +63,9 @@ const check = (name, pass, detail) => {
       intel.tab = 'map'; setView('intel');
     });
     await until(() => window.IG && IG.hubs && IG.hubs.length >= 3);
+    /* RE-POINTED 24 Nov 2026 (owner: "hide the brain and wiring tabs in the explorer page for now"): the map opens on
+       Floors and the two buttons are not drawn; the Brain's drawing is kept, so this check turns to it by its own door */
+    await page.evaluate(() => igSetView(0)); await until(() => intel.cam.w[0] > 0.97);
 
     /* ================= 1. THE STAGE ======================================== */
     const stage = await page.evaluate(() => {
@@ -77,7 +80,7 @@ const check = (name, pass, detail) => {
     check('1a the map is one dark stage with a canvas under the nodes, the full size of the stage', /ig-brain/.test(stage.cls) && stage.canvas && stage.under && /gradient/.test(stage.bg), JSON.stringify(stage));
     check('1b the canvas is painted — the brain\'s tissue and the dots are pixels', stage.lit > 50, stage.lit);
     /* Five views since the view recipe (explorer-recipe-verify): Grid and Timeline joined. */
-    check('1c the stage carries Brain · Wiring · Floors · Grid · Timeline, the zoom and Fold all, and no "drag nodes" hint', stage.views.join('|') === 'Brain|Wiring|Floors|Grid|Timeline' && stage.fold && !stage.oldHint, JSON.stringify(stage.views));
+    check('1c the stage carries Floors · Grid · Timeline (Brain and Wiring hidden for now), the zoom and Fold all, and no "drag nodes" hint', stage.views.join('|') === 'Floors|Grid|Timeline' && stage.fold && !stage.oldHint, JSON.stringify(stage.views));
     /* every contract has small words where they fit — measured as painted */
     const words = await page.evaluate(() => {
       const tags = IG.contracts.filter(n => n.tag.style.display !== 'none');
@@ -131,7 +134,7 @@ const check = (name, pass, detail) => {
     await page.dblclick('#ig-svg', { position: await emptySpot() });
 
     /* ================= 4. A CARD FOLDS; NOTHING ON THE MAP IS A FILTER ===== */
-    await page.click('[data-ig-view="1"]'); await until(() => intel.cam.w[1] > 0.97);
+    await page.evaluate(() => igSetView(1)); await until(() => intel.cam.w[1] > 0.97);
     const hub = await page.evaluate(() => { const g = document.getElementById('ig-gwrap').getBoundingClientRect();
       const hb = IG.hubs.filter(h => h.box && !h.folded && h.kids.length >= 3).sort((a, b) => b.kids.length - a.kids.length)[0]; if (!hb) return null;
       return { label: hb.label, kids: hb.kids.length, x: g.left + hb.box.x + 40, y: g.top + hb.box.y + 12, shown: IG.contracts.length }; });
@@ -163,7 +166,7 @@ const check = (name, pass, detail) => {
     check('4e a legend row narrows the map to its status, and pressing it again lets go', !!legendRow && narrowed.picks === 1 && narrowed.all && afterLegend.lenses === 0 && afterLegend.pressed === 'false', JSON.stringify({ narrowed, afterLegend }));
 
     /* ================= 5. COPILOT STEERS THE MAP ============================ */
-    await page.click('[data-ig-view="0"]');
+    await page.evaluate(() => igSetView(0));
     await page.evaluate(async () => { await intelAsk('Colour by status and size by nothing'); });
     await page.evaluate(async () => { await intelAsk('Colour by payment terms'); });
     const coloured = await until(() => { const lg = document.getElementById('ig-legend'); return IG.colourKey === 'payterms' && lg && /payment terms/i.test(lg.textContent) ? { note: document.getElementById('ig-note').textContent.replace(/\s+/g, ' ').trim(), rows: lg.querySelectorAll('[data-ig-colour]').length } : null; });
