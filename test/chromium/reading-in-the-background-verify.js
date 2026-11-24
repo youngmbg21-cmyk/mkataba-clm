@@ -136,7 +136,13 @@ function startProvider(){
       await page.waitForTimeout(600);
     };
     const pressPlain = async () => {
-      const b = await page.$('#pd-thread .doc-th-row.is-open [data-th-explain]');
+      /* RE-POINTED 24 Nov 2026 (CLAUSE PAGE L+S, owner's pick, f1208): on the clause page the row's own Plain is put away
+         and the page's act row carries "Plain English" (data-th-pg="plain", which presses the row's own door); the
+         reader presses the one drawn, and the list view still has the row's own */
+      const b = await page.evaluateHandle(() => { const r = document.querySelector('#pd-thread .doc-th-row.is-open'); if (!r) return null;
+        const vis = el => !!(el && el.getClientRects().length);
+        const pg = r.querySelector('[data-th-pg="plain"]'), own = r.querySelector('[data-th-explain]');
+        return vis(pg) ? pg : vis(own) ? own : null; }).then(x => x.asElement());
       if (!b) return false;
       try { await b.click({ timeout: 3000 }); return true; } catch (_) { return false; }
     };

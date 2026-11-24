@@ -8223,6 +8223,9 @@ if (typeof document !== 'undefined' && !document._ceWired){
    note is asked on filing. Our seat, the new look, a wide window only; their seat keeps its page. */
 function ceTabOn(){
   if (typeof window === 'undefined' || typeof window.newLookOn !== 'function' || !window.newLookOn()) return false;
+  /* THE TAB FOLLOWS THE MARK IT IS DRAWN UNDER: every rule that dresses the tabbed editor is scoped under html.lg-new
+     (newLookApply, the mark's one writer); a page without the mark never gets the tab's placing and tag without its look */
+  if (typeof document === 'undefined' || !document.documentElement || !document.documentElement.classList.contains('lg-new')) return false;
   if (ceSide() === 'counterparty' || window.PORTAL_MODE === true) return false;
   return !(typeof window.innerWidth === 'number' && window.innerWidth < 1024);
 }

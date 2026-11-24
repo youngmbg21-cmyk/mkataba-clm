@@ -88,7 +88,10 @@ const check = (name, pass, detail) => {
     const mid = () => page.evaluate(() => { const r = document.getElementById('ig-gwrap').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
     const KEY = ['rot', 'rotW', 'rotL', 'rotG', 'rotT'];
     const turned = [];
-    for (const v of [0, 1, 2, 3, 4]) {
+    /* RE-POINTED 24 Nov 2026 (Explorer: BRAIN AND WIRING HIDDEN for now — no button for them; the map
+       opens on Floors): every view the bar OFFERS is turned by a finger; the hidden ones have no button */
+    const SHOWN = await page.evaluate(() => [0, 1, 2, 3, 4].filter(i => igbViewShown(i)));
+    for (const v of SHOWN) {
       await view(v);
       const box = await mid(), c0 = await page.evaluate(k => intel.cam[k], KEY[v]);
       await T('touchStart', [[box.x, box.y]]);
@@ -97,7 +100,7 @@ const check = (name, pass, detail) => {
       await page.waitForTimeout(200);
       turned.push(Math.abs((await page.evaluate(k => intel.cam[k], KEY[v])) - c0) > 0.3);
     }
-    check('1a one finger dragged across the stage turns every one of the five views', turned.every(Boolean), JSON.stringify(turned));
+    check('1a one finger dragged across the stage turns every view the bar offers', turned.length === SHOWN.length && turned.length >= 3 && turned.every(Boolean), JSON.stringify({ SHOWN, turned }));
     await view(2);
     /* a finger whose lift the page never heard (a system gesture took it) */
     await page.evaluate(() => { (window._igTouch || (window._igTouch = new Map())).set(987, [10, 10]); });
@@ -208,10 +211,12 @@ const check = (name, pass, detail) => {
     const JIG_MAX = 14 * stH / 763;
     const jig = m => !m.moved && m.far >= 1 && m.far < JIG_MAX;
     const sw0 = await page.evaluate(() => intel.cam.sway || 0);
-    const qB = await stray(0, 'rot'), qF = await stray(2, 'rotL'), qG = await stray(3, 'rotG'), qT = await stray(4, 'rotT');
+    /* RE-POINTED 24 Nov 2026 (Brain hidden for now): the Brain is measured only while the bar offers it */
+    const brainOn = SHOWN.includes(0);
+    const qB = brainOn ? await stray(0, 'rot') : null, qF = await stray(2, 'rotL'), qG = await stray(3, 'rotG'), qT = await stray(4, 'rotT');
     /* THE GRID STANDS STILL BUT ITS DOTS STILL JIGGLE (Young, 23 Oct 2026: "the stars should
        not be static ... the grid is the one that should stop moving") */
-    check('4a2 Still: Brain, Floors, Grid and Timeline do not turn or swing — their dots only jiggle a little', jig(qB) && jig(qF) && jig(qG) && jig(qT) && (await page.evaluate(() => intel.cam.sway || 0)) === sw0, JSON.stringify({ qB, qF, qG, qT, sw0, max: Math.round(JIG_MAX * 10) / 10 }));
+    check('4a2 Still: Brain, Floors, Grid and Timeline do not turn or swing — their dots only jiggle a little', (!brainOn || jig(qB)) && jig(qF) && jig(qG) && jig(qT) && (await page.evaluate(() => intel.cam.sway || 0)) === sw0, JSON.stringify({ qB, qF, qG, qT, sw0, max: Math.round(JIG_MAX * 10) / 10 }));
     const fps = () => page.evaluate(() => new Promise(r => { const f0 = igFramesDrawn(); setTimeout(() => r(igFramesDrawn() - f0), 1000); }));
     await page.waitForTimeout(2600);
     const fStill = await fps();
@@ -220,8 +225,10 @@ const check = (name, pass, detail) => {
     const fTurn = await fps();
     check('4a3 Still draws only a few frames a second; Turning draws every frame (smooth)', fStill <= 10 && fTurn >= 30, JSON.stringify({ fStill, fTurn }));
     const swayed = async (v, key) => { const sa = await page.evaluate(() => intel.cam.sway || 0); const m = await moves(v, key); return { ...m, sa: +sa.toFixed(4), sb: +(await page.evaluate(() => intel.cam.sway || 0)).toFixed(4) }; };
-    const mB = await moves(0, 'rot'), mF = await moves(2, 'rotL'), mG = await swayed(3, 'rotG'), mT = await swayed(4, 'rotT');
-    check('4b pressed Turning, the Brain turns', mB.moved && mB.dot, JSON.stringify(mB));
+    const mB = brainOn ? await moves(0, 'rot') : null, mF = await moves(2, 'rotL'), mG = await swayed(3, 'rotG'), mT = await swayed(4, 'rotT');
+    /* RE-POINTED 24 Nov 2026 (Brain hidden for now): while hidden, the bar has no Brain or Wiring button to press */
+    if (brainOn) check('4b pressed Turning, the Brain turns', mB.moved && mB.dot, JSON.stringify(mB));
+    else check('4b the Brain and the Wiring are hidden for now: no button for them on the bar', (await page.$$('[data-ig-view="0"], [data-ig-view="1"]')).length === 0);
     check('4c and the Floors turn, like the Brain', mF.moved && mF.dot, JSON.stringify(mF));
     /* REVERSED IN PLACE 4 Oct 2026 (Young: "the tables should not spin round,
        they should just slowly swing down to the left and not far at all and

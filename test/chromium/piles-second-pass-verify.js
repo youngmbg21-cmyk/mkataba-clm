@@ -181,7 +181,9 @@ async function login(b, base, email, pass, errs){
         /* RE-POINTED 21 Nov 2026 (P-38, Notes the Stripe way): one calm row per discussion — the clause, its last words and when */
         lines: [...v.querySelectorAll('.rl-np-crow')].map(l => ((l.querySelector('.rl-np-ch b') || {}).textContent || '') + ' · ' + (((l.querySelector('.rl-np-cl .t') || {}).textContent || '') ? 'when' : '')),
         say: [...v.querySelectorAll('.rl-np-crow .rl-np-cl .w')].map(x => x.textContent.trim()), ph: (v.querySelector('.rl-np-in') || {}).placeholder, at: !!v.querySelector('[data-rl-np-at]'),
-        post: (v.querySelector('.rl-np-send') || {}).textContent, piles: !document.querySelector('#context-panel'),
+        /* RE-POINTED 24 Nov 2026 (f1207, Notes left the Redlines switch): the notes ARE #context-panel now, so "the cards
+           stay" is asked of the Redlines cards themselves (as 2g asks), not of the panel's absence */
+        post: (v.querySelector('.rl-np-send') || {}).textContent, piles: !!document.querySelector('#pd-redface [data-rl-pile="awaiting"]'),
         drawer: !!(state.panelOpen && panelFace() === 'notes') }; }, 6000);
     check('2a the notes link opens the bar\'s Notes panel; the Redlines cards stay', !!nv && nv.piles && nv.drawer, JSON.stringify(nv && { piles: nv.piles, drawer: nv.drawer }));
     check('2b the rooms as tabs: our team\'s room with its 2 (only colleagues see it, on), the party\'s tab, "‹ Redlines"', !!nv && nv.tabs.length === 2 && nv.tabs[0].room === 'internal' && /^Internal$/.test(nv.tabs[0].t) && nv.tabs[0].only && nv.tabs[0].on
@@ -235,7 +237,13 @@ async function login(b, base, email, pass, errs){
     check('3d the clause says "Your counter · nothing is filed until you save", no blue box round it', !!ed && ed.step === 'Your counter · nothing is filed until you save' && !ed.boxEdge, JSON.stringify(ed && [ed.step, ed.boxEdge]));
     check('3e the rail: Playbook · Risks · Ladder', !!ed && ed.tabs.join() === 'chat,risks,ladder', JSON.stringify(ed && ed.tabs));
     check('3f the rail as before: the ladder card leads ("What moved"), no row cards', !!ed && /What moved/.test(ed.lane || '') && !ed.ask, JSON.stringify(ed && ed.lane));
-    check('3g the foot: "‹ 1 of 2 of their asks ›" and Save', !!ed && /1 of 2 of their asks/.test(ed.foot || '') && /Save/.test(ed.foot || ''), JSON.stringify(ed && ed.foot));
+    /* RE-POINTED 24 Nov 2026 (EDITOR AS A TAB, owner, f1202): on our seat at a wide window the editor wears the Dossier's
+       tabs (is-tabbed); the foot's "‹ k of n ›" walk is put away for the tab's clause picker "‹ name ▾ k of n ›", and the
+       black button says filing moves on ("Save · next ›", ceSaveAndOn) */
+    const tabbed = await page.evaluate(() => typeof ceTabbed === 'function' && ceTabbed());
+    if (tabbed){ const tp = await page.evaluate(() => ({ pick: !!document.querySelector('#ce-tabtop .ce-tpick [data-ce-tstep="1"]'), walkShown: !!(document.querySelector('#ce-railfoot .ce-walk') || { getClientRects: () => [] }).getClientRects().length }));
+      check('3g the tab\'s clause picker "‹ name ▾ k of n ›" walks the paper, and the black button reads "Save · next ›"', !!ed && tp.pick && !tp.walkShown && /Save · next ›/.test(ed.foot || ''), JSON.stringify(Object.assign({ foot: ed && ed.foot }, tp))); }
+    else check('3g the foot: "‹ 1 of 2 of their asks ›" and Save', !!ed && /1 of 2 of their asks/.test(ed.foot || '') && /Save/.test(ed.foot || ''), JSON.stringify(ed && ed.foot));
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]){
       await page.setViewportSize({ width: w, height: ht }); await pause(400);
       const fit = await page.evaluate(() => ({ rowH: Math.round(document.querySelector('#clause-editor .ce-barrow').getBoundingClientRect().height), sideways: document.documentElement.scrollWidth > innerWidth }));
@@ -244,7 +252,10 @@ async function login(b, base, email, pass, errs){
       await shot(page, `9E-counter-${w}x${ht}`);
     }
     await page.setViewportSize({ width: 1440, height: 780 }); await pause(300);
-    await page.click('#ce-railfoot [data-ce-act="walk-next"]');
+    /* RE-POINTED 24 Nov 2026 (EDITOR AS A TAB): the tab walks the PAPER's clauses, so Erik's clause 11 is reached through
+       the tab's own clause list (‹ name ▾ → the clause), the one door that refuses a colleague's held clause (ceGoClause) */
+    if (tabbed){ await page.click('#ce-tabtop [data-ce-tlist]'); await page.click(`#ce-tlist [data-ce-tgo="${k11}"]`); }
+    else await page.click('#ce-railfoot [data-ce-act="walk-next"]');
     const stay = await waitFor(page, () => !!document.getElementById('clause-editor') && /Liability cap/.test((document.getElementById('ce-rowhead') || {}).innerText || '')
       && [...document.querySelectorAll('.toast, [data-toast], #toast-root *')].some(t => /Erik/.test(t.textContent)), 5000);
     check('3h › onto the clause Erik holds is said, and the page stays', !!stay);

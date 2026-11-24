@@ -146,7 +146,11 @@ const HELPERS = `(() => {
       const step = pick('#ig-paper .rl-type-step');
       /* RE-POINTED 13 Oct 2026 (Stakes as drawn): Home's open row has no
          ‹ › squares; its one button is Plain English, and it takes the edge. */
-      const thStep = pick('#pd-thread .doc-th-row.is-open [data-th-explain]');
+      /* RE-POINTED 24 Nov 2026 (CLAUSE PAGE L+S, owner's pick, f1208): on the clause page the row's own Plain is put away;
+         the page's act row reads Plain English · Deep dive (grey pills) · Redline (the ONE black) — so the open clause's
+         one filled press is Redline there, and Plain English is a grey pill with no edge */
+      const pgPlain = pick('#pd-thread .doc-th-row.is-open [data-th-pg="plain"]'), pgRed = pick('#pd-thread .doc-th-row.is-open [data-th-pg="redline"]');
+      const thStep = pgRed || pick('#pd-thread .doc-th-row.is-open [data-th-explain]');
       /* RE-POINTED 13 Oct 2026 (owner: the paper's zoom goes back to what it
          was): the stepper is the paper's instrument, not an act, and reads
          the hairline (--chip-edge); Open Negotiate keeps the accent edge. */
@@ -154,7 +158,9 @@ const HELPERS = `(() => {
         nego: negoEdge, step: b.edge(step), thStep: b.edge(thStep), thFill: thStep ? getComputedStyle(thStep).backgroundColor : null, thEdgeW: thStep ? getComputedStyle(thStep).borderTopWidth : null,
         black: (() => { const p = document.createElement('i'); p.style.background = 'var(--bar-black)'; document.body.appendChild(p); const c = getComputedStyle(p).backgroundColor; p.remove(); return c; })(),
         grey: (() => { const p = document.createElement('i'); p.style.background = 'var(--surface-2)'; document.body.appendChild(p); const c = getComputedStyle(p).backgroundColor; p.remove(); return c; })(),
-        switchGone: !document.querySelector('[data-doc-read]') };
+        switchGone: !document.querySelector('[data-doc-read]'), page: !!pgRed,
+        plainEdgeW: pgPlain ? getComputedStyle(pgPlain).borderTopWidth : null, plainEdge: pgPlain ? getComputedStyle(pgPlain).borderTopColor : null,
+        plainFill: pgPlain ? getComputedStyle(pgPlain).backgroundColor : null };
     }, negoEdge);
     /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK, the owner's own drawing): an ACT is a grey pill with
        NO edge (--surface-2), product-wide; the stepper is still the paper's instrument and keeps its
@@ -180,7 +186,11 @@ const HELPERS = `(() => {
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the open clause's Plain English is that
        row's ONE filled press (index.html "the open clause: … its Plain English press filled", the black pill,
        border 0) — one black per area, never an outlined control. Still no edge drawn; the fill is the black. */
-    ok('3c the open row\'s Plain English is the open clause\'s one filled press (the black pill, no edge drawn)', !!row.thStep && (NONE.test(row.thStep) || row.thEdgeW === '0px') && row.thFill === row.black, `step ${row.thStep} ${row.thEdgeW} / ${row.thFill} (want the black ${row.black})`);
+    /* the page's Redline is the product's primary (ui-btn-primary): filled with --accent-fill, its edge that same ink */
+    if (row.page) ok('3c on the clause page Redline is the open clause\'s one filled press (the black pill, no edge drawn), Plain English a grey pill with no edge', !!row.thStep && (NONE.test(row.thStep) || row.thEdgeW === '0px' || row.thStep === row.fill) && row.thFill === row.fill
+      && !!row.plainFill && row.plainFill !== row.fill && (NONE.test(row.plainEdge || '') || row.plainEdgeW === '0px'),
+      `redline ${row.thStep} ${row.thEdgeW} / ${row.thFill} (want the filled ${row.fill}) · plain ${row.plainEdge} ${row.plainEdgeW} / ${row.plainFill}`);
+    else ok('3c the open row\'s Plain English is the open clause\'s one filled press (the black pill, no edge drawn)', !!row.thStep && (NONE.test(row.thStep) || row.thEdgeW === '0px') && row.thFill === row.black, `step ${row.thStep} ${row.thEdgeW} / ${row.thFill} (want the black ${row.black})`);
 
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door
        onto Negotiate lands on Jambo's Redlines face on Home, which has no
