@@ -1416,7 +1416,7 @@ function clPvPagesPaint(n) {
   const num = i => cov && !counts ? i - 1 : i, of = cov && !counts ? n - 1 : n;
   const word = i => cov && i === 1 ? i18t('cl_ls_pv_cover') : i18t('cl_ls_pv_page', { n: num(i), m: of });
   if (say) say.textContent = word(p);
-  if (host) host.innerHTML = n > 1 ? Array.from({ length: Math.min(n, 12) }, (_, i) => `<button type="button" class="cl-pv-thumb${i + 1 === p ? ' is-on' : ''}${cov && i === 0 ? ' is-cover' : ''}" data-cl-pv-page="${i + 1}" aria-label="${clE(word(i + 1))}">${cov && i === 0 ? clE(i18t('cl_ls_pv_cover_short')) : num(i + 1)}</button>`).join('') : '';
+  if (host) host.innerHTML = n > 1 ? Array.from({ length: Math.min(n, 12) }, (_, i) => `<button type="button" class="cl-pv-thumb${i + 1 === p ? ' is-on' : ''}${cov && i === 0 ? ' is-front' : ''}" data-cl-pv-page="${i + 1}" aria-label="${clE(word(i + 1))}">${cov && i === 0 ? clE(i18t('cl_ls_pv_cover_short')) : num(i + 1)}</button>`).join('') : '';
 }
 /* where each part sits on the painted page; null where the page carries none of it */
 function clPinTarget(k, root) {
