@@ -686,15 +686,19 @@ function jamboWaysSync(){
       const dropInDoor = () => { const c = door && door.querySelector('.jb-ways'); if (c) c.remove(); };
       /* THE CONTRACT'S ONE ROW (the contract round, as drawn): its own next-step links stand above the box instead */
       /* …and on the Contracts place too, its folders included (owner, 6 Nov 2026: the folders page showed both rows) */
-      if (foot.parentElement && foot.parentElement.querySelector('[data-ig-chips] [data-ca-chip]')){ const w = foot.previousElementSibling; if (w && w.classList && w.classList.contains('jb-ways')) w.remove(); dropInDoor(); return; }
+      /* P-18, ONE ROW (owner, 25 Nov 2026: "the green links above the jambo entry field should never ever as a rule be above
+         the jambo or overview presses. They should always be next to them"): where the way back or "Jambo ›" stands, the
+         row that stood above the box rides ITS line (jamboWaysCarry), the row itself hidden by the sheet */
+      const chipsRow = foot.parentElement && foot.parentElement.querySelector('[data-ig-chips]');
+      if (chipsRow && chipsRow.querySelector('[data-ca-chip]')){ const w = foot.previousElementSibling; if (w && w.classList && w.classList.contains('jb-ways')) w.remove(); if (door) jamboWaysCarry(door, chipsRow); else dropInDoor(); return; }
       const prev = foot.previousElementSibling, old = prev && prev.classList && prev.classList.contains('jb-ways') ? prev : null;
       /* a chosen row's or a face's own links (jlOwnPaint, jamboOwnWays) stand there instead, while what drew them stands */
-      if (old && old.classList.contains('is-own')){ const f = old.getAttribute('data-own-for'); if (!f || document.querySelector(f)){ dropInDoor(); return; } }
+      if (old && old.classList.contains('is-own')){ const f = old.getAttribute('data-own-for'); if (!f || document.querySelector(f)){ if (door && !old.hidden) jamboWaysCarry(door, old); else dropInDoor(); return; } }
       if (door){
         /* THE ROW ABOVE THE BOX IS LEFT WHERE THE PANEL DREW IT (11 Nov 2026): removing it after every repaint flashed it
            on and off; while a line is shown above the box the sheet hides it (index.html, "THE LINKS RIDE THE LINE") */
         const cur = door.querySelector('.jb-ways');
-        if (cur && cur.getAttribute('data-jb-ways') === here.k && cur.childElementCount === here.doors.length) return;
+        if (cur && !cur.classList.contains('is-carried') && cur.getAttribute('data-jb-ways') === here.k && cur.childElementCount === here.doors.length) return;
         if (cur) cur.remove();
         const inHtml = jamboWaysHtml(here, 'is-in-door'), sp = door.querySelector('.jb-door-sp');
         if (inHtml && sp) sp.insertAdjacentHTML('afterend', inHtml);
@@ -705,6 +709,95 @@ function jamboWaysSync(){
       const html = jamboWaysHtml(here, 'is-above-foot'); if (!html) return;
       foot.insertAdjacentHTML('beforebegin', html);
     });
+  }
+}
+/* P-18: a row drawn above the box (the contract's own links, a face's or a chosen row's own) carried onto the press's line:
+   the same words as presses that press the row's own button (its listeners stay where its builder bound them) */
+function jamboWaysCarry(door, row){
+  const btns = [...row.querySelectorAll('button')].filter(b => !b.hidden);
+  const words = btns.map(b => String(b.getAttribute('data-jb-full') || b.textContent || '').trim());
+  const sig = words.join('\u0001');
+  const cur = door.querySelector('.jb-ways');
+  if (cur && cur.classList.contains('is-carried') && cur.getAttribute('data-jb-carry-sig') === sig) return;
+  if (cur) cur.remove();
+  if (!btns.length) return;
+  const key = b => b.getAttribute('data-jb-way') || b.getAttribute('data-ca-chip') || '';
+  const html = `<nav class="jb-ways is-in-door is-carried" data-jb-ways="carried" data-jb-carry-sig="${esc(sig)}" aria-label="${esc(_jbT('jb_doors_label'))}">${btns.map((b, i) => `<button type="button" class="jb-way${b.classList.contains('ca-chip-owed') ? ' ca-chip-owed' : ''}" data-jb-carry="${i}" data-jb-key="${esc(key(b))}">${esc(words[i])}</button>`).join('')}</nav>`;
+  const sp = door.querySelector('.jb-door-sp');
+  if (sp) sp.insertAdjacentHTML('afterend', html);
+}
+/* the row a carried press stands for: the dock's chips, else the row right above the foot */
+function jamboCarryRow(btn){
+  const door = btn.closest('.jb-door'), foot = door && door.parentElement; if (!foot) return null;
+  const chips = foot.parentElement && foot.parentElement.querySelector('[data-ig-chips]');
+  if (chips && chips.querySelector('[data-ca-chip]')) return chips;
+  let prev = foot.previousElementSibling;
+  return prev && prev.classList.contains('jb-ways') ? prev : null;
+}
+/* ONE ROW, NEVER WRAPPED (P-18): what does not fit takes its short form where one exists, and what still does not fit is
+   left out from the end. Measured after paint, in ONE place, without touching what already fits (a write only where the
+   state changes, so the watcher below is never woken by it). */
+const JB_FIT_ROWS = '.jb-ways:not([hidden]):not(.is-home), #ig-dock [data-ig-chips]';
+function jamboShortOf(b){
+  const k = b.getAttribute('data-jb-way') || b.getAttribute('data-ca-chip') || b.getAttribute('data-jb-key') || '';
+  if (!k) return '';
+  const full = String(b.getAttribute('data-jb-full') || b.textContent || '').trim();
+  for (const key of ['jb_short_' + k, 'ca_w_' + k]){
+    const w = _jbT(key);
+    if (w && w !== key && w.length < full.length) return w;
+  }
+  return '';
+}
+let _jbFitCanvas = null;
+function jamboTextW(text, font){
+  try { _jbFitCanvas = _jbFitCanvas || document.createElement('canvas'); const g = _jbFitCanvas.getContext('2d'); g.font = font; return g.measureText(text).width; } catch (_){ return text.length * 7; }
+}
+function jamboWaysFitOne(row){
+  const btns = [...row.querySelectorAll(':scope > button')].filter(b => b.classList.contains('is-fit-off') || getComputedStyle(b).display !== 'none'); if (!btns.length) return;
+  const cs = getComputedStyle(row); if (cs.display === 'none') return;
+  const gap = parseFloat(cs.columnGap) || 0;
+  let avail;
+  const door = row.classList.contains('is-in-door') ? row.closest('.jb-door') : null;
+  if (door){
+    const dc = getComputedStyle(door), dg = parseFloat(dc.columnGap) || 0;
+    let others = 0, n = 0;
+    [...door.children].forEach(ch => { if (ch === row || ch.classList.contains('jb-door-sp') || ch.hidden || getComputedStyle(ch).display === 'none') return; others += ch.getBoundingClientRect().width; n++; });
+    avail = door.clientWidth - (parseFloat(dc.paddingLeft) || 0) - (parseFloat(dc.paddingRight) || 0) - others - dg * (n + 1) - (parseFloat(cs.marginRight) || 0);
+  } else avail = row.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+  if (!(avail > 0)) return;
+  const fontOf = b => { const bf = getComputedStyle(b); return [bf.fontStyle, bf.fontWeight, bf.fontSize, bf.fontFamily].join(' '); };
+  const full = b => String(b.getAttribute('data-jb-full') || b.textContent || '').trim();
+  const extra = b => { const bs = getComputedStyle(b); return (parseFloat(bs.paddingLeft) || 0) + (parseFloat(bs.paddingRight) || 0) + (parseFloat(bs.borderLeftWidth) || 0) + (parseFloat(bs.borderRightWidth) || 0) + 1; };
+  const wOf = (b, t) => jamboTextW(t, fontOf(b)) + extra(b);
+  const sum = list => list.reduce((a, x) => a + x.w, 0) + gap * Math.max(0, list.length - 1);
+  let plan = btns.map(b => ({ b, t: full(b), w: wOf(b, full(b)) }));
+  if (sum(plan) > avail) plan = plan.map(x => { const s = jamboShortOf(x.b); return s ? { b: x.b, t: s, w: wOf(x.b, s) } : x; });
+  let shown = plan.length;
+  while (shown > 0 && sum(plan.slice(0, shown)) > avail) shown--;
+  plan.forEach((x, i) => {
+    const now = String(x.b.textContent || '').trim();
+    if (now !== x.t){ if (!x.b.hasAttribute('data-jb-full')) x.b.setAttribute('data-jb-full', now); x.b.textContent = x.t; }
+    if (x.t === full(x.b) && x.b.hasAttribute('data-jb-full') && x.t === x.b.getAttribute('data-jb-full')) x.b.removeAttribute('data-jb-full');
+    const off = i >= shown;
+    if (x.b.classList.contains('is-fit-off') !== off) x.b.classList.toggle('is-fit-off', off);
+  });
+}
+function jamboWaysFit(){
+  if (typeof document === 'undefined') return;
+  const S0 = jamboWaysFit._rows || (jamboWaysFit._rows = (typeof WeakSet === 'function') ? new WeakSet() : null);
+  document.querySelectorAll(JB_FIT_ROWS).forEach(r => {
+    try { jamboWaysFitOne(r); } catch (_){ /* a convenience */ }
+    /* a row that comes into sight later (its line unhidden, a face turned) or changes width is fitted then */
+    if (S0 && !S0.has(r) && typeof ResizeObserver === 'function'){ S0.add(r); let lw = -1; new ResizeObserver(() => { const w = r.clientWidth; if (w === lw) return; lw = w; jamboWaysQueue(); }).observe(r); }
+  });
+  /* a panel's width changes (its slider, a face): fitted again */
+  if (typeof ResizeObserver === 'function'){
+    const S = jamboWaysFit._seen || (jamboWaysFit._seen = new WeakSet());
+    JB_WAY_FEET.concat(['#ig-dock', '#app-shell .ins-panel', '.st-cr .st-side']).forEach(sel => document.querySelectorAll(sel).forEach(el => {
+      if (S.has(el)) return; S.add(el);
+      let last = -1;
+      new ResizeObserver(() => { const w = el.clientWidth; if (w === last) return; last = w; jamboWaysQueue(); }).observe(el);
+    }));
   }
 }
 /* a face's own links above Jambo's box (as drawn: Before you sign's "dossier · clauses · history"), kept while `forSel` stands */
@@ -722,7 +815,7 @@ function jamboWayCid(){
   return pc ? pc.id : null;
 }
 let _jbWaysQueued = false;
-function jamboWaysQueue(){ if (_jbWaysQueued) return; _jbWaysQueued = true; const run = () => { _jbWaysQueued = false; try { jamboWaysSync(); } catch (_){ /* a convenience */ } };
+function jamboWaysQueue(){ if (_jbWaysQueued) return; _jbWaysQueued = true; const run = () => { _jbWaysQueued = false; try { jamboWaysSync(); } catch (_){ /* a convenience */ } try { jamboWaysFit(); } catch (_){ /* a convenience */ } };
   /* its own small task after the repaint, never inside the frame that drew it (home-speed-verify: a switch's freeze) */
   setTimeout(run, 0); }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function'){
@@ -731,14 +824,22 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     const b = e.target && e.target.closest && e.target.closest('[data-jb-way]'); if (!b) return;
     if (typeof window.caGo === 'function') window.caGo({ kind: 'go', place: b.getAttribute('data-jb-way'), cid: jamboWayCid() });
   });
+  /* P-18: a carried press presses the row's own button (its listeners stay where its builder bound them) */
+  document.addEventListener('click', e => {
+    const cb = e.target && e.target.closest && e.target.closest('[data-jb-carry]'); if (!cb) return;
+    const row = jamboCarryRow(cb), src = row && [...row.querySelectorAll('button')].filter(x => !x.hidden)[Number(cb.getAttribute('data-jb-carry'))];
+    if (src) src.click();
+  });
   /* kept in step with the page: any repaint queues one sync (bound once, at load) */
   if (typeof MutationObserver === 'function'){
-    const start = () => { if (!document.body) return; new MutationObserver(muts => { for (const m of muts){ if (m.target && m.target.closest && m.target.closest('.jb-ways')) continue; jamboWaysQueue(); return; } }).observe(document.body, { childList: true, subtree: true }); jamboWaysQueue(); };
+    const start = () => { if (!document.body) return; new MutationObserver(muts => { for (const m of muts){ if (m.target && m.target.closest && m.target.closest('.jb-ways, [data-ig-chips]')) continue; jamboWaysQueue(); return; } }).observe(document.body, { childList: true, subtree: true }); jamboWaysQueue(); };
+    /* the window's size changes: fitted again */
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('resize', () => jamboWaysQueue());
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
   }
 }
 Object.assign(window,{JB_SEND_ICON,jamboSendHtml,jamboCardHtml,jamboAddFile,jamboCardGrow});
-Object.assign(window,{JB_WAY_FEET,jamboWaysHere,jamboWaysHtml,jamboWaysSync,jamboWayWord,jamboOwnWays});
+Object.assign(window,{JB_WAY_FEET,jamboWaysHere,jamboWaysHtml,jamboWaysSync,jamboWayWord,jamboOwnWays,jamboWaysCarry,jamboCarryRow,jamboWaysFit,jamboWaysFitOne,jamboShortOf,JB_FIT_ROWS});
 
 /* ═══ THE SLIDER — ONE DIVIDER BESIDE EVERY JAMBO PANEL (owner, 19 Oct 2026:
    "all the new jambo panels do not have a slider like in the redline page.

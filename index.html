@@ -15258,7 +15258,9 @@
      bin — one line, never wrapped, at most three shown so nothing is squeezed out of the panel. */
   .jb-ways.is-in-door{flex:0 1 auto;flex-wrap:nowrap;overflow:hidden;gap:12px;margin-right:4px;align-items:center}
   .jb-ways.is-in-door .jb-way{font-size:13px}
-  .jb-ways.is-in-door .jb-way:nth-of-type(n+4){display:none}
+  /* P-18, ONE ROW (owner, 25 Nov 2026; replaces "at most three shown"): what does not fit is measured out, its short form
+     first, then left out from the end (jamboWaysFit, js/components.js) — never wrapped, never a second line */
+  .jb-ways > .is-fit-off, [data-ig-chips] > .is-fit-off{display:none}
   /* "What can I do here?" (js/teach.js): beside "Jambo ›" it stands alone, the page's links giving way; beside
      "‹ Overview" (the conversation, where the person can simply ask) there is no room for it, the links keep theirs */
   .jb-door:not(.jb-door-fwd-line) .jb-ways.is-in-door [data-teach-here]{display:none}
@@ -25245,9 +25247,11 @@
      three at most (the rest are one "/" away) */
   html.lg-new #igd-feed > .apn-panel{padding-left:0;padding-right:0}
   html.lg-new #ig-dock .ca-back{margin-left:16px}
-  html.lg-new :is(#ig-page:not(:has(#ig-canvas)) #ig-dock [data-ig-chips], .jb-ways.is-above-foot){flex-wrap:nowrap;overflow:hidden}
-  /* three at most where the doors are long words (a page's own); beside a contract its own short links stay whole */
-  html.lg-new :is(#ig-page:not(:has(#ig-canvas)) #ig-dock [data-ig-chips] .jb-chip, .jb-ways.is-above-foot .jb-way):nth-of-type(n+4){display:none}
+  html.lg-new :is(#ig-dock [data-ig-chips], .jb-ways.is-above-foot){flex-wrap:nowrap;overflow:hidden}
+  /* P-18 (owner, 25 Nov 2026; replaces "three at most"): one row, fitted by measure (jamboWaysFit): short forms, then
+     left out from the end. While the way back or "Jambo ›" stands above the box the contract's own row rides its line
+     (jamboWaysCarry) and waits hidden here */
+  html.lg-new #ig-dock [data-ig-chips]:has([data-ca-chip]):has(~ .igd-foot .jb-door:not([hidden])){display:none}
   html.lg-new .jb-ways.is-above-foot:has(> [data-teach-here]) .jb-way:nth-of-type(n+3){display:none}
   /* ==== ROUND 2, THE LISTS ====
      EVEN TILES (the folders, owner's pick by name): every tile one height, the name one line ending in "…", what needs
@@ -26577,6 +26581,36 @@
   html.lg-new #clause-editor.is-tabbed .ce-barrow{padding-left:9px;padding-right:9px;justify-content:center}
   html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab:last-child{padding-right:8px}
   html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab.on{background:var(--color-surface);color:var(--color-text);font-weight:var(--w-label);box-shadow:0 1px 2px rgba(0,0,0,.10)}
+  /* ==== JAMBO'S CHAT, "SOFT" (the owner picked Soft by name, 25 Nov 2026; drawing jambo-chat.html) ====
+     ONLY THE BUBBLES CHANGE, never what goes inside them. One set of rules for every host of Jambo's conversation (the
+     one turn builder, jamboTurnHtml: Home's dock igMsgHTML, the window and the list panels aiMsgHtml, Settings
+     stJbTurnHtml): your question a soft green bubble, its corner squared toward you; Jambo's answer a white bubble with a
+     thin grey edge, its corner squared toward him, holding all it holds today (bold, lists, the late word, highlights,
+     the quote chips, web sources, cards, choices, the row under the newest answer); under it ONE line: "Read from …" left,
+     ✓ ✕ right; "Weighed by the stronger model" a quiet line inside, under the words; a question and its answer one group,
+     a clear gap before the next; the conversation starts below the waves. Errors keep their rose. */
+  html.lg-new:not(#_) .jb-turn :is(.ai-msg.justify-end > .ai-bub, .st-jb-me){max-width:85%;margin:0;padding:7px 12px;border:0;border-radius:10px 10px 3px 10px;background:var(--st-green-bg);color:var(--color-text);font-size:13px;line-height:1.5;box-shadow:none}
+  html.lg-new:not(#_) .jb-turn .ai-msg:not(.justify-end){display:block;gap:0}
+  html.lg-new:not(#_) .jb-turn :is(.ai-msg:not(.justify-end) > .ai-face, .st-jb-msg > .st-jb-av){display:none}
+  html.lg-new:not(#_) .jb-turn .ai-msg:not(.justify-end):not(:has(> div > .ai-bub.bg-rose-50)) > div,
+  html.lg-new:not(#_) .jb-turn .st-jb-msg > .st-jb-bub{box-sizing:border-box;width:auto;max-width:100%;margin:0;padding:9px 12px;border:1px solid var(--color-divider);border-radius:10px 10px 10px 3px;background:var(--color-surface);box-shadow:none}
+  html.lg-new:not(#_) .jb-turn .ai-msg:not(.justify-end) > div > .jl-bub:not(.bg-rose-50){padding:0;border:0;border-radius:0;background:none;font-size:13px;line-height:1.5}
+  html.lg-new:not(#_) .jb-turn .st-jb-msg{display:block}
+  html.lg-new:not(#_) .jb-turn .st-jb-turn > :is(.st-jb-card, .st-jb-chips, .st-jb-ca){margin-left:0;padding-left:0}
+  html.lg-new:not(#_) .jb-turn .jb-deep{margin:4px 0 0;font-size:12px;line-height:16px;color:var(--color-neutral-600)}
+  /* the one line under an answer: where it read from on the left, ✓ ✕ on the right */
+  html.lg-new:not(#_) .jb-turn:has(.ai-msg:not(.justify-end)){position:relative}
+  html.lg-new:not(#_) .jb-turn > .jb-read, html.lg-new:not(#_) .jb-turn .ai-msg .ai-read{display:flex;align-items:center;min-height:24px;margin:6px 0 0;padding:0 64px 0 2px;font-size:12px;line-height:16px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:none;border:0}
+  html.lg-new:not(#_) .jb-turn .ai-msg .ai-read{position:absolute;left:0;right:0;bottom:0;margin:0}
+  html.lg-new:not(#_) .jb-turn:has(.ai-msg .ai-read){padding-bottom:30px}
+  html.lg-new:not(#_) .jb-turn .hb-fb{position:absolute;right:2px;bottom:0;padding:0;gap:6px}
+  html.lg-new:not(#_) .jb-turn:has(.hb-fb):not(:has(> .jb-read, .ai-msg .ai-read)){padding-bottom:30px}
+  html.lg-new:not(#_) .jb-turn .hb-fb-b{width:24px;height:24px;border-radius:50%}
+  /* a question and its answer are one group; a clear gap before the next question */
+  html.lg-new:not(#_) .jb-turn + .jb-turn{margin-top:8px}
+  html.lg-new:not(#_) .jb-turn + .jb-turn:has(.ai-msg.justify-end, .st-jb-me){margin-top:24px}
+  /* the conversation starts below the waves: it opens under them, and what scrolls up fades before it reaches them */
+  html.lg-new:not(#_) :is(#ig-dock:not(:has(> .igd-door)):not(:has(> .igd-head[data-pd-head="paper"])) #igd-feed.igd-talk, #app-shell .ins-panel.is-jambo #jl-talk-sc, .st-cr #st-jb-feed):has(.jb-turn){padding-top:96px;-webkit-mask-image:linear-gradient(to bottom, transparent 0, transparent 24px, black 96px);mask-image:linear-gradient(to bottom, transparent 0, transparent 24px, black 96px)}
 </style>
 <style>
   /* ==== STANDARDS — THE LADDER (owner's pick, 17 Nov 2026; js/views/ladder.js) ====
