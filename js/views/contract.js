@@ -15926,7 +15926,7 @@ function docThreadStep(d){
 const TH_LIST_KEY = 'hati.v1.thList';
 let _thPage = (() => { try { return localStorage.getItem(TH_LIST_KEY) !== '1'; } catch (_){ return true; } })();
 /* THE CLAUSE PAGE'S DRAWN BODY (Round E). pts = this clause's open points (stkLivePoints, read only). */
-function docThreadPageHtml(c, rows, at, pts, nextAt){
+function docThreadPageHtml(c, rows, at, pts, nextAt, part){
   const kindOf = p => typeof window.pd2PointKind === 'function' ? window.pd2PointKind(p) : p.status;
   const word = k => k === 'pb' ? i18t('pd2_fd_k_pb') : k === 'plan' ? i18t('pd2_fd_k_plan') : i18t('bd_st_' + k);
   let pbLabel = ''; try { pbLabel = (typeof window.pbStandardsFor === 'function' && c) ? String((window.pbStandardsFor(c) || {}).label || '') : ''; } catch (_){ pbLabel = ''; }
@@ -15937,10 +15937,15 @@ function docThreadPageHtml(c, rows, at, pts, nextAt){
     const mark = p._i != null ? `<button type="button" class="doc-th-pgl is-link" data-th-pg="review" data-th-pt="${esc(String(p._i))}">${esc(i18t('stk_mark_reviewed'))}</button>` : '';
     return `<li class="doc-th-fi k-${esc(k)}"><span class="pd2-badge k-${esc(k)}"><i aria-hidden="true"></i>${esc(word(k))}</span><div><p>${esc(title)}</p>${stake && stake !== title ? `<p class="s">${esc(stake)}</p>` : ''}${path ? `<p class="s">${esc(path)}</p>` : ''}</div>${mark}</li>`; }).join('');
   const nm = nextAt != null && rows[nextAt] && typeof docXrayLabel === 'function' ? docXrayLabel(rows[nextAt]) : '';
-  /* the buttons at the small size every small button in HaTi wears; what Redline does rides its hover (no line under them) */
-  return `<div class="doc-th-pgb"><button type="button" class="ui-btn doc-th-pgbtn" data-th-pg="plain">${esc(i18t('th_plain_en'))}</button><button type="button" class="ui-btn doc-th-pgbtn" data-th-pg="dive"${(pts || []).length ? '' : ' hidden'}>${esc(i18t('stk_deep'))}</button><button type="button" class="ui-btn ui-btn-primary doc-th-pgbtn" data-th-pg="redline" title="${esc(i18t('th_pg_redline_say'))}">${esc(i18t('th_pg_redline'))}</button></div>
-    ${found ? `<div class="doc-th-found"><p class="h"><b>${esc(i18t('th_pg_found'))}</b><span>${(pts || []).length}</span></p><ul>${found}</ul></div>` : ''}
+  /* the buttons at the small size every small button in HaTi wears; what Redline does rides its hover (no line under them).
+     THE ANSWER UNDER THE BUTTONS (owner, 24 Nov 2026: "this plain english translation should come right above 'what we
+     found'"): the page is drawn in two parts — the buttons over the clause's own words (where Plain English and its
+     thinking appear), What was found and the foot after them — so a press is answered where the reader is looking */
+  const top = `<div class="doc-th-pgb"><button type="button" class="ui-btn doc-th-pgbtn" data-th-pg="plain">${esc(i18t('th_plain_en'))}</button><button type="button" class="ui-btn doc-th-pgbtn" data-th-pg="dive"${(pts || []).length ? '' : ' hidden'}>${esc(i18t('stk_deep'))}</button><button type="button" class="ui-btn ui-btn-primary doc-th-pgbtn" data-th-pg="redline" title="${esc(i18t('th_pg_redline_say'))}">${esc(i18t('th_pg_redline'))}</button></div>`;
+  if (part === 'top') return top;
+  const foot = `${found ? `<div class="doc-th-found"><p class="h"><b>${esc(i18t('th_pg_found'))}</b><span>${(pts || []).length}</span></p><ul>${found}</ul></div>` : ''}
     <div class="doc-th-pga"><button type="button" class="doc-th-pgl is-link" data-th-pg="ask">${esc(i18t('th_pg_ask'))}</button>${nm ? `<button type="button" class="ui-btn doc-th-nx-go" data-th-nav-step="1">${esc(i18t('th_pg_next_to', { what: nm }))}</button>` : ''}</div>`;
+  return part === 'foot' ? foot : top + foot;
 }
 /* each press is the row's own existing door: Plain (data-th-explain), Deep dive and Redline (the Clauses tab's own,
    stkRedlineGo), Mark reviewed (the points' own record); Ask a colleague = a note on this clause with @ (the Notes door) */
@@ -15988,26 +15993,41 @@ function docThreadNavSync(){
   nav.innerHTML = `<button type="button" class="doc-th-back" data-pd-tab="copilot">\u2039 ${esc(i18t('pd_tab_dossier'))}</button><button type="button" class="doc-th-step" data-th-nav-step="-1" aria-label="${esc(i18t('th_step_prev'))}"${k <= 1 ? ' disabled' : ''}>\u2039</button><span class="doc-th-k">${esc(i18t('th_step_of', { k: Math.max(1, k), n: shown.length }))}</span><button type="button" class="doc-th-step" data-th-nav-step="1" aria-label="${esc(i18t('th_step_next'))}"${k >= shown.length ? ' disabled' : ''}>\u203a</button><span class="doc-th-hint">${esc(i18t('th_page_hint'))}</span><button type="button" class="doc-th-list" data-th-page-toggle>${esc(_thPage ? i18tn('th_page_all', shown.length, { n: shown.length }) : i18t('th_page_single'))}</button>`;
   /* the drawn clause page's line under the name: one soft badge per kind of open point (the Dossier's four), and the words
      the first point rests on, quoted — read off the Clauses tab's own points (stkLivePoints), nothing new */
-  card.querySelectorAll('.doc-th-pg, .doc-th-pgx, .doc-th-head > .doc-th-pg-b').forEach(x => x.remove());
   const nextAt = shown[shown.indexOf(_docThreadOn) + 1];
-  if (_thPage){ const row = card.querySelector(`.doc-th-rows [data-th-row="${_docThreadOn}"]`), go = row && row.querySelector('.doc-th-head');
+  const clearParts = () => card.querySelectorAll('.doc-th-pg, .doc-th-pgx, .doc-th-head > .doc-th-pg-b').forEach(x => x.remove());
+  if (!_thPage) clearParts();
+  else { const row = card.querySelector(`.doc-th-rows [data-th-row="${_docThreadOn}"]`), go = row && row.querySelector('.doc-th-head');
     let pts = []; try { pts = (typeof window.stkLivePoints === 'function') ? (window.stkLivePoints(thLiveContract()) || []).filter(p => p && !p.done && !p.blank && p.at === _docThreadOn) : []; } catch (_){ pts = []; }
-    if (go && pts.length){ const kinds = [...new Set(pts.map(p => typeof window.pd2PointKind === 'function' ? window.pd2PointKind(p) : p.status))];
-      const word = k => k === 'pb' ? i18t('pd2_fd_k_pb') : k === 'plan' ? i18t('pd2_fd_k_plan') : i18t('bd_st_' + k);
-      const q = (pts.find(p => p.quote) || {}).quote || '';
-      const el = document.createElement('div'); el.className = 'doc-th-pg';
-      /* the badge stands on the title's line (L+S, as drawn); the paper's words under it */
-      const bd = document.createElement('span'); bd.className = 'doc-th-pg-b';
-      bd.innerHTML = kinds.map(k => `<span class="pd2-badge k-${esc(k)}"><i aria-hidden="true"></i>${esc(word(k))}</span>`).join('');
-      go.appendChild(bd);
-      el.innerHTML = `${q ? `<span class="doc-th-pg-q">${(() => { const lab = rows[_docThreadOn] && typeof docXrayLabel === 'function' ? String(docXrayLabel(rows[_docThreadOn]) || '') : ''; const m = /^(\d+(?:\.\d+)*)/.exec(lab); return m ? '\u00a7' + esc(m[1]) + ' ' : ''; })()}<q>${esc(String(q).replace(/\s+/g, ' ').trim().slice(0, 160))}</q></span>` : ''}`;
-      go.insertAdjacentElement('afterend', el); }
-    /* THE CLAUSE PAGE, AS DRAWN (Round E, 24 Nov 2026): Plain English · Deep dive · Redline (black) with the line saying what
-       Redline does; "What was found N", each point under its kind with its stake and, for the Playbook, where it comes from;
-       Mark reviewed · Ask a colleague · Next ›. Every press is an existing door in this row (thPgPress), nothing new */
-    if (go){ const pg = docThreadPageHtml(thLiveContract(), rows, _docThreadOn, pts, nextAt);
-      const el2 = document.createElement('div'); el2.className = 'doc-th-pgx'; el2.innerHTML = pg;
-      const after = go.parentNode && go.parentNode.querySelector(':scope > .doc-th-pg') || go; after.insertAdjacentElement('afterend', el2); } }
+    const word = k => k === 'pb' ? i18t('pd2_fd_k_pb') : k === 'plan' ? i18t('pd2_fd_k_plan') : i18t('bd_st_' + k);
+    const kinds = [...new Set(pts.map(p => typeof window.pd2PointKind === 'function' ? window.pd2PointKind(p) : p.status))];
+    const q = (pts.find(p => p.quote) || {}).quote || '';
+    /* the drawn clause page's line under the name: one soft badge per kind of open point (the Dossier's four), and the words
+       the first point rests on, quoted — read off the Clauses tab's own points (stkLivePoints), nothing new. The badge
+       stands on the title's line (L+S, as drawn) */
+    const badgeHtml = pts.length ? kinds.map(k => `<span class="pd2-badge k-${esc(k)}"><i aria-hidden="true"></i>${esc(word(k))}</span>`).join('') : '';
+    const quoteHtml = pts.length && q ? `<span class="doc-th-pg-q">${(() => { const lab = rows[_docThreadOn] && typeof docXrayLabel === 'function' ? String(docXrayLabel(rows[_docThreadOn]) || '') : ''; const m = /^(\d+(?:\.\d+)*)/.exec(lab); return m ? '§' + esc(m[1]) + ' ' : ''; })()}<q>${esc(String(q).replace(/\s+/g, ' ').trim().slice(0, 160))}</q></span>` : '';
+    /* THE CLAUSE PAGE (Round E, then L+S): Plain English · Deep dive · Redline over the clause's own words; What was found
+       and the foot after them. Every press is an existing door in this row (data-th-pg), nothing new */
+    const cc = thLiveContract();
+    const topHtml = go ? docThreadPageHtml(cc, rows, _docThreadOn, pts, nextAt, 'top') : '';
+    const footHtml = go ? docThreadPageHtml(cc, rows, _docThreadOn, pts, nextAt, 'foot') : '';
+    /* A PRESS IS NEVER LOST (owner, 24 Nov 2026: "the plain english, deep dive and redline buttons are not responding
+       quickly"): the page's parts are drawn again only when what they say has changed — a repaint that changes nothing
+       leaves the buttons the reader is pressing where they are */
+    const sig = [_docThreadOn, badgeHtml, pts.length ? 1 : 0, quoteHtml, topHtml, footHtml].join('\u0001');
+    const has = row && row.querySelector(':scope > .doc-th-pgx:not(.is-foot)') && row.querySelector(':scope > .doc-th-pgx.is-foot');
+    if (!(has && row.getAttribute('data-th-pgsig') === sig && !card.querySelector(`.doc-th-rows .doc-th-row:not([data-th-row="${_docThreadOn}"]) :is(.doc-th-pg, .doc-th-pgx)`))){
+      clearParts();
+      if (row) row.removeAttribute('data-th-pgsig');
+      if (go && pts.length){
+        const bd = document.createElement('span'); bd.className = 'doc-th-pg-b'; bd.innerHTML = badgeHtml; go.appendChild(bd);
+        const el = document.createElement('div'); el.className = 'doc-th-pg'; el.innerHTML = quoteHtml; go.insertAdjacentElement('afterend', el); }
+      if (go){
+        const el2 = document.createElement('div'); el2.className = 'doc-th-pgx'; el2.innerHTML = topHtml;
+        const after = go.parentNode && go.parentNode.querySelector(':scope > .doc-th-pg') || go; after.insertAdjacentElement('afterend', el2);
+        const el3 = document.createElement('div'); el3.className = 'doc-th-pgx is-foot'; el3.innerHTML = footHtml;
+        const body = row.querySelector(':scope > .doc-th-body'); (body || el2).insertAdjacentElement('afterend', el3);
+        row.setAttribute('data-th-pgsig', sig); } } }
   /* NO FOOT LINE (owner, 24 Nov 2026: "delete the highlighted area … only for this tab so we can better utilize the
      space"): "Keep scrolling for …" is gone; Next › in the page's act row says where the next step goes */
   if (foot) foot.remove();
