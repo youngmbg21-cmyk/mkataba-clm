@@ -399,41 +399,35 @@ const SEED = t => {
       /proposed|föreslag/i.test(rowBefore.label) && rowBefore.unrun === 0, rowBefore);
     const callsBefore = obligCalls;
     await drive(() => { roomGoTab(state.contracts[0], 'oblig'); });
-    await pause(900);
-    await drive(() => {
-      /* the tab's own door (OB_FIND_DOORS names both ids; the tab draws obt-find) */
-      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Jambo's Obligations panel is drawn in THE
-         FIVE PARTS — with nothing recorded, its Find is the one black button "Find them in the wording"
-         (jov5_cob_find → runFindObligations), the same funnel the old tab's obt-find pressed */
-      const want = i18t('jov5_cob_find');
-      const b = document.getElementById('obt-find') || document.getElementById('ob-find')
-        || [...document.querySelectorAll('#ig-dock button')].find(x => x.textContent.trim() === want);
-      if (b) b.click();
-    });
-    await pause(2500);
+    /* RE-POINTED 23 Nov 2026 (Duties, end to end: ONE DOOR, the contract's Duties page; every duty through the sheet,
+       no mass add): roomGoTab(c,'oblig') opens the Duties page, which lists the held reading under To decide at once —
+       no Find, no second reading; each is added through the sheet over the page (whose chosen, Add duty). */
+    const until = async (fn, ms, arg) => { const end = Date.now() + ms;
+      while (Date.now() < end){ if (await drive(fn, arg, false)) return true; await pause(150); } return false; };
+    await until(() => document.querySelectorAll('#dtp tr.dtp-r').length >= 1, 6000);
     const dlg = await drive(() => {
-      const m = document.querySelector('#modal-root');
-      return m ? m.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) : '';
-    }, undefined, '');
-    check('8m · pressing Find on the Obligations tab opens the list to tick, not a scan',
-      /Proposed (obligations|duties)|Föreslagna/i.test(dlg), { dlg });
+      const m = document.querySelector('#dtp');
+      return m ? { rows: m.querySelectorAll('tr.dtp-r[data-dtp-decide]').length, ticks: m.querySelectorAll('input[type=checkbox]').length,
+        txt: m.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) } : { rows: 0, ticks: -1, txt: '' };
+    }, undefined, { rows: 0, ticks: -1, txt: '' });
+    check('8m · opening the Obligations tab lands on the Duties page with the found list to decide, not a scan',
+      dlg.rows === 2 && dlg.ticks === 0, dlg);
     check('8n · and it costs NOTHING — the reading is not made a second time',
       obligCalls - callsBefore === 0, { calls: obligCalls - callsBefore });
-    const ticked = await drive(() => {
-      /* A PRESS per box (4 Oct 2026, f475): proposals arrive unticked and the
-         add button is grey until something is ticked, so a box set by script
-         without its change event leaves the button grey. */
-      document.querySelectorAll('[data-ob-pick]').forEach(cb => { if (!cb.checked) cb.click(); });
-      const add = document.getElementById('or-add');
-      if (add) add.click();
-      return true;
-    }, undefined, false);
-    await pause(1200);
+    let ticked = await drive(() => { const b = document.querySelector('#dtp [data-dtp-first]'); if (b) b.click(); return !!b; }, undefined, false);
+    for (let k = 0; k < 2 && ticked; k++){
+      ticked = await until(() => !!document.querySelector('.dts-ov #of-save'), 4000)
+        && await drive(() => { const w = document.querySelector('.dts-ov [data-of-party="ours"]'); if (w) w.click();
+          const s = document.querySelector('.dts-ov #of-save'); if (!w || !s || s.disabled) return false; s.click(); return true; }, undefined, false);
+      if (ticked) await until(n => (state.contracts[0].obligations || []).length >= n, 4000, k + 1);
+      await pause(300);
+    }
+    await until(() => triageHeldObligations(state.contracts[0]).length === 0, 4000);
     const settled = await drive(() => ({
       filed: (state.contracts[0].obligations || []).length,
       held: triageHeldObligations(state.contracts[0]).length }),
       undefined, { filed: 0, held: 9 });
-    check('8o · ticking files them, and the offer empties itself',
+    check('8o · each added through the sheet files it, and the offer empties itself',
       ticked === true && settled.filed === 2 && settled.held === 0, settled);
 
     /* ============ 8i · A CONTRACT IT COULD NOT READ ============ */

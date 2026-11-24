@@ -5790,6 +5790,8 @@
   .obdf-fact{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--color-divider);font-size:13.5px}
   .obdf-fact span:first-child{color:var(--color-neutral-400)}
   .obdf-fact span:last-child{text-align:right;color:var(--color-text)}
+  /* the renewal's own words under its dates, a line like the facts above (the old tab's renewal lines, the Legora way) */
+  html.lg-new [data-obdf] .obdf-rnq{padding:8px 0;border-bottom:1px solid var(--color-divider)}
   .obdf-acts{display:flex;gap:8px;flex-wrap:wrap;padding:14px 0 6px}
   .obdf .obd-note{margin:12px 0 6px}
   .obdf-h{margin:12px 0 6px;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-400)}
@@ -18600,6 +18602,11 @@
   @keyframes jovRingFill{from{stroke-dashoffset:213.6}}
   @keyframes jovTickDraw{from{stroke-dashoffset:40}to{stroke-dashoffset:0}}
   @keyframes jovPulse{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+  /* TELL JAMBO THE CHANGE's bar and finds (the Amend pop-up, 23 Nov 2026): kept out of the new-look blocks, as keyframes take no html.lg-new */
+  @keyframes pd2AmkGlide{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+  @keyframes pd2AmkIn{to{opacity:1;transform:none}}
+  /* the paper's pinned controls fade in (Dossier L+S, step 3): out of the new-look blocks for the same reason */
+  @keyframes pd2CtlFade{from{opacity:0}to{opacity:1}}
   /* ==== THE NEW LOOK: THE FRAME (round 1 of the Legora way rebuilt page by page; owner, 31 Oct 2026: "start with the frame";
      Jambo's box 44; the contract's wording may sit lower as the Page frame draws it; a light grey stays behind a page still
      made of cards until its own round) ====
@@ -18913,24 +18920,22 @@
   html.lg-new .pd2-amx-nav .pd2-amx-next{background:var(--color-text);color:var(--color-surface)}
   html.lg-new .pd2-amx-nav .pd2-amx-next:disabled{background:var(--surface-2);color:var(--color-quiet);cursor:default}
   /* TELL JAMBO THE CHANGE (the owner's pick, 23 Nov 2026): the pop-up's box and chips; step 2's approval rows; step 3's check */
-  .pd2-amk-box{display:flex;gap:10px;align-items:flex-start;padding:6px 0 10px;border-bottom:1px solid var(--color-neutral-300)}
-  .pd2-amk-sp{color:var(--accent-ink);font-size:15px;line-height:24px}
-  .pd2-amk-box{--fld-under:var(--fld-under-none)} /* ONE LINE under the box (owner, 23 Nov 2026: "delete one of the lines"): the box's own, not the field's too */
-  .pd2-amk-box .lgp-in{flex:1;min-height:72px;border:0;padding:0;font-size:15px;line-height:1.55;resize:vertical;background:none}
-  .pd2-amk-chips{margin-top:12px}
-  .pd2-amk-busy{padding:14px 0 6px;font-size:14px;color:var(--color-quiet)}
-  .pd2-amk-bar{height:4px;margin:16px 0 4px;border-radius:2px;background:var(--surface-2);overflow:hidden}
-  .pd2-amk-bar i{display:block;width:40%;height:100%;border-radius:2px;background:var(--accent-ink);animation:pd2AmkGlide 1.4s ease-in-out infinite}
-  .pd2-amk-bar.is-done i{width:100%;animation:none}
-  @keyframes pd2AmkGlide{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
-  .pd2-amk-finds{list-style:none;margin:14px 0 0;padding:0;font-size:14px;line-height:1.5}
-  .pd2-amk-finds li{display:flex;gap:10px;padding:5px 0;opacity:0;transform:translateY(4px);animation:pd2AmkIn .3s ease-out forwards}
-  .pd2-amk-finds li:nth-child(2){animation-delay:.35s} .pd2-amk-finds li:nth-child(3){animation-delay:.7s} .pd2-amk-finds li:nth-child(4){animation-delay:1.05s} .pd2-amk-finds li:nth-child(n+5){animation-delay:1.4s}
-  .pd2-amk-finds b{font-weight:var(--w-label)}
-  .pd2-amk-tk{flex:none;width:16px;text-align:center} .pd2-amk-tk.is-ok{color:var(--st-green-fg)} .pd2-amk-tk.is-nf{color:var(--st-amber-dot)}
-  .pd2-amk-cut{margin:8px 0 0;font-size:13px;color:var(--st-amber-fg)}
-  @keyframes pd2AmkIn{to{opacity:1;transform:none}}
-  @media (prefers-reduced-motion: reduce){.pd2-amk-bar i{animation:none;width:100%}.pd2-amk-finds li{animation:none;opacity:1;transform:none}}
+  html.lg-new .pd2-amk-box{display:flex;gap:10px;align-items:flex-start;padding:6px 0 10px;border-bottom:1px solid var(--color-neutral-300)}
+  html.lg-new .pd2-amk-sp{color:var(--accent-ink);font-size:15px;line-height:24px}
+  html.lg-new .pd2-amk-box{--fld-under:var(--fld-under-none)} /* ONE LINE under the box (owner, 23 Nov 2026: "delete one of the lines"): the box's own, not the field's too */
+  html.lg-new .pd2-amk-box .lgp-in{flex:1;min-height:72px;border:0;padding:0;font-size:15px;line-height:1.55;resize:vertical;background:none}
+  html.lg-new .pd2-amk-chips{margin-top:12px}
+  html.lg-new .pd2-amk-busy{padding:14px 0 6px;font-size:14px;color:var(--color-quiet)}
+  html.lg-new .pd2-amk-bar{height:4px;margin:16px 0 4px;border-radius:2px;background:var(--surface-2);overflow:hidden}
+  html.lg-new .pd2-amk-bar i{display:block;width:40%;height:100%;border-radius:2px;background:var(--accent-ink);animation:pd2AmkGlide 1.4s ease-in-out infinite}
+  html.lg-new .pd2-amk-bar.is-done i{width:100%;animation:none}
+  html.lg-new .pd2-amk-finds{list-style:none;margin:14px 0 0;padding:0;font-size:14px;line-height:1.5}
+  html.lg-new .pd2-amk-finds li{display:flex;gap:10px;padding:5px 0;opacity:0;transform:translateY(4px);animation:pd2AmkIn .3s ease-out forwards}
+  html.lg-new .pd2-amk-finds li:nth-child(2){animation-delay:.35s} html.lg-new .pd2-amk-finds li:nth-child(3){animation-delay:.7s} html.lg-new .pd2-amk-finds li:nth-child(4){animation-delay:1.05s} html.lg-new .pd2-amk-finds li:nth-child(n+5){animation-delay:1.4s}
+  html.lg-new .pd2-amk-finds b{font-weight:var(--w-label)}
+  html.lg-new .pd2-amk-tk{flex:none;width:16px;text-align:center} html.lg-new .pd2-amk-tk.is-ok{color:var(--st-green-fg)} html.lg-new .pd2-amk-tk.is-nf{color:var(--st-amber-dot)}
+  html.lg-new .pd2-amk-cut{margin:8px 0 0;font-size:13px;color:var(--st-amber-fg)}
+  @media (prefers-reduced-motion: reduce){html.lg-new .pd2-amk-bar i{animation:none;width:100%}html.lg-new .pd2-amk-finds li{animation:none;opacity:1;transform:none}}
   html.lg-new .pd2-amr{max-width:1100px;padding:4px 0 24px}
   html.lg-new .pd2-amr-asked{display:flex;align-items:baseline;gap:10px;padding:0 0 14px;border-bottom:1px solid var(--color-divider);font-size:14px}
   html.lg-new .pd2-amr-said{flex:1;min-width:0} html.lg-new .pd2-amr-said b{font-weight:var(--w-label)}
@@ -19237,12 +19242,11 @@
   /* THE PAPER'S CONTROLS COME BACK (step 3): pinned on the way up, a soft card under them; the pill at the paper's foot */
   html.lg-new .is-ctl-pinned{z-index:6}
   html.lg-new #pd2-notes > .pd2-rn-chips.is-ctl-pinned,html.lg-new #pd2-notes-tg.is-ctl-pinned{filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))}
-  @keyframes pd2CtlFade{from{opacity:0}to{opacity:1}}
   @media (prefers-reduced-motion:no-preference){ html.lg-new .is-ctl-pinned{animation:pd2CtlFade .24s ease-out both} }
   html.lg-new .pd2-ctl-pill{position:absolute;left:50%;bottom:18px;z-index:7;transform:translateX(-50%);height:var(--ctl-h-sm);padding:0 14px;border:0;border-radius:999px;background:var(--bar-black);color:var(--color-surface);font:inherit;font-size:12.5px;font-weight:var(--w-label);white-space:nowrap;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18)}
   /* ONE CLAUSE AT A TIME (the Dossier L+S, step 3): ‹ k of n › under the Clauses list's head */
   html.lg-new #pd-thread .doc-th-nav{display:flex;align-items:center;gap:8px;margin:0 0 8px;padding:0 16px;font-size:12.5px;color:var(--color-quiet)}
-  html.lg-new #pd-thread .doc-th-step{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-text);font-size:15px;line-height:1;cursor:pointer}
+  html.lg-new #pd-thread .doc-th-step{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;border:1px solid var(--btn-edge);background:var(--color-surface);color:var(--color-text);font-size:15px;line-height:1;cursor:pointer}
   html.lg-new #pd-thread .doc-th-step:disabled{opacity:.4;cursor:default}
   html.lg-new #pd-thread .doc-th-k{min-width:52px;text-align:center;font-variant-numeric:tabular-nums}
   /* THE PLAN TAB (the Dossier L+S, step 2): headline, the reader's words, one black act and a link, then the lines answered */
@@ -19543,10 +19547,10 @@
   html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .doc-th-go{padding:3px 0;gap:8px;align-items:baseline}
   html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .doc-th-name{font-size:13px;font-weight:var(--w-label);color:var(--color-text)}
   html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .doc-th-bead{left:4px;top:9px;width:8px;height:8px;border:0;background:var(--st-gray-dot);box-shadow:none}
-  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.stk-b-need .doc-th-bead,html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.stk-b-look .doc-th-bead{background:var(--st-amber-dot);border:0}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.stk-b-look .doc-th-bead{background:var(--st-amber-dot);border:0} html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.stk-b-need .doc-th-bead{background:var(--st-ruby-dot);border:0}
   html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row.stk-b-ok .doc-th-bead{background:var(--st-green-dot);border:0}
   html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .doc-th-state{font-size:11.5px;color:var(--color-text);white-space:nowrap}
-  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .stk-n.is-need,html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .stk-n.is-look{color:var(--st-amber-fg)}
+  html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .stk-n.is-look{color:var(--st-amber-fg)} html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .stk-n.is-need{color:var(--st-ruby-fg)}
   /* THE CLAUSE LIST AS DRAWN (round 3b; owner, 15 Nov 2026): its behaviour untouched, its look the drawing's — a small
      label over it, the rows one soft group, each clause's number in its round mark (amber where a point waits, green
      where it is fine), the open row a white card. Only the look: nothing here moves the paper or the list. */
@@ -22767,7 +22771,7 @@
   html.lg-new .hbkn-chip{border:1px dashed var(--color-neutral-300);border-radius:999px;background:none;font:inherit;font-size:13px;color:var(--color-quiet);padding:4px 11px;cursor:pointer;white-space:nowrap;display:inline-flex;gap:6px;align-items:center}
   html.lg-new .hbkn-chip.is-set{border-style:solid;border-color:var(--filter-on-edge);background:var(--filter-on-bg);color:var(--filter-on-ink)}
   html.lg-new .hbkn-x{color:var(--color-quiet)}
-  html.lg-new .hbkn-menu{position:absolute;left:0;top:calc(100% + 6px);z-index:20;min-width:220px;max-height:320px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.08);padding:6px;display:flex;flex-direction:column}
+  html.lg-new .hbkn-menu{position:absolute;left:0;top:calc(100% + 6px);z-index:20;min-width:220px;max-height:320px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);box-shadow:var(--shadow-md);padding:6px;display:flex;flex-direction:column}
   html.lg-new .hbkn-opt{border:0;background:none;font:inherit;font-size:13.5px;text-align:left;padding:7px 10px;border-radius:6px;cursor:pointer;color:var(--color-text)}
   html.lg-new .hbkn-opt:hover,html.lg-new .hbkn-opt.is-on{background:var(--surface-2)}
   html.lg-new .hbkn-cnt{font-size:13px;color:var(--color-quiet);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -22822,6 +22826,42 @@
   html.lg-new .hbkn-tl li i{width:11px;height:11px;border-radius:50%;background:var(--color-surface);border:2px solid var(--color-neutral-300);position:relative;top:1px;box-sizing:border-box}
   html.lg-new .hbkn-tl li.is-cur{color:var(--color-text);font-weight:var(--w-strong)}html.lg-new .hbkn-tl li.is-cur i{border-color:var(--st-green-fg);background:var(--st-green-fg)}
   html.lg-new .hbkn-pwhere{font-size:13.5px;color:var(--color-quiet)}
+  /* THE NOTEBOOK, THE LEGORA + STRIPE WAY (owner's pick, 23 Nov 2026, as drawn on the Handbook's frame): the Handbook's
+     calm table, chips and badges, with each row carrying the words Jambo last quoted and their section; the panel's
+     quote, "Where I quote it" bars and timeline; reading, the document by its sections, the quoted ones marked. Tokens only. */
+  html.lg-new .nb-page .hbkn-card{gap:0}
+  html.lg-new .nb-tabs{margin:14px 0 0}
+  html.lg-new .hbkn-tbl.nb-tbl th:nth-child(1){width:auto}html.lg-new .hbkn-tbl.nb-tbl th:nth-child(2){width:108px}
+  html.lg-new .hbkn-tbl.nb-tbl th:nth-child(3){width:92px}html.lg-new .hbkn-tbl.nb-tbl th:nth-child(4){width:138px}
+  html.lg-new .hbkn-tbl.nb-tbl th:nth-child(5){width:72px}html.lg-new .hbkn-tbl.nb-tbl th:nth-child(6){width:116px}html.lg-new .hbkn-tbl.nb-tbl th:nth-child(7){width:132px}
+  html.lg-new .nb-tbl td{vertical-align:middle}
+  html.lg-new .nb-rq{display:block;color:var(--color-quiet);font-size:12.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--font-doc)}
+  html.lg-new .nb-rq.is-none{font-family:inherit;color:var(--color-neutral-400)}
+  html.lg-new .hbkn-tt .nb-rq .nb-sec{display:inline}
+  html.lg-new .nb-sec{font-family:var(--font-ref);font-size:11.5px;color:var(--color-neutral-400);margin-right:2px;white-space:nowrap}
+  html.lg-new .nb-shelf{color:var(--color-quiet)}html.lg-new .nb-day{white-space:nowrap}
+  html.lg-new .nb-act{text-align:right}html.lg-new .nb-act .ui-btn{white-space:nowrap}
+  html.lg-new .nb-wait{padding:24px 10px}html.lg-new .nb-empty{max-width:560px}
+  html.lg-new .nb-page.is-reading .nb-read{max-width:720px;width:100%;margin:12px auto 0;flex:1;overflow-y:auto;min-height:0}
+  html.lg-new .nb-paper p{font-family:var(--font-doc);font-size:15px;line-height:1.6;margin:0 0 8px;color:var(--color-doc-text)}
+  html.lg-new .nb-s{padding:10px 12px;margin:0 -12px;border-radius:var(--radius-sm)}
+  html.lg-new .nb-s.is-quoted{background:var(--row-chosen);box-shadow:inset 2px 0 0 var(--st-green-dot)}
+  html.lg-new .nb-sn{display:flex;align-items:center;gap:8px;margin:0 0 4px}
+  html.lg-new .nb-cut{color:var(--st-amber-fg);font-size:13px;margin:0 0 12px}
+  html.lg-new .nb-pq{margin:0;border-left:2px solid var(--color-neutral-300);padding-left:10px;font-family:var(--font-doc);font-size:15px;line-height:1.45;color:var(--color-text)}
+  html.lg-new .nb-pqs{margin:6px 0 0;font-size:12px;color:var(--color-quiet)}
+  html.lg-new .nb-bars{display:flex;flex-direction:column;gap:6px}
+  html.lg-new .nb-bar{display:grid;grid-template-columns:76px minmax(0,1fr) 24px;align-items:center;gap:8px;border:0;background:none;padding:2px 0;font:inherit;font-size:12px;color:var(--color-quiet);cursor:pointer;text-align:left;border-radius:6px}
+  html.lg-new .nb-bar:hover{background:var(--row-hover)}
+  html.lg-new .nb-bar span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .nb-bar i{display:block;height:8px;border-radius:4px;background:var(--st-steel-dot);width:var(--nb-w)}
+  html.lg-new .nb-bar b{font-weight:var(--w-label);text-align:right;font-variant-numeric:tabular-nums}
+  html.lg-new .nb-tl b{font-weight:var(--w-label);color:var(--color-text)}html.lg-new .nb-tl li{font-size:12.5px}
+  html.lg-new .nb-acts{display:flex;flex-wrap:wrap;gap:8px}
+  html.lg-new .nb-file{display:flex;align-items:center;gap:10px;min-width:0}html.lg-new .nb-fname{color:var(--color-quiet);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  html.lg-new .jov5:is([data-jov-slot="nb"],[data-jov-slot="nb-ch"]) .jov5-group{background:none;border:0;border-radius:0;box-shadow:none;padding:0}
+  html.lg-new .jov5:is([data-jov-slot="nb"],[data-jov-slot="nb-ch"]) .jov5-row{background:none;border-radius:6px}
+  html.lg-new .jov5:is([data-jov-slot="nb"],[data-jov-slot="nb-ch"]) .jov5-row.is-door:hover{background:var(--row-hover)}
   /* the Handbook's panels draw no boxes, as drawn: groups on the panel itself, the black button under its words */
   html.lg-new .jov5:is([data-jov-slot="hbkn"],[data-jov-slot="hbkn-ch"],[data-jov-slot="hbkn-rd"]) .jov5-group{background:none;border:0;border-radius:0;box-shadow:none;padding:0}
   html.lg-new .jov5:is([data-jov-slot="hbkn"],[data-jov-slot="hbkn-ch"],[data-jov-slot="hbkn-rd"]) .jov5-row{background:none;border-radius:6px}
@@ -23786,6 +23826,11 @@
   html.lg-new .dsr-ladder li.is-answer.is-ruby{color:var(--st-ruby-fg)}
   html.lg-new .dsr-ladder li.is-answer.is-green{color:var(--st-green-fg)}
   html.lg-new .dsr-ladder li.is-answer.is-amber{color:var(--st-amber-fg)}
+  /* THE WAVES' STAGE AND ITS SLIDE (f1196) sit before HARMONY, whose rules all wait on html.lg-new: the stage is
+     hidden by default everywhere, and a keyframes block is no rule to scope (review of 23 Nov 2026) */
+  .wm-stage{display:none}
+  @keyframes wmSlideA{from{transform:translateX(0)}to{transform:translateX(792px)}}
+  @keyframes wmSlideB{from{transform:translateX(0)}to{transform:translateX(-704px)}}
   /* ==== THE NEW LOOK: HARMONY (the visual review, owner's picks saved 9 Nov 2026; the overnight run) ====
      docs/PLAN-harmony.md. Every rule waits on html.lg-new. ONE HEAD: every page title is the serif 26 the lists already
      wear (.ctf-h), 40 from the window's edge, its facts beside it; the pages still drawn on their own ph-card head
@@ -25614,7 +25659,6 @@
      panel itself is never wider. Where the browser cannot anchor, the old stepped weave stays (@supports). The colours
      now ride with the weave (one slide), a period of whole tiles (792 = 3 x 264, 704 = 4 x 176) so the loop is seamless;
      the same speeds as the weave before (264 px / 70 s, 176 px / 52 s) and the same directions. */
-  .wm-stage{display:none}
   @supports (anchor-name:--a) and (position-visibility:anchors-visible){
     @media (min-width:768px){
       html.lg-new :is(#ig-dock:not(:has(> .igd-door)):not(:has(> .igd-head[data-pd-head="paper"])), #ig-dock:not(:has(> .igd-door)):has(#pd-amendface .pd2-amls, .pd2-dossier.is-deal)){anchor-name:--wm-dock}
@@ -25635,8 +25679,6 @@
     }
     @media (prefers-reduced-motion: reduce){ html.lg-new .wm-stage > i{animation:none} }
   }
-  @keyframes wmSlideA{from{transform:translateX(0)}to{transform:translateX(792px)}}
-  @keyframes wmSlideB{from{transform:translateX(0)}to{transform:translateX(-704px)}}
   /* STILL ON EXPLORER (owner's pick, 22 Nov 2026: "Still on Explorer"): the weave stays on Explorer's panel but holds
      still there, so coming back to the map is as quick as before (home-speed-verify 2: 379 ms against a 357 bar while it
      moved, under it while still). Every other panel keeps the glide. */
@@ -25779,8 +25821,8 @@
   /* A TAB THAT NARROWS THE LIST IS IN COLOUR TOO (owner, 23 Nov 2026, picked "Green when it narrows"): a chosen tab chip that is not
      the list's whole view (All, or the page's first tab) carries .is-narrow and wears the filter colour; All stays plain. One closing rule,
      scoped above every page's own chosen-chip rule. f1193 (5). */
-  html:not(#_):not(#_):not(#_) :is(.apn-tab.is-chip.is-on, .reg-vtab.on, .nd-tab.is-chip.on, .ndb-chip, .act-chip, .hist6-chip, .rl-np-chip.on).is-narrow{border-style:solid;border-color:var(--filter-on-edge);background:var(--filter-on-bg);color:var(--filter-on-ink)}
-  html:not(#_):not(#_):not(#_) :is(.apn-tab.is-chip.is-on, .reg-vtab.on, .nd-tab.is-chip.on, .ndb-chip, .act-chip, .hist6-chip, .rl-np-chip.on).is-narrow :is(span, em, b, .n){color:inherit}
+  html.lg-new:not(#_):not(#_):not(#_) :is(.apn-tab.is-chip.is-on, .reg-vtab.on, .nd-tab.is-chip.on, .ndb-chip, .act-chip, .hist6-chip, .rl-np-chip.on).is-narrow{border-style:solid;border-color:var(--filter-on-edge);background:var(--filter-on-bg);color:var(--filter-on-ink)}
+  html.lg-new:not(#_):not(#_):not(#_) :is(.apn-tab.is-chip.is-on, .reg-vtab.on, .nd-tab.is-chip.on, .ndb-chip, .act-chip, .hist6-chip, .rl-np-chip.on).is-narrow :is(span, em, b, .n){color:inherit}
   /* THE CHOSEN CHIP IS WHITE WITH A SOLID LINE ON CONTRACTS (owner, 21 Nov 2026, as drawn; reverses f1109's shading here only) */
   html.lg-new #ig-page #ct-place .ct-page .ct-head .reg-vtab .n{padding:0 0 0 2px;color:inherit;font-weight:var(--w-label)}
   html.lg-new #ig-page #ct-place .ct-page .ct-head .reg-vtab[data-reg-view="needs"]::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--st-amber-dot)}

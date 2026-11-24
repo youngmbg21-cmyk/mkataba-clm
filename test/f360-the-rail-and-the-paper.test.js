@@ -138,7 +138,8 @@ describe('f360 (3) the rail is the product\'s own, and its list is bounded', () 
       assert.ok(pick.includes(shared), 'the row shares the rail\'s ' + shared);
     assert.ok(rail.includes('padding:0 10px') && /padding:5px 10px/.test(pick),
       'the same 10px inset — two lines instead of one is the only difference');
-    assert.match(CSS, /\.na-pick:hover\{ background:var\(--color-neutral-100\); \}/, 'the rail\'s own hover');
+    /* RE-POINTED 23 Nov 2026 (owner: a row pointed at or chosen is light green, never grey — var(--row-hover)). */
+    assert.match(CSS, /\.na-pick:hover\{ background:var\(--row-hover\); \}/, 'the row\'s hover is the light green one');
     assert.match(CSS, /\.tpl-rail\.on,\.tpl-rail\.on:hover\{background:var\(--accent-fill\);color:#fff;/);
     assert.match(CSS, /\.na-pick\.on,\.na-pick\.on:hover\{ background:var\(--accent-fill\); \}/, 'and its own lit state');
     assert.match(CSS, /\.na-pick\.on \.na-pick-n\{ color:#fff/);

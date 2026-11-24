@@ -35,11 +35,16 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   const up = await go(true);
   const key = await page.evaluate(s => { const r = [...document.querySelectorAll(s)].find(x => /Return the pallets/.test(x.textContent)); if (!r) return ''; r.setAttribute('data-pp', '1'); return r.getAttribute('data-ob-key'); }, rowSel);
   if (key) await page.dblclick('[data-pp="1"]');
-  const landed = await until(page, () => state.view === 'dashboard' && window.pdContract && pdContract() && pdContract().id === 'MK-A1' && pdOnPaper() && pdTab() === 'oblig', null, 15000);
+  /* RE-POINTED 23 Nov 2026 (Duties ONE DOOR, "Duties, end to end": the hidden Obligations face is gone; a duty's door opens
+     its contract's Duties page in the middle of Home, On the contract, the pressed duty CHOSEN — its row lit, the panel
+     saying it), Jambo's box still at the panel's foot */
+  const landed = await until(page, () => state.view === 'dashboard' && window.pdContract && pdContract() && pdContract().id === 'MK-A1' && pdOnPaper()
+    && !!document.querySelector('#dtp tr.dtp-r.is-sel'), null, 15000);
   await page.waitForTimeout(600);
-  const s1 = await page.evaluate(k => ({ view: state.view, tab: pdTab(), box: !!document.querySelector('#ig-dock #igd-input'), rows: document.querySelectorAll('#ig-dock .pd-ob-r, #ig-dock [data-pd-ob-row]').length,
-    open: !!document.querySelector('#ig-dock .pd-ob-b'), openSays: ((document.querySelector('#ig-dock .pd-ob-b') || {}).innerText || '').slice(0, 60), narrowed: !!document.querySelector('[data-obw-only-clear]') }), key);
-  check('1 · a double press on a duty lands on its paper, the Obligations face with the row open, Jambo\'s box at the foot', up && !!key && landed && s1.box && s1.open && !s1.narrowed, s1);
+  const s1 = await page.evaluate(k => ({ view: state.view, box: !!document.querySelector('#ig-dock #igd-input'), rows: document.querySelectorAll('#dtp tr.dtp-r[data-dtp-rec]').length,
+    open: /Return the pallets/.test(((document.querySelector('#dtp tr.dtp-r.is-sel') || {}).innerText || '')) && /Return the pallets/.test(((document.querySelector('#ig-dock [data-obdf] .obdf-t') || {}).innerText || '')),
+    openSays: ((document.querySelector('#ig-dock [data-obdf] .obdf-t') || {}).innerText || '').slice(0, 60), narrowed: !!document.querySelector('[data-obw-only-clear]') }), key);
+  check('1 · a double press on a duty lands on its paper, its Duties page with that duty chosen, Jambo\'s box at the foot', up && !!key && landed && s1.box && s1.open && !s1.narrowed, s1);
 
   /* 2 */
   const back = await go(true);

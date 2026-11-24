@@ -35,7 +35,7 @@ function constSrc(name){
 }
 const NAMES = { board:'Board', contracts:'Contracts', requests:'Requests', import:'Import', ourpaper:'Our paper', standards:'Playbook', draft:'New agreement',
   negotiations:'Negotiations', approvals:'Approvals & signing', oblig:'Obligations', calendar:'Calendar', parties:'Parties',
-  people:'People', mynotes:'My notes', explorer:'Explorer', reads:'Discover', alertme:'Alerts', house:'Jambo’s agents', flowmap:'Flow map',
+  people:'People', mynotes:'My notes', notebook:'Notebook', explorer:'Explorer', reads:'Discover', alertme:'Alerts', house:'Jambo’s agents', flowmap:'Flow map',
   handbook:'Handbook', settings:'Settings & rules' };
 function world(opts = {}){
   const dom = new JSDOM('<!doctype html><html><body><header id="top-header"><button id="dk-nav" type="button"></button></header><main id="page"></main></body></html>',

@@ -158,6 +158,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         words: [...p.querySelectorAll('[data-jl-words] :is(.jl-bub, .jov-head, .jov-v)')].map(b => b.textContent.trim()),
         chips: [...p.querySelectorAll(':is([data-jl-chip], .jov-lnk.is-ask)')].map(b => b.textContent.trim()),
         ph: q ? q.getAttribute('placeholder') : null, hint: hint ? hint.textContent.replace(/\s+/g, ' ').trim() : null,
+        th: (typeof teachHintOn === 'function' && teachHintOn()) ? i18t('teach_hint_ph') : null,
         text: p.innerText.replace(/\s+/g, ' ') }; };
     const N0 = await page.evaluate(PANEL);
     /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): Jambo's panel FLOATS, a white card 8px in from the window's edge, its top and its foot (the owner's drawing) */
@@ -167,7 +168,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     /* RE-POINTED 20 Oct 2026 (Chambers): no hint line under any Jambo box */
     /* RE-POINTED 22 Nov 2026 (owner: "make them honest labels but jambo should have the ability to answer those questions"): the
        page's example question moved from the top box into Jambo's box at the panel's foot */
-    check('1c the box asks with the page\'s question, and no hint line under it', !!N0 && N0.ph === 'Ask Jambo: “whose move is it?”' && N0.hint === null, JSON.stringify(N0 && { ph: N0.ph, hint: N0.hint }));
+    /* RE-POINTED 23 Nov 2026 (Jambo the instructor, f1189: a newcomer's box carries the "I'm new" hint until they say, teachPh/jlPagePh) */
+    check('1c the box asks with the page\'s question (or the newcomer\'s hint), and no hint line under it', !!N0 && N0.ph === (N0.th || 'Ask Jambo: “whose move is it?”') && N0.hint === null, JSON.stringify(N0 && { ph: N0.ph, hint: N0.hint }));
 
     /* ---- 2 a row pressed ---- */
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the chosen round's panel is THE PRESSED ROUND ALONE
@@ -637,9 +639,11 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await part('7c Import', async () => {
         await page.evaluate(() => setView('migration'));
         const HI = await until(sel => { const q = document.querySelector('#mig-side #jl-q'), e = q && (q.closest('.jb-card') || q);
-          return e && e.getClientRects().length ? { hints: document.querySelectorAll(sel).length, inView: e.getBoundingClientRect().bottom <= innerHeight, ph: q.getAttribute('placeholder') } : null; }, HINTS, 10000);
+          return e && e.getClientRects().length ? { hints: document.querySelectorAll(sel).length, inView: e.getBoundingClientRect().bottom <= innerHeight, ph: q.getAttribute('placeholder'),
+            th: (typeof teachHintOn === 'function' && teachHintOn()) ? i18t('teach_hint_ph') : null } : null; }, HINTS, 10000);
         /* RE-POINTED 22 Nov 2026 (the top box filters, Jambo's box asks, #888): Import's Jambo box carries the page's question */
-        check(`7c Import ${w}×${ht}: the shared box in its panel with the page's question, no hint line under it, in view`, !!HI && HI.hints === 0 && HI.ph === 'Ask Jambo: “which ones end this year?”' && HI.inView, JSON.stringify(HI));
+        /* RE-POINTED 23 Nov 2026 (Jambo the instructor, f1189: a newcomer's box carries the "I'm new" hint until they say) */
+        check(`7c Import ${w}×${ht}: the shared box in its panel with the page's question (or the newcomer's hint), no hint line under it, in view`, !!HI && HI.hints === 0 && HI.ph === (HI.th || 'Ask Jambo: “which ones end this year?”') && HI.inView, JSON.stringify(HI));
         await shot(`hint-import-${w}x${ht}.png`);
       });
     }

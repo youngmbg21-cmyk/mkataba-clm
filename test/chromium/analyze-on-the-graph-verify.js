@@ -166,7 +166,10 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
     /* ================= 2. A QUESTION, AND WHERE ITS ANSWER LANDS =========== */
     const sentence = await page.evaluate(() => {
       const c = document.getElementById('ig-canvas');
-      const ps = [...c.querySelectorAll('p,li,div')].map(e => e.textContent.replace(/\s+/g, ' ').trim())
+      /* RE-POINTED 23 Nov 2026 (CI red on main: the stage picked a wrapper whose textContent runs a clause heading into its
+         paragraph — "8. Data ProtectionWhere personal data…" — words the paper never prints together, so no quote could
+         match): the sentence is read from a block holding no other block, as a reader would select it */
+      const ps = [...c.querySelectorAll('p,li,div')].filter(e => !e.querySelector('p,li,div,h1,h2,h3,h4,h5,h6')).map(e => e.textContent.replace(/\s+/g, ' ').trim())
         .filter(t => t.length > 60 && t.length < 260 && !/\n/.test(t));
       return ps[Math.floor(ps.length / 2)] || ps[0] || '';
     });

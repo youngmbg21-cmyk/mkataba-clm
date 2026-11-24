@@ -182,7 +182,9 @@ const FACE = () => {
     /* RE-POINTED 16 Nov 2026 (#762): the new look has no narrowed Obligations page — one contract asked for lands on
        its paper's Obligations face (renderObligationsList → pd2ObGo) */
     check('6b its old Obligations door opens the Obligations page narrowed to the contract', await waitFor(page, () => (state.view === 'obligations' && !!document.querySelector('#obw-one-host[data-ins-cid="MK-A2"]'))
-      || (state.view === 'dashboard' && !!(window.pdContract && pdContract() && pdContract().id === 'MK-A2') && typeof pdTab === 'function' && pdTab() === 'oblig'), 8000));
+      /* RE-POINTED 23 Nov 2026 (Duties ONE DOOR: every Obligations door lands on the contract's Duties page in the
+         middle, #dtp, beside its paper; the old Obligations face never shows) */
+      || (state.view === 'dashboard' && !!(window.pdContract && pdContract() && pdContract().id === 'MK-A2') && !!document.querySelector('#modal-root #dtp')), 8000));
     await page.evaluate(() => { openWorkspace('MK-A2', { room: true }); });
     await waitFor(page, () => state.view === 'workspace', 6000);
     await page.evaluate(() => roomGoTab(getContract('MK-A2'), 'history'));

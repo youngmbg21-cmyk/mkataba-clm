@@ -678,7 +678,8 @@ const dismissNote = async pg => {
      over their change Save files our counter to it. The hover says so ("Files your counter to CHG-…"); it used to
      say "Saves into CHG-…" naming THEIR change. Over our own change it still says "Saves into". */
   ck('7f and the page was re-read from the record — File greys, naming the change',
-     reseed.save === true && /^Save (Files your counter to|Saves into) CHG-/.test(reseed.label),
+     /* RE-POINTED 23 Nov 2026 (Dossier L+S step 4: the editor's black button on a walk says "then next", ce_then_next) */
+     reseed.save === true && /^Save( · next ›)? (Files your counter to|Saves into) CHG-/.test(reseed.label),
      `${reseed.label} · disabled ${reseed.save}`);
 
   /* ---- 8. THE PANEL'S OWN COPILOT BUTTON IS THE OTHER DOOR ---- */

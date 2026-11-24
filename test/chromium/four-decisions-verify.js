@@ -134,7 +134,11 @@ const blocked = [];
           return { tabs, word: send.textContent.trim(), tip: send.title, fold: !!xr && xr.width > 0 && xr.right <= dock.right && xr.left >= dock.left }; });
         const bad = m.tabs.filter(t => t.cut);
         /* RE-POINTED 28 Oct 2026 ("Door above the box"): no Jambo tab, so four */
-        check(`${at} · Q2 — four tabs, every word whole`, m.tabs.length === 4 && !bad.length, m.tabs.map(t => t.t + (t.cut ? ' (cut)' : '')).join(' · '));
+        /* RE-POINTED 23 Nov 2026 (Dossier L+S step 2, PLAN THE READ): a paper not read yet that the reader may plan carries
+           the Plan tab beside the Dossier (pd2PlanTabOn) — four tabs, and the fifth only when that rule says so */
+        const planOn = await ev(id => typeof pd2PlanTabOn === 'function' && !!pd2PlanTabOn(getContract(id)), reviewId, false);
+        const want = 4 + (planOn ? 1 : 0), planDrawn = m.tabs.some(t => /^Plan\b/.test(t.t));
+        check(`${at} · Q2 — four tabs (and Plan only where the paper may be planned), every word whole`, m.tabs.length === want && planDrawn === !!planOn && !bad.length, m.tabs.map(t => t.t + (t.cut ? ' (cut)' : '')).join(' · ') + (planOn ? ' · plan rule on' : ''));
         check(`${at} · Q2 — the letter's tab says "Email" (owner, 25 Oct 2026: "calling the tab send makes no sense"), its hover the whole name`, m.word === 'Email' && m.tip === 'Before you send', `"${m.word}" · hover "${m.tip}"`);
         check(`${at} · Q2 — the panel's › stays in the panel`, m.fold);
       }

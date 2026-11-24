@@ -251,7 +251,7 @@ async function SEED(){
         latest: p.querySelectorAll('.jov5 [data-jov5-sec="latest"] .tpln6-dr').length,
         groups: [...p.querySelectorAll('.jov5 .jov5-sec')].map(g => g.textContent.replace(/\s+/g, ' ').trim()),
         say: (p.querySelector('.jov5 .jov5-act .jov5-say') || {}).textContent || '', go: (p.querySelector('.jov5 .jov5-act .jov5-go') || {}).textContent || '',
-        link: (p.querySelector('.jov5 .jov5-act .jov5-acts > :not(.jov5-go)') || {}).textContent || '', ph: (p.querySelector('#jl-q') || {}).placeholder || '', hints: p.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length,
+        link: (p.querySelector('.jov5 .jov5-act .jov5-acts > :not(.jov5-go)') || {}).textContent || '', ph: (p.querySelector('#jl-q') || {}).placeholder || '', th: (typeof teachHintOn === 'function' && teachHintOn()) ? i18t('teach_hint_ph') : null, hints: p.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length,
         fixed: getComputedStyle(p).position, right: (d => d >= 0 && d <= 9)(innerWidth - Math.round(p.getBoundingClientRect().right)) }; });
     /* RE-POINTED 24 Oct 2026 (Round 2, owner's yes): no "‹ Overview" beside the Overview tab; the tab is the way back */
     /* RE-POINTED 25 Oct 2026 (owner: "this page does not need an overview page"): ONE Jambo window —
@@ -289,7 +289,8 @@ async function SEED(){
     /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): Jambo's panel FLOATS, a white card 8px in from the window's edge, its top and its foot (the owner's drawing) */
     /* RE-POINTED 22 Nov 2026 (owner: "make them honest labels but jambo should have the ability to answer those questions"): the
        page's example question moved from the top box into Jambo's box at the panel's foot */
-    check('5d the ask box at the panel\'s foot with the page\'s question, no hint line under it; the panel 8px in from the window\'s edge', E.ph === 'Ask Jambo: “which paper for a new supplier?”' && E.hints === 0 && E.right, JSON.stringify({ ph: E.ph, hints: E.hints, right: E.right }));
+    /* RE-POINTED 23 Nov 2026 (Jambo the instructor, f1189: a newcomer's box carries the "I'm new" hint until they say, teachPh/jlPagePh) */
+    check('5d the ask box at the panel\'s foot with the page\'s question (or the newcomer\'s hint), no hint line under it; the panel 8px in from the window\'s edge', E.ph === (E.th || 'Ask Jambo: “which paper for a new supplier?”') && E.hints === 0 && E.right, JSON.stringify({ ph: E.ph, hints: E.hints, right: E.right }));
     await press('#ins-panel [data-jl-home]');
     const E2 = await until(() => { const p = document.getElementById('ins-panel'); return p && ![...p.querySelectorAll('.jov5-title')].some(t => /Master services agreement/.test(t.textContent)) && p.querySelector('[data-jl-words]') ? p.querySelector('[data-jl-words]').textContent.replace(/\s+/g, ' ').trim() : null; });
     check('5e ‹ Jambo lets the template go: his words say the book', !!E2 && /Our paper holds \d+ templates/.test(E2) && /contracts were drafted from them in 12 months; 2 came back changed/.test(E2), E2);

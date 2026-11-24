@@ -605,7 +605,7 @@ const HANDBOOK_CHAPTERS = [
     words: { en: ['after signing', 'sealed', 'executed copy', 'signed contract', 'frozen'], sv: ['efter signering', 'förseglad', 'verkställd kopia', 'signerat avtal', 'fryst'] },
     shots: [
       { go: [{ open: 'MK-B1', face: 'copilot' }, { fn: 'pdSignOpen', ref: 'MK-B1', arg: 'id' }], boxes: [{ sel: '#sign-seal-acts', step: 1 }, { sel: '#sign-wrap', step: 1 }], cap: { en: 'The receipt: the seal to verify, and the copies sent (1).', sv: 'Kvittot: sigillet att verifiera, och kopiorna som skickats (1).' } },
-      { go: [{ open: 'MK-B1', face: 'copilot' }, { waitFor: '#ig-dock [data-ca-chip="oblig"]' }], boxes: [{ sel: '#ig-dock [data-ca-chip="oblig"]', step: 2 }, { sel: '#ig-dock [data-ca-chip="history"]', step: 3 }], cap: { en: 'Above Jambo\'s box: duties (2) and history (3).', sv: 'Ovanför Jambos ruta: åtaganden (2) och historik (3).' } }] },
+      { go: [{ open: 'MK-B1', face: 'copilot' }, { waitFor: '#ig-dock [data-pd2-dtc]' }], boxes: [{ sel: '#ig-dock [data-pd2-dtc]', step: 2 }, { sel: '#ig-dock [data-ca-chip="history"]', step: 3 }], cap: { en: 'The Dossier\'s Duties card (2); above Jambo\'s box, history (3).', sv: 'Dossierns kort Åtaganden (2); ovanför Jambos ruta, historik (3).' } }] },
 
   /* ======================= PART 5 — KEEP IT ALIVE ======================= */
   { k: '5.1', part: 'keep', round: 1,
@@ -633,7 +633,7 @@ const HANDBOOK_CHAPTERS = [
     words: { en: ['obligations', 'duties', 'what is due', 'mark done', 'chase', 'week by week', 'promises'], sv: ['åtaganden', 'skyldigheter', 'vad förfaller', 'markera klart', 'påminn', 'vecka för vecka'] },
     shots: [
       { go: [{ place: 'oblig' }, { waitFor: '[data-obn-go="done"]' }], boxes: [{ sel: '[data-obn-tab]', step: 1 }, { sel: '[data-obn-go="done"]', step: 3 }], cap: { en: 'The tabs at the top (1); We owe and They owe, one act per line, here Mark done (3).', sv: 'Flikarna högst upp (1); Vi är skyldiga och De är skyldiga, en handling per rad, här Markera klar (3).' } },
-      { go: [{ open: 'MK-C1', face: 'copilot' }, { waitFor: '#ig-dock [data-ca-chip="oblig"]' }], boxes: [{ sel: '#ig-dock [data-ca-chip="oblig"]', step: 6 }, { sel: '#ig-dock .pd2-card-go', step: 6 }], cap: { en: 'On a contract\'s Dossier: the duties chip, or the card\'s button when a duty is what waits (6).', sv: 'I ett avtals Dossier: knappen åtaganden, eller kortets knapp när det är ett åtagande som väntar (6).' } }] },
+      { go: [{ open: 'MK-C1', face: 'copilot' }, { waitFor: '#ig-dock [data-pd2-dtc]' }], boxes: [{ sel: '#ig-dock [data-pd2-dtc]', step: 9 }], cap: { en: 'On a contract\'s Dossier: the Duties card, the one way to its duties (9).', sv: 'I ett avtals Dossier: kortet Åtaganden, den enda vägen till dess åtaganden (9).' } }] },
 
   { k: '5.2', part: 'keep', round: 2,
     title: { en: 'Calendar and the plan', sv: 'Kalendern och planen' },
@@ -1051,6 +1051,25 @@ const HANDBOOK_CHAPTERS = [
     shots: [
       { go: [{ place: 'brain' }], boxes: [{ sel: '[data-br-flow="upload"]', step: 1 }, { sel: '[data-br-view="3"]', step: 2 }], cap: { en: 'The Brain: a flow to follow (1), and the Lanes view (2).', sv: 'Hjärnan: ett flöde att följa (1), och vyn Banor (2).' } }] },
 
+  /* THE NOTEBOOK (owner's pick "The Legora + Stripe way", 23 Nov 2026): documents Jambo may quote */
+  { k: '6.5', part: 'see', round: 2,
+    title: { en: 'The Notebook: laws, policies and research Jambo quotes', sv: 'Anteckningsboken: lagar, policyer och forskning som Jambo citerar' },
+    eyebrow: { en: 'Notebook page', sv: 'Sidan Anteckningsbok' },
+    what: { en: 'A shelf of documents Jambo may quote when a question needs them: a law such as GDPR, one of the company\'s own policies, or your own research. The Company shelf is for everyone and only an admin adds to it; Mine is yours alone. Jambo quotes a document\'s exact words with its section (GDPR, Art. 28(3)), and says when the notebook does not cover a question.',
+      sv: 'En hylla med dokument som Jambo får citera när en fråga behöver dem: en lag som GDPR, en av företagets egna policyer, eller din egen forskning. Företagets hylla är för alla och bara en admin lägger till på den; Mina är bara din. Jambo citerar ett dokuments exakta ord med dess avsnitt (GDPR, Art. 28(3)), och säger när anteckningsboken inte täcker en fråga.' },
+    when: [{ en: '"Can the supplier keep our customer data outside Kenya?" answered from the Data Protection Act itself.', sv: '"Får leverantören spara våra kunddata utanför Kenya?" besvarat ur själva dataskyddslagen.' },
+      { en: 'A policy the whole company must follow, kept where Jambo can quote it.', sv: 'En policy hela företaget ska följa, sparad där Jambo kan citera den.' }],
+    path: ['door:notebook'],
+    how: [{ en: 'Press {ui:nb_add}: choose the file (PDF, Word or text), give it a name, say what it is (a law, our policy or research) and which shelf, and the day it is in force from. HaTi reads it into its own sections at once, without AI.', sv: 'Tryck {ui:nb_add}: välj filen (PDF, Word eller text), ge den ett namn, säg vad den är (en lag, vår policy eller forskning) och vilken hylla, och dagen den gäller från. HaTi läser in den i sina egna avsnitt direkt, utan AI.' },
+      { en: 'Read a row: the document with the words Jambo last quoted from it and their section, its kind, its shelf, its status (Up to date, Check due, Not quoted yet), how often it was quoted and the day it was last checked.', sv: 'Läs en rad: dokumentet med orden Jambo senast citerade ur det och deras avsnitt, dess slag, dess hylla, dess status (Aktuellt, Dags att kontrollera, Inte citerat än), hur ofta det citerats och dagen det senast kontrollerades.' },
+      { en: 'Press a row once: Jambo\'s panel shows its badges, the quote, where he quotes it most, and a timeline. Press it again, or {ui:nb_open}, and the document opens in the middle, the sections he quoted marked.', sv: 'Tryck en gång på en rad: Jambos panel visar dess brickor, citatet, var han citerar det mest, och en tidslinje. Tryck igen, eller {ui:nb_open}, så öppnas dokumentet i mitten med avsnitten han citerat markerade.' },
+      { en: 'A document nobody has checked for 12 months says Check due. When you have made sure it is still current, press {ui:nb_check}; Undo puts the old check back. A newer version? {ui:nb_replace}.', sv: 'Ett dokument som ingen kontrollerat på 12 månader säger Dags att kontrollera. När du har sett att det fortfarande gäller, tryck {ui:nb_check}; Ångra lägger tillbaka den gamla kontrollen. En nyare version? {ui:nb_replace}.' },
+      { en: 'Ask about it in Jambo\'s box at the foot of the side panel, or anywhere in HaTi: he looks in the notebook when a question turns on a law or one of our policies.', sv: 'Fråga om det i Jambos ruta längst ned i sidopanelen, eller var som helst i HaTi: han letar i anteckningsboken när en fråga gäller en lag eller en av våra policyer.' }],
+    tip: { en: 'Only a person marks a document checked, never Jambo: he cannot know whether a law has changed.', sv: 'Bara en person markerar ett dokument som kontrollerat, aldrig Jambo: han kan inte veta om en lag har ändrats.' },
+    cost: { en: 'Free to add and read; only a scanned PDF, with no words to read, needs Jambo to read its pages first', sv: 'Gratis att lägga till och läsa; bara en skannad PDF, utan ord att läsa, behöver Jambo för att läsa sidorna först' }, doors: ['notebook'], acts: [],
+    words: { en: ['notebook', 'gdpr', 'law', 'policy', 'research', 'reference documents', 'company requirements'], sv: ['anteckningsbok', 'gdpr', 'lag', 'policy', 'forskning', 'referensdokument'] },
+    noShot: { en: 'The Notebook is new; its pictures are taken with the book\'s next batch.', sv: 'Anteckningsboken är ny; dess bilder tas med bokens nästa omgång.' } },
+
   /* ======================= PART 7 — SETTINGS & RULES ======================= */
   { k: '7.1', part: 'settings', round: 2,
     title: { en: 'People, roles and the grants per person', sv: 'Personer, roller och behörigheter per person' },
@@ -1285,7 +1304,7 @@ const HBK_VIEW_DOORS = {
   dashboard: ['board', 'needs'], register: ['contracts', 'list', 'wall'], folder: ['contracts', 'list'], workspace: ['document'],
   redline: ['negotiations', 'redline'], reports: ['board'], obligations: ['oblig', 'week'],
   approvals: ['approvals'], pipeline: ['approvals'], customers: ['parties'], agents: ['house'], jambo: ['house'], brain: ['brain'],
-  calendar: ['calendar'], mynotes: ['mynotes'], reads: ['reads'], handbook: ['handbook'], flowmap: ['flowmap'], templates: ['ourpaper'], playbook: ['standards'],
+  calendar: ['calendar'], mynotes: ['mynotes'], notebook: ['notebook'], reads: ['reads'], handbook: ['handbook'], flowmap: ['flowmap'], templates: ['ourpaper'], playbook: ['standards'],
   intake: ['requests'], advice: ['requests'], directory: ['people'], team: ['settings', 'company'], migration: ['import'] };
 const HBK_FACE_DOORS = { board: ['board'], paper: ['document'], calendar: ['calendar'], explorer: ['explorer'] };
 function hbkChaptersForPage(view, face){

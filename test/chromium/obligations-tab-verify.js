@@ -546,10 +546,12 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762; the platform review, 6 Nov 2026): a duty's row opens
        on its contract's PAPER, Jambo's panel on that contract's Obligations face — the place the row is about, never the
        old narrowed page (obligation-opens-on-the-paper-verify pins the double press) */
-    await page.waitForFunction(w => state.view === 'dashboard' && typeof pdContract === 'function' && pdContract() && pdContract().id === w && typeof pdTab === 'function' && pdTab() === 'oblig', want, { timeout: 8000 }).catch(() => {});
-    const back = await page.evaluate(() => ({ view: state.view, id: (typeof pdContract === 'function' && pdContract()) ? pdContract().id : null, tab: typeof pdTab === 'function' ? pdTab() : null }));
-    check('pressing a row opens that contract\'s Obligations, on its paper',
-      back.view === 'dashboard' && back.id === want && back.tab === 'oblig', JSON.stringify(back));
+    /* RE-POINTED 23 Nov 2026 (Duties ONE DOOR, owner: every way in lands on the contract's Duties page, the old panel tab
+       never shows): the row opens its contract's Duties page in the middle (#dtp), beside that contract's Dossier */
+    await page.waitForFunction(w => state.view === 'dashboard' && typeof pdContract === 'function' && pdContract() && pdContract().id === w && !!document.getElementById('dtp'), want, { timeout: 8000 }).catch(() => {});
+    const back = await page.evaluate(() => ({ view: state.view, id: (typeof pdContract === 'function' && pdContract()) ? pdContract().id : null, tab: typeof pdTab === 'function' ? pdTab() : null, duties: !!document.getElementById('dtp') }));
+    check('pressing a row opens that contract\'s Duties page, on its paper',
+      back.view === 'dashboard' && back.id === want && back.duties && back.tab !== 'oblig', JSON.stringify(back));
 
     /* ---- THE CHASE RECORDS THE FACT WHATEVER THE MAIL DOES ---- */
     await page.evaluate(w => { setView('counter'); ((t) => { const a = typeof jamboPageWordOf === 'function' && jamboPageWordOf(t); return a ? caGo(a) : caAskAnywhere(t, { all: true }); })(w); }, 'obligations');

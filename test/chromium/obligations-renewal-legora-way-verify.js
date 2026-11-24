@@ -67,22 +67,27 @@ const dayFrom = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10)
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await until(() => window.state && state.contracts && typeof getContract === 'function' && getContract('MK-UP2') ? true : null, null, 20000);
     await page.keyboard.press('Escape').catch(() => {});
+    /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end": ONE DOOR — the hidden Obligations panel tab is gone; every way
+       that turned the panel to it, pdOpenOnHome(id, 'oblig') among them, opens the contract's Duties page in the middle,
+       #dtp, on "On the contract", and the Dossier's panel beside it draws the page's face, [data-obdf]: nothing chosen,
+       the contract's dates — Ends, Notice to end (ovMapRenewal) — and its life). Each claim is asked of its new place:
+       the renewal's dates are the panel's facts; the sides are the page's Whose chip over its one table. */
     const openOb = async id => {
-      await page.evaluate(async i => { const c = getContract(i); if (c && c._light && typeof ensureFull === 'function') await ensureFull(c); pdOpenOnHome(i, 'oblig'); }, id);
-      return until(i => window.intel && intel.paper && String(intel.paper.id) === i && document.querySelector('#pd-body .pd-ob, #pd-body .pd-rn') ? true : null, id, 12000);
+      await page.evaluate(async i => { try { closeModal(); } catch (_) {} const c = getContract(i); if (c && c._light && typeof ensureFull === 'function') await ensureFull(c); pdOpenOnHome(i, 'oblig'); }, id);
+      return until(i => window.intel && intel.paper && String(intel.paper.id) === i && document.getElementById('dtp') && document.querySelector('[data-obdf]') ? true : null, id, 12000);
     };
     const TAB = () => {
-      const b = document.getElementById('pd-body'); if (!b) return null;
-      const rn = b.querySelector('[data-pd-rn]');
-      return { rows: rn ? [...rn.querySelectorAll('.pd-rn-row')].map(r => r.innerText.replace(/\s+/g, ' ').trim()) : [],
-        quote: rn && rn.querySelector('.pd-rn-q') ? rn.querySelector('.pd-rn-q').innerText.replace(/\s+/g, ' ').trim() : '',
-        /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the face is Jambo's Five panel (owner, 15 Nov 2026,
-           "Build as drawn"): the renewal's dates are its tiles (.jov5-glance: the end day, the notice day, the duties) */
-        glance: [...b.querySelectorAll('.pd-obm-tab.is-five .jov5-glance .jov5-g')].map(g => g.innerText.replace(/\s+/g, ' ').trim()),
-        tabs: [...b.querySelectorAll('.pd-obs-tab')].map(t => t.textContent.replace(/\s+/g, '') + (t.getAttribute('aria-selected') === 'true' ? '*' : '')),
-        sides: [...b.querySelectorAll('.pd-ob')].map(r => r.classList.contains('is-theirs') ? 'theirs' : 'ours'),
-        map: !!b.querySelector('.ov-map-stage, svg.ov-map'), side: document.documentElement.scrollWidth <= innerWidth + 1 };
+      const b = document.getElementById('dtp'), f = document.querySelector('[data-obdf]'); if (!b || !f) return null;
+      const facts = Object.fromEntries([...f.querySelectorAll('.obdf-fact')].map(x => [...x.children].map(y => y.textContent.replace(/\s+/g, ' ').trim())));
+      const q = f.querySelector('blockquote, .obdf-q, .pd-rn-q') || b.querySelector('.pd-rn-q');
+      return { facts, ends: i18t('dtp_ends'), notice: i18t('dtp_notice'),
+        quote: q ? q.innerText.replace(/\s+/g, ' ').trim() : '',
+        tabs: [...b.querySelectorAll('[data-dtp-tab]')].map(t => [t.getAttribute('data-dtp-tab'), (t.textContent.match(/\d+/) || [''])[0], t.getAttribute('aria-selected') === 'true']),
+        sides: [...b.querySelectorAll('tr.dtp-r[data-dtp-rec] .dtp-c-who')].map(td => td.textContent.trim() === i18t('obd_theirs_btn') ? 'theirs' : td.textContent.trim() === i18t('obd_us') ? 'ours' : '?'),
+        map: !!(b.querySelector('.ov-map-stage, svg.ov-map') || f.querySelector('.ov-map-stage, svg.ov-map')), side: document.documentElement.scrollWidth <= innerWidth + 1 };
     };
+    const SIDES = () => { const b = document.getElementById('dtp'); if (!b) return null;
+      return [...b.querySelectorAll('tr.dtp-r[data-dtp-rec] .dtp-c-who')].map(td => td.textContent.trim() === i18t('obd_theirs_btn') ? 'theirs' : td.textContent.trim() === i18t('obd_us') ? 'ours' : '?'); };
 
     for (const [w, ht] of SCREENS) {
       const at = `${w}×${ht}`;
@@ -90,32 +95,35 @@ const dayFrom = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10)
       await part(`1 ${at}`, async () => {
         await openOb('MK-UP2');
         const T = await until(TAB);
-        /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): three small columns, a label in small capitals over its
-           value; how far off the notice day is moves to the date's hover */
-        /* RE-POINTED 16 Nov 2026 (#762): as drawn in the Five panel the top of the tab is three tiles — the day it ends,
-           the notice day, the duties — so the renewal's kind ("Renewal · manual") is no longer a column of its own */
-        check(`1a ${at} the renewal's dates are the tiles at the top of the tab: the day it ends, the notice day`,
-          !!T && T.glance.length === 3 && /^\d{1,2} \w+ ends \d{4}$/i.test(T.glance[0]) && /^\d{1,2} \w+ notice \d{4}$/i.test(T.glance[1]), JSON.stringify(T && T.glance));
+        const want = await page.evaluate(e => obDay(e), end);
+        check(`1a ${at} the renewal's dates stand beside the duties: the day it ends, the notice day`,
+          !!T && T.facts[T.ends] === want && /\d{4}/.test(T.facts[T.notice] || ''), JSON.stringify(T && T.facts));
+        /* WAITS ON THE OWNER (23 Nov 2026): the Duties page's panel draws the renewal's dates but not the words they were
+           read from; asked here where the page would carry them */
         check(`1b ${at} the words it was read from, quoted with the clause they stand under`,
           !!T && /^§4 .Any extension must be agreed/.test(T.quote), T && T.quote);
-        check(`1c ${at} the picture is not drawn on the tab; nothing sideways`, !!T && !T.map && T.side);
-        check(`2a ${at} tabs All · We owe · They owe with their counts, All chosen`,
-          !!T && T.tabs.join('|') === 'All5*|Weowe3|Theyowe2' && T.sides.length === 5, JSON.stringify(T && T.tabs));
+        check(`1c ${at} the picture is not drawn on the page; nothing sideways`, !!T && !T.map && T.side);
+        const on = T && T.tabs.find(x => x[0] === 'on');
+        check(`2a ${at} tabs To decide · On the contract · Skipped with their counts, On the contract chosen, every duty a row`,
+          !!T && T.tabs.map(x => x[0]).join('|') === 'left|on|skipped' && !!on && on[1] === '5' && on[2] && T.sides.length === 5, JSON.stringify(T && T.tabs));
         await shot(`oblig-legora-${w}.png`);
       });
     }
     await page.setViewportSize({ width: 1440, height: 780 });
 
-    await part('2 the tabs', async () => {
-      await page.evaluate(() => [...document.querySelectorAll('.pd-obs-tab')].find(b => /We owe/.test(b.textContent)).click());
-      const ours = await until(() => { const s = [...document.querySelectorAll('#pd-body .pd-ob')].map(r => r.classList.contains('is-theirs') ? 'theirs' : 'ours'); return s.length && s.every(x => x === 'ours') ? s : null; });
-      check('2b We owe lists ours only', Array.isArray(ours) && ours.length === 3, JSON.stringify(ours));
-      await page.evaluate(() => [...document.querySelectorAll('.pd-obs-tab')].find(b => /They owe/.test(b.textContent)).click());
-      const theirs = await until(() => { const s = [...document.querySelectorAll('#pd-body .pd-ob')].map(r => r.classList.contains('is-theirs') ? 'theirs' : 'ours'); return s.length && s.every(x => x === 'theirs') ? s : null; });
-      check('2c They owe lists theirs only', Array.isArray(theirs) && theirs.length === 2, JSON.stringify(theirs));
-      await page.evaluate(() => [...document.querySelectorAll('.pd-obs-tab')].find(b => /^All/.test(b.textContent.trim())).click());
-      const all = await until(() => document.querySelectorAll('#pd-body .pd-ob').length === 5 ? true : null);
-      check('2d All lists every duty again', !!all);
+    await part('2 the sides', async () => {
+      const pick = async v => { await page.click('#dtp [data-dtp-chip="whose"]'); await page.click(`#dtp [data-dtp-fv="whose"][data-v="${v}"]`); };
+      await pick('us');
+      const ours = await until(() => { const b = document.getElementById('dtp'); const s = b && [...b.querySelectorAll('tr.dtp-r[data-dtp-rec] .dtp-c-who')].map(td => td.textContent.trim() === i18t('obd_us') ? 'ours' : 'other'); return s && s.length && s.every(x => x === 'ours') ? s : null; });
+      check('2b Whose: We owe lists ours only', Array.isArray(ours) && ours.length === 3, JSON.stringify(ours));
+      await page.click('#dtp [data-dtp-fx="whose"]');
+      await pick('them');
+      const theirs = await until(() => { const b = document.getElementById('dtp'); const s = b && [...b.querySelectorAll('tr.dtp-r[data-dtp-rec] .dtp-c-who')].map(td => td.textContent.trim() === i18t('obd_theirs_btn') ? 'theirs' : 'other'); return s && s.length && s.every(x => x === 'theirs') ? s : null; });
+      check('2c Whose: They owe lists theirs only', Array.isArray(theirs) && theirs.length === 2, JSON.stringify(theirs));
+      await page.click('#dtp [data-dtp-fx="whose"]');
+      /* the count is asked IN the page (SIDES is this file's own helper; a page function cannot call it) */
+      const all = await until(() => { const b = document.getElementById('dtp'); const s = b && b.querySelectorAll('tr.dtp-r[data-dtp-rec] .dtp-c-who'); return s && s.length === 5 ? true : null; });
+      check('2d cleared, every duty again', !!all);
     });
 
     await part('3 a decision due', async () => {
@@ -124,12 +132,17 @@ const dayFrom = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10)
         const e = new Date(Date.now() + 40 * 864e5).toISOString().slice(0, 10);
         c.expiry = e; c.metadata = Object.assign({}, c.metadata, { expiryDate: e, noticePeriodDays: 90, renewalType: 'auto-renew' }); });
       await openOb('MK-B1');
-      const D = await until(() => { const h0 = document.querySelector('#pd-body [data-pd-rn] #renewal-host'); return h0 && /What did you decide\?/.test(h0.innerText) ? h0.innerText.replace(/\s+/g, ' ').slice(0, 120) : null; });
-      check('3a while a decision is due, the renewal\'s own decision card is on the tab', !!D, D);
-      /* no duties recorded yet: the renewal still stands at the top, the "none yet" under it */
-      const O = await page.evaluate(() => { const b = document.getElementById('pd-body'), rn = b && b.querySelector('[data-pd-rn]'), none = b && [...b.querySelectorAll('*')].find(e => e.children.length === 0 && /No duties are recorded yet/.test(e.textContent));
-        return { rn: !!rn, none: !!none, first: !!(rn && none && (rn.compareDocumentPosition(none) & Node.DOCUMENT_POSITION_FOLLOWING)) }; });
-      check('3b with no duties recorded, the renewal lines come first and "No obligations are recorded yet" under them', O.rn && O.none && O.first, JSON.stringify(O));
+      /* WAITS ON THE OWNER (23 Nov 2026): the renewal's decision card (#renewal-host, renderRenewalSection) stood on the
+         old Obligations tab; the Duties page that replaced it does not draw it, so Decide's landing (NEEDS_LAND renewal)
+         finds nothing to decide on — asked here wherever it is drawn */
+      const D = await until(() => { const h0 = document.querySelector('#renewal-host'); return h0 && h0.getClientRects().length && /What did you decide\?/.test(h0.innerText) ? h0.innerText.replace(/\s+/g, ' ').slice(0, 120) : null; });
+      check('3a while a decision is due, the renewal\'s own decision card is beside the duties', !!D, D);
+      /* no duties recorded yet: the renewal's dates still stand beside the page, and the page says none are on the contract */
+      const O = await until(() => { const b = document.getElementById('dtp'), f = document.querySelector('[data-obdf]'); if (!b || !f) return null;
+        const facts = [...f.querySelectorAll('.obdf-fact > :first-child')].map(x => x.textContent.trim());
+        const none = b.querySelector('.obd-empty');
+        return { rn: facts.includes(i18t('dtp_ends')), none: !!none && none.textContent.trim() === i18t('dtp_on_none') }; });
+      check('3b with no duties recorded, the renewal\'s dates still stand and the page says no duties are on the contract', !!O && O.rn && O.none, JSON.stringify(O));
       await shot('oblig-legora-decide.png');
     });
 
@@ -138,8 +151,9 @@ const dayFrom = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10)
         c.expiry = ''; c.metadata = Object.assign({}, c.metadata, { expiryDate: '', noticePeriodDays: 0, renewalType: '', sourceSpans: {} });
         c.obligations = [{ id: 'ob_x', desc: 'Send the report', due: new Date(Date.now() + 9 * 864e5).toISOString().slice(0, 10), recurring: 'none', party: 'us', assignee: '' }]; });
       await openOb('MK-A2');
-      const T = await until(() => document.querySelector('#pd-body .pd-ob') ? { rn: !!document.querySelector('#pd-body [data-pd-rn]') } : null);
-      check('4a a contract with nothing about its renewal draws no renewal lines', !!T && !T.rn, JSON.stringify(T));
+      const T = await until(() => { const f = document.querySelector('[data-obdf]'); return document.querySelector('#dtp tr.dtp-r[data-dtp-rec]') && f
+        ? { rn: [...f.querySelectorAll('.obdf-fact > :first-child')].some(x => [i18t('dtp_ends'), i18t('dtp_notice')].includes(x.textContent.trim())) } : null; });
+      check('4a a contract with nothing about its renewal draws no renewal dates', !!T && !T.rn, JSON.stringify(T));
     });
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }
   finally {

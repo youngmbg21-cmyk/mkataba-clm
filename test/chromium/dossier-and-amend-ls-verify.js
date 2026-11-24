@@ -95,6 +95,10 @@ const until = async (page, fn, arg, ms = 8000) => { try { await page.waitForFunc
     check('1l the Clauses tab says which clause of how many, and › opens the next', navOk && moved, k0);
 
     /* 2 — one full page */
+    /* RE-POINTED 23 Nov 2026 (the Dossier L+S steps 2 and 3 added 1i–1l, which leave MK-B1 for a paper not yet read):
+       the signed agreement is brought back, on its Dossier, before its Amend door is pressed; the wait asks for the door */
+    await page.evaluate(() => roomHomeLand('MK-B1'));
+    await until(page, () => !!(window.pdContract && pdContract() && pdContract().id === 'MK-B1') && !!document.querySelector('#ig-dock .pd2-card [data-pd-ds-famact="create"]'));
     await page.click('#ig-dock .pd2-card [data-pd-ds-famact="create"]').catch(() => {});
     /* RE-POINTED 23 Nov 2026 (Tell Jambo the change): the door asks first; "or choose the clauses yourself" is the page */
     const ask = await until(page, () => !!document.querySelector('#pd2-amk #pd2-amk-q'));
@@ -168,7 +172,9 @@ const until = async (page, fn, arg, ms = 8000) => { try { await page.waitForFunc
     }
 
     /* 8 — Tell Jambo the change, on another signed agreement (MK-A1) */
-    await page.route('**/api/ai/amend', async r => { const c = await page.evaluate(() => amendParentClauses(getContract('MK-A1')).filter(x => x.text).slice(0, 1));
+    /* RE-POINTED 23 Nov 2026: the stand-in answer names a clause by its number and heading, as the reader does; a
+       preamble with neither drew as "New clause" and matched nothing on the agreement as amended (8f) */
+    await page.route('**/api/ai/amend', async r => { const c = await page.evaluate(() => amendParentClauses(getContract('MK-A1')).filter(x => x.text && x.num && x.label).slice(0, 1));
       const x = c[0] || { num: '1', label: '1. Term', text: 'The term is one year.' };
       r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [{ clauseNumber: x.num, clauseLabel: x.label, op: 'replace', signed: x.text, amended: x.text + ' This clause is amended.', why: 'it is the clause asked about' }],
         notFound: [{ what: 'Interest on late payments' }], facts: {} }) }); });

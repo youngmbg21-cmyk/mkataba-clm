@@ -469,7 +469,8 @@ describe('f705 (8) the wiring', () => {
   test('8e the Brain knows the map: a part, a flow step, a lane, an area', () => {
     const B = R('js/brainmap.js');
     assert.match(B, /\['jambomap', 'jmRead', 'ai', 1\]/);
-    assert.match(B, /\{ id: 'ask', steps: \[\['copilotask', 'jambomap'/);
+    /* RE-POINTED 23 Nov 2026 (JAMBO THE INSTRUCTOR: every box asks the instructor FIRST, so its parts stand between the ask and the map, still in the first step) */
+    assert.match(B, /\{ id: 'ask', steps: \[\['copilotask', 'teach', 'teachwalk', 'teachsteps', 'jambomap'/);
     assert.match(B, /'copilotask', 'jambomap', 'menuask'/);
     assert.match(B, /\|copilotacts\|jambomap\)\\\.js\$\/, 'ai'\]/);
   });

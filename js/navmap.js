@@ -234,6 +234,8 @@ const NAV_PAGES = [
   /* "jambo's work" is the Board's card (land-on-it 1a, the owner's door); his house by its own name */
   ['house', / (jambo s house|jambos house|jambo house|jambos hus) /],
   ['mynotes', / (my (private |own )?notes|mina (privata |egna )?anteckningar) /],
+  /* THE NOTEBOOK (owner's pick, 23 Nov 2026): laws, policies and research Jambo may quote */
+  ['notebook', / ((the|my|our) notebook|notebook page|anteckningsboken|anteckningsbok) /],
   /* READS (The thread, 28 Oct 2026): every read of the wording, where the next batch is */
   ['reads', / (every read|all reads|the discover page|discover page|the reads|reads page|past reads|previous reads|earlier reads|read history|varje läsning|alla läsningar|tidigare läsningar|läsningarna) /],
   /* ALERT ME WHEN (23 Nov 2026): every alert on a question, Discover's Alerts tab */
@@ -796,9 +798,10 @@ function navGoAct(n){
     /* the Dossier's Family line, opened and landed */
     family: () => { if (pdOpenOnHome(id, 'copilot') === false) return false;
       return navLandWhen(() => { const f = document.querySelector('#ig-dock [data-pd2-famc], #ig-dock [data-ds-fold="family"]'); if (f && f.tagName === 'DETAILS' && !f.open) f.open = true; return f; }); },
-    /* the Obligations tab, where the renewal stands as its lines (Ends · Notice by · Renewal) */
+    /* the Duties page (Duties ONE DOOR, owner 23 Nov 2026: the old Obligations tab never shows), its panel beside it
+       saying the renewal's lines (Ends · Notice by) */
     renewal: () => { if (pdOpenOnHome(id, 'oblig') === false) return false;
-      return navLandWhen(() => document.querySelector('#ig-dock [data-pd-rn]')); },
+      return navLandWhen(() => document.querySelector('#ig-dock [data-pd-rn], #ig-dock [data-obdf]')); },
     where: () => (typeof hbStripBring === 'function') ? hbStripBring(id, 'where') !== false : false,
     /* the contract's notes: its paper, then the panel's Notes face (a contract in front) */
     notes: () => { if (pdOpenOnHome(id, 'copilot') === false || typeof openPanel !== 'function') return false;

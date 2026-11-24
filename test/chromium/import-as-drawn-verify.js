@@ -451,9 +451,12 @@ const FILES = {
     const A = await page.evaluate(() => { const side = document.querySelector('#ins-panel');
       return { ph: (document.querySelector('#ins-panel #jl-q') || {}).placeholder,
         hints: side ? side.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length : -1,
-        said: side ? /Typing never signs, sends or files/.test(side.textContent) : null }; });
+        said: side ? /Typing never signs, sends or files/.test(side.textContent) : null,
+        th: (typeof teachHintOn === 'function' && teachHintOn()) ? i18t('teach_hint_ph') : null }; });
     /* RE-POINTED 22 Nov 2026 (the top box filters, Jambo's box asks, #888): Import's Jambo box carries the page's question */
-    check('10a "Ask Jambo: “which ones end this year?”" with no hint line under it', A.ph === 'Ask Jambo: “which ones end this year?”' && A.hints === 0 && A.said === false, JSON.stringify(A));
+    /* RE-POINTED 23 Nov 2026 (Jambo the instructor, f1189: for a person's first days, until they say, every box's own example
+       words are the "I'm new" hint, teachPh/jlPagePh): the page's question, or the hint while teachHintOn() */
+    check('10a "Ask Jambo: “which ones end this year?”" (or the newcomer\'s hint) with no hint line under it', A.ph === (A.th || 'Ask Jambo: “which ones end this year?”') && A.hints === 0 && A.said === false, JSON.stringify(A));
     await page.fill('#ins-panel #jl-q', 'contracts'); await page.press('#ins-panel #jl-q', 'Enter');
     const went = await until(() => state.view !== 'migration' ? state.view : null, null, 6000);
     check('10b a place word typed in it opens that place, as every Jambo box does', !!went, String(went));

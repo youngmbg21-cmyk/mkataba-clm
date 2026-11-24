@@ -341,7 +341,7 @@ const PROBE = () => {
     });
     await page.waitForTimeout(800);
     const ob = await page.evaluate(() => ({
-      tab: [...document.querySelectorAll('.m-ctab')].map(t => t.textContent.trim()).find(t => /Obligation/i.test(t)) || '',
+      tab: [...document.querySelectorAll('.m-ctab')].map(t => t.textContent.trim()).find(t => /Obligation|Dut(y|ies)/i.test(t)) /* RE-POINTED 23 Nov 2026 (English says DUTY, never obligation, f1191) */ || '',
       bands: [...document.querySelectorAll('#m-root .m-card > div:first-child')].map(d => d.textContent.trim()),
       chase: document.querySelectorAll('[data-m-ob-chase]').length,
       done: document.querySelectorAll('[data-m-ob-done]').length,

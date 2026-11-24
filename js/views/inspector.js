@@ -1055,6 +1055,8 @@ const INS_PAGE_REPAINT = {
   intake: 'renderIntake',
   /* My notes beside Jambo's panel where it fits (round 20, scene "My notes") */
   mynotes: 'renderMyNotes',
+  /* the Notebook beside Jambo's panel where it fits (owner's pick, 23 Nov 2026) */
+  notebook: 'renderNotebook',
   /* Reads beside Jambo's panel where it fits (The thread, 28 Oct 2026) */
   reads: 'renderReads',
   /* Not an inspector: the Advice tab of Requests, whose frame follows this
@@ -1334,7 +1336,7 @@ function jlAskHtml(o){
    question moves here, to Jambo's box at the panel's foot. A page that hands in its own words (opt.jlPh other than the
    two plain ones) keeps them. Negotiations is named by its seat (its list stands on the shared Negotiate view). */
 const JL_PAGE_ASKS = { approvals: 'jl_ph_pg_approvals', standards: 'jl_ph_pg_standards', ourpaper: 'jl_ph_pg_ourpaper', settings: 'jl_ph_pg_settings',
-  import: 'jl_ph_pg_import', mynotes: 'jl_ph_pg_mynotes', contracts: 'jl_ph_pg_contracts', negotiations: 'jl_ph_pg_negotiations',
+  import: 'jl_ph_pg_import', mynotes: 'jl_ph_pg_mynotes', notebook: 'jl_ph_pg_notebook', contracts: 'jl_ph_pg_contracts', negotiations: 'jl_ph_pg_negotiations',
   requests: 'jl_ph_pg_requests', people: 'jl_ph_pg_people', parties: 'jl_ph_pg_parties' };
 function jlPagePh(opt){
   const o = opt || {}, plain = [i18t('jl_ph_any'), i18t('jl_ph_list')];

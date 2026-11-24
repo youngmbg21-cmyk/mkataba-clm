@@ -139,9 +139,13 @@ const check = (name, pass, detail) => {
     await page.evaluate(id => { igExplain(id); renderIntelDock(); }, late.id); await page.waitForTimeout(500);
     const card = await page.evaluate(() => { const c = document.querySelector('#ig-dock [data-ig-hoverid]'); return c ? { next: (c.querySelector('[data-ig-fact="lens_next"]') || {}).textContent || '', door: (c.querySelector('[data-ig-lens-door]') || {}).textContent || '' } : null; });
     check('4a the card says the duty that is late, and carries the Obligations door', !!card && /late/.test(card.next) && /Quarterly price review/.test(card.next) && /Duties/.test(card.door), JSON.stringify(card));
-    await press('#ig-dock [data-ig-lens-door="obligations"]'); await page.waitForTimeout(900);
-    const landedOb = await page.evaluate(() => ({ face: hbFace(), tab: typeof pdTab === 'function' ? pdTab() : null, paper: intel.paper && intel.paper.id }));
-    check('4b the Obligations door lands on that contract, on its Obligations tab', landedOb.face === 'paper' && landedOb.tab === 'oblig' && landedOb.paper === late.id, JSON.stringify(landedOb));
+    await press('#ig-dock [data-ig-lens-door="obligations"]');
+    /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end": ONE DOOR — pdSetTab('oblig') opens the contract's Duties page in
+       the middle, the hidden Obligations panel never shows): the door lands on that contract with its Duties page up.
+       A wait that asks for the state, bounded */
+    await page.waitForFunction(id => !!(window.intel && intel.paper && intel.paper.id === id && document.getElementById('dtp')), late.id, { timeout: 8000 }).catch(() => {});
+    const landedOb = await page.evaluate(() => ({ face: hbFace(), duties: !!document.getElementById('dtp') && (typeof pdMidUp !== 'function' || !!(intel.paper && pdMidUp('obs:' + intel.paper.id))), paper: intel.paper && intel.paper.id }));
+    check('4b the Obligations door lands on that contract, on its Duties page', landedOb.face === 'paper' && landedOb.duties && landedOb.paper === late.id, JSON.stringify(landedOb));
     await page.evaluate(() => { hbSetFace('explorer'); }); await until(() => hbFace() === 'explorer' && !!document.querySelector('.ig-viewbar'));
     await press('.ig-viewbar [data-ig-lens="risk"]');
     const hi = BOOK.find(c => riskOf(c) === 'high');

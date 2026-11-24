@@ -84,12 +84,17 @@ const ID = 'MK-PA1';
       check('2a Actions drops its own menu card from the button, over the paper, painted, its groups headed', !!card && card.under && card.right && card.painted && card.rows.length > 3 && card.heads.includes('Work on it'), JSON.stringify(card && { under: card.under, right: card.right, painted: card.painted, n: card.rows.length, heads: card.heads }));
       /* RE-POINTED 29 Oct 2026 (round 13): More's card is the SHORT one, its last row "All acts (N)"; pressed, the same
          card lists every act and a draft's still ends in "Delete this draft", in red */
-      const shortEnd = !!card && /^All acts \(\d+\)/.test(card.rows[card.rows.length - 1] || '') && card.rows.length <= 10;
+      /* RE-POINTED 23 Nov 2026 (owner: "Delete this draft in sight", f1188 — the short list too, PD_ACTS_SHORT): the
+         drawing's nine rows, Delete this draft, and All acts — eleven at most */
+      const shortEnd = !!card && /^All acts \(\d+\)/.test(card.rows[card.rows.length - 1] || '') && card.rows.length <= 11;
       await click('#pd-acts-pop [data-pd-acts-every]');
       const every = await waitFor(page, () => { const p = document.getElementById('pd-acts-pop'); if (!p || p.querySelector('[data-pd-acts-every]')) return null;
-        return { rows: [...p.querySelectorAll('.pd-acts-r')].map(b => b.textContent.replace(/\s+/g, ' ').trim()), last: (p.querySelector('.pd-acts-g:last-child .pd-acts-r:last-child') || {}).className || '' }; }, 3000);
-      check('2b More\'s short card ends in "All acts (N)"; pressed, every act, a draft\'s ending in "Delete this draft", in red', shortEnd && !!every && every.rows.length > card.rows.length && /Delete this draft/.test(every.rows[every.rows.length - 1] || '') && /is-danger/.test(every.last),
-        JSON.stringify({ short: card && card.rows.slice(-2), every: every && every.rows.slice(-2) }));
+        /* RE-POINTED 23 Nov 2026 (owner: "Delete this draft in sight", d6eb4677, f1188): Delete this draft stands right
+           after the work rows (… Negotiation memo), never at the foot — still red */
+        const rs = [...p.querySelectorAll('.pd-acts-r')], del = rs.findIndex(b => /Delete this draft/.test(b.textContent));
+        return { rows: rs.map(b => b.textContent.replace(/\s+/g, ' ').trim()), del, before: del > 0 ? rs[del - 1].textContent.replace(/\s+/g, ' ').trim() : '', red: del >= 0 && rs[del].classList.contains('is-danger') }; }, 3000);
+      check('2b More\'s short card ends in "All acts (N)"; pressed, every act, a draft\'s "Delete this draft" right after "Negotiation memo", in red', shortEnd && !!every && every.rows.length > card.rows.length && every.del > 0 && /Negotiation memo/.test(every.before) && every.red,
+        JSON.stringify({ short: card && card.rows.slice(-2), every: every && { del: every.del, before: every.before, red: every.red, n: every.rows.length } }));
       check('2c the button says it is open, and the Dossier did not move', (await line()).expanded === 'true' && (await dockTop()) === t0, JSON.stringify({ t0, t1: await dockTop() }));
       await page.screenshot({ path: path.join(OUT, '2-open-1440x780.png') });
 

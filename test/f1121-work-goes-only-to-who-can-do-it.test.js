@@ -61,6 +61,10 @@ describe('f1121 (1) who may answer the other side', () => {
     assert.equal(ask({ id: 'l', role: 'legal' }, { deskMayRedline: () => true }), true);
     assert.equal(ask({ id: 'l', role: 'legal' }, { deskMayRedline: () => false }), false);
   });
+  test('1e a desk Contributor answers nothing: only the seat that may send (the server refuses theirs)', () => {
+    assert.equal(ask({ id: 'c', role: 'legal' }, { deskMayRedline: () => true, deskMaySend: () => false }), false);
+    assert.equal(ask({ id: 'l', role: 'legal' }, { deskMayRedline: () => true, deskMaySend: () => true }), true);
+  });
   test('1d nobody signed in, and their own page, keep the old reading', () => {
     assert.equal(ask(null), true);
     assert.equal(ask({ id: 'v', role: 'viewer' }, { PORTAL_MODE: true }), true);

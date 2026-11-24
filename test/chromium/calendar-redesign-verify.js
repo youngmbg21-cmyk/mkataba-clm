@@ -133,19 +133,28 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
         const r = e.getBoundingClientRect(); const cs = getComputedStyle(e);
         return { w: Math.round(r.width), h: Math.round(r.height), y: Math.round(r.y), x: Math.round(r.x),
           on: r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none' }; };
-      return { head: seen('.cal-head'), bar: seen('.cal-bar'),
-        grid: seen('.cal-grid'), panel: seen('#cal-plan'), stage: seen('#cal-stage'),
+      /* RE-POINTED 23 Nov 2026 (P-14, "Calendar, the Legora + Stripe way, on all four tabs", owner: Build P-14): ONE page (.cal-page.is-ls) — head .cls-head (Calendar · the one switch · + New event · ⋯), the ask box,
+         the chips, and the month (#cal-grid, a soft seven-day grid, .cls-mh heads, .cls-d days); Jambo's panel beside it */
+      return { head: seen('.cls-head'), bar: seen('.cls-chips'),
+        grid: seen('#cal-grid'), panel: seen('#cal-plan'), stage: seen('.cal-page.is-ls'),
         title: (document.querySelector('.cal-head .ttl') || {}).textContent || '',
         stat: (document.querySelector('.cal-stat') || {}).textContent || '',
         pageHead: (document.getElementById('page-head') || {}).innerHTML || '',
         /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new head draws its own tabs and scope; the
            old segmented controls are still in the markup, hidden — what a reader sees is what is counted */
         tabs: [...document.querySelectorAll('[data-cal-view]')].filter(a => a.getBoundingClientRect().height > 0).map(a => a.textContent.replace(/\s+/g, ' ').trim()),
-        scope: [...document.querySelectorAll('[data-cal-scope]')].filter(a => a.getBoundingClientRect().height > 0).map(a => a.textContent.trim()),
+        /* RE-POINTED 23 Nov 2026 (P-14, "Calendar, the Legora + Stripe way, on all four tabs", owner: Build P-14): All dates | Mine is the Whose chip (calLsWhosePass: all · mine · ours · theirs) */
+        scope: [...document.querySelectorAll('[data-cal-ls-chip="whose"]')].filter(a => a.getBoundingClientRect().height > 0).map(a => a.textContent.trim()),
+        scopeChoices: calLsChoices('whose', calLsBase('month')),
         acts: [...document.querySelectorAll('.cal-acts > button')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
-        legend: [...document.querySelectorAll('.cal-legend span')].map(s => s.textContent.trim()),
+        /* RE-POINTED 23 Nov 2026 (P-14, "Calendar, the Legora + Stripe way, on all four tabs", owner: Build P-14): no key on the drawing — a day's pill wears its kind's tone (CAL_LS_TONE) and the Kind chip names the kinds */
+        legend: [...new Set([...document.querySelectorAll('#cal-grid .cls-ev')].map(e => [...e.classList].find(k => /^is-/.test(k))))],
+        kindTones: calLsChoices('kind', calLsBase('month')).filter(k => k !== 'all').map(k => 'is-' + (CAL_LS_TONE[k] || 'gray')),
+        kindChip: !!document.querySelector('[data-cal-ls-chip="kind"]'),
         kindsOnMonth: new Set(calVisible(calendarEvents()).filter(e => calInPeriod(e, calPeriod())).map(e => e.type)).size,
-        dow: [...document.querySelectorAll('.cal-grid .cal-dow span')].map(s => s.textContent.trim()) };
+        dow: [...document.querySelectorAll('#cal-grid .cls-mh')].map(s => s.textContent.trim()),
+        weekend: (() => { const d = [...document.querySelectorAll('#cal-grid .cls-d')];
+          return d.length === 42 && d.every((x, i) => x.classList.contains('is-we') === (i % 7 >= 5)); })() };
     });
     /* ---- RE-POINTED IN PLACE 21 Sep 2026 (Young: the calendar must look
        exactly like the artifact) ---- the reference draws ONE head: the title
@@ -159,10 +168,11 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
        Home's head (the greeting and the tabs) is the page's ONE head, the
        Calendar tab is lit in it, and the calendar's ⋯ stands at the end of
        its first bar. */
-    const homeHead = await page.evaluate(() => ({ calHead: !!document.querySelector('#hb-cal .cal-head'),
+    /* RE-POINTED 23 Nov 2026 (P-14, "Calendar, the Legora + Stripe way, on all four tabs", owner: Build P-14): the one head is .cls-head, its ⋯ at its end */
+    const homeHead = await page.evaluate(() => ({ calHead: !!document.querySelector('#hb-cal .cls-head'),
       /* the lit tab is the desk's since 17 Oct 2026 (Round 2): Home's face in front */
       tab: (typeof deskKeyNow === 'function' && deskKeyNow() === 'home:calendar') ? 'calendar' : null,
-      more: !!document.querySelector('#hb-cal .cal-bar1 #cal-more'), moreHead: !!document.querySelector('#hb-cal .cal-head #cal-more') }));
+      more: !!document.querySelector('#hb-cal .cal-bar1 #cal-more'), moreHead: !!document.querySelector('#hb-cal .cls-head #cal-more') }));
     /* RE-POINTED 18 Oct 2026 (lane A4, round 16 as drawn): Home's own head is
        not drawn on a computer since main's "‹ · HA · the page's name", so the
        calendar draws its ONE head on Home — and the ⋯ stands at its end */
@@ -181,7 +191,9 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
        card was ruled across the middle. The rule under the TABS stays; the one
        between the title and the tabs goes. Written as a relation: the head must
        draw no bottom edge of any kind, and the bar must still draw one. */
-    check('1 the scope is two options, not two states', shape.scope.length === 2, shape.scope);
+    /* RE-POINTED 23 Nov 2026 (P-14, "Calendar, the Legora + Stripe way, on all four tabs", owner: Build P-14): the old two-option scope is ONE Whose chip whose choices still include everything and Mine */
+    check('1 the scope is the Whose chip, offering all and Mine', shape.scope.length === 1
+      && shape.scopeChoices.includes('all') && shape.scopeChoices.includes('mine'), { scope: shape.scope, choices: shape.scopeChoices });
     /* RE-POINTED IN PLACE 21 Sep 2026: the reference stacks them — the month
        across the whole page, the key under it, Next 14 days as a card below
        that. The panel was a 304px column beside the grid, which made the
@@ -201,15 +213,18 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
         && !!(await page.evaluate(() => !!document.querySelector('#ig-dock #cal-plan'))),
       { grid: shape.grid && shape.grid.w, panel: shape.panel && shape.panel.w,
         stageY: shape.stage && shape.stage.y, panelY: shape.panel && shape.panel.y });
-    check('1 the week starts on Monday and runs to Friday (Monday to Friday everywhere, round 16)', shape.dow[0] && /^M/i.test(shape.dow[0]) && shape.dow.length === 5 && /^F/i.test(shape.dow[4]), shape.dow);
+    /* RE-POINTED 23 Nov 2026 (P-14, "Calendar, the Legora + Stripe way, on all four tabs", owner: Build P-14): the picked drawing's month is a soft SEVEN-day grid (reverses round 16's Monday to Friday on the month):
+       it still starts on Monday, and Saturday and Sunday are the quieter two columns */
+    check('1 the week starts on Monday; Saturday and Sunday are the quiet two columns', shape.dow[0] && /^M/i.test(shape.dow[0]) && shape.dow.length === 7 && /^F/i.test(shape.dow[4]) && shape.weekend, { dow: shape.dow, weekend: shape.weekend });
     /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2): the drawing's
        key names only the kinds that month carries. A relation, so it holds on
        whatever day this runs: one key entry per kind on the month, no more. */
     /* RE-POINTED 18 Oct 2026 (lane A4, round 16 as drawn): the key is the
        drawing's five — Ours · Theirs · Contract date · Mine · Jambo's plan —
        and its three parts are the layers' switches, so it is always drawn whole */
-    check('1 the key names the five as drawn', JSON.stringify(shape.legend) === JSON.stringify(['Ours', 'Theirs', 'Contract date', 'Mine', 'Jambo’s plan']),
-      { legend: shape.legend, kinds: shape.kindsOnMonth });
+    /* RE-POINTED 23 Nov 2026 (P-14, "Calendar, the Legora + Stripe way, on all four tabs", owner: Build P-14): the drawing has no key; every tone a day's pill wears is a kind's, and the Kind chip offers those kinds by name */
+    check('1 every colour on the month is a kind the Kind chip names', shape.legend.length > 0 && shape.kindChip
+      && shape.legend.every(t => shape.kindTones.includes(t)), { legend: shape.legend, kinds: shape.kindTones, chip: shape.kindChip });
 
     /* ---- 2. THE OWNER'S ONE CONSTRAINT ---- */
     for (const [w, hh, name] of [[1500, 900, 'a desk'], [1440, 900, 'MacBook'],
@@ -220,12 +235,14 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
       await pause(400);
       const fit = await page.evaluate(() => {
         const sc = document.getElementById('content-scroll');
-        const g = document.getElementById('cal-grid');
-        const cells = g ? [...g.children] : [];
-        const gr = g && g.getBoundingClientRect();
+        /* RE-POINTED 23 Nov 2026 (P-14, "Calendar, the Legora + Stripe way, on all four tabs", owner: Build P-14): the month's days are .cls-d, seven a week, in the page's one scroller #cal-ls-body: all six weeks
+           stand in it whole and it does not scroll */
+        const g = document.getElementById('cal-grid'), body = document.getElementById('cal-ls-body');
+        const cells = g ? [...g.querySelectorAll('.cls-d')] : [];
+        const gr = body && body.getBoundingClientRect();
         return { pageScroll: sc ? sc.scrollHeight - sc.clientHeight : null,
-          gridScroll: g ? g.scrollHeight - g.clientHeight : null,
-          rows: cells.length / 5,   /* Monday to Friday since round 16 (owner's yes, 17 Oct 2026) */
+          gridScroll: body ? body.scrollHeight - body.clientHeight : null,
+          rows: cells.length / 7,
           hidden: gr ? cells.filter(c => c.getBoundingClientRect().bottom > gr.bottom + 1).length : null,
           lastNumber: cells.length ? (cells[cells.length - 1].textContent || '').trim().slice(0, 2) : null };
       });
@@ -243,8 +260,13 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
        var(--color-accent-500) — so in the teal workspace negotiation activity
        and obligations drew as two shades of one colour and the legend answered
        "green" twice. It is only visible once a browser resolves the property. */
-    const tones = await page.evaluate(() =>
-      [...document.querySelectorAll('.cal-legend i')].map(i => getComputedStyle(i).backgroundColor));
+    /* RE-POINTED 23 Nov 2026 (P-14, "Calendar, the Legora + Stripe way, on all four tabs", owner: Build P-14): the strong tones are the time-left bars' (.cls-bk i: ruby · amber · steel · gray, the -dot tokens the old key's
+       dots were); each is resolved by the browser on the page itself, so a token resolving to the accent shows */
+    const BAR_TONES = () => { const pg = document.querySelector('.cal-page.is-ls'); if (!pg) return [];
+      return ['ruby', 'amber', 'steel', 'gray'].map(k => { const b = document.createElement('span'); b.className = 'cls-bk';
+        b.innerHTML = '<i class="is-' + k + '" style="width:50%"></i>'; pg.appendChild(b);
+        const c = getComputedStyle(b.firstChild).backgroundColor; b.remove(); return c; }); };
+    const tones = await page.evaluate(BAR_TONES);
     let worst = 999, pair = '';
     for (let i = 0; i < tones.length; i++) for (let j = i + 1; j < tones.length; j++) {
       const d = (function (a, b) { const p = (a.match(/\d+/g) || []).slice(0, 3).map(Number),
@@ -252,7 +274,7 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
         return Math.round(Math.sqrt(p.reduce((s, v, k) => s + (v - q[k]) ** 2, 0))); })(tones[i], tones[j]);
       if (d < worst) { worst = d; pair = `${tones[i]} vs ${tones[j]}`; }
     }
-    check('3 no two legend tones are the same colour', worst > 60, `closest pair ${worst}: ${pair}`);
+    check('3 no two tones are the same colour', tones.length === 4 && worst > 60, `closest pair ${worst}: ${pair}`);
 
     /* ---- 4. THE THREE VIEWS ----
        REWRITTEN 24 Aug 2026 (owner-ruled: build Horizon and Obligations, retire
@@ -265,31 +287,31 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
     await page.click('.cal-nl-tabs [data-cal-view="horizon"]');
     await pause(900);
     await page.screenshot({ path: path.join(OUT, '02-horizon.png') });
+    /* RE-POINTED 23 Nov 2026 (P-14, "Calendar, the Legora + Stripe way, on all four tabs", owner: Build P-14): Horizon is one calm table, a row per agreement (.cls-t.is-hz .cls-r): its renewal words, the time left as a
+       slim bar measured on one year (.cls-bk i, width = days / 365), the decision as a soft badge (.cls-dec .cls-b) and the
+       end date with its notice day in its own column (.cls-end) — no ruler of months, no ladder */
     const hz = await page.evaluate(() => {
       const sc = document.getElementById('content-scroll');
-      const bars = [...document.querySelectorAll('.cal-hz-bar')];
-      /* RE-POINTED 16 Nov 2026 (#762): the new look's Horizon draws the twelve months over EACH row's own bar
-         (.cal-hz-rm) and ends the bar with its date (.cal-hz-note at the bar's end) — no ruler of months, no tick */
-      const rowEls = [...document.querySelectorAll('.cal-hz-row')];
-      const perRow = rowEls.map(r => (r.querySelector('.cal-hz-rm') || { children: [] }).children.length);
-      return { rows: rowEls.length,
-        months: perRow.length && perRow.every(n => n === perRow[0]) ? perRow[0] : -1,
-        bands: document.querySelectorAll('.cal-lad').length,
-        /* a bar is time remaining, so a nearer expiry must be a SHORTER bar */
+      const rowEls = [...document.querySelectorAll('.cls-t.is-hz tbody .cls-r')];
+      const bars = rowEls.map(r => r.querySelector('.cls-bk i')).filter(Boolean);
+      const H = calLsHzRead();
+      const want = H.rows.map(r => Math.max(2, Math.min(100, r.days / 365 * 100)));
+      return { rows: rowEls.length, data: H.rows.length,
+        year: bars.length === want.length && bars.every((b, i) => Math.abs(parseFloat(b.style.width) - want[i]) < 0.1),
+        bands: rowEls.filter(r => r.querySelector('.cls-dec .cls-b')).length,
         widths: bars.map(b => Math.round(b.getBoundingClientRect().width)),
-        ends: rowEls.filter(r => { const b = r.querySelector('.cal-hz-bar'), t = r.querySelector('.cal-hz-note');
-          return b && t && Math.abs(parseFloat(t.style.left) - parseFloat(b.style.width)) < 0.05; }).length,
+        ends: rowEls.filter(r => { const e = r.querySelector('.cls-end'); return e && e.textContent.trim(); }).length,
         scroll: sc ? sc.scrollHeight - sc.clientHeight : null };
     });
-    check('4 Horizon draws twelve months and a row per contract',
-      hz.months === 12 && hz.rows > 0, `${hz.rows} rows · ${hz.months} months`);
+    check('4 Horizon draws a row per contract, its bar the time left on a one-year scale',
+      hz.rows > 0 && hz.rows === hz.data && hz.year, `${hz.rows} rows of ${hz.data} · year scale ${hz.year}`);
     check('4 every row carries a bar and an end marker',
       hz.ends === hz.rows && hz.widths.length === hz.rows, hz);
     /* THE BAR IS TIME REMAINING — the rows are sorted soonest-first, so the
        widths must not decrease. This is the claim the view exists for. */
     check('4 and the bars grow with the time left, soonest first',
       hz.widths.every((w, i) => i === 0 || w >= hz.widths[i - 1] - 1), hz.widths);
-    check('4 the expiry ladder shows its five bands', hz.bands === 5, String(hz.bands));
+    check('4 every row says its renewal decision as a soft badge', hz.rows > 0 && hz.bands === hz.rows, String(hz.bands));
     check('4 and Horizon fits the page', hz.scroll === 0, String(hz.scroll));
 
     /* ---- 4a. NO DATE IS EVER WRITTEN ON A BAR (owner-reported 24 Aug 2026:
@@ -302,18 +324,19 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
        Written as a sweep over every row on purpose — the old rule was a BRANCH,
        so a check on one row could pass while the long rows were unreadable. */
     const notes = await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('.cal-hz-row')];
+      /* RE-POINTED 23 Nov 2026 (P-14, "Calendar, the Legora + Stripe way, on all four tabs", owner: Build P-14): the notice day is written in the row's end column (.cls-end .cls-ts), never on the bar */
+      const rows = [...document.querySelectorAll('.cls-t.is-hz tbody .cls-r')];
       const over = [];
       let n = 0;
       for (const r of rows){
-        const bar = r.querySelector('.cal-hz-bar');
-        const note = r.querySelector('.cal-hz-note');
+        const bar = r.querySelector('.cls-bk');
+        const note = r.querySelector('.cls-end .cls-ts');
         if (!bar || !note) continue;
         n++;
         const b = bar.getBoundingClientRect(), t = note.getBoundingClientRect();
         const hit = t.left < b.right - 1 && t.right > b.left + 1
           && t.top < b.bottom - 1 && t.bottom > b.top + 1;
-        if (hit) over.push(r.querySelector('.cal-hz-lab') ? r.querySelector('.cal-hz-lab').textContent.trim() : '?');
+        if (hit) over.push(r.querySelector('.cls-what .cls-t') ? r.querySelector('.cls-what .cls-t').textContent.trim() : '?');
       }
       return { n, over };
     });
@@ -351,18 +374,21 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
        the page (a reading, never saved) so the cut has something to leave out. */
     await page.evaluate(() => { state.contracts.forEach((c, i) => { if (i % 2) c.owner = { id: 'u-someone-else', name: 'Someone Else' }; }); renderCalendar(); });
     await pause(500);
-    const before = await page.evaluate(() => document.querySelectorAll('.cal-chip').length);
-    await page.click('[data-cal-scope="mine"]');
-    await pause(700);
-    const after = await page.evaluate(() => ({
-      chips: document.querySelectorAll('.cal-chip').length,
-      on: (document.querySelector('[data-cal-scope="mine"]') || {}).className }));
+    /* RE-POINTED 23 Nov 2026 (P-14, "Calendar, the Legora + Stripe way, on all four tabs", owner: Build P-14): All dates | Mine is the Whose chip — each press steps it (all → mine → ours → theirs → all); the count
+       is the All chip's own number, the dates the month draws */
+    const count = () => page.evaluate(() => { const b = document.querySelector('[data-cal-ls-show="all"] b'); return b ? Number(b.textContent) : -1; });
+    const whose = () => page.evaluate(() => calLsF().whose);
+    const before = await count();
+    if (await page.$('[data-cal-ls-chip="whose"]')) await page.click('[data-cal-ls-chip="whose"]', { timeout: 5000 }).catch(() => {});
+    await page.waitForFunction(() => calLsF().whose === 'mine', null, { timeout: 4000 }).catch(() => {});
+    const after = { chips: await count(), whose: await whose(),
+      on: await page.evaluate(() => (document.querySelector('[data-cal-ls-chip="whose"]') || {}).className || '') };
     check('5 Mine narrows the calendar and marks itself live',
-      after.chips < before && /on/.test(after.on || ''), { before, after });
-    await page.click('[data-cal-scope="all"]');
-    await pause(700);
-    check('5 and All dates gives them back',
-      (await page.evaluate(() => document.querySelectorAll('.cal-chip').length)) === before);
+      after.whose === 'mine' && after.chips >= 0 && after.chips < before && /is-on/.test(after.on), { before, after });
+    for (let i = 0; i < 4 && (await whose()) !== 'all'; i++){
+      await page.click('[data-cal-ls-chip="whose"]', { timeout: 5000 }).catch(() => {});
+      await page.waitForFunction(w => calLsF().whose !== w, after.whose, { timeout: 3000 }).catch(() => {}); }
+    check('5 and All dates gives them back', (await whose()) === 'all' && (await count()) === before);
 
     /* ---- 6. "ADD KEY DATE" WAS RULED OUT AND IS NOT DRAWN ---- */
     const noAdd = await page.evaluate(() => {
@@ -435,16 +461,16 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
        Explorer's map and the Brain keep their dark stage). The old night pass
        becomes the absence it now is: the class that once turned the calendar
        dark repaints nothing, and the chips and the four tones still draw. */
-    const look = () => page.evaluate(() => {
+    const look = async () => Object.assign(await page.evaluate(() => {
       const g = e => e ? getComputedStyle(e) : null;
-      const seg = document.querySelector('.cal-seg span.on');
-      const tab = document.querySelector('.cal-seg-view a.on');
-      const chip = document.querySelector('.cal-chip');
-      const legend = [...document.querySelectorAll('.cal-legend i')].map(i => g(i).backgroundColor);
+      /* RE-POINTED 23 Nov 2026 (P-14, "Calendar, the Legora + Stripe way, on all four tabs", owner: Build P-14): the chosen chip, the lit view in the one switch, a day's pill and the bars' tones */
+      const seg = document.querySelector('.cal-page.is-ls .cls-chip.is-on');
+      const tab = document.querySelector('.cls-seg a.on');
+      const chip = document.querySelector('#cal-grid .cls-ev');
       return { segBg: seg ? g(seg).backgroundColor : null, segFg: seg ? g(seg).color : null, tabFg: tab ? g(tab).color : null,
         page: g(document.body).backgroundColor,
-        chip: chip ? { bg: g(chip).backgroundColor, fg: g(chip).color } : null, legend };
-    });
+        chip: chip ? { bg: g(chip).backgroundColor, fg: g(chip).color } : null };
+    }), { legend: await page.evaluate(BAR_TONES) });
     const day = await look();
     await page.evaluate(() => { document.documentElement.classList.add('dark'); renderCalendar(); });
     await pause(700);

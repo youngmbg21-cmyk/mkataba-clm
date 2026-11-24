@@ -1133,3 +1133,10 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 - Step 2, Plan the read: `node --test test/f1195-plan-the-read.test.js test/f563-home-first.test.js test/f561-the-brain-keeps-up.test.js test/f564-the-lanes-say-the-same.test.js`; browser: dossier-and-amend-ls-verify 1i–1k (GitHub).
 - Step 3, the Clauses tab: `node --test test/f1196-the-clauses-tab-ls.test.js test/f335-thirteen-off-the-screenshots.test.js test/f463-one-check-before-a-signing-link.test.js`; browser: dossier-and-amend-ls-verify 1l (GitHub).
 - Step 4, Redlines: `node --test test/f1197-redlines-one-of-three.test.js test/f1066-jambos-panels-remaining-eight.test.js test/f245-the-clause-editor.test.js test/f756-piles-as-drawn.test.js`.
+
+
+## THE NOTEBOOK — DOCUMENTS JAMBO MAY QUOTE (23 Nov 2026)
+- NEW test/f1198-the-notebook.test.js (red at the parent: no js/notebook.js, no route, no kind, no rule): the cutter (Art. 28(3) inside its Article, § 4.2, s. 48, pages), the status (12 months to the day), the wall (Company an admin's, Mine its writer's, Undo of a check), the one search (hit carries document, number, words; another's Mine never found), Jambo's rule both hosts and the quote counted only when number and document are named.
+- NEW test/chromium/notebook-verify.js (GitHub; red at the parent: no page): tabs with counts, a row's quote and badges, choose then open, back, Check due → Mark checked → Undo, the Add pop-up's lines.
+- RE-POINTED: f1097 (1) NAMES (Notebook added to the test's page names); f841 (2a) the "see" stage holds the Notebook.
+- Re-ran green: f232, f48, f561, f564, f672, f842, f937, f938, f946, f954, f955, f964, f965, f997, f1068, f1097, f1131, f1146, f1186, f1193, f866, f305.

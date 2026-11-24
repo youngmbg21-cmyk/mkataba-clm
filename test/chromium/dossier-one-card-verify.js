@@ -65,8 +65,10 @@ const HTML = '<h1>Corporate Professional Services Agreement</h1><p>Between Highl
         /* RE-POINTED 16 Nov 2026 (owner: no eyebrow and no sentence, the same facts are said elsewhere; f1088) */ !!C && C.at === '' && C.dots === 6 && /Arrived 10 Sep.*Negotiate, 1 to do.*Sign, 1 to do.*Live/.test(C.label) && C.head === 'Send your 3 changes'
         && C.say === '' && C.go === 'Send 3 changes' && C.goFull && C.goBg !== C.cardBg && !C.old, C);
       check(`${nm} 2 the foot: the read in one line, no cost; "Read it | Watch the read" green, underlined, one line`,
-        !!C && C.read === 'Jambo has not read the paper yet' && !/call|free|cost/i.test(C.read + C.say) && C.L.map(x => x.t).join('|') === 'Read it|Watch the read'
-        && C.seps.join('') === '|' && C.L.every(x => /underline/.test(x.under) && x.color === C.L[0].color) && C.oneLine, C && { read: C.read, L: C.L, seps: C.seps, oneLine: C.oneLine });
+        /* RE-POINTED 23 Nov 2026 (Dossier L+S step 2, PLAN THE READ: "Plan the read in the Dossier card's foot too (one
+           door: the same sheet)"): the foot is Plan the read | Read it | Watch the read, still one line, green, underlined */
+        !!C && C.read === 'Jambo has not read the paper yet' && !/call|free|cost/i.test(C.read + C.say) && C.L.map(x => x.t).join('|') === 'Plan the read|Read it|Watch the read'
+        && C.seps.join('') === '||' && C.L.every(x => /underline/.test(x.under) && x.color === C.L[0].color) && C.oneLine, C && { read: C.read, L: C.L, seps: C.seps, oneLine: C.oneLine });
       /* 3 · the doors are the existing ones (once, at the first screen) */
       if (nm === 'laptop-a' && up){
         await page.click('#ig-dock .pd2-card [data-pd2-wk-open]');

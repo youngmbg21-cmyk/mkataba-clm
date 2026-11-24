@@ -159,7 +159,9 @@ const spills = page => page.evaluate(() => {
         cols: [...document.querySelectorAll('#rd-page .amw-table thead th')].map(t => t.textContent.trim()), panel: !!document.querySelector('#ins-panel .dsr-acts') })) : {};
       check(`${nm} 5 the tag opens the alert's page: ‹ All alerts, its name, Change when · Stop alerting, All 1 · Not capped 1, a search, the hit with "New · arrived", the paper beside it`,
         pg && PG.back === '‹ All alerts' && PG.title === 'Alert: a new contract is not capped' && PG.acts.join('|') === 'Change when|Stop alerting' && /^New · arrived/.test(PG.badge)
-          && PG.search && PG.chips[0] === 'All 1' && PG.chips.some(c => /Not capped 1/.test(c)) && PG.cols.join('|') === 'Contract|Answer|Against our playbook|§' && PG.panel, PG);
+          /* RE-POINTED 23 Nov 2026 (Discover: search, All and an Answers dropdown on one line): the answers are items of
+             the Answers menu, each its word then its count in their own spans (no space between them in the text) */
+          && PG.search && PG.chips[0] === 'All 1' && PG.chips.some(c => /^Not capped\s*1$/.test(c)) && PG.cols.join('|') === 'Contract|Answer|Against our playbook|§' && PG.panel, PG);
       if (pg) await page.evaluate(() => { if (typeof closeContextPanel === 'function') closeContextPanel(); });
       await page.waitForTimeout(250);
       const S1 = pg ? await spills(page) : [];
