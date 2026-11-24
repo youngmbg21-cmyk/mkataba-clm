@@ -7534,25 +7534,7 @@ function pd2PlaceKeep(e){
 function pd2PlaceBack(was, nu){
   if (pd2PlainFace(was) || !pd2PlainFace(nu) || !_pd2Place) return;
   if (String(nu.getAttribute('data-pd-glance-for')) !== _pd2Place.id) return;
-  const sc = pd2PlaceScroller(nu); if (sc){ sc.scrollTop = _pd2Place.top; pd2PlaceHold(sc, _pd2Place.id, _pd2Place.top); }
-}
-/* …AND HELD THERE WHILE THE DOSSIER SETTLES: a part of it painted after the face comes back (a save answered, a slot
-   filled) moved the panel on under the reader (measured: back from the Duties page, 114px lower). For a short, bounded
-   while (PD2_PLACE_HOLD_MS) the place is put back each frame; the reader's own wheel, touch, key or press ends it. */
-const PD2_PLACE_HOLD_MS = 1200;
-function pd2PlaceHold(sc, id, top){
-  if (typeof requestAnimationFrame !== 'function' || !sc) return;
-  const t0 = Date.now(); let off = false;
-  const evs = ['wheel', 'touchstart', 'keydown', 'pointerdown'], stop = () => { off = true; evs.forEach(k => document.removeEventListener(k, stop, true)); };
-  evs.forEach(k => document.addEventListener(k, stop, true));
-  const step = () => {
-    if (off) return;
-    const g = document.getElementById('pd-glance');
-    if (Date.now() - t0 > PD2_PLACE_HOLD_MS || !sc.isConnected || !pd2PlainFace(g) || String(g.getAttribute('data-pd-glance-for')) !== id){ stop(); return; }
-    if (Math.abs(sc.scrollTop - top) > 1) sc.scrollTop = top;
-    requestAnimationFrame(step);
-  };
-  requestAnimationFrame(step);
+  const sc = pd2PlaceScroller(nu); if (sc) sc.scrollTop = _pd2Place.top;
 }
 if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('scroll', pd2PlaceKeep, true);
 function pdGlanceRepaint(){

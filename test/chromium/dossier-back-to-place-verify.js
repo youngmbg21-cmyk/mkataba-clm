@@ -37,6 +37,11 @@ const TXT = ['DEPOT LEASE', '1. Premises', 'The Landlord lets to the Tenant the 
       const before = await page.evaluate(s => { const f = document.getElementById('igd-feed'), r = document.querySelector('#ig-dock ' + s);
         if (!f || !r) return null; f.scrollTop = 0; f.scrollTop = Math.max(0, r.getBoundingClientRect().top - f.getBoundingClientRect().top - 120); return Math.round(f.scrollTop); }, sel);
       await page.waitForTimeout(200);
+      /* RE-POINTED 24 Nov 2026 (the place the reader sees, as decision-redraws judges it): where the pressed row stands on
+         screen, from the panel's top; a row that grew above it moves scrollTop while the reader's place does not */
+      const rowY = s2 => page.evaluate(s3 => { const f = document.getElementById('igd-feed'), r = document.querySelector('#ig-dock ' + s3);
+        return f && r ? Math.round(r.getBoundingClientRect().top - f.getBoundingClientRect().top) : null; }, s2);
+      const y0 = await rowY(sel);
       check(name + ': the panel is scrolled down first', before > 20, 'scrollTop ' + before);
       await page.click('#ig-dock ' + sel);
       const mid = await until(page, () => !!document.querySelector('[data-dlg-page]'), null, 8000);
@@ -45,8 +50,9 @@ const TXT = ['DEPOT LEASE', '1. Premises', 'The Landlord lets to the Tenant the 
       const home = back && await until(page, () => { const g = document.getElementById('pd-glance'); return !!(g && !/(^|\s)is-/.test(g.className) && !document.querySelector('[data-dlg-page]')); }, null, 8000);
       check(name + ': the way back returns to the Dossier', home);
       await page.waitForTimeout(300);
-      const after = await feedTop();
-      check(name + ': the panel stands where it stood', home && Math.abs(after - before) <= 2, `before ${before}, after ${after}`);
+      const after = await feedTop(), y1 = await rowY(sel);
+      check(name + ': the panel stands where it stood', home && (Math.abs(after - before) <= 2 || (y0 != null && y1 != null && Math.abs(y1 - y0) <= 2)),
+        `before ${before}, after ${after}; the row at ${y0} then ${y1}`);
     }
     check('no page errors', errors.length === 0, errors.join(' | '));
   } catch (e) { check('the run completed', false, e.message); }
