@@ -98,7 +98,8 @@ test('f1202 (2b) the panel: Overview · Blanks · Versions; Blanks read off the 
   const paint = fnBody(TL, 'tplDtPanelPaint');
   assert.match(paint, /jlTabs: \[\{ k: 'bl', label: i18t\('tb_tab_blanks'\), n: blanks\.length \}, \{ k: 'vs', label: i18t\('tl_dt_tab_vs'\), n: versions\.length \}\]/);
   assert.match(fnBody(INS, 'jlOwnPaint'), /if \(Array\.isArray\(opt\.jlTabs\) && opt\.jlTabs\.length && homeT\)\{/, 'the shared panel draws a page\'s own tabs');
-  assert.match(fnBody(INS, 'jlOwnPaint'), /data-jl-tabx="_jb"><span aria-hidden="true">✦<\/span>/, 'as drawn: ✦ Jambo first');
+  /* RE-POINTED 24 Nov 2026 (review, f966: no typed mark leads a button): Jambo first, his drawn spark (mkSpark) */
+  assert.match(fnBody(INS, 'jlOwnPaint'), /data-jl-tabx="_jb">\$\{typeof icon === 'function' \? icon\('mkSpark', 'w-3\.5 h-3\.5'\) : ''\}/, 'as drawn: Jambo first, his spark');
   const ov = fnBody(TL, 'tplDtOverviewHtml');
   assert.ok(!/jamboOverviewHtml/.test(ov), 'the Overview is drawn unboxed, not as the five parts\' grey groups (owner: "built here is not right")');
   assert.match(ov, /<table class="tpl-dt-tbl is-plain">/, 'what waits as plain rows');

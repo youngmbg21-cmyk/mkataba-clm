@@ -23003,3 +23003,4 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 
 ## Noticed, not fixed (24 Nov 2026, fix-br12 — the five browser checks)
 - test/f1202-builder-bar-template-page-whole-contract.test.js (2b) is red at 30d7dae5: it still asks for a "✦" mark before Jambo's tab pill in jlOwnPaint, which now draws the drawn icon (mkSpark).
+- Correction (24 Nov 2026, same branch): f1202 (2b) red above was this branch's own change (Jambo's tab ✦ → drawn mkSpark, f966); re-pointed, not left red.
