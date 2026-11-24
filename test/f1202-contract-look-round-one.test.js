@@ -160,7 +160,8 @@ test('f1202 (5) the preview: the signing copy on one of our own unsigned contrac
   assert.match(fn(D, 'clPinsPaint'), /class="cl-pin is-\$\{r\.st\}\$\{_cl\.row === r\.k \? ' is-lit' : ''\}" data-cl-pin="\$\{r\.k\}"/, 'a pin per part, numbered as the table, lit when its row is chosen');
   assert.match(fn(D, 'clPinsPaint'), />\$\{r\.n\}<\/button>/);
   /* RE-POINTED 24 Nov 2026 (contract look round 3): a cover page is "Cover" and the pages after it count from 1 */
-  assert.match(fn(D, 'clPvPagesPaint'), /i18t\('cl_ls_pv_page', \{ n: num\(i\), m: of \}\)/, 'page N of M');
+  /* RE-POINTED 24 Nov 2026 (paper alone, pages scroll, owner): no page buttons; "page N of M" follows the page in view */
+  assert.match(fn(D, 'clPvSayPage'), /i18t\('cl_ls_pv_page', \{ n: num\(p\), m: of \}\)/, 'page N of M');
   assert.match(fn(D, 'clRowChoose'), /tr\.classList\.toggle\('is-chosen'/);
   assert.match(S, /if\(_stPage==='look'&&typeof window\.clAfterPaint==='function'\) window\.clAfterPaint\(\);/, 'the preview is drawn once the page stands');
 });

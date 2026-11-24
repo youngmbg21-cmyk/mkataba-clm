@@ -46,12 +46,11 @@ test('f1214 (1) the paper is the panel\'s on The page and Brand kit, never on Wh
     vm.runInContext(`_cl.tab = ${JSON.stringify(tab)}`, W);
     assert.equal(vm.runInContext('clPanelFacts().pv', W), '', tab + ': no paper in the panel');
   }
+  /* RE-POINTED 24 Nov 2026 (paper alone, pages scroll, owner): the panel is the paper alone; nothing under it */
   const look = fn(S, 'stLsLookPanel');
-  assert.match(look, /pin:f\.pv\|\|''/, 'the look\'s panel pins the paper');
+  assert.match(look, /if\(f\.pv\) return \{ pin:f\.pv, paperOnly:true \};/, 'the look\'s panel is the paper');
   const html = fn(S, 'stLsPanelHtml');
-  assert.match(html, /if\(o\.pin\) return `<div class="jl-words is-ov sdd5-p st-ls-p is-pin">\$\{o\.pin\}<div class="st-ls-rest scroll-thin" id="st-ls-rest">\$\{card\}<\/div><\/div>`;/,
-    'pinned at the top; the headline, ring and quality check scroll below it');
-  assert.match(X, /\.st-ls-p\.is-pin > \.st-ls-rest\{flex:1 1 auto;min-height:0;overflow-y:auto/, 'the words below the paper scroll in their own room');
+  assert.match(html, /if\(o\.paperOnly\) return `<div class="jl-words is-ov sdd5-p st-ls-p is-paper-only">\$\{o\.pin\}<\/div>`;/, 'the paper alone');
   assert.match(fn(S, 'stLsPanelPaint'), /_stPage==='look'&&typeof window\.clAfterPaint==='function'\) window\.clAfterPaint\(\)/, 'the panel\'s paint draws the paper');
   assert.match(D, /if \(!t\.closest\('\[data-st-pg="look"\], #cl-pv-dock'\)\) return;/, 'the chooser, the page buttons and the pins answer in the panel');
 });
@@ -69,15 +68,16 @@ test('f1214 (2) the table takes the page\'s whole width: no preview column', () 
 });
 
 test('f1214 (3) a whole A4 page, fitted to the panel, never cropped to the words', () => {
+  /* RE-POINTED 24 Nov 2026 (paper alone, pages scroll, owner): every page stacked, each whole; one page fits the scroller */
   const frame = fn(D, 'clPvFrame');
-  assert.match(frame, /view\.style\.height = Math\.round\(W \* clPvPageH\(\) \/ clPvPageW\(\)\) \+ 'px';/, 'the frame is a whole page high');
+  assert.match(frame, /const h = last \? last\.top \+ \(info\.pageH \|\| clPvPageH\(\)\) : clPvPageH\(\);/, 'whole pages, the last one whole too');
   const show = fn(D, 'clPvShow');
-  assert.match(show, /clPvFrame\(view, W\)/); assert.doesNotMatch(show, /pg\.h/, 'never the height of the words on the page');
+  assert.match(show, /clPvFrame\(view, W, info\)/); assert.doesNotMatch(show, /pg\.h/, 'never the height of the words on the page');
   const fit = fn(D, 'clPvFitW');
-  assert.match(fit, /body\.clientHeight - CL_PV_REST_MIN - chrome/, 'the page fits between the panel\'s head and Jambo\'s box');
+  assert.match(fit, /ah = sc\.clientHeight - 2 \* CL_PV_EDGE/, 'one whole page fits the panel\'s scroller');
   assert.match(fit, /Math\.min\(aw, ah \* clPvPageW\(\) \/ clPvPageH\(\)\)/, 'A4 proportions kept');
   const draw = fn(D, 'clPvDraw');
-  assert.equal((draw.match(/clPvFrame\(view, W\)/g) || []).length, 2, 'the sample page and the contract\'s page alike');
+  assert.equal((draw.match(/clPvFrame\(view, W, null\)/g) || []).length, 2, 'the sample page and the contract\'s page alike');
 });
 
 test('f1214 (4) the preview opens on the contract whose first page is fullest', () => {

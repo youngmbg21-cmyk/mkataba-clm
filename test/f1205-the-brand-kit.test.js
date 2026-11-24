@@ -127,7 +127,9 @@ test('f1205 (4) the Brand kit tab: its count, logos, faces, colours, where it is
   const D = read('js/views/designstep.js');
   assert.match(D, /if \(s === 'kit'\) \{ _cl\.tab = 'kit'; _cl\.mode = 'page'; return clRepaint\(\); \}/, 'the check\'s doors open the kit');
   assert.match(D, /payload\.palette = pal\.length \? pal : null;/, 'Save carries the colours');
-  assert.match(read('js/views/settings.js'), /title:f\.tab==='kit'\?i18t\('cl_kit_p_t',\{ n:f\.kitSet, m:f\.kitOf \}\)/);
+  /* RE-POINTED 24 Nov 2026 (paper alone, pages scroll, owner): the Brand kit's panel is the paper alone (no headline); the
+     tab's own count still says the kit */
+  assert.match(read('js/views/settings.js'), /if\(f\.pv\) return \{ pin:f\.pv, paperOnly:true \};/);
 });
 
 test('f1205 (5) the wording and the sealed text are unchanged by every kit setting', () => {

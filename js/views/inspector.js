@@ -1236,8 +1236,29 @@ function jlWidthNow(){
   let v = 0; try { v = sh ? parseFloat(sh.style.getPropertyValue('--jl-w')) : 0; } catch (_){ v = 0; }
   return v > 0 ? Math.round(v) : JL_W;
 }
+/* A PAGE'S OWN WIDER PANEL (owner, 24 Nov 2026, How our contracts look's paper: the panel "at 560 wide"): a page may
+   ask the panel to open wider while what it names stands on screen (jlPageWideSet(w, sel); read live, so leaving the
+   page gives the width back). The reader's saved width (JL_SPLIT_KEY) is never written over: a drag while the page
+   asks is honoured in memory only, until it lets go. The same writer (JL_SPLIT.apply) draws both. */
+let _jlPageWide = { w: 0, sel: '' }, _jlPageDrag = null;
+function jlPageWideNow(){
+  const p = _jlPageWide; if (!(p.w > 0)) return 0;
+  if (p.sel && (typeof document === 'undefined' || !document.querySelector(p.sel))) return 0;
+  return p.w;
+}
+function jlPageWideSet(w, sel){
+  const n = Number(w) > 0 ? Math.round(Number(w)) : 0, k = n ? String(sel || '') : '';
+  if (n === _jlPageWide.w && k === _jlPageWide.sel) return;
+  if (n !== _jlPageWide.w) _jlPageDrag = null;
+  _jlPageWide = { w: n, sel: k };
+  if (typeof document !== 'undefined') jlLayout();
+}
 const JL_SPLIT = {
-  key: JL_SPLIT_KEY, w0: JL_W, min: JL_MIN, foldedW: JL_FOLDED,
+  key: JL_SPLIT_KEY, min: JL_MIN, foldedW: JL_FOLDED,
+  get w0(){ return jlPageWideNow() || JL_W; },
+  /* the reader's own width, unless a page asks for its wider panel (then a drag there, kept in memory only) */
+  pref: () => { if (jlPageWideNow()) return _jlPageDrag; _jlPageDrag = null; return typeof splitPref === 'function' ? splitPref(JL_SPLIT_KEY) : null; },
+  save: w => { if (jlPageWideNow()){ _jlPageDrag = w == null ? null : Math.round(w); return; } if (typeof splitSave === 'function') splitSave(JL_SPLIT_KEY, w); },
   /* the page beside keeps its floor: the list's own, measured live (jlListMin) */
   get restMin(){ return jlListMin(); },
   folded: () => { const h = jlHost(); return !h || h.classList.contains('is-folded'); },
@@ -2001,5 +2022,5 @@ Object.assign(window, { jlPagePh, JL_PAGE_ASKS, INS_MIN_W, INS_ASKS_MAX, INS_LAT
   insHeadHtml, insParties, insPartiesHtml, insNeedsHtml, insNeedsLineHtml, insNeedWords, INS_NEED_VERB, INS_NEED_GO, insPanelHtml, insPanelEmptyHtml, insPaintPanel, insCloseMenu, insMarkRow, insListWire,
   insListOff, insWatchWidth, insActsHtml, insMoreHtml, insDoorActs, insNegoDoorState, insMenuItemHtml, insItemHeadHtml, INS_TONE, insKvHtml, insChipHtml, insViewTabsHtml,
   INS_PAGE_REPAINT, insLetGo, insLetGone, insActBtnHtml, insRowsHtml, JL_READ_ORDER, jlReadsHtml, jlReadSaid,
-  INS_NARROW_MIN, insRoom, insNarrow, jlNarrowApply, JL_W, JL_FOLDED, JL_MIN, JL_LIST_MIN, JL_FLEX_MIN, JL_SPLIT_KEY, JL_SPLIT, jlListMin, jlWidthNow, jlFolded, jlFoldSet, jlHost, jlOnScreen, jlReserved, jlLayout, jlCount, jlAskHtml, jlFrame, jlHeadPaint, jlWordsHtml, jlNeedsHtml,
+  INS_NARROW_MIN, insRoom, insNarrow, jlNarrowApply, jlPageWideSet, jlPageWideNow, JL_W, JL_FOLDED, JL_MIN, JL_LIST_MIN, JL_FLEX_MIN, JL_SPLIT_KEY, JL_SPLIT, jlListMin, jlWidthNow, jlFolded, jlFoldSet, jlHost, jlOnScreen, jlReserved, jlLayout, jlCount, jlAskHtml, jlFrame, jlHeadPaint, jlWordsHtml, jlNeedsHtml,
   JL_LAND, jlLand, jlPageWord, jlToWords, jlTalkKey, jlTalkLand, jlGreetPut, jlTalkShows, jlTalkHtml, jlTalkPaint, jlTalkOpen, jlTalkPress, jlTalkSync, jlTalkBack, jlHeldContract, jlBoardReads, jlIsQuestion, jlBusySay, jlSayFound, jlSayBoard, jlAsk, jlMapCard, jlFocus, jlPopRead, jlPopClose, jlPopTake, jlDayWord, jlDayRange, jlAwayOf });
