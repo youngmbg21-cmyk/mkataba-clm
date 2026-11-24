@@ -60,9 +60,10 @@ describe('f1196 (2) the four kinds', () => {
 });
 
 describe('f1196 (3) the controls come back', () => {
-  test('pinned by transform only, a pill while away, nothing written', () => {
+  test('pinned in place (held, not carried), a pill while away, nothing written', () => {
     const A = strip(fnSrc(PD, 'pd2CtlApply'));
-    assert.match(A, /el\.style\.transform = pin \? `translateY\(\$\{st\}px\)` : ''/);
+    /* RE-POINTED 24 Nov 2026 (f1219, "skid marks"): held in place by the window (fixed), never carried by a transform */
+    assert.match(A, /if \(pin\) pd2CtlHold\(el, sc, st\); else pd2CtlLetGo\(el\);/);
     assert.match(A, /pd2CtlPill\(!pin && st > PD2_CTL_TOP/);
     const arm = strip(fnSrc(PD, 'pd2CtlArm'));
     assert.match(arm, /else if \(d < -2\) _pd2Ctl\.pinned = true; else if \(d > 2\) _pd2Ctl\.pinned = false;/);

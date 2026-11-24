@@ -5142,6 +5142,12 @@ function ceLadderCardHtml(){
     replyHtml = `<div class="k">${_cee(_cet('ce_lc_reply'))}</div><div>${_cee(_cet('ce_lc_accept_line'))}</div>`;
     acts = `<div class="acts"><button type="button" class="ui-btn ui-btn-primary" data-ce-act="ladder-accept" data-id="${_ceea(theirs.id)}">${_cee(_cet('ce_lc_accept', { n: theirs.n }))}</button></div>`;
   }
+  /* AS A TAB, AS DRAWN: "Your ladder" and its Open › (the Redlines tab's Ladder), then a calm table of lines */
+  if (ceTabbed()) return `<section class="ce-sec ce-tlad"><div class="ce-sh"><span>${_cee(_cet('ce_tab_lad_h'))}</span><button type="button" class="ce-shgo" data-ce-tlink="ladder">${_cee(_cet('ce_tab_lad_open'))}</button></div>
+    <div class="ce-card ce-lcard"><div class="k">${_cee(_cet('ce_lc_moved'))}</div><div>${_cee(moved)}</div>
+    <div class="k">${_cee(_cet('ce_tab_lad_pos'))}</div><div>${_cee(ladder)}</div>
+    <div class="k">${_cee(_cet('ce_tab_lad_before'))}</div><div>${_cee(prec)}</div>
+    ${replyHtml}${acts}</div></section>`;
   return `<div class="ce-card ce-lcard" title="${_ceea(_cet('ce_lc_cost'))}">
     <div class="k">${_cee(_cet('ce_lc_moved'))}</div><div>${_cee(moved)}</div>
     <div class="k">${_cee(_cet('ce_lc_ladder'))}</div><div>${_cee(ladder)}</div>
@@ -5346,7 +5352,7 @@ function ceRenderFull(){}
 function ceFullClose(){ return false; }
 function ceTurnHtml(t, i){
   if (t.who === 'you') return `<div class="ce-you"><span>${_cee(t.text)}</span></div>`;
-  if (t.greeting) return ceGreetingHtml();
+  if (t.greeting) return ceTabbed() ? ceTabGreetingHtml() : ceGreetingHtml();
   /* AN ANSWER, NOT A PROPOSAL: the words it was about, the reading, and the
      one way on — Edit with this. No Apply, no Refine, no vote on wording. */
   if (t.asking) return `<div class="ce-ai">${
@@ -5395,6 +5401,17 @@ function ceExplainHtml(x){
    IT SPENDS NOTHING and adds no element: the rows are ceReadList's own markup,
    in the lane the greeting already occupies. A clause with neither fact draws
    exactly the sentence it drew before. */
+/* AS A TAB, AS DRAWN: the two facts sit in Your ladder's table; where the ladder card draws its own table (it says what was
+   settled), they are not said twice */
+function ceTabGreetingHtml(){
+  let lad = false; try { lad = !_cePrep && !!ceLadderRow(); } catch (_){ lad = false; }
+  if (lad) return '';
+  const rows = [];
+  const pc = cePrecedentLine(); if (pc) rows.push([_cet('ce_tab_lad_before'), pc]);
+  const ta = ceTheirAsk(); if (ta) rows.push([_cet('ce_read_theirs'), ta]);
+  return rows.length ? `<section class="ce-sec ce-tlad"><div class="ce-sh"><span>${_cee(_cet('ce_tab_lad_h'))}</span><button type="button" class="ce-shgo" data-ce-tlink="ladder">${_cee(_cet('ce_tab_lad_open'))}</button></div>
+    <div class="ce-card ce-lcard">${rows.map(r => `<div class="k">${_cee(r[0])}</div><div>${_cee(r[1])}</div>`).join('')}</div></section>` : '';
+}
 function ceGreetingHtml(){
   const cl = ceClause();
   const rows = [];
@@ -5726,6 +5743,14 @@ function cePointsHtml(){
   const tick = '<svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg>';
   /* "✦ You came from What to watch on 3 · 4 points…", the place named in bold, as drawn */
   const say = _cee(_cetn('ce_pts_say', list.length, { n: list.length, clause: m ? m[1] : lab, what: '\u0001' })).replace('\u0001', `<b>${_cee(_cet('stk_watch_h'))}</b>`);
+  /* AS A TAB, AS DRAWN: a section, "To fix" and its count, each point a row (tick, what is at stake, its § and words), one
+     black button across; no "You came from …" sentence and no Not now (unticking leaves a point alone) */
+  if (ceTabbed()){
+    const n = m ? m[1] : '';
+    return `<section class="ce-sec ce-pts is-tab" data-ce-pts><div class="ce-sh"><span>${_cee(_cet('ce_tab_fix_h'))}</span><span>${list.length}</span></div>
+    <ul class="ce-pts-list">${list.map((p, i) => `<li class="ce-pt${p.on ? ' is-on' : ''}"><button type="button" class="ce-pt-tick" role="checkbox" aria-checked="${p.on}" data-ce-pt="${i}" aria-label="${_ceea(_cet('ce_pts_tick'))}">${p.on ? tick : ''}</button><div class="ce-pt-w"><span class="ce-pt-t">${_cee(p.t)}</span>${p.q ? `<span class="ce-pt-q">${n ? '§' + _cee(n) + ' ' : ''}<q>${_cee(p.q)}</q></span>` : ''}</div></li>`).join('')}</ul>
+    <button type="button" class="ce-tdraft" data-ce-act="pts-draft"${k ? '' : ` disabled aria-disabled="true" title="${_ceea(_cet('ce_pts_none'))}"`}>${_cee(k ? _cet('ce_tab_fix_go') : _cet('ce_pts_none'))}</button></section>`;
+  }
   return `<div class="ce-ai ce-pts" data-ce-pts><p class="t"><b class="ce-pts-mk" aria-hidden="true">✦</b> ${say}</p>
     <ul class="ce-pts-list">${list.map((p, i) => `<li class="ce-pt${p.on ? ' is-on' : ''}"><button type="button" class="ce-pt-tick" role="checkbox" aria-checked="${p.on}" data-ce-pt="${i}" aria-label="${_ceea(_cet('ce_pts_tick'))}">${p.on ? tick : ''}</button><div class="ce-pt-w"><span class="ce-pt-t">${_cee(p.t)}</span>${p.q ? `<q class="ce-pt-q">${_cee(p.q)}</q>` : ''}</div></li>`).join('')}</ul>
     <div class="ce-pts-acts"><button type="button" class="ui-btn ui-btn-primary" data-ce-act="pts-draft"${k ? '' : ` disabled aria-disabled="true" title="${_ceea(_cet('ce_pts_none'))}"`}>${_cee(k ? _cetn('ce_pts_draft', k, { n: k }) : _cet('ce_pts_none'))}</button><button type="button" class="ui-link" data-ce-act="pts-off">${_cee(_cet('ce_pts_off'))}</button></div></div>`;
@@ -8284,14 +8309,20 @@ function ceTabPaint(){
   let top = rail.querySelector('#ce-tabtop');
   if (!top){ top = document.createElement('div'); top.id = 'ce-tabtop'; top.className = 'ce-tabtop'; rail.insertBefore(top, rail.firstChild); }
   const tabs = typeof window.pdEdTabsHtml === 'function' ? window.pdEdTabsHtml(_ceC) : '';
-  const html = `<div class="ce-dtabs" role="tablist">${tabs}</div>
-    <div class="ce-tpick"><button type="button" class="ce-tar" data-ce-tstep="-1" aria-label="${_ceea(_cet('ce_walk_prev'))}"${i > 0 ? '' : ' disabled'}>${window.icon ? icon('chevL', 'w-3.5 h-3.5') : ''}</button>
-      <button type="button" class="ce-tnm" data-ce-tlist aria-haspopup="listbox"><span>${_cee(name)}</span> ${window.icon ? icon('chevD', 'w-3 h-3') : ''}</button>
-      <span class="ce-tk">${_cee(_cet('ce_tab_k_of_n', { k: i + 1, n: L.length }))}</span>
-      <button type="button" class="ce-tar" data-ce-tstep="1" aria-label="${_ceea(_cet('ce_walk_next'))}"${nx ? '' : ' disabled'}>${window.icon ? icon('chevR', 'w-3.5 h-3.5') : ''}</button></div>
+  /* THE EDITOR TAB, AS DRAWN (owner, 24 Nov 2026: "When I press on editor the panel is not consistent compared to when you
+     move between dossier, clauses and redlines … the content of the tab as well is very very poor" — the drawing built):
+     the SAME tab row as the Dossier's, its strip in the middle and the fold arrow at the end (data-ce-dfold); the Clauses
+     tab's own row (‹ Clauses · ‹ k of n › · All n clauses ▾); the clause as one line — its number, its name, the list's
+     badge — and one grey line under it. The sections (To fix · Your ladder · Your change) and the foot follow. */
+  const lab = String(name || ''), nm = /^\s*\(?(\d+(?:\.\d+)*|[A-Z]|[ivxlcdm]+)[.)]?\s+(.*)$/i.exec(lab);
+  const num = nm ? nm[1] : '', title = nm ? nm[2] : lab;
+  let pts = []; try { pts = cl ? ceTabPointsOf(cl.clauseId) : []; } catch (_){ pts = []; }
+  const st = pts.some(p => p.s === 'need') ? 'need' : pts.length ? 'look' : '';
+  const badge = st ? `<span class="ce-tbadge k-${st}"><i aria-hidden="true"></i>${_cee(_cet(st === 'need' ? 'bd_st_need' : 'bd_st_look'))}</span>` : '';
+  const html = `<div class="ce-drow"><div class="ce-dtabs" role="tablist">${tabs}</div><button type="button" class="ce-dfold" data-ce-dfold title="${_ceea(_cet('int_collapse_panel'))}" aria-label="${_ceea(_cet('int_collapse_panel'))}">\u203a</button></div>
+    <div class="ce-tnav"><button type="button" class="ce-tback" data-ce-dtab="doc">\u2039 ${_cee(_cet('pd_tab_clauses'))}</button><button type="button" class="ce-tar" data-ce-tstep="-1" aria-label="${_ceea(_cet('ce_walk_prev'))}"${i > 0 ? '' : ' disabled'}>\u2039</button><span class="ce-tk">${_cee(_cet('ce_tab_k_of_n', { k: i + 1, n: L.length }))}</span><button type="button" class="ce-tar" data-ce-tstep="1" aria-label="${_ceea(_cet('ce_walk_next'))}"${nx ? '' : ' disabled'}>\u203a</button><span class="sp"></span><button type="button" class="ce-tall" data-ce-tlist aria-haspopup="listbox">${_cee(_cetn('ce_tab_all', L.length, { n: L.length }))} \u25be</button></div>
     <div class="ce-tlist" id="ce-tlist" role="listbox" hidden>${L.map((x, k) => `<button type="button" role="option" data-ce-tgo="${_ceea(x.clauseId)}"${k === i ? ' aria-selected="true" class="on"' : ''}>${_cee(ceTabName(x))}</button>`).join('')}</div>
-    <h3 class="ce-th">${_cee(_cet('ce_tab_redlining', { clause: name }))}</h3>
-    <p class="ce-tsub">${_cee(them ? _cet('ce_tab_sub', { who: them }) : _cet('ce_tab_sub_x'))}</p>`;
+    <div class="ce-thd">${num ? `<span class="ce-thn">${_cee(num)}</span>` : ''}<div class="ce-thw"><h3 class="ce-th">${_cee(title)}</h3><p class="ce-tsub">${_cee(them ? _cet('ce_tab_sub2', { who: them }) : _cet('ce_tab_sub2_x'))}</p></div>${badge}</div>`;
   if (top.getAttribute('data-k') !== html){ top.setAttribute('data-k', html); top.innerHTML = html; }
   let foot = rail.querySelector('#ce-tabfoot');
   if (!foot){ foot = document.createElement('div'); foot.id = 'ce-tabfoot'; foot.className = 'ce-tabfoot'; const feet = rail.querySelector('#ce-feet'); rail.insertBefore(foot, feet ? feet.nextSibling : null); }
@@ -8302,19 +8333,16 @@ function ceTabPaint(){
   const sv = rail.querySelector('#ce-railfoot [data-ce-act="save"]'), live = !!(sv && !sv.disabled);
   const btn = live ? `<button type="button" class="ce-tnext is-save" data-ce-tsave title="${_ceea(sv.getAttribute('title') || '')}">${_cee(sv.textContent.trim())}</button>`
     : nx ? `<button type="button" class="ce-tnext" data-ce-tstep="1">${_cee(_cet('ce_tab_next'))}</button>` : '';
-  const fh = nx ? `<span class="dash" aria-hidden="true"></span><span class="w">${_cee(_cet('ce_tab_keep', { clause: ceTabName(nx) }))}</span>${btn}`
-    : btn ? `<span class="w"></span>${btn}` : '';
+  /* the foot as drawn: "Next: <clause>" and its one button, then the links line the other tabs carry (notes · their view ·
+     history), each an existing door */
+  const links = `<nav class="ce-tlinks">${['notes', 'theirs', 'history'].map(k => `<button type="button" data-ce-tlink="${k}">${_cee(_cet(k === 'notes' ? 'ca_next_rl_notes' : k === 'theirs' ? 'ca_next_rl_theirs' : 'ca_w_history'))}</button>`).join('')}</nav>`;
+  const fh = `<div class="ce-tfrow">${nx ? `<span class="w">${_cee(_cet('ce_tab_next_to', { clause: ceTabName(nx) }))}</span>` : '<span class="w"></span>'}${btn}</div>${links}`;
   if (foot.getAttribute('data-k') !== fh){ foot.setAttribute('data-k', fh); foot.innerHTML = fh; }
-  /* the File button's reason when grey, and Undo the change beside it */
-  const rf = rail.querySelector('#ce-railfoot');
-  if (rf){
-    const save = rf.querySelector('[data-ce-act="save"]');
-    let extra = rf.querySelector('.ce-tacts');
-    if (!extra){ extra = document.createElement('div'); extra.className = 'ce-tacts'; rf.appendChild(extra); }
-    const dead = !!(save && save.disabled);
-    const eh = dead ? '' : `<button type="button" class="ce-tundo" data-ce-act="undo">${_cee(_cet('ce_tab_undo'))}</button>`;
-    if (extra.getAttribute('data-k') !== eh){ extra.setAttribute('data-k', eh); extra.innerHTML = eh; }
-  }
+  /* YOUR CHANGE (as drawn): what waits to be filed on this clause, and Undo beside it; nothing typed says how to start */
+  let chg = rail.querySelector('#ce-tchg');
+  if (!chg){ chg = document.createElement('section'); chg.id = 'ce-tchg'; chg.className = 'ce-sec ce-tchg'; const lane = rail.querySelector('#ce-lane'); rail.insertBefore(chg, lane ? lane.nextSibling : null); }
+  const ch = `<div class="ce-sh"><span>${_cee(_cet('ce_tab_change_h'))}</span><span>${live ? 1 : 0}</span></div><p class="ce-trow">${live ? `${_cee(_cet('ce_tab_change_wait'))} <button type="button" class="ce-tundo" data-ce-act="undo">${_cee(_cet('ce_tab_undo'))}</button>` : _cee(_cet('ce_tab_change_none'))}</p>`;
+  if (chg.getAttribute('data-k') !== ch){ chg.setAttribute('data-k', ch); chg.innerHTML = ch; }
   /* NO TAG ON THE WRITING BAR (owner, 24 Nov 2026: "delete the highlighted item" — the black "Editing <clause>" pill): the
      panel's heading and the bar over the page already name the clause; the bar keeps only its tools */
   const row = pg.querySelector('.ce-barrow'), oldTag = row && row.querySelector('.ce-ttag'); if (oldTag) oldTag.remove();
@@ -8362,6 +8390,22 @@ let _ceTabWheelAt = 0;
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._ceTabWired){ document._ceTabWired = true;
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#clause-editor.is-tabbed')) return;
+    /* THE FOLD ARROW, as on the other tabs: the editor is left (asking first over an unfiled edit) and the panel folds */
+    if (t.closest('[data-ce-dfold]')){ e.preventDefault();
+      ceLeaveGuard(() => { rlCloseClauseEditor(); try { if (typeof window.pdEdTabLeave === 'function') window.pdEdTabLeave('copilot'); } catch (_){}
+        setTimeout(() => { const f = document.getElementById('igd-collapse'); if (f) f.click(); }, 160); }); return; }
+    /* THE LINKS LINE (notes · their view · history) and Your ladder's Open ›: each the Redlines tab's own door */
+    const tl = t.closest('[data-ce-tlink]');
+    if (tl){ e.preventDefault(); const k = tl.getAttribute('data-ce-tlink'), c = _ceC;
+      if (k === 'notes'){ if (typeof window.openPanel === 'function') window.openPanel('notes'); return; }
+      const face = k === 'history' ? 'copilot' : 'red', run = k === 'theirs' ? 'rl_theirs' : k === 'ladder' ? 'rl_ladder' : 'history';
+      ceLeaveGuard(() => { rlCloseClauseEditor(); try { if (typeof window.pdEdTabLeave === 'function') window.pdEdTabLeave(face); } catch (_){}
+        let n = 0; const go = () => {
+          if (run === 'history'){ if (typeof window.caGo === 'function') window.caGo({ kind: 'go', place: 'history', cid: c.id }); return; }
+          const b = document.querySelector(run === 'rl_ladder' ? '#ig-dock [data-rl-ladder]' : '[data-ig-red="theirs"]');
+          if (b && !b.disabled){ b.click(); return; }
+          if (++n < 20) setTimeout(go, 100); };
+        setTimeout(go, 200); }); return; }
     const sb = t.closest('[data-ce-tsave]'); if (sb){ e.preventDefault(); const f = document.querySelector('#clause-editor #ce-railfoot [data-ce-act="save"]'); if (f && !f.disabled) f.click(); return; }
     const st = t.closest('[data-ce-tstep]'); if (st){ e.preventDefault(); ceTabStep(Number(st.getAttribute('data-ce-tstep')) || 1); return; }
     const ls = t.closest('[data-ce-tlist]');
