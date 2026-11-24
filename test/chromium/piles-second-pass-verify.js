@@ -259,7 +259,9 @@ async function login(b, base, email, pass, errs){
     const stay = await waitFor(page, () => !!document.getElementById('clause-editor') && /Liability cap/.test((document.getElementById('ce-rowhead') || {}).innerText || '')
       && [...document.querySelectorAll('.toast, [data-toast], #toast-root *')].some(t => /Erik/.test(t.textContent)), 5000);
     check('3h › onto the clause Erik holds is said, and the page stays', !!stay);
-    await page.click('#ce-rowhead [data-ce-act="row-back"]');
+    /* RE-POINTED 24 Nov 2026 (EDITOR AS A TAB, owner, f1202): tabbed, the row's ‹ Redlines stands down for the Dossier's
+       tabs — the Redlines tab is the row's own way back (ceRowBack), landing on the same row */
+    await page.click(tabbed ? '#clause-editor .ce-dtabs [data-ce-dtab="red"]' : '#ce-rowhead [data-ce-act="row-back"]');
     const lit = await waitFor(page, () => { const el = document.querySelector('#pd-redface .is-linked[data-nego-card]'); return !document.getElementById('clause-editor') && el && /Liability cap/.test(el.innerText) ? true : null; }, 6000);
     check('3i ‹ Redlines lands on the clause 7 row, lit', !!lit);
 
