@@ -149,6 +149,8 @@ describe('f1037 (4) one group per clause, and the chips', () => {
     assert.match(chips, /data-pd2-rn-chip="all"[^>]*aria-pressed="true">[^<]*<span>3<\/span>/);
     assert.match(chips, /data-pd2-rn-chip="open"[^>]*>[^<]*<span>2<\/span>/);
     assert.match(chips, /data-pd2-rn-chip="done"[^>]*>[^<]*<span>1<\/span>/);
+    /* RE-POINTED 24 Nov 2026 (the paper and its notes, L+S, owner's pick) */
+    assert.match(chips, /<button type="button" class="pd2-rn-hide ui-link" data-pd2-notes-tg="hide"[^>]*>Hide<\/button><\/div>$/, 'Hide at the end of the same row');
     assert.equal(S.win.pd2RedChipsHtml(3, 0), '', 'one kind only: no chips');
   });
 });

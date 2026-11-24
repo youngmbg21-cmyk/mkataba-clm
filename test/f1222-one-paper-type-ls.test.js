@@ -48,9 +48,10 @@ test('f1222 (3) one closing block: one size, even gaps, a quiet number column, n
   const size = rule('').match(/font-size:([\d.]+px)/)[1];
   assert.ok(rule(' .rl-clause-h').includes('font-size:' + size), 'headings the wording\'s size');
   assert.match(rule(' .nego-clause.rl-clause'), /margin:0;padding-top:(\d+)px;padding-bottom:\1px/, 'the same gap after every clause');
-  assert.match(rule(' .rl-hnum'), /margin-left:-(\d+)px[\s\S]*font-family:var\(--font-body\)[\s\S]*tabular-nums[\s\S]*color:var\(--color-neutral-400\)/);
+  /* RE-POINTED 24 Nov 2026 (the paper and its notes, L+S, owner's pick): the numbers wear the paper's own font (the Legora type), paragraphs' numbers too */
+  assert.match(rule(' :is(.rl-hnum, .rl-pnum, p.rl-line:not(.rl-hang) > .rl-marker:first-child)'), /width:(\d+)px;margin-left:-\1px[\s\S]*tabular-nums[\s\S]*color:var\(--color-neutral-400\)/);
   assert.match(B, /:is\(table, \.hati-doc table\)\{font-variant-numeric:tabular-nums\}/, 'tables line their figures up');
-  assert.match(B, /#ce-doc article\.nego-doc :is\(\.rl-hnum, \.rl-paper-sub, \.rl-sigfor, \.rl-sigrow\)\{font-family:var\(--font-body\)\}/, 'the editor too');
+  assert.match(B, /#ce-doc article\.nego-doc :is\(\.rl-sigfor, \.rl-sigrow\)\{font-family:var\(--font-body\)\}/, 'the editor too');
 });
 
 test('f1222 (4) the editor panel\'s clause name is the plain font', () => {
