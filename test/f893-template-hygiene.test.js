@@ -79,11 +79,12 @@ describe('f893 — renderer and helper hygiene (no server)', () => {
     assert.ok(out.includes('———'), 'the wording keeps a visible blank where the field sat');
   });
 
-  test('the stylesheet paints blanks grey, not green, with the pointer only on clickable ones', () => {
+  test('the stylesheet paints blanks AMBER on every paper (owner, 24 Nov 2026), not green, with the pointer only on clickable ones', () => {
     const css = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     const rule = /\.hati-doc \.hati-field\{[^}]*\}/.exec(css);
     assert.ok(rule, 'the blank rule exists');
-    assert.ok(rule[0].includes('neutral'), 'blanks draw from the neutral (grey) palette');
+    assert.ok(/--st-amber-bg/.test(rule[0]) && /--st-amber-fg/.test(rule[0]), 'blanks draw from the amber palette');
+    assert.ok(!rule[0].includes('neutral'), 'never grey again');
     assert.ok(!rule[0].includes('accent'), 'and not from the accent (green) palette');
     assert.ok(css.includes('.hati-doc .hati-field[data-field-key]{cursor:pointer'), 'only a routable blank invites a click');
   });

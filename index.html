@@ -13814,17 +13814,18 @@
      rules, side-by-side signature blocks — so their alignment must survive */
   .hati-doc pre{font-family:var(--font-doc-mono);font-size:.86em;line-height:1.5;
     white-space:pre;overflow-x:auto;margin:1em 0;}
-  /* An unfilled blank. GREY on purpose: green already means done/positive in
-     this design, and an empty space to complete is neither. The dotted rule
-     says "blank line on a paper form"; the pointer + hover appear only where
-     the blank knows which field it belongs to (data-field-key) and can
-     therefore take a click. Filled values render as plain document text with
-     none of this — the styling belongs to emptiness, not to fields. */
-  .hati-doc .hati-field{background:var(--color-neutral-100);color:var(--color-neutral-600);
-    border-bottom:1px dotted var(--color-neutral-500);padding:0 3px;border-radius:var(--radius);}
+  /* An unfilled blank. AMBER, ON EVERY PAPER (owner, 24 Nov 2026: "blanks in
+     all contracts should always be in amber"; reverses "grey on purpose"):
+     amber is work still owed, the same as the Dossier's and Our paper's blanks
+     and the Builder's chips. The dotted rule says "blank line on a paper form";
+     the pointer + hover appear only where the blank knows which field it
+     belongs to (data-field-key) and can therefore take a click. Filled values
+     render as plain document text with none of this. The signing copy keeps
+     its plain lines to sign on (.pg-sign, more specific). */
+  .hati-doc .hati-field{background:var(--st-amber-bg);color:var(--st-amber-fg);
+    border-bottom:1px dotted var(--st-amber-dot);padding:0 3px;border-radius:var(--radius);}
   .hati-doc .hati-field[data-field-key]{cursor:pointer;}
-  .hati-doc .hati-field[data-field-key]:hover{background:var(--color-neutral-200);
-    border-bottom-style:solid;}
+  .hati-doc .hati-field[data-field-key]:hover{border-bottom-style:solid;}
 
   /* ---- THE DRAFTER'S OWN MARKS (owner-asked 27-28 Aug 2026) ----
      Colour, highlight and size, applied to selected words and STORED in the

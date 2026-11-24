@@ -621,6 +621,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - No outlines on paper entry fields: f1028 (node; red at the parent).
 
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
+- A BLANK IS AMBER ON EVERY PAPER (24 Nov 2026): `test/f893-template-hygiene.test.js` "the stylesheet paints blanks AMBER" (red at the parent); `test/f1042-blanks-amber-and-only-fill-in-fills.test.js` for the Dossier.
 - NO GREEN RING ON A FIELD, ANYWHERE (16 Nov 2026): `test/f1086-no-green-ring-clause-marks.test.js` (1)(2) — one closing rule over every typed field, every look; green edges darken to the ink; red at the parent.
 - THE WALL WEARS THE SHARED MARK (10 Nov 2026): `test/f997-the-wall-wears-the-shared-mark.test.js` (3 checks, red at the parent) — the wall's paper and a party's agreements draw `regSapMarkHtml`; it is published once.
 - A SEARCH BOX WEARS NO RING (10 Nov 2026): `test/f996-search-boxes-no-ring-folders-scroll.test.js` (1) — one rule for the field, one for the line that holds it, every search box named, after the house ring (red at the parent).

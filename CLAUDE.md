@@ -413,6 +413,7 @@ A REPLACING POP-UP DOES NOT RE-ARRIVE (`modalKeptOf`, `modalScreenKey`; never `c
 - TYPE 400 · `--w-label` · `--w-strong` · `--w-title`; sentence case. BUTTONS `--ctl-h-sm`/`--ctl-h`/`--ctl-h-lg`; one filled per area; drawn icons; no wrap. Same-every-row column out (`apSameCols`); money ≥112.
 - NO RING, GLOW, THICK OR DARK EDGE ON ENTRY FIELDS: own closing block (`html:not(#_):not(#_)`); thin light grey edge (`--color-neutral-300`); only `.jb-card` green.
 - EVERY ENTRY FIELD IS OPEN, THE LEGORA WAY (built everywhere): label beside the words, NO BOX, one divider line under the row; ONE HOME the `--fld-*` tokens; owed hint `--st-amber-fg`; a choice of a few = grey pills (`payWhoHtml`); not fields: cards, ticks, `.jb-card`.
+- A BLANK ON ANY PAPER IS AMBER (owner, 24 Nov 2026; reverses "grey on purpose"): `.hati-doc .hati-field` reads `--st-amber-*`; only the signing copy's lines (`.pg-sign`) and Fill in's dotted amber rule differ. f893.
 - A ROW POINTED AT OR CHOSEN IS LIGHT GREEN, NEVER GREY, on every page and new ones: `var(--row-hover)`, `var(--row-chosen)`; f1186; exceptions in `ROW_GREY_KNOWN`, which only shrinks.
 - No outlines typing paper details. Bubbles one corner (`--radius`). Search no ring (`type="search"`); no ring after a press (`fieldFocus` `focusVisible:false`). 16px in Jambo panels; page level with panel.
 ## TWO LANGUAGES ≠ TWO MARKETS
