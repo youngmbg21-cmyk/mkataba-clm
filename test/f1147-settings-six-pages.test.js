@@ -79,8 +79,12 @@ test('f1147 (6) How our contracts look keeps its editing', () => {
   const ls = f.slice(f.indexOf('window.stLsOn()'), f.indexOf('const acts = admin'));
   assert.ok(ls.includes('return clLsPageHtml();'), 'the Legora + Stripe page is drawn beside Settings\' head');
   const j = D.indexOf('function clLsPageHtml()'), page = D.slice(j, D.indexOf('\nfunction ', j + 10));
-  for (const part of ['clPickHtml()', 'clWhoHtml()', 'clPartsTableHtml(parts)', 'clPreviewHtml()', 'id="cl-save"', 'id="cl-say"'])
+  /* RE-POINTED 24 Nov 2026 (preview in the panel, owner): the preview left the page for the side panel (clPanelFacts'
+     `pv`), so the page draws the rest and the panel's facts carry the preview */
+  for (const part of ['clPickHtml()', 'clWhoHtml()', 'clPartsTableHtml(parts)', 'id="cl-save"', 'id="cl-say"'])
     assert.ok(page.includes(part), part + ' is still drawn');
+  const pf = D.slice(D.indexOf('function clPanelFacts'), D.indexOf('\nfunction ', D.indexOf('function clPanelFacts') + 10));
+  assert.ok(pf.includes('clPreviewHtml()'), 'the preview is still drawn, in the panel');
   assert.match(D, /function clModeGo\(m\) \{ if \(!_cl\) clInit\(\); if \(!clAdmin\(\)\) return;/, 'the panel\'s rows open a setting only for an admin');
   assert.match(D, /Object\.assign\(window, \{[^\n]*clFacts, clModeGo/);
 });

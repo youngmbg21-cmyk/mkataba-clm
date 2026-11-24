@@ -14,7 +14,7 @@ const CT = R('js/views/contract.js').replace(/\/\*[\s\S]*?\*\//g, ''), H = R('in
 const fn = name => { const i = CT.indexOf('function ' + name + '('); assert.ok(i >= 0, name + ' exists'); const j = CT.indexOf('\nfunction ', i + 9); return CT.slice(i, j < 0 ? undefined : j); };
 
 test('f1208 (1) no head line over the page; one nav row with its menu and a read line', () => {
-  assert.match(H, /#pd-thread\.is-page :is\(\.stk-lg-top, \.stk-all\)\{display:none\}/);
+  assert.match(H, /#pd-thread:is\(\.is-page, \.is-list\) :is\(\.stk-lg-top, \.stk-all\)\{display:none\}/); /* RE-POINTED (f1214): the list too */
   const N = fn('docThreadNavSync');
   assert.match(N, /if \(_thPage\)\{[\s\S]*data-th-menu aria-expanded="false" aria-haspopup="menu"[\s\S]*class="doc-th-prog"[\s\S]*--p:\$\{pc\}%/);
   assert.match(CT, /data-th-page-toggle>\$\{esc\(i18t\('th_menu_list'\)\)\}<\/button>\$\{all \? `<button type="button" role="menuitem" data-th-allgo>/, 'the menu: the list, and all in plain English (the head\'s own press)');

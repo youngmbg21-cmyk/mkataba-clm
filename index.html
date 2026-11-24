@@ -19363,7 +19363,35 @@
   html.lg-new #pd-thread .doc-th-pga .doc-th-nx-go{margin-left:auto}
   /* THE CLAUSE PAGE, L+S (owner's pick, 24 Nov 2026): no head line over the page (the bar names the contract), one nav row
      with its menu and a thin read line, the name at 17px with its badge, the buttons small, each finding answered in its row */
-  html.lg-new #ig-dock #pd-thread.is-page :is(.stk-lg-top, .stk-all){display:none}
+  html.lg-new #ig-dock #pd-thread:is(.is-page, .is-list) :is(.stk-lg-top, .stk-all){display:none}
+  /* THE LIST, L+S (owner's pick, 24 Nov 2026): the page's one nav row and read line, tabs with counts, one calm table —
+     the number in one column, the name, what was found in a grey line, a soft badge on the right; the opening as one row */
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-ltabs{flex:1 0 100%;display:flex;gap:4px;margin-top:10px;flex-wrap:nowrap;min-width:0}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-ltab{flex:none;height:var(--ctl-h-sm);padding:0 9px;border:0;border-radius:999px;background:var(--color-neutral-100);font:inherit;font-size:12px;color:var(--color-text);white-space:nowrap;cursor:pointer}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-ltab b{font-weight:var(--w-label)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-ltab.on{background:var(--color-text);color:var(--color-surface)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows :is(.th-out, .th-opart){display:none}
+  /* no "N to review" note under the number (owner, 24 Nov 2026: "delete the # review feature in orange"); the row's badge says it, Read included */
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row [data-th-state]{display:none}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row{padding-left:0;box-shadow:none}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row > .doc-th-head{display:flex;align-items:center;gap:8px}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row .doc-th-go{display:grid;grid-template-columns:40px minmax(0,1fr);column-gap:8px;row-gap:2px;align-items:center;padding:9px 0}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row .doc-th-bead{position:static;grid-column:1;grid-row:1;width:auto;height:auto;min-width:0;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--color-quiet);text-align:left}
+  /* the clause names in plain weight, the open one too (owner, 24 Nov 2026: "the clauses titles should not be in bold letters") */
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row .doc-th-name{grid-column:2;grid-row:1;font-size:13px;font-weight:400}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row .doc-th-lsay{grid-column:2;grid-row:2;font-size:12px;line-height:1.4;color:var(--color-quiet)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row.is-open{background:var(--row-chosen)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row:not(.is-open):hover{background:var(--row-hover)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge{flex:none;display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:var(--w-label);white-space:nowrap}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge i{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.8}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.k-need{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.k-look{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.k-read{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.is-grey{background:var(--color-neutral-100);color:var(--color-quiet)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-opgo{display:grid;grid-template-columns:40px minmax(0,1fr) auto;column-gap:8px;align-items:center;width:100%;padding:9px 0;border:0;border-bottom:1px solid var(--color-divider);background:none;font:inherit;font-size:13px;font-weight:400;color:var(--color-text);text-align:left;cursor:pointer}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-opgo:hover{background:var(--row-hover)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-opn{color:var(--color-quiet)}
+  #pd-thread .doc-th-fi p .doc-th-pgl.is-link{font-size:12px}
   html.lg-new #ig-dock #pd-thread.is-page .doc-th-row.is-open .doc-th-name{font-size:17px;line-height:1.3}
   html.lg-new #ig-dock #pd-thread.is-page .doc-th-row.is-open .doc-th-head{display:flex;align-items:center;gap:8px}
   html.lg-new #ig-dock #pd-thread.is-page .doc-th-row.is-open .doc-th-head > .doc-th-go{flex:1 1 auto;min-width:0}
@@ -19406,9 +19434,6 @@
   html.lg-new #clause-editor.is-tabbed .ce-head{position:absolute;left:0;top:0;z-index:6;width:auto;max-width:calc(100% - 32px);border:1px solid var(--color-neutral-200);
     border-radius:var(--radius);background:var(--color-surface);box-shadow:var(--shadow-sm);padding:0 6px;will-change:transform}
   html.lg-new #clause-editor.is-tabbed .ce-head .ce-barrow{min-height:var(--ctl-h);gap:6px;flex-wrap:nowrap}
-  html.lg-new #clause-editor.is-tabbed .ce-ttag{display:inline-flex;align-items:center;height:var(--ctl-h-sm);padding:0 10px;border-radius:999px;background:var(--color-text);
-    color:var(--color-surface);font-size:12px;font-weight:var(--w-label);white-space:nowrap}
-  html.lg-new #clause-editor:not(.is-tabbed) .ce-ttag{display:none}
   html.lg-new #clause-editor.is-tabbed #ce-doc .rl-clause-live{position:relative}
   html.lg-new #clause-editor.is-tabbed #ce-doc .rl-clause-live::before{content:"";position:absolute;left:-14px;top:0;bottom:0;width:2px;background:var(--color-text)}
   html.lg-new #clause-editor.is-tabbed .ce-tabtop{display:flex;flex-direction:column;gap:12px;padding:8px 16px 4px}
@@ -23496,7 +23521,7 @@
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-menu-i.is-on{background:var(--row-chosen);font-weight:var(--w-label)}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-grid{display:flex;align-items:flex-start;gap:22px;flex-wrap:wrap;padding:4px 0 24px}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-left{flex:1 1 440px;min-width:0}
-  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-grid.is-who .cl-ls-left{flex-basis:100%}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-grid .cl-ls-left{flex-basis:100%}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-t{table-layout:auto}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-t td{padding:10px 8px;vertical-align:top;font-size:13.5px}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-t th{padding:8px}
@@ -23573,6 +23598,21 @@
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-pv-thumb.is-front{width:auto;padding:0 6px}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-pv-thumb.is-on{outline:2px solid var(--accent-ink);color:var(--color-text)}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-pv-none{margin:0;font-size:12.5px;color:var(--color-quiet)}
+  /* PREVIEW IN THE PANEL (owner, 24 Nov 2026): the paper pinned at the side panel's top, a whole A4 page at the width
+     the panel's height allows (clPvFitW sets the frame); the panel's words scroll in their own room below it */
+  html.lg-new .st-ls-page .st-ls-p.is-pin{display:flex;flex-direction:column;height:100%;min-height:0;box-sizing:border-box;gap:0}
+  html.lg-new .st-ls-page .st-ls-p.is-pin > .cl-pv-dock{flex:none;min-width:0}
+  html.lg-new .st-ls-page .st-ls-p.is-pin > .st-ls-rest{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;padding-top:14px}
+  html.lg-new .st-ls-page .cl-pg.is-r1.cl-pv-dock .cl-pv{flex:none;width:100%;padding:8px 10px 10px;gap:6px}
+  html.lg-new .st-ls-page .cl-pg.is-r1.cl-pv-dock .cl-pv-thumb{width:22px;height:26px}
+  html.lg-new .st-ls-page .cl-pg.is-r1.cl-pv-dock .cl-pv-view{align-self:center;flex:none}
+  html.lg-new .st-ls-page .cl-pg.is-r1.cl-pv-dock .cl-pv-paper .pg-zoomwrap{width:100%}
+  html.lg-new .st-ls-page .cl-pg.is-r1.cl-pv-dock .cl-pv-pages{justify-content:center}
+  html.lg-new .st-ls-page .cl-pg.is-r1.cl-pv-dock .cl-menu{max-width:100%}
+  /* the tab line keeps to its own space: the last tab (Who wears it · N streams · N papers) ends in "…" */
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-tabs{min-width:0;max-width:100%}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-tabs .st-ls-tab{flex:none;white-space:nowrap}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-tabs .st-ls-tab[data-cl-tab="who"]{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
   /* the panel's quality check: a soft dot, the finding, its door — plain lines, no cards */
   html.lg-new .st-ls-p .cl-qc-list{display:flex;flex-direction:column;gap:2px}
   html.lg-new .st-ls-p .cl-qc{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:4px 0;font-size:13px;min-width:0}

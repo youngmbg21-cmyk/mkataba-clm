@@ -15942,7 +15942,11 @@ function docThreadPageHtml(c, rows, at, pts, nextAt, part){
   const found = (pts || []).map(p => { const k = kindOf(p), stake = String(p.stake || '').trim(), title = String(p.title || stake).trim();
     const path = k === 'pb' && p.cat ? [i18t('pd2_fd_k_pb'), pbLabel, p.cat].filter(Boolean).join(' › ') : '';
     const mark = p._i != null ? `<button type="button" class="doc-th-pgl is-link" data-th-pg="review" data-th-pt="${esc(String(p._i))}"${markWhy ? ` disabled aria-disabled="true" title="${esc(markWhy)}"` : ''}>${esc(i18t('stk_mark_reviewed'))}</button>` : '';
-    return `<li class="doc-th-fi k-${esc(k)}"><span class="pd2-badge k-${esc(k)}"><i aria-hidden="true"></i>${esc(word(k))}</span><div><p>${esc(title)}</p>${stake && stake !== title ? `<p class="s">${esc(stake)}</p>` : ''}${path ? `<p class="s">${esc(path)}</p>` : ''}</div>${mark}</li>`; }).join('');
+    /* MARK REVIEWED ENDS THE FINDING'S OWN WORDS (owner, 24 Nov 2026: "the mark reviewed should go at the end of the
+       summary … not as its own column"): the words take the row's full width */
+    const lines = [`<p>${esc(title)}</p>`].concat(stake && stake !== title ? [`<p class="s">${esc(stake)}</p>`] : [], path ? [`<p class="s">${esc(path)}</p>`] : []);
+    if (mark) lines[lines.length - 1] = lines[lines.length - 1].replace(/<\/p>$/, ` ${mark}</p>`);
+    return `<li class="doc-th-fi k-${esc(k)}"><span class="pd2-badge k-${esc(k)}"><i aria-hidden="true"></i>${esc(word(k))}</span><div>${lines.join('')}</div></li>`; }).join('');
   const nm = nextAt != null && rows[nextAt] && typeof docXrayLabel === 'function' ? docXrayLabel(rows[nextAt]) : '';
   /* the buttons at the small size every small button in HaTi wears; what Redline does rides its hover (no line under them).
      THE ANSWER UNDER THE BUTTONS (owner, 24 Nov 2026: "this plain english translation should come right above 'what we
@@ -15988,10 +15992,69 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
       setTimeout(() => { const box = document.querySelector('#context-panel .rl-np-in'); if (box && !box.value){ box.value = '@'; box.focus(); box.dispatchEvent(new Event('input', { bubbles: true })); } }, 200); }
   });
 }
+/* THE LIST, L+S (owner's pick, 24 Nov 2026): every clause a row — its number in one column, its name, what was found in one
+   grey line under it, a soft badge on the right (Needs you · Worth a look · Read); the opening block (title, parties, recitals:
+   every row before the first numbered clause) is ONE row, "Opening · n parts", pressed to show its parts; tabs filter.
+   Reads the Clauses tab's own points (stkLivePoints) and the rows' own read mark; writes nothing. Drawn again on each sync,
+   its pieces (.doc-th-lx) first taken away; in page mode it only takes them away. */
+let _thListTab = 'all', _thOpenShow = false;
+function docThreadListDress(card){
+  const D = { all: 0, need: 0, look: 0, read: 0 };
+  card.querySelectorAll('.doc-th-lx').forEach(x => x.remove());
+  card.querySelectorAll('.doc-th-rows :is(.th-out, .th-opart)').forEach(x => x.classList.remove('th-out', 'th-opart'));
+  const box = card.querySelector('.doc-th-rows'); if (!box) return D;
+  const els = [...box.children];
+  const rowsEl = els.filter(e => e.classList.contains('doc-th-row'));
+  let pts = []; try { pts = (typeof window.stkLivePoints === 'function') ? (window.stkLivePoints(thLiveContract()) || []).filter(p => p && !p.done && !p.blank) : []; } catch (_){ pts = []; }
+  const kindOf = p => typeof window.pd2PointKind === 'function' ? window.pd2PointKind(p) : p.status;
+  const readOf = r => !!r.querySelector('[data-th-state] .is-read, [data-th-state] .stk-read');
+  const stOf = r => { const at = Number(r.getAttribute('data-th-row')), mine = pts.filter(p => p.at === at), ks = mine.map(kindOf);
+    return { st: ks.includes('need') ? 'need' : ks.length ? 'look' : readOf(r) ? 'read' : '', say: String((mine[0] || {}).title || '').trim() }; };
+  rowsEl.forEach(r => { const o = stOf(r); D.all++; if (o.st === 'need') D.need++; else if (o.st === 'look') D.look++; if (readOf(r)) D.read++; r._thSt = o; });
+  if (_thPage || !docThreadNavOn()) return D;
+  /* each row: what was found, then its badge */
+  const word = { need: i18t('bd_st_need'), look: i18t('bd_st_look'), read: i18t('th_lt_read') }, tone = { need: 'k-need', look: 'k-look', read: 'k-read' };
+  rowsEl.forEach(r => { const o = r._thSt || {}, head = r.querySelector(':scope > .doc-th-head'), go = head && head.querySelector('.doc-th-go'); if (!head || !go) return;
+    if (o.say && (o.st === 'need' || o.st === 'look')){ const sm = document.createElement('small'); sm.className = 'doc-th-lx doc-th-lsay'; sm.textContent = o.say; go.appendChild(sm); }
+    if (o.st){ const bd = document.createElement('span'); bd.className = 'doc-th-lx doc-th-lbadge pd2-badge ' + tone[o.st]; bd.innerHTML = `<i aria-hidden="true"></i>${esc(word[o.st])}`; head.appendChild(bd); } });
+  /* the opening: everything before the first numbered clause folds into one row */
+  const firstNum = els.findIndex(e => e.classList.contains('doc-th-row') && e.querySelector('.doc-th-bead[data-n]'));
+  /* the section heading right over the first numbered clause is the body's, not the opening's */
+  let cut = firstNum; while (cut > 0 && els[cut - 1].classList.contains('doc-th-sec')) cut--;
+  const parts = cut > 0 ? els.slice(0, cut) : [];
+  const partRows = parts.filter(e => e.classList.contains('doc-th-row'));
+  if (partRows.length > 1){
+    const openHere = partRows.some(r => r.classList.contains('is-open'));
+    const shown = _thOpenShow || openHere;
+    const op = document.createElement('div'); op.className = 'doc-th-lx doc-th-opening' + (shown ? ' is-shown' : '');
+    op.innerHTML = `<button type="button" class="doc-th-opgo" data-th-opening aria-expanded="${shown}"><span class="doc-th-opn">—</span><span class="doc-th-opw">${esc(i18t('th_opening'))}</span><span class="doc-th-lbadge pd2-badge k-read is-grey">${esc(i18tn('th_opening_n', partRows.length, { n: partRows.length }))}</span></button>`;
+    box.insertBefore(op, parts[0]);
+    if (!shown) parts.forEach(e => e.classList.add('th-opart'));
+  }
+  /* the tabs narrow the rows; a section with nothing left under it steps aside too */
+  if (_thListTab !== 'all'){
+    rowsEl.forEach(r => { const o = r._thSt || {}; const keep = _thListTab === 'unread' ? !readOf(r) : o.st === _thListTab; if (!keep) r.classList.add('th-out'); });
+    const op = box.querySelector(':scope > .doc-th-opening'); if (op) op.classList.add('th-out');
+    let sec = null, any = false; const close = () => { if (sec && !any) sec.classList.add('th-out'); };
+    [...box.children].forEach(e => { if (e.classList.contains('doc-th-sec')){ close(); sec = e; any = false; } else if (e.classList.contains('doc-th-row') && !e.classList.contains('th-out')) any = true; });
+    close();
+  }
+  return D;
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._thListWired){ document._thListWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    const lt = t.closest('#pd-thread [data-th-ltab]');
+    if (lt){ e.preventDefault(); const k = lt.getAttribute('data-th-ltab'); _thListTab = (_thListTab === k && k !== 'all') ? 'all' : k; docThreadNavSync(); return; }
+    if (t.closest('#pd-thread [data-th-opening]')){ e.preventDefault(); _thOpenShow = !_thOpenShow; docThreadNavSync(); }
+  });
+}
 function docThreadNavSync(){
   const card = thEl('card'); if (!card) return;
   let nav = card.querySelector('.doc-th-nav');
   card.classList.toggle('is-page', !!(_thPage && docThreadNavOn()));
+  card.classList.toggle('is-list', !!(!_thPage && docThreadNavOn()));
+  if (_thPage) docThreadListDress(card);
   let foot = card.querySelector('.doc-th-nx');
   if (!docThreadNavOn()){ if (nav) nav.remove(); if (foot) foot.remove(); return; }
   const rows = (_docThreadCache && _docThreadCache.rows) || [], shown = docThreadVisible(rows);
@@ -16006,8 +16069,15 @@ function docThreadNavSync(){
     const rd = rs.filter(r => r.querySelector('[data-th-state] .is-read, [data-th-state] .stk-read')).length;
     const pc = rs.length ? Math.round(rd / rs.length * 100) : 0;
     nav.innerHTML = `<button type="button" class="doc-th-back" data-pd-tab="copilot">\u2039 ${esc(i18t('pd_tab_dossier'))}</button><button type="button" class="doc-th-step" data-th-nav-step="-1" aria-label="${esc(i18t('th_step_prev'))}"${k <= 1 ? ' disabled' : ''}>\u2039</button><span class="doc-th-k">${esc(i18t('th_step_of', { k: Math.max(1, k), n: shown.length }))}</span><button type="button" class="doc-th-step" data-th-nav-step="1" aria-label="${esc(i18t('th_step_next'))}"${k >= shown.length ? ' disabled' : ''}>\u203a</button><span class="doc-th-mw"><button type="button" class="doc-th-list" data-th-menu aria-expanded="false" aria-haspopup="menu">${esc(i18tn('th_page_all', shown.length, { n: shown.length }))}${typeof icon === 'function' ? ' ' + icon('chevD', 'w-3 h-3') : ''}</button><span class="doc-th-menu" role="menu" hidden></span></span><span class="doc-th-prog" role="img" aria-label="${esc(i18t('th_prog_say', { k: rd, n: rs.length }))}" title="${esc(i18t('th_prog_say', { k: rd, n: rs.length }))}"><i style="--p:${pc}%"></i></span>`;
-  } else
-  nav.innerHTML = `<button type="button" class="doc-th-back" data-pd-tab="copilot">\u2039 ${esc(i18t('pd_tab_dossier'))}</button><button type="button" class="doc-th-step" data-th-nav-step="-1" aria-label="${esc(i18t('th_step_prev'))}"${k <= 1 ? ' disabled' : ''}>\u2039</button><span class="doc-th-k">${esc(i18t('th_step_of', { k: Math.max(1, k), n: shown.length }))}</span><button type="button" class="doc-th-step" data-th-nav-step="1" aria-label="${esc(i18t('th_step_next'))}"${k >= shown.length ? ' disabled' : ''}>\u203a</button><span class="doc-th-hint">${esc(i18t('th_page_hint'))}</span><button type="button" class="doc-th-list" data-th-page-toggle>${esc(_thPage ? i18tn('th_page_all', shown.length, { n: shown.length }) : i18t('th_page_single'))}</button>`;
+  } else {
+    /* THE LIST, L+S (owner's pick, 24 Nov 2026: "the list of clauses should be a neat design"): the page's own one row
+       (‹ Dossier · ‹ k of n › · One at a time) and read line, then tabs with counts — All · Needs you · Worth a look ·
+       Unread — over one calm table (docThreadListDress) */
+    const D = docThreadListDress(card);
+    const tab = (k, w, n) => `<button type="button" class="doc-th-ltab${_thListTab === k ? ' on' : ''}" data-th-ltab="${k}" aria-pressed="${_thListTab === k}">${esc(w)} <b>${n}</b></button>`;
+    nav.innerHTML = `<button type="button" class="doc-th-back" data-pd-tab="copilot">\u2039 ${esc(i18t('pd_tab_dossier'))}</button><button type="button" class="doc-th-step" data-th-nav-step="-1" aria-label="${esc(i18t('th_step_prev'))}"${k <= 1 ? ' disabled' : ''}>\u2039</button><span class="doc-th-k">${esc(i18t('th_step_of', { k: Math.max(1, k), n: shown.length }))}</span><button type="button" class="doc-th-step" data-th-nav-step="1" aria-label="${esc(i18t('th_step_next'))}"${k >= shown.length ? ' disabled' : ''}>\u203a</button><button type="button" class="doc-th-list" data-th-page-toggle>${esc(i18t('th_page_single'))}</button><span class="doc-th-prog" role="img" aria-label="${esc(i18t('th_prog_say', { k: D.read, n: D.all }))}" title="${esc(i18t('th_prog_say', { k: D.read, n: D.all }))}"><i style="--p:${D.all ? Math.round(D.read / D.all * 100) : 0}%"></i></span>`
+      + `<span class="doc-th-ltabs" role="group">${tab('all', i18t('th_lt_all'), D.all)}${tab('need', i18t('bd_st_need'), D.need)}${tab('look', i18t('bd_st_look'), D.look)}${tab('unread', i18t('th_lt_unread'), D.all - D.read)}</span>`;
+  }
   /* the drawn clause page's line under the name: one soft badge per kind of open point (the Dossier's four), and the words
      the first point rests on, quoted — read off the Clauses tab's own points (stkLivePoints), nothing new */
   const nextAt = shown[shown.indexOf(_docThreadOn) + 1];

@@ -47,7 +47,7 @@ describe('f1202 (2) the editor wears the tabs', () => {
 describe('f1202 (3) the panel says the clause; File · next › moves on', () => {
   test('the picker, the heading, the sentence and the foot', () => {
     const p = fnSrc(CE, 'ceTabPaint');
-    for (const k of ['ce_tab_k_of_n', 'ce_tab_redlining', 'ce_tab_sub', 'ce_tab_keep', 'ce_tab_next', 'ce_tab_undo', 'ce_tab_nothing', 'ce_tab_editing']){
+    for (const k of ['ce_tab_k_of_n', 'ce_tab_redlining', 'ce_tab_sub', 'ce_tab_keep', 'ce_tab_next', 'ce_tab_undo', 'ce_tab_nothing']){ /* RE-POINTED 24 Nov 2026 (f1215): the bar's "Editing …" tag is gone (ce_tab_editing kept, unused) */
       assert.match(p, new RegExp(`_cet\\('${k}'`), k + ' drawn');
       assert.equal((I.match(new RegExp(`^    ${k}: `, 'gm')) || []).length, 2, k + ' in both books');
     }

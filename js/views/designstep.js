@@ -878,6 +878,27 @@ function clChipsHtml() {
    company and language, a second admin's yes and the History) draw nothing here yet. */
 const CL_AA = 4.5;
 const CL_PV_W = 306;
+/* PREVIEW IN THE PANEL (owner, 24 Nov 2026): a WHOLE A4 page, top to bottom, as wide as the panel lets it be while the
+   whole page stands between the panel's head and Jambo's box — the panel's own words below it keep CL_PV_REST_MIN */
+const CL_PV_REST_MIN = 104, CL_PV_MIN_W = 160;
+const clPvPageH = () => (typeof window !== 'undefined' && window.PG_SIGN_H) || 1122.5;
+const clPvPageW = () => (typeof window !== 'undefined' && window.PG_SIGN_W) || 794;
+function clPvFitW() {
+  const pv = document.getElementById('cl-pv'), view = document.getElementById('cl-pv-view'); if (!pv || !view) return CL_PV_W;
+  const cs = getComputedStyle(pv), padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+  const aw = pv.clientWidth - padX;
+  const body = pv.closest('.jl-body');
+  if (!body || !body.clientHeight) return Math.max(CL_PV_MIN_W, Math.floor(aw || CL_PV_W));
+  const chrome = pv.offsetHeight - view.offsetHeight;
+  const ah = body.clientHeight - CL_PV_REST_MIN - chrome;
+  return Math.max(CL_PV_MIN_W, Math.floor(Math.min(aw, ah * clPvPageW() / clPvPageH())));
+}
+/* the paper's frame at width W: a whole page high */
+function clPvFrame(view, W) {
+  const paper = document.getElementById('cl-pv-paper');
+  view.style.width = W + 'px'; if (paper) paper.style.width = W + 'px';
+  view.style.height = Math.round(W * clPvPageH() / clPvPageW()) + 'px';
+}
 const CL_PIN_SIDE = { logo: 'l', header: 'r', letterhead: 'r', style: 'l', layout: 'l', colour: 'r', type: 'r', footer: 'l', pagenum: 'r', sigblock: 'l', cover: 'l' };
 const CL_ST_TONE = { set: 'green', missing: 'amber', faint: 'ruby', optional: 'grey' };
 /* WCAG's relative luminance and contrast against white paper */
@@ -1033,9 +1054,19 @@ function clPvCandidates() {
   const list = all.filter(clUnsigned);
   return _cl.editing ? list.filter(c => String(c.folder) === _cl.editing).concat(list.filter(c => String(c.folder) !== _cl.editing)) : list;
 }
+/* PREVIEW IN THE PANEL (owner, 24 Nov 2026: "the content in the paper should be full page long"): unless a contract
+   was chosen, the preview opens on the one whose first page is fullest — its wording, read as stored, counted up to
+   about a page's worth (a longer contract fills page 1 no more); the stream being edited keeps its own first */
+const CL_PV_PAGE_CHARS = 3200;
+function clPvFullness(c) {
+  const raw = String((c && (c.redlineText || c.bodyHtml || (c.upload && c.upload.extractedText))) || '');
+  return Math.min(CL_PV_PAGE_CHARS, raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().length);
+}
 function clPvContract() {
   const list = clPvCandidates(); if (!list.length) return null;
-  return list.find(c => String(c.id) === String(_cl.pv)) || list[0];
+  const chosen = list.find(c => String(c.id) === String(_cl.pv)); if (chosen) return chosen;
+  const own = _cl.editing ? list.filter(c => String(c.folder) === _cl.editing) : [];
+  return (own.length ? own : list).reduce((best, c) => clPvFullness(c) > clPvFullness(best) ? c : best);
 }
 const clRefOf = c => (typeof contractRef === 'function' ? contractRef(c) : String(c.contractNo || c.id || ''));
 function clChev() { return typeof icon === 'function' ? icon('chevD', 'cl-ls-chev') : '▾'; }
@@ -1074,12 +1105,13 @@ function clPreviewHtml() {
   const pick = list.length > 1
     ? `<button type="button" class="cl-pv-pick" data-cl-menu="pv" aria-haspopup="menu" aria-expanded="false"><span>${clE(i18t('cl_ls_pv_on'))}</span> <b>${label}</b>${clChev()}</button>`
     : `<span class="cl-pv-pick"><span>${clE(i18t('cl_ls_pv_on'))}</span> <b>${label}</b></span>`;
-  return `<section class="cl-pv" id="cl-pv" aria-label="${clE(i18t('cl_ls_pv_label'))}">
+  /* the panel's pinned paper (stLsLookPanel): the page's own dress, outside the page */
+  return `<div class="cl-pg is-r1 cl-pv-dock" id="cl-pv-dock"><section class="cl-pv" id="cl-pv" aria-label="${clE(i18t('cl_ls_pv_label'))}">
     <div class="cl-pv-h"><span class="cl-ls-chipw cl-pv-w">${pick}${menu}</span><span class="cl-pv-n" id="cl-pv-n"></span></div>
     <div class="cl-pv-view" id="cl-pv-view"><div class="cl-pv-paper" id="cl-pv-paper">${typeof busyHtml === 'function' ? busyHtml('') : ''}</div><div class="cl-pins" id="cl-pins"></div></div>
     <div class="cl-pv-pages" id="cl-pv-pages"></div>
     ${c ? '' : `<p class="cl-pv-none">${clE(i18t('cl_ls_pv_none'))}</p>`}
-  </section>`;
+  </section></div>`;
 }
 /* what a row's footer says on its second page: the footer's words, then the page number in the row's own language */
 function clWhoFoot(r) {
@@ -1348,18 +1380,35 @@ function clLsPageHtml() {
     : wch ? i18t('cl_ap_waiting_line', { who: wch.by || '', day: clDay(wch.at) }) : (admin && !clYesNeeded() && _cl.dirty ? i18t('cl_ap_only') : '');
   const picking = _cl.mode !== 'page';
   const left = picking ? `<div class="cl-pick cl-ls-pick">${clPickHtml()}</div>` : _cl.tab === 'who' ? clWhoHtml() : _cl.tab === 'kit' ? clKitHtml() : _cl.tab === 'history' ? clHistHtml() : clPartsTableHtml(parts);
-  const wide = (_cl.tab === 'who' || _cl.tab === 'kit' || _cl.tab === 'history') && !picking;
+  /* PREVIEW IN THE PANEL (owner, 24 Nov 2026): the table takes the page's whole width; the paper is the side panel's
+     (clPanelFacts → stLsLookPanel), on The page and Brand kit */
   return `<div class="st-pg cl-pg is-ls is-r1" data-st-pg="look">${window.stLsHeadHtml({ page: 'look', title: i18t('cl_title'), sub,
       badge: `<span class="apn-st is-grey cl-ls-badge">${clE(i18t('cl_admins_only'))}</span>`, acts, askHtml: ask + clTabsHtml(parts) })}
-    <div class="cl-ls-grid${wide ? ' is-who' : ''}">
+    <div class="cl-ls-grid">
       <div class="cl-ls-left">${left}</div>
-      ${wide ? '' : clPreviewHtml()}
     </div></div>`;
 }
 /* ---- THE PREVIEW, drawn after the page stands: the signing copy, a page at a time, shrunk to fit; pins measured off
    the painted page (a rect read after paint), so a pin sits where the part really is ---- */
+/* the panel's room changes (the window, the panel's slider): the whole page is fitted again, nothing else drawn */
+function clPvWatch() {
+  const pv = document.getElementById('cl-pv'), body = pv && pv.closest('.jl-body');
+  if (!body || typeof ResizeObserver !== 'function' || body._clPvRo) return;
+  let last = body.clientWidth + 'x' + body.clientHeight;
+  body._clPvRo = new ResizeObserver(() => {
+    const k = body.clientWidth + 'x' + body.clientHeight; if (k === last) return; last = k;
+    clearTimeout(body._clPvT);
+    body._clPvT = setTimeout(() => {
+      if (!_cl || !document.getElementById('cl-pv-view')) return;
+      const sh = document.querySelector('#cl-pv-view .pg-sheet');
+      if (sh && sh._pgInfo) clPvShow(); else clAfterPaint();
+    }, 120);
+  });
+  body._clPvRo.observe(body);
+}
 function clAfterPaint() {
   const paper = document.getElementById('cl-pv-paper'); if (!paper || !_cl) return;
+  clPvWatch();
   const c = clPvContract();
   if (c && c._light && !c._loaded && typeof ensureFull === 'function') {
     const id = c.id;
@@ -1380,30 +1429,31 @@ function clPvDraw(sampleOnly) {
     paper.innerHTML = clSheetHtml().replace('class="cl-sheet-w"', 'class="cl-sheet-w is-pv"');
     const sh = paper.querySelector('.cl-sheet'); if (!sh) return;
     const foot = sh.lastElementChild; if (foot && !foot.matches('article')) foot.setAttribute('data-cl-foot', '');
-    const k = CL_PV_W / (sh.offsetWidth || 680);
+    _cl.pvPage = 1; clPvPagesPaint(1);
+    const W = clPvFitW(), k = W / (sh.offsetWidth || 680);
     sh.style.transformOrigin = '0 0'; sh.style.transform = `scale(${k})`;
-    view.style.height = Math.round(sh.offsetHeight * k) + 'px';
-    _cl.pvPage = 1; clPvPagesPaint(1); clPinsPaint();
+    clPvFrame(view, W); clPinsPaint();
     return;
   }
   paper.innerHTML = html;
   /* the working copy's "working text" note is not on the copy that is signed */
   const kick = paper.querySelector('.rl-paper-kick'); if (kick) kick.textContent = String(kick.textContent || '').split(' · ')[0];
   const sheet = paper.querySelector('.pg-sheet'); if (!sheet) return;
-  const k = CL_PV_W / (window.PG_SIGN_W || 794);
   sheet.style.transformOrigin = '0 0';
   const done = info => { _cl.pvPages = (info && info.n) || 1; if (_cl.pvPage > _cl.pvPages) _cl.pvPage = 1; clPvShow(); };
   if (typeof signCopyWatch === 'function') signCopyWatch(sheet, Object.assign({}, c, { branding: Object.assign({}, clBranding()) }), done);
-  if (!sheet._pgInfo) { sheet.style.transform = `scale(${k})`; view.style.height = Math.round(sheet.offsetHeight * k) + 'px'; clPinsPaint(); }
+  if (!sheet._pgInfo) { const W = clPvFitW(); sheet.style.transform = `scale(${W / clPvPageW()})`; clPvFrame(view, W); clPinsPaint(); }
 }
 function clPvShow() {
   const view = document.getElementById('cl-pv-view'), sheet = view && view.querySelector('.pg-sheet'); if (!sheet) return;
-  const info = sheet._pgInfo, k = CL_PV_W / (sheet.offsetWidth || 794);
+  const info = sheet._pgInfo;
   const n = (info && info.n) || 1, p = Math.min(Math.max(1, _cl.pvPage || 1), n), pg = info && info.pages[p - 1];
-  const top = pg ? pg.top : 0, h = pg ? pg.h : sheet.offsetHeight;
+  const top = pg ? pg.top : 0;
+  /* the page strip first (its height is part of what the page must leave room for), then the whole page */
+  clPvPagesPaint(n);
+  const W = clPvFitW(), k = W / (sheet.offsetWidth || clPvPageW());
   sheet.style.transform = `translateY(${-top * k}px) scale(${k})`;
-  view.style.height = Math.round(h * k) + 'px';
-  clPvPagesPaint(n); clPinsPaint();
+  clPvFrame(view, W); clPinsPaint();
   /* the Page numbers row says what the paper says, with the previewed contract's own page count */
   const pq = document.querySelector('#cl-parts tr[data-cl-part="pagenum"] .cl-ls-quote');
   if (pq) pq.textContent = '“' + clNumSay(clMarks().pageNumFmt) + '”';
@@ -1486,8 +1536,8 @@ function clRowChoose(k) {
   clPinsPaint();
 }
 function clMenuClose() {
-  document.querySelectorAll('[data-st-pg="look"] .cl-menu').forEach(m => { m.hidden = true; });
-  document.querySelectorAll('[data-st-pg="look"] [data-cl-menu]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+  document.querySelectorAll(':is([data-st-pg="look"], #cl-pv-dock) .cl-menu').forEach(m => { m.hidden = true; });
+  document.querySelectorAll(':is([data-st-pg="look"], #cl-pv-dock) [data-cl-menu]').forEach(b => b.setAttribute('aria-expanded', 'false'));
 }
 /* edit the look of one stream (its own, or the company's as its start), or the company look again */
 function clEditAs(fid) {
@@ -1508,7 +1558,10 @@ function clPanelFacts() {
     /* round 4: the brand kit's own count, for its tab's panel */
     kitSet: clKitParts().filter(x => x.set).length, kitOf: clKitParts().length,
     /* round 6: the change waiting (said on the page's panel) and, on History, the change chosen */
-    waiting: (w => w ? { by: w.by || '', day: clDay(w.at) } : null)(clWaitingChange()), hist: null };
+    waiting: (w => w ? { by: w.by || '', day: clDay(w.at) } : null)(clWaitingChange()), hist: null,
+    /* PREVIEW IN THE PANEL (owner, 24 Nov 2026): on The page and Brand kit (and while a part's edit place is open) the
+       paper is the panel's, pinned at its top; Who wears it and History keep their panels */
+    pv: (_cl.tab === 'page' || _cl.tab === 'kit' || _cl.mode !== 'page') ? clPreviewHtml() : '' };
   if (_cl.tab === 'history') {
     const ch = clLookChanges().find(c => c.id === _cl.histPick) || clWaitingChange() || clLookChanges()[0] || null;
     if (ch) { const ps = clChangeParts(ch), reach = clChangeReach(ch), me = clMe();
@@ -1565,8 +1618,9 @@ function clRepaint() {
   const t = document.createElement('div'); t.innerHTML = clPageHtml(); pg.replaceWith(t.firstElementChild);
   if (sc) sc.scrollTop = top;
   /* P-45: Jambo's panel beside the page says the look as it now stands */
+  /* PREVIEW IN THE PANEL: the panel's paint draws the paper too (stLsPanelPaint → clAfterPaint) */
   if (typeof window.stLsOn === 'function' && window.stLsOn() && typeof window.stLsPanelPaint === 'function') window.stLsPanelPaint();
-  clAfterPaint();
+  else clAfterPaint();
 }
 /* P-45: what the panel beside the page says (read here, where the look is kept), and its rows' one door: a setting's
    own Change, as the page's own link opens it */
@@ -1679,11 +1733,11 @@ if (typeof document !== 'undefined' && !window._clWired) {
     if (!t.closest('.cl-ls-chipw')) clMenuClose();
     /* round 6: a Needs-you or Settings row onto a waiting look change (stNeedsAll's door) */
     const hg = t.closest('[data-cl-hist-go]'); if (hg) { clHistGo(hg.getAttribute('data-cl-hist-go')); return; }
-    if (!t.closest('[data-st-pg="look"]')) return;
+    if (!t.closest('[data-st-pg="look"], #cl-pv-dock')) return;
     const at = sel => t.closest(sel);
     let x;
     if ((x = at('[data-cl-menu]'))) {
-      const m = document.querySelector(`[data-st-pg="look"] [data-cl-menu-of="${x.getAttribute('data-cl-menu')}"]`); if (!m) return;
+      const m = document.querySelector(`:is([data-st-pg="look"], #cl-pv-dock) [data-cl-menu-of="${x.getAttribute('data-cl-menu')}"]`); if (!m) return;
       const open = m.hidden; clMenuClose(); m.hidden = !open; x.setAttribute('aria-expanded', open ? 'true' : 'false'); return;
     }
     if ((x = at('[data-cl-tab]'))) { const k = x.getAttribute('data-cl-tab'); _cl.tab = ['who', 'kit', 'history'].includes(k) ? k : 'page'; _cl.mode = 'page'; return clRepaint(); }
@@ -1778,8 +1832,8 @@ if (typeof document !== 'undefined' && !window._clWired) {
     }
   });
   document.addEventListener('keydown', e => {
-    const t = e.target; if (!_cl || !t || !t.closest || !t.closest('[data-st-pg="look"]')) return;
-    if (e.key === 'Escape' && document.querySelector('[data-st-pg="look"] .cl-menu:not([hidden])')) { clMenuClose(); e.stopPropagation(); return; }
+    const t = e.target; if (!_cl || !t || !t.closest || !t.closest('[data-st-pg="look"], #cl-pv-dock')) return;
+    if (e.key === 'Escape' && document.querySelector(':is([data-st-pg="look"], #cl-pv-dock) .cl-menu:not([hidden])')) { clMenuClose(); e.stopPropagation(); return; }
     if ((e.key === 'Enter' || e.key === ' ') && t.matches('tr[data-cl-part], tr[data-cl-who]')) { e.preventDefault(); t.click(); }
   });
   document.addEventListener('submit', e => {
