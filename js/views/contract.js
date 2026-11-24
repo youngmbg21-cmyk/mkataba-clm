@@ -1142,12 +1142,13 @@ function detectWordFile(dataUrl, mime, fileName){
   try{ return detectWordBytes(dataUrlBytes(dataUrl), fileName, mime); }catch(e){ return null; }
 }
 
-async function extractDocText(dataUrl, mime){
+async function extractDocText(dataUrl, mime, max){
+  const cap=max||EXTRACT_MAX_CHARS;
   try{
     const bytes=dataUrlBytes(dataUrl);
-    if(/text\//.test(mime)){ return new TextDecoder().decode(bytes).slice(0,EXTRACT_MAX_CHARS); }
-    if(/pdf/.test(mime)){ return (await extractPdfText(bytes.buffer)).slice(0,EXTRACT_MAX_CHARS); }
-    if(detectWordBytes(bytes,'',mime)==='docx'){ return (await docxExtract(bytes)).text.slice(0,EXTRACT_MAX_CHARS); }
+    if(/text\//.test(mime)){ return new TextDecoder().decode(bytes).slice(0,cap); }
+    if(/pdf/.test(mime)){ return (await extractPdfText(bytes.buffer)).slice(0,cap); }
+    if(detectWordBytes(bytes,'',mime)==='docx'){ return (await docxExtract(bytes)).text.slice(0,cap); }
   }catch(e){}
   return '';
 }
@@ -1162,12 +1163,12 @@ async function extractDocText(dataUrl, mime){
    order as the scraper's — plus the numbers Word was generating and HaTi could
    not see. THE SCRAPER IS THE FALLBACK, kept and still correct: a Word file
    with no styles and no numbering reads exactly as it did. */
-async function extractWordText(dataUrl){
-  const bytes=dataUrlBytes(dataUrl);
+async function extractWordText(dataUrl, max){
+  const bytes=dataUrlBytes(dataUrl), cap=max||EXTRACT_MAX_CHARS;
   if(window.docxExtractRich){
     try{
       const r=await docxExtractRich(bytes);
-      return { text:r.text.slice(0,EXTRACT_MAX_CHARS), tracked:r.tracked,
+      return { text:r.text.slice(0,cap), tracked:r.tracked,
         html:r.html, report:r.report };
     }catch(e){
       /* A refusal is a refusal — the same sentence either way, so a person
@@ -1178,7 +1179,7 @@ async function extractWordText(dataUrl){
     }
   }
   const out=await docxExtract(bytes);
-  return { text:out.text.slice(0,EXTRACT_MAX_CHARS), tracked:out.tracked };
+  return { text:out.text.slice(0,cap), tracked:out.tracked };
 }
 /* Did the file carry structure worth storing? A document with no headings, no
    resolved numbers and no tables read exactly as the scraper read it, so there
@@ -1843,6 +1844,8 @@ function renderUploadSteps(active, note){
    (the drop area's: nobody stands at a card to confirm them; Fill in asks). */
 async function uploadReadFile(file, opts){
   const o=opts||{}; const step=(typeof o.step==='function')?o.step:()=>{};
+  /* THE CALLER'S CEILING (owner, 24 Nov 2026): the Notebook reads a whole law (o.max); a contract keeps EXTRACT_MAX_CHARS */
+  const cap=Number(o.max)>0?Number(o.max):EXTRACT_MAX_CHARS;
   if(!file) return { refused:i18t('ct_choose_file_upload') };
   if(file.size>uploadMax()) return { refused:uploadTooBigMsg(file) };
   step(1);   // Step 1 — Reading document
@@ -1859,7 +1862,7 @@ async function uploadReadFile(file, opts){
   if(word==='docx'){
     // read the wording out of the Word file itself; a failure here is a
     // refusal, not an empty shell — the person can re-save and try again
-    try{ const w=await extractWordText(dataUrl); extractedText=w.text; wordTracked=w.tracked;
+    try{ const w=await extractWordText(dataUrl, cap); extractedText=w.text; wordTracked=w.tracked;
       wordHtml=w.html||''; wordReport=w.report||null; }
     catch(e){ return { refused:i18t('ct_up_word_fail',{why:e.message}) }; }
   } else if(/pdf/.test(mime) && window.readPdfStructured){
@@ -1872,11 +1875,11 @@ async function uploadReadFile(file, opts){
        would be a worse product than the one being fixed. */
     try{
       const r=await readPdfStructured(dataUrlBytes(dataUrl).buffer);
-      extractedText=String(r.text||'').slice(0,EXTRACT_MAX_CHARS);
+      extractedText=String(r.text||'').slice(0,cap);
       wordHtml=r.html||''; wordReport=r.report||null;
-    }catch(e){ extractedText=await extractDocText(dataUrl, mime); }
+    }catch(e){ extractedText=await extractDocText(dataUrl, mime, cap); }
   } else {
-    extractedText=await extractDocText(dataUrl, mime);   // real text extraction
+    extractedText=await extractDocText(dataUrl, mime, cap);   // real text extraction
   }
   /* NOTHING UNREADABLE IS STORED, whichever reader produced it. extractPdfText
      already applies this gate, and it is applied again here because this is the
@@ -1894,7 +1897,7 @@ async function uploadReadFile(file, opts){
       onProgress:(done,total,tier)=>step(1,
         i18t(tier==='local'?'ct_up_page_local':'ct_up_page',{n:Math.min(done+1,total),total})),
     });
-    if(ocr.text){ extractedText=ocr.text.slice(0,EXTRACT_MAX_CHARS); textSource=ocr.textSource; }
+    if(ocr.text){ extractedText=ocr.text.slice(0,cap); textSource=ocr.textSource; }
     else if(ocr.error) toast(i18t('ct_could_not_read_scan')+ocr.error,'err');
     /* THE OFFLINE RECOGNISER HOLDS TENS OF MEGABYTES and ocrRelease existed to
        hand them back, with NOT ONE CALLER anywhere in the product — the
