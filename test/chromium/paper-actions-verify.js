@@ -84,7 +84,9 @@ const ID = 'MK-PA1';
       check('2a Actions drops its own menu card from the button, over the paper, painted, its groups headed', !!card && card.under && card.right && card.painted && card.rows.length > 3 && card.heads.includes('Work on it'), JSON.stringify(card && { under: card.under, right: card.right, painted: card.painted, n: card.rows.length, heads: card.heads }));
       /* RE-POINTED 29 Oct 2026 (round 13): More's card is the SHORT one, its last row "All acts (N)"; pressed, the same
          card lists every act and a draft's still ends in "Delete this draft", in red */
-      const shortEnd = !!card && /^All acts \(\d+\)/.test(card.rows[card.rows.length - 1] || '') && card.rows.length <= 10;
+      /* RE-POINTED 23 Nov 2026 (owner: "Delete this draft in sight", f1188 — the short list too, PD_ACTS_SHORT): the
+         drawing's nine rows, Delete this draft, and All acts — eleven at most */
+      const shortEnd = !!card && /^All acts \(\d+\)/.test(card.rows[card.rows.length - 1] || '') && card.rows.length <= 11;
       await click('#pd-acts-pop [data-pd-acts-every]');
       const every = await waitFor(page, () => { const p = document.getElementById('pd-acts-pop'); if (!p || p.querySelector('[data-pd-acts-every]')) return null;
         /* RE-POINTED 23 Nov 2026 (owner: "Delete this draft in sight", d6eb4677, f1188): Delete this draft stands right

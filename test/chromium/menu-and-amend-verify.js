@@ -226,6 +226,10 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.route('**/api/ai/amend', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [], facts: { expiry: '2028-12-31' } }) }));
     const said = await page.$('#igd-input');
     if (said){ await said.fill('The term now ends on 31 December 2028'); await page.keyboard.press('Enter'); }
+    /* RE-POINTED 23 Nov 2026 (Tell Jambo the change, ONE DOOR: the box beside Amend reads the pop-up's way, pd2AmSay →
+       pd2AmAskRun): what he found comes in its pop-up with one button, "See the changes", which puts it away */
+    if (await until(page, () => !!document.querySelector('#modal-root [data-pd2-amk-see]'), null, 8000)) await page.click('#modal-root [data-pd2-amk-see]');
+    await until(page, () => !document.querySelector('#modal-root .lgp#pd2-amk'), null, 4000);
     if (await until(page, () => !!document.querySelector('.pd2-amx [data-pd2-amx-use="expiry"]'), null, 8000)) await page.click('.pd2-amx [data-pd2-amx-use="expiry"]');
     await until(page, () => /2028/.test(((document.querySelector('#pd-amendface') || {}).innerText || '') + ((document.querySelector('.pd2-amx') || {}).innerText || '')), null, 8000);
     /* the rows are drawn on the Changes tab (a clause is pressed on the Signed paper tab) */
