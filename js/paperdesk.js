@@ -9021,7 +9021,11 @@ function pd2CardHtml(c, D){
     /* THE DRAWN FACES (Round A, "build as drawn", owner 24 Nov 2026): their paper arrived and not read; read with
        clauses to look at — each the drawing's headline, its one black act and its link (pd2DrawnFaceOf) */
     const DF = pd2DrawnFaceOf(c, D, R, focus, N);
-    if (DF) return pd2CardFiveHtml(c, 'is-drawn', at, DF.head, DF.sub ? `<p class="pd2-card-sub">${E(DF.sub)}</p>` : '', pd2StepsHtml(D, focus, words), DF.acts + (DF.foot || ''));
+    /* THE BRIEF STAYS A DOOR on the drawn faces too, where Jambo wrote one (its link beside Watch the read, else alone) */
+    const brLink = hasBrief ? `<button type="button" class="ui-link" data-pd-gl-brief>${E(_pdT('pd2_brief'))}</button>` : '';
+    const dfFoot = !brLink ? (DF && DF.foot) || '' : (DF && DF.foot) ? DF.foot.replace('</p></div>', `<span class="pd2-card-sep" aria-hidden="true">|</span>${brLink}</p></div>`)
+      : `<div class="pd2-card-foot"><p class="pd2-card-links">${brLink}</p></div>`;
+    if (DF) return pd2CardFiveHtml(c, 'is-drawn', at, DF.head, DF.sub ? `<p class="pd2-card-sub">${E(DF.sub)}</p>` : '', pd2StepsHtml(D, focus, words), DF.acts + dfFoot);
     const AM = b ? null : pd2AmendCardOf(c);
     /* A SIGNED AGREEMENT THAT STILL ASKS SOMETHING (as drawn): the headline says how many, the black button is the first
        one's act and Amend stands beside it, grey */
@@ -10292,7 +10296,7 @@ function pd2DutiesCardHtml(c){
      (data-pd-ds-obl → dutiesOpen); only a contract Jambo has not read offers the read first */
   let right = '', line = '', go = T('pd2_dl_c_open_go'), attr = 'data-pd-ds-obl', amber = false;
   if (S.k === 'reading'){ line = T('pd2_dt_reading'); attr = ''; }
-  else if (S.k === 'review'){ amber = true; line = Tn('pd2_dt_left_on', S.left, { n: S.left, m: S.n }); right = S.found ? Tn('pd2_dt_found', S.found, { n: S.found }) : ''; go = T('pd2_dt_review'); }
+  else if (S.k === 'review'){ amber = true; line = Tn('pd2_dt_left_on', S.left, { n: S.left, m: S.n }); right = S.found ? Tn('pd2_dt_found', S.found, { n: S.found }) : ''; /* one door, Open › (owner, 23 Nov 2026) */ }
   else if (S.k === 'list'){ right = Tn('pd2_dt_n', S.n, { n: S.n });
     line = S.next ? T('pd2_dt_next', { d: day(S.next) }) : S.open ? T('pd2_dt_no_dates') : T('pd2_dt_all_done'); }
   else if (S.k === 'unread'){ line = T('pd2_dt_unread'); go = T('pd2_dt_read'); attr = 'data-pd-ds-read'; amber = true; }

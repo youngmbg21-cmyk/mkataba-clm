@@ -162,8 +162,12 @@ const NEW = t => t
     await page.click('#clause-editor [data-ce-act="save"]');
     const rev = await until(id => { const c = getContract(id); const ch = (c.changes || [])[0]; return ch && /Interest runs after that/.test(ch.newText || '') ? (c.changes || []).length : null; }, ID, 8000);
     check('4d Save files into the same change', rev === 1, String(rev));
+    /* RE-POINTED 24 Nov 2026 (owner: "Just file and move on"): the filing opens nothing; 4f's Escape claim is kept on the
+       Notes panel opened from the top bar, as a reader would */
+    await page.waitForTimeout(1200);
+    check('4e the filing opens no Notes panel — filing never asks for a note', !(await page.evaluate(() => !!document.querySelector('#context-panel.open'))));
+    await page.evaluate(() => { try { openPanel('notes'); } catch (_){} });
     const panelUp = await until(() => !!document.querySelector('#context-panel.open'), null, 6000);
-    check('4e the Notes panel opens on the filing', !!panelUp);
     if (panelUp) {
       await page.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); });
       await page.keyboard.press('Escape');

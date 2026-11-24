@@ -81,6 +81,8 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     await page.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-0382', 'copilot'); });
     await waitFor(page, () => !!document.getElementById('ig-canvas'), 10000);
     const sheetAt = () => page.evaluate(() => { const sc = document.getElementById('ig-paper-scroll'), sh = document.querySelector('#ig-paper .pg-sheet, #ig-paper .doc-surface'); return sc && sh ? Math.round(sh.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop) : null; });
+    /* RE-POINTED 24 Nov 2026 (the Dossier as drawn: the paper settles on the card's rare arrival) — measured once it has */
+    await waitFor(page, () => { const cv = document.getElementById('ig-canvas'); return !cv || !cv.getAnimations || !cv.getAnimations().some(a => a.playState === 'running'); }, 4000);
     const at0 = await sheetAt();
     await page.evaluate(() => pdRedOpen('MK-0382'));
     const up = await waitFor(page, () => !!document.querySelector('#pd-redface [data-nego-card]'), 10000);

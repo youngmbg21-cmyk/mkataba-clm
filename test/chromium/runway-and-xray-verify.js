@@ -43,6 +43,8 @@ const check = (name, pass, detail) => {
 
   try {
     const page = await browser.newPage({ viewport: { width: 1500, height: 950 }, deviceScaleFactor: 1 });
+    /* RE-POINTED 24 Nov 2026 (the Clauses tab opens on one clause, as drawn): this check reads the whole list, the reader's own kept choice */
+    await page.addInitScript(() => { try { localStorage.setItem('hati.v1.thList', '1'); } catch (_){} });
     page.on('pageerror', e => errors.push(String(e)));
     page.on('console', m => { if (m.type() === 'error' && !/favicon|404/i.test(m.text())) errors.push(m.text().slice(0, 140)); });
     /* Stakes (13 Oct 2026): opening Home's Clauses reads the contract once; this

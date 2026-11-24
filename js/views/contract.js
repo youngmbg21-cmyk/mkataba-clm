@@ -15911,7 +15911,10 @@ function docThreadStep(d){
    its name large; above it ‹ Dossier · k of n · "Scroll or press ›" · ‹ ›; under it "Keep scrolling for <next>" and
    Next ›. "All N clauses" turns back to the whole list (and back). Only the look and the stepping: the open clause's own
    reading, doors and marks are the list's (docThreadFill), nothing redrawn of its own. */
-let _thPage = true;
+/* THE READER'S OWN CHOICE IS KEPT (24 Nov 2026): "All N clauses" turns to the list and stays the list for this reader
+   (this browser), the clause page as drawn until then */
+const TH_LIST_KEY = 'hati.v1.thList';
+let _thPage = (() => { try { return localStorage.getItem(TH_LIST_KEY) !== '1'; } catch (_){ return true; } })();
 function docThreadNavSync(){
   const card = thEl('card'); if (!card) return;
   let nav = card.querySelector('.doc-th-nav');
@@ -15942,7 +15945,7 @@ function docThreadNavSync(){
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._thStepWired){ document._thStepWired = true;
   document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('#pd-thread [data-th-page-toggle]') : null; if (!b) return;
-    e.preventDefault(); _thPage = !_thPage; docThreadNavSync(); });
+    e.preventDefault(); _thPage = !_thPage; try { if (_thPage) localStorage.removeItem(TH_LIST_KEY); else localStorage.setItem(TH_LIST_KEY, '1'); } catch (_){} docThreadNavSync(); });
   /* the head's own arrows only (a row's own ‹ › keep their own handler): one press, one step */
   document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('#pd-thread [data-th-nav-step]') : null; if (!b || b.disabled) return;
     e.preventDefault(); docThreadStep(Number(b.getAttribute('data-th-nav-step')) || 1); });

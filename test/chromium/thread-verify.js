@@ -99,6 +99,8 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
   try {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await ctx.newPage();
+    /* RE-POINTED 24 Nov 2026 (the Clauses tab opens on one clause, as drawn): this check reads the whole list, the reader's own kept choice */
+    await page.addInitScript(() => { try { localStorage.setItem('hati.v1.thList', '1'); } catch (_){} });
     page.on('pageerror', e => errors.push(e.message));
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.waitForTimeout(600);
