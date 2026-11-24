@@ -52,7 +52,8 @@ const READ = () => {
     spine: d && d.querySelector('.pd2-spine') ? (d.querySelector('.pd2-spine').getAttribute('aria-label') || d.querySelector('.pd2-spine').textContent).replace(/\s+/g, ' ').trim() : '',
     next: d && d.querySelector('.pd2-next') ? d.querySelector('.pd2-next').textContent.trim() : '',
     nextLinks: d ? d.querySelectorAll('.pd2-card .pd2-card-go').length : 0,
-    read: d && d.querySelector('.pd2-read') ? d.querySelector('.pd2-read').textContent.trim() : '',
+    /* RE-POINTED 24 Nov 2026 (as drawn): a paper not yet read says so under its "has arrived" heading */
+    read: d && d.querySelector('.pd2-read, .pd2-card-sub') ? d.querySelector('.pd2-read, .pd2-card-sub').textContent.trim() : '',
     facts, turn: d && d.querySelector('.pd2-turn') ? d.querySelector('.pd2-turn').textContent.trim() : '',
     rows: [...document.querySelectorAll('#ig-dock [data-ig-chips], #ig-dock .jb-ways')].filter(e => e.getBoundingClientRect().height > 0 && e.children.length).map(e => [...e.children].map(b => b.textContent.trim()).join(' · ')),
     old: !!(dock && dock.querySelector('.pd-dossier')),
