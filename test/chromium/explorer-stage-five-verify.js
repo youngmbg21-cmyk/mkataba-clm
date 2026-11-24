@@ -99,9 +99,14 @@ const check = (name, pass, detail) => {
     check('1c each lit contract carries the day it was added or signed as its badge',
       want.added.every(id => /^Added /.test(want.badges[id] || '')) && want.signed.every(id => /^Signed /.test(want.badges[id] || '')), JSON.stringify(Object.values(want.badges).slice(0, 3)));
     const s1 = await said();
-    const procName = await page.evaluate(() => (FOLDERS.proc && FOLDERS.proc.name) || 'Procurement');
+    /* RE-POINTED 24 Nov 2026 (owner: Explorer's Brain and Wiring hidden for now): the map opens on the Floors, so "the
+       part that grew most" is the floor in front that took the most of the contracts added since — no longer the Brain's
+       stream lobe (Procurement). Counted here off the parts drawn and the added list read above. */
+    const grewWant = await page.evaluate(A => { const add = new Set(A);
+      const ps = igPartsNow().map(p => ({ label: p.label, now: p.ids.length, then: p.ids.filter(id => !add.has(id)).length })).filter(p => p.now > p.then);
+      const top = Math.max(...ps.map(p => p.now - p.then)); return ps.filter(p => p.now - p.then === top).map(p => `${p.label} grew most: ${p.then} → ${p.now}`); }, want.added);
     check('1d the answer says the book then and now, what was added and signed, and the part that grew most',
-      s1.includes(`On ${day1} the map held ${want.now - want.added.length} of today’s ${want.now} contracts`) && s1.includes(`${want.added.length} added and ${want.signed.length} signed since`) && s1.includes(procName + ' grew most'),
+      s1.includes(`On ${day1} the map held ${want.now - want.added.length} of today’s ${want.now} contracts`) && s1.includes(`${want.added.length} added and ${want.signed.length} signed since`) && grewWant.length >= 1 && grewWant.some(g => s1.includes(g)),
       s1);
     check('1e it says what it does not replay: a stage before signing', /stage before signing is not replayed/.test(s1), s1.slice(-160));
     await page.screenshot({ path: path.join(OUT, '1-then-and-now.png') });
@@ -131,7 +136,7 @@ const check = (name, pass, detail) => {
     });
     check('2b the picture is a PNG of the whole stage, at twice its size, with room for its heading and foot',
       !pic.missing && pic.type === 'image/png' && pic.w === pic.ww * 2 && pic.h === (pic.wh + 58 + 28) * 2, JSON.stringify(pic.missing ? pic : { w: pic.w, h: pic.h, ww: pic.ww, wh: pic.wh }));
-    check('2c its heading says what it shows: the view, the grouping, how many', !pic.missing && pic.texts.some(t => /^Brain · grouped by value stream/i.test(t)) && pic.texts.some(t => /^30 contracts/.test(t)), JSON.stringify(pic.texts && pic.texts.slice(0, 4)));
+    check('2c its heading says what it shows: the view, the grouping, how many', !pic.missing && pic.texts.some(t => /^Floors · grouped by value stream/i.test(t)) /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden for now: the map opens on the Floors) */ && pic.texts.some(t => /^30 contracts/.test(t)), JSON.stringify(pic.texts && pic.texts.slice(0, 4)));
     check('2d the map\'s own words are in it (every group\'s card), with their clothes written on', !pic.missing && pic.labels >= 3 && pic.labelsIn === pic.labels, JSON.stringify({ in: pic.labelsIn, of: pic.labels }));
     await press('#ig-dock [data-ig-pic]');
     const clip = await until(async () => { try { const items = await navigator.clipboard.read(); return items.some(i => i.types.includes('image/png')) ? 'png' : null; } catch (e) { return null; } }, null, 5000);

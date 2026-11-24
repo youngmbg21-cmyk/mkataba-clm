@@ -99,8 +99,10 @@ const check = (name, pass, detail) => {
     await A.waitForTimeout(600);
     const got1 = await getJ(W.admin, '/api/findings');
     const f1 = ((got1 && got1.findings) || []).find(f => f.title === 'Project Falcon Supply and the three streams');
+    /* RE-POINTED 24 Nov 2026 (owner: Explorer's Brain and Wiring hidden for now): the map opens on the Floors
+       (IGB_VIEW_FIRST, 2), so the finding keeps the view it was pinned on, the Floors, not the Brain (0) */
     check('1c the finding is kept on the server: its title, note, the three streams it is counted in, every contract on the map',
-      !!f1 && f1.note === 'Fix the caps at renewal' && f1.parts.length === 3 && f1.ids.length === BOOK.length && f1.view === 0 && !f1.partial,
+      !!f1 && f1.note === 'Fix the caps at renewal' && f1.parts.length === 3 && f1.ids.length === BOOK.length && f1.view === 2 && !f1.partial,
       JSON.stringify(f1 && { parts: f1.parts.map(p => p.label + ' ' + p.ids.length), ids: f1.ids.length, view: f1.view }));
     /* RE-POINTED 28 Oct 2026 ("Door above the box"): in the conversation the head is his name alone; its door goes back to the tabs */
     await a.press('#ig-dock [data-jb-door] .jb-door-back');

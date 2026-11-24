@@ -46,7 +46,8 @@ const FRAME = () => {
   return { boxIn: [Math.round(bx.left - p.left - (parseFloat(getComputedStyle(panel).borderLeftWidth) || 0)), Math.round(p.right - bx.right), Math.round(p.bottom - bx.bottom)], seam: getComputedStyle(panel).borderLeftWidth, top: Math.round(p.top - bar), right: Math.round(innerWidth - p.right), bottom: Math.round(innerHeight - p.bottom),
     gap: Math.round(p.left - Math.max(...B.map(b => b.right))), sheetTop: Math.round(Math.min(...B.map(b => b.top)) - bar), sheetLeft: Math.round(Math.min(...B.map(b => b.left))),
     boxH: Math.round(box.getBoundingClientRect().height), lineAboveDoors: !!ways && getComputedStyle(ways).borderTopWidth === '1px',
-    noLineUnder: !foot || getComputedStyle(foot).borderTopColor === 'rgba(0, 0, 0, 0)', sideways: document.documentElement.scrollWidth - innerWidth };
+    noLineUnder: !foot || getComputedStyle(foot).borderTopColor === 'rgba(0, 0, 0, 0)',
+    clausesTab: !!(window.pdShowsDesk && pdShowsDesk() && window.pdTab && pdTab() === 'doc') /* igOnClausesTab's own reading */, waysShown: !!ways && ways.getClientRects().length > 0 && ways.getBoundingClientRect().height > 0, sideways: document.documentElement.scrollWidth - innerWidth };
 };
 
 (async () => {
@@ -90,7 +91,9 @@ const FRAME = () => {
           !!F && F.top === 0 && F.bottom === 0 && F.right === (scrolls ? 10 : 0) && F.seam === '1px'
           && (cards ? F.sheetTop === 12 && F.sheetLeft === 16 && F.gap >= 16 && F.gap <= 17 : F.sheetTop === 0 && F.sheetLeft === 0 && F.gap === strip), F);
         check(`${nm} 2 ${pg}: Jambo's box 44, 16 in from the panel's sides and foot; a line above the doors and none under them`,
-          !!F && F.boxH === 44 && F.boxIn.every(v => v === 16) && F.lineAboveDoors && F.noLineUnder, F && { boxH: F.boxH, boxIn: F.boxIn, above: F.lineAboveDoors, under: F.noLineUnder });
+          /* RE-POINTED 24 Nov 2026 (owner: the Clauses tab has no foot line and no links line, f1207): on a contract's
+             Clauses tab no doors stand over the box, so no line above them is asked — only that none is drawn */
+          !!F && F.boxH === 44 && F.boxIn.every(v => v === 16) && (F.clausesTab ? !F.waysShown : F.lineAboveDoors) && F.noLineUnder, F && { boxH: F.boxH, boxIn: F.boxIn, above: F.lineAboveDoors, under: F.noLineUnder, clausesTab: F.clausesTab, ways: F.waysShown });
         check(`${nm} 6 ${pg}: nothing sideways`, !!F && F.sideways <= 0, F && F.sideways);
         await page.screenshot({ path: path.join(OUT, `${nm}-${pg}.png`) });
       }

@@ -236,18 +236,25 @@ const openFace = async page => {
         const back = e && e.querySelector('#ce-rowhead .ce-rowback'), path = e && e.querySelector('#ce-rowhead .ce-rowpath');
         if (!e || !hd || !back || !e.classList.contains('ce-rowmode')) return null;
         const bar = e.querySelector('.ce-barrow'), rail = e.querySelector('.ce-rail');
-        return { headW: Math.round(hd.getBoundingClientRect().width), vw: innerWidth, barRight: bar ? Math.round(bar.getBoundingClientRect().right) : null, railLeft: rail ? Math.round(rail.getBoundingClientRect().left) : null, exitShown: !!(x && x.getClientRects().length), back: back.textContent.trim(), path: path ? path.textContent.trim() : '',
+        const lit = [...e.querySelectorAll('.ce-dtabs .pd-tab.on')].map(b => b.textContent.trim());
+        return { tabbed: e.classList.contains('is-tabbed'), rowheadShown: !!(e.querySelector('#ce-rowhead') && e.querySelector('#ce-rowhead').getClientRects().length), edLit: lit.join('|'),
+          headW: Math.round(hd.getBoundingClientRect().width), vw: innerWidth, barRight: bar ? Math.round(bar.getBoundingClientRect().right) : null, railLeft: rail ? Math.round(rail.getBoundingClientRect().left) : null, exitShown: !!(x && x.getClientRects().length), back: back.textContent.trim(), path: path ? path.textContent.trim() : '',
           step: !!e.querySelector('.ce-row-step'), is: (e.querySelector('.ce-row-is') || {}).textContent }; }, 8000);
     }
     /* RE-POINTED 28 Oct 2026 (owner: "the top bar has to go end to end and the jambo goes over it"): the bar's ground spans the
        window, its tools keep to the paper's column, ending where Jambo's card starts */
-    check('2a from a row the strip\'s tools keep to the paper\'s column, the trail first', !!ed && ed.headW >= ed.vw - 1 && ed.barRight != null && Math.abs(ed.barRight - ed.railLeft) <= 1 && ed.back === 'Redlines' && /Jambo \/ Redlines \/ Counter/.test(ed.path), JSON.stringify(ed));
+    /* RE-POINTED 24 Nov 2026 (owner: the Editor as a tab, as drawn): on our seat in a wide window the editor is tabbed —
+       the row's trail stands down (the Dossier's tabs, Editor lit, are the way out) and the writing bar keeps to the
+       paper's column, clear of the panel */
+    if (ed && ed.tabbed) check('2a tabbed: the trail stands down for the Dossier\'s tabs with Editor lit; the bar keeps to the paper\'s column', !ed.rowheadShown && /^Editor/.test(ed.edLit) && ed.barRight != null && ed.barRight <= ed.railLeft, JSON.stringify(ed));
+    else check('2a from a row the strip\'s tools keep to the paper\'s column, the trail first', !!ed && ed.headW >= ed.vw - 1 && ed.barRight != null && Math.abs(ed.barRight - ed.railLeft) <= 1 && ed.back === 'Redlines' && /Jambo \/ Redlines \/ Counter/.test(ed.path), JSON.stringify(ed));
     check('2b no Exit from a row: the trail\'s back is the way out', !!ed && !ed.exitShown, JSON.stringify(ed));
     check('2c no step number; the line says only what is true', !!ed && !ed.step && ed.is === 'Your counter · nothing is filed until you save', JSON.stringify(ed && ed.is));
     await shot(page, '9E-editor-1440x780');
-    await page.click('#ce-rowhead [data-ce-act="row-back"]', { timeout: 5000 }).catch(() => {});
+    /* RE-POINTED 24 Nov 2026 (the Editor as a tab): tabbed, the way back is the Redlines tab — it lands on the same row */
+    await page.click(ed && ed.tabbed ? '#clause-editor .ce-dtabs [data-ce-dtab="red"]' : '#ce-rowhead [data-ce-act="row-back"]', { timeout: 5000 }).catch(() => {});
     const lit = await waitFor(page, () => { const el = document.querySelector('#pd-redface [data-nego-card].is-landed'); return !document.getElementById('clause-editor') && el && /Liability cap/.test(el.innerText) ? true : null; }, 6000);
-    check('2d ‹ Redlines lands on the same row through the one lander (is-landed)', !!lit);
+    check('2d ‹ Redlines (tabbed: the Redlines tab) lands on the same row through the one lander (is-landed)', !!lit);
 
     /* 3 round 11: counters on 11 and 7, 7 out with Sara */
     await page.evaluate(async (saraU) => { const c = getContract('MK-0382');

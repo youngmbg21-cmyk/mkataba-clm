@@ -106,12 +106,18 @@ const BODY = '<h1>Supply Agreement</h1><p>Between Highland Corporate Ltd and Nor
     const head = await page.evaluate(() => {
       const ah = document.querySelector('#clause-editor .ce-ah');
       const tabs = [...ah.querySelectorAll('[data-ce-tab]')].filter(b => b.getClientRects().length).map(b => b.textContent.replace(/\d+$/, '').trim());
+      const pg = document.getElementById('clause-editor'), dt = [...document.querySelectorAll('#clause-editor .ce-dtabs .pd-tab')].filter(b => b.getClientRects().length);
       const crumb = [...document.querySelectorAll('.shell-crumb, [data-crumb], .crumb, #shell-crumb')].map(x => x.textContent).join(' ');
       const scope = (document.querySelector('#clause-editor #ce-scope') || {}).textContent || '';
-      return { text: ah.textContent.replace(/\s+/g, ' ').trim(), tabs, crumb: crumb + ' ' + document.body.textContent.slice(0, 0), scope: scope.replace(/\s+/g, ' ').trim(),
+      return { text: ah.textContent.replace(/\s+/g, ' ').trim(), tabs, tabbed: !!(pg && pg.classList.contains('is-tabbed')), ahShown: ah.getClientRects().length > 0,
+        dtabs: dt.map(b => b.textContent.replace(/\d+$/, '').trim()), dlit: dt.filter(b => b.classList.contains('on')).map(b => b.textContent.trim()), crumb: crumb + ' ' + document.body.textContent.slice(0, 0), scope: scope.replace(/\s+/g, ' ').trim(),
         bar: (document.elementFromPoint(300, 20) || {}).textContent || '' };
     });
-    check(head.tabs[0] === 'Playbook' && head.tabs[head.tabs.length - 1] === 'Ladder' && head.tabs.filter(t => /Playbook/.test(t)).length === 1 && !head.tabs.some(t => /Suggestions|Figure/.test(t)),
+    /* RE-POINTED 24 Nov 2026 (owner: the Editor as a tab, as drawn): on our seat in a wide window the editor is tabbed
+       (ceTabOn) — its own head row stands down and it wears the Dossier's tabs with Editor lit; still no Figure tab */
+    if (head.tabbed) check(!head.ahShown && head.dlit.length === 1 && /^Editor/.test(head.dlit[0]) && head.dtabs[head.dtabs.length - 1].startsWith('Editor') && !head.dtabs.some(t => /Suggestions|Figure/.test(t)),
+      '1a the row is the Dossier\'s tabs with Editor lit, last; the editor\'s own row stands down; no Figure', JSON.stringify({ dtabs: head.dtabs, lit: head.dlit, ah: head.ahShown }));
+    else check(head.tabs[0] === 'Playbook' && head.tabs[head.tabs.length - 1] === 'Ladder' && head.tabs.filter(t => /Playbook/.test(t)).length === 1 && !head.tabs.some(t => /Suggestions|Figure/.test(t)),
       '1a the row is Playbook · (Risks) · Ladder, Ladder last, one Playbook tab, no Figure', head.tabs.join(' · '));
     check(!/Payment/.test(head.text), '1b nothing after "Jambo" names the clause', head.text);
     const named = await page.evaluate(() => { const t = document.body.innerText; return { bar: /Edit\s+(Clause 2 · )?2?\.? ?Payment/i.test(t), scope: /Payment/.test(((document.getElementById('ce-pick-sel') || { options: [], selectedIndex: -1 }).options[(document.getElementById('ce-pick-sel') || {}).selectedIndex] || {}).textContent || '') }; });
