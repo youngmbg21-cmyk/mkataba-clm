@@ -40731,3 +40731,6 @@ The owner, with a picture of What stands: "when I press on these links and come 
 
 ## THE DOSSIER END TO END — the Clauses page from the first frame (24 Nov 2026)
 The owner: "when I go from dossier to clauses page, the old page flashes for a second... delete this old page." Measured frame by frame on DV-20 at 1440×780: at 68ms the thread was drawn as the whole list (12 rows), the one-clause page (`is-page` + `.doc-th-pgx`) only at 177ms, when docThreadSettle's first open called docThreadNavSync. Fix: docThreadFill puts `is-page` on before any row is drawn; docThreadPaint calls docThreadNavSync with the fill when a row is open. After: one frame, is-page, one row, its page parts (64ms). f1206 red at the parent.
+
+## THE DOSSIER END TO END — the clause page in the side panel, the owner's pick (24 Nov 2026)
+Drawn four ways on today's page (artifact VbWrzLPLmgzsQayFiQ5CTo); the owner: "Picking L+S but do not build yet". Waiting to be built: no contract name line; ‹ Dossier · ‹ k of n › · All clauses ▾ in one row with a thin read-progress bar; title 17px with the status badge beside it; Plain English · Deep dive · Redline as 28px pills (Redline black), the help line moved into hover text; What was found with Mark reviewed in its row; Ask a colleague and "Next: <clause> ›" at the foot; "All in plain English" moved into the All clauses menu.
