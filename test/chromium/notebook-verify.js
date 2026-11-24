@@ -47,6 +47,8 @@ const DPA = ['THE DATA PROTECTION ACT, 2019', 'Section 48', 'A data controller m
     if (made){
       /* what Jambo quoted, and a check a year and more old: written as the server would keep them */
       const db = new DatabaseSync(h.dataDir + '/hati.db');
+      /* the server writes the same file: wait for its turn (up to 5 s) rather than fail on "database is locked" (GitHub, 24 Nov 2026) */
+      db.exec('PRAGMA busy_timeout = 5000');
       const put = (id, f) => { const r = db.prepare('SELECT json FROM notebook_docs WHERE id=?').get(id); db.prepare('UPDATE notebook_docs SET json=? WHERE id=?').run(JSON.stringify({ ...JSON.parse(r.json), ...f }), id); };
       put(made[0], { quoted: 3, bySec: { 'Art. 28(3)': 3 }, last: { n: 'Art. 28(3)', words: 'Processing by a processor shall be governed by a contract', at: new Date().toISOString() } });
       put(made[1], { checkedAt: '2024-01-15T09:00:00Z', quoted: 1, bySec: { 's. 48': 1 }, last: { n: 's. 48', words: 'A data controller may transfer personal data to another country only where safeguards are proved.', at: new Date().toISOString() } });
