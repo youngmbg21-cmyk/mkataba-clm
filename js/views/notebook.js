@@ -155,7 +155,10 @@ function nbOverviewPanelHtml(){
   const groups = due.length ? [{ label: _nbT('nb_ov_due'), rows: due.slice(0, 4).map(d => ({ mark: 'scroll', t: d.name, s: _nbT('nb_ov_due_s', { d: nbDay(d.checkedAt) }), attr: `data-nb-pick="${_nbE(d.id)}"` })) }] : [];
   return `<div class="jl-words is-ov">${typeof jamboOverviewHtml === 'function' ? jamboOverviewHtml({ eyebrow: _nbT('nav_notebook'), title: _nbT('nb_ov_t'),
     sub: L.length ? _nbTn('nb_ov_sub', L.length, { n: L.length, c, m }) : _nbT('nb_ov_empty'), groups,
-    asks: [ask(_nbT('nb_ov_q1')), ask(_nbT('nb_ov_q2'))] }, 'nb') : ''}</div>`;
+    /* NOTHING TO QUOTE, NOTHING TO ASK (owner, 24 Nov 2026): an empty notebook shows no example questions, whose answer could only be
+       "the notebook does not cover it"; its one press is Add a document. The questions come back with the first document. */
+    asks: L.length ? [ask(_nbT('nb_ov_q1')), ask(_nbT('nb_ov_q2'))] : [],
+    act: L.length || _nb.docs == null || _nb.err ? null : { label: '+ ' + _nbT('nb_add'), run: () => nbAddOpen() } }, 'nb') : ''}</div>`;
 }
 function nbPanelPaint(){
   if (typeof insPaintPanel !== 'function') return;
