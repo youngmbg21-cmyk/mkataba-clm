@@ -2233,4 +2233,36 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     /* a sheet in steps: Enter presses what the foot shows (Next ›, or the black act on the last step) */
     if (e.target.hasAttribute('data-lgp-steps')){ const go = e.target.querySelector('.lgp-ft .lgp-go:not([hidden])'); if (go) go.click(); } } }, true);
 }
+/* THE WAVE ON EVERY EDIT POP-UP (owner, 24 Nov 2026: "Build it on every edit pop-up"): ONE helper puts Jambo's
+   moving weave across the top of an edit sheet (its look: index.html .lgp-wave). Every form.lgp that lands in the one
+   dialog (#modal-root: lgpOpen, lgpRepaint, and the sheets built by hand) gets it from ONE watcher, so no builder can
+   forget it; the duties sheet over the page (its own layer) calls lgpWaveSweep itself. Writes nothing but the strip;
+   a sheet that already carries one is left alone, so a redraw never stacks two. */
+var LGP_WAVE_HTML = '<i class="lgp-wave" aria-hidden="true"><b class="lgp-wv-a"></b><b class="lgp-wv-b"></b></i>';
+function lgpWaveSweep(root){
+  if (!root || typeof root.querySelectorAll !== 'function') return 0;
+  const forms = Array.from(root.querySelectorAll('form.lgp'));
+  if (root.matches && root.matches('form.lgp')) forms.unshift(root);
+  let n = 0;
+  for (const f of forms){
+    if (Array.from(f.children).some(k => k.classList && k.classList.contains('lgp-wave'))) continue;
+    f.insertAdjacentHTML('afterbegin', LGP_WAVE_HTML); n++;
+  }
+  return n;
+}
+var _lgpWaveObs = null;
+function lgpWaveWatch(){
+  if (_lgpWaveObs || typeof document === 'undefined' || typeof MutationObserver !== 'function') return false;
+  const mr = document.getElementById('modal-root');
+  if (!mr) return false;
+  _lgpWaveObs = new MutationObserver(() => lgpWaveSweep(mr));
+  _lgpWaveObs.observe(mr, { childList: true, subtree: true });
+  lgpWaveSweep(mr);
+  return true;
+}
+if (typeof document !== 'undefined'){
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lgpWaveWatch, { once: true });
+  else lgpWaveWatch();
+}
+Object.assign(window, { LGP_WAVE_HTML, lgpWaveSweep, lgpWaveWatch });
 Object.assign(window, { LGP_W, LGP_PAGE, lgpHtml, lgpRowHtml, lgpListHtml, lgpOpen, lgpRepaint, lgpStepsHtml, lgpStepGo });

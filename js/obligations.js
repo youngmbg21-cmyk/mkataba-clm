@@ -907,6 +907,7 @@ function openObligationForm(c, seed, opts){
     ofLayer=document.createElement('div'); ofLayer.className='dts-ov'; ofLayer.setAttribute('data-top-overlay','');
     ofLayer.innerHTML=`<div class="dts-scrim" data-dts-out></div><div class="dts-card" role="dialog" aria-modal="true" aria-label="${E(opts.title||i18t('dts_title'))}">${ofHtml}</div>`;
     document.body.appendChild(ofLayer);
+    if(typeof window.lgpWaveSweep==='function') window.lgpWaveSweep(ofLayer);
   } else openModal(ofHtml, { maxWidth: window.LGP_W || '480px', ownFrame: true, label: i18t(seed._i!=null?'ob_edit_cap':'ob_add_go') });
   const ofEsc=e=>{ if(e.key==='Escape' && ofLayer && document.body.contains(ofLayer) && !document.querySelector('.dp-pop')){ e.preventDefault(); document.getElementById('of-cancel')?.click(); } };
   const done=()=>{ if(ofLayer){ document.removeEventListener('keydown',ofEsc,true); ofLayer.remove(); ofLayer=null; } else closeModal(); };

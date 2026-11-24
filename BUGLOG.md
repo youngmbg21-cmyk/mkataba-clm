@@ -22984,3 +22984,6 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - Noticed, not fixed (23 Nov 2026, fix-br-4): node test f1194 (3) "the old sheet panel's words left both books" is red on claude/great-bardeen-ockvtr before this branch's change (js/i18n.js untouched here).
 - Noticed, not fixed (23 Nov 2026, fix-br-4): the new Calendar's Week draws no "Waiting: …" word for a duty held back by an earlier one (it is only never late and offers no Mark done); week-as-drawn-verify 6a was re-pointed to that.
 - 23 Nov 2026 (fix-br-6, noticed, not fixed): test/f1194-no-old-layout-for-a-signed-in-reader.test.js fails on "the old sheet panel's words left both books" — ca_go_draft keys are still in js/i18n.js. Also stakes-verify 3g still pins a need clause's list mark to amber, while the Dossier L+S step 3 (four kinds) makes it red.
+
+## Noticed, not fixed (24 Nov 2026, the wave on every edit pop-up)
+- CLAUDE.md is about 87.5 KB, over its own "under about 80 KB" limit before this change (this change added one sentence); a trim needs the owner's yes.
