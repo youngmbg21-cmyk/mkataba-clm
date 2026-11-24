@@ -317,6 +317,11 @@ const stkKeep = (p, f) => (!f.reg || String(p.region || 0) === f.reg) && (!f.sev
 const stkFiltering = () => !!(_stk.f.reg || _stk.f.sev || _stk.f.by);
 /* what is on screen: the points the filters keep, in the list's order — the deep dive walks these */
 function stkShown(c, b){ return stkReview(c, b).filter(p => stkKeep(p, _stk.f)); }
+/* WHERE JAMBO'S POINT i STANDS IN THE SHOWN LIST (the clause page's own Mark reviewed, review of 24 Nov 2026): the stakes
+   cards number points by the shown list (Playbook points and marks among them, re-sorted), Jambo's own by b.points — this
+   maps one to the other; -1 when it is not shown */
+function stkShownIndexOfJambo(c, i){ const b = c ? stkOf(c) : null; if (!b) return -1;
+  return stkShown(c, b).findIndex(p => p && p.by === 'jambo' && Number(p._i) === Number(i)); }
 /* A CHOICE THAT GIVES NOTHING IS NOT LISTED (the owner's rule): each box offers
    only what this contract's points hold */
 function stkFiltersHtml(b, all){
@@ -1062,4 +1067,4 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   const pr = t.closest('[data-stk-pre-review]');
   if (pr){ e.preventDefault(); if (pr.disabled) return; const c = stkContract(); if (c) stkMarkReviewed(c, { key: STK_PRE_KEY, title: i18t('stk_pre_title') }, pr.getAttribute('data-stk-pre-review') === 'undo'); return; }
 });
-Object.assign(window, { stkAllRun, stkAllPaint, STK_PRE_KEY });
+Object.assign(window, { stkAllRun, stkAllPaint, STK_PRE_KEY, stkShownIndexOfJambo });
