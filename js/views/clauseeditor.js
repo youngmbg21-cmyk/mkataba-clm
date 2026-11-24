@@ -8300,14 +8300,9 @@ function ceTabPaint(){
     const eh = dead ? `<p class="ce-twhy">${_cee(_cet('ce_tab_nothing'))}</p>` : `<button type="button" class="ce-tundo" data-ce-act="undo">${_cee(_cet('ce_tab_undo'))}</button>`;
     if (extra.getAttribute('data-k') !== eh){ extra.setAttribute('data-k', eh); extra.innerHTML = eh; }
   }
-  /* the writing bar's tag */
-  const row = pg.querySelector('.ce-barrow');
-  if (row){
-    let tag = row.querySelector('.ce-ttag');
-    if (!tag){ tag = document.createElement('span'); tag.className = 'ce-ttag'; row.insertBefore(tag, row.firstChild); }
-    const tw = _cet('ce_tab_editing', { clause: name });
-    if (tag.textContent !== tw) tag.textContent = tw;
-  }
+  /* NO TAG ON THE WRITING BAR (owner, 24 Nov 2026: "delete the highlighted item" — the black "Editing <clause>" pill): the
+     panel's heading and the bar over the page already name the clause; the bar keeps only its tools */
+  const row = pg.querySelector('.ce-barrow'), oldTag = row && row.querySelector('.ce-ttag'); if (oldTag) oldTag.remove();
   ceTabBarPlace();
 }
 /* THE WRITING BAR SITS JUST ABOVE THE CLAUSE BEING EDITED, following it as the paper scrolls (transform only) */

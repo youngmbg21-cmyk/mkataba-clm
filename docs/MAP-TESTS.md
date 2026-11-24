@@ -1203,3 +1203,6 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 ## THE DOSSIER END TO END — the clause list, L+S (24 Nov 2026)
 - `node --test test/f1214-the-clause-list-ls.test.js test/f1200-the-clause-page-and-reading-line.test.js test/f1203-the-clause-page-as-drawn.test.js test/f1208-the-clause-page-ls.test.js`
 - Browser (GitHub), re-pointed: clause-list-fixed (6a no head line; 5c the badge), stakes-verify (2: no head line; 3g the badge).
+
+## THE DOSSIER END TO END — no "Editing …" tag on the editor's bar (24 Nov 2026)
+- `node --test test/f1215-no-editing-tag.test.js test/f1202-the-editor-as-a-tab.test.js`
