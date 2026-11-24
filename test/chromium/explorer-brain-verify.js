@@ -64,8 +64,10 @@ const check = (name, pass, detail) => {
     });
     await until(() => window.IG && IG.hubs && IG.hubs.length >= 3);
     /* RE-POINTED 24 Nov 2026 (owner: "hide the brain and wiring tabs in the explorer page for now"): the map opens on
-       Floors and the two buttons are not drawn; igSetView no longer lands on them (24 Nov review), so the stage is checked on Floors */
-    await page.evaluate(() => igSetView(2)); await until(() => intel.cam.w[2] > 0.97);
+       Floors and the two buttons are not drawn; the Brain's drawing is kept, so this check turns to it by its own door */
+    /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden: no button, opens on Floors; igSetView still turns to them) */
+    const opened = await page.evaluate(() => igbCam().view);
+    await page.evaluate(() => igSetView(0)); await until(() => intel.cam.w[0] > 0.97);
 
     /* ================= 1. THE STAGE ======================================== */
     const stage = await page.evaluate(() => {
@@ -80,7 +82,7 @@ const check = (name, pass, detail) => {
     check('1a the map is one dark stage with a canvas under the nodes, the full size of the stage', /ig-brain/.test(stage.cls) && stage.canvas && stage.under && /gradient/.test(stage.bg), JSON.stringify(stage));
     check('1b the canvas is painted — the brain\'s tissue and the dots are pixels', stage.lit > 50, stage.lit);
     /* Five views since the view recipe (explorer-recipe-verify): Grid and Timeline joined. */
-    check('1c the stage carries Floors · Grid · Timeline (Brain and Wiring hidden for now), the zoom and Fold all, and no "drag nodes" hint', stage.views.join('|') === 'Floors|Grid|Timeline' && stage.fold && !stage.oldHint, JSON.stringify(stage.views));
+    check('1c the stage carries Floors · Grid · Timeline (Brain and Wiring hidden for now; the map opened on Floors), the zoom and Fold all, and no "drag nodes" hint', stage.views.join('|') === 'Floors|Grid|Timeline' && opened === 2 && stage.fold && !stage.oldHint, JSON.stringify({ views: stage.views, opened }));
     /* every contract has small words where they fit — measured as painted */
     const words = await page.evaluate(() => {
       const tags = IG.contracts.filter(n => n.tag.style.display !== 'none');
@@ -108,16 +110,18 @@ const check = (name, pass, detail) => {
     }
 
     /* ================= 3. A DRAG TURNS EVERY VIEW =========================== */
-    /* RE-POINTED 24 Nov 2026 (owner: Brain and Wiring hidden for now): the drag is checked on the three shown views,
-       Floors last so the double-click below faces the Floors */
-    for (const [i, key, k3] of [[3, 'rotG', 0], [4, 'rotT', 1], [2, 'rotL', 2]]) {
-      await page.click(`[data-ig-view="${i}"]`); await until(k => intel.cam.w[k] > 0.97, i);
+    /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden: no button, opens on Floors; igSetView still turns to them) */
+    /* the Brain and the Wiring have no button, so the check turns to them by igSetView; Floors by its button, last,
+       so the double-click below faces the Floors */
+    for (const [i, key] of [[0, 'rot'], [1, 'rotW'], [2, 'rotL']]) {
+      if (i < 2) await page.evaluate(k => igSetView(k), i); else await page.click(`[data-ig-view="${i}"]`);
+      await until(k => intel.cam.w[k] > 0.97, i);
       const box = await page.evaluate(() => { const r = document.getElementById('ig-gwrap').getBoundingClientRect(); return { x: r.left + 60, y: r.top + 60 }; });
       const r0 = await page.evaluate(k => intel.cam[k], key);
       await page.mouse.move(box.x, box.y); await page.mouse.down(); await page.mouse.move(box.x + 120, box.y + 10, { steps: 10 }); await page.mouse.up();
       const r1 = await page.evaluate(k => intel.cam[k], key);
       /* the brain also turns slowly by itself; a 120px drag is ~0.72 rad, far past that drift */
-      check(`3${'abc'[k3]} a real mouse drag turns the ${['Grid', 'Timeline', 'Floors'][k3]} view, the side facing you following the mouse`, r0 - r1 > 0.5, `${r0.toFixed(2)} → ${r1.toFixed(2)}`);
+      check(`3${'abc'[i]} a real mouse drag turns the ${['Brain', 'Wiring', 'Floors'][i]} view, the side facing you following the mouse`, r0 - r1 > 0.5, `${r0.toFixed(2)} → ${r1.toFixed(2)}`);
     }
     /* an EMPTY spot on the right edge: the head line rides the top-left since 29 Sep 2026,
        and Group by took the top-right corner on 18 Oct 2026 (the SAP way), so the spot is
@@ -138,16 +142,26 @@ const check = (name, pass, detail) => {
     await page.dblclick('#ig-svg', { position: await emptySpot() });
 
     /* ================= 4. A CARD FOLDS; NOTHING ON THE MAP IS A FILTER ===== */
-    /* RE-POINTED 24 Nov 2026 (owner: Explorer's Brain and Wiring hidden for now): the cards a press folds stand only on
-       the Brain and the Wiring, so on the views a person can press no card is drawn to click; the fold is Fold all's,
-       and it still narrows nothing */
-    await page.evaluate(() => igSetView(2)); await until(() => intel.cam.w[2] > 0.97);
-    const cards = await page.evaluate(() => ({ boxed: IG.hubs.filter(h => h.box).length, drawn: [...document.querySelectorAll('#ig-gwrap .ig-hub')].filter(g => g.style.display !== 'none' && g.getBoundingClientRect().width > 0).length, shown: IG.contracts.length }));
-    check('4a on the Floors no card stands on the map to click (the cards are the hidden views\')', cards.boxed === 0 && cards.drawn === 0, JSON.stringify(cards));
+    /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden: no button, opens on Floors; igSetView still turns to them) */
+    /* the cards a press folds stand on the Wiring; it has no button, so the check turns to it by igSetView */
+    await page.evaluate(() => igSetView(1)); await until(() => intel.cam.w[1] > 0.97);
+    const hub = await page.evaluate(() => { const g = document.getElementById('ig-gwrap').getBoundingClientRect();
+      const hb = IG.hubs.filter(h => h.box && !h.folded && h.kids.length >= 3).sort((a, b) => b.kids.length - a.kids.length)[0]; if (!hb) return null;
+      return { label: hb.label, kids: hb.kids.length, x: g.left + hb.box.x + 40, y: g.top + hb.box.y + 12, shown: IG.contracts.length }; });
+    if (hub) {
+      const under = await page.evaluate(({ x, y }) => { const e = document.elementFromPoint(x, y); return !!(e && e.closest('.ig-hub')); }, hub);
+      await page.mouse.click(hub.x, hub.y);
+      const gathered = await until(l => { const hb = IG.hubs.find(h => h.label === l); return hb && hb.folded && hb.fold > 0.95 && hb.kids.every(n => n.g.style.display === 'none') ? true : false; }, hub.label);
+      const after = await page.evaluate(l => ({ lenses: intel.lenses.length, shown: IG.contracts.length, chev: IG.hubs.find(h => h.label === l).g.getAttribute('aria-expanded') }), hub.label);
+      check('4a a real click on a card folds its contracts into it — the dots gather and their words go', under && gathered === true && after.chev === 'false', JSON.stringify({ under, gathered, chev: after.chev }));
+      check('4b and it narrows nothing: no lens, the same contracts on the map', after.lenses === 0 && after.shown === hub.shown, JSON.stringify(after));
+      await page.screenshot({ path: path.join(OUT, '4-folded.png') });
+      await page.mouse.click(hub.x, hub.y);
+      const reopened = await until(l => { const hb = IG.hubs.find(h => h.label === l); return hb && !hb.folded && hb.fold < 0.05; }, hub.label);
+      check('4c a second click opens it again', reopened === true);
+    } else check('4a a card to fold', false, 'no open card with three or more contracts');
     await page.click('#ig-foldall');
     const allFolded = await until(() => IG.hubs.every(h => h.folded) ? document.getElementById('ig-foldall').textContent : '');
-    const afterFold = await page.evaluate(() => ({ lenses: intel.lenses.length, shown: IG.contracts.length }));
-    check('4b and folding narrows nothing: no lens, the same contracts on the map', afterFold.lenses === 0 && afterFold.shown === cards.shown, JSON.stringify(afterFold));
     check('4d Fold all folds every card, and the button then offers to open them all', !!allFolded && /Open all/.test(allFolded), allFolded);
     await page.click('#ig-foldall'); await until(() => IG.hubs.every(h => !h.folded));
     await page.evaluate(() => { const b = document.querySelector('#ig-legend [data-ig-legend-fold]'); if (b && b.getAttribute('aria-expanded') === 'false') b.click(); });
@@ -162,7 +176,8 @@ const check = (name, pass, detail) => {
     check('4e a legend row narrows the map to its status, and pressing it again lets go', !!legendRow && narrowed.picks === 1 && narrowed.all && afterLegend.lenses === 0 && afterLegend.pressed === 'false', JSON.stringify({ narrowed, afterLegend }));
 
     /* ================= 5. COPILOT STEERS THE MAP ============================ */
-    await page.evaluate(() => igSetView(2));
+    /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden: no button, opens on Floors; igSetView still turns to them) */
+    await page.evaluate(() => igSetView(0));
     await page.evaluate(async () => { await intelAsk('Colour by status and size by nothing'); });
     await page.evaluate(async () => { await intelAsk('Colour by payment terms'); });
     const coloured = await until(() => { const lg = document.getElementById('ig-legend'); return IG.colourKey === 'payterms' && lg && /payment terms/i.test(lg.textContent) ? { note: document.getElementById('ig-note').textContent.replace(/\s+/g, ' ').trim(), rows: lg.querySelectorAll('[data-ig-colour]').length } : null; });

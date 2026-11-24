@@ -98,11 +98,12 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
       check(`2b-${lang} pressing Guide again brings Jambo back with his box`, !!back);
 
       /* ================= 3. EVERY VIEW, EVERY ROW ================= */
-      /* RE-POINTED 24 Nov 2026 (Explorer: BRAIN AND WIRING HIDDEN for now — no button, the map opens on Floors, a
-         hidden view is never landed on): every view the bar OFFERS, every row */
+      /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden: no button, opens on Floors; igSetView still turns to them) */
+      /* the bar OFFERS Floors, Grid and Timeline; the Brain and the Wiring are still turned to by igSetView (fresh), so
+         every view's guide and every row is still checked */
       const SHOWN = await page.evaluate(() => [0, 1, 2, 3, 4].filter(i => igbViewShown(i)));
       check(`3-${lang} the map offers Floors, Grid and Timeline (Brain and Wiring hidden for now)`, JSON.stringify(SHOWN) === '[2,3,4]', JSON.stringify(SHOWN));
-      for (const v of SHOWN) {
+      for (let v = 0; v < 5; v++) {
         await fresh(v, true); await page.waitForTimeout(200);
         const g = await page.evaluate(() => { const h = document.getElementById('ig-gd'); if (!h) return null;
           /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the guide is drawn in THE FIVE PARTS (igGuideHtml's
