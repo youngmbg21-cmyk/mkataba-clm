@@ -3273,14 +3273,15 @@ function calLsCss(){ return `
   /* THE MONTH HOLDS STILL (owner, 4 Oct 2026): a day is ONE height whatever it holds — its number and the two chips it
      may show (or one and "+N more"), 6 + 22 + 3 + 20.4 + 3 + 20.4 + 6 and its 1px line — so an answer of Jambo's or an
      event of my own landing on a day never grows its week */
-  html.lg-new .cal-page.is-ls .cls-d{min-width:0;height:82px;overflow:hidden;padding:6px 8px;display:flex;flex-direction:column;gap:3px;font-size:12px;border-right:1px solid var(--color-neutral-100);border-bottom:1px solid var(--color-neutral-100);cursor:pointer;box-sizing:border-box}
+  /* a day holds its date and two lines (or one and "+N more") at one height, so the month never grows when Jambo or your own items arrive (calendar-holds-still) and six weeks still fit a short window (calendar-redesign 2) */
+  html.lg-new .cal-page.is-ls .cls-d{min-width:0;height:74px;overflow:hidden;padding:6px 8px;display:flex;flex-direction:column;gap:3px;font-size:12px;border-right:1px solid var(--color-neutral-100);border-bottom:1px solid var(--color-neutral-100);cursor:pointer;box-sizing:border-box}
   html.lg-new .cal-page.is-ls .cls-d:nth-child(7n){border-right:0}
   html.lg-new .cal-page.is-ls .cls-d.is-we{background:color-mix(in srgb,var(--surface-2) 30%,var(--color-surface))}
   html.lg-new .cal-page.is-ls .cls-d.is-chosen{background:var(--color-accent-50)}
-  html.lg-new .cal-page.is-ls .cls-n{font:var(--w-label) 12.5px/22px var(--font-body);height:22px}
+  html.lg-new .cal-page.is-ls .cls-n{font:var(--w-label) 12.5px/20px var(--font-body);height:20px}
   html.lg-new .cal-page.is-ls .cls-d.is-out .cls-n{color:var(--color-neutral-300)}
-  html.lg-new .cal-page.is-ls .cls-today{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent-ink);color:var(--color-surface)}
-  html.lg-new .cal-page.is-ls .cls-ev{display:block;border-radius:4px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:var(--w-label) 11.5px/1.6 var(--font-body);min-width:0}
+  html.lg-new .cal-page.is-ls .cls-today{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--accent-ink);color:var(--color-surface)}
+  html.lg-new .cal-page.is-ls .cls-ev{display:block;border-radius:4px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:var(--w-label) 11.5px/1.35 var(--font-body);min-width:0}
   html.lg-new .cal-page.is-ls .cls-ev.is-ruby{background:var(--st-ruby-bg);color:var(--st-ruby-fg)} html.lg-new .cal-page.is-ls .cls-ev.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)}
   html.lg-new .cal-page.is-ls .cls-ev.is-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)} html.lg-new .cal-page.is-ls .cls-ev.is-violet{background:var(--st-violet-bg);color:var(--st-violet-fg)}
   html.lg-new .cal-page.is-ls .cls-ev.is-gray{background:var(--surface-2);color:var(--color-quiet)}

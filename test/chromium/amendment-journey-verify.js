@@ -399,7 +399,10 @@ const VISIBLE = `(el) => {
       if (await page.evaluate(() => !!document.querySelector('#dtp'))){ const r = await page.evaluate(`(() => {
         const vis = ${VISIBLE};
         const b = document.querySelector('#dtp [data-dtp-again]');
-        const tab = document.querySelector('#dtp .obd-title');
+        /* RE-POINTED 24 Nov 2026 (the Duties page stands as a page: its title is lifted into the page's head band,
+           dlgPageAdopt — as four-inspectors 2a reads it): the title is asked of the page holding #dtp */
+        const pg = document.getElementById('dtp').closest('[data-dlg-page]');
+        const tab = (pg || document).querySelector('.dlg-pg-title .obd-title, #dtp .obd-title');
         return { find: vis(b), live: !!(b && !b.disabled), tab: tab ? tab.textContent.replace(/\\s+/g, ' ').trim() : '' };
       })()`);
         /* the page is put away again, so the Clauses tab below is asked of the paper, not under the page */
