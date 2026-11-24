@@ -47,7 +47,8 @@ describe('f1202 (2) the editor wears the tabs', () => {
 describe('f1202 (3) the panel says the clause; File · next › moves on', () => {
   test('the picker, the heading, the sentence and the foot', () => {
     const p = fnSrc(CE, 'ceTabPaint');
-    for (const k of ['ce_tab_k_of_n', 'ce_tab_sub2', 'ce_tab_next_to', 'ce_tab_next', 'ce_tab_undo'] /* RE-POINTED 24 Nov 2026 (f1219, the panel as drawn): the serif "Redlining …" heading and "Keep scrolling …" are gone (ce_tab_redlining, ce_tab_sub, ce_tab_keep kept, unused) */){ /* RE-POINTED 24 Nov 2026 (f1215): the bar's "Editing …" tag is gone (ce_tab_editing kept, unused); (f1217) "Nothing changed yet" is gone (ce_tab_nothing kept, unused) */
+    /* RE-POINTED 25 Nov 2026 (the Editor's panel, L+S as drawn, "less is more"): no sentence under the name, no "Next: …" words; the badge, what they asked, Undo beside Save */
+    for (const k of ['ce_tab_k_of_n', 'ce_tab_next', 'ce_tab_unfiled', 'ce_tab_asked', 'ce_sug_undo'] /* RE-POINTED 24 Nov 2026 (f1219, the panel as drawn): the serif "Redlining …" heading and "Keep scrolling …" are gone (ce_tab_redlining, ce_tab_sub, ce_tab_keep kept, unused) */){ /* RE-POINTED 24 Nov 2026 (f1215): the bar's "Editing …" tag is gone (ce_tab_editing kept, unused); (f1217) "Nothing changed yet" is gone (ce_tab_nothing kept, unused) */
       assert.match(p, new RegExp(`_cet\\('${k}'`), k + ' drawn');
       assert.equal((I.match(new RegExp(`^    ${k}: `, 'gm')) || []).length, 2, k + ' in both books');
     }

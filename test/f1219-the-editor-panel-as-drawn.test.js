@@ -31,7 +31,8 @@ test('f1219 (2) the Clauses row and the clause as one line', () => {
   assert.match(p, /<button type="button" class="ce-tback" data-ce-dtab="doc">/);
   assert.match(p, /data-ce-tstep="-1"[\s\S]*ce_tab_k_of_n[\s\S]*data-ce-tstep="1"[\s\S]*class="ce-tall" data-ce-tlist/);
   assert.match(p, /const st = pts\.some\(p => p\.s === 'need'\) \? 'need' : pts\.length \? 'look' : '';/);
-  assert.match(p, /<div class="ce-thd">/);
+  /* RE-POINTED 25 Nov 2026 (L+S as drawn): § over the name, one badge */
+  assert.match(p, /<div class="ce-thd is-ls">/);
   assert.doesNotMatch(p, /ce_tab_redlining|ce_tab_keep|class="ce-tpick"/);
 });
 test('f1219 (3) the sections and the foot', () => {
@@ -39,11 +40,14 @@ test('f1219 (3) the sections and the foot', () => {
   assert.match(pts, /if \(ceTabbed\(\)\)\{[\s\S]*ce_tab_fix_h[\s\S]*class="ce-tdraft" data-ce-act="pts-draft"[\s\S]*\}/);
   const tabPart = pts.slice(pts.indexOf('if (ceTabbed()){'), pts.indexOf('return `<div class="ce-ai ce-pts"'));
   assert.doesNotMatch(tabPart, /pts-off|ce_pts_say/);
-  assert.match(fn(CE, 'ceLadderCardHtml'), /if \(ceTabbed\(\)\) return `<section class="ce-sec ce-tlad">[\s\S]*data-ce-tlink="ladder"/);
+  /* RE-POINTED 25 Nov 2026 (L+S as drawn): the ladder's lines become Before you answer, only those that say something */
+  assert.match(fn(CE, 'ceLadderCardHtml'), /if \(ceTabbed\(\)\)\{[\s\S]*return ceTabBeforeHtml\(lines\)/);
   const p = fn(CE, 'ceTabPaint');
   assert.match(p, /ce_tab_change_h[\s\S]*data-ce-act="undo"/);
   assert.match(p, /\['notes', 'theirs', 'history'\]\.map/);
-  assert.match(p, /ce_tab_next_to/);
+  /* RE-POINTED 25 Nov 2026 (owner: "Remove the green links and the grey wordings below save counter"): the foot is Save · Undo, or Next › */
+  assert.doesNotMatch(p, /ce_tab_next_to/);
+  assert.match(p, /const fh = btn \? `<div class="ce-tfrow is-ls">\$\{btn\}<\/div>` : '';/);
   assert.ok(H.includes(E + ' :is(#ce-chips, #ce-railfoot){display:none}'));
 });
 test('f1219 (4) held, not carried', () => {

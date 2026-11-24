@@ -5143,11 +5143,9 @@ function ceLadderCardHtml(){
     acts = `<div class="acts"><button type="button" class="ui-btn ui-btn-primary" data-ce-act="ladder-accept" data-id="${_ceea(theirs.id)}">${_cee(_cet('ce_lc_accept', { n: theirs.n }))}</button></div>`;
   }
   /* AS A TAB, AS DRAWN: "Your ladder" and its Open › (the Redlines tab's Ladder), then a calm table of lines */
-  if (ceTabbed()) return `<section class="ce-sec ce-tlad"><div class="ce-sh"><span>${_cee(_cet('ce_tab_lad_h'))}</span><button type="button" class="ce-shgo" data-ce-tlink="ladder">${_cee(_cet('ce_tab_lad_open'))}</button></div>
-    <div class="ce-card ce-lcard"><div class="k">${_cee(_cet('ce_lc_moved'))}</div><div>${_cee(moved)}</div>
-    <div class="k">${_cee(_cet('ce_tab_lad_pos'))}</div><div>${_cee(ladder)}</div>
-    <div class="k">${_cee(_cet('ce_tab_lad_before'))}</div><div>${_cee(prec)}</div>
-    ${replyHtml}${acts}</div></section>`;
+  if (ceTabbed()){ void moved;
+    const lines = [ladder !== _cet('ce_lc_nostd') ? ['ruby', ladder] : null, cePlaybookLine() ? ['ruby', cePlaybookLine()] : null, prec !== _cet('ce_lc_noprec') ? ['steel', prec] : null].filter(Boolean);
+    return ceTabBeforeHtml(lines) + (replyHtml || acts ? `<section class="ce-sec ce-tans"><div class="ce-sh"><span>${_cee(_cet('ce_tab_answer'))}</span></div><div class="ce-card ce-lcard">${replyHtml}${acts}</div></section>` : ''); }
   return `<div class="ce-card ce-lcard" title="${_ceea(_cet('ce_lc_cost'))}">
     <div class="k">${_cee(_cet('ce_lc_moved'))}</div><div>${_cee(moved)}</div>
     <div class="k">${_cee(_cet('ce_lc_ladder'))}</div><div>${_cee(ladder)}</div>
@@ -5406,11 +5404,14 @@ function ceExplainHtml(x){
 function ceTabGreetingHtml(){
   let lad = false; try { lad = !_cePrep && !!ceLadderRow(); } catch (_){ lad = false; }
   if (lad) return '';
-  const rows = [];
-  const pc = cePrecedentLine(); if (pc) rows.push([_cet('ce_tab_lad_before'), pc]);
-  const ta = ceTheirAsk(); if (ta) rows.push([_cet('ce_read_theirs'), ta]);
-  return rows.length ? `<section class="ce-sec ce-tlad"><div class="ce-sh"><span>${_cee(_cet('ce_tab_lad_h'))}</span><button type="button" class="ce-shgo" data-ce-tlink="ladder">${_cee(_cet('ce_tab_lad_open'))}</button></div>
-    <div class="ce-card ce-lcard">${rows.map(r => `<div class="k">${_cee(r[0])}</div><div>${_cee(r[1])}</div>`).join('')}</div></section>` : '';
+  /* what they asked has its own section above; here only the lines that say something */
+  const pb = cePlaybookLine(), pc = cePrecedentLine();
+  return ceTabBeforeHtml([pb ? ['ruby', pb] : null, pc ? ['steel', pc] : null].filter(Boolean));
+}
+/* BEFORE YOU ANSWER (the Editor tab, L+S): a line per fact, a soft mark each; nothing said, no section */
+function ceTabBeforeHtml(lines){
+  if (!lines || !lines.length) return '';
+  return `<section class="ce-sec ce-tlad is-ls"><div class="ce-sh"><span>${_cee(_cet('ce_tab_before'))}</span></div>${lines.map(([tone, t]) => `<div class="ce-tline"><span class="ce-tmk is-${tone}" aria-hidden="true">${tone === 'ruby' ? '!' : '\u21ba'}</span><span>${_cee(t)}</span></div>`).join('')}</section>`;
 }
 function ceGreetingHtml(){
   const cl = ceClause();
@@ -7932,6 +7933,10 @@ function ceWirePage(page){
       case 'ladder-note': {
         if (_ceLadderReply && _ceLadderReply.note){ _ceHeldNote = _ceLadderReply.note; ceSay(_cet('ce_lc_kept'), 'ok'); }
         break; }
+      case 'theirs-reject': {
+        const rid = act.getAttribute('data-id'); const on = rid ? ceOnTable().find(x => String(x.id) === String(rid)) : null;
+        if (on) ceRejectTheirs(on);
+        break; }
       case 'ladder-accept': {
         /* THE CARD'S OWN ACCEPT, pressed on the page behind: one door. */
         const aid = act.getAttribute('data-id');
@@ -8314,6 +8319,11 @@ function ceTabPaint(){
      the SAME tab row as the Dossier's, its strip in the middle and the fold arrow at the end (data-ce-dfold); the Clauses
      tab's own row (‹ Clauses · ‹ k of n › · All n clauses ▾); the clause as one line — its number, its name, the list's
      badge — and one grey line under it. The sections (To fix · Your ladder · Your change) and the foot follow. */
+  /* THE EDITOR'S PANEL, THE LEGORA + STRIPE WAY (owner, 24 Nov 2026: "Build it and merge it", as drawn; "less is more…
+     do not add unnecessary wordings"): § and the clause's name, ONE badge (Not filed yet while a change waits); what they
+     asked, in their words with the change marked, Accept · Reject beside it; Before you answer (only lines that say
+     something); the answer the page holds; at the foot only Save counter · Undo — no links line, no grey words */
+  const svNow = rail.querySelector('#ce-railfoot [data-ce-act="save"]'), liveNow = !!(svNow && !svNow.disabled);
   const lab = String(name || ''), nm = /^\s*\(?(\d+(?:\.\d+)*|[A-Z]|[ivxlcdm]+)[.)]?\s+(.*)$/i.exec(lab);
   const num = nm ? nm[1] : '', title = nm ? nm[2] : lab;
   let pts = []; try { pts = cl ? ceTabPointsOf(cl.clauseId) : []; } catch (_){ pts = []; }
@@ -8322,8 +8332,21 @@ function ceTabPaint(){
   const html = `<div class="ce-drow"><div class="ce-dtabs" role="tablist">${tabs}</div><button type="button" class="ce-dfold" data-ce-dfold title="${_ceea(_cet('int_collapse_panel'))}" aria-label="${_ceea(_cet('int_collapse_panel'))}">\u203a</button></div>
     <div class="ce-tnav"><button type="button" class="ce-tback" data-ce-dtab="doc">\u2039 ${_cee(_cet('pd_tab_clauses'))}</button><button type="button" class="ce-tar" data-ce-tstep="-1" aria-label="${_ceea(_cet('ce_walk_prev'))}"${i > 0 ? '' : ' disabled'}>\u2039</button><span class="ce-tk">${_cee(_cet('ce_tab_k_of_n', { k: i + 1, n: L.length }))}</span><button type="button" class="ce-tar" data-ce-tstep="1" aria-label="${_ceea(_cet('ce_walk_next'))}"${nx ? '' : ' disabled'}>\u203a</button><span class="sp"></span><button type="button" class="ce-tall" data-ce-tlist aria-haspopup="listbox">${_cee(_cetn('ce_tab_all', L.length, { n: L.length }))} \u25be</button></div>
     <div class="ce-tlist" id="ce-tlist" role="listbox" hidden>${L.map((x, k) => `<button type="button" role="option" data-ce-tgo="${_ceea(x.clauseId)}"${k === i ? ' aria-selected="true" class="on"' : ''}>${_cee(ceTabName(x))}</button>`).join('')}</div>
-    <div class="ce-thd">${num ? `<span class="ce-thn">${_cee(num)}</span>` : ''}<div class="ce-thw"><h3 class="ce-th">${_cee(title)}</h3><p class="ce-tsub">${_cee(them ? _cet('ce_tab_sub2', { who: them }) : _cet('ce_tab_sub2_x'))}</p></div>${badge}</div>`;
+    <div class="ce-thd is-ls">${num ? `<p class="ce-teb">\u00a7 ${_cee(num)}</p>` : ''}<h3 class="ce-th">${_cee(title)}</h3>${liveNow ? `<span class="ce-tbadge k-unfiled">${_cee(_cet('ce_tab_unfiled'))}</span>` : badge}</div>`;
   if (top.getAttribute('data-k') !== html){ top.setAttribute('data-k', html); top.innerHTML = html; }
+  /* WHAT THEY ASKED: their open change on this clause, the standing words marked against theirs; Accept · Reject are
+     the Redlines row's own buttons (ladder-accept, theirs-reject → ceRejectTheirs); countering is typing on the paper */
+  let ask = rail.querySelector('#ce-tasked');
+  if (!ask){ ask = document.createElement('section'); ask.id = 'ce-tasked'; ask.className = 'ce-sec ce-tasked'; top.insertAdjacentElement('afterend', ask); }
+  let theirs = null; try { theirs = ceOnTable().find(x => x && x.authorSide === 'counterparty' && x.status === 'pending') || null; } catch (_){ theirs = null; }
+  const ah = theirs ? `<div class="ce-sh"><span>${_cee(them ? _cet('ce_tab_asked', { who: them }) : _cet('ce_tab_asked_x'))}</span></div>
+    <div class="ce-tquote">${ceRedlineHtml(theirs.oldText != null ? theirs.oldText : _ceBase, theirs.newText != null ? theirs.newText : ceWords(theirs.text))}</div>
+    <div class="ce-tchips"><button type="button" class="ce-tchip" data-ce-act="ladder-accept" data-id="${_ceea(theirs.id)}">${_cee(_cet('ng_accept'))}</button><button type="button" class="ce-tchip" data-ce-act="theirs-reject" data-id="${_ceea(theirs.id)}">${_cee(_cet('ng_reject'))}</button></div>`
+    /* YOUR ANSWER: once a counter is typed, the paper's words marked against what they asked */
+    + (liveNow ? (() => { let now = null; try { now = ceBoxNow(); } catch (_){ now = null; } const words = ceWords(now ? now.text : _ceText);
+      return `<div class="ce-sh ce-tans-h"><span>${_cee(_cet('ce_tab_answer'))}</span></div><div class="ce-tquote is-ours">${ceRedlineHtml(theirs.newText != null ? theirs.newText : ceWords(theirs.text), words)}</div>`; })() : '') : '';
+  if (ask.getAttribute('data-k') !== ah){ ask.setAttribute('data-k', ah); ask.innerHTML = ah; }
+  ask.hidden = !ah;
   let foot = rail.querySelector('#ce-tabfoot');
   if (!foot){ foot = document.createElement('div'); foot.id = 'ce-tabfoot'; foot.className = 'ce-tabfoot'; const feet = rail.querySelector('#ce-feet'); rail.insertBefore(foot, feet ? feet.nextSibling : null); }
   /* SAVE IN THE BOTTOM ROW (owner's pick, 24 Nov 2026: "remove the 'nothing changed yet' and move the save button lower" —
@@ -8331,18 +8354,20 @@ function ceTabPaint(){
      as a change · next ›"; the press is the File button's, so filing then moves on, ceSaveAndOn); with nothing to file it
      is Next ›, the plain step. The File button over it is not drawn in the tab, and "Nothing changed yet" is gone */
   const sv = rail.querySelector('#ce-railfoot [data-ce-act="save"]'), live = !!(sv && !sv.disabled);
-  const btn = live ? `<button type="button" class="ce-tnext is-save" data-ce-tsave title="${_ceea(sv.getAttribute('title') || '')}">${_cee(sv.textContent.trim())}</button>`
+  const btn = live ? `<button type="button" class="ce-tnext is-save" data-ce-tsave title="${_ceea(sv.getAttribute('title') || '')}">${_cee(sv.textContent.trim())}</button><button type="button" class="ce-tundo2" data-ce-act="undo">${_cee(_cet('ce_sug_undo'))}</button>`
     : nx ? `<button type="button" class="ce-tnext" data-ce-tstep="1">${_cee(_cet('ce_tab_next'))}</button>` : '';
   /* the foot as drawn: "Next: <clause>" and its one button, then the links line the other tabs carry (notes · their view ·
      history), each an existing door */
   const links = `<nav class="ce-tlinks">${['notes', 'theirs', 'history'].map(k => `<button type="button" data-ce-tlink="${k}">${_cee(_cet(k === 'notes' ? 'ca_next_rl_notes' : k === 'theirs' ? 'ca_next_rl_theirs' : 'ca_w_history'))}</button>`).join('')}</nav>`;
-  const fh = `<div class="ce-tfrow">${nx ? `<span class="w">${_cee(_cet('ce_tab_next_to', { clause: ceTabName(nx) }))}</span>` : '<span class="w"></span>'}${btn}</div>${links}`;
+  void links;
+  const fh = btn ? `<div class="ce-tfrow is-ls">${btn}</div>` : '';
   if (foot.getAttribute('data-k') !== fh){ foot.setAttribute('data-k', fh); foot.innerHTML = fh; }
   /* YOUR CHANGE (as drawn): what waits to be filed on this clause, and Undo beside it; nothing typed says how to start */
   let chg = rail.querySelector('#ce-tchg');
   if (!chg){ chg = document.createElement('section'); chg.id = 'ce-tchg'; chg.className = 'ce-sec ce-tchg'; const lane = rail.querySelector('#ce-lane'); rail.insertBefore(chg, lane ? lane.nextSibling : null); }
   const ch = `<div class="ce-sh"><span>${_cee(_cet('ce_tab_change_h'))}</span><span>${live ? 1 : 0}</span></div><p class="ce-trow">${live ? `${_cee(_cet('ce_tab_change_wait'))} <button type="button" class="ce-tundo" data-ce-act="undo">${_cee(_cet('ce_tab_undo'))}</button>` : _cee(_cet('ce_tab_change_none'))}</p>`;
   if (chg.getAttribute('data-k') !== ch){ chg.setAttribute('data-k', ch); chg.innerHTML = ch; }
+  chg.hidden = true;
   /* NO TAG ON THE WRITING BAR (owner, 24 Nov 2026: "delete the highlighted item" — the black "Editing <clause>" pill): the
      panel's heading and the bar over the page already name the clause; the bar keeps only its tools */
   const row = pg.querySelector('.ce-barrow'), oldTag = row && row.querySelector('.ce-ttag'); if (oldTag) oldTag.remove();

@@ -26500,6 +26500,36 @@
   html.lg-new #clause-editor.is-tabbed #ce-railfoot [data-ce-act="save"]{display:none}
   html.lg-new #clause-editor.is-tabbed #ce-railfoot:not(:has(.ce-tundo, .ce-tacts > *:not(:empty))){display:none}
   html.lg-new #clause-editor.is-tabbed .ce-tnext.is-save{font-weight:var(--w-strong);flex:none;max-width:62%;overflow:hidden;text-overflow:ellipsis}
+  /* THE EDITOR'S PANEL, L+S (owner, 24 Nov 2026, as drawn; "less is more"): § over the clause's name, one badge; what they
+     asked as their words with the change marked and two quiet chips; Before you answer as one line a fact with a soft
+     mark; the foot a small black Save counter with Undo beside it — no links line, no grey words */
+  html.lg-new #clause-editor.is-tabbed .ce-thd.is-ls{display:block;padding:2px 0 12px}
+  html.lg-new #clause-editor.is-tabbed .ce-thd.is-ls .ce-teb{margin:0;font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new #clause-editor.is-tabbed .ce-thd.is-ls .ce-th{margin:2px 0 8px;font-family:var(--font-doc);font-weight:400;font-size:21px;line-height:28px}
+  html.lg-new #clause-editor.is-tabbed .ce-thd.is-ls .ce-tbadge{display:inline-flex}
+  html.lg-new #clause-editor.is-tabbed .ce-tbadge.k-unfiled{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new #clause-editor.is-tabbed .ce-tasked{margin:0;padding:12px 18px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new #clause-editor.is-tabbed .ce-tasked[hidden]{display:none}
+  html.lg-new #clause-editor.is-tabbed .ce-tasked .ce-sh,html.lg-new #clause-editor.is-tabbed .ce-tlad.is-ls .ce-sh,html.lg-new #clause-editor.is-tabbed .ce-tans .ce-sh{font-size:13.5px;letter-spacing:0;text-transform:none;font-weight:var(--w-strong);color:var(--color-text);margin:0 0 6px}
+  html.lg-new #clause-editor.is-tabbed .ce-tquote{font-family:var(--font-doc);font-size:14px;line-height:21px;color:var(--color-text)}
+  html.lg-new #clause-editor.is-tabbed .ce-tquote p{margin:0}
+  html.lg-new #clause-editor.is-tabbed .ce-tchips{display:flex;gap:6px;margin-top:10px}
+  html.lg-new #clause-editor.is-tabbed .ce-tchip,html.lg-new #clause-editor.is-tabbed .ce-tundo2{border:0;border-radius:999px;background:var(--surface-2);color:var(--color-text);padding:5px 12px;font:inherit;font-size:13px;cursor:pointer}
+  html.lg-new #clause-editor.is-tabbed .ce-tlad.is-ls{margin:0;padding:12px 0;border-bottom:1px solid var(--color-divider)}
+  html.lg-new #clause-editor.is-tabbed .ce-tline{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;align-items:start;padding:4px 0;font-size:13.5px;line-height:20px;color:var(--color-text)}
+  html.lg-new #clause-editor.is-tabbed .ce-tmk{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:var(--w-strong)}
+  html.lg-new #clause-editor.is-tabbed .ce-tmk.is-ruby{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  html.lg-new #clause-editor.is-tabbed .ce-tmk.is-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  html.lg-new #clause-editor.is-tabbed .ce-tans{margin:0;padding:12px 0}
+  html.lg-new #clause-editor.is-tabbed .ce-tfrow.is-ls{gap:8px;justify-content:flex-start}
+  html.lg-new #clause-editor.is-tabbed .ce-tfrow.is-ls .ce-tnext.is-save{background:var(--color-text);color:var(--color-surface);padding:6px 14px}
+  html.lg-new #clause-editor.is-tabbed .ce-tabfoot:has(.ce-tfrow.is-ls){border-top:1px solid var(--color-divider)}
+  html.lg-new #clause-editor.is-tabbed .ce-tabfoot:not(:has(.ce-tfrow)){border-top:0}
+  html.lg-new #clause-editor.is-tabbed .ce-rail:has(> .ce-tabfoot:empty) > .ce-askwrap{margin-top:auto}
+  html.lg-new #clause-editor.is-tabbed .ce-tasked .ce-sh.ce-tans-h{margin-top:16px}
+  html.lg-new #clause-editor.is-tabbed .ce-tquote.is-ours ins{color:var(--st-green-fg);background:var(--st-green-bg);text-decoration:underline}
+  html.lg-new #clause-editor.is-tabbed .ce-tquote del{color:var(--st-ruby-fg);background:var(--st-ruby-bg);text-decoration-thickness:1px}
+  html.lg-new #clause-editor.is-tabbed .ce-tquote ins{color:var(--st-steel-fg);background:var(--st-steel-bg);text-decoration:none;padding:0 2px;border-radius:3px}
   /* THE LADDER CARD, L+S (owner, 24 Nov 2026: "make the grey area more neat in L+S way"): no grey box — one calm table of
      open lines, the label in a quiet column, the sentence beside it, a hairline under each row; the suggested wording and the
      acts run the whole width */
