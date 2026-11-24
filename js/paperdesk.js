@@ -11650,7 +11650,11 @@ function pdEdTabBtnHtml(on){
   const name = _pdT('pd_tab_editor');
   return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}" ${on ? 'data-ce-dtab="ed"' : 'data-pd-ed-tab'} aria-selected="${!!on}" title="${_pdE(name)}"><span class="pd-tab-w">${_pdE(name)}</span></button>`;
 }
-function pdEdTabsHtml(c){
+function pdEdTabsHtml(c0){
+  /* ONE ROW OF TABS, READ OFF ONE RECORD (owner, 24 Nov 2026: "the editor tab is not adhering to the same design as the other
+     tabs"): the editor holds its own copy of the contract; the tabs and their counts read the LIVE record, as the Dossier's
+     row does (pdContract → getContract), so Plan and the numbers are the same on both */
+  const c = (c0 && typeof getContract === 'function' && getContract(c0.id)) || c0;
   return pd2TabsShownFor(c).map(t => {
     const name = t === 'copilot' ? pdLandName() : _pdT(PD_TAB_NAME[t]); const cnt = pdTabCount(t, c);
     return `<button type="button" role="tab" class="pd-tab" data-ce-dtab="${t}" aria-selected="false" title="${_pdE(name)}"><span class="pd-tab-w">${_pdE(name)}</span>${cnt ? `<span class="pd-tab-n is-${cnt.tone}">${cnt.n}</span>` : ''}</button>`;

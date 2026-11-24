@@ -1206,3 +1206,7 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 
 ## THE DOSSIER END TO END — no "Editing …" tag on the editor's bar (24 Nov 2026)
 - `node --test test/f1215-no-editing-tag.test.js test/f1202-the-editor-as-a-tab.test.js`
+
+## THE DOSSIER END TO END, L+S (four steps) — tabs one switch, first frame (24 Nov 2026)
+- `node --test test/f1216-tabs-one-switch.test.js` (source: the track, the pill, the editor's copy off the live record, is-list with the rows)
+- Browser (GitHub only): `test/chromium/clauses-first-frame-verify.js` — every frame after pressing Clauses, list and page faces; the tabs' one track and white pill

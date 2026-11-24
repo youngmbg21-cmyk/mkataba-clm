@@ -22996,3 +22996,6 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 ## Noticed, not fixed (24 Nov 2026, the Builder's Contract switch)
 - CLAUDE.md is 88.6 KB on main, over its own "keep it under about 80 KB" line; a trim needs the owner's yes (the Builder round added about 1 KB of MAP lines).
 - Said to the owner: a template's page no longer shows its version history card under the paper; it is the panel's Versions tab, as drawn (the card stays only where the panel cannot fit).
+
+## Noticed, not fixed (24 Nov 2026)
+- f385 (6) "drawn icons only" is red on main: the clause editor's tab picker writes a typed "▾" (js/views/clauseeditor.js ceTabPaint, the `ce-tnm` button) where a drawn icon belongs. It came in with the editor-as-a-tab round; left red for its own fix.
