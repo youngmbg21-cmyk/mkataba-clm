@@ -8278,10 +8278,10 @@ function ceTabPaint(){
   if (!top){ top = document.createElement('div'); top.id = 'ce-tabtop'; top.className = 'ce-tabtop'; rail.insertBefore(top, rail.firstChild); }
   const tabs = typeof window.pdEdTabsHtml === 'function' ? window.pdEdTabsHtml(_ceC) : '';
   const html = `<div class="ce-dtabs" role="tablist">${tabs}</div>
-    <div class="ce-tpick"><button type="button" class="ce-tar" data-ce-tstep="-1" aria-label="${_ceea(_cet('ce_walk_prev'))}"${i > 0 ? '' : ' disabled'}>‹</button>
-      <button type="button" class="ce-tnm" data-ce-tlist aria-haspopup="listbox"><span>${_cee(name)}</span> ▾</button>
+    <div class="ce-tpick"><button type="button" class="ce-tar" data-ce-tstep="-1" aria-label="${_ceea(_cet('ce_walk_prev'))}"${i > 0 ? '' : ' disabled'}>${window.icon ? icon('chevL', 'w-3.5 h-3.5') : ''}</button>
+      <button type="button" class="ce-tnm" data-ce-tlist aria-haspopup="listbox"><span>${_cee(name)}</span> ${window.icon ? icon('chevD', 'w-3 h-3') : ''}</button>
       <span class="ce-tk">${_cee(_cet('ce_tab_k_of_n', { k: i + 1, n: L.length }))}</span>
-      <button type="button" class="ce-tar" data-ce-tstep="1" aria-label="${_ceea(_cet('ce_walk_next'))}"${nx ? '' : ' disabled'}>›</button></div>
+      <button type="button" class="ce-tar" data-ce-tstep="1" aria-label="${_ceea(_cet('ce_walk_next'))}"${nx ? '' : ' disabled'}>${window.icon ? icon('chevR', 'w-3.5 h-3.5') : ''}</button></div>
     <div class="ce-tlist" id="ce-tlist" role="listbox" hidden>${L.map((x, k) => `<button type="button" role="option" data-ce-tgo="${_ceea(x.clauseId)}"${k === i ? ' aria-selected="true" class="on"' : ''}>${_cee(ceTabName(x))}</button>`).join('')}</div>
     <h3 class="ce-th">${_cee(_cet('ce_tab_redlining', { clause: name }))}</h3>
     <p class="ce-tsub">${_cee(them ? _cet('ce_tab_sub', { who: them }) : _cet('ce_tab_sub_x'))}</p>`;
