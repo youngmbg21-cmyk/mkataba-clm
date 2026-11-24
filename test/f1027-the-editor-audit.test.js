@@ -327,11 +327,13 @@ describe('f1027 (9) the Save hover names what Save does', () => {
     const cl = p.by(/Governing Law/);
     const their = await p.win.negoEditClause(p.c, cl.clauseId, '<p>' + cl.text.replace('Norway', 'Kenya') + '</p>', { side: 'counterparty', author: 'Erik' });
     p.win.rlOpenClauseEditor(p.c, cl.clauseId, { typing: true, fromRow: true, changeId: their.id });
-    assert.match(p.save().title, new RegExp('^Files your counter to ' + their.id + ' \u2014 '));
+    /* RE-POINTED 24 Nov 2026 (owner: filing never asks for a note) — the hover names what Save does and promises no note */
+    assert.equal(p.save().title, 'Files your counter to ' + their.id);
     p.type(' Mediation first.');
     await p.press();
     const mine = p.c.changes.find(x => x.authorSide === 'owner');
-    assert.match(p.save().title, new RegExp('^Saves into ' + mine.id + ' \u2014 '));
+    assert.match(p.save().title, new RegExp('^Saves into ' + mine.id));
+    assert.doesNotMatch(p.save().title, /note/i);
   });
 });
 

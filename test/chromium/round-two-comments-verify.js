@@ -551,9 +551,10 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      change's own body lacking the paragraph, and the strike on the paper. */
   ck('I5 Suggest deleting on a whole paragraph strikes it out as a filed deletion', !!(i5 && i5.after === i5.before + 1 && i5.cutFromFiling && i5.struck > 0), JSON.stringify(i5));
 
-  /* I6 · the Save control says the note comes with it. */
+  /* I6 · the Save control promises no note (24 Nov 2026). */
   const i6 = await p.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="save"]'); return b ? b.title : null; });
-  ck('I6 Save says it files and opens the note drawer', /note|anteckning/i.test(i6 || ''), JSON.stringify(i6));
+  /* RE-POINTED 24 Nov 2026 (owner: filing never asks for a note) — the hover no longer promises one */
+  ck('I6 Save\'s hover promises no note drawer', !/note|anteckning/i.test(i6 || ''), JSON.stringify(i6));
   await p.evaluate(() => { const x = document.querySelector('#clause-editor [data-ce-act="close"]'); x && x.click(); });
   await pause(300);
   await p.evaluate(() => { const b = document.getElementById('cf-ok'); b && b.click(); });

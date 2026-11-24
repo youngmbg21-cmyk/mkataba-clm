@@ -2064,7 +2064,10 @@ function jovPlay(el){
   if (el.matches('.pd2-card.is-five')){ const g = el.closest('#pd-glance');
     if (g){ [...g.children].forEach((ch, i) => ch.style.setProperty('--pd2-i', String(i))); g.classList.add('pd2-arrive');
       g.querySelectorAll('[data-pd2-cu], .pd2-score-n').forEach(jovCountOver);
-      setTimeout(() => { try { g.classList.remove('pd2-arrive'); } catch (_){} }, 2400); } }
+      setTimeout(() => { try { g.classList.remove('pd2-arrive'); } catch (_){} }, 2400);
+      /* THE PAPER SETTLES ONTO THE DESK (Round C, as drawn): once, with the card's rare arrival — a small lift and fade */
+      const cv = document.getElementById('ig-canvas');
+      if (cv && typeof cv.animate === 'function') try { cv.animate([{ opacity: 0.55, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 520, easing: 'cubic-bezier(.2,.7,.2,1)' }); } catch (_){} } }
   /* the Board's own figures, lines and bar join its panel's arrival (P-39), never on their own */
   if (el.getAttribute('data-jov-slot') === 'hb' && typeof window.hbArrivePage === 'function') try { window.hbArrivePage(); } catch (_){}
   /* READ DOWN ARRIVES WITH ITS PANEL (P-41, as drawn): when its panel plays, the sheet's sentences rise in one after

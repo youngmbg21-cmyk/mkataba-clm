@@ -870,6 +870,8 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
         await door(D, `the glance's "${k}" button (on the dropped contract)`, { start: glanceStart, same: k === 'share',
           press: async () => { if (!(await waitFor(page, i => !!document.querySelector(`#pd-glance[data-pd-glance-for="${i}"]`), 6000, gid))) return false;
             /* RE-POINTED 20 Oct 2026 (the dossier): Still owed's Fill in › is each empty box's own door */
+            /* A WAIT ASKS FOR THE STATE (24 Nov 2026): the risks door comes with Jambo's remark, a moment after the card */
+            if (k === 'redline') await waitFor(page, () => !!document.querySelector('#pd-glance [data-pd-gl-risks]'), 8000);
             return domClick(k === 'redline' ? '#pd-glance [data-pd-gl-risks]' : k === 'fill' ? '#pd-glance [data-pd-ds-fill]' : `#pd-glance [data-pd-glance="${k}"]`); },
           expect: GL[k][0], says: GL[k][1] });
     } else record(D, 'the glance\'s buttons', false, 'no dropped contract to read', 'missing');

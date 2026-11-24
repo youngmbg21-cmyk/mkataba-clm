@@ -57,7 +57,7 @@ const HTML = '<h1>Corporate Professional Services Agreement</h1><p>Between Highl
         const tops = new Set(links.map(a => Math.round(a.getBoundingClientRect().top)));
         return { at: ((c.querySelector('.pd2-card-top > span') || {}).textContent || '').trim(), dots: dots.length, label: c.querySelector('.pd2-spine').getAttribute('aria-label'),
           head: c.querySelector('.pd2-next').textContent.trim(), say: (c.querySelector('.pd2-card-say') || {}).textContent || '',
-          go: go.textContent.trim(), goBg: getComputedStyle(go).backgroundColor, goFull: Math.abs((r.width - 32) - gr.width) < 2,
+          go: go.textContent.trim(), goBg: getComputedStyle(go).backgroundColor, goFull: (() => { const cs = getComputedStyle(c); /* RE-POINTED 24 Nov 2026 (as drawn: open lines, no box) — full width of the card's own content */ return Math.abs((r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)) - gr.width) < 2; })(),
           read: c.querySelector('.pd2-read').textContent.trim(), L, oneLine: tops.size === 1,
           seps: [...c.querySelectorAll('.pd2-card-sep')].map(x => x.textContent), cardBg: getComputedStyle(c).backgroundColor,
           accent: getComputedStyle(document.documentElement).getPropertyValue('--accent-ink').trim(), old: !!document.querySelector('#ig-dock .pd2-dossier > .pd2-spine, #ig-dock .pd2-dossier > .pd2-next') }; }) : null;

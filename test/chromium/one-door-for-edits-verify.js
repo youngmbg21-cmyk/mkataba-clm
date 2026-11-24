@@ -262,14 +262,14 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     const filed = await until(page, ({ id, n }) => {
       const c = getContract(id); if ((c.changes || []).length <= n) return null;
       const ch = c.changes[c.changes.length - 1];
-      const pin = document.querySelector('#context-panel [data-rl-np-unpin]');
-      return pin ? { status: ch.status, side: ch.authorSide, note: ch.note, words: ch.newText, drafted: (c.risks && c.risks.drafted || {})['s:t-liab'], id: ch.id } : null;
+      /* RE-POINTED 24 Nov 2026 (owner: filing never asks for a note) — filed is enough; no drawer opens */
+      return { pin: !!document.querySelector('#context-panel [data-rl-np-unpin]'), status: ch.status, side: ch.authorSide, note: ch.note, words: ch.newText, drafted: (c.risks && c.risks.drafted || {})['s:t-liab'], id: ch.id };
     }, { id: ID, n: unsaved }, 10000);
     check(!!filed && filed.status === 'pending' && filed.side === 'owner', '4a Save & next files one redline of ours, unsent', filed && JSON.stringify(filed).slice(0, 160));
     check(!!filed && /^Jambo — Risk scan: Liability cap/.test(filed.note) && filed.drafted === filed.id, '4b it wears the risk\'s provenance and the risk remembers it', filed && filed.note);
     check(!!filed && /save for breach of confidentiality/.test(filed.words || ''), '4c with the wording that was in the box');
+    check(!!filed && !filed.pin, '4d and no notes drawer opens — filing never asks for a note');
     await shot('4-note-after-save.png');
-    await press(page, '#context-panel [data-rl-np-unpin]');
 
     /* ============ 5. THE RIGHT PLACE, AND A NEW CLAUSE ============ */
     const law = await until(page, () => {
@@ -336,8 +336,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     }, { id: ID, n: n5 }, 10000);
     check(!!ins && ins.type === 'insertClause' && ins.status === 'pending' && /Injunctive relief/i.test(ins.heading), '5g Save files ONE new clause, unsent, with its heading', ins && JSON.stringify(ins));
     check(!!ins && /Confidentiality/.test(ins.after) && /^Jambo — Risk scan/.test(ins.note) && ins.drafted, '5h where it was put, wearing the risk\'s provenance, and the risk remembers it', ins && JSON.stringify(ins));
-    check(!!ins && ins.pin, '5i the notes drawer opens for it, as after any Save');
-    if (ins && ins.pin) await press(page, '#context-panel [data-rl-np-unpin]');
+    check(!!ins && !ins.pin, '5i no notes drawer opens for it — filing never asks for a note (owner, 24 Nov 2026)');
 
     /* ============ 6. LAST RISK DONE ============ */
     const end = await until(page, () => {
