@@ -8227,6 +8227,9 @@ if (typeof document !== 'undefined' && !document._ceWired){
    note is asked on filing. Our seat, the new look, a wide window only; their seat keeps its page. */
 function ceTabOn(){
   if (typeof window === 'undefined' || typeof window.newLookOn !== 'function' || !window.newLookOn()) return false;
+  /* THE TAB FOLLOWS THE MARK IT IS DRAWN UNDER: every rule that dresses the tabbed editor is scoped under html.lg-new
+     (newLookApply, the mark's one writer); a page without the mark never gets the tab's placing and tag without its look */
+  if (typeof document === 'undefined' || !document.documentElement || !document.documentElement.classList.contains('lg-new')) return false;
   if (ceSide() === 'counterparty' || window.PORTAL_MODE === true) return false;
   return !(typeof window.innerWidth === 'number' && window.innerWidth < 1024);
 }
@@ -8282,10 +8285,10 @@ function ceTabPaint(){
   if (!top){ top = document.createElement('div'); top.id = 'ce-tabtop'; top.className = 'ce-tabtop'; rail.insertBefore(top, rail.firstChild); }
   const tabs = typeof window.pdEdTabsHtml === 'function' ? window.pdEdTabsHtml(_ceC) : '';
   const html = `<div class="ce-dtabs" role="tablist">${tabs}</div>
-    <div class="ce-tpick"><button type="button" class="ce-tar" data-ce-tstep="-1" aria-label="${_ceea(_cet('ce_walk_prev'))}"${i > 0 ? '' : ' disabled'}>‹</button>
-      <button type="button" class="ce-tnm" data-ce-tlist aria-haspopup="listbox"><span>${_cee(name)}</span> ▾</button>
+    <div class="ce-tpick"><button type="button" class="ce-tar" data-ce-tstep="-1" aria-label="${_ceea(_cet('ce_walk_prev'))}"${i > 0 ? '' : ' disabled'}>${window.icon ? icon('chevL', 'w-3.5 h-3.5') : ''}</button>
+      <button type="button" class="ce-tnm" data-ce-tlist aria-haspopup="listbox"><span>${_cee(name)}</span> ${window.icon ? icon('chevD', 'w-3 h-3') : ''}</button>
       <span class="ce-tk">${_cee(_cet('ce_tab_k_of_n', { k: i + 1, n: L.length }))}</span>
-      <button type="button" class="ce-tar" data-ce-tstep="1" aria-label="${_ceea(_cet('ce_walk_next'))}"${nx ? '' : ' disabled'}>›</button></div>
+      <button type="button" class="ce-tar" data-ce-tstep="1" aria-label="${_ceea(_cet('ce_walk_next'))}"${nx ? '' : ' disabled'}>${window.icon ? icon('chevR', 'w-3.5 h-3.5') : ''}</button></div>
     <div class="ce-tlist" id="ce-tlist" role="listbox" hidden>${L.map((x, k) => `<button type="button" role="option" data-ce-tgo="${_ceea(x.clauseId)}"${k === i ? ' aria-selected="true" class="on"' : ''}>${_cee(ceTabName(x))}</button>`).join('')}</div>
     <h3 class="ce-th">${_cee(_cet('ce_tab_redlining', { clause: name }))}</h3>
     <p class="ce-tsub">${_cee(them ? _cet('ce_tab_sub', { who: them }) : _cet('ce_tab_sub_x'))}</p>`;
@@ -8367,6 +8370,9 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     const dt = t.closest('[data-ce-dtab]');
     if (dt){
       e.preventDefault(); const k = dt.getAttribute('data-ce-dtab'); if (k === 'ed') return;
+      /* LAND ON IT: opened from a Redlines row (its own ‹ Redlines stands down while tabbed), the Redlines tab is that
+         way back — the row's own (ceRowBack: the leave question, then the same row, landed on) */
+      if (k === 'red' && ceRowMode() && !ceFromClauses()){ ceRowBack(); return; }
       /* ANOTHER TAB LEAVES THE EDITOR, asking first over an unfiled edit (ceLeaveGuard), then opens that tab */
       ceLeaveGuard(() => { rlCloseClauseEditor(); try { if (typeof window.pdEdTabLeave === 'function') window.pdEdTabLeave(k); } catch (_){} });
       return;

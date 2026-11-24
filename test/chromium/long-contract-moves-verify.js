@@ -115,8 +115,17 @@ const CERT = '<h1>CERTIFICATE OF DESIGNATION</h1><h2>SANERGY, INC.</h2><p>A Dela
          the open row was sometimes painted again between finding Plain and
          pressing it ("Element is not attached to the DOM"). Find it again at
          the press, a bounded few times — a real press on the live button. */
+      /* RE-POINTED 24 Nov 2026 (CLAUSE PAGE L+S, owner's pick, f1208): on the clause page the row's own Plain is put away
+         and the page's act row carries "Plain English" (data-th-pg="plain", which presses the row's own door); the
+         reader presses the one drawn, and the list view still has the row's own */
+      await page.waitForFunction(() => { const r = document.querySelector('#pd-thread .doc-th-row.is-open');
+        const vis = el => !!(el && el.getClientRects().length);
+        return !!r && (vis(r.querySelector('[data-th-pg="plain"]')) || vis(r.querySelector('[data-th-explain]'))); }, null, { timeout: 10000 }).catch(() => {});
       for (let k = 0; k < 4; k++) {
-        const btn = await page.$('#pd-thread .doc-th-row.is-open [data-th-explain]');
+        const btn = await page.evaluateHandle(() => { const r = document.querySelector('#pd-thread .doc-th-row.is-open'); if (!r) return null;
+          const vis = el => !!(el && el.getClientRects().length);
+          const pg = r.querySelector('[data-th-pg="plain"]'), own = r.querySelector('[data-th-explain]');
+          return vis(pg) ? pg : vis(own) ? own : null; }).then(h => h.asElement());
         if (!btn) return false;
         try { await btn.click(); return true; } catch (e) { if (!/not attached/i.test(String(e && e.message))) throw e; }
       }

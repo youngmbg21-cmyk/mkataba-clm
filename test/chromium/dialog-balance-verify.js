@@ -37,7 +37,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
 const MEASURE = () => {
   const dlg = document.querySelector('#modal-root [role="dialog"]'); if (!dlg) return null;
   const R = e => { const r = e.getBoundingClientRect(); return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height), r: Math.round(r.right) }; };
-  const box = dlg.firstElementChild;
+  /* RE-POINTED 24 Nov 2026 (owner: "All pop-ups, not pages" — the wave strip .lgp-wave is put first in every pop-up's frame): the box is the first part that is not the wave */
+  const box = [...dlg.children].find(k => !k.classList.contains('lgp-wave'));
   const cs = getComputedStyle(box);
   return {
     frame: R(dlg), box: R(box), pad: [cs.paddingTop, cs.paddingRight, cs.paddingBottom, cs.paddingLeft],

@@ -872,7 +872,7 @@ function nsShelfPanelHtml() {
       ${x.intent ? `<p class="nsj-cap">${E(i18t('nsj_covers'))}</p><p class="nsj-t">${E(x.intent)}</p>` : ''}
       <p class="nsj-cap">${E(i18t('nsj_from'))}</p><p class="nsj-q2"><span class="nss-w is-${src}">${E(i18t(SRC[src]))}</span> · ${E(i18t('nsj_from_' + src))}</p>
       ${first ? `<p class="nsj-cap">${E(i18t('nsj_opens'))}</p><p class="nsj-quote">“${E(first)}”</p>` : ''}
-      ${(() => { const r = lib ? nsMisfitRoles(String(lib.preferred || '').replace(/<[^>]*>/g, ' '), st.said) : []; return r.length ? `<p class="nsj-t nsj-misfit">${E(i18t('nsj_misfit', { roles: r.map(w => (/^[AEIOU]/.test(w) ? 'an ' : 'a ') + w).join(', ') }))}</p>` : ''; })()}
+      ${(() => { const r = lib ? nsMisfitRoles(String(lib.preferred || '').replace(/<[^>]*>/g, ' '), st.said) : []; return r.length ? `<p class="nsj-t nsj-misfit">${E(i18t('nsj_misfit', { roles: r.map(w => (typeof langId === 'function' && langId() && langId() !== 'en') ? w : (/^[AEIOU]/.test(w) ? 'an ' : 'a ') + w).join(', ') }))}</p>` : ''; })()}
       <p class="nsj-t is-quiet">${E(i18t(x.on ? 'nsj_on' : 'nsj_off'))}</p></div>`;
   }
   const n = k => L.filter(x => (x.src || 'ai') === k).length, tot = L.length || 1;

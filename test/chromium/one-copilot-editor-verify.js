@@ -101,6 +101,11 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
       /* RE-POINTED 6 Oct 2026: the panel's dropdown stands where "Written by
          Copilot…" stood (one-copilot-editor-plain-verify measures it) */
       disc: vis(pg.querySelector('#ce-pick')),
+      /* RE-POINTED 24 Nov 2026 (owner: the Editor as a tab, as drawn): a wide window on our seat draws the editor tabbed
+         (ceTabOn) — the dropdown and the foot's walk stand down for the picker ‹ name ▾ k of n › at the panel's top */
+      tabbed: pg.classList.contains('is-tabbed'),
+      tpick: vis(pg.querySelector('.ce-tpick')) ? { name: ((pg.querySelector('.ce-tnm') || {}).textContent || '').trim(), k: ((pg.querySelector('.ce-tk') || {}).textContent || '').trim(),
+        arrows: [...pg.querySelectorAll('.ce-tpick .ce-tar')].filter(vis).map(b => Math.round(b.getBoundingClientRect().height)) } : null,
       read: lane ? [...lane.querySelectorAll('.ce-read b')].map(b => b.textContent.trim()) : [],
       cardName: card ? (card.querySelector('.n span') || {}).textContent : '',
       cardBtns: card ? [...card.querySelectorAll('button')].map(b => b.textContent.trim() || b.getAttribute('aria-label')) : [],
@@ -162,7 +167,8 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     }, null, 10000);
     check(!!rk, '1- the Risks tab has Jambo\'s answer');
     const R = await railNow();
-    check(!!R && R.disc, '1a the panel\'s dropdown stands over the risk as over the clause');
+    if (R && R.tabbed) check(!R.disc && !!R.tpick && /liability/i.test(R.tpick.name) && /\d+ of \d+/.test(R.tpick.k), '1a tabbed: the picker at the panel\'s top names the clause over the risk, as over the clause', JSON.stringify(R.tpick));
+    else check(!!R && R.disc, '1a the panel\'s dropdown stands over the risk as over the clause');
     check(!!R && R.read.length >= 2 && /playbook/i.test(R.read[0]) && R.read.some(x => /wording/i.test(x)), '1b the reading rows the clause screen draws (Our playbook · The wording)', R && R.read.join(' · '));
     /* RE-POINTED 7 Oct 2026 (One footer): on the walk the card's buttons are the feet's top row */
     /* RE-POINTED 10 Oct 2026 (Young, "one Copilot panel"): the card carries Apply · Discard itself; no Apply strip */
@@ -175,8 +181,15 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     /* RE-POINTED (owner, 23 Oct 2026: File / Save "prominent, slightly longer buttons so they do not seem
        hidden"): one row read by the buttons' MIDDLES (Save is taller now); the walk's ‹ › stay on the small
        rung, Save is a full-height control 110px or wider */
-    check(!!R && R.footMids.length === 3 && Math.max(...R.footMids) - Math.min(...R.footMids) <= 1, '5a all three on ONE row', R && R.footMids.join(','));
-    check(!!R && R.footH.length === 3 && R.footH.slice(0, 2).every(h => h <= 24) && !!R.footSave && R.footSave.h >= 30 && R.footSave.w >= 110, '5b the walk on the small rung, Save prominent', R && (R.footH.join(',') + ' save ' + JSON.stringify(R.footSave)));
+    if (R && R.tabbed){
+      /* RE-POINTED 24 Nov 2026 (the Editor as a tab, as drawn): the walk is the picker's ‹ › at the panel's top, the foot
+         holds File · next › (and Undo once something is in the box), on one row */
+      check(R.tpick && R.tpick.arrows.length === 2 && R.tpick.arrows.every(h => h <= 28) && R.footMids.length >= 1 && Math.max(...R.footMids) - Math.min(...R.footMids) <= 1, '5a tabbed: the walk ‹ › at the panel\'s top, the foot on ONE row', JSON.stringify({ tp: R.tpick, mids: R.footMids }));
+      check(!!R.footSave && R.footSave.h >= 30 && R.footSave.w >= 110, '5b tabbed: the walk on the small rung, Save prominent', JSON.stringify(R.footSave));
+    } else {
+      check(!!R && R.footMids.length === 3 && Math.max(...R.footMids) - Math.min(...R.footMids) <= 1, '5a all three on ONE row', R && R.footMids.join(','));
+      check(!!R && R.footH.length === 3 && R.footH.slice(0, 2).every(h => h <= 24) && !!R.footSave && R.footSave.h >= 30 && R.footSave.w >= 110, '5b the walk on the small rung, Save prominent', R && (R.footH.join(',') + ' save ' + JSON.stringify(R.footSave)));
+    }
     const face = await page.evaluate(() => {
       const p = [...document.querySelectorAll('#ce-doc .rl-clause p, #ce-doc p')].find(x => x.textContent.trim().length > 20);
       const pv = document.querySelector('#ce-lane .ce-card .pv'), ins = pv && pv.querySelector('ins'), del = pv && pv.querySelector('del');
@@ -234,10 +247,11 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     const ch = await until(page, () => document.querySelector('#ce-lane .ce-card.ce-sug .av[data-ce-card]:not([data-ce-card^="rk"])') ? true : null, null, 10000);
     check(!!ch, '2- the conversation has a Suggested wording card');
     const C = await railNow();
-    check(!!C && C.disc && C.cardName === 'Suggested wording' && (C.cardBtns.includes('Apply') || C.cardBtns.some(b => /Applied/.test(b))) && !C.cardBtns.includes('Ask for a change') && !C.cardBtns.includes('Expand') && C.dock.length === 0, '2a the same wording, its own Apply on this tab — no Ask for a change, no Expand', C && C.cardBtns.join(' · '));
+    check(!!C && (C.tabbed ? !C.disc && !!C.tpick : C.disc) /* RE-POINTED 24 Nov 2026: tabbed, the picker stands for the dropdown */ && C.cardName === 'Suggested wording' && (C.cardBtns.includes('Apply') || C.cardBtns.some(b => /Applied/.test(b))) && !C.cardBtns.includes('Ask for a change') && !C.cardBtns.includes('Expand') && C.dock.length === 0, '2a the same wording, its own Apply on this tab — no Ask for a change, no Expand', C && C.cardBtns.join(' · '));
     check(!!C && C.read.length >= 2 && /playbook/i.test(C.read[0]), '2b the same reading rows', C && C.read.join(' · '));
     check(!!C && Array.isArray(C.chips) && C.chips.length > 0 && C.ask, '2c the chips row and the ask box in the same places');
-    check(!!C && C.feet.length === 1 && /(File|Save)$/.test(C.feet[0]), '2d the same one foot on this tab', C && C.feet.join(' | '));
+    /* RE-POINTED 24 Nov 2026 (the Editor as a tab, as drawn): tabbed, Undo the change sits under File (ce_tab_undo) */
+    check(!!C && C.feet.length === 1 && (C.tabbed ? /(File|Save)(?: · next ›)?(?: · Undo the change)?$/ : /(File|Save)$/).test(C.feet[0]), '2d the same one foot on this tab', C && C.feet.join(' | '));
     await shot('2-from-a-clause.png');
     /* RE-POINTED 7 Oct 2026 (Sticky bar): the buttons stick to the panel's bottom edge */
     const stick = await page.evaluate(() => { const av = [...document.querySelectorAll('#ce-lane .ce-card.ce-sug > .av')].pop(); return av ? getComputedStyle(av).position : null; });

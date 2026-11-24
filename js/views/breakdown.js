@@ -317,6 +317,12 @@ const stkKeep = (p, f) => (!f.reg || String(p.region || 0) === f.reg) && (!f.sev
 const stkFiltering = () => !!(_stk.f.reg || _stk.f.sev || _stk.f.by);
 /* what is on screen: the points the filters keep, in the list's order — the deep dive walks these */
 function stkShown(c, b){ return stkReview(c, b).filter(p => stkKeep(p, _stk.f)); }
+/* THE CLAUSE PAGE'S OWN MARK REVIEWED (review of 24 Nov 2026): Jambo's point i (its place in b.points) found in the Clauses
+   tab's own list and marked through the one writer, stkMarkReviewed — a clause with two or more open points is drawn as a
+   group with no per-point control, so nothing is pressed */
+function stkMarkJamboReviewed(c, i){
+  const p = (stkLivePoints(c) || []).find(q => q && q.by === 'jambo' && Number(q._i) === Number(i));
+  if (p && !p.done) stkMarkReviewed(c, p); }
 /* A CHOICE THAT GIVES NOTHING IS NOT LISTED (the owner's rule): each box offers
    only what this contract's points hold */
 function stkFiltersHtml(b, all){
@@ -1062,4 +1068,4 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   const pr = t.closest('[data-stk-pre-review]');
   if (pr){ e.preventDefault(); if (pr.disabled) return; const c = stkContract(); if (c) stkMarkReviewed(c, { key: STK_PRE_KEY, title: i18t('stk_pre_title') }, pr.getAttribute('data-stk-pre-review') === 'undo'); return; }
 });
-Object.assign(window, { stkAllRun, stkAllPaint, STK_PRE_KEY });
+Object.assign(window, { stkAllRun, stkAllPaint, STK_PRE_KEY, stkMarkJamboReviewed });

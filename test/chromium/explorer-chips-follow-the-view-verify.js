@@ -41,6 +41,8 @@ const FAMILY = [
   /end by|changed since|löper ut|ändrats sedan/i,
 ];
 const VIEW = ['Brain', 'Wiring', 'Floors', 'Grid', 'Timeline'];
+/* Brain and Wiring hidden for now (owner, 24 Nov 2026; IGB_VIEWS_HIDDEN) */
+const HIDDEN = [0, 1];
 const TOUR = { en: 'Explain this view', sv: 'Förklara vyn' };
 
 let pass = 0, fail = 0;
@@ -95,19 +97,29 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
       /* ================= 1. EACH VIEW'S OWN QUESTIONS ================= */
       for (let v = 0; v < 5; v++) {
         const pressed = await pressView(v);
+        /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden: no button, opens on Floors; igSetView still turns to them) */
+        /* their buttons are not drawn (checked here); the map still turns to them by igSetView, and their own
+           questions follow the view as before */
+        if (HIDDEN.includes(v)) {
+          check(`1${'abcde'[v]}-${lang}0 ${VIEW[v]}: hidden for now — no button on the view bar`, !pressed, JSON.stringify({ pressed }));
+          await page.evaluate(k => igSetView(k), v);
+        }
         await until(k => igbCam().view === k, v);
         const c = await chips();
         const own = c.slice(0, -1);
         const others = FAMILY.filter((_, i) => i !== v);
-        check(`1${'abcde'[v]}-${lang} ${VIEW[v]}: the view bar repaints the chips — its own questions, then "${TOUR[lang]}"`,
-          pressed && c.length >= 2 && c[c.length - 1] === TOUR[lang] && own.length >= 1
+        check(`1${'abcde'[v]}-${lang} ${VIEW[v]}: the view ${HIDDEN.includes(v) ? 'turned to by igSetView' : 'bar'} repaints the chips — its own questions, then "${TOUR[lang]}"`,
+          (HIDDEN.includes(v) || pressed) && c.length >= 2 && c[c.length - 1] === TOUR[lang] && own.length >= 1
             && own.every(q => FAMILY[v].test(q) && !others.some(re => re.test(q))), JSON.stringify(c));
       }
       if (lang === 'sv') check('1f-sv no chip is left in English', !(await (async () => { const all = [];
-        for (let v = 0; v < 5; v++) { await pressView(v); await until(k => igbCam().view === k, v); all.push(...await chips()); }
+        /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden: no button, opens on Floors; igSetView still turns to them) */
+        for (let v = 0; v < 5; v++) { if (HIDDEN.includes(v)) await page.evaluate(k => igSetView(k), v); else await pressView(v); await until(k => igbCam().view === k, v); all.push(...await chips()); }
         return all.filter(q => /\b(?:the|by|what|which|contracts|explain)\b/i.test(q)).length; })()));
 
       /* ================= 2. EVERY CHIP DOES WHAT IT SAYS ================= */
+      /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden: no button, opens on Floors; igSetView still turns to them) */
+      /* every view's chips: fresh() turns to a hidden view by igSetView, as an ask does */
       for (let v = 0; v < 5; v++) {
         await fresh(v);
         const list = await chips();
@@ -144,6 +156,7 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     const c3 = await chips();
     check('3a floors already by payment terms are offered other facts, not payment terms again',
       c3.length >= 2 && !c3.some(q => /payment terms/i.test(q)) && c3.some(q => /floors/i.test(q)), JSON.stringify(c3));
+    /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden: no button, opens on Floors; igSetView still turns to them) */
     await page.evaluate(() => { intel.history = []; intel.floorsBy = null; intel.lobeShade = 'liability'; rebuildIntelGraph(); igSetView(0); renderIntelDock(); });
     const c3b = await chips();
     check('3b lobes already shaded by the liability cap are offered another fact', !c3b.some(q => /liability/i.test(q)) && c3b.some(q => /lobes/i.test(q)), JSON.stringify(c3b));
@@ -158,6 +171,7 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     for (const lang of ['en', 'sv']) {
       await page.evaluate(L => { langSet(L); (state.contracts || []).forEach(c => { if (c && !c.archived) c.metadata = Object.assign({}, c.metadata || {}, { category: 'supplier' }); });
         intel.history = []; intel.lenses = []; rebuildIntelGraph(); igSetView(1); renderIntelDock(); return 1; }, lang);
+      /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden: no button, opens on Floors; igSetView still turns to them) */
       const r = await page.evaluate(`(() => { const Q = ${QS}; const sole = i18t('int_sug_sole'), list = Q.map(x => x.t);
         const b = Q.find(x => x.t === sole); if (b) b.el.click();
         return { sole, list, pressed: !!b, ids: igSoleData(null).ids.length }; })()`);

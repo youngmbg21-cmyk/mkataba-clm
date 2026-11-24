@@ -15934,8 +15934,8 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     const press = sel => { const x = row.querySelector(sel); if (x && !x.disabled){ x.click(); return true; } return false; };
     if (k === 'plain'){ press('[data-th-explain]'); return; }
     if (k === 'dive'){ press('[data-stk-dive]'); return; }
-    if (k === 'review'){ const pt = b.getAttribute('data-th-pt');
-      if (pt != null){ press(`[data-stk-review="${pt}"]`); return; }
+    if (k === 'review'){ if (b.disabled) return; const pt = b.getAttribute('data-th-pt');
+      if (pt != null){ const lc = thLiveContract(); if (lc && typeof window.stkMarkJamboReviewed === 'function') window.stkMarkJamboReviewed(lc, pt); return; }
       press('[data-stk-review-all]') || press('[data-stk-review]'); return; }
     const c = thLiveContract(); if (!c) return;
     const rows = (_docThreadCache && _docThreadCache.rows) || [], x = rows[_docThreadOn];

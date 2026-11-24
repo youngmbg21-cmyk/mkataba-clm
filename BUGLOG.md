@@ -22997,6 +22997,14 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - CLAUDE.md is 88.6 KB on main, over its own "keep it under about 80 KB" line; a trim needs the owner's yes (the Builder round added about 1 KB of MAP lines).
 - Said to the owner: a template's page no longer shows its version history card under the paper; it is the panel's Versions tab, as drawn (the card stays only where the panel cannot fit).
 
+## Noticed, not fixed (24 Nov 2026, the four red node tests)
+- test/f1049-one-door-and-the-company-look.test.js "publishing one paper never writes the company look" is red at 6e438cdf too: js/views/designstep.js no longer carries `if (_ds.mode !== 'publish') await saveOrgBranding(dsOrgPayload());`; not touched in this round.
+- Correction (24 Nov 2026, same branch): the f1049 red noted above was this branch's own change (the design step's look now goes through lookSaveOrSend); the test is re-pointed, not left red.
+
+## Noticed, not fixed (24 Nov 2026, fix-br12 — the five browser checks)
+- test/f1202-builder-bar-template-page-whole-contract.test.js (2b) is red at 30d7dae5: it still asks for a "✦" mark before Jambo's tab pill in jlOwnPaint, which now draws the drawn icon (mkSpark).
+- Correction (24 Nov 2026, same branch): f1202 (2b) red above was this branch's own change (Jambo's tab ✦ → drawn mkSpark, f966); re-pointed, not left red.
+- (24 Nov 2026) Fixed: the pages' re-break (pagesLayout) clamped the paper's scroll while the paper was briefly shorter, so a re-break after Accept, or one heard by the watcher, moved the reader's place (decision-redraws 1: 240 -> 113; dossier-and-amend 3b: a press fell on the preamble). The place is now noted and put back where the clamp took it. No change on this branch was found on either path; both checks had failed the same way on PR 970.
 ## Noticed, not fixed (24 Nov 2026)
 - f385 (6) "drawn icons only" is red on main: the clause editor's tab picker writes a typed "▾" (js/views/clauseeditor.js ceTabPaint, the `ce-tnm` button) where a drawn icon belongs. It came in with the editor-as-a-tab round; left red for its own fix.
 - Red on main before the list-alone change (24 Nov 2026): f1196 (1) "one clause at a time", "one gesture, one step; a tall clause is read first", "nothing forwards a wheel or a finger any more" and f335 (7) "a finger scrolls the Plain English column" still pin the panel's wheel stepping, which was removed when the owner asked for the panel to scroll and only › to step (f1207). Left red for their own re-pointing.

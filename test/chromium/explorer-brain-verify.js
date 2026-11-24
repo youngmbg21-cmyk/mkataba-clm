@@ -65,6 +65,8 @@ const check = (name, pass, detail) => {
     await until(() => window.IG && IG.hubs && IG.hubs.length >= 3);
     /* RE-POINTED 24 Nov 2026 (owner: "hide the brain and wiring tabs in the explorer page for now"): the map opens on
        Floors and the two buttons are not drawn; the Brain's drawing is kept, so this check turns to it by its own door */
+    /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden: no button, opens on Floors; igSetView still turns to them) */
+    const opened = await page.evaluate(() => igbCam().view);
     await page.evaluate(() => igSetView(0)); await until(() => intel.cam.w[0] > 0.97);
 
     /* ================= 1. THE STAGE ======================================== */
@@ -80,7 +82,7 @@ const check = (name, pass, detail) => {
     check('1a the map is one dark stage with a canvas under the nodes, the full size of the stage', /ig-brain/.test(stage.cls) && stage.canvas && stage.under && /gradient/.test(stage.bg), JSON.stringify(stage));
     check('1b the canvas is painted — the brain\'s tissue and the dots are pixels', stage.lit > 50, stage.lit);
     /* Five views since the view recipe (explorer-recipe-verify): Grid and Timeline joined. */
-    check('1c the stage carries Floors · Grid · Timeline (Brain and Wiring hidden for now), the zoom and Fold all, and no "drag nodes" hint', stage.views.join('|') === 'Floors|Grid|Timeline' && stage.fold && !stage.oldHint, JSON.stringify(stage.views));
+    check('1c the stage carries Floors · Grid · Timeline (Brain and Wiring hidden for now; the map opened on Floors), the zoom and Fold all, and no "drag nodes" hint', stage.views.join('|') === 'Floors|Grid|Timeline' && opened === 2 && stage.fold && !stage.oldHint, JSON.stringify({ views: stage.views, opened }));
     /* every contract has small words where they fit — measured as painted */
     const words = await page.evaluate(() => {
       const tags = IG.contracts.filter(n => n.tag.style.display !== 'none');
@@ -93,21 +95,27 @@ const check = (name, pass, detail) => {
     await page.screenshot({ path: path.join(OUT, '1-brain.png') });
 
     /* ================= 2. THE THREE VIEWS GLIDE ============================= */
-    for (const [i, name] of [[1, 'wiring'], [2, 'floors'], [0, 'brain']]) {
+    /* RE-POINTED 24 Nov 2026 (owner: Explorer's Brain and Wiring hidden for now): the three views a person can press
+       are Floors · Grid · Timeline, so the glide is checked between those, ending on Floors where the map opens */
+    for (const [i, name] of [[3, 'grid'], [4, 'timeline'], [2, 'floors']]) {
       const before = await page.evaluate(() => IG.contracts.slice(0, 6).map(n => n.q.slice(0, 2).map(Math.round)));
       await page.click(`[data-ig-view="${i}"]`);
       const mid = await page.evaluate(k => intel.cam.w[k], i);
       const settled = await until(k => intel.cam.w[k] > 0.97 ? intel.cam.w[k] : 0, i);
       const after = await page.evaluate(() => IG.contracts.slice(0, 6).map(n => n.q.slice(0, 2).map(Math.round)));
       const pressed = await page.evaluate(k => document.querySelector(`[data-ig-view="${k}"]`).getAttribute('aria-pressed'), i);
-      check(`2${'abc'[[1, 2, 0].indexOf(i)]} ${name}: the view glides there (not a jump), the dots move, and its button says pressed`,
+      check(`2${'abc'[[3, 4, 2].indexOf(i)]} ${name}: the view glides there (not a jump), the dots move, and its button says pressed`,
         mid < 0.9 && settled > 0.97 && JSON.stringify(before) !== JSON.stringify(after) && pressed === 'true', JSON.stringify({ mid: +mid.toFixed(2), settled, pressed }));
       await page.screenshot({ path: path.join(OUT, `2-${name}.png`) });
     }
 
     /* ================= 3. A DRAG TURNS EVERY VIEW =========================== */
+    /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden: no button, opens on Floors; igSetView still turns to them) */
+    /* the Brain and the Wiring have no button, so the check turns to them by igSetView; Floors by its button, last,
+       so the double-click below faces the Floors */
     for (const [i, key] of [[0, 'rot'], [1, 'rotW'], [2, 'rotL']]) {
-      await page.click(`[data-ig-view="${i}"]`); await until(k => intel.cam.w[k] > 0.97, i);
+      if (i < 2) await page.evaluate(k => igSetView(k), i); else await page.click(`[data-ig-view="${i}"]`);
+      await until(k => intel.cam.w[k] > 0.97, i);
       const box = await page.evaluate(() => { const r = document.getElementById('ig-gwrap').getBoundingClientRect(); return { x: r.left + 60, y: r.top + 60 }; });
       const r0 = await page.evaluate(k => intel.cam[k], key);
       await page.mouse.move(box.x, box.y); await page.mouse.down(); await page.mouse.move(box.x + 120, box.y + 10, { steps: 10 }); await page.mouse.up();
@@ -134,6 +142,8 @@ const check = (name, pass, detail) => {
     await page.dblclick('#ig-svg', { position: await emptySpot() });
 
     /* ================= 4. A CARD FOLDS; NOTHING ON THE MAP IS A FILTER ===== */
+    /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden: no button, opens on Floors; igSetView still turns to them) */
+    /* the cards a press folds stand on the Wiring; it has no button, so the check turns to it by igSetView */
     await page.evaluate(() => igSetView(1)); await until(() => intel.cam.w[1] > 0.97);
     const hub = await page.evaluate(() => { const g = document.getElementById('ig-gwrap').getBoundingClientRect();
       const hb = IG.hubs.filter(h => h.box && !h.folded && h.kids.length >= 3).sort((a, b) => b.kids.length - a.kids.length)[0]; if (!hb) return null;
@@ -166,6 +176,7 @@ const check = (name, pass, detail) => {
     check('4e a legend row narrows the map to its status, and pressing it again lets go', !!legendRow && narrowed.picks === 1 && narrowed.all && afterLegend.lenses === 0 && afterLegend.pressed === 'false', JSON.stringify({ narrowed, afterLegend }));
 
     /* ================= 5. COPILOT STEERS THE MAP ============================ */
+    /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden: no button, opens on Floors; igSetView still turns to them) */
     await page.evaluate(() => igSetView(0));
     await page.evaluate(async () => { await intelAsk('Colour by status and size by nothing'); });
     await page.evaluate(async () => { await intelAsk('Colour by payment terms'); });

@@ -7527,6 +7527,10 @@ function pd2PlainFace(el){ return !!(el && el.id === 'pd-glance' && el.classList
 function pd2PlaceScroller(el){ let sc = el ? el.parentElement : null;
   while (sc && sc.id !== 'igd-feed' && sc.id !== 'pd-body') sc = sc.parentElement; return sc; }
 function pd2PlaceKeep(e){
+  /* while a page stands in the middle (Duties, Where the deal stands …) the place left behind is held: the panel's parts
+     above the Dossier change then and the browser shifts the scroller to hold what is on screen, and that shifted number
+     put back on the way home landed the reader 114px low (GitHub, 24 Nov 2026: pd2PlaceBack set 434 over 319) */
+  if (_pdMid) return;
   const g = document.getElementById('pd-glance'); if (!pd2PlainFace(g)) return;
   const sc = pd2PlaceScroller(g); if (!sc || (e && e.target !== sc)) return;
   _pd2Place = { id: String(g.getAttribute('data-pd-glance-for') || ''), top: sc.scrollTop };
@@ -7718,6 +7722,13 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     if (dsh){ e.preventDefault(); const g = dsh.closest('#pd-glance'); if (g){ const id = String(g.getAttribute('data-pd-glance-for')); _pdDsHappen.set(id, !_pdDsHappen.get(id)); pdGlanceRepaint(); } return; }
     const dkm = t.closest('#pd-glance [data-pd-ds-kt-mid]');
     if (dkm){ e.preventDefault(); const g = dkm.closest('#pd-glance'); if (g) pdKtMid(String(g.getAttribute('data-pd-glance-for'))); return; }
+    /* THE DUTIES CARD'S READ AGAIN after a failed duties reading: the duties-only reading (dutiesReadAgain, the Duties
+       page's own "Read the duties again"), never the whole arrival read (review, 24 Nov 2026) */
+    const dta = t.closest('[data-pd-ds-dtagain]');
+    if (dta){ e.preventDefault(); const cc = full(); if (!cc || dta.disabled || typeof window.dutiesReadAgain !== 'function') return;
+      dta.disabled = true; if (typeof busySet === 'function') try { busySet(dta, true); } catch (_){}
+      Promise.resolve(window.dutiesReadAgain(cc)).catch(() => {}).then(() => { try { pdGlanceRepaint(); } catch (_){} });
+      return; }
     const dsr = t.closest('[data-pd-ds-read]');
     if (dsr){ e.preventDefault(); const cc = full(); if (!cc || dsr.disabled || typeof triageAndPaint !== 'function') return;
       dsr.disabled = true; if (typeof busySet === 'function') try { busySet(dsr, true); } catch (_){}
@@ -9628,7 +9639,7 @@ function pd2NotesPaint(c, seat){
   /* in the paper's own order, top to bottom, whatever order they were read in */
   if (red) try { pd2DialsPaint(c, cv); } catch (_){}
   const notes = pd2NotesOnPaper(c, cv, red);
-  const groups = red ? [] : pd2Groups(c, cv, notes);
+  const groups = red ? [] : pd2Groups(c, cv, notes, { checked: onClauses });
   /* on the redlined paper: their asks and the answers' groups, in the paper's order, and the chips' choice (asks count as open) */
   const isOpen = n => n.tone !== 'done';
   const nOpen = red ? notes.filter(n => n.red && isOpen(n)).length + notes.filter(n => !n.red && n.tone === 'ask').length : 0;
@@ -9751,7 +9762,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 /* ONE GROUP PER CLAUSE: the clause's points (as Clauses reads them) and the notes whose words stand in it (a blank, the
    value, the end date, a risk), together beside that clause, in the paper's order; what stands before the first clause
    is the opening's group */
-function pd2Groups(c, cv, notes){
+function pd2Groups(c, cv, notes, opts){
   const { rows, pts } = pd2ClausePoints(c, cv);
   const rowOf = node => { let k = -1; rows.forEach((r, i) => { if (!r.el) return; if (r.el === node || r.el.contains(node) || (r.el.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)) k = i; }); return k; };
   const by = new Map(), get = at => { if (!by.has(at)) by.set(at, { at, el: at >= 0 && rows[at] ? rows[at].el : null, label: at >= 0 && rows[at] && typeof docXrayLabel === 'function' ? docXrayLabel(rows[at]) : _pdT('pd2_g_opening'), items: [], marks: [] }); return by.get(at); };
@@ -9762,8 +9773,9 @@ function pd2Groups(c, cv, notes){
     if (g.at < 0 && !g.el) g.el = n.hit.el || null, g.hit = g.hit || n.hit;
     g.items.push({ tone: n.tone, word: n.word, std: n.std, k: n.k, w: n.w, acts: n.acts, note: n }); });
   /* CHECKED · NOTHING FOUND (Round E, as drawn): on Clauses, once Jambo has read the paper, a clause with nothing on it says so
-     beside it — read off the same points, nothing new */
-  let readDone = false; try { readDone = _pdTab === 'doc' && typeof window.stkLivePoints === 'function' && !!window.stkLivePoints(c); } catch (_){ readDone = false; }
+     beside it — read off the same points, nothing new. The caller says whether its notes stand on Clauses (opts.checked):
+     the Approvals preview (pd2SeatPaint) never draws them, whatever Home's tab (review, 24 Nov 2026) */
+  let readDone = false; try { readDone = !!(opts && opts.checked) && typeof window.stkLivePoints === 'function' && !!window.stkLivePoints(c); } catch (_){ readDone = false; }
   if (readDone) rows.forEach((r, i) => { if (!r || !r.el || by.has(i) || (typeof window.docThreadIsSec === 'function' && window.docThreadIsSec(r))) return;
     by.set(i, { at: i, el: r.el, label: '', ok: true, items: [{ tone: 'fact', kind: 'ok', word: '', k: _pdT('pd2_g_checked_none') }] }); });
   return [...by.values()].map(g => Object.assign(g, { cid: c.id, hit: g.el ? { el: g.el } : (g.hit || (g.items[0].note && g.items[0].note.hit)) })).filter(g => g.hit && g.items.length)
@@ -10326,7 +10338,7 @@ function pd2DutiesCardHtml(c){
   else if (S.k === 'list'){ badge = pd2WsBadge(S.open ? 'steel' : 'green', T(S.open ? 'pd2_ws_b_listed' : 'pd2_dt_all_done')); line = Tn('pd2_dt_n', S.n, { n: S.n });
     small = S.next ? T('pd2_dt_next', { d: day(S.next) }) : S.open ? T('pd2_dt_no_dates') : ''; }
   else if (S.k === 'unread'){ badge = pd2WsBadge('amber', T('pd2_ws_b_unread')); line = T('pd2_dt_unread'); go = T('pd2_dt_read'); attr = 'data-pd-ds-read'; }
-  else if (S.k === 'failed'){ badge = pd2WsBadge('ruby', T('pd2_ws_b_failed')); line = S.why || T('pd2_dt_failed'); go = T('pd2_dt_read_again'); attr = 'data-pd-ds-read'; }
+  else if (S.k === 'failed'){ badge = pd2WsBadge('ruby', T('pd2_ws_b_failed')); line = S.why || T('pd2_dt_failed'); go = T('pd2_dt_read_again'); attr = 'data-pd-ds-dtagain'; }
   else { badge = pd2WsBadge('gray', T('pd2_ws_b_none')); line = T('pd2_dt_found_none'); }
   const press = may && attr;
   const inner = `${badge}<span class="pd2-ws-w">${S.k === 'reading' && typeof busyHtml === 'function' ? busyHtml('') : ''}<b>${E(line)}</b>${small ? `<small>${E(small)}</small>` : ''}</span>${press ? `<span class="pd2-ws-go">${E(go)} ›</span>` : ''}`;

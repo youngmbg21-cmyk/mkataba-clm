@@ -15011,10 +15011,11 @@ function rlLadderFiveHtml(c, lad, rungs, name, steps){
     let fb = null; try { fb = (typeof window.ladderFallback === 'function') ? ladderFallback(st.topic) : null; } catch (_){ fb = null; }
     const never = st.topic && st.topic.never ? String(st.topic.never) : '';
     /* where we stand, never guessed: with no Playbook position for this clause our ask is on the table, no rung lit */
-    const at = !st.standard ? (st.ours ? 'mine' : 'theirs') : st.ourFig != null && st.ourFig === st.standard.value ? 'pos' : (fb && fb.figure != null && st.ourFig === fb.figure) ? 'fb' : st.ours ? 'fb' : 'theirs';
+    const at = !st.standard ? (st.ours ? 'mine' : 'theirs') : st.ourFig != null && st.ourFig === st.standard.value ? 'pos' : (fb && fb.figure != null && st.ourFig === fb.figure) ? 'fb' : st.ours ? 'off' : 'theirs';
+    /* 'off' (review, 24 Nov 2026): our standing ask matches no rung — it is on the table, no rung is "You are here" */
     const left = at === 'pos' ? 2 : at === 'fb' ? 1 : 0;
-    title = i18t(at === 'pos' ? 'rl_lt_pos' : at === 'fb' ? 'rl_lt_fb' : at === 'mine' ? 'rl_lt_mine' : 'rl_lt_none');
-    sub = at === 'mine' ? i18t('rl_lt_mine_s') : at === 'theirs' ? i18t('rl_lt_theirs_s', { who: String(c.counterparty || '').trim() || i18t('ng_the_counterparty') }) : i18tn('rl_lt_left', left, { n: left });
+    title = i18t(at === 'pos' ? 'rl_lt_pos' : at === 'fb' ? 'rl_lt_fb' : (at === 'mine' || at === 'off') ? 'rl_lt_mine' : 'rl_lt_none');
+    sub = at === 'mine' ? i18t('rl_lt_mine_s') : at === 'off' ? i18t('rl_lt_off_s') : at === 'theirs' ? i18t('rl_lt_theirs_s', { who: String(c.counterparty || '').trim() || i18t('ng_the_counterparty') }) : i18tn('rl_lt_left', left, { n: left });
     const rung = (k, lab, badge, txt) => `<div class="rl-lt-r t-${k}${at === k ? ' is-here' : ''}"><i class="rl-lt-dot" aria-hidden="true"></i><div class="rl-lt-b"><div class="rl-lt-h"><b>${_ne(lab)}</b><span class="rl-lt-bd t-${k}">${_ne(badge)}</span>${at === k ? `<span class="rl-lt-you">${_ne(i18t('rl_lt_here'))}</span>` : ''}</div><div class="rl-lt-q">${_ne(txt || i18t('jov5_lad_not_set'))}</div></div></div>`;
     const stdTxt = st.standard ? `${st.standard.op === '<=' ? '\u2264 ' : st.standard.op === '>=' ? '\u2265 ' : ''}${fig(st.standard.value)}` : '';
     let baseTxt = ''; try { baseTxt = (typeof window.ladderBaseText === 'function') ? String(ladderBaseText(rungs) || '') : ''; } catch (_){ baseTxt = ''; }

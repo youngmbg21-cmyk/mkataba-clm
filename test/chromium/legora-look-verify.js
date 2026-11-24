@@ -390,11 +390,14 @@ const check = (name, pass, detail) => {
         return r.width >= 500 && r.height >= 300 && c.backgroundColor === 'rgb(255, 255, 255)'; });
       const shr = sheets.length ? [...new Set(sheets.map(e => getComputedStyle(e).borderTopLeftRadius))].join(',') : null;
       const diag = sheets.map(e => e.tagName + '.' + String(e.className).slice(0, 30)).join(' | ');
-      return { dock: g('ig-dock'), col: g('hb-col'), paper: g('ig-paper'), tab: tc ? { bg: tc.backgroundColor, r: tc.borderTopLeftRadius, h: Math.round(t.getBoundingClientRect().height), after: ta.content } : null, sheetR: shr, diag }; });
+      return { dock: g('ig-dock'), col: g('hb-col'), paper: g('ig-paper'), tab: tc ? { bg: tc.backgroundColor, r: tc.borderTopLeftRadius, h: Math.round(t.getBoundingClientRect().height), after: ta.content, pillBg: getComputedStyle(t, '::before').backgroundColor, pillR: getComputedStyle(t, '::before').borderTopLeftRadius, pillC: getComputedStyle(t, '::before').content } : null, sheetR: shr, diag }; });
     /* RETIRED 16 Nov 2026 (#762): 12f "beside a paper Jambo's panel floats: an 8px margin, 10px corners, the faint lift" and
        12g "the paper's half a white card at the 10px corner" — the Legora look's floating halves; the new look sets the panel
        edge to edge and the paper on its desk (ONE SHEET; CLAUDE.md: "a panel that is not edge to edge is the old look") */
-    check('12h the panel\'s chosen tab is a slim filled pill (no underline mark)', !!fl.tab && fl.tab.bg === GREY && pill(fl.tab.r) && fl.tab.h <= 32 && (fl.tab.after === 'none' || fl.tab.after === 'normal'), JSON.stringify(fl.tab));
+    /* RE-POINTED 24 Nov 2026 (owner, f1216 "TABS ONE SWITCH": beside a paper the Dossier's tabs sit on one grey track, the
+       open one a white pill drawn by its ::before): the chosen tab is a slim pill, white on the track, no underline mark */
+    check('12h the panel\'s chosen tab is a slim filled pill (no underline mark)', !!fl.tab && fl.tab.h <= 32 && (fl.tab.after === 'none' || fl.tab.after === 'normal')
+      && ((fl.tab.bg === GREY && pill(fl.tab.r)) || (fl.tab.pillC !== 'none' && fl.tab.pillC !== 'normal' && fl.tab.pillBg === 'rgb(255, 255, 255)' && pill(fl.tab.pillR))), JSON.stringify(fl.tab));
     check('12i the paper itself keeps its square corners — it reads as a document, not a card', fl.sheetR === '0px', String(fl.sheetR) + ' ' + fl.diag);
     await page.evaluate(() => { setView('dashboard'); if (window.hbSetFace) hbSetFace('explorer'); });
     await until(() => !!document.querySelector('#ig-page.hb-dark'), null, 10000);

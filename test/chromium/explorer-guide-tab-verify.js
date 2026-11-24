@@ -98,6 +98,11 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
       check(`2b-${lang} pressing Guide again brings Jambo back with his box`, !!back);
 
       /* ================= 3. EVERY VIEW, EVERY ROW ================= */
+      /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden: no button, opens on Floors; igSetView still turns to them) */
+      /* the bar OFFERS Floors, Grid and Timeline; the Brain and the Wiring are still turned to by igSetView (fresh), so
+         every view's guide and every row is still checked */
+      const SHOWN = await page.evaluate(() => [0, 1, 2, 3, 4].filter(i => igbViewShown(i)));
+      check(`3-${lang} the map offers Floors, Grid and Timeline (Brain and Wiring hidden for now)`, JSON.stringify(SHOWN) === '[2,3,4]', JSON.stringify(SHOWN));
       for (let v = 0; v < 5; v++) {
         await fresh(v, true); await page.waitForTimeout(200);
         const g = await page.evaluate(() => { const h = document.getElementById('ig-gd'); if (!h) return null;
@@ -153,8 +158,9 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
         const tops = bs.map(b => Math.round(b.getBoundingClientRect().top));
         return { first, n: bs.length, pressed: bs.filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.getAttribute('data-ig-gd-view-go')), oneLine: new Set(tops).size === 1,
           below: !!g.querySelector('.jov5-title') && rb <= g.querySelector('.jov5-title').getBoundingClientRect().top, cards: g.querySelectorAll('.ig-gd-others').length }; });
-      check(`4b-${lang} the five views head the guide in one row, the map's own pressed, its things to do right under, no cards at the foot`,
-        !!top && top.first && top.n === 5 && JSON.stringify(top.pressed) === '["3"]' && top.oneLine && top.below && top.cards === 0, JSON.stringify(top));
+      /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden for now): the views the bar offers head the guide */
+      check(`4b-${lang} the offered views head the guide in one row, the map's own pressed, its things to do right under, no cards at the foot`,
+        !!top && top.first && top.n === SHOWN.length && JSON.stringify(top.pressed) === '["3"]' && top.oneLine && top.below && top.cards === 0, JSON.stringify(top));
 
       /* ================= 5. GO BACK ONE STEP ================= */
       await fresh(2, true); await page.waitForTimeout(200);

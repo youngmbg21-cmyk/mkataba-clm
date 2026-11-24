@@ -31,12 +31,11 @@ describe('f1196 (1) one clause at a time', () => {
     ctx.set(5); assert.equal(ctx.step(1), false, 'the last clause goes nowhere');
     ctx.set(0); assert.equal(ctx.step(-1), false, 'nor the first');
   });
-  test('one gesture, one step; a tall clause is read first; arrows and count drawn', () => {
-    const W = strip(CT.slice(CT.indexOf("document.addEventListener('wheel'"), CT.indexOf('}, { passive: false });')));
-    assert.match(W, /closest\('#pd-thread \.doc-th-rows'\)/); assert.match(W, /list\.scrollHeight > list\.clientHeight \+ 4/);
-    assert.match(W, /if \(_thStepLocked\) return;/);
-    assert.match(W, /open\.offsetHeight > list\.clientHeight - 8/);
-    assert.match(W, /docThreadStep\(d\)/);
+  /* RE-POINTED 24 Nov 2026 (owner, ebf0fddb: "Clauses keeps its room and scrolls without stepping"): no wheel steps the
+     list any more — the list scrolls as a list, and the arrows step one clause */
+  test('the list scrolls without stepping; arrows and count drawn', () => {
+    assert.ok(!CT.includes("document.addEventListener('wheel'"), 'no wheel listener steps the clauses');
+    assert.match(CT, /data-th-nav-step'\)\) \|\| 1\); \}\);|docThreadStep\(Number\(b\.getAttribute\('data-th-nav-step'\)\) \|\| 1\)/);
     assert.match(strip(fnSrc(CT, 'docThreadNavSync')), /data-th-nav-step="-1"[\s\S]*th_step_of[\s\S]*data-th-nav-step="1"/);
   });
 });

@@ -204,7 +204,9 @@ const paperRead = page => page.evaluate(() => {
     ok('5b ONE card, "Copilot\'s counter", marked In the box, with no Apply', !!e5 && e5.cards === 1 && /Jambo's counter/.test(e5.name) && e5.inBox && e5.applies === 0, e5 && JSON.stringify({ c: e5.cards, n: e5.name, i: e5.inBox, a: e5.applies }));
     ok('5c "Rests on:" is said once', !!e5 && !e5.restsTwice && /Rests on: Payment terms/.test(e5.rests), e5 && e5.rests);
     ok('6a "Note to Nandi Dairy" is drafted from Copilot\'s reason', !!e5 && /Note to Nandi Dairy/i.test(e5.noteLabel) && e5.note === WHY, e5 && (e5.noteLabel + ' / ' + e5.note));
-    ok('6b the Save reads "Save counter"', !!e5 && e5.save === 'Save counter', e5 && e5.save);
+    /* RE-POINTED 24 Nov 2026 (the Dossier L+S, step 4: the editor's walk button says filing moves on, ce_then_next):
+       on a walk with a clause after this one the Save reads "Save counter · next ›" */
+    ok('6b the Save reads "Save counter" (and "· next ›" where the walk moves on)', !!e5 && /^Save counter(?: · next ›)?$/.test(e5.save), e5 && e5.save);
     await page.screenshot({ path: path.join(OUT, '5-editor.png') });
     if (e5) {
       await page.click('#ce-lane [data-ce-act="prep-out"]');

@@ -32,7 +32,12 @@ test('f1084 (1) the Redlines face has no Deal and no close plan', () => {
   for (const attr of ['data-rl-deal', 'data-deal-toggle', 'data-pd-deal-back', 'data-deal-mid'])
     assert.ok(!JS.includes(attr), attr + ' is gone');
   assert.ok(!/'deal:'/.test(NEGO + PD), 'no deal key in the middle');
-  assert.match(NEGO, /\$\{five\.seg\}\$\{rlHeadNotesHtml\(c, opts\)\}\$\{rlHeadLadderHtml\(c, opts\)\}<\/span>/, 'the switch: Changes · Notes · Ladder');
+  /* RE-POINTED 24 Nov 2026 (owner: "delete the notes page from the tab" — Notes left the switch; CLAUDE.md REDLINES: Changes · Ladder).
+     The rule guarded stands: no Deal in the switch — it is exactly Changes · Ladder. */
+  const seg = (NEGO.match(/<span class="rl-seg" role="group">\$\{five\.seg\}([\s\S]*?)<\/span>/) || [])[1];
+  assert.ok(seg != null, 'the switch is drawn');
+  assert.match(seg, /^(\$\{''\/\*[\s\S]*?\*\/\})?\$\{rlHeadLadderHtml\(c, opts\)\}$/, 'the switch: Changes · Ladder');
+  assert.ok(!/rlHeadNotesHtml|rlHeadDeal/.test(seg), 'no Notes and no Deal in the switch');
   assert.match(NEGO, /function rlHeadLadderHtml\(c, opts = \{\}\)\{[\s\S]*?data-rl-head-ladder=/, 'the Ladder stays at the head');
 });
 

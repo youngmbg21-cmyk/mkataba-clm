@@ -70,6 +70,16 @@ const BD = { head: 'Rent first', sub: '', links: [], regions: [{ name: 'Money', 
       const top = sc.getBoundingClientRect().top + 8; const kids = [...d.children].filter(x => !x.hasAttribute('data-pg-layer'));
       const i = kids.findIndex(k => { const r = k.getBoundingClientRect(); return r.bottom > top; }); return i < 0 ? null : { i, y: Math.round(kids[i].getBoundingClientRect().top) }; };
     const at0 = seen();
+    /* WHO MOVED IT (24 Nov 2026): every write to the paper's scroller, scrollIntoView / scrollTo inside it, and each scroll
+       event, with where in the code it came from, so a red names the part that moved the reader */
+    const mv = []; const where = () => String(new Error().stack || '').split('\n').slice(2, 6).map(x => x.trim().replace(/^at /, '').replace(/\(?https?:\/\/[^/]+\//, '').replace(/\)$/, '')).join(' < ');
+    const stD = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollTop');
+    if (sc0) Object.defineProperty(sc0, 'scrollTop', { configurable: true, get() { return stD.get.call(this); }, set(v) { mv.push('scrollTop=' + Math.round(v) + ' @ ' + where()); stD.set.call(this, v); } });
+    const sivWas = Element.prototype.scrollIntoView, stoWas = Element.prototype.scrollTo;
+    Element.prototype.scrollIntoView = function (o) { if (sc0 && sc0.contains(this)) mv.push('scrollIntoView(' + JSON.stringify(o) + ') ' + this.tagName + '.' + String(this.className).slice(0, 30) + ' @ ' + where()); return sivWas.apply(this, arguments); };
+    Element.prototype.scrollTo = function () { if (this === sc0) mv.push('scrollTo ' + JSON.stringify([...arguments]) + ' @ ' + where()); return stoWas.apply(this, arguments); };
+    const onSc = () => mv.push('scroll event, now ' + Math.round(stD.get.call(sc0)) + ', height ' + sc0.scrollHeight);
+    if (sc0) sc0.addEventListener('scroll', onSc, { passive: true });
     const c = getContract('MK-110');
     if (kind === 'accept'){ const btn = document.querySelector('#pd-redface [data-nego-accept]'); if (!btn) return { missing: 'accept button' }; btn.click(); }
     else if (kind === 'reject'){ const ch = (c.changes || []).find(x => x.status === 'pending'); if (!ch) return { missing: 'a pending change' }; if (!negoResolve(c, ch.id, 'rejected', { side: 'owner', reply: 'No' })) return { missing: 'refused: ' + (window.negoLastRefusal || '') }; pdRedRepaint(); }
@@ -90,11 +100,14 @@ const BD = { head: 'Rent first', sub: '', links: [], regions: [{ name: 'Money', 
     const before = live.map(words).join(' | ');
     const top1 = (document.getElementById('ig-paper-scroll') || {}).scrollTop;
     const at1 = seen();
+    Element.prototype.scrollIntoView = sivWas; Element.prototype.scrollTo = stoWas;
+    if (sc0){ delete sc0.scrollTop; sc0.removeEventListener('scroll', onSc); }
+    const moved = mv.slice(0, 14);
     /* and then drawn whole: the same words */
     delete host.dataset.for; igPaintPaper();
     const doc2 = document.querySelector('#ig-canvas .rl-zoom > .rl-paper');
     const after = [...doc2.children].filter(x => !x.hasAttribute('data-pg-layer')).map(words).join(' | ');
-    return { patch, papers: n.papers, panel: n.panel, blocks: live.length, sameSrc, sameWords: before === after && before.length > 200, kept: (Math.abs(top1 - top0) < 2) || !!(at0 && at1 && at0.i === at1.i && Math.abs(at0.y - at1.y) < 3), top0, top1, at0, at1 };
+    return { patch, papers: n.papers, panel: n.panel, blocks: live.length, sameSrc, sameWords: before === after && before.length > 200, kept: (Math.abs(top1 - top0) < 2) || !!(at0 && at1 && at0.i === at1.i && Math.abs(at0.y - at1.y) < 3), top0, top1, at0, at1, moved };
   }, kind);
   /* (the panel's writes are printed, not judged: GitHub's measure showed the two records a decision leaves on it cost one
      drawing's time, so their count says nothing about speed) */

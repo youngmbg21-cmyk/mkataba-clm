@@ -84,7 +84,8 @@ test('f1202 (2) a template\'s page: the desk, the zoom, one row, More ▾ and on
   const p = fnBody(TL, 'openTemplateLibDetail');
   assert.match(p, /<section class="tpl-dt-paper" id="tpl-dt-desk">[\s\S]*window\.rlPaperZoomHtml\(\)[\s\S]*<div class="tpl-dt-sheet" id="tpl-dt-zoom">/, 'the paper carries the zoom');
   assert.match(read('js/views/negotiation.js'), /if \(window\.tplDtApplyZoom\) tplDtApplyZoom\(\);/, 'and follows it');
-  assert.match(CSS, /html\.lg-new #content #tpl-dt > \.tpl-dt-paper#tpl-dt-desk\{background:var\(--desk-ground\)/, 'the Dossier\'s desk');
+  /* RE-POINTED 24 Nov 2026 (white-sheet-verify: the desk only under a paper; a template with no wording stays white) */
+  assert.match(CSS, /html\.lg-new #content #tpl-dt > \.tpl-dt-paper#tpl-dt-desk:has\(\.tpl-dt-sheet\)\{background:var\(--desk-ground\)\}/, 'the Dossier\'s desk');
   assert.match(fnBody(TL, 'tplLibSheetHtml'), /style="background:var\(--color-surface\);border-color:transparent/, 'a white paper');
   assert.match(p, /const blackNew = t\.status === 'published' && typeof canEdit === 'function' && canEdit\(\);/);
   assert.match(p, /editShown && blackNew \? \{ k: 'edit', label: i18t\('tl_dt_edit_builder'\)/, 'a published template\'s Edit is in More');
@@ -97,7 +98,8 @@ test('f1202 (2b) the panel: Overview · Blanks · Versions; Blanks read off the 
   const paint = fnBody(TL, 'tplDtPanelPaint');
   assert.match(paint, /jlTabs: \[\{ k: 'bl', label: i18t\('tb_tab_blanks'\), n: blanks\.length \}, \{ k: 'vs', label: i18t\('tl_dt_tab_vs'\), n: versions\.length \}\]/);
   assert.match(fnBody(INS, 'jlOwnPaint'), /if \(Array\.isArray\(opt\.jlTabs\) && opt\.jlTabs\.length && homeT\)\{/, 'the shared panel draws a page\'s own tabs');
-  assert.match(fnBody(INS, 'jlOwnPaint'), /data-jl-tabx="_jb"><span aria-hidden="true">✦<\/span>/, 'as drawn: ✦ Jambo first');
+  /* RE-POINTED 24 Nov 2026 (review, f966: no typed mark leads a button): Jambo first, his drawn spark (mkSpark) */
+  assert.match(fnBody(INS, 'jlOwnPaint'), /data-jl-tabx="_jb">\$\{typeof icon === 'function' \? icon\('mkSpark', 'w-3\.5 h-3\.5'\) : ''\}/, 'as drawn: Jambo first, his spark');
   const ov = fnBody(TL, 'tplDtOverviewHtml');
   assert.ok(!/jamboOverviewHtml/.test(ov), 'the Overview is drawn unboxed, not as the five parts\' grey groups (owner: "built here is not right")');
   assert.match(ov, /<table class="tpl-dt-tbl is-plain">/, 'what waits as plain rows');

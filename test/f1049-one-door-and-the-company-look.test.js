@@ -87,7 +87,9 @@ test('f1049 (4) Publish: one clear choice; the design step dresses one paper; th
   assert.match(L, /tbPublishedLand\(_tb\.tid, st\.name, r\.versionNumber\)/);
   assert.match(L, /openNewAgreement\(\{ pick: \{ kind: 'lib', id: tid \} \}\)/);
   const DS = read('js/views/designstep.js');
-  assert.match(DS, /if \(_ds\.mode !== 'publish'\) await saveOrgBranding\(dsOrgPayload\(\)\);/, 'publishing one paper never writes the company look');
+  /* RE-POINTED 24 Nov 2026 (review: the look goes through the one writer that sends it for a second admin's yes when
+     needed, lookSaveOrSend; still only when not publishing one paper) */
+  assert.match(DS, /if \(_ds\.mode !== 'publish' && await lookSaveOrSend\(dsOrgPayload\(\)\) === 'sent'\)/, 'publishing one paper never writes the company look');
   assert.doesNotMatch(DS, /id="ds-default"/, 'the make-it-the-company-default tick is gone');
   assert.match(DS, /tbPublishedLand\(tid, tname, vn\)/);
 });

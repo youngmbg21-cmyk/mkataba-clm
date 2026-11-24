@@ -58,6 +58,11 @@ const check = (name, pass, detail) => {
     await page.waitForFunction(n => window.state && state.contracts && state.contracts.length >= n, BOOK.length, { timeout: 20000 });
     await page.evaluate(() => { intel.cam = null; intel.tab = 'map'; intel.folds = {}; setView('intel'); });
     await until(() => window.IG && IG.hubs && IG.hubs.length >= 3);
+    /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden: no button, opens on Floors; igSetView still turns to them) */
+    /* the group cards and the group bubbles are drawn only on the Brain; the map opens on the Floors and there is no
+       button for the Brain, so igSetView turns to it (the hidden set is left as the owner set it), settled before reading */
+    await page.evaluate(() => igSetView(0));
+    await until(() => igbCam().view === 0 && igbCam().w[0] > 0.98);
 
     /* ================= 1. CARDS NEVER COVER CARDS ========================== */
     await page.evaluate(() => { intel.groupBy = 'counterparty'; intel.groups = null; intel.folds = {}; igSetSpin && igSetSpin(false); rebuildIntelGraph(); });

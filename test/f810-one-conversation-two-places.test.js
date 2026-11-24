@@ -74,7 +74,9 @@ describe('f810 (1) the feed is where the reader looks', () => {
 describe('f810 (2) one copy on the page at a time', () => {
   test('2a beside a list, an empty conversation draws nothing — and the window\'s copy is emptied', () => {
     const p = page();
-    const c = stage(['aiListFeed', 'aiFeedEl', 'renderAIFeed'], { document: p.document, ai: { open: false, history: [] }, aiProposals: new Map(), AI_PROPOSAL_OPEN: 'open' });
+    /* 24 Nov 2026 (THE THINKING DOTS FOLLOW THE WORK): a redraw that does not say asks aiThinkingNow, so the
+       sandbox carries it from js/ai.js like aiPopped and aiEl — nothing busy here, so no dots */
+    const c = stage(['aiThinkingNow', 'aiListFeed', 'aiFeedEl', 'renderAIFeed'], { document: p.document, ai: { open: false, history: [] }, aiProposals: new Map(), AI_PROPOSAL_OPEN: 'open' });
     c.renderAIFeed();
     assert.equal(p.els['jl-feed'].innerHTML, '', 'the panel draws no greeting: Jambo said the page above');
     assert.equal(p.els['ai-feed'].innerHTML, '', 'and the window holds no second copy');

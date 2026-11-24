@@ -69,7 +69,9 @@ const check = (name, pass, detail) => {
     while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
     return v; };
   /* a view is read once the camera is on it AND every dot has glided onto its place */
-  const view = async v => { await page.click(`[data-ig-view="${v}"]`); await until(k => intel.cam.w[k] > 0.995, v);
+  /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden: no button, opens on Floors; igSetView still turns to them) */
+  /* the Brain and the Wiring have no button: turned to by igSetView, the others by their button */
+  const view = async v => { if (v < 2) await page.evaluate(k => igSetView(k), v); else await page.click(`[data-ig-view="${v}"]`); await until(k => intel.cam.w[k] > 0.995, v);
     await until(k => { const P = ['A', 'W3', 'L', 'G', 'T'][k], T = ['At', 'W3', 'Lt', 'Gt', 'Tt'][k];
       return IG.nodes.filter(n => n.kind === 'contract').every(n => !n[T] || Math.hypot(n[P][0] - n[T][0], n[P][1] - n[T][1], n[P][2] - n[T][2]) < .002); }, v); };
   try {
@@ -88,6 +90,7 @@ const check = (name, pass, detail) => {
     const mid = () => page.evaluate(() => { const r = document.getElementById('ig-gwrap').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
     const KEY = ['rot', 'rotW', 'rotL', 'rotG', 'rotT'];
     const turned = [];
+    /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden: no button, opens on Floors; igSetView still turns to them) */
     for (const v of [0, 1, 2, 3, 4]) {
       await view(v);
       const box = await mid(), c0 = await page.evaluate(k => intel.cam[k], KEY[v]);
@@ -208,6 +211,7 @@ const check = (name, pass, detail) => {
     const JIG_MAX = 14 * stH / 763;
     const jig = m => !m.moved && m.far >= 1 && m.far < JIG_MAX;
     const sw0 = await page.evaluate(() => intel.cam.sway || 0);
+    /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden: no button, opens on Floors; igSetView still turns to them) */
     const qB = await stray(0, 'rot'), qF = await stray(2, 'rotL'), qG = await stray(3, 'rotG'), qT = await stray(4, 'rotT');
     /* THE GRID STANDS STILL BUT ITS DOTS STILL JIGGLE (Young, 23 Oct 2026: "the stars should
        not be static ... the grid is the one that should stop moving") */
@@ -221,7 +225,9 @@ const check = (name, pass, detail) => {
     check('4a3 Still draws only a few frames a second; Turning draws every frame (smooth)', fStill <= 10 && fTurn >= 30, JSON.stringify({ fStill, fTurn }));
     const swayed = async (v, key) => { const sa = await page.evaluate(() => intel.cam.sway || 0); const m = await moves(v, key); return { ...m, sa: +sa.toFixed(4), sb: +(await page.evaluate(() => intel.cam.sway || 0)).toFixed(4) }; };
     const mB = await moves(0, 'rot'), mF = await moves(2, 'rotL'), mG = await swayed(3, 'rotG'), mT = await swayed(4, 'rotT');
+    /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden: no button, opens on Floors; igSetView still turns to them) */
     check('4b pressed Turning, the Brain turns', mB.moved && mB.dot, JSON.stringify(mB));
+    check('4b2 the Brain and the Wiring are hidden for now: no button for them on the bar', (await page.$$('[data-ig-view="0"], [data-ig-view="1"]')).length === 0);
     check('4c and the Floors turn, like the Brain', mF.moved && mF.dot, JSON.stringify(mF));
     /* REVERSED IN PLACE 4 Oct 2026 (Young: "the tables should not spin round,
        they should just slowly swing down to the left and not far at all and

@@ -197,7 +197,8 @@ test('f1198 (8) an empty notebook asks nothing: no example questions, its one pr
   const V = R('js/views/notebook.js');
   const i = V.indexOf('function nbOverviewPanelHtml'); const body = V.slice(i, V.indexOf('\nfunction ', i + 10)).replace(/\/\*[\s\S]*?\*\//g, '');
   assert.match(body, /asks: L\.length \? \[ask\(_nbT\('nb_ov_q1'\)\), ask\(_nbT\('nb_ov_q2'\)\)\] : \[\]/);
-  assert.match(body, /act: L\.length \|\| _nb\.docs == null \|\| _nb\.err \? null : \{ label: '\+ ' \+ _nbT\('nb_add'\), run: \(\) => nbAddOpen\(\) \}/);
+  /* RE-POINTED 24 Nov 2026 (review: no typed "+" leads a button; the black button says Add a document) */
+  assert.match(body, /act: L\.length \|\| _nb\.docs == null \|\| _nb\.err \? null : \{ label: _nbT\('nb_add'\), run: \(\) => nbAddOpen\(\) \}/);
 });
 
 describe('f1198 (9) a whole law fits: the GDPR, recitals and all, is one document (owner, 24 Nov 2026)', () => {

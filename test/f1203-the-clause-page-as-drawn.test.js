@@ -28,7 +28,9 @@ describe('f1203 (1)-(3) the page body', () => {
 describe('f1203 (4) the count line and Checked · nothing found', () => {
   test('nothing found only on Clauses, once read, never on a section title', () => {
     const g = fnSrc(PD, 'pd2Groups');
-    assert.match(g, /readDone = _pdTab === 'doc' && typeof window\.stkLivePoints === 'function' && !!window\.stkLivePoints\(c\)/);
+    /* RE-POINTED 24 Nov 2026 (the ticks follow where the notes are drawn: the caller says so, the Approvals preview never) */
+    assert.match(g, /readDone = !!\(opts && opts\.checked\) && typeof window\.stkLivePoints === 'function' && !!window\.stkLivePoints\(c\)/);
+    assert.match(PD, /pd2Groups\(c, cv, notes, \{ checked: onClauses \}\)/);
     assert.match(g, /window\.docThreadIsSec\(r\)/);
   });
   test('the count line reads the margin\'s own groups', () => {

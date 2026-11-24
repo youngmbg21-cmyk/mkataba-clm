@@ -144,7 +144,13 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
        row is the editor's one row height, its line meeting the writing bar's across the seam */
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the panel stands edge to edge, not a floating card
        8px in, so the dropdown's line meets the writing bar's line exactly */
-    check(!!P.h && !P.disc && P.h <= 45 && (P.barBottom == null || Math.abs(P.bottom - P.barBottom) <= 1), '2a the dropdown stands where "Written by Jambo" stood, level with the writing bar\'s line (the new look\'s panel is edge to edge, no floating card\'s inset; re-pointed 28 Oct and 16 Nov 2026)', JSON.stringify(P));
+    /* RE-POINTED 24 Nov 2026 (owner: the Editor as a tab, as drawn): in a wide window on our seat the editor is tabbed
+       (ceTabOn) — the dropdown stands down and the clause picker ‹ name ▾ k of n › at the panel's top takes its place */
+    const TB = await page.evaluate(() => { const pg = document.getElementById('clause-editor'), tp = document.querySelector('#clause-editor .ce-tpick'), nm = document.querySelector('#clause-editor .ce-tnm');
+      return { tabbed: !!(pg && pg.classList.contains('is-tabbed')), pickShown: !!document.getElementById('ce-pick') && document.getElementById('ce-pick').getClientRects().length > 0,
+        tpick: !!tp && tp.getClientRects().length > 0, name: nm ? nm.textContent.trim() : '', k: ((document.querySelector('#clause-editor .ce-tk') || {}).textContent || '').trim() }; });
+    if (TB.tabbed) check(!TB.pickShown && TB.tpick && /liability/i.test(TB.name) && /\d+ of \d+/.test(TB.k) && !P.disc, '2a tabbed: the dropdown stands down; ‹ name ▾ k of n › names the clause being edited', JSON.stringify(TB));
+    else check(!!P.h && !P.disc && P.h <= 45 && (P.barBottom == null || Math.abs(P.bottom - P.barBottom) <= 1), '2a the dropdown stands where "Written by Jambo" stood, level with the writing bar\'s line (the new look\'s panel is edge to edge, no floating card\'s inset; re-pointed 28 Oct and 16 Nov 2026)', JSON.stringify(P));
     check(P.groups && P.groups.length === 1 && /^High · 1$/.test(P.groups[0]) && P.on === 'Liability · may favour them', '2b on Risks: the open risks by short title, grouped by severity, on the one being edited', JSON.stringify(P));
     const T = await page.evaluate(() => { const t = document.querySelector('#ce-askrow #ce-scope.ce-tag'); return { tag: t ? t.textContent.trim() : null, card: !!document.querySelector('#clause-editor .ce-scope') }; });
     check(T.tag !== null && !T.card, '3a no Selected card; what it said rides in the ask box', JSON.stringify(T));
@@ -153,22 +159,38 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     /* ============ 2. ON SUGGESTIONS ============ */
     const other = await page.evaluate(id => { const c = getContract(id); const cl = negoClauseList(c).find(x => /Supply/.test(x.title || x.headingText || ''));
       if (!cl) return null; negoEditClause(c, cl.clauseId, '<p>The Supplier shall supply the goods to the agreed specification, quality and delivery dates.</p>', { side: 'owner' }); return String(cl.clauseId); }, ID);
-    await press(page, '#clause-editor [data-ce-tab="chat"]');
-    const S = await until(page, () => { const s = document.getElementById('ce-pick-sel'); return s && s.querySelectorAll('optgroup').length >= 2 ? { groups: [...s.querySelectorAll('optgroup')].map(g => g.label),
-      opts: [...s.options].map(o => [o.textContent, o.dataset.dot, o.dataset.st]), on: s.options[s.selectedIndex].textContent } : null; });
-    check(!!S && S.groups.some(g => /^This clause/.test(g)) && S.groups.some(g => /^Our asks · 1$/.test(g)) && S.opts.some(o => /Supply/.test(o[0]) && o[1] === 'us' && o[2] === 'not sent'),
-      '2c on Suggestions: the redlined clauses grouped, each with a dot and a state word', S && JSON.stringify(S));
-    await page.click('#ce-pick-sel');
-    const M = await until(page, () => { const m = document.querySelector('.hati-selmenu.has-groups'); return m ? { g: [...m.querySelectorAll('.hati-selmenu-g')].map(x => x.textContent),
-      dots: m.querySelectorAll('.hati-selmenu-dot').length, st: [...m.querySelectorAll('.hati-selmenu-st')].map(x => x.textContent) } : null; });
-    check(!!M && M.g.length >= 2 && M.dots >= 2 && M.st.includes('not sent'), '2d it opens in HaTi\'s own list, with its groups, dots and state words', M && JSON.stringify(M));
-    await shot('2-suggestions-list.png');
-    await page.keyboard.press('Escape');
-    if (other){
-      await page.evaluate(o => { const s = document.getElementById('ce-pick-sel'); s.value = o; s.dispatchEvent(new Event('change', { bubbles: true })); }, other);
-      const moved = await until(page, o => window.clauseEditorClauseId && clauseEditorClauseId() === o ? true : null, other);
-      check(!!moved, '2e a pick moves the editor to that clause');
-    } else check(false, '2e a pick moves the editor to that clause', 'no other clause');
+    if (TB.tabbed){
+      /* RE-POINTED 24 Nov 2026 (the Editor as a tab, as drawn): the picker's ▾ opens the paper's clauses in HaTi's own
+         list, the one being edited chosen; a press moves the editor there */
+      await press(page, '#clause-editor [data-ce-tlist]');
+      const TL = await until(page, () => { const l = document.getElementById('ce-tlist'); return l && !l.hidden && l.getClientRects().length ? { n: l.querySelectorAll('[data-ce-tgo]').length,
+        on: (l.querySelector('[data-ce-tgo].on') || {}).textContent || '', names: [...l.querySelectorAll('[data-ce-tgo]')].map(b => b.textContent.trim()) } : null; });
+      check(!!TL && TL.n >= 3 && /liability/i.test(TL.on) && TL.names.some(n => /Supply/.test(n)), '2c tabbed: ▾ lists the paper\'s clauses, the one being edited chosen', TL && JSON.stringify(TL));
+      check(!!TL && !(await page.evaluate(() => !!document.querySelector('.hati-selmenu') && document.querySelector('.hati-selmenu').getClientRects().length > 0)), '2d tabbed: one list per press — no system picker or second menu beside it');
+      await shot('2-suggestions-list.png');
+      if (other){
+        await press(page, `#ce-tlist [data-ce-tgo="${other}"]`);
+        const moved = await until(page, o => window.clauseEditorClauseId && clauseEditorClauseId() === o ? true : null, other);
+        check(!!moved, '2e a pick moves the editor to that clause');
+      } else check(false, '2e a pick moves the editor to that clause', 'no other clause');
+    } else {
+      await press(page, '#clause-editor [data-ce-tab="chat"]');
+      const S = await until(page, () => { const s = document.getElementById('ce-pick-sel'); return s && s.querySelectorAll('optgroup').length >= 2 ? { groups: [...s.querySelectorAll('optgroup')].map(g => g.label),
+        opts: [...s.options].map(o => [o.textContent, o.dataset.dot, o.dataset.st]), on: s.options[s.selectedIndex].textContent } : null; });
+      check(!!S && S.groups.some(g => /^This clause/.test(g)) && S.groups.some(g => /^Our asks · 1$/.test(g)) && S.opts.some(o => /Supply/.test(o[0]) && o[1] === 'us' && o[2] === 'not sent'),
+        '2c on Suggestions: the redlined clauses grouped, each with a dot and a state word', S && JSON.stringify(S));
+      await page.click('#ce-pick-sel');
+      const M = await until(page, () => { const m = document.querySelector('.hati-selmenu.has-groups'); return m ? { g: [...m.querySelectorAll('.hati-selmenu-g')].map(x => x.textContent),
+        dots: m.querySelectorAll('.hati-selmenu-dot').length, st: [...m.querySelectorAll('.hati-selmenu-st')].map(x => x.textContent) } : null; });
+      check(!!M && M.g.length >= 2 && M.dots >= 2 && M.st.includes('not sent'), '2d it opens in HaTi\'s own list, with its groups, dots and state words', M && JSON.stringify(M));
+      await shot('2-suggestions-list.png');
+      await page.keyboard.press('Escape');
+      if (other){
+        await page.evaluate(o => { const s = document.getElementById('ce-pick-sel'); s.value = o; s.dispatchEvent(new Event('change', { bubbles: true })); }, other);
+        const moved = await until(page, o => window.clauseEditorClauseId && clauseEditorClauseId() === o ? true : null, other);
+        check(!!moved, '2e a pick moves the editor to that clause');
+      } else check(false, '2e a pick moves the editor to that clause', 'no other clause');
+    }
     /* RE-POINTED 20 Oct 2026 (the owner picked "Chambers" and removed dark
        mode): the dark picture is gone with the night; the light one stays */
     await shot('3-light.png');

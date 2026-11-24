@@ -158,7 +158,7 @@ function nbOverviewPanelHtml(){
     /* NOTHING TO QUOTE, NOTHING TO ASK (owner, 24 Nov 2026): an empty notebook shows no example questions, whose answer could only be
        "the notebook does not cover it"; its one press is Add a document. The questions come back with the first document. */
     asks: L.length ? [ask(_nbT('nb_ov_q1')), ask(_nbT('nb_ov_q2'))] : [],
-    act: L.length || _nb.docs == null || _nb.err ? null : { label: '+ ' + _nbT('nb_add'), run: () => nbAddOpen() } }, 'nb') : ''}</div>`;
+    act: L.length || _nb.docs == null || _nb.err ? null : { label: _nbT('nb_add'), run: () => nbAddOpen() } }, 'nb') : ''}</div>`;
 }
 function nbPanelPaint(){
   if (typeof insPaintPanel !== 'function') return;
@@ -189,7 +189,7 @@ function renderNotebook(){
   const full = reading ? _nb.full.get(d.id) : null;
   if (reading && !full) nbFull(d.id).then(x => { if (x && _nb.open === d.id && state.view === 'notebook') renderNotebook(); });
   const E = _nbE;
-  const add = _nb.docs != null && !_nb.err ? `<button type="button" class="ui-btn ui-btn-primary" data-nb-add id="nb-add">+ ${E(_nbT('nb_add'))}</button>` : '';
+  const add = _nb.docs != null && !_nb.err ? `<button type="button" class="ui-btn ui-btn-primary" data-nb-add id="nb-add">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') + ' ' : ''}${E(_nbT('nb_add'))}</button>` : '';
   const head = reading
     ? `<div class="cun-head hbkn-crumb"><button type="button" class="ctf-back" data-nb-back>‹ ${E(_nbT('nav_notebook'))}</button><span class="hbkn-cpart">· ${E(d.name)}</span><span class="ctf-sp"></span></div>`
     : `<div class="cun-head"><h2 class="ctf-h">${E(_nbT('nav_notebook'))}</h2><span class="ctf-hf">${E(_nbT('nb_sub'))}</span><span class="ctf-sp"></span>${add}</div>`;
