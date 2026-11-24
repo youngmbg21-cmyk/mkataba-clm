@@ -1168,3 +1168,5 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 ## THE DOSSIER END TO END — What stands, L+S (24 Nov 2026)
 - `node --test test/f1204-what-stands-ls.test.js test/f1184-the-duties-card.test.js test/f1163-who-does-what.test.js test/f1198-the-dossier-as-drawn.test.js test/f1194-the-dossier-end-to-end-ls.test.js`
 - Browser (GitHub): duties-card-verify, review-desk-verify, dossier-and-amend-ls-verify, who-does-what-verify (re-pointed to the rows).
+## THE AI'S READING RULES — no cost under an answer; the dots stay (24 Nov 2026)
+- `node --test test/f1210-no-cost-and-the-dots-stay.test.js test/f975-no-jambo-calls.test.js test/f870-judgement-on-the-stronger-model.test.js`; browser (GitHub): judgement-line-verify.
