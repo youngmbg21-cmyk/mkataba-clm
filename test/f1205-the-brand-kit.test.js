@@ -123,7 +123,7 @@ test('f1205 (4) the Brand kit tab: its count, logos, faces, colours, where it is
   assert.ok(q.some(x => x.t === 'cl_kit_q_noblack' && x.go.attr === 'data-st-ls-cl="kit"'));
   assert.ok(q.some(x => /^cl_kit_q_faint Light grey/.test(x.t) && x.tone === 'ruby'));
   const f = J(vm.runInContext('clPanelFacts()', W));
-  assert.equal(f.of, 11 + 5, 'the ring counts the kit'); assert.equal(f.kitOf, 5); assert.equal(f.kitSet, 3);
+  /* RE-POINTED 24 Nov 2026 (contract look round 5): one more part, the words on the pages */ assert.equal(f.of, 12 + 5, 'the ring counts the kit'); assert.equal(f.kitOf, 5); assert.equal(f.kitSet, 3);
   const D = read('js/views/designstep.js');
   assert.match(D, /if \(s === 'kit'\) \{ _cl\.tab = 'kit'; _cl\.mode = 'page'; return clRepaint\(\); \}/, 'the check\'s doors open the kit');
   assert.match(D, /payload\.palette = pal\.length \? pal : null;/, 'Save carries the colours');

@@ -209,8 +209,8 @@ const _pgAttr = s => String(s == null ? '' : s).replace(/[&<>"]/g, ch =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
 /* "Page 2 of 6", "2 of 6" or "2 / 6", as the look asks, in the reader's language (js/branding.js brPageNumberSay) */
-function pagesNumberSay(fmt, n, m){
-  return (typeof window !== 'undefined' && window.brPageNumberSay) ? window.brPageNumberSay(fmt, n, m) : pagesNumberLabel(n, m);
+function pagesNumberSay(fmt, n, m, lang){
+  return (typeof window !== 'undefined' && window.brPageNumberSay) ? window.brPageNumberSay(fmt, n, m, lang) : pagesNumberLabel(n, m);
 }
 /* "Page 2 of 6", in the reader's language. */
 function pagesNumberLabel(n, m){
@@ -279,7 +279,8 @@ function _pgFurniture(o, k, n, top, h, d){
   const cov = !!(o.mode === 'sign' && mk && mk.cover);
   if(cov && k === 0) return parts;
   const kk = cov && !mk.coverCounts ? k : k + 1, nn = cov && !mk.coverCounts ? n - 1 : n;
-  const label = mk && mk.fmt ? pagesNumberSay(mk.fmt, kk, nn) : pagesNumberLabel(kk, nn);
+  /* round 5: the look's own language for the page words, where it chose one */
+  const label = mk && (mk.fmt || mk.lang) ? pagesNumberSay(mk.fmt, kk, nn, mk.lang) : pagesNumberLabel(kk, nn);
   const numOff = !!(mk && mk.num === 'off');
   if(o.mode === 'sign'){
     if(mk && mk.head) parts.push(`<div class="pg-run is-mark" data-al="${_pgAttr(mk.headAl || 'left')}" style="left:${d.pL}px;right:${d.pR}px;top:${top + Math.max(10, Math.round(d.mT * 0.42))}px" data-l="${_pgAttr(mk.head)}"></div>`);
@@ -652,7 +653,9 @@ function pagesMarksFor(c){
     sigLayout: pm.sigLayout || null, sigLines: Array.isArray(pm.sigLines) ? pm.sigLines.slice() : [],
     cover: pm.coverOn === true, coverCounts: pm.coverCounts === true,
     /* round 4: the logo the style wears (the black one on a black-and-white style), the faces */
-    logoUrl: (window.brLogoFor ? window.brLogoFor(db) : db.logoUrl) || null, fontTitle: pm.fontTitle || null, fontBody: pm.fontBody || null };
+    logoUrl: (window.brLogoFor ? window.brLogoFor(db) : db.logoUrl) || null, fontTitle: pm.fontTitle || null, fontBody: pm.fontBody || null,
+    /* round 5: the language of the words HaTi prints on the pages (null = the reader's) */
+    lang: pm.furnLang || null };
 }
 /* THE BRAND KIT'S FACES FOR THE WORD FILE (round 4): Word is told the face's name; none chosen = Word's styles as they were */
 function pagesWordFonts(c){
@@ -663,7 +666,9 @@ function pagesWordFonts(c){
 /* THE COVER PAGE'S WORDS (round 3), read off the record: the agreement's title, its parties, its reference and its date
    (the effective date, else a line to write one on). Page furniture: never wording, never sealed into the text. */
 function pagesCoverFacts(c){
-  const T = (k, v, en) => { const t = window.i18t ? window.i18t(k, v) : ''; return t && t !== k ? t : en; };
+  /* the look's own language for the cover's words (round 5), else the reader's */
+  const mk0 = pagesMarksFor(c), lang = mk0 && mk0.lang;
+  const T = (k, v, en) => window.brFurnT ? window.brFurnT(lang, k, v, en) : ((t => t && t !== k ? t : en)(window.i18t ? window.i18t(k, v) : ''));
   let parties = [];
   try{
     if(typeof window.contractParties === 'function') parties = window.contractParties(c).filter(p => p && p.name).map(p => String(p.name));
@@ -700,7 +705,7 @@ function pagesWordHeadFoot(c){
   const mk = pagesMarksFor(c); if(!mk) return null;
   return { head: mk.head ? { text: mk.head, al: mk.headAl } : null,
     foot: { text: [mk.company, mk.foot].filter(Boolean).join(' · ') },
-    num: mk.num === 'off' ? null : { al: mk.num || null, words: pagesNumberSay(mk.fmt, '\u0001', '\u0002') },
+    num: mk.num === 'off' ? null : { al: mk.num || null, words: pagesNumberSay(mk.fmt, '\u0001', '\u0002', mk.lang) },
     cover: mk.cover ? { counts: !!mk.coverCounts } : null };
 }
 function pagesSignFoot(c, label, k, n){
@@ -720,7 +725,7 @@ function pagesSignFoot(c, label, k, n){
     if(db && db.designId && window.docDesignFooterHtml){
       /* the look's page numbers: in their own place on a line of their own, off, or (none set) at the end of the line */
       const pm = db.pageMarks || null;
-      const say = pm && pm.pageNumFmt && k != null ? pagesNumberSay(pm.pageNumFmt, k + 1, n) : label;
+      const say = pm && (pm.pageNumFmt || pm.furnLang) && k != null ? pagesNumberSay(pm.pageNumFmt, k + 1, n, pm.furnLang) : label;
       const fill = window.brFieldsFill ? window.brFieldsFill(db.footerText, c, db) : db.footerText;
       const inLine = !(pm && pm.pageNumPos);
       html = window.docDesignFooterHtml({ ...db, footerText: [fill, inLine ? say : ''].filter(Boolean).join(' · ') }, c);

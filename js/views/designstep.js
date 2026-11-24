@@ -824,6 +824,9 @@ function clPickHtml() {
       + pills('data-cl-sglay', [['columns', i18t('cl_ls_sg_columns')], ['stacked', i18t('cl_ls_sg_stacked')]], mk.sigLayout || 'columns')
       + `<div class="cl-pk-row cl-ls-fields"><span class="cl-pk-k">${clE(i18t('cl_ls_sg_lines'))}</span>${(typeof SIG_LINES === 'object' ? SIG_LINES : ['name', 'title', 'date', 'place']).map(k => `<button type="button" class="cl-pill${on.includes(k) ? ' is-on' : ''}" data-cl-sgline="${k}" aria-pressed="${on.includes(k) ? 'true' : 'false'}">${clE(i18t('sig_ln_' + k))}</button>`).join('')}</div>`
       + `<p class="cl-pk-q">${clE(i18t('cl_ls_sg_note'))}</p>`; }
+  if (m === 'lg') { const mk = clMarks(), langs = (typeof BR_FURN_LANGS === 'object' ? BR_FURN_LANGS : ['en', 'sv']);
+    return head(i18t('cl_n_lang')) + pills('data-cl-lang', [['', clLangName(null)]].concat(langs.map(l => [l, clLangName(l)])), mk.furnLang || '')
+      + `<p class="cl-pk-q">${clE(i18t('cl_lg_note', { say: typeof brPageNumberSay === 'function' ? brPageNumberSay(mk.pageNumFmt, 2, 5, mk.furnLang || null) : '' }))}</p>`; }
   if (m === 'cv') { const mk = clMarks();
     return head(i18t('cl_n_cover')) + pills('data-cl-cvon', [['off', i18t('cl_ls_off')], ['on', i18t('cl_ls_on')]], mk.coverOn ? 'on' : 'off')
       + (mk.coverOn ? `<p class="cl-pk-q">${clE(i18t('cl_ls_cv_count_q'))}</p>` + pills('data-cl-cvcount', [['no', i18t('cl_ls_cv_no')], ['yes', i18t('cl_ls_cv_yes')]], mk.coverCounts ? 'yes' : 'no') : '')
@@ -832,7 +835,7 @@ function clPickHtml() {
     return head(i18t('cl_n_pagenum')) + `<p class="cl-pk-q">${clE(i18t('cl_ls_pn_place'))}</p>`
       + pills('data-cl-npos', [['off', i18t('cl_ls_off')], ['', i18t('cl_ls_pn_inline')], ['left', i18t('cl_ls_pos_left')], ['center', i18t('cl_ls_pos_center')], ['right', i18t('cl_ls_pos_right')]], mk.pageNumPos || '')
       + (mk.pageNumPos === 'off' ? '' : `<p class="cl-pk-q">${clE(i18t('cl_ls_pn_reads'))}</p>`
-        + pills('data-cl-nfmt', (typeof PAGE_NUM_FORMATS === 'object' ? PAGE_NUM_FORMATS : ['page-of', 'of', 'slash']).map(f => [f, typeof brPageNumberSay === 'function' ? brPageNumberSay(f, 2, 6) : f]), mk.pageNumFmt || 'page-of')); }
+        + pills('data-cl-nfmt', (typeof PAGE_NUM_FORMATS === 'object' ? PAGE_NUM_FORMATS : ['page-of', 'of', 'slash']).map(f => [f, typeof brPageNumberSay === 'function' ? brPageNumberSay(f, 2, 6, mk.furnLang || null) : f]), mk.pageNumFmt || 'page-of')); }
   if (m === 'a') {
     const own = new Set(Object.keys(_cl.streams));
     return head(i18t('cl_pick_who')) + `
@@ -921,7 +924,9 @@ function clFilledOn(text) {
 }
 /* the title the cover page will carry: the previewed contract's own */
 function clCoverTitle() { const c = clPvContract(); return c ? String(c.name || '').trim() : i18t('cl_sample_name'); }
-function clNumSay(fmt) { const mk = clMarks(), cv = mk.coverOn && !mk.coverCounts && (_cl.pvPages || 1) > 1 ? 1 : 0, m = Math.max(1, (_cl.pvPages || 1) - cv); return typeof brPageNumberSay === 'function' ? brPageNumberSay(fmt, 1, m) : ''; }
+function clNumSay(fmt) { const mk = clMarks(), cv = mk.coverOn && !mk.coverCounts && (_cl.pvPages || 1) > 1 ? 1 : 0, m = Math.max(1, (_cl.pvPages || 1) - cv); return typeof brPageNumberSay === 'function' ? brPageNumberSay(fmt, 1, m, mk.furnLang || null) : ''; }
+/* ROUND 5: the language of the words HaTi prints on the pages, said by name (null = the reader's own) */
+const clLangName = l => i18t(l ? 'cl_lg_' + l : 'cl_lg_reader');
 function clParts() {
   const d = clDesign(), st = clStructure(), admin = clAdmin(), lh = clLetterheadFacts();
   const mk = clMarks(), headOn = !!(mk.headerPos && mk.headerText);
@@ -958,6 +963,9 @@ function clParts() {
       st: 'set', act: act('cl_change', 'data-cl-mode="sg"') },
     { k: 'cover', name: i18t('cl_n_cover'), html: mk.coverOn ? `${q(clCoverTitle() || '—')}${quiet('· ' + i18t(mk.coverCounts ? 'cl_ls_cv_counted' : 'cl_ls_cv_not_counted'))}` : quiet(i18t('cl_ls_off')),
       st: mk.coverOn ? (clCoverTitle() ? 'set' : 'missing') : 'optional', act: act(mk.coverOn ? 'cl_change' : 'cl_ls_add', 'data-cl-mode="cv"') },
+    /* round 5: the language of the words HaTi prints on the pages */
+    { k: 'lang', name: i18t('cl_n_lang'), html: `<span>${clE(clLangName(mk.furnLang))}</span>${quiet('· ' + i18t('cl_lg_never'))}`,
+      st: mk.furnLang ? 'set' : 'optional', act: act('cl_change', 'data-cl-mode="lg"') },
   ];
   rows.forEach((r, i) => { r.n = i + 1; });
   return rows;
@@ -991,14 +999,18 @@ const clUnsigned = c => !!c && !(c.source === 'upload') && !c._codeNamed && !c.e
 function clWhoRows() {
   const all = (typeof state === 'object' && state && Array.isArray(state.contracts)) ? state.contracts : [];
   const co = clCompanyLook(), org = window.ORG_BRANDING || {};
-  const foot = [String(org.companyName || '').trim(), String(_cl.footer || '').trim()].filter(Boolean).join(' · ');
+  /* the footer as a page reads it: its fields filled from the previewed contract (a field with no value says nothing) */
+  const foot = [String(org.companyName || '').trim(), clFilledOn(String(_cl.footer || '').trim())].filter(Boolean).join(' · ');
+  /* round 5: each row's page-words language: its own look's, else the company's (a stream's own marks replace the company's whole) */
+  const coMarks = co.pageMarks || (window.ORG_BRANDING || {}).pageMarks || {};
   const streams = clStreamIds().map(fid => {
-    const own = _cl.streams[fid], look = own ? clLookOf(own) : co;
+    const own = _cl.streams[fid], look = own ? clLookOf(own) : co, pm = own && own.pageMarks ? own.pageMarks : coMarks;
     return { key: 'stream:' + fid, fid, kind: 'stream', name: clStreamName(fid), own: !!own, look, foot,
+      lang: pm.furnLang || null, fmt: pm.pageNumFmt || null, numOff: pm.pageNumPos === 'off',
       unsigned: all.filter(c => clUnsigned(c) && String(c.folder) === fid).length };
   });
   const papers = (window.ORG_PAPER_LOOKS || []).map(t => ({ key: 'paper:' + t.id, id: t.id, kind: 'paper', name: t.name, own: true,
-    look: clLookOf({ designId: t.designId }), foot, unsigned: null }));
+    look: clLookOf({ designId: t.designId }), foot, lang: coMarks.furnLang || null, fmt: coMarks.pageNumFmt || null, numOff: coMarks.pageNumPos === 'off', unsigned: null }));
   return streams.concat(papers);
 }
 /* what differs from the company look, said part by part */
@@ -1066,20 +1078,29 @@ function clPreviewHtml() {
     ${c ? '' : `<p class="cl-pv-none">${clE(i18t('cl_ls_pv_none'))}</p>`}
   </section>`;
 }
+/* what a row's footer says on its second page: the footer's words, then the page number in the row's own language */
+function clWhoFoot(r) {
+  const n = r.numOff || typeof brPageNumberSay !== 'function' ? '' : brPageNumberSay(r.fmt, 2, 5, r.lang);
+  return [r.foot, n].filter(Boolean).join(' · ');
+}
 function clWhoHtml() {
   const rows = clWhoRows(), own = rows.filter(r => r.own).length, admin = clAdmin();
-  const chip = _cl.whoChip === 'own' && own ? 'own' : 'all';
-  const shown = chip === 'own' ? rows.filter(r => r.own) : rows;
+  /* round 5: a chip per page-words language a row wears (none with no rows) */
+  const langs = [...new Set(rows.map(r => r.lang).filter(Boolean))];
+  const chipOk = k => k === 'all' || (k === 'own' && own) || (k.indexOf('lang:') === 0 && langs.includes(k.slice(5)));
+  const chip = chipOk(_cl.whoChip || 'all') ? (_cl.whoChip || 'all') : 'all';
+  const shown = chip === 'own' ? rows.filter(r => r.own) : chip.indexOf('lang:') === 0 ? rows.filter(r => r.lang === chip.slice(5)) : rows;
+  const langChips = langs.map(l => clChipHtml('lang:' + l, clLangName(l), rows.filter(r => r.lang === l).length, chip === 'lang:' + l, 'steel')).join('');
   const org = window.ORG_BRANDING || {};
-  const chips = `<div class="apn-bar sdd-chips st-ls-chips cl-ls-chips">${clChipHtml('all', i18t('ctf_tab_all'), rows.length, chip === 'all')}${own ? clChipHtml('own', i18t('cl_ls_chip_own'), own, chip === 'own', 'violet') : ''}<span class="cl-sp"></span>${admin ? `<button type="button" class="ui-btn cl-ls-pill" data-cl-add-stream>${typeof icon === 'function' ? icon('plus', 'w-3 h-3') : ''}${clE(i18t('cl_add_stream'))}</button>` : ''}</div>`;
+  const chips = `<div class="apn-bar sdd-chips st-ls-chips cl-ls-chips">${clChipHtml('all', i18t('ctf_tab_all'), rows.length, chip === 'all')}${own ? clChipHtml('own', i18t('cl_ls_chip_own'), own, chip === 'own', 'violet') : ''}${langChips}<span class="cl-sp"></span>${admin ? `<button type="button" class="ui-btn cl-ls-pill" data-cl-add-stream>${typeof icon === 'function' ? icon('plus', 'w-3 h-3') : ''}${clE(i18t('cl_add_stream'))}</button>` : ''}</div>`;
   const body = shown.map(r => {
     const d = docDesignById(r.look.designId) || DOC_DESIGNS[0];
     const act = !admin ? '' : r.kind === 'paper' ? `<button type="button" class="cl-lnk" data-cl-paper-x="${clE(r.id)}">${clE(i18t('cl_use_company'))}</button>`
       : r.own ? `<button type="button" class="cl-lnk" data-cl-stream-edit="${clE(r.fid)}">${clE(i18t('cl_edit'))}</button>`
       : `<button type="button" class="cl-lnk" data-cl-edit-as="${clE(r.fid)}">${clE(i18t('cl_ls_give_own'))}</button>`;
     return `<tr class="st-ls-row cl-ls-row${_cl.whoPick === r.key ? ' is-chosen' : ''}" data-cl-who="${clE(r.key)}" tabindex="0">
-      <td class="cl-ls-who"><b class="cl-ls-nm">${clE(r.name)}</b><span class="cl-ls-sub">${clE(r.kind === 'paper' ? i18t('cl_tag_paper') : (org.companyName || i18t('cl_tag_stream')))}</span></td>
-      <td class="cl-ls-val"><span>${clE(d.name)} <span class="cl-ls-quiet">· ${clE(i18t(r.own ? 'cl_ls_own_look' : 'cl_ls_company_look'))}</span></span>${r.foot ? `<span class="cl-ls-quote">“${clE(r.foot)}”</span>` : `<span class="cl-ls-quiet">${clE(i18t('cl_no_footer'))}</span>`}</td>
+      <td class="cl-ls-who"><b class="cl-ls-nm">${clE(r.name)}</b><span class="cl-ls-sub">${clE([r.kind === 'paper' ? i18t('cl_tag_paper') : (org.companyName || i18t('cl_tag_stream')), clLangName(r.lang)].join(' · '))}</span></td>
+      <td class="cl-ls-val"><span>${clE(d.name)} <span class="cl-ls-quiet">· ${clE(i18t(r.own ? 'cl_ls_own_look' : 'cl_ls_company_look'))}</span></span>${clWhoFoot(r) ? `<span class="cl-ls-quote">“${clE(clWhoFoot(r))}”</span>` : `<span class="cl-ls-quiet">${clE(i18t('cl_no_footer'))}</span>`}</td>
       <td><span class="apn-st is-${r.own ? 'violet' : 'green'}">${clE(i18t(r.own ? 'cl_ls_wears_own' : 'cl_ls_wears_follows'))}</span></td>
       <td class="r">${r.unsigned == null ? '<span class="cl-ls-quiet">—</span>' : clE(r.unsigned)}</td>
       <td class="r">${act}</td></tr>`;
@@ -1316,7 +1337,10 @@ function clPanelFacts() {
   if (_cl.tab === 'who' && _cl.whoPick) {
     const r = clWhoRows().find(x => x.key === _cl.whoPick);
     if (r) out.who = { key: r.key, kind: r.kind, fid: r.fid || '', id: r.id || '', name: r.name, own: r.own, unsigned: r.unsigned,
-      company: (window.ORG_BRANDING || {}).companyName || '', style: (docDesignById(r.look.designId) || DOC_DESIGNS[0]).name, differs: r.own ? clDiffers(r.look) : [] };
+      company: (window.ORG_BRANDING || {}).companyName || '', style: (docDesignById(r.look.designId) || DOC_DESIGNS[0]).name, differs: r.own ? clDiffers(r.look) : [],
+      /* round 5: the row's page words, as its pages say them; the wording is never translated */
+      lang: r.lang ? clLangName(r.lang) : '', langLines: r.lang ? [i18t('cl_lg_d_num', { say: r.numOff ? i18t('cl_ls_off') : brPageNumberSay(r.fmt, 2, 5, r.lang) }),
+        i18t('cl_lg_d_sig', { say: ['name', 'date'].map(k => brFurnT(r.lang, 'sig_ln_' + k, null, k)).join(', ') })].concat(r.foot ? [i18t('cl_lg_d_foot', { say: r.foot })] : []) : [] };
   }
   return out;
 }
@@ -1399,6 +1423,11 @@ function clReadLook(text) {
       pm.headerText = words; pm.headerPos = p; said.push(i18t('cl_said_head', { h: words, p: i18t(CL_POS_SAY[p]) }));
     }
   }
+  /* round 5: "page words in Swedish", "Swedish page numbers", "page words in English", "page words in the reader's language" */
+  if (/\b(page\s+words?|page\s+numbers?|furniture)\b/.test(t)) {
+    const l = /\b(swedish|svenska)\b/.test(t) ? 'sv' : /\benglish\b/.test(t) ? 'en' : /\breader'?s\b/.test(t) ? '' : null;
+    if (l !== null) { pm.furnLang = l || null; said.push(i18t('cl_said_lang', { l: clLangName(l || null) })); }
+  }
   /* round 3: "cover page on", "no cover page", "signatures stacked", "signatures side by side" */
   if (/\b(no|without)\s+(a\s+)?cover(\s+page)?\b|\bcover(\s+page)?\s+off\b/.test(t)) { pm.coverOn = false; said.push(i18t('cl_said_nocover')); }
   else if (/\bcover\s+page\b|\bcover\s+on\b/.test(t)) { pm.coverOn = true; said.push(i18t('cl_said_cover')); }
@@ -1476,6 +1505,7 @@ if (typeof document !== 'undefined' && !window._clWired) {
     if ((x = at('[data-cl-sglay]'))) return clSet(() => { clMarksSet({ sigLayout: x.getAttribute('data-cl-sglay') }); });
     if ((x = at('[data-cl-sgline]'))) return clSet(() => { const k = x.getAttribute('data-cl-sgline'), on = clMarks().sigLines || [];
       clMarksSet({ sigLines: on.includes(k) ? on.filter(y => y !== k) : on.concat(k) }); });
+    if ((x = at('[data-cl-lang]'))) return clSet(() => { clMarksSet({ furnLang: x.getAttribute('data-cl-lang') || null }); });
     if ((x = at('[data-cl-cvon]'))) return clSet(() => { clMarksSet({ coverOn: x.getAttribute('data-cl-cvon') === 'on' }); _cl.pvPage = 1; });
     if ((x = at('[data-cl-cvcount]'))) return clSet(() => { clMarksSet({ coverCounts: x.getAttribute('data-cl-cvcount') === 'yes' }); });
     if ((x = at('[data-cl-hpos]'))) return clSet(() => { clMarksSet({ headerPos: x.getAttribute('data-cl-hpos') || null }); });

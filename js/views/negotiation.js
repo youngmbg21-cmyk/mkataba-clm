@@ -13777,12 +13777,14 @@ function rlPaperFootHtml(c){
      null on their paper); no look set = byte-identical to what it always drew. The rules, their order and the anchor
      stay as they are, so a signature's box (pagesSignRows, pagesSignMarks) is the same box. */
   const mk = (typeof window !== 'undefined' && typeof window.pagesMarksFor === 'function') ? window.pagesMarksFor(c) : null;
+  /* round 5: the block's own words in the look's language where it chose one, else the reader's */
+  const _ft = (k, v) => (mk && mk.lang && typeof window.brFurnT === 'function') ? window.brFurnT(mk.lang, k, v, i18t(k, v)) : i18t(k, v);
   const rows = mk && mk.sigLines && mk.sigLines.length
-    ? `<div class="rl-siglines">${mk.sigLines.map(k => `<div class="rl-sigrow">${_ne(i18t('sig_ln_' + k))}: <span class="rl-sigblank">________________________</span></div>`).join('')}</div>` : '';
+    ? `<div class="rl-siglines">${mk.sigLines.map(k => `<div class="rl-sigrow">${_ne(_ft('sig_ln_' + k))}: <span class="rl-sigblank">________________________</span></div>`).join('')}</div>` : '';
   const stacked = !!(mk && mk.sigLayout === 'stacked');
   const line = who => `<div class="rl-sigline">
       <span class="rl-sigrule"></span>
-      <span class="rl-sigfor">${who ? i18t('ng_signed_for', { who: _ne(who) }) : '&mdash;'}</span>${rows}
+      <span class="rl-sigfor">${who ? _ft('ng_signed_for', { who: _ne(who) }) : '&mdash;'}</span>${rows}
     </div>`;
   /* ---- ONE RULED LINE PER PARTY (22 Sep 2026) ----
      Paper ends with a place for every party to sign, not for two. A contract

@@ -200,7 +200,7 @@ test('f1204 (7) the page: two rows, their edit places and pins, "Cover" in the t
   const untitled = lookWorld({ designId: 'classic-letterhead', pageMarks: { coverOn: true } }, [{ id: 'MK-2', name: '', folder: 'proc', status: 'Draft' }]);
   assert.ok(J(vm.runInContext('clQuality()', untitled)).some(q => q.t === 'cl_ls_q_cover_notitle' && q.go.attr === 'data-st-ls-cl="cv"'), 'a cover with no title is said');
   assert.ok(!J(vm.runInContext('clQuality()', W)).some(q => /cover/.test(q.t)), 'nothing said when nothing is wrong');
-  assert.match(vm.runInContext('clTabsHtml(clParts())', W), /cl_ls_n_parts 11/);
+  /* RE-POINTED 24 Nov 2026 (contract look round 5): one more part, the words on the pages */ assert.match(vm.runInContext('clTabsHtml(clParts())', W), /cl_ls_n_parts 12/);
 });
 
 test('f1204 (8) every new word in both books', () => {
