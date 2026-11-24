@@ -1153,3 +1153,7 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 
 ## PERFORMANCE — two scroll checks wait for a still paper (24 Nov 2026)
 - RE-POINTED: decision-redraws-one-clause-verify 1 (240 set and held ten frames before Accept, bounded 120); dossier-and-amend-ls-verify 3a/3b (the press waits six still frames, bounded 90, and lands only where elementFromPoint is the clause).
+
+## THE DOSSIER END TO END — the Editor as a tab (24 Nov 2026)
+`node --test test/f1202-the-editor-as-a-tab.test.js test/f245-the-clause-editor.test.js test/f563*.test.js` (f1202 red at the parent: 11 failing).
+- (24 Nov 2026, the signing route) f1200 (1) re-pointed: a `div.lgp` sheet (the signing route, `signerRouteWindow`) is waved too; (2) the route opens in the one dialog.
