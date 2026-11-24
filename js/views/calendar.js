@@ -3193,10 +3193,11 @@ if(typeof document!=='undefined'&&!document._calLsWired){ document._calLsWired=t
 }
 /* ---- THE STYLESHEET (the new look only; tokens only) ---- */
 function calLsCss(){ return `
-  html.lg-new .cal-page.is-ls{display:flex;flex-direction:column;min-height:0;background:var(--color-surface);padding:24px 40px 0;box-sizing:border-box;--cls-line:var(--color-divider)}
+  html.lg-new .cal-page.is-ls{display:flex;flex-direction:column;min-height:0;background:var(--color-surface);padding:0 40px;box-sizing:border-box;--cls-line:var(--color-divider)}
   html.lg-new .cal-page.is-ls.is-solo{display:grid;grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:auto auto auto minmax(0,1fr);column-gap:24px}
   html.lg-new .cal-page.is-ls.is-solo > #cal-plan{grid-column:2;grid-row:1 / span 4}
-  html.lg-new .cal-page.is-ls .cls-head{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:12px;min-width:0}
+  /* LEVEL WITH JAMBO'S PANEL (tidy LEVEL): the head's box starts on the panel's top line, its 24px of air inside it */
+  html.lg-new .cal-page.is-ls .cls-head{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:12px;min-width:0;padding-top:24px}
   html.lg-new .cal-page.is-ls .cls-ttl{flex:none}
   html.lg-new .cal-page.is-ls .cls-sp{flex:1;min-width:0}
   html.lg-new .cal-page.is-ls .cls-seg{display:inline-flex;flex:none;background:var(--surface-2);border-radius:999px;padding:3px}
@@ -3269,7 +3270,10 @@ function calLsCss(){ return `
   html.lg-new .cal-page.is-ls .cls-mg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) minmax(0,.62fr) minmax(0,.62fr);border:1px solid var(--cls-line);border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(16,24,40,.04)}
   html.lg-new .cal-page.is-ls .cls-mr{display:contents}
   html.lg-new .cal-page.is-ls .cls-mh{font:var(--w-label) 12px/1.4 var(--font-body);color:var(--color-neutral-400);padding:6px 8px;border-bottom:1px solid var(--color-neutral-100);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  html.lg-new .cal-page.is-ls .cls-d{min-width:0;min-height:64px;overflow:hidden;padding:6px 8px;display:flex;flex-direction:column;gap:3px;font-size:12px;border-right:1px solid var(--color-neutral-100);border-bottom:1px solid var(--color-neutral-100);cursor:pointer;box-sizing:border-box}
+  /* THE MONTH HOLDS STILL (owner, 4 Oct 2026): a day is ONE height whatever it holds — its number and the two chips it
+     may show (or one and "+N more"), 6 + 22 + 3 + 20.4 + 3 + 20.4 + 6 and its 1px line — so an answer of Jambo's or an
+     event of my own landing on a day never grows its week */
+  html.lg-new .cal-page.is-ls .cls-d{min-width:0;height:82px;overflow:hidden;padding:6px 8px;display:flex;flex-direction:column;gap:3px;font-size:12px;border-right:1px solid var(--color-neutral-100);border-bottom:1px solid var(--color-neutral-100);cursor:pointer;box-sizing:border-box}
   html.lg-new .cal-page.is-ls .cls-d:nth-child(7n){border-right:0}
   html.lg-new .cal-page.is-ls .cls-d.is-we{background:color-mix(in srgb,var(--surface-2) 30%,var(--color-surface))}
   html.lg-new .cal-page.is-ls .cls-d.is-chosen{background:var(--color-accent-50)}

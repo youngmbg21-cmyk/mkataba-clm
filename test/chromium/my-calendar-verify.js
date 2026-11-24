@@ -135,7 +135,9 @@ const check = (name, pass, detail) => {
     /* RE-POINTED 23 Nov 2026 (P-14): the added block is a row of my calendar, its badge without dashes */
     const solid = await until(() => { const ev = mineList('event').find(e => e.title === 'Decide MK-A1 notice'); const a = ev && document.querySelector(`#cal-week tr.cls-r.is-mine [data-cal-mine="${ev.id}"]`);
       const b = a && a.closest('tr').querySelector('.cls-b'); return b ? getComputedStyle(b).borderTopStyle : null; });
-    check('5c. Add stores the block in my calendar and it draws solid (no dashes), with Undo', !!added && solid === 'none', solid);
+    /* RE-POINTED 23 Nov 2026 (P-14: the badge is a soft fill with no edge): the page's base sheet gives every element
+       border-style solid at width 0, so "no dashes" reads as any style but dashed — 'solid' (no width) or 'none' */
+    check('5c. Add stores the block in my calendar and it draws solid (no dashes), with Undo', !!added && !!solid && solid !== 'dashed', solid);
     await page.screenshot({ path: path.join(OUT, '2-plan.png') });
     await page.click('.cal-prop.is-added [data-cal-plan-undo]');
     const undone = await until(() => !(mineList('event') || []).some(e => e.title === 'Decide MK-A1 notice') ? true : null);
