@@ -23495,7 +23495,7 @@
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-menu-i.is-on{background:var(--row-chosen);font-weight:var(--w-label)}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-grid{display:flex;align-items:flex-start;gap:22px;flex-wrap:wrap;padding:4px 0 24px}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-left{flex:1 1 440px;min-width:0}
-  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-grid.is-who .cl-ls-left{flex-basis:100%}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-grid .cl-ls-left{flex-basis:100%}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-t{table-layout:auto}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-t td{padding:10px 8px;vertical-align:top;font-size:13.5px}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-t th{padding:8px}
@@ -23572,6 +23572,21 @@
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-pv-thumb.is-cover{width:auto;padding:0 6px}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-pv-thumb.is-on{outline:2px solid var(--accent-ink);color:var(--color-text)}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-pv-none{margin:0;font-size:12.5px;color:var(--color-quiet)}
+  /* PREVIEW IN THE PANEL (owner, 24 Nov 2026): the paper pinned at the side panel's top, a whole A4 page at the width
+     the panel's height allows (clPvFitW sets the frame); the panel's words scroll in their own room below it */
+  html.lg-new .st-ls-page .st-ls-p.is-pin{display:flex;flex-direction:column;height:100%;min-height:0;box-sizing:border-box;gap:0}
+  html.lg-new .st-ls-page .st-ls-p.is-pin > .cl-pv-dock{flex:none;min-width:0}
+  html.lg-new .st-ls-page .st-ls-p.is-pin > .st-ls-rest{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;padding-top:14px}
+  html.lg-new .st-ls-page .cl-pg.is-r1.cl-pv-dock .cl-pv{flex:none;width:100%;padding:8px 10px 10px;gap:6px}
+  html.lg-new .st-ls-page .cl-pg.is-r1.cl-pv-dock .cl-pv-thumb{width:22px;height:26px}
+  html.lg-new .st-ls-page .cl-pg.is-r1.cl-pv-dock .cl-pv-view{align-self:center;flex:none}
+  html.lg-new .st-ls-page .cl-pg.is-r1.cl-pv-dock .cl-pv-paper .pg-zoomwrap{width:100%}
+  html.lg-new .st-ls-page .cl-pg.is-r1.cl-pv-dock .cl-pv-pages{justify-content:center}
+  html.lg-new .st-ls-page .cl-pg.is-r1.cl-pv-dock .cl-menu{max-width:100%}
+  /* the tab line keeps to its own space: the last tab (Who wears it · N streams · N papers) ends in "…" */
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-tabs{min-width:0;max-width:100%}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-tabs .st-ls-tab{flex:none;white-space:nowrap}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-tabs .st-ls-tab[data-cl-tab="who"]{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
   /* the panel's quality check: a soft dot, the finding, its door — plain lines, no cards */
   html.lg-new .st-ls-p .cl-qc-list{display:flex;flex-direction:column;gap:2px}
   html.lg-new .st-ls-p .cl-qc{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:4px 0;font-size:13px;min-width:0}
