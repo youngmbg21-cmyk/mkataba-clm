@@ -65,6 +65,11 @@ const check = (name, pass, detail) => {
     await page.waitForFunction(n => window.state && state.contracts && state.contracts.length >= n, BOOK.length, { timeout: 20000 });
     await page.evaluate(() => { intel.cam = null; intel.tab = 'map'; intel.folds = {}; setView('intel'); });
     await until(() => window.IG && IG.hubs && IG.hubs.length >= 2);
+    /* RE-POINTED 24 Nov 2026 (owner: Explorer BRAIN AND WIRING HIDDEN FOR NOW, the map opens on Floors; their drawing
+       kept): the group cards and the group bubbles are drawn only on the Brain, so these checks turn the kept drawing
+       on for this page alone — the hidden set lets the Brain back in and the map turns to it, settled before reading */
+    await page.evaluate(() => { IGB_VIEWS_HIDDEN.delete(0); igSetView(0); });
+    await until(() => igbCam().view === 0 && igbCam().w[0] > 0.98);
     await page.evaluate(() => { igSetSpin && igSetSpin(false); });
 
     /* ================= 1. ONLY AN ASKED FOLD IS A BUBBLE ================= */

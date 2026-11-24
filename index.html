@@ -25547,7 +25547,10 @@
   html.lg-new #tpl-dt .tpl-dt-f b{font-weight:var(--w-label);color:var(--color-text)}
   html.lg-new #tpl-dt .tpl-dt-morebtn{height:var(--ctl-h);border-radius:999px;gap:4px}
   html.lg-new #tpl-dt .tpl-dt-line > .ui-btn-primary{height:var(--ctl-h);border-radius:999px}
-  html.lg-new #content #tpl-dt > .tpl-dt-paper#tpl-dt-desk{background:var(--desk-ground);border-color:transparent;padding:var(--s-4) var(--s-4) var(--s-6)}
+  /* the desk only under a paper (24 Nov 2026, white-sheet-verify: this id rule outweighed "with no wording the box is
+     white" above, leaving a template with no wording a bare grey desk) */
+  html.lg-new #content #tpl-dt > .tpl-dt-paper#tpl-dt-desk{border-color:transparent;padding:var(--s-4) var(--s-4) var(--s-6)}
+  html.lg-new #content #tpl-dt > .tpl-dt-paper#tpl-dt-desk:has(.tpl-dt-sheet){background:var(--desk-ground)}
   html.lg-new #tpl-dt #tpl-dt-desk .tpl-dt-sheet{padding:0}
   html.lg-new #tpl-dt #tpl-dt-desk .tpl-dt-sheet > .blueprint{background:var(--color-surface);border-color:transparent;box-shadow:var(--n-shadow-card,0 1px 2px rgba(38,55,74,.06),0 4px 14px rgba(38,55,74,.07))}
   html.lg-new #tpl-dt #tpl-dt-desk > .paper-zc-row{--zc-room:0px}

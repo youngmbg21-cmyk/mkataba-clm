@@ -84,7 +84,8 @@ test('f1202 (2) a template\'s page: the desk, the zoom, one row, More ▾ and on
   const p = fnBody(TL, 'openTemplateLibDetail');
   assert.match(p, /<section class="tpl-dt-paper" id="tpl-dt-desk">[\s\S]*window\.rlPaperZoomHtml\(\)[\s\S]*<div class="tpl-dt-sheet" id="tpl-dt-zoom">/, 'the paper carries the zoom');
   assert.match(read('js/views/negotiation.js'), /if \(window\.tplDtApplyZoom\) tplDtApplyZoom\(\);/, 'and follows it');
-  assert.match(CSS, /html\.lg-new #content #tpl-dt > \.tpl-dt-paper#tpl-dt-desk\{background:var\(--desk-ground\)/, 'the Dossier\'s desk');
+  /* RE-POINTED 24 Nov 2026 (white-sheet-verify: the desk only under a paper; a template with no wording stays white) */
+  assert.match(CSS, /html\.lg-new #content #tpl-dt > \.tpl-dt-paper#tpl-dt-desk:has\(\.tpl-dt-sheet\)\{background:var\(--desk-ground\)\}/, 'the Dossier\'s desk');
   assert.match(fnBody(TL, 'tplLibSheetHtml'), /style="background:var\(--color-surface\);border-color:transparent/, 'a white paper');
   assert.match(p, /const blackNew = t\.status === 'published' && typeof canEdit === 'function' && canEdit\(\);/);
   assert.match(p, /editShown && blackNew \? \{ k: 'edit', label: i18t\('tl_dt_edit_builder'\)/, 'a published template\'s Edit is in More');

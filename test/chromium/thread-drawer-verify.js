@@ -225,7 +225,10 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
        instead by 2c (no filter is drawn) and stakes-verify. */
 
     /* ===== 4. PLAIN NEVER ENDS IN SILENCE ===== */
-    const deliv = await page.evaluate(() => { const r = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(x => /Delivery Information/.test(x.textContent)); return r ? r.dataset.thRow : null; });
+    /* RE-POINTED 24 Nov 2026 (CLAUSE PAGE L+S: the open clause's page ends in "Next: <clause> ›"): the row is found by
+       its own name, not by any words inside it — the open Personnel row now names Delivery Information in its Next, and
+       a press on that open row's head shut it (press it again and it closes) */
+    const deliv = await page.evaluate(() => { const r = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(x => /Delivery Information/.test((x.querySelector('.doc-th-name') || {}).textContent || '')); return r ? r.dataset.thRow : null; });
     if (deliv != null) { await page.evaluate(i => document.querySelector(`#pd-thread [data-th-go="${i}"]`).click(), deliv); await page.waitForTimeout(1400); }
     const press = async () => { const c0 = ai.calls.length;
       await page.evaluate(() => { const b = document.querySelector('#pd-thread .doc-th-row.is-open [data-th-explain]'); if (b) b.click(); });

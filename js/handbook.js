@@ -492,7 +492,9 @@ const HANDBOOK_CHAPTERS = [
     cost: _hbkFree, doors: [], acts: ['notes'],
     words: { en: ['notes', 'comments', 'comment on a clause', 'internal note', 'mention a colleague'], sv: ['anteckningar', 'kommentarer', 'kommentera en klausul', 'intern anteckning', 'nämna en kollega'] },
     shots: [
-      { go: [{ open: 'MK-A2', face: 'red' }], boxes: [{ sel: '[data-rl-notes-all="MK-A2"]', step: 1 }], cap: { en: 'Notes on the Redlines face opens this contract\'s notes (1).', sv: 'Anteckningar i Ändringar-ansiktet öppnar avtalets anteckningar (1).' } }] },
+      /* RE-POINTED 24 Nov 2026 (REDLINES Changes · Ladder: Notes left the switch; the "notes" link above Jambo's box opens
+         the bar's Notes) */
+      { go: [{ open: 'MK-A2', face: 'red' }, { waitFor: '#ig-dock [data-ca-chip="rl_notes"]' }], boxes: [{ sel: '#ig-dock [data-ca-chip="rl_notes"]', step: 1 }], cap: { en: 'On the Redlines face, the notes link above Jambo\'s box opens this contract\'s notes (1).', sv: 'I Ändringar-ansiktet öppnar länken anteckningar ovanför Jambos ruta avtalets anteckningar (1).' } }] },
 
   { k: '3.8', part: 'agree', round: 2,
     title: { en: 'Risks to look at', sv: 'Risker att titta på' },
@@ -608,7 +610,7 @@ const HANDBOOK_CHAPTERS = [
     words: { en: ['after signing', 'sealed', 'executed copy', 'signed contract', 'frozen'], sv: ['efter signering', 'förseglad', 'verkställd kopia', 'signerat avtal', 'fryst'] },
     shots: [
       { go: [{ open: 'MK-B1', face: 'copilot' }, { fn: 'pdSignOpen', ref: 'MK-B1', arg: 'id' }], boxes: [{ sel: '#sign-seal-acts', step: 1 }, { sel: '#sign-wrap', step: 1 }], cap: { en: 'The receipt: the seal to verify, and the copies sent (1).', sv: 'Kvittot: sigillet att verifiera, och kopiorna som skickats (1).' } },
-      { go: [{ open: 'MK-B1', face: 'copilot' }, { waitFor: '#ig-dock [data-pd2-dtc]' }], boxes: [{ sel: '#ig-dock [data-pd2-dtc]', step: 2 }, { sel: '#ig-dock [data-ca-chip="history"]', step: 3 }], cap: { en: 'The duties\' row of the Dossier\'s {ui:pd2_ws_head} (2); above Jambo\'s box, history (3).', sv: 'Förpliktelsernas rad i dossierns {ui:pd2_ws_head} (2); ovanför Jambos ruta, historik (3).' } }] },
+      { go: [{ open: 'MK-B1', face: 'copilot' }, { waitFor: '#ig-dock [data-pd2-dtc]' }], boxes: [{ sel: '#ig-dock [data-pd2-dtc]', step: 2 }, { sel: '#ig-dock [data-ca-chip="history"]', step: 3 }], cap: { en: 'The duties\' row of the Dossier\'s What stands (2); above Jambo\'s box, history (3).', sv: 'Förpliktelsernas rad i dossierns Läget (2); ovanför Jambos ruta, historik (3).' } }] },
 
   /* ======================= PART 5 — KEEP IT ALIVE ======================= */
   { k: '5.1', part: 'keep', round: 1,
@@ -636,7 +638,7 @@ const HANDBOOK_CHAPTERS = [
     words: { en: ['obligations', 'duties', 'what is due', 'mark done', 'chase', 'week by week', 'promises'], sv: ['åtaganden', 'skyldigheter', 'vad förfaller', 'markera klart', 'påminn', 'vecka för vecka'] },
     shots: [
       { go: [{ place: 'oblig' }, { waitFor: '[data-obn-go="done"]' }], boxes: [{ sel: '[data-obn-tab]', step: 1 }, { sel: '[data-obn-go="done"]', step: 3 }], cap: { en: 'The tabs at the top (1); We owe and They owe, one act per line, here Mark done (3).', sv: 'Flikarna högst upp (1); Vi är skyldiga och De är skyldiga, en handling per rad, här Markera klar (3).' } },
-      { go: [{ open: 'MK-C1', face: 'copilot' }, { waitFor: '#ig-dock [data-pd2-dtc]' }], boxes: [{ sel: '#ig-dock [data-pd2-dtc]', step: 9 }], cap: { en: 'On a contract\'s Dossier: the duties\' row of {ui:pd2_ws_head}, the one way to its duties (9).', sv: 'I ett avtals Dossier: förpliktelsernas rad i {ui:pd2_ws_head}, den enda vägen till dess åtaganden (9).' } }] },
+      { go: [{ open: 'MK-C1', face: 'copilot' }, { waitFor: '#ig-dock [data-pd2-dtc]' }], boxes: [{ sel: '#ig-dock [data-pd2-dtc]', step: 9 }], cap: { en: 'On a contract\'s Dossier: the duties\' row of What stands, the one way to its duties (9).', sv: 'I ett avtals Dossier: förpliktelsernas rad i Läget, den enda vägen till dess åtaganden (9).' } }] },
 
   { k: '5.2', part: 'keep', round: 2,
     title: { en: 'Calendar and the plan', sv: 'Kalendern och planen' },
@@ -1196,7 +1198,9 @@ const HANDBOOK_CHAPTERS = [
     cost: _hbkFree, doors: ['settings'], acts: [],
     words: { en: ['company look', 'letterhead', 'logo', 'branding', 'look by stream', 'house style'], sv: ['företagets utseende', 'brevhuvud', 'logotyp', 'avtalsdesign', 'varumärke'] },
     shots: [
-      { go: [{ view: 'team' }, { fn: 'clGo' }, { waitFor: '#cl-parts' }], boxes: [{ sel: '#cl-ask', step: 2 }, { sel: '#cl-parts', step: 3 }, { sel: '#cl-pv', step: 4 }], cap: { en: 'The sentence box (2), the table of parts (3), and the preview on one of your own contracts (4).', sv: 'Meningsrutan (2), tabellen med delarna (3) och förhandsvisningen på ett av era egna avtal (4).' } },
+      /* RE-POINTED 24 Nov 2026 (the look's table grew a row per part through rounds 2–5, past a third of the window: a box
+         is a place to look, never a whole panel) — step 3 boxes the table's first part row */
+      { go: [{ view: 'team' }, { fn: 'clGo' }, { waitFor: '#cl-parts' }], boxes: [{ sel: '#cl-ask', step: 2 }, { sel: '#cl-parts tbody tr[data-cl-part]', step: 3 }, { sel: '#cl-pv', step: 4 }], cap: { en: 'The sentence box (2), a row of the table of parts (3), and the preview on one of your own contracts (4).', sv: 'Meningsrutan (2), en rad i tabellen med delarna (3) och förhandsvisningen på ett av era egna avtal (4).' } },
     ] },
 ];
 
