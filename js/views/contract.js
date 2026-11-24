@@ -16043,7 +16043,7 @@ function docThreadNavSync(){
   { const row = card.querySelector(`.doc-th-rows [data-th-row="${_docThreadOn}"].is-open`);
     card.querySelectorAll('.doc-th-lred').forEach(x => { if (!row || !row.contains(x) || row.querySelector('[data-stk-redline]')) x.remove(); });
     if (row && !row.querySelector('[data-stk-redline]') && !row.querySelector('.doc-th-lred') && typeof mayActOn === 'function' && mayActOn(thLiveContract())){
-      const at = row.querySelector(':scope > .doc-th-in') || row;
+      const at = row.querySelector('.doc-th-in') || row;
       at.insertAdjacentHTML('beforeend', `<div class="doc-th-lred"><button type="button" class="stk-a is-go is-link" data-th-pg="redline">${esc(i18t('stk_start_red'))}</button></div>`); } }
   /* NO FOOT LINE (owner, 24 Nov 2026: "delete the highlighted area … only for this tab so we can better utilize the
      space"): "Keep scrolling for …" is gone; Next › in the page's act row says where the next step goes */
