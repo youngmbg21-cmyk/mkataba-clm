@@ -5851,9 +5851,6 @@ function igPaintFoldAll(){
 }
 function igSetView(v){ igWake(); if(intel.tour&&intel.tour.view!==v) intel.tour=null;
   const cam=igbCam(), was=cam.view; cam.view=Math.max(0,Math.min(IGB_NV-1,Number(v)||0));
-  /* a view hidden for now (Brain, Wiring) is never landed on: every path (what-if, a shading ask, a saved finding or
-     recipe) falls back to the first shown view, so a button is always lit */
-  if(!igbViewShown(cam.view)) cam.view=IGB_VIEW_FIRST;
   document.querySelectorAll('[data-ig-view]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.getAttribute('data-ig-view'))===cam.view)));
   igPaintFoldAll(); igSpinPaint();
   /* the legend's grid and timeline rows belong to their view (stage 1) */
