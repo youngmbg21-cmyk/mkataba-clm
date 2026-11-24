@@ -9501,8 +9501,24 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   e.preventDefault(); pd2NotesHiddenSet(b.getAttribute('data-pd2-notes-tg') === 'hide');
   const cc = typeof pdContract === 'function' ? pdContract() : null; if (cc) pd2NotesPaint(getContract(cc.id) || cc);
 });
+/* THE COUNT LINE UNDER THE PAPER (Round E, as drawn): on Clauses, how many of each kind of point stand beside the paper,
+   and how many clauses are still left to look at — counted off the same groups the margin draws; nothing new */
+function pd2LegendPaint(groups){
+  const old = document.getElementById('pd2-legend');
+  if (!groups){ if (old) old.remove(); return; }
+  const n = { need: 0, look: 0, pb: 0, plan: 0 }; let left = 0;
+  groups.forEach(g => { if (g.ok) return; let any = false; (g.items || []).forEach(x => { if (x.clause && n[x.kind] != null){ n[x.kind]++; any = true; } }); if (any) left++; });
+  if (!left){ if (old) old.remove(); return; }
+  const E = _pdE, T = _pdT, word = k => k === 'pb' ? T('pd2_fd_k_pb') : k === 'plan' ? T('pd2_fd_k_plan') : T('bd_st_' + k);
+  const html = ['need', 'look', 'pb', 'plan'].filter(k => n[k]).map(k => `<span class="k-${k}"><i aria-hidden="true"></i>${E(word(k))} ${n[k]}</span>`).join('')
+    + `<span class="pd2-lg-left">${E(_pdTn('pd2_lg_left', left, { n: left }))}</span>`;
+  const host = document.getElementById('ig-paper'); if (!host) return;
+  let el = old; if (!el){ el = document.createElement('div'); el.id = 'pd2-legend'; el.className = 'pd2-legend'; host.appendChild(el); }
+  if (el.getAttribute('data-k') !== html){ el.setAttribute('data-k', html); el.innerHTML = html; }
+}
 function pd2NotesOff(){
   _pd2Geo = null;
+  try { pd2LegendPaint(null); } catch (_){}
   document.querySelectorAll('#pd2-notes-tg').forEach(n => n.remove());
   document.querySelectorAll('#ig-paper .ig-zoom.has-pd2').forEach(z => { z.classList.remove('has-pd2'); z.style.removeProperty('--doc-sheet-max'); });
   document.querySelectorAll('#ig-paper [data-pd2-left]').forEach(sh => { sh.style.marginLeft = 'auto'; sh.removeAttribute('data-pd2-left'); });
@@ -9617,6 +9633,7 @@ function pd2NotesPaint(c, seat){
     place(zoom, host, f);
   } else {
     host.innerHTML = (walking ? '' : pd2NotesTgHtml(false)) + groups.map((g, i) => pd2GroupHtml(g, i)).join('');
+    try { pd2LegendPaint(onClauses ? groups : null); } catch (_){}
     place(zoom, host, f);
     if (walking) pd2WalkNotesHold(groups, host);
     if (onClauses) pd2ClauseTint();
@@ -9716,6 +9733,11 @@ function pd2Groups(c, cv, notes){
     const node = n.hit.el || (n.hit.range && n.hit.range.startContainer); const g = get(node ? rowOf(node) : -1);
     if (g.at < 0 && !g.el) g.el = n.hit.el || null, g.hit = g.hit || n.hit;
     g.items.push({ tone: n.tone, word: n.word, std: n.std, k: n.k, w: n.w, acts: n.acts, note: n }); });
+  /* CHECKED · NOTHING FOUND (Round E, as drawn): on Clauses, once Jambo has read the paper, a clause with nothing on it says so
+     beside it — read off the same points, nothing new */
+  let readDone = false; try { readDone = _pdTab === 'doc' && typeof window.stkLivePoints === 'function' && !!window.stkLivePoints(c); } catch (_){ readDone = false; }
+  if (readDone) rows.forEach((r, i) => { if (!r || !r.el || by.has(i) || (typeof window.docThreadIsSec === 'function' && window.docThreadIsSec(r))) return;
+    by.set(i, { at: i, el: r.el, label: '', ok: true, items: [{ tone: 'fact', kind: 'ok', word: '', k: _pdT('pd2_g_checked_none') }] }); });
   return [...by.values()].map(g => Object.assign(g, { cid: c.id, hit: g.el ? { el: g.el } : (g.hit || (g.items[0].note && g.items[0].note.hit)) })).filter(g => g.hit && g.items.length)
     .map(g => Object.assign(g, { y: (g.hit.el || g.hit.range).getBoundingClientRect().top })).sort((a, b) => a.y - b.y);
 }
@@ -9730,6 +9752,7 @@ function pd2GroupHtml(g, i){
   const more = g.items.length > 1 ? `<button type="button" class="ui-link pd2-mg-more" data-pd2-unfold>${E(_pdTn('pd2_g_more', g.items.length - 1, { n: g.items.length - 1 }))}</button>` : '';
   const less = g.items.length > 1 ? `<button type="button" class="ui-link pd2-mg-less" data-pd2-fold>${E(_pdT('pd2_g_less'))}</button>` : '';
   const kept = (_pd2Unfolded.has(String(g.cid) + '|' + g.at) ? ' data-pd2-open="1"' : '') + (_pd2Shut.has(String(g.cid) + '|' + g.at) ? ' data-pd2-shut="1"' : '');
+  if (g.ok) return `<div class="pd2-mn pd2-mg is-ok" data-pd2-note="${i}" data-pd2-at="${E(String(g.at))}"><div class="pd2-mg-i k-ok"><div class="pd2-mg-l"><i class="pd2-mn-ok" aria-hidden="true">\u2713</i>${E(g.items[0].k)}</div></div></div>`;
   return `<div class="pd2-mn pd2-mg is-${tone}" data-pd2-note="${i}" data-pd2-at="${E(String(g.at))}"${kept}><div class="pd2-mg-h">${E(g.label)}</div>${g.items.map((x, k) => line(x, k > 0)).join('')}${more}${less}${open}</div>`;
 }
 /* each group at its clause's height, pushed down past the one above; one that would drift more than a few lines from its
@@ -11651,7 +11674,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     e.preventDefault(); const c = pdContract(); if (c) pdEdOpen(c); });
 }
 
-Object.assign(window, { pdEdTabOn, pdEdTabBtnHtml, pdEdTabsHtml, pdEdPointOf, pdEdOpen, pdEdTabLeave, pdArriveNote, pdMidArriving, pdArriveEnd, pdMidFrom, pdMidVeil, CV_LAND_MS });
+Object.assign(window, { pd2LegendPaint, pdEdTabOn, pdEdTabBtnHtml, pdEdTabsHtml, pdEdPointOf, pdEdOpen, pdEdTabLeave, pdArriveNote, pdMidArriving, pdArriveEnd, pdMidFrom, pdMidVeil, CV_LAND_MS });
 Object.assign(window, { pd2DutiesCardOf, pd2DutiesCardHtml, pd2StandsOpen, pd2StandsUp, pd2DealCardHtml, pd2DealPageHtml, pd2DealFaceHtml, pd2DutyAnswer, pd2HistUp, pd2HistOpen, pd2PayUp, pd2PayOpen, pd2BriefOpen, pd2BriefUp, pd2BriefGo, pd2BriefRepaint, pd2BriefNoneHtml, pd2StdGo, pd2StdNotes, pd2ObGo, pdObOpenRow, pd2BriefHtml, pd2BriefRead, pd2RestsOn, pd2Sentences, pd2BriefReaders });
 Object.assign(window, { pd2ReadLinePlay, pd2PointKind, pd2PlanOpen, pd2PlanItems, pd2PlanTabOn, pd2PlanAnswers, pd2Sealed, pd2AmendCardOf, pd2FactRowLs, pd2FamCardHtml, pd2StepsHtml, pd2CardFiveHtml, pd2CardWho, pd2FormAskTakes, pd2FormAsk, pd2FormFaceHtml, pd2FormChipsPaint, pd2On, pd2Html, pd2HistFaceHtml, PD2_HK_TONE, pd2Facts, pd2SectionOf, pd2Clauses, dossierNextOf, pd2Notes, pd2NotesPaint, pd2NotesOff, pd2SheetPre, pd2RoadOf, pd2RoadWarm, pd2WaitOf, pd2WaitCardHtml, pd2RoadHtml, pd2RoadGo, pd2RoadPaper, pd2RoadCardHtml, pd2RoadReadHtml, PD2_RD_QUOTES });
 Object.assign(window, { pdObRenewQuoteHtml, pd2ClausePoints, pd2Groups, pd2GroupHtml, pd2GroupsPlace, pd2NotesHiddenGet, pd2NotesHiddenSet, pd2NotesTgHtml, pd2NotesTgSolo, PD2_NOTES_HIDDEN_KEY, pd2RedAnswers, pd2RedStdAnswers, pd2RedBlocks, pd2RedGroupHtml, pd2RedChipsHtml, pd2RedAskHtml, pd2RedFloor, pd2OpenInClauses, PD2_FOLD_DRIFT, pdFormHtml, pdFormRows, pdFormOpen, pdFormClose, pdFormShows, pdFormSave, pdFormDoorRowHtml, pdMidCrumbHtml, pdActsToggle, PD_ACTS_SHORT, pdActsShortHtml, pdActsPopOpen, pdActsPopClose, pdActsFold, PD_ACTS_TRIES, pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtFocus, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdObRenewHtml, pdObSidesHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
