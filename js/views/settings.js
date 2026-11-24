@@ -2726,10 +2726,11 @@ function stLsPanelPaint(){
   if(!document.getElementById('ins-panel')) return;
   insPaintPanel({ seat:'team', jlWord:i18t('stn_title'), item:{ id:'settings' }, head:false, tabCount:0, body:stLsPanelHtml() });
   stLsBackWire();
-  /* PAPER ALONE, A WIDER PANEL (owner, 24 Nov 2026): while the look's paper stands in the panel it opens at
-     ST_LOOK_PANEL_W through the slider's own writer (jlPageWideSet → JL_SPLIT), never over the reader's saved width;
-     anywhere else the reader's own width */
-  if(typeof window.jlPageWideSet==='function') window.jlPageWideSet(_stPage==='look'&&document.getElementById('cl-pv-dock')?ST_LOOK_PANEL_W:0,'#cl-pv-dock');
+  /* ONE PAGE, THE PANEL SIZED TO IT (owner, 24 Nov 2026): while the look's page stands in the panel, the panel is as
+     wide as that whole page and a modest margin (clPvPanelW), at most ST_LOOK_PANEL_W, through the slider's own writer
+     (jlPageWideSet → JL_SPLIT), never over the reader's saved width; anywhere else the reader's own width */
+  const lookW=_stPage==='look'&&document.getElementById('cl-pv-dock')?(typeof window.clPvPanelW==='function'?window.clPvPanelW(ST_LOOK_PANEL_W):ST_LOOK_PANEL_W):0;
+  if(typeof window.jlPageWideSet==='function') window.jlPageWideSet(lookW,'#cl-pv-dock');
   /* the look's paper, drawn where the panel now stands (it reads, it never writes) */
   if(_stPage==='look'&&typeof window.clAfterPaint==='function') window.clAfterPaint();
 }

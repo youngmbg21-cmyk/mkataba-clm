@@ -6,7 +6,10 @@
    (2) no page buttons: the pages scroll in the panel's own scroller, under the chooser line
    (3) every page drawn and stacked, each whole; a long contract capped and the cap said, never a silent trim
    (4) the panel opens at 560 there, through the slider's own writer; the reader's saved width is never written over,
-       and comes back once the paper is gone; a drag there is honoured in memory only */
+       and comes back once the paper is gone; a drag there is honoured in memory only
+   RE-POINTED 24 Nov 2026 (one page, waves kept, owner: "No! I want the waves and simply put one page of paper on the
+   panel"): (2) and (3) now pin ONE whole page, no paper scroller, no grey card, the waves kept but cut round the page,
+   pins only for page-1 parts; (4) the panel is sized to the page, at most 560 */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -35,7 +38,8 @@ function lookWorld(els) {
 
 test('f1217 (1) the panel is the paper alone on The page and Brand kit; Who wears it and History keep theirs', () => {
   const W = lookWorld();
-  for (const tab of ['page', 'kit']) { vm.runInContext(`_cl.tab = ${JSON.stringify(tab)}`, W); assert.match(String(vm.runInContext('clPanelFacts().pv', W)), /id="cl-pv-scroll"/, tab); }
+  /* RE-POINTED 24 Nov 2026 (one page, waves kept, owner): one page, no scroller */
+  for (const tab of ['page', 'kit']) { vm.runInContext(`_cl.tab = ${JSON.stringify(tab)}`, W); assert.match(String(vm.runInContext('clPanelFacts().pv', W)), /id="cl-pv-stage"/, tab); }
   for (const tab of ['who', 'history']) { vm.runInContext(`_cl.tab = ${JSON.stringify(tab)}`, W); assert.equal(vm.runInContext('clPanelFacts().pv', W), '', tab); }
   const look = fn(S, 'stLsLookPanel');
   assert.match(look, /if\(f\.pv\) return \{ pin:f\.pv, paperOnly:true \};/, 'paper alone: no headline, ring or quality check');
@@ -43,33 +47,42 @@ test('f1217 (1) the panel is the paper alone on The page and Brand kit; Who wear
   assert.match(fn(S, 'stLsPanelHtml'), /if\(o\.paperOnly\) return `<div class="jl-words is-ov sdd5-p st-ls-p is-paper-only">\$\{o\.pin\}<\/div>`;/);
 });
 
-test('f1217 (2) no page buttons: the pages scroll under the chooser line', () => {
+test('f1217 (2) one page, nothing scrolls: no page buttons, no paper scroller, no grey card', () => {
   const W = lookWorld();
   const pv = String(vm.runInContext('clPreviewHtml()', W));
-  assert.doesNotMatch(pv, /cl-pv-pages|cl-pv-thumb|data-cl-pv-page/, 'no 1 · 2 · 3');
-  assert.doesNotMatch(strip(D), /data-cl-pv-page|cl-pv-thumb|clPvPagesPaint/);
-  assert.match(pv, /<div class="cl-pv-h">[\s\S]*id="cl-pv-n"[\s\S]*<div class="cl-pv-scroll scroll-thin" id="cl-pv-scroll"><div class="cl-pv-view" id="cl-pv-view">/, 'the chooser line above, the pages in their own scroller');
-  assert.match(D, /document\.addEventListener\('scroll', e => \{ if \(_cl && e\.target && e\.target\.id === 'cl-pv-scroll'\) clPvScrolled\(\); \}, true\);/, '"page N of M" follows the page in view');
-  assert.match(fn(D, 'clPvSayPage'), /p0 \|\| clPvPageAt\(\)/);
-  assert.match(fn(D, 'clRowChoose'), /sc\.scrollTop = Math\.max\(0, y - 40\)/, 'a row brings its pin into the panel\'s view');
-  assert.doesNotMatch(fn(D, 'clRowChoose'), /scrollIntoView|content-scroll/, 'the page itself never moves');
+  assert.doesNotMatch(pv, /cl-pv-pages|cl-pv-thumb|data-cl-pv-page|cl-pv-scroll|cl-pv-cap/, 'no 1 · 2 · 3, no scroller, no cap');
+  assert.doesNotMatch(strip(D), /data-cl-pv-page|cl-pv-thumb|clPvPagesPaint|cl-pv-scroll|clPvScrolled|CL_PV_MAX_PAGES/);
+  assert.match(pv, /<div class="cl-pv-h">[\s\S]*id="cl-pv-n"[\s\S]*<div class="cl-pv-stage" id="cl-pv-stage"><div class="cl-pv-view" id="cl-pv-view">/, 'the chooser line above, the one page under it');
+  const X = read('index.html');
+  assert.match(X, /\.cl-pg\.is-r1\.cl-pv-dock \.cl-pv\{flex:1 1 auto;min-height:0;width:100%;padding:0;gap:8px;background:none;border-radius:0\}/, 'no grey card round the page');
+  assert.match(X, /\.cl-pg\.is-r1\.cl-pv-dock \.cl-pv-stage\{[^}]*overflow:hidden;[^}]*justify-content:center/, 'the page centred; nothing scrolls');
+  assert.match(X, /\.cl-pg\.is-r1\.cl-pv-dock \.cl-pv-view\{flex:none;background:var\(--color-doc-surface\);box-shadow:var\(--shadow-paper\)\}/, 'a white sheet with a soft shadow');
+  /* the waves stay on this panel (no rule turns them off), cut round the page */
+  assert.doesNotMatch(X, /cl-pv-dock[^{]*\)\s*#wm-ins\{[^}]*(display:none|content:none)/);
+  assert.match(X, /html\.lg-new:has\(#cl-pv-dock\) #wm-ins\{[^}]*mask-composite:subtract\}/, 'the waves never over the page');
+  assert.match(fn(D, 'clPvHole'), /st\.style\.setProperty\('--wm-hole-x'/);
+  assert.match(fn(D, 'clPvSayPage'), /i18t\('cl_ls_pv_page', \{ n: num\(p\), m: of \}\)/, '"page 1 of M"');
 });
 
-test('f1217 (3) every page stacked, each whole; a long contract capped and the cap said', () => {
-  const view = { style: {} }, paper = { style: {} }, cap = { hidden: true, textContent: '' };
-  const W = lookWorld({ 'cl-pv-paper': paper, 'cl-pv-cap': cap });
-  const info = n => ({ n, pageH: 1122.5, pages: Array.from({ length: n }, (_, i) => ({ top: i * (1122.5 + 20), h: 1122.5 })) });
-  W.__v = view; W.__i = info(3);
-  vm.runInContext('clPvFrame(__v, 397, __i)', W);
-  assert.equal(view.style.height, Math.round((2 * 1142.5 + 1122.5) * 0.5) + 'px', 'all three pages, the last one whole');
-  assert.equal(cap.hidden, true, 'nothing left out, nothing said');
-  W.__i = info(30);
-  vm.runInContext('clPvFrame(__v, 397, __i)', W);
-  assert.equal(vm.runInContext('CL_PV_MAX_PAGES', W), 12);
-  assert.equal(view.style.height, Math.round((11 * 1142.5 + 1122.5) * 0.5) + 'px', 'twelve pages drawn');
-  assert.equal(cap.hidden, false); assert.equal(cap.textContent, 'cl_ls_pv_capped 12|30', 'the cap is said under the last page');
+test('f1217 (3) one whole page: the first page of wording; pins only for what is on it, a later part says its page', () => {
+  const view = { style: {} }, paper = { style: {} };
+  const W = lookWorld({ 'cl-pv-paper': paper });
+  W.__v = view;
+  vm.runInContext('clPvFrame(__v, 397)', W);
+  assert.equal(view.style.height, Math.round(1122.5 * 0.5) + 'px', 'one whole page high');
+  const root = n => ({ querySelector: sel => (n && sel === '.pg-cover') ? {} : null });
+  W.__r = root(false); W.__c = root(true);
+  assert.equal(vm.runInContext('clPvShownPage({ n: 4 }, __r)', W), 1, 'page 1');
+  assert.equal(vm.runInContext('clPvShownPage({ n: 4 }, __c)', W), 2, 'with a cover, the first page of wording');
+  const show = fn(D, 'clPvShow');
+  assert.match(show, /sheet\.style\.transform = `translateY\(\$\{-\(pg \? pg\.top : 0\) \* k\}px\) scale\(\$\{k\}\)`;/, 'only that page is in the frame');
+  const pins = fn(D, 'clPinsPaint');
+  assert.match(pins, /if \(b\.bottom < vr\.top \|\| b\.top > vr\.bottom - 4\) \{ const at = pageOf\(el\); if \(at > 1\) off\[r\.k\] = at; return; \}/, 'no pin for a part off the page');
+  assert.match(pins, /note\.textContent = i18t\('cl_ls_pv_on_page', \{ n: off\[k\] \}\)/, 'its row says which page, quietly');
+  assert.doesNotMatch(fn(D, 'clRowChoose'), /scrollTop|scrollIntoView/, 'a row press only lights');
   const I = read('js/i18n.js'), sv = I.indexOf('\n  sv: {');
-  assert.ok(I.slice(0, sv).includes("\n    cl_ls_pv_capped: 'Showing {n} of {m} pages',") && I.slice(sv).includes("\n    cl_ls_pv_capped: 'Visar {n} av {m} sidor',"), 'both books');
+  assert.ok(I.slice(0, sv).includes("\n    cl_ls_pv_on_page: 'on page {n}',") && I.slice(sv).includes("\n    cl_ls_pv_on_page: 'på sida {n}',"), 'both books');
+  assert.ok(!I.includes('cl_ls_pv_capped'), 'the cap\'s words went with the cap');
 });
 
 test('f1217 (4) 560 wide on the paper\'s tabs through the slider\'s own writer; the reader\'s width never written over', () => {
@@ -88,6 +101,8 @@ test('f1217 (4) 560 wide on the paper\'s tabs through the slider\'s own writer; 
   dock.remove();
   assert.equal(win.JL_SPLIT.w0, 384, 'the paper gone: the resting width');
   assert.equal(win.JL_SPLIT.pref(), 450, 'and the reader\'s own width back');
-  assert.match(fn(S, 'stLsPanelPaint'), /window\.jlPageWideSet\(_stPage==='look'&&document\.getElementById\('cl-pv-dock'\)\?ST_LOOK_PANEL_W:0,'#cl-pv-dock'\)/);
+  assert.match(fn(S, 'stLsPanelPaint'), /window\.clPvPanelW\(ST_LOOK_PANEL_W\)/, 'the panel sized to the page, at most 560');
+  assert.match(fn(S, 'stLsPanelPaint'), /window\.jlPageWideSet\(lookW,'#cl-pv-dock'\)/);
+  assert.match(fn(D, 'clPvPanelW'), /Math\.max\(floor, Math\.min\(top, Math\.ceil\(W \+ 2 \* \(CL_PV_EDGE \+ CL_PV_SIDE\) \+ pad\)\)\)/, 'the page and a modest margin');
   assert.match(S, /const ST_LOOK_PANEL_W=560;/);
 });
