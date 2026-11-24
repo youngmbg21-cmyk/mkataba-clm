@@ -1,5 +1,5 @@
 'use strict';
-/* f1198 — THE BUILDER, END TO END, THE LEGORA + STRIPE WAY (owner: "Build as drawn", 23 Nov 2026).
+/* f1199 — THE BUILDER, END TO END, THE LEGORA + STRIPE WAY (owner: "Build as drawn", 23 Nov 2026).
 
    (1) ONE DOOR: every way to make a new paper of our own from outside the New agreement page opens that page on its
        tab, now called "Create a template" (the owner's pick by name); the old "How do you want to start?" pop-up is
@@ -40,7 +40,7 @@ const books = () => {
   return I && I.en && I.sv ? I : null;
 };
 
-test('f1198 (1) one door: every way in opens New agreement on its Create a template tab', () => {
+test('f1199 (1) one door: every way in opens New agreement on its Create a template tab', () => {
   const o = fnBody(NS, 'openNewStandard');
   assert.match(o, /if \(!opts\.host && nsOneDoorOn\(\)\) \{[\s\S]*openNewAgreement\(\{ newPaper: true, start: opts\.start \|\| null, pick: opts\.pick \|\| null, said: opts\.said \|\| '', tab: opts\.tab \|\| null \}\)/);
   assert.match(NS, /const nsOneDoorOn = \(\) => typeof openNewAgreement === 'function' && typeof newLookOn === 'function' && !!newLookOn\(\)\s*&& !\(typeof mPhone === 'function' && mPhone\(\)\);/, 'the phone keeps its own form');
@@ -52,7 +52,7 @@ test('f1198 (1) one door: every way in opens New agreement on its Create a templ
   assert.match(WZ, /const np=root\.classList\.contains\('is-newpaper'\);/, 'no paper tab lit while Create a template is up');
 });
 
-test('f1198 (2) More ▾ before Save draft: Delete draft, only never published, the server\'s DELETE and wall', () => {
+test('f1199 (2) More ▾ before Save draft: Delete draft, only never published, the server\'s DELETE and wall', () => {
   const page = fnBody(TB, 'tbPaint');
   assert.ok(page.indexOf('${tbMoreBtnHtml()}') > 0 && page.indexOf('${tbMoreBtnHtml()}') < page.indexOf('id="tb-save"'), 'More stands before Save draft');
   assert.match(fnBody(TB, 'tbMoreBtnHtml'), /if \(!_tb \|\| tbEverPublished\(\)\) return '';/);
@@ -66,7 +66,7 @@ test('f1198 (2) More ▾ before Save draft: Delete draft, only never published, 
   assert.match(read('js/components.js'), /lgp-go\$\{o\.primary\.danger \? ' is-danger' : ''\}/);
 });
 
-test('f1198 (3) the Dossier\'s desk under the paper, and the paper\'s zoom', () => {
+test('f1199 (3) the Dossier\'s desk under the paper, and the paper\'s zoom', () => {
   assert.match(CSS, /html\.lg-new #tb-page #tb-scroll\{background:var\(--desk-ground\);border-top-color:transparent\}/);
   assert.match(CSS, /html\.lg-new #tb-page #tb-paper\{border-color:transparent;box-shadow:var\(--n-shadow-card,/);
   assert.match(fnBody(TB, 'tbPaint'), /window\.rlPaperZoomHtml\(\)/);
@@ -74,7 +74,7 @@ test('f1198 (3) the Dossier\'s desk under the paper, and the paper\'s zoom', () 
   assert.match(fnBody(read('js/views/negotiation.js'), 'rlSetDocZoom'), /if \(window\.tbApplyZoom\) tbApplyZoom\(\);/);
 });
 
-test('f1198 (4) Jambo\'s panel: counts, the list with Add at the foot, progress, chips over tables, ring, blanks off the wording', () => {
+test('f1199 (4) Jambo\'s panel: counts, the list with Add at the foot, progress, chips over tables, ring, blanks off the wording', () => {
   const r = fnBody(TB, 'tbRailHtml');
   assert.match(r, /T\('outline', i18t\('tb_tab_outline'\), nOl\)/); assert.match(r, /i18t\('tb_pb_covered', \{ n: cov\.met, m: cov\.total \}\)/);
   assert.match(r, /tbOutlineFootHtml\(\)/);
@@ -92,7 +92,7 @@ test('f1198 (4) Jambo\'s panel: counts, the list with Add at the foot, progress,
   assert.match(CSS, /#tb-page \.tb-olt tr\.is-sel > td\{background:var\(--row-chosen\)\}/, 'a chosen row is light green');
 });
 
-test('f1198 (5) Publish: one pop-up, three steps', () => {
+test('f1199 (5) Publish: one pop-up, three steps', () => {
   const o = fnBody(TB, 'tbPubOpts');
   assert.match(o, /const steps = \{ names: tbPubNames\(\), at: step \};/);
   assert.match(fnBody(TB, 'tbPubNames'), /tb_ps_check[\s\S]*tb_ps_look[\s\S]*tb_ps_shelf/);
@@ -102,7 +102,7 @@ test('f1198 (5) Publish: one pop-up, three steps', () => {
   assert.match(fnBody(TB, 'tbPubLines'), /line\('green'/, 'what is fine is said too');
 });
 
-test('f1198 (6) Create a template: the journey, the proposal as a table, a clause that does not fit', () => {
+test('f1199 (6) Create a template: the journey, the proposal as a table, a clause that does not fit', () => {
   assert.match(fnBody(WZ, 'naSheetFive'), /if\(N\)\{ const say=typeof window\.nsSayUp==='function'&&window\.nsSayUp\(\);/);
   assert.match(fnBody(NS, 'nsKeepTableHtml'), /data-nss-sec="\$\{i\}"[\s\S]*data-nss-pick="\$\{i\}"/, 'the same tick and the same choosing as the contents page');
   assert.match(NS, /data-nss-ex="3"/, 'a third example: a house lease');
@@ -113,7 +113,7 @@ test('f1198 (6) Create a template: the journey, the proposal as a table, a claus
   assert.deepEqual([...ctx.f('Either party may terminate on notice.', 'A house lease')], [], 'a clause naming no party says nothing');
 });
 
-test('f1198 (7) every new word in both books', () => {
+test('f1199 (7) every new word in both books', () => {
   const keys = ['tb_more', 'tb_del', 'tb_del_who', 'tb_del_title', 'tb_del_done', 'tb_st_towrite', 'tb_st_written', 'tb_prog', 'tb_ol_line_blanks', 'tb_ring_all',
     'tb_bl_make', 'tb_bl_notyet', 'tb_ps_check', 'tb_ps_look', 'tb_ps_shelf', 'tb_pq_ok_pb', 'tb_pq_blanks_one', 'tb_pq_blanks_other', 'na6_how_h', 'na6_j_here',
     'nsl_ex3_t', 'nsj_misfit', 'nsk_sec', 'tb_ghost_head'];
