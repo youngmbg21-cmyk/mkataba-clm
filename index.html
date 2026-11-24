@@ -26439,6 +26439,28 @@
      quiet and drawn in line as Obligations' "Filter" box, never Jambo's green filled spark (his box at the panel's foot
      asks). One closing rule, scoped above every page's own spark rule (the #ct-place one included), with no importance flag (scope wins the fight) */
   html.lg-new :is(#ct-place, body) .apn-ask.is-filter svg, html.lg-new :is(#ct-place, body) .apn-ask.is-filter svg path{color:var(--color-quiet);fill:none;stroke:currentColor}
+  /* THE DOSSIER'S TABS ARE ONE SWITCH (owner, 24 Nov 2026: "build and merge" the drawing of the tabs in the same design as
+     Clean · Redline · Their view): Dossier · Plan · Clauses · Redlines · Editor sit on ONE grey track, the open tab a WHITE
+     pill with the switch's own soft shadow; the counts stay beside their words. Beside a paper only (data-pd-head="paper"),
+     and the editor's copy of the row (.ce-dtabs) wears the same; the fold arrow keeps its place at the row's end. The pill
+     is the open tab's ::before, inset by the track's 3px, so the tabs stay the head's own children (no wrapper). */
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]{column-gap:0}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .pd-tab{position:relative;isolation:isolate;height:32px;margin:0;padding:0 9px;border-radius:0;background:var(--surface-2);color:var(--color-neutral-600)}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab:nth-of-type(5)) > .pd-tab{padding:0 7px}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .pd-tab:first-child{margin-left:0;padding-left:11px;border-radius:999px 0 0 999px}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .pd-tab:not(:has(+ .pd-tab)){margin-right:8px;padding-right:11px;border-radius:0 999px 999px 0}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .pd-tab:first-child:not(:has(+ .pd-tab)){border-radius:999px}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .pd-tab:hover{background:var(--surface-2);color:var(--color-text)}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .pd-tab.on{background:var(--surface-2);color:var(--color-text)}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .pd-tab.on::before{content:"";position:absolute;inset:3px;z-index:-1;border-radius:999px;background:var(--color-surface);box-shadow:0 1px 2px rgba(0,0,0,.10)}
+  /* the editor's copy is the SAME switch, measured against the Dossier's row: words at the body size, counts at the label
+     size in the strong weight, 14px between words, 10px from the track's ends */
+  html.lg-new #clause-editor.is-tabbed .ce-dtabs{align-self:flex-start;width:fit-content;max-width:100%;min-height:0;gap:0;padding:3px;border-radius:999px;background:var(--surface-2)}
+  html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab{max-width:none;height:26px;padding:0 7px;background:transparent;color:var(--color-neutral-600);font-size:var(--t-body);line-height:20px}
+  html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab-n{font-size:var(--t-label);font-weight:var(--w-strong);line-height:16px}
+  html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab-w{max-width:none;overflow:visible}
+  html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab:hover{color:var(--color-text)}
+  html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab.on{background:var(--color-surface);color:var(--color-text);font-weight:var(--w-label);box-shadow:0 1px 2px rgba(0,0,0,.10)}
 </style>
 <style>
   /* ==== STANDARDS — THE LADDER (owner's pick, 17 Nov 2026; js/views/ladder.js) ====

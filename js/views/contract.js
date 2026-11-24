@@ -15838,6 +15838,9 @@ function docThreadFill(c,rows,i,opts){
      for a second... delete this old page"): the one-clause page is put on as the rows are drawn, not when the first
      row opens a beat later — the whole list is never painted in between */
   card.classList.toggle('is-page',!!(_thPage&&docThreadNavOn()));
+  /* THE LIST FROM THE FIRST FRAME TOO (owner, 24 Nov 2026, the second time: "the older version of this tab flashes before
+     I land on this tab"): the neat list's class is put on with the rows as well, never a beat later */
+  card.classList.toggle('is-list',!!(!_thPage&&docThreadNavOn()));
   const plain=o.plain||docThreadPlain(c,o.sheet);
   const byRow=docThreadRowsBy(box);
   rows.forEach((x,k)=>{
@@ -16438,6 +16441,9 @@ function docThreadPaint(c){
   if(home&&typeof pdTabCountPaint==='function') pdTabCountPaint('doc', c);
   /* STAKES (owner, 13 Oct 2026): the deep read's head, stake lines and deep dive, from the kept reading */
   if(home&&typeof stkDecorate==='function') stkDecorate(c,card,rows);
+  /* the neat list's tabs, badges and Opening row are drawn in this same frame (after the deep read's marks it counts),
+     never by the next timer: the undressed list was painted for ~120ms between (owner, 24 Nov 2026) */
+  if(!_thPage&&docThreadNavOn()) docThreadNavSync();
   if(land>=0) setTimeout(()=>{ try{ docThreadGoTo(docThreadCur(c),land); }catch(_){} },0);
 }
 /* ---------- wire ----------

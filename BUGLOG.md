@@ -23005,3 +23005,5 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - test/f1202-builder-bar-template-page-whole-contract.test.js (2b) is red at 30d7dae5: it still asks for a "✦" mark before Jambo's tab pill in jlOwnPaint, which now draws the drawn icon (mkSpark).
 - Correction (24 Nov 2026, same branch): f1202 (2b) red above was this branch's own change (Jambo's tab ✦ → drawn mkSpark, f966); re-pointed, not left red.
 - (24 Nov 2026) Fixed: the pages' re-break (pagesLayout) clamped the paper's scroll while the paper was briefly shorter, so a re-break after Accept, or one heard by the watcher, moved the reader's place (decision-redraws 1: 240 -> 113; dossier-and-amend 3b: a press fell on the preamble). The place is now noted and put back where the clamp took it. No change on this branch was found on either path; both checks had failed the same way on PR 970.
+## Noticed, not fixed (24 Nov 2026)
+- f385 (6) "drawn icons only" is red on main: the clause editor's tab picker writes a typed "▾" (js/views/clauseeditor.js ceTabPaint, the `ce-tnm` button) where a drawn icon belongs. It came in with the editor-as-a-tab round; left red for its own fix.
