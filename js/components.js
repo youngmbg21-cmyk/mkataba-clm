@@ -2234,15 +2234,16 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     if (e.target.hasAttribute('data-lgp-steps')){ const go = e.target.querySelector('.lgp-ft .lgp-go:not([hidden])'); if (go) go.click(); } } }, true);
 }
 /* THE WAVE ON EVERY EDIT POP-UP (owner, 24 Nov 2026: "Build it on every edit pop-up"): ONE helper puts Jambo's
-   moving weave across the top of an edit sheet (its look: index.html .lgp-wave). Every form.lgp that lands in the one
+   moving weave across the top of an edit sheet (its look: index.html .lgp-wave). Every .lgp sheet (a form, or the signing
+   route's div; owner, 24 Nov 2026: "THIS pop up is does not have waves") that lands in the one
    dialog (#modal-root: lgpOpen, lgpRepaint, and the sheets built by hand) gets it from ONE watcher, so no builder can
    forget it; the duties sheet over the page (its own layer) calls lgpWaveSweep itself. Writes nothing but the strip;
    a sheet that already carries one is left alone, so a redraw never stacks two. */
 var LGP_WAVE_HTML = '<i class="lgp-wave" aria-hidden="true"><b class="lgp-wv-a"></b><b class="lgp-wv-b"></b></i>';
 function lgpWaveSweep(root){
   if (!root || typeof root.querySelectorAll !== 'function') return 0;
-  const forms = Array.from(root.querySelectorAll('form.lgp'));
-  if (root.matches && root.matches('form.lgp')) forms.unshift(root);
+  const forms = Array.from(root.querySelectorAll('.lgp'));
+  if (root.matches && root.matches('.lgp')) forms.unshift(root);
   let n = 0;
   for (const f of forms){
     if (Array.from(f.children).some(k => k.classList && k.classList.contains('lgp-wave'))) continue;

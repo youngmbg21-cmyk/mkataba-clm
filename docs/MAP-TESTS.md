@@ -1148,3 +1148,4 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 
 ## PERFORMANCE — two scroll checks wait for a still paper (24 Nov 2026)
 - RE-POINTED: decision-redraws-one-clause-verify 1 (240 set and held ten frames before Accept, bounded 120); dossier-and-amend-ls-verify 3a/3b (the press waits six still frames, bounded 90, and lands only where elementFromPoint is the clause).
+- (24 Nov 2026, the signing route) f1200 (1) re-pointed: a `div.lgp` sheet (the signing route, `signerRouteWindow`) is waved too; (2) the route opens in the one dialog.
