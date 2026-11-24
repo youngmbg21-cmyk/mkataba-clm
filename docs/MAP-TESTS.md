@@ -1140,3 +1140,6 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 - RE-POINTED: f1097 (1) NAMES (Notebook added to the test's page names); f841 (2a) the "see" stage holds the Notebook.
 - Re-ran green: f232, f48, f561, f564, f672, f842, f937, f938, f946, f954, f955, f964, f965, f997, f1068, f1097, f1131, f1146, f1186, f1193, f866, f305.
 - As drawn, rounds A–D: `node --test test/f1198-the-dossier-as-drawn.test.js test/f1199-our-paper-and-sent-as-drawn.test.js test/f1200-the-clause-page-and-reading-line.test.js test/f1201-redlines-and-ladder-as-drawn.test.js test/f1065-jambos-panels-contract-faces.test.js test/f295-prepare-redlines.test.js`.
+
+## NOTES AND COMMENTS — filing never asks for a note (24 Nov 2026)
+f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks nothing). Browser checks that waited for the pin or "Why this change?" after a save: re-pointed as GitHub finds them.

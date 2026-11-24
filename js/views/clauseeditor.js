@@ -4715,7 +4715,7 @@ function ceRenderFoot(){
     else if (b === save) b.setAttribute('title', (!_ceLead ? ''
       : (ceLeadIsOurs() ? _cet('ce_save_to_long', { id: _ceLead.id })
         : _ceLead.authorSide !== ceSide() ? _cet('ce_save_counter_long', { id: ceFiledName(_ceLead) })
-        : _cet('ce_save_to_long', { id: _ceLead.id })) + ' — ') + _cet('ce_save_opens_note'));
+        : _cet('ce_save_to_long', { id: _ceLead.id }))) || '');
     else b.removeAttribute('title');
     if (b.textContent !== word) b.textContent = word;
   });

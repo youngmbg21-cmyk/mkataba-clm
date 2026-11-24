@@ -18578,29 +18578,14 @@ const RL_NOTE_TICK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
    The promise resolves 'added' when a note lands under the pin and null when
    the pin is dropped, so the column behind the drawer repaints once and only
    where something changed. */
-function rlNoteAskAfterFile(c, ch, opts = {}){
-  if (!c || !ch) return Promise.resolve(null);
-  /* THEIR SEAT ASKS TOO (Young, 29 Sep 2026): on their page the question is
-     the change's own reason, held with it until Send — see portalAskReason. */
-  if (opts.side === 'counterparty'){
-    /* THE OUTSIDE LOOK ASKS AS WE DO (owner, 8 Nov 2026: "mimic what is in the owner side"): the Notes drawer with
-       the change pinned and the room switch on Internal, their team's room; the old "Why this change?" pop-up
-       stays for the old look. */
-    if (rlOnTheirPage() && typeof window.portalOutOn === 'function' && window.portalOutOn()
-      && typeof window.portalOpenNotes === 'function' && window.PORTAL_OPTS && PORTAL_OPTS.token)
-      return new Promise(resolve => {
-        rlNotesPin({ contractId: c.id, changeId: ch.id, clauseId: ch.clauseId || '', quote: '',
-          room: 'internal', filed: true, revised: (ch.revisions || []).length > 0, resolve });
-        if (typeof window.portalNotesClose === 'function') window.portalNotesClose();
-        window.portalOpenNotes({ pin: true });
-      });
-    return (rlOnTheirPage() && typeof window.portalAskReason === 'function')
-      ? window.portalAskReason(c, ch) : Promise.resolve(null);
-  }
-  if ((opts.side || 'owner') !== 'owner') return Promise.resolve(null);
-  if (!notesMayWrite(c, opts)) return Promise.resolve(null);
-  if (typeof openChangeNoteDialog !== 'function') return Promise.resolve(null);
-  return openChangeNoteDialog(c, ch, { ...opts, filed: true });
+/* ---- FILING NEVER ASKS FOR A NOTE (owner, 24 Nov 2026: "Forget the whole concept of having to put a note before
+   filing. Just file and move on and the notes will be a separate matter."; reverses 31 Aug's drawer on every
+   filing and 29 Sep's "Why this change?" on their seat) ----
+   Every filing door still calls this one reading (the editor, the pencil, their page), so nothing can ask on its
+   own: it answers null at once, on every seat. A note is written where notes live — the top bar's Notes, Redlines'
+   Notes, or a change's own Notes on its card (openChangeNoteDialog below, a door a person presses). */
+function rlNoteAskAfterFile(){
+  return Promise.resolve(null);
 }
 /* THE DOOR. Kept under its old name so every caller — the two filing doors and
    the card's own Notes row — presses exactly the control it always pressed.
