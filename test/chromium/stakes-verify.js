@@ -55,6 +55,9 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
   const errs = [];
   try {
     const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+    /* RE-POINTED 24 Nov 2026 (the clause page L+S, f1208): the head's line stands over the LIST; the one-clause page draws
+       no head line (the bar names the contract), so this check reads the list as it always did */
+    await page.addInitScript(() => { try { localStorage.setItem('hati.v1.thList', '1'); } catch (_){} });
     page.on('pageerror', e => errs.push(e.message));
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
