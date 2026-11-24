@@ -17,7 +17,7 @@
 const NB_CHECK_MONTHS = 12;
 const NB_KINDS = ['law', 'policy', 'research'];
 const NB_SHELVES = ['company', 'mine'];
-const NB_TEXT_MAX = 200000;          // the readers' own ceiling (EXTRACT_MAX_CHARS); a cut is SAID
+const NB_TEXT_MAX = 2000000;         // a whole law fits (GDPR, recitals and all; owner, 24 Nov 2026); contracts keep EXTRACT_MAX_CHARS; a cut is SAID
 const NB_SECTION_MAX = 6000;         // a longer section is carried in parts, each found on its own
 const NB_PAGE_CHARS = 2400;          // a paper without headings is read in pages of about this much
 const NB_HEAD_RES = [

@@ -199,3 +199,28 @@ test('f1198 (8) an empty notebook asks nothing: no example questions, its one pr
   assert.match(body, /asks: L\.length \? \[ask\(_nbT\('nb_ov_q1'\)\), ask\(_nbT\('nb_ov_q2'\)\)\] : \[\]/);
   assert.match(body, /act: L\.length \|\| _nb\.docs == null \|\| _nb\.err \? null : \{ label: '\+ ' \+ _nbT\('nb_add'\), run: \(\) => nbAddOpen\(\) \}/);
 });
+
+describe('f1198 (9) a whole law fits: the GDPR, recitals and all, is one document (owner, 24 Nov 2026)', () => {
+  test('about 450,000 characters are kept whole, and the last article is found; only past 2,000,000 is a cut said', async () => {
+    const pad = 'The controller shall implement appropriate technical and organisational measures to ensure a level of security appropriate to the risk. ';
+    const parts = ['GENERAL DATA PROTECTION REGULATION (FULL TEXT)'];
+    for (let k = 1; k <= 99; k++) parts.push('Article ' + k, 'Heading of article ' + k, pad.repeat(35));
+    parts.push('Article 100', 'Final words', 'This Regulation shall be binding in its entirety and directly applicable in all Member States, quokka marker.');
+    const big = parts.join('\n');
+    assert.ok(big.length > 450000 && big.length < 2000000, String(big.length));
+    const r = await W.admin.json('/api/notebook', { method: 'POST', body: { shelf: 'company', name: 'GDPR full', kind: 'law', text: big, fileName: 'gdpr-full.txt' } });
+    assert.equal(r.doc.cut, false, 'a whole law is not cut');
+    const hit = (await W.admin.json('/api/hati-search?kinds=notebook&q=' + encodeURIComponent('quokka marker'))).hits.find(x => x.notebook && x.notebook.n === 'Art. 100');
+    assert.ok(hit, 'the last article of a long law is in the search');
+    const over = await W.admin.json('/api/notebook', { method: 'POST', body: { shelf: 'mine', name: 'Too long', kind: 'research', text: 'x '.repeat(1000100), fileName: 'long.txt' } });
+    assert.equal(over.doc.cut, true, 'past the ceiling, the cut is said');
+  });
+  test('the one upload reader takes the Notebook\'s ceiling; a contract keeps its own', () => {
+    const C = R('js/views/contract.js');
+    const i = C.indexOf('async function uploadReadFile'); const body = C.slice(i, C.indexOf('\nasync function ', i + 10));
+    assert.match(body, /const cap=Number\(o\.max\)>0\?Number\(o\.max\):EXTRACT_MAX_CHARS;/);
+    assert.doesNotMatch(body.replace(/\/\*[\s\S]*?\*\//g, '').replace(/const cap=[^;]*;/, ''), /EXTRACT_MAX_CHARS/, 'every read in the upload reader uses the ceiling it was given');
+    assert.match(R('js/views/notebook.js'), /uploadReadFile\(f, \{ meta: false, max: /);
+    assert.equal(NB.NB_TEXT_MAX, 2000000);
+  });
+});

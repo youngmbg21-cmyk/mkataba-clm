@@ -299,10 +299,10 @@ async function nbAddRun(form, rep){
   try {
     let text = '';
     if (/^text\//.test(f.type) || /\.(txt|md)$/i.test(f.name)) text = await f.text();
-    else { const rd = (typeof uploadReadFile === 'function') ? await uploadReadFile(f, { meta: false }) : { refused: _nbT('nb_load_fail') };
+    else { const rd = (typeof uploadReadFile === 'function') ? await uploadReadFile(f, { meta: false, max: (typeof window !== 'undefined' && window.NB_TEXT_MAX) || 2000000 }) : { refused: _nbT('nb_load_fail') };
       if (rd.refused){ nbFormSay(form, rd.refused); return; } text = rd.extractedText || ''; }
     if (!text.trim()){ nbFormSay(form, _nbT('nb_add_unread')); return; }
-    const NBX = (typeof window !== 'undefined' && window.NB_TEXT_MAX) || 200000;
+    const NBX = (typeof window !== 'undefined' && window.NB_TEXT_MAX) || 2000000;
     const cut = text.length >= NBX;
     const body = rep ? { text, fileName: f.name, cut } : { shelf: document.getElementById('nb-shelf')?.value || 'mine', name,
       kind: document.getElementById('nb-kind')?.value || 'law', inForce: document.getElementById('nb-inforce')?.value || '', text, fileName: f.name, cut };
