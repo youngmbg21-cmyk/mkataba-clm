@@ -32,5 +32,6 @@ test('f1214 (3) each row: number column, name, what was found, a badge; the open
   assert.match(L, /while \(cut > 0 && els\[cut - 1\]\.classList\.contains\('doc-th-sec'\)\) cut--;/, 'the first section heading stays the body\'s');
   assert.doesNotMatch(L, /persist\(|api\(/, 'writes nothing');
   assert.match(H, /#pd-thread\.is-list \.doc-th-rows \.doc-th-row \.doc-th-go\{display:grid;grid-template-columns:40px minmax\(0,1fr\);/);
+  assert.match(H, /#pd-thread\.is-list \.doc-th-rows \.doc-th-row \.doc-th-name\{grid-column:2;grid-row:1;font-size:13px;font-weight:400\}/, 'names in plain weight');
   for (const k of ['th_lt_all', 'th_lt_unread', 'th_lt_read', 'th_opening', 'th_opening_n_other']) assert.strictEqual((I.match(new RegExp('\\n\\s*' + k + ':', 'g')) || []).length, 2, k + ' in both books');
 });

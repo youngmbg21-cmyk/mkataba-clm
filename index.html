@@ -19375,7 +19375,8 @@
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row > .doc-th-head{display:flex;align-items:center;gap:8px}
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row .doc-th-go{display:grid;grid-template-columns:40px minmax(0,1fr);column-gap:8px;row-gap:2px;align-items:center;padding:9px 0}
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row .doc-th-bead{position:static;grid-column:1;grid-row:1;width:auto;height:auto;min-width:0;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--color-quiet);text-align:left}
-  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row .doc-th-name{grid-column:2;grid-row:1;font-size:13px}
+  /* the clause names in plain weight, the open one too (owner, 24 Nov 2026: "the clauses titles should not be in bold letters") */
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row .doc-th-name{grid-column:2;grid-row:1;font-size:13px;font-weight:400}
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row .doc-th-lsay{grid-column:2;grid-row:2;font-size:12px;line-height:1.4;color:var(--color-quiet)}
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row.is-open{background:var(--row-chosen)}
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row:not(.is-open):hover{background:var(--row-hover)}
@@ -19385,7 +19386,7 @@
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.k-look{background:var(--st-amber-bg);color:var(--st-amber-fg)}
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.k-read{background:var(--st-green-bg);color:var(--st-green-fg)}
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.is-grey{background:var(--color-neutral-100);color:var(--color-quiet)}
-  html.lg-new #ig-dock #pd-thread.is-list .doc-th-opgo{display:grid;grid-template-columns:40px minmax(0,1fr) auto;column-gap:8px;align-items:center;width:100%;padding:9px 0;border:0;border-bottom:1px solid var(--color-divider);background:none;font:inherit;font-size:13px;color:var(--color-text);text-align:left;cursor:pointer}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-opgo{display:grid;grid-template-columns:40px minmax(0,1fr) auto;column-gap:8px;align-items:center;width:100%;padding:9px 0;border:0;border-bottom:1px solid var(--color-divider);background:none;font:inherit;font-size:13px;font-weight:400;color:var(--color-text);text-align:left;cursor:pointer}
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-opgo:hover{background:var(--row-hover)}
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-opn{color:var(--color-quiet)}
   #pd-thread .doc-th-fi p .doc-th-pgl.is-link{font-size:12px}
