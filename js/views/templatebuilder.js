@@ -3954,14 +3954,16 @@ async function tbPaintBranding() {
   host.querySelector('details.tb-bf')?.addEventListener('toggle', e => { _tbBrandOpen = !!e.target.open; });
   const save = async (logoUrl) => {
     try {
-      await api('org/branding', 'PUT', {
+      /* a look change waits for a second admin (the one writer: lookSaveOrSend, js/views/designstep.js) */
+      const body = {
         logoUrl: logoUrl !== undefined ? logoUrl : b.logoUrl,
         companyName: document.getElementById('tb-b-name').value.trim(),
         registrationNumber: document.getElementById('tb-b-reg').value.trim(),
         address: document.getElementById('tb-b-addr').value.trim(),
         defaultFooterText: document.getElementById('tb-b-footer').value.trim(),
-      });
-      toast(i18t('tb_branding_saved')); tbPaintBranding();
+      };
+      const how = typeof window.lookSaveOrSend === 'function' ? await window.lookSaveOrSend(body) : (await api('org/branding', 'PUT', body), 'saved');
+      toast(i18t(how === 'sent' ? 'cl_ap_done_send' : 'tb_branding_saved'), 'ok'); tbPaintBranding();
     } catch (e) { toast(e.message, 'err'); }
   };
   document.getElementById('tb-b-save')?.addEventListener('click', () => save());

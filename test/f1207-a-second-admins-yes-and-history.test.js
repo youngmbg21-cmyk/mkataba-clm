@@ -145,7 +145,8 @@ test('f1207 (3) the page: Send for approval, the History tab, its table and the 
   const old = { id: 'lc-0', state: 'saved', keys: ['defaultFooterText'], before: { defaultFooterText: '' }, after: { defaultFooterText: 'Confidential' }, byId: 'a', by: 'Amina', at: '2026-11-01T10:00:00Z' };
   const W = lookWorld([old, ch], B, [A, B]);
   assert.match(vm.runInContext('clTabsHtml(clParts())', W), /data-cl-tab="history">cl_hist_tab<i>2<\/i>/);
-  assert.match(vm.runInContext('clLsPageHtml', W).toString(), /clAdminsN\(\) > 1 \? 'cl_ap_send' : 'act_save'/, 'the black button sends for approval while another admin exists');
+  assert.match(vm.runInContext('clLsPageHtml', W).toString(), /clYesNeeded\(\) \? 'cl_ap_send' : 'act_save'/, 'the black button sends for approval while another admin exists');
+  assert.match(vm.runInContext('clYesNeeded', W).toString(), /API_MODE\(\)\) && clAdminsN\(\) > 1/, 'only with a server (the static build saves at once)');
   const h = vm.runInContext('clHistHtml()', W);
   for (const k of ['cl_hist_c_when', 'cl_hist_c_what', 'cl_hist_c_by', 'cl_ls_c_status']) assert.ok(h.includes(`<th>${k}</th>`), k);
   assert.match(h, /data-cl-chip="h-all">ctf_tab_all <span>2<\/span>/); assert.match(h, /data-cl-chip="h-wait"><i class="apn-cd is-amber" aria-hidden="true"><\/i>cl_hist_chip_wait <span>1<\/span>/);

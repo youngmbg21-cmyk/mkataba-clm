@@ -667,7 +667,7 @@ async function dsPublish() {
   if (btn) { btn.disabled = true; btn.innerHTML = `<span class="animate-pulse">${i18t('ds_publishing')}</span>`; }
   try {
     /* publishing one paper never writes the company's look (an admin's, in Settings) */
-    if (_ds.mode !== 'publish') await saveOrgBranding(dsOrgPayload());
+    if (_ds.mode !== 'publish' && await lookSaveOrSend(dsOrgPayload()) === 'sent') toast(i18t('cl_ap_done_send'), 'ok');
     const design = _ds.saveDefault ? null
       : { designId: _ds.b.designId, structureId: _ds.b.structureId,
           logoPosition: _ds.b.logoPosition, accentColor: _ds.b.accentColor };
@@ -701,9 +701,10 @@ async function dsSaveDefault() {
   const btn = document.getElementById('ds-save');
   if (btn) { btn.disabled = true; btn.innerHTML = `<span class="animate-pulse">${i18t('ds_saving')}</span>`; }
   try {
-    await saveOrgBranding(dsOrgPayload());
+    const how = await lookSaveOrSend(dsOrgPayload());
     const st2 = docStructureById(_ds.b.structureId);
-    toast(`${docDesignById(_ds.b.designId).name}${st2 && st2.id !== DEFAULT_STRUCTURE ? ' · ' + st2.name : ''} is now your company design`);
+    if (how === 'sent') toast(i18t('cl_ap_done_send'), 'ok');
+    else toast(`${docDesignById(_ds.b.designId).name}${st2 && st2.id !== DEFAULT_STRUCTURE ? ' · ' + st2.name : ''} is now your company design`);
     const go = _ds.onBack; _ds = null; if (go) go();
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Save company design'; }
@@ -1045,7 +1046,7 @@ function clTabsHtml(parts) {
   return `<div class="st-ls-tabs cl-ls-tabs" id="cl-tabs" role="tablist">${tab('page', i18t('cl_ls_tab_page'), i18tn('cl_ls_n_parts', parts.length, { n: parts.length }))}${tab('kit', i18t('cl_ls_tab_kit'), String(kit))}${tab('history', i18t('cl_hist_tab'), String(hist))}${tab('who', i18t('cl_ls_tab_who'), i18tn('cl_ls_n_streams', nS, { n: nS }) + (nP ? ' · ' + i18tn('cl_ls_n_papers', nP, { n: nP }) : ''))}</div>`;
 }
 function clChipHtml(k, label, n, on, dot) {
-  return `<button type="button" class="apn-tab is-chip${on ? ' is-on' : ''}" data-cl-chip="${k}">${dot ? `<i class="apn-cd is-${dot}" aria-hidden="true"></i>` : ''}${clE(label)} <span>${n}</span></button>`;
+  return `<button type="button" class="apn-tab is-chip${on ? ' is-on' : ''}${on && k !== 'all' && k !== 'h-all' ? ' is-narrow' : ''}" data-cl-chip="${k}">${dot ? `<i class="apn-cd is-${dot}" aria-hidden="true"></i>` : ''}${clE(label)} <span>${n}</span></button>`;
 }
 function clStreamChipHtml() {
   if (!clAdmin() || !clStreamIds().length) return '';
@@ -1177,6 +1178,24 @@ function clAdminsN() { try { return (typeof getUsers === 'function' ? getUsers()
 function clLookChanges() { const st = (typeof state === 'object' && state && state.settings) || {}; return Array.isArray(st.lookChanges) ? st.lookChanges.slice().reverse() : []; }
 function clWaitingChange() { return clLookChanges().find(c => c && c.state === 'waiting') || null; }
 const clMayDecide = ch => !!ch && ch.state === 'waiting' && clMe().role === 'admin' && String(ch.byId) !== String(clMe().id);
+/* A SECOND ADMIN'S YES NEEDS A SERVER: without one (the static build) there is no look/changes route, so Save saves the
+   look at once, as with one admin (clLookChangesLoad's guard) */
+function clYesNeeded() { return (typeof API_MODE !== 'function' || API_MODE()) && clAdminsN() > 1; }
+/* THE OLDER DOORS ONTO THE LOOK (the design step's Save and Publish, the builder's branding box): while another admin
+   exists PUT /api/org/branding refuses a look change (409 needsApproval). The look is then sent for approval by the
+   same writer as Settings' Send for approval (POST /api/look/changes), and what is not the look (name, number,
+   address) still saves. Returns 'sent' or 'saved'. CL_LOOK_KEYS mirrors the server's LOOK_KEYS. */
+const CL_LOOK_KEYS = ['logoUrl', 'defaultFooterText', 'designId', 'logoPosition', 'accentColor', 'accentSource', 'structureId', 'streamLooks', 'pageMarks', 'logoBlackUrl', 'palette'];
+async function lookSaveOrSend(payload) {
+  try { await saveOrgBranding(payload); return 'saved'; } catch (e) {
+    if (!(e && e.status === 409 && e.data && e.data.needsApproval)) throw e;
+    const rest = Object.assign({}, payload || {}); CL_LOOK_KEYS.forEach(k => { delete rest[k]; });
+    if (Object.keys(rest).length) await saveOrgBranding(rest);
+    const r = await api('look/changes', 'POST', Object.assign({}, payload || {}, { note: '' }));
+    clLookChangesSet(r && r.lookChanges);
+    return 'sent';
+  }
+}
 function clLookChangesSet(list) { if (typeof state === 'object' && state) { state.settings = state.settings || {}; state.settings.lookChanges = Array.isArray(list) ? list : []; } }
 function clLookChangesLoad() {
   if (typeof api !== 'function' || (typeof API_MODE === 'function' && !API_MODE())) return Promise.resolve();
@@ -1282,7 +1301,7 @@ function clHistHtml() {
       <td class="cl-ls-val"><span><b class="cl-ls-name">${clE(ps.map(p => p.name).join(', ') || i18t('cl_hist_p_look'))}</b></span>${ps[0] ? `<span class="cl-ls-quote">“${clE(ps[0].after)}”</span>` : ''}</td>
       <td class="cl-hist-by">${clE(ch.by || '')}</td><td>${clHistBadge(ch)}</td><td class="r">${clHistActHtml(ch)}</td></tr>`; }).join('');
   return chips + `<table class="st-ls-t cl-ls-t" id="cl-hist"><thead><tr><th>${clE(i18t('cl_hist_c_when'))}</th><th>${clE(i18t('cl_hist_c_what'))}</th><th>${clE(i18t('cl_hist_c_by'))}</th><th>${clE(i18t('cl_ls_c_status'))}</th><th></th></tr></thead><tbody>${body || `<tr><td colspan="5" class="st-ls-none">${clE(i18t('st_ls_none'))}</td></tr>`}</tbody></table>
-    <p class="cl-ls-rule">${clE(i18t(clAdminsN() > 1 ? 'cl_hist_rule' : 'cl_hist_rule_solo'))} ${clE(i18t('cl_hist_starts'))}</p>`;
+    <p class="cl-ls-rule">${clE(i18t(clYesNeeded() ? 'cl_hist_rule' : 'cl_hist_rule_solo'))} ${clE(i18t('cl_hist_starts'))}</p>`;
 }
 /* the note asked with a send or a send-back, in the one edit pop-up (lgpOpen) */
 function clApNoteOpen(kind, id) {
@@ -1320,13 +1339,13 @@ function clLsPageHtml() {
   if (!['who', 'kit', 'history'].includes(_cl.tab)) _cl.tab = 'page';
   const spark = (typeof icon === 'function') ? icon('mkSpark', 'sdd-spark-ic', 0) : '';
   /* round 6: with another admin, the one black button sends the change for approval */
-  const acts = admin ? `<button type="button" id="cl-save" class="ui-btn ui-btn-primary"${_cl.dirty ? '' : ' disabled'}>${clE(i18t(clAdminsN() > 1 ? 'cl_ap_send' : 'act_save'))}</button>` : '';
+  const acts = admin ? `<button type="button" id="cl-save" class="ui-btn ui-btn-primary"${_cl.dirty ? '' : ' disabled'}>${clE(i18t(clYesNeeded() ? 'cl_ap_send' : 'act_save'))}</button>` : '';
   const ask = admin ? `<form class="apn-ask sdd-find st-ls-find cl-ask" id="cl-ask" autocomplete="off"><span class="sdd-find-ic" aria-hidden="true">${spark}</span><input type="text" id="cl-say" maxlength="300" autocomplete="off" placeholder="${clE(i18t('cl_ask_ph'))}" aria-label="${clE(i18t('cl_ask_ph'))}" value="${clE(_cl.said)}"></form><p class="cl-said" id="cl-said" aria-live="polite"></p>`
     : `<p class="st-ls-small">${clE(i18t('cl_read_only'))}</p>`;
   /* round 6, the SAP way (inline, no band): one admin's Save applies at once; a change waiting is said where the look is */
   const wch = clWaitingChange();
   const sub = _cl.editing ? i18t('cl_editing_stream', { name: clStreamName(_cl.editing) })
-    : wch ? i18t('cl_ap_waiting_line', { who: wch.by || '', day: clDay(wch.at) }) : (admin && clAdminsN() < 2 && _cl.dirty ? i18t('cl_ap_only') : '');
+    : wch ? i18t('cl_ap_waiting_line', { who: wch.by || '', day: clDay(wch.at) }) : (admin && !clYesNeeded() && _cl.dirty ? i18t('cl_ap_only') : '');
   const picking = _cl.mode !== 'page';
   const left = picking ? `<div class="cl-pick cl-ls-pick">${clPickHtml()}</div>` : _cl.tab === 'who' ? clWhoHtml() : _cl.tab === 'kit' ? clKitHtml() : _cl.tab === 'history' ? clHistHtml() : clPartsTableHtml(parts);
   const wide = (_cl.tab === 'who' || _cl.tab === 'kit' || _cl.tab === 'history') && !picking;
@@ -1631,7 +1650,7 @@ function clPayload() {
 async function clSave() {
   if (!_cl || _cl.busy || !clAdmin()) return;
   /* ROUND 6: while another admin exists, the button sends the change for approval instead (clPropose) */
-  if (clAdminsN() > 1) return clProposeOpen();
+  if (clYesNeeded()) return clProposeOpen();
   const btn = document.getElementById('cl-save'); _cl.busy = true;
   if (btn && typeof busySet === 'function') busySet(btn, i18t('cl_saving'));
   try {
@@ -1775,4 +1794,5 @@ if (typeof document !== 'undefined' && !window._clWired) {
 }
 
 Object.assign(window, { openDesignStep, dsApplyZoom, designStepOpen, designStepDirty, designStepClose, CL_ACCENTS, clPageHtml, clReadLook, clGo, clSave, clInit, clFacts, clModeGo,
-  clAfterPaint, clPanelFacts, clLetGo, clParts, clQuality, clContrastOnWhite, clWhoRows, clHistGo, clLookChanges, clChangeParts, clLookChangesLoad });
+  clAfterPaint, clPanelFacts, clLetGo, clParts, clQuality, clContrastOnWhite, clWhoRows, clHistGo, clLookChanges, clChangeParts, clLookChangesLoad,
+  lookSaveOrSend });
