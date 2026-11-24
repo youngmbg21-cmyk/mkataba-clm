@@ -131,7 +131,7 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     /* LIFTED (Young, 8 Oct 2026: "yes to words under the symbols"): every symbol
        carries its word, whole — a word cut to "Docu…" is not a word */
     /* RE-POINTED 20 Oct 2026 (owner: "jambo keeps disappearing from the top of the panel", PR #372): the Jambo tab now always stands beside the four; they are counted without it, and it wears his face */
-    const sym = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .igd-head .pd-tab:not([data-pd-talk])')].map(b => { const w = b.querySelector('.pd-tab-w');
+    let sym = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .igd-head .pd-tab:not([data-pd-talk])')].map(b => { const w = b.querySelector('.pd-tab-w');
       return { k: b.getAttribute('data-pd-tab'), on: b.classList.contains('on'), txt: w ? w.textContent.trim() : '', whole: !!w && w.scrollWidth <= w.clientWidth + 1, glyph: b.querySelector('.pd-tab-g img.jambo-face') ? 'FACE' : ((b.querySelector('.pd-tab-g') || {}).textContent || ''), name: b.getAttribute('title') }; }));
     /* the artifact's symbols, exactly (owner, 10 Oct 2026); Jambo's tab wears his face (owner, 12 Oct 2026).
        RE-POINTED 19 Oct 2026: the first tab's word is "Overview" — the owner: "you land on the page and if
@@ -140,6 +140,12 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
        RE-POINTED 19 Oct 2026 (owner: his face belongs on "its one tab that says Jambo"): Overview wears ▦. */
     /* RE-POINTED 23 Nov 2026 (Dossier L+S step 2): with the Plan tab standing, its mark ☷ and its word Plan sit second */
     const P = head.plan;
+    /* RE-POINTED 24 Nov 2026 (owner: the Editor as a tab, as drawn): where the paper may be redlined the Dossier's fifth
+       tab, Editor, stands last — its word whole, no lit; the four marks are asked of the tabs before it */
+    const edTab = await page.evaluate(() => { const all = [...document.querySelectorAll('#ig-dock .igd-head .pd-tab:not([data-pd-talk])')], b = document.querySelector('#ig-dock .igd-head [data-pd-ed-tab]'), w = b && b.querySelector('.pd-tab-w');
+      return { drawn: !!b, last: !!b && all[all.length - 1] === b, txt: w ? w.textContent.trim() : '', whole: !!w && w.scrollWidth <= w.clientWidth + 1, on: !!b && b.classList.contains('on') }; });
+    const symAll = sym.length; sym = sym.filter(s => s.k !== null);
+    ok('3a2b the Editor tab, where drawn, stands last, its word whole, unlit', !edTab.drawn || (edTab.last && edTab.txt === 'Editor' && edTab.whole && !edTab.on && symAll === sym.length + 1), JSON.stringify(edTab));
     ok('3a2 symbols — the artifact\'s marks — each with its word under it, whole; one lit', sym.length === (P ? 4 : 3) && sym.map(s => s.glyph.replace('\uFE0E', '')).join('') === (P ? '\u25A6\u2637\u25A2\u21C4' : '\u25A6\u25A2\u21C4') && sym.map(s => s.txt).join('|') === (P ? 'Dossier|Plan|Clauses|Redlines' : 'Dossier|Clauses|Redlines') && sym.every(s => s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.glyph + ' ' + s.txt + (s.whole ? '' : ' (cut)'))));
     /* WHITE, UNDER THE GREETING ROW (owner, 10 Oct 2026; reverses Lifted) */
     /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): pressing Clauses plays THE READ quickly over the paper

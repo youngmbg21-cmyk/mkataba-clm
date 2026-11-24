@@ -41,6 +41,8 @@ const FAMILY = [
   /end by|changed since|löper ut|ändrats sedan/i,
 ];
 const VIEW = ['Brain', 'Wiring', 'Floors', 'Grid', 'Timeline'];
+/* Brain and Wiring hidden for now (owner, 24 Nov 2026; IGB_VIEWS_HIDDEN) */
+const HIDDEN = [0, 1], SHOWN = [2, 3, 4];
 const TOUR = { en: 'Explain this view', sv: 'Förklara vyn' };
 
 let pass = 0, fail = 0;
@@ -95,6 +97,13 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
       /* ================= 1. EACH VIEW'S OWN QUESTIONS ================= */
       for (let v = 0; v < 5; v++) {
         const pressed = await pressView(v);
+        /* RE-POINTED 24 Nov 2026 (owner: Explorer's Brain and Wiring hidden for now): their buttons are not drawn and
+           the map never lands on them, so their questions are never offered; the three shown views keep their own */
+        if (HIDDEN.includes(v)) {
+          const at = await page.evaluate(() => igbCam().view);
+          check(`1${'abcde'[v]}-${lang} ${VIEW[v]}: hidden for now — no button to press, and the map stays on a shown view`, !pressed && !HIDDEN.includes(at), JSON.stringify({ pressed, at }));
+          continue;
+        }
         await until(k => igbCam().view === k, v);
         const c = await chips();
         const own = c.slice(0, -1);
@@ -104,11 +113,12 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
             && own.every(q => FAMILY[v].test(q) && !others.some(re => re.test(q))), JSON.stringify(c));
       }
       if (lang === 'sv') check('1f-sv no chip is left in English', !(await (async () => { const all = [];
-        for (let v = 0; v < 5; v++) { await pressView(v); await until(k => igbCam().view === k, v); all.push(...await chips()); }
+        for (const v of SHOWN) { await pressView(v); await until(k => igbCam().view === k, v); all.push(...await chips()); }
         return all.filter(q => /\b(?:the|by|what|which|contracts|explain)\b/i.test(q)).length; })()));
 
       /* ================= 2. EVERY CHIP DOES WHAT IT SAYS ================= */
-      for (let v = 0; v < 5; v++) {
+      /* RE-POINTED 24 Nov 2026 (Brain and Wiring hidden for now): the chips of the three shown views */
+      for (const v of SHOWN) {
         await fresh(v);
         const list = await chips();
         for (const q of list) {
@@ -144,9 +154,12 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     const c3 = await chips();
     check('3a floors already by payment terms are offered other facts, not payment terms again',
       c3.length >= 2 && !c3.some(q => /payment terms/i.test(q)) && c3.some(q => /floors/i.test(q)), JSON.stringify(c3));
+    /* RE-POINTED 24 Nov 2026 (owner: Explorer's Brain and Wiring hidden for now): the lobes are the Brain's; asked for
+       the Brain, the map stays on a shown view and no lobe question is offered */
     await page.evaluate(() => { intel.history = []; intel.floorsBy = null; intel.lobeShade = 'liability'; rebuildIntelGraph(); igSetView(0); renderIntelDock(); });
     const c3b = await chips();
-    check('3b lobes already shaded by the liability cap are offered another fact', !c3b.some(q => /liability/i.test(q)) && c3b.some(q => /lobes/i.test(q)), JSON.stringify(c3b));
+    const v3b = await page.evaluate(() => igbCam().view);
+    check('3b the Brain hidden for now: the map stays on a shown view and no lobe question is offered', !HIDDEN.includes(v3b) && c3b.length >= 1 && !c3b.some(q => /lobes/i.test(q)), JSON.stringify({ v3b, c3b }));
     await page.evaluate(() => { intel.lobeShade = null; rebuildIntelGraph(); renderIntelDock(); });
     /* the single-party question waits for a role to judge: with none filled in it is not offered;
        give every live agreement a role (one party alone in its stream as a supplier) and it is */
@@ -158,13 +171,12 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     for (const lang of ['en', 'sv']) {
       await page.evaluate(L => { langSet(L); (state.contracts || []).forEach(c => { if (c && !c.archived) c.metadata = Object.assign({}, c.metadata || {}, { category: 'supplier' }); });
         intel.history = []; intel.lenses = []; rebuildIntelGraph(); igSetView(1); renderIntelDock(); return 1; }, lang);
+      /* RE-POINTED 24 Nov 2026 (owner: Explorer's Brain and Wiring hidden for now): the single-party question is the
+         Wiring's; asked for the Wiring, the map stays on a shown view and the question is not offered on it */
       const r = await page.evaluate(`(() => { const Q = ${QS}; const sole = i18t('int_sug_sole'), list = Q.map(x => x.t);
-        const b = Q.find(x => x.t === sole); if (b) b.el.click();
-        return { sole, list, pressed: !!b, ids: igSoleData(null).ids.length }; })()`);
-      await until(() => !intel.busy && intel.history.length >= 2);
-      const lens = await page.evaluate(() => intel.lenses.map(l => l.label));
-      check(`3d-${lang} once roles are filled in, Wiring offers "${r.sole}" and it lights the single-party contracts`,
-        r.pressed && (r.ids === 0 || lens.length > 0), JSON.stringify({ list: r.list, ids: r.ids, lens }));
+        return { sole, list, offered: list.includes(sole), view: igbCam().view }; })()`);
+      check(`3d-${lang} the Wiring hidden for now: "${r.sole}" is not offered and the map stays on a shown view`,
+        !r.offered && !HIDDEN.includes(r.view) && r.list.length >= 1, JSON.stringify(r));
     }
     await page.evaluate(() => { langSet('en'); renderIntel(); });
     await until(() => hbFace() === 'explorer' && !!document.querySelector('#ig-dock [data-ig-chips]'));

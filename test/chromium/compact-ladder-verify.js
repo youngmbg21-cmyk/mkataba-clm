@@ -258,11 +258,19 @@ const HELPERS = `(() => {
        head's door, which Home does not carry (docThreadUnrunHtml answers ''
        there). What is left on the open row is Plain, an ordinary button: it
        stands on the everyday rung at the one weight. */
+    /* RE-POINTED 24 Nov 2026 (owner's pick, the clause page L+S, f1208: "small buttons"): the open row's old Plain stands
+       down on the page; its press is the page's own small Plain button (data-th-pg="plain"), on the small rung
+       (--ctl-h-sm) at the one label weight (--w-label) — the relation pinned, not the number */
     const plainBtn = await page.evaluate(() => { const m = window.__m;
-      return [...document.querySelectorAll('#pd-thread .doc-th-row.is-open [data-th-explain]')].filter(m.vis).map(m.box); });
-    ok('3c the open row\'s Plain is the everyday rung (28) at the one weight (600)',
-      plainBtn.length > 0 && plainBtn.every(b => near(b.h, 28) && b.fw === '600'),
-      JSON.stringify(plainBtn.map(b => b.t + ':' + b.h + '/' + b.fw)));
+      const pageBtns = [...document.querySelectorAll('#pd-thread .doc-th-pgx [data-th-pg="plain"]')].filter(m.vis).map(m.box);
+      const rowBtns = [...document.querySelectorAll('#pd-thread .doc-th-row.is-open [data-th-explain]')].filter(m.vis).map(m.box);
+      const t = document.createElement('div'); t.style.cssText = 'position:absolute;height:var(--ctl-h-sm);font-weight:var(--w-label)'; document.body.appendChild(t);
+      const want = { h: Math.round(t.getBoundingClientRect().height), fw: getComputedStyle(t).fontWeight }; t.remove();
+      return { page: pageBtns, row: rowBtns, want }; });
+    const plainOn = plainBtn.page.length ? plainBtn.page : plainBtn.row, rung = plainBtn.page.length ? plainBtn.want.h : 28;
+    ok('3c the open clause\'s Plain is one small button at the one label weight (the page\'s, or the row\'s off the page)',
+      plainOn.length > 0 && plainOn.every(b => near(b.h, rung) && b.fw === plainBtn.want.fw),
+      JSON.stringify({ page: plainBtn.page.map(b => b.t + ':' + b.h + '/' + b.fw), row: plainBtn.row.map(b => b.t + ':' + b.h + '/' + b.fw), want: plainBtn.want }));
     await sweep('document');
 
     /* ════════ 4. THE SIGNING TAB ════════ */

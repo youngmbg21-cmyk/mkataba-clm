@@ -8347,6 +8347,9 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     const dt = t.closest('[data-ce-dtab]');
     if (dt){
       e.preventDefault(); const k = dt.getAttribute('data-ce-dtab'); if (k === 'ed') return;
+      /* LAND ON IT: opened from a Redlines row (its own ‹ Redlines stands down while tabbed), the Redlines tab is that
+         way back — the row's own (ceRowBack: the leave question, then the same row, landed on) */
+      if (k === 'red' && ceRowMode() && !ceFromClauses()){ ceRowBack(); return; }
       /* ANOTHER TAB LEAVES THE EDITOR, asking first over an unfiled edit (ceLeaveGuard), then opens that tab */
       ceLeaveGuard(() => { rlCloseClauseEditor(); try { if (typeof window.pdEdTabLeave === 'function') window.pdEdTabLeave(k); } catch (_){} });
       return;

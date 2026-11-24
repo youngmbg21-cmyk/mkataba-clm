@@ -165,7 +165,10 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
         board: ['which 2 end in 90 days?', 'value by stream', 'what needs me'],
         /* RETIRED 23 Nov 2026 (P-14, the Calendar's panel as drawn: plain sections, its one plan act "Plan my week"; the
            planner's other ask is still asked in Jambo's box at the panel's foot) */
-        calendar: ['find time for what is due · 1 call'] };
+        calendar: ['find time for what is due · 1 call'],
+        /* RE-POINTED 24 Nov 2026 (owner: Explorer's Brain and Wiring hidden for now): the lobes are the Brain's, so the
+           map opens on the Floors and their two questions are not offered; they come back with the Brain */
+        explorer: ['Shade the lobes by liability cap', 'Size the lobes by value'] };
       /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): "Add a file" is the box's + (data-jb-file) in the
          panel's foot, outside the body read above — still offered, so asked there */
       const viaFoot = w => w === 'Add a file' && read.plus;
