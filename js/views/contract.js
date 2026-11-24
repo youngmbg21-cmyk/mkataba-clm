@@ -15834,6 +15834,10 @@ function docThreadFill(c,rows,i,opts){
   const o=opts||{};
   const card=thEl('card'); if(!card) return;
   const box=card.querySelector('.doc-th-rows'); if(!box) return;
+  /* THE PAGE FROM THE FIRST FRAME (owner, 24 Nov 2026: "when I go from dossier to clauses page, the old page flashes
+     for a second... delete this old page"): the one-clause page is put on as the rows are drawn, not when the first
+     row opens a beat later — the whole list is never painted in between */
+  card.classList.toggle('is-page',!!(_thPage&&docThreadNavOn()));
   const plain=o.plain||docThreadPlain(c,o.sheet);
   const byRow=docThreadRowsBy(box);
   rows.forEach((x,k)=>{
@@ -16309,6 +16313,8 @@ function docThreadPaint(c){
   _docThreadCache={ id:String(c&&c.id), rows, plain, sheet };
   docThreadStates(c,rows,plain);
   docThreadFill(c,rows,_docThreadOn,{plain,sheet,instant:true});
+  /* the page's own parts (nav, buttons, What was found) come with the rows, not with the next open (owner, 24 Nov 2026) */
+  if(_thPage&&docThreadNavOn()&&_docThreadOn>=0) docThreadNavSync();
   docThreadWire(c);
   docThreadFollowArm();
   if(home&&typeof pdTabCountPaint==='function') pdTabCountPaint('doc', c);

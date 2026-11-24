@@ -1176,3 +1176,6 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 ## THE DOSSIER END TO END — back to where you were (24 Nov 2026)
 - `node --test test/f1205-dossier-back-to-place.test.js`
 - Browser (GitHub): dossier-back-to-place-verify (deal's row and duties' row, out and back, the panel's scrollTop the same).
+
+## THE DOSSIER END TO END — the Clauses page from the first frame (24 Nov 2026)
+- `node --test test/f1206-clauses-page-no-flash.test.js test/f1203-the-clause-page-as-drawn.test.js`
