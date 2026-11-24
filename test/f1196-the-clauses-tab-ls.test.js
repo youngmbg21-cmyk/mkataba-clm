@@ -66,7 +66,9 @@ describe('f1196 (3) the controls come back', () => {
     assert.match(A, /if \(pin\) pd2CtlHold\(el, sc, st\); else pd2CtlLetGo\(el\);/);
     assert.match(A, /pd2CtlPill\(!pin && st > PD2_CTL_TOP/);
     const arm = strip(fnSrc(PD, 'pd2CtlArm'));
-    assert.match(arm, /else if \(d < -2\) _pd2Ctl\.pinned = true; else if \(d > 2\) _pd2Ctl\.pinned = false;/);
+    /* RE-POINTED 24 Nov 2026 (the paper and its notes, L+S, owner's pick): "Comes back" is reversed: the controls STAY PUT, held from the first pixel, reading down as well as up */
+    assert.match(arm, /_pd2Ctl\.pinned = st > PD2_CTL_TOP;/);
+    assert.match(PD, /const PD2_CTL_TOP = 0;/);
     assert.doesNotMatch(arm + A, /persist\(|api\(/);
     assert.match(H, /@keyframes pd2CtlFade\{from\{opacity:0\}to\{opacity:1\}\}/);
   });

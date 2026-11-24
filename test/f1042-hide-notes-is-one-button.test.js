@@ -36,7 +36,8 @@ const said = k => [...I18N.matchAll(new RegExp('\\n\\s+' + k + ": '([^']*)'", 'g
 
 describe('f1042 (1) the words', () => {
   const want = {
-    pd2_rn_chip_all: 'All notes', pd2_rn_chip_open: 'Outstanding', pd2_rn_chip_done: 'Resolved',
+    /* RE-POINTED 24 Nov 2026 (the paper and its notes, L+S, owner's pick): the first tab says All; Hide is short on the row */
+    pd2_rn_chip_all: 'All', pd2_notes_hide_s: 'Hide', pd2_rn_chip_open: 'Outstanding', pd2_rn_chip_done: 'Resolved',
     pd2_rn_answered: 'Resolved by your redline', pd2_rn_unsent: 'not yet sent', pd2_rn_sent: 'sent, awaiting their response',
     pd2_rn_none: 'not yet addressed', pd2_rn_agreed: 'agreed; pending re-check', pd2_notes_hide: 'Hide notes', pd2_notes_show: 'Show notes' };
   for (const [k, en] of Object.entries(want)) test(k + ' says "' + en + '", and has a Swedish twin', () => {
@@ -52,7 +53,7 @@ function stage(){
   const dom = new JSDOM('<!doctype html><body></body>', { url: 'https://hati.test/', runScripts: 'outside-only' });
   const w = dom.window;
   w.eval(`var _pdE = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-    var _pdT = k => ({ pd2_notes_hide: 'Hide notes', pd2_notes_show: 'Show notes' })[k] || k;
+    var _pdT = k => ({ pd2_notes_hide: 'Hide notes', pd2_notes_hide_s: 'Hide', pd2_notes_show: 'Show notes' })[k] || k;
     var PD2_NOTE_GAP = 12;
     var lsGet = k => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
     var lsSet = (k, v) => localStorage.setItem(k, JSON.stringify(v));
@@ -67,7 +68,8 @@ describe('f1042 (2) one button, (3) remembered', () => {
     const shown = w.document.createElement('div'); shown.innerHTML = w.pd2NotesTgHtml(false);
     const away = w.document.createElement('div'); away.innerHTML = w.pd2NotesTgHtml(true);
     assert.equal(shown.querySelectorAll('button').length, 1);
-    assert.equal(shown.querySelector('button').textContent, 'Hide notes');
+    /* RE-POINTED 24 Nov 2026 (the paper and its notes, L+S, owner's pick): shown, the press is the row's short Hide */
+    assert.equal(shown.querySelector('button').textContent, 'Hide');
     assert.equal(shown.querySelector('button').getAttribute('data-pd2-notes-tg'), 'hide');
     assert.equal(away.querySelectorAll('button').length, 1);
     assert.equal(away.querySelector('button').textContent, 'Show notes');
@@ -87,7 +89,8 @@ describe('f1042 (2) one button, (3) remembered', () => {
 describe('f1042 (4) where it applies', () => {
   const paint = fnSrc(PD, 'pd2NotesPaint');
   test('put away only off the Redline view, never while the read plays; the lone pill stands under the zoom', () => {
-    assert.match(paint, /if \(!red && !walking && pd2NotesHiddenGet\(\)\)\{ pd2NotesOff\(\); pd2NotesTgSolo\(zoom\); return; \}/);
+    /* RE-POINTED 24 Nov 2026 (the paper and its notes, L+S, owner's pick): Hide stands on the Redline row too, so the notes are put away there as well */
+    assert.match(paint, /if \(!walking && pd2NotesHiddenGet\(\)\)\{ pd2NotesOff\(\); pd2NotesTgSolo\(zoom\); return; \}/);
   });
   test('shown again, the lone pill goes; the pill heads the notes but not while reading', () => {
     assert.match(paint, /document\.querySelectorAll\('#pd2-notes-tg'\)\.forEach\(n => n\.remove\(\)\)/);
@@ -126,7 +129,8 @@ describe('f1042 (5) never behind the zoom', () => {
 
 describe('f1042 (6) the Handbook', () => {
   test('both words named in both books', () => {
-    const n = (HB.match(/\{ui:pd2_notes_hide\}/g) || []).length, m = (HB.match(/\{ui:pd2_notes_show\}/g) || []).length;
+    /* RE-POINTED 24 Nov 2026 (the paper and its notes, L+S): shown, the press is the row's short Hide */
+    const n = (HB.match(/\{ui:pd2_notes_hide_s\}/g) || []).length, m = (HB.match(/\{ui:pd2_notes_show\}/g) || []).length;
     assert.ok(n >= 2 && m >= 2, 'en and sv');
   });
 });

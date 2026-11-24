@@ -9325,7 +9325,7 @@ function pd2RedChipsHtml(nOpen, nDone){
   if (!nOpen || !nDone){ _pd2RedShow = 'all'; return ''; }
   const E = _pdE, n = { all: nOpen + nDone, open: nOpen, done: nDone };
   return `<div class="pd2-rn-chips" role="group" aria-label="${E(_pdT('pd2_notes'))}">${[['all', 'pd2_rn_chip_all'], ['open', 'pd2_rn_chip_open'], ['done', 'pd2_rn_chip_done']]
-    .map(([k, w]) => `<button type="button" class="pd2-rn-chip" data-pd2-rn-chip="${k}" aria-pressed="${_pd2RedShow === k}">${E(_pdT(w))} <span>${n[k]}</span></button>`).join('')}</div>`;
+    .map(([k, w]) => `<button type="button" class="pd2-rn-chip" data-pd2-rn-chip="${k}" aria-pressed="${_pd2RedShow === k}">${E(_pdT(w))} <span>${n[k]}</span></button>`).join('')}<button type="button" class="pd2-rn-hide ui-link" data-pd2-notes-tg="hide" aria-pressed="false">${E(_pdT('pd2_notes_hide_s'))}</button></div>`;     /* Hide, at the end of the same row (L+S, 24 Nov 2026): the one toggle's own press */
 }
 /* their ask, drawn as it always was */
 function pd2RedAskHtml(n, i){
@@ -9355,7 +9355,7 @@ function pd2RedGroupHtml(g, i){
   const more = g.items.length > 1 ? `<button type="button" class="ui-link pd2-mg-more" data-pd2-unfold>${E(_pdTn('pd2_g_more', g.items.length - 1, { n: g.items.length - 1 }))}</button>` : '';
   const less = g.items.length > 1 ? `<button type="button" class="ui-link pd2-mg-less" data-pd2-fold>${E(_pdT('pd2_g_less'))}</button>` : '';
   const kept = (_pd2Unfolded.has(String(g.cid) + '|' + g.at) ? ' data-pd2-open="1"' : '') + (_pd2Shut.has(String(g.cid) + '|' + g.at) ? ' data-pd2-shut="1"' : '');
-  return `<div class="pd2-mn pd2-mg pd2-rn is-${tone}" data-pd2-note="${i}" data-pd2-at="${E(String(g.at))}"${kept}><div class="pd2-mg-h">${E(g.label)}</div>${g.items.map((x, k) => line(x, k > 0)).join('')}${more}${less}</div>`;
+  return `<div class="pd2-mn pd2-mg pd2-rn is-${tone}" data-pd2-note="${i}" data-pd2-at="${E(String(g.at))}"${kept}><div class="pd2-mg-h"><span class="pd2-mg-ht">${E(g.label)}</span><span class="pd2-rn-bd is-${tone}">${E(_pdT(tone === 'done' ? 'pd2_rn_chip_done' : 'pd2_rn_chip_open'))}</span></div>${g.items.map((x, k) => line(x, k > 0)).join('')}${more}${less}</div>`;
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
   const b = e.target && e.target.closest ? e.target.closest('#pd2-notes [data-pd2-rn-chip]') : null; if (!b) return;
@@ -9517,6 +9517,7 @@ function pd2NotesHiddenGet(){ try { return typeof lsGet === 'function' && lsGet(
 function pd2NotesHiddenSet(v){ try { if (typeof lsSet === 'function') lsSet(PD2_NOTES_HIDDEN_KEY, !!v); } catch (_){} }
 function pd2NotesTgHtml(hidden){
   const E = _pdE;
+  if (!hidden) return `<div class="pd2-rn-chips pd2-tg"><button type="button" class="pd2-rn-hide ui-link" data-pd2-notes-tg="hide" aria-pressed="false">${E(_pdT('pd2_notes_hide_s'))}</button></div>`;
   return `<div class="pd2-rn-chips pd2-tg"><button type="button" class="pd2-rn-chip" data-pd2-notes-tg="${hidden ? 'show' : 'hide'}" aria-pressed="${hidden}">${E(_pdT(hidden ? 'pd2_notes_show' : 'pd2_notes_hide'))}</button></div>`;
 }
 /* the notes put away: the pill alone, under the zoom at the paper's right */
@@ -9557,6 +9558,7 @@ function pd2LegendPaint(groups){
 }
 function pd2NotesOff(){
   _pd2Geo = null;
+  { const st = document.getElementById('pd2-ctl-strip'); if (st) st.hidden = true; }
   try { pd2LegendPaint(null); } catch (_){}
   document.querySelectorAll('#pd2-notes-tg').forEach(n => n.remove());
   document.querySelectorAll('#ig-paper .ig-zoom.has-pd2').forEach(z => { z.classList.remove('has-pd2'); z.style.removeProperty('--doc-sheet-max'); });
@@ -9577,7 +9579,11 @@ function pd2NotesOff(){
    away a small "Notes · N outstanding" pill at the foot brings them back with one press. Reading only: nothing is
    written, nothing re-drawn; less motion asked = no fade. */
 const PD2_CTL_SEL = '#ig-paper-scroll .paper-zc, #pd2-notes > .pd2-rn-chips, #pd2-notes-tg';
-const PD2_CTL_TOP = 48;          /* past this the controls have gone off the top */
+/* THEY STAY PUT (owner, 24 Nov 2026: "When you scroll the zoom and the all, outstanding etc remain intact and everything
+   scroll behind them but it should not be translucent"; reverses "Comes back"): held from the first pixel scrolled,
+   reading down as well as up, on a solid strip in the desk's own colour (index.html, .is-ctl-pinned); the pill that
+   brought them back has nothing left to bring. */
+const PD2_CTL_TOP = 0;           /* past this the controls are held */
 let _pd2Ctl = { pinned: false, last: 0, raf: 0 };
 function pd2CtlEls(){ return [...document.querySelectorAll(PD2_CTL_SEL)]; }
 function pd2CtlOutstanding(){
@@ -9610,9 +9616,23 @@ function pd2CtlLetGo(el){
   delete el.dataset.pd2Held;
   Object.assign(el.style, { position: '', top: '', left: '', right: '', width: '' });
 }
+/* THE SOLID STRIP behind the held notes row (owner, 24 Nov 2026: "it should not be translucent so you see the notes behind
+   them"): one plain box in the desk's colour, inside the paper's own window only (never over the bar or the panel), from
+   the notes' column to the window's right edge and down to just under the row; drawn only while the row is held. */
+function pd2CtlStrip(sc, pin){
+  let st = document.getElementById('pd2-ctl-strip');
+  const row = pin ? document.querySelector('#pd2-notes > .pd2-rn-chips') : null;
+  if (!row){ if (st) st.hidden = true; return; }
+  if (!st){ st = document.createElement('div'); st.id = 'pd2-ctl-strip'; st.className = 'pd2-ctl-strip'; st.setAttribute('aria-hidden', 'true'); sc.insertBefore(st, sc.firstChild); }
+  const r = row.getBoundingClientRect(), a = sc.getBoundingClientRect();
+  const left = Math.round(r.left - 14), right = Math.round(a.left + sc.clientWidth);
+  Object.assign(st.style, { top: Math.round(a.top) + 'px', left: left + 'px', width: Math.max(0, right - left) + 'px', height: Math.max(0, Math.round(r.bottom - a.top + 10)) + 'px' });
+  st.hidden = false;
+}
 function pd2CtlApply(sc){
   const st = sc.scrollTop, pin = _pd2Ctl.pinned && st > PD2_CTL_TOP;
   pd2CtlEls().forEach(el => { if (pin) pd2CtlHold(el, sc, st); else pd2CtlLetGo(el); el.classList.toggle('is-ctl-pinned', pin); });
+  pd2CtlStrip(sc, pin);
   pd2CtlPill(!pin && st > PD2_CTL_TOP && !!document.getElementById('pd2-notes'));
 }
 function pd2CtlArm(){
@@ -9623,7 +9643,7 @@ function pd2CtlArm(){
     if (_pd2Ctl.raf) return;
     _pd2Ctl.raf = requestAnimationFrame(() => { _pd2Ctl.raf = 0;
       const st = sc.scrollTop, d = st - _pd2Ctl.last; _pd2Ctl.last = st;
-      if (st <= PD2_CTL_TOP) _pd2Ctl.pinned = false; else if (d < -2) _pd2Ctl.pinned = true; else if (d > 2) _pd2Ctl.pinned = false;
+      void d; _pd2Ctl.pinned = st > PD2_CTL_TOP;
       pd2CtlApply(sc); });
   }, { passive: true });
 }
@@ -9634,8 +9654,23 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('resize', () => {
     const sc = document.getElementById('ig-paper-scroll'); pd2CtlEls().forEach(pd2CtlLetGo); if (sc) pd2CtlApply(sc); });
 }
+/* A PARAGRAPH'S OWN NUMBER STANDS IN THE COLUMN TOO (the paper and its notes L+S, owner's pick, 24 Nov 2026): an
+   uploaded paper writes "1.1 Scope…" as plain words; on the working paper (never the signing copy, never a box being
+   typed in) the leading number of two levels or more is wrapped where it stands, its space kept inside, so the words
+   read exactly as before. PAINT ONLY, done once a paragraph. */
+const PD2_PNUM_RE = /^(\s*)(\d{1,3}(?:\.\d{1,3}){1,4}\.?)(\s+)/;
+function pd2ParaNums(cv){
+  if (!cv || !(typeof window.newLookOn === 'function' && newLookOn())) return;
+  cv.querySelectorAll('article.nego-doc.rl-paper:not(.pg-sign) .nego-body p').forEach(p => {
+    const t = p.firstChild; if (!t || t.nodeType !== 3 || p.isContentEditable) return;
+    const m = t.nodeValue.match(PD2_PNUM_RE); if (!m || (m[0].length === t.nodeValue.length && !t.nextSibling)) return;
+    const sp = document.createElement('span'); sp.className = 'rl-pnum'; sp.textContent = m[2] + m[3];
+    t.nodeValue = t.nodeValue.slice(m[0].length); p.insertBefore(sp, t); if (m[1]) p.insertBefore(document.createTextNode(m[1]), sp);
+  });
+}
 function pd2NotesPaint(c, seat){
   try { pd2CtlArm(); } catch (_){}
+  try { if (!seat) pd2ParaNums(document.getElementById('ig-canvas')); } catch (_){}
   if (typeof document === 'undefined') return;
   const zoom = seat ? seat.zoom : document.querySelector('#ig-paper .ig-zoom'), cv = seat ? seat.cv : document.getElementById('ig-canvas');
   if (seat) return pd2SeatPaint(c, seat, zoom, cv);
@@ -9669,7 +9704,7 @@ function pd2NotesPaint(c, seat){
   const blocks = red ? pd2RedBlocks(c, cv, notes.filter(keep)) : [];
   if (red ? !blocks.length : !groups.length){ pd2NotesOff(); return; }
   /* put away by the reader (not on Redline; never while the read plays) */
-  if (!red && !walking && pd2NotesHiddenGet()){ pd2NotesOff(); pd2NotesTgSolo(zoom); return; }
+  if (!walking && pd2NotesHiddenGet()){ pd2NotesOff(); pd2NotesTgSolo(zoom); return; }
   document.querySelectorAll('#pd2-notes-tg').forEach(n => n.remove());
   /* THE PAPER MOVES TO THE LEFT AND NARROWS ONLY AS FAR AS THE NOTES NEED (the drawing's iPad note: "the paper narrows") */
   const { f, left, sheetW, notesW } = pd2SheetLay(zoom);
@@ -9688,7 +9723,7 @@ function pd2NotesPaint(c, seat){
   const lone = red && blocks.every(b => b.ask);
   const place = (z, h, ff) => { if (!red) pd2GroupsPlace(groups, z, h, ff, pd2RedFloor(h)); else if (lone) pd2NotesPlace(blocks, z, h, ff, pd2RedFloor(h)); else pd2GroupsPlace(blocks, z, h, ff, pd2RedFloor(h)); };
   if (red){
-    host.innerHTML = chips + blocks.map((b, i) => b.ask ? pd2RedAskHtml(b.n, i) : pd2RedGroupHtml(b, i)).join('');
+    host.innerHTML = (chips || pd2NotesTgHtml(false)) + blocks.map((b, i) => b.ask ? pd2RedAskHtml(b.n, i) : pd2RedGroupHtml(b, i)).join('');
     place(zoom, host, f);
   } else {
     host.innerHTML = (walking ? '' : pd2NotesTgHtml(false)) + groups.map((g, i) => pd2GroupHtml(g, i)).join('');

@@ -1223,3 +1223,4 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 - f1221: th_plain, th_plain_en, ce_inline_plain read Simplify / Förenkla.
 - f1222 (1–4): rlHeadNumHtml wraps only a leading number and keeps the text; every plain heading wears it, the typed one not typable; one closing block (one size, even gaps, number column sans grey tabular, tables tabular, never .pg-sign); the editor panel's clause name in the plain font.
 - f1223: every rule of the Dossier's tab switch needs two tabs or more (:has(> .pd-tab + .pd-tab)).
+- f1224 (1–4): pd2ParaNums wraps only a two-level leading number, text unchanged, never .pg-sign; the notes row with Hide at its end, never wrapping; controls stay put on a solid strip (PD2_CTL_TOP 0, pd2CtlStrip); the badge on a redline note's head. f1042, f1037, f1196, f1222 re-pointed.
