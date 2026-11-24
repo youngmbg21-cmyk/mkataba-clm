@@ -241,10 +241,15 @@ const BODY =
       t.click();
       return { pressed: true };
     });
-    if (tile2 && !tile2.none) await page.waitForFunction(() => !!document.querySelector('#dtp [data-dtp-tab="on"][aria-selected="true"]'), null, { timeout: 8000 }).catch(() => {});
-    const d2 = tile2 && !tile2.none ? await dutiesPage() : null;
-    check('3b once the contract has duties, the tile opens its Duties page on On the contract',
-      !!d2 && d2.tab === 'on' && d2.recs === 1 && !d2.old, JSON.stringify(d2 || tile2));
+    /* RE-POINTED 24 Nov 2026 (owner, "Duties, end to end": the page opens on To decide while any found duty waits, else On
+       the contract): one found duty still waits here, so it opens on To decide; On the contract holds the one added */
+    if (tile2 && !tile2.none) await page.waitForFunction(() => !!document.querySelector('#dtp [data-dtp-tab][aria-selected="true"]'), null, { timeout: 8000 }).catch(() => {});
+    const d2a = tile2 && !tile2.none ? await dutiesPage() : null;
+    if (d2a && d2a.tab !== 'on') { await page.click('#dtp [data-dtp-tab="on"]').catch(() => {});
+      await page.waitForFunction(() => !!document.querySelector('#dtp [data-dtp-tab="on"][aria-selected="true"]'), null, { timeout: 4000 }).catch(() => {}); }
+    const d2 = d2a ? await dutiesPage() : null;
+    check('3b once the contract has duties, the tile opens its Duties page on To decide while one waits, On the contract listing the one added',
+      !!d2a && (d2a.tab === 'left') === (d2a.found > 0) && !!d2 && d2.tab === 'on' && d2.recs === 1 && !d2.old, JSON.stringify({ opened: d2a, on: d2 } ));
     await page.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
 
     /* ===== 4. THE THREE OVERVIEW CARDS ===== */
