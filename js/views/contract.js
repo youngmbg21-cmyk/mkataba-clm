@@ -15921,6 +15921,43 @@ function docThreadStep(d){
    (this browser), the clause page as drawn until then */
 const TH_LIST_KEY = 'hati.v1.thList';
 let _thPage = (() => { try { return localStorage.getItem(TH_LIST_KEY) !== '1'; } catch (_){ return true; } })();
+/* THE CLAUSE PAGE'S DRAWN BODY (Round E). pts = this clause's open points (stkLivePoints, read only). */
+function docThreadPageHtml(c, rows, at, pts, nextAt){
+  const kindOf = p => typeof window.pd2PointKind === 'function' ? window.pd2PointKind(p) : p.status;
+  const word = k => k === 'pb' ? i18t('pd2_fd_k_pb') : k === 'plan' ? i18t('pd2_fd_k_plan') : i18t('bd_st_' + k);
+  const mark = { need: '▲', look: '●', pb: '◆', plan: '■' };
+  let pbLabel = ''; try { pbLabel = (typeof window.pbStandardsFor === 'function' && c) ? String((window.pbStandardsFor(c) || {}).label || '') : ''; } catch (_){ pbLabel = ''; }
+  const found = (pts || []).map(p => { const k = kindOf(p), stake = String(p.stake || '').trim(), title = String(p.title || stake).trim();
+    const path = k === 'pb' && p.cat ? [i18t('pd2_fd_k_pb'), pbLabel, p.cat].filter(Boolean).join(' › ') : '';
+    return `<li class="doc-th-fi k-${esc(k)}"><i aria-hidden="true">${mark[k] || '●'}</i><div><p><b>${esc(word(k))}</b> · ${esc(title)}</p>${stake && stake !== title ? `<p class="s">${esc(stake)}</p>` : ''}${path ? `<p class="s">${esc(path)}</p>` : ''}</div></li>`; }).join('');
+  const nm = nextAt != null && rows[nextAt] && typeof docXrayLabel === 'function' ? docXrayLabel(rows[nextAt]) : '';
+  return `<div class="doc-th-pgb"><button type="button" class="ui-btn doc-th-pgbtn" data-th-pg="plain">${esc(i18t('th_plain_en'))}</button><button type="button" class="ui-btn doc-th-pgbtn" data-th-pg="dive"${(pts || []).length ? '' : ' hidden'}>${esc(i18t('stk_deep'))}</button><button type="button" class="ui-btn ui-btn-primary doc-th-pgbtn" data-th-pg="redline">${esc(i18t('th_pg_redline'))}</button></div>
+    <p class="doc-th-pgsay">${esc(i18t('th_pg_redline_say'))}</p>
+    ${found ? `<div class="doc-th-found"><p class="h"><b>${esc(i18t('th_pg_found'))}</b><span>${(pts || []).length}</span></p><ul>${found}</ul></div>` : ''}
+    <div class="doc-th-pga"><button type="button" class="doc-th-pgl" data-th-pg="review"${(pts || []).length ? '' : ' hidden'}>${esc(i18t('stk_mark_reviewed'))}</button><button type="button" class="doc-th-pgl" data-th-pg="ask">${esc(i18t('th_pg_ask'))}</button>${nm ? `<button type="button" class="ui-btn doc-th-nx-go" data-th-nav-step="1">${esc(i18t('th_page_next_go'))}</button>` : ''}</div>`;
+}
+/* each press is the row's own existing door: Plain (data-th-explain), Deep dive and Redline (the Clauses tab's own,
+   stkRedlineGo), Mark reviewed (the points' own record); Ask a colleague = a note on this clause with @ (the Notes door) */
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._thPgWired){ document._thPgWired = true;
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest ? e.target.closest('#pd-thread [data-th-pg]') : null; if (!b) return;
+    e.preventDefault(); const k = b.getAttribute('data-th-pg');
+    const row = document.querySelector(`#pd-thread .doc-th-rows [data-th-row="${_docThreadOn}"]`); if (!row) return;
+    const press = sel => { const x = row.querySelector(sel); if (x && !x.disabled){ x.click(); return true; } return false; };
+    if (k === 'plain'){ press('[data-th-explain]'); return; }
+    if (k === 'dive'){ press('[data-stk-dive]'); return; }
+    if (k === 'review'){ press('[data-stk-review-all]') || press('[data-stk-review]'); return; }
+    const c = thLiveContract(); if (!c) return;
+    const rows = (_docThreadCache && _docThreadCache.rows) || [], x = rows[_docThreadOn];
+    const clauseId = x && typeof docXrayClauseId === 'function' ? (docXrayClauseId(x) || '') : '';
+    if (k === 'redline'){ if (press('[data-stk-redline]')) return;
+      if (typeof window.openRedlineWorkbench === 'function') window.openRedlineWorkbench(c.id, { from: 'clauses', land: clauseId ? { clauseId } : null }); return; }
+    if (k === 'ask' && typeof window.rlNoteFromSelection === 'function' && clauseId){
+      const q = String((x && x.row && x.row.text) || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+      window.rlNoteFromSelection(c, { clauseId, quote: q }, { side: 'owner' });
+      setTimeout(() => { const box = document.querySelector('#context-panel .rl-np-in'); if (box && !box.value){ box.value = '@'; box.focus(); box.dispatchEvent(new Event('input', { bubbles: true })); } }, 200); }
+  });
+}
 function docThreadNavSync(){
   const card = thEl('card'); if (!card) return;
   let nav = card.querySelector('.doc-th-nav');
@@ -15934,19 +15971,26 @@ function docThreadNavSync(){
   nav.innerHTML = `<button type="button" class="doc-th-back" data-pd-tab="copilot">\u2039 ${esc(i18t('pd_tab_dossier'))}</button><button type="button" class="doc-th-step" data-th-nav-step="-1" aria-label="${esc(i18t('th_step_prev'))}"${k <= 1 ? ' disabled' : ''}>\u2039</button><span class="doc-th-k">${esc(i18t('th_step_of', { k: Math.max(1, k), n: shown.length }))}</span><button type="button" class="doc-th-step" data-th-nav-step="1" aria-label="${esc(i18t('th_step_next'))}"${k >= shown.length ? ' disabled' : ''}>\u203a</button><span class="doc-th-hint">${esc(i18t('th_page_hint'))}</span><button type="button" class="doc-th-list" data-th-page-toggle>${esc(_thPage ? i18tn('th_page_all', shown.length, { n: shown.length }) : i18t('th_page_single'))}</button>`;
   /* the drawn clause page's line under the name: one soft badge per kind of open point (the Dossier's four), and the words
      the first point rests on, quoted — read off the Clauses tab's own points (stkLivePoints), nothing new */
-  card.querySelectorAll('.doc-th-pg').forEach(x => x.remove());
+  card.querySelectorAll('.doc-th-pg, .doc-th-pgx').forEach(x => x.remove());
+  const nextAt = shown[shown.indexOf(_docThreadOn) + 1];
   if (_thPage){ const row = card.querySelector(`.doc-th-rows [data-th-row="${_docThreadOn}"]`), go = row && row.querySelector('.doc-th-head');
     let pts = []; try { pts = (typeof window.stkLivePoints === 'function') ? (window.stkLivePoints(thLiveContract()) || []).filter(p => p && !p.done && !p.blank && p.at === _docThreadOn) : []; } catch (_){ pts = []; }
     if (go && pts.length){ const kinds = [...new Set(pts.map(p => typeof window.pd2PointKind === 'function' ? window.pd2PointKind(p) : p.status))];
       const word = k => k === 'pb' ? i18t('pd2_fd_k_pb') : k === 'plan' ? i18t('pd2_fd_k_plan') : i18t('bd_st_' + k);
       const q = (pts.find(p => p.quote) || {}).quote || '';
       const el = document.createElement('div'); el.className = 'doc-th-pg';
-      el.innerHTML = `<span class="doc-th-pg-b">${kinds.map(k => `<span class="pd2-badge k-${esc(k)}"><i aria-hidden="true"></i>${esc(word(k))}</span>`).join('')}</span>${q ? `<q class="doc-th-pg-q">${esc(String(q).replace(/\s+/g, ' ').trim().slice(0, 160))}</q>` : ''}`;
-      go.insertAdjacentElement('afterend', el); } }
-  const nextAt = shown[shown.indexOf(_docThreadOn) + 1];
+      el.innerHTML = `<span class="doc-th-pg-b">${kinds.map(k => `<span class="pd2-badge k-${esc(k)}"><i aria-hidden="true"></i>${esc(word(k))}</span>`).join('')}</span>${q ? `<span class="doc-th-pg-q">${(() => { const lab = rows[_docThreadOn] && typeof docXrayLabel === 'function' ? String(docXrayLabel(rows[_docThreadOn]) || '') : ''; const m = /^(\d+(?:\.\d+)*)/.exec(lab); return m ? '\u00a7' + esc(m[1]) + ' ' : ''; })()}<q>${esc(String(q).replace(/\s+/g, ' ').trim().slice(0, 160))}</q></span>` : ''}`;
+      go.insertAdjacentElement('afterend', el); }
+    /* THE CLAUSE PAGE, AS DRAWN (Round E, 24 Nov 2026): Plain English · Deep dive · Redline (black) with the line saying what
+       Redline does; "What was found N", each point under its kind with its stake and, for the Playbook, where it comes from;
+       Mark reviewed · Ask a colleague · Next ›. Every press is an existing door in this row (thPgPress), nothing new */
+    if (go){ const pg = docThreadPageHtml(thLiveContract(), rows, _docThreadOn, pts, nextAt);
+      const el2 = document.createElement('div'); el2.className = 'doc-th-pgx'; el2.innerHTML = pg;
+      const after = go.parentNode && go.parentNode.querySelector(':scope > .doc-th-pg') || go; after.insertAdjacentElement('afterend', el2); } }
   if (_thPage){ if (!foot){ foot = document.createElement('div'); foot.className = 'doc-th-nx'; card.appendChild(foot); }
     const nm = nextAt != null && rows[nextAt] && typeof docXrayLabel === 'function' ? docXrayLabel(rows[nextAt]) : '';
-    foot.innerHTML = `<i aria-hidden="true"></i><span>${esc(nm ? i18t('th_page_next', { what: nm }) : i18t('th_page_last'))}</span>${nm ? `<button type="button" class="ui-btn doc-th-nx-go" data-th-nav-step="1">${esc(i18t('th_page_next_go'))}</button>` : ''}`; }
+    /* Next › stands in the page's act row as drawn; the foot keeps the words */
+    foot.innerHTML = `<span>${esc(nm ? i18t('th_page_next', { what: nm }) : i18t('th_page_last'))}</span>`; }
   else if (foot) foot.remove();
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._thStepWired){ document._thStepWired = true;

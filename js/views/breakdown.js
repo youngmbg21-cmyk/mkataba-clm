@@ -134,7 +134,7 @@ function stkStdPoints(c){
   const vs = (typeof stdDepartures === 'function') ? stdDepartures(c) : [];
   return vs.map(v => {
     const missing = v.status === 'missing', cat = String(v.category || ''), pos = String(v.position || '');
-    return { by: 'std', status: v.escalate ? 'need' : 'look', missing, clause: '', region: 0, links: [],
+    return { by: 'std', cat, status: v.escalate ? 'need' : 'look', missing, clause: '', region: 0, links: [],
       title: i18t(missing ? 'stk_std_miss_t' : 'stk_std_dev_t', { cat }),
       stake: missing ? i18t('stk_std_miss', { cat }) : (pos ? i18t('stk_std_dev_pos', { cat, pos }) : i18t('stk_std_dev', { cat })),
       theirs: missing ? '' : String(v.quote || ''), usual: pos, ask: String(v.redline || ''), quote: missing ? '' : String(v.quote || '') };

@@ -19339,6 +19339,43 @@
      (the tabs are the way out, Undo sits under File); the writing bar rides just above the clause (ceTabBarPlace) */
   #clause-editor.is-tabbed .ce-rowhead,#clause-editor.is-tabbed .ce-readbar,#clause-editor.is-tabbed .ce-exit,#clause-editor.is-tabbed .ce-rail > .ce-ah,
   #clause-editor.is-tabbed #ce-railfoot .ce-walk,#clause-editor.is-tabbed .ce-foot .undo,#clause-editor.is-tabbed .ce-foot .draft{display:none}
+  /* ---- THE CLAUSE PAGE, AS DRAWN (Round E, 24 Nov 2026): three buttons, What was found, the act row ---- the row's old
+     cards and Plain chip stand down on the page (their presses are pressed by the drawn ones) */
+  :is(#pd-thread.is-page, #pd-thread .is-page) .doc-th-rows :is(.stk-card, .stk-group, .doc-th-ask){display:none}
+  /* the count line under the paper and "Checked · nothing found" beside a clause (Round E, as drawn) */
+  #ig-paper .pd2-legend{position:absolute;left:24px;right:24px;bottom:10px;z-index:4;display:flex;align-items:center;gap:18px;padding:8px 16px;
+    background:var(--color-surface);border-top:1px solid var(--color-neutral-200);font-size:12.5px;color:var(--color-text);pointer-events:none;flex-wrap:nowrap;overflow:hidden}
+  #ig-paper .pd2-legend > span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  #ig-paper .pd2-legend i{width:8px;height:8px;border-radius:50%;background:var(--color-text)}
+  #ig-paper .pd2-legend .k-need i{background:var(--st-ruby-dot)}#ig-paper .pd2-legend .k-look i{background:var(--st-amber-dot)}
+  #ig-paper .pd2-legend .k-pb i{background:var(--st-steel-dot)}#ig-paper .pd2-legend .k-plan i{border-radius:2px}
+  #ig-paper .pd2-legend .pd2-lg-left{margin-left:auto;color:var(--color-quiet)}
+  /* the notes pill rides above the count line where both stand (nothing overlaps) */
+  html.lg-new #ig-paper:has(> #pd2-legend) .pd2-ctl-pill{bottom:60px}
+  .pd2-mg.is-ok .pd2-mg-l{color:var(--color-quiet);display:flex;align-items:center;gap:8px}
+  .pd2-mg.is-ok .pd2-mn-ok{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--color-neutral-300);color:var(--color-surface);font-size:10px;font-style:normal}
+  #pd-thread .doc-th-pgx{display:flex;flex-direction:column;gap:12px;margin:14px 0 6px}
+  #pd-thread .doc-th-pgb{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  #pd-thread .doc-th-pgbtn{border-radius:999px;padding:0 16px;height:var(--ctl-h);font-size:14px}
+  #pd-thread .doc-th-pgbtn:not(.ui-btn-primary){background:var(--color-neutral-100);border-color:transparent;color:var(--color-text)}
+  #pd-thread .doc-th-pgsay{margin:-4px 0 0;font-size:12.5px;line-height:1.45;color:var(--color-quiet)}
+  #pd-thread .doc-th-found{border-top:1px solid var(--color-neutral-200);padding-top:12px}
+  #pd-thread .doc-th-found .h{display:flex;justify-content:space-between;margin:0 0 10px;font-size:13px}
+  #pd-thread .doc-th-found .h span{color:var(--color-quiet)}
+  #pd-thread .doc-th-found ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+  #pd-thread .doc-th-fi{display:grid;grid-template-columns:14px minmax(0,1fr);gap:8px;font-size:13px;line-height:1.45}
+  #pd-thread .doc-th-fi p{margin:0}
+  #pd-thread .doc-th-fi .s{color:var(--color-quiet);font-size:12px;margin-top:2px}
+  #pd-thread .doc-th-fi > i{font-style:normal;font-size:11px;line-height:1.7}
+  #pd-thread .doc-th-fi.k-need > i,#pd-thread .doc-th-fi.k-need b{color:var(--st-ruby-fg)}
+  #pd-thread .doc-th-fi.k-look > i,#pd-thread .doc-th-fi.k-look b{color:var(--st-amber-fg)}
+  #pd-thread .doc-th-fi.k-pb > i,#pd-thread .doc-th-fi.k-pb b{color:var(--st-steel-fg)}
+  #pd-thread .doc-th-fi.k-plan > i,#pd-thread .doc-th-fi.k-plan b{color:var(--color-text)}
+  #pd-thread .doc-th-fi b{font-weight:var(--w-label)}
+  #pd-thread .doc-th-pga{display:flex;align-items:center;gap:18px;margin-top:6px}
+  #pd-thread .doc-th-pgl{border:0;background:none;padding:0;font:inherit;font-size:13.5px;color:var(--color-text);cursor:pointer}
+  #pd-thread .doc-th-pgl:hover{text-decoration:underline;text-underline-offset:3px}
+  #pd-thread .doc-th-pga .doc-th-nx-go{margin-left:auto}
   #clause-editor.is-tabbed .ce-col{position:relative}
   #clause-editor.is-tabbed .ce-left{padding-top:52px}
   #clause-editor.is-tabbed .ce-foot:not(:has(#ce-waiting:not(:empty))){display:none}
