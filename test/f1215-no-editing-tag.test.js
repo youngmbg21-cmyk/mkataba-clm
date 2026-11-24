@@ -13,3 +13,6 @@ test('f1215 the writing bar carries no tag', () => {
   assert.match(CE, /oldTag = row && row\.querySelector\('\.ce-ttag'\); if \(oldTag\) oldTag\.remove\(\);/);
   assert.doesNotMatch(R('index.html'), /\.ce-ttag\{/);
 });
+test('f1215 (2) the list draws no "N to review" note under the number', () => {
+  assert.match(R('index.html'), /#pd-thread\.is-list \.doc-th-rows \.doc-th-row \[data-th-state\]\{display:none\}/);
+});

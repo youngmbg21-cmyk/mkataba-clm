@@ -40756,3 +40756,6 @@ The owner, with two pictures: "the mark reviewed should go at the end of the sum
 
 ## THE DOSSIER END TO END — no "Editing …" tag on the editor's bar (24 Nov 2026)
 The owner, with a picture of the black "Editing Article xi: intellectual property rights" pill at the start of the editor's writing bar: "delete the highlighted item". `ceTabPaint` no longer draws `.ce-ttag` (and takes one away if left from before); its two style rules are gone; `ce_tab_editing` stays in both books, unused. The clause is still named by the panel's "Redlining …" heading and the bar over the page. With the pill gone the bar fits on one line at 1366, 1440 and 1536. f1215 red at the parent; f1202 (3) re-pointed.
+
+## THE DOSSIER END TO END — no "N to review" note in the list (24 Nov 2026)
+The owner, with a picture of the list's rows: "delete the # review feature in orange". In the list (`#pd-thread.is-list`) the row's state (`[data-th-state]`: "2 to review", "Read") is not drawn: it sat under the number, over the finding line, and said what the row's badge already says (Needs you · Worth a look · Read). The element stays (the read count and checks read it). f1215 (2).
