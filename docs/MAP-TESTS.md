@@ -1191,3 +1191,6 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 ## THE DOSSIER END TO END — the clause page, L+S (24 Nov 2026)
 - `node --test test/f1208-the-clause-page-ls.test.js test/f1203-the-clause-page-as-drawn.test.js test/f1200-the-clause-page-and-reading-line.test.js`
 - Browser (GitHub): clause-list-fixed and stakes-verify now open the list view (thList) to read the head's line.
+
+## THE DOSSIER END TO END — the answer under the buttons (24 Nov 2026)
+- `node --test test/f1212-clause-page-answer-under-buttons.test.js test/f1208-the-clause-page-ls.test.js`
