@@ -7517,13 +7517,33 @@ function pdGlanceDone(c, rows, said){
   return out;
 }
 /* in place, as the chips are, when a face or a save changes what is waiting */
+/* BACK TO WHERE YOU WERE (owner, 24 Nov 2026: "when I press on these links and come back to the dossier, the panel
+   moves me back to the top … I need to be moved where I was"): while the Dossier's own face stands, its place in the
+   panel's scroller is kept (one listener, capture); a row that opens another face (Where the deal stands, Duties, History,
+   the brief …) leaves that place behind, and the Dossier's face drawn again for the same contract puts it back. Coming
+   back is not something NEW, so the reading pane does not start at its top. Nothing stored. */
+let _pd2Place = null;
+function pd2PlainFace(el){ return !!(el && el.id === 'pd-glance' && el.classList.contains('pd2-dossier') && !/(^|\s)is-/.test(el.className)); }
+function pd2PlaceScroller(el){ let sc = el ? el.parentElement : null;
+  while (sc && sc.id !== 'igd-feed' && sc.id !== 'pd-body') sc = sc.parentElement; return sc; }
+function pd2PlaceKeep(e){
+  const g = document.getElementById('pd-glance'); if (!pd2PlainFace(g)) return;
+  const sc = pd2PlaceScroller(g); if (!sc || (e && e.target !== sc)) return;
+  _pd2Place = { id: String(g.getAttribute('data-pd-glance-for') || ''), top: sc.scrollTop };
+}
+function pd2PlaceBack(was, nu){
+  if (pd2PlainFace(was) || !pd2PlainFace(nu) || !_pd2Place) return;
+  if (String(nu.getAttribute('data-pd-glance-for')) !== _pd2Place.id) return;
+  const sc = pd2PlaceScroller(nu); if (sc) sc.scrollTop = _pd2Place.top;
+}
+if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('scroll', pd2PlaceKeep, true);
 function pdGlanceRepaint(){
   const el = (typeof document !== 'undefined') ? document.getElementById('pd-glance') : null; if (!el) return;
   const c = pdContract(); if (!c || String(c.id) !== el.getAttribute('data-pd-glance-for')) return;
   /* a hand in the grid keeps its box: drawn again once it leaves */
   if (pdOgHolds()){ _pdOgPending = true; return; }
   const t = document.createElement('div'); t.innerHTML = pd2On() ? pd2Html(c) : pdGlanceHtml(c, { noKt: true });
-  const nu = t.firstElementChild; if (nu && nu.outerHTML !== el.outerHTML) el.replaceWith(nu);
+  const nu = t.firstElementChild; if (nu && nu.outerHTML !== el.outerHTML){ el.replaceWith(nu); pd2PlaceBack(el, nu); }
   if (pd2On()){ pdOgPaint(); return; }
   /* Key terms stands under Next acts now (the Checklist): drawn again in its own place */
   const kt = document.querySelector('#ig-dock .pd-nx #pd-kt, #ig-dock .pd-nx [data-pd-kt-mid]');

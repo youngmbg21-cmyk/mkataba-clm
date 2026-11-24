@@ -1172,3 +1172,7 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 - Browser (GitHub): duties-card-verify, review-desk-verify, dossier-and-amend-ls-verify, who-does-what-verify (re-pointed to the rows).
 ## THE AI'S READING RULES — no cost under an answer; the dots stay (24 Nov 2026)
 - `node --test test/f1210-no-cost-and-the-dots-stay.test.js test/f975-no-jambo-calls.test.js test/f870-judgement-on-the-stronger-model.test.js`; browser (GitHub): judgement-line-verify.
+
+## THE DOSSIER END TO END — back to where you were (24 Nov 2026)
+- `node --test test/f1205-dossier-back-to-place.test.js`
+- Browser (GitHub): dossier-back-to-place-verify (deal's row and duties' row, out and back, the panel's scrollTop the same).
