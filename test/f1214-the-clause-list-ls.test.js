@@ -13,9 +13,12 @@ const CT = R('js/views/contract.js').replace(/\/\*[\s\S]*?\*\//g, ''), H = R('in
 const fn = name => { const i = CT.indexOf('function ' + name + '('); assert.ok(i >= 0, name + ' exists'); const j = CT.indexOf('\nfunction ', i + 9); return CT.slice(i, j < 0 ? undefined : j); };
 
 test('f1214 (1) Mark reviewed ends the finding\'s own words', () => {
-  const P = fn('docThreadPageHtml');
-  assert.match(P, /if \(mark\) lines\[lines\.length - 1\] = lines\[lines\.length - 1\]\.replace\(/);
-  assert.doesNotMatch(P, /<\/div>\$\{mark\}<\/li>/, 'no column of its own');
+  /* RETIRED 24 Nov 2026 (f1217; owner: "delete the one at a time feature and only leave the list version"): the one-clause
+     page is deleted, its parts with it; the list alone stands */
+  const S = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js/views/contract.js'), 'utf8');
+  assert.ok(!S.includes('function docThreadPageHtml('), 'the clause page is gone');
+  assert.ok(S.includes('const _thPage = false;'), 'the list alone');
+
 });
 test('f1214 (2) the list: the page\'s row, the read line, tabs with counts; no head line', () => {
   const N = fn('docThreadNavSync');

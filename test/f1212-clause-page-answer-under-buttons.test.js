@@ -14,19 +14,18 @@ const H = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const fn = name => { const i = CT.indexOf('function ' + name + '('); assert.ok(i >= 0, name + ' exists'); const j = CT.indexOf('\nfunction ', i + 9); return CT.slice(i, j < 0 ? undefined : j); };
 
 test('f1212 (1) the page in two parts around the clause\'s own words', () => {
-  const P = fn('docThreadPageHtml');
-  assert.match(P, /^function docThreadPageHtml\(c, rows, at, pts, nextAt, part\)/);
-  assert.match(P, /if \(part === 'top'\) return top;/);
-  assert.match(P, /return part === 'foot' \? foot : top \+ foot;/);
-  const N = fn('docThreadNavSync');
-  assert.match(N, /docThreadPageHtml\(cc, rows, _docThreadOn, pts, nextAt, 'top'\)/);
-  assert.match(N, /el3\.className = 'doc-th-pgx is-foot'/);
-  assert.match(N, /const body = row\.querySelector\(':scope > \.doc-th-body'\); \(body \|\| el2\)\.insertAdjacentElement\('afterend', el3\);/);
-  assert.match(H, /#pd-thread\.is-page \.doc-th-row\.is-open \.doc-th-body\{padding-left:0\}/);
+  /* RETIRED 24 Nov 2026 (f1217; owner: "delete the one at a time feature and only leave the list version"): the one-clause
+     page is deleted, its parts with it; the list alone stands */
+  const S = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js/views/contract.js'), 'utf8');
+  assert.ok(!S.includes('function docThreadPageHtml('), 'the clause page is gone');
+  assert.ok(S.includes('const _thPage = false;'), 'the list alone');
+
 });
 test('f1212 (2) the page\'s parts are drawn again only when what they say changed', () => {
-  const N = fn('docThreadNavSync');
-  assert.match(N, /const sig = \[_docThreadOn, badgeHtml, pts\.length \? 1 : 0, quoteHtml, topHtml, footHtml\]\.join/);
-  assert.match(N, /row\.getAttribute\('data-th-pgsig'\) === sig/);
-  assert.match(N, /row\.setAttribute\('data-th-pgsig', sig\);/);
+  /* RETIRED 24 Nov 2026 (f1217; owner: "delete the one at a time feature and only leave the list version"): the one-clause
+     page is deleted, its parts with it; the list alone stands */
+  const S = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js/views/contract.js'), 'utf8');
+  assert.ok(!S.includes('function docThreadPageHtml('), 'the clause page is gone');
+  assert.ok(S.includes('const _thPage = false;'), 'the list alone');
+
 });

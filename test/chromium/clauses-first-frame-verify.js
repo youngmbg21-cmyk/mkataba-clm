@@ -1,9 +1,9 @@
 'use strict';
 /* clauses-first-frame-verify — NO OLD PAGE IN BETWEEN (owner, 24 Nov 2026, the second time: "when I go from dossier to
    clauses, the older version of this tab flashes before I land on this tab … what can we do to stop you from doing this
-   again?"; f1216 pins the source). Driven where the reader looks, in BOTH faces of the Clauses tab (the one-clause page
-   and the neat list): the Clauses tab is pressed on the Dossier and EVERY animation frame after it is recorded for 1.5s —
-   any frame that paints the list without its new dress (is-page / is-list) fails. Red at the parent: the list painted
+   again?"; f1216 pins the source). Driven where the reader looks — the Clauses tab is the list alone since 24 Nov 2026
+   (f1217, "delete the one at a time feature"; no One at a time button, checked): the Clauses tab is pressed on the Dossier and EVERY animation frame after it is recorded for 1.5s —
+   any frame that paints the list without its new dress (is-list) fails. Red at the parent: the list painted
    ~120ms undressed. Also the tabs as one switch: one grey track, the open tab a white pill. Each half guarded. */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -22,7 +22,7 @@ const TXT = ['DEPOT LEASE', '1. Premises', 'The Landlord lets to the Tenant the 
   await W.admin.json('/api/contracts/DV-20', { method: 'PUT', body: { baseVersion: 0, contract: { id: 'DV-20', name: 'Depot Lease', counterparty: 'Tatu City', folder: 'corp', status: 'Draft', value: 48000000, expiry: '2029-02-28', valueType: 'standard', template: 'RM', fields: {}, metadata: { value: 48000000, currency: 'KES' }, comments: [], audit: [], signatures: [], format: 'text', redlineText: TXT } } });
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   try {
-    for (const face of ['list', 'page']) {
+    for (const face of ['list']) {
       const ctx = await browser.newContext({ viewport: { width: 1440, height: 780 } });
       await ctx.addInitScript(f => { try { if (f === 'list') localStorage.setItem('hati.v1.thList', '1'); else localStorage.removeItem('hati.v1.thList'); } catch (_) {} }, face);
       const page = await ctx.newPage(); const errors = []; page.on('pageerror', e => errors.push(e.message));
@@ -48,6 +48,9 @@ const TXT = ['DEPOT LEASE', '1. Premises', 'The Landlord lets to the Tenant the 
         document.querySelector('#ig-dock > .igd-head [data-pd-tab="doc"]').click(); requestAnimationFrame(snap); }), face === 'list' ? 'is-list' : 'is-page');
       check(face + ': the Clauses tab paints its rows', frames.length > 0, frames.length + ' frames');
       check(face + ': no frame paints the old, undressed list', frames.length > 0 && frames.every(x => x === 1), frames.filter(x => !x).length + ' undressed of ' + frames.length);
+      await page.waitForTimeout(400);
+      const one = await page.evaluate(() => !!document.querySelector('#pd-thread [data-th-page-toggle], #pd-thread [data-th-menu]'));
+      check('no One at a time: the list alone', !one);
       check(face + ': no page errors', errors.length === 0, errors.join(' | '));
       await ctx.close();
     }

@@ -16,35 +16,12 @@ const CT = strip(R('js/views/contract.js')), PD = strip(R('js/paperdesk.js')), B
 const fnSrc = (src, name) => { const i = src.indexOf('function ' + name + '('); assert.ok(i >= 0, name + ' exists'); const j = src.indexOf('\n}', i); return src.slice(i, j + 2); };
 
 describe('f1203 (1)-(3) the page body', () => {
-  const pg = fnSrc(CT, 'docThreadPageHtml');
-  test('the three buttons, Redline black, and its line', () => {
-    assert.match(pg, /data-th-pg="plain"[\s\S]*data-th-pg="dive"[\s\S]*ui-btn-primary doc-th-pgbtn" data-th-pg="redline"/);
-    assert.match(pg, /th_pg_redline_say/);
-  });
-  test('What was found: kind, title, stake, the Playbook path', () => {
-    assert.match(pg, /th_pg_found/); assert.match(pg, /pd2PointKind/); assert.match(pg, /\[i18t\('pd2_fd_k_pb'\), pbLabel, p\.cat\]/);
-    assert.match(BD, /return \{ by: 'std', cat, status:/, 'a Playbook point carries its category');
-  });
-  test('the act row: Mark reviewed · Ask a colleague · Next ›', () => {
-    assert.match(pg, /data-th-pg="review"[\s\S]*data-th-pg="ask"[\s\S]*data-th-nav-step="1"/);
-  });
-  test('every press is an existing door', () => {
-    const i = CT.indexOf("closest('#pd-thread [data-th-pg]')"); assert.ok(i >= 0);
-    /* RE-POINTED 24 Nov 2026 (the handler grew — Redline any clause, Mark reviewed by Jambo's point): the whole handler,
-       to its closing `});`, not a fixed 1800 characters */
-    const h = CT.slice(i, CT.indexOf('\n  });', i) + 6);
-    assert.match(h, /press\('\[data-th-explain\]'\)/); assert.match(h, /press\('\[data-stk-dive\]'\)/);
-    assert.match(h, /press\('\[data-stk-review-all\]'\) \|\| press\('\[data-stk-review\]'\)/);
-    assert.match(h, /press\('\[data-stk-redline\]'\)/); assert.match(h, /openRedlineWorkbench\(c\.id, \{ from: 'clauses'/);
-    assert.match(h, /rlNoteFromSelection\(c, \{ clauseId, quote: q \}, \{ side: 'owner' \}\)/);
-    assert.doesNotMatch(h, /persist\(|api\(|negoFileChange|negoEditClause/);
-  });
-  test('the old cards stand down on the page only', () => {
-    assert.match(H, /:is\(#pd-thread\.is-page, #pd-thread \.is-page\) \.doc-th-rows :is\(\.stk-card, \.stk-group, \.doc-th-ask\)\{display:none\}/);
-  });
-  test('words in both books', () => {
-    for (const k of ['th_pg_redline', 'th_pg_redline_say', 'th_pg_found', 'th_pg_ask', 'pd2_g_checked_none', 'pd2_lg_left_one', 'pd2_lg_left_other'])
-      assert.equal((I.match(new RegExp(`^    ${k}: `, 'gm')) || []).length, 2, k);
+  test('retired: the one-clause page is gone', () => {
+  /* RETIRED 24 Nov 2026 (f1217; owner: "delete the one at a time feature and only leave the list version"): the one-clause
+     page is deleted, its parts with it; the list alone stands */
+  const S = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js/views/contract.js'), 'utf8');
+  assert.ok(!S.includes('function docThreadPageHtml('), 'the clause page is gone');
+  assert.ok(S.includes('const _thPage = false;'), 'the list alone');
   });
 });
 
