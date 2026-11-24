@@ -19,7 +19,8 @@ test('f1207 (1) the editing bar stands at the top; the paper pages\' ground', ()
   const b = fnOf(CE, 'ceTabBarPlace');
   assert.doesNotMatch(b, /rl-clause-live/, 'the bar no longer rides the clause being edited');
   assert.match(b, /const y = 8, hw = head\.offsetWidth \|\| 0;/);
-  assert.match(H, /#clause-editor\.is-tabbed,#clause-editor\.is-tabbed \.ce-left,#clause-editor\.is-tabbed #ce-doc\{background:var\(--desk-ground\)\}/);
+  /* RE-POINTED 24 Nov 2026 (scoped under html.lg-new) */
+  assert.match(H, /html\.lg-new #clause-editor\.is-tabbed,html\.lg-new #clause-editor\.is-tabbed \.ce-left,html\.lg-new #clause-editor\.is-tabbed #ce-doc\{background:var\(--desk-ground\)\}/);
 });
 test('f1207 (2) the Clauses tab keeps its room, and its panel scrolls without stepping', () => {
   const N = fnOf(CT, 'docThreadNavSync');

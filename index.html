@@ -19322,45 +19322,45 @@
   /* ---- THE EDITOR AS A TAB (owner, 24 Nov 2026: "build it", the drawing "Editor as a Tab") ---- the same editor wearing
      the Dossier's tabs with Editor lit; its own head row, the reading bar, the exit, the walk and the foot's undo stand down
      (the tabs are the way out, Undo sits under File); the writing bar rides just above the clause (ceTabBarPlace) */
-  #clause-editor.is-tabbed .ce-rowhead,#clause-editor.is-tabbed .ce-readbar,#clause-editor.is-tabbed .ce-exit,#clause-editor.is-tabbed .ce-rail > .ce-ah,
-  #clause-editor.is-tabbed #ce-railfoot .ce-walk,#clause-editor.is-tabbed .ce-foot .undo,#clause-editor.is-tabbed .ce-foot .draft{display:none}
+  html.lg-new #clause-editor.is-tabbed .ce-rowhead,html.lg-new #clause-editor.is-tabbed .ce-readbar,html.lg-new #clause-editor.is-tabbed .ce-exit,html.lg-new #clause-editor.is-tabbed .ce-rail > .ce-ah,
+  html.lg-new #clause-editor.is-tabbed #ce-railfoot .ce-walk,html.lg-new #clause-editor.is-tabbed .ce-foot .undo,html.lg-new #clause-editor.is-tabbed .ce-foot .draft{display:none}
   /* ---- THE CLAUSE PAGE, AS DRAWN (Round E, 24 Nov 2026): three buttons, What was found, the act row ---- the row's old
      cards and Plain chip stand down on the page (their presses are pressed by the drawn ones) */
-  :is(#pd-thread.is-page, #pd-thread .is-page) .doc-th-rows :is(.stk-card, .stk-group, .doc-th-ask){display:none}
+  html.lg-new :is(#pd-thread.is-page, #pd-thread .is-page) .doc-th-rows :is(.stk-card, .stk-group, .doc-th-ask){display:none}
   /* the count line under the paper and "Checked · nothing found" beside a clause (Round E, as drawn) */
-  #ig-paper .pd2-legend{position:absolute;left:24px;right:24px;bottom:10px;z-index:4;display:flex;align-items:center;gap:18px;padding:8px 16px;
+  html.lg-new #ig-paper .pd2-legend{position:absolute;left:24px;right:24px;bottom:10px;z-index:4;display:flex;align-items:center;gap:18px;padding:8px 16px;
     background:var(--color-surface);border-top:1px solid var(--color-neutral-200);font-size:12.5px;color:var(--color-text);pointer-events:none;flex-wrap:nowrap;overflow:hidden}
-  #ig-paper .pd2-legend > span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-  #ig-paper .pd2-legend i{width:8px;height:8px;border-radius:50%;background:var(--color-text)}
-  #ig-paper .pd2-legend .k-need i{background:var(--st-ruby-dot)}#ig-paper .pd2-legend .k-look i{background:var(--st-amber-dot)}
-  #ig-paper .pd2-legend .k-pb i{background:var(--st-steel-dot)}#ig-paper .pd2-legend .k-plan i{border-radius:2px}
-  #ig-paper .pd2-legend .pd2-lg-left{margin-left:auto;color:var(--color-quiet)}
+  html.lg-new #ig-paper .pd2-legend > span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  html.lg-new #ig-paper .pd2-legend i{width:8px;height:8px;border-radius:50%;background:var(--color-text)}
+  html.lg-new #ig-paper .pd2-legend .k-need i{background:var(--st-ruby-dot)}html.lg-new #ig-paper .pd2-legend .k-look i{background:var(--st-amber-dot)}
+  html.lg-new #ig-paper .pd2-legend .k-pb i{background:var(--st-steel-dot)}html.lg-new #ig-paper .pd2-legend .k-plan i{border-radius:2px}
+  html.lg-new #ig-paper .pd2-legend .pd2-lg-left{margin-left:auto;color:var(--color-quiet)}
   /* the notes pill rides above the count line where both stand (nothing overlaps) */
   html.lg-new #ig-paper:has(> #pd2-legend) .pd2-ctl-pill{bottom:60px}
-  .pd2-mg.is-ok .pd2-mg-l{color:var(--color-quiet);display:flex;align-items:center;gap:8px}
-  .pd2-mg.is-ok .pd2-mn-ok{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--color-neutral-300);color:var(--color-surface);font-size:10px;font-style:normal}
-  #pd-thread .doc-th-pgx{display:flex;flex-direction:column;gap:12px;margin:14px 0 6px}
-  #pd-thread .doc-th-pgb{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  #pd-thread .doc-th-pgbtn{border-radius:999px;padding:0 16px;height:var(--ctl-h);font-size:14px}
-  #pd-thread .doc-th-pgbtn:not(.ui-btn-primary){background:var(--color-neutral-100);border-color:transparent;color:var(--color-text)}
-  #pd-thread .doc-th-pgsay{margin:-4px 0 0;font-size:12.5px;line-height:1.45;color:var(--color-quiet)}
-  #pd-thread .doc-th-found{border-top:1px solid var(--color-neutral-200);padding-top:12px}
-  #pd-thread .doc-th-found .h{display:flex;justify-content:space-between;margin:0 0 10px;font-size:13px}
-  #pd-thread .doc-th-found .h span{color:var(--color-quiet)}
-  #pd-thread .doc-th-found ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
-  #pd-thread .doc-th-fi{display:grid;grid-template-columns:14px minmax(0,1fr);gap:8px;font-size:13px;line-height:1.45}
-  #pd-thread .doc-th-fi p{margin:0}
-  #pd-thread .doc-th-fi .s{color:var(--color-quiet);font-size:12px;margin-top:2px}
-  #pd-thread .doc-th-fi > i{font-style:normal;font-size:11px;line-height:1.7}
-  #pd-thread .doc-th-fi.k-need > i,#pd-thread .doc-th-fi.k-need b{color:var(--st-ruby-fg)}
-  #pd-thread .doc-th-fi.k-look > i,#pd-thread .doc-th-fi.k-look b{color:var(--st-amber-fg)}
-  #pd-thread .doc-th-fi.k-pb > i,#pd-thread .doc-th-fi.k-pb b{color:var(--st-steel-fg)}
-  #pd-thread .doc-th-fi.k-plan > i,#pd-thread .doc-th-fi.k-plan b{color:var(--color-text)}
-  #pd-thread .doc-th-fi b{font-weight:var(--w-label)}
-  #pd-thread .doc-th-pga{display:flex;align-items:center;gap:18px;margin-top:6px}
-  #pd-thread .doc-th-pgl{border:0;background:none;padding:0;font:inherit;font-size:13.5px;color:var(--color-text);cursor:pointer}
-  #pd-thread .doc-th-pgl:hover{text-decoration:underline;text-underline-offset:3px}
-  #pd-thread .doc-th-pga .doc-th-nx-go{margin-left:auto}
+  html.lg-new .pd2-mg.is-ok .pd2-mg-l{color:var(--color-quiet);display:flex;align-items:center;gap:8px}
+  html.lg-new .pd2-mg.is-ok .pd2-mn-ok{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--color-neutral-300);color:var(--color-surface);font-size:10px;font-style:normal}
+  html.lg-new #pd-thread .doc-th-pgx{display:flex;flex-direction:column;gap:12px;margin:14px 0 6px}
+  html.lg-new #pd-thread .doc-th-pgb{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  html.lg-new #pd-thread .doc-th-pgbtn{border-radius:999px;padding:0 16px;height:var(--ctl-h);font-size:14px}
+  html.lg-new #pd-thread .doc-th-pgbtn:not(.ui-btn-primary){background:var(--color-neutral-100);border-color:transparent;color:var(--color-text)}
+  html.lg-new #pd-thread .doc-th-pgsay{margin:-4px 0 0;font-size:12.5px;line-height:1.45;color:var(--color-quiet)}
+  html.lg-new #pd-thread .doc-th-found{border-top:1px solid var(--color-neutral-200);padding-top:12px}
+  html.lg-new #pd-thread .doc-th-found .h{display:flex;justify-content:space-between;margin:0 0 10px;font-size:13px}
+  html.lg-new #pd-thread .doc-th-found .h span{color:var(--color-quiet)}
+  html.lg-new #pd-thread .doc-th-found ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+  html.lg-new #pd-thread .doc-th-fi{display:grid;grid-template-columns:14px minmax(0,1fr);gap:8px;font-size:13px;line-height:1.45}
+  html.lg-new #pd-thread .doc-th-fi p{margin:0}
+  html.lg-new #pd-thread .doc-th-fi .s{color:var(--color-quiet);font-size:12px;margin-top:2px}
+  html.lg-new #pd-thread .doc-th-fi > i{font-style:normal;font-size:11px;line-height:1.7}
+  html.lg-new #pd-thread .doc-th-fi.k-need > i,html.lg-new #pd-thread .doc-th-fi.k-need b{color:var(--st-ruby-fg)}
+  html.lg-new #pd-thread .doc-th-fi.k-look > i,html.lg-new #pd-thread .doc-th-fi.k-look b{color:var(--st-amber-fg)}
+  html.lg-new #pd-thread .doc-th-fi.k-pb > i,html.lg-new #pd-thread .doc-th-fi.k-pb b{color:var(--st-steel-fg)}
+  html.lg-new #pd-thread .doc-th-fi.k-plan > i,html.lg-new #pd-thread .doc-th-fi.k-plan b{color:var(--color-text)}
+  html.lg-new #pd-thread .doc-th-fi b{font-weight:var(--w-label)}
+  html.lg-new #pd-thread .doc-th-pga{display:flex;align-items:center;gap:18px;margin-top:6px}
+  html.lg-new #pd-thread .doc-th-pgl{border:0;background:none;padding:0;font:inherit;font-size:13.5px;color:var(--color-text);cursor:pointer}
+  html.lg-new #pd-thread .doc-th-pgl:hover{text-decoration:underline;text-underline-offset:3px}
+  html.lg-new #pd-thread .doc-th-pga .doc-th-nx-go{margin-left:auto}
   /* THE CLAUSE PAGE, L+S (owner's pick, 24 Nov 2026): no head line over the page (the bar names the contract), one nav row
      with its menu and a thin read line, the name at 17px with its badge, the buttons small, each finding answered in its row */
   html.lg-new #ig-dock #pd-thread.is-page :is(.stk-lg-top, .stk-all){display:none}
@@ -19377,65 +19377,65 @@
   html.lg-new #pd-thread .doc-th-menu > button:hover{background:var(--row-hover)}
   html.lg-new #pd-thread .doc-th-prog{flex:1 0 100%;display:block;height:3px;margin-top:8px;border-radius:2px;background:var(--color-neutral-200);overflow:hidden}
   html.lg-new #pd-thread .doc-th-prog > i{display:block;height:100%;width:var(--p);background:var(--st-green-dot)}
-  #pd-thread .doc-th-pgx .doc-th-pgbtn{height:var(--ctl-h-sm);padding:0 12px;font-size:12.5px}
-  #pd-thread .doc-th-found{padding-top:12px}
-  #pd-thread .doc-th-found .h{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--color-quiet)}
-  #pd-thread .doc-th-found .h b{font-weight:var(--w-label)}
-  #pd-thread .doc-th-found ul{gap:0}
-  #pd-thread .doc-th-fi{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--color-neutral-200)}
-  #pd-thread .doc-th-fi > div{flex:1 1 auto;min-width:0}
-  #pd-thread .doc-th-fi > .pd2-badge{flex:none}
-  #pd-thread .doc-th-fi > .doc-th-pgl{flex:none}
-  #pd-thread .doc-th-pgl.is-link{font-size:13px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
-  #pd-thread .doc-th-pga .doc-th-nx-go{height:var(--ctl-h-sm);padding:0 12px;font-size:12.5px}
-  #clause-editor.is-tabbed .ce-col{position:relative}
-  #clause-editor.is-tabbed .ce-left{padding-top:52px}
+  html.lg-new #pd-thread .doc-th-pgx .doc-th-pgbtn{height:var(--ctl-h-sm);padding:0 12px;font-size:12.5px}
+  html.lg-new #pd-thread .doc-th-found{padding-top:12px}
+  html.lg-new #pd-thread .doc-th-found .h{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--color-quiet)}
+  html.lg-new #pd-thread .doc-th-found .h b{font-weight:var(--w-label)}
+  html.lg-new #pd-thread .doc-th-found ul{gap:0}
+  html.lg-new #pd-thread .doc-th-fi{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--color-neutral-200)}
+  html.lg-new #pd-thread .doc-th-fi > div{flex:1 1 auto;min-width:0}
+  html.lg-new #pd-thread .doc-th-fi > .pd2-badge{flex:none}
+  html.lg-new #pd-thread .doc-th-fi > .doc-th-pgl{flex:none}
+  html.lg-new #pd-thread .doc-th-pgl.is-link{font-size:13px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
+  html.lg-new #pd-thread .doc-th-pga .doc-th-nx-go{height:var(--ctl-h-sm);padding:0 12px;font-size:12.5px}
+  html.lg-new #clause-editor.is-tabbed .ce-col{position:relative}
+  html.lg-new #clause-editor.is-tabbed .ce-left{padding-top:52px}
   /* the ground behind the paper is the paper pages' own warm grey (owner, 24 Nov 2026: "like the other pages with paper") */
-  #clause-editor.is-tabbed,#clause-editor.is-tabbed .ce-left,#clause-editor.is-tabbed #ce-doc{background:var(--desk-ground)}
-  #clause-editor.is-tabbed .ce-foot:not(:has(#ce-waiting:not(:empty))){display:none}
-  #clause-editor.is-tabbed .ce-rail > .ce-pick{display:none}
-  #clause-editor.is-tabbed #ce-railfoot{justify-content:flex-start;flex-wrap:wrap;gap:14px}
-  #clause-editor.is-tabbed #ce-railfoot > .g{display:none}
+  html.lg-new #clause-editor.is-tabbed,html.lg-new #clause-editor.is-tabbed .ce-left,html.lg-new #clause-editor.is-tabbed #ce-doc{background:var(--desk-ground)}
+  html.lg-new #clause-editor.is-tabbed .ce-foot:not(:has(#ce-waiting:not(:empty))){display:none}
+  html.lg-new #clause-editor.is-tabbed .ce-rail > .ce-pick{display:none}
+  html.lg-new #clause-editor.is-tabbed #ce-railfoot{justify-content:flex-start;flex-wrap:wrap;gap:14px}
+  html.lg-new #clause-editor.is-tabbed #ce-railfoot > .g{display:none}
   /* the panel's order, as drawn: tabs and the clause on top, Jambo's points, File · next ›, the foot, then his box */
-  #clause-editor.is-tabbed .ce-rail > .ce-tabtop{order:0}#clause-editor.is-tabbed .ce-rail > .ce-pick{order:1}#clause-editor.is-tabbed .ce-rail > .ce-lane{order:2}
-  #clause-editor.is-tabbed .ce-rail > .ce-spell{order:3}#clause-editor.is-tabbed .ce-rail > .ce-feet{order:4}#clause-editor.is-tabbed .ce-rail > .ce-tabfoot{order:5}
-  #clause-editor.is-tabbed .ce-rail > .ce-chips{order:6}#clause-editor.is-tabbed .ce-rail > .ce-askwrap{order:7}
-  #clause-editor.is-tabbed .ce-head{position:absolute;left:0;top:0;z-index:6;width:auto;max-width:calc(100% - 32px);border:1px solid var(--color-neutral-200);
+  html.lg-new #clause-editor.is-tabbed .ce-rail > .ce-tabtop{order:0}html.lg-new #clause-editor.is-tabbed .ce-rail > .ce-pick{order:1}html.lg-new #clause-editor.is-tabbed .ce-rail > .ce-lane{order:2}
+  html.lg-new #clause-editor.is-tabbed .ce-rail > .ce-spell{order:3}html.lg-new #clause-editor.is-tabbed .ce-rail > .ce-feet{order:4}html.lg-new #clause-editor.is-tabbed .ce-rail > .ce-tabfoot{order:5}
+  html.lg-new #clause-editor.is-tabbed .ce-rail > .ce-chips{order:6}html.lg-new #clause-editor.is-tabbed .ce-rail > .ce-askwrap{order:7}
+  html.lg-new #clause-editor.is-tabbed .ce-head{position:absolute;left:0;top:0;z-index:6;width:auto;max-width:calc(100% - 32px);border:1px solid var(--color-neutral-200);
     border-radius:var(--radius);background:var(--color-surface);box-shadow:var(--shadow-sm);padding:0 6px;will-change:transform}
-  #clause-editor.is-tabbed .ce-head .ce-barrow{min-height:var(--ctl-h);gap:6px;flex-wrap:nowrap}
-  #clause-editor.is-tabbed .ce-ttag{display:inline-flex;align-items:center;height:var(--ctl-h-sm);padding:0 10px;border-radius:999px;background:var(--color-text);
+  html.lg-new #clause-editor.is-tabbed .ce-head .ce-barrow{min-height:var(--ctl-h);gap:6px;flex-wrap:nowrap}
+  html.lg-new #clause-editor.is-tabbed .ce-ttag{display:inline-flex;align-items:center;height:var(--ctl-h-sm);padding:0 10px;border-radius:999px;background:var(--color-text);
     color:var(--color-surface);font-size:12px;font-weight:var(--w-label);white-space:nowrap}
-  #clause-editor:not(.is-tabbed) .ce-ttag{display:none}
-  #clause-editor.is-tabbed #ce-doc .rl-clause-live{position:relative}
-  #clause-editor.is-tabbed #ce-doc .rl-clause-live::before{content:"";position:absolute;left:-14px;top:0;bottom:0;width:2px;background:var(--color-text)}
-  #clause-editor.is-tabbed .ce-tabtop{display:flex;flex-direction:column;gap:12px;padding:8px 16px 4px}
-  #clause-editor.is-tabbed .ce-dtabs{display:flex;align-items:center;justify-content:flex-start;gap:4px;min-height:40px;flex-wrap:nowrap;overflow:hidden}
-  #clause-editor.is-tabbed .ce-dtabs .pd-tab{display:inline-flex;align-items:center;flex:none;width:auto;min-width:0;border:0;background:none;border-radius:999px;padding:6px 8px;font:inherit;font-size:14px;color:var(--color-text);cursor:pointer;white-space:nowrap}
-  #clause-editor.is-tabbed .ce-dtabs .pd-tab{flex-direction:row}
-  #clause-editor.is-tabbed .ce-dtabs .pd-tab-w{display:inline;position:static;font-size:inherit}
-  #clause-editor.is-tabbed .ce-dtabs .pd-tab.on{background:var(--color-neutral-100);font-weight:var(--w-label)}
-  #clause-editor.is-tabbed .ce-dtabs .pd-tab-n{position:static;display:inline;width:auto;height:auto;min-width:0;padding:0;margin-left:4px;border:0;border-radius:0;background:none;box-shadow:none;font-size:inherit;color:var(--accent-ink)}
-  #clause-editor.is-tabbed .ce-tpick{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--color-quiet)}
-  #clause-editor.is-tabbed .ce-tar{width:26px;height:26px;border-radius:50%;border:1px solid var(--color-neutral-300);background:var(--color-surface);color:var(--color-text);cursor:pointer;flex:none}
-  #clause-editor.is-tabbed .ce-tar:disabled{color:var(--color-neutral-400);cursor:default}
-  #clause-editor.is-tabbed .ce-tnm{flex:1;min-width:0;text-align:left;border:0;border-bottom:1px solid var(--color-neutral-200);background:none;padding:0 0 4px;font:inherit;
+  html.lg-new #clause-editor:not(.is-tabbed) .ce-ttag{display:none}
+  html.lg-new #clause-editor.is-tabbed #ce-doc .rl-clause-live{position:relative}
+  html.lg-new #clause-editor.is-tabbed #ce-doc .rl-clause-live::before{content:"";position:absolute;left:-14px;top:0;bottom:0;width:2px;background:var(--color-text)}
+  html.lg-new #clause-editor.is-tabbed .ce-tabtop{display:flex;flex-direction:column;gap:12px;padding:8px 16px 4px}
+  html.lg-new #clause-editor.is-tabbed .ce-dtabs{display:flex;align-items:center;justify-content:flex-start;gap:4px;min-height:40px;flex-wrap:nowrap;overflow:hidden}
+  html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab{display:inline-flex;align-items:center;flex:none;width:auto;min-width:0;border:0;background:none;border-radius:999px;padding:6px 8px;font:inherit;font-size:14px;color:var(--color-text);cursor:pointer;white-space:nowrap}
+  html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab{flex-direction:row}
+  html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab-w{display:inline;position:static;font-size:inherit}
+  html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab.on{background:var(--color-neutral-100);font-weight:var(--w-label)}
+  html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab-n{position:static;display:inline;width:auto;height:auto;min-width:0;padding:0;margin-left:4px;border:0;border-radius:0;background:none;box-shadow:none;font-size:inherit;color:var(--accent-ink)}
+  html.lg-new #clause-editor.is-tabbed .ce-tpick{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--color-quiet)}
+  html.lg-new #clause-editor.is-tabbed .ce-tar{width:26px;height:26px;border-radius:50%;border:1px solid var(--color-neutral-300);background:var(--color-surface);color:var(--color-text);cursor:pointer;flex:none}
+  html.lg-new #clause-editor.is-tabbed .ce-tar:disabled{color:var(--color-neutral-400);cursor:default}
+  html.lg-new #clause-editor.is-tabbed .ce-tnm{flex:1;min-width:0;text-align:left;border:0;border-bottom:1px solid var(--color-neutral-200);background:none;padding:0 0 4px;font:inherit;
     font-size:13px;font-weight:var(--w-label);color:var(--color-text);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #clause-editor.is-tabbed .ce-tlist{display:flex;flex-direction:column;max-height:240px;overflow:auto;border:1px solid var(--color-neutral-200);border-radius:var(--radius);background:var(--color-surface);box-shadow:var(--shadow-md)}
-  #clause-editor.is-tabbed .ce-tlist[hidden]{display:none}
-  #clause-editor.is-tabbed .ce-tlist button{border:0;background:none;text-align:left;padding:7px 12px;font:inherit;font-size:13px;color:var(--color-text);cursor:pointer}
-  #clause-editor.is-tabbed .ce-tlist button:hover{background:var(--row-hover)}
-  #clause-editor.is-tabbed .ce-tlist button.on{font-weight:var(--w-label)}
-  #clause-editor.is-tabbed .ce-th{margin:0;font-family:var(--font-doc);font-size:22px;font-weight:var(--w-strong);color:var(--color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #clause-editor.is-tabbed .ce-tsub{margin:-6px 0 0;font-size:13px;line-height:1.45;color:var(--color-quiet)}
-  #clause-editor.is-tabbed .ce-tacts{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-  #clause-editor.is-tabbed .ce-tacts:has(> .ce-twhy){flex-basis:100%}
-  #clause-editor.is-tabbed .ce-tundo{border:0;background:none;padding:0;font:inherit;font-size:14px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
-  #clause-editor.is-tabbed .ce-twhy{flex-basis:100%;margin:0;font-size:12px;color:var(--color-quiet)}
-  #clause-editor.is-tabbed .ce-tabfoot{display:flex;align-items:center;gap:10px;margin:0 16px;padding:10px 0;border-top:1px solid var(--color-neutral-200);font-size:13px;color:var(--color-quiet)}
-  #clause-editor.is-tabbed .ce-tabfoot:empty{display:none}
-  #clause-editor.is-tabbed .ce-tabfoot .dash{width:18px;height:1px;background:var(--color-neutral-300);flex:none}
-  #clause-editor.is-tabbed .ce-tabfoot .w{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #clause-editor.is-tabbed .ce-tnext{border:0;border-radius:999px;background:var(--color-neutral-100);color:var(--color-text);padding:6px 12px;font:inherit;font-size:13px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
+  html.lg-new #clause-editor.is-tabbed .ce-tlist{display:flex;flex-direction:column;max-height:240px;overflow:auto;border:1px solid var(--color-neutral-200);border-radius:var(--radius);background:var(--color-surface);box-shadow:var(--shadow-md)}
+  html.lg-new #clause-editor.is-tabbed .ce-tlist[hidden]{display:none}
+  html.lg-new #clause-editor.is-tabbed .ce-tlist button{border:0;background:none;text-align:left;padding:7px 12px;font:inherit;font-size:13px;color:var(--color-text);cursor:pointer}
+  html.lg-new #clause-editor.is-tabbed .ce-tlist button:hover{background:var(--row-hover)}
+  html.lg-new #clause-editor.is-tabbed .ce-tlist button.on{font-weight:var(--w-label)}
+  html.lg-new #clause-editor.is-tabbed .ce-th{margin:0;font-family:var(--font-doc);font-size:22px;font-weight:var(--w-strong);color:var(--color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new #clause-editor.is-tabbed .ce-tsub{margin:-6px 0 0;font-size:13px;line-height:1.45;color:var(--color-quiet)}
+  html.lg-new #clause-editor.is-tabbed .ce-tacts{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  html.lg-new #clause-editor.is-tabbed .ce-tacts:has(> .ce-twhy){flex-basis:100%}
+  html.lg-new #clause-editor.is-tabbed .ce-tundo{border:0;background:none;padding:0;font:inherit;font-size:14px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  html.lg-new #clause-editor.is-tabbed .ce-twhy{flex-basis:100%;margin:0;font-size:12px;color:var(--color-quiet)}
+  html.lg-new #clause-editor.is-tabbed .ce-tabfoot{display:flex;align-items:center;gap:10px;margin:0 16px;padding:10px 0;border-top:1px solid var(--color-neutral-200);font-size:13px;color:var(--color-quiet)}
+  html.lg-new #clause-editor.is-tabbed .ce-tabfoot:empty{display:none}
+  html.lg-new #clause-editor.is-tabbed .ce-tabfoot .dash{width:18px;height:1px;background:var(--color-neutral-300);flex:none}
+  html.lg-new #clause-editor.is-tabbed .ce-tabfoot .w{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new #clause-editor.is-tabbed .ce-tnext{border:0;border-radius:999px;background:var(--color-neutral-100);color:var(--color-text);padding:6px 12px;font:inherit;font-size:13px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
   html.lg-new #ig-dock .pd2-df-acts .pd2-card-go{flex:0 1 auto;width:auto;padding:0 18px}
   html.lg-new #ig-dock .pd2-df-acts .pd2-card-go.is-grey{background:var(--surface-2);color:var(--color-text);border-color:transparent}
   html.lg-new #ig-dock .pd2-fd-q.pd2-plain{font-family:var(--font-body);font-size:12px}

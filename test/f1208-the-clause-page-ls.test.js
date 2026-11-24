@@ -31,7 +31,8 @@ test('f1208 (2) the name at 17px with its badge; small buttons; Redline\'s words
 test('f1208 (3) each finding answered in its row; Next names the clause', () => {
   const P = fn('docThreadPageHtml');
   assert.match(P, /data-th-pg="review" data-th-pt="\$\{esc\(String\(p\._i\)\)\}"/);
-  assert.match(CT, /if \(pt != null\)\{ press\(`\[data-stk-review="\$\{pt\}"\]`\); return; \}/);
+  /* RE-POINTED 24 Nov 2026 (Jambo's point marked through the one writer, stkMarkReviewed; no per-point control is pressed) */
+  assert.match(CT, /window\.stkMarkJamboReviewed\(lc, pt\); return; \}/);
   assert.match(P, /th_pg_next_to', \{ what: nm \}/);
   for (const k of ['th_menu_list', 'th_prog_say', 'th_pg_next_to']) assert.strictEqual((I.match(new RegExp('\\n\\s*' + k + ':', 'g')) || []).length, 2, k + ' in both books');
 });
