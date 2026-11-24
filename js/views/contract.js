@@ -15909,9 +15909,6 @@ function docThreadOpen(c,i,opts){
    open one, and ONE scroll gesture over the list does the same, the paper gliding with it (docThreadGoTo, the press's own
    glide). A clause taller than the list reads first: the wheel scrolls it until its end is in view, then steps. At the
    first or last clause the wheel does nothing more; less motion asked = the paper jumps (docThreadGoTo's own rule). */
-const TH_STEP_DELTA = 40;        /* how far a gesture must go before it steps */
-const TH_STEP_QUIET_MS = 220;    /* a pause this long ends a gesture; the next scroll may step again */
-let _thStepAcc = 0, _thStepLocked = false, _thStepT = null;
 function docThreadNavOn(){ return thOnHome() && typeof window.newLookOn === 'function' && newLookOn(); }
 function docThreadStep(d){
   const c = thLiveContract(), rows = (_docThreadCache && _docThreadCache.rows) || []; if (!c || !rows.length) return false;
@@ -15921,7 +15918,7 @@ function docThreadStep(d){
   docThreadGoTo(c, next); return true;
 }
 /* ONE CLAUSE AT A TIME, A PAGE (Round C, as drawn — the drawing's clause page): the open clause alone fills the list,
-   its name large; above it ‹ Dossier · k of n · "Scroll or press ›" · ‹ ›; under it "Keep scrolling for <next>" and
+   its name large; above it ‹ Dossier · k of n · "Press › for the next" · ‹ ›; (no foot line since 24 Nov 2026) and
    Next ›. "All N clauses" turns back to the whole list (and back). Only the look and the stepping: the open clause's own
    reading, doors and marks are the list's (docThreadFill), nothing redrawn of its own. */
 /* THE READER'S OWN CHOICE IS KEPT (24 Nov 2026): "All N clauses" turns to the list and stays the list for this reader
@@ -15994,11 +15991,9 @@ function docThreadNavSync(){
     if (go){ const pg = docThreadPageHtml(thLiveContract(), rows, _docThreadOn, pts, nextAt);
       const el2 = document.createElement('div'); el2.className = 'doc-th-pgx'; el2.innerHTML = pg;
       const after = go.parentNode && go.parentNode.querySelector(':scope > .doc-th-pg') || go; after.insertAdjacentElement('afterend', el2); } }
-  if (_thPage){ if (!foot){ foot = document.createElement('div'); foot.className = 'doc-th-nx'; card.appendChild(foot); }
-    const nm = nextAt != null && rows[nextAt] && typeof docXrayLabel === 'function' ? docXrayLabel(rows[nextAt]) : '';
-    /* Next › stands in the page's act row as drawn; the foot keeps the words */
-    foot.innerHTML = `<span>${esc(nm ? i18t('th_page_next', { what: nm }) : i18t('th_page_last'))}</span>`; }
-  else if (foot) foot.remove();
+  /* NO FOOT LINE (owner, 24 Nov 2026: "delete the highlighted area … only for this tab so we can better utilize the
+     space"): "Keep scrolling for …" is gone; Next › in the page's act row says where the next step goes */
+  if (foot) foot.remove();
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._thStepWired){ document._thStepWired = true;
   document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('#pd-thread [data-th-page-toggle]') : null; if (!b) return;
@@ -16006,25 +16001,9 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   /* the head's own arrows only (a row's own ‹ › keep their own handler): one press, one step */
   document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('#pd-thread [data-th-nav-step]') : null; if (!b || b.disabled) return;
     e.preventDefault(); docThreadStep(Number(b.getAttribute('data-th-nav-step')) || 1); });
-  document.addEventListener('wheel', e => {
-    const inCard = e.target && e.target.closest ? e.target.closest('#pd-thread') : null;
-    const list = e.target && e.target.closest ? (e.target.closest('#pd-thread .doc-th-rows') || (inCard && _thPage ? inCard.querySelector('.doc-th-rows') : null)) : null;
-    if (!list || !docThreadNavOn() || e.ctrlKey) return;
-    const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? list.clientHeight : 1); if (!dy) return;
-    /* a clause taller than the list is read first: the wheel scrolls it until its edge is in view */
-    const open = list.querySelector(`[data-th-row="${_docThreadOn}"]`);
-    if (open && list.scrollHeight > list.clientHeight + 4 && open.offsetHeight > list.clientHeight - 8){
-      const lr = list.getBoundingClientRect(), r = open.getBoundingClientRect();
-      if ((dy > 0 && r.bottom > lr.bottom + 2) || (dy < 0 && r.top < lr.top - 2)) return;
-    }
-    e.preventDefault();
-    clearTimeout(_thStepT); _thStepT = setTimeout(() => { _thStepAcc = 0; _thStepLocked = false; }, TH_STEP_QUIET_MS);
-    if (_thStepLocked) return;
-    _thStepAcc += dy;
-    if (Math.abs(_thStepAcc) < TH_STEP_DELTA) return;
-    _thStepLocked = true; const d = _thStepAcc > 0 ? 1 : -1; _thStepAcc = 0;
-    docThreadStep(d);
-  }, { passive: false });
+  /* THE PANEL SCROLLS, IT DOES NOT STEP (owner, 24 Nov 2026: "when you scroll on this tab, the scroll should not move you
+     to the next clause, you should have to press the next (›) button but leave the ability to scroll on paper"): the
+     wheel over the clause page scrolls the page; ‹ › and Next › step; the paper's own scroll still follows clause by clause */
 }
 let _docThreadStillT=null;
 /* ---- A CLAUSE YOU CLOSED STAYS CLOSED WHILE YOU SCROLL (the owner decided

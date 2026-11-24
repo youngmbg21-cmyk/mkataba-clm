@@ -24,7 +24,8 @@ const region = (src, start, end) => { const i = src.indexOf(start); assert.ok(i 
 const NEGO = read('js/views/negotiation.js'), PD = read('js/paperdesk.js');
 
 test('f1066 (1) the Redlines face: one switch, a headline, Send all in a card, the Ladder its own face', () => {
-  assert.match(NEGO, /\$\{five \? `<span class="rl-seg" role="group">\$\{five\.seg\}\$\{rlHeadNotesHtml\(c, opts\)\}\$\{rlHeadLadderHtml\(c, opts\)\}<\/span>/, 'the switch, inside the head (its Deal removed, f1084)');
+  /* RE-POINTED 24 Nov 2026 (owner: "delete the notes page from the tab", f1207): the switch is Changes · Ladder */
+  assert.match(NEGO, /\$\{five \? `<span class="rl-seg" role="group">\$\{five\.seg\}\$\{''\/\* NO NOTES IN THE SWITCH[^`]*?\*\/\}\$\{rlHeadLadderHtml\(c, opts\)\}<\/span>/, 'the switch, inside the head (its Deal removed, f1084; its Notes, f1207)');
   const f = region(NEGO, 'function rlFiveHead(c, opts, k){', 'function rlTheirViewFive(');
   assert.match(f, /opts\.dealDoor && rlHeadOurs\(opts\)/, 'Jambo\'s face, our seat');
   assert.match(f, /data-rl-head-changes=/);

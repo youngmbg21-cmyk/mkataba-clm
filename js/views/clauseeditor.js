@@ -8314,20 +8314,18 @@ function ceTabPaint(){
 function ceTabBarPlace(){
   if (!ceTabbed()) return;
   const pg = document.getElementById('clause-editor'); if (!pg) return;
-  const head = pg.querySelector('.ce-head'), doc = pg.querySelector('#ce-doc'), live = doc && doc.querySelector('.rl-clause-live');
+  const head = pg.querySelector('.ce-head'), doc = pg.querySelector('#ce-doc');
   const left = pg.querySelector('.ce-left');
   if (!head || !doc || !left) return;
-  const lr = left.getBoundingClientRect(), dr = doc.getBoundingClientRect();
-  const hr = head.offsetHeight || 34;
-  let y = 8, x = 24;
-  if (live){
-    const r = live.getBoundingClientRect();
-    y = Math.max(8, Math.min(r.top - lr.top - hr - 8, dr.bottom - lr.top - hr - 8));
-    x = Math.max(8, r.left - lr.left);
-  }
+  /* THE BAR STAYS AT THE TOP OF THE PAGE (owner, 24 Nov 2026: "the editing bar should always be at the top of the
+     page"): it no longer rides above the clause being edited, where it covered the paper's words; it stands in the band
+     the page keeps for it (.ce-left's padding), centred over the paper, whatever is scrolled */
+  const lr = left.getBoundingClientRect();
+  const y = 8, hw = head.offsetWidth || 0;
+  let x = hw ? Math.round((lr.width - hw) / 2) : 24;
   /* NOTHING IS PUSHED BEHIND THE SIDE PANEL: the bar keeps inside the paper's own width */
-  const hw = head.offsetWidth || 0;
   if (hw && x + hw > lr.width - 16) x = Math.max(8, lr.width - hw - 16);
+  x = Math.max(8, x);
   head.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
   if (!doc.dataset.ceTabBound){
     doc.dataset.ceTabBound = '1';

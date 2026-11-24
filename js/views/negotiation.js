@@ -23119,7 +23119,7 @@ function rlColumnHtml(c, opts = {}){
                      under it; then Send all with Ask for review beside it.
                      One flex row that breaks (.rl-idx-br), so every part is
                      still inside .rl-idx-top where the checks look for it. */}
-              ${five ? `<span class="rl-seg" role="group">${five.seg}${rlHeadNotesHtml(c, opts)}${rlHeadLadderHtml(c, opts)}</span>${rlHeadHereHtml(c, opts)}` : `${rlHeadNotesHtml(c, opts)}${rlHeadLadderHtml(c, opts)}${rlHeadHereHtml(c, opts)}`}
+              ${five ? `<span class="rl-seg" role="group">${five.seg}${''/* NO NOTES IN THE SWITCH (owner, 24 Nov 2026: "delete the notes page from the tab"): Changes · Ladder; the notes stay one press away (the bar's Notes, the "notes" link at the foot, a card's note count) */}${rlHeadLadderHtml(c, opts)}</span>${rlHeadHereHtml(c, opts)}` : `${rlHeadNotesHtml(c, opts)}${rlHeadLadderHtml(c, opts)}${rlHeadHereHtml(c, opts)}`}
               <span class="rl-idx-br" aria-hidden="true"></span>
               ${five ? five.head : ''}${rlRoundLabelHtml(c, opts)}
               <span class="rl-idx-br" aria-hidden="true"></span>

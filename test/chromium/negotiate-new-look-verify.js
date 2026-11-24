@@ -101,8 +101,8 @@ const back = async page => { await page.keyboard.press('Escape'); await until(pa
         return { send: b ? b.textContent.trim() : '', off: !!(b && b.disabled), sw: !!(sw && sw.getBoundingClientRect().width), ins: mk ? getComputedStyle(mk).color : '',
           chips: [...document.querySelectorAll('#ig-dock :is(.rl-head-review,.rl-head-notes,.rl-head-deal)')].map(x => x.textContent.trim()).join(' · ') }; });
       /* Clean · Redline · Their view STAYS on the line on the Redlines face (owner, 8 Nov 2026; reverses 31 Oct's "no switch") */
-      check(`${nm} 2 four links above Jambo's box; Send all grey until something is drafted; the Clean · Redline · Their view switch stays on the line; their additions green; Ask for review · Notes · Ladder`,
-        links === 'ladder · notes · their view · history' && line.send === 'Send all' && line.off && line.sw && line.chips.split(' · ').sort().join('|') === 'Ask for review|Ladder|Notes' && line.ins === 'rgb(31, 77, 59)', { links, line });
+      check(`${nm} 2 four links above Jambo's box; Send all grey until something is drafted; the Clean · Redline · Their view switch stays on the line; their additions green; Ask for review · Ladder`,
+        links === 'ladder · notes · their view · history' && line.send === 'Send all' && line.off && line.sw && line.chips.split(' · ').sort().join('|') === 'Ask for review|Ladder' /* RE-POINTED 24 Nov 2026 (f1207): Notes left the switch */ && line.ins === 'rgb(31, 77, 59)', { links, line });
       await page.screenshot({ path: path.join(OUT, `redlines-${nm}.png`) });
       /* 3 · no close plan (f1084) */
       const d3 = await page.evaluate(() => ({ deal: document.querySelectorAll('[data-rl-deal], [data-deal-mid], .dl2').length, open: typeof window.pdDealOpen }));
