@@ -22996,3 +22996,6 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 ## Noticed, not fixed (24 Nov 2026, the Builder's Contract switch)
 - CLAUDE.md is 88.6 KB on main, over its own "keep it under about 80 KB" line; a trim needs the owner's yes (the Builder round added about 1 KB of MAP lines).
 - Said to the owner: a template's page no longer shows its version history card under the paper; it is the panel's Versions tab, as drawn (the card stays only where the panel cannot fit).
+
+## Noticed, not fixed (24 Nov 2026, the four red node tests)
+- test/f1049-one-door-and-the-company-look.test.js "publishing one paper never writes the company look" is red at 6e438cdf too: js/views/designstep.js no longer carries `if (_ds.mode !== 'publish') await saveOrgBranding(dsOrgPayload());`; not touched in this round.

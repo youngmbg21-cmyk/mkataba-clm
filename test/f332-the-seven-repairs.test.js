@@ -241,7 +241,12 @@ describe('f332 (4) the blanks call is counted and its failures are spoken', () =
        metered calls count themselves — the outline a scratch start asked for
        before the builder opened, and the small questions a copied document's
        first move asks. Every metered call in the builder is still counted. */
-    assert.equal((TB.match(/_tb\.reads\+\+/g) || []).length, 5, 'outline, propose, blanks, the start’s outline, the first move’s small questions');
+    /* RE-POINTED 24 Nov 2026 (owner: Clause N ⇄ Contract — Jambo writes the whole contract, asking first): two more
+       metered calls, the asking (POST /api/ai/section {ask:true}) and each section he writes; both count themselves. */
+    assert.equal((TB.match(/_tb\.reads\+\+/g) || []).length, 7, 'outline, propose, blanks, the start’s outline, the first move’s small questions, the whole contract’s asking, each section it writes');
+    const fnOf = n => { const i = TB.indexOf('async function ' + n + '('); assert.ok(i >= 0, n + ' exists'); return TB.slice(i, TB.indexOf('\nfunction ', i + 9) >>> 0); };
+    assert.match(fnOf('tbWholeStart'), /api\('ai\/section', 'POST', \{ ask: true[\s\S]*?_tb\.reads\+\+;/, 'the whole contract’s asking');
+    assert.match(fnOf('tbWholeWrite'), /api\('ai\/section', 'POST', \{ sentence[\s\S]{0,300}?_tb\.reads\+\+;/, 'and each section it writes');
     assert.match(TB, /if \(st\.outline\) _tb\.reads\+\+;/, 'the start’s outline');
     assert.match(TB, /const d = await api\('ai\/blanks', 'POST', \{ candidates:[\s\S]{0,300}?_tb\.reads\+\+;/, 'and each small question');
   });

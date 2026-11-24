@@ -208,7 +208,7 @@ test('f1204 (8) every new word in both books', () => {
   const keys = ['cl_n_sigblock', 'cl_n_cover', 'cl_ls_sg_columns', 'cl_ls_sg_stacked', 'cl_ls_sg_noline', 'cl_ls_sg_lay', 'cl_ls_sg_lines', 'cl_ls_sg_note', 'cl_ls_on',
     'cl_ls_cv_counted', 'cl_ls_cv_not_counted', 'cl_ls_cv_no', 'cl_ls_cv_yes', 'cl_ls_cv_count_q', 'cl_ls_cv_note', 'cl_ls_q_cover_notitle', 'cl_ls_pv_cover', 'cl_ls_pv_cover_short',
     'cl_said_cover', 'cl_said_nocover', 'cl_said_sig_stacked', 'cl_said_sig_columns', 'cl_said_numbering', 'sig_ln_name', 'sig_ln_title', 'sig_ln_date', 'sig_ln_place',
-    'cv_between', 'cv_and', 'cv_ref', 'cv_date', 'cv_date_blank'];
+    'cpg_between', 'cpg_and', 'cpg_ref', 'cpg_date', 'cpg_date_blank'];
   const has = (book, k) => book.includes('\n    ' + k + ': ');
   assert.deepEqual(keys.filter(k => !has(en, k) || !has(se, k)), []);
   assert.match(read('js/handbook.js'), /\{ui:cl_n_cover\}: off until you add it/);

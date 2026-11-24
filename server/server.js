@@ -17373,12 +17373,12 @@ function executedPdf(c) {
     const between = [us, c.counterparty].filter(Boolean).join(' and ');
     y = PDF_PAGE_H / 2 + 60;
     /* round 5: the cover's words in the look's own language where it chose one (English otherwise, as before) */
-    const fl = cvm.furnLang || null, and = brFurnT(fl, 'cv_and', null, ' and ');
+    const fl = cvm.furnLang || null, and = brFurnT(fl, 'cpg_and', null, ' and ');
     const betweenW = [us, c.counterparty].filter(Boolean).join(and);
     para(String(c.name || ''), { size: 22, font: F.bold, align: 'center', after: 14 });
-    if (between) para(brFurnT(fl, 'cv_between', { list: betweenW }, 'Between ' + between), { size: 11, color: '43524f', align: 'center', after: 8 });
-    para(brFurnT(fl, 'cv_ref', { ref: contractRef(c) }, 'Reference ' + contractRef(c)), { size: 9.5, color: '43524f', align: 'center', after: 24 });
-    para(eff ? brFurnT(fl, 'cv_date', { d: eff }, 'Date: ' + eff) : brFurnT(fl, 'cv_date_blank', null, 'Date: ______________'), { size: 9.5, color: '43524f', align: 'center', after: 0 });
+    if (between) para(brFurnT(fl, 'cpg_between', { list: betweenW }, 'Between ' + between), { size: 11, color: '43524f', align: 'center', after: 8 });
+    para(brFurnT(fl, 'cpg_ref', { ref: contractRef(c) }, 'Reference ' + contractRef(c)), { size: 9.5, color: '43524f', align: 'center', after: 24 });
+    para(eff ? brFurnT(fl, 'cpg_date', { d: eff }, 'Date: ' + eff) : brFurnT(fl, 'cpg_date_blank', null, 'Date: ______________'), { size: 9.5, color: '43524f', align: 'center', after: 0 });
     newPage();
   }
 

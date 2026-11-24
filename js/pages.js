@@ -680,9 +680,9 @@ function pagesCoverFacts(c){
   const eff = String(c.effectiveDate || (c.fields && c.fields.effDate) || '').trim();
   const ref = String(c.contractNo || c.id || '').trim();
   return { title: String(c.name || '').trim(), parties, ref,
-    between: parties.length ? T('cv_between', { list: parties.join(T('cv_and', null, ' and ')) }, 'Between ' + parties.join(' and ')) : '',
-    refLine: ref ? T('cv_ref', { ref }, 'Reference ' + ref) : '',
-    date: eff ? T('cv_date', { d: eff }, 'Date: ' + eff) : T('cv_date_blank', null, 'Date: ______________') };
+    between: parties.length ? T('cpg_between', { list: parties.join(T('cpg_and', null, ' and ')) }, 'Between ' + parties.join(' and ')) : '',
+    refLine: ref ? T('cpg_ref', { ref }, 'Reference ' + ref) : '',
+    date: eff ? T('cpg_date', { d: eff }, 'Date: ' + eff) : T('cpg_date_blank', null, 'Date: ______________') };
 }
 function pagesCoverHtml(c){
   const mk = pagesMarksFor(c); if(!mk || !mk.cover) return '';
