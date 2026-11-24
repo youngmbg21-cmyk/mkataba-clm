@@ -66,13 +66,14 @@ test('f1200 (2) one watcher gives it to every sheet the dialog opens; the duties
 
 test('f1200 (3) the look: the panels\' weaves by token, behind the words, a fading strip, still for less motion', () => {
   const i = CSS.indexOf('.lgp-wave{'); assert.ok(i > 0);
-  const block = CSS.slice(CSS.lastIndexOf('.lgp{position:relative', i) - 3, CSS.indexOf('@media (prefers-reduced-motion: reduce){ .lgp-wave > b{animation:none} }', i) + 80);
-  assert.match(block, /\n  \.lgp\{position:relative;isolation:isolate\}/);
+  /* RE-POINTED 24 Nov 2026 (review: the wave's rules wait on the new look, html.lg-new) */
+  const block = CSS.slice(CSS.lastIndexOf('.lgp{position:relative', i) - 16, CSS.indexOf('@media (prefers-reduced-motion: reduce){ html.lg-new .lgp-wave > b{animation:none} }', i) + 100);
+  assert.match(block, /\n  html\.lg-new \.lgp\{position:relative;isolation:isolate\}/);
   assert.match(block, /\.lgp-wave\{[^]*?z-index:-1;overflow:hidden;pointer-events:none/);
   assert.match(block, /mask-image:linear-gradient\(black 45%, transparent\)/);
   assert.match(block, /var\(--wm-a1\), var\(--wm-a2\), var\(--wm-a3\), var\(--wm-a4\), var\(--wm-a5\)/);
   assert.match(block, /var\(--wm-b1\), var\(--wm-b2\), var\(--wm-b3\)/);
   assert.match(block, /animation:wmSlideA 210s linear infinite/); assert.match(block, /animation:wmSlideB 208s linear infinite/);
-  assert.match(block, /prefers-reduced-motion: reduce\)\{ \.lgp-wave > b\{animation:none\}/);
+  assert.match(block, /prefers-reduced-motion: reduce\)\{ html\.lg-new \.lgp-wave > b\{animation:none\}/);
   assert.doesNotMatch(block.replace(/data:[^"]*"/g, ''), /#[0-9a-fA-F]{3,8}\b/, 'no hand-typed colour');
 });
