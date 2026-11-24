@@ -22999,3 +22999,4 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 
 ## Noticed, not fixed (24 Nov 2026, the four red node tests)
 - test/f1049-one-door-and-the-company-look.test.js "publishing one paper never writes the company look" is red at 6e438cdf too: js/views/designstep.js no longer carries `if (_ds.mode !== 'publish') await saveOrgBranding(dsOrgPayload());`; not touched in this round.
+- Correction (24 Nov 2026, same branch): the f1049 red noted above was this branch's own change (the design step's look now goes through lookSaveOrSend); the test is re-pointed, not left red.
