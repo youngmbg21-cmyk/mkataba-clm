@@ -7527,6 +7527,10 @@ function pd2PlainFace(el){ return !!(el && el.id === 'pd-glance' && el.classList
 function pd2PlaceScroller(el){ let sc = el ? el.parentElement : null;
   while (sc && sc.id !== 'igd-feed' && sc.id !== 'pd-body') sc = sc.parentElement; return sc; }
 function pd2PlaceKeep(e){
+  /* while a page stands in the middle (Duties, Where the deal stands …) the place left behind is held: the panel's parts
+     above the Dossier change then and the browser shifts the scroller to hold what is on screen, and that shifted number
+     put back on the way home landed the reader 114px low (GitHub, 24 Nov 2026: pd2PlaceBack set 434 over 319) */
+  if (_pdMid) return;
   const g = document.getElementById('pd-glance'); if (!pd2PlainFace(g)) return;
   const sc = pd2PlaceScroller(g); if (!sc || (e && e.target !== sc)) return;
   _pd2Place = { id: String(g.getAttribute('data-pd-glance-for') || ''), top: sc.scrollTop };

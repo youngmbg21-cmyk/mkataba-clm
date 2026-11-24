@@ -28,3 +28,6 @@ test('f1205 (3) the browser check drives it where the reader looks', () => {
   assert.match(v, /the panel stands where it stood/);
   assert.match(v, /\[data-pd2-dl-open\]/); assert.match(v, /\[data-pd2-dtc\]/);
 });
+test('f1205 (4) while a page stands in the middle the place left behind is held, not overwritten by the shift', () => {
+  assert.match(fn('pd2PlaceKeep'), /if \(_pdMid\) return;/);
+});
