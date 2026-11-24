@@ -254,8 +254,8 @@ async function nbMove(id, undo){
 /* THE BELL KNOWS WHAT IS DUE A CHECK (owner, 24 Nov 2026): the documents this reader may mark, past twelve months */
 function nbDueDocs(){ return (_nb.docs || []).filter(d => d.status === 'due' && nbMayWrite(d)); }
 function nbAlertsRepaint(){ try { if (typeof updateSidebarCounts === 'function'){ if (typeof navCountsClear === 'function') navCountsClear(); updateSidebarCounts(); } } catch (_){} }
-/* loaded once at the start, so the bell and the Guide's count know before the page is opened */
-function nbLoadForAlerts(){ return nbLoad().then(() => nbAlertsRepaint(), () => {}); }
+/* loaded once at the start, so the bell and the Guide's count know before the page is opened; nothing due = nothing repainted (a repaint mid-press on another page moved its place) */
+function nbLoadForAlerts(){ return nbLoad().then(() => { if (nbDueDocs().length) nbAlertsRepaint(); }, () => {}); }
 /* ---- ADD, AND REPLACE: HaTi's one edit pop-up; the file read by the one reader ---- */
 function nbAddOpen(replaceId){
   const rep = replaceId ? nbDocOf(replaceId) : null;
