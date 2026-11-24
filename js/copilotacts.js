@@ -1548,7 +1548,7 @@ function caNextSteps(c){
    Redlines face; name a signer → the route editor) */
 const CA_RED_LINKS = ['rl_ladder', 'rl_notes', 'rl_theirs', 'history'];
 /* their view is the paper's own switch (kept out of sight on the new look's Redlines): pressed again, back to the redline */
-const CA_RED_PRESS = { rl_ladder: () => '#ig-dock [data-rl-ladder]', rl_notes: () => '#ig-dock [data-rl-notes-all]',
+const CA_RED_PRESS = { rl_ladder: () => '#ig-dock [data-rl-ladder]',
   rl_theirs: () => (document.querySelector('[data-ig-red="theirs"][aria-pressed="true"]') ? '[data-ig-red="1"]' : '[data-ig-red="theirs"]') };
 const CA_NEXT_GO = ['edit', 'amend', 'answer', 'signer', 'rl_ladder', 'rl_notes', 'rl_theirs'];
 function caNextLabel(k){ return CA_NEXT_GO.includes(k) ? _caT('ca_next_' + k) : _caT('ca_w_' + k); }
@@ -1559,6 +1559,10 @@ function caNextRun(c, k){
   if (k === 'edit'){ const b = caEditChipBtn(c); return b ? rlEditClausePress(getContract(c.id) || c, b) : false; }
   if (k === 'amend') return (typeof pdAmendOpen === 'function') ? pdAmendOpen(c.id) : false;
   if (k === 'answer') return CA_GO.redline(c);
+  /* notes: Redlines' notes are the bar's notes (f1087), and the switch's Notes left the tab (owner, 24 Nov 2026, f1207) —
+     the link opens the bar's Notes panel, pressed again it closes */
+  if (k === 'rl_notes' && typeof openPanel === 'function'){
+    openPanel('notes'); return true; }
   if (CA_RED_PRESS[k]){ const b = document.querySelector(CA_RED_PRESS[k]()); if (b && !b.disabled){ b.click(); return true; } return false; }
   if (k === 'signer') return (typeof openSignerPlanEditor === 'function') ? (openSignerPlanEditor(getContract(c.id) || c), true) : CA_GO.sign(c);
   if (typeof intelAsk === 'function') return intelAsk(_caT('ca_w_' + k));

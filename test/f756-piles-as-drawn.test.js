@@ -159,7 +159,8 @@ describe('f756 (3) the piles\' names', () => {
 describe('f756 (4) the column\'s head, and the face that hosts it', () => {
   test('4a the head in the drawing\'s order, every part an existing reading or door', () => {
     const col = fnBody(NV, 'rlColumnHtml');
-    const order = ['rl-idx-title', 'rlHeadNotesHtml(c, opts)', 'rlHeadHereHtml(c, opts)', 'rlRoundLabelHtml(c, opts)', 'rlUnsentSendHtml(c, opts)', 'rlHeadReviewHtml(c, opts)'];
+    /* RE-POINTED 24 Nov 2026 (f1207): Notes left the Redlines tab's switch; the page by name keeps its own Notes */
+    const order = ['rl-idx-title', 'rlHeadHereHtml(c, opts)', 'rlRoundLabelHtml(c, opts)', 'rlUnsentSendHtml(c, opts)', 'rlHeadReviewHtml(c, opts)'];
     const at = order.map(s => col.indexOf(s));
     assert.ok(at.every(i => i > 0), JSON.stringify(at));
     for (let i = 1; i < at.length; i++) assert.ok(at[i - 1] < at[i], order[i - 1] + ' before ' + order[i]);
