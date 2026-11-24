@@ -2239,31 +2239,44 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     /* a sheet in steps: Enter presses what the foot shows (Next ›, or the black act on the last step) */
     if (e.target.hasAttribute('data-lgp-steps')){ const go = e.target.querySelector('.lgp-ft .lgp-go:not([hidden])'); if (go) go.click(); } } }, true);
 }
-/* THE WAVE ON EVERY EDIT POP-UP (owner, 24 Nov 2026: "Build it on every edit pop-up"): ONE helper puts Jambo's
-   moving weave across the top of an edit sheet (its look: index.html .lgp-wave). Every .lgp sheet (a form, or the signing
-   route's div; owner, 24 Nov 2026: "THIS pop up is does not have waves") that lands in the one
-   dialog (#modal-root: lgpOpen, lgpRepaint, and the sheets built by hand) gets it from ONE watcher, so no builder can
-   forget it; the duties sheet over the page (its own layer) calls lgpWaveSweep itself. Writes nothing but the strip;
-   a sheet that already carries one is left alone, so a redraw never stacks two. */
+/* THE WAVE ON EVERY POP-UP (owner, 24 Nov 2026: "Build it on every edit pop-up", then, after an audit, "All pop-ups,
+   not pages"): ONE helper puts Jambo's moving weave across the top of a pop-up's FRAME (its look: index.html
+   .lgp-wave) — the edit sheets, the older pop-ups (pickers, compare windows, the timeline), the yes/no and "why?"
+   boxes and the duties sheet over the page alike. NOT a page drawn in the middle (data-dlg-page), the Send screen
+   (data-sh-page, [data-share-sap]) nor New agreement (#na-root): pages carry no wave (serious work). TWO watchers, so
+   no builder can forget it: the one dialog (#modal-root, its whole tree) and the layers put straight on the page
+   (document.body's own children: confirm, prompt, end or pause, the duties sheet). Writes nothing but the strip; a
+   frame that already carries one is left alone, so a redraw never stacks two. */
 var LGP_WAVE_HTML = '<i class="lgp-wave" aria-hidden="true"><b class="lgp-wv-a"></b><b class="lgp-wv-b"></b></i>';
+var POP_WAVE_FRAME = '.modal-in, .dts-card';
+var POP_WAVE_NOT = '[data-dlg-page], [data-sh-page]';
+var POP_WAVE_NOT_INSIDE = '#na-root, [data-share-sap]';
+function popWaveSkips(f){
+  try { return f.matches(POP_WAVE_NOT) || !!f.querySelector(POP_WAVE_NOT_INSIDE); } catch (_){ return true; }
+}
 function lgpWaveSweep(root){
   if (!root || typeof root.querySelectorAll !== 'function') return 0;
-  const forms = Array.from(root.querySelectorAll('.lgp'));
-  if (root.matches && root.matches('.lgp')) forms.unshift(root);
+  const frames = Array.from(root.querySelectorAll(POP_WAVE_FRAME));
+  if (root.matches && root.matches(POP_WAVE_FRAME)) frames.unshift(root);
   let n = 0;
-  for (const f of forms){
-    if (Array.from(f.children).some(k => k.classList && k.classList.contains('lgp-wave'))) continue;
-    f.insertAdjacentHTML('afterbegin', LGP_WAVE_HTML); n++;
+  for (const f of frames){
+    const has = Array.from(f.children).find(k => k.classList && k.classList.contains('lgp-wave'));
+    if (popWaveSkips(f)){ if (has){ has.remove(); f.classList.remove('has-pop-wave'); } continue; }
+    if (has) continue;
+    f.insertAdjacentHTML('afterbegin', LGP_WAVE_HTML); f.classList.add('has-pop-wave'); n++;
   }
   return n;
 }
 var _lgpWaveObs = null;
 function lgpWaveWatch(){
-  if (_lgpWaveObs || typeof document === 'undefined' || typeof MutationObserver !== 'function') return false;
+  if (_lgpWaveObs || typeof document === 'undefined' || typeof MutationObserver !== 'function' || !document.body) return false;
   const mr = document.getElementById('modal-root');
   if (!mr) return false;
   _lgpWaveObs = new MutationObserver(() => lgpWaveSweep(mr));
   _lgpWaveObs.observe(mr, { childList: true, subtree: true });
+  /* the layers put straight on the page: only body's own children are watched (a toast or a menu costs one test) */
+  const onBody = new MutationObserver(recs => { for (const r of recs) for (const x of r.addedNodes) if (x.nodeType === 1 && x !== mr) lgpWaveSweep(x); });
+  onBody.observe(document.body, { childList: true });
   lgpWaveSweep(mr);
   return true;
 }
@@ -2271,5 +2284,5 @@ if (typeof document !== 'undefined'){
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lgpWaveWatch, { once: true });
   else lgpWaveWatch();
 }
-Object.assign(window, { LGP_WAVE_HTML, lgpWaveSweep, lgpWaveWatch });
+Object.assign(window, { LGP_WAVE_HTML, POP_WAVE_FRAME, lgpWaveSweep, lgpWaveWatch });
 Object.assign(window, { LGP_W, LGP_PAGE, lgpHtml, lgpRowHtml, lgpListHtml, lgpOpen, lgpRepaint, lgpStepsHtml, lgpStepGo });

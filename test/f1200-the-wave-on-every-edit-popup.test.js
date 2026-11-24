@@ -16,7 +16,6 @@ const vm = require('node:vm');
 const { JSDOM } = require('jsdom');
 const ROOT = path.join(__dirname, '..');
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
-const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const fnBody = (src, name) => { const i = src.search(new RegExp('(?:async )?function ' + name + '\\(')); assert.ok(i >= 0, name); return src.slice(i, src.indexOf('\n}', i) + 2); };
 const COMP = read('js/components.js'), CSS = read('index.html');
 
@@ -31,43 +30,63 @@ function world(){
 }
 const tick = () => new Promise(r => setTimeout(r, 0));
 
-test('f1200 (1) one helper puts the strip in every sheet once, and again on a sheet redrawn in place', () => {
+test('f1200 (1) one helper waves every pop-up frame once, never a page, the Send screen or New agreement', () => {
   const { w, ctx } = world();
   const host = w.document.createElement('div');
-  host.innerHTML = '<form class="lgp"><div class="lgp-hd"></div></form><form class="lgp rv-ask"><div class="lgp-hd"></div></form><div class="lgp sr-win"><div class="lgp-hd"></div></div><form class="other"></form>';
-  assert.equal(ctx.lgpWaveSweep(host), 3, 'every edit sheet, the signing route\'s div too, not the other form');
+  host.innerHTML = '<div class="modal-in" role="dialog" id="sheet"><form class="lgp"><div class="lgp-hd"></div></form></div>'
+    + '<div class="modal-in" role="dialog" id="old"><div class="dlg-h"><h3>Add a duty</h3></div></div>'
+    + '<div class="modal-in" role="alertdialog" id="yes"><h3>Are you sure?</h3></div>'
+    + '<div class="dts-card" role="dialog" id="duty"><form class="lgp"></form></div>'
+    + '<div class="modal-in" role="dialog" id="page" data-dlg-page><div>a page</div></div>'
+    + '<div class="modal-in" role="dialog" id="send"><div data-share-sap></div></div>'
+    + '<div class="modal-in" role="dialog" id="na"><div id="na-root"></div></div>';
+  assert.equal(ctx.lgpWaveSweep(host), 4, 'the edit sheet, the older pop-up, the yes/no box and the duties sheet');
   assert.equal(ctx.lgpWaveSweep(host), 0, 'a second sweep stacks none');
-  const f = host.querySelector('form.lgp');
-  assert.ok(f.firstElementChild.classList.contains('lgp-wave'), 'first in the sheet, so it lies behind the head');
-  assert.equal(f.querySelector('.lgp-wave').getAttribute('aria-hidden'), 'true');
-  assert.equal(f.querySelectorAll('.lgp-wave > b').length, 2, 'two weaves');
-  const again = w.document.createElement('form'); again.className = 'lgp'; f.replaceWith(again);
-  assert.equal(ctx.lgpWaveSweep(again), 1, 'the sheet itself may be handed in');
-  assert.match(COMP, /Object\.assign\(window, \{ LGP_WAVE_HTML, lgpWaveSweep, lgpWaveWatch \}\)/);
+  for (const id of ['sheet', 'old', 'yes', 'duty']){
+    const f = host.querySelector('#' + id);
+    assert.ok(f.firstElementChild.classList.contains('lgp-wave'), id + ': first in its frame, so it lies behind the head');
+    assert.ok(f.classList.contains('has-pop-wave'), id + ': the frame is isolated');
+    assert.equal(f.querySelectorAll('.lgp-wave').length, 1, id + ': one strip, none inside the sheet');
+  }
+  for (const id of ['page', 'send', 'na']) assert.equal(host.querySelector('#' + id + ' .lgp-wave'), null, id + ': no wave on a page');
+  const page = host.querySelector('#old'); page.setAttribute('data-dlg-page', '');
+  ctx.lgpWaveSweep(host);
+  assert.equal(page.querySelector('.lgp-wave'), null, 'a frame turned into a page loses its strip');
+  assert.equal(host.querySelector('#sheet .lgp-wave').getAttribute('aria-hidden'), 'true');
+  assert.equal(host.querySelectorAll('#sheet .lgp-wave > b').length, 2, 'two weaves');
+  assert.match(COMP, /Object\.assign\(window, \{ LGP_WAVE_HTML, POP_WAVE_FRAME, lgpWaveSweep, lgpWaveWatch \}\)/);
 });
 
-test('f1200 (2) one watcher gives it to every sheet the dialog opens; the duties sheet over the page asks for it', async () => {
+test('f1200 (2) two watchers: the one dialog, and the layers put straight on the page', async () => {
   const { w, ctx } = world();
   assert.equal(ctx.lgpWaveWatch(), true);
   const mr = w.document.getElementById('modal-root');
-  mr.innerHTML = '<div role="dialog"><form class="lgp" id="a"><div class="lgp-hd"></div></form></div>';
+  mr.innerHTML = '<div><div class="modal-in" role="dialog" id="a"><div class="p-6"><h3>Pick a contract</h3></div></div></div>';
   await tick();
   assert.equal(mr.querySelectorAll('#a > .lgp-wave').length, 1, 'opened by openModal: waved');
-  const dlg = mr.querySelector('[role="dialog"]');
-  dlg.innerHTML = '<form class="lgp" id="b"></form>';
+  mr.querySelector('#a').innerHTML = '<form class="lgp" id="b"></form>';
   await tick();
-  assert.equal(mr.querySelectorAll('#b > .lgp-wave').length, 1, 'redrawn in place (lgpRepaint, a hand-built step): waved again');
+  assert.equal(mr.querySelectorAll('#a > .lgp-wave').length, 1, 'its body redrawn in place: waved again');
   await tick();
   assert.equal(mr.querySelectorAll('.lgp-wave').length, 1, 'its own insertion adds nothing more');
-  assert.equal(ctx.lgpWaveWatch(), false, 'one watcher');
-  assert.match(strip(fnBody(read('js/obligations.js'), 'openObligationForm')), /window\.lgpWaveSweep\(ofLayer\)/);
-  assert.match(strip(fnBody(read('js/approvals.js'), 'signerRouteWindow')), /openModal\(`<div class="lgp sr-win"/, 'the signing route opens in the one dialog, so the watcher reaches it');
+  const ov = w.document.createElement('div'); ov.id = 'confirm-overlay';
+  ov.innerHTML = '<div class="modal-in" role="alertdialog"><h3>Are you sure?</h3></div>';
+  w.document.body.appendChild(ov);
+  await tick();
+  assert.equal(ov.querySelectorAll('.modal-in > .lgp-wave').length, 1, 'a yes/no box put on the page: waved');
+  const toast = w.document.createElement('div'); toast.className = 'toast'; w.document.body.appendChild(toast);
+  await tick();
+  assert.equal(toast.querySelector('.lgp-wave'), null, 'a toast is not a pop-up');
+  assert.equal(ctx.lgpWaveWatch(), false, 'one pair of watchers');
+  const CORE = read('js/core.js');
+  assert.match(CORE, /ov\.id='confirm-overlay'[\s\S]{0,1200}class="modal-in" role="alertdialog"/, 'the yes/no box is a frame on the page');
+  assert.match(CORE, /ov\.id='prompt-overlay'[\s\S]{0,600}class="modal-in" role="dialog"/, 'the "why?" box is a frame on the page');
 });
 
 test('f1200 (3) the look: the panels\' weaves by token, behind the words, a fading strip, still for less motion', () => {
   const i = CSS.indexOf('.lgp-wave{'); assert.ok(i > 0);
-  const block = CSS.slice(CSS.lastIndexOf('.lgp{position:relative', i) - 3, CSS.indexOf('@media (prefers-reduced-motion: reduce){ .lgp-wave > b{animation:none} }', i) + 80);
-  assert.match(block, /\n  \.lgp\{position:relative;isolation:isolate\}/);
+  const block = CSS.slice(CSS.lastIndexOf('.has-pop-wave{', i) - 3, CSS.indexOf('@media (prefers-reduced-motion: reduce){ .lgp-wave > b{animation:none} }', i) + 80);
+  assert.match(block, /\n  \.has-pop-wave\{isolation:isolate\}/);
   assert.match(block, /\.lgp-wave\{[^]*?z-index:-1;overflow:hidden;pointer-events:none/);
   assert.match(block, /mask-image:linear-gradient\(black 45%, transparent\)/);
   assert.match(block, /var\(--wm-a1\), var\(--wm-a2\), var\(--wm-a3\), var\(--wm-a4\), var\(--wm-a5\)/);

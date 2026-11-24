@@ -1194,3 +1194,4 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 
 ## THE DOSSIER END TO END — the answer under the buttons (24 Nov 2026)
 - `node --test test/f1212-clause-page-answer-under-buttons.test.js test/f1208-the-clause-page-ls.test.js`
+- (24 Nov 2026, every pop-up) f1200 (1)(2) re-pointed: the strip sits in the FRAME (`.modal-in`, `.dts-card`) of every pop-up, the yes/no and "why?" boxes put on the page included; none on a page, the Send screen or New agreement.
