@@ -301,8 +301,11 @@ describe('f334 (5) — a template’s wording is a contract, so it sits on a she
      a scrollbar. */
   test('the sheet is the Document tab’s own, value for value', () => {
     const body = fnBody(LIB, 'tplLibSheetHtml');
-    assert.match(body, /background:var\(--color-doc-warm\)/);
-    assert.match(body, /border-color:var\(--color-doc-warm-line\)/);
+    /* RE-POINTED 24 Nov 2026 (owner's pick: a template's page sits on the
+       Dossier's desk with a WHITE paper, as the Dossier's own) — the sheet is
+       still the contract's paper, value for value; that paper is now white. */
+    assert.match(body, /background:var\(--color-surface\)/);
+    assert.match(body, /border-color:transparent/);
     assert.match(body, /box-shadow:var\(--shadow-paper\)/);
     assert.match(body, /max-width:var\(--doc-sheet-max,860px\)/);
     assert.match(body, /margin:0 auto/, 'and it is centred');

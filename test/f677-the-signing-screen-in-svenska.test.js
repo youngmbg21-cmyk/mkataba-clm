@@ -71,7 +71,8 @@ describe('f677 (3) the screen\'s builders read the books, not their own English'
   test('3d one reading for how a signature was made, published', () => {
     assert.match(SG, /function sigFormWord\(form\)/);
     assert.match(SG, /Object\.assign\(window,\{[^}]*sigFormWord/);
-    assert.match(I18N, /i18t, i18tn, i18ord, srvMsg/);
+    /* RE-POINTED 24 Nov 2026 (Contract look round 5: the page words' language, `i18tIn` published beside them) — still all four published. */
+    assert.match(I18N, /i18t, i18tn, (?:i18tIn, )?i18ord, srvMsg/);
   });
   test('3e kept: the market\'s own law line is the market\'s, not the language\'s', () => {
     assert.match(R('js/jurisdiction.js'), /esignatureShort: 'Electronic signatures under the Business Laws \(Amendment\) Act 2020 \(Kenya\)\.'/);
