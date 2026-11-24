@@ -340,6 +340,12 @@ function pagesLayout(sheet, opts){
      watcher hears the width come back) — clearing it here would throw away
      pages that are still right. */
   if(!sheet.offsetWidth) return null;
+  /* THE READER'S PLACE OUTLIVES A RE-BREAK: clearing the pushes and the foot's air makes the paper briefly shorter, and
+     the first measure below lays it out at that length, so the browser clamps every scroller holding it to what then
+     fits (seen on GitHub, 24 Nov 2026: after Accept Home's paper went from 240 to 113, and a press on the Amend page's
+     signed paper fell on the preamble). Each scroller's place is noted first and put back once the pages stand again,
+     only where the clamp took it (pagesPlaceNote, pagesPlaceClamped, pagesPlaceBack) */
+  const placed = pagesPlaceNote(sheet);
   pagesClear(sheet);
   const cs = getComputedStyle(sheet);
   const W = sheet.offsetWidth;
@@ -357,6 +363,7 @@ function pagesLayout(sheet, opts){
     const r = a.el.getBoundingClientRect();
     return { ...a, top: (r.top - sr.top) / scale, h: r.height / scale };
   });
+  pagesPlaceClamped(placed);
   const plan = pagesPlan(atoms, { pageH: H, gap: G, mTop: mT, mBot: mB });
   /* ---- THE PUSHES ----
      margin-top grows by the push. Margins COLLAPSE, so the first guess can
@@ -440,8 +447,39 @@ function pagesLayout(sheet, opts){
   const info = { pages: plan.pages, n, pageH: H, gap: G, atoms, push: plan.push, dims };
   sheet._pgInfo = info;
   sheet._pgSeen = { w: sheet.offsetWidth, h: sheet.offsetHeight };
+  pagesPlaceBack(placed);
   if(typeof o.onDone === 'function'){ try{ o.onDone(info); }catch(_){} }
   return info;
+}
+/* every scroller holding the sheet (a scroller is one whose content runs past it) and where it stands */
+function pagesPlaceNote(sheet){
+  const out = [];
+  try{
+    for(let el = sheet.parentElement; el && el !== document.documentElement; el = el.parentElement){
+      if(el.scrollTop > 0 && el.scrollHeight > el.clientHeight) out.push({ el, top: el.scrollTop });
+    }
+    const se = document.scrollingElement;
+    if(se && se.scrollTop > 0) out.push({ el: se, top: se.scrollTop });
+  }catch(_){ }
+  return out;
+}
+/* measured at the short length: a scroller that went up AND stands at its foot was clamped (scroll anchoring's own moves
+   are left alone) */
+function pagesPlaceClamped(placed){
+  (placed || []).forEach(p => {
+    try{ const el = p.el; p.clamped = el.scrollTop < p.top - 1 && el.scrollTop >= el.scrollHeight - el.clientHeight - 1; }catch(_){ p.clamped = false; }
+  });
+}
+/* put back only what the clamp took, where it fits again */
+function pagesPlaceBack(placed){
+  (placed || []).forEach(p => {
+    try{
+      const el = p.el; if(!p.clamped || !el || !el.isConnected) return;
+      if(el.scrollTop >= p.top - 1) return;
+      const max = Math.max(0, el.scrollHeight - el.clientHeight);
+      el.scrollTop = Math.min(p.top, max);
+    }catch(_){ }
+  });
 }
 
 /* ============================================================
