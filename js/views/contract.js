@@ -15929,18 +15929,25 @@ let _thPage = (() => { try { return localStorage.getItem(TH_LIST_KEY) !== '1'; }
 function docThreadPageHtml(c, rows, at, pts, nextAt){
   const kindOf = p => typeof window.pd2PointKind === 'function' ? window.pd2PointKind(p) : p.status;
   const word = k => k === 'pb' ? i18t('pd2_fd_k_pb') : k === 'plan' ? i18t('pd2_fd_k_plan') : i18t('bd_st_' + k);
+  /* A DEAD BUTTON WEARING A LIVE ONE'S CLOTHES (review, 24 Nov 2026): a reader who may not act sees Mark reviewed grey
+     with the stakes card's own reason (stkReviewWhy's words) */
+  const markWhy = ((c && typeof window.mayActOn === 'function' && !window.mayActOn(c)) || (typeof canEdit === 'function' && !canEdit())) ? i18t('stk_review_viewer') : '';
+  /* Ask a colleague is drawn only where it can act: a clause id and words to quote (rlNoteFromSelection's own needs) */
+  const ax = rows && at != null ? rows[at] : null;
+  const askOk = typeof window.rlNoteFromSelection === 'function' && !!(ax && typeof docXrayClauseId === 'function' && docXrayClauseId(ax))
+    && !!String((ax && ax.row && ax.row.text) || '').trim();
   let pbLabel = ''; try { pbLabel = (typeof window.pbStandardsFor === 'function' && c) ? String((window.pbStandardsFor(c) || {}).label || '') : ''; } catch (_){ pbLabel = ''; }
   /* L+S (owner's pick, 24 Nov 2026): each finding a row — its soft badge, what it is with its stake under it, and its own
      Mark reviewed (the point's own door, data-stk-review) answered in the row */
   const found = (pts || []).map(p => { const k = kindOf(p), stake = String(p.stake || '').trim(), title = String(p.title || stake).trim();
     const path = k === 'pb' && p.cat ? [i18t('pd2_fd_k_pb'), pbLabel, p.cat].filter(Boolean).join(' › ') : '';
-    const mark = p._i != null ? `<button type="button" class="doc-th-pgl is-link" data-th-pg="review" data-th-pt="${esc(String(p._i))}">${esc(i18t('stk_mark_reviewed'))}</button>` : '';
+    const mark = p._i != null ? `<button type="button" class="doc-th-pgl is-link" data-th-pg="review" data-th-pt="${esc(String(p._i))}"${markWhy ? ` disabled aria-disabled="true" title="${esc(markWhy)}"` : ''}>${esc(i18t('stk_mark_reviewed'))}</button>` : '';
     return `<li class="doc-th-fi k-${esc(k)}"><span class="pd2-badge k-${esc(k)}"><i aria-hidden="true"></i>${esc(word(k))}</span><div><p>${esc(title)}</p>${stake && stake !== title ? `<p class="s">${esc(stake)}</p>` : ''}${path ? `<p class="s">${esc(path)}</p>` : ''}</div>${mark}</li>`; }).join('');
   const nm = nextAt != null && rows[nextAt] && typeof docXrayLabel === 'function' ? docXrayLabel(rows[nextAt]) : '';
   /* the buttons at the small size every small button in HaTi wears; what Redline does rides its hover (no line under them) */
   return `<div class="doc-th-pgb"><button type="button" class="ui-btn doc-th-pgbtn" data-th-pg="plain">${esc(i18t('th_plain_en'))}</button><button type="button" class="ui-btn doc-th-pgbtn" data-th-pg="dive"${(pts || []).length ? '' : ' hidden'}>${esc(i18t('stk_deep'))}</button><button type="button" class="ui-btn ui-btn-primary doc-th-pgbtn" data-th-pg="redline" title="${esc(i18t('th_pg_redline_say'))}">${esc(i18t('th_pg_redline'))}</button></div>
     ${found ? `<div class="doc-th-found"><p class="h"><b>${esc(i18t('th_pg_found'))}</b><span>${(pts || []).length}</span></p><ul>${found}</ul></div>` : ''}
-    <div class="doc-th-pga"><button type="button" class="doc-th-pgl is-link" data-th-pg="ask">${esc(i18t('th_pg_ask'))}</button>${nm ? `<button type="button" class="ui-btn doc-th-nx-go" data-th-nav-step="1">${esc(i18t('th_pg_next_to', { what: nm }))}</button>` : ''}</div>`;
+    <div class="doc-th-pga">${askOk ? `<button type="button" class="doc-th-pgl is-link" data-th-pg="ask">${esc(i18t('th_pg_ask'))}</button>` : ''}${nm ? `<button type="button" class="ui-btn doc-th-nx-go" data-th-nav-step="1">${esc(i18t('th_pg_next_to', { what: nm }))}</button>` : ''}</div>`;
 }
 /* each press is the row's own existing door: Plain (data-th-explain), Deep dive and Redline (the Clauses tab's own,
    stkRedlineGo), Mark reviewed (the points' own record); Ask a colleague = a note on this clause with @ (the Notes door) */
@@ -15952,9 +15959,8 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     const press = sel => { const x = row.querySelector(sel); if (x && !x.disabled){ x.click(); return true; } return false; };
     if (k === 'plain'){ press('[data-th-explain]'); return; }
     if (k === 'dive'){ press('[data-stk-dive]'); return; }
-    if (k === 'review'){ const pt = b.getAttribute('data-th-pt');
-      if (pt != null){ const lc = thLiveContract(); const at = (lc && typeof window.stkShownIndexOfJambo === 'function') ? window.stkShownIndexOfJambo(lc, pt) : -1;
-        if (at >= 0) press(`[data-stk-review="${at}"]`); return; }
+    if (k === 'review'){ if (b.disabled) return; const pt = b.getAttribute('data-th-pt');
+      if (pt != null){ const lc = thLiveContract(); if (lc && typeof window.stkMarkJamboReviewed === 'function') window.stkMarkJamboReviewed(lc, pt); return; }
       press('[data-stk-review-all]') || press('[data-stk-review]'); return; }
     const c = thLiveContract(); if (!c) return;
     const rows = (_docThreadCache && _docThreadCache.rows) || [], x = rows[_docThreadOn];
