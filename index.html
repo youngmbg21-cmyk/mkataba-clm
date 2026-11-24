@@ -26473,6 +26473,15 @@
   html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab-n{font-size:var(--t-label);font-weight:var(--w-strong);line-height:16px}
   html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab-w{max-width:none;overflow:visible}
   html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab:hover{color:var(--color-text)}
+  /* the same ends of the track as the Dossier's row (its width is the Dossier panel's, ceFitSplit): 3px of track and 8px of
+     tab make the Dossier's 11px */
+  html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab:first-child{padding-left:8px}
+  html.lg-new #clause-editor.is-tabbed .ce-tabtop{padding-top:12px}
+  /* THE BAR EDGE ON EDGE WITH THE PAPER (ceTabBarPlace sets its width to the sheet's): its empty slots take no gap, its tools
+     stand in its middle, and at the 720px sheet its own width is the sheet's */
+  html.lg-new #clause-editor.is-tabbed .ce-barrow > :is(.ce-say, .ce-barg, .ce-exit):empty{display:none}
+  html.lg-new #clause-editor.is-tabbed .ce-barrow{padding-left:9px;padding-right:9px;justify-content:center}
+  html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab:last-child{padding-right:8px}
   html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab.on{background:var(--color-surface);color:var(--color-text);font-weight:var(--w-label);box-shadow:0 1px 2px rgba(0,0,0,.10)}
 </style>
 <style>

@@ -2213,7 +2213,11 @@ function ceFitSplit(scope){
   }
   const avail = _ceAvail(grid);
   if (avail < 160) return;                       /* property 5 */
-  const { left, limit } = ceSplit(avail);
+  let { left, limit } = ceSplit(avail);
+  /* AS A TAB, THE DOSSIER PANEL'S OWN WIDTH (owner, 24 Nov 2026: "they change shape when you get to editor"): the side is the
+     width the Dossier's panel stands at (igDockWidth, --ce-tab-rail written by ceTabPaint), so pressing Editor moves nothing */
+  if (ceTabbed()){ const pg = document.getElementById('clause-editor'); const dw = pg ? parseInt(pg.style.getPropertyValue('--ce-tab-rail'), 10) : 0;
+    if (dw >= 300 && avail - dw >= CE_LEFT_MIN){ left = avail - dw; limit = null; } }
   grid.style.gridTemplateColumns = left + 'px minmax(0,1fr)';
   rez.style.left = left + 'px';
   /* AND IT SAYS WHEN IT WILL NOT GO FURTHER. Reaching a limit is legitimate;
@@ -8311,6 +8315,12 @@ function ceTabPaint(){
   /* NO TAG ON THE WRITING BAR (owner, 24 Nov 2026: "delete the highlighted item" — the black "Editing <clause>" pill): the
      panel's heading and the bar over the page already name the clause; the bar keeps only its tools */
   const row = pg.querySelector('.ce-barrow'), oldTag = row && row.querySelector('.ce-ttag'); if (oldTag) oldTag.remove();
+  /* THE TABS DO NOT CHANGE SHAPE (owner, 24 Nov 2026: "they change shape when you get to editor"): the editor's side is
+     the Dossier panel's own width, so the tab row stands where it stood, the same size */
+  try { const dw = typeof window.igDockWidth === 'function' ? Number(window.igDockWidth()) : 0;
+    const was = pg.style.getPropertyValue('--ce-tab-rail');
+    if (dw >= 300) pg.style.setProperty('--ce-tab-rail', Math.round(dw) + 'px'); else pg.style.removeProperty('--ce-tab-rail');
+    if (was !== pg.style.getPropertyValue('--ce-tab-rail')) ceFitSplit(); } catch (_){}
   ceTabBarPlace();
 }
 /* THE WRITING BAR SITS JUST ABOVE THE CLAUSE BEING EDITED, following it as the paper scrolls (transform only) */
@@ -8324,8 +8334,17 @@ function ceTabBarPlace(){
      page"): it no longer rides above the clause being edited, where it covered the paper's words; it stands in the band
      the page keeps for it (.ce-left's padding), centred over the paper, whatever is scrolled */
   const lr = left.getBoundingClientRect();
+  /* SYMMETRICAL WITH THE PAGE (owner, 24 Nov 2026: "the highlighted bar always has to be symmetrical to the page so the page
+     always has to be equally aligned with it"): the bar is as wide as the paper sheet itself and stands over it, edge on
+     edge (centred on the sheet, never on the band round it); where its tools need more room than the sheet, it keeps its
+     own width, centred on the sheet all the same */
+  const sheet = doc.querySelector('.nego-doc');
+  if (!head.dataset.ceNatW){ head.style.width = ''; head.dataset.ceNatW = String(head.offsetWidth || 0); }
+  const nat = Number(head.dataset.ceNatW) || 0;
+  const sr = sheet ? sheet.getBoundingClientRect() : null;
+  if (sr && sr.width > 0){ const w = Math.max(nat, Math.round(sr.width)); head.style.width = w + 'px'; }
   const y = 8, hw = head.offsetWidth || 0;
-  let x = hw ? Math.round((lr.width - hw) / 2) : 24;
+  let x = (sr && sr.width > 0 && hw) ? Math.round(sr.left - lr.left + (sr.width - hw) / 2) : hw ? Math.round((lr.width - hw) / 2) : 24;
   /* NOTHING IS PUSHED BEHIND THE SIDE PANEL: the bar keeps inside the paper's own width */
   if (hw && x + hw > lr.width - 16) x = Math.max(8, lr.width - hw - 16);
   x = Math.max(8, x);
@@ -8333,7 +8352,7 @@ function ceTabBarPlace(){
   if (!doc.dataset.ceTabBound){
     doc.dataset.ceTabBound = '1';
     doc.addEventListener('scroll', () => { try { ceTabBarPlace(); } catch (_){} }, { passive: true });
-    window.addEventListener('resize', () => { try { ceTabBarPlace(); } catch (_){} });
+    window.addEventListener('resize', () => { try { const h = document.querySelector('#clause-editor .ce-head'); if (h) delete h.dataset.ceNatW; ceTabBarPlace(); } catch (_){} });
   }
 }
 let _ceTabWheelAt = 0;

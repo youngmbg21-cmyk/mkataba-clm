@@ -1211,3 +1211,4 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 - `node --test test/f1216-tabs-one-switch.test.js` (source: the track, the pill, the editor's copy off the live record, is-list with the rows)
 - Browser (GitHub only): `test/chromium/clauses-first-frame-verify.js` — every frame after pressing Clauses, list and page faces; the tabs' one track and white pill
 - `node --test test/f1217-list-only-and-save-below.test.js` (the list alone; Start redlining on any clause; File in the bottom row; the ladder card as lines)
+- `node --test test/f1218-bar-on-the-paper-tabs-hold-still.test.js` (the bar the sheet's width, centred on it; the editor side the Dossier panel's width)
