@@ -40800,3 +40800,7 @@ Owner: "the fonts look ugly in HaTi and come in different types"; asked how best
 
 ### TABS ONE SWITCH — a lone tab is not a switch (24 Nov 2026)
 Owner (iPad photo, Jambo's name centred as a white pill over his conversation): "Why is the jambo icon in top and middle of the side panel?" … "It was not there before". The head that holds only Jambo's name (pdTalkTabHtml, since "Door above the box") was caught by today's switch rules (f1216, f1219: centred, grey track, white pill). Every one of the 16 rules now asks `:has(> .pd-tab + .pd-tab)`, so a lone name stands at the left as before. f1216/f1219 re-pointed; f1223.
+
+
+## THE SHELL — RAIL, BAR, PANELS: THE LINKS LINE BESIDE THE JAMBO PRESS (25 Nov 2026)
+The owner, on an iPad photo of MK-177's Dossier panel where "fill in · redline · share · history" stood on its own line above "Jambo ›": "the green links above the jambo entry field should never ever as a rule be above the jambo or overview presses. They should always be next to them since we need the space above for the panel. Therefore, long words should be shorted so they fit on the same line or simply be excluded." Then: "write it to the project rules and merge and this is across hati." The rule joins JAMBO'S BOX IS ALWAYS AT THE FOOT OF THE SIDE PANEL; its build across every panel is Parking-lot P-18.
