@@ -333,7 +333,8 @@ function pdObOpenRow(cid, key){ _pdObOpen = key ? { id: String(cid), key: String
 function pdObOpenWith(c){
   const k = (_pdObOpen && c && _pdObOpen.id === String(c.id)) ? String(_pdObOpen.key || '') : '', cut = k.indexOf('::'), tail = cut < 0 ? '' : k.slice(cut + 2);
   const rec = tail.charAt(0) === '#' ? tail.slice(1) : tail; _pdObOpen = null;
-  return rec ? { tab: 'on', rec } : { tab: 'on' };
+  /* no duty carried: no tab named, so the page opens on To decide while any wait, else On the contract (openDutiesPage) */
+  return rec ? { tab: 'on', rec } : {};
 }
 /* AN OBLIGATION OPENS ON ITS CONTRACT'S PAPER IN THE NEW LOOK (the platform review, 6 Nov 2026: the Obligations list's
    open landed on the old narrowed page with no Jambo panel): the paper with its Dossier first (roomHomeLand), then the

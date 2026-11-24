@@ -216,7 +216,9 @@ const BODY =
       const d = document.getElementById('dtp'); if (!d) return null;
       const on = d.querySelector('[data-dtp-tab][aria-selected="true"]');
       const pc = typeof pdContract === 'function' ? pdContract() : null;
-      return { tab: on ? on.getAttribute('data-dtp-tab') : null, found: d.querySelectorAll('#dtp-list [data-dtp-decide], #dtp-list .dtp-r:not([data-dtp-rec])').length,
+      /* RE-POINTED 23 Nov 2026 (Duties ONE DOOR): a To decide row and its Decide › button both carry data-dtp-decide, so
+         the found duties are counted by their rows (tr.dtp-r), never twice */
+      return { tab: on ? on.getAttribute('data-dtp-tab') : null, found: d.querySelectorAll('#dtp-list tr.dtp-r:not([data-dtp-rec])').length,
         recs: d.querySelectorAll('#dtp-list [data-dtp-rec]').length, cid: pc ? String(pc.id) : null, old: !!document.querySelector('[data-ob-pick]') }; });
     if (tile && !tile.none) await page.waitForFunction(() => !!document.querySelector('#dtp [data-dtp-tab][aria-selected="true"]'), null, { timeout: 8000 }).catch(() => {});
     const d1 = tile && !tile.none ? await dutiesPage() : null;

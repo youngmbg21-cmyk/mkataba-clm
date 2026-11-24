@@ -391,7 +391,11 @@ const ok = (name, good, detail) => {
         rows: document.querySelectorAll('.ngn-table tr[data-ngn-row]').length,
         pan: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth) }; });
     ok('4a [control] at 1024 Negotiations keeps today\'s table, Jambo\'s panel folded to its strip', narrow.ins === '1' && narrow.narrowLine && narrow.folded && !narrow.over
-      && narrow.heads === 'Agreement|Whose move|Rounds|Open asks|Lead|Waiting' && narrow.rows > 0 && narrow.pan === 0, JSON.stringify(narrow));
+      /* RE-POINTED 23 Nov 2026 (no old narrow layout; P-29's column rule stands): today's table at 1024 is the wide
+         table under the one column rule (ngnCols → listCols), so where the room is short Rounds steps aside first, then
+         Lead; Agreement · Whose move · Open asks · Waiting always stand */
+      && ['Agreement|Whose move|Rounds|Open asks|Lead|Waiting', 'Agreement|Whose move|Open asks|Lead|Waiting', 'Agreement|Whose move|Open asks|Waiting'].includes(narrow.heads)
+      && narrow.rows > 0 && narrow.pan === 0, JSON.stringify(narrow));
     /* and the one rule for every press stands: a row chooses, the chosen row pressed again opens it on Home's paper */
     const nid = await page.evaluate(() => document.querySelector('.ngn-table tr[data-ngn-row]')?.getAttribute('data-ngn-row') || null);
     if (nid) {

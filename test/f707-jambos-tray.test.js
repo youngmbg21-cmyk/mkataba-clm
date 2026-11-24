@@ -167,6 +167,8 @@ describe('f707 (9) Spine: the Redlines tab and the Obligations panel', () => {
     ctx.pdObOpen();
     assert.notEqual(ctx.pdTab(), 'oblig');
     assert.match(ctx.pdHeadHtml(''), /class="pd-tab on" data-pd-tab="copilot"/);
-    assert.deepEqual(asked, ['on'], 'the Duties page, on the contract\'s own list');
+    /* RE-POINTED 23 Nov 2026 (Duties ONE DOOR: the page opens on To decide while any wait, else On the contract): a door
+       carrying no duty names no tab, so the page itself chooses (openDutiesPage) */
+    assert.deepEqual(asked, [undefined], 'the Duties page, its tab chosen by the page');
   });
 });

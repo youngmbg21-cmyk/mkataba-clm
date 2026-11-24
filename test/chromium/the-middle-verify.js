@@ -157,7 +157,9 @@ const MID = () => {
     const m3 = await page.evaluate(MID);
     check('3a the review stands in the middle, not a pop-up', !!r3 && /^obs:/.test(m3.key || '') && !!m3.back, JSON.stringify(m3));
     check('3b the Dossier stays beside it; the page ends at its edge', m3.dockShown && m3.right <= m3.dockLeft + 1, JSON.stringify(m3));
-    const n3 = await page.evaluate(() => document.querySelectorAll('#dtp #dtp-list [data-dtp-decide]').length);
+    /* RE-POINTED 23 Nov 2026 (Duties ONE DOOR): a To decide row is pressable itself AND carries its Decide › button, both
+       data-dtp-decide, so the duties are counted by their rows */
+    const n3 = await page.evaluate(() => document.querySelectorAll('#dtp #dtp-list tr.dtp-r[data-dtp-decide]').length);
     check('3c it lists the three obligations Jambo found', n3 === 3, String(n3));
     await pause(500); await page.screenshot({ path: path.join(OUT, 'obligations-1440x780.png') });
     await click('#ig-dock [data-pd-mid-back]');
