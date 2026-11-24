@@ -2591,7 +2591,8 @@ function stLsLookPanel(){
   const qc=`<div class="cl-qc-list">${f.quality.map(q=>`<div class="cl-qc"><i class="cl-qc-dot is-${tone[q.tone]||'grey'}" aria-hidden="true"></i><span>${esc(q.t)}</span>${q.go?`<button type="button" class="jov-lnk cl-qc-go" ${q.go.attr}>${esc(q.go.label)}</button>`:'<span class="cl-qc-ok" aria-hidden="true">✓</span>'}</div>`).join('')}</div>`;
   const ringSay=f.owed.length?i18t('cl_ls_p_ring_owed',{ n:f.set, m:f.of, what:f.owed.join(', ') }):i18t('cl_ls_p_ring_all',{ m:f.of });
   return { eyebrow:i18t('cl_title'),
-    title:f.editing?i18t('cl_ls_p_t_stream',{ style:f.style, name:f.editing }):i18t('cl_ls_p_t',{ style:f.style, n:f.follow, m:f.streams }),
+    /* round 4: on the Brand kit tab the headline says the kit */
+    title:f.tab==='kit'?i18t('cl_kit_p_t',{ n:f.kitSet, m:f.kitOf }):f.editing?i18t('cl_ls_p_t_stream',{ style:f.style, name:f.editing }):i18t('cl_ls_p_t',{ style:f.style, n:f.follow, m:f.streams }),
     mid:`<div class="sdd5-today">${sdd5RingHtml(f.set,f.of,f.owed.length?'amber':'green',i18t('cl_ls_p_ring_cap'))}<p>${esc(ringSay)}</p></div>`,
     groups:[{ label:i18t('cl_ls_p_quality'), rows:[], html:qc }] };
 }

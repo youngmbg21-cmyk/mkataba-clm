@@ -650,7 +650,15 @@ function pagesMarksFor(c){
     num: pm.pageNumPos || null, fmt: pm.pageNumFmt || null, foot: fill(db.footerText), company: String(db.companyName || '').trim(),
     /* round 3: the signature block's layout and lines, the cover page */
     sigLayout: pm.sigLayout || null, sigLines: Array.isArray(pm.sigLines) ? pm.sigLines.slice() : [],
-    cover: pm.coverOn === true, coverCounts: pm.coverCounts === true, logoUrl: db.logoUrl || null };
+    cover: pm.coverOn === true, coverCounts: pm.coverCounts === true,
+    /* round 4: the logo the style wears (the black one on a black-and-white style), the faces */
+    logoUrl: (window.brLogoFor ? window.brLogoFor(db) : db.logoUrl) || null, fontTitle: pm.fontTitle || null, fontBody: pm.fontBody || null };
+}
+/* THE BRAND KIT'S FACES FOR THE WORD FILE (round 4): Word is told the face's name; none chosen = Word's styles as they were */
+function pagesWordFonts(c){
+  const mk = pagesMarksFor(c), F = window.BR_FONTS || {};
+  if(!mk || (!mk.fontBody && !mk.fontTitle)) return null;
+  return { body: mk.fontBody && F[mk.fontBody] ? F[mk.fontBody].word : null, title: mk.fontTitle && F[mk.fontTitle] ? F[mk.fontTitle].word : null };
 }
 /* THE COVER PAGE'S WORDS (round 3), read off the record: the agreement's title, its parties, its reference and its date
    (the effective date, else a line to write one on). Page furniture: never wording, never sealed into the text. */
@@ -898,5 +906,5 @@ function pagesSignNames(root, c, opts){
   });
   return n;
 }
-if(typeof window !== 'undefined') Object.assign(window, { pagesLetterheadName, pagesMarksFor, pagesWordHeadFoot, pagesCoverFacts, pagesCoverHtml, pagesWordCoverHtml, pagesSignFoot, pagesSignFlags, pagesSignRows, pagesSignMarks, pagesSignNames, pagesSignNamesOff });
+if(typeof window !== 'undefined') Object.assign(window, { pagesLetterheadName, pagesMarksFor, pagesWordFonts, pagesWordHeadFoot, pagesCoverFacts, pagesCoverHtml, pagesWordCoverHtml, pagesSignFoot, pagesSignFlags, pagesSignRows, pagesSignMarks, pagesSignNames, pagesSignNamesOff });
 if(typeof module !== 'undefined' && module.exports) Object.assign(module.exports, { pagesSignFoot, pagesLetterheadName });

@@ -102,7 +102,9 @@ describe('f129 — the design catalogue and renderers (pure)', () => {
     }
     assert.equal(branding.docDesignPaperAttr(branding.normalizeDesignBranding({})), '', 'no design, no attribute — the legacy body is untouched');
     // the faces must survive print, where --font-doc is enforced with !important
-    assert.match(html, /\[data-doc-body="classic-letterhead"\][^}]*font-family:Georgia[^}]*!important/s);
+    /* RE-POINTED 24 Nov 2026 (contract look round 4): the design's face is the fallback of the brand kit's
+       --doc-font-body, still Georgia and still !important where no face is chosen */
+    assert.match(html, /\[data-doc-body="classic-letterhead"\][^}]*font-family:var\(--doc-font-body,Georgia[^}]*!important/s);
   });
 
   test('accent: greys and white are never a brand colour; a pale colour is darkened, not stored as-is', () => {
@@ -274,8 +276,11 @@ describe('f129 (9) the negotiate page wears the document’s design', () => {
 
   test('the design half is its own reading, so one surface can take it alone', () => {
     const src = rd('js/branding.js');
-    assert.match(src, /function docDesignBodyAttr\(b\) \{\s*\n\s*return b && b\.designId \? ` data-doc-body="\$\{b\.designId\}"` : '';/,
-      'the design attribute, and nothing about the structure');
+    /* RE-POINTED 24 Nov 2026 (contract look round 4): the design attribute and the brand kit's faces, still nothing
+       about the structure */
+    const fb = src.slice(src.indexOf('function docDesignBodyAttr(b) {'), src.indexOf('\nfunction docDesignPaperAttr'));
+    assert.match(fb, /return ` data-doc-body="\$\{b\.designId\}"\$\{f\('fontBody'\)\}\$\{f\('fontTitle'\)\}`;/, 'the design attribute, and nothing about the structure');
+    assert.doesNotMatch(fb, /structure/i);
     /* ONE READING, TWO CALLERS: the whole-paper attribute is built FROM it, so
        the two can never come to disagree about what a design attribute is. */
     assert.match(src, /const design = docDesignBodyAttr\(b\);/,

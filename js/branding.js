@@ -269,6 +269,38 @@ const PAGE_NUM_FORMATS = ['page-of', 'of', 'slash'];
 const PAGE_HEAD_MAX = 120;
 const PAGE_FIELDS = ['company', 'ref', 'title'];
 const SIG_LAYOUTS = ['columns', 'stacked'];
+/* ---- ROUND 4 (owner, 24 Nov 2026): THE BRAND KIT ----
+   FONTS, AN HONEST LIST: only faces HaTi draws itself. On screen and in print the two it serves from its own /fonts
+   (Source Serif 4, Geist — never a remote host); the sealed PDF can only set the standard PDF faces (Times, Helvetica)
+   and the Word file names a face Word falls back from when it is not installed. Each choice says all four. */
+const BR_FONTS = {
+  serif: { name: 'Source Serif 4', css: "'Source Serif 4','IBM Plex Serif',Georgia,serif", pdf: 'serif', word: 'Georgia' },
+  sans: { name: 'Geist', css: "'Geist','IBM Plex Sans',Arial,sans-serif", pdf: 'sans', word: 'Arial' },
+};
+const BR_FONT_IDS = Object.keys(BR_FONTS);
+/* COLOURS: up to four named; the first IS the paper's accent (the one colour a style already paints with) */
+const BR_PALETTE_MAX = 4;
+function brPaletteClean(v) {
+  if (v == null) return { palette: null, error: null };
+  if (!Array.isArray(v)) return { palette: null, error: 'The colours must be a list' };
+  if (v.length > BR_PALETTE_MAX) return { palette: null, error: 'At most four colours' };
+  const out = [];
+  for (const x of v) {
+    if (!x || typeof x !== 'object') return { palette: null, error: 'A colour must have a name and a hex value' };
+    const hex = String(x.hex || '').trim();
+    if (!/^#[0-9a-f]{6}$/i.test(hex)) return { palette: null, error: 'A colour must be a hex value, six digits after the #' };
+    const str = (y, n) => String(y == null ? '' : y).replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+    out.push({ name: str(x.name, 40), hex: hex.toLowerCase(), use: str(x.use, 60) });
+  }
+  return { palette: out.length ? out : null, error: null };
+}
+/* the logo a page wears: the black one on a black-and-white style where there is one, else the colour logo */
+function brLogoFor(b) {
+  if (!b) return null;
+  const d = docDesignById(b.designId);
+  if (d && d.usesAccent === false && BR_LOGO_OK(b.logoBlackUrl)) return b.logoBlackUrl;
+  return b.logoUrl || null;
+}
 const SIG_LINES = ['name', 'title', 'date', 'place'];
 function pageMarksClean(v) {
   if (v == null || v === '') return { marks: null, error: null };
@@ -295,8 +327,14 @@ function pageMarksClean(v) {
     marks.sigLines = SIG_LINES.filter(x => v.sigLines.map(String).includes(x));
   }
   if (v.coverOn != null) marks.coverOn = v.coverOn === true;
+  /* round 4: the title and body faces, from the honest list (BR_FONTS); none = the style's own */
+  for (const k of ['fontTitle', 'fontBody']) {
+    if (v[k] == null || v[k] === '') continue;
+    if (!BR_FONT_IDS.includes(String(v[k]))) return { marks: null, error: 'Unknown font' };
+    marks[k] = String(v[k]);
+  }
   if (v.coverCounts != null) marks.coverCounts = v.coverCounts === true;
-  const any = marks.headerPos || marks.pageNumPos || marks.pageNumFmt || marks.sigLayout || (marks.sigLines && marks.sigLines.length) || marks.coverOn;
+  const any = marks.headerPos || marks.pageNumPos || marks.pageNumFmt || marks.sigLayout || (marks.sigLines && marks.sigLines.length) || marks.coverOn || marks.fontTitle || marks.fontBody;
   return { marks: any ? marks : null, error: null };
 }
 /* A FIELD IS FILLED FROM THE CONTRACT, AND A FIELD WITH NO VALUE SAYS NOTHING — never "{ref}": the company's name, the
@@ -352,6 +390,9 @@ function normalizeDesignBranding(b) {
     contents: (b.contents === true || legacyContents) ? true
       : b.contents === false ? false : null,
     logoUrl: BR_LOGO_OK(b.logoUrl) ? b.logoUrl : null,
+    /* round 4: the black logo (a black-and-white style wears it) and the named colours */
+    logoBlackUrl: BR_LOGO_OK(b.logoBlackUrl) ? b.logoBlackUrl : null,
+    palette: brPaletteClean(b.palette).palette,
     companyName: String(b.companyName || '').slice(0, 200),
     registrationNumber: String(b.registrationNumber || '').slice(0, 100),
     address: String(b.address || '').slice(0, 500),
@@ -418,8 +459,9 @@ const BR_RULE = '#37474f';
 const brAccent = b => b.accentColor || BR_RULE;
 
 function brLogoImg(b, maxH) {
-  if (!b.logoUrl) return '';
-  return `<img src="${b.logoUrl}" alt="" style="max-height:${maxH}px;max-width:170px;display:inline-block;vertical-align:middle">`;
+  const src = brLogoFor(b);
+  if (!src) return '';
+  return `<img src="${src}" alt="" style="max-height:${maxH}px;max-width:170px;display:inline-block;vertical-align:middle">`;
 }
 const brIdentityLine = b => [b.registrationNumber, b.address].filter(Boolean).map(BR_ESC).join(' · ');
 
@@ -673,7 +715,11 @@ function docDesignPaperStyle(b) {
    which on that page would be prepended to the baseline every change is filed
    against. See redlineDocHtml, which is its one caller and says so again. */
 function docDesignBodyAttr(b) {
-  return b && b.designId ? ` data-doc-body="${b.designId}"` : '';
+  if (!(b && b.designId)) return '';
+  /* round 4: a chosen face rides as an attribute the paper's type rules read (index.html, --doc-font-body/-title) */
+  const pm = b.pageMarks || {};
+  const f = k => (pm[k] && BR_FONTS[pm[k]] ? ` data-doc-${k === 'fontBody' ? 'font-body' : 'font-title'}="${pm[k]}"` : '');
+  return ` data-doc-body="${b.designId}"${f('fontBody')}${f('fontTitle')}`;
 }
 function docDesignPaperAttr(b) {
   if (!b) return '';
@@ -773,10 +819,10 @@ if (typeof module !== 'undefined' && module.exports)
     accentLegible, pickAccentFromPixels, docDesignHeaderHtml, docDesignFooterHtml,
     docDesignPaperStyle, docDesignPaperAttr, docDesignBodyAttr, docDesignCoverPageHtml,
     DOC_STRUCTURES, DEFAULT_STRUCTURE, docStructureById, structureBlockedReason, docStructureBodyHtml,
-    PAGE_MARK_PLACES, PAGE_NUM_PLACES, PAGE_NUM_FORMATS, PAGE_HEAD_MAX, PAGE_FIELDS, pageMarksClean, brFieldsFill, brPageNumberSay, SIG_LAYOUTS, SIG_LINES };
+    PAGE_MARK_PLACES, PAGE_NUM_PLACES, PAGE_NUM_FORMATS, PAGE_HEAD_MAX, PAGE_FIELDS, pageMarksClean, brFieldsFill, brPageNumberSay, SIG_LAYOUTS, SIG_LINES, BR_FONTS, BR_FONT_IDS, BR_PALETTE_MAX, brPaletteClean, brLogoFor };
 if (typeof window !== 'undefined')
   Object.assign(window, { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, docDesignById, normalizeDesignBranding,
     accentLegible, pickAccentFromPixels, extractAccentFromLogo, resolveDocBranding, orgBrandingSnapshot,
     docDesignHeaderHtml, docDesignFooterHtml, docDesignPaperStyle, docDesignPaperAttr, docDesignBodyAttr, docDesignCoverPageHtml,
     DOC_STRUCTURES, DEFAULT_STRUCTURE, docStructureById, structureBlockedReason, docStructureBodyHtml,
-    PAGE_MARK_PLACES, PAGE_NUM_PLACES, PAGE_NUM_FORMATS, PAGE_HEAD_MAX, PAGE_FIELDS, pageMarksClean, brFieldsFill, brPageNumberSay, SIG_LAYOUTS, SIG_LINES });
+    PAGE_MARK_PLACES, PAGE_NUM_PLACES, PAGE_NUM_FORMATS, PAGE_HEAD_MAX, PAGE_FIELDS, pageMarksClean, brFieldsFill, brPageNumberSay, SIG_LAYOUTS, SIG_LINES, BR_FONTS, BR_FONT_IDS, BR_PALETTE_MAX, brPaletteClean, brLogoFor });

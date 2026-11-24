@@ -14275,44 +14275,49 @@
      .rl-paper-title), so its scale wins and keeps the proportions the owner
      tuned on that page. What travels is the treatment — the face, the weight,
      the letterfit, the case, the alignment and the accent. */
+  /* THE BRAND KIT'S FACES (contract look round 4, 24 Nov 2026): a look that chooses a face names it on the paper
+     (data-doc-font-body / -title, js/branding.js docDesignBodyAttr); the design's own type rules read it through
+     --doc-font-body, and the titles take --doc-font-title. Only the two faces HaTi serves itself (fonts/). */
+  [data-doc-font-body="serif"],[data-doc-font-title="serif"] :is(h1,h2,h3,h4,.rl-paper-title,.rl-clause-h){--doc-font-body:'Source Serif 4','IBM Plex Serif',Georgia,serif}
+  [data-doc-font-body="sans"],[data-doc-font-title="sans"] :is(h1,h2,h3,h4,.rl-paper-title,.rl-clause-h){--doc-font-body:'Geist','IBM Plex Sans',Arial,sans-serif}
   [data-doc-body="classic-letterhead"] :is(.doc-surface,.rl-paper),
-  [data-doc-body="classic-letterhead"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:Georgia,'Times New Roman',Times,serif!important;}
+  [data-doc-body="classic-letterhead"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:var(--doc-font-body,Georgia,'Times New Roman',Times,serif)!important;}
   [data-doc-body="classic-letterhead"] :is(.doc-surface,.rl-paper) :is(h1,.rl-paper-title){text-align:center;letter-spacing:.06em;}
 
   [data-doc-body="modern-minimal"] :is(.doc-surface,.rl-paper),
-  [data-doc-body="modern-minimal"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:'Helvetica Neue',Helvetica,Arial,sans-serif!important;}
+  [data-doc-body="modern-minimal"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:var(--doc-font-body,'Helvetica Neue',Helvetica,Arial,sans-serif)!important;}
   [data-doc-body="modern-minimal"] :is(.doc-surface,.rl-paper) :is(h1,.rl-paper-title){font-weight:var(--w-body);letter-spacing:-.01em;}
   [data-doc-body="modern-minimal"] :is(.doc-surface,.rl-paper) :is(h2,.rl-clause-h){font-weight:var(--w-strong);}
 
   [data-doc-body="formal-legal"] :is(.doc-surface,.rl-paper),
-  [data-doc-body="formal-legal"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:'Times New Roman',Times,Georgia,serif!important;}
+  [data-doc-body="formal-legal"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:var(--doc-font-body,'Times New Roman',Times,Georgia,serif)!important;}
   [data-doc-body="formal-legal"] :is(.doc-surface,.rl-paper) p{text-align:justify;}
   [data-doc-body="formal-legal"] :is(.doc-surface,.rl-paper) :is(h1,.rl-paper-title){text-align:center;text-transform:uppercase;letter-spacing:.14em;}
   [data-doc-body="formal-legal"] :is(.doc-surface,.rl-paper) :is(h2,.rl-clause-h){text-transform:uppercase;letter-spacing:.08em;font-size:1em;}
 
   [data-doc-body="bold-corporate"] :is(.doc-surface,.rl-paper),
-  [data-doc-body="bold-corporate"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:'Segoe UI',Verdana,Arial,sans-serif!important;}
+  [data-doc-body="bold-corporate"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:var(--doc-font-body,'Segoe UI',Verdana,Arial,sans-serif)!important;}
   [data-doc-body="bold-corporate"] :is(.doc-surface,.rl-paper) :is(h1,.rl-paper-title){font-weight:800;letter-spacing:.01em;}
   [data-doc-body="bold-corporate"] :is(.doc-surface,.rl-paper) :is(h2,.rl-clause-h){color:var(--doc-design-accent,#37474f);font-weight:var(--w-title);}
 
   [data-doc-body="compact-executive"] :is(.doc-surface,.rl-paper),
-  [data-doc-body="compact-executive"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:'Trebuchet MS','Segoe UI',Arial,sans-serif!important;}
+  [data-doc-body="compact-executive"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:var(--doc-font-body,'Trebuchet MS','Segoe UI',Arial,sans-serif)!important;}
   [data-doc-body="compact-executive"] :is(.doc-surface,.rl-paper){font-size:calc(14px * var(--doc-scale,1) * .94);}
   [data-doc-body="compact-executive"] :is(.doc-surface,.rl-paper) p{line-height:1.55;}
   [data-doc-body="compact-executive"] :is(.doc-surface,.rl-paper) :is(h1,.rl-paper-title){font-size:1.35em;}
 
   [data-doc-body="modern-editorial"] :is(.doc-surface,.rl-paper),
-  [data-doc-body="modern-editorial"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif!important;}
+  [data-doc-body="modern-editorial"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:var(--doc-font-body,'Segoe UI','Helvetica Neue',Arial,sans-serif)!important;}
   [data-doc-body="modern-editorial"] :is(.doc-surface,.rl-paper) :is(h1,.rl-paper-title){font-size:1.6em;font-weight:var(--w-title);letter-spacing:-.015em;}
   [data-doc-body="modern-editorial"] :is(.doc-surface,.rl-paper) :is(h2,.rl-clause-h){font-weight:var(--w-title);letter-spacing:-.005em;}
 
   [data-doc-body="ceremonial"] :is(.doc-surface,.rl-paper),
-  [data-doc-body="ceremonial"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:Georgia,'Times New Roman',Times,serif!important;}
+  [data-doc-body="ceremonial"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:var(--doc-font-body,Georgia,'Times New Roman',Times,serif)!important;}
   [data-doc-body="ceremonial"] :is(.doc-surface,.rl-paper) :is(h1,.rl-paper-title){text-align:center;text-transform:uppercase;letter-spacing:.1em;font-weight:var(--w-title);}
   [data-doc-body="ceremonial"] :is(.doc-surface,.rl-paper) :is(h2,.rl-clause-h){text-align:center;letter-spacing:.06em;}
 
   [data-doc-body="facing-parties"] :is(.doc-surface,.rl-paper),
-  [data-doc-body="facing-parties"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif!important;}
+  [data-doc-body="facing-parties"] :is(.doc-surface,.rl-paper) *:not(.hati-field):not(input):not(textarea){font-family:var(--doc-font-body,'Segoe UI','Helvetica Neue',Arial,sans-serif)!important;}
   [data-doc-body="facing-parties"] :is(.doc-surface,.rl-paper) :is(h1,.rl-paper-title){font-weight:var(--w-title);letter-spacing:-.01em;}
   [data-doc-body="compact-executive"] :is(.doc-surface,.rl-paper) :is(h2,.rl-clause-h){font-size:1.02em;}
 
@@ -23488,6 +23493,29 @@
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-pk-k{font-size:12.5px;color:var(--color-quiet);margin-right:4px}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-onpaper{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-pick .cl-in{display:block;width:calc(100% - 16px);box-sizing:border-box;margin:4px 8px 6px}
+  /* round 4: the brand kit, as drawn — three plain columns (logo versions, fonts, colours) over the table of where it is used */
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-kit{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 28px;margin-top:12px;border-top:1px solid var(--color-divider)}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-kit-col{min-width:0;padding:14px 0 16px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-kit-col h4{margin:0 0 8px;font-size:12.5px;font-weight:var(--w-label);color:var(--color-quiet)}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-kit-k{margin:10px 0 4px;font-size:13px;font-weight:var(--w-label)}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-kit-q{margin:6px 0 0;font-size:12.5px;line-height:1.45;color:var(--color-quiet)}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-kit-logo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-kit-thumb{display:inline-grid;place-items:center;width:84px;height:30px;border-radius:4px;background:var(--color-surface);border:1px solid var(--color-divider);overflow:hidden;font-size:9px;color:var(--color-quiet);flex:none}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-kit-thumb.is-empty{border-style:dashed;background:var(--surface-2)}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-kit-thumb img{max-width:80px;max-height:26px;object-fit:contain}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-kit-colour{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--color-divider);min-width:0}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-kit-colour:last-of-type{border-bottom:0}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-kit-sw{flex:none;width:22px;height:22px;border-radius:6px;margin-top:4px;box-shadow:inset 0 0 0 1px var(--color-divider)}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-kit-cw{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-kit-cw .cl-in{margin:0;height:28px;font-size:13px;width:100%;box-sizing:border-box;min-width:0}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-kit-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-kit-meta .cl-kit-hex{width:84px;flex:none}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-kit-ok{color:var(--st-green-fg)}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-kit-bad{color:var(--st-ruby-fg)}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-kit-note{font-size:12.5px;line-height:1.45;color:var(--st-ruby-fg)}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-kit-x{flex:none;margin-top:6px}
+  html.lg-new .st-ls-page .cl-pg.is-r1 #cl-kit-used{margin-top:16px}
+  html.lg-new .st-ls-page .cl-pg.is-r1 #cl-kit-colours .cl-ls-pill{margin-top:8px}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-pv{flex:0 0 330px;width:330px;max-width:100%;box-sizing:border-box;background:var(--surface-2);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-pv-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;min-width:0}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-pv-w{flex:1 1 auto}
