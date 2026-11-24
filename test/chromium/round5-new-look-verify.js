@@ -123,7 +123,8 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
     await page.evaluate(() => { const r = document.querySelector('.obn-pr[data-obn-pick] td.obn-c1'); if (r) r.click(); });
     await until(page, () => !!document.querySelector('#ins-panel .obn-lg .obn-lg-it'), null, 5000);
     const duty = await page.evaluate(() => { const r = document.querySelector('#ins-panel .obn-lg .obn-lg-it'); return r ? { whose: r.querySelectorAll('[data-obn-whose]').length,
-      on: !!r.querySelector('.obn-lg-w.is-on'), skip: !!r.querySelector('[data-obn-skip]'), quote: !!r.querySelector('.obn-lg-q') } : null; });
+      on: !!r.querySelector('.obn-lg-w.is-on'), skip: !!r.querySelector('[data-obn-skip]'), quote: !!r.querySelector('.obn-lg-q'),
+      decide: !!document.querySelector('#ins-panel .obn-lg [data-obn-decide]') } : null; });
     /* RE-POINTED 19 Nov 2026: Open makes the agreement the panel's subject, the Legora way (owner: "the row press the legora way") */
     const side = await page.evaluate(() => !!document.querySelector('#ins-panel .obn-lg .obn-lg-it'));
     await shot('4-proposals');
@@ -131,7 +132,9 @@ const txt = (page, sel) => page.evaluate(s => { const e = document.querySelector
       /* RE-POINTED 19 Nov 2026: four heads — the owner had Found taken off ("delete the found column") */
       /* RE-POINTED 21 Nov 2026 (P-13, the owner's pick of 20 Nov): the drawn six heads, Found back; "N of M" on the bar */
       up && heads.join() === 'Agreement,Other side,Progress,Status,Duties,Found' && !!pr && pr.ring && pr.bar && /\d+ of \d+/.test(pr.said || '') && !!String(pr.status || '').trim() && !pr.open
-      && !pr.add && !!duty && duty.whose === 4 && duty.on   /* RE-POINTED 19 Nov 2026 (f1102): Undecided lit first, nothing decided, nothing to add */ && duty.skip && side, { heads, pr, duty, side });
+      /* RE-POINTED 23 Nov 2026 (Duties ONE DOOR: Proposals by agreement are READ only — each duty's words and quote, no
+         whose or Skip in the panel — and the agreement's one door "Decide its duties" opens its Duties page, data-obn-decide) */
+      && !pr.add && !!duty && duty.whose === 0 && !duty.on && !duty.skip && duty.quote && duty.decide && side, { heads, pr, duty, side });
   } catch (e) { check('4 Proposals', false, String(e).slice(0, 200)); }
 
   /* 5 · Calendar */

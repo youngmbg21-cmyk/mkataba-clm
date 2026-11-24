@@ -110,7 +110,8 @@ describe('f754 (2) the paper beside Fill in; nothing over the rows; no chips', (
     assert.match(cls('start'), /pd-ff-owe-mark/); assert.doesNotMatch(cls('lane'), /pd-ff-owe-mark/, 'not owed: not amber');
     assert.match(cls('route'), /pd-ff-pend/); assert.doesNotMatch(cls('carrier'), /pd-ff-pend/, 'in the wording already');
     /* RE-POINTED 20 Oct 2026 (the Legora way): the marks follow the Dossier's grid, not a face */
-    W.pdSetTab('oblig'); W.pdFillPaperMarks(c);
+    /* RE-POINTED 23 Nov 2026 (DUTIES, END TO END, ONE DOOR: 'oblig' is no longer a panel tab, it opens the Duties page; another tab is Clauses) */
+    W.pdSetTab('doc'); W.pdFillPaperMarks(c);
     assert.ok(!cv.querySelector('.pd-ff-owe-mark, .pd-ff-pend'), 'another tab, the marks go'); up = !up;
     assert.match(IX, /#ig-canvas \.hati-field\.pd-ff-owe-mark:not\(\.is-fieldlit\)\{background:var\(--st-amber-bg\);color:var\(--st-amber-fg\)\}/);
     assert.match(IX, /#ig-canvas \.pd-ff-pend\{text-decoration:underline dotted var\(--accent-ink\)/);

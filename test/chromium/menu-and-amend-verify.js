@@ -226,6 +226,10 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.route('**/api/ai/amend', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [], facts: { expiry: '2028-12-31' } }) }));
     const said = await page.$('#igd-input');
     if (said){ await said.fill('The term now ends on 31 December 2028'); await page.keyboard.press('Enter'); }
+    /* RE-POINTED 23 Nov 2026 (Tell Jambo the change, ONE DOOR: the box beside Amend reads the pop-up's way, pd2AmSay →
+       pd2AmAskRun): what he found comes in its pop-up with one button, "See the changes", which puts it away */
+    if (await until(page, () => !!document.querySelector('#modal-root [data-pd2-amk-see]'), null, 8000)) await page.click('#modal-root [data-pd2-amk-see]');
+    await until(page, () => !document.querySelector('#modal-root .lgp#pd2-amk'), null, 4000);
     if (await until(page, () => !!document.querySelector('.pd2-amx [data-pd2-amx-use="expiry"]'), null, 8000)) await page.click('.pd2-amx [data-pd2-amx-use="expiry"]');
     await until(page, () => /2028/.test(((document.querySelector('#pd-amendface') || {}).innerText || '') + ((document.querySelector('.pd2-amx') || {}).innerText || '')), null, 8000);
     /* the rows are drawn on the Changes tab (a clause is pressed on the Signed paper tab) */
@@ -234,11 +238,16 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     const marked = await page.evaluate(() => ({ items: document.querySelectorAll('.pd2-amx [data-pd2-amx-row]').length,
       mark: (document.querySelector('#ig-canvas [data-anchor="c1"] .pd-am-mk') || {}).textContent || '',
       end: /2028/.test(((document.querySelector('#pd-amendface') || {}).innerText || '') + ((document.querySelector('.pd2-amx') || {}).innerText || '')),
-      go: !!document.querySelector('[data-pd2-am-create]') && !document.querySelector('[data-pd2-am-create]').disabled }));
+      /* RE-POINTED 23 Nov 2026 (Tell Jambo the change: three numbered steps, Create is step 3's black button, the paper
+         line's is hidden): ready = step 2's Next onto Check the amendment is live */
+      go: (b => !!b && !b.disabled)(document.querySelector('.pd2-amx .pd2-amx-next[data-pd2-amx-tab="paper"]')) }));
     ok('5c a clause pressed is change 1, numbered on the paper; the end date said in the box is on the amendment beside it', listed && marked.items >= 1 && marked.mark === '1' && marked.end && marked.go, JSON.stringify(marked));
     await page.screenshot({ path: path.join(OUT, '5-amend.png') });
-    if (marked.go) await page.click('[data-pd2-am-create]');
-    await page.waitForTimeout(1500);
+    if (marked.go){
+      await page.click('.pd2-amx .pd2-amx-next[data-pd2-amx-tab="paper"]');
+      if (await until(page, () => (b => !!b && !b.disabled)(document.querySelector('.pd2-amx [data-pd2-am-create]')), null, 5000)) await page.click('.pd2-amx [data-pd2-am-create]');
+    }
+    await until(page, () => { const k = state.contracts.find(c => c.parentId === 'MK-B1'); return !!(k && intel.paper && intel.paper.id === k.id); }, null, 8000);
     const made = await page.evaluate(() => { const k = state.contracts.find(c => c.parentId === 'MK-B1');
       return k ? { status: k.status, n: (k.amends || []).length, op: k.amends && k.amends[0] && k.amends[0].op, end: k.amendFacts && k.amendFacts.expiry, on: intel.paper && intel.paper.id === k.id } : null; });
     ok('5d Create amendment draft makes the linked draft and opens it', !!made && made.status === 'Draft' && made.n === 1 && made.op === 'replace' && made.end === '2028-12-31' && made.on, JSON.stringify(made));

@@ -442,8 +442,9 @@ const ok = (name, good, detail) => {
       ok('10a the card shows THE BRIEF itself once the whole record lands, and counts what is worth watching (RED at faa8f95)', /FY2026 external audit/.test(opened.brief) && /1 worth watching/.test(opened.brief), opened.brief.slice(0, 140));
       ok('10b and the departures, their words beside your standard (RED at faa8f95)',
         /Liability cap/.test(opened.std) && /Their words/.test(opened.std) && /Your position/.test(opened.std) && /1 other position is met/.test(opened.std), opened.std.slice(0, 160));
+      /* RE-POINTED 23 Nov 2026 (English says DUTY, never obligation, f1191): the card's one door reads "Review 2 duties" */
       ok('10c and the obligations found, whose each is, with one door onto adding them (RED at faa8f95)',
-        /Deliver the audit plan/.test(opened.obs) && /Theirs/.test(opened.obs) && /Review 2 obligations/.test(opened.obsBtn), opened.obs.slice(0, 120) + ' · ' + opened.obsBtn);
+        /Deliver the audit plan/.test(opened.obs) && /Theirs/.test(opened.obs) && /Review 2 duties/.test(opened.obsBtn), opened.obs.slice(0, 120) + ' · ' + opened.obsBtn);
       await page.screenshot({ path: path.join(OUT, '10-new-paper-panel.png') });
       const rb = await page.$(`${CA} [data-ag-act="brief"]`);
       if (rb) { await rb.click(); await page.waitForTimeout(1800); }
@@ -460,8 +461,11 @@ const ok = (name, good, detail) => {
       await pick('paper');
       await lookAt(CA); await page.waitForTimeout(300);
       const ob = await page.$(`${CA} [data-ag-act="obs"]`);
-      if (ob) { await ob.click(); await page.waitForTimeout(1200); }
-      const review = await page.evaluate(() => ({ dialog: !!document.getElementById('or-add'), text: ((document.getElementById('modal-root') || {}).textContent || '').replace(/\s+/g, ' ').slice(0, 120) }));
+      /* RE-POINTED 23 Nov 2026 (Duties ONE DOOR: every way in opens the contract's Duties page in the middle, #dtp,
+         where each duty goes through the sheet one at a time — NO MASS ADD; the old review dialog #or-add is gone):
+         the wait asks for the page, bounded */
+      if (ob) { await ob.click(); await page.waitForFunction(() => !!document.querySelector('#modal-root #dtp'), null, { timeout: 6000 }).catch(() => {}); }
+      const review = await page.evaluate(() => ({ dialog: !!document.querySelector('#modal-root #dtp') && !document.getElementById('or-add'), text: ((document.getElementById('modal-root') || {}).textContent || '').replace(/\s+/g, ' ').slice(0, 120) }));
       ok('10e "Review 2 obligations" opens the one review dialog, where each is ticked by the reader — nothing is added from the card (RED at faa8f95)', review.dialog, JSON.stringify(review));
       await page.evaluate(() => { try { closeModal(); } catch (_){} });
       /* THE FUNNEL: any door that opens the brief panel on a light row — here

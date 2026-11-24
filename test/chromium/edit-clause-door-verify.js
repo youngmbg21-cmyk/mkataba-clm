@@ -192,7 +192,10 @@ const endOf = (page, sel) => page.evaluate(sel => {
     ok('6a a Draft\'s blanks on the paper take no typing', !!s7 && s7.ro, JSON.stringify(s7));
     if (s7) {
       /* from another tab, so the press has to bring the form up itself */
-      await page.evaluate(() => pdOpenOnHome('MK-CT2', 'oblig'));
+      /* RE-POINTED 23 Nov 2026 (Duties ONE DOOR: 'oblig' now opens the Duties page over the paper in the middle, which
+         is itself a middle page): the other tab is Clauses, which leaves the paper in sight */
+      await page.evaluate(() => pdOpenOnHome('MK-CT2', 'doc'));
+      await until(page, () => typeof pdTab === 'function' && pdTab() === 'doc' && !!document.querySelector('#ig-canvas [data-field], #ig-canvas [data-sync]'), null, 6000);
       await page.evaluate(() => { const b = document.querySelector('#ig-canvas [data-field], #ig-canvas [data-sync]'); b.scrollIntoView({ block: 'center' }); });
       const r = await page.evaluate(() => { const b = document.querySelector('#ig-canvas [data-field], #ig-canvas [data-sync]').getBoundingClientRect(); return { x: b.left + 4, y: b.top + b.height / 2 }; });
       await page.mouse.click(r.x, r.y);

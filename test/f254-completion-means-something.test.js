@@ -314,8 +314,17 @@ describe('f254 (5) — the contract remembers that it was read', () => {
        first, and every caller withholds the stamp below the reader's own
        NAMED floor. Two callers now, each asserted; a third that stamps
        without reading fails here. */
+    /* RE-POINTED 23 Nov 2026 (owner: "Read the duties again" on the Duties page, a second reading of the same
+       reader on a press — a stamp there records a reading that genuinely happened). Three now: one definition,
+       the scan, and dutiesReadAgain; the third is held to the same reason below. */
     const hits = (OB_CODE.match(/obligationsReadStamp\(/g) || []).length;
-    assert.equal(hits, 2, 'inside this file: one definition, one caller');
+    assert.equal(hits, 3, 'inside this file: one definition, two callers');
+    const again = OB_CODE.match(/async function dutiesReadAgain\([^)]*\)\{[\s\S]*?\n\}/)[0];
+    assert.ok(again.indexOf('extractObligations(') >= 0
+      && again.indexOf('extractObligations(') < again.indexOf('obligationsReadStamp('),
+      'reading the duties again stamps only after running the reader');
+    assert.match(again, /txt\.length >= OBLIG_TEXT_MIN\) obligationsReadStamp\(/,
+      'and through the same named floor');
     /* RE-POINTED 4 Oct 2026 (f475): the funnel takes an options argument
        (`fresh`) — pinned by name, never by its parameter list. */
     const run = OB_CODE.match(/async function runFindObligations\([^)]*\)\{[\s\S]*?\n\}/)[0];

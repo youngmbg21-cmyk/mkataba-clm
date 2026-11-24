@@ -103,9 +103,14 @@ const check = (name, pass, detail) => {
     await page.waitForFunction(id => window.state && state.contracts && state.contracts.some(c => c.id === id) && typeof currentUser === 'function' && currentUser(), cid, { timeout: 20000 });
     await page.waitForTimeout(1500);
     await page.evaluate(async id => { const c = getContract(id); if (typeof ensureFull === 'function') await ensureFull(c); pdOpenOnHome(id, 'copilot'); }, cid);
-    const card2 = await until(CARD);
+    /* RE-POINTED 23 Nov 2026 (A REFRESH LANDS AT THE SAME SPOT, and the Duties page is the one door: a refresh with the
+       contract's Duties page up puts that page back in the middle, hbPlace 'duties', where the Dossier's card is not
+       drawn): what is left to decide is read off whichever stands — the page's To decide count, else the card */
+    const card2 = await until(() => { const d = document.getElementById('dtp');
+      if (d){ const n = (d.querySelector('[data-dtp-tab="left"] span') || {}).textContent; return n != null ? 'page: ' + n + ' to decide' : null; }
+      const b = document.querySelector('#ig-dock [data-pd2-dtc]'); return b ? b.innerText.replace(/\s+/g, ' ').trim() : null; });
     const dbg = await page.evaluate(id => { const c = getContract(id); return JSON.stringify({ r: c.obReview, light: !!c._light }); }, cid);
-    check('4c. after a reload the skip is kept: one left to decide', card2 && /1 to decide/.test(card2), card2 + ' ' + dbg);
+    check('4c. after a reload the skip is kept: one left to decide', card2 && /(^|\D)1 to decide/.test(card2), card2 + ' ' + dbg);
     await page.screenshot({ path: path.join(OUT, '3-tab-after.png') });
     check('6. no page errors', errors.length === 0, errors.join(' | '));
   } catch (e) {

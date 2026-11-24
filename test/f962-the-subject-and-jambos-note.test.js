@@ -61,7 +61,8 @@ describe('f962 (2) Jambo is told what the send screen holds, and writes only the
     assert.match(web, /Write ONLY the note the person would type in their note box/);
     assert.match(web, /never promise one that is not on that list/);
     assert.ok(fnBody(SRV, 'buildCopilotSystem').includes('- ${AI_SEND_NOTE_RULE}\n'));
-    assert.ok(AIJS.includes('${AI_CLARIFY_RULE} ${AI_SEND_NOTE_RULE} ${AI_CALENDAR_RULE}'));
+    /* RE-POINTED 23 Nov 2026 (JAMBO THE INSTRUCTOR, owner 23 Nov 2026: AI_TEACH_RULE rides in both system prompts, between the send-note rule and the calendar's) */
+    assert.ok(AIJS.includes('${AI_CLARIFY_RULE} ${AI_SEND_NOTE_RULE} ${AI_TEACH_RULE} ${AI_CALENDAR_RULE}'));
   });
   test('the answer tool carries the note; the server returns it only where the send screen was open', () => {
     assert.match(SRV, /\n {6}note: \{ type: 'string', description: 'OPTIONAL — only when the CURRENT VIEW says the send screen is open/);

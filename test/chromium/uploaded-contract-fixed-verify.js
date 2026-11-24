@@ -207,47 +207,50 @@ const BODY =
       const t = document.querySelector('[data-kt-tri-go="oblig"]');
       if (!t) return { none: true };
       t.click();
-      await new Promise(z => setTimeout(z, 700));
-      const modal = !!document.querySelector('[data-ob-pick]');
-      const tab = typeof _wsTab !== 'undefined' ? _wsTab : null;
-      return { modal, tab };
+      return { pressed: true };
     });
-    check('3a with the tab empty, the tile opens the found list to tick and add',
-      !!(tile && tile.modal), JSON.stringify(tile));
+    /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end": ONE DOOR — every way in lands on the contract's Duties page in
+       the middle; the older tick-and-add pop-up is deleted): with nothing on the contract the tile opens that page on
+       To decide, listing the two duties Jambo found; once the contract has duties it opens on On the contract */
+    const dutiesPage = () => page.evaluate(() => {
+      const d = document.getElementById('dtp'); if (!d) return null;
+      const on = d.querySelector('[data-dtp-tab][aria-selected="true"]');
+      const pc = typeof pdContract === 'function' ? pdContract() : null;
+      /* RE-POINTED 23 Nov 2026 (Duties ONE DOOR): a To decide row and its Decide › button both carry data-dtp-decide, so
+         the found duties are counted by their rows (tr.dtp-r), never twice */
+      return { tab: on ? on.getAttribute('data-dtp-tab') : null, found: d.querySelectorAll('#dtp-list tr.dtp-r:not([data-dtp-rec])').length,
+        recs: d.querySelectorAll('#dtp-list [data-dtp-rec]').length, cid: pc ? String(pc.id) : null, old: !!document.querySelector('[data-ob-pick]') }; });
+    if (tile && !tile.none) await page.waitForFunction(() => !!document.querySelector('#dtp [data-dtp-tab][aria-selected="true"]'), null, { timeout: 8000 }).catch(() => {});
+    const d1 = tile && !tile.none ? await dutiesPage() : null;
+    check('3a with the contract\'s duties empty, the tile opens its Duties page on To decide, the found duties listed',
+      !!d1 && d1.tab === 'left' && d1.found === 2 && !d1.old && d1.cid === (await page.evaluate(() => String(window.__cid))), JSON.stringify(d1 || tile));
     await page.screenshot({ path: path.join(OUT, '03-oblig-popup.png') });
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(400);
     const tile2 = await page.evaluate(async () => {
-      document.querySelectorAll('#modal-root *').forEach(() => {});
       if (typeof closeModal === 'function') closeModal();
       const c = getContract(window.__cid);
       c.obligations = [{ id: 'ob1', desc: 'Pay within sixty days', due: '', who: 'us' }];
-      if (typeof paintKtTriage === 'function') paintKtTriage(c);
+      /* back in the room opened by name, where the arrival strip and its tile stand */
+      openWorkspace(window.__cid, { room: true });
+      await new Promise(z => setTimeout(z, 600));
+      roomGoTab(getContract(window.__cid), 'terms');
+      await new Promise(z => setTimeout(z, 600));
+      if (typeof paintKtTriage === 'function') paintKtTriage(getContract(window.__cid));
       await new Promise(z => setTimeout(z, 300));
       const t = document.querySelector('[data-kt-tri-go="oblig"]');
-      if (!t) return { none: true };
+      if (!t) return { none: true, view: state.view };
       t.click();
       return { pressed: true };
     });
-    /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
-       Obligations tab went home — its twin is the Board's Obligations view
-       (#obw-one-host), so "the tab" the tile goes to is that
-       view, on Home, for this contract. */
-    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): roomGoTab(c,'oblig') lands on the contract's paper
-       on Home with its Obligations face (pdTab 'oblig') — "the tab" is that face, for this contract */
-    if (tile2 && !tile2.none) await page.waitForFunction(() => (state.view === 'dashboard' && typeof pdTab === 'function' && pdTab() === 'oblig') || !!document.querySelector('#obw-one-host')
-      || !!document.querySelector('[data-ob-pick]') || !!document.querySelector('#ws-tabs [data-ws-tab="oblig"][aria-selected="true"]'), null, { timeout: 8000 }).catch(() => {});
-    if (tile2 && !tile2.none) Object.assign(tile2, await page.evaluate(() => {
-      const view = document.querySelector('#obw-one-host');
-      const on = document.querySelector('#ws-tabs .room-tab.is-on, #ws-tabs [aria-selected="true"]');
-      /* RE-POINTED 15 Oct 2026: the Obligations page narrowed to this contract draws its table */
-      const forThis = !!(view && String(view.getAttribute('data-ins-cid')) === String(window.__cid));
-      const face = state.view === 'dashboard' && typeof pdTab === 'function' && pdTab() === 'oblig' && typeof pdContract === 'function' && pdContract() && String(pdContract().id) === String(window.__cid);
-      return { modal: !!document.querySelector('[data-ob-pick]'),
-        tab: face ? 'oblig' : (view && state.view === 'obligations' && forThis) ? 'oblig' : (on ? on.getAttribute('data-ws-tab') : null) };
-    }));
-    check('3b once the tab has obligations, the tile goes straight to the tab',
-      !!(tile2 && !tile2.modal && tile2.tab === 'oblig'), JSON.stringify(tile2));
+    /* RE-POINTED 24 Nov 2026 (owner, "Duties, end to end": the page opens on To decide while any found duty waits, else On
+       the contract): one found duty still waits here, so it opens on To decide; On the contract holds the one added */
+    if (tile2 && !tile2.none) await page.waitForFunction(() => !!document.querySelector('#dtp [data-dtp-tab][aria-selected="true"]'), null, { timeout: 8000 }).catch(() => {});
+    const d2a = tile2 && !tile2.none ? await dutiesPage() : null;
+    if (d2a && d2a.tab !== 'on') { await page.click('#dtp [data-dtp-tab="on"]').catch(() => {});
+      await page.waitForFunction(() => !!document.querySelector('#dtp [data-dtp-tab="on"][aria-selected="true"]'), null, { timeout: 4000 }).catch(() => {}); }
+    const d2 = d2a ? await dutiesPage() : null;
+    check('3b once the contract has duties, the tile opens its Duties page on To decide while one waits, On the contract listing the one added',
+      !!d2a && (d2a.tab === 'left') === (d2a.found > 0) && !!d2 && d2.tab === 'on' && d2.recs === 1 && !d2.old, JSON.stringify({ opened: d2a, on: d2 } ));
+    await page.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
 
     /* ===== 4. THE THREE OVERVIEW CARDS ===== */
     /* RE-POINTED 14 Oct 2026 (stage 5): 3b left the reader on Home's Board, and

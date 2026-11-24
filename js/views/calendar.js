@@ -2232,8 +2232,10 @@ function calKeyHtml(){
     b('ct',it('ours','cal_key_ours')+it('theirs','cal_key_theirs')+it('ct','cal_key_ct'))}${b('me',it('mine','cal_key_mine'))}${b('cp',it('plan','cal_key_plan'))}</span>`;
 }
 /* THE PERSON'S OWN DATES between two days, as the grid's events. */
-function calOwnEvents(from,to){
-  const l=calLayers(), out=[];
+/* `o.all` (P-14's new look, which draws no layer switches): every part of the person's own calendar, whatever an old
+   look's switch was left at, so nothing of theirs is hidden with no way to bring it back */
+function calOwnEvents(from,to,o){
+  const l=(o&&o.all)?{ ct:true, me:true, cp:true }:calLayers(), out=[];
   const inP=d=>d&&d>=from&&d<=to;
   if(l.me&&typeof mineList==='function'){
     mineList('event').filter(e=>inP(e.date)).forEach(e=>out.push({ date:e.date, type:'mine', id:e.id, title:e.title, start:e.start, end:e.end,
@@ -2750,8 +2752,14 @@ if(typeof document!=='undefined'&&typeof window!=='undefined'&&!window._calLvWir
    Reads only: every act is an existing door (Mark done openObligationDone, Chase/Decide calChipGo, Open the paper
    selectContract, Plan my week calPlanAsk). The new look only; the old look's builders above are kept.
    ========================================================================== */
-const CAL_LS_TONE = { late:'ruby', ours:'amber', theirs:'steel', ends:'violet', decide:'violet', round:'gray' };
-const CAL_LS_KIND_WORD = { late:'obs_st_late', ours:'obt_we_owe', theirs:'obt_they_owe', ends:'cal_kind_ends', decide:'cal_kind_decide', round:'cal_kind_round' };
+/* THE PERSON'S OWN CALENDAR ON WEEK AND MONTH (restored 23 Nov 2026; the P-14 build had dropped it, while its own
+   Handbook chapter still says "your own event" and "the blocks are offered, Add puts them in"): their events (mine), their
+   notes' review days (note) and Jambo's offered blocks (plan) — js/mine.js, theirs alone (calOwnEvents). Mine and an
+   offered block in green, a note in grey; an offered block's badge is dashed until it is added. Each row's act is the
+   existing one: open the event (data-cal-mine), the note (data-cal-note), the offer in the panel (data-cal-plan-go). */
+const CAL_LS_TONE = { late:'ruby', ours:'amber', theirs:'steel', ends:'violet', decide:'violet', round:'gray', mine:'green', note:'gray', plan:'green' };
+const CAL_LS_KIND_WORD = { late:'obs_st_late', ours:'obt_we_owe', theirs:'obt_they_owe', ends:'cal_kind_ends', decide:'cal_kind_decide', round:'cal_kind_round', mine:'cal_kind_mine', note:'cal_kind_note', plan:'cal_k_plan' };
+const CAL_LS_OWN = ['mine','note','plan'];
 const CAL_LS_DEF = { show:'all', kind:'all', whose:'all', cid:'all', hz:'all', stream:'all', sort:'soon' };
 const CAL_LS_SORTS = ['soon','late','name'];
 const CAL_LS_THEN_WEEKS = 5;
@@ -2764,12 +2772,13 @@ function calLsF(){
 function calLsOn(){ return typeof window.newLookOn==='function'&&!!newLookOn(); }
 const calLsDays=(a,b)=>Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/864e5);
 function calLsKindOf(e, today){
+  if(e.own&&CAL_LS_OWN.includes(e.type)) return e.type;
   if(e.type==='obligation') return (!e.done&&!e.waiting&&e.date<today)?'late':(e.theirs?'theirs':'ours');
   if(e.type==='renewal') return 'decide';
   if(e.type==='expiry') return 'ends';
   return 'round';
 }
-function calLsKey(e){ return [e.cid,e.type,e.date,e.obId||e.round||''].join('|'); }
+function calLsKey(e){ return e.own?['own',e.type,e.id].join('|'):[e.cid,e.type,e.date,e.obId||e.round||''].join('|'); }
 /* THE PAPER'S WORDS FOR A CONTRACT DATE: the Read down's own reader of the term sentence (hbRdnTermQuote) — none found,
    none said; read once per wording of the contract */
 const _calLsQ=new Map();
@@ -2787,6 +2796,9 @@ function calLsQuoteOf(e, c){
   return { q:'', sec:'' };
 }
 function calLsRow(e, ctx){
+  if(e.own){ const kind=calLsKindOf(e, ctx.today);
+    return { e, c:null, own:true, key:calLsKey(e), kind, date:e.date, title:String(e.title||''), q:'', sec:'', party:'', cname:'', cid:'',
+      time:e.start?(e.start+(e.end?'–'+e.end:'')):'' }; }
   const c=ctx.byId.get(e.cid)||null, kind=calLsKindOf(e, ctx.today);
   const name=e.cname||e.cref||e.cid;
   const title=e.type==='obligation'?String(e.note||CAL_EVENT.obligation.label)
@@ -2798,6 +2810,8 @@ function calLsRow(e, ctx){
 /* WHOSE: all · mine (the old "Mine", calEventMine) · ours · theirs — the old All dates | Mine scope follows it */
 function calLsWhosePass(r, w, me){
   if(w==='all') return true;
+  /* the person's own calendar counts as Mine, and only as Mine */
+  if(r.own) return w==='mine';
   if(w==='mine') return calEventMine(r.e, me);
   if(w==='ours') return r.e.type==='obligation'&&!r.e.theirs;
   if(w==='theirs') return r.e.type==='obligation'&&!!r.e.theirs;
@@ -2814,13 +2828,15 @@ function calLsBase(view){
   const ctx={ today, byId:new Map((state.contracts||[]).map(c=>[c.id,c])) };
   const late=all.filter(e=>e.type==='obligation'&&!e.done&&!e.waiting&&e.date<today);
   let evs;
-  if(view==='month'){ const R=calLsMonthRange(); evs=all.filter(e=>!e.done&&e.date>=R.from&&e.date<=R.to); }
-  else if(view==='week'){ const W=calLsWeek(); evs=all.filter(e=>!e.done&&e.date>=W.from&&e.date<=W.to&&!(e.date<today&&e.type!=='obligation')).concat(late.filter(e=>e.date<W.from)); }
+  /* Week and Month carry the person's own calendar beside the contract dates, as the old look's did (the Agenda never did) */
+  if(view==='month'){ const R=calLsMonthRange(); evs=all.filter(e=>!e.done&&e.date>=R.from&&e.date<=R.to).concat(calOwnEvents(R.from,R.to,{ all:true })); }
+  else if(view==='week'){ const W=calLsWeek(); evs=all.filter(e=>!e.done&&e.date>=W.from&&e.date<=W.to&&!(e.date<today&&e.type!=='obligation')).concat(late.filter(e=>e.date<W.from))
+    .concat(calOwnEvents(W.from>today?W.from:today,W.to,{ all:true })); }
   else evs=late.concat(calUpcoming(all, CAL_AGENDA_VIEW_DAYS));
   const seen=new Set();
   return evs.filter(e=>{ const k=calLsKey(e); if(seen.has(k)) return false; seen.add(k); return true; })
     .map(e=>calLsRow(e,ctx))
-    .sort((a,b)=>(a.kind==='late'?0:1)-(b.kind==='late'?0:1)||a.date.localeCompare(b.date));
+    .sort((a,b)=>(a.kind==='late'?0:1)-(b.kind==='late'?0:1)||a.date.localeCompare(b.date)||String(a.time||'').localeCompare(String(b.time||'')));
 }
 /* THE CHIPS, ONE READING: All N counts what the three + chips leave, Late N the late among them; "Late" chosen shows those */
 function calLsRead(view){
@@ -2833,9 +2849,9 @@ function calLsRead(view){
 }
 function calLsChoices(k, base){
   const me=window.currentUser?currentUser():null;
-  if(k==='kind') return ['all'].concat(['late','ours','theirs','decide','ends','round'].filter(v=>base.some(r=>r.kind===v)));
+  if(k==='kind') return ['all'].concat(['late','ours','theirs','decide','ends','round'].concat(CAL_LS_OWN).filter(v=>base.some(r=>r.kind===v)));
   if(k==='whose') return ['all'].concat(['mine','ours','theirs'].filter(v=>base.some(r=>calLsWhosePass(r,v,me))));
-  return ['all'].concat([...new Set(base.map(r=>r.cid))]);
+  return ['all'].concat([...new Set(base.filter(r=>!r.own).map(r=>r.cid))]);
 }
 function calLsChipWord(k, v, base){
   if(v==='all') return '+ '+i18t('calls_chip_'+k);
@@ -2868,10 +2884,12 @@ function calLsWhen(r, today){
   if(d<0) return { t:i18tn('calls_ago_d',-d,{ n:-d }), late:false };
   return { t:d===0?i18t('calls_today'):i18tn('calls_in_d',d,{ n:d }), late:false };
 }
-function calLsBadge(kind){ return `<span class="cls-b is-${CAL_LS_TONE[kind]||'gray'}">${kind==='late'?'<i class="cls-dot is-ruby" aria-hidden="true"></i>':''}${_esc(i18t(CAL_LS_KIND_WORD[kind]||'cal_kind_round'))}</span>`; }
+function calLsBadge(kind){ return `<span class="cls-b is-${CAL_LS_TONE[kind]||'gray'}${kind==='plan'?' k-plan':''}">${kind==='late'?'<i class="cls-dot is-ruby" aria-hidden="true"></i>':''}${_esc(i18t(CAL_LS_KIND_WORD[kind]||'cal_kind_round'))}</span>`; }
 /* THE ROW'S OWN ACT, an existing door each; who may not act gets Open only (mayActOn) */
 function calLsAct(r){
   const e=r.e, c=r.c, E=_esc;
+  /* the person's own: the event opens, the note opens, an offered block shows its offer in the panel (calWireOwn) */
+  if(r.own) return { k:'own', label:i18t('cal_ag_open'), attr:e.own };
   const may=((typeof canEdit!=='function')||canEdit())&&((typeof window.mayActOn!=='function')||window.mayActOn(c||null));
   const a=may?calChipAct(e,calChipLook(e)):'';
   if(a==='chase') return { k:'chase', label:i18t('cal_ag_chase'), attr:`data-cal-ct="${E(e.cid)}" data-cal-act="chase" data-cal-ob="${E(e.obId||'')}"` };
@@ -2881,6 +2899,8 @@ function calLsAct(r){
 }
 function calLsQuoteHtml(r, withSub){
   const E=_esc;
+  if(r.own){ const t=[r.time, r.kind==='plan'?i18t('cal_plan_suggested'):''].filter(Boolean).join(' · ');
+    return t?`<span class="cls-q is-plain"><span class="cls-qs">${E(t)}</span></span>`:''; }
   const sub=[r.sec?'§ '+r.sec:'', r.party].filter(Boolean).join(' · ');
   if(r.q) return `<span class="cls-q">“${E(r.q)}”${sub?` <span class="cls-qs">${E(sub)}</span>`:''}</span>`;
   const plain=[withSub?r.cname:'', sub].filter(Boolean).join(' · ');
@@ -2894,7 +2914,7 @@ function calLsPicked(view, keys){
 function calLsTableHtml(rows, chosen){
   const E=_esc, today=calToday();
   const body=rows.map(r=>{ const w=calLsWhen(r,today), a=calLsAct(r);
-    return `<tr class="cls-r${r.key===chosen?' is-chosen':''}" data-cal-pick="${E(r.key)}" data-cal-ag-day="${E(r.date)}" tabindex="0" aria-selected="${r.key===chosen?'true':'false'}">`
+    return `<tr class="cls-r${r.own?' is-own is-'+r.kind:''}${r.key===chosen?' is-chosen':''}" data-cal-pick="${E(r.key)}" data-cal-ag-day="${E(r.date)}" tabindex="0" aria-selected="${r.key===chosen?'true':'false'}">`
       +`<td class="cls-dt">${E(calLsDayW(r.date))}</td>`
       +`<td class="cls-what"><b class="cls-t" title="${E(r.title)}">${E(r.title)}</b>${calLsQuoteHtml(r,true)}</td>`
       +`<td class="cls-k">${calLsBadge(r.kind)}</td>`
@@ -2919,14 +2939,14 @@ function calLsWeekHtml(R){
   /* the coming weeks counted through the same chips, so the line and the table never disagree */
   const F=calLsF(), me=window.currentUser?currentUser():null, today=calToday();
   const ctx={ today, byId:new Map((state.contracts||[]).map(c=>[c.id,c])) };
-  const then=(calEventsOnce()||[]).filter(e=>e&&!e.own&&!e.done&&e.date>=a&&e.date<=z).map(e=>calLsRow(e,ctx))
+  const then=(calEventsOnce()||[]).filter(e=>e&&!e.own&&!e.done&&e.date>=a&&e.date<=z).concat(calOwnEvents(a,z,{ all:true })).map(e=>calLsRow(e,ctx))
     .filter(r=>(F.kind==='all'||r.kind===F.kind)&&(F.cid==='all'||r.cid===F.cid)&&calLsWhosePass(r,F.whose,me)&&(R.show!=='late'))
     .sort((x,y)=>x.date.localeCompare(y.date));
   const range=`${calDateWords(a,{ day:'numeric', month:'short' })} – ${calDateWords(z,{ day:'numeric', month:'short' })}`;
   const thenHtml=`<div class="cls-then"><p class="cls-then-h">${E(i18t('calls_then',{ range }))} · ${E(i18tn('calls_n_dates',then.length,{ n:then.length }))}</p>`
     +(then.length?`<p class="cls-then-s">${E(calLsDayW(then[0].date)+' · '+then[0].title)}${then.length>1?E(i18tn('calls_then_more',then.length-1,{ n:then.length-1 })):''} <a class="cls-link" data-cal-view="agenda" role="button" tabindex="0">${E(i18t('calls_show_them'))}</a></p>`:'')+`</div>`;
   const table=rows.length?calLsTableHtml(rows, chosen):`<p class="cls-none">${E(i18t('calls_none_wk'))}</p>`;
-  return `<section class="cls-list" id="cal-ag">${table}${thenHtml}</section>`;
+  return `<section class="cls-list" id="cal-ag"><div id="cal-week">${table}</div>${thenHtml}</section>`;
 }
 /* THE MONTH IN ONE SOFT FRAME: seven columns, the weekend narrower and lightly shaded, another month's days light;
    each date a soft chip in the key's colour, today a green circle, the chosen day tinted; a press on a day chooses it */
@@ -2937,15 +2957,19 @@ function calLsMonthHtml(R){
   const inMonth=keys.filter(k=>Number(k.slice(5,7))-1===m&&Number(k.slice(0,4))===y);
   const F=calLsF();
   const chosen=keys.includes(F.pick.month)?F.pick.month:(inMonth.includes(today)?today:inMonth[0]);
-  const heads=[...Array(7)].map((_,i)=>`<div class="cls-mh">${E(calDateWords(_isoLocal(new Date(2024,0,1+i)),{ weekday:'short' }))}</div>`).join('');
+  const heads=[...Array(7)].map((_,i)=>`<div class="cls-mh" role="columnheader">${E(calDateWords(_isoLocal(new Date(2024,0,1+i)),{ weekday:'short' }))}</div>`).join('');
   const cells=keys.map((k,i)=>{ const L=byDay.get(k)||[], out=!inMonth.includes(k), we=i%7>=5;
     const show=L.length>2?L.slice(0,1):L.slice(0,2), more=L.length-show.length;
     const n=Number(k.slice(8,10));
-    return `<div class="cls-d${out?' is-out':''}${we?' is-we':''}${k===chosen?' is-chosen':''}" data-cal-pick="${k}" role="button" tabindex="0" aria-pressed="${k===chosen?'true':'false'}" title="${E(calDateWords(k,{ weekday:'long', day:'numeric', month:'long' }))}">`
+    return `<div class="cls-d${out?' is-out':''}${we?' is-we':''}${k===chosen?' is-chosen':''}" data-cal-pick="${k}" role="gridcell" tabindex="0" aria-selected="${k===chosen?'true':'false'}" title="${E(calDateWords(k,{ weekday:'long', day:'numeric', month:'long' }))}">`
       +`<span class="cls-n">${k===today?`<span class="cls-today">${n}</span>`:n}</span>`
-      +show.map(r=>`<span class="cls-ev is-${CAL_LS_TONE[r.kind]||'gray'}" title="${E(r.title)}">${E(r.title)}</span>`).join('')
-      +(more>0?`<span class="cls-more">${E(i18t('cal_n_more',{ n:more }))}</span>`:'')+`</div>`; }).join('');
-  return `<section class="cls-list is-month"><div class="cls-mg" id="cal-grid">${heads}${cells}</div></section>`;
+      +show.map(r=>`<span class="cls-ev is-${CAL_LS_TONE[r.kind]||'gray'}${r.own?' k-'+r.kind:''}"${r.own?' '+r.e.own:''} title="${E(r.title)}">${E((r.time&&r.kind!=='note'?r.time.slice(0,5)+' ':'')+r.title)}</span>`).join('')
+      +(more>0?`<span class="cls-more">${E(i18t('cal_n_more',{ n:more }))}</span>`:'')+`</div>`; });
+  /* A MONTH IS A GRID (grid · row · columnheader · gridcell): a week is one row (display:contents, so the frame's
+     seven columns stand); the frame is a table's, its cells run edge to edge like the page's other lists */
+  const row=h=>`<div class="cls-mr" role="row">${h}</div>`;
+  const weeks=[...Array(6)].map((_,w)=>row(cells.slice(w*7,w*7+7).join(''))).join('');
+  return `<section class="cls-list is-month" role="grid" aria-label="${E(calMonthName(y,m))}"><div class="cls-mg" id="cal-grid">${row(heads)}${weeks}</div></section>`;
 }
 /* ---- THE HORIZON: each agreement with its renewal words, the time left as a slim bar, the decision as a soft badge ---- */
 function calLsHzStatus(r, today){
@@ -2987,7 +3011,7 @@ function calLsHzHtml(H){
   const chosen=calLsPicked('horizon', H.rows.map(r=>r.c.id));
   const money=calLsMayMoney();
   const body=H.rows.map(r=>{ const c=r.c, q=calLsTermQuote(c), st=r.st;
-    const val=money&&Number(c.value)>0&&!(typeof window.fxIsPay==='function'&&fxIsPay(c))?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):(window.fmtMoneyShort?fmtMoneyShort(c.value):'')):'';
+    const val=money&&Number(c.value)>0&&!(typeof window.fxIsPay==='function'&&fxIsPay(c))?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'';
     const sub=[c.counterparty||'', val].filter(Boolean).map(E).join(' · ');
     const may=((typeof window.mayActOn!=='function')||window.mayActOn(c))&&st.k!=='done'&&st.k!=='none';
     const w=Math.max(2,Math.min(100,r.days/365*100));
@@ -3021,6 +3045,7 @@ function calLsSec(h, body, cls){ return `<section class="cls-ps${cls?' '+cls:''}
 function calLsPaperBtn(cid, black){ return `<button type="button" class="${black?'cls-black':'cls-link'}" data-cal-ct="${_esc(cid)}">${_esc(i18t('obt_open_paper'))}</button>`; }
 function calLsActsHtml(r){
   const a=calLsAct(r);
+  if(a.k==='own') return `<div class="cls-pacts"><button type="button" class="cls-black" ${a.attr}>${_esc(a.label)}</button></div>`;
   if(a.k==='open') return `<div class="cls-pacts">${calLsPaperBtn(r.cid,true)}</div>`;
   return `<div class="cls-pacts"><button type="button" class="cls-black" ${a.attr}>${_esc(a.label)}</button>${calLsPaperBtn(r.cid,false)}</div>`;
 }
@@ -3125,7 +3150,7 @@ function calLsPick(key){
   const F=calLsF(), v=calView(); if(!key) return;
   F.pick=Object.assign({},F.pick,{ [v]:key });
   document.querySelectorAll('.cal-page.is-ls [data-cal-pick]').forEach(el=>{ const on=el.getAttribute('data-cal-pick')===key;
-    el.classList.toggle('is-chosen',on); el.setAttribute(el.tagName==='TR'?'aria-selected':'aria-pressed',on?'true':'false'); });
+    el.classList.toggle('is-chosen',on); el.setAttribute(el.tagName==='TR'||el.getAttribute('role')==='gridcell'?'aria-selected':'aria-pressed',on?'true':'false'); });
   if(typeof window.jamboTalkShows==='function'&&jamboTalkShows(CAL_TALK_KEY)){ calTalkBack(); return; }
   if(!calLsSidePaint()&&typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ }
   if(typeof window.placeSave==='function') try{ placeSave(); }catch(_){ }
@@ -3168,10 +3193,11 @@ if(typeof document!=='undefined'&&!document._calLsWired){ document._calLsWired=t
 }
 /* ---- THE STYLESHEET (the new look only; tokens only) ---- */
 function calLsCss(){ return `
-  html.lg-new .cal-page.is-ls{display:flex;flex-direction:column;min-height:0;background:var(--color-surface);padding:24px 40px 0;box-sizing:border-box;--cls-line:var(--color-divider)}
+  html.lg-new .cal-page.is-ls{display:flex;flex-direction:column;min-height:0;background:var(--color-surface);padding:0 40px;box-sizing:border-box;--cls-line:var(--color-divider)}
   html.lg-new .cal-page.is-ls.is-solo{display:grid;grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:auto auto auto minmax(0,1fr);column-gap:24px}
   html.lg-new .cal-page.is-ls.is-solo > #cal-plan{grid-column:2;grid-row:1 / span 4}
-  html.lg-new .cal-page.is-ls .cls-head{flex:none;display:flex;align-items:center;gap:12px;min-width:0}
+  /* LEVEL WITH JAMBO'S PANEL (tidy LEVEL): the head's box starts on the panel's top line, its 24px of air inside it */
+  html.lg-new .cal-page.is-ls .cls-head{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:12px;min-width:0;padding-top:24px}
   html.lg-new .cal-page.is-ls .cls-ttl{flex:none}
   html.lg-new .cal-page.is-ls .cls-sp{flex:1;min-width:0}
   html.lg-new .cal-page.is-ls .cls-seg{display:inline-flex;flex:none;background:var(--surface-2);border-radius:999px;padding:3px}
@@ -3183,7 +3209,7 @@ function calLsCss(){ return `
   html.lg-new .cal-page.is-ls .cls-spark{display:inline-flex;color:var(--accent-ink);flex:none}
   html.lg-new .cal-page.is-ls .cls-ask input{flex:1;min-width:0;border:0;outline:0;box-shadow:none;background:none;padding:0;font:400 14px/1.4 var(--font-body);color:var(--color-text)}
   html.lg-new .cal-page.is-ls .cls-ask input::placeholder{color:var(--color-neutral-400)}
-  html.lg-new .cal-page.is-ls .cls-chips{flex:none;display:flex;align-items:center;gap:8px;margin-top:16px;min-width:0;flex-wrap:nowrap}
+  html.lg-new .cal-page.is-ls .cls-chips{flex:none;display:flex;align-items:center;gap:8px;margin-top:16px;min-width:0;flex-wrap:wrap}
   html.lg-new .cal-page.is-ls .cls-chips .obs-chip{flex:none;display:inline-flex;align-items:center;gap:5px}
   html.lg-new .cal-page.is-ls .cls-chips .obs-chip.cls-chip{border-style:solid;border-color:var(--color-neutral-300)}
   html.lg-new .cal-page.is-ls .cls-chips .obs-chip b{font-weight:var(--w-label)}
@@ -3200,11 +3226,14 @@ function calLsCss(){ return `
   html.lg-new .cal-page.is-ls .cls-t col.c-left{width:150px} html.lg-new .cal-page.is-ls .cls-t col.c-dec{width:168px} html.lg-new .cal-page.is-ls .cls-t col.c-end{width:132px}
   html.lg-new .cal-page.is-ls .cls-t th{font:var(--w-label) 12px/1.4 var(--font-body);color:var(--color-neutral-400);text-align:left;padding:8px 10px;border-bottom:1px solid var(--cls-line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .cal-page.is-ls .cls-t th.r{text-align:right}
+  /* THE HORIZON'S HEAD LINE STAYS (owner, 21 Sep 2026: "the contracts and dates scroll under the first line that has
+     Agreement"): its rows scroll under it inside the page's own scroller (.cls-body) */
+  html.lg-new .cal-page.is-ls .cls-t.is-hz thead th{position:sticky;top:0;z-index:1;background:var(--color-surface)}
   html.lg-new .cal-page.is-ls .cls-t td{padding:11px 10px;border-bottom:1px solid var(--color-neutral-100);vertical-align:top;min-width:0;overflow:hidden}
   html.lg-new .cal-page.is-ls .cls-r{cursor:pointer}
   html.lg-new .cal-page.is-ls .cls-r:hover td{background:color-mix(in srgb,var(--surface-2) 45%,var(--color-surface))}
   html.lg-new .cal-page.is-ls .cls-r.is-chosen td{background:var(--color-accent-50)}
-  html.lg-new .cal-page.is-ls .cls-dt{font-size:12.5px;white-space:nowrap;padding-top:13px}
+  html.lg-new .cal-page.is-ls .cls-dt{font-size:12.5px;white-space:normal;overflow-wrap:normal;padding-top:13px}
   html.lg-new .cal-page.is-ls .cls-what{min-width:0}
   html.lg-new .cal-page.is-ls .cls-t .cls-t{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-weight:var(--w-label);font-size:14px;line-height:1.4;overflow-wrap:anywhere}
   html.lg-new .cal-page.is-ls .cls-ts{font-weight:400;font-size:12.5px;color:var(--color-neutral-400)}
@@ -3222,6 +3251,7 @@ function calLsCss(){ return `
   html.lg-new :is(.cal-page.is-ls,.cls-side) .cls-b.is-violet{background:var(--st-violet-bg);color:var(--st-violet-fg)}
   html.lg-new :is(.cal-page.is-ls,.cls-side) .cls-b.is-green{background:var(--st-green-bg);color:var(--st-green-fg)}
   html.lg-new :is(.cal-page.is-ls,.cls-side) .cls-b.is-gray{background:var(--surface-2);color:var(--color-quiet)}
+  html.lg-new :is(.cal-page.is-ls,.cls-side) .cls-b.k-plan{border:1px dashed var(--st-green-dot)}
   html.lg-new :is(.cal-page.is-ls,.cls-side) .cls-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none;background:var(--st-ruby-dot)}
   html.lg-new .cal-page.is-ls .cls-dec .cls-link{display:block;margin-top:6px}
   html.lg-new .cal-page.is-ls .cls-left{padding-top:15px}
@@ -3238,18 +3268,25 @@ function calLsCss(){ return `
   html.lg-new .cal-page.is-ls .cls-then-s{margin:0;padding:8px 0;font-size:12.5px;color:var(--color-quiet);overflow-wrap:anywhere}
   html.lg-new .cal-page.is-ls .cls-then-s .cls-link{font-size:12.5px}
   html.lg-new .cal-page.is-ls .cls-mg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) minmax(0,.62fr) minmax(0,.62fr);border:1px solid var(--cls-line);border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  html.lg-new .cal-page.is-ls .cls-mr{display:contents}
   html.lg-new .cal-page.is-ls .cls-mh{font:var(--w-label) 12px/1.4 var(--font-body);color:var(--color-neutral-400);padding:6px 8px;border-bottom:1px solid var(--color-neutral-100);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  html.lg-new .cal-page.is-ls .cls-d{min-width:0;min-height:64px;overflow:hidden;padding:6px 8px;display:flex;flex-direction:column;gap:3px;font-size:12px;border-right:1px solid var(--color-neutral-100);border-bottom:1px solid var(--color-neutral-100);cursor:pointer;box-sizing:border-box}
+  /* THE MONTH HOLDS STILL (owner, 4 Oct 2026): a day is ONE height whatever it holds — its number and the two chips it
+     may show (or one and "+N more"), 6 + 22 + 3 + 20.4 + 3 + 20.4 + 6 and its 1px line — so an answer of Jambo's or an
+     event of my own landing on a day never grows its week */
+  /* a day holds its date and two lines (or one and "+N more") at one height, so the month never grows when Jambo or your own items arrive (calendar-holds-still) and six weeks still fit a short window (calendar-redesign 2) */
+  html.lg-new .cal-page.is-ls .cls-d{min-width:0;height:74px;overflow:hidden;padding:6px 8px;display:flex;flex-direction:column;gap:3px;font-size:12px;border-right:1px solid var(--color-neutral-100);border-bottom:1px solid var(--color-neutral-100);cursor:pointer;box-sizing:border-box}
   html.lg-new .cal-page.is-ls .cls-d:nth-child(7n){border-right:0}
   html.lg-new .cal-page.is-ls .cls-d.is-we{background:color-mix(in srgb,var(--surface-2) 30%,var(--color-surface))}
   html.lg-new .cal-page.is-ls .cls-d.is-chosen{background:var(--color-accent-50)}
-  html.lg-new .cal-page.is-ls .cls-n{font:var(--w-label) 12.5px/22px var(--font-body);height:22px}
+  html.lg-new .cal-page.is-ls .cls-n{font:var(--w-label) 12.5px/20px var(--font-body);height:20px}
   html.lg-new .cal-page.is-ls .cls-d.is-out .cls-n{color:var(--color-neutral-300)}
-  html.lg-new .cal-page.is-ls .cls-today{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent-ink);color:var(--color-surface)}
-  html.lg-new .cal-page.is-ls .cls-ev{display:block;border-radius:4px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:var(--w-label) 11.5px/1.6 var(--font-body);min-width:0}
+  html.lg-new .cal-page.is-ls .cls-today{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--accent-ink);color:var(--color-surface)}
+  html.lg-new .cal-page.is-ls .cls-ev{display:block;border-radius:4px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:var(--w-label) 11.5px/1.35 var(--font-body);min-width:0}
   html.lg-new .cal-page.is-ls .cls-ev.is-ruby{background:var(--st-ruby-bg);color:var(--st-ruby-fg)} html.lg-new .cal-page.is-ls .cls-ev.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg)}
   html.lg-new .cal-page.is-ls .cls-ev.is-steel{background:var(--st-steel-bg);color:var(--st-steel-fg)} html.lg-new .cal-page.is-ls .cls-ev.is-violet{background:var(--st-violet-bg);color:var(--st-violet-fg)}
   html.lg-new .cal-page.is-ls .cls-ev.is-gray{background:var(--surface-2);color:var(--color-quiet)}
+  html.lg-new .cal-page.is-ls .cls-ev.is-green{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .cal-page.is-ls .cls-ev.k-plan{outline:1px dashed var(--st-green-dot);outline-offset:-1px}
   html.lg-new .cal-page.is-ls .cls-d.is-out .cls-ev{opacity:.7}
   html.lg-new .cal-page.is-ls .cls-more{font-size:11.5px;color:var(--color-neutral-400);white-space:nowrap}
   html.lg-new .cls-side{display:flex;flex-direction:column;padding:0 4px;min-width:0}

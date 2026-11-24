@@ -162,7 +162,11 @@ describe('f804 (3) the ask: the Counter\'s one reading, said in the panel', () =
        22 Oct 2026 (Part 8's question 3 = A) — the order is pinned, each step
        is driven in (8) */
     const f = code(fnOf(INS, 'jlAsk'));
-    const at = s => f.indexOf(s);
+    /* RE-POINTED 23 Nov 2026 (JAMBO THE INSTRUCTOR, owner 23 Nov 2026: "I'm new" is answered first, in the one
+       conversation — teachTakes(t) → aiAskWords(t) — before every reader below; the order of the rest is read after it) */
+    const teach = f.indexOf('teachTakes(t)');
+    assert.ok(teach > 0 && teach < f.indexOf('caReadPlace(t)'), '"I\'m new" is read before the readers');
+    const at = s => f.indexOf(s, f.indexOf('\n', teach));
     assert.ok(at('caReadPlace(t)') > 0 && at('caAskAnywhere(t)') > at('caReadPlace(t)') && at('jmRead(t)') > at('caAskAnywhere(t)')
       && at('jlBoardReads(t)') > at('jmRead(t)') && at('aiAskWords(t)') > at('jlBoardReads(t)'), 'held row, the one reader, the map, the Board, then the question');
     assert.match(f, /if \(a && a\.kind === 'go' && a\.missing\)\{\s*const held = jlHeldContract\(\);\s*if \(held\)\{\s*a\.cid = held\.id; a\.missing = false;/, 'the held row is the open contract');
@@ -245,7 +249,8 @@ describe('f804 (6) the words and the Brain', () => {
   });
   test('6b the Brain names the panel\'s ask and walks it with the other asks', () => {
     assert.match(BRAIN, /\['listask', 'jlAsk', 'ai', 0\]/);
-    assert.match(BRAIN, /\{ id: 'ask', steps: \[\['copilotask', 'jambomap', 'listask'/);
+    /* RE-POINTED 23 Nov 2026 (JAMBO THE INSTRUCTOR, owner 23 Nov 2026: the instructor's parts join the asks' first step, before Jambo's map) */
+    assert.match(BRAIN, /\{ id: 'ask', steps: \[\['copilotask', 'teach', 'teachwalk', 'teachsteps', 'jambomap', 'listask'/);
     assert.match(I18N, /brn_p_listask: 'Jambo\\'s panel beside the lists'/);
     assert.match(I18N, /brn_p_listask: 'Jambos panel bredvid listorna'/);
   });

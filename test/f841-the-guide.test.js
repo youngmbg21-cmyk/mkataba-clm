@@ -58,7 +58,7 @@ describe('f841 (2) the journey', () => {
     const st = Function('return ' + m[1])();
     assert.deepEqual(st.map(s => s.k), ['ask', 'draft', 'agree', 'sign', 'keep', 'see']);
     /* RE-POINTED 20 Nov 2026 (owner: "leave contracts and delete workspace from both the guide and nav panel") */
-    assert.deepEqual(st.map(s => s.rows), [['requests', 'import'], ['ourpaper', 'standards', 'draft'], ['negotiations', 'parties', 'people'], ['approvals'], ['contracts', 'reads', 'oblig', 'calendar', 'mynotes'], ['explorer', 'house']] /* RE-POINTED 23 Nov 2026: the Pulse board deleted */); /* RE-POINTED 28 Oct 2026 (THE THREAD): Reads joins Keep it alive (rule 9c); RE-POINTED 29 Oct 2026 (THE PULSE BOARD): the Pulse board joins See it whole, beside the Board (rule 9c) */
+    assert.deepEqual(st.map(s => s.rows), [['requests', 'import'], ['ourpaper', 'standards', 'draft'], ['negotiations', 'parties', 'people'], ['approvals'], ['contracts', 'reads', 'alertme', 'oblig', 'calendar', 'mynotes'], ['explorer', 'house']] /* RE-POINTED 23 Nov 2026: the Pulse board deleted; Alert me when joins Keep it alive (owner's pick, rule 9c) */); /* RE-POINTED 28 Oct 2026 (THE THREAD): Reads joins Keep it alive (rule 9c); RE-POINTED 29 Oct 2026 (THE PULSE BOARD): the Pulse board joins See it whole, beside the Board (rule 9c) */
   });
   test('2b the Board first, Settings at the foot', () => {
     const f = code(fnOf(APP, 'guidePanelHtml'));

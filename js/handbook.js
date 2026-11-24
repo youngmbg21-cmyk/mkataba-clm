@@ -604,7 +604,7 @@ const HANDBOOK_CHAPTERS = [
     words: { en: ['after signing', 'sealed', 'executed copy', 'signed contract', 'frozen'], sv: ['efter signering', 'förseglad', 'verkställd kopia', 'signerat avtal', 'fryst'] },
     shots: [
       { go: [{ open: 'MK-B1', face: 'copilot' }, { fn: 'pdSignOpen', ref: 'MK-B1', arg: 'id' }], boxes: [{ sel: '#sign-seal-acts', step: 1 }, { sel: '#sign-wrap', step: 1 }], cap: { en: 'The receipt: the seal to verify, and the copies sent (1).', sv: 'Kvittot: sigillet att verifiera, och kopiorna som skickats (1).' } },
-      { go: [{ open: 'MK-B1', face: 'copilot' }, { waitFor: '#ig-dock [data-ca-chip="oblig"]' }], boxes: [{ sel: '#ig-dock [data-ca-chip="oblig"]', step: 2 }, { sel: '#ig-dock [data-ca-chip="history"]', step: 3 }], cap: { en: 'Above Jambo\'s box: duties (2) and history (3).', sv: 'Ovanför Jambos ruta: åtaganden (2) och historik (3).' } }] },
+      { go: [{ open: 'MK-B1', face: 'copilot' }, { waitFor: '#ig-dock [data-pd2-dtc]' }], boxes: [{ sel: '#ig-dock [data-pd2-dtc]', step: 2 }, { sel: '#ig-dock [data-ca-chip="history"]', step: 3 }], cap: { en: 'The Dossier\'s Duties card (2); above Jambo\'s box, history (3).', sv: 'Dossierns kort Åtaganden (2); ovanför Jambos ruta, historik (3).' } }] },
 
   /* ======================= PART 5 — KEEP IT ALIVE ======================= */
   { k: '5.1', part: 'keep', round: 1,
@@ -632,7 +632,7 @@ const HANDBOOK_CHAPTERS = [
     words: { en: ['obligations', 'duties', 'what is due', 'mark done', 'chase', 'week by week', 'promises'], sv: ['åtaganden', 'skyldigheter', 'vad förfaller', 'markera klart', 'påminn', 'vecka för vecka'] },
     shots: [
       { go: [{ place: 'oblig' }, { waitFor: '[data-obn-go="done"]' }], boxes: [{ sel: '[data-obn-tab]', step: 1 }, { sel: '[data-obn-go="done"]', step: 3 }], cap: { en: 'The tabs at the top (1); We owe and They owe, one act per line, here Mark done (3).', sv: 'Flikarna högst upp (1); Vi är skyldiga och De är skyldiga, en handling per rad, här Markera klar (3).' } },
-      { go: [{ open: 'MK-C1', face: 'copilot' }, { waitFor: '#ig-dock [data-ca-chip="oblig"]' }], boxes: [{ sel: '#ig-dock [data-ca-chip="oblig"]', step: 6 }, { sel: '#ig-dock .pd2-card-go', step: 6 }], cap: { en: 'On a contract\'s Dossier: the duties chip, or the card\'s button when a duty is what waits (6).', sv: 'I ett avtals Dossier: knappen åtaganden, eller kortets knapp när det är ett åtagande som väntar (6).' } }] },
+      { go: [{ open: 'MK-C1', face: 'copilot' }, { waitFor: '#ig-dock [data-pd2-dtc]' }], boxes: [{ sel: '#ig-dock [data-pd2-dtc]', step: 9 }], cap: { en: 'On a contract\'s Dossier: the Duties card, the one way to its duties (9).', sv: 'I ett avtals Dossier: kortet Åtaganden, den enda vägen till dess åtaganden (9).' } }] },
 
   { k: '5.2', part: 'keep', round: 2,
     title: { en: 'Calendar and the plan', sv: 'Kalendern och planen' },

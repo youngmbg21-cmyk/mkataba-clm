@@ -1068,7 +1068,6 @@ function ndBellNlHtml(D){
      Open that lands on the contract. Counted in All (the one desk's count), never in Your move. */
   const isHit = x => !!(x.r.y && x.r.y.k === 'watch' && x.r.y.hit);
   const hitRows = L.filter(isHit);
-  if (hitRows.length){ n.you = Math.max(0, n.you - hitRows.length); }
   const hitRow = x => { const r = x.r, P = ndParts(r), quote = cn2QuoteHtml(r).replace(/^ · /, ''), w = r.y.w;
     return `<div class="ndb-r ndb-amw" data-nd-row="${_cnE(r.key)}" data-ndb-g="alerts"><i class="ndb-dot is-late" aria-hidden="true"></i><div class="ndb-w"><b>${_cnE(P.title)}</b>${P.deal ? `<span>${_cnE(P.deal)}</span>` : ''}${quote ? `<span class="ndb-q">${quote}</span>` : ''}${P.tag ? `<button type="button" class="ndb-amw-tag" data-cn-amw="${_cnE(String(w.id))}">${_cnE(P.tag)}</button>` : ''}</div>`
       + `<div class="ndb-e"><button type="button" class="ui-link ndb-amw-open" ${P.attrs}>${_cnE(_cnT('nd_btn_open'))}</button></div></div>`; };
@@ -1098,7 +1097,11 @@ function ndKindsOf(L){
    Board stands its own setup door (hbSetupDoorHtml), never a second one */
 function ndOnBoard(D){ const you = D.you.filter(r => !r.setup); return { jambo: D.jambo, you, n: ndRowsN(D.jambo) + ndRowsN(you) }; }
 /* LATE IS A CHIP OF ITS OWN (P-39, the Legora + Stripe way): the late of both groups; Your move is yours not late */
-function ndInTab(D){ const B = ndOnBoard(D); return _nd.tab === 'jambo' ? B.jambo : _nd.tab === 'late' ? B.jambo.concat(B.you).filter(r => r.late) : _nd.tab === 'you' ? B.you.filter(r => !r.late) : B.jambo.concat(B.you); }
+/* AN ALERT'S HIT IS NEWS FOR YOU, NOT YOUR MOVE (review of 23 Nov 2026): counted in All, never under Your move —
+   on the Board as in the bell, so the number on each door is the list behind it */
+const ndIsAlertHit = r => !!(r && r.y && r.y.k === 'watch' && r.y.hit);
+const ndYourMove = B => B.you.filter(r => !r.late && !ndIsAlertHit(r));
+function ndInTab(D){ const B = ndOnBoard(D); return _nd.tab === 'jambo' ? B.jambo : _nd.tab === 'late' ? B.jambo.concat(B.you).filter(r => r.late) : _nd.tab === 'you' ? ndYourMove(B) : B.jambo.concat(B.you); }
 /* the row's status, as its soft badge says it: Late, Your move, Jambo prepared */
 function ndStatusOf(r){ return r.late ? 'late' : r.g === 'jambo' ? 'jambo' : 'you'; }
 /* ONE COUNT OF WHAT WAITS, EVERYWHERE IT IS SAID (review of the merged pages, 22 Nov 2026: the panel's ring said "3
@@ -1108,7 +1111,7 @@ function ndStatusOf(r){ return r.late ? 'late' : r.g === 'jambo' ? 'jambo' : 'yo
    is the list behind it. A late piece is counted under Late and under Jambo: both lists hold it. */
 function ndWaitCounts(D){
   const B = ndOnBoard(D || ndRead()), all = B.jambo.concat(B.you);
-  return { all: ndRowsN(all), late: ndRowsN(all.filter(r => r.late)), you: ndRowsN(B.you.filter(r => !r.late)), jambo: ndRowsN(B.jambo) };
+  return { all: ndRowsN(all), late: ndRowsN(all.filter(r => r.late)), you: ndRowsN(ndYourMove(B)), jambo: ndRowsN(B.jambo) };
 }
 function ndBoardList(D){
   let L = ndInTab(D);

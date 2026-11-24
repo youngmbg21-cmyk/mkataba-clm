@@ -133,12 +133,17 @@ const LIVE = { ...H.fixtureContract('MK-R2', 'Raw Milk Collection', 'Nandi Dairy
        pd2StandsOpen → the Cover); their status page stays. The Cover was itself deleted (owner, 20 Nov 2026); Where we are opens the Dossier. */
     console.log('\n5 · Obligations');
     await tab('MK-R1', 'oblig');
+    /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end": ONE DOOR — the Obligations door opens the contract's Duties
+       page in the middle, the hidden panel never shows): the duty's By column on its On the contract table is read
+       there (#dtp .dtp-c-by), once the page stands (bounded) */
+    await page.waitForFunction(() => !!document.querySelector('#dtp td.dtp-c-by'), null, { timeout: 8000 }).catch(() => {});
     const ob = await page.evaluate(() => ({
       tabs: [...document.querySelectorAll('.obt-head [data-obt-view]')].map(b => b.getAttribute('data-obt-view')),
       th: [...document.querySelectorAll('#obt-scroll .ob-lt th')].map(t => t.textContent.trim()),
       /* RE-POINTED 16 Nov 2026 (#762): a contract's obligations are the Dossier's own Obligations panel (pdObOpen) — the
          unassigned duty's "Nobody" is looked for there as well as in the old room's table */
       nobody: [...document.querySelectorAll('#obt-scroll .ob-nobody, #ig-dock .ob-nobody')].map(x => x.textContent.trim())
+        .concat([...document.querySelectorAll('#dtp td.dtp-c-by')].map(x => x.textContent.trim()).filter(t => /\bNobody\b/.test(t)))
         .concat([...document.querySelectorAll('#ig-dock .pd-ob, #ig-dock [data-pd-ob]')].filter(e => /\bNobody\b/.test((e.querySelector('.pd-ob-v') || e).textContent)).map(() => 'Nobody')) })); /* the row's who-and-when part read on its own (its title runs into it in textContent) */
     /* RETIRED 16 Nov 2026 (#762): 5a "Overdue is a tab on the list's card" and 5b "Amount is a column" — the old room's
        Obligations tab; in the new look a contract's obligations open as the Dossier's own panel beside the paper (owner,
