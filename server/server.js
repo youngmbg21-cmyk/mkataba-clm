@@ -17495,10 +17495,19 @@ function executedPdf(c) {
     { size: 7.5, font: 'F4', color: '6b7780', after: 0 });
 
   // footers, now the page count is known
+  /* THE HEADER AND THE PAGE NUMBERS THE LOOK WAS SIGNED IN (round 2, 24 Nov 2026): the sealed snapshot's own page marks
+     (none = exactly as before: the number at the right of the footer line); the footer's fields filled from the
+     contract, a field with no value saying nothing */
+  const pm = (b && b.pageMarks) || null;
+  const xAt = (w, al) => al === 'center' ? PDF_ML + (CW - w) / 2 : al === 'right' ? PDF_PAGE_W - PDF_MR - w : PDF_ML;
+  const head = pm && pm.headerPos && pm.headerText ? brFieldsFill(pm.headerText, c, b) : '';
   pages.forEach((pOps, i) => {
-    pOps.push(`BT /F4 7.5 Tf ${pdfRgb('8a949b')} rg 1 0 0 1 ${PDF_ML} ${(PDF_MB - 26).toFixed(1)} Tm (${pdfEsc([company, b && b.footerText].filter(Boolean).join(' · '))}) Tj ET`);
-    const pn = `Page ${i + 1} of ${pages.length}`;
-    pOps.push(`BT /F4 7.5 Tf ${pdfRgb('8a949b')} rg 1 0 0 1 ${(PDF_PAGE_W - PDF_MR - pdfTextW(pn, 7.5, 'F4')).toFixed(1)} ${(PDF_MB - 26).toFixed(1)} Tm (${pdfEsc(pn)}) Tj ET`);
+    pOps.push(`BT /F4 7.5 Tf ${pdfRgb('8a949b')} rg 1 0 0 1 ${PDF_ML} ${(PDF_MB - 26).toFixed(1)} Tm (${pdfEsc([company, b && brFieldsFill(b.footerText, c, b)].filter(Boolean).join(' · '))}) Tj ET`);
+    if (head) pOps.push(`BT /F4 7.5 Tf ${pdfRgb('8a949b')} rg 1 0 0 1 ${xAt(pdfTextW(head, 7.5, 'F4'), pm.headerPos).toFixed(1)} ${(PDF_PAGE_H - PDF_MT + 24).toFixed(1)} Tm (${pdfEsc(head)}) Tj ET`);
+    if (pm && pm.pageNumPos === 'off') return;
+    const pn = brPageNumberSay(pm && pm.pageNumFmt, i + 1, pages.length);
+    const at = pm && pm.pageNumPos && pm.pageNumPos !== 'right' ? pm.pageNumPos : null;
+    pOps.push(`BT /F4 7.5 Tf ${pdfRgb('8a949b')} rg 1 0 0 1 ${(at ? xAt(pdfTextW(pn, 7.5, 'F4'), at) : PDF_PAGE_W - PDF_MR - pdfTextW(pn, 7.5, 'F4')).toFixed(1)} ${(PDF_MB - 26 - (at ? 11 : 0)).toFixed(1)} Tm (${pdfEsc(pn)}) Tj ET`);
   });
   // late-bind image names (assigned during assembly)
   const pdf = pdfAssemble(pages.map(pOps => pOps.map(op => op.replace(/\/__IMG(\d+)__/g, (_, n) => '/Im' + (Number(n) + 1)))), imgs);
@@ -28969,6 +28978,9 @@ addColumnIfMissing('org_branding', 'set_by', 'TEXT');
    streams"): a JSON map stream id -> { designId, structureId, logoPosition, accentColor }. A stream not named wears the
    company look. Which look wins: a paper's own, then its stream's, then the company's (srvLookOf). */
 addColumnIfMissing('org_branding', 'stream_looks', 'TEXT');
+/* THE HEADER AND THE PAGE NUMBERS (owner, 24 Nov 2026: contract look round 2): the company look's page marks, a JSON
+   object cleaned by js/branding.js pageMarksClean (a stream's own sit in its stream_looks entry as `pageMarks`) */
+addColumnIfMissing('org_branding', 'page_marks', 'TEXT');
 addColumnIfMissing('org_branding', 'set_at', 'TEXT');
 /* A template may switch designs for ITS contracts without moving the company
    default (DESIGN §2: "switching designs for that one document is allowed but
@@ -29042,7 +29054,7 @@ const tplBlockOut = bl => ({ id: bl.id, orderIndex: bl.order_index, blockType: b
 const { metaUnleak, historyLineHasMoney, historyLineMoneyless } = require(path.join(__dirname, '..', 'js', 'metaclean.js'));
 /* The design catalogue — the same file the browser renders from, so a
    designId this route accepts is a designId every surface can draw. */
-const { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, normalizeDesignBranding,
+const { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, normalizeDesignBranding, pageMarksClean, brFieldsFill, brPageNumberSay,
   docDesignHeaderHtml, docDesignFooterHtml, docDesignPaperStyle,
   DOC_STRUCTURES, DEFAULT_STRUCTURE, docStructureById, docStructureBodyHtml } = require(path.join(__dirname, '..', 'js', 'branding.js'));
 /* Same registry, template_fields row shape (options may arrive as a JSON
@@ -30414,13 +30426,20 @@ function srvStreamLooksOf(r){
 /* WHICH LOOK A NEW OR MOVED CONTRACT WEARS (owner, 14 Nov 2026): the paper's own look (published with "Design it now"),
    else its stream's look, else the company look. `lookFrom` says which, so a move to another stream before signing can
    follow the new stream's look (srvLookFollowStream) while a paper's own look stays put. */
+/* the stored page marks, read once and cleaned again; a broken store reads as none */
+function srvPageMarksOf(r){
+  if (!r || !r.page_marks) return null;
+  try { return pageMarksClean(JSON.parse(r.page_marks)).marks; } catch (_) { return null; }
+}
 function srvLookOf(branding, tplDesign, folder){
   const b = branding || {}, t = tplDesign || {};
   if (t.design_id) return { designId: t.design_id, logoPosition: t.design_logo_position || b.logo_position || null,
     accentColor: t.design_accent_color || b.accent_color || null, structureId: t.design_structure_id || b.structure_id || null, lookFrom: 'paper' };
   const sl = folder ? srvStreamLooksOf(b)[String(folder)] : null;
-  if (sl && sl.designId) return { designId: sl.designId, logoPosition: sl.logoPosition || b.logo_position || null,
-    accentColor: sl.accentColor || b.accent_color || null, structureId: sl.structureId || null, lookFrom: 'stream' };
+  /* a stream's own header and page numbers ride with its look; the company's are read live (resolveDocBranding) */
+  if (sl && sl.designId) return Object.assign({ designId: sl.designId, logoPosition: sl.logoPosition || b.logo_position || null,
+    accentColor: sl.accentColor || b.accent_color || null, structureId: sl.structureId || null, lookFrom: 'stream' },
+    sl.pageMarks ? { pageMarks: sl.pageMarks } : {});
   return { designId: b.design_id || null, logoPosition: b.logo_position || null, accentColor: b.accent_color || null,
     structureId: b.structure_id || null, lookFrom: 'company' };
 }
@@ -30441,7 +30460,7 @@ const orgBrandingView = r => r ? { logoUrl: r.logo_url || null, companyName: r.c
   designId: r.design_id || null, structureId: r.structure_id || null,
   logoPosition: r.logo_position || null,
   accentColor: r.accent_color || null, accentSource: r.accent_source || null,
-  streamLooks: srvStreamLooksOf(r),
+  streamLooks: srvStreamLooksOf(r), pageMarks: srvPageMarksOf(r),
   setBy: r.set_by || null, setAt: r.set_at || null } : null;
 app.get('/api/org/branding', auth, (req, res) => {
   const r = db.prepare('SELECT * FROM org_branding WHERE org_id=?').get(WORKSPACE_ID);
@@ -30506,6 +30525,7 @@ app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) 
       ['accentSource', 'accent_source'], ['logoUrl', 'logo_url'], ['defaultFooterText', 'default_footer_text']];
     const lookMoved = LOOK.filter(([k, col]) => sent(k) && String(b[k] == null ? '' : b[k]) !== String(stored[col] == null ? '' : stored[col]));
     if (sent('streamLooks') && JSON.stringify(b.streamLooks || {}) !== JSON.stringify(srvStreamLooksOf(stored))) lookMoved.push(['streamLooks']);
+    if (sent('pageMarks') && JSON.stringify(pageMarksClean(b.pageMarks).marks) !== JSON.stringify(srvPageMarksOf(stored))) lookMoved.push(['pageMarks']);
     if (lookMoved.length)
       return res.status(403).json({ error: 'How our contracts look is an admin\'s to change. Ask an admin, in Settings → How our contracts look.',
         adminOnly: lookMoved.map(([k]) => k) });
@@ -30526,9 +30546,21 @@ app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) 
       if (pos && !DESIGN_LOGO_POSITIONS.includes(pos)) return res.status(400).json({ error: 'Unknown logo position for a stream' });
       const ac = v.accentColor ? String(v.accentColor) : null;
       if (ac && !/^#[0-9a-f]{6}$/i.test(ac)) return res.status(400).json({ error: 'The accent colour must be a hex value like #1a7f6b' });
-      out[String(fid).slice(0, 80)] = { designId: id, structureId: st === DEFAULT_STRUCTURE ? null : st, logoPosition: pos, accentColor: ac };
+      /* a stream's own header and page numbers: the one cleaner; a place or format this build does not know is a 400 */
+      const pm = pageMarksClean(v.pageMarks);
+      if (pm.error) return res.status(400).json({ error: pm.error + ' (a stream)' });
+      out[String(fid).slice(0, 80)] = Object.assign({ designId: id, structureId: st === DEFAULT_STRUCTURE ? null : st, logoPosition: pos, accentColor: ac },
+        pm.marks ? { pageMarks: pm.marks } : {});
     }
     streamLooks = out;
+  }
+  /* the company's header and page numbers (round 2): absent keeps what is stored; unknown keys are dropped; a place or a
+     format this build does not know is a 400, never a silent drop */
+  let pageMarks = srvPageMarksOf(stored);
+  if (sent('pageMarks')) {
+    const pm = pageMarksClean(b.pageMarks);
+    if (pm.error) return res.status(400).json({ error: pm.error });
+    pageMarks = pm.marks;
   }
   const logo = b.logoUrl === undefined ? (stored.logo_url == null ? null : stored.logo_url)
     : (b.logoUrl == null ? null : String(b.logoUrl));
@@ -30560,21 +30592,21 @@ app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) 
   if (structureId && !DOC_STRUCTURES.some(x => x.id === structureId)) return res.status(400).json({ error: 'Unknown document structure' });
   if (structureId === DEFAULT_STRUCTURE) structureId = null;
   db.prepare(`INSERT INTO org_branding (org_id,logo_url,company_name,registration_number,address,default_footer_text,
-      design_id,logo_position,accent_color,accent_source,structure_id,stream_looks,set_by,set_at,updated_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      design_id,logo_position,accent_color,accent_source,structure_id,stream_looks,page_marks,set_by,set_at,updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ON CONFLICT(org_id) DO UPDATE SET logo_url=excluded.logo_url, company_name=excluded.company_name,
       registration_number=excluded.registration_number, address=excluded.address,
       default_footer_text=excluded.default_footer_text,
       design_id=excluded.design_id, logo_position=excluded.logo_position,
       accent_color=excluded.accent_color, accent_source=excluded.accent_source,
-      structure_id=excluded.structure_id, stream_looks=excluded.stream_looks,
+      structure_id=excluded.structure_id, stream_looks=excluded.stream_looks, page_marks=excluded.page_marks,
       set_by=excluded.set_by, set_at=excluded.set_at, updated_at=excluded.updated_at`)
     .run(WORKSPACE_ID, logo,
       clean(keep('companyName', 'company_name')).slice(0, 200),
       clean(keep('registrationNumber', 'registration_number')).slice(0, 100),
       clean(keep('address', 'address')).slice(0, 500),
       clean(keep('defaultFooterText', 'default_footer_text')).slice(0, 500),
-      designId, logoPosition, accentColor, accentSource, structureId, JSON.stringify(streamLooks), req.user.name, now(), now());
+      designId, logoPosition, accentColor, accentSource, structureId, JSON.stringify(streamLooks), pageMarks ? JSON.stringify(pageMarks) : null, req.user.name, now(), now());
   res.json({ ok: true });
 });
 app.get('/api/org/profile-values', auth, (req, res) => {

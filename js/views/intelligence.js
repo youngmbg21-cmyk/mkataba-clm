@@ -12386,7 +12386,7 @@ function igPaperPaginate(c){
      when the watcher hears of it a moment later */
   if(sheet._pgRO){ if(_igPatchLay&&typeof window.pagesRefresh==='function'){ _igPatchLay=false; try{ pagesRefresh(sheet); }catch(_){ } } return; }
   _igPatchLay=false;
-  try{ pagesWatch(sheet,{ mode:'work', gap:window.PG_GAP, corners:true,
+  try{ pagesWatch(sheet,{ mode:'work', gap:window.PG_GAP, corners:true, marks:window.pagesMarksFor?pagesMarksFor(c):null,
     name:window.pagesLetterheadName?pagesLetterheadName(c):'', ref:(window.contractRef?contractRef(c):c.id)||'' }); }catch(_){ }
 }
 /* THE ONE PAINTER: strip, paper, pins, map, focus. Called after every render

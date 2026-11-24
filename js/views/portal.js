@@ -6901,7 +6901,8 @@ function exportSignPagesHtml(c, execBlock){
     if(execBlock){ art.querySelectorAll('.seal-in,[data-anchor="sig"]').forEach(n=>n.remove()); art.insertAdjacentHTML('beforeend',execBlock); }
     const info=pagesLayout(sheet,{ mode:'sign', pageH:window.PG_SIGN_H||1122.5, gap:0,
       running:window.pagesLetterheadName?pagesLetterheadName(c):'',
-      foot:label=>window.pagesSignFoot?pagesSignFoot(c,label):'',
+      marks:window.pagesMarksFor?pagesMarksFor(c):null,
+      foot:(label,k,n)=>window.pagesSignFoot?pagesSignFoot(c,label,k,n):'',
       frame:sheet.getAttribute('data-pg-frame')||'' });
     if(!info) return '';
     return pagesPrintPages(sheet);

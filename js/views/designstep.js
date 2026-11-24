@@ -731,7 +731,9 @@ const clE = s => (typeof esc === 'function' ? esc(s) : String(s == null ? '' : s
 function clLookOf(src) {
   const o = src || {};
   return { designId: o.designId || DOC_DESIGNS[0].id, structureId: o.structureId || DEFAULT_STRUCTURE,
-    logoPosition: o.logoPosition || null, accentColor: o.accentColor || null };
+    logoPosition: o.logoPosition || null, accentColor: o.accentColor || null,
+    /* round 2: the header line and the page numbers ride with the look (null = the company's, else none set) */
+    pageMarks: o.pageMarks ? Object.assign({}, o.pageMarks) : null };
 }
 function clInit() {
   const org = window.ORG_BRANDING || {};
@@ -750,7 +752,7 @@ function clBranding() {
   const org = window.ORG_BRANDING || {};
   return normalizeDesignBranding(Object.assign({}, org, { designId: _cl.look.designId, structureId: _cl.look.structureId,
     logoPosition: _cl.look.logoPosition, accentColor: _cl.look.accentColor, accentSource: 'manual',
-    logoUrl: _cl.logoUrl, footerText: _cl.footer }));
+    logoUrl: _cl.logoUrl, footerText: _cl.footer, pageMarks: _cl.look.pageMarks }));
 }
 function clSheetHtml() {
   const b = clBranding(); if (!b) return '';
@@ -794,7 +796,23 @@ function clPickHtml() {
   if (m === 'g') return head(i18t('cl_n_logo')) + `<div class="cl-pk-row">${DESIGN_LOGO_POSITIONS.map(p => `<button type="button" class="cl-pill${(_cl.look.logoPosition || clDesign().defaultLogoPos) === p ? ' is-on' : ''}" data-cl-pos="${p}">${clE(i18t(CL_POS_WORD[p]))}</button>`).join('')}</div>
     <div class="cl-pk-row"><input type="file" id="cl-logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden><button type="button" class="cl-pill" data-cl-logo>${clE(i18t(_cl.logoUrl ? 'cl_logo_replace' : 'cl_logo_upload'))}</button>${_cl.logoUrl ? `<button type="button" class="cl-lnk" data-cl-logo-x>${clE(i18t('cl_logo_remove'))}</button>` : ''}</div><p class="cl-pk-q">${clE(i18t('ds_png_jpg'))}</p>`;
   if (m === 'c') return head(i18t('cl_n_colour')) + `<div class="cl-pk-row">${CL_ACCENTS.map(([h, w]) => `<button type="button" class="cl-sw${_cl.look.accentColor === h ? ' is-on' : ''}" data-cl-accent="${h}" style="background:${h}" title="${clE(i18t('cl_c_' + w))}" aria-label="${clE(i18t('cl_c_' + w))}"></button>`).join('')}</div>${clDesign().usesAccent === false ? `<p class="cl-pk-q">${clE(i18t('cl_mono_note', { name: clDesign().name }))}</p>` : ''}`;
-  if (m === 'f') return head(i18t('cl_n_footer')) + `<input type="text" id="cl-footer" class="cl-in" maxlength="500" value="${clE(_cl.footer)}" placeholder="${clE(i18t('ds_footer_placeholder'))}">`;
+  /* round 2: words plus fields pressed as chips; the line as the previewed contract will read it */
+  const fieldChips = (attr, fields, on) => `<div class="cl-pk-row cl-ls-fields"><span class="cl-pk-k">${clE(i18t('cl_ls_fields'))}</span>${fields.map(f => `<button type="button" class="cl-pill${on.includes(f) ? ' is-on' : ''}" ${attr}="${f}" aria-pressed="${on.includes(f) ? 'true' : 'false'}">${clE(i18t('cl_ls_f_' + f))}</button>`).join('')}</div>`;
+  const onPaper = text => `<p class="cl-pk-q cl-ls-onpaper">${clE(i18t('cl_ls_on_paper'))} <span class="cl-ls-quote">“${clE(clFilledOn(text) || '—')}”</span></p>`;
+  const pills = (attr, opts, cur) => `<div class="cl-pk-row">${opts.map(([v, w]) => `<button type="button" class="cl-pill${(cur || '') === v ? ' is-on' : ''}" ${attr}="${v}">${clE(w)}</button>`).join('')}</div>`;
+  if (m === 'f') { const fs = clFieldsSplit(_cl.footer);
+    return head(i18t('cl_n_footer')) + `<input type="text" id="cl-footer" class="cl-in" maxlength="500" value="${clE(fs.words)}" placeholder="${clE(i18t('ds_footer_placeholder'))}">`
+      + fieldChips('data-cl-ffield', ['ref', 'title'], fs.fields) + onPaper(_cl.footer); }
+  if (m === 'h') { const mk = clMarks(), hs = clFieldsSplit(mk.headerText);
+    return head(i18t('cl_n_header')) + `<p class="cl-pk-q">${clE(i18t('cl_ls_head_place'))}</p>`
+      + pills('data-cl-hpos', [['', i18t('cl_ls_none')], ['left', i18t('cl_ls_pos_left')], ['center', i18t('cl_ls_pos_center')], ['right', i18t('cl_ls_pos_right')]], mk.headerPos || '')
+      + `<input type="text" id="cl-head-words" class="cl-in" maxlength="${typeof PAGE_HEAD_MAX === 'number' ? PAGE_HEAD_MAX : 120}" value="${clE(hs.words)}" placeholder="${clE(i18t('cl_ls_head_ph'))}">`
+      + fieldChips('data-cl-hfield', ['company', 'ref', 'title'], hs.fields) + (mk.headerPos && mk.headerText ? onPaper(mk.headerText) : ''); }
+  if (m === 'n') { const mk = clMarks();
+    return head(i18t('cl_n_pagenum')) + `<p class="cl-pk-q">${clE(i18t('cl_ls_pn_place'))}</p>`
+      + pills('data-cl-npos', [['off', i18t('cl_ls_off')], ['', i18t('cl_ls_pn_inline')], ['left', i18t('cl_ls_pos_left')], ['center', i18t('cl_ls_pos_center')], ['right', i18t('cl_ls_pos_right')]], mk.pageNumPos || '')
+      + (mk.pageNumPos === 'off' ? '' : `<p class="cl-pk-q">${clE(i18t('cl_ls_pn_reads'))}</p>`
+        + pills('data-cl-nfmt', (typeof PAGE_NUM_FORMATS === 'object' ? PAGE_NUM_FORMATS : ['page-of', 'of', 'slash']).map(f => [f, typeof brPageNumberSay === 'function' ? brPageNumberSay(f, 2, 6) : f]), mk.pageNumFmt || 'page-of')); }
   if (m === 'a') {
     const own = new Set(Object.keys(_cl.streams));
     return head(i18t('cl_pick_who')) + `
@@ -834,7 +852,7 @@ function clChipsHtml() {
    company and language, a second admin's yes and the History) draw nothing here yet. */
 const CL_AA = 4.5;
 const CL_PV_W = 306;
-const CL_PIN_SIDE = { logo: 'l', letterhead: 'r', style: 'l', layout: 'l', colour: 'r', type: 'r', footer: 'l' };
+const CL_PIN_SIDE = { logo: 'l', header: 'r', letterhead: 'r', style: 'l', layout: 'l', colour: 'r', type: 'r', footer: 'l', pagenum: 'r' };
 const CL_ST_TONE = { set: 'green', missing: 'amber', faint: 'ruby', optional: 'grey' };
 /* WCAG's relative luminance and contrast against white paper */
 function clHexLum(hex) {
@@ -861,8 +879,31 @@ function clLetterheadFacts() {
   return { name: String(org.companyName || '').trim(), number: String(org.registrationNumber || '').trim(), address: String(org.address || '').trim() };
 }
 /* THE PARTS OF THE PAGE HaTi SETS TODAY, in the order they sit on a page; each with its value, its status and its door */
+/* ---- ROUND 2 (owner, 24 Nov 2026): THE HEADER AND THE PAGE NUMBERS ----
+   A line of words is the reader's words plus the fields pressed as chips (never typed braces): stored as
+   "{company} · {ref} · Confidential", shown as the words alone with the chips lit, read on the paper filled from the
+   previewed contract (brFieldsFill: a field with no value says nothing). */
+const CL_FIELD_RE = /\{(company|ref|title)\}/g;
+const CL_POS_SAY = { left: 'cl_ls_pos_left', center: 'cl_ls_pos_center', right: 'cl_ls_pos_right' };
+function clFieldsSplit(text) {
+  const t = String(text || '');
+  const fields = [...t.matchAll(CL_FIELD_RE)].map(m => m[1]).filter((f, i, a) => a.indexOf(f) === i);
+  const words = t.replace(CL_FIELD_RE, '').replace(/(\s*[·|]\s*){2,}/g, ' · ').replace(/^\s*[·|]\s*|\s*[·|]\s*$/g, '').replace(/\s{2,}/g, ' ').trim();
+  return { fields, words };
+}
+const clFieldsJoin = (fields, words) => fields.map(f => '{' + f + '}').concat(String(words || '').trim() ? [String(words).trim()] : []).join(' · ');
+function clMarks() { return Object.assign({ headerText: '', headerPos: null, pageNumPos: null, pageNumFmt: null }, _cl.look.pageMarks || (_cl.editing ? (window.ORG_BRANDING || {}).pageMarks : null) || {}); }
+function clMarksSet(patch) { _cl.look.pageMarks = Object.assign(clMarks(), patch); }
+/* what a line will say on the previewed contract */
+function clFilledOn(text) {
+  const c = clPvContract() || { name: i18t('cl_sample_name') };
+  return typeof brFieldsFill === 'function' ? brFieldsFill(text, c, window.ORG_BRANDING || {}) : String(text || '');
+}
+function clNumSay(fmt) { const m = Math.max(1, _cl.pvPages || 1); return typeof brPageNumberSay === 'function' ? brPageNumberSay(fmt, 1, m) : ''; }
 function clParts() {
   const d = clDesign(), st = clStructure(), admin = clAdmin(), lh = clLetterheadFacts();
+  const mk = clMarks(), headOn = !!(mk.headerPos && mk.headerText);
+  const footFilled = clFilledOn(_cl.footer);
   const pos = _cl.look.logoPosition || d.defaultLogoPos || 'top-left';
   const shown = clShownColour(), ratio = shown ? clContrastOnWhite(shown) : null;
   const act = (w, attr) => admin ? { label: i18t(w), attr } : null;
@@ -876,6 +917,8 @@ function clParts() {
   const rows = [
     { k: 'logo', name: i18t('cl_n_logo'), html: _cl.logoUrl ? `<span class="cl-ls-col"><img class="cl-ls-logo" src="${clE(_cl.logoUrl)}" alt="">${clE(i18t(CL_POS_WORD[pos] || 'cl_pos_left'))}</span>` : quiet(i18t('cl_ls_no_logo')),
       st: _cl.logoUrl ? 'set' : 'missing', act: act(_cl.logoUrl ? 'cl_change' : 'cl_ls_upload', 'data-cl-mode="g"') },
+    { k: 'header', name: i18t('cl_n_header'), html: headOn ? `${q(clFilledOn(mk.headerText))}${quiet('· ' + i18t(CL_POS_SAY[mk.headerPos]))}` : quiet(i18t('cl_ls_none')),
+      st: headOn ? 'set' : 'optional', act: act(headOn ? 'cl_change' : 'cl_ls_add', 'data-cl-mode="h"') },
     { k: 'letterhead', name: i18t('cl_n_letterhead'), html: lhWords ? q(lhWords) : quiet(i18t('cl_no_company')),
       st: lh.name ? 'set' : 'missing', act: act('cl_change_there', 'data-cl-company') },
     { k: 'style', name: i18t('cl_n_style'), html: `<b class="cl-ls-name">${clE(d.name)}</b><span class="cl-ls-blurb">${clE(d.blurb)}</span>`, st: 'set', act: act('cl_change', 'data-cl-mode="s"') },
@@ -883,8 +926,11 @@ function clParts() {
     { k: 'colour', name: i18t('cl_n_colour'), html: colourWords, st: !shown ? 'optional' : (ratio < CL_AA ? 'faint' : 'set'),
       act: act(shown && ratio < CL_AA ? 'cl_ls_fix' : 'cl_change', 'data-cl-mode="c"') },
     { k: 'type', name: i18t('cl_n_type'), html: quiet(i18t('cl_type_say')), st: 'set', act: null },
-    { k: 'footer', name: i18t('cl_n_footer'), html: String(_cl.footer || '').trim() ? q(_cl.footer) : quiet(i18t('cl_no_footer')),
+    { k: 'footer', name: i18t('cl_n_footer'), html: footFilled ? q(footFilled) : quiet(i18t('cl_no_footer')),
       st: String(_cl.footer || '').trim() ? 'set' : 'missing', act: act('cl_edit', 'data-cl-mode="f"') },
+    { k: 'pagenum', name: i18t('cl_n_pagenum'), html: mk.pageNumPos === 'off' ? quiet(i18t('cl_ls_off'))
+      : `${q(clNumSay(mk.pageNumFmt))}${quiet('· ' + i18t(mk.pageNumPos ? CL_POS_SAY[mk.pageNumPos] : 'cl_ls_pn_inline'))}`,
+      st: mk.pageNumPos === 'off' ? 'optional' : 'set', act: act('cl_change', 'data-cl-mode="n"') },
   ];
   rows.forEach((r, i) => { r.n = i + 1; });
   return rows;
@@ -903,6 +949,7 @@ function clQuality() {
     if (r < CL_AA) out.push({ tone: 'ruby', t: i18t('cl_ls_q_faint', { c: clColourName(_cl.look.accentColor || shown), r: clRatioSay(r) }), go: go('cl_ls_fix', 'c') });
     else out.push({ tone: 'green', t: i18t('cl_ls_q_reads', { c: clColourName(_cl.look.accentColor || shown), r: clRatioSay(r) }) });
   }
+  if (clMarks().pageNumPos === 'off') out.push({ tone: 'amber', t: i18t('cl_ls_q_nonum'), go: go('cl_change', 'n') });
   if (_cl.logoUrl) out.push({ tone: 'green', t: i18t('cl_ls_q_logo') });
   if (String(_cl.footer || '').trim()) out.push({ tone: 'green', t: i18t('cl_ls_q_footer') });
   if (!lhMiss.length) out.push({ tone: 'green', t: i18t('cl_ls_q_lh_ok') });
@@ -930,6 +977,7 @@ function clDiffers(look) {
   if ((look.structureId || DEFAULT_STRUCTURE) !== (co.structureId || DEFAULT_STRUCTURE)) out.push(i18t('cl_ls_d_layout', { v: (docStructureById(look.structureId) || {}).name || look.structureId }));
   if ((look.accentColor || '') !== (co.accentColor || '') && look.accentColor) out.push(i18t('cl_ls_d_colour', { v: clColourName(look.accentColor) }));
   if ((look.logoPosition || '') !== (co.logoPosition || '') && look.logoPosition) out.push(i18t('cl_ls_d_logo', { v: i18t(CL_POS_WORD[look.logoPosition] || 'cl_pos_left') }));
+  if (look.pageMarks && JSON.stringify(look.pageMarks) !== JSON.stringify(co.pageMarks || (window.ORG_BRANDING || {}).pageMarks || null)) out.push(i18t('cl_ls_d_marks'));
   return out;
 }
 /* THE PREVIEW'S CONTRACTS: the company's own, unsigned, on our paper (their paper is never dressed); the stream being
@@ -1072,6 +1120,9 @@ function clPvShow() {
   sheet.style.transform = `translateY(${-top * k}px) scale(${k})`;
   view.style.height = Math.round(h * k) + 'px';
   clPvPagesPaint(n); clPinsPaint();
+  /* the Page numbers row says what the paper says, with the previewed contract's own page count */
+  const pq = document.querySelector('#cl-parts tr[data-cl-part="pagenum"] .cl-ls-quote');
+  if (pq) pq.textContent = '“' + clNumSay(clMarks().pageNumFmt) + '”';
 }
 function clPvPagesPaint(n) {
   const host = document.getElementById('cl-pv-pages'), say = document.getElementById('cl-pv-n');
@@ -1093,7 +1144,7 @@ function clPinTarget(k, root) {
   if (k === 'layout') return [...art.querySelectorAll('h2, h3, h4, .rl-clause-h')].find(e => !e.matches('.rl-paper-title')) || null;
   if (k === 'colour') { const hex = clShownColour(); return hex ? root.querySelector(`[style*="${hex}"]`) : null; }
   if (k === 'type') return [...art.querySelectorAll('p')].find(e => String(e.textContent || '').trim().length > 20) || null;
-  if (k === 'footer') return null;
+  if (k === 'footer' || k === 'header' || k === 'pagenum') return null;
   return null;
 }
 /* where the WORDS of a part sit (a centred title is not as wide as its line), else the element's own box */
@@ -1101,15 +1152,30 @@ function clTextRect(el) {
   try { const r = document.createRange(); r.selectNodeContents(el); const rs = [...r.getClientRects()].filter(x => x.width > 1 && x.height > 1); if (rs.length) return rs[0]; } catch (_) { /* the box below */ }
   return el.getBoundingClientRect();
 }
+/* a header or a number painted by CSS (its words are the element's data-l): the box where its words stand */
+function clMarkRect(el, k) {
+  const b = el.getBoundingClientRect();
+  if (k !== 'header' && k !== 'pagenum') return b;
+  if (el.matches('.pg-pnum') || k === 'pagenum') {
+    const al = el.getAttribute('data-al') || (k === 'pagenum' && !el.matches('.pg-pnum') ? 'right' : 'center');
+    return al === 'left' ? { left: b.left, right: b.left + 40, top: b.top, bottom: b.bottom } : al === 'right' ? { left: b.right - 40, right: b.right, top: b.top, bottom: b.bottom } : { left: b.left + b.width / 2 - 20, right: b.left + b.width / 2 + 20, top: b.top, bottom: b.bottom };
+  }
+  const al = el.getAttribute('data-al') || 'left';
+  return al === 'right' ? { left: b.right - 60, right: b.right, top: b.top, bottom: b.bottom } : al === 'center' ? { left: b.left + b.width / 2 - 30, right: b.left + b.width / 2 + 30, top: b.top, bottom: b.bottom } : { left: b.left, right: b.left + 60, top: b.top, bottom: b.bottom };
+}
 function clPinsPaint() {
   const view = document.getElementById('cl-pv-view'), pins = document.getElementById('cl-pins'); if (!view || !pins || !_cl) return;
   const root = view.querySelector('.pg-sheet, .cl-sheet'); if (!root) { pins.innerHTML = ''; return; }
   const vr = view.getBoundingClientRect(), parts = clParts(), out = [];
   parts.forEach(r => {
     let el = clPinTarget(r.k, root);
-    if (r.k === 'footer') el = [...root.querySelectorAll('.pg-dfoot, .pg-sfoot, [data-cl-foot]')].find(e => { const b = e.getBoundingClientRect(); return b.top >= vr.top - 1 && b.top < vr.bottom; }) || null;
+    const inView = sel => [...root.querySelectorAll(sel)].find(e => { const b = e.getBoundingClientRect(); return b.top >= vr.top - 1 && b.top < vr.bottom; }) || null;
+    if (r.k === 'footer') el = inView('.pg-dfoot, .pg-sfoot, [data-cl-foot]');
+    /* round 2: the header line on this page; the page number on its own line, else at the end of the footer line */
+    if (r.k === 'header') el = inView('.pg-run.is-mark');
+    if (r.k === 'pagenum') el = r.st === 'optional' ? null : (inView('.pg-pnum') || inView('.pg-dfoot, .pg-sfoot'));
     if (!el) return;
-    const b = (r.k === 'logo' || r.k === 'colour') ? el.getBoundingClientRect() : clTextRect(el); if (b.bottom < vr.top || b.top > vr.bottom - 4) return;
+    const b = (r.k === 'logo' || r.k === 'colour' || r.k === 'header' || r.k === 'pagenum') ? clMarkRect(el, r.k) : clTextRect(el); if (b.bottom < vr.top || b.top > vr.bottom - 4) return;
     const x = Math.max(2, Math.min(vr.width - 18, (CL_PIN_SIDE[r.k] === 'r' ? b.right + 5 : b.left - 21) - vr.left));
     const y = Math.max(2, Math.min(vr.height - 18, b.top - vr.top - 4));
     out.push(`<button type="button" class="cl-pin is-${r.st}${_cl.row === r.k ? ' is-lit' : ''}" data-cl-pin="${r.k}" style="left:${Math.round(x)}px;top:${Math.round(y)}px" title="${clE(r.name)}" aria-label="${clE(r.n + ' · ' + r.name)}">${r.n}</button>`);
@@ -1220,6 +1286,20 @@ function clReadLook(text) {
   if (d) { got.designId = d.id; said.push(i18t('cl_said_style', { s: d.name })); }
   const st = DOC_STRUCTURES.find(x => t.includes(x.name.toLowerCase()) || (x.id === 'two-column' && /two[ -]colum/.test(t)) || (x.id === 'margin-numbers' && /numbers? in the margin/.test(t)));
   if (st) { got.structureId = st.id; said.push(i18t('cl_said_layout', { l: st.name })); }
+  /* round 2: "page numbers bottom right", "no page numbers", "header: Confidential on the right", "no header" */
+  const side = s => /\bleft\b/.test(s) ? 'left' : /\bright\b/.test(s) ? 'right' : /\b(centre|center|middle)\b/.test(s) ? 'center' : null;
+  const pm = {};
+  if (/\b(no|without)\s+page\s*numbers?\b|\bpage\s*numbers?\s+off\b/.test(t)) { pm.pageNumPos = 'off'; said.push(i18t('cl_said_nonum')); }
+  else { const pn = t.match(/\bpage\s*numbers?\b([^,;.]*)/); if (pn) { const p = side(pn[1]); if (p) { pm.pageNumPos = p; said.push(i18t('cl_said_num', { p: i18t(CL_POS_SAY[p]) })); } } }
+  if (/\bno\s+header\b|\bheader\s+off\b/.test(t)) { pm.headerPos = null; pm.headerText = ''; said.push(i18t('cl_said_nohead')); }
+  else {
+    const raw = ' ' + String(text || '') + ' ', hm = raw.match(/\bheader\b\s*(?:[:\-–]|saying|says|reads)?\s*["“']?([^,;"”]*?)["”']?\s*(?:\b(?:on|at|to|in)\s+the\s+(left|right|centre|center|middle)\b[^,;]*)?\s*(?=[,;]|$)/i);
+    if (hm && hm[1] && hm[1].trim()) {
+      const words = hm[1].replace(/[{}]/g, '').trim().slice(0, 120), p = hm[2] ? side(hm[2].toLowerCase()) : 'left';
+      pm.headerText = words; pm.headerPos = p; said.push(i18t('cl_said_head', { h: words, p: i18t(CL_POS_SAY[p]) }));
+    }
+  }
+  if (Object.keys(pm).length) got.pageMarks = pm;
   return { got, said };
 }
 async function clSave() {
@@ -1227,7 +1307,9 @@ async function clSave() {
   const btn = document.getElementById('cl-save'); _cl.busy = true;
   if (btn && typeof busySet === 'function') busySet(btn, i18t('cl_saving'));
   try {
-    const look = { designId: _cl.look.designId, structureId: _cl.look.structureId, logoPosition: _cl.look.logoPosition, accentColor: _cl.look.accentColor };
+    /* round 2: the header and page numbers go with the look (the server cleans them, js/branding.js pageMarksClean) */
+    const look = { designId: _cl.look.designId, structureId: _cl.look.structureId, logoPosition: _cl.look.logoPosition, accentColor: _cl.look.accentColor,
+      pageMarks: _cl.look.pageMarks || null };
     const streams = JSON.parse(JSON.stringify(_cl.streams));
     const payload = { logoUrl: _cl.logoUrl, defaultFooterText: _cl.footer };
     if (_cl.applies === 'some') {
@@ -1273,6 +1355,15 @@ if (typeof document !== 'undefined' && !window._clWired) {
     if ((x = at('[data-cl-structure]'))) return clSet(() => { _cl.look.structureId = x.getAttribute('data-cl-structure'); });
     if ((x = at('[data-cl-pos]'))) return clSet(() => { _cl.look.logoPosition = x.getAttribute('data-cl-pos'); });
     if ((x = at('[data-cl-accent]'))) return clSet(() => { _cl.look.accentColor = x.getAttribute('data-cl-accent'); });
+    /* round 2: the header's place and fields, the page numbers' place and words, the footer's fields */
+    if ((x = at('[data-cl-hpos]'))) return clSet(() => { clMarksSet({ headerPos: x.getAttribute('data-cl-hpos') || null }); });
+    if ((x = at('[data-cl-npos]'))) return clSet(() => { clMarksSet({ pageNumPos: x.getAttribute('data-cl-npos') || null }); });
+    if ((x = at('[data-cl-nfmt]'))) return clSet(() => { clMarksSet({ pageNumFmt: x.getAttribute('data-cl-nfmt') }); });
+    if ((x = at('[data-cl-hfield]'))) return clSet(() => { const f = x.getAttribute('data-cl-hfield'), mk = clMarks(), hs = clFieldsSplit(mk.headerText);
+      const fields = hs.fields.includes(f) ? hs.fields.filter(y => y !== f) : hs.fields.concat(f);
+      clMarksSet({ headerText: clFieldsJoin(fields, hs.words), headerPos: mk.headerPos || 'left' }); });
+    if ((x = at('[data-cl-ffield]'))) return clSet(() => { const f = x.getAttribute('data-cl-ffield'), fs = clFieldsSplit(_cl.footer);
+      _cl.footer = clFieldsJoin(fs.fields.includes(f) ? fs.fields.filter(y => y !== f) : fs.fields.concat(f), fs.words).slice(0, 500); });
     if (at('[data-cl-logo]')) { const f = document.getElementById('cl-logo-file'); if (f) f.click(); return; }
     if (at('[data-cl-logo-x]')) return clSet(() => { _cl.logoUrl = null; });
     if (at('[data-cl-company]')) { if (typeof openSettingsAt === 'function') openSettingsAt('platform', 'company'); return; }
@@ -1291,7 +1382,9 @@ if (typeof document !== 'undefined' && !window._clWired) {
     const t = e.target; if (!_cl || !t || !t.closest || !t.closest('[data-st-pg="look"]') || !clAdmin()) return;
     if (t.name === 'cl-applies') return clSet(() => { _cl.applies = t.value; if (t.value === 'all') { _cl.pick = new Set(); } });
     if (t.hasAttribute('data-cl-stream')) return clSet(() => { const fid = t.getAttribute('data-cl-stream'); if (t.checked) _cl.pick.add(fid); else _cl.pick.delete(fid); });
-    if (t.id === 'cl-footer') return clSet(() => { _cl.footer = String(t.value || '').slice(0, 500); });
+    if (t.id === 'cl-footer') return clSet(() => { _cl.footer = clFieldsJoin(clFieldsSplit(_cl.footer).fields, String(t.value || '').replace(/[{}]/g, '')).slice(0, 500); });
+    if (t.id === 'cl-head-words') return clSet(() => { const mk = clMarks(), hs = clFieldsSplit(mk.headerText), w = String(t.value || '').replace(/[{}]/g, '');
+      clMarksSet({ headerText: clFieldsJoin(hs.fields, w), headerPos: mk.headerPos || (w.trim() ? 'left' : null) }); });
     if (t.id === 'cl-logo-file' && t.files && t.files[0]) {
       const f = t.files[0]; if (f.size > 500 * 1024) { toast(i18t('cl_logo_big'), 'warn'); return; }
       const r = new FileReader(); r.onload = () => clSet(() => { _cl.logoUrl = String(r.result || ''); }); r.readAsDataURL(f);
@@ -1307,7 +1400,7 @@ if (typeof document !== 'undefined' && !window._clWired) {
     const inp = document.getElementById('cl-say'); const text = inp ? inp.value : '';
     const { got, said } = clReadLook(text);
     if (!said.length) { const s = document.getElementById('cl-said'); if (s) s.textContent = i18t('cl_said_none'); return; }
-    clSet(() => { Object.assign(_cl.look, got); _cl.said = ''; });
+    clSet(() => { const pm = got.pageMarks; delete got.pageMarks; Object.assign(_cl.look, got); if (pm) clMarksSet(pm); _cl.said = ''; });
     const s = document.getElementById('cl-said'); if (s) s.textContent = i18t('cl_said_done', { what: said.join(', ') });
   });
 }
