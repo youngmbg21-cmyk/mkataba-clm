@@ -17,6 +17,10 @@ test('f1206 (1) the rows are drawn already as the one-clause page', () => {
   assert.ok(at < f.indexOf('rows.forEach('), 'before any row is drawn');
 });
 test('f1206 (2) the page\'s own parts come with the paint, not with the next open', () => {
-  const p = fn('docThreadPaint');
-  assert.match(p, /docThreadFill\(c,rows,_docThreadOn,\{plain,sheet,instant:true\}\);\s*if\(_thPage&&docThreadNavOn\(\)&&_docThreadOn>=0\) docThreadNavSync\(\);/);
+  /* RETIRED 24 Nov 2026 (f1217; owner: "delete the one at a time feature and only leave the list version"): the one-clause
+     page is deleted, its parts with it; the list alone stands */
+  const S = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js/views/contract.js'), 'utf8');
+  assert.ok(!S.includes('function docThreadPageHtml('), 'the clause page is gone');
+  assert.ok(S.includes('const _thPage = false;'), 'the list alone');
+
 });

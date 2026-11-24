@@ -26431,6 +26431,23 @@
      quiet and drawn in line as Obligations' "Filter" box, never Jambo's green filled spark (his box at the panel's foot
      asks). One closing rule, scoped above every page's own spark rule (the #ct-place one included), with no importance flag (scope wins the fight) */
   html.lg-new :is(#ct-place, body) .apn-ask.is-filter svg, html.lg-new :is(#ct-place, body) .apn-ask.is-filter svg path{color:var(--color-quiet);fill:none;stroke:currentColor}
+  /* THE EDITOR TAB'S SAVE IN THE BOTTOM ROW (owner's pick, 24 Nov 2026): the File button over the panel's foot is not drawn
+     (its press is the bottom row's, data-ce-tsave); the row's button is the same grey pill, its words saying it files (Jambo's own act keeps the
+     panel's one filled button); a foot with nothing left in it (no Undo) takes no room */
+  html.lg-new #clause-editor.is-tabbed #ce-railfoot [data-ce-act="save"]{display:none}
+  html.lg-new #clause-editor.is-tabbed #ce-railfoot:not(:has(.ce-tundo, .ce-tacts > *:not(:empty))){display:none}
+  html.lg-new #clause-editor.is-tabbed .ce-tnext.is-save{font-weight:var(--w-strong);flex:none;max-width:62%;overflow:hidden;text-overflow:ellipsis}
+  /* THE LADDER CARD, L+S (owner, 24 Nov 2026: "make the grey area more neat in L+S way"): no grey box — one calm table of
+     open lines, the label in a quiet column, the sentence beside it, a hairline under each row; the suggested wording and the
+     acts run the whole width */
+  html.lg-new #clause-editor.is-tabbed .ce-lcard{display:grid;grid-template-columns:minmax(88px,32%) minmax(0,1fr);column-gap:0;margin:0 0 12px;padding:0;border:0;border-top:1px solid var(--color-divider);border-radius:0;background:none;box-shadow:none}
+  html.lg-new #clause-editor.is-tabbed .ce-lcard > .k{grid-column:1;margin:0;padding:10px 16px 10px 0;border-bottom:1px solid var(--color-divider);font-size:var(--t-label);font-weight:var(--w-label);line-height:20px;letter-spacing:0;text-transform:none;color:var(--color-quiet)}
+  html.lg-new #clause-editor.is-tabbed .ce-lcard > .k + *{grid-column:2;margin:0;padding:10px 0;border-bottom:1px solid var(--color-divider);font-size:var(--t-body);line-height:20px;color:var(--color-text)}
+  html.lg-new #clause-editor.is-tabbed .ce-lcard > .k:has(+ .ce-lc-sug){grid-column:1 / -1;padding-bottom:4px;border-bottom:0}
+  html.lg-new #clause-editor.is-tabbed .ce-lcard > .k + .ce-lc-sug{grid-column:1 / -1;margin:0 0 10px;padding:12px 14px;border:1px solid var(--color-divider)}
+  html.lg-new #clause-editor.is-tabbed .ce-lcard > .acts{grid-column:1 / -1;margin:0;padding:10px 0 0}
+  /* THE LIST'S OWN START REDLINING on a clause with no finding: the deep read's link, under the reading */
+  #pd-thread .doc-th-lred{margin:8px 0 0}
   /* THE DOSSIER'S TABS ARE ONE SWITCH (owner, 24 Nov 2026: "build and merge" the drawing of the tabs in the same design as
      Clean · Redline · Their view): Dossier · Plan · Clauses · Redlines · Editor sit on ONE grey track, the open tab a WHITE
      pill with the switch's own soft shadow; the counts stay beside their words. Beside a paper only (data-pd-head="paper"),
@@ -26452,6 +26469,15 @@
   html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab-n{font-size:var(--t-label);font-weight:var(--w-strong);line-height:16px}
   html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab-w{max-width:none;overflow:visible}
   html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab:hover{color:var(--color-text)}
+  /* the same ends of the track as the Dossier's row (its width is the Dossier panel's, ceFitSplit): 3px of track and 8px of
+     tab make the Dossier's 11px */
+  html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab:first-child{padding-left:8px}
+  html.lg-new #clause-editor.is-tabbed .ce-tabtop{padding-top:12px}
+  /* THE BAR EDGE ON EDGE WITH THE PAPER (ceTabBarPlace sets its width to the sheet's): its empty slots take no gap, its tools
+     stand in its middle, and at the 720px sheet its own width is the sheet's */
+  html.lg-new #clause-editor.is-tabbed .ce-barrow > :is(.ce-say, .ce-barg, .ce-exit):empty{display:none}
+  html.lg-new #clause-editor.is-tabbed .ce-barrow{padding-left:9px;padding-right:9px;justify-content:center}
+  html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab:last-child{padding-right:8px}
   html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab.on{background:var(--color-surface);color:var(--color-text);font-weight:var(--w-label);box-shadow:0 1px 2px rgba(0,0,0,.10)}
 </style>
 <style>

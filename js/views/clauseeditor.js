@@ -2213,7 +2213,11 @@ function ceFitSplit(scope){
   }
   const avail = _ceAvail(grid);
   if (avail < 160) return;                       /* property 5 */
-  const { left, limit } = ceSplit(avail);
+  let { left, limit } = ceSplit(avail);
+  /* AS A TAB, THE DOSSIER PANEL'S OWN WIDTH (owner, 24 Nov 2026: "they change shape when you get to editor"): the side is the
+     width the Dossier's panel stands at (igDockWidth, --ce-tab-rail written by ceTabPaint), so pressing Editor moves nothing */
+  if (ceTabbed()){ const pg = document.getElementById('clause-editor'); const dw = pg ? parseInt(pg.style.getPropertyValue('--ce-tab-rail'), 10) : 0;
+    if (dw >= 300 && avail - dw >= CE_LEFT_MIN){ left = avail - dw; limit = null; } }
   grid.style.gridTemplateColumns = left + 'px minmax(0,1fr)';
   rez.style.left = left + 'px';
   /* AND IT SAYS WHEN IT WILL NOT GO FURTHER. Reaching a limit is legitimate;
@@ -8288,7 +8292,15 @@ function ceTabPaint(){
   if (top.getAttribute('data-k') !== html){ top.setAttribute('data-k', html); top.innerHTML = html; }
   let foot = rail.querySelector('#ce-tabfoot');
   if (!foot){ foot = document.createElement('div'); foot.id = 'ce-tabfoot'; foot.className = 'ce-tabfoot'; const feet = rail.querySelector('#ce-feet'); rail.insertBefore(foot, feet ? feet.nextSibling : null); }
-  const fh = nx ? `<span class="dash" aria-hidden="true"></span><span class="w">${_cee(_cet('ce_tab_keep', { clause: ceTabName(nx) }))}</span><button type="button" class="ce-tnext" data-ce-tstep="1">${_cee(_cet('ce_tab_next'))}</button>` : '';
+  /* SAVE IN THE BOTTOM ROW (owner's pick, 24 Nov 2026: "remove the 'nothing changed yet' and move the save button lower" —
+     "In the bottom row"): the row's one button IS the File button while there is something to file (its own words, "File
+     as a change · next ›"; the press is the File button's, so filing then moves on, ceSaveAndOn); with nothing to file it
+     is Next ›, the plain step. The File button over it is not drawn in the tab, and "Nothing changed yet" is gone */
+  const sv = rail.querySelector('#ce-railfoot [data-ce-act="save"]'), live = !!(sv && !sv.disabled);
+  const btn = live ? `<button type="button" class="ce-tnext is-save" data-ce-tsave title="${_ceea(sv.getAttribute('title') || '')}">${_cee(sv.textContent.trim())}</button>`
+    : nx ? `<button type="button" class="ce-tnext" data-ce-tstep="1">${_cee(_cet('ce_tab_next'))}</button>` : '';
+  const fh = nx ? `<span class="dash" aria-hidden="true"></span><span class="w">${_cee(_cet('ce_tab_keep', { clause: ceTabName(nx) }))}</span>${btn}`
+    : btn ? `<span class="w"></span>${btn}` : '';
   if (foot.getAttribute('data-k') !== fh){ foot.setAttribute('data-k', fh); foot.innerHTML = fh; }
   /* the File button's reason when grey, and Undo the change beside it */
   const rf = rail.querySelector('#ce-railfoot');
@@ -8297,12 +8309,18 @@ function ceTabPaint(){
     let extra = rf.querySelector('.ce-tacts');
     if (!extra){ extra = document.createElement('div'); extra.className = 'ce-tacts'; rf.appendChild(extra); }
     const dead = !!(save && save.disabled);
-    const eh = dead ? `<p class="ce-twhy">${_cee(_cet('ce_tab_nothing'))}</p>` : `<button type="button" class="ce-tundo" data-ce-act="undo">${_cee(_cet('ce_tab_undo'))}</button>`;
+    const eh = dead ? '' : `<button type="button" class="ce-tundo" data-ce-act="undo">${_cee(_cet('ce_tab_undo'))}</button>`;
     if (extra.getAttribute('data-k') !== eh){ extra.setAttribute('data-k', eh); extra.innerHTML = eh; }
   }
   /* NO TAG ON THE WRITING BAR (owner, 24 Nov 2026: "delete the highlighted item" — the black "Editing <clause>" pill): the
      panel's heading and the bar over the page already name the clause; the bar keeps only its tools */
   const row = pg.querySelector('.ce-barrow'), oldTag = row && row.querySelector('.ce-ttag'); if (oldTag) oldTag.remove();
+  /* THE TABS DO NOT CHANGE SHAPE (owner, 24 Nov 2026: "they change shape when you get to editor"): the editor's side is
+     the Dossier panel's own width, so the tab row stands where it stood, the same size */
+  try { const dw = typeof window.igDockWidth === 'function' ? Number(window.igDockWidth()) : 0;
+    const was = pg.style.getPropertyValue('--ce-tab-rail');
+    if (dw >= 300) pg.style.setProperty('--ce-tab-rail', Math.round(dw) + 'px'); else pg.style.removeProperty('--ce-tab-rail');
+    if (was !== pg.style.getPropertyValue('--ce-tab-rail')) ceFitSplit(); } catch (_){}
   ceTabBarPlace();
 }
 /* THE WRITING BAR SITS JUST ABOVE THE CLAUSE BEING EDITED, following it as the paper scrolls (transform only) */
@@ -8316,8 +8334,17 @@ function ceTabBarPlace(){
      page"): it no longer rides above the clause being edited, where it covered the paper's words; it stands in the band
      the page keeps for it (.ce-left's padding), centred over the paper, whatever is scrolled */
   const lr = left.getBoundingClientRect();
+  /* SYMMETRICAL WITH THE PAGE (owner, 24 Nov 2026: "the highlighted bar always has to be symmetrical to the page so the page
+     always has to be equally aligned with it"): the bar is as wide as the paper sheet itself and stands over it, edge on
+     edge (centred on the sheet, never on the band round it); where its tools need more room than the sheet, it keeps its
+     own width, centred on the sheet all the same */
+  const sheet = doc.querySelector('.nego-doc');
+  if (!head.dataset.ceNatW){ head.style.width = ''; head.dataset.ceNatW = String(head.offsetWidth || 0); }
+  const nat = Number(head.dataset.ceNatW) || 0;
+  const sr = sheet ? sheet.getBoundingClientRect() : null;
+  if (sr && sr.width > 0){ const w = Math.max(nat, Math.round(sr.width)); head.style.width = w + 'px'; }
   const y = 8, hw = head.offsetWidth || 0;
-  let x = hw ? Math.round((lr.width - hw) / 2) : 24;
+  let x = (sr && sr.width > 0 && hw) ? Math.round(sr.left - lr.left + (sr.width - hw) / 2) : hw ? Math.round((lr.width - hw) / 2) : 24;
   /* NOTHING IS PUSHED BEHIND THE SIDE PANEL: the bar keeps inside the paper's own width */
   if (hw && x + hw > lr.width - 16) x = Math.max(8, lr.width - hw - 16);
   x = Math.max(8, x);
@@ -8325,13 +8352,14 @@ function ceTabBarPlace(){
   if (!doc.dataset.ceTabBound){
     doc.dataset.ceTabBound = '1';
     doc.addEventListener('scroll', () => { try { ceTabBarPlace(); } catch (_){} }, { passive: true });
-    window.addEventListener('resize', () => { try { ceTabBarPlace(); } catch (_){} });
+    window.addEventListener('resize', () => { try { const h = document.querySelector('#clause-editor .ce-head'); if (h) delete h.dataset.ceNatW; ceTabBarPlace(); } catch (_){} });
   }
 }
 let _ceTabWheelAt = 0;
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._ceTabWired){ document._ceTabWired = true;
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#clause-editor.is-tabbed')) return;
+    const sb = t.closest('[data-ce-tsave]'); if (sb){ e.preventDefault(); const f = document.querySelector('#clause-editor #ce-railfoot [data-ce-act="save"]'); if (f && !f.disabled) f.click(); return; }
     const st = t.closest('[data-ce-tstep]'); if (st){ e.preventDefault(); ceTabStep(Number(st.getAttribute('data-ce-tstep')) || 1); return; }
     const ls = t.closest('[data-ce-tlist]');
     if (ls){ e.preventDefault(); const l = document.getElementById('ce-tlist'); if (l) l.hidden = !l.hidden; return; }
