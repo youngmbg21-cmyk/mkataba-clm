@@ -1,6 +1,7 @@
 'use strict';
 /* notebook-verify — THE NOTEBOOK, THE LEGORA + STRIPE WAY (owner's pick, 23 Nov 2026; f1198 pins the server and the words).
    Driven where the reader looks, on the round 7 world as its admin:
+   0b an empty notebook: no example questions in the panel, its one press Add a document
    1  "notebook" typed into the one door opens the page: tabs with their counts, one calm table
    2  a row says the words Jambo last quoted and their section, its kind and status as soft badges
    3  a row's first press CHOOSES it (Jambo's panel: the quote, Where I quote it, Open); the second OPENS it in the middle,
@@ -31,6 +32,14 @@ const DPA = ['THE DATA PROTECTION ACT, 2019', 'Section 48', 'A data controller m
     await us.fill('#li-email', 'admin@example.co.ke'); await us.fill('#li-pass', 'adminpassword1'); await us.click('#li-go');
     await until(us, () => typeof caGo === 'function' && typeof currentUser === 'function' && !!currentUser() && !!getContract('MK-IT'), null, 40000);
     await us.evaluate(W.R7_IN_PAGE);
+    /* 0b an empty notebook asks nothing: no example questions in Jambo's panel, its one press Add a document (owner, 24 Nov 2026) */
+    const emptyOpen = await us.evaluate(() => typeof caGo === 'function' && caGo({ kind: 'go', place: 'notebook' }) !== false);
+    const emptyRead = emptyOpen && await until(us, () => { const p = document.getElementById('ins-panel'); return !!(document.getElementById('nb-page') && p && /Nothing here yet/.test(p.innerText)); }, null, 12000);
+    const emptyPanel = emptyRead ? await us.evaluate(() => { const p = document.getElementById('ins-panel');
+      return { asks: /GDPR say about|policies covers/.test(p.innerText), add: [...p.querySelectorAll('button')].some(b => /Add a document/.test(b.textContent)) }; }) : null;
+    check('0b an empty notebook: no example questions, Add a document in the panel', !!(emptyPanel && !emptyPanel.asks && emptyPanel.add), JSON.stringify(emptyPanel));
+    await us.evaluate(() => { if (typeof caGo === 'function') caGo({ kind: 'go', place: 'board' }); });
+    await until(us, () => !document.getElementById('nb-page'), null, 8000);
     const made = await us.evaluate(async ([g, d]) => { if (typeof api !== 'function') return null;
       try { const a = await api('notebook', 'POST', { shelf: 'company', name: 'GDPR', kind: 'law', inForce: '2018-05-25', text: g });
         const b = await api('notebook', 'POST', { shelf: 'company', name: 'Data Protection Act, 2019', kind: 'law', text: d });
