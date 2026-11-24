@@ -121,7 +121,8 @@ const dayFrom = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10)
       const theirs = await until(() => { const b = document.getElementById('dtp'); const s = b && [...b.querySelectorAll('tr.dtp-r[data-dtp-rec] .dtp-c-who')].map(td => td.textContent.trim() === i18t('obd_theirs_btn') ? 'theirs' : 'other'); return s && s.length && s.every(x => x === 'theirs') ? s : null; });
       check('2c Whose: They owe lists theirs only', Array.isArray(theirs) && theirs.length === 2, JSON.stringify(theirs));
       await page.click('#dtp [data-dtp-fx="whose"]');
-      const all = await until(() => { const s = SIDES(); return s && s.length === 5 ? true : null; });
+      /* the count is asked IN the page (SIDES is this file's own helper; a page function cannot call it) */
+      const all = await until(() => { const b = document.getElementById('dtp'); const s = b && b.querySelectorAll('tr.dtp-r[data-dtp-rec] .dtp-c-who'); return s && s.length === 5 ? true : null; });
       check('2d cleared, every duty again', !!all);
     });
 
