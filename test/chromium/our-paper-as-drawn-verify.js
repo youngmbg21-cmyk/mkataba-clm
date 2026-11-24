@@ -162,7 +162,7 @@ async function SEED(){
       ask: !!document.querySelector('[data-tpl-sec="book"] label.apn-ask [data-tpln-q]'),
       tabs: [...document.querySelectorAll('[data-tpl-sec="book"] .apn-bar .apn-tab.is-chip[data-tpln-view]')].map(b => b.textContent.trim()) }));
     check('1a the head says the page\'s name alone, Our playbook › and New standard (black) beside it', A.h1.trim() === 'Our paper' && !A.count && A.std === 'Our playbook ›'
-      && !!A.neu && A.neu[0] === 'New standard' && A.neu[1], JSON.stringify(A));
+      && !!A.neu && A.neu[0] === 'Create a template' && A.neu[1], JSON.stringify(A)); /* RE-POINTED 23 Nov 2026: the owner named it "Create a template" */
     /* RE-POINTED 17 Nov 2026 (the Ladder): Our standards left Our paper; two parts remain, the book and Templates */
     check('1c one ask box, and a count on each of the two chips (Shelves · All)', A.ask && A.tabs.length === 2 && A.tabs.every(t => /\d+$/.test(t)), JSON.stringify(A.tabs));
 
@@ -352,28 +352,29 @@ async function SEED(){
     /* 7 THE BUILDER */
     try { await page.evaluate(() => localStorage.removeItem('hati.v1.tbSkipped')); } catch (_) {}
     await page.evaluate(i => openTemplateBuilder(i.tid, i.vid), ids.res);
-    await until(() => document.querySelector('#tb-rail .tb-ol'));
+    await until(() => document.querySelector('#tb-rail .tb-olt'));   /* RE-POINTED 23 Nov 2026 (the Builder L+S): the Outline is one calm table */
     const G = await page.evaluate(() => { const r = e => { const b = e.getBoundingClientRect(); return { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height), r: Math.round(b.right) }; };
       const strip = document.querySelector('.tb-strip'); const rail = document.getElementById('tb-rail');
       return { strip: r(strip), stripMin: parseFloat(getComputedStyle(strip).minHeight) || 0, stripBg: getComputedStyle(strip).backgroundColor, head: strip.textContent.replace(/\s+/g, ' ').trim(),
         rail: r(rail), tabs: [...rail.querySelectorAll('[data-tb-tab]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()), on: (rail.querySelector('[data-tb-tab].is-on') || {}).textContent || '',
-        word: (rail.querySelector('.jl-word') || {}).textContent || '', ol: [...rail.querySelectorAll('.tb-ol-r')].map(b => [...b.children].map(x => x.textContent.trim()).filter(Boolean).join(' ')),
-        sh: [...rail.querySelectorAll('.tb-ol-sh')].map(x => x.textContent.trim()), p: [...rail.querySelectorAll('.tb-ol-p')].map(x => x.textContent.trim()),
+        word: (rail.querySelector('.jl-word') || {}).textContent || '', ol: [...rail.querySelectorAll('.tb-olt tr[data-tb-ol], .tb-olt tr[data-tb-ol-prop]')].map(b => [...b.children].map(x => x.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean).join(' ')),
+        line: ((rail.querySelector('.tb-ol-line') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
         ph: (document.getElementById('tb-ask') || {}).placeholder || '', hints: rail.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length, send: (() => { const b = rail.querySelector('[data-tb-send]'); return b ? b.getAttribute('aria-label') || '' : ''; })() }; });  /* RE-POINTED 20 Oct 2026 (Two-row card): the round send says Ask to a screen reader and on its hover */
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the head is the page's white band, as tall as Jambo's
        panel head (min-height var(--rail-head-h), 58px) — one line means it never grows past that */
-    check('7a the head card is one line: name · v1 draft · Category · Stream · Save draft · Publish v1',
-      G.stripMin > 0 && G.strip.h <= G.stripMin + 1 && /Reseller agreement\s*v1 draft\s*Category\s*\S+.*Stream.*Save draft\s*Publish v1/.test(G.head), JSON.stringify({ h: G.strip.h, min: G.stripMin, head: G.head }));
+    /* RE-POINTED 23 Nov 2026 (the Builder L+S, as drawn): "Draft · v1" a badge, More ▾ before Save draft (never published) */
+    check('7a the head card is one line: name · Draft · v1 · Category · Stream · More · Save draft · Publish v1',
+      G.stripMin > 0 && G.strip.h <= G.stripMin + 1 && /Reseller agreement\s*Draft · v1\s*Category\s*\S+.*Stream.*More\s*Save draft\s*Publish v1/.test(G.head), JSON.stringify({ h: G.strip.h, min: G.stripMin, head: G.head }));
     /* RE-POINTED 25 Oct 2026 (the builder works like the clause editor; item 12, the panel floats 8px in as every panel does): the head is his tab and the four tabs, no page word */
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the panel stands edge to edge — flush with the
        window's right edge, no longer floating 8px in */
     check('7b Jambo\'s panel at the window\'s edge, his tab and the four tabs in its head, no page word', G.rail.r === 1440 && G.word === '', JSON.stringify({ ...G.rail, word: G.word }));
     check('7c tabs Build · Outline · Playbook n/m · Blanks 3, opening on the Outline',
-      G.tabs.length === 4 && G.tabs[0] === 'Build' && G.tabs[1] === 'Outline' && /^Playbook ?\d+\/\d+$/.test(G.tabs[2]) && /^Blanks ?3$/.test(G.tabs[3]) && G.on === 'Outline', JSON.stringify(G.tabs));
-    check('7d the Outline: "· Parties 1 blank", numbered sections, ✓ where a standard is met, "+ … proposed"',
-      /^· Parties 1 blank$/.test(G.ol[0] || '') && G.ol.some(r => /^2 Territory 1 blank$/.test(r)) && G.ol.some(r => /^\+ .+ proposed$/.test(r)), JSON.stringify(G.ol));
-    check('7e Blanks and Our standards said under it', G.sh[0] === 'Blanks 3' && /Reseller name · Territory · Discount: asked of whoever drafts from it\./.test(G.p[0] || '')
-      && /^\d+ of \d+ met\. .+ (is|are) proposed on the paper\.$/.test(G.p[1] || ''), JSON.stringify({ sh: G.sh, p: G.p }));
+      G.tabs.length === 4 && G.tabs[0] === 'Build' && /^Outline ?\d+$/.test(G.tabs[1]) && /^Playbook ?\d+ of \d+$/.test(G.tabs[2]) && /^Blanks ?3$/.test(G.tabs[3]) && /^Outline/.test(G.on), JSON.stringify(G.tabs)); /* RE-POINTED 23 Nov 2026: tabs carry their counts, "n of m" */
+    /* RE-POINTED 23 Nov 2026 (the Builder L+S, as drawn): § · name · a soft status badge; "+ … proposed" where the paper draws it */
+    check('7d the Outline: "· Parties <status>", numbered sections with a status badge, "+ … proposed"',
+      /^· Parties(?:“.*”)? (Written|To write)$/.test(G.ol[0] || '') && G.ol.some(r => /^2 Territory(?:“.*”)? (Written|To write)$/.test(r)) && G.ol.some(r => /^\+ .+ proposed$/.test(r)), JSON.stringify(G.ol));
+    check('7e Blanks and the playbook said in one line under it', /^Blanks 3 asked ?Playbook \d+ of \d+ met$/.test(G.line), JSON.stringify(G.line));
     /* RE-POINTED 21 Oct 2026 (Chambers, owner's pick 20 Oct 2026): no hint line under any Jambo box */
     check('7f the ask box as drawn, no hint line under it', G.ph === 'Ask Jambo, or type / for a place' && /^Ask/.test(G.send) && G.hints === 0, JSON.stringify({ ph: G.ph, send: G.send, hints: G.hints }));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'our-paper-builder-1440x780.png') });
@@ -391,7 +392,7 @@ async function SEED(){
        the server, so another computer is not offered it again */
     await until(c => !document.querySelector(`[data-tb-prop="${c}"]`), cat);
     const S = await until(async a => { const r = await api('templates/' + a.tid); return (r.template.skippedStandards || []).includes(a.cat) ? r.template.skippedStandards : null; }, { tid: ids.res.tid, cat });
-    check('8c Skip takes the proposal away for this template, kept on the template (the server)', !!S && !(await page.evaluate(() => localStorage.getItem('hati.v1.tbSkipped'))) && !(await page.evaluate(c => [...document.querySelectorAll('.tb-ol-r.is-prop')].some(r => r.textContent.includes(c)), cat)), JSON.stringify(S));
+    check('8c Skip takes the proposal away for this template, kept on the template (the server)', !!S && !(await page.evaluate(() => localStorage.getItem('hati.v1.tbSkipped'))) && !(await page.evaluate(c => [...document.querySelectorAll('.tb-olt tr.is-prop')].some(r => r.textContent.includes(c)), cat)), JSON.stringify(S));
     await page.evaluate(a => api('templates/' + a.tid + '/skipped', 'PUT', { category: a.cat, undo: true }), { tid: ids.res.tid, cat });
     await page.evaluate(i => openTemplateBuilder(i.tid, i.vid), ids.res);
     await until(() => document.querySelector(`#tb-paper [data-tb-prop-add]`));
@@ -405,8 +406,8 @@ async function SEED(){
     await until(() => !!document.querySelector('[data-tb-ol]'));
     const k = await page.evaluate(() => { const r = [...document.querySelectorAll('[data-tb-ol]')].find(x => /Territory/.test(x.textContent)); return r ? r.getAttribute('data-tb-ol') : null; });
     await press(`[data-tb-ol="${k}"]`);
-    const L = await until(kk => { const s = document.querySelector(`[data-tb-sec="${kk}"]`); return s && s.classList.contains('is-landed') ? { on: (document.querySelector('[data-tb-tab].is-on') || {}).textContent, sel: (document.querySelector('.tb-ol-r.is-sel') || {}).textContent } : null; }, k);
-    check('9a an Outline row lands on its section (lit), the Outline stays open with the row lit', !!L && L.on === 'Outline' && /Territory/.test(L.sel || ''), JSON.stringify(L));
+    const L = await until(kk => { const s = document.querySelector(`[data-tb-sec="${kk}"]`); return s && s.classList.contains('is-landed') ? { on: (document.querySelector('[data-tb-tab].is-on') || {}).textContent, sel: (document.querySelector('#tb-rail .tb-olt tr.is-sel') || {}).textContent } : null; }, k);
+    check('9a an Outline row lands on its section (lit), the Outline stays open with the row lit', !!L && /^Outline/.test(L.on || '') && /Territory/.test(L.sel || ''), JSON.stringify(L));
     await press('#tb-rail .pd-back[data-tb-jambo]');
     const J = await until(() => { const on = document.querySelector('[data-tb-tab].is-on'); return on && on.textContent.trim() === 'Build' && !document.querySelector('#tb-paper .tb-sec.is-on') ? true : null; });
     check('9b ‹ Jambo is Build with nothing in hand', !!J);

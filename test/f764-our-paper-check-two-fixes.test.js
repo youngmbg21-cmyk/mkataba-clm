@@ -99,9 +99,11 @@ describe('f764 (3) a skip is said, with its way back', () => {
   test('3a the Outline says what was skipped, and "Propose it again" sends the undo', async () => {
     const s = await stage(['Data protection']);
     s.w.tbSetTab('outline');
+    /* RE-POINTED 23 Nov 2026 (the Builder L+S): a skip is the Skipped chip's row, its way back in the row */
     const rail = s.read().rail;
-    if (!/Data protection/.test(rail)) return assert.fail('the seed reads no missing Data protection standard: ' + rail.slice(0, 400));
-    assert.match(rail, /Skipped for this template: Data protection\. <button type="button" class="ui-link" data-tb-unskip="Data protection">Propose it again<\/button>/);
+    if (!/data-tb-olf="skip">Skipped <b>1<\/b>/.test(rail)) return assert.fail('the seed reads no missing Data protection standard: ' + rail.slice(0, 400));
+    s.w.tbOlFilter('skip');
+    assert.match(s.read().rail, /<span class="tb-olt-hh">Data protection<\/span> <button type="button" class="ui-link" data-tb-unskip="Data protection">Propose it again<\/button>/);
     CALLS.length = 0;
     await s.w.tbSkip('Data protection', { undo: true });
     assert.equal(JSON.stringify(CALLS.filter(c => c[1] === 'PUT')), JSON.stringify([['templates/tpl_1/skipped', 'PUT', { category: 'Data protection', undo: true }]]));
@@ -149,7 +151,7 @@ describe('f764 (7) the bar names the builder', () => {
     const i = CN.indexOf('function deskPageName('); const body = CN.slice(i, CN.indexOf('\n}', i));
     assert.match(body, /if \(typeof window !== 'undefined' && typeof window\.tbOnScreen === 'function' && window\.tbOnScreen\(\)\) return _cnT\('tb_jl_word'\);/);
     assert.match(TB, /const tbOnScreen = \(\) => typeof document !== 'undefined' && !!document\.getElementById\('tb-page'\);/);
-    assert.match(TB, /tbPaintBranding\(\);\n  if \(typeof window\.deskBarPaint === 'function'\) window\.deskBarPaint\(\);/);
+    assert.match(TB, /tbPaintBranding\(\);(?: tbApplyZoom\(\);)?\n  if \(typeof window\.deskBarPaint === 'function'\) window\.deskBarPaint\(\);/); /* RE-POINTED 23 Nov 2026: the paper's zoom applied in the same breath */
     assert.equal(BOOKS.en.tb_jl_word, 'Builder');
   });
 });

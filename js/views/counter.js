@@ -646,7 +646,7 @@ function ndIsNews(a){ return !!a && (ND_NEWS.includes(a.kind) || (a.kind === 'wa
 /* WORK GOES ONLY TO WHO CAN DO IT (owner, 20 Nov 2026): for a company Viewer every alert that asks for an act is told
    as NEWS — under the bell's News tab, never counted — but their own note falling due and a watch of theirs that
    fired, which are theirs to act on */
-const ND_VIEWER_WORK = ['note-due', 'watch'];
+const ND_VIEWER_WORK = ['note-due', 'watch', 'nb-due'];
 /* THE OWNER'S ALERTS (owner, 20 Nov 2026: "Owner and admins"): "they are ready to sign", a renewal to decide or an
    ending, a certificate lapsed — work for the contract's owner and the admins (whom HaTi already mails), news for
    every other member. A contract nobody owns is the admins'. */

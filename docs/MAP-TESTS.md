@@ -553,6 +553,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f481 (view `playbook` = the standards tab)
 - f244, f907, f331, f336, f376, f722, f760–f764, templates-tabs, one-door, prompt-and-build, paper-first, our-paper-as-drawn verify.
 - f1071 (renumbered from f1057, which main also took; the Builder arrives in one step: no Our paper or page underneath on the way).
+- 23 Nov 2026, the Builder end to end the Legora + Stripe way: f1199 (new; 7 of 7 red at the parent 9fb2bc4); browser builder-ls-verify (new) and templates-tabs-verify 9c (new). Re-pointed: f1049 (2)(3)(4), f1091 (8), f1118 (4), f1100 (1), f376 ([repair], publish asks once), f762 (1a, 2a, 2b), f763 (4a), f764 (3a, 7a), f907 (4 checks); browser our-paper-as-drawn 1a, 7a, 7c–7e, 8c, 9a; prompt-and-build 2a, 2e, 9; paper-beside-questions 4a, 4b; templates-tabs 9a, 9b. Run with f937, f965, f232, f964.
 
 ## NEW AGREEMENT, DRAFT FROM A SENTENCE, THE FILL FORMS
 - f1049 (10): From nothing's contents page on one paper size, scrolling inside; Jambo's panel; New agreement's head as tall as Jambo's (14 Nov 2026).
@@ -1143,3 +1144,4 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 
 ## NOTES AND COMMENTS — filing never asks for a note (24 Nov 2026)
 f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks nothing). Browser checks that waited for the pin or "Why this change?" after a save: re-pointed as GitHub finds them.
+- f1198 (6) (24 Nov 2026, red at the parent): the answer's "Open …" button and its walled door; delete with Undo (list and search); move between shelves (admin, own onto Company; the wall follows); the bell row. notebook-verify 6a, 6b: Delete and Undo in the panel.

@@ -111,11 +111,12 @@ const RAIL = () => {
     await page.keyboard.press('Enter');
     await pause(900);
     s = await page.evaluate(RAIL);
-    check('2a · the outline comes back as a list, headings only', /Parties[\s\S]*Definitions[\s\S]*Payment terms/.test(s.lane) && /Headings only/.test(s.lane), s.lane.slice(0, 120));
+    /* RE-POINTED 23 Nov 2026 (the Builder L+S, as drawn): one quiet table of headings, each with where its words come from */
+    check('2a · the outline comes back as a list, headings only', /Parties[\s\S]*Definitions[\s\S]*Payment terms/.test(s.lane), s.lane.slice(0, 120));
     /* How many of the TICKED rows the list says come from your clause library —
        read off the list the reader was shown, before the press (see 2e). */
-    const fromLib = await page.evaluate(() => [...document.querySelectorAll('#tb-lane .tb-list li')]
-      .filter(li => { const c = li.querySelector('input[type="checkbox"]'); return c && c.checked && li.querySelector('.src.lib'); }).length);
+    const fromLib = await page.evaluate(() => [...document.querySelectorAll('#tb-lane .tb-olt tr')]   /* RE-POINTED 23 Nov 2026: the list's rows, the library's a grey badge */
+      .filter(li => { const c = li.querySelector('input[type="checkbox"]'); return c && c.checked && li.querySelector('.tb-bdg.is-gray'); }).length);
     await page.click('[data-tb-out-add]');
     await pause(900);
     s = await page.evaluate(RAIL);
@@ -244,7 +245,7 @@ const RAIL = () => {
     await page.click('[data-tb-tab="playbook"]');
     await pause(300);
     s = await page.evaluate(RAIL);
-    check('9 · the Playbook tab counts against the book and names it', /Against your playbook/.test(s.lane) && /of \d/.test(s.lane), s.lane.slice(0, 80));
+    check('9 · the Playbook tab counts against the book and names it', /positions? met|Every position is met/.test(s.lane) && /\d\/\d/.test(s.lane), s.lane.slice(0, 80)); /* RE-POINTED 23 Nov 2026: a ring and its words */
     await page.click('[data-tb-tab="build"]');
     await pause(200);
 

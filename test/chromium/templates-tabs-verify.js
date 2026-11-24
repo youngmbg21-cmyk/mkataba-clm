@@ -794,12 +794,20 @@ const BOX = sel => {
       return { newBtn: n ? n.textContent.trim() : null, tabs };
     });
     Object.assign(words, onPaper);
-    check('9a · the one door says what it does: the New agreement sheet\u2019s third tab, From scratch',
-      words.newBtn === 'From scratch' && words.tabs[words.tabs.length - 1] === 'From scratch', words);
+    /* RE-POINTED 23 Nov 2026 (the owner named the tab "Create a template") */
+    check('9a · the one door says what it does: the New agreement sheet\u2019s third tab, Create a template',
+      words.newBtn === 'Create a template' && words.tabs[words.tabs.length - 1] === 'Create a template', words);
     /* RE-POINTED (P-34, owner's pick 20 Nov 2026: Our paper the Legora + Stripe way): the picked head draws "New standard"
        (black) beside Our playbook › on Our paper — the pick is the owner's yes to that door; it opens the same act as
        From scratch (#tpl-new → openNewStandard), never a second way of its own. No Convert a document beside it. */
-    check('9b · Our paper\'s head carries New standard (the owner\'s pick, the same act as From scratch), no Convert a document beside it', words.newHere && !words.conv, words);
+    check('9b · Our paper\'s head carries Create a template (the owner\'s pick, the same act as the tab), no Convert a document beside it', words.newHere && !words.conv, words);
+    /* ONE DOOR (owner, 23 Nov 2026): Our paper's Create a template opens the New agreement sheet on its tab, never the pop-up */
+    { await page.evaluate(() => { try { closeModal(); } catch (_) {} setView('templates'); }); await pause(900);
+      const b = await page.$('[data-tpln-new]'); if (b) await b.click();
+      let on = null; for (let i = 0; i < 20 && !on; i++) { await pause(250); on = await page.evaluate(() => { const t = document.querySelector('[data-na-newpaper]'); return t && t.getAttribute('aria-selected') === 'true' ? { pop: !!document.getElementById('ns-form'), lit: [...document.querySelectorAll('.na-ptab[aria-selected="true"]')].map(x => x.textContent.trim()) } : null; }); }
+      check('9c · Our paper\'s button opens the New agreement sheet on Create a template, no pop-up, one tab lit', !!on && !on.pop && on.lit.join() === 'Create a template', on);
+      await page.evaluate(() => { try { closeModal(); } catch (_) {} }); await pause(300);
+      await page.evaluate(() => openNewAgreement({})); for (let i = 0; i < 20 && !(await page.evaluate(() => !!document.querySelector('[data-na-newpaper]'))); i++) await pause(250); }
 
     await page.click('[data-na-newpaper]');
     await pause(500);

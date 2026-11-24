@@ -7,6 +7,7 @@
       the quoted section marked; ‹ Notebook comes back to the list
    4  a document past twelve months says Check due, and Mark checked sits in its row; pressed, Up to date; Undo puts it back
    5  + Add a document opens HaTi's one edit pop-up: File · Name · Kind · Shelf · In force from
+   6  Delete from the panel takes it off the list, Undo brings it back
    Each half guarded: a missing feature reports, it does not time out. */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -71,6 +72,18 @@ const DPA = ['THE DATA PROTECTION ACT, 2019', 'Section 48', 'A data controller m
       const undo = ok && await until(us, () => [...document.querySelectorAll('#toast-root button')].some(b => /Undo/.test(b.textContent)), null, 4000);
       if (undo) await us.evaluate(() => [...document.querySelectorAll('#toast-root button')].find(b => /Undo/.test(b.textContent)).click());
       check('4c Undo puts the old check back', undo && await until(us, i => { const r = document.querySelector(`[data-nb-row="${i}"]`); return !!(r && /Check due/.test(r.innerText)); }, d.id));
+    }
+    /* 6 Delete from the panel takes it off the list; Undo brings it back (owner, 24 Nov 2026) */
+    if (g){
+      await us.click(`[data-nb-row="${g.id}"]`);
+      const del = await until(us, () => !!document.querySelector('#ins-panel [data-nb-delete]'));
+      if (del) await us.click('#ins-panel [data-nb-delete]');
+      const gone = del && await until(us, i => !document.querySelector(`[data-nb-row="${i}"]`), g.id);
+      check('6a Delete takes it off the list', gone);
+      /* the Undo on the "deleted" alert itself: an older alert (Mark checked's Undo) may still be on screen */
+      const u = gone && await until(us, () => [...document.querySelectorAll('#toast-root button')].some(b => /Undo/.test(b.textContent) && /deleted/.test((b.closest('#toast-root > *') || b).textContent)), null, 4000);
+      if (u) await us.evaluate(() => { const L = [...document.querySelectorAll('#toast-root button')].filter(b => /Undo/.test(b.textContent) && /deleted/.test((b.closest('#toast-root > *') || b).textContent)); L[L.length - 1].click(); });
+      check('6b Undo brings it back', u && await until(us, i => !!document.querySelector(`[data-nb-row="${i}"]`), g.id));
     }
     const add = await us.$('#nb-add');
     if (add) await add.click();

@@ -184,6 +184,8 @@ async function openTemplateBuilder(tid, vid, opts = {}) {
   if (arrive) { arrive(); if (window.tplLibCancelPending) tplLibCancelPending(); /* the page arrive drew starts no list that paints over this */ }
   _tb = {
     tid, vid, template: t.template, versionNumber: v.version.versionNumber,
+    /* Delete draft (More ▾) reads these: the server's own "may manage", and whether any version ever left draft */
+    canManage: !!t.canManage, everPublished: (t.versions || []).some(x => x && x.status && x.status !== 'draft'),
     /* `_k` IS A CLIENT KEY AND NEVER TRAVELS. A section's ask box, its answer
        and its busy state are held against the HEADING BLOCK it belongs to, and
        an index moves the moment somebody presses an arrow. tbSave maps every
@@ -589,7 +591,7 @@ async function tbOutlineRun(said) {
     _tb.outline = tbOutlineFrom(d, said);
     _tb.said = said;
   } catch (e) { if (_tb !== me) return; _tb.outline = { said, error: tbSay(e) }; }
-  tbPaintRail();
+  tbPaintRail(); tbPaintPaper();   /* the paper shows what is proposed, faint (as drawn, 23 Nov 2026) */
 }
 /* ---- WHERE EACH PROPOSED SECTION'S WORDS WILL COME FROM (one door, 24 Sep
    2026) ---- The owner's rule for a new standard: your clause library FIRST,
@@ -1868,7 +1870,13 @@ function tbPaperHtml() {
   putProps();
   /* THE BUILDER OPENS ON ONE WHOLE PAPER (owner, 14 Nov 2026: "This page should be a whole paper"): with nothing on
      it yet, one quiet line says what lands here (index.html gives the sheet a page's height) */
-  if (!_tb.blocks.length) html += `<p class="tb-empty-line">${esc(i18t('tb_empty_paper'))}</p>`;
+  /* AS DRAWN (23 Nov 2026): while Jambo's list waits, the paper shows what is proposed, faint, where it will land —
+     nothing is on it until Add; with no list, the one quiet line */
+  if (!_tb.blocks.length) {
+    const ol = _tb.outline && !_tb.outline.busy && (_tb.outline.sections || []).filter(x => x.on);
+    html += ol && ol.length ? `<div class="tb-ghost"><p class="tb-empty-line">${esc(i18t('tb_ghost_head'))}</p>${ol.map((x, i) => `<div class="tb-ghost-s"><b>${i ? esc(i + '. ') : ''}${esc(x.heading)}</b><span>${esc(i18t(x.src && x.src !== 'ai' ? 'tb_ghost_lib' : 'tb_ghost_ai'))}</span></div>`).join('')}</div>`
+      : `<p class="tb-empty-line">${esc(i18t('tb_empty_paper'))}</p>`;
+  }
   html += `<div class="tb-add">
       <select id="tb-addtype" style="border:var(--fld-edge);border-bottom:var(--fld-under);background:var(--fld-bg);border-radius:var(--fld-r);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
         ${Object.entries(TB_BLOCK_META).map(([k, m]) => `<option value="${k}" title="${esc(m.tip)}">${m.label}</option>`).join('')}
@@ -1878,6 +1886,43 @@ function tbPaperHtml() {
   return `<article class="tb-paper" id="tb-paper">${html}</article>`;
 }
 
+
+/* ════ THE RAIL, LEGORA + STRIPE (owner: "Build as drawn", 23 Nov 2026) ════
+   ONE reading of a section's state for every tab (tbSecBadge): Written · To write · Differs; the badges and the
+   progress are drawn from tbSections / tbSectionOwes / tbCoverage — the same readings the foot and Publish count. */
+const tbBadgeHtml = (tone, words) => `<span class="tb-bdg is-${tone}"><i></i>${esc(words)}</span>`;
+function tbSecBadge(sec, cov) {
+  const st = tbSecState(sec, cov || tbCoverage());
+  if (st === 'dev') return tbBadgeHtml('amber', i18t('tb_st_dev'));
+  return tbSectionOwes(sec) ? tbBadgeHtml('amber', i18t('tb_st_towrite')) : tbBadgeHtml('green', i18t('tb_st_written'));
+}
+function tbProgHtml() {
+  const secs = tbSections(); if (!secs.length) return '';
+  const w = secs.filter(x => !tbSectionOwes(x)).length, at = secs.findIndex(x => x.k === _tb.focus);
+  const pct = Math.round(100 * w / secs.length);
+  return `<div class="tb-prog"><div class="tb-prog-b"><i style="width:${pct}%"></i></div><div class="tb-prog-l"><span>${esc(i18t('tb_prog', { w, n: secs.length }))}</span>${at >= 0 ? `<span>${esc(i18t('tb_prog_at', { k: at + 1, n: secs.length }))}</span>` : ''}</div></div>`;
+}
+/* the first words a section's paper says, for a quote under its row (nothing invented: its own text, cut with "…") */
+function tbSecQuote(sec, max = 64) {
+  const t = String(tbSectionText(sec) || '').replace(/\{\{([a-z0-9_]+)\}\}/gi, '___').replace(/\s+/g, ' ').trim();
+  return t ? '“' + (t.length > max ? t.slice(0, max).replace(/\s+\S*$/, '') + '…' : t) + '”' : '';
+}
+/* every blank the WORDING carries, by key, with the section it stands in and the words round it */
+function tbWordingBlanks() {
+  const out = [], seen = new Set();
+  tbSections().forEach(sec => {
+    const bs = _tb.blocks; [sec.headIndex, ...sec.body].forEach(i => {
+      const txt = String((bs[i] && bs[i].content) || '').replace(/<[^>]+>/g, ' ');
+      txt.replace(/\{\{([a-z0-9_]+)\}\}/gi, (m, k, at) => {
+        if (seen.has(k)) return m; seen.add(k);
+        const before = txt.slice(Math.max(0, at - 28), at).replace(/\s+/g, ' ').replace(/^\S*\s/, '');
+        const after = txt.slice(at + m.length, at + m.length + 24).replace(/\s+/g, ' ').replace(/\s\S*$/, '');
+        out.push({ key: k, sec, near: ('“…' + before + '___' + after + '…”').replace(/\{\{[a-z0-9_]+\}\}/gi, '___') });
+        return m; });
+    });
+  });
+  return out;
+}
 /* ---- THE RAIL ---- */
 const tbYouHtml = text => `<div class="tb-you"><span>${esc(text)}</span></div>`;
 const tbAiHtml = (html, tone) => `<div class="tb-ai${tone ? ' ' + tone : ''}"><p class="t">${html}</p></div>`;
@@ -1931,21 +1976,32 @@ function tbOutlineLaneHtml() {
   let html = o.said ? tbYouHtml(o.said) : '';
   if (o.busy) return html + tbAiHtml(i18t('tb_pb_thinking'));
   if (o.error) return html + tbAiHtml(esc(o.error), 'amber') + `<div class="tb-card"><div class="av" style="margin-top:0"><button type="button" data-tb-brief-again>${i18t('tb_pb_try_again')}</button></div></div>`;
-  /* EVERY SECTION SAYS WHERE ITS WORDS WILL COME FROM (24 Sep 2026): your
-     clause library, Our standards, or Copilot's own draft — tbSourceOf, asked
-     when the list was made. The sentence above the list COUNTS them; HaTi
-     composes it, never the model. */
+  /* EVERY SECTION SAYS WHERE ITS WORDS WILL COME FROM (24 Sep 2026): tbSourceOf, asked when the list was made; the
+     sentence above COUNTS them (HaTi composes it, never the model). AS DRAWN (23 Nov 2026): no grey card — one quiet
+     table, the source a soft badge at the right, the bar of what arrives written and what Jambo drafts; a name
+     CHOOSES its row (its intent under it); Add and "I'll write them myself" stand at the panel's foot (tbRailHtml). */
   const SRC = { lib: 'tb_src_lib', std: 'tb_src_std', ai: 'tb_src_ai' };
-  const rows = o.sections.map((x, n) => `<li><label><input type="checkbox" data-tb-out="${n}" ${x.on ? 'checked' : ''} style="margin-top:3px"><span><b>${esc(x.heading)}</b>${x.optional ? `<span class="opt"> · ${i18t('tb_src_optional')}</span>` : ''}${x.src ? `<span class="src ${x.src}">${i18t(SRC[x.src])}</span>` : ''}${x.playbook ? `<span class="fr">${i18t('tb_pb_from_playbook')}</span>` : ''}${x.intent ? `<span class="it">${esc(x.intent)}</span>` : ''}</span></label></li>`).join('');
-  const n = o.sections.filter(x => x.on).length;
+  const TONE = { lib: 'gray', std: 'green', ai: 'violet' };
+  const pick = o.pick == null ? -1 : o.pick;
+  const rows = o.sections.map((x, n) => `<tr class="${n === pick ? 'is-sel' : ''}${x.on ? '' : ' is-off'}"><td class="tb-olt-k"><input type="checkbox" data-tb-out="${n}" ${x.on ? 'checked' : ''} aria-label="${esc(x.heading)}"></td>
+      <td><button type="button" class="tb-olt-h" data-tb-olpick="${n}">${esc(x.heading)}</button>${x.optional ? `<span class="tb-olt-o"> · ${i18t('tb_src_optional')}</span>` : ''}${n === pick && x.intent ? `<span class="tb-olt-i">${esc(x.intent)}</span>` : ''}</td>
+      <td class="tb-olt-s">${x.src ? tbBadgeHtml(TONE[x.src] || 'gray', i18t(SRC[x.src])) : ''}</td></tr>`).join('');
   const cnt = k => o.sections.filter(x => x.src === k).length;
   const lead = o.sections.some(x => x.src)
     ? i18t('tb_out_lead', { n: o.sections.length, lib: cnt('lib'), std: cnt('std'), ai: cnt('ai') })
     : i18tn('tb_pb_proposed_n', o.sections.length, { n: o.sections.length });
-  return html + `<div class="tb-ai"><p class="t">${lead}${o.note ? ' ' + esc(o.note) : ''}</p>
-    <div class="tb-card"><ul class="tb-list">${rows}</ul><span class="r">${i18t('tb_pb_headings_only')}</span>
-      <div class="av"><button type="button" class="p" data-tb-out-add ${n ? '' : 'disabled'}>${i18tn('tb_pb_add_n', n, { n })}</button>
-        <button type="button" data-tb-brief-again>${i18t('tb_pb_start_again')}</button><span class="cost">${i18t('tb_pb_read_n', { n: _tb.reads })}</span></div></div></div>`;
+  const kept = o.sections.filter(x => x.on), wr = kept.filter(x => x.src && x.src !== 'ai').length, dr = kept.length - wr;
+  const bar = kept.length && o.sections.some(x => x.src) ? `<div class="tb-prog is-src"><div class="tb-prog-b"><i class="is-w" style="width:${Math.round(100 * wr / kept.length)}%"></i><i class="is-d" style="width:${Math.round(100 * dr / kept.length)}%"></i></div>
+      <div class="tb-prog-l"><span><i class="tb-dot is-w"></i>${esc(i18t('tb_ol_bar_written', { n: wr }))}</span><span><i class="tb-dot is-d"></i>${esc(i18t('tb_ol_bar_draft', { n: dr }))}</span></div></div>` : '';
+  return html + `<div class="tb-ai tb-olist"><p class="t">${lead}${o.note ? ' ' + esc(o.note) : ''} <button type="button" class="ui-link tb-again" data-tb-brief-again>${i18t('tb_pb_start_again')}</button></p>
+    ${bar}<table class="tb-olt"><tbody>${rows}</tbody></table></div>`;
+}
+function tbOutlineFootHtml() {
+  const o = _tb && _tb.outline;
+  if (!o || o.busy || o.error || !(o.sections || []).length) return '';
+  const n = o.sections.filter(x => x.on).length;
+  return `<div class="tb-olfoot"><button type="button" class="ui-btn" data-tb-out-mine>${i18t('tb_walk_mine')}</button><span class="sp"></span>
+    <button type="button" class="ui-btn ui-btn-primary" data-tb-out-add ${n ? '' : 'disabled'}>${i18tn('tb_pb_add_n', n, { n })}</button></div>`;
 }
 function tbBuildLaneHtml() {
   const secs = tbSections();
@@ -1979,22 +2035,29 @@ function tbBuildLaneHtml() {
 function tbPlaybookLaneHtml(cov) {
   if (!cov || !cov.total) return tbAiHtml(i18t('tb_pb_no_book'));
   const secs = tbSections();
+  /* AS DRAWN (23 Nov 2026): a small ring says the score; ONE calm table, each position with its rule and, the Legora
+     way, the § and the paper's own words that meet it; the row itself shows it on the paper (data-tb-show); a missing
+     one keeps its way forward in its row (Draft it · Add the section). The small print stays. */
+  const r0 = 22, C = 2 * Math.PI * r0, f = cov.total ? cov.met / cov.total : 0;
+  const ring = `<svg class="tb-ring" width="54" height="54" viewBox="0 0 54 54" aria-hidden="true"><circle cx="27" cy="27" r="${r0}" fill="none" stroke="var(--color-divider)" stroke-width="6"/><circle cx="27" cy="27" r="${r0}" fill="none" stroke="var(--st-${cov.deviations ? 'amber' : 'green'}-dot)" stroke-width="6" stroke-dasharray="${(C * f).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 27 27)"/><text x="27" y="31" text-anchor="middle" font-size="12" font-weight="600" fill="var(--color-text)">${cov.met}/${cov.total}</text></svg>`;
+  const head = `<div class="tb-ringrow">${ring}<div><b>${esc(cov.met === cov.total ? i18t('tb_ring_all') : i18t('tb_ring_some', { met: cov.met, n: cov.total }))}</b><span class="q">${esc(cov.label)}</span></div></div>`;
   const rows = cov.rows.map(r => {
     const why = r.state === 'dev' ? i18t('tb_pb_dev_note', { n: r.figure, want: r.want, note: r.note || '' }) : (r.note || '');
-    let door = '';
-    if (r.where) door = `<button type="button" data-tb-show="${r.where.k}">${i18t('tb_show_me')}</button>`;
-    else {
-      const empty = secs.find(s => { const t = tbKindOf(s.head); return t && t.category === r.category; });
-      door = empty ? `<button type="button" data-tb-cover-draft="${empty.k}" data-tb-note="${esc(r.note || '')}">${i18t('tb_draft_this')}</button>`
-                   : `<button type="button" data-tb-cover-add="${esc(r.category)}">${(typeof window!=='undefined'&&window.plusLed?window.plusLed(i18t('tb_pb_add_section')):i18t('tb_pb_add_section'))}</button>`;
+    let door = '', where = '';
+    if (r.where) {
+      const sec = secs.find(x => x.k === r.where.k), i = sec ? secs.indexOf(sec) : -1;
+      const no = sec ? tbOutlineNo(sec, i) : '';
+      where = sec ? `<span class="tb-olt-i">${esc((no && no !== '·' ? '§' + no + ' ' : '') + tbSecQuote(sec, 54))}</span>` : '';
+    } else {
+      const empty = secs.find(x => { const t = tbKindOf(x.head); return t && t.category === r.category; });
+      door = empty ? `<button type="button" class="ui-btn ui-btn-sm" data-tb-cover-draft="${empty.k}" data-tb-note="${esc(r.note || '')}">${i18t('tb_draft_this')}</button>`
+                   : `<button type="button" class="ui-btn ui-btn-sm" data-tb-cover-add="${esc(r.category)}">${i18t('tb_pb_add_section')}</button>`;
     }
-    const st = r.state === 'dev' ? `${i18t('tb_pb_reads_fig', { n: r.figure })} · ${r.op} ${r.want}` : r.state === 'hit' ? i18t('tb_met') : i18t('tb_not_yet_written');
-    return `<li><i class="d ${r.state === 'hit' ? 'ok' : r.state}"></i><span class="g">${esc(r.category)}${r.escalate ? ` · ${i18t('tb_pb_legal')}` : ''}</span><span class="st ${r.state === 'hit' ? 'ok' : r.state}">${st}</span>${door}
-      ${why ? `<span class="sub" style="font-family:inherit">${esc(why)}</span>` : ''}</li>`;
+    const badge = r.state === 'hit' ? tbBadgeHtml('green', i18t('tb_st_met')) : r.state === 'dev' ? tbBadgeHtml('amber', i18t('tb_st_dev')) : tbBadgeHtml('amber', i18t('tb_st_missing'));
+    return `<tr${r.where ? ` data-tb-show="${r.where.k}" class="is-press"` : ''}><td><span class="tb-olt-hh">${esc(r.category)}</span>${r.escalate ? ` <span class="q">· ${i18t('tb_pb_legal')}</span>` : ''}${why ? `<span class="tb-olt-r">${esc(why)}</span>` : ''}${where}${door ? `<div class="tb-olt-act">${door}</div>` : ''}</td><td class="tb-olt-s">${badge}</td></tr>`;
   }).join('');
-  return `<div class="tb-card" style="margin-top:0"><div class="n">${i18t('tb_pb_cover_head')}<span class="g"></span><span class="chip ${cov.deviations ? 'dev' : 'lib'}">${i18t('tb_pb_covered', { n: cov.covered, m: cov.total })}</span></div>
-    <span class="r">${esc(cov.label)}</span><ul class="tb-rows" style="margin-top:6px">${rows}</ul>
-    <span class="r">${i18t('tb_pb_dev_rides')}</span></div>`;
+  return `${head}<table class="tb-olt is-tab"><thead><tr><th>${esc(i18t('tb_pos_h'))}</th><th class="r">${esc(i18t('tb_ol_status'))}</th></tr></thead><tbody>${rows}</tbody></table>
+    <p class="tb-small">${i18t('tb_pb_dev_rides')}</p>`;
 }
 /* ---- THE LIKELY BLANKS, as Copilot's first move on a copied document ----
    Every row arrives UNTICKED (decision 3): nothing becomes a blank until a
@@ -2076,19 +2139,30 @@ function tbContractCardHtml() {
 function tbBlanksLaneHtml() {
   const first = tbCandsCardHtml();
   const proposed = tbProposedRowHtml(null);
-  const rows = _tb.fields.map((f, i) => {
-    const lib = (window.FIELD_LIB || {})[f.fieldType] || { label: f.fieldType };
-    const uses = tbPlaceholderUse(f.fieldKey);
-    /* A field the converter detected and nobody has looked at keeps its flag
-       (the fields card carried it since Phase D; the Blanks tab carries it now). */
-    const conf = f.detectionConfidence !== 'manual' && !f.humanReviewed
-      ? `<span class="st" style="color:${f.detectionConfidence === 'low' ? 'var(--st-ruby-fg)' : 'var(--st-amber-fg)'}" title="${i18t('tb_detected_unreviewed')}">${esc(f.detectionConfidence)} confidence</span>` : '';
-    return `<li><span class="tb-bl">${esc(f.label || f.fieldKey)}</span>${f.required ? `<span class="st" style="color:var(--st-ruby-fg)" title="${esc(i18t('tb_req_title'))}">*</span>` : ''}${conf}<span class="g"></span>
-      <button type="button" data-tb-fcopy="${i}" title="${i18t('tb_copy_placeholder')}" aria-label="${i18t('tb_copy_placeholder')}">${icon('copy','w-3.5 h-3.5')}</button><button type="button" data-tb-fedit="${i}">${i18t('act_edit')}</button><button type="button" class="x" data-tb-fdel="${i}" title="${i18t('act_remove')}" aria-label="${i18t('act_remove')}">${icon('x','w-3.5 h-3.5')}</button>
-      <span class="sub">{{${esc(f.fieldKey)}}} · ${esc(lib.label)}${f.control === 'guided' ? ` · guided (${f.options.length})` : ''}${f.defaultValue ? ' · default set' : ''} · ${uses ? i18tn('tb_in_blocks', uses, { n: uses }) : `<span style="color:var(--st-amber-fg)">${i18t('tb_unplaced')}</span>`}</span></li>`;
+  /* AS DRAWN (23 Nov 2026): what the paper ASKS, read off the wording — every field, and every blank a written section
+     carries that nobody has made a field yet (amber, "Make it a field" in its row: today's field form, holding its
+     name; nothing becomes a field by itself). Chips All · Fields · Not yet a field; Add a field by hand under it. */
+  const notYet = tbWordingBlanks().filter(x => !_tb.fields.some(f => f.fieldKey === x.key) && !(_tb.proposed || []).some(q => q.key === x.key));
+  const f = ['all', 'fields', 'notyet'].includes(_tb.blF) ? _tb.blF : 'all';
+  const chips = (_tb.fields.length || notYet.length) ? tbChipRowHtml('data-tb-blf', f, [['all', i18t('tb_ol_all'), _tb.fields.length + notYet.length], ['fields', i18t('tb_bl_fields'), _tb.fields.length], ['notyet', i18t('tb_bl_notyet'), notYet.length]]) : '';
+  const fieldRows = f === 'notyet' ? '' : _tb.fields.map((fl, i) => {
+    const lib = (window.FIELD_LIB || {})[fl.fieldType] || { label: fl.fieldType };
+    const uses = tbPlaceholderUse(fl.fieldKey);
+    /* A field the converter detected and nobody has looked at keeps its flag */
+    const conf = fl.detectionConfidence !== 'manual' && !fl.humanReviewed
+      ? ` <span class="q" style="color:${fl.detectionConfidence === 'low' ? 'var(--st-ruby-fg)' : 'var(--st-amber-fg)'}" title="${i18t('tb_detected_unreviewed')}">${esc(fl.detectionConfidence)} confidence</span>` : '';
+    return `<tr><td><span class="tb-bl">${esc(fl.label || fl.fieldKey)}</span>${fl.required ? `<span class="st" style="color:var(--st-ruby-fg)" title="${esc(i18t('tb_req_title'))}">*</span>` : ''}${conf}
+        <span class="tb-olt-i" style="font-style:normal">{{${esc(fl.fieldKey)}}} · ${esc(lib.label)}${fl.control === 'guided' ? ` · guided (${fl.options.length})` : ''}${fl.defaultValue ? ' · default set' : ''} · ${uses ? i18tn('tb_in_blocks', uses, { n: uses }) : `<span style="color:var(--st-amber-fg)">${i18t('tb_unplaced')}</span>`}</span></td>
+      <td class="tb-olt-s"><span class="tb-blacts"><button type="button" data-tb-fcopy="${i}" title="${i18t('tb_copy_placeholder')}" aria-label="${i18t('tb_copy_placeholder')}">${icon('copy','w-3.5 h-3.5')}</button><button type="button" data-tb-fedit="${i}">${i18t('act_edit')}</button><button type="button" class="x" data-tb-fdel="${i}" title="${i18t('act_delete')}" aria-label="${i18t('act_delete')}">${icon('x','w-3.5 h-3.5')}</button></span></td></tr>`;
   }).join('');
-  return `${first}${proposed}${rows ? `<ul class="tb-rows">${rows}</ul>` : (proposed || first ? '' : tbAiHtml(i18t('tb_no_fields')))}
-    <div style="margin-top:12px"><button type="button" id="tb-addfield" class="ui-btn ui-btn-sm">${icon('plus', 'w-3 h-3')} ${i18t('tl_add_field')}</button></div>`;
+  const notRows = f === 'fields' ? '' : notYet.map(x => {
+    const i = tbSections().findIndex(y => y.k === x.sec.k), no = i >= 0 ? tbOutlineNo(x.sec, i) : '';
+    return `<tr><td><span class="tb-bl">${esc(x.key)}</span> ${tbBadgeHtml('amber', i18t('tb_bl_notyet'))}<span class="tb-olt-i">${esc((no && no !== '·' ? '§' + no + ' ' : '§ ') + (x.sec.head || '') + ' · ' + x.near)}</span></td>
+      <td class="tb-olt-s"><button type="button" class="ui-btn ui-btn-sm" data-tb-bl-make="${esc(x.key)}">${esc(i18t('tb_bl_make'))}</button></td></tr>`;
+  }).join('');
+  const table = fieldRows || notRows ? `<table class="tb-olt is-tab"><tbody>${notRows}${fieldRows}</tbody></table>` : '';
+  return `${first}${proposed}${chips || table ? `<p class="tb-small" style="margin-top:0">${esc(i18t('tb_bl_lead'))}</p>` : ''}${chips}${table || (proposed || first ? '' : tbAiHtml(i18t('tb_no_fields')))}
+    <div class="tb-bladd"><button type="button" id="tb-addfield" class="ui-link">+ ${esc(i18t('tb_bl_add_hand'))}</button></div>`;
 }
 function tbScopeHtml() {
   const sec = _tb.focus != null ? tbSectionAt(_tb.focus) : null;
@@ -2102,7 +2176,7 @@ function tbScopeHtml() {
 }
 function tbChipsRowHtml() {
   const chips = [];
-  if (!_tb.blocks.length || _tb.outline) { if (_tb.outline && _tb.outline.sections) chips.push(['data-tb-out-mine', i18t('tb_walk_mine')]); }
+  if (!_tb.blocks.length || _tb.outline) { /* "I'll write them myself" stands at the panel's foot with Add (tbOutlineFootHtml) */ }
   else {
     const sec = _tb.focus != null ? tbSectionAt(_tb.focus) : null;
     if (sec) {
@@ -2129,7 +2203,7 @@ function tbChipsRowHtml() {
              Firmer · Mutual · Plainer, the standard's own name on the hover; the row wraps instead of scrolling away */
           (typeof window.newLookOn === 'function' && window.newLookOn()) ? i18t('tb_pb_use_ours_short') : i18t('tb_pb_use_ours', { name: esc(lib.name) })]);
       if (txt) ['shorter', 'firmer', 'mutual', 'plain'].forEach(c => chips.push([`data-tb-chip="${c}" title="${i18t('tb_pb_one_read')}"`, i18t((c === 'mutual' || c === 'plain') && (typeof window.newLookOn === 'function' && window.newLookOn()) ? 'tb_chip_s_' + c : 'tb_chip_' + c)]));
-      if (_tb.walk && !txt && tbNextEmpty(sec.k)) chips.push(['data-tb-skip', i18t('tb_skip_sec')]);
+      /* Skip this section stands in the foot with ‹ k of n › and Next section (tbFootHtml, as drawn 23 Nov 2026) */
     }
   }
   return `<div class="tb-chips" id="tb-chips">${chips.map(([attr, label, cls]) => `<button type="button" ${attr}${cls ? ` class="${cls}"` : ''}>${label}</button>`).join('')}</div>`;
@@ -2167,6 +2241,7 @@ function tbFootHtml() {
   const at = secs.findIndex(s => s.k === _tb.focus);
   /* THE EDITOR'S FOOT (‹ k of n ›), the written count kept on its title */
   return `<span class="tb-pg" title="${esc(i18t('tb_pb_covered', { n: written, m: secs.length }) + ' ' + i18t('tb_foot_written'))}"><button type="button" data-tb-step="-1" title="${i18t('tb_prev')}" aria-label="${i18t('tb_prev')}">‹</button><span>${i18t('tb_pg', { k: at < 0 ? '–' : at + 1, n: secs.length })}</span><button type="button" data-tb-step="1" title="${i18t('tb_next')}" aria-label="${i18t('tb_next')}">›</button></span>${dev ? `<span class="tb-pg-dev"><b>${dev}</b> ${i18tn('tb_foot_dev', dev, { n: dev })}</span>` : ''}<span class="sp"></span>
+    ${(() => { const sec = _tb.focus != null ? tbSectionAt(_tb.focus) : null; return sec && _tb.walk && !tbSectionText(sec) && tbNextEmpty(sec.k) ? `<button type="button" class="tb-skipl" data-tb-skip>${i18t('tb_skip_sec')}</button>` : ''; })()}
     <button type="button" class="tb-walk${_tb.walk ? ' is-on' : ''}" data-tb-walk title="${esc(i18t('tb_walk_title'))}">${i18t('tb_walk')} · ${_tb.walk ? i18t('tb_on') : i18t('tb_off')}</button>
     <button type="button" class="ui-btn ui-btn-sm ui-btn-primary tb-nextbtn" data-tb-next="${nx ? nx.k : ''}" ${nx ? '' : 'disabled'}>${i18t('tb_next_section')}${icon('chevR')}</button>`;
 }
@@ -2226,7 +2301,9 @@ function tbRailHtml() {
   const T = (id, label, n, cls) => `<button type="button" role="tab" data-tb-tab="${id}" aria-selected="${tab === id}" class="${tab === id ? 'is-on' : ''}">${label}${n ? `<span class="n${cls ? ' ' + cls : ''}">${n}</span>` : ''}</button>`;
   const face = n => (window.jamboFaceHtml ? jamboFaceHtml('hello', n, n > 22 ? 'tb-door-face' : 'pd-tab-face').replace('<img', '<img data-ink-exempt') : '&#10022;');
   const name = i18t('tb_copilot');
-  const pb = cov && cov.total ? `${cov.met}/${cov.total}` : '';
+  const pb = cov && cov.total ? i18t('tb_pb_covered', { n: cov.met, m: cov.total }) : '';
+  const nOl = _tb.blocks.length && !_tb.outline ? tbSections().length : 0;
+  const nbW = tbWordingBlanks().filter(x => !_tb.fields.some(f => f.fieldKey === x.key) && !(_tb.proposed || []).some(q => q.key === x.key)).length;
   const showBack = tab !== 'build' || _tb.focus != null;
   return `<aside class="tb-rail tb-jl${tbRailFolded() ? ' is-folded' : ''}" id="tb-rail" aria-label="${esc(name)}">
     <button type="button" class="tb-door" data-tb-door aria-expanded="false" title="${esc(i18t('int_open_panel'))}" aria-label="${esc(i18t('int_open_panel'))}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg><span class="tb-door-i">${face(28)}</span><span class="tb-door-w">${esc(name)}</span></button>
@@ -2235,14 +2312,15 @@ function tbRailHtml() {
       ${''/* ONE ROW, AS THE CLAUSE EDITOR'S (owner, 25 Oct 2026, "the approach should mirror how the redline
              editing is done"): ✦ Jambo, then the tabs at the row's end; no second row, no page word */}
       <span class="jl-sp"></span>
-      <span class="tb-tabs" role="tablist">${T('build', i18t('tb_tab_build'))}${T('outline', i18t('tb_tab_outline'))}${T('playbook', i18t('tb_pb_playbook'), pb, cov && cov.met < cov.total ? 'r' : '')}${T('blanks', i18t('tb_tab_blanks'), nb)}</span>
+      <span class="tb-tabs" role="tablist">${T('build', i18t('tb_tab_build'))}${T('outline', i18t('tb_tab_outline'), nOl)}${T('playbook', i18t('tb_pb_playbook'), pb, cov && cov.met < cov.total ? 'r' : '')}${T('blanks', i18t('tb_tab_blanks'), nb + nbW)}</span>
       <button type="button" class="pd-back" data-tb-jambo title="${esc(i18t('pd_back_jambo'))}"${showBack ? '' : ' hidden'}><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${esc(name)}</button>
       <button type="button" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon jl-fold" data-tb-fold aria-expanded="true" title="${esc(i18t('int_collapse_panel'))}" aria-label="${esc(i18t('int_collapse_panel'))}">${typeof icon === 'function' ? icon('chevR') : '›'}</button>
     </div>
-    ${tab === 'build' ? tbSecPickHtml() : ''}
+    ${tab === 'build' ? tbSecPickHtml() + (_tb.focus != null && _tb.blocks.length && !_tb.outline ? tbProgHtml() : '') : ''}
     ${tab === 'build' || tab === 'playbook' ? `<div class="tb-disc"><b>✦</b><span>${i18t(tab === 'playbook' ? 'tb_pb_cover_foot' : 'tb_disc')}</span></div>` : ''}
     <div class="tb-lane" id="tb-lane">${tab === 'build' ? tbBuildLaneHtml() : tab === 'outline' ? tbOutlineTabHtml(cov) : tab === 'playbook' ? tbPlaybookLaneHtml(cov) : tbBlanksLaneHtml()}</div>
-    ${tab === 'build' ? tbScopeHtml() + tbChipsRowHtml() + `<div class="tb-railfoot" id="tb-railfoot">${tbFootHtml()}</div>` : ''}
+    ${tab === 'build' && (!_tb.blocks.length || _tb.outline) ? tbOutlineFootHtml() : ''}
+    ${tab === 'build' ? tbScopeHtml() + tbChipsRowHtml() + (tbSections().length ? `<div class="tb-railfoot" id="tb-railfoot">${tbFootHtml()}</div>` : '') : ''}
     ${tbAskHtml()}
   </aside>`;
 }
@@ -2264,7 +2342,7 @@ function tbSecPickHtml() {
     if (!on) return '';
     const s = secs.find(x => String(x.k) === on); if (!s) return '';
     const n = tbPaperNo(s);
-    return `<div class="tb-secpick is-named"><button type="button" class="tb-allsecs" data-tb-allsecs>${esc(i18t('tb_all_secs'))}</button><b class="tb-secname">${esc((n ? n + '. ' : '') + (s.head || i18t('tb_untitled')))}</b></div>`;
+    return `<div class="tb-secpick is-named"><button type="button" class="tb-allsecs" data-tb-allsecs>${esc(i18t('tb_all_secs'))}</button><b class="tb-secname">${esc((n ? n + '. ' : '') + (s.head || i18t('tb_untitled')))}</b><span class="sp"></span>${tbSecBadge(s)}</div>`;
   }
   return `<div class="tb-secpick"><select id="tb-secpick" data-tb-secpick aria-label="${esc(i18t('tb_pick_sec'))}">${on ? '' : `<option value="" selected>${esc(i18t('tb_pick_sec'))}</option>`}${secs.map(opt).join('')}</select></div>`;
 }
@@ -2294,42 +2372,40 @@ function tbOutlineNo(sec, i) {
   if (tbRich(b) || ((typeof tplFormHeadingNumbered === 'function') && tplFormHeadingNumbered(b && b.content))) return '';
   return String(i);
 }
+/* the chips over a tab's table: each with its count, a choice with no rows not drawn (A DEAD BUTTON…) */
+function tbChipRowHtml(attr, cur, list) {
+  return `<div class="tb-chiprow">${list.filter(([k, , n]) => k === 'all' || n > 0).map(([k, label, n]) =>
+    `<button type="button" class="tb-chip${cur === k ? ' is-on' : ''}" ${attr}="${k}">${esc(label)} <b>${n}</b></button>`).join('')}</div>`;
+}
+function tbOlFilter(k) { if (!_tb) return; _tb.olF = k; tbPaintRail({ keep: true }); }
 function tbOutlineTabHtml(cov) {
   const secs = tbSections();
   if (!secs.length) return tbAiHtml(i18t('tb_ol_none'));
-  const hit = new Set(((cov && cov.rows) || []).filter(r => r.state === 'hit' && r.where).map(r => r.where.k));
-  const dev = new Set(((cov && cov.rows) || []).filter(r => r.state === 'dev' && r.where).map(r => r.where.k));
-  const tick = '<svg class="tb-ol-ok" viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3.5 8.5 6.5 11.5 12.5 4.5"/></svg>';
-  const rows = secs.map((s, i) => {
-    const n = tbBlankKeys(s).length;
-    const mark = n ? `<span class="tb-ol-pill is-amber">${esc(i18tn('tb_ol_blanks', n, { n }))}</span>`
-      : dev.has(s.k) ? `<span class="tb-ol-pill is-amber" title="${esc(i18t('tb_ol_dev_t'))}">${esc(i18t('tb_ol_dev'))}</span>`
-      : hit.has(s.k) ? `<span title="${esc(i18t('tb_ol_meets'))}">${tick}</span>` : '';
-    return `<button type="button" class="tb-ol-r${s.k === _tb.focus ? ' is-sel' : ''}" data-tb-ol="${s.k}"><span class="tb-ol-n">${esc(tbOutlineNo(s, i))}</span><span class="tb-ol-h">${esc(s.head || i18t('tb_untitled'))}</span>${mark}</button>`;
-  });
+  /* AS DRAWN (23 Nov 2026): chips with their counts — All · To write · Written · Skipped — over ONE calm table: § as the
+     paper prints it, the name, a soft status badge; the chosen row quotes its first words. A row lands on its section
+     (as before); a proposed position lands on Jambo's card on the paper; a skipped one has its way back in its row. */
   const props = tbProposals(cov);
-  /* the proposed rows stand where the paper draws them (tbProposalSpot) */
-  const spot = props.length ? tbProposalSpot() : -1;
-  let at = spot < 0 ? rows.length : secs.findIndex(s => s.headIndex === spot);
-  if (at < 0) at = rows.length;
-  rows.splice(at, 0, ...props.map(r => `<button type="button" class="tb-ol-r is-prop" data-tb-ol-prop="${esc(r.category)}"><span class="tb-ol-n">+</span><span class="tb-ol-h">${esc(r.category)}</span><span class="tb-ol-pill">${esc(i18t('tb_ol_proposed'))}</span></button>`));
-  const labels = _tb.fields.map(f => String(f.label || f.fieldKey || '').trim()).filter(Boolean);
-  const nb = labels.length;
-  const blanks = nb ? i18t('tb_ol_blanks_ask', { list: labels.slice(0, 6).join(' · ') + (nb > 6 ? ' …' : '') }) : i18t('tb_ol_blanks_none');
-  let std = '';
-  if (cov && cov.total) {
-    std = cov.met === cov.total ? i18tn('tb_ol_std_all', cov.total, { n: cov.total })
-      : i18t('tb_ol_std_some', { met: cov.met, n: cov.total })
-        + (props.length ? ' ' + i18tn('tb_ol_std_prop', props.length, { list: props.map(r => r.category).join(i18t('tb_ol_and')) }) : '');
-  }
-  /* A SKIP IS SAID WHERE THE STANDARDS ARE COUNTED, with its way back (check
-     #2, 19 Oct 2026): only the standards still missing, each one a press */
   const skipped = cov && cov.total ? tbSkippedOf().filter(c => (cov.rows || []).some(r => r.category === c && r.state === 'open')) : [];
-  const skipSay = skipped.length ? `<p class="tb-ol-p">${esc(i18t('tb_ol_std_skipped', { list: skipped.join(i18t('tb_ol_and')) }))} ${skipped.map(c =>
-    `<button type="button" class="ui-link" data-tb-unskip="${esc(c)}">${esc(i18t('tb_ol_unskip'))}${skipped.length > 1 ? ' · ' + esc(c) : ''}</button>`).join(' ')}</p>` : '';
-  return `<div class="tb-ol">${rows.join('')}</div>
-    <p class="tb-ol-sh">${esc(i18t('tb_tab_blanks'))}${nb ? ` <span class="tb-ol-cnt">${nb}</span>` : ''}</p><p class="tb-ol-p">${esc(blanks)}</p>
-    ${std ? `<p class="tb-ol-sh">${esc(i18t('tb_ol_std_h'))}</p><p class="tb-ol-p">${esc(std)}</p>${skipSay}` : ''}`;
+  const owes = secs.filter(x => tbSectionOwes(x)).length;
+  const f = ['all', 'todo', 'done', 'skip'].includes(_tb.olF) ? _tb.olF : 'all';
+  const chips = tbChipRowHtml('data-tb-olf', f, [['all', i18t('tb_ol_all'), secs.length], ['todo', i18t('tb_st_towrite'), owes], ['done', i18t('tb_st_written'), secs.length - owes], ['skip', i18t('tb_st_skipped'), skipped.length]]);
+  const rows = [];
+  secs.forEach((x, i) => {
+    const owe = tbSectionOwes(x);
+    if ((f === 'todo' && !owe) || (f === 'done' && owe) || f === 'skip') return;
+    const q = x.k === _tb.focus ? tbSecQuote(x) : '';
+    rows.push({ head: x.headIndex, html: `<tr class="${x.k === _tb.focus ? 'is-sel' : ''}" data-tb-ol="${x.k}"><td class="tb-olt-n">${esc(tbOutlineNo(x, i))}</td><td><span class="tb-olt-hh">${esc(x.head || i18t('tb_untitled'))}</span>${q ? `<span class="tb-olt-i">${esc(q)}</span>` : ''}</td><td class="tb-olt-s">${tbSecBadge(x, cov)}</td></tr>` });
+  });
+  /* the proposed rows stand where the paper draws them (tbProposalSpot) */
+  if (f === 'all' && props.length) {
+    const spot = tbProposalSpot();
+    let at = spot < 0 ? rows.length : rows.findIndex(r => r.head === spot); if (at < 0) at = rows.length;
+    rows.splice(at, 0, ...props.map(r => ({ html: `<tr class="is-prop" data-tb-ol-prop="${esc(r.category)}"><td class="tb-olt-n">+</td><td><span class="tb-olt-hh">${esc(r.category)}</span></td><td class="tb-olt-s">${tbBadgeHtml('violet', i18t('tb_ol_proposed'))}</td></tr>` })));
+  }
+  if (f === 'skip') skipped.forEach(c => rows.push({ html: `<tr><td class="tb-olt-n">–</td><td><span class="tb-olt-hh">${esc(c)}</span> <button type="button" class="ui-link" data-tb-unskip="${esc(c)}">${esc(i18t('tb_ol_unskip'))}</button></td><td class="tb-olt-s">${tbBadgeHtml('gray', i18t('tb_st_skipped'))}</td></tr>` }));
+  const nb = _tb.fields.length;
+  const line = `<p class="tb-ol-line"><span class="q">${esc(i18t('tb_tab_blanks'))}</span> ${esc(i18t('tb_ol_line_blanks', { n: nb }))}${cov && cov.total ? `<span class="q">${esc(i18t('tb_pb_playbook'))}</span> ${esc(i18t('tb_ol_line_pb', { met: cov.met, n: cov.total }))}` : ''}</p>`;
+  return `${chips}<table class="tb-olt is-tab"><thead><tr><th>§</th><th>${esc(i18t('tb_ol_sec'))}</th><th class="r">${esc(i18t('tb_ol_status'))}</th></tr></thead><tbody>${rows.map(r => r.html).join('')}</tbody></table>${line}`;
 }
 /* ---- JAMBO PROPOSES, ON THE PAPER (round 21: "Jambo proposes ·
    Confidentiality · Add · Skip · Our standard: …") ----
@@ -2481,6 +2557,9 @@ function tbOpenItems() {
   if (empty.length) out.push({ kind: 'empty', tone: 'amb', n: empty.length, k: empty[0].k, head: empty[0].head || '' });
   const C = _tb.cands;
   if (C && !C.busy && C.rows.length) out.push({ kind: 'cands', tone: 'amb', n: C.rows.length });
+  /* a blank the wording carries that is no field asks nobody (the Blanks tab's "Not yet a field", 23 Nov 2026) */
+  const nf = tbWordingBlanks().filter(x => !_tb.fields.some(f => f.fieldKey === x.key) && !(_tb.proposed || []).some(q => q.key === x.key)).length;
+  if (nf) out.push({ kind: 'blanks', tone: 'amb', n: nf });
   const cov = tbCoverage();
   if (cov) {
     const D = _tb.decided || {};
@@ -2498,39 +2577,69 @@ function tbOpenItemLine(it) {
   if (it.kind === 'stream') return i18t('tb_pq_stream');
   if (it.kind === 'empty') return it.n === 1 ? i18t('tb_pq_empty_one', { head: it.head || i18t('tb_untitled') }) : i18t('tb_pq_empty_other', { n: it.n, head: it.head || i18t('tb_untitled') });
   if (it.kind === 'cands') return i18tn('tb_pq_cands', it.n, { n: it.n });
+  if (it.kind === 'blanks') return i18tn('tb_pq_blanks', it.n, { n: it.n });
   if (it.kind === 'dev') return i18t(it.kept ? 'tb_pq_dev_kept' : 'tb_pq_dev', { head: it.head });
   if (it.kind === 'missing') return i18tn('tb_pq_missing', it.n, { n: it.n, list: it.list.slice(0, TB_PQ_NAMED).join(', ') + (it.n > TB_PQ_NAMED ? '…' : '') });
   return '';
 }
+/* ════ PUBLISH IS ONE POP-UP IN THREE STEPS (owner: "Build as drawn", 23 Nov 2026; replaces three separate pop-ups) ════
+   Check · How it looks · On the shelf, the one Legora pop-up (lgpHtml, lines, no boxes). CHECK says the whole check:
+   each open thing a line with its own way forward in the row (tbOpenItems, the ONE reading), what is fine in green;
+   Publish anyway still publishes with things open (nothing here blocks). HOW IT LOOKS is the 14 Nov choice, unchanged,
+   with Back to the check. ON THE SHELF says it went, a short timeline, then Draft a contract from it. */
+function tbPubLines(items) {
+  const h = tbHeadFacts(), secs = tbSections(), cov = tbCoverage();
+  const line = (tone, words, act) => `<div class="tb-del-l"><i style="background:var(--st-${tone}-dot)"></i><span>${esc(words)}</span>${act || ''}</div>`;
+  const out = items.map((it, i) => line(it.tone === 'gry' ? 'gray' : 'amber', tbOpenItemLine(it),
+    `<span class="sp"></span><button type="button" class="ui-link tb-pq-go" data-tb-pq="${i}">${esc(i18t(it.kind === 'stream' ? 'tb_pq_choose' : 'tb_pq_show'))}</button>`));
+  const has = k => items.some(it => it.kind === k);
+  if (!has('stream') && h.streamName) out.push(line('green', i18t('tb_pq_ok_stream', { name: h.streamName })));
+  if (!has('empty') && secs.length) out.push(line('green', i18t('tb_pq_ok_written')));
+  if (cov && cov.total && !has('dev') && !has('missing')) out.push(line('green', i18t('tb_pq_ok_pb', { met: cov.met, n: cov.total })));
+  if (!has('blanks') && !has('cands')) out.push(line('green', _tb.fields.length ? i18t('tb_pq_ok_blanks', { n: _tb.fields.length }) : i18t('tb_pq_ok_noblanks')));
+  return `<div class="tb-del-ls">${out.join('')}</div>`;
+}
 function tbPublishAskHtml(items) {
   const h = tbHeadFacts();
-  const rows = items.map((it, i) => `<div class="tb-pq-o"><span class="tb-pq-dot ${it.tone}"></span><span class="tb-pq-t">${esc(tbOpenItemLine(it))}</span>
-      <button type="button" class="ui-btn" data-tb-pq="${i}">${i18t(it.kind === 'stream' ? 'tb_pq_choose' : 'tb_pq_show')}</button></div>`).join('');
-  return `<div style="padding:24px">
-    <h3 style="margin:0 0 6px;font-family:var(--font-heading);font-size:16px;font-weight:var(--w-title)">${esc(i18t('tb_pq_title', { name: h.name, n: _tb.versionNumber }))}</h3>
-    <p style="margin:0 0 12px;font-size:var(--t-body);color:var(--color-neutral-600)">${esc(i18tn('tb_pq_lead', items.length, { n: items.length }))}</p>
-    <div class="tb-pq">${rows}</div>
-    <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
-      <button type="button" class="ui-btn" id="tb-pq-keep">${i18t('tb_pq_keep')}</button>
-      <button type="button" class="ui-btn ui-btn-primary" id="tb-pq-go">${i18t('tb_pq_go')}</button>
-    </div></div>`;
+  return lgpHtml(tbPubOpts(1, { items, name: h.name }));
+}
+function tbPubNames() { return [i18t('tb_ps_check'), i18t('tb_ps_look'), i18t('tb_ps_shelf')]; }
+function tbPubOpts(step, st) {
+  const steps = { names: tbPubNames(), at: step };
+  if (step === 1) return { id: 'tb-pub', steps, title: i18t('tb_pq_title', { name: st.name, n: _tb.versionNumber }),
+    sub: st.items.length ? i18tn('tb_pq_lead', st.items.length, { n: st.items.length }) : i18t('tb_pq_lead_none'),
+    html: tbPubLines(st.items), primary: { label: st.items.length ? i18t('tb_pq_go') : i18t('of_next'), attr: 'id="tb-pq-go"' },
+    cancelAttr: 'id="tb-pq-keep"', cancelLabel: i18t('tb_pq_keep') };
+  if (step === 2) {
+    const has = !!(st.org && st.org.designId), v = _tb.versionNumber;
+    const row = (k, t, d, on, dead) => `<label class="lgp-tick is-radio${dead ? ' is-off' : ''}"${dead ? ' style="cursor:not-allowed"' : ''}>
+      <input type="radio" name="tb-look" value="${k}"${on ? ' checked' : ''}${dead ? ' disabled' : ''}>
+      <span class="lgp-tl">${esc(t)}<span class="lgp-tsub">${esc(d)}</span></span></label>`;
+    const pick = st.look || (has ? 'company' : 'design');
+    const note = v > 1 ? lgpRowHtml({ k: i18t('tb_look_note'), id: 'tb-look-note', type: 'area', max: 500, value: st.note || '' }) : '';
+    return { id: 'tb-pub', steps, title: i18t('tb_look_title', { name: st.name }), sub: i18t('tb_look_lead'),
+      html: `<div class="lgp-list">${row('company', i18t('tb_look_company'), has ? i18t('tb_look_company_d') : i18t('tb_look_company_none'), pick === 'company', !has)}
+        ${row('design', i18t('tb_look_design'), i18t('tb_look_design_d'), pick === 'design', false)}</div>${note}`,
+      back: { attr: 'id="tb-look-back"' },
+      primary: { label: i18t(pick === 'company' ? 'tb_look_publish' : 'tb_look_next'), attr: 'id="tb-look-go"' }, cancelAttr: 'data-dlg-cancel id="tb-look-x"' };
+  }
+  const when = new Date().toLocaleTimeString(typeof langLocale === 'function' ? langLocale() : undefined, { hour: '2-digit', minute: '2-digit' });
+  const tl = (cls, words) => `<div class="tb-tl-r${cls ? ' ' + cls : ''}"><span>${words}</span></div>`;
+  return { id: 'tb-pub', steps, title: i18t('tb_pub_ready', { name: st.name }), noCancel: true,
+    html: `<p class="tb-pub-badge"><span class="tb-bdg is-green"><i></i>${esc(i18t('tb_pub_on_shelf', { n: st.vn || '' }))}</span></p>
+      <p class="lgp-sub" style="margin:0 0 var(--s-3)">${esc(i18t('tb_pub_ready_d'))}</p>
+      <div class="tb-tl">${tl('d', esc(i18t('tb_ps_tl_secs', { n: st.secs, w: st.written })))}${tl('d', esc(i18t('tb_ps_tl_pub', { n: st.vn || '', when })))}${tl('n', `<b>${esc(i18t('tb_ps_tl_next'))}</b>`)}</div>`,
+    primary: { label: i18t('tb_pub_draft'), attr: 'id="tb-pub-draft"' }, alt: { label: i18t('tb_pub_shelf'), attr: 'id="tb-pub-shelf"' } };
 }
 /* Each door closes the question FIRST and then acts, so the reader lands on
    the thing it named rather than behind a dialog. Keep writing changes
    nothing — the draft is exactly as it was before Publish was pressed. */
 function tbPublishAsk(items) {
-  openModal(tbPublishAskHtml(items), { maxWidth: (window.DLG_W && DLG_W.m) || '520px', label: i18t('tb_pq_title', { name: tbHeadFacts().name, n: _tb.versionNumber }) });
-  const root = document.getElementById('modal-root');
-  root?.querySelectorAll('[data-tb-pq]').forEach(b => b.addEventListener('click', () => {
-    const it = items[Number(b.getAttribute('data-tb-pq'))]; closeModal(); if (!it) return;
-    if (it.kind === 'stream') tbMetaOpen('stream');
-    else if (it.kind === 'empty' || it.kind === 'dev') tbFocus(it.k, { scroll: true });
-    else if (it.kind === 'cands') tbSetTab('blanks');
-    else if (it.kind === 'missing') tbSetTab('playbook');
-  }));
-  document.getElementById('tb-pq-keep')?.addEventListener('click', () => closeModal());
-  /* the look question takes this one's place (one pop-up replacing another arrives once) */
-  document.getElementById('tb-pq-go')?.addEventListener('click', () => { tbPublishGo(); });
+  if (!_tb) return;
+  const st = { items, name: tbHeadFacts().name, org: null, look: null, note: '' };
+  _tb._pub = st;
+  lgpOpen(Object.assign(tbPubOpts(1, st), { focus: false }));
+  tbPubWire(1);
 }
 
 /* ---- PAINTING. The page once; the paper and the rail into their own slots,
@@ -2561,6 +2670,75 @@ function tbGutter(on) { const sc = document.getElementById('content-scroll'); if
    `tb-publish-bottom` are STALE. The note lives HERE rather than in the
    markup: a comment inside the emitted page would put those names back on it,
    which is what the net reads. */
+/* ════════ THE BUILDER, LEGORA + STRIPE (owner: "Build as drawn", 23 Nov 2026) ════════
+   THE ZOOM: the one control every paper carries (rlPaperZoomHtml, the one remembered value rlDocZoom), first in the
+   paper's scroller; the paper reads it as a zoom on its slot, as Home's paper does (igApplyZoom). */
+function tbApplyZoom() {
+  const slot = document.getElementById('tb-paperslot'); if (!slot) return;
+  slot.style.zoom = typeof window.rlDocZoomFactor === 'function' ? window.rlDocZoomFactor() : '1';
+}
+/* MORE ▾, BEFORE SAVE DRAFT (owner, 23 Nov 2026: "Just call the button more so delete is in the dropdown and have to
+   come before save draft"): drawn only while the template has NEVER been published — a published one is cited by
+   contracts and is archived on its own page, never deleted here. Its one line, Delete draft, asks once (tbDeleteAsk)
+   and goes through the server's own DELETE /api/templates/:id; who may is the server's (admin or Legal, t.canManage),
+   anyone else sees the line grey with the reason. */
+function tbEverPublished() { return !!(_tb && (_tb.everPublished || (_tb.template && (_tb.template.publishedVersion || _tb.template.publishedAt)))); }
+function tbMayDelete() { return !!(_tb && _tb.canManage); }
+function tbMoreBtnHtml() {
+  if (!_tb || tbEverPublished()) return '';
+  return `<button id="tb-more" type="button" class="ui-btn tb-act" aria-haspopup="menu" aria-expanded="false">${esc(i18t('tb_more'))} ${icon('chevD', 'w-3 h-3')}</button>`;
+}
+function tbMoreClose() { const el = document.getElementById('tb-more-pop'); if (el) el.remove();
+  const b = document.getElementById('tb-more'); if (b) b.setAttribute('aria-expanded', 'false'); return !!el; }
+function tbMoreToggle() {
+  if (tbMoreClose()) return;
+  const a = document.getElementById('tb-more'); if (!a || !_tb) return;
+  const may = tbMayDelete();
+  const el = document.createElement('div');
+  el.id = 'tb-more-pop'; el.className = 'pd-acts-pop tb-more-pop'; el.setAttribute('role', 'menu');
+  el.innerHTML = `<button type="button" role="menuitem" class="pd-acts-r is-danger tb-more-r" data-tb-more="delete"${may ? '' : ` disabled title="${esc(i18t('tb_del_who'))}"`}>
+      <span><span class="tb-more-t">${esc(i18t('tb_del'))}</span><span class="tb-more-s">${esc(may ? i18t('tb_del_sub') : i18t('tb_del_who'))}</span></span></button>`;
+  document.body.appendChild(el);
+  const r = a.getBoundingClientRect();
+  el.style.top = Math.round(r.bottom + 6) + 'px';
+  el.style.right = Math.max(8, Math.round(window.innerWidth - r.right)) + 'px';
+  a.setAttribute('aria-expanded', 'true');
+  try { if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) el.animate([{ opacity: 0, transform: 'translateY(-4px)' }, { opacity: 1, transform: 'none' }], { duration: 120, easing: 'ease-out' }); } catch (_) { /* no motion */ }
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', e => {
+    const t = e.target; if (!t || !t.closest) return;
+    if (t.closest('#tb-more')) { e.preventDefault(); tbMoreToggle(); return; }
+    const r = t.closest('#tb-more-pop [data-tb-more]');
+    if (r) { e.preventDefault(); if (r.disabled) return; tbMoreClose(); if (r.getAttribute('data-tb-more') === 'delete') tbDeleteAsk(); return; }
+    if (!t.closest('#tb-more-pop')) tbMoreClose();
+  }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && tbMoreClose()) { e.stopPropagation(); document.getElementById('tb-more')?.focus({ preventScroll: true }); } }, true);
+}
+/* THE ONE QUESTION: what goes (its sections, Jambo's unsaved drafts here), and that no contract used it */
+function tbDeleteAsk() {
+  if (!_tb || tbEverPublished() || !tbMayDelete()) return;
+  const secs = tbSections(), w = secs.filter(x => !tbSectionOwes(x)).length;
+  const name = tbHeadFacts().name, tid = _tb.tid, vid = _tb.vid;
+  const line = (tone, words) => `<div class="tb-del-l"><i style="background:var(--st-${tone}-dot)"></i><span>${esc(words)}</span></div>`;
+  lgpOpen({ id: 'tb-del', title: i18t('tb_del_title', { name }), sub: i18t('tb_del_lead'),
+    html: `<div class="tb-del-ls">${secs.length ? line('amber', i18t('tb_del_secs', { n: secs.length, w })) : ''}${line('amber', i18t('tb_del_drafts'))}${line('green', i18t('tb_del_never'))}</div>`,
+    primary: { label: i18t('tb_del'), attr: 'id="tb-del-go"', danger: true }, cancelAttr: 'data-dlg-cancel id="tb-del-x"', focus: false });
+  document.getElementById('tb-del-x')?.addEventListener('click', () => closeModal());
+  const go = document.getElementById('tb-del-go');
+  go?.addEventListener('click', async e => {
+    e.preventDefault();
+    if (typeof busySet === 'function') busySet(go, i18t('tb_del')); else go.disabled = true;
+    try { await api('templates/' + tid, 'DELETE'); }
+    catch (err) { go.disabled = false; go.textContent = i18t('tb_del'); toast(err.message, 'err'); return; }
+    /* nothing of it is kept: its drafts in this browser, the save timer, the page */
+    tbKeepCancel(); tbDraftDrop(tid, vid); _tb = null;
+    closeModal();
+    if (typeof tplLibRefresh === 'function') { try { await tplLibRefresh(); } catch (_) { /* the shelves still open */ } }
+    if (typeof setView === 'function') setView('templates');
+    toast(i18t('tb_del_done', { name }), 'ok');
+  });
+}
 function tbPaint(opts = {}) {
   const held = opts.fresh ? null : tbHoldScroll();
   document.getElementById('content').innerHTML = `${tbStyleHtml()}
@@ -2575,6 +2753,7 @@ function tbPaint(opts = {}) {
                owner's list, 27 Sep 2026). The same act, in the strip, only while
                the rail is away — one door on screen at a time. */}
         ${tbRailFits() ? '' : `<button id="tb-addfield-strip" type="button" class="ui-btn tb-act">${icon('plus', 'w-3 h-3')}<span class="w"> ${i18t('tl_add_field')}</span></button>`}
+        ${tbMoreBtnHtml()}
         <button id="tb-save" class="ui-btn tb-act" title="${esc(i18t('tb_save_draft'))}" aria-label="${esc(i18t('tb_save_draft'))}">${icon('check2', 'w-3.5 h-3.5')}<span class="w"> ${i18t('tb_save_draft')}</span></button>
         <button id="tb-publish" class="ui-btn ui-btn-primary tb-act">Publish v${_tb.versionNumber}</button>
       </div>
@@ -2582,6 +2761,7 @@ function tbPaint(opts = {}) {
            strip lives in this one scroller, so the strip above and the rail
            beside it never move. -->
       <div class="tb-scroll scroll-thin" id="tb-scroll">
+        ${typeof window.rlPaperZoomHtml === 'function' ? window.rlPaperZoomHtml() : ''}
         <div id="tb-paperslot"></div>
       </div>
     </div>
@@ -2589,7 +2769,7 @@ function tbPaint(opts = {}) {
     <div id="tb-resizer" class="tb-resizer" role="separator" aria-orientation="vertical" tabindex="0"
       aria-label="${esc(i18t('ng_drag_width'))}" title="${esc(i18t('ng_drag_width'))}"><span></span></div>
   </div>`;
-  tbPaintPaper(); tbPaintRail(); tbWire(); tbPaintBranding();
+  tbPaintPaper(); tbPaintRail(); tbWire(); tbPaintBranding(); tbApplyZoom();
   if (typeof window.deskBarPaint === 'function') window.deskBarPaint();
   document.getElementById('tb-addfield-strip')?.addEventListener('click', () => tbFieldModal(null));
   tbRestoreScroll(held);
@@ -2953,6 +3133,12 @@ function tbWire() {
     const el = e.target; const hit = sel => (el.closest ? el.closest(sel) : null);
     let b;
     if ((b = hit('[data-tb-tab]'))) { tbSetTab(b.getAttribute('data-tb-tab')); return; }
+    /* the Legora + Stripe rail (23 Nov 2026): a name in Jambo's list chooses its row; the chips narrow their table;
+       a wording blank's "Make it a field" opens today's field form holding its name */
+    if ((b = hit('[data-tb-olpick]'))) { if (_tb.outline) { const n = Number(b.getAttribute('data-tb-olpick')); _tb.outline.pick = _tb.outline.pick === n ? null : n; tbPaintRail({ keep: true }); } return; }
+    if ((b = hit('[data-tb-olf]'))) { tbOlFilter(b.getAttribute('data-tb-olf')); return; }
+    if ((b = hit('[data-tb-blf]'))) { _tb.blF = b.getAttribute('data-tb-blf'); tbPaintRail({ keep: true }); return; }
+    if ((b = hit('[data-tb-bl-make]'))) { tbFieldModal(null, b.getAttribute('data-tb-bl-make')); return; }
     /* JAMBO'S PANEL (round 21): ‹ Jambo / his tab — his own words, nothing in
        hand; › folds the panel to the edge, its strip opens it again */
     if (hit('[data-tb-jambo]')) { _tb.tab = 'build'; tbFocus(null); return; }
@@ -3044,7 +3230,7 @@ function tbWire() {
     const pk = e.target.closest ? e.target.closest('[data-tb-secpick]') : null;
     if (pk) { if (pk.value !== '') tbFocus(Number(pk.value), { scroll: true }); return; }
     const b = e.target.closest ? e.target.closest('[data-tb-out]') : null;
-    if (b) { const x = _tb.outline && _tb.outline.sections[Number(b.getAttribute('data-tb-out'))]; if (x) { x.on = b.checked; tbPaintRail(); } }
+    if (b) { const x = _tb.outline && _tb.outline.sections[Number(b.getAttribute('data-tb-out'))]; if (x) { x.on = b.checked; tbPaintRail({ keep: true }); tbPaintPaper(); } }
     /* A tick on a suggested blank: the count on "Make N blanks" follows it. */
     const c = e.target.closest ? e.target.closest('[data-tb-cand]') : null;
     if (c && _tb.cands) { const r = _tb.cands.rows.find(x => x.id === c.getAttribute('data-tb-cand')); if (r) { r.on = c.checked; tbPaintRail({ keep: true }); } }
@@ -3265,11 +3451,12 @@ async function tbSave(quiet) {
    the publish call; with a company default already saved it opens
    pre-dressed and Publish is one click. */
 function tbPublish() {
-  /* THE QUESTION COMES BEFORE THE SAVE (24 Sep 2026): "Keep writing" must
-     leave the draft exactly as it was, strip line included. */
+  /* THE QUESTION COMES BEFORE THE SAVE (24 Sep 2026): "Keep writing" leaves the draft exactly as it was. One pop-up
+     for the whole publish (23 Nov 2026): it opens on Check, which says what is open and what is fine. */
   const open = tbOpenItems();
-  if (open.length) { tbPublishAsk(open); return; }
-  return tbPublishGo();
+  /* nothing open, no question about it: the one pop-up opens on its second step, How it looks (Back shows the check) */
+  if (!open.length) { if (_tb) _tb._pub = { items: [], name: tbHeadFacts().name, note: '' }; return tbPublishGo(); }
+  tbPublishAsk(open);
 }
 async function tbPublishGo() {
   if (!await tbSave(true)) return;
@@ -3282,57 +3469,70 @@ async function tbPublishGo() {
    look set yet, the first choice says so and Design it now is chosen. */
 async function tbLookAsk() {
   if (typeof refreshOrgBranding === 'function') { try { await refreshOrgBranding(); } catch (_) { /* the choice still opens */ } }
-  const org = window.ORG_BRANDING || null, has = !!(org && org.designId);
-  const name = tbHeadFacts().name, v = _tb.versionNumber;
-  /* THE ONE EDIT POP-UP, THE LEGORA WAY (f1118): the two answers as quiet choice lines (a ring, the name, its one
-     line), the change note a line of its own, the one black button whose words follow the choice, Cancel last */
-  const row = (k, t, d, on, dead) => `<label class="lgp-tick is-radio${dead ? ' is-off' : ''}"${dead ? ' style="cursor:not-allowed"' : ''}>
-      <input type="radio" name="tb-look" value="${k}"${on ? ' checked' : ''}${dead ? ' disabled' : ''}>
-      <span class="lgp-tl">${esc(t)}<span class="lgp-tsub">${esc(d)}</span></span></label>`;
-  const note = v > 1 ? lgpRowHtml({ k: i18t('tb_look_note'), id: 'tb-look-note', type: 'area', max: 500 }) : '';
-  lgpOpen({ id: 'tb-look', title: i18t('tb_look_title', { name }), sub: i18t('tb_look_lead'),
-    html: `<div class="lgp-list">
-      ${row('company', i18t('tb_look_company'), has ? i18t('tb_look_company_d') : i18t('tb_look_company_none'), has, !has)}
-      ${row('design', i18t('tb_look_design'), i18t('tb_look_design_d'), !has, false)}
-    </div>${note}`,
-    primary: { label: i18t(has ? 'tb_look_publish' : 'tb_look_next'), attr: 'id="tb-look-go"' },
-    cancelAttr: 'data-dlg-cancel id="tb-look-x"', focus: 'input[name="tb-look"]:checked' });
-  const pick = () => (document.querySelector('input[name="tb-look"]:checked') || {}).value || 'design';
-  const go = document.getElementById('tb-look-go');
-  document.querySelectorAll('input[name="tb-look"]').forEach(r => r.addEventListener('change', () => {
-    if (go) go.textContent = i18t(pick() === 'company' ? 'tb_look_publish' : 'tb_look_next'); }));
-  document.getElementById('tb-look-x')?.addEventListener('click', () => closeModal());
-  go?.addEventListener('click', async () => {
-    const changeNote = String((document.getElementById('tb-look-note') || {}).value || '').trim();
-    if (pick() === 'design') { closeModal(); return tbDesignStepGo(changeNote); }
-    if (typeof busySet === 'function') busySet(go, i18t('ds_publishing'));
-    try {
-      /* design: null = this paper wears no look of its own: its stream's, else the company's */
-      const r = await api(`templates/${_tb.tid}/versions/${_tb.vid}/publish`, 'POST', { changeNote, design: null });
-      (r.warnings || []).forEach(w => toast(w, 'warn'));
-      if (typeof tplLibRefresh === 'function') { try { await tplLibRefresh(); } catch (_) { /* the landing still opens */ } }
-      tbPublishedLand(_tb.tid, name, r.versionNumber);
-    } catch (e) {
-      go.disabled = false; go.textContent = i18t('tb_look_publish');
-      ((e.data && e.data.problems) || [e.message]).forEach(p => toast(p, 'err'));
-    }
-  });
+  if (!_tb) return;
+  const st = _tb._pub || (_tb._pub = { items: [], name: tbHeadFacts().name, note: '' });
+  st.name = tbHeadFacts().name; st.org = window.ORG_BRANDING || null;
+  const o = Object.assign(tbPubOpts(2, st), { focus: 'input[name="tb-look"]:checked' });
+  if (document.querySelector('#modal-root #tb-pub')) lgpRepaint(o); else lgpOpen(o);
+  tbPubWire(2);
 }
 /* PUBLISHED: DRAFT A CONTRACT FROM IT (owner, 14 Nov 2026, part 11): the new paper is on the shelf; the one black button
    goes back to the New agreement page with it already chosen, the other to Our paper where it is kept. */
 function tbPublishedLand(tid, name, vn) {
-  openModal(`<div style="padding:18px 20px">
-    <p style="margin:0 0 6px;display:flex;align-items:center;gap:8px;color:var(--st-green-fg);font-size:var(--t-label);font-weight:var(--w-strong)"><span style="width:8px;height:8px;border-radius:50%;background:var(--st-green-dot)"></span>${esc(i18t('tb_pub_on_shelf', { n: vn || '' }))}</p>
-    <h3 style="margin:0 0 6px">${esc(i18t('tb_pub_ready', { name }))}</h3>
-    <p class="sap-m" style="margin:0 0 var(--s-4)">${esc(i18t('tb_pub_ready_d'))}</p>
-    <div style="display:flex;gap:var(--s-2);flex-wrap:wrap">
-      <button type="button" id="tb-pub-draft" class="ui-btn ui-btn-primary">${esc(i18t('tb_pub_draft'))}</button>
-      <button type="button" id="tb-pub-shelf" class="ui-btn">${esc(i18t('tb_pub_shelf'))}</button></div>
-  </div>`, { maxWidth: (window.DLG_W && DLG_W.m) || '520px', label: i18t('tb_pub_ready', { name }) });
-  document.getElementById('tb-pub-draft')?.addEventListener('click', () => {
-    if (typeof openNewAgreement === 'function') openNewAgreement({ pick: { kind: 'lib', id: tid } }); });
-  document.getElementById('tb-pub-shelf')?.addEventListener('click', () => {
-    closeModal(); if (typeof openTemplateLibDetail === 'function') openTemplateLibDetail(tid); });
+  const st = (_tb && _tb._pub) || { name };
+  const secs = _tb ? tbSections() : [];
+  Object.assign(st, { name, vn, secs: secs.length, written: secs.filter(x => !tbSectionOwes(x)).length, tid });
+  const o = tbPubOpts(3, st);
+  if (document.querySelector('#modal-root #tb-pub')) lgpRepaint(o); else lgpOpen(o);
+  tbPubWire(3, { tid });
+}
+function tbPubWire(step, x = {}) {
+  const st = _tb && _tb._pub;
+  const on = (id, fn) => document.getElementById(id)?.addEventListener('click', e => { e.preventDefault(); fn(e); });
+  if (step === 1 && st) {
+    document.querySelectorAll('#tb-pub [data-tb-pq]').forEach(b => b.addEventListener('click', e => {
+      e.preventDefault();
+      const it = st.items[Number(b.getAttribute('data-tb-pq'))]; closeModal(); if (!it) return;
+      if (it.kind === 'stream') tbMetaOpen('stream');
+      else if (it.kind === 'empty' || it.kind === 'dev') tbFocus(it.k, { scroll: true });
+      else if (it.kind === 'cands' || it.kind === 'blanks') tbSetTab('blanks');
+      else if (it.kind === 'missing') tbSetTab('playbook');
+    }));
+    on('tb-pq-keep', () => closeModal());
+    on('tb-pq-go', () => { tbPublishGo(); });
+    return;
+  }
+  if (step === 2 && st) {
+    const pick = () => (document.querySelector('input[name="tb-look"]:checked') || {}).value || 'design';
+    const go = document.getElementById('tb-look-go');
+    document.querySelectorAll('input[name="tb-look"]').forEach(r => r.addEventListener('change', () => {
+      st.look = pick(); if (go) go.textContent = i18t(pick() === 'company' ? 'tb_look_publish' : 'tb_look_next'); }));
+    on('tb-look-x', () => closeModal());
+    on('tb-look-back', () => { st.note = String((document.getElementById('tb-look-note') || {}).value || ''); st.look = pick();
+      lgpRepaint(tbPubOpts(1, Object.assign(st, { items: tbOpenItems() }))); tbPubWire(1); });
+    go?.addEventListener('click', async e => {
+      e.preventDefault();
+      const changeNote = String((document.getElementById('tb-look-note') || {}).value || '').trim();
+      if (pick() === 'design') { closeModal(); return tbDesignStepGo(changeNote); }
+      if (typeof busySet === 'function') busySet(go, i18t('ds_publishing'));
+      try {
+        /* design: null = this paper wears no look of its own: its stream's, else the company's */
+        const r = await api(`templates/${_tb.tid}/versions/${_tb.vid}/publish`, 'POST', { changeNote, design: null });
+        (r.warnings || []).forEach(w => toast(w, 'warn'));
+        if (typeof tplLibRefresh === 'function') { try { await tplLibRefresh(); } catch (_) { /* the landing still opens */ } }
+        tbPublishedLand(_tb.tid, st.name, r.versionNumber);
+      } catch (err) {
+        go.disabled = false; go.textContent = i18t('tb_look_publish');
+        ((err.data && err.data.problems) || [err.message]).forEach(p => toast(p, 'err'));
+      }
+    });
+    return;
+  }
+  if (step === 3) {
+    const tid = x.tid || (st && st.tid);
+    on('tb-pub-draft', () => { if (typeof openNewAgreement === 'function') openNewAgreement({ pick: { kind: 'lib', id: tid } }); });
+    on('tb-pub-shelf', () => { closeModal(); if (typeof openTemplateLibDetail === 'function') openTemplateLibDetail(tid); });
+  }
 }
 /* DESIGN IT NOW: the design step, for this paper alone */
 function tbDesignStepGo(changeNote) {
@@ -3493,7 +3693,7 @@ async function tbPaintBranding() {
 
 /* The readings are published and the screen is not: a check drives tbSections
    and tbCoverage over a block list it wrote itself, with no builder open. */
-Object.assign(window, { tbLookAsk, tbPublishedLand, tbDesignStepGo, openTemplateBuilder, tbCardWording, TB_BLOCK_META, TB_PB_KEY, TB_ASK_MAX, TB_BLANK_TYPE, TB_RAIL_MIN, TB_CHIP_ASK,
+Object.assign(window, { tbOlFilter, tbApplyZoom, tbMoreBtnHtml, tbMoreToggle, tbMoreClose, tbDeleteAsk, tbEverPublished, tbMayDelete, tbLookAsk, tbPublishedLand, tbDesignStepGo, openTemplateBuilder, tbCardWording, TB_BLOCK_META, TB_PB_KEY, TB_ASK_MAX, TB_BLANK_TYPE, TB_RAIL_MIN, TB_CHIP_ASK,
   tbSplit, tbFitSplit, tbWireSplit, TB_SPLIT_KEY, TB_FMIN, TB_FMAX, TB_LEFT_MIN, TB_RIGHT_MIN, TB_GAP,
   tbSections, tbSectionText, tbDropExtraBody, tbKindOf, tbLibraryFor, tbLibraryOffers, tbCoverage, tbCoverageOf, tbFinderOf, tbSectionFor, tbMarksOf, tbMarksHtml, tbPbKey, tbStandardFor, tbPrecedentFor,
   tbFocus, tbSetTab, tbRailFits, tbNextEmpty, tbQuestionFor, tbChipsHtml, tbReadEditable, tbPaint, tbPaintRail, tbSend, tbAccept, tbOutlineAdd, tbTurn, tbSetWalk,

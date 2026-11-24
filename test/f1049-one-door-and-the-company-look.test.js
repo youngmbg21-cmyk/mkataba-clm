@@ -36,13 +36,13 @@ test('f1049 (2) New agreement: From scratch is the third tab, only with the righ
   assert.match(body(W, 'naNewPaperDoorHtml'), /if\(!naNewPaperOk\(\)\) return '';/);
   assert.match(W, /\$\{naNewPaperDoorHtml\(\)\}<\/div>/, 'the third tab beside Our paper and Their paper');
   assert.match(body(W, 'naNewPaperPaneHtml'), /window\.NS_STARTS\.map/, 'the same four starts the new-standard question offers');
-  assert.match(body(W, 'naNewPaperGo'), /openNewStandard\(\{ start:k\|\|'scratch', back, host(?:, pick:\(x&&x\.pick\)\|\|null)? \}\)/); /* RE-POINTED 17 Nov 2026 (f1091 (8)): a door may name the paper */
+  assert.match(body(W, 'naNewPaperGo'), /openNewStandard\(\{ start:k\|\|'scratch', back, host(?:, pick:\(x&&x\.pick\)\|\|null)?(?:, said:\(x&&x\.said\)\|\|'', tab:\(x&&x\.tab\)\|\|null)? \}\)/); /* RE-POINTED 17 Nov 2026 (f1091 (8)): a door may name the paper; 23 Nov 2026 (one door): the sentence and the tab ride along */
   assert.match(body(W, 'naNewPaperGo'), /openNewAgreement\(\{ newPaper:true \}\)/, 'Back comes to this tab');
   assert.match(W, /if\(o&&o\.newPaper\)(?:\{ )?naNewPaperShow\(root,true\);/);
   const NS = read('js/views/newstandard.js');
   assert.match(NS, /_nsFrom = typeof opts\.back === 'function' \? opts\.back : null;/);
   assert.match(NS, /const nsBack = \(\) => \{[^}]*if \(typeof _nsFrom === 'function'\) return _nsFrom\(\);/);
-  assert.equal(EN.ns_scratch, 'From nothing'); assert.equal(EN.na_tab_newpaper, 'From scratch');
+  assert.equal(EN.ns_scratch, 'From nothing'); assert.equal(EN.na_tab_newpaper, 'Create a template'); /* RE-POINTED 23 Nov 2026: the owner named the tab */
   assert.ok(SV.ns_scratch && SV.na_tab_newpaper, 'both books');
 });
 
@@ -68,7 +68,8 @@ test('f1049 (2b) each start opens INSIDE New agreement\'s From scratch tab, neve
 test('f1049 (3) the Builder: one whole paper, no Branding bar, Jambo the normal width', () => {
   const TB = read('js/views/templatebuilder.js');
   assert.doesNotMatch(TB, /id="tb-branding"/);
-  assert.match(TB, /if \(!_tb\.blocks\.length\) html \+= `<p class="tb-empty-line">/);
+  /* RE-POINTED 23 Nov 2026 (the Builder L+S): the empty paper's one line stands, or Jambo's proposal drawn faint */
+  assert.match(TB, /if \(!_tb\.blocks\.length\) \{[\s\S]{0,600}<p class="tb-empty-line">\$\{esc\(i18t\('tb_empty_paper'\)\)\}/);
   assert.match(CSS, /html\.lg-new #tb-page #tb-paper\{aspect-ratio:1 \/ 1\.4142\}/);
   assert.match(CSS, /grid-template-columns:minmax\(0,1fr\) calc\(384px - var\(--page-pad-x\)\)/);
   assert.match(TB, /const TB_SPLIT_KEY = 'hati\.v1\.tbLeftFrac2';/, 'an old wide drag is forgotten once');
@@ -77,11 +78,14 @@ test('f1049 (3) the Builder: one whole paper, no Branding bar, Jambo the normal 
 test('f1049 (4) Publish: one clear choice; the design step dresses one paper; then Draft a contract from it', () => {
   const TB = read('js/views/templatebuilder.js');
   assert.match(body(TB, 'tbPublishGo'), /return tbLookAsk\(\);/);
-  const L = body(TB, 'tbLookAsk');
+  /* RE-POINTED 23 Nov 2026 (Publish is one pop-up in three steps): the choice is drawn by tbPubOpts' second step and
+     pressed in tbPubWire; the landing's Draft a contract from it is wired there too */
+  const L = body(TB, 'tbPubOpts') + body(TB, 'tbPubWire');
+  assert.match(body(TB, 'tbLookAsk'), /tbPubOpts\(2, st\)/);
   assert.match(L, /row\('company', i18t\('tb_look_company'\)/); assert.match(L, /row\('design', i18t\('tb_look_design'\)/);
   assert.match(L, /\{ changeNote, design: null \}/, 'the company look: this paper wears no look of its own');
-  assert.match(L, /tbPublishedLand\(_tb\.tid, name, r\.versionNumber\)/);
-  assert.match(body(TB, 'tbPublishedLand'), /openNewAgreement\(\{ pick: \{ kind: 'lib', id: tid \} \}\)/);
+  assert.match(L, /tbPublishedLand\(_tb\.tid, st\.name, r\.versionNumber\)/);
+  assert.match(L, /openNewAgreement\(\{ pick: \{ kind: 'lib', id: tid \} \}\)/);
   const DS = read('js/views/designstep.js');
   assert.match(DS, /if \(_ds\.mode !== 'publish'\) await saveOrgBranding\(dsOrgPayload\(\)\);/, 'publishing one paper never writes the company look');
   assert.doesNotMatch(DS, /id="ds-default"/, 'the make-it-the-company-default tick is gone');

@@ -121,6 +121,16 @@ function nsHostBack() {
   return true;
 }
 function openNewStandard(opts = {}) {
+  /* ONE DOOR (owner, 23 Nov 2026: "how can we build it so we have one door"): every way to make a new paper of our own
+     from OUTSIDE the New agreement page (Our paper's Create a template, Upload, a paper's Make it ours, Jambo's "build a
+     new one") opens that page on its Create a template tab, the start a door named already open inside it. The
+     pop-up below asked the same question as the tab; it stays only for the phone and where nobody is signed in. */
+  if (!opts.host && nsOneDoorOn()) {
+    const blocked = typeof newPaperBlocked === 'function' && newPaperBlocked();
+    if (!blocked) return openNewAgreement({ newPaper: true, start: opts.start || null, pick: opts.pick || null, said: opts.said || '', tab: opts.tab || null });
+    /* without the new-paper grant the tab is not drawn: the wall says why, with its Ask (the other side's paper needs no grant) */
+    if (opts.start !== 'cp' && typeof newPaperBlock === 'function') { newPaperBlock(); return; }
+  }
   _nsFrom = typeof opts.back === 'function' ? opts.back : null;
   nsHostSet(opts.host || null);
   if (opts.start && NS_STARTS.some(s => s.k === opts.start)) return nsGo(opts.start, opts);
@@ -153,6 +163,8 @@ function openNewStandard(opts = {}) {
     nsGo(k, opts);
   });
 }
+const nsOneDoorOn = () => typeof openNewAgreement === 'function' && typeof newLookOn === 'function' && !!newLookOn()
+  && !(typeof mPhone === 'function' && mPhone());
 function nsGo(k, opts = {}) {
   /* WHERE THERE IS NO SERVER there is no company library, so each start
      presses the door the local product has always had for it — nothing that
@@ -711,6 +723,36 @@ function nsLgContract() {
 }
 
 /* ---------------- FROM NOTHING — the Shelf ---------------- */
+/* THE PROPOSAL AS ONE CALM TABLE (owner: "Build as drawn", 23 Nov 2026): beside the sentence, chips with their counts
+   (All · Your library · Jambo drafts · Our playbook; a choice with none not drawn), then tick · section · where its
+   words come from as a soft badge. A name CHOOSES its row (st.sel, the panel quotes it); the tick is the same tick as
+   the contents page's (data-nss-sec). Reads st only. */
+function nsKeepTableHtml(st) {
+  const L = st.list || [], E = nsEsc;
+  const SRC = { lib: 'tb_src_lib', std: 'tb_src_std', ai: 'tb_src_ai' }, TONE = { lib: 'gray', std: 'green', ai: 'violet' };
+  const n = k => L.filter(x => (x.src || 'ai') === k).length;
+  const f = ['all', 'lib', 'std', 'ai'].includes(st.f) ? st.f : 'all';
+  const chip = (k, label, c) => (k === 'all' || c) ? `<button type="button" class="nsk-chip${f === k ? ' is-on' : ''}" data-nsk-f="${k}">${E(label)} <b>${c}</b></button>` : '';
+  const chips = `<div class="nsk-chips">${chip('all', i18t('nsk_all'), L.length)}${chip('lib', i18t('tb_src_lib'), n('lib'))}${chip('ai', i18t('tb_src_ai'), n('ai'))}${chip('std', i18t('tb_src_std'), n('std'))}</div>`;
+  const rows = L.map((x, i) => {
+    const src = x.src || 'ai'; if (f !== 'all' && src !== f) return '';
+    const lib = i === st.sel && src === 'lib' && typeof tbLibraryFor === 'function' ? tbLibraryFor(x.heading) : null;
+    const q = i === st.sel ? (lib ? '“' + _nsFirstSentence(lib.preferred) + '”' : (x.intent || '')) : '';
+    return `<tr class="${i === st.sel ? 'is-sel' : ''}${x.on ? '' : ' is-off'}"><td class="nsk-k"><input type="checkbox" data-nss-sec="${i}"${x.on ? ' checked' : ''} aria-label="${E(x.heading)}"></td>
+      <td><button type="button" class="nsk-h" data-nss-pick="${i}">${i + 1}. ${E(x.heading)}</button>${q ? `<span class="nsk-q">${E(q)}</span>` : ''}</td>
+      <td class="nsk-s"><span class="tb-bdg is-${TONE[src]}"><i></i>${E(i18t(SRC[src]))}</span></td></tr>`; }).join('');
+  return `${chips}<div class="nsk-wrap"><table class="nsk-t"><thead><tr><th></th><th>${E(i18t('nsk_sec'))}</th><th class="r">${E(i18t('nsk_from'))}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+/* WHEN A LIBRARY CLAUSE PLAINLY DOES NOT FIT (as drawn, 23 Nov 2026): no AI — the party words the clause's own text
+   uses, set against the reader's sentence. Said only where the clause names a party role the sentence never does;
+   nothing is changed, it is a line in the panel. */
+const NS_ROLES = ['Buyer', 'Seller', 'Supplier', 'Customer', 'Distributor', 'Licensee', 'Licensor', 'Landlord', 'Tenant', 'Lessor', 'Lessee', 'Employer', 'Employee', 'Contractor', 'Client', 'Carrier', 'Agent', 'Purchaser', 'Vendor', 'Service Provider'];
+function nsMisfitRoles(clause, said) {
+  const t = String(clause || ''), s = String(said || '').toLowerCase();
+  const inClause = NS_ROLES.filter(r => new RegExp('\\b' + r + 's?\\b').test(t));
+  if (!inClause.length || !s.trim()) return [];
+  return inClause.filter(r => !s.includes(r.toLowerCase()));
+}
 function nsLgScratch(o = {}) {
   nsStyle(); nsShelfWire();
   const ai = typeof copilotAvailable === 'function' && copilotAvailable();
@@ -739,11 +781,12 @@ function nsLgScratch(o = {}) {
     if (st.step === 'keep') {
       const n = kept();
       return `<label class="nss-fld"><span>${nsEsc(i18t('ns_what_for'))}</span><textarea id="nss-say" rows="3" maxlength="${NS_SAY_MAX}">${nsEsc(st.said)}</textarea></label>
-        <div class="nss-foot"><button type="button" class="ui-btn" data-nsl-back>${nsEsc(i18t('act_back'))}</button><button type="button" class="ui-btn" data-nss-again>${nsEsc(i18t('tb_pb_start_again'))}</button><span class="sp"></span><button type="button" class="ui-btn" data-nss-mine>${nsEsc(i18t('tb_walk_mine'))}</button></div>
-        <div class="nss-foot"><span class="sp"></span><button type="button" class="ui-btn ui-btn-primary" data-nss-open${n ? '' : ' disabled'}>${nsEsc(i18tn('nsl_open_n', n, { n }))}</button></div>`;
+        ${nsKeepTableHtml(st)}
+        <div class="nss-foot"><button type="button" class="ui-btn" data-nsl-back>${nsEsc(i18t('act_back'))}</button><button type="button" class="ui-btn" data-nss-again>${nsEsc(i18t('tb_pb_start_again'))}</button><span class="sp"></span><button type="button" class="ui-btn" data-nss-mine>${nsEsc(i18t('tb_walk_mine'))}</button>
+        <button type="button" class="ui-btn ui-btn-primary" data-nss-open${n ? '' : ' disabled'}>${nsEsc(i18tn('nsl_open_n', n, { n }))}</button></div>`;
     }
     return `<label class="nss-fld"><span>${nsEsc(i18t('ns_what_for'))}</span><textarea id="nss-say" rows="5" maxlength="${NS_SAY_MAX}" placeholder="${nsEsc(i18t('ns_what_for_ph'))}">${nsEsc(st.said)}</textarea></label>
-      <div class="nss-ex">${nsEsc(i18t('nsl_try'))} <button type="button" class="nsl-or" data-nss-ex="1">${nsEsc(i18t('nsl_ex1_t'))}</button><button type="button" class="nsl-or" data-nss-ex="2">${nsEsc(i18t('nsl_ex2_t'))}</button></div>
+      <div class="nss-ex">${nsEsc(i18t('nsl_try'))} <button type="button" class="nsl-or" data-nss-ex="1">${nsEsc(i18t('nsl_ex1_t'))}</button><button type="button" class="nsl-or" data-nss-ex="2">${nsEsc(i18t('nsl_ex2_t'))}</button><button type="button" class="nsl-or" data-nss-ex="3">${nsEsc(i18t('nsl_ex3_t'))}</button></div>
       <div class="nss-foot"><button type="button" class="ui-btn" data-nsl-back>${nsEsc(i18t('act_back'))}</button><span class="sp"></span><button type="button" class="ui-btn ui-btn-primary" data-nss-go${ai ? '' : ` title="${nsEsc(i18t('tb_pb_nokey'))}"`}>${nsEsc(ai ? i18t('ns_propose') : i18t('ns_open_builder'))}</button></div>`;
   };
   const sub = () => st.step === 'keep' && st.list
@@ -787,6 +830,7 @@ function nsLgScratch(o = {}) {
   nsLgWire(host, {
     click: (e, t) => {
       const ex = t.closest('[data-nss-ex]'); if (ex) { st.said = i18t('nsl_ex' + ex.getAttribute('data-nss-ex')); paint(); return; }
+      const kf = t.closest('[data-nsk-f]'); if (kf) { st.f = kf.getAttribute('data-nsk-f'); paint(); return; }
       const g = t.closest('[data-nss-go]'); if (g) { propose(g); return; }
       if (t.closest('[data-nss-again]')) { st.step = 'say'; st.list = null; st.d = null; st.name = ''; st.sel = -1; st.extra = []; paint(); return; }
       const pk = t.closest('[data-nss-pick]'); if (pk) { const i = Number(pk.getAttribute('data-nss-pick')); st.sel = st.sel === i ? -1 : i; paint(); return; }
@@ -812,6 +856,7 @@ function nsLgScratch(o = {}) {
    its words come from, and a library section's first line. Read from the proposal and the book, no AI. */
 let _nsShelf = null;
 const nsShelfUp = () => !!(_nsShelf && _nsShelf.st.step === 'keep' && _nsShelf.st.list && nsHostOn());
+const nsSayUp = () => !!(_nsShelf && _nsShelf.st.step === 'say' && nsHostOn());
 function nsShelfDock() { if (typeof renderIntelDock === 'function') { try { renderIntelDock(); } catch (_) { /* the panel draws on its next turn */ } } }
 const _nsFirstSentence = h => { const t = String(h || '').replace(/<[^>]*>/g, ' ').replace(/\{\{[^}]*\}\}/g, '…').replace(/\s+/g, ' ').trim(); const m = t.match(/^.{20,220}?[.;](\s|$)/); return (m ? m[0] : t.slice(0, 200)).trim(); };
 function nsShelfPanelHtml() {
@@ -827,6 +872,7 @@ function nsShelfPanelHtml() {
       ${x.intent ? `<p class="nsj-cap">${E(i18t('nsj_covers'))}</p><p class="nsj-t">${E(x.intent)}</p>` : ''}
       <p class="nsj-cap">${E(i18t('nsj_from'))}</p><p class="nsj-q2"><span class="nss-w is-${src}">${E(i18t(SRC[src]))}</span> · ${E(i18t('nsj_from_' + src))}</p>
       ${first ? `<p class="nsj-cap">${E(i18t('nsj_opens'))}</p><p class="nsj-quote">“${E(first)}”</p>` : ''}
+      ${(() => { const r = lib ? nsMisfitRoles(String(lib.preferred || '').replace(/<[^>]*>/g, ' '), st.said) : []; return r.length ? `<p class="nsj-t nsj-misfit">${E(i18t('nsj_misfit', { roles: r.map(w => (/^[AEIOU]/.test(w) ? 'an ' : 'a ') + w).join(', ') }))}</p>` : ''; })()}
       <p class="nsj-t is-quiet">${E(i18t(x.on ? 'nsj_on' : 'nsj_off'))}</p></div>`;
   }
   const n = k => L.filter(x => (x.src || 'ai') === k).length, tot = L.length || 1;
@@ -966,7 +1012,7 @@ function nsOpenTheirs() {
   paint();
 }
 
-Object.assign(window, { NS_STARTS, NS_TABS, NS_SAY_MAX, NS_GATED, openNewStandard, nsGo, nsOpenScratch, nsOpenTemplate, nsOpenContract,
+Object.assign(window, { nsSayUp, nsKeepTableHtml, nsMisfitRoles, NS_ROLES, NS_STARTS, NS_TABS, NS_SAY_MAX, NS_GATED, openNewStandard, nsGo, nsOpenScratch, nsOpenTemplate, nsOpenContract,
   nsMount, nsHostSet, nsHostBack, nsHostOn, nsTplMake, nsCtrMake,
   nsShelfPanelHtml, nsShelfUp,
   nsLgOn, nsLgInitials, nsLgRowHtml, nsLgFirstLine, nsLgMatches, nsLgTemplate, nsLgContract, nsLgScratch, nsOpenTheirs, nsTheirParty,
