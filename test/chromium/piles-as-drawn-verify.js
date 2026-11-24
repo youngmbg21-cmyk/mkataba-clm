@@ -191,7 +191,8 @@ async function login(b, base, email, pass, errs){
     });
     /* RETIRED 16 Nov 2026 (#762): 2a '"Redlines N" counts the rows in sight' — the new look's Redlines face has no
        headline (owner's pick, 16 Nov 2026, "cards first": one line, round label + Send all, then the cards) */
-    check('2b "Notes 2" in the head', head.notes === 'Notes 2', head.notes);
+    /* RE-POINTED 24 Nov 2026 (owner: "delete the notes page from the tab", f1207): the switch has no Notes */
+    check('2b no Notes in the Redlines switch', head.notes === null, head.notes);
     check('2c "Here now" with the faces of who is on it', head.hereShown && /^Here now/.test(head.here || '') && head.faces >= 2, JSON.stringify({ here: head.here, faces: head.faces }));
     /* RE-POINTED 24 Oct 2026 (Round 3, owner's yes, the SAP heads): "N not sent" leads the round line, beside the Deal door */
     check('2d "1 not sent · Round 2 · their asks came 4 days ago"', head.round === '1 not sent · Round 2 · their asks came 4 days ago', head.round);
@@ -270,11 +271,14 @@ async function login(b, base, email, pass, errs){
     /* RE-POINTED 18 Oct 2026 (round 9's gaps, second pass: "The notes open in
        the same panel"): Notes turns the column's body to the notes — no
        drawer — and the same press turns it back to the piles */
-    await page.click('#pd-redface [data-rl-notes-all]');
-    const notesUp = await waitFor(page, () => !!document.querySelector('#pd-redface .rl-fn[data-rl-fn="MK-0382"]') && !(state.panelOpen && panelFace() === 'notes'), 5000);
-    check('9a Notes opens the notes in the column, not the drawer', !!notesUp);
-    await page.click('#pd-redface [data-rl-notes-all]');
-    await waitFor(page, () => !document.querySelector('#pd-redface .rl-fn') && !!document.querySelector('#pd-redface [data-rl-pile]'), 5000);
+    /* RE-POINTED 24 Nov 2026 (owner: "delete the notes page from the tab", f1207): Redlines' notes are the bar's notes —
+       the face's "notes" link opens the bar's Notes panel, and the same press shuts it */
+    const notesLink = async () => page.evaluate(() => { const b = document.querySelector('#ig-dock [data-ca-chip="rl_notes"]'); if (b){ b.click(); return true; } return false; });
+    const pressed = await notesLink();
+    const notesUp = pressed && await waitFor(page, () => !!(state.panelOpen && panelFace() === 'notes') && !document.querySelector('#pd-redface .rl-fn'), 5000);
+    check('9a the face\'s "notes" link opens the bar\'s Notes panel', !!notesUp);
+    if (pressed) await notesLink();
+    check('9a2 pressed again it shuts', !!(await waitFor(page, () => !state.panelOpen, 5000)));
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): Ask for review is the paper line's own door (#ws-review,
        rlReviewDoor), the face's head copy is not drawn */
     await page.click('#ig-strip #ws-review');

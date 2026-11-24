@@ -317,7 +317,7 @@ const check = (name, pass, detail) => {
       const line = await page.evaluate(() => { const r = s => { const e = document.querySelector(s); if (!e) return null; const x = e.getBoundingClientRect(); return { t: Math.round(x.top), h: Math.round(x.height), l: Math.round(x.left), r: Math.round(x.right) }; };
         const st = document.getElementById('ig-gwrap').getBoundingClientRect();
         return { legend: r('#ig-legend'), lens: r('.ig-viewbar .ig-lensrow'), views: r('.ig-viewbar .ig-seg:not(.ig-lens)'), fold: (() => { const e = document.getElementById('ig-foldall'); const x = e && e.closest('.ig-seg').getBoundingClientRect(); return x && { t: Math.round(x.top), h: Math.round(x.height) }; })(), cam: r('.ig-camerabar'), stageTop: Math.round(st.top), stageRight: Math.round(st.right),
-          fonts: [...new Set(['#ig-legend .igl-head .igl-k', '.ig-viewbar [data-ig-lens="risk"]', '.ig-viewbar [data-ig-view="0"]', '#ig-foldall'].map(q => getComputedStyle(document.querySelector(q)).fontSize))] }; });
+          fonts: [...new Set(['#ig-legend .igl-head .igl-k', '.ig-viewbar [data-ig-lens="risk"]', '.ig-viewbar [data-ig-view="2"]', '#ig-foldall'].map(q => getComputedStyle(document.querySelector(q)).fontSize))] }; });
       check('10a the legend, the Lens group, the views and Fold all stand on ONE line, one height, one type size',
         line.legend && [line.lens, line.views, line.fold].every(x => x && x.t === line.legend.t && x.h === line.legend.h) && line.fonts.length === 1, JSON.stringify(line));
       check('10b the zoom and Still stand in the map\'s top-right corner', line.cam && line.cam.t - line.stageTop < 20 && line.stageRight - line.cam.r < 20, JSON.stringify(line.cam));

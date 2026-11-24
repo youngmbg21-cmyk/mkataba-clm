@@ -649,6 +649,9 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 const JB_WAY_FEET = ['#ig-dock .igd-foot', '#app-shell .jl-foot', '.st-cr #st-jb-form'];
 const JB_WAY_FACES = new Set(['document', 'brief', 'fill', 'sign', 'share', 'history', 'redline', 'next']);
 function jamboWaysHere(){
+  /* NO LINKS LINE ON THE CLAUSES TAB (owner, 24 Nov 2026: "delete the highlighted area including the links but only for
+     this tab so we can better utilize the space"): Jambo's box stands alone there; every other page keeps its line */
+  try { if (window.pdShowsDesk && window.pdShowsDesk() && window.pdTab && window.pdTab() === 'doc') return { k: 'doc', doors: [] }; } catch (_){}
   let k = null;
   try { k = (typeof window.guideHereKey === 'function') ? window.guideHereKey() : null; } catch (_){ k = null; }
   if (!k && typeof state !== 'undefined' && state && state.view) k = state.view;

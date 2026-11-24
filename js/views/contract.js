@@ -15909,9 +15909,6 @@ function docThreadOpen(c,i,opts){
    open one, and ONE scroll gesture over the list does the same, the paper gliding with it (docThreadGoTo, the press's own
    glide). A clause taller than the list reads first: the wheel scrolls it until its end is in view, then steps. At the
    first or last clause the wheel does nothing more; less motion asked = the paper jumps (docThreadGoTo's own rule). */
-const TH_STEP_DELTA = 40;        /* how far a gesture must go before it steps */
-const TH_STEP_QUIET_MS = 220;    /* a pause this long ends a gesture; the next scroll may step again */
-let _thStepAcc = 0, _thStepLocked = false, _thStepT = null;
 function docThreadNavOn(){ return thOnHome() && typeof window.newLookOn === 'function' && newLookOn(); }
 function docThreadStep(d){
   const c = thLiveContract(), rows = (_docThreadCache && _docThreadCache.rows) || []; if (!c || !rows.length) return false;
@@ -15921,7 +15918,7 @@ function docThreadStep(d){
   docThreadGoTo(c, next); return true;
 }
 /* ONE CLAUSE AT A TIME, A PAGE (Round C, as drawn — the drawing's clause page): the open clause alone fills the list,
-   its name large; above it ‹ Dossier · k of n · "Scroll or press ›" · ‹ ›; under it "Keep scrolling for <next>" and
+   its name large; above it ‹ Dossier · k of n · "Press › for the next" · ‹ ›; (no foot line since 24 Nov 2026) and
    Next ›. "All N clauses" turns back to the whole list (and back). Only the look and the stepping: the open clause's own
    reading, doors and marks are the list's (docThreadFill), nothing redrawn of its own. */
 /* THE READER'S OWN CHOICE IS KEPT (24 Nov 2026): "All N clauses" turns to the list and stays the list for this reader
@@ -15932,16 +15929,18 @@ let _thPage = (() => { try { return localStorage.getItem(TH_LIST_KEY) !== '1'; }
 function docThreadPageHtml(c, rows, at, pts, nextAt){
   const kindOf = p => typeof window.pd2PointKind === 'function' ? window.pd2PointKind(p) : p.status;
   const word = k => k === 'pb' ? i18t('pd2_fd_k_pb') : k === 'plan' ? i18t('pd2_fd_k_plan') : i18t('bd_st_' + k);
-  const mark = { need: '▲', look: '●', pb: '◆', plan: '■' };
   let pbLabel = ''; try { pbLabel = (typeof window.pbStandardsFor === 'function' && c) ? String((window.pbStandardsFor(c) || {}).label || '') : ''; } catch (_){ pbLabel = ''; }
+  /* L+S (owner's pick, 24 Nov 2026): each finding a row — its soft badge, what it is with its stake under it, and its own
+     Mark reviewed (the point's own door, data-stk-review) answered in the row */
   const found = (pts || []).map(p => { const k = kindOf(p), stake = String(p.stake || '').trim(), title = String(p.title || stake).trim();
     const path = k === 'pb' && p.cat ? [i18t('pd2_fd_k_pb'), pbLabel, p.cat].filter(Boolean).join(' › ') : '';
-    return `<li class="doc-th-fi k-${esc(k)}"><i aria-hidden="true">${mark[k] || '●'}</i><div><p><b>${esc(word(k))}</b> · ${esc(title)}</p>${stake && stake !== title ? `<p class="s">${esc(stake)}</p>` : ''}${path ? `<p class="s">${esc(path)}</p>` : ''}</div></li>`; }).join('');
+    const mark = p._i != null ? `<button type="button" class="doc-th-pgl is-link" data-th-pg="review" data-th-pt="${esc(String(p._i))}">${esc(i18t('stk_mark_reviewed'))}</button>` : '';
+    return `<li class="doc-th-fi k-${esc(k)}"><span class="pd2-badge k-${esc(k)}"><i aria-hidden="true"></i>${esc(word(k))}</span><div><p>${esc(title)}</p>${stake && stake !== title ? `<p class="s">${esc(stake)}</p>` : ''}${path ? `<p class="s">${esc(path)}</p>` : ''}</div>${mark}</li>`; }).join('');
   const nm = nextAt != null && rows[nextAt] && typeof docXrayLabel === 'function' ? docXrayLabel(rows[nextAt]) : '';
-  return `<div class="doc-th-pgb"><button type="button" class="ui-btn doc-th-pgbtn" data-th-pg="plain">${esc(i18t('th_plain_en'))}</button><button type="button" class="ui-btn doc-th-pgbtn" data-th-pg="dive"${(pts || []).length ? '' : ' hidden'}>${esc(i18t('stk_deep'))}</button><button type="button" class="ui-btn ui-btn-primary doc-th-pgbtn" data-th-pg="redline">${esc(i18t('th_pg_redline'))}</button></div>
-    <p class="doc-th-pgsay">${esc(i18t('th_pg_redline_say'))}</p>
+  /* the buttons at the small size every small button in HaTi wears; what Redline does rides its hover (no line under them) */
+  return `<div class="doc-th-pgb"><button type="button" class="ui-btn doc-th-pgbtn" data-th-pg="plain">${esc(i18t('th_plain_en'))}</button><button type="button" class="ui-btn doc-th-pgbtn" data-th-pg="dive"${(pts || []).length ? '' : ' hidden'}>${esc(i18t('stk_deep'))}</button><button type="button" class="ui-btn ui-btn-primary doc-th-pgbtn" data-th-pg="redline" title="${esc(i18t('th_pg_redline_say'))}">${esc(i18t('th_pg_redline'))}</button></div>
     ${found ? `<div class="doc-th-found"><p class="h"><b>${esc(i18t('th_pg_found'))}</b><span>${(pts || []).length}</span></p><ul>${found}</ul></div>` : ''}
-    <div class="doc-th-pga"><button type="button" class="doc-th-pgl" data-th-pg="review"${(pts || []).length ? '' : ' hidden'}>${esc(i18t('stk_mark_reviewed'))}</button><button type="button" class="doc-th-pgl" data-th-pg="ask">${esc(i18t('th_pg_ask'))}</button>${nm ? `<button type="button" class="ui-btn doc-th-nx-go" data-th-nav-step="1">${esc(i18t('th_page_next_go'))}</button>` : ''}</div>`;
+    <div class="doc-th-pga"><button type="button" class="doc-th-pgl is-link" data-th-pg="ask">${esc(i18t('th_pg_ask'))}</button>${nm ? `<button type="button" class="ui-btn doc-th-nx-go" data-th-nav-step="1">${esc(i18t('th_pg_next_to', { what: nm }))}</button>` : ''}</div>`;
 }
 /* each press is the row's own existing door: Plain (data-th-explain), Deep dive and Redline (the Clauses tab's own,
    stkRedlineGo), Mark reviewed (the points' own record); Ask a colleague = a note on this clause with @ (the Notes door) */
@@ -15953,7 +15952,9 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     const press = sel => { const x = row.querySelector(sel); if (x && !x.disabled){ x.click(); return true; } return false; };
     if (k === 'plain'){ press('[data-th-explain]'); return; }
     if (k === 'dive'){ press('[data-stk-dive]'); return; }
-    if (k === 'review'){ press('[data-stk-review-all]') || press('[data-stk-review]'); return; }
+    if (k === 'review'){ const pt = b.getAttribute('data-th-pt');
+      if (pt != null){ press(`[data-stk-review="${pt}"]`); return; }
+      press('[data-stk-review-all]') || press('[data-stk-review]'); return; }
     const c = thLiveContract(); if (!c) return;
     const rows = (_docThreadCache && _docThreadCache.rows) || [], x = rows[_docThreadOn];
     const clauseId = x && typeof docXrayClauseId === 'function' ? (docXrayClauseId(x) || '') : '';
@@ -15975,10 +15976,19 @@ function docThreadNavSync(){
   if (shown.length < 2){ if (nav) nav.remove(); return; }
   const k = shown.indexOf(_docThreadOn) + 1;
   if (!nav){ nav = document.createElement('div'); nav.className = 'doc-th-nav'; const list = card.querySelector('.doc-th-rows'); if (!list) return; card.insertBefore(nav, list); }
+  /* THE CLAUSE PAGE, L+S (owner's pick, 24 Nov 2026: "delete the name of the contract … the header is too large … the
+     buttons … are too big"): ONE row — ‹ Dossier · ‹ k of n › · All n clauses ▾ (the list, and "All n in plain English",
+     moved in from the head) — and a thin line of how many clauses are read; the list keeps its own row */
+  if (_thPage){
+    const rs = [...card.querySelectorAll('.doc-th-rows .doc-th-row[data-th-row]')].filter(r => !r.hidden);
+    const rd = rs.filter(r => r.querySelector('[data-th-state] .is-read, [data-th-state] .stk-read')).length;
+    const pc = rs.length ? Math.round(rd / rs.length * 100) : 0;
+    nav.innerHTML = `<button type="button" class="doc-th-back" data-pd-tab="copilot">\u2039 ${esc(i18t('pd_tab_dossier'))}</button><button type="button" class="doc-th-step" data-th-nav-step="-1" aria-label="${esc(i18t('th_step_prev'))}"${k <= 1 ? ' disabled' : ''}>\u2039</button><span class="doc-th-k">${esc(i18t('th_step_of', { k: Math.max(1, k), n: shown.length }))}</span><button type="button" class="doc-th-step" data-th-nav-step="1" aria-label="${esc(i18t('th_step_next'))}"${k >= shown.length ? ' disabled' : ''}>\u203a</button><span class="doc-th-mw"><button type="button" class="doc-th-list" data-th-menu aria-expanded="false" aria-haspopup="menu">${esc(i18tn('th_page_all', shown.length, { n: shown.length }))} \u25be</button><span class="doc-th-menu" role="menu" hidden></span></span><span class="doc-th-prog" role="img" aria-label="${esc(i18t('th_prog_say', { k: rd, n: rs.length }))}" title="${esc(i18t('th_prog_say', { k: rd, n: rs.length }))}"><i style="--p:${pc}%"></i></span>`;
+  } else
   nav.innerHTML = `<button type="button" class="doc-th-back" data-pd-tab="copilot">\u2039 ${esc(i18t('pd_tab_dossier'))}</button><button type="button" class="doc-th-step" data-th-nav-step="-1" aria-label="${esc(i18t('th_step_prev'))}"${k <= 1 ? ' disabled' : ''}>\u2039</button><span class="doc-th-k">${esc(i18t('th_step_of', { k: Math.max(1, k), n: shown.length }))}</span><button type="button" class="doc-th-step" data-th-nav-step="1" aria-label="${esc(i18t('th_step_next'))}"${k >= shown.length ? ' disabled' : ''}>\u203a</button><span class="doc-th-hint">${esc(i18t('th_page_hint'))}</span><button type="button" class="doc-th-list" data-th-page-toggle>${esc(_thPage ? i18tn('th_page_all', shown.length, { n: shown.length }) : i18t('th_page_single'))}</button>`;
   /* the drawn clause page's line under the name: one soft badge per kind of open point (the Dossier's four), and the words
      the first point rests on, quoted — read off the Clauses tab's own points (stkLivePoints), nothing new */
-  card.querySelectorAll('.doc-th-pg, .doc-th-pgx').forEach(x => x.remove());
+  card.querySelectorAll('.doc-th-pg, .doc-th-pgx, .doc-th-head > .doc-th-pg-b').forEach(x => x.remove());
   const nextAt = shown[shown.indexOf(_docThreadOn) + 1];
   if (_thPage){ const row = card.querySelector(`.doc-th-rows [data-th-row="${_docThreadOn}"]`), go = row && row.querySelector('.doc-th-head');
     let pts = []; try { pts = (typeof window.stkLivePoints === 'function') ? (window.stkLivePoints(thLiveContract()) || []).filter(p => p && !p.done && !p.blank && p.at === _docThreadOn) : []; } catch (_){ pts = []; }
@@ -15986,7 +15996,11 @@ function docThreadNavSync(){
       const word = k => k === 'pb' ? i18t('pd2_fd_k_pb') : k === 'plan' ? i18t('pd2_fd_k_plan') : i18t('bd_st_' + k);
       const q = (pts.find(p => p.quote) || {}).quote || '';
       const el = document.createElement('div'); el.className = 'doc-th-pg';
-      el.innerHTML = `<span class="doc-th-pg-b">${kinds.map(k => `<span class="pd2-badge k-${esc(k)}"><i aria-hidden="true"></i>${esc(word(k))}</span>`).join('')}</span>${q ? `<span class="doc-th-pg-q">${(() => { const lab = rows[_docThreadOn] && typeof docXrayLabel === 'function' ? String(docXrayLabel(rows[_docThreadOn]) || '') : ''; const m = /^(\d+(?:\.\d+)*)/.exec(lab); return m ? '\u00a7' + esc(m[1]) + ' ' : ''; })()}<q>${esc(String(q).replace(/\s+/g, ' ').trim().slice(0, 160))}</q></span>` : ''}`;
+      /* the badge stands on the title's line (L+S, as drawn); the paper's words under it */
+      const bd = document.createElement('span'); bd.className = 'doc-th-pg-b';
+      bd.innerHTML = kinds.map(k => `<span class="pd2-badge k-${esc(k)}"><i aria-hidden="true"></i>${esc(word(k))}</span>`).join('');
+      go.appendChild(bd);
+      el.innerHTML = `${q ? `<span class="doc-th-pg-q">${(() => { const lab = rows[_docThreadOn] && typeof docXrayLabel === 'function' ? String(docXrayLabel(rows[_docThreadOn]) || '') : ''; const m = /^(\d+(?:\.\d+)*)/.exec(lab); return m ? '\u00a7' + esc(m[1]) + ' ' : ''; })()}<q>${esc(String(q).replace(/\s+/g, ' ').trim().slice(0, 160))}</q></span>` : ''}`;
       go.insertAdjacentElement('afterend', el); }
     /* THE CLAUSE PAGE, AS DRAWN (Round E, 24 Nov 2026): Plain English · Deep dive · Redline (black) with the line saying what
        Redline does; "What was found N", each point under its kind with its stake and, for the Playbook, where it comes from;
@@ -15994,37 +16008,34 @@ function docThreadNavSync(){
     if (go){ const pg = docThreadPageHtml(thLiveContract(), rows, _docThreadOn, pts, nextAt);
       const el2 = document.createElement('div'); el2.className = 'doc-th-pgx'; el2.innerHTML = pg;
       const after = go.parentNode && go.parentNode.querySelector(':scope > .doc-th-pg') || go; after.insertAdjacentElement('afterend', el2); } }
-  if (_thPage){ if (!foot){ foot = document.createElement('div'); foot.className = 'doc-th-nx'; card.appendChild(foot); }
-    const nm = nextAt != null && rows[nextAt] && typeof docXrayLabel === 'function' ? docXrayLabel(rows[nextAt]) : '';
-    /* Next › stands in the page's act row as drawn; the foot keeps the words */
-    foot.innerHTML = `<span>${esc(nm ? i18t('th_page_next', { what: nm }) : i18t('th_page_last'))}</span>`; }
-  else if (foot) foot.remove();
+  /* NO FOOT LINE (owner, 24 Nov 2026: "delete the highlighted area … only for this tab so we can better utilize the
+     space"): "Keep scrolling for …" is gone; Next › in the page's act row says where the next step goes */
+  if (foot) foot.remove();
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._thStepWired){ document._thStepWired = true;
+  /* ALL n CLAUSES ▾ (L+S): the list, and "All n in plain English" (the head's own press, data-stk-all-go / -stop, pressed
+     for you); press again, Esc or a press outside shuts it */
+  const thMenuShut = () => document.querySelectorAll('#pd-thread .doc-th-menu:not([hidden])').forEach(m => { m.hidden = true; const g = m.parentNode && m.parentNode.querySelector('[data-th-menu]'); if (g) g.setAttribute('aria-expanded', 'false'); });
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    const go = t.closest('#pd-thread [data-th-menu]');
+    if (go){ e.preventDefault(); const m = go.parentNode.querySelector('.doc-th-menu'); if (!m) return;
+      if (!m.hidden){ thMenuShut(); return; }
+      const all = document.querySelector('#pd-thread [data-stk-all-go]:not([disabled]), #pd-thread [data-stk-all-stop]');
+      m.innerHTML = `<button type="button" role="menuitem" data-th-page-toggle>${esc(i18t('th_menu_list'))}</button>${all ? `<button type="button" role="menuitem" data-th-allgo>${esc(all.textContent.trim())}</button>` : ''}`;
+      m.hidden = false; go.setAttribute('aria-expanded', 'true'); return; }
+    if (t.closest('#pd-thread [data-th-allgo]')){ e.preventDefault(); thMenuShut(); const b = document.querySelector('#pd-thread [data-stk-all-go]:not([disabled]), #pd-thread [data-stk-all-stop]'); if (b) b.click(); return; }
+    if (!t.closest('#pd-thread .doc-th-menu')) thMenuShut();
+  }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') thMenuShut(); });
   document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('#pd-thread [data-th-page-toggle]') : null; if (!b) return;
     e.preventDefault(); _thPage = !_thPage; try { if (_thPage) localStorage.removeItem(TH_LIST_KEY); else localStorage.setItem(TH_LIST_KEY, '1'); } catch (_){} docThreadNavSync(); });
   /* the head's own arrows only (a row's own ‹ › keep their own handler): one press, one step */
   document.addEventListener('click', e => { const b = e.target && e.target.closest ? e.target.closest('#pd-thread [data-th-nav-step]') : null; if (!b || b.disabled) return;
     e.preventDefault(); docThreadStep(Number(b.getAttribute('data-th-nav-step')) || 1); });
-  document.addEventListener('wheel', e => {
-    const inCard = e.target && e.target.closest ? e.target.closest('#pd-thread') : null;
-    const list = e.target && e.target.closest ? (e.target.closest('#pd-thread .doc-th-rows') || (inCard && _thPage ? inCard.querySelector('.doc-th-rows') : null)) : null;
-    if (!list || !docThreadNavOn() || e.ctrlKey) return;
-    const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? list.clientHeight : 1); if (!dy) return;
-    /* a clause taller than the list is read first: the wheel scrolls it until its edge is in view */
-    const open = list.querySelector(`[data-th-row="${_docThreadOn}"]`);
-    if (open && list.scrollHeight > list.clientHeight + 4 && open.offsetHeight > list.clientHeight - 8){
-      const lr = list.getBoundingClientRect(), r = open.getBoundingClientRect();
-      if ((dy > 0 && r.bottom > lr.bottom + 2) || (dy < 0 && r.top < lr.top - 2)) return;
-    }
-    e.preventDefault();
-    clearTimeout(_thStepT); _thStepT = setTimeout(() => { _thStepAcc = 0; _thStepLocked = false; }, TH_STEP_QUIET_MS);
-    if (_thStepLocked) return;
-    _thStepAcc += dy;
-    if (Math.abs(_thStepAcc) < TH_STEP_DELTA) return;
-    _thStepLocked = true; const d = _thStepAcc > 0 ? 1 : -1; _thStepAcc = 0;
-    docThreadStep(d);
-  }, { passive: false });
+  /* THE PANEL SCROLLS, IT DOES NOT STEP (owner, 24 Nov 2026: "when you scroll on this tab, the scroll should not move you
+     to the next clause, you should have to press the next (›) button but leave the ability to scroll on paper"): the
+     wheel over the clause page scrolls the page; ‹ › and Next › step; the paper's own scroll still follows clause by clause */
 }
 let _docThreadStillT=null;
 /* ---- A CLAUSE YOU CLOSED STAYS CLOSED WHILE YOU SCROLL (the owner decided

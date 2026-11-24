@@ -1181,3 +1181,13 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 
 ## THE DOSSIER END TO END — the Clauses page from the first frame (24 Nov 2026)
 - `node --test test/f1206-clauses-page-no-flash.test.js test/f1203-the-clause-page-as-drawn.test.js`
+
+## THE DOSSIER END TO END — three panel fixes (24 Nov 2026)
+- `node --test test/f1207-three-panel-fixes.test.js test/f1200-the-clause-page-and-reading-line.test.js test/f1066-jambos-panels-remaining-eight.test.js test/f756-piles-as-drawn.test.js`
+- Browser (GitHub), re-pointed: piles-second-pass, piles-as-drawn, next-step-chips, negotiate-new-look, contract-new-look.
+
+## INSIGHTS — BRAIN AND WIRING HIDDEN (24 Nov 2026)
+- test/f1211-brain-and-wiring-hidden-for-now.test.js — no button for a hidden view, the map opens on Floors, a remembered hidden view not put back.
+## THE DOSSIER END TO END — the clause page, L+S (24 Nov 2026)
+- `node --test test/f1208-the-clause-page-ls.test.js test/f1203-the-clause-page-as-drawn.test.js test/f1200-the-clause-page-and-reading-line.test.js`
+- Browser (GitHub): clause-list-fixed and stakes-verify now open the list view (thList) to read the head's line.

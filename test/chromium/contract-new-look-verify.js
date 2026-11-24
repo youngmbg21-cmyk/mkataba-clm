@@ -244,8 +244,9 @@ const READ = () => {
         const Cl = await page.evaluate(() => ({ notes: !!document.querySelector('#pd2-notes .pd2-mg'), lit: !document.querySelector('#pd2-notes .pd2-mg.is-on') && !document.querySelector('#pd-thread .doc-th-row.pd2-lit'),
           shown: [...document.querySelectorAll('#pd2-notes [data-pd2-go="clause"]')].map(b => b.textContent.trim()),
           rows: [...document.querySelectorAll('#ig-dock [data-ig-chips], #ig-dock .jb-ways')].filter(e => e.getBoundingClientRect().height > 0 && e.children.length).map(e => [...e.children].map(b => b.textContent.trim()).join(' · ')) }));
-        check('13 Clauses: the notes stay beside the paper, nothing lit amber (owner: never), "Shown in Clauses", the one row of links, the paper left white',
-          tinted && Cl.notes && Cl.lit && Cl.shown.every(t => t === 'Shown in Clauses ›') && Cl.rows.length === 1 && Cl.rows[0] === 'fill in · redline · share · history', Cl);
+        /* RE-POINTED 24 Nov 2026 (owner: "delete … the links but only for this tab", f1207): no row of links on Clauses */
+        check('13 Clauses: the notes stay beside the paper, nothing lit amber (owner: never), "Shown in Clauses", no row of links, the paper left white',
+          tinted && Cl.notes && Cl.lit && Cl.shown.every(t => t === 'Shown in Clauses ›') && Cl.rows.length === 0, Cl);
         const Cd = await page.evaluate(() => ({ head: ((document.querySelector('#pd-thread .stk-view') || {}).textContent || '').trim(), tabs: !!document.querySelector('#pd-thread .stk-tabs'),
           say: ((document.querySelector('#pd-thread .doc-th-row.stk-b-need .stk-n') || {}).textContent || '').trim(), pre: ((document.querySelector('#pd-thread .stk-pre') || {}).textContent || '').replace(/\s+/g, ' ').trim() }));
         check('13b Clauses as drawn (your answer): "Clause review · one view for the whole company", no filter tabs, the row says its reading, the Preamble first with its blanks',

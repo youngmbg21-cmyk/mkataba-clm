@@ -19361,8 +19361,37 @@
   #pd-thread .doc-th-pgl{border:0;background:none;padding:0;font:inherit;font-size:13.5px;color:var(--color-text);cursor:pointer}
   #pd-thread .doc-th-pgl:hover{text-decoration:underline;text-underline-offset:3px}
   #pd-thread .doc-th-pga .doc-th-nx-go{margin-left:auto}
+  /* THE CLAUSE PAGE, L+S (owner's pick, 24 Nov 2026): no head line over the page (the bar names the contract), one nav row
+     with its menu and a thin read line, the name at 17px with its badge, the buttons small, each finding answered in its row */
+  html.lg-new #ig-dock #pd-thread.is-page :is(.stk-lg-top, .stk-all){display:none}
+  html.lg-new #ig-dock #pd-thread.is-page .doc-th-row.is-open .doc-th-name{font-size:17px;line-height:1.3}
+  html.lg-new #ig-dock #pd-thread.is-page .doc-th-row.is-open .doc-th-head{display:flex;align-items:center;gap:8px}
+  html.lg-new #ig-dock #pd-thread.is-page .doc-th-row.is-open .doc-th-head > .doc-th-go{flex:1 1 auto;min-width:0}
+  html.lg-new #ig-dock #pd-thread.is-page .doc-th-row.is-open [data-th-state]{display:none}
+  html.lg-new #pd-thread .doc-th-head > .doc-th-pg-b{flex:none;margin-left:auto}
+  html.lg-new #pd-thread .doc-th-mw{position:relative;margin-left:auto}
+  html.lg-new #pd-thread .doc-th-mw > .doc-th-list{margin-left:0}
+  html.lg-new #pd-thread .doc-th-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:20;display:flex;flex-direction:column;min-width:220px;padding:6px;border:1px solid var(--color-neutral-200);border-radius:var(--radius);background:var(--color-surface);box-shadow:var(--shadow-md)}
+  html.lg-new #pd-thread .doc-th-menu[hidden]{display:none}
+  html.lg-new #pd-thread .doc-th-menu > button{border:0;background:none;text-align:left;padding:8px 10px;border-radius:var(--radius-sm);font:inherit;font-size:13px;color:var(--color-text);cursor:pointer}
+  html.lg-new #pd-thread .doc-th-menu > button:hover{background:var(--row-hover)}
+  html.lg-new #pd-thread .doc-th-prog{flex:1 0 100%;display:block;height:3px;margin-top:8px;border-radius:2px;background:var(--color-neutral-200);overflow:hidden}
+  html.lg-new #pd-thread .doc-th-prog > i{display:block;height:100%;width:var(--p);background:var(--st-green-dot)}
+  #pd-thread .doc-th-pgx .doc-th-pgbtn{height:var(--ctl-h-sm);padding:0 12px;font-size:12.5px}
+  #pd-thread .doc-th-found{padding-top:12px}
+  #pd-thread .doc-th-found .h{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--color-quiet)}
+  #pd-thread .doc-th-found .h b{font-weight:var(--w-label)}
+  #pd-thread .doc-th-found ul{gap:0}
+  #pd-thread .doc-th-fi{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--color-neutral-200)}
+  #pd-thread .doc-th-fi > div{flex:1 1 auto;min-width:0}
+  #pd-thread .doc-th-fi > .pd2-badge{flex:none}
+  #pd-thread .doc-th-fi > .doc-th-pgl{flex:none}
+  #pd-thread .doc-th-pgl.is-link{font-size:13px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
+  #pd-thread .doc-th-pga .doc-th-nx-go{height:var(--ctl-h-sm);padding:0 12px;font-size:12.5px}
   #clause-editor.is-tabbed .ce-col{position:relative}
   #clause-editor.is-tabbed .ce-left{padding-top:52px}
+  /* the ground behind the paper is the paper pages' own warm grey (owner, 24 Nov 2026: "like the other pages with paper") */
+  #clause-editor.is-tabbed,#clause-editor.is-tabbed .ce-left,#clause-editor.is-tabbed #ce-doc{background:var(--desk-ground)}
   #clause-editor.is-tabbed .ce-foot:not(:has(#ce-waiting:not(:empty))){display:none}
   #clause-editor.is-tabbed .ce-rail > .ce-pick{display:none}
   #clause-editor.is-tabbed #ce-railfoot{justify-content:flex-start;flex-wrap:wrap;gap:14px}

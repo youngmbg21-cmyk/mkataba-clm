@@ -89,7 +89,7 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     const c1 = await nextOf();
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): with a change on the table the face keeps its own
        links (no "edit a clause" chip: Edit is the change's own row verb on the card), and each link's door is on screen */
-    const doors1 = await page.evaluate(() => [['rl_ladder', '#ig-dock [data-rl-ladder]'], ['rl_notes', '#ig-dock [data-rl-notes-all]'], ['rl_theirs', '[data-ig-red="theirs"]']].map(([k, sel]) => { const b = document.querySelector(sel); /* CA_RED_PRESS's own doors */ return k + ':' + !!(b && !b.disabled && b.getClientRects().length); }));
+    const doors1 = await page.evaluate(() => [['rl_ladder', '#ig-dock [data-rl-ladder]'], ['rl_notes', '#ig-dock [data-ca-chip="rl_notes"]'], ['rl_theirs', '[data-ig-red="theirs"]']].map(([k, sel]) => { const b = document.querySelector(sel); /* CA_RED_PRESS's own doors */ return k + ':' + !!(b && !b.disabled && b.getClientRects().length); }));
     ok('1c with a change on the table the face\'s links stay its own, never "redline", each a live door', JSON.stringify(c1) === JSON.stringify(['rl_ladder', 'rl_notes', 'rl_theirs', 'history']) && doors1.every(x => /:true$/.test(x)), JSON.stringify({ c1, doors1 }));
     await shoot('1-redlines');
     /* RETIRED 16 Nov 2026 (#762): 1d "the edit chip's press opens the clause editor" — the new look's face draws no edit chip (its links are the face's own); the card's Edit is checked by the editor's own checks */
