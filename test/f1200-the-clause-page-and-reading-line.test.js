@@ -17,7 +17,9 @@ test('f1200 (1) the clause page', () => {
   const N = fn(CT, 'docThreadNavSync');
   assert.match(N, /card\.classList\.toggle\('is-page', !!\(_thPage && docThreadNavOn\(\)\)\)/);
   assert.match(N, /data-pd-tab="copilot"[\s\S]*th_step_of[\s\S]*th_page_hint[\s\S]*data-th-page-toggle/);
-  assert.match(N, /th_page_next[\s\S]*data-th-nav-step="1"/);
+  /* RE-POINTED 24 Nov 2026 (Round E, as drawn): Next › stands in the page's act row, the foot keeps "Keep scrolling for …" */
+  assert.match(N, /th_page_next/);
+  assert.match(R('js/views/contract.js'), /data-th-pg="ask"[\s\S]{0,200}data-th-nav-step="1"/);
   assert.match(N, /window\.stkLivePoints\(thLiveContract\(\)\)/);
   assert.match(H, /#pd-thread\.is-page \.doc-th-rows > :not\(\.is-open\)\{display:none\}/);
   assert.match(CT, /closest\('#pd-thread \[data-th-nav-step\]'\)/);
