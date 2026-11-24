@@ -114,6 +114,9 @@ const FLOW_MAP = [
     a: [['document', _w('a departure → Open the paper', 'en avvikelse → Öppna pappret')]], d: ['ourpaper', 'approvals', 'settings'], p: [] },
   { k: 'mynotes', st: 'book', s: _w('your private notes', 'dina privata anteckningar'),
     a: [], d: ['calendar', 'approvals'], p: [] },
+  /* THE NOTEBOOK (owner's pick, 23 Nov 2026): laws, our policies and research, kept for Jambo to quote */
+  { k: 'notebook', st: 'book', s: _w('laws, our policies and research Jambo may quote', 'lagar, våra policyer och forskning som Jambo får citera'),
+    a: [], d: ['handbook', 'standards', 'board'], p: [] },
   { k: 'reads', st: 'book', s: _w('Discover: ask every contract a question, the answers kept', 'Upptäck: ställ en fråga till varje avtal, svaren sparas'),
     a: [['contracts', _w('an answer → its words on the contract', 'ett svar → dess ord i avtalet')]], d: ['contracts', 'board', 'alertme'], p: [] },
   /* ALERT ME WHEN (owner's pick, 23 Nov 2026): every alert on a question; a hit lands on its contract */

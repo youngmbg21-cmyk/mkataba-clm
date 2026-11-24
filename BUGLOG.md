@@ -22958,6 +22958,10 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - f804 (3), (6) and its subtest "3a a word for one contract takes the held row…" are red on main before the old-layouts round (the list panel's ask / Brain naming); not touched.
 - f977 (6, 7) "the foot follows, one thing when empty — every HARMONY rule waits on the switch" is red on main before the old-layouts round; not touched.
 - Old-layouts round: below INS_NARROW_MIN (720 wide, short of the phone's 768 break) the pages still draw their old narrow layout, and Settings, Negotiations and Jambo's agents have no INS_PAGE_REPAINT entry, so crossing 720 does not redraw them.
+
+## Noticed, not fixed — 23 Nov 2026 (the Notebook round)
+- Red on main before the Notebook was built, not touched: f735 (3) "a booking goes to the Calendar's Jambo from every box"; f1073 (3) "Approvals: one grey band inside the row"; f705 (8) "the wiring"; f841 (2) "the journey" with its "2a six stages…"; the Brain's "8e the Brain knows the map" subtest.
+- CLAUDE.md is about 109 KB, past its own "under about 80 KB" line; a trim needs the owner's yes.
 - P-14 build (Calendar, the Legora + Stripe way): run here at unmodified origin/main 9df4ca58, these node checks are already red, identically before and after the build — f672 (2), f678 (3f), f690 (1), f705 (8), f735 (3), f754 (2), f841 (2), f966 (1) and the subtests they hold; not touched.
 - Noticed, not fixed (18 Nov 2026, Explorer drawing session): the Send screen opened for a colleague ("Ask a colleague") heads itself "Send to Tatu" (the counterparty's first word) while its line says "to A colleague"; and with email not set up, the note handed in by rlAskColleague is replaced by the "A copied link carries no message" warning, so the prefilled question is not seen.
 - Owner-reported, not fixed (22 Nov 2026, Dossier drawing session): on the Redlines face the switch Changes · Notes · Ladder can show two buttons black at once. Each button decides its own light separately (Notes from rlFaceNotesOn, Ladder from _rlFaceLad, Changes only when neither, in rlFiveHead / rlHeadNotesHtml / rlHeadLadderHtml), so with the notes open and a Ladder chosen both Notes and Ladder are lit. One choice should light one button.
@@ -22973,6 +22977,7 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - The access check's area chip uses a typed "+" and "×" (copies My notes' chip).
 - `ca_go_draft_can_h` (both books) is left with no reader since New agreement's old panel was deleted (7982954e); `.tpl-rail:hover` still paints a grey row hover.
 - Fixed (23 Nov 2026, Dossier L+S step 4): the Redlines switch could light two buttons at once (Notes and Ladder); now one of three (f1197).
+- f672 (2) "every word a label offers is a word Jambo reads" is red on main (23 Nov 2026, late): the place word `draft` has no `ca_go_draft` in either book. Not touched in the Notebook round.
 - test/f1194-no-old-layout-for-a-signed-in-reader.test.js is red on claude/great-bardeen-ockvtr (90dc2d6b) before any change: "the old sheet panel's words left both books". my-calendar-verify waits on an owner decision: P-14's Week and Month draw no own events, notes or Jambo's planned blocks (calLsBase leaves out `e.own`), so its checks 2–6 have nothing to find.
 - Noticed, not fixed (23 Nov 2026, fix-br-4): node test f1194 (3) "the old sheet panel's words left both books" is red on claude/great-bardeen-ockvtr before this branch's change (js/i18n.js untouched here).
 - Noticed, not fixed (23 Nov 2026, fix-br-4): the new Calendar's Week draws no "Waiting: …" word for a duty held back by an earlier one (it is only never late and offers no Mark done); week-as-drawn-verify 6a was re-pointed to that.

@@ -234,6 +234,8 @@ const NAV_PAGES = [
   /* "jambo's work" is the Board's card (land-on-it 1a, the owner's door); his house by its own name */
   ['house', / (jambo s house|jambos house|jambo house|jambos hus) /],
   ['mynotes', / (my (private |own )?notes|mina (privata |egna )?anteckningar) /],
+  /* THE NOTEBOOK (owner's pick, 23 Nov 2026): laws, policies and research Jambo may quote */
+  ['notebook', / ((the|my|our) notebook|notebook page|anteckningsboken|anteckningsbok) /],
   /* READS (The thread, 28 Oct 2026): every read of the wording, where the next batch is */
   ['reads', / (every read|all reads|the discover page|discover page|the reads|reads page|past reads|previous reads|earlier reads|read history|varje läsning|alla läsningar|tidigare läsningar|läsningarna) /],
   /* ALERT ME WHEN (23 Nov 2026): every alert on a question, Discover's Alerts tab */
