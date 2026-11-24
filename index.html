@@ -26446,10 +26446,10 @@
      poor"; "put the whole strip of the buttons at the center of the panel"): the same frame as the Dossier, Clauses and
      Redlines — the tab strip in the middle with the fold arrow at the end, the Clauses tab's own row, the clause as one line
      with its badge, sections with quiet capital heads and lines under each row, the bottom row and the links line */
-  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]{justify-content:center;position:relative}
-  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .flex-1{display:none}
-  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > #igd-collapse#igd-collapse{position:absolute;right:16px;top:50%;margin:0;transform:translateY(-50%)}
-  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .pd-tab:not(:has(+ .pd-tab)){margin-right:0}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab){justify-content:center;position:relative}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab) > .flex-1{display:none}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab) > #igd-collapse#igd-collapse{position:absolute;right:16px;top:50%;margin:0;transform:translateY(-50%)}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab) > .pd-tab:not(:has(+ .pd-tab)){margin-right:0}
   html.lg-new #clause-editor.is-tabbed .ce-tabtop{padding:12px 18px 0;gap:12px}
   html.lg-new #clause-editor.is-tabbed .ce-drow{position:relative;display:flex;justify-content:center;align-items:center;margin:0 -18px;min-height:32px}
   html.lg-new #clause-editor.is-tabbed .ce-drow > .ce-dtabs{align-self:center}
@@ -26546,20 +26546,20 @@
      pill with the switch's own soft shadow; the counts stay beside their words. Beside a paper only (data-pd-head="paper"),
      and the editor's copy of the row (.ce-dtabs) wears the same; the fold arrow keeps its place at the row's end. The pill
      is the open tab's ::before, inset by the track's 3px, so the tabs stay the head's own children (no wrapper). */
-  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]{column-gap:0}
-  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .pd-tab{position:relative;isolation:isolate;height:32px;margin:0;padding:0 9px;border-radius:0;background:var(--surface-2);color:var(--color-neutral-600)}
-  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab:nth-of-type(5)) > .pd-tab{padding:0 7px}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab){column-gap:0}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab) > .pd-tab{position:relative;isolation:isolate;height:32px;margin:0;padding:0 9px;border-radius:0;background:var(--surface-2);color:var(--color-neutral-600)}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab):has(> .pd-tab:nth-of-type(5)) > .pd-tab{padding:0 7px}
   /* six tabs (Dossier · Email · Plan · Clauses · Redlines · Editor) at the owner's 1440 screen: the switch draws tighter so
      the fold arrow stays inside the panel (four-decisions Q2), every word still whole */
-  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab:nth-of-type(6)) > .pd-tab{padding:0 5px}
-  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab:nth-of-type(6)) > .pd-tab:first-child{padding-left:8px}
-  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab:nth-of-type(6)) > .pd-tab:not(:has(+ .pd-tab)){padding-right:8px;margin-right:4px}
-  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .pd-tab:first-child{margin-left:0;padding-left:11px;border-radius:999px 0 0 999px}
-  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .pd-tab:not(:has(+ .pd-tab)){margin-right:8px;padding-right:11px;border-radius:0 999px 999px 0}
-  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .pd-tab:first-child:not(:has(+ .pd-tab)){border-radius:999px}
-  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .pd-tab:hover{background:var(--surface-2);color:var(--color-text)}
-  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .pd-tab.on{background:var(--surface-2);color:var(--color-text)}
-  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"] > .pd-tab.on::before{content:"";position:absolute;inset:3px;z-index:-1;border-radius:999px;background:var(--color-surface);box-shadow:0 1px 2px rgba(0,0,0,.10)}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab):has(> .pd-tab:nth-of-type(6)) > .pd-tab{padding:0 5px}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab):has(> .pd-tab:nth-of-type(6)) > .pd-tab:first-child{padding-left:8px}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab):has(> .pd-tab:nth-of-type(6)) > .pd-tab:not(:has(+ .pd-tab)){padding-right:8px;margin-right:4px}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab) > .pd-tab:first-child{margin-left:0;padding-left:11px;border-radius:999px 0 0 999px}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab) > .pd-tab:not(:has(+ .pd-tab)){margin-right:8px;padding-right:11px;border-radius:0 999px 999px 0}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab) > .pd-tab:first-child:not(:has(+ .pd-tab)){border-radius:999px}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab) > .pd-tab:hover{background:var(--surface-2);color:var(--color-text)}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab) > .pd-tab.on{background:var(--surface-2);color:var(--color-text)}
+  html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab) > .pd-tab.on::before{content:"";position:absolute;inset:3px;z-index:-1;border-radius:999px;background:var(--color-surface);box-shadow:0 1px 2px rgba(0,0,0,.10)}
   /* the editor's copy is the SAME switch, measured against the Dossier's row: words at the body size, counts at the label
      size in the strong weight, 14px between words, 10px from the track's ends */
   html.lg-new #clause-editor.is-tabbed .ce-dtabs{align-self:flex-start;width:fit-content;max-width:100%;min-height:0;gap:0;padding:3px;border-radius:999px;background:var(--surface-2)}

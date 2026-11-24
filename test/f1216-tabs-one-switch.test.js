@@ -14,7 +14,9 @@ const R = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
 const H = R('index.html'), PD = strip(R('js/paperdesk.js')), CT = strip(R('js/views/contract.js'));
 const fn = (S, name) => { const i = S.indexOf('function ' + name + '('); assert.ok(i >= 0, name); return S.slice(i, S.indexOf('\n}', i) + 2); };
-const HEAD = 'html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]';
+/* RE-POINTED 24 Nov 2026: the switch is dressed only where there are tabs to switch between (two or more); Jambo's
+   name alone over his conversation is not a switch (owner: "It was not there before"). */
+const HEAD = 'html.lg-new #app-shell #ig-dock > .igd-head.igd-head[data-pd-head="paper"]:has(> .pd-tab + .pd-tab)';
 
 test('f1216 (1) one grey track, the open tab a white pill', () => {
   assert.ok(H.includes(HEAD + ' > .pd-tab{position:relative;isolation:isolate;height:32px;margin:0;padding:0 9px;border-radius:0;background:var(--surface-2)'));
