@@ -2606,7 +2606,9 @@ function stLsLookPanel(){
   const tone={ amber:'amber', ruby:'ruby', green:'green' };
   const qc=`<div class="cl-qc-list">${f.quality.map(q=>`<div class="cl-qc"><i class="cl-qc-dot is-${tone[q.tone]||'grey'}" aria-hidden="true"></i><span>${esc(q.t)}</span>${q.go?`<button type="button" class="jov-lnk cl-qc-go" ${q.go.attr}>${esc(q.go.label)}</button>`:'<span class="cl-qc-ok" aria-hidden="true">✓</span>'}</div>`).join('')}</div>`;
   const ringSay=f.owed.length?i18t('cl_ls_p_ring_owed',{ n:f.set, m:f.of, what:f.owed.join(', ') }):i18t('cl_ls_p_ring_all',{ m:f.of });
-  return { eyebrow:i18t('cl_title'),
+  /* PREVIEW IN THE PANEL (owner, 24 Nov 2026): on The page and Brand kit the paper is pinned at the panel's top
+     (`pin`); its headline, ring and quality check below it, in the panel's own scroller */
+  return { eyebrow:i18t('cl_title'), pin:f.pv||'',
     /* round 4: on the Brand kit tab the headline says the kit */
     title:f.tab==='kit'?i18t('cl_kit_p_t',{ n:f.kitSet, m:f.kitOf }):f.editing?i18t('cl_ls_p_t_stream',{ style:f.style, name:f.editing }):i18t('cl_ls_p_t',{ style:f.style, n:f.follow, m:f.streams }),
     /* round 6: a change waiting is said in the panel's head line */
@@ -2711,13 +2713,20 @@ function stLsPanelO(){
 }
 function stLsPanelHtml(){
   const o=stLsPanelO(); if(!o||typeof jamboOverviewHtml!=='function') return '';
-  const card=jamboOverviewHtml(Object.assign({ actFirst:true }, o),'stn');
-  return `<div class="jl-words is-ov sdd5-p st-ls-p">${o.titleAttr?card.replace('<h3 class="jov5-title">',`<h3 class="jov5-title" ${o.titleAttr}>`):card}</div>`;
+  const card0=jamboOverviewHtml(Object.assign({ actFirst:true }, o),'stn');
+  const card=o.titleAttr?card0.replace('<h3 class="jov5-title">',`<h3 class="jov5-title" ${o.titleAttr}>`):card0;
+  /* a pinned part (How our contracts look's paper): it stays at the top, the panel's words scroll under it */
+  if(o.pin) return `<div class="jl-words is-ov sdd5-p st-ls-p is-pin">${o.pin}<div class="st-ls-rest scroll-thin" id="st-ls-rest">${card}</div></div>`;
+  return `<div class="jl-words is-ov sdd5-p st-ls-p">${card}</div>`;
 }
 function stLsPanelPaint(){
   if(!document.getElementById('ins-panel')) return;
+  const rest=document.getElementById('st-ls-rest'), keep=rest?rest.scrollTop:0;
   insPaintPanel({ seat:'team', jlWord:i18t('stn_title'), item:{ id:'settings' }, head:false, tabCount:0, body:stLsPanelHtml() });
   stLsBackWire();
+  const r2=document.getElementById('st-ls-rest'); if(r2&&keep) r2.scrollTop=keep;
+  /* the look's paper, drawn where the panel now stands (it reads, it never writes) */
+  if(_stPage==='look'&&typeof window.clAfterPaint==='function') window.clAfterPaint();
 }
 /* OVERVIEW IS THE PAGE'S OWN (owner, 22 Nov 2026): the panel's Overview tab lets go of the chosen row and shows this
    page's landing again — never the shared panel's "Choose a contract" words. The shared press asks the page first
@@ -2743,7 +2752,6 @@ function stLsPaint(admin){
   if(_stPage==='streams') stSwLoad();
   if(_stPage==='guard') acLoad();
   stDressPage();
-  if(_stPage==='look'&&typeof window.clAfterPaint==='function') window.clAfterPaint();
   if(_stAsks===null&&typeof stAsksLoad==='function') stAsksLoad();
   if(typeof insWatchWidth==='function') insWatchWidth();
   if(typeof setActiveNav==='function') setActiveNav('team');
