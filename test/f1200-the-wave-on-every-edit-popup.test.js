@@ -23,7 +23,7 @@ function world(){
   const dom = new JSDOM('<!doctype html><body><div id="modal-root"></div></body>');
   const w = dom.window;
   const src = ['var LGP_WAVE_HTML' + COMP.split('var LGP_WAVE_HTML')[1].split('\nvar _lgpWaveObs')[0],
-    'var _lgpWaveObs = null;', fnBody(COMP, 'lgpWaveWatch'), 'this.lgpWaveSweep = lgpWaveSweep; this.lgpWaveWatch = lgpWaveWatch;'].join('\n');
+    'var _lgpWaveObs = null;', fnBody(COMP, 'lgpWaveWatch'), 'this.lgpWaveSweep = lgpWaveSweep; this.lgpWaveWatch = lgpWaveWatch; this.popWaveFit = popWaveFit;'].join('\n');
   const ctx = { document: w.document, MutationObserver: w.MutationObserver, Array };
   vm.createContext(ctx); vm.runInContext(src, ctx);
   return { w, ctx };
@@ -54,7 +54,7 @@ test('f1200 (1) one helper waves every pop-up frame once, never a page, the Send
   assert.equal(page.querySelector('.lgp-wave'), null, 'a frame turned into a page loses its strip');
   assert.equal(host.querySelector('#sheet .lgp-wave').getAttribute('aria-hidden'), 'true');
   assert.equal(host.querySelectorAll('#sheet .lgp-wave > b').length, 2, 'two weaves');
-  assert.match(COMP, /Object\.assign\(window, \{ LGP_WAVE_HTML, POP_WAVE_FRAME, lgpWaveSweep, lgpWaveWatch \}\)/);
+  assert.match(COMP, /Object\.assign\(window, \{ LGP_WAVE_HTML, POP_WAVE_FRAME, POP_WAVE_TITLE, lgpWaveSweep, popWaveFit, lgpWaveWatch \}\)/);
 });
 
 test('f1200 (2) two watchers: the one dialog, and the layers put straight on the page', async () => {
@@ -89,10 +89,33 @@ test('f1200 (3) the look: the panels\' weaves by token, behind the words, a fadi
   const block = CSS.slice(CSS.lastIndexOf('.has-pop-wave{', i) - 16, CSS.indexOf('@media (prefers-reduced-motion: reduce){ html.lg-new .lgp-wave > b{animation:none} }', i) + 100);
   assert.match(block, /\n  html\.lg-new \.has-pop-wave\{isolation:isolate\}/);
   assert.match(block, /\.lgp-wave\{[^]*?z-index:-1;overflow:hidden;pointer-events:none/);
-  assert.match(block, /mask-image:linear-gradient\(black 45%, transparent\)/);
+  /* THE RIBBON (owner's pick, 24 Nov 2026): the strip's height is the measured space above the title, its foot fades in 3px */
+  assert.match(block, /\.lgp-wave\{[^]*?height:var\(--pw-h, 18px\)/);
+  assert.match(block, /mask-image:linear-gradient\(black calc\(100% - 3px\), transparent\)/);
+  assert.match(block, /\.lgp-wave > b\{position:absolute;top:-52px;/, 'the busy middle of the weave');
+  assert.match(CSS, /#pd2-plan-sheet textarea\.lgp-in\.is-area\{min-height:220px\}/, 'Plan the read: its box opens at about nine lines');
   assert.match(block, /var\(--wm-a1\), var\(--wm-a2\), var\(--wm-a3\), var\(--wm-a4\), var\(--wm-a5\)/);
   assert.match(block, /var\(--wm-b1\), var\(--wm-b2\), var\(--wm-b3\)/);
   assert.match(block, /animation:wmSlideA 210s linear infinite/); assert.match(block, /animation:wmSlideB 208s linear infinite/);
   assert.match(block, /prefers-reduced-motion: reduce\)\{ html\.lg-new \.lgp-wave > b\{animation:none\}/);
   assert.doesNotMatch(block.replace(/data:[^"]*"/g, ''), /#[0-9a-fA-F]{3,8}\b/, 'no hand-typed colour');
+});
+
+test('f1200 (4) the ribbon stops where the title starts: measured per frame, in the frame\'s own points', () => {
+  const { w, ctx } = world();
+  const f = w.document.createElement('div'); f.className = 'modal-in'; f.innerHTML = '<form class="lgp"><div class="lgp-hd"><h3 class="lgp-h">Add duty</h3></div></form>';
+  w.document.body.appendChild(f);
+  const box = (top, h) => () => ({ top, height: h, left: 0, right: 480, bottom: top + h, width: 480 });
+  Object.defineProperty(f, 'offsetHeight', { value: 400 });
+  f.getBoundingClientRect = box(100, 400);
+  const R = w.document.createRange; w.document.createRange = () => { const r = R.call(w.document); r.getBoundingClientRect = box(121, 24); return r; };
+  ctx.lgpWaveSweep(f);
+  assert.equal(f.style.getPropertyValue('--pw-h'), '21px', 'frame top 100, the title\'s words at 121');
+  f.getBoundingClientRect = box(100, 200);
+  w.document.createRange = () => { const r = R.call(w.document); r.getBoundingClientRect = box(110.5, 12); return r; };
+  assert.equal(ctx.popWaveFit(f), 21, 'arriving at half size: still 21 of its own points');
+  const bare = w.document.createElement('div'); bare.className = 'modal-in'; bare.innerHTML = '<p>no title</p>'; w.document.body.appendChild(bare);
+  ctx.lgpWaveSweep(bare);
+  assert.equal(bare.style.getPropertyValue('--pw-h'), '', 'no title: the rule\'s 18px stands');
+  assert.equal(ctx.popWaveFit(Object.assign(w.document.createElement('div'), { className: 'modal-in' })), null);
 });

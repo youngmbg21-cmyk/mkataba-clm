@@ -2262,10 +2262,28 @@ function lgpWaveSweep(root){
   for (const f of frames){
     const has = Array.from(f.children).find(k => k.classList && k.classList.contains('lgp-wave'));
     if (popWaveSkips(f)){ if (has){ has.remove(); f.classList.remove('has-pop-wave'); } continue; }
-    if (has) continue;
-    f.insertAdjacentHTML('afterbegin', LGP_WAVE_HTML); f.classList.add('has-pop-wave'); n++;
+    if (!has){ f.insertAdjacentHTML('afterbegin', LGP_WAVE_HTML); f.classList.add('has-pop-wave'); n++; }
+    popWaveFit(f);
   }
   return n;
+}
+/* THE RIBBON (owner's pick, 24 Nov 2026): the strip stops where the title's first letter starts — measured from the
+   frame's top to the top of the title's own words (a range, not the box, so the title's padding is not counted), in the
+   frame's own points even while it arrives scaled; no title, or nothing laid out yet, keeps the rule's 18px */
+var POP_WAVE_TITLE = '.lgp-h, h1, h2, h3, .rvd-title, .dlg-h';
+var POP_WAVE_MAX = 84;
+function popWaveFit(f){
+  try {
+    const t = f.querySelector(POP_WAVE_TITLE); if (!t || typeof document.createRange !== 'function') return null;
+    const r = document.createRange(); r.selectNodeContents(t);
+    const a = f.getBoundingClientRect(), b = r.getBoundingClientRect();
+    if (!a.height || !b.height || !f.offsetHeight) return null;
+    const k = a.height / f.offsetHeight || 1;
+    const h = Math.round((b.top - a.top) / k);
+    if (!(h > 4) || h > POP_WAVE_MAX) return null;
+    const v = h + 'px'; if (f.style.getPropertyValue('--pw-h') !== v) f.style.setProperty('--pw-h', v);
+    return h;
+  } catch (_){ return null; }
 }
 var _lgpWaveObs = null;
 function lgpWaveWatch(){
@@ -2284,5 +2302,5 @@ if (typeof document !== 'undefined'){
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lgpWaveWatch, { once: true });
   else lgpWaveWatch();
 }
-Object.assign(window, { LGP_WAVE_HTML, POP_WAVE_FRAME, lgpWaveSweep, lgpWaveWatch });
+Object.assign(window, { LGP_WAVE_HTML, POP_WAVE_FRAME, POP_WAVE_TITLE, lgpWaveSweep, popWaveFit, lgpWaveWatch });
 Object.assign(window, { LGP_W, LGP_PAGE, lgpHtml, lgpRowHtml, lgpListHtml, lgpOpen, lgpRepaint, lgpStepsHtml, lgpStepGo });
