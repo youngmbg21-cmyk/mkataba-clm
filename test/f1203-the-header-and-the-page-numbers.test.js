@@ -124,7 +124,8 @@ test('f1203 (3) the signing copy draws both on every page; the working copy says
   assert.match(strip(read('js/pages.js')), /_pgFurniture\(o, k, info\.n, 0, info\.pages\[k\]\.h, pd\)/, 'the printed page wears the same furniture');
   const S = read('server/server.js');
   /* RE-POINTED 24 Nov 2026 (contract look round 3): the count leaves out a cover page the look does not count */
-  assert.match(S, /const pn = brPageNumberSay\(pm && pm\.pageNumFmt, i \+ 1, pages\.length - \(cvSkip && !cvCount \? 1 : 0\)\);/, 'the sealed PDF: the snapshot\'s own page numbers');
+  /* RE-POINTED 24 Nov 2026 (contract look round 5): the page words in the snapshot's own language, English where none */
+  assert.match(S, /const pn = brPageNumberSay\(pm && pm\.pageNumFmt, i \+ 1, pages\.length - \(cvSkip && !cvCount \? 1 : 0\), \(pm && pm\.furnLang\) \|\| 'en'\);/, 'the sealed PDF: the snapshot\'s own page numbers');
   assert.match(S, /if \(pm && pm\.pageNumPos === 'off'\) return;/);
   assert.match(S, /brFieldsFill\(pm\.headerText, c, b\)/);
 });
@@ -167,7 +168,7 @@ function lookWorld(look) {
 test('f1203 (5) two rows with their own edit places and pins, the sentence reader, "No page numbers"', () => {
   const W = lookWorld({ designId: 'classic-letterhead', footerText: '{ref} · Confidential', pageMarks: { headerText: '{company} · {ref}', headerPos: 'right', pageNumPos: 'left', pageNumFmt: 'slash' } });
   const parts = J(vm.runInContext('clParts()', W)), by = Object.fromEntries(parts.map(r => [r.k, r]));
-  /* RE-POINTED 24 Nov 2026 (contract look round 3): two more parts, Signature block and Cover page */ assert.deepEqual(parts.map(r => r.k), ['logo', 'header', 'letterhead', 'style', 'layout', 'colour', 'type', 'footer', 'pagenum', 'sigblock', 'cover']);
+  /* RE-POINTED 24 Nov 2026 (contract look round 3): two more parts, Signature block and Cover page */ assert.deepEqual(parts.map(r => r.k), ['logo', 'header', 'letterhead', 'style', 'layout', 'colour', 'type', 'footer', 'pagenum', 'sigblock', 'cover', 'lang']); /* RE-POINTED 24 Nov 2026 (contract look round 5): one more part, the words on the pages */
   assert.match(by.header.html, /“Highland · MK-449”/, 'what the paper will say, filled from the previewed contract'); assert.equal(by.header.act.attr, 'data-cl-mode="h"');
   assert.match(by.footer.html, /“MK-449 · Confidential”/);
   assert.match(by.pagenum.html, /“1 \/ 1”/); assert.match(by.pagenum.html, /cl_ls_pos_left/); assert.equal(by.pagenum.act.attr, 'data-cl-mode="n"');
@@ -197,7 +198,7 @@ test('f1203 (5) two rows with their own edit places and pins, the sentence reade
   const q = J(vm.runInContext('clQuality()', off)).find(x => x.t === 'cl_ls_q_nonum');
   assert.ok(q && q.tone === 'amber' && q.go.attr === 'data-st-ls-cl="n"', 'No page numbers: an amber note with its door');
   assert.equal(J(vm.runInContext('clParts()', off)).find(x => x.k === 'pagenum').st, 'optional');
-  assert.match(vm.runInContext('clTabsHtml(clParts())', off), /cl_ls_n_parts 11/, 'the parts count moves with it'); /* RE-POINTED 24 Nov 2026 (contract look round 3): two more parts, Signature block and Cover page */
+  assert.match(vm.runInContext('clTabsHtml(clParts())', off), /cl_ls_n_parts 12/, 'the parts count moves with it'); /* RE-POINTED 24 Nov 2026 (contract look round 5): one more part, the words on the pages */ /* RE-POINTED 24 Nov 2026 (contract look round 3): two more parts, Signature block and Cover page */
 });
 
 test('f1203 (6) every new word in both books', () => {

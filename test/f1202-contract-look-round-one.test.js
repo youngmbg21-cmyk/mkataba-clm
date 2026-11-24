@@ -65,7 +65,7 @@ test('f1202 (1) two tabs carrying their counts, and nothing of a later round', (
   const ctx = world({ designId: 'classic-letterhead' });
   const h = vm.runInContext('clTabsHtml(clParts())', ctx);
   /* RE-POINTED 24 Nov 2026 (contract look round 2): two more parts, Header and Page numbers */
-  /* RE-POINTED 24 Nov 2026 (contract look round 3): two more parts, Signature block and Cover page */ assert.match(h, /data-cl-tab="page">cl_ls_tab_page<i>cl_ls_n_parts 11<\/i>/);
+  /* RE-POINTED 24 Nov 2026 (contract look round 3): two more parts, Signature block and Cover page */ /* RE-POINTED 24 Nov 2026 (contract look round 5): one more part, the words on the pages */ assert.match(h, /data-cl-tab="page">cl_ls_tab_page<i>cl_ls_n_parts 12<\/i>/);
   assert.match(h, /data-cl-tab="who">cl_ls_tab_who<i>cl_ls_n_streams 3 · cl_ls_n_papers 1<\/i>/);
   assert.match(S, /<h2 class="ctf-h stn-title sdd-title">\$\{esc\(o\.title\)\}<\/h2>\$\{o\.badge\|\|''\}/, 'the head carries the badge beside the title');
 });
@@ -74,8 +74,8 @@ test('f1202 (2) the table of parts: four columns, rows from the real look, each 
   const ctx = world({ designId: 'classic-letterhead', defaultFooterText: 'Confidential' });
   const parts = J(vm.runInContext('clParts()', ctx));
   /* RE-POINTED 24 Nov 2026 (contract look round 2): two more parts, Header and Page numbers */
-  /* RE-POINTED 24 Nov 2026 (contract look round 3): two more parts, Signature block and Cover page */ assert.deepEqual(parts.map(r => r.k), ['logo', 'header', 'letterhead', 'style', 'layout', 'colour', 'type', 'footer', 'pagenum', 'sigblock', 'cover']);
-  assert.deepEqual(parts.map(r => r.n), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+  /* RE-POINTED 24 Nov 2026 (contract look round 3): two more parts, Signature block and Cover page */ assert.deepEqual(parts.map(r => r.k), ['logo', 'header', 'letterhead', 'style', 'layout', 'colour', 'type', 'footer', 'pagenum', 'sigblock', 'cover', 'lang']); /* RE-POINTED 24 Nov 2026 (contract look round 5): one more part, the words on the pages */ 
+  assert.deepEqual(parts.map(r => r.n), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
   const by = Object.fromEntries(parts.map(r => [r.k, r]));
   assert.equal(by.logo.st, 'missing'); assert.match(by.logo.html, /cl_ls_no_logo/); assert.equal(by.logo.act.attr, 'data-cl-mode="g"');
   assert.equal(by.letterhead.st, 'set'); assert.match(by.letterhead.html, /“Highland Corporate Ltd · Mombasa Road”/, 'the letterhead read from Company & market, quoted');
@@ -90,7 +90,7 @@ test('f1202 (2) the table of parts: four columns, rows from the real look, each 
   assert.match(t, /<span class="cl-mk is-missing" aria-hidden="true">1<\/span>cl_n_logo/);
   assert.match(t, /<span class="apn-st is-amber">cl_ls_st_missing<\/span>/);
   /* RE-POINTED 24 Nov 2026 (contract look round 2): two more parts, Header and Page numbers */
-  /* RE-POINTED 24 Nov 2026 (contract look round 3): two more parts, Signature block and Cover page */ assert.match(t, /data-cl-chip="all">ctf_tab_all <span>11<\/span>/);
+  /* RE-POINTED 24 Nov 2026 (contract look round 3): two more parts, Signature block and Cover page */ /* RE-POINTED 24 Nov 2026 (contract look round 5): one more part, the words on the pages */ assert.match(t, /data-cl-chip="all">ctf_tab_all <span>12<\/span>/);
   assert.match(t, /data-cl-chip="fix"><i class="apn-cd is-ruby" aria-hidden="true"><\/i>cl_ls_chip_fix <span>1<\/span>/, 'Needs fixing, with its red dot');
   assert.match(t, /data-cl-menu="stream"/, '+ Stream picks which stream\'s look is edited');
   /* the doors are today's: the pickers by mode, Company & market */

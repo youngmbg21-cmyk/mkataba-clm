@@ -12266,6 +12266,17 @@ const STRINGS = {
     cl_saved_streams: 'Saved for the streams you ticked.',
     cl_save_failed: 'The look could not be saved.',
     cl_paper_back: 'That paper now wears the company look.',
+    cl_n_lang: 'Words on the pages',
+    cl_lg_reader: 'The reader\'s language',
+    cl_lg_en: 'English',
+    cl_lg_sv: 'Swedish',
+    cl_lg_never: 'the wording is never translated',
+    cl_lg_never_cap: 'Wording never translated',
+    cl_lg_note: 'The words HaTi itself prints on the pages: the page numbers (“{say}”), the signature block\'s labels and the cover\'s lines. The wording is never translated.',
+    cl_lg_d_num: 'Page numbers: {say}',
+    cl_lg_d_sig: 'Signature block: {say}',
+    cl_lg_d_foot: 'Footer: {say}',
+    cl_said_lang: 'page words in {l}',
     cl_ls_tab_kit: 'Brand kit',
     cl_kit_logos: 'Logo versions',
     cl_kit_logo_colour: 'Colour',
@@ -40307,6 +40318,17 @@ const STRINGS = {
     cl_saved_streams: 'Sparat för flödena du bockade för.',
     cl_save_failed: 'Utseendet kunde inte sparas.',
     cl_paper_back: 'Det pappret har nu företagets utseende.',
+    cl_n_lang: 'Ord på sidorna',
+    cl_lg_reader: 'Läsarens språk',
+    cl_lg_en: 'Engelska',
+    cl_lg_sv: 'Svenska',
+    cl_lg_never: 'texten översätts aldrig',
+    cl_lg_never_cap: 'Texten översätts aldrig',
+    cl_lg_note: 'Orden HaTi själv skriver på sidorna: sidnumren (”{say}”), signaturblockets etiketter och försättsbladets rader. Avtalets text översätts aldrig.',
+    cl_lg_d_num: 'Sidnummer: {say}',
+    cl_lg_d_sig: 'Signaturblock: {say}',
+    cl_lg_d_foot: 'Sidfot: {say}',
+    cl_said_lang: 'ord på sidorna på {l}',
     cl_ls_tab_kit: 'Varumärkeskit',
     cl_kit_logos: 'Logotypversioner',
     cl_kit_logo_colour: 'Färg',
@@ -56829,9 +56851,20 @@ function tord(n) {
   return t(table['ord_' + form] != null || STRINGS[I18N_DEFAULT]['ord_' + form] != null ? 'ord_' + form : 'ord_other', { n });
 }
 const i18t = t, i18tn = tn, i18ord = tord;
+/* THE PAPER'S OWN LANGUAGE (contract look round 5, 24 Nov 2026): the words HaTi itself prints on a contract's pages —
+   page numbers, the signature block's labels, the cover's lines — in the LOOK's language where the look chose one,
+   whatever language the reader works in. Never the wording: contract text is never translated. An unknown language
+   reads the reader's (t). Both hosts: the server prints the sealed PDF's page words through it. */
+function i18tIn(lang, key, vars) {
+  if (!lang || !STRINGS[lang]) return t(key, vars);
+  let s = STRINGS[lang][key];
+  if (s == null) s = STRINGS[I18N_DEFAULT][key];
+  if (s == null) return key;
+  return vars ? interpolate(s, vars) : s;
+}
 
 const I18N_API = { STRINGS, LANGUAGES, I18N_DEFAULT, I18N_LS,
-  t, tn, i18t, i18tn, i18ord, srvMsg, langId, langSet, langList, langIs, langName, langPromptName, langLocale,
+  t, tn, i18t, i18tn, i18tIn, i18ord, srvMsg, langId, langSet, langList, langIs, langName, langPromptName, langLocale,
   langMissingKeys, applyLanguage, langEditingNow };
 /* Two hosts, one dictionary: the browser gets globals like every other module,
    and server/server.js requires this file so an email can be written in the

@@ -327,6 +327,11 @@ function pageMarksClean(v) {
     marks.sigLines = SIG_LINES.filter(x => v.sigLines.map(String).includes(x));
   }
   if (v.coverOn != null) marks.coverOn = v.coverOn === true;
+  /* round 5: the language of the words HaTi prints on the pages; none = the reader's */
+  if (v.furnLang != null && v.furnLang !== '') {
+    if (!BR_FURN_LANGS.includes(String(v.furnLang))) return { marks: null, error: 'Unknown language for the page words' };
+    marks.furnLang = String(v.furnLang);
+  }
   /* round 4: the title and body faces, from the honest list (BR_FONTS); none = the style's own */
   for (const k of ['fontTitle', 'fontBody']) {
     if (v[k] == null || v[k] === '') continue;
@@ -334,7 +339,7 @@ function pageMarksClean(v) {
     marks[k] = String(v[k]);
   }
   if (v.coverCounts != null) marks.coverCounts = v.coverCounts === true;
-  const any = marks.headerPos || marks.pageNumPos || marks.pageNumFmt || marks.sigLayout || (marks.sigLines && marks.sigLines.length) || marks.coverOn || marks.fontTitle || marks.fontBody;
+  const any = marks.headerPos || marks.pageNumPos || marks.pageNumFmt || marks.sigLayout || (marks.sigLines && marks.sigLines.length) || marks.coverOn || marks.fontTitle || marks.fontBody || marks.furnLang;
   return { marks: any ? marks : null, error: null };
 }
 /* A FIELD IS FILLED FROM THE CONTRACT, AND A FIELD WITH NO VALUE SAYS NOTHING — never "{ref}": the company's name, the
@@ -347,10 +352,30 @@ function brFieldsFill(text, c, b) {
     .replace(/(\s*[·|]\s*){2,}/g, ' · ').replace(/^\s*[·|]\s*|\s*[·|]\s*$/g, '').replace(/\s{2,}/g, ' ').trim();
 }
 /* "Page 2 of 6", "2 of 6", "2 / 6" — the words from the reader's language book */
-function brPageNumberSay(fmt, n, m) {
+function brPageNumberSay(fmt, n, m, lang) {
   const key = fmt === 'of' ? 'pg_num_of' : fmt === 'slash' ? 'pg_num_slash' : 'pg_page_of';
   const en = fmt === 'of' ? `${n} of ${m}` : fmt === 'slash' ? `${n} / ${m}` : `Page ${n} of ${m}`;
-  const t = typeof i18t === 'function' ? i18t(key, { n, m }) : '';
+  return brFurnT(lang, key, { n, m }, en);
+}
+/* ---- ROUND 5 (owner, 24 Nov 2026): THE PAPER'S OWN LANGUAGE ----
+   The words HaTi itself prints on the pages (page numbers, the signature block's labels, the cover's lines) in the
+   look's chosen language; none chosen = as before (the reader's on screen, English where no reader is: the server).
+   The wording is never translated. The books HaTi has: English and Swedish. */
+const BR_FURN_LANGS = ['en', 'sv'];
+let _brI18n;
+function brI18nApi() {
+  if (typeof window !== 'undefined') return typeof window.i18tIn === 'function' ? { i18tIn: window.i18tIn } : null;
+  if (_brI18n !== undefined) return _brI18n;
+  _brI18n = null;
+  try { if (typeof module !== 'undefined' && typeof require === 'function') _brI18n = require('./i18n.js'); } catch (_) { _brI18n = null; }
+  return _brI18n;
+}
+function brFurnT(lang, key, vars, en) {
+  let t = '';
+  try {
+    if (lang && BR_FURN_LANGS.includes(lang)) { const api = brI18nApi(); t = api && api.i18tIn ? api.i18tIn(lang, key, vars) : ''; }
+    else if (typeof i18t === 'function') t = i18t(key, vars);
+  } catch (_) { t = ''; }
   return t && t !== key ? t : en;
 }
 
@@ -819,10 +844,10 @@ if (typeof module !== 'undefined' && module.exports)
     accentLegible, pickAccentFromPixels, docDesignHeaderHtml, docDesignFooterHtml,
     docDesignPaperStyle, docDesignPaperAttr, docDesignBodyAttr, docDesignCoverPageHtml,
     DOC_STRUCTURES, DEFAULT_STRUCTURE, docStructureById, structureBlockedReason, docStructureBodyHtml,
-    PAGE_MARK_PLACES, PAGE_NUM_PLACES, PAGE_NUM_FORMATS, PAGE_HEAD_MAX, PAGE_FIELDS, pageMarksClean, brFieldsFill, brPageNumberSay, SIG_LAYOUTS, SIG_LINES, BR_FONTS, BR_FONT_IDS, BR_PALETTE_MAX, brPaletteClean, brLogoFor };
+    PAGE_MARK_PLACES, PAGE_NUM_PLACES, PAGE_NUM_FORMATS, PAGE_HEAD_MAX, PAGE_FIELDS, pageMarksClean, brFieldsFill, brPageNumberSay, SIG_LAYOUTS, SIG_LINES, BR_FONTS, BR_FONT_IDS, BR_PALETTE_MAX, brPaletteClean, brLogoFor, BR_FURN_LANGS, brFurnT };
 if (typeof window !== 'undefined')
   Object.assign(window, { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, docDesignById, normalizeDesignBranding,
     accentLegible, pickAccentFromPixels, extractAccentFromLogo, resolveDocBranding, orgBrandingSnapshot,
     docDesignHeaderHtml, docDesignFooterHtml, docDesignPaperStyle, docDesignPaperAttr, docDesignBodyAttr, docDesignCoverPageHtml,
     DOC_STRUCTURES, DEFAULT_STRUCTURE, docStructureById, structureBlockedReason, docStructureBodyHtml,
-    PAGE_MARK_PLACES, PAGE_NUM_PLACES, PAGE_NUM_FORMATS, PAGE_HEAD_MAX, PAGE_FIELDS, pageMarksClean, brFieldsFill, brPageNumberSay, SIG_LAYOUTS, SIG_LINES, BR_FONTS, BR_FONT_IDS, BR_PALETTE_MAX, brPaletteClean, brLogoFor });
+    PAGE_MARK_PLACES, PAGE_NUM_PLACES, PAGE_NUM_FORMATS, PAGE_HEAD_MAX, PAGE_FIELDS, pageMarksClean, brFieldsFill, brPageNumberSay, SIG_LAYOUTS, SIG_LINES, BR_FONTS, BR_FONT_IDS, BR_PALETTE_MAX, brPaletteClean, brLogoFor, BR_FURN_LANGS, brFurnT });

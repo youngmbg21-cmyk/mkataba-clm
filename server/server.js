@@ -17370,10 +17370,13 @@ function executedPdf(c) {
     const us = (b && b.companyName) || (c.execution && c.execution.firstParty) || '';
     const between = [us, c.counterparty].filter(Boolean).join(' and ');
     y = PDF_PAGE_H / 2 + 60;
+    /* round 5: the cover's words in the look's own language where it chose one (English otherwise, as before) */
+    const fl = cvm.furnLang || null, and = brFurnT(fl, 'cv_and', null, ' and ');
+    const betweenW = [us, c.counterparty].filter(Boolean).join(and);
     para(String(c.name || ''), { size: 22, font: F.bold, align: 'center', after: 14 });
-    if (between) para('Between ' + between, { size: 11, color: '43524f', align: 'center', after: 8 });
-    para('Reference ' + contractRef(c), { size: 9.5, color: '43524f', align: 'center', after: 24 });
-    para(eff ? 'Date: ' + eff : 'Date: ______________', { size: 9.5, color: '43524f', align: 'center', after: 0 });
+    if (between) para(brFurnT(fl, 'cv_between', { list: betweenW }, 'Between ' + between), { size: 11, color: '43524f', align: 'center', after: 8 });
+    para(brFurnT(fl, 'cv_ref', { ref: contractRef(c) }, 'Reference ' + contractRef(c)), { size: 9.5, color: '43524f', align: 'center', after: 24 });
+    para(eff ? brFurnT(fl, 'cv_date', { d: eff }, 'Date: ' + eff) : brFurnT(fl, 'cv_date_blank', null, 'Date: ______________'), { size: 9.5, color: '43524f', align: 'center', after: 0 });
     newPage();
   }
 
@@ -17526,7 +17529,8 @@ function executedPdf(c) {
     pOps.push(`BT /F4 7.5 Tf ${pdfRgb('8a949b')} rg 1 0 0 1 ${PDF_ML} ${(PDF_MB - 26).toFixed(1)} Tm (${pdfEsc([company, b && brFieldsFill(b.footerText, c, b)].filter(Boolean).join(' · '))}) Tj ET`);
     if (head) pOps.push(`BT /F4 7.5 Tf ${pdfRgb('8a949b')} rg 1 0 0 1 ${xAt(pdfTextW(head, 7.5, 'F4'), pm.headerPos).toFixed(1)} ${(PDF_PAGE_H - PDF_MT + 24).toFixed(1)} Tm (${pdfEsc(head)}) Tj ET`);
     if (pm && pm.pageNumPos === 'off') return;
-    const pn = brPageNumberSay(pm && pm.pageNumFmt, i + 1, pages.length - (cvSkip && !cvCount ? 1 : 0));
+    /* round 5: the page words in the look's own language (the sealed snapshot's), English where none was chosen */
+    const pn = brPageNumberSay(pm && pm.pageNumFmt, i + 1, pages.length - (cvSkip && !cvCount ? 1 : 0), (pm && pm.furnLang) || 'en');
     const at = pm && pm.pageNumPos && pm.pageNumPos !== 'right' ? pm.pageNumPos : null;
     pOps.push(`BT /F4 7.5 Tf ${pdfRgb('8a949b')} rg 1 0 0 1 ${(at ? xAt(pdfTextW(pn, 7.5, 'F4'), at) : PDF_PAGE_W - PDF_MR - pdfTextW(pn, 7.5, 'F4')).toFixed(1)} ${(PDF_MB - 26 - (at ? 11 : 0)).toFixed(1)} Tm (${pdfEsc(pn)}) Tj ET`);
   });
@@ -29079,7 +29083,7 @@ const tplBlockOut = bl => ({ id: bl.id, orderIndex: bl.order_index, blockType: b
 const { metaUnleak, historyLineHasMoney, historyLineMoneyless } = require(path.join(__dirname, '..', 'js', 'metaclean.js'));
 /* The design catalogue — the same file the browser renders from, so a
    designId this route accepts is a designId every surface can draw. */
-const { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, normalizeDesignBranding, pageMarksClean, brFieldsFill, brPageNumberSay, brPaletteClean, brLogoFor,
+const { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, normalizeDesignBranding, pageMarksClean, brFieldsFill, brPageNumberSay, brPaletteClean, brLogoFor, brFurnT,
   docDesignHeaderHtml, docDesignFooterHtml, docDesignPaperStyle,
   DOC_STRUCTURES, DEFAULT_STRUCTURE, docStructureById, docStructureBodyHtml } = require(path.join(__dirname, '..', 'js', 'branding.js'));
 /* Same registry, template_fields row shape (options may arrive as a JSON
