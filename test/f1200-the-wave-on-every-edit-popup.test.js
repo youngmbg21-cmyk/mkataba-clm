@@ -34,8 +34,8 @@ const tick = () => new Promise(r => setTimeout(r, 0));
 test('f1200 (1) one helper puts the strip in every sheet once, and again on a sheet redrawn in place', () => {
   const { w, ctx } = world();
   const host = w.document.createElement('div');
-  host.innerHTML = '<form class="lgp"><div class="lgp-hd"></div></form><form class="lgp rv-ask"><div class="lgp-hd"></div></form><form class="other"></form>';
-  assert.equal(ctx.lgpWaveSweep(host), 2, 'both edit sheets, not the other form');
+  host.innerHTML = '<form class="lgp"><div class="lgp-hd"></div></form><form class="lgp rv-ask"><div class="lgp-hd"></div></form><div class="lgp sr-win"><div class="lgp-hd"></div></div><form class="other"></form>';
+  assert.equal(ctx.lgpWaveSweep(host), 3, 'every edit sheet, the signing route\'s div too, not the other form');
   assert.equal(ctx.lgpWaveSweep(host), 0, 'a second sweep stacks none');
   const f = host.querySelector('form.lgp');
   assert.ok(f.firstElementChild.classList.contains('lgp-wave'), 'first in the sheet, so it lies behind the head');
@@ -61,12 +61,13 @@ test('f1200 (2) one watcher gives it to every sheet the dialog opens; the duties
   assert.equal(mr.querySelectorAll('.lgp-wave').length, 1, 'its own insertion adds nothing more');
   assert.equal(ctx.lgpWaveWatch(), false, 'one watcher');
   assert.match(strip(fnBody(read('js/obligations.js'), 'openObligationForm')), /window\.lgpWaveSweep\(ofLayer\)/);
+  assert.match(strip(fnBody(read('js/approvals.js'), 'signerRouteWindow')), /openModal\(`<div class="lgp sr-win"/, 'the signing route opens in the one dialog, so the watcher reaches it');
 });
 
 test('f1200 (3) the look: the panels\' weaves by token, behind the words, a fading strip, still for less motion', () => {
   const i = CSS.indexOf('.lgp-wave{'); assert.ok(i > 0);
-  const block = CSS.slice(CSS.lastIndexOf('form.lgp{', i), CSS.indexOf('@media (prefers-reduced-motion: reduce){ .lgp-wave > b{animation:none} }', i) + 80);
-  assert.match(block, /form\.lgp\{position:relative;isolation:isolate\}/);
+  const block = CSS.slice(CSS.lastIndexOf('.lgp{position:relative', i) - 3, CSS.indexOf('@media (prefers-reduced-motion: reduce){ .lgp-wave > b{animation:none} }', i) + 80);
+  assert.match(block, /\n  \.lgp\{position:relative;isolation:isolate\}/);
   assert.match(block, /\.lgp-wave\{[^]*?z-index:-1;overflow:hidden;pointer-events:none/);
   assert.match(block, /mask-image:linear-gradient\(black 45%, transparent\)/);
   assert.match(block, /var\(--wm-a1\), var\(--wm-a2\), var\(--wm-a3\), var\(--wm-a4\), var\(--wm-a5\)/);
