@@ -35,8 +35,9 @@ const FOUND = [
     await us.evaluate(async F => { const c = getContract('MK-IT'); if (window.ensureFull) await ensureFull(c);
       c.triage = { at: new Date().toISOString(), by: 'Amina', steps: { oblig: { ok: true, found: F } } }; if (window.persist) await persist(c); if (window.flushSaves) await flushSaves(); }, FOUND);
     await open(); const c2 = await cardText();
-    /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end"): one door whatever the state — "3 to decide · 0 on the contract · Open" */
-    check('2a found: "3 to decide · 0 on the contract · Open"', !!(c2 && c2.k === 'review' && /3 to decide/.test(c2.t) && /0 on the contract/.test(c2.t) && /Open/.test(c2.t)), JSON.stringify(c2));
+    /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end"): one door whatever the state — "3 to decide · 0 on the contract · Open"
+       RE-POINTED 24 Nov 2026 (What stands, L+S, f1204): the row reads "To decide · 3 duties to decide · 0 on the contract · Open" */
+    check('2a found: "3 to decide · 0 on the contract · Open"', !!(c2 && c2.k === 'review' && /3 dut(?:y|ies) to decide/.test(c2.t) && /0 on the contract/.test(c2.t) && /Open/.test(c2.t)), JSON.stringify(c2));
     const order = await us.evaluate(() => { const d = document.querySelector('#ig-dock [data-pd2-dl-open]'), k = document.querySelector('#ig-dock [data-pd2-dtc]'), f = document.querySelector('#ig-dock .pd2-facts');
       return !!(d && k && f && (d.compareDocumentPosition(k) & Node.DOCUMENT_POSITION_FOLLOWING) && (k.compareDocumentPosition(f) & Node.DOCUMENT_POSITION_FOLLOWING)); });
     check('2b it sits under Where the deal stands and above the facts', order);

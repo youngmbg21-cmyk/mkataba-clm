@@ -1164,3 +1164,7 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 
 ## THE DOSSIER END TO END — Round E, the clause page as drawn (24 Nov 2026)
 `node --test test/f1203-the-clause-page-as-drawn.test.js test/f1200-the-clause-page-and-reading-line.test.js` (f1203 red at the parent: 4 failing).
+
+## THE DOSSIER END TO END — What stands, L+S (24 Nov 2026)
+- `node --test test/f1204-what-stands-ls.test.js test/f1184-the-duties-card.test.js test/f1163-who-does-what.test.js test/f1198-the-dossier-as-drawn.test.js test/f1194-the-dossier-end-to-end-ls.test.js`
+- Browser (GitHub): duties-card-verify, review-desk-verify, dossier-and-amend-ls-verify, who-does-what-verify (re-pointed to the rows).

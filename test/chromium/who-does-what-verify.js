@@ -62,10 +62,11 @@ const FOUND = [
     const c1 = await until(us, () => !!document.querySelector('#ig-dock [data-pd2-dl-open]'), null, 12000);
     const c1b = c1 ? await us.evaluate(() => {
       const card = document.querySelector('#ig-dock [data-pd2-dl-open]'), fam = document.querySelector('#ig-dock [data-pd2-famc]'), facts = document.querySelector('#ig-dock .pd2-facts');
-      return { underFam: !!(fam && (fam.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING)), aboveFacts: !!(facts && (card.compareDocumentPosition(facts) & Node.DOCUMENT_POSITION_FOLLOWING)), text: card.textContent.replace(/\s+/g, ' ').trim() };
+      /* RE-POINTED 24 Nov 2026 (What stands, L+S, f1204): the deal is the FIRST row of What stands, the family the last */
+      return { underFam: !!(fam && (card.compareDocumentPosition(fam) & Node.DOCUMENT_POSITION_FOLLOWING)), aboveFacts: !!(facts && (card.compareDocumentPosition(facts) & Node.DOCUMENT_POSITION_FOLLOWING)), text: card.textContent.replace(/\s+/g, ' ').trim() };
     }) : {};
     check('1a the Dossier carries the Where the deal stands card', c1);
-    check('1b it stands under the Family card and above the facts', c1b.underFam && c1b.aboveFacts, JSON.stringify(c1b));
+    check('1b it stands above the family row and the facts', c1b.underFam && c1b.aboveFacts, JSON.stringify(c1b));
     check('1c it says what waits for you', /1 line waits for your tick/.test(c1b.text || ''), c1b.text);
 
     /* 2 — the page in the middle */

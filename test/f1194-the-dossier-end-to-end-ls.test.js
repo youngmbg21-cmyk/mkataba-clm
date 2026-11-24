@@ -138,7 +138,7 @@ describe('f1194 (6) the motion joins the card\'s rare arrival', () => {
   });
   test('the parts move only under .pd2-arrive', () => {
     const H = R('index.html');
-    assert.match(H, /\.pd2-arrive :is\(\.pd2-life-fill, \.pd2-fd-bar i, \.pd2-two-l::before, \.pd2-dtl::before, \.pd2-fam-chain > i\)\{animation:jovDraw/);
+    assert.match(H, /\.pd2-arrive :is\(\.pd2-life-fill, \.pd2-fd-bar i\)\{animation:jovDraw/);
     assert.doesNotMatch(H.replace(/\.pd2-arrive[^{]*\{[^}]*\}/g, ''), /\.pd2-(life|fd|two|dtl|fam-chain)[^{]*\{[^}]*animation:/);
   });
 });

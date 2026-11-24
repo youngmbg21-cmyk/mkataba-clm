@@ -57,15 +57,16 @@ const until = async (page, fn, arg, ms = 8000) => { try { await page.waitForFunc
     const d1d = await page.evaluate(() => {
       const g = document.querySelector('#ig-dock #pd-glance'), c = pdContract();
       const head = (document.querySelector('#ig-dock .pd2-card [data-pd2-next]') || {}).textContent || '';
-      const sides = [...document.querySelectorAll('#ig-dock .pd2-two-s')].map(x => x.className);
+      /* RE-POINTED 24 Nov 2026 (What stands, L+S, f1204): the two sides live on the deal's page; the deal's row wears Signed */
+      const sides = [...document.querySelectorAll('#ig-dock [data-pd2-dl-open] .pd2-ws-b')].map(x => x.className + ' ' + x.textContent);
       const day = v => /^\d{4}-\d{2}-\d{2}/.test(String(v || ''));
       const hasDays = !!(c && (day(c.signedAt) || day(c.fields && c.fields.effDate)) && day(typeof effectiveExpiry === 'function' ? effectiveExpiry(c) : c.expiry));
       return { head, sides, fill: !!(g && g.querySelector('[data-pd-fill-key]')), noteFill: !!document.querySelector('[data-pd2-go="fill"]'),
-        fam: !!document.querySelector('#ig-dock .pd2-fam-chain, #ig-dock .pd2-fam-row'), life: !!document.querySelector('#ig-dock .pd2-life'), hasDays,
+        fam: !!document.querySelector('#ig-dock [data-pd2-famc]'), life: !!document.querySelector('#ig-dock .pd2-life'), hasDays,
         sealed: typeof pd2Sealed === 'function' && pd2Sealed(c) };
     });
     check('1d a signed agreement\'s headline never says "Nothing is owed on this contract"', d1d.sealed && !/Nothing is owed on this contract/.test(d1d.head), JSON.stringify({ head: d1d.head, sealed: d1d.sealed }));
-    check('1e Where the deal stands shows the two sides, both ticked once signed', d1d.sides.length === 2 && d1d.sides.every(x => /is-ok/.test(x)), d1d.sides.join(' | '));
+    check('1e Where the deal stands says Signed once signed', d1d.sides.length === 1 && /is-green/.test(d1d.sides[0]) && /Signed/.test(d1d.sides[0]), d1d.sides.join(' | '));
     check('1f no Fill in on a signed paper — not in the facts, not in the notes beside the paper', !d1d.fill && !d1d.noteFill, JSON.stringify(d1d));
     check('1g the Family card draws the original (and its amendments when there are some)', d1d.fam);
     check('1h the life line stands where the record holds a start and an end, and only there', d1d.life === d1d.hasDays, JSON.stringify({ life: d1d.life, hasDays: d1d.hasDays }));

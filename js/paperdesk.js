@@ -8505,23 +8505,31 @@ function pd2FactRowLs(f){
 /* THE FAMILY CARD (Dossier L+S): always open, right under the card — the original and every amendment, each row its paper's
    door (data-pd-ds-fam, the fold's own), the amendment's changes quoted, a soft badge for where it stands; the family's
    other acts as links (Create is the card's Amend: one door) */
+/* WHAT STANDS, THE LEGORA + STRIPE WAY (owner's pick, 24 Nov 2026: "this area looks very busy" → "Build L+S"): the three
+   cards (Family, Where the deal stands, Duties) are three ROWS under one head — a soft badge, the one thing that waits, a
+   grey line of detail, the row's own door. Every press stays the door it was: the family's papers and acts, the deal's
+   page (data-pd2-dl-open), the duties page (data-pd-ds-obl) or the read (data-pd-ds-read). Writes nothing. */
+function pd2WsBadge(tone, word){ return `<span class="pd2-ws-b is-${tone}"><i aria-hidden="true"></i>${_pdE(word)}</span>`; }
+function pd2WsHtml(c){
+  if (!c || (typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768)) return '';
+  const rows = pd2DealCardHtml(c) + pd2DutiesCardHtml(c) + pd2FamCardHtml(c);
+  return rows ? `<section class="pd2-ws" data-pd2-ws><div class="pd2-ws-h">${_pdE(_pdT('pd2_ws_head'))}</div>${rows}</section>` : '';
+}
 function pd2FamCardHtml(c){
-  const E = _pdE; let rows = []; try { rows = (typeof bsFamRows === 'function') ? (bsFamRows(c) || []) : []; } catch (_){ rows = []; }
+  const E = _pdE, T = _pdT; let rows = []; try { rows = (typeof bsFamRows === 'function') ? (bsFamRows(c) || []) : []; } catch (_){ rows = []; }
   let acts = []; try { acts = (typeof familyActs === 'function') ? (familyActs(c) || []) : []; } catch (_){ acts = []; }
   const ref = x => (typeof contractRef === 'function') ? contractRef(x) : x.id;
   const done = x => !!(x && (x.status === 'Signed' || (typeof amendmentExecuted === 'function' && amendmentExecuted(x))));
-  const body = rows.map(r => { const here = String(r.c.id) === String(c.id), ok = done(r.c);
-    const nm = here ? `<span class="pd2-fam-nm">${E(r.label)} · ${E(ref(r.c))} <span class="pd2-q">· ${E(_pdT('pd2_fam_here'))}</span></span>`
-      : `<button type="button" class="pd2-fam-nm is-go" data-pd-ds-fam="${E(r.c.id)}">${E(r.label)} · ${E(ref(r.c))} ›</button>`;
-    const ch = r.c.parentId && typeof famChangesLine === 'function' ? famChangesLine(r.c, 3) : '';
-    return `<div class="pd2-fam-row"><i class="pd2-fam-dot ${ok ? 'is-ok' : 'is-open'}" aria-hidden="true"></i><div class="pd2-fam-w">${nm}${ch ? `<p class="pd2-fam-ch">${E(ch)}</p>` : ''}</div><span class="pd2-badge ${ok ? 'is-green' : 'is-amber'}"><i aria-hidden="true"></i>${E(_pdT(ok ? 'pd2_fam_signed' : 'pd2_fam_drafting'))}</span></div>`; }).join('');
-  const links = acts.filter(a => a && a.k !== 'create' && !a.shut).map(a => `<button type="button" class="ui-link" data-pd-ds-famact="${E(a.k)}">${E(a.label)}</button>`).join('<span class="pd2-card-sep" aria-hidden="true">·</span>');
-  /* NO AMENDMENT YET, DRAWN (the Dossier L+S drawing): this paper as the first node, the place an amendment would stand as a
-     dashed one beside it — the same words the head said, nothing pressed */
-  const stageWord = (() => { try { const D0 = dossierOf(c); return D0 ? _pdT('dos_st_' + D0.now) : ''; } catch (_){ return ''; } })();
-  const chain = rows.length ? '' : `<p class="pd2-fam-chain" aria-hidden="true"><span class="pd2-fam-node"><b>${E(String(c.name || ref(c)))}</b><small>${E(_pdT('pd2_fam_here', {}))}${stageWord ? ' · ' + E(stageWord.toLowerCase()) : ''}</small></span><i></i><span class="pd2-fam-node is-ghost"><b>${E(_pdT('pd2_fam_amends'))}</b><small>${E(_pdT('pd2_fam_none_yet'))}</small></span></p>`;
-  return `<section class="pd2-famc" data-pd2-famc><div class="pd2-famc-h"><b>${E(_pdT('dos_mq_family'))}</b>${rows.length ? '' : `<span>${E(_pdT('pd2_fam_none'))}</span>`}</div>${body}${chain}${links ? `<p class="pd2-famc-acts">${links}</p>` : ''}</section>`;
+  /* each paper of the family is its own door (data-pd-ds-fam); this one says so and is no press */
+  const papers = rows.map(r => { const here = String(r.c.id) === String(c.id), w = `${r.label} · ${ref(r.c)} · ${T(done(r.c) ? 'pd2_fam_signed' : 'pd2_fam_drafting').toLowerCase()}`;
+    return here ? `<span class="pd2-ws-fam is-here">${E(w)} · ${E(T('pd2_fam_here'))}</span>`
+      : `<button type="button" class="pd2-ws-fam ui-link" data-pd-ds-fam="${E(r.c.id)}">${E(w)} ›</button>`; });
+  const links = acts.filter(a => a && a.k !== 'create' && !a.shut).map(a => `<button type="button" class="ui-link" data-pd-ds-famact="${E(a.k)}">${E(a.label)}</button>`);
+  const head = rows.length ? _pdTn('pd2_ws_fam_n', rows.length, { n: rows.length }) : T('pd2_ws_fam_none');
+  const small = papers.concat(links).join('<span class="pd2-ws-sep" aria-hidden="true">·</span>');
+  return `<div class="pd2-ws-r is-fam" data-pd2-famc>${pd2WsBadge('gray', rows.length ? T('dos_mq_family') : T('pd2_fam_original'))}<span class="pd2-ws-w"><b>${E(head)}</b>${small ? `<small>${small}</small>` : ''}</span></div>`;
 }
+
 function pd2Html(c){
   const E = _pdE, D = dossierOf(c); if (!D) return '';
   if (pd2WalkOn(c.id)) return `<div id="pd-glance" class="pd2-dossier is-walk" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2WalkFaceHtml(c)}</div>`;
@@ -8536,7 +8544,7 @@ function pd2Html(c){
      "Change" link, never a small grey word that is secretly a button */
   const nl = typeof window.newLookOn === 'function' && newLookOn();
   const facts = pd2Facts(c, D).map(f => nl ? pd2FactRowLs(f) : `<div class="pd2-fact${f.cls ? ' ' + f.cls : ''}" data-pd2-fact="${f.k}"><span class="pd2-l">${E(f.l)}</span><span class="pd2-v"${f.k === 'people' ? ` title="${String(f.v).replace(/<[^>]*>/g, '')}"` : ''}>${f.v}</span><span class="pd2-s">${f.go ? `<button type="button" class="pd2-sgo${nl ? ' is-link' : ''}" ${f.go}>${E(nl && (f.k === 'signer' || f.k === 'stream' || f.k === 'people') ? _pdT('pd2_go_change') : (f.s || _pdT('dos_go_open')))}</button>` : E(f.s || '')}</span></div>`).join('');
-  return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2CardHtml(c, D)}${nl ? pd2SignedNeedsHtml(c, D) + pd2ComingUpHtml(c) + pd2SentNextHtml(c, D) + pd2DetailsHtml(c, D) + pd2CheckedHtml(c, D) : ''}${nl ? pd2FoundHtml(c, D) : ''}${nl ? pd2FamCardHtml(c) : ''}${nl ? pd2DealCardHtml(c) : ''}${nl ? pd2DutiesCardHtml(c) : ''}${nl && facts ? `<div class="pd2-eye">${E(_pdT((!(D.read && D.read.read) && !pd2Sealed(c) && (c.upload || c.source === 'upload')) ? 'pd2_facts_off_paper' : 'jov5_pd_facts'))}</div>` : ''}<div class="pd2-facts">${facts}</div>${nl ? '' : pd2FamilyHtml(c)}${pdDocFillRowHtml(c)}${pd2TurnHtml(c)}</div>`;
+  return `<div id="pd-glance" class="pd2-dossier" data-pd-glance-for="${E(c.id)}" data-pd2>${pd2CardHtml(c, D)}${nl ? pd2SignedNeedsHtml(c, D) + pd2ComingUpHtml(c) + pd2SentNextHtml(c, D) + pd2DetailsHtml(c, D) + pd2CheckedHtml(c, D) : ''}${nl ? pd2FoundHtml(c, D) : ''}${nl ? pd2WsHtml(c) : ''}${nl && facts ? `<div class="pd2-eye">${E(_pdT((!(D.read && D.read.read) && !pd2Sealed(c) && (c.upload || c.source === 'upload')) ? 'pd2_facts_off_paper' : 'jov5_pd_facts'))}</div>` : ''}<div class="pd2-facts">${facts}</div>${nl ? '' : pd2FamilyHtml(c)}${pdDocFillRowHtml(c)}${pd2TurnHtml(c)}</div>`;
 }
 /* ---- THE DOSSIER'S TOP IS ONE CARD (owner picked "One card", 8 Nov 2026: "I want 1 card but the read it, watch the
    read and the brief need to be better designed … 'Read it | Watch the read | The brief' in green and underlined") ----
@@ -10147,31 +10155,23 @@ function pd2DlStage(c){
   const w = _pdT('ds_step_' + now.key);
   return now.key === 'negotiating' ? `${w} · ${_pdT('pd2_dl_round', { n: D.round })}` : w;
 }
-/* THE TWO SIDES (the Dossier L+S drawing, owner's "build", 23 Nov 2026): us on the left, them on the right, the line between
-   saying whose move it is; the side whose move it is lit (dealStands' own move, never guessed); once executed both sides carry
-   a tick. Read only — the card stays its one press. */
-function pd2DlTwoHtml(c, D){
-  if (!D) return '';
-  const E = _pdE, S = pd2DlSides(c), mv = D.move, who = mv && mv.party ? String(mv.party) : '';
-  const themName = String(c.counterparty || ''), theirs = !!(who && themName && who === themName), ours = !!(who && !theirs);
-  /* AS DRAWN (Round A): once signed, each side says so under its name, ours with who signed (the route's own reading) */
-  let signer = ''; try { signer = D.executed ? String(pdCkSignerSay(c) || '') : ''; } catch (_){ signer = ''; }
-  const under = k => D.executed ? `<small>${E(k === 'us' && signer ? _pdT('pd2_two_signed_by', { who: signer }) : _pdT('pd2_two_signed'))}</small>` : '';
-  const side = (name, on, k) => `<span class="pd2-two-s is-${k}${D.executed ? ' is-ok' : on ? ' is-on' : ''}"><i aria-hidden="true"></i><span class="pd2-two-n"><span>${E(name)}</span>${under(k)}</span></span>`;
-  /* the middle, as drawn: the round and what went (nothing sent yet · sent <day> · N not sent); whose move lights a side */
-  let sent = ''; try { const N = (typeof rlUnsentCount === 'function' && c.negotiation) ? rlUnsentCount(c, {}) : 0; const last = (Array.isArray(c.rounds) ? c.rounds : []).filter(r => r && (r.sentAt || r.at)).map(r => String(r.sentAt || r.at)).sort().pop();
-    sent = N ? _pdTn('pd2_two_unsent', N, { n: N }) : last ? _pdT('pd2_two_sent', { d: pd2DlDay(last) }) : _pdT('pd2_two_none_sent'); } catch (_){ sent = ''; }
-  const mid = D.executed ? '' : `<em><b>${E(_pdT('pd2_dl_round', { n: D.round || 1 }))}</b>${sent ? ' · ' + E(sent) : ''}</em>`;
-  return `<span class="pd2-two" aria-hidden="true">${side(S.us, ours, 'us')}<span class="pd2-two-l">${mid}</span>${side(S.them, theirs, 'them')}</span>`;
-}
-/* the door above the facts: the page's name, where it stands, and what waits for us — the whole card is the press */
+/* the deal's row of What stands: whose move as a badge, the one thing that waits, the stage and what went in grey; the whole
+   row opens Where the deal stands (the two sides are drawn on that page, not squeezed in here) */
 function pd2DealCardHtml(c){
-  if (!c || (typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768)) return '';
-  const E = _pdE, R = pd2DlRead(c), n = (R.counts && R.counts.waitsOurs) || 0;
-  const D = (typeof dealStands === 'function') ? dealStands(c) : null;
-  const line = n ? _pdTn('pd2_dl_c_wait', n, { n }) : (D && D.open) ? _pdTn('pd2_dl_c_open', D.open, { n: D.open }) : _pdT(D && D.executed ? 'pd2_dl_c_none_both' : 'pd2_dl_c_none');
-  return `<button type="button" class="pd2-dlc" data-pd2-dl-open="${E(c.id)}"><span class="pd2-dlc-h"><b>${E(_pdT('ds_eyebrow'))}</b><span>${E(pd2DlStage(c))}</span></span>
-    ${pd2DlTwoHtml(c, D)}<span class="pd2-dlc-l">${n ? '<i class="pd2-dlc-dot" aria-hidden="true"></i>' : ''}<span class="pd2-dlc-w">${E(line)}</span><span class="pd2-dlc-go">${E(_pdT('pd2_dl_c_open_go'))} ›</span></span></button>`;
+  const E = _pdE, T = _pdT, R = pd2DlRead(c), n = (R.counts && R.counts.waitsOurs) || 0;
+  const D = (typeof dealStands === 'function') ? dealStands(c) : null; if (!D) return '';
+  const line = n ? _pdTn('pd2_dl_c_wait', n, { n }) : D.open ? _pdTn('pd2_dl_c_open', D.open, { n: D.open }) : T(D.executed ? 'pd2_dl_c_none_both' : 'pd2_dl_c_none');
+  /* what went: N changes not sent · sent <day> · nothing sent yet; once signed, who signed for us */
+  let went = '', unsent = 0;
+  try { if (D.executed){ const sg = String(pdCkSignerSay(c) || ''); went = sg ? T('pd2_two_signed_by', { who: sg }) : ''; }
+    else { unsent = (typeof rlUnsentCount === 'function' && c.negotiation) ? rlUnsentCount(c, {}) : 0; const last = (Array.isArray(c.rounds) ? c.rounds : []).filter(r => r && (r.sentAt || r.at)).map(r => String(r.sentAt || r.at)).sort().pop();
+      went = unsent ? _pdTn('pd2_ws_unsent', unsent, { n: unsent }) : last ? T('pd2_two_sent', { d: pd2DlDay(last) }) : T('pd2_two_none_sent'); } } catch (_){ went = ''; }
+  /* whose move: ours while a line waits for our tick or our own changes wait to be sent, else the deal's own reading */
+  const who = D.move && D.move.party ? String(D.move.party) : '', theirs = !!(who && who === String(c.counterparty || ''));
+  const badge = D.executed ? pd2WsBadge('green', T('pd2_two_signed')) : n || unsent || (who && !theirs) ? pd2WsBadge('amber', T('pd2_ws_b_you'))
+    : theirs ? pd2WsBadge('steel', T('pd2_ws_b_them')) : D.open ? pd2WsBadge('amber', T('pd2_ws_b_open')) : pd2WsBadge('gray', T('pd2_ws_b_clear'));
+  const small = [pd2DlStage(c), went].filter(Boolean).join(' · ');
+  return `<button type="button" class="pd2-ws-r is-deal" data-pd2-dl-open="${E(c.id)}">${badge}<span class="pd2-ws-w"><b>${E(line)}</b>${small ? `<small>${E(small)}</small>` : ''}</span><span class="pd2-ws-go">${E(T('pd2_dl_c_open_go'))} ›</span></button>`;
 }
 /* ---- THE DUTIES CARD (owner's pick "Its own card", 23 Nov 2026: "how do you review the duties soon after it has been
    downloaded or created from your own template?") ----
@@ -10293,43 +10293,25 @@ function pd2CheckedHtml(c, D){
   blanks.slice(0, 4).forEach(b => { h += row(String(b.label || b.key), String(b.value || ''), badge('is-green', T('pd2_ck_filled'))); });
   return `<section class="pd2-fd is-checked" data-pd2-checked><div class="pd2-fd-h"><b>${E(T('pd2_ck_head'))}</b></div>${h}</section>`;
 }
-/* THE DATES AHEAD (the drawing's duties timeline): today, the next open duties that carry a day (PD2_DT_DATES at most, the
-   rest said as a count), and the day the agreement ends — each read off the duty list and the record, nothing guessed */
-const PD2_DT_DATES = 3;
-function pd2DutyDatesHtml(c){
-  const E = _pdE, today = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
-  const day = iso => (typeof regDotDate === 'function') ? regDotDate(iso) : iso;
-  /* the Board card's own reading of the duty list (bsObRows: each duty's day by obligationDue, done by obState) */
-  let rows = []; try { rows = (typeof bsObRows === 'function') ? (((bsObRows(c) || {}).rows) || []) : []; } catch (_){ rows = []; }
-  const open = rows.filter(r => r && r.st !== 'done' && r.what).map(r => ({ d: String(r.due || '').slice(0, 10), w: r.what }))
-    .filter(o => /^\d{4}-\d{2}-\d{2}$/.test(o.d)).sort((a, b) => a.d < b.d ? -1 : 1);
-  if (!open.length) return '';
-  const end = String(((typeof effectiveExpiry === 'function') ? effectiveExpiry(c) : c.expiry) || '').slice(0, 10);
-  const pts = [{ d: today, w: _pdT('pd2_life_today'), k: 'now' }].concat(open.slice(0, PD2_DT_DATES).map(o => ({ d: o.d, w: o.w, k: o.d < today ? 'late' : 'due' })));
-  if (/^\d{4}-\d{2}-\d{2}$/.test(end) && end >= pts[pts.length - 1].d) pts.push({ d: end, w: _pdT('pd2_life_ends'), k: 'end' });
-  const more = Math.max(0, open.length - PD2_DT_DATES);
-  return `<span class="pd2-dtl" aria-hidden="true">${pts.map((x, i) => `<span class="pd2-dtl-p is-${x.k}" style="--i:${i}"><i></i><b>${E(x.w)}</b><em>${E(x.k === 'now' ? '' : day(x.d))}</em></span>`).join('')}</span>${more ? `<span class="pd2-dtl-more">${E(_pdTn('pd2_dt_more', more, { n: more }))}</span>` : ''}`;
-}
 function pd2DutiesCardHtml(c){
-  if (!c || (typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768)) return '';
   const E = _pdE, T = _pdT, Tn = _pdTn, S = pd2DutiesCardOf(c);
   const may = (typeof window.mayActOn !== 'function') || window.mayActOn(c);
   const day = iso => iso ? ((typeof regDotDate === 'function') ? regDotDate(iso) : iso) : '';
   /* ONE DOOR (owner, 23 Nov 2026, "Duties, end to end"): whatever the state, Open › goes to the contract's Duties page
      (data-pd-ds-obl → dutiesOpen); only a contract Jambo has not read offers the read first */
-  let right = '', line = '', go = T('pd2_dl_c_open_go'), attr = 'data-pd-ds-obl', amber = false;
-  if (S.k === 'reading'){ line = T('pd2_dt_reading'); attr = ''; }
-  else if (S.k === 'review'){ amber = true; line = Tn('pd2_dt_left_on', S.left, { n: S.left, m: S.n }); right = S.found ? Tn('pd2_dt_found', S.found, { n: S.found }) : ''; /* one door, Open › (owner, 23 Nov 2026) */ }
-  else if (S.k === 'list'){ right = Tn('pd2_dt_n', S.n, { n: S.n });
-    line = S.next ? T('pd2_dt_next', { d: day(S.next) }) : S.open ? T('pd2_dt_no_dates') : T('pd2_dt_all_done'); }
-  else if (S.k === 'unread'){ line = T('pd2_dt_unread'); go = T('pd2_dt_read'); attr = 'data-pd-ds-read'; amber = true; }
-  else if (S.k === 'failed'){ line = S.why || T('pd2_dt_failed'); go = T('pd2_dt_read_again'); attr = 'data-pd-ds-read'; }
-  else { line = T('pd2_dt_found_none'); }
+  let badge = '', line = '', small = '', go = T('pd2_dl_c_open_go'), attr = 'data-pd-ds-obl';
+  if (S.k === 'reading'){ badge = pd2WsBadge('gray', T('pd2_ws_b_reading')); line = T('pd2_dt_reading'); attr = ''; }
+  else if (S.k === 'review'){ badge = pd2WsBadge('amber', T('pd2_ws_b_decide')); line = Tn('pd2_ws_dt_decide', S.left, { n: S.left });
+    small = [S.found ? Tn('pd2_dt_found', S.found, { n: S.found }) : '', Tn('pd2_ws_dt_on', S.n, { n: S.n })].filter(Boolean).join(' · '); }
+  else if (S.k === 'list'){ badge = pd2WsBadge(S.open ? 'steel' : 'green', T(S.open ? 'pd2_ws_b_listed' : 'pd2_dt_all_done')); line = Tn('pd2_dt_n', S.n, { n: S.n });
+    small = S.next ? T('pd2_dt_next', { d: day(S.next) }) : S.open ? T('pd2_dt_no_dates') : ''; }
+  else if (S.k === 'unread'){ badge = pd2WsBadge('amber', T('pd2_ws_b_unread')); line = T('pd2_dt_unread'); go = T('pd2_dt_read'); attr = 'data-pd-ds-read'; }
+  else if (S.k === 'failed'){ badge = pd2WsBadge('ruby', T('pd2_ws_b_failed')); line = S.why || T('pd2_dt_failed'); go = T('pd2_dt_read_again'); attr = 'data-pd-ds-read'; }
+  else { badge = pd2WsBadge('gray', T('pd2_ws_b_none')); line = T('pd2_dt_found_none'); }
   const press = may && attr;
-  const inner = `<span class="pd2-dlc-h"><b>${E(T('pd2_dt_head'))}</b>${right ? `<span>${E(right)}</span>` : ''}</span>
-    <span class="pd2-dlc-l">${amber && press ? '<i class="pd2-dlc-dot" aria-hidden="true"></i>' : ''}${S.k === 'reading' && typeof busyHtml === 'function' ? busyHtml('') : ''}<span class="pd2-dlc-w">${E(line)}</span>${press ? `<span class="pd2-dlc-go">${E(go)} ›</span>` : ''}</span>${S.k === 'list' ? pd2DutyDatesHtml(c) : ''}`;
-  return press ? `<button type="button" class="pd2-dlc pd2-dtc" data-pd2-dtc="${E(S.k)}" ${attr}>${inner}</button>`
-    : `<div class="pd2-dlc pd2-dtc is-still" data-pd2-dtc="${E(S.k)}">${inner}</div>`;
+  const inner = `${badge}<span class="pd2-ws-w">${S.k === 'reading' && typeof busyHtml === 'function' ? busyHtml('') : ''}<b>${E(line)}</b>${small ? `<small>${E(small)}</small>` : ''}</span>${press ? `<span class="pd2-ws-go">${E(go)} ›</span>` : ''}`;
+  return press ? `<button type="button" class="pd2-ws-r is-duty" data-pd2-dtc="${E(S.k)}" ${attr}>${inner}</button>`
+    : `<div class="pd2-ws-r is-duty is-still" data-pd2-dtc="${E(S.k)}">${inner}</div>`;
 }
 function pd2StandsOpen(id){
   if (pd2StandsUp(id)) return true;
