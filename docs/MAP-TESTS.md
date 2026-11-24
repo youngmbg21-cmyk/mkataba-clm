@@ -1220,3 +1220,4 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 ## THE DOSSIER END TO END — THE EDITOR'S PANEL L+S (25 Nov 2026)
 - test/f1220-the-editor-panel-ls.test.js — head badge, what they asked with Accept · Reject, Before you answer only with substance, foot Save · Undo without links (red at the parent).
 - f1220 (6): Your answer is its own block (`.ce-tansb`) with a divider above.
+- f1221: th_plain, th_plain_en, ce_inline_plain read Simplify / Förenkla.

@@ -40791,3 +40791,6 @@ The owner, with a photo of the Editor tab: "This page is a mess… l+s facelift"
 
 ### EDITOR'S PANEL L+S — Your answer its own block (24 Nov 2026)
 Owner: "Why are the accept and reject presses so close to your answer?" Your answer sat in the same block as what they asked, 16px under Accept · Reject, no line. Now wrapped in `.ce-tansb` with a divider line above, so Accept · Reject read as answering their ask. f1220 (6).
+
+### THE THREAD — the Plain English press says "Simplify" (24 Nov 2026)
+Owner asked for one short word for the plain-English press; picked Simplify (Förenkla), the clause editor's chip too (`th_plain`, `th_plain_en`, `ce_inline_plain`). The template builder's own "Plain English" chip (`tb_chip_plain`) was not asked and is unchanged. f1221.
