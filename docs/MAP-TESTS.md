@@ -1214,4 +1214,5 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 - Browser (GitHub only): `test/chromium/clauses-first-frame-verify.js` — every frame after pressing Clauses, list and page faces; the tabs' one track and white pill
 - `node --test test/f1217-list-only-and-save-below.test.js` (the list alone; Start redlining on any clause; File in the bottom row; the ladder card as lines)
 - `node --test test/f1218-bar-on-the-paper-tabs-hold-still.test.js` (the bar the sheet's width, centred on it; the editor side the Dossier panel's width)
+- `node --test test/f1219-the-editor-panel-as-drawn.test.js` (the editor panel as drawn; the strip in the middle; held, not carried)
 - (24 Nov 2026, the ribbon; Plan the read taller) f1200 (3) re-pointed (strip height `--pw-h`, foot fade, busy middle; Plan the read's box 220px); NEW f1200 (4) the ribbon measured per frame to the title's words, in the frame's own points, none without a title. Red at the parent: (3) and (4).
