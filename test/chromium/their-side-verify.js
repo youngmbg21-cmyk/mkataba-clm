@@ -158,7 +158,8 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
          old look's */
       const why = await until(page, () => !!document.getElementById('pd-input') || (() => { const n = document.getElementById('pt-notes');
         const pin = n && n.querySelector('[data-rl-np-pin]'); return !!n && n.classList.contains('open') && !!pin && pin.getClientRects().length > 0; })(), null, 4000);
-      check('4h the save asks for a reason', why);
+      /* RE-POINTED 24 Nov 2026 (owner: "Just file and move on") — the save asks nothing */
+      check('4h the save asks for no reason — filing never asks for a note', !why);
       if (await page.$('#pd-cancel')) await press(page, '#pd-cancel');
       else if (await page.$('#pt-notes [data-rl-np-unpin]')) await press(page, '#pt-notes [data-rl-np-unpin]');
       await until(page, () => !document.getElementById('pd-input') && !document.querySelector('#pt-notes [data-rl-np-pin]'), null, 2000);

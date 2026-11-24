@@ -3013,73 +3013,19 @@ const dismissNote = async pg => {
     await pause(400);
     await p.click('#clause-editor [data-ce-act="save"]');
     await pause(1100);
-    /* RE-POINTED 11 Sep 2026 (Young: "whenever you want to comment, the
-       comments / chat slide panel slides in and you comment there instead").
-       The window is retired; the DRAWER opens, pinned to the change just
-       filed, over the clause editor. */
-    const dlg = await p.evaluate(() => {
+    /* RE-POINTED 24 Nov 2026 (owner: "Forget the whole concept of having to put a note before filing. Just file and
+       move on"): filing files and asks nothing — no Notes drawer, no pin — on a first filing and on a revision. */
+    const seen25 = () => p.evaluate(() => {
       const panel = document.getElementById('context-panel');
-      const open = !!(panel && panel.classList.contains('open'));
-      const pin = panel && panel.querySelector('.rl-np-pin');
-      const r = panel && panel.getBoundingClientRect();
-      const page = document.getElementById('clause-editor');
-      const pz = page ? Number(getComputedStyle(page).zIndex) : null;
-      const oz = panel ? Number(getComputedStyle(panel).zIndex) : null;
-      const mid = r && document.elementFromPoint(r.left + r.width / 2, r.top + 40);
-      return { up: open, painted: !!(r && r.width > 0 && r.height > 0),
-        onTop: !!(panel && mid && panel.contains(mid)), overPage: oz > pz, oz, pz,
-        pinned: !!pin, ref: pin ? (pin.querySelector('.ref') || {}).textContent : '',
-        lead: pin ? (pin.querySelector('.lead') || {}).textContent : '',
-        quote: pin ? (pin.querySelector('q') || {}).textContent : '',
-        rooms: pin ? [...pin.querySelectorAll('[data-rl-np-pin-room]')].map(b => b.getAttribute('data-rl-np-pin-room') + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')) : [],
-        skip: pin ? (pin.querySelector('[data-rl-np-unpin]') || {}).textContent : '',
-        box: !!(panel && panel.querySelector('.rl-np-in')),
-        go: panel ? (panel.querySelector('[data-rl-np-send]') || {}).textContent : '' };
+      const c = window.CONTRACT, ch = (c.changes || [])[(c.changes || []).length - 1] || {};
+      return { open: !!(panel && panel.classList.contains('open')), pinned: !!(panel && panel.querySelector('.rl-np-pin')),
+        filed: /own costs of/.test(String(ch.newText || '')), revs: (ch.revisions || []).length,
+        editor: !!document.getElementById('clause-editor') };
     });
-    ck('25a filing opens the Notes drawer, as real pixels', dlg.up && dlg.painted, dlg.up ? 'open' : 'not open');
-    ck('25b it sits OVER the clause editor, which covers the window',
-       dlg.overPage === true && dlg.onTop === true, `drawer z ${dlg.oz}, page z ${dlg.pz}`);
-    /* RE-POINTED 11 Sep 2026 (round three, items 1/5): no "filed" lead line —
-       the pin quotes the change's own wording, the highlight pin's shape. */
-    ck('25c the PIN names the change just filed and quotes its wording, with no lead line',
-       dlg.pinned && /CHG-/.test(dlg.ref || '') && !dlg.lead && (dlg.quote || '').trim().length > 3,
-       `"${(dlg.ref || '').trim()}" · lead "${(dlg.lead || '').trim()}" · q "${(dlg.quote || '').trim().slice(0, 40)}"`);
-    ck('25d two ways on — Skip, and Add note — with the box under the pin',
-       /skip|hoppa/i.test(dlg.skip || '') && /add|l\u00e4gg/i.test(dlg.go || '') && dlg.box === true,
-       `${(dlg.skip || '').trim()} | ${(dlg.go || '').trim()}`);
-    /* RE-POINTED 3 Oct 2026 — an outside room's key is its party's ('p:<id>')
-       so a note can say which of several outside parties it is for. D-6's
-       claim is unchanged and is what is read: two rooms, ours lit at rest. */
-    ck('25e the room is chosen on the pin, Internal lit at rest (D-6)',
-       dlg.rooms.length === 2 && dlg.rooms[0] === 'internal*'
-       && dlg.rooms[1] !== 'internal' && !/\*/.test(dlg.rooms[1]),
-       JSON.stringify(dlg.rooms));
-
-    /* ---- IT WRITES A REAL NOTE ONTO THE CHANGE'S OWN THREAD ---- */
-    await p.evaluate(() => {
-      const panel = document.getElementById('context-panel');
-      const b = panel.querySelector('.rl-np-in');
-      b.value = 'Audit costs: we have never paid theirs.';
-      b.dispatchEvent(new Event('input', { bubbles: true }));
-      panel.querySelector('[data-rl-np-send]').click();
-    });
-    await pause(700);
-    const wrote = await p.evaluate(() => {
-      const c = window.CONTRACT;
-      const ch = (c.changes || [])[(c.changes || []).length - 1];
-      const t = (ch.thread || [])[0] || {};
-      const panel = document.getElementById('context-panel');
-      return { pinGone: !(panel && panel.querySelector('.rl-np-pin')),
-        text: t.text, vis: t.visibility, who: t.who, at: t.at,
-        clock: !!(panel && [...panel.querySelectorAll('.rl-np-top span')].some(x => /20\d\d/.test(x.textContent + ' ' + (x.title || '')))) };
-    });
-    ck('25f Add note files it onto the change it named, in the room that was lit — Internal at rest',
-       /never paid theirs/.test(wrote.text || '') && wrote.vis === 'internal',
-       `${wrote.vis} — "${(wrote.text || '').slice(0, 40)}"`);
-    ck('25g the pin is spent and the note prints its full date and time', wrote.pinGone === true && wrote.clock === true);
-    await skipNote(p);
-
-    /* ---- A REVISION IS ASKED AGAIN, and the pin says it is one ---- */
+    const first25 = await seen25();
+    ck('25a filing files the change', first25.filed === true, JSON.stringify(first25));
+    ck('25b and opens no Notes drawer and pins nothing — filing never asks for a note', !first25.open && !first25.pinned, JSON.stringify(first25));
+    ck('25c the editor stays where it was', first25.editor === true);
     await p.evaluate(TYPE => {
       const b = document.querySelector('#clause-editor #ce-clausebody');
       if (b.getAttribute('contenteditable') !== 'true') eval(TYPE);
@@ -3092,39 +3038,8 @@ const dismissNote = async pg => {
     await pause(400);
     await p.click('#clause-editor [data-ce-act="save"]');
     await pause(1100);
-    const again25 = await p.evaluate(() => {
-      const panel = document.getElementById('context-panel');
-      const pin = panel && panel.querySelector('.rl-np-pin');
-      return { up: !!(panel && panel.classList.contains('open') && pin),
-        lead: pin ? (pin.querySelector('.lead') || {}).textContent : '',
-        quote: pin ? ((pin.querySelector('q') || {}).textContent || '') : '',
-        revs: (() => { const c = window.CONTRACT;
-          const ch = (c.changes || [])[(c.changes || []).length - 1];
-          return (ch.revisions || []).length; })() }; });
-    /* RE-POINTED 11 Sep 2026 (round three): the pin carries no "revised" lead —
-       it quotes the change's wording, which after the revision is the NEW words. */
-    ck('25h A REVISION IS ASKED AGAIN — the drawer opens pinned, and the pin quotes the revised wording',
-       again25.up === true && again25.revs > 0 && !again25.lead && /own costs of any audit/.test(again25.quote || ''),
-       `drawer ${again25.up ? 'came up' : 'did not'}, ${again25.revs} revisions · q "${(again25.quote || '').trim().slice(0, 50)}"`);
-    /* ---- THE OTHER ROOM: an external note goes down the channel, the pin's
-       switch moves the drawer's tab and tints the box. ---- */
-    const ext25 = await p.evaluate(async () => {
-      const panel = document.getElementById('context-panel');
-      panel.querySelector('[data-rl-np-pin-room]:not([data-rl-np-pin-room="internal"])').click();
-      await new Promise(r => setTimeout(r, 150));
-      const box = panel.querySelector('.rl-np-in');
-      const foot = panel.querySelector('.rl-np-foot');
-      return { tab: (panel.querySelector(':is(.rl-np-tab, .rl-np-room).on') || {}).textContent,
-        tinted: !!(foot && foot.classList.contains('out')),
-        ph: box ? box.getAttribute('placeholder') : '' };
-    });
-    /* RE-POINTED 3 Oct 2026 — the outside room is named after its party, so the
-       lit tab says "Nordfrakt Logistik AB" rather than "External". The claim is
-       that the press MOVED the drawer off our own room and tinted the box. */
-    ck('25i the pin\'s switch moves the drawer to the outside room, and the box wears the crossing',
-       !!(ext25.tab || '').trim() && !/internal|intern/i.test(ext25.tab || '')
-       && ext25.tinted === true, `${(ext25.tab || '').trim()} · tinted ${ext25.tinted}`);
-    await skipNote(p);
+    const again25 = await seen25();
+    ck('25d a revision files too, and asks nothing either', again25.revs > 0 && !again25.open && !again25.pinned, JSON.stringify(again25));
     await p.evaluate(() => rlCloseClauseEditor({}));
     await pause(300);
   } else {
