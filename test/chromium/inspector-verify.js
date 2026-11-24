@@ -381,15 +381,31 @@ const ok = (name, good, detail) => {
        same builder on its own seat; the List's own line (its four narrow
        columns) is crossed in 4d–4f */
     await page.setViewportSize({ width: 1024, height: 800 }); await toNego();
-    const narrow = await page.evaluate(() => ({ ins: document.querySelector('[data-ins-page]')?.getAttribute('data-ins'), panel: !!document.getElementById('ins-panel'),
-      heads: document.querySelectorAll('.reg-table thead th').length, keys: regColKeys().length, full: !regInspecting() }));
-    ok('4a [control] at 1024 Negotiations keeps its full table', narrow.ins !== '1' && !narrow.panel && narrow.full && narrow.heads === narrow.keys, JSON.stringify(narrow));
-    const nrow = await page.$('#reg-tbody tr[data-row]');
-    const nid = nrow ? await nrow.getAttribute('data-row') : null;
-    if (nrow) { await page.click(`#reg-tbody tr[data-row="${nid}"] td:nth-child(2)`); await page.waitForTimeout(900); }
-    /* a Negotiations row opens Jambo's Redlines face beside Home's paper (stage 5) */
+    /* RE-POINTED 23 Nov 2026 (owner, "No old layout for a signed-in reader": a narrow window keeps today's design): from
+       INS_NARROW_MIN up to INS_MIN_W Negotiations draws the same Legora + Stripe table as on a wide window and Jambo's panel
+       stands FOLDED to its strip (insNarrow, jlFolded); the old full .reg-table below the line is gone */
+    const narrow = await page.evaluate(() => { const p = document.getElementById('ins-panel');
+      return { ins: document.querySelector('[data-ins-page]')?.getAttribute('data-ins'), narrowLine: typeof insNarrow === 'function' && insNarrow(),
+        folded: !!p && p.classList.contains('is-folded'), over: !!p && p.classList.contains('is-narrow-over'),
+        heads: [...document.querySelectorAll('.ngn-table thead th')].map(t => t.textContent.trim()).filter(Boolean).join('|'),
+        rows: document.querySelectorAll('.ngn-table tr[data-ngn-row]').length,
+        pan: Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth) }; });
+    ok('4a [control] at 1024 Negotiations keeps today\'s table, Jambo\'s panel folded to its strip', narrow.ins === '1' && narrow.narrowLine && narrow.folded && !narrow.over
+      /* RE-POINTED 23 Nov 2026 (no old narrow layout; P-29's column rule stands): today's table at 1024 is the wide
+         table under the one column rule (ngnCols → listCols), so where the room is short Rounds steps aside first, then
+         Lead; Agreement · Whose move · Open asks · Waiting always stand */
+      && ['Agreement|Whose move|Rounds|Open asks|Lead|Waiting', 'Agreement|Whose move|Open asks|Lead|Waiting', 'Agreement|Whose move|Open asks|Waiting'].includes(narrow.heads)
+      && narrow.rows > 0 && narrow.pan === 0, JSON.stringify(narrow));
+    /* and the one rule for every press stands: a row chooses, the chosen row pressed again opens it on Home's paper */
+    const nid = await page.evaluate(() => document.querySelector('.ngn-table tr[data-ngn-row]')?.getAttribute('data-ngn-row') || null);
+    if (nid) {
+      await page.click(`.ngn-table tr[data-ngn-row="${nid}"] td:nth-child(2)`);
+      await page.waitForFunction(id => !!document.querySelector(`.ngn-table tr[data-ngn-row="${id}"].is-sel`), nid, { timeout: 4000 }).catch(() => {});
+      await page.click(`.ngn-table tr[data-ngn-row="${nid}"] td:nth-child(2)`).catch(() => {});
+      await page.waitForFunction(id => state.view === 'dashboard' && window.intel && intel.paper && intel.paper.id === id && window.pdFaceNow && pdFaceNow() === 'red', nid, { timeout: 8000 }).catch(() => {});
+    }
     const nopen = await page.evaluate(() => ({ view: state.view, id: (window.intel && intel.paper) ? intel.paper.id : null, face: window.pdFaceNow ? pdFaceNow() : '' }));
-    ok('4b [control] and one press opens it, on Home\'s paper, Redlines beside it', nopen.view === 'dashboard' && nopen.id === nid && nopen.face === 'red', JSON.stringify(nopen));
+    ok('4b [control] and a press chooses, the second opens it, on Home\'s paper, Redlines beside it', !!nid && nopen.view === 'dashboard' && nopen.id === nid && nopen.face === 'red', JSON.stringify({ nid, ...nopen }));
     await toNego();
     await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(700);
     const grown = await page.evaluate(() => ({ ins: document.querySelector('[data-ins-page]')?.getAttribute('data-ins'), view: state.view }));

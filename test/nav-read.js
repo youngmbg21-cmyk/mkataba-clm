@@ -58,10 +58,18 @@ function navWhereSrc(){
     const one = !ca && document.getElementById('cmp-close') && /compare versions|jämför versioner/i.test(((document.getElementById('cmp-close').closest('[role="dialog"], .modal, #modal-root') || document.body).textContent) || '');
     if (one) W.pane = 'compare-one';   // the screen's own "only one version so far"
     else if (ca && cb) W.pane = (ca.value === '0' && /current|aktuell/i.test((cb.options[cb.selectedIndex] || {}).textContent || '')) ? 'compare' : 'compare-other';
+    /* RE-POINTED 23 Nov 2026 (Amend "Tell Jambo the change": a fresh Amend first asks ONE question in a pop-up,
+       pd2AmAskOpen; Duties ONE DOOR: every Obligations door opens the contract's Duties page in the middle, #dtp) */
+    else if (document.querySelector('#modal-root .lgp#pd2-amk')) W.pane = 'amend';
+    else if (document.querySelector('#modal-root #dtp')) W.pane = 'oblig';
     /* the new look's brief is ONE page in the middle ([data-pd2-brief]; #762) */
     else if (document.querySelector('#brief-section, [data-pd2-brief]')) W.pane = 'brief';
     /* HISTORY IN THE MIDDLE (the strip is gone, owner, 9 Nov 2026): pd2HistOpen stands it where the paper was */
     else if (document.getElementById('pd2-hist')) W.pane = 'hist';
+    /* RE-POINTED 23 Nov 2026 (Duties ONE DOOR: a contract's duties are its Duties page, `#dtp`, in the middle; and
+       "Tell Jambo the change": a fresh Amend is the one-question pop-up, pd2AmAskOpen's `#pd2-amk-q`) */
+    else if (document.getElementById('dtp')) W.pane = 'oblig';
+    else if (document.getElementById('pd2-amk-q')) W.pane = 'amend';
     else if (typeof pdSendShows === 'function' && pdSendShows() && String(pdSendFor()) === String(pc.id)) W.pane = 'send';
     else if (f) W.pane = ({ fill: 'fill', red: 'redlines', signing: 'sign', amend: 'amend' })[f] || f;
     /* FILL IN IS THE CHECKLIST (owner picked "1 · Checklist", 22 Oct 2026): what is owed, landed on the Dossier */

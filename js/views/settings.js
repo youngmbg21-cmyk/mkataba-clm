@@ -2447,7 +2447,8 @@ function stLsSheetPanel(){
     const c=stSheetCells(u), a=stAr(), due=stArDue(), m=a&&a.marks&&a.marks[u.id];
     const me=(typeof currentUser==='function'&&currentUser())||{};
     const txt=h=>sddTxt(h);
-    const facts=[{ k:i18t('st_sh_role'), t:roleName(u.role) }, { k:i18t('st_sh_cap'), t:txt(c.cap) }, { k:i18t('st_sh_yes_from'), t:txt(c.yes) },
+    /* NO MONEY IN A SIDE PANEL (review of 23 Nov 2026): the signing limit stays in the table's column, not here */
+    const facts=[{ k:i18t('st_sh_role'), t:roleName(u.role) }, { k:i18t('st_sh_yes_from'), t:txt(c.yes) },
       { k:i18t('st_sh_checked'), t:txt(c.checked) }, { k:i18t('st_sh_streams'), t:txt(c.streams) },
       { k:[i18t('st_sh_refile'),i18t('st_sh_paper'),i18t('st_sh_hold')].join(' · '), t:[c.refile,c.paper,c.hold].map(txt).join(' · ') }]
       .concat(stArOn()?[{ k:i18t('st_ar_used'), t:txt(stArUsedHtml(u)) }]:[]).map(x=>Object.assign({ wrap:true },x));
@@ -2491,7 +2492,7 @@ function stLsRolesHtml(){
 function stLsRolesPanel(){
   const pick=stLsPick('roles'), r=pick?stBzRole(pick):null;
   if(r){ const who=stBzHolders(r.id);
-    return { eyebrow:i18t('st_pg_roles'), title:r.name, sub:i18t('st_ls_role_s',{ what:stBzSummary(r) }), act:{ label:i18t('st_you_change'), attr:`data-st-panel="role:${PB_ATTR(r.id)}"` },
+    return { eyebrow:i18t('st_pg_roles'), title:r.name, sub:i18t('st_ls_role_s',{ what:stBzBrings(r,{noMoney:true}).join(' · ') }), act:{ label:i18t('st_you_change'), attr:`data-st-panel="role:${PB_ATTR(r.id)}"` },
       groups:[{ label:i18t('st_ls_holds_it'), rows:who.length?who.map(u=>({ mark:'', markText:stLsIni(u), tone:'steel', t:stNameOf(u), attr:`data-st-panel="person:${PB_ATTR(u.id)}"` })):[{ t:i18t('st_ls_nobody_holds'), wrap:true }] },
         { label:i18t('sdd5_if_h'), rows:[{ t:i18t('st_ls_role_if'), wrap:true }] }] };
   }
@@ -5426,8 +5427,8 @@ function stBzFact(k,v){
 }
 /* what a role brings, as a list: the four facts every role has, then the
    grants it gives (a grant it does not give is not listed) */
-function stBzBrings(r){
-  return stBzKeysFor(r.sys).filter(k=>!['checked','paper','refile','hold'].includes(k)||r[k]===true).map(k=>stBzFact(k,r[k]));
+function stBzBrings(r,o){
+  return stBzKeysFor(r.sys).filter(k=>!(o&&o.noMoney&&k==='cap')).filter(k=>!['checked','paper','refile','hold'].includes(k)||r[k]===true).map(k=>stBzFact(k,r[k]));
 }
 const stBzSummary=r=>stBzBrings(r).join(' · ');
 

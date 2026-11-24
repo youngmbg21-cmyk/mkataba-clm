@@ -94,21 +94,22 @@ const blocked = [];
         await clean(); await ev(() => setView('dashboard')); await until(() => document.querySelector('#ig-dock'), undefined, 4000); /* RE-POINTED 29 Oct 2026 (round 12, owner's yes): the calendar opens on the Agenda; Week is pressed */ await ev(() => { setView('calendar'); calSetView('week'); });
         /* RE-POINTED 26 Oct 2026 (owner: "any page where there is a link to press on the first page needs a second tab
            for jambo"): the Calendar's panel opens on Overview (Your week); his greeting is under the Jambo tab, as in Settings */
-        const ready = () => document.querySelectorAll('#hb-cal .cal-wkm-lab b').length >= 5 && document.querySelector('.cal-head') && document.querySelector('.cal-cop .cal-plan-tab');
+        /* RE-POINTED 23 Nov 2026 (P-14, the Calendar the Legora + Stripe way, owner: Build P-14): the Week is this week's
+           table, the coming weeks folded into one line (.cls-then); the head is .cls-head */
+        const ready = () => document.querySelector('#hb-cal .cal-page.is-ls[data-cal-ls="week"] .cls-then-h') && document.querySelector('#hb-cal .cls-head') && document.querySelector('.cal-cop .cal-plan-tab');
         /* the first page after signing in may still be settling on the Board: asked once more, bounded */
         const there = (await until(ready, undefined, 5000)) || (await ev(() => { setView('calendar'); calSetView('week'); }), await until(ready));
         await settle(); await shot('calendar');
         if (on(1)) {
           if (!there) check(`${at} · 1 — the Calendar opened`, false);
           else {
-            const lab = await ev(() => [...document.querySelectorAll('.cal-wkm-row')].map(row => {
-              const b = row.querySelector('.cal-wkm-lab b'), next = row.querySelector('.cal-wkm-d'); if (!b || !next) return null;
-              const r = document.createRange(); r.selectNodeContents(b);
-              return { t: b.textContent, over: Math.round(Math.max(...[...r.getClientRects()].map(x => x.right)) - next.getBoundingClientRect().left) };
-            }).filter(Boolean));
-            const worst = (lab || []).reduce((m, x) => x.over > m.over ? x : m, { over: -99 });
-            check(`${at} · 1a — every later week's label stays in its own cell`, lab && lab.length >= 5 && worst.over <= 0, `${worst.t || '?'} ends ${worst.over}px into the next day`);
-            const head = await ev(() => { const e = document.querySelector('.cal-head'), cs = getComputedStyle(e), r = e.getBoundingClientRect(), pr = e.parentElement.getBoundingClientRect();
+            /* RE-POINTED 23 Nov 2026 (P-14): the later weeks are no longer five labelled cells but ONE line under this
+               week's table — its words stay whole and end inside the page's own width, never under the panel */
+            const lab = await ev(() => { const l = document.querySelector('#hb-cal .cls-then-h'), pg = document.querySelector('#hb-cal .cal-page.is-ls'); if (!l || !pg) return null;
+              const r = document.createRange(); r.selectNodeContents(l);
+              return { t: l.textContent, cut: l.scrollWidth > l.clientWidth + 1, over: Math.round(Math.max(...[...r.getClientRects()].map(x => x.right)) - pg.getBoundingClientRect().right) }; });
+            check(`${at} · 1a — the later weeks' line stays whole, inside the page`, !!lab && !lab.cut && lab.over <= 0, lab ? `${lab.t} · ends ${lab.over}px past the page${lab.cut ? ' · cut' : ''}` : 'no line');
+            const head = await ev(() => { const e = document.querySelector('#hb-cal .cls-head'), cs = getComputedStyle(e), r = e.getBoundingClientRect(), pr = e.parentElement.getBoundingClientRect();
               return { rad: parseFloat(cs.borderTopLeftRadius), shadow: cs.boxShadow !== 'none', inset: Math.round(r.left - pr.left) }; });
             /* RE-POINTED 29 Oct 2026 (ONE CORNER): every card is 10px round now, "half as round" */
             /* RETIRED 16 Nov 2026 (#762): 1b "the Calendar's head floats as a card" (lift, inset 8) — the Legora look's floating
@@ -118,9 +119,10 @@ const blocked = [];
           }
         }
         if (on(3)){ await ev(() => { const t = document.querySelector('.cal-cop [data-cal-talk]'); if (t) t.click(); }); await until(() => document.querySelector('.cal-cop .jb-hello'), undefined, 4000);
-          await greetCheck('Calendar');
+          /* RE-POINTED 23 Nov 2026 (P-14): the Calendar's panel lands on what the tab has chosen (.cal-ls-side), not the Overview's .jov */
+          await greetCheck('Calendar', '.cal-cop .cal-ls-side');
           await ev(() => { const t = document.querySelector('.cal-cop [data-cal-talk-back]'); if (t) t.click(); }); }
-        if (on(8)) await levelCheck('Calendar', '.cal-head');
+        if (on(8)) await levelCheck('Calendar', '#hb-cal .cls-head'); /* RE-POINTED 23 Nov 2026 (P-14): the head is .cls-head */
       }
 
       /* ---- 3 + 8 · THE LIST PAGES ---- */
@@ -330,12 +332,12 @@ const blocked = [];
         await ev(() => { state.contracts = state.contracts.filter(x => x.id !== 'DR-400'); });
       }
 
-      async function greetCheck(name) {
+      async function greetCheck(name, sel) {
         /* RE-POINTED 26 Oct 2026 (owner: "we will have an overview tab side panel in each page followed by the jambo
            tab"): his greeting is the Jambo tab's; what stands first on a page is its Overview (.jov), held to the same margin */
-        const g = await ev(() => { const e = [...document.querySelectorAll('.jb-hello, .jov')].find(x => x.getBoundingClientRect().width); if (!e) return null;
+        const g = await ev(s => { const e = [...document.querySelectorAll(s || '.jb-hello, .jov')].find(x => x.getBoundingClientRect().width); if (!e) return null;
           const p = e.closest('.ins-panel, #ig-dock, .cal-cop, .st-side, aside'); const a = e.getBoundingClientRect(), b = p.getBoundingClientRect();
-          const cs = getComputedStyle(e); return { l: Math.round(a.left + parseFloat(cs.paddingLeft) - b.left), r: Math.round(b.right - a.right + parseFloat(cs.paddingRight)) }; });
+          const cs = getComputedStyle(e); return { l: Math.round(a.left + parseFloat(cs.paddingLeft) - b.left), r: Math.round(b.right - a.right + parseFloat(cs.paddingRight)) }; }, sel);
         check(`${at} · 3 — ${name}: Jambo's greeting has the panel's margin`, g && g.l >= 12 && g.r >= 12, g ? `${g.l}px left · ${g.r}px right` : 'no greeting drawn');
       }
       async function bottomCheck(name) {

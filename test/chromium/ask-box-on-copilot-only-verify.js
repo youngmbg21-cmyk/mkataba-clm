@@ -54,6 +54,10 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
           await page.evaluate(cid => pdOpenOnHome(cid, 'copilot'), id);
           await page.waitForSelector('#ig-dock [data-pd-tab="doc"]', { timeout: 6000 }).catch(() => {});
         }
+        /* RE-POINTED 23 Nov 2026 (Duties ONE DOOR: pdSetTab('oblig')/pdObOpen open the contract's Duties page in the
+           middle, #dtp, its panel beside it the Duties face [data-obdf]; the old panel tab never shows): "on Obligations"
+           is that page with its face, and any other tab first puts the page away (pdMidClose, the one way back) */
+        if (t !== 'oblig') await page.evaluate(() => { if (document.querySelector('#modal-root #dtp') && window.pdMidClose) pdMidClose(); });
         /* RE-POINTED 23 Oct 2026 (Spine): Obligations is no tab — its panel opens from the Dossier's line under Sign */
         if (t === 'oblig'){ await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-pd-tab="copilot"]'); if (b) b.click(); });
           await page.waitForSelector('#ig-dock .ds-ob-line', { timeout: 4000 }).catch(() => {}); }
@@ -62,12 +66,12 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
            else the panel's one opener pdObOpen (what every Obligations door presses). This check is about the box. */
         await page.evaluate(tab => { const b = document.querySelector(tab === 'oblig' ? '#ig-dock .ds-ob-line, #ig-dock [data-pd-glance-tab="oblig"]' : `#ig-dock [data-pd-tab="${tab}"]`);
           if (b) b.click(); else if (tab === 'oblig' && window.pdObOpen) pdObOpen(); }, t);
-        const on = await page.waitForFunction(tab => { if (tab === 'oblig') return window.pdTab && pdTab() === 'oblig' && !!document.querySelector('#ig-dock [data-pd-tab="doc"]');
+        const on = await page.waitForFunction(tab => { if (tab === 'oblig') return !!document.querySelector('#modal-root #dtp') && !!document.querySelector('#ig-dock [data-obdf]');
           const b = document.querySelector('#ig-dock .pd-tab.on');
           return !!b && b.getAttribute('data-pd-tab') === tab && !!document.querySelector('#ig-dock [data-pd-tab="doc"]'); }, t, { timeout: 4000 }).then(() => true, () => false);
         if (on) break;
       }
-      return page.evaluate(() => ({ tab: (window.pdTab && pdTab() === 'oblig') ? 'oblig' : (document.querySelector('#ig-dock .pd-tab.on') || { getAttribute: () => null }).getAttribute('data-pd-tab'),
+      return page.evaluate(() => ({ tab: (document.querySelector('#modal-root #dtp') && document.querySelector('#ig-dock [data-obdf]')) ? 'oblig' : (document.querySelector('#ig-dock .pd-tab.on') || { getAttribute: () => null }).getAttribute('data-pd-tab'),
         box: !!document.querySelector('#ig-dock #igd-input'), go: !!document.querySelector('#ig-dock #igd-go') }));
     };
     const cp = await onTab('copilot');

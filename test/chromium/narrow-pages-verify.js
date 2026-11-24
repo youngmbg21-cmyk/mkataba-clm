@@ -77,6 +77,11 @@ const isoIn = off => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await page.waitForTimeout(2400);
+    /* RE-POINTED 23 Nov 2026 (owner, "No old layout for a signed-in reader": a window 720 to 1040 wide keeps today's
+       design, Jambo's panel folded to its strip; the narrow shape stands only below that): the narrow shapes this file
+       measures are put on the stage by the page's own stage door, insForce(false) (as contracts-page-verify and
+       compact-ladder-verify do), let go before Our standards */
+    await page.evaluate(() => { if (window.insForce) insForce(false); });
 
     /* ================= 1 · THE OBLIGATIONS PAGE ================= */
     await page.evaluate(() => setView('obligations'));
@@ -116,7 +121,9 @@ const isoIn = off => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d
    page, filtered"): the same door now opens the Obligations page narrowed to
    the contract, which draws the contract's own table (roomPaintObligations)
    into #obw-one-host — the host this file reads. */
-    await page.evaluate(() => { const c = getContract('MK-A1'); roomGoTab(c, 'oblig'); });
+    /* RE-POINTED 23 Nov 2026 (Duties ONE DOOR: roomGoTab 'oblig' now opens the contract's Duties page in the middle):
+       the narrowed page's table is reached by its own door, obOpenOnPage, which the narrow shape still draws */
+    await page.evaluate(() => { obOpenOnPage('MK-A1'); });
     await page.waitForFunction(() => !!document.querySelector('#obw-one-host[data-ins-cid="MK-A1"] [data-obt-row]'), null, { timeout: 8000 }).catch(() => {});
     await page.waitForTimeout(300);
     const tab = await page.evaluate(() => {
@@ -176,7 +183,7 @@ const isoIn = off => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d
     /* ================= 4 · OUR STANDARDS ================= */
     /* RE-POINTED 17 Nov 2026 (the owner picked The Ladder): the books are no longer a tab; the page lists each standard
        ONCE, grouped by how firm, however many books hold it */
-    await page.evaluate(() => setView('playbook'));
+    await page.evaluate(() => { if (window.insForce) insForce(null); setView('playbook'); });
     const pb = await (async () => { for (let k = 0; k < 40; k++){ const r = await page.evaluate(() => {
       const it = [...document.querySelectorAll('.ld-list [data-ld-pick]')]; if (!it.length) return null;
       const ids = it.map(b => b.getAttribute('data-ld-pick')); const dup = ids.find((x, i) => ids.indexOf(x) !== i) || null;

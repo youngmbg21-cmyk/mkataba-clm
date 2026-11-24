@@ -169,7 +169,9 @@ const drive = async (page, fn, arg, fallback) => {
     await drive(page, () => { setView('calendar'); }, undefined, null);
     await pause(1500);
     const ref = await drive(page, () => {
-      const wrap = [...document.querySelectorAll('.cal-seg-view, .cal-seg')].find(w => w.getBoundingClientRect().height > 0);
+      /* RE-POINTED 23 Nov 2026 (P-14, the Calendar the Legora + Stripe way): the Calendar's one switch is Agenda · Month ·
+         Week · Horizon (.cls-seg) */
+      const wrap = [...document.querySelectorAll('.cls-seg, .cal-seg-view, .cal-seg')].find(w => w.getBoundingClientRect().height > 0);
       if (!wrap) return { err: 'not drawn' };
       const on = wrap.querySelector('.on') || wrap.querySelector('[aria-pressed="true"]') || wrap.querySelector('[aria-current="true"]') || wrap.querySelector('button');
       const w = wrap.getBoundingClientRect(), s = on.getBoundingClientRect();
@@ -180,7 +182,7 @@ const drive = async (page, fn, arg, fallback) => {
        the lit half 3px in (the owner's drawing, padding:3px) — measured the same way, it sits EVENLY
        inside, top and bottom alike, never more than the drawn 3px. The Negotiate page's seat switch
        keeps its own square box (3b–3d) until stage 2 matches that page. */
-    check('3e CONTROL — the segmented control it is matched TO (Calendar: Month · Horizon) measures the same way',
+    check('3e CONTROL — the segmented control it is matched TO (Calendar: Agenda · Month · Week · Horizon) measures the same way',
       !ref.err && Math.abs(ref.gapTop - ref.gapBot) < 0.6 && ref.gapTop <= 3.6,
       ref.err || `gap ${ref.gapTop} / ${ref.gapBot}`);
 

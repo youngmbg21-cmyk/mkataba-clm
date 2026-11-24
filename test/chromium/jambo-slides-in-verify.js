@@ -212,7 +212,8 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
     /* RE-POINTED 27 Oct 2026 (owner: "Go with option 1, AI-first anyway"): typed words in the ✦ window go to the brain
        (every-jambo-tab-verify G); its free readers stand for words handed in (a suggestion pressed), asked that way */
     await page.evaluate(() => aiSubmit('obligations'));
-    const V0 = await until(() => { const m = (window.ai && ai.history || []).filter(x => x.role === 'assistant').slice(-1)[0]; return m && /obligations/i.test(String(m.text || '')) ? { view: state.view, said: String(m.text || '').replace(/<[^>]+>/g, ' ').slice(0, 80) } : null; }, null, 6000);
+    /* RE-POINTED 23 Nov 2026 (owner: English says DUTY, never obligation; f1191): the Board's reading answers in duties */
+    const V0 = await until(() => { const m = (window.ai && ai.history || []).filter(x => x.role === 'assistant').slice(-1)[0]; return m && /obligations|\bdut(y|ies)\b/i.test(String(m.text || '')) ? { view: state.view, said: String(m.text || '').replace(/<[^>]+>/g, ' ').slice(0, 80) } : null; }, null, 6000);
     check('4c1 a bare "obligations" in the window on Home is the Board\'s own reading, nothing spent', !!V0 && V0.view === 'dashboard' && !ai.length, JSON.stringify({ V0, ai }));
     await page.evaluate(() => aiSubmit('obligations page'));
     const V = await until(() => state.view === 'obligations' ? state.view : null, null, 6000);

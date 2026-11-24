@@ -273,9 +273,11 @@ const WATCH = () => { window._walk = {}; const tick = () => {
     const back5 = stored ? await waitFor(page, () => !document.getElementById('pd-signface') && document.querySelectorAll('[data-ig-chips] [data-ca-chip]').length > 0, 6000) : false;
     const chips5b = await page.evaluate(() => [...document.querySelectorAll('[data-ig-chips] [data-ca-chip]')].map(b => b.getAttribute('data-ca-chip')));
     const nextMax = await page.evaluate(() => window.CA_NEXT_MAX);
-    check('5c once signed, at once, nothing offers "redline" (no chips under the face, as drawn); back on Jambo, obligations takes its place',
-      /* as many as CA_NEXT_MAX (four since round 3 as drawn, lane B2: "answer the redlines · name a signer · share · history") */
-      stored >= 1 && faceOpen && !chips5.includes('redline') && back5 && typeof nextMax === 'number' && chips5b.length === nextMax && !chips5b.includes('redline') && chips5b.includes('oblig'), JSON.stringify({ underFace: chips5, faceOpen, back: chips5b, nextMax }));
+    /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end": "obligations" left the next-step chips, the Dossier's Duties card is
+       the one door) — back on Jambo the chips are the steps still standing (history among them), never redline nor obligations,
+       at most CA_NEXT_MAX of them (with obligations gone a signed paper may have fewer than four) */
+    check('5c once signed, at once, nothing offers "redline" (no chips under the face, as drawn); back on Jambo, history stands and obligations is not a chip',
+      stored >= 1 && faceOpen && !chips5.includes('redline') && back5 && typeof nextMax === 'number' && chips5b.length >= 1 && chips5b.length <= nextMax && !chips5b.includes('redline') && !chips5b.includes('oblig') && chips5b.includes('history'), JSON.stringify({ underFace: chips5, faceOpen, back: chips5b, nextMax }));
     await shot('5c-chips-after-signing');
 
     /* ===== 6. SHARE ===== */

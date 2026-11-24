@@ -113,9 +113,12 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
 /* RE-POINTED 15 Oct 2026 (owner): the Menu tab ("Next up") stands beside Obligations */
     /* RE-POINTED 21 Oct 2026 (owner picked "The Dossier", 20 Oct 2026: it reverses the Menu tab, folded into the Dossier's All acts; the first tab beside a paper is "Dossier"): */
     /* RE-POINTED 23 Oct 2026 (Spine): Redlines after Clauses; Obligations is a line under Sign, its own panel */
-    ok('3a no Overview, Signing, Deal, History or Menu tab: Dossier · Clauses · Redlines', tabs.map(t => t.k).join(',') === 'copilot,doc,red', JSON.stringify(tabs.map(t => t.k)));
+    /* RE-POINTED 23 Nov 2026 (Dossier L+S step 2, PLAN THE READ): a Plan tab (☷) stands beside the Dossier while a plan
+       stands or nothing is read (pd2PlanTabOn) — then the row is Dossier · Plan · Clauses · Redlines */
+    const plan = await page.evaluate(() => !!(window.pdContract && pdContract() && typeof pd2PlanTabOn === 'function' && pd2PlanTabOn(getContract(pdContract().id) || pdContract())));
+    ok('3a no Overview, Signing, Deal, History or Menu tab: Dossier · Clauses · Redlines', tabs.map(t => t.k).join(',') === (plan ? 'copilot,plan,doc,red' : 'copilot,doc,red'), JSON.stringify({ tabs: tabs.map(t => t.k), plan }));
     /* RE-POINTED 19 Oct 2026 (owner): his face is on the Jambo tab; Overview wears ▦ */
-    ok('3b the symbols are the artifact\'s marks, the Dossier ▦ (his face is the Jambo tab\'s)', tabs.map(t => t.g).join('') === '▦▢⇄', tabs.map(t => t.g).join(' '));
+    ok('3b the symbols are the artifact\'s marks, the Dossier ▦ (his face is the Jambo tab\'s)', tabs.map(t => t.g).join('') === (plan ? '▦☷▢⇄' : '▦▢⇄'), tabs.map(t => t.g).join(' '));
 
     /* ===== 4. WHITE, UNDER THE GREETING ROW ===== */
     /* RE-POINTED 17 Nov 2026 (the new look is the only look, #762): the Clauses tab plays THE READ quickly over the paper

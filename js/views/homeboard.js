@@ -10993,7 +10993,9 @@ function hbPlace(){
     /* and Fill in the contract, on the paper or as the form in the middle: a refresh lands back in it (#762) */
     if (!face && ((typeof window.pd2FillOn === 'function' && pd2FillOn(c.id)) || (typeof window.pdFormMidUp === 'function' && pdFormMidUp() && document.querySelector(`[data-pd-mid="form:${CSS.escape(String(c.id))}"]`)))) p.paper.fill = true;
     if (typeof window.pd2HistUp === 'function' && pd2HistUp(c.id)) p.paper.mid = 'hist';
-    else if (typeof window.pd2StandsUp === 'function' && pd2StandsUp(c.id)) p.paper.mid = 'where'; } } catch (_){} }
+    else if (typeof window.pd2StandsUp === 'function' && pd2StandsUp(c.id)) p.paper.mid = 'where';
+    /* and the contract's Duties page in the middle (the one door since 23 Nov 2026, where the Obligations tab was kept) */
+    else if (typeof window.pdMidUp === 'function' && pdMidUp('obs:' + String(c.id))) p.paper.mid = 'duties'; } } catch (_){} }
   /* the Board keeps Needs you's tab, kind and find words (Round A) */
   if (s.face === 'board' && typeof window.ndPlace === 'function'){ try { p.nd = ndPlace(); } catch (_){} }
   /* the Board keeps a contract's view and its contract (stage 4, 14 Oct 2026) */
@@ -11064,7 +11066,11 @@ function hbPlacePut(p){
           const pc = (typeof window.pdContract === 'function') ? pdContract() : null;
           /* …and only while its paper is still what stands: a reader who left for a page with no paper (Contracts) is never pulled back */
           if (!pc || String(pc.id) !== String(want.id) || (typeof window.pdOnPaper === 'function' && !pdOnPaper())) return;
-          hbStripBring(want.id, want.mid); } catch (_){} }, 300); };
+          hbStripBring(want.id, want.mid); } catch (_){} }, 300);
+          if (want.mid === 'duties' && typeof window.dutiesOpen === 'function') setTimeout(() => { try {
+            const pc = (typeof window.pdContract === 'function') ? pdContract() : null;
+            if (!pc || String(pc.id) !== String(want.id) || (typeof window.pdOnPaper === 'function' && !pdOnPaper())) return;
+            window.dutiesOpen(getContract(want.id) || pc, { tab: 'on' }); } catch (_){} }, 300); };
         if (want.face && window.PD_FACE_WORDS && PD_FACE_WORDS.includes(want.face) && typeof window.pdOpenOnHome === 'function'){ pdOpenOnHome(want.id, want.face); midBack(); done(); return; }
         igWalk([want.id], 0, { tab: want.tab || undefined }); midBack(); done(); return; }
       if (++n < 60) setTimeout(go, 150); else done();

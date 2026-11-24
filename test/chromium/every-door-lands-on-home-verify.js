@@ -180,6 +180,13 @@ const LAND = () => {
     cuParty: (() => { const r = document.querySelector('.cun-page[data-cu-screen="list"] #cu-tbody tr.is-sel[data-cu-cust]'); return r ? r.getAttribute('data-cu-cust') : null; })(),
     cuPanel: (() => { const h = document.querySelector('#ins-panel .jov5-title'); return h ? h.textContent.trim() : null; })(),
     pdOb: (() => { const r = document.querySelector('#ig-dock .pd-ob.is-open[data-pd-ob-key]'); return r ? r.getAttribute('data-pd-ob-key') : null; })(),
+    /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end": ONE DOOR — pdSetTab('oblig') / pdObOpen open the contract's
+       Duties page in the middle, the hidden Obligations panel never shows): the Duties page standing for the paper in
+       front (#dtp, the middle page 'obs:<id>'), and the duty chosen on it */
+    dtp: (() => { try { const c = window.intel && intel.paper; return !!(c && document.getElementById('dtp') && (typeof pdMidUp !== 'function' || pdMidUp('obs:' + c.id))); } catch (_){ return false; } })(),
+    dtpRec: (() => { const r = document.querySelector('#dtp tr.dtp-r.is-sel[data-dtp-rec]'); return r ? r.getAttribute('data-dtp-rec') : null; })(),
+    /* RE-POINTED 23 Nov 2026 (owner: "the Contracts door always lands on the Folders first", f1190): the Folders drawn */
+    folders: !!document.querySelector('[data-reg-home].ctf-page'),
     count: (() => { const n = document.querySelector('#ig-wall .igw-count'); return n ? n.textContent.trim() : null; })(),
     /* Jambo's Share card in the panel (the glance's Share asks his word "share", which answers with it) */
     shareCard: !!document.querySelector('#ig-dock [data-ca-act="shareout"]'),
@@ -200,10 +207,10 @@ const LAND = () => {
     ktMove: !!document.querySelector('[data-pd-kt-move][aria-pressed="true"]'),
   };
 };
-const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.og, L.cv, L.wall, L.only, L.place, L.show, L.stage, L.strip, L.stripPage, L.obCid, L.obSel, L.pdOb, L.fillOn, L.midForm, L.cuParty, L.cuAgs, L.ceRisks, L.rkLanded, L.kt, L.ktMove].join('|');
+const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.og, L.cv, L.wall, L.only, L.place, L.show, L.stage, L.strip, L.stripPage, L.obCid, L.obSel, L.pdOb, L.dtp, L.dtpRec, L.folders, L.fillOn, L.midForm, L.cuParty, L.cuAgs, L.ceRisks, L.rkLanded, L.kt, L.ktMove].join('|');
 const SAY = L => `${L.view}${L.face && L.view === 'dashboard' ? '/' + L.face : ''}${L.paper ? ' paper ' + L.paper : ''}${L.pd ? ' face ' + L.pd : ''}`
   + `${L.view === 'dashboard' && L.face === 'paper' && L.paper && !L.pd ? ' tab ' + L.tab : ''}${L.cv && L.face === 'board' ? ' view ' + L.cv : ''}`
-  + `${L.view === 'obligations' && L.obCid ? ' narrowed to ' + L.obCid + (L.obSel ? ' row ' + L.obSel : '') : ''}${L.place && !L.paper && L.face === 'paper' ? ' Contracts ' + (L.show || '?') + (L.stage && L.stage !== 'all' ? ' tab ' + L.stage : '') + (L.only ? ' (' + L.only + ' sent' + (L.wall ? ', "' + L.count + '"' : '') + ')' : '') : ''}${L.obSel && L.face === 'board' ? ' row ' + L.obSel : ''}${L.strip && L.face === 'board' && L.view === 'dashboard' && (!L.cv || /^book:/.test(L.cv)) ? ' strip ' + L.strip + ' (' + L.stripPage + ')' : ''}${L.kt ? ' KEY-TERMS' + (L.ktMove ? ' (Move open)' : '') : ''}${L.room ? ' ROOM' : ''}${L.negPage ? ' NEGOTIATE-PAGE' : ''}`;
+  + `${L.view === 'obligations' && L.obCid ? ' narrowed to ' + L.obCid + (L.obSel ? ' row ' + L.obSel : '') : ''}${L.place && !L.paper && L.face === 'paper' ? ' Contracts ' + (L.show || '?') + (L.stage && L.stage !== 'all' ? ' tab ' + L.stage : '') + (L.only ? ' (' + L.only + ' sent' + (L.wall ? ', "' + L.count + '"' : '') + ')' : '') : ''}${L.obSel && L.face === 'board' ? ' row ' + L.obSel : ''}${L.strip && L.face === 'board' && L.view === 'dashboard' && (!L.cv || /^book:/.test(L.cv)) ? ' strip ' + L.strip + ' (' + L.stripPage + ')' : ''}${L.kt ? ' KEY-TERMS' + (L.ktMove ? ' (Move open)' : '') : ''}${L.dtp ? ' DUTIES' + (L.dtpRec ? ' row ' + L.dtpRec : '') : ''}${L.folders ? ' FOLDERS' : ''}${L.room ? ' ROOM' : ''}${L.negPage ? ' NEGOTIATE-PAGE' : ''}`;
 /* the room and the Negotiate page drawn on any frame between the press and the landing */
 const WATCH = () => {
   window._door = { room: false, neg: false };
@@ -233,7 +240,8 @@ const E = {
   fill: id => L => E.paper(id)(L) && L.pd === '' && ((L.tab === 'copilot' && (L.fillOn || L.midForm)) || (L.tab === 'form' && L.og)),
   red: id => L => E.paper(id)(L) && L.pd === 'red',
   signing: id => L => E.paper(id)(L) && L.pd === 'signing',
-  obTab: id => L => E.paper(id)(L) && L.pd === '' && L.tab === 'oblig',
+  /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end"): the contract's Duties page in the middle, its Dossier beside it */
+  obTab: id => L => E.paper(id)(L) && L.pd === '' && L.dtp,
   /* RE-POINTED 22 Oct 2026 (the Details page RETIRED): Key terms in the middle beside the paper */
   kt: (id, move) => L => E.paper(id)(L) && L.kt && (!move || L.ktMove),
   /* RE-POINTED 15 Oct 2026 (owner: the contract's views went): a door that
@@ -245,7 +253,10 @@ const E = {
   /* ... THAT row chosen there */
   /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): obOpenContract → pd2ObGo — the contract's paper,
      its Obligations face, THAT row open */
-  obRow: (id, key) => L => E.obTab(id)(L) && L.pdOb === key,
+  /* RE-POINTED 23 Nov 2026 (Duties, end to end): THAT duty chosen on the Duties page (its record id, the key's tail) */
+  obRow: (id, key) => L => E.obTab(id)(L) && L.dtpRec === String(key).split('::').pop().replace(/^#/, ''),
+  /* RE-POINTED 23 Nov 2026 (owner: "the Contracts door always lands on the Folders first", f1190) */
+  folders: L => L.view === 'dashboard' && L.face === 'paper' && !L.paper && L.place && L.folders && !L.wall,
   boardFace: L => L.view === 'dashboard' && L.face === 'board',
   wall: n => L => L.view === 'dashboard' && L.face === 'paper' && !L.paper && L.place && L.show === 'wall' && L.wall && (n == null ? !L.only : L.only === n),
   /* the Contracts place drawn as the List (step 7), and on a stage's tab */
@@ -267,7 +278,7 @@ const E = {
   ngList: L => L.view === 'redline' && L.rlList,
 };
 const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'the form beside the paper (Fill in the contract), its first owed box in the hand', red: 'Redlines beside the paper',
-  signing: 'Before you sign beside the paper', obTab: 'the paper, Jambo\'s Obligations tab', obPage: 'the Obligations page, narrowed to the contract', board: 'its home (the Obligations page or the strip)', wall: 'Home\'s Contracts place, the Wall',
+  signing: 'Before you sign beside the paper', obTab: 'the paper, its Duties page in the middle', folders: 'Home\'s Contracts place, the Folders', obPage: 'the Obligations page, narrowed to the contract', board: 'its home (the Obligations page or the strip)', wall: 'Home\'s Contracts place, the Wall',
   list: 'Home\'s Contracts place, the List',
   strip: 'its paper on Home (History or Where we are in the middle where named)', dossier: 'its paper on Home, the Dossier beside it', stripWhere: 'its paper on Home, the Dossier beside it (Where we are opens the Dossier)', stripDetails: 'its paper on Home', kt: 'its paper on Home, Key terms in the middle' };
 
@@ -490,7 +501,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
       await page.evaluate(() => document.querySelectorAll('[data-obt-more]').forEach(m => m.click())).catch(() => {});
       if (await page.evaluate(s => !!document.querySelector(s), OBR(n)).catch(() => false)) return true; } return false; };
     const OBROW = OBR(1);
-    const OBSAYS = 'the paper\'s Obligations face, that row open';
+    const OBSAYS = 'the paper\'s Duties page, that duty chosen';
     await door(A, 'Obligations row, double-click (MK-A1)', { start: async () => { await goPage('obligations'); await OBTAB(1); },
       press: () => dbl(OBROW), expect: E.obRow('MK-A1', OBK(1)), says: OBSAYS });
     await door(A, 'Obligations row, Enter (MK-A1)', { start: async () => { await goPage('obligations'); await OBTAB(1); },
@@ -750,9 +761,11 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
     const R1owed = await owedFor('MK-R1');
     const WORDS = [
       ['redline', E.red('MK-R1'), SAYS.red], ['sign', E.signing('MK-R1'), SAYS.signing],
+      /* RE-POINTED 23 Nov 2026 (owner, "Duties, end to end"): the word lands where the Duties card does — the contract's
+         Duties page in the middle (the hidden tab it used to turn is gone) */
       ['fill in', R1owed ? E.fill('MK-R1') : E.paper('MK-R1'), SAYS.fill], ['obligations', E.obTab('MK-R1'), SAYS.obTab],
       ['history', E.board('MK-R1', 'hist'), SAYS.strip], ['board', E.face('board'), 'the Board'],
-      ['contracts', E.wall(null), SAYS.wall], ['list', E.list(null), SAYS.list], ['wall', E.wall(null), SAYS.wall], ['calendar', E.face('calendar'), 'Home\'s Calendar'], ['explorer', E.face('explorer'), 'Home\'s Explorer'],
+      ['contracts', E.folders, SAYS.folders], ['list', E.list(null), SAYS.list], ['wall', E.wall(null), SAYS.wall], ['calendar', E.face('calendar'), 'Home\'s Calendar'], ['explorer', E.face('explorer'), 'Home\'s Explorer'],
       ['MK-A1', E.paper('MK-A1'), 'that contract\'s paper'],
     ];
     for (const [w, want, says] of WORDS)

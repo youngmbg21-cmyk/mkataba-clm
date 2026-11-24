@@ -285,7 +285,8 @@ describe('f678 (3f) Jambo\'s "contracts" is every contract: the set is let go; "
     const CA = strip(R('js/copilotacts.js'));
     /* RE-POINTED 15 Oct 2026 (the checkers of step 7): "Every contract is
        here" is true only with the tab, the filters and the search at rest too */
-    assert.match(CA, /contracts: \(\) => \{\s*if \(typeof regPlaceSet === 'function'\)\{ const R = regPlaceSet\(\{ only: null \}\);\s*if \(typeof regFiltersAtRest === 'function'\) regFiltersAtRest\(R\);\s*if \(typeof regSearchBoxClear === 'function'\) regSearchBoxClear\(\); \}\s*return caHomeWall\(\); \},/);
+    /* RE-POINTED 23 Nov 2026 (ONE DOOR, FOLDERS FIRST: the named Contracts door always lands on the Folders, regFoldersSet(true), before the set is let go) */
+    assert.match(CA, /contracts: \(\) => \{\s*if \(typeof regFoldersSet === 'function'\) regFoldersSet\(true\);\s*if \(typeof regPlaceSet === 'function'\)\{ const R = regPlaceSet\(\{ only: null \}\);\s*if \(typeof regFiltersAtRest === 'function'\) regFiltersAtRest\(R\);\s*if \(typeof regSearchBoxClear === 'function'\) regSearchBoxClear\(\); \}\s*return caHomeWall\(\); \},/);
     assert.match(CA, /wall: \(\) => \{ if \(typeof regPlaceSet === 'function'\) regPlaceSet\(\{ show: 'wall' \}\); return caHomeWall\(\); \},/);
     /* RE-POINTED 6 Nov 2026: "list" also lets the new look's folders step aside, so the list is what lands (regFoldersShut) */
     assert.match(CA, /list: \(\) => \{ if \(typeof regPlaceSet === 'function'\) regPlaceSet\(\{ show: 'list' \}\); if \(typeof regFoldersShut === 'function'\) regFoldersShut\(\); return caHomeWall\(\); \},/);

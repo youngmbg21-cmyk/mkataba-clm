@@ -796,9 +796,10 @@ function navGoAct(n){
     /* the Dossier's Family line, opened and landed */
     family: () => { if (pdOpenOnHome(id, 'copilot') === false) return false;
       return navLandWhen(() => { const f = document.querySelector('#ig-dock [data-pd2-famc], #ig-dock [data-ds-fold="family"]'); if (f && f.tagName === 'DETAILS' && !f.open) f.open = true; return f; }); },
-    /* the Obligations tab, where the renewal stands as its lines (Ends · Notice by · Renewal) */
+    /* the Duties page (Duties ONE DOOR, owner 23 Nov 2026: the old Obligations tab never shows), its panel beside it
+       saying the renewal's lines (Ends · Notice by) */
     renewal: () => { if (pdOpenOnHome(id, 'oblig') === false) return false;
-      return navLandWhen(() => document.querySelector('#ig-dock [data-pd-rn]')); },
+      return navLandWhen(() => document.querySelector('#ig-dock [data-pd-rn], #ig-dock [data-obdf]')); },
     where: () => (typeof hbStripBring === 'function') ? hbStripBring(id, 'where') !== false : false,
     /* the contract's notes: its paper, then the panel's Notes face (a contract in front) */
     notes: () => { if (pdOpenOnHome(id, 'copilot') === false || typeof openPanel !== 'function') return false;

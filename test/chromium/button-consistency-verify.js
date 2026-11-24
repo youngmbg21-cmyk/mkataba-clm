@@ -268,6 +268,12 @@ const HELPERS = `(() => {
       await page.setViewportSize({ width: W, height: 820 });
       await page.evaluate(() => setView('approvals'));
       await page.waitForTimeout(1200); await load();
+      /* RE-POINTED 23 Nov 2026 (A NARROW WINDOW KEEPS TODAY'S DESIGN, owner: "do all three and merge"): from 720 to 1040
+         Jambo's panel arrives folded to its strip and opens over the page on a press — opened here, as a reader does */
+      if (await page.evaluate(() => typeof insNarrow === 'function' && insNarrow() && typeof jlFoldSet === 'function')) {
+        await page.evaluate(() => jlFoldSet(false));
+        await page.waitForFunction(() => [...document.querySelectorAll('#ins-panel [data-apn-act], #ins-panel [data-ins-act="gate"]')].some(x => x.getBoundingClientRect().width > 0), null, { timeout: 5000 }).catch(() => {});
+      }
       /* RE-POINTED IN PLACE 26 Sep 2026 (the list Inspector): from about a
          1104 window the page draws a list and a panel, and the row buttons
          MOVE into the panel as its lead act — "Open the gate" is drawn once,
@@ -288,6 +294,7 @@ const HELPERS = `(() => {
         return { n: go.length, where: lead.length ? 'panel' : 'rows',
           bad: go.filter(g => b.lines(g.x) > 1 || g.x.getBoundingClientRect().height > g.max).map(g => b.label(g.x) + ':' + Math.round(g.x.getBoundingClientRect().height)) }; });
       squeeze.push({ W, ...r });
+      await page.evaluate(() => { if (typeof insNarrow === 'function' && insNarrow() && typeof jlFoldSet === 'function') jlFoldSet(true); });   /* folded again, as it arrives */
       if (W === 1024) await page.screenshot({ path: path.join(OUT, '03-approvals-1024.png') });
     }
     ok('1a the Approvals page\'s "Open the gate" stays one line under long titles, at 1024 to 1440',

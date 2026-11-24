@@ -1572,7 +1572,8 @@ function openDutiesPage(c, found, o){
   const todo = () => list().filter(x => !dec(x));
   const skipped = () => list().filter(x => dec(x) === 'skipped');
   const recs = () => (Array.isArray(c.obligations) ? c.obligations : []).filter(Boolean);
-  if(!S.tab) S.tab = todo().length ? 'left' : 'on';
+  /* a kept To decide with nothing left to decide is not where a door lands: the page opens on what is on the contract */
+  if(!S.tab || (S.tab === 'left' && !o.tab && !todo().length)) S.tab = todo().length ? 'left' : 'on';
   /* WHAT JAMBO PROPOSED GOES ON THE RECORD (idea 22), once a sitting per wording: taken on Add duty, refused on Skip */
   const traces = new Map();
   try{
@@ -1608,7 +1609,7 @@ function openDutiesPage(c, found, o){
   };
   const chipsHtml = () => CHIPS().map(([k, w, opts]) => {
     const v = S[k];
-    if(v){ const hit = opts.find(x => x[0] === v); return `<span class="obd-chip is-set"><button type="button" data-dtp-chip="${k}">${E(i18t(w))}: ${E(hit ? hit[1] : v)}</button><button type="button" class="obd-chip-x" data-dtp-fx="${k}" aria-label="${E(i18t('obd_ls_clear'))}">×</button></span>`; }
+    if(v){ const hit = opts.find(x => x[0] === v); return `<span class="obd-chip is-set"><button type="button" data-dtp-chip="${k}">${E(i18t(w))}: ${E(hit ? hit[1] : v)}</button><button type="button" class="obd-chip-x" data-dtp-fx="${k}" aria-label="${E(i18t('obd_ls_clear'))}">${icon('x','w-3 h-3')}</button></span>`; }
     if(!opts.length) return '';
     const menu = S.menu === k ? `<span class="obd-menu" role="menu">${opts.map(([ov, ow]) => `<button type="button" role="menuitem" data-dtp-fv="${k}" data-v="${ov}">${E(ow)}</button>`).join('')}</span>` : '';
     return `<span class="obd-chip"><button type="button" data-dtp-chip="${k}" aria-expanded="${S.menu === k}">+ ${E(i18t(w))}</button>${menu}</span>`;
@@ -1678,12 +1679,20 @@ function openDutiesPage(c, found, o){
     if(next) tl.push([i18t('dtp_tl_next', { d: next.desc || '' }), obDay(obligationDue(next)), '']);
     if(Rn && Rn.by) tl.push([i18t('dtp_tl_notice'), day(Rn.by), '']);
     if(Rn && Rn.end) tl.push([i18t('dtp_tl_ends'), day(Rn.end), '']);
+    /* THE RENEWAL IS STILL DECIDED HERE (the hidden Obligations panel held its card until 23 Nov 2026; every renewal door
+       — the bell, the Calendar's Decide, needsYouGo 'renewal' → pdOpenOnHome(id,'oblig') — lands on this page and lights
+       #renewal-host, NEEDS_LAND): the one decision card, drawn into its holder once the panel stands; empty, it hides */
+    const rnHost = Rn && (Rn.end || Rn.by) ? '<div id="renewal-host" class="empty:hidden pd-rn-decide" data-bare="1" data-compact="1"></div>' : '';
+    if (rnHost && typeof window.renderRenewalSection === 'function') setTimeout(() => { try { if (document.querySelector('[data-obdf] #renewal-host')) window.renderRenewalSection(getContract(c.id) || c); } catch (_){} }, 0);
+    /* …and the words the renewal was read from, quoted with the clause they stand under, as the old tab's renewal lines
+       said them (owner, 22 Oct 2026, the Legora way): the one reader, pdObRenewQuoteHtml; nothing when none was read */
+    let rnQ = ''; try { rnQ = (Rn && Rn.quote && typeof window.pdObRenewQuoteHtml === 'function') ? window.pdObRenewQuoteHtml(c, Rn) : ''; } catch (_){ rnQ = ''; }
     const acts = may() ? `<div class="obdf-acts">${n ? `<button type="button" class="ui-btn ui-btn-primary" data-dtp-first>${E(i18t('dtp_first'))} ›</button>` : ''}<button type="button" class="ui-btn" data-dtp-own>+ ${E(i18t('dtp_own'))}</button></div>` : '';
     return `<div class="obdf" data-obdf><p class="obdf-eye">${E(i18t('dtp_title') + ' · ' + ref)}</p><h3 class="obdf-t">${E(head)}</h3>
-      ${Rn && Rn.end ? fact(i18t('dtp_ends'), day(Rn.end)) : ''}${Rn && Rn.by ? fact(i18t('dtp_notice'), day(Rn.by)) : ''}
+      ${Rn && Rn.end ? fact(i18t('dtp_ends'), day(Rn.end)) : ''}${Rn && Rn.by ? fact(i18t('dtp_notice'), day(Rn.by)) : ''}${rnQ ? `<div class="pd-rn-q obdf-rnq">${rnQ}</div>` : ''}
       ${fact(i18t('dtp_t_on'), i18t('dtp_on_split', { n: R.length, us: R.length - them, them }))}
       ${tl.length ? `<p class="obdf-h">${E(i18t('dtp_life'))}</p><ol class="obdf-tl">${tl.map(([t, d, k]) => `<li class="is-${k || 'x'}"><span>${E(t)}</span><small>${E(d)}</small></li>`).join('')}</ol>` : ''}
-      ${acts}</div>`;
+      ${acts}${rnHost}</div>`;
   };
   const panel = () => { try { if (typeof pdGlanceRepaint === 'function') pdGlanceRepaint(); } catch (_){} };
   const paint = () => {
@@ -1759,6 +1768,9 @@ function openDutiesPage(c, found, o){
   if (mid && typeof pdMidOn === 'function' && document.querySelector('#modal-root [data-dlg-page]')) pdMidOn('obs:' + c.id);
   _obdNow = { c, face: faceHtml, press, input: q => { S.q = q; const el = document.getElementById('dtp-list'); if(el) el.innerHTML = tableHtml(); } };
   panel();
+  /* a renewal's Decide asked for every reading again (roomReadOnArrival): spent HERE, where its door lands now — the hidden
+     Obligations panel that spent it is gone, and an ask left unspent was spent by the next ordinary door instead */
+  if(typeof window.roomReadAgainSpend === 'function') setTimeout(() => { try { window.roomReadAgainSpend((typeof getContract === 'function' && getContract(c.id)) || c); } catch (_){} }, 0);
   if(o.decide != null) decide(Number(o.decide));
   else if(o.own) own(typeof o.own === 'object' ? o.own : null);
   return true;

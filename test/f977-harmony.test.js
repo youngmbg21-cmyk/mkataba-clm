@@ -199,7 +199,8 @@ test('f977 fix 7 · the Board counts rows in the new look, the number Home says'
   /* RE-POINTED 22 Nov 2026 (review of merged pages: ONE count, ndWaitCounts, read by the chips, the ring and the bell):
      the chips read the one reading, and that reading still counts rows — Your move its rows not late */
   assert.match(cn, /\$\{tab\('all', W\.all\)\}\$\{tab\('late', W\.late\)\}\$\{tab\('you', W\.you\)\}\$\{tab\('jambo', W\.jambo\)\}/);
-  assert.match(cn, /function ndWaitCounts\(D\)\{[\s\S]{0,200}?you: ndRowsN\(B\.you\.filter\(r => !r\.late\)\), jambo: ndRowsN\(B\.jambo\)/);
+  assert.match(cn, /function ndWaitCounts\(D\)\{[\s\S]{0,200}?you: ndRowsN\(ndYourMove\(B\)\), jambo: ndRowsN\(B\.jambo\)/); /* RE-POINTED 23 Nov 2026 (review): Your move leaves out an alert's hit, as the bell does */
+  assert.match(cn, /const ndYourMove = B => B\.you\.filter\(r => !r\.late && !ndIsAlertHit\(r\)\);/);
 });
 test('f977 fix 8 · one column per question, its name and ⋯; the foot says only the count', () => {
   const ac = read('js/views/askcolumn.js');

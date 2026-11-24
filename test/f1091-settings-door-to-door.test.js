@@ -87,8 +87,9 @@ test('f1091 (6) nothing here writes', () => {
 });
 /* RE-POINTED 22 Nov 2026 (P-43 review): the chosen row is faintly green, as drawn; hover stays the grey band */
 test('f1091 (7) one band for the chosen row (faint green), room inside it, tokens only', () => {
-  assert.match(CSS, /html\.lg-new \.sdd-row:hover,html\.lg-new \.sdd-row\.is-chosen\{background:var\(--surface-2\)\}/);
-  assert.match(CSS, /html\.lg-new \.sdd-page \.sdd-row\.is-chosen\{background:var\(--color-accent-50\)\}/, 'the chosen row faint green');
+  /* RE-POINTED 23 Nov 2026 (owner: a row pointed at or chosen is light green, never grey) */
+  assert.match(CSS, /html\.lg-new \.sdd-row:hover,html\.lg-new \.sdd-row\.is-chosen\{background:var\(--row-chosen\)\}/);
+  assert.match(CSS, /html\.lg-new \.sdd-page \.sdd-row\.is-chosen\{background:var\(--row-chosen\)\}/, 'the chosen row faint green');
   assert.match(CSS, /html\.lg-new \.sdd-colh,html\.lg-new \.sdd-row\{[^}]*padding-left:12px;padding-right:12px\}/);
   /* RE-POINTED (P-43, owner's pick 20 Nov 2026: Settings the Legora + Stripe way): no row carries a button; a › says the row opens */
   assert.match(CSS, /html\.lg-new \.sdd-page \.sdd-row:is\(:hover,\.is-chosen\) \.sdd-chev\{color:var\(--color-text\)\}/);

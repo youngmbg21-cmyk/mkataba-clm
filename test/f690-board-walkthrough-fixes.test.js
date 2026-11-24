@@ -36,7 +36,8 @@ const IG = read('js/views/intelligence.js');
 const CSS = read('index.html');
 
 describe('F690 (1) — a reply written as the tool\'s JSON is read', () => {
-  const f = new Function(bodyOf(SERVER, 'copilotTextAnswer') + '; return copilotTextAnswer;')();
+  /* RE-POINTED 23 Nov 2026 (A STRAY CLOSING QUOTE, owner's screenshot: every answer now ends through answerTrim, so the reader is loaded beside it) */
+  const f = new Function(bodyOf(SERVER, 'answerTrim') + ';' + bodyOf(SERVER, 'copilotTextAnswer') + '; return copilotTextAnswer;')();
   test('plain prose passes untouched', () => {
     assert.equal(f('Three contracts end in March, "and" one in May.'), 'Three contracts end in March, "and" one in May.');
   });

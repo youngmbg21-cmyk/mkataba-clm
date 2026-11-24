@@ -233,8 +233,10 @@ const UPLOAD_TEXT = 'MASTER SERVICES AGREEMENT\n\nThis agreement is made between
       check('8d "Filing and stream" opens Key terms with Move open', !!S && S.moving, JSON.stringify(S));
       await shut(); await page.waitForTimeout(300);
       await page.evaluate(() => needsYouGo('renewal', 'MK-B1'));
-      S = await until(() => (typeof pdTab === 'function' && pdTab() === 'oblig' && window.intel && intel.paper && intel.paper.id === 'MK-B1') ? true : null) && await state0();
-      check('8e a renewal in Needs you opens the Obligations tab beside the paper', !!S && S.tab === 'oblig', JSON.stringify(S));
+      /* RE-POINTED 23 Nov 2026 (Duties ONE DOOR, owner: pdSetTab('oblig')/pdObOpen open the contract's Duties page, the old
+         panel tab never shows): a renewal in Needs you lands on MK-B1's Duties page in the middle, beside its paper */
+      S = await until(() => (document.getElementById('dtp') && window.intel && intel.paper && intel.paper.id === 'MK-B1') ? true : null) && await state0();
+      check('8e a renewal in Needs you opens the Duties page beside the paper', !!S && S.tab !== 'oblig', JSON.stringify(S));
       /* RE-POINTED 9 Nov 2026 (the Board's contract card is gone): a door asking for the old Details page lands on the
          paper with its Dossier, and nothing hosts a Details page */
       const pages = await page.evaluate(() => (typeof hbStripBring === 'function' && hbStripBring('MK-A2', 'details')) ? 'brought' : 'refused');

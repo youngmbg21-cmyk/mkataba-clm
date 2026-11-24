@@ -8781,7 +8781,13 @@ function negoMayAnswer(c, u){
   if (!me) return true;
   if (typeof window.mayActOn === 'function' ? !window.mayActOn(c, me) : me.role === 'viewer') return false;
   if (me.role === 'admin') return true;
-  try { return !(typeof window.deskMayRedline === 'function' && c && !window.deskMayRedline(c, me)); } catch (_){ return true; }
+  /* ANSWERING THEM IS THE LEAD'S ACT (review of 23 Nov 2026): a desk Contributor's answer is refused by the server
+     (theirAnswersTouched by seat), so the seat that may SEND is the seat that may answer; deskMaySend keeps the
+     same four escapes (rule off, no desk, nobody signed in, their own page). */
+  try {
+    if (typeof window.deskMaySend === 'function' && c) return !!window.deskMaySend(c, me);
+    return !(typeof window.deskMayRedline === 'function' && c && !window.deskMayRedline(c, me));
+  } catch (_){ return true; }
 }
 /* ============================================================
    WHAT CAME BACK, IN ONE SENTENCE (owner-approved 13 Sep 2026, build plan 2.2)
