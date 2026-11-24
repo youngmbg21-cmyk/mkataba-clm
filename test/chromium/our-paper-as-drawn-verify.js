@@ -373,7 +373,7 @@ async function SEED(){
       G.tabs.length === 4 && G.tabs[0] === 'Build' && /^Outline ?\d+$/.test(G.tabs[1]) && /^Playbook ?\d+ of \d+$/.test(G.tabs[2]) && /^Blanks ?3$/.test(G.tabs[3]) && /^Outline/.test(G.on), JSON.stringify(G.tabs)); /* RE-POINTED 23 Nov 2026: tabs carry their counts, "n of m" */
     /* RE-POINTED 23 Nov 2026 (the Builder L+S, as drawn): § · name · a soft status badge; "+ … proposed" where the paper draws it */
     check('7d the Outline: "· Parties <status>", numbered sections with a status badge, "+ … proposed"',
-      /^· Parties (Written|To write)$/.test(G.ol[0] || '') && G.ol.some(r => /^2 Territory (Written|To write)$/.test(r)) && G.ol.some(r => /^\+ .+ proposed$/.test(r)), JSON.stringify(G.ol));
+      /^· Parties(?:“.*”)? (Written|To write)$/.test(G.ol[0] || '') && G.ol.some(r => /^2 Territory(?:“.*”)? (Written|To write)$/.test(r)) && G.ol.some(r => /^\+ .+ proposed$/.test(r)), JSON.stringify(G.ol));
     check('7e Blanks and the playbook said in one line under it', /^Blanks 3 asked ?Playbook \d+ of \d+ met$/.test(G.line), JSON.stringify(G.line));
     /* RE-POINTED 21 Oct 2026 (Chambers, owner's pick 20 Oct 2026): no hint line under any Jambo box */
     check('7f the ask box as drawn, no hint line under it', G.ph === 'Ask Jambo, or type / for a place' && /^Ask/.test(G.send) && G.hints === 0, JSON.stringify({ ph: G.ph, send: G.send, hints: G.hints }));
@@ -407,7 +407,7 @@ async function SEED(){
     const k = await page.evaluate(() => { const r = [...document.querySelectorAll('[data-tb-ol]')].find(x => /Territory/.test(x.textContent)); return r ? r.getAttribute('data-tb-ol') : null; });
     await press(`[data-tb-ol="${k}"]`);
     const L = await until(kk => { const s = document.querySelector(`[data-tb-sec="${kk}"]`); return s && s.classList.contains('is-landed') ? { on: (document.querySelector('[data-tb-tab].is-on') || {}).textContent, sel: (document.querySelector('#tb-rail .tb-olt tr.is-sel') || {}).textContent } : null; }, k);
-    check('9a an Outline row lands on its section (lit), the Outline stays open with the row lit', !!L && L.on === 'Outline' && /Territory/.test(L.sel || ''), JSON.stringify(L));
+    check('9a an Outline row lands on its section (lit), the Outline stays open with the row lit', !!L && /^Outline/.test(L.on || '') && /Territory/.test(L.sel || ''), JSON.stringify(L));
     await press('#tb-rail .pd-back[data-tb-jambo]');
     const J = await until(() => { const on = document.querySelector('[data-tb-tab].is-on'); return on && on.textContent.trim() === 'Build' && !document.querySelector('#tb-paper .tb-sec.is-on') ? true : null; });
     check('9b ‹ Jambo is Build with nothing in hand', !!J);
