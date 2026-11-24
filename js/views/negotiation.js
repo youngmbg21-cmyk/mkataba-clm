@@ -1932,7 +1932,7 @@ function rlPaginate(host, c){
   if (!host || !c || !window.pagesWatch) return;
   host.querySelectorAll('.rl-paper').forEach(sheet => {
     if (sheet.closest('.ce-paperwrap')) return;
-    pagesWatch(sheet, { mode: 'work', gap: window.PG_GAP, corners: true,
+    pagesWatch(sheet, { mode: 'work', gap: window.PG_GAP, corners: true, marks: window.pagesMarksFor ? pagesMarksFor(c) : null,
       name: window.pagesLetterheadName ? pagesLetterheadName(c) : '', ref: (window.contractRef ? contractRef(c) : c.id) || '' });
   });
 }

@@ -14111,6 +14111,20 @@
   .pg-sfoot::before{content:attr(data-l)}
   .pg-dfoot{display:block}
   .pg-theirfoot{text-align:center;font-size:11px;line-height:14px;color:#5F6D6B}
+  /* THE LOOK'S HEADER AND PAGE NUMBERS (contract look round 2, 24 Nov 2026): the header line in its place on every page,
+     the number in its place on a line of its own; the working copy's faded head and foot say the same words */
+  .pg-run.is-mark,.pg-head.is-mark{text-transform:none;letter-spacing:.04em}
+  .pg-run.is-mark::before,.pg-head.is-mark::before{text-align:left}
+  .pg-run[data-al="center"]::before,.pg-head[data-al="center"]::before,.pg-foot[data-al="center"]::before{text-align:center}
+  .pg-run[data-al="right"]::before,.pg-head[data-al="right"]::before,.pg-foot[data-al="right"]::before{text-align:right}
+  .pg-head.is-mark::after{display:none}
+  .pg-foot::before{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;text-align:center}
+  .pg-foot[data-al="left"]::before{text-align:left}
+  .pg-sfoot[data-al="left"]{justify-content:flex-start}
+  .pg-sfoot[data-al="right"]{justify-content:flex-end}
+  .pg-pnum{margin-top:4px;font-size:11px;line-height:14px;color:var(--color-doc-muted);text-align:center}
+  .pg-pnum[data-al="left"]{text-align:left}
+  .pg-pnum[data-al="right"]{text-align:right}
   .pg-theirfoot::before{content:attr(data-l)}
   /* THEIR PAPER AS IT CAME: their own file in the browser's viewer, then the
      page they sign on (js/views/contract.js signCopyTheirs). */
@@ -23484,6 +23498,11 @@
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-sub{display:block;font-size:12.5px;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-rule{margin:12px 0 0;font-size:12.5px;color:var(--color-quiet);max-width:80ch}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-pick{margin-top:12px;position:static;background:var(--color-surface);border:1px solid var(--color-divider);padding:16px}
+  /* round 2: the header's and the footer's fields as chips, the line as the paper will read it */
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-fields{gap:6px}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-pk-k{font-size:12.5px;color:var(--color-quiet);margin-right:4px}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-onpaper{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
+  html.lg-new .st-ls-page .cl-pg.is-r1 .cl-ls-pick .cl-in{display:block;width:calc(100% - 16px);box-sizing:border-box;margin:4px 8px 6px}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-pv{flex:0 0 330px;width:330px;max-width:100%;box-sizing:border-box;background:var(--surface-2);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-pv-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;min-width:0}
   html.lg-new .st-ls-page .cl-pg.is-r1 .cl-pv-w{flex:1 1 auto}

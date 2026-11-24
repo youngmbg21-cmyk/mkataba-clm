@@ -1584,7 +1584,7 @@ function apnPeekPages(c){
   const cv=document.getElementById('apn-pk-cv'); if(!cv||!window.pagesWatch) return;
   const sheet=cv.querySelector('.pg-sheet:not(.pg-sign)')||cv.querySelector('.ig-redpaper .rl-zoom > .rl-paper')||cv.querySelector('.ig-redpaper > article.rl-paper');
   if(!sheet) return;
-  try{ pagesWatch(sheet,{ mode:'work', gap:window.PG_GAP, corners:true, name:window.pagesLetterheadName?pagesLetterheadName(c):'', ref:(window.contractRef?contractRef(c):c.id)||'' }); }catch(_){ }
+  try{ pagesWatch(sheet,{ mode:'work', gap:window.PG_GAP, corners:true, marks:window.pagesMarksFor?pagesMarksFor(c):null, name:window.pagesLetterheadName?pagesLetterheadName(c):'', ref:(window.contractRef?contractRef(c):c.id)||'' }); }catch(_){ }
 }
 function apnPeekHead(r){
   const c=r.c, theirs=(typeof window.contractParties==='function'?window.contractParties(c):[]).filter(p=>p&&p.side!=='ours'&&p.name).map(p=>p.name);

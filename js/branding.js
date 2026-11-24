@@ -257,6 +257,48 @@ function extractAccentFromLogo(dataUrl) {
 
 /* ---------- the branding record ---------- */
 
+/* ---- THE HEADER AND THE PAGE NUMBERS (owner, 24 Nov 2026: contract look round 2) ----
+   A look may carry `pageMarks`: a header line (its words, with the fields {company} {ref} {title}, and its place) and
+   the page numbers (where in the footer, or off, and how they read). ONE CLEANER for both sides of the wire, so the
+   server's validation and the browser's reading can never disagree: unknown keys are dropped, the words are capped, a
+   place or a format this build does not know is an error the caller says (the server answers 400). Null = nothing set,
+   which keeps every page exactly as it was before this feature (the number at the end of the footer line). */
+const PAGE_MARK_PLACES = ['left', 'center', 'right'];
+const PAGE_NUM_PLACES = ['left', 'center', 'right', 'off'];
+const PAGE_NUM_FORMATS = ['page-of', 'of', 'slash'];
+const PAGE_HEAD_MAX = 120;
+const PAGE_FIELDS = ['company', 'ref', 'title'];
+function pageMarksClean(v) {
+  if (v == null || v === '') return { marks: null, error: null };
+  if (typeof v !== 'object' || Array.isArray(v)) return { marks: null, error: 'pageMarks must be an object' };
+  const str = x => (x == null ? '' : String(x)).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
+  const headerText = str(v.headerText).slice(0, PAGE_HEAD_MAX);
+  const headerPos = v.headerPos == null || v.headerPos === '' ? null : String(v.headerPos);
+  if (headerPos && !PAGE_MARK_PLACES.includes(headerPos)) return { marks: null, error: 'Unknown place for the header' };
+  const pageNumPos = v.pageNumPos == null || v.pageNumPos === '' ? null : String(v.pageNumPos);
+  if (pageNumPos && !PAGE_NUM_PLACES.includes(pageNumPos)) return { marks: null, error: 'Unknown place for the page numbers' };
+  const pageNumFmt = v.pageNumFmt == null || v.pageNumFmt === '' ? null : String(v.pageNumFmt);
+  if (pageNumFmt && !PAGE_NUM_FORMATS.includes(pageNumFmt)) return { marks: null, error: 'Unknown page number format' };
+  const marks = { headerText: headerText && headerPos ? headerText : '', headerPos: headerText && headerPos ? headerPos : null, pageNumPos, pageNumFmt };
+  return { marks: (marks.headerPos || marks.pageNumPos || marks.pageNumFmt) ? marks : null, error: null };
+}
+/* A FIELD IS FILLED FROM THE CONTRACT, AND A FIELD WITH NO VALUE SAYS NOTHING — never "{ref}": the company's name, the
+   contract's printed reference (contractRef: its number, else its id) and its title; the separators a gone field
+   leaves behind are tidied away. */
+function brFieldsFill(text, c, b) {
+  const t = String(text || ''); if (!t) return '';
+  const v = { company: String((b && b.companyName) || '').trim(), ref: c ? String(c.contractNo || c.id || '').trim() : '', title: c ? String(c.name || '').trim() : '' };
+  return t.replace(/\{(company|ref|title)\}/g, (_, k) => v[k] || '')
+    .replace(/(\s*[·|]\s*){2,}/g, ' · ').replace(/^\s*[·|]\s*|\s*[·|]\s*$/g, '').replace(/\s{2,}/g, ' ').trim();
+}
+/* "Page 2 of 6", "2 of 6", "2 / 6" — the words from the reader's language book */
+function brPageNumberSay(fmt, n, m) {
+  const key = fmt === 'of' ? 'pg_num_of' : fmt === 'slash' ? 'pg_num_slash' : 'pg_page_of';
+  const en = fmt === 'of' ? `${n} of ${m}` : fmt === 'slash' ? `${n} / ${m}` : `Page ${n} of ${m}`;
+  const t = typeof i18t === 'function' ? i18t(key, { n, m }) : '';
+  return t && t !== key ? t : en;
+}
+
 /* Coerce whatever arrives (org route, snapshot, static-mode settings) into
    one honest shape. Unknown designId → null designId: the renderers then
    fall back to the legacy letterhead rather than guessing a design. */
@@ -301,6 +343,7 @@ function normalizeDesignBranding(b) {
       : (design ? design.defaultLogoPos : 'top-left'),
     accentColor: accentLegible(b.accentColor) || null,
     accentSource: b.accentSource === 'manual' ? 'manual' : 'logo',
+    pageMarks: pageMarksClean(b.pageMarks).marks,
   };
 }
 
@@ -553,7 +596,7 @@ function docDesignHeaderHtml(b, c, opts = {}) {
 function docDesignFooterHtml(b, c) {
   const d = docDesignById(b.designId);
   if (!d) return '';
-  const foot = BR_ESC(b.footerText);
+  const foot = BR_ESC(brFieldsFill(b.footerText, c, b));
   const logoFoot = b.logoPosition === 'footer' ? brLogoImg(b, 24) : '';
   if (!foot && !logoFoot && !b.companyName) return '';
   const line = [b.companyName ? BR_ESC(b.companyName) : '', foot].filter(Boolean).join(' · ');
@@ -712,9 +755,11 @@ if (typeof module !== 'undefined' && module.exports)
   module.exports = { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, docDesignById, normalizeDesignBranding,
     accentLegible, pickAccentFromPixels, docDesignHeaderHtml, docDesignFooterHtml,
     docDesignPaperStyle, docDesignPaperAttr, docDesignBodyAttr, docDesignCoverPageHtml,
-    DOC_STRUCTURES, DEFAULT_STRUCTURE, docStructureById, structureBlockedReason, docStructureBodyHtml };
+    DOC_STRUCTURES, DEFAULT_STRUCTURE, docStructureById, structureBlockedReason, docStructureBodyHtml,
+    PAGE_MARK_PLACES, PAGE_NUM_PLACES, PAGE_NUM_FORMATS, PAGE_HEAD_MAX, PAGE_FIELDS, pageMarksClean, brFieldsFill, brPageNumberSay };
 if (typeof window !== 'undefined')
   Object.assign(window, { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, docDesignById, normalizeDesignBranding,
     accentLegible, pickAccentFromPixels, extractAccentFromLogo, resolveDocBranding, orgBrandingSnapshot,
     docDesignHeaderHtml, docDesignFooterHtml, docDesignPaperStyle, docDesignPaperAttr, docDesignBodyAttr, docDesignCoverPageHtml,
-    DOC_STRUCTURES, DEFAULT_STRUCTURE, docStructureById, structureBlockedReason, docStructureBodyHtml });
+    DOC_STRUCTURES, DEFAULT_STRUCTURE, docStructureById, structureBlockedReason, docStructureBodyHtml,
+    PAGE_MARK_PLACES, PAGE_NUM_PLACES, PAGE_NUM_FORMATS, PAGE_HEAD_MAX, PAGE_FIELDS, pageMarksClean, brFieldsFill, brPageNumberSay });

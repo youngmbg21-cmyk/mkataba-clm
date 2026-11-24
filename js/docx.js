@@ -2441,6 +2441,32 @@ async function docxComments(bytes){
   return out;
 }
 
+/* ---- A REAL WORD HEADER AND FOOTER (contract look round 2, 24 Nov 2026) ----
+   The look's header line and its page numbers travel as Word's own header and footer parts, the number as Word's PAGE
+   and NUMPAGES fields, so Word counts the pages itself. `hf` = { head: {text, al}, foot: {text}, num: {al, words} }:
+   `num.words` is the reader's own words with \u0001 for the page and \u0002 for the count ("Page \u0001 of \u0002");
+   `num.al` null puts the number at the end of the footer line, as the paper does when no place is set. Never the
+   wording: these are parts of their own. No `hf` = no part, the file byte-identical to what it was. */
+const DOCX_HF_JC = { left: 'left', center: 'center', right: 'right' };
+function docxHeadFootXml(hf){
+  if(!hf) return null;
+  const esc = t => String(t).replace(/[&<>]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[ch]));
+  const run = t => t ? `<w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:t xml:space="preserve">${esc(t)}</w:t></w:r>` : '';
+  const fld = f => `<w:fldSimple w:instr=" ${f} "><w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:t>1</w:t></w:r></w:fldSimple>`;
+  const para = (al, inner) => `<w:p><w:pPr><w:jc w:val="${DOCX_HF_JC[al] || 'center'}"/></w:pPr>${inner}</w:p>`;
+  const numRuns = w => String(w || '').split(/(\u0001|\u0002)/).map(x => x === '\u0001' ? fld('PAGE') : x === '\u0002' ? fld('NUMPAGES') : run(x)).join('');
+  const head = hf.head && hf.head.text ? para(hf.head.al, run(hf.head.text)) : '';
+  const ft = hf.foot && hf.foot.text ? String(hf.foot.text) : '';
+  const num = hf.num && hf.num.words ? hf.num : null;
+  let foot = '';
+  if(num && !num.al) foot = para('center', run(ft ? ft + ' · ' : '') + numRuns(num.words));
+  else foot = (ft ? para('center', run(ft)) : '') + (num ? para(num.al, numRuns(num.words)) : '');
+  const NS = `${DOCX_NS} xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"`;
+  return {
+    header: head ? `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr ${NS}>${head}</w:hdr>` : null,
+    footer: foot ? `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr ${NS}>${foot}</w:ftr>` : null };
+}
+
 /* The export, end to end: redline HTML in, .docx bytes out.
    Returns the counts as well as the bytes so a caller can say on the record
    what went — "12 insertions and 5 deletions, as tracked changes" — rather than
@@ -2448,6 +2474,7 @@ async function docxComments(bytes){
 function docxExportTracked(html, opts = {}){
   const built = docxDocumentXml(html, opts);
   const placed = (built.comments && built.comments.placed) || [];
+  const hfx = docxHeadFootXml(opts.headFoot);
   /* WITH NO COMMENTS THE FILE IS BYTE-IDENTICAL TO WHAT IT WAS: the two extra
      parts, their content types and their relationships are written only
      where there is a comment to carry. */
@@ -2461,11 +2488,27 @@ function docxExportTracked(html, opts = {}){
       '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments" Target="comments.xml"/>'
       + '<Relationship Id="rId4" Type="http://schemas.microsoft.com/office/2011/relationships/commentsExtended" Target="commentsExtended.xml"/></Relationships>')
     : DOCX_DOC_RELS;
+  let typesHf = types, relsHf = rels, docHf = built.document;
+  if (hfx && (hfx.header || hfx.footer)){
+    let refs = '';
+    if (hfx.header){
+      typesHf = typesHf.replace('</Types>', '<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/></Types>');
+      relsHf = relsHf.replace('</Relationships>', '<Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/></Relationships>');
+      refs += '<w:headerReference w:type="default" r:id="rId5"/>';
+    }
+    if (hfx.footer){
+      typesHf = typesHf.replace('</Types>', '<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/></Types>');
+      relsHf = relsHf.replace('</Relationships>', '<Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/></Relationships>');
+      refs += '<w:footerReference w:type="default" r:id="rId6"/>';
+    }
+    docHf = docHf.replace(`<w:document ${DOCX_NS}>`, `<w:document ${DOCX_NS} xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">`)
+      .replace(/<w:sectPr>(?![\s\S]*<w:sectPr>)/, '<w:sectPr>' + refs);
+  }
   const parts = [
-    { name: '[Content_Types].xml', data: types },
+    { name: '[Content_Types].xml', data: typesHf },
     { name: '_rels/.rels', data: DOCX_ROOT_RELS },
-    { name: 'word/document.xml', data: built.document },
-    { name: 'word/_rels/document.xml.rels', data: rels },
+    { name: 'word/document.xml', data: docHf },
+    { name: 'word/_rels/document.xml.rels', data: relsHf },
     { name: 'word/styles.xml', data: DOCX_STYLES },
     { name: 'word/numbering.xml', data: DOCX_NUMBERING },
   ];
@@ -2473,20 +2516,22 @@ function docxExportTracked(html, opts = {}){
     parts.push({ name: 'word/comments.xml', data: docxCommentsXml(placed) });
     parts.push({ name: 'word/commentsExtended.xml', data: docxCommentsExtendedXml(placed) });
   }
+  if (hfx && hfx.header) parts.push({ name: 'word/header1.xml', data: hfx.header });
+  if (hfx && hfx.footer) parts.push({ name: 'word/footer1.xml', data: hfx.footer });
   const bytes = docxZip(parts);
-  return { bytes, xml: built.document, paragraphs: built.paragraphs, tracked: built.tracked,
+  return { bytes, xml: docHf, header: (hfx && hfx.header) || null, footer: (hfx && hfx.footer) || null, paragraphs: built.paragraphs, tracked: built.tracked,
     comments: { placed: placed.length, left: (built.comments && built.comments.left) || 0 } };
 }
 
 if(typeof window!=='undefined') Object.assign(window,{docxStyledIsWording,docxStyleTable,docxStyleChain,docxAbsOf,docxLevelForStyle,DOCX_MIME,isWordDoc,docxExtract,docxExtractRich,docxXmlToRich,docxXmlToText,docxNumbering,docxNumberWalker,docxStartOverrides,docxHeadingStyles,docxStyleNums,docxTopBlocks,docxRunsHtml,docxTableHtml,docxNumFormat,docxBulletMark,docxHtmlBlocks,docxHtmlTableRows,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,DOC_FURNITURE,DOC_BULLET,DOC_LABEL,DOC_NUMBERED,
-  docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxZip,docxCrc32,
+  docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxHeadFootXml,docxZip,docxCrc32,
   docxComments,docxCommentQuote,docxCommentsXml,docxCommentsExtendedXml,docxCommentsPrepare,
   DOCX_UI_CLASSES,DOCX_UI_ID,
   docxLayoutOf,docxBandText,docxReadLayout,docxTwipsPx,DOCX_LAYOUT_CAP_KB});
 if(typeof module!=='undefined'&&module.exports) module.exports={docxStyledIsWording,docxStyleTable,docxStyleChain,docxAbsOf,docxLevelForStyle,DOCX_HEAD_MAX_WORDS,DOCX_HEAD_PUNCT_MIN,zipEntries,zipEntryBytes,inflateRawBytes,decodeXmlEntities,docxXmlToText,docxXmlToRich,docxExtract,docxExtractRich,docxNumbering,docxNumberWalker,docxStartOverrides,docxHeadingStyles,docxStyleNums,docxTopBlocks,docxRunsHtml,docxTableHtml,docxNumFormat,docxBulletMark,docxHtmlBlocks,docxHtmlTableRows,docxReadParts,DOCX_PARTS,docLineKind,docClausePrefix,
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,
-  docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxZip,docxCrc32,
+  docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxHeadFootXml,docxZip,docxCrc32,
   docxComments,docxCommentQuote,docxCommentsXml,docxCommentsExtendedXml,docxCommentsPrepare,
   DOCX_UI_CLASSES,DOCX_UI_ID,
   docxLayoutOf,docxBandText,docxReadLayout,docxTwipsPx,DOCX_LAYOUT_CAP_KB};

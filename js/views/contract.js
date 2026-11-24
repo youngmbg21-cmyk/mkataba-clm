@@ -3335,7 +3335,8 @@ function signCopyWatch(sheet, c, onDone){
   const run=signCopyRunning(c);
   return pagesWatch(sheet,{ mode:'sign', pageH:Number(sheet.getAttribute('data-pg-h'))||window.PG_SIGN_H||1122.5,
     gap:window.PG_GAP, running:run.text, runningFirst:run.first,
-    foot:label=>window.pagesSignFoot?pagesSignFoot(c,label):'',
+    marks:window.pagesMarksFor?pagesMarksFor(c):null,
+    foot:(label,k,n)=>window.pagesSignFoot?pagesSignFoot(c,label,k,n):'',
     noNumber:sheet.hasAttribute('data-pg-sigpage'),
     frame:sheet.getAttribute('data-pg-frame')||'', onDone });
 }
@@ -3404,7 +3405,7 @@ function docPaginate(c){
   if(sheet.getAttribute('data-copy')==='sign'){
     signCopyWatch(sheet,c,()=>{ scApplyZoom(); scPaintPage(); });
   } else {
-    pagesWatch(sheet,{ mode:'work', gap:window.PG_GAP, corners:true,
+    pagesWatch(sheet,{ mode:'work', gap:window.PG_GAP, corners:true, marks:window.pagesMarksFor?pagesMarksFor(c):null,
       name:window.pagesLetterheadName?pagesLetterheadName(c):'', ref:(window.contractRef?contractRef(c):c.id)||'' });
   }
 }
@@ -11461,8 +11462,10 @@ function wordTrackedFile(c,opts){
      in Word sees what it is about and the import re-links it when the file
      comes back. Replies thread; Done is resolved. INTERNAL NOTES NEVER
      LEAVE: wordCommentsOf reads the external room only. */
+  /* the look's header and page numbers as Word's own header and footer (contract look round 2) */
   const out=docxExportTracked(html,{author:(opts&&opts.author)||(me&&me.name)||'HaTi',
-    comments:wordCommentsOf(c,side,hidden?{hiddenIds:hidden}:undefined)});
+    comments:wordCommentsOf(c,side,hidden?{hiddenIds:hidden}:undefined),
+    headFoot:window.pagesWordHeadFoot?pagesWordHeadFoot(c):null});
   return { bytes:out.bytes, tracked:out.tracked, comments:out.comments,
     name:`${(window.contractRef?contractRef(c):c.id)}-redline.docx` };
 }

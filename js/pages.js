@@ -208,6 +208,10 @@ function _pgDeskColour(sheet){
 const _pgAttr = s => String(s == null ? '' : s).replace(/[&<>"]/g, ch =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
+/* "Page 2 of 6", "2 of 6" or "2 / 6", as the look asks, in the reader's language (js/branding.js brPageNumberSay) */
+function pagesNumberSay(fmt, n, m){
+  return (typeof window !== 'undefined' && window.brPageNumberSay) ? window.brPageNumberSay(fmt, n, m) : pagesNumberLabel(n, m);
+}
 /* "Page 2 of 6", in the reader's language. */
 function pagesNumberLabel(n, m){
   const t = (typeof window !== 'undefined' && window.i18t) ? window.i18t('pg_page_of', { n, m }) : '';
@@ -267,9 +271,14 @@ function _pgFurniture(o, k, n, top, h, d){
     parts.push(c(d.pL - PG_CORNER, cTop - PG_CORNER, 'tl'), c(pw - d.pR, cTop - PG_CORNER, 'tr'),
       c(d.pL - PG_CORNER, cBot, 'bl'), c(pw - d.pR, cBot, 'br'));
   }
-  const label = pagesNumberLabel(k + 1, n);
+  /* THE LOOK'S OWN HEADER AND PAGE NUMBERS (contract look round 2, 24 Nov 2026): `o.marks` (pagesMarksFor) — a header
+     line on EVERY page in its place, the number in the reader's words and place, or none; no marks = as it always was */
+  const mk = o.marks || null;
+  const label = mk && mk.fmt ? pagesNumberSay(mk.fmt, k + 1, n) : pagesNumberLabel(k + 1, n);
+  const numOff = !!(mk && mk.num === 'off');
   if(o.mode === 'sign'){
-    if((k > 0 || o.runningFirst) && o.running) parts.push(`<div class="pg-run" style="left:${d.pL}px;right:${d.pR}px;top:${top + Math.max(10, Math.round(d.mT * 0.42))}px" data-l="${_pgAttr(o.running)}"></div>`);
+    if(mk && mk.head) parts.push(`<div class="pg-run is-mark" data-al="${_pgAttr(mk.headAl || 'left')}" style="left:${d.pL}px;right:${d.pR}px;top:${top + Math.max(10, Math.round(d.mT * 0.42))}px" data-l="${_pgAttr(mk.head)}"></div>`);
+    else if((k > 0 || o.runningFirst) && o.running) parts.push(`<div class="pg-run" style="left:${d.pL}px;right:${d.pR}px;top:${top + Math.max(10, Math.round(d.mT * 0.42))}px" data-l="${_pgAttr(o.running)}"></div>`);
     const footTop = top + h - d.mB + Math.max(14, Math.round(d.mB * 0.28));
     /* THE DESIGN'S OWN FOOTER ON EVERY PAGE, carrying the page number — the
        caller builds it (it knows the design); a page with no footer says the
@@ -278,18 +287,23 @@ function _pgFurniture(o, k, n, top, h, d){
     try{ fh = typeof o.foot === 'function' ? String(o.foot(label, k, n) || '') : ''; }catch(_){ fh = ''; }
     /* A page added after somebody else's pages (their PDF's signature page)
        is not "Page 1 of 1" of anything, so it carries no number. */
-    if(!fh && o.noNumber){ /* nothing */ } else parts.push(fh
+    if(!fh && (o.noNumber || numOff)){ /* nothing */ } else parts.push(fh
       ? `<div class="pg-dfoot" style="left:${d.pL}px;right:${d.pR}px;top:${footTop}px">${fh}</div>`
-      : `<div class="pg-sfoot" style="left:${d.pL}px;right:${d.pR}px;top:${footTop}px" data-l="${_pgAttr(label)}"></div>`);
+      : `<div class="pg-sfoot"${mk && mk.num ? ` data-al="${_pgAttr(mk.num)}"` : ''} style="left:${d.pL}px;right:${d.pR}px;top:${footTop}px" data-l="${_pgAttr(label)}"></div>`);
   } else {
     const headTop = top + Math.max(3, Math.round((d.mT - 12) / 2) - 3);
     const name = String(o.name || '');
     const ref = k > 0 ? String(o.ref || '') : '';
-    if(name || ref){
+    /* the working copy's faded head and foot say the same words as the signing copy, faded */
+    if(mk && mk.head){
+      parts.push(`<div class="pg-head is-mark" data-al="${_pgAttr(mk.headAl || 'left')}" style="left:${d.pL}px;right:${d.pR}px;top:${headTop}px" data-l="${_pgAttr(mk.head)}" data-r=""></div>`);
+    } else if(name || ref){
       parts.push(`<div class="pg-head${k ? ' is-run' : ''}" style="left:${d.pL}px;right:${d.pR}px;top:${headTop}px" data-l="${_pgAttr(name)}" data-r="${_pgAttr(ref)}"></div>`);
     }
     const footTop = top + h - Math.max(14, Math.round(d.mB / 2) + 5);
-    parts.push(`<div class="pg-foot" style="left:${d.pL}px;right:${d.pR}px;top:${footTop}px" data-l="${_pgAttr(label)}"></div>`);
+    const words = mk ? [mk.foot, mk.num && mk.num !== 'off' ? '' : (numOff ? '' : label)].filter(Boolean).join(' · ') : label;
+    if(words) parts.push(`<div class="pg-foot" style="left:${d.pL}px;right:${d.pR}px;top:${footTop}px" data-l="${_pgAttr(words)}"></div>`);
+    if(mk && mk.num && mk.num !== 'off') parts.push(`<div class="pg-foot is-num" data-al="${_pgAttr(mk.num)}" style="left:${d.pL}px;right:${d.pR}px;top:${footTop + (words ? 13 : 0)}px" data-l="${_pgAttr(label)}"></div>`);
   }
   return parts;
 }
@@ -590,7 +604,7 @@ if(typeof module !== 'undefined' && module.exports){
 if(typeof window !== 'undefined'){
   Object.assign(window, { PG_A4, PG_GAP, PG_SIGN_W, PG_SIGN_H, PG_SIGN_PAD, PG_HEAD_KEEP, PG_KEEP_SEL, PG_HEAD_SEL,
     pagesPlan, pagesAtoms, pagesClear, pagesLayout, pagesWatch, pagesUnwatch, pagesRefresh, pagesAtView, pagesGoTo,
-    pagesNumberLabel, pagesPrintPages, pagesPrintPageRule, pagesLines });
+    pagesNumberLabel, pagesNumberSay, pagesPrintPages, pagesPrintPageRule, pagesLines });
 }
 
 /* ============================================================
@@ -617,7 +631,28 @@ function pagesLetterheadName(c){
    Confidential · Page 2 of 6" sits exactly where the design sets its words.
    Their paper carries none of ours. The builder opens with the margin meant
    for a footer at the END of a long sheet; on a page, the page places it. */
-function pagesSignFoot(c, label){
+/* THE LOOK'S HEADER AND PAGE NUMBERS FOR ONE CONTRACT (round 2, 24 Nov 2026), its fields filled from the contract: the
+   furniture's `marks` for both copies. Their paper wears none of ours; no look, or a look with none set, = null. */
+function pagesMarksFor(c){
+  if(!c || typeof window === 'undefined') return null;
+  try{ if(typeof window.isUpload === 'function' ? window.isUpload(c) : c.source === 'upload') return null; }catch(_){ return null; }
+  let db = null;
+  try{ db = window.resolveDocBranding ? window.resolveDocBranding(c) : null; }catch(_){ db = null; }
+  const pm = db && db.designId ? db.pageMarks : null;
+  if(!pm) return null;
+  const fill = t => window.brFieldsFill ? window.brFieldsFill(t, c, db) : String(t || '');
+  return { head: pm.headerPos && pm.headerText ? fill(pm.headerText) : '', headAl: pm.headerPos || null,
+    num: pm.pageNumPos || null, fmt: pm.pageNumFmt || null, foot: fill(db.footerText), company: String(db.companyName || '').trim() };
+}
+/* THE SAME MARKS FOR THE WORD FILE WE WRITE (docxHeadFootXml): the header line, the footer line as the design prints
+   it (the company's name, then the footer's words) and the number as Word's own fields in the reader's words */
+function pagesWordHeadFoot(c){
+  const mk = pagesMarksFor(c); if(!mk) return null;
+  return { head: mk.head ? { text: mk.head, al: mk.headAl } : null,
+    foot: { text: [mk.company, mk.foot].filter(Boolean).join(' · ') },
+    num: mk.num === 'off' ? null : { al: mk.num || null, words: pagesNumberSay(mk.fmt, '\u0001', '\u0002') } };
+}
+function pagesSignFoot(c, label, k, n){
   if(!c || typeof window === 'undefined') return '';
   /* THEIR WORD FILE'S OWN FOOTER, where it had one, with the page number
      beside it — their words, never ours. */
@@ -632,7 +667,15 @@ function pagesSignFoot(c, label){
   try{
     const db = window.resolveDocBranding ? window.resolveDocBranding(c) : null;
     if(db && db.designId && window.docDesignFooterHtml){
-      html = window.docDesignFooterHtml({ ...db, footerText: [db.footerText, label].filter(Boolean).join(' · ') }, c);
+      /* the look's page numbers: in their own place on a line of their own, off, or (none set) at the end of the line */
+      const pm = db.pageMarks || null;
+      const say = pm && pm.pageNumFmt && k != null ? pagesNumberSay(pm.pageNumFmt, k + 1, n) : label;
+      const fill = window.brFieldsFill ? window.brFieldsFill(db.footerText, c, db) : db.footerText;
+      const inLine = !(pm && pm.pageNumPos);
+      html = window.docDesignFooterHtml({ ...db, footerText: [fill, inLine ? say : ''].filter(Boolean).join(' · ') }, c);
+      if(pm && pm.pageNumPos && pm.pageNumPos !== 'off')
+        html = String(html || '').replace(/^(\s*<div\b[^>]*?style=")margin-top:\s*[\d.]+px;?/, '$1')
+          + `<div class="pg-pnum" data-al="${_pgAttr(pm.pageNumPos)}">${_pgAttr(say)}</div>`;
     } else if(c.templateForm && c.branding && c.branding.footerText && window.templateBrandingFooterHtml){
       html = window.templateBrandingFooterHtml({ ...c, branding: { ...c.branding,
         footerText: c.branding.footerText + ' · ' + label } });
@@ -812,5 +855,5 @@ function pagesSignNames(root, c, opts){
   });
   return n;
 }
-if(typeof window !== 'undefined') Object.assign(window, { pagesLetterheadName, pagesSignFoot, pagesSignFlags, pagesSignRows, pagesSignMarks, pagesSignNames, pagesSignNamesOff });
+if(typeof window !== 'undefined') Object.assign(window, { pagesLetterheadName, pagesMarksFor, pagesWordHeadFoot, pagesSignFoot, pagesSignFlags, pagesSignRows, pagesSignMarks, pagesSignNames, pagesSignNamesOff });
 if(typeof module !== 'undefined' && module.exports) Object.assign(module.exports, { pagesSignFoot, pagesLetterheadName });
