@@ -8903,9 +8903,7 @@ function pd2DrawnFaceOf(c, D, R, focus, N){
     const acts = `<div class="pd2-df-acts">${plan ? `<button type="button" class="ui-btn ui-btn-primary pd2-card-go" data-pd2-plan-read>${E(T('pd2_plan_read'))}</button><button type="button" class="ui-link" data-pd2-plan-open>${E(T('pd2_plan_change'))}</button>`
       : `<button type="button" class="ui-btn ui-btn-primary pd2-card-go" data-pd2-plan-open>${E(T('pd2_plan_open'))}</button><button type="button" class="ui-link" data-pd2-plan-read>${E(T('pd2_plan_noplan'))}</button>`}</div>`;
     const sub = [them ? T('pd2_df_from', { who: them }) : '', cls.length ? _pdTn('pd2_df_clauses', cls.length, { n: cls.length }) : ''].filter(Boolean).join(' · ');
-    /* WATCH THE READ STAYS A DOOR on the arrived face too (24 Nov 2026), its one link under the acts */
-    const wfoot = `<div class="pd2-card-foot"><p class="pd2-card-links"><button type="button" class="ui-link" data-pd2-wk-open>${E(T('pd2_wk_watch'))}</button></p></div>`;
-    return { head: T('pd2_df_arrived', { name: String(c.name || (typeof contractRef === 'function' ? contractRef(c) : c.id)) }), sub: (sub ? sub + '. ' : '') + T('pd2_df_not_read'), acts: acts + (then ? `<p class="pd2-df-then">${E(then)}</p>` : ''), foot: wfoot };
+    return { head: T('pd2_df_arrived', { name: String(c.name || (typeof contractRef === 'function' ? contractRef(c) : c.id)) }), sub: (sub ? sub + '. ' : '') + T('pd2_df_not_read'), acts: acts + (then ? `<p class="pd2-df-then">${E(then)}</p>` : '') };
   }
   if (!R.read || typeof window.stkLivePoints !== 'function') return null;
   let L = null; try { L = window.stkLivePoints(c); } catch (_){ L = null; }

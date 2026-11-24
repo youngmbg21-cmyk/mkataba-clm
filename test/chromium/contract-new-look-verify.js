@@ -201,7 +201,10 @@ const READ = () => {
            every clause, each fact lands in its group with its clause, it ends in one sentence and the next doors; it files
            nothing; × puts it away and the paper and its Dossier come back */
         const before = await page.evaluate(() => { const c = getContract('MK-A2'); return JSON.stringify([c.fields, (c.audit || []).length, c.obligations]); });
-        await page.click('#ig-dock .pd2-dossier [data-pd2-wk-open]');
+        /* RE-POINTED 24 Nov 2026 (as drawn): a paper not yet read offers Plan the read · Read without a plan on its card, no
+           Watch the read; the walk is opened through its own door's function where the link is not drawn */
+        if (await page.$('#ig-dock .pd2-dossier [data-pd2-wk-open]')) await page.click('#ig-dock .pd2-dossier [data-pd2-wk-open]');
+        else await page.evaluate(() => pd2WalkOpen('MK-A2'));
         const ready = await until(page, () => !!document.getElementById('pd2-walk-head') && /^0 of \d+$/.test(((document.querySelector('#pd2-walk-foot b') || {}).textContent || '').trim()), null, 10000);
         await page.click('[data-pd2-wk-speed="fast"]'); await page.click('[data-pd2-wk-play]');
         const ended = await until(page, () => /Read whole/.test((document.querySelector('#pd2-walk-foot') || {}).textContent || '') && !!document.querySelector('#ig-dock .pd2-wk-nx'), null, 30000);
