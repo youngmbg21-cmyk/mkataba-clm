@@ -242,41 +242,20 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
     await until(page, () => { const b = document.querySelector('#ce-railfoot [data-ce-act="save"]'); return b && !b.disabled; });
     await press(page, '#ce-railfoot [data-ce-act="save"]');
     /* A spell list may stand first; its "Save as written" files. */
-    /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): on the outside look a save on their seat asks as ours
-       does — the Notes drawer opens with the change pinned (rlNoteAskAfterFile → portalOpenNotes({pin:true})); the
-       reason is written there and sent by the drawer's own send */
-    const pinUp = () => { const n = document.getElementById('pt-notes'); const pin = n && n.querySelector('[data-rl-np-pin]'); return !!n && n.classList.contains('open') && !!pin && pin.getClientRects().length > 0; };
-    const asked = await until(page, () => {
-      if (document.getElementById('pd-input')) return true;
-      { const n = document.getElementById('pt-notes'); const pin = n && n.querySelector('[data-rl-np-pin]'); if (n && n.classList.contains('open') && pin && pin.getClientRects().length) return true; }
+    /* RE-POINTED 24 Nov 2026 (owner: "Just file and move on and the notes will be a separate matter"): their save files
+       the change and asks nothing — no "Why this change?", no Notes drawer pinned */
+    const filed6 = await until(page, () => {
       const b = document.querySelector('#ce-railfoot [data-ce-act="save"]');
       if (document.querySelector('#ce-spell .sp-row') && b) b.click();
-      return false;
+      try { const raw = localStorage.getItem('hati.negoHeld.harness-token'); const h = raw ? JSON.parse(raw) : null;
+        return Object.values((h && h.proposed) || {}).some(x => /working days/.test(String(x.newText || ''))); } catch (_){ return false; }
     }, null, 15000);
-    check('6b Save asks for a reason', asked);
-    if (asked){
-      await page.screenshot({ path: path.join(OUT, '03-reason.png') });
-      if (await page.$('#pd-input')) {
-        await page.fill('#pd-input', 'Our sites only receive on working days.');
-        await press(page, '#pd-ok');
-      } else if (await page.evaluate(pinUp)) {
-        await page.fill('#pt-notes .rl-np-in', 'Our sites only receive on working days.');
-        await press(page, '#pt-notes .rl-np-send');
-      }
-      const held = await until(page, () => !document.getElementById('pd-input') && !document.querySelector('#pt-notes [data-rl-np-pin]'));
-      const why = await page.evaluate(() => {
-        try { const raw = localStorage.getItem('hati.negoHeld.harness-token'); const h = raw ? JSON.parse(raw) : null;
-          return Object.values((h && h.proposed) || {}).map(x => x.why || '').join('|'); } catch (_){ return 'unreadable'; }
-      });
-      /* RE-POINTED 16 Nov 2026 (#762): on the outside look the reason is the note their seat writes on the pinned change,
-         as ours is (owner, 8 Nov 2026: "mimic what is in the owner side") — it lands in the drawer's thread, the pin spent */
-      const noted = await until(page, () => /working days/.test((document.getElementById('pt-notes-body') || { innerText: '' }).innerText || '')
-        && !document.querySelector('#pt-notes [data-rl-np-pin]'), null, 6000);
-      check('6c the reason is held on the change, to go with Send', (held && /working days/.test(why)) || !!noted, why || JSON.stringify({ noted }));
-    }
+    const quiet6 = await page.evaluate(() => !document.getElementById('pd-input') && !document.querySelector('#pt-notes [data-rl-np-pin]')
+      && !(document.getElementById('pt-notes') || { classList: { contains: () => false } }).classList.contains('open'));
+    check('6b Save files their change and asks no reason (filing never asks for a note)', filed6 && quiet6, JSON.stringify({ filed6, quiet6 }));
     await press(page, '#clause-editor [data-ce-act="close"]');
     await until(page, () => !document.getElementById('clause-editor'));
-  } else check('6b Save asks for a reason', false, 'the editor did not open');
+  } else check('6b Save files their change and asks no reason', false, 'the editor did not open');
 
   /* ---- 9 · round two (Young: "implement all", 29 Sep 2026) ---- */
   const turn = await page.evaluate(() => (document.getElementById('pt-turn') || {}).textContent || '');

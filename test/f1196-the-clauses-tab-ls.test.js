@@ -33,11 +33,11 @@ describe('f1196 (1) one clause at a time', () => {
   });
   test('one gesture, one step; a tall clause is read first; arrows and count drawn', () => {
     const W = strip(CT.slice(CT.indexOf("document.addEventListener('wheel'"), CT.indexOf('}, { passive: false });')));
-    assert.match(W, /closest\('#pd-thread \.doc-th-rows'\)/);
+    assert.match(W, /closest\('#pd-thread \.doc-th-rows'\)/); assert.match(W, /list\.scrollHeight > list\.clientHeight \+ 4/);
     assert.match(W, /if \(_thStepLocked\) return;/);
     assert.match(W, /open\.offsetHeight > list\.clientHeight - 8/);
     assert.match(W, /docThreadStep\(d\)/);
-    assert.match(strip(fnSrc(CT, 'docThreadNavSync')), /data-th-step="-1"[\s\S]*th_step_of[\s\S]*data-th-step="1"/);
+    assert.match(strip(fnSrc(CT, 'docThreadNavSync')), /data-th-nav-step="-1"[\s\S]*th_step_of[\s\S]*data-th-nav-step="1"/);
   });
 });
 

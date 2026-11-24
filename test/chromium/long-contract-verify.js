@@ -61,6 +61,8 @@ const longBody = n => '<h1>SOFTWARE AS A SERVICE AGREEMENT</h1>' + Array.from({ 
   const errors = [];
   try {
     const page = await (await browser.newContext({ viewport: { width: 1500, height: 900 } })).newPage();
+    /* RE-POINTED 24 Nov 2026 (the Clauses tab opens on one clause, as drawn): this check reads the whole list, the reader's own kept choice */
+    await page.addInitScript(() => { try { localStorage.setItem('hati.v1.thList', '1'); } catch (_){} });
     page.on('pageerror', e => errors.push(e.message));
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.waitForTimeout(600);

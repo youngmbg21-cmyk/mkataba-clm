@@ -1142,7 +1142,18 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 - NEW test/chromium/notebook-verify.js (GitHub; red at the parent: no page): tabs with counts, a row's quote and badges, choose then open, back, Check due → Mark checked → Undo, the Add pop-up's lines.
 - RE-POINTED: f1097 (1) NAMES (Notebook added to the test's page names); f841 (2a) the "see" stage holds the Notebook.
 - Re-ran green: f232, f48, f561, f564, f672, f842, f937, f938, f946, f954, f955, f964, f965, f997, f1068, f1097, f1131, f1146, f1186, f1193, f866, f305.
+- As drawn, rounds A–D: `node --test test/f1198-the-dossier-as-drawn.test.js test/f1199-our-paper-and-sent-as-drawn.test.js test/f1200-the-clause-page-and-reading-line.test.js test/f1201-redlines-and-ladder-as-drawn.test.js test/f1065-jambos-panels-contract-faces.test.js test/f295-prepare-redlines.test.js`.
+
+## NOTES AND COMMENTS — filing never asks for a note (24 Nov 2026)
+f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks nothing). Browser checks that waited for the pin or "Why this change?" after a save: re-pointed as GitHub finds them.
 - f1198 (6) (24 Nov 2026, red at the parent): the answer's "Open …" button and its walled door; delete with Undo (list and search); move between shelves (admin, own onto Company; the wall follows); the bell row. notebook-verify 6a, 6b: Delete and Undo in the panel.
+- f1198 (8) (24 Nov 2026, red at the parent): an empty notebook's panel carries no example questions and its one press is Add a document; notebook-verify 0b drives it on the empty page.
 
 ## THE SHELL — the wave on every edit pop-up (24 Nov 2026)
 - NEW: test/f1200-the-wave-on-every-edit-popup.test.js (the helper run in jsdom: once per sheet, again after a redraw; the one watcher on #modal-root; the duties sheet's own call; the look by token, behind the words, still for less motion). Red at the parent: all three.
+
+## PERFORMANCE — two scroll checks wait for a still paper (24 Nov 2026)
+- RE-POINTED: decision-redraws-one-clause-verify 1 (240 set and held ten frames before Accept, bounded 120); dossier-and-amend-ls-verify 3a/3b (the press waits six still frames, bounded 90, and lands only where elementFromPoint is the clause).
+
+## THE DOSSIER END TO END — the Editor as a tab (24 Nov 2026)
+`node --test test/f1202-the-editor-as-a-tab.test.js test/f245-the-clause-editor.test.js test/f563*.test.js` (f1202 red at the parent: 11 failing).

@@ -67,7 +67,8 @@ test('f1065 (2) each contract face says the five parts in the new look, by its o
   assert.match(PD, /t\.closest\('#pd-og \[data-pd-og-route\], #pd-glance \[data-pd-og-route\], #pd-signface \[data-pd-og-route\]'\)/, 'the signer door answers in the signing face');
   const NEGO = read('js/views/negotiation.js');
   const rl = region(NEGO, 'function rlEmptyColumnActsHtml(', 'function rlAskColleague(');
-  assert.match(rl, /<div class="rl-empty-acts is-five">.*\$\{sendBtn\}\$\{prepare\}<\/div>`\s*\+ `.*\$\{edit\}\$\{add\}<\/div><\/div>`/s, 'every button inside .rl-empty-acts');
+  /* RE-POINTED 24 Nov 2026 (the Dossier as drawn, round D; f1201): the same buttons, open sections, all inside .rl-empty-acts */
+  assert.match(rl, /<div class="rl-empty-acts is-five is-drawn">\$\{sendBtn \?[\s\S]*\$\{pbHead\}\$\{pbBody\}[\s\S]*\$\{edit\}\$\{add\}<\/div><\/section>[\s\S]*<\/div>`;/, 'every button inside .rl-empty-acts');
   assert.equal((NEGO.match(/class="rl-cards-empty"/g) || []).length, 2, 'one class, two emptinesses (f246)');
   const BD = read('js/views/breakdown.js');
   const st = region(BD, 'function stkHeadHtml(c, b, all){', '/* MARQUEE');

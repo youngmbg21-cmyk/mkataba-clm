@@ -59,6 +59,8 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
   const errs = [];
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    /* RE-POINTED 24 Nov 2026 (the Clauses tab opens on one clause, as drawn): this check reads the whole list, the reader's own kept choice */
+    await page.addInitScript(() => { try { localStorage.setItem('hati.v1.thList', '1'); } catch (_){} });
     page.on('pageerror', e => errs.push(e.message));
     const signIn = async (email, pass) => {
       await page.goto(h.base + '/', { waitUntil: 'networkidle' });

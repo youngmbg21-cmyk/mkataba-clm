@@ -88,9 +88,9 @@ const until = async (page, fn, arg, ms = 8000) => { try { await page.waitForFunc
     } else check('1i a paper not read yet is in the seeded book', false, 'none found');
     /* 1l THE CLAUSES TAB STEPS ONE CLAUSE (the Dossier L+S, step 3; f1196): › under the list's head opens the next clause */
     await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-pd-tab="doc"]'); if (b) b.click(); });
-    const navOk = await until(page, () => !!document.querySelector('#pd-thread .doc-th-nav [data-th-step="1"]'));
+    const navOk = await until(page, () => !!document.querySelector('#pd-thread .doc-th-nav [data-th-nav-step="1"]'));
     const k0 = await page.evaluate(() => (document.querySelector('#pd-thread .doc-th-k') || {}).textContent || '');
-    if (navOk) await page.evaluate(() => { const b = document.querySelector('#pd-thread [data-th-step="1"]'); if (b && !b.disabled) b.click(); });
+    if (navOk) await page.evaluate(() => { const b = document.querySelector('#pd-thread [data-th-nav-step="1"]'); if (b && !b.disabled) b.click(); });
     const moved = navOk && await until(page, k => ((document.querySelector('#pd-thread .doc-th-k') || {}).textContent || '') !== k, k0, 4000);
     check('1l the Clauses tab says which clause of how many, and › opens the next', navOk && moved, k0);
 
@@ -118,7 +118,17 @@ const until = async (page, fn, arg, ms = 8000) => { try { await page.waitForFunc
 
     /* 3 — a pressed clause keeps its figures */
     await page.click('.pd2-amx [data-pd2-amx-tab="signed"]').catch(() => {});
-    const press = async re => { const b = await page.evaluate(r => { const p = [...document.querySelectorAll('#ig-canvas [data-anchor]')].find(n => new RegExp(r).test(n.textContent)); if (!p) return null; p.scrollIntoView({ block: 'center' }); const q = p.getBoundingClientRect(); return { x: q.left + 60, y: q.top + 14 }; }, re); if (b) await page.mouse.click(b.x, b.y); return !!b; };
+    /* THE PRESS LANDS ON A STILL CLAUSE (24 Nov 2026, red on GitHub on one run in two: the press fell on the preamble): the
+       clause is brought into view, then its place must hold for six frames running (bounded at 90) and the point must
+       be the clause's own (elementFromPoint) before the mouse goes down */
+    const press = async re => { const b = await page.evaluate(async r => {
+      const p = [...document.querySelectorAll('#ig-canvas [data-anchor]')].find(n => new RegExp(r).test(n.textContent)); if (!p) return null;
+      p.scrollIntoView({ block: 'center' });
+      const frame = () => new Promise(f => requestAnimationFrame(() => f()));
+      let last = null, held = 0;
+      for (let k = 0; k < 90 && held < 6; k++){ await frame(); const y = Math.round(p.getBoundingClientRect().top); if (y === last) held++; else { held = 0; last = y; } }
+      const q = p.getBoundingClientRect(), x = q.left + 60, y = q.top + 14, hit = document.elementFromPoint(x, y);
+      return (hit && p.contains(hit)) ? { x, y } : null; }, re); if (b) await page.mouse.click(b.x, b.y); return !!b; };
     const pr = (await press('Price & Contract Value')) && (await press('Term and Renewal'));
     check('3a two clauses pressed on the signed paper', pr);
     await page.click('.pd2-amx [data-pd2-amx-tab="changes"]').catch(() => {});

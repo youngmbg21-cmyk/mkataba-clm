@@ -52,7 +52,8 @@ const READ = () => {
     spine: d && d.querySelector('.pd2-spine') ? (d.querySelector('.pd2-spine').getAttribute('aria-label') || d.querySelector('.pd2-spine').textContent).replace(/\s+/g, ' ').trim() : '',
     next: d && d.querySelector('.pd2-next') ? d.querySelector('.pd2-next').textContent.trim() : '',
     nextLinks: d ? d.querySelectorAll('.pd2-card .pd2-card-go').length : 0,
-    read: d && d.querySelector('.pd2-read') ? d.querySelector('.pd2-read').textContent.trim() : '',
+    /* RE-POINTED 24 Nov 2026 (as drawn): a paper not yet read says so under its "has arrived" heading */
+    read: d && d.querySelector('.pd2-read, .pd2-card-sub') ? d.querySelector('.pd2-read, .pd2-card-sub').textContent.trim() : '',
     facts, turn: d && d.querySelector('.pd2-turn') ? d.querySelector('.pd2-turn').textContent.trim() : '',
     rows: [...document.querySelectorAll('#ig-dock [data-ig-chips], #ig-dock .jb-ways')].filter(e => e.getBoundingClientRect().height > 0 && e.children.length).map(e => [...e.children].map(b => b.textContent.trim()).join(' · ')),
     old: !!(dock && dock.querySelector('.pd-dossier')),
@@ -81,6 +82,8 @@ const READ = () => {
   try {
     for (const [nm, W, H] of [['laptop-a', 1440, 780], ['laptop-b', 1536, 730], ['ipad', 1366, 950], ['desktop', 2000, 1000]]){
       const page = await browser.newPage({ viewport: { width: W, height: H } });
+      /* RE-POINTED 24 Nov 2026 (the Clauses tab opens on one clause, as drawn): this check reads the whole list, the reader's own kept choice */
+      await page.addInitScript(() => { try { localStorage.setItem('hati.v1.thList', '1'); } catch (_){} });
       page.on('pageerror', e => console.log('PAGE ERROR', String(e).slice(0, 300)));
       await page.goto(h.base + '/', { waitUntil: 'networkidle' });
       await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
@@ -96,8 +99,8 @@ const READ = () => {
       const R = await page.evaluate(READ);
       const F = Object.fromEntries(R.facts.map(f => [f.k, f]));
       check(`${nm} 1 the Dossier: one line of stages, one sentence, what Jambo read, the facts with their sources, his one remark`,
-        /Arrived .*·\s*Read\s*·\s*Fill, \d+ to do\s*·\s*Negotiate\s*·\s*Sign, \d+ to do\s*·\s*Live/.test(R.spine) && /before anyone signs/.test(R.next) && R.nextLinks === 1
-        && /Jambo/.test(R.read) && (!F.value || (!!F.between && /36,000,000/.test(F.value.s + F.value.v))) /* RE-POINTED 23 Nov 2026 (Dossier L+S step 1, owner: the arrival's facts carry Between and the value, "Show it there", until Jambo's read): the value stands only as an arrival fact beside Between, with the paper's own words */ /* RE-POINTED 22 Nov 2026 (the owner's ruling of 20 Nov 2026, "MONEY IS NEVER A BIG PART OF A PAGE: no money in a side panel", applied to the Dossier in the P-44 review): no Value fact in the panel — the value stays on the paper's own note and in the form */ && F.ends && /§ 4/.test(F.ends.v) /* RE-POINTED 22 Nov 2026 (Dossier L+S as drawn, pd2FactRowLs: where it was read stands in the fact's words, its act at the end) */ && /renews by itself/.test(F.ends.v)
+        /Arrived .*·\s*Read\s*·\s*Fill, \d+ to do\s*·\s*Negotiate\s*·\s*Sign, \d+ to do\s*·\s*Live/.test(R.spine) && ((/before anyone signs/.test(R.next) && R.nextLinks === 1) || /has arrived$/.test(R.next)) /* RE-POINTED 24 Nov 2026 (owner, "build as drawn"): a paper of theirs not yet read heads its card "<name> has arrived" */
+        && /Jambo/.test(R.read) && (!F.value || (!!F.between && /36,000,000/.test(F.value.s + F.value.v))) /* RE-POINTED 23 Nov 2026 (Dossier L+S step 1, owner: the arrival's facts carry Between and the value, "Show it there", until Jambo's read): the value stands only as an arrival fact beside Between, with the paper's own words */ /* RE-POINTED 22 Nov 2026 (the owner's ruling of 20 Nov 2026, "MONEY IS NEVER A BIG PART OF A PAGE: no money in a side panel", applied to the Dossier in the P-44 review): no Value fact in the panel — the value stays on the paper's own note and in the form */ && F.ends && /§ 4/.test(F.ends.v) /* RE-POINTED 22 Nov 2026 (Dossier L+S as drawn, pd2FactRowLs: where it was read stands in the fact's words, its act at the end) */ && (/renews by itself/.test(F.ends.v) || (F.renews && /Renews itself/.test(F.renews.v))) /* RE-POINTED 24 Nov 2026 (as drawn): renewing has its own row */
         && F.signer && F.signer.s === 'Change' /* RE-POINTED (the harmony review, PAPER LINE HOLDS ALL, owner's yes 9 Nov 2026): a fact that can be changed ends in a green Change link */ && F.stream && F.stream.s === 'filed' && F.approval && F.approval.s === 'Approve' && /§ 2/.test(F.approval.v) /* the same: Approve is answered in the row (Dossier L+S) */ && F.std && /Not checked yet|Checking against the Playbook|Could not check: .+ · Check|\d+ of \d+ met/.test(F.std.v) /* RE-POINTED 19 Nov 2026 (owner picked "B": a contract never checked is checked on its first open, pbCheckOnOpen; f1106): the fact says Not checked yet, Checking…, the refusal with Check, or the ring's count */ && !/call/.test(F.std.v)
         && /Rejection window/.test(R.turn) && !R.old, { spine: R.spine, next: R.next, facts: R.facts, turn: R.turn.slice(0, 80) });
       check(`${nm} 2 one row of links above Jambo's box`, R.rows.length === 1 && R.rows[0] === 'fill in · redline · share · history', R.rows);
@@ -198,7 +201,10 @@ const READ = () => {
            every clause, each fact lands in its group with its clause, it ends in one sentence and the next doors; it files
            nothing; × puts it away and the paper and its Dossier come back */
         const before = await page.evaluate(() => { const c = getContract('MK-A2'); return JSON.stringify([c.fields, (c.audit || []).length, c.obligations]); });
-        await page.click('#ig-dock .pd2-dossier [data-pd2-wk-open]');
+        /* RE-POINTED 24 Nov 2026 (as drawn): a paper not yet read offers Plan the read · Read without a plan on its card, no
+           Watch the read; the walk is opened through its own door's function where the link is not drawn */
+        if (await page.$('#ig-dock .pd2-dossier [data-pd2-wk-open]')) await page.click('#ig-dock .pd2-dossier [data-pd2-wk-open]');
+        else await page.evaluate(() => pd2WalkOpen('MK-A2'));
         const ready = await until(page, () => !!document.getElementById('pd2-walk-head') && /^0 of \d+$/.test(((document.querySelector('#pd2-walk-foot b') || {}).textContent || '').trim()), null, 10000);
         await page.click('[data-pd2-wk-speed="fast"]'); await page.click('[data-pd2-wk-play]');
         const ended = await until(page, () => /Read whole/.test((document.querySelector('#pd2-walk-foot') || {}).textContent || '') && !!document.querySelector('#ig-dock .pd2-wk-nx'), null, 30000);

@@ -59,6 +59,8 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
 
     const ctx = await browser.newContext({ viewport: { width: 1366, height: 1024 } });
     const page = await ctx.newPage();
+    /* RE-POINTED 24 Nov 2026 (the Clauses tab opens on one clause, as drawn): this check reads the whole list, the reader's own kept choice */
+    await page.addInitScript(() => { try { localStorage.setItem('hati.v1.thList', '1'); } catch (_){} });
     page.on('pageerror', e => errs.push(String(e).slice(0, 200)));
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     if (await page.$('#li-email')) { await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go'); }

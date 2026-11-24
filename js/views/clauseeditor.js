@@ -2633,6 +2633,8 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   const page = holder.firstElementChild;
   document.body.appendChild(page);
   document.body.classList.add('ce-open');
+  /* THE EDITOR AS A TAB (owner, 24 Nov 2026, as drawn): on our seat in the new look the page wears the Dossier's tabs */
+  try{ if (ceTabOn()) page.classList.add('is-tabbed'); }catch(_){}
   /* Copilot is on this page: the moved Copilot window steps aside (ai.js) */
   try{ if (window.aiSideSync) aiSideSync(); }catch(_){}
   /* ---- THEIR SEAT: THE EDITING PAGE BESIDE THEIR OWN REDLINES COLUMN
@@ -2817,6 +2819,7 @@ function ceRenderAll(){
   ceRenderBar();
   ceRenderHead(); ceRenderPaper(); ceRenderFoot(); ceRenderTabs(); ceRenderLane();
   ceRenderScope(); ceRenderChips();
+  ceTabPaint();
 }
 
 /* ---- THE HEAD DRAWS NOTHING BUT THE TOOLBAR ----
@@ -4685,7 +4688,8 @@ function ceRenderFoot(){
   /* FILE · NEXT › (the Dossier L+S, step 4, as drawn): on a walk with another clause after this one, the black button says
      that filing moves on — ceSaveAndOn already files, then opens the next; the words now say so */
   const wNext = (typeof w !== 'undefined' && w && w.k && w.k < w.n) ? w : null;
-  const labelNext = wNext && !(_ceSpellList.length && _ceSpellFor === ceSpellKey()) ? label + ' \u00b7 ' + _cet('ce_then_next') : label;
+  /* THE EDITOR AS A TAB: filing moves on to the paper's next clause (ceSaveAndOn), so its button says so too */
+  const labelNext = (wNext || (ceTabbed() && ceTabNextId())) && !(_ceSpellList.length && _ceSpellFor === ceSpellKey()) ? label + ' \u00b7 ' + _cet('ce_then_next') : label;
   /* ---- THE TWO BUTTONS ANSWER TWO DIFFERENT QUESTIONS ----
      DISCARD asks "has the wording moved from what STANDS in the contract" —
      that is what it puts back, so that is what it is live for.
@@ -4715,10 +4719,12 @@ function ceRenderFoot(){
     else if (b === save) b.setAttribute('title', (!_ceLead ? ''
       : (ceLeadIsOurs() ? _cet('ce_save_to_long', { id: _ceLead.id })
         : _ceLead.authorSide !== ceSide() ? _cet('ce_save_counter_long', { id: ceFiledName(_ceLead) })
-        : _cet('ce_save_to_long', { id: _ceLead.id })) + ' — ') + _cet('ce_save_opens_note'));
+        : _cet('ce_save_to_long', { id: _ceLead.id }))) || '');
     else b.removeAttribute('title');
     if (b.textContent !== word) b.textContent = word;
   });
+  /* the tab mode's reason line and Undo follow every paint of the foot (a keystroke repaints only the foot) */
+  try{ if (ceTabbed()) ceTabPaint(); }catch(_){}
 }
 
 /* ---- THE WALK UNDER BOTH TABS (Young, 10 Oct 2026) ----
@@ -4787,7 +4793,10 @@ async function ceSaveAndOn(){
   cePullText();
   const w = _ceTab === 'chat' ? ceWalkNow() : null;
   _ceLastNoteAsk = null;
+  const nextTab = (!w || !(w.ids || w.asks)) && ceTabbed() ? ceTabNextId() : '';
   const ch = await ceSaveChecked();
+  /* THE EDITOR AS A TAB: File · next › files, then opens the paper's next clause; no note is asked (owner, 24 Nov 2026) */
+  if (ch && nextTab && clauseEditorOpen()){ ceTabGo(nextTab); return ch; }
   if (!ch || !w || !(w.ids || w.asks) || !w.k || w.k >= w.n) return ch;
   const wait = _ceLastNoteAsk; _ceLastNoteAsk = null;
   try{ if (wait) await wait; }catch(_){}
@@ -8203,7 +8212,158 @@ if (typeof document !== 'undefined' && !document._ceWired){
   });
 }
 
-Object.assign(window, {
+/* ============================================================================
+   THE EDITOR AS A TAB (owner, 24 Nov 2026: "build it", the drawing "Editor as a Tab")
+   ----------------------------------------------------------------------------
+   The same editor, the same funnel (negoEditClause through ceSaveChecked), worn as the Dossier's fifth tab: the side
+   panel carries the Dossier's own tabs with Editor lit (another tab leaves through ceLeaveGuard, then opens that tab);
+   under them the clause picker ‹ name ▾ k of n ›, "Redlining <clause>", Jambo's points for it (ceOfferPoints), File ·
+   next › with its reason when grey and Undo the change, and the foot "Keep scrolling to edit <next>" · Next ›. The
+   writing bar sits just above the clause being edited, tagged "Editing <clause>"; a thin line marks the clause. No
+   note is asked on filing. Our seat, the new look, a wide window only; their seat keeps its page. */
+function ceTabOn(){
+  if (typeof window === 'undefined' || typeof window.newLookOn !== 'function' || !window.newLookOn()) return false;
+  if (ceSide() === 'counterparty' || window.PORTAL_MODE === true) return false;
+  return !(typeof window.innerWidth === 'number' && window.innerWidth < 1024);
+}
+function ceTabbed(){
+  if (typeof document === 'undefined') return false;
+  const pg = document.getElementById('clause-editor');
+  return !!(pg && pg.classList && pg.classList.contains('is-tabbed'));
+}
+function ceTabList(){
+  if (!_ceC || typeof window.negoClauseList !== 'function') return [];
+  try { return negoClauseList(_ceC).filter(x => x && x.clauseId); } catch (_){ return []; }
+}
+function ceTabAt(){ const L = ceTabList(); return { L, i: L.findIndex(x => String(x.clauseId) === String(_ceClauseId)) }; }
+function ceTabNextId(){ const { L, i } = ceTabAt(); return i >= 0 && i < L.length - 1 ? String(L[i + 1].clauseId) : ''; }
+function ceTabName(cl){ let n = ''; try { n = ceClauseLabel(cl) || ''; } catch (_){ n = ''; } return n || String((cl && (cl.headingText || cl.title)) || '').trim(); }
+/* the Clauses tab's own points on a clause: those whose quoted words sit in it (stkLivePoints, read only) */
+function ceTabPointsOf(clauseId){
+  if (!_ceC || typeof window.stkLivePoints !== 'function') return [];
+  const cl = ceTabList().find(x => String(x.clauseId) === String(clauseId)); if (!cl) return [];
+  const norm = x => String(x || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const text = norm(window.richToText ? richToText(cl.bodyHtml || cl.text || '') : (cl.text || ''));
+  let L = []; try { L = window.stkLivePoints(_ceC) || []; } catch (_){ L = []; }
+  return L.filter(p => p && !p.blank && !p.missing && !p.done && p.quote && text.includes(norm(p.quote).slice(0, 80)))
+    .map(p => ({ t: String(p.stake || p.title || ''), q: String(p.quote || ''), s: p.status === 'need' ? 'need' : 'look' }));
+}
+function ceTabGo(clauseId){
+  if (!clauseId || !clauseEditorOpen()) return;
+  ceGoClause(clauseId, { tab: 'chat', risk: undefined, newClause: undefined, changeId: undefined });
+  const pts = ceTabPointsOf(clauseId);
+  setTimeout(() => { try { if (pts.length && clauseEditorOpen() && String(_ceClauseId) === String(clauseId) && window.ceOfferPoints) ceOfferPoints(pts); } catch (_){} }, 60);
+}
+function ceTabStep(dir){
+  const { L, i } = ceTabAt(); const j = i + dir;
+  if (i < 0 || j < 0 || j >= L.length) return false;
+  ceTabGo(String(L[j].clauseId)); return true;
+}
+/* THE DOSSIER'S EDITOR TAB, PRESSED: the one door onto the editor (openRedlineWorkbench → its landing), on the clause the
+   Clauses tab found something in with its points, else on the paper's first clause */
+function ceTabOpenFor(c, land){
+  if (!c || typeof window.openRedlineWorkbench !== 'function') return;
+  if (!land){ let L = []; try { L = typeof window.negoClauseList === 'function' ? window.negoClauseList(c) : []; } catch (_){ L = []; }
+    const cl = L.find(x => x && x.clauseId); if (cl) land = { clauseId: cl.clauseId }; }
+  window.openRedlineWorkbench(c.id, { from: 'editor', land });
+}
+function ceTabPaint(){
+  if (!ceTabbed() || !_ceC) return;
+  const pg = document.getElementById('clause-editor'); if (!pg) return;
+  const rail = pg.querySelector('.ce-rail'); if (!rail) return;
+  const { L, i } = ceTabAt(); const cl = i >= 0 ? L[i] : ceClause(); const name = ceTabName(cl);
+  const nx = i >= 0 && i < L.length - 1 ? L[i + 1] : null;
+  const them = String(_ceC.counterparty || '').trim();
+  let top = rail.querySelector('#ce-tabtop');
+  if (!top){ top = document.createElement('div'); top.id = 'ce-tabtop'; top.className = 'ce-tabtop'; rail.insertBefore(top, rail.firstChild); }
+  const tabs = typeof window.pdEdTabsHtml === 'function' ? window.pdEdTabsHtml(_ceC) : '';
+  const html = `<div class="ce-dtabs" role="tablist">${tabs}</div>
+    <div class="ce-tpick"><button type="button" class="ce-tar" data-ce-tstep="-1" aria-label="${_ceea(_cet('ce_walk_prev'))}"${i > 0 ? '' : ' disabled'}>‹</button>
+      <button type="button" class="ce-tnm" data-ce-tlist aria-haspopup="listbox"><span>${_cee(name)}</span> ▾</button>
+      <span class="ce-tk">${_cee(_cet('ce_tab_k_of_n', { k: i + 1, n: L.length }))}</span>
+      <button type="button" class="ce-tar" data-ce-tstep="1" aria-label="${_ceea(_cet('ce_walk_next'))}"${nx ? '' : ' disabled'}>›</button></div>
+    <div class="ce-tlist" id="ce-tlist" role="listbox" hidden>${L.map((x, k) => `<button type="button" role="option" data-ce-tgo="${_ceea(x.clauseId)}"${k === i ? ' aria-selected="true" class="on"' : ''}>${_cee(ceTabName(x))}</button>`).join('')}</div>
+    <h3 class="ce-th">${_cee(_cet('ce_tab_redlining', { clause: name }))}</h3>
+    <p class="ce-tsub">${_cee(them ? _cet('ce_tab_sub', { who: them }) : _cet('ce_tab_sub_x'))}</p>`;
+  if (top.getAttribute('data-k') !== html){ top.setAttribute('data-k', html); top.innerHTML = html; }
+  let foot = rail.querySelector('#ce-tabfoot');
+  if (!foot){ foot = document.createElement('div'); foot.id = 'ce-tabfoot'; foot.className = 'ce-tabfoot'; const feet = rail.querySelector('#ce-feet'); rail.insertBefore(foot, feet ? feet.nextSibling : null); }
+  const fh = nx ? `<span class="dash" aria-hidden="true"></span><span class="w">${_cee(_cet('ce_tab_keep', { clause: ceTabName(nx) }))}</span><button type="button" class="ce-tnext" data-ce-tstep="1">${_cee(_cet('ce_tab_next'))}</button>` : '';
+  if (foot.getAttribute('data-k') !== fh){ foot.setAttribute('data-k', fh); foot.innerHTML = fh; }
+  /* the File button's reason when grey, and Undo the change beside it */
+  const rf = rail.querySelector('#ce-railfoot');
+  if (rf){
+    const save = rf.querySelector('[data-ce-act="save"]');
+    let extra = rf.querySelector('.ce-tacts');
+    if (!extra){ extra = document.createElement('div'); extra.className = 'ce-tacts'; rf.appendChild(extra); }
+    const dead = !!(save && save.disabled);
+    const eh = dead ? `<p class="ce-twhy">${_cee(_cet('ce_tab_nothing'))}</p>` : `<button type="button" class="ce-tundo" data-ce-act="undo">${_cee(_cet('ce_tab_undo'))}</button>`;
+    if (extra.getAttribute('data-k') !== eh){ extra.setAttribute('data-k', eh); extra.innerHTML = eh; }
+  }
+  /* the writing bar's tag */
+  const row = pg.querySelector('.ce-barrow');
+  if (row){
+    let tag = row.querySelector('.ce-ttag');
+    if (!tag){ tag = document.createElement('span'); tag.className = 'ce-ttag'; row.insertBefore(tag, row.firstChild); }
+    const tw = _cet('ce_tab_editing', { clause: name });
+    if (tag.textContent !== tw) tag.textContent = tw;
+  }
+  ceTabBarPlace();
+}
+/* THE WRITING BAR SITS JUST ABOVE THE CLAUSE BEING EDITED, following it as the paper scrolls (transform only) */
+function ceTabBarPlace(){
+  if (!ceTabbed()) return;
+  const pg = document.getElementById('clause-editor'); if (!pg) return;
+  const head = pg.querySelector('.ce-head'), doc = pg.querySelector('#ce-doc'), live = doc && doc.querySelector('.rl-clause-live');
+  const left = pg.querySelector('.ce-left');
+  if (!head || !doc || !left) return;
+  const lr = left.getBoundingClientRect(), dr = doc.getBoundingClientRect();
+  const hr = head.offsetHeight || 34;
+  let y = 8, x = 24;
+  if (live){
+    const r = live.getBoundingClientRect();
+    y = Math.max(8, Math.min(r.top - lr.top - hr - 8, dr.bottom - lr.top - hr - 8));
+    x = Math.max(8, r.left - lr.left);
+  }
+  /* NOTHING IS PUSHED BEHIND THE SIDE PANEL: the bar keeps inside the paper's own width */
+  const hw = head.offsetWidth || 0;
+  if (hw && x + hw > lr.width - 16) x = Math.max(8, lr.width - hw - 16);
+  head.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+  if (!doc.dataset.ceTabBound){
+    doc.dataset.ceTabBound = '1';
+    doc.addEventListener('scroll', () => { try { ceTabBarPlace(); } catch (_){} }, { passive: true });
+    window.addEventListener('resize', () => { try { ceTabBarPlace(); } catch (_){} });
+  }
+}
+let _ceTabWheelAt = 0;
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._ceTabWired){ document._ceTabWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#clause-editor.is-tabbed')) return;
+    const st = t.closest('[data-ce-tstep]'); if (st){ e.preventDefault(); ceTabStep(Number(st.getAttribute('data-ce-tstep')) || 1); return; }
+    const ls = t.closest('[data-ce-tlist]');
+    if (ls){ e.preventDefault(); const l = document.getElementById('ce-tlist'); if (l) l.hidden = !l.hidden; return; }
+    const go = t.closest('[data-ce-tgo]'); if (go){ e.preventDefault(); const l = document.getElementById('ce-tlist'); if (l) l.hidden = true; ceTabGo(go.getAttribute('data-ce-tgo')); return; }
+    const dt = t.closest('[data-ce-dtab]');
+    if (dt){
+      e.preventDefault(); const k = dt.getAttribute('data-ce-dtab'); if (k === 'ed') return;
+      /* ANOTHER TAB LEAVES THE EDITOR, asking first over an unfiled edit (ceLeaveGuard), then opens that tab */
+      ceLeaveGuard(() => { rlCloseClauseEditor(); try { if (typeof window.pdEdTabLeave === 'function') window.pdEdTabLeave(k); } catch (_){} });
+      return;
+    }
+    const l = document.getElementById('ce-tlist'); if (l && !l.hidden && !t.closest('#ce-tlist')) l.hidden = true;
+  });
+  document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; const l = document.getElementById('ce-tlist'); if (l && !l.hidden){ l.hidden = true; e.stopPropagation(); } }, true);
+  /* KEEP SCROLLING TO EDIT THE NEXT: one wheel gesture over the panel's head or foot steps one clause */
+  document.addEventListener('wheel', e => {
+    const t = e.target && e.target.closest ? e.target : null;
+    if (!t || !t.closest('#clause-editor.is-tabbed :is(#ce-tabtop, #ce-tabfoot, #ce-feet)')) return;
+    if (t.closest('#ce-tlist')) return;
+    const now = Date.now(); if (now - _ceTabWheelAt < 700 || Math.abs(e.deltaY) < 8) return;
+    _ceTabWheelAt = now; ceTabStep(e.deltaY > 0 ? 1 : -1);
+  }, { passive: true });
+}
+
+Object.assign(window, { ceTabOpenFor, ceTabOn, ceTabbed, ceTabNextId, ceTabPointsOf, ceTabGo, ceTabStep, ceTabPaint, ceTabBarPlace,
   ceApplyZoom, ceLeaveGuard, ceOfferAsk, ceOfferCarried, ceStacksOn, ceTypingRefusal, ceMarkedHtml, ceTwinHtml, ceTwinPaint,
   clauseEditorOpen, clauseEditorClauseId, clauseEditorContract, clauseEditorDirty, ceCanFile, clauseEditorCss,
   clauseEditorLeaveAsk,

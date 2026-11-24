@@ -323,10 +323,12 @@ const VERDICTS = [
     const box = document.querySelector('#pd-redface .rl-cards-empty');
     const acts = document.querySelector('#pd-redface .rl-cards-empty .rl-empty-acts');
     const seen = el => { if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
-    const btns = acts ? [...acts.querySelectorAll('button')] : [];
+    /* RE-POINTED 24 Nov 2026 (owner, "build as drawn": the empty Redlines lists each Playbook gap as a row that opens its
+       words on the paper, and Send stands first) — the ACTS are the buttons that are neither a gap row nor Send */
+    const btns = acts ? [...acts.querySelectorAll('button')].filter(b => !b.matches('[data-rl-gap-quote]') && !b.closest('.rl-ed-send')) : [];
     return { box: !!box, acts: !!acts, n: btns.length,
       labels: btns.map(b => b.textContent.trim()), dead: btns.map(b => !!b.disabled),
-      onScreen: btns.map(seen), lead: (document.querySelector('#pd-redface .rl-empty-lead') || {}).textContent || '',
+      onScreen: btns.map(seen), lead: (document.querySelector('#pd-redface .rl-empty-lead, #pd-redface .rl-ed-qt') || {}).textContent || '',
       /* THE SENTENCE THE BUTTONS REPLACE must be gone from this state — a door
          AND a paragraph describing the door is the fault printed twice. */
       blurb: /Press the .{0,3} Edit/i.test(box ? box.textContent : '') };
@@ -339,9 +341,10 @@ const VERDICTS = [
     '6a the empty column draws three buttons — the two asked for, and Add a clause', JSON.stringify({ n: emptyDoors.n, labels: emptyDoors.labels }));
   check(emptyDoors.onScreen.every(Boolean) && !emptyDoors.dead.some(Boolean),
     '6b all are VISIBLE PIXELS and none is dead on a readable draft', JSON.stringify(emptyDoors));
-  check(/draft from our playbook/i.test(emptyDoors.labels.join(' ')) && /edit a clause/i.test(emptyDoors.labels.join(' ')),
+  check(/draft from our playbook|draft all \d+/i.test(emptyDoors.labels.join(' ')) && /edit a clause/i.test(emptyDoors.labels.join(' ')),
     '6c and they are the two acts the owner asked for', emptyDoors.labels.join(' · '));
-  check(!emptyDoors.blurb && /nothing is sent until you press Send/i.test(emptyDoors.lead),
+  /* RE-POINTED 24 Nov 2026 (as drawn): the line stands beside Send where there is something to send */
+  check(!emptyDoors.blurb && (!emptyDoors.lead || /nothing is sent until you press Send/i.test(emptyDoors.lead)),
     '6d the how-to paragraph is gone and one line says what the press spends', emptyDoors.lead.slice(0, 120));
   await page.screenshot({ path: path.join(OUT, '06-empty-column.png') });
 

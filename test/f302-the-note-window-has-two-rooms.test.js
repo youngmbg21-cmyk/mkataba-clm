@@ -131,21 +131,15 @@ describe('f302 (2) — one writer, the room\'s own answer', () => {
 });
 
 describe('f302 (3) — on every filing', () => {
-  test('a revision is asked, and the pin says it is one', async () => {
+  test('f302: FILING NEVER ASKS FOR A NOTE (owner, 24 Nov 2026): every seat, new or revised, opens nothing and pins nothing', async () => {
     const p = await bench();
-    await p.w.win.negoEditClause(p.c, p.cl.clauseId,
-      '<p>Pay each invoice within sixty (60) days.</p>', { side: 'owner' });
-    assert.ok((p.ch.revisions || []).length, 'the fold happened');
-    p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'owner' });
-    await tick();
-    /* RE-POINTED 11 Sep 2026 (round three): the pin carries no lead line —
-       it quotes the change's wording, revision or first filing alike. */
-    const pin = p.host.querySelector('.rl-np-pin');
-    assert.ok(pin, 'the drawer is pinned to the revised change');
-    assert.equal(pin.querySelector('.lead'), null);
-    assert.match(pin.querySelector('q').textContent, /sixty/i, 'the revised wording is what is quoted');
+    let opened = 0;
+    p.w.win.openChangeNoteDialog = () => { opened++; return Promise.resolve(null); };
+    assert.equal(await p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'owner' }), null);
+    assert.equal(await p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'counterparty' }), null);
+    assert.equal(opened, 0, 'no drawer opens on a filing');
+    assert.equal(p.w.win.rlNotesPinned ? p.w.win.rlNotesPinned() : null, null, 'and nothing is pinned');
   });
-
   test('the other seat and a viewer are still not asked', async () => {
     const p = await bench();
     assert.equal(await p.w.win.rlNoteAskAfterFile(p.c, p.ch, { side: 'counterparty' }), null);

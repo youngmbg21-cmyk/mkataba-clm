@@ -71,6 +71,8 @@ const drive = async (page, fn, arg, fallback) => {
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const ctx = await browser.newContext({ viewport: { width: 1500, height: 1000 } });
   const page = await ctx.newPage();
+  /* RE-POINTED 24 Nov 2026 (the Clauses tab opens on one clause, as drawn): this check reads the whole list, the reader's own kept choice */
+  await page.addInitScript(() => { try { localStorage.setItem('hati.v1.thList', '1'); } catch (_){} });
   /* RE-POINTED 13 Oct 2026 (Stakes): opening Clauses on Home reads the
      contract once as the company view. That read is not this file's subject;
      it is answered here so it neither eats a scripted Plain answer nor

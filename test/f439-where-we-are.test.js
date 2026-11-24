@@ -158,11 +158,8 @@ describe('f439 — Where we are borrows, never re-counts', () => {
   });
 });
 
-describe('f439 — a reason after every save, on their seat', () => {
-  test('their save routes to portalAskReason; ours is untouched', async () => {
-    /* THE NEW LOOK IS THE ONLY LOOK (owner, 16 Nov 2026): their seat is asked as ours is (8 Nov 2026, "mimic what is
-       in the owner side") — their Notes drawer opens with the change pinned; the old "Why this change?" pop-up
-       (portalAskReason, below) is the old look's */
+describe('f439 — no reason asked after a save, on their seat (owner, 24 Nov 2026); the old pop-up kept, unasked', () => {
+  test('their save asks nothing: filing never asks for a note, on any seat (owner, 24 Nov 2026)', async () => {
     const v = theirPage();
     let asked = 0, pinned = null, opened = null;
     const real = v.win.portalAskReason, realPin = v.win.rlNotesPin, realOpen = v.win.portalOpenNotes;
@@ -170,11 +167,9 @@ describe('f439 — a reason after every save, on their seat', () => {
     v.win.rlNotesPin = o => { pinned = o; };
     v.win.portalOpenNotes = o => { opened = o; };
     const out = v.win.rlNoteAskAfterFile({ id: 'MK-500' }, { id: 'CHG-9', clauseId: 'c1' }, { side: 'counterparty' });
-    assert.ok(pinned && pinned.changeId === 'CHG-9' && pinned.filed === true, 'the change is pinned in their notes');
-    assert.ok(opened && opened.pin === true, 'their Notes drawer opens on it');
-    assert.equal(asked, 0, 'the old pop-up is not asked');
-    pinned.resolve(null);
-    assert.equal(await out, null, 'it ends when the note is written or skipped');
+    assert.equal(await out, null);
+    assert.equal(pinned, null, 'nothing pinned'); assert.equal(opened, null, 'their Notes drawer does not open');
+    assert.equal(asked, 0, 'and no "Why this change?"');
     v.win.portalAskReason = real; v.win.rlNotesPin = realPin; v.win.portalOpenNotes = realOpen;
   });
   const HELD = ch => ({ 'hati.negoHeld.t': JSON.stringify({ v: 1, at: Date.now(), decisions: {}, withdrawn: {},
