@@ -130,3 +130,59 @@ describe('f1198 (5) Jambo quotes it, and the quote is counted', () => {
     assert.equal(d.quoted, 1, 'an answer that quotes nothing counts nothing');
   });
 });
+
+/* f1198 (6) THE THREE ADDED (owner, 24 Nov 2026: "Build all three then auto pilot"): "Open s. 48" under the answer,
+   the bell when a check falls due, delete and move. AT THE PARENT every test here fails: no door, no route, no row. */
+describe('f1198 (6) the answer\'s button, delete with undo, move between shelves, the bell', () => {
+  const SRV = R('server/server.js'), APP = R('js/app.js'), NAV = R('js/navmap.js'), CNT = R('js/views/counter.js');
+  test('an answer that quotes GDPR Art. 28(3) carries one button that opens it there; one that quotes nothing, none', async () => {
+    const ask = async (answer) => {
+      ai.reset();
+      ai.script([{ type: 'tool_use', id: 'tu_s', name: 'search_hati', input: { words: 'processor contract', kinds: ['notebook'] } }]);
+      ai.script([{ type: 'tool_use', id: 'tu_d', name: 'deliver_answer', input: { answer, citations: [] } }]);
+      return W.restricted.json('/api/ai/chat', { method: 'POST', body: { messages: [{ role: 'user', content: 'what must a processor contract say?' }] } });
+    };
+    const yes = await ask('GDPR, Art. 28(3): "Processing by a processor shall be governed by a contract".');
+    const b = (yes.choices || []).find(c => c.door && c.door.kind === 'notebook');
+    assert.ok(b, JSON.stringify(yes.choices));
+    assert.equal(b.door.n, 'Art. 28(3)'); assert.match(b.label, /^Open Art\. 28\(3\) · GDPR/);
+    const no = await ask('The notebook does not cover that.');
+    assert.ok(!(no.choices || []).some(c => c.door && c.door.kind === 'notebook'));
+  });
+  test('the door is walled: another person\'s Mine is no door', () => {
+    assert.match(SRV, /if \(k === 'notebook'\) \{ const r = nbRowOf\(txt\(d\.doc, 40\)\); return r && nbSees\(cx && cx\.user, r\)/);
+    assert.match(NAV, /if \(d\.kind === 'notebook'\) return d\.doc \? go\(\{ k: 'notebook'/);
+    assert.match(NAV, /if \(n\.k === 'notebook'\) return \(typeof nbOpen === 'function'\)/);
+  });
+  test('delete: the writer only; gone from the list and the search; Undo brings it back', async () => {
+    const mine = (await W.unrestricted.json('/api/notebook', { method: 'POST', body: { shelf: 'mine', name: 'Force majeure notes', kind: 'research', text: 'Force majeure cases read narrowly by the courts.' } })).doc;
+    const gdpr = (await W.admin.json('/api/notebook')).docs.find(d => d.name === 'GDPR');
+    assert.equal(await status(W.unrestricted, '/api/notebook/' + gdpr.id, { method: 'DELETE' }), 403, 'a member may not delete a Company document');
+    assert.equal(await status(W.admin, '/api/notebook/' + mine.id, { method: 'DELETE' }), 404, 'nobody else may delete your own');
+    await W.unrestricted.json('/api/notebook/' + mine.id, { method: 'DELETE' });
+    assert.ok(!(await W.unrestricted.json('/api/notebook')).docs.some(d => d.id === mine.id));
+    assert.equal((await W.unrestricted.json('/api/hati-search?kinds=notebook&q=courts')).hits.length, 0, 'Jambo cannot find it');
+    const back = await W.unrestricted.json('/api/notebook/' + mine.id + '/restore', { method: 'POST', body: {} });
+    assert.equal(back.doc.name, 'Force majeure notes');
+    assert.equal((await W.unrestricted.json('/api/hati-search?kinds=notebook&q=courts')).hits.length, 1);
+  });
+  test('move: only an admin, only their own onto Company; a Company one becomes theirs; the wall follows', async () => {
+    const own = (await W.admin.json('/api/notebook', { method: 'POST', body: { shelf: 'mine', name: 'Retention research', kind: 'research', text: 'Retention periods across the region.' } })).doc;
+    assert.equal(await status(W.unrestricted, '/api/notebook/' + own.id + '/shelf', { method: 'POST', body: { shelf: 'company' } }), 404, 'a member cannot see it');
+    const up = await W.admin.json('/api/notebook/' + own.id + '/shelf', { method: 'POST', body: { shelf: 'company' } });
+    assert.equal(up.doc.shelf, 'company');
+    assert.ok((await W.restricted.json('/api/notebook')).docs.some(d => d.id === own.id), 'everyone reads it now');
+    const mem = (await W.unrestricted.json('/api/notebook', { method: 'POST', body: { shelf: 'mine', name: 'Member notes', kind: 'research', text: 'A member\'s own words.' } })).doc;
+    assert.equal(await status(W.unrestricted, '/api/notebook/' + mem.id + '/shelf', { method: 'POST', body: { shelf: 'company' } }), 403, 'a member may not move');
+    const down = await W.admin.json('/api/notebook/' + own.id + '/shelf', { method: 'POST', body: { shelf: 'mine' } });
+    assert.equal(down.doc.shelf, 'mine');
+    assert.ok(!(await W.restricted.json('/api/notebook')).docs.some(d => d.id === own.id), 'off the Company shelf, nobody else reads it');
+  });
+  test('the bell: a document due a check that this reader may mark rings, as their own work', () => {
+    assert.match(APP, /\{ k:'nb-due',\s+tone:'amber'/);
+    assert.match(APP, /nbDueDocs\(\)\.forEach\(d=>\{\s*push\('nb-due'/);
+    assert.match(CNT, /const ND_VIEWER_WORK = \[[^\]]*'nb-due'/);
+    assert.match(R('js/views/notebook.js'), /function nbDueDocs\(\)\{ return \(_nb\.docs \|\| \[\]\)\.filter\(d => d\.status === 'due' && nbMayWrite\(d\)\); \}/);
+    assert.match(R('js/core.js'), /nbLoadForAlerts\(\)/);
+  });
+});

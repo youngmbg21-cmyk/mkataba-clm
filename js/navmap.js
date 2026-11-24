@@ -643,6 +643,8 @@ function navGo(a){
   if (n.k === 'place') return navGoPlace(n);
   if (n.k === 'stfind') return (typeof stFindGo === 'function') ? (stFindGo(n.id), true) : false;
   /* a Handbook chapter (Jambo's answer's button; 'about' the book's front page) */
+  /* a notebook document opened at its section (Jambo's answer's button) */
+  if (n.k === 'notebook') return (typeof nbOpen === 'function') ? (nbOpen(n.doc, n.n || null), true) : false;
   if (n.k === 'chapter') return (typeof hbkOpen === 'function') ? (n.chapter === 'about' ? hbkOpen(null, { part: (typeof HANDBOOK_PARTS !== 'undefined' && HANDBOOK_PARTS[0]) ? HANDBOOK_PARTS[0].k : 'around' }) : hbkOpen(n.chapter)) : false;
   return navGoStage2(n) || navGoStage3(n);
 }
@@ -1359,6 +1361,8 @@ function navDoorOf(d){
   if (d.kind === 'duties') return d.due === '7' ? go({ k: 'duties', due: '7' }, 'nav_go_duties_week') : { kind: 'go', place: 'oblig' };
   /* My notes, or one of them: its own page's door (myNotesOpen); private, so only ever the reader's own */
   if (d.kind === 'mynote') return go({ k: 'mynote', id: d.noteId || null }, 'nav_go_mynote');
+  /* a notebook document, at the section the answer quoted (the server's aiDoorOf checked the reader may see it) */
+  if (d.kind === 'notebook') return d.doc ? go({ k: 'notebook', doc: String(d.doc), n: d.n ? String(d.n) : '' }, 'nav_go_notebook') : null;
   /* a Handbook chapter, or the book itself: every reader may open it (the server's aiDoorOf checked the number) */
   if (d.kind === 'chapter'){
     const ch = String(d.chapter || 'about'), c = typeof hbkChapterOf === 'function' ? hbkChapterOf(ch) : null;

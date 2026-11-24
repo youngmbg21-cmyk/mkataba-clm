@@ -2537,6 +2537,10 @@ const ALERT_KINDS = [
      so only ever this reader's own. Amber: work this reader set themselves.
      It clears when the note is marked reviewed or snoozed. */
   { k:'note-due',    tone:'amber', ic:'&#128221;' },
+  /* ---- A NOTEBOOK DOCUMENT DUE A CHECK (owner, 24 Nov 2026) ----
+     A document nobody has checked for twelve months, that this reader may mark
+     (an admin for the Company shelf, its writer for Mine). It clears on Mark checked. */
+  { k:'nb-due',      tone:'amber', ic:'📓' },
   /* ---- ASK AN ADMIN (16 Oct 2026, the Control Room built in full) ----
      A colleague asked for a company setting (an admin's: amber, somebody is
      waiting on them), and the answer to the reader's own ask (green: news,
@@ -3185,6 +3189,11 @@ function buildAlerts(){
     if(typeof window.mineNotesDue==='function') mineNotesDue().forEach(n=>{
       const c=n.contractId&&typeof getContract==='function'?getContract(n.contractId):null;
       push('note-due',c,i18t('al_note_due',{t:n.title}),()=>{ if(window.myNotesOpen) myNotesOpen(n.id); });
+    });
+  }catch(e){}
+  try{
+    if(typeof window.nbDueDocs==='function') nbDueDocs().forEach(d=>{
+      push('nb-due',null,i18t('al_nb_due',{t:d.name}),()=>{ if(window.nbOpen) nbOpen(d.id); });
     });
   }catch(e){}
   /* THE ORDER IS APPLIED ONCE, HERE — see ALERT_KINDS. Sorted at the end rather

@@ -31,6 +31,8 @@ function nbStatusBadge(s){ return `<span class="hbkn-bd is-${NB_STATUS_TONE[s] |
 /* the quoted words as said: without the number the badge already says (an older count kept it) */
 const nbWordsShown = w => (typeof window.nbWordsOf === 'function' ? window.nbWordsOf(w) : String(w || ''));
 const nbMayWrite = d => !!d && (d.mine || !!_nb.mayAdd);
+/* only an admin moves a document across shelves (the server is the wall) */
+const nbMayMove = d => !!d && !!_nb.mayAdd;
 /* ---- the record: one read, kept for the sitting; every press reads the answer the server gives ---- */
 async function nbLoad(force){
   if (_nb.docs && !force) return _nb.docs;
@@ -136,11 +138,15 @@ function nbChosenPanelHtml(d, reading){
   const bars = nbBarsHtml(d);
   const acts = [reading ? '' : `<button type="button" class="ui-btn ui-btn-primary" data-nb-open="${E(d.id)}">${E(_nbT('nb_open'))}</button>`,
     nbMayWrite(d) ? `<button type="button" class="ui-btn" data-nb-check="${E(d.id)}">${E(_nbT('nb_check'))}</button>` : '',
-    nbMayWrite(d) ? `<button type="button" class="ui-btn" data-nb-replace="${E(d.id)}">${E(_nbT('nb_replace'))}</button>` : ''].filter(Boolean).join('');
+    nbMayWrite(d) ? `<button type="button" class="ui-btn" data-nb-replace="${E(d.id)}">${E(_nbT('nb_replace'))}</button>` : '',
+    /* MOVE BETWEEN SHELVES: an admin's own document onto the Company shelf, a Company one onto their own */
+    nbMayMove(d) ? `<button type="button" class="ui-btn" data-nb-move="${E(d.id)}">${E(_nbT(d.mine ? 'nb_move_company' : 'nb_move_mine'))}</button>` : '',
+    nbMayWrite(d) ? `<button type="button" class="ui-btn" data-nb-delete="${E(d.id)}">${E(_nbT('nb_delete'))}</button>` : ''].filter(Boolean).join('');
+  /* the acts come first, under the quote, so none falls below a short screen's fold; the chart and timeline follow */
   const groups = [];
+  if (acts) groups.push({ html: `<div class="nb-acts">${acts}</div>` });
   if (bars) groups.push({ label: _nbT('nb_where_quote') + ' · ' + _nbTn('nb_times', d.quoted, { n: d.quoted }), html: bars });
   groups.push({ label: _nbT('nb_timeline'), html: nbTimelineHtml(d) });
-  if (acts) groups.push({ html: `<div class="nb-acts">${acts}</div>` });
   return `<div class="jl-words is-ov">${typeof jamboOverviewHtml === 'function' ? jamboOverviewHtml({ before: badges, title: d.name, sub: '', mid: quote, groups }, 'nb-ch') : ''}</div>`;
 }
 function nbOverviewPanelHtml(){
@@ -172,7 +178,7 @@ function renderNotebook(){
   if (_nb.docs == null && !_nb.busy){ _nb.busy = true; nbLoad().then(() => { _nb.busy = false; if (typeof state !== 'undefined' && state.view === 'notebook') renderNotebook(); }); }
   const wide = typeof window.insFits === 'function' && insFits();
   const d = _nb.open ? nbDocOf(_nb.open) : null;
-  if (_nb.open && !d) _nb.open = null;
+  if (_nb.open && !d && _nb.docs != null) _nb.open = null;
   const reading = !!(_nb.open && d);
   const full = reading ? _nb.full.get(d.id) : null;
   if (reading && !full) nbFull(d.id).then(x => { if (x && _nb.open === d.id && state.view === 'notebook') renderNotebook(); });
@@ -220,6 +226,33 @@ async function nbCheck(id){
     try { const u = await api('notebook/' + encodeURIComponent(id) + '/unchecked', 'POST', { was }); nbPut(u.doc); if (state.view === 'notebook') renderNotebook(); toast(_nbT('nb_checked_undone'), 'ok'); }
     catch (e) { toast((e && e.message) || _nbT('nb_load_fail'), 'err'); } } } });
 }
+/* DELETE, WITH UNDO (owner, 24 Nov 2026): it leaves the list and Jambo's reach at once; Undo brings it back */
+async function nbDelete(id){
+  const d = nbDocOf(id); if (!d || !nbMayWrite(d)) return;
+  try { await api('notebook/' + encodeURIComponent(id), 'DELETE'); } catch (e) { toast((e && e.message) || _nbT('nb_load_fail'), 'err'); return; }
+  _nb.docs = (_nb.docs || []).filter(x => x.id !== id); _nb.full.delete(id);
+  if (_nb.pick === id) _nb.pick = null; if (_nb.open === id) _nb.open = null;
+  renderNotebook(); nbAlertsRepaint();
+  toast(_nbT('nb_deleted', { name: d.name }), 'ok', { action: { label: _nbT('act_undo'), onClick: async () => {
+    try { const r = await api('notebook/' + encodeURIComponent(id) + '/restore', 'POST', {}); nbPut(r.doc); _nb.pick = id;
+      if (state.view === 'notebook') renderNotebook(); nbAlertsRepaint(); toast(_nbT('nb_restored', { name: d.name }), 'ok'); }
+    catch (e) { toast((e && e.message) || _nbT('nb_load_fail'), 'err'); } } } });
+}
+/* MOVE BETWEEN SHELVES, WITH UNDO: pressed again from the toast, it goes back */
+async function nbMove(id, undo){
+  const d = nbDocOf(id); if (!d || !nbMayMove(d)) return;
+  const to = d.mine ? 'company' : 'mine';
+  let r; try { r = await api('notebook/' + encodeURIComponent(id) + '/shelf', 'POST', { shelf: to }); } catch (e) { toast((e && e.message) || _nbT('nb_load_fail'), 'err'); return; }
+  nbPut(r.doc); if (_nb.tab !== 'all') _nb.tab = 'all';
+  if (state.view === 'notebook') renderNotebook(); nbAlertsRepaint();
+  const say = _nbT(to === 'company' ? 'nb_moved_company' : 'nb_moved_mine', { name: d.name });
+  if (undo) toast(say, 'ok'); else toast(say, 'ok', { action: { label: _nbT('act_undo'), onClick: () => nbMove(id, true) } });
+}
+/* THE BELL KNOWS WHAT IS DUE A CHECK (owner, 24 Nov 2026): the documents this reader may mark, past twelve months */
+function nbDueDocs(){ return (_nb.docs || []).filter(d => d.status === 'due' && nbMayWrite(d)); }
+function nbAlertsRepaint(){ try { if (typeof updateSidebarCounts === 'function'){ if (typeof navCountsClear === 'function') navCountsClear(); updateSidebarCounts(); } } catch (_){} }
+/* loaded once at the start, so the bell and the Guide's count know before the page is opened */
+function nbLoadForAlerts(){ return nbLoad().then(() => nbAlertsRepaint(), () => {}); }
 /* ---- ADD, AND REPLACE: HaTi's one edit pop-up; the file read by the one reader ---- */
 function nbAddOpen(replaceId){
   const rep = replaceId ? nbDocOf(replaceId) : null;
@@ -298,11 +331,13 @@ function nbWire(){
 }
 if (typeof document !== 'undefined' && !document._nbWired){ document._nbWired = true;
   document.addEventListener('click', e => { if (typeof state === 'undefined' || state.view !== 'notebook') return;
-    const el = e.target && e.target.closest && e.target.closest('#ins-panel [data-nb-open], #ins-panel [data-nb-check], #ins-panel [data-nb-replace], #ins-panel [data-nb-go-sec], #ins-panel [data-nb-pick]'); if (!el) return;
+    const el = e.target && e.target.closest && e.target.closest('#ins-panel [data-nb-open], #ins-panel [data-nb-check], #ins-panel [data-nb-replace], #ins-panel [data-nb-move], #ins-panel [data-nb-delete], #ins-panel [data-nb-go-sec], #ins-panel [data-nb-pick]'); if (!el) return;
     e.preventDefault();
     if (el.hasAttribute('data-nb-open')) nbOpen(el.getAttribute('data-nb-open'));
     else if (el.hasAttribute('data-nb-check')) nbCheck(el.getAttribute('data-nb-check'));
     else if (el.hasAttribute('data-nb-replace')) nbAddOpen(el.getAttribute('data-nb-replace'));
+    else if (el.hasAttribute('data-nb-move')) nbMove(el.getAttribute('data-nb-move'));
+    else if (el.hasAttribute('data-nb-delete')) nbDelete(el.getAttribute('data-nb-delete'));
     else if (el.hasAttribute('data-nb-pick')) nbRowPress(el.getAttribute('data-nb-pick'));
     else { const n = el.getAttribute('data-nb-go-sec'); const id = _nb.open || _nb.pick; if (_nb.open) nbGoSec(n); else if (id) nbOpen(id, n); } });
   /* a press outside an open filter menu closes it */
@@ -313,4 +348,4 @@ function nbPlace(){ return { tab: _nb.tab, fKind: _nb.fKind, fStatus: _nb.fStatu
 function nbPlacePut(p){ if (!p) return; ['tab', 'fKind', 'fStatus', 'fBy', 'open', 'pick'].forEach(k => { if (p[k] != null) _nb[k] = p[k]; }); }
 /* the count on the Guide's row and the jump window: documents due a check that this reader may mark */
 function nbDueCount(){ return (_nb.docs || []).filter(d => d.status === 'due' && nbMayWrite(d)).length; }
-Object.assign(window, { renderNotebook, nbLoad, nbOpen, nbRowPress, nbCheck, nbAddOpen, nbShown, nbListHtml, nbRowHtml, nbChosenPanelHtml, nbOverviewPanelHtml, nbPanelPaint, nbReadHtml, nbPlace, nbPlacePut, nbDueCount, nbFilters: _nb });
+Object.assign(window, { renderNotebook, nbLoad, nbLoadForAlerts, nbDueDocs, nbDelete, nbMove, nbOpen, nbRowPress, nbCheck, nbAddOpen, nbShown, nbListHtml, nbRowHtml, nbChosenPanelHtml, nbOverviewPanelHtml, nbPanelPaint, nbReadHtml, nbPlace, nbPlacePut, nbDueCount, nbFilters: _nb });

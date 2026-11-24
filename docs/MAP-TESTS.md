@@ -1139,3 +1139,4 @@ sign-beside-the-paper 7b, contract-new-look 1 (no Value in the panel).
 - NEW test/chromium/notebook-verify.js (GitHub; red at the parent: no page): tabs with counts, a row's quote and badges, choose then open, back, Check due → Mark checked → Undo, the Add pop-up's lines.
 - RE-POINTED: f1097 (1) NAMES (Notebook added to the test's page names); f841 (2a) the "see" stage holds the Notebook.
 - Re-ran green: f232, f48, f561, f564, f672, f842, f937, f938, f946, f954, f955, f964, f965, f997, f1068, f1097, f1131, f1146, f1186, f1193, f866, f305.
+- f1198 (6) (24 Nov 2026, red at the parent): the answer's "Open …" button and its walled door; delete with Undo (list and search); move between shelves (admin, own onto Company; the wall follows); the bell row. notebook-verify 6a, 6b: Delete and Undo in the panel.
