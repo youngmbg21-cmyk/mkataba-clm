@@ -27957,6 +27957,17 @@
   html.lg-new #ig-paper .ig-zoom.is-working .pg-work .hati-doc .rl-pnum{display:inline-block;width:52px;margin-left:-52px;font-weight:400;font-variant-numeric:tabular-nums;color:var(--color-neutral-400);white-space:pre}
   html.lg-new #ig-paper .up-strip.is-measuring > .up-fact{flex:none}
   html.lg-new #ig-paper .up-strip > .up-fact:first-child{min-width:6em}
+
+  /* ==== THE REDLINES PANEL NEVER GROWS WIDER THAN ITSELF (owner, 25 Nov 2026, two iPad photos: the playbook rows ran off
+     the right edge, their badges and "Draft all" hidden, and a swipe moved the whole panel sideways) ====
+     Each gap row is a <button>, and a button never wraps (BUTTONS … no wrap): its quote stood on one line and pushed the
+     row, then the list, past the panel. The row's words wrap now; the section and its parts never outgrow the panel; and
+     the panel's list never scrolls sideways at all. */
+  html.lg-new #ig-dock .rl-cards-empty .rl-ed-row.rl-ed-row{white-space:normal;max-width:calc(100% + 16px);box-sizing:border-box}
+  html.lg-new #ig-dock .rl-cards-empty .rl-ed-row .rl-ed-q{overflow-wrap:anywhere}
+  html.lg-new #ig-dock .rl-cards-empty :is(.rl-empty-acts, .rl-ed-sec, .rl-ed-h){min-width:0;max-width:100%}
+  html.lg-new #ig-dock .rl-cards-empty .rl-ed-h{flex-wrap:wrap;row-gap:4px}
+  html.lg-new #ig-dock .nego-index-scroll{overflow-x:hidden}
 </style>
 
 <script type="module" src="js/app.js"></script>
