@@ -64,14 +64,20 @@ const check = (name, pass, detail) => {
     check('0b. words are highlighted on the paper', !!picked, picked && picked.words);
     await page.evaluate(({ x, y }) => { const el = document.elementFromPoint(x, y);
       el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: x, clientY: y })); }, picked);
-    const menu = await until(() => { const m = document.querySelector('.nego-selmenu'); return m ? [...m.querySelectorAll('button')].map(b => b.textContent.trim()) : null; });
-    check('0c. the highlight menu offers Comment', !!menu && menu.includes('Comment'), menu && menu.join(' · '));
-    const at = await page.evaluate(() => { const b = [...document.querySelectorAll('.nego-selmenu button')].find(x => x.textContent.trim() === 'Comment');
-      const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+    /* RE-POINTED 25 Nov 2026 (LIVE NOTES A, #1012, the owner's drawing built: "a note starts from words highlighted on
+       the paper, Internal or the other side"): Comment is "Add a note" leading the bar with its rooms (rlNoteRoomActs:
+       Internal, then the party by name), and the press opens a NEW conversation on the words (rlNpNewConvHtml): the
+       words quoted lit, the room chosen on the panel's pills, the caret in its box. */
+    const menu = await until(() => { const m = document.querySelector('.nego-selmenu'); return m ? { items: [...m.querySelectorAll('button')].map(b => b.textContent.trim()),
+      lead: ((m.querySelector('.nego-selnote-k') || {}).textContent || '').trim(), internal: !!m.querySelector('[data-nego-ai="note:internal"]') } : null; });
+    check('0c. the highlight menu leads with Add a note: Internal, then the party', !!menu && menu.lead === 'Add a note' && menu.internal && menu.items[0] === 'Internal', menu && (menu.lead + ': ' + menu.items.join(' · ')));
+    const at = await page.evaluate(() => { const b = document.querySelector('.nego-selmenu [data-nego-ai="note:internal"]');
+      if (!b) return null; const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+    if (!at) throw new Error('no Internal room on the bar');
     await page.mouse.click(at.x, at.y);
     const panel = await until(() => {
-      const pin = document.querySelector('.rl-np-pin q'), on = document.querySelector('.rl-np-pinroom button.on');
-      const box = document.querySelector('.rl-np-in');
+      const pin = document.querySelector('.rl-lv-conv.is-new') && document.querySelector('.rl-lv-hq q mark'), on = document.querySelector('.rl-np-rooms .rl-np-room.on .rl-np-nm');
+      const box = document.querySelector('.rl-lv-conv.is-new .rl-np-in');
       return pin ? { quote: pin.textContent, room: on ? on.textContent.trim() : '', caret: !!(box && document.activeElement === box) } : null;
     });
     const dialog = await page.evaluate(() => !!document.querySelector('#modal-root > *, .dlg-overlay, [role="dialog"] textarea'));
