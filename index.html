@@ -27939,6 +27939,10 @@
   html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) :is(.rl-hnum, .rl-pnum, p.rl-line:not(.rl-hang) > .rl-marker:first-child){display:inline-block;width:52px;margin-left:-52px;font-weight:400;font-variant-numeric:tabular-nums;color:var(--color-neutral-400);white-space:pre}
   html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) .rl-paper-title{font-size:calc(23px * var(--doc-scale,1));font-weight:var(--w-strong);letter-spacing:0}
   html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) .rl-paper-sub{font-size:14px;font-style:italic;color:var(--color-quiet)}
+  /* the Negotiate page and their page give every paragraph on the paper 1.75 (negotiation-css.js, .redline-page .rl-doc
+     .rl-paper p), so the sub-line and the recital stood taller there and every clause under them 1px lower than on Home
+     (one-paper-everywhere 1, measured 25 Nov 2026: sub-line 24.5px against 23.8): the wording's one spacing */
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) :is(.rl-paper-sub, .rl-recital p){line-height:1.7}
   html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) :is(table, .hati-doc table){font-variant-numeric:tabular-nums}
   html:is(.lg-new, .lg-out) :is(.rl-sigfor, .rl-sigrow):not(.pg-sign *){font-family:var(--font-body);font-size:12px;color:var(--color-neutral-400)}
   /* the editor dresses every span in its box in the paper's font (#ce-doc :is(p,li,div,span)): the number column,
