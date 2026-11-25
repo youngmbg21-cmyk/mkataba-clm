@@ -288,6 +288,7 @@ const READ = () => {
           const rows = [...document.querySelectorAll('#clause-editor .ce-pts .ce-pt')];
           const a = { rows: rows.length, on: rows.filter(r => r.classList.contains('is-on')).length, nums: document.querySelectorAll('#clause-editor .ce-pts .n, #clause-editor .ce-pts .ce-pt-n').length,
             say: ((document.querySelector('#clause-editor .ce-pts .t') || {}).textContent || '').trim(), hl: hl(),
+            head: [...document.querySelectorAll('#clause-editor .ce-pts.is-tab > .ce-sh > span')].map(e => e.textContent.trim()).join(' '),
             btn: ((document.querySelector('#clause-editor [data-ce-act="pts-draft"]') || {}).textContent || '').trim() };
           const t = document.querySelector('#clause-editor .ce-pt-tick'); if (t) t.click();
           await new Promise(r => setTimeout(r, 200));
@@ -295,8 +296,12 @@ const READ = () => {
           a.offHl = hl(); a.offGrey = !!(g && g.disabled);
           const t2 = document.querySelector('#clause-editor .ce-pt-tick'); if (t2) t2.click();
           return a; }) : null;
+        /* RE-POINTED 25 Nov 2026 (the editor as a tab, as drawn — EDITOR PANEL AS DRAWN, f1219: "To fix" (cePointsHtml's tab
+           branch, .ce-tdraft); the editor's panel L+S, owner 25 Nov 2026, "less is more": no grey words on this panel): the
+           point is listed under "To fix" with its count, ticked, no number, its words highlighted; no "You came from …"
+           sentence; one button, Draft a fix with Jambo; untick takes the highlight off and greys it */
         check('13f the editor says why you came: the point ticked (no number), its words highlighted, untick takes it off and greys Draft a fix',
-          !!Pt && Pt.rows === 1 && Pt.on === 1 && Pt.nums === 0 && /You came from What to watch on 3/.test(Pt.say) && Pt.hl === 1 && /^Draft a fix for 1 point$/.test(Pt.btn) && Pt.offHl === 0 && Pt.offGrey, Pt);
+          !!Pt && Pt.rows === 1 && Pt.on === 1 && Pt.nums === 0 && Pt.say === '' && Pt.head === 'To fix 1' && Pt.hl === 1 && Pt.btn === 'Draft a fix with Jambo' && Pt.offHl === 0 && Pt.offGrey, Pt);
         await page.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="row-back"]'); if (b) b.click(); });
         const home = opened && await until(page, () => !document.getElementById('clause-editor') && !(window.pdRedShows && pdRedShows())
           && /Quality/.test(((document.querySelector('#pd-thread .doc-th-row.is-open .doc-th-name') || {}).textContent || '')), null, 10000);

@@ -43,7 +43,9 @@ test('f1222 (2) every plain heading on the paper wears it, the typed one too', (
 test('f1222 (3) one closing block: one size, even gaps, a quiet number column, never the signing copy', () => {
   const B = H.slice(H.indexOf('ONE PAPER TYPE, THE LEGORA + STRIPE WAY'));
   assert.ok(B.length > 100, 'the block exists');
-  const P = 'html.lg-new article.nego-doc.rl-paper:not(.pg-sign)';
+  /* RE-POINTED 25 Nov 2026 (the block's own words, "on every working paper on screen (Home, the editor, Redlines, their
+     page)"): their page opens with nobody signed in (html.lg-out), so the block is scoped to both looks */
+  const P = 'html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign)';
   const rule = sel => { const i = B.indexOf(P + sel + '{'); assert.ok(i >= 0, sel); return B.slice(i, B.indexOf('}', i)); };
   const size = rule('').match(/font-size:([\d.]+px)/)[1];
   assert.ok(rule(' .rl-clause-h').includes('font-size:' + size), 'headings the wording\'s size');
@@ -51,6 +53,7 @@ test('f1222 (3) one closing block: one size, even gaps, a quiet number column, n
   /* RE-POINTED 24 Nov 2026 (the paper and its notes, L+S, owner's pick): the numbers wear the paper's own font (the Legora type), paragraphs' numbers too */
   assert.match(rule(' :is(.rl-hnum, .rl-pnum, p.rl-line:not(.rl-hang) > .rl-marker:first-child)'), /width:(\d+)px;margin-left:-\1px[\s\S]*tabular-nums[\s\S]*color:var\(--color-neutral-400\)/);
   assert.match(B, /:is\(table, \.hati-doc table\)\{font-variant-numeric:tabular-nums\}/, 'tables line their figures up');
+  assert.equal(rule(' :is(.rl-front, .nego-body, .rl-line)').match(/font-size:([\d.]+px)/)[1], size, 'the blocks the wording stands in, the same size on every mount');
   assert.match(B, /#ce-doc article\.nego-doc :is\(\.rl-sigfor, \.rl-sigrow\)\{font-family:var\(--font-body\)\}/, 'the editor too');
 });
 

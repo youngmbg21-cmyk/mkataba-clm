@@ -27911,18 +27911,23 @@
      wording's size, only bolder; the same gap after every clause. Everything that is NOT wording, the clause's
      number (`.rl-hnum`, hung in its own column by rlHeadNumHtml), the paper's sub-line and the signature labels,
      is the plain sans in detail grey, figures lined up. Tables line their figures up. NEVER the signing copy
-     (`.pg-sign`), the printed or exported copies: those keep the Contract Look. Scoped by html.lg-new and the
-     paper's own classes so it wins without !important. */
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign){font-size:15px;line-height:1.7;padding-left:76px;padding-right:56px}
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .nego-body p,
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .nego-body li{font-size:15px;line-height:1.7}
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .nego-clause.rl-clause{margin:0;padding-top:9px;padding-bottom:9px}
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .rl-clause-h{font-size:15px;line-height:1.7;font-weight:var(--w-strong);letter-spacing:0;margin:0 0 2px}
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) :is(.rl-hnum, .rl-pnum, p.rl-line:not(.rl-hang) > .rl-marker:first-child){display:inline-block;width:52px;margin-left:-52px;font-weight:400;font-variant-numeric:tabular-nums;color:var(--color-neutral-400);white-space:pre}
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .rl-paper-title{font-size:calc(23px * var(--doc-scale,1));font-weight:var(--w-strong);letter-spacing:0}
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .rl-paper-sub{font-size:14px;font-style:italic;color:var(--color-quiet)}
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) :is(table, .hati-doc table){font-variant-numeric:tabular-nums}
-  html.lg-new :is(.rl-sigfor, .rl-sigrow):not(.pg-sign *){font-family:var(--font-body);font-size:12px;color:var(--color-neutral-400)}
+     (`.pg-sign`), the printed or exported copies: those keep the Contract Look. Scoped by html.lg-new, and html.lg-out
+     for their page (it opens with nobody signed in, so it never wears lg-new; one-paper-everywhere measured 20px titles and
+     14px wording there, 25 Nov 2026), and the paper's own classes so it wins without !important. */
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign){font-size:15px;line-height:1.7;padding-left:76px;padding-right:56px}
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) .nego-body p,
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) .nego-body li{font-size:15px;line-height:1.7}
+  /* the blocks the wording stands in are the wording's size too: the Negotiate page and their page set them 14px/1.72
+     (negotiation-css.js, .redline-page), so text not in a <p> (the parties' block, a line of a hung clause) read smaller
+     there than on Home */
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) :is(.rl-front, .nego-body, .rl-line){font-size:15px;line-height:1.7}
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) .nego-clause.rl-clause{margin:0;padding-top:9px;padding-bottom:9px}
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) .rl-clause-h{font-size:15px;line-height:1.7;font-weight:var(--w-strong);letter-spacing:0;margin:0 0 2px}
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) :is(.rl-hnum, .rl-pnum, p.rl-line:not(.rl-hang) > .rl-marker:first-child){display:inline-block;width:52px;margin-left:-52px;font-weight:400;font-variant-numeric:tabular-nums;color:var(--color-neutral-400);white-space:pre}
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) .rl-paper-title{font-size:calc(23px * var(--doc-scale,1));font-weight:var(--w-strong);letter-spacing:0}
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) .rl-paper-sub{font-size:14px;font-style:italic;color:var(--color-quiet)}
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) :is(table, .hati-doc table){font-variant-numeric:tabular-nums}
+  html:is(.lg-new, .lg-out) :is(.rl-sigfor, .rl-sigrow):not(.pg-sign *){font-family:var(--font-body);font-size:12px;color:var(--color-neutral-400)}
   /* the editor dresses every span in its box in the paper's font (#ce-doc :is(p,li,div,span)): the number column,
      the sub-line and the signature labels are not wording, so they keep the sans there too */
   html.lg-new #ce-doc article.nego-doc :is(.rl-sigfor, .rl-sigrow){font-family:var(--font-body)}
@@ -27959,7 +27964,7 @@
   html.lg-new #pd2-dock .pd2-dock-zc{display:flex;justify-content:flex-end}
   html.lg-new #pd2-dock .pd2-dock-zc > .paper-zc{position:static;width:auto;height:auto;display:flex;justify-content:flex-end;align-items:center;gap:var(--s-3)}
   html.lg-new #pd2-dock .pd2-dock-row:empty{display:none}
-  html.lg-new #pd2-dock-row > .pd2-rn-chips{position:static;display:flex;flex-wrap:nowrap;align-items:center;gap:12px;min-width:0;width:auto;overflow:hidden;border-bottom:1px solid var(--color-divider)}
+  html.lg-new #pd2-dock-row > .pd2-rn-chips{position:static;display:flex;flex-wrap:nowrap;align-items:center;gap:12px;min-width:0;width:auto;overflow-x:clip;overflow-y:visible;border-bottom:1px solid var(--color-divider)}
   html.lg-new #pd2-dock-row > .pd2-rn-chips.pd2-tg{border-bottom:0;justify-content:flex-end}
   html.lg-new #pd2-dock-row > .pd2-rn-chips > .pd2-rn-chip{flex:none;height:28px;padding:0;border:0;border-radius:0;background:none;box-shadow:none;color:var(--color-neutral-400);font:inherit;font-size:12.5px;font-weight:400;cursor:pointer;white-space:nowrap}
   html.lg-new #pd2-dock-row > .pd2-rn-chips > .pd2-rn-chip[aria-pressed="true"]{color:var(--color-text);font-weight:var(--w-strong);box-shadow:0 1.5px 0 var(--color-text)}
@@ -27970,7 +27975,8 @@
   html.lg-new #pd2-dock-row .pd2-rn-hide{flex:none;margin:0 0 0 auto;padding:0;border:0;background:none;font:inherit;font-size:12.5px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
   html.lg-new #pd2-dock-row #pd2-notes-tg{display:flex;justify-content:flex-end}
   html.lg-new #pd2-dock-row #pd2-notes-tg .pd2-rn-chip{height:var(--ctl-h-sm);padding:0 12px;border:0;border-radius:999px;background:var(--color-surface);box-shadow:0 0 0 1px var(--color-divider);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
-  /* A FINGER FINDS THEM (the iPad): each small press reaches 44px tall without looking bigger */
+  /* A FINGER FINDS THEM (the iPad): each small press reaches 44px tall without looking bigger; the notes' row clips sideways
+     only (overflow-x:clip above), so that reach is never cut off by the row (measured: "hides 9px" at every laptop) */
   html.lg-new #pd2-dock :is(.rl-type-step button, .pd2-rn-chip, .pd2-rn-hide){position:relative}
   html.lg-new #pd2-dock :is(.rl-type-step button, .pd2-rn-chip, .pd2-rn-hide)::after{content:"";position:absolute;inset:-9px 0}
   /* the upload's facts are whole words (pd2UpStripFit): never cut, the last ones left out instead */
