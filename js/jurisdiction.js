@@ -203,8 +203,9 @@ function jxSet(id){
      A reader who never picked a language reads the one that goes with the
      market, so moving the market to Sweden turned their whole screen Swedish.
      The language they are reading NOW is kept as theirs before the market
-     moves; the market changes money, numbers and the legal defaults only. A
-     colleague who joins later still opens in the market's language. */
+     moves; the market changes money, numbers and the legal defaults only.
+     Since 25 Nov 2026 (f1237) an unchosen language is always English, so the
+     market no longer moves it and this keep never has to fire. */
   let langWas = null;
   try{ if (typeof window !== 'undefined' && typeof window.langId === 'function') langWas = window.langId(); }catch(e){}
   try{ if (typeof lsSet === 'function') lsSet(JX_LS, id); }catch(e){}

@@ -290,9 +290,16 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     await page.waitForTimeout(1000);
     const toneRows = ['Draft', 'Under Review', 'Signed'].map(k => ({ k, list: listTones[k] || null,
       bar: mapTones[k] && mapTones[k].bar, square: mapTones[k] && mapTones[k].square }));
-    check('3c each stage on Your book is the colour the Contracts list gives it — the bar and the square',
-      toneRows.every(r => r.list && r.bar === r.list && r.square === r.list),
-      toneRows.map(r => `${r.k}: list ${r.list} · bar ${r.bar} · square ${r.square}`).join(' | '));
+    /* RE-POINTED 25 Nov 2026 (EACH STAGE ITS OWN COLOUR, owner: "drafting and in review are the same color"; f1230): the
+       Board no longer borrows the list's three buckets — each stage wears its status's own dot (STATUS_META), so Drafting is
+       grey, apart from In review's amber. Asked: bar = square = the status's own dot, three stages three colours */
+    const ownDots = await page.evaluate(() => { const out = {}; const M = window.STATUS_META || {};
+      ['Draft', 'Under Review', 'Signed'].forEach(k => { const i = document.createElement('i'); i.style.color = (M[k] && M[k].dot) || '';
+        document.body.appendChild(i); out[k] = getComputedStyle(i).color; i.remove(); }); return out; });
+    toneRows.forEach(r => { r.own = ownDots[r.k]; });
+    check('3c each stage on Your book wears its own status colour — the bar and the square, three stages three colours',
+      toneRows.every(r => r.own && r.bar === r.own && r.square === r.own) && new Set(toneRows.map(r => r.bar)).size === 3,
+      toneRows.map(r => `${r.k}: own ${r.own} · list ${r.list} · bar ${r.bar} · square ${r.square}`).join(' | '));
 
     /* ================= 4. THE FIGURES SIT ON ONE LINE ====================
        RE-POINTED IN PLACE 3 Oct 2026: the six figures of Your book. The
