@@ -426,7 +426,8 @@ describe('f210 (4) — one reading, one producer', () => {
        them the wall hides, whether this seat has hands — has already been
        worked out by redlineDocHtml, and asking it twice is how two surfaces
        come to disagree about one clause. */
-    assert.match(SRC, /const _cpBodies = \[\];\s*\n\s*const _cpDoc = redlineDocHtml\(c, \{ \.\.\.opts, cpSink: _cpBodies \}\);/);
+    /* RE-POINTED 25 Nov 2026 (#1007 "one paper type": the screen's working paper wears no Contract Look design, look:false) */
+    assert.match(SRC, /const _cpBodies = \[\];\s*\n\s*const _cpDoc = redlineDocHtml\(c, \{ (look: false, )?\.\.\.opts, cpSink: _cpBodies \}\);/);
     assert.match(SRC, /\$\{rlClausePanelHtml\(_cpBodies\)\}/);
     assert.equal((SRC.match(/opts\.cpSink\.push\(rlClausePanelBodyHtml\(/g) || []).length, 1,
       'exactly one call site — the sink');
