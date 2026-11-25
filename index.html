@@ -9835,6 +9835,9 @@
   #ig-strip .ig-zc-line{display:none;flex:none}
   #ig-page:has(#pd-fillface) #ig-strip .ig-zc-line{display:inline-flex;align-items:center}
   #ig-page:has(#pd-fillface) #ig-paper-scroll > .paper-zc-row{display:none}
+  /* the paper's zoom now lives in the dock above it (pd2DockFit, #1013): while Fill in stands it stays on the head line
+     alone, as before — one zoom, never two */
+  html.lg-new #ig-page:has(#pd-fillface) #pd2-dock .pd2-dock-zc{display:none}
   #ig-strip .ig-zc-line .rl-type-step{height:var(--ctl-h-sm)}
   #ig-strip .ig-zc-line .rl-type-step button{width:22px;height:22px;font-size:var(--t-body)}
   #ig-strip .ig-sc-word{display:inline-flex;align-items:center;height:22px;padding:0;color:var(--color-neutral-600);font-size:var(--t-meta);font-weight:var(--w-label);white-space:nowrap}
@@ -15260,7 +15263,7 @@
   .jb-ways.is-in-door .jb-way{font-size:13px}
   /* P-18, ONE ROW (owner, 25 Nov 2026; replaces "at most three shown"): what does not fit is measured out, its short form
      first, then left out from the end (jamboWaysFit, js/components.js) — never wrapped, never a second line */
-  .jb-ways > .is-fit-off, [data-ig-chips] > .is-fit-off{display:none}
+  html.lg-new .jb-ways > .is-fit-off, html.lg-new [data-ig-chips] > .is-fit-off{display:none}
   /* "What can I do here?" (js/teach.js): beside "Jambo ›" it stands alone, the page's links giving way; beside
      "‹ Overview" (the conversation, where the person can simply ask) there is no room for it, the links keep theirs */
   .jb-door:not(.jb-door-fwd-line) .jb-ways.is-in-door [data-teach-here]{display:none}

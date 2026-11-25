@@ -368,3 +368,10 @@ describe('f1189 (12) a how-to the Handbook answers is answered in its steps, fre
     for (const f of [a, b]) assert.equal(f('Type \\"discover\\" on the Board'), 'Type "discover" on the Board');
   });
 });
+
+test('f1189 a step outlines a link carried onto the press line (P-18): its own button hidden, the copy found by data-jb-key', () => {
+  const T = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js/teach.js'), 'utf8');
+  const f = T.slice(T.indexOf('function teachFind('), T.indexOf('function teachMarkOff('));
+  assert.match(f, /\.jb-ways\.is-carried \[data-jb-key=/);
+  assert.match(f, /data-\(\?:ca-chip\|jb-way\)/);
+});
