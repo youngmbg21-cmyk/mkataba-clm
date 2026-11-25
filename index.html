@@ -19431,7 +19431,7 @@
   html.lg-new #pd-thread .doc-th-pgl.is-link{font-size:13px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px}
   html.lg-new #pd-thread .doc-th-pga .doc-th-nx-go{height:var(--ctl-h-sm);min-height:var(--ctl-h-sm);padding:0 12px;font-weight:var(--w-label);font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   html.lg-new #clause-editor.is-tabbed .ce-col{position:relative}
-  html.lg-new #clause-editor.is-tabbed .ce-left{padding-top:52px}
+  html.lg-new #clause-editor.is-tabbed .ce-left{padding-top:54px}
   /* the ground behind the paper is the paper pages' own warm grey (owner, 24 Nov 2026: "like the other pages with paper") */
   html.lg-new #clause-editor.is-tabbed,html.lg-new #clause-editor.is-tabbed .ce-left,html.lg-new #clause-editor.is-tabbed #ce-doc{background:var(--desk-ground)}
   html.lg-new #clause-editor.is-tabbed .ce-foot:not(:has(#ce-waiting:not(:empty))){display:none}
@@ -19442,9 +19442,19 @@
   html.lg-new #clause-editor.is-tabbed .ce-rail > .ce-tabtop{order:0}html.lg-new #clause-editor.is-tabbed .ce-rail > .ce-pick{order:1}html.lg-new #clause-editor.is-tabbed .ce-rail > .ce-lane{order:2}
   html.lg-new #clause-editor.is-tabbed .ce-rail > .ce-spell{order:3}html.lg-new #clause-editor.is-tabbed .ce-rail > .ce-feet{order:4}html.lg-new #clause-editor.is-tabbed .ce-rail > .ce-tabfoot{order:5}
   html.lg-new #clause-editor.is-tabbed .ce-rail > .ce-chips{order:6}html.lg-new #clause-editor.is-tabbed .ce-rail > .ce-askwrap{order:7}
-  html.lg-new #clause-editor.is-tabbed .ce-head{position:absolute;left:0;top:0;z-index:6;width:auto;max-width:calc(100% - 32px);border:1px solid var(--color-neutral-200);
-    border-radius:var(--radius);background:var(--color-surface);box-shadow:var(--shadow-sm);padding:0 6px;will-change:transform}
-  html.lg-new #clause-editor.is-tabbed .ce-head .ce-barrow{min-height:var(--ctl-h);gap:6px;flex-wrap:nowrap}
+  /* THE WRITING BAR, ONE WHITE BAR ACROSS THE TOP (owner, 25 Nov 2026): edge to edge of the page, up to the side panel;
+     a thin line under it, no card, no shadow, no corners; the tools in one line in its middle (ceTabBarPlace/ceTabBarFold) */
+  html.lg-new #clause-editor.is-tabbed .ce-head{position:absolute;left:0;top:0;z-index:6;width:100%;max-width:none;border:0;border-bottom:1px solid var(--color-neutral-200);
+    border-radius:0;background:var(--color-surface);box-shadow:none;padding:0 16px;box-sizing:border-box;height:54px;display:flex;align-items:center}
+  html.lg-new #clause-editor.is-tabbed .ce-head .ce-barrow{flex:1 1 auto;min-width:0;min-height:var(--ctl-h);gap:6px;flex-wrap:nowrap;justify-content:center;border-bottom:0;padding:0}
+  html.lg-new #clause-editor.is-tabbed .ce-head .ce-bar{flex:none;display:flex;align-items:center;flex-wrap:nowrap}
+  html.lg-new #clause-editor.is-tabbed .ce-head .ce-barrow > .ce-barg{display:none}
+  html.lg-new #clause-editor.is-tabbed .ce-head .ce-barrow > .ce-say{flex:0 1 auto}
+  html.lg-new #clause-editor.is-tabbed .ce-more{position:relative;display:inline-flex;flex:none}
+  html.lg-new #clause-editor.is-tabbed .ce-more-btn{width:auto;padding:0 10px;gap:4px;display:inline-flex;align-items:center;font-size:var(--t-body);white-space:nowrap}
+  html.lg-new #clause-editor.is-tabbed .ce-more-pop{position:absolute;right:0;top:calc(100% + 8px);z-index:8;display:flex;align-items:center;flex-wrap:nowrap;
+    padding:6px;background:var(--color-surface);border:1px solid var(--color-neutral-200);border-radius:var(--radius);box-shadow:var(--shadow-sm)}
+  html.lg-new #clause-editor.is-tabbed .ce-more-pop[hidden]{display:none}
   html.lg-new #clause-editor.is-tabbed #ce-doc .rl-clause-live{position:relative}
   html.lg-new #clause-editor.is-tabbed #ce-doc .rl-clause-live::before{content:"";position:absolute;left:-52px;top:0;bottom:0;width:2px;background:var(--color-text)}
   html.lg-new #clause-editor.is-tabbed .ce-tabtop{display:flex;flex-direction:column;gap:12px;padding:8px 16px 4px}

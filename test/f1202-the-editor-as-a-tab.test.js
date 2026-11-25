@@ -69,9 +69,10 @@ describe('f1202 (3) the panel says the clause; File · next › moves on', () =>
 describe('f1202 (4) the writing bar above the clause', () => {
   test('moved by transform only, kept inside the paper\'s width', () => {
     const b = fnSrc(CE, 'ceTabBarPlace');
-    assert.match(b, /head\.style\.transform = `translate\(/);
-    assert.doesNotMatch(b, /style\.(left|top|height) =/); /* RE-POINTED 24 Nov 2026 (f1218): the bar is set to the sheet's width once (never animated); it still MOVES by transform only */
-    assert.match(b, /if \(hw && x \+ hw > lr\.width - 16\) x = Math\.max\(8, lr\.width - hw - 16\);/);
+    /* RE-POINTED 25 Nov 2026 (f1229): the bar is one white bar across the top of the page; it no longer moves at all —
+       its width is the page's, and nothing animates it */
+    assert.doesNotMatch(b, /style\.(left|top|height) =/);
+    assert.match(b, /const w = Math\.round\(left\.clientWidth/);
     assert.match(H, /#clause-editor\.is-tabbed \.ce-head\{position:absolute;/);
     assert.match(H, /#clause-editor\.is-tabbed #ce-doc \.rl-clause-live::before\{/);
   });

@@ -5356,6 +5356,8 @@ const STRINGS = {
     /* ---- THE WRITING BAR ---- the tools' own names, on their hovers and as
        their accessible names. One key per tool, read by richBarHtml. */
     ce_bar_label: 'Writing tools',
+    ce_bar_more: 'More',
+    ce_bar_more_tip: 'More writing tools',
     ce_bar_press_pencil: 'Click into a clause first — the tools act on what you are writing in',
     ce_stepped_forward: 'Forward to {label}',
     rb_undo: 'Undo',
@@ -34060,6 +34062,8 @@ const STRINGS = {
     ng_nothing_changed_yet: 'Inget har ändrats ännu',
     /* ---- SKRIVLISTEN ---- */
     ce_bar_label: 'Skrivverktyg',
+    ce_bar_more: 'Mer',
+    ce_bar_more_tip: 'Fler skrivverktyg',
     ce_bar_press_pencil: 'Klicka i en klausul först — verktygen verkar på det du skriver i',
     ce_stepped_forward: 'Framåt till {label}',
     rb_undo: 'Ångra',

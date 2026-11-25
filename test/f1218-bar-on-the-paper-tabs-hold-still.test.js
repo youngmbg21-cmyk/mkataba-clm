@@ -17,9 +17,10 @@ const fn = name => { const i = CE.indexOf('function ' + name + '('); assert.ok(i
 
 test('f1218 (1) the bar edge on edge with the sheet', () => {
   const b = fn('ceTabBarPlace');
-  assert.match(b, /const sheet = doc\.querySelector\('\.nego-doc'\);/);
-  assert.match(b, /const w = Math\.max\(nat, Math\.round\(sr\.width\)\); head\.style\.width = w \+ 'px';/);
-  assert.match(b, /Math\.round\(sr\.left - lr\.left \+ \(sr\.width - hw\) \/ 2\)/);
+  /* RE-POINTED 25 Nov 2026 (f1229, owner: "just be a white bar across the top of the page"): the bar is no longer the
+     sheet's width; it spans the page, its tools centred in it */
+  assert.doesNotMatch(b, /nego-doc/);
+  assert.match(b, /head\.style\.width = w \+ 'px';/);
   assert.ok(H.includes('html.lg-new #clause-editor.is-tabbed .ce-barrow > :is(.ce-say, .ce-barg, .ce-exit):empty{display:none}'));
 });
 test('f1218 (2) the side is the Dossier panel\'s width; the track where its row is', () => {
