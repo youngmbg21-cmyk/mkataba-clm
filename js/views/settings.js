@@ -5803,7 +5803,12 @@ function settingsPersonDrawer(idOrNew){
       <span style="${window.RV_LBL||''}">${esc(label)}</span>
       <input id="${id}" type="${type||'text'}" value="${PB_ATTR(value||'')}" style="${window.RV_FLD||ST_INPUT}"/>
       ${note?`<span class="st-note">${esc(note)}</span>`:''}</label>`;
+  /* RESET PASSWORD · REMOVE, UNDER THE NAME (owner's pick, 25 Nov 2026: "Top, under their name"): an admin's two acts on
+     a colleague's account, always in sight; Remove moved up from the sheet's foot. Not on yourself, not on a new person;
+     Reset needs the server (a temporary password, settingsResetPassword). */
+  const acctActs=(!isNew && isAdmin() && !isMe)?`<div class="st-acct-acts">${API_MODE()?`<button type="button" class="ui-btn ui-btn-sm" id="tm-reset-pw">${icon('lock','w-3.5 h-3.5')} ${esc(i18t('st_pw_reset'))}</button>`:''}<button type="button" id="tm-remove" style="${ST_BTN_DANGER}">${icon('ban','w-3.5 h-3.5')} ${i18t('act_remove')}</button></div>`:'';
   const body=`
+    ${acctActs}
     ${isNew?'':stPersonSumHtml(u)}
     ${stBzSectionHtml(u,isNew)}
     ${sec(1,i18t('st_sec_who'),
@@ -5935,9 +5940,7 @@ function settingsPersonDrawer(idOrNew){
 
     ${stOverseerSectionHtml(u, isNew)}
 
-    ${(!isNew && isAdmin() && !isMe)?`<div class="st-danger">
-      <button id="tm-remove" style="${ST_BTN_DANGER}">${icon('ban','w-3.5 h-3.5')} ${i18t('act_remove')}</button>
-    </div>`:''}`;
+`;
 
   stDrawerPaint({
     title: isNew?i18t('st_add_person'):(u.name||u.email),
@@ -5983,6 +5986,7 @@ function settingsPersonDrawer(idOrNew){
       stBzWire(u,isNew);
       if(bzDraft&&bzDraft.pass){ const pw=document.getElementById('tm-pass'); if(pw) pw.value=bzDraft.pass; }
       document.getElementById('tm-remove')?.addEventListener('click',()=>settingsRemoveMember(u));
+      document.getElementById('tm-reset-pw')?.addEventListener('click',()=>settingsResetPassword(u));
       /* W2-5a: the rescue. It COSTS this person their second step, so it asks
          first and says what it costs — they sign in on their password alone
          until they enrol again. Refusals land in the drawer's foot, never as
@@ -6250,6 +6254,57 @@ function settingsMirrorDirectory(name,email,title){
    BEFORE the removal, while there is still somebody to ask about it. It warns
    rather than refuses — an admin removing somebody who left on Friday must not
    be stuck, and the desks can be reassigned afterwards by any admin. */
+/* ---- AN ADMIN RESETS A COLLEAGUE'S PASSWORD (owner, 25 Nov 2026: "i want to be able to create a temporary password for
+   the user and share with them" — "both") ----
+   ONE sheet: a temporary password HaTi suggests (readable, no 0/O, 1/l/I), which the admin keeps, swaps for another
+   (Suggest another) or types over with their own (8 characters or more). Reset sets it on the server, which signs them out
+   everywhere and makes them choose their own at their next sign-in; then the sheet shows it with Copy, to share by hand.
+   The page never stores it. */
+const PW_SUGGEST_ABC='abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function pwSuggest(n){
+  n=n||12; const a=new Uint32Array(n);
+  try{ crypto.getRandomValues(a); }catch(_){ for(let i=0;i<n;i++) a[i]=Math.floor(Math.random()*1e9); }
+  let out=''; for(let i=0;i<n;i++) out+=PW_SUGGEST_ABC[a[i]%PW_SUGGEST_ABC.length]; return out;
+}
+function settingsResetPassword(u){
+  if(!u||!u.id) return;
+  const who=u.name||u.email;
+  const sheet=(err,val)=>({ title:i18t('st_pw_reset_q',{who}), sub:i18t('st_pw_reset_msg',{who}),
+    rows:[{ k:i18t('st_pw_field'), id:'st-pw-in', value:val, max:128 }],
+    html:`<p class="st-pw-say"><button type="button" class="ui-link" data-st-pw-new>${esc(i18t('st_pw_suggest'))}</button></p>`,
+    err, primary:{ label:i18t('st_pw_reset_go') }, focus:'#st-pw-in' });
+  const open=(err,val)=>{
+    const form=lgpOpen(sheet(err,val)); if(!form) return;
+    form.querySelector('[data-st-pw-new]')?.addEventListener('click',()=>{ const i=form.querySelector('#st-pw-in'); if(i){ i.value=pwSuggest(); i.select&&i.select(); } });
+    form.addEventListener('submit',async e=>{
+      e.preventDefault();
+      const pw=String((form.querySelector('#st-pw-in')||{}).value||'').trim();
+      if(pw.length<8){ open(i18t('st_pw_short'),pw); return; }
+      let r=null;
+      try{ r=await api('users/'+u.id+'/reset-password','POST',{ password:pw }); }
+      catch(err2){ open((err2&&err2.message)||i18t('st_pw_reset_failed'),pw); return; }
+      if(!r||!r.temp){ open(i18t('st_pw_reset_failed'),pw); return; }
+      if(r.user) Object.assign(u,r.user);
+      shown(r);
+    });
+  };
+  const shown=r=>{
+    const form=lgpOpen({ title:i18t('st_pw_done_t',{who}), sub:i18t('st_pw_done_s',{who}),
+      html:`<div class="st-pw-temp"><code class="st-pw-code">${esc(r.temp)}</code><button type="button" class="ui-btn ui-btn-sm" data-st-pw-copy>${esc(i18t('st_pw_copy'))}</button></div>`
+        +`<p class="st-pw-say">${esc(i18t('st_pw_done_how',{who}))}</p>`
+        +(r.emailSent?`<p class="st-pw-say">${esc(i18t('st_pw_mailed',{who}))}</p>`:''),
+      primary:{ label:i18t('st_pw_ok') }, noCancel:true, focus:false });
+    if(!form) return;
+    form.addEventListener('submit',e=>{ e.preventDefault(); if(typeof closeModal==='function') closeModal(); });
+    form.querySelector('[data-st-pw-copy]')?.addEventListener('click',async ev=>{
+      const b=ev.currentTarget;
+      try{ await navigator.clipboard.writeText(r.temp); b.textContent=i18t('st_pw_copied'); }
+      catch(_){ const c=form.querySelector('.st-pw-code'); if(c&&window.getSelection){ const g=document.createRange(); g.selectNodeContents(c); const s=getSelection(); s.removeAllRanges(); s.addRange(g); } }
+    });
+    try{ renderTeam(); }catch(_){}
+  };
+  open('',pwSuggest());
+}
 async function settingsRemoveMember(u){
   const us=getUsers(); const t=us.find(x=>x.id===u.id); if(!t) return;
   /* ---- SOMEBODY WHO APPROVES FOR OTHERS TAKES THAT ROLE WITH THEM ----
@@ -11186,7 +11241,7 @@ Object.assign(window,{acRead,acRun,acFixGo,AC_LEVELS,stLsOn,stLsHeadHtml,stLsPan
   stRulesRows,stPaintRules,stPaintSignFolders,
   openMyAccount,openSettingsAt,settingsGoTab,stUnfinishedCount,stPeopleWire,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
   ST_FACES,stPageHeadHtml,stPushHtml,stPushPaint,stPushRefresh,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stYouHtml,stYouCardHtml,stYouSheetItems,ST_YOU_SHEET,stChipsSet,stNewLookSet,stOpensSet,stBriefSet,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stAskDirect,stAskOpenOn,stAdminsSaid,stDay,stJbAnswer,stJbAmount,stJbAsk,stJbAskJambo,stJbTalkNow,stJamboFocus,stSideSet,stSideFit,ST_SIDE_MIN,ST_BOARD_MIN,ST_SPLIT_KEY,ST_SPLIT,stSplitFit,
-  stDrawerOpen,stDrawerClose,stDrawerRefuse,stHoldTake,stHoldApi,stHoldDirty,stHoldLeaveThen,stHoldSave,stHoldDrop,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
+  stDrawerOpen,stDrawerClose,stDrawerRefuse,stHoldTake,stHoldApi,stHoldDirty,stHoldLeaveThen,stHoldSave,stHoldDrop,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,settingsResetPassword,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stLoadAiCfgOnce,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stPersonSays,stPersonSumHtml,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
   stSigningSectionHtml,stSigningRead,stPaintLadder,stReviewSectionHtml,stReviewRead,stSignFolderHtml,stSignFolderRead,

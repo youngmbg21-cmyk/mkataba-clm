@@ -1245,3 +1245,6 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 
 ## PRINTING — the page prints itself (25 Nov 2026)
 - `node --test test/f1235-printing-prints-the-page.test.js test/f631-the-phone-fits.test.js test/f191-the-counterparty-gets-a-bell.test.js`
+
+## STREAM ACCESS, PEOPLE — reset password · remove under the name (25 Nov 2026)
+- `node --test test/f1236-an-admin-resets-a-password.test.js test/f193-settings-is-four-tabs.test.js test/f561-the-brain-keeps-up.test.js test/f937-every-change-updates-the-handbook.test.js`
