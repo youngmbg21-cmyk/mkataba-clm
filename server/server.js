@@ -3047,6 +3047,8 @@ const rlOtpToken = rateLimit('otp-token', 12, 15 * 60 * 1000,
     message: 'Too many signing-code attempts for this link — please wait and try again' });
 const OTP_MAX_ATTEMPTS = 5;   // wrong guesses before a code is burned
 const rlShare = rateLimit('share', 30, 15 * 60 * 1000);
+/* LIVE NOTES B: a link's live doors (its stream, its beats, its Read stamp, its like) beat often, so they count apart */
+const rlShareLive = rateLimit('share-live', 900, 15 * 60 * 1000);
 // per-user daily cap on outbound shares/resends — protects sender reputation
 const rlShareSend = rateLimit('share-send', 100, 24 * 60 * 60 * 1000,
   { keyFn: req => 'u:' + ((req.user && req.user.id) || 'anon'), message: 'Daily share limit reached — try again tomorrow' });
@@ -6981,6 +6983,11 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   /* A REQUEST DRAFTED AS THIS CONTRACT IS DONE once the contract leaves Drafting. */
   try { srvIntakeCloseOn(prev, c, req); } catch (_) {}
   if (sealedNow) srvSendExecutedCopies(c.id, srvAppUrl(req));
+  /* LIVE NOTES B: every save pings our side in scope (never a link: our record is read by our side) — 'record' when the
+     notes moved, else 'save', so a tab holding this contract takes the new version before its own next save (two people
+     in one conversation write seen marks and replies to the same record; without it the second save met a conflict) */
+  try { livePing(c.id, 'internal', liveNotesSig(prev, false) !== liveNotesSig(c, false) ? 'record' : 'save');
+    if (liveNotesSig(prev, true) !== liveNotesSig(c, true)) livePing(c.id, 'ours', 'record'); } catch (_) {}
   res.json({ ok: true, version: next, signNeeds, ...(sealedNow ? { sealed: true } : {}),
     /* The one ask record as stored — the browser takes it as given
        (asksTakeServer); money in a stamp masked for whoever may not see it. */
@@ -9736,6 +9743,74 @@ app.post('/api/ai/standard', auth, editor, rlAiLight, aiFeature('draft'), aiBudg
     const fallbacks = (Array.isArray(out.fallbacks) ? out.fallbacks : []).map(x => String(x || '').trim().slice(0, 600)).filter(Boolean).slice(0, 3);
     res.json({ ask, fallbacks, never: String(out.never || '').trim().slice(0, 600), why: String(out.why || '').trim().slice(0, 600),
       said: String(out.said || '').trim().slice(0, 300), quotes: quotes.length, ...(resp.truncated ? { truncated: true } : {}), ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
+});
+
+/* ---------- JAMBO ON A NOTES CONVERSATION (live notes B, owner 25 Nov 2026) ----------
+   "Summarise" and "Draft a reply", on a press only. It reads ONLY the conversation the person is standing in — that one
+   room's messages on that one conversation (root and its replies), read here off the record and the channel, never
+   from the page's word and never the other room's — plus the words the conversation is pinned to. Summarise is a quiet
+   card in the conversation; a draft goes into the box. NOTHING IS SENT AND NOTHING IS STORED here. */
+const NOTES_AI_MSGS_MAX = 60, NOTES_AI_MSG_CHARS = 1200;
+function srvNotesConversation(cid, room, root) {
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(cid);
+  if (!row) return null;
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { return null; }
+  const sc = srvMsgScope(cid, null);
+  const key = String(root || '');
+  const inConv = (id, replyTo) => String(id || '') === key || String(replyTo || '') === key;
+  const out = []; let anchor = null; const ourIds = new Set();
+  for (const { m } of srvNotesOf(c)) {
+    const shared = m.visibility === 'shared';
+    const r = shared ? 'p:' + String(m.partyId || sc.firstPartyId || '') : 'internal';
+    if (r !== room || !inConv(m.id, m.replyTo)) continue;
+    if (String(m.id || '') === key && m.anchor) anchor = m.anchor;
+    out.push({ who: String(m.who || ''), side: m.side === 'counterparty' ? 'them' : 'us', at: String(m.at || ''), text: String(m.text || '') });
+    if (m.id) ourIds.add(String(m.id));
+  }
+  if (room !== 'internal') {
+    for (const m of contractMessages(cid, { partyId: room.slice(2), firstPartyId: sc.firstPartyId })) {
+      if (m.side === MSG_SIDE_THEIR_TEAM || m.side === MSG_SIDE_ADVISER) continue;
+      const meta = m.meta || {};
+      if (!inConv(meta.id, meta.replyTo) || (meta.id && ourIds.has(String(meta.id)))) continue;
+      if (String(meta.id || '') === key && meta.anchor) anchor = meta.anchor;
+      out.push({ who: String(m.author || ''), side: m.side === 'counterparty' ? 'them' : 'us', at: String(m.at || ''), text: String(m.body || '') });
+    }
+  }
+  out.sort((a, b) => a.at.localeCompare(b.at));
+  return { c, msgs: out, anchor };
+}
+app.post('/api/ai/notes', auth, editor, rlAiLight, aiFeature('draft'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const b = req.body || {};
+  const cid = String(b.contractId || '');
+  if (!cid || !idInScope(folderScopeFor(req.user), cid)) return res.status(404).json({ error: 'Contract not found' });
+  const room = String(b.room || '');
+  if (!(room === 'internal' || (room.slice(0, 2) === 'p:' && srvPartyIdOn(cid, room.slice(2)) === room.slice(2)))) return res.status(400).json({ error: 'That room could not be read.' });
+  const mode = b.mode === 'reply' ? 'reply' : 'summary';
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
+  const conv = srvNotesConversation(cid, room, b.root);
+  if (!conv || !conv.msgs.length) return res.status(404).json({ error: 'That conversation could not be found.' });
+  const cut = conv.msgs.length > NOTES_AI_MSGS_MAX;
+  const msgs = conv.msgs.slice(-NOTES_AI_MSGS_MAX);
+  const us = String((conv.c && (conv.c.party || '')) || '').trim();
+  const lines = msgs.map(m => `- ${m.who || (m.side === 'them' ? 'The other side' : 'Our side')} (${m.side === 'them' ? 'the other side' : 'our side'}): ${m.text.slice(0, NOTES_AI_MSG_CHARS)}`).join('\n');
+  const ext = room !== 'internal';
+  const tool = { name: 'notes_answer', description: mode === 'summary' ? 'A short summary of the conversation.' : 'A draft reply for the person to edit and send themselves.',
+    input_schema: { type: 'object', properties: { text: { type: 'string', description: mode === 'summary' ? 'Two or three short plain sentences: where the conversation stands, what was agreed, what is still open.' : 'The reply, in the person\'s voice, two or three short sentences, ready to edit.' } }, required: ['text'] } };
+  const prompt = `${AI_GOVERNANCE_RULE}\n\nThese are the messages of one conversation in a contract's notes${ext ? ', in the room shared with the other side (they read everything written here)' : ', inside our own team (the other side never sees it)'}${us ? `; "our side" is ${us}` : ''}.\n`
+    + (conv.anchor && conv.anchor.quote ? `\nThe conversation is about these words of the contract: "${String(conv.anchor.quote).slice(0, 600)}"\n` : '')
+    + `\nThe messages, oldest first${cut ? ' (only the latest ' + NOTES_AI_MSGS_MAX + ')' : ''}:\n${lines}\n\n`
+    + (mode === 'summary' ? 'Summarise it for a colleague who has not read it. Quote nothing you were not given; invent no figure.'
+      : `Write a reply from ${req.user.name || 'the person'} that answers the last message.${ext ? ' It will be read by the other side: say nothing about our internal positions or limits.' : ''} Invent no figure, date or promise the messages do not give.`)
+    + '\n\nReturn via the notes_answer tool.';
+  try {
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 600, tools: [tool], tool_choice: { type: 'tool', name: 'notes_answer' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'draft', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300), kind: 'provider' });
+    const block = (resp.data.content || []).find(x => x.type === 'tool_use');
+    const text = String(((block && block.input) || {}).text || '').trim().slice(0, 1500);
+    if (!text) return res.status(502).json({ error: resp.truncated ? 'Jambo ran out of room before answering. Try again.' : 'Jambo wrote nothing. Try again.', kind: resp.truncated ? 'cut' : 'empty' });
+    res.json({ mode, text, read: msgs.length, ...(cut ? { cut: true } : {}), ...(resp.truncated ? { truncated: true } : {}), ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
@@ -22681,7 +22756,7 @@ app.get('/api/contracts/:id/shares', auth, (req, res) => {   // owner side: shar
    refreshed six times still shows one conversation. */
 const MSG_TOPIC_MAX = 160, MSG_BODY_MAX = 4000, MSG_META_MAX = 80, MSG_QUOTE_MAX = 400;
 /* The allow-list of what a message's meta may say. Anything else is dropped. */
-function msgMeta(raw) {
+function msgMeta(raw, trusted) {
   if (!raw || typeof raw !== 'object') return null;
   const out = {};
   if (raw.id) out.id = String(raw.id).slice(0, MSG_META_MAX);
@@ -22693,9 +22768,14 @@ function msgMeta(raw) {
   }
   if (raw.done && typeof raw.done === 'object')
     out.done = { at: String(raw.done.at || '').slice(0, 40), by: String(raw.done.by || '').slice(0, 120) };
-  /* LIKES ON A MESSAGE THAT CROSSED (live notes A, owner 25 Nov 2026): only the six faces, each a list of who pressed */
-  const rx = noteReactionsClean(raw.reactions);
-  if (rx) out.reactions = rx;
+  /* LIKES ON A MESSAGE THAT CROSSED (live notes A, owner 25 Nov 2026): only the six faces, each a list of who pressed.
+     LIVE NOTES B: likes and the Read stamp are written ONLY by their own routes — a post's body can never carry them
+     (`trusted` is the server's own read of a stored row, never a request's) */
+  if (trusted) {
+    const rx = noteReactionsClean(raw.reactions);
+    if (rx) out.reactions = rx;
+    if (raw.readAt && /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(String(raw.readAt))) out.readAt = String(raw.readAt).slice(0, 40);
+  }
   return Object.keys(out).length ? out : null;
 }
 /* ---- EMOJI LIKES ON A NOTE (live notes, round A; owner 25 Nov 2026) ----
@@ -22712,6 +22792,12 @@ function noteReactionsClean(raw) {
     if (list.length) out[e] = list;
   }
   return Object.keys(out).length ? out : null;
+}
+/* ours (u:…) from `mine`, everyone else's from `theirs` */
+function noteReactionsMerge(mine, theirs) {
+  const a = noteReactionsClean(mine) || {}, b = noteReactionsClean(theirs) || {}, out = {};
+  for (const e of NOTE_REACTIONS) out[e] = (a[e] || []).filter(x => x.startsWith('u:')).concat((b[e] || []).filter(x => !x.startsWith('u:')));
+  return noteReactionsClean(out);
 }
 function noteReactionToggle(cur, emoji, who) {
   const r = noteReactionsClean(cur) || {};
@@ -22736,7 +22822,7 @@ function srvKeepNoteReactions(prev, next) {
     if (r) m.reactions = r; else delete m.reactions;
   }
 }
-const msgMetaRead = s => { if (!s) return null; try { return msgMeta(JSON.parse(s)); } catch (_) { return null; } };
+const msgMetaRead = s => { if (!s) return null; try { return msgMeta(JSON.parse(s), true); } catch (_) { return null; } };
 /* ---- NOTHING AN ADVISER WRITES IS EVER VISIBLE TO THE COUNTERPARTY ----
    (upgrade 9, 18 Sep 2026, and it is the promise printed on the link's own
    sentence.) An adviser posts through the same share-message route the
@@ -22845,9 +22931,68 @@ function setMessageDone(contractId, mid, on, by, scope) {
   const meta = msgMetaRead(row.meta) || {};
   if (on) meta.done = { at: now(), by: String(by || '').slice(0, 120) };
   else delete meta.done;
-  const clean = msgMeta(meta);
+  const clean = msgMeta(meta, true);
   db.prepare('UPDATE share_messages SET meta=? WHERE id=?').run(clean ? JSON.stringify(clean) : null, row.id);
   return { ...row, topicLabel: row.topic_label, meta: clean };
+}
+/* ==== LIVE NOTES, ROUND B (owner, 25 Nov 2026: "build the new notes as live conversation as drawn") ====
+   ONE EVENT STREAM PER OPEN TAB (GET /api/live, signed in; GET /api/shares/:token/live, the other side's link), the
+   pattern the answer streams already use. What travels is a PING: "notes moved on contract X, room R" — never a word of a
+   note — and the page reads what moved through the routes it always read through, so every wall stays where it was.
+   THE WALL ON THE PING ITSELF: our side hears a contract only while it is in that person's scope (folderScopeFor, asked
+   at the ping); a link hears only its own party's room, never Internal, never their team's room of another party.
+   Typing and "is here" ride the same stream as BEATS: sent while typing or open, never stored, forgotten by the reader
+   after LIVE_BEAT_FORGET_MS. Our beats never reach a link. */
+const LIVE_CONNS = new Map();
+let _liveSeq = 0;
+const LIVE_KEEPALIVE_MS = 20000;
+const LIVE_T_RE = /^[\w:.-]{0,80}$/;
+function liveOpen(req, res, conn) {
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+  if (typeof res.flushHeaders === 'function') res.flushHeaders();
+  const id = 'lv' + (++_liveSeq) + '_' + crypto.randomBytes(4).toString('hex');
+  conn.id = id; conn.res = res;
+  LIVE_CONNS.set(id, conn);
+  liveSend(conn, 'hello', { sid: id });
+  const ka = setInterval(() => { try { res.write(': keep-alive\n\n'); } catch (_) {} }, LIVE_KEEPALIVE_MS);
+  if (typeof ka.unref === 'function') ka.unref();
+  req.on('close', () => { clearInterval(ka); LIVE_CONNS.delete(id); });
+}
+function liveSend(conn, event, data) { try { conn.res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); } catch (_) {} }
+function liveUserMay(conn, cid) {
+  if (!conn || conn.kind !== 'user' || !conn.user) return false;
+  const s = db.prepare('SELECT expires_at FROM sessions WHERE token=?').get(conn.token);
+  if (!s || (s.expires_at && Date.parse(s.expires_at) < Date.now())) return false;
+  try { return idInScope(folderScopeFor(conn.user), cid); } catch (_) { return false; }
+}
+/* the ping: contract, room, what kind of move — never words */
+function livePing(cid, room, kind) {
+  const data = { c: String(cid || ''), room: String(room || ''), kind: String(kind || 'note') };
+  for (const conn of LIVE_CONNS.values()) {
+    if (conn.kind === 'user') { if (data.room !== 'team' && liveUserMay(conn, data.c)) liveSend(conn, 'notes', data); continue; }
+    if (conn.kind === 'share' && conn.contractId === data.c) {
+      if (data.room === 'p:' + conn.partyId || (data.room === 'team:' + conn.partyId)) liveSend(conn, 'notes', { c: data.c, room: data.room, kind: data.kind });
+    }
+  }
+}
+/* a beat (typing, here): to our side in scope only, never to a link, never stored */
+function liveBeatSend(cid, room, t, who, typing, exceptSid) {
+  const data = { c: String(cid), room: String(room), k: String(t || ''), who: { id: who.id ? String(who.id) : null, name: String(who.name || '').slice(0, 120), side: who.side || 'owner' }, typing: !!typing };
+  for (const conn of LIVE_CONNS.values()) {
+    if (conn.kind !== 'user' || conn.id === exceptSid) continue;
+    if (liveUserMay(conn, data.c)) liveSend(conn, 'beat', data);
+  }
+}
+/* the room a channel row is in, as a ping names it */
+function liveRoomOfRow(cid, row) {
+  const sc = srvMsgScope(cid, null);
+  if (row && row.side === MSG_SIDE_THEIR_TEAM) return 'team:' + String(row.party_id || sc.firstPartyId || '');
+  return 'p:' + String((row && (row.party_id || row.partyId)) || sc.firstPartyId || '');
+}
+/* what a save moved in the notes: Internal (and our own copies of shared ones) — a fingerprint per kind */
+function liveNotesSig(c, shared) {
+  return JSON.stringify(srvNotesOf(c).filter(x => (x.m.visibility === 'shared') === !!shared)
+    .map(({ m, host }) => [host, m.id, m.text, m.done, m.decided, m.given, m.seen, m.reactions]));
 }
 const msgValid = b => b && typeof b.body === 'string' && b.body.trim()
   && typeof b.topic === 'string' && b.topic.trim();
@@ -22883,6 +23028,7 @@ app.post('/api/shares/:token/messages', rlShare, (req, res) => {
     partyId: scope ? scope.partyId : null,
     author, topic: b.topic, topicLabel: b.topicLabel, body: b.body.trim(), meta: b.meta });
   if (!team) notifyMessage(s, m);
+  try { livePing(s.contract_id, team ? 'team:' + String(m.partyId || '') : liveRoomOfRow(s.contract_id, m), 'note'); } catch (_) {}
   res.json({ ok: true, message: m,
     messages: contractMessages(s.contract_id, adviser ? { adviserToken: s.token } : srvMsgScope(s.contract_id, s)) });
 });
@@ -22978,6 +23124,7 @@ app.post('/api/contracts/:id/messages', auth, editor, async (req, res) => {
     partyId: srvPartyIdOn(req.params.id, b.partyId),
     topic: b.topic, topicLabel: b.topicLabel, body: b.body.trim(), meta: b.meta });
   const sent = await notifyCounterpartyMessage(req.params.id, m);
+  try { livePing(req.params.id, liveRoomOfRow(req.params.id, m), 'note'); } catch (_) {}
   res.json({ ok: true, message: m, messages: contractMessages(req.params.id, { adviser: true }),
     emailSent: sent.sent, emailConfigured: EMAIL_ON(), to: sent.to || null });
 });
@@ -22987,6 +23134,7 @@ app.patch('/api/contracts/:id/messages/:mid', auth, editor, (req, res) => {
   const b = req.body || {};
   const m = setMessageDone(req.params.id, req.params.mid, b.done !== false, req.user.name);
   if (!m) return res.status(404).json({ error: 'Message not found' });
+  try { livePing(req.params.id, liveRoomOfRow(req.params.id, m), 'done'); } catch (_) {}
   res.json({ ok: true, message: m, messages: contractMessages(req.params.id, { adviser: true }) });
 });
 /* ---- A LIKE, FROM OUR SEAT (live notes A) ----
@@ -23006,8 +23154,10 @@ app.post('/api/contracts/:id/notes/react', auth, editor, (req, res) => {
       if (r.side === MSG_SIDE_THEIR_TEAM || r.side === MSG_SIDE_ADVISER) continue;
       const meta = msgMetaRead(r.meta) || {};
       if (String(meta.id || '') !== String(key)) continue;
-      if (rx) meta.reactions = rx; else delete meta.reactions;
-      const clean = msgMeta(meta);
+      /* THEIR likes on our note (round B, their link's route) stay: ours are replaced, theirs kept */
+      const merged = noteReactionsMerge(rx, meta.reactions);
+      if (merged) meta.reactions = merged; else delete meta.reactions;
+      const clean = msgMeta(meta, true);
       db.prepare('UPDATE share_messages SET meta=? WHERE id=?').run(clean ? JSON.stringify(clean) : null, r.id);
     }
   };
@@ -23017,8 +23167,9 @@ app.post('/api/contracts/:id/notes/react', auth, editor, (req, res) => {
     const meta = msgMetaRead(row.meta) || {};
     const rx = noteReactionToggle(meta.reactions, emoji, who);
     if (rx) meta.reactions = rx; else delete meta.reactions;
-    const clean = msgMeta(meta);
+    const clean = msgMeta(meta, true);
     db.prepare('UPDATE share_messages SET meta=? WHERE id=?').run(clean ? JSON.stringify(clean) : null, row.id);
+    try { livePing(req.params.id, liveRoomOfRow(req.params.id, row), 'like'); } catch (_) {}
     return res.json({ ok: true, reactions: rx || {}, messages: contractMessages(req.params.id, { adviser: true }) });
   }
   const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(req.params.id);
@@ -23032,7 +23183,88 @@ app.post('/api/contracts/:id/notes/react', auth, editor, (req, res) => {
   db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(c), req.params.id);
   /* the wall: only a note that crossed carries its likes onto the channel */
   if (hit.m.visibility === 'shared') mirror(req.params.id, key, rx);
+  try { livePing(req.params.id, hit.m.visibility === 'shared' ? liveRoomOfRow(req.params.id, { party_id: hit.m.partyId }) : 'internal', 'like'); } catch (_) {}
   res.json({ ok: true, reactions: rx || {} });
+});
+/* ---- LIVE NOTES B: THE STREAMS, THE BEATS, THE READ STAMP, THEIR LIKE ---- */
+/* the walls every link's live door asks, in the order GET /api/shares/:token asks them; null = refused (said) */
+function liveShareOf(req, res, opts) {
+  const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
+  if (!s) { res.status(404).json({ error: 'Share link not found or expired' }); return null; }
+  if (shareIsStatus(s) || (opts && opts.write && refuseIfViewOnly(s, res))) { if (!res.headersSent) res.status(403).json({ error: 'This link cannot carry a discussion' }); return null; }
+  if (s.revoked_at || shareExpired(s)) { res.status(410).json({ error: 'This share link is no longer active' }); return null; }
+  if (shareIsAdvice(s)) { res.status(403).json({ error: 'An adviser\'s link has no room of its own here.' }); return null; }
+  const t = (req.query && req.query.t) || (req.body && req.body.t);
+  if (shareNeedsCode(s) && !shareDoorOtpOk(s.token, t)) { res.status(401).json({ error: 'Check it is you before this opens.', needsCode: true }); return null; }
+  if (!s.contract_id || !db.prepare('SELECT 1 FROM contracts WHERE id=?').get(s.contract_id)) { res.status(410).json({ error: 'This contract is no longer available' }); return null; }
+  return s;
+}
+app.get('/api/live', auth, (req, res) => {
+  liveOpen(req, res, { kind: 'user', user: req.user, token: req.token });
+});
+app.get('/api/shares/:token/live', rlShareLive, (req, res) => {
+  const s = liveShareOf(req, res); if (!s) return;
+  const sc = srvMsgScope(s.contract_id, s);
+  liveOpen(req, res, { kind: 'share', contractId: String(s.contract_id), partyId: String(sc.partyId || ''), shareId: s.id });
+});
+/* a beat from our side: typing or "here", on one conversation (t) of one room; checked, sent on, never stored */
+app.post('/api/live/beat', auth, (req, res) => {
+  const b = req.body || {};
+  const cid = String(b.c || '');
+  if (!cid || !idInScope(folderScopeFor(req.user), cid)) return res.status(404).json({ error: 'Contract not found' });
+  const room = String(b.room || '');
+  const okRoom = room === 'internal' || (room.slice(0, 2) === 'p:' && srvPartyIdOn(cid, room.slice(2)) === room.slice(2));
+  if (!okRoom || !LIVE_T_RE.test(String(b.k || ''))) return res.status(400).json({ error: 'That beat could not be read.' });
+  liveBeatSend(cid, room, b.k, { id: req.user.id, name: req.user.name || '' }, b.typing === true, String(b.sid || ''));
+  res.status(204).end();
+});
+/* their beat: their own room only, named as the link's person; to our side, never to another link; never stored */
+app.post('/api/shares/:token/live/beat', rlShareLive, (req, res) => {
+  const s = liveShareOf(req, res); if (!s) return;
+  const b = req.body || {};
+  if (!LIVE_T_RE.test(String(b.k || ''))) return res.status(400).json({ error: 'That beat could not be read.' });
+  const sc = srvMsgScope(s.contract_id, s);
+  const name = String(s.recipient_name || b.author || '').replace(/[<>\u0000-\u001f]/g, ' ').trim().slice(0, 120) || 'The other side';
+  liveBeatSend(s.contract_id, 'p:' + sc.partyId, b.k, { id: null, name, side: 'counterparty' }, b.typing === true, '');
+  res.status(204).end();
+});
+/* READ, WRITTEN ONLY HERE: the first time their page shows one of our delivered notes, the moment is stamped on that
+   row (meta.readAt) — never by a post's body, never moved once written, only on rows of their own room */
+app.post('/api/shares/:token/read', rlShareLive, (req, res) => {
+  const s = liveShareOf(req, res); if (!s) return;
+  const sc = srvMsgScope(s.contract_id, s);
+  const ids = (Array.isArray((req.body || {}).ids) ? req.body.ids : []).map(Number).filter(Number.isFinite).slice(0, 200);
+  let n = 0;
+  for (const id of ids) {
+    const row = db.prepare('SELECT * FROM share_messages WHERE id=? AND contract_id=?').get(id, s.contract_id);
+    if (!row || row.side !== 'owner' || String(row.party_id || sc.firstPartyId || '') !== String(sc.partyId || '')) continue;
+    const meta = msgMetaRead(row.meta) || {};
+    if (meta.readAt) continue;
+    meta.readAt = new Date().toISOString();
+    const clean = msgMeta(meta, true);
+    db.prepare('UPDATE share_messages SET meta=? WHERE id=?').run(clean ? JSON.stringify(clean) : null, row.id);
+    n++;
+  }
+  if (n) try { livePing(s.contract_id, 'p:' + sc.partyId, 'read'); } catch (_) {}
+  res.json({ ok: true, stamped: n });
+});
+/* THEIR LIKE: on a message of their own room, the six faces, pressed again to take back — the link's own key */
+app.post('/api/shares/:token/messages/:mid/react', rlShareLive, (req, res) => {
+  const s = liveShareOf(req, res, { write: true }); if (!s) return;
+  const emoji = String((req.body || {}).emoji || '');
+  if (!NOTE_REACTIONS.includes(emoji)) return res.status(400).json({ error: 'That is not one of the likes.' });
+  const sc = srvMsgScope(s.contract_id, s);
+  const row = db.prepare('SELECT * FROM share_messages WHERE id=? AND contract_id=?').get(Number(req.params.mid), s.contract_id);
+  if (!row || row.side === MSG_SIDE_THEIR_TEAM || row.side === MSG_SIDE_ADVISER
+    || String(row.party_id || sc.firstPartyId || '') !== String(sc.partyId || '')) return res.status(404).json({ error: 'Message not found' });
+  const who = 'x:' + crypto.createHash('sha256').update(String(s.token)).digest('hex').slice(0, 16);
+  const meta = msgMetaRead(row.meta) || {};
+  const rx = noteReactionToggle(meta.reactions, emoji, who);
+  if (rx) meta.reactions = rx; else delete meta.reactions;
+  const clean = msgMeta(meta, true);
+  db.prepare('UPDATE share_messages SET meta=? WHERE id=?').run(clean ? JSON.stringify(clean) : null, row.id);
+  try { livePing(s.contract_id, 'p:' + sc.partyId, 'like'); } catch (_) {}
+  res.json({ ok: true, me: who, reactions: rx || {}, messages: contractMessages(s.contract_id, sc) });
 });
 /* Done, from theirs: the same checks as their post, on the same link. */
 app.patch('/api/shares/:token/messages/:mid', rlShare, (req, res) => {
@@ -23045,6 +23277,7 @@ app.patch('/api/shares/:token/messages/:mid', rlShare, (req, res) => {
   const by = String(b.author || s.recipient_name || 'Counterparty').trim();
   const m = setMessageDone(s.contract_id, req.params.mid, b.done !== false, by, shareIsAdvice(s) ? null : srvMsgScope(s.contract_id, s));
   if (!m) return res.status(404).json({ error: 'Message not found' });
+  try { livePing(s.contract_id, liveRoomOfRow(s.contract_id, m), 'done'); } catch (_) {}
   res.json({ ok: true, message: m, messages: contractMessages(s.contract_id, shareIsAdvice(s) ? { adviserToken: s.token } : srvMsgScope(s.contract_id, s)) });
 });
 

@@ -4319,6 +4319,8 @@ function negoMergedThread(c, ch, extra){
       if (meta.done && typeof meta.done === 'object') one.done = { at: String(meta.done.at || ''), by: String(meta.done.by || '') };
       /* LIKES that crossed (live notes A): read from the channel copy, a drawing only */
       if (meta.reactions && typeof meta.reactions === 'object') one.reactions = meta.reactions;
+      /* READ on their side (live notes B): the server's stamp, the first time their page showed it */
+      if (meta.readAt) one.readAt = String(meta.readAt);
     }
     const k = key(one);
     if (have.has(k)){ twins.set(k, one); continue; }
@@ -4328,7 +4330,13 @@ function negoMergedThread(c, ch, extra){
   const ownRead = twins.size ? own.map(m => {
     const t = twins.get(key(m));
     if (!t) return m;
-    const out = (t.done && !m.done) ? { ...m, done: t.done } : m;
+    let out = (t.done && !m.done) ? { ...m, done: t.done } : m;
+    /* LIVE NOTES B: their Read stamp, and THEIR likes on our note, ride the channel copy — read onto the drawing only */
+    if (t.readAt && !out.readAt) out = { ...out, readAt: t.readAt };
+    const theirRx = t.reactions && typeof t.reactions === 'object' ? t.reactions : null;
+    if (theirRx){ const r = { ...(out.reactions || {}) }; let any = false;
+      for (const [e, list] of Object.entries(theirRx)) for (const x of (Array.isArray(list) ? list : [])) if (!String(x).startsWith('u:')){ r[e] = (r[e] || []).concat(x); any = true; }
+      if (any) out = { ...out, reactions: r }; }
     return (t.channelId != null && out.channelId == null) ? { ...out, channelId: t.channelId } : out;
   }) : own;
   if (!extras.length) return ownRead;

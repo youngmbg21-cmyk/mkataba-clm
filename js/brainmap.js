@@ -250,6 +250,13 @@ const BRAIN_PARTS = [
   /* a note of yours due on the paper in front (round 3 as drawn, 18 Oct 2026): My notes' own reading, in Needs you here, only you */
   ['notehere', 'pdNoteRows', 'see', 1],
   ['notereact', 'POST /api/contracts/:id/notes/react', 'wall', 2],
+  ['livestream', 'GET /api/live', 'see', 1],
+  ['livelink', 'GET /api/shares/:token/live', 'wall', 2],
+  ['livebeat', 'POST /api/live/beat', 'see', 1],
+  ['livelinkbeat', 'POST /api/shares/:token/live/beat', 'wall', 2],
+  ['notesread', 'POST /api/shares/:token/read', 'wall', 2],
+  ['notesreactlink', 'POST /api/shares/:token/messages/:mid/react', 'wall', 2],
+  ['notesai', 'POST /api/ai/notes', 'ai', 3],
   /* Follow me and Go to it on Home's paper (round 6 as drawn, 18 Oct 2026): the clause brought up and lit, nothing written */
   ['followhome', 'igPaperGoClause', 'see', 1],
   /* the Board's head (round 17 as drawn, 18 Oct 2026): Board, when counted, Summarise with its cost, saved views as chips with their counts */
@@ -678,7 +685,7 @@ const BRAIN_PARTS = [
    brn_step_<flow>_<n> in the dictionary. A flow is a STORY a person wrote;
    the reading only checks that every part it names is still in the code. */
 const BRAIN_FLOWS = [
-  { id: 'upload', steps: [['upload', 'dropin', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed', 'jbpress'], ['brief', 'playbook', 'pbopen', 'oblscan', 'obdesk', 'risk', 'datedwin', 'papermark', 'ndaread'], ['model'], ['details', 'fillface', 'refile', 'blanks', 'paysec', 'ndatail'], ['overview', 'constellation', 'glance', 'needshere', 'paperline', 'bell', 'strip', 'glanceasks', 'notehere', 'notereact'], ['firstread', 'partyhist', 'partyweb', 'partylookup']] },
+  { id: 'upload', steps: [['upload', 'dropin', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed', 'jbpress'], ['brief', 'playbook', 'pbopen', 'oblscan', 'obdesk', 'risk', 'datedwin', 'papermark', 'ndaread'], ['model'], ['details', 'fillface', 'refile', 'blanks', 'paysec', 'ndatail'], ['overview', 'constellation', 'glance', 'needshere', 'paperline', 'bell', 'strip', 'glanceasks', 'notehere', 'notereact', 'livestream', 'livelink', 'livebeat', 'livelinkbeat', 'notesread', 'notesreactlink', 'notesai'], ['firstread', 'partyhist', 'partyweb', 'partylookup']] },
   /* The new parts join STEPS THAT ALREADY EXIST rather than adding steps of
      their own: a step inserted in the middle renumbers every sentence after
      it in both books, and these are not new stages of the story — they are
@@ -713,7 +720,7 @@ const BRAIN_LANE_OF = {
   /* a colleague: the requester, the reviewer, the contributor, the approver */
   req: ['request', 'kinds', 'reqfiles', 'askadmin', 'ruledoor', 'privpage', 'trailpage', 'rolespage', 'bzsection', 'arsheet', 'accheck', 'settingsask', 'settingsanswer', 'review', 'suggest', 'rules', 'namedyes', 'decide', 'undoyes', 'approvalpaper', 'lookask'],
   /* the person working the contract: what they see and press */
-  own: ['notebook', 'exportmenu', 'alertme', 'alertpage', 'alertlist', 'alerthits', 'handon', 'stdpage', 'stdwrite', 'stdpropose', 'stddecide', 'tplapprove', 'stdwithdraw', 'lookpropose', 'lookdecide', 'lookwithdraw', 'lookrevert', 'lookchanges', 'lessonspanel', 'listlang', 'awaycard', 'keeptab', 'cnrow', 'putaway', 'chaseletter', 'pieceline', 'upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'histlanes', 'paysec', 'ndatail', 'glance', 'needshere', 'paperline', 'letter', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'desktabs', 'negpage', 'redface', 'boardviews', 'strip', 'chosenpaper', 'histsays', 'startnego', 'here', 'follow', 'glanceasks', 'notehere', 'notereact', 'followhome', 'boardhead',
+  own: ['notebook', 'exportmenu', 'alertme', 'alertpage', 'alertlist', 'alerthits', 'handon', 'stdpage', 'stdwrite', 'stdpropose', 'stddecide', 'tplapprove', 'stdwithdraw', 'lookpropose', 'lookdecide', 'lookwithdraw', 'lookrevert', 'lookchanges', 'lessonspanel', 'listlang', 'awaycard', 'keeptab', 'cnrow', 'putaway', 'chaseletter', 'pieceline', 'upload', 'dropin', 'draftform', 'refile', 'privnews', 'privtrail', 'histlanes', 'paysec', 'ndatail', 'glance', 'needshere', 'paperline', 'letter', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'needsme', 'desktabs', 'negpage', 'redface', 'boardviews', 'strip', 'chosenpaper', 'histsays', 'startnego', 'here', 'follow', 'glanceasks', 'notehere', 'notereact', 'livestream', 'livelink', 'livebeat', 'livelinkbeat', 'notesread', 'notesreactlink', 'notesai', 'followhome', 'boardhead',
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dutypage', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'signface', 'pad', 'calendar', 'desknight', 'insights', 'readings',
     'chasemany', 'youform', 'streamside', 'navread', 'teach', 'teachwalk', 'teachsteps', 'handbook', 'hbkask', 'flowmap', 'flowtable', 'hswords', 'navdoor', 'aifirst', 'copilotask', 'jambomap', 'menuask', 'nextsteps', 'reflink', 'menutab', 'amendface', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'askcolnext', 'reads', 'dsnpacks', 'discover', 'discoverask', 'contractsplace', 'customers', 'directory', 'partyrec', 'cellfold',

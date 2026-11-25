@@ -160,7 +160,7 @@ const BROWSER = [
   'Event', 'CustomEvent', 'MouseEvent', 'KeyboardEvent', 'PointerEvent', 'DragEvent',
   'Node', 'Element', 'HTMLElement', 'HTMLInputElement', 'HTMLCanvasElement', 'Text',
   'DOMParser', 'XMLSerializer', 'MutationObserver', 'ResizeObserver', 'IntersectionObserver',
-  'AbortController', 'WebSocket', 'Worker', 'performance', 'structuredClone',
+  'AbortController', 'WebSocket', 'EventSource', 'Worker', 'performance', 'structuredClone',
   'TextEncoder', 'TextDecoder', 'Intl', 'Chart', 'getSelection', 'Range', 'Notification',
   'CSS', 'DocumentFragment', 'HTMLTextAreaElement', 'HTMLSelectElement', 'ClipboardItem',
   'NodeFilter', 'NodeIterator', 'TreeWalker', 'XPathResult',

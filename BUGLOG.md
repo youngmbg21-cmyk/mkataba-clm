@@ -23013,3 +23013,4 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 ## Noticed, not fixed (25 Nov 2026)
 - f977 (6, 7) already red on main before the Editor panel round: a HARMONY rule '#pd-thread .doc-th-lred' does not start with html.lg-new.
 - f245 "ONE GUARD, AND EVERY DOOR OUT OF A DRAFT GOES THROUGH IT" and f245 (18) "the Changes tab is gone, and Redlined shows redlines" already red on main before the paper-type round (24 Nov 2026); not touched.
+- Two people opening the same contract's notes in the same instant both stamp "read" (c.notesRead) and save the whole record; the slower save meets a version conflict and the "Someone else saved a change" dialog. Seen during live notes B (the live pings now shrink the window to a fraction of a second, but the race is older than the round).
