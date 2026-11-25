@@ -1667,7 +1667,11 @@ function caSelOpen(){
   const clauseId = caSelClauseId(sel.anchorNode);
   if (typeof negoEnsureStyle === 'function') negoEnsureStyle();
   if (typeof rlSelMenu !== 'function') return;
-  rlSelMenu({ text, rect, actions: CA_SEL_ACTIONS(), onPick: act => caSelPick(c, act, text, clauseId) });
+  /* LIVE NOTES A (owner, 25 Nov 2026): the highlight's note is "Add a note" with its rooms, one small dark bubble that
+     leads the bar (negoSelBarHtml); the other verbs stay beside it */
+  const rooms = (typeof window.rlNoteRoomActs === 'function') ? window.rlNoteRoomActs(c, { side: 'owner' }) : [];
+  const acts = CA_SEL_ACTIONS().flatMap(a => (a.id === 'note' && rooms.length) ? rooms : [a]);
+  rlSelMenu({ text, rect, actions: acts, onPick: act => caSelPick(c, act, text, clauseId) });
 }
 async function caSelPick(c, act, text, clauseId){
   caSelKill();
@@ -1700,7 +1704,7 @@ async function caSelPick(c, act, text, clauseId){
     if (typeof toast === 'function') toast(_caT('ca_risk_done'), 'ok');
     return;
   }
-  if (act.id === 'note'){
+  if (act.id === 'note' || act.room){
     /* THE NOTE IS WRITTEN IN CHAT (Young, 10 Oct 2026, the "HaTi Proposals"
        artifact, Part 2): no pop-up of its own. The Notes panel opens with the
        words pinned whole under their clause and Internal chosen — the same one
@@ -1708,9 +1712,9 @@ async function caSelPick(c, act, text, clauseId){
        note anchors to its clause and wears its mark on the paper. Where the
        Paper cannot say which clause the words sit in, the words are pinned to
        the contract instead, never glued onto the note's text. */
-    if (clauseId && typeof rlNoteFromSelection === 'function' && rlNoteFromSelection(c, { clauseId, quote })) return;
+    if (clauseId && typeof rlNoteFromSelection === 'function' && rlNoteFromSelection(c, { clauseId, quote }, { room: act.room || undefined })) return;
     if (typeof rlNotesPin === 'function' && typeof openNotesPanel === 'function'){
-      rlNotesPin({ contractId: c.id, room: 'internal', quote });
+      rlNotesPin({ contractId: c.id, room: act.room || 'internal', quote });
       openNotesPanel(c.id, null, { force: true });
       return;
     }
