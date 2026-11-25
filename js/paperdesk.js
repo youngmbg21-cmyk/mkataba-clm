@@ -9679,13 +9679,17 @@ function pd2DockPlace(){
   const sc = document.getElementById('ig-paper-scroll'), d = sc && sc.querySelector(':scope > #pd2-dock');
   if (!d || d.hidden) return;
   const box = d.querySelector('.pd2-dock-box'), row = d.querySelector('#pd2-dock-row');
-  /* the dock stands at the window's very top edge, at rest and held alike: pulled up over the scroller's top padding and
-     given it back underneath, so nothing after it moves (sticky top 0, so it never shifts as the page starts to scroll) */
+  /* the dock stands at the window's very top edge, at rest and held alike: its BOX is lifted over the scroller's top padding
+     (a held sticky box keeps that padding; sticky top 0, so it never shifts as the page starts to scroll). Never by margins
+     on the dock itself: a box of no height lets its margins collapse through into the zoom row's margin under it, and the
+     paper rode up by the padding (measured 25 Nov 2026: the zoom 3px over the sheet's top edge, 29 above it, not 40) */
   const pt = parseFloat(getComputedStyle(sc).paddingTop) || 0;
-  if (d.style.marginTop !== (-pt) + 'px'){ d.style.marginTop = (-pt) + 'px'; d.style.marginBottom = pt + 'px'; d.style.top = (-pt) + 'px'; }   /* a held box keeps the scroller's padding: its top is offset by it */
+  if (box.style.top !== (-pt) + 'px') box.style.top = (-pt) + 'px';
   if (!sc._pd2DockRO && typeof ResizeObserver === 'function'){ sc._pd2DockRO = new ResizeObserver(() => { try { pd2DockPlace(); } catch (_){} }); sc._pd2DockRO.observe(sc); }
   const dr = d.getBoundingClientRect(), sr = sc.getBoundingClientRect();
-  box.style.right = Math.max(0, Math.round(dr.right - (sr.left + sc.clientLeft + sc.clientWidth - PAPER_DOCK_EDGE))) + 'px';
+  /* 16 inside the grey area's right edge, which lies in the scroller's own right padding: a negative right is that reach,
+     never clamped to the dock's edge (clamped, the zoom stood 8px further in than every other paper's) */
+  box.style.right = Math.round(dr.right - (sr.left + sc.clientLeft + sc.clientWidth - PAPER_DOCK_EDGE)) + 'px';
   const zoom = sc.querySelector('#ig-paper .ig-zoom'), sheet = zoom && zoom.querySelector(PD2_SHEET_SEL);
   const sheetR = sheet ? sheet.getBoundingClientRect().right : null;
   /* with a row it spans the margin beside the paper; with the zoom alone it is as wide as the zoom */
@@ -9696,7 +9700,14 @@ function pd2DockPlace(){
   d.classList.toggle('is-loose', sheetR != null && br.left < sheetR + PD2_DOCK_GAP / 2 - 1);
   /* the row never wraps: past its room it takes its short words (Outstanding → Open, Resolved → Done) */
   const ch = hasRow ? row.querySelector('.pd2-rn-chips') : null;
-  if (ch){ ch.classList.remove('is-tight'); if (ch.scrollWidth > ch.clientWidth + 1) ch.classList.add('is-tight'); }
+  if (ch){ ch.classList.remove('is-tight'); if (ch.scrollWidth > ch.clientWidth + 1 || pd2RowOver(ch)) ch.classList.add('is-tight'); }
+}
+/* the row's last press past the row's right edge: the row clips sideways only (overflow-x:clip, so a finger's 44px reach
+   above and below its presses is never cut), so its own right edge is read, not its scroll width */
+function pd2RowOver(ch){
+  const last = ch && ch.lastElementChild; if (!last) return false;
+  const r = ch.getBoundingClientRect();
+  return last.getBoundingClientRect().right > r.right - (parseFloat(getComputedStyle(ch).borderRightWidth) || 0) + 1;
 }
 /* THE UPLOAD'S LINE OVER THE PAPER SAYS WHOLE WORDS (owner, 25 Nov 2026, of "R.. · 4761 KB · Young M… · 9,978… · Structur…"):
    its facts are never cut mid-word; where they do not all fit, the last facts are left out, whole, until they do, and only
@@ -9833,7 +9844,9 @@ function pd2SheetLay(zoom){
   const f = parseFloat(zoom.style.zoom) || 1, W = zoom.clientWidth;
   /* 40px from the page's own edge, as drawn: the scroller's padding already gives part of it */
   const sc = zoom.parentElement, inset = sc ? Math.max(0, (zoom.getBoundingClientRect().left - sc.getBoundingClientRect().left) / f) : 0;
-  const left0 = Math.round(PD2_SHEET_LEFT - inset);
+  /* 40 ON SCREEN: the room is in the paper's own units, which the zoom's base (RL_ZOOM_BASE) draws smaller, so the 40 is
+     divided by the factor (a paper at 100% stood 36 from the edge) */
+  const left0 = Math.round(PD2_SHEET_LEFT / f - inset);
   const room = W - left0 - PD2_NOTES_GUTTER - 16;
   const sheetW = Math.max(PD2_SHEET_MIN, Math.min(720, room - PD2_NOTES_MIN));
   const notesW = Math.max(160, Math.min(PD2_NOTES_MAX, room - sheetW));

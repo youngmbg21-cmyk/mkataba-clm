@@ -400,11 +400,16 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     });
     /* REVERSED IN PLACE, 8 Oct 2026. THE HOME PAPER (owner, 8 Oct 2026: "i am choosing the home paper"): every
            paper is Home Redlined's — 720px, centred, 14px — so this pins that. */
-    check('4 the sheet is the Home paper\'s 720, inside its column', sheet.paper === Math.min(720, sheet.col),
+    /* RE-POINTED 25 Nov 2026 (owner: "the font size of the paper at 90% is what should be 100%" — 100% IS WHAT 90% WAS,
+       RL_ZOOM_BASE 0.9): the Home paper's 720 is drawn at the base, so on screen it is 720 × 0.9 inside its column, and the
+       one zoom it wears is that base, never a fit to the column */
+    check('4 the sheet is the Home paper\'s 720, inside its column', sheet.paper === Math.min(Math.round(720 * 0.9), sheet.col),
       `${sheet.paper} of ${sheet.col}`);
-    check('4 and is not magnified to do it', sheet.zoom === 1, `zoom ${sheet.zoom}`);
-    check('4 the contract reads at 14px on the Home paper\'s margins',
-      sheet.body === '14px' && sheet.pad === '34px 38px 44px', `${sheet.body} · ${sheet.pad}`);
+    check('4 and is not magnified to do it', sheet.zoom === 0.9, `zoom ${sheet.zoom}`);
+    /* RE-POINTED 25 Nov 2026 (ONE PAPER TYPE, THE LEGORA TYPE, owner's picks 24 Nov 2026: the wording one serif 15px, the
+       numbers in a grey column — the paper's padding 34 56 44, and 76 on the left for that column) */
+    check('4 the contract reads at 15px on the Home paper\'s margins',
+      sheet.body === '15px' && sheet.pad === '34px 56px 44px 76px', `${sheet.body} · ${sheet.pad}`);
     /* ---- ONE INSET, SHARED WITH THE BANDS ABOVE (owner-reported 22 Aug 2026:
        "the tracked changes cards are leaving space on the right hand side") ----
        This asserted 48px — the render's own .h-content measure, which the
