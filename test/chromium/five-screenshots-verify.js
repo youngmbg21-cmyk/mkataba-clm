@@ -328,7 +328,9 @@ const drive = async (page, fn, arg, fallback) => {
     ai.script(readOne, readOne, readOne);
     await drive(page, async () => {
       const wait = ms => new Promise(r => setTimeout(r, ms));
-      const idx = Array.from(document.querySelectorAll('#pd-thread .doc-th-row[data-th-row]')).map(r => r.getAttribute('data-th-row')).slice(0, 3);
+      /* RE-POINTED 25 Nov 2026 (owner's pick, THE LIST L+S, f1214: the lines before the first numbered clause fold into one
+         "Opening" row): the three rows read are the first three the reader can see, never a folded opening part */
+      const idx = Array.from(document.querySelectorAll('#pd-thread .doc-th-row[data-th-row]:not(.th-opart):not(.th-out)')).map(r => r.getAttribute('data-th-row')).slice(0, 3);
       for (const k of idx) {
         /* RE-POINTED 21 Oct 2026 (the owner: "some clauses refuse to close
            once you go past them"): a press on the row already open CLOSES it,
