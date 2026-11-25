@@ -72,9 +72,11 @@ describe('f1032 — the Notes drawer is a Thread', () => {
     assert.equal(rows.length, 2);
     assert.equal(rows[0].querySelector('.rl-np-av').textContent, 'WK', 'initials on the face');
     assert.match(INDEX, /\.rl-chat\.is-stripe \.rl-np-day\{display:none\}/, 'no day lines in the calm list: each row carries its clock');
-    assert.match(rows[1].querySelector('.rl-np-cl .t').textContent, /·/, 'the clock beside the last message');
+    /* RE-POINTED 25 Nov 2026 (live notes A, owner): the row's last line is the live conversation's (rlNpCompactHtml),
+       and an opened conversation is its messages as bubbles (.rl-lv-m) */
+    assert.match(rows[1].querySelector('.rl-lv-last .t').textContent, /\d/, 'the clock beside the last message');
     await open(h, /Newer/);
-    const notes = [...h.querySelectorAll('.rl-np-note')];
+    const notes = [...h.querySelectorAll('.rl-lv-m')];
     assert.equal(notes.length, 1, 'opened: that thread alone');
     assert.ok(h.querySelector('[data-rl-np-back]'), 'and the way back to all notes');
     /* a caller that names no day still draws the full stamp */
@@ -86,19 +88,21 @@ describe('f1032 — the Notes drawer is a Thread', () => {
     const p = await bench();
     p.post('One.'); p.post('Two.', MATE.name); p.post('Three.');
     let h = p.paint();
-    assert.equal(h.querySelectorAll('.rl-np-chip').length, 0, 'nothing to choose, no chip');
+    /* RE-POINTED 25 Nov 2026 (live notes A, owner): All · Unread · Asks you · Decided (Done where it holds any), each only
+       with rows — with only open notes, All and what this reader has not read */
+    assert.deepEqual([...h.querySelectorAll('.rl-np-chip')].map(b => b.getAttribute('data-rl-np-show')), ['open', 'unread'], 'All, and Unread while a colleague\'s note waits');
     p.c.thread[1].given = { id: ME.id, name: ME.name, due: null };
     p.c.thread[2].done = { at: daysAgo(0), by: ME.name };
     h = p.paint();
     const chips = () => [...h.querySelectorAll('.rl-np-chip')].map(b => b.textContent.replace(/\s+/g, ' ').trim());
     /* RE-POINTED 22 Nov 2026 (review of merged pages): the chip is named as P-38 draws it, "Asks you" */
-    assert.deepEqual(chips(), ['Open 2', 'Asks you 1', 'Done 1']);
+    assert.deepEqual(chips(), ['All 2', 'Asks you 1', 'Done 1']);
     assert.equal(h.querySelectorAll('.rl-np-crow').length, 2, 'Open lists the open threads');
     assert.equal(h.querySelector('[data-rl-np-donefold]'), null, 'the fold is gone from the drawer');
-    assert.ok(h.querySelector('.rl-np-st.is-ask'), 'the one given to you says "Asks you" in amber');
+    assert.ok(h.querySelector('.rl-lv-st.is-ask'), 'the one given says "Asked <name>" in amber');
     h.querySelector('[data-rl-np-show="done"]').click(); await tick();
     assert.equal(h.querySelectorAll('.rl-np-crow').length, 1);
-    assert.ok(h.querySelector('.rl-np-st.is-done'), 'Done lists the done thread');
+    assert.ok(h.querySelector('.rl-lv-st.is-done'), 'Done lists the done thread');
     assert.equal(h.querySelector('[data-rl-np-show="done"]').getAttribute('aria-pressed'), 'true');
     h.querySelector('[data-rl-np-show="mine"]').click(); await tick();
     assert.equal(h.querySelectorAll('.rl-np-crow').length, 1);
@@ -110,7 +114,7 @@ describe('f1032 — the Notes drawer is a Thread', () => {
     delete p.c.thread[1].given;
     h = p.paint();
     assert.equal(h.querySelector('.rl-np-chip.on').getAttribute('data-rl-np-show'), 'open');
-    assert.deepEqual(chips(), ['Open 2', 'Done 1'], 'and an empty pile is not listed');
+    assert.deepEqual(chips(), ['All 2', 'Done 1'], 'and an empty pile is not listed');
     p.w.win.rlNotesPanelClosed();
   });
 
@@ -118,7 +122,8 @@ describe('f1032 — the Notes drawer is a Thread', () => {
     const p = await bench();
     p.post('Root.');
     const h = await open(p.paint());
-    const bar = h.querySelector('.rl-np-note > .rl-np-acts');
+    /* RE-POINTED 25 Nov 2026 (live notes A, owner): the verbs stand under the bubble, through the same builder */
+    const bar = h.querySelector('.rl-lv-own .rl-np-acts');
     assert.ok(bar, 'the verbs sit on the note');
     for (const a of ['data-rl-np-reply', 'data-rl-np-done', 'data-rl-np-seen', 'data-rl-np-give', 'data-rl-np-delete']){
       const b = bar.querySelector('[' + a + ']');

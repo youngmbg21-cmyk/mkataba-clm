@@ -26581,6 +26581,105 @@
   html.lg-new #clause-editor.is-tabbed .ce-barrow{padding-left:9px;padding-right:9px;justify-content:center}
   html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab:last-child{padding-right:8px}
   html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab.on{background:var(--color-surface);color:var(--color-text);font-weight:var(--w-label);box-shadow:0 1px 2px rgba(0,0,0,.10)}
+  /* ==== NOTES AS LIVE CONVERSATIONS, ROUND A (owner, 25 Nov 2026; drawing notes-live.html; js/views/negotiation.js rlNp*) ====
+     The Notes panel on every host (the bar's Notes, Redlines' notes): rooms with their wall marks, conversations as rows,
+     a conversation as bubbles with likes, the wall said under the box, a decision pinned at the foot. */
+  html.lg-new .rl-chat.is-live .rl-np-tabs.rl-np-rooms.is-live{flex-wrap:nowrap;min-width:0;overflow:hidden}
+  html.lg-new .rl-chat.is-live .rl-np-tab.rl-np-room{display:inline-flex;align-items:center;gap:5px;min-width:0;white-space:nowrap}
+  html.lg-new .rl-chat.is-live .rl-np-tab.rl-np-room.is-ext{flex:0 1 auto;max-width:200px}
+  html.lg-new .rl-chat.is-live .rl-np-tab.rl-np-room .rl-np-nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .rl-chat.is-live .rl-np-tab.rl-np-room i{flex:none;font-style:normal;font-weight:400;opacity:.75}
+  html.lg-new .rl-chat.is-live .rl-np-tab.rl-np-room .rl-np-i{flex:none;width:12px;height:12px}
+  html.lg-new .rl-chat.is-live .rl-lv-dot{flex:none;width:7px;height:7px;border-radius:50%;background:var(--accent-ink)}
+  html.lg-new .rl-chat.is-live .rl-lv-start{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px var(--s-4) 0;padding:6px 0;border-bottom:1px solid var(--color-divider);font-size:12.5px;color:var(--color-quiet)}
+  html.lg-new .rl-chat.is-live .rl-lv-start > span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .rl-chat.is-live .rl-lv-start mark{background:var(--hl-yes);color:var(--color-text);border-radius:3px;padding:0 4px}
+  html.lg-new .rl-chat.is-live .rl-lv-start .ui-link{flex:none;font-size:12.5px;white-space:nowrap}
+  /* the list */
+  html.lg-new .rl-chat.is-live .rl-lv-row{gap:3px}
+  html.lg-new .rl-chat.is-live .rl-lv-t{display:flex;align-items:center;gap:8px;min-width:0;width:100%}
+  html.lg-new .rl-chat.is-live .rl-lv-t b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:var(--w-label);font-size:13.5px}
+  html.lg-new .rl-chat.is-live .rl-lv-sp{flex:1}
+  html.lg-new .rl-chat.is-live .rl-lv-sec{flex:none;padding:1px 7px;border-radius:6px;background:var(--surface-2);color:var(--color-quiet);font-size:11.5px;line-height:1.6;font-weight:var(--w-label)}
+  html.lg-new .rl-chat.is-live .rl-lv-un{flex:none;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--accent-ink);color:var(--color-surface);font-size:11px;line-height:18px;font-weight:var(--w-strong);text-align:center;box-sizing:border-box}
+  html.lg-new .rl-chat.is-live .rl-lv-st{flex:none;padding:1px 7px;border-radius:6px;font-size:11.5px;line-height:1.6;font-weight:var(--w-label);white-space:nowrap}
+  html.lg-new .rl-chat.is-live .rl-lv-st.is-ask{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  html.lg-new .rl-chat.is-live .rl-lv-st.is-dec{background:var(--st-green-bg);color:var(--st-green-fg)}
+  html.lg-new .rl-chat.is-live .rl-lv-st.is-done{background:var(--surface-2);color:var(--color-quiet)}
+  html.lg-new .rl-chat.is-live .rl-lv-st.is-new{background:var(--st-violet-bg);color:var(--st-violet-fg)}
+  html.lg-new .rl-chat.is-live .rl-lv-q{display:block;quotes:none;font-family:var(--font-doc);font-size:13px;line-height:1.4;color:var(--color-quiet);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;text-align:left}
+  html.lg-new .rl-chat.is-live .rl-lv-q mark{background:var(--hl-yes);color:var(--color-text);border-radius:3px;padding:0 2px}
+  html.lg-new .rl-chat.is-live .rl-lv-last{display:flex;align-items:center;gap:8px;min-width:0;width:100%;font-size:13px;color:var(--color-text)}
+  html.lg-new .rl-chat.is-live .rl-lv-last .w{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+  html.lg-new .rl-chat.is-live .rl-lv-last .t{flex:none;font-size:12px;color:var(--color-neutral-600)}
+  /* a conversation */
+  html.lg-new .rl-chat.is-live .rl-lv-head{display:flex;flex-direction:column;gap:4px;padding:6px 0 10px;border-bottom:1px solid var(--color-divider)}
+  html.lg-new .rl-chat.is-live .rl-lv-faces{display:inline-flex;flex:none}
+  html.lg-new .rl-chat.is-live .rl-lv-faces .rl-np-av{box-shadow:0 0 0 2px var(--color-surface);margin-left:-6px}
+  html.lg-new .rl-chat.is-live .rl-lv-faces .rl-np-av:first-child{margin-left:0}
+  html.lg-new .rl-chat.is-live .rl-lv-hq{min-width:0;font-size:12.5px;color:var(--color-neutral-600)}
+  html.lg-new .rl-chat.is-live .rl-lv-hq .rl-lv-q{display:inline;white-space:normal}
+  html.lg-new .rl-chat.is-live .rl-lv-tc .ui-link{font-size:12.5px}
+  html.lg-new .rl-chat.is-live .rl-lv-sub{font-size:12px;color:var(--color-neutral-600)}
+  html.lg-new .rl-chat.is-live .rl-lv-conv{display:flex;flex-direction:column;gap:8px;padding-top:10px}
+  html.lg-new .rl-chat.is-live .rl-lv-msgs{display:flex;flex-direction:column;gap:10px}
+  html.lg-new .rl-chat.is-live .rl-lv-m{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;max-width:88%}
+  html.lg-new .rl-chat.is-live .rl-lv-m.is-me{align-self:flex-end;grid-template-columns:minmax(0,1fr)}
+  html.lg-new .rl-chat.is-live .rl-lv-mb{min-width:0;display:flex;flex-direction:column}
+  html.lg-new .rl-chat.is-live .rl-lv-m.is-me .rl-lv-mb{align-items:flex-end}
+  html.lg-new .rl-chat.is-live .rl-lv-who{font-size:12px;color:var(--color-neutral-600);margin:0 0 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  html.lg-new .rl-chat.is-live .rl-lv-who b{color:var(--color-text);font-weight:var(--w-label)}
+  html.lg-new .rl-chat.is-live .rl-lv-tx{padding:7px 10px;border-radius:10px 10px 10px 3px;background:var(--surface-2);color:var(--color-text);font-size:13px;line-height:1.45;overflow-wrap:anywhere}
+  html.lg-new .rl-chat.is-live .rl-lv-m.is-me .rl-lv-tx{background:var(--st-green-bg);border-radius:10px 10px 3px 10px}
+  html.lg-new .rl-chat.is-live .rl-lv-m.is-them .rl-lv-tx{background:var(--st-steel-bg)}
+  html.lg-new .rl-chat.is-live .rl-lv-at{font-weight:var(--w-strong)}
+  html.lg-new .rl-chat.is-live .rl-lv-meta{margin-top:2px;font-size:11.5px;color:var(--color-neutral-600);text-align:right}
+  html.lg-new .rl-chat.is-live .rl-lv-sys{align-self:center;font-size:12px;color:var(--color-neutral-600);text-align:center}
+  html.lg-new .rl-chat.is-live .rl-lv-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:3px;min-width:0}
+  html.lg-new .rl-chat.is-live .rl-lv-m.is-me .rl-lv-foot{justify-content:flex-end}
+  html.lg-new .rl-chat.is-live .rl-lv-rxs{position:relative;display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+  html.lg-new .rl-chat.is-live .rl-lv-rx{height:auto;padding:0 7px;border:1px solid var(--color-neutral-300);border-radius:999px;background:var(--color-surface);color:var(--color-text);font-size:11.5px;line-height:1.7;white-space:nowrap;cursor:pointer}
+  html.lg-new .rl-chat.is-live .rl-lv-rx.is-mine{border-color:var(--st-green-line);background:var(--st-green-bg);color:var(--accent-ink)}
+  html.lg-new .rl-chat.is-live .rl-lv-rx.is-add{border-style:dashed;color:var(--color-neutral-600)}
+  html.lg-new .rl-chat.is-live .rl-lv-m:not(:hover):not(:focus-within) .rl-lv-rx.is-add{opacity:.55}
+  html.lg-new .rl-chat.is-live .rl-lv-pick{position:absolute;top:calc(100% + 4px);left:0;z-index:3;display:flex;gap:2px;padding:3px 6px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);box-shadow:var(--shadow-md)}
+  html.lg-new .rl-chat.is-live .rl-lv-m.is-me .rl-lv-pick{left:auto;right:0}
+  html.lg-new .rl-chat.is-live .rl-lv-pick[hidden]{display:none}
+  html.lg-new .rl-chat.is-live .rl-lv-pick button{height:auto;padding:1px 4px;border:0;border-radius:6px;background:none;font-size:16px;line-height:1.2;cursor:pointer}
+  html.lg-new .rl-chat.is-live .rl-lv-pick button:hover{background:var(--surface-2)}
+  html.lg-new .rl-chat.is-live .rl-lv-acts{display:inline-flex;gap:10px}
+  html.lg-new .rl-chat.is-live .rl-lv-act{height:auto;padding:0;border:0;background:none;color:var(--color-neutral-600);font-size:11.5px;text-decoration:underline;text-underline-offset:2px;cursor:pointer;white-space:nowrap}
+  html.lg-new .rl-chat.is-live .rl-lv-m:not(:hover):not(:focus-within) .rl-lv-acts{visibility:hidden}
+  html.lg-new .rl-chat.is-live .rl-lv-own{margin-top:2px;font-size:11.5px}
+  html.lg-new .rl-chat.is-live .rl-lv-own .rl-np-acts{position:static;display:flex;flex-wrap:wrap;gap:2px 8px;opacity:1;margin:0;padding:0;background:none;box-shadow:none}
+  html.lg-new .rl-chat.is-live .rl-lv-m.is-me .rl-lv-own :is(.rl-np-acts, .rl-np-facts){justify-content:flex-end}
+  html.lg-new .rl-chat.is-live .rl-lv-m:not(:hover):not(:focus-within) .rl-lv-own .rl-np-acts{display:none}
+  html.lg-new .rl-chat.is-live .rl-lv-own .rl-np-seenby{display:none}
+  html.lg-new .rl-chat.is-live .rl-lv-own .rl-np-facts:not(:has(> :not(.rl-np-seenby):not(.rl-np-fsep))){display:none}
+  @media (hover:none){ html.lg-new .rl-chat.is-live .rl-lv-m .rl-lv-acts{visibility:visible} html.lg-new .rl-chat.is-live .rl-lv-m .rl-lv-own .rl-np-acts{display:flex} }
+  html.lg-new .rl-chat.is-live .rl-lv-pin{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border:1px solid var(--st-green-line);border-radius:10px;background:var(--st-green-bg);font-size:13px}
+  html.lg-new .rl-chat.is-live .rl-lv-pin > div{flex:1;min-width:0}
+  html.lg-new .rl-chat.is-live .rl-lv-pin .ok{color:var(--st-green-dot)}
+  html.lg-new .rl-chat.is-live .rl-lv-pin b{font-weight:var(--w-label)}
+  html.lg-new .rl-chat.is-live .rl-lv-pin.is-next{background:var(--color-surface)}
+  html.lg-new .rl-chat.is-live .rl-lv-pin-s{font-size:12px;color:var(--color-neutral-600);margin-top:2px}
+  html.lg-new .rl-chat.is-live .rl-lv-box{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--color-neutral-300)}
+  html.lg-new .rl-chat.is-live .rl-lv-box.is-ex{border-bottom:2px solid var(--st-amber-dot)}
+  html.lg-new .rl-chat.is-live .rl-lv-box textarea{flex:1;min-width:0;min-height:0;height:auto;padding:0;border:0;background:none;resize:none;font-size:13px;line-height:1.4;box-shadow:none}
+  html.lg-new .rl-chat.is-live .rl-lv-send{flex:none;height:auto;padding:3px 12px;border:0;border-radius:999px;background:var(--color-text);color:var(--color-surface);font-size:12.5px;font-weight:var(--w-label);cursor:pointer}
+  html.lg-new .rl-chat.is-live .rl-lv-wall{display:flex;align-items:center;gap:6px;font-size:12px}
+  html.lg-new .rl-chat.is-live .rl-lv-wall.is-in{color:var(--accent-ink)}
+  html.lg-new .rl-chat.is-live .rl-lv-wall.is-ex{color:var(--st-amber-fg)}
+  html.lg-new .rl-chat.is-live .rl-lv-wall .rl-np-i{flex:none;width:12px;height:12px}
+  html.lg-new .rl-chat.is-live .rl-lv-hint{margin:18px auto 6px;max-width:280px;text-align:center;font-size:13px;color:var(--color-neutral-600)}
+  html.lg-new .rl-chat.is-live .rl-np-foot.is-new{padding:0}
+  /* the highlight's "Add a note": one small dark bubble leading the bar, the rooms as its pills */
+  html.lg-new .nego-selmenu.nego-selbar .nego-selnote-grp{display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:360px;padding:4px 4px 4px 12px;border-radius:999px;background:var(--color-text);color:var(--color-surface);font-size:13px;font-weight:var(--w-label)}
+  html.lg-new .nego-selmenu.nego-selbar .nego-selnote-k{flex:none;white-space:nowrap}
+  html.lg-new .nego-selmenu.nego-selbar button.nego-selroom{flex:none;min-height:0;height:auto;padding:2px 10px;border-radius:999px;background:var(--color-surface);color:var(--color-text);font-size:12.5px;font-weight:var(--w-label)}
+  html.lg-new .nego-selmenu.nego-selbar button.nego-selroom.is-ext{flex:0 1 auto;min-width:0;max-width:170px;background:none;color:var(--color-surface);box-shadow:inset 0 0 0 1px var(--color-neutral-400)}
+  html.lg-new .nego-selmenu.nego-selbar button.nego-selroom > span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.lg-new .nego-selmenu.nego-selbar button.nego-selroom:hover{background:var(--surface-2);color:var(--color-text)}
   /* ==== JAMBO'S CHAT, "SOFT" (the owner picked Soft by name, 25 Nov 2026; drawing jambo-chat.html) ====
      ONLY THE BUBBLES CHANGE, never what goes inside them. One set of rules for every host of Jambo's conversation (the
      one turn builder, jamboTurnHtml: Home's dock igMsgHTML, the window and the list panels aiMsgHtml, Settings
