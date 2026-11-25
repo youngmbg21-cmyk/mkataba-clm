@@ -146,7 +146,9 @@ const closeEditor = async page => {
   check(!!ga, 'A- the control: the parties block is on the paper', ga ? 'found' : 'no recital');
   if (ga) await drag(page, ga);
   const rowsA = await menuRows(page);
-  check(rowsA.join(',') === 'ask,edit,comment', 'A1 a highlight in the parties block offers Ask · Edit · Comment', rowsA.join(' · ') || 'no menu');
+  /* RE-POINTED 25 Nov 2026 (LIVE NOTES A, #1012: the bar's Comment is "Add a note" with its rooms — Internal, then the
+     outside party — then Ask, then Edit; rlNoteRoomActs → data-nego-ai "note:internal", "note:p:<party>") */
+  check(rowsA.join(',') === 'note:internal,note:p:py_them,ask,edit', 'A1 a highlight in the parties block offers Add a note (Internal · the party) · Ask · Edit', rowsA.join(' · ') || 'no menu');
   await page.screenshot({ path: path.join(OUT, '01-parties-menu.png') });
   const pressedA = rowsA.includes('edit') && await pressMenu(page, 'edit');
   const railA = await railState(page);
@@ -161,7 +163,7 @@ const closeEditor = async page => {
   check(!!gb, 'B- the control: two clauses to drag across', gb ? 'found' : 'no words');
   if (gb) await drag(page, gb);
   const rowsB = await menuRows(page);
-  check(rowsB.join(',') === 'ask,comment', 'B1 [wall] across two clauses: Ask · Comment — never Edit (the owner\u2019s decision, true before this change too)', rowsB.join(' · ') || 'no menu');
+  check(rowsB.join(',') === 'note:internal,note:p:py_them,ask', 'B1 [wall] across two clauses: Add a note (Internal · the party) · Ask — never Edit (the owner\u2019s decision, true before this change too)', rowsB.join(' · ') || 'no menu');
   /* THE MAIN CHAT'S DOOR, COUNTED: the Copilot panel is reached through
      docAiRead (rlAskCopilotPanel), so a press that goes there is a count. */
   await page.evaluate(() => { window.__mainChat = 0; const o = window.docAiRead;

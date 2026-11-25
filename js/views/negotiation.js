@@ -17889,7 +17889,9 @@ function rlNpBubbleHtml(c, m, room, side, other, ctx){
   const acts = [];
   if (ctx.mayWrite && !negoRoomIsExternal(room) && side === 'owner') acts.push(`<button type="button" class="rl-lv-act" data-rl-lv-decide="${_nea(key)}">${_ne(i18t('ng_lv_mark_decided'))}</button>`);
   if (ctx.mayWrite && kind === 'them' && ctx.clauseId && side === 'owner') acts.push(`<button type="button" class="rl-lv-act" data-rl-lv-tochange="${_nea(ctx.clauseId)}">${_ne(i18t('ng_lv_to_change'))}</button>`);
-  return `<div class="rl-lv-m is-${kind}" data-rl-lv-msg="${_nea(key)}">
+  /* data-rl-np-key too: a marker's press lands on its message here (rlNpShowFocused), as it does on a drawer note —
+     without it the focus key found nothing, stayed set, and held the conversation open over ‹ All notes */
+  return `<div class="rl-lv-m is-${kind}" data-rl-lv-msg="${_nea(key)}" data-rl-np-key="${_nea(key)}">
       ${kind === 'me' ? '' : `<span class="rl-lv-av">${rlNpAvatarHtml(m.who || '', true)}</span>`}
       <div class="rl-lv-mb">${who}<div class="rl-lv-tx">${text}</div>${meta}
         <div class="rl-lv-foot">${rlNpReactsHtml(m, key, ctx.mayWrite && (side === 'owner' || (PORTAL_MODE && negoRoomIsExternal(room) && m.channelId != null)))}${acts.length ? `<span class="rl-lv-acts">${acts.join('')}</span>` : ''}</div>${own ? `<div class="rl-lv-own">${own}</div>` : ''}</div>
