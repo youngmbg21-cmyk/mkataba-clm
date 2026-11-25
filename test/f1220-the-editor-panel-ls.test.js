@@ -62,3 +62,9 @@ test('f1220 review of #1004/#1007: one Accept on the tab; the heading number typ
   assert.match(E, /if \(!String\(f\.textContent \|\| ''\)\.trim\(\)\) ev\.preventDefault\(\);/, 'a Backspace at the start of the name never takes the locked number');
   assert.match(E, /t\.innerHTML = window\.rlHeadNumHtml \? rlHeadNumHtml\(_cee\(_ceHead\)\)/, 'Escape puts the number column back');
 });
+
+test('f1220 the Playbook\'s wording on the Editor TAB (owner, 25 Nov 2026: "yes"): the chips row stands for its Playbook questions only', () => {
+  const H = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'index.html'), 'utf8');
+  assert.match(H, /html\.lg-new #clause-editor\.is-tabbed #ce-chips:has\(\[data-ce-std\]\)\{display:flex/, 'the row stands where a Playbook question is in it');
+  assert.match(H, /html\.lg-new #clause-editor\.is-tabbed #ce-chips:has\(\[data-ce-std\]\) button:not\(\[data-ce-std\]\)\{display:none\}/, 'and draws only those');
+});

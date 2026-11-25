@@ -199,13 +199,14 @@ async function login(b, base, email, pass, errs){
        whole contract, which opens ONE box with @ to name someone and "Add note" (2d2) */
     check('2d no box on the list; the start line says highlight words, or a note on the whole contract', !!nv && !nv.listBox && nv.start, JSON.stringify(nv && { listBox: nv.listBox, start: nv.start }));
     await shot(page, '9-notes-1440x780');
-    /* RE-POINTED 21 Nov 2026 (P-38): a row opens its discussion; its "Go to § on the paper" is the clause's link */
+    /* RE-POINTED 21 Nov 2026 (P-38): a row opens its discussion; its "Go to § on the paper" is the clause's link.
+       RE-POINTED 25 Nov 2026 (owner, of live notes A dropping it: "yes but make the wording shorter"): back, as "Go to § ›" */
     await page.click('#context-panel .rl-np-crow');
     /* a missing link REPORTS (guarded), never times the walk out */
     const goLink = !!(await waitFor(page, () => !!document.querySelector('#context-panel [data-rl-np-goclause]'), 4000));
     if (goLink) await page.click('#context-panel [data-rl-np-goclause]');
     /* RE-POINTED 19 Oct 2026 (LAND ON IT, main's rule): the link lands on the clause through the one lander */
-    check('2e the clause is a link to it on the paper', goLink && !!(await waitFor(page, () => !!document.querySelector('#ig-paper .is-landed[data-clause]'), 4000)), goLink ? '' : 'no "Go to § on the paper" in the opened conversation');
+    check('2e the clause is a link to it on the paper', goLink && !!(await waitFor(page, () => !!document.querySelector('#ig-paper .is-landed[data-clause]'), 4000)), goLink ? '' : 'no "Go to § ›" in the opened conversation');
     if (await page.$('#context-panel [data-rl-np-back]')) await page.click('#context-panel [data-rl-np-back]');
     if (!(await page.$('#context-panel [data-rl-lv-whole]'))){ await notesNow(); await waitFor(page, () => !!document.querySelector('#context-panel [data-rl-lv-whole]'), 5000); }
     /* RE-POINTED 25 Nov 2026 (live notes A): a note without words starts from "Note on the whole contract" */

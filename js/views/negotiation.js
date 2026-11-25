@@ -17938,6 +17938,7 @@ function rlNpOpenHtml(c, ch, th, room, side, other, opts){
       ${opts.headRef || ''}
       <div class="rl-lv-live is-head" data-rl-lv-live="${_nea(c.id + '|' + room + '|' + key)}"></div>
       ${th.root.anchor && th.root.anchor.quote ? `<div class="rl-lv-hq">${rlNpQuoteHtml(th.root.anchor.quote)}${tc}</div>` : (tc ? `<div class="rl-lv-hq">${tc}</div>` : '')}
+      ${cid ? `<div class="rl-lv-go"><button type="button" class="ui-link" data-rl-np-goclause="${_nea(cid)}">${_ne(i18t('ng_np_go_paper', { sec: S.sec || S.name }))} ›</button></div>` : ''}
     </div>
     <div class="rl-lv-conv" data-rl-np-home="${_nea(ch ? ch.id : '')}" data-rl-np-root="${_nea(key)}">
       <div class="rl-lv-msgs">${body}${pin}${rlNpSumHtml(c, room, key)}<div class="rl-lv-typing" data-rl-lv-typing="${_nea(c.id + '|' + room + '|' + key)}" aria-live="polite"></div></div>

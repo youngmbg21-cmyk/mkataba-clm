@@ -26507,6 +26507,11 @@
   html.lg-new #clause-editor.is-tabbed .ce-tfrow .w{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   html.lg-new #clause-editor.is-tabbed .ce-tlinks{display:flex;gap:16px;padding:2px 0 10px;font-size:13px}
   html.lg-new #clause-editor.is-tabbed :is(#ce-chips, #ce-railfoot){display:none}
+  /* THE PLAYBOOK'S WORDING ON THE TAB (owner, 25 Nov 2026: "yes" — a way to use the Playbook's wording where the editor is
+     a tab): the chips row stands only for its Playbook questions (data-ce-std: our standard, our fallback, Jambo's draft),
+     and only those in it are drawn; everything else in the row stays put away */
+  html.lg-new #clause-editor.is-tabbed #ce-chips:has([data-ce-std]){display:flex;flex-wrap:wrap;gap:6px;padding:10px 18px 0}
+  html.lg-new #clause-editor.is-tabbed #ce-chips:has([data-ce-std]) button:not([data-ce-std]){display:none}
   /* THE EDITOR TAB'S SAVE IN THE BOTTOM ROW (owner's pick, 24 Nov 2026): the File button over the panel's foot is not drawn
      (its press is the bottom row's, data-ce-tsave); the row's button is the same grey pill, its words saying it files (Jambo's own act keeps the
      panel's one filled button); a foot with nothing left in it (no Undo) takes no room */
@@ -26627,6 +26632,8 @@
   html.lg-new .rl-chat.is-live .rl-lv-faces .rl-np-av{box-shadow:0 0 0 2px var(--color-surface);margin-left:-6px}
   html.lg-new .rl-chat.is-live .rl-lv-faces .rl-np-av:first-child{margin-left:0}
   html.lg-new .rl-chat.is-live .rl-lv-hq{min-width:0;font-size:12.5px;color:var(--color-neutral-600)}
+  /* an opened conversation's way to its clause on the paper (owner, 25 Nov 2026: "yes but make the wording shorter") */
+  html.lg-new .rl-chat.is-live .rl-lv-go{margin-top:2px;font-size:12.5px}
   html.lg-new .rl-chat.is-live .rl-lv-hq .rl-lv-q{display:inline;white-space:normal}
   html.lg-new .rl-chat.is-live .rl-lv-tc .ui-link{font-size:12.5px}
   html.lg-new .rl-chat.is-live .rl-lv-sub{font-size:12px;color:var(--color-neutral-600)}

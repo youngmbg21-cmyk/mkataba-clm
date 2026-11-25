@@ -165,3 +165,11 @@ test('f1226 Unread holds for the sitting (review of #1014): the panel marks thre
   assert.match(h, /if \(_rlNpSeenHeld\.cid !== cid\) _rlNpSeenHeld = \{ cid, at: new Map\(\) \};/, 'held per contract, let go on another');
   assert.match(h, /if \(!_rlNpSeenHeld\.at\.has\(k\)\) _rlNpSeenHeld\.at\.set\(k, negoThreadSeenAt\(scope, host\)\);/, 'the first look is kept');
 });
+
+test('f1226 an opened conversation carries its way to the clause, in short words (owner, 25 Nov 2026: "yes but make the wording shorter")', () => {
+  const fs2 = require('node:fs'), p2 = require('node:path');
+  const N = fs2.readFileSync(p2.join(__dirname, '..', 'js/views/negotiation.js'), 'utf8'), I = fs2.readFileSync(p2.join(__dirname, '..', 'js/i18n.js'), 'utf8');
+  const o = N.slice(N.indexOf('function rlNpOpenHtml('), N.indexOf('function rlNpNewConvHtml('));
+  assert.match(o, /cid \? `<div class="rl-lv-go"><button type="button" class="ui-link" data-rl-np-goclause="\$\{_nea\(cid\)\}">/, 'drawn wherever the conversation has a clause');
+  assert.match(I, /\n    ng_np_go_paper: "Go to \{sec\}",/); assert.match(I, /\n    ng_np_go_paper: "Gå till \{sec\}",/);
+});
