@@ -2606,6 +2606,8 @@ async function doLoginTotp(ticket, err){
   }
 }
 function logout(){
+  /* LIVE NOTES B: the tab's one notes stream closes on sign-out */
+  if(typeof window.liveNotesStop==='function'){ try{ window.liveNotesStop(); }catch(_){ } }
   if(REMOTE){ api('logout','POST').catch(()=>{}).finally(()=>location.reload()); return; }
   localStorage.removeItem(LS.session); location.reload();
 }

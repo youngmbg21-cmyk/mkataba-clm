@@ -17812,14 +17812,14 @@ function rlNpUnread(c, ch, th, opts = {}){
 /* the likes on a message: face → who pressed; read off the note (ours) or its channel copy (theirs) */
 function rlNpReacts(m){
   const r = (m && m.reactions && typeof m.reactions === 'object') ? m.reactions : {};
-  const me = rlNpMe(), myKey = me && me.id ? 'u:' + me.id : '';
+  const me = rlNpMe(), myKey = (PORTAL_MODE && window._rlNpLikeKey) ? String(window._rlNpLikeKey) : (me && me.id ? 'u:' + me.id : '');
   return RL_NP_RX.map(e => ({ e, n: Array.isArray(r[e]) ? r[e].length : 0, mine: !!(myKey && Array.isArray(r[e]) && r[e].includes(myKey)) })).filter(x => x.n);
 }
 function rlNpReactsHtml(m, key, mayWrite){
   const list = rlNpReacts(m);
-  const chips = list.map(x => `<button type="button" class="rl-lv-rx${x.mine ? ' is-mine' : ''}" data-rl-lv-rx="${_nea(x.e)}" data-rl-lv-key="${_nea(key)}"${m.channelId != null && !m.id ? ` data-rl-lv-ch="${_nea(m.channelId)}"` : ''}${mayWrite ? '' : ' disabled'} aria-pressed="${x.mine}">${x.e} ${x.n}</button>`).join('');
+  const chips = list.map(x => `<button type="button" class="rl-lv-rx${x.mine ? ' is-mine' : ''}" data-rl-lv-rx="${_nea(x.e)}" data-rl-lv-key="${_nea(key)}"${m.channelId != null && (!m.id || PORTAL_MODE) ? ` data-rl-lv-ch="${_nea(m.channelId)}"` : ''}${mayWrite ? '' : ' disabled'} aria-pressed="${x.mine}">${x.e} ${x.n}</button>`).join('');
   const add = mayWrite ? `<button type="button" class="rl-lv-rx is-add" data-rl-lv-pick="${_nea(key)}" title="${_nea(i18t('ng_lv_rx_add'))}" aria-label="${_nea(i18t('ng_lv_rx_add'))}">☺ +</button>
-      <span class="rl-lv-pick" data-rl-lv-picker="${_nea(key)}" hidden>${RL_NP_RX.map(e => `<button type="button" data-rl-lv-rx="${_nea(e)}" data-rl-lv-key="${_nea(key)}"${m.channelId != null && !m.id ? ` data-rl-lv-ch="${_nea(m.channelId)}"` : ''}>${e}</button>`).join('')}</span>` : '';
+      <span class="rl-lv-pick" data-rl-lv-picker="${_nea(key)}" hidden>${RL_NP_RX.map(e => `<button type="button" data-rl-lv-rx="${_nea(e)}" data-rl-lv-key="${_nea(key)}"${m.channelId != null && (!m.id || PORTAL_MODE) ? ` data-rl-lv-ch="${_nea(m.channelId)}"` : ''}>${e}</button>`).join('')}</span>` : '';
   return (chips || add) ? `<div class="rl-lv-rxs">${chips}${add}</div>` : '';
 }
 /* the paper's words, the anchored ones lit; where the clause is on record, its sentence round them */
@@ -17846,6 +17846,7 @@ function rlNpCompactHtml(c, ch, th, opts = {}){
   return `<button type="button" class="rl-np-crow rl-lv-row" data-rl-np-open="${_nea(key)}"${home ? ` data-rl-np-chg="${_nea(home.id)}"` : ''}>
       <span class="rl-lv-t">${S.sec ? `<span class="rl-lv-sec">${_ne(S.sec)}</span>` : ''}<b>${_ne(S.name || i18t('ng_np_on_contract'))}</b><span class="rl-lv-sp"></span>${un ? `<span class="rl-lv-un" aria-label="${_nea(i18tn('ng_lv_unread_n', un, { n: un }))}">${un}</span>` : ''}${rlNpStatusHtml(th)}</span>
       ${th.root.anchor && th.root.anchor.quote ? rlNpQuoteHtml(th.root.anchor.quote) : ''}
+      <span class="rl-lv-live" data-rl-lv-live="${_nea(c.id + '|' + negoNoteRoomKey(c, th.root) + '|' + key)}"></span>
       <span class="rl-lv-last">${rlNpAvatarHtml(last.who || '', true)}<span class="w">${_ne((you ? i18t('ng_lv_you') + ': ' : '') + words)}</span><span class="t">${rx ? _ne(rx) + ' · ' : ''}${_ne(negoWhen(last.at))}</span></span>
     </button>`;
 }
@@ -17854,7 +17855,9 @@ function rlNpBubbleHtml(c, m, room, side, other, ctx){
   const kind = rlNpWhoKind(m, side), key = negoNoteKey(m);
   const time = negoWhen(m.at);
   const seenBy = kind === 'me' && window.negoNoteSeenBy ? negoNoteSeenBy(m).filter(x => { const me = rlNpMe(); return !(me && ((x.id && me.id && String(x.id) === String(me.id)) || x.name.toLowerCase() === String(me.name || '').toLowerCase())); }).map(x => x.name.split(/\s+/)[0]) : [];
-  const meta = kind === 'me' ? `<div class="rl-lv-meta">${_ne(time)}${seenBy.length ? ' · ' + _ne(i18t('ng_lv_seen_by', { names: seenBy.join(', ') })) : ''}</div>` : '';
+  /* READ hh:mm (live notes B): the server's stamp of the first time their page showed it — never guessed */
+  const readAt = kind === 'me' && side === 'owner' && negoRoomIsExternal(room) && m.readAt ? negoWhen(m.readAt) : '';
+  const meta = kind === 'me' ? `<div class="rl-lv-meta">${_ne(time)}${seenBy.length ? ' · ' + _ne(i18t('ng_lv_seen_by', { names: seenBy.join(', ') })) : ''}${readAt ? ' · <span class="rl-lv-read">' + _ne(i18t('ng_lv_read_at', { when: readAt })) + '</span>' : ''}</div>` : '';
   /* THE NOTE'S OWN VERBS AND FACTS stand on every bubble — Reply, Done, Seen, Give, Delete and who it is with — through
      the drawer's one builder (rlNpNoteHtml actsOnly), so their walls and wiring (rlNpWireActs) are unchanged */
   const own = (ctx.c && typeof rlNpNoteHtml === 'function') ? rlNpNoteHtml(m, room, side, other, { c: ctx.c, ch: ctx.ch, acts: true, actsOnly: true, mayWrite: ctx.mayWrite,
@@ -17869,7 +17872,7 @@ function rlNpBubbleHtml(c, m, room, side, other, ctx){
   return `<div class="rl-lv-m is-${kind}" data-rl-lv-msg="${_nea(key)}">
       ${kind === 'me' ? '' : `<span class="rl-lv-av">${rlNpAvatarHtml(m.who || '', true)}</span>`}
       <div class="rl-lv-mb">${who}<div class="rl-lv-tx">${text}</div>${meta}
-        <div class="rl-lv-foot">${rlNpReactsHtml(m, key, ctx.mayWrite && side === 'owner')}${acts.length ? `<span class="rl-lv-acts">${acts.join('')}</span>` : ''}</div>${own ? `<div class="rl-lv-own">${own}</div>` : ''}</div>
+        <div class="rl-lv-foot">${rlNpReactsHtml(m, key, ctx.mayWrite && (side === 'owner' || (PORTAL_MODE && negoRoomIsExternal(room) && m.channelId != null)))}${acts.length ? `<span class="rl-lv-acts">${acts.join('')}</span>` : ''}</div>${own ? `<div class="rl-lv-own">${own}</div>` : ''}</div>
     </div>`;
 }
 /* the rooms' wall, said under the box: ours is ours; theirs is read by them and stays on the record */
@@ -17906,11 +17909,12 @@ function rlNpOpenHtml(c, ch, th, room, side, other, opts){
     <div class="rl-lv-head">
       <div class="rl-lv-t">${S.sec ? `<span class="rl-lv-sec">${_ne(S.sec)}</span>` : ''}<b>${_ne(S.name || i18t('ng_np_on_contract'))}</b><span class="rl-lv-sp"></span><span class="rl-lv-faces">${who.slice(0, 4).map(n => rlNpAvatarHtml(n, true)).join('')}</span></div>
       ${opts.headRef || ''}
+      <div class="rl-lv-live is-head" data-rl-lv-live="${_nea(c.id + '|' + room + '|' + key)}"></div>
       ${th.root.anchor && th.root.anchor.quote ? `<div class="rl-lv-hq">${rlNpQuoteHtml(th.root.anchor.quote)}${tc}</div>` : (tc ? `<div class="rl-lv-hq">${tc}</div>` : '')}
     </div>
     <div class="rl-lv-conv" data-rl-np-home="${_nea(ch ? ch.id : '')}" data-rl-np-root="${_nea(key)}">
-      <div class="rl-lv-msgs">${body}${pin}</div>
-      ${mayWrite ? rlNpConvBoxHtml(key, room, side, other) + rlNpWallHtml(c, room, side, other, (msgs.filter(m => rlNpWhoKind(m, side) === 'them').pop() || {}).who) : `<div class="rl-np-no">${RL_NP_LOCK}<span>${i18t('ng_np_viewer')}</span></div>`}
+      <div class="rl-lv-msgs">${body}${pin}${rlNpSumHtml(c, room, key)}<div class="rl-lv-typing" data-rl-lv-typing="${_nea(c.id + '|' + room + '|' + key)}" aria-live="polite"></div></div>
+      ${mayWrite ? rlNpAiRowHtml(c, room, key, side) + rlNpConvBoxHtml(key, room, side, other) + rlNpWallHtml(c, room, side, other, (msgs.filter(m => rlNpWhoKind(m, side) === 'them').pop() || {}).who) : `<div class="rl-np-no">${RL_NP_LOCK}<span>${i18t('ng_np_viewer')}</span></div>`}
     </div>`;
 }
 /* A NEW CONVERSATION FROM THE PAPER: the words highlighted, pinned; the box focused; the wall said under it */
@@ -18099,6 +18103,11 @@ function rlChatPanelPaint(host, c, opts = {}){
   host.querySelectorAll('[data-rl-np-open]').forEach(b => b.addEventListener('click', () => { _rlNpOpen = b.getAttribute('data-rl-np-open'); rlChatPanelPaint(host, c, opts); }));
   host.querySelectorAll('[data-rl-np-back]').forEach(b => b.addEventListener('click', () => { _rlNpOpen = null; rlChatPanelPaint(host, c, opts); }));
   rlNpLiveWire(host, c, opts, () => rlChatPanelPaint(host, c, opts));
+  /* LIVE NOTES B: this host repaints on a ping (its own paint, words kept), says who is here and typing, and beats */
+  host._rlRepaint = () => rlChatPanelPaint(host, c, opts);
+  liveNotesEnsure();
+  liveHereSet(c, rlNpRoomNow(c, opts, opts.side === 'counterparty' ? 'counterparty' : 'owner'), _rlNpOpen || '', host);
+  liveSayPaint();
   host.querySelectorAll('[data-rl-np-goclause]').forEach(b => b.addEventListener('click', () => { const id = b.getAttribute('data-rl-np-goclause');
     if (typeof window.igPaperGoClause === 'function' && window.igPaperGoClause(id)) return; if (typeof window.rlJumpToClause === 'function') window.rlJumpToClause(id); }));
   rlNpShowFocused(host);
@@ -18122,6 +18131,8 @@ function rlNpFindNote(c, key){
   return hit;
 }
 async function rlNpReact(c, key, channelId, emoji){
+  /* THEIR PAGE (live notes B): a like through their own link's route, on a message of their own room */
+  if (PORTAL_MODE){ return (channelId != null && typeof window.portalReact === 'function') ? window.portalReact(channelId, emoji) : false; }
   const me = rlNpMe(); if (!me || !RL_NP_RX.includes(emoji)) return false;
   const hit = channelId == null ? rlNpFindNote(c, key) : null;
   const local = () => {
@@ -18140,8 +18151,186 @@ async function rlNpReact(c, key, channelId, emoji){
     return true;
   } catch (e){ if (window.toast) toast((e && e.message) || i18t('ng_lv_rx_failed'), 'err'); return false; }
 }
+/* ==== LIVE NOTES, ROUND B (owner, 25 Nov 2026) ====
+   ONE STREAM PER TAB (GET /api/live; their page: GET /api/shares/:token/live) carrying pings — "notes moved on contract X,
+   room R", never words — and beats (typing, here). A ping is read through the routes the page always read through
+   (the record, its messages), so the walls are the server's as before; the host repaints itself keeping the words being
+   typed. Dropped, it comes back (a growing wait); where a browser has no streams, the old check (pollNow) carries on.
+   Beats are kept for LIVE_BEAT_FORGET_MS and never stored. Closed on sign-out (liveNotesStop). */
+const LIVE_BEAT_FORGET_MS = 6000, LIVE_TYPING_MS = 4000, LIVE_HERE_EVERY_MS = 3000, LIVE_TYPE_EVERY_MS = 1500;
+let _lvES = null, _lvSid = '', _lvTries = 0, _lvRetry = null, _lvHere = null, _lvHereTimer = null, _lvSayTimer = null, _lvTypeAt = 0;
+const _lvPeers = new Map(), _lvSum = new Map(), _lvTake = new Map();
+function liveNotesOn(){ return typeof EventSource === 'function' && (PORTAL_MODE ? !!window._ptLiveToken : (typeof API_MODE === 'function' && API_MODE() && !!rlNpMe())); }
+function liveNotesEnsure(){
+  if (_lvES || _lvRetry || !liveNotesOn()) return false;
+  const url = PORTAL_MODE ? 'api/shares/' + encodeURIComponent(window._ptLiveToken) + '/live' + (window._ptLiveTicket ? '?t=' + encodeURIComponent(window._ptLiveTicket) : '') : 'api/live';
+  let es; try { es = new EventSource(url); } catch (_){ return false; }
+  _lvES = es;
+  es.addEventListener('hello', e => { try { _lvSid = JSON.parse(e.data).sid || ''; } catch (_){ _lvSid = ''; } _lvTries = 0; });
+  es.addEventListener('notes', e => { try { liveNotesTake(JSON.parse(e.data)); } catch (_){ /* a garbled line is skipped */ } });
+  es.addEventListener('beat', e => { try { liveBeatTake(JSON.parse(e.data)); } catch (_){ /* skipped */ } });
+  es.onerror = () => {
+    try { es.close(); } catch (_){ }
+    if (_lvES === es){ _lvES = null; _lvSid = ''; }
+    if (!liveNotesOn()) return;
+    /* a stream the server keeps refusing (a link that may not stream, a signed-out seat) stops asking; the old check stays */
+    if (++_lvTries > 6) return;
+    _lvRetry = setTimeout(() => { _lvRetry = null; liveNotesEnsure(); }, Math.min(30000, 1000 * Math.pow(2, Math.min(_lvTries, 5))));
+  };
+  return true;
+}
+function liveNotesStop(){
+  if (_lvRetry){ clearTimeout(_lvRetry); _lvRetry = null; }
+  if (_lvES){ try { _lvES.close(); } catch (_){ } }
+  _lvES = null; _lvSid = ''; _lvHere = null; _lvPeers.clear();
+  if (_lvHereTimer){ clearInterval(_lvHereTimer); _lvHereTimer = null; }
+}
+/* a ping: read what moved (a little later, once, for a burst of pings) and repaint the hosts showing that contract */
+function liveNotesTake(d){
+  const cid = String((d && d.c) || ''); if (!cid) return;
+  if (_lvTake.has(cid)) return;
+  /* only a contract this tab is holding is read again; the rest of the list is the old check's */
+  const sel = (window.CSS && CSS.escape) ? CSS.escape(cid) : cid;
+  if (!PORTAL_MODE && !document.querySelector(`[data-rl-chat="${sel}"]`) && !(window.state && String(state.activeId || '') === cid)) return;
+  _lvTake.set(cid, setTimeout(async () => {
+    _lvTake.delete(cid);
+    try {
+      if (PORTAL_MODE){ if (typeof window.portalLiveTake === 'function') await window.portalLiveTake(d); return; }
+      const c = (typeof getContract === 'function') ? getContract(cid) : null; if (!c) return;
+      let moved = String(d.room || '').slice(0, 2) === 'p:';
+      if (!(typeof contractSavePending === 'function' && contractSavePending(c))){
+        const full = await api('contracts/' + encodeURIComponent(cid), 'GET', undefined, { quiet: true });
+        /* the same version is this tab's own save coming back: nothing to take, nothing to repaint */
+        if (full && full._v !== c._v && !(typeof contractSavePending === 'function' && contractSavePending(c))){ Object.assign(c, full); c._v = full._v; c._loaded = true; c._light = false; moved = true; }
+      }
+      if (String(d.room || '').slice(0, 2) === 'p:'){ const r = await api('contracts/' + encodeURIComponent(cid) + '/messages', 'GET', undefined, { quiet: true }); if (r && Array.isArray(r.messages)) c._messages = r.messages; }
+      if (moved) liveRepaintNotes(cid);
+    } catch (_){ /* the next ping, or the old check, catches up */ }
+  }, 120));
+}
+/* the hosts showing this contract's notes repaint themselves, keeping what is being typed and where */
+function liveRepaintNotes(cid){
+  document.querySelectorAll(`[data-rl-chat="${(window.CSS && CSS.escape) ? CSS.escape(String(cid)) : String(cid)}"]`).forEach(el => {
+    const host = el.parentElement; if (!host || typeof host._rlRepaint !== 'function') return;
+    const a = document.activeElement, inside = a && host.contains(a) && a.tagName === 'TEXTAREA';
+    const sel = inside ? (a.getAttribute('data-rl-np-rin') != null ? `[data-rl-np-rin="${a.getAttribute('data-rl-np-rin')}"]` : (a.id ? '#' + a.id : '.rl-np-in')) : null;
+    const v = inside ? a.value : null, at = inside ? a.selectionStart : 0;
+    const keep = [...host.querySelectorAll('textarea')].map(t => [t.getAttribute('data-rl-np-rin') != null ? `[data-rl-np-rin="${t.getAttribute('data-rl-np-rin')}"]` : (t.id ? '#' + t.id : null), t.value]).filter(x => x[0] && x[1]);
+    const sc = host.querySelector('.rl-np-list'), top = sc ? sc.scrollTop : 0;
+    host._rlLive = true;
+    try { host._rlRepaint(); } finally { host._rlLive = false; }
+    keep.forEach(([q, val]) => { const t = host.querySelector(q); if (t && !t.value) t.value = val; });
+    const sc2 = host.querySelector('.rl-np-list'); if (sc2) sc2.scrollTop = top;
+    if (sel){ const t = host.querySelector(sel); if (t){ t.value = v; try { t.focus({ preventScroll: true }); t.setSelectionRange(at, at); } catch (_){ } } }
+  });
+}
+/* is any note on this contract new to me — our record's notes and the channel's rows (theirs) */
+function liveSomethingUnread(c){
+  if (!c || !window.negoNoteUnread) return false;
+  const all = [].concat(Array.isArray(c.thread) ? c.thread : [], ...(Array.isArray(c.changes) ? c.changes.map(x => (x && Array.isArray(x.thread)) ? x.thread : []) : []),
+    (Array.isArray(c._messages) ? c._messages : []).filter(m => m && m.side !== 'owner').map(m => ({ at: m.at, who: m.author, side: 'counterparty' })));
+  return all.some(m => m && negoNoteUnread(c, m));
+}
+/* a beat from someone else: who is here, who is typing, on which conversation — kept a few seconds, never stored */
+function liveBeatTake(d){
+  if (!d || !d.c || !d.who) return;
+  const me = rlNpMe();
+  if (me && d.who.id && String(d.who.id) === String(me.id)) return;
+  const who = String(d.who.name || '').trim(); if (!who) return;
+  /* a "here" beat between two typing beats does not stop the typing: it is said until LIVE_TYPING_MS after the last */
+  const key = [d.c, d.room, d.k || '', d.who.id || who].join('|'), was = _lvPeers.get(key), now = Date.now();
+  const typedAt = d.typing ? now : (was && was.typedAt) || 0;
+  _lvPeers.set(key, { c: String(d.c), room: String(d.room), k: String(d.k || ''), name: who, typedAt, get typing(){ return Date.now() - this.typedAt < LIVE_TYPING_MS; }, at: now });
+  liveSayPaint();
+}
+function livePeersOn(c, room, k){
+  const now = Date.now(), out = [];
+  for (const [key, p] of _lvPeers){ if (now - p.at > LIVE_BEAT_FORGET_MS){ _lvPeers.delete(key); continue; }
+    if (p.c === c && p.room === room && (!k || p.k === k)) out.push(p); }
+  return out;
+}
+const liveNames = list => { const n = [...new Set(list.map(p => p.name.split(/\s+/)[0]))]; return n.length <= 2 ? n.join(i18t('ng_lv_and')) : n.slice(0, 2).join(', ') + i18t('ng_lv_and') + i18tn('ng_lv_more', n.length - 2, { n: n.length - 2 }); };
+/* the places that say it: a row's line, a conversation's head, the typing line under its messages */
+function liveSayPaint(){
+  document.querySelectorAll('[data-rl-lv-live]').forEach(el => {
+    const [c, room, k] = String(el.getAttribute('data-rl-lv-live')).split('|');
+    /* a conversation's head says who is here; its typing is said once, under its messages */
+    const ps = livePeersOn(c, room, k), typing = el.classList.contains('is-head') ? [] : ps.filter(p => p.typing);
+    const t = typing.length ? i18tn('ng_lv_typing', typing.length, { who: liveNames(typing) }) : ps.length ? i18tn('ng_lv_here', ps.length, { who: liveNames(ps) }) : '';
+    const html = t ? `<span class="rl-lv-dotlive" aria-hidden="true"></span>${_ne(t)}${typing.length ? '<i></i><i></i><i></i>' : ''}` : '';
+    if (el.innerHTML !== html) el.innerHTML = html;
+    el.classList.toggle('is-on', !!t);
+  });
+  document.querySelectorAll('[data-rl-lv-typing]').forEach(el => {
+    const [c, room, k] = String(el.getAttribute('data-rl-lv-typing')).split('|');
+    const typing = livePeersOn(c, room, k).filter(p => p.typing);
+    const html = typing.length ? `${_ne(i18tn('ng_lv_typing', typing.length, { who: liveNames(typing) }))}<i></i><i></i><i></i>` : '';
+    if (el.innerHTML !== html) el.innerHTML = html;
+  });
+  if (_lvPeers.size && !_lvSayTimer) _lvSayTimer = setInterval(() => { liveSayPaint(); if (!_lvPeers.size){ clearInterval(_lvSayTimer); _lvSayTimer = null; } }, 1000);
+}
+/* our beats: "here" every few seconds while a host shows this contract's notes; "typing" while words go into its box */
+function liveBeatSend(typing){
+  const h = _lvHere; if (!h || !h.host || !h.host.isConnected) { _lvHere = null; return; }
+  if (typeof document !== 'undefined' && document.hidden) return;
+  const body = { c: h.c, room: h.room, k: h.k, typing: !!typing, sid: _lvSid };
+  if (PORTAL_MODE){
+    if (!window._ptLiveToken) return;
+    fetch('api/shares/' + encodeURIComponent(window._ptLiveToken) + '/live/beat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ k: h.k, typing: !!typing, t: window._ptLiveTicket || '' }) }).catch(() => {});
+    return;
+  }
+  if (typeof api === 'function') api('live/beat', 'POST', body, { quiet: true }).catch(() => {});
+}
+function liveHereSet(c, room, k, host){
+  if (!c || !liveNotesOn()) return;
+  _lvHere = { c: String(c.id), room: String(room), k: String(k || ''), host };
+  if (!_lvHereTimer) _lvHereTimer = setInterval(() => { if (!_lvHere) { clearInterval(_lvHereTimer); _lvHereTimer = null; return; } liveBeatSend(false); }, LIVE_HERE_EVERY_MS);
+  liveBeatSend(false);
+}
+if (typeof document !== 'undefined' && !document._lvTypeWired){
+  document._lvTypeWired = true;
+  document.addEventListener('input', e => {
+    const t = e.target; if (!t || !t.closest || !t.closest('.rl-chat.is-live') || t.tagName !== 'TEXTAREA') return;
+    const now = Date.now(); if (now - _lvTypeAt < LIVE_TYPE_EVERY_MS) return; _lvTypeAt = now;
+    liveBeatSend(true);
+  });
+}
+/* ---- JAMBO ON A PRESS (POST /api/ai/notes): Summarise is a quiet card in the conversation, a draft goes into the box;
+   nothing is sent, nothing stored. Greyed, with the reason, where Jambo is not connected. ---- */
+function rlNpAiOn(){ return typeof window.copilotAvailable === 'function' ? !!window.copilotAvailable() : false; }
+function rlNpAiRowHtml(c, room, key, side){
+  if (side !== 'owner' || PORTAL_MODE) return '';
+  const on = rlNpAiOn(), why = on ? '' : ` disabled title="${_nea(i18t('ng_lv_ai_off'))}" aria-disabled="true"`;
+  return `<div class="rl-lv-ai"><button type="button" class="ui-link" data-rl-lv-ai="summary" data-rl-lv-ai-k="${_nea(key)}"${why}>${_ne(i18t('ng_lv_ai_sum'))}</button><button type="button" class="ui-link" data-rl-lv-ai="reply" data-rl-lv-ai-k="${_nea(key)}"${why}>${_ne(i18t('ng_lv_ai_reply'))}</button><span class="rl-lv-ai-k">${_ne(i18t(on ? 'ng_lv_ai_press' : 'ng_lv_ai_off'))}</span></div>`;
+}
+function rlNpSumHtml(c, room, key){
+  const s = _lvSum.get(c.id + '|' + room + '|' + key); if (!s) return '';
+  return `<div class="rl-lv-sum${s.err ? ' is-err' : ''}" role="status"><b>${_ne(i18t(s.busy ? 'ng_lv_ai_busy' : s.err ? 'ng_lv_ai_failed' : 'ng_lv_ai_sum_t'))}</b>${s.busy ? '' : `<span>${_ne(s.text)}</span>`}${s.busy ? '' : `<button type="button" class="ui-link" data-rl-lv-sum-x="${_nea(key)}">${_ne(i18t('act_close'))}</button>`}</div>`;
+}
+async function rlNpAi(c, room, key, mode, host, repaint){
+  const k = c.id + '|' + room + '|' + key;
+  if (mode === 'summary'){ _lvSum.set(k, { busy: true }); repaint(); }
+  let out = null, err = null;
+  try { out = await api('ai/notes', 'POST', { contractId: c.id, room, root: key, mode }); } catch (e){ err = e; }
+  if (mode === 'summary'){
+    _lvSum.set(k, err ? { err: true, text: (err && err.message) || '' } : { text: String((out && out.text) || '') + ((out && out.truncated) ? ' ' + i18t('ng_lv_ai_cut') : '') });
+    repaint(); return;
+  }
+  if (err){ _lvSum.set(k, { err: true, text: (err && err.message) || '' }); repaint(); return; }
+  const box = host.querySelector(`[data-rl-np-rin="${_rlNpCssKey(key)}"]`);
+  if (box){ box.value = String((out && out.text) || ''); try { box.focus(); box.setSelectionRange(box.value.length, box.value.length); } catch (_){ } if (typeof window.chatFieldGrow === 'function') window.chatFieldGrow(box); }
+}
 function rlNpLiveWire(host, c, opts, repaint){
   const stop = ev => { ev.preventDefault(); ev.stopPropagation(); };
+  host.querySelectorAll('[data-rl-lv-ai]').forEach(b => b.addEventListener('click', ev => { stop(ev);
+    if (b.disabled) return;
+    const room = rlNpRoomNow(c, opts, opts.side === 'counterparty' ? 'counterparty' : 'owner');
+    rlNpAi(c, room, b.getAttribute('data-rl-lv-ai-k'), b.getAttribute('data-rl-lv-ai'), host, repaint);
+  }));
+  host.querySelectorAll('[data-rl-lv-sum-x]').forEach(b => b.addEventListener('click', ev => { stop(ev);
+    const room = rlNpRoomNow(c, opts, opts.side === 'counterparty' ? 'counterparty' : 'owner');
+    _lvSum.delete(c.id + '|' + room + '|' + b.getAttribute('data-rl-lv-sum-x')); repaint();
+  }));
   host.querySelectorAll('[data-rl-lv-rx]').forEach(b => b.addEventListener('click', async ev => { stop(ev);
     if (b.disabled) return;
     const ch = b.getAttribute('data-rl-lv-ch');
@@ -18515,8 +18704,11 @@ function rlNpWireActs(host, c, ch, opts = {}, repaint){
      nothing when it has not moved, so an open-and-shut costs no save. Never on
      the counterparty's seat: their page has no reader to remember. */
   if (side !== 'counterparty' && !PORTAL_MODE && window.negoMarkNotesRead){
+    /* LIVE NOTES B: a repaint a ping caused stamps only when something there is still unread, or two open panels
+       would stamp and save each other's pings for ever */
+    const live = !!host._rlLive;
     setTimeout(() => {
-      try{ if (negoMarkNotesRead(c) && window.persist) persist(c); }catch(_){}
+      try{ if ((!live || liveSomethingUnread(c)) && negoMarkNotesRead(c) && window.persist) persist(c); }catch(_){}
     }, 0);
   }
   const again = () => {
@@ -23728,7 +23920,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
   rlNoteDialogHtml, openChangeNoteDialog, rlNoteAskAfterFile,
   rlNotesPin, rlNotesUnpin, rlNotesPinned, rlNotesPanelClosed, rlNpPinFor, negoWhenFull, rlNpClauseLabel,
   rlNpThreadHtml, rlNpListHtml, rlNpPinHtml, rlChatThreads, rlNpWireActs, rlNpSetDone, rlNpShowFocused,
-  rlNoteFromSelection, rlNoteRoomActs, rlNpReact, rlNpLiveWire, rlNpBubbleHtml, rlNpReactsHtml, rlNpNewConvHtml, rlNpUnread, RL_NP_RX, rlPaperSelOffer, rlPaperOfferFromRange, rlSelInFront, rlAskCopilotPanel, rlPaintNoteMarks, rlRepaintNoteMarks, rlNpNoteByKey, rlWrapWords, negoNoteMeta,
+  rlNoteFromSelection, rlNoteRoomActs, rlNpReact, liveNotesEnsure, liveNotesStop, liveNotesTake, liveBeatTake, liveSayPaint, liveRepaintNotes, livePeersOn, rlNpAi, LIVE_BEAT_FORGET_MS, rlNpLiveWire, rlNpBubbleHtml, rlNpReactsHtml, rlNpNewConvHtml, rlNpUnread, RL_NP_RX, rlPaperSelOffer, rlPaperOfferFromRange, rlSelInFront, rlAskCopilotPanel, rlPaintNoteMarks, rlRepaintNoteMarks, rlNpNoteByKey, rlWrapWords, negoNoteMeta,
   rlChatRows, rlChatPanelHtml, rlChatPanelPaint,
   negoPostToChannel, negoNotifyMentions, negoMentionLine, rlNotesPanelHtml, rlNotesPanelPaint, rlWireNotesPanel,
   rlNpTagMenuHtml, rlNpTagWire, rlNpMarkMentions, rlTagInk,

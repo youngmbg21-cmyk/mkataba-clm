@@ -637,7 +637,8 @@ describe('f303 (8) — the server keeps a message’s meta and answers Done on b
 
   test('the column, the allow-list and the two PATCH routes are on the server', () => {
     assert.match(SERVER, /addColumnIfMissing\('share_messages', 'meta', 'TEXT'\);/);
-    assert.match(SERVER, /function msgMeta\(raw\)/);
+    /* RE-POINTED 25 Nov 2026 (live notes B, owner): the allow-list takes `trusted` — likes and Read only from stored rows */
+    assert.match(SERVER, /function msgMeta\(raw, trusted\)/);
     assert.match(SERVER, /app\.patch\('\/api\/contracts\/:id\/messages\/:mid', auth, editor/);
     assert.match(SERVER, /app\.patch\('\/api\/shares\/:token\/messages\/:mid', rlShare/);
   });

@@ -2259,6 +2259,54 @@ function portalNotesPaint(){
   const x=_ptNotes;
   if(!body||!x||!x.c||!window.rlChatPanelPaint) return;
   rlChatPanelPaint(body, x.c, portalNotesOpts());
+  /* LIVE NOTES B: a ping repaints through THIS page's own paint (its messages are the link's), and an open aside
+     tells the sender when it first showed their note */
+  body._rlRepaint=portalNotesPaint;
+  const panel=document.getElementById('pt-notes');
+  if(panel&&panel.classList.contains('open')) portalNotesReadSend();
+}
+/* ---- LIVE NOTES B, THEIR SIDE ----
+   READ: the first time this page SHOWS a note of the sender's, the server stamps it (POST /api/shares/:token/read);
+   the server decides which rows are the link's to stamp, so a list is only a suggestion. Sent once per note a sitting. */
+const _ptReadSent=new Set();
+function portalNotesReadSend(){
+  if(!PORTAL_OPTS.token||PORTAL_OPTS.superseded) return;
+  const ids=(Array.isArray(PORTAL_OPTS.messages)?PORTAL_OPTS.messages:[])
+    .filter(m=>m&&m.side==='owner'&&m.id!=null&&!(m.meta&&m.meta.readAt)&&!_ptReadSent.has(String(m.id))).map(m=>m.id);
+  if(!ids.length) return;
+  ids.forEach(id=>_ptReadSent.add(String(id)));
+  const t=portalTicket(PORTAL_OPTS.token);
+  fetch('api/shares/'+encodeURIComponent(PORTAL_OPTS.token)+'/read',{ method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ ids, t }) }).catch(()=>{});
+}
+/* LIKE from their seat: the same six, through their own link, on a note of their own room (the server's wall) */
+async function portalReact(channelId, emoji){
+  if(!PORTAL_OPTS.token||channelId==null) return false;
+  try{
+    const r=await fetch('api/shares/'+encodeURIComponent(PORTAL_OPTS.token)+'/messages/'+encodeURIComponent(channelId)+'/react',
+      { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ emoji, t:portalTicket(PORTAL_OPTS.token) }) });
+    const d=await r.json().catch(()=>null);
+    if(!r.ok||!d){ toast(portalErrText({ message:d&&d.error },i18t('ng_lv_like_fail')),'err'); return false; }
+    if(d.me){ window._rlNpLikeKey=d.me; try{ sessionStorage.setItem('hati.ptLike.'+PORTAL_OPTS.token, d.me); }catch(_){} }
+    if(Array.isArray(d.messages)) PORTAL_OPTS.messages=d.messages;
+    portalNotesPaint();
+    return true;
+  }catch(_){ toast(i18t('ng_lv_like_fail'),'err'); return false; }
+}
+/* A PING (never words): read the link's answer again and repaint the notes aside and the bell; the rest of the page
+   is the poll's, as before */
+async function portalLiveTake(){
+  const token=PORTAL_OPTS.token; if(!token) return;
+  const { ok, d }=await portalFetchShare(token);
+  if(!ok||!d||!Array.isArray(d.messages)) return;
+  PORTAL_OPTS.messages=d.messages;
+  if(window.liveRepaintNotes&&_ptNotes&&_ptNotes.c) liveRepaintNotes(_ptNotes.c.id);
+  try{ if(_ptNotes&&_ptNotes.c) portalPaintAlerts(_ptNotes.c, _ptNotes.p); }catch(_){}
+}
+function portalLiveStart(token, d){
+  if(!token||(d&&(d.adviser||d.readOnly))) return;
+  window._ptLiveToken=token; window._ptLiveTicket=portalTicket(token);
+  try{ const k=sessionStorage.getItem('hati.ptLike.'+token); if(k) window._rlNpLikeKey=k; }catch(_){}
+  if(typeof window.liveNotesEnsure==='function') liveNotesEnsure();
 }
 /* THE PRESS THAT OPENED IT CLOSES IT (owner's rule, 11 Sep 2026): the More
    menu's Notes row pressed over an open aside takes it down, and a marker
@@ -2278,6 +2326,7 @@ function portalOpenNotes(o){
   /* Reading the notes is what marks them seen: the bell row and the door's
      count go with it. */
   portalNotesMarkSeen();
+  portalNotesReadSend();
   try{ if(_ptNotes&&_ptNotes.c) portalPaintAlerts(_ptNotes.c, _ptNotes.p); }catch(_){}
   /* NO SCRIM (4 Oct 2026): our drawer leaves the contract lit and pressable
      (notes-two-rooms-verify: "the scrim does not come up"); theirs now does
@@ -3167,6 +3216,7 @@ function portalScheduleNextPoll(){
 }
 function portalStartPolling(token, d){
   portalStopPolling();
+  portalLiveStart(token, d);
   _ptPollToken=token; _ptPollSig=portalSignature(d);
   _ptLastActivity=Date.now();   // opening the link is itself activity
   try{
@@ -7116,6 +7166,6 @@ function portalGoneNlWire(opts){
       if (typeof toast === 'function') toast(i18t('pnl_asked_toast'), 'ok'); }
     catch(e){ b.disabled = false; if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); } });
 }
-Object.assign(window,{portalOutShort,portalOutWhereHtml,portalOutWhereSideHtml,portalOutSignHtml,portalOutSignSideHtml,portalOutSignSteps,portalOutAlertsHtml,portalOutPaintSide,portalOutHistExtra,portalOutReadHtml,portalOutCardMore,portalOutNotesN,portalWasNow,portalWasNowHtml,portalPanelTabsHtml,portalPanelTab,portalShortDay,portalGoneNlHtml,portalGoneNlWire,portalOutOn,portalOutAsks,portalOutBarHtml,portalOutSideHtml,portalOutFootHtml,portalOutPaintNotes,portalOutPaint,portalOutFace,portalOutHeadHtml,portalOutSyncLink,portalOutPropose,portalOutSendHtml,portalOutHistoryHtml,portalWriteFootHtml,portalWriteSend,portalAskDiffers,portalOpenAsks,portalMyPartyName,portalWithNames,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
+Object.assign(window,{portalNotesReadSend,portalReact,portalLiveTake,portalLiveStart,portalOutShort,portalOutWhereHtml,portalOutWhereSideHtml,portalOutSignHtml,portalOutSignSideHtml,portalOutSignSteps,portalOutAlertsHtml,portalOutPaintSide,portalOutHistExtra,portalOutReadHtml,portalOutCardMore,portalOutNotesN,portalWasNow,portalWasNowHtml,portalPanelTabsHtml,portalPanelTab,portalShortDay,portalGoneNlHtml,portalGoneNlWire,portalOutOn,portalOutAsks,portalOutBarHtml,portalOutSideHtml,portalOutFootHtml,portalOutPaintNotes,portalOutPaint,portalOutFace,portalOutHeadHtml,portalOutSyncLink,portalOutPropose,portalOutSendHtml,portalOutHistoryHtml,portalWriteFootHtml,portalWriteSend,portalAskDiffers,portalOpenAsks,portalMyPartyName,portalWithNames,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
   portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,exportSignPagesHtml,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName,portalEditHtml,portalOpenEditor});
