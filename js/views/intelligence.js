@@ -12271,7 +12271,7 @@ function igPaperKey(c){ return c.id+(igSignOn(c)?':sign':igTheirsOn(c)?':theirs'
    builder for the first drawing (igPaperHtml) and for the clause-by-clause redraw after it (igPaperPatch) */
 function igRedBodyHtml(c,clean){
   const hide=clean?(Array.isArray(c.changes)?c.changes:[]).filter(x=>x&&x.status!=='accepted').map(x=>x.id):null;
-  try{ return redlineDocHtml(c,igTheirsOn(c)?{ side:'counterparty', readonly:true, preview:true }:{ side:'owner', readonly:true, ...(hide?{ hiddenIds:hide }:{}) })||''; }catch(_){ return ''; }
+  try{ return redlineDocHtml(c,igTheirsOn(c)?{ side:'counterparty', readonly:true, preview:true, look:false }:{ side:'owner', readonly:true, look:false, ...(hide?{ hiddenIds:hide }:{}) })||''; }catch(_){ return ''; }
 }
 /* ---- ONLY THE CLAUSES THAT MOVED ARE DRAWN AGAIN (owner, 11 Nov 2026: "time it on GitHub first, then fix Accept and
    Reject") ----
