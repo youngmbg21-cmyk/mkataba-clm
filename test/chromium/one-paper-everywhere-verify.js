@@ -42,6 +42,14 @@ const M = () => {
     title: t ? [Math.round(t.getBoundingClientRect().top - r.top), cs(t).fontSize, cs(t).fontWeight].join('/') : null,
     head: h ? [Math.round(h.getBoundingClientRect().top - r.top), Math.round(h.getBoundingClientRect().left - r.left), cs(h).fontSize, cs(h).fontWeight].join('/') : null,
     body: b ? [cs(b).fontSize, cs(b).lineHeight, cs(b).color, Math.round(b.getBoundingClientRect().left - r.left)].join('/') : null,
+    /* WHERE A DIFFERENCE IN 'head' COMES FROM (said only on a failure): every box above the heading, from the
+       sheet down to it, with its unrounded place, height and the spacing that sets it */
+    trail: h ? (() => { const out = []; const nm = e => e.tagName.toLowerCase() + (e.className && typeof e.className === 'string' ? '.' + e.className.trim().split(/\s+/).slice(0, 2).join('.') : '');
+      const one = e => { const q = e.getBoundingClientRect(), s = cs(e); return `${nm(e)}@${(q.top - r.top).toFixed(2)}+${q.height.toFixed(2)} m${s.marginTop}/${s.marginBottom} p${s.paddingTop}/${s.paddingBottom} lh${s.lineHeight} fs${s.fontSize}`; };
+      const chain = []; for (let e = h; e && e !== sheet; e = e.parentElement) chain.unshift(e);
+      out.push('sheet p' + cs(sheet).paddingTop + ' b' + cs(sheet).borderTopWidth);
+      for (const e of chain){ for (let p = e.parentElement.firstElementChild; p && p !== e; p = p.nextElementSibling) out.push('  ' + one(p)); out.push('> ' + one(e)); }
+      return out.join(' ; '); })() : null,
     corners: [...sheet.querySelectorAll('.pg-corner')].filter(e => cs(e).display !== 'none').length,
     marks: sheet.querySelectorAll('del, ins, .rl-line-del').length, rungs: [...sheet.querySelectorAll('.rl-rung')].filter(e => cs(e).display !== 'none').length,
     text: sheet.innerText };
@@ -118,6 +126,7 @@ const M = () => {
     for (const k of ['homeClean', 'document', 'negotiate', 'theirs']){
       const v = out[k]; const diff = v ? keys.filter(q => v[q] !== ref[q]).map(q => `${q}: ${v[q]} ≠ ${ref[q]}`) : ['no paper'];
       ok(`1 ${k}: the same paper as Home Redlined`, !diff.length, diff.join(' | ') || null);
+      if (v && v.head !== ref.head) console.log(`      where it comes from, ${k}: ${v.trail}\n      and Home Redlined: ${ref.trail}`);
     }
     ok('2 Home Clean: the same canvas, no marks, no step labels, the standing wording', out.homeClean && out.homeClean.marks === 0 && out.homeClean.rungs === 0
       && /45 days/.test(out.homeClean.text) && !/90 days/.test(out.homeClean.text), JSON.stringify({ marks: out.homeClean && out.homeClean.marks, rungs: out.homeClean && out.homeClean.rungs }));
