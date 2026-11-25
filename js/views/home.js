@@ -819,8 +819,10 @@ const HM_MAP_STAGES = [
    f381 pins the literal EQUAL to STATUS_META's own, or it would drift. */
 const HM_STAGE_TONE_FALLBACK = { 'Draft':'var(--st-gray-dot)', 'Under Review':'var(--st-amber-dot)', 'Signed':'var(--st-green-dot)' };
 function hmStageTone(k){
-  /* the new look: the Contracts list's own three tones (regLsToneOfStatus), so a Draft is the amber "In review" on both */
-  if(typeof window!=='undefined'&&typeof window.newLookOn==='function'&&window.newLookOn()&&typeof window.regLsToneOfStatus==='function') return 'var(--st-'+window.regLsToneOfStatus(k)+'-dot)';
+  /* EACH STAGE ITS OWN COLOUR (owner, 25 Nov 2026: "drafting and in review are the same color"): the status's own dot,
+     the one its badge wears everywhere (STATUS_META: Drafting grey, In review amber, Executed green). Reverses the new
+     look's borrowing of the Contracts list's three buckets (regLsToneOfStatus), which made a Draft the amber of In review
+     on every stage chart: the bar and key of Where all N stand, Home's map, the portfolio and Explorer's status colours. */
   const M=(typeof window!=='undefined' && window.STATUS_META) || null;
   return (M && M[k] && M[k].dot) || HM_STAGE_TONE_FALLBACK[k] || 'var(--st-gray-dot)';
 }

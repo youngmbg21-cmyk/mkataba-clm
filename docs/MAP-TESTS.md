@@ -1239,3 +1239,6 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 
 ## THE DOSSIER END TO END — the writing bar across the top (25 Nov 2026)
 - test/f1229-the-writing-bar-across-the-top.test.js — full-width white bar, tools centred, never wrapped; More folds the last tools and opens and shuts. Re-pointed: f1202 (4), f1207 (1), f1218 (1).
+
+## HOME — THE BOARD AND THE MAP: each stage its own colour (25 Nov 2026)
+- NEW: test/f1230-each-stage-its-own-colour.test.js (hmStageTone run with the new look on: Drafting, In review, Executed three colours, each STATUS_META's dot; the Board's bar, Home's map and the portfolio read it). Red at the parent.
