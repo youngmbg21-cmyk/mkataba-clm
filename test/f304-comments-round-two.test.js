@@ -90,6 +90,9 @@ async function bench(){
 }
 const tick = () => new Promise(r => setTimeout(r, 30));
 const same = (a, b, msg) => assert.equal(JSON.stringify(a), JSON.stringify(b), msg);
+/* RE-POINTED 25 Nov 2026 (live notes A, owner): on our seat Comment is "Add a note" with its rooms (one press per room,
+   note:<room>, leading the bar); read here as the one verb it stands for, so the rest of each case reads as before */
+const verbsOf = acts => { const ids = acts.map(a => a.id), rooms = ids.filter(x => /^note:/.test(x)); return ids.filter(x => !/^note:/.test(x)).concat(rooms.length ? ['comment'] : []); };
 const type = (p, box, t) => { box.value = t; box.dispatchEvent(new p.win.Event('input', { bubbles: true })); };
 function wide(win){ try{ win.innerWidth = 1440; }catch(_){} }
 
@@ -107,9 +110,12 @@ describe('f304 (1) — the pin names its rooms, carries no caption, and keeps it
   test('the switch names ours and the outside party, and a highlight pin has no caption', async () => {
     const p = await bench();
     p.win.rlNoteFromSelection(p.c, { clauseId: p.cl7.clauseId, quote: 'indirect loss' }, { side: 'owner' });
-    const pin = p.host.querySelector('.rl-np-pin');
+    /* RE-POINTED 25 Nov 2026 (live notes A, owner): words on a clause with no change open a NEW CONVERSATION — the words
+       pinned as its head, the room chosen on the panel's own room pills (one room list, as before) */
+    const pin = p.host.querySelector('.rl-lv-conv.is-new') && p.host.querySelector('.rl-lv-head');
     assert.ok(pin, 'the pin is drawn');
-    const rooms = [...pin.querySelectorAll('[data-rl-np-pin-room]')].map(b => b.textContent.trim());
+    assert.match(pin.textContent, /indirect loss/, 'its words');
+    const rooms = [...p.host.querySelectorAll('[data-rl-np-room] .rl-np-nm')].map(b => b.textContent.trim());
     const model = p.win.negoNoteRoomList(p.c, {}, 'owner');
     assert.equal(rooms.length, 2, 'ours and the one outside party');
     assert.equal(rooms[0], p.win.i18t('ng_np_tab_int'), 'ours keeps its word');
@@ -356,7 +362,7 @@ describe('f304 (6) — the paper offers three verbs, and a drag released on the 
       openEditor: (id, o) => opened.push({ id, o }) };
     wide(p.win);
     assert.equal(p.win.rlPaperSelOffer(ctx), true);
-    same(menu.actions.map(a => a.id), ['ask', 'edit', 'comment']);
+    same(verbsOf(menu.actions), ['ask', 'edit', 'comment']);
     menu.onPick({ id: 'ask' }); menu.onPick({ id: 'edit' });
     same(opened.map(x => x.o.passageMode), ['ask', 'edit']);
     assert.ok(opened.every(x => x.o.passage === 'indirect loss'));
@@ -501,7 +507,7 @@ describe('f304 (9) — round three: every highlight offers, on both papers', () 
     const opened = [];
     const menu = menuOf(p, { c: p.c, opts: {}, side: 'owner', rect: { width: 1, height: 1 }, text: 'indirect loss',
       passage: partsOf(p, [p.cl7.clauseId], ['indirect loss']), openEditor: (id, o) => opened.push({ id, o }) });
-    same(menu.actions.map(a => a.id), ['ask', 'edit', 'comment']);
+    same(verbsOf(menu.actions), ['ask', 'edit', 'comment']);
     menu.onPick({ id: 'ask' });
     assert.equal(opened[0].id, p.cl7.clauseId); assert.equal(opened[0].o.passageMode, 'ask');
   });
@@ -518,7 +524,7 @@ describe('f304 (9) — round three: every highlight offers, on both papers', () 
     const opened = [];
     const menu = menuOf(p, { c: p.c, opts: {}, side: 'owner', rect: { width: 1, height: 1 }, text: 'loss.\nTwo years',
       passage: partsOf(p, [p.cl7.clauseId, 'cl_8'], ['loss.', 'Two years']), openEditor: (id, o) => opened.push({ id, o }) });
-    same(menu.actions.map(a => a.id), ['ask', 'comment']);
+    same(verbsOf(menu.actions), ['ask', 'comment']);
     menu.onPick({ id: 'ask' });
     assert.equal(asked.length, 0, 'not the main chat');
     assert.equal(opened.length, 1);
@@ -536,7 +542,7 @@ describe('f304 (9) — round three: every highlight offers, on both papers', () 
     const menu = menuOf(p, { c: p.c, opts: {}, side: 'owner', rect: { width: 1, height: 1 }, text: 'Between Mkataba Holdings Ltd',
       passage: { parts: [], clauses: [] }, openEditor: () => {} });
     assert.ok(menu, 'the front matter offers');
-    same(menu.actions.map(a => a.id), ['ask', 'comment']);
+    same(verbsOf(menu.actions), ['ask', 'comment']);
     menu.onPick({ id: 'comment' });
     assert.equal(p.win.rlNotesPinned().clauseId, p.win.negoFrontClause(p.c).clauseId, 'anchored to the front region');
     assert.match(VIEW, /function rlAskCopilotPanel\(c, text\)\{\n  if \(typeof window\.docAiRead === 'function'\)/, 'the panel door is the Document tab’s own');
@@ -548,7 +554,7 @@ describe('f304 (9) — round three: every highlight offers, on both papers', () 
     const opened = [];
     const menu = menuOf(p, { c: p.c, opts: {}, side: 'owner', rect: { width: 1, height: 1 }, text: 'indirect loss.\ncl_8 head',
       passage: parts, openEditor: (id, o) => opened.push({ id, o }) });
-    same(menu.actions.map(a => a.id), ['ask', 'edit', 'comment'], 'one clause after the spill is dropped');
+    same(verbsOf(menu.actions), ['ask', 'edit', 'comment'], 'one clause after the spill is dropped');
     const theirs = menuOf(p, { c: p.c, opts: {}, side: 'counterparty', rect: { width: 1, height: 1 }, text: 'indirect loss',
       passage: partsOf(p, [p.cl7.clauseId], ['indirect loss']), openEditor: () => {} });
     same(theirs.actions.map(a => a.id), ['comment']);
@@ -569,7 +575,7 @@ describe('f304 (9) — round three: every highlight offers, on both papers', () 
     p.win.Range.prototype.getBoundingClientRect = () => ({ left: 10, top: 10, width: 80, height: 16, right: 90, bottom: 26 });
     let menu = null; p.win.rlSelMenu = m => { menu = m; };
     assert.equal(p.win.ceOfferOnPaper(), true);
-    same(menu.actions.map(a => a.id), ['ask', 'edit', 'comment']);
+    same(verbsOf(menu.actions), ['ask', 'edit', 'comment']);
     const moved = []; p.win.ceGoClause = (id, o) => moved.push({ id, o });
     menu.onPick({ id: 'edit' });
     /* ceGoClause is module-private to the editor; what is observable is that
@@ -748,7 +754,7 @@ describe('f304 (14) — one floor for a highlight, and it is emptiness', () => {
     const { menu, got } = menuOf(p, { c: p.c, opts: {}, side: 'owner', rect: { width: 1, height: 1 },
       text: 'by', passage: stage(p, p.cl7.clauseId, 'by'), openEditor: () => {} });
     assert.equal(got, true, 'the highlight is answered');
-    same(menu.actions.map(a => a.id), ['ask', 'edit', 'comment']);
+    same(verbsOf(menu.actions), ['ask', 'edit', 'comment']);
   });
 
   test('and one character is a highlight too', async () => {

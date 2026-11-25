@@ -3460,7 +3460,12 @@ function _negoAnchor(rect, w, h, mode){
    keeps `.nego-selmenu` alone and stays a column, because a refusal is a
    sentence to be read rather than a row of verbs. */
 function negoSelBarHtml(actions){
-  return (actions || []).map(a => {
+  /* LIVE NOTES A, AS DRAWN: "Add a note" leads as one small dark bubble with the rooms to choose — Internal, then each
+     outside party by name (ending in "…" in its own space, never wrapped; the whole name on hover) */
+  const rooms = (actions || []).filter(a => a && a.room);
+  const lead = rooms.length ? `<span class="nego-selnote-grp"><span class="nego-selnote-k">${_ne(i18t('ng_lv_add_note'))}</span>${rooms.map(a =>
+    `<button type="button" role="menuitem" class="nego-selroom${a.ext ? ' is-ext' : ''}" data-nego-ai="${_nea(a.id)}" title="${_nea(a.full || a.label)}"><span>${_ne(a.label)}</span></button>`).join('')}</span>` : '';
+  return lead + (actions || []).filter(a => a && !a.room).map(a => {
     /* Copilot's own two verbs wear Copilot's violet, exactly as every other
        Copilot control in this product marks itself; Comment is the quiet
        accent word. Read off the action's id so a host supplying its own list
@@ -16608,11 +16613,18 @@ function rlNpRoomsHtml(c, room, counts, opts = {}, side = 'owner'){
      the same press; their team's room is still where they land (rlNpRoomNow), the quiet one */
   const theirSeat = side !== 'owner' && PORTAL_MODE;
   const shown = theirSeat ? rooms.filter(r => r.external).concat(rooms.filter(r => !r.external)) : rooms;
-  if (opts.stripe) return `<div class="rl-np-tabs rl-np-rooms" role="tablist"><span class="rl-np-rooms-k">${_ne(i18t(theirSeat ? 'ng_np_room_with' : 'ng_np_room_label'))}</span>${shown.map(r =>
-      `<button type="button" role="tab" class="rl-np-tab rl-np-room${r.key === room ? ' on' : ''}" data-rl-np-room="${_nea(r.key)}" aria-selected="${r.key === room}" title="${_nea(r.external
-        ? i18t('ng_np_room_t_ext', { who: r.name || '' }) : i18t('ng_np_room_t_int'))}">${_ne(r.external ? (r.name || i18t('ng_np_tab_ext'))
+  /* LIVE NOTES A, AS DRAWN: Internal with a lock and its count; the other side's room with an eye, its name ending in
+     "…" in its own space (never wrapped; the whole name on hover), its count, and a green dot while it holds unread */
+  if (opts.stripe){
+    const by = (counts && counts.byRoom) || {}, un = (counts && counts.unread) || {};
+    return `<div class="rl-np-tabs rl-np-rooms is-live" role="tablist"><span class="rl-np-rooms-k">${_ne(i18t(theirSeat ? 'ng_np_room_with' : 'ng_np_room_label'))}</span>${shown.map(r => {
+      const nm = r.external ? (r.name || i18t('ng_np_tab_ext'))
         /* on their own pages their team's room is "Your team" (P-44 review, as drawn); on ours it is "Internal" */
-        : theirSeat ? i18t('ng_np_room_your_team') : (PORTAL_MODE && r.name) ? i18t('ng_np_room_us', { org: r.name }) : i18t('ng_np_tab_int'))}</button>`).join('')}</div>`;
+        : theirSeat ? i18t('ng_np_room_your_team') : (PORTAL_MODE && r.name) ? i18t('ng_np_room_us', { org: r.name }) : i18t('ng_np_tab_int');
+      return `<button type="button" role="tab" class="rl-np-tab rl-np-room${r.key === room ? ' on' : ''}${r.external ? ' is-ext' : ''}" data-rl-np-room="${_nea(r.key)}" aria-selected="${r.key === room}" title="${_nea(r.external
+        ? (r.name || '') + ' · ' + i18t('ng_np_room_t_ext', { who: r.name || '' }) : i18t('ng_np_room_t_int'))}">${r.external ? RL_NP_EYE : RL_NP_LOCK}<span class="rl-np-nm">${_ne(nm)}</span><i>${by[r.key] || 0}</i>${un[r.key] && r.key !== room ? '<span class="rl-lv-dot" aria-hidden="true"></span>' : ''}</button>`;
+    }).join('')}</div>`;
+  }
   const by = (counts && counts.byRoom) || {};
   return `<div class="rl-np-tabs" role="tablist">
       ${rooms.map(r => {
@@ -17225,10 +17237,11 @@ function rlNpScopeHtml(n, show, stripe){
      under them; with nothing but open notes there is nothing to choose and no chip is drawn (a choice with no results
      is not listed) */
   if (stripe){
-    if (!(n.mine || n.done || show !== 'open')) return '';
+    /* LIVE NOTES A, AS DRAWN: All · Unread · Asks you · Decided (Done where it holds any), each only with rows */
+    if (!n.open && !n.done) return '';
     const sc = (k, label) => (k === 'open' || n[k] || k === show) ? `<button type="button" class="rl-np-chip${k === show ? ' on' : ''}${k === show && k !== 'open' ? ' is-narrow' : ''}"
       data-rl-np-show="${k}" aria-pressed="${k === show ? 'true' : 'false'}">${label} <em>${n[k] || 0}</em></button>` : '';
-    return `<div class="rl-np-scope is-stripe">${sc('open', i18t('ng_np_show_open')) + sc('mine', i18t('ng_np_show_mine')) + sc('done', i18t('ng_np_show_done'))}</div>`;
+    return `<div class="rl-np-scope is-stripe">${sc('open', i18t('ng_lv_show_all')) + sc('unread', i18t('ng_lv_show_unread')) + sc('mine', i18t('ng_np_show_mine')) + sc('decided', i18t('ng_lv_show_decided')) + sc('done', i18t('ng_np_show_done'))}</div>`;
   }
   const chip = (k, label) => (n[k] || k === show) ? `<button type="button" class="rl-np-chip${k === show ? ' on' : ''}${k === show && k !== 'open' ? ' is-narrow' : ''}"
       data-rl-np-show="${k}" aria-pressed="${k === show ? 'true' : 'false'}">${label} <em>${n[k]}</em></button>` : '';
@@ -17238,8 +17251,10 @@ function rlNpScopeHtml(n, show, stripe){
 }
 function rlNpRowsHtml(items, show, one){
   const mine = typeof window.negoNoteForMe === 'function';
-  const list = items.filter(({ th }) => show === 'done' ? th.done
-    : show === 'mine' ? (!th.done && mine && negoNoteForMe(th.root)) : !th.done);
+  const list = items.filter(({ ch, th }) => show === 'done' ? th.done
+    : show === 'mine' ? (!th.done && mine && negoNoteForMe(th.root))
+    : show === 'decided' ? !!th.root.decided
+    : show === 'unread' ? (!th.done && !!items._c && rlNpUnread(items._c, ch, th, items._o || {}) > 0) : !th.done);
   if (!list.length) return `<div class="rl-np-empty"><b>${i18t('ng_np_none_open')}</b></div>`;
   let last = '';
   return list.map(x => {
@@ -17776,43 +17791,146 @@ function rlNpStateOf(th){
   if (th.done) return 'done';
   return (!PORTAL_MODE && typeof window.negoNoteForMe === 'function' && negoNoteForMe(th.root)) ? 'ask' : 'open';
 }
-function rlNpCompactHtml(c, ch, th){
+/* ==== NOTES AS LIVE CONVERSATIONS, ROUND A (owner, 25 Nov 2026: "build the new notes as live conversation as drawn";
+   drawing notes-live.html) ====
+   A conversation is the thread the record already keeps: the notes on one anchor (a clause's words, or the whole
+   contract). Each row says its clause, the paper's words with the anchored ones lit, the last message with who and when,
+   what is unread for this reader (the per-person seen mark, negoThreadSeenAt) and its state (Asked <name> / ✓ Decided).
+   Opened, its messages are bubbles: mine on the right in the accent's tint, a colleague's grey on the left with initials,
+   the other side's steel-blue with their name and company. Likes are six faces under any message (rlNpReactsHtml; the
+   server writes them, POST …/notes/react). Nothing here changes who reads what: the rooms and their walls are the
+   panel's own (negoNoteRoomKey, the server's srvMsgScope). Round B adds the live connection, typing and presence. */
+const RL_NP_RX = ['\u{1F44D}', '✅', '\u{1F64F}', '❤️', '\u{1F440}', '\u{1F602}'];
+const RL_NP_EYE = '<svg class="rl-np-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const rlNpHostKey = ch => ch ? String(ch.id) : NEGO_CONTRACT_THREAD;
+function rlNpMe(){ return (window.currentUser && window.currentUser()) || null; }
+/* who wrote it, as the bubble draws it: me, a colleague, or the other side */
+function rlNpWhoKind(m, side){
+  if (!m) return 'them';
+  const mine = m.side === side && (window.negoNoteAuthoredBy ? negoNoteAuthoredBy(m) : false);
+  if (mine) return 'me';
+  return m.side && m.side !== side ? 'them' : 'team';
+}
+/* what this reader has not read in one conversation: the others' words after their seen mark (READING MUST NOT WRITE) */
+function rlNpUnread(c, ch, th, opts = {}){
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  const seen = negoThreadSeenAt(negoSeenScope(c, opts), rlNpHostKey(ch));
+  return [th.root].concat(th.replies).filter(m => rlNpWhoKind(m, side) !== 'me' && (!seen || String(m.at || '') > String(seen))).length;
+}
+/* the likes on a message: face → who pressed; read off the note (ours) or its channel copy (theirs) */
+function rlNpReacts(m){
+  const r = (m && m.reactions && typeof m.reactions === 'object') ? m.reactions : {};
+  const me = rlNpMe(), myKey = me && me.id ? 'u:' + me.id : '';
+  return RL_NP_RX.map(e => ({ e, n: Array.isArray(r[e]) ? r[e].length : 0, mine: !!(myKey && Array.isArray(r[e]) && r[e].includes(myKey)) })).filter(x => x.n);
+}
+function rlNpReactsHtml(m, key, mayWrite){
+  const list = rlNpReacts(m);
+  const chips = list.map(x => `<button type="button" class="rl-lv-rx${x.mine ? ' is-mine' : ''}" data-rl-lv-rx="${_nea(x.e)}" data-rl-lv-key="${_nea(key)}"${m.channelId != null && !m.id ? ` data-rl-lv-ch="${_nea(m.channelId)}"` : ''}${mayWrite ? '' : ' disabled'} aria-pressed="${x.mine}">${x.e} ${x.n}</button>`).join('');
+  const add = mayWrite ? `<button type="button" class="rl-lv-rx is-add" data-rl-lv-pick="${_nea(key)}" title="${_nea(i18t('ng_lv_rx_add'))}" aria-label="${_nea(i18t('ng_lv_rx_add'))}">☺ +</button>
+      <span class="rl-lv-pick" data-rl-lv-picker="${_nea(key)}" hidden>${RL_NP_RX.map(e => `<button type="button" data-rl-lv-rx="${_nea(e)}" data-rl-lv-key="${_nea(key)}"${m.channelId != null && !m.id ? ` data-rl-lv-ch="${_nea(m.channelId)}"` : ''}>${e}</button>`).join('')}</span>` : '';
+  return (chips || add) ? `<div class="rl-lv-rxs">${chips}${add}</div>` : '';
+}
+/* the paper's words, the anchored ones lit; where the clause is on record, its sentence round them */
+function rlNpQuoteHtml(q){
+  const t = String(q || '').replace(/\s+/g, ' ').trim();
+  return t ? `<q class="rl-lv-q">“<mark>${_ne(t.length > 160 ? t.slice(0, 159) + '…' : t)}</mark>”</q>` : '';
+}
+function rlNpStatusHtml(th){
+  if (th.root.decided) return `<span class="rl-lv-st is-dec">${_ne(i18t('ng_lv_decided'))}</span>`;
+  const g = window.negoNoteGiven ? negoNoteGiven(th.root) : null;
+  if (g) return `<span class="rl-lv-st is-ask">${_ne(i18t('ng_lv_asked', { who: g.name }))}</span>`;
+  if (th.done) return `<span class="rl-lv-st is-done">${_ne(i18t('ng_np_st_done'))}</span>`;
+  return '';
+}
+function rlNpCompactHtml(c, ch, th, opts = {}){
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const key = negoNoteKey(th.root), S = rlNpSecOf(rlNpLabelOf(c, ch, th));
   const last = th.replies.length ? th.replies[th.replies.length - 1] : th.root;
-  const st = rlNpStateOf(th), earlier = th.replies.length;
   const words = String(last.text || '').replace(/\s+/g, ' ').trim();
   const home = ch || ((th.root.anchor && window.negoNoteHomeFor) ? negoNoteHomeFor(c, th.root.anchor.clauseId) : null);
-  return `<button type="button" class="rl-np-crow" data-rl-np-open="${_nea(key)}"${home ? ` data-rl-np-chg="${_nea(home.id)}" title="${_nea(home.id)}"` : ''}>
-      <span class="rl-np-ch">${S.sec ? `<span class="rl-np-sec">${_ne(S.sec)}</span>` : ''}<b>${_ne(S.name || i18t('ng_np_on_contract'))}</b><span class="rl-np-st is-${st}">${_ne(i18t('ng_np_st_' + st))}</span></span>
-      ${''/* THE PAPER'S WORDS THE NOTE IS PINNED TO, quoted under its clause (P-38, the Legora + Stripe way, as drawn); a
-             note pinned to no words says none */}
-      ${th.root.anchor && th.root.anchor.quote ? `<q class="rl-np-cq">${_ne(String(th.root.anchor.quote).replace(/\s+/g, ' ').trim())}</q>` : ''}
-      <span class="rl-np-cl">${rlNpAvatarHtml(last.who || '', true)}<span class="w">${_ne(words)}</span><span class="t">· ${_ne(negoWhen(last.at))}</span></span>
-      ${earlier ? `<span class="rl-np-ce">${_ne(i18tn('ng_np_earlier', earlier, { n: earlier }))} · <u>${_ne(i18t('ng_np_show'))}</u></span>` : ''}
+  const un = rlNpUnread(c, ch, th, opts);
+  const rx = rlNpReacts(last).map(x => `${x.e} ${x.n}`).join(' ');
+  const you = rlNpWhoKind(last, side) === 'me';
+  return `<button type="button" class="rl-np-crow rl-lv-row" data-rl-np-open="${_nea(key)}"${home ? ` data-rl-np-chg="${_nea(home.id)}"` : ''}>
+      <span class="rl-lv-t">${S.sec ? `<span class="rl-lv-sec">${_ne(S.sec)}</span>` : ''}<b>${_ne(S.name || i18t('ng_np_on_contract'))}</b><span class="rl-lv-sp"></span>${un ? `<span class="rl-lv-un" aria-label="${_nea(i18tn('ng_lv_unread_n', un, { n: un }))}">${un}</span>` : ''}${rlNpStatusHtml(th)}</span>
+      ${th.root.anchor && th.root.anchor.quote ? rlNpQuoteHtml(th.root.anchor.quote) : ''}
+      <span class="rl-lv-last">${rlNpAvatarHtml(last.who || '', true)}<span class="w">${_ne((you ? i18t('ng_lv_you') + ': ' : '') + words)}</span><span class="t">${rx ? _ne(rx) + ' · ' : ''}${_ne(negoWhen(last.at))}</span></span>
     </button>`;
 }
+/* ONE MESSAGE, AS A BUBBLE */
+function rlNpBubbleHtml(c, m, room, side, other, ctx){
+  const kind = rlNpWhoKind(m, side), key = negoNoteKey(m);
+  const time = negoWhen(m.at);
+  const seenBy = kind === 'me' && window.negoNoteSeenBy ? negoNoteSeenBy(m).filter(x => { const me = rlNpMe(); return !(me && ((x.id && me.id && String(x.id) === String(me.id)) || x.name.toLowerCase() === String(me.name || '').toLowerCase())); }).map(x => x.name.split(/\s+/)[0]) : [];
+  const meta = kind === 'me' ? `<div class="rl-lv-meta">${_ne(time)}${seenBy.length ? ' · ' + _ne(i18t('ng_lv_seen_by', { names: seenBy.join(', ') })) : ''}</div>` : '';
+  /* THE NOTE'S OWN VERBS AND FACTS stand on every bubble — Reply, Done, Seen, Give, Delete and who it is with — through
+     the drawer's one builder (rlNpNoteHtml actsOnly), so their walls and wiring (rlNpWireActs) are unchanged */
+  const own = (ctx.c && typeof rlNpNoteHtml === 'function') ? rlNpNoteHtml(m, room, side, other, { c: ctx.c, ch: ctx.ch, acts: true, actsOnly: true, mayWrite: ctx.mayWrite,
+    root: !!ctx.isRoot, rootKey: ctx.rootKey, replyRoot: ctx.replyRoot, replyCount: ctx.replyCount, stripe: true }) : '';
+  const org = kind === 'them' ? (other || '') : '';
+  const who = kind === 'me' ? '' : `<div class="rl-lv-who"><b>${_ne(m.who || '')}</b>${org ? ' · ' + _ne(org) : ''} · ${_ne(time)}</div>`;
+  const text = _ne(String(m.text || '')).replace(/\n/g, '<br>').replace(/(^|\s)@([\w.\- ]{1,40}?)(?=[\s,.;:!?]|$)/g, (a, b, n) => `${b}<span class="rl-lv-at">@${n}</span>`);
+  /* MARK DECIDED: an internal conversation, a writer's press, on any of its messages */
+  const acts = [];
+  if (ctx.mayWrite && !negoRoomIsExternal(room) && side === 'owner') acts.push(`<button type="button" class="rl-lv-act" data-rl-lv-decide="${_nea(key)}">${_ne(i18t('ng_lv_mark_decided'))}</button>`);
+  if (ctx.mayWrite && kind === 'them' && ctx.clauseId && side === 'owner') acts.push(`<button type="button" class="rl-lv-act" data-rl-lv-tochange="${_nea(ctx.clauseId)}">${_ne(i18t('ng_lv_to_change'))}</button>`);
+  return `<div class="rl-lv-m is-${kind}" data-rl-lv-msg="${_nea(key)}">
+      ${kind === 'me' ? '' : `<span class="rl-lv-av">${rlNpAvatarHtml(m.who || '', true)}</span>`}
+      <div class="rl-lv-mb">${who}<div class="rl-lv-tx">${text}</div>${meta}
+        <div class="rl-lv-foot">${rlNpReactsHtml(m, key, ctx.mayWrite && side === 'owner')}${acts.length ? `<span class="rl-lv-acts">${acts.join('')}</span>` : ''}</div>${own ? `<div class="rl-lv-own">${own}</div>` : ''}</div>
+    </div>`;
+}
+/* the rooms' wall, said under the box: ours is ours; theirs is read by them and stays on the record */
+function rlNpWallHtml(c, room, side, other, person){
+  if (side !== 'owner') return '';
+  const us = (window.contractParty ? contractParty(c) : null) || window.FIRST_PARTY || '';
+  if (!negoRoomIsExternal(room)) return `<div class="rl-lv-wall is-in">${RL_NP_LOCK}<span>${_ne(i18t('ng_lv_wall_in', { org: us || i18t('ng_np_tab_int') }))}</span></div>`;
+  return `<div class="rl-lv-wall is-ex">${RL_NP_EYE}<span>${_ne(i18t('ng_lv_wall_ex', { who: person || other }))}</span></div>`;
+}
+/* the box under a conversation: a reply to its first note, through the panel's own send (rlNotesSend via the wire) */
+function rlNpConvBoxHtml(key, room, side, other){
+  const ext = negoRoomIsExternal(room);
+  const ph = ext ? i18t('ng_lv_ph_ex', { who: other }) : i18t('ng_lv_ph_in');
+  return `<div class="rl-lv-box${ext ? ' is-ex' : ''}">${RL_NP_ICON_PLUS}<textarea class="chat-field rl-np-rin" rows="1" data-rl-np-rin="${_nea(key)}" placeholder="${_nea(ph)}" aria-label="${_nea(ph)}"></textarea>
+      <button type="button" class="rl-lv-send" data-rl-np-reply-send="${_nea(key)}">${_ne(i18t('ng_lv_send'))}</button></div>`;
+}
 function rlNpOpenHtml(c, ch, th, room, side, other, opts){
-  const S = rlNpSecOf(rlNpLabelOf(c, ch, th)), st = rlNpStateOf(th);
+  const S = rlNpSecOf(rlNpLabelOf(c, ch, th));
   const msgs = [th.root].concat(th.replies), who = [...new Set(msgs.map(m => String(m.who || '').trim()).filter(Boolean))];
-  const last = msgs[msgs.length - 1];
   const cid = (th.root.anchor && th.root.anchor.clauseId) || (ch && ch.clauseId) || '';
   const key = negoNoteKey(th.root), mayWrite = notesMayWrite(c, opts);
-  /* AS DRAWN (P-38): under the thread ONE standing reply box (to the note; the room's @ picker), then Mark done (Reopen
-     once done) as a pill and the paper link beside it. A reply asked under one message keeps its own box there. */
-  const replyOpen = _rlNpReplyTo === key;
-  const rbox = (mayWrite && !replyOpen) ? rlNpReplyBoxHtml(th.root, { ext: negoRoomIsExternal(room), stripe: true }) : '';
-  const done = mayWrite ? `<button type="button" class="rl-np-markdone" data-rl-np-done="${_nea(key)}" data-on="${th.done ? '0' : '1'}">${_ne(i18t(th.done ? 'ng_np_reopen' : 'ng_np_mark_done'))}</button>` : '';
-  return `<div class="rl-np-open-h"><button type="button" class="ui-link" data-rl-np-back>‹ ${_ne(i18t('ng_np_all_notes'))}</button>${opts.scope || ''}</div>
+  /* "their change": a pending change of the other side's on this clause, with the way to it */
+  const theirCh = (cid && window.negoNoteHomeFor) ? negoNoteHomeFor(c, cid) : null;
+  const tc = theirCh && theirCh.side === 'counterparty' && side === 'owner' ? (() => { const q = rlNpChangeQuote(theirCh); return ` <span class="rl-lv-tc">· ${_ne(i18t('ng_lv_their_change', { what: q.length > 40 ? q.slice(0, 39) + '…' : q }))} · <button type="button" class="ui-link" data-rl-notes="${_nea(theirCh.id)}">${_ne(i18t('ng_lv_see_it'))}</button></span>`; })() : '';
+  const g = window.negoNoteGiven ? negoNoteGiven(th.root) : null;
+  const ctx = { mayWrite, clauseId: cid, c, ch, rootKey: key, replyRoot: th.root, replyCount: th.replies.length };
+  const body = msgs.map((m, i) => rlNpBubbleHtml(c, m, room, side, other, { ...ctx, isRoot: i === 0 }) + (i === 0 && g ? `<div class="rl-lv-sys">${_ne(i18t('ng_lv_sys_asked', { who: g.name }))}</div>` : '')).join('');
+  const d = th.root.decided;
+  const pin = d ? `<div class="rl-lv-pin"><span class="ok">✓</span><div><b>${_ne(i18t('ng_lv_decided_pin'))}</b> · ${_ne(String(d.text || ''))}<div class="rl-lv-pin-s">${_ne(i18t('ng_lv_decided_by', { who: d.by || '', when: negoWhen(d.at) }))}</div></div>${mayWrite ? `<button type="button" class="ui-link" data-rl-lv-undecide="${_nea(key)}">${_ne(i18t('ng_lv_undo'))}</button>` : ''}</div>`
+    : (negoRoomIsExternal(room) && cid && mayWrite && side === 'owner' && msgs.some(m => rlNpWhoKind(m, side) === 'them'))
+      ? `<div class="rl-lv-pin is-next"><div><button type="button" class="ui-link" data-rl-lv-tochange="${_nea(cid)}">${_ne(i18t('ng_lv_to_change'))}</button> <span class="rl-lv-pin-s">${_ne(i18t('ng_lv_to_change_s', { sec: S.sec || S.name }))}</span></div></div>` : '';
+  return `<div class="rl-np-open-h"><button type="button" class="ui-link" data-rl-np-back>‹ ${_ne(i18t('ng_np_all_notes'))}</button></div>
     ${opts.rooms || ''}
-    <div class="rl-np-ch is-head">${S.sec ? `<span class="rl-np-sec">${_ne(S.sec)}</span>` : ''}<b>${_ne(S.name || i18t('ng_np_on_contract'))}</b><span class="rl-np-st is-${st}">${_ne(i18t('ng_np_st_' + st))} · ${_ne(i18tn('ng_np_msgs', msgs.length, { n: msgs.length }))}</span></div>
-    ${opts.headRef || ''}
-    ${''/* the words the note was written on, once, under the clause — lit amber, as the Legora + Stripe way draws them
-           (P-38), so everyone argues about the same words */}
-    ${th.root.anchor && th.root.anchor.quote ? `<p class="rl-np-on-q"><q>${_ne(th.root.anchor.quote)}</q></p>` : ''}
-    <div class="rl-np-people">${who.slice(0, 4).map(n => rlNpAvatarHtml(n, true)).join('')}<span>${_ne(i18tn('ng_np_people', who.length, { n: who.length }))} · ${_ne(i18t('ng_np_last', { when: negoWhen(last.at) }))}</span></div>
-    <div class="rl-np-tl">${rlNpThreadHtml(c, ch, th, room, side, other, { ...opts, stripe: true })}</div>
-    ${rbox}
-    ${(done || cid) ? `<div class="rl-np-go">${done}${cid ? `<button type="button" class="ui-link" data-rl-np-goclause="${_nea(cid)}">${_ne(i18t('ng_np_go_paper', { sec: S.sec || S.name }))}</button>` : ''}</div>` : ''}`;
+    <div class="rl-lv-head">
+      <div class="rl-lv-t">${S.sec ? `<span class="rl-lv-sec">${_ne(S.sec)}</span>` : ''}<b>${_ne(S.name || i18t('ng_np_on_contract'))}</b><span class="rl-lv-sp"></span><span class="rl-lv-faces">${who.slice(0, 4).map(n => rlNpAvatarHtml(n, true)).join('')}</span></div>
+      ${opts.headRef || ''}
+      ${th.root.anchor && th.root.anchor.quote ? `<div class="rl-lv-hq">${rlNpQuoteHtml(th.root.anchor.quote)}${tc}</div>` : (tc ? `<div class="rl-lv-hq">${tc}</div>` : '')}
+    </div>
+    <div class="rl-lv-conv" data-rl-np-home="${_nea(ch ? ch.id : '')}" data-rl-np-root="${_nea(key)}">
+      <div class="rl-lv-msgs">${body}${pin}</div>
+      ${mayWrite ? rlNpConvBoxHtml(key, room, side, other) + rlNpWallHtml(c, room, side, other, (msgs.filter(m => rlNpWhoKind(m, side) === 'them').pop() || {}).who) : `<div class="rl-np-no">${RL_NP_LOCK}<span>${i18t('ng_np_viewer')}</span></div>`}
+    </div>`;
+}
+/* A NEW CONVERSATION FROM THE PAPER: the words highlighted, pinned; the box focused; the wall said under it */
+function rlNpNewConvHtml(c, pin, room, side, other, opts, foot){
+  const S = rlNpSecOf(pin.clauseId ? (rlNpClauseLabel(c, pin.clauseId) || '') : '');
+  return `<div class="rl-np-open-h"><button type="button" class="ui-link" data-rl-lv-new-back>‹ ${_ne(i18t('ng_np_all_notes'))}</button></div>
+    ${opts.rooms || ''}
+    <div class="rl-lv-head">
+      <div class="rl-lv-t">${S.sec ? `<span class="rl-lv-sec">${_ne(S.sec)}</span>` : ''}<b>${_ne(S.name || i18t('ng_np_on_contract'))}</b><span class="rl-lv-sp"></span><span class="rl-lv-st is-new">${_ne(i18t('ng_lv_new'))}</span></div>
+      ${pin.quote ? `<div class="rl-lv-hq">${rlNpQuoteHtml(pin.quote)}</div><div class="rl-lv-sub">${_ne(i18t('ng_lv_new_sub'))}</div>` : ''}
+    </div>
+    <div class="rl-lv-conv is-new"><div class="rl-lv-msgs"><p class="rl-lv-hint">${_ne(i18t('ng_lv_new_hint'))}</p></div>${foot}${rlNpWallHtml(c, room, side, other)}</div>`;
 }
 function rlChatPanelHtml(c, opts = {}){
   if (!c) return `<div class="rl-chat-none">${i18t('ng_chat_none')}</div>`;
@@ -17872,7 +17990,14 @@ function rlChatPanelHtml(c, opts = {}){
   /* ONE LIST OF THREADS, open first and Done folded at the foot — the same
      list rule the per-change panel draws, at contract scope. */
   const threads = rlChatThreads(c, opts, room);
-  const nShow = rlNpShowCounts(threads), show = rlNpShowNow(threads, nShow);
+  const nShow = rlNpShowCounts(threads);
+  /* LIVE NOTES A: Unread (this reader's seen mark) and Decided are piles of their own */
+  nShow.unread = threads.filter(({ ch, th }) => !th.done && rlNpUnread(c, ch, th, opts) > 0).length;
+  nShow.decided = threads.filter(({ th }) => !!th.root.decided).length;
+  const show = rlNpShowNow(threads, nShow);
+  /* which rooms hold something this reader has not read (the green dot on a room) */
+  const unreadRooms = {};
+  if (tabbed) for (const r of negoNoteRoomList(c, opts, side)) unreadRooms[r.key] = rlChatThreads(c, opts, r.key).some(({ ch, th }) => rlNpUnread(c, ch, th, opts) > 0);
   const refOf = (ch, th) => {
     /* A contract-level note pinned to words on a clause that now carries a
        pending change is filed under that CHG on screen (a reading). */
@@ -17886,13 +18011,17 @@ function rlChatPanelHtml(c, opts = {}){
     return '';
   };
   /* The reference rides INSIDE its note, under the name (the Thread). */
-  const rowOf = ({ ch, th }) => `<div class="rl-chat-row">${rlNpCompactHtml(c, ch, th)}</div>`;
+  const rowOf = ({ ch, th }) => `<div class="rl-chat-row">${rlNpCompactHtml(c, ch, th, opts)}</div>`;
   /* a reply asked for (Use this reply, a note's Reply) opens that discussion, where its reply box stands */
   if (_rlNpReplyTo){ const hit = threads.find(({ th }) => negoNoteKey(th.root) === _rlNpReplyTo); if (hit) _rlNpOpen = _rlNpReplyTo; }
   if (_rlNpFocusKey){ const hit = threads.find(({ th }) => negoNoteKey(th.root) === _rlNpFocusKey || th.replies.some(r => negoNoteKey(r) === _rlNpFocusKey)); if (hit) _rlNpOpen = negoNoteKey(hit.th.root); }
   const opened = _rlNpOpen ? threads.find(({ th }) => negoNoteKey(th.root) === _rlNpOpen) : null;
   if (!opened) _rlNpOpen = null;
-  const scopeS = rlNpScopeHtml(nShow, show, true), roomsS = tabbed ? rlNpRoomsHtml(c, room, { byRoom: byRoom }, { ...opts, stripe: true }, side) : '';
+  const scopeS = rlNpScopeHtml(nShow, show, true), roomsS = tabbed ? rlNpRoomsHtml(c, room, { byRoom: byRoom, unread: unreadRooms }, { ...opts, stripe: true }, side) : '';
+  /* A NEW CONVERSATION FROM THE PAPER (live notes A): a pin on words (or on the whole contract) opens one, its box
+     focused, before anything is written */
+  const newPin = (!opened && pin && mayWrite && (pin.quote || pin.whole)) ? pin : null;
+  threads._c = c; threads._o = opts;
   const rows2 = opened ? rlNpOpenHtml(c, opened.ch, opened.th, room, side, other, { ...opts, scope: scopeS, rooms: roomsS, headRef: refOf(opened.ch, opened.th) }) : rlNpRowsHtml(threads, show, rowOf);
   const body = threads.length ? rows2 : (rows.length
     ? rows.map(({ ch, m }) => `<div class="rl-chat-row">
@@ -17925,13 +18054,20 @@ function rlChatPanelHtml(c, opts = {}){
   /* AS DRAWN (P-38, the Stripe way): the chips, the rooms as a labelled line of pills, the write box at the top; no
      band naming the contract (the paper beside the panel is the contract). A discussion opened carries the chips and
      rooms in its own head. */
-  return `<div class="rl-np rl-chat is-stripe" data-rl-chat="${_nea(c.id)}">
-    ${opened ? '' : `<div class="rl-np-stripe-top">${scopeS}</div>${roomsS}`}
+  if (newPin){
+    const box = rlNpBoxHtml({ ext, room, key: 'contract', ph: ext ? i18t('ng_lv_ph_ex', { who: other }) : i18t('ng_lv_ph_in'), stripe: true,
+      aria: i18t('ng_chat_write_aria'), draft: newPin.drafts[room] || '', tags: rlNpTagMenuHtml(c, room, opts), send: 'data-rl-chat-send="1"' });
+    return `<div class="rl-np rl-chat is-stripe is-live" data-rl-chat="${_nea(c.id)}"><div class="rl-np-list is-open">${rlNpNewConvHtml(c, newPin, room, side, other, { ...opts, rooms: roomsS }, box.replace('class="rl-np-foot', 'class="rl-np-foot is-stripe is-new'))}</div></div>`;
+  }
+  /* THE LIST, AS DRAWN: the rooms, the piles, then the one way a note starts — on the paper's words (or the whole contract) */
+  const startS = (!opened && mayWrite && side === 'owner') ? `<div class="rl-lv-start"><span><mark>${_ne(i18t('ng_lv_hint_hl'))}</mark> ${_ne(i18t('ng_lv_hint_rest'))}</span><button type="button" class="ui-link" data-rl-lv-whole>${_ne(i18t('ng_lv_whole'))}</button></div>` : '';
+  return `<div class="rl-np rl-chat is-stripe is-live" data-rl-chat="${_nea(c.id)}">
+    ${opened ? '' : `${roomsS}<div class="rl-np-stripe-top">${scopeS}</div>${startS}`}
     ${''/* TABBED ON OUR SEAT: the tab row names the room and the line under
            it would be that fact twice. Their seat has no tabs, so the line is
            the one thing naming who reads it. */}
     ${tabbed ? '' : rlNpSeatTabHtml(other, rows.length, ext)}
-    ${opened ? '' : foot.replace('class="rl-np-foot', 'class="rl-np-foot is-stripe')}
+    ${(opened || side === 'owner') ? '' : foot.replace('class="rl-np-foot', 'class="rl-np-foot is-stripe')}
     <div class="rl-np-list${opened ? ' is-open' : ''}">
       ${body}
     </div>
@@ -17962,12 +18098,15 @@ function rlChatPanelPaint(host, c, opts = {}){
      cannot stack. */
   host.querySelectorAll('[data-rl-np-room]').forEach(b => b.addEventListener('click', () => {
     rlNpSetRoom(b.getAttribute('data-rl-np-room'));
+    /* a new conversation's room is the one chosen on the panel's pills (live notes A) */
+    const pp = rlNotesPinned(); if (pp && String(pp.contractId) === String(c.id)) pp.room = negoRoomKey(b.getAttribute('data-rl-np-room'));
     rlChatPanelPaint(host, c, opts);
   }));
   rlNpWireActs(host, c, null, opts, () => rlChatPanelPaint(host, c, opts));
   /* a row opens its discussion here; ‹ All notes comes back; the clause line lands on the paper (the note's own door) */
   host.querySelectorAll('[data-rl-np-open]').forEach(b => b.addEventListener('click', () => { _rlNpOpen = b.getAttribute('data-rl-np-open'); rlChatPanelPaint(host, c, opts); }));
   host.querySelectorAll('[data-rl-np-back]').forEach(b => b.addEventListener('click', () => { _rlNpOpen = null; rlChatPanelPaint(host, c, opts); }));
+  rlNpLiveWire(host, c, opts, () => rlChatPanelPaint(host, c, opts));
   host.querySelectorAll('[data-rl-np-goclause]').forEach(b => b.addEventListener('click', () => { const id = b.getAttribute('data-rl-np-goclause');
     if (typeof window.igPaperGoClause === 'function' && window.igPaperGoClause(id)) return; if (typeof window.rlJumpToClause === 'function') window.rlJumpToClause(id); }));
   rlNpShowFocused(host);
@@ -17979,6 +18118,77 @@ function rlChatPanelPaint(host, c, opts = {}){
      the symbol keeps a mark over a conversation already read. */
   negoMarkChatSeen(c, opts);
   try { if (window.paintChatDoor) paintChatDoor(); } catch (_){}
+}
+/* LIVE NOTES A: the presses a conversation adds — a like (the server's to write), the face picker, Mark decided and
+   Undo, Turn it into a change (the editor's own door: it files nothing), a note on the whole contract, back from a new
+   one. Bound to fresh markup on every paint. */
+function rlNpFindNote(c, key){
+  const k = String(key || '');
+  const walk = (list, host) => { for (const m of (Array.isArray(list) ? list : [])) if (m && negoNoteKey(m) === k) return { m, host }; return null; };
+  let hit = walk(c && c.thread, null);
+  if (!hit) for (const ch of (Array.isArray(c && c.changes) ? c.changes : [])){ hit = walk(ch && ch.thread, ch); if (hit) break; }
+  return hit;
+}
+async function rlNpReact(c, key, channelId, emoji){
+  const me = rlNpMe(); if (!me || !RL_NP_RX.includes(emoji)) return false;
+  const hit = channelId == null ? rlNpFindNote(c, key) : null;
+  const local = () => {
+    const m = hit && hit.m; if (!m) return false;
+    const who = 'u:' + me.id, r = { ...(m.reactions || {}) }, list = Array.isArray(r[emoji]) ? r[emoji] : [];
+    r[emoji] = list.includes(who) ? list.filter(x => x !== who) : list.concat(who);
+    if (!r[emoji].length) delete r[emoji];
+    if (Object.keys(r).length) m.reactions = r; else delete m.reactions;
+    return true;
+  };
+  if (!(typeof API_MODE === 'function' && API_MODE()) || typeof api !== 'function') return local();
+  try {
+    const out = await api(`contracts/${encodeURIComponent(c.id)}/notes/react`, 'POST', channelId != null ? { emoji, channelId } : { emoji, key });
+    if (channelId != null){ if (out && Array.isArray(out.messages)) c._messages = out.messages; return true; }
+    if (hit){ if (out && out.reactions && Object.keys(out.reactions).length) hit.m.reactions = out.reactions; else delete hit.m.reactions; }
+    return true;
+  } catch (e){ if (window.toast) toast((e && e.message) || i18t('ng_lv_rx_failed'), 'err'); return false; }
+}
+function rlNpLiveWire(host, c, opts, repaint){
+  const stop = ev => { ev.preventDefault(); ev.stopPropagation(); };
+  host.querySelectorAll('[data-rl-lv-rx]').forEach(b => b.addEventListener('click', async ev => { stop(ev);
+    if (b.disabled) return;
+    const ch = b.getAttribute('data-rl-lv-ch');
+    if (await rlNpReact(c, b.getAttribute('data-rl-lv-key'), ch == null ? null : ch, b.getAttribute('data-rl-lv-rx'))) repaint();
+  }));
+  host.querySelectorAll('[data-rl-lv-pick]').forEach(b => b.addEventListener('click', ev => { stop(ev);
+    const k = b.getAttribute('data-rl-lv-pick'), p = [...host.querySelectorAll('[data-rl-lv-picker]')].find(x => x.getAttribute('data-rl-lv-picker') === k);
+    host.querySelectorAll('[data-rl-lv-picker]').forEach(x => { if (x !== p) x.hidden = true; });
+    if (p) p.hidden = !p.hidden;
+  }));
+  const homeOf = el => { const t = el.closest('[data-rl-np-home]'); const id = t ? t.getAttribute('data-rl-np-home') : ''; return id && window.negoChangeById ? negoChangeById(c, id) : null; };
+  const rootOf = el => { const t = el.closest('[data-rl-np-root]'); return t ? rlNpFindNote(c, t.getAttribute('data-rl-np-root')) : null; };
+  host.querySelectorAll('[data-rl-lv-decide]').forEach(b => b.addEventListener('click', ev => { stop(ev);
+    const r = rootOf(b), msg = (rlNpFindNote(c, b.getAttribute('data-rl-lv-decide')) || {}).m;
+    if (!r || !msg || !window.negoNoteDecide) return;
+    if (!negoNoteDecide(c, homeOf(b), r.m, msg, true)) return;
+    if (opts.persist !== false && window.persist) persist(c);
+    if (window.toast) toast(i18t('ng_lv_decided_t'), 'ok');
+    repaint();
+  }));
+  host.querySelectorAll('[data-rl-lv-undecide]').forEach(b => b.addEventListener('click', ev => { stop(ev);
+    const r = rlNpFindNote(c, b.getAttribute('data-rl-lv-undecide'));
+    if (!r || !window.negoNoteDecide) return;
+    negoNoteDecide(c, r.host, r.m, null, false);
+    if (opts.persist !== false && window.persist) persist(c);
+    repaint();
+  }));
+  /* TURN IT INTO A CHANGE: the clause opens in the change editor, through its one door; nothing is filed here */
+  host.querySelectorAll('[data-rl-lv-tochange]').forEach(b => b.addEventListener('click', ev => { stop(ev);
+    const cid = b.getAttribute('data-rl-lv-tochange');
+    rlWithEditorDoor(c, door => door.open(cid));
+  }));
+  host.querySelectorAll('[data-rl-lv-whole]').forEach(b => b.addEventListener('click', ev => { stop(ev);
+    rlNotesPin({ contractId: c.id, room: _rlNpRoom || 'internal', quote: '', whole: true });
+    repaint();
+  }));
+  host.querySelectorAll('[data-rl-lv-new-back]').forEach(b => b.addEventListener('click', ev => { stop(ev);
+    rlNotesUnpin(null); repaint();
+  }));
 }
 /* Paint and re-wire in one. The panel is rebuilt on every act — a room switch,
    a note posted — so the handlers below are bound to fresh markup each time and
@@ -18198,6 +18408,8 @@ async function rlNotesSend(host, c, ch, opts, room, extra = {}){
     rlNotesUnpin('added');
   }
   if (reply){ _rlNpReplyTo = null; _rlNpReplyUnder = null; }
+  /* LIVE NOTES A: a note started from the paper (or on the whole contract) opens as its conversation */
+  if (pin && !reply && !extra.pin) _rlNpOpen = negoNoteKey(msg);
   /* SEEN IS KEYED BY CHANGE, so a note that belongs to no change marks nothing
      — there is no thread of its own for anybody to be behind on. */
   if (home) negoMarkThreadSeen(negoSeenScope(c, opts), home.id);
@@ -19133,13 +19345,23 @@ function rlOnTheirPage(){
    contract — so the drawer opens on that change's panel, or on the contract's,
    with the words pinned above the box. THEIR SEAT has no shell drawer; the
    page that mounts them supplies `opts.openNotes` and gets the same pin. */
+/* the rooms a highlight offers "Add a note" into (live notes A): this seat's own rooms, Internal first */
+function rlNoteRoomActs(c, opts = {}){
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  if (side !== 'owner' || !c) return [];
+  return negoNoteRoomList(c, opts, side).map(r => ({ id: 'note:' + r.key, room: r.key, ext: !!r.external,
+    label: r.external ? (r.name || i18t('ng_np_tab_ext')) : i18t('ng_np_tab_int'), full: r.external ? (r.name || '') : i18t('ng_np_tab_int') }));
+}
 function rlNoteFromSelection(c, sel, opts = {}){
   if (!c || !sel || !sel.clauseId || !String(sel.quote || '').trim()) return false;
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const home = window.negoNoteHomeFor ? negoNoteHomeFor(c, sel.clauseId) : null;
+  /* the room the highlight's bubble chose (live notes A), else Internal on our seat */
   const pin = { contractId: c.id, clauseId: String(sel.clauseId), quote: String(sel.quote),
-    changeId: home ? home.id : null, room: side === 'counterparty' ? 'external' : 'internal' };
+    changeId: home ? home.id : null, room: side === 'counterparty' ? 'external' : (opts.room ? negoRoomKey(opts.room) : 'internal') };
   const theirs = side === 'counterparty' || rlOnTheirPage();
+  /* A NEW CONVERSATION: nothing else open in the panel, its box focused */
+  _rlNpOpen = null;
   if (theirs){
     if (typeof opts.openNotes !== 'function') return false;
     rlNotesPin(pin);
@@ -19261,11 +19483,15 @@ function rlPaperSelOffer(ctx){
   if (!theirs) acts.push({ id: 'ask', label: i18t('ng_sel_ask') });
   if (!theirs && single) acts.push({ id: 'edit', label: i18t('ng_sel_edit') });
   const cqId = ctx.commentClauseId || clauseId || null;
-  if (cqId && notesMayWrite(c, opts || {})) acts.push({ id: 'comment', label: i18t('ng_sel_comment') });
+  /* LIVE NOTES A: our seat's Comment is "Add a note" with its rooms; their seat keeps Comment */
+  if (cqId && notesMayWrite(c, opts || {})){
+    const rooms = theirs ? [] : rlNoteRoomActs(c, { ...(opts || {}), side });
+    if (rooms.length) acts.unshift(...rooms); else acts.push({ id: 'comment', label: i18t('ng_sel_comment') });
+  }
   if (!acts.length) return false;
   rlSelMenu({ text, clauseId: clauseId || cqId || '', rect, actions: acts, onPick: a => {
-    if (a.id === 'comment'){
-      rlNoteFromSelection(c, { clauseId: cqId, quote: ctx.commentQuote || text }, { ...(opts || {}), side });
+    if (a.id === 'comment' || a.room){
+      rlNoteFromSelection(c, { clauseId: cqId, quote: ctx.commentQuote || text }, { ...(opts || {}), side, room: a.room || undefined });
       return;
     }
     if (single && (a.id === 'edit' || a.id === 'ask')){
@@ -23510,7 +23736,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
   rlNoteDialogHtml, openChangeNoteDialog, rlNoteAskAfterFile,
   rlNotesPin, rlNotesUnpin, rlNotesPinned, rlNotesPanelClosed, rlNpPinFor, negoWhenFull, rlNpClauseLabel,
   rlNpThreadHtml, rlNpListHtml, rlNpPinHtml, rlChatThreads, rlNpWireActs, rlNpSetDone, rlNpShowFocused,
-  rlNoteFromSelection, rlPaperSelOffer, rlPaperOfferFromRange, rlSelInFront, rlAskCopilotPanel, rlPaintNoteMarks, rlRepaintNoteMarks, rlNpNoteByKey, rlWrapWords, negoNoteMeta,
+  rlNoteFromSelection, rlNoteRoomActs, rlNpReact, rlNpLiveWire, rlNpBubbleHtml, rlNpReactsHtml, rlNpNewConvHtml, rlNpUnread, RL_NP_RX, rlPaperSelOffer, rlPaperOfferFromRange, rlSelInFront, rlAskCopilotPanel, rlPaintNoteMarks, rlRepaintNoteMarks, rlNpNoteByKey, rlWrapWords, negoNoteMeta,
   rlChatRows, rlChatPanelHtml, rlChatPanelPaint,
   negoPostToChannel, negoNotifyMentions, negoMentionLine, rlNotesPanelHtml, rlNotesPanelPaint, rlWireNotesPanel,
   rlNpTagMenuHtml, rlNpTagWire, rlNpMarkMentions, rlTagInk,

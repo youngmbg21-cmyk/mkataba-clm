@@ -4185,6 +4185,32 @@ function negoNotesForMe(c, user){
   (Array.isArray(c.changes) ? c.changes : []).forEach(ch => walk(ch && ch.thread, ch));
   return out;
 }
+/* ---- DECIDED (live notes A, owner 25 Nov 2026) ----
+   In OUR OWN room only: a conversation's decision, pinned at its foot — the words of the message it was reached on,
+   who decided and when — and a line on the contract's History. Undo takes it back (and says so on the History too).
+   Kept on the conversation's FIRST note (`decided`), which never travels: an internal note is not in the share payload
+   and `decided` is not on the server's msgMeta allow-list. THE ONE WRITER. */
+function negoNoteDecide(c, host, root, msg, on, user){
+  const thread = negoNoteHome(c, host || null);
+  const key = negoNoteKey(root);
+  const real = thread.find(x => negoNoteKey(x) === key) || null;
+  if (!real || real.visibility === 'shared') return null;
+  const u = user || (window.currentUser && window.currentUser()) || null;
+  const who = (u && u.name) || 'somebody';
+  const where = host ? '#' + host.id : 'the contract';
+  if (on){
+    const words = String((msg && msg.text) || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+    if (!words) return null;
+    real.decided = { key: negoNoteKey(msg), text: words, by: who, byId: (u && u.id) ? String(u.id) : null,
+      at: (window.nowISO ? window.nowISO() : new Date().toISOString()) };
+    if (window.logAudit) logAudit(c, 'Negotiation', `Decided in the team's notes on ${where}: \u201C${words}\u201D — by ${who}; the contract is unchanged`);
+  } else {
+    const was = real.decided;
+    delete real.decided;
+    if (was && window.logAudit) logAudit(c, 'Negotiation', `Decision in the team's notes on ${where} taken back by ${who} — the contract is unchanged`);
+  }
+  return real;
+}
 /* Roots and their replies, oldest first, replies under the note they answer.
    A reply whose parent is not on the list reads as a root, so nothing is
    ever hidden by a missing parent. */
@@ -4291,6 +4317,8 @@ function negoMergedThread(c, ch, extra){
       const a = negoNoteAnchor(meta.anchor); if (a) one.anchor = a;
       if (meta.replyTo) one.replyTo = String(meta.replyTo).slice(0, 80);
       if (meta.done && typeof meta.done === 'object') one.done = { at: String(meta.done.at || ''), by: String(meta.done.by || '') };
+      /* LIKES that crossed (live notes A): read from the channel copy, a drawing only */
+      if (meta.reactions && typeof meta.reactions === 'object') one.reactions = meta.reactions;
     }
     const k = key(one);
     if (have.has(k)){ twins.set(k, one); continue; }
@@ -5778,7 +5806,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoNoteAuthoredBy, negoNoteIsMine, negoMyNote, negoEditNote, negoDeleteNote, negoNoteDelivered,
   negoNoteId, negoNoteKey, negoNoteAnchor, negoNoteQuote, negoNoteHomeFor, negoAnchorState, negoNoteDone, negoNoteThreads, NOTE_QUOTE_MAX,
   negoNoteGiven, negoNoteForMe, negoNoteGive, negoNotesForMe,
-  negoNoteSeenBy, negoNoteSeenByMe, negoNoteSee,
+  negoNoteSeenBy, negoNoteSeenByMe, negoNoteSee, negoNoteDecide,
   negoNotesReadAt, negoNoteUnread, negoMarkNotesRead,
   negoBuildBody, negoCleanBody, negoCleanText,
   negoProgress, negoReadyToSign, negoOpenPoints,

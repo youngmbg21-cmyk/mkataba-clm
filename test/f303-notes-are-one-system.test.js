@@ -264,8 +264,10 @@ describe('f303 (4) — the pin, the reply as its own act, Done, and the clock', 
     const p = await bench();
     p.w.win.rlNoteFromSelection(p.c, { clauseId: p.cl7.clauseId, quote: 'indirect loss' }, { side: 'owner' });
     assert.equal(p.opened[0].chId, null, 'no change on clause 7: the contract’s own drawer');
-    assert.match(p.host.querySelector('.rl-np-pin .ref').textContent, /Clause 7|Liability/);
-    p.host.querySelector('[data-rl-np-pin-room]:not([data-rl-np-pin-room="internal"])').click();
+    /* RE-POINTED 25 Nov 2026 (live notes A, owner): the words open a NEW CONVERSATION — its head names the clause, and the
+       room is chosen on the panel's own room pills; the pin follows the pill */
+    assert.match(p.host.querySelector('.rl-lv-head .rl-lv-t b').textContent, /Clause 7|Liability/);
+    p.host.querySelector('[data-rl-np-room]:not([data-rl-np-room="internal"])').click();
     await tick();
     /* RE-POINTED 3 Oct 2026 — an outside room's key is its party's ('p:<id>')
        so a note can say which of several outside parties it is for. The claim
@@ -274,7 +276,7 @@ describe('f303 (4) — the pin, the reply as its own act, Done, and the clock', 
     const pinned = p.w.win.rlNotesPinned().room;
     assert.ok(p.w.win.negoRoomIsExternal(pinned), 'the pin moved to an outside room');
     assert.equal(p.w.win.rlNpRoom(), pinned, 'the drawer’s tab follows the pin');
-    assert.ok(p.host.querySelector('.rl-np-pin.out'), 'and the pin wears the crossing’s colour');
+    assert.ok(p.host.querySelector('.rl-np-foot.out'), 'and the box wears the crossing’s colour');
   });
 
   test('Reply is its own act: a box under the note, and the reply lands on the root’s thread in the root’s room', async () => {
@@ -353,7 +355,8 @@ describe('f303 (4) — the pin, the reply as its own act, Done, and the clock', 
        (§ badge and name); opened, the thread leads with the pending change's reference, or the note's own anchor line */
     const rows = [...p.host.querySelectorAll('.rl-chat-row')];
     assert.equal(rows.length, 2);
-    assert.match(rows[1].querySelector('.rl-np-ch b').textContent, /Clause 7|Liability/, 'the clause said once on the row');
+    /* RE-POINTED 25 Nov 2026 (live notes A, owner): the row's head is the live conversation's (.rl-lv-t) */
+    assert.match(rows[1].querySelector('.rl-lv-t b').textContent, /Clause 7|Liability/, 'the clause said once on the row');
     rows[0].querySelector('.rl-np-crow').click(); await tick();
     assert.match(p.host.querySelector('.rl-chat-on').textContent, new RegExp(p.ch.id),
       'the words sit in the pending change, so the opened thread leads with its reference');
@@ -362,7 +365,7 @@ describe('f303 (4) — the pin, the reply as its own act, Done, and the clock', 
     assert.equal(p.host.querySelector('.rl-chat-on'), null, 'no second line saying the clause');
     /* RE-POINTED 21 Nov 2026 (P-38 rebuilt as drawn, the Stripe way): the opened discussion names its clause once in its
        head (§ badge and name); its messages carry no anchor block of their own */
-    assert.match(p.host.querySelector('.rl-np-ch.is-head b').textContent, /Clause 7|Liability/);
+    assert.match(p.host.querySelector('.rl-lv-head .rl-lv-t b').textContent, /Clause 7|Liability/);
     assert.equal(p.host.querySelector('.rl-np-tl .rl-np-anchor'), null, 'no anchor block on the messages, as drawn');
     p.w.win.rlNotesPanelClosed();
   });

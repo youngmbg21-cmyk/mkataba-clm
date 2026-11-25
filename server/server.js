@@ -5775,6 +5775,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      a colleague arrived would echo back a map without them — taking somebody
      out of a room they are sitting in. The STORED map wins, always. */
   if (prev && prev.here) c.here = prev.here; else delete c.here;
+  srvKeepNoteReactions(prev, c);
   /* the asks for a new link are POST /api/shares/:token/ask-new's alone (round 8): the stored list wins */
   if (prev && Array.isArray(prev.linkAsks)) c.linkAsks = prev.linkAsks; else delete c.linkAsks;
   /* ---- AND WHICH POINTS A PERSON MARKED REVIEWED (21 Oct 2026) ----
@@ -22692,7 +22693,48 @@ function msgMeta(raw) {
   }
   if (raw.done && typeof raw.done === 'object')
     out.done = { at: String(raw.done.at || '').slice(0, 40), by: String(raw.done.by || '').slice(0, 120) };
+  /* LIKES ON A MESSAGE THAT CROSSED (live notes A, owner 25 Nov 2026): only the six faces, each a list of who pressed */
+  const rx = noteReactionsClean(raw.reactions);
+  if (rx) out.reactions = rx;
   return Object.keys(out).length ? out : null;
+}
+/* ---- EMOJI LIKES ON A NOTE (live notes, round A; owner 25 Nov 2026) ----
+   A like is not an edit: it never touches the words, so a message already delivered may be liked. Six faces and no
+   others; per face the people who pressed it (ours 'u:<id>'), each once. Written ONLY by the like routes below; an
+   internal note's likes live on the record's own note (c.thread / a change's thread, never in the share payload), a
+   shared one's are mirrored onto its channel copy so the other side sees the count. THE SERVER IS THE WALL. */
+const NOTE_REACTIONS = ['\u{1F44D}', '\u2705', '\u{1F64F}', '\u2764\uFE0F', '\u{1F440}', '\u{1F602}'];
+function noteReactionsClean(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const out = {};
+  for (const e of NOTE_REACTIONS) {
+    const list = Array.isArray(raw[e]) ? [...new Set(raw[e].map(x => String(x || '').slice(0, 80)).filter(Boolean))].slice(0, 200) : [];
+    if (list.length) out[e] = list;
+  }
+  return Object.keys(out).length ? out : null;
+}
+function noteReactionToggle(cur, emoji, who) {
+  const r = noteReactionsClean(cur) || {};
+  const list = Array.isArray(r[emoji]) ? r[emoji] : [];
+  r[emoji] = list.includes(who) ? list.filter(x => x !== who) : list.concat(who);
+  return noteReactionsClean(r);
+}
+/* every note the record holds, with the thread it lives on */
+function srvNotesOf(c) {
+  const out = [];
+  const walk = (list, host) => (Array.isArray(list) ? list : []).forEach(m => { if (m && typeof m === 'object') out.push({ m, host }); });
+  walk(c && c.thread, '');
+  (Array.isArray(c && c.changes) ? c.changes : []).forEach(ch => walk(ch && ch.thread, String((ch && ch.id) || '')));
+  return out;
+}
+/* A SAVE NEVER MOVES A LIKE: the likes on every note are the stored record's (written only by the like route), so a
+   browser holding an older copy cannot take someone's like away (a DIFFERENCE against the stored record) */
+function srvKeepNoteReactions(prev, next) {
+  const was = new Map(srvNotesOf(prev).filter(x => x.m.id).map(x => [String(x.m.id), x.m.reactions]));
+  for (const { m } of srvNotesOf(next)) {
+    const r = m.id ? noteReactionsClean(was.get(String(m.id))) : null;
+    if (r) m.reactions = r; else delete m.reactions;
+  }
 }
 const msgMetaRead = s => { if (!s) return null; try { return msgMeta(JSON.parse(s)); } catch (_) { return null; } };
 /* ---- NOTHING AN ADVISER WRITES IS EVER VISIBLE TO THE COUNTERPARTY ----
@@ -22946,6 +22988,51 @@ app.patch('/api/contracts/:id/messages/:mid', auth, editor, (req, res) => {
   const m = setMessageDone(req.params.id, req.params.mid, b.done !== false, req.user.name);
   if (!m) return res.status(404).json({ error: 'Message not found' });
   res.json({ ok: true, message: m, messages: contractMessages(req.params.id, { adviser: true }) });
+});
+/* ---- A LIKE, FROM OUR SEAT (live notes A) ----
+   { emoji, key } likes a note on the record (found by its id on the contract's or a change's thread); { emoji,
+   channelId } likes a message that only crossed on the channel (the other side's). Pressed again, it is taken back.
+   THE WALLS: signed in, may write, the contract in scope, one of the six faces, a note this record holds; their team's
+   room and an adviser's rows are never ours to touch. An internal note's like stays on our record and is NEVER
+   written to the channel; a shared note's is mirrored onto its channel copy (meta.reactions) so the other side sees it. */
+app.post('/api/contracts/:id/notes/react', auth, editor, (req, res) => {
+  if (!idInScope(folderScopeFor(req.user), req.params.id)) return res.status(404).json({ error: 'Contract not found' });
+  const b = req.body || {};
+  const emoji = String(b.emoji || '');
+  if (!NOTE_REACTIONS.includes(emoji)) return res.status(400).json({ error: 'That is not one of the likes.' });
+  const who = 'u:' + String(req.user.id);
+  const mirror = (cid, key, rx) => {
+    for (const r of db.prepare('SELECT id, meta, side FROM share_messages WHERE contract_id=?').all(cid)) {
+      if (r.side === MSG_SIDE_THEIR_TEAM || r.side === MSG_SIDE_ADVISER) continue;
+      const meta = msgMetaRead(r.meta) || {};
+      if (String(meta.id || '') !== String(key)) continue;
+      if (rx) meta.reactions = rx; else delete meta.reactions;
+      const clean = msgMeta(meta);
+      db.prepare('UPDATE share_messages SET meta=? WHERE id=?').run(clean ? JSON.stringify(clean) : null, r.id);
+    }
+  };
+  if (b.channelId != null && b.channelId !== '') {
+    const row = db.prepare('SELECT * FROM share_messages WHERE id=? AND contract_id=?').get(Number(b.channelId), req.params.id);
+    if (!row || row.side === MSG_SIDE_THEIR_TEAM || row.side === MSG_SIDE_ADVISER) return res.status(404).json({ error: 'Message not found' });
+    const meta = msgMetaRead(row.meta) || {};
+    const rx = noteReactionToggle(meta.reactions, emoji, who);
+    if (rx) meta.reactions = rx; else delete meta.reactions;
+    const clean = msgMeta(meta);
+    db.prepare('UPDATE share_messages SET meta=? WHERE id=?').run(clean ? JSON.stringify(clean) : null, row.id);
+    return res.json({ ok: true, reactions: rx || {}, messages: contractMessages(req.params.id, { adviser: true }) });
+  }
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { return res.status(409).json({ error: 'Contract not readable' }); }
+  const key = String(b.key || '');
+  const hit = key ? srvNotesOf(c).find(x => String(x.m.id || '') === key) : null;
+  if (!hit) return res.status(404).json({ error: 'Note not found' });
+  const rx = noteReactionToggle(hit.m.reactions, emoji, who);
+  if (rx) hit.m.reactions = rx; else delete hit.m.reactions;
+  db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(c), req.params.id);
+  /* the wall: only a note that crossed carries its likes onto the channel */
+  if (hit.m.visibility === 'shared') mirror(req.params.id, key, rx);
+  res.json({ ok: true, reactions: rx || {} });
 });
 /* Done, from theirs: the same checks as their post, on the same link. */
 app.patch('/api/shares/:token/messages/:mid', rlShare, (req, res) => {
