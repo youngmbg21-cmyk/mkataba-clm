@@ -496,11 +496,16 @@ const VERDICTS = [
   /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the scan tab is gone; its
      draft is the prepared question "Use Copilot's draft", whose card's Apply
      is what moves it in. The address claim is unchanged. */
+  /* GUARDED 25 Nov 2026: "offers" means a reader can SEE it — a question in the markup but not painted (the tabbed
+     editor, ceTabOn, draws no chips row: #ce-chips is display:none there) REPORTS here instead of timing out the press */
   const btn7 = await page.$('#clause-editor #ce-chips [data-ce-std="draft"]');
-  check(!!btn7 && !before7.none && Object.values(before7.seen).every(Boolean),
+  const shown7 = !!btn7 && await btn7.evaluate(b => { const r = b.getBoundingClientRect(); if (!(r.width > 0 && r.height > 0)) return false;
+    for (let x = b; x && x !== document.body; x = x.parentElement){ const cs = getComputedStyle(x); if (cs.display === 'none' || cs.visibility === 'hidden') return false; } return true; });
+  const tabbed7 = await page.evaluate(() => { const pg = document.getElementById('clause-editor'); return !!(pg && pg.classList.contains('is-tabbed')); });
+  check(shown7 && !before7.none && Object.values(before7.seen).every(Boolean),
     '7d- the control: the rail offers the draft on a six-part clause',
-    !btn7 ? 'no draft question drawn' : JSON.stringify(before7.seen));
-  if (btn7 && !before7.none){
+    !btn7 ? 'no draft question drawn' : !shown7 ? 'the draft question is in the markup but not on screen' + (tabbed7 ? ' (the tabbed editor draws no chips row)' : '') : JSON.stringify(before7.seen));
+  if (shown7 && !before7.none){
     await btn7.click();
     await pause(400);
     await page.evaluate(() => { const c = [...document.querySelectorAll('#clause-editor #ce-lane .ce-card')].pop(); const a = c && c.querySelector('[data-ce-apply]'); if (a) a.click(); });

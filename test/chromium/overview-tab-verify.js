@@ -102,9 +102,15 @@ const HOST = { dock: '#ig-dock', cal: '#cal-plan', list: '#ins-panel', mig: '#mi
         /* the panel's body as shown: everything between its tab row and its ask box */
         const head = root.querySelector('.jl-head, .igd-head, .st-side-head, .cal-plan-head');
         const foot = root.querySelector('.jl-foot, .igd-foot, .st-side-foot, .cal-plan-foot');
-        const inBody = e => !(head && head.contains(e)) && !(foot && foot.contains(e)) && !e.closest('[data-jl-door], .st-side-unfold, .igd-door');
+        /* RE-POINTED 25 Nov 2026 (owner, P-18: "the green links stand BESIDE that press, never on a line above it … a long
+           word takes its short form, and what still does not fit is left out, never wrapped"): the row above the box rides
+           the line of "Jambo ›" / "‹ Overview" (jamboWaysCarry, .jb-ways.is-carried) — the same presses, so asked there —
+           and a link fitted to its short form is the same press under its full words (data-jb-full, jamboWaysFitOne).
+           A link left out (is-fit-off) is not shown, and is still lost */
+        const carried = e => !!e.closest('.jb-ways.is-carried');
+        const inBody = e => carried(e) || (!(head && head.contains(e)) && !(foot && foot.contains(e)) && !e.closest('[data-jl-door], .st-side-unfold, .igd-door'));
         const press = [...root.querySelectorAll('button, a[href], [role="button"]')].filter(e => vis(e) && inBody(e))
-          .map(e => (e.getAttribute('aria-label') && !e.textContent.trim() ? e.getAttribute('aria-label') : e.textContent).replace(/\s+/g, ' ').trim()).filter(Boolean);
+          .map(e => (e.getAttribute('data-jb-full') || (e.getAttribute('aria-label') && !e.textContent.trim() ? e.getAttribute('aria-label') : e.textContent)).replace(/\s+/g, ' ').trim()).filter(Boolean);
         const helloIn = [...root.querySelectorAll('[data-jb-hello]')].filter(vis).length;
         const jov = [...root.querySelectorAll('.jov')].filter(vis).length, apn5 = [...root.querySelectorAll('.apn5')].filter(vis).length,
           calLs = [...root.querySelectorAll('.cal-ls-side .cls-side')].filter(vis).length;

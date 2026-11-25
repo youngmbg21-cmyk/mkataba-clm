@@ -216,11 +216,25 @@ const paperRead = page => page.evaluate(() => {
       await page.click('#ce-lane [data-ce-apply]');
       ok('5e Apply puts it back In the box', !!(await until(page, () => !!document.querySelector('#ce-lane .ce-inbox'), null, 4000)));
       await page.fill('#ce-prep-note', 'We can meet you part-way: 60 days. Our standard is 45 days.');
-      await page.click('[data-ce-act="save"]');
-      /* RE-POINTED 14 Oct 2026 (stage 5): back to where Counter was pressed —
-         Jambo's Redlines face beside Home's paper */
+      /* RE-POINTED 25 Nov 2026 (owner's picks, 24 Nov 2026: "EDITOR TAB'S FILE IS THE BOTTOM ROW'S BUTTON" — data-ce-tsave
+         presses the hidden File button, f1217 — and "File · next › to the paper's next clause", ceSaveAndOn, no note asked):
+         where the editor is tabbed (ceTabOn) the reader presses the bottom row's "Save counter · next ›"; it files, and the
+         editor moves on to the paper's next clause; the way back to where Counter was pressed is the Dossier's Redlines tab
+         the editor wears (data-ce-dtab="red", ceRowBack). Untabbed, Save counter itself goes back, as before. Guarded */
+      const tabbed7 = await page.evaluate(() => { const pg = document.getElementById('clause-editor'); return !!(pg && pg.classList.contains('is-tabbed')); });
+      const sel7 = tabbed7 ? '#clause-editor [data-ce-tsave]' : '[data-ce-act="save"]';
+      const was7 = await page.evaluate(() => String(clauseEditorClauseId() || ''));
+      const up7 = await until(page, sel => { const b = document.querySelector(sel); return b && b.getClientRects().length > 0 ? b.textContent.trim() : null; }, sel7, 6000);
+      ok('7- the Save counter press is on screen' + (tabbed7 ? ', the bottom row\'s own button' : ''), !!up7 && /^Save counter(?: · next ›)?$/.test(up7), String(up7));
+      if (up7) await page.click(sel7, { timeout: 8000 }).catch(() => {});
+      if (tabbed7) {
+        const on7 = await until(page, was => { const c = getContract('MK-CP1'); return (c.changes || []).some(x => x.authorSide === 'owner' && x.status === 'pending')
+          && clauseEditorOpen() && String(clauseEditorClauseId() || '') !== was ? String(clauseEditorClauseId()) : null; }, was7, 8000);
+        ok('7a- Save counter · next › files, and the editor moves on to the paper\'s next clause', !!on7, String(on7));
+        await page.evaluate(() => { const t = document.querySelector('#clause-editor [data-ce-dtab="red"]'); if (t) t.click(); });
+      }
       const back = await until(page, () => !document.querySelector('#clause-editor') && state.view === 'dashboard' && !!document.querySelector('#pd-redface [data-nego-card]'), null, 8000);
-      ok('7a Save counter goes back to Negotiate', !!back);
+      ok(tabbed7 ? '7a the Redlines tab goes back to where Counter was pressed' : '7a Save counter goes back to Negotiate', !!back);
       const s7 = await page.evaluate(() => {
         const c = getContract('MK-CP1');
         const ours = (c.changes || []).filter(x => x.authorSide === 'owner' && x.status === 'pending');

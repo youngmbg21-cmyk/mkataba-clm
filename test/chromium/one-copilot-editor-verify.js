@@ -124,6 +124,14 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
       footMids: [...pg.querySelectorAll('.ce-railfoot:not(.ce-rksug) button')].filter(vis).map(b => { const r = b.getBoundingClientRect(); return Math.round(r.top + r.height / 2); }),
       footSave: (() => { const b = pg.querySelector('.ce-railfoot [data-ce-act="save"]'); if (!b || !vis(b)) return null; const r = b.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height) }; })(),
       footH: [...pg.querySelectorAll('.ce-railfoot:not(.ce-rksug) button')].filter(vis).map(b => Math.round(b.getBoundingClientRect().height)),
+      /* RE-POINTED 25 Nov 2026 (owner, 24–25 Nov 2026, the Editor tab as drawn, f1219/f1220: "less is more" — § and the
+         clause's name with ONE badge, ‹ Clauses · ‹ k of n › · All n ▾ under the tabs, no chips, and the File press is
+         the bottom row's button, data-ce-tsave, f1217): the tabbed panel read where it is drawn */
+      tnav: vis(pg.querySelector('.ce-tnav')) ? { k: ((pg.querySelector('.ce-tnav .ce-tk') || {}).textContent || '').trim(), name: ((pg.querySelector('.ce-thd .ce-th') || {}).textContent || '').trim(),
+        arrows: [...pg.querySelectorAll('.ce-tnav .ce-tar')].filter(vis).map(b => Math.round(b.getBoundingClientRect().height)) } : null,
+      tfoot: [...pg.querySelectorAll('#ce-tabfoot .ce-tfrow button')].filter(vis).map(b => { const r = b.getBoundingClientRect(), k = getComputedStyle(b);
+        return { t: b.textContent.trim(), save: b.hasAttribute('data-ce-tsave'), mid: Math.round(r.top + r.height / 2), h: Math.round(r.height), bg: k.backgroundColor, fw: Number(k.fontWeight) }; }),
+      ink: (() => { const x = document.createElement('span'); x.style.color = 'var(--color-text)'; document.body.appendChild(x); const v = getComputedStyle(x).color; x.remove(); return v; })(),
       col: r ? [Math.round(r.left), Math.round(r.width)] : null,
       box: ceBoxWords(),
     };
@@ -167,25 +175,30 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     }, null, 10000);
     check(!!rk, '1- the Risks tab has Jambo\'s answer');
     const R = await railNow();
-    if (R && R.tabbed) check(!R.disc && !!R.tpick && /liability/i.test(R.tpick.name) && /\d+ of \d+/.test(R.tpick.k), '1a tabbed: the picker at the panel\'s top names the clause over the risk, as over the clause', JSON.stringify(R.tpick));
+    if (R && R.tabbed) check(!R.disc && !!R.tnav && /liability/i.test(R.tnav.name) && /\d+ of \d+/.test(R.tnav.k), '1a tabbed: the head at the panel\'s top names the clause over the risk, as over the clause (‹ k of n ›, its name)', JSON.stringify(R.tnav));
     else check(!!R && R.disc, '1a the panel\'s dropdown stands over the risk as over the clause');
     check(!!R && R.read.length >= 2 && /playbook/i.test(R.read[0]) && R.read.some(x => /wording/i.test(x)), '1b the reading rows the clause screen draws (Our playbook · The wording)', R && R.read.join(' · '));
     /* RE-POINTED 7 Oct 2026 (One footer): on the walk the card's buttons are the feet's top row */
     /* RE-POINTED 10 Oct 2026 (Young, "one Copilot panel"): the card carries Apply · Discard itself; no Apply strip */
     check(!!R && R.cardName === 'Suggested wording' && R.cardBtns.join(' · ') === 'Apply · Discard' && R.dock.length === 0, '1c ONE Suggested wording with Apply · Discard on the card — no strip, no Ask for a change, no votes, no Expand', R && (R.cardBtns.join(' · ') + ' | ' + R.dock.join(' · ')));
-    check(!!R && Array.isArray(R.chips) && R.chips.join(' · ') === 'Make it firmer · Give me a softer version · Shorter · What does our playbook say?', '1d the risk\'s quick asks sit in the rail\'s own chips row', R && String(R.chips));
+    if (R && R.tabbed) check(R.chips === null, '1d tabbed: no chips row (owner, 24 Nov 2026, the Editor tab as drawn: "no chips")', String(R.chips));
+    else check(!!R && Array.isArray(R.chips) && R.chips.join(' · ') === 'Make it firmer · Give me a softer version · Shorter · What does our playbook say?', '1d the risk\'s quick asks sit in the rail\'s own chips row', R && String(R.chips));
     check(!!R && R.ask, '1e and the typed ask in the rail\'s own box');
     check(!!R && R.scope, '1f with the clause card over it, as from a clause');
     check(!!R && !/twelve \(12\)/.test(R.box), '1g the box is untouched until Apply');
-    check(!!R && R.feet.length === 1 && /^‹ · › · (File|Save)/.test(R.feet[0]), '1h one foot: ‹ k of n › and Save — no Skip, no Save & next, no Discard', R && R.feet.join(' | '));
+    if (R && R.tabbed) check(R.feet.length === 0 && R.tfoot.length >= 1 && R.tfoot.length <= 2 && (R.tfoot[0].save ? /(File|Save)/.test(R.tfoot[0].t) && (!R.tfoot[1] || /^Undo/.test(R.tfoot[1].t)) : R.tfoot.length === 1 && /^Next/.test(R.tfoot[0].t)),
+      '1h tabbed: one foot, the bottom row — its File press (· Undo), or Next › with nothing to file; no Skip, no Discard', JSON.stringify({ feet: R.feet, tfoot: R.tfoot.map(b => b.t) }));
+    else check(!!R && R.feet.length === 1 && /^‹ · › · (File|Save)/.test(R.feet[0]), '1h one foot: ‹ k of n › and Save — no Skip, no Save & next, no Discard', R && R.feet.join(' | '));
     /* RE-POINTED (owner, 23 Oct 2026: File / Save "prominent, slightly longer buttons so they do not seem
        hidden"): one row read by the buttons' MIDDLES (Save is taller now); the walk's ‹ › stay on the small
        rung, Save is a full-height control 110px or wider */
     if (R && R.tabbed){
       /* RE-POINTED 24 Nov 2026 (the Editor as a tab, as drawn): the walk is the picker's ‹ › at the panel's top, the foot
          holds File · next › (and Undo once something is in the box), on one row */
-      check(R.tpick && R.tpick.arrows.length === 2 && R.tpick.arrows.every(h => h <= 28) && R.footMids.length >= 1 && Math.max(...R.footMids) - Math.min(...R.footMids) <= 1, '5a tabbed: the walk ‹ › at the panel\'s top, the foot on ONE row', JSON.stringify({ tp: R.tpick, mids: R.footMids }));
-      check(!!R.footSave && R.footSave.h >= 30 && R.footSave.w >= 110, '5b tabbed: the walk on the small rung, Save prominent', JSON.stringify(R.footSave));
+      const tm = R.tfoot.map(b => b.mid);
+      check(!!R.tnav && R.tnav.arrows.length === 2 && R.tnav.arrows.every(h => h <= 28) && tm.length >= 1 && Math.max(...tm) - Math.min(...tm) <= 1, '5a tabbed: the walk ‹ › at the panel\'s top, the foot on ONE row', JSON.stringify({ tp: R.tnav, mids: tm }));
+      /* 5b's "Save prominent" is asked once there is something to file (below, after Apply): with nothing in the box the
+         bottom row's button is Next › */
     } else {
       check(!!R && R.footMids.length === 3 && Math.max(...R.footMids) - Math.min(...R.footMids) <= 1, '5a all three on ONE row', R && R.footMids.join(','));
       check(!!R && R.footH.length === 3 && R.footH.slice(0, 2).every(h => h <= 24) && !!R.footSave && R.footSave.h >= 30 && R.footSave.w >= 110, '5b the walk on the small rung, Save prominent', R && (R.footH.join(',') + ' save ' + JSON.stringify(R.footSave)));
@@ -229,6 +242,12 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     check(!!ap, '3i Apply on the card moves the wording into the box, and the card says Applied');
     const save = await page.evaluate(() => { const b = document.querySelector('#ce-railfoot [data-ce-act="save"]'); return b ? !b.disabled : false; });
     check(save, '3j and Save is live once applied');
+    const R3 = await railNow();
+    if (R3 && R3.tabbed){
+      const sv = R3.tfoot.find(b => b.save);
+      check(!!R3.tnav && R3.tnav.arrows.every(h => h <= 28) && !!sv && sv.bg === R3.ink && sv.fw >= 600 && R3.tfoot.every(b => b === sv || b.h <= sv.h),
+        '5b tabbed: the walk on the small rung, Save prominent — the bottom row\'s File press the filled black one', JSON.stringify({ arrows: R3.tnav && R3.tnav.arrows, tfoot: R3.tfoot, ink: R3.ink }));
+    }
 
     /* ============ 4. A TYPED ASK ON THE RISKS TAB ============ */
     const n0 = await page.evaluate(() => window._ocAsked.length);
@@ -247,11 +266,14 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     const ch = await until(page, () => document.querySelector('#ce-lane .ce-card.ce-sug .av[data-ce-card]:not([data-ce-card^="rk"])') ? true : null, null, 10000);
     check(!!ch, '2- the conversation has a Suggested wording card');
     const C = await railNow();
-    check(!!C && (C.tabbed ? !C.disc && !!C.tpick : C.disc) /* RE-POINTED 24 Nov 2026: tabbed, the picker stands for the dropdown */ && C.cardName === 'Suggested wording' && (C.cardBtns.includes('Apply') || C.cardBtns.some(b => /Applied/.test(b))) && !C.cardBtns.includes('Ask for a change') && !C.cardBtns.includes('Expand') && C.dock.length === 0, '2a the same wording, its own Apply on this tab — no Ask for a change, no Expand', C && C.cardBtns.join(' · '));
+    check(!!C && (C.tabbed ? !C.disc && !!C.tnav : C.disc) /* RE-POINTED 24 Nov 2026: tabbed, the picker stands for the dropdown; RE-POINTED 25 Nov 2026 (f1219): the head's ‹ k of n › */ && C.cardName === 'Suggested wording' && (C.cardBtns.includes('Apply') || C.cardBtns.some(b => /Applied/.test(b))) && !C.cardBtns.includes('Ask for a change') && !C.cardBtns.includes('Expand') && C.dock.length === 0, '2a the same wording, its own Apply on this tab — no Ask for a change, no Expand', C && C.cardBtns.join(' · '));
     check(!!C && C.read.length >= 2 && /playbook/i.test(C.read[0]), '2b the same reading rows', C && C.read.join(' · '));
-    check(!!C && Array.isArray(C.chips) && C.chips.length > 0 && C.ask, '2c the chips row and the ask box in the same places');
+    if (C && C.tabbed) check(C.chips === null && C.ask, '2c tabbed: no chips row (owner: "no chips"), the ask box in the same place', String(C.chips));
+    else check(!!C && Array.isArray(C.chips) && C.chips.length > 0 && C.ask, '2c the chips row and the ask box in the same places');
     /* RE-POINTED 24 Nov 2026 (the Editor as a tab, as drawn): tabbed, Undo the change sits under File (ce_tab_undo) */
-    check(!!C && C.feet.length === 1 && (C.tabbed ? /(File|Save)(?: · next ›)?(?: · Undo the change)?$/ : /(File|Save)$/).test(C.feet[0]), '2d the same one foot on this tab', C && C.feet.join(' | '));
+    if (C && C.tabbed) check(C.feet.length === 0 && C.tfoot.length >= 1 && C.tfoot[0].save && /(File|Save)/.test(C.tfoot[0].t) && (!C.tfoot[1] || /^Undo/.test(C.tfoot[1].t)),
+      '2d tabbed: the same one foot on this tab — the bottom row\'s File press (· Undo)', JSON.stringify(C.tfoot.map(b => b.t)));
+    else check(!!C && C.feet.length === 1 && /(File|Save)$/.test(C.feet[0]), '2d the same one foot on this tab', C && C.feet.join(' | '));
     await shot('2-from-a-clause.png');
     /* RE-POINTED 7 Oct 2026 (Sticky bar): the buttons stick to the panel's bottom edge */
     const stick = await page.evaluate(() => { const av = [...document.querySelectorAll('#ce-lane .ce-card.ce-sug > .av')].pop(); return av ? getComputedStyle(av).position : null; });

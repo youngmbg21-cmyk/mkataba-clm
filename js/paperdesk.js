@@ -9831,9 +9831,12 @@ function pd2NotesOnPaper(c, cv, red){
 /* THE SHEET AND ITS MARGIN (ONE layout for the Dossier and a seat) */
 function pd2SheetLay(zoom){
   const f = parseFloat(zoom.style.zoom) || 1, W = zoom.clientWidth;
-  /* 40px from the page's own edge, as drawn: the scroller's padding already gives part of it */
+  /* 40px from the page's own edge, as drawn: the scroller's padding already gives part of it. 100% IS WHAT 90% WAS (owner,
+     25 Nov 2026): the paper is drawn at the reader's zoom times RL_ZOOM_BASE, so the 40 is the reader's 100% — divided by
+     the base, the margin on screen at 100% stays the 40 it was (never 36), and the Track keeps the room it had */
   const sc = zoom.parentElement, inset = sc ? Math.max(0, (zoom.getBoundingClientRect().left - sc.getBoundingClientRect().left) / f) : 0;
-  const left0 = Math.round(PD2_SHEET_LEFT - inset);
+  const zb = Number(typeof window !== 'undefined' && window.RL_ZOOM_BASE) || 1;
+  const left0 = Math.round(PD2_SHEET_LEFT / zb - inset);
   const room = W - left0 - PD2_NOTES_GUTTER - 16;
   const sheetW = Math.max(PD2_SHEET_MIN, Math.min(720, room - PD2_NOTES_MIN));
   const notesW = Math.max(160, Math.min(PD2_NOTES_MAX, room - sheetW));

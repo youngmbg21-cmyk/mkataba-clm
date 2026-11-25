@@ -39,7 +39,9 @@ const PB = { verdicts: [
       return bad.slice(0, 5); });
     for (const [name, go, ready] of [
       ['Dossier', "roomHomeLand('MK-610',{open:true})", "!!document.querySelector('#ig-dock .pd2-card, #ig-dock [data-pd-tab=\"copilot\"]')"],
-      ['Clauses', "pdSetTab('doc')", "!!document.querySelector('#ig-dock .doc-th-row, #ig-dock .doc-thread, #ig-dock [data-pd-tab=\"doc\"].on')"],
+      /* FIXED 25 Nov 2026 (the check's own fault, no ruling): pdSetTab only records the tab (it paints nothing), so the Clauses tab never drew here —
+         the tab is pressed as a reader presses it, the Dossier's own Clauses tab on the panel */
+      ['Clauses', "(b => b && b.click())(document.querySelector('#ig-dock [data-pd-tab=\"doc\"]'))", "!!document.querySelector('#ig-dock .doc-th-row, #ig-dock .doc-thread, #ig-dock [data-pd-tab=\"doc\"].on')"],
       ['Redlines with changes', "pdRedOpen('MK-610')", "!!document.querySelector('#ig-dock #nego-cards')"],
       ['Redlines with none (the playbook gap rows)', "pdRedOpen('MK-611')", "!!document.querySelector('#ig-dock .rl-ed-row')"]]) {
       await p.evaluate(f => { setView('dashboard'); (0, eval)(f); }, go);
