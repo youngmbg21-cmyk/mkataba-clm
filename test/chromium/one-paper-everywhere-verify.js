@@ -48,7 +48,7 @@ const M = () => {
       const one = e => { const q = e.getBoundingClientRect(), s = cs(e); return `${nm(e)}@${(q.top - r.top).toFixed(2)}+${q.height.toFixed(2)} m${s.marginTop}/${s.marginBottom} p${s.paddingTop}/${s.paddingBottom} lh${s.lineHeight} fs${s.fontSize}`; };
       const chain = []; for (let e = h; e && e !== sheet; e = e.parentElement) chain.unshift(e);
       out.push('sheet p' + cs(sheet).paddingTop + ' b' + cs(sheet).borderTopWidth);
-      for (const e of chain){ for (let p = e.parentElement.firstElementChild; p && p !== e; p = p.nextElementSibling) out.push('  ' + one(p)); out.push('> ' + one(e)); }
+      for (const e of chain){ for (let p = e.parentElement.firstElementChild; p && p !== e; p = p.nextElementSibling){ out.push('  ' + one(p)); for (const k of p.children) out.push('    ' + one(k)); } out.push('> ' + one(e)); }
       return out.join(' ; '); })() : null,
     corners: [...sheet.querySelectorAll('.pg-corner')].filter(e => cs(e).display !== 'none').length,
     marks: sheet.querySelectorAll('del, ins, .rl-line-del').length, rungs: [...sheet.querySelectorAll('.rl-rung')].filter(e => cs(e).display !== 'none').length,
