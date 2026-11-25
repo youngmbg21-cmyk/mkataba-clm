@@ -220,7 +220,7 @@ ROW GOES TO ITS WORK: `ndRowGo(key)`; `negoNeedsYouIds` unchanged; company row �
 ## THE PULSE BOARD — DELETED
 No page, button, word, row, step or chapter; the Board draws Read down (`hbRdnBtnHtml`). `GET /api/pulse` is the Mapper's endpoint and stays.
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
-- THE BOARD: Your book FIGURE CARDS ≤`HB_FIGS_MAX` 4 (`HB_FIGS_DEFAULT` no value; `data-hb-figusual`); Needs you chips All · Late · Your move · Jambo (`ndInTab`), `ndStatusOf`, `cn2QuoteHtml`, no money; panel ring + one bar (`hbBoardHelloHtml`), no tiles, no Explorer map; numbers are doors (`hbWelcomeGo`).
+- THE BOARD: Your book FIGURE CARDS ≤`HB_FIGS_MAX` 4 (`HB_FIGS_DEFAULT` no value; `data-hb-figusual`); Needs you chips All · Late · Your move · Jambo (`ndInTab`), `ndStatusOf`, `cn2QuoteHtml`, no money; panel ring + one bar (`hbBoardHelloHtml`), no tiles, no Explorer map; numbers are doors (`hbWelcomeGo`). EACH STAGE ITS OWN COLOUR on every stage chart (Where all N stand, Home's map, portfolio, Explorer): `hmStageTone` = the status's own dot (`STATUS_META`), never the Contracts list's buckets (owner, 25 Nov 2026; f1230).
 - LAND ON THE BOARD (`_landBoard`): `cn2Greet` · pills · Live; no Summarise there (Read down's); green Draft pill (`hbDraftBtnHtml`).
 - `HB_FACES` Board · Workspace (`paper`) · Calendar · Explorer (`hbRender`); `hbDigData`; `hbAskReadingOf`, `hbBoardApply`, `hbFactCheck` (server `numbersOutside`); `ndBoardHtml`, `hbBookHtml`; `hbAnalyticAsk`, `igBoardTalkAsk`, `hbResMend`.
 - DOSSIER tabs (`copilot`) · Clauses · Redlines (`PD_TABS_SHOWN`); `dossierOf`; `pdTabCount` (`rlOpenCardCount`); chips `caNextSteps`.
