@@ -249,13 +249,39 @@ async function login(b, base, email, pass, errs){
     check('3c the whole paper: no context line, every clause drawn, none dimmed', !!ed && !ed.ctx && ed.shown.length > 2 && ed.dim == null, JSON.stringify(ed && [ed.ctx, ed.shown.length, ed.dim]));
     check('3d the clause says "Your counter · nothing is filed until you save", no blue box round it', !!ed && ed.step === 'Your counter · nothing is filed until you save' && !ed.boxEdge, JSON.stringify(ed && [ed.step, ed.boxEdge]));
     check('3e the rail: Playbook · Risks · Ladder', !!ed && ed.tabs.join() === 'chat,risks,ladder', JSON.stringify(ed && ed.tabs));
-    check('3f the rail as before: the ladder card leads ("What moved"), no row cards', !!ed && /What moved/.test(ed.lane || '') && !ed.ask, JSON.stringify(ed && ed.lane));
+    /* RE-POINTED 25 Nov 2026 (THE EDITOR'S PANEL L+S, owner 24-25 Nov 2026, f1220, as drawn: "less is more… do not add
+       unnecessary wordings" — § and the clause's name with ONE badge, then WHAT THEY ASKED, their words with the change
+       marked and Accept · Reject beside it, the Redlines row's own buttons; Before you answer only lines that say something):
+       where the editor is tabbed the ladder card's "What moved" is not drawn (ceLadderCardHtml's tab branch); what leads
+       is what they asked, with the row's own Accept · Reject (ladder-accept, theirs-reject), and still no row cards.
+       Untabbed, the old rail as before. Read where it is drawn, guarded so a missing section reports. */
+    const tabbedF = await page.evaluate(() => typeof ceTabbed === 'function' && ceTabbed());
+    const TF = tabbedF ? await page.evaluate(() => { const vis = e => !!e && e.getClientRects().length > 0;
+      const a = document.querySelector('#clause-editor #ce-tasked'), rail = document.querySelector('#clause-editor .ce-rail');
+      const secs = rail ? [...rail.querySelectorAll(':scope > #ce-tabtop ~ section, :scope > #ce-tabtop ~ div')].filter(vis).map(e => e.id || e.className) : [];
+      return { asked: vis(a), first: secs[0] || null, quote: vis(a && a.querySelector('.ce-tquote')),
+        acts: a ? [...a.querySelectorAll('.ce-tchips button')].filter(vis).map(b => b.getAttribute('data-ce-act')) : [],
+        moved: /What moved/.test(rail ? rail.innerText : ''), rowCards: !!document.querySelector('#clause-editor .ce-row-asked, #clause-editor .ce-row-jb') }; }) : null;
+    if (tabbedF) check('3f the tab\'s panel leads with what they asked — their words marked, the row\'s own Accept · Reject — no "What moved" card, no row cards',
+      !!ed && !!TF && TF.asked && TF.first === 'ce-tasked' && TF.quote && TF.acts.join() === 'ladder-accept,theirs-reject' && !TF.moved && !TF.rowCards && !ed.ask, JSON.stringify(TF));
+    else check('3f the rail as before: the ladder card leads ("What moved"), no row cards', !!ed && /What moved/.test(ed.lane || '') && !ed.ask, JSON.stringify(ed && ed.lane));
     /* RE-POINTED 24 Nov 2026 (EDITOR AS A TAB, owner, f1202): on our seat at a wide window the editor wears the Dossier's
        tabs (is-tabbed); the foot's "‹ k of n ›" walk is put away for the tab's clause picker "‹ name ▾ k of n ›", and the
        black button says filing moves on ("Save · next ›", ceSaveAndOn) */
     const tabbed = await page.evaluate(() => typeof ceTabbed === 'function' && ceTabbed());
-    if (tabbed){ const tp = await page.evaluate(() => ({ pick: !!document.querySelector('#ce-tabtop .ce-tpick [data-ce-tstep="1"]'), walkShown: !!(document.querySelector('#ce-railfoot .ce-walk') || { getClientRects: () => [] }).getClientRects().length }));
-      check('3g the tab\'s clause picker "‹ name ▾ k of n ›" walks the paper, and the black button reads "Save · next ›"', !!ed && tp.pick && !tp.walkShown && /Save · next ›/.test(ed.foot || ''), JSON.stringify(Object.assign({ foot: ed && ed.foot }, tp))); }
+    /* RE-POINTED 25 Nov 2026 (EDITOR PANEL AS DRAWN, owner 24 Nov 2026, f1219: "‹ Clauses · ‹ k of n › · All n ▾" — the
+       picker row is .ce-tnav; and EDITOR TAB'S FILE IS THE BOTTOM ROW'S BUTTON, f1217: "remove the 'nothing changed yet'
+       and move the save button lower … In the bottom row" — the row's one button files and goes on, data-ce-tsave, its
+       words the File button's "… · next ›", or is Next › with nothing to file): the rail's foot with its walk is not on
+       screen; the tab's row walks the paper, and the bottom row's one button says it moves on */
+    if (tabbed){ const tp = await page.evaluate(() => { const vis = e => !!e && e.getClientRects().length > 0, nav = document.querySelector('#ce-tabtop .ce-tnav');
+      const row = [...document.querySelectorAll('#ce-tabfoot .ce-tfrow button')].filter(vis);
+      return { pick: vis(nav) && vis(nav.querySelector('[data-ce-tstep="1"]')) && vis(nav.querySelector('[data-ce-tstep="-1"]')) && vis(nav.querySelector('[data-ce-tlist]')) && vis(nav.querySelector('[data-ce-dtab="doc"]')),
+        k: ((nav && nav.querySelector('.ce-tk')) || {}).textContent || '', walkShown: vis(document.querySelector('#ce-railfoot .ce-walk')), railFoot: vis(document.querySelector('#ce-railfoot [data-ce-act="save"]')),
+        btn: row[0] ? { t: row[0].textContent.trim(), save: row[0].hasAttribute('data-ce-tsave'), step: row[0].getAttribute('data-ce-tstep') } : null }; });
+      const bOk = !!tp.btn && (tp.btn.save ? /· next ›$/.test(tp.btn.t) : (tp.btn.step === '1' && /^Next ›$/.test(tp.btn.t)));
+      check('3g the tab\'s row "‹ Clauses · ‹ k of n › · All n ▾" walks the paper, and the bottom row\'s one button moves on ("… · next ›", or Next › with nothing to file)',
+        !!ed && tp.pick && /^\d+ of \d+$/.test(tp.k.trim()) && !tp.walkShown && !tp.railFoot && bOk, JSON.stringify(tp)); }
     else check('3g the foot: "‹ 1 of 2 of their asks ›" and Save', !!ed && /1 of 2 of their asks/.test(ed.foot || '') && /Save/.test(ed.foot || ''), JSON.stringify(ed && ed.foot));
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]){
       await page.setViewportSize({ width: w, height: ht }); await pause(400);

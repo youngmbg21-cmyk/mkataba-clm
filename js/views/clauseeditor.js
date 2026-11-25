@@ -4800,7 +4800,11 @@ async function ceSaveAndOn(){
   cePullText();
   const w = _ceTab === 'chat' ? ceWalkNow() : null;
   _ceLastNoteAsk = null;
-  const nextTab = (!w || !(w.ids || w.asks)) && ceTabbed() ? ceTabNextId() : '';
+  /* the paper's next clause wherever the walk has no next item of its own: the button says "· next ›" on the same rule
+     (wNext, else ceTabNextId), so a walk at its last ask moves on too (counter-with-copilot 7a: one ask, "Save counter ·
+     next ›" filed and stood still) */
+  const walkNext = !!(w && (w.ids || w.asks) && w.k && w.k < w.n);
+  const nextTab = !walkNext && ceTabbed() ? ceTabNextId() : '';
   const ch = await ceSaveChecked();
   /* THE EDITOR AS A TAB: File · next › files, then opens the paper's next clause; no note is asked (owner, 24 Nov 2026) */
   if (ch && nextTab && clauseEditorOpen()){ ceTabGo(nextTab); return ch; }

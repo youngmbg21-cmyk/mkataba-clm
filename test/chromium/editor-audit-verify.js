@@ -98,7 +98,11 @@ const NEW = t => t
       const r = document.createRange(); const tn = document.createTreeWalker(p, NodeFilter.SHOW_TEXT); let n, word = null;
       while ((n = tn.nextNode())) { const i = n.data.indexOf('any such'); if (i >= 0) { word = [n, i]; break; } }
       let x1 = null; if (word) { r.setStart(word[0], word[1]); r.setEnd(word[0], word[1] + 3); x1 = r.getBoundingClientRect().left; }
+      /* the zoom the paper is drawn at (the product of every zoom above the limb): computed lengths are the paper's own,
+         rects are on the screen — so a rect is compared with a length times this */
+      let z = 1; for (let a = p; a; a = a.parentElement) { const v = parseFloat(getComputedStyle(a).zoom); if (v > 0) z *= v; }
       return { pl: parseFloat(cs.paddingLeft), ml: parseFloat(cs.marginLeft), ti: parseFloat(cs.textIndent), fs: parseFloat(cs.fontSize),
+        z: Math.round(z * 1000) / 1000, zf: window.rlDocZoomFactor ? Number(rlDocZoomFactor()) : null,
         mkDisplay: mcs && mcs.display, mkW: mk ? mk.getBoundingClientRect().width : 0,
         stepIn: plain ? Math.round(p.getBoundingClientRect().left - plain.getBoundingClientRect().left) : null,
         wordIn: (plain && x1 != null) ? Math.round(x1 - plain.getBoundingClientRect().left) : null };
@@ -111,11 +115,17 @@ const NEW = t => t
     await until(() => [...document.querySelectorAll('#ig-canvas p')].some(x => /^\s*\(b\)/.test(x.textContent)), null, 10000);
     const HM = await limbOf('#ig-canvas');
     const em = v => (v && v.fs) ? Math.round((v.pl / v.fs) * 100) / 100 : null;
-    check('1a on Home\'s paper the limb hangs: a gutter, the marker a block the gutter\'s width', !!HM && HM.pl > 20 && HM.ti < -20 && HM.mkDisplay === 'inline-block' && HM.mkW >= HM.pl - 1, JSON.stringify(HM));
+    /* RE-POINTED 25 Nov 2026 (owner: "the font size of the paper at 90% is what should be 100%" — 100% IS WHAT 90% WAS,
+       RL_ZOOM_BASE 0.9 in rlDocZoomFactor): Home's paper is drawn at the zoom times 0.9, so the marker's width ON SCREEN is
+       the gutter times that factor (35.1 for a 39px gutter). The hang is pinned as hard as before: the marker still a block
+       a whole gutter wide, the words still two gutters in — each measured at the paper's own drawn zoom, and that zoom
+       must be the reader's (rlDocZoomFactor), never some other shrink. */
+    const HZ = HM ? HM.z : 1, HZok = !!HM && HM.zf != null && Math.abs(HM.z - HM.zf) < 0.002;
+    check('1a on Home\'s paper the limb hangs: a gutter, the marker a block the gutter\'s width', !!HM && HZok && HM.pl > 20 && HM.ti < -20 && HM.mkDisplay === 'inline-block' && HM.mkW >= HM.pl * HZ - 1, JSON.stringify(HM));
     check('1b and sits one step in from the clause\'s own paragraphs', !!HM && HM.ml > 20 && HM.stepIn > 20, JSON.stringify(HM));
     check('1c the SAME measures the editor draws (gutter and step, in em of each paper\'s own type)', !!HM && !!ED && em(HM) === em(ED)
       && Math.round((HM.ml / HM.fs) * 100) === Math.round((ED.ml / ED.fs) * 100), JSON.stringify({ home: HM, editor: ED }));
-    check('1d the limb\'s words start two gutters in, clear of the marker', !!HM && HM.wordIn >= Math.round(HM.pl + HM.ml) - 2, JSON.stringify(HM));
+    check('1d the limb\'s words start two gutters in, clear of the marker', !!HM && HZok && HM.wordIn >= Math.round((HM.pl + HM.ml) * HZ) - 2 /* RE-POINTED 25 Nov 2026 (100% IS WHAT 90% WAS, as 1a) */, JSON.stringify(HM));
 
     /* 2 opened again from its row, untouched */
     const row = await until(() => !!document.querySelector('[data-rl-cp-editor-row]'), null, 8000);

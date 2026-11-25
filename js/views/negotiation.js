@@ -17884,7 +17884,12 @@ function rlNpBubbleHtml(c, m, room, side, other, ctx){
     root: !!ctx.isRoot, rootKey: ctx.rootKey, replyRoot: ctx.replyRoot, replyCount: ctx.replyCount, stripe: true }) : '';
   const org = kind === 'them' ? (other || '') : '';
   const who = kind === 'me' ? '' : `<div class="rl-lv-who"><b>${_ne(m.who || '')}</b>${org ? ' · ' + _ne(org) : ''} · ${_ne(time)}</div>`;
-  const text = _ne(String(m.text || '')).replace(/\n/g, '<br>').replace(/(^|\s)@([\w.\- ]{1,40}?)(?=[\s,.;:!?]|$)/g, (a, b, n) => `${b}<span class="rl-lv-at">@${n}</span>`);
+  /* A TAGGED NAME, EACH PERSON ITS OWN COLOUR (owner-asked 2 Sep 2026): a note that names people (m.mentions, the writer's
+     own record) marks them through the drawer's one marker (rlNpMarkMentions: the whole name, bold, rlTagInk's colour) —
+     the bubble had its own pattern, which stopped at the first space and drew every name in one ink (notes-two-rooms 7) */
+  const named = Array.isArray(m.mentions) && m.mentions.length;
+  const text = named ? rlNpMarkMentions(_ne(String(m.text || '')), m).replace(/\n/g, '<br>')
+    : _ne(String(m.text || '')).replace(/\n/g, '<br>').replace(/(^|\s)@([\w.\- ]{1,40}?)(?=[\s,.;:!?]|$)/g, (a, b, n) => `${b}<span class="rl-lv-at">@${n}</span>`);
   /* MARK DECIDED: an internal conversation, a writer's press, on any of its messages */
   const acts = [];
   if (ctx.mayWrite && !negoRoomIsExternal(room) && side === 'owner') acts.push(`<button type="button" class="rl-lv-act" data-rl-lv-decide="${_nea(key)}">${_ne(i18t('ng_lv_mark_decided'))}</button>`);

@@ -12334,7 +12334,7 @@ function igPaperHtml(c){
     if(typeof window.negoEnsureStyle==='function') try{ negoEnsureStyle(); }catch(_){ }
     if(typeof window.redlineLayoutCss==='function') try{ redlineLayoutCss(); }catch(_){ }
     const body=igRedBodyHtml(c,clean);
-    sheet=`<div class="ig-redpaper nego-onpaper${clean?' is-clean':''}" style="padding:20px 0 40px"><article id="ig-canvas" class="doc-surface rl-paper" style="max-width:var(--doc-sheet-max,860px);margin:0 auto">${body}</article></div>`;
+    sheet=`<div class="ig-redpaper nego-onpaper${clean?' is-clean':''}" style="padding:calc(20px / var(--ig-zf,1)) 0 40px"><article id="ig-canvas" class="doc-surface rl-paper" style="max-width:var(--doc-sheet-max,860px);margin:0 auto">${body}</article></div>`;
   }
   else if(typeof docSheetHtml==='function') sheet=docSheetHtml(c,{ copy:'work', canvasId:'ig-canvas', readOnly:true });
   else {
@@ -12379,7 +12379,10 @@ if(typeof document!=='undefined') document.addEventListener('click',e=>{
 });
 function igApplyZoom(){
   const f=window.rlDocZoomFactor?rlDocZoomFactor():'1';
-  document.querySelectorAll('#ig-paper .ig-zoom').forEach(z=>{ z.style.zoom=z.querySelector('.ig-signpaper')?1:f; });
+  /* --ig-zf: the factor the paper is drawn at, so the room above the sheet that lies INSIDE the zoom (.ig-redpaper's 20)
+     is divided by it and stands 20 on screen at any zoom: the sheet 40 under its column on Home as on Negotiate and their
+     page, whose room lies outside the zoom (one-paper-everywhere 1; at 100% = 90%, RL_ZOOM_BASE, it stood 38) */
+  document.querySelectorAll('#ig-paper .ig-zoom').forEach(z=>{ const zf=z.querySelector('.ig-signpaper')?1:f; z.style.zoom=zf; z.style.setProperty('--ig-zf', String(zf)); });
   try{ if(typeof igTrackPlace==='function') igTrackPlace(); }catch(_){ }
 }
 /* EVERY PAPER IN PAGES (owner, 9 Nov 2026: "the paper should be in pages with page breaks and not one full long paper.

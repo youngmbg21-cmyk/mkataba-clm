@@ -19388,7 +19388,13 @@
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row.is-open{background:var(--row-chosen)}
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row:not(.is-open):hover{background:var(--row-hover)}
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge{flex:none;display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:var(--w-label);white-space:nowrap}
-  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge i{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.8}
+  /* the badge's dot is its kind's OWN dot colour, the one the paper's notes wear (FOUR KINDS one colour each, pd2PointKind;
+     every other pd2-badge does the same): never the badge's darker word colour (notes-match-clauses 2 measured the list's
+     need mark rgb(143,42,34) against the paper's rgb(194,69,59)) */
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge i{width:6px;height:6px;border-radius:50%;background:var(--st-gray-dot)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.k-need i{background:var(--st-ruby-dot)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.k-look i{background:var(--st-amber-dot)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.k-read i{background:var(--st-green-dot)}
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.k-need{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.k-look{background:var(--st-amber-bg);color:var(--st-amber-fg)}
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.k-read{background:var(--st-green-bg);color:var(--st-green-fg)}
