@@ -1,4 +1,5 @@
-/* THE NOTES BESIDE THE REDLINED PAPER SAY HOW THEY ENDED (owner picked "The Legora Way", 13 Nov 2026; f1037).
+/* RE-POINTED 25 Nov 2026: the notes' row and Hide stand in the paper's dock (#pd2-dock), beside the zoom.
+   THE NOTES BESIDE THE REDLINED PAPER SAY HOW THEY ENDED (owner picked "The Legora Way", 13 Nov 2026; f1037).
    A services contract with three risks from the scan and one redline of ours (unsent) on the pricing clause; the
    Redlines face, new look.
      1 · Redline: the risks stand beside the paper by their clause, clear of it: the pricing one ANSWERED (a green tick
@@ -72,9 +73,9 @@ const SCAN = { at: 'today', on: new Date().toISOString().slice(0, 10), lang: 'en
     && /Resolved by your redline/.test(r1.done) && /not yet sent/.test(r1.done) && /verified increase/.test(r1.done) && r1.tickPainted
     && /not yet addressed/.test(r1.open) && /Draft a redline/.test(r1.open), r1);
   /* 2 · the chips */
-  const chips = await p.evaluate(() => [...document.querySelectorAll('#pd2-notes [data-pd2-rn-chip]')].map(x => x.textContent.replace(/\s+/g, ' ').trim()));
-  const pick = async k => { await p.click(`#pd2-notes [data-pd2-rn-chip="${k}"]`);
-    await until(p, kk => { const x = document.querySelector(`#pd2-notes [data-pd2-rn-chip="${kk}"]`); return !!(x && x.getAttribute('aria-pressed') === 'true'); }, k, 5000);
+  const chips = await p.evaluate(() => [...document.querySelectorAll('#pd2-dock [data-pd2-rn-chip]')].map(x => x.textContent.replace(/\s+/g, ' ').trim()));
+  const pick = async k => { await p.click(`#pd2-dock [data-pd2-rn-chip="${k}"]`);
+    await until(p, kk => { const x = document.querySelector(`#pd2-dock [data-pd2-rn-chip="${kk}"]`); return !!(x && x.getAttribute('aria-pressed') === 'true'); }, k, 5000);
     return p.evaluate(() => ({ done: document.querySelectorAll('#pd2-notes .pd2-mg-i.is-done').length, open: document.querySelectorAll('#pd2-notes .pd2-mg-i.is-owe').length })); };
   const hasChips = chips.length === 3;
   const o = hasChips ? await pick('open') : null, d = hasChips ? await pick('done') : null, all = hasChips ? await pick('all') : null;
@@ -107,21 +108,21 @@ const SCAN = { at: 'today', on: new Date().toISOString().slice(0, 10), lang: 'en
   /* 6 · HIDE NOTES IS ONE BUTTON (owner, 13 Nov 2026), and no button lands behind the zoom */
   const UNDER = () => { const zc = document.querySelector('#ig-paper-scroll .paper-zc, #ig-paper .paper-zc');
     const Z = zc ? [...zc.querySelectorAll('*')].map(e => e.getBoundingClientRect()).filter(r => r.width && r.height) : [];
-    return [...document.querySelectorAll('#pd2-notes .pd2-rn-chip, #pd2-notes-tg .pd2-rn-chip')].filter(b => { const r = b.getBoundingClientRect();
+    return [...document.querySelectorAll('#pd2-dock .pd2-rn-chip, #pd2-dock .pd2-rn-hide')].filter(b => { const r = b.getBoundingClientRect();
       const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
       return Z.some(z => r.left < z.right && r.right > z.left && r.top < z.bottom && r.bottom > z.top) || !(at === b || b.contains(at)); }).map(b => b.textContent.trim()); };
-  const on = clean ? await until(p, () => !!document.querySelector('#pd2-notes [data-pd2-notes-tg="hide"]') && document.querySelectorAll('#pd2-notes .pd2-mg').length > 0, null, 8000) : false;
+  const on = clean ? await until(p, () => !!document.querySelector('#pd2-dock [data-pd2-notes-tg="hide"]') && document.querySelectorAll('#pd2-notes .pd2-mg').length > 0, null, 8000) : false;
   /* the paper's width, and whether it was moved aside for the notes (data-pd2-left): on a wide screen it is already at its
      full width and only moves back to its place; on a narrower one it widens too */
   const GEO = () => ({ w: Math.round(document.getElementById('ig-canvas').getBoundingClientRect().width), aside: !!document.querySelector('#ig-paper [data-pd2-left]') });
   const w0 = on ? await p.evaluate(GEO) : null;
   const u0 = on ? await p.evaluate(UNDER) : ['not drawn'];
-  if (on) await p.click('#pd2-notes [data-pd2-notes-tg="hide"]');
+  if (on) await p.click('#pd2-dock [data-pd2-notes-tg="hide"]');
   const off = on ? await until(p, () => !document.querySelector('#pd2-notes .pd2-mg') && !!document.querySelector('#pd2-notes-tg [data-pd2-notes-tg="show"]'), null, 8000) : false;
   const w1 = off ? await p.evaluate(GEO) : null;
   const u1 = off ? await p.evaluate(UNDER) : ['not drawn'];
   if (off) await p.click('#pd2-notes-tg [data-pd2-notes-tg="show"]');
-  const back = off ? await until(p, () => document.querySelectorAll('#pd2-notes .pd2-mg').length > 0 && !document.getElementById('pd2-notes-tg') && !!document.querySelector('#pd2-notes [data-pd2-notes-tg="hide"]'), null, 8000) : false;
+  const back = off ? await until(p, () => document.querySelectorAll('#pd2-notes .pd2-mg').length > 0 && !document.getElementById('pd2-notes-tg') && !!document.querySelector('#pd2-dock [data-pd2-notes-tg="hide"]'), null, 8000) : false;
   check('6 · Clean: Hide notes puts them away and gives the paper back its full width and place; Show notes brings them back; no button behind the zoom',
     on && off && back && w0 && w1 && w0.aside && !w1.aside && w1.w >= w0.w && !u0.length && !u1.length, { on, off, back, w0, w1, u0, u1 });
   console.log(fails ? `\n${fails} FAILED` : '\nALL PASS');

@@ -458,7 +458,9 @@ describe('F84 — the text size is a control on this page again', () => {
       'the words keep their size');
     assert.equal(p.$('.rl-type-step .rl-type-out').textContent.trim(), '120%', 'the control reads the zoom');
     const z = p.$('#view-redline .rl-zoom');
-    assert.ok(z && z.style.getPropertyValue('--rl-zoom') === '1.20', 'and the page wrapper grows by it');
+    /* RE-POINTED 25 Nov 2026 (owner: "the font size of the paper at 90% is what should be 100%"): the wrapper grows by the
+       zoom times RL_ZOOM_BASE; the number the reader sees is unchanged */
+    assert.ok(z && Number(z.style.getPropertyValue('--rl-zoom')) === +(1.2 * p.win.RL_ZOOM_BASE).toFixed(3), 'and the page wrapper grows by it');
     p.win.rlSetDocZoom(100);
   });
 

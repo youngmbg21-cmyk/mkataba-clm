@@ -3696,6 +3696,7 @@ function ceRenderPaper(){
   try{
     html = redlineDocHtml(ceNewView(), {
       side: ceSide(),
+      look: false,     /* the working paper on screen wears HaTi's one type (owner, 25 Nov 2026) */
       /* THEIR COPY IS ALREADY WALLED BY THE TRANSPORT, and the rebuilt copy's
          turn stamp cannot re-derive the wall — the embed passes [] for that
          reason and this page draws the same paper, so it passes the same. */
@@ -4484,8 +4485,9 @@ function ceApplyZoom(){
      #ce-doc, so a variable written on the child never reaches the rule that
      reads it — measured, the readout moved and the paper did not. */
   const wrap = _ceQ('.ce-paperwrap');
-  const z = window.rlDocZoom ? rlDocZoom() : 100;
-  if (wrap) wrap.style.setProperty('--ce-zoom', String(z / 100));
+  /* the paper's one factor (100% is what 90% was, RL_ZOOM_BASE) */
+  const f = window.rlDocZoomFactor ? rlDocZoomFactor() : '1';
+  if (wrap) wrap.style.setProperty('--ce-zoom', String(f));
 }
 
 /* A clause's text carries ONE SUB-PARAGRAPH PER LINE, and that is what the

@@ -92,10 +92,12 @@ describe('f1042 (4) where it applies', () => {
     /* RE-POINTED 24 Nov 2026 (the paper and its notes, L+S, owner's pick): Hide stands on the Redline row too, so the notes are put away there as well */
     assert.match(paint, /if \(!walking && pd2NotesHiddenGet\(\)\)\{ pd2NotesOff\(\); pd2NotesTgSolo\(zoom\); return; \}/);
   });
+  /* RE-POINTED 25 Nov 2026 (the paper's dock): the row and the lone pill stand in the dock's row, written whole by
+     pd2DockRowSet, emptied by pd2NotesOff; nothing of the row is in the notes' own box */
   test('shown again, the lone pill goes; the pill heads the notes but not while reading', () => {
-    assert.match(paint, /document\.querySelectorAll\('#pd2-notes-tg'\)\.forEach\(n => n\.remove\(\)\)/);
-    assert.match(paint, /host\.innerHTML = \(walking \? '' : pd2NotesTgHtml\(false\)\) \+ groups\.map/);
-    assert.match(fnSrc(PD, 'pd2NotesOff'), /#pd2-notes-tg/);
+    assert.match(paint, /host\.innerHTML = groups\.map\(\(g, i\) => pd2GroupHtml\(g, i\)\)\.join\(''\);\s*pd2DockRowSet\(walking \? '' : pd2NotesTgHtml\(false\)\);/);
+    assert.match(fnSrc(PD, 'pd2NotesOff'), /pd2-dock-row[\s\S]*r\.innerHTML = ''/);
+    assert.match(fnSrc(PD, 'pd2NotesTgSolo'), /pd2DockRowSet\(`<div id="pd2-notes-tg">\$\{pd2NotesTgHtml\(true\)\}<\/div>`\)/);
   });
   test('a press flips the choice and draws the notes again', () => {
     assert.match(PD, /closest\('\[data-pd2-notes-tg\]'\)[\s\S]{0,200}pd2NotesHiddenSet\(b\.getAttribute\('data-pd2-notes-tg'\) === 'hide'\)[\s\S]{0,200}pd2NotesPaint\(/);
@@ -103,29 +105,16 @@ describe('f1042 (4) where it applies', () => {
 });
 
 describe('f1042 (5) never behind the zoom', () => {
-  test('the notes start under the pill, the pill under the zoom (one measure for chips and pill)', () => {
+  /* RE-POINTED 25 Nov 2026 (the paper's dock, owner: "the hide button and others are overlapping with the zoom. They
+     should never do that"): the zoom and the row are ONE box; the notes start under its foot */
+  test('the notes start under the dock, the row under the zoom in the same box', () => {
     const paint = fnSrc(PD, 'pd2NotesPaint');
     assert.match(paint, /if \(!red\) pd2GroupsPlace\(groups, z, h, ff, pd2RedFloor\(h\)\)/);
-    assert.match(fnSrc(PD, 'pd2RedFloor'), /paper-zc[\s\S]*querySelectorAll\('\*'\)[\s\S]*a\.bottom/);
-  });
-  test('the lone pill is measured against the box it stands in, under the zoom\'s buttons, in line with their right edge', () => {
-    const w = stage();
-    const doc = w.document;
-    doc.body.innerHTML = '<div id="ig-paper-scroll"><div class="paper-zc"><span id="zb"></span></div></div><div id="box"><div class="ig-zoom" id="z"></div></div>';
-    const R = (l, t, r, b) => () => ({ left: l, top: t, right: r, bottom: b, width: r - l, height: b - t });
-    doc.getElementById('zb').getBoundingClientRect = R(942, 110, 1040, 138);
-    doc.querySelector('.paper-zc').getBoundingClientRect = R(1040, 110, 1040, 110);
-    doc.getElementById('box').getBoundingClientRect = R(40, 104, 1032, 900);
-    const z = doc.getElementById('z');
-    /* jsdom lays nothing out: the lone pill's box is the outer one, as in a browser with the notes away */
-    Object.defineProperty(w.HTMLElement.prototype, 'offsetParent', { get(){ return doc.getElementById('box'); }, configurable: true });
-    w.pd2NotesTgSolo(z);
-    const el = doc.getElementById('pd2-notes-tg');
-    assert.ok(el, 'drawn');
-    assert.equal(el.style.top, (138 - 104 + 12) + 'px', 'under the zoom\'s buttons, a gap clear');
-    assert.equal(el.style.right, (1032 - 1040) + 'px', 'its right edge in line with theirs');
+    assert.match(fnSrc(PD, 'pd2RedFloor'), /#pd2-dock:not\(\[hidden\]\) \.pd2-dock-box[\s\S]*box\.offsetHeight/);
+    assert.match(PD, /d\.innerHTML = '<div class="pd2-dock-box"><div class="pd2-dock-zc"><\/div><div id="pd2-dock-row" class="pd2-dock-row"><\/div><\/div>'/);
   });
 });
+
 
 describe('f1042 (6) the Handbook', () => {
   test('both words named in both books', () => {

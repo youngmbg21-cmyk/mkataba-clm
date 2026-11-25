@@ -9325,7 +9325,7 @@ function pd2RedChipsHtml(nOpen, nDone){
   if (!nOpen || !nDone){ _pd2RedShow = 'all'; return ''; }
   const E = _pdE, n = { all: nOpen + nDone, open: nOpen, done: nDone };
   return `<div class="pd2-rn-chips" role="group" aria-label="${E(_pdT('pd2_notes'))}">${[['all', 'pd2_rn_chip_all'], ['open', 'pd2_rn_chip_open'], ['done', 'pd2_rn_chip_done']]
-    .map(([k, w]) => `<button type="button" class="pd2-rn-chip" data-pd2-rn-chip="${k}" aria-pressed="${_pd2RedShow === k}">${E(_pdT(w))} <span>${n[k]}</span></button>`).join('')}<button type="button" class="pd2-rn-hide ui-link" data-pd2-notes-tg="hide" aria-pressed="false">${E(_pdT('pd2_notes_hide_s'))}</button></div>`;     /* Hide, at the end of the same row (L+S, 24 Nov 2026): the one toggle's own press */
+    .map(([k, w]) => `<button type="button" class="pd2-rn-chip" data-pd2-rn-chip="${k}" aria-pressed="${_pd2RedShow === k}">${k === 'all' ? E(_pdT(w)) : `<i class="w-l">${E(_pdT(w))}</i><i class="w-s">${E(_pdT(w + '_s'))}</i>`} <span>${n[k]}</span></button>`).join('')}<button type="button" class="pd2-rn-hide ui-link" data-pd2-notes-tg="hide" aria-pressed="false">${E(_pdT('pd2_notes_hide_s'))}</button></div>`;     /* Hide, at the end of the same row (L+S, 24 Nov 2026): the one toggle's own press */
 }
 /* their ask, drawn as it always was */
 function pd2RedAskHtml(n, i){
@@ -9335,15 +9335,14 @@ function pd2RedAskHtml(n, i){
 /* the notes start under the chips */
 /* the chips stand clear of the paper's zoom (− 100% +, top right above the sheet), the notes start under them */
 function pd2RedFloor(host){
-  const ch = host && host.querySelector('.pd2-rn-chips'); if (!ch) return 0;
-  const zc = document.querySelector('#ig-paper-scroll .paper-zc, #ig-paper .paper-zc'), z = host.parentElement, f = z ? (parseFloat(z.style.zoom) || 1) : 1;
-  let top = 0;
-  /* the zoom's own box is 0 wide (its slot draws the buttons): the buttons are measured */
-  const h = host.getBoundingClientRect();
-  (zc ? [zc, ...zc.querySelectorAll('*')] : []).forEach(x => { const a = x.getBoundingClientRect();
-    if (a.width && a.height && a.right > h.left && a.left < h.right && a.bottom > h.top) top = Math.max(top, Math.ceil((a.bottom - h.top) / f) + PD2_NOTE_GAP); });
-  if (ch.style.top !== top + 'px') ch.style.top = top + 'px';
-  return top + ch.offsetHeight + PD2_NOTE_GAP;
+  /* the notes start under the DOCK (pd2DockPlace): its box's foot, read in the scroller's own content (the dock is sticky,
+     so its place on screen moves with the scroll; its height and the host's place in the content do not) */
+  const sc = document.getElementById('ig-paper-scroll'), box = sc && sc.querySelector(':scope > #pd2-dock:not([hidden]) .pd2-dock-box');
+  if (!host || !box || !sc.contains(host)) return 0;
+  const sr = sc.getBoundingClientRect(), hTop = host.getBoundingClientRect().top - sr.top - sc.clientTop + sc.scrollTop;
+  const foot = box.offsetHeight;     /* the dock stands at the content's very top (pd2DockPlace) */
+  const f = pd2NoteF(host);
+  return Math.max(0, Math.ceil((foot - hTop) / f) + PD2_NOTE_GAP);
 }
 function pd2RedGroupHtml(g, i){
   const E = _pdE;
@@ -9358,7 +9357,7 @@ function pd2RedGroupHtml(g, i){
   return `<div class="pd2-mn pd2-mg pd2-rn is-${tone}" data-pd2-note="${i}" data-pd2-at="${E(String(g.at))}"${kept}><div class="pd2-mg-h"><span class="pd2-mg-ht">${E(g.label)}</span><span class="pd2-rn-bd is-${tone}">${E(_pdT(tone === 'done' ? 'pd2_rn_chip_done' : 'pd2_rn_chip_open'))}</span></div>${g.items.map((x, k) => line(x, k > 0)).join('')}${more}${less}</div>`;
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
-  const b = e.target && e.target.closest ? e.target.closest('#pd2-notes [data-pd2-rn-chip]') : null; if (!b) return;
+  const b = e.target && e.target.closest ? e.target.closest('#pd2-dock [data-pd2-rn-chip]') : null; if (!b) return;
   e.preventDefault(); _pd2RedShow = b.getAttribute('data-pd2-rn-chip') || 'all';
   const cc = typeof pdContract === 'function' ? pdContract() : null; if (cc) pd2NotesPaint(getContract(cc.id) || cc);
 });
@@ -9522,19 +9521,8 @@ function pd2NotesTgHtml(hidden){
 }
 /* the notes put away: the pill alone, under the zoom at the paper's right */
 function pd2NotesTgSolo(zoom){
-  if (!zoom) return;
-  const el = document.createElement('div'); el.id = 'pd2-notes-tg'; el.innerHTML = pd2NotesTgHtml(true); zoom.appendChild(el);
-  /* measured against the box it actually stands in (with the notes away the zoom is no longer positioned) */
-  const box = el.offsetParent || zoom, f = parseFloat(zoom.style.zoom) || 1, z = box.getBoundingClientRect();
-  const zc = document.querySelector('#ig-paper-scroll .paper-zc, #ig-paper .paper-zc');
-  /* under the zoom's drawn buttons (its own box is 0 wide), its right edge in line with theirs; the zoom row may stand above
-     the paper's box, so the offsets may be negative */
-  let top = null, right = null;
-  (zc ? [zc, ...zc.querySelectorAll('*')] : []).forEach(x => { const a = x.getBoundingClientRect(); if (!a.width || !a.height) return;
-    const t = Math.ceil((a.bottom - z.top) / f) + PD2_NOTE_GAP, r = Math.round((z.right - a.right) / f);
-    top = top == null ? t : Math.max(top, t); right = right == null ? r : Math.min(right, r); });
-  if (top == null){ top = 8; right = 16; }
-  el.style.top = top + 'px'; el.style.right = right + 'px';
+  /* put away: the one Show notes press stands in the dock's row, under the zoom (pd2DockRowSet); nothing measured here */
+  void zoom; pd2DockRowSet(`<div id="pd2-notes-tg">${pd2NotesTgHtml(true)}</div>`);
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') document.addEventListener('click', e => {
   const b = e.target && e.target.closest ? e.target.closest('[data-pd2-notes-tg]') : null; if (!b) return;
@@ -9558,7 +9546,7 @@ function pd2LegendPaint(groups){
 }
 function pd2NotesOff(){
   _pd2Geo = null;
-  { const st = document.getElementById('pd2-ctl-strip'); if (st) st.hidden = true; }
+  { const r = document.getElementById('pd2-dock-row'); if (r && r.innerHTML){ r.innerHTML = ''; try { pd2DockPlace(); } catch (_){} } }
   try { pd2LegendPaint(null); } catch (_){}
   document.querySelectorAll('#pd2-notes-tg').forEach(n => n.remove());
   document.querySelectorAll('#ig-paper .ig-zoom.has-pd2').forEach(z => { z.classList.remove('has-pd2'); z.style.removeProperty('--doc-sheet-max'); });
@@ -9584,6 +9572,7 @@ const PD2_CTL_SEL = '#ig-paper-scroll .paper-zc, #pd2-notes > .pd2-rn-chips, #pd
    reading down as well as up, on a solid strip in the desk's own colour (index.html, .is-ctl-pinned); the pill that
    brought them back has nothing left to bring. */
 const PD2_CTL_TOP = 0;           /* past this the controls are held */
+const PD2_DOCK_ON = true;        /* the dock (pd2DockFit) holds the zoom and the notes' row; the hand-held pinning stands down */
 let _pd2Ctl = { pinned: false, last: 0, raf: 0 };
 function pd2CtlEls(){ return [...document.querySelectorAll(PD2_CTL_SEL)]; }
 function pd2CtlOutstanding(){
@@ -9616,26 +9605,14 @@ function pd2CtlLetGo(el){
   delete el.dataset.pd2Held;
   Object.assign(el.style, { position: '', top: '', left: '', right: '', width: '' });
 }
-/* THE SOLID STRIP behind the held notes row (owner, 24 Nov 2026: "it should not be translucent so you see the notes behind
-   them"): one plain box in the desk's colour, inside the paper's own window only (never over the bar or the panel), from
-   the notes' column to the window's right edge and down to just under the row; drawn only while the row is held. */
-function pd2CtlStrip(sc, pin){
-  let st = document.getElementById('pd2-ctl-strip');
-  const row = pin ? document.querySelector('#pd2-notes > .pd2-rn-chips') : null;
-  if (!row){ if (st) st.hidden = true; return; }
-  if (!st){ st = document.createElement('div'); st.id = 'pd2-ctl-strip'; st.className = 'pd2-ctl-strip'; st.setAttribute('aria-hidden', 'true'); sc.insertBefore(st, sc.firstChild); }
-  const r = row.getBoundingClientRect(), a = sc.getBoundingClientRect();
-  const left = Math.round(r.left - 14), right = Math.round(a.left + sc.clientWidth);
-  Object.assign(st.style, { top: Math.round(a.top) + 'px', left: left + 'px', width: Math.max(0, right - left) + 'px', height: Math.max(0, Math.round(r.bottom - a.top + 10)) + 'px' });
-  st.hidden = false;
-}
 function pd2CtlApply(sc){
   const st = sc.scrollTop, pin = _pd2Ctl.pinned && st > PD2_CTL_TOP;
   pd2CtlEls().forEach(el => { if (pin) pd2CtlHold(el, sc, st); else pd2CtlLetGo(el); el.classList.toggle('is-ctl-pinned', pin); });
-  pd2CtlStrip(sc, pin);
   pd2CtlPill(!pin && st > PD2_CTL_TOP && !!document.getElementById('pd2-notes'));
 }
 function pd2CtlArm(){
+  /* THE DOCK HOLDS THEM NOW (pd2DockFit, 25 Nov 2026): sticky in the paper's window, nothing moved by hand on a scroll */
+  if (PD2_DOCK_ON) return;
   const sc = document.getElementById('ig-paper-scroll'); if (!sc || sc.dataset.pd2Ctl) return;
   if (!(typeof window.newLookOn === 'function' && newLookOn())) return;
   sc.dataset.pd2Ctl = '1'; _pd2Ctl = { pinned: false, last: sc.scrollTop, raf: 0 };
@@ -9654,16 +9631,107 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('resize', () => {
     const sc = document.getElementById('ig-paper-scroll'); pd2CtlEls().forEach(pd2CtlLetGo); if (sc) pd2CtlApply(sc); });
 }
+/* ---- THE PAPER'S DOCK: THE ZOOM AND THE NOTES' ROW IN ONE HOME (owner, 25 Nov 2026: "You can see the hide button and
+   others are overlapping with the zoom. They should never do that. You can also see the backdrop sipping to the paper
+   … make sure there are not overlaps when you minimize the side panel") ----
+   Two controls placed by two measurements drifted apart at any zoom but 100%: the zoom by its scroller, the notes' row by
+   the zoomed paper, and a strip behind them by a third guess. Now ONE box holds both, the zoom on its line and the row
+   under it, outside the zoomed paper (so it never scales), in the paper's own window: sticky at the top from the first
+   pixel scrolled, on the desk's own ground; its left edge is the paper's right edge, so it can never stand over the
+   paper; where there is no room beside the paper it is not held at all and scrolls with the page. The notes start under
+   its foot (pd2RedFloor). Nothing about the contract moves: the dock is a row of no height. */
+const PD2_DOCK_GAP = 12;           /* between the paper's edge and the dock */
+const PAPER_DOCK_EDGE = 16;        /* the zoom's right edge stays where it always stood: 16 inside the grey area's edge */
+function pd2Dock(){
+  const sc = document.getElementById('ig-paper-scroll'); if (!sc) return null;
+  let d = sc.querySelector(':scope > #pd2-dock');
+  if (!d){ document.querySelectorAll('#pd2-dock').forEach(x => x.remove());
+    d = document.createElement('div'); d.id = 'pd2-dock'; d.className = 'pd2-dock';
+    d.innerHTML = '<div class="pd2-dock-box"><div class="pd2-dock-zc"></div><div id="pd2-dock-row" class="pd2-dock-row"></div></div>';
+    sc.insertBefore(d, sc.firstChild); }
+  return d;
+}
+function pd2DockRowSet(html){
+  const d = pd2Dock(), row = d && d.querySelector('#pd2-dock-row'); if (!row) return;
+  if (row.innerHTML !== html) row.innerHTML = html;
+  d.hidden = false;
+  pd2DockPlace();
+}
+/* the zoom the paper's paint draws (its own row of no height) is taken into the dock, whole */
+function pd2DockFit(){
+  if (typeof document === 'undefined' || !(typeof window.newLookOn === 'function' && newLookOn())) return;
+  const sc = document.getElementById('ig-paper-scroll'); if (!sc) return;
+  const d = pd2Dock(), slot = d.querySelector('.pd2-dock-zc');
+  const zrow = sc.querySelector(':scope > .paper-zc-row'), src = zrow && zrow.querySelector('.paper-zc');
+  /* a paper drawn with no zoom of its own (the signing copy: its size is on the paper's line) leaves none in the dock */
+  if (!zrow) slot.querySelectorAll(':scope > .paper-zc').forEach(x => x.remove());
+  else if (src && src.parentElement !== slot){ slot.querySelectorAll(':scope > .paper-zc').forEach(x => x.remove()); slot.appendChild(src); }
+  d.hidden = !slot.querySelector('.paper-zc') && !d.querySelector('#pd2-dock-row').children.length;
+  pd2DockPlace();
+  try { pd2UpStripFit(sc); } catch (_){}
+  /* EVERY UNSIGNED PAPER ON SCREEN WEARS THE ONE TYPE, an upload's text too (owner, 25 Nov 2026); a signed one stays as it
+     was uploaded (pd2Sealed) */
+  try { const z = sc.querySelector('#ig-paper .ig-zoom'), cc = typeof pdContract === 'function' ? pdContract() : null;
+    if (z){ const on = !!cc && !pd2Sealed((typeof getContract === 'function' && getContract(cc.id)) || cc) && !z.querySelector('.ig-signpaper');
+      z.classList.toggle('is-working', on); if (on) pd2ParaNums(z); } } catch (_){}
+}
+function pd2DockPlace(){
+  const sc = document.getElementById('ig-paper-scroll'), d = sc && sc.querySelector(':scope > #pd2-dock');
+  if (!d || d.hidden) return;
+  const box = d.querySelector('.pd2-dock-box'), row = d.querySelector('#pd2-dock-row');
+  /* the dock stands at the window's very top edge, at rest and held alike: pulled up over the scroller's top padding and
+     given it back underneath, so nothing after it moves (sticky top 0, so it never shifts as the page starts to scroll) */
+  const pt = parseFloat(getComputedStyle(sc).paddingTop) || 0;
+  if (d.style.marginTop !== (-pt) + 'px'){ d.style.marginTop = (-pt) + 'px'; d.style.marginBottom = pt + 'px'; d.style.top = (-pt) + 'px'; }   /* a held box keeps the scroller's padding: its top is offset by it */
+  if (!sc._pd2DockRO && typeof ResizeObserver === 'function'){ sc._pd2DockRO = new ResizeObserver(() => { try { pd2DockPlace(); } catch (_){} }); sc._pd2DockRO.observe(sc); }
+  const dr = d.getBoundingClientRect(), sr = sc.getBoundingClientRect();
+  box.style.right = Math.max(0, Math.round(dr.right - (sr.left + sc.clientLeft + sc.clientWidth - PAPER_DOCK_EDGE))) + 'px';
+  const zoom = sc.querySelector('#ig-paper .ig-zoom'), sheet = zoom && zoom.querySelector(PD2_SHEET_SEL);
+  const sheetR = sheet ? sheet.getBoundingClientRect().right : null;
+  /* with a row it spans the margin beside the paper; with the zoom alone it is as wide as the zoom */
+  const hasRow = !!(row && row.children.length);
+  box.style.left = (hasRow && sheetR != null) ? Math.round(sheetR - dr.left + PD2_DOCK_GAP) + 'px' : 'auto';
+  /* room beside the paper, or it is not held: never over the paper */
+  const br = box.getBoundingClientRect();
+  d.classList.toggle('is-loose', sheetR != null && br.left < sheetR + PD2_DOCK_GAP / 2 - 1);
+  /* the row never wraps: past its room it takes its short words (Outstanding → Open, Resolved → Done) */
+  const ch = hasRow ? row.querySelector('.pd2-rn-chips') : null;
+  if (ch){ ch.classList.remove('is-tight'); if (ch.scrollWidth > ch.clientWidth + 1) ch.classList.add('is-tight'); }
+}
+/* THE UPLOAD'S LINE OVER THE PAPER SAYS WHOLE WORDS (owner, 25 Nov 2026, of "R.. · 4761 KB · Young M… · 9,978… · Structur…"):
+   its facts are never cut mid-word; where they do not all fit, the last facts are left out, whole, until they do, and only
+   the file's own name may end in "…". Its two buttons always stand. Paint only. */
+const PD2_DOT_RE = /^\s*·\s*$/;
+function pd2UpStripFit(sc){
+  (sc ? sc.querySelectorAll('.up-strip') : []).forEach(st => {
+    const kids = [...st.children];
+    kids.forEach(k => { k.hidden = false; if (k.tagName === 'SPAN' && !k.querySelector('button') && !PD2_DOT_RE.test(k.textContent)) k.classList.add('up-fact'); });
+    const facts = kids.filter(k => k.classList.contains('up-fact'));
+    /* measured with every fact at its whole width (is-measuring), so a name squeezed to nothing never reads as room */
+    st.classList.add('is-measuring');
+    for (let i = facts.length - 1; i >= 1 && st.scrollWidth > st.clientWidth + 1; i--){
+      facts[i].hidden = true; const dot = facts[i].previousElementSibling; if (dot && PD2_DOT_RE.test(dot.textContent)) dot.hidden = true; }
+    st.classList.remove('is-measuring');
+  });
+}
+/* THE NOTES KEEP THEIR SIZE (owner, 25 Nov 2026: "the font size of the paper at 90% is what should be 100% … This does not
+   apply to the notes"): the paper wears the zoom's base (RL_ZOOM_BASE), the notes' own box takes it back, so at 100% they
+   read as they did. Their place is written in the paper's units divided by it, and laid out by the true factor (pd2NoteF). */
+function pd2NoteZ(){ const b = Number(window.RL_ZOOM_BASE) || 1; return b > 0 ? Math.round(10000 / b) / 10000 : 1; }
+function pd2NoteF(host){ const z = host && host.closest ? host.closest('.ig-zoom') : null;
+  return (z ? (parseFloat(z.style.zoom) || 1) : 1) * (host && host.id === 'pd2-notes' ? pd2NoteZ() : 1); }
 /* A PARAGRAPH'S OWN NUMBER STANDS IN THE COLUMN TOO (the paper and its notes L+S, owner's pick, 24 Nov 2026): an
    uploaded paper writes "1.1 Scope…" as plain words; on the working paper (never the signing copy, never a box being
    typed in) the leading number of two levels or more is wrapped where it stands, its space kept inside, so the words
    read exactly as before. PAINT ONLY, done once a paragraph. */
+const PD2_HNUM_RE = /^(\s*)(\d{1,3}(?:\.\d{1,3}){0,4}\.?)(\s+)(?=\S)/;   /* a heading's own number may be one level ("1 SCOPE") */
 const PD2_PNUM_RE = /^(\s*)(\d{1,3}(?:\.\d{1,3}){1,4}\.?)(\s+)/;
 function pd2ParaNums(cv){
   if (!cv || !(typeof window.newLookOn === 'function' && newLookOn())) return;
-  cv.querySelectorAll('article.nego-doc.rl-paper:not(.pg-sign) .nego-body p').forEach(p => {
+  cv.querySelectorAll('article.nego-doc.rl-paper:not(.pg-sign) .nego-body p, .is-working .pg-work .hati-doc :is(p, h1, h2, h3, h4)').forEach(p => {
     const t = p.firstChild; if (!t || t.nodeType !== 3 || p.isContentEditable) return;
-    const m = t.nodeValue.match(PD2_PNUM_RE); if (!m || (m[0].length === t.nodeValue.length && !t.nextSibling)) return;
+    const head = /^H[1-4]$/.test(p.tagName);
+    const m = t.nodeValue.match(head ? PD2_HNUM_RE : PD2_PNUM_RE); if (!m || (m[0].length === t.nodeValue.length && !t.nextSibling)) return;
     const sp = document.createElement('span'); sp.className = 'rl-pnum'; sp.textContent = m[2] + m[3];
     t.nodeValue = t.nodeValue.slice(m[0].length); p.insertBefore(sp, t); if (m[1]) p.insertBefore(document.createTextNode(m[1]), sp);
   });
@@ -9671,6 +9739,7 @@ function pd2ParaNums(cv){
 function pd2NotesPaint(c, seat){
   try { pd2CtlArm(); } catch (_){}
   try { if (!seat) pd2ParaNums(document.getElementById('ig-canvas')); } catch (_){}
+  try { if (!seat) pd2DockFit(); } catch (_){}
   if (typeof document === 'undefined') return;
   const zoom = seat ? seat.zoom : document.querySelector('#ig-paper .ig-zoom'), cv = seat ? seat.cv : document.getElementById('ig-canvas');
   if (seat) return pd2SeatPaint(c, seat, zoom, cv);
@@ -9705,7 +9774,6 @@ function pd2NotesPaint(c, seat){
   if (red ? !blocks.length : !groups.length){ pd2NotesOff(); return; }
   /* put away by the reader (not on Redline; never while the read plays) */
   if (!walking && pd2NotesHiddenGet()){ pd2NotesOff(); pd2NotesTgSolo(zoom); return; }
-  document.querySelectorAll('#pd2-notes-tg').forEach(n => n.remove());
   /* THE PAPER MOVES TO THE LEFT AND NARROWS ONLY AS FAR AS THE NOTES NEED (the drawing's iPad note: "the paper narrows") */
   const { f, left, sheetW, notesW } = pd2SheetLay(zoom);
   /* written only where it moved: a paper born at this width (pd2SheetPre) is not laid out a second time */
@@ -9717,16 +9785,20 @@ function pd2NotesPaint(c, seat){
   let host = document.getElementById('pd2-notes');
   if (!host){ host = document.createElement('div'); host.id = 'pd2-notes'; host.className = 'pd2-notes'; host.setAttribute('aria-label', _pdT('pd2_notes')); zoom.appendChild(host); }
   host.setAttribute('data-pd2-for', String(c.id));
-  host.style.left = (left + sheetW + PD2_NOTES_GUTTER) + 'px'; host.style.width = notesW + 'px';
+  const nz = pd2NoteZ();
+  if (host.style.zoom !== String(nz)) host.style.zoom = String(nz);
+  host.style.left = ((left + sheetW + PD2_NOTES_GUTTER) / nz) + 'px'; host.style.width = (notesW / nz) + 'px';
   const E = _pdE;
   /* every block a lone ask of theirs: laid out as ever (one read, then one write); any group among them folds as the Dossier's do */
   const lone = red && blocks.every(b => b.ask);
-  const place = (z, h, ff) => { if (!red) pd2GroupsPlace(groups, z, h, ff, pd2RedFloor(h)); else if (lone) pd2NotesPlace(blocks, z, h, ff, pd2RedFloor(h)); else pd2GroupsPlace(blocks, z, h, ff, pd2RedFloor(h)); };
+  const place = (z, h, ff0) => { const ff = ff0 * nz; if (!red) pd2GroupsPlace(groups, z, h, ff, pd2RedFloor(h)); else if (lone) pd2NotesPlace(blocks, z, h, ff, pd2RedFloor(h)); else pd2GroupsPlace(blocks, z, h, ff, pd2RedFloor(h)); };
   if (red){
-    host.innerHTML = (chips || pd2NotesTgHtml(false)) + blocks.map((b, i) => b.ask ? pd2RedAskHtml(b.n, i) : pd2RedGroupHtml(b, i)).join('');
+    host.innerHTML = blocks.map((b, i) => b.ask ? pd2RedAskHtml(b.n, i) : pd2RedGroupHtml(b, i)).join('');
+    pd2DockRowSet(chips || pd2NotesTgHtml(false));
     place(zoom, host, f);
   } else {
-    host.innerHTML = (walking ? '' : pd2NotesTgHtml(false)) + groups.map((g, i) => pd2GroupHtml(g, i)).join('');
+    host.innerHTML = groups.map((g, i) => pd2GroupHtml(g, i)).join('');
+    pd2DockRowSet(walking ? '' : pd2NotesTgHtml(false));
     try { pd2LegendPaint(onClauses ? groups : null); } catch (_){}
     place(zoom, host, f);
     if (walking) pd2WalkNotesHold(groups, host);

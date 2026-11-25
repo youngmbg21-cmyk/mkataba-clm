@@ -33,23 +33,20 @@ test('f1224 (1) a paragraph\'s own number stands in its own span; the words read
   assert.equal(cv.querySelectorAll('.rl-pnum').length, 2, 'done once a paragraph');
 });
 
+/* RE-POINTED 25 Nov 2026 (the paper's dock): the row is written into the dock (pd2DockRowSet), held there by sticky, not by
+   a strip; f1225 carries the dock */
 test('f1224 (2) one row: the three tabs with Hide at its end; Hide alone where there is one kind', () => {
   const chips = fnSrc(PD, 'pd2RedChipsHtml');
   assert.match(chips, /\.join\(''\)\}<button type="button" class="pd2-rn-hide ui-link" data-pd2-notes-tg="hide"/);
   assert.match(fnSrc(PD, 'pd2NotesTgHtml'), /if \(!hidden\) return `<div class="pd2-rn-chips pd2-tg"><button type="button" class="pd2-rn-hide ui-link" data-pd2-notes-tg="hide"/);
-  assert.match(fnSrc(PD, 'pd2NotesPaint'), /host\.innerHTML = \(chips \|\| pd2NotesTgHtml\(false\)\) \+ blocks\.map\(/);
-  assert.match(H, /#pd2-notes > \.pd2-rn-chips\.pd2-rn-chips\{flex-wrap:nowrap;/, 'the row never wraps');
+  assert.match(fnSrc(PD, 'pd2NotesPaint'), /pd2DockRowSet\(chips \|\| pd2NotesTgHtml\(false\)\);/);
+  assert.match(H, /#pd2-dock-row > \.pd2-rn-chips\{position:static;display:flex;flex-wrap:nowrap;/, 'the row never wraps');
 });
 
-test('f1224 (3) the controls stay put, on a solid strip inside the paper\'s window', () => {
-  assert.match(PD, /const PD2_CTL_TOP = 0;/);
-  assert.match(fnSrc(PD, 'pd2CtlArm'), /_pd2Ctl\.pinned = st > PD2_CTL_TOP;/);
-  assert.doesNotMatch(fnSrc(PD, 'pd2CtlArm'), /d < -2/, 'no longer only on the way up');
-  const S = fnSrc(PD, 'pd2CtlStrip');
-  assert.match(S, /sc\.insertBefore\(st, sc\.firstChild\)/, 'inside the paper\'s own window');
-  assert.match(S, /top: Math\.round\(a\.top\)[\s\S]*width: Math\.max\(0, right - left\)/, 'from the window\'s top, to its right edge');
-  assert.match(fnSrc(PD, 'pd2CtlApply'), /pd2CtlStrip\(sc, pin\);/);
-  assert.match(H, /\.pd2-ctl-strip\{position:fixed;z-index:3;background:var\(--desk-ground\);pointer-events:none\}/, 'solid, the desk\'s own colour, under the zoom');
+test('f1224 (3) the controls stay put: the dock holds them, the hand-held pinning stands down', () => {
+  assert.match(PD, /const PD2_DOCK_ON = true;/);
+  assert.match(fnSrc(PD, 'pd2CtlArm'), /if \(PD2_DOCK_ON\) return;/);
+  assert.doesNotMatch(PD, /function pd2CtlStrip\(/, 'no strip guessed behind them');
 });
 
 test('f1224 (4) a redline note\'s head says Outstanding or Resolved, a soft badge', () => {

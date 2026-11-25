@@ -3234,7 +3234,9 @@ function docSheetHtml(c, o){
     /* the paper's subtitle, as the Negotiate paper prints it (one paper everywhere, 8 Oct 2026): carried as a string for the sheet's title rule to draw */
     const sub=(typeof window.rlPaperSubText==='function')?rlPaperSubText(c):'';
     const subVar=sub?`--doc-sub:'${String(sub).replace(/['"\\]/g,' ').replace(/[<>&]/g,' ')}';`:'';
-    return `<div class="blueprint pg-sheet pg-work" data-copy="work"${b&&window.docDesignBodyAttr?docDesignBodyAttr(b):''} style="padding:var(--doc-sheet-pad,34px var(--s-10) 44px);max-width:var(--doc-sheet-max,${DOC_PAGE_W}px);margin:0 auto;border-radius:0;${subVar}${accent}">
+    /* THE WORKING COPY ON SCREEN WEARS HaTi'S ONE TYPE (owner, 25 Nov 2026: every unsigned paper looks the same): the design's
+       typeface no longer comes here; the signing copy, the Word file and the sealed PDF still wear the Contract Look. */
+    return `<div class="blueprint pg-sheet pg-work" data-copy="work" style="padding:var(--doc-sheet-pad,34px var(--s-10) 44px);max-width:var(--doc-sheet-max,${DOC_PAGE_W}px);margin:0 auto;border-radius:0;${subVar}${accent}">
       <article id="${o.canvasId||'doc-canvas'}" class="doc-surface" style="background:transparent">${body}</article>
     </div>`;
   }
