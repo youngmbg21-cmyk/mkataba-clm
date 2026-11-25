@@ -7392,7 +7392,9 @@ async function ceFile(why){
     if (window.toast) toast(_cet('ce_filed', { id: ceFiledName(ch) }), 'ok');
     _cePrep = null;
     ceFiled(c);
-    rlCloseClauseEditor();
+    /* AS A TAB the button says "Save counter · next ›" (owner, 24 Nov 2026: File · next › to the paper's next clause):
+       the editor stays open and ceSaveAndOn moves on; the untabbed editor still closes onto the negotiation */
+    if (!ceTabbed()) rlCloseClauseEditor();
     return ch;
   }
   ceSeedDraft(ch.id);

@@ -37,3 +37,9 @@ test('f1217 (3) the ladder card, open lines', () => {
   assert.match(H, /html\.lg-new #clause-editor\.is-tabbed \.ce-lcard\{display:grid;grid-template-columns:minmax\(88px,32%\) minmax\(0,1fr\);column-gap:0;[^}]*border-top:1px solid var\(--color-divider\);border-radius:0;background:none;box-shadow:none\}/);
   assert.match(H, /html\.lg-new #clause-editor\.is-tabbed \.ce-lcard > \.k\{grid-column:1;[^}]*border-bottom:1px solid var\(--color-divider\)/);
 });
+
+test('f1217 a counter saved on the Editor TAB moves on, as its "Save counter · next ›" says (review of #1016); untabbed it still closes onto the negotiation', () => {
+  const E = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js/views/clauseeditor.js'), 'utf8');
+  const f = E.slice(E.indexOf('async function ceFile('), E.indexOf('async function ceFile(') + 6000);
+  assert.match(f, /if \(prepFiling\)\{[\s\S]*?if \(!ceTabbed\(\)\) rlCloseClauseEditor\(\);\s*return ch;/);
+});
