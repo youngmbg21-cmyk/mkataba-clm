@@ -75,7 +75,9 @@ describe('f1226 (1) likes: the server writes them, and the wall holds', () => {
     assert.match(S, /app\.post\('\/api\/contracts\/:id\/notes\/react', auth, editor, \(req, res\) => \{/);
     assert.match(S, /if \(hit\.m\.visibility === 'shared'\) mirror\(req\.params\.id, key, rx\);/, 'only a note that crossed carries its like across');
     assert.match(S, /if \(!row \|\| row\.side === MSG_SIDE_THEIR_TEAM \|\| row\.side === MSG_SIDE_ADVISER\) return res\.status\(404\)/, 'their team\'s room and an adviser\'s rows are never ours to touch');
-    assert.match(S, /const rx = noteReactionsClean\(raw\.reactions\);\n  if \(rx\) out\.reactions = rx;/, 'the channel\'s allow-list takes the six faces only');
+    /* RE-POINTED 25 Nov 2026 (live notes B, owner): likes and the Read stamp are kept only on the server's own read of a
+       stored row (`trusted`), so a post's body can never carry them; the six-face allow-list is the same */
+    assert.match(S, /if \(trusted\) \{\n    const rx = noteReactionsClean\(raw\.reactions\);\n    if \(rx\) out\.reactions = rx;/, 'the channel\'s allow-list takes the six faces only');
     assert.match(read('js/brainmap.js'), /\['notereact', 'POST \/api\/contracts\/:id\/notes\/react', 'wall', 2\]/);
   });
 });
@@ -140,7 +142,7 @@ test('f1226 (5) decided: pinned in our room, on the History, undone; never in th
     c.thread.push(shared);
     assert.equal(win.negoNoteDecide(c, null, shared, shared, true), null, 'never in their room');
   } finally { win.logAudit = was; }
-  assert.doesNotMatch(S.slice(S.indexOf('function msgMeta(raw)'), S.indexOf('const msgMetaRead')), /decided/, '`decided` never travels');
+  assert.doesNotMatch(S.slice(S.indexOf('function msgMeta(raw, trusted)'), S.indexOf('const msgMetaRead'))  /* RE-POINTED 25 Nov 2026 (live notes B, owner): msgMeta takes `trusted` */, /decided/, '`decided` never travels');
   assert.match(V, /data-rl-lv-undecide=/);
 });
 
