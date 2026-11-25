@@ -12687,7 +12687,12 @@ function rlDocZoom(){
   return RL_DZ_DEF;
 }
 /* the zoom as the factor every wrapper reads */
-function rlDocZoomFactor(){ return (rlDocZoom() / 100).toFixed(2); }
+/* 100% IS WHAT 90% WAS (owner, 25 Nov 2026: "the font size of the paper at 90% is what should be 100% as it looks better
+   that way on screen"): the number the reader sees is unchanged; the paper is drawn at it times RL_ZOOM_BASE. Every paper
+   that asks this factor follows (Home, the editor, Negotiate, the builder, a template's page); the notes beside Home's
+   paper take it back (pd2NoteZ). */
+const RL_ZOOM_BASE = 0.9;
+function rlDocZoomFactor(){ return (rlDocZoom() / 100 * RL_ZOOM_BASE).toFixed(3); }
 function rlSetDocZoom(z){
   const v = rlDzClamp(z);
   try { localStorage.setItem(RL_ZOOM_KEY, String(v)); } catch (e) {}
@@ -13757,7 +13762,10 @@ function redlineDocHtml(c, opts = {}){
      READ THROUGH `window` WITH A GUARD. js/branding.js is not on every stage
      that draws this builder, and a bare cross-module read throws rather than
      falling through — so a stage without it gets the paper it always got. */
-  const _brand=(typeof window!=='undefined'&&window.resolveDocBranding)?resolveDocBranding(c):null;
+  /* EVERY UNSIGNED PAPER ON SCREEN LOOKS THE SAME (owner, 25 Nov 2026, of MK-469 in a plain font with blue headings beside
+     the Legora type): the working paper drawn for the screen (look:false) wears HaTi's one type, not the Contract Look's
+     design; the copies that leave HaTi — the Word file, the signing copy, the sealed PDF — still wear it. */
+  const _brand=(opts.look!==false&&typeof window!=='undefined'&&window.resolveDocBranding)?resolveDocBranding(c):null;
   const _dAttr=(_brand&&window.docDesignBodyAttr)?docDesignBodyAttr(_brand):'';
   const _dStyle=(_brand&&window.docDesignPaperStyle)?docDesignPaperStyle(_brand):'';
   return `<div class="rl-zoom"${_dAttr} style="zoom:var(--rl-zoom,1)"><article class="nego-doc rl-paper"${_dStyle?` style="${_dStyle}"`:''}>
@@ -22408,7 +22416,7 @@ function redlinePanesHtml(c, opts = {}){
      below because the panel is written EARLIER in the grid than the document
      it is about. */
   const _cpBodies = [];
-  const _cpDoc = redlineDocHtml(c, { ...opts, cpSink: _cpBodies });
+  const _cpDoc = redlineDocHtml(c, { look: false, ...opts, cpSink: _cpBodies });
   /* #nego-root is not decoration: the engine declares its entire colour ramp
      on `.nego-room, #nego-root`, so without this wrapper --n-slate and friends
      are undefined and the clause tools render as transparent boxes with white
@@ -23837,7 +23845,7 @@ function redlineSyncProxies(host){
   });
 }
 
-if (typeof window !== 'undefined') Object.assign(window, { rlHeadNumHtml, rlLinkedIs, rlLinkForget, rlOnePressOf, rlOnePressCounter, rlFigureSwap, rlNumWords });
+if (typeof window !== 'undefined') Object.assign(window, { RL_ZOOM_BASE, rlHeadNumHtml, rlLinkedIs, rlLinkForget, rlOnePressOf, rlOnePressCounter, rlFigureSwap, rlNumWords });
 if (typeof window !== 'undefined') Object.assign(window, { RL_PLAIN_FIG, rlPlainFigs, rlPlainFigureOf, rlPlainReasonOf, rlAskColleague });
 if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoTurnBannerHtml, rlSignNamesPaint, rlLiveHere, rlLiveRepaint, rlStartLivePoll, rlHomeTakesIt, rlReviewDoor, rlReviewDoorState, rlLandWhenReady, RL_LAND_TRIES, RL_LAND_MS, paperZcFit, rlCameFrom, rlCameFromSet, rlBackToClauses, rlLandOn, rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
   rlInlineClick, rlInlineSave, rlInlineDirty, rlInlineOn, rlInlineEnd,

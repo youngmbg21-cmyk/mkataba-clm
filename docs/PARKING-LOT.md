@@ -224,6 +224,24 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
 - **Where it came from:** building the access check (pull request #894), 22 Nov 2026: the guardrail was in the drawing but left out, because no record of backup downloads was found to read. Claude suggested parking it; the owner: "park these".
 - **Notes:** first check whether a record already exists somewhere (Data & backup's foot says each download is written in the trail; not verified).
 
+### P-50 · Shorter note headings beside the paper
+- **Added:** 25 Nov 2026 · **Status:** Waiting
+- **What:** a note's heading beside the paper is one short line (the clause's number and a short name), never three lines of capitals such as "8.1 THIS AGREEMENT SHALL COMMENCE ON THE EFFECTIVE…".
+- **Where it came from:** the owner's iPad photos of MK-177, 25 Nov 2026; Claude suggested parking it, the owner said yes.
+- **Notes:** the heading is the section's own words today (pd2RedBlocks / pd2Groups label).
+
+### P-51 · One kind of marker on the paper's left edge
+- **Added:** 25 Nov 2026 · **Status:** Waiting
+- **What:** the small markers down the paper's left edge always show the same thing (the clause number), never numbers on one paper and bare dots on another.
+- **Where it came from:** the owner's iPad photos (MK-469 dots, MK-437 numbers), 25 Nov 2026; parked with the owner's yes.
+- **Notes:** —
+
+### P-52 · A calmer look for whole clauses added on the Redline view
+- **Added:** 25 Nov 2026 · **Status:** Waiting
+- **What:** when a whole clause is new, show it in a quieter way than every line underlined in green, so it stays easy to read.
+- **Where it came from:** the owner's iPad photo of MK-382's Redline view, 25 Nov 2026; parked with the owner's yes.
+- **Notes:** a design round (the four ways) before building.
+
 ## Done
 
 _Finished items were removed on 22 Nov 2026 at the owner's word ("Delete finished ones"); the full list as it stood is in GitHub's history (the version just before this change)._

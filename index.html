@@ -19244,7 +19244,7 @@
   html.lg-new #ig-dock .pd-th .doc-th-rows .doc-th-row .stk-n.is-need{color:var(--st-ruby-fg)}
   /* THE PAPER'S CONTROLS COME BACK (step 3): pinned on the way up, a soft card under them; the pill at the paper's foot */
   html.lg-new .is-ctl-pinned{z-index:6}
-  html.lg-new #pd2-notes > .pd2-rn-chips.is-ctl-pinned,html.lg-new #pd2-notes-tg.is-ctl-pinned{filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))}
+  html.lg-new #pd2-dock-row > .pd2-rn-chips.is-ctl-pinned,html.lg-new #pd2-notes-tg.is-ctl-pinned{filter:drop-shadow(0 2px 6px rgba(0,0,0,.08))}
   @media (prefers-reduced-motion:no-preference){ html.lg-new .is-ctl-pinned{animation:pd2CtlFade .24s ease-out both} }
   html.lg-new .pd2-ctl-pill{position:absolute;left:50%;bottom:18px;z-index:7;transform:translateX(-50%);height:var(--ctl-h-sm);padding:0 14px;border:0;border-radius:999px;background:var(--bar-black);color:var(--color-surface);font:inherit;font-size:12.5px;font-weight:var(--w-label);white-space:nowrap;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18)}
   /* REDLINES, NOTHING ON THE TABLE, AS DRAWN (Round D): open sections, the gaps as rows, no box */
@@ -27928,14 +27928,6 @@
      paper scrolls (pd2CtlHold) on a SOLID strip in the desk's own colour, so the notes passing behind never show
      through. A redline note: a thin rule in its state's colour, its clause and a soft badge, the paper's words in the
      paper's font. Scoped at the id so it wins over the chips' older pills without !important. */
-  html.lg-new #pd2-notes > .pd2-rn-chips.pd2-rn-chips{flex-wrap:nowrap;align-items:center;gap:12px;right:auto;min-width:100%;width:max-content;box-sizing:border-box;border-bottom:1px solid var(--color-divider);isolation:isolate}
-  html.lg-new #pd2-notes > .pd2-rn-chips.pd2-tg{border-bottom:0;justify-content:flex-end}
-  html.lg-new #pd2-notes > .pd2-rn-chips > .pd2-rn-chip.pd2-rn-chip{height:28px;padding:0;border-radius:0;background:none;box-shadow:none;color:var(--color-neutral-400);font-size:12.5px;font-weight:400}
-  html.lg-new #pd2-notes > .pd2-rn-chips > .pd2-rn-chip.pd2-rn-chip[aria-pressed="true"]{background:none;color:var(--color-text);font-weight:var(--w-strong);box-shadow:0 1.5px 0 var(--color-text)}
-  html.lg-new #pd2-notes > .pd2-rn-chips > .pd2-rn-chip > span{color:var(--color-neutral-400);font-weight:400}
-  html.lg-new #pd2-notes > .pd2-rn-chips > .pd2-rn-hide{margin-left:auto;padding:0;border:0;background:none;font:inherit;font-size:12.5px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
-  html.lg-new #pd2-notes > .pd2-rn-chips.is-ctl-pinned{filter:none;animation:none;min-width:0}
-  html.lg-new .pd2-ctl-strip{position:fixed;z-index:3;background:var(--desk-ground);pointer-events:none}
   html.lg-new #ig-paper-scroll .paper-zc.is-ctl-pinned{z-index:7;animation:none}
   html.lg-new #pd2-notes .pd2-mn.pd2-rn{border-left:2px solid var(--st-amber-dot, var(--st-amber-fg));padding-left:10px}
   html.lg-new #pd2-notes .pd2-mn.pd2-rn.is-done{border-left-color:var(--st-green-dot)}
@@ -27947,6 +27939,46 @@
   html.lg-new #pd2-notes .pd2-rn .pd2-mg-i .pd2-mg-l{color:var(--color-text);font-weight:var(--w-strong);font-size:13px}
   html.lg-new #pd2-notes .pd2-rn .pd2-mg-q{margin-left:0;font-size:13px;line-height:1.5;color:var(--color-text)}
   html.lg-new #pd2-notes .pd2-rn .pd2-mn-w,html.lg-new #pd2-notes .pd2-rn .pd2-mn-a{margin-left:0}
+
+  /* ==== THE PAPER'S DOCK (owner, 25 Nov 2026: "the hide button and others are overlapping with the zoom. They should never
+     do that … the backdrop sipping to the paper … no overlaps when you minimize the side panel") ====
+     ONE box, sticky in the paper's window (pd2DockFit/pd2DockPlace): the zoom on its line, the notes' row under it, on the
+     desk's own ground, its left edge the paper's right edge. Loose (is-loose) where there is no room: it scrolls away. */
+  html.lg-new #ig-paper-scroll > #pd2-dock{position:sticky;top:0;z-index:6;height:0;pointer-events:none}
+  html.lg-new #ig-paper-scroll > #pd2-dock.is-loose{position:relative}
+  html.lg-new #pd2-dock[hidden]{display:none}
+  html.lg-new #pd2-dock .pd2-dock-box{position:absolute;top:0;display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:6px 0 8px;background:var(--desk-ground);pointer-events:auto;box-sizing:border-box;min-width:0}
+  html.lg-new #pd2-dock .pd2-dock-zc{display:flex;justify-content:flex-end}
+  html.lg-new #pd2-dock .pd2-dock-zc > .paper-zc{position:static;width:auto;height:auto;display:flex;justify-content:flex-end;align-items:center;gap:var(--s-3)}
+  html.lg-new #pd2-dock .pd2-dock-row:empty{display:none}
+  html.lg-new #pd2-dock-row > .pd2-rn-chips{position:static;display:flex;flex-wrap:nowrap;align-items:center;gap:12px;min-width:0;width:auto;overflow:hidden;border-bottom:1px solid var(--color-divider)}
+  html.lg-new #pd2-dock-row > .pd2-rn-chips.pd2-tg{border-bottom:0;justify-content:flex-end}
+  html.lg-new #pd2-dock-row > .pd2-rn-chips > .pd2-rn-chip{flex:none;height:28px;padding:0;border:0;border-radius:0;background:none;box-shadow:none;color:var(--color-neutral-400);font:inherit;font-size:12.5px;font-weight:400;cursor:pointer;white-space:nowrap}
+  html.lg-new #pd2-dock-row > .pd2-rn-chips > .pd2-rn-chip[aria-pressed="true"]{color:var(--color-text);font-weight:var(--w-strong);box-shadow:0 1.5px 0 var(--color-text)}
+  html.lg-new #pd2-dock-row > .pd2-rn-chips > .pd2-rn-chip > span{margin-left:3px;color:var(--color-neutral-400);font-weight:400;font-variant-numeric:tabular-nums}
+  html.lg-new #pd2-dock-row .pd2-rn-chip i{font-style:normal}
+  html.lg-new #pd2-dock-row .pd2-rn-chip .w-s,html.lg-new #pd2-dock-row .is-tight .pd2-rn-chip .w-l{display:none}
+  html.lg-new #pd2-dock-row .is-tight .pd2-rn-chip .w-s{display:inline}
+  html.lg-new #pd2-dock-row .pd2-rn-hide{flex:none;margin:0 0 0 auto;padding:0;border:0;background:none;font:inherit;font-size:12.5px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
+  html.lg-new #pd2-dock-row #pd2-notes-tg{display:flex;justify-content:flex-end}
+  html.lg-new #pd2-dock-row #pd2-notes-tg .pd2-rn-chip{height:var(--ctl-h-sm);padding:0 12px;border:0;border-radius:999px;background:var(--color-surface);box-shadow:0 0 0 1px var(--color-divider);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
+  /* A FINGER FINDS THEM (the iPad): each small press reaches 44px tall without looking bigger */
+  html.lg-new #pd2-dock :is(.rl-type-step button, .pd2-rn-chip, .pd2-rn-hide){position:relative}
+  html.lg-new #pd2-dock :is(.rl-type-step button, .pd2-rn-chip, .pd2-rn-hide)::after{content:"";position:absolute;inset:-9px 0}
+  /* the upload's facts are whole words (pd2UpStripFit): never cut, the last ones left out instead */
+  html.lg-new #ig-paper .up-strip > .up-fact:not(:first-child){flex:none;overflow:visible;text-overflow:clip}
+
+  /* ==== AN UPLOAD'S UNSIGNED WORKING COPY WEARS THE ONE TYPE (owner, 25 Nov 2026) ====
+     .is-working on Home's zoom (pd2DockFit: the paper is not signed): its text read out of the file in the paper's serif at
+     the one size, headings the wording's size and bold, its own numbers in the grey column (pd2ParaNums); never a signed
+     paper, never the signing copy. */
+  html.lg-new #ig-paper .ig-zoom.is-working .pg-work .hati-doc{font-family:var(--font-doc);padding-left:36px}
+  html.lg-new #ig-paper .ig-zoom.is-working .pg-work .hati-doc :is(p, li){font-size:15px;line-height:1.7}
+  html.lg-new #ig-paper .ig-zoom.is-working .pg-work .hati-doc :is(h1, h2, h3, h4){font-family:var(--font-doc);font-size:15px;line-height:1.7;font-weight:var(--w-strong);text-align:left;letter-spacing:0;margin:18px 0 4px}
+  html.lg-new #ig-paper .ig-zoom.is-working .pg-work .hati-doc > :is(h1, h2):first-child{font-size:23px;text-align:center;margin:0 0 6px}
+  html.lg-new #ig-paper .ig-zoom.is-working .pg-work .hati-doc .rl-pnum{display:inline-block;width:52px;margin-left:-52px;font-weight:400;font-variant-numeric:tabular-nums;color:var(--color-neutral-400);white-space:pre}
+  html.lg-new #ig-paper .up-strip.is-measuring > .up-fact{flex:none}
+  html.lg-new #ig-paper .up-strip > .up-fact:first-child{min-width:6em}
 </style>
 
 <script type="module" src="js/app.js"></script>
