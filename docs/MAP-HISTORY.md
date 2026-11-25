@@ -40840,3 +40840,4 @@ The owner: "people who are logging into the site as testers are advising that th
 
 ## THE MAP — today's check over every merge, 25 Nov 2026
 The owner asked for one GitHub check over the day's merges, then auto pilot. Everything was already on main, so the PR of the fixes is that check. Three reds found: f400 (5b) wanted words for the Brain's new `pwreset` part (added, both books); f1127 (1) pinned the old phone query text, now `M_QUERY` ("screen and", printing fix) — re-pointed; home-page-verify 3c still asked the Board to borrow the Contracts list's colours, reversed by "each stage its own colour" (f1230) — re-pointed to the status's own dot, three stages three colours.
+Fourth red, same night: settings-holds-still asked that a market move PIN the reader's language on their record. Since f1237 the market never moves an unchosen language, so nothing is pinned — re-pointed to "the record is left unchosen and they still read English".

@@ -276,8 +276,12 @@ async function watch(page, press) {
     check('a market that would have changed the language keeps the reader\'s own (owner, 9 Oct 2026)',
       flipped.lang === 'en' && /\bYou\b/.test(flipped.elsewhere) && /Currency/.test(flipped.facts),
       `lang ${flipped.lang} · elsewhere "${flipped.elsewhere.trim()}"`);
-    check('and their language is now theirs, kept on their record',
-      await page.evaluate(() => currentUser().lang === 'en'));
+    /* RE-POINTED 25 Nov 2026 (NEW PEOPLE START IN ENGLISH, whatever the market; f1237): the market no longer moves a
+       language nobody chose, so nothing needs pinning on their record — it is left as they left it (unchosen), and they
+       still read English */
+    const kept = await page.evaluate(() => ({ rec: currentUser().lang == null ? null : currentUser().lang, lang: langId() }));
+    check('and their record is left as it was — the market wrote no language for them, and they still read English',
+      kept.rec === null && kept.lang === 'en', `record ${kept.rec} · reading ${kept.lang}`);
     /* The page holds still: no collapse, no dropdown snapping up. */
     check('and nothing collapses under the reader',
       r.mktUp <= DRIFT_OK && r.hLost <= DRIFT_OK,
