@@ -56840,16 +56840,9 @@ function langId() {
     const v = (typeof lsGet === 'function' && lsGet(I18N_LS)) || null;
     if (v && STRINGS[v]) return v;
   } catch (e) {}
-  /* Nothing chosen yet: take the language that goes with the workspace's
-     market, so a Swedish workspace opens in Swedish rather than making every
-     new colleague find the setting. */
-  try {
-    if (typeof jxId === 'function') {
-      const m = jxId();
-      const hit = LANGUAGES.find(l => l.market === m);
-      if (hit && STRINGS[hit.id]) return hit.id;
-    }
-  } catch (e) {}
+  /* NOTHING CHOSEN YET: ENGLISH, WHATEVER THE MARKET (owner, 25 Nov 2026: testers signing in found the site in Swedish;
+     picked "new people always start in English"; reverses "a Swedish workspace opens in Swedish"). The market still
+     sets money, numbers and the legal defaults; the language is only ever the person's own choice (You › Language). */
   return I18N_DEFAULT;
 }
 /* ============================================================

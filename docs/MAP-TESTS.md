@@ -1248,3 +1248,6 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 
 ## STREAM ACCESS, PEOPLE — reset password · remove under the name (25 Nov 2026)
 - `node --test test/f1236-an-admin-resets-a-password.test.js test/f193-settings-is-four-tabs.test.js test/f561-the-brain-keeps-up.test.js test/f937-every-change-updates-the-handbook.test.js`
+
+## TWO LANGUAGES ≠ TWO MARKETS — new people start in English (25 Nov 2026)
+- `node --test test/f1237-new-people-start-in-english.test.js test/f603-market-keeps-your-language.test.js test/f148-language.test.js`

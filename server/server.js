@@ -376,9 +376,8 @@ const setStore = (k, v) => db.prepare('INSERT INTO store (key,json) VALUES (?,?)
 const userPrefs = u => { try { return JSON.parse(u.prefs || '{}') || {}; } catch (_) { return {}; } };
 const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role, title: u.title || '',
   /* The language THIS PERSON reads the app in, and the one their email is
-     written in. Null until they choose: the browser then falls back to the
-     language that goes with the workspace's market, and an email falls back to
-     the default — see js/i18n.js for why this lives on the user and not the
+     written in. Null until they choose: the browser and an email both fall back to
+     English, whatever the market (owner, 25 Nov 2026) — see js/i18n.js for why this lives on the user and not the
      org. */
   lang: u.lang || null,
   createdAt: u.created_at, prefs: userPrefs(u), folderAccess: folderScopeFor(u), canViewValues: canViewValues(u),

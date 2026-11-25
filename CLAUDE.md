@@ -437,7 +437,7 @@ A REPLACING POP-UP DOES NOT RE-ARRIVE (`modalKeptOf`, `modalScreenKey`; never `c
 - A ROW POINTED AT OR CHOSEN IS LIGHT GREEN, NEVER GREY, on every page and new ones: `var(--row-hover)`, `var(--row-chosen)`; f1186; exceptions in `ROW_GREY_KNOWN`, which only shrinks.
 - No outlines typing paper details. Bubbles one corner (`--radius`). Search no ring (`type="search"`); no ring after a press (`fieldFocus` `focusVisible:false`). 16px in Jambo panels; page level with panel.
 ## TWO LANGUAGES ≠ TWO MARKETS
-LANGUAGE the person's (js/i18n.js); MARKET the company's (js/jurisdiction.js). Months: language (`langLocale()`); numbers: market; CONTRACT TEXT NEVER TRANSLATED. `i18t()`/`i18tn()`, never `t()`, never in a regex/branch; `srvMsg` server sentences; `i18ord`. Signing reads `sgx_*`.
+LANGUAGE the person's (js/i18n.js); MARKET the company's (js/jurisdiction.js). NEW PEOPLE START IN ENGLISH, whatever the market (owner, 25 Nov 2026): `langId` = their choice (record, then browser), else `I18N_DEFAULT`; the market never picks a language (f1237). Months: language (`langLocale()`); numbers: market; CONTRACT TEXT NEVER TRANSLATED. `i18t()`/`i18tn()`, never `t()`, never in a regex/branch; `srvMsg` server sentences; `i18ord`. Signing reads `sgx_*`.
 ## WHAT COUNTS AS A CLAUSE (js/clausemodel.js)
 `clauseSegment()` the ONE splitter; heading number Roman/letter ok (`DOC_READ_HEAD_NUM`, `DOC_READ_ROMAN`), paragraph `DOC_READ_NUM` digits; `CLAUSE_KINDS`; `clauseKind` heading only; banners ride the next clause (`_clBanners`); `clauseCarryIds`; `applyNegoProposals` never drops the unplaced; `redlineHangHtml`.
 ## DOES MONEY PASS UNDER THIS CONTRACT
