@@ -18,7 +18,8 @@ const CE = strip(R('js/views/clauseeditor.js')), CT = strip(R('js/views/contract
 test('f1207 (1) the editing bar stands at the top; the paper pages\' ground', () => {
   const b = fnOf(CE, 'ceTabBarPlace');
   assert.doesNotMatch(b, /rl-clause-live/, 'the bar no longer rides the clause being edited');
-  assert.match(b, /const y = 8, hw = head\.offsetWidth \|\| 0;/);
+  /* RE-POINTED 25 Nov 2026 (f1229): the bar stands at the top of the page, full width, in the band .ce-left keeps */
+  assert.match(b, /if \(head\.style\.transform\) head\.style\.transform = '';/);
   /* RE-POINTED 24 Nov 2026 (scoped under html.lg-new) */
   assert.match(H, /html\.lg-new #clause-editor\.is-tabbed,html\.lg-new #clause-editor\.is-tabbed \.ce-left,html\.lg-new #clause-editor\.is-tabbed #ce-doc\{background:var\(--desk-ground\)\}/);
 });

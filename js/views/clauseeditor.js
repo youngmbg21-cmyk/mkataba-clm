@@ -3396,6 +3396,7 @@ function ceRenderBar(){
     if (why) b.setAttribute('title', why); else b.removeAttribute('title');
   });
   ceSyncBarSteps();
+  if (ceTabbed()) ceTabBarPlace();
 }
 /* ============================================================================
    FROM A REDLINES ROW — THE EDITOR AS DRAWN (round 9's gaps, second pass)
@@ -7545,6 +7546,7 @@ function ceWirePage(page){
     const b = ev.target && ev.target.closest ? ev.target.closest('button') : null;
     if (!b) return;
     ev.preventDefault(); ev.stopPropagation();
+    if (b.hasAttribute('data-ce-more')){ ceClosePicker(); ceTabMoreToggle(b); return; }
     if (b.hasAttribute('data-rb-size-open')){ ceOpenPicker(b, 'size'); return; }
     const pick = b.getAttribute('data-rb-pick');
     if (pick){ ceOpenPicker(b, pick); return; }
@@ -8405,37 +8407,65 @@ function ceTabPaint(){
     if (was !== pg.style.getPropertyValue('--ce-tab-rail')) ceFitSplit(); } catch (_){}
   ceTabBarPlace();
 }
-/* THE WRITING BAR SITS JUST ABOVE THE CLAUSE BEING EDITED, following it as the paper scrolls (transform only) */
+/* THE WRITING BAR IS ONE WHITE BAR ACROSS THE TOP OF THE PAGE (owner, 25 Nov 2026: "build this bar to just be a white
+   bar across the top of the page like it used to be" … "make the content sit at the center of the bar"): it runs from the
+   page's left edge to the side panel, its tools in ONE line in its middle, and it stands still while the paper scrolls
+   under it (it lives in .ce-left, outside #ce-doc's scroll). It never wraps: where the tools need more room than the bar
+   has, the last of them fold into More (ceTabBarFold). */
 function ceTabBarPlace(){
   if (!ceTabbed()) return;
   const pg = document.getElementById('clause-editor'); if (!pg) return;
   const head = pg.querySelector('.ce-head'), doc = pg.querySelector('#ce-doc');
   const left = pg.querySelector('.ce-left');
   if (!head || !doc || !left) return;
-  /* THE BAR STAYS AT THE TOP OF THE PAGE (owner, 24 Nov 2026: "the editing bar should always be at the top of the
-     page"): it no longer rides above the clause being edited, where it covered the paper's words; it stands in the band
-     the page keeps for it (.ce-left's padding), centred over the paper, whatever is scrolled */
-  const lr = left.getBoundingClientRect();
-  /* SYMMETRICAL WITH THE PAGE (owner, 24 Nov 2026: "the highlighted bar always has to be symmetrical to the page so the page
-     always has to be equally aligned with it"): the bar is as wide as the paper sheet itself and stands over it, edge on
-     edge (centred on the sheet, never on the band round it); where its tools need more room than the sheet, it keeps its
-     own width, centred on the sheet all the same */
-  const sheet = doc.querySelector('.nego-doc');
-  if (!head.dataset.ceNatW){ head.style.width = ''; head.dataset.ceNatW = String(head.offsetWidth || 0); }
-  const nat = Number(head.dataset.ceNatW) || 0;
-  const sr = sheet ? sheet.getBoundingClientRect() : null;
-  if (sr && sr.width > 0){ const w = Math.max(nat, Math.round(sr.width)); head.style.width = w + 'px'; }
-  const y = 8, hw = head.offsetWidth || 0;
-  let x = (sr && sr.width > 0 && hw) ? Math.round(sr.left - lr.left + (sr.width - hw) / 2) : hw ? Math.round((lr.width - hw) / 2) : 24;
-  /* NOTHING IS PUSHED BEHIND THE SIDE PANEL: the bar keeps inside the paper's own width */
-  if (hw && x + hw > lr.width - 16) x = Math.max(8, lr.width - hw - 16);
-  x = Math.max(8, x);
-  head.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
-  if (!doc.dataset.ceTabBound){
-    doc.dataset.ceTabBound = '1';
-    doc.addEventListener('scroll', () => { try { ceTabBarPlace(); } catch (_){} }, { passive: true });
-    window.addEventListener('resize', () => { try { const h = document.querySelector('#clause-editor .ce-head'); if (h) delete h.dataset.ceNatW; ceTabBarPlace(); } catch (_){} });
+  const w = Math.round(left.clientWidth || left.getBoundingClientRect().width || 0);
+  if (w > 0 && head.style.width !== w + 'px') head.style.width = w + 'px';
+  if (head.style.transform) head.style.transform = '';
+  ceTabBarFold(pg);
+  if (!doc.dataset.ceTabBound){ doc.dataset.ceTabBound = '1';
+    window.addEventListener('resize', () => { try { ceTabBarPlace(); } catch (_){} }); }
+}
+/* MORE, NEVER A SECOND LINE: the tools are put back in their order, then, while the row is wider than the bar, the last
+   tool moves into More's list (a separator at the fold goes with it). The presses inside More are the bar's own — the
+   list sits inside #ce-bar, so the bar's one listener answers them. */
+const CE_MORE_CARET = '<svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>';
+function ceTabBarFold(pg){
+  const bar = pg.querySelector('#ce-bar'), row = pg.querySelector('.ce-barrow');
+  if (!bar || !row) return;
+  let more = bar.querySelector(':scope > .ce-more');
+  if (more){ const pop = more.querySelector('.ce-more-pop');
+    if (pop) while (pop.firstChild) bar.insertBefore(pop.firstChild, more);
+    more.remove(); }
+  const room = () => { const cs = getComputedStyle(row);
+    return row.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0); };
+  const fits = () => bar.scrollWidth <= room() + 0.5;
+  if (!row.clientWidth || fits()) return;
+  more = document.createElement('span'); more.className = 'ce-more';
+  const tip = _ceea(_cet('ce_bar_more_tip'));
+  more.innerHTML = `<button type="button" class="rb-btn ce-more-btn" data-ce-more="1" aria-expanded="false" title="${tip}" aria-label="${tip}" tabindex="-1">${_cee(_cet('ce_bar_more'))}<span class="rb-car">${CE_MORE_CARET}</span></button><div class="ce-more-pop" hidden></div>`;
+  bar.appendChild(more);
+  const pop = more.querySelector('.ce-more-pop');
+  let guard = 60;
+  while (!fits() && guard-- > 0){
+    const last = more.previousElementSibling; if (!last) break;
+    pop.insertBefore(last, pop.firstChild);
+    const lead = more.previousElementSibling;
+    if (lead && lead.classList.contains('rb-sep')) pop.insertBefore(lead, pop.firstChild);
   }
+  while (pop.firstElementChild && pop.firstElementChild.classList.contains('rb-sep')) bar.insertBefore(pop.firstElementChild, more);
+  if (!pop.firstChild) more.remove();
+}
+/* More opens and shuts: press it again, Esc or a press outside the list closes it */
+function ceTabMoreToggle(btn, open){
+  const more = btn && btn.closest ? btn.closest('.ce-more') : null; if (!more) return;
+  const pop = more.querySelector('.ce-more-pop'); if (!pop) return;
+  const on = open == null ? pop.hidden : !!open;
+  pop.hidden = !on; btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+  if (on && !document.documentElement.dataset.ceMoreBound){ document.documentElement.dataset.ceMoreBound = '1';
+    const shut = () => document.querySelectorAll('#clause-editor .ce-more-pop:not([hidden])').forEach(p => { p.hidden = true;
+      const b = p.parentNode && p.parentNode.querySelector('[data-ce-more]'); if (b) b.setAttribute('aria-expanded', 'false'); });
+    document.addEventListener('mousedown', ev => { if (!(ev.target && ev.target.closest && ev.target.closest('.ce-more'))) shut(); }, true);
+    document.addEventListener('keydown', ev => { if (ev.key === 'Escape') shut(); }); }
 }
 let _ceTabWheelAt = 0;
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._ceTabWired){ document._ceTabWired = true;
