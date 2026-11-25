@@ -187,6 +187,7 @@ Follow = a destination: clause id on presence's beat (`presenceSpotNow`); `prese
 ## STREAM ACCESS, PEOPLE, RE-FILING
 - Server filters every query (`folderScopeFor`); browser `canAccessFolder`. New member = VIEWER. Re-filing admin's, delegable (`mayReFile`); writer `ktFolderMove`. PRIVATE STREAMS: named only, admins too (PUT /api/private-streams/:fid; `psStreamsFor`); money adds nowhere; opens logged (`private_opens`).
 - PEOPLE (`dirLcReg`): TABLE (`dirRowHtml`, `dirColDefs`, `dirSort`, `DIR_PAGE`); `dirPhoneOf`; Party → `cuSelectParty`; `dirDoesFor`.
+- RESET PASSWORD · REMOVE UNDER A COLLEAGUE'S NAME (owner, 25 Nov 2026; picked "Temporary password", "Top"): the sheet's first row (`st-acct-acts`, `#tm-reset-pw`, `#tm-remove`); POST /api/users/:id/reset-password (admins, never oneself) sets a temporary password — HaTi's suggestion (`pwSuggest`, Suggest another) or the admin's own, ≥8 — shown ONCE with Copy (`settingsResetPassword`), ends their sessions, `mustChangePassword`; mail never carries it. f1236.
 ## PER-PERSON GRANTS (admin-only, on ADMIN_ONLY_USER_FIELDS)
 Signing cap (`signCapOf`, `signCapBlocker`), checked, sign folders, approval before signing, re-file (`mayReFile`), new paper (`mayMakeNewPaper` → `newPaperBlock`), hold (`mayHoldContract`), decide standards (`mayDecideStandards`). Off by default; admins uncapped. Asked when adding someone (`stNewGrantRowsHtml`, `stGrantRowsSync`, `stGrantBox`).
 ## THE HANDBOOK — HOW TO DO EACH THING (docs/PLAN-the-handbook.md)

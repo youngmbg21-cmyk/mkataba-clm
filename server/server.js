@@ -19715,6 +19715,47 @@ app.post('/api/users/:id/invite', auth, admin, async (req, res) => {
   res.json({ ok: true, user: publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(u.id)), ...mailReport(mailed) });
 });
 
+/* ---- AN ADMIN RESETS A COLLEAGUE'S PASSWORD (owner, 25 Nov 2026: "give me the ability to reset someones password";
+   picked "Temporary password") ----
+   The admin's own temporary password ("both": the sheet suggests one, the admin may type their own), else the server
+   makes one (readable: no 0/O, 1/l/I); it is set, and marks the account the way a new member
+   starts (mustChangePassword): they must choose their own on their next sign-in before doing anything, so a signature
+   is still theirs alone. Every session they hold ends now. The password goes back to the ADMIN, ONCE, in this reply —
+   never stored in the clear, never mailed (the welcome's rule: the mail never carries a password); the mail, where
+   email works, only says it was reset and by whom. Recorded on the member (pwResetAt, pwResetBy). Not for oneself
+   (your own is changed under You), and two-step stays as it was. */
+const PW_TEMP_ALPHABET = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function tempPassword(n = 12){
+  const bytes = crypto.randomBytes(n);
+  let out = '';
+  for (let i = 0; i < n; i++) out += PW_TEMP_ALPHABET[bytes[i] % PW_TEMP_ALPHABET.length];
+  return out;
+}
+app.post('/api/users/:id/reset-password', auth, admin, async (req, res) => {
+  const id = String(req.params.id || '');
+  if (id === req.user.id) return res.status(400).json({ error: 'Change your own password under You — this resets a colleague\'s' });
+  const u = db.prepare('SELECT * FROM users WHERE id=?').get(id);
+  if (!u) return res.status(404).json({ error: 'No such member' });
+  /* the admin's own temporary password (8 characters or more), else one made here */
+  const given = (req.body || {}).password;
+  if (given != null && given !== '' && (typeof given !== 'string' || given.length < 8 || given.length > 128))
+    return res.status(400).json({ error: 'A temporary password needs 8 characters or more' });
+  const temp = given ? String(given) : tempPassword(), salt = rid(16);
+  const prefs = userPrefs(u);
+  prefs.mustChangePassword = true;
+  prefs.pwResetAt = now(); prefs.pwResetBy = String(req.user.name || req.user.email || '');
+  db.prepare('UPDATE users SET salt=?, hash=?, prefs=?, pw_at=? WHERE id=?').run(salt, hashPw(temp, salt), JSON.stringify(prefs), now(), u.id);
+  db.prepare('DELETE FROM sessions WHERE user_id=?').run(u.id);
+  let mailed = null;
+  if (validEmail(u.email)) {
+    const org = getSetting('org');
+    mailed = await sendEmail(u.email, `Your ${org?.name || 'HaTi'} password was reset`,
+      `${req.user.name} reset your password on HaTi.\nSign in at ${req.protocol}://${req.get('host')} with your email and the temporary password ${req.user.name} gives you, then choose your own.\n`,
+      `password reset: ${u.email}`);
+  }
+  res.json({ ok: true, temp, user: publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(u.id)), ...mailReport(mailed) });
+});
+
 /* ---- WHAT JAMBO COULD NOT PLACE BECOMES A LESSON (round 8 "The SAP way", owner's yes 29 Oct 2026: "No names",
    "90 days") ----
    A sentence typed in a Jambo box that no free reader moved, after which the person went to another page themselves
