@@ -12334,7 +12334,7 @@ function igPaperHtml(c){
     if(typeof window.negoEnsureStyle==='function') try{ negoEnsureStyle(); }catch(_){ }
     if(typeof window.redlineLayoutCss==='function') try{ redlineLayoutCss(); }catch(_){ }
     const body=igRedBodyHtml(c,clean);
-    sheet=`<div class="ig-redpaper nego-onpaper${clean?' is-clean':''}" style="padding:20px 0 40px"><article id="ig-canvas" class="doc-surface rl-paper" style="max-width:var(--doc-sheet-max,860px);margin:0 auto">${body}</article></div>`;
+    sheet=`<div class="ig-redpaper nego-onpaper${clean?' is-clean':''}" style="padding:calc(20px / var(--ig-zf,1)) 0 40px"><article id="ig-canvas" class="doc-surface rl-paper" style="max-width:var(--doc-sheet-max,860px);margin:0 auto">${body}</article></div>`;
   }
   else if(typeof docSheetHtml==='function') sheet=docSheetHtml(c,{ copy:'work', canvasId:'ig-canvas', readOnly:true });
   else {
@@ -12343,7 +12343,7 @@ function igPaperHtml(c){
   }
   return `<div class="ig-paper-wrap">
     <div id="ig-spine" class="doc-xr-spine ig-spine" role="group" aria-label="${igEsc(i18t('xr_spine_label'))}" hidden></div>
-    <div id="ig-paper-scroll" class="ig-paper-scroll scroll-thin">${igZoomCornerHtml(c)}<div class="ig-zoom" style="zoom:${igSignOn(c)?1:(window.rlDocZoomFactor?rlDocZoomFactor():1)}">${sheet}</div></div>
+    <div id="ig-paper-scroll" class="ig-paper-scroll scroll-thin">${igZoomCornerHtml(c)}<div class="ig-zoom" style="zoom:${igSignOn(c)?1:(window.rlDocZoomFactor?rlDocZoomFactor():1)};--ig-zf:${igSignOn(c)?1:(window.rlDocZoomFactor?rlDocZoomFactor():1)}">${sheet}</div></div>
   </div>`;
 }
 /* the reader's zoom, written where Home's sheet reads it; the Track is laid
@@ -12379,7 +12379,10 @@ if(typeof document!=='undefined') document.addEventListener('click',e=>{
 });
 function igApplyZoom(){
   const f=window.rlDocZoomFactor?rlDocZoomFactor():'1';
-  document.querySelectorAll('#ig-paper .ig-zoom').forEach(z=>{ z.style.zoom=z.querySelector('.ig-signpaper')?1:f; });
+  /* --ig-zf: the factor the paper is drawn at, so the room above the sheet that lies INSIDE the zoom (.ig-redpaper's 20)
+     is divided by it and stands 20 on screen at any zoom: the sheet 40 under its column on Home as on Negotiate and their
+     page, whose room lies outside the zoom (one-paper-everywhere 1; at 100% = 90%, RL_ZOOM_BASE, it stood 38) */
+  document.querySelectorAll('#ig-paper .ig-zoom').forEach(z=>{ const zf=z.querySelector('.ig-signpaper')?1:f; z.style.zoom=zf; z.style.setProperty('--ig-zf', String(zf)); });
   try{ if(typeof igTrackPlace==='function') igTrackPlace(); }catch(_){ }
 }
 /* EVERY PAPER IN PAGES (owner, 9 Nov 2026: "the paper should be in pages with page breaks and not one full long paper.
@@ -12415,6 +12418,8 @@ function igPaperRefresh(){
   /* a patch after which the blanks' marks are owed on the clean paper's new blocks (the whole drawing paints them) */
   if(patched&&patched.n&&c&&!igRedOn(c)&&!igSignOn(c)){ const cv=document.getElementById('ig-canvas'); try{ if(cv&&window.uploadBlanksPaint) uploadBlanksPaint(c,cv); }catch(_){ } }
   const sc2=document.getElementById('ig-paper-scroll'); if(sc2) sc2.scrollTop=top;
+  /* and a Clauses glide still in flight ends here, still, rather than pulling the paper away later (docThreadGlideStill) */
+  if(sc2&&typeof window.docThreadGlideStill==='function') try{ window.docThreadGlideStill(); }catch(_){ }
   /* THE PLACE IS KEPT ONCE THE PAGES ARE CUT AGAIN (22 Nov 2026, GitHub's run of decision-redraws-one-clause: 240 came back
      as 113): while a slow machine re-cuts the pages the paper is briefly shorter, and the browser clamps the place to what
      fits. Put back again over the next few frames, bounded, only while nobody has scrolled since the clamp */

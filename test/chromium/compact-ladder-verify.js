@@ -267,9 +267,11 @@ const HELPERS = `(() => {
       const t = document.createElement('div'); t.style.cssText = 'position:absolute;height:var(--ctl-h-sm);font-weight:var(--w-label)'; document.body.appendChild(t);
       const want = { h: Math.round(t.getBoundingClientRect().height), fw: getComputedStyle(t).fontWeight }; t.remove();
       return { page: pageBtns, row: rowBtns, want }; });
-    const plainOn = plainBtn.page.length ? plainBtn.page : plainBtn.row, rung = plainBtn.page.length ? plainBtn.want.h : 28;
-    ok('3c the open clause\'s Plain is one small button at the one label weight (the page\'s, or the row\'s off the page)',
-      plainOn.length > 0 && plainOn.every(b => near(b.h, rung) && b.fw === plainBtn.want.fw),
+    /* RE-POINTED 25 Nov 2026 (owner, 24 Nov 2026: "ONE AT A TIME IS GONE" — the Clauses tab is the list alone, no clause
+       page; the plain-English press reads "Simplify"): there is no page's Plain any more, so the press is the open row's,
+       and the row's is an ordinary button — the everyday rung (28) at the buttons' one weight (600), as before the page */
+    ok('3c the open clause\'s Plain is the open row\'s one button, the everyday rung (28) at the one weight (600) — no clause page',
+      plainBtn.page.length === 0 && plainBtn.row.length === 1 && plainBtn.row.every(b => near(b.h, 28) && b.fw === '600' && /^Simplify$/.test(b.t)),
       JSON.stringify({ page: plainBtn.page.map(b => b.t + ':' + b.h + '/' + b.fw), row: plainBtn.row.map(b => b.t + ':' + b.h + '/' + b.fw), want: plainBtn.want }));
     await sweep('document');
 

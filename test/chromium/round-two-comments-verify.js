@@ -23,6 +23,12 @@ const EXEC=process.env.CHROMIUM_BIN
 const MIME={'.html':'text/html','.js':'text/javascript','.css':'text/css'};
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 const R=[];const ck=(n,p,d)=>{R.push(!!p);console.log((p?'PASS':'FAIL')+'  '+n+(d!=null?' — '+d:''))};
+/* RE-POINTED 25 Nov 2026 (LIVE NOTES A, #1012, the owner's drawing built: "a note starts from words highlighted on the
+   paper, Internal or the other side"): a highlight on a PAPER offers "Add a note" with its rooms — Internal, then the
+   outside party by name (rlNoteRoomActs) — then Ask, then Edit. The clause editor's typing box keeps Ask · Edit ·
+   Comment (D1). parity.html's other side is Nordfrakt Logistik AB, its room p:py_them. */
+const PAPER_ROWS=['note:internal','note:p:py_them','ask','edit'];
+const PAPER_VERBS=['Internal','Nordfrakt Logistik AB','Ask Jambo','Edit with Jambo'];
 function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   const rel=decodeURIComponent(q.url.split('?')[0]).replace(/^\/+/,'');
   const f=path.join(ROOT,rel||'index.html');
@@ -107,18 +113,25 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const cl = negoClauseList(c).find(x => (x.headingText||'').indexOf('17.') === 0);
     rlNoteFromSelection(c, { clauseId: cl.clauseId, quote: 'Neither party may assign this Agreement\nwithout the prior written consent' }, { side: 'owner' });
     await new Promise(r => setTimeout(r, 200));
-    const pinEl = document.querySelector('#context-panel .rl-np-pin');
-    if (!pinEl) return null;
-    const labels = [...pinEl.querySelectorAll('[data-rl-np-pin-room]')].map(b => b.textContent.trim());
-    const lead = (pinEl.querySelector('.lead') || {}).textContent || '';
-    const q = pinEl.querySelector('q');
-    const qRect = q ? q.getBoundingClientRect() : null;
-    const lineH = q ? parseFloat(getComputedStyle(q).lineHeight) : 0;
+    /* RE-POINTED 25 Nov 2026 (LIVE NOTES A, #1012, built as drawn: "a note starts on the paper … → a new conversation
+       (rlNpNewConvHtml)"): the highlight no longer pins a card with its own two-button switch above the box; it opens
+       a NEW conversation — the rooms as the panel's labelled pills (rlNpRoomsHtml), the words quoted lit
+       (rlNpQuoteHtml), the box under it. */
+    const conv = document.querySelector('#context-panel .rl-lv-conv.is-new');
+    if (!conv) return null;
+    const pills = [...document.querySelectorAll('#context-panel .rl-np-rooms [data-rl-np-room]')];
+    const labels = pills.map(b => ((b.querySelector('.rl-np-nm') || b).textContent || '').trim());
+    const lit = pills.filter(b => b.classList.contains('on')).map(b => b.getAttribute('data-rl-np-room'));
+    const panelText = (document.querySelector('#context-panel') || {}).textContent || '';
+    const q = document.querySelector('#context-panel .rl-lv-hq q');
+    const mark = q ? q.querySelector('mark') : null;
     const box = document.querySelector('#context-panel .rl-np-in'); box.value = 'Assignment: fine for us.'; box.dispatchEvent(new Event('input', { bubbles: true }));
     const before = (c.thread||[]).length;
     document.querySelector('#context-panel [data-rl-np-send], #context-panel [data-rl-chat-send]').click();
     await new Promise(r => setTimeout(r, 400));
-    return { labels, lead: lead.trim(), twoLines: qRect ? qRect.height >= lineH * 1.8 : false, pinAfter: !!document.querySelector('#context-panel .rl-np-pin'), posted: (c.thread||[]).length - before,
+    return { labels, lit, caption: /Comment on these words/i.test(panelText) || !!document.querySelector('#context-panel .rl-np-pin .lead'),
+      quoted: mark ? mark.textContent.replace(/\s+/g, ' ').trim() : null,
+      pinAfter: !!document.querySelector('#context-panel .rl-lv-conv.is-new'), posted: (c.thread||[]).length - before,
       quote: ((c.thread||[]).slice(-1)[0] || {}).anchor && (c.thread||[]).slice(-1)[0].anchor.quote };
   });
   /* REVERSED IN PLACE 3 Oct 2026, with f304 (1). Round two ruled the pin says
@@ -126,13 +139,15 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      because a contract can hold several outside parties and "External" cannot
      say which one a note is for. What survives — and what is asked here — is
      that ours keeps its word and theirs is a real party by name. */
-  ck('C1 the pin says ours, then the outside party by name',
-    pin && pin.labels.length === 2 && pin.labels[0] === 'Internal'
-      && pin.labels[1] && pin.labels[1] !== 'External',
-    pin && JSON.stringify(pin.labels));
-  ck('C2 and carries no "Comment on these words" caption', pin && pin.lead === '', pin && JSON.stringify(pin.lead));
-  ck('C3 a two-paragraph quote is printed on two lines', pin && pin.twoLines, pin && JSON.stringify(pin.twoLines));
-  ck('C4 Add note posts the note on those words and the pin is gone', pin && pin.posted === 1 && !pin.pinAfter && /\n/.test(pin.quote || ''), JSON.stringify(pin));
+  ck('C1 the new conversation\u2019s rooms say ours, then the outside party by name, ours chosen',
+    !!pin && pin.labels.length === 2 && pin.labels[0] === 'Internal'
+      && !!pin.labels[1] && pin.labels[1] !== 'External' && JSON.stringify(pin.lit) === '["internal"]',
+    pin && JSON.stringify({ labels: pin.labels, lit: pin.lit }));
+  ck('C2 and carries no "Comment on these words" caption', !!pin && !pin.caption, pin && JSON.stringify(pin.caption));
+  /* the drawn quote is ONE lit line (rlNpQuoteHtml folds the break); what must hold is that it is the words of BOTH
+     paragraphs, whole, and that the break is kept where it is stored (C4) */
+  ck('C3 a two-paragraph quote is quoted whole and lit, both paragraphs\u2019 words', !!pin && pin.quoted === 'Neither party may assign this Agreement without the prior written consent', pin && JSON.stringify(pin.quoted));
+  ck('C4 Add note posts the note on those words and the new conversation gives way', !!pin && pin.posted === 1 && !pin.pinAfter && /\n/.test(pin.quote || ''), JSON.stringify(pin));
   await p.evaluate(() => closeContextPanel());
 
   /* ---- D · the editor: a real drag across two list items ---- */
@@ -229,7 +244,8 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   });
   await p.mouse.move(g0.a[0], g0.a[1]); await p.mouse.down(); await p.mouse.move(g0.b[0], g0.b[1], { steps: 8 }); await p.mouse.up(); await pause(400);
   const g1 = await p.evaluate(() => { const m = document.querySelector('.nego-selmenu'); return m ? [...m.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai')) : []; });
-  ck('G1 on the paper a drag across two paragraphs inside one clause gets the three rows', JSON.stringify(g1) === JSON.stringify(['ask', 'edit', 'comment']), JSON.stringify(g1));
+  /* RE-POINTED 25 Nov 2026 (LIVE NOTES A, #1012): see PAPER_ROWS */
+  ck('G1 on the paper a drag across two paragraphs inside one clause gets the note rooms, Ask and Edit', JSON.stringify(g1) === JSON.stringify(PAPER_ROWS), JSON.stringify(g1));
   await p.evaluate(() => { document.querySelectorAll('.nego-selmenu').forEach(n => n.remove()); window.getSelection().removeAllRanges(); });
   if (g0.pen){
     /* THE OVERSHOOT, BUILT AS A RANGE: from the first item's words into the
@@ -262,7 +278,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
         offered: (pas.parts[0] && pas.parts[0].text) || '' };
     });
     ck('G2 a selection that OVERSHOOTS into the next clause’s heading is read as one clause and offered, the heading left out',
-       JSON.stringify(g2.rows) === JSON.stringify(['ask', 'edit', 'comment'])
+       JSON.stringify(g2.rows) === JSON.stringify(PAPER_ROWS) /* RE-POINTED 25 Nov 2026 (LIVE NOTES A, #1012) */
        && g2.clauses === 1 && !!g2.offered && !/Governing|Law/.test(g2.offered), JSON.stringify(g2));
   } else ck('G2 the next clause’s heading row was found', false, 'none');
 
@@ -278,15 +294,22 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const cl = negoClauseList(c).find(x => (x.headingText||'').indexOf('17.') === 0);
     rlNoteFromSelection(c, { clauseId: cl.clauseId, quote: 'Neither party may assign this Agreement' }, { side: 'owner' });
     await new Promise(r => setTimeout(r, 200));
-    const read = () => [...document.querySelectorAll('#context-panel .rl-np-pin [data-rl-np-pin-room]')].map(b => { const r = b.getBoundingClientRect(); return { w: Math.round(r.width * 10) / 10, on: b.getAttribute('aria-pressed') === 'true', room: b.getAttribute('data-rl-np-pin-room') }; });
+    /* RE-POINTED 25 Nov 2026 (LIVE NOTES A, #1012, as drawn: a new note's room is chosen on the panel's labelled pills,
+       Internal with its lock, the party by name with its eye (rlNpRoomsHtml); the pin's own two-halves switch is gone).
+       Asked: both pills painted, ours lit first; the party's press lights it alone, the new conversation stays, and the
+       note will be filed in THAT room. */
+    const read = () => [...document.querySelectorAll('#context-panel .rl-np-rooms [data-rl-np-room]')].map(b => { const r = b.getBoundingClientRect(); return { w: Math.round(r.width * 10) / 10, on: b.classList.contains('on') && b.getAttribute('aria-selected') === 'true', room: b.getAttribute('data-rl-np-room') }; });
     const a = read();
-    const ext = document.querySelector('#context-panel .rl-np-pin [data-rl-np-pin-room]:not([data-rl-np-pin-room="internal"])'); ext && ext.click();
+    const ext = document.querySelector('#context-panel .rl-np-rooms [data-rl-np-room]:not([data-rl-np-room="internal"])');
+    const extRoom = ext ? negoRoomKey(ext.getAttribute('data-rl-np-room')) : null;
+    ext && ext.click();
     await new Promise(r => setTimeout(r, 200));
     const b = read();
-    return { a, b };
+    const pinned = (typeof rlNotesPinned === 'function' ? rlNotesPinned() : null) || {};
+    return { a, b, still: !!document.querySelector('#context-panel .rl-lv-conv.is-new'), pinRoom: pinned.room || null, extRoom };
   });
-  const eq = xs => xs.length === 2 && Math.abs(xs[0].w - xs[1].w) <= 1;
-  ck('H1 Internal and External are two equal halves, whichever is lit', h1 && eq(h1.a) && eq(h1.b) && h1.a[0].on && h1.b[1].on, JSON.stringify(h1));
+  const twoPills = xs => xs.length === 2 && xs.every(x => x.w > 0) && xs[0].room === 'internal';
+  ck('H1 the new note\u2019s rooms are two pills, ours lit first; the party\u2019s press lights it and the note goes there', !!h1 && twoPills(h1.a) && twoPills(h1.b) && h1.a[0].on && !h1.a[1].on && h1.b[1].on && !h1.b[0].on && h1.still && !!h1.extRoom && h1.pinRoom === h1.extRoom, JSON.stringify(h1));
   await p.evaluate(() => closeContextPanel());
 
   /* H2 · the FILED pin quotes the change and carries no lead line — the
@@ -343,7 +366,11 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const hr = h.getBoundingClientRect();
     const r = document.createRange(); r.setStart(body.firstChild, 0); r.setEnd(body.firstChild, Math.min(40, body.firstChild.data.length));
     const rr = r.getBoundingClientRect();
-    const a = [hr.left + 4, hr.top + hr.height / 2], b = [rr.right - 4, rr.bottom - 4];
+    /* RE-POINTED 25 Nov 2026 (owner's pick, ONE PAPER TYPE: the heading's number stands in its own grey column, .rl-hnum,
+       which is not wording to select; the owner's photo showed a real drag offering the rows): the drag starts on the
+       heading's WORDS, just past the number's column */
+    const hn = h.querySelector('.rl-hnum'), hnr = hn ? hn.getBoundingClientRect() : null;
+    const a = [(hnr && hnr.width ? Math.max(hr.left, hnr.right) : hr.left) + 4, hr.top + hr.height / 2], b = [rr.right - 4, rr.bottom - 4];
     const hitA = document.elementFromPoint(a[0], a[1]), hitB = document.elementFromPoint(b[0], b[1]);
     return { id: cl.clauseId, a, b, head: h.textContent.trim().slice(0, 30), lands: !!(hitA && sec.contains(hitA) && hitB && sec.contains(hitB)) };
   });
@@ -354,7 +381,9 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       return { rows: m ? [...m.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai')) : [],
         here: clauseEditorClauseId() };
     });
-    ck('H3a in the editor a real drag over another clause, heading included, offers the three rows', h3g.lands && JSON.stringify(h3.rows) === JSON.stringify(['ask', 'edit', 'comment']), JSON.stringify({ ...h3, lands: h3g.lands }));
+    /* RE-POINTED 25 Nov 2026 (LIVE NOTES A, #1012): the editor's PAPER offers what the negotiation paper offers (PAPER_ROWS,
+       rlPaperOfferFromRange); only the typing box keeps Comment */
+    ck('H3a in the editor a real drag over another clause, heading included, offers the note rooms, Ask and Edit', h3g.lands && JSON.stringify(h3.rows) === JSON.stringify(PAPER_ROWS), JSON.stringify({ ...h3, lands: h3g.lands }));
     const editBtn = await p.$('.nego-selmenu [data-nego-ai="edit"]');
     if (editBtn) await editBtn.dispatchEvent('mousedown');
     await pause(500);
@@ -432,13 +461,15 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   let i1 = null;
   if (i1g){
     await p.mouse.move(i1g.a[0], i1g.a[1]); await p.mouse.down(); await p.mouse.move(i1g.b[0], i1g.b[1], { steps: 8 }); await p.mouse.up(); await pause(400);
-    const cm = await p.$('.nego-selmenu [data-nego-ai="comment"]');
+    /* RE-POINTED 25 Nov 2026 (LIVE NOTES A, #1012): Comment on the paper is "Add a note" → Internal, and what it opens
+       is a NEW conversation on the words (rlNpNewConvHtml), its box focused */
+    const cm = await p.$('.nego-selmenu [data-nego-ai="note:internal"]');
     if (cm) await cm.dispatchEvent('mousedown');
     await pause(400);
     i1 = await p.evaluate(async id => {
       const box = document.querySelector('#context-panel .rl-np-in');
       const focused = !!(box && document.activeElement === box);
-      const pinned = !!document.querySelector('#context-panel .rl-np-pin');
+      const pinned = !!document.querySelector('#context-panel .rl-lv-conv.is-new .rl-np-in') && !!document.querySelector('#context-panel .rl-lv-hq q mark');
       if (!box) return { focused, pinned };
       box.value = 'A comment from the paper.'; box.dispatchEvent(new Event('input', { bubbles: true }));
       const before = document.querySelectorAll('#ce-doc .rl-note-mk').length;
@@ -449,7 +480,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       return { focused, pinned, before, after, onClause };
     }, i1g.id);
   }
-  ck('I1a Comment from a real drag pins the words and puts the caret in the note box', !!(i1 && i1.pinned && i1.focused), JSON.stringify(i1));
+  ck('I1a Add a note (Internal) from a real drag opens a new conversation on the words, the caret in its box', !!(i1 && i1.pinned && i1.focused), JSON.stringify(i1));
   ck('I1b the marker is on the paper the moment Add note is pressed (60 ms, no repaint, no refresh)', !!(i1 && i1.after === i1.before + 1 && i1.onClause), JSON.stringify(i1));
 
   /* I2 · a marker for an EXTERNAL note pressed while the drawer shows Internal
@@ -679,8 +710,9 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
         verbs: m ? [...m.querySelectorAll('button')].map(b => b.textContent.trim()) : [] }; }, at.text);
   };
   const two = await shortSel(2);
-  ck('J1d THE REPORTED CASE: a two-character highlight offers all three verbs',
-     !!(two && two.menu && two.verbs.length === 3), JSON.stringify(two));
+  /* RE-POINTED 25 Nov 2026 (LIVE NOTES A, #1012): "all three verbs" is now Add a note's rooms, Ask and Edit */
+  ck('J1d THE REPORTED CASE: a two-character highlight offers the note rooms, Ask and Edit',
+     !!(two && two.menu && JSON.stringify(two.verbs) === JSON.stringify(PAPER_VERBS)), JSON.stringify(two));
   await p.evaluate(() => { const s = window.getSelection(); s && s.removeAllRanges();
     document.body.dispatchEvent(new MouseEvent('mouseup', { bubbles: true })); });
   await pause(300);

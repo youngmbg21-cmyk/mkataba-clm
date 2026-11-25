@@ -15393,16 +15393,26 @@ function docThreadGoTo(c,i){
   clearTimeout(_docThreadGlideT);
   _docThreadGlideT=setTimeout(()=>docThreadSettle(c),DOC_THREAD_GLIDE_MS);
 }
-function docThreadSettle(c){
+function docThreadSettle(c,o){
   clearTimeout(_docThreadGlideT); _docThreadGlideT=null;
   const held=_docThreadHold, pressed=_docThreadGlide;
   _docThreadGlide=-1; _docThreadHold=-1;
   /* THE ROW PRESSED STAYS THE ONE OPEN (#762: the glide ended with another row at the line and that one opened): a
      glide a press began settles on the pressed row; only a glide nobody pressed reads the line */
-  /* and the paper is put right under it if the glide fell short (the page moved under the glide while it ran) */
-  if(held<0&&pressed>=0){ try{ const sc=thEl('scroll'), el=_docThreadRows[pressed];
+  /* and the paper is put right under it if the glide fell short (the page moved under the glide while it ran) — unless it
+     is settled STILL (docThreadGlideStill): the paper was drawn again and its place put back since the glide began */
+  if(held<0&&pressed>=0&&!(o&&o.still)){ try{ const sc=thEl('scroll'), el=_docThreadRows[pressed];
     if(sc&&el){ const d=el.getBoundingClientRect().top-sc.getBoundingClientRect().top-DOC_THREAD_LINE+1; if(Math.abs(d)>4) sc.scrollTop+=d; } }catch(_){ } }
   docThreadOpen(docThreadCur(c), held>=0?held:pressed>=0?pressed:docThreadLineRow());
+}
+/* A REDRAW KEEPS YOUR PLACE (25 Nov 2026, decision-redraws-one-clause on GitHub: 240 came back as 113, "moved by
+   docThreadSettle"): a decision redraws the paper and puts the reader's place back (igPaperRefresh); a glide still in
+   flight from before would then, at its end, pull the paper to its row. It is settled now, still: the row it was
+   going to stays the one open, and the paper stays where the reader is. */
+function docThreadGlideStill(){
+  if(_docThreadGlide<0&&!_docThreadGlideT) return false;
+  docThreadSettle(thLiveContract(),{still:true});
+  return true;
 }
 /* The paper's scroller is rebuilt with the room, so the listener rides the
    element and is armed once per element. The contract is looked up LIVE at
@@ -19771,7 +19781,7 @@ Object.assign(window,{docThreadStep,docThreadNavSync,histWordingShown,histNlFold
      window from another module, or from a test stage, is silence when it is
      not on this list: this codebase's most repeated defect. */
   DOC_READ_MIN_W,docReadFits,docReadOn,docReadItems,
-  DOC_XRAY_SPINE_W,DOC_THREAD_LINE,docThreadOn,docThreadTonesNow,docThreadKeepTones,docThreadFlatSay,docThreadLive,docThreadAtLine,docThreadLineRow,docThreadGoTo,docThreadOpen,docThreadPaint,docThreadWire,docThreadNoAi,
+  DOC_XRAY_SPINE_W,DOC_THREAD_LINE,docThreadOn,docThreadTonesNow,docThreadKeepTones,docThreadFlatSay,docThreadLive,docThreadAtLine,docThreadLineRow,docThreadGoTo,docThreadGlideStill,docThreadOpen,docThreadPaint,docThreadWire,docThreadNoAi,
   docThreadRowHtml,docThreadBodyHtml,docThreadExplainHtml,docThreadUnrunHtml,docThreadPlain,docThreadStates,docThreadFill,
   /* the Drawer, the colour filter and Plain (Young, 5 Oct 2026) */
   docPanelHas,docThreadLanding,docThreadWantIndex,docThreadLandOn,docThreadWantClause,docThreadWantPending,docThreadWantDrop,docThreadShowsClauses,docThreadDrawerShowing,docThreadDrawerSet,docThreadPlace,docThreadPlacePut,

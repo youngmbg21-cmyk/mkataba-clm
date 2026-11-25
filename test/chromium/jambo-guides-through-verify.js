@@ -71,7 +71,11 @@ async function ask(page, q) {
   await until(page, () => !!document.getElementById('ai-input'));
   await page.fill('#ai-input', q);
   await page.evaluate(() => window.aiSubmit && window.aiSubmit());
-  return until(page, () => !!(window.ai && window.ai.busy === false && document.querySelector('#ai-feed') &&
+  /* GUARDED 25 Nov 2026: the answer waited for is THIS question's — the history was emptied before the ask, so an
+     answer of Jambo's in it is the new one; the feed alone could still show the last question's answer (2c read it
+     before the new one drew, and found no door) */
+  return until(page, () => !!(window.ai && window.ai.busy === false && Array.isArray(window.ai.history)
+    && window.ai.history.some(m => m && m.role !== 'user') && document.querySelector('#ai-feed') &&
     /A company rule stops this one/.test(document.querySelector('#ai-feed').textContent)));
 }
 const doorNow = page => page.evaluate(() => {

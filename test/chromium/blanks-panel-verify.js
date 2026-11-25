@@ -388,7 +388,7 @@ const CONTRACT = (id, over) => Object.assign({
         const cs = onPaper[0] ? getComputedStyle(onPaper[0]) : null;
         return { n: all.length, paper: onPaper.length,
           tag: onPaper[0] ? onPaper[0].tagName + '.' + onPaper[0].className : null,
-          outline: cs ? cs.outlineWidth : null, ostyle: cs ? cs.outlineStyle : null, greenBg: (() => { const e = document.createElement('i'); e.style.background = 'var(--st-green-bg)'; document.body.appendChild(e); const c = getComputedStyle(e).backgroundColor; e.remove(); return c; })(),
+          outline: cs ? cs.outlineWidth : null, z: onPaper[0] ? (onPaper[0].currentCSSZoom != null ? onPaper[0].currentCSSZoom : Number(window.rlDocZoomFactor ? rlDocZoomFactor() : 1)) : null, ostyle: cs ? cs.outlineStyle : null, greenBg: (() => { const e = document.createElement('i'); e.style.background = 'var(--st-green-bg)'; document.body.appendChild(e); const c = getComputedStyle(e).backgroundColor; e.remove(); return c; })(),
           ocolor: cs ? cs.outlineColor : null, bg: cs ? cs.backgroundColor : null,
           ink: q ? { top: q.offsetTop,
             w: Math.round(document.getElementById('ig-canvas').getBoundingClientRect().width) } : null };
@@ -401,8 +401,12 @@ const CONTRACT = (id, over) => Object.assign({
          paper's blanks carry `.field`, which states outline:none at the same
          one-class weight and later in the sheet, so the computed style read
          `none` while the source read `2px solid`. A class is not a pixel. */
+      /* RE-POINTED 25 Nov 2026 (owner: "100% is what 90% was" — the paper is drawn at the zoom times RL_ZOOM_BASE 0.9):
+         the ring is the rule's 2px drawn at the paper's own zoom, snapped to whole screen pixels as the browser paints
+         an outline (never under one), so its computed width is max(1, floor(2·z)) / z — at 100% one pixel, 1.111px */
+      const ringWant = lit.z > 0 ? Math.max(1, Math.floor(2 * lit.z + 1e-6)) / lit.z : 2;
       check('9a2 the ring is PAINTED, not just the class applied',
-        lit.ostyle === 'solid' && lit.outline === '2px', `${lit.outline} ${lit.ostyle} ${lit.ocolor}`);
+        lit.ostyle === 'solid' && Math.abs(parseFloat(lit.outline) - ringWant) < 0.02, `${lit.outline} ${lit.ostyle} ${lit.ocolor} · zoom ${lit.z} · want ${ringWant.toFixed(3)}px`);
       /* THE GREEN IS THE TOKEN'S (re-pointed 20 Sep 2026 when the redesign
          order moved --st-green-bg to the reference's #DFF2E7): resolved on the
          page and compared as a relation, never a number typed here. */

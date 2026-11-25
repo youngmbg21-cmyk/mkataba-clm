@@ -179,27 +179,41 @@ async function login(b, base, email, pass, errs){
       return { tabs: [...v.querySelectorAll('.rl-np-room')].map(t => ({ t: t.innerText.replace(/\s+/g, ' ').trim(), room: t.getAttribute('data-rl-np-room'), only: /Only your colleagues/.test(t.title || ''), on: t.classList.contains('on') })),
         back: ((document.querySelector('#ig-dock > .pd-trail') || {}).textContent || ''),
         /* RE-POINTED 21 Nov 2026 (P-38, Notes the Stripe way): one calm row per discussion — the clause, its last words and when */
-        lines: [...v.querySelectorAll('.rl-np-crow')].map(l => ((l.querySelector('.rl-np-ch b') || {}).textContent || '') + ' · ' + (((l.querySelector('.rl-np-cl .t') || {}).textContent || '') ? 'when' : '')),
-        say: [...v.querySelectorAll('.rl-np-crow .rl-np-cl .w')].map(x => x.textContent.trim()), ph: (v.querySelector('.rl-np-in') || {}).placeholder, at: !!v.querySelector('[data-rl-np-at]'),
+        /* RE-POINTED 25 Nov 2026 (live notes A, #1014, as drawn: a conversation a row — its clause, the words it is on,
+           the last message, when; the note starts on the paper's words or "Note on the whole contract", no box on the list) */
+        lines: [...v.querySelectorAll('.rl-np-crow')].map(l => ((l.querySelector('.rl-lv-t b') || {}).textContent || '') + ' · ' + (((l.querySelector('.rl-lv-last .t') || {}).textContent || '') ? 'when' : '')),
+        say: [...v.querySelectorAll('.rl-np-crow .rl-lv-last .w')].map(x => x.textContent.trim().replace(/^You: /, '')),
+        listBox: !!v.querySelector('.rl-np-in'), start: !!v.querySelector('.rl-lv-start [data-rl-lv-whole]'),
         /* RE-POINTED 24 Nov 2026 (f1207, Notes left the Redlines switch): the notes ARE #context-panel now, so "the cards
            stay" is asked of the Redlines cards themselves (as 2g asks), not of the panel's absence */
         post: (v.querySelector('.rl-np-send') || {}).textContent, piles: !!document.querySelector('#pd-redface [data-rl-pile="awaiting"]'),
         drawer: !!(state.panelOpen && panelFace() === 'notes') }; }, 6000);
     check('2a the notes link opens the bar\'s Notes panel; the Redlines cards stay', !!nv && nv.piles && nv.drawer, JSON.stringify(nv && { piles: nv.piles, drawer: nv.drawer }));
-    check('2b the rooms as tabs: our team\'s room with its 2 (only colleagues see it, on), the party\'s tab, "‹ Redlines"', !!nv && nv.tabs.length === 2 && nv.tabs[0].room === 'internal' && /^Internal$/.test(nv.tabs[0].t) && nv.tabs[0].only && nv.tabs[0].on
-      && /^Nordvik Logistik AB$/.test(nv.tabs[1].t) , JSON.stringify(nv && [nv.tabs, nv.back]));
+    /* RE-POINTED 25 Nov 2026 (live notes A, as drawn: "Internal with a lock and its count; the other side's room with an
+       eye, its name …, its count") */
+    check('2b the rooms as tabs: our team\'s room with its 2 (only colleagues see it, on), the party\'s tab with its 0', !!nv && nv.tabs.length === 2 && nv.tabs[0].room === 'internal' && /^Internal 2$/.test(nv.tabs[0].t) && nv.tabs[0].only && nv.tabs[0].on
+      && /^Nordvik Logistik AB 0$/.test(nv.tabs[1].t) , JSON.stringify(nv && [nv.tabs, nv.back]));
     check('2c each discussion a row: its clause, its words, when', !!nv && nv.lines.length === 2 && nv.lines.every(l => /Liability cap · when$/.test(l))
       && nv.say.join('|') === 'Their cap doubles our exposure.|Ask Sara before we move.', JSON.stringify(nv && [nv.lines, nv.say]));
-    check('2d ONE box with @ to name someone, and "Add note"', !!nv && /note/i.test(nv.ph || '') && nv.at && /^Add note$/.test((nv.post || '').trim()), JSON.stringify(nv && [nv.ph, nv.at, nv.post]));
+    /* RE-POINTED 25 Nov 2026 (live notes A: "a note starts on the paper"): no box on the list; its start line offers the
+       whole contract, which opens ONE box with @ to name someone and "Add note" (2d2) */
+    check('2d no box on the list; the start line says highlight words, or a note on the whole contract', !!nv && !nv.listBox && nv.start, JSON.stringify(nv && { listBox: nv.listBox, start: nv.start }));
     await shot(page, '9-notes-1440x780');
-    /* RE-POINTED 21 Nov 2026 (P-38): a row opens its discussion; its "Go to § on the paper" is the clause's link */
+    /* RE-POINTED 21 Nov 2026 (P-38): a row opens its discussion; its "Go to § on the paper" is the clause's link.
+       RE-POINTED 25 Nov 2026 (owner, of live notes A dropping it: "yes but make the wording shorter"): back, as "Go to § ›" */
     await page.click('#context-panel .rl-np-crow');
-    await waitFor(page, () => !!document.querySelector('#context-panel [data-rl-np-goclause]'), 4000);
-    await page.click('#context-panel [data-rl-np-goclause]');
+    /* a missing link REPORTS (guarded), never times the walk out */
+    const goLink = !!(await waitFor(page, () => !!document.querySelector('#context-panel [data-rl-np-goclause]'), 4000));
+    if (goLink) await page.click('#context-panel [data-rl-np-goclause]');
     /* RE-POINTED 19 Oct 2026 (LAND ON IT, main's rule): the link lands on the clause through the one lander */
-    check('2e the clause is a link to it on the paper', !!(await waitFor(page, () => !!document.querySelector('#ig-paper .is-landed[data-clause]'), 4000)));
+    check('2e the clause is a link to it on the paper', goLink && !!(await waitFor(page, () => !!document.querySelector('#ig-paper .is-landed[data-clause]'), 4000)), goLink ? '' : 'no "Go to § ›" in the opened conversation');
     if (await page.$('#context-panel [data-rl-np-back]')) await page.click('#context-panel [data-rl-np-back]');
-    if (!(await page.$('#context-panel .rl-np-in'))){ await notesNow(); await waitFor(page, () => !!document.querySelector('#context-panel .rl-np-in'), 5000); }
+    if (!(await page.$('#context-panel [data-rl-lv-whole]'))){ await notesNow(); await waitFor(page, () => !!document.querySelector('#context-panel [data-rl-lv-whole]'), 5000); }
+    /* RE-POINTED 25 Nov 2026 (live notes A): a note without words starts from "Note on the whole contract" */
+    if (await page.$('#context-panel [data-rl-lv-whole]')) await page.click('#context-panel [data-rl-lv-whole]');
+    const box = await waitFor(page, () => { const v = document.querySelector('#context-panel'); const i = v && v.querySelector('.rl-np-in'); if (!i) return null;
+      return { ph: i.placeholder, at: !!v.querySelector('[data-rl-np-at]'), post: (v.querySelector('.rl-np-send') || {}).textContent }; }, 5000);
+    check('2d2 the whole contract opens ONE box with @ to name someone, and "Add note"', !!box && /@/.test(box.ph || '') && box.at && /^Add note$/.test((box.post || '').trim()), JSON.stringify(box));
     await page.fill('#context-panel .rl-np-in', 'Finance can live with 45 days. Not 60.');
     await page.click('#context-panel .rl-np-send'); /* RE-POINTED 16 Nov 2026 (#762): the bar's box and its Add note */
     const posted = await waitFor(page, () => { const v = document.querySelector('#context-panel'); const c = getContract('MK-0382');
@@ -207,7 +221,7 @@ async function login(b, base, email, pass, errs){
          change's own (negoNoteHome) once the clause's link has scoped the notes to it */
       const own = (c.thread || []).concat(...(c.changes || []).map(x => x.thread || [])).filter(m => /Finance can live with 45 days/.test(m.text || ''));
       return v && own.length === 1 && own[0].visibility !== 'shared' && !!v.querySelector('.rl-np-room.on[data-rl-np-room="internal"]')
-        && [...v.querySelectorAll('.rl-np-crow .rl-np-cl .w, .rl-np-note .rl-np-b > p')].some(s => /Finance can live with 45 days/.test(s.textContent)) ? true : null; }, 8000);
+        && [...v.querySelectorAll('.rl-np-crow .rl-lv-last .w, .rl-lv-m .rl-lv-tx')].some(s => /Finance can live with 45 days/.test(s.textContent)) ? true : null; }, 8000);
     check('2f Post files one internal note through the drawer\'s own send, and it shows', !!posted);
     /* RE-POINTED 24 Nov 2026 (f1207): no Notes view inside Redlines to come back from — the link pressed again shuts the panel */
     await notesNow();
@@ -236,13 +250,39 @@ async function login(b, base, email, pass, errs){
     check('3c the whole paper: no context line, every clause drawn, none dimmed', !!ed && !ed.ctx && ed.shown.length > 2 && ed.dim == null, JSON.stringify(ed && [ed.ctx, ed.shown.length, ed.dim]));
     check('3d the clause says "Your counter · nothing is filed until you save", no blue box round it', !!ed && ed.step === 'Your counter · nothing is filed until you save' && !ed.boxEdge, JSON.stringify(ed && [ed.step, ed.boxEdge]));
     check('3e the rail: Playbook · Risks · Ladder', !!ed && ed.tabs.join() === 'chat,risks,ladder', JSON.stringify(ed && ed.tabs));
-    check('3f the rail as before: the ladder card leads ("What moved"), no row cards', !!ed && /What moved/.test(ed.lane || '') && !ed.ask, JSON.stringify(ed && ed.lane));
+    /* RE-POINTED 25 Nov 2026 (THE EDITOR'S PANEL L+S, owner 24-25 Nov 2026, f1220, as drawn: "less is more… do not add
+       unnecessary wordings" — § and the clause's name with ONE badge, then WHAT THEY ASKED, their words with the change
+       marked and Accept · Reject beside it, the Redlines row's own buttons; Before you answer only lines that say something):
+       where the editor is tabbed the ladder card's "What moved" is not drawn (ceLadderCardHtml's tab branch); what leads
+       is what they asked, with the row's own Accept · Reject (ladder-accept, theirs-reject), and still no row cards.
+       Untabbed, the old rail as before. Read where it is drawn, guarded so a missing section reports. */
+    const tabbedF = await page.evaluate(() => typeof ceTabbed === 'function' && ceTabbed());
+    const TF = tabbedF ? await page.evaluate(() => { const vis = e => !!e && e.getClientRects().length > 0;
+      const a = document.querySelector('#clause-editor #ce-tasked'), rail = document.querySelector('#clause-editor .ce-rail');
+      const secs = rail ? [...rail.querySelectorAll(':scope > #ce-tabtop ~ section, :scope > #ce-tabtop ~ div')].filter(vis).map(e => e.id || e.className) : [];
+      return { asked: vis(a), first: secs[0] || null, quote: vis(a && a.querySelector('.ce-tquote')),
+        acts: a ? [...a.querySelectorAll('.ce-tchips button')].filter(vis).map(b => b.getAttribute('data-ce-act')) : [],
+        moved: /What moved/.test(rail ? rail.innerText : ''), rowCards: !!document.querySelector('#clause-editor .ce-row-asked, #clause-editor .ce-row-jb') }; }) : null;
+    if (tabbedF) check('3f the tab\'s panel leads with what they asked — their words marked, the row\'s own Accept · Reject — no "What moved" card, no row cards',
+      !!ed && !!TF && TF.asked && TF.first === 'ce-tasked' && TF.quote && TF.acts.join() === 'ladder-accept,theirs-reject' && !TF.moved && !TF.rowCards && !ed.ask, JSON.stringify(TF));
+    else check('3f the rail as before: the ladder card leads ("What moved"), no row cards', !!ed && /What moved/.test(ed.lane || '') && !ed.ask, JSON.stringify(ed && ed.lane));
     /* RE-POINTED 24 Nov 2026 (EDITOR AS A TAB, owner, f1202): on our seat at a wide window the editor wears the Dossier's
        tabs (is-tabbed); the foot's "‹ k of n ›" walk is put away for the tab's clause picker "‹ name ▾ k of n ›", and the
        black button says filing moves on ("Save · next ›", ceSaveAndOn) */
     const tabbed = await page.evaluate(() => typeof ceTabbed === 'function' && ceTabbed());
-    if (tabbed){ const tp = await page.evaluate(() => ({ pick: !!document.querySelector('#ce-tabtop .ce-tpick [data-ce-tstep="1"]'), walkShown: !!(document.querySelector('#ce-railfoot .ce-walk') || { getClientRects: () => [] }).getClientRects().length }));
-      check('3g the tab\'s clause picker "‹ name ▾ k of n ›" walks the paper, and the black button reads "Save · next ›"', !!ed && tp.pick && !tp.walkShown && /Save · next ›/.test(ed.foot || ''), JSON.stringify(Object.assign({ foot: ed && ed.foot }, tp))); }
+    /* RE-POINTED 25 Nov 2026 (EDITOR PANEL AS DRAWN, owner 24 Nov 2026, f1219: "‹ Clauses · ‹ k of n › · All n ▾" — the
+       picker row is .ce-tnav; and EDITOR TAB'S FILE IS THE BOTTOM ROW'S BUTTON, f1217: "remove the 'nothing changed yet'
+       and move the save button lower … In the bottom row" — the row's one button files and goes on, data-ce-tsave, its
+       words the File button's "… · next ›", or is Next › with nothing to file): the rail's foot with its walk is not on
+       screen; the tab's row walks the paper, and the bottom row's one button says it moves on */
+    if (tabbed){ const tp = await page.evaluate(() => { const vis = e => !!e && e.getClientRects().length > 0, nav = document.querySelector('#ce-tabtop .ce-tnav');
+      const row = [...document.querySelectorAll('#ce-tabfoot .ce-tfrow button')].filter(vis);
+      return { pick: vis(nav) && vis(nav.querySelector('[data-ce-tstep="1"]')) && vis(nav.querySelector('[data-ce-tstep="-1"]')) && vis(nav.querySelector('[data-ce-tlist]')) && vis(nav.querySelector('[data-ce-dtab="doc"]')),
+        k: ((nav && nav.querySelector('.ce-tk')) || {}).textContent || '', walkShown: vis(document.querySelector('#ce-railfoot .ce-walk')), railFoot: vis(document.querySelector('#ce-railfoot [data-ce-act="save"]')),
+        btn: row[0] ? { t: row[0].textContent.trim(), save: row[0].hasAttribute('data-ce-tsave'), step: row[0].getAttribute('data-ce-tstep') } : null }; });
+      const bOk = !!tp.btn && (tp.btn.save ? /· next ›$/.test(tp.btn.t) : (tp.btn.step === '1' && /^Next ›$/.test(tp.btn.t)));
+      check('3g the tab\'s row "‹ Clauses · ‹ k of n › · All n ▾" walks the paper, and the bottom row\'s one button moves on ("… · next ›", or Next › with nothing to file)',
+        !!ed && tp.pick && /^\d+ of \d+$/.test(tp.k.trim()) && !tp.walkShown && !tp.railFoot && bOk, JSON.stringify(tp)); }
     else check('3g the foot: "‹ 1 of 2 of their asks ›" and Save', !!ed && /1 of 2 of their asks/.test(ed.foot || '') && /Save/.test(ed.foot || ''), JSON.stringify(ed && ed.foot));
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]){
       await page.setViewportSize({ width: w, height: ht }); await pause(400);
@@ -273,7 +313,7 @@ async function login(b, base, email, pass, errs){
       check(`4 ${w}×${ht}: the face fits beside the paper`, fit.wide === 0 && !fit.sideways, JSON.stringify(fit));
       await shot(page, `9-piles-${w}x${ht}`);
       /* RE-POINTED 24 Nov 2026 (f1207): the notes are the bar's panel, opened by the face's "notes" link */
-      await notesNow(); await waitFor(page, () => !!(state.panelOpen && panelFace() === 'notes' && document.querySelector('#context-panel .rl-np-in')), 4000);
+      await notesNow(); await waitFor(page, () => !!(state.panelOpen && panelFace() === 'notes' && document.querySelector('#context-panel .rl-np-room')), 4000); /* RE-POINTED 25 Nov 2026 (live notes A: no box on the list; the panel is drawn when its rooms are) */
       const nfit = await page.evaluate(() => { const p = document.getElementById('context-panel'); const d = p.getBoundingClientRect();
         return { wide: [...p.querySelectorAll('*')].filter(el => { const q = el.getBoundingClientRect(); return q.width && q.right > d.right + 1; }).length }; });
       check(`4 ${w}×${ht}: the notes fit in the panel`, nfit.wide === 0, JSON.stringify(nfit));

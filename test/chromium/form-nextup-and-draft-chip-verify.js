@@ -122,7 +122,17 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     console.log('\n3 · "draft a new agreement", pressed again');
     const press = async () => {
       await page.evaluate(() => setView('register'));
-      const chip = await until(page, () => { const b = [...document.querySelectorAll('#ig-dock [data-ca-chip]')].find(x => /draft a new agreement/i.test(x.textContent)); if (!b) return null; b.click(); return true; }, null, 8000);
+      /* RE-POINTED 25 Nov 2026 (owner, P-18: "the green links stand BESIDE that press, never on a line above it … a long
+         word takes its short form, and what still does not fit is left out, never wrapped"): the chip is found by its full
+         words (data-jb-full once fitted to its short form, jamboWaysFitOne), and the press is the one the reader SEES —
+         the chip itself where it is shown, else its twin carried onto the "Jambo ›" line (data-jb-key, jamboWaysCarry),
+         which presses the chip's own button. A chip left out (is-fit-off) or hidden is not found */
+      const chip = await until(page, () => {
+        const vis = e => { const r = e.getBoundingClientRect(); if (!(r.width > 0 && r.height > 0)) return false; for (let x = e; x && x !== document.body; x = x.parentElement){ const cs = getComputedStyle(x); if (cs.display === 'none' || cs.visibility === 'hidden') return false; } return true; };
+        const src = [...document.querySelectorAll('#ig-dock [data-ca-chip]')].find(x => /draft a new agreement/i.test(x.getAttribute('data-jb-full') || x.textContent)); if (!src) return null;
+        const k = src.getAttribute('data-ca-chip');
+        const b = vis(src) ? src : [...document.querySelectorAll('#ig-dock .jb-ways.is-carried [data-jb-carry]')].find(x => x.getAttribute('data-jb-key') === k && vis(x));
+        if (!b) return null; b.click(); return true; }, null, 8000);
       if (!chip) return { chip: false };
       /* RE-POINTED 24 Oct 2026 (one door, the Legora way): the chip brings the one sheet up, not a card in the chat */
       const card = await until(page, () => { const c = document.querySelector('#na-root .na-ask, #na-root'); if (!c) return null; const r = c.getBoundingClientRect();

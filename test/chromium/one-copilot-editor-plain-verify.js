@@ -146,10 +146,13 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
        8px in, so the dropdown's line meets the writing bar's line exactly */
     /* RE-POINTED 24 Nov 2026 (owner: the Editor as a tab, as drawn): in a wide window on our seat the editor is tabbed
        (ceTabOn) — the dropdown stands down and the clause picker ‹ name ▾ k of n › at the panel's top takes its place */
-    const TB = await page.evaluate(() => { const pg = document.getElementById('clause-editor'), tp = document.querySelector('#clause-editor .ce-tpick'), nm = document.querySelector('#clause-editor .ce-tnm');
+    /* RE-POINTED 25 Nov 2026 (owner, 24 Nov 2026, the Editor's panel as drawn, f1219: "‹ Clauses · ‹ k of n › · All n ▾",
+       then "clause line + badge"): the picker row is .ce-tnav (its ‹ k of n › and All ▾), the clause being edited named
+       in the head under it (.ce-thd .ce-th) */
+    const TB = await page.evaluate(() => { const pg = document.getElementById('clause-editor'), tp = document.querySelector('#clause-editor .ce-tnav'), nm = document.querySelector('#clause-editor .ce-thd .ce-th');
       return { tabbed: !!(pg && pg.classList.contains('is-tabbed')), pickShown: !!document.getElementById('ce-pick') && document.getElementById('ce-pick').getClientRects().length > 0,
         tpick: !!tp && tp.getClientRects().length > 0, name: nm ? nm.textContent.trim() : '', k: ((document.querySelector('#clause-editor .ce-tk') || {}).textContent || '').trim() }; });
-    if (TB.tabbed) check(!TB.pickShown && TB.tpick && /liability/i.test(TB.name) && /\d+ of \d+/.test(TB.k) && !P.disc, '2a tabbed: the dropdown stands down; ‹ name ▾ k of n › names the clause being edited', JSON.stringify(TB));
+    if (TB.tabbed) check(!TB.pickShown && TB.tpick && /liability/i.test(TB.name) && /\d+ of \d+/.test(TB.k) && !P.disc, '2a tabbed: the dropdown stands down; ‹ k of n › · All ▾ over the head naming the clause being edited', JSON.stringify(TB));
     else check(!!P.h && !P.disc && P.h <= 45 && (P.barBottom == null || Math.abs(P.bottom - P.barBottom) <= 1), '2a the dropdown stands where "Written by Jambo" stood, level with the writing bar\'s line (the new look\'s panel is edge to edge, no floating card\'s inset; re-pointed 28 Oct and 16 Nov 2026)', JSON.stringify(P));
     check(P.groups && P.groups.length === 1 && /^High · 1$/.test(P.groups[0]) && P.on === 'Liability · may favour them', '2b on Risks: the open risks by short title, grouped by severity, on the one being edited', JSON.stringify(P));
     const T = await page.evaluate(() => { const t = document.querySelector('#ce-askrow #ce-scope.ce-tag'); return { tag: t ? t.textContent.trim() : null, card: !!document.querySelector('#clause-editor .ce-scope') }; });

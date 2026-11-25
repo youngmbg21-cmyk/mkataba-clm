@@ -9835,6 +9835,9 @@
   #ig-strip .ig-zc-line{display:none;flex:none}
   #ig-page:has(#pd-fillface) #ig-strip .ig-zc-line{display:inline-flex;align-items:center}
   #ig-page:has(#pd-fillface) #ig-paper-scroll > .paper-zc-row{display:none}
+  /* the paper's zoom now lives in the dock above it (pd2DockFit, #1013): while Fill in stands it stays on the head line
+     alone, as before — one zoom, never two */
+  html.lg-new #ig-page:has(#pd-fillface) #pd2-dock .pd2-dock-zc{display:none}
   #ig-strip .ig-zc-line .rl-type-step{height:var(--ctl-h-sm)}
   #ig-strip .ig-zc-line .rl-type-step button{width:22px;height:22px;font-size:var(--t-body)}
   #ig-strip .ig-sc-word{display:inline-flex;align-items:center;height:22px;padding:0;color:var(--color-neutral-600);font-size:var(--t-meta);font-weight:var(--w-label);white-space:nowrap}
@@ -15260,7 +15263,7 @@
   .jb-ways.is-in-door .jb-way{font-size:13px}
   /* P-18, ONE ROW (owner, 25 Nov 2026; replaces "at most three shown"): what does not fit is measured out, its short form
      first, then left out from the end (jamboWaysFit, js/components.js) — never wrapped, never a second line */
-  .jb-ways > .is-fit-off, [data-ig-chips] > .is-fit-off{display:none}
+  html.lg-new .jb-ways > .is-fit-off, html.lg-new [data-ig-chips] > .is-fit-off{display:none}
   /* "What can I do here?" (js/teach.js): beside "Jambo ›" it stands alone, the page's links giving way; beside
      "‹ Overview" (the conversation, where the person can simply ask) there is no room for it, the links keep theirs */
   .jb-door:not(.jb-door-fwd-line) .jb-ways.is-in-door [data-teach-here]{display:none}
@@ -19385,7 +19388,13 @@
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row.is-open{background:var(--row-chosen)}
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-rows .doc-th-row:not(.is-open):hover{background:var(--row-hover)}
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge{flex:none;display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:var(--w-label);white-space:nowrap}
-  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge i{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.8}
+  /* the badge's dot is its kind's OWN dot colour, the one the paper's notes wear (FOUR KINDS one colour each, pd2PointKind;
+     every other pd2-badge does the same): never the badge's darker word colour (notes-match-clauses 2 measured the list's
+     need mark rgb(143,42,34) against the paper's rgb(194,69,59)) */
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge i{width:6px;height:6px;border-radius:50%;background:var(--st-gray-dot)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.k-need i{background:var(--st-ruby-dot)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.k-look i{background:var(--st-amber-dot)}
+  html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.k-read i{background:var(--st-green-dot)}
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.k-need{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.k-look{background:var(--st-amber-bg);color:var(--st-amber-fg)}
   html.lg-new #ig-dock #pd-thread.is-list .doc-th-lbadge.k-read{background:var(--st-green-bg);color:var(--st-green-fg)}
@@ -26498,6 +26507,11 @@
   html.lg-new #clause-editor.is-tabbed .ce-tfrow .w{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   html.lg-new #clause-editor.is-tabbed .ce-tlinks{display:flex;gap:16px;padding:2px 0 10px;font-size:13px}
   html.lg-new #clause-editor.is-tabbed :is(#ce-chips, #ce-railfoot){display:none}
+  /* THE PLAYBOOK'S WORDING ON THE TAB (owner, 25 Nov 2026: "yes" — a way to use the Playbook's wording where the editor is
+     a tab): the chips row stands only for its Playbook questions (data-ce-std: our standard, our fallback, Jambo's draft),
+     and only those in it are drawn; everything else in the row stays put away */
+  html.lg-new #clause-editor.is-tabbed #ce-chips:has([data-ce-std]){display:flex;flex-wrap:wrap;gap:6px;padding:10px 18px 0}
+  html.lg-new #clause-editor.is-tabbed #ce-chips:has([data-ce-std]) button:not([data-ce-std]){display:none}
   /* THE EDITOR TAB'S SAVE IN THE BOTTOM ROW (owner's pick, 24 Nov 2026): the File button over the panel's foot is not drawn
      (its press is the bottom row's, data-ce-tsave); the row's button is the same grey pill, its words saying it files (Jambo's own act keeps the
      panel's one filled button); a foot with nothing left in it (no Undo) takes no room */
@@ -26544,7 +26558,7 @@
   html.lg-new #clause-editor.is-tabbed .ce-lcard > .k + .ce-lc-sug{grid-column:1 / -1;margin:0 0 10px;padding:12px 14px;border:1px solid var(--color-divider)}
   html.lg-new #clause-editor.is-tabbed .ce-lcard > .acts{grid-column:1 / -1;margin:0;padding:10px 0 0}
   /* THE LIST'S OWN START REDLINING on a clause with no finding: the deep read's link, under the reading */
-  #pd-thread .doc-th-lred{margin:8px 0 0}
+  html.lg-new #pd-thread .doc-th-lred{margin:8px 0 0}
   /* THE DOSSIER'S TABS ARE ONE SWITCH (owner, 24 Nov 2026: "build and merge" the drawing of the tabs in the same design as
      Clean · Redline · Their view): Dossier · Plan · Clauses · Redlines · Editor sit on ONE grey track, the open tab a WHITE
      pill with the switch's own soft shadow; the counts stay beside their words. Beside a paper only (data-pd-head="paper"),
@@ -26618,6 +26632,8 @@
   html.lg-new .rl-chat.is-live .rl-lv-faces .rl-np-av{box-shadow:0 0 0 2px var(--color-surface);margin-left:-6px}
   html.lg-new .rl-chat.is-live .rl-lv-faces .rl-np-av:first-child{margin-left:0}
   html.lg-new .rl-chat.is-live .rl-lv-hq{min-width:0;font-size:12.5px;color:var(--color-neutral-600)}
+  /* an opened conversation's way to its clause on the paper (owner, 25 Nov 2026: "yes but make the wording shorter") */
+  html.lg-new .rl-chat.is-live .rl-lv-go{margin-top:2px;font-size:12.5px}
   html.lg-new .rl-chat.is-live .rl-lv-hq .rl-lv-q{display:inline;white-space:normal}
   html.lg-new .rl-chat.is-live .rl-lv-tc .ui-link{font-size:12.5px}
   html.lg-new .rl-chat.is-live .rl-lv-sub{font-size:12px;color:var(--color-neutral-600)}
@@ -26633,7 +26649,7 @@
   html.lg-new .rl-chat.is-live .rl-lv-m.is-me .rl-lv-tx{background:var(--st-green-bg);border-radius:10px 10px 3px 10px}
   html.lg-new .rl-chat.is-live .rl-lv-m.is-them .rl-lv-tx{background:var(--st-steel-bg)}
   html.lg-new .rl-chat.is-live .rl-lv-at{font-weight:var(--w-strong)}
-  html.lg-new .rl-chat.is-live .rl-lv-meta{margin-top:2px;font-size:11.5px;color:var(--color-neutral-600);text-align:right}
+  html.lg-new .rl-chat.is-live .rl-lv-meta{margin-top:2px;font-size:11.5px;color:var(--color-quiet);text-align:right}
   /* LIVE NOTES B (25 Nov 2026): who is here or typing (a row's line, a conversation's head, under its messages), the
      Read stamp, Jambo's two presses over the box and his quiet summary card. Never a band: each sits where its fact is. */
   html.lg-new .rl-chat.is-live .rl-lv-live{display:none;align-items:center;gap:6px;min-width:0;width:100%;font-size:12px;color:var(--st-green-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -26668,9 +26684,9 @@
   html.lg-new .rl-chat.is-live .rl-lv-m.is-me .rl-lv-pick{left:auto;right:0}
   html.lg-new .rl-chat.is-live .rl-lv-pick[hidden]{display:none}
   html.lg-new .rl-chat.is-live .rl-lv-pick button{height:auto;padding:1px 4px;border:0;border-radius:6px;background:none;font-size:16px;line-height:1.2;cursor:pointer}
-  html.lg-new .rl-chat.is-live .rl-lv-pick button:hover{background:var(--surface-2)}
+  html.lg-new .rl-chat.is-live .rl-lv-pick button:hover{background:var(--row-hover)}
   html.lg-new .rl-chat.is-live .rl-lv-acts{display:inline-flex;gap:10px}
-  html.lg-new .rl-chat.is-live .rl-lv-act{height:auto;padding:0;border:0;background:none;color:var(--color-neutral-600);font-size:11.5px;text-decoration:underline;text-underline-offset:2px;cursor:pointer;white-space:nowrap}
+  html.lg-new .rl-chat.is-live .rl-lv-act{height:auto;padding:0;border:0;background:none;color:var(--color-quiet);font-size:11.5px;text-decoration:underline;text-underline-offset:2px;cursor:pointer;white-space:nowrap}
   html.lg-new .rl-chat.is-live .rl-lv-m:not(:hover):not(:focus-within) .rl-lv-acts{visibility:hidden}
   html.lg-new .rl-chat.is-live .rl-lv-own{margin-top:2px;font-size:11.5px}
   html.lg-new .rl-chat.is-live .rl-lv-own .rl-np-acts{position:static;display:flex;flex-wrap:wrap;gap:2px 8px;opacity:1;margin:0;padding:0;background:none;box-shadow:none}
@@ -26721,6 +26737,11 @@
   html.lg-new:not(#_) .jb-turn .jb-deep{margin:4px 0 0;font-size:12px;line-height:16px;color:var(--color-neutral-600)}
   /* the one line under an answer: where it read from on the left, ✓ ✕ on the right */
   html.lg-new:not(#_) .jb-turn:has(.ai-msg:not(.justify-end)){position:relative}
+  /* THE LINE STAYS UNDER THE ANSWER WHILE IT ARRIVES (25 Nov 2026): the arrival's slide (a transform) on .ai-msg made the
+     message the box the absolute "Read from" line and ✓ ✕ stand in, so for its quarter second they lay over the answer's
+     last row (a chapter's button) and then jumped down. The turn arrives as one, the box they stand in, the same motion. */
+  html.lg-new:not(#_) .jb-turn > .ai-msg{animation:none}
+  html.lg-new:not(#_) .jb-turn:not([data-jb-seen]):has(> .ai-msg){animation:viewIn .25s cubic-bezier(.22,.61,.36,1)}
   html.lg-new:not(#_) .jb-turn > .jb-read, html.lg-new:not(#_) .jb-turn .ai-msg .ai-read{display:flex;align-items:center;min-height:24px;margin:6px 0 0;padding:0 64px 0 2px;font-size:12px;line-height:16px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:none;border:0}
   html.lg-new:not(#_) .jb-turn .ai-msg .ai-read{position:absolute;left:0;right:0;bottom:0;margin:0}
   html.lg-new:not(#_) .jb-turn:has(.ai-msg .ai-read){padding-bottom:30px}
@@ -27903,18 +27924,23 @@
      wording's size, only bolder; the same gap after every clause. Everything that is NOT wording, the clause's
      number (`.rl-hnum`, hung in its own column by rlHeadNumHtml), the paper's sub-line and the signature labels,
      is the plain sans in detail grey, figures lined up. Tables line their figures up. NEVER the signing copy
-     (`.pg-sign`), the printed or exported copies: those keep the Contract Look. Scoped by html.lg-new and the
-     paper's own classes so it wins without !important. */
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign){font-size:15px;line-height:1.7;padding-left:76px;padding-right:56px}
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .nego-body p,
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .nego-body li{font-size:15px;line-height:1.7}
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .nego-clause.rl-clause{margin:0;padding-top:9px;padding-bottom:9px}
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .rl-clause-h{font-size:15px;line-height:1.7;font-weight:var(--w-strong);letter-spacing:0;margin:0 0 2px}
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) :is(.rl-hnum, .rl-pnum, p.rl-line:not(.rl-hang) > .rl-marker:first-child){display:inline-block;width:52px;margin-left:-52px;font-weight:400;font-variant-numeric:tabular-nums;color:var(--color-neutral-400);white-space:pre}
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .rl-paper-title{font-size:calc(23px * var(--doc-scale,1));font-weight:var(--w-strong);letter-spacing:0}
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) .rl-paper-sub{font-size:14px;font-style:italic;color:var(--color-quiet)}
-  html.lg-new article.nego-doc.rl-paper:not(.pg-sign) :is(table, .hati-doc table){font-variant-numeric:tabular-nums}
-  html.lg-new :is(.rl-sigfor, .rl-sigrow):not(.pg-sign *){font-family:var(--font-body);font-size:12px;color:var(--color-neutral-400)}
+     (`.pg-sign`), the printed or exported copies: those keep the Contract Look. Scoped by html.lg-new, and html.lg-out
+     for their page (it opens with nobody signed in, so it never wears lg-new; one-paper-everywhere measured 20px titles and
+     14px wording there, 25 Nov 2026), and the paper's own classes so it wins without !important. */
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign){font-size:15px;line-height:1.7;padding-left:76px;padding-right:56px}
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) .nego-body p,
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) .nego-body li{font-size:15px;line-height:1.7}
+  /* the blocks the wording stands in are the wording's size too: the Negotiate page and their page set them 14px/1.72
+     (negotiation-css.js, .redline-page), so text not in a <p> (the parties' block, a line of a hung clause) read smaller
+     there than on Home */
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) :is(.rl-front, .nego-body, .rl-line){font-size:15px;line-height:1.7}
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) .nego-clause.rl-clause{margin:0;padding-top:9px;padding-bottom:9px}
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) .rl-clause-h{font-size:15px;line-height:1.7;font-weight:var(--w-strong);letter-spacing:0;margin:0 0 2px}
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) :is(.rl-hnum, .rl-pnum, p.rl-line:not(.rl-hang) > .rl-marker:first-child){display:inline-block;width:52px;margin-left:-52px;font-weight:400;font-variant-numeric:tabular-nums;color:var(--color-neutral-400);white-space:pre}
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) .rl-paper-title{font-size:calc(23px * var(--doc-scale,1));font-weight:var(--w-strong);letter-spacing:0}
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) .rl-paper-sub{font-size:14px;font-style:italic;color:var(--color-quiet)}
+  html:is(.lg-new, .lg-out) article.nego-doc.rl-paper:not(.pg-sign) :is(table, .hati-doc table){font-variant-numeric:tabular-nums}
+  html:is(.lg-new, .lg-out) :is(.rl-sigfor, .rl-sigrow):not(.pg-sign *){font-family:var(--font-body);font-size:12px;color:var(--color-neutral-400)}
   /* the editor dresses every span in its box in the paper's font (#ce-doc :is(p,li,div,span)): the number column,
      the sub-line and the signature labels are not wording, so they keep the sans there too */
   html.lg-new #ce-doc article.nego-doc :is(.rl-sigfor, .rl-sigrow){font-family:var(--font-body)}
@@ -27951,7 +27977,7 @@
   html.lg-new #pd2-dock .pd2-dock-zc{display:flex;justify-content:flex-end}
   html.lg-new #pd2-dock .pd2-dock-zc > .paper-zc{position:static;width:auto;height:auto;display:flex;justify-content:flex-end;align-items:center;gap:var(--s-3)}
   html.lg-new #pd2-dock .pd2-dock-row:empty{display:none}
-  html.lg-new #pd2-dock-row > .pd2-rn-chips{position:static;display:flex;flex-wrap:nowrap;align-items:center;gap:12px;min-width:0;width:auto;overflow:hidden;border-bottom:1px solid var(--color-divider)}
+  html.lg-new #pd2-dock-row > .pd2-rn-chips{position:static;display:flex;flex-wrap:nowrap;align-items:center;gap:12px;min-width:0;width:auto;overflow-x:clip;overflow-y:visible;border-bottom:1px solid var(--color-divider)}
   html.lg-new #pd2-dock-row > .pd2-rn-chips.pd2-tg{border-bottom:0;justify-content:flex-end}
   html.lg-new #pd2-dock-row > .pd2-rn-chips > .pd2-rn-chip{flex:none;height:28px;padding:0;border:0;border-radius:0;background:none;box-shadow:none;color:var(--color-neutral-400);font:inherit;font-size:12.5px;font-weight:400;cursor:pointer;white-space:nowrap}
   html.lg-new #pd2-dock-row > .pd2-rn-chips > .pd2-rn-chip[aria-pressed="true"]{color:var(--color-text);font-weight:var(--w-strong);box-shadow:0 1.5px 0 var(--color-text)}
@@ -27962,7 +27988,8 @@
   html.lg-new #pd2-dock-row .pd2-rn-hide{flex:none;margin:0 0 0 auto;padding:0;border:0;background:none;font:inherit;font-size:12.5px;color:var(--accent-ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;white-space:nowrap}
   html.lg-new #pd2-dock-row #pd2-notes-tg{display:flex;justify-content:flex-end}
   html.lg-new #pd2-dock-row #pd2-notes-tg .pd2-rn-chip{height:var(--ctl-h-sm);padding:0 12px;border:0;border-radius:999px;background:var(--color-surface);box-shadow:0 0 0 1px var(--color-divider);color:var(--color-text);font:inherit;font-size:12.5px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
-  /* A FINGER FINDS THEM (the iPad): each small press reaches 44px tall without looking bigger */
+  /* A FINGER FINDS THEM (the iPad): each small press reaches 44px tall without looking bigger; the notes' row clips sideways
+     only (overflow-x:clip above), so that reach is never cut off by the row (measured: "hides 9px" at every laptop) */
   html.lg-new #pd2-dock :is(.rl-type-step button, .pd2-rn-chip, .pd2-rn-hide){position:relative}
   html.lg-new #pd2-dock :is(.rl-type-step button, .pd2-rn-chip, .pd2-rn-hide)::after{content:"";position:absolute;inset:-9px 0}
   /* the upload's facts are whole words (pd2UpStripFit): never cut, the last ones left out instead */

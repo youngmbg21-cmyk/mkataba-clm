@@ -237,11 +237,13 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
     const s5 = await read();
     /* RE-POINTED 6 Oct 2026 (Young: "there should never be an option to
        translate all clauses so please delete"). */
-    check('4a the button says Plain, and NO "All N clauses in plain English" sits beside it', /Plain/.test(s5.openText) && !/clauses in plain English/.test(s5.openText), s5.openText.slice(0, 120));
+    /* RE-POINTED 25 Nov 2026 (the owner's word, f1221: "The plain English press says 'Simplify'"): the button reads Simplify */
+    check('4a the button says Simplify, and NO "All N clauses in plain English" sits beside it', /\bSimplify\b/.test(s5.openText) && !/\bPlain\b/.test(s5.openText) && !/clauses in plain English/.test(s5.openText), s5.openText.slice(0, 120));
     ai.script(answer(() => ''), answer(() => ''));
     const p1 = await press();
-    check('4b answered empty (twice), the clause says "Could not read" on its row, and why, with Plain to ask again',
-      p1.calls === 2 && /Could not read/.test(p1.row.state) && /Jambo could not read this clause/.test(p1.s.openText) && /Plain/.test(p1.s.openText),
+    check('4b answered empty (twice), the clause says "Could not read" on its row, and why, with Simplify to ask again',
+      /* RE-POINTED 25 Nov 2026 (f1221, "Simplify"): the way forward names the button as it reads — Press Simplify */
+      p1.calls === 2 && /Could not read/.test(p1.row.state) && /Jambo could not read this clause/.test(p1.s.openText) && /Press Simplify to ask again/.test(p1.s.openText) && !/\bPlain\b/.test(p1.s.openText),
       JSON.stringify({ calls: p1.calls, state: p1.row.state, text: p1.s.openText.slice(0, 140) }));
     await page.screenshot({ path: path.join(OUT, '04-could-not-read.png') });
     ai.script(answer(hd => 'In plain words, ' + hd + ' asks you to hand over your directors’ identity papers.'));

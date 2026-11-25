@@ -146,7 +146,8 @@ const INSTRUMENT = () => {
       new MouseEvent('mouseup', { bubbles: true, view: window }));
     await window.__settle();
     const m = document.querySelector('.nego-selmenu');
-    return { text: sel.toString(), menu: !!m,
+    const lead = m ? m.querySelector('.nego-selnote-k') : null;
+    return { text: sel.toString(), menu: !!m, lead: lead ? lead.textContent.trim() : null,
       verbs: m ? [...m.querySelectorAll('button')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean) : [] };
   };
   window.__press = re => {
@@ -161,7 +162,14 @@ const INSTRUMENT = () => {
   window.__said = re => window.__seen.said.some(m => new RegExp(re, 'i').test(m.text));
 };
 
-const ONE_CLAUSE = ['Ask Jambo', 'Edit with Jambo', 'Comment'];
+/* RE-POINTED 25 Nov 2026 (LIVE NOTES A, #1012, the owner: "a note starts from words highlighted on the paper,
+   Internal or the other side"): Comment is now "Add a note" leading the bar with its rooms — Internal, then the
+   outside party BY NAME (rlNoteRoomActs) — then Ask, then Edit. Every list below pins those exact buttons in
+   that order, and Edit still never comes across two clauses. */
+const PARTY = 'Nordfrakt Logistik AB';
+const ROOMS = ['Internal', PARTY];
+const ONE_CLAUSE = [...ROOMS, 'Ask Jambo', 'Edit with Jambo'];
+const TWO_CLAUSES = [...ROOMS, 'Ask Jambo'];
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const srv = await serve();
@@ -239,8 +247,9 @@ const ONE_CLAUSE = ['Ask Jambo', 'Edit with Jambo', 'Comment'];
      evening: THREE VERBS — rlPaperOfferFromRange / rlPaperSelOffer). One
      clause's own words: Ask · Edit · Comment. Wider than one clause: Ask ·
      Comment, NEVER Edit. Nothing is asked of the model until a verb is pressed. */
-  check('2 a cross-sub-clause drag inside ONE clause offers Ask · Edit · Comment',
-    JSON.stringify(lists.verbs) === JSON.stringify(ONE_CLAUSE), JSON.stringify(lists.verbs));
+  check('2 a cross-sub-clause drag inside ONE clause offers Add a note (Internal · the party) · Ask · Edit',
+    JSON.stringify(lists.verbs) === JSON.stringify(ONE_CLAUSE) && lists.lead === 'Add a note',
+    JSON.stringify(lists.verbs) + ' lead ' + JSON.stringify(lists.lead));
   check('2 and the highlight alone asks nothing of the model', lists.asked === 0, String(lists.asked));
   check('2 and the markers are still forgiven — the reading finds it in the stored clause',
     lists.found, lists.found ? 'located' : 'the reading could not be matched');
@@ -281,7 +290,7 @@ const ONE_CLAUSE = ['Ask Jambo', 'Edit with Jambo', 'Comment'];
     /Business Day/.test(whole.swept), JSON.stringify(whole.swept.slice(0, 44)));
   check('3 and the real drag really did sweep the heading in',
     /Definitions/.test(whole.swept), JSON.stringify(whole.swept.slice(0, 20)));
-  check('3 and the paper offers the one-clause verbs — Ask · Edit · Comment',
+  check('3 and the paper offers the one-clause verbs — Add a note (Internal · the party) · Ask · Edit',
     JSON.stringify(whole.verbs) === JSON.stringify(ONE_CLAUSE), JSON.stringify(whole.verbs));
   check('3 with no false refusal', !whole.refused);
   check('3 and the heading is not part of what the reading takes',
@@ -364,8 +373,8 @@ const ONE_CLAUSE = ['Ask Jambo', 'Edit with Jambo', 'Comment'];
   else {
     check('5 a genuine drag across two numbered clauses reads as two',
       cross.ids === 2, `${cross.ids} clause(s)`);
-    check('5 and across two clauses it is Ask · Comment, NEVER Edit — and nothing is asked yet',
-      JSON.stringify(cross.verbs) === JSON.stringify(['Ask Jambo', 'Comment']) && cross.asked === 0,
+    check('5 and across two clauses it is Add a note · Ask, NEVER Edit — and nothing is asked yet',
+      JSON.stringify(cross.verbs) === JSON.stringify(TWO_CLAUSES) && cross.asked === 0,
       `menu ${JSON.stringify(cross.verbs)}, asked ${cross.asked}`);
   }
 

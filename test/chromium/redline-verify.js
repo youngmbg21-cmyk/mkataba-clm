@@ -256,8 +256,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   /* REVERSED IN PLACE, 8 Oct 2026. The Home paper (owner: "i am choosing the
      home paper") is 720px on every screen, centred, its column's width if
      narrower. */
+  /* RE-POINTED 25 Nov 2026 (owner: "the font size of the paper at 90% is what should be 100%" — 100% IS WHAT 90% WAS,
+     RL_ZOOM_BASE 0.9): at 100% the 720 sheet is drawn at the base, 720 × 0.9 on screen (its column, if narrower) */
   check('2 the sheet is the Home paper\'s 720 (its column, if narrower), then stops',
-    Math.abs(sheet.paperWidth - Math.min(720, sheet.colWidth)) <= 1,
+    Math.abs(sheet.paperWidth - Math.min(720 * 0.9, sheet.colWidth)) <= 1,
     `${Math.round(sheet.paperWidth)} of ${Math.round(sheet.colWidth)}px`);
   /* THE REGRESSION THIS SECTION IS NOW FOR. 6662667: the type-scale rule
      out-specified the centring rule and pinned the sheet to the left of the
@@ -1323,6 +1325,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       selected: String(sel.toString() || '').trim().length,
       noToolbar: document.querySelectorAll('#rl-doc .rl-tool, #rl-doc [data-nego-ai-clause]').length === 0,
       items: m ? [...m.querySelectorAll('[data-nego-ai]')].map(b => b.textContent.trim()) : [],
+      keys: m ? [...m.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai')) : [],
       dialogs: document.querySelectorAll('.nego-aipop, .lab-aipop').length,
       modals: document.querySelectorAll('#modal-root *').length };
   });
@@ -1330,9 +1333,15 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      (rlPaperOfferFromRange): one clause → Ask · Edit · Comment". A clause still
      carries no Copilot button of its own; a highlight inside one clause offers
      exactly those three, in that order, and nothing else. */
-  check('5 no clause carries a Copilot button — and a highlight offers Ask · Edit · Comment',
-    menu.noToolbar && menu.open && JSON.stringify(menu.items) === JSON.stringify(['Ask Jambo', 'Edit with Jambo', 'Comment']),
-    `menu ${menu.open}, items ${JSON.stringify(menu.items)}`);
+  /* RE-POINTED 25 Nov 2026 (owner, live notes A, #1014: "Add a note" and its rooms on the bar replace Comment —
+     rlNoteRoomActs, negoSelBarHtml): a highlight inside one clause offers the note's rooms (our Internal room first, then
+     each outside party's), then Ask, then Edit — and nothing else */
+  const roomKeys = menu.keys.slice(0, -2);
+  check('5 no clause carries a Copilot button — and a highlight offers the note\'s rooms · Ask · Edit',
+    menu.noToolbar && menu.open && roomKeys.length >= 2 && roomKeys[0] === 'note:internal' && roomKeys.slice(1).every(k => /^note:p:/.test(k))
+      && JSON.stringify(menu.keys.slice(-2)) === JSON.stringify(['ask', 'edit']) && JSON.stringify(menu.items.slice(-2)) === JSON.stringify(['Ask Jambo', 'Edit with Jambo'])
+      && menu.items[0] === 'Internal',
+    `menu ${menu.open}, items ${JSON.stringify(menu.items)} · ${JSON.stringify(menu.keys)}`);
   check('5 but the wording still selects, so it can still be copied',
     menu.selected > 3, `${menu.selected} characters selected`);
   check('3 and a highlight opens no dialog either', menu.dialogs === 0 && menu.modals === 0);

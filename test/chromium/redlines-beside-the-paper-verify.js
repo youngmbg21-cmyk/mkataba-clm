@@ -203,7 +203,15 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
         const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.focus(); return; } } });
     await page.keyboard.type('nine');
     await pause(300);
-    await page.click('[data-ce-act="save"]');
+    /* RE-POINTED 25 Nov 2026 (owner's pick, 24 Nov 2026: "EDITOR TAB'S FILE IS THE BOTTOM ROW'S BUTTON" — "move the save
+       button lower … In the bottom row"; f1217, f1220): a wide window on our seat draws the editor tabbed (ceTabOn), its
+       File button is not drawn, and the reader presses the bottom row's own (data-ce-tsave), which presses it; untabbed,
+       the File button itself. Guarded: a missing press reports rather than times out */
+    const sel6 = await page.evaluate(() => { const pg = document.getElementById('clause-editor');
+      return pg && pg.classList.contains('is-tabbed') ? '#clause-editor [data-ce-tsave]' : '[data-ce-act="save"]'; });
+    const up6 = await waitFor(page, sel => { const b = document.querySelector(sel); return !!b && !b.disabled && b.getClientRects().length > 0; }, 6000, sel6);
+    check('6- the counter\'s Save press is on screen', !!up6, sel6);
+    if (up6) await page.click(sel6, { timeout: 8000 }).catch(() => {});
     await waitFor(page, () => getContract('MK-R1').changes.some(x => x.authorSide === 'owner'), 6000);
     /* the filing's own ask for a note (owner-ruled 31 Aug 2026), skipped; then out of the editor and its drawer */
     await pause(600);

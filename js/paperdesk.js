@@ -7268,6 +7268,7 @@ let _pdMid = null;              // { key } while a page stands in the middle bes
    contract to Home first when another is in front (roomHomeLand) — and opens there; the older places (the panel's
    form tab, the 920px pop-up) are deleted. Never come after PD_MID_WAIT_MS: it says so, with the way forward. */
 const PD_MID_WAIT_MS = 6000;
+const PD2_BACK_MS = 1500; /* after a page in the middle goes, how long the Dossier's held place waits for its redraw */
 function pdMidReadyFor(cid){
   if (!pdMidMay()) return false;
   if (cid == null) return true;
@@ -7343,6 +7344,8 @@ if (typeof window !== 'undefined' && typeof window.addEventListener === 'functio
 }, true);
 /* asked AFTER openModal: a page replacing another one in the middle keeps the middle */
 function pdMidOn(key){
+  /* a press on the Dossier that opened this page holds its place until the Dossier is drawn again (pd2PlacePress) */
+  if (_pd2Hold && Date.now() < _pd2Hold) _pd2Hold = Infinity;
   /* the page it belongs to (the desk's own key, deskKeyNow): another page or contract in front puts it away (pdMidStale) */
   let at = ''; try { at = (typeof deskKeyNow === 'function' && deskKeyNow()) || ''; } catch (_){ at = ''; }
   _pdMid = { key: String(key), at };
@@ -7353,7 +7356,10 @@ function pdMidOn(key){
   const p = document.querySelector('#modal-root [data-dlg-page]'); if (p) p.setAttribute('data-pd-mid', String(key));
   pdMidSync();
 }
-function pdMidOff(){ if (!_pdMid) return; _pdMid = null; pdMidSync(); }
+function pdMidOff(){ if (!_pdMid) return; _pdMid = null;
+  /* the page has gone: the held place waits a moment for the Dossier drawn again, then lets go (pd2PlaceBack sooner) */
+  if (_pd2Hold === Infinity) _pd2Hold = Date.now() + PD2_BACK_MS;
+  pdMidSync(); }
 /* asked after every page is drawn (deskTabsSync): the middle stands only on the page that opened it */
 function pdMidStale(){
   if (!_pdMid) return false;
@@ -7526,11 +7532,25 @@ let _pd2Place = null;
 function pd2PlainFace(el){ return !!(el && el.id === 'pd-glance' && el.classList.contains('pd2-dossier') && !/(^|\s)is-/.test(el.className)); }
 function pd2PlaceScroller(el){ let sc = el ? el.parentElement : null;
   while (sc && sc.id !== 'igd-feed' && sc.id !== 'pd-body') sc = sc.parentElement; return sc; }
+/* THE PLACE AT THE PRESS IS THE PLACE (25 Nov 2026, GitHub again: 434 over 320): a press on the Dossier takes its place
+   there and then, and holds it until the Dossier is drawn again (pd2PlaceBack) — whatever moves the panel between the press
+   and the page in the middle standing, or between that page going and the Dossier drawn again, is not the reader's place.
+   A press that opens nothing lets go after PD_MID_WAIT_MS (the middle's own bound). */
+let _pd2Hold = 0;
+function pd2PlacePress(e){
+  const g = document.getElementById('pd-glance'); if (!pd2PlainFace(g) || _pdMid) return;
+  const t = e && e.target && e.target.closest ? e.target.closest('button, a, [role="button"]') : null; if (!t || !g.contains(t)) return;
+  const sc = pd2PlaceScroller(g); if (!sc) return;
+  _pd2Place = { id: String(g.getAttribute('data-pd-glance-for') || ''), top: sc.scrollTop };
+  _pd2Hold = Date.now() + PD_MID_WAIT_MS;
+}
 function pd2PlaceKeep(e){
   /* while a page stands in the middle (Duties, Where the deal stands …) the place left behind is held: the panel's parts
      above the Dossier change then and the browser shifts the scroller to hold what is on screen, and that shifted number
      put back on the way home landed the reader 114px low (GitHub, 24 Nov 2026: pd2PlaceBack set 434 over 319) */
   if (_pdMid) return;
+  if (_pd2Hold && Date.now() < _pd2Hold) return;
+  _pd2Hold = 0;
   const g = document.getElementById('pd-glance'); if (!pd2PlainFace(g)) return;
   const sc = pd2PlaceScroller(g); if (!sc || (e && e.target !== sc)) return;
   _pd2Place = { id: String(g.getAttribute('data-pd-glance-for') || ''), top: sc.scrollTop };
@@ -7539,8 +7559,13 @@ function pd2PlaceBack(was, nu){
   if (pd2PlainFace(was) || !pd2PlainFace(nu) || !_pd2Place) return;
   if (String(nu.getAttribute('data-pd-glance-for')) !== _pd2Place.id) return;
   const sc = pd2PlaceScroller(nu); if (sc) sc.scrollTop = _pd2Place.top;
+  /* the Dossier is drawn again: the place is let go, for the reader's own scrolling from here */
+  _pd2Hold = 0;
 }
-if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('scroll', pd2PlaceKeep, true);
+if (typeof document !== 'undefined' && document.addEventListener){
+  document.addEventListener('scroll', pd2PlaceKeep, true);
+  document.addEventListener('pointerdown', pd2PlacePress, true);
+}
 function pdGlanceRepaint(){
   const el = (typeof document !== 'undefined') ? document.getElementById('pd-glance') : null; if (!el) return;
   const c = pdContract(); if (!c || String(c.id) !== el.getAttribute('data-pd-glance-for')) return;
@@ -9679,13 +9704,17 @@ function pd2DockPlace(){
   const sc = document.getElementById('ig-paper-scroll'), d = sc && sc.querySelector(':scope > #pd2-dock');
   if (!d || d.hidden) return;
   const box = d.querySelector('.pd2-dock-box'), row = d.querySelector('#pd2-dock-row');
-  /* the dock stands at the window's very top edge, at rest and held alike: pulled up over the scroller's top padding and
-     given it back underneath, so nothing after it moves (sticky top 0, so it never shifts as the page starts to scroll) */
+  /* the dock stands at the window's very top edge, at rest and held alike: its BOX is lifted over the scroller's top padding
+     (a held sticky box keeps that padding; sticky top 0, so it never shifts as the page starts to scroll). Never by margins
+     on the dock itself: a box of no height lets its margins collapse through into the zoom row's margin under it, and the
+     paper rode up by the padding (measured 25 Nov 2026: the zoom 3px over the sheet's top edge, 29 above it, not 40) */
   const pt = parseFloat(getComputedStyle(sc).paddingTop) || 0;
-  if (d.style.marginTop !== (-pt) + 'px'){ d.style.marginTop = (-pt) + 'px'; d.style.marginBottom = pt + 'px'; d.style.top = (-pt) + 'px'; }   /* a held box keeps the scroller's padding: its top is offset by it */
+  if (box.style.top !== (-pt) + 'px') box.style.top = (-pt) + 'px';
   if (!sc._pd2DockRO && typeof ResizeObserver === 'function'){ sc._pd2DockRO = new ResizeObserver(() => { try { pd2DockPlace(); } catch (_){} }); sc._pd2DockRO.observe(sc); }
   const dr = d.getBoundingClientRect(), sr = sc.getBoundingClientRect();
-  box.style.right = Math.max(0, Math.round(dr.right - (sr.left + sc.clientLeft + sc.clientWidth - PAPER_DOCK_EDGE))) + 'px';
+  /* 16 inside the grey area's right edge, which lies in the scroller's own right padding: a negative right is that reach,
+     never clamped to the dock's edge (clamped, the zoom stood 8px further in than every other paper's) */
+  box.style.right = Math.round(dr.right - (sr.left + sc.clientLeft + sc.clientWidth - PAPER_DOCK_EDGE)) + 'px';
   const zoom = sc.querySelector('#ig-paper .ig-zoom'), sheet = zoom && zoom.querySelector(PD2_SHEET_SEL);
   const sheetR = sheet ? sheet.getBoundingClientRect().right : null;
   /* with a row it spans the margin beside the paper; with the zoom alone it is as wide as the zoom */
@@ -9696,7 +9725,14 @@ function pd2DockPlace(){
   d.classList.toggle('is-loose', sheetR != null && br.left < sheetR + PD2_DOCK_GAP / 2 - 1);
   /* the row never wraps: past its room it takes its short words (Outstanding → Open, Resolved → Done) */
   const ch = hasRow ? row.querySelector('.pd2-rn-chips') : null;
-  if (ch){ ch.classList.remove('is-tight'); if (ch.scrollWidth > ch.clientWidth + 1) ch.classList.add('is-tight'); }
+  if (ch){ ch.classList.remove('is-tight'); if (ch.scrollWidth > ch.clientWidth + 1 || pd2RowOver(ch)) ch.classList.add('is-tight'); }
+}
+/* the row's last press past the row's right edge: the row clips sideways only (overflow-x:clip, so a finger's 44px reach
+   above and below its presses is never cut), so its own right edge is read, not its scroll width */
+function pd2RowOver(ch){
+  const last = ch && ch.lastElementChild; if (!last) return false;
+  const r = ch.getBoundingClientRect();
+  return last.getBoundingClientRect().right > r.right - (parseFloat(getComputedStyle(ch).borderRightWidth) || 0) + 1;
 }
 /* THE UPLOAD'S LINE OVER THE PAPER SAYS WHOLE WORDS (owner, 25 Nov 2026, of "R.. · 4761 KB · Young M… · 9,978… · Structur…"):
    its facts are never cut mid-word; where they do not all fit, the last facts are left out, whole, until they do, and only
@@ -9831,9 +9867,12 @@ function pd2NotesOnPaper(c, cv, red){
 /* THE SHEET AND ITS MARGIN (ONE layout for the Dossier and a seat) */
 function pd2SheetLay(zoom){
   const f = parseFloat(zoom.style.zoom) || 1, W = zoom.clientWidth;
-  /* 40px from the page's own edge, as drawn: the scroller's padding already gives part of it */
+  /* 40px from the page's own edge, as drawn: the scroller's padding already gives part of it. 100% IS WHAT 90% WAS (owner,
+     25 Nov 2026): the paper is drawn at the reader's zoom times RL_ZOOM_BASE, so the 40 is the reader's 100% — divided by
+     the base, the margin on screen at 100% stays the 40 it was (never 36), and the Track keeps the room it had */
   const sc = zoom.parentElement, inset = sc ? Math.max(0, (zoom.getBoundingClientRect().left - sc.getBoundingClientRect().left) / f) : 0;
-  const left0 = Math.round(PD2_SHEET_LEFT - inset);
+  const zb = Number(typeof window !== 'undefined' && window.RL_ZOOM_BASE) || 1;
+  const left0 = Math.round(PD2_SHEET_LEFT / zb - inset);
   const room = W - left0 - PD2_NOTES_GUTTER - 16;
   const sheetW = Math.max(PD2_SHEET_MIN, Math.min(720, room - PD2_NOTES_MIN));
   const notesW = Math.max(160, Math.min(PD2_NOTES_MAX, room - sheetW));

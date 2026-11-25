@@ -422,14 +422,26 @@ const CONTRACT = (id, over) => Object.assign({
       const off = shot();
       const kept = w ? w.querySelectorAll('span.hati-wfield').length : 0;
       uploadBlanksPaint(c);
-      return { off, on: shot(), kept, missing: false };
+      const hit = w ? [...w.querySelectorAll('p,h1,h4')].map((el, i) => /Highland Corporate Ltd/.test(el.textContent || '') ? i : -1).filter(i => i >= 0) : [];
+      return { off, on: shot(), kept, hit, missing: false };
     });
     check('8i clearing the marks LEAVES the file\'s own fields standing',
       !offF.missing && offF.kept === 3, offF.missing ? 'painter absent' : (offF.kept + ' fields'));
     check('8j and the wording measures the same with the marks off and on',
       /* GATED on the marks really being on, or a page with none satisfies it. */
       !offF.missing && offF.kept === 3 && f.markKeys.length === 3
-      && offF.off.length > 3 && offF.off.join(' ') === offF.on.join(' '),
+      /* RE-POINTED 25 Nov 2026 (owner's photos, "merge now": the marks on show the typed answer, "Highland Corporate Ltd",
+         where the marks off show the file's placeholder, and the longer answer may wrap — the one paper type at 15px
+         wraps it): the marks move nothing BUT the block holding the typed answer — its height may grow by whole lines, and
+         every block after it moves down by exactly that growth; every other block measures the same */
+      && offF.off.length > 3 && offF.off.length === offF.on.length && (() => {
+        const P = x => x.split(':').map(Number); let shift = 0;
+        for (let i = 0; i < offF.off.length; i++){
+          const [t0, h0] = P(offF.off[i]), [t1, h1] = P(offF.on[i]);
+          if (t1 - t0 !== shift) return false;
+          if (h1 !== h0){ if (!offF.hit.includes(i) || h1 < h0) return false; shift += h1 - h0; }
+        }
+        return true; })(),
       offF.missing ? 'painter absent'
         : offF.off.length + ' blocks · off ' + offF.off.slice(0, 3).join(' ')
           + ' · on ' + offF.on.slice(0, 3).join(' '));

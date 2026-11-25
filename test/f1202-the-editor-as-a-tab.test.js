@@ -55,7 +55,11 @@ describe('f1202 (3) the panel says the clause; File · next › moves on', () =>
     assert.equal((I.match(/^    pd_tab_editor: /gm) || []).length, 2);
   });
   test('filing opens the paper\'s next clause, with its points; the button says so', () => {
-    assert.match(CE, /const nextTab = \(!w \|\| !\(w\.ids \|\| w\.asks\)\) && ceTabbed\(\) \? ceTabNextId\(\) : '';/);
+    /* RE-POINTED 25 Nov 2026 (EDITOR TAB'S FILE IS THE BOTTOM ROW'S BUTTON, f1217: "File · next › to the paper's next
+       clause"; counter-with-copilot 7a found a walk at its last ask filed and stood still under "Save counter · next ›"):
+       the paper's next clause wherever the walk has no next item of its own — the same rule the button's words follow */
+    assert.match(CE, /const walkNext = !!\(w && \(w\.ids \|\| w\.asks\) && w\.k && w\.k < w\.n\);/);
+    assert.match(CE, /const nextTab = !walkNext && ceTabbed\(\) \? ceTabNextId\(\) : '';/);
     assert.match(CE, /if \(ch && nextTab && clauseEditorOpen\(\)\)\{ ceTabGo\(nextTab\); return ch; \}/);
     assert.match(CE, /\(wNext \|\| \(ceTabbed\(\) && ceTabNextId\(\)\)\)/);
     assert.match(fnSrc(CE, 'ceTabGo'), /ceGoClause\(clauseId,[\s\S]*ceOfferPoints\(pts\)/);

@@ -115,7 +115,19 @@ const waitFor = async (page, fn, ms = 8000, arg) => { const end = Date.now() + m
     const s10 = ce ? await page.evaluate(() => { const b = document.querySelector('#ce-railfoot [data-ce-act="save"]'); const r = b.getBoundingClientRect(), cs = getComputedStyle(b);
       const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
       return { w: Math.round(r.width), h: Math.round(r.height), opacity: cs.opacity, disabled: b.disabled, painted: !!at && (at === b || b.contains(at)) }; }) : null;
-    check('10 File / Save is full height, 110px or wider, painted, solid when greyed', s10 && s10.w >= 110 && s10.h >= 30 && s10.painted && Number(s10.opacity) === 1, s10);
+    /* RE-POINTED 25 Nov 2026 (EDITOR TAB'S FILE IS THE BOTTOM ROW'S BUTTON, owner's pick 24 Nov 2026: "remove the 'nothing
+       changed yet' and move the save button lower" — "In the bottom row"; f1217, and the editor's panel L+S of 25 Nov, "less
+       is more": foot Save · Undo): the editor opens as the Dossier's tab, the File button over the row is not drawn there
+       (its press is the row's, data-ce-tsave), and with nothing typed the bottom row's one button is Next ›, painted, solid.
+       A greyed File button is no longer shown at all. */
+    const s10b = ce ? await page.evaluate(() => { const ed = document.getElementById('clause-editor');
+      const b = document.querySelector('#clause-editor #ce-tabfoot .ce-tfrow > button'); if (!b) return { tabbed: !!(ed && ed.classList.contains('is-tabbed')), row: null };
+      const r = b.getBoundingClientRect(), cs = getComputedStyle(b), at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return { tabbed: ed.classList.contains('is-tabbed'), row: { t: b.textContent.trim(), step: b.hasAttribute('data-ce-tstep'), save: b.hasAttribute('data-ce-tsave'), w: Math.round(r.width), h: Math.round(r.height),
+        opacity: cs.opacity, painted: !!at && (at === b || b.contains(at)), inView: r.top >= 0 && r.bottom <= innerHeight } }; }) : null;
+    check('10 File / Save is the bottom row\'s one button: the File button over it not drawn in the tab, the row\'s Next › painted, solid, on screen',
+      !!s10 && s10.w === 0 && s10.h === 0 && !!s10b && s10b.tabbed && !!s10b.row && s10b.row.step && !s10b.row.save && s10b.row.h >= 24 && s10b.row.w > 0
+        && s10b.row.painted && s10b.row.inView && Number(s10b.row.opacity) === 1, { s10, s10b });
     await page.screenshot({ path: path.join(OUT, '10-editor.png') });
 
     check('no page errors', errors.length === 0, errors.length ? errors : 'none');

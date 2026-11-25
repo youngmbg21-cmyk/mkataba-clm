@@ -28,7 +28,11 @@ test('f1225 (1) one box for the zoom and the row, sticky beside the paper, never
   assert.match(fit, /if \(!zrow\) slot\.querySelectorAll\(':scope > \.paper-zc'\)\.forEach\(x => x\.remove\(\)\)/, 'a paper with no zoom of its own leaves none');
   assert.match(place, /box\.style\.left = \(hasRow && sheetR != null\) \? Math\.round\(sheetR - dr\.left \+ PD2_DOCK_GAP\)/, 'its left edge is the paper\'s');
   assert.match(place, /d\.classList\.toggle\('is-loose', sheetR != null && br\.left < sheetR/, 'no room: not held');
-  assert.match(place, /d\.style\.marginTop = \(-pt\) \+ 'px'; d\.style\.marginBottom = pt \+ 'px'; d\.style\.top = \(-pt\) \+ 'px';/, 'at the window\'s top edge; nothing after it moves');
+  /* RE-POINTED 25 Nov 2026 (one-zoom 6, one-paper-everywhere 1: the dock's own margins collapsed through into the zoom
+     row's and pulled the paper up 9px): the BOX is lifted over the padding, the dock carries no margin */
+  assert.match(place, /if \(box\.style\.top !== \(-pt\) \+ 'px'\) box\.style\.top = \(-pt\) \+ 'px';/, 'at the window\'s top edge; nothing after it moves');
+  assert.doesNotMatch(place, /d\.style\.margin(Top|Bottom) =/, 'no margin on a box of no height');
+  assert.match(place, /box\.style\.right = Math\.round\(dr\.right - \(sr\.left \+ sc\.clientLeft \+ sc\.clientWidth - PAPER_DOCK_EDGE\)\) \+ 'px';/, '16 inside the grey, never clamped');
   assert.match(H, /#ig-paper-scroll > #pd2-dock\{position:sticky;top:0;z-index:6;height:0;pointer-events:none\}/);
   assert.match(H, /#ig-paper-scroll > #pd2-dock\.is-loose\{position:relative\}/);
   assert.match(H, /#pd2-dock \.pd2-dock-box\{position:absolute;top:0;[^}]*background:var\(--desk-ground\)/, 'solid, the desk\'s colour');
@@ -65,8 +69,18 @@ test('f1225 (4) the upload\'s line keeps whole words', () => {
 });
 
 test('f1225 (5) short words when tight; presses a finger finds', () => {
-  assert.match(fnSrc(PD, 'pd2DockPlace'), /if \(ch\.scrollWidth > ch\.clientWidth \+ 1\) ch\.classList\.add\('is-tight'\)/);
+  /* RE-POINTED 25 Nov 2026 (laptops-verify: "div.pd2-rn-chips hides 9px" — the row's overflow:hidden cut the presses' 44px
+     reach): the row clips sideways only, and tightness is read off its last press as well */
+  assert.match(fnSrc(PD, 'pd2DockPlace'), /if \(ch\.scrollWidth > ch\.clientWidth \+ 1 \|\| pd2RowOver\(ch\)\) ch\.classList\.add\('is-tight'\)/);
+  assert.match(H, /#pd2-dock-row > \.pd2-rn-chips\{[^}]*overflow-x:clip;overflow-y:visible;/, 'never cuts a finger\'s reach');
+  assert.doesNotMatch(H, /#pd2-dock-row > \.pd2-rn-chips\{[^}]*overflow:hidden/);
   assert.equal((I18.match(/pd2_rn_chip_open_s: '/g) || []).length, 2, 'both books');
   assert.equal((I18.match(/pd2_rn_chip_done_s: '/g) || []).length, 2, 'both books');
   assert.match(H, /#pd2-dock :is\(\.rl-type-step button, \.pd2-rn-chip, \.pd2-rn-hide\)::after\{content:"";position:absolute;inset:-9px 0\}/);
+});
+
+test('f1225 the room above Home\'s sheet is 20 on screen at any zoom from the FIRST paint: the frame carries --ig-zf when drawn (review of #1016)', () => {
+  const IG = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js/views/intelligence.js'), 'utf8');
+  assert.match(IG, /<div class="ig-zoom" style="zoom:\$\{[^}]+\};--ig-zf:\$\{[^}]+\}">/, 'the frame is drawn with its factor');
+  assert.match(IG, /style="padding:calc\(20px \/ var\(--ig-zf,1\)\) 0 40px"/, 'and the room above the sheet reads it');
 });

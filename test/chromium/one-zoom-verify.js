@@ -17,6 +17,8 @@ const fs = require('node:fs');
 const { chromium } = require('playwright-core');
 const { startHati, seedWorkspace } = require('../helpers');
 
+/* 100% IS WHAT 90% WAS (owner, 25 Nov 2026): the page is drawn at the readout times this base (RL_ZOOM_BASE) */
+const ZOOM_BASE = 0.9;
 const OUT = process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots', 'one-zoom');
 const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
@@ -72,8 +74,10 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.click('#ig-paper .rl-type-step [data-rl-type="1"]');
     await until(page, () => (document.querySelector('#ig-paper .rl-type-out') || {}).textContent === '120%');
     const d1 = await READ('#ig-paper .ig-zoom');
+    /* RE-POINTED 25 Nov 2026 (owner: "the font size of the paper at 90% is what should be 100%" — 100% IS WHAT 90% WAS,
+       RL_ZOOM_BASE 0.9 in rlDocZoomFactor, the readout unchanged): the page wears the readout times the base */
     ok('1d two presses: 120%, the page grows, the words keep their type',
-      d1.ctl === '− 120% +' && Math.abs(d1.zoom - 1.2) < 0.01 && d1.type === d0.type,
+      d1.ctl === '− 120% +' && Math.abs(d1.zoom - 1.2 * ZOOM_BASE) < 0.01 && Math.abs(d0.zoom - ZOOM_BASE) < 0.01 && d1.type === d0.type,
       `zoom ${d0.zoom} → ${d1.zoom}, type ${d0.type} → ${d1.type}`);
     ok('1e it is remembered', await page.evaluate(() => localStorage.getItem('hati.v1.docZoom')) === '120');
     await page.screenshot({ path: path.join(OUT, '1-home-document.png') });
@@ -92,7 +96,8 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
       const s = document.querySelector('#view-redline .rl-paper').getBoundingClientRect(); return { zb: Math.round(z.bottom), st: Math.round(s.top) }; });
     ok('2a3 it stands in the grey above the sheet', above.zb <= above.st, JSON.stringify(above));
     const n0 = await READ('#view-redline .rl-zoom');
-    ok('2b at the zoom Home\'s Document left', n0.ctl === '− 120% +' && Math.abs(n0.zoom - 1.2) < 0.01, `${n0.ctl}, zoom ${n0.zoom}`);
+    /* RE-POINTED 25 Nov 2026 (100% IS WHAT 90% WAS, as 1d) */
+    ok('2b at the zoom Home\'s Document left', n0.ctl === '− 120% +' && Math.abs(n0.zoom - 1.2 * ZOOM_BASE) < 0.01, `${n0.ctl}, zoom ${n0.zoom}`);
     ok('2c nothing open on the table, no count', !n0.moved);
     const filed = await page.evaluate(async id => {
       const c = getContract(id); const cl = negoClauseList(c)[0];
@@ -110,11 +115,12 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.evaluate(id => igAnalyze(id), id);
     const hmUp = await until(page, () => !!document.querySelector('#ig-paper .paper-zc .rl-type-step') && !!document.querySelector('#ig-paper .ig-zoom'));
     const m0 = hmUp ? await READ('#ig-paper .ig-zoom') : {};
-    ok('3a back on Home, the same remembered zoom, and the page wears it', hmUp && m0.ctl === '− 120% +' && Math.abs(m0.zoom - 1.2) < 0.01, `${m0.ctl}, zoom ${m0.zoom}`);
+    /* RE-POINTED 25 Nov 2026 (100% IS WHAT 90% WAS, as 1d) */
+    ok('3a back on Home, the same remembered zoom, and the page wears it', hmUp && m0.ctl === '− 120% +' && Math.abs(m0.zoom - 1.2 * ZOOM_BASE) < 0.01, `${m0.ctl}, zoom ${m0.zoom}`);
     await page.click('#ig-paper .rl-type-step [data-rl-type="-1"]');
     await until(page, () => (document.querySelector('#ig-paper .rl-type-out') || {}).textContent === '110%');
     const m1 = await READ('#ig-paper .ig-zoom');
-    ok('3b a press on Home turns Home\'s page', Math.abs(m1.zoom - 1.1) < 0.01, `zoom ${m1.zoom}`);
+    ok('3b a press on Home turns Home\'s page', Math.abs(m1.zoom - 1.1 * ZOOM_BASE) < 0.01, `zoom ${m1.zoom}`);
     await page.screenshot({ path: path.join(OUT, '3-home-document.png') });
 
     /* 4. THE ROOM'S SIGNING TAB — the one paper the room still draws. Its zoom

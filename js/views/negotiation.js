@@ -17812,9 +17812,21 @@ function rlNpWhoKind(m, side){
   return m.side && m.side !== side ? 'them' : 'team';
 }
 /* what this reader has not read in one conversation: the others' words after their seen mark (READING MUST NOT WRITE) */
+/* UNREAD HOLDS FOR THE SITTING (review of #1014, 25 Nov 2026): every paint of the panel marks the conversation seen
+   (negoMarkChatSeen), so a count read off the live mark emptied itself on the next paint — the Unread chip pressed
+   showed nothing, a room's green dot went at any redraw. The seen mark each thread had when this contract was first
+   drawn here is kept for as long as the reader stays on it; a newer message still counts. */
+let _rlNpSeenHeld = { cid: '', at: new Map() };
+function rlNpSeenAtHeld(c, opts, ch){
+  const scope = negoSeenScope(c, opts), host = rlNpHostKey(ch), cid = String((c && c.id) || '');
+  if (_rlNpSeenHeld.cid !== cid) _rlNpSeenHeld = { cid, at: new Map() };
+  const k = negoSeenKey(scope, host);
+  if (!_rlNpSeenHeld.at.has(k)) _rlNpSeenHeld.at.set(k, negoThreadSeenAt(scope, host));
+  return _rlNpSeenHeld.at.get(k);
+}
 function rlNpUnread(c, ch, th, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
-  const seen = negoThreadSeenAt(negoSeenScope(c, opts), rlNpHostKey(ch));
+  const seen = rlNpSeenAtHeld(c, opts, ch);
   return [th.root].concat(th.replies).filter(m => rlNpWhoKind(m, side) !== 'me' && (!seen || String(m.at || '') > String(seen))).length;
 }
 /* the likes on a message: face → who pressed; read off the note (ours) or its channel copy (theirs) */
@@ -17872,12 +17884,19 @@ function rlNpBubbleHtml(c, m, room, side, other, ctx){
     root: !!ctx.isRoot, rootKey: ctx.rootKey, replyRoot: ctx.replyRoot, replyCount: ctx.replyCount, stripe: true }) : '';
   const org = kind === 'them' ? (other || '') : '';
   const who = kind === 'me' ? '' : `<div class="rl-lv-who"><b>${_ne(m.who || '')}</b>${org ? ' · ' + _ne(org) : ''} · ${_ne(time)}</div>`;
-  const text = _ne(String(m.text || '')).replace(/\n/g, '<br>').replace(/(^|\s)@([\w.\- ]{1,40}?)(?=[\s,.;:!?]|$)/g, (a, b, n) => `${b}<span class="rl-lv-at">@${n}</span>`);
+  /* A TAGGED NAME, EACH PERSON ITS OWN COLOUR (owner-asked 2 Sep 2026): a note that names people (m.mentions, the writer's
+     own record) marks them through the drawer's one marker (rlNpMarkMentions: the whole name, bold, rlTagInk's colour) —
+     the bubble had its own pattern, which stopped at the first space and drew every name in one ink (notes-two-rooms 7) */
+  const named = Array.isArray(m.mentions) && m.mentions.length;
+  const text = named ? rlNpMarkMentions(_ne(String(m.text || '')), m).replace(/\n/g, '<br>')
+    : _ne(String(m.text || '')).replace(/\n/g, '<br>').replace(/(^|\s)@([\w.\- ]{1,40}?)(?=[\s,.;:!?]|$)/g, (a, b, n) => `${b}<span class="rl-lv-at">@${n}</span>`);
   /* MARK DECIDED: an internal conversation, a writer's press, on any of its messages */
   const acts = [];
   if (ctx.mayWrite && !negoRoomIsExternal(room) && side === 'owner') acts.push(`<button type="button" class="rl-lv-act" data-rl-lv-decide="${_nea(key)}">${_ne(i18t('ng_lv_mark_decided'))}</button>`);
   if (ctx.mayWrite && kind === 'them' && ctx.clauseId && side === 'owner') acts.push(`<button type="button" class="rl-lv-act" data-rl-lv-tochange="${_nea(ctx.clauseId)}">${_ne(i18t('ng_lv_to_change'))}</button>`);
-  return `<div class="rl-lv-m is-${kind}" data-rl-lv-msg="${_nea(key)}">
+  /* data-rl-np-key too: a marker's press lands on its message here (rlNpShowFocused), as it does on a drawer note —
+     without it the focus key found nothing, stayed set, and held the conversation open over ‹ All notes */
+  return `<div class="rl-lv-m is-${kind}" data-rl-lv-msg="${_nea(key)}" data-rl-np-key="${_nea(key)}">
       ${kind === 'me' ? '' : `<span class="rl-lv-av">${rlNpAvatarHtml(m.who || '', true)}</span>`}
       <div class="rl-lv-mb">${who}<div class="rl-lv-tx">${text}</div>${meta}
         <div class="rl-lv-foot">${rlNpReactsHtml(m, key, ctx.mayWrite && (side === 'owner' || (PORTAL_MODE && negoRoomIsExternal(room) && m.channelId != null)))}${acts.length ? `<span class="rl-lv-acts">${acts.join('')}</span>` : ''}</div>${own ? `<div class="rl-lv-own">${own}</div>` : ''}</div>
@@ -17919,6 +17938,7 @@ function rlNpOpenHtml(c, ch, th, room, side, other, opts){
       ${opts.headRef || ''}
       <div class="rl-lv-live is-head" data-rl-lv-live="${_nea(c.id + '|' + room + '|' + key)}"></div>
       ${th.root.anchor && th.root.anchor.quote ? `<div class="rl-lv-hq">${rlNpQuoteHtml(th.root.anchor.quote)}${tc}</div>` : (tc ? `<div class="rl-lv-hq">${tc}</div>` : '')}
+      ${cid ? `<div class="rl-lv-go"><button type="button" class="ui-link" data-rl-np-goclause="${_nea(cid)}">${_ne(i18t('ng_np_go_paper', { sec: S.sec || S.name }))} ›</button></div>` : ''}
     </div>
     <div class="rl-lv-conv" data-rl-np-home="${_nea(ch ? ch.id : '')}" data-rl-np-root="${_nea(key)}">
       <div class="rl-lv-msgs">${body}${pin}${rlNpSumHtml(c, room, key)}<div class="rl-lv-typing" data-rl-lv-typing="${_nea(c.id + '|' + room + '|' + key)}" aria-live="polite"></div></div>

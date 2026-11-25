@@ -16,6 +16,13 @@
 
    The READING is f129 (9); what DRAWS is here. The two files name each other.
 
+   RE-POINTED 25 Nov 2026 (owner, of MK-469's sans with blue headings: every unsigned paper on screen looks the same —
+   THE SCREEN'S WORKING PAPER WEARS NO CONTRACT LOOK DESIGN, redlineDocHtml look:false, the upload's working copy too; the
+   signing copy, the Word file and the sealed PDF keep it). The REPORTED fault stays pinned the same way — the two pages
+   set the agreement alike (1c, 1e, 1f, 3c, 4d, 4e) — but what they agree ON is reversed: the paper's own face and the one
+   type, with no design hook, whichever design the contract carries. 1a, 1d, 3a, 3b, 4b and 4c now pin that the design
+   does NOT reach either working paper.
+
    Screenshots go to test/chromium/shots/negotiate-design/.
    Run: node test/chromium/negotiate-design-verify.js */
 const fs = require('node:fs');
@@ -140,15 +147,17 @@ const openNego = async (page, id) => {
     const neg = await openNego(page, id);
     await page.screenshot({ path: path.join(OUT, '02-negotiate.png') });
 
-    check('1a the design reaches the negotiate paper at all',
-      neg.hook === 'formal-legal', `hook ${neg.hook}`);
+    /* RE-POINTED 25 Nov 2026 (the screen's working paper wears no Contract Look design, look:false) */
+    check('1a the design stays off both working papers — no design hook on either',
+      !neg.hook && !doc.hook, `doc ${doc.hook} · nego ${neg.hook}`);
     check('1b both pages found a real paragraph of the agreement to measure',
       doc.has.body && neg.has.body, `doc ${doc.has.body} · nego ${neg.has.body}`);
     /* THE HEADLINE. Against the parent this reports the report itself. */
     check('1c the two pages set the agreement in ONE face',
       !!doc.body && doc.body === neg.body, `doc "${doc.body}" · nego "${neg.body}"`);
-    check('1d and the face really is the design’s, not the platform’s',
-      !!neg.body && !/Plex/.test(neg.body), neg.body);
+    /* RE-POINTED 25 Nov 2026 (as 1a): the face is the paper's own, the one type, not the design's */
+    check('1d and the face is the paper’s own (the one type), not the design’s',
+      !!neg.body && neg.body === neg.docTok && !/Plex/.test(neg.body), `${neg.body} · token ${neg.docTok}`);
     /* Formal legal justifies its paragraphs — a heading treatment, not a face,
        so it is the second half of "the style" and is checked apart from it. */
     check('1e the paragraph treatment agrees too',
@@ -188,11 +197,13 @@ const openNego = async (page, id) => {
     }, id);
     const doc2 = await openDoc(page, id);
     const neg2 = await openNego(page, id);
-    check('3a a second design travels as well',
-      neg2.hook === 'ceremonial' && !!doc2.body && doc2.body === neg2.body,
-      `hook ${neg2.hook} · doc "${doc2.body}" · nego "${neg2.body}"`);
-    check('3b it is a DIFFERENT face from the first, so 1c was not a coincidence',
-      !!neg2.body && neg2.body !== neg.body, `${neg.body} → ${neg2.body}`);
+    /* RE-POINTED 25 Nov 2026 (as 1a): a second design stays off as well, and the two pages still agree */
+    check('3a a second design stays off as well, and the pages still agree',
+      !neg2.hook && !doc2.hook && !!doc2.body && doc2.body === neg2.body,
+      `hook ${doc2.hook}/${neg2.hook} · doc "${doc2.body}" · nego "${neg2.body}"`);
+    /* RE-POINTED 25 Nov 2026 (as 1a): the SAME face as under the first design — the paper's own, whatever is chosen */
+    check('3b it is the SAME face as under the first design — the paper’s own, whatever design is chosen',
+      !!neg2.body && neg2.body === neg.body && neg2.body === neg2.docTok, `${neg.body} → ${neg2.body}`);
     check('3c and its heading treatment agrees on the two pages',
       doc2.headTT === neg2.headTT, `doc ${doc2.headTT} · nego ${neg2.headTT}`);
 
@@ -234,7 +245,7 @@ const openNego = async (page, id) => {
       return h ? { tag: h.tagName, tt: cs.textTransform, weight: cs.fontWeight,
         /* the letterfit as a PROPORTION of this page's own size: the design
            states it in em, and each page keeps its own scale. */
-        fit: Math.round((parseFloat(cs.letterSpacing) / parseFloat(cs.fontSize)) * 1000) / 1000,
+        fit: Math.round(((parseFloat(cs.letterSpacing) || 0) / parseFloat(cs.fontSize)) * 1000) / 1000,   /* "normal" is 0 */
         size: parseFloat(cs.fontSize) } : null;
     })()`;
     await goDoc(page, id);
@@ -243,8 +254,9 @@ const openNego = async (page, id) => {
     const ttNeg = await page.evaluate(tt(NEG_PAPER));
     check('4a each page drew its own clause heading for a stored body',
       !!ttDoc && !!ttNeg, `doc ${JSON.stringify(ttDoc)} · nego ${JSON.stringify(ttNeg)}`);
-    check('4b the design’s heading treatment reaches BOTH pages',
-      !!ttDoc && ttDoc.tt === 'uppercase' && !!ttNeg && ttNeg.tt === 'uppercase',
+    /* RE-POINTED 25 Nov 2026 (as 1a): Formal legal's uppercase reaches NEITHER working paper */
+    check('4b the design’s heading treatment reaches NEITHER page',
+      !!ttDoc && ttDoc.tt === 'none' && !!ttNeg && ttNeg.tt === 'none',
       `doc ${ttDoc && ttDoc.tt} · nego ${ttNeg && ttNeg.tt}`);
     /* THE LETTERFIT IS THE SAME PROPORTION, NOT THE SAME NUMBER OF PIXELS, and
        that is the design working as written: it states .08em, and each page
@@ -252,8 +264,9 @@ const openNego = async (page, id) => {
        because the negotiate page's scale is one the owner tuned. A check on
        the pixel value would be asserting that the sizes travel too, which was
        never promised and is not wanted. */
-    check('4c and its letterfit, as a proportion of each page’s own size',
-      !!ttDoc && !!ttNeg && ttDoc.fit === ttNeg.fit,
+    /* RE-POINTED 25 Nov 2026 (as 1a): nor its .08em letterfit — both headings set at the one type's own, none */
+    check('4c nor its letterfit — both headings carry none',
+      !!ttDoc && !!ttNeg && ttDoc.fit === 0 && ttNeg.fit === 0,
       `doc ${ttDoc && ttDoc.fit}em @${ttDoc && ttDoc.size}px · nego ${ttNeg && ttNeg.fit}em @${ttNeg && ttNeg.size}px`);
     /* SAID OUT LOUD: the two pages agree on the TREATMENT and draw it on
        different tags, which is this page's own decision and not the design's. */

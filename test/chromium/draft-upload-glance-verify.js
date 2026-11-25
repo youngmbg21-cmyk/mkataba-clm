@@ -127,7 +127,12 @@ const pastFirstWords = async page => {
     check('1a2 its door opens the drop card in a pop-up', await card());
     await page.evaluate(() => closeModal()); await pause(300);
     const head = await page.evaluate(() => ({ draft: !!document.querySelector('#hb-head #hero-draft, #hb-head .hm-primary'),
-      chips: [...document.querySelectorAll('#ig-dock [data-ig-chips] button')].map(b => b.textContent.trim()),
+      /* RE-POINTED 25 Nov 2026 (P-18 ONE ROW, owner 25 Nov 2026: "the green links stand BESIDE that press, never on a line
+         above it … a long word takes its short form"): the chips ride the line of "Jambo ›" / "‹ Overview" (jamboWaysCarry),
+         so the row the reader sees is read — the chips' own row where it still stands, else the carried one — each press by
+         its whole word (data-jb-full, kept when it wears its short form), and none left out */
+      chips: (() => { const row = [...document.querySelectorAll('#ig-dock [data-ig-chips], #ig-dock .jb-ways.is-carried')].find(e => e.getClientRects().length > 0);
+        return row ? [...row.querySelectorAll(':scope > button')].map(b => (b.classList.contains('is-fit-off') ? '(left out) ' : '') + String(b.getAttribute('data-jb-full') || b.textContent || '').trim()) : []; })(),
       hello: (document.querySelector('#ig-dock .ctls') || document.querySelector('#ig-dock .pd-hello') || document.querySelector('#ig-dock .jov5') || {}).innerText || '', welcome: !!document.querySelector('#ig-dock .ig-welcome'),
       first: (() => { const w = document.querySelector('#ig-dock [data-jb-hello]'), p = document.querySelector('#ig-dock .pd-hello');
         return !!(w && p && (w.compareDocumentPosition(p) & Node.DOCUMENT_POSITION_FOLLOWING)); })() }));
@@ -309,7 +314,9 @@ const pastFirstWords = async page => {
         ogSign: !!el.querySelector('#pd-og [data-pd-og-row="signers"]'),
         /* RE-POINTED 20 Oct 2026: Still owed's grid makes the card taller than the panel, so it scrolls in
            its own area; that area ends above the chips and the box (it never runs under them) */
-        above: (() => { const chips = document.querySelector('#ig-dock [data-ig-chips]'); const sc = el.closest('.overflow-y-auto') || el;
+        /* RE-POINTED 25 Nov 2026 (P-18 ONE ROW): the chips stand on the line of "Jambo ›" over the box where that press
+           stands (jamboWaysCarry), so the row read is the one on screen */
+        above: (() => { const chips = [...document.querySelectorAll('#ig-dock [data-ig-chips], #ig-dock .jb-ways.is-carried')].find(e => e.getClientRects().length > 0); const sc = el.closest('.overflow-y-auto') || el;
           return !!chips && sc.getBoundingClientRect().bottom <= chips.getBoundingClientRect().top + 1; })() }; });
     const num = k => { const r = g.rows.find(x => x[0] === k); return r ? Number((/(\d+)/.exec(r[1]) || [])[1] || (k === 'sign' ? 1 : 0)) : 0; };
     /* RE-POINTED 17 Nov 2026 (#762): 6a the six stages stand on the card's stage line, one in focus ("What Jambo read" and

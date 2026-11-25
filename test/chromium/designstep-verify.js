@@ -218,8 +218,11 @@ const READ = () => {
      scaled whole keeps the proportion whatever size it is drawn at. */
   check('5 · and the title sits on one line, not four',
     m.sheet && m.sheet.titleLines === 1, `title wraps to ${m.sheet && m.sheet.titleLines} line(s)`);
+  /* RE-POINTED 25 Nov 2026 (owner: "the font size of the paper at 90% is what should be 100%" — 100% IS WHAT 90% WAS:
+     every paper that asks the one zoom's factor, the design step's among them, is drawn at the readout times RL_ZOOM_BASE
+     0.9): at 100% the page is fitted to the pane and drawn at the base, so it stands at 0.9 of the pane */
   check('5 · the page is scaled to fit the pane it is in',
-    m.sheet && m.sheet.zoom > 0 && Math.abs(m.sheet.onScreenW - m.sheet.paneW) < 40,
+    m.sheet && m.sheet.zoom > 0 && Math.abs(m.sheet.onScreenW - m.sheet.paneW * 0.9) < 40,
     m.sheet ? `zoom ${m.sheet.zoom} → ${m.sheet.onScreenW}px in a ${m.sheet.paneW}px pane` : '');
   /* ---- THE SAME CLAIM IN THE REDESIGN'S CLOTHES (re-pointed 23 Aug 2026) ----
      It required pad > 0, which was how the pre-redesign THREE-CHIP pill said

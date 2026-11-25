@@ -76,7 +76,10 @@ test('f977 (6, 7) the foot follows, one thing when empty — every HARMONY rule 
   /* RE-POINTED (owner, 16 Nov 2026: "imports page is locked on this page"; f1081): the empty band is hidden, never the check screen's bar */
   assert.match(b, /html\.lg-new \.mig-page:not\(\.is-checking\):not\(:has\(table\)\) #mig-band\{display:none\}/);
   assert.doesNotMatch(b, /!important/);
-  const rules = [...b.matchAll(/([^{}]+)\{[^{}]*\}/g)].map(m => m[1].trim()).filter(s => s && !/^@media/.test(s));
+  /* RE-POINTED 25 Nov 2026 (#1014's blink is a @keyframes in this block: its steps — "0%,100%", "50%" — are not rules a
+     switch can hold, and the animation is only used under html.lg-new) */
+  const rules = [...b.matchAll(/([^{}]+)\{[^{}]*\}/g)].map(m => m[1].trim().replace(/^@keyframes\s+[\w-]+\s*\{\s*/, ''))
+    .filter(s => s && !/^@media/.test(s) && !/^(\d+%|from|to)(\s*,\s*(\d+%|from|to))*$/.test(s));
   assert.ok(rules.length > 10);
   for (const r of rules) assert.match(r.replace(/^@media[^{]*\{\s*/, ''), /^html\.lg-new\b/, r);
 });

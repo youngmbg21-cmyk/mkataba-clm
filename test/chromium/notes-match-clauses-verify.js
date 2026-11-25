@@ -35,8 +35,11 @@ const until = async (page, fn, arg, ms = 15000) => { try { await page.waitForFun
   await page.waitForTimeout(500);
   const C = await page.evaluate(() => ({ amber: [...document.querySelectorAll('#pd-thread .doc-th-row')].filter(r => /stk-b-(need|look)/.test(r.className)).map(r => r.getAttribute('data-th-row')),
     tabN: Number(((document.querySelector('#ig-dock [data-pd-tab="doc"] .pd-tab-n') || {}).textContent || '').trim()) || (typeof stkNeedCount === 'function' ? stkNeedCount(pdContract()) : null),
-    listAmber: getComputedStyle(document.querySelector('#pd-thread .doc-th-row.stk-b-look .doc-th-bead') || document.body).backgroundColor,
-    listNeed: getComputedStyle(document.querySelector('#pd-thread .doc-th-row.stk-b-need .doc-th-bead') || document.body).backgroundColor }));
+    /* RE-POINTED 25 Nov 2026 (THE LIST L+S, owner's pick 24 Nov 2026, f1214: "number column · name · finding line ·
+       badge"): the list's bead is the clause's number in a plain column now; a row's kind is its soft badge, the badge's
+       dot its kind's colour (docThreadListDress, .doc-th-lbadge.k-need / .k-look) — that mark is the one matched */
+    listAmber: getComputedStyle(document.querySelector('#pd-thread .doc-th-row .doc-th-lbadge.k-look > i') || document.body).backgroundColor,
+    listNeed: getComputedStyle(document.querySelector('#pd-thread .doc-th-row .doc-th-lbadge.k-need > i') || document.body).backgroundColor }));
   await page.evaluate(() => { const t = document.querySelector('#ig-dock [data-pd-tab="copilot"]'); if (t) t.click(); });
   await until(page, () => document.querySelectorAll('#pd2-notes .pd2-mg').length >= 6, null, 15000);
   await page.waitForTimeout(600);

@@ -278,6 +278,13 @@ function _thShown(el){ try { const r = el.getBoundingClientRect(); return r.widt
 function teachFind(sels){
   if (typeof document === 'undefined') return null;
   for (const s of sels || []){ let els = []; try { els = [...document.querySelectorAll(s)]; } catch (_){ els = []; } const el = els.find(_thShown); if (el) return el; }
+  /* A LINK CARRIED ONTO THE PRESS'S LINE (P-18, jamboWaysCarry): its own button is hidden while the shown copy keeps the
+     link's name as data-jb-key, so a step pointing at [data-ca-chip="x"] / [data-jb-way="x"] outlines the copy in view */
+  for (const s of sels || []){
+    const m = String(s).match(/\[data-(?:ca-chip|jb-way)=["']?([^"'\]]+)["']?\]/); if (!m) continue;
+    let els = []; try { els = [...document.querySelectorAll(`.jb-ways.is-carried [data-jb-key="${m[1].replace(/"/g, '')}"]`)]; } catch (_){ els = []; }
+    const el = els.find(_thShown); if (el) return el;
+  }
   return null;
 }
 function teachMarkOff(){ if (typeof document !== 'undefined') document.querySelectorAll('.teach-mark').forEach(e => e.classList.remove('teach-mark')); }

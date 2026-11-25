@@ -493,7 +493,8 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
         tabs: document.querySelectorAll('#context-panel [data-rl-np-room]').length,
         who: !!document.querySelector('#context-panel .rl-chat .rl-np-who'),
         scope: !!document.querySelector('#context-panel .rl-chat :is(.rl-np-scope, .rl-np-rooms)'),
-        box: !!document.querySelector('#context-panel .rl-np-in') };
+        box: !!document.querySelector('#context-panel .rl-np-in'),
+        whole: !!document.querySelector('#context-panel .rl-lv-start [data-rl-lv-whole]') };
     });
     check('THE PRESS OPENS CHAT — not a dead press', chat.open === true);
     /* ---- AND A SECOND PRESS SHUTS IT (owner-asked 10 Sep 2026) ----
@@ -562,8 +563,11 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
        notes which was the case previously but has changed without my ask."
        A note that belongs to no redline had nowhere to be written; it has the
        contract's own thread now, and the box is the panel's own foot. */
-    check('THE BOX IS BACK — a note that belongs to no redline can be written here',
-      chat.box === true);
+    /* RE-POINTED 25 Nov 2026 (LIVE NOTES A, #1012, as drawn: "THE LIST: the rooms, the piles, then the one way a note
+       starts — on the paper's words (or the whole contract)"): the list no longer stands a box under it; it offers
+       "Note on the whole contract" (data-rl-lv-whole), and that press brings the box (driven in 6b below). */
+    check('THE BOX IS BACK — a note that belongs to no redline has its own press on the list',
+      chat.whole === true && chat.box === false, `whole ${chat.whole} · a box standing on the list ${chat.box}`);
     /* THE OTHER ROOM IS ONE PRESS, and it holds what the internal one does not. */
     await page.click('#context-panel [data-rl-np-room]:not([data-rl-np-room="internal"])');
     await page.waitForTimeout(300);
@@ -582,15 +586,20 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
        *"you should also be able to ... add any notes internally or externally
        unrelated to a redline."* Driven for real, because the whole point is
        that the box exists and the press reaches the record. */
+    await page.click('#context-panel [data-rl-lv-whole]');
+    const wholeBox = await page.waitForSelector('#context-panel .rl-lv-conv.is-new .rl-np-in', { timeout: 5000 }).then(() => true, () => false);
+    check('and that press brings the box — a new conversation on the whole contract', wholeBox);
     await page.fill('#context-panel .rl-np-in', 'Renewal talks start in March.');
     await page.click('#context-panel [data-rl-chat-send]');
     await page.waitForTimeout(900);
+    /* RE-POINTED 25 Nov 2026 (LIVE NOTES A, #1012: "a note started from the paper (or on the whole contract) opens as its
+       conversation"): what was sent stands as the opened conversation; ‹ All notes brings the list back (below) */
     const free = await page.evaluate(() => {
       const c = (state.contracts || []).find(x => String(x.id) === String(state.activeId));
       const own = (c.thread || []);
       const last = own[own.length - 1] || {};
-      const rows = [...document.querySelectorAll('.rl-chat-row')];
-      const mine = rows.find(r => /March/.test(r.textContent || ''));
+      const conv = document.querySelector('#context-panel .rl-lv-conv:not(.is-new)');
+      const mine = conv && /March/.test(conv.textContent || '') ? conv : null;
       return { onContract: last.text, vis: last.visibility,
         /* AND IT IS NOT ON ANY CHANGE — the two stores are separate, which is
            what stops a general note appearing under a redline it is not about. */
@@ -599,8 +608,9 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
         onScreen: !!mine,
         /* A ROW WITH NO CHANGE DRAWS NO REFERENCE LINE: a door reading "the
            contract" on a panel about that contract is a press going nowhere. */
-        ref: !!(mine && mine.querySelector('.rl-chat-on')),
-        boxCleared: (document.querySelector('#context-panel .rl-np-in') || {}).value };
+        ref: !!document.querySelector('#context-panel .rl-np-list.is-open .rl-chat-on'),
+        boxCleared: document.querySelector('#context-panel .rl-lv-conv.is-new') ? null
+          : ((document.querySelector('#context-panel .rl-lv-conv [data-rl-np-rin]') || {}).value) };
     });
     check('a note with no redline files onto the CONTRACT, not onto a change',
       /March/.test(free.onContract || '') && free.onAnyChange === false,
@@ -612,7 +622,9 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       free.ref === false);
     check('the box empties after the send', free.boxCleared === '');
     /* IT SITS WITH THE REDLINE NOTES rather than in a list of its own — the
-       owner's own words, "should be able to sit in the panel". */
+       owner's own words, "should be able to sit in the panel". ‹ All notes first (live notes A). */
+    await page.click('#context-panel [data-rl-np-back]');
+    await page.waitForSelector('#context-panel .rl-chat-row', { timeout: 5000 }).catch(() => {});
     const together = await page.evaluate(() => {
       const rows = [...document.querySelectorAll('.rl-chat-row')];
       return { total: rows.length,

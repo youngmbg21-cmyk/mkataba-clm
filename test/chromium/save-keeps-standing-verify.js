@@ -66,6 +66,12 @@ const WHY = 'Swedish law stands, per our standard.';
       const applied = await page.evaluate(w => ceApply(w, 'Playbook'), wording(s.text));
       return { ...s, applied };
     };
+    /* RE-POINTED 25 Nov 2026 (owner's pick, 24 Nov 2026: "EDITOR TAB'S FILE IS THE BOTTOM ROW'S BUTTON" — "move the save
+       button lower … In the bottom row"; f1217, f1220): a wide window on our seat draws the editor tabbed (ceTabOn), its
+       File button is not drawn, and the press a reader makes is the bottom row's own (data-ce-tsave), which presses it and
+       carries its words and hover. Untabbed, the File button itself. What Save WILL do is still read off the File button */
+    const pressSel = () => page.evaluate(() => { const pg = document.getElementById('clause-editor');
+      return pg && pg.classList.contains('is-tabbed') ? '#clause-editor [data-ce-tsave]' : '#clause-editor [data-ce-act="save"]'; });
     const foot = () => page.evaluate(() => { const s = document.querySelector('#clause-editor [data-ce-act="save"]'), d = document.querySelector('#ce-draft');
       return { save: s && s.textContent, live: !!s && !s.disabled, title: s && s.title, draft: d && d.textContent.trim() }; });
 
@@ -79,13 +85,19 @@ const WHY = 'Swedish law stands, per our standard.';
     /* 4 the three screens */
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(250);
-      const G = await page.evaluate(() => { const s = document.querySelector('#clause-editor [data-ce-act="save"]'), r = s.getBoundingClientRect();
-        return { hit: document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) === s, inView: r.bottom <= innerHeight && r.right <= innerWidth }; });
-      check(`4 ${w}×${ht}: Save is on screen and pressable`, G.hit && G.inView, JSON.stringify(G));
+      const G = await page.evaluate(sel => { const s = document.querySelector(sel), f = document.querySelector('#clause-editor [data-ce-act="save"]');
+        if (!s) return { press: null };
+        const r = s.getBoundingClientRect();
+        return { press: sel, words: s.textContent.trim(), title: s.title, hit: document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) === s, inView: r.top >= 0 && r.bottom <= innerHeight && r.right <= innerWidth,
+          same: !!f && s.textContent.trim() === f.textContent.trim() && s.title === f.title }; }, await pressSel());
+      check(`4 ${w}×${ht}: Save is on screen and pressable`, !!G.press && G.hit && G.inView && G.same, JSON.stringify(G));
     }
 
     /* 2 */
-    await page.click('#clause-editor [data-ce-act="save"]');
+    const sel2 = await pressSel();
+    const up2 = await until(sel => { const b = document.querySelector(sel); return !!b && b.getClientRects().length > 0; }, sel2, 8000);
+    check('2- the Save press is on screen', !!up2, sel2);
+    if (up2) await page.click(sel2, { timeout: 8000 }).catch(() => {});
     const asked = await until(() => { const ok = document.getElementById('pd-ok'); if (!ok) return null;
       const r = ok.getBoundingClientRect(); return document.elementFromPoint(r.left + 5, r.top + 5) === ok; }, null, 5000);
     check('2a the row\'s own reason question opens, over the editor', !!asked);

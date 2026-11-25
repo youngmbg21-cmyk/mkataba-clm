@@ -61,6 +61,8 @@ const http = require('node:http');
 const { chromium } = require('playwright-core');
 
 const OUT = path.join(__dirname, 'shots', 'paper');
+/* 100% IS WHAT 90% WAS (owner, 25 Nov 2026): every paper is drawn at the readout times this base (RL_ZOOM_BASE) */
+const ZOOM_BASE = 0.9;
 const ROOT = path.join(__dirname, '..', '..');
 const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
@@ -157,11 +159,14 @@ const SHEET = () => {
            that would look right in a screenshot and be wrong. */
         /* REVERSED IN PLACE, 8 Oct 2026. THE HOME PAPER (owner, 8 Oct 2026: "i am choosing the home paper"): every
            paper is Home Redlined's — 720px, centred, 14px — so this pins that. */
+        /* RE-POINTED 25 Nov 2026 (owner: "the font size of the paper at 90% is what should be 100%" — 100% IS WHAT 90% WAS,
+           RL_ZOOM_BASE 0.9): at 100% the Home paper's 720 is drawn at the base, so on screen it is 720 × 0.9 (or its whole
+           column, if narrower), and the one zoom the page wears is that base — never a fit to the column */
         check(`${w} · owner: THE SHEET IS THE HOME PAPER'S 720 (or its whole column, if narrower)`,
-          Math.abs(own.paper - Math.min(720, own.col)) <= 1,
+          Math.abs(own.paper - Math.min(720 * ZOOM_BASE, own.col)) <= 1,
           `${own.paper} of ${own.col}, zoom ${own.zoom}`);
         check(`${w} · owner: it is WIDENED, not scaled — the words hold their size`,
-          own.zoom === 1, `zoom ${own.zoom}`);
+          own.zoom === ZOOM_BASE, `zoom ${own.zoom}`);
         check(`${w} · owner: still centred — any spare width splits evenly`,
           Math.abs(own.gutterL - own.gutterR) <= 2, `${own.gutterL} / ${own.gutterR}`);
       }
@@ -172,8 +177,10 @@ const SHEET = () => {
          20 Nov ruling "nothing is pushed behind the side panel"): their paper is Home's 720 — and, as Home's does
          (pd2SheetLay), it gives way only where the notes beside it would otherwise run under the panel: then it is its
          paper's own room less the notes' margin (192), and no note ends past the column */
+      /* RE-POINTED 25 Nov 2026 (100% IS WHAT 90% WAS, as above): their paper is laid out in its own units (720, or its room
+         less the notes' 192, read off the zoom wrapper's own width) and drawn at the base */
       check(`${w} · counterparty: ONE FIX REACHES BOTH MOUNTS`,
-        !!cp && cp.zoom === 1 && Math.abs(cp.paper - Math.min(720, cp.notes ? cp.zw - 192 : cp.col)) <= 1 && cp.notesOut <= 0,
+        !!cp && cp.zoom === ZOOM_BASE && Math.abs(cp.paper - ZOOM_BASE * Math.min(720, cp.notes ? cp.zw - 192 : cp.col / ZOOM_BASE)) <= 1 && cp.notesOut <= 0,
         cp ? `${cp.paper} of ${cp.col}, zoom ${cp.zoom}, notes ${cp.notes} (past the column by ${cp.notesOut})` : 'no sheet');
     }
     await page.setViewportSize({ width: 1920, height: 940 });
@@ -196,7 +203,10 @@ const SHEET = () => {
        the width on air. */
     await page.setViewportSize({ width: 1366, height: 940 });
     await pause(300);
-    await page.evaluate(() => { localStorage.setItem('hati.v1.rlLeftFrac', '0.50');
+    /* RE-POINTED 25 Nov 2026 (100% IS WHAT 90% WAS): the sheet's cap on screen is 720 × 0.9 now, which the column at the
+       old starting half (0.50) already reaches at 1366 — so the drag starts from the divider's own floor (RL_FMIN 0.45),
+       where the column is still the binding constraint, as this section requires */
+    await page.evaluate(() => { localStorage.setItem('hati.v1.rlLeftFrac', '0.45');
       window.renderRedline(); });
     await pause(500);
     const before = await page.evaluate(SHEET);
@@ -237,7 +247,7 @@ const SHEET = () => {
          margins — the fault this check was written to catch, caught the same
          way from the other side. */
       check('THE SHEET GREW WITH IT — wider paper, same words',
-        after.paper > before.paper && after.lineH === before.lineH && after.zoom === 1,
+        after.paper > before.paper && after.lineH === before.lineH && after.zoom === ZOOM_BASE,
         `paper ${before.paper}→${after.paper}, line ${before.lineH}px → ${after.lineH}px, zoom ${after.zoom}`);
       check('and the margin did not grow instead — the WORDING got the width',
         after.words > before.words,
@@ -251,7 +261,7 @@ const SHEET = () => {
     await pause(350);
     const back = await page.evaluate(SHEET);
     check('AND IT NARROWS AGAIN WHEN THE DIVIDER COMES BACK',
-      back && after && back.words < after.words && back.zoom === 1,
+      back && after && back.words < after.words && back.zoom === ZOOM_BASE,
       back && `text ${after.words}px → ${back.words}px, zoom ${back.zoom}`);
     await page.screenshot({ path: path.join(OUT, '02-owner-dragged.png') });
 
@@ -335,7 +345,8 @@ const SHEET = () => {
         zoom: Number(getComputedStyle(document.querySelector('.redline-page .rl-zoom')).zoom) || 1 };
     });
     check('5b − goes down to 60% and stops there',
-      floored.stored === 60 && String(floored.readout).trim() === '60%' && floored.disabled && Math.abs(floored.zoom - 0.6) < 0.01,
+      /* RE-POINTED 25 Nov 2026 (100% IS WHAT 90% WAS): the readout says 60%, the page wears 60% of the base */
+      floored.stored === 60 && String(floored.readout).trim() === '60%' && floored.disabled && Math.abs(floored.zoom - 0.6 * ZOOM_BASE) < 0.01,
       `stored ${floored.stored}, readout ${floored.readout}, button disabled ${floored.disabled}, zoom ${floored.zoom}`);
     await page.screenshot({ path: path.join(OUT, '04-owner-floor-8.png') });
 

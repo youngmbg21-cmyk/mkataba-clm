@@ -135,7 +135,10 @@ const PAGES = sel => `(() => {
     check('1a Home\'s Document draws the WORKING copy, laid out as pages', !!(work && work.n >= 1),
       work ? `${work.n} page(s)` : 'no paged working copy');
     check('1b the contract runs over more than one page, a grey gap between each',
-      !!(work && work.n >= 2 && work.gaps.every(g => g >= 19)), work ? `gaps ${work.gaps.join(',')}` : '—');
+      /* RE-POINTED 25 Nov 2026 (owner: "the font size of the paper at 90% is what should be 100%" — 100% IS WHAT 90% WAS,
+         RL_ZOOM_BASE 0.9): the page and its grey gap are drawn at the base, so the gap is read in the paper's own units
+         (on screen ÷ the measured scale), where it is the 19 or more it always was */
+      !!(work && work.n >= 2 && work.scale > 0 && work.gaps.every(g => g / work.scale >= 19)), work ? `gaps ${work.gaps.join(',')} at scale ${work.scale}` : '—');
     check('1c NO LINE OF WORDING CROSSES A GAP — every line is on a page, none under the grey',
       !!(work && work.lines > 20 && work.crossing.length === 0),
       work ? `${work.lines} lines · crossing: ${JSON.stringify(work.crossing.slice(0, 3))}` : '—');

@@ -58,6 +58,18 @@ const NEW = t => t
     const until = async (fn, arg, ms = 8000) => { let v; const t0 = Date.now();
       while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
       return v; };
+    /* RE-POINTED 25 Nov 2026 (owner's pick, 24 Nov 2026: "EDITOR TAB'S FILE IS THE BOTTOM ROW'S BUTTON" — "remove the
+       'nothing changed yet' and move the save button lower … In the bottom row"; f1217, f1220): a wide window on our seat
+       draws the editor tabbed (ceTabOn), its File button is not drawn, and the press a reader makes is the bottom row's
+       own (data-ce-tsave), which presses it. Where the editor is not tabbed, the File button is pressed as before. The
+       press is GUARDED: a build without it reports, never times out */
+    const tabbedNow = () => page.evaluate(() => { const pg = document.getElementById('clause-editor'); return !!(pg && pg.classList.contains('is-tabbed')); });
+    const pressFile = async () => {
+      const sel = (await tabbedNow()) ? '#clause-editor [data-ce-tsave]' : '#clause-editor [data-ce-act="save"]';
+      const up = await until(s => { const b = document.querySelector(s); return !!b && !b.disabled && b.getClientRects().length > 0; }, sel, 8000);
+      if (!up) return false;
+      try { await page.click(sel, { timeout: 8000 }); return true; } catch (_) { return false; }
+    };
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await until(id => window.state && state.contracts && state.contracts.some(c => c.id === id), ID, 20000);
@@ -75,7 +87,8 @@ const NEW = t => t
     await page.evaluate(([id, cid]) => rlOpenClauseEditor(getContract(id), cid, {}), [ID, S.clauseId]);
     await until(() => !!document.querySelector('#clause-editor [data-ce-act="save"]'));
     const applied = await page.evaluate(w => ceApply(w.split('\n').map(l => '<p>' + l.replace(/&/g, '&amp;') + '</p>').join(''), 'Jambo'), NEW(S.text));
-    await page.click('#clause-editor [data-ce-act="save"]');
+    const pressed0 = await pressFile();
+    check('0a2 the File press is on screen and pressed (the bottom row\'s, where the editor is tabbed)', pressed0);
     const filed = await until(id => { const c = getContract(id); const ch = (c.changes || [])[0]; return ch && ch.status === 'pending' ? ch.id : null; }, ID, 8000);
     check('0b the stage: the redline is applied and filed', !!applied && !!filed, String(filed));
     const limbOf = sel => page.evaluate(sel => {
@@ -85,7 +98,11 @@ const NEW = t => t
       const r = document.createRange(); const tn = document.createTreeWalker(p, NodeFilter.SHOW_TEXT); let n, word = null;
       while ((n = tn.nextNode())) { const i = n.data.indexOf('any such'); if (i >= 0) { word = [n, i]; break; } }
       let x1 = null; if (word) { r.setStart(word[0], word[1]); r.setEnd(word[0], word[1] + 3); x1 = r.getBoundingClientRect().left; }
+      /* the zoom the paper is drawn at (the product of every zoom above the limb): computed lengths are the paper's own,
+         rects are on the screen — so a rect is compared with a length times this */
+      let z = 1; for (let a = p; a; a = a.parentElement) { const v = parseFloat(getComputedStyle(a).zoom); if (v > 0) z *= v; }
       return { pl: parseFloat(cs.paddingLeft), ml: parseFloat(cs.marginLeft), ti: parseFloat(cs.textIndent), fs: parseFloat(cs.fontSize),
+        z: Math.round(z * 1000) / 1000, zf: window.rlDocZoomFactor ? Number(rlDocZoomFactor()) : null,
         mkDisplay: mcs && mcs.display, mkW: mk ? mk.getBoundingClientRect().width : 0,
         stepIn: plain ? Math.round(p.getBoundingClientRect().left - plain.getBoundingClientRect().left) : null,
         wordIn: (plain && x1 != null) ? Math.round(x1 - plain.getBoundingClientRect().left) : null };
@@ -98,11 +115,17 @@ const NEW = t => t
     await until(() => [...document.querySelectorAll('#ig-canvas p')].some(x => /^\s*\(b\)/.test(x.textContent)), null, 10000);
     const HM = await limbOf('#ig-canvas');
     const em = v => (v && v.fs) ? Math.round((v.pl / v.fs) * 100) / 100 : null;
-    check('1a on Home\'s paper the limb hangs: a gutter, the marker a block the gutter\'s width', !!HM && HM.pl > 20 && HM.ti < -20 && HM.mkDisplay === 'inline-block' && HM.mkW >= HM.pl - 1, JSON.stringify(HM));
+    /* RE-POINTED 25 Nov 2026 (owner: "the font size of the paper at 90% is what should be 100%" — 100% IS WHAT 90% WAS,
+       RL_ZOOM_BASE 0.9 in rlDocZoomFactor): Home's paper is drawn at the zoom times 0.9, so the marker's width ON SCREEN is
+       the gutter times that factor (35.1 for a 39px gutter). The hang is pinned as hard as before: the marker still a block
+       a whole gutter wide, the words still two gutters in — each measured at the paper's own drawn zoom, and that zoom
+       must be the reader's (rlDocZoomFactor), never some other shrink. */
+    const HZ = HM ? HM.z : 1, HZok = !!HM && HM.zf != null && Math.abs(HM.z - HM.zf) < 0.002;
+    check('1a on Home\'s paper the limb hangs: a gutter, the marker a block the gutter\'s width', !!HM && HZok && HM.pl > 20 && HM.ti < -20 && HM.mkDisplay === 'inline-block' && HM.mkW >= HM.pl * HZ - 1, JSON.stringify(HM));
     check('1b and sits one step in from the clause\'s own paragraphs', !!HM && HM.ml > 20 && HM.stepIn > 20, JSON.stringify(HM));
     check('1c the SAME measures the editor draws (gutter and step, in em of each paper\'s own type)', !!HM && !!ED && em(HM) === em(ED)
       && Math.round((HM.ml / HM.fs) * 100) === Math.round((ED.ml / ED.fs) * 100), JSON.stringify({ home: HM, editor: ED }));
-    check('1d the limb\'s words start two gutters in, clear of the marker', !!HM && HM.wordIn >= Math.round(HM.pl + HM.ml) - 2, JSON.stringify(HM));
+    check('1d the limb\'s words start two gutters in, clear of the marker', !!HM && HZok && HM.wordIn >= Math.round((HM.pl + HM.ml) * HZ) - 2 /* RE-POINTED 25 Nov 2026 (100% IS WHAT 90% WAS, as 1a) */, JSON.stringify(HM));
 
     /* 2 opened again from its row, untouched */
     const row = await until(() => !!document.querySelector('[data-rl-cp-editor-row]'), null, 8000);
@@ -128,7 +151,11 @@ const NEW = t => t
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht });
       await until(wd => { const r = document.querySelector('#clause-editor .ce-rail'); return r && Math.abs(r.getBoundingClientRect().right - wd) <= 1; }, w, 3000);
-      const G = await page.evaluate(() => { const rail = document.querySelector('#clause-editor .ce-rail'), pg = document.getElementById('clause-editor'), s = rail.querySelector('[data-ce-act="save"]');
+      /* RE-POINTED 25 Nov 2026 (EDITOR TAB'S FILE IS THE BOTTOM ROW'S BUTTON, f1217): tabbed, the press on the panel is the
+         bottom row's one button — Next › here, nothing being typed — and it must be on screen and pressable */
+      const G = await page.evaluate(() => { const rail = document.querySelector('#clause-editor .ce-rail'), pg = document.getElementById('clause-editor'),
+        s = pg.classList.contains('is-tabbed') ? rail.querySelector('#ce-tabfoot .ce-tfrow button') : rail.querySelector('[data-ce-act="save"]');
+        if (!s) return { noPress: true };
         const r = rail.getBoundingClientRect(), p = pg.getBoundingClientRect(), cs = getComputedStyle(rail), sr = s.getBoundingClientRect();
         return { right: Math.round(innerWidth - r.right), bottom: Math.round(innerHeight - r.bottom), top: Math.round(r.top - p.top), radius: cs.borderTopLeftRadius + '/' + cs.borderBottomRightRadius, shadow: cs.boxShadow,
           line: cs.borderLeftWidth + ' ' + cs.borderLeftStyle, otherLines: [cs.borderTopWidth, cs.borderRightWidth, cs.borderBottomWidth].join(' '),
@@ -159,7 +186,8 @@ const NEW = t => t
     await page.evaluate(() => { const b = document.querySelector('[data-top-overlay] [data-dlg-cancel], #modal-root [data-dlg-cancel]'); if (b) b.click(); });
     await until(() => !document.querySelector('[data-top-overlay]') && !document.querySelector('#modal-root [role="dialog"]'), null, 4000);
     check('4c Keep editing stays on the page, the words still there', await page.evaluate(() => clauseEditorOpen() && /Interest runs after that/.test(document.getElementById('ce-clausebody').textContent)));
-    await page.click('#clause-editor [data-ce-act="save"]');
+    const pressed4 = await pressFile();
+    check('4c2 the File press is on screen and pressed', pressed4);
     const rev = await until(id => { const c = getContract(id); const ch = (c.changes || [])[0]; return ch && /Interest runs after that/.test(ch.newText || '') ? (c.changes || []).length : null; }, ID, 8000);
     check('4d Save files into the same change', rev === 1, String(rev));
     /* RE-POINTED 24 Nov 2026 (owner: "Just file and move on"): the filing opens nothing; 4f's Escape claim is kept on the
