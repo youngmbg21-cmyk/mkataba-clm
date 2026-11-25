@@ -41,5 +41,5 @@ test('f1217 (3) the ladder card, open lines', () => {
 test('f1217 a counter saved on the Editor TAB moves on, as its "Save counter · next ›" says (review of #1016); untabbed it still closes onto the negotiation', () => {
   const E = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js/views/clauseeditor.js'), 'utf8');
   const f = E.slice(E.indexOf('async function ceFile('), E.indexOf('async function ceFile(') + 6000);
-  assert.match(f, /if \(prepFiling\)\{[\s\S]*?if \(!ceTabbed\(\)\) rlCloseClauseEditor\(\);\s*return ch;/);
+  assert.match(f, /if \(prepFiling\)\{[\s\S]*?if \(!ceTabbed\(\)\) rlCloseClauseEditor\(\);[\s\S]*?else ceSeedDraft\(ch\.id\);\s*return ch;/, 'staying open, the filed counter stands in the box, so moving on asks nothing');
 });

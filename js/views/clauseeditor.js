@@ -7395,6 +7395,9 @@ async function ceFile(why){
     /* AS A TAB the button says "Save counter · next ›" (owner, 24 Nov 2026: File · next › to the paper's next clause):
        the editor stays open and ceSaveAndOn moves on; the untabbed editor still closes onto the negotiation */
     if (!ceTabbed()) rlCloseClauseEditor();
+    /* staying open, the filed counter is what now stands in the box (ceSeedDraft), so moving on asks nothing: without it
+       the editor read as unfiled and the leave question stopped "· next ›" (counter-with-copilot 7a) */
+    else ceSeedDraft(ch.id);
     return ch;
   }
   ceSeedDraft(ch.id);
