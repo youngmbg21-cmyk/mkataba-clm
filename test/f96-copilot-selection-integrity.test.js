@@ -287,7 +287,9 @@ describe('F96 (B1) — a highlight that starts on the clause heading', () => {
        None of them edits FROM the paper: the two Copilot verbs land in the
        clause editor. */
     assert.ok(menu, 'the paper offers three things to press');
-    assert.deepEqual([...menu.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai')), ['ask', 'edit', 'comment']);
+    /* RE-POINTED 25 Nov 2026 (owner, live notes A, #1014: "Add a note" + its rooms on the bar replace Comment —
+       rlNoteRoomActs, negoSelBarHtml): the note's rooms first, then Ask and Edit */
+    assert.deepEqual([...menu.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai')), ['note:internal', 'note:p:py_them', 'ask', 'edit']);
     assert.equal(passage.clauseIds.length, 1, 'one clause, found despite the heading');
     assert.match(passage.text, /All invoices are payable/,
       'THE FIX: this used to be unmatchable');
@@ -518,7 +520,8 @@ describe('F96 (B3) — a wall of paragraphs has no clauses to stay inside', () =
        Comment; EDIT is not offered, because the editor opens on ONE clause and
        merging two numbered clauses renumbers an instrument cited by number. */
     assert.ok(menu, 'a highlight across two clauses is offered on');
-    assert.deepEqual([...menu.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai')), ['ask', 'comment'],
+    /* RE-POINTED 25 Nov 2026 (owner, live notes A, #1014: the note's rooms replace Comment; still never Edit across two clauses) */
+    assert.deepEqual([...menu.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai')), ['note:internal', 'note:p:py_them', 'ask'],
       'Ask and Comment — never Edit across a clause boundary');
     assert.equal(p.panel.proposals.length, 0, 'no tokens are spent on it');
   });
