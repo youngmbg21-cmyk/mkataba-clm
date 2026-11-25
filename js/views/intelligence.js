@@ -12415,6 +12415,8 @@ function igPaperRefresh(){
   /* a patch after which the blanks' marks are owed on the clean paper's new blocks (the whole drawing paints them) */
   if(patched&&patched.n&&c&&!igRedOn(c)&&!igSignOn(c)){ const cv=document.getElementById('ig-canvas'); try{ if(cv&&window.uploadBlanksPaint) uploadBlanksPaint(c,cv); }catch(_){ } }
   const sc2=document.getElementById('ig-paper-scroll'); if(sc2) sc2.scrollTop=top;
+  /* and a Clauses glide still in flight ends here, still, rather than pulling the paper away later (docThreadGlideStill) */
+  if(sc2&&typeof window.docThreadGlideStill==='function') try{ window.docThreadGlideStill(); }catch(_){ }
   /* THE PLACE IS KEPT ONCE THE PAGES ARE CUT AGAIN (22 Nov 2026, GitHub's run of decision-redraws-one-clause: 240 came back
      as 113): while a slow machine re-cuts the pages the paper is briefly shorter, and the browser clamps the place to what
      fits. Put back again over the next few frames, bounded, only while nobody has scrolled since the clamp */

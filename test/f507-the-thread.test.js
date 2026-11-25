@@ -408,3 +408,28 @@ describe('f507 (10) — the pieces, in a browser world', () => {
     assert.deepEqual(Array.from(win.docThreadVisible(rows)), [1, 3]);
   });
 });
+
+/* A REDRAW KEEPS YOUR PLACE (25 Nov 2026, decision-redraws-one-clause on GitHub: the reader's 240 came back as 113,
+   "moved by docThreadSettle"): a decision redraws the paper and puts the place back; a Clauses glide still in flight
+   from before is settled there and then, STILL — the row it was going to stays open, the paper is not pulled to it */
+describe('f507 (9) — a glide in flight does not pull the paper after a redraw put the place back', () => {
+  const INTEL = read('js/views/intelligence.js');
+  const fnRegion = (src, name) => { const i = src.indexOf('function ' + name + '('); assert.ok(i >= 0, name + ' exists'); const j = src.indexOf('\nfunction ', i + 10); return src.slice(i, j < 0 ? undefined : j); };
+  test('the settle corrects the paper only when it is not settled still', () => {
+    const settle = fnRegion(CONTRACT, 'docThreadSettle');
+    assert.match(settle, /^function docThreadSettle\(c,o\)\{/);
+    assert.match(settle, /if\(held<0&&pressed>=0&&!\(o&&o\.still\)\)\{/, 'a still settle never writes the place');
+    assert.match(settle, /held>=0\?held:pressed>=0\?pressed:docThreadLineRow\(\)/, 'the pressed row is still the one opened');
+  });
+  test('docThreadGlideStill settles a glide in flight, still, and is published', () => {
+    const still = fnRegion(CONTRACT, 'docThreadGlideStill');
+    assert.match(still, /if\(_docThreadGlide<0&&!_docThreadGlideT\) return false;/, 'nothing in flight, nothing done');
+    assert.match(still, /docThreadSettle\(thLiveContract\(\),\{still:true\}\);/);
+    assert.match(CONTRACT, /docThreadGoTo,docThreadGlideStill,docThreadOpen,/, 'published on window');
+  });
+  test('the paper drawn again settles the glide right after the place is put back', () => {
+    const r = fnRegion(INTEL, 'igPaperRefresh').replace(/\/\*[\s\S]*?\*\//g, '');
+    const put = r.indexOf('if(sc2) sc2.scrollTop=top;'), still = r.indexOf('window.docThreadGlideStill()');
+    assert.ok(put >= 0 && still > put, 'the place first, then the glide settled still');
+  });
+});

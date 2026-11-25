@@ -94,7 +94,11 @@ const SAY = "Two-year supply agreement with Nandi Dairy, 45-day payment, 90 days
 
     /* 2 the + button */
     await page.evaluate(() => setView('register')); await page.waitForTimeout(300);
-    const pressed = await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /draft a new agreement|draft new agreement/i.test(x.textContent || '') && x.getClientRects().length); if (b) { b.click(); return b.textContent.trim(); } return ''; });
+    /* RE-POINTED 25 Nov 2026 (P-18 ONE ROW, owner: "the green links ... should always be next to them"; "a long word takes its
+       short form, and what still does not fit is left out, never wrapped"): the wall's "draft a new agreement" rides the
+       "Jambo ›" line as a carried press (data-jb-key="draft"), in its short form "draft" where the full words do not fit */
+    const pressed = await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.getClientRects().length && !x.classList.contains('is-fit-off')
+      && (/draft a new agreement|draft new agreement/i.test(x.textContent || '') || (x.getAttribute('data-jb-key') === 'draft' && /^draft$/i.test((x.textContent || '').trim())))); if (b) { b.click(); return b.textContent.trim(); } return ''; });
     const s2 = await until(SHEET, null, 6000);
     check('2 the + button opens the same sheet, no drop-down before it', !!pressed && !!s2 && s2.one && !s2.menu, JSON.stringify({ pressed, menu: s2 && s2.menu }));
     await cancel();

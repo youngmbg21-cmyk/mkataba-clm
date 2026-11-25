@@ -168,9 +168,11 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
       beads: t ? t.querySelectorAll('.doc-th-bead').length : 0, close: !!(t && t.querySelector('[data-th-close]')), blanks: /still blank|Copies/.test((document.getElementById('pd-body') || {}).innerText || '') }; });
     ok('3c the Document tab is the clause list, its beads down the line; no ×, no blanks, no copies', doc.rows >= 2 && doc.beads === doc.rows && !doc.close && !doc.blanks, JSON.stringify(doc));
     const wide = await page.evaluate(() => ({ sheet: Math.round((document.querySelector('#ig-paper .pg-sheet') || { getBoundingClientRect: () => ({ width: 0 }) }).getBoundingClientRect().width),
-      ws: !!document.querySelector('#ig-strip [data-ig-ws]'), ask: !!document.getElementById('igd-input') }));
+      ws: !!document.querySelector('#ig-strip [data-ig-ws]'), ask: !!document.getElementById('igd-input'), base: Number(window.RL_ZOOM_BASE) || 0 }));
+    /* RE-POINTED 25 Nov 2026 (owner: "100% is what 90% was" — RL_ZOOM_BASE 0.9, readout unchanged): at 100% the Home paper's
+       720 is drawn at 720 × RL_ZOOM_BASE (648), to the pixel; the base must be the ruled 0.9 */
     /* RE-POINTED 22 Oct 2026 (owner: "all side panels need to have jambo entry field at the bottom"; was 12 Oct's "Copilot tab only"): the Clauses tab keeps the ask box */
-    ok('3d the paper keeps its width (the Home paper\'s 720, owner 8 Oct 2026), "Open workspace" is gone from Home, the ask box on the Clauses tab too', wide.sheet >= 700 && !wide.ws && wide.ask, JSON.stringify(wide));
+    ok('3d the paper keeps its width (the Home paper\'s 720 drawn at 100% = 0.9, owner 8 Oct and 25 Nov 2026), "Open workspace" is gone from Home, the ask box on the Clauses tab too', wide.base === 0.9 && Math.abs(wide.sheet - Math.round(720 * wide.base)) <= 1 && !wide.ws && wide.ask, JSON.stringify(wide));
     /* ONE BAR (Young, 8 Oct 2026): the strip and the panel's symbols share one top, one
        bottom and one colour, side by side; the sheet starts 87px under the strip's top
        since 11 Oct 2026 (it was 56): the zoom's own 31px row stands above it, the
