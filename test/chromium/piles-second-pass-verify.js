@@ -179,27 +179,40 @@ async function login(b, base, email, pass, errs){
       return { tabs: [...v.querySelectorAll('.rl-np-room')].map(t => ({ t: t.innerText.replace(/\s+/g, ' ').trim(), room: t.getAttribute('data-rl-np-room'), only: /Only your colleagues/.test(t.title || ''), on: t.classList.contains('on') })),
         back: ((document.querySelector('#ig-dock > .pd-trail') || {}).textContent || ''),
         /* RE-POINTED 21 Nov 2026 (P-38, Notes the Stripe way): one calm row per discussion — the clause, its last words and when */
-        lines: [...v.querySelectorAll('.rl-np-crow')].map(l => ((l.querySelector('.rl-np-ch b') || {}).textContent || '') + ' · ' + (((l.querySelector('.rl-np-cl .t') || {}).textContent || '') ? 'when' : '')),
-        say: [...v.querySelectorAll('.rl-np-crow .rl-np-cl .w')].map(x => x.textContent.trim()), ph: (v.querySelector('.rl-np-in') || {}).placeholder, at: !!v.querySelector('[data-rl-np-at]'),
+        /* RE-POINTED 25 Nov 2026 (live notes A, #1014, as drawn: a conversation a row — its clause, the words it is on,
+           the last message, when; the note starts on the paper's words or "Note on the whole contract", no box on the list) */
+        lines: [...v.querySelectorAll('.rl-np-crow')].map(l => ((l.querySelector('.rl-lv-t b') || {}).textContent || '') + ' · ' + (((l.querySelector('.rl-lv-last .t') || {}).textContent || '') ? 'when' : '')),
+        say: [...v.querySelectorAll('.rl-np-crow .rl-lv-last .w')].map(x => x.textContent.trim().replace(/^You: /, '')),
+        listBox: !!v.querySelector('.rl-np-in'), start: !!v.querySelector('.rl-lv-start [data-rl-lv-whole]'),
         /* RE-POINTED 24 Nov 2026 (f1207, Notes left the Redlines switch): the notes ARE #context-panel now, so "the cards
            stay" is asked of the Redlines cards themselves (as 2g asks), not of the panel's absence */
         post: (v.querySelector('.rl-np-send') || {}).textContent, piles: !!document.querySelector('#pd-redface [data-rl-pile="awaiting"]'),
         drawer: !!(state.panelOpen && panelFace() === 'notes') }; }, 6000);
     check('2a the notes link opens the bar\'s Notes panel; the Redlines cards stay', !!nv && nv.piles && nv.drawer, JSON.stringify(nv && { piles: nv.piles, drawer: nv.drawer }));
-    check('2b the rooms as tabs: our team\'s room with its 2 (only colleagues see it, on), the party\'s tab, "‹ Redlines"', !!nv && nv.tabs.length === 2 && nv.tabs[0].room === 'internal' && /^Internal$/.test(nv.tabs[0].t) && nv.tabs[0].only && nv.tabs[0].on
-      && /^Nordvik Logistik AB$/.test(nv.tabs[1].t) , JSON.stringify(nv && [nv.tabs, nv.back]));
+    /* RE-POINTED 25 Nov 2026 (live notes A, as drawn: "Internal with a lock and its count; the other side's room with an
+       eye, its name …, its count") */
+    check('2b the rooms as tabs: our team\'s room with its 2 (only colleagues see it, on), the party\'s tab with its 0', !!nv && nv.tabs.length === 2 && nv.tabs[0].room === 'internal' && /^Internal 2$/.test(nv.tabs[0].t) && nv.tabs[0].only && nv.tabs[0].on
+      && /^Nordvik Logistik AB 0$/.test(nv.tabs[1].t) , JSON.stringify(nv && [nv.tabs, nv.back]));
     check('2c each discussion a row: its clause, its words, when', !!nv && nv.lines.length === 2 && nv.lines.every(l => /Liability cap · when$/.test(l))
       && nv.say.join('|') === 'Their cap doubles our exposure.|Ask Sara before we move.', JSON.stringify(nv && [nv.lines, nv.say]));
-    check('2d ONE box with @ to name someone, and "Add note"', !!nv && /note/i.test(nv.ph || '') && nv.at && /^Add note$/.test((nv.post || '').trim()), JSON.stringify(nv && [nv.ph, nv.at, nv.post]));
+    /* RE-POINTED 25 Nov 2026 (live notes A: "a note starts on the paper"): no box on the list; its start line offers the
+       whole contract, which opens ONE box with @ to name someone and "Add note" (2d2) */
+    check('2d no box on the list; the start line says highlight words, or a note on the whole contract', !!nv && !nv.listBox && nv.start, JSON.stringify(nv && { listBox: nv.listBox, start: nv.start }));
     await shot(page, '9-notes-1440x780');
     /* RE-POINTED 21 Nov 2026 (P-38): a row opens its discussion; its "Go to § on the paper" is the clause's link */
     await page.click('#context-panel .rl-np-crow');
-    await waitFor(page, () => !!document.querySelector('#context-panel [data-rl-np-goclause]'), 4000);
-    await page.click('#context-panel [data-rl-np-goclause]');
+    /* a missing link REPORTS (guarded), never times the walk out */
+    const goLink = !!(await waitFor(page, () => !!document.querySelector('#context-panel [data-rl-np-goclause]'), 4000));
+    if (goLink) await page.click('#context-panel [data-rl-np-goclause]');
     /* RE-POINTED 19 Oct 2026 (LAND ON IT, main's rule): the link lands on the clause through the one lander */
-    check('2e the clause is a link to it on the paper', !!(await waitFor(page, () => !!document.querySelector('#ig-paper .is-landed[data-clause]'), 4000)));
+    check('2e the clause is a link to it on the paper', goLink && !!(await waitFor(page, () => !!document.querySelector('#ig-paper .is-landed[data-clause]'), 4000)), goLink ? '' : 'no "Go to § on the paper" in the opened conversation');
     if (await page.$('#context-panel [data-rl-np-back]')) await page.click('#context-panel [data-rl-np-back]');
-    if (!(await page.$('#context-panel .rl-np-in'))){ await notesNow(); await waitFor(page, () => !!document.querySelector('#context-panel .rl-np-in'), 5000); }
+    if (!(await page.$('#context-panel [data-rl-lv-whole]'))){ await notesNow(); await waitFor(page, () => !!document.querySelector('#context-panel [data-rl-lv-whole]'), 5000); }
+    /* RE-POINTED 25 Nov 2026 (live notes A): a note without words starts from "Note on the whole contract" */
+    if (await page.$('#context-panel [data-rl-lv-whole]')) await page.click('#context-panel [data-rl-lv-whole]');
+    const box = await waitFor(page, () => { const v = document.querySelector('#context-panel'); const i = v && v.querySelector('.rl-np-in'); if (!i) return null;
+      return { ph: i.placeholder, at: !!v.querySelector('[data-rl-np-at]'), post: (v.querySelector('.rl-np-send') || {}).textContent }; }, 5000);
+    check('2d2 the whole contract opens ONE box with @ to name someone, and "Add note"', !!box && /@/.test(box.ph || '') && box.at && /^Add note$/.test((box.post || '').trim()), JSON.stringify(box));
     await page.fill('#context-panel .rl-np-in', 'Finance can live with 45 days. Not 60.');
     await page.click('#context-panel .rl-np-send'); /* RE-POINTED 16 Nov 2026 (#762): the bar's box and its Add note */
     const posted = await waitFor(page, () => { const v = document.querySelector('#context-panel'); const c = getContract('MK-0382');
@@ -207,7 +220,7 @@ async function login(b, base, email, pass, errs){
          change's own (negoNoteHome) once the clause's link has scoped the notes to it */
       const own = (c.thread || []).concat(...(c.changes || []).map(x => x.thread || [])).filter(m => /Finance can live with 45 days/.test(m.text || ''));
       return v && own.length === 1 && own[0].visibility !== 'shared' && !!v.querySelector('.rl-np-room.on[data-rl-np-room="internal"]')
-        && [...v.querySelectorAll('.rl-np-crow .rl-np-cl .w, .rl-np-note .rl-np-b > p')].some(s => /Finance can live with 45 days/.test(s.textContent)) ? true : null; }, 8000);
+        && [...v.querySelectorAll('.rl-np-crow .rl-lv-last .w, .rl-lv-m .rl-lv-tx')].some(s => /Finance can live with 45 days/.test(s.textContent)) ? true : null; }, 8000);
     check('2f Post files one internal note through the drawer\'s own send, and it shows', !!posted);
     /* RE-POINTED 24 Nov 2026 (f1207): no Notes view inside Redlines to come back from — the link pressed again shuts the panel */
     await notesNow();
@@ -273,7 +286,7 @@ async function login(b, base, email, pass, errs){
       check(`4 ${w}×${ht}: the face fits beside the paper`, fit.wide === 0 && !fit.sideways, JSON.stringify(fit));
       await shot(page, `9-piles-${w}x${ht}`);
       /* RE-POINTED 24 Nov 2026 (f1207): the notes are the bar's panel, opened by the face's "notes" link */
-      await notesNow(); await waitFor(page, () => !!(state.panelOpen && panelFace() === 'notes' && document.querySelector('#context-panel .rl-np-in')), 4000);
+      await notesNow(); await waitFor(page, () => !!(state.panelOpen && panelFace() === 'notes' && document.querySelector('#context-panel .rl-np-room')), 4000); /* RE-POINTED 25 Nov 2026 (live notes A: no box on the list; the panel is drawn when its rooms are) */
       const nfit = await page.evaluate(() => { const p = document.getElementById('context-panel'); const d = p.getBoundingClientRect();
         return { wide: [...p.querySelectorAll('*')].filter(el => { const q = el.getBoundingClientRect(); return q.width && q.right > d.right + 1; }).length }; });
       check(`4 ${w}×${ht}: the notes fit in the panel`, nfit.wide === 0, JSON.stringify(nfit));

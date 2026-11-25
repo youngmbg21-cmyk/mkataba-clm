@@ -195,7 +195,10 @@ const WATCH = () => { window._walk = {}; const tick = () => {
         const r = document.createRange(); r.selectNodeContents(b); r.collapse(false); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.focus(); });
       await page.keyboard.type('forty-five', { delay: 10 });
       await pause(300);
-      await page.click('[data-ce-act="save"]').catch(() => {});
+      /* RE-POINTED 25 Nov 2026 (EDITOR TAB'S FILE IS THE BOTTOM ROW'S BUTTON, owner's pick 24 Nov 2026: "move the save
+         button lower" — "In the bottom row"): beside a paper the editor is the Dossier's tab, and its File is the bottom
+         row's button (data-ce-tsave, which presses the hidden File); the window's own Save where the editor is not tabbed */
+      await page.locator('[data-ce-tsave]:visible, #clause-editor [data-ce-act="save"]:visible').first().click({ timeout: 8000 }).catch(() => {});
       await waitFor(page, i => (getContract(i).changes || []).some(x => x.authorSide === 'owner'), 8000, id);
       await pause(600);
       /* the filing's own ask for a note (owner-ruled 31 Aug 2026), skipped */
@@ -302,13 +305,25 @@ const WATCH = () => { window._walk = {}; const tick = () => {
       await page.setViewportSize({ width: w, height: hh });
       await pause(500);
       await waitFor(page, () => !!document.querySelector('[data-ig-chips] [data-ca-chip]'), 5000);
-      const fit = await page.evaluate(() => { const row = document.querySelector('[data-ig-chips]'); const dock = document.getElementById('ig-dock') || row;
+      /* RE-POINTED 25 Nov 2026 (P-18 ONE ROW, owner: "the green links above the jambo entry field should never ever as a rule
+         be above the jambo or overview presses. They should always be next to them"): the chips' row above the box is
+         carried onto the "Jambo ›" line (jamboWaysCarry, .is-carried [data-jb-carry]), the row itself not drawn; a long
+         word takes its short form and what still does not fit is left out, never wrapped (jamboWaysFit, .is-fit-off).
+         Every chip has its carried press; each one shown stands inside Jambo's panel on ONE line, on the door's line. */
+      await waitFor(page, () => !!document.querySelector('#ig-dock .jb-door .jb-ways.is-carried [data-jb-carry]'), 5000);
+      const fit = await page.evaluate(() => { const dock = document.getElementById('ig-dock');
         const d = dock.getBoundingClientRect();
-        const chips = [...document.querySelectorAll('[data-ig-chips] [data-ca-chip]')].map(b => { const r = b.getBoundingClientRect(); const lh = parseFloat(getComputedStyle(b).lineHeight) || 20;
-          return { t: b.textContent.trim(), inside: r.left >= d.left - 1 && r.right <= d.right + 1, oneLine: r.height <= lh * 1.6 + 12 }; });
-        return { chips, sideways: document.documentElement.scrollWidth - window.innerWidth }; });
+        const src = [...document.querySelectorAll('[data-ig-chips] [data-ca-chip]')];
+        const rowShown = src.some(b => b.getClientRects().length > 0);
+        const line = document.querySelector('#ig-dock .jb-door .jb-ways.is-carried');
+        const door = line && line.closest('.jb-door'), dr = door ? door.getBoundingClientRect() : null;
+        const all = line ? [...line.querySelectorAll('[data-jb-carry]')] : [];
+        const chips = all.filter(b => !b.classList.contains('is-fit-off')).map(b => { const r = b.getBoundingClientRect(); const lh = parseFloat(getComputedStyle(b).lineHeight) || 20;
+          return { t: b.textContent.trim(), inside: r.width > 0 && r.left >= d.left - 1 && r.right <= d.right + 1, oneLine: r.height > 0 && r.height <= lh * 1.6 + 12,
+            onDoor: !!dr && r.top >= dr.top - 1 && r.bottom <= dr.bottom + 1 }; });
+        return { chips, carried: all.length, src: src.length, rowShown, sideways: document.documentElement.scrollWidth - window.innerWidth }; });
       check(`8 ${w}×${hh} Svenska: every chip on one line, inside Jambo's panel, nothing pushes the page sideways`,
-        fit.chips.length > 0 && fit.chips.every(c => c.inside && c.oneLine) && fit.sideways <= 0, JSON.stringify(fit));
+        fit.chips.length > 0 && fit.carried === fit.src && !fit.rowShown && fit.chips.every(c => c.inside && c.oneLine && c.onDoor) && fit.sideways <= 0, JSON.stringify(fit));
       await shot(`8-svenska-${w}x${hh}`);
     }
     await page.evaluate(() => { if (typeof langSet === 'function') langSet('en'); });

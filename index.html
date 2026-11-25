@@ -26724,6 +26724,11 @@
   html.lg-new:not(#_) .jb-turn .jb-deep{margin:4px 0 0;font-size:12px;line-height:16px;color:var(--color-neutral-600)}
   /* the one line under an answer: where it read from on the left, ✓ ✕ on the right */
   html.lg-new:not(#_) .jb-turn:has(.ai-msg:not(.justify-end)){position:relative}
+  /* THE LINE STAYS UNDER THE ANSWER WHILE IT ARRIVES (25 Nov 2026): the arrival's slide (a transform) on .ai-msg made the
+     message the box the absolute "Read from" line and ✓ ✕ stand in, so for its quarter second they lay over the answer's
+     last row (a chapter's button) and then jumped down. The turn arrives as one, the box they stand in, the same motion. */
+  html.lg-new:not(#_) .jb-turn > .ai-msg{animation:none}
+  html.lg-new:not(#_) .jb-turn:not([data-jb-seen]):has(> .ai-msg){animation:viewIn .25s cubic-bezier(.22,.61,.36,1)}
   html.lg-new:not(#_) .jb-turn > .jb-read, html.lg-new:not(#_) .jb-turn .ai-msg .ai-read{display:flex;align-items:center;min-height:24px;margin:6px 0 0;padding:0 64px 0 2px;font-size:12px;line-height:16px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:none;border:0}
   html.lg-new:not(#_) .jb-turn .ai-msg .ai-read{position:absolute;left:0;right:0;bottom:0;margin:0}
   html.lg-new:not(#_) .jb-turn:has(.ai-msg .ai-read){padding-bottom:30px}

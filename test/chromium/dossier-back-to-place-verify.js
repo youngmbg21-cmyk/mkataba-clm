@@ -34,16 +34,29 @@ const TXT = ['DEPOT LEASE', '1. Premises', 'The Landlord lets to the Tenant the 
     const feedTop = () => page.evaluate(() => { const f = document.getElementById('igd-feed'); return f ? Math.round(f.scrollTop) : null; });
     for (const [sel, name] of [['[data-pd2-dl-open]', 'the deal\'s row'], ['[data-pd2-dtc]', 'the duties\' row']]) {
       if (!up) break;
-      const before = await page.evaluate(s => { const f = document.getElementById('igd-feed'), r = document.querySelector('#ig-dock ' + s);
+      let before = await page.evaluate(s => { const f = document.getElementById('igd-feed'), r = document.querySelector('#ig-dock ' + s);
         if (!f || !r) return null; f.scrollTop = 0; f.scrollTop = Math.max(0, r.getBoundingClientRect().top - f.getBoundingClientRect().top - 120); return Math.round(f.scrollTop); }, sel);
       await page.waitForTimeout(200);
       /* RE-POINTED 24 Nov 2026 (the place the reader sees, as decision-redraws judges it): where the pressed row stands on
          screen, from the panel's top; a row that grew above it moves scrollTop while the reader's place does not */
       const rowY = s2 => page.evaluate(s3 => { const f = document.getElementById('igd-feed'), r = document.querySelector('#ig-dock ' + s3);
         return f && r ? Math.round(r.getBoundingClientRect().top - f.getBoundingClientRect().top) : null; }, s2);
-      const y0 = await rowY(sel);
+      let y0 = await rowY(sel);
       check(name + ': the panel is scrolled down first', before > 20, 'scrollTop ' + before);
+      /* RE-POINTED 25 Nov 2026 (GitHub: "before 320, after 434; the row at 114 then 0", the place put back being where the
+         panel stood AT THE PRESS — the press itself had moved it, the row brought to the panel's top): the reader's place is
+         the one at the moment of the press, taken in the page on pointerdown; and the row must be pressable where it stood,
+         nothing laid over it (a press the browser has to scroll for is said here, with what lay over the row) */
+      const cover = await page.evaluate(s3 => { const r = document.querySelector('#ig-dock ' + s3); if (!r) return 'no row';
+        const q = r.getBoundingClientRect(), hit = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2);
+        return hit && (hit === r || r.contains(hit)) ? '' : (hit ? hit.tagName + '#' + hit.id + '.' + String(hit.className).slice(0, 50) : 'nothing'); }, sel);
+      check(name + ': the row is pressable where it stands, nothing over it', !cover, cover || '');
+      await page.evaluate(s3 => { window.__atPress = null; document.addEventListener('pointerdown', () => { const f = document.getElementById('igd-feed'), r = document.querySelector('#ig-dock ' + s3);
+        if (f && r) window.__atPress = { top: Math.round(f.scrollTop), y: Math.round(r.getBoundingClientRect().top - f.getBoundingClientRect().top) }; }, { capture: true, once: true }); }, sel);
       await page.click('#ig-dock ' + sel);
+      const atPress = await page.evaluate(() => window.__atPress);
+      const scrolledByPress = !!atPress && Math.abs(atPress.top - before) > 2;
+      if (atPress){ before = atPress.top; y0 = atPress.y; }
       const mid = await until(page, () => !!document.querySelector('[data-dlg-page]'), null, 8000);
       check(name + ' opens its page in the middle', mid);
       /* WHO MOVED IT: while the way back runs, every write to the panel's scroller and every scrollIntoView is noted with
@@ -62,7 +75,7 @@ const TXT = ['DEPOT LEASE', '1. Premises', 'The Landlord lets to the Tenant the 
       await page.waitForTimeout(300);
       const after = await feedTop(), y1 = await rowY(sel);
       check(name + ': the panel stands where it stood', home && (Math.abs(after - before) <= 2 || (y0 != null && y1 != null && Math.abs(y1 - y0) <= 2)),
-        `before ${before}, after ${after}; the row at ${y0} then ${y1}` + (Math.abs(after - before) > 2 ? ' — moved by: ' + (await page.evaluate(() => (window.__mv || []).slice(0, 12).join(' || ')) || 'nothing recorded') : ''));
+        `before ${before}${scrolledByPress ? ' (at the press)' : ''}, after ${after}; the row at ${y0} then ${y1}` + (Math.abs(after - before) > 2 ? ' — moved by: ' + (await page.evaluate(() => (window.__mv || []).slice(0, 12).join(' || ')) || 'nothing recorded') : ''));
     }
     check('no page errors', errors.length === 0, errors.join(' | '));
   } catch (e) { check('the run completed', false, e.message); }

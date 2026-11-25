@@ -7268,6 +7268,7 @@ let _pdMid = null;              // { key } while a page stands in the middle bes
    contract to Home first when another is in front (roomHomeLand) — and opens there; the older places (the panel's
    form tab, the 920px pop-up) are deleted. Never come after PD_MID_WAIT_MS: it says so, with the way forward. */
 const PD_MID_WAIT_MS = 6000;
+const PD2_BACK_MS = 1500; /* after a page in the middle goes, how long the Dossier's held place waits for its redraw */
 function pdMidReadyFor(cid){
   if (!pdMidMay()) return false;
   if (cid == null) return true;
@@ -7343,6 +7344,8 @@ if (typeof window !== 'undefined' && typeof window.addEventListener === 'functio
 }, true);
 /* asked AFTER openModal: a page replacing another one in the middle keeps the middle */
 function pdMidOn(key){
+  /* a press on the Dossier that opened this page holds its place until the Dossier is drawn again (pd2PlacePress) */
+  if (_pd2Hold && Date.now() < _pd2Hold) _pd2Hold = Infinity;
   /* the page it belongs to (the desk's own key, deskKeyNow): another page or contract in front puts it away (pdMidStale) */
   let at = ''; try { at = (typeof deskKeyNow === 'function' && deskKeyNow()) || ''; } catch (_){ at = ''; }
   _pdMid = { key: String(key), at };
@@ -7353,7 +7356,10 @@ function pdMidOn(key){
   const p = document.querySelector('#modal-root [data-dlg-page]'); if (p) p.setAttribute('data-pd-mid', String(key));
   pdMidSync();
 }
-function pdMidOff(){ if (!_pdMid) return; _pdMid = null; pdMidSync(); }
+function pdMidOff(){ if (!_pdMid) return; _pdMid = null;
+  /* the page has gone: the held place waits a moment for the Dossier drawn again, then lets go (pd2PlaceBack sooner) */
+  if (_pd2Hold === Infinity) _pd2Hold = Date.now() + PD2_BACK_MS;
+  pdMidSync(); }
 /* asked after every page is drawn (deskTabsSync): the middle stands only on the page that opened it */
 function pdMidStale(){
   if (!_pdMid) return false;
@@ -7526,11 +7532,25 @@ let _pd2Place = null;
 function pd2PlainFace(el){ return !!(el && el.id === 'pd-glance' && el.classList.contains('pd2-dossier') && !/(^|\s)is-/.test(el.className)); }
 function pd2PlaceScroller(el){ let sc = el ? el.parentElement : null;
   while (sc && sc.id !== 'igd-feed' && sc.id !== 'pd-body') sc = sc.parentElement; return sc; }
+/* THE PLACE AT THE PRESS IS THE PLACE (25 Nov 2026, GitHub again: 434 over 320): a press on the Dossier takes its place
+   there and then, and holds it until the Dossier is drawn again (pd2PlaceBack) — whatever moves the panel between the press
+   and the page in the middle standing, or between that page going and the Dossier drawn again, is not the reader's place.
+   A press that opens nothing lets go after PD_MID_WAIT_MS (the middle's own bound). */
+let _pd2Hold = 0;
+function pd2PlacePress(e){
+  const g = document.getElementById('pd-glance'); if (!pd2PlainFace(g) || _pdMid) return;
+  const t = e && e.target && e.target.closest ? e.target.closest('button, a, [role="button"]') : null; if (!t || !g.contains(t)) return;
+  const sc = pd2PlaceScroller(g); if (!sc) return;
+  _pd2Place = { id: String(g.getAttribute('data-pd-glance-for') || ''), top: sc.scrollTop };
+  _pd2Hold = Date.now() + PD_MID_WAIT_MS;
+}
 function pd2PlaceKeep(e){
   /* while a page stands in the middle (Duties, Where the deal stands …) the place left behind is held: the panel's parts
      above the Dossier change then and the browser shifts the scroller to hold what is on screen, and that shifted number
      put back on the way home landed the reader 114px low (GitHub, 24 Nov 2026: pd2PlaceBack set 434 over 319) */
   if (_pdMid) return;
+  if (_pd2Hold && Date.now() < _pd2Hold) return;
+  _pd2Hold = 0;
   const g = document.getElementById('pd-glance'); if (!pd2PlainFace(g)) return;
   const sc = pd2PlaceScroller(g); if (!sc || (e && e.target !== sc)) return;
   _pd2Place = { id: String(g.getAttribute('data-pd-glance-for') || ''), top: sc.scrollTop };
@@ -7539,8 +7559,13 @@ function pd2PlaceBack(was, nu){
   if (pd2PlainFace(was) || !pd2PlainFace(nu) || !_pd2Place) return;
   if (String(nu.getAttribute('data-pd-glance-for')) !== _pd2Place.id) return;
   const sc = pd2PlaceScroller(nu); if (sc) sc.scrollTop = _pd2Place.top;
+  /* the Dossier is drawn again: the place is let go, for the reader's own scrolling from here */
+  _pd2Hold = 0;
 }
-if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('scroll', pd2PlaceKeep, true);
+if (typeof document !== 'undefined' && document.addEventListener){
+  document.addEventListener('scroll', pd2PlaceKeep, true);
+  document.addEventListener('pointerdown', pd2PlacePress, true);
+}
 function pdGlanceRepaint(){
   const el = (typeof document !== 'undefined') ? document.getElementById('pd-glance') : null; if (!el) return;
   const c = pdContract(); if (!c || String(c.id) !== el.getAttribute('data-pd-glance-for')) return;

@@ -180,8 +180,12 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
       return s.toString().replace(/\s+/g, ' ').trim();
     });
     await page.waitForTimeout(400);
-    await page.locator('.nego-selmenu button', { hasText: 'Comment' }).click();
-    await until(page, () => !!document.querySelector('[data-rl-np-pin] q'), null, 5000);
+    /* RE-POINTED 25 Nov 2026 (live notes A, #1014: the highlight's "Comment" is replaced by "Add a note" and its rooms,
+       rlNoteRoomActs → data-nego-ai="note:internal"; the note starts a new conversation with the words pinned in its head) */
+    const intRoom = await until(page, () => !!document.querySelector('.nego-selmenu [data-nego-ai="note:internal"]'), null, 4000);
+    ok('4-0 the highlight offers Add a note into our Internal room', intRoom);
+    if (intRoom) await page.click('.nego-selmenu [data-nego-ai="note:internal"]');
+    await until(page, () => !!document.querySelector('.rl-lv-hq q, [data-rl-np-pin] q'), null, 5000);
     const box = await page.$('.rl-np textarea, [data-rl-np-input], .rl-np-input');
     if (box){ await box.fill('A note on these words'); await page.locator('button', { hasText: 'Add note' }).last().click(); }
     await page.waitForTimeout(1500);
