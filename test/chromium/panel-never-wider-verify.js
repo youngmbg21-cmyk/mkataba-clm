@@ -1,4 +1,4 @@
-/* THE SIDE PANEL NEVER GROWS WIDER THAN ITSELF (owner, 25 Nov 2026; f1227).
+/* THE SIDE PANEL NEVER GROWS WIDER THAN ITSELF (owner, 25 Nov 2026; f1228).
    At the iPad's size (1180×820, touch) and the shortest laptop (1366×950), on every tab of a contract's panel —
    Dossier, Clauses, Redlines with changes, Redlines with none (the playbook's gap rows) — nothing inside #ig-dock
    scrolls sideways and nothing stands past its right edge.
