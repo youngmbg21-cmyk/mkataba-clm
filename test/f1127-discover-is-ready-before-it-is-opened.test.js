@@ -25,7 +25,7 @@ const fnBody = (src, name) => { const at = src.search(new RegExp('\\n(?:async )?
 test('f1127 (1) Discover is fetched quietly once a sitting, before it is opened', () => {
   const W = fnBody(RD, 'dsnWarm');
   assert.match(W, /if \(_dsnWarmed\) return;/, 'once a sitting');
-  assert.match(W, /max-width: 767px/, 'not on a phone');
+  assert.match(W, /M_QUERY|max-width: ?767px/, 'not on a phone');
   assert.match(W, /if \(state\.view !== 'reads'\) rdLoad\(true\);/, 'not while Discover is in front; through the page\'s own loader');
   assert.match(W, /requestIdleCallback\(go/, 'when the browser is idle');
   assert.match(W, /setTimeout\(idle, 3000\)/, 'a few seconds after the app has drawn');
