@@ -23013,3 +23013,4 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 ## Noticed, not fixed (25 Nov 2026)
 - f977 (6, 7) already red on main before the Editor panel round: a HARMONY rule '#pd-thread .doc-th-lred' does not start with html.lg-new.
 - f245 "ONE GUARD, AND EVERY DOOR OUT OF A DRAFT GOES THROUGH IT" and f245 (18) "the Changes tab is gone, and Redlined shows redlines" already red on main before the paper-type round (24 Nov 2026); not touched.
+- f676 (6) / 6c "Their view joins Clean and Redline — the same paper from their seat, nothing to press" already red on main before the panel-never-wider fix (25 Nov 2026); not touched.
