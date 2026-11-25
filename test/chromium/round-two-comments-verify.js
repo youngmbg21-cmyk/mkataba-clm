@@ -366,7 +366,11 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const hr = h.getBoundingClientRect();
     const r = document.createRange(); r.setStart(body.firstChild, 0); r.setEnd(body.firstChild, Math.min(40, body.firstChild.data.length));
     const rr = r.getBoundingClientRect();
-    const a = [hr.left + 4, hr.top + hr.height / 2], b = [rr.right - 4, rr.bottom - 4];
+    /* RE-POINTED 25 Nov 2026 (owner's pick, ONE PAPER TYPE: the heading's number stands in its own grey column, .rl-hnum,
+       which is not wording to select; the owner's photo showed a real drag offering the rows): the drag starts on the
+       heading's WORDS, just past the number's column */
+    const hn = h.querySelector('.rl-hnum'), hnr = hn ? hn.getBoundingClientRect() : null;
+    const a = [(hnr && hnr.width ? Math.max(hr.left, hnr.right) : hr.left) + 4, hr.top + hr.height / 2], b = [rr.right - 4, rr.bottom - 4];
     const hitA = document.elementFromPoint(a[0], a[1]), hitB = document.elementFromPoint(b[0], b[1]);
     return { id: cl.clauseId, a, b, head: h.textContent.trim().slice(0, 30), lands: !!(hitA && sec.contains(hitA) && hitB && sec.contains(hitB)) };
   });
