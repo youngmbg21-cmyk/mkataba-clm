@@ -194,7 +194,7 @@ describe('f191 (5) — nothing internal ever leaks', () => {
     /* Below 768px this page draws its notices in flow and the header has no
        room for another control. Said in the stylesheet rather than left as an
        accident of width. */
-    assert.match(FEATURE, /@media \(max-width:767px\)\{ \.pt-bell\{display:none;\}/);
+    assert.match(FEATURE, /@media screen and \(max-width:767px\)\{ \.pt-bell\{display:none;\}/);
   });
 });
 

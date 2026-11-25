@@ -28,7 +28,7 @@
    ============================================================================ */
 
 const M_PORTAL_CSS = `
-@media (max-width:767px){
+@media screen and (max-width:767px){
   /* ---- the page ----
      The desktop portal is a fixed-height flex column that never scrolls as a
      page, because its panes scroll inside themselves. On a phone that is how a

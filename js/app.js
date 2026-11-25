@@ -5107,6 +5107,58 @@ function printSurface(){
       || document.getElementById('content')
       || null;
 }
+/* the contract's paper on screen, the one thing still copied into #print-root */
+function printPaperSurface(){
+  for (const sel of ['.rl-paper','.doc-surface','.hati-doc','#print-doc']){
+    const el = document.querySelector(sel);
+    if (el && el.getClientRects().length) return el;
+  }
+  return null;
+}
+const PRINT_PANELS = '#ig-dock, .ins-panel, .st-side, #ai-panel, .cal-cop';
+const _prVis = e => !!(e && e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden');
+const _prArea = e => { const r = e.getBoundingClientRect(); return r.width * r.height; };
+/* THE PAGE ON SCREEN: walking down from #content, the largest shown part that is not Jambo's side panel and does not
+   hold it — the page column beside the panel; with no panel, the content itself */
+function printPageOf(){
+  const root = document.getElementById('content'); if (!_prVis(root)) return null;
+  const panel = [...document.querySelectorAll(PRINT_PANELS)].find(_prVis) || null;
+  if (!panel || !root.contains(panel)) return printPageDown(root);
+  let node = root;
+  for (let i = 0; i < 14 && node; i++){
+    const kids = [...node.children].filter(_prVis);
+    if (kids.includes(panel)){ const others = kids.filter(k => k !== panel).sort((a, b) => _prArea(b) - _prArea(a)); return printPageDown(others[0] || null); }
+    node = kids.find(k => k.contains(panel)) || null;
+  }
+  return null;
+}
+/* …and down through the frames that only hold it (Home's column holds the Contracts place, laid over it): while one
+   shown part fills nearly all of it, that part is the page — a canvas drawn over the page is never it */
+function printPageDown(el){
+  for (let i = 0; i < 10 && el; i++){
+    const a = _prArea(el); if (!a) break;
+    const kids = [...el.children].filter(k => _prVis(k) && k.tagName !== 'CANVAS' && k.tagName !== 'svg' && !k.matches('.wm-stage'));
+    const big = kids.sort((x, y) => _prArea(y) - _prArea(x))[0];
+    if (!big || _prArea(big) < a * 0.85 || kids.filter(k => _prArea(k) > a * 0.25).length > 1) break;
+    el = big;
+  }
+  return el;
+}
+/* marks the page, its way up and every scroller in it, so the print sheet shows them whole (index.html, A PAGE PRINTS
+   IN PLACE); false when there is no page to print */
+function printInPlaceOn(){
+  const page = printPageOf(); if (!page) return false;
+  document.body.classList.add('pr-inplace');
+  page.setAttribute('data-pr-page', '');
+  for (let e = page.parentElement; e && e !== document.body; e = e.parentElement) e.setAttribute('data-pr-path', '');
+  page.querySelectorAll('*').forEach(e => { if (e.scrollHeight > e.clientHeight + 1 && /(auto|scroll|hidden)/.test(getComputedStyle(e).overflowY)) e.setAttribute('data-pr-open', ''); });
+  if (page.scrollHeight > page.clientHeight + 1) page.setAttribute('data-pr-open', '');
+  return true;
+}
+function printInPlaceOff(){
+  document.body.classList.remove('pr-inplace');
+  document.querySelectorAll('[data-pr-page],[data-pr-path],[data-pr-open]').forEach(e => { e.removeAttribute('data-pr-page'); e.removeAttribute('data-pr-path'); e.removeAttribute('data-pr-open'); });
+}
 function fillPrintRoot(){
   try{
     const root = document.getElementById('print-root');
@@ -5125,6 +5177,11 @@ function fillPrintRoot(){
         return;
       }
     }
+    /* A PAGE PRINTS IN PLACE (owner, 25 Nov 2026: printing Read down gave the phone's Home, the panel beside it and a
+       cut-off list): a contract's paper is still copied into #print-root (above and below); every other page prints
+       ITSELF, with its own styles — the page beside Jambo's panel, never the panel, never the bar; nothing hidden
+       comes back, nothing is cut off at a scroller's foot (printInPlaceOn). */
+    if (!printPaperSurface() && printInPlaceOn()) return;
     const src = printSurface();
     if (!src) return;
     const title = (document.querySelector('.room-name h1,#page-head h1,h1')||{}).textContent||'';
@@ -5139,6 +5196,7 @@ function fillPrintRoot(){
   }catch(e){ /* printing must never take the page down */ }
 }
 function clearPrintRoot(){
+  try{ printInPlaceOff(); }catch(_){}
   try{
     const root = document.getElementById('print-root');
     if (root && root.dataset.autofill === '1'){ root.innerHTML=''; delete root.dataset.autofill; }
@@ -5151,4 +5209,4 @@ if (typeof window !== 'undefined' && window.addEventListener){
 
 Object.assign(window,{alStandardsAnswers,alLookRows,ALERT_STD_DAYS,GUIDE_NL,guidePanelNlHtml,LP_WAIT_MAX,LP_CHIPS,LP_EMOJI,lpRows,lpItems,lpQuoteOf,lpWaits,lpBodyHtml,lpSideHtml,lpSideOn,lpFootHtml,lpChipsHtml,lpIsOpen,lpToggle,lpWire,guideNlCount,guideSizeOf,guideNlRowHtml,shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,placeBackOn,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,panelDoorPress,
   buildAlerts,alertCount,updateAlertBadge,jamboBoxFocus,JB_BOX_SEL,JB_BOX_TRIES,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,alertsShowTab,activityPanelHtml,actSayOf,ACT_SAYS,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,activityFeedState,relTime});
-Object.assign(window,{BP});
+Object.assign(window,{BP, printPageOf, printPageDown, printInPlaceOn, printInPlaceOff, printPaperSurface});
