@@ -78,3 +78,9 @@ test('f1225 (5) short words when tight; presses a finger finds', () => {
   assert.equal((I18.match(/pd2_rn_chip_done_s: '/g) || []).length, 2, 'both books');
   assert.match(H, /#pd2-dock :is\(\.rl-type-step button, \.pd2-rn-chip, \.pd2-rn-hide\)::after\{content:"";position:absolute;inset:-9px 0\}/);
 });
+
+test('f1225 the room above Home\'s sheet is 20 on screen at any zoom from the FIRST paint: the frame carries --ig-zf when drawn (review of #1016)', () => {
+  const IG = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js/views/intelligence.js'), 'utf8');
+  assert.match(IG, /<div class="ig-zoom" style="zoom:\$\{[^}]+\};--ig-zf:\$\{[^}]+\}">/, 'the frame is drawn with its factor');
+  assert.match(IG, /style="padding:calc\(20px \/ var\(--ig-zf,1\)\) 0 40px"/, 'and the room above the sheet reads it');
+});

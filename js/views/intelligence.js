@@ -12343,7 +12343,7 @@ function igPaperHtml(c){
   }
   return `<div class="ig-paper-wrap">
     <div id="ig-spine" class="doc-xr-spine ig-spine" role="group" aria-label="${igEsc(i18t('xr_spine_label'))}" hidden></div>
-    <div id="ig-paper-scroll" class="ig-paper-scroll scroll-thin">${igZoomCornerHtml(c)}<div class="ig-zoom" style="zoom:${igSignOn(c)?1:(window.rlDocZoomFactor?rlDocZoomFactor():1)}">${sheet}</div></div>
+    <div id="ig-paper-scroll" class="ig-paper-scroll scroll-thin">${igZoomCornerHtml(c)}<div class="ig-zoom" style="zoom:${igSignOn(c)?1:(window.rlDocZoomFactor?rlDocZoomFactor():1)};--ig-zf:${igSignOn(c)?1:(window.rlDocZoomFactor?rlDocZoomFactor():1)}">${sheet}</div></div>
   </div>`;
 }
 /* the reader's zoom, written where Home's sheet reads it; the Track is laid
