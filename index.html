@@ -4224,7 +4224,7 @@
   /* Below 768 the desktop shell is hidden outright and the phone draws instead
      — its account sheet is where these live there. Said in the stylesheet
      rather than left to a width check in script. */
-  @media (max-width:767px){ .st-drawer, .st-scrim{ display:none!important; } }
+  @media screen and (max-width:767px){ .st-drawer, .st-scrim{ display:none!important; } }
 
   /* ---- ON THE CARD ----
      Who wrote it, and the sentence where a verb would have been. Both are the
@@ -14004,8 +14004,19 @@
   /* PDF export — print only the prepared document */
   #print-root{display:none;}
   @media print{
-    body>*{display:none!important;}
+    body:not(.pr-inplace)>*{display:none!important;}
     #print-root{display:block!important;}
+    /* A PAGE PRINTS IN PLACE (owner, 25 Nov 2026; printInPlaceOn, js/app.js): only the page and its way up are drawn,
+       in their own styles; the way up lets the page take the paper's full width and height; every scroller inside it
+       is opened whole; the controls stay on screen */
+    body.pr-inplace>*:not([data-pr-path]):not([data-pr-page]){display:none!important;}
+    body.pr-inplace [data-pr-path]>*:not([data-pr-path]):not([data-pr-page]){display:none!important;}
+    body.pr-inplace [data-pr-path]{display:block!important;}
+    body.pr-inplace :is([data-pr-path],[data-pr-page]){position:static!important;width:auto!important;max-width:none!important;height:auto!important;max-height:none!important;min-height:0!important;overflow:visible!important;margin:0!important;transform:none!important;border:0!important;box-shadow:none!important;background:#fff!important;}
+    body.pr-inplace [data-pr-open]{height:auto!important;max-height:none!important;overflow:visible!important;}
+    body.pr-inplace [data-pr-page] :is(input,select,textarea,button.ui-btn,button.hb-btn,.ctf-back,[data-rd-print],.rd-print,.ct-acts,.lh-chips,.apn-ask,.split-grip){display:none!important;}
+    body.pr-inplace .wm-stage{display:none!important;}
+    body.pr-inplace [data-pr-page],body.pr-inplace [data-pr-page] *{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important;}
     body{background:#fff;}
     /* Ink on white regardless of the on-screen theme: the filed artefact is
        not themed. Every token the document surfaces read is pinned back to
@@ -17015,7 +17026,7 @@
   .dk-nav-b:hover,.dk-nav-b.is-on{background:var(--bar-hover)}
   .dk-nav-b:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px}
   .dk-nav-b + .dk-back-b{margin-left:0}
-  @media (max-width:767px){ .dk-nav-b{display:none} }
+  @media screen and (max-width:767px){ .dk-nav-b{display:none} }
   #cmd-palette .lp-sheet{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto minmax(0,1fr) auto}
   #cmd-palette .lp-top{grid-column:1;grid-row:1;position:relative;padding:22px var(--s-8) 6px}
   /* the × in the top right corner (owner, 23 Nov 2026): over the waiting column, quiet until the hand is on it */
@@ -22667,7 +22678,7 @@
   html.lg-out .pol-oc.is-grn{color:var(--st-green-fg)}
   html.lg-out .pol-oc.is-red{color:var(--st-ruby-fg)}
   html.lg-out .pol-oc.is-gry{color:var(--color-quiet)}
-  @media (max-width:767px){
+  @media screen and (max-width:767px){
     html.lg-out #pw-page .pw-id-row2{flex-wrap:wrap;gap:0 12px}
     html.lg-out #pw-page .pw-tabs{flex:1 1 100%;max-width:100%;overflow-x:auto;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,var(--color-text) 85%,transparent)}
     html.lg-out .pol-bar{gap:10px}
@@ -22730,9 +22741,9 @@
   html.lg-out .pol-bar .pt-bell.pt-bell{display:inline-grid;place-items:center;flex:none;width:32px;height:32px;min-width:0;padding:0;margin:0;border:0;border-radius:8px;background:transparent;box-shadow:none;color:var(--color-surface);cursor:pointer}
   html.lg-out .pol-bar .pt-bell.pt-bell[hidden]{display:none}
   /* the phone keeps what it had: no bell in its head (the page's own rule, portalAlertsStyle), at equal reach here */
-  @media (max-width:767px){ html.lg-out .pol-bar .pt-bell.pt-bell{display:none} }
+  @media screen and (max-width:767px){ html.lg-out .pol-bar .pt-bell.pt-bell{display:none} }
   html.lg-out .pol-w-pnotes{display:none;margin:0 0 14px;font-size:13px;color:var(--color-quiet)}
-  @media (max-width:767px){ html.lg-out .pol-w-pnotes{display:block} }
+  @media screen and (max-width:767px){ html.lg-out .pol-w-pnotes{display:block} }
   html.lg-out .pol-bar .pt-bell.pt-bell[aria-expanded="true"]{background:color-mix(in srgb,var(--color-surface) 18%,transparent)}
   html.lg-out .pol-bar .pt-bell svg{width:16px;height:16px}
   html.lg-out .pol-bar .pt-bell .pt-bell-dot{top:1px;right:0;min-width:15px;height:15px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:var(--st-ruby-dot);color:var(--color-surface);font-family:var(--font-ui);font-size:10px;line-height:15px}
@@ -22769,7 +22780,7 @@
   html.lg-out #pw-page:is([data-pt-tab="where"],[data-pt-tab="signing"]) .pw-mount > :is(#pt-where-pane,#pt-sign-pane){right:var(--pol-page-side-w,384px)}
   /* the phone has no room beside the page: the side panel (drawn for the desktop) stands down there, the page takes the
      whole width, as it did before the panel was drawn (P-44 review follow-up, 22 Nov 2026) */
-  @media (max-width:767px){
+  @media screen and (max-width:767px){
     html.lg-out #pw-page:is([data-pt-tab="where"],[data-pt-tab="signing"]) .pw-mount > .pol-side{display:none}
     html.lg-out #pw-page:is([data-pt-tab="where"],[data-pt-tab="signing"]) .pw-mount > :is(#pt-where-pane,#pt-sign-pane){right:0}
   }

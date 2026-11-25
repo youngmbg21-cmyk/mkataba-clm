@@ -40,7 +40,9 @@
 /* One query, named once. Anything that needs to know "are we on the phone"
    asks here — a second literal 767 somewhere else is how two breakpoints end
    up half a pixel apart and nobody can say which is the real one. */
-const M_QUERY = '(max-width:767px)';
+/* SCREEN ONLY (owner, 25 Nov 2026: printing Read down printed the phone's Home): a printed page is narrower than 767px,
+   so the bare query matched while printing and the phone shell switched on and was printed. The phone is a screen. */
+const M_QUERY = 'screen and (max-width:767px)';
 function mPhone(){
   /* Guarded: this module is evaluated on the cut-down stage the node tests
      use, where matchMedia does not exist. On that stage the phone is simply
@@ -108,7 +110,7 @@ const M_DESK = [
    functions themselves, which is the one thing that would put the desktop at
    risk. So the phone paints over; it never rewrites. */
 const M_CSS = `
-@media (max-width:767px){
+@media screen and (max-width:767px){
   /* The desktop shell leaves the page entirely. Not narrowed, not scrolled —
      gone, so nothing inside it can be reached by a stray tab stop or measured
      by something that assumes it is on screen. */

@@ -28,7 +28,7 @@ const PORTAL = strip(between(read('js/mobile-portal.js'), 'const M_PORTAL_CSS = 
 
 describe('f631 (G8) the workbench head fits a phone', () => {
   test('the acts and control row wrap, the facts strip steps out, controls are 44px — under the phone query only', () => {
-    assert.match(CSS, /^const M_CSS = `\n@media \(max-width:767px\)\{/);
+    assert.match(CSS, /^const M_CSS = `\n@media screen and \(max-width:767px\)\{/);
     assert.match(CSS, /body\.m-on\.m-redline #ws-head \.room-acts,\s*body\.m-on\.m-redline \.redline-page \.rl-actions\{[^}]*flex-wrap:wrap!important/);
     assert.match(CSS, /body\.m-on\.m-redline #ws-facts\{ display:none!important; \}/);
     assert.match(CSS, /body\.m-on\.m-redline #view-redline :is\([^)]*\.room-check[^)]*\)\{ min-height:44px!important; \}/);
@@ -73,7 +73,7 @@ describe('f631 (G12–G14) the counterparty on a phone', () => {
     assert.match(PORTAL, /\.pw-tabs \.pw-tab\{ min-height:44px!important;/);
   });
   test('the notes drawer comes back, full width, while the alerts aside stays hidden', () => {
-    assert.match(read('js/views/portal.js'), /@media \(max-width:767px\)\{ \.pt-bell\{display:none;\} \.pt-alerts,\.pt-alerts-scrim\{display:none;\} \}/,
+    assert.match(read('js/views/portal.js'), /@media screen and \(max-width:767px\)\{ \.pt-bell\{display:none;\} \.pt-alerts,\.pt-alerts-scrim\{display:none;\} \}/,
       'the cause: the portal hides .pt-alerts on a phone, and the notes drawer wears it');
     assert.match(PORTAL, /\.pt-alerts\.pt-notes\{ display:flex!important; width:100%!important;/);
   });

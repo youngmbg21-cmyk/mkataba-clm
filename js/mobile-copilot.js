@@ -39,7 +39,7 @@ const M_AI_SCREENS = ['approvals','portfolio'];
 
 /* ------------------------------------------------------------------ CSS ----*/
 const M_AI_CSS = `
-@media (max-width:767px){
+@media screen and (max-width:767px){
   /* THE PANEL IS THE WINDOW.
      max-width is inline on the element (430px), so it takes an !important to
      move — see the note about inline styles at the top of js/mobile.js. */

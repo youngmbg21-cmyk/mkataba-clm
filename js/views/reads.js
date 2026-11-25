@@ -444,7 +444,7 @@ function rdnAnswersAll(){
 let _dsnWarmed = false;
 function dsnWarm(){
   if (_dsnWarmed) return;
-  if (typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 767px)').matches) return;
+  if (typeof window.matchMedia === 'function' && window.matchMedia(typeof M_QUERY === 'string' ? M_QUERY : 'screen and (max-width:767px)').matches) return;
   _dsnWarmed = true;
   const go = () => { if (state.view !== 'reads') rdLoad(true); };
   const idle = () => (typeof requestIdleCallback === 'function') ? requestIdleCallback(go, { timeout: 8000 }) : setTimeout(go, 400);

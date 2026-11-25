@@ -3897,7 +3897,7 @@ function portalAlertsStyle(){
     /* ---- NO BELL ON THE PHONE, AND THAT IS DELIBERATE ----
        Below 768px this page draws its notices in flow and the header has no
        room for another control. The phone keeps what it has. */
-    @media (max-width:767px){ .pt-bell{display:none;} .pt-alerts,.pt-alerts-scrim{display:none;} }
+    @media screen and (max-width:767px){ .pt-bell{display:none;} .pt-alerts,.pt-alerts-scrim{display:none;} }
   `;
   document.head.appendChild(el);
 }

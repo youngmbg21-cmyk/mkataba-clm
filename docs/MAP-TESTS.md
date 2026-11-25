@@ -1242,3 +1242,6 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 
 ## HOME — THE BOARD AND THE MAP: each stage its own colour (25 Nov 2026)
 - NEW: test/f1230-each-stage-its-own-colour.test.js (hmStageTone run with the new look on: Drafting, In review, Executed three colours, each STATUS_META's dot; the Board's bar, Home's map and the portfolio read it). Red at the parent.
+
+## PRINTING — the page prints itself (25 Nov 2026)
+- `node --test test/f1235-printing-prints-the-page.test.js test/f631-the-phone-fits.test.js test/f191-the-counterparty-gets-a-bell.test.js`
