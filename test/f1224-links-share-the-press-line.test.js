@@ -67,7 +67,8 @@ test('f1224 (2) one row, never wrapped: short forms first, then left out from th
   assert.doesNotMatch(X, /\.jb-ways\.is-in-door \.jb-way:nth-of-type\(n\+4\)\{display:none\}/, 'no fixed cap of three');
   assert.doesNotMatch(X, /\[data-ig-chips\] \.jb-chip, \.jb-ways\.is-above-foot \.jb-way\):nth-of-type\(n\+4\)/);
   assert.match(X, /html\.lg-new :is\(#ig-dock \[data-ig-chips\], \.jb-ways\.is-above-foot\)\{flex-wrap:nowrap;overflow:hidden\}/, 'never wrapped');
-  assert.match(X, /\.jb-ways > \.is-fit-off, \[data-ig-chips\] > \.is-fit-off\{display:none\}/);
+  /* RE-POINTED 25 Nov 2026 (review of #1011: every new-look rule waits on html.lg-new, f967) */
+  assert.match(X, /html\.lg-new \.jb-ways > \.is-fit-off, html\.lg-new \[data-ig-chips\] > \.is-fit-off\{display:none\}/);
 });
 
 test('f1224 (3) fitted in one place, again on a repaint, a resize and a panel\'s width change', () => {

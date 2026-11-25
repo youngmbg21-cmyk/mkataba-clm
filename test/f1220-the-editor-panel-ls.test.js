@@ -54,3 +54,11 @@ test('f1220 (6) Your answer is its own block, a line above it, so Accept and Rej
   const css = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   assert.match(css, /#clause-editor\.is-tabbed \.ce-tasked \.ce-tansb\{[^}]*border-top:1px solid var\(--color-divider\)/, 'a line above it, as every other block');
 });
+
+test('f1220 review of #1004/#1007: one Accept on the tab; the heading number typed like any word', () => {
+  const E = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js/views/clauseeditor.js'), 'utf8');
+  const lc = E.slice(E.indexOf('function ceLadderCardHtml('), E.indexOf('function ceLadderCardHtml(') + 6000);
+  assert.match(lc, /const tActs = \/data-ce-act="ladder-accept"\/\.test\(acts\) \? '' : acts;/, 'the card does not draw a second Accept on the tab');
+  assert.match(E, /if \(!String\(f\.textContent \|\| ''\)\.trim\(\)\) ev\.preventDefault\(\);/, 'a Backspace at the start of the name never takes the locked number');
+  assert.match(E, /t\.innerHTML = window\.rlHeadNumHtml \? rlHeadNumHtml\(_cee\(_ceHead\)\)/, 'Escape puts the number column back');
+});

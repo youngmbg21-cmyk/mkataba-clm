@@ -240,7 +240,8 @@ describe('f676 (6) the paper\'s line takes the contract\'s acts', () => {
     /* RE-POINTED 11 Nov 2026 (f1010): the paper's wording is built in ONE place, igRedBodyHtml, which the first
        drawing (igPaperHtml) and the clause-by-clause redraw both ask */
     assert.match(strip(fnBody(IG, 'igPaperHtml')), /igRedBodyHtml\(c,clean\)/);
-    assert.match(strip(fnBody(IG, 'igRedBodyHtml')), /igTheirsOn\(c\)\?\{ side:'counterparty', readonly:true, preview:true \}/);
+    /* RE-POINTED 25 Nov 2026 (#1007 "one paper type": the redline paper wears the one type, look:false on both seats) */
+    assert.match(strip(fnBody(IG, 'igRedBodyHtml')), /igTheirsOn\(c\)\?\{ side:'counterparty', readonly:true, preview:true(, look:false)? \}/);
   });
 });
 

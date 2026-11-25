@@ -156,3 +156,12 @@ test('f1226 (6) every new word in both books; the Handbook says it', () => {
   assert.match(HB, /Highlight words on the paper and the dark bubble says \{ui:ng_lv_add_note\}/);
   assert.match(HB, /Markera ord på papperet så säger den mörka bubblan \{ui:ng_lv_add_note\}/);
 });
+
+test('f1226 Unread holds for the sitting (review of #1014): the panel marks threads seen on each paint, the count reads the mark as it was', () => {
+  const N = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js/views/negotiation.js'), 'utf8');
+  const u = N.slice(N.indexOf('function rlNpUnread('), N.indexOf('function rlNpUnread(') + 500);
+  assert.match(u, /const seen = rlNpSeenAtHeld\(c, opts, ch\);/, 'the count reads the held mark');
+  const h = N.slice(N.indexOf('function rlNpSeenAtHeld('), N.indexOf('function rlNpUnread('));
+  assert.match(h, /if \(_rlNpSeenHeld\.cid !== cid\) _rlNpSeenHeld = \{ cid, at: new Map\(\) \};/, 'held per contract, let go on another');
+  assert.match(h, /if \(!_rlNpSeenHeld\.at\.has\(k\)\) _rlNpSeenHeld\.at\.set\(k, negoThreadSeenAt\(scope, host\)\);/, 'the first look is kept');
+});

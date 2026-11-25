@@ -5148,7 +5148,10 @@ function ceLadderCardHtml(){
   /* AS A TAB, AS DRAWN: "Your ladder" and its Open › (the Redlines tab's Ladder), then a calm table of lines */
   if (ceTabbed()){ void moved;
     const lines = [ladder !== _cet('ce_lc_nostd') ? ['ruby', ladder] : null, cePlaybookLine() ? ['ruby', cePlaybookLine()] : null, prec !== _cet('ce_lc_noprec') ? ['steel', prec] : null].filter(Boolean);
-    return ceTabBeforeHtml(lines) + (replyHtml || acts ? `<section class="ce-sec ce-tans"><div class="ce-sh"><span>${_cee(_cet('ce_tab_answer'))}</span></div><div class="ce-card ce-lcard">${replyHtml}${acts}</div></section>` : ''); }
+    /* ONE ACCEPT (review of #1004, 25 Nov 2026): the tab's "They asked" already carries Accept · Reject for their change,
+       so the card's own Accept is not drawn a second time here */
+    const tActs = /data-ce-act="ladder-accept"/.test(acts) ? '' : acts;
+    return ceTabBeforeHtml(lines) + (replyHtml || tActs ? `<section class="ce-sec ce-tans"><div class="ce-sh"><span>${_cee(_cet('ce_tab_answer'))}</span></div><div class="ce-card ce-lcard">${replyHtml}${tActs}</div></section>` : ''); }
   return `<div class="ce-card ce-lcard" title="${_ceea(_cet('ce_lc_cost'))}">
     <div class="k">${_cee(_cet('ce_lc_moved'))}</div><div>${_cee(moved)}</div>
     <div class="k">${_cee(_cet('ce_lc_ladder'))}</div><div>${_cee(ladder)}</div>
@@ -8044,7 +8047,18 @@ function ceWirePage(page){
     const t = ev.target;
     if (!t || !t.closest || !t.closest('#ce-clausehead')) return;
     if (ev.key === 'Enter'){ ev.preventDefault(); t.blur(); return; }
-    if (ev.key === 'Escape'){ ev.preventDefault(); ev.stopPropagation(); t.textContent = _ceHead; t.blur(); }
+    if (ev.key === 'Escape'){ ev.preventDefault(); ev.stopPropagation(); t.innerHTML = window.rlHeadNumHtml ? rlHeadNumHtml(_cee(_ceHead)) : _cee(_ceHead); t.blur(); return; }
+    /* THE NUMBER IS NEVER TAKEN BY ONE KEY (review of #1007, 25 Nov 2026): it stands locked in its grey column, so the
+       browser would delete it whole on a Backspace at the start of the name, and that would be filed as a new heading;
+       the caret stays where it is instead, as it does before a struck run */
+    if (ev.key === 'Backspace'){
+      const box = t.closest('#ce-clausehead'), num = box && box.querySelector('.rl-hnum'), sel = window.getSelection && window.getSelection();
+      if (num && sel && sel.rangeCount && sel.isCollapsed){
+        try { const r = document.createRange(); r.setStart(box, 0); r.setEnd(sel.anchorNode, sel.anchorOffset);
+          const f = r.cloneContents(); f.querySelectorAll('.rl-hnum').forEach(x => x.remove());
+          if (!String(f.textContent || '').trim()) ev.preventDefault(); } catch (_){}
+      }
+    }
   });
   /* ---- A STRUCK RUN IS STEPPED OVER, NEVER DELETED (14 Sep 2026) ----
      The browser would take a non-editable element whole on the Backspace

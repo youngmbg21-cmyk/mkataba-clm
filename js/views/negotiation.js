@@ -17812,9 +17812,21 @@ function rlNpWhoKind(m, side){
   return m.side && m.side !== side ? 'them' : 'team';
 }
 /* what this reader has not read in one conversation: the others' words after their seen mark (READING MUST NOT WRITE) */
+/* UNREAD HOLDS FOR THE SITTING (review of #1014, 25 Nov 2026): every paint of the panel marks the conversation seen
+   (negoMarkChatSeen), so a count read off the live mark emptied itself on the next paint — the Unread chip pressed
+   showed nothing, a room's green dot went at any redraw. The seen mark each thread had when this contract was first
+   drawn here is kept for as long as the reader stays on it; a newer message still counts. */
+let _rlNpSeenHeld = { cid: '', at: new Map() };
+function rlNpSeenAtHeld(c, opts, ch){
+  const scope = negoSeenScope(c, opts), host = rlNpHostKey(ch), cid = String((c && c.id) || '');
+  if (_rlNpSeenHeld.cid !== cid) _rlNpSeenHeld = { cid, at: new Map() };
+  const k = negoSeenKey(scope, host);
+  if (!_rlNpSeenHeld.at.has(k)) _rlNpSeenHeld.at.set(k, negoThreadSeenAt(scope, host));
+  return _rlNpSeenHeld.at.get(k);
+}
 function rlNpUnread(c, ch, th, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
-  const seen = negoThreadSeenAt(negoSeenScope(c, opts), rlNpHostKey(ch));
+  const seen = rlNpSeenAtHeld(c, opts, ch);
   return [th.root].concat(th.replies).filter(m => rlNpWhoKind(m, side) !== 'me' && (!seen || String(m.at || '') > String(seen))).length;
 }
 /* the likes on a message: face → who pressed; read off the note (ours) or its channel copy (theirs) */

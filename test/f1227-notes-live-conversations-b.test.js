@@ -103,6 +103,19 @@ describe('f1227 live notes, on the server', () => {
     assert.ok(await until(() => notesFor(link, CID).length > 0), 'their own room\'s ping reaches their link');
   });
 
+  test('(1d) their own team room\'s ping never reaches our side (review of #1014: rooms are "team:<party>")', async () => {
+    const mine = open('/api/live', A.cookie), link = open('/api/shares/' + token + '/live');
+    assert.ok(await until(() => mine.events.some(e => e.event === 'hello') && link.events.some(e => e.event === 'hello')));
+    const n0 = notesFor(mine, CID).length;
+    const r = await fetch(h.base + '/api/shares/' + token + '/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ author: 'Guliz Cetin', topic: 'contract', room: 'team', body: 'Between us: we can go to sixty.' }) });
+    assert.equal(r.status, 200);
+    assert.ok(await until(() => notesFor(link, CID).some(e => /^team:/.test(e.data.room))), 'their own tab hears their team room');
+    await pause(300);
+    assert.equal(notesFor(mine, CID).filter(e => /^team/.test(e.data.room)).length, 0, 'our side hears nothing of their team room');
+    assert.equal(notesFor(mine, CID).length, n0, 'not even that something moved');
+  });
+
   test('(1c) a link that may not stream is refused; a stream without a session is refused', async () => {
     assert.equal((await fetch(h.base + '/api/shares/not-a-token/live')).status, 404);
     const anon = await fetch(h.base + '/api/live'); assert.ok(anon.status === 401 || anon.status === 403, 'signed out: ' + anon.status);
@@ -163,6 +176,19 @@ describe('f1227 live notes, on the server', () => {
     const row = (await A.json('/api/contracts/' + CID + '/messages')).messages.find(m => m.id === rowId);
     assert.equal(row.meta.reactions[LIKE].length, 2, 'both likes stand');
     assert.ok(row.meta.reactions[LIKE].includes(d.me));
+  });
+
+  test('(4b) our like on THEIR note pressed by its own id (review of #1014): found on the channel, never "Note not found"', async () => {
+    const r = await fetch(h.base + '/api/shares/' + token + '/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ author: 'Guliz Cetin', topic: 'contract', body: 'Ninety days is too long for us.', meta: { id: 'their-n1' } }) });
+    assert.equal(r.status, 200);
+    const theirs = (await A.json('/api/contracts/' + CID + '/messages')).messages.find(m => m.meta && m.meta.id === 'their-n1');
+    assert.ok(theirs, 'their note carries its own id');
+    const like = await A.raw('/api/contracts/' + CID + '/notes/react', { method: 'POST', body: { key: 'their-n1', emoji: LIKE } });
+    assert.equal(like.status, 200, JSON.stringify(like.json));
+    const row = (await A.json('/api/contracts/' + CID + '/messages')).messages.find(m => m.id === theirs.id);
+    assert.equal((row.meta.reactions[LIKE] || []).length, 1, 'our like stands on their note');
+    assert.equal((await A.raw('/api/contracts/' + CID + '/notes/react', { method: 'POST', body: { key: 'no-such-note', emoji: LIKE } })).status, 404, 'a key that is nobody\'s note is still refused');
   });
 
   test('(5) Jambo reads only that conversation\'s room, on the rule, and sends and stores nothing', async () => {

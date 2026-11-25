@@ -22969,7 +22969,7 @@ function liveUserMay(conn, cid) {
 function livePing(cid, room, kind) {
   const data = { c: String(cid || ''), room: String(room || ''), kind: String(kind || 'note') };
   for (const conn of LIVE_CONNS.values()) {
-    if (conn.kind === 'user') { if (data.room !== 'team' && liveUserMay(conn, data.c)) liveSend(conn, 'notes', data); continue; }
+    if (conn.kind === 'user') { if (!String(data.room || '').startsWith('team:') && data.room !== 'team' && liveUserMay(conn, data.c)) liveSend(conn, 'notes', data); continue; }
     if (conn.kind === 'share' && conn.contractId === data.c) {
       if (data.room === 'p:' + conn.partyId || (data.room === 'team:' + conn.partyId)) liveSend(conn, 'notes', { c: data.c, room: data.room, kind: data.kind });
     }
@@ -23161,8 +23161,19 @@ app.post('/api/contracts/:id/notes/react', auth, editor, (req, res) => {
       db.prepare('UPDATE share_messages SET meta=? WHERE id=?').run(clean ? JSON.stringify(clean) : null, r.id);
     }
   };
-  if (b.channelId != null && b.channelId !== '') {
-    const row = db.prepare('SELECT * FROM share_messages WHERE id=? AND contract_id=?').get(Number(b.channelId), req.params.id);
+  /* THEIR NOTE PRESSED BY ITS OWN ID (review of #1014, 25 Nov 2026): the other side's notes reach our seat carrying their
+     note's id, so the page sends that id as the key; a key that is not one of our notes is looked for on the channel */
+  let chanId = (b.channelId != null && b.channelId !== '') ? b.channelId : null;
+  if (chanId == null && b.key) {
+    const ours = (() => { const r0 = db.prepare('SELECT json FROM contracts WHERE id=?').get(req.params.id); try { return r0 ? srvNotesOf(JSON.parse(r0.json) || {}) : []; } catch (_) { return []; } })();
+    if (!ours.some(x => String(x.m.id || '') === String(b.key))) {
+      const r1 = db.prepare('SELECT id, meta, side FROM share_messages WHERE contract_id=?').all(req.params.id)
+        .find(r => r.side !== MSG_SIDE_THEIR_TEAM && r.side !== MSG_SIDE_ADVISER && String((msgMetaRead(r.meta) || {}).id || '') === String(b.key));
+      if (r1) chanId = r1.id;
+    }
+  }
+  if (chanId != null) {
+    const row = db.prepare('SELECT * FROM share_messages WHERE id=? AND contract_id=?').get(Number(chanId), req.params.id);
     if (!row || row.side === MSG_SIDE_THEIR_TEAM || row.side === MSG_SIDE_ADVISER) return res.status(404).json({ error: 'Message not found' });
     const meta = msgMetaRead(row.meta) || {};
     const rx = noteReactionToggle(meta.reactions, emoji, who);
