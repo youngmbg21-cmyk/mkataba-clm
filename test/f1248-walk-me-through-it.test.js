@@ -163,3 +163,30 @@ describe('f1248 (6) every word the lesson says is in both books', () => {
     for (const k of keys) for (const kk of plural(k)) for (const lang of ['en', 'sv']) assert.ok(STRINGS[lang][kk], `${lang}.${kk}`);
   });
 });
+
+/* (7) EVERY DRAWING IS A TABLE (owner, 27 Nov 2026: "The tables are not structured or in tables. This is very
+   unprofessional"): a card with a head row naming its columns; Jambo's **bold** is drawn bold, never as stars.
+   AT THE PARENT (14b45a7) the bars had no head and the stars were printed. */
+describe('f1248 (7) every drawing is a table; bold is bold', () => {
+  test('bars, ring, line and table each stand in a card with a head row naming their columns', () => {
+    const ctx = lessonWorld({ money: true });
+    const html = what => ctx.lessonBoardHtml(ctx.lessonBoard(what), 0, 1e9);
+    const bars = html('stages_value');
+    assert.match(bars, /class="lsn-bd lsn-card lsn-bars/);
+    assert.match(bars, /<div class="lsn-thd"[^>]*><span>ls_h_stage<\/span><span><\/span><span class="is-r">ls_h_value<\/span><\/div>/);
+    assert.match(bars, /--lsn-vw:\d+ch/, 'the figure column is one width, head and rows alike');
+    assert.match(html('stages'), /ls_h_stage<\/span><span><\/span><span class="is-r">ls_h_contracts</);
+    assert.match(html('book_figures'), /lsn-card lsn-tbl.*<thead>/);
+    const ring = ctx.lessonBoardHtml({ type: 'ring', what: 'risk', mid: '3', parts: [{ k: 'low', lk: 'ls_low', n: 3, tone: 'Signed' }] }, 0, 1e9);
+    assert.match(ring, /lsn-card lsn-ring.*lsn-thd is-lg.*ls_h_risk.*ls_h_contracts/);
+    const line = ctx.lessonBoardHtml({ type: 'line', what: 'signed_months', pts: [{ k: '2026-10', m: '2026-10', n: 1 }, { k: '2026-11', m: '2026-11', n: 2 }] }, 0, 1e9);
+    assert.match(line, /lsn-card lsn-line.*ls_h_month.*ls_h_contracts/);
+  });
+  test('a sentence\'s **bold** is drawn bold, its full stop stays with it, and no star is printed', () => {
+    const ctx = lessonWorld({});
+    const html = ctx.lessonStepHtml({ steps: [{ say: 'Holds **KES 333M** across **10 live contracts**. Done.' }] }, { shown: 1, at: [0], still: true }, 0, 0);
+    assert.match(html, /<b>KES<\/b><\/span> <span[^>]*><b>333M<\/b>/);
+    assert.match(html, /<b>contracts<\/b>\.<\/span>/);
+    assert.doesNotMatch(html, /\*/);
+  });
+});

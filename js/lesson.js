@@ -289,6 +289,21 @@ function _lnFig(n, b){
   if (b && b.unit === 'days') return _lnT('ls_days', { n });
   return String(n);
 }
+/* EVERY DRAWING IS A TABLE (owner, 27 Nov 2026: "The tables are not structured or in tables. This is very
+   unprofessional"): a white card with a head row naming its columns and figures in one right column; no grey
+   shading and no lines inside it (the owner, the same day: "keep them white", "Remove the grey lines inside the charts").
+   The heads follow the reading (`b.what`; a money step's count twin names its own). */
+const LS_HEADS = { stages: ['ls_h_stage', 'ls_h_contracts'], stages_value: ['ls_h_stage', 'ls_h_value'], ending_months: ['ls_h_month', 'ls_h_contracts'],
+  ending_value: ['ls_h_month', 'ls_h_value'], duties_split: ['ls_h_whose', 'ls_h_duties'], duties_months: ['ls_h_due', 'ls_h_duties'], risk: ['ls_h_risk', 'ls_h_contracts'],
+  signed_months: ['ls_h_month', 'ls_h_contracts'], days_to_sign: ['ls_h_month', 'ls_h_avg_days'], parties: ['ls_h_party', 'ls_h_contracts'], parties_value: ['ls_h_party', 'ls_h_value'],
+  streams: ['ls_h_stream', 'ls_h_contracts'], streams_value: ['ls_h_stream', 'ls_h_value'], pay_days: ['ls_h_who_pays', 'ls_h_days'], playbook: ['ls_h_positions', 'ls_h_count'],
+  findings: ['ls_h_finding', 'ls_h_count'], changes: ['ls_h_changes', 'ls_h_count'] };
+function lessonHeadOf(b){
+  const H = LS_HEADS[b && b.what];
+  return H || ['ls_h_item', b && b.money ? 'ls_h_value' : b && b.unit === 'days' ? 'ls_h_days' : 'ls_h_count'];
+}
+/* the figure column is as wide as its longest word, so the head and every row line up */
+const _lnVw = (strs) => Math.max(4, ...strs.map(x => String(x).length)) + 1 + 'ch';
 /* `d(ms)`: an element's planned start → its style, time-based (negative = already part-way); data-ld keeps the plan */
 function _lnD(ms, el){ return `data-ld="${Math.round(ms)}" style="animation-delay:${Math.round(ms - el)}ms"`; }
 function lessonBoardHtml(b, start, el){
@@ -297,7 +312,8 @@ function lessonBoardHtml(b, start, el){
   if (b.type === 'say') return `<p class="lsn-says">${_lnE(_lnT(b.lk))}</p>`;
   if (b.type === 'bars'){
     const max = Math.max(1, ...b.items.map(x => Number(x.n) || 0));
-    return `<div class="lsn-bd lsn-bars${b.cols ? ' is-months' : ''}" data-lsn-type="bars">` + b.items.map((x, i) => {
+    const H = lessonHeadOf(b), vw = _lnVw([_lnT(H[1])].concat(b.items.map(x => _lnFig(x.n, b))));
+    return `<div class="lsn-bd lsn-card lsn-bars${b.cols ? ' is-months' : ''}" data-lsn-type="bars" style="--lsn-vw:${vw}"><div class="lsn-thd" role="presentation"><span>${_lnE(_lnT(H[0]))}</span><span></span><span class="is-r">${_lnE(_lnT(H[1]))}</span></div>` + b.items.map((x, i) => {
       const w = x.n ? Math.max(2, (x.n / max) * 100) : 0;
       return `<div class="lsn-br${x.quiet ? ' is-quiet' : ''}" data-lsn-k="${_lnE(x.k)}"><span class="lsn-n" title="${_lnE(_lnLabel(x))}">${_lnE(_lnLabel(x))}</span>`
         + `<span class="lsn-t"><span class="lsn-f" style="width:${w.toFixed(1)}%;--ls-tone:${_lnTone(x.tone || (b.money ? 'accent' : 'accent'))}"><i ${D(i * gap)}></i></span></span>`
@@ -307,15 +323,16 @@ function lessonBoardHtml(b, start, el){
     const head = b.head.map((h, j) => `<th${j && j === b.head.length - 1 ? ' class="is-r"' : ''}>${_lnE(_lnT(h))}</th>`).join('');
     const cell = (x, j, n) => { let v = x.day ? _lnDayWord(x.day) : x.lk ? _lnT(x.lk, x.vars) : x.v != null ? String(x.v) : String(x.t == null ? '' : x.t);
       return `<td${j && j === n - 1 ? ' class="is-r"' : ''}>${_lnE(v)}${x.sub ? `<span class="lsn-sub">${_lnE(x.sub)}</span>` : ''}</td>`; };
-    return `<div class="lsn-bd lsn-tbl" data-lsn-type="table"><table><thead><tr>${head}</tr></thead><tbody>`
+    return `<div class="lsn-bd lsn-card lsn-tbl" data-lsn-type="table"><table><thead><tr>${head}</tr></thead><tbody>`
       + b.rows.map((r, i) => `<tr class="${r.hot ? 'is-hot' : ''}" data-lsn-k="${_lnE(r.k)}" data-lsn-names="${_lnE((r.names || []).filter(Boolean).join('\u0001'))}" ${D(i * gap)}>${r.cells.map((x, j) => cell(x, j, r.cells.length)).join('')}</tr>`).join('')
       + `</tbody></table></div>`;
   }
   if (b.type === 'ring'){
     const tot = b.parts.reduce((s, p) => s + p.n, 0) || 1, C = 2 * Math.PI * 46; let off = 0;
     const arcs = b.parts.map(p => { const len = p.n / tot * C; const s = `<circle class="lsn-arc" data-lsn-k="${_lnE(p.k)}" r="46" cx="56" cy="56" fill="none" stroke="${_lnTone(p.tone)}" stroke-width="14" stroke-dasharray="${Math.max(0, len - 1.5).toFixed(2)} ${(C - len + 1.5).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 56 56)"/>`; off += len; return s; }).join('');
-    return `<div class="lsn-bd lsn-ring" data-lsn-type="ring"><svg viewBox="0 0 112 112" aria-hidden="true">${arcs}<circle class="lsn-cover" r="46" cx="56" cy="56" fill="none" stroke-width="16" stroke-dasharray="${C.toFixed(2)} ${C.toFixed(2)}" transform="rotate(-90 56 56)" ${D(0)}/><text x="56" y="62" text-anchor="middle" class="lsn-mid">${_lnE(b.mid || '')}</text></svg>`
-      + `<div class="lsn-lg">${b.parts.map((p, i) => `<div class="lsn-li" data-lsn-k="${_lnE(p.k)}" ${D(600 + i * 90)}><i style="background:${_lnTone(p.tone)}"></i><span>${_lnE(_lnLabel(p))}</span><b>${_lnE(_lnFig(p.n, b))}</b></div>`).join('')}</div></div>`;
+    const RH = lessonHeadOf(b), rvw = _lnVw([_lnT(RH[1])].concat(b.parts.map(p => _lnFig(p.n, b))));
+    return `<div class="lsn-bd lsn-card lsn-ring" data-lsn-type="ring" style="--lsn-vw:${rvw}"><div class="lsn-ring-pic"><svg viewBox="0 0 112 112" aria-hidden="true">${arcs}<circle class="lsn-cover" r="46" cx="56" cy="56" fill="none" stroke-width="16" stroke-dasharray="${C.toFixed(2)} ${C.toFixed(2)}" transform="rotate(-90 56 56)" ${D(0)}/><text x="56" y="62" text-anchor="middle" class="lsn-mid">${_lnE(b.mid || '')}</text></svg></div>`
+      + `<div class="lsn-lg"><div class="lsn-thd is-lg" role="presentation"><span>${_lnE(_lnT(RH[0]))}</span><span class="is-r">${_lnE(_lnT(RH[1]))}</span></div>${b.parts.map((p, i) => `<div class="lsn-li" data-lsn-k="${_lnE(p.k)}" ${D(600 + i * 90)}><i style="background:${_lnTone(p.tone)}"></i><span>${_lnE(_lnLabel(p))}</span><b>${_lnE(_lnFig(p.n, b))}</b></div>`).join('')}</div></div>`;
   }
   if (b.type === 'line'){
     const P = b.pts, vals = P.map(p => p.n).filter(v => v != null), max = Math.max(1, ...vals), n = P.length;
@@ -324,7 +341,8 @@ function lessonBoardHtml(b, start, el){
     const last = P.map((p, i) => [p, i]).filter(([p]) => p.n != null).pop();
     const firstI = P.findIndex(p => p.n != null);
     const lab = (i, every) => (i % every === 0 || i === n - 1) ? `<span style="left:${x(i).toFixed(2)}%">${_lnE(_lnMonthWord(P[i].m))}</span>` : '';
-    return `<div class="lsn-bd lsn-line" data-lsn-type="line"><div class="lsn-plot"><div class="lsn-wipe" ${D(0)}><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" vector-effect="non-scaling-stroke"/></svg>`
+    const LH = lessonHeadOf(b);
+    return `<div class="lsn-bd lsn-card lsn-line" data-lsn-type="line"><div class="lsn-thd is-two" role="presentation"><span>${_lnE(_lnT(LH[0]))}</span><span class="is-r">${_lnE(_lnT(LH[1]))}</span></div><div class="lsn-plot"><div class="lsn-wipe" ${D(0)}><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" vector-effect="non-scaling-stroke"/></svg>`
       + P.map((p, i) => p.n == null ? '' : `<i class="lsn-dot${last && last[1] === i ? ' is-last' : ''}" data-lsn-k="${_lnE(p.k)}" style="left:${x(i).toFixed(2)}%;top:${y(p.n).toFixed(2)}%"></i>`).join('')
       + (last ? `<b class="lsn-pv is-last" style="left:${x(last[1]).toFixed(2)}%;top:${y(last[0].n).toFixed(2)}%">${_lnE(_lnFig(last[0].n, b))}</b>` : '')
       + (firstI >= 0 && (!last || firstI !== last[1]) && P[firstI].n ? `<b class="lsn-pv is-first" style="left:${x(firstI).toFixed(2)}%;top:${y(P[firstI].n).toFixed(2)}%">${_lnE(_lnFig(P[firstI].n, b))}</b>` : '')
@@ -332,10 +350,11 @@ function lessonBoardHtml(b, start, el){
   }
   if (b.type === 'blocks'){
     const top = Math.max(1, b.cols[0].n); let run = top;
-    return `<div class="lsn-bd lsn-blocks" data-lsn-type="blocks" data-lsn-start="${Math.round(start - el)}">` + b.cols.map((c, i) => {
+    const BH = lessonHeadOf(b);
+    return `<div class="lsn-bd lsn-card lsn-blocks-card" data-lsn-type="blocks"><div class="lsn-thd is-two" role="presentation"><span>${_lnE(_lnT(BH[0]))}</span><span class="is-r">${_lnE(_lnT(BH[1]))}</span></div><div class="lsn-blocks" data-lsn-start="${Math.round(start - el)}">` + b.cols.map((c, i) => {
       let lo, hi; if (c.kind === 'total'){ lo = 0; hi = top; } else if (c.kind === 'left'){ lo = 0; hi = c.n; } else { hi = run; lo = Math.max(0, run - c.n); run = lo; }
       return `<div class="lsn-bk" data-lsn-k="${_lnE(c.k)}" data-lsn-i="${i + 1}"><div class="lsn-bk-in"><span class="lsn-blk" style="bottom:${(lo / top * 100).toFixed(1)}%;height:${((hi - lo) / top * 100).toFixed(1)}%;background:${_lnTone(c.tone)}"></span>`
-        + `<span class="lsn-bk-n" style="bottom:calc(${(hi / top * 100).toFixed(1)}% + 2px)">${c.n}</span></div><span class="lsn-bk-l">${_lnE(_lnLabel(c))}</span></div>`; }).join('') + `</div>`;
+        + `<span class="lsn-bk-n" style="bottom:calc(${(hi / top * 100).toFixed(1)}% + 2px)">${c.n}</span></div><span class="lsn-bk-l">${_lnE(_lnLabel(c))}</span></div>`; }).join('') + `</div></div>`;
   }
   return '';
 }
@@ -360,24 +379,38 @@ function lessonOpsApply(bd, ops, allOps){
   const items = [...bd.querySelectorAll('[data-lsn-k]')];
   bd.classList.toggle('has-lit', !!names.length && items.some(el => _lnNameHit(el, names)));
   items.forEach(el => el.classList.toggle('is-lit', !!names.length && _lnNameHit(el, names)));
-  if (bd.classList.contains('lsn-blocks')){
+  const blocks = bd.classList.contains('lsn-blocks') ? bd : bd.querySelector('.lsn-blocks');
+  if (blocks){
     /* the blocks stand one at a time: block 1, then each reveal; a drawing no later step reveals stands whole */
-    const total = bd.querySelectorAll('.lsn-bk').length;
+    const total = blocks.querySelectorAll('.lsn-bk').length;
     const n = (allOps || []).some(o => o && o.what === 'reveal') ? Math.max(1, upto) : total;
-    const start = Number(bd.getAttribute('data-lsn-start')) || 0;
-    const first = !bd.querySelector('.lsn-bk.is-shown');
+    const start = Number(blocks.getAttribute('data-lsn-start')) || 0;
+    const first = !blocks.querySelector('.lsn-bk.is-shown');
     let j = 0;
-    bd.querySelectorAll('.lsn-bk').forEach(el => { const i = Number(el.getAttribute('data-lsn-i'));
+    blocks.querySelectorAll('.lsn-bk').forEach(el => { const i = Number(el.getAttribute('data-lsn-i'));
       if (i <= n && !el.classList.contains('is-shown')){ el.style.setProperty('--ls-bk-delay', ((first ? start : 0) + (j++) * LS_GAP.blocks) + 'ms'); el.classList.add('is-shown'); }
       else if (i > n) el.classList.remove('is-shown'); });
   }
 }
+/* A SENTENCE'S WORDS: Jambo's **bold** is drawn bold, never as stars; any other markdown mark is left out */
+function lessonWords(say){
+  /* each word keeps its own pieces, so "**KES 333M**." stays one word: bold figure, plain full stop */
+  const out = []; let bold = false;
+  String(say || '').replace(/__/g, '**').split(/\s+/).filter(Boolean).forEach(w => {
+    const segs = [];
+    w.split('**').forEach((p, k) => { if (k) bold = !bold; p = p.replace(/[*_`#]+/g, ''); if (p) segs.push({ t: p, b: bold }); });
+    if (segs.length) out.push(segs);
+  });
+  return out;
+}
+const _lnWordHtml = w => w.map(x => x.b ? `<b>${_lnE(x.t)}</b>` : _lnE(x.t)).join('');
+const _lnWordText = w => w.map(x => x.t).join('');
 function lessonStepHtml(L, R, i, now){
   const s = L.steps[i];
   const el = (R.still || !R.at[i]) ? 1e9 : now - R.at[i];
   const still = el > LS_STILL_MS;
-  const words = String(s.say || '').split(/\s+/).filter(Boolean);
-  const say = words.map((w, j) => `<span class="lsn-w" ${_lnD(j * LS_WORD_MS, el)}>${_lnE(w)}</span>`).join(' ');
+  const words = lessonWords(s.say);
+  const say = words.map((w, j) => `<span class="lsn-w" ${_lnD(j * LS_WORD_MS, el)}>${_lnWordHtml(w)}</span>`).join(' ');
   let bd = '';
   if (s.board){
     const start = words.length * LS_WORD_MS + LS_AFTER_MS;
@@ -483,7 +516,7 @@ function lessonText(L){
     if (b.type === 'blocks') return b.cols.map(x => `${_lnLabel(x)}: ${x.n}`).join(' · ');
     if (b.type === 'table') return b.rows.map(r => r.cells.map(x => x.day ? _lnDayWord(x.day) : x.lk ? _lnT(x.lk, x.vars) : x.v != null ? x.v : x.t).join(' — ')).join('\n');
     return ''; };
-  return L.steps.map((s, i) => `${i + 1}. ${s.say}${s.board ? (s.board.nomoney ? '\n' + _lnT('ls_nomoney') : '') + '\n' + line(s.board) : ''}`).join('\n\n');
+  return L.steps.map((s, i) => `${i + 1}. ${lessonWords(s.say).map(_lnWordText).join(' ')}${s.board ? (s.board.nomoney ? '\n' + _lnT('ls_nomoney') : '') + '\n' + line(s.board) : ''}`).join('\n\n');
 }
 async function lessonSave(L){
   if (typeof mineSave !== 'function') return;
@@ -524,8 +557,13 @@ const LS_CSS = `
 .lsn-nomoney{ display:flex; flex-wrap:wrap; gap:4px 10px; align-items:baseline; margin:0 0 8px; padding:8px 10px; border-radius:var(--radius); background:var(--st-amber-bg); color:var(--st-amber-fg); font-size:12.5px; line-height:1.45; opacity:0; animation:lsn-fade .3s forwards; }
 .lsn-nomoney .ui-link{ font-size:12.5px; }
 .lsn-bd{ min-width:0; }
-.lsn-bars{ display:grid; gap:4px; }
-.lsn-br{ display:grid; grid-template-columns:minmax(0,38%) minmax(0,1fr) max-content; align-items:center; gap:8px; min-height:22px; font-size:12.5px; }
+.lsn-card{ border:1px solid var(--color-divider); border-radius:var(--radius); background:var(--color-surface); overflow:hidden; }
+.lsn-thd{ display:grid; grid-template-columns:minmax(0,36%) minmax(0,1fr) var(--lsn-vw,6ch); gap:10px; align-items:center; padding:6px 12px; background:var(--color-surface); font-size:11.5px; color:var(--color-quiet); white-space:nowrap; }
+.lsn-thd span{ overflow:hidden; text-overflow:ellipsis; }
+.lsn-thd .is-r{ text-align:right; }
+.lsn-thd.is-two, .lsn-thd.is-lg{ grid-template-columns:minmax(0,1fr) var(--lsn-vw,auto); }
+.lsn-bars{ display:block; }
+.lsn-br{ display:grid; grid-template-columns:minmax(0,36%) minmax(0,1fr) var(--lsn-vw,6ch); align-items:center; gap:10px; min-height:30px; padding:0 12px; font-size:12.5px; }
 .lsn-n{ color:var(--color-quiet); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:color var(--dur-2) var(--ease); }
 .lsn-t{ position:relative; height:12px; min-width:0; }
 .lsn-f{ position:absolute; left:0; top:0; bottom:0; display:block; }
@@ -535,28 +573,32 @@ const LS_CSS = `
 .lsn-bd.has-lit .lsn-br:not(.is-lit) .lsn-f i{ background:var(--color-neutral-300); }
 .lsn-bd.has-lit .lsn-br.is-lit .lsn-n, .lsn-bd.has-lit .lsn-br.is-lit .lsn-v{ color:var(--color-text); font-weight:var(--w-strong); }
 .lsn-tbl{ overflow-x:auto; }
+.lsn-tbl th:first-child, .lsn-tbl td:first-child{ padding-left:12px; }
+.lsn-tbl th:last-child, .lsn-tbl td:last-child{ padding-right:12px; }
+.lsn-tbl thead th{ background:var(--color-surface); font-size:11.5px; }
 .lsn-tbl table{ width:100%; border-collapse:collapse; font-size:12.5px; table-layout:auto; }
-.lsn-tbl th{ font-weight:var(--w-body); color:var(--color-quiet); text-align:left; padding:4px 6px 4px 0; border-bottom:1px solid var(--color-divider); white-space:nowrap; }
-.lsn-tbl td{ padding:6px 6px 6px 0; border-bottom:1px solid var(--color-divider); vertical-align:top; color:var(--color-text); overflow-wrap:anywhere; }
+.lsn-tbl th{ font-weight:var(--w-body); color:var(--color-quiet); text-align:left; padding:6px 8px 6px 0; white-space:nowrap; }
+.lsn-tbl td{ padding:7px 8px 7px 0; vertical-align:top; color:var(--color-text); overflow-wrap:anywhere; }
 .lsn-tbl .is-r{ text-align:right; white-space:nowrap; padding-right:0; }
 .lsn-tbl tbody tr{ opacity:0; animation:lsn-rise .35s ease-out forwards; transition:background-color var(--dur-2) var(--ease); }
 .lsn-tbl tr.is-hot td{ color:var(--st-ruby-fg); }
 .lsn-tbl tr.is-lit{ background:var(--row-chosen); }
 .lsn-sub{ display:block; color:var(--color-quiet); font-size:11.5px; }
-.lsn-ring{ display:grid; grid-template-columns:112px minmax(0,1fr); gap:14px; align-items:center; }
+.lsn-ring{ display:block; }
+.lsn-ring-pic{ display:flex; justify-content:center; padding:12px 12px 10px; }
 .lsn-ring svg{ width:112px; height:112px; display:block; }
 .lsn-cover{ stroke:var(--color-surface); stroke-dashoffset:0; animation:lsn-sweep .9s cubic-bezier(.4,.1,.2,1) forwards; }
 .lsn-mid{ font-size:18px; font-weight:var(--w-strong); fill:var(--color-text); }
 .lsn-arc{ transition:opacity var(--dur-2) var(--ease); }
 .lsn-bd.has-lit .lsn-arc:not(.is-lit){ opacity:.3; }
-.lsn-lg{ display:grid; gap:6px; font-size:12.5px; min-width:0; }
-.lsn-li{ display:flex; gap:7px; align-items:center; min-width:0; opacity:0; animation:lsn-fade .3s forwards; }
+.lsn-lg{ display:block; font-size:12.5px; min-width:0; }
+.lsn-li{ display:grid; grid-template-columns:8px minmax(0,1fr) var(--lsn-vw,auto); gap:8px; align-items:center; min-height:30px; padding:0 12px; min-width:0; opacity:0; animation:lsn-fade .3s forwards; }
 .lsn-li i{ width:8px; height:8px; border-radius:50%; flex:none; }
 .lsn-li span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--color-quiet); }
-.lsn-li b{ margin-left:auto; font-weight:var(--w-strong); font-variant-numeric:tabular-nums; }
+.lsn-li b{ text-align:right; font-weight:var(--w-body); font-variant-numeric:tabular-nums; color:var(--color-text); }
 .lsn-bd.has-lit .lsn-li.is-lit span{ color:var(--color-text); font-weight:var(--w-strong); }
 .lsn-line{ min-width:0; }
-.lsn-plot{ position:relative; height:120px; margin:14px 0 0; border-bottom:1px solid var(--color-divider); }
+.lsn-plot{ position:relative; height:120px; margin:22px 16px 0; }
 .lsn-wipe{ position:absolute; inset:0; clip-path:inset(0 100% 0 0); animation:lsn-wipe 1.1s ease-out forwards; }
 .lsn-wipe svg{ position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
 .lsn-wipe polyline{ stroke:var(--accent-ink); stroke-width:2.5px; stroke-linejoin:round; }
@@ -564,11 +606,11 @@ const LS_CSS = `
 .lsn-dot.is-last, .lsn-dot.is-lit{ background:var(--accent-ink); width:9px; height:9px; margin:-4.5px 0 0 -4.5px; }
 .lsn-pv{ position:absolute; transform:translate(-100%,-150%); font-size:12px; font-weight:var(--w-strong); white-space:nowrap; padding-right:4px; }
 .lsn-pv.is-first{ transform:translate(0,-150%); font-weight:var(--w-body); color:var(--color-quiet); }
-.lsn-xl{ position:relative; height:18px; font-size:11px; color:var(--color-quiet); }
+.lsn-xl{ position:relative; height:26px; margin:0 16px; font-size:11px; color:var(--color-quiet); }
 .lsn-xl span{ position:absolute; top:3px; transform:translateX(-50%); white-space:nowrap; }
 .lsn-xl span:first-child{ transform:none; }
 .lsn-xl span:last-child{ transform:translateX(-100%); }
-.lsn-blocks{ display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); gap:6px; padding-top:18px; }
+.lsn-blocks{ display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); gap:6px; padding:22px 12px 12px; }
 .lsn-bk-in{ position:relative; height:140px; }
 .lsn-blk{ position:absolute; left:0; right:0; border-radius:2px; transform-origin:bottom; transform:scaleY(0); }
 .lsn-bk-n{ position:absolute; left:0; right:0; text-align:center; font-size:12.5px; font-weight:var(--w-strong); opacity:0; }
@@ -603,6 +645,6 @@ function lessonCssOn(){
   const el = document.createElement('style'); el.id = 'lsn-css'; el.textContent = LS_CSS; document.head.appendChild(el);
 }
 
-Object.assign(window, { LS_WORD_MS, LS_AFTER_MS, LS_STILL_MS, LS_ALL_MS, LS_GAP, LS_READ, lsMoneyOk, lsMayAct, lessonBoard, lessonFill, lessonFromAnswer,
+Object.assign(window, { lessonWords, lessonHeadOf, LS_HEADS, LS_WORD_MS, LS_AFTER_MS, LS_STILL_MS, LS_ALL_MS, LS_GAP, LS_READ, lsMoneyOk, lsMayAct, lessonBoard, lessonFill, lessonFromAnswer,
   lessonRunOf, lessonBoardHtml, lessonStepHtml, lessonInnerHtml, lessonTurnHtml, lessonMountAll, lessonRetime, lessonOpsApply, lessonOpsOf, lessonPatch,
   lessonNext, lessonAll, lessonReplay, lessonText, lessonSave, lessonLessonOf, lessonCssOn, _lnRun, _lnKept });
