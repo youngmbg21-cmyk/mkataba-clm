@@ -9,7 +9,8 @@
      2. something typed, another page: ONE question in the middle; Esc does not close it; Stop ends Fill in, nothing kept
      3. something typed, another tab: the question; Save keeps what was typed and ends Fill in
      4. a refresh standing on Fill in lands on the paper with Fill in put away
-     5. the Editor tab's divider: a drag widens and narrows the side, and the Dossier panel takes the same width
+     5. the Editor tab's divider is the Dossier's own: a drag widens and narrows the side, the Dossier panel takes the same
+        width, and the writing bar ends at the panel's edge
      6. no page errors
    Red at the parent: 1–4 (the bar stayed), 5 (the side did not move). Waits ask for the state, bounded.
    Run: node test/chromium/fill-ends-when-you-leave-verify.js */
@@ -97,11 +98,12 @@ const check = (name, pass, detail) => {
     await open();
     await page.evaluate(() => { pdSetTab('red'); renderIntelDock(); }); await page.waitForTimeout(800);
     await page.evaluate(() => { const t = document.querySelector('#ig-dock [data-pd-ed-tab]'); if (t) t.click(); });
-    const ed = await until(() => { const p = document.getElementById('clause-editor'), z = document.getElementById('ce-resizer');
+    const ed = await until(() => { const p = document.getElementById('clause-editor'), z = document.getElementById('ce-tab-resizer');
       return p && p.classList.contains('is-tabbed') && z && z.getClientRects().length ? true : null; }, null, 10000);
+    /* the grip is the Dossier's own (#ce-tab-resizer), the editor's own divider stands down */
     check('5a. the Editor tab is open with its divider', !!ed);
     const rail = () => page.evaluate(() => parseInt(document.getElementById('clause-editor').style.getPropertyValue('--ce-tab-rail'), 10) || 0);
-    const grab = () => page.evaluate(() => { const r = document.getElementById('ce-resizer').getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; });
+    const grab = () => page.evaluate(() => { const r = document.getElementById('ce-tab-resizer').getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; });
     if (ed){
       const r0 = await rail(); let p = await grab();
       await page.mouse.move(p.x, p.y); await page.mouse.down(); await page.mouse.move(p.x - 120, p.y, { steps: 8 }); await page.mouse.up(); await page.waitForTimeout(400);
@@ -111,6 +113,8 @@ const check = (name, pass, detail) => {
       check('5b. a drag to the left widens the side, to the right narrows it', r1 >= r0 + 100 && r2 <= r1 - 60, `${r0} → ${r1} → ${r2}`);
       const stored = await page.evaluate(() => Number(localStorage.getItem(window.IG_SPLIT_KEY || 'hati.v1.igDockW')));
       check('5c. the Dossier panel takes the same width', stored === r2, `stored ${stored} · side ${r2}`);
+      const tie = await page.evaluate(() => { const b = document.querySelector('#clause-editor .ce-head').getBoundingClientRect(), r = document.querySelector('#clause-editor .ce-rail').getBoundingClientRect(); return { bar: Math.round(b.right), panel: Math.round(r.left) }; });
+      check('5d. the writing bar ends at the panel\'s edge', Math.abs(tie.bar - tie.panel) <= 1, JSON.stringify(tie));
     }
     check('6. no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {

@@ -48,12 +48,21 @@ test('f1242 (1e) the question in both books', () => {
   const I = read('js/i18n.js');
   for (const k of ['pd2_fl_leave_q', 'pd2_fl_leave_sub']) assert.equal((I.match(new RegExp('\\n\\s+' + k + ': ', 'g')) || []).length, 2, k + ' in both books');
 });
-test('f1242 (2) as a tab, the editor\'s divider moves the one panel width', () => {
-  const w = fnSrc(read('js/views/clauseeditor.js'), 'ceWireSplit');
-  assert.match(w, /if \(ceTabbed\(\)\)\{ tabRailSet\(tabRailAt\(x\)\); return; \}/, 'the drag');
-  assert.match(w, /localStorage\.setItem\(typeof window\.IG_SPLIT_KEY === 'string' \? window\.IG_SPLIT_KEY/, 'the Dossier slider\'s own store');
-  assert.match(w, /pg\.style\.setProperty\('--ce-tab-rail', w \+ 'px'\)/);
-  assert.match(w, /window\.igFitSplit\(\)/, 'the Dossier panel takes the same width');
-  assert.match(w, /Math\.max\(least, Math\.min\(avail - CE_LEFT_MIN, dw\)\)/, 'bounded both ways');
-  assert.match(w, /if \(ceTabbed\(\)\)\{ tabRailSet\(tabRailNow\(\) - step/, 'the keys too');
+test('f1242 (2) as a tab, the editor\'s divider IS the Dossier\'s own, and the writing bar ends at the panel', () => {
+  /* RE-POINTED 26 Nov 2026 (owner: "you have poorly fixed the slider in the editor page … Simply copy what has been done
+     in the dossier tab plus the top bar always has to be tied to the panel") */
+  const CE = read('js/views/clauseeditor.js');
+  const t = fnSrc(CE, 'ceTabSplit');
+  assert.match(t, /window\.IG_SPLIT/, 'the Dossier\'s own handle: its store, floors and slide over');
+  assert.match(t, /Object\.assign\(\{\}, D, \{/);
+  assert.match(t, /setProperty\('--ce-tab-rail'/); assert.match(t, /'--ce-tab-over'/);
+  assert.match(t, /ceFitSplit\(\); ceTabBarPlace\(\);/, 'the bar is placed again on every move');
+  assert.match(t, /igFitSplit\(\)/, 'the Dossier panel takes the same width');
+  const w = fnSrc(CE, 'ceTabSplitWire');
+  assert.match(w, /window\.splitHtml\(\{ id: 'ce-tab-resizer'/, 'the same grip');
+  assert.match(w, /window\.splitWire\(rez, _ceTabSplit\)/, 'the same wiring');
+  assert.match(fnSrc(CE, 'ceTabBarPlace'), /- over\)/, 'past the mark the bar stops where the panel lies over the page');
+  assert.match(CE, /#clause-editor\.is-tabbed #ce-resizer\{display:none\}/, 'the editor\'s own divider stands down on the tab');
+  assert.match(strip(read('js/views/intelligence.js')), /IG_SPLIT_KEY,IG_SPLIT,igDockClamp/, 'the handle is published');
+  assert.doesNotMatch(CE, /tabRailSet/, 'the hand-made drag is gone');
 });

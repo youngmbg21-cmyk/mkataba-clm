@@ -24,8 +24,11 @@ test('f1218 (1) the bar edge on edge with the sheet', () => {
   assert.ok(H.includes('html.lg-new #clause-editor.is-tabbed .ce-barrow > :is(.ce-say, .ce-barg, .ce-exit):empty{display:none}'));
 });
 test('f1218 (2) the side is the Dossier panel\'s width; the track where its row is', () => {
-  assert.match(fn('ceTabPaint'), /window\.igDockWidth\(\)[\s\S]*pg\.style\.setProperty\('--ce-tab-rail', Math\.round\(dw\) \+ 'px'\)[\s\S]*ceFitSplit\(\)/);
-  assert.match(fn('ceFitSplit'), /if \(ceTabbed\(\)\)\{ const pg = document\.getElementById\('clause-editor'\); const dw = pg \? parseInt\(pg\.style\.getPropertyValue\('--ce-tab-rail'\), 10\) : 0;\s*if \(dw >= 300 && avail - dw >= CE_LEFT_MIN\)\{ left = avail - dw; limit = null; \} \}/);
+  /* RE-POINTED 26 Nov 2026 (the Editor tab's divider is the Dossier's own, f1242): the width comes through the Dossier's
+     handle (IG_SPLIT: its store, so it is the Dossier panel's width) and lands as --ce-tab-rail, past the mark with how far
+     the side lies over the page */
+  assert.match(fn('ceTabPaint'), /ceTabSplitWire\(\)/);
+  assert.match(fn('ceFitSplit'), /if \(ceTabbed\(\)\)\{ const pg = document\.getElementById\('clause-editor'\); const dw = pg \? parseInt\(pg\.style\.getPropertyValue\('--ce-tab-rail'\), 10\) : 0;[\s\S]*if \(dw >= 300 && avail - dw \+ ov >= CE_LEFT_MIN\)\{ left = avail - dw \+ ov; limit = null; \} \}/);
   assert.ok(H.includes('html.lg-new #clause-editor.is-tabbed .ce-dtabs .pd-tab:first-child{padding-left:8px}'));
   assert.ok(H.includes('html.lg-new #clause-editor.is-tabbed .ce-tabtop{padding-top:12px}'));
 });

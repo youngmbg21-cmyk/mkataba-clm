@@ -14,7 +14,8 @@ const fn = name => { const i = CE.indexOf('function ' + name + '('); assert.ok(i
 
 test('f1229 (1) the bar is the page\'s width and stands still', () => {
   const b = fn('ceTabBarPlace');
-  assert.match(b, /const w = Math\.round\(left\.clientWidth/);
+  /* RE-POINTED 26 Nov 2026 (f1242): past the mark the side lies over the page, and the bar stops where it starts */
+  assert.match(b, /const w = Math\.round\(\(left\.clientWidth[^\n]*- over\)/);
   assert.match(b, /head\.style\.width = w \+ 'px';/);
   assert.doesNotMatch(b, /translate\(/, 'the bar is not moved over the sheet any more');
   assert.doesNotMatch(b, /addEventListener\('scroll'/, 'nothing follows the paper\'s scroll');
