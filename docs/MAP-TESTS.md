@@ -1261,5 +1261,7 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 - test/f1231-new-agreement-tabs-stay.test.js — the tab row is held at the sheet's top on white, after the rule that places it.
 - f1230 (4) — the card way in: one dashed card, a searchable shelf of four rows then a scroll with a count, a card a linked document, what to bring typed with its hint.
 
+## RISKS TO LOOK AT — one list, both papers (26 Nov 2026)
+- test/f1241-one-list-both-papers.test.js — Jambo's findings on the redlined paper; one check (our redline on the clause or topic) green on both papers. Re-pointed: f1037.
 ## THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN (26 Nov 2026, Fill in ends when you leave it)
 - f1242 (six parts, all red at the parent); f1203 (4) re-pointed (no Checked · nothing found); f245 (12) re-pointed (the divider's drag asks _ceAvail in more than one place). Browser: test/chromium/fill-ends-when-you-leave-verify.js (1 nothing typed ends; 2 typed asks, Esc stays, Stop keeps nothing; 3 Save keeps; 4 a refresh puts it away; 5 the Editor tab's divider moves the one width); every-door-lands-on-home-verify's Fill in refresh re-pointed.

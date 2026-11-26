@@ -9286,7 +9286,57 @@ function pd2RedAnswers(c, cv){
       hit: (cl && cl.clauseId ? sec(`section[data-clause="${CSS.escape(String(cl.clauseId))}"]`) : null) || (q ? pd2Find(cv, { text: [q.slice(0, 60)] }) : null),
       orOwn: _pdT('pd2_g_missing') });
   });
-  return out.concat(pd2RedStdAnswers(c, cv, { chs, unsent, sec, plain }));
+  return out.concat(pd2RedPointAnswers(c, cv, { chs, unsent, plain }), pd2RedStdAnswers(c, cv, { chs, unsent, sec, plain }));
+}
+/* ONE LIST, BOTH PAPERS (owner, 26 Nov 2026: "why is it that in the clean page, the notes appear on clause 1 but missing
+   when in the redline page?" — "fix it"): Jambo's findings, the Clauses tab's own points (pd2ClausePoints, the reading the
+   Clean paper's notes draw), stand beside the redlined paper too, by the same clause, and say how they ended: a redline of
+   ours on that clause, or on the finding's topic (riskCoverOf, the risks' own matcher), answers it — green, sent or not,
+   agreed — else it stays open with the word it has on Clean (Needs you · Worth a look · Not in the contract). A reading,
+   nothing written; our seat only (pd2RedAnswers' own walls). */
+/* THE ONE ANSWER TO "DID OUR REDLINE MEET THIS FINDING?" — both papers ask it: a pending or agreed redline of ours on the
+   finding's own clause (the section its row stands in), else one on its topic (riskCoverOf, the risks' own matcher) */
+function pd2PointRedlineOf(c){
+  const chs = Array.isArray(c && c.changes) ? c.changes : [];
+  const ours = chs.filter(ch => ch && ch.authorSide === 'owner' && !ch.withdrawn && !ch.superseded && ch.status !== 'superseded' && (ch.status === 'pending' || ch.status === 'accepted'));
+  if (!ours.length) return () => null;
+  let ctx = null; try { ctx = typeof window.riskCoverCtx === 'function' ? window.riskCoverCtx(c) : null; } catch (_){ ctx = null; }
+  return (p, el) => {
+    const secEl = el && el.closest ? el.closest('section[data-clause]') : null;
+    const cid = secEl ? String(secEl.getAttribute('data-clause') || '') : '';
+    let ch = cid ? ours.find(o => String(o.clauseId || '') === cid) : null;
+    if (!ch && ctx && typeof window.riskCoverOf === 'function'){
+      let cov = null; try { cov = window.riskCoverOf({ src: 'jambo', title: String(p.title || ''), say: String(p.title || ''), quote: String(p.quote || '') }, ctx, ''); } catch (_){ cov = null; }
+      if (cov) ch = ours.find(o => String(o.id) === String(cov.id)) || null;
+    }
+    return ch || null;
+  };
+}
+function pd2RedPointAnswers(c, cv, x){
+  let P = null; try { P = pd2ClausePoints(c, cv); } catch (_){ P = null; }
+  if (!P || !P.pts.length) return [];
+  const E = _pdE, out = [], { unsent, plain } = x;
+  const answerOf = pd2PointRedlineOf(c);
+  const may = (typeof canEdit !== 'function' || canEdit()) && !(typeof negoExecuted === 'function' && negoExecuted(c));
+  const cut = q => q.length > 70 ? q.slice(0, 70).replace(/\s+\S*$/, '') + ' …' : q;
+  P.pts.forEach(({ p, at }) => {
+    const el = P.rows[at] && P.rows[at].el; if (!el) return;
+    const ch = answerOf(p, el);
+    const word = _pdT(p.missing ? 'pd2_g_missing' : p.status === 'need' ? 'pd2_g_need' : 'pd2_g_look');
+    const k = String(p.title || '').trim(); if (!k) return;
+    if (ch){
+      const was = plain(ch.oldText).toLowerCase(), now = plain(ch.newText || ch.newHtml);
+      const w = now.split(/(?<=[.;:])\s+/).find(t => t.length > 3 && !was.includes(t.toLowerCase())) || now;
+      out.push({ tone: 'done', red: true, point: true, k, state: _pdT(ch.status === 'accepted' ? 'pd2_rn_agreed' : unsent.has(String(ch.id)) ? 'pd2_rn_unsent' : 'pd2_rn_sent'),
+        quote: cut(w), acts: '', hit: { el }, orOwn: _pdT('pd2_g_missing') });
+      return;
+    }
+    const q = String(p.quote || '').replace(/\s+/g, ' ').trim();
+    out.push({ tone: 'owe', red: true, point: true, k, state: word + ' · ' + _pdT('pd2_rn_none'), quote: p.missing ? '' : cut(q),
+      acts: may ? `<button type="button" class="ui-link" data-pd2-go="clause" data-pd2-key="${E(String(at))}">${E(_pdT('pd2_g_open'))}</button>` : '',
+      hit: { el }, orOwn: _pdT('pd2_g_missing') });
+  });
+  return out;
 }
 /* OUR STANDARDS BESIDE THE REDLINED PAPER TOO (owner, 13 Nov 2026: "yes, add them"): what the last finished check found
    (c.playbook.verdicts, read, never run here), each a deviation or a missing standard, as the Dossier's notes are. A
@@ -9933,7 +9983,10 @@ function pd2Groups(c, cv, notes, opts){
   const { rows, pts } = pd2ClausePoints(c, cv);
   const rowOf = node => { let k = -1; rows.forEach((r, i) => { if (!r.el) return; if (r.el === node || r.el.contains(node) || (r.el.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)) k = i; }); return k; };
   const by = new Map(), get = at => { if (!by.has(at)) by.set(at, { at, el: at >= 0 && rows[at] ? rows[at].el : null, label: at >= 0 && rows[at] && typeof docXrayLabel === 'function' ? docXrayLabel(rows[at]) : _pdT('pd2_g_opening'), items: [], marks: [] }); return by.get(at); };
-  pts.forEach(({ p, at }) => get(at).items.push({ tone: 'owe', kind: pd2PointKind(p), clause: true, word: _pdT(p.missing ? 'pd2_g_missing' : p.status === 'need' ? 'pd2_g_need' : 'pd2_g_look'), k: String(p.title || ''), quote: String(p.quote || '').trim(), status: p.status }));
+  /* ONE LIST, BOTH PAPERS (owner, 26 Nov 2026): a finding our redline meets says so here too, in green, as on Redline */
+  const answerOf = pd2PointRedlineOf(c);
+  pts.forEach(({ p, at }) => (answerOf(p, rows[at].el) ? get(at).items.push({ tone: 'fact', kind: 'done', clause: true, word: _pdT('pd2_rn_answered'), k: String(p.title || ''), quote: String(p.quote || '').trim() })
+    : get(at).items.push({ tone: 'owe', kind: pd2PointKind(p), clause: true, word: _pdT(p.missing ? 'pd2_g_missing' : p.status === 'need' ? 'pd2_g_need' : 'pd2_g_look'), k: String(p.title || ''), quote: String(p.quote || '').trim(), status: p.status })));
   notes.forEach(n => { if (n.own){ const key = 'own:' + n.own; if (!by.has(key)) by.set(key, { at: key, el: null, hit: n.hit, label: n.own, items: [] });
       by.get(key).items.push({ tone: n.tone, word: n.word, std: n.std, k: n.k, w: n.w, acts: n.acts, note: n }); return; }
     const node = n.hit.el || (n.hit.range && n.hit.range.startContainer); const g = get(node ? rowOf(node) : -1);
