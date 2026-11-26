@@ -44,7 +44,9 @@ test('f1244 (3) an earlier Fill in change gives its answers back, read without w
   assert.match(r, /if \(!mine\.has\(note\)\) return null;/, 'only Fill in\'s own changes');
   assert.match(r, /c\.templateForm && c\.templateForm\.values/, 'a company standard\'s field from its form');
   assert.match(r, /re\.exec\(now\)/, 'a placeholder from the words the change put there');
-  const o = fnSrc(PD, 'pd2NegoOwnFill');
+  /* f1245: the reading moved into pd2NegoFillOf (sent or not); pd2NegoOwnFill keeps only the unsent */
+  const o = fnSrc(PD, 'pd2NegoFillOf');
   assert.doesNotMatch(o, /x\.fill = /, 'reading writes nothing on the record');
-  assert.match(o, /return unsent \? \{ id: x\.id, fill \} : null;/);
+  assert.match(o, /return \{ id: x\.id, fill, unsent \};/);
+  assert.match(fnSrc(PD, 'pd2NegoOwnFill'), /return r && r\.unsent \? \{ id: r\.id, fill: r\.fill \} : null;/);
 });

@@ -31,7 +31,9 @@ test('f1243 (3) the side panel lists every space in the paper\'s order, filled o
   assert.match(fnSrc(PD, 'pd2FillNext'), /pd2FillDone/, 'Enter still goes to the next one left to fill');
 });
 test('f1243 (4) on a paper with redlines, our own Fill in change gives its spaces back with their answers', () => {
-  const o = fnSrc(PD, 'pd2NegoOwnFill');
+  /* RE-POINTED 26 Nov 2026 (f1245): the reading lives in pd2NegoFillOf; pd2NegoOwnFill keeps the unsent */
+  assert.match(fnSrc(PD, 'pd2NegoOwnFill'), /r && r\.unsent/);
+  const o = fnSrc(PD, 'pd2NegoFillOf');
   /* RE-POINTED 26 Nov 2026 (f1244): an unstamped Fill in change is read back too (pd2NegoFillRead) */
   assert.match(o, /L\.length !== 1/, 'the clause\'s only open change'); assert.match(o, /x\.authorSide !== 'owner'/); assert.match(o, /pd2NegoFillRead\(c, x, clauseId\)/);
   assert.match(o, /turnAt/, 'not yet sent');
