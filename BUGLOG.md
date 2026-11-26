@@ -23037,3 +23037,8 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - Fill in on an uploaded paper (their paper) is gone, the upload blanks form stands down (uploadBlanksTheirs = every upload). An upload's placeholders stay amber on the paper; a change there is a redline.
 - Noticed, not fixed: on the negotiated canvas, placeholders not yet answered are not drawn amber (they are words there), unlike the plain paper.
 - Noticed, not fixed: negoCommitText (plain-text contracts) does not write Fill in's answers into the wording; only rich papers carry them (negoCommitBody).
+
+### Noticed, not fixed (26 Nov 2026, walk me through it)
+- Noticed, not fixed: f148 "every plural key comes as a complete _one/_other pair" is red on main: nsn_link_one has no nsn_link_other in either book.
+- Noticed, not fixed: f1012 (7), f1202 (4) "the writing bar above the clause" and "moved by transform only, kept inside the paper's width" are red on main before this change.
+- Noticed, not fixed: CLAUDE.md is about 107 KB, past its own "keep it under about 80 KB" line, before this change added four lines.

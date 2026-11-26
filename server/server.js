@@ -80,6 +80,7 @@ const { isWorkingId, contractRef, signRouteOf, handoverOf, handoverActive,
 /* WHO DOES WHAT (owner, 22 Nov 2026): the one reading both sides tick — the same file the browser loads */
 const { dutyPayload, dutyTickRefusal, dutyTickSet, dutyReading } = require('../js/dealduties.js');
 const NB = require('../js/notebook.js');   // the notebook's cutter and status, both hosts
+const { WALK_TOOL_DESC, WALK_TOOL_SCHEMA, AI_WALK_RULE, WALK_SHOWN_NOTE, walkPlanClean, walkSummary } = require('../js/walkplan.js');   // WALK ME THROUGH IT: the lesson's plan, checked the same on both hosts (owner, 26 Nov 2026)
 /* Look a string up in a specific language rather than "the current" one: there
    is no current language on a server writing to five recipients at once. */
 /* WHAT LANGUAGE DOES THIS RECIPIENT READ? A member of the workspace carries
@@ -14556,6 +14557,7 @@ const COPILOT_TOOLS = [
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
   { name: 'check_against_playbook', description: 'Review one contract against the workspace playbook — the organisation\'s standard positions for its contract type. PREFERS THE REVIEW ALREADY ON THE CONTRACT: where the workspace has run one, this returns it (source:"stored-review", with the playbook it was checked against, when it was run and whether it was Jambo-assisted or rule-based) — that is exactly what the reader sees in their Playbook review panel, so quote it rather than re-judging the contract. Only where a contract has never been checked does it run one now (source:"run-now"), and it says so. Returns one verdict per playbook position (aligned / deviation / missing / na — na meaning the standard does not apply to this kind of contract, with verbatim quotes), noPlaybook:true when no playbook is configured for that contract type, or checkedNothing:true when a fresh check came back with no verdicts — which is NOT the same as the contract meeting every standard. ALWAYS NAME THE PLAYBOOK YOU READ and say whether it was the stored review or a fresh one. Use for questions about whether a contract matches our standards, positions or playbook.',
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
+  { name: 'walk_through', description: WALK_TOOL_DESC, input_schema: WALK_TOOL_SCHEMA },
   { name: 'deliver_answer', description: 'Deliver the final grounded answer to the user. Call this once — and only once — after gathering what you need. Reference contracts by name and id, and cite the ones you used.',
     input_schema: { type: 'object', properties: {
       answer: { type: 'string', description: 'The answer in short, plain markdown. Ground every claim in fetched data. If you lack the data, say so rather than guessing.' },
@@ -14657,6 +14659,29 @@ const PAGE_ACTIONS_SCHEMA = { type: 'array', description: 'OPTIONAL — the page
     id: { type: 'string', description: 'saved: the saved view\'s key.' } } } };
 const AI_PAGE_CONTROLS_RULE = 'WORKING THE PAGE: the person typed on this page\'s Jambo tab, beside the page\'s own list. When they ask to see, find, narrow, filter, sort into a tab or open a saved view of what this page lists ("only the overdue ones", "find Naivas", "show me the ones waiting on me"), press the page\'s own controls with deliver_answer\'s page (only those listed under THE PAGE\'S OWN CONTROLS) and say in one short sentence what the list now shows. Never state how many rows it shows unless your tools returned that count. A question answered in words, or a trip to another page (goto), leaves page out.';
 const AI_BOARD_DRAW_RULE = 'DRAWING ON THE BOARD: the person is on Home\'s Board, a page of charts, and can see it beside you. When they ask to see, chart, draw, plot, map out, break down or compare contracts as a picture, or ask something a chart answers best ("value by stream", "what ends this quarter, by month"), set deliver_answer\'s board to the Board\'s own buttons: add_card for a new chart, change_card with card "open" to change the chart that is open, filter_board, name_card, arrange, and remove_card only when they ask to remove one. Name which contracts in plain words (which.q), never ids. HaTi counts and draws every number itself, AFTER you answer, and the card states its own result (which group leads, by how much). So say in one or two sentences what the picture shows (what it splits by and measures) and what to look at in it; never say which group leads, ranks or is biggest, and never state a figure, unless your tools returned it or the Board as it stands already shows it. Drawing changes only what is on the screen, never a contract. A question answered best in words leaves board out.';
+
+/* WALK ME THROUGH IT (owner, 26 Nov 2026; js/walkplan.js): Jambo plans the lesson, HaTi draws every number. The plan
+   is checked against what THIS reader may see (copilotRows: their streams, private streams and code names already
+   walled; archived left out as every list leaves it out); a plan that cannot be drawn goes back to him as a tool
+   result naming what exists, so he corrects it and the person never sees a broken drawing. A good plan ends the
+   turn: the browser fills each drawing from its own counting (js/lesson.js). */
+function copilotWalkFacts(cx) {
+  const rows = copilotRows(cx).filter(c => c && !c.archived && !c._codeNamed);
+  const norm = v => String(v == null ? '' : v).toLowerCase().trim();
+  const contract = q => { const k = norm(q); if (!k) return null;
+    return rows.find(c => norm(c.id) === k || (c.contractNo && norm(c.contractNo) === k)) || rows.find(c => norm(c.name) === k) || null; };
+  const parties = [...new Set(rows.map(c => String(c.counterparty || '').trim()).filter(Boolean))];
+  return { contract: q => { const c = contract(q); return c ? { id: c.id, name: c.name || c.id } : null; },
+    contracts: rows.slice(0, 40).map(c => ({ id: c.id, name: c.name || c.id })), parties };
+}
+function copilotWalkStep(cx, toolUses, working) {
+  const w = toolUses.find(t => t.name === 'walk_through'); if (!w) return null;
+  const r = walkPlanClean(w.input, copilotWalkFacts(cx));
+  if (r.plan) return { final: { answer: walkSummary(r.plan), citations: [], compare: null, lesson: r.plan, shown: WALK_SHOWN_NOTE } };
+  working.push({ role: 'user', content: toolUses.map(t => ({ type: 'tool_result', tool_use_id: t.id,
+    content: t === w ? JSON.stringify({ error: r.error, note: 'Correct the lesson and call walk_through again.' }) : 'Not run: correct the lesson first.' })) });
+  return { retry: true };
+}
 
 /* Async because check_against_playbook makes its own provider call; the data
    tools stay synchronous reads and simply resolve immediately. `aux.key` is
@@ -14939,6 +14964,7 @@ SCOPE & SAFETY:
 - ${AI_GOVERNANCE_RULE} When a rule stops them and the proper next step is one of HaTi's own doors, name it in deliver_answer's ruleDoor.
 - ${aiNavigateOn() ? AI_GOTO_RULE : AI_GOTO_OFF_RULE}
 - ${aiNavigateOn() ? AI_BRIEF_RULE : AI_BRIEF_OFF_RULE}
+- ${AI_WALK_RULE}
 - ${AI_NOTEBOOK_RULE}
 - ${AI_CLARIFY_RULE}
 - ${AI_SEND_NOTE_RULE}
@@ -15557,6 +15583,8 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
         final = txt ? { answer: txt, citations: [], compare: null } : copilotWayForward(cx, question, 'empty');
         break;
       }
+      /* WALK ME THROUGH IT: a lesson that can be drawn ends the turn; one that cannot goes back with what exists */
+      { const w = copilotWalkStep(cx, toolUses, working); if (w && w.final) { toolsUsed.push('walk_through'); final = w.final; break; } if (w && w.retry) { if (!toolsUsed.includes('walk_through')) toolsUsed.push('walk_through'); continue; } }
       const deliver = toolUses.find(t => t.name === 'deliver_answer');
       if (deliver) {
         const said = normalizeDeliver(deliver.input, cx);
@@ -15586,7 +15614,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
        sentence for an answer. The chat itself still prints it as before. */
     if (!final) final = copilotWayForward(cx, question, 'unfinished');
     if (final) copilotTurnSources(cx, question, final, turn);
-    if (final && aiNavigateOn()) { const g = copilotQuoteDoor(cx, question, final) || copilotListDoor(cx, question, final, turn); if (g) final.goto = g; copilotNotNewPaper(question, final); copilotTemplateDoor(cx, final); copilotOneOfMany(cx, question, final); copilotQuestionStays(question, final); copilotChapterButton(cx, final); }
+    if (final && !final.lesson && aiNavigateOn()) { const g = copilotQuoteDoor(cx, question, final) || copilotListDoor(cx, question, final, turn); if (g) final.goto = g; copilotNotNewPaper(question, final); copilotTemplateDoor(cx, final); copilotOneOfMany(cx, question, final); copilotQuestionStays(question, final); copilotChapterButton(cx, final); }
     // Resolve cited ids (and any compare columns) into render-ready cards.
     const cardIds = [];
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
@@ -15602,7 +15630,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
     nbCitedRecord(cx, final.answer); copilotNotebookButton(cx, final);
     logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
-    res.json({ answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.note && context && context.page && context.page.sending ? { note: final.note } : {}), ...(final.board && copilotDrawsBoard(context) ? { board: final.board, boardTotal: final.boardTotal } : {}), ...(() => { const pg = pageActionsClean(final.pageAsked, pageControlsClean(context && context.controls)); return pg ? { page: pg } : {}; })(), ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.teach ? { teach: true } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(truncated ? { truncated: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
+    res.json({ answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.lesson ? { lesson: final.lesson } : {}), ...(final.note && context && context.page && context.page.sending ? { note: final.note } : {}), ...(final.board && copilotDrawsBoard(context) ? { board: final.board, boardTotal: final.boardTotal } : {}), ...(() => { const pg = pageActionsClean(final.pageAsked, pageControlsClean(context && context.controls)); return pg ? { page: pg } : {}; })(), ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.teach ? { teach: true } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(truncated ? { truncated: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
   } catch (e) {
     logCopilotTurn(req, { question, answer: 'Jambo request failed: ' + e.message, toolsUsed, model: usedModel, steps });
     res.status(502).json({ error: 'Jambo request failed: ' + e.message });
@@ -15928,6 +15956,8 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
         final = txt ? { answer: txt, citations: [], compare: null } : copilotWayForward(cx, question, 'empty');
         break;
       }
+      /* WALK ME THROUGH IT: a lesson that can be drawn ends the turn; one that cannot goes back with what exists */
+      { const w = copilotWalkStep(cx, toolUses, working); if (w && w.final) { toolsUsed.push('walk_through'); final = w.final; break; } if (w && w.retry) { if (!toolsUsed.includes('walk_through')) toolsUsed.push('walk_through'); continue; } }
       const deliver = toolUses.find(t => t.name === 'deliver_answer');
       if (deliver) {
         const said = normalizeDeliver(deliver.input, cx);
@@ -15957,7 +15987,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
        sentence for an answer. The chat itself still prints it as before. */
     if (!final) final = copilotWayForward(cx, question, 'unfinished');
     if (final) copilotTurnSources(cx, question, final, turn);
-    if (final && aiNavigateOn()) { const g = copilotQuoteDoor(cx, question, final) || copilotListDoor(cx, question, final, turn); if (g) final.goto = g; copilotNotNewPaper(question, final); copilotTemplateDoor(cx, final); copilotOneOfMany(cx, question, final); copilotQuestionStays(question, final); copilotChapterButton(cx, final); }
+    if (final && !final.lesson && aiNavigateOn()) { const g = copilotQuoteDoor(cx, question, final) || copilotListDoor(cx, question, final, turn); if (g) final.goto = g; copilotNotNewPaper(question, final); copilotTemplateDoor(cx, final); copilotOneOfMany(cx, question, final); copilotQuestionStays(question, final); copilotChapterButton(cx, final); }
     const cardIds = [];
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
     if (final.compare) final.compare.columns.forEach(col => { if (!cardIds.includes(col.id)) cardIds.push(col.id); });
@@ -15972,7 +16002,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
     nbCitedRecord(cx, final.answer); copilotNotebookButton(cx, final);
     logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
-    send('final', { answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.note && context && context.page && context.page.sending ? { note: final.note } : {}), ...(final.board && copilotDrawsBoard(context) ? { board: final.board, boardTotal: final.boardTotal } : {}), ...(() => { const pg = pageActionsClean(final.pageAsked, pageControlsClean(context && context.controls)); return pg ? { page: pg } : {}; })(), ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.teach ? { teach: true } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(truncated ? { truncated: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
+    send('final', { answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.lesson ? { lesson: final.lesson } : {}), ...(final.note && context && context.page && context.page.sending ? { note: final.note } : {}), ...(final.board && copilotDrawsBoard(context) ? { board: final.board, boardTotal: final.boardTotal } : {}), ...(() => { const pg = pageActionsClean(final.pageAsked, pageControlsClean(context && context.controls)); return pg ? { page: pg } : {}; })(), ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.teach ? { teach: true } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(truncated ? { truncated: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...(wentDeep ? { deep: copilotDeepOf(req, turnCost) } : {}), ...notice });
     res.end();
   } catch (e) {
     if (clientGone || e.name === 'AbortError') {
