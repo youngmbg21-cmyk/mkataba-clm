@@ -31,12 +31,24 @@ const PLAN = { title: 'Your contracts, step by step', steps: [
   { say: 'And this is the value under contract by stage.', show: { what: 'stages_value' } },
   { say: 'These are the parties you work with most.', show: { what: 'parties' } },
 ] };
+/* the owner's case (27 Nov 2026): one folder asked for; first a lesson whose words say a number no drawing shows, then
+   the corrected one — HaTi must send the first back and show the second, narrowed to the folder */
+const PLAN_WRONG = { title: 'Your Procurement contracts', steps: [
+  { say: 'You have 7 contracts in this folder.', show: { what: 'stages' } },
+  { say: 'These are the signed ones.', show: { what: 'contracts', where: { stream: 'proc', stage: 'Signed' } } } ] };
+const PLAN_RIGHT = { title: 'Your Procurement contracts', where: { stream: 'proc' }, steps: [
+  { say: 'Here is where your Procurement contracts stand.', show: { what: 'stages' } },
+  { say: 'These are the signed ones.', show: { what: 'contracts', where: { stream: 'proc', stage: 'Signed' } } } ] };
 const lastUser = body => { const m = (body.messages || []).filter(x => x.role === 'user').pop(); const c = m && m.content;
   return typeof c === 'string' ? c : Array.isArray(c) ? c.map(x => x.text || '').join(' ') : ''; };
 
 (async () => {
   const ai = await H.startScriptedAi();
-  const answer = body => (body.tools || []).some(t => t.name === 'walk_through') && /walk me through/i.test(lastUser(body))
+  const answer = body => (body.tools || []).some(t => t.name === 'walk_through') && /HaTi checked the lesson/i.test(lastUser(body))
+    ? { content: [{ type: 'tool_use', id: 'tu_w2', name: 'walk_through', input: PLAN_RIGHT }] }
+    : (body.tools || []).some(t => t.name === 'walk_through') && /procurement folder/i.test(lastUser(body))
+    ? { content: [{ type: 'tool_use', id: 'tu_w1', name: 'walk_through', input: PLAN_WRONG }] }
+    : (body.tools || []).some(t => t.name === 'walk_through') && /walk me through/i.test(lastUser(body))
     ? { content: [{ type: 'tool_use', id: 'tu_w', name: 'walk_through', input: PLAN }] }
     : { content: [{ type: 'tool_use', id: 'tu_d', name: 'deliver_answer', input: { answer: 'An ordinary answer.', citations: [] } }] };
   for (let i = 0; i < 80; i++) ai.script(answer);
@@ -119,6 +131,20 @@ const lastUser = body => { const m = (body.messages || []).filter(x => x.role ==
     await ask(A, 'Why is the Naivas value high?');
     const ord = await A.until(n => { const t = [...document.querySelectorAll('#ig-dock .jb-turn')].pop(); return t && /An ordinary answer/.test(t.textContent) ? { lessons: document.querySelectorAll('.lsn').length, n } : null; }, before6, 12000);
     check('6 an ordinary question gets an ordinary answer, no lesson', !!ord && ord.lessons === ord.n, JSON.stringify(ord));
+
+    /* ---- 9 · one folder asked: the drawing counts that folder, its head says so; a wrong number is sent back ---- */
+    const before9 = await A.page.evaluate(() => document.querySelectorAll('.lsn').length);
+    await ask(A, 'Walk me through the status of our contracts but for the procurement folder');
+    const nine = await A.until(n => { const L = [...document.querySelectorAll('.lsn')]; if (L.length <= n) return null; const K = L[L.length - 1];
+      const st = K.querySelector('.lsn-step[data-lsn-step="0"]'); if (!st) return null;
+      const bars = [...st.querySelectorAll('.lsn-br')].map(b => Number(b.querySelector('.lsn-v').textContent.trim()));
+      const want = ['Draft', 'Under Review', 'Signed'].map(k => state.contracts.filter(c => !c.archived && c.folder === 'proc' && c.status === k).length);
+      return { bars, want, scope: (st.querySelector('.lsn-scope') || {}).textContent || '', say: st.querySelector('.lsn-say').textContent }; }, before9, 20000);
+    check('9a asked for one folder, the drawing counts that folder only', !!nine && JSON.stringify(nine.bars) === JSON.stringify(nine.want), JSON.stringify(nine));
+    check('9b the drawing\'s head names the folder and how many contracts', !!nine && /Procurement/.test(nine.scope) && /\d+ contracts?/.test(nine.scope), nine && nine.scope);
+    check('9c the sentence with a number no drawing showed was sent back and the corrected one is shown', !!nine && !/\b7\b/.test(nine.say) && /Procurement contracts stand/.test(nine.say), nine && nine.say);
+    const sentBack = ai.calls.some(c => /HaTi checked the lesson against its drawings/.test(JSON.stringify(c.body.messages || [])));
+    check('9d the stand-in AI was told what the drawings show', sentBack);
 
     /* ---- 7 · the owner's three screens ---- */
     for (const vp of [{ width: 1440, height: 780 }, { width: 1536, height: 730 }, { width: 1366, height: 950 }]){

@@ -4267,6 +4267,10 @@ function igFmtRich(raw){
   return { html, blocks };
 }
 /* WALK ME THROUGH IT (js/lesson.js): an answer that is a lesson is pushed as one, drawn by the one conversation's builder */
+async function igLessonSettle(res, msgs, ctx){
+  if(!res||!res.lesson||typeof window.lessonSettle!=='function') return res;
+  return lessonSettle(res, note=>copilotAsk(msgs.concat([{ role:'assistant', content:String(res.answer||'') }, { role:'user', content:note }]), ctx, null, IG_QUIET));
+}
 function igLessonTake(res){
   const L=(res&&res.lesson&&typeof window.lessonFromAnswer==='function')?lessonFromAnswer(res):null;
   if(!L) return false;
@@ -4436,7 +4440,7 @@ async function intelChatAsk(q, opts){
     /* f1042: a note asked for on the send screen — the server asks once more if none comes back */
     if(opts&&opts.note&&ctx&&ctx.page&&ctx.page.sending) ctx.noteAsk=true;
     if(opts&&opts.controls&&typeof window.lhControlsNow==='function'){ const C=lhControlsNow(); if(C) ctx.controls=C; }
-    const res=await copilotAsk(msgs, ctx, null, IG_QUIET);
+    const res=await igLessonSettle(await copilotAsk(msgs, ctx, null, IG_QUIET), msgs, ctx);
     if(opts&&opts.draw&&await igBoardDrawn(res, q)) return;
     /* WALK ME THROUGH IT (js/lesson.js): the lesson is the answer, drawn by the one conversation's builder */
     if(igLessonTake(res)) return;
@@ -12969,7 +12973,8 @@ async function igPaperAsk(q,cid){
   if(p){ p.words=igPaperWords(c)+(story.text?story.text.split(/\s+/).filter(Boolean).length:0); p.changes=story.count; }
   msgs.push({ role:'user', content:`${last.content}\n\n${IG_PAPER_RULE}${story.text?`\n\n${IG_PAPER_CHANGES_RULE}`:''}\n\n=== THE WORDING OF ${ref} (${c.name}) ===\n${wording}${story.text?`\n\n${story.text}`:''}` });
   try{
-    const res=await copilotAsk(msgs, { view:'intel', activeContractId:c.id, activeContractName:c.name, ...(c.contractNo?{activeContractNo:c.contractNo}:{}), wholeDoc:true }, null, IG_QUIET);
+    const pctx={ view:'intel', activeContractId:c.id, activeContractName:c.name, ...(c.contractNo?{activeContractNo:c.contractNo}:{}), wholeDoc:true };
+    const res=await igLessonSettle(await copilotAsk(msgs, pctx, null, IG_QUIET), msgs, pctx);
     if(igLessonTake(res)) return;   /* a lesson about this contract (js/lesson.js) */
     intelPushChatResult(res, q);
     igPinsMint(c,res,intel.history.length-1);

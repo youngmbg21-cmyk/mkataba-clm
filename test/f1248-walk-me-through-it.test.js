@@ -91,9 +91,11 @@ describe('f1248 (3) one tool, two hosts', () => {
 });
 
 describe('f1248 (4) the AI never writes a drawn number', () => {
-  test('a step\'s show carries what, names and upto only: no value, count, figure or data', () => {
+  test('a step\'s show carries which drawing and what to narrow it to — never a value, count, figure or data', () => {
     const show = W.WALK_TOOL_SCHEMA.properties.steps.items.properties.show.properties;
-    assert.deepEqual(Object.keys(show).sort(), ['names', 'upto', 'what']);
+    assert.deepEqual(Object.keys(show).sort(), ['names', 'period', 'upto', 'what', 'where']);
+    assert.deepEqual(Object.keys(show.where.properties).sort(), ['party', 'stage', 'stream']);
+    assert.deepEqual(Object.keys(show.period.properties).sort(), ['from', 'to']);
     assert.equal(show.what.enum.length, W.WALK_SHOWS.length + W.WALK_OPS.length);
   });
   test('every drawing has a reader in js/lesson.js; every money drawing has a count twin', () => {
@@ -106,39 +108,57 @@ describe('f1248 (4) the AI never writes a drawn number', () => {
 });
 
 /* js/lesson.js in a small world: HaTi's own readers stubbed with the Board's shapes */
+/* the book: Draft 1 (6M), In review 3 (145M), Signed 6 (182M), one Declined; mktg holds 7 of them */
+const BOOK = [
+  { id: 'D1', name: 'Draft one', status: 'Draft', value: 6e6, folder: 'mktg', counterparty: 'Naivas' },
+  { id: 'R1', name: 'Review one', status: 'Under Review', value: 45e6, folder: 'mktg', counterparty: 'naivas ' },
+  { id: 'R2', name: 'Review two', status: 'Under Review', value: 50e6, folder: 'mktg', counterparty: 'Bidco' },
+  { id: 'R3', name: 'Review three', status: 'Under Review', value: 50e6, folder: 'proc', counterparty: 'Bidco' },
+  { id: 'S1', name: 'Signed one', status: 'Signed', value: 24e6, folder: 'mktg', counterparty: 'Scanad', expiry: '2099-03-01' },
+  { id: 'S2', name: 'Signed two', status: 'Signed', value: 30e6, folder: 'mktg', counterparty: 'Saw Sawa' },
+  { id: 'S3', name: 'Signed three', status: 'Signed', value: 28e6, folder: 'mktg', counterparty: 'Royal Media' },
+  { id: 'S4', name: 'Signed four', status: 'Signed', value: 40e6, folder: 'proc', counterparty: 'Kabras', currency: 'XXX' },
+  { id: 'S5', name: 'Signed five', status: 'Signed', value: 30e6, folder: 'proc', counterparty: 'Kabras' },
+  { id: 'S6', name: 'Signed six', status: 'Signed', value: 30e6, folder: 'proc', counterparty: 'Twiga' },
+  { id: 'X1', name: 'Declined one', status: 'Declined', value: 9e6, folder: 'mktg', counterparty: 'Naivas' },
+];
 function lessonWorld(o){
   const win = {};
-  const stages = [{ k: 'Draft', word: 'home_stage_drafting', n: 1, v: 6e6 }, { k: 'Under Review', word: 'home_stage_in_review', n: 3, v: 145e6 }, { k: 'Signed', word: 'home_stage_executed', n: 6, v: 182e6 }];
+  const book = o.book || BOOK;
   Object.assign(win, W, {
     window: win, i18t: (k, v) => k + (v && v.n != null ? ':' + v.n : ''), i18tn: (k, n) => k + ':' + n,
     canViewValues: () => o.money !== false, mayActOn: () => o.viewer !== true, isAdmin: () => false,
-    hbBookData: () => ({ stages, figs: { live: { n: 10 }, ending: { n: 2 }, past: { n: 0 }, overdue: { n: 1 }, us: { n: 0 } } }),
-    hbBook: () => o.book || [], getContract: id => (o.book || []).find(c => c.id === id) || null,
+    hbBook: () => book.filter(c => !c.archived), getContract: id => book.find(c => c.id === id) || null,
+    /* the Board's sum: a contract it cannot convert is LEFT OUT AND COUNTED */
+    hbValueOf: cs => cs.reduce((r, c) => (c.currency === 'XXX' ? { v: r.v, left: r.left + 1 } : { v: r.v + c.value, left: r.left }), { v: 0, left: 0 }),
+    FOLDERS: { mktg: { id: 'mktg', name: 'Marketing & Brand' }, proc: { id: 'proc', name: 'Procurement' } },
     signBlockers: c => (c && c.blockers) || [], hmStageTone: k => 'var(--' + k + ')',
-  });
+  }, o.extra || {});
   vm.createContext(win);
   vm.runInContext(LESSON, win, { filename: 'js/lesson.js' });
   return win;
 }
+const J = x => JSON.parse(JSON.stringify(x));
 describe('f1248 (5) money only with money rights; the count and the message for everyone else', () => {
   test('with money rights the value is drawn', () => {
     const ctx = lessonWorld({ money: true });
     const b = ctx.lessonBoard('stages_value');
     assert.equal(b.nomoney, undefined); assert.equal(b.money, true);
-    assert.deepEqual([...b.items.map(x => x.n)], [6e6, 145e6, 182e6]);
+    assert.deepEqual(J(b.items.map(x => x.n)), [6e6, 145e6, 142e6]);
+    assert.equal(b.left, 1, 'the contract in a currency with no rate is left out and counted');
   });
   test('without it: the count (the Board\'s own), marked nomoney, and the step says so with Ask an admin', () => {
     const ctx = lessonWorld({ money: false });
     const b = ctx.lessonBoard('stages_value');
     assert.equal(b.nomoney, true); assert.ok(!b.money);
-    assert.deepEqual([...b.items.map(x => x.n)], [1, 3, 6]);
+    assert.deepEqual(J(b.items.map(x => x.n)), [1, 3, 6]);
     const L = { id: 'x', title: 'T', steps: [{ say: 'Money by stage.', board: b }] };
     const html = ctx.lessonStepHtml(L, { shown: 1, at: [0], still: true }, 0, 0);
     assert.match(html, /lsn-nomoney/); assert.match(html, /ls_nomoney/); assert.match(html, /data-lsn-act="askadmin"/);
     for (const k of ['parties_value', 'streams_value', 'ending_value']) assert.equal(ctx.lessonBoard(k).nomoney, true, k);
   });
   test('the drawing\'s figures are filled when the lesson arrives and kept on it (lessonFill)', () => {
-    const ctx = lessonWorld({ money: true, book: [{ id: 'MK-1', name: 'One', blockers: [{ key: 'a', label: 'Name a signer' }] }] });
+    const ctx = lessonWorld({ money: true, book: [{ id: 'MK-1', name: 'One', status: 'Draft', blockers: [{ key: 'a', label: 'Name a signer' }] }] });
     const L = ctx.lessonFill({ title: 'T', contractId: 'MK-1', steps: [{ say: 'a', show: { what: 'before_sign' } }, { say: 'b', op: { what: 'highlight', names: ['signer'] } }] });
     assert.equal(L.cid, 'MK-1'); assert.equal(L.steps[0].board.rows[0].cells[0].t, 'Name a signer'); assert.deepEqual(JSON.parse(JSON.stringify(L.steps[1].op)), { what: 'highlight', names: ['signer'] });
   });
@@ -159,7 +179,7 @@ describe('f1248 (6) every word the lesson says is in both books', () => {
     const { STRINGS } = require('../js/i18n.js');
     const keys = [...new Set([...LESSON.matchAll(/'(ls_[a-z_]+)'/g)].map(m => m[1]))];
     assert.ok(keys.length > 40, 'the keys were read');
-    const plural = k => k === 'ls_days' ? ['ls_days_one', 'ls_days_other'] : [k];
+    const plural = k => ['ls_days', 'ls_n_contracts', 'ls_left_out'].includes(k) ? [k + '_one', k + '_other'] : [k];
     for (const k of keys) for (const kk of plural(k)) for (const lang of ['en', 'sv']) assert.ok(STRINGS[lang][kk], `${lang}.${kk}`);
   });
 });
@@ -188,5 +208,159 @@ describe('f1248 (7) every drawing is a table; bold is bold', () => {
     assert.match(html, /<b>KES<\/b><\/span> <span[^>]*><b>333M<\/b>/);
     assert.match(html, /<b>contracts<\/b>\.<\/span>/);
     assert.doesNotMatch(html, /\*/);
+  });
+});
+
+/* (8)–(13) THE RESULTS MUST BE PERFECT (owner, 27 Nov 2026: a lesson "for the marketing folder" drew the whole book —
+   94 · 50 · 48 — under "You have 7 contracts in Marketing & Brand"; "where else might we have issues? The results must
+   be perfect for the user"). AT THE PARENT (c61cdaf) none of where, period, contracts, lessonCheck or lessonSettle exists. */
+const FACTS2 = { contract: () => null, contracts: [], parties: ['Naivas', 'Bidco', 'Kabras'], streams: [{ id: 'mktg', name: 'Marketing & Brand' }, { id: 'proc', name: 'proc' }] };
+const live = (w) => BOOK.filter(c => c.status !== 'Declined' && (!w.stream || c.folder === w.stream) && (!w.party || c.counterparty.trim().toLowerCase() === w.party.toLowerCase()) && (!w.stage || c.status === w.stage));
+describe('f1248 (8) a drawing counts exactly what the step is about, and says so in its head', () => {
+  test('the owner\'s lesson: stages for the Marketing folder count Marketing only, and the head names it', () => {
+    const ctx = lessonWorld({});
+    const b = ctx.lessonBoard('stages', null, { what: 'stages', where: { stream: 'mktg' } });
+    assert.deepEqual(J(b.items.map(x => [x.k, x.n])), [['Draft', 1], ['Under Review', 2], ['Signed', 3]]);
+    assert.equal(b.scope.n, 6); assert.equal(b.scope.stream, 'mktg'); assert.equal(b.scope.whole, false);
+    const head = ctx.lessonBoardHtml(b, 0, 1e9);
+    assert.match(head, /<div class="lsn-scope">Marketing &amp; Brand · ls_n_contracts:6<\/div>/);
+  });
+  test('with no narrowing the head says it is the whole book, and counts it', () => {
+    const b = lessonWorld({}).lessonBoard('stages', null, { what: 'stages' });
+    assert.equal(b.scope.whole, true); assert.equal(b.scope.n, 10);
+    assert.deepEqual(J(b.items.map(x => x.n)), [1, 3, 6]);
+  });
+  test('a counterparty is matched as the Customers page matches it (case and spaces), a stage exactly', () => {
+    const ctx = lessonWorld({});
+    assert.equal(ctx.lessonBoard('contracts', null, { what: 'contracts', where: { party: 'NAIVAS' } }).rows.length, 2);
+    const signedMk = ctx.lessonBoard('contracts', null, { what: 'contracts', where: { stream: 'mktg', stage: 'Signed' } });
+    assert.deepEqual(J(signedMk.rows.map(r => r.k)).sort(), ['S1', 'S2', 'S3']);
+    const parties = ctx.lessonBoard('parties', null, { what: 'parties' });
+    assert.equal(parties.items.find(x => x.k === 'naivas').n, 2, '"Naivas" and "naivas " are one party, as on the Customers page');
+  });
+  test('nothing in the narrowing is said, never drawn as the whole book', () => {
+    const b = lessonWorld({}).lessonBoard('risk', null, { what: 'risk', where: { party: 'Nobody' } });
+    assert.equal(b.type, 'say'); assert.equal(b.lk, 'ls_none_here');
+  });
+  test('a period draws its own months', () => {
+    const ctx = lessonWorld({});
+    const b = ctx.lessonBoard('ending_months', null, { what: 'ending_months', period: { from: '2099-01', to: '2099-04' } });
+    assert.deepEqual(J(b.items.map(x => [x.m, x.n])), [['2099-01', 0], ['2099-02', 0], ['2099-03', 1], ['2099-04', 0]]);
+    assert.deepEqual(J(b.scope.period), { from: '2099-01', to: '2099-04' });
+  });
+  test('the plan\'s check: a stream, a party and a stage must exist for this reader; the lesson\'s where reaches every book step', () => {
+    const r = W.walkPlanClean({ title: 'T', where: { stream: 'Marketing & Brand' }, steps: [step('a', 'stages'), step('b', 'contracts', { where: { stage: 'executed' } }), step('c', 'pay_days')] }, FACTS2);
+    assert.ok(r.plan, r.error);
+    assert.deepEqual(J(r.plan.steps.map(x => x.show.where || null)), [{ stream: 'mktg' }, { stage: 'Signed' }, null]);
+    assert.match(W.walkPlanClean({ title: 'T', where: { stream: 'Legal' }, steps: [step('a', 'stages'), step('b', 'risk')] }, FACTS2).error, /"Legal" is not a value stream.*mktg \(Marketing & Brand\)/);
+    assert.match(W.walkPlanClean({ title: 'T', steps: [step('a', 'stages', { where: { party: 'Acme' } }), step('b', 'risk')] }, FACTS2).error, /not a counterparty.*Naivas/);
+    assert.match(W.walkPlanClean({ title: 'T', steps: [step('a', 'pay_days', { where: { stream: 'mktg' } }), step('b', 'risk')] }, FACTS2).error, /cannot be narrowed/);
+    assert.match(W.walkPlanClean({ title: 'T', steps: [step('a', 'risk', { period: { from: '2027-01', to: '2027-02' } }), step('b', 'stages')] }, FACTS2).error, /no months to choose/);
+    assert.match(W.walkPlanClean({ title: 'T', steps: [step('a', 'ending_months', { period: { from: '2027-01', to: '2029-12' } }), step('b', 'stages')] }, FACTS2).error, /at most 24 months/);
+  });
+});
+describe('f1248 (9) the same drawing twice in a row is refused', () => {
+  test('stages then stages (the owner\'s second step) is sent back: light the first, or draw the contracts', () => {
+    assert.match(W.walkPlanClean({ title: 'T', where: { stream: 'mktg' }, steps: [step('a', 'stages'), step('b', 'stages')] }, FACTS2).error, /draws again what an earlier step just drew/);
+    assert.match(W.walkPlanClean({ title: 'T', steps: [step('a', 'stages'), step('b', 'highlight', { names: ['In review'] }), step('c', 'stages')] }, FACTS2).error, /draws again/);
+    assert.ok(W.walkPlanClean({ title: 'T', steps: [step('a', 'stages'), step('b', 'stages', { where: { stream: 'mktg' } })] }, FACTS2).plan, 'a different narrowing is a different drawing');
+  });
+});
+describe('f1248 (10) every number in a sentence is one the drawings show', () => {
+  const ctx = lessonWorld({});
+  const fill = (title, steps) => ctx.lessonFill({ title, steps });
+  test('the owner\'s lesson is caught: "7" and "SEK 87M" over a drawing of the whole book', () => {
+    const L = fill('T', [{ say: 'You have 7 contracts in Marketing & Brand — the total value is SEK 87M.', show: { what: 'stages' } },
+      { say: 'Two are already signed.', show: { what: 'contracts', where: { stream: 'mktg' } } }]);
+    const bad = J(ctx.lessonCheck(L));
+    assert.deepEqual(bad.map(x => x.i), [0, 1]);
+    assert.deepEqual(bad[0].said, ['7', 'SEK 87M']);
+  });
+  test('the same lesson narrowed and told truly passes: counts, totals, money within rounding, shares', () => {
+    const L = fill('T', [{ say: 'You have **6 contracts** in Marketing & Brand: 1 drafting, 2 in review and three signed — half of them.', show: { what: 'stages', where: { stream: 'mktg' } } },
+      { say: 'Together they are worth KES 183M; the signed ones KES 82M.', show: { what: 'stages_value', where: { stream: 'mktg' } } },
+      { say: 'These three are signed.', show: { what: 'contracts', where: { stream: 'mktg', stage: 'Signed' } } }]);
+    assert.deepEqual(J(ctx.lessonCheck(L)), []);
+  });
+  test('dates, years, references, sections and names are not figures', () => {
+    const L = fill('T', [{ say: 'MK-103 under § 7 and clause 4.2 renews on 12 December 2027 (2027-12-12), in Q1, for the 3rd time.', show: { what: 'stages' } }, { say: 'Done.', show: { what: 'risk' } }]);
+    assert.deepEqual(J(ctx.lessonCheck(L)), []);
+  });
+});
+describe('f1248 (11) a lesson that fails goes back once; what still fails is said plainly, never with an unshown number', () => {
+  const ctx = lessonWorld({});
+  const bad = { lesson: { title: 'T', steps: [{ say: 'You have 7 contracts.', show: { what: 'stages' } }, { say: 'Risk.', show: { what: 'risk' } }] }, answer: 'x' };
+  const good = { lesson: { title: 'T', steps: [{ say: 'You have 6 contracts in Marketing & Brand.', show: { what: 'stages', where: { stream: 'mktg' } } }, { say: 'Risk.', show: { what: 'risk' } }] }, answer: 'y' };
+  test('sent back with what the drawings show; the corrected lesson is taken', async () => {
+    let note = '';
+    const r = await ctx.lessonSettle(bad, n => { note = n; return Promise.resolve(good); });
+    assert.match(note, /Step 1 says 7, but its drawing shows: .*Draft.*1.*Under Review|Step 1 says 7, but its drawing shows: home_stage_drafting 1, home_stage_in_review 3, home_stage_executed 6 \(ls_all_contracts · ls_n_contracts:10\)/);
+    assert.match(note, /Narrow the drawings to exactly what the person asked about/);
+    assert.equal(r._lessonFilled.steps[0].say, 'You have 6 contracts in Marketing & Brand.');
+    assert.deepEqual(J(ctx.lessonCheck(r._lessonFilled)), []);
+  });
+  test('still wrong after the one retry: the step is said in plain words built from its drawing', async () => {
+    const r = await ctx.lessonSettle(bad, () => Promise.resolve(bad));
+    const st = r._lessonFilled.steps[0];
+    assert.equal(st.plain, true); assert.doesNotMatch(st.say, /\b7\b/);
+    assert.deepEqual(J(ctx.lessonCheck(r._lessonFilled)), []);
+  });
+  test('a failed ask keeps the first lesson, said plainly where it fails', async () => {
+    const r = await ctx.lessonSettle(bad, () => Promise.reject(new Error('down')));
+    assert.equal(r._lessonFilled.steps[0].plain, true);
+  });
+});
+describe('f1248 (12) the other readings tell the truth', () => {
+  test('what Jambo found is counted only for the contract whose paper is on screen', () => {
+    const c = { id: 'P1', status: 'Draft' };
+    const off = lessonWorld({ book: [c] }).lessonBoard('findings', c, { what: 'findings' });
+    assert.equal(off.lk, 'ls_open_clauses');
+    const on = lessonWorld({ book: [c], extra: { intel: { paper: { mode: 'paper', id: 'P1' } }, stkLivePoints: () => [{ status: 'need' }, { status: 'look' }], stkCounts: L => ({ need: 1, look: 1, note: 0 }) } }).lessonBoard('findings', c, { what: 'findings' });
+    assert.equal(on.type, 'bars');
+  });
+  test('waiting on us shows how many things wait (the list\'s own count), not a wait guessed from the last edit', () => {
+    const ctx = lessonWorld({ extra: { hbWaitingOnUs: cs => cs.filter(x => x.id === 'R1'), negWhoseMove: () => ({ k: 'you', n: 3 }) } });
+    const b = ctx.lessonBoard('waiting_us', null, { what: 'waiting_us' });
+    assert.equal(J(b.head)[2], 'ls_h_waiting'); assert.equal(b.rows[0].cells[2].v, 3);
+  });
+  test('a money table without money rights is the contracts\' table, with the message', () => {
+    const b = lessonWorld({ money: false }).lessonBoard('contracts_value', null, { what: 'contracts_value', where: { stream: 'mktg' } });
+    assert.equal(b.nomoney, true); assert.doesNotMatch(JSON.stringify(b.rows), /money/);
+  });
+  test('what a card leaves out is said in it: more rows, and contracts with no rate', () => {
+    const html = lessonWorld({}).lessonBoardHtml({ type: 'table', head: ['ls_h_agreement'], rows: [{ k: 'a', cells: [{ t: 'A' }] }], more: 4, left: 1 }, 0, 1e9);
+    assert.match(html, /<div class="lsn-foot">ls_more:4 · ls_left_out:1<\/div>/);
+  });
+});
+/* (13) THE QUESTION BANK — the ways people ask. Every lesson question reaches Jambo (no shortcut takes it to a page);
+   every how-to and every ordinary question stays where it was; and for every narrowing a question can name, the drawing
+   counts exactly the contracts a plain filter of the book finds. */
+describe('f1248 (13) the question bank', () => {
+  const lessons = ['Walk me through my contracts', 'walk me through the status of our contracts but for the marketing folder', 'Walk me through my renewals for next quarter',
+    'take me through our duties this month', 'talk me through the negotiation with Naivas', 'run me through my approvals', 'teach me where our money is',
+    'explain our book step by step', 'give me a tour of my portfolio', 'step by step, my risks please',
+    'walk me through this contract', 'walk me through the changes on this agreement', 'explain this negotiation step by step', 'walk me through what needs me',
+    'walk me through our signed contracts with Bidco', 'walk me through my contracts ending next year', 'walk us through the procurement stream', 'teach me my Board figures',
+    'gå igenom mina avtal', 'gå igenom våra förnyelser', 'förklara våra risker steg för steg', 'lär mig var pengarna finns', 'take us through our approvals', 'walk me through my duties for Kabras'];
+  const notLessons = ['walk me through sending a contract', 'walk me through how to sign this', 'walk me through adding a colleague', 'walk me through uploading a file',
+    'teach me how to set up approvals', 'why is the Naivas value high?', 'change the payment days to 500', 'what ends this quarter?', 'open contracts', 'renewals',
+    'show me the marketing folder', 'how many contracts do we have', 'teach me', "I'm new", 'hur skickar jag ett avtal', 'gå till inställningar',
+    /* the Board's own chart questions: drawn on the Board's page, never a lesson (owner, 27 Nov 2026) */
+    'explain my renewals', 'break down my contracts by stream', 'show value by stream', 'compare our streams by value', 'explain why our value is high', 'bryt ner mina avtal per värdeström', 'förklara våra risker'];
+  for (const q of lessons) test('reaches Jambo as a lesson: ' + q, () => assert.equal(W.walkAsked(q), true));
+  for (const q of notLessons) test('not a lesson: ' + q, () => assert.equal(W.walkAsked(q), false));
+  const ctx = lessonWorld({});
+  const wheres = [{}, { stream: 'mktg' }, { stream: 'proc' }, { party: 'Naivas' }, { party: 'Bidco' }, { party: 'Kabras' }, { stage: 'Signed' }, { stage: 'Under Review' },
+    { stream: 'mktg', stage: 'Signed' }, { stream: 'proc', stage: 'Under Review' }, { stream: 'mktg', party: 'Naivas' }, { party: 'Kabras', stage: 'Signed' }];
+  for (const w of wheres) test('counts exactly the narrowed book: ' + JSON.stringify(w), () => {
+    const want = live(w);
+    const st = ctx.lessonBoard('stages', null, { what: 'stages', where: Object.keys(w).length ? w : null });
+    const n = st.type === 'say' ? 0 : st.items.reduce((a, x) => a + x.n, 0);
+    assert.equal(n, want.length, 'stage bars add up to the narrowed book');
+    const tb = ctx.lessonBoard('contracts', null, { what: 'contracts', where: Object.keys(w).length ? w : null });
+    const shown = tb.type === 'say' ? [] : J(tb.rows.map(r => r.k));
+    assert.ok(shown.every(id => want.some(c => c.id === id)), 'the contracts table lists only them');
+    assert.equal(shown.length + (tb.more || 0), want.length, 'and says how many more it does not show');
+    if (st.scope) assert.equal(st.scope.n, want.length, 'the head says how many');
   });
 });

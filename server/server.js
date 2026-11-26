@@ -14671,8 +14671,12 @@ function copilotWalkFacts(cx) {
   const contract = q => { const k = norm(q); if (!k) return null;
     return rows.find(c => norm(c.id) === k || (c.contractNo && norm(c.contractNo) === k)) || rows.find(c => norm(c.name) === k) || null; };
   const parties = [...new Set(rows.map(c => String(c.counterparty || '').trim()).filter(Boolean))];
+  /* the value streams this reader has contracts in (a narrowing names one of these): the id the rows carry, the name
+     the company gave it where it gave one */
+  const named = new Map(((getSetting('appSettings') || {}).valueStreams || []).map(v => [String(v.id), String(v.name || v.id)]));
+  const streams = [...new Set(rows.map(c => String(c.folder || '')).filter(Boolean))].map(id => ({ id, name: named.get(id) || id }));
   return { contract: q => { const c = contract(q); return c ? { id: c.id, name: c.name || c.id } : null; },
-    contracts: rows.slice(0, 40).map(c => ({ id: c.id, name: c.name || c.id })), parties };
+    contracts: rows.slice(0, 40).map(c => ({ id: c.id, name: c.name || c.id })), parties, streams };
 }
 function copilotWalkStep(cx, toolUses, working) {
   const w = toolUses.find(t => t.name === 'walk_through'); if (!w) return null;

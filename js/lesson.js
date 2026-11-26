@@ -19,7 +19,8 @@ const LS_WORD_MS = 45, LS_AFTER_MS = 150, LS_STILL_MS = 9000, LS_ALL_MS = 1600;
 const LS_GAP = { bars: 110, blocks: 160, table: 70, line: 0, ring: 0 };
 const LS_TOP = 7, LS_ROWS = 6;
 const _lnE = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-const _lnT = (k, v) => (k === 'ls_days' && v && typeof i18tn === 'function') ? i18tn('ls_days', Number(v.n) || 0, v) : (typeof i18t === 'function' ? i18t(k, v) : k);
+const LS_PLURAL = new Set(['ls_days', 'ls_n_contracts', 'ls_left_out']);
+const _lnT = (k, v) => (LS_PLURAL.has(k) && v && typeof i18tn === 'function') ? i18tn(k, Number(v.n) || 0, v) : (typeof i18t === 'function' ? i18t(k, v) : k);
 const LS_STAGE_WORD = { 'Draft': 'home_stage_drafting', 'Under Review': 'home_stage_in_review', 'Signed': 'home_stage_executed' };
 const _lnN = s => String(s == null ? '' : s).toLowerCase().replace(/\s+/g, ' ').trim();
 const _lnBook = () => (typeof hbBook === 'function') ? hbBook('all') : ((window.state && Array.isArray(state.contracts)) ? state.contracts.filter(c => c && !c.archived) : []);
@@ -42,135 +43,190 @@ const _lnRef = c => (typeof contractRef === 'function') ? contractRef(c) : (c &&
 const _lnName = c => String((c && (c.name || c.id)) || '');
 const _lnAgreements = cs => (typeof agreementsIn === 'function') ? agreementsIn(cs) : cs;
 
+/* ---------------- THE SCOPE: which contracts a drawing counts ----------------
+   THE DRAWING COUNTS WHAT THE STEP IS ABOUT (owner, 27 Nov 2026: a lesson "for the marketing folder" drew the whole
+   book under a sentence about seven contracts). `where` (js/walkplan.js walkWhereClean, checked on both hosts) narrows
+   the book to a value stream, a counterparty, a stage; `period` names the months. The book itself is the Board's
+   (hbBook: every contract this reader may see, archived left out), so a drawing with no narrowing counts what the
+   Board counts. The scope is kept on the drawing and drawn in its head. */
+const _lnPartyKey = s => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase();   /* the Customers page's own key (cuKeyOf) */
+function lessonScope(show){
+  const w = (show && show.where) || null;
+  let cs = _lnBook();
+  if (w && w.stream) cs = cs.filter(c => String(c.folder || '') === String(w.stream));
+  if (w && w.party) cs = cs.filter(c => _lnPartyKey(c.counterparty) === _lnPartyKey(w.party));
+  if (w && w.stage) cs = cs.filter(c => c.status === w.stage);
+  const live = cs.filter(c => c.status !== 'Declined');
+  return { cs, live, ids: new Set(cs.map(c => c.id)), where: w, period: (show && show.period) || null };
+}
+function _lnPeriodMonths(p, n, back){
+  if (!p) return _lnMonths(n, back);
+  const out = []; let y = Number(p.from.slice(0, 4)), m = Number(p.from.slice(5));
+  const end = Number(p.to.slice(0, 4)) * 12 + Number(p.to.slice(5));
+  while (y * 12 + m <= end && out.length < 36){ out.push(`${y}-${String(m).padStart(2, '0')}`); m++; if (m > 12){ m = 1; y++; } }
+  return out;
+}
+/* money summed the Board's way (hbValueOf): what cannot be converted is LEFT OUT AND COUNTED, and the count is drawn */
+function _lnSum(cs, acc){ const r = (typeof hbValueOf === 'function') ? hbValueOf(cs) : { v: cs.reduce((t, c) => t + (Number(c.value) || 0), 0), left: 0 }; if (acc) acc.left += r.left || 0; return r.v; }
+const _lnStageOrder = { 'Draft': 0, 'Under Review': 1, 'Signed': 2, 'Declined': 3 };
+
 /* ---------------- THE READINGS: one per WALK_SHOWS key, each from HaTi's own counting ----------------
-   A board: { type, items|rows|parts|pts, money?, head?, note? }. An item's `k` is what a highlight matches, `l` its
-   words (or an i18n key in `lk`, or a stage key in `st`, or a month in `m`, read when drawn). Money is a raw number,
-   formatted when drawn. null = nothing to draw (said in words). */
+   Each takes the scope X ({ cs, live, ids, where, period }) and, for one contract, c. A board: { type, items|rows|
+   parts|pts, money?, left?, more? }. An item's `k` is what a highlight matches; its words are `t`, an i18n key `lk`,
+   a stage `st` or a month `m`, read when drawn. Money is a raw number, formatted when drawn. null = nothing to draw. */
 function _lnBars(items, o){ return items.length ? Object.assign({ type: 'bars', items }, o || {}) : null; }
 const LS_READ = {
-  stages(money){
-    const d = (typeof hbBookData === 'function') ? hbBookData('all', { whole: true }) : null;
-    const S = d ? d.stages : [];
+  stages(X, c, money){
+    const acc = { left: 0 };
+    const S = ['Draft', 'Under Review', 'Signed'].map(k => { const L = X.live.filter(x => x.status === k); return { k, n: money ? _lnSum(L, acc) : L.length }; });
     if (!S.some(s => s.n)) return null;
-    return _lnBars(S.map(s => ({ k: s.k, st: s.k, lk: s.word || LS_STAGE_WORD[s.k] || '', n: money ? (s.v || 0) : s.n, tone: s.k })), { money });
+    return _lnBars(S.map(s => ({ k: s.k, st: s.k, lk: LS_STAGE_WORD[s.k], n: s.n, tone: s.k })), { money, left: acc.left });
   },
-  stages_value(){ return LS_READ.stages(true); },
-  book_figures(){
-    const d = (typeof hbBookData === 'function') ? hbBookData('all', { whole: true }) : null; if (!d) return null;
+  stages_value(X, c){ return LS_READ.stages(X, c, true); },
+  /* the Board's own five figures (hbBookData's predicates), over the scope */
+  book_figures(X){
+    if (!X.cs.length) return null;
+    const ag = _lnAgreements(X.cs);
+    const ending = ag.filter(c => c.status === 'Signed').filter(c => { const d = _lnDays(_lnExpiry(c)); return d != null && d >= 0 && d <= 90; }).length;
+    const past = ag.filter(c => { try { return typeof contractExpired === 'function' && !!contractExpired(c); } catch (_){ return false; } }).length;
+    const overdue = (typeof hbOverdue === 'function') ? hbOverdue(X.cs).length : 0;
+    const us = (typeof hbWaitingOnUs === 'function') ? hbWaitingOnUs(X.cs).length : 0;
+    const F = { live: X.live.length, ending, past, overdue, us };
     const keys = ['live', 'ending', 'past', 'overdue'].concat(lsMayAct() ? ['us'] : []);
-    return { type: 'table', head: ['ls_h_figure', 'ls_h_count'], rows: keys.map(k => ({ k, cells: [{ lk: 'hb_f_' + k }, { v: d.figs[k].n }], hot: (k === 'overdue' || k === 'past') && d.figs[k].n > 0 })) };
+    return { type: 'table', head: ['ls_h_figure', 'ls_h_count'], rows: keys.map(k => ({ k, cells: [{ lk: 'hb_f_' + k }, { v: F[k] }], hot: (k === 'overdue' || k === 'past') && F[k] > 0 })) };
   },
-  ending_months(money){
-    const months = _lnMonths(12), by = Object.fromEntries(months.map(m => [m, []]));
-    _lnAgreements(_lnBook()).filter(c => c.status === 'Signed').forEach(c => { const e = _lnExpiry(c); const k = e ? String(e).slice(0, 7) : ''; if (k in by) by[k].push(c); });
+  ending_months(X, c, money){
+    const months = _lnPeriodMonths(X.period, 12), by = Object.fromEntries(months.map(m => [m, []])), acc = { left: 0 };
+    _lnAgreements(X.cs).filter(x => x.status === 'Signed').forEach(x => { const e = _lnExpiry(x); const k = e ? String(e).slice(0, 7) : ''; if (k in by) by[k].push(x); });
     if (!months.some(m => by[m].length)) return null;
-    return _lnBars(months.map(m => ({ k: m, m, n: money ? _lnValue(by[m]) : by[m].length })), { money, cols: true });
+    return _lnBars(months.map(m => ({ k: m, m, n: money ? _lnSum(by[m], acc) : by[m].length })), { money, cols: true, left: acc.left });
   },
-  ending_value(){ return LS_READ.ending_months(true); },
-  renewals(){
+  ending_value(X, c){ return LS_READ.ending_months(X, c, true); },
+  renewals(X){
     if (typeof renewalDecisionDate !== 'function') return null;
-    const rows = _lnLive().filter(c => !(typeof renewalDecided === 'function' && renewalDecided(c)))
+    const all = X.live.filter(c => !(typeof renewalDecided === 'function' && renewalDecided(c)))
       .map(c => ({ c, d: renewalDecisionDate(c) })).filter(x => x.d && (_lnDays(x.d) ?? -1) >= 0)
-      .sort((a, b) => String(a.d).localeCompare(String(b.d))).slice(0, LS_ROWS);
-    if (!rows.length) return null;
-    return { type: 'table', head: ['ls_h_agreement', 'ls_h_renews', 'ls_h_decide'], rows: rows.map((x, i) => ({ k: x.c.id, names: [x.c.id, _lnRef(x.c), _lnName(x.c)],
+      .sort((a, b) => String(a.d).localeCompare(String(b.d)));
+    if (!all.length) return null;
+    const rows = all.slice(0, LS_ROWS);
+    return { type: 'table', more: all.length - rows.length, head: ['ls_h_agreement', 'ls_h_renews', 'ls_h_decide'], rows: rows.map((x, i) => ({ k: x.c.id, names: [x.c.id, _lnRef(x.c), _lnName(x.c)],
       cells: [{ t: _lnName(x.c) }, { lk: (typeof contractRenewsItself === 'function' && contractRenewsItself(x.c)) ? 'ls_by_itself' : 'ls_asks_first' }, { day: String(x.d).slice(0, 10) }], hot: i === 0 })) };
   },
-  waiting_us(){
+  /* WAITING ON US: negWhoseMove's own count of what waits on our side (the list's own word), never a guessed wait */
+  waiting_us(X){
     if (!lsMayAct()) return { type: 'say', lk: 'ls_viewer' };
-    const L = (typeof hbWaitingOnUs === 'function') ? hbWaitingOnUs(_lnBook()) : [];
+    const L = (typeof hbWaitingOnUs === 'function') ? hbWaitingOnUs(X.cs) : [];
     if (!L.length) return null;
-    const since = c => { const t = Date.parse(c.updated_at || c.updatedAt || ''); return Number.isFinite(t) ? Math.max(0, Math.floor((Date.now() - t) / 86400000)) : null; };
-    const rows = L.map(c => ({ c, d: since(c) })).sort((a, b) => (b.d || 0) - (a.d || 0)).slice(0, LS_ROWS);
-    return { type: 'table', head: ['ls_h_agreement', 'ls_h_party', 'ls_h_waited'], rows: rows.map((x, i) => ({ k: x.c.id, names: [x.c.id, _lnRef(x.c), _lnName(x.c)],
-      cells: [{ t: _lnName(x.c) }, { t: x.c.counterparty || '' }, x.d == null ? { t: '—' } : { lk: 'ls_days', vars: { n: x.d } }], hot: i === 0 })) };
+    const n = c => { try { return (typeof negWhoseMove === 'function') ? Number(negWhoseMove(c).n) || 0 : 0; } catch (_){ return 0; } };
+    const all = L.map(c => ({ c, n: n(c) })).sort((a, b) => b.n - a.n || _lnName(a.c).localeCompare(_lnName(b.c)));
+    const rows = all.slice(0, LS_ROWS);
+    return { type: 'table', more: all.length - rows.length, head: ['ls_h_agreement', 'ls_h_party', 'ls_h_waiting'], rows: rows.map(x => ({ k: x.c.id, names: [x.c.id, _lnRef(x.c), _lnName(x.c)],
+      cells: [{ t: _lnName(x.c) }, { t: x.c.counterparty || '' }, { v: x.n }] })) };
   },
-  needs_you(){
+  needs_you(X){
     if (!lsMayAct()) return { type: 'say', lk: 'ls_viewer' };
     if (typeof ndRead !== 'function' || typeof ndOnBoard !== 'function' || typeof ndParts !== 'function') return null;
     let B = null; try { B = ndOnBoard(ndRead()); } catch (_){ B = null; }
-    const take = (B ? B.you.concat(B.jambo) : []).filter(Boolean).slice(0, LS_ROWS);
-    if (!take.length) return null;
-    return { type: 'table', head: ['ls_h_what', 'ls_h_agreement', 'ls_h_waited'], rows: take.map(r => { const P = ndParts(r) || {};
+    const cidOf = r => r && (r.cid || (r.it && (r.it.cid || (r.it.c && r.it.c.id))) || (r.x && r.x.c && r.x.c.id) || (r.c && r.c.id)) || '';
+    let all = (B ? B.you.concat(B.jambo) : []).filter(Boolean);
+    if (X.where) all = all.filter(r => { const id = cidOf(r); return id && X.ids.has(id); });
+    if (!all.length) return null;
+    const take = all.slice(0, LS_ROWS);
+    return { type: 'table', more: all.length - take.length, head: ['ls_h_what', 'ls_h_agreement', 'ls_h_waited'], rows: take.map(r => { const P = ndParts(r) || {};
       return { k: String(r.key || P.title || ''), names: [P.title, P.name, P.deal, P.ref].filter(Boolean), cells: [{ t: P.title || '' }, { t: P.name || P.deal || '' }, { t: P.when || '' }], hot: !!P.late }; }) };
   },
-  duties_split(){
+  duties_split(X){
     if (typeof openObligations !== 'function') return null;
-    const m = _lnMonthKey(new Date()), live = new Set(_lnBook().map(c => c.id));
-    const L = openObligations().filter(o => live.has(o.cid) && o.due && String(o.due).slice(0, 7) === m);
-    const us = L.filter(o => _lnWhose(o) === 'us').length, them = L.filter(o => _lnWhose(o) === 'them').length;
-    const other = L.length - us - them;
+    const months = new Set(_lnPeriodMonths(X.period, 1));
+    const L = openObligations().filter(o => X.ids.has(o.cid) && o.due && months.has(String(o.due).slice(0, 7)));
     if (!L.length) return null;
+    const us = L.filter(o => _lnWhose(o) === 'us').length, them = L.filter(o => _lnWhose(o) === 'them').length, other = L.length - us - them;
     const parts = [{ k: 'us', lk: 'ls_we_owe', n: us, tone: 'accent' }, { k: 'them', lk: 'ls_they_owe', n: them, tone: 'Under Review' }];
     if (other) parts.push({ k: 'other', lk: 'ls_unsure', n: other, tone: 'Draft' });
     return { type: 'ring', parts: parts.filter(p => p.n), mid: String(L.length) };
   },
-  duties_months(){
+  duties_months(X){
     if (typeof openObligations !== 'function') return null;
-    const months = _lnMonths(6), by = Object.fromEntries(months.map(m => [m, 0])), live = new Set(_lnBook().map(c => c.id));
+    const months = _lnPeriodMonths(X.period, 6), by = Object.fromEntries(months.map(m => [m, 0]));
     let late = 0;
-    openObligations().filter(o => live.has(o.cid)).forEach(o => { if (o.days != null && o.days < 0){ late++; return; } const k = o.due ? String(o.due).slice(0, 7) : ''; if (k in by) by[k]++; });
+    openObligations().filter(o => X.ids.has(o.cid)).forEach(o => { if (o.days != null && o.days < 0){ late++; return; } const k = o.due ? String(o.due).slice(0, 7) : ''; if (k in by) by[k]++; });
     if (!late && !months.some(m => by[m])) return null;
     return _lnBars([{ k: 'late', lk: 'ls_late', n: late, tone: 'Declined' }].concat(months.map(m => ({ k: m, m, n: by[m] }))), { cols: true });
   },
-  duties_late(){
-    const L = (typeof hbOverdue === 'function') ? hbOverdue(_lnBook()) : [];
+  duties_late(X){
+    const L = (typeof hbOverdue === 'function') ? hbOverdue(X.cs) : [];
     if (!L.length) return null;
-    const rows = L.slice().sort((a, b) => a.days - b.days).slice(0, LS_ROWS);
-    return { type: 'table', head: ['ls_h_duty', 'ls_h_whose', 'ls_h_late'], rows: rows.map((o, i) => ({ k: String(o.id || o.cid), names: [o.cid, o.cname, _lnDuty(o)],
+    const all = L.slice().sort((a, b) => a.days - b.days), rows = all.slice(0, LS_ROWS);
+    return { type: 'table', more: all.length - rows.length, head: ['ls_h_duty', 'ls_h_whose', 'ls_h_late'], rows: rows.map((o, i) => ({ k: String(o.id || o.cid), names: [o.cid, o.cname, _lnDuty(o)],
       cells: [{ t: _lnDuty(o), sub: o.cname || '' }, { lk: _lnWhoseKey(_lnWhose(o)) }, { lk: 'ls_days', vars: { n: Math.abs(o.days) } }], hot: i === 0 })) };
   },
-  risk(){
+  risk(X){
     if (typeof contractRisk !== 'function') return null;
     const n = { low: 0, medium: 0, high: 0 };
-    _lnLive().forEach(c => { const r = Number(contractRisk(c)) || 0; n[r >= 70 ? 'high' : r >= 40 ? 'medium' : 'low']++; });
+    X.live.forEach(c => { const r = Number(contractRisk(c)) || 0; n[r >= 70 ? 'high' : r >= 40 ? 'medium' : 'low']++; });
     const tot = n.low + n.medium + n.high; if (!tot) return null;
     return { type: 'ring', mid: String(tot), parts: [{ k: 'low', lk: 'ls_low', n: n.low, tone: 'Signed' }, { k: 'medium', lk: 'ls_medium', n: n.medium, tone: 'Under Review' }, { k: 'high', lk: 'ls_high', n: n.high, tone: 'Declined' }].filter(p => p.n) };
   },
-  risky(){
+  risky(X){
     if (typeof contractRisk !== 'function') return null;
-    const rows = _lnLive().map(c => ({ c, r: Number(contractRisk(c)) || 0 })).filter(x => x.r >= 40).sort((a, b) => b.r - a.r).slice(0, LS_ROWS);
-    if (!rows.length) return null;
-    return { type: 'table', head: ['ls_h_agreement', 'ls_h_party', 'ls_h_risk'], rows: rows.map(x => ({ k: x.c.id, names: [x.c.id, _lnRef(x.c), _lnName(x.c)],
+    const all = X.live.map(c => ({ c, r: Number(contractRisk(c)) || 0 })).filter(x => x.r >= 40).sort((a, b) => b.r - a.r);
+    if (!all.length) return null;
+    const rows = all.slice(0, LS_ROWS);
+    return { type: 'table', more: all.length - rows.length, head: ['ls_h_agreement', 'ls_h_party', 'ls_h_risk'], rows: rows.map(x => ({ k: x.c.id, names: [x.c.id, _lnRef(x.c), _lnName(x.c)],
       cells: [{ t: _lnName(x.c) }, { t: x.c.counterparty || '' }, { lk: x.r >= 70 ? 'ls_high' : 'ls_medium' }], hot: x.r >= 70 })) };
   },
-  signed_months(){
-    const months = _lnMonths(12, true), by = Object.fromEntries(months.map(m => [m, 0]));
-    _lnBook().filter(c => c.status === 'Signed').forEach(c => { const s = (typeof contractSignedAt === 'function') ? contractSignedAt(c) : c.signedAt; const k = s ? String(s).slice(0, 7) : ''; if (k in by) by[k]++; });
+  signed_months(X){
+    const months = _lnPeriodMonths(X.period, 12, true), by = Object.fromEntries(months.map(m => [m, 0]));
+    X.cs.filter(c => c.status === 'Signed').forEach(c => { const sa = (typeof contractSignedAt === 'function') ? contractSignedAt(c) : c.signedAt; const k = sa ? String(sa).slice(0, 7) : ''; if (k in by) by[k]++; });
     if (!months.some(m => by[m])) return null;
     return { type: 'line', pts: months.map(m => ({ k: m, m, n: by[m] })) };
   },
-  days_to_sign(){
+  days_to_sign(X){
     const raised = c => (typeof repRaisedAt === 'function') ? repRaisedAt(c) : null, signed = c => (typeof repSignedAt === 'function') ? repSignedAt(c) : null;
-    const months = _lnMonths(12, true), by = Object.fromEntries(months.map(m => [m, []]));
-    _lnBook().forEach(c => { const a = raised(c), b = signed(c); if (!a || !b || b < a) return; const k = _lnMonthKey(new Date(b)); if (k in by) by[k].push((b - a) / 86400000); });
+    const months = _lnPeriodMonths(X.period, 12, true), by = Object.fromEntries(months.map(m => [m, []]));
+    X.cs.forEach(c => { const a = raised(c), b = signed(c); if (!a || !b || b < a) return; const k = _lnMonthKey(new Date(b)); if (k in by) by[k].push((b - a) / 86400000); });
     if (!months.some(m => by[m].length)) return null;
     return { type: 'line', unit: 'days', pts: months.map(m => ({ k: m, m, n: by[m].length ? Math.round(by[m].reduce((x, y) => x + y, 0) / by[m].length) : null })) };
   },
-  parties(money){
-    const by = new Map();
-    _lnLive().forEach(c => { const k = String(c.counterparty || '').trim(); if (!k) return; if (!by.has(k)) by.set(k, []); by.get(k).push(c); });
-    const all = [...by.entries()].map(([k, cs]) => ({ k, t: k, n: money ? _lnValue(cs) : cs.length })).filter(x => x.n > 0).sort((a, b) => b.n - a.n);
+  /* BY COUNTERPARTY, grouped by the Customers page's own key (case and spaces), named as most of its contracts name it */
+  parties(X, c, money){
+    const by = new Map(), acc = { left: 0 };
+    X.live.forEach(x => { const t = String(x.counterparty || '').trim(); if (!t) return; const k = _lnPartyKey(t); if (!by.has(k)) by.set(k, { cs: [], names: new Map() }); const g = by.get(k); g.cs.push(x); g.names.set(t, (g.names.get(t) || 0) + 1); });
+    const all = [...by.entries()].map(([k, g]) => ({ k, t: [...g.names.entries()].sort((a, b) => b[1] - a[1])[0][0], n: money ? _lnSum(g.cs, acc) : g.cs.length })).filter(x => x.n > 0).sort((a, b) => b.n - a.n);
     if (!all.length) return null;
     const top = all.slice(0, LS_TOP), rest = all.slice(LS_TOP);
-    if (rest.length) top.push({ k: 'others', lk: 'ls_others', vars: { n: rest.length }, n: rest.reduce((s, x) => s + x.n, 0), quiet: true });
-    return _lnBars(top, { money });
+    if (rest.length) top.push({ k: 'others', lk: 'ls_others', vars: { n: rest.length }, n: rest.reduce((t, x) => t + x.n, 0), quiet: true });
+    return _lnBars(top, { money, left: acc.left });
   },
-  parties_value(){ return LS_READ.parties(true); },
-  streams(money){
-    const F = (window.FOLDERS && typeof FOLDERS === 'object') ? FOLDERS : {};
-    const cs = _lnLive();
-    const items = Object.keys(F).map(id => { const L = cs.filter(c => c.folder === id); return { k: id, t: (F[id] && F[id].name) || id, names: [id, F[id] && F[id].name], n: money ? _lnValue(L) : L.length }; }).filter(x => x.n > 0).sort((a, b) => b.n - a.n);
-    return _lnBars(items, { money });
+  parties_value(X, c){ return LS_READ.parties(X, c, true); },
+  streams(X, c, money){
+    const F = (window.FOLDERS && typeof FOLDERS === 'object') ? FOLDERS : {}, acc = { left: 0 };
+    const ids = [...new Set(X.live.map(x => String(x.folder || '')).filter(Boolean))];
+    const items = ids.map(id => { const L = X.live.filter(x => String(x.folder) === id); return { k: id, t: (F[id] && F[id].name) || id, names: [id, F[id] && F[id].name], n: money ? _lnSum(L, acc) : L.length }; }).filter(x => x.n > 0).sort((a, b) => b.n - a.n);
+    return _lnBars(items, { money, left: acc.left });
   },
-  streams_value(){ return LS_READ.streams(true); },
-  approvals(){
+  streams_value(X, c){ return LS_READ.streams(X, c, true); },
+  /* THE CONTRACTS THEMSELVES: a sentence that names contracts shows them */
+  contracts(X, c, money){
+    if (!X.live.length) return null;
+    const acc = { left: 0 };
+    const val = x => _lnSum([x], acc);
+    const all = X.live.slice().sort(money ? ((a, b) => val(b) - val(a)) : ((a, b) => (_lnStageOrder[a.status] ?? 9) - (_lnStageOrder[b.status] ?? 9) || _lnName(a).localeCompare(_lnName(b))));
+    const rows = all.slice(0, LS_ROWS + 2);
+    acc.left = 0;
+    return { type: 'table', more: all.length - rows.length, money, head: ['ls_h_agreement', 'ls_h_stage', money ? 'ls_h_value' : 'ls_h_ends'],
+      rows: rows.map(x => { const e = _lnExpiry(x); return { k: x.id, names: [x.id, _lnRef(x), _lnName(x), x.counterparty],
+        cells: [{ t: _lnName(x), sub: x.counterparty || '' }, { st: x.status, lk: LS_STAGE_WORD[x.status] || '' }, money ? { money: val(x) } : (e ? { day: String(e).slice(0, 10) } : { t: '—' })] }; }), left: acc.left };
+  },
+  contracts_value(X, c){ return LS_READ.contracts(X, c, true); },
+  approvals(X){
     if (!lsMayAct()) return { type: 'say', lk: 'ls_viewer' };
     if (typeof apWorkRows !== 'function') return null;
     let W = null; try { W = apWorkRows(); } catch (_){ W = null; }
-    const rows = W ? W.yours.filter(r => r && r.c && !r.done).slice(0, LS_ROWS) : [];
-    if (!rows.length) return null;
-    return { type: 'table', head: ['ls_h_agreement', 'ls_h_kind', 'ls_h_waited'], rows: rows.map((r, i) => ({ k: r.c.id, names: [r.c.id, _lnRef(r.c), _lnName(r.c)],
+    const all = W ? W.yours.filter(r => r && r.c && !r.done && X.ids.has(r.c.id)) : [];
+    if (!all.length) return null;
+    const rows = all.slice(0, LS_ROWS);
+    return { type: 'table', more: all.length - rows.length, head: ['ls_h_agreement', 'ls_h_kind', 'ls_h_waited'], rows: rows.map((r, i) => ({ k: r.c.id, names: [r.c.id, _lnRef(r.c), _lnName(r.c)],
       cells: [{ t: _lnName(r.c) }, { lk: r.type === 'signature' ? 'ls_signature' : 'ls_approval' }, { lk: 'ls_days', vars: { n: Number(r.idle) || 0 } }], hot: i === 0 })) };
   },
   pay_days(){
@@ -179,7 +235,7 @@ const LS_READ = {
     return _lnBars(items, { unit: 'days' });
   },
   /* ---- one contract ---- */
-  playbook(c){
+  playbook(X, c){
     const V = c && c.playbook && Array.isArray(c.playbook.verdicts) ? c.playbook.verdicts : null;
     if (!V || !V.length) return { type: 'say', lk: 'ls_no_playbook' };
     const n = { met: 0, dev: 0, missing: 0 };
@@ -187,76 +243,202 @@ const LS_READ = {
     const tot = n.met + n.dev + n.missing; if (!tot) return { type: 'say', lk: 'ls_no_playbook' };
     return { type: 'ring', mid: `${n.met}/${tot}`, parts: [{ k: 'met', lk: 'ls_met', n: n.met, tone: 'Signed' }, { k: 'dev', lk: 'ls_not_met', n: n.dev, tone: 'Under Review' }, { k: 'missing', lk: 'ls_missing', n: n.missing, tone: 'Declined' }].filter(p => p.n) };
   },
-  findings(c){
+  /* WHAT JAMBO FOUND is the Clauses tab's own count, read off the paper on screen — so only for the contract whose
+     paper IS on screen; for any other the step says where to see it, never another paper's count */
+  findings(X, c){
+    const onScreen = !!(c && window.intel && intel.paper && intel.paper.mode === 'paper' && String(intel.paper.id) === String(c.id));
+    if (!onScreen) return { type: 'say', lk: 'ls_open_clauses' };
     let L = null; try { L = (typeof stkLivePoints === 'function') ? stkLivePoints(c) : null; } catch (_){ L = null; }
     if (!L) return { type: 'say', lk: 'ls_not_read' };
     const n = (typeof stkCounts === 'function') ? stkCounts(L) : { need: 0, look: 0, note: 0 };
     if (!n.need && !n.look && !n.note) return { type: 'say', lk: 'ls_nothing_found' };
     return _lnBars([{ k: 'need', lk: 'ls_need', n: n.need, tone: 'Declined' }, { k: 'look', lk: 'ls_look', n: n.look, tone: 'Under Review' }, { k: 'note', lk: 'ls_note', n: n.note, tone: 'Draft' }]);
   },
-  risks_here(c){
+  risks_here(X, c){
     const L = (typeof riskItemsOf === 'function') ? riskItemsOf(c).filter(it => !(typeof riskOpenOf === 'function') || riskOpenOf(c, it) !== false) : [];
     if (!L.length) return null;
-    const sev = s => s === 'high' ? 'ls_high' : s === 'low' ? 'ls_low' : 'ls_medium';
-    return { type: 'table', head: ['ls_h_what', 'ls_h_sev'], rows: L.slice(0, LS_ROWS).map(it => ({ k: String(it.key || it.title), names: [it.title], cells: [{ t: it.title || it.kind || '' }, { lk: sev(it.sev) }], hot: it.sev === 'high' })) };
+    const sev = v => v === 'high' ? 'ls_high' : v === 'low' ? 'ls_low' : 'ls_medium';
+    const rows = L.slice(0, LS_ROWS);
+    return { type: 'table', more: L.length - rows.length, head: ['ls_h_what', 'ls_h_sev'], rows: rows.map(it => ({ k: String(it.key || it.title), names: [it.title], cells: [{ t: it.title || it.kind || '' }, { lk: sev(it.sev) }], hot: it.sev === 'high' })) };
   },
-  before_sign(c){
+  before_sign(X, c){
     const L = (typeof signBlockers === 'function') ? signBlockers(c) : [];
     if (!L.length) return { type: 'say', lk: 'ls_nothing_stands' };
-    return { type: 'table', head: ['ls_h_before'], rows: L.slice(0, LS_ROWS).map(b => ({ k: String(b.key), names: [b.label, b.short], cells: [{ t: b.label || b.short || '' }] })) };
+    const rows = L.slice(0, LS_ROWS);
+    return { type: 'table', more: L.length - rows.length, head: ['ls_h_before'], rows: rows.map(b => ({ k: String(b.key), names: [b.label, b.short], cells: [{ t: b.label || b.short || '' }] })) };
   },
-  changes(c){
+  changes(X, c){
     const L = (Array.isArray(c && c.changes) ? c.changes : []).filter(x => x && !x.withdrawn && x.status !== 'superseded' && !x.formattingOnly);
     if (!L.length) return { type: 'say', lk: 'ls_no_changes' };
-    const n = s => L.filter(x => x.status === s).length;
+    const n = st => L.filter(x => x.status === st).length;
     return { type: 'blocks', cols: [{ k: 'all', lk: 'ls_proposed', n: L.length, tone: 'Draft', kind: 'total' }, { k: 'accepted', lk: 'ls_accepted', n: n('accepted'), tone: 'Signed', kind: 'down' },
       { k: 'rejected', lk: 'ls_rejected', n: n('rejected'), tone: 'Draft', kind: 'down' }, { k: 'countered', lk: 'ls_countered', n: n('countered'), tone: 'Under Review', kind: 'down' },
       { k: 'pending', lk: 'ls_open', n: n('pending'), tone: 'Declined', kind: 'left' }] };
   },
-  open_changes(c){
+  open_changes(X, c){
     const L = (Array.isArray(c && c.changes) ? c.changes : []).filter(x => x && x.status === 'pending' && !x.withdrawn);
     if (!L.length) return { type: 'say', lk: 'ls_no_open' };
     const age = x => { const t = Date.parse(x.createdAt || x.at || ''); return Number.isFinite(t) ? Math.max(0, Math.floor((Date.now() - t) / 86400000)) : null; };
-    const rows = L.map(x => ({ x, d: age(x) })).sort((a, b) => (b.d || 0) - (a.d || 0)).slice(0, LS_ROWS);
-    return { type: 'table', head: ['ls_h_clause', 'ls_h_side', 'ls_h_open'], rows: rows.map((r, i) => ({ k: String(r.x.id || i), names: [r.x.clauseLabel],
+    const all = L.map(x => ({ x, d: age(x) })).sort((a, b) => (b.d || 0) - (a.d || 0)), rows = all.slice(0, LS_ROWS);
+    return { type: 'table', more: all.length - rows.length, head: ['ls_h_clause', 'ls_h_side', 'ls_h_open'], rows: rows.map((r, i) => ({ k: String(r.x.id || i), names: [r.x.clauseLabel],
       cells: [{ t: r.x.clauseLabel || '—' }, { lk: r.x.authorSide === 'counterparty' ? 'ls_them' : 'ls_us' }, r.d == null ? { t: '—' } : { lk: 'ls_days', vars: { n: r.d } }], hot: i === 0 })) };
   },
-  contract_duties(c){
+  contract_duties(X, c){
     const L = (Array.isArray(c && c.obligations) ? c.obligations : []).filter(o => o && (typeof obState !== 'function' || obState(o) !== 'done'));
     if (!L.length) return { type: 'say', lk: 'ls_no_duties' };
     const due = o => (typeof obligationDue === 'function') ? obligationDue(o) : o.due;
-    const rows = L.slice().sort((a, b) => String(due(a) || '9').localeCompare(String(due(b) || '9'))).slice(0, LS_ROWS);
-    return { type: 'table', head: ['ls_h_duty', 'ls_h_whose', 'ls_h_due'], rows: rows.map(o => { const d = due(o); return { k: String(o.id || _lnDuty(o)), names: [_lnDuty(o)],
+    const all = L.slice().sort((a, b) => String(due(a) || '9').localeCompare(String(due(b) || '9'))), rows = all.slice(0, LS_ROWS);
+    return { type: 'table', more: all.length - rows.length, head: ['ls_h_duty', 'ls_h_whose', 'ls_h_due'], rows: rows.map(o => { const d = due(o); return { k: String(o.id || _lnDuty(o)), names: [_lnDuty(o)],
       cells: [{ t: _lnDuty(o) }, { lk: _lnWhoseKey(_lnWhose(o)) }, d ? { day: String(d).slice(0, 10) } : { t: '—' }], hot: d != null && (_lnDays(d) ?? 0) < 0 }; }) };
   },
 };
 
 /* ONE READING, ACCESS FIRST: a money reading for someone without money rights is its count, with the message */
-function lessonBoard(what, c){
+function lessonBoard(what, c, show){
   const S = (typeof walkShowOf === 'function') ? walkShowOf(what) : null;
   if (!S || typeof LS_READ[what] !== 'function') return { type: 'say', lk: 'ls_empty' };
   if (S.of === 'contract' && !c) return { type: 'say', lk: 'ls_none_contract' };
+  const X = lessonScope(S.whole ? null : show);
+  /* the scope this drawing counted, drawn in its head: what it was narrowed to and how many contracts that is */
+  const scope = S.of === 'book' ? { stream: X.where && X.where.stream || '', party: X.where && X.where.party || '', stage: X.where && X.where.stage || '',
+    period: X.period || null, n: X.live.length, whole: !X.where } : null;
+  const read = k => { let b = null; try { b = LS_READ[k](X, c); } catch (_){ b = null; } return b; };
   if (S.money && !lsMoneyOk()){
-    let twin = null; try { twin = LS_READ[S.twin](c); } catch (_){ twin = null; }
-    return Object.assign(twin || { type: 'say', lk: 'ls_empty' }, { nomoney: true, what: S.twin });
+    const twin = read(S.twin);
+    return Object.assign(twin || { type: 'say', lk: X.where ? 'ls_none_here' : 'ls_empty' }, { nomoney: true, what: S.twin }, scope ? { scope } : {});
   }
-  let b = null; try { b = LS_READ[what](c); } catch (_){ b = null; }
-  return Object.assign(b || { type: 'say', lk: 'ls_empty' }, { what });
+  return Object.assign(read(what) || { type: 'say', lk: X.where ? 'ls_none_here' : 'ls_empty' }, { what }, scope ? { scope } : {});
 }
 /* THE PLAN (js/walkplan.js) MADE A LESSON: every drawing filled now, kept with the message */
 let _lnSeq = 0;
 function lessonFill(plan){
   if (!plan || !Array.isArray(plan.steps) || !plan.steps.length) return null;
   const c = plan.contractId && typeof getContract === 'function' ? getContract(plan.contractId) : null;
-  const steps = plan.steps.map(s => s.show ? { say: String(s.say || ''), board: lessonBoard(s.show.what, c) } : { say: String(s.say || ''), op: s.op });
+  const steps = plan.steps.map(s => s.show ? { say: String(s.say || ''), board: lessonBoard(s.show.what, c, s.show) } : { say: String(s.say || ''), op: s.op });
   return { id: 'ls' + Date.now().toString(36) + (++_lnSeq), title: String(plan.title || ''), cid: c ? c.id : '', cname: c ? _lnName(c) : '', made: new Date().toISOString(), steps };
 }
+/* ---------------- EVERY NUMBER IN A SENTENCE IS ONE THE DRAWINGS SHOW ----------------
+   (owner, 27 Nov 2026: "The results must be perfect for the user") A sentence said "7 contracts" over a drawing of
+   192. Each number Jambo writes — a count, a total, a value, a share, a number of days — is checked against what the
+   lesson's drawings show: their figures, their totals, their shares, their scope's count. A lesson that fails goes
+   back to him ONCE with what the drawings show (lessonSettle); what still fails is said in plain words built from the
+   drawing itself (lessonPlain), never with his number. Dates, years, references and names are not figures. */
+const LS_NUM_WORDS = { two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12,
+  två: 2, tre: 3, fyra: 4, fem: 5, sex: 6, sju: 7, åtta: 8, nio: 9, tio: 10, elva: 11, tolv: 12 };
+const LS_MONTH_RE = '(?:jan(?:uary|uari)?|feb(?:ruary|ruari)?|mar(?:ch|s)?|apr(?:il)?|ma[jy]|june?|juni|july?|juli|aug(?:ust|usti)?|sep(?:t(?:ember)?)?|oct(?:ober)?|okt(?:ober)?|nov(?:ember)?|dec(?:ember)?)';
+const LS_SCALE = { k: 1e3, thousand: 1e3, tusen: 1e3, tkr: 1e3, m: 1e6, mn: 1e6, million: 1e6, millions: 1e6, miljon: 1e6, miljoner: 1e6, mkr: 1e6, bn: 1e9, b: 1e9, billion: 1e9, miljard: 1e9, miljarder: 1e9 };
+/* the figures a lesson's drawings show: exact counts, money (with its totals), shares in whole per cent */
+function lessonFigures(L){
+  const counts = new Set([0]), money = [], pct = new Set(), words = [];
+  const add = n => { if (n != null && isFinite(n)) counts.add(Math.round(n)); };
+  for (const st of (L && L.steps) || []){
+    if (st.op && Array.isArray(st.op.names)) add(st.op.names.length);
+    const b = st.board; if (!b) continue;
+    if (b.scope && b.scope.n != null) add(b.scope.n);
+    if (b.more) add(b.more); if (b.left) add(b.left);
+    const nums = [];
+    if (b.type === 'bars') b.items.forEach(x => { nums.push(Number(x.n) || 0); if (x.vars && x.vars.n != null) add(x.vars.n); });
+    if (b.type === 'ring'){ b.parts.forEach(x => nums.push(Number(x.n) || 0)); String(b.mid || '').split('/').forEach(v => add(Number(v))); }
+    if (b.type === 'line') b.pts.forEach(x => { if (x.n != null) nums.push(Number(x.n)); });
+    if (b.type === 'blocks') b.cols.forEach(x => add(x.n));
+    if (b.type === 'table'){ add(b.rows.length); add(b.rows.length + (b.more || 0));
+      b.rows.forEach(r => r.cells.forEach(x => { if (x.v != null) add(Number(x.v)); if (x.vars && x.vars.n != null) add(Number(x.vars.n)); if (x.money != null) money.push(Number(x.money)); [x.t, x.sub].forEach(t => { if (t && /\d/.test(String(t))) words.push(String(t)); }); }));
+      add(b.rows.filter(r => r.hot).length); }
+    /* how many bars, months or rows the drawing has, and any number its own labels print ("Ending in 90 days") */
+    add((b.items || b.pts || b.parts || []).length);
+    [].concat(b.items || [], b.parts || [], b.cols || []).forEach(x => { String(_lnLabel(x)).replace(/\d+/g, d => { add(Number(d)); return d; }); });
+    (b.rows || []).forEach(r => r.cells.forEach(x => { if (x.lk) String(_lnT(x.lk, x.vars)).replace(/\d+/g, d => { add(Number(d)); return d; }); }));
+    const tot = nums.reduce((a, v) => a + v, 0);
+    if (b.money){ nums.forEach(v => money.push(v)); money.push(tot); }
+    else { nums.forEach(add); add(tot); add(nums.filter(v => v > 0).length); }
+    if (tot > 0 && (b.type === 'bars' || b.type === 'ring')) nums.forEach(v => { const p = v / tot * 100; pct.add(Math.floor(p)); pct.add(Math.round(p)); pct.add(Math.ceil(p)); });
+  }
+  return { counts, money, pct, words };
+}
+/* the numbers a sentence claims: what is left once dates, years, references, ordinals and drawn names are taken out */
+function lessonNumbersOf(say, words){
+  let t = lessonWords(say).map(_lnWordText).join(' ');
+  (words || []).forEach(w => { if (w) t = t.split(w).join(' '); });
+  t = t.replace(/\b[A-Z]{2,5}-[A-Za-z0-9-]*\d[\w-]*/g, ' ')
+    .replace(/(?:§|\b(?:clause|section|article|art\.|klausul|avsnitt|punkt|round|runda|version|v))\s*\d+(?:\.\d+)*/gi, ' ')
+    .replace(/\b\d{4}-\d{2}(?:-\d{2})?\b/g, ' ')
+    .replace(new RegExp('\\b\\d{1,2}(?:st|nd|rd|th|:e|:a)?\\s+' + LS_MONTH_RE + '\\b', 'gi'), ' ')
+    .replace(new RegExp('\\b' + LS_MONTH_RE + '\\s+\\d{1,2}(?:st|nd|rd|th)?\\b', 'gi'), ' ')
+    .replace(/\b(?:19|20)\d{2}\b/g, ' ').replace(/\bQ[1-4]\b/gi, ' ').replace(/\b\d+(?:st|nd|rd|th|:e|:a)\b/gi, ' ');
+  const out = [];
+  const re = /(SEK|KES|USD|EUR|GBP|NOK|DKK|kr|\$|€|£)?\s?(\d{1,3}(?:[ ,.]\d{3})+|\d+(?:[.,]\d+)?)\s?(%|percent|procent|tkr|mkr|thousand|tusen|millions?|miljon(?:er)?|billion|miljard(?:er)?|mn|bn|k|m|b)?(?![\w])/gi;
+  let m;
+  while ((m = re.exec(t))){
+    const raw = m[2]; const sep = /^\d{1,3}(?:[ ,.]\d{3})+$/.test(raw);
+    const v = sep ? Number(raw.replace(/[ ,.]/g, '')) : Number(raw.replace(',', '.'));
+    if (!isFinite(v)) continue;
+    const unit = (m[3] || '').toLowerCase();
+    if (unit === '%' || unit === 'percent' || unit === 'procent'){ out.push({ s: m[0].trim(), v, pct: true }); continue; }
+    const scale = LS_SCALE[unit] || 1;
+    out.push({ s: m[0].trim(), v: v * scale, money: !!m[1] || scale > 1 });
+  }
+  t.split(/[^a-zåäö]+/i).forEach(w => { const n = LS_NUM_WORDS[w.toLowerCase()]; if (n) out.push({ s: w, v: n }); });
+  return out;
+}
+const _lnNear = (v, list, rel) => list.some(x => x === v || (x > 0 && Math.abs(v - x) / x <= rel) || Math.abs(v - x) < 0.5);
+/* the steps whose sentence says a number no drawing shows: [{ i, said: ['7', 'SEK 87M'] }] */
+function lessonCheck(L){
+  const F = lessonFigures(L), counts = [...F.counts];
+  const out = [];
+  ((L && L.steps) || []).forEach((st, i) => {
+    const bad = lessonNumbersOf(st.say, F.words).filter(x => x.pct ? ![...F.pct].some(p => Math.abs(p - x.v) <= 1)
+      : x.money ? !_lnNear(x.v, F.money.concat(counts), 0.06)
+      : !(F.counts.has(Math.round(x.v)) && Math.abs(x.v - Math.round(x.v)) < 1e-9) && !_lnNear(x.v, F.money, 0.005));
+    if (bad.length) out.push({ i, said: bad.map(x => x.s) });
+  });
+  return out;
+}
+/* what the drawings show, in words, for the note that sends a lesson back */
+function lessonShowsSay(b){
+  if (!b) return '';
+  const sc = b.scope ? ` (${lessonScopeWords(b.scope)})` : '';
+  const f = x => `${_lnLabel(x)} ${_lnFig(x.n, b)}`;
+  if (b.type === 'bars') return b.items.map(f).join(', ') + sc;
+  if (b.type === 'ring') return b.parts.map(f).join(', ') + sc;
+  if (b.type === 'line') return b.pts.filter(x => x.n != null).map(x => `${_lnMonthWord(x.m, true)} ${_lnFig(x.n, b)}`).join(', ') + sc;
+  if (b.type === 'blocks') return b.cols.map(x => `${_lnLabel(x)} ${x.n}`).join(', ');
+  if (b.type === 'table') return `${b.rows.length + (b.more || 0)} rows` + sc;
+  return _lnT(b.lk || 'ls_empty') + sc;
+}
+function lessonCheckNote(L, bad){
+  return '[HaTi checked the lesson against its drawings. ' + bad.map(x => { let k = x.i; while (k > 0 && !L.steps[k].board) k--;
+    return `Step ${x.i + 1} says ${x.said.join(', ')}, but its drawing shows: ${lessonShowsSay(L.steps[k] && L.steps[k].board)}.`; }).join(' ')
+    + ' Narrow the drawings to exactly what the person asked about (where: the value stream, the counterparty, the stage; period: the months), or say only numbers the drawings show; then call walk_through again with the corrected lesson.]';
+}
+/* what still fails after the one retry is said plainly, from the drawing itself — never with an unshown number */
+function lessonPlain(L, bad){
+  bad.forEach(x => { const st = L.steps[x.i]; if (!st) return;
+    if (!st.board){ st.say = _lnT('ls_plain_lit'); st.plain = true; return; }
+    const b = st.board, H = lessonHeadOf(b);
+    const what = b.type === 'table' ? _lnT(b.head && b.head[0] || 'ls_h_item') : `${_lnT(H[1])} · ${_lnT(H[0])}`;
+    st.say = _lnT('ls_plain', { what, scope: b.scope ? lessonScopeWords(b.scope) : L.title }); st.plain = true; });
+  return L;
+}
+/* THE ONE SETTLING, BOTH HOSTS: fill, check, ask once more with what the drawings show, then plain words for the rest.
+   `again(note)` asks Jambo with the note (the host's own copilotAsk); a failed ask keeps the first lesson. */
+async function lessonSettle(res, again){
+  if (!res || !res.lesson) return res;
+  let L = lessonFill(res.lesson); if (!L) return res;
+  let bad = lessonCheck(L);
+  if (bad.length && typeof again === 'function'){
+    let r2 = null; try { r2 = await again(lessonCheckNote(L, bad)); } catch (_){ r2 = null; }
+    if (r2 && r2.lesson){ const L2 = lessonFill(r2.lesson); const bad2 = L2 ? lessonCheck(L2) : bad; if (L2 && bad2.length <= bad.length){ res = r2; L = L2; bad = bad2; } }
+  }
+  if (bad.length) lessonPlain(L, bad);
+  return Object.assign({}, res, { _lessonFilled: L });
+}
+
 /* THE ANSWER CARRIED A LESSON (both hosts' answer readers ask this first): the message the conversation keeps */
 function lessonFromAnswer(res){
   if (!res || !res.lesson) return null;
-  const L = lessonFill(res.lesson); if (!L) return null;
+  const L = res._lessonFilled || lessonFill(res.lesson); if (!L) return null;
   _lnRun.set(L.id, { shown: 1, at: [lsNow()] });
-  const sum = (typeof walkSummary === 'function') ? walkSummary(res.lesson) : String(res.answer || '');
+  const sum = (typeof walkSummary === 'function') ? walkSummary(L, L.steps) : String(res.answer || '');
   return { host: 'ai', lesson: L, text: _lnE(sum) };
 }
 
@@ -306,33 +488,56 @@ function lessonHeadOf(b){
 const _lnVw = (strs) => Math.max(4, ...strs.map(x => String(x).length)) + 1 + 'ch';
 /* `d(ms)`: an element's planned start → its style, time-based (negative = already part-way); data-ld keeps the plan */
 function _lnD(ms, el){ return `data-ld="${Math.round(ms)}" style="animation-delay:${Math.round(ms - el)}ms"`; }
+/* THE SCOPE IN WORDS: what the drawing counted — the stream, the counterparty, the stage, the months, how many
+   contracts — so a reader never takes a part for the whole (or the whole for a part) */
+function lessonScopeWords(sc){
+  if (!sc) return '';
+  const F = (window.FOLDERS && typeof FOLDERS === 'object') ? FOLDERS : {};
+  const bits = [];
+  if (sc.whole) bits.push(_lnT('ls_all_contracts'));
+  if (sc.stream) bits.push((F[sc.stream] && F[sc.stream].name) || sc.stream);
+  if (sc.party) bits.push(sc.party);
+  if (sc.stage) bits.push(_lnLabel({ st: sc.stage, lk: LS_STAGE_WORD[sc.stage] || '' }));
+  if (sc.period) bits.push(sc.period.from === sc.period.to ? _lnMonthWord(sc.period.from, true) : `${_lnMonthWord(sc.period.from, true)} – ${_lnMonthWord(sc.period.to, true)}`);
+  if (sc.n != null) bits.push(_lnT('ls_n_contracts', { n: sc.n }));
+  return bits.join(' · ');
+}
+const _lnScopeHtml = b => b && b.scope ? `<div class="lsn-scope">${_lnE(lessonScopeWords(b.scope))}</div>` : '';
+/* what a card leaves out is said in it: rows past the first few, sums missing a currency's contracts */
+function _lnFootHtml(b){
+  const bits = [];
+  if (b.more > 0) bits.push(_lnT('ls_more', { n: b.more }));
+  if (b.left > 0) bits.push(_lnT('ls_left_out', { n: b.left }));
+  return bits.length ? `<div class="lsn-foot">${bits.map(_lnE).join(' · ')}</div>` : '';
+}
 function lessonBoardHtml(b, start, el){
   const D = ms => _lnD(start + ms, el);
   const gap = LS_GAP[b.type] || 0;
-  if (b.type === 'say') return `<p class="lsn-says">${_lnE(_lnT(b.lk))}</p>`;
+  const SC = _lnScopeHtml(b), FT = _lnFootHtml(b);
+  if (b.type === 'say') return `<p class="lsn-says">${_lnE(_lnT(b.lk))}${b.scope ? ' (' + _lnE(lessonScopeWords(b.scope)) + ')' : ''}</p>`;
   if (b.type === 'bars'){
     const max = Math.max(1, ...b.items.map(x => Number(x.n) || 0));
     const H = lessonHeadOf(b), vw = _lnVw([_lnT(H[1])].concat(b.items.map(x => _lnFig(x.n, b))));
-    return `<div class="lsn-bd lsn-card lsn-bars${b.cols ? ' is-months' : ''}" data-lsn-type="bars" style="--lsn-vw:${vw}"><div class="lsn-thd" role="presentation"><span>${_lnE(_lnT(H[0]))}</span><span></span><span class="is-r">${_lnE(_lnT(H[1]))}</span></div>` + b.items.map((x, i) => {
+    return `<div class="lsn-bd lsn-card lsn-bars${b.cols ? ' is-months' : ''}" data-lsn-type="bars" style="--lsn-vw:${vw}">${SC}<div class="lsn-thd" role="presentation"><span>${_lnE(_lnT(H[0]))}</span><span></span><span class="is-r">${_lnE(_lnT(H[1]))}</span></div>` + b.items.map((x, i) => {
       const w = x.n ? Math.max(2, (x.n / max) * 100) : 0;
       return `<div class="lsn-br${x.quiet ? ' is-quiet' : ''}" data-lsn-k="${_lnE(x.k)}"><span class="lsn-n" title="${_lnE(_lnLabel(x))}">${_lnE(_lnLabel(x))}</span>`
         + `<span class="lsn-t"><span class="lsn-f" style="width:${w.toFixed(1)}%;--ls-tone:${_lnTone(x.tone || (b.money ? 'accent' : 'accent'))}"><i ${D(i * gap)}></i></span></span>`
-        + `<span class="lsn-v" ${D(i * gap + 250)}>${_lnE(_lnFig(x.n, b))}</span></div>`; }).join('') + `</div>`;
+        + `<span class="lsn-v" ${D(i * gap + 250)}>${_lnE(_lnFig(x.n, b))}</span></div>`; }).join('') + FT + `</div>`;
   }
   if (b.type === 'table'){
     const head = b.head.map((h, j) => `<th${j && j === b.head.length - 1 ? ' class="is-r"' : ''}>${_lnE(_lnT(h))}</th>`).join('');
-    const cell = (x, j, n) => { let v = x.day ? _lnDayWord(x.day) : x.lk ? _lnT(x.lk, x.vars) : x.v != null ? String(x.v) : String(x.t == null ? '' : x.t);
+    const cell = (x, j, n) => { let v = x.day ? _lnDayWord(x.day) : x.money != null ? _lnFig(x.money, { money: true }) : x.st ? _lnLabel(x) : x.lk ? _lnT(x.lk, x.vars) : x.v != null ? String(x.v) : String(x.t == null ? '' : x.t);
       return `<td${j && j === n - 1 ? ' class="is-r"' : ''}>${_lnE(v)}${x.sub ? `<span class="lsn-sub">${_lnE(x.sub)}</span>` : ''}</td>`; };
-    return `<div class="lsn-bd lsn-card lsn-tbl" data-lsn-type="table"><table><thead><tr>${head}</tr></thead><tbody>`
+    return `<div class="lsn-bd lsn-card lsn-tbl" data-lsn-type="table">${SC}<table><thead><tr>${head}</tr></thead><tbody>`
       + b.rows.map((r, i) => `<tr class="${r.hot ? 'is-hot' : ''}" data-lsn-k="${_lnE(r.k)}" data-lsn-names="${_lnE((r.names || []).filter(Boolean).join('\u0001'))}" ${D(i * gap)}>${r.cells.map((x, j) => cell(x, j, r.cells.length)).join('')}</tr>`).join('')
-      + `</tbody></table></div>`;
+      + `</tbody></table>${FT}</div>`;
   }
   if (b.type === 'ring'){
     const tot = b.parts.reduce((s, p) => s + p.n, 0) || 1, C = 2 * Math.PI * 46; let off = 0;
     const arcs = b.parts.map(p => { const len = p.n / tot * C; const s = `<circle class="lsn-arc" data-lsn-k="${_lnE(p.k)}" r="46" cx="56" cy="56" fill="none" stroke="${_lnTone(p.tone)}" stroke-width="14" stroke-dasharray="${Math.max(0, len - 1.5).toFixed(2)} ${(C - len + 1.5).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 56 56)"/>`; off += len; return s; }).join('');
     const RH = lessonHeadOf(b), rvw = _lnVw([_lnT(RH[1])].concat(b.parts.map(p => _lnFig(p.n, b))));
-    return `<div class="lsn-bd lsn-card lsn-ring" data-lsn-type="ring" style="--lsn-vw:${rvw}"><div class="lsn-ring-pic"><svg viewBox="0 0 112 112" aria-hidden="true">${arcs}<circle class="lsn-cover" r="46" cx="56" cy="56" fill="none" stroke-width="16" stroke-dasharray="${C.toFixed(2)} ${C.toFixed(2)}" transform="rotate(-90 56 56)" ${D(0)}/><text x="56" y="62" text-anchor="middle" class="lsn-mid">${_lnE(b.mid || '')}</text></svg></div>`
-      + `<div class="lsn-lg"><div class="lsn-thd is-lg" role="presentation"><span>${_lnE(_lnT(RH[0]))}</span><span class="is-r">${_lnE(_lnT(RH[1]))}</span></div>${b.parts.map((p, i) => `<div class="lsn-li" data-lsn-k="${_lnE(p.k)}" ${D(600 + i * 90)}><i style="background:${_lnTone(p.tone)}"></i><span>${_lnE(_lnLabel(p))}</span><b>${_lnE(_lnFig(p.n, b))}</b></div>`).join('')}</div></div>`;
+    return `<div class="lsn-bd lsn-card lsn-ring" data-lsn-type="ring" style="--lsn-vw:${rvw}">${SC}<div class="lsn-ring-pic"><svg viewBox="0 0 112 112" aria-hidden="true">${arcs}<circle class="lsn-cover" r="46" cx="56" cy="56" fill="none" stroke-width="16" stroke-dasharray="${C.toFixed(2)} ${C.toFixed(2)}" transform="rotate(-90 56 56)" ${D(0)}/><text x="56" y="62" text-anchor="middle" class="lsn-mid">${_lnE(b.mid || '')}</text></svg></div>`
+      + `<div class="lsn-lg"><div class="lsn-thd is-lg" role="presentation"><span>${_lnE(_lnT(RH[0]))}</span><span class="is-r">${_lnE(_lnT(RH[1]))}</span></div>${b.parts.map((p, i) => `<div class="lsn-li" data-lsn-k="${_lnE(p.k)}" ${D(600 + i * 90)}><i style="background:${_lnTone(p.tone)}"></i><span>${_lnE(_lnLabel(p))}</span><b>${_lnE(_lnFig(p.n, b))}</b></div>`).join('')}</div>${FT}</div>`;
   }
   if (b.type === 'line'){
     const P = b.pts, vals = P.map(p => p.n).filter(v => v != null), max = Math.max(1, ...vals), n = P.length;
@@ -342,16 +547,16 @@ function lessonBoardHtml(b, start, el){
     const firstI = P.findIndex(p => p.n != null);
     const lab = (i, every) => (i % every === 0 || i === n - 1) ? `<span style="left:${x(i).toFixed(2)}%">${_lnE(_lnMonthWord(P[i].m))}</span>` : '';
     const LH = lessonHeadOf(b);
-    return `<div class="lsn-bd lsn-card lsn-line" data-lsn-type="line"><div class="lsn-thd is-two" role="presentation"><span>${_lnE(_lnT(LH[0]))}</span><span class="is-r">${_lnE(_lnT(LH[1]))}</span></div><div class="lsn-plot"><div class="lsn-wipe" ${D(0)}><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" vector-effect="non-scaling-stroke"/></svg>`
+    return `<div class="lsn-bd lsn-card lsn-line" data-lsn-type="line">${SC}<div class="lsn-thd is-two" role="presentation"><span>${_lnE(_lnT(LH[0]))}</span><span class="is-r">${_lnE(_lnT(LH[1]))}</span></div><div class="lsn-plot"><div class="lsn-wipe" ${D(0)}><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" vector-effect="non-scaling-stroke"/></svg>`
       + P.map((p, i) => p.n == null ? '' : `<i class="lsn-dot${last && last[1] === i ? ' is-last' : ''}" data-lsn-k="${_lnE(p.k)}" style="left:${x(i).toFixed(2)}%;top:${y(p.n).toFixed(2)}%"></i>`).join('')
       + (last ? `<b class="lsn-pv is-last" style="left:${x(last[1]).toFixed(2)}%;top:${y(last[0].n).toFixed(2)}%">${_lnE(_lnFig(last[0].n, b))}</b>` : '')
       + (firstI >= 0 && (!last || firstI !== last[1]) && P[firstI].n ? `<b class="lsn-pv is-first" style="left:${x(firstI).toFixed(2)}%;top:${y(P[firstI].n).toFixed(2)}%">${_lnE(_lnFig(P[firstI].n, b))}</b>` : '')
-      + `</div></div><div class="lsn-xl">${P.map((_, i) => lab(i, 3)).join('')}</div></div>`;
+      + `</div></div><div class="lsn-xl">${P.map((_, i) => lab(i, 3)).join('')}</div>${FT}</div>`;
   }
   if (b.type === 'blocks'){
     const top = Math.max(1, b.cols[0].n); let run = top;
     const BH = lessonHeadOf(b);
-    return `<div class="lsn-bd lsn-card lsn-blocks-card" data-lsn-type="blocks"><div class="lsn-thd is-two" role="presentation"><span>${_lnE(_lnT(BH[0]))}</span><span class="is-r">${_lnE(_lnT(BH[1]))}</span></div><div class="lsn-blocks" data-lsn-start="${Math.round(start - el)}">` + b.cols.map((c, i) => {
+    return `<div class="lsn-bd lsn-card lsn-blocks-card" data-lsn-type="blocks">${SC}<div class="lsn-thd is-two" role="presentation"><span>${_lnE(_lnT(BH[0]))}</span><span class="is-r">${_lnE(_lnT(BH[1]))}</span></div><div class="lsn-blocks" data-lsn-start="${Math.round(start - el)}">` + b.cols.map((c, i) => {
       let lo, hi; if (c.kind === 'total'){ lo = 0; hi = top; } else if (c.kind === 'left'){ lo = 0; hi = c.n; } else { hi = run; lo = Math.max(0, run - c.n); run = lo; }
       return `<div class="lsn-bk" data-lsn-k="${_lnE(c.k)}" data-lsn-i="${i + 1}"><div class="lsn-bk-in"><span class="lsn-blk" style="bottom:${(lo / top * 100).toFixed(1)}%;height:${((hi - lo) / top * 100).toFixed(1)}%;background:${_lnTone(c.tone)}"></span>`
         + `<span class="lsn-bk-n" style="bottom:calc(${(hi / top * 100).toFixed(1)}% + 2px)">${c.n}</span></div><span class="lsn-bk-l">${_lnE(_lnLabel(c))}</span></div>`; }).join('') + `</div></div>`;
@@ -557,6 +762,8 @@ const LS_CSS = `
 .lsn-nomoney{ display:flex; flex-wrap:wrap; gap:4px 10px; align-items:baseline; margin:0 0 8px; padding:8px 10px; border-radius:var(--radius); background:var(--st-amber-bg); color:var(--st-amber-fg); font-size:12.5px; line-height:1.45; opacity:0; animation:lsn-fade .3s forwards; }
 .lsn-nomoney .ui-link{ font-size:12.5px; }
 .lsn-bd{ min-width:0; }
+.lsn-scope{ padding:8px 12px 0; font-size:12px; line-height:1.4; color:var(--color-text); font-weight:var(--w-label); overflow-wrap:anywhere; }
+.lsn-foot{ padding:4px 12px 8px; font-size:11.5px; line-height:1.4; color:var(--color-quiet); }
 .lsn-card{ border:1px solid var(--color-divider); border-radius:var(--radius); background:var(--color-surface); overflow:hidden; }
 .lsn-thd{ display:grid; grid-template-columns:minmax(0,36%) minmax(0,1fr) var(--lsn-vw,6ch); gap:10px; align-items:center; padding:6px 12px; background:var(--color-surface); font-size:11.5px; color:var(--color-quiet); white-space:nowrap; }
 .lsn-thd span{ overflow:hidden; text-overflow:ellipsis; }
@@ -645,6 +852,6 @@ function lessonCssOn(){
   const el = document.createElement('style'); el.id = 'lsn-css'; el.textContent = LS_CSS; document.head.appendChild(el);
 }
 
-Object.assign(window, { lessonWords, lessonHeadOf, LS_HEADS, LS_WORD_MS, LS_AFTER_MS, LS_STILL_MS, LS_ALL_MS, LS_GAP, LS_READ, lsMoneyOk, lsMayAct, lessonBoard, lessonFill, lessonFromAnswer,
+Object.assign(window, { lessonWords, lessonHeadOf, LS_HEADS, lessonScope, lessonScopeWords, lessonFigures, lessonNumbersOf, lessonCheck, lessonCheckNote, lessonPlain, lessonSettle, LS_WORD_MS, LS_AFTER_MS, LS_STILL_MS, LS_ALL_MS, LS_GAP, LS_READ, lsMoneyOk, lsMayAct, lessonBoard, lessonFill, lessonFromAnswer,
   lessonRunOf, lessonBoardHtml, lessonStepHtml, lessonInnerHtml, lessonTurnHtml, lessonMountAll, lessonRetime, lessonOpsApply, lessonOpsOf, lessonPatch,
   lessonNext, lessonAll, lessonReplay, lessonText, lessonSave, lessonLessonOf, lessonCssOn, _lnRun, _lnKept });

@@ -3354,7 +3354,8 @@ function aiWalkFacts(){
   const find=q=>{ const k=norm(q); if(!k) return null; return rows.find(c=>norm(c.id)===k||(c.contractNo&&norm(c.contractNo)===k))||rows.find(c=>norm(c.name)===k)||null; };
   return { contract:q=>{ const c=find(q); return c?{ id:c.id, name:c.name||c.id }:null; },
     contracts:rows.slice(0,40).map(c=>({ id:c.id, name:c.name||c.id })),
-    parties:[...new Set(rows.map(c=>String(c.counterparty||'').trim()).filter(Boolean))] };
+    parties:[...new Set(rows.map(c=>String(c.counterparty||'').trim()).filter(Boolean))],
+    streams:[...new Set(rows.map(c=>String(c.folder||'')).filter(Boolean))].map(id=>({ id, name:(typeof FOLDERS==='object'&&FOLDERS&&FOLDERS[id]&&FOLDERS[id].name)||id })) };
 }
 // The browser-direct tool loop (local mode only). Returns the same shape as
 // the server endpoint: { answer, citations, compare, cards }.
@@ -5474,6 +5475,8 @@ async function aiAskWords(qRaw, opts){
       const ctx=aiChatContext();
       if(opts&&opts.controls&&typeof window.lhControlsNow==='function'){ const C=lhControlsNow(); if(C) ctx.controls=C; }
       res=await copilotAsk(msgs, ctx, aiStreamRenderer(), { quiet:true });
+      /* a lesson is checked against its drawings and, once, sent back with what they show (js/lesson.js lessonSettle) */
+      if(res&&res.lesson&&typeof window.lessonSettle==='function') res=await lessonSettle(res, note=>copilotAsk(msgs.concat([{ role:'assistant', content:String(res.answer||'') }, { role:'user', content:note }]), ctx, null, { quiet:true }));
       res&&(res._goto=aiGotoTake(t0));
     }catch(e){ finish(aiDegrade(q,e,true)); return; }
     try{

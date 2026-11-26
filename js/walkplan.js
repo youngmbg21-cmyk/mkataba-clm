@@ -19,24 +19,26 @@ const WALK_SHOWS = [
   { k: 'stages',          of: 'book', draw: 'bars',  names: 'stage',    say: 'contracts by stage (Drafting, In review, Executed, Closed)' },
   { k: 'stages_value',    of: 'book', draw: 'bars',  names: 'stage',    money: true, twin: 'stages', say: 'value under contract by stage' },
   { k: 'book_figures',    of: 'book', draw: 'table', names: 'figure',   say: 'the Board\'s figures: live contracts, ending in 90 days, past their end date, duties overdue, waiting on you' },
-  { k: 'ending_months',   of: 'book', draw: 'bars',  names: 'month',    say: 'signed agreements ending, month by month over the next 12 months' },
-  { k: 'ending_value',    of: 'book', draw: 'bars',  names: 'month',    money: true, twin: 'ending_months', say: 'value ending, month by month over the next 12 months' },
+  { k: 'ending_months', period: true,   of: 'book', draw: 'bars',  names: 'month',    say: 'signed agreements ending, month by month over the next 12 months' },
+  { k: 'ending_value', period: true,    of: 'book', draw: 'bars',  names: 'month',    money: true, twin: 'ending_months', say: 'value ending, month by month over the next 12 months' },
   { k: 'renewals',        of: 'book', draw: 'table', names: 'contract', say: 'the next renewal decisions: which agreement, whether it renews by itself, decide by' },
   { k: 'waiting_us',      of: 'book', draw: 'table', names: 'contract', say: 'negotiations waiting on us, longest first' },
   { k: 'needs_you',       of: 'book', draw: 'table', names: 'row',      say: 'what needs the reader, as on the Board\'s Needs you' },
-  { k: 'duties_split',    of: 'book', draw: 'ring',  names: 'side',     say: 'open duties due this month: ours against theirs' },
-  { k: 'duties_months',   of: 'book', draw: 'bars',  names: 'month',    say: 'open duties: late, then due month by month over the next 6 months' },
+  { k: 'duties_split', period: true,    of: 'book', draw: 'ring',  names: 'side',     say: 'open duties due this month: ours against theirs' },
+  { k: 'duties_months', period: true,   of: 'book', draw: 'bars',  names: 'month',    say: 'open duties: late, then due month by month over the next 6 months' },
   { k: 'duties_late',     of: 'book', draw: 'table', names: 'contract', say: 'late duties, the latest first' },
   { k: 'risk',            of: 'book', draw: 'ring',  names: 'risk',     say: 'contracts by risk: low, medium, high' },
   { k: 'risky',           of: 'book', draw: 'table', names: 'contract', say: 'the contracts with the highest risk' },
-  { k: 'signed_months',   of: 'book', draw: 'line',  names: 'month',    say: 'contracts signed per month over the last 12 months' },
-  { k: 'days_to_sign',    of: 'book', draw: 'line',  names: 'month',    say: 'average days from raised to signed, by the month signed, over the last 12 months' },
+  { k: 'signed_months', period: true,   of: 'book', draw: 'line',  names: 'month',    say: 'contracts signed per month over the last 12 months' },
+  { k: 'days_to_sign', period: true,    of: 'book', draw: 'line',  names: 'month',    say: 'average days from raised to signed, by the month signed, over the last 12 months' },
   { k: 'parties',         of: 'book', draw: 'bars',  names: 'party',    say: 'contracts by counterparty, the most first (top 7 and the others)' },
   { k: 'parties_value',   of: 'book', draw: 'bars',  names: 'party',    money: true, twin: 'parties', say: 'value by counterparty, the most first' },
   { k: 'streams',         of: 'book', draw: 'bars',  names: 'stream',   say: 'contracts by value stream' },
   { k: 'streams_value',   of: 'book', draw: 'bars',  names: 'stream',   money: true, twin: 'streams', say: 'value by value stream' },
+  { k: 'contracts',       of: 'book', draw: 'table', names: 'contract', say: 'the contracts themselves, one row each: name, counterparty, stage, end date (narrow it with where to name the ones a sentence is about)' },
+  { k: 'contracts_value', of: 'book', draw: 'table', names: 'contract', money: true, twin: 'contracts', say: 'the contracts themselves with their value, the largest first' },
   { k: 'approvals',       of: 'book', draw: 'table', names: 'contract', say: 'approvals and signatures waiting on the reader, longest wait first' },
-  { k: 'pay_days',        of: 'book', draw: 'bars',  names: 'none',     say: 'payment days: how long customers take to pay us against how long we take to pay suppliers' },
+  { k: 'pay_days',        of: 'book', draw: 'bars',  names: 'none', whole: true,     say: 'payment days: how long customers take to pay us against how long we take to pay suppliers' },
   { k: 'playbook',        of: 'contract', draw: 'ring',   names: 'verdict', say: 'the contract\'s Playbook positions: met, not met, missing' },
   { k: 'findings',        of: 'contract', draw: 'bars',   names: 'finding', say: 'what Jambo found in the clauses: needs you, worth a look, noted' },
   { k: 'risks_here',      of: 'contract', draw: 'table',  names: 'row',     say: 'the contract\'s risks to look at, the worst first' },
@@ -45,6 +47,12 @@ const WALK_SHOWS = [
   { k: 'open_changes',    of: 'contract', draw: 'table',  names: 'row',     say: 'its changes still open' },
   { k: 'contract_duties', of: 'contract', draw: 'table',  names: 'row',     say: 'its duties: what, whose, when' },
 ];
+/* WHAT A DRAWING MAY BE NARROWED TO: every 'book' drawing but a `whole` one counts only the contracts `where`
+   names (a value stream, a counterparty, a stage); a `period` one counts only the months it names (YYYY-MM, at most
+   WALK_PERIOD_MAX months). HaTi draws the narrowing in the drawing's own head, so the words and the picture agree. */
+const WALK_PERIOD_MAX = 24;
+const WALK_STAGE_KEYS = { draft: 'Draft', drafting: 'Draft', 'under review': 'Under Review', 'in review': 'Under Review', review: 'Under Review',
+  signed: 'Signed', executed: 'Signed', declined: 'Declined', closed: 'Declined' };
 /* A step that changes the drawing just before it, instead of drawing a new one */
 const WALK_OPS = [
   { k: 'highlight', say: 'light up named items on the drawing just before (names)' },
@@ -62,9 +70,13 @@ const WALK_FIXED_NAMES = {
   figure: ['live', 'live contracts', 'ending', 'ending in 90 days', 'past', 'past end date', 'overdue', 'duties overdue', 'waiting on you', 'your move'],
 };
 
-const WALK_TOOL_DESC = 'Show the person a short LESSON in the chat panel: 2 to 8 steps, each one or two plain sentences followed by a drawing HaTi builds from its OWN records (you never write the numbers that are drawn). Use it ONLY when the person asks to be walked through, taught, or shown step by step something about their contracts or data ("walk me through my renewals", "teach me where my money is", "explain this contract step by step"). NOT for how to use HaTi ("walk me through sending a contract" is the Handbook\'s), and not for an ordinary question. Read the facts first with the other tools so each sentence agrees with what will be drawn; say a number only when you fetched it. The first step must draw something; a highlight or reveal step changes the drawing just before it. Money drawings are shown only to people allowed to see money; for anyone else HaTi says so and draws the count instead. After it, end with nothing or one short sentence — the lesson is on screen; never repeat it.';
+const WALK_TOOL_DESC = 'Show the person a short LESSON in the chat panel: 2 to 8 steps, each one or two plain sentences followed by a drawing HaTi builds from its OWN records (you never write the numbers that are drawn). Use it ONLY when the person asks to be walked through, taught, or shown step by step something about their contracts or data ("walk me through my renewals", "teach me where my money is", "explain this contract step by step"). NOT for how to use HaTi ("walk me through sending a contract" is the Handbook\'s), and not for an ordinary question. Read the facts first with the other tools. NARROW every drawing to exactly what the person asked about (where: a value stream, a counterparty, a stage; period: the months) — a drawing of the whole book under a sentence about one folder is wrong. Every number in a sentence must be one its drawing shows (a count, a total, a value or a share HaTi draws); HaTi checks this and sends a lesson back when a sentence says a number the drawings do not. To name particular contracts, draw "contracts" narrowed to them. Never draw the same drawing twice in a row: light the earlier one with highlight. The first step must draw something; a highlight or reveal step changes the drawing just before it. Money drawings are shown only to people allowed to see money; for anyone else HaTi says so and draws the count instead. After it, end with nothing or one short sentence — the lesson is on screen; never repeat it.';
 const WALK_TOOL_SCHEMA = { type: 'object', required: ['title', 'steps'], properties: {
   title: { type: 'string', description: 'The lesson\'s title, a few words in the person\'s language, e.g. "Your renewals, step by step".' },
+  where: { type: 'object', description: 'OPTIONAL — narrows EVERY book drawing in the lesson (a step\'s own where wins): use it whenever the person names a value stream, a counterparty or a stage ("for the marketing folder", "with Naivas", "only the signed ones").', properties: {
+    stream: { type: 'string', description: 'A value stream\'s id as list_portfolio shows it in "folder" (e.g. mktg), or its name.' },
+    party: { type: 'string', description: 'A counterparty, as named on the contracts.' },
+    stage: { type: 'string', enum: ['Draft', 'Under Review', 'Signed', 'Declined'], description: 'A stage.' } } },
   contractId: { type: 'string', description: 'Only for a lesson about ONE contract (playbook, findings, risks_here, before_sign, changes, open_changes, contract_duties): its id, e.g. MK-103.' },
   steps: { type: 'array', minItems: WALK_STEPS_MIN, maxItems: WALK_STEPS_MAX, description: 'The steps in order.',
     items: { type: 'object', required: ['say', 'show'], properties: {
@@ -72,16 +84,20 @@ const WALK_TOOL_SCHEMA = { type: 'object', required: ['title', 'steps'], propert
       show: { type: 'object', required: ['what'], properties: {
         what: { type: 'string', enum: WALK_SHOW_KEYS, description: 'Which drawing: ' + WALK_SHOWS.map(s => s.k + ' = ' + s.say).join('; ') + '; ' + WALK_OPS.map(o => o.k + ' = ' + o.say).join('; ') + '.' },
         names: { type: 'array', items: { type: 'string' }, description: 'highlight only: the items to light, as they are named on the drawing (a stage, a counterparty, a month as YYYY-MM, a contract\'s name or id, a row\'s words).' },
-        upto: { type: 'number', description: 'reveal only: show the blocks up to this one (1 = the first).' } } } } } } } };
+        upto: { type: 'number', description: 'reveal only: show the blocks up to this one (1 = the first).' },
+        where: { type: 'object', description: 'OPTIONAL — this drawing only: narrow it to a value stream, a counterparty and/or a stage (same keys as the lesson\'s where).', properties: { stream: { type: 'string' }, party: { type: 'string' }, stage: { type: 'string', enum: ['Draft', 'Under Review', 'Signed', 'Declined'] } } },
+        period: { type: 'object', description: 'OPTIONAL — a month drawing (ending_months, ending_value, signed_months, days_to_sign, duties_months, duties_split) over these months instead of its usual ones; YYYY-MM to YYYY-MM, at most ' + WALK_PERIOD_MAX + ' months.', properties: { from: { type: 'string' }, to: { type: 'string' } } } } } } } } } };
 
-const AI_WALK_RULE = 'A LESSON, ONLY WHEN ASKED FOR ONE: when the person asks to be walked through, taught, or shown step by step something about their contracts or their data ("walk me through my renewals", "teach me my book", "explain this negotiation step by step"), answer with the walk_through tool instead of a block of text: fetch the facts first, then 3 to 6 steps, each one or two plain sentences and the drawing that shows it; HaTi draws every number itself. After the lesson, end with nothing or one short sentence; never repeat it. For an ordinary question ("why is X high?", "change Y to 500") answer normally, never a lesson. "Walk me through" how to DO something in HaTi (send, sign, add, upload) is not a lesson: answer from the Handbook as usual.';
+const AI_WALK_RULE = 'A LESSON, ONLY WHEN ASKED FOR ONE: when the person asks to be walked through, taught, or shown step by step something about their contracts or their data ("walk me through my renewals", "teach me my book", "explain this negotiation step by step"), answer with the walk_through tool instead of a block of text: fetch the facts first, then 3 to 6 steps, each one or two plain sentences and the drawing that shows it; HaTi draws every number itself. Narrow every drawing to what was asked (a folder, a counterparty, a stage, the months) and say only numbers the drawing shows. After the lesson, end with nothing or one short sentence; never repeat it. For an ordinary question ("why is X high?", "change Y to 500") answer normally, never a lesson. "Walk me through" how to DO something in HaTi (send, sign, add, upload) is not a lesson: answer from the Handbook as usual.';
 
 /* WORDS THAT ASK FOR A LESSON ABOUT ONE'S DATA — read by the boxes so no free reader (a page's name, the Handbook,
    the Board's own reader) takes the sentence first; the AI decides the rest. An ask about how to DO something in
    HaTi ("walk me through sending a contract") is not one: the Handbook keeps it. */
-const WALK_LEAD_RE = /\b(walk me through|walk us through|take me through|talk me through|teach me|explain (?:to me )?step by step|show me step by step|step by step|gå igenom|visa steg för steg|steg för steg|lär mig|förklara steg för steg)\b/i;
+/* ONLY WORDS THAT ASK TO BE TAKEN THROUGH SOMETHING: "explain", "break down", "show", "compare" are the Board's (it
+   draws them on its own page, hbAnalyticAsk) and every other box's ordinary answer — never a lesson by themselves */
+const WALK_LEAD_RE = /\b(walk me through|walk us through|take me through|take us through|talk me through|run me through|teach me|give me a tour|a tour of|step by step|gå igenom|visa steg för steg|steg för steg|lär mig)\b/i;
 const WALK_DO_RE = /\b(how (?:to|do i|can i|should i)|sending|send|signing a|sign a|adding|add a|uploading|upload|creating|create|drafting a|set(?:ting)? up|invite|inviting|använd|hur (?:gör|skickar|lägger)|skicka|ladda upp|skapa)\b/i;
-const WALK_DATA_RE = /\b(my|our|this|the|mina|vår|våra|det här|detta)\b[\s\S]*\b(contracts?|agreements?|deals?|book|portfolio|renewals?|duties|duty|obligations?|risks?|negotiations?|changes|redlines|approvals?|streams?|counterpart(?:y|ies)|parties|customers|suppliers|value|money|figures|board|playbook|findings|signing|pipeline|avtal|förnyelser|åtaganden|risker|förhandling(?:en)?|godkännanden|värde|pengar)\b|\bwhat needs me\b|\bwhere (?:my|our) money\b/i;
+const WALK_DATA_RE = /\b(my|our|this|the|mina|vår|våra|det här|detta)\b[\s\S]*\b(contracts?|agreements?|deals?|book|portfolio|renewals?|duties|duty|obligations?|risks?|negotiations?|changes|redlines|approvals?|streams?|counterpart(?:y|ies)|parties|customers|suppliers|value|money|figures|board|playbook|findings|signing|pipeline|avtal|förnyelser|åtaganden|risker|förhandling(?:en)?|godkännanden|värde|pengar)\b|\bwhat needs me\b|\bwhere (?:my|our) money\b|\b(?:pengarna|avtalen|förnyelserna|åtagandena|riskerna|förhandlingen|godkännandena)\b/i;
 function walkAsked(q){
   const t = String(q == null ? '' : q).trim(); if (!t || t.length > 300) return false;
   return WALK_LEAD_RE.test(t) && WALK_DATA_RE.test(t) && !WALK_DO_RE.test(t);
@@ -108,7 +124,10 @@ function walkPlanClean(input, facts){
     if (!named) return { error: `There is no contract ${cid} this person may see. ` + walkSomeContracts(F) };
     cid = String(named.id || cid);
   } else cid = '';
-  const steps = []; let last = null;
+  /* the lesson's own narrowing, carried to every book drawing that names none */
+  const lw = walkWhereClean(a.where, F);
+  if (lw && lw.error) return { error: 'The lesson\'s where: ' + lw.error };
+  const steps = []; let last = null, lastSig = '';
   for (let i = 0; i < raw.length; i++){
     const s = raw[i] && typeof raw[i] === 'object' ? raw[i] : {};
     const say = _wTxt(s.say, WALK_SAY_MAX + 40).slice(0, WALK_SAY_MAX);
@@ -131,11 +150,64 @@ function walkPlanClean(input, facts){
       steps.push({ say, op: { what, upto } });
       continue;
     }
-    last = walkShowOf(what);
-    steps.push({ say, show: { what } });
+    const S = walkShowOf(what);
+    const sw = walkWhereClean(s.show && s.show.where, F);
+    if (sw && sw.error) return { error: `Step ${i + 1}'s where: ` + sw.error };
+    const where = S.of === 'book' && !S.whole ? (sw && sw.where) || (lw && lw.where) || null : null;
+    if (S.whole && sw && sw.where) return { error: `Step ${i + 1}: "${what}" is read over the whole book and cannot be narrowed; draw another or leave out where.` };
+    let period = null;
+    if (s.show && s.show.period){
+      if (!S.period) return { error: `Step ${i + 1}: "${what}" has no months to choose; only ${WALK_SHOWS.filter(x => x.period).map(x => x.k).join(', ')} take a period.` };
+      const pr = walkPeriodClean(s.show.period);
+      if (pr.error) return { error: `Step ${i + 1}'s period: ` + pr.error };
+      period = pr.period;
+    }
+    /* the same drawing twice in a row says nothing new: the second lights the first */
+    const sig = JSON.stringify([what, where, period]);
+    if (sig === lastSig) return { error: `Step ${i + 1} draws again what an earlier step just drew ("${what}"). Light the earlier drawing with highlight, or draw something else (for named contracts: "contracts" narrowed with where).` };
+    lastSig = sig; last = S;
+    steps.push({ say, show: Object.assign({ what }, where ? { where } : {}, period ? { period } : {}) });
   }
   if (!steps[0].show) return { error: 'The first step must draw something.' };
   return { plan: { title, ...(cid ? { contractId: cid, contractName: _wTxt(named && named.name, 120) } : {}), steps } };
+}
+/* A NARROWING NAMES ONLY WHAT EXISTS FOR THIS READER: a stream of theirs (by id or name), a counterparty on their
+   contracts, a stage. Returns null (none asked), { where } or { error } naming what exists. */
+function walkWhereClean(w, F){
+  if (!w || typeof w !== 'object') return null;
+  const out = {};
+  const stream = _wTxt(w.stream, 80), party = _wTxt(w.party, 120), stage = _wTxt(w.stage, 40);
+  if (stream){
+    const L = Array.isArray(F.streams) ? F.streams : null;
+    if (L){
+      const hit = L.find(x => _wNorm(x.id) === _wNorm(stream) || _wNorm(x.name) === _wNorm(stream));
+      if (!hit) return { error: `"${stream}" is not a value stream this person has contracts in. Theirs: ${L.map(x => x.name && x.name !== x.id ? `${x.id} (${x.name})` : x.id).join(', ') || 'none'}.` };
+      out.stream = hit.id;
+    } else out.stream = stream;
+  }
+  if (party){
+    const L = Array.isArray(F.parties) ? F.parties : null;
+    if (L){
+      const hit = L.find(x => _wNorm(x) === _wNorm(party));
+      if (!hit) return { error: `"${party}" is not a counterparty on this person's contracts. Some that are: ${L.slice(0, 10).join(', ')}.` };
+      out.party = hit;
+    } else out.party = party;
+  }
+  if (stage){
+    const k = WALK_STAGE_KEYS[_wNorm(stage)];
+    if (!k) return { error: `"${stage}" is not a stage. The stages: Draft, Under Review, Signed, Declined.` };
+    out.stage = k;
+  }
+  return Object.keys(out).length ? { where: out } : null;
+}
+/* MONTHS NAMED AS YYYY-MM, FROM NOT AFTER TO, AT MOST WALK_PERIOD_MAX OF THEM */
+function walkPeriodClean(p){
+  const from = _wTxt(p && p.from, 7), to = _wTxt(p && p.to, 7);
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(from) || !/^\d{4}-(0[1-9]|1[0-2])$/.test(to)) return { error: 'give from and to as YYYY-MM (e.g. 2027-01).' };
+  const n = (Number(to.slice(0, 4)) - Number(from.slice(0, 4))) * 12 + Number(to.slice(5)) - Number(from.slice(5)) + 1;
+  if (n < 1) return { error: 'from must not come after to.' };
+  if (n > WALK_PERIOD_MAX) return { error: `at most ${WALK_PERIOD_MAX} months.` };
+  return { period: { from, to } };
 }
 function walkSomeContracts(F){
   const L = Array.isArray(F.contracts) ? F.contracts.slice(0, 8) : [];
@@ -176,6 +248,6 @@ function walkSummary(plan, said){
 const WALK_SHOWN_NOTE = 'The lesson is on screen. Do not repeat it. End with nothing or one short sentence.';
 
 const WALK_API = { WALK_STEPS_MIN, WALK_STEPS_MAX, WALK_SAY_MAX, WALK_TITLE_MAX, WALK_SHOWS, WALK_OPS, WALK_SHOW_KEYS, WALK_FIXED_NAMES,
-  WALK_TOOL_DESC, WALK_TOOL_SCHEMA, AI_WALK_RULE, WALK_SHOWN_NOTE, walkShowOf, walkAsked, walkPlanClean, walkNamesBad, walkSummary, walkSomeContracts };
+  WALK_TOOL_DESC, WALK_TOOL_SCHEMA, AI_WALK_RULE, WALK_SHOWN_NOTE, WALK_PERIOD_MAX, WALK_STAGE_KEYS, walkWhereClean, walkPeriodClean, walkShowOf, walkAsked, walkPlanClean, walkNamesBad, walkSummary, walkSomeContracts };
 if (typeof window !== 'undefined') Object.assign(window, WALK_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = WALK_API;
