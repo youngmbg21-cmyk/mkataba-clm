@@ -130,8 +130,13 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
         boxes: document.querySelectorAll('#pd-og [data-blankf], #pd-og [data-pd-og-spot^="up_"]').length }; });
     check('1c their paper: its spaces are no rows of our form and no box is offered for them', !G.rows.some(r => /^up_/.test(r.k || '')) && G.rows.some(r => r.k === 'effDate')
       && T1.blanks.length === 0 && T1.boxes === 0 && T1.why === 'theirs', JSON.stringify({ rows: G.rows.map(r => r.k), T1 }));
+    /* the card's door with a detail of our record owed (no place on their paper) opens the details form, none of its rows
+       the paper's spaces; with nothing owed it says the paper is theirs (pdFillGo, 26 Nov 2026) */
+    const owed1e = await page.evaluate(() => pd2TheirsDetailsOwed(getContract('MK-0405')));
     await page.evaluate(() => pdFillGo('MK-0405'));
-    const said = await until(() => { const t = (document.getElementById('toast-root') || {}).textContent || ''; return t.includes(i18t('pd2_fill_theirs')) ? t : null; }, null, 4000);
+    const said = owed1e
+      ? await until(() => (pdFormShows() && ![...document.querySelectorAll('#pd-og [data-pd-og-row]')].some(e => /^up_/.test(e.getAttribute('data-pd-og-row') || ''))) ? 'form' : null, null, 4000)
+      : await until(() => { const t = (document.getElementById('toast-root') || {}).textContent || ''; return t.includes(i18t('pd2_fill_theirs')) ? t : null; }, null, 4000);
     const T1e = await page.evaluate(() => ({ head: !!document.getElementById('pd2-fill-head'), on: pd2FillOn('MK-0405'), lines: document.querySelectorAll('#ig-canvas [data-pd2-bl]').length }));
     check('1e Fill in on their paper says it is theirs to fill, with its way (a redline), and marks nothing on the paper', !!said && !T1e.head && !T1e.on && T1e.lines === 0, JSON.stringify({ said, T1e }));
     await openFill('MK-0405');

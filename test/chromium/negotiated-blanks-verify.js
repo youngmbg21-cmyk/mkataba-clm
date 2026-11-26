@@ -49,12 +49,19 @@ const HTML = '<h1>OFFICE LEASE</h1><p>This Lease is made between Ventura Capital
      stored wording keeps its placeholders. A change there is a redline (the Rent change stands as theirs). */
   const before = await p.evaluate(() => (getContract('MK-120').changes || []).length);
   const started = await p.evaluate(() => { if (typeof pd2FillHeldWhy !== 'function') return { missing: 'pd2FillHeldWhy' }; return { why: pd2FillHeldWhy(getContract('MK-120')), go: pdFillGo('MK-120') }; });
-  const said = await until(p, () => ((document.getElementById('toast-root') || {}).textContent || '').includes(i18t('pd2_fill_theirs')), null, 8000);
+  /* the card's door with a detail of our record owed (no place on their paper) opens the details form, none of its rows
+     the paper's spaces; with nothing owed it says the paper is theirs (pdFillGo, 26 Nov 2026) */
+  const owed1 = await p.evaluate(() => typeof pd2TheirsDetailsOwed === 'function' && pd2TheirsDetailsOwed(getContract('MK-120')));
+  const said = owed1
+    ? await until(p, () => pdFormShows() && ![...document.querySelectorAll('#pd-og [data-pd-og-row]')].some(e => /^up_/.test(e.getAttribute('data-pd-og-row') || '')), null, 8000)
+    : await until(p, () => ((document.getElementById('toast-root') || {}).textContent || '').includes(i18t('pd2_fill_theirs')), null, 8000);
   const marked = await p.evaluate(ids => {
     const inClause = id => [...document.querySelectorAll(`#ig-canvas section.rl-clause[data-clause="${CSS.escape(String(id))}"] [data-pd2-nb], #ig-canvas section.rl-clause[data-clause="${CSS.escape(String(id))}"] input[data-pd2-bl]`)].length;
     return { prem: inClause(ids.prem), note: inClause(ids.note), rent: inClause(ids.rent), any: document.querySelectorAll('#ig-canvas [data-pd2-bl]').length,
       head: !!document.getElementById('pd2-fill-head'), on: pd2FillOn('MK-120'), panel: !!document.querySelector('#ig-dock [data-pd2-fp-row^="nb~"]') };
   }, ids || {});
+  if (owed1){ await p.evaluate(() => { ['pdMidClose', 'pdFormClose'].forEach(f => { if (typeof window[f] === 'function') try { window[f](); } catch (_){} }); });
+    await until(p, () => !pdFormShows() && !!document.querySelector('#ig-paper .ig-redpaper'), null, 8000); }
   check('1 · their paper, negotiated: Fill in marks no space in any clause, and says the paper is theirs to fill', !started.missing && started.why === 'theirs' && said
     && marked.prem === 0 && marked.note === 0 && marked.rent === 0 && marked.any === 0 && !marked.head && !marked.on, { started, said, marked });
   check('4a · the panel lists none of their spaces', !marked.panel, marked);

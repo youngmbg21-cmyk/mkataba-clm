@@ -11807,8 +11807,9 @@ function pdFillGo(id, key){
     const why = c0 && !pd2FillOn(id) ? pd2FillHeldWhy(c0) : '';
     /* THEIR PAPER'S SPACES ARE THEIRS, OUR RECORD'S DETAILS ARE OURS: the other party, the value, the start day have no
        place on their paper, so while one is owed the button the card offers ("Fill in N details") opens the form of
-       those details, never the paper (a dead button wearing a live one's clothes otherwise) */
-    if (why === 'theirs' && pd2TheirsDetailsOwed(c0)) return pdFillOpen(id, key ? { key } : {});
+       those details, never the paper (a dead button wearing a live one's clothes otherwise); a press on one of the paper's
+       own spaces (an up_ key) still says it is their paper */
+    if (why === 'theirs' && pd2TheirsDetailsOwed(c0) && !(key && /^up_/.test(String(key)))) return pdFillOpen(id, key ? { key } : {});
     if (why) return pd2FillHeldSay(c0, why);
   }
   if (pd2On() && (!key || !pdFillGoFormOnly(id, key)) && pd2FillStart(id, key || '')) return true;
@@ -12177,7 +12178,7 @@ Object.assign(window, { pd2WalkOpen, pd2WalkArrive, pd2WalkWithRead, pd2WalkClos
 Object.assign(window, { pdFormMidUp, pd2FormMidOpen, pd2FormMidRedraw, pd2FormFaceHtml, pd2FormRegroup, pd2QuoteOf, pd2FormNameShown, pd2FormSecShown, pd2BlankQuote, pd2FormGapSync });
 Object.assign(window, { pdActKnown, pd2Find, pd2SeatPaint, naTheirsFive });
 Object.assign(window, { PD2_NB_ATTR, pd2BlOff, pd2NegoFillOn, pd2NegoArgued, pd2NegoSeq, pd2NegoMark, pd2NegoRead, pd2NegoFile, pd2FillSaveNego });
-Object.assign(window, { pdSignNamesPaint, pd2FillHere, pd2FillLeaveCheck, pd2FillLeaveSoon, pd2FillExit, pd2FillFromPress, pd2PressOnPlaceholder, pd2NegoPaperOk, pd2FillHeldWhy, pd2FillAdoptOld, pd2NegoFillRead, pd2NegoFillOf, pd2NegoAnswersPaint, pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
+Object.assign(window, { pdSignNamesPaint, pd2FillHere, pd2FillLeaveCheck, pd2FillLeaveSoon, pd2FillExit, pd2FillFromPress, pd2PressOnPlaceholder, pd2NegoPaperOk, pd2FillHeldWhy, pd2FillHeldSay, pd2TheirsDetailsOwed, pd2FillAdoptOld, pd2NegoFillRead, pd2NegoFillOf, pd2NegoAnswersPaint, pd2FillStart, pd2FillStop, pd2FillSave, pd2FillOn, pd2FillRouteSync, pd2FillSigDrop, pd2FillBlanks, pd2FillSuggest, pd2FillPaint, pd2FillWalk, pd2FillNext, pd2FillSigLines, pd2FillGoTo, pdFillGo, PD2_BL_SEL });
 /* THE ARRIVAL VEIL: a page in the middle that opens only once its paper stands (History, pay, Key terms; pdMidArriving)
    has the page's own ground stand over the paper meanwhile, so the paper is never seen on the way; bounded (CV_LAND_MS).
    (The Cover page these were first built for was deleted, owner, 20 Nov 2026: "Delete it, open the Dossier instead".) */
