@@ -9380,17 +9380,24 @@ function pd2RedStdAnswers(c, cv, x){
 }
 /* THE REDLINED PAPER'S NOTES IN BLOCKS: their asks stand alone as ever; the answers gather one group per clause (the
    section their words stand in), headed "3 · Pricing and Payment"; what has no clause, at the paper's end */
+/* ONE NUMBERING, BOTH PAPERS (owner, 26 Nov 2026: "the notes are numbered differently between clean and redline"): a
+   note is grouped and named by the paper's own numbered row it stands in (docXrayRows / docXrayLabel, "1.2 Lease Term"),
+   as the clean paper's notes are (pd2Groups); only a note in no row falls back to its clause section */
 function pd2RedBlocks(c, cv, notes){
   const blocks = [], by = new Map();
+  let rows = []; try { rows = (typeof docXrayRows === 'function') ? (docXrayRows(c, cv) || []) : []; } catch (_){ rows = []; }
+  const rowOf = node => { let k = -1; rows.forEach((r, i) => { if (!r.el) return; if (r.el === node || r.el.contains(node) || (r.el.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)) k = i; }); return k; };
   notes.forEach(n => {
     if (!n.red){ blocks.push({ ask: true, n, items: [n], hit: n.hit, at: 'ask:' + blocks.length }); return; }
     const node = n.own ? null : (n.hit.el || (n.hit.range && n.hit.range.startContainer));
-    const s = node ? (node.nodeType === 1 ? node : node.parentElement).closest('section[data-clause]') : null;
-    const key = s ? 'red:' + s.getAttribute('data-clause') : 'own:' + (n.own || '');
+    const k = node ? rowOf(node) : -1;
+    const s = node && k < 0 ? (node.nodeType === 1 ? node : node.parentElement).closest('section[data-clause]') : null;
+    const key = k >= 0 ? 'row:' + k : s ? 'red:' + s.getAttribute('data-clause') : 'own:' + (n.own || '');
     if (!by.has(key)){
       let label = n.own || '';
-      if (s){ const h = s.querySelector('h1, h2, h3, h4'); const t = String(h ? h.textContent : '').replace(/\s+/g, ' ').trim(); const m = t.match(/^(\d+(?:\.\d+)*)\.?\s*(.*)$/); label = m ? m[1] + ' · ' + m[2] : t; }
-      const g = { red: true, at: key, cid: c.id, label, items: [], hit: s ? { el: s } : n.hit };
+      if (k >= 0 && typeof docXrayLabel === 'function') label = docXrayLabel(rows[k]);
+      else if (s){ const h = s.querySelector('h1, h2, h3, h4'); const t = String(h ? h.textContent : '').replace(/\s+/g, ' ').trim(); const m = t.match(/^(\d+(?:\.\d+)*)\.?\s*(.*)$/); label = m ? m[1] + ' · ' + m[2] : t; }
+      const g = { red: true, at: key, cid: c.id, label, items: [], hit: k >= 0 ? { el: rows[k].el } : s ? { el: s } : n.hit };
       by.set(key, g); blocks.push(g);
     }
     by.get(key).items.push(n);

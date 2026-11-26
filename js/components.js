@@ -2340,6 +2340,39 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     /* a sheet in steps: Enter presses what the foot shows (Next ›, or the black act on the last step) */
     if (e.target.hasAttribute('data-lgp-steps')){ const go = e.target.querySelector('.lgp-ft .lgp-go:not([hidden])'); if (go) go.click(); } } }, true);
 }
+/* A POP-UP'S DROPDOWN LIST IS NEVER CUT BY THE POP-UP (owner, 26 Nov 2026, of the desk's Add someone: "the drop down
+   disappears inside the pop up instead of being out so you can see the list"): a list opened under a box inside a pop-up
+   stands over everything at the box's width, under it (or above it where the window has no room below), wherever the
+   pop-up's own scroller ends; it follows the box while the pop-up scrolls or the window changes size. Measured after it
+   is placed, so a frame that is still arriving (moved or scaled) is allowed for. */
+var POP_LIST_Z = 90;   // over the dialog (80), under the toasts (110)
+function popListFloat(list, anchor){
+  if (!list || !anchor || typeof window === 'undefined') return false;
+  const place = () => {
+    if (list.hidden || !list.isConnected || !anchor.isConnected) return;
+    const a = anchor.getBoundingClientRect(), vh = window.innerHeight || 800;
+    const below = vh - a.bottom - 8, above = a.top - 8, up = below < 160 && above > below;
+    const room = Math.max(120, Math.min(320, up ? above : below));
+    const S = list.style;
+    S.position = 'fixed'; S.zIndex = String(POP_LIST_Z); S.margin = '0'; S.right = 'auto'; S.bottom = 'auto';
+    S.width = Math.round(a.width) + 'px'; S.maxHeight = Math.round(room) + 'px'; S.overflowY = 'auto';
+    S.left = Math.round(a.left) + 'px'; S.top = '0px';
+    const h = list.offsetHeight || 0;
+    const want = { x: a.left, y: up ? a.top - 2 - Math.min(h, room) : a.bottom + 2 };
+    S.top = Math.round(want.y) + 'px';
+    /* a moved or scaled frame makes "fixed" its own: the difference is put back */
+    const r = list.getBoundingClientRect();
+    if (Math.abs(r.left - want.x) > 1) S.left = Math.round(a.left + (want.x - r.left)) + 'px';
+    if (Math.abs(r.top - want.y) > 1) S.top = Math.round(want.y + (want.y - r.top)) + 'px';
+  };
+  place();
+  if (!list._popFloat){
+    list._popFloat = place;
+    window.addEventListener('scroll', () => { if (list.isConnected) list._popFloat(); }, true);
+    window.addEventListener('resize', () => { if (list.isConnected) list._popFloat(); });
+  } else list._popFloat = place;
+  return true;
+}
 /* THE WAVE ON EVERY POP-UP (owner, 24 Nov 2026: "Build it on every edit pop-up", then, after an audit, "All pop-ups,
    not pages"): ONE helper puts Jambo's moving weave across the top of a pop-up's FRAME (its look: index.html
    .lgp-wave) — the edit sheets, the older pop-ups (pickers, compare windows, the timeline), the yes/no and "why?"
@@ -2403,5 +2436,6 @@ if (typeof document !== 'undefined'){
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lgpWaveWatch, { once: true });
   else lgpWaveWatch();
 }
+Object.assign(window, { popListFloat, POP_LIST_Z });
 Object.assign(window, { LGP_WAVE_HTML, POP_WAVE_FRAME, POP_WAVE_TITLE, lgpWaveSweep, popWaveFit, lgpWaveWatch });
 Object.assign(window, { LGP_W, LGP_PAGE, lgpHtml, lgpRowHtml, lgpListHtml, lgpOpen, lgpRepaint, lgpStepsHtml, lgpStepGo });

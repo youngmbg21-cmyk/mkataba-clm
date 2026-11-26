@@ -1273,3 +1273,6 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 
 ## THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN (26 Nov 2026, fill-ins are answers)
 - f1246-fill-ins-are-answers; re-pointed f1033 (2)(4), f1036 (front part), f1243 (5), f342 (stage gate kept as OLD_THEIRS, 7c).
+
+## THE POP-UPS, THE SAP WAY (26 Nov 2026, over the page, ribbon, lists)
+- f1247-pop-ups-over-the-page; re-pointed f1101 (2).

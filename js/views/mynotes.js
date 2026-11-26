@@ -606,15 +606,23 @@ if (typeof document !== 'undefined' && !document._mnnWired){ document._mnnWired 
 }
 /* A NEW NOTE, from + New note, a contract's ⋯ menu or a highlight on the
    paper (the contract and the words already filled in). */
+/* A NOTE STARTED ON A CONTRACT STAYS ON THE CONTRACT (owner, 26 Nov 2026: "when i highlight a clause in the contract
+   and ask to add to notes, it pushes me to the notes page. The pop up should appear but on top of the paper"): from any
+   other page the sheet opens over that page and the reader is never moved; saved, it says so where they are. */
+function mnSheetAway(){
+  return state.view !== 'mynotes' && typeof window.newLookOn === 'function' && newLookOn() && typeof window.lgpOpen === 'function';
+}
 function myNotesNew(seed){
   const s = seed || {};
-  const sheet = mnSheetOn();
+  const away = mnSheetAway();
+  const sheet = away || mnSheetOn();
   if (!sheet) _mn.mode = 'new';
   _mn.form = { body:String(s.body || ''), title:'', contractId:s.contractId || '', quote:s.quote || '', clauseId:s.clauseId || '', when:'week', date:'', query:'', listOpen:false, focus:!sheet };
   _mn.filter = 'all'; _mn.ct = ''; _mn.q = '';
   /* a door that writes the box's words says so to the box (a question left
      standing there goes) */
   if (typeof lhBoxSet === 'function') lhBoxSet(MN_SEAT, '');
+  if (away){ mnSheetPaint(true); return; }
   if (state.view !== 'mynotes' && typeof setView === 'function') setView('mynotes'); else renderMyNotes();
   if (sheet) mnSheetPaint(true);
 }
@@ -685,8 +693,8 @@ async function myNoteSave(){
     const it = await mineSave('note', { body:f.body, title:f.title, contractId:f.contractId || '', quote:f.quote || '', clauseId:f.clauseId || '', reviewBy });
     _mn.mode = 'view'; _mn.sel = it.id; _mn.fresh = it.id; _mn.form = null;
     if (document.getElementById('mn-sheet') && typeof closeModal === 'function') closeModal();
-    if (typeof insSelect === 'function') insSelect('mynotes', it.id);
-    renderMyNotes();
+    /* written over another page: that page stays as it was (mnSheetAway) */
+    if (state.view === 'mynotes'){ if (typeof insSelect === 'function') insSelect('mynotes', it.id); renderMyNotes(); }
     if (typeof toast === 'function') toast(reviewBy ? i18t('mn_saved_on', { d:_mnDay(reviewBy) }) : i18t('mn_saved'), 'ok');
   }catch(e){ if (typeof toast === 'function') toast(String((e && (e.error || e.message)) || i18t('mn_not_saved')), 'err'); }
 }
@@ -857,4 +865,4 @@ function myNotesCss(){ return `
   .mn-when button:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px}
 `; }
 
-Object.assign(window, { mnnStatusOf, mnnWhen, mnnSecOf, mnnActOf, mnnRowHtml, mnPlace, mnPlacePut, renderMyNotes, myNotesNew, myNotesOpen, myNoteState, myNotesShown, paintMyNotesCount, mnSheetOn, mnSheetOpts, mnSheetPaint });
+Object.assign(window, { mnSheetAway, mnnStatusOf, mnnWhen, mnnSecOf, mnnActOf, mnnRowHtml, mnPlace, mnPlacePut, renderMyNotes, myNotesNew, myNotesOpen, myNoteState, myNotesShown, paintMyNotesCount, mnSheetOn, mnSheetOpts, mnSheetPaint });
