@@ -242,6 +242,12 @@ Claude may *suggest* parking something it finds, but only adds it when the owner
 - **Where it came from:** the owner's iPad photo of MK-382's Redline view, 25 Nov 2026; parked with the owner's yes.
 - **Notes:** a design round (the four ways) before building.
 
+### P-53 · Make every Handbook chapter a walk-through you can actually follow
+- **Added:** 26 Nov 2026 · **Status:** Waiting
+- **What:** in "Walk me through it", every step is one thing to do, its button outlined on screen, shown whole in the step list (never cut off with "…"), and true to the app as it is today.
+- **Where it came from:** the owner's photo of Explorer's walk-through (step 2 of 12), 26 Nov 2026; Claude checked every chapter, the owner said "park this".
+- **Notes:** the check found, out of 307 steps in 57 chapters: 87 cut off in the list, about 140 that describe instead of saying what to press, 170 with nothing outlined, 87 crammed with several things. Known wrong in Explorer: pressing a dot only chooses it (it does not open the Dossier); the jump window is in the middle, not at the left; Jambo's box is at the foot of the side panel, not under the map; Your day says "three counts" while its picture says "five figures"; the "then and now" picture marker points at step 10, but it is step 12. Suggested order: the cut-off fix everywhere first (one small change), then chapters in batches of about five, worst first (Explorer first, then Ask Jambo, The company look, A contract's Dossier, Our paper, Notes and comments, People and grants, Finding a contract, Duties, Send it), both books, photographed at the three screens, one pull request per batch.
+
 ## Done
 
 _Finished items were removed on 22 Nov 2026 at the owner's word ("Delete finished ones"); the full list as it stood is in GitHub's history (the version just before this change)._
