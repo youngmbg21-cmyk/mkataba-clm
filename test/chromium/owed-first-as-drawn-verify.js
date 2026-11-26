@@ -36,7 +36,6 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
 const H = require('../helpers');
-const { ckOpenRowOf, ckConfirm } = H;
 const TF = require('../../js/templateform.js');
 
 const EXEC = process.env.CHROMIUM_BIN
@@ -116,44 +115,48 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     /* 1 the head, the columns, where each lands */
     await openFill('MK-0405');
     const G = await page.evaluate(GRID);
-    const row = k => G.rows.find(r => r.k === k) || {};
     /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): the head is "Needs you N" */
     /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the head is in small capitals, so its read words are capitals */
     check('1a the form says "N needed"; the columns "Fact · where Jambo read it" · "Jambo read" · where it came from', /^\d+ needed/i.test(G.head) && /^FACT · WHERE JAMBO READ IT$/i.test(G.cols[0] || '') && /^JAMBO READ$/i.test(G.cols[1] || ''), JSON.stringify({ head: G.head, cols: G.cols }));
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): a blank's row says "§ · quote" — its section and the
        paper's own sentence round the blank (pd2FormRegroup, pd2BlankQuote) — where the old row said "§3 on the paper" */
-    const sec = r => String(r.chip || '').replace(/\s+/g, '');
-    check('1c each blank says where it lands on the paper', sec(row('up_start_date')) === '§3' && /This Agreement starts on/.test(row('up_start_date').src) && sec(row('up_expected_yearly_value')) === '§4' && /expected yearly spend is/.test(row('up_expected_yearly_value').src), JSON.stringify(G.rows));
-    await ckOpenRowOf(page, '#pd-og [data-pd-og-spot="up_start_date"]'); await page.click('#pd-og [data-pd-og-spot="up_start_date"]');
-    const atPress = await until(() => !!document.querySelector('#ig-canvas .is-landed[data-upblank="up_start_date"]'), null, 4000);
-    check('1e pressed, "§3" lands on its spot on the paper through the one lander', !!atPress);
-    /* RE-POINTED 17 Nov 2026 (#762): the form stands IN THE MIDDLE over the paper, so "§3" puts it away to show the spot;
-       the form is opened again for what follows */
+    /* RE-POINTED 26 Nov 2026 (owner, #1035: "For counter party contracts or 3rd party contracts, they should be filled in
+       using their tools"): every upload is their paper (uploadBlanksTheirs), so its spaces — the start date, the notice
+       period, the yearly value — are no rows of our form, no box is offered for them, no "§3" lands on them, and Fill in
+       on the paper says it is their paper (pd2FillHeldSay) and marks nothing. What 1c, 1e and 2 pinned on those spaces
+       (where each lands, our standard read into the box) is held where it still stands: our own paper's question, in 4. */
+    const T1 = await page.evaluate(() => { const c = getContract('MK-0405'), d = detailsOf(c);
+      return { blanks: (d.items || []).filter(x => x && x.kind === 'blank').map(x => x.key), why: pd2FillHeldWhy(c),
+        boxes: document.querySelectorAll('#pd-og [data-blankf], #pd-og [data-pd-og-spot^="up_"]').length }; });
+    check('1c their paper: its spaces are no rows of our form and no box is offered for them', !G.rows.some(r => /^up_/.test(r.k || '')) && G.rows.some(r => r.k === 'effDate')
+      && T1.blanks.length === 0 && T1.boxes === 0 && T1.why === 'theirs', JSON.stringify({ rows: G.rows.map(r => r.k), T1 }));
+    await page.evaluate(() => pdFillGo('MK-0405'));
+    const said = await until(() => { const t = (document.getElementById('toast-root') || {}).textContent || ''; return t.includes(i18t('pd2_fill_theirs')) ? t : null; }, null, 4000);
+    const T1e = await page.evaluate(() => ({ head: !!document.getElementById('pd2-fill-head'), on: pd2FillOn('MK-0405'), lines: document.querySelectorAll('#ig-canvas [data-pd2-bl]').length }));
+    check('1e Fill in on their paper says it is theirs to fill, with its way (a redline), and marks nothing on the paper', !!said && !T1e.head && !T1e.on && T1e.lines === 0, JSON.stringify({ said, T1e }));
     await openFill('MK-0405');
     await shot(page, '8-owed-first-1440x780');
 
-    /* 2 our standard, the reading in the box */
-    const N = await page.evaluate(() => ({ std: (document.querySelector('#pd-og tr[data-pd-og-row="up_notice_period"] [data-pd-ff-std]') || {}).innerText || '',
-      box: (document.querySelector('#pd-og [data-blankf="up_notice_period"]') || {}).value, kind: pdFillStdKind(getContract('MK-0405')), cls: (document.querySelector('#pd-og tr[data-pd-og-row="up_notice_period"]') || {}).className }));
-    check('2a the owed notice period: "Our standard for <the kind of contract>: 90 days", in the box as the reading', !!N.kind && N.kind !== 'termination' && N.std.trim() === `Our position for ${N.kind}: 90 days` && N.box === '90 days' && /is-read/.test(N.cls), JSON.stringify(N));
-    check('2b a box no standard names is offered nothing', !/Our position/.test(row('up_start_date').src) && !row('up_start_date').box);
-    await ckOpenRowOf(page, '#pd-og [data-pd-og-ok="up_notice_period"]'); await ckConfirm(page, 'up_notice_period');
-    const used = await until(() => { const c = getContract('MK-0405');
-      /* RE-POINTED 28 Oct 2026 (Fill in the contract): the one Save stores it and the panel goes back to the Dossier */
-      /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the Dossier is its one card ([data-pd2-card]) */
-      return c.fields && c.fields.up_notice_period === '90 days' ? { paper: /90 days/.test(document.getElementById('ig-canvas').textContent), saved: !document.querySelector('#pd-og.is-form') && !!document.querySelector('#pd-og.is-dossier, #ig-dock [data-pd2-card]') } : null; }, null, 6000);
-    check('2c Save: the box\'s own writer stored it, the paper shows it, the panel is back on the Dossier', !!used && used.paper && used.saved, JSON.stringify(used));
+    /* 2 their paper's notice period: never asked, never written (the reading of our standard is pinned in 4, on our paper) */
+    const N = await page.evaluate(() => ({ row: !!document.querySelector('#pd-og tr[data-pd-og-row="up_notice_period"]'), box: !!document.querySelector('#pd-og [data-blankf="up_notice_period"]'),
+      field: ((getContract('MK-0405').fields || {}).up_notice_period) || null }));
+    check('2a their paper\'s notice period is not asked: no row, no box, nothing on the record', !N.row && !N.box && !N.field, JSON.stringify(N));
+    check('2b nor is its start date offered anything', !G.rows.some(r => r.k === 'up_start_date'));
     await page.evaluate(() => window.flushSaves && flushSaves()).catch(() => {});
     const rec = await W.admin.json('/api/contracts/MK-0405');
-    check('2d on the record, on the server', rec.fields && rec.fields.up_notice_period === '90 days', JSON.stringify(rec.fields));
+    check('2d nothing of their spaces is written on the server', !!rec && !((rec.fields || {}).up_notice_period) && ((rec.fields || {}).up_carrier_address === 'Satamakatu 4, Helsinki'), JSON.stringify(rec && rec.fields));
 
     /* 3 the answered ones are Key terms' lines, folded */
     /* RE-POINTED 21 Oct 2026 (THE MIDDLE, owner): Key terms is one line under the grid; its table (the rows it draws) stands in the middle when pressed */
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): the new look's Dossier draws no Key terms line; the
        answered ones are still Key terms' lines (pdKtFacts), its table not opened in the middle by the save (its opener,
        pdKtMid, is pressed by the "key terms" door and Key terms' own doors) */
-    const fold = await page.evaluate(() => { const c = pdContract(); return c && document.querySelector('#ig-dock [data-pd2-card]') ? { open: !!document.querySelector('[data-pd-mid-kt]'), carrier: pdKtFacts(c).some(f => f.key === 'up_carrier_address') } : null; });
-    check('3a the answered ones are Key terms\' lines, one line under the grid', !!fold && !fold.open && fold.carrier, JSON.stringify(fold));
+    /* RE-POINTED 26 Nov 2026 (owner, #1035): their paper's spaces are no facts of ours, so the answered line held is the
+       counterparty's (a record fact answered on this draft); the form is put away first, as Save did before */
+    await page.evaluate(() => { if (pdFormShows()) pdFormClose(); });
+    await until(() => !!document.querySelector('#ig-dock [data-pd2-card]'), null, 6000);
+    const fold = await page.evaluate(() => { const c = pdContract(); return c && document.querySelector('#ig-dock [data-pd2-card]') ? { open: !!document.querySelector('[data-pd-mid-kt]'), cp: pdKtFacts(c).some(f => f.key === 'counterparty' && /Baltic Freight/.test(String(f.html || '') + ' ' + String(f.value || ''))) } : null; });
+    check('3a the answered ones are Key terms\' lines, one line under the grid', !!fold && !fold.open && fold.cp, JSON.stringify(fold));
 
     /* 6 the three screens */
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
@@ -169,6 +172,11 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
 
     /* 4 the company form */
     await openFill('MK-0410');
+    /* RE-POINTED 26 Nov 2026 (owner, #1035): OUR STANDARD AS THE READING IN THE BOX, held on our own paper's question —
+       the company form's notice period (owed, a paper question like the upload's space was) */
+    const N4 = await page.evaluate(() => { const r = document.querySelector('#pd-og tr[data-pd-og-row="notice"]');
+      return { std: ((r && r.querySelector('[data-pd-ff-std]')) || {}).innerText || '', box: ((r && r.querySelector('[data-tplf]')) || {}).value, kind: pdFillStdKind(getContract('MK-0410')), cls: (r || {}).className || '' }; });
+    check('2c our paper\'s owed notice period: "Our position for <the kind of contract>: 90 days", in the box as the reading', !!N4.kind && N4.std.trim() === `Our position for ${N4.kind}: 90 days` && N4.box === '90 days' && /is-read/.test(N4.cls), JSON.stringify(N4));
     /* RE-POINTED 28 Oct 2026 (Fill in the contract): "Fill the document" stays the Dossier's line; the form put away */
     await page.evaluate(() => { if (pdFormShows()) pdFormClose(); });
     /* RE-POINTED 16 Nov 2026 (the new look is the only look, #762): no "Still owed" card (#pd-needs); the line is looked
