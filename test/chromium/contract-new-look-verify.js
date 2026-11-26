@@ -149,9 +149,16 @@ const READ = () => {
            box; nothing is written, here or on the server */
         const before5 = await page.evaluate(() => JSON.stringify([getContract('MK-A2').fields || {}, getContract('MK-A2').fills || null]));
         const want5 = await page.evaluate(() => i18t('pd2_fill_theirs'));
+        /* with a detail of our record owed (the other party, the value, the dates: no place on their paper) the door
+           opens the details form instead, its rows ours, none for the paper's spaces (pdFillGo, 26 Nov 2026) */
+        const owed5 = await page.evaluate(() => typeof pd2TheirsDetailsOwed === 'function' && pd2TheirsDetailsOwed(getContract('MK-A2')));
         const press5 = await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .jb-ways button')].find(x => /^fill in$/i.test(x.textContent.trim()));
           if (!b) return false; b.click(); return true; });
-        const said5 = press5 && await until(page, w => ((document.getElementById('toast-root') || {}).textContent || '').includes(w), want5, 5000);
+        const said5 = press5 && (owed5
+          ? await until(page, () => typeof pdFormShows === 'function' && pdFormShows()
+              && ![...document.querySelectorAll('#pd-og [data-pd-og-row]')].some(e => /^up_/.test(e.getAttribute('data-pd-og-row') || '')), null, 5000)
+          : await until(page, w => ((document.getElementById('toast-root') || {}).textContent || '').includes(w), want5, 5000));
+        if (owed5) await page.evaluate(() => { ['pdMidClose', 'pdFormClose'].forEach(f => { if (typeof window[f] === 'function') try { window[f](); } catch (_){} }); });
         const F5 = await page.evaluate(b => ({ boxes: document.querySelectorAll('#ig-canvas [data-pd2-bl]').length, head: !!document.getElementById('pd2-fill-head'),
           fill: !!document.querySelector('#ig-dock .pd2-dossier.is-fill'), same: JSON.stringify([getContract('MK-A2').fields || {}, getContract('MK-A2').fills || null]) === b,
           scrolls: document.getElementById('ig-paper-scroll').scrollHeight > document.getElementById('ig-paper-scroll').clientHeight + 100 }), before5);

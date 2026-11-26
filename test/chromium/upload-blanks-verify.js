@@ -296,17 +296,23 @@ const CONTRACT = (id, over) => Object.assign({
       const c = getContract(id), before = JSON.stringify([c.redlineText, c.fields || {}, c.fills || null]);
       const want = i18t('pd2_fill_theirs');
       if (typeof pdFillGo !== 'function') return { missing: true, want };
+      /* with a detail of our record owed (the other party, the value, the dates: no place on their paper) the door
+         opens the details form instead, its rows ours, none for the paper's spaces (pdFillGo, 26 Nov 2026) */
+      const owed = typeof pd2TheirsDetailsOwed === 'function' && pd2TheirsDetailsOwed(c);
       pdFillGo(id);
       let said = '';
       for (let i = 0; i < 40 && !said; i++){ await new Promise(r => setTimeout(r, 100));
+        if (owed){ if (typeof pdFormShows === 'function' && pdFormShows()) said = 'form'; continue; }
         const t = (document.getElementById('toast-root') || {}).textContent || ''; if (t.includes(want)) said = want; }
+      const upRows = [...document.querySelectorAll('#pd-og [data-pd-og-row]')].filter(e => /^up_/.test(e.getAttribute('data-pd-og-row') || '')).length;
+      if (owed) ['pdMidClose', 'pdFormClose'].forEach(f => { if (typeof window[f] === 'function') try { window[f](); } catch (_){} });
       const c2 = getContract(id);
-      return { want, said, boxes: document.querySelectorAll('#ig-canvas [data-pd2-bl]').length,
+      return { want: owed ? 'form' : want, owed, upRows, said, boxes: document.querySelectorAll('#ig-canvas [data-pd2-bl]').length,
         head: !!document.getElementById('pd2-fill-head'), marks: document.querySelectorAll('#ig-canvas span.up-blank').length,
         same: JSON.stringify([c2.redlineText, c2.fields || {}, c2.fills || null]) === before };
     }, up.id);
     check('4a the Dossier\'s Fill in door says it is their paper, where the reader looks',
-      !door.missing && !!door.want && door.said === door.want, door.missing ? 'no pdFillGo' : (door.said || 'nothing said'));
+      !door.missing && !!door.want && door.said === door.want && !door.upRows, door.missing ? 'no pdFillGo' : JSON.stringify({ owed: door.owed, said: door.said || 'nothing said', upRows: door.upRows }));
     check('4b and turns no space on their paper into a box', !door.missing && door.boxes === 0 && !door.head && door.marks === 0,
       JSON.stringify(door));
     check('4c and nothing is written: the wording, the answers and the fills are as they were', !door.missing && door.same,
