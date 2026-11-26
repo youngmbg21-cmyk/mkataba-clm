@@ -1251,3 +1251,6 @@ f264 (4), f302 (3), f303 (5), f304 (NO NOTE AT SAVE), f439 (their save asks noth
 
 ## TWO LANGUAGES ≠ TWO MARKETS — new people start in English (25 Nov 2026)
 - `node --test test/f1237-new-people-start-in-english.test.js test/f603-market-keeps-your-language.test.js test/f148-language.test.js`
+
+## NEW AGREEMENT — From the Notebook (26 Nov 2026)
+- test/f1230-the-notebook-feeds-a-new-paper.test.js — the server reads only documents the reader may see (another's Mine never, counted), keeps printed labels only, ai/section reads only the labelled sections; the page's rows, contents source and Builder carry it; both books.

@@ -729,17 +729,17 @@ function nsLgContract() {
    the contents page's (data-nss-sec). Reads st only. */
 function nsKeepTableHtml(st) {
   const L = st.list || [], E = nsEsc;
-  const SRC = { lib: 'tb_src_lib', std: 'tb_src_std', ai: 'tb_src_ai' }, TONE = { lib: 'gray', std: 'green', ai: 'violet' };
+  const SRC = { lib: 'tb_src_lib', std: 'tb_src_std', ai: 'tb_src_ai', nb: 'tb_src_nb' }, TONE = { lib: 'gray', std: 'green', ai: 'violet', nb: 'pink' };
   const n = k => L.filter(x => (x.src || 'ai') === k).length;
-  const f = ['all', 'lib', 'std', 'ai'].includes(st.f) ? st.f : 'all';
+  const f = ['all', 'nb', 'lib', 'std', 'ai'].includes(st.f) ? st.f : 'all';
   const chip = (k, label, c) => (k === 'all' || c) ? `<button type="button" class="nsk-chip${f === k ? ' is-on' : ''}" data-nsk-f="${k}">${E(label)} <b>${c}</b></button>` : '';
-  const chips = `<div class="nsk-chips">${chip('all', i18t('nsk_all'), L.length)}${chip('lib', i18t('tb_src_lib'), n('lib'))}${chip('ai', i18t('tb_src_ai'), n('ai'))}${chip('std', i18t('tb_src_std'), n('std'))}</div>`;
+  const chips = `<div class="nsk-chips">${chip('all', i18t('nsk_all'), L.length)}${chip('nb', i18t('tb_src_nb'), n('nb'))}${chip('lib', i18t('tb_src_lib'), n('lib'))}${chip('ai', i18t('tb_src_ai'), n('ai'))}${chip('std', i18t('tb_src_std'), n('std'))}</div>`;
   const rows = L.map((x, i) => {
     const src = x.src || 'ai'; if (f !== 'all' && src !== f) return '';
     const lib = i === st.sel && src === 'lib' && typeof tbLibraryFor === 'function' ? tbLibraryFor(x.heading) : null;
     const q = i === st.sel ? (lib ? '“' + _nsFirstSentence(lib.preferred) + '”' : (x.intent || '')) : '';
     return `<tr class="${i === st.sel ? 'is-sel' : ''}${x.on ? '' : ' is-off'}"><td class="nsk-k"><input type="checkbox" data-nss-sec="${i}"${x.on ? ' checked' : ''} aria-label="${E(x.heading)}"></td>
-      <td><button type="button" class="nsk-h" data-nss-pick="${i}">${i + 1}. ${E(x.heading)}</button>${q ? `<span class="nsk-q">${E(q)}</span>` : ''}</td>
+      <td><button type="button" class="nsk-h" data-nss-pick="${i}">${i + 1}. ${E(x.heading)}</button>${x.nb ? `<span class="nsk-nb">${E(nsnFromSay(x.nb))}</span>` : ''}${q ? `<span class="nsk-q">${E(q)}</span>` : ''}</td>
       <td class="nsk-s"><span class="tb-bdg is-${TONE[src]}"><i></i>${E(i18t(SRC[src]))}</span></td></tr>`; }).join('');
   return `${chips}<div class="nsk-wrap"><table class="nsk-t"><thead><tr><th></th><th>${E(i18t('nsk_sec'))}</th><th class="r">${E(i18t('nsk_from'))}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
@@ -753,12 +753,76 @@ function nsMisfitRoles(clause, said) {
   if (!inClause.length || !s.trim()) return [];
   return inClause.filter(r => !s.includes(r.toLowerCase()));
 }
+/* ---------------- FROM THE NOTEBOOK (owner's pick "The Legora + Stripe way", 26 Nov 2026) ----------------
+   On From nothing the person links up to NSN_MAX documents from the Notebook (Company · Mine, the shelves they may see:
+   GET /api/notebook is the wall). Each linked document is ONE ROW: its name, a soft badge (Jambo decides · Your note ·
+   Say what to bring), the sections it prints, its first words quoted, and the choice answered IN the row — Let Jambo
+   decide, or Say what to bring (one open line). Propose the sections sends only ids and notes; the server reads the
+   documents (nbLinkedRead) and the contents page marks each section drawn from one ("From the Notebook", its §s). */
+const NSN_MAX = 5, NSN_NOTE_MAX = 400;
+let _nsnList = null;
+const _nsnFull = new Map();
+async function nsnListLoad() {
+  if (_nsnList) return _nsnList;
+  const r = await api('notebook', 'GET', null, { quiet: true });
+  _nsnList = Array.isArray(r && r.docs) ? r.docs : [];
+  return _nsnList;
+}
+async function nsnDocLoad(id) {
+  if (_nsnFull.has(id)) return _nsnFull.get(id);
+  const r = await api('notebook/' + encodeURIComponent(id), 'GET', null, { quiet: true });
+  const d = (r && r.doc) || null; if (d) _nsnFull.set(id, d); return d;
+}
+/* the labels the document prints (its "Start" — the title and words before its first heading — is not one) */
+const nsnLabels = d => [...new Set(((d && d.sections) || []).map(x => x.n).filter(n => n && n !== 'Start'))];
+/* the first words of its first labelled section, the heading line left out */
+function nsnFirstWords(d) {
+  const x = ((d && d.sections) || []).find(y => y.n && y.n !== 'Start' && String(y.text || '').trim());
+  if (!x) return null;
+  const lines = String(x.text).split('\n').map(l => l.trim()).filter(Boolean);
+  const body = lines.length > 1 ? lines.slice(1).join(' ') : lines[0].replace(/^\S+\s+/, '');
+  return { n: x.n, q: _nsFirstSentence(body) };
+}
+const nsnBadgeOf = l => l.mode === 'jambo' ? ['green', 'nsn_b_jambo'] : (String(l.note || '').trim() ? ['steel', 'nsn_b_note'] : ['amber', 'nsn_b_say']);
+function nsnBadgeHtml(l, i) { const [t, k] = nsnBadgeOf(l); return `<span class="tb-bdg is-${t}" id="nsn-bd-${i}"><i></i>${nsEsc(i18t(k))}</span>`; }
+function nsnHtml(st) {
+  const E = nsEsc, L = st.nb || [];
+  const head = `<div class="nsn-head"><span class="nsn-h">${E(i18t('nsn_head'))}</span>${L.length ? `<span class="nsn-n">${E(i18tn('nsn_linked', L.length, { n: L.length }))}</span>` : ''}<span class="sp"></span><button type="button" class="nsl-or" data-nsn-pick aria-expanded="${st.nbPick ? 'true' : 'false'}">${E(i18t('nsn_link'))}</button></div>`;
+  const pick = () => {
+    if (!st.nbPick) return '';
+    if (st.nbErr) return `<div class="nsn-pick"><p class="nsn-say is-err">${E(st.nbErr)}</p></div>`;
+    if (!_nsnList) return `<div class="nsn-pick"><p class="nsn-say">${typeof busyHtml === 'function' ? busyHtml(i18t('nsn_loading')) : E(i18t('nsn_loading'))}</p></div>`;
+    const shelf = st.nbShelf === 'mine' ? 'mine' : 'company';
+    const docs = _nsnList.filter(d => (d.shelf || (d.mine ? 'mine' : 'company')) === shelf);
+    const full = L.length >= NSN_MAX;
+    const rows = docs.length ? docs.map(d => { const on = L.some(l => l.id === d.id);
+      return `<div class="nsn-prow"><div class="nsn-pt"><span class="nsn-pn">${E(d.name)}</span><span class="nsn-meta">${E(i18tn('nsn_secs', d.sections || 0, { n: d.sections || 0 }))}${d.kind ? ' · ' + E(i18t('nb_kind_' + d.kind)) : ''}</span></div>`
+        + (on ? `<span class="nsn-meta">${E(i18t('nsn_is_linked'))}</span>` : `<button type="button" class="ui-btn nsn-lk" data-nsn-link="${E(d.id)}"${full ? ` disabled title="${E(i18t('nsn_max', { n: NSN_MAX }))}"` : ''}>${E(i18t('nsn_link_one'))}</button>`) + '</div>'; }).join('')
+      : `<p class="nsn-say">${E(i18t('nsn_shelf_empty'))}</p>`;
+    return `<div class="nsn-pick"><div class="nsn-ptabs">${['company', 'mine'].map(k => `<button type="button" class="nsn-pt-b${shelf === k ? ' is-on' : ''}" data-nsn-shelf="${k}">${E(i18t('nsn_shelf_' + k))}</button>`).join('')}<span class="sp"></span><button type="button" class="nsl-or" data-nsn-pick>${E(i18t('nsn_done'))}</button></div>${rows}</div>`;
+  };
+  const rows = L.map((l, i) => {
+    const d = l.doc, labels = nsnLabels(d);
+    const shown = labels.slice(0, 4).join(' · ') + (labels.length > 4 ? ' · ' + i18t('nsn_more', { n: labels.length - 4 }) : '');
+    const first = nsnFirstWords(d), q = first ? first.q : '';
+    return `<div class="nsn-doc"><div class="nsn-top"><span class="nsn-name">${E(l.name)}</span>${nsnBadgeHtml(l, i)}<button type="button" class="nsn-x" data-nsn-x="${E(l.id)}" aria-label="${E(i18t('nsn_unlink', { name: l.name }))}">×</button></div>
+      <div class="nsn-meta">${E(i18t('nsn_shelf_' + (l.shelf === 'mine' ? 'mine' : 'company')))}${shown ? ' · ' + E(shown) : (d ? '' : ' · ' + E(i18t('nsn_loading')))}</div>
+      ${q ? `<p class="nsn-q">“${E(q)}” <span>${E(first.n)}</span></p>` : ''}
+      <div class="nsn-mode" role="group" aria-label="${E(l.name)}"><button type="button" data-nsn-mode="jambo" data-nsn-id="${E(l.id)}" aria-pressed="${l.mode === 'jambo'}">${E(i18t('nsn_m_jambo'))}</button><button type="button" data-nsn-mode="note" data-nsn-id="${E(l.id)}" aria-pressed="${l.mode === 'note'}">${E(i18t('nsn_m_note'))}</button></div>
+      ${l.mode === 'note' ? `<textarea class="nsn-note" rows="2" maxlength="${NSN_NOTE_MAX}" data-nsn-note="${E(l.id)}" data-nsn-i="${i}" placeholder="${E(i18t('nsn_note_ph'))}">${E(l.note || '')}</textarea>` : ''}</div>`;
+  }).join('');
+  return `<div class="nsn">${head}${pick()}${rows}</div>`;
+}
+/* the ids and notes Propose sends; a note left empty is Jambo's to decide */
+/* where a section's words will come from, as the contents page and the panel say it: "Data Processing Agreement, § 3, § 7" */
+const nsnFromSay = nb => nb ? [String(nb.name || ''), ...(Array.isArray(nb.refs) ? nb.refs : [])].filter(Boolean).join(', ') : '';
+const nsnBody = st => (st.nb || []).map(l => ({ id: l.id, note: l.mode === 'note' ? String(l.note || '').trim().slice(0, NSN_NOTE_MAX) : '' }));
 function nsLgScratch(o = {}) {
   nsStyle(); nsShelfWire();
   const ai = typeof copilotAvailable === 'function' && copilotAvailable();
-  const st = { said: String(o.said || ''), step: 'say', d: null, list: null, busy: false, name: '', sel: -1, extra: [] };
+  const st = { said: String(o.said || ''), step: 'say', d: null, list: null, busy: false, name: '', sel: -1, extra: [], nb: [], nbPick: false, nbShelf: 'company', nbErr: '' };
   _nsShelf = { st, kept: () => (st.list || []).filter(x => x.on).length };
-  const SRC = { lib: 'tb_src_lib', std: 'tb_src_std', ai: 'tb_src_ai' };
+  const SRC = { lib: 'tb_src_lib', std: 'tb_src_std', ai: 'tb_src_ai', nb: 'tb_src_nb' };
   const nameOf = () => st.name || nsNameFromSentence(st.said) || '';
   const paperHtml = () => {
     /* THE CONTENTS PAGE (owner, 14 Nov 2026: "the paper should stay the same size, if there are more clauses, they
@@ -767,9 +831,9 @@ function nsLgScratch(o = {}) {
        that section in Jambo's panel (nsShelfPanelHtml). */
     if (st.step === 'keep' && st.list) {
       const srcs = new Set(st.list.map(x => x.src));
-      const key = ['lib', 'std', 'ai'].filter(k => srcs.has(k)).map(k => `<span><i class="nss-kd is-${k}"></i>${nsEsc(i18t('nsl_key_' + k))}</span>`).join('');
+      const key = ['nb', 'lib', 'std', 'ai'].filter(k => srcs.has(k)).map(k => `<span><i class="nss-kd is-${k}"></i>${nsEsc(i18t('nsl_key_' + k))}</span>`).join('');
       return `<div class="nss-pg is-toc"><h4>${nsEsc(nameOf() || i18t('ns_untitled'))}</h4><h5>${nsEsc(i18t('nsl_contents'))}</h5>
-        <div class="nss-tl" id="nss-tl">${st.list.map((x, i) => `<div class="nss-tr${x.on ? '' : ' is-off'}${st.sel === i ? ' is-sel' : ''}"><input type="checkbox" data-nss-sec="${i}"${x.on ? ' checked' : ''} aria-label="${nsEsc(x.heading)}"><button type="button" class="nss-tn" data-nss-pick="${i}">${i + 1}. ${nsEsc(x.heading)}</button><span class="nss-dots" aria-hidden="true"></span><span class="nss-w is-${x.src || 'ai'}">${nsEsc(i18t(SRC[x.src || 'ai']))}</span></div>`).join('')}</div>
+        <div class="nss-tl" id="nss-tl">${st.list.map((x, i) => `<div class="nss-tr${x.on ? '' : ' is-off'}${st.sel === i ? ' is-sel' : ''}"><input type="checkbox" data-nss-sec="${i}"${x.on ? ' checked' : ''} aria-label="${nsEsc(x.heading)}"><button type="button" class="nss-tn" data-nss-pick="${i}">${i + 1}. ${nsEsc(x.heading)}</button><span class="nss-dots" aria-hidden="true"></span><span class="nss-w is-${x.src || 'ai'}"${x.nb ? ` title="${nsEsc(nsnFromSay(x.nb))}"` : ''}>${nsEsc(i18t(SRC[x.src || 'ai']))}</span></div>`).join('')}</div>
         <div class="nss-key">${key}</div></div>
         <div class="nss-under"><span>${nsEsc(i18t('nsl_kept', { n: kept(), m: st.list.length }))}</span><span>${nsEsc(i18t('nsl_press_name'))}</span></div>`;
     }
@@ -787,10 +851,11 @@ function nsLgScratch(o = {}) {
     }
     return `<label class="nss-fld"><span>${nsEsc(i18t('ns_what_for'))}</span><textarea id="nss-say" rows="5" maxlength="${NS_SAY_MAX}" placeholder="${nsEsc(i18t('ns_what_for_ph'))}">${nsEsc(st.said)}</textarea></label>
       <div class="nss-ex">${nsEsc(i18t('nsl_try'))} <button type="button" class="nsl-or" data-nss-ex="1">${nsEsc(i18t('nsl_ex1_t'))}</button><button type="button" class="nsl-or" data-nss-ex="2">${nsEsc(i18t('nsl_ex2_t'))}</button><button type="button" class="nsl-or" data-nss-ex="3">${nsEsc(i18t('nsl_ex3_t'))}</button></div>
+      ${nsnHtml(st)}
       <div class="nss-foot"><button type="button" class="ui-btn" data-nsl-back>${nsEsc(i18t('act_back'))}</button><span class="sp"></span><button type="button" class="ui-btn ui-btn-primary" data-nss-go${ai ? '' : ` title="${nsEsc(i18t('tb_pb_nokey'))}"`}>${nsEsc(ai ? i18t('ns_propose') : i18t('ns_open_builder'))}</button></div>`;
   };
   const sub = () => st.step === 'keep' && st.list
-    ? i18t('tb_out_lead', { n: st.list.length, lib: st.list.filter(x => x.src === 'lib').length, std: st.list.filter(x => x.src === 'std').length, ai: st.list.filter(x => x.src === 'ai').length })
+    ? i18t(st.list.some(x => x.src === 'nb') ? 'tb_out_lead_nb' : 'tb_out_lead', { n: st.list.length, nb: st.list.filter(x => x.src === 'nb').length, lib: st.list.filter(x => x.src === 'lib').length, std: st.list.filter(x => x.src === 'std').length, ai: st.list.filter(x => x.src === 'ai').length })
     : i18t('nsl_new_sub');
   const paint = () => {
     const tl = document.getElementById('nss-tl'), top = tl ? tl.scrollTop : 0;
@@ -809,7 +874,9 @@ function nsLgScratch(o = {}) {
       const made = await nsCreate({ name: nameOf() || i18t('ns_untitled'), category: d && cats.includes(d.category) ? d.category : 'other', origin: 'built_in_hati' });
       /* THE BUILDER OPENS ALREADY HOLDING THE SECTIONS KEPT HERE: the same outline, the unticked named, added at once */
       const off = (st.list || []).filter(x => !x.on).map(x => x.heading);
-      await nsOpen(made.tid, made.vid, { kind: 'scratch', said: st.said, outline: d ? { sections: d.sections || [], note: d.note || '' } : null, off, extra: st.extra.filter(x => x.on).map(x => ({ heading: x.heading, intent: x.intent || '' })), add: !!d, walk });
+      const noteOf = id => { const l = (st.nb || []).find(x => x.id === id); return l && l.mode === 'note' ? String(l.note || '').trim() : ''; };
+      const secs = d ? (d.sections || []).map(x => x.nb ? { ...x, nb: { ...x.nb, note: noteOf(x.nb.id) } } : x) : [];
+      await nsOpen(made.tid, made.vid, { kind: 'scratch', said: st.said, outline: d ? { sections: secs, note: d.note || '' } : null, off, extra: st.extra.filter(x => x.on).map(x => ({ heading: x.heading, intent: x.intent || '' })), add: !!d, walk });
     } catch (e) { st.busy = false; if (btn) { btn.disabled = false; btn.textContent = was; } nsLgSay(nsLgHost(), e.message || String(e), true); }
   };
   const propose = async btn => {
@@ -818,7 +885,8 @@ function nsLgScratch(o = {}) {
     if (!st.said) { nsLgSay(nsLgHost(), i18t('tb_pb_say_first'), true); return; }
     if (st.busy) return; st.busy = true; btn.disabled = true; btn.textContent = i18t('ns_proposing'); nsLgSay(nsLgHost(), '');
     try {
-      const d = await api('ai/outline', 'POST', { sentence: st.said, kind: '', required: [], title: true }, { quiet: true });
+      const nbOut = nsnBody(st);
+      const d = await api('ai/outline', 'POST', { sentence: st.said, kind: '', required: [], title: true, ...(nbOut.length ? { notebook: nbOut } : {}) }, { quiet: true });
       st.busy = false;
       st.d = d; st.name = (d && d.title) || nsNameFromSentence(st.said) || '';
       /* the same list the Builder would draw (tbOutlineFrom): the model's headings, then Our standards' open positions */
@@ -830,6 +898,19 @@ function nsLgScratch(o = {}) {
   nsLgWire(host, {
     click: (e, t) => {
       const ex = t.closest('[data-nss-ex]'); if (ex) { st.said = i18t('nsl_ex' + ex.getAttribute('data-nss-ex')); paint(); return; }
+      if (t.closest('[data-nsn-pick]')) { st.nbPick = !st.nbPick; paint();
+        if (st.nbPick && !_nsnList) nsnListLoad().then(() => { st.nbErr = ''; paint(); }, e2 => { st.nbErr = nsWhy(e2); paint(); });
+        return; }
+      const sh = t.closest('[data-nsn-shelf]'); if (sh) { st.nbShelf = sh.getAttribute('data-nsn-shelf'); paint(); return; }
+      const lk = t.closest('[data-nsn-link]'); if (lk) { const id = lk.getAttribute('data-nsn-link'); const d = (_nsnList || []).find(x => x.id === id);
+        if (!d || st.nb.some(l => l.id === id) || st.nb.length >= NSN_MAX) return;
+        const l = { id, name: d.name, shelf: d.shelf || (d.mine ? 'mine' : 'company'), mode: 'jambo', note: '', doc: _nsnFull.get(id) || null };
+        st.nb.push(l); paint();
+        if (!l.doc) nsnDocLoad(id).then(doc => { l.doc = doc; paint(); }, () => {});
+        return; }
+      const ux = t.closest('[data-nsn-x]'); if (ux) { const id = ux.getAttribute('data-nsn-x'); st.nb = st.nb.filter(l => l.id !== id); paint(); return; }
+      const md = t.closest('[data-nsn-mode]'); if (md) { const l = st.nb.find(x => x.id === md.getAttribute('data-nsn-id')); if (l) { l.mode = md.getAttribute('data-nsn-mode') === 'note' ? 'note' : 'jambo'; paint();
+        if (l.mode === 'note') { const box = document.querySelector(`[data-nsn-note="${CSS.escape(l.id)}"]`); if (box) try { box.focus(); } catch (_) {} } } return; }
       const kf = t.closest('[data-nsk-f]'); if (kf) { st.f = kf.getAttribute('data-nsk-f'); paint(); return; }
       const g = t.closest('[data-nss-go]'); if (g) { propose(g); return; }
       if (t.closest('[data-nss-again]')) { st.step = 'say'; st.list = null; st.d = null; st.name = ''; st.sel = -1; st.extra = []; paint(); return; }
@@ -838,6 +919,10 @@ function nsLgScratch(o = {}) {
       const op = t.closest('[data-nss-open]'); if (op) { if (!kept()) { nsLgSay(nsLgHost(), i18t('tb_pb_none_ticked'), true); return; } open(op, true); }
     },
     input: e => {
+      const nn = e.target && e.target.getAttribute && e.target.getAttribute('data-nsn-note');
+      if (nn) { const l = st.nb.find(x => x.id === nn); if (!l) return; l.note = String(e.target.value || '').slice(0, NSN_NOTE_MAX);
+        const i = Number(e.target.getAttribute('data-nsn-i')), b = document.getElementById('nsn-bd-' + i);
+        if (b) b.outerHTML = nsnBadgeHtml(l, i); return; }
       if (e.target && e.target.id === 'nss-say') { st.said = e.target.value || '';
         if (st.step === 'say') { const h = document.getElementById('nss-name'); if (h) h.textContent = nsNameFromSentence(st.said) || i18t('nsl_new_paper'); } }
     },
@@ -862,7 +947,7 @@ const _nsFirstSentence = h => { const t = String(h || '').replace(/<[^>]*>/g, ' 
 function nsShelfPanelHtml() {
   if (!nsShelfUp()) return '';
   const st = _nsShelf.st, L = st.list, E = nsEsc;
-  const SRC = { lib: 'tb_src_lib', std: 'tb_src_std', ai: 'tb_src_ai' };
+  const SRC = { lib: 'tb_src_lib', std: 'tb_src_std', ai: 'tb_src_ai', nb: 'tb_src_nb' };
   if (st.sel >= 0 && L[st.sel]) {
     const x = L[st.sel], src = x.src || 'ai';
     const lib = src === 'lib' && typeof tbLibraryFor === 'function' ? tbLibraryFor(x.heading) : null;
@@ -870,13 +955,13 @@ function nsShelfPanelHtml() {
     return `<div class="nsj"><button type="button" class="nsj-back" data-nsj-all>‹ ${E(i18t('nsj_all', { n: L.length }))}</button>
       <p class="nsj-say">${st.sel + 1}. ${E(x.heading)}</p>
       ${x.intent ? `<p class="nsj-cap">${E(i18t('nsj_covers'))}</p><p class="nsj-t">${E(x.intent)}</p>` : ''}
-      <p class="nsj-cap">${E(i18t('nsj_from'))}</p><p class="nsj-q2"><span class="nss-w is-${src}">${E(i18t(SRC[src]))}</span> · ${E(i18t('nsj_from_' + src))}</p>
+      <p class="nsj-cap">${E(i18t('nsj_from'))}</p><p class="nsj-q2"><span class="nss-w is-${src}">${E(i18t(SRC[src]))}</span> · ${E(src === 'nb' ? i18t('nsj_from_nb', { where: nsnFromSay(x.nb) }) : i18t('nsj_from_' + src))}</p>
       ${first ? `<p class="nsj-cap">${E(i18t('nsj_opens'))}</p><p class="nsj-quote">“${E(first)}”</p>` : ''}
       ${(() => { const r = lib ? nsMisfitRoles(String(lib.preferred || '').replace(/<[^>]*>/g, ' '), st.said) : []; return r.length ? `<p class="nsj-t nsj-misfit">${E(i18t('nsj_misfit', { roles: r.map(w => (typeof langId === 'function' && langId() && langId() !== 'en') ? w : (/^[AEIOU]/.test(w) ? 'an ' : 'a ') + w).join(', ') }))}</p>` : ''; })()}
       <p class="nsj-t is-quiet">${E(i18t(x.on ? 'nsj_on' : 'nsj_off'))}</p></div>`;
   }
   const n = k => L.filter(x => (x.src || 'ai') === k).length, tot = L.length || 1;
-  const parts = ['lib', 'std', 'ai'].filter(k => n(k));
+  const parts = ['nb', 'lib', 'std', 'ai'].filter(k => n(k));
   const cat = st.d && st.d.category;
   const key = typeof tbPbKey === 'function' ? tbPbKey(cat || '') : '_default';
   const on = L.map((x, i) => ({ x, i })).filter(o => o.x.on);
@@ -890,8 +975,17 @@ function nsShelfPanelHtml() {
   return `<div class="nsj"><p class="nsj-say">${E(i18tn('nsj_said', L.length, { n: L.length }))}</p>
     <div><div class="nsj-bar">${parts.map(k => `<span class="is-${k}" style="width:${(n(k) / tot * 100).toFixed(2)}%"></span>`).join('')}</div>
       <div class="nsj-lg">${parts.map(k => `<span><i class="nss-kd is-${k}"></i>${E(i18t('nsj_n_' + k, { n: n(k) }))}</span>`).join('')}</div></div>
+    ${nsnPanelHtml(st)}
     <div><p class="nsj-cap">${E(i18t('nsj_std_h', { hit, all: rows.length }))}</p><div class="nsj-std">${stdHtml}</div></div>
     <div><p class="nsj-cap">${E(i18t('nsj_then_h'))}</p><p class="nsj-t is-quiet">${E(i18t('nsj_then', { k: _nsShelf.kept() }))}</p></div></div>`;
+}
+/* WHAT EACH LINKED DOCUMENT GAVE (the server's count, d.notebook): a document Jambo drew nothing from is said, a cut one
+   too, and one the reader may no longer see is counted — never a silent drop */
+function nsnPanelHtml(st) {
+  const nb = st.d && st.d.notebook; if (!nb || !(Array.isArray(nb.docs) && nb.docs.length) && !nb.unseen) return '';
+  const E = nsEsc;
+  const rows = (nb.docs || []).map(d => `<div class="nsj-sr"><i class="nss-kd is-nb"></i>${E(d.name)}<span class="nsj-sw${d.used ? ' is-ok' : ''}">${E(d.used ? i18tn('nsj_nb_used', d.used, { n: d.used }) : i18t('nsj_nb_none'))}${d.cut ? ' · ' + E(i18t('nsj_nb_cut')) : ''}</span></div>`).join('');
+  return `<div><p class="nsj-cap">${E(i18t('nsn_head'))}</p><div class="nsj-std">${rows}${nb.unseen ? `<p class="nsj-t is-quiet">${E(i18tn('nsj_nb_unseen', nb.unseen, { n: nb.unseen }))}</p>` : ''}</div></div>`;
 }
 function nsShelfWire() {
   if (typeof document === 'undefined' || document._nsjWired) return;
@@ -1012,7 +1106,7 @@ function nsOpenTheirs() {
   paint();
 }
 
-Object.assign(window, { nsSayUp, nsKeepTableHtml, nsMisfitRoles, NS_ROLES, NS_STARTS, NS_TABS, NS_SAY_MAX, NS_GATED, openNewStandard, nsGo, nsOpenScratch, nsOpenTemplate, nsOpenContract,
+Object.assign(window, { nsSayUp, nsnHtml, nsnBody, nsnFromSay, NSN_MAX, nsKeepTableHtml, nsMisfitRoles, NS_ROLES, NS_STARTS, NS_TABS, NS_SAY_MAX, NS_GATED, openNewStandard, nsGo, nsOpenScratch, nsOpenTemplate, nsOpenContract,
   nsMount, nsHostSet, nsHostBack, nsHostOn, nsTplMake, nsCtrMake,
   nsShelfPanelHtml, nsShelfUp,
   nsLgOn, nsLgInitials, nsLgRowHtml, nsLgFirstLine, nsLgMatches, nsLgTemplate, nsLgContract, nsLgScratch, nsOpenTheirs, nsTheirParty,
