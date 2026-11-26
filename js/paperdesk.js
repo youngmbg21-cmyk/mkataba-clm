@@ -11805,10 +11805,18 @@ function pdFillGo(id, key){
     const c0 = (typeof getContract === 'function' && getContract(id)) || null;
     try { if (c0 && !pd2FillOn(id) && pd2FillHeldWhy(c0) === 'open') pd2FillAdoptOld(c0); } catch (_){}
     const why = c0 && !pd2FillOn(id) ? pd2FillHeldWhy(c0) : '';
+    /* THEIR PAPER'S SPACES ARE THEIRS, OUR RECORD'S DETAILS ARE OURS: the other party, the value, the start day have no
+       place on their paper, so while one is owed the button the card offers ("Fill in N details") opens the form of
+       those details, never the paper (a dead button wearing a live one's clothes otherwise) */
+    if (why === 'theirs' && pd2TheirsDetailsOwed(c0)) return pdFillOpen(id, key ? { key } : {});
     if (why) return pd2FillHeldSay(c0, why);
   }
   if (pd2On() && (!key || !pdFillGoFormOnly(id, key)) && pd2FillStart(id, key || '')) return true;
   return pdFillOpen(id, key ? { key } : {});
+}
+function pd2TheirsDetailsOwed(c){
+  let d = null; try { d = (typeof detailsOf === 'function') ? detailsOf(c) : null; } catch (_){ d = null; }
+  return !!(d && d.live && d.left > 0);
 }
 function pdFillGoFormOnly(id, key){
   const c = (typeof getContract === 'function' && getContract(id)) || null; if (!c) return true;

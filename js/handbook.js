@@ -305,8 +305,11 @@ const HANDBOOK_CHAPTERS = [
     cost: _hbkFree, doors: ['fill'], acts: ['fill', 'terms', 'value', 'counterparty', 'category', 'stream', 'rename', 'nda'],
     words: { en: ['fill in', 'fill in the details', 'fill in the contract', 'details', 'key terms', 'value', 'dates', 'blanks'], sv: ['fyll i', 'fyll i uppgifterna', 'fyll i avtalet', 'uppgifter', 'nyckelvillkor', 'värde'] },
     shots: [
-      { go: [{ open: 'MK-A2', face: 'copilot' }, { waitFor: '#ig-dock .pd2-card [data-pd-ds-fill]' }], boxes: [{ sel: '#ig-dock .pd2-card [data-pd-ds-fill]', step: 1 }, { sel: '#ig-dock [data-ca-chip="fill"]', step: 1 }], cap: { en: 'Fill in the contract on the Dossier\'s card, or the fill in chip above Jambo\'s box (1).', sv: 'Fyll i avtalet på Dossierns kort, eller knappen fyll i ovanför Jambos ruta (1).' } },
-      { go: [{ open: 'MK-A2', face: 'copilot' }, { waitFor: '#ig-dock .pd2-card [data-pd-ds-fill]' }, { click: '#ig-dock .pd2-card [data-pd-ds-fill]' }, { waitFor: '.pd2-fp.is-cur' }], boxes: [{ sel: '.pd2-fp.is-cur', step: 2 }, { sel: '[data-pd2-fill-save]', step: 5 }], cap: { en: 'Filling in on the paper: the space you are on, lit in the list beside it (2), and Save (5).', sv: 'Ifyllning på papperet: platsen du står på, tänd i listan bredvid (2), och Spara (5).' } }] },
+      /* RE-POINTED 26 Nov 2026 (owner: "You should negotiate or redline a contract and once you are done, you then fill in
+         the contract right before signing"): MK-A2 has their asks open, so its card is on Negotiate; the draft MK-C2, nothing
+         on the table, shows Fill in. The bar's one button is Exit (owner, 26 Nov 2026: no Save or Stop on the bar). */
+      { go: [{ open: 'MK-C2', face: 'copilot' }, { waitFor: '#ig-dock .pd2-card [data-pd-ds-fill]' }], boxes: [{ sel: '#ig-dock .pd2-card [data-pd-ds-fill]', step: 1 }, { sel: '#ig-dock [data-ca-chip="fill"]', step: 1 }], cap: { en: 'Fill in the contract on the Dossier\'s card, or the fill in chip above Jambo\'s box (1).', sv: 'Fyll i avtalet på Dossierns kort, eller knappen fyll i ovanför Jambos ruta (1).' } },
+      { go: [{ open: 'MK-C2', face: 'copilot' }, { waitFor: '#ig-dock .pd2-card [data-pd-ds-fill]' }, { click: '#ig-dock .pd2-card [data-pd-ds-fill]' }, { waitFor: '.pd2-fp.is-cur' }], boxes: [{ sel: '.pd2-fp.is-cur', step: 2 }, { sel: '[data-pd2-fill-exit]', step: 5 }], cap: { en: 'Filling in on the paper: the space you are on, lit in the list beside it (2), and Exit (5).', sv: 'Ifyllning på papperet: platsen du står på, tänd i listan bredvid (2), och Avsluta (5).' } }] },
 
   { k: '2.4', part: 'draft', round: 2,
     title: { en: 'Our paper: templates and the builder', sv: 'Vårt papper: mallar och byggaren' },
