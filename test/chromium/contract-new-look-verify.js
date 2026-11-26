@@ -154,7 +154,10 @@ const READ = () => {
         const owed5 = await page.evaluate(() => typeof pd2TheirsDetailsOwed === 'function' && pd2TheirsDetailsOwed(getContract('MK-A2')));
         /* NO BUTTON THAT TAKES YOU NOWHERE (caChipShut 'fill' unless details are owed): with nothing of our record owed the
            links row offers no "fill in" on their paper, and the door itself (pdFillGo) is pressed instead */
-        const linked5 = await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .jb-ways button')].find(x => /^fill in$/i.test(x.textContent.trim()));
+        /* found by its key (Jambo's chip, or the links row's way carried beside "Jambo ›"), never by its words: a long row
+           takes the short form (jamboWaysFit) */
+        const linked5 = await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-ca-chip="fill"]:not([hidden]), #ig-dock .jb-ways [data-jb-key="fill"]:not([hidden])')
+            || [...document.querySelectorAll('#ig-dock .jb-ways button')].find(x => /^fill in$/i.test(x.textContent.trim()));
           if (!b) return false; b.click(); return true; });
         /* the link stands where Jambo's chips offer "fill" (caChipShut: owed details on a contract this reader owns, Needs you's
            own reading); where it is not offered, the door itself is pressed */
