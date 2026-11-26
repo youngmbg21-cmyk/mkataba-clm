@@ -12263,7 +12263,9 @@ function igRedOn(c){ const p=intel.paper; if(!p) return false;
    the SAME canvas with every change still open hidden — the wording that
    stands (an agreed change keeps its words, its marks taken off in the
    stylesheet), no step labels — so pressing Clean | Redlined never moves the page. */
-function igCleanOnRed(c){ return !igSignOn(c)&&!igRedOn(c)&&igHomePaperFace()!==null&&!!(window.pdRedOk&&pdRedOk(c))&&typeof window.redlineDocHtml==='function'; }
+/* AND A NEGOTIATED PAPER WHOSE TABLE IS CLEAR, while it is filled in or holds answers (owner, 26 Nov 2026: fill-ins are
+   answers, not redlines): the same canvas, so the answers sit in their spaces (negoFillsPaint) — pd2NegoPaperOk */
+function igCleanOnRed(c){ return !igSignOn(c)&&!igRedOn(c)&&igHomePaperFace()!==null&&!!((window.pdRedOk&&pdRedOk(c))||(window.pd2NegoPaperOk&&pd2NegoPaperOk(c)))&&typeof window.redlineDocHtml==='function'; }
 /* THEIR VIEW (stage 5: the Negotiate page's Internal | Counterparty, folded
    into Home): the same Redlined paper drawn from their seat, as a preview —
    what the other side reads, nothing to press */

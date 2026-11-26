@@ -284,7 +284,7 @@ function dsUpdatedAt(c){
    move it is, and what is agreed. ONE READING for BOTH hosts — this file is also required by the server, so the
    owner's tab and the status link read the same words off the same STORED record. Still the overlap: party names,
    never a person, no review, no notes, no advice. Pure: it reads its argument, writes nothing. */
-const DP_STAGES = ['arrive', 'read', 'fill', 'nego', 'sign', 'live'];
+const DP_STAGES = ['arrive', 'read', 'nego', 'fill', 'sign', 'live'];   // negotiate, then fill in (owner, 26 Nov 2026)
 const DP_SIDE_MAX = 64;
 function dpText(c){
   const n = c && c.negotiation;
@@ -302,8 +302,8 @@ function dpStages(c, D){
   return [
     { k: 'arrive', state: 'done', at: arrived },
     { k: 'read', state: read ? 'done' : 'later' },
-    { k: 'fill', state: fill ? 'done' : 'later' },
     { k: 'nego', state: D && D.agreed ? 'done' : neg ? 'now' : 'later', round: D ? D.round : 1, move: dpShort(D && D.move && D.move.party) },
+    { k: 'fill', state: fill ? 'done' : 'later' },
     { k: 'sign', state: D && D.executed ? 'done' : D && D.agreed ? 'now' : 'later' },
     { k: 'live', state: D && D.executed ? 'now' : 'later' }
   ];

@@ -14,7 +14,8 @@ test('the marks walk the front part: its head and the words under it, unless a c
   const m = slice('function pd2NegoMark(c){', '\nfunction ');
   assert.match(m, /cv\.querySelector\('header\.rl-paper-head\[data-clause\]'\)/);
   assert.match(m, /classList\.contains\('rl-recital'\)/);
-  assert.match(m, /argued\.has\(String\(id\)\) \|\| changed/);
+  /* RE-POINTED 26 Nov 2026 (f1246): only a change OPEN there skips it */
+  assert.match(m, /if \(argued\.has\(String\(id\)\)\)\{/);
   assert.match(m, /pd2NegoSeq\(roots\)/);
 });
 
@@ -27,5 +28,6 @@ test('one walk over several pieces, one count', () => {
 test('Save files the front part through the same door as a clause', () => {
   const f = slice('async function pd2NegoFile(c, items){', '\nfunction ');
   assert.match(f, /negoClauseNowById\(c, clauseId\)/);
-  assert.match(f, /negoFileFilledClause\(c, clauseId,/);
+  /* RE-POINTED 26 Nov 2026 (f1246): the same one writer as a clause, an answer, never a change */
+  assert.match(f, /negoFillsSet\(c, clauseId, fill,/);
 });

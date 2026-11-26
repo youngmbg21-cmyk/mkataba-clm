@@ -7424,6 +7424,9 @@ function buildSharePayload(c, docHash, who, opts){
          address they reply to. See contractParty in js/core.js. */
       party:contractParty(c)||undefined,
       counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields,
+      /* the answers Fill in kept (owner, 26 Nov 2026: fill-ins are answers, not redlines): their copy draws them in their
+         spaces as ours does (negoFillsPaint), never as a change */
+      fills:(c.fills&&typeof c.fills==='object'&&Object.keys(c.fills).length)?JSON.parse(JSON.stringify(c.fills)):undefined,
       /* A library-template contract IS its form: the blocks, field definitions
          and current values travel whole so the portal can render typed inputs
          and regenerate the same wording this side sees. The definitions are
