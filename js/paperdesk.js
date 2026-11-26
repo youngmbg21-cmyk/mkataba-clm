@@ -10905,6 +10905,21 @@ function pd2NegoSeq(root){
   return out;
 }
 /* the blanks marked on the negotiated paper: made once per paint (a paint that finds its own marks leaves them) */
+/* OUR OWN FILL IN, STILL OURS TO CHANGE (owner, 26 Nov 2026: "when i save the saved information disappears and i then
+   cannot revert and fill in the same space"): a clause whose only open change is the one Fill in filed for us (stamped
+   `fill`: the answers by blank, sig~n), not yet sent. Fill in shows that clause as it stands with our answers back in
+   their spaces, and a save files the clause again from the standing wording with every answer, so our one change is
+   replaced, never a second one beside it. */
+function pd2NegoOwnFill(c, clauseId){
+  const L = (Array.isArray(c && c.changes) ? c.changes : []).filter(x => x && String(x.clauseId) === String(clauseId) && !x.withdrawn
+    && (x.status === 'pending' || x.status === 'countered'));
+  if (L.length !== 1) return null;
+  const x = L[0]; if (x.authorSide !== 'owner' || x.status !== 'pending' || !x.fill || typeof x.fill !== 'object') return null;
+  const at = c.negotiation && c.negotiation.turnAt;
+  let unsent = !at || String(x.createdAt || '') > String(at);
+  try { if (!unsent && typeof window.negoUnsentAsks === 'function') unsent = window.negoUnsentAsks(c, 'owner').some(y => y && y.id === x.id); } catch (_){}
+  return unsent ? x : null;
+}
 function pd2NegoMark(c){
   if (!pd2NegoFillOn(c)) return 0;
   const cv = document.getElementById('ig-canvas'); if (!cv) return 0;
@@ -10917,13 +10932,26 @@ function pd2NegoMark(c){
   const fh = cv.querySelector('header.rl-paper-head[data-clause]');
   if (fh){ const nx = fh.nextElementSibling; regions.unshift({ id: fh.getAttribute('data-clause'), roots: [fh, nx && nx.classList.contains('rl-recital') ? nx : null], changed: fh.classList.contains('is-changed') }); }
   regions.forEach(({ id, roots, changed }) => {
-    if (!id || argued.has(String(id)) || changed) return;
+    if (!id) return;
+    let own = null;
+    if (argued.has(String(id)) || changed){
+      own = pd2NegoOwnFill(c, id); if (!own) return;
+      /* the clause as it stands, our answers to go back into its spaces (the paper is drawn whole again when Fill in ends) */
+      const cl = typeof negoClauseNowById === 'function' ? negoClauseNowById(c, id) : null; if (!cl) return;
+      const body = cl.bodyHtml || (typeof textToRich === 'function' ? textToRich(cl.text || '') : '<p>' + _pdE(cl.text || '') + '</p>');
+      const host = (Array.isArray(roots) ? roots[0] : roots); const nb = host && host.querySelector(':scope > .nego-body');
+      if (!nb) return;
+      nb.innerHTML = body; if (Array.isArray(roots) && roots[1]) roots[1].innerHTML = '';
+      host.classList.remove('is-changed');
+    }
     const seq = pd2NegoSeq(roots);
     const jobs = new Map();
     seq.forEach(b => {
       if (b.made) return;
       const key = 'nb~' + id + '~' + b.sig + '~' + b.n;
-      if (b.el){ b.el.setAttribute(PD2_NB_ATTR, key); b.el.setAttribute('data-pd2-nb-fk', b.fk); b.el.setAttribute('data-pd2-nb-raw', b.raw); made++; return; }
+      const had = own && own.fill[b.sig + '~' + b.n] != null ? String(own.fill[b.sig + '~' + b.n]) : '';
+      if (b.el){ b.el.setAttribute(PD2_NB_ATTR, key); b.el.setAttribute('data-pd2-nb-fk', b.fk); b.el.setAttribute('data-pd2-nb-raw', b.raw); if (had) b.el.setAttribute('data-pd2-nb-val', had); made++; return; }
+      if (had) b.had = had;
       let L = jobs.get(b.node); if (!L){ L = []; jobs.set(b.node, L); } L.push({ b, key });
     });
     for (const [tn, L] of jobs){
@@ -10933,7 +10961,7 @@ function pd2NegoMark(c){
         if (b.hit.s < at) continue;
         if (b.hit.s > at) frag.appendChild(document.createTextNode(txt.slice(at, b.hit.s)));
         const sp = document.createElement('span'); sp.className = 'pd2-nb';
-        sp.setAttribute(PD2_NB_ATTR, key); sp.setAttribute('data-pd2-nb-fk', ''); sp.setAttribute('data-pd2-nb-raw', b.raw);
+        sp.setAttribute(PD2_NB_ATTR, key); sp.setAttribute('data-pd2-nb-fk', ''); sp.setAttribute('data-pd2-nb-raw', b.raw); if (b.had) sp.setAttribute('data-pd2-nb-val', b.had);
         sp.textContent = b.raw; frag.appendChild(sp); made++; at = b.hit.e;
       }
       if (at < txt.length) frag.appendChild(document.createTextNode(txt.slice(at)));
@@ -10957,7 +10985,7 @@ function pd2NegoRead(c){
     if (!label){ const m = /^[\[{]+\s*(.*?)\s*[\]}]+$/.exec(raw); label = (m && m[1]) || (fk ? raw : ''); }
     if (!label) label = (typeof upLeadName === 'function' && upLeadName(pd2FillQuoteOf(el).split('____')[0] || '')) || _pdT('pd2_nb_blank');
     const sec = el.closest('section.rl-clause'); const h = sec && sec.querySelector('.rl-clause-h');
-    out.push({ key, label, value: '', kind: 'nego', type: (f && /date/i.test(String(f.fieldType || ''))) ? 'date' : 'text',
+    out.push({ key, label, value: el.getAttribute('data-pd2-nb-val') || '', kind: 'nego', type: (f && /date/i.test(String(f.fieldType || ''))) ? 'date' : 'text',
       clauseId, fk, raw, sig, n, section: h ? (h.textContent || '').replace(/\s+/g, ' ').trim() : '' });
   });
   return out;
@@ -10966,8 +10994,14 @@ function pd2NegoRead(c){
 async function pd2NegoFile(c, items){
   const by = new Map(); items.forEach(x => { const k = String(x.b.clauseId); if (!by.has(k)) by.set(k, []); by.get(k).push(x); });
   const done = [], refused = [];
-  for (const [clauseId, L] of by){
+  for (const [clauseId, L0] of by){
     let ch = null, why = '';
+    /* every answer this clause holds: our earlier ones (the change Fill in filed, still ours) with today's over them; a
+       cleared one goes back to its space */
+    const own = pd2NegoOwnFill(c, clauseId), fill = Object.assign({}, own ? own.fill : {});
+    L0.forEach(x => { const k = x.b.sig + '~' + x.b.n; if (String(x.v || '').trim()) fill[k] = x.v; else delete fill[k]; });
+    const L = Object.keys(fill).map(k => { const i = k.lastIndexOf('~'); const mine = L0.find(x => x.b.sig + '~' + x.b.n === k);
+      return mine && String(mine.v || '').trim() ? mine : { b: { clauseId, sig: k.slice(0, i), n: Number(k.slice(i + 1)), section: (L0[0] && L0[0].b.section) || '' }, v: fill[k] }; });
     try {
       const cl = negoClauseNowById(c, clauseId);
       const body = cl ? (cl.bodyHtml || (typeof textToRich === 'function' ? textToRich(cl.text || '') : '<p>' + _pdE(cl.text || '') + '</p>')) : '';
@@ -10983,12 +11017,14 @@ async function pd2NegoFile(c, items){
           else at.el.replaceWith(document.createTextNode(x.v)); });
         hits.filter(h => h.at.node).sort((a, b) => b.at.hit.s - a.at.hit.s).forEach(({ x, at }) => {
           const t = at.node; t.data = t.data.slice(0, at.hit.s) + x.v + t.data.slice(at.hit.e); });
-        ch = await negoFileFilledClause(c, clauseId, host.innerHTML, _pdT('pd2_nb_note'));
+        /* the answers ride our change (the door stamps them before it saves), so a later Fill in puts them back in their
+           spaces (pd2NegoOwnFill) */
+        ch = await negoFileFilledClause(c, clauseId, host.innerHTML, _pdT('pd2_nb_note'), fill);
         if (!ch) why = String(window.negoLastRefusal || '') || _pdT('pd2_nb_moved');
       }
     } catch (e){ ch = null; why = (e && e.message) || String(e); }
-    const name = (L[0] && L[0].b.section) || clauseId;
-    if (ch) L.forEach(x => done.push(x)); else refused.push({ clauseId, say: name + ': ' + why });
+    const name = (L0[0] && L0[0].b.section) || clauseId;
+    if (ch) L0.forEach(x => done.push(x)); else refused.push({ clauseId, say: name + ': ' + why });
   }
   /* A COMPANY STANDARD'S ANSWER IS ITS FORM'S TOO ("Done straight away"): through its one writer, and the wording is
      then said to carry it, so no "Fill the document" is owed for an answer already on the paper as a change */
@@ -11035,10 +11071,13 @@ function pd2FillSigOpen(c){
    nobody is named on. Read once when the filling begins, so what was filled stays on the walk and Enter can pass it. */
 function pd2FillWalk(c){
   const cv = document.getElementById('ig-canvas'); if (!cv) return [];
-  const owed = new Set(pd2FillBlanks(c).filter(b => !String(b.value || '').trim()).map(b => String(b.key)));
+  /* EVERY SPACE, TOP TO BOTTOM (owner, 26 Nov 2026: "the sequence of the fill on the side panel should be from top to
+     bottom"; a filled one stays on the list with its answer, to be changed): the paper's order; Enter still goes to the
+     next one left to fill (pd2FillNext) */
+  const all = new Set(pd2FillBlanks(c).map(b => String(b.key)));
   const out = [], seen = new Set();
   cv.querySelectorAll(PD2_BL_SEL).forEach(sp => { const k = pd2BlKey(sp);
-    if (!k || seen.has(k) || !owed.has(String(k)) || pd2BlOff(sp)) return; seen.add(k); out.push('b:' + k); });
+    if (!k || seen.has(k) || !all.has(String(k)) || pd2BlOff(sp)) return; seen.add(k); out.push('b:' + k); });
   if (pd2FillSigOpen(c) && cv.querySelector('.rl-paper-foot .rl-sigline')){
     const lines = pd2FillSigLines(c);
     lines.forEach(L => { if (!pd2FillSigNamed(c, L, lines).length) out.push('s:' + L.i); });
@@ -11205,7 +11244,7 @@ function pd2FillLeaveCheck(){
     let r = null; if (save){ try { r = pd2FillSave(); } catch (_){ r = null; } }
     Promise.resolve(r).catch(() => null).then(() => { try { pd2FillStop(); } catch (_){} }); };
   window.lgpOpen({ title: _pdT('pd2_fl_leave_q'), sub: _pdT('pd2_fl_leave_sub', { name: String(c.name || '') }), focus: false,
-    primary: { label: _pdT('og_save'), attr: 'data-pd2-fl-save' }, alt: { label: _pdT('pd2_fp_stop'), attr: 'data-pd2-fl-stop' }, noCancel: true,
+    primary: { label: _pdT('og_save'), attr: 'data-pd2-fl-save' }, alt: { label: _pdT('pd2_fl_discard'), attr: 'data-pd2-fl-stop' }, noCancel: true,
     onBeforeClose: () => decided });
   const root = document.getElementById('modal-root');
   const form = root && root.querySelector('.lgp');
@@ -11291,7 +11330,9 @@ function pd2FillPaint(c){
   const strip = document.getElementById('ig-strip');
   if (strip && !document.getElementById('pd2-fill-head')){
     const h = document.createElement('div'); h.id = 'pd2-fill-head'; h.className = 'pd2-fill-head';
-    h.innerHTML = `<b class="pd2-fh-t">${E(c.name || '')}</b><span class="pd2-fh-m" data-pd2-fh-m></span><span class="pd2-br-sp"></span><button type="button" class="ui-link pd2-fh-stop" data-pd2-fill-discard>${E(_pdT('pd2_fp_stop'))}</button><button type="button" class="ui-btn ui-btn-primary" data-pd2-fill-save>${E(_pdT('og_save'))}</button>`;
+    h.innerHTML = `<b class="pd2-fh-t">${E(c.name || '')}</b><span class="pd2-fh-m" data-pd2-fh-m></span><span class="pd2-br-sp"></span>`;
+    /* NO STOP OR SAVE ON THE BAR (owner, 26 Nov 2026: "the top bar remove the buttons for save and stop"): Enter on the
+       last space saves; moving away asks Save or Discard (pd2FillLeaveCheck) */
     strip.parentElement.insertBefore(h, strip);
   }
   /* the foot under the paper: last in the column the paper's line heads (a flex column), so the paper keeps its scroll */
@@ -11424,12 +11465,12 @@ async function pd2FillSaveNego(c, nego, rest){
     return r.done;
   }
   /* the signers and the rest, as an ordinary save (nothing negotiated is left in it) */
-  const n2 = pd2FillSave();
+  const n2 = pd2FillSave({ afterFiled: true });
   if (typeof renderIntelDock === 'function') try { renderIntelDock(); } catch (_){}
   if (filed && typeof toast === 'function') toast(filed, 'ok');
   return r.done + (n2 || 0);
 }
-function pd2FillSave(){
+function pd2FillSave(opts){
   if (!_pd2Fill) return 0;
   if (typeof window.teachDid === 'function') try { window.teachDid('fill'); } catch (_){}
   const c = getContract(_pd2Fill.id); if (!c) return 0;
@@ -11440,7 +11481,7 @@ function pd2FillSave(){
     /* the one writer refuses these two (their own doors write them): never the last of a held run, or the rest would not be saved */
     .filter(x => tplf || (x.b.key !== 'counterparty' && x.b.key !== 'value'));
   /* A NEGOTIATED PAPER'S BLANKS ARE FILED AS OUR CHANGE (pd2NegoFile), never written quietly: handed on, and said when filed */
-  const nego = moved.filter(x => x.b.kind === 'nego' && x.v);
+  const nego = moved.filter(x => x.b.kind === 'nego' && (x.v || String(_pd2Fill.was[x.b.key] || '').trim()));
   if (nego.length){ const rest = moved.filter(x => x.b.kind !== 'nego'); return pd2FillSaveNego(c, nego, rest); }
   let n = 0;
   /* held, the last one written without hold, so the writer itself saves once (the desk never saves: f563) */
@@ -11480,7 +11521,8 @@ function pd2FillSave(){
   }
   pd2FillStop();
   const total = n + signers;
-  if (typeof toast === 'function') toast(total ? [n ? _pdTn('pd2_fp_saved', n, { n }) : '', signers ? _pdTn('pd2_ps_saved', signers, { n: signers }) : ''].filter(Boolean).join(' · ') : _pdT('pd2_fp_nothing'), total ? 'ok' : 'warn');
+  /* after a negotiated paper's answers were filed (pd2FillSaveNego), "nothing changed" would be untrue: it says its own */
+  if (typeof toast === 'function' && (total || !(opts && opts.afterFiled))) toast(total ? [n ? _pdTn('pd2_fp_saved', n, { n }) : '', signers ? _pdTn('pd2_ps_saved', signers, { n: signers }) : ''].filter(Boolean).join(' · ') : _pdT('pd2_fp_nothing'), total ? 'ok' : 'warn');
   return total;
 }
 /* THE PANEL WHILE THE PAPER IS FILLED: "On the paper", every space in the paper's order with where it stands quoted,

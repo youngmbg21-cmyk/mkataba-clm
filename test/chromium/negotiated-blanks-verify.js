@@ -51,7 +51,7 @@ const HTML = '<h1>OFFICE LEASE</h1><p>This Lease is made between Ventura Capital
   /* type into the Premises blank and save */
   await p.evaluate(ids => { const inp = document.querySelector(`#ig-canvas section.rl-clause[data-clause="${CSS.escape(String(ids.prem))}"] input[data-pd2-bl]`);
     if (!inp) return; inp.focus(); inp.value = 'Highland Corporate Ltd'; inp.dispatchEvent(new Event('input', { bubbles: true })); }, ids || {});
-  await p.evaluate(() => { const s = document.querySelector('[data-pd2-fill-save]'); if (s) s.click(); });
+  await p.evaluate(() => pd2FillSave()); /* RE-POINTED 26 Nov 2026: no Save on Fill in's bar; the one save */
   await until(p, id => (getContract('MK-120').changes || []).some(x => x && x.clauseId === id && x.authorSide === 'owner' && x.status === 'pending'), ids && ids.prem, 10000);
   const filed = await p.evaluate(ids => { const c = getContract('MK-120');
     const ch = (c.changes || []).find(x => x && x.clauseId === ids.prem && x.authorSide === 'owner' && x.status === 'pending');

@@ -231,7 +231,7 @@ const check = (name, pass, detail) => {
     await page.waitForFunction(() => !!document.querySelector('#ig-canvas [data-pd2-bl="termYears"]') || !!(window.contractFieldPeer && contractFieldPeer('termYears', 'panel')), null, { timeout: 5000 }).catch(() => {});
     const inPlace = await page.$('#ig-canvas [data-pd2-bl="termYears"]');
     if (inPlace) { await inPlace.click(); await inPlace.fill(''); await page.keyboard.type('3'); await page.keyboard.press('Tab'); await page.waitForTimeout(400);
-      const sv = await page.$('[data-pd2-fill-save]:not([disabled])'); if (sv) await sv.click(); }
+      /* RE-POINTED 26 Nov 2026: no Save on Fill in's bar; the one save */ await page.evaluate(() => pd2FillSave()); }
     const typed = inPlace ? { found: true, peer: true } : await page.evaluate(() => {
       /* RE-POINTED 11 Oct 2026: THE DOCUMENT TAB IS NEVER EDITED (Young,
          9 Oct) — the paper draws the blank as a read-only answer and the

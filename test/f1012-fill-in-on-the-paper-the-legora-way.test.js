@@ -55,7 +55,7 @@ test('f1012 (3) Enter walks to the next space; none left saves and goes back', (
   assert.match(next[0], /pd2FillDone/, 'skips what is filled');
   assert.match(next[0], /pd2FillSave\(\)/, 'nothing left: save');
   assert.match(CODE, /e\.key === 'Enter'[\s\S]{0,900}pd2FillNext\(\)/, 'Enter moves on');
-  const save = CODE.match(/function pd2FillSave\(\)\{[\s\S]*?\n\}/);
+  const save = CODE.match(/function pd2FillSave\(opts\)\{[\s\S]*?\n\}/); /* RE-POINTED 26 Nov 2026 (f1243): it takes opts (afterFiled) */
   assert.match(save[0], /pd2FillStop\(\)/, 'a save stops the filling (back to the Dossier)');
 });
 

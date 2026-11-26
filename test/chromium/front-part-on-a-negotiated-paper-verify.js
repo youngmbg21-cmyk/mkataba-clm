@@ -63,7 +63,7 @@ const until = async (page, fn, arg, ms = 12000) => { try { await page.waitForFun
     /* 2 */
     if (up){ await page.click('#ig-canvas [data-pd2-bl="nb~front~f:tenant~0"]'); await page.keyboard.type('Ventura Capital Ltd');
       await page.click('#ig-canvas [data-pd2-bl="nb~front~f:addr~0"]'); await page.keyboard.type('Riverside Drive, Nairobi');
-      await page.click('[data-pd2-fill-save]'); }
+      await page.evaluate(() => pd2FillSave()); }
     const saved = await until(page, () => !document.getElementById('pd2-fill-head'), null, 10000);
     await page.waitForTimeout(1500);
     const R = await page.evaluate(async () => { const r = await api('contracts/MK-TF2'); const k = r.contract || r;

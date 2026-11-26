@@ -69,7 +69,7 @@ const until = async (page, fn, arg, ms = 12000) => { try { await page.waitForFun
       law = await page.evaluate(() => document.querySelector('#ig-canvas [data-pd2-bl="law"]').value); }
     check('3 a choice picked from HaTi\'s own list lands on the line', law === 'Kenya', law);
     /* 4 */
-    if (up){ await page.click('#ig-canvas [data-pd2-bl="tenant"]'); await page.keyboard.type('Ventura Capital Ltd'); await page.click('[data-pd2-fill-save]'); }
+    if (up){ await page.click('#ig-canvas [data-pd2-bl="tenant"]'); await page.keyboard.type('Ventura Capital Ltd'); await page.evaluate(() => pd2FillSave()); }
     const saved = await until(page, () => !document.getElementById('pd2-fill-head'), null, 8000);
     await page.waitForTimeout(1200);
     const C = await page.evaluate(async () => { const r = await api('contracts/MK-TF1'); const cc = r.contract || r;

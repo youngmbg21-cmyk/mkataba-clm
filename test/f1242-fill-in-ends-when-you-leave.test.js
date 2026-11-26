@@ -27,7 +27,7 @@ test('f1242 (1b) nothing typed simply ends; typed asks Save or Stop, closing onl
   const k = fnSrc(PD, 'pd2FillLeaveCheck');
   assert.match(k, /if \(!c \|\| !pd2FillChanged\(c\)\)\{ pd2FillStop\(\); return; \}/);
   assert.match(k, /lgpOpen\(\{ title: _pdT\('pd2_fl_leave_q'\)/);
-  assert.match(k, /primary: \{ label: _pdT\('og_save'\)/); assert.match(k, /alt: \{ label: _pdT\('pd2_fp_stop'\)/);
+  assert.match(k, /primary: \{ label: _pdT\('og_save'\)/); assert.match(k, /alt: \{ label: _pdT\('pd2_fl_discard'\)/); /* RE-POINTED 26 Nov 2026: "the options should be save and discard" */
   assert.match(k, /noCancel: true/); assert.match(k, /onBeforeClose: \(\) => decided/);
   assert.match(k, /querySelector\('\.lgp-x'\); if \(x\) x\.remove\(\)/, 'no corner cross that closes nothing');
   assert.match(k, /Promise\.resolve\(r\)[\s\S]*pd2FillStop\(\)/, 'a filed (negotiated) save ends Fill in once it is done');

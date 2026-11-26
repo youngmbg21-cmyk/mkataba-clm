@@ -1996,8 +1996,11 @@ async function negoEditClause(c, clauseId, newBodyHtml, opts = {}){
 /* A BLANK FILLED ON A NEGOTIATED PAPER (owner, 13 Nov 2026, f1033): the paper's answers to one clause, filed as OUR
    change through the one door and saved — the save is here, never on the desk that collected them (f563: the desk reads,
    it does not write). Quiet: the caller says a refusal once for every clause (negoLastRefusal). */
-async function negoFileFilledClause(c, clauseId, bodyHtml, note){
+async function negoFileFilledClause(c, clauseId, bodyHtml, note, fill){
   const ch = await negoEditClause(c, clauseId, bodyHtml, { side: 'owner', quiet: true, note });
+  /* FILL IN'S ANSWERS RIDE THE CHANGE (owner, 26 Nov 2026: saved answers must come back to be changed): by blank, so the
+     next Fill in puts them back in their spaces and a second save replaces this change (pd2NegoOwnFill, f1243) */
+  if (ch && fill && typeof fill === 'object'){ const live = (Array.isArray(c.changes) ? c.changes : []).find(y => y && y.id === ch.id) || ch; live.fill = Object.assign({}, fill); }
   if (ch && window.persist) persist(c);
   return ch;
 }

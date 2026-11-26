@@ -22,7 +22,7 @@ test('the walk reads a standard\'s own fields first; signatures, files and stamp
 });
 
 test('saved through the form\'s one answer writer, then the wording filled once', () => {
-  const sv = slice(pd, 'function pd2FillSave(){', '\nfunction ');
+  const sv = slice(pd, 'function pd2FillSave(opts){', '\nfunction '); /* RE-POINTED 26 Nov 2026 (f1243): it takes opts */
   assert.match(sv, /tplFormCommit\(c, i, x\.v\)/);
   assert.match(sv, /if \(n\) tplFormApply\(c\)/);
 });
