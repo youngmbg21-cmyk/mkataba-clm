@@ -18961,7 +18961,8 @@
   html.lg-new #ig-paper-scroll.is-amx > .pd2-amx{margin:0;min-height:100%}
   html.lg-new #ig-paper-scroll.is-amx > .pd2-amx.is-paper{display:flex;flex-direction:column} html.lg-new #ig-paper-scroll.is-amx > .pd2-amx.is-paper > .pd2-amx-paper{flex:1}
   html.lg-new #ig-paper-scroll.is-amx > .pd2-amx.is-signed{min-height:0;margin-bottom:20px}
-  html.lg-new #ig-paper-scroll.is-amx:has(> .pd2-amx:not(.is-signed)) > :not(.pd2-amx){display:none}
+  /* A :has() RULE NAMES WHAT ITS LAST PART CAN BE (26 Nov 2026, f1240): a bare :not() there made every change inside the panel re-style the whole page; :where(div, span, ...) adds no weight */
+  html.lg-new #ig-paper-scroll.is-amx:has(> .pd2-amx:not(.is-signed)) > :where(div,span,button,a,i,b,em,strong,small,h1,h2,h3,h4,h5,h6,p,svg,label,input,select,textarea,section,nav,aside,header,footer,ul,ol,li,img,form,details,summary,table,canvas,time,kbd,mark,figure,output,progress,meter):not(.pd2-amx){display:none}
   html.lg-new .pd2-amx{position:relative;z-index:2;margin:0 0 16px;background:var(--color-surface);font-size:14px;color:var(--color-text)}
   html.lg-new .pd2-amx.is-signed{position:sticky;top:0;margin:0;box-shadow:0 -24px 0 var(--color-surface)}
   html.lg-new .pd2-amx-tabs{display:flex;align-items:center;gap:24px;height:46px;padding:0 24px;border-bottom:1px solid var(--color-divider)}
@@ -21616,7 +21617,7 @@
   html.lg-new #pd-glance.is-hist{padding:0}
   /* the drawing's panel has no tab row and no Board way back while History stands (Back to the paper is its way back) */
   /* EVERY JAMBO PANEL HAS ITS MINIMISE BUTTON (owner, 22 Nov 2026: "drawdown should have a minimize button for jambo panel. review the whole hati and ensure all the jambo panels do have the minimize button"): a panel drawn with no head row keeps the row for its arrow alone; its tabs stay off, as drawn */
-  html.lg-new #ig-dock:has(#pd-glance.is-hist) .ca-back,html.lg-new #ig-dock:has(#pd-glance.is-hist) > .igd-head > :not(#igd-collapse, .flex-1){display:none}
+  html.lg-new #ig-dock:has(#pd-glance.is-hist) .ca-back,html.lg-new #ig-dock:has(#pd-glance.is-hist) > .igd-head > :where(div,span,button,a,i,b,em,strong,small,h1,h2,h3,h4,h5,h6,p,svg,label,input,select,textarea,section,nav,aside,header,footer,ul,ol,li,img,form,details,summary,table,canvas,time,kbd,mark,figure,output,progress,meter):not(#igd-collapse, .flex-1){display:none}
   html.lg-new .pd2-hf{display:flex;flex-direction:column}
   html.lg-new .pd2-hf-eb{margin:0;font-size:var(--t-label);color:var(--color-quiet)}
   html.lg-new .pd2-hf-t{margin:6px 0 4px;font-family:var(--font-ui);font-size:17px;line-height:1.35;font-weight:var(--w-label);color:var(--color-text)}
@@ -24435,7 +24436,7 @@
   /* THE BOARD'S PANEL HAS ITS MINIMISE ARROW (owner, 22 Nov 2026: "add the minimize button to the board page side
      panel"; reverses P-39's "no head row on the Board"): the head row stands again, holding the arrow alone, its tab
      not drawn (owner, 24 Oct 2026: no word in the Board's head that looks like a tab with nothing behind it) */
-  html.lg-new #ig-dock:has(> .igd-body .jov5[data-jov-slot="hb"]) > .igd-head > :not(#igd-collapse, .flex-1),html.lg-new #ig-dock:has(.jov5[data-jov-slot="hb"]) > .igd-head > :not(#igd-collapse, .flex-1){display:none}
+  html.lg-new #ig-dock:has(> .igd-body .jov5[data-jov-slot="hb"]) > .igd-head > :where(div,span,button,a,i,b,em,strong,small,h1,h2,h3,h4,h5,h6,p,svg,label,input,select,textarea,section,nav,aside,header,footer,ul,ol,li,img,form,details,summary,table,canvas,time,kbd,mark,figure,output,progress,meter):not(#igd-collapse, .flex-1),html.lg-new #ig-dock:has(.jov5[data-jov-slot="hb"]) > .igd-head > :where(div,span,button,a,i,b,em,strong,small,h1,h2,h3,h4,h5,h6,p,svg,label,input,select,textarea,section,nav,aside,header,footer,ul,ol,li,img,form,details,summary,table,canvas,time,kbd,mark,figure,output,progress,meter):not(#igd-collapse, .flex-1){display:none}
   html.lg-new .jov5[data-jov-slot="hb"]{padding-top:16px;gap:12px}
   html.lg-new .jov5[data-jov-slot="hb"] .hbw-brain{height:150px;border-radius:12px}
   html.lg-new .jov5[data-jov-slot="hb"] .hbw-spin{display:none}
@@ -24668,7 +24669,7 @@
   html.lg-new .obs-r.is-sel,html.lg-new .obs-r[aria-selected="true"]{background:color-mix(in srgb,var(--accent-ink) 4%,var(--color-surface))}
   html.lg-new .obs-r:hover:not(.is-sel):not([aria-selected="true"]){background:var(--row-hover)}
   /* EVERY JAMBO PANEL HAS ITS MINIMISE BUTTON (owner, 22 Nov 2026: "drawdown should have a minimize button for jambo panel. review the whole hati and ensure all the jambo panels do have the minimize button"): a panel drawn with no head row keeps the row for its arrow alone; its tabs stay off, as drawn */
-  html.lg-new #ins-panel:has(.obs-one) .jl-head > :not(.jl-fold, .jl-sp),html.lg-new #ins-panel:has(.obs-one) > .igd-head > :not(#igd-collapse, .flex-1){display:none}
+  html.lg-new #ins-panel:has(.obs-one) .jl-head > :where(div,span,button,a,i,b,em,strong,small,h1,h2,h3,h4,h5,h6,p,svg,label,input,select,textarea,section,nav,aside,header,footer,ul,ol,li,img,form,details,summary,table,canvas,time,kbd,mark,figure,output,progress,meter):not(.jl-fold, .jl-sp),html.lg-new #ins-panel:has(.obs-one) > .igd-head > :where(div,span,button,a,i,b,em,strong,small,h1,h2,h3,h4,h5,h6,p,svg,label,input,select,textarea,section,nav,aside,header,footer,ul,ol,li,img,form,details,summary,table,canvas,time,kbd,mark,figure,output,progress,meter):not(#igd-collapse, .flex-1){display:none}
   html.lg-new .obs-one .obn-lg-top b{font-family:var(--font-body);font-size:15px;line-height:1.35;font-weight:var(--w-label)}
   html.lg-new .obs-one .obn-lg-top > span:last-child{font-size:12px;color:var(--color-quiet)}
   html.lg-new .obs-big span{font-size:11.5px}
@@ -24741,7 +24742,7 @@
   html.lg-new .obn-pr.is-stripe.is-sel td{background:color-mix(in srgb,var(--accent-ink) 4%,var(--color-surface))}
   html.lg-new .obn-table.is-proj th:nth-child(5),html.lg-new .obn-table.is-proj th:nth-child(6){text-align:right}
   /* EVERY JAMBO PANEL HAS ITS MINIMISE BUTTON (owner, 22 Nov 2026: "drawdown should have a minimize button for jambo panel. review the whole hati and ensure all the jambo panels do have the minimize button"): a panel drawn with no head row keeps the row for its arrow alone; its tabs stay off, as drawn */
-  html.lg-new #ins-panel:has(.obn-lg.is-stripe) .jl-head > :not(.jl-fold, .jl-sp){display:none}
+  html.lg-new #ins-panel:has(.obn-lg.is-stripe) .jl-head > :where(div,span,button,a,i,b,em,strong,small,h1,h2,h3,h4,h5,h6,p,svg,label,input,select,textarea,section,nav,aside,header,footer,ul,ol,li,img,form,details,summary,table,canvas,time,kbd,mark,figure,output,progress,meter):not(.jl-fold, .jl-sp){display:none}
   html.lg-new .obn-lg.is-stripe .obn-lg-top.is-ring{display:flex;flex-direction:row;align-items:center;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
   html.lg-new .obn-lg.is-stripe .obn-lg-tw{display:flex;flex-direction:column;gap:2px;min-width:0}
   html.lg-new .obn-lg.is-stripe .obn-lg-tw b{font-size:15px;font-weight:var(--w-label)}
@@ -24926,7 +24927,7 @@
   /* the panel: no head row; "Board · read down", the title in the body face; "The first decision" a section with its
      red "in N days" badge, the term's words, and the black button its own width; "Look closer" plain rows */
   /* EVERY JAMBO PANEL HAS ITS MINIMISE BUTTON (owner, 22 Nov 2026: "drawdown should have a minimize button for jambo panel. review the whole hati and ensure all the jambo panels do have the minimize button"): a panel drawn with no head row keeps the row for its arrow alone; its tabs stay off, as drawn */
-  html.lg-new #ig-dock:has(.jov5[data-jov-slot="rdn"]) > .igd-head > :not(#igd-collapse, .flex-1){display:none}
+  html.lg-new #ig-dock:has(.jov5[data-jov-slot="rdn"]) > .igd-head > :where(div,span,button,a,i,b,em,strong,small,h1,h2,h3,h4,h5,h6,p,svg,label,input,select,textarea,section,nav,aside,header,footer,ul,ol,li,img,form,details,summary,table,canvas,time,kbd,mark,figure,output,progress,meter):not(#igd-collapse, .flex-1){display:none}
   html.lg-new .jov5[data-jov-slot="rdn"]{padding-top:0;gap:12px}
   html.lg-new #ig-dock .jl-words.rd-five{padding-top:0}
   html.lg-new .jov5[data-jov-slot="rdn"] .jov5-intro{padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
@@ -26331,7 +26332,7 @@
   html.lg-new .ikn-page .ikn-table .apn-none-c{color:var(--color-neutral-400)}
   /* the panel: no cards (P-32) — the head line goes (Obligations' panel does the same), sections ruled apart */
   /* EVERY JAMBO PANEL HAS ITS MINIMISE BUTTON (owner, 22 Nov 2026: "drawdown should have a minimize button for jambo panel. review the whole hati and ensure all the jambo panels do have the minimize button"): a panel drawn with no head row keeps the row for its arrow alone; its tabs stay off, as drawn */
-  html.lg-new #ins-panel:has(.ikn-lg) .jl-head > :not(.jl-fold, .jl-sp){display:none}
+  html.lg-new #ins-panel:has(.ikn-lg) .jl-head > :where(div,span,button,a,i,b,em,strong,small,h1,h2,h3,h4,h5,h6,p,svg,label,input,select,textarea,section,nav,aside,header,footer,ul,ol,li,img,form,details,summary,table,canvas,time,kbd,mark,figure,output,progress,meter):not(.jl-fold, .jl-sp){display:none}
   html.lg-new .ikn-lg{display:flex;flex-direction:column;gap:10px;padding:14px 20px 12px}
   html.lg-new .ikn-lg .ikn-lg-s{display:flex;flex-direction:column;gap:6px;min-width:0;padding-bottom:10px;border-bottom:1px solid var(--color-divider)}
   html.lg-new .ikn-lg .ikn-lg-s:last-child{border-bottom:0;padding-bottom:0}
@@ -26473,7 +26474,7 @@
   html.lg-new #ct-place .ct-wall .igw-card.is-nl .igw-ln{height:60px;margin-top:8px;background:linear-gradient(var(--color-neutral-200),var(--color-neutral-200)) 0 0/40% 4px no-repeat,linear-gradient(var(--color-neutral-200),var(--color-neutral-200)) 0 13px/100% 4px no-repeat,linear-gradient(var(--color-neutral-200),var(--color-neutral-200)) 0 26px/100% 4px no-repeat,linear-gradient(var(--color-neutral-200),var(--color-neutral-200)) 0 39px/100% 4px no-repeat,linear-gradient(var(--color-neutral-200),var(--color-neutral-200)) 0 52px/100% 4px no-repeat}
   /* THE PANEL (.ctls): no cards, no money; sections parted by a hairline; the dock's head row and trail are not drawn */
   /* EVERY JAMBO PANEL HAS ITS MINIMISE BUTTON (owner, 22 Nov 2026: "drawdown should have a minimize button for jambo panel. review the whole hati and ensure all the jambo panels do have the minimize button"): a panel drawn with no head row keeps the row for its arrow alone; its tabs stay off, as drawn */
-  html.lg-new #ig-dock:has(.ctls) > .pd-trail,html.lg-new #ig-dock:has(.ctls) > .igd-head > :not(#igd-collapse, .flex-1){display:none}
+  html.lg-new #ig-dock:has(.ctls) > .pd-trail,html.lg-new #ig-dock:has(.ctls) > .igd-head > :where(div,span,button,a,i,b,em,strong,small,h1,h2,h3,h4,h5,h6,p,svg,label,input,select,textarea,section,nav,aside,header,footer,ul,ol,li,img,form,details,summary,table,canvas,time,kbd,mark,figure,output,progress,meter):not(#igd-collapse, .flex-1){display:none}
   html.lg-new #ig-dock:has(.ctls) .ca-back{display:none}
   html.lg-new .ctls{display:flex;flex-direction:column;gap:14px;padding:18px 0 8px;font-size:13px;color:var(--color-text)}
   html.lg-new .jov5[data-jov-slot="ctls"]{gap:14px;min-height:0}
@@ -26519,7 +26520,7 @@
   html.lg-new .ctls .ctls-tl small{font-size:12.5px;color:var(--color-neutral-400)}
   /* OUR PAPER, AS DRAWN (P-34): the side panel has no head row (no Overview tab), as the other rebuilt list pages */
   /* EVERY JAMBO PANEL HAS ITS MINIMISE BUTTON (owner, 22 Nov 2026: "drawdown should have a minimize button for jambo panel. review the whole hati and ensure all the jambo panels do have the minimize button"): a panel drawn with no head row keeps the row for its arrow alone; its tabs stay off, as drawn */
-  html.lg-new :is(#ins-panel,#mig-side):has(.jov5:is([data-jov-slot="tpln"],[data-jov-slot="ld"],[data-jov-slot="mign"])) .jl-head > :not(.jl-fold, .jl-sp){display:none}
+  html.lg-new :is(#ins-panel,#mig-side):has(.jov5:is([data-jov-slot="tpln"],[data-jov-slot="ld"],[data-jov-slot="mign"])) .jl-head > :where(div,span,button,a,i,b,em,strong,small,h1,h2,h3,h4,h5,h6,p,svg,label,input,select,textarea,section,nav,aside,header,footer,ul,ol,li,img,form,details,summary,table,canvas,time,kbd,mark,figure,output,progress,meter):not(.jl-fold, .jl-sp){display:none}
   /* AN HONEST FILTER (owner, 22 Nov 2026): the list pages' top box only narrows its list, so it wears the magnifying glass,
      quiet and drawn in line as Obligations' "Filter" box, never Jambo's green filled spark (his box at the panel's foot
      asks). One closing rule, scoped above every page's own spark rule (the #ct-place one included), with no importance flag (scope wins the fight) */
@@ -27188,7 +27189,7 @@
   html.lg-new:not(#_) #na-root .na6-np-card b{display:block;font-size:14px;font-weight:var(--w-label);color:var(--color-text)}
   html.lg-new:not(#_) #na-root .na6-np-card b + span{display:block;font-size:12.5px;line-height:1.4;color:var(--color-neutral-400)}
   /* EVERY JAMBO PANEL HAS ITS MINIMISE BUTTON (owner, 22 Nov 2026: "drawdown should have a minimize button for jambo panel. review the whole hati and ensure all the jambo panels do have the minimize button"): a panel drawn with no head row keeps the row for its arrow alone; its tabs stay off, as drawn */
-  html.lg-new:not(#_) #ig-dock:has(.jov5[data-jov-slot="na6"]) > .igd-head > :not(#igd-collapse, .flex-1){display:none}
+  html.lg-new:not(#_) #ig-dock:has(.jov5[data-jov-slot="na6"]) > .igd-head > :where(div,span,button,a,i,b,em,strong,small,h1,h2,h3,h4,h5,h6,p,svg,label,input,select,textarea,section,nav,aside,header,footer,ul,ol,li,img,form,details,summary,table,canvas,time,kbd,mark,figure,output,progress,meter):not(#igd-collapse, .flex-1){display:none}
   html.lg-new:not(#_) #ig-dock .na6-p .jov5{display:flex;flex-direction:column;gap:14px;padding-top:6px}
   html.lg-new:not(#_) #ig-dock .na6-p .na6-pb{margin:0 0 -6px}
   html.lg-new:not(#_) #ig-dock .na6-p .na6-badge{display:inline-flex;align-items:center;padding:1px 7px;border-radius:6px;font-size:12px;line-height:1.6;font-weight:var(--w-label);white-space:nowrap}

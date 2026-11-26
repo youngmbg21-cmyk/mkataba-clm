@@ -11611,11 +11611,17 @@ function sddHeadHtml(admin){
 function sddAskPh(a){ return a?i18t('sdd_find_in',{ area:i18t('sdd_a_'+a) }):i18t('sdd_find_ph'); }
 function sddMainHtml(admin){ return _sddArea?sddAreaHtml(admin,_sddArea):sddHomeHtml(admin); }
 /* the list alone (a find, a choice): the head, the box and the panel stand; the box keeps its words and its caret */
-function sddListPaint(){ const m=document.getElementById('stn-main'); if(!m) return; m.innerHTML=sddMainHtml(stIsAdmin()); }
+/* NOTHING CHANGED, NOTHING WRITTEN (owner, 26 Nov 2026: "slow to respond by a second or two"): each late reading (the
+   phone's alerts, the lessons, the engine's limits) drew the head, the list and the panel again, about ten times in one
+   visit to Settings, and every drawing made the browser lay the page out anew. What would read the same is not written;
+   any doubt (something else wrote into it since) writes */
+function sddPut(el, html){ if(el._sddHtml===html&&el.firstChild&&el.innerHTML===el._sddSer) return false;
+  el.innerHTML=html; el._sddHtml=html; el._sddSer=el.innerHTML; return true; }
+function sddListPaint(){ const m=document.getElementById('stn-main'); if(!m) return; sddPut(m, sddMainHtml(stIsAdmin())); }
 /* a reading that lands late (the engine's limits, the lessons) redraws the head, the list and the panel; the box keeps its words and caret */
 function sddRepaint(){
   const h=document.getElementById('sdd-head'); if(h){ const q=document.getElementById('sdd-q'), had=q&&document.activeElement===q, pos=had?q.selectionStart:0;
-    h.innerHTML=sddHeadHtml(stIsAdmin()); if(had){ const n=document.getElementById('sdd-q'); if(n){ n.focus({ preventScroll:true }); try{ n.setSelectionRange(pos,pos); }catch(_){} } } }
+    if(sddPut(h, sddHeadHtml(stIsAdmin()))&&had){ const n=document.getElementById('sdd-q'); if(n){ n.focus({ preventScroll:true }); try{ n.setSelectionRange(pos,pos); }catch(_){} } } }
   sddListPaint(); stnPanelPaint();
 }
 function sddGo(area, pick){

@@ -59,10 +59,21 @@ function insForce(v){ _insForce = (v === true || v === false) ? v : null; }
    opens OVER the page (is-narrow-over, the slider's own is-split-over with --jl-room the strip's width) and Esc or a
    press outside folds it again. Below INS_NARROW_MIN the page is the phone's or the old narrow one, as before. */
 const INS_NARROW_MIN = 720;
+/* MEASURED ONCE A TURN (owner, 26 Nov 2026: "why is hati slow to respond by a second or two"): the room is the page's
+   width plus the column Jambo's panel took, so it holds still while the panel opens, folds or slides; only the window
+   moves it. Every panel paint asked it again, and each ask between two writes made the browser lay the whole page out
+   anew (Settings: about seventeen times in one move). Now the first ask in a turn measures, the rest of that turn reads
+   the same number; a resize, or the next turn, measures afresh. Nothing measured (no page yet) is never kept. */
+let _insRoomNow = null;
+function insRoomForget(){ _insRoomNow = null; }
 function insRoom(){
+  if (_insRoomNow !== null) return _insRoomNow;
   const el = (typeof document !== 'undefined') ? document.getElementById('content') : null;
-  return el ? el.clientWidth + jlReserved() : 0;
+  const w = el ? el.clientWidth + jlReserved() : 0;
+  if (w > 0 && el.clientWidth > 0 && typeof setTimeout === 'function'){ _insRoomNow = w; setTimeout(insRoomForget, 0); }
+  return w;
 }
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('resize', insRoomForget, true);
 function insNarrow(){
   if (_insForce !== null) return false;
   const w = insRoom(); return w >= INS_NARROW_MIN && w < INS_MIN_W;
@@ -1286,7 +1297,7 @@ function jlLayout(){
   jlNarrowApply();
   const ph = document.getElementById('page-head');
   let top = 0; try { top = ph ? Math.round(ph.getBoundingClientRect().top) : 0; } catch (_){ top = 0; }
-  if (top > 0) h.style.setProperty('--jl-top', top + 'px');
+  if (top > 0 && h.style.getPropertyValue('--jl-top') !== top + 'px') h.style.setProperty('--jl-top', top + 'px');
   const rez = h.querySelector(':scope > #jl-resizer');
   if (typeof splitWire === 'function') splitWire(rez, JL_SPLIT);
   /* the panel is laid out now: a list that spread its grey line into columns asks again (listSpread) */
@@ -1397,13 +1408,14 @@ function jlFrame(host, opt){
 function jlHeadPaint(host, opt, holds){
   const w = host.querySelector('[data-jl-word]');
   const word = holds ? (opt.jlWord || i18t(opt.c ? 'jl_w_contract' : 'jl_w_item')) : (opt.jlHome || jlPageWord());
-  if (w){ w.textContent = word; w.setAttribute('title', word); }
-  const b = host.querySelector('[data-jl-back]'); if (b) b.hidden = !holds;
+  if (w){ if (w.textContent !== word) w.textContent = word; if (w.getAttribute('title') !== word) w.setAttribute('title', word); }
+  const b = host.querySelector('[data-jl-back]'); if (b && b.hidden !== !holds) b.hidden = !holds;
   /* a page may count its own tab, as drawn (Negotiations: its live ones; round 7) */
   /* ONE VOICE (the harmony review, owner's yes 9 Nov 2026): in the new look the tab carries a number only when the page
      counts its own list (tabCount); the needs-you total is the bell's and Home's, never a stranger on every page */
   const n = opt.jlTabWord ? 0 : (opt.tabCount != null ? Number(opt.tabCount) || 0 : ((typeof window.newLookOn === 'function' && newLookOn()) ? 0 : jlCount()));
-  host.querySelectorAll('[data-jl-n]').forEach(el => { el.hidden = !n; el.textContent = n > 99 ? '99+' : String(n); });
+  const ns = n > 99 ? '99+' : String(n);
+  host.querySelectorAll('[data-jl-n]').forEach(el => { if (el.hidden !== !n) el.hidden = !n; if (el.textContent !== ns) el.textContent = ns; });
 }
 /* A CHOSEN ROW'S OWN TAB AND LINKS (the new look's Approvals, round 5, as drawn): the landing tab may carry the
    row's own word ("Before you decide") and a second tab that is an existing door ("Dossier"); its own links stand
@@ -1558,7 +1570,9 @@ function jlTalkLand(){
 function jlGreetPut(host, on){
   const g = host && host.querySelector('[data-jl-greet]'); if (!g) return;
   if (typeof on === 'string' && on){ const b = host.querySelector(':scope > .jl-body'); if (b) b.innerHTML = on; }
-  g.innerHTML = on ? (typeof jamboHelloHtml === 'function' ? jamboHelloHtml() : '') : '';
+  /* nothing changed, nothing written (26 Nov 2026): the same greeting is not laid down again on every panel paint */
+  const gh = on ? (typeof jamboHelloHtml === 'function' ? jamboHelloHtml() : '') : '';
+  if (g._jlGreet !== gh || g.innerHTML !== g._jlGreetSer){ g.innerHTML = gh; g._jlGreet = gh; g._jlGreetSer = g.innerHTML; }
 }
 function jlTalkShows(){ return typeof jamboTalkShows === 'function' && jamboTalkShows(jlTalkKey()); }
 function jlTalkHtml(){
@@ -2022,5 +2036,5 @@ Object.assign(window, { jlPagePh, JL_PAGE_ASKS, INS_MIN_W, INS_ASKS_MAX, INS_LAT
   insHeadHtml, insParties, insPartiesHtml, insNeedsHtml, insNeedsLineHtml, insNeedWords, INS_NEED_VERB, INS_NEED_GO, insPanelHtml, insPanelEmptyHtml, insPaintPanel, insCloseMenu, insMarkRow, insListWire,
   insListOff, insWatchWidth, insActsHtml, insMoreHtml, insDoorActs, insNegoDoorState, insMenuItemHtml, insItemHeadHtml, INS_TONE, insKvHtml, insChipHtml, insViewTabsHtml,
   INS_PAGE_REPAINT, insLetGo, insLetGone, insActBtnHtml, insRowsHtml, JL_READ_ORDER, jlReadsHtml, jlReadSaid,
-  INS_NARROW_MIN, insRoom, insNarrow, jlNarrowApply, jlPageWideSet, jlPageWideNow, JL_W, JL_FOLDED, JL_MIN, JL_LIST_MIN, JL_FLEX_MIN, JL_SPLIT_KEY, JL_SPLIT, jlListMin, jlWidthNow, jlFolded, jlFoldSet, jlHost, jlOnScreen, jlReserved, jlLayout, jlCount, jlAskHtml, jlFrame, jlHeadPaint, jlWordsHtml, jlNeedsHtml,
+  INS_NARROW_MIN, insRoom, insRoomForget, insNarrow, jlNarrowApply, jlPageWideSet, jlPageWideNow, JL_W, JL_FOLDED, JL_MIN, JL_LIST_MIN, JL_FLEX_MIN, JL_SPLIT_KEY, JL_SPLIT, jlListMin, jlWidthNow, jlFolded, jlFoldSet, jlHost, jlOnScreen, jlReserved, jlLayout, jlCount, jlAskHtml, jlFrame, jlHeadPaint, jlWordsHtml, jlNeedsHtml,
   JL_LAND, jlLand, jlPageWord, jlToWords, jlTalkKey, jlTalkLand, jlGreetPut, jlTalkShows, jlTalkHtml, jlTalkPaint, jlTalkOpen, jlTalkPress, jlTalkSync, jlTalkBack, jlHeldContract, jlBoardReads, jlIsQuestion, jlBusySay, jlSayFound, jlSayBoard, jlAsk, jlMapCard, jlFocus, jlPopRead, jlPopClose, jlPopTake, jlDayWord, jlDayRange, jlAwayOf });
