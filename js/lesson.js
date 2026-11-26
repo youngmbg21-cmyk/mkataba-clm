@@ -290,7 +290,8 @@ function _lnFig(n, b){
   return String(n);
 }
 /* EVERY DRAWING IS A TABLE (owner, 27 Nov 2026: "The tables are not structured or in tables. This is very
-   unprofessional"): a card with a head row naming its columns, a rule between rows, figures in one right column.
+   unprofessional"): a white card with a head row naming its columns and figures in one right column; no grey
+   shading and no lines inside it (the owner, the same day: "keep them white", "Remove the grey lines inside the charts").
    The heads follow the reading (`b.what`; a money step's count twin names its own). */
 const LS_HEADS = { stages: ['ls_h_stage', 'ls_h_contracts'], stages_value: ['ls_h_stage', 'ls_h_value'], ending_months: ['ls_h_month', 'ls_h_contracts'],
   ending_value: ['ls_h_month', 'ls_h_value'], duties_split: ['ls_h_whose', 'ls_h_duties'], duties_months: ['ls_h_due', 'ls_h_duties'], risk: ['ls_h_risk', 'ls_h_contracts'],
@@ -557,13 +558,12 @@ const LS_CSS = `
 .lsn-nomoney .ui-link{ font-size:12.5px; }
 .lsn-bd{ min-width:0; }
 .lsn-card{ border:1px solid var(--color-divider); border-radius:var(--radius); background:var(--color-surface); overflow:hidden; }
-.lsn-thd{ display:grid; grid-template-columns:minmax(0,36%) minmax(0,1fr) var(--lsn-vw,6ch); gap:10px; align-items:center; padding:6px 12px; background:var(--color-surface); border-bottom:1px solid var(--color-divider); font-size:11.5px; color:var(--color-quiet); white-space:nowrap; }
+.lsn-thd{ display:grid; grid-template-columns:minmax(0,36%) minmax(0,1fr) var(--lsn-vw,6ch); gap:10px; align-items:center; padding:6px 12px; background:var(--color-surface); font-size:11.5px; color:var(--color-quiet); white-space:nowrap; }
 .lsn-thd span{ overflow:hidden; text-overflow:ellipsis; }
 .lsn-thd .is-r{ text-align:right; }
 .lsn-thd.is-two, .lsn-thd.is-lg{ grid-template-columns:minmax(0,1fr) var(--lsn-vw,auto); }
 .lsn-bars{ display:block; }
 .lsn-br{ display:grid; grid-template-columns:minmax(0,36%) minmax(0,1fr) var(--lsn-vw,6ch); align-items:center; gap:10px; min-height:30px; padding:0 12px; font-size:12.5px; }
-.lsn-br + .lsn-br{ border-top:1px solid var(--color-divider); }
 .lsn-n{ color:var(--color-quiet); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:color var(--dur-2) var(--ease); }
 .lsn-t{ position:relative; height:12px; min-width:0; }
 .lsn-f{ position:absolute; left:0; top:0; bottom:0; display:block; }
@@ -576,17 +576,16 @@ const LS_CSS = `
 .lsn-tbl th:first-child, .lsn-tbl td:first-child{ padding-left:12px; }
 .lsn-tbl th:last-child, .lsn-tbl td:last-child{ padding-right:12px; }
 .lsn-tbl thead th{ background:var(--color-surface); font-size:11.5px; }
-.lsn-tbl tbody tr:last-child td{ border-bottom:0; }
 .lsn-tbl table{ width:100%; border-collapse:collapse; font-size:12.5px; table-layout:auto; }
-.lsn-tbl th{ font-weight:var(--w-body); color:var(--color-quiet); text-align:left; padding:6px 8px 6px 0; border-bottom:1px solid var(--color-divider); white-space:nowrap; }
-.lsn-tbl td{ padding:7px 8px 7px 0; border-bottom:1px solid var(--color-divider); vertical-align:top; color:var(--color-text); overflow-wrap:anywhere; }
+.lsn-tbl th{ font-weight:var(--w-body); color:var(--color-quiet); text-align:left; padding:6px 8px 6px 0; white-space:nowrap; }
+.lsn-tbl td{ padding:7px 8px 7px 0; vertical-align:top; color:var(--color-text); overflow-wrap:anywhere; }
 .lsn-tbl .is-r{ text-align:right; white-space:nowrap; padding-right:0; }
 .lsn-tbl tbody tr{ opacity:0; animation:lsn-rise .35s ease-out forwards; transition:background-color var(--dur-2) var(--ease); }
 .lsn-tbl tr.is-hot td{ color:var(--st-ruby-fg); }
 .lsn-tbl tr.is-lit{ background:var(--row-chosen); }
 .lsn-sub{ display:block; color:var(--color-quiet); font-size:11.5px; }
 .lsn-ring{ display:block; }
-.lsn-ring-pic{ display:flex; justify-content:center; padding:12px 12px 10px; border-bottom:1px solid var(--color-divider); }
+.lsn-ring-pic{ display:flex; justify-content:center; padding:12px 12px 10px; }
 .lsn-ring svg{ width:112px; height:112px; display:block; }
 .lsn-cover{ stroke:var(--color-surface); stroke-dashoffset:0; animation:lsn-sweep .9s cubic-bezier(.4,.1,.2,1) forwards; }
 .lsn-mid{ font-size:18px; font-weight:var(--w-strong); fill:var(--color-text); }
@@ -594,13 +593,12 @@ const LS_CSS = `
 .lsn-bd.has-lit .lsn-arc:not(.is-lit){ opacity:.3; }
 .lsn-lg{ display:block; font-size:12.5px; min-width:0; }
 .lsn-li{ display:grid; grid-template-columns:8px minmax(0,1fr) var(--lsn-vw,auto); gap:8px; align-items:center; min-height:30px; padding:0 12px; min-width:0; opacity:0; animation:lsn-fade .3s forwards; }
-.lsn-li + .lsn-li{ border-top:1px solid var(--color-divider); }
 .lsn-li i{ width:8px; height:8px; border-radius:50%; flex:none; }
 .lsn-li span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--color-quiet); }
 .lsn-li b{ text-align:right; font-weight:var(--w-body); font-variant-numeric:tabular-nums; color:var(--color-text); }
 .lsn-bd.has-lit .lsn-li.is-lit span{ color:var(--color-text); font-weight:var(--w-strong); }
 .lsn-line{ min-width:0; }
-.lsn-plot{ position:relative; height:120px; margin:22px 16px 0; border-bottom:1px solid var(--color-divider); }
+.lsn-plot{ position:relative; height:120px; margin:22px 16px 0; }
 .lsn-wipe{ position:absolute; inset:0; clip-path:inset(0 100% 0 0); animation:lsn-wipe 1.1s ease-out forwards; }
 .lsn-wipe svg{ position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
 .lsn-wipe polyline{ stroke:var(--accent-ink); stroke-width:2.5px; stroke-linejoin:round; }
