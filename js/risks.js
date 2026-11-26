@@ -1180,6 +1180,6 @@ if (typeof document !== 'undefined' && document.addEventListener && !document._r
 Object.assign(window, { riskTitleOf, riskWalkTo, riskSevWord,
   riskItemsOf, riskOpenOf, riskKeyOf, riskKeyDismissed, riskFromScan, riskDismiss, riskIsAdvice, riskNeedsWording, RK_NEEDS_WORDING,
   riskNote, riskMayAct, rlRisksPileHtml, riskMarkFootHtml,
-  riskCoverOf, riskEditTarget, riskClauseOf, riskGoClause, riskEditStart, riskWalkStep, riskWalkEnd, riskWalkInfo, riskWalkPress, riskFiled, riskWherePick,
+  riskCoverOf, riskCoverCtx: _rkCoverCtx, riskEditTarget, riskClauseOf, riskGoClause, riskEditStart, riskWalkStep, riskWalkEnd, riskWalkInfo, riskWalkPress, riskFiled, riskWherePick,
   riskProvenance, riskSecondRedline, riskEditorDraft, riskEditorArrive, riskLaneHtml, riskAnswerOf, riskChipsHtml, riskWhereHtml, riskWhyOf,
 });
