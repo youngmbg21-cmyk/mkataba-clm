@@ -33,7 +33,8 @@ test('f1033 (2) a clause with a change open on it offers no blank, read RAW', ()
   const m = region(P, 'pd2NegoMark');
   /* RE-POINTED 13 Nov 2026 (f1036): the front part is a region too; a region with a change open, or drawn changed, is skipped */
   assert.match(m, /changed: sec\.classList\.contains\('is-changed'\)/);
-  assert.match(m, /argued\.has\(String\(id\)\) \|\| changed\) return;/);
+  /* RE-POINTED 26 Nov 2026 (f1243: our own Fill in change gives its spaces back): any other changed region is still skipped */
+  assert.match(m, /if \(argued\.has\(String\(id\)\) \|\| changed\)\{\s*own = pd2NegoOwnFill\(c, id\); if \(!own\) return;/);
   assert.doesNotMatch(region(P, 'pd2NegoRead'), /negoInit|negoClauseNowById|pd2NegoMark/, 'reading paints and writes nothing');
 });
 test('f1033 (3) the fill walk takes the negotiated paper\'s marks and nothing else of it', () => {
@@ -48,13 +49,15 @@ test('f1033 (3) the fill walk takes the negotiated paper\'s marks and nothing el
 });
 test('f1033 (4) Save files through the one door as our change, never quietly', () => {
   const save = region(P, 'pd2FillSave');
-  assert.match(save, /const nego = moved\.filter\(x => x\.b\.kind === 'nego' && x\.v\);/);
+  /* RE-POINTED 26 Nov 2026 (f1243): a cleared answer counts too */
+  assert.match(save, /const nego = moved\.filter\(x => x\.b\.kind === 'nego' && \(x\.v \|\| String\(_pd2Fill\.was\[x\.b\.key\] \|\| ''\)\.trim\(\)\)\);/);
   assert.ok(save.indexOf('pd2FillSaveNego(c, nego, rest)') < save.indexOf('contractBlankSet('), 'handed on before any blank is written');
   const f = region(P, 'pd2NegoFile');
-  assert.match(f, /await negoFileFilledClause\(c, clauseId, host\.innerHTML, _pdT\('pd2_nb_note'\)\)/);
+  assert.match(f, /await negoFileFilledClause\(c, clauseId, host\.innerHTML, _pdT\('pd2_nb_note'\), fill\)/);
   /* the door and the save live in the negotiation's own file: the desk never saves (f563) */
   const N = stripCom(read('js/negotiation.js'));
-  assert.match(region(N, 'negoFileFilledClause'), /await negoEditClause\(c, clauseId, bodyHtml, \{ side: 'owner', quiet: true, note \}\);\n\s*if \(ch && window\.persist\) persist\(c\);/);
+  /* RE-POINTED 26 Nov 2026 (f1243): the door stamps Fill in's answers on the change before it saves */
+  assert.match(region(N, 'negoFileFilledClause'), /await negoEditClause\(c, clauseId, bodyHtml, \{ side: 'owner', quiet: true, note \}\);[\s\S]*live\.fill = Object\.assign\(\{\}, fill\);[\s\S]*if \(ch && window\.persist\) persist\(c\);/);
   assert.match(f, /const cl = negoClauseNowById\(c, clauseId\);/, 'from the clause as it stands');
   assert.match(f, /if \(!cl \|\| hits\.some\(h => !h\.at\)\) why = _pdT\('pd2_nb_moved'\);/, 'a blank not found again refuses the clause');
   assert.doesNotMatch(f, /contractBlankSet|redlineText\s*=|\.bodyHtml\s*=|persist\(/, 'nothing written but through the door');

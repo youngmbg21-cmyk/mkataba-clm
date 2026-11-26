@@ -125,12 +125,15 @@ const focusOf = () => { const a = document.activeElement; return a ? (a.getAttri
         const on = await until(page, () => !!document.querySelector('#ig-canvas [data-pd2-bl="material"]'), null, 8000);
         if (on){
           await page.click('#ig-canvas [data-pd2-bl="material"]'); await page.keyboard.type('chilled cream');
-          await page.click('[data-pd2-fill-discard]');
-          const asked = await page.evaluate(() => ({ head: !!document.getElementById('pd2-fill-head'), word: (document.querySelector('[data-pd2-fill-discard]') || {}).textContent || '' }));
-          await page.click('[data-pd2-fill-discard]');
-          const gone = await until(page, () => !document.getElementById('pd2-fill-head'), null, 5000);
+          /* RE-POINTED 26 Nov 2026 (owner: no Save or Stop on Fill in's bar; leaving asks "Save or Discard"): moving away
+             with something typed asks once in the middle; Discard ends it and nothing is saved */
+          const noBtns = await page.evaluate(() => !document.querySelector('#pd2-fill-head [data-pd2-fill-save], #pd2-fill-head [data-pd2-fill-discard]'));
+          await page.evaluate(() => caGo({ kind: 'go', place: 'board' }));
+          const asked = await until(page, () => (document.querySelector('#modal-root [data-pd2-fl-stop]') || {}).textContent || null, null, 5000);
+          await page.click('#modal-root [data-pd2-fl-stop]');
+          const gone = await until(page, () => !document.getElementById('pd2-fill-head') && !pd2FillOn('MK-FP4'), null, 5000);
           const kept = await page.evaluate(() => (getContract('MK-FP4').fields || {}).material || '');
-          check('7 Stop with something typed asks again in its own words; a second press leaves and nothing is saved', asked.head && /without saving/i.test(asked.word) && gone && !kept, { asked, kept });
+          check('7 no Save or Stop on the bar; leaving with something typed asks Save or Discard; Discard keeps nothing', noBtns && /discard/i.test(String(asked)) && gone && !kept, { noBtns, asked, kept });
         } else check('7 Stop asks again (the filling never opened)', false);
       } else check('7 Stop asks again (the card never came)', false);
       await page.close();

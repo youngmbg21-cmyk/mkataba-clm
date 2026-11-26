@@ -161,11 +161,11 @@ const WATCH = () => { window._walk = {}; const tick = () => {
     /* RE-POINTED 17 Nov 2026 (#762): the Save hands back to the paper still filling in its own spaces (the signature
        lines, pd2FillStart); the signers are named at signing (stage 5), so the reader stops filling in (Stop,
        data-pd2-fill-discard) and the paper's line, with its Share, is back */
-    if (id && await page.$('[data-pd2-fill-discard]')) {
+    /* RE-POINTED 26 Nov 2026 (owner: no Save or Stop on Fill in's bar): the reader stops filling in through its one stop */
+    if (id && await page.$('#pd2-fill-head')) {
       await page.waitForTimeout(400);
-      await page.click('[data-pd2-fill-discard]', { timeout: 4000 }).catch(() => {});
-      await page.evaluate(() => { const ok = document.querySelector('#confirm-overlay #cf-ok'); if (ok) ok.click(); });
-      await waitFor(page, () => !document.querySelector('[data-pd2-fill-discard]') && !!document.querySelector('#ig-strip #ws-share'), 5000);
+      await page.evaluate(() => pd2FillStop());
+      await waitFor(page, () => !document.getElementById('pd2-fill-head') && !!document.querySelector('#ig-strip #ws-share'), 5000);
     }
     check('2 every owed box is filled in beside the paper, nothing owed after', left0 > 0 && filled && await page.evaluate(() => state.view === 'dashboard'),
       JSON.stringify({ before: left0, open: id && await page.evaluate(i => detailsOf(getContract(i)).items.filter(x => x.open).map(x => x.key), id),

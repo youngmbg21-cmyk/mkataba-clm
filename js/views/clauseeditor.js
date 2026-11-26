@@ -334,6 +334,9 @@ function clauseEditorCss(){
     font-family:var(--font-body, inherit)}
   #clause-editor[hidden]{display:none}
   #clause-editor.is-theirs .ce-grid{grid-template-columns:minmax(0,1fr)}
+  /* as a tab the divider is the Dossier's own grip (#ce-tab-resizer, ceTabSplitWire); the editor's stands down */
+  #clause-editor.is-tabbed #ce-resizer{display:none}
+  #clause-editor:not(.is-tabbed) #ce-tab-resizer{display:none}
   #clause-editor.is-theirs .ce-grid > .rl-resizer{display:none}
   #clause-editor.is-theirs .ce-rail{position:fixed; z-index:39; min-height:0; border-left:0;
     border-top:1px solid var(--color-divider)}
@@ -2216,8 +2219,12 @@ function ceFitSplit(scope){
   let { left, limit } = ceSplit(avail);
   /* AS A TAB, THE DOSSIER PANEL'S OWN WIDTH (owner, 24 Nov 2026: "they change shape when you get to editor"): the side is the
      width the Dossier's panel stands at (igDockWidth, --ce-tab-rail written by ceTabPaint), so pressing Editor moves nothing */
+  /* …and moved by the DOSSIER'S OWN DIVIDER (owner, 26 Nov 2026: "Simply copy what has been done in the dossier tab"):
+     ceTabSplitWire writes the width (--ce-tab-rail) and, past the mark, how far the side lies over the page
+     (--ce-tab-over), as the Dossier's panel slides over its paper */
   if (ceTabbed()){ const pg = document.getElementById('clause-editor'); const dw = pg ? parseInt(pg.style.getPropertyValue('--ce-tab-rail'), 10) : 0;
-    if (dw >= 300 && avail - dw >= CE_LEFT_MIN){ left = avail - dw; limit = null; } }
+    const ov = pg ? (parseInt(pg.style.getPropertyValue('--ce-tab-over'), 10) || 0) : 0;
+    if (dw >= 300 && avail - dw + ov >= CE_LEFT_MIN){ left = avail - dw + ov; limit = null; } }
   grid.style.gridTemplateColumns = left + 'px minmax(0,1fr)';
   rez.style.left = left + 'px';
   /* AND IT SAYS WHEN IT WILL NOT GO FURTHER. Reaching a limit is legitimate;
@@ -2245,25 +2252,8 @@ function ceWireSplit(){
     const avail = Math.max(1, _ceAvail(grid));    /* property 1 */
     return clamp(((x + grabDx) - r.left) / avail);
   };
-  /* AS A TAB THE DIVIDER MOVES THE ONE PANEL WIDTH (owner, 26 Nov 2026: "the divider in the editor tab does not allow for
-     minimizing and expansion like all other panels"): the side is the Dossier panel's width (ceFitSplit), so a drag here
-     writes THAT width (the Dossier slider's own store, IG_SPLIT_KEY) and the rail with it; back on the Dossier the panel
-     stands where it was left here. Never narrower than the Dossier panel's least, never past the page's least. */
-  const tabRailSet = dw => {
-    const pg = document.getElementById('clause-editor'); if (!pg) return;
-    const avail = Math.max(1, _ceAvail(grid)), least = (typeof window.IG_DOCK_MIN === 'number' ? window.IG_DOCK_MIN : 340);
-    const w = Math.round(Math.max(least, Math.min(avail - CE_LEFT_MIN, dw)));
-    try { localStorage.setItem(typeof window.IG_SPLIT_KEY === 'string' ? window.IG_SPLIT_KEY : 'hati.v1.igDockW', String(w)); } catch (_){}
-    pg.style.setProperty('--ce-tab-rail', w + 'px');
-    ceFitSplit(document);
-    /* the Dossier panel takes the same width now, so going back moves nothing */
-    try { if (typeof window.igFitSplit === 'function') window.igFitSplit(); } catch (_){}
-  };
-  const tabRailAt = x => { const r = grid.getBoundingClientRect(); return _ceAvail(grid) - ((x + grabDx) - r.left); };
-  const tabRailNow = () => { const pg = document.getElementById('clause-editor'); return pg ? parseInt(pg.style.getPropertyValue('--ce-tab-rail'), 10) || 0 : 0; };
   const onMove = e => {
     const x = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
-    if (ceTabbed()){ tabRailSet(tabRailAt(x)); return; }
     save(pointerFrac(x));                          /* property 2 */
     ceFitSplit(document);
   };
@@ -2283,19 +2273,15 @@ function ceWireSplit(){
      SAME layout, so there is no second opinion about where the split is. */
   rez.addEventListener('keydown', e => {
     if (e.key === 'Home' || e.key === 'Enter'){
-      e.preventDefault();
-      if (ceTabbed()){ tabRailSet(typeof window.IG_DOCK_W0 === 'number' ? window.IG_DOCK_W0 : 384); return; }
-      save(CE_F0); ceFitSplit(document); return;
+      e.preventDefault(); save(CE_F0); ceFitSplit(document); return;
     }
     const step = e.key === 'ArrowLeft' ? -0.02 : e.key === 'ArrowRight' ? 0.02 : 0;
     if (!step) return;
     e.preventDefault();
-    /* left widens the panel, as on every other divider */
-    if (ceTabbed()){ tabRailSet(tabRailNow() - step * Math.max(1, _ceAvail(grid))); return; }
     save(clamp(_ceLeftFrac() + step));
     ceFitSplit(document);
   });
-  rez.addEventListener('dblclick', () => { if (ceTabbed()){ tabRailSet(typeof window.IG_DOCK_W0 === 'number' ? window.IG_DOCK_W0 : 384); return; } save(CE_F0); ceFitSplit(document); });
+  rez.addEventListener('dblclick', () => { save(CE_F0); ceFitSplit(document); });
   /* Property 4. The layer's own fitter writes this page's BOX from the shell's
      scroller; this writes the grid's TRACKS. Different elements, different
      properties, no loop — and the first tells the second by resizing the grid. */
@@ -8422,10 +8408,7 @@ function ceTabPaint(){
   const row = pg.querySelector('.ce-barrow'), oldTag = row && row.querySelector('.ce-ttag'); if (oldTag) oldTag.remove();
   /* THE TABS DO NOT CHANGE SHAPE (owner, 24 Nov 2026: "they change shape when you get to editor"): the editor's side is
      the Dossier panel's own width, so the tab row stands where it stood, the same size */
-  try { const dw = typeof window.igDockWidth === 'function' ? Number(window.igDockWidth()) : 0;
-    const was = pg.style.getPropertyValue('--ce-tab-rail');
-    if (dw >= 300) pg.style.setProperty('--ce-tab-rail', Math.round(dw) + 'px'); else pg.style.removeProperty('--ce-tab-rail');
-    if (was !== pg.style.getPropertyValue('--ce-tab-rail')) ceFitSplit(); } catch (_){}
+  try { ceTabSplitWire(); } catch (_){}
   ceTabBarPlace();
 }
 /* THE WRITING BAR IS ONE WHITE BAR ACROSS THE TOP OF THE PAGE (owner, 25 Nov 2026: "build this bar to just be a white
@@ -8433,13 +8416,52 @@ function ceTabPaint(){
    page's left edge to the side panel, its tools in ONE line in its middle, and it stands still while the paper scrolls
    under it (it lives in .ce-left, outside #ce-doc's scroll). It never wraps: where the tools need more room than the bar
    has, the last of them fold into More (ceTabBarFold). */
+/* THE EDITOR TAB'S DIVIDER IS THE DOSSIER'S OWN (owner, 26 Nov 2026: "you have poorly fixed the slider in the editor page. It
+   is not the same approach for the other pages … Simply copy what has been done in the dossier tab plus the top bar always
+   has to be tied to the panel"): the same grip (splitHtml), the same wiring (splitWire) and the SAME handle (IG_SPLIT: its
+   width store, its floors, its slide over the page past the mark) — only where it measures and what it moves are the
+   editor's: the side's width (--ce-tab-rail), how far it lies over the page (--ce-tab-over), and the writing bar, which is
+   placed again on every move so it always ends at the panel's edge. The editor's own divider stands down on the tab. */
+function ceTabSplit(){
+  const D = (typeof window !== 'undefined' && window.IG_SPLIT) || null; if (!D) return null;
+  const grid = () => document.querySelector('#clause-editor .ce-grid');
+  return Object.assign({}, D, {
+    folded: () => false,
+    restMin: Math.max(Number(D.restMin) || 0, CE_LEFT_MIN),
+    avail: () => { const g = grid(); return g ? g.clientWidth : 0; },
+    edge: () => { const g = grid(); return g ? g.getBoundingClientRect().right : 0; },
+    apply: (w, over) => { const pg = document.getElementById('clause-editor'); if (!pg) return;
+      const rail = pg.querySelector('.ce-rail');
+      pg.style.setProperty('--ce-tab-rail', Math.round(w) + 'px');
+      if (over) pg.style.setProperty('--ce-tab-over', Math.round(over) + 'px'); else pg.style.removeProperty('--ce-tab-over');
+      if (rail){ rail.style.marginLeft = over ? (-Math.round(over)) + 'px' : ''; rail.classList.toggle('is-split-over', !!over); }
+      ceFitSplit(); ceTabBarPlace(); },
+    place: (rez, w) => { rez.style.left = ''; rez.style.right = (w - 14) + 'px'; },
+    dragging: () => {},
+    /* the Dossier's panel takes the same width, so going back moves nothing */
+    settle: () => { try { if (typeof window.igFitSplit === 'function') window.igFitSplit(); } catch (_){} },
+    resize: () => { try { ceTabSplitWire(); } catch (_){} }
+  });
+}
+let _ceTabSplit = null;
+function ceTabSplitWire(){
+  if (!ceTabbed() || typeof window.splitWire !== 'function' || typeof window.splitHtml !== 'function') return;
+  const grid = document.querySelector('#clause-editor .ce-grid'); if (!grid) return;
+  if (!_ceTabSplit) _ceTabSplit = ceTabSplit(); if (!_ceTabSplit) return;
+  let rez = grid.querySelector(':scope > #ce-tab-resizer');
+  if (!rez){ const box = document.createElement('div'); box.innerHTML = window.splitHtml({ id: 'ce-tab-resizer', min: _ceTabSplit.min });
+    rez = box.firstElementChild; grid.appendChild(rez); }
+  window.splitWire(rez, _ceTabSplit);
+}
 function ceTabBarPlace(){
   if (!ceTabbed()) return;
   const pg = document.getElementById('clause-editor'); if (!pg) return;
   const head = pg.querySelector('.ce-head'), doc = pg.querySelector('#ce-doc');
   const left = pg.querySelector('.ce-left');
   if (!head || !doc || !left) return;
-  const w = Math.round(left.clientWidth || left.getBoundingClientRect().width || 0);
+  /* the bar ends where the side panel starts: past the mark the side lies over the page (--ce-tab-over), and the bar stops at it */
+  const over = parseInt(pg.style.getPropertyValue('--ce-tab-over'), 10) || 0;
+  const w = Math.round((left.clientWidth || left.getBoundingClientRect().width || 0) - over);
   if (w > 0 && head.style.width !== w + 'px') head.style.width = w + 'px';
   if (head.style.transform) head.style.transform = '';
   ceTabBarFold(pg);
@@ -8551,7 +8573,7 @@ Object.assign(window, { ceTabOpenFor, ceTabOn, ceTabbed, ceTabNextId, ceTabPoint
   ceCostLine, ceWordCount, ceLines,
   ceRedlineHtml, ceCounts, ceReadList, ceRenderAll, ceRenderPaper,
   ceEditableReading, ceGoClause,
-  ceFitSplit, ceWireSplit, ceStacked, ceSplit, ceSplitLeft, CE_LEFT_MIN, CE_RIGHT_MIN, CE_FMIN, CE_FMAX, CE_SPLIT_KEY,
+  ceFitSplit, ceWireSplit, ceTabSplit, ceTabSplitWire, ceStacked, ceSplit, ceSplitLeft, CE_LEFT_MIN, CE_RIGHT_MIN, CE_FMIN, CE_FMAX, CE_SPLIT_KEY,
   ceLadderCardHtml, ceLadderLaneHtml, ceLadderRow,
   ceOfferPoints, cePointsPaint, ceRowMode, ceTrailOn, ceTrailRisk, ceRowTheirs, ceRowTitle, ceRowSub, ceRowHeadPaint, ceRowIsCounter, ceRowContextLine, ceRowPaperDress, ceRowCardsHtml, ceRowStdCard, ceRowAsks, ceRowBack, ceRowGo,
   ceMarksPaint, ceMarksClear, ceMarksOps, ceMarksMount, ceLiveTextNodes, ceCaretSave, ceCaretRestore, ceAtomSkip, ceAtomAt, ceDraftNow, CE_MARK_ATTR, CE_MARKS_MS, CE_PAINT_SEL,
