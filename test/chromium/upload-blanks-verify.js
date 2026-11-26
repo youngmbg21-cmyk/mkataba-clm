@@ -156,6 +156,9 @@ const SEEN = () => {
     /* RE-POINTED 26 Nov 2026 (f1246): the wording's own words as painted, and the file's own fields — what their paper
        carries, unmarked */
     wordingText: wording ? (wording.textContent || '') : '',
+    /* the paper's words wherever they are drawn: a redlined upload is drawn as the negotiation's paper, with no
+       [data-upwording] wrapper */
+    canvasText: canvas ? (canvas.textContent || '') : '',
     wfields: wording ? wording.querySelectorAll('span.hati-wfield').length : 0,
     wfDrawn: wording ? [...wording.querySelectorAll('span.hati-wfield')].filter(m => { const r = m.getBoundingClientRect(); return r.width > 1 && r.height > 1; }).length : 0,
     wfMarked: wording ? wording.querySelectorAll('span.hati-wfield.up-blank, span.hati-wfield[data-upblank], span.hati-wfield.is-filled').length : 0,
@@ -342,7 +345,7 @@ const CONTRACT = (id, over) => Object.assign({
     /* ============ 6. A REDLINED UPLOAD: THE SAME ============ */
     await openRoom(page, edited.id);
     const e = await page.evaluate(SEEN);
-    const eHas = !!e.wording && /Insert Company Name/.test(e.wordingText);
+    const eHas = e.canvas && /Insert Company Name/.test(e.canvasText);
     check('6a a redlined upload draws no placeholder mark', eHas && e.markKeys.length === 0,
       eHas ? (e.markKeys.join(', ') || 'none') : 'GATE: its wording with the placeholders is not on the page');
     check('6b and no box', eHas && e.boxKeys.length === 0, eHas ? (e.boxKeys.join(', ') || 'none') : 'GATE not met');
