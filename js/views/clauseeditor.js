@@ -2245,8 +2245,25 @@ function ceWireSplit(){
     const avail = Math.max(1, _ceAvail(grid));    /* property 1 */
     return clamp(((x + grabDx) - r.left) / avail);
   };
+  /* AS A TAB THE DIVIDER MOVES THE ONE PANEL WIDTH (owner, 26 Nov 2026: "the divider in the editor tab does not allow for
+     minimizing and expansion like all other panels"): the side is the Dossier panel's width (ceFitSplit), so a drag here
+     writes THAT width (the Dossier slider's own store, IG_SPLIT_KEY) and the rail with it; back on the Dossier the panel
+     stands where it was left here. Never narrower than the Dossier panel's least, never past the page's least. */
+  const tabRailSet = dw => {
+    const pg = document.getElementById('clause-editor'); if (!pg) return;
+    const avail = Math.max(1, _ceAvail(grid)), least = (typeof window.IG_DOCK_MIN === 'number' ? window.IG_DOCK_MIN : 340);
+    const w = Math.round(Math.max(least, Math.min(avail - CE_LEFT_MIN, dw)));
+    try { localStorage.setItem(typeof window.IG_SPLIT_KEY === 'string' ? window.IG_SPLIT_KEY : 'hati.v1.igDockW', String(w)); } catch (_){}
+    pg.style.setProperty('--ce-tab-rail', w + 'px');
+    ceFitSplit(document);
+    /* the Dossier panel takes the same width now, so going back moves nothing */
+    try { if (typeof window.igFitSplit === 'function') window.igFitSplit(); } catch (_){}
+  };
+  const tabRailAt = x => { const r = grid.getBoundingClientRect(); return _ceAvail(grid) - ((x + grabDx) - r.left); };
+  const tabRailNow = () => { const pg = document.getElementById('clause-editor'); return pg ? parseInt(pg.style.getPropertyValue('--ce-tab-rail'), 10) || 0 : 0; };
   const onMove = e => {
     const x = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+    if (ceTabbed()){ tabRailSet(tabRailAt(x)); return; }
     save(pointerFrac(x));                          /* property 2 */
     ceFitSplit(document);
   };
@@ -2266,15 +2283,19 @@ function ceWireSplit(){
      SAME layout, so there is no second opinion about where the split is. */
   rez.addEventListener('keydown', e => {
     if (e.key === 'Home' || e.key === 'Enter'){
-      e.preventDefault(); save(CE_F0); ceFitSplit(document); return;
+      e.preventDefault();
+      if (ceTabbed()){ tabRailSet(typeof window.IG_DOCK_W0 === 'number' ? window.IG_DOCK_W0 : 384); return; }
+      save(CE_F0); ceFitSplit(document); return;
     }
     const step = e.key === 'ArrowLeft' ? -0.02 : e.key === 'ArrowRight' ? 0.02 : 0;
     if (!step) return;
     e.preventDefault();
+    /* left widens the panel, as on every other divider */
+    if (ceTabbed()){ tabRailSet(tabRailNow() - step * Math.max(1, _ceAvail(grid))); return; }
     save(clamp(_ceLeftFrac() + step));
     ceFitSplit(document);
   });
-  rez.addEventListener('dblclick', () => { save(CE_F0); ceFitSplit(document); });
+  rez.addEventListener('dblclick', () => { if (ceTabbed()){ tabRailSet(typeof window.IG_DOCK_W0 === 'number' ? window.IG_DOCK_W0 : 384); return; } save(CE_F0); ceFitSplit(document); });
   /* Property 4. The layer's own fitter writes this page's BOX from the shell's
      scroller; this writes the grid's TRACKS. Different elements, different
      properties, no loop — and the first tells the second by resizing the grid. */

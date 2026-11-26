@@ -1360,6 +1360,8 @@ function viewPaint(what, fn){
 }
 let _roomByName=null;   /* the contract whose room was opened BY NAME (openWorkspace's opts.room, step 8) */
 function setView(view){
+  /* a page left while Fill in stood: read once it has landed (pd2FillLeaveSoon) */
+  if(typeof window.pd2FillLeaveSoon==='function') try{ window.pd2FillLeaveSoon(); }catch(_){}
   /* a figure's list on the Board goes with the page it lay over (hbSheetLetGo) */
   if(typeof window!=='undefined' && typeof window.hbSheetLetGo==='function') try{ window.hbSheetLetGo(); }catch(_){ }
   /* a page asked for while signing in is still loading wins over the Counter's landing (Round 1) */

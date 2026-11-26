@@ -23026,3 +23026,5 @@ Noticed, not fixed: package.json's test:cardcollapse and test:themetokens name b
 - Fixed (26 Nov 2026, owner's word): the New agreement tab row sliding half-hidden under the title — now held at the top of the sheet (f1231).
 
 - Noticed, not fixed (26 Nov 2026, the dead-rules clean-up): about 885 rules in index.html style classes nothing in HaTi draws any more, kept only because older checks still name them (e.g. `.ctf-list`, now `ctf-ftable`); those checks describe styling for parts since rebuilt. f1241's ceiling (857) waits for them to be re-pointed. Also red before and after, untouched: "every plural key comes as a complete _one/_other pair", f148 "the two dictionaries stay level", f966 (1) "no button's label starts with a typed mark".
+
+- Removed at the owner's word (26 Nov 2026): "Checked · nothing found" beside a clause with nothing on it (the paper's margin on the Clauses tab) — "Just remove it overall". Not a fault: the removal of a band-like note, logged as the band rule asks.

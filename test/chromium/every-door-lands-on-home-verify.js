@@ -983,7 +983,9 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
          refresh standing on it comes back to it — A REFRESH LANDS AT THE SAME SPOT */
       /* RE-POINTED 16 Nov 2026 (#762): Fill in the contract's ONE way in is pdFillGo (on the paper; the form where the
          paper has no blank) — a refresh standing on it comes back to it */
-      ['on Fill in (MK-A2)', async () => { await onPaperFn('MK-A2'); await page.evaluate(() => pdFillGo('MK-A2')); }, E.fill('MK-A2'), SAYS.fill, null],
+      /* RE-POINTED 26 Nov 2026 (owner: Fill in's bar "sometimes" stood in for the paper's line; a refresh is a move away):
+         a refresh standing on Fill in lands back on the contract's paper, with Fill in put away (its press opens it again) */
+      ['on Fill in (MK-A2)', async () => { await onPaperFn('MK-A2'); await page.evaluate(() => pdFillGo('MK-A2')); }, L => E.paper('MK-A2')(L) && !L.fillOn, SAYS.paper, null],
       ['on Before you sign (MK-A2)', () => page.evaluate(() => pdSignOpen('MK-A2')), E.signing('MK-A2'), SAYS.signing, null],
       /* RE-POINTED 16 Nov 2026 (#762): a contract's obligations open on its paper's Obligations face */
       ['on a contract\'s Obligations (MK-A1)', () => page.evaluate(() => hbOpenView('MK-A1', 'oblig')), E.obTab('MK-A1'), SAYS.obTab, null],
