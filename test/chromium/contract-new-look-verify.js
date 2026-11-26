@@ -14,6 +14,9 @@
    And the switch off:
      6 · the old Dossier and no notes, the paper where it was
    At the parent (before this change) 1–5 fail: none of it is drawn.
+   RE-POINTED 26 Nov 2026 (f1246, #1035, the owner: "For counter party contracts or 3rd party contracts, they should be filled in using their tools"; "You should negotiate or redline a contract and once you are done, you then fill in the contract"): this paper is an UPLOAD, so it is THEIR paper: its
+   two blanks are theirs to fill with their own tools — no blank note, no Fill in on its paper, no form row and no
+   Preamble row for them; the stages read Read · Negotiate · Fill. Sections 0, 1, 3, 5, 10, 13b and 13d say so.
    Run: node test/chromium/contract-new-look-verify.js   (pictures: CONTRACT_SHOTS=<dir>) */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -92,14 +95,15 @@ const READ = () => {
       await until(page, () => typeof roomHomeLand === 'function' && typeof currentUser === 'function' && !!currentUser()
         && typeof getContract === 'function' && !!getContract('MK-A2'), null, 40000);
       await page.evaluate(async () => { await stPrefSet('newLook', true); newLookApply(); roomHomeLand('MK-A2'); });
-      const drawn = await until(page, () => document.querySelectorAll('#pd2-notes .pd2-mg-i').length >= 5 && !!document.querySelector('#ig-dock .pd2-turn')
+      /* RE-POINTED 26 Nov 2026 (f1246, #1035, the owner: "For counter party contracts or 3rd party contracts, they should be filled in using their tools"; "You should negotiate or redline a contract and once you are done, you then fill in the contract"): three notes — the value, the risk, the end date; their paper's blanks are not ours */
+      const drawn = await until(page, () => document.querySelectorAll('#pd2-notes .pd2-mg-i').length >= 3 && !!document.querySelector('#ig-dock .pd2-turn')
         && !!document.getElementById('ig-canvas'), null, 20000);
       check(`${nm} 0 the contract's new look is drawn`, drawn);
       await page.evaluate(() => document.fonts && document.fonts.ready);
       const R = await page.evaluate(READ);
       const F = Object.fromEntries(R.facts.map(f => [f.k, f]));
       check(`${nm} 1 the Dossier: one line of stages, one sentence, what Jambo read, the facts with their sources, his one remark`,
-        /Arrived .*·\s*Read\s*·\s*Fill, \d+ to do\s*·\s*Negotiate\s*·\s*Sign, \d+ to do\s*·\s*Live/.test(R.spine) && ((/before anyone signs/.test(R.next) && R.nextLinks === 1) || /has arrived$/.test(R.next)) /* RE-POINTED 24 Nov 2026 (owner, "build as drawn"): a paper of theirs not yet read heads its card "<name> has arrived" */
+        /Arrived .*·\s*Read\s*·\s*Negotiate\s*·\s*Fill(, \d+ to do)?\s*·\s*Sign, \d+ to do\s*·\s*Live/.test(R.spine) /* RE-POINTED 26 Nov 2026 (f1246, #1035, the owner: "For counter party contracts or 3rd party contracts, they should be filled in using their tools"; "You should negotiate or redline a contract and once you are done, you then fill in the contract"): negotiate, then fill in */ && ((/before anyone signs/.test(R.next) && R.nextLinks === 1) || /has arrived$/.test(R.next)) /* RE-POINTED 24 Nov 2026 (owner, "build as drawn"): a paper of theirs not yet read heads its card "<name> has arrived" */
         && /Jambo/.test(R.read) && (!F.value || (!!F.between && /36,000,000/.test(F.value.s + F.value.v))) /* RE-POINTED 23 Nov 2026 (Dossier L+S step 1, owner: the arrival's facts carry Between and the value, "Show it there", until Jambo's read): the value stands only as an arrival fact beside Between, with the paper's own words */ /* RE-POINTED 22 Nov 2026 (the owner's ruling of 20 Nov 2026, "MONEY IS NEVER A BIG PART OF A PAGE: no money in a side panel", applied to the Dossier in the P-44 review): no Value fact in the panel — the value stays on the paper's own note and in the form */ && F.ends && /§ 4/.test(F.ends.v) /* RE-POINTED 22 Nov 2026 (Dossier L+S as drawn, pd2FactRowLs: where it was read stands in the fact's words, its act at the end) */ && (/renews by itself/.test(F.ends.v) || (F.renews && /Renews itself/.test(F.renews.v))) /* RE-POINTED 24 Nov 2026 (as drawn): renewing has its own row */
         && F.signer && F.signer.s === 'Change' /* RE-POINTED (the harmony review, PAPER LINE HOLDS ALL, owner's yes 9 Nov 2026): a fact that can be changed ends in a green Change link */ && F.stream && F.stream.s === 'filed' && F.approval && F.approval.s === 'Approve' && /§ 2/.test(F.approval.v) /* the same: Approve is answered in the row (Dossier L+S) */ && F.std && /Not checked yet|Checking against the Playbook|Could not check: .+ · Check|\d+ of \d+ met/.test(F.std.v) /* RE-POINTED 19 Nov 2026 (owner picked "B": a contract never checked is checked on its first open, pbCheckOnOpen; f1106): the fact says Not checked yet, Checking…, the refusal with Check, or the ring's count */ && !/call/.test(F.std.v)
         && /Rejection window/.test(R.turn) && !R.old, { spine: R.spine, next: R.next, facts: R.facts, turn: R.turn.slice(0, 80) });
@@ -110,9 +114,12 @@ const READ = () => {
       const ordered = R.notes.every((n, i) => !i || n.top >= R.notes[i - 1].bottom);
       /* by its line: its clause's group stands at the clause, at most a few lines above the words (never below them) */
       const byLine = (re, a) => { const n = four.find(x => re.test(x.k)); return !!n && a != null && n.gTop <= a + 14 && a - n.gTop <= 90; };
-      check(`${nm} 3 the notes: the blanks, the value, the risk, the end date — each by its line, none overlapping, right of the paper`,
-        tones === 'is-owe,is-owe,is-ask,is-risk,is-fact' && ordered && R.notes.every(n => n.left >= R.sheetRight + 8 && n.right <= R.scRight)
-        && byLine(/^Date/, R.anchors.date) && byLine(/^Value/, R.anchors.value) && byLine(/^Rejection/, R.anchors.risk), { tones, notes: four.map(n => [n.k, Math.round(n.top)]), anchors: R.anchors, sheetRight: R.sheetRight });
+      /* RE-POINTED 26 Nov 2026 (f1246, #1035, the owner: "For counter party contracts or 3rd party contracts, they should be filled in using their tools"; "You should negotiate or redline a contract and once you are done, you then fill in the contract"): no note for their paper's blanks — no amber "owe" note and no Fill in on any note; the
+         date's placeholder is on the paper (the GATE: the anchor is found) and stands unasked */
+      const fillNotes = await page.evaluate(() => document.querySelectorAll('#pd2-notes [data-pd2-go="fill"]').length);
+      check(`${nm} 3 the notes: the value, the risk, the end date — each by its line, none overlapping, right of the paper; their blanks unasked`,
+        tones === 'is-ask,is-risk,is-fact' && fillNotes === 0 && R.anchors.date != null && ordered && R.notes.every(n => n.left >= R.sheetRight + 8 && n.right <= R.scRight)
+        && byLine(/^Value/, R.anchors.value) && byLine(/^Rejection/, R.anchors.risk), { tones, fillNotes, notes: four.map(n => [n.k, Math.round(n.top)]), anchors: R.anchors, sheetRight: R.sheetRight });
       /* in the middle, or held left of it only because the notes reach the room's right edge (within 48) */
       check(`${nm} 4 the paper in the middle of its room as far as its notes leave it, never nearer the edge than 40, nothing sideways`,
         R.sheetLeft != null && R.sheetLeft >= 38 && R.offMid != null && (Math.abs(R.offMid) <= 2 || (R.offMid > 0 && R.notesGap != null && R.notesGap >= 0 && R.notesGap <= 48))
@@ -137,24 +144,23 @@ const READ = () => {
         /* 4b the paper scrolls in its own scroller (it once grew to its whole length and stood still) */
         const S = await page.evaluate(() => { const sc = document.getElementById('ig-paper-scroll'); return { client: sc.clientHeight, whole: sc.scrollHeight }; });
         check('4b the paper scrolls', S.whole > S.client + 100, S);
-        /* 5 FILL IN ON THE PAPER (part 3): a note's Fill in turns the paper's blanks into boxes where they stand; what is
-           typed is in the panel's list; nothing is saved until Save; Save stores it (the server holds it) */
-        await page.click('#pd2-notes [data-pd2-go="fill"][data-pd2-key="up_date"]');
-        const boxes = await until(page, () => document.querySelectorAll('#ig-canvas [data-pd2-bl]').length === 2 && !!document.getElementById('pd2-fill-head') && !!document.querySelector('#ig-dock .pd2-dossier.is-fill'), null, 15000);
-        await page.keyboard.type('31 October 2026');
-        const F = await page.evaluate(() => ({ list: (document.querySelector('#ig-dock [data-pd2-fp-row="up_date"] [data-pd2-fp-state]') || {}).textContent || '',
-          stored: (getContract('MK-A2').fields || {}).up_date || '', count: (document.querySelector('[data-pd2-ff-n]') || {}).textContent || '',
-          scrolls: document.getElementById('ig-paper-scroll').scrollHeight > document.getElementById('ig-paper-scroll').clientHeight + 100 }));
-        check('5 a note\'s Fill in fills on the paper: the boxes, the head, the list beside it, nothing saved yet, the paper still scrolls',
-          boxes && /31 October 2026/.test(F.list) && !F.stored && /^1 of \d+ filled/.test(F.count) && F.scrolls, F); /* RE-POINTED (fill in on the paper, the Legora way, owner's pick 11 Nov 2026): the signature lines are spaces to fill too, so the count is of every space, not only the two blanks */
-        /* RE-POINTED 26 Nov 2026 (owner: no Save or Stop on Fill in's bar): the bar's Save is the one save it pressed, pd2FillSave */ 
-        await page.evaluate(() => pd2FillSave());
-        const saved = await until(page, async () => !document.getElementById('pd2-fill-head') && (getContract('MK-A2').fields || {}).up_date === '31 October 2026', null, 10000);
-        /* the save is on its way (persist): asked of the server until it holds it, bounded */
-        const srv = await page.evaluate(async () => { for (let i = 0; i < 40; i++){ const r = await fetch('/api/contracts/MK-A2', { credentials: 'include' }); const j = await r.json(); const v = ((j.contract || j).fields || {}).up_date || ''; if (v) return v; await new Promise(z => setTimeout(z, 250)); } return ''; });
-        check('5b Save stores it through the one writer, and the server holds it', saved && srv === '31 October 2026', { srv });
-        /* put back as it was, so the screens after this one read the same paper */
-        await page.evaluate(async () => { const c = getContract('MK-A2'); contractBlankSet(c, 'up_date', '', { quiet: true, hold: true }); await persist(c); igPaperRefresh(); });
+        /* 5 FILL IN ON THE PAPER (part 3) — RE-POINTED 26 Nov 2026 (f1246, #1035, the owner: "For counter party contracts or 3rd party contracts, they should be filled in using their tools"; "You should negotiate or redline a contract and once you are done, you then fill in the contract"): on their paper the links row's "fill in" (the
+           Dossier's one Fill in door, pdFillGo) says it is their paper, where the reader looks, and turns no space into a
+           box; nothing is written, here or on the server */
+        const before5 = await page.evaluate(() => JSON.stringify([getContract('MK-A2').fields || {}, getContract('MK-A2').fills || null]));
+        const want5 = await page.evaluate(() => i18t('pd2_fill_theirs'));
+        const press5 = await page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .jb-ways button')].find(x => /^fill in$/i.test(x.textContent.trim()));
+          if (!b) return false; b.click(); return true; });
+        const said5 = press5 && await until(page, w => ((document.getElementById('toast-root') || {}).textContent || '').includes(w), want5, 5000);
+        const F5 = await page.evaluate(b => ({ boxes: document.querySelectorAll('#ig-canvas [data-pd2-bl]').length, head: !!document.getElementById('pd2-fill-head'),
+          fill: !!document.querySelector('#ig-dock .pd2-dossier.is-fill'), same: JSON.stringify([getContract('MK-A2').fields || {}, getContract('MK-A2').fills || null]) === b,
+          scrolls: document.getElementById('ig-paper-scroll').scrollHeight > document.getElementById('ig-paper-scroll').clientHeight + 100 }), before5);
+        check('5 their paper: the links row\'s fill in says so, turns no space into a box, writes nothing, the paper still scrolls',
+          press5 && said5 && F5.boxes === 0 && !F5.head && !F5.fill && F5.same && F5.scrolls, { press5, said5, ...F5 });
+        const srv5 = await page.evaluate(async () => { const r = await fetch('/api/contracts/MK-A2', { credentials: 'include' }); const j = await r.json();
+          const f = (j.contract || j).fields || {}; return Object.keys(f).filter(k => /^up_/.test(k) && String(f[k] || '').trim()); });
+        check('5b and the server holds no answer for their paper\'s spaces', Array.isArray(srv5) && srv5.length === 0, { srv5 });
+        await page.evaluate(() => { const t = document.getElementById('toast-root'); if (t) t.innerHTML = ''; });
         /* 7 THE BRIEF IN THE MIDDLE (part 2): its link on the Dossier; every line with its clause and the paper's words;
            "I have read it" recorded for this wording; the Dossier says who read it; ‹ Paper brings the paper back */
         await page.evaluate(() => { pdMidClose(); if (typeof pdFormShows === 'function' && pdFormShows()) pdFormClose(); const c = getContract('MK-A2');
@@ -184,7 +190,9 @@ const READ = () => {
         /* 10 THE FORM IN THE MIDDLE (part 3b): the Dossier's Fill in lays the form flat where the paper was; what is typed is
            said in the Dossier as it is typed; the one Save stores it and brings the paper back */
         await page.evaluate(() => pdFillOpen('MK-A2'));
-        const fm = await until(page, () => !!document.querySelector('[data-pd-mid^="form:"] #pd-og.is-form tr[data-pd-og-row="up_goods"] input') && !!document.querySelector('#ig-dock .pd2-dossier.is-form'), null, 15000);
+        /* RE-POINTED 26 Nov 2026 (f1246, #1035, the owner: "For counter party contracts or 3rd party contracts, they should be filled in using their tools"; "You should negotiate or redline a contract and once you are done, you then fill in the contract"): the form holds no row for their paper's spaces (no up_ row) */
+        const fm = await until(page, () => !!document.querySelector('[data-pd-mid^="form:"] #pd-og.is-form') && !!document.querySelector('#ig-dock .pd2-dossier.is-form'), null, 15000);
+        const upRows = await page.evaluate(() => document.querySelectorAll('[data-pd-mid^="form:"] tr[data-pd-og-row^="up_"]').length);
         /* RE-POINTED (owner picked "The Legora Way" for the form, 12 Nov 2026): ONE quiet list, what is owed first, "§ · quote" */
         const Fg = await page.evaluate(() => ({ groups: [...document.querySelectorAll('[data-pd-mid^="form:"] tbody.pd-fm-g')].map(t => t.className),
           owedFirst: (() => { const rs = [...document.querySelectorAll('[data-pd-mid^="form:"] .pd2-fm-list > tr')]; const i = rs.findIndex(r => !r.hasAttribute('data-pd2-owed')); return i > 0 && rs.slice(i).every(r => !r.hasAttribute('data-pd2-owed')); })(),
@@ -192,12 +200,11 @@ const READ = () => {
           signer: !!document.querySelector('[data-pd-mid^="form:"] .pd2-fm-list tr.pd2-fm-sg[data-pd2-owed] [data-pd-og-sg="tname"]') }));
         check('10a the form as drawn (The Legora Way): one list, owed first, the known facts with "§ · quote", their signer to name',
           Fg.groups.length === 1 && /pd2-fm-list/.test(Fg.groups[0]) && Fg.owedFirst && Fg.known.some(k => /^counterparty:preamble · /i.test(k)) && Fg.known.some(k => /^value:§ 2 · /.test(k)) && Fg.known.some(k => /^ends:§ 4 · /.test(k)) && Fg.known.some(k => /^ours:/.test(k)) && Fg.signer, Fg);
-        await page.fill('[data-pd-mid^="form:"] tr[data-pd-og-row="up_goods"] input', 'raw milk');
-        /* RE-POINTED (The Legora Way): what is typed is counted in the form's own foot ("1 of N filled"), its row's dot green */
-        const said = await until(page, () => /^1 of \d+ filled · nothing is saved until Save$/.test(((document.querySelector('[data-pd-mid^="form:"] [data-pd2-fm-say]') || {}).textContent || '').trim()) && !!document.querySelector('[data-pd-mid^="form:"] tr[data-pd-og-row="up_goods"].is-has'), null, 5000);
-        await page.click('[data-pd-mid^="form:"] [data-pd-fm-save]');
-        const kept = await until(page, () => !document.querySelector('[data-pd-mid]') && (getContract('MK-A2').fields || {}).up_goods === 'raw milk' && !!document.querySelector('#ig-dock .pd2-dossier:not(.is-form)'), null, 10000);
-        check('10 the form in the middle: typed, counted in its foot, stored by the one Save, the paper back', fm && said && kept, { fm, said, kept });
+        /* RE-POINTED 26 Nov 2026 (f1246, #1035, the owner: "For counter party contracts or 3rd party contracts, they should be filled in using their tools"; "You should negotiate or redline a contract and once you are done, you then fill in the contract"): nothing of their paper to type — the form's way back brings the paper back and nothing
+           of their paper's spaces is written */
+        const backed = await page.evaluate(() => { const b = document.querySelector('[data-pd-mid^="form:"] [data-pd-mid-back]'); if (!b) return false; b.click(); return true; });
+        const kept = backed && await until(page, () => !document.querySelector('[data-pd-mid]') && !Object.keys(getContract('MK-A2').fields || {}).some(k => /^up_/.test(k) && String(getContract('MK-A2').fields[k] || '').trim()) && !!document.querySelector('#ig-dock .pd2-dossier:not(.is-form)'), null, 10000);
+        check('10 the form in the middle: no row for their paper\'s spaces, its way back brings the paper back, nothing of theirs written', fm && upRows === 0 && kept, { fm, upRows, backed, kept });
         /* 11 THE READ, WATCHED (part 4): the Dossier's "Watch the read" puts the walk over the paper; played fast it walks
            every clause, each fact lands in its group with its clause, it ends in one sentence and the next doors; it files
            nothing; × puts it away and the paper and its Dossier come back */
@@ -250,8 +257,8 @@ const READ = () => {
           tinted && Cl.notes && Cl.lit && Cl.shown.every(t => t === 'Shown in Clauses ›') && Cl.rows.length === 0, Cl);
         const Cd = await page.evaluate(() => ({ head: ((document.querySelector('#pd-thread .stk-view') || {}).textContent || '').trim(), tabs: !!document.querySelector('#pd-thread .stk-tabs'),
           say: ((document.querySelector('#pd-thread .doc-th-row.stk-b-need .stk-n') || {}).textContent || '').trim(), pre: ((document.querySelector('#pd-thread .stk-pre') || {}).textContent || '').replace(/\s+/g, ' ').trim() }));
-        check('13b Clauses as drawn (your answer): "Clause review · one view for the whole company", no filter tabs, the row says its reading, the Preamble first with its blanks',
-          /^Clause review\s*one view for the whole company/.test(Cd.head) && !Cd.tabs && /* RE-POINTED (owner, 16 Nov 2026: no orange sentence on a clause's row) */ Cd.say === '' && /^Preamble/.test(Cd.pre) && /date/i.test(Cd.pre) && /Fill it in/.test(Cd.pre), Cd);
+        check('13b Clauses as drawn (your answer): "Clause review · one view for the whole company", no filter tabs, the row says its reading, no Preamble row for their blanks',
+          /^Clause review\s*one view for the whole company/.test(Cd.head) && !Cd.tabs && /* RE-POINTED (owner, 16 Nov 2026: no orange sentence on a clause's row) */ Cd.say === '' && Cd.pre === '' /* RE-POINTED 26 Nov 2026 (f1246, #1035, the owner: "For counter party contracts or 3rd party contracts, they should be filled in using their tools"; "You should negotiate or redline a contract and once you are done, you then fill in the contract"): no Preamble row asking their paper's blanks */, Cd);
         /* 13c ALL N IN PLAIN ENGLISH, ONE AT A TIME (owner, 31 Oct 2026): one press reads each clause not yet read, one
            clause per reading, in order (the single-clause reader stood in for: no key in a test); Stop ends it */
         const Al = await page.evaluate(async () => { window.__calls = []; const real = window.docReadRun;
@@ -263,12 +270,10 @@ const READ = () => {
           window.docReadRun = real; return { before, going, calls: window.__calls }; });
         check('13c "All N in plain English" reads one clause at a time, in order, says how far, and Stop ends it',
           /^All \d+ in plain English$/.test(Al.before.trim()) && /Reading one at a time · 1 of \d+/.test(Al.going) && Al.calls.every(x => x.length === 1) && Al.calls.length >= 1 && Al.calls.length <= 2 && (Al.calls.length < 2 || Al.calls[0][0] < Al.calls[1][0]), Al);
-        /* 13d the Preamble's Mark reviewed: the record the server keeps, its Undo; the blanks still owed */
-        await page.click('#pd-thread [data-stk-pre-review=""]');
-        const rv = await until(page, () => /Reviewed ·/.test((document.querySelector('#pd-thread .stk-pre') || {}).textContent || ''), null, 10000);
-        await page.click('#pd-thread [data-stk-pre-review="undo"]');
-        const un = await until(page, () => !!document.querySelector('#pd-thread [data-stk-pre-review=""]') && !(getContract('MK-A2').pointReviews || {}).pblpreamble, null, 10000);
-        check('13d the Preamble: Fill it in · Mark reviewed (kept, and undone) · a blank is filled, never redlined', rv && un);
+        /* 13d RE-POINTED 26 Nov 2026 (f1246, #1035, the owner: "For counter party contracts or 3rd party contracts, they should be filled in using their tools"; "You should negotiate or redline a contract and once you are done, you then fill in the contract"): no Fill it in and no Mark reviewed for their paper's blanks anywhere on the list */
+        const pre13 = await page.evaluate(() => ({ rows: document.querySelectorAll('#pd-thread .doc-th-row').length,
+          pre: document.querySelectorAll('#pd-thread [data-stk-pre-fill], #pd-thread [data-stk-pre-review]').length }));
+        check('13d the Preamble: no Fill it in, no Mark reviewed for their paper\'s blanks', pre13.rows > 0 && pre13.pre === 0, pre13);
         /* 13e START REDLINING, AND BACK (owner, 11 Nov 2026: "when i press redline it stutters by flashing the redlines tab
            first", "when i press back from editor, it takes me to redlines tab as opposed to clauses tab where i started"):
            the editor opens with no frame of the Redlines face before it, and its ‹ says Clauses and lands on the same clause */
@@ -309,9 +314,6 @@ const READ = () => {
         check('13e Start redlining opens the editor with no Redlines frame first; its ‹ says Clauses and lands back on the same clause',
           opened && Fr.flashed === 0 && Fr.back === 'Clauses' && home, { pressed, opened, ...Fr, home });
         await page.evaluate(() => { window.api = window.__apiWas; pdSetTab('copilot'); renderIntelDock(); });
-        /* put back as it was (the form's Save filled "Goods"), held until the server has it, so the next screens read the same paper */
-        await page.evaluate(async () => { const c = getContract('MK-A2'); contractBlankSet(c, 'up_goods', '', { quiet: true, hold: true }); await persist(c);
-          for (let i = 0; i < 40; i++){ const r = await fetch('/api/contracts/MK-A2', { credentials: 'include' }); const j = await r.json(); if (!(((j.contract || j).fields || {}).up_goods)) return; await new Promise(z => setTimeout(z, 250)); } });
         /* RETIRED 16 Nov 2026 (#762): 6 'off: the old Dossier, no notes' — there is no new-look switch any more; the new look is the only look */
       }
       await page.close();
