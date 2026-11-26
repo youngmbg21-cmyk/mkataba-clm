@@ -12,6 +12,9 @@
      6 an ordinary question gets an ordinary answer, never a lesson
      7 the owner's three screens: nothing in the lesson spills past the panel, the drawings use its width
      8 no page errors
+     10 "show me" a chart asked away from the Board lands on the Board and asks its drawing model, never a lesson
+     11 a Board card's "Walk me through this" brings a lesson into Jambo's panel
+     12 a lesson's book drawing offers Put on the Board, which asks the Board for the same chart
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/walk-through-verify.js */
 const fs = require('node:fs');
@@ -44,7 +47,9 @@ const lastUser = body => { const m = (body.messages || []).filter(x => x.role ==
 
 (async () => {
   const ai = await H.startScriptedAi();
-  const answer = body => (body.tools || []).some(t => t.name === 'walk_through') && /HaTi checked the lesson/i.test(lastUser(body))
+  const answer = body => (body.tools || []).some(t => t.name === 'render_graph')
+    ? { content: [{ type: 'tool_use', id: 'tu_g', name: 'render_graph', input: { action: 'filter', answer: '' } }] }
+    : (body.tools || []).some(t => t.name === 'walk_through') && /HaTi checked the lesson/i.test(lastUser(body))
     ? { content: [{ type: 'tool_use', id: 'tu_w2', name: 'walk_through', input: PLAN_RIGHT }] }
     : (body.tools || []).some(t => t.name === 'walk_through') && /procurement folder/i.test(lastUser(body))
     ? { content: [{ type: 'tool_use', id: 'tu_w1', name: 'walk_through', input: PLAN_WRONG }] }
@@ -145,6 +150,38 @@ const lastUser = body => { const m = (body.messages || []).filter(x => x.role ==
     check('9c the sentence with a number no drawing showed was sent back and the corrected one is shown', !!nine && !/\b7\b/.test(nine.say) && /Procurement contracts stand/.test(nine.say), nine && nine.say);
     const sentBack = ai.calls.some(c => /HaTi checked the lesson against its drawings/.test(JSON.stringify(c.body.messages || [])));
     check('9d the stand-in AI was told what the drawings show', sentBack);
+
+    /* ---- 10 · "show me" a chart from another page ends on the Board, which asks its drawing model ---- */
+    const graphsBefore = ai.calls.filter(c => (c.body.tools || []).some(t => t.name === 'render_graph')).length;
+    await A.page.evaluate(() => { setView('obligations'); });
+    await A.until(() => state.view !== 'dashboard' || (typeof hbFace === 'function' && hbFace() !== 'board'), null, 6000);
+    const away = await A.page.evaluate(() => state.view + '/' + (typeof hbFace === 'function' ? hbFace() : ''));
+    await A.page.evaluate(() => caAskAnywhere('show me contracts by stage'));
+    const ten = await A.until(() => (state.view === 'dashboard' && hbFace() === 'board') ? { view: state.view, face: hbFace() } : null, null, 10000);
+    check('10a "show me contracts by stage" asked away from the Board (' + away + ') lands on the Board', !!ten, JSON.stringify(ten));
+    let drew = false; for (let i = 0; i < 60 && !drew; i++){ drew = ai.calls.filter(c => (c.body.tools || []).some(t => t.name === 'render_graph')).length > graphsBefore; if (!drew) await A.page.waitForTimeout(150); }
+    check('10b …and the Board\'s drawing model is asked for the chart (not a lesson, not the chat)', drew);
+    const noLesson = await A.page.evaluate(() => ![...document.querySelectorAll('.lsn')].some(L => /contracts by stage/i.test(L.closest('.jb-turn') ? L.closest('.jb-turn').textContent : '')));
+    check('10c no lesson was started for it', noLesson);
+    const offered = ai.calls.filter(c => /show me contracts by stage/i.test(lastUser(c.body)) && (c.body.tools || []).some(t => t.name === 'walk_through')).length;
+    check('10d the chat was never offered the lesson tool for that chart question (both hosts drop it: chartAsked)', offered === 0, offered + ' calls');
+
+    /* ---- 11 · a Board card's Walk me through this asks a lesson in the panel ---- */
+    const before11 = await A.page.evaluate(() => document.querySelectorAll('.lsn').length);
+    const key11 = await A.page.evaluate(() => { const p = (hbS().panels || [])[0]; return p ? p.key : null; });
+    if (key11) await A.page.evaluate(k => hbWalkThis(k), key11);
+    const eleven = await A.until(n => document.querySelectorAll('#ig-dock .lsn .lsn-step').length && document.querySelectorAll('.lsn').length > n ? true : null, before11, 15000);
+    check('11 a Board card\'s "Walk me through this" brings a lesson into Jambo\'s panel', !!key11 && !!eleven, 'card ' + key11);
+
+    /* ---- 12 · a lesson's drawing goes to the Board with Put on the Board ---- */
+    const tob = await A.page.evaluate(() => { const b = [...document.querySelectorAll('#ig-dock .lsn [data-lsn-act="board"]')].pop(); return b ? b.textContent : null; });
+    check('12a a lesson\'s book drawing offers Put on the Board', !!tob, tob);
+    if (tob){
+      const g0 = ai.calls.filter(c => (c.body.tools || []).some(t => t.name === 'render_graph')).length;
+      await A.page.evaluate(() => [...document.querySelectorAll('#ig-dock .lsn [data-lsn-act="board"]')].pop().click());
+      let g = false; for (let i = 0; i < 60 && !g; i++){ g = ai.calls.slice(-6).some(c => (c.body.tools || []).some(t => t.name === 'render_graph') && /Show me/i.test(JSON.stringify(c.body.messages || []))) && ai.calls.filter(c => (c.body.tools || []).some(t => t.name === 'render_graph')).length > g0; if (!g) await A.page.waitForTimeout(150); }
+      check('12b …and pressing it asks the Board for the same chart, on the Board', g && await A.page.evaluate(() => state.view === 'dashboard' && hbFace() === 'board'));
+    }
 
     /* ---- 7 · the owner's three screens ---- */
     for (const vp of [{ width: 1440, height: 780 }, { width: 1536, height: 730 }, { width: 1366, height: 950 }]){

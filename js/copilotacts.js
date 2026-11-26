@@ -3100,6 +3100,13 @@ function caAskAnywhere(text, opts = {}){
      contract still opens, and a booking still goes to the Calendar (above) */
   const win = !!opts.win;
   /* WALK ME THROUGH IT (js/walkplan.js): a lesson is the conversation's — Home's box on Home, the box's own elsewhere */
+  /* SHOW ME FROM ANY BOX ENDS ON THE BOARD (owner, 27 Nov 2026; js/walkplan.js chartAsked): a chart or KPI question
+     turns to Home's Board and is drawn there; the phone has no Board and answers in words */
+  if (!opts.cal && typeof chartAsked === 'function' && chartAsked(t) && typeof boardShowGo === 'function'
+    && !(typeof mPhone === 'function' && mPhone())
+    && !(typeof state !== 'undefined' && state && state.view === 'dashboard' && ((typeof hbFace === 'function' && hbFace() === 'explorer') || (typeof igPaperInFront === 'function' && igPaperInFront()) || (typeof igHeldAskId === 'function' && igHeldAskId())))){
+    boardShowGo(t); return true;
+  }
   if (!opts.cal && typeof walkAsked === 'function' && walkAsked(t)){
     if (!win && typeof document !== 'undefined' && document.getElementById('igd-input') && typeof intelAsk === 'function'
       && typeof state !== 'undefined' && state && state.view === 'dashboard'){ intelAsk(t); return true; }

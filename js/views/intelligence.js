@@ -3354,13 +3354,13 @@ async function intelAsk(qRaw, opts){
     if(typeof window.teachDid==='function') teachDid('ask'); }
   /* WALK ME THROUGH IT (js/walkplan.js walkAsked): a lesson about one's data is the conversation's, ahead of the
      Board's and the page's own readers, which would take "my contracts" for a place or a picture */
-  if(typeof window.walkAsked==='function'&&walkAsked(q)){
-    intel.history.push({role:'user', text:q});
-    intel.busy=true; renderIntelDock(); updateIntelNote();
-    try{ await intelChatAsk(q); }
-    catch(e){ intel.history.push(igFailTurn(e, q)); }
-    intel.busy=false; renderIntelDock();
-    return;
+  if(typeof window.walkAsked==='function'&&walkAsked(q)) return intelWalkAsk(q);
+  /* SHOW ME, ON THE BOARD (owner, 27 Nov 2026: "Board is for KPIs and charts"): a chart or KPI question asked on Home is
+     drawn on the Board's page by its own drawing model — from the paper, the Dossier or the Calendar the Board comes up
+     first; Explorer keeps its own map (js/walkplan.js chartAsked, the one decider) */
+  /* a question asked of the contract on the paper (or held) stays that contract's */
+  if(typeof window.chartAsked==='function'&&chartAsked(q)&&!igPaperInFront()&&!igHeldAskId()&&!(typeof window.hbFace==='function'&&hbFace()==='explorer')){
+    return boardShowGo(q, { here:true });
   }
   intel.fdTab=false; intel.dayTab=false;
   if(!(opts&&opts.guide)) intel.gdTab=false;
@@ -3682,6 +3682,30 @@ async function igBoardTalkAsk(q){
     if(drew&&typeof window.hbQuestionAsk==='function'&&hbQuestionAsk(q)){ try{ await intelChatAsk(q, { explain:true }); }catch(_){} }
   }, { stay:true });
   return igTalkRun(q, ()=>intelChatAsk(q, { draw:true }));
+}
+/* A LESSON ASKED: the conversation's, in Jambo's panel (a Board card's Walk me through this asks it by name) */
+async function intelWalkAsk(q){
+  q=String(q||'').trim(); if(!q) return;
+  if(intel.busy){ if(typeof jamboAskLater==='function') jamboAskLater(q, ()=>intel.busy, w=>intelWalkAsk(w)); return; }
+  if(!intel.dockOpen){ intel.dockOpen=true; renderIntelDock(); }
+  intel.history.push({role:'user', text:q});
+  intel.busy=true; renderIntelDock(); updateIntelNote();
+  try{ await intelChatAsk(q); }
+  catch(e){ intel.history.push(igFailTurn(e, q)); }
+  intel.busy=false; renderIntelDock();
+}
+/* SHOW ME FROM ANYWHERE ENDS ON THE BOARD: Home turns to the Board (caHomeFace: a sheet with words asks first), the
+   dock opens, and the Board's own chart path draws it (igBoardTalkAsk); the bar's ‹ goes back to where you were */
+async function boardShowGo(q, o){
+  const onBoard=()=>state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='board'&&!igPaperInFront()&&!igHeldAskId();
+  if(!onBoard()){
+    if(typeof window.caHomeFace==='function') caHomeFace('board');
+    else { if(typeof window.setView==='function') setView('dashboard'); if(typeof window.hbSetFace==='function') hbSetFace('board'); }
+    await new Promise(r=>setTimeout(r,0));
+  }
+  if(!intel.dockOpen){ intel.dockOpen=true; renderIntelDock(); if(typeof igSyncDockWidth==='function') igSyncDockWidth(); }
+  void o;
+  return igBoardTalkAsk(q);
 }
 /* the other faces' Jambo tab: each face's OWN brain, its own controls with it — a contract on the paper (or held) is
    asked with its wording (igPaperAsk), any other question goes to the chat; Explorer's is the map's own (intelGraphAsk:
@@ -13017,6 +13041,6 @@ Object.assign(window,{ igBoardTalkFirst, igBoardTalkAsk, igBoardDrawn, igTalkFir
 Object.assign(window,{ igDockKeptCount, igDockForget, igStripPut, IG_DOCK_FILLED_SEL, igOnce, igDockWrite });
 Object.assign(window,{ igMiniBrainHtml, igMiniWake, igMiniModel, igMiniBook, igMiniDraw });
 /* every map tool, and HaTi checks Jambo's reading (Explorer's Jambo audit, 9 Nov 2026) */
-Object.assign(window,{ IG_STEP_DOS, IG_STEP_FIRST, IG_SORT_KEYS, igPartyFind, igStepActs, igOutliersDo, igWalkDo, igMapDoor, igActKind, igFreeReading, igResKinds, igReadingGap, igTrimToAsked, igActWord, igResWords, igChoicesTwoWays, graphWhereLabel, IG_COUNT_SAID_RE, igCountSaid, IG_MAP_CLAIM_RE, igMapSentenceKept, IG_ABBREV_RE, igSentencesOf, igStrayQuoteOff, igMapSentenceHonest, igGapNote, graphRecipeOnScreen,
+Object.assign(window,{ boardShowGo, intelWalkAsk, igPaperInFront, igLessonTake, igLessonSettle, IG_STEP_DOS, IG_STEP_FIRST, IG_SORT_KEYS, igPartyFind, igStepActs, igOutliersDo, igWalkDo, igMapDoor, igActKind, igFreeReading, igResKinds, igReadingGap, igTrimToAsked, igActWord, igResWords, igChoicesTwoWays, graphWhereLabel, IG_COUNT_SAID_RE, igCountSaid, IG_MAP_CLAIM_RE, igMapSentenceKept, IG_ABBREV_RE, igSentencesOf, igStrayQuoteOff, igMapSentenceHonest, igGapNote, graphRecipeOnScreen,
   IG_TOPG_KEYS, IG_TOPG_BY, igGroupOrderClean, igGroupOrderSaid, igGroupOrderRead, IG_GO_VERB_RE, IG_GO_DIR_RE, IG_GO_NOUN_RE, igTopGroups, igTopClean, igTopSame, igTopShape, igTopLabel, igTopHiddenSaid, igTopRun, IG_TOPG_HEAD_RE, IG_TOPG_HEAD2_RE, igTopGroupsWord, igTopOneGroup, IG_TOPG_ONE_RE,
   IG_GROUP_OWN, igTopLensNow, igMapWordOf, igMapReadOf, igMapReadAfter, igMapReadLive, igKeepWords, igKeepShapes, igMapReadNext, igMapReadHtml, igMapReadSet, igMapReadTeach, igMoreHtml, igMorePlace, igMrRepaint, igOneRepaint, IG_MENU_MIN_W, igOneHtml });
